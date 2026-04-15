@@ -50,7 +50,11 @@ import { CLIAutonomousAgent, GoalStatus } from "../lib/autonomous-agent.js";
 import { PromptCompressor } from "../harness/prompt-compressor.js";
 import { feature } from "../lib/feature-flags.js";
 import { recordCompressionMetric } from "../lib/compression-telemetry.js";
-import { fireSessionHook, fireUserPromptSubmit } from "../lib/session-hooks.js";
+import {
+  fireSessionHook,
+  fireUserPromptSubmit,
+  fireAssistantResponse,
+} from "../lib/session-hooks.js";
 import { HookEvents } from "../lib/hook-manager.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
 import {
@@ -1243,21 +1247,34 @@ export async function startAgentRepl(options = {}) {
         prepareCall: defaultPrepareCall,
       });
 
-      if (response) {
-        process.stdout.write(`\n${response}\n\n`);
-        messages.push({ role: "assistant", content: response });
-      } else {
-        process.stdout.write("\n");
+      // Fire AssistantResponse hook with rewrite/suppress support
+      const responseDirective = await fireAssistantResponse(
+        _hookDb,
+        response || "",
+        {
+          sessionId,
+          messageCount: messages.length,
+          provider,
+          model: activeModel,
+        },
+      );
+
+      let effectiveResponse = response;
+      if (responseDirective.suppress) {
+        process.stdout.write(
+          `\n[hook suppress] ${responseDirective.reason || "response suppressed"}\n\n`,
+        );
+        effectiveResponse = "";
+      } else if (responseDirective.response !== (response || "")) {
+        effectiveResponse = responseDirective.response;
       }
 
-      // Fire AssistantResponse hook (fire-and-forget; observational only)
-      await fireSessionHook(_hookDb, HookEvents.AssistantResponse, {
-        sessionId,
-        response: response || "",
-        messageCount: messages.length,
-        provider,
-        model: activeModel,
-      });
+      if (effectiveResponse) {
+        process.stdout.write(`\n${effectiveResponse}\n\n`);
+        messages.push({ role: "assistant", content: effectiveResponse });
+      } else if (!responseDirective.suppress) {
+        process.stdout.write("\n");
+      }
 
       // Auto-save session
       if (sessionId) {
@@ -1265,8 +1282,8 @@ export async function startAgentRepl(options = {}) {
           if (useJsonl) {
             // Append incremental events (user + assistant)
             appendUserMessage(sessionId, effectivePrompt);
-            if (response) {
-              appendAssistantMessage(sessionId, response);
+            if (effectiveResponse) {
+              appendAssistantMessage(sessionId, effectiveResponse);
             }
           } else if (db) {
             saveMessages(db, sessionId, messages);

@@ -16,6 +16,12 @@ import {
   executeHooks,
   getHookStats,
 } from "../lib/hook-manager.js";
+import {
+  SESSION_HOOK_EVENTS,
+  fireSessionHook,
+  fireUserPromptSubmit,
+  fireAssistantResponse,
+} from "../lib/session-hooks.js";
 
 export function registerHookCommand(program) {
   const hook = program.command("hook").description("Lifecycle hook management");
@@ -201,6 +207,77 @@ export function registerHookCommand(program) {
             if (r.result) logger.log(`    ${chalk.gray(r.result)}`);
           }
           logger.info(`Executed ${results.length} hook(s)`);
+        }
+
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // hook fire — session-aware trigger that honors rewrite/abort/suppress
+  // directives (vs. `hook run` which just dumps raw results).
+  hook
+    .command("fire")
+    .description(
+      "Fire a session-level hook (SessionStart/UserPromptSubmit/AssistantResponse/SessionEnd) and honor stdout JSON directives",
+    )
+    .argument("<event>", `One of: ${SESSION_HOOK_EVENTS.join(", ")}`)
+    .option(
+      "--prompt <text>",
+      "Prompt text (UserPromptSubmit only) — used as input to rewrite/abort",
+    )
+    .option(
+      "--response <text>",
+      "Response text (AssistantResponse only) — used as input to rewrite/suppress",
+    )
+    .option("--context <json>", "Extra JSON context", "{}")
+    .option("--json", "Emit machine-readable JSON output")
+    .action(async (event, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+
+        let extra = {};
+        try {
+          extra = JSON.parse(options.context);
+        } catch (_e) {
+          logger.warn("Invalid JSON --context, using empty object");
+        }
+
+        let out;
+        if (event === HookEvents.UserPromptSubmit) {
+          out = await fireUserPromptSubmit(db, options.prompt || "", extra);
+        } else if (event === HookEvents.AssistantResponse) {
+          out = await fireAssistantResponse(db, options.response || "", extra);
+        } else {
+          const results = await fireSessionHook(db, event, extra);
+          out = { results };
+        }
+
+        if (options.json) {
+          logger.log(JSON.stringify(out, null, 2));
+        } else if (event === HookEvents.UserPromptSubmit) {
+          if (out.abort) {
+            logger.log(chalk.yellow(`[abort] ${out.reason || "no reason"}`));
+          } else {
+            logger.log(chalk.cyan("prompt:"), out.prompt);
+          }
+          logger.log(chalk.gray(`(${out.results.length} hook(s) fired)`));
+        } else if (event === HookEvents.AssistantResponse) {
+          if (out.suppress) {
+            logger.log(chalk.yellow(`[suppress] ${out.reason || "no reason"}`));
+          } else {
+            logger.log(chalk.cyan("response:"), out.response);
+          }
+          logger.log(chalk.gray(`(${out.results.length} hook(s) fired)`));
+        } else {
+          logger.log(chalk.gray(`(${out.results.length} hook(s) fired)`));
         }
 
         await shutdown();

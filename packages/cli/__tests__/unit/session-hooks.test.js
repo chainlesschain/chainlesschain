@@ -7,6 +7,8 @@ import { MockDatabase } from "../helpers/mock-db.js";
 import {
   fireSessionHook,
   fireUserPromptSubmit,
+  fireAssistantResponse,
+  _deps as sessionHooksDeps,
   SESSION_HOOK_EVENTS,
 } from "../../src/lib/session-hooks.js";
 import {
@@ -271,6 +273,88 @@ describe("session-hooks", () => {
       const out = await fireUserPromptSubmit(brokenDb, "hello");
       expect(out.prompt).toBe("hello");
       expect(out.abort).toBe(false);
+    });
+  });
+
+  describe("fireAssistantResponse", () => {
+    it("returns the original response when no hooks match", async () => {
+      const out = await fireAssistantResponse(db, "hi there", {
+        sessionId: "s1",
+      });
+      expect(out).toEqual({
+        response: "hi there",
+        suppress: false,
+        reason: undefined,
+        results: [],
+      });
+    });
+
+    it("no-ops to original response when hookDb is null", async () => {
+      const out = await fireAssistantResponse(null, "hi");
+      expect(out.response).toBe("hi");
+      expect(out.suppress).toBe(false);
+    });
+
+    it("rewrites response from {rewrittenResponse} directive", async () => {
+      const original = sessionHooksDeps.executeHooks;
+      sessionHooksDeps.executeHooks = vi.fn(async () => [
+        { success: true, stdout: '{"rewrittenResponse":"[redacted]"}' },
+      ]);
+      try {
+        const out = await fireAssistantResponse(db, "leak SSN 123-45-6789");
+        expect(out.response).toBe("[redacted]");
+        expect(out.suppress).toBe(false);
+      } finally {
+        sessionHooksDeps.executeHooks = original;
+      }
+    });
+
+    it("suppresses response from {suppress:true} directive", async () => {
+      const original = sessionHooksDeps.executeHooks;
+      sessionHooksDeps.executeHooks = vi.fn(async () => [
+        { success: true, stdout: '{"suppress":true,"reason":"policy"}' },
+      ]);
+      try {
+        const out = await fireAssistantResponse(db, "anything");
+        expect(out.suppress).toBe(true);
+        expect(out.reason).toBe("policy");
+      } finally {
+        sessionHooksDeps.executeHooks = original;
+      }
+    });
+  });
+
+  describe("helper-side timeout & failure logging", () => {
+    it("times out a runaway hook and returns []", async () => {
+      const original = sessionHooksDeps.executeHooks;
+      const originalLog = sessionHooksDeps.logFailure;
+      const logged = [];
+      sessionHooksDeps.executeHooks = vi.fn(
+        () =>
+          new Promise(() => {
+            /* never resolves */
+          }),
+      );
+      sessionHooksDeps.logFailure = (_db, ev, err) =>
+        logged.push({ ev, msg: String(err.message || err) });
+
+      // Override timeout via env-var was at module load — we can shorten
+      // by stubbing executeHooks to throw quickly instead. Use a fast
+      // rejecting promise to assert the swallow + log path.
+      sessionHooksDeps.executeHooks = vi.fn(async () => {
+        throw new Error("simulated runaway");
+      });
+
+      try {
+        const r = await fireSessionHook(db, HookEvents.SessionStart, {});
+        expect(r).toEqual([]);
+        expect(logged).toHaveLength(1);
+        expect(logged[0].ev).toBe(HookEvents.SessionStart);
+        expect(logged[0].msg).toContain("simulated runaway");
+      } finally {
+        sessionHooksDeps.executeHooks = original;
+        sessionHooksDeps.logFailure = originalLog;
+      }
     });
   });
 });

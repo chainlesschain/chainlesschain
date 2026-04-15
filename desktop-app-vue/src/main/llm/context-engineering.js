@@ -614,19 +614,47 @@ class ContextEngineering {
         return true;
       }
 
-      const serverName =
-        tool?.serverName ||
-        tool?.mcpServer ||
-        (
-          tags.find((t) => typeof t === "string" && t.startsWith("server:")) ||
-          ""
-        ).replace(/^server:/, "") ||
-        tags.find((t) => t && t !== "mcp" && !t.startsWith("server:"));
+      // Collect every server identifier the tool advertises so a single
+      // server mounted under multiple aliases (e.g. "weather" and
+      // "weather:dev") can be allowed/blocked granularly. Order matters
+      // for backward compat: serverName/mcpServer first, then tag-based.
+      const candidates = new Set();
+      if (tool?.serverName) {
+        candidates.add(tool.serverName);
+      }
+      if (tool?.mcpServer) {
+        candidates.add(tool.mcpServer);
+      }
+      if (Array.isArray(tool?.serverAliases)) {
+        for (const a of tool.serverAliases) {
+          if (a) {
+            candidates.add(a);
+          }
+        }
+      }
+      for (const t of tags) {
+        if (typeof t !== "string") {
+          continue;
+        }
+        if (t.startsWith("server:")) {
+          candidates.add(t.slice("server:".length));
+        } else if (t.startsWith("server-alias:")) {
+          candidates.add(t.slice("server-alias:".length));
+        } else if (t !== "mcp") {
+          candidates.add(t);
+        }
+      }
 
-      if (!serverName) {
+      if (candidates.size === 0) {
         return true;
       } // global/unknown MCP tool — keep
-      return allowed.has(serverName);
+      // A tool passes when ANY of its server identifiers is whitelisted.
+      for (const c of candidates) {
+        if (allowed.has(c)) {
+          return true;
+        }
+      }
+      return false;
     });
   }
 
