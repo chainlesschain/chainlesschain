@@ -2,7 +2,7 @@
 
 **Source**: `src/main/sync/sync-config.js`
 
-**Generated**: 2026-04-15T06:45:25.394Z
+**Generated**: 2026-04-15T08:45:16.083Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/mcp-client-manager.js`
 
-**Generated**: 2026-04-15T06:45:25.449Z
+**Generated**: 2026-04-15T08:45:16.129Z
 
 ---
 
@@ -91,14 +91,26 @@ async connectServer(serverName, serverConfig)
 
 ---
 
-## async disconnectServer(serverName)
+## async disconnect(name)
 
 ```javascript
-async disconnectServer(serverName)
+async disconnect(name)
 ```
 
 * Disconnect from an MCP server
    * @param {string} serverName - Server identifier
+
+---
+
+## async disconnect(name)
+
+```javascript
+async disconnect(name)
+```
+
+* Standard alias for `disconnectServer(name)` to match the CLI MCPClient
+   * API contract used by skill-embedded MCP unmount paths.
+   * @param {string} name
 
 ---
 
