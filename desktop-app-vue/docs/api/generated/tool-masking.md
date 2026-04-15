@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/tool-masking.js`
 
-**Generated**: 2026-04-15T13:31:09.414Z
+**Generated**: 2026-04-15T16:37:39.815Z
 
 ---
 
