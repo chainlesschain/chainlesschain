@@ -50,7 +50,7 @@ import { CLIAutonomousAgent, GoalStatus } from "../lib/autonomous-agent.js";
 import { PromptCompressor } from "../harness/prompt-compressor.js";
 import { feature } from "../lib/feature-flags.js";
 import { recordCompressionMetric } from "../lib/compression-telemetry.js";
-import { fireSessionHook } from "../lib/session-hooks.js";
+import { fireSessionHook, fireUserPromptSubmit } from "../lib/session-hooks.js";
 import { HookEvents } from "../lib/hook-manager.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
 import {
@@ -1161,15 +1161,29 @@ export async function startAgentRepl(options = {}) {
       return;
     }
 
-    // Fire UserPromptSubmit hook (fire-and-forget; observational only)
-    await fireSessionHook(_hookDb, HookEvents.UserPromptSubmit, {
+    // Fire UserPromptSubmit hook with rewrite/abort support.
+    // Hooks may emit {"rewrittenPrompt": "..."} or {"abort": true, "reason": "..."}
+    // via stdout JSON. Failures fall through to the original prompt.
+    const promptDirective = await fireUserPromptSubmit(_hookDb, trimmed, {
       sessionId,
-      prompt: trimmed,
       messageCount: messages.length,
     });
+    if (promptDirective.abort) {
+      logger.info(
+        chalk.yellow(
+          `[hook] prompt aborted${promptDirective.reason ? `: ${promptDirective.reason}` : ""}`,
+        ),
+      );
+      prompt();
+      return;
+    }
+    const effectivePrompt = promptDirective.prompt;
+    if (effectivePrompt !== trimmed) {
+      logger.verbose(`[hook] prompt rewritten by UserPromptSubmit hook`);
+    }
 
     // Add user message
-    messages.push({ role: "user", content: trimmed });
+    messages.push({ role: "user", content: effectivePrompt });
 
     // Slot-filling: detect intent and fill missing parameters interactively
     try {
@@ -1236,12 +1250,21 @@ export async function startAgentRepl(options = {}) {
         process.stdout.write("\n");
       }
 
+      // Fire AssistantResponse hook (fire-and-forget; observational only)
+      await fireSessionHook(_hookDb, HookEvents.AssistantResponse, {
+        sessionId,
+        response: response || "",
+        messageCount: messages.length,
+        provider,
+        model: activeModel,
+      });
+
       // Auto-save session
       if (sessionId) {
         try {
           if (useJsonl) {
             // Append incremental events (user + assistant)
-            appendUserMessage(sessionId, trimmed);
+            appendUserMessage(sessionId, effectivePrompt);
             if (response) {
               appendAssistantMessage(sessionId, response);
             }

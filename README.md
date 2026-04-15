@@ -284,6 +284,19 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 ## ⭐ 当前版本: v5.0.2.10 Evolution Edition (2026-04-06)
 
+### 最新更新 - v5.0.2.9 Polish Round (2026-04-15) 🆕
+
+本轮联合落地 6 项优化，新增 145 测试（unit 131 + integration 11 + e2e 3）全绿，全部向后兼容：
+
+1. **会话钩子第四事件 `AssistantResponse`** + **`UserPromptSubmit` rewrite/abort** — 钩子 stdout 返回 JSON `{rewrittenPrompt}` 改写当轮 prompt，或 `{abort, reason}` 跳过 LLM 调用
+2. **Skill-Embedded MCP 上下文过滤** — `buildOptimizedPrompt({ activeMcpServers })` 只把激活技能挂载的 MCP 服务器工具暴露给 LLM
+3. **`UnifiedToolRegistry` 冷启动优化** — `initialize({ deferSkills: true })` 立即返回，138 技能解析延迟到首次读 API 或 `setImmediate` 后台执行
+4. **Vitest `maxForks=2` OOM 防御** — 6 个核心包 vitest.config.js 统一限制并行度
+5. **`MCPClient.disconnect(name)` 单服务器别名** — 配合 Skill-Embedded MCP mount/unmount 流程
+6. **Category Routing 扩展 `EMBEDDING` / `AUDIO`** — embedding 默认 ollama 优先（本地、免费），audio 默认 openai 优先（whisper/tts）
+
+详见 [`docs/design/modules/89_v5.0.2.9_六项优化_设计说明.md`](./docs/design/modules/89_v5.0.2.9_六项优化_设计说明.md) 与 [更新日志](./docs-site/docs/changelog.md)。
+
 ### 最新更新 - Agent 架构优化 (5 模块 + 4 增强 + 334 测试) ⭐
 
 v5.0.2.9 借鉴 Claude Code 12 层渐进式 harness 架构，为 CLI Agent 新增 5 个核心优化模块 + 4 项增强集成：

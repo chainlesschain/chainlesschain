@@ -13,6 +13,8 @@ export default defineConfig({
     testTimeout: 30000,
     hookTimeout: 120000,
     reporters: ['verbose'],
+    pool: 'forks',
+    poolOptions: { forks: { maxForks: 2, minForks: 1 } },
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{js,vue}'],

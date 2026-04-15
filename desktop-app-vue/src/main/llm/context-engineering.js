@@ -287,7 +287,15 @@ class ContextEngineering {
       tools = [],
       taskContext = null,
       unifiedRegistry = null,
+      // Skill-Embedded MCP filter: when set, MCP tools are restricted to
+      // servers in this whitelist. Non-MCP tools are unaffected. Use null
+      // (default) to disable filtering and expose all MCP tools.
+      activeMcpServers = null,
     } = options;
+
+    const filteredTools = activeMcpServers
+      ? this._filterMcpToolsByServer(tools, activeMcpServers)
+      : tools;
 
     this.stats.totalCalls++;
 
@@ -318,8 +326,8 @@ class ContextEngineering {
         role: "system",
         content: `## Available Tools (by Skill)\n${toolDefinitions}`,
       });
-    } else if (tools.length > 0) {
-      const toolDefinitions = this._serializeToolDefinitions(tools);
+    } else if (filteredTools.length > 0) {
+      const toolDefinitions = this._serializeToolDefinitions(filteredTools);
       result.messages.push({
         role: "system",
         content: `## Available Tools\n${toolDefinitions}`,
@@ -578,6 +586,48 @@ class ContextEngineering {
     );
 
     return cleaned;
+  }
+
+  /**
+   * Restrict MCP tools to a whitelist of server names (Skill-Embedded MCP).
+   * Non-MCP tools (FunctionCaller, skill-bound, etc.) are passed through
+   * untouched. MCP tools are identified by `source === "mcp"` or by the
+   * "mcp" tag; the server is read from `serverName`/tags `server:<name>`.
+   *
+   * @param {Array} tools
+   * @param {Set<string>|Array<string>} whitelist
+   * @returns {Array}
+   * @private
+   */
+  _filterMcpToolsByServer(tools, whitelist) {
+    if (!Array.isArray(tools) || tools.length === 0) {
+      return tools;
+    }
+    const allowed =
+      whitelist instanceof Set ? whitelist : new Set(whitelist || []);
+
+    return tools.filter((tool) => {
+      const tags = Array.isArray(tool?.tags) ? tool.tags : [];
+      const isMcp =
+        tool?.source === "mcp" || tool?.kind === "mcp" || tags.includes("mcp");
+      if (!isMcp) {
+        return true;
+      }
+
+      const serverName =
+        tool?.serverName ||
+        tool?.mcpServer ||
+        (
+          tags.find((t) => typeof t === "string" && t.startsWith("server:")) ||
+          ""
+        ).replace(/^server:/, "") ||
+        tags.find((t) => t && t !== "mcp" && !t.startsWith("server:"));
+
+      if (!serverName) {
+        return true;
+      } // global/unknown MCP tool — keep
+      return allowed.has(serverName);
+    });
   }
 
   /**

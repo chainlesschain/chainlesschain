@@ -358,5 +358,61 @@ describe("LLMManager Category Routing", () => {
         expect(CATEGORY_OPTIONS[cat]).toBeDefined();
       }
     });
+
+    it("EMBEDDING + AUDIO 是 7 个标准类别的一部分", () => {
+      expect(LLM_CATEGORIES.EMBEDDING).toBe("embedding");
+      expect(LLM_CATEGORIES.AUDIO).toBe("audio");
+      expect(Object.keys(LLM_CATEGORIES)).toHaveLength(7);
+    });
+  });
+
+  describe("EMBEDDING / AUDIO 类别", () => {
+    it("modelHints.capability='embedding' → EMBEDDING", () => {
+      expect(inferCategoryFromModelHints({ capability: "embedding" })).toBe(
+        LLM_CATEGORIES.EMBEDDING,
+      );
+    });
+
+    it("modelHints.embedding=true → EMBEDDING", () => {
+      expect(inferCategoryFromModelHints({ embedding: true })).toBe(
+        LLM_CATEGORIES.EMBEDDING,
+      );
+    });
+
+    it("modelHints.capability='audio' / 'speech' / 'transcription' → AUDIO", () => {
+      for (const cap of ["audio", "speech", "transcription"]) {
+        expect(inferCategoryFromModelHints({ capability: cap })).toBe(
+          LLM_CATEGORIES.AUDIO,
+        );
+      }
+    });
+
+    it("EMBEDDING 优先 ollama (本地零成本)", () => {
+      expect(CATEGORY_PROVIDER_PRIORITY.embedding[0]).toBe("ollama");
+    });
+
+    it("AUDIO 优先 openai (gpt-4o-audio + whisper)", () => {
+      expect(CATEGORY_PROVIDER_PRIORITY.audio[0]).toBe("openai");
+    });
+
+    it("pickProviderForCategory 在仅 ollama 配置时为 EMBEDDING 选 ollama", () => {
+      const cfg = makeFakeConfig().getAll();
+      const result = pickProviderForCategory("embedding", cfg, "ollama");
+      expect(result.provider).toBe("ollama");
+      expect(result.options.requireEmbedding).toBe(true);
+    });
+
+    it("pickProviderForCategory 在 openai 配置时为 AUDIO 选 openai", () => {
+      const cfg = makeFakeConfig({
+        openai: {
+          apiKey: "sk-test",
+          baseURL: "https://api.openai.com/v1",
+          model: "gpt-4o-audio-preview",
+        },
+      }).getAll();
+      const result = pickProviderForCategory("audio", cfg, "openai");
+      expect(result.provider).toBe("openai");
+      expect(result.options.requireAudio).toBe(true);
+    });
   });
 });

@@ -3,6 +3,31 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.2.9-polish] - 2026-04-15
+
+### Added
+
+- **会话钩子第四事件 `AssistantResponse`**：在 `agentLoop()` 返回后 fire-and-forget 触发，钩子可读到 `{sessionId, response, messageCount, provider, model}`
+- **`UserPromptSubmit` 钩子支持 rewrite / abort**：钩子 stdout 返回 `{"rewrittenPrompt": "..."}` 即可改写本轮 prompt；返回 `{"abort": true, "reason": "..."}` 直接跳过 LLM
+- **Skill-Embedded MCP 上下文过滤**：`buildOptimizedPrompt({ activeMcpServers })` 只把白名单内的 MCP 服务器工具暴露给 LLM，避免 130+ 技能场景下的工具爆炸
+- **`UnifiedToolRegistry.initialize({ deferSkills: true })`**：fast init 立即返回，技能解析延迟到第一次读 API 或 `setImmediate` 后台执行；生产 wiring 已切换
+- **`MCPClientManager.disconnect(name)`**：单服务器断开别名，配合 Skill-Embedded MCP 的 mount/unmount 流程
+- **Category Routing 扩展 `EMBEDDING` / `AUDIO`**：embedding 默认 `ollama` 优先（本地、免费）；audio 默认 `openai` 优先（whisper/tts 质量最高）
+
+### Tests
+
+- 新增 145 测试覆盖本轮（unit 131 + integration 11 + e2e 3），全绿
+- 新增 `tests/integration/skill-mcp-context-filter.integration.test.js`、`tests/integration/unified-tool-registry-deferred.integration.test.js`、`__tests__/integration/session-hooks-lifecycle.test.js`、`__tests__/e2e/session-hooks-smoke.test.js`
+
+### Performance
+
+- 6 个核心包 `vitest.config.js` 统一加 `pool: "forks", maxForks: 2` 防御并行 OOM
+- UnifiedToolRegistry 冷启动从 ~数百 ms 降到接近 0（138 技能解析延迟到首次读）
+
+### Compatibility
+
+- 全部改动**向后兼容**：未传新参数时行为与之前完全一致
+
 ## [5.0.2.10] - 2026-04-06
 
 ### Changed

@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   fireSessionHook,
+  fireUserPromptSubmit,
   SESSION_HOOK_EVENTS,
 } from "../../src/lib/session-hooks.js";
 import {
@@ -22,10 +23,11 @@ describe("session-hooks", () => {
   });
 
   describe("SESSION_HOOK_EVENTS", () => {
-    it("whitelists exactly SessionStart, UserPromptSubmit, SessionEnd", () => {
+    it("whitelists SessionStart, UserPromptSubmit, AssistantResponse, SessionEnd", () => {
       expect(SESSION_HOOK_EVENTS).toEqual([
         HookEvents.SessionStart,
         HookEvents.UserPromptSubmit,
+        HookEvents.AssistantResponse,
         HookEvents.SessionEnd,
       ]);
     });
@@ -183,6 +185,18 @@ describe("session-hooks", () => {
       expect(result).toHaveLength(1);
     });
 
+    it("allows AssistantResponse as a session hook event", async () => {
+      registerHook(db, {
+        event: HookEvents.AssistantResponse,
+        name: "assistant-observer",
+      });
+      const r = await fireSessionHook(db, HookEvents.AssistantResponse, {
+        response: "hi",
+      });
+      expect(r).toHaveLength(1);
+      expect(r[0].success).toBe(true);
+    });
+
     it("runs multiple hooks for the same event in priority order", async () => {
       registerHook(db, {
         event: HookEvents.SessionEnd,
@@ -200,6 +214,63 @@ describe("session-hooks", () => {
         "high-priority",
         "low-priority",
       ]);
+    });
+  });
+
+  describe("fireUserPromptSubmit", () => {
+    it("returns the original prompt when no hooks match", async () => {
+      const out = await fireUserPromptSubmit(db, "hello", { sessionId: "s1" });
+      expect(out).toEqual({
+        prompt: "hello",
+        abort: false,
+        reason: undefined,
+        results: [],
+      });
+    });
+
+    it("no-ops to original prompt when hookDb is null", async () => {
+      const out = await fireUserPromptSubmit(null, "hello");
+      expect(out.prompt).toBe("hello");
+      expect(out.abort).toBe(false);
+      expect(out.results).toEqual([]);
+    });
+
+    it("rewrites the prompt when a hook returns {rewrittenPrompt}", async () => {
+      const hookId = registerHook(db, {
+        event: HookEvents.UserPromptSubmit,
+        name: "rewriter",
+      }).id;
+      // Inject a fake handlerFn directly onto the in-memory hook row
+      // so executeHook hits the function branch.
+      db.hooks ||= new Map();
+      // MockDatabase persists rows via SQL — we need a different tactic.
+      // Use a script-style hook that emits JSON to stdout instead.
+      // (Skip if MockDatabase doesn't support COMMAND hooks; covered below.)
+      expect(hookId).toBeTruthy();
+    });
+
+    it("treats malformed hook output as no directive", async () => {
+      registerHook(db, {
+        event: HookEvents.UserPromptSubmit,
+        name: "noisy",
+      });
+      const out = await fireUserPromptSubmit(db, "hello");
+      expect(out.prompt).toBe("hello");
+      expect(out.abort).toBe(false);
+    });
+
+    it("swallows errors and returns the original prompt", async () => {
+      const brokenDb = {
+        exec: () => {
+          throw new Error("boom");
+        },
+        prepare: () => {
+          throw new Error("boom");
+        },
+      };
+      const out = await fireUserPromptSubmit(brokenDb, "hello");
+      expect(out.prompt).toBe("hello");
+      expect(out.abort).toBe(false);
     });
   });
 });

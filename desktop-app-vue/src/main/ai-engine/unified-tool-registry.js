@@ -317,11 +317,11 @@ class UnifiedToolRegistry extends EventEmitter {
    * Initialize the unified registry — aggregate all tools and build skill mappings.
    * Concurrent calls are coalesced: only one initialization runs at a time.
    */
-  async initialize() {
+  async initialize(options = {}) {
     if (this._initPromise) {
       return this._initPromise;
     }
-    this._initPromise = this._doInitialize();
+    this._initPromise = this._doInitialize(options);
     try {
       await this._initPromise;
     } finally {
@@ -330,7 +330,11 @@ class UnifiedToolRegistry extends EventEmitter {
   }
 
   /** @private */
-  async _doInitialize() {
+  async _doInitialize(options = {}) {
+    // `deferSkills: true` skips the synchronous skill import so callers
+    // (e.g., production startup) get a fast path; tests and direct-Map
+    // consumers omit it to keep the original eager contract.
+    const deferSkills = options.deferSkills === true;
     if (this._initialized) {
       logger.warn("[UnifiedToolRegistry] Already initialized, refreshing...");
     }
@@ -360,32 +364,71 @@ class UnifiedToolRegistry extends EventEmitter {
       );
     }
 
-    // Step 1: Import FunctionCaller built-in tools
+    // Step 1: Import FunctionCaller built-in tools (cheap, synchronous)
     this._importFunctionCallerTools();
 
     // Step 2: Import MCP tools (already connected servers)
     this._importMCPTools();
 
-    // Step 3: Import Skills metadata and build tool→skill mappings
-    this._importSkills();
-
-    // Step 4: Auto-group remaining tools via ToolSkillMapper
-    this._autoGroupRemainingTools();
-
     this._initialized = true;
+    this._skillsImported = false;
 
-    const duration = Date.now() - startTime;
-    logger.info(
-      "[UnifiedToolRegistry] Initialized in %dms — %d tools, %d skills",
-      duration,
-      this.tools.size,
-      this.skills.size,
-    );
+    if (deferSkills) {
+      const fastDuration = Date.now() - startTime;
+      logger.info(
+        "[UnifiedToolRegistry] Fast init in %dms — %d tools (skills deferred)",
+        fastDuration,
+        this.tools.size,
+      );
+      // Background-import on next tick; first reader still pays cost only
+      // if it arrives before the timer fires.
+      this._skillsImportPromise = new Promise((resolve) => {
+        setImmediate(() => {
+          try {
+            this._ensureSkillsImported();
+          } finally {
+            resolve();
+          }
+        });
+      });
+    } else {
+      // Eager path: preserve the original blocking contract. Direct Map
+      // access (`registry.skills.has(...)`, `registry.tools.get(...)`) and
+      // tests that don't go through the public read API rely on this.
+      this._ensureSkillsImported();
+      const duration = Date.now() - startTime;
+      logger.info(
+        "[UnifiedToolRegistry] Initialized in %dms — %d tools, %d skills",
+        duration,
+        this.tools.size,
+        this.skills.size,
+      );
+    }
 
     this.emit("initialized", {
       toolCount: this.tools.size,
       skillCount: this.skills.size,
     });
+  }
+
+  /**
+   * Synchronously import skills + auto-group on first read. Idempotent.
+   * @private
+   */
+  _ensureSkillsImported() {
+    if (this._skillsImported) {
+      return;
+    }
+    this._skillsImported = true;
+    const t0 = Date.now();
+    this._importSkills();
+    this._autoGroupRemainingTools();
+    logger.info(
+      "[UnifiedToolRegistry] Skills imported in %dms — %d skills total",
+      Date.now() - t0,
+      this.skills.size,
+    );
+    this.emit("skills-ready", { skillCount: this.skills.size });
   }
 
   // ===== Public API =====
@@ -395,6 +438,7 @@ class UnifiedToolRegistry extends EventEmitter {
    * @returns {SkillManifestEntry[]}
    */
   getSkillManifest() {
+    this._ensureSkillsImported();
     return Array.from(this.skills.values()).map((skill) => cloneValue(skill));
   }
 
@@ -409,6 +453,7 @@ class UnifiedToolRegistry extends EventEmitter {
    * @returns {Array} OpenAI-compatible tool definitions
    */
   getToolsForLLM(options = {}) {
+    this._ensureSkillsImported();
     const { activeSkillNames = null, alwaysAvailable = [] } = options;
 
     let allowedToolNames = null;
@@ -453,6 +498,7 @@ class UnifiedToolRegistry extends EventEmitter {
    * @returns {Object|null} { tool, skill }
    */
   getToolContext(toolName) {
+    this._ensureSkillsImported();
     const normalized = this._normalizeToolName(toolName);
     const tool = this.tools.get(normalized);
     if (!tool) {
@@ -472,6 +518,7 @@ class UnifiedToolRegistry extends EventEmitter {
    * @returns {UnifiedTool[]}
    */
   getToolsBySkill(skillName) {
+    this._ensureSkillsImported();
     const skill = this.skills.get(skillName);
     if (!skill) {
       return [];
@@ -487,6 +534,7 @@ class UnifiedToolRegistry extends EventEmitter {
    * @returns {UnifiedTool[]}
    */
   getAllTools() {
+    this._ensureSkillsImported();
     return Array.from(this.tools.values()).map((tool) =>
       cloneToolDescriptor(tool),
     );
@@ -953,7 +1001,8 @@ class UnifiedToolRegistry extends EventEmitter {
     logger.info(
       "[UnifiedToolRegistry] SkillRegistry updated, refreshing skills...",
     );
-    this._importSkills();
+    // Force a re-import on next read; cheaper than running it eagerly.
+    this._skillsImported = false;
     this.emit("tools-updated", { reason: "skill-registry-update" });
   }
 
