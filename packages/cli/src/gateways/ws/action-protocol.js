@@ -275,3 +275,143 @@ export async function handleOrchestrate(server, id, ws, message) {
     });
   }
 }
+
+// ─── Workflow (N1) ───────────────────────────────────────────────────────────
+
+function _cwd(server) {
+  return server.projectRoot || process.cwd();
+}
+
+function _sendError(server, ws, id, code, message) {
+  server._send(ws, { id, type: "error", code, message });
+}
+
+export async function handleWorkflowList(server, id, ws) {
+  try {
+    const { listWorkflows } = await import("../../lib/cowork-workflow.js");
+    const workflows = listWorkflows(_cwd(server));
+    server._send(ws, { id, type: "workflow:list", workflows });
+  } catch (err) {
+    _sendError(server, ws, id, "WORKFLOW_LIST_FAILED", err.message);
+  }
+}
+
+export async function handleWorkflowGet(server, id, ws, message) {
+  const { id: wfId } = message || {};
+  if (!wfId) return _sendError(server, ws, id, "MISSING_ID", "id required");
+  try {
+    const { getWorkflow } = await import("../../lib/cowork-workflow.js");
+    const workflow = getWorkflow(_cwd(server), wfId);
+    server._send(ws, { id, type: "workflow:get", workflow: workflow || null });
+  } catch (err) {
+    _sendError(server, ws, id, "WORKFLOW_GET_FAILED", err.message);
+  }
+}
+
+export async function handleWorkflowSave(server, id, ws, message) {
+  const { workflow } = message || {};
+  if (!workflow || typeof workflow !== "object") {
+    return _sendError(
+      server,
+      ws,
+      id,
+      "INVALID_WORKFLOW",
+      "workflow object required",
+    );
+  }
+  try {
+    const { validateWorkflow, saveWorkflow } =
+      await import("../../lib/cowork-workflow.js");
+    const result = validateWorkflow(workflow);
+    if (!result.valid) {
+      return _sendError(
+        server,
+        ws,
+        id,
+        "WORKFLOW_INVALID",
+        result.errors.join("; "),
+      );
+    }
+    saveWorkflow(_cwd(server), workflow);
+    server._send(ws, {
+      id,
+      type: "workflow:save",
+      saved: true,
+      workflowId: workflow.id,
+    });
+  } catch (err) {
+    _sendError(server, ws, id, "WORKFLOW_SAVE_FAILED", err.message);
+  }
+}
+
+export async function handleWorkflowRemove(server, id, ws, message) {
+  const { id: wfId } = message || {};
+  if (!wfId) return _sendError(server, ws, id, "MISSING_ID", "id required");
+  try {
+    const { removeWorkflow } = await import("../../lib/cowork-workflow.js");
+    const removed = removeWorkflow(_cwd(server), wfId);
+    server._send(ws, { id, type: "workflow:remove", removed });
+  } catch (err) {
+    _sendError(server, ws, id, "WORKFLOW_REMOVE_FAILED", err.message);
+  }
+}
+
+export async function handleWorkflowRun(server, id, ws, message) {
+  const { id: wfId } = message || {};
+  if (!wfId) return _sendError(server, ws, id, "MISSING_ID", "id required");
+
+  try {
+    const { getWorkflow, executeWorkflow } =
+      await import("../../lib/cowork-workflow.js");
+    const workflow = getWorkflow(_cwd(server), wfId);
+    if (!workflow) {
+      return _sendError(
+        server,
+        ws,
+        id,
+        "WORKFLOW_NOT_FOUND",
+        `No workflow: ${wfId}`,
+      );
+    }
+
+    const runId = `wf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    server._send(ws, { id, type: "workflow:started", runId, workflowId: wfId });
+
+    const onStepStart = ({ stepId, message: stepMessage }) => {
+      server._send(ws, {
+        id,
+        type: "workflow:step-start",
+        runId,
+        stepId,
+        message: stepMessage,
+      });
+    };
+    const onStepComplete = (outcome) => {
+      server._send(ws, {
+        id,
+        type: "workflow:step-complete",
+        runId,
+        stepId: outcome?.id,
+        status: outcome?.status,
+        summary: outcome?.result?.summary,
+      });
+    };
+
+    const record = await executeWorkflow({
+      workflow,
+      cwd: _cwd(server),
+      onStepStart,
+      onStepComplete,
+    });
+
+    server._send(ws, {
+      id,
+      type: "workflow:done",
+      runId,
+      status: record?.status || "completed",
+      steps: record?.steps || [],
+    });
+  } catch (err) {
+    _sendError(server, ws, id, "WORKFLOW_RUN_FAILED", err.message);
+  }
+}

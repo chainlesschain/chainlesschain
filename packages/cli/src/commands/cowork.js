@@ -300,17 +300,15 @@ export function registerCoworkCommand(program) {
   tpl
     .command("search [query]")
     .description("Search for Cowork templates on the EvoMap hub")
+    .option("--hub <url>", "EvoMap hub URL")
     .option("--limit <n>", "Max results", "20")
     .option("--json", "Output as JSON")
     .action(async (query, options) => {
-      const [{ searchTemplates, _deps: mpDeps }, { EvoMapClient }] =
-        await Promise.all([
-          import("../lib/cowork-template-marketplace.js"),
-          import("../lib/evomap-client.js"),
-        ]);
-      mpDeps.evomapClient = new EvoMapClient();
+      const { searchTemplatesInHub } =
+        await import("../lib/cowork-evomap-adapter.js");
       try {
-        const results = await searchTemplates(query || "", {
+        const results = await searchTemplatesInHub(query || "", {
+          hubUrl: options.hub,
           limit: parseInt(options.limit, 10) || 20,
         });
         if (options.json) {
@@ -345,15 +343,22 @@ export function registerCoworkCommand(program) {
   tpl
     .command("install <geneId>")
     .description("Install a Cowork template from the EvoMap hub")
-    .action(async (geneId) => {
-      const [{ installTemplate, _deps: mpDeps }, { EvoMapClient }] =
-        await Promise.all([
-          import("../lib/cowork-template-marketplace.js"),
-          import("../lib/evomap-client.js"),
-        ]);
-      mpDeps.evomapClient = new EvoMapClient();
+    .option("--hub <url>", "EvoMap hub URL")
+    .option("--require-signed", "Reject genes without an Ed25519 signature")
+    .option(
+      "--trust <did>",
+      "Only accept genes signed by this DID (repeatable)",
+      (value, prev) => (prev ? [...prev, value] : [value]),
+    )
+    .action(async (geneId, options) => {
+      const { installTemplateFromHub } =
+        await import("../lib/cowork-evomap-adapter.js");
       try {
-        const template = await installTemplate(process.cwd(), geneId);
+        const template = await installTemplateFromHub(process.cwd(), geneId, {
+          hubUrl: options.hub,
+          requireSigned: !!options.requireSigned,
+          trustedDids: options.trust || null,
+        });
         logger.log(
           chalk.green(
             `✓ Installed template '${template.id}' (${template.name})`,
@@ -407,38 +412,39 @@ export function registerCoworkCommand(program) {
   tpl
     .command("publish <templateId>")
     .description("Publish a built-in or installed Cowork template to EvoMap")
-    .requiredOption("--author <name>", "Author name for the published gene")
-    .option("--version <v>", "Gene version", "1.0.0")
-    .option("--description <text>", "Gene description")
-    .option("--tags <list>", "Comma-separated tags")
+    .option("--hub <url>", "EvoMap hub URL")
+    .option("--api-key <key>", "EvoMap API key (or set EVOMAP_API_KEY)")
+    .option(
+      "--sign <did>",
+      "Sign the gene with this DID from the local identity store",
+    )
     .action(async (templateId, options) => {
-      const [
-        { publishTemplate, toShareableTemplate, _deps: mpDeps },
-        { getTemplate },
-        { EvoMapClient },
-      ] = await Promise.all([
-        import("../lib/cowork-template-marketplace.js"),
+      const [{ publishTemplateToHub }, { getTemplate }] = await Promise.all([
+        import("../lib/cowork-evomap-adapter.js"),
         import("../lib/cowork-task-templates.js"),
-        import("../lib/evomap-client.js"),
       ]);
-      mpDeps.evomapClient = new EvoMapClient();
 
       const template = getTemplate(templateId);
-      if (template.id === "free") {
+      if (template.id === "free" && templateId !== "free") {
         logger.error(`Unknown template: ${templateId}`);
         process.exit(1);
       }
-      const shareable = toShareableTemplate(template);
+
+      let signer;
+      if (options.sign) {
+        signer = await _resolveSigner(options.sign);
+      }
+
       try {
-        const result = await publishTemplate(shareable, {
-          author: options.author,
-          version: options.version,
-          description: options.description,
-          tags: options.tags
-            ? options.tags.split(",").map((t) => t.trim())
-            : [],
+        const result = await publishTemplateToHub(template, {
+          hubUrl: options.hub,
+          apiKey: options.apiKey,
+          signer,
         });
-        logger.log(chalk.green(`✓ Published ${result?.id || shareable.id}`));
+        logger.log(
+          chalk.green(`✓ Published ${result?.id || template.id}`) +
+            (signer ? chalk.gray(` (signed by ${signer.did})`) : ""),
+        );
       } catch (err) {
         logger.error(`Publish failed: ${err.message}`);
         process.exit(1);
@@ -594,11 +600,28 @@ export function registerCoworkCommand(program) {
       "Export/import signed Cowork packets (templates or task results)",
     );
 
+  async function _resolveSigner(didQuery) {
+    if (!didQuery) return null;
+    const { getConnection } = await import("../lib/db-connection.js");
+    const { getIdentity } = await import("../lib/did-manager.js");
+    const db = await getConnection();
+    const identity = getIdentity(db, didQuery);
+    if (!identity) {
+      throw new Error(`DID identity not found: ${didQuery}`);
+    }
+    return {
+      did: identity.did,
+      publicKey: identity.public_key,
+      privateKey: identity.secret_key,
+    };
+  }
+
   share
     .command("export-template <id>")
     .description("Export an installed template as a signed packet")
     .requiredOption("--out <file>", "Output packet file (.json)")
     .option("--author <name>", "Author name", "anonymous")
+    .option("--sign <did>", "Sign packet with a local DID identity")
     .action(async (id, options) => {
       const [{ listUserTemplates }, { exportTemplatePacket, writePacket }] =
         await Promise.all([
@@ -611,9 +634,20 @@ export function registerCoworkCommand(program) {
         logger.error(`Template not installed: ${id}`);
         process.exit(1);
       }
-      const packet = exportTemplatePacket(tpl, { author: options.author });
+      let signer = null;
+      try {
+        signer = await _resolveSigner(options.sign);
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+      const packet = exportTemplatePacket(tpl, {
+        author: options.author,
+        signer,
+      });
       writePacket(options.out, packet);
       logger.log(chalk.green(`✓ Wrote template packet to ${options.out}`));
+      if (signer) logger.log(chalk.gray(`  signed by: ${signer.did}`));
     });
 
   share
@@ -621,6 +655,7 @@ export function registerCoworkCommand(program) {
     .description("Export a historical Cowork task result as a signed packet")
     .requiredOption("--out <file>", "Output packet file (.json)")
     .option("--author <name>", "Author name", "anonymous")
+    .option("--sign <did>", "Sign packet with a local DID identity")
     .action(async (taskId, options) => {
       const { findHistoryRecord, exportResultPacket, writePacket } =
         await import("../lib/cowork-share.js");
@@ -629,9 +664,20 @@ export function registerCoworkCommand(program) {
         logger.error(`Task not found in history: ${taskId}`);
         process.exit(1);
       }
-      const packet = exportResultPacket(rec, { author: options.author });
+      let signer = null;
+      try {
+        signer = await _resolveSigner(options.sign);
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+      const packet = exportResultPacket(rec, {
+        author: options.author,
+        signer,
+      });
       writePacket(options.out, packet);
       logger.log(chalk.green(`✓ Wrote result packet to ${options.out}`));
+      if (signer) logger.log(chalk.gray(`  signed by: ${signer.did}`));
     });
 
   share
@@ -639,11 +685,20 @@ export function registerCoworkCommand(program) {
     .description(
       "Import a signed packet (auto-detects template vs result by kind)",
     )
-    .action(async (file) => {
+    .option("--require-signed", "Reject unsigned packets")
+    .option(
+      "--trust <did>",
+      "Accept only packets signed by one of these DIDs (repeatable)",
+      (value, prev) => (prev ? [...prev, value] : [value]),
+    )
+    .action(async (file, options) => {
       const { readPacket, importTemplatePacket, importResultPacket } =
         await import("../lib/cowork-share.js");
       try {
-        const packet = readPacket(file);
+        const packet = readPacket(file, {
+          requireSigned: !!options.requireSigned,
+          trustedDids: options.trust || null,
+        });
         if (packet.kind === "template") {
           const tpl = importTemplatePacket(process.cwd(), packet);
           logger.log(chalk.green(`✓ Imported template '${tpl.id}'`));
@@ -674,6 +729,11 @@ export function registerCoworkCommand(program) {
         logger.log(chalk.gray(`  author:    ${pkt.meta.author}`));
         logger.log(chalk.gray(`  createdAt: ${pkt.meta.createdAt}`));
         logger.log(chalk.gray(`  checksum:  ${pkt.checksum.slice(0, 16)}…`));
+        if (pkt.signature) {
+          logger.log(chalk.gray(`  signed by: ${pkt.signature.did}`));
+        } else {
+          logger.log(chalk.gray(`  signed:    no`));
+        }
       } catch (err) {
         logger.error(err.message);
         process.exit(1);
@@ -806,6 +866,118 @@ export function registerCoworkCommand(program) {
         logger.error(err.message);
         process.exit(1);
       }
+    });
+
+  // cowork observe — unified dashboard over tasks/workflows/schedules
+  const observe = cowork
+    .command("observe")
+    .description(
+      "Aggregate view over Cowork history, workflows, and schedules",
+    );
+
+  observe
+    .command("report", { isDefault: true })
+    .description("Print the aggregate report (default)")
+    .option("--days <n>", "Window size in days", "7")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const { aggregate } = await import("../lib/cowork-observe.js");
+      const windowDays = parseInt(options.days, 10) || 7;
+      const data = aggregate(process.cwd(), { windowDays });
+      if (options.json) {
+        console.log(JSON.stringify(data, null, 2));
+        return;
+      }
+      const pct = (x) => `${Math.round((x || 0) * 100)}%`;
+      logger.log(chalk.bold(`Cowork Observe — last ${data.window.days}d`));
+      logger.log(chalk.gray(`  ${data.window.from} → ${data.window.to}`));
+      logger.log("");
+      logger.log(chalk.cyan("Tasks"));
+      logger.log(`  total:        ${data.tasks.total}`);
+      logger.log(`  completed:    ${data.tasks.completed}`);
+      logger.log(`  failed:       ${data.tasks.failed}`);
+      logger.log(`  success rate: ${pct(data.tasks.successRate)}`);
+      logger.log(`  avg tokens:   ${data.tasks.avgTokens}`);
+      logger.log("");
+      logger.log(chalk.cyan(`Templates (${data.templates.length})`));
+      for (const t of data.templates.slice(0, 5)) {
+        logger.log(
+          `  ${t.templateName || t.templateId}  runs=${t.runs}  success=${pct(t.successRate)}`,
+        );
+      }
+      logger.log("");
+      logger.log(chalk.cyan("Schedules"));
+      logger.log(`  active: ${data.schedules.active}`);
+      for (const n of data.schedules.nextTriggers) {
+        logger.log(
+          chalk.gray(`  next:   ${n.at}  ${n.cron}  (${n.scheduleId || "-"})`),
+        );
+      }
+      if (data.failures.length > 0) {
+        logger.log("");
+        logger.log(chalk.yellow(`Failures (${data.failures.length})`));
+        for (const f of data.failures.slice(0, 3)) {
+          const top = f.commonSummaries?.[0]?.summary || "—";
+          logger.log(
+            `  ${f.templateName || f.templateId}  ×${f.failureCount}  ${top.slice(0, 60)}`,
+          );
+        }
+      }
+    });
+
+  observe
+    .command("serve")
+    .description("Start a read-only HTTP dashboard")
+    .option("--port <n>", "HTTP port (0 for random)", "18820")
+    .option("--host <addr>", "Bind address", "127.0.0.1")
+    .option("--days <n>", "Window size in days", "7")
+    .action(async (options) => {
+      const http = await import("node:http");
+      const { aggregate } = await import("../lib/cowork-observe.js");
+      const { buildHtml } = await import("../lib/cowork-observe-html.js");
+      const windowDays = parseInt(options.days, 10) || 7;
+
+      const server = http.createServer((req, res) => {
+        const urlPath = (req.url || "/").split("?")[0];
+        try {
+          if (urlPath === "/" || urlPath === "/index.html") {
+            const data = aggregate(process.cwd(), { windowDays });
+            const html = buildHtml(data);
+            res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+            res.end(html);
+            return;
+          }
+          if (urlPath === "/api/observe") {
+            const data = aggregate(process.cwd(), { windowDays });
+            res.writeHead(200, {
+              "content-type": "application/json; charset=utf-8",
+            });
+            res.end(JSON.stringify(data));
+            return;
+          }
+          res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
+          res.end("Not found");
+        } catch (err) {
+          res.writeHead(500, { "content-type": "text/plain; charset=utf-8" });
+          res.end(`Error: ${err.message}`);
+        }
+      });
+
+      const port = parseInt(options.port, 10);
+      server.listen(Number.isFinite(port) ? port : 18820, options.host, () => {
+        const addr = server.address();
+        const actualPort = typeof addr === "object" && addr ? addr.port : port;
+        logger.log(
+          chalk.green(
+            `✓ Cowork Observe dashboard at http://${options.host}:${actualPort}/`,
+          ),
+        );
+        logger.log(chalk.gray("  Press Ctrl+C to stop."));
+      });
+
+      process.on("SIGINT", () => {
+        server.close(() => process.exit(0));
+      });
     });
 
   // cowork learning — analyze historical runs

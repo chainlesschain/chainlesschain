@@ -390,6 +390,12 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
           description:
             'Optional tool whitelist for the sub-agent (e.g. ["read_file", "search_files"]). If omitted, all tools are available.',
         },
+        profile: {
+          type: "string",
+          enum: ["explorer", "executor", "design"],
+          description:
+            "Optional declarative profile (from sub-agent-profiles). When set, seeds systemPrompt / tool allowlist / iteration cap. Explicit `tools` overrides the profile allowlist.",
+        },
       },
       required: ["role", "task"],
     },
@@ -401,6 +407,131 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     telemetry: {
       category: "agent",
       tags: ["tool:spawn_sub_agent", "contract:coding-agent", "tier:extension"],
+    },
+  },
+  {
+    name: "web_fetch",
+    title: "Web Fetch",
+    kind: "network",
+    tier: "extension",
+    description:
+      "Fetch a web page or API endpoint over HTTP(S). Returns extracted markdown text by default. Honors allowlist from .chainlesschain/config.json:webFetch.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        url: {
+          type: "string",
+          description: "Absolute http:// or https:// URL to fetch",
+        },
+        format: {
+          type: "string",
+          enum: ["markdown", "text", "html", "json"],
+          description: "Output format (default: markdown)",
+        },
+        maxBytes: {
+          type: "number",
+          description: "Maximum response size in bytes (default: 2000000)",
+        },
+        timeout: {
+          type: "number",
+          description: "Request timeout in ms (default: 15000)",
+        },
+      },
+      required: ["url"],
+    },
+    ...TOOL_POLICY_METADATA.web_fetch,
+    permissions: {
+      level: "readonly",
+      scopes: ["network:read"],
+    },
+    telemetry: {
+      category: "network",
+      tags: ["tool:web_fetch", "contract:coding-agent", "tier:extension"],
+    },
+  },
+  {
+    name: "todo_write",
+    title: "Todo Write",
+    kind: "planning",
+    tier: "extension",
+    description:
+      "Write or update the session's TODO list. Use this to track multi-step work; exactly one item may be in_progress at a time.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        todos: {
+          type: "array",
+          description: "Full TODO list (replaces any existing list)",
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string", description: "Stable identifier" },
+              content: { type: "string", description: "TODO description" },
+              status: {
+                type: "string",
+                enum: ["pending", "in_progress", "completed", "cancelled"],
+                description: "Item state",
+              },
+            },
+            required: ["id", "content", "status"],
+          },
+        },
+      },
+      required: ["todos"],
+    },
+    ...TOOL_POLICY_METADATA.todo_write,
+    permissions: {
+      level: "session",
+      scopes: ["session:write"],
+    },
+    telemetry: {
+      category: "planning",
+      tags: ["tool:todo_write", "contract:coding-agent", "tier:extension"],
+    },
+  },
+  {
+    name: "ask_user_question",
+    title: "Ask User Question",
+    kind: "interaction",
+    tier: "extension",
+    description:
+      "Pause the agent and ask the user a structured question. In non-interactive contexts (headless, WS gateway), returns an error so the agent can proceed autonomously.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        question: {
+          type: "string",
+          description: "Question to show the user",
+        },
+        options: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Optional multiple-choice options. When provided, user picks one (or many if multiSelect=true)",
+        },
+        multiSelect: {
+          type: "boolean",
+          description: "Allow multiple selections (default: false)",
+        },
+        timeoutMs: {
+          type: "number",
+          description: "Max wait for user reply in ms (default: 60000)",
+        },
+      },
+      required: ["question"],
+    },
+    ...TOOL_POLICY_METADATA.ask_user_question,
+    permissions: {
+      level: "readonly",
+      scopes: ["interaction:prompt"],
+    },
+    telemetry: {
+      category: "interaction",
+      tags: [
+        "tool:ask_user_question",
+        "contract:coding-agent",
+        "tier:extension",
+      ],
     },
   },
   {

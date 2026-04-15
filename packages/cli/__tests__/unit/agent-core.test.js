@@ -85,8 +85,8 @@ const {
 const { getPlanModeManager } = await import("../../src/lib/plan-mode.js");
 
 describe("AGENT_TOOLS", () => {
-  it("has 13 tool definitions", () => {
-    expect(AGENT_TOOLS).toHaveLength(13);
+  it("has 16 tool definitions", () => {
+    expect(AGENT_TOOLS).toHaveLength(16);
   });
 
   it("is derived from the canonical coding-agent contract", () => {
@@ -114,6 +114,9 @@ describe("AGENT_TOOLS", () => {
     expect(names).toContain("run_skill");
     expect(names).toContain("list_skills");
     expect(names).toContain("run_code");
+    expect(names).toContain("web_fetch");
+    expect(names).toContain("todo_write");
+    expect(names).toContain("ask_user_question");
   });
 });
 
@@ -887,6 +890,100 @@ describe("executeTool", () => {
   });
 });
 
+describe("executeTool — web_fetch / todo_write / ask_user_question", () => {
+  beforeEach(async () => {
+    const { resetAllStores } = await import("../../src/lib/todo-manager.js");
+    resetAllStores();
+  });
+
+  it("todo_write stores todos keyed by session", async () => {
+    const result = await executeTool(
+      "todo_write",
+      {
+        todos: [
+          { id: "a", content: "step a", status: "pending" },
+          { id: "b", content: "step b", status: "in_progress" },
+        ],
+      },
+      { sessionId: "s-agent-1" },
+    );
+    expect(result.success).toBe(true);
+    expect(result.count).toBe(2);
+    expect(result.summary.in_progress).toBe(1);
+
+    const { getTodos } = await import("../../src/lib/todo-manager.js");
+    expect(getTodos("s-agent-1")).toHaveLength(2);
+  });
+
+  it("todo_write rejects invalid lists", async () => {
+    const result = await executeTool(
+      "todo_write",
+      {
+        todos: [
+          { id: "a", content: "x", status: "in_progress" },
+          { id: "b", content: "y", status: "in_progress" },
+        ],
+      },
+      { sessionId: "s-agent-2" },
+    );
+    expect(result.error).toMatch(/one todo/);
+  });
+
+  it("ask_user_question returns user_not_reachable when interaction lacks askUser", async () => {
+    const result = await executeTool(
+      "ask_user_question",
+      { question: "Proceed?" },
+      { interaction: { emit: () => {} } },
+    );
+    expect(result.error).toBe("user_not_reachable");
+  });
+
+  it("ask_user_question delegates to interaction.askUser and returns answer", async () => {
+    const askUser = vi.fn(async () => "yes");
+    const result = await executeTool(
+      "ask_user_question",
+      { question: "Proceed?", options: ["yes", "no"] },
+      { interaction: { emit: () => {}, askUser } },
+    );
+    expect(askUser).toHaveBeenCalledWith(
+      expect.objectContaining({ question: "Proceed?", options: ["yes", "no"] }),
+    );
+    expect(result.answer).toBe("yes");
+  });
+
+  it("ask_user_question maps USER_TIMEOUT to user_timeout error", async () => {
+    const err = new Error("timed out");
+    err.code = "USER_TIMEOUT";
+    const askUser = vi.fn(async () => {
+      throw err;
+    });
+    const result = await executeTool(
+      "ask_user_question",
+      { question: "Proceed?" },
+      { interaction: { emit: () => {}, askUser } },
+    );
+    expect(result.error).toBe("user_timeout");
+  });
+
+  it("web_fetch blocks invalid URL", async () => {
+    const result = await executeTool(
+      "web_fetch",
+      { url: "not-a-url" },
+      { cwd: process.cwd() },
+    );
+    expect(result.error).toMatch(/web_fetch blocked/);
+  });
+
+  it("web_fetch blocks unsupported protocol", async () => {
+    const result = await executeTool(
+      "web_fetch",
+      { url: "file:///etc/passwd" },
+      { cwd: process.cwd() },
+    );
+    expect(result.error).toMatch(/unsupported protocol/);
+  });
+});
+
 describe("chatWithTools", () => {
   const originalFetch = globalThis.fetch;
 
@@ -927,7 +1024,7 @@ describe("chatWithTools", () => {
     expect(toolNames).not.toContain("run_shell");
     expect(toolNames).not.toContain("run_code");
     expect(toolNames).toContain("read_file");
-    expect(capturedBody.tools.length).toBe(11); // 13 - 2 disabled
+    expect(capturedBody.tools.length).toBe(14); // 16 - 2 disabled
   });
 
   it("can limit coding sessions to the MVP tool set while still allowing host-managed tools", async () => {
@@ -1043,7 +1140,7 @@ describe("chatWithTools", () => {
 
     expect(capturedUrl).toContain("/api/chat");
     expect(capturedBody.tools).toBeDefined();
-    expect(capturedBody.tools.length).toBe(13);
+    expect(capturedBody.tools.length).toBe(16);
     expect(capturedBody.model).toBe("qwen2.5:7b");
   });
 

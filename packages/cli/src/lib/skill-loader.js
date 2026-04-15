@@ -110,6 +110,71 @@ export function parseSkillMd(content) {
 }
 
 /**
+ * Substitute $ARGUMENTS / $1 / $2 / ... placeholders in a skill body.
+ * Inspired by open-agents substituteArguments.
+ *
+ * Rules:
+ *  - $ARGUMENTS → full args string (joined by space if array)
+ *  - $1, $2, ... → positional args (shell-like; split on whitespace if string)
+ *  - Escape $ via $$ → literal $
+ *  - Unmatched placeholders are left as-is (non-destructive)
+ *
+ * @param {string} body - Skill body text
+ * @param {string|string[]} args - Args as raw string or pre-split array
+ * @returns {string}
+ */
+export function substituteArguments(body, args) {
+  if (typeof body !== "string" || body.length === 0) return body || "";
+  let full = "";
+  let positional = [];
+  if (Array.isArray(args)) {
+    positional = args.map((a) => String(a));
+    full = positional.join(" ");
+  } else if (typeof args === "string") {
+    full = args;
+    positional = args.trim() === "" ? [] : args.trim().split(/\s+/);
+  }
+  // Protect literal $$
+  const MARKER = "\u0000DOLLAR\u0000";
+  let out = body.replace(/\$\$/g, MARKER);
+  out = out.replace(/\$ARGUMENTS\b/g, full);
+  out = out.replace(/\$(\d+)/g, (match, idx) => {
+    const i = parseInt(idx, 10) - 1;
+    if (i < 0 || i >= positional.length) return match;
+    return positional[i];
+  });
+  return out.replace(new RegExp(MARKER, "g"), "$");
+}
+
+/**
+ * Prepend `Skill directory: <abs>` line to body so the LLM can resolve
+ * relative paths declared inside the SKILL.md.
+ * Inspired by open-agents injectSkillDirectory.
+ *
+ * @param {string} body
+ * @param {string} skillDir - Absolute path to the skill directory
+ * @returns {string}
+ */
+export function injectSkillDirectory(body, skillDir) {
+  if (!skillDir) return body || "";
+  const header = `Skill directory: ${skillDir}\n\n`;
+  return header + (body || "");
+}
+
+/**
+ * Prepare a skill body for execution: substitute $ARGUMENTS / $N placeholders
+ * and prepend the skill directory header.
+ *
+ * @param {object} skill - Skill metadata (must have .body and .skillDir)
+ * @param {string|string[]} args - Runtime args
+ * @returns {string}
+ */
+export function prepareSkillBody(skill, args) {
+  const withArgs = substituteArguments(skill?.body || "", args);
+  return injectSkillDirectory(withArgs, skill?.skillDir);
+}
+
+/**
  * Multi-layer CLI skill loader
  */
 export class CLISkillLoader {

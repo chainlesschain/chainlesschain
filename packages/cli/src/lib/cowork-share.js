@@ -17,11 +17,12 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { createHash } from "node:crypto";
+import crypto, { createHash } from "node:crypto";
 import {
   toShareableTemplate,
   saveUserTemplate,
 } from "./cowork-template-marketplace.js";
+import { generateDID } from "./did-manager.js";
 
 export const _deps = {
   existsSync,
@@ -30,6 +31,8 @@ export const _deps = {
   writeFileSync,
   now: () => new Date().toISOString(),
 };
+
+const SUPPORTED_SIG_ALG = "Ed25519";
 
 const PACKET_VERSION = 1;
 const PACKET_KINDS = ["template", "result"];
@@ -62,7 +65,13 @@ function sha256Hex(s) {
  * filled with createdAt/cliVersion defaults; checksum is computed over the
  * canonical form of `{ kind, version, payload, meta }`.
  */
-export function buildPacket({ kind, payload, author, cliVersion } = {}) {
+export function buildPacket({
+  kind,
+  payload,
+  author,
+  cliVersion,
+  signer,
+} = {}) {
   if (!PACKET_KINDS.includes(kind)) {
     throw new Error(`kind must be one of ${PACKET_KINDS.join(", ")}`);
   }
@@ -76,7 +85,74 @@ export function buildPacket({ kind, payload, author, cliVersion } = {}) {
   };
   const body = { kind, version: PACKET_VERSION, payload, meta };
   const checksum = sha256Hex(canonicalize(body));
-  return { ...body, checksum };
+  const packet = { ...body, checksum };
+  if (signer) {
+    packet.signature = _signBody(body, signer);
+  }
+  return packet;
+}
+
+// ─── Signatures (Ed25519) ────────────────────────────────────────────────────
+
+function _signBody(body, signer) {
+  if (!signer.did || typeof signer.did !== "string") {
+    throw new Error("signer.did required");
+  }
+  if (!signer.privateKey || !signer.publicKey) {
+    throw new Error("signer.privateKey and signer.publicKey required (hex)");
+  }
+  if (signer.alg && signer.alg !== SUPPORTED_SIG_ALG) {
+    throw new Error(`unsupported signature alg: ${signer.alg}`);
+  }
+  // Verify did matches publicKey (prevents accidental DID spoofing in signer)
+  const expectedDid = generateDID(signer.publicKey);
+  if (signer.did !== expectedDid) {
+    throw new Error(
+      `signer.did does not match publicKey (expected ${expectedDid})`,
+    );
+  }
+  const privKey = crypto.createPrivateKey({
+    key: Buffer.from(signer.privateKey, "hex"),
+    format: "der",
+    type: "pkcs8",
+  });
+  const bytes = Buffer.from(canonicalize(body), "utf-8");
+  const sig = crypto.sign(null, bytes, privKey);
+  return {
+    alg: SUPPORTED_SIG_ALG,
+    did: signer.did,
+    publicKey: signer.publicKey,
+    sig: sig.toString("base64url").replace(/=+$/, ""),
+  };
+}
+
+function _verifySignature(body, signature) {
+  if (!signature || typeof signature !== "object") {
+    return { valid: false, error: "signature missing" };
+  }
+  if (signature.alg !== SUPPORTED_SIG_ALG) {
+    return { valid: false, error: `unsupported alg '${signature.alg}'` };
+  }
+  if (!signature.did || !signature.publicKey || !signature.sig) {
+    return { valid: false, error: "signature fields incomplete" };
+  }
+  const expectedDid = generateDID(signature.publicKey);
+  if (signature.did !== expectedDid) {
+    return { valid: false, error: "did does not match embedded publicKey" };
+  }
+  try {
+    const pubKey = crypto.createPublicKey({
+      key: Buffer.from(signature.publicKey, "hex"),
+      format: "der",
+      type: "spki",
+    });
+    const bytes = Buffer.from(canonicalize(body), "utf-8");
+    const sigBytes = Buffer.from(signature.sig, "base64url");
+    const ok = crypto.verify(null, bytes, pubKey, sigBytes);
+    return { valid: ok, error: ok ? null : "signature invalid" };
+  } catch (err) {
+    return { valid: false, error: `signature verify error: ${err.message}` };
+  }
 }
 
 /**
@@ -103,12 +179,18 @@ export function verifyPacket(packet) {
   if (!packet.checksum) errors.push("checksum missing");
   if (errors.length > 0) return { valid: false, errors };
 
-  const { checksum, ...body } = packet;
+  const { checksum, signature, ...body } = packet;
   const expected = sha256Hex(canonicalize(body));
   if (expected !== checksum) {
     errors.push("checksum mismatch (packet may be corrupted or tampered with)");
   }
-  return { valid: errors.length === 0, errors };
+  if (signature !== undefined) {
+    const sigRes = _verifySignature(body, signature);
+    if (!sigRes.valid) {
+      errors.push(sigRes.error);
+    }
+  }
+  return { valid: errors.length === 0, errors, signed: !!signature };
 }
 
 // ─── Higher-level helpers ────────────────────────────────────────────────────
@@ -117,16 +199,22 @@ export function verifyPacket(packet) {
  * Build a packet from a full Cowork template object. The template is reduced
  * to its shareable fields first.
  */
-export function exportTemplatePacket(template, { author, cliVersion } = {}) {
+export function exportTemplatePacket(
+  template,
+  { author, cliVersion, signer } = {},
+) {
   const payload = toShareableTemplate(template);
-  return buildPacket({ kind: "template", payload, author, cliVersion });
+  return buildPacket({ kind: "template", payload, author, cliVersion, signer });
 }
 
 /**
  * Build a packet from a history record (one line of history.jsonl).
  * Irrelevant internal fields are dropped.
  */
-export function exportResultPacket(historyRecord, { author, cliVersion } = {}) {
+export function exportResultPacket(
+  historyRecord,
+  { author, cliVersion, signer } = {},
+) {
   if (!historyRecord || typeof historyRecord !== "object") {
     throw new Error("historyRecord required");
   }
@@ -139,7 +227,7 @@ export function exportResultPacket(historyRecord, { author, cliVersion } = {}) {
     timestamp: historyRecord.timestamp,
     result: historyRecord.result,
   };
-  return buildPacket({ kind: "result", payload, author, cliVersion });
+  return buildPacket({ kind: "result", payload, author, cliVersion, signer });
 }
 
 /**
@@ -175,7 +263,8 @@ export function writePacket(filePath, packet) {
 /**
  * Read + verify a packet from disk. Throws on verification failure.
  */
-export function readPacket(filePath) {
+export function readPacket(filePath, opts = {}) {
+  const { requireSigned = false, trustedDids = null } = opts;
   if (!_deps.existsSync(filePath)) {
     throw new Error(`Packet not found: ${filePath}`);
   }
@@ -188,6 +277,21 @@ export function readPacket(filePath) {
   }
   const { valid, errors } = verifyPacket(packet);
   if (!valid) throw new Error(`Invalid packet: ${errors.join("; ")}`);
+  if (requireSigned && !packet.signature) {
+    throw new Error(
+      "Invalid packet: signature required but packet is unsigned",
+    );
+  }
+  if (
+    Array.isArray(trustedDids) &&
+    trustedDids.length > 0 &&
+    packet.signature &&
+    !trustedDids.includes(packet.signature.did)
+  ) {
+    throw new Error(
+      `Invalid packet: signer ${packet.signature.did} not in trusted list`,
+    );
+  }
   return packet;
 }
 

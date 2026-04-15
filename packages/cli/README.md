@@ -654,6 +654,16 @@ Web-based daily task collaboration via the `/#/cowork` page. Powered by SubAgent
 
 **Key files**: `src/lib/cowork-task-templates.js` (10 templates), `src/lib/cowork-task-runner.js` (pipeline), `src/gateways/ws/action-protocol.js` (WS handler). **Tests**: 79 (57 unit + 11 integration + 11 E2E).
 
+### Cowork Workflow Editor (v0.47.0, N1)
+
+Form-based Cowork Workflow editor at `/#/workflow` in the Web Panel. Create, edit, run, and export multi-step Cowork DAG workflows — each step invokes a Cowork task with placeholder substitution (`${step.<id>.summary}`) from upstream step outputs. Client-side DFS cycle detection mirrors the backend `validateWorkflow` guard.
+
+**WS protocol**: `workflow-list` / `workflow-get` / `workflow-save` / `workflow-remove` / `workflow-run` (streams `workflow:started` / `step-start` / `step-complete` / `workflow:done`).
+
+**Key files**: `src/gateways/ws/action-protocol.js` (5 handlers), `src/lib/cowork-workflow.js` (CRUD + `executeWorkflow`), `packages/web-panel/src/stores/workflow.js` (Pinia store + `validateLocal`), `packages/web-panel/src/views/WorkflowEditor.vue`. **Tests**: 39 (10 backend unit + 16 frontend store unit + 5 integration + 8 E2E).
+
+> Vue Flow visual canvas (drag-to-connect, branch rendering) is planned as M2.
+
 ---
 
 ## Phase 6: AI Core (Hooks, Workflow, Memory, A2A)

@@ -338,16 +338,53 @@ Session 模式在创建会话时通过 `session-create` 消息的 `systemPromptE
 | `__tests__/unit/cowork-session-extension.test.js` | 7 | 单元测试 |
 | `__tests__/unit/coding-agent-shell-policy.test.js` | 10 | 单元测试 (含 overrides) |
 | `__tests__/integration/cowork-task-workflow.test.js` | 17 | 集成测试 |
+| `__tests__/integration/cowork-workflow-ws-integration.test.js` | 5 | 集成测试 (N1) |
 | `__tests__/e2e/cowork-task-e2e.test.js` | 21 | E2E 测试 |
-| **合计** | **139** | |
+| `__tests__/e2e/cowork-workflow-ws-e2e.test.js` | 8 | E2E 测试 (N1) |
+| `__tests__/unit/cowork-workflow-ws.test.js` | 10 | 单元测试 (N1 后端) |
+| `web-panel/__tests__/unit/workflow-store.test.js` | 16 | 单元测试 (N1 前端) |
+| **合计** | **178** | |
 
 ## 当前验证
 
-- 单元测试: `101/101` 通过
-- 集成测试: `17/17` 通过
-- E2E 测试: `21/21` 通过
+- 单元测试: `127/127` 通过 (含 N1 后端 10 + 前端 16)
+- 集成测试: `22/22` 通过 (含 N1 5)
+- E2E 测试: `29/29` 通过 (含 N1 8)
 - 回归测试 (agent-core + action-protocol): `127/127` 通过
 - Web Panel 构建: 通过
+
+## N1: Workflow 可视化编辑器（v0.47.0）
+
+Web Panel 新增 `/#/workflow` 页面，提供基于表单的 Cowork Workflow CRUD + 运行 UI。
+
+### 核心能力
+
+- **列表 + 编辑表单** — 左列工作流列表，右列 ID/名称/描述 + 步骤编辑器（dependsOn 标签、`${step.<id>.summary}` 占位、`when` 条件）
+- **本地环检测** — `validateLocal()` 通过 DFS 三色标记复核 dependsOn，与后端 `validateWorkflow` 同步
+- **运行日志流** — 订阅 `workflow:started` / `workflow:step-start` / `workflow:step-complete` / `workflow:done` 并实时渲染
+- **导出 JSON** — 一键下载当前工作流定义
+
+### WebSocket 协议
+
+| 请求 type | 响应 type | 说明 |
+|-----------|-----------|------|
+| `workflow-list` | `workflow:list` | 返回所有 `workflows[]` |
+| `workflow-get` (id) | `workflow:get` | 返回 `workflow` 对象，未找到为 `null` |
+| `workflow-save` (workflow) | `workflow:save` | `saved: true, workflowId`；校验失败返回 `error` + `WORKFLOW_INVALID` |
+| `workflow-remove` (id) | `workflow:remove` | `removed: true/false` |
+| `workflow-run` (id) | `workflow:started` → `step-start` → `step-complete` → `workflow:done` | 流式事件；未找到返回 `error` + `WORKFLOW_NOT_FOUND` |
+
+### 关键文件
+
+| 文件 | 说明 |
+|------|------|
+| `packages/cli/src/gateways/ws/action-protocol.js` | 5 个 handler (`handleWorkflow*`) |
+| `packages/cli/src/gateways/ws/message-dispatcher.js` | 路由注册 |
+| `packages/cli/src/lib/cowork-workflow.js` | CRUD + 执行引擎（v0.46.0 复用） |
+| `packages/web-panel/src/stores/workflow.js` | Pinia store + `validateLocal` |
+| `packages/web-panel/src/views/WorkflowEditor.vue` | 表单编辑器视图 |
+
+> **M2 规划**: Vue Flow 可视化画布（drag-to-connect、缩略图、分支渲染）作为独立里程碑跟进，不阻塞 v0.47.0 发布。
 
 ## 演进路线图
 

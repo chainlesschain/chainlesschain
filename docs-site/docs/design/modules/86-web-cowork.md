@@ -2247,3 +2247,34 @@ cowork
 │   └── verify <file>
 └── status
 ```
+
+---
+
+### 2026-04-15 — N1 Workflow 可视化编辑器 M1（v0.47.0）
+
+**落地范围**：Web Panel 表单版编辑器 + 后端 WS CRUD / 运行协议。Vue Flow 画布版延后到 M2。
+
+**后端（CLI）**：
+- `packages/cli/src/gateways/ws/action-protocol.js` — 新增 5 个 handler：`handleWorkflowList` / `handleWorkflowGet` / `handleWorkflowSave` / `handleWorkflowRemove` / `handleWorkflowRun`
+- `packages/cli/src/gateways/ws/message-dispatcher.js` — 路由 `workflow-list` / `workflow-get` / `workflow-save` / `workflow-remove` / `workflow-run`
+- `packages/cli/src/gateways/ws/ws-server.js` — 5 个 `_handleWorkflow*` 委托方法
+- 复用 `cowork-workflow.js` 的 CRUD + `executeWorkflow`，`onStepStart` / `onStepComplete` 回调生成流式事件
+
+**前端（Web Panel）**：
+- `packages/web-panel/src/stores/workflow.js` — Pinia store：`list / get / save / remove / run(id, {onEvent}) / validateLocal / exportJson`；`validateLocal` 实现 DFS 三色标记环检测
+- `packages/web-panel/src/views/WorkflowEditor.vue` — 表单编辑器视图（左侧列表 / 右侧编辑 + 运行日志）
+- `packages/web-panel/src/router/index.js` — 注册 `/workflow` 路由
+- `packages/web-panel/src/components/AppLayout.vue` — 侧边栏增加「工作流编辑」入口（ApartmentOutlined 图标，展开 + 折叠双入口）
+
+**测试**（共 39 项）：
+- 单元 (backend)：`__tests__/unit/cowork-workflow-ws.test.js` — 10 tests ✅
+- 单元 (frontend store)：`web-panel/__tests__/unit/workflow-store.test.js` — 16 tests ✅
+- 集成：`__tests__/integration/cowork-workflow-ws-integration.test.js` — 5 tests ✅（真实文件系统 + stubbed runTask）
+- E2E：`__tests__/e2e/cowork-workflow-ws-e2e.test.js` — 8 tests ✅（`cc serve` 真实进程 + WebSocket）
+
+**bug 修复 / 注意事项**：
+- 运行历史落盘路径为 `.chainlesschain/cowork/workflow-history.jsonl`（非 `workflows/run-history.jsonl`）
+- `onStepComplete` 签名是 `(outcome)`（含 `id`/`status`/`taskId`/`result`），非 `(stepId, status, summary)`
+- `executeWorkflow` 返回 `record`（含 `record.status` 和 `record.steps`），非 `{status, results}`
+- `validateLocal` 与后端 `validateWorkflow` 双校验，防止 Web Panel 提交绕过 id/name 校验
+

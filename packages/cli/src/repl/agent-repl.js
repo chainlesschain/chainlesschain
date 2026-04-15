@@ -39,6 +39,7 @@ import {
 } from "../harness/jsonl-session-store.js";
 import { storeMemory, consolidateMemory } from "../lib/hierarchical-memory.js";
 import { CLIContextEngineering } from "../lib/cli-context-engineering.js";
+import { defaultPrepareCall } from "../lib/turn-context.js";
 import { createChatFn } from "../lib/cowork-adapter.js";
 import {
   detectTaskType,
@@ -1223,6 +1224,9 @@ export async function startAgentRepl(options = {}) {
         apiKey,
         contextEngine,
         iterationBudget,
+        sessionId,
+        cwd: process.cwd(),
+        prepareCall: defaultPrepareCall,
       });
 
       if (response) {

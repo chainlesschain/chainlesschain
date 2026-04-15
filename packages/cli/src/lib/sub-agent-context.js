@@ -61,7 +61,14 @@ export class SubAgentContext {
     this.parentId = options.parentId || null;
     this.role = options.role || "general";
     this.task = options.task || "";
-    this.maxIterations = options.maxIterations || DEFAULT_MAX_ITERATIONS;
+    // Declarative profile (Phase 3) — explorer/executor/design, etc.
+    // Provides systemPrompt + maxIterations + modelHint defaults that
+    // explicit options can still override.
+    this._profile = options.profile || null;
+    this.maxIterations =
+      options.maxIterations ||
+      this._profile?.maxIterations ||
+      DEFAULT_MAX_ITERATIONS;
     this.iterationBudget = options.iterationBudget || null; // shared budget from parent
     this.tokenBudget = options.tokenBudget || null;
     this.inheritedContext = options.inheritedContext || null;
@@ -115,17 +122,22 @@ export class SubAgentContext {
       ? options.extraToolDefinitions
       : [];
     this._externalToolDescriptors =
-      options.externalToolDescriptors && typeof options.externalToolDescriptors === "object"
+      options.externalToolDescriptors &&
+      typeof options.externalToolDescriptors === "object"
         ? options.externalToolDescriptors
         : {};
     this._externalToolExecutors =
-      options.externalToolExecutors && typeof options.externalToolExecutors === "object"
+      options.externalToolExecutors &&
+      typeof options.externalToolExecutors === "object"
         ? options.externalToolExecutors
         : {};
     this._mcpClient = options.mcpClient || null;
 
     // Build isolated system prompt
     const basePrompt = buildSystemPrompt(this.cwd);
+    const profilePrompt = this._profile?.systemPrompt
+      ? `\n\n## Profile: ${this._profile.name}\n${this._profile.systemPrompt}`
+      : "";
     const rolePrompt = `\n\n## Sub-Agent Role: ${this.role}\nYou are a focused sub-agent with the role "${this.role}". Your task is:\n${this.task}\n\nStay focused on this specific task. Be concise and return results directly.`;
     const contextSection = this.inheritedContext
       ? `\n\n## Parent Context\n${this.inheritedContext}`
@@ -133,7 +145,7 @@ export class SubAgentContext {
 
     this.messages.push({
       role: "system",
-      content: basePrompt + rolePrompt + contextSection,
+      content: basePrompt + profilePrompt + rolePrompt + contextSection,
     });
   }
 

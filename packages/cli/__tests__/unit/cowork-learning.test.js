@@ -23,6 +23,62 @@ function installFakeFs(fileContent) {
   return files;
 }
 
+function installFullFakeFs() {
+  const files = new Map();
+  const appended = new Map();
+  _deps.existsSync = vi.fn((p) => files.has(p));
+  _deps.readFileSync = vi.fn((p) => {
+    if (!files.has(p)) throw new Error(`ENOENT: ${p}`);
+    return files.get(p);
+  });
+  _deps.writeFileSync = vi.fn((p, content) => {
+    files.set(p, content);
+  });
+  _deps.mkdirSync = vi.fn(() => {});
+  _deps.appendFileSync = vi.fn((p, content) => {
+    appended.set(p, (appended.get(p) || "") + content);
+    files.set(p, (files.get(p) || "") + content);
+  });
+  _deps.now = vi.fn(() => new Date("2026-04-15T00:00:00Z"));
+  return { files, appended };
+}
+
+function mkStats({
+  templateId = "t1",
+  runs = 15,
+  successRate = 0.5,
+  templateName = "T",
+} = {}) {
+  return {
+    templateId,
+    templateName,
+    runs,
+    successes: Math.round(runs * successRate),
+    failures: runs - Math.round(runs * successRate),
+    successRate,
+    avgTokens: 100,
+    avgIterations: 2,
+    topTools: [],
+    lastRunAt: null,
+  };
+}
+
+function mkFailureEntry({
+  templateId = "t1",
+  failureCount = 5,
+  summaries = [],
+} = {}) {
+  return {
+    templateId,
+    templateName: "T",
+    failureCount,
+    commonSummaries: summaries.length
+      ? summaries
+      : [{ summary: "timeout error occurred", count: failureCount }],
+    examples: [],
+  };
+}
+
 function rec(overrides = {}) {
   return {
     taskId: "t1",
@@ -218,5 +274,202 @@ describe("summarizeFailures", () => {
   it("returns [] when no failures", () => {
     const history = [rec({ status: "completed" })];
     expect(summarizeFailures(history)).toEqual([]);
+  });
+});
+
+describe("N2: buildPatchForTemplate", () => {
+  it("returns null below MIN_RUNS_FOR_PATCH", () => {
+    const stats = mkStats({ runs: MIN_RUNS_FOR_PATCH - 1 });
+    const failures = mkFailureEntry({ failureCount: 5 });
+    expect(buildPatchForTemplate(stats, failures)).toBeNull();
+  });
+
+  it("returns null below MIN_FAILURES_FOR_PATCH", () => {
+    const stats = mkStats({ runs: 20 });
+    const failures = mkFailureEntry({
+      failureCount: MIN_FAILURES_FOR_PATCH - 1,
+    });
+    expect(buildPatchForTemplate(stats, failures)).toBeNull();
+  });
+
+  it("returns null when either argument is missing", () => {
+    expect(buildPatchForTemplate(null, mkFailureEntry())).toBeNull();
+    expect(buildPatchForTemplate(mkStats(), null)).toBeNull();
+  });
+
+  it("returns shaped patch above thresholds", () => {
+    const stats = mkStats({ runs: 15, successRate: 0.6 });
+    const failures = mkFailureEntry({ failureCount: 6 });
+    const patch = buildPatchForTemplate(stats, failures);
+    expect(patch).not.toBeNull();
+    expect(patch.templateId).toBe("t1");
+    expect(patch.runs).toBe(15);
+    expect(patch.failures).toBe(6);
+    expect(patch.failureRate).toBe(0.4);
+    expect(typeof patch.patch).toBe("string");
+    expect(patch.patch.length).toBeGreaterThan(0);
+    expect(Array.isArray(patch.hints)).toBe(true);
+    expect(patch.sampleSummaries.length).toBeGreaterThan(0);
+  });
+
+  it("classifies confidence: high when runs≥30 and rate≥0.4", () => {
+    const stats = mkStats({ runs: 30, successRate: 0.5 });
+    const failures = mkFailureEntry({ failureCount: 15 });
+    expect(buildPatchForTemplate(stats, failures).confidence).toBe("high");
+  });
+
+  it("classifies confidence: medium when runs≥20 and rate≥0.25", () => {
+    const stats = mkStats({ runs: 20, successRate: 0.7 });
+    const failures = mkFailureEntry({ failureCount: 6 });
+    expect(buildPatchForTemplate(stats, failures).confidence).toBe("medium");
+  });
+
+  it("classifies confidence: low otherwise", () => {
+    const stats = mkStats({ runs: 15, successRate: 0.8 });
+    const failures = mkFailureEntry({ failureCount: 3 });
+    expect(buildPatchForTemplate(stats, failures).confidence).toBe("low");
+  });
+});
+
+describe("N2: suggestPromptPatch", () => {
+  it("returns [] for empty history", () => {
+    expect(suggestPromptPatch([])).toEqual([]);
+  });
+
+  it("returns [] when no template qualifies", () => {
+    const history = [
+      rec({ templateId: "a", status: "completed" }),
+      rec({ templateId: "a", status: "failed", result: { summary: "oops" } }),
+    ];
+    expect(suggestPromptPatch(history)).toEqual([]);
+  });
+
+  it("returns sorted patches high→low confidence", () => {
+    const history = [];
+    for (let i = 0; i < 30; i++) {
+      history.push(
+        rec({
+          templateId: "hi",
+          status: i < 15 ? "completed" : "failed",
+          result: { summary: "timeout occurred repeatedly" },
+        }),
+      );
+    }
+    for (let i = 0; i < 20; i++) {
+      history.push(
+        rec({
+          templateId: "med",
+          status: i < 14 ? "completed" : "failed",
+          result: { summary: "parse error found" },
+        }),
+      );
+    }
+    const out = suggestPromptPatch(history);
+    expect(out.length).toBe(2);
+    expect(out[0].templateId).toBe("hi");
+    expect(out[0].confidence).toBe("high");
+    expect(out[1].confidence).toBe("medium");
+  });
+});
+
+describe("N2: loadUserTemplate", () => {
+  it("returns null when file missing", () => {
+    installFullFakeFs();
+    expect(loadUserTemplate("/proj", "tpl-a")).toBeNull();
+  });
+
+  it("returns parsed JSON when present", () => {
+    const { files } = installFullFakeFs();
+    const doc = { templateId: "tpl-a", systemPromptExtension: "hi" };
+    const file = require("path").join(
+      "/proj",
+      ".chainlesschain",
+      "cowork",
+      "user-templates",
+      "tpl-a.json",
+    );
+    files.set(file, JSON.stringify(doc));
+    const loaded = loadUserTemplate("/proj", "tpl-a");
+    expect(loaded).toEqual(doc);
+  });
+
+  it("returns null on invalid JSON", () => {
+    const { files } = installFullFakeFs();
+    const file = require("path").join(
+      "/proj",
+      ".chainlesschain",
+      "cowork",
+      "user-templates",
+      "bad.json",
+    );
+    files.set(file, "{not json");
+    expect(loadUserTemplate("/proj", "bad")).toBeNull();
+  });
+});
+
+describe("N2: applyPromptPatch", () => {
+  it("throws when patch lacks templateId", () => {
+    installFullFakeFs();
+    expect(() => applyPromptPatch("/proj", {})).toThrow(/templateId/);
+  });
+
+  it("writes user-template JSON and appends audit log", () => {
+    const { files, appended } = installFullFakeFs();
+    const patch = {
+      templateId: "tpl-a",
+      templateName: "T A",
+      runs: 15,
+      failures: 6,
+      confidence: "medium",
+      patch: "Double-check assumptions.",
+    };
+    const out = applyPromptPatch("/proj", patch);
+    expect(out.templateId).toBe("tpl-a");
+    expect(out.systemPromptExtension).toBe("Double-check assumptions.");
+    expect(_deps.writeFileSync).toHaveBeenCalled();
+    expect(_deps.mkdirSync).toHaveBeenCalled();
+    expect(_deps.appendFileSync).toHaveBeenCalled();
+    // audit log contains the record
+    const logPaths = [...appended.keys()];
+    expect(logPaths.some((p) => p.endsWith("learning-patches.jsonl"))).toBe(
+      true,
+    );
+    const written = [...files.entries()].find(([k]) =>
+      k.endsWith("tpl-a.json"),
+    );
+    expect(written).toBeDefined();
+    const doc = JSON.parse(written[1]);
+    expect(doc.templateId).toBe("tpl-a");
+    expect(doc.systemPromptExtension).toBe("Double-check assumptions.");
+    expect(doc.updatedAt).toBe("2026-04-15T00:00:00.000Z");
+  });
+
+  it("concatenates existing systemPromptExtension", () => {
+    const { files } = installFullFakeFs();
+    const existingPath = [
+      ...["proj", ".chainlesschain", "cowork", "user-templates", "tpl-a.json"],
+    ].join(require("path").sep);
+    // seed an existing user-template
+    files.set(
+      require("path").join(
+        "/proj",
+        ".chainlesschain",
+        "cowork",
+        "user-templates",
+        "tpl-a.json",
+      ),
+      JSON.stringify({
+        templateId: "tpl-a",
+        systemPromptExtension: "Old guidance.",
+      }),
+    );
+    const out = applyPromptPatch("/proj", {
+      templateId: "tpl-a",
+      patch: "New guidance.",
+      confidence: "low",
+      runs: 10,
+      failures: 3,
+    });
+    expect(out.systemPromptExtension).toBe("Old guidance.\n\nNew guidance.");
   });
 });

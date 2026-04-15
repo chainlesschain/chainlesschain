@@ -62,6 +62,7 @@
             <a-menu-item key="notes"><template #icon><BookOutlined /></template>笔记管理</a-menu-item>
             <a-menu-item key="memory"><template #icon><BranchesOutlined /></template>记忆文件</a-menu-item>
             <a-menu-item key="cron"><template #icon><ClockCircleOutlined /></template>定时任务</a-menu-item>
+            <a-menu-item key="workflow"><template #icon><ApartmentOutlined /></template>工作流编辑</a-menu-item>
             <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template>后台任务</a-menu-item>
           </a-menu-item-group>
           <a-menu-item-group>
@@ -100,6 +101,7 @@
           <a-menu-item key="notes"><template #icon><BookOutlined /></template></a-menu-item>
           <a-menu-item key="memory"><template #icon><BranchesOutlined /></template></a-menu-item>
           <a-menu-item key="cron"><template #icon><ClockCircleOutlined /></template></a-menu-item>
+          <a-menu-item key="workflow"><template #icon><ApartmentOutlined /></template></a-menu-item>
           <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="security"><template #icon><SafetyCertificateOutlined /></template></a-menu-item>
@@ -177,7 +179,7 @@ import {
   DashboardOutlined, MessageOutlined, RocketOutlined, AppstoreOutlined, ApiOutlined,
   FolderOutlined, GlobalOutlined, InfoCircleOutlined,
   ControlOutlined, FileTextOutlined, CloudServerOutlined,
-  BookOutlined, BranchesOutlined, ClockCircleOutlined, ThunderboltOutlined,
+  BookOutlined, BranchesOutlined, ClockCircleOutlined, ThunderboltOutlined, ApartmentOutlined,
   SafetyCertificateOutlined, LockOutlined, WifiOutlined, CodeOutlined, ProjectOutlined,
   WalletOutlined, TeamOutlined, BarChartOutlined, BlockOutlined, CloudUploadOutlined,
   ReadOutlined, KeyOutlined,
