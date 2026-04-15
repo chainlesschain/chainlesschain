@@ -246,10 +246,21 @@ class UnifiedToolRegistry extends EventEmitter {
 
     // v1.1.0: Listen for skill registry changes to auto-refresh
     if (sr) {
-      sr.on?.("skill-registered", () => this._onSkillRegistryUpdate());
-      sr.on?.("skill-unregistered", () => this._onSkillRegistryUpdate());
-      sr.on?.("skill-hot-loaded", () => this._onSkillRegistryUpdate());
-      sr.on?.("skill-hot-unloaded", () => this._onSkillRegistryUpdate());
+      // v5.0.2.10: per-skill granular invalidation when event payload
+      // includes the skill name; falls back to full invalidation when
+      // the upstream emitter doesn't supply one.
+      sr.on?.("skill-registered", (e) =>
+        this._onSkillRegistryUpdate(e?.skillName || e?.name),
+      );
+      sr.on?.("skill-unregistered", (e) =>
+        this._onSkillRegistryUpdate(e?.skillName || e?.name),
+      );
+      sr.on?.("skill-hot-loaded", (e) =>
+        this._onSkillRegistryUpdate(e?.skillName || e?.name),
+      );
+      sr.on?.("skill-hot-unloaded", (e) =>
+        this._onSkillRegistryUpdate(e?.skillName || e?.name),
+      );
     }
   }
 
@@ -987,7 +998,7 @@ class UnifiedToolRegistry extends EventEmitter {
    * Handle SkillRegistry updates — re-import skills (v1.1.0)
    * @private
    */
-  _onSkillRegistryUpdate() {
+  _onSkillRegistryUpdate(skillName) {
     if (!this._initialized) {
       return;
     }
@@ -997,6 +1008,40 @@ class UnifiedToolRegistry extends EventEmitter {
       return;
     }
     this._lastSkillUpdate = Date.now();
+
+    if (
+      skillName &&
+      typeof skillName === "string" &&
+      this.skills.has(skillName)
+    ) {
+      // Granular invalidation: drop just this skill + its bound tools.
+      // Next read API call will re-import only this skill via the
+      // existing _ensureSkillsImported path (which is idempotent and
+      // re-reads the registry).
+      const skill = this.skills.get(skillName);
+      if (skill && Array.isArray(skill.toolNames)) {
+        for (const tn of skill.toolNames) {
+          const norm = this._normalizeToolName(tn);
+          const t = this.tools.get(norm);
+          if (t && t.skillName === skillName) {
+            // Strip skill metadata; keep the underlying tool entry
+            delete t.skillName;
+            delete t.instructions;
+            delete t.examples;
+          }
+        }
+      }
+      this.skills.delete(skillName);
+      this._skillsImported = false; // re-import to pick up the new state
+      logger.info(
+        `[UnifiedToolRegistry] Granular invalidation for skill "${skillName}"`,
+      );
+      this.emit("tools-updated", {
+        reason: "skill-update",
+        skillName,
+      });
+      return;
+    }
 
     logger.info(
       "[UnifiedToolRegistry] SkillRegistry updated, refreshing skills...",

@@ -1,6 +1,12 @@
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
+import os from 'node:os'
+
+const maxForks = Number(
+  process.env.CC_VITEST_MAX_FORKS ||
+    Math.min(4, Math.max(2, Math.floor((os.cpus()?.length || 2) / 2))),
+)
 
 export default defineConfig({
   plugins: [vue()],
@@ -14,7 +20,7 @@ export default defineConfig({
     hookTimeout: 120000,
     reporters: ['verbose'],
     pool: 'forks',
-    poolOptions: { forks: { maxForks: 2, minForks: 1 } },
+    poolOptions: { forks: { maxForks, minForks: 1 } },
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{js,vue}'],

@@ -306,6 +306,17 @@ class MCPClientManager extends EventEmitter {
     return this.disconnectServer(name);
   }
 
+  /**
+   * Standard alias for `connectServer(name, cfg)` symmetric to disconnect().
+   * Lets Skill-Embedded MCP mount/unmount call `connect/disconnect` pairs
+   * with matching names.
+   * @param {string} name
+   * @param {object} config
+   */
+  async connect(name, config) {
+    return this.connectServer(name, config);
+  }
+
   async disconnectServer(serverName) {
     try {
       logger.info(

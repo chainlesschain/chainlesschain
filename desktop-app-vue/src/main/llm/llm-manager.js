@@ -957,17 +957,66 @@ class LLMManager extends EventEmitter {
    * 生成嵌入向量
    * @param {string} text - 文本
    */
-  async embeddings(text) {
+  async embeddings(text, options = {}) {
     if (!this.isInitialized) {
       throw new Error("LLM服务未初始化");
     }
 
+    // Category Routing: when caller passes useCategory:true (or by default
+    // in v5.0.2.9+), resolve the EMBEDDING category to pick the optimal
+    // provider/model for embedding workloads (ollama-first by default).
+    let client = this.client;
+    if (
+      options.useCategory !== false &&
+      typeof this.resolveCategory === "function"
+    ) {
+      try {
+        const resolved = this.resolveCategory("embedding");
+        if (
+          resolved &&
+          resolved.provider &&
+          this.adapters &&
+          this.adapters[resolved.provider]
+        ) {
+          client = this.adapters[resolved.provider];
+        }
+      } catch (_e) {
+        // Resolution failure → fall back to current client
+      }
+    }
+
     try {
-      return await this.client.embeddings(text);
+      return await client.embeddings(text);
     } catch (error) {
       logger.error("[LLMManager] 生成嵌入失败:", error);
       throw error;
     }
+  }
+
+  /**
+   * Resolve the AUDIO category and return an adapter capable of
+   * speech-to-text / text-to-speech. Returns null if no audio-capable
+   * provider is configured. Callers (whisper bridge, TTS pipeline) can
+   * use this instead of hardcoding `this.adapters.openai`.
+   */
+  resolveAudioAdapter() {
+    if (typeof this.resolveCategory !== "function") {
+      return null;
+    }
+    try {
+      const resolved = this.resolveCategory("audio");
+      if (
+        resolved &&
+        resolved.provider &&
+        this.adapters &&
+        this.adapters[resolved.provider]
+      ) {
+        return { adapter: this.adapters[resolved.provider], ...resolved };
+      }
+    } catch (_e) {
+      // Not configured — caller decides whether to error or no-op
+    }
+    return null;
   }
 
   /**

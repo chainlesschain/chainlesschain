@@ -48,6 +48,18 @@ import {
   unmountSkillMcpServers,
 } from "../lib/skill-mcp.js";
 
+/**
+ * Names of MCP servers currently mounted by an in-flight run_skill call.
+ * Populated by run_skill before invoking the handler and cleared in
+ * the finally block. Exposed via getActiveMcpServers() so external
+ * observers (web panel, future LLM prompt builders) can render only
+ * the tools that are actually live for this session.
+ */
+const _activeMcpServers = new Set();
+export function getActiveMcpServers() {
+  return new Set(_activeMcpServers);
+}
+
 const { isReadOnlyGitCommand, normalizeGitCommand } = sharedCodingAgentPolicy;
 const { evaluateShellCommandPolicy } = sharedShellPolicy;
 
@@ -1001,6 +1013,9 @@ async function executeToolInner(
             },
           });
           mountedMcpServers = mountResult.mounted;
+          for (const s of mountedMcpServers) {
+            _activeMcpServers.add(typeof s === "string" ? s : s.name);
+          }
         } catch (err) {
           return attachDescriptor({
             error: `Skill MCP mount failed: ${err.message}`,
@@ -1041,6 +1056,9 @@ async function executeToolInner(
             await unmountSkillMcpServers(mcpClient, mountedMcpServers);
           } catch (_err) {
             // Non-critical — mount/unmount errors don't fail the skill
+          }
+          for (const s of mountedMcpServers) {
+            _activeMcpServers.delete(typeof s === "string" ? s : s.name);
           }
         }
       }
