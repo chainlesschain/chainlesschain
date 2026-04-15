@@ -2,7 +2,7 @@
 
 **Source**: `src/main/utils/resource-monitor.js`
 
-**Generated**: 2026-04-15T13:31:09.334Z
+**Generated**: 2026-04-15T16:37:39.681Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/monitoring/analytics-manager.js`
 
-**Generated**: 2026-04-15T13:31:09.375Z
+**Generated**: 2026-04-15T16:37:39.744Z
 
 ---
 

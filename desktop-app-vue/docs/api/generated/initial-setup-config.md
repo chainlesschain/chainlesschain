@@ -2,7 +2,7 @@
 
 **Source**: `src/main/config/initial-setup-config.js`
 
-**Generated**: 2026-04-15T13:31:09.403Z
+**Generated**: 2026-04-15T16:37:39.791Z
 
 ---
 
