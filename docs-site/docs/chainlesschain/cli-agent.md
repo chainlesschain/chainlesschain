@@ -25,7 +25,7 @@ agent 命令 → agent.js (Commander) → agent-repl.js
      ┌──────────┬──────────┬─────────────┼──────────────┬─────────────┬──────────┐
      ▼          ▼          ▼             ▼              ▼             ▼          ▼
   工具系统   Plan Mode  Hook管道   Context Engine    会话管理    Autonomous  Bootstrap
- (9 tools)  (plan-mode) (hook-     (cli-context-    (session-    Agent     (bootstrap.js)
+ (16 tools) (plan-mode) (hook-     (cli-context-    (session-    Agent     (bootstrap.js)
                         manager)    engineering.js)  manager)   (ReAct)        │
      │          │          │             │              │          │      7-stage init
      ▼          ▼          ▼             ▼              ▼          ▼        (DB/Config)
@@ -71,19 +71,26 @@ chainlesschain agent --session <id>     # 恢复历史会话
 
 ## 内置工具
 
-代理模式提供 9 个内置工具：
+代理模式提供 16 个内置工具（v0.47.0）：
 
-| 工具           | 说明                 |
-| -------------- | -------------------- |
-| `read_file`    | 读取文件内容         |
-| `write_file`   | 写入文件             |
-| `edit_file`    | 编辑文件（查找替换） |
-| `run_shell`    | 执行 Shell 命令（超时 60s，输出截断 30KB） |
-| `search_files` | 搜索文件内容         |
-| `list_dir`     | 列出目录内容         |
-| `run_skill`    | 运行内置技能         |
-| `list_skills`  | 列出可用技能         |
-| `run_code`     | 编写并执行代码（Python/Node.js/Bash），超时 1-300s，输出截断 50KB |
+| 工具                | 说明                 |
+| ------------------- | -------------------- |
+| `read_file`         | 读取文件内容（支持 `hashed: true` 返回带哈希锚点的内容） |
+| `write_file`        | 写入文件             |
+| `edit_file`         | 编辑文件（查找替换） |
+| `edit_file_hashed`  | 基于内容哈希锚点的行编辑（抗空白/行号漂移） |
+| `run_shell`         | 执行 Shell 命令（超时 60s，输出截断 30KB） |
+| `git`               | Git 操作封装（status / diff / log / commit 等） |
+| `search_files`      | 搜索文件内容         |
+| `search_sessions`   | 跨历史会话语义搜索   |
+| `list_dir`          | 列出目录内容         |
+| `run_skill`         | 运行内置技能         |
+| `list_skills`       | 列出可用技能         |
+| `run_code`          | 编写并执行代码（Python/Node.js/Bash），超时 1-300s，输出截断 50KB |
+| `spawn_sub_agent`   | 分派独立上下文的子代理（支持 `profile: explorer/executor/design`） |
+| `web_fetch`         | 抓取 URL 内容（默认拒绝私网 / SSRF 防护） |
+| `todo_write`        | 会话级待办清单（open-agents 对标） |
+| `ask_user_question` | 主动向用户提问并阻塞等待回答 |
 
 ### run_code 工具详情
 
