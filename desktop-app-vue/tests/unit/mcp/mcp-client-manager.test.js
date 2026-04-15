@@ -233,6 +233,15 @@ describe("MCPClientManager", () => {
       // Should not throw
       await manager.disconnectServer("non-existent");
     });
+
+    it("disconnect(name) is an alias for disconnectServer(name)", async () => {
+      const serverConfig = { command: "npx", args: [] };
+      await manager.connectServer("alias-server", serverConfig);
+      expect(manager.servers.has("alias-server")).toBe(true);
+
+      await manager.disconnect("alias-server");
+      expect(manager.servers.has("alias-server")).toBe(false);
+    });
   });
 
   describe("Tool Operations", () => {

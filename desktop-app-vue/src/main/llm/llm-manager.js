@@ -1925,6 +1925,8 @@ const LLM_CATEGORIES = Object.freeze({
   REASONING: "reasoning", // 推理密集（o1 / deepseek-r1 / claude thinking）
   VISION: "vision", // 多模态（截图 / OCR / 图像理解）
   CREATIVE: "creative", // 文案 / UI / 高发散
+  EMBEDDING: "embedding", // 向量嵌入（RAG / 语义搜索 / nomic-embed-text）
+  AUDIO: "audio", // 语音 / 转写 / TTS（gpt-4o-audio / whisper / gemini）
 });
 
 /**
@@ -1973,6 +1975,12 @@ const CATEGORY_PROVIDER_PRIORITY = Object.freeze({
     "custom",
     "ollama",
   ],
+  // Embedding: prefer local nomic-embed-text via Ollama for privacy + zero cost,
+  // then OpenAI text-embedding-3 family, then other API providers.
+  embedding: ["ollama", "openai", "volcengine", "gemini", "custom"],
+  // Audio: gpt-4o-audio + whisper dominate; gemini handles native audio in/out;
+  // fall back to custom (OpenAI-compatible whisper proxies) or local.
+  audio: ["openai", "gemini", "volcengine", "custom", "ollama"],
 });
 
 /**
@@ -1984,6 +1992,8 @@ const CATEGORY_OPTIONS = Object.freeze({
   reasoning: { temperature: 0.1 },
   vision: { requireMultimodal: true },
   creative: { temperature: 0.9 },
+  embedding: { requireEmbedding: true },
+  audio: { requireAudio: true },
 });
 
 /**
@@ -2045,6 +2055,17 @@ function inferCategoryFromModelHints(modelHints) {
   }
   if (capability === "creative") {
     return LLM_CATEGORIES.CREATIVE;
+  }
+  if (capability === "embedding" || modelHints.embedding === true) {
+    return LLM_CATEGORIES.EMBEDDING;
+  }
+  if (
+    capability === "audio" ||
+    capability === "speech" ||
+    capability === "transcription" ||
+    modelHints.audio === true
+  ) {
+    return LLM_CATEGORIES.AUDIO;
   }
   return LLM_CATEGORIES.QUICK;
 }

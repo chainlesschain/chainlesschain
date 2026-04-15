@@ -297,6 +297,15 @@ class MCPClientManager extends EventEmitter {
    * Disconnect from an MCP server
    * @param {string} serverName - Server identifier
    */
+  /**
+   * Standard alias for `disconnectServer(name)` to match the CLI MCPClient
+   * API contract used by skill-embedded MCP unmount paths.
+   * @param {string} name
+   */
+  async disconnect(name) {
+    return this.disconnectServer(name);
+  }
+
   async disconnectServer(serverName) {
     try {
       logger.info(

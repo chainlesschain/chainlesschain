@@ -216,9 +216,10 @@ function registerPhases9to15({
         );
       }
 
-      // Initialize asynchronously (non-blocking), then bind to ManusOptimizations
+      // Initialize asynchronously (non-blocking) with deferred skill import
+      // for faster main-process startup; reads trigger import on demand.
       unifiedToolRegistry
-        .initialize()
+        .initialize({ deferSkills: true })
         .then(() => {
           // Wire into ManusOptimizations so AI conversations get skill context in prompts
           if (llmManager?.manusOptimizations?.bindUnifiedRegistry) {
