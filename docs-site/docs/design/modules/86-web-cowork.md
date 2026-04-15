@@ -2066,3 +2066,71 @@ history.jsonl (执行记录)
 **安全设计**: 仅 `web-research` 和 `network-tools` 两个模板声明 override，其他模板和普通 agent 会话仍受 DENY 保护。Override 只能降级为 WARN (不能绕过 REROUTE)。
 
 **新增/更新测试**: shell-policy +5, templates +4, runner +3, session-extension +2 = 14 tests
+
+---
+
+## 2026-04-15 — Cowork Evolution v0.46.0（9 项演进特性）
+
+本节汇总 v0.45.81 → v0.46.0 的 9 项 Cowork 演进（F1–F9，均为 CLI 层新模块或扩展）。
+
+### 新增模块概览
+
+| 特性 | 模块 | CLI 入口 | 测试 |
+|------|------|----------|------|
+| F1 Orchestrator 并行 | `cowork-task-runner.js` `runCoworkTaskParallel` | `cowork` (parallel 模式) | 既有 runner 测试 |
+| F2 Debate 多视角评审 | `cowork-task-runner.js` `runCoworkDebate` + `cowork/debate-review-cli.js` | `cowork debate` | 既有 runner 测试 |
+| F3 模板市场 | `cowork-template-marketplace.js` | `cowork template search\|install\|list\|remove\|publish` | 17 单元 |
+| F4 定时调度 | `cowork-cron.js` + `CoworkCronScheduler` | `cowork cron list\|add\|remove\|enable\|disable\|run` | 31 单元 |
+| F5 Android 远程技能 | `pc-cowork-daily.md` / `pc-cowork-workflow.md` (REMOTE skills) | Android `/pc-cowork-daily` / `/pc-cowork-workflow` | Android SkillLoader 自动加载 |
+| F6 MCP 工具挂载 | `cowork-mcp-tools.js` + `cowork-task-templates.js` `mcpServers` | 模板声明式 | 既有 runner 测试 + MCP plumbing |
+| F7 Workflow DAG | `cowork-workflow.js` | `cowork workflow list\|show\|add <file>\|remove\|run <id>` | 22 单元 |
+| F8 P2P 共享 | `cowork-share.js` (canonical-JSON + SHA-256 包) | `cowork share export-template\|export-result\|import\|verify` | 22 单元 |
+| F9 学习引擎 | `cowork-learning.js` | `cowork learning stats\|recommend\|failures` | 13 单元 |
+
+### 关键设计决策
+
+- **`_deps` 注入**：所有新模块都导出可变 `_deps` 对象（fs/time/runner），遵循 cli-dev.md 规范，Vitest 测试可覆盖而不依赖 `vi.mock`。
+- **ESM/ESM 循环避免**：`cowork-workflow.js` 和 `cowork-cron.js` 通过 `_deps.runTask` 接收 runner，CLI 入口在执行前注入，避免静态 import 环。
+- **持久化统一**：所有新模块统一读写 `.chainlesschain/cowork/`（`workflows/`、`user-templates/`、`shared-results/`、`workflow-history.jsonl`、`schedules.jsonl`、`history.jsonl`），与既有 BackgroundTaskManager JSONL 模式对齐。
+- **packet 格式**：F8 使用 canonical JSON + SHA-256 而非完整签名，防数据损坏而非身份伪造；未来接入 DID 签名即可升级。
+- **推荐评分**：F9 用 `overlap × (0.5 + successRate/2)` 保证新模板有机会被推荐（最低权重 0.5），避免冷启动陷阱。
+
+### 测试计数（v0.46.0 新增）
+
+| 文件 | 测试数 |
+|------|--------|
+| `cowork-learning.test.js` | 13 |
+| `cowork-workflow.test.js` | 22 |
+| `cowork-share.test.js` | 22 |
+| **合计** | **57** |
+
+既有 cowork 测试（template-marketplace 17 + cron 31 + task-runner 63）全部通过，累计 168 测试。
+
+### CLI 命令总览
+
+```
+cowork
+├── debate <file>          (F2)
+├── compare <prompt>       (F2)
+├── analyze <path>
+├── template               (F3)
+│   ├── search [query]
+│   ├── install <id>
+│   ├── list
+│   ├── remove <id>
+│   └── publish
+├── cron                   (F4)
+│   ├── list / add / remove / enable / disable / run
+├── learning               (F9)
+│   ├── stats
+│   ├── recommend <message...>
+│   └── failures
+├── workflow               (F7)
+│   ├── list / show / add <file> / remove / run <id>
+├── share                  (F8)
+│   ├── export-template <id> --out <file>
+│   ├── export-result <taskId> --out <file>
+│   ├── import <file>
+│   └── verify <file>
+└── status
+```
