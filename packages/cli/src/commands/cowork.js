@@ -587,6 +587,99 @@ export function registerCoworkCommand(program) {
       });
     });
 
+  // cowork share — export/import signed packets for P2P transfer
+  const share = cowork
+    .command("share")
+    .description(
+      "Export/import signed Cowork packets (templates or task results)",
+    );
+
+  share
+    .command("export-template <id>")
+    .description("Export an installed template as a signed packet")
+    .requiredOption("--out <file>", "Output packet file (.json)")
+    .option("--author <name>", "Author name", "anonymous")
+    .action(async (id, options) => {
+      const [{ listUserTemplates }, { exportTemplatePacket, writePacket }] =
+        await Promise.all([
+          import("../lib/cowork-template-marketplace.js"),
+          import("../lib/cowork-share.js"),
+        ]);
+      const templates = listUserTemplates(process.cwd());
+      const tpl = templates.find((t) => t.id === id);
+      if (!tpl) {
+        logger.error(`Template not installed: ${id}`);
+        process.exit(1);
+      }
+      const packet = exportTemplatePacket(tpl, { author: options.author });
+      writePacket(options.out, packet);
+      logger.log(chalk.green(`✓ Wrote template packet to ${options.out}`));
+    });
+
+  share
+    .command("export-result <taskId>")
+    .description("Export a historical Cowork task result as a signed packet")
+    .requiredOption("--out <file>", "Output packet file (.json)")
+    .option("--author <name>", "Author name", "anonymous")
+    .action(async (taskId, options) => {
+      const { findHistoryRecord, exportResultPacket, writePacket } =
+        await import("../lib/cowork-share.js");
+      const rec = findHistoryRecord(process.cwd(), taskId);
+      if (!rec) {
+        logger.error(`Task not found in history: ${taskId}`);
+        process.exit(1);
+      }
+      const packet = exportResultPacket(rec, { author: options.author });
+      writePacket(options.out, packet);
+      logger.log(chalk.green(`✓ Wrote result packet to ${options.out}`));
+    });
+
+  share
+    .command("import <file>")
+    .description(
+      "Import a signed packet (auto-detects template vs result by kind)",
+    )
+    .action(async (file) => {
+      const { readPacket, importTemplatePacket, importResultPacket } =
+        await import("../lib/cowork-share.js");
+      try {
+        const packet = readPacket(file);
+        if (packet.kind === "template") {
+          const tpl = importTemplatePacket(process.cwd(), packet);
+          logger.log(chalk.green(`✓ Imported template '${tpl.id}'`));
+        } else if (packet.kind === "result") {
+          const { file: outPath, taskId } = importResultPacket(
+            process.cwd(),
+            packet,
+          );
+          logger.log(chalk.green(`✓ Imported result ${taskId} → ${outPath}`));
+        } else {
+          logger.error(`Unknown packet kind: ${packet.kind}`);
+          process.exit(1);
+        }
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  share
+    .command("verify <file>")
+    .description("Verify a packet's checksum without importing")
+    .action(async (file) => {
+      const { readPacket } = await import("../lib/cowork-share.js");
+      try {
+        const pkt = readPacket(file);
+        logger.log(chalk.green(`✓ Valid ${pkt.kind} packet`));
+        logger.log(chalk.gray(`  author:    ${pkt.meta.author}`));
+        logger.log(chalk.gray(`  createdAt: ${pkt.meta.createdAt}`));
+        logger.log(chalk.gray(`  checksum:  ${pkt.checksum.slice(0, 16)}…`));
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
   // cowork workflow — chain multiple Cowork tasks into a DAG
   const workflow = cowork
     .command("workflow")
@@ -836,6 +929,9 @@ export function registerCoworkCommand(program) {
       );
       logger.log(
         `    ${chalk.cyan("cowork workflow list|show|add|remove|run")}  DAG of chained Cowork tasks`,
+      );
+      logger.log(
+        `    ${chalk.cyan("cowork share export-template|export-result|import|verify")}  Signed packet exchange`,
       );
       logger.log("");
       logger.log(
