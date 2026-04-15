@@ -2,7 +2,7 @@
 
 **Source**: `src/main/remote/command-router.js`
 
-**Generated**: 2026-04-15T10:14:17.358Z
+**Generated**: 2026-04-15T13:31:09.361Z
 
 ---
 

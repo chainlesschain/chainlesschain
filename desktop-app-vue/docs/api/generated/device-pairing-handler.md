@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/device-pairing-handler.js`
 
-**Generated**: 2026-04-15T10:14:17.378Z
+**Generated**: 2026-04-15T13:31:09.373Z
 
 ---
 

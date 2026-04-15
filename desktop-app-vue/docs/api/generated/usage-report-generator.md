@@ -2,7 +2,7 @@
 
 **Source**: `src/main/memory/usage-report-generator.js`
 
-**Generated**: 2026-04-15T10:14:17.382Z
+**Generated**: 2026-04-15T13:31:09.376Z
 
 ---
 

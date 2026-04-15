@@ -2,7 +2,7 @@
 
 **Source**: `src/main/logging/logger.js`
 
-**Generated**: 2026-04-15T10:14:17.389Z
+**Generated**: 2026-04-15T13:31:09.380Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/workflow/workflow-pipeline.js`
 
-**Generated**: 2026-04-15T10:14:17.313Z
+**Generated**: 2026-04-15T13:31:09.332Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/utils/log-forwarder.js`
 
-**Generated**: 2026-04-15T10:14:17.317Z
+**Generated**: 2026-04-15T13:31:09.335Z
 
 ---
 
