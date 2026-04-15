@@ -1522,11 +1522,14 @@ Node.js 同理，通过 `npm install` 安装缺失模块后重试。
 
 ---
 
-## 十、未来演进 — 9 项详细实施计划
+## 十、历史规划 — F1–F9 详细实施计划（已全部落地 v0.46.0）
 
-> **制定日期**: 2026-04-14
+> **制定日期**: 2026-04-14 · **完成日期**: 2026-04-15
+> **状态**: ✅ 全部实现 — 详见本文末尾「2026-04-15 — Cowork Evolution v0.46.0」实施记录
 > **依赖关系**: F1(Orchestrator) 独立；F2(Debate) 独立；F3(模板市场) 依赖 EvoMap；F4(定时任务) 独立；F5(移动端) 依赖 F3；F6(MCP) 独立；F7(工作流) 依赖 F1；F8(P2P) 依赖 F3；F9(学习) 依赖历史系统
-> **推荐实施顺序**: F1 → F2 → F6 → F4 → F3 → F9 → F7 → F5 → F8
+> **实际实施顺序**: F3 → F4 → F6 → F9 → F7 → F5 → F8 → F1 → F2
+
+> 📝 本节保留原规划文本作为设计溯源参考。真正的后续演进方向见「十一、未来演进」。
 
 ### F1: Orchestrator 多 Agent 并行模式 — 短期 (v5.0.3.1)
 
@@ -1950,6 +1953,115 @@ history.jsonl (执行记录)
 | F8 | P2P 协作 | 长期 | v5.2.2 | 1 | 4 | 14 |
 | F9 | 学习进化 | 长期 | v5.2.3 | 1 | 5 | 16 |
 | | **合计** | | | **10** | **42** | **127** |
+
+---
+
+## 十一、未来演进（v0.46.0 之后）
+
+> **制定日期**: 2026-04-15
+> 以下为 F1–F9 全部落地之后的新方向，均为本次尚未实现的真·未来项。
+
+### N1: Workflow 可视化编辑器（Web / Desktop）— 短期
+
+**问题**: 当前 `cowork workflow add` 要求用户手写 JSON 定义 DAG，门槛偏高；Web 面板仅能 list/run。
+
+**目标**: 在 `packages/web-panel` 新增 `/cowork/workflow` 页面，基于 Vue Flow 提供节点拖拽编辑、依赖连线、占位符提示、保存即下发 WS。
+
+**主要文件**:
+- `packages/web-panel/src/views/WorkflowEditor.vue`（新建）
+- `packages/cli/src/gateways/ws/action-protocol.js` — 新增 `handleWorkflowSave()` / `handleWorkflowRun()`
+- `packages/cli/src/gateways/ws/message-dispatcher.js` — 新增 `workflow-save` / `workflow-run`
+
+**预估**: 单元 8 + 集成 5 + E2E 3 = 16 tests。
+
+---
+
+### N2: Learning 反馈闭环 — 中期
+
+**问题**: F9 `cowork-learning.js` 只做只读分析（推荐/统计/失败归因），未把洞察回灌到模板。
+
+**目标**: 在 `learning` 子树新增 `suggest` + `apply` 命令 — 基于 `summarizeFailures` 生成 systemPromptExtension patch 建议，经用户确认后写回用户模板（不覆盖内置模板）。
+
+**关键约束**:
+- 只产出建议，不自动改 — 与 CLAUDE.md "no auto prompt drift" 原则一致
+- 每个模板需至少 ≥10 次历史调用才生成建议
+- patch 写入 `user-templates/` 层（不碰 bundled）
+
+**预估**: 单元 12 + 集成 4 = 16 tests。
+
+---
+
+### N3: Workflow 条件分支与循环 — 中期
+
+**问题**: 当前 DAG 是「单向无环 + 全步必跑」模型，不支持「if 上游 summary 含 X 则走 B，否则走 C」「对数组每项各跑一次」。
+
+**目标**: 扩展 step 定义：
+```json
+{ "id": "branch", "when": "${step.fetch.summary} contains 'error'", "message": "..." }
+{ "id": "fanout", "forEach": "${step.list.items}", "message": "process ${item}" }
+```
+
+**实现点**: `cowork-workflow.js` 的 `planBatches` 增加条件跳过、`substitutePlaceholders` 增加表达式求值（沙箱，仅允许点访问 / contains / length）。
+
+**预估**: 单元 18 + 集成 6 = 24 tests。
+
+---
+
+### N4: P2P 包签名升级（可选 DID）— 中期
+
+**问题**: F8 `cowork-share.js` 当前用 canonical-JSON + SHA-256，仅防损坏不防伪造。
+
+**目标**: `buildPacket({ did, privateKey })` 可选注入 Ed25519 签名（复用 `packages/cli/src/lib/did.js`）。读包时若签名存在则验签并附带 `signer.did` 给导入者信任决策使用。未签名包继续向后兼容。
+
+**预估**: 单元 15 + 集成 3 = 18 tests。
+
+---
+
+### N5: Cron 秒级 + 非标准别名 — 短期
+
+**问题**: 当前 `parseCron` 仅支持 5 字段 POSIX + `dow` 0/7 等价。不支持 `@hourly` / `@daily` 别名与秒字段。
+
+**目标**: 增加 6 字段模式（首字段为秒）+ 5 个别名快捷语法，`validateCron` 对应扩展。
+
+**预估**: 单元 10 tests。
+
+---
+
+### N6: Cowork 可观测性 — 中期
+
+**问题**: 任务失败仅通过 history.jsonl 的 summary 记录；长运行无统一看板。
+
+**目标**: 新增 `cowork observe` 子命令 — 从 history / workflow-history / schedules 聚合出仪表盘数据，`--serve` 启动本地 HTTP 小页面（复用 `web-ui-server.js` 模式）展示：
+- 近 7 日任务数 / 成功率 / 平均 token
+- Top-5 失败模板 + 最常见 summary
+- 活跃 cron 任务与下一次触发时间
+
+**预估**: 单元 8 + 集成 5 + E2E 3 = 16 tests。
+
+---
+
+### N7: 模板市场 EvoMap 集成 — 长期
+
+**问题**: F3 模板市场是本地层，`cowork template publish` 仅生成 JSON，不上链/不广播。
+
+**目标**: 与 `packages/cli/src/commands/evomap.js` 打通，`publish` 可选上传到用户配置的 EvoMap Hub；`search --hub` 拉取社区模板列表。走既有 DID/签名/声誉模型。
+
+**预估**: 单元 12 + 集成 6 = 18 tests。
+
+---
+
+### 总览（未来演进）
+
+| # | 功能 | 阶段 | 预估测试 |
+|---|------|------|---------|
+| N1 | Workflow 可视化编辑器 | 短期 | 16 |
+| N2 | Learning 反馈闭环 | 中期 | 16 |
+| N3 | Workflow 条件分支 / forEach | 中期 | 24 |
+| N4 | P2P 包签名升级 (DID) | 中期 | 18 |
+| N5 | Cron 秒级 + 别名 | 短期 | 10 |
+| N6 | Cowork 可观测性仪表盘 | 中期 | 16 |
+| N7 | 模板市场 EvoMap 集成 | 长期 | 18 |
+| | **合计** | | **118** |
 
 ---
 

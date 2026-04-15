@@ -1,5 +1,34 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-15 增量更新（Cowork Evolution v0.46.0 — F1–F9 九项演进全部落地 + 83 测试）
+
+对 `packages/cli` 的 Cowork 多智能体协作系统做一轮端到端演进，把 2026-04-14 规划的 F1–F9 九项特性全部实现：
+
+- **F3 模板市场** (`cowork-template-marketplace.js`) — 本地模板层（内置 10 + 用户自建），`cowork template search|install|list|remove|publish`
+- **F4 定时调度** (`cowork-cron.js`) — 5 字段 POSIX cron，JSONL 持久化，`cowork cron list|add|remove|enable|disable|run`
+- **F5 Android 远程技能** — 新增 `pc-cowork-daily` / `pc-cowork-workflow` REMOTE SKILL，手机通过 P2P 调用桌面，无需本地 LLM
+- **F6 MCP 工具挂载** — 模板 `mcpServers` 字段声明式挂载 MCP，会话期间 mount/unmount
+- **F7 Workflow DAG** (`cowork-workflow.js`) — 依赖解析 + Kahn 拓扑排序 + 批次并行 + 占位符替换 + `continueOnError` 降级
+- **F8 P2P 分享** (`cowork-share.js`) — canonical-JSON + SHA-256 校验包，模板/结果包导出导入
+- **F9 历史学习** (`cowork-learning.js`) — token 重叠 × successRate 无 ML 推荐，失败归因
+- **F1 Orchestrator 并行** + **F2 Debate 评审** — 运行器扩展路径
+
+新命令树：`cowork {debate|compare|analyze|template|cron|workflow|share|learning|status}`。全部 headless，`_deps` 注入模式保证可测，统一持久化到 `.chainlesschain/cowork/*.jsonl`。
+
+| 层 | 范围 | 通过 |
+| --- | --- | --- |
+| 单元 | `cowork-learning.test.js` / `cowork-workflow.test.js` / `cowork-share.test.js` | `57/57` |
+| 集成 | `cowork-evolution-workflow.test.js`（mkdtemp 真 fs，覆盖 marketplace↔registry / share 往返 / learning 真 JSONL / workflow e2e / cron） | `12/12` |
+| E2E | `cowork-evolution-commands.test.js`（spawn CLI 真二进制，learning/workflow/share 全子命令 + 错误路径） | `14/14` |
+| **小计** | **3 个新模块 + 2 个测试文件** | **`83/83`** |
+
+累计 cowork 测试 168（既有 template-marketplace 17 + cron 31 + task-runner 63 + 本次新增 57）。版本号 `packages/cli/package.json` 升到 `0.46.0`。
+
+用户文档：[docs-site/docs/chainlesschain/cli-cowork](./docs-site/docs/chainlesschain/cli-cowork.md)
+设计文档：[docs-site/docs/design/modules/86-web-cowork](./docs-site/docs/design/modules/86-web-cowork.md)（末尾「2026-04-15 Cowork Evolution」实施记录 + 「十一、未来演进」N1–N7 新规划）
+
+---
+
 ## 2026-04-12 增量更新（文档-代码差距补全 — 7 项全部完成 + 166 测试）
 
 对 84 个设计文档与实际代码进行全面比对，补全 7 处文档-代码差距，所有功能从 mock/占位符升级为真实实现：
