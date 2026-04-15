@@ -293,7 +293,9 @@ export function registerCoworkCommand(program) {
   // cowork template — marketplace subcommands
   const tpl = cowork
     .command("template")
-    .description("Cowork template marketplace (search/install/publish via EvoMap)");
+    .description(
+      "Cowork template marketplace (search/install/publish via EvoMap)",
+    );
 
   tpl
     .command("search [query]")
@@ -353,7 +355,9 @@ export function registerCoworkCommand(program) {
       try {
         const template = await installTemplate(process.cwd(), geneId);
         logger.log(
-          chalk.green(`✓ Installed template '${template.id}' (${template.name})`),
+          chalk.green(
+            `✓ Installed template '${template.id}' (${template.name})`,
+          ),
         );
       } catch (err) {
         logger.error(`Install failed: ${err.message}`);
@@ -366,9 +370,8 @@ export function registerCoworkCommand(program) {
     .description("List locally installed Cowork templates")
     .option("--json", "Output as JSON")
     .action(async (options) => {
-      const { listUserTemplates } = await import(
-        "../lib/cowork-template-marketplace.js"
-      );
+      const { listUserTemplates } =
+        await import("../lib/cowork-template-marketplace.js");
       const templates = listUserTemplates(process.cwd());
       if (options.json) {
         console.log(JSON.stringify(templates, null, 2));
@@ -391,9 +394,8 @@ export function registerCoworkCommand(program) {
     .command("remove <id>")
     .description("Remove an installed Cowork template")
     .action(async (id) => {
-      const { removeUserTemplate } = await import(
-        "../lib/cowork-template-marketplace.js"
-      );
+      const { removeUserTemplate } =
+        await import("../lib/cowork-template-marketplace.js");
       if (removeUserTemplate(process.cwd(), id)) {
         logger.log(chalk.green(`✓ Removed '${id}'`));
       } else {
@@ -432,11 +434,11 @@ export function registerCoworkCommand(program) {
           author: options.author,
           version: options.version,
           description: options.description,
-          tags: options.tags ? options.tags.split(",").map((t) => t.trim()) : [],
+          tags: options.tags
+            ? options.tags.split(",").map((t) => t.trim())
+            : [],
         });
-        logger.log(
-          chalk.green(`✓ Published ${result?.id || shareable.id}`),
-        );
+        logger.log(chalk.green(`✓ Published ${result?.id || shareable.id}`));
       } catch (err) {
         logger.error(`Publish failed: ${err.message}`);
         process.exit(1);
@@ -482,9 +484,15 @@ export function registerCoworkCommand(program) {
   cron
     .command("add")
     .description("Add a scheduled Cowork task")
-    .requiredOption("--cron <expr>", "5-field cron expression (e.g. '0 9 * * 1-5')")
+    .requiredOption(
+      "--cron <expr>",
+      "5-field cron expression (e.g. '0 9 * * 1-5')",
+    )
     .requiredOption("--message <text>", "Task prompt / user message")
-    .option("--template <id>", "Template id (e.g. doc-convert); omit for free mode")
+    .option(
+      "--template <id>",
+      "Template id (e.g. doc-convert); omit for free mode",
+    )
     .option("--files <list>", "Comma-separated absolute file paths", "")
     .action(async (options) => {
       const { addSchedule } = await import("../lib/cowork-cron.js");
@@ -494,7 +502,10 @@ export function registerCoworkCommand(program) {
           templateId: options.template || null,
           userMessage: options.message,
           files: options.files
-            ? options.files.split(",").map((f) => f.trim()).filter(Boolean)
+            ? options.files
+                .split(",")
+                .map((f) => f.trim())
+                .filter(Boolean)
             : [],
         });
         logger.log(chalk.green(`✓ Added schedule ${entry.id}`));
@@ -547,9 +558,7 @@ export function registerCoworkCommand(program) {
 
   cron
     .command("run")
-    .description(
-      "Start the cron scheduler in the foreground (Ctrl-C to stop)",
-    )
+    .description("Start the cron scheduler in the foreground (Ctrl-C to stop)")
     .option("--interval <ms>", "Tick interval in ms (default 60000)", "60000")
     .action(async (options) => {
       const [{ CoworkCronScheduler, _deps: cronDeps }, { runCoworkTask }] =
@@ -578,6 +587,103 @@ export function registerCoworkCommand(program) {
       });
     });
 
+  // cowork learning — analyze historical runs
+  const learning = cowork
+    .command("learning")
+    .description("Analyze Cowork history for stats, recommendations, failures");
+
+  learning
+    .command("stats")
+    .description("Per-template aggregate stats across all runs")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const { loadHistory, computeTemplateStats } =
+        await import("../lib/cowork-learning.js");
+      const stats = computeTemplateStats(loadHistory(process.cwd()));
+      if (options.json) {
+        console.log(JSON.stringify(stats, null, 2));
+        return;
+      }
+      if (stats.length === 0) {
+        logger.log(chalk.gray("No history yet. Run some tasks first."));
+        return;
+      }
+      logger.log(chalk.bold(`\nTemplate stats (${stats.length}):\n`));
+      for (const s of stats) {
+        const pct = Math.round(s.successRate * 100);
+        logger.log(
+          `  ${chalk.cyan(s.templateId)}  runs=${s.runs}  ok=${s.successes}  fail=${s.failures}  ${pct}%  avgTok=${s.avgTokens}  avgIter=${s.avgIterations}`,
+        );
+        if (s.topTools.length) {
+          logger.log(
+            chalk.gray(
+              `    tools: ${s.topTools.map((t) => `${t.tool}(${t.count})`).join(", ")}`,
+            ),
+          );
+        }
+      }
+      logger.log("");
+    });
+
+  learning
+    .command("recommend <message...>")
+    .description("Recommend the best template for a new user message")
+    .option("--min-runs <n>", "Only consider templates with ≥N past runs", "1")
+    .option("--json", "Output as JSON")
+    .action(async (messageParts, options) => {
+      const { loadHistory, recommendTemplate } =
+        await import("../lib/cowork-learning.js");
+      const message = messageParts.join(" ");
+      const rec = recommendTemplate(message, loadHistory(process.cwd()), {
+        minRuns: parseInt(options.minRuns, 10) || 1,
+      });
+      if (options.json) {
+        console.log(JSON.stringify(rec, null, 2));
+        return;
+      }
+      if (!rec) {
+        logger.log(
+          chalk.gray("No recommendation — no overlapping history found."),
+        );
+        return;
+      }
+      logger.log(chalk.bold(`\nRecommended: ${chalk.cyan(rec.templateId)}`));
+      logger.log(
+        chalk.gray(`  score: ${rec.score}  confidence: ${rec.confidence}`),
+      );
+      for (const r of rec.reasons) logger.log(chalk.gray(`  - ${r}`));
+      logger.log("");
+    });
+
+  learning
+    .command("failures")
+    .description("Group failures by template with common summaries")
+    .option("--limit <n>", "Max examples per template", "3")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const { loadHistory, summarizeFailures } =
+        await import("../lib/cowork-learning.js");
+      const out = summarizeFailures(loadHistory(process.cwd()), {
+        limit: parseInt(options.limit, 10) || 3,
+      });
+      if (options.json) {
+        console.log(JSON.stringify(out, null, 2));
+        return;
+      }
+      if (out.length === 0) {
+        logger.log(chalk.green("✓ No failures in history."));
+        return;
+      }
+      logger.log(chalk.bold(`\nFailures by template:\n`));
+      for (const g of out) {
+        logger.log(`  ${chalk.red(g.templateId)}  failures=${g.failureCount}`);
+        for (const cs of g.commonSummaries) {
+          logger.log(chalk.gray(`    × ${cs.count}  ${cs.summary}`));
+        }
+      }
+      logger.log("");
+    });
+
   // cowork status — show collaboration state
   cowork
     .command("status")
@@ -596,6 +702,9 @@ export function registerCoworkCommand(program) {
       );
       logger.log(
         `    ${chalk.cyan("cowork cron list|add|remove|run")}  Schedule recurring Cowork tasks`,
+      );
+      logger.log(
+        `    ${chalk.cyan("cowork learning stats|recommend|failures")}  Analyze run history`,
       );
       logger.log("");
       logger.log(
