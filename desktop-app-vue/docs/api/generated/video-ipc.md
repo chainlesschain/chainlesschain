@@ -2,7 +2,7 @@
 
 **Source**: `src/main/video/video-ipc.js`
 
-**Generated**: 2026-04-15T10:14:17.314Z
+**Generated**: 2026-04-15T13:31:09.333Z
 
 ---
 
@@ -271,6 +271,17 @@ ipcMain.handle("video:addSubtitlesWithPreset", async (_event, params) =>
 ```
 
 * 使用预设样式添加字幕
+
+---
+
+## ipcMain.handle("video:generate", async (_event, params) =>
+
+```javascript
+ipcMain.handle("video:generate", async (_event, params) =>
+```
+
+* 文生视频 — 调用 Volcengine Seedance 真实 API，取代此前的
+   * FFmpeg 纯色+drawtext 占位实现。
 
 ---
 

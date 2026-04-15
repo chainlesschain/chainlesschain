@@ -2,7 +2,7 @@
 
 **Source**: `src/main/vector/vector-store.js`
 
-**Generated**: 2026-04-15T10:14:17.315Z
+**Generated**: 2026-04-15T13:31:09.334Z
 
 ---
 

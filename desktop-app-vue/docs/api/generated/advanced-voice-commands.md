@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/advanced-voice-commands.js`
 
-**Generated**: 2026-04-15T10:14:17.340Z
+**Generated**: 2026-04-15T13:31:09.347Z
 
 ---
 

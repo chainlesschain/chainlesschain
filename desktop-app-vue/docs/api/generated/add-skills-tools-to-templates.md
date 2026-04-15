@@ -2,7 +2,7 @@
 
 **Source**: `src/main/templates/add-skills-tools-to-templates.js`
 
-**Generated**: 2026-04-15T10:14:17.330Z
+**Generated**: 2026-04-15T13:31:09.342Z
 
 ---
 

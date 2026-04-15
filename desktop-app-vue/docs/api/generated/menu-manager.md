@@ -2,7 +2,7 @@
 
 **Source**: `src/main/system/menu-manager.js`
 
-**Generated**: 2026-04-15T10:14:17.331Z
+**Generated**: 2026-04-15T13:31:09.344Z
 
 ---
 

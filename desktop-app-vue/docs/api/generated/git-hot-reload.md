@@ -2,7 +2,7 @@
 
 **Source**: `src/main/git/git-hot-reload.js`
 
-**Generated**: 2026-04-15T10:14:17.407Z
+**Generated**: 2026-04-15T13:31:09.391Z
 
 ---
 
