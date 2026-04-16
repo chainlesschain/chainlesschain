@@ -82,6 +82,10 @@
             <a-menu-item key="templates"><template #icon><BlockOutlined /></template>模板中心</a-menu-item>
           </a-menu-item-group>
           <a-menu-item-group>
+            <template #title><span class="group-label">媒 体</span></template>
+            <a-menu-item key="video"><template #icon><VideoCameraOutlined /></template>视频剪辑</a-menu-item>
+          </a-menu-item-group>
+          <a-menu-item-group>
             <template #title><span class="group-label">扩 展</span></template>
             <a-menu-item key="rssfeed"><template #icon><ReadOutlined /></template>RSS 订阅</a-menu-item>
             <a-menu-item key="webauthn"><template #icon><KeyOutlined /></template>身份认证</a-menu-item>
@@ -182,7 +186,7 @@ import {
   BookOutlined, BranchesOutlined, ClockCircleOutlined, ThunderboltOutlined, ApartmentOutlined,
   SafetyCertificateOutlined, LockOutlined, WifiOutlined, CodeOutlined, ProjectOutlined,
   WalletOutlined, TeamOutlined, BarChartOutlined, BlockOutlined, CloudUploadOutlined,
-  ReadOutlined, KeyOutlined,
+  ReadOutlined, KeyOutlined, VideoCameraOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'

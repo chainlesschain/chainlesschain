@@ -7,6 +7,7 @@
 import fs from "fs";
 import path from "path";
 import { createChatFn } from "../cowork-adapter.js";
+import { runPeerGroup } from "./agent-group-runner.js";
 
 const CODE_EXTENSIONS = new Set([
   ".js",
@@ -118,21 +119,47 @@ Be specific with examples from the code samples provided.`,
     },
   ];
 
-  try {
-    const response = await chat(messages, { maxTokens: 2000 });
+  // Single-peer AgentGroup (analyzer) — no coordinator. Keeps cowork
+  // semantics uniform across debate/compare/analyze.
+  const runResult = await runPeerGroup({
+    peers: [
+      {
+        agentId: "style_analyzer",
+        role: "Project Style Analyzer",
+        taskTitle: `Analyze style (${targetPath})`,
+        taskDescription: `${samples.length} samples, ${configFiles.length} config file(s)`,
+      },
+    ],
+    metadata: { kind: "project-style-analyzer", targetPath },
+    runPeer: async () => chat(messages, { maxTokens: 2000 }),
+  });
 
+  const outcome = runResult.results[0];
+  if (outcome.ok) {
+    const response = outcome.value;
     return {
       samplesAnalyzed: samples.length,
       configFilesFound: configFiles.map((c) => c.name),
       analysis: response,
       summary: `Style Analysis for: ${targetPath}\n  Samples: ${samples.length} files\n  Config: ${configFiles.map((c) => c.name).join(", ") || "none found"}\n\n${response}`,
-    };
-  } catch (err) {
-    return {
-      samplesAnalyzed: samples.length,
-      summary: `Style analysis failed: ${err.message}`,
+      group: {
+        groupId: runResult.groupId,
+        parentAgentId: runResult.parentAgentId,
+        members: runResult.members,
+        tasks: runResult.tasks,
+      },
     };
   }
+  return {
+    samplesAnalyzed: samples.length,
+    summary: `Style analysis failed: ${outcome.error?.message || outcome.error}`,
+    group: {
+      groupId: runResult.groupId,
+      parentAgentId: runResult.parentAgentId,
+      members: runResult.members,
+      tasks: runResult.tasks,
+    },
+  };
 }
 
 function collectSampleFiles(dir, maxFiles) {

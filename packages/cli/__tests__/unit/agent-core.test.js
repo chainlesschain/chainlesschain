@@ -1240,6 +1240,67 @@ describe("chatWithTools", () => {
       }),
     ).rejects.toThrow("Unsupported provider");
   });
+
+  it("extracts usage from Ollama prompt_eval_count/eval_count", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        message: { role: "assistant", content: "hi" },
+        prompt_eval_count: 200,
+        eval_count: 80,
+      }),
+    });
+    const result = await chatWithTools([{ role: "user", content: "test" }], {
+      provider: "ollama",
+      model: "test",
+      baseUrl: "http://localhost:11434",
+    });
+    expect(result.usage).toEqual({ input_tokens: 200, output_tokens: 80 });
+  });
+
+  it("extracts usage from OpenAI prompt_tokens/completion_tokens", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { role: "assistant", content: "ok" } }],
+        usage: { prompt_tokens: 150, completion_tokens: 60 },
+      }),
+    });
+    const saved = process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = "test-key";
+    try {
+      const result = await chatWithTools([{ role: "user", content: "test" }], {
+        provider: "openai",
+        model: "gpt-4o",
+      });
+      expect(result.usage).toEqual({ input_tokens: 150, output_tokens: 60 });
+    } finally {
+      if (saved) process.env.OPENAI_API_KEY = saved;
+      else delete process.env.OPENAI_API_KEY;
+    }
+  });
+
+  it("extracts usage from Anthropic response", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        content: [{ type: "text", text: "hello" }],
+        usage: { input_tokens: 300, output_tokens: 100 },
+      }),
+    });
+    const saved = process.env.ANTHROPIC_API_KEY;
+    process.env.ANTHROPIC_API_KEY = "test-key";
+    try {
+      const result = await chatWithTools([{ role: "user", content: "test" }], {
+        provider: "anthropic",
+        model: "claude-sonnet-4-20250514",
+      });
+      expect(result.usage).toEqual({ input_tokens: 300, output_tokens: 100 });
+    } finally {
+      if (saved) process.env.ANTHROPIC_API_KEY = saved;
+      else delete process.env.ANTHROPIC_API_KEY;
+    }
+  });
 });
 
 describe("agentLoop", () => {
@@ -1274,9 +1335,38 @@ describe("agentLoop", () => {
       events.push(event);
     }
 
-    expect(events).toHaveLength(1);
-    expect(events[0].type).toBe("response-complete");
-    expect(events[0].content).toBe("Hello! How can I help?");
+    const nonBookend = events.filter(
+      (e) => e.type !== "run-started" && e.type !== "run-ended",
+    );
+    expect(nonBookend).toHaveLength(1);
+    expect(nonBookend[0].type).toBe("response-complete");
+    expect(nonBookend[0].content).toBe("Hello! How can I help?");
+  });
+
+  it("yields token-usage event when LLM response includes usage", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        message: { role: "assistant", content: "Sure thing" },
+        prompt_eval_count: 50,
+        eval_count: 20,
+      }),
+    });
+
+    const events = [];
+    for await (const event of agentLoop([{ role: "user", content: "Hi" }], {
+      provider: "ollama",
+      model: "test-model",
+      baseUrl: "http://localhost:11434",
+    })) {
+      events.push(event);
+    }
+
+    const usageEvent = events.find((e) => e.type === "token-usage");
+    expect(usageEvent).toBeDefined();
+    expect(usageEvent.provider).toBe("ollama");
+    expect(usageEvent.model).toBe("test-model");
+    expect(usageEvent.usage).toEqual({ input_tokens: 50, output_tokens: 20 });
   });
 
   it("throws AbortError when the loop signal is already aborted", async () => {
@@ -1386,9 +1476,12 @@ describe("agentLoop", () => {
       events.push(event);
     }
 
-    const lastEvent = events[events.length - 1];
+    const lastEvent = events
+      .filter((e) => e.type === "response-complete")
+      .pop();
     expect(lastEvent.type).toBe("response-complete");
     expect(lastEvent.content).toContain("Iteration budget exhausted");
+    expect(events[events.length - 1].type).toBe("run-ended");
 
     // Should have DEFAULT_BUDGET (50) iterations * 2 events (executing + result) + 1 final
     const executingCount = events.filter(
@@ -1540,7 +1633,8 @@ describe("agentLoop", () => {
     expect(resultEvent.result.success).toBe(true);
     expect(resultEvent.result.output).toContain("from-agent-loop");
 
-    expect(events[events.length - 1].type).toBe("response-complete");
+    expect(events.some((e) => e.type === "response-complete")).toBe(true);
+    expect(events[events.length - 1].type).toBe("run-ended");
   });
 
   it("handles multiple tool calls in sequence", async () => {
@@ -1629,7 +1723,7 @@ describe("agentLoop", () => {
     // No slot-filling events, just response-complete
     const slotEvents = events.filter((e) => e.type === "slot-filling");
     expect(slotEvents).toHaveLength(0);
-    expect(events[events.length - 1].type).toBe("response-complete");
+    expect(events.some((e) => e.type === "response-complete")).toBe(true);
   });
 });
 

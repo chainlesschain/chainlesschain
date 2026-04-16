@@ -93,6 +93,8 @@ export class WSSessionManager {
     this.trustedMcpServers = createTrustedMcpServerMap(
       options.mcpServerRegistry || null,
     );
+    this.defaultSystemPromptExtension =
+      options.defaultSystemPromptExtension || null;
 
     /** @type {Map<string, Session>} */
     this.sessions = new Map();
@@ -320,9 +322,11 @@ export class WSSessionManager {
     // Build initial system prompt (includes persona + rules.md)
     let systemPrompt = buildSystemPrompt(projectRoot);
 
-    // Append optional extension (e.g. cowork template instructions)
-    if (options.systemPromptExtension) {
-      systemPrompt += "\n\n" + options.systemPromptExtension;
+    // Append optional extension (e.g. cowork template instructions, or bundle AGENTS.md)
+    const promptExtension =
+      options.systemPromptExtension || this.defaultSystemPromptExtension;
+    if (promptExtension) {
+      systemPrompt += "\n\n" + promptExtension;
     }
 
     const messages = [{ role: "system", content: systemPrompt }];

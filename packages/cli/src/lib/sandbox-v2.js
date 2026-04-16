@@ -4,6 +4,36 @@
  */
 
 import crypto from "crypto";
+import { createRequire } from "module";
+
+const _require = createRequire(import.meta.url);
+
+// Phase 4: shared sandbox-policy from session-core (lazy, fallback stubs).
+let _sandboxPolicy = null;
+function getSandboxPolicy() {
+  if (_sandboxPolicy) return _sandboxPolicy;
+  try {
+    _sandboxPolicy = _require("@chainlesschain/session-core/sandbox-policy");
+  } catch (_e) {
+    _sandboxPolicy = {
+      mergeSandboxPolicy: (_b, o) => ({ scope: "thread", ...(o || {}) }),
+      resolveBundleSandboxPolicy: () => ({ scope: "thread" }),
+      shouldReuseSandbox: () => false,
+      isSandboxExpired: () => false,
+      isSandboxIdleExpired: () => false,
+    };
+  }
+  return _sandboxPolicy;
+}
+
+function resolvePolicy(options = {}) {
+  const { mergeSandboxPolicy, resolveBundleSandboxPolicy } = getSandboxPolicy();
+  if (options.bundle) {
+    const base = resolveBundleSandboxPolicy(options.bundle);
+    return mergeSandboxPolicy(base, options.policy || {});
+  }
+  return mergeSandboxPolicy({}, options.policy || {});
+}
 
 // ─── Constants ────────────────────────────────────────────────
 
@@ -36,6 +66,22 @@ export const DEFAULT_PERMISSIONS = {
 const activeSandboxes = new Map();
 const auditLog = [];
 
+// Phase 4: sync persisted rows for sandboxes this process hasn't seen yet so
+// reuse/prune decisions honor createdAt/lastUsedAt across CLI restarts.
+// Idempotent and cheap — a single indexed SELECT per call.
+function _syncFromDb(db) {
+  if (!db) return;
+  try {
+    const rows = db
+      .prepare(`SELECT id FROM sandbox_instances WHERE status = 'active'`)
+      .all();
+    const missing = rows.some((r) => !activeSandboxes.has(r.id));
+    if (missing) restoreFromDb(db);
+  } catch (_e) {
+    // best-effort — callers continue with fresh in-memory state
+  }
+}
+
 // ─── Database helpers ─────────────────────────────────────────
 
 /**
@@ -50,10 +96,26 @@ export function ensureSandboxTables(db) {
       permissions TEXT,
       quota TEXT,
       resource_usage TEXT,
+      policy TEXT,
+      created_at_ms INTEGER,
+      last_used_at_ms INTEGER,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     )
   `);
+  // Phase 4: in-place migration for legacy CLI DBs. ALTER is a no-op if the
+  // column already exists, so swallow "duplicate column" errors.
+  for (const ddl of [
+    "ALTER TABLE sandbox_instances ADD COLUMN policy TEXT",
+    "ALTER TABLE sandbox_instances ADD COLUMN created_at_ms INTEGER",
+    "ALTER TABLE sandbox_instances ADD COLUMN last_used_at_ms INTEGER",
+  ]) {
+    try {
+      db.exec(ddl);
+    } catch (_e) {
+      // column already present
+    }
+  }
   db.exec(`
     CREATE TABLE IF NOT EXISTS sandbox_audit (
       id TEXT PRIMARY KEY,
@@ -123,6 +185,7 @@ export function createSandbox(db, agentId, options = {}) {
   const quota = options.quota || { ...DEFAULT_QUOTA };
   const resourceUsage = { cpu: 0, memory: 0, storage: 0, network: 0 };
 
+  const now = Date.now();
   const sandbox = {
     id,
     agentId,
@@ -130,12 +193,16 @@ export function createSandbox(db, agentId, options = {}) {
     permissions,
     quota,
     resourceUsage,
-    createdAt: new Date().toISOString(),
+    createdAt: new Date(now).toISOString(),
+    // Phase 4: lifecycle policy + timestamps (ms) for ttl / idleTtl math.
+    policy: resolvePolicy(options),
+    createdAtMs: now,
+    lastUsedAtMs: now,
   };
 
   db.prepare(
-    `INSERT INTO sandbox_instances (id, agent_id, status, permissions, quota, resource_usage)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO sandbox_instances (id, agent_id, status, permissions, quota, resource_usage, policy, created_at_ms, last_used_at_ms)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     agentId,
@@ -143,6 +210,9 @@ export function createSandbox(db, agentId, options = {}) {
     JSON.stringify(permissions),
     JSON.stringify(quota),
     JSON.stringify(resourceUsage),
+    JSON.stringify(sandbox.policy || null),
+    sandbox.createdAtMs,
+    sandbox.lastUsedAtMs,
   );
 
   activeSandboxes.set(id, sandbox);
@@ -492,6 +562,131 @@ function logBehavior(db, sandboxId, eventType, eventData) {
     `INSERT INTO sandbox_behavior (id, sandbox_id, event_type, event_data)
      VALUES (?, ?, ?, ?)`,
   ).run(id, sandboxId, eventType, JSON.stringify(eventData));
+}
+
+/**
+ * Phase 4: refresh lastUsedAt so idle TTL doesn't expire the sandbox.
+ */
+export function touchSandbox(sandboxId, db = null) {
+  const sandbox = activeSandboxes.get(sandboxId);
+  if (!sandbox) return false;
+  sandbox.lastUsedAtMs = Date.now();
+  if (db) {
+    try {
+      db.prepare(
+        `UPDATE sandbox_instances SET last_used_at_ms = ?, updated_at = datetime('now') WHERE id = ?`,
+      ).run(sandbox.lastUsedAtMs, sandboxId);
+    } catch (_e) {
+      // persistence best-effort — in-memory touch already applied
+    }
+  }
+  return true;
+}
+
+/**
+ * Phase 4: rehydrate live sandbox rows from DB into the in-memory map so
+ * idle/ttl math and reuse decisions survive a CLI process restart.
+ * Returns the number of restored sandboxes.
+ */
+export function restoreFromDb(db) {
+  ensureSandboxTables(db);
+  let restored = 0;
+  const rows = db
+    .prepare(
+      `SELECT id, agent_id, status, permissions, quota, resource_usage, policy, created_at_ms, last_used_at_ms, created_at
+       FROM sandbox_instances WHERE status = 'active'`,
+    )
+    .all();
+  const now = Date.now();
+  for (const row of rows) {
+    let policy = null;
+    try {
+      policy = row.policy ? JSON.parse(row.policy) : null;
+    } catch (_e) {
+      policy = null;
+    }
+    activeSandboxes.set(row.id, {
+      id: row.id,
+      agentId: row.agent_id,
+      status: row.status || "active",
+      permissions: JSON.parse(row.permissions || "{}"),
+      quota: JSON.parse(row.quota || "{}"),
+      resourceUsage: JSON.parse(row.resource_usage || "{}"),
+      createdAt: row.created_at || new Date(now).toISOString(),
+      policy,
+      createdAtMs: row.created_at_ms || now,
+      lastUsedAtMs: row.last_used_at_ms || now,
+    });
+    restored += 1;
+  }
+  return restored;
+}
+
+/**
+ * Phase 4: acquire a sandbox for an agent — reuse an existing one if the
+ * policy permits, else create fresh. Returns `{ id, reused, scope, ... }`.
+ */
+export function acquireSandbox(db, agentId, options = {}) {
+  const { shouldReuseSandbox } = getSandboxPolicy();
+  _syncFromDb(db);
+  const policy = resolvePolicy(options);
+  const now = Date.now();
+
+  if (policy.reuseAcrossRuns) {
+    for (const sandbox of activeSandboxes.values()) {
+      if (sandbox.agentId !== agentId) continue;
+      if (sandbox.status !== "active") continue;
+      if (
+        shouldReuseSandbox(
+          sandbox.policy || policy,
+          { createdAt: sandbox.createdAtMs, lastUsedAt: sandbox.lastUsedAtMs },
+          now,
+        )
+      ) {
+        sandbox.lastUsedAtMs = now;
+        return {
+          id: sandbox.id,
+          reused: true,
+          scope: sandbox.policy?.scope || policy.scope,
+          status: sandbox.status,
+          permissions: sandbox.permissions,
+          quota: sandbox.quota,
+        };
+      }
+    }
+  }
+
+  const created = createSandbox(db, agentId, { ...options, policy });
+  return { ...created, reused: false, scope: policy.scope };
+}
+
+/**
+ * Phase 4: sweep sandboxes whose ttl / idle ttl expired, mark them destroyed,
+ * and return `[{ id, reason }]`. Safe to call from a timer.
+ */
+export function pruneExpired(db, now = Date.now()) {
+  const { isSandboxExpired, isSandboxIdleExpired } = getSandboxPolicy();
+  _syncFromDb(db);
+  const destroyed = [];
+  for (const sandbox of Array.from(activeSandboxes.values())) {
+    const policy = sandbox.policy;
+    if (!policy) continue;
+    if (sandbox.status !== "active") continue;
+    const ttlExpired = isSandboxExpired(policy, sandbox.createdAtMs, now);
+    const idleExpired = isSandboxIdleExpired(policy, sandbox.lastUsedAtMs, now);
+    if (ttlExpired || idleExpired) {
+      try {
+        destroySandbox(db, sandbox.id);
+        destroyed.push({
+          id: sandbox.id,
+          reason: ttlExpired ? "ttl" : "idle",
+        });
+      } catch (_e) {
+        // skip — destroySandbox may throw if already gone
+      }
+    }
+  }
+  return destroyed;
 }
 
 /**

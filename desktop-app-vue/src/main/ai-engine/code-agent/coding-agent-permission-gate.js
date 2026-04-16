@@ -90,6 +90,56 @@ class CodingAgentPermissionGate {
     };
   }
 
+  /**
+   * Consults a session-core ApprovalGate for the session's policy and folds
+   * that decision into the Plan Mode evaluation. Avoids dual approval (Plan
+   * Mode confirmation + ApprovalGate confirmation) by letting policy-driven
+   * `allow` short-circuit `requiresConfirmation`.
+   *
+   * Managed Agents parity Phase H.
+   *
+   * @param {object} opts - forwarded to `evaluateToolCall` plus
+   *   - `approvalGate`: session-core ApprovalGate instance
+   *   - `sessionId`: used to look up session policy
+   * @returns {Promise<object>} evaluation merged with `{ approvalGate: {...} }`
+   */
+  async evaluateToolCallWithApprovalGate(opts = {}) {
+    const evaluation = this.evaluateToolCall(opts);
+    const { approvalGate, sessionId } = opts;
+
+    if (!approvalGate || typeof approvalGate.decide !== "function") {
+      return evaluation;
+    }
+
+    const gateResult = await approvalGate.decide({
+      sessionId,
+      riskLevel: evaluation.riskLevel,
+      tool: opts.toolName,
+      args: opts.toolArgs || null,
+    });
+
+    const merged = {
+      ...evaluation,
+      approvalGate: {
+        decision: gateResult.decision,
+        via: gateResult.via,
+        policy: gateResult.policy,
+        riskLevel: gateResult.riskLevel,
+      },
+    };
+
+    if (gateResult.decision === "deny") {
+      merged.decision = "deny";
+      merged.allowed = false;
+      merged.requiresConfirmation = false;
+      merged.denyReason = `ApprovalGate denied (${gateResult.via})`;
+    } else if (gateResult.decision === "allow" && gateResult.via === "policy") {
+      merged.requiresConfirmation = false;
+    }
+
+    return merged;
+  }
+
   getToolResultAssessment(payload = {}, session = null, options = {}) {
     const error =
       payload?.result?.error || payload?.error || payload?.message || "";

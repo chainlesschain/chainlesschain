@@ -264,3 +264,126 @@ describe("integration: session policy", () => {
     exitSpy.mockRestore();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Phase H — session-core lifecycle commands (CLI parity with Desktop IPC)
+// ---------------------------------------------------------------------------
+describe("integration: session lifecycle (park / unpark / end)", () => {
+  it("park persists to parked-sessions.json; lifecycle --json surfaces it", async () => {
+    const program = await makeProgram("session");
+
+    // Seed an in-process SessionManager handle, then exercise `park`.
+    const singletonsMod =
+      await import("../../src/lib/session-core-singletons.js");
+    const mgr = singletonsMod.getSessionManager();
+    mgr.create({
+      agentId: "cli-agent",
+      sessionId: "sess_lifecycle_1",
+      metadata: { provider: "ollama" },
+    });
+
+    await program.parseAsync(["session", "park", "sess_lifecycle_1"], {
+      from: "user",
+    });
+    await new Promise((r) => setImmediate(r));
+
+    const file = path.join(tmpHome, "parked-sessions.json");
+    expect(fs.existsSync(file)).toBe(true);
+    const disk = JSON.parse(fs.readFileSync(file, "utf-8"));
+    expect(disk.sess_lifecycle_1).toBeTruthy();
+    expect(disk.sess_lifecycle_1.status).toBe("parked");
+
+    // Reset singletons so lifecycle list reads parked sessions from disk only.
+    singletonsMod.resetSessionCoreSingletonsForTests();
+
+    const logs = await captureStdout(() =>
+      program.parseAsync(["session", "lifecycle", "--json"], { from: "user" }),
+    );
+    const out = JSON.parse(logs.find((l) => l.startsWith("[")));
+    const match = out.find((h) => h.sessionId === "sess_lifecycle_1");
+    expect(match).toBeTruthy();
+    expect(match.status).toBe("parked");
+  });
+
+  it("unpark resumes from disk and removes the parked entry on end", async () => {
+    const program = await makeProgram("session");
+    const singletonsMod =
+      await import("../../src/lib/session-core-singletons.js");
+    const mgr = singletonsMod.getSessionManager();
+    mgr.create({ agentId: "a", sessionId: "sess_lifecycle_2" });
+    await program.parseAsync(["session", "park", "sess_lifecycle_2"], {
+      from: "user",
+    });
+    await new Promise((r) => setImmediate(r));
+
+    // Fresh process — unpark from disk only
+    singletonsMod.resetSessionCoreSingletonsForTests();
+
+    await program.parseAsync(["session", "unpark", "sess_lifecycle_2"], {
+      from: "user",
+    });
+    const mgr2 = (
+      await import("../../src/lib/session-core-singletons.js")
+    ).getSessionManager();
+    expect(mgr2.has("sess_lifecycle_2")).toBe(true);
+    expect(mgr2.get("sess_lifecycle_2").status).toBe("running");
+
+    // End without --consolidate → should close and wipe parked entry
+    await program.parseAsync(["session", "end", "sess_lifecycle_2"], {
+      from: "user",
+    });
+    await new Promise((r) => setImmediate(r));
+    const file = path.join(tmpHome, "parked-sessions.json");
+    if (fs.existsSync(file)) {
+      const disk = JSON.parse(fs.readFileSync(file, "utf-8"));
+      expect(disk.sess_lifecycle_2).toBeUndefined();
+    }
+  });
+
+  it("park fails with non-zero exit when session not in process", async () => {
+    const program = await makeProgram("session");
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation((code) => {
+      throw new Error(`process.exit(${code})`);
+    });
+    await expect(
+      program.parseAsync(["session", "park", "sess_missing"], { from: "user" }),
+    ).rejects.toThrow(/process\.exit\(1\)/);
+    exitSpy.mockRestore();
+  });
+
+  it("unpark fails with non-zero exit when nothing is parked with that id", async () => {
+    const program = await makeProgram("session");
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation((code) => {
+      throw new Error(`process.exit(${code})`);
+    });
+    await expect(
+      program.parseAsync(["session", "unpark", "sess_not_parked"], {
+        from: "user",
+      }),
+    ).rejects.toThrow(/process\.exit\(1\)/);
+    exitSpy.mockRestore();
+  });
+
+  it("lifecycle filters by --status", async () => {
+    const program = await makeProgram("session");
+    const singletonsMod =
+      await import("../../src/lib/session-core-singletons.js");
+    const mgr = singletonsMod.getSessionManager();
+    mgr.create({ agentId: "a", sessionId: "sess_running_1" });
+    mgr.create({ agentId: "a", sessionId: "sess_parked_1" });
+    mgr.markIdle("sess_parked_1");
+    await mgr.park("sess_parked_1");
+    await new Promise((r) => setImmediate(r));
+
+    const logs = await captureStdout(() =>
+      program.parseAsync(
+        ["session", "lifecycle", "--status", "parked", "--json"],
+        { from: "user" },
+      ),
+    );
+    const out = JSON.parse(logs.find((l) => l.startsWith("[")));
+    const ids = out.map((h) => h.sessionId);
+    expect(ids).toContain("sess_parked_1");
+    expect(ids).not.toContain("sess_running_1");
+  });
+});

@@ -7,6 +7,41 @@ import {
   baseDecision,
 } from "../lib/approval-gate.js";
 
+describe("ApprovalGate.setConfirmer", () => {
+  it("injects a confirm callback after construction (no-confirmer → user-confirm)", async () => {
+    const gate = new ApprovalGate({ defaultPolicy: POLICY.STRICT });
+    expect(gate.hasConfirmer()).toBe(false);
+
+    // Before: STRICT + MEDIUM risk with no confirmer → safe-default deny
+    const before = await gate.decide({ riskLevel: RISK.MEDIUM });
+    expect(before.decision).toBe(DECISION.DENY);
+    expect(before.via).toBe("no-confirmer");
+
+    gate.setConfirmer(async () => true);
+    expect(gate.hasConfirmer()).toBe(true);
+
+    const after = await gate.decide({ riskLevel: RISK.MEDIUM });
+    expect(after.decision).toBe(DECISION.ALLOW);
+    expect(after.via).toBe("user-confirm");
+  });
+
+  it("setConfirmer(null) clears the callback", async () => {
+    const gate = new ApprovalGate({
+      defaultPolicy: POLICY.STRICT,
+      confirm: async () => true,
+    });
+    gate.setConfirmer(null);
+    expect(gate.hasConfirmer()).toBe(false);
+    const res = await gate.decide({ riskLevel: RISK.HIGH });
+    expect(res.via).toBe("no-confirmer");
+  });
+
+  it("rejects non-function non-null inputs", () => {
+    const gate = new ApprovalGate();
+    expect(() => gate.setConfirmer("not-a-fn")).toThrow(/function or null/);
+  });
+});
+
 describe("baseDecision", () => {
   it("LOW always allows regardless of policy", () => {
     expect(baseDecision(POLICY.STRICT, RISK.LOW)).toBe(DECISION.ALLOW);

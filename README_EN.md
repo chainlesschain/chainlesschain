@@ -1,5 +1,28 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-16 Update — Managed Agents Phase A–I + Deep Agents Deploy Phase 1–5 (All Complete)
+
+Local-first runtime parity with Anthropic Claude Managed Agents and Deep Agents Deploy. New shared package `@chainlesschain/session-core` provides Session / Trace / Team-Subagent / Scoped Memory / Approval Policy / Beta Flags / Stream Router / Service Envelope / MCP Policy / Sandbox Policy / Agent Bundle — shared by CLI and Desktop.
+
+### Key Deliverables
+
+- **session-core**: 20 test files, **413/413 tests** — SessionHandle, SessionManager, MemoryStore, MemoryConsolidator, ApprovalGate, BetaFlags, StreamRouter, TraceStore, SharedTaskList, ServiceEnvelope, MCPPolicy, SandboxPolicy, AgentBundle
+- **Hosted Session API**: `cc serve` WS gateway with 17 req/resp + 2 streaming routes (`stream.run` + `sessions.subscribe`), unified `<type>.response` envelopes
+- **CLI session/usage commands**: `cc session tail/usage/lifecycle/park/unpark/end`, auto token accounting for Ollama/OpenAI/Anthropic
+- **Desktop IPC**: 21 IPC channels (session lifecycle + memory + beta + usage + subscribe), Pinia store + SessionCorePage Usage tab
+- **Desktop/CLI symmetric persistence**: shared `parked-sessions.json / memory-store.json / beta-flags.json / approval-policies.json`
+
+| Tier | Scope | Pass |
+| --- | --- | --- |
+| Shared | `@chainlesschain/session-core` (20 files) | `413/413` |
+| CLI Unit | ws-session-core (25) + agent-core (95) + chat-core-usage (10) + session-* (22) + singletons (10) + agent-repl (40) | `202/202` |
+| CLI Integration | managed-agents + parity + shims + doc-creator | `696/696` |
+| CLI E2E | managed-agents + full e2e suite | `562/562` |
+| Desktop | session-core-ipc (23) + coding-agent (28) + sandbox (45) | `96/96` |
+
+Design docs: [91_Managed_Agents](./docs/design/modules/91_Managed_Agents对标计划.md) | [92_Deep_Agents_Deploy](./docs/design/modules/92_Deep_Agents_Deploy借鉴落地方案.md)
+
+---
 ## 2026-04-12 Update — Documentation-Code Gap Fill (All 7 Items Complete + 166 Tests)
 
 Comprehensive comparison of 84 design documents against the codebase, closing 7 documentation-code gaps. All features upgraded from mock/placeholder to real implementations:

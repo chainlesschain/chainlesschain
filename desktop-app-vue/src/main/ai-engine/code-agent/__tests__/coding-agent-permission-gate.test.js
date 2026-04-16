@@ -251,6 +251,67 @@ describe("CodingAgentPermissionGate", () => {
     });
   });
 
+  it("evaluateToolCallWithApprovalGate: autopilot policy short-circuits confirmation", async () => {
+    const {
+      ApprovalGate,
+      APPROVAL_POLICY,
+    } = require("@chainlesschain/session-core");
+    const approvalGate = new ApprovalGate({
+      defaultPolicy: APPROVAL_POLICY.AUTOPILOT,
+    });
+    const gate = new CodingAgentPermissionGate();
+
+    const result = await gate.evaluateToolCallWithApprovalGate({
+      toolName: "run_shell",
+      session: { planModeState: "executing" },
+      toolArgs: { command: "ls" },
+      confirmed: false,
+      approvalGate,
+      sessionId: "sess_auto",
+    });
+
+    expect(result.approvalGate).toMatchObject({
+      decision: "allow",
+      via: "policy",
+    });
+    expect(result.requiresConfirmation).toBe(false);
+  });
+
+  it("evaluateToolCallWithApprovalGate: strict policy + no confirmer → deny", async () => {
+    const {
+      ApprovalGate,
+      APPROVAL_POLICY,
+    } = require("@chainlesschain/session-core");
+    const approvalGate = new ApprovalGate({
+      defaultPolicy: APPROVAL_POLICY.STRICT,
+    });
+    const gate = new CodingAgentPermissionGate();
+
+    const result = await gate.evaluateToolCallWithApprovalGate({
+      toolName: "run_shell",
+      session: { planModeState: "executing" },
+      toolArgs: { command: "rm -rf /" },
+      confirmed: false,
+      approvalGate,
+      sessionId: "sess_strict",
+    });
+
+    expect(result.approvalGate.decision).toBe("deny");
+    expect(result.decision).toBe("deny");
+    expect(result.allowed).toBe(false);
+    expect(result.requiresConfirmation).toBe(false);
+  });
+
+  it("evaluateToolCallWithApprovalGate: no gate passes through unchanged", async () => {
+    const gate = new CodingAgentPermissionGate();
+    const result = await gate.evaluateToolCallWithApprovalGate({
+      toolName: "read_file",
+      session: { planModeState: "inactive" },
+    });
+    expect(result.approvalGate).toBeUndefined();
+    expect(result.allowed).toBe(true);
+  });
+
   it("extracts high-risk tools from plan items", () => {
     const gate = new CodingAgentPermissionGate();
 

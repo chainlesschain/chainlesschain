@@ -14,6 +14,21 @@ import {
   LEGACY_TO_UNIFIED_TYPE,
 } from "../runtime/runtime-events.js";
 import { createAbortError } from "./abort-utils.js";
+import { createEnvelope } from "@chainlesschain/session-core";
+
+// Phase 5: parallel service-envelope emission. Map WS agent-handler event
+// types onto the canonical `run.*` run-loop envelope types. Events not in
+// this map are skipped (legacy coding-agent envelope still flows).
+const AGENT_EVENT_TO_ENVELOPE_TYPE = Object.freeze({
+  "tool-executing": "run.tool_call",
+  "tool-result": "run.tool_result",
+  "response-complete": "run.message",
+  error: "run.error",
+  // Phase 5 bookends — emitted by agentLoop at entry / termination so
+  // envelope subscribers can correlate a full run by runId.
+  "run-started": "run.started",
+  "run-ended": "run.ended",
+});
 
 // Whitelist of event types the CLI runtime should emit as unified envelopes
 // (with source: "cli-runtime"). Anything not in this set keeps the legacy
@@ -101,7 +116,7 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
    * @param {import("ws").WebSocket} ws
    * @param {string} sessionId
    */
-  constructor(ws, sessionId) {
+  constructor(ws, sessionId, options = {}) {
     super();
     this.ws = ws;
     this.sessionId = sessionId;
@@ -111,6 +126,11 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     // this WS session instead of leaking across sessions via the process-
     // global default tracker.
     this._sequenceTracker = new CodingAgentSequenceTracker();
+    // Phase 5: parallel service-envelope emission. Opt-in (default off) so
+    // legacy callers that count ws.send invocations stay green.
+    this.enablePhase5Envelopes = options.enablePhase5Envelopes === true;
+    // Optional fan-out bus for hosted HTTP SSE subscribers.
+    this.envelopeBus = options.envelopeBus || null;
   }
 
   /** Generate a unique request id */
@@ -230,6 +250,8 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
         tracker: this._sequenceTracker,
       });
       this._sendWs(envelope);
+      // Phase 5: parallel service-envelope emission for unified subscribers.
+      this._sendPhase5Envelope(eventType, payload, { sessionId, requestId });
       return;
     }
 
@@ -240,6 +262,42 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
       sessionId: this.sessionId,
       ...data,
     });
+
+    // Phase 5: even for non-coding-agent events, forward if the type maps to
+    // a canonical envelope (run-started / run-ended bookends flow here).
+    if (AGENT_EVENT_TO_ENVELOPE_TYPE[eventType]) {
+      const payload = data && typeof data === "object" ? { ...data } : {};
+      const requestId = payload.requestId || null;
+      const sessionId = payload.sessionId || this.sessionId || null;
+      delete payload.requestId;
+      delete payload.sessionId;
+      this._sendPhase5Envelope(eventType, payload, { sessionId, requestId });
+    }
+  }
+
+  _sendPhase5Envelope(eventType, payload, { sessionId, requestId }) {
+    if (!this.enablePhase5Envelopes) return;
+    const envType = AGENT_EVENT_TO_ENVELOPE_TYPE[eventType];
+    if (!envType) return;
+    try {
+      const env = createEnvelope({
+        type: envType,
+        sessionId: sessionId || null,
+        runId: payload?.runId || null,
+        requestId: requestId || null,
+        payload: { ...(payload || {}) },
+      });
+      this._sendWs(env);
+      if (this.envelopeBus && env.sessionId) {
+        try {
+          this.envelopeBus.publish(env.sessionId, env);
+        } catch (_e) {
+          // Bus fan-out must never break the WS path.
+        }
+      }
+    } catch (_e) {
+      // Phase 5 is additive — never break the legacy path on envelope failure.
+    }
   }
 
   _sendWs(data) {

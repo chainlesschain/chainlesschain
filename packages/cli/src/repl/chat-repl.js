@@ -12,6 +12,16 @@ import readline from "readline";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { BUILT_IN_PROVIDERS } from "../lib/llm-providers.js";
+import {
+  streamOllama,
+  streamOpenAI,
+  streamAnthropic,
+} from "../lib/chat-core.js";
+import {
+  startSession,
+  appendTokenUsage,
+  appendEvent,
+} from "../harness/jsonl-session-store.js";
 
 const SLASH_COMMANDS = {
   "/exit": "Exit the chat",
@@ -22,104 +32,6 @@ const SLASH_COMMANDS = {
   "/history": "Show conversation history",
   "/help": "Show available commands",
 };
-
-/**
- * Stream a response from Ollama
- */
-async function streamOllama(messages, model, baseUrl, onToken) {
-  const response = await fetch(`${baseUrl}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model,
-      messages,
-      stream: true,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Ollama error: ${response.status} ${response.statusText}`);
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let fullResponse = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    const text = decoder.decode(value, { stream: true });
-    const lines = text.split("\n").filter(Boolean);
-
-    for (const line of lines) {
-      try {
-        const json = JSON.parse(line);
-        if (json.message?.content) {
-          fullResponse += json.message.content;
-          onToken(json.message.content);
-        }
-      } catch {
-        // Partial JSON, skip
-      }
-    }
-  }
-
-  return fullResponse;
-}
-
-/**
- * Stream a response from OpenAI-compatible API
- */
-async function streamOpenAI(messages, model, baseUrl, apiKey, onToken) {
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      stream: true,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let fullResponse = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    const text = decoder.decode(value, { stream: true });
-    const lines = text.split("\n").filter(Boolean);
-
-    for (const line of lines) {
-      if (line.startsWith("data: ")) {
-        const data = line.slice(6);
-        if (data === "[DONE]") continue;
-        try {
-          const json = JSON.parse(data);
-          const content = json.choices?.[0]?.delta?.content;
-          if (content) {
-            fullResponse += content;
-            onToken(content);
-          }
-        } catch {
-          // Partial data
-        }
-      }
-    }
-  }
-
-  return fullResponse;
-}
 
 /**
  * Start the interactive chat REPL
@@ -133,6 +45,21 @@ export async function startChatRepl(options = {}) {
 
   const messages = [];
 
+  // Phase J — attach chat REPL to a JSONL session so token_usage is recorded
+  // and `cc session usage` / `usage.*` WS routes show real numbers.
+  let sessionId = options.sessionId || null;
+  if (!sessionId && options.recordUsage !== false) {
+    try {
+      sessionId = startSession(null, {
+        title: "chat-repl",
+        provider,
+        model,
+      });
+    } catch {
+      sessionId = null;
+    }
+  }
+
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -142,6 +69,7 @@ export async function startChatRepl(options = {}) {
 
   logger.log(chalk.bold("\nChainlessChain AI Chat"));
   logger.log(chalk.gray(`Model: ${model}  Provider: ${provider}`));
+  if (sessionId) logger.log(chalk.gray(`Session: ${sessionId}`));
   logger.log(chalk.gray("Type /help for commands, /exit to quit\n"));
 
   rl.prompt();
@@ -234,9 +162,43 @@ export async function startChatRepl(options = {}) {
     try {
       let response;
       const onToken = (token) => process.stdout.write(token);
+      let capturedUsage = null;
+      const onUsage = (u) => {
+        capturedUsage = u;
+      };
+
+      if (sessionId)
+        appendEvent(sessionId, "user_message", { content: trimmed });
 
       if (provider === "ollama") {
-        response = await streamOllama(messages, model, baseUrl, onToken);
+        response = await streamOllama(
+          messages,
+          model,
+          baseUrl,
+          onToken,
+          onUsage,
+        );
+      } else if (provider === "anthropic") {
+        const providerDef = BUILT_IN_PROVIDERS.anthropic;
+        const url =
+          baseUrl !== "http://localhost:11434"
+            ? baseUrl
+            : providerDef?.baseUrl || "https://api.anthropic.com/v1";
+        const key =
+          apiKey ||
+          (providerDef?.apiKeyEnv ? process.env[providerDef.apiKeyEnv] : null);
+        if (!key)
+          throw new Error(
+            `API key required for anthropic (set ${providerDef?.apiKeyEnv || "ANTHROPIC_API_KEY"})`,
+          );
+        response = await streamAnthropic(
+          messages,
+          model,
+          url,
+          key,
+          onToken,
+          onUsage,
+        );
       } else {
         // OpenAI-compatible providers (openai, volcengine, deepseek, dashscope, mistral, gemini, anthropic-proxy)
         const providerDef = BUILT_IN_PROVIDERS[provider];
@@ -251,11 +213,36 @@ export async function startChatRepl(options = {}) {
           throw new Error(
             `API key required for ${provider} (set ${providerDef?.apiKeyEnv || "API key"})`,
           );
-        response = await streamOpenAI(messages, model, url, key, onToken);
+        response = await streamOpenAI(
+          messages,
+          model,
+          url,
+          key,
+          onToken,
+          onUsage,
+        );
       }
 
       process.stdout.write("\n\n");
       messages.push({ role: "assistant", content: response });
+
+      if (sessionId) {
+        try {
+          appendEvent(sessionId, "assistant_message", { content: response });
+          if (capturedUsage) {
+            appendTokenUsage(sessionId, {
+              provider,
+              model,
+              usage: {
+                input_tokens: capturedUsage.inputTokens,
+                output_tokens: capturedUsage.outputTokens,
+              },
+            });
+          }
+        } catch {
+          /* best-effort — never break REPL */
+        }
+      }
     } catch (err) {
       process.stdout.write("\n");
       logger.error(`Error: ${err.message}`);

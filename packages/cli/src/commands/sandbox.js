@@ -9,6 +9,8 @@ import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   createSandbox,
+  acquireSandbox,
+  pruneExpired,
   executeSandbox,
   destroySandbox,
   listSandboxes,
@@ -31,6 +33,11 @@ export function registerSandboxCommand(program) {
     .option("--allow-read <paths>", "Comma-separated allowed read paths")
     .option("--allow-write <paths>", "Comma-separated allowed write paths")
     .option("--allowed-hosts <hosts>", "Comma-separated allowed network hosts")
+    .option(
+      "--bundle <path>",
+      "Agent bundle path — applies bundle sandbox policy, enables scope-aware reuse",
+    )
+    .option("--scope <scope>", "Sandbox scope override (thread|assistant)")
     .option("--json", "Output as JSON")
     .action(async (agentId, options) => {
       try {
@@ -64,18 +71,47 @@ export function registerSandboxCommand(program) {
 
         const sandboxOpts =
           Object.keys(perms).length > 0 ? { permissions: perms } : {};
-        const result = createSandbox(db, agentId, sandboxOpts);
-        spinner.succeed("Sandbox created");
+
+        let bundle = null;
+        if (options.bundle) {
+          try {
+            const { loadAgentBundle } =
+              await import("@chainlesschain/session-core/agent-bundle-loader");
+            bundle = loadAgentBundle(options.bundle);
+          } catch (err) {
+            spinner.fail(`Failed to load bundle: ${err.message}`);
+            process.exit(1);
+          }
+        }
+        if (options.scope) {
+          sandboxOpts.policy = {
+            ...(sandboxOpts.policy || {}),
+            scope: options.scope,
+          };
+        }
+
+        const result =
+          bundle || options.scope
+            ? acquireSandbox(db, agentId, { ...sandboxOpts, bundle })
+            : createSandbox(db, agentId, sandboxOpts);
+        spinner.succeed(result.reused ? "Sandbox reused" : "Sandbox created");
 
         if (options.json) {
           console.log(JSON.stringify(result, null, 2));
         } else {
-          logger.log(chalk.bold("Sandbox Created:"));
-          logger.log(`  ID:     ${chalk.cyan(result.id)}`);
-          logger.log(`  Status: ${chalk.green(result.status)}`);
           logger.log(
-            `  Quota:  CPU=${result.quota.cpu}, Memory=${(result.quota.memory / 1024 / 1024).toFixed(0)}MB`,
+            chalk.bold(result.reused ? "Sandbox Reused:" : "Sandbox Created:"),
           );
+          logger.log(`  ID:     ${chalk.cyan(result.id)}`);
+          if (result.scope) {
+            logger.log(`  Scope:  ${chalk.cyan(result.scope)}`);
+          }
+          logger.log(`  Status: ${chalk.green(result.status)}`);
+          if (result.quota) {
+            logger.log(
+              `  Quota:  CPU=${result.quota.cpu}, Memory=${(result.quota.memory / 1024 / 1024).toFixed(0)}MB`,
+            );
+          }
         }
 
         await shutdown();
@@ -354,6 +390,44 @@ export function registerSandboxCommand(program) {
             }
           } else {
             logger.log(chalk.green("\n  No suspicious patterns detected."));
+          }
+        }
+
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // sandbox prune — Phase 4 TTL / idle sweep
+  sandbox
+    .command("prune")
+    .description(
+      "Destroy sandboxes whose ttl or idle-ttl has expired (Phase 4)",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+
+        const destroyed = pruneExpired(db);
+
+        if (options.json) {
+          console.log(JSON.stringify({ destroyed }, null, 2));
+        } else if (destroyed.length === 0) {
+          logger.info("No expired sandboxes.");
+        } else {
+          logger.log(chalk.bold(`Pruned ${destroyed.length} sandbox(es):`));
+          for (const d of destroyed) {
+            logger.log(
+              `  ${chalk.cyan(d.id)}  reason=${chalk.yellow(d.reason)}`,
+            );
           }
         }
 

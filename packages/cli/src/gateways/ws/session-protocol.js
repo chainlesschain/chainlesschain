@@ -29,6 +29,20 @@ function envelopeError(id, code, message, sessionId) {
   );
 }
 
+// Phase 5 envelope opt-in via beta flag `unified-envelope-2026-04-16`.
+// Falls back to false if BetaFlags is unavailable so legacy behavior wins.
+const PHASE5_ENVELOPE_FLAG = "unified-envelope-2026-04-16";
+async function _isPhase5EnvelopesEnabled() {
+  try {
+    const { getBetaFlags } =
+      await import("../../lib/session-core-singletons.js");
+    const flags = await getBetaFlags();
+    return flags.isEnabled(PHASE5_ENVELOPE_FLAG);
+  } catch (_e) {
+    return false;
+  }
+}
+
 async function ensureSessionHandler(server, ws, session) {
   if (server.sessionHandlers.has(session.id)) {
     return server.sessionHandlers.get(session.id);
@@ -36,7 +50,11 @@ async function ensureSessionHandler(server, ws, session) {
 
   const { WebSocketInteractionAdapter } =
     await import("../../lib/interaction-adapter.js");
-  session.interaction = new WebSocketInteractionAdapter(ws, session.id);
+  const enablePhase5Envelopes = await _isPhase5EnvelopesEnabled();
+  session.interaction = new WebSocketInteractionAdapter(ws, session.id, {
+    enablePhase5Envelopes,
+    envelopeBus: server.envelopeBus || null,
+  });
 
   let handler;
   if (session.type === "chat") {
@@ -120,6 +138,20 @@ export async function handleSessionCreate(server, id, ws, message) {
     }
 
     server.emit("session:create", { sessionId, type: sessionType || "agent" });
+
+    // Phase 5: broadcast service envelope for unified subscribers.
+    if (typeof server.broadcastEnvelope === "function") {
+      server.broadcastEnvelope({
+        type: "session.created",
+        sessionId,
+        payload: {
+          sessionType: sessionType || "agent",
+          provider,
+          model,
+          projectRoot: projectRoot || null,
+        },
+      });
+    }
     server.emit(
       RUNTIME_EVENTS.SESSION_START,
       createRuntimeEvent(
@@ -377,6 +409,15 @@ export function handleSessionClose(server, id, ws, message) {
   }
 
   server.emit("session:close", { sessionId });
+
+  // Phase 5: broadcast service envelope for unified subscribers.
+  if (typeof server.broadcastEnvelope === "function") {
+    server.broadcastEnvelope({
+      type: "session.closed",
+      sessionId,
+      payload: {},
+    });
+  }
   server.emit(
     RUNTIME_EVENTS.SESSION_END,
     createRuntimeEvent(

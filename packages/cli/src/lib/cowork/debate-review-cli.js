@@ -6,6 +6,7 @@
  */
 
 import { createChatFn } from "../cowork-adapter.js";
+import { runPeerGroup } from "./agent-group-runner.js";
 
 const DEFAULT_PERSPECTIVES = ["performance", "security", "maintainability"];
 
@@ -54,41 +55,56 @@ export async function startDebate({
   llmOptions = {},
 }) {
   const chat = createChatFn(llmOptions);
-  const reviews = [];
 
-  // Phase 1: Independent reviews from each perspective
-  for (const perspective of perspectives) {
+  // Phase 1: Team of peer reviewers — each perspective is a peer AgentGroup
+  // member, the moderator is the coordinator (parent). SharedTaskList tracks
+  // one review task per perspective.
+  const peers = perspectives.map((perspective) => {
     const config = PERSPECTIVE_PROMPTS[perspective] || {
       role: `${perspective} Reviewer`,
       system: `You are a ${perspective}-focused code reviewer. Provide specific, actionable feedback.`,
     };
+    return {
+      agentId: `reviewer_${perspective}`,
+      role: config.role,
+      taskTitle: `Review (${perspective})`,
+      taskDescription: target,
+      payload: { perspective, config },
+    };
+  });
 
-    const messages = [
-      { role: "system", content: config.system },
-      {
-        role: "user",
-        content: `Review the following code/content.\n\nTarget: ${target}\n\n\`\`\`\n${code}\n\`\`\`\n\nProvide your review as a ${config.role}. Format your response as:\n\n## Issues Found\n- List each issue with severity (HIGH/MEDIUM/LOW)\n\n## Recommendations\n- List specific improvements\n\n## Verdict\nAPPROVE, NEEDS_WORK, or REJECT with a brief reason.`,
-      },
-    ];
-
-    try {
+  const runResult = await runPeerGroup({
+    peers,
+    coordinator: { agentId: "moderator", role: "Moderator" },
+    metadata: { kind: "debate-review", target },
+    runPeer: async (peer) => {
+      const { perspective, config } = peer.payload;
+      const messages = [
+        { role: "system", content: config.system },
+        {
+          role: "user",
+          content: `Review the following code/content.\n\nTarget: ${target}\n\n\`\`\`\n${code}\n\`\`\`\n\nProvide your review as a ${config.role}. Format your response as:\n\n## Issues Found\n- List each issue with severity (HIGH/MEDIUM/LOW)\n\n## Recommendations\n- List specific improvements\n\n## Verdict\nAPPROVE, NEEDS_WORK, or REJECT with a brief reason.`,
+        },
+      ];
       const response = await chat(messages, { maxTokens: 1500 });
-      const verdict = extractVerdict(response);
-      reviews.push({
+      return {
         perspective,
         role: config.role,
         review: response,
-        verdict,
-      });
-    } catch (err) {
-      reviews.push({
-        perspective,
-        role: config.role,
-        review: `Error: ${err.message}`,
-        verdict: "ERROR",
-      });
-    }
-  }
+        verdict: extractVerdict(response),
+      };
+    },
+  });
+
+  const reviews = runResult.results.map((r) => {
+    if (r.ok) return r.value;
+    return {
+      perspective: r.peer.payload.perspective,
+      role: r.peer.payload.config.role,
+      review: `Error: ${r.error?.message || r.error}`,
+      verdict: "ERROR",
+    };
+  });
 
   // Phase 2: Moderator synthesizes final verdict
   // Summarize each reviewer's output to reduce context pollution for the moderator
@@ -136,6 +152,12 @@ export async function startDebate({
     verdict: finalVerdict,
     consensusScore,
     summary,
+    group: {
+      groupId: runResult.groupId,
+      parentAgentId: runResult.parentAgentId,
+      members: runResult.members,
+      tasks: runResult.tasks,
+    },
   };
 }
 

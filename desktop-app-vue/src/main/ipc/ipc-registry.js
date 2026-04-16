@@ -401,6 +401,52 @@ function registerAllIPC(dependencies) {
     }
 
     // ============================================================
+    // Phase H (Managed Agents parity): session-core IPC
+    // 18 channels: session policy/lifecycle + memory + agent stream + beta
+    // ============================================================
+    {
+      try {
+        const { ipcMain } = require("electron");
+        const {
+          registerSessionCoreIpc,
+        } = require("../session/session-core-ipc.js");
+        const res = registerSessionCoreIpc(ipcMain);
+        registeredModules["session-core"] = {
+          channelCount: res.channels.length,
+        };
+        logger.info(
+          `[IPC Registry] session-core: registered ${res.channels.length} channels`,
+        );
+      } catch (e) {
+        logger.error("[IPC Registry] session-core registration failed:", e);
+      }
+    }
+
+    // ============================================================
+    // Phase CutClaw: Video Editing Agent IPC (7 channels)
+    // ============================================================
+    {
+      try {
+        const { ipcMain } = require("electron");
+        const {
+          registerVideoEditingIPC,
+        } = require("../video/video-editing-ipc.js");
+        const res = registerVideoEditingIPC(ipcMain, {
+          mainWindow: dependencies.mainWindow,
+          llmManager: dependencies.llmManager,
+        });
+        registeredModules["video-editing"] = {
+          channelCount: res.channels.length,
+        };
+        logger.info(
+          `[IPC Registry] video-editing: registered ${res.channels.length} channels`,
+        );
+      } catch (e) {
+        logger.error("[IPC Registry] video-editing registration failed:", e);
+      }
+    }
+
+    // ============================================================
     // 注册统计
     // ============================================================
 

@@ -31,6 +31,7 @@ const routes = [
       { path: 'backup',      name: 'Backup',      component: () => import('../views/Backup.vue') },
       { path: 'rssfeed',     name: 'RssFeed',     component: () => import('../views/RssFeed.vue') },
       { path: 'webauthn',    name: 'WebAuthn',    component: () => import('../views/WebAuthn.vue') },
+      { path: 'video',       name: 'VideoEditing', component: () => import('../views/VideoEditing.vue') },
     ]
   }
 ]

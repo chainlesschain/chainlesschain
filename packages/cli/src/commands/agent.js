@@ -23,6 +23,19 @@ export function registerAgentCommand(program) {
     .option("--base-url <url>", "API base URL")
     .option("--api-key <key>", "API key")
     .option("--session <id>", "Resume a previous agent session")
+    .option("--agent-id <id>", "Agent id for scoped memory recall")
+    .option("--recall-limit <n>", "Top-K memories to inject into system prompt")
+    .option("--recall-query <q>", "Query string for startup memory recall")
+    .option("--no-recall-memory", "Disable startup memory recall")
+    .option("--no-stream", "Disable streamed response rendering")
+    .option(
+      "--no-park-on-exit",
+      "Close the session-core handle on exit instead of parking it",
+    )
+    .option(
+      "--bundle <path>",
+      "Agent bundle directory (chainless-agent.toml + AGENTS.md + skills/ + mcp.json + USER.md)",
+    )
     .action(async (options) => {
       const runtime = createAgentRuntimeFactory().createAgentRuntime({
         model: options.model,
@@ -30,6 +43,13 @@ export function registerAgentCommand(program) {
         baseUrl: options.baseUrl,
         apiKey: options.apiKey,
         sessionId: options.session,
+        agentId: options.agentId,
+        recallLimit: options.recallLimit,
+        recallQuery: options.recallQuery,
+        recallMemory: options.recallMemory, // false when --no-recall-memory
+        noStream: options.stream === false, // true when --no-stream
+        parkOnExit: options.parkOnExit, // false when --no-park-on-exit
+        bundlePath: options.bundle || null,
       });
       await runtime.startAgentSession();
     });

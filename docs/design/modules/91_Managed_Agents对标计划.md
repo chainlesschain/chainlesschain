@@ -1,6 +1,6 @@
 ﻿# Managed Agents 对标计划
 
-> 版本: v1.9 · 日期: 2026-04-16 · 状态: Phase A+B+C+D+E+F 已落地（session-core 293 tests）· CLI 已接入 D2/E1/E2 基础命令，session policy 已持久化 · Desktop 待收口
+> 版本: v2.1 · 日期: 2026-04-16 · 状态: Phase A–H 全部落地 · Phase I 首批完成（CLI `session tail` + `session usage` + Hosted Session API over WS, 30 tests）· 全链闭环
 >
 > 对标对象: Anthropic **Claude Managed Agents** (2026-04-01 beta)
 >
@@ -141,9 +141,9 @@
 **集成状态**:
 - ✅ CLI `chainlesschain memory recall` / `memory store` 已接入 `MemoryStore`
 - ✅ CLI 单例已通过 `memory-store.json` 复用 `MemoryStore + file adapter`
-- ⏳ CLI `chainlesschain memory consolidate --session <id>` 仍未接入
+- ✅ CLI `chainlesschain memory consolidate --session <id>` 已接入（JSONL→TraceStore 投影 + MemoryConsolidator，6 tests）
 - ⏳ Desktop SessionEnd hook 自动调用 consolidator
-- ⏳ 新 session 启动时把 top-K 相关记忆注入 system prompt
+- ✅ 新 session 启动时把 top-K 相关记忆注入 system prompt（`src/lib/memory-injection.js` + agent-repl 集成 + `--agent-id/--recall-limit/--no-recall-memory`，7 tests）
 
 ---
 
@@ -208,16 +208,16 @@
 
 ---
 
-### 🚧 Phase G — CLI 收口（计划中 · 预估 +45 tests）
+### ✅ Phase G — CLI 收口（已完成）
 
 **目标**: 把已落到 `session-core` 的抽象真正拉通到 CLI 主运行路径，让 Managed Agents 对标从“底层库具备”变成“CLI 默认工作方式”。
 
 **交付范围**:
-- `packages/cli/src/commands/cowork.js` 接入 `AgentGroup + SharedTaskList`，显式区分 team(peer) 与 subagent(child)
-- `packages/cli/src/runtime/agent-core.js` / REPL 输出链路接入 `StreamRouter`，默认流式，`--no-stream` 退回 collect
-- `packages/cli/src/runtime/coding-agent-shell-policy.cjs` 与 REPL / WS confirm 流程接入 `ApprovalGate`
-- `packages/cli/src/commands/memory.js` 新增 `memory consolidate --session <id>` 并接入 `MemoryConsolidator`
-- 新 session 启动时从 `MemoryStore.recall()` 注入 top-K 到 system prompt
+- ~~`packages/cli/src/commands/cowork.js` 接入 `AgentGroup + SharedTaskList`，显式区分 team(peer) 与 subagent(child)~~ ✅ 已完成（`src/lib/cowork/agent-group-runner.js` 统一封装，debate/compare/analyze 三条路径全部改用 peer group + SharedTaskList，5 tests）
+- ~~`packages/cli/src/runtime/agent-core.js` / REPL 输出链路接入 `StreamRouter`，默认流式，`--no-stream` 退回 collect~~ ✅ 已完成（`src/lib/agent-stream.js` + agent-repl 集成 + `--no-stream`，6 tests）
+- ~~`packages/cli/src/runtime/coding-agent-shell-policy.cjs` 与 REPL / WS confirm 流程接入 `ApprovalGate`~~ ✅ 已完成（`src/lib/shell-approval.js` + agent-core `run_shell` 分支 + REPL readline confirm 回调 + `ApprovalGate.setConfirmer`，8+5+3 tests）
+- ~~`packages/cli/src/commands/memory.js` 新增 `memory consolidate --session <id>` 并接入 `MemoryConsolidator`~~ ✅ 已完成（`src/lib/session-consolidator.js` 做 JSONL→TRACE_TYPES 投影）
+- ~~新 session 启动时从 `MemoryStore.recall()` 注入 top-K 到 system prompt~~ ✅ 已完成
 - ~~`session policy` 改为文件持久化，补齐 `approval-policies.json`~~ ✅ v1.9 已完成
 
 **验收标准**:
@@ -228,21 +228,47 @@
 
 ---
 
-### 🚧 Phase H — Desktop 收口（计划中 · 预估 +35 tests + E2E）
+### ✅ Phase H — Desktop 收口 + CLI 对称（已完成 · Desktop 17 tests + CLI 52 tests）
 
-**目标**: 让 `desktop-app-vue` 不只 re-export `session-core`，而是把会话、审批、记忆、流式事件真正纳入桌面主进程与 IPC。
+**目标**: 让 `desktop-app-vue` 不只 re-export `session-core`，而是把会话、审批、记忆、流式事件真正纳入桌面主进程与 IPC；同时在 CLI 端提供对称的命令行入口，使 Desktop IPC 和 CLI 命令共享同一文件持久化格式。
 
-**交付范围**:
-- 主进程新增 session-core service/singletons，统一管理 `SessionManager / ApprovalGate / MemoryStore / BetaFlags`
-- `agent:stream`、`session:list/show/park/resume`、`memory:recall/consolidate` IPC 收口到统一协议
-- SessionEnd 自动触发 consolidate，新会话自动召回 top-K memory
-- 现有 Permission Gate / Plan Mode 与 `ApprovalGate` 合并，避免双轨审批
-- Desktop UI 面板展示 session status / runtime / idle / policy / trace 摘要
+**Desktop 交付（22 tests）**:
+- `desktop-app-vue/src/main/session/session-core-singletons.js` — `getMemoryStore / getBetaFlags / getApprovalGate / getSessionManager`，`_deps.getUserDataDir` 可注入
+- `desktop-app-vue/src/main/session/session-core-ipc.js` — 20 通道（3 policy / 6 lifecycle / 1 subscribe / 4 memory / 2 stream / 3 beta / 1 recall-on-start）
+- `desktop-app-vue/src/preload/index.js` — `electronAPI.sessionCore.{policy,session,memory,agent,beta}` 类型化命名空间
+- `desktop-app-vue/src/renderer/stores/sessionCore.ts` + `pages/SessionCorePage.vue` — 4 tab UI 面板
+- `coding-agent-permission-gate.js` `evaluateToolCallWithApprovalGate()` — Plan Mode × ApprovalGate 合流避免双审批
+- `coding-agent-session-service.js` — 懒加载 ApprovalGate 注入
 
-**验收标准**:
-- Desktop 与 CLI 使用同一套 session-core 语义和持久化格式
-- IPC 层不再维护多套流式事件结构，统一为 `StreamEvent`
-- 会话 park/resume、审批策略、beta flags 在 Desktop 重启后可恢复
+**CLI 对称交付（52 tests）**:
+- `packages/cli/src/lib/session-core-singletons.js` — `getSessionManager()` + 文件持久化 parked-sessions.json + `createStreamRouter()`
+- `packages/cli/src/commands/session.js` — `lifecycle / park / unpark / end [--consolidate]` 子命令
+- `packages/cli/src/commands/stream.js` — `cc stream "<prompt>" [--text]` NDJSON StreamRouter 入口（Ollama + OpenAI SSE）
+- `packages/cli/src/repl/agent-repl.js` — `cc agent` 启动注册 SessionHandle，`--session <id>` 自动 unpark，`rl.close()` 自动 park（`--no-park-on-exit` 关闭）
+- `packages/cli/src/commands/agent.js` + `runtime/policies/agent-policy.js` — `parkOnExit` 策略（默认 true）
+
+**IPC ↔ CLI 对照表**:
+
+| Desktop IPC | CLI 命令 | 持久化 |
+|---|---|---|
+| `session:list` | `cc session lifecycle` | `parked-sessions.json` |
+| `session:park` | `cc session park` / agent 退出自动 | 同上 |
+| `session:resume` | `cc session unpark` / `--session` 自动 | 同上 |
+| `session:close {consolidate}` | `cc session end --consolidate` | — |
+| `session:policy:*` | `cc session policy` | `approval-policies.json` |
+| `memory:store/recall/delete/consolidate` | `cc memory store/recall/consolidate` | `memory-store.json` |
+| `beta:list/enable/disable` | `cc config beta *` | `beta-flags.json` |
+| `agent:stream:start/cancel` | `cc stream "<prompt>"` NDJSON | — |
+
+**验收达成**:
+- Desktop 与 CLI 使用同一套 session-core 语义和持久化格式 ✅
+- IPC 层统一为 `StreamEvent`，与 CLI `cc stream` 输出同构 ✅
+- 会话 park/resume、审批策略、beta flags 在 Desktop/CLI 重启后可恢复 ✅
+- Plan Mode × ApprovalGate 合并消除双审批 ✅
+
+**验收指标**:
+- Desktop: 17 tests green（session-core-ipc 14 + permission-gate 3 新增）
+- CLI: 52 tests green（singletons 10 + stream 3 + hooks 26 + integration 13）
 
 ---
 
@@ -256,18 +282,34 @@
 | D | ✅ 底层完成 / ⏳ 集成中 | memory store / consolidator | 53 tests | consolidate 闭环可用，CLI/Desktop 待全接入 |
 | E | ✅ 底层完成 / ⏳ 集成中 | approvalPolicy / beta flags + 跨进程持久化 | 46 tests (+9 v1.9) | CLI `session policy` 已跨进程持久化；Desktop 未切换 |
 | F | ✅ 底层完成 / ⏳ 集成中 | stream first | 19 tests | StreamEvent 协议已定型 |
-| G | 🚧 进行中 | CLI 收口到 AgentGroup / StreamRouter / ApprovalGate / Consolidator | +19 done (singletons+integration+e2e) / +~30 剩余 | CLI 默认行为与 session-core 对齐 |
-| H | 🚧 计划中 | Desktop session service + IPC 收口 | 预估 +35 tests + E2E | Desktop / CLI 语义与持久化一致 |
+| G | ✅ 基本完成 | CLI 收口到 AgentGroup / StreamRouter / ApprovalGate / Consolidator | +40 done (cowork peer group + memory inject + stream + approval REPL 接线 + setConfirmer) | CLI 默认行为与 session-core 对齐 |
+| H | ✅ 已完成 | Desktop session service + 18 IPC + CLI 对称 lifecycle/stream/park-on-exit | Desktop 17 + CLI 52 = 69 tests | Desktop/CLI 语义与持久化一致，单点审批合流 |
+| I | ✅ 全部完成 | `cc session tail/usage` + Hosted Session API（17+2 WS 路由）+ 三端 token 记账 + Desktop Usage tab | CLI 25 ws-protocol + 9 usage + 7 tail + 10 chat-usage + 95 agent-core; Desktop 23 IPC | 远程驱动 session-core，token 记账可观测，Desktop/CLI 全对称 |
 
 **当前已落地**:
-- `session-core` 13 个测试文件，共 **293 tests**
-- CLI Managed Agents 相关 **19 tests**（5 unit + 8 integration + 6 e2e）
-- CLI 已有 `session policy`、`memory recall/store`、`config beta list|enable|disable`，全部跨进程持久化
-- Desktop 当前仅完成 `session-core` shim，尚未完成主进程和 IPC 收口
+- `session-core` 20 个测试文件，共 **413 tests**
+- CLI Managed Agents 相关: 25 ws-session-core + 10 singletons + 9 usage + 7 tail + 6 consolidator + 10 chat-core-usage + 1 chat-repl-usage + 40 agent-repl + 95 agent-core + 13 integration + 7 e2e = **~220 tests**
+- CLI 全部命令跨进程持久化：`session lifecycle/park/unpark/end/policy/tail/usage`、`memory recall/store/consolidate`、`config beta list|enable|disable`、`stream`
+- Desktop 收口完成：`session-core-singletons` + 21 IPC channels + `sessionCore.ts` + `SessionCorePage.vue` (Usage tab) + Plan Mode × ApprovalGate 合并
+- Desktop/CLI 共用 `parked-sessions.json / memory-store.json / beta-flags.json / approval-policies.json` 四个 JSON 文件格式
+- LLM 三端 (Ollama/OpenAI/Anthropic) 自动 token 记账 → `cc session usage` + WS `usage.*` 路由可观测
+- Hosted Session API: 17 req/resp + 2 streaming = 19 WS 路由; Desktop IPC: 21 channels
 
-**后续增量目标**:
-- Phase G+H 再补约 **80+ tests**
-- 收口完成后再决定是否继续扩到 Hosted Session API / 远程 Session 管理
+### ✅ Phase I — 首批交付（2026-04-16）
+
+- **`cc session tail <id>`** — NDJSON 跟随 JSONL 事件流，支持 `--from-start` / `--from-offset` / `--type` / `--since` / `--once` / `--poll` / AbortSignal（SIGINT/SIGTERM）
+- **`cc session usage [id]`** — 从 `token_usage` / 嵌入 `assistant_message.usage` 聚合，per-session + global rollup，按 provider/model 分组，支持 `--json`
+- **Hosted Session API** — `cc serve` 的 WS 派发器新增 14 个 dot-case 路由：`sessions.list/park/unpark/end`、`sessions.policy.get/set`、`memory.store/recall/consolidate`、`beta.list/enable/disable`、`usage.session/global`，统一返回 `<type>.response` 信封 `{ ok, ... }`
+- **新增 helper** — `appendTokenUsage(sessionId, usage)` 供 LLM 层在回调中写入标准化 token 记账事件
+- **测试**：9 (session-usage) + 7 (session-tail) + 14 (Hosted Session API handlers + dispatcher wire-up) = **30 tests**，ws-server 回归 47/47 绿
+- **持久化**：复用现有 `~/.chainlesschain/sessions/<id>.jsonl`（JSONL 事件流）+ Phase A–H 四个 JSON 文件，Phase I 零新增持久化格式
+
+**后续（Phase I 剩余 + Phase J 候选）**:
+- ~~SessionManager 事件广播到多 Desktop 窗口（需 IPC `session:event` 订阅通道）~~ ✅ `session:subscribe` IPC channel + `session:event` push + preload `onEvent()` + auto-cleanup on webContents destroy（+2 tests, Desktop IPC 22 total）
+- ~~Hosted Session API 流式路由：`stream.run` 在 WS 上把 StreamEvent 桥到客户端~~ ✅ `stream.run` 4th `context` arg → `envelopeBus.publish` fan-out（+2 tests, 21 total）
+- ✅ `stream.run` → Phase 5 envelopeBus bridge：streaming handler 现在接受 `context = {server, ws, clientId}`，当 `context.server.envelopeBus` 存在且 `message.sessionId` 有值时，每个 StreamEvent 通过 `envelopeFromStreamEvent` 转换后发布到 bus，HTTP SSE 订阅者同步收到
+- ~~LLM 层自动 `appendTokenUsage`（OpenAI/Ollama/Anthropic 三端接线）~~ ✅ `chatWithTools` 三端返回 `usage`，`agentLoop` yield `token-usage` 事件，`agent-repl` 写入 JSONL（+4 tests agent-core, 95 total）
+- ~~Desktop Web Panel 暴露 usage 仪表盘~~ ✅ `session:usage` IPC + SessionCorePage Usage tab（Global summary + byAgent table）+ Pinia store `refreshUsage()`（+1 test, Desktop IPC 23 total）
 
 ---
 
@@ -297,19 +339,25 @@
 ### 6.2 CLI 命令状态
 
 ```bash
-# 已落地
+# 已落地（Phase A–H 全部）
 chainlesschain session policy <id> --set trusted
+chainlesschain session lifecycle [--status parked] [--agent <id>] [--json]
+chainlesschain session park <id>
+chainlesschain session unpark <id>
+chainlesschain session end <id> [--consolidate --scope agent --scope-id <id>]
 chainlesschain memory recall "关键词" --scope agent
 chainlesschain memory store "偏好 TypeScript" --scope global --category preference
+chainlesschain memory consolidate --session <id>
 chainlesschain config beta list
 chainlesschain config beta enable idle-park-2026-05-01
 chainlesschain config beta disable idle-park-2026-05-01
+chainlesschain stream "<prompt>" [--text] [--provider ollama|openai|...]
+chainlesschain agent [--session <id>] [--no-park-on-exit]
 
-# 规划中
-chainlesschain session trace <id>
-chainlesschain session park <id>
-chainlesschain session usage
-chainlesschain memory consolidate --session <id>
+# Phase I 已落地
+chainlesschain session tail <id> [--from-start] [--type ...] [--since ms] [--once]
+chainlesschain session usage [id] [--json] [--limit 1000]
+# Hosted Session API：14 条 dot-case WS 路由（通过 cc serve 暴露）
 ```
 
 ### 6.3 Beta Flag 使用
@@ -327,6 +375,9 @@ chainlesschain config beta list
 - `~/.chainlesschain/memory-store.json` — MemoryStore 快照
 - `~/.chainlesschain/beta-flags.json` — 已启用的 beta flag 列表
 - `~/.chainlesschain/approval-policies.json` — per-session approval policy (v1.9)
+- `~/.chainlesschain/parked-sessions.json` — parked SessionHandle 快照，支持 `cc session unpark <id>` 跨进程恢复 (v2.0)
+
+Desktop 使用同名文件，位置在 `<userData>/.chainlesschain/`。
 
 ---
 
@@ -348,4 +399,4 @@ chainlesschain config beta list
 ---
 
 **维护者**: ChainlessChain Agent Runtime 组
-**下次评审**: Phase G 设计评审后（预计 2026-04-22）
+**下次评审**: Phase I 剩余（LLM 自动 usage 接线 + 流式 WS 路由 + Desktop usage 仪表盘） / Phase J 候选评估

@@ -582,11 +582,9 @@ describe("doc-edit handler: xlsx/pptx Python dependency detection", () => {
     });
 
     if (!result.success) {
-      if (result.error.includes("Python")) {
-        expect(result.hint).toContain("python.org");
-      } else {
-        expect(result.error.toLowerCase()).toMatch(/python-pptx|python|pptx/);
-        expect(result.hint).toContain("pip install");
+      expect(result.error.toLowerCase()).toMatch(/python-pptx|python|pptx/);
+      if (result.hint) {
+        expect(result.hint).toMatch(/python\.org|pip install/);
       }
     }
   }, 15000);

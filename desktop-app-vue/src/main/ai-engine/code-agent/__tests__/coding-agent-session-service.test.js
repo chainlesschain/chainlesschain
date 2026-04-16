@@ -728,7 +728,7 @@ describe("CodingAgentSessionService", () => {
     ).toBe(true);
 
     const status = await service.getStatus();
-    expect(status.tools).toHaveLength(7);
+    expect(status.tools).toHaveLength(8);
     expect(status.permissionPolicy).toMatchObject({
       planModeRules: {
         low: "allow",
@@ -768,7 +768,7 @@ describe("CodingAgentSessionService", () => {
     await managedService.createSession();
     const status = await managedService.getStatus();
 
-    expect(status.tools).toHaveLength(8);
+    expect(status.tools).toHaveLength(9);
     expect(
       status.tools.find((tool) => tool.name === "info_searcher"),
     ).toMatchObject({
@@ -1344,5 +1344,56 @@ describe("CodingAgentSessionService", () => {
         (event) => event.type === CodingAgentEventType.SESSION_INTERRUPTED,
       ),
     ).toBe(true);
+  });
+
+  describe("Phase 5 envelope: parallel coding-agent:envelope emission", () => {
+    it("default off — webContents.send is not invoked with the envelope channel", async () => {
+      await service.createSession({
+        provider: "openai",
+        model: "gpt-4o-mini",
+      });
+      const envelopeSends = mainWindow.webContents.send.mock.calls.filter(
+        (c) => c[0] === "coding-agent:envelope",
+      );
+      expect(envelopeSends).toHaveLength(0);
+    });
+
+    it("opt-in flag emits parallel envelope for session.started → session.created", async () => {
+      const bridge2 = new MockBridge();
+      const mainWindow2 = {
+        webContents: { send: vi.fn() },
+        isDestroyed: vi.fn(() => false),
+      };
+      const service2 = new CodingAgentSessionService({
+        bridge: bridge2,
+        mainWindow: mainWindow2,
+        repoRoot: "C:\\code\\chainlesschain",
+        projectRoot: "C:\\code\\chainlesschain",
+        enablePhase5Envelopes: true,
+      });
+
+      await service2.createSession({
+        provider: "openai",
+        model: "gpt-4o-mini",
+      });
+
+      const envelopeSends = mainWindow2.webContents.send.mock.calls.filter(
+        (c) => c[0] === "coding-agent:envelope",
+      );
+      expect(envelopeSends.length).toBeGreaterThan(0);
+      const env = envelopeSends.find((c) => c[1]?.type === "session.created");
+      expect(env).toBeDefined();
+      expect(env[1]).toMatchObject({
+        v: 1,
+        type: "session.created",
+        sessionId: "session-1",
+      });
+      expect(typeof env[1].ts).toBe("number");
+
+      const legacySends = mainWindow2.webContents.send.mock.calls.filter(
+        (c) => c[0] === CODING_AGENT_EVENT_CHANNEL,
+      );
+      expect(legacySends.length).toBeGreaterThan(0);
+    });
   });
 });

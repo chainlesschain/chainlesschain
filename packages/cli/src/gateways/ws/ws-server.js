@@ -15,6 +15,11 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { WebSocketServer } from "ws";
+import {
+  createEnvelope,
+  envelopeFromStreamEvent,
+  validateEnvelope,
+} from "@chainlesschain/session-core";
 import { createTaskRecord } from "../../runtime/contracts/task-record.js";
 import {
   RUNTIME_EVENTS,
@@ -142,6 +147,9 @@ export class ChainlessChainWSServer extends EventEmitter {
     this.token = options.token || null;
     this.maxConnections = options.maxConnections || 10;
     this.timeout = options.timeout || 30000;
+
+    /** Optional Phase-5 envelope bus for fan-out to hosted HTTP SSE. */
+    this.envelopeBus = options.envelopeBus || null;
 
     /** @type {WebSocketServer|null} */
     this.wss = null;
@@ -801,6 +809,70 @@ export class ChainlessChainWSServer extends EventEmitter {
       if (client.authenticated || !this.token) {
         this._send(client.ws, data);
       }
+    }
+  }
+
+  /**
+   * Send a Phase-5 service envelope to a single client.
+   * Accepts either a pre-built envelope or `{ type, sessionId, runId, requestId, payload }`.
+   * Falls back to legacy `_send` shape if envelope construction fails so callers
+   * never lose messages because of a contract bug.
+   *
+   * @param {WebSocket} ws
+   * @param {object} envOrSpec
+   */
+  sendEnvelope(ws, envOrSpec) {
+    let env = envOrSpec;
+    if (!env || typeof env !== "object") return;
+    if (!("v" in env)) {
+      try {
+        env = createEnvelope(envOrSpec);
+      } catch (_e) {
+        this._send(ws, envOrSpec);
+        return;
+      }
+    }
+    const errors = validateEnvelope(env);
+    if (errors.length) {
+      this._send(ws, envOrSpec);
+      return;
+    }
+    this._send(ws, env);
+  }
+
+  /**
+   * Broadcast a Phase-5 service envelope to all authenticated clients.
+   */
+  broadcastEnvelope(envOrSpec) {
+    let env = envOrSpec;
+    if (!("v" in (env || {}))) {
+      try {
+        env = createEnvelope(envOrSpec);
+      } catch (_e) {
+        this._broadcast(envOrSpec);
+        return;
+      }
+    }
+    this._broadcast(env);
+    if (this.envelopeBus && env && env.sessionId) {
+      try {
+        this.envelopeBus.publish(env.sessionId, env);
+      } catch (_e) {
+        // HTTP fan-out must never break the WS path.
+      }
+    }
+  }
+
+  /**
+   * Adapt a StreamRouter event ({type:"token", content:"..."} etc.) into a
+   * Phase-5 run.* envelope and send it to a single client.
+   */
+  sendStreamEnvelope(ws, streamEvent, ctx) {
+    try {
+      const env = envelopeFromStreamEvent(streamEvent, ctx);
+      this._send(ws, env);
+    } catch (_e) {
+      this._send(ws, streamEvent);
     }
   }
 }

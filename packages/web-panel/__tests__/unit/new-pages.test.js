@@ -26,8 +26,8 @@ describe('Router registration', () => {
     const routerModule = await import('../../src/router/index.js')
     const router = routerModule.default
     const rootRoute = router.options.routes[0]
-    // 1 redirect + 23 named pages = 24 children
-    expect(rootRoute.children.length).toBe(24)
+    // 1 redirect + 25 named pages = 26 children
+    expect(rootRoute.children.length).toBe(26)
   })
 
   it('contains all expected route names', async () => {

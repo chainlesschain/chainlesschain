@@ -21,8 +21,12 @@ function getSessionsDir() {
   return dir;
 }
 
-function sessionPath(sessionId) {
+export function sessionPath(sessionId) {
   return join(getSessionsDir(), `${sessionId}.jsonl`);
+}
+
+export function appendTokenUsage(sessionId, usage) {
+  appendEvent(sessionId, "token_usage", usage || {});
 }
 
 export function appendEvent(sessionId, type, data) {
@@ -356,7 +360,10 @@ function performLegacySessionMigration(sourcePath, options) {
     }
 
     const validation = validateJsonlSession(sessionId);
-    if (!validation.valid || validation.messageCount !== legacy.messages.length) {
+    if (
+      !validation.valid ||
+      validation.messageCount !== legacy.messages.length
+    ) {
       throw new Error(
         `post-migration validation failed for ${sessionId} (${validation.messageCount}/${legacy.messages.length} messages)`,
       );
@@ -408,7 +415,8 @@ function normalizeLegacySession(payload, fallbackId) {
   return {
     id: payload?.id || fallbackId || `session-${Date.now()}`,
     meta: {
-      title: payload?.title || payload?.name || fallbackId || "Migrated Session",
+      title:
+        payload?.title || payload?.name || fallbackId || "Migrated Session",
       provider: payload?.provider || "",
       model: payload?.model || "",
     },
@@ -425,11 +433,7 @@ function normalizeLegacyMessage(message) {
 
   const role = message.role || message.sender || message.type || "user";
   const content =
-    message.content ??
-    message.text ??
-    message.message ??
-    message.result ??
-    "";
+    message.content ?? message.text ?? message.message ?? message.result ?? "";
 
   return {
     role,
@@ -445,7 +449,11 @@ function appendLegacyMessage(sessionId, message) {
       appendAssistantMessage(sessionId, message.content);
       break;
     case "tool":
-      appendToolResult(sessionId, message.tool || "legacy-tool", message.content);
+      appendToolResult(
+        sessionId,
+        message.tool || "legacy-tool",
+        message.content,
+      );
       break;
     case "system":
       appendEvent(sessionId, "system", {

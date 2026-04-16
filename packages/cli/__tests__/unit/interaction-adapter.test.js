@@ -258,6 +258,76 @@ describe("WebSocketInteractionAdapter", () => {
     expect(sent.payload).toEqual({ text: "正在分析…" });
   });
 
+  it("Phase 5 envelope: opt-in flag doubles emission with run.* canonical shape", () => {
+    const ws2 = {
+      readyState: 1,
+      OPEN: 1,
+      send: vi.fn(),
+    };
+    const adapter2 = new WebSocketInteractionAdapter(ws2, "sess-p5", {
+      enablePhase5Envelopes: true,
+    });
+    adapter2.emit("tool-executing", {
+      requestId: "req-p5",
+      tool: "read_file",
+      args: { path: "a.txt" },
+    });
+    expect(ws2.send).toHaveBeenCalledTimes(2);
+    const legacy = JSON.parse(ws2.send.mock.calls[0][0]);
+    const env = JSON.parse(ws2.send.mock.calls[1][0]);
+    expect(legacy.source).toBe("cli-runtime");
+    expect(env.v).toBe(1);
+    expect(env.type).toBe("run.tool_call");
+    expect(env.sessionId).toBe("sess-p5");
+    expect(env.requestId).toBe("req-p5");
+  });
+
+  it("Phase 5 envelope: default off — no extra ws.send", () => {
+    adapter.emit("tool-executing", {
+      requestId: "req-off",
+      tool: "read_file",
+      args: {},
+    });
+    expect(ws.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("Phase 5 envelope: run-started / run-ended bookends map to run.started / run.ended", () => {
+    const ws3 = { readyState: 1, OPEN: 1, send: vi.fn() };
+    const adapter3 = new WebSocketInteractionAdapter(ws3, "sess-bookend", {
+      enablePhase5Envelopes: true,
+    });
+    adapter3.emit("run-started", { runId: "r-1" });
+    adapter3.emit("run-ended", { runId: "r-1", reason: "complete" });
+    // Each bookend produces: legacy raw-shape send + Phase 5 envelope send.
+    expect(ws3.send).toHaveBeenCalledTimes(4);
+    const envs = ws3.send.mock.calls
+      .map((c) => JSON.parse(c[0]))
+      .filter((m) => m.v === 1);
+    expect(envs).toHaveLength(2);
+    expect(envs[0]).toMatchObject({
+      v: 1,
+      type: "run.started",
+      sessionId: "sess-bookend",
+      runId: "r-1",
+    });
+    expect(envs[1]).toMatchObject({
+      v: 1,
+      type: "run.ended",
+      sessionId: "sess-bookend",
+      runId: "r-1",
+    });
+    expect(envs[1].payload).toMatchObject({ reason: "complete" });
+  });
+
+  it("Phase 5 envelope: run-started bookend default off — legacy-only", () => {
+    adapter.emit("run-started", { runId: "r-off" });
+    // One legacy raw-shape send, no envelope
+    expect(ws.send).toHaveBeenCalledTimes(1);
+    const sent = JSON.parse(ws.send.mock.calls[0][0]);
+    expect(sent.v).toBeUndefined();
+    expect(sent.type).toBe("run-started");
+  });
+
   it("emit issues monotonically increasing sequences per requestId on same instance", () => {
     adapter.emit("tool-executing", { requestId: "req-A", tool: "x" });
     adapter.emit("tool-result", { requestId: "req-A", result: "ok" });

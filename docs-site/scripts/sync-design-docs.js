@@ -147,6 +147,8 @@ const MODULE_FILE_MAP = {
   "89_v5.0.2.9_六项优化_设计说明.md": "89-runtime-six-enhancements.md",
   "90_AI视频生成_Volcengine_Seedance.md": "90-ai-video-generation-seedance.md",
   "91_Managed_Agents对标计划.md": "91-managed-agents-parity.md",
+  "92_Deep_Agents_Deploy借鉴落地方案.md": "92-deep-agents-deploy.md",
+  "93_CutClaw借鉴_视频剪辑Agent.md": "93-cutclaw-video-editing-agent.md",
 };
 
 // 构建反向映射（用于 rewriteInternalLinks）
@@ -311,5 +313,6 @@ console.log(`同步设计文档: ${sourceDir} → ${targetDir}`);
 console.log("文件名映射: 中文 → ASCII (与 config.js sidebar 一致)\n");
 const fileCount = syncDir(sourceDir, targetDir, true);
 console.log(`\n完成: 同步了 ${fileCount} 个文件`);
+
 
 

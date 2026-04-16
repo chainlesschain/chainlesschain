@@ -16,6 +16,44 @@ const {
 
 const MAX_SESSION_EVENTS = 200;
 
+// Phase 5: parallel service-envelope emission over a dedicated IPC channel.
+// Renderer listeners for the legacy `coding-agent:event` channel are untouched;
+// Phase 5 subscribers opt in by listening on `coding-agent:envelope`.
+const CODING_AGENT_ENVELOPE_CHANNEL = "coding-agent:envelope";
+
+// Map coding-agent unified (dot-case) event types onto Phase 5 canonical types.
+// Only events with a clean 1:1 mapping are forwarded — renderer-specific
+// types (worktree.*, plan.*, slot.filling, etc.) stay on the legacy channel.
+const CODING_AGENT_TO_ENVELOPE_TYPE = Object.freeze({
+  "session.started": "session.created",
+  "session.resumed": "session.updated",
+  "session.interrupted": "session.updated",
+  "session.completed": "session.updated",
+  "session.closed": "session.closed",
+  "assistant.delta": "run.token",
+  "assistant.message": "run.message",
+  "assistant.final": "run.message",
+  "tool.call.started": "run.tool_call",
+  "tool.call.completed": "run.tool_result",
+  "tool.call.failed": "run.error",
+  error: "run.error",
+});
+
+let _cachedCreateEnvelope = null;
+function _getCreateEnvelope() {
+  if (_cachedCreateEnvelope !== null) {
+    return _cachedCreateEnvelope;
+  }
+  try {
+    const mod = require("@chainlesschain/session-core");
+    _cachedCreateEnvelope =
+      typeof mod.createEnvelope === "function" ? mod.createEnvelope : false;
+  } catch (_e) {
+    _cachedCreateEnvelope = false;
+  }
+  return _cachedCreateEnvelope;
+}
+
 function mergeWorktreeRecord(existingWorktree, incomingWorktree, options = {}) {
   const current = existingWorktree || null;
   const next = incomingWorktree || null;
@@ -88,6 +126,25 @@ class CodingAgentSessionService extends EventEmitter {
       new CodingAgentPermissionGate({
         toolAdapter: this.toolAdapter,
       });
+    // Session-core ApprovalGate — shared with CLI via file-backed singletons.
+    // Lazy-loaded so this module remains test-friendly without Electron.
+    // Managed Agents parity Phase H.
+    this.approvalGate = options.approvalGate || null;
+    if (!this.approvalGate && options.useSessionCoreApprovalGate !== false) {
+      try {
+        const {
+          getApprovalGate,
+        } = require("../../session/session-core-singletons.js");
+        // Thunk so construction doesn't await here; resolved on first
+        // evaluateToolCall that opts into the gate.
+        this._approvalGateLoader = getApprovalGate;
+      } catch (e) {
+        logger.warn(
+          "[CodingAgentSessionService] session-core ApprovalGate unavailable:",
+          e.message,
+        );
+      }
+    }
 
     this.sessions = new Map();
     this.requestSessionMap = new Map();
@@ -98,6 +155,11 @@ class CodingAgentSessionService extends EventEmitter {
     // having a private tracker prevents tests/instances from polluting each
     // other when they share the same Node process.
     this._sequenceTracker = new CodingAgentSequenceTracker();
+
+    // Phase 5: opt-in parallel service-envelope emission to
+    // `coding-agent:envelope`. Off by default so legacy tests that count
+    // webContents.send invocations stay green.
+    this.enablePhase5Envelopes = options.enablePhase5Envelopes === true;
 
     this._attachBridge();
   }
@@ -112,6 +174,35 @@ class CodingAgentSessionService extends EventEmitter {
     return createCodingAgentEvent(type, payload, {
       ...context,
       tracker: context.tracker || this._sequenceTracker,
+    });
+  }
+
+  /**
+   * Plan Mode × ApprovalGate 合一评估 — single entry point callers should use
+   * when they need to know whether to surface a confirmation dialog.
+   *
+   * Managed Agents parity Phase H: avoids dual approval by deferring to the
+   * session-core ApprovalGate policy. Returns the merged evaluation.
+   */
+  async evaluateToolCall(opts = {}) {
+    let approvalGate = this.approvalGate;
+    if (!approvalGate && this._approvalGateLoader) {
+      try {
+        approvalGate = await this._approvalGateLoader();
+        this.approvalGate = approvalGate;
+      } catch (e) {
+        logger.warn(
+          "[CodingAgentSessionService] failed to load ApprovalGate:",
+          e.message,
+        );
+      }
+    }
+    if (!approvalGate) {
+      return this.permissionGate.evaluateToolCall(opts);
+    }
+    return this.permissionGate.evaluateToolCallWithApprovalGate({
+      ...opts,
+      approvalGate,
     });
   }
 
@@ -1716,14 +1807,46 @@ class CodingAgentSessionService extends EventEmitter {
         CODING_AGENT_EVENT_CHANNEL,
         preparedEvent,
       );
+      this._sendPhase5Envelope(preparedEvent);
     }
 
     logger.info(
       `[CodingAgentSessionService] ${preparedEvent.type} session=${preparedEvent.sessionId || "-"} request=${preparedEvent.requestId || "-"}`,
     );
   }
+
+  _sendPhase5Envelope(preparedEvent) {
+    if (!this.enablePhase5Envelopes) {
+      return;
+    }
+    const envType = CODING_AGENT_TO_ENVELOPE_TYPE[preparedEvent.type];
+    if (!envType) {
+      return;
+    }
+    const createEnvelope = _getCreateEnvelope();
+    if (!createEnvelope) {
+      return;
+    }
+    try {
+      const payload =
+        preparedEvent.payload && typeof preparedEvent.payload === "object"
+          ? preparedEvent.payload
+          : {};
+      const env = createEnvelope({
+        type: envType,
+        sessionId: preparedEvent.sessionId || null,
+        runId: payload.runId || null,
+        requestId: preparedEvent.requestId || null,
+        payload: { ...payload },
+      });
+      this.mainWindow.webContents.send(CODING_AGENT_ENVELOPE_CHANNEL, env);
+    } catch (_e) {
+      // Phase 5 is additive — never break the legacy path on envelope failure.
+    }
+  }
 }
 
 module.exports = {
   CodingAgentSessionService,
+  CODING_AGENT_ENVELOPE_CHANNEL,
 };

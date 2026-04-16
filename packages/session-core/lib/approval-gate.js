@@ -113,6 +113,21 @@ class ApprovalGate {
   }
 
   /**
+   * 注入/替换 confirm 回调 — 允许上层(CLI REPL / Desktop IPC)在不重建
+   * gate 的前提下绑定用户交互 UI。
+   */
+  setConfirmer(fn) {
+    if (fn != null && typeof fn !== "function") {
+      throw new Error("ApprovalGate.setConfirmer: fn must be a function or null");
+    }
+    this._confirm = fn;
+  }
+
+  hasConfirmer() {
+    return typeof this._confirm === "function";
+  }
+
+  /**
    * decide({ sessionId, policy?, riskLevel, tool, args, user? })
    *   - 若 policy 显式传入则覆盖 session policy
    *   - 返回 { decision: "allow"|"deny", via: "policy"|"user-confirm"|"user-deny", base, policy, riskLevel }

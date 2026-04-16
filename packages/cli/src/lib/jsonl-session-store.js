@@ -29,4 +29,6 @@ export {
   validateJsonlSession,
   validateAllJsonlSessions,
   sampleMigratedSessionsValidation,
+  sessionPath,
+  appendTokenUsage,
 } from "../harness/jsonl-session-store.js";

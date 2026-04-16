@@ -199,8 +199,15 @@ export class AgentRuntime {
 
   async startServer() {
     const { logger: runtimeLogger } = this.deps;
-    const { port, maxConnections, timeout, token, allowRemote, project } =
-      this.policy;
+    const {
+      port,
+      maxConnections,
+      timeout,
+      token,
+      allowRemote,
+      project,
+      httpPort,
+    } = this.policy;
     let { host } = this.policy;
 
     if (Number.isNaN(port) || port < 1 || port > 65535) {
@@ -233,14 +240,79 @@ export class AgentRuntime {
       logger: runtimeLogger,
     });
 
+    // Deep Agents Deploy: load agent bundle if --bundle provided.
+    // Bundle's AGENTS.md becomes defaultSystemPromptExtension for all new sessions.
+    // Bundle's MCP servers are connected to the shared mcpClient.
+    let bundleResolved = null;
+    let bundleMcpClient = mcpClient;
+    if (this.policy.bundlePath) {
+      try {
+        const { loadBundle } =
+          await import("@chainlesschain/session-core/agent-bundle-loader");
+        const { resolveBundle } =
+          await import("@chainlesschain/session-core/agent-bundle-resolver");
+        const bundle = loadBundle(this.policy.bundlePath);
+        bundleResolved = resolveBundle(bundle);
+
+        // Connect bundle MCP servers
+        const bundleServers = bundleResolved.mcpConfig?.servers;
+        if (bundleServers && typeof bundleServers === "object") {
+          const entries = Object.entries(bundleServers).filter(
+            ([, cfg]) => cfg && cfg.command,
+          );
+          if (entries.length > 0) {
+            if (!bundleMcpClient) {
+              bundleMcpClient = this.deps.createMcpClient();
+            }
+            for (const [name, cfg] of entries) {
+              try {
+                await bundleMcpClient.connect(name, cfg);
+              } catch (mcpErr) {
+                runtimeLogger.log(
+                  chalk.yellow(
+                    `  Bundle MCP: "${name}" connect failed — ${mcpErr.message}`,
+                  ),
+                );
+              }
+            }
+          }
+        }
+
+        const bid = bundleResolved.manifest?.id || "unknown";
+        runtimeLogger.log(chalk.gray(`  Bundle: loaded ${bid}`));
+      } catch (bundleErr) {
+        runtimeLogger.log(
+          chalk.red(`  Bundle: failed to load — ${bundleErr.message}`),
+        );
+      }
+    }
+
     const sessionManager = this.deps.createSessionManager({
       db,
       defaultProjectRoot: project,
       config: appConfig,
-      mcpClient,
+      mcpClient: bundleMcpClient,
       allowedMcpServerNames: DEFAULT_ALLOWED_MCP_SERVER_NAMES,
       mcpServerRegistry: this.deps.mcpServerRegistry,
+      defaultSystemPromptExtension: bundleResolved?.systemPrompt || null,
     });
+
+    let envelopeBus = null;
+    let httpServer = null;
+    if (httpPort) {
+      if (Number.isNaN(httpPort) || httpPort < 1 || httpPort > 65535) {
+        throw new Error("Invalid --http-port. Must be between 1 and 65535.");
+      }
+      const { createEnvelopeBus, createEnvelopeHttpServer } =
+        await import("../gateways/http/envelope-http-server.js");
+      envelopeBus = createEnvelopeBus();
+      httpServer = createEnvelopeHttpServer({
+        bus: envelopeBus,
+        port: httpPort,
+        host,
+        token,
+      });
+    }
 
     const server = this.deps.createServer({
       port,
@@ -249,6 +321,7 @@ export class AgentRuntime {
       maxConnections,
       timeout,
       sessionManager,
+      envelopeBus,
     });
 
     server.on("connection", ({ clientId, ip }) => {
@@ -287,10 +360,24 @@ export class AgentRuntime {
       runtimeLogger.log(
         "\n" + chalk.yellow("Shutting down WebSocket server..."),
       );
+      if (
+        bundleMcpClient &&
+        bundleMcpClient !== mcpClient &&
+        typeof bundleMcpClient.disconnectAll === "function"
+      ) {
+        await bundleMcpClient.disconnectAll().catch(() => undefined);
+      }
       if (mcpClient && typeof mcpClient.disconnectAll === "function") {
         await mcpClient.disconnectAll().catch(() => undefined);
       }
       await server.stop();
+      if (httpServer) {
+        try {
+          await httpServer.stop();
+        } catch (_e) {
+          // non-critical
+        }
+      }
       process.exit(0);
     };
 
@@ -298,6 +385,11 @@ export class AgentRuntime {
     process.on("SIGTERM", shutdownHandler);
 
     await server.start();
+
+    let hostedHttp = null;
+    if (httpServer) {
+      hostedHttp = await httpServer.start();
+    }
 
     this.emit(RUNTIME_EVENTS.RUNTIME_START, {
       kind: this.kind,
@@ -313,11 +405,21 @@ export class AgentRuntime {
     runtimeLogger.log(chalk.bold("  ChainlessChain WebSocket Server"));
     runtimeLogger.log("");
     runtimeLogger.log(`  Address:  ${chalk.cyan(`ws://${host}:${port}`)}`);
+    if (hostedHttp) {
+      runtimeLogger.log(
+        `  HTTP SSE: ${chalk.cyan(`http://${hostedHttp.host}:${hostedHttp.port}/v1/sessions/:id/events`)}`,
+      );
+    }
     runtimeLogger.log(
       `  Auth:     ${token ? chalk.green("enabled") : chalk.yellow("disabled")}`,
     );
     runtimeLogger.log(`  Sessions: ${chalk.green("enabled")}`);
     runtimeLogger.log(`  Project:  ${project}`);
+    if (bundleResolved) {
+      runtimeLogger.log(
+        `  Bundle:   ${chalk.green(bundleResolved.manifest?.id || "loaded")}`,
+      );
+    }
     runtimeLogger.log(`  Max conn: ${maxConnections}`);
     runtimeLogger.log(`  Timeout:  ${timeout}ms`);
     runtimeLogger.log("");

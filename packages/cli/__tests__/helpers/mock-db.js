@@ -157,6 +157,10 @@ export class MockDatabase {
             row[col] = new Date().toISOString().replace("T", " ").slice(0, 19);
           } else if (val === "?") {
             row[col] = setParams[setIdx++];
+          } else if (/^'[^']*'$/.test(val)) {
+            row[col] = val.slice(1, -1);
+          } else if (/^-?\d+(\.\d+)?$/.test(val)) {
+            row[col] = Number(val);
           }
         }
       }

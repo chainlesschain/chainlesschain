@@ -195,6 +195,65 @@ function scopeGroups(wave) {
   return [...groups.values()];
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// Conflict resolution helpers (Path B-1 — generalized CutClaw pattern).
+//
+// These are pure functions that generalize the ParallelShotOrchestrator's
+// detect-conflict → quality-score → rerun-loser loop into a domain-
+// agnostic API. Any skill/agent can plug in its own conflictDetector,
+// qualityScorer, and rerunBuilder callbacks.
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Find all pairwise conflicts among results using a caller-supplied
+ * detector. Returns array of [resultA, resultB] pairs.
+ *
+ * @param {object[]} results - completed task results
+ * @param {Function} conflictDetector - (a, b) => boolean
+ * @returns {Array<[object, object]>}
+ */
+function detectConflictPairs(results, conflictDetector) {
+  const pairs = [];
+  for (let i = 0; i < results.length; i++) {
+    for (let j = i + 1; j < results.length; j++) {
+      if (conflictDetector(results[i], results[j])) {
+        pairs.push([results[i], results[j]]);
+      }
+    }
+  }
+  return pairs;
+}
+
+/**
+ * Given conflict pairs, pick winners vs losers using qualityScorer.
+ * Returns { winners: Set<result>, losers: Map<loserResult, winnerResult[]> }.
+ *
+ * A result that loses to multiple winners collects all winners so
+ * rerunBuilder can produce constraints from all of them.
+ */
+function pickWinnersAndLosers(pairs, qualityScorer) {
+  const winners = new Set();
+  const losers = new Map(); // loser → [winner, ...]
+
+  for (const [a, b] of pairs) {
+    const scoreA = qualityScorer(a);
+    const scoreB = qualityScorer(b);
+    const winner = scoreA >= scoreB ? a : b;
+    const loser = scoreA >= scoreB ? b : a;
+
+    winners.add(winner);
+    if (!losers.has(loser)) {
+      losers.set(loser, []);
+    }
+    losers.get(loser).push(winner);
+  }
+
+  // A winner in one pair may be a loser in another — remove from losers
+  // only if it won ALL its conflicts (net-positive). We keep the loser
+  // entry if it lost at least once.
+  return { winners, losers };
+}
+
 function isStructuredAssignments(assignments) {
   return (
     Array.isArray(assignments) &&
@@ -418,6 +477,161 @@ class SubRuntimePool extends EventEmitter {
     );
   }
 
+  /**
+   * Generic conflict-resolution dispatch — generalized CutClaw pattern.
+   *
+   * 1. Run all tasks in parallel (respecting maxSize).
+   * 2. Collect results, detect pairwise conflicts via `conflictDetector`.
+   * 3. Score each result via `qualityScorer`, pick winners & losers.
+   * 4. Rebuild loser payloads via `rerunBuilder` (injecting winner constraints).
+   * 5. Rerun losers. Repeat up to `maxReruns` rounds.
+   *
+   * @param {object} opts
+   * @param {string} opts.projectRoot
+   * @param {string} opts.sessionId
+   * @param {object[]} opts.tasks - [{ id, payload, assignment }]
+   *   Each task.assignment is a standard dispatch assignment.
+   *   task.id is used for tracking; task.payload carries domain data
+   *   that flows through conflictDetector/qualityScorer/rerunBuilder.
+   * @param {Function} opts.conflictDetector - (resultA, resultB) => boolean
+   * @param {Function} opts.qualityScorer - (result) => number
+   * @param {Function} opts.rerunBuilder - (loserResult, winnerResults[]) => newAssignment
+   *   Must return a new assignment object for re-dispatch.
+   * @param {number} [opts.maxReruns=3]
+   * @returns {object[]} final results in input order, each augmented with
+   *   { taskId, rerunCount, conflictsResolved }
+   */
+  async runWithConflictResolution({
+    projectRoot,
+    sessionId,
+    tasks,
+    conflictDetector,
+    qualityScorer,
+    rerunBuilder,
+    maxReruns = 3,
+  }) {
+    if (!projectRoot || !sessionId || !Array.isArray(tasks)) {
+      throw new Error(
+        "runWithConflictResolution: projectRoot, sessionId, tasks required",
+      );
+    }
+    if (
+      typeof conflictDetector !== "function" ||
+      typeof qualityScorer !== "function" ||
+      typeof rerunBuilder !== "function"
+    ) {
+      throw new Error(
+        "runWithConflictResolution: conflictDetector, qualityScorer, rerunBuilder must be functions",
+      );
+    }
+    if (tasks.length === 0) {
+      return [];
+    }
+
+    // Initial parallel run
+    const taskResults = new Map(); // taskId → { ...dispatchResult, payload }
+    const initialAssignments = tasks.map((t) => ({
+      ...t.assignment,
+      _crTaskId: t.id,
+    }));
+
+    // Batch respecting maxSize
+    for (let i = 0; i < initialAssignments.length; i += this.maxSize) {
+      const batch = initialAssignments.slice(i, i + this.maxSize);
+      const batchResults = await Promise.all(
+        batch.map((assignment) =>
+          this._runSingle({ projectRoot, sessionId, assignment }),
+        ),
+      );
+      for (let k = 0; k < batch.length; k++) {
+        const task = tasks[i + k];
+        taskResults.set(task.id, {
+          ...batchResults[k],
+          taskId: task.id,
+          payload: task.payload,
+          rerunCount: 0,
+          conflictsResolved: false,
+        });
+      }
+    }
+
+    this.emit("conflict-resolution:initial-done", {
+      taskCount: tasks.length,
+      ts: _deps.now(),
+    });
+
+    // Conflict resolution loop
+    for (let round = 0; round < maxReruns; round++) {
+      const currentResults = [...taskResults.values()].filter((r) => r.success);
+      const conflicts = detectConflictPairs(currentResults, conflictDetector);
+
+      if (conflicts.length === 0) {
+        break;
+      }
+
+      this.emit("conflict-resolution:round-start", {
+        round,
+        conflictCount: conflicts.length,
+        ts: _deps.now(),
+      });
+
+      const { losers } = pickWinnersAndLosers(conflicts, qualityScorer);
+
+      // Rebuild and rerun each loser
+      for (const [loser, winners] of losers) {
+        try {
+          const newAssignment = rerunBuilder(loser, winners);
+          if (!newAssignment) {
+            continue; // caller chose to skip this rerun
+          }
+
+          this.emit("conflict-resolution:rerun", {
+            round,
+            taskId: loser.taskId,
+            ts: _deps.now(),
+          });
+
+          const rerunResult = await this._runSingle({
+            projectRoot,
+            sessionId,
+            assignment: newAssignment,
+          });
+
+          taskResults.set(loser.taskId, {
+            ...rerunResult,
+            taskId: loser.taskId,
+            payload: loser.payload,
+            rerunCount: (loser.rerunCount || 0) + 1,
+            conflictsResolved: true,
+          });
+        } catch (err) {
+          logger.warn(
+            `[sub-runtime-pool] conflict rerun failed for ${loser.taskId}: ${err.message}`,
+          );
+        }
+      }
+
+      this.emit("conflict-resolution:round-end", {
+        round,
+        rerunCount: losers.size,
+        ts: _deps.now(),
+      });
+    }
+
+    // Return in original task order
+    return tasks.map(
+      (t) =>
+        taskResults.get(t.id) || {
+          taskId: t.id,
+          success: false,
+          error: "not scheduled",
+          progressEvents: [],
+          rerunCount: 0,
+          conflictsResolved: false,
+        },
+    );
+  }
+
   async _runSingle({ projectRoot, sessionId, assignment }) {
     let child;
     try {
@@ -548,4 +762,7 @@ module.exports = {
   topoWaves,
   scopeGroups,
   isStructuredAssignments,
+  // Path B-1 conflict resolution helpers (generalized CutClaw pattern).
+  detectConflictPairs,
+  pickWinnersAndLosers,
 };
