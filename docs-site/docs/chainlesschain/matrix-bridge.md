@@ -410,6 +410,73 @@ history.messages.forEach(msg => {
 
 ---
 
+## 配置参考
+
+| 配置项 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `matrix.enabled` | boolean | `true` | 是否启用 Matrix 桥接 |
+| `matrix.defaultHomeserver` | string | `"https://matrix.org"` | 默认 Homeserver 地址 |
+| `matrix.e2eeEnabled` | boolean | `true` | 是否默认启用 E2EE 加密 |
+| `matrix.syncInterval` | number | `30000` | 消息同步间隔（毫秒） |
+| `matrix.messageRetention` | number | `90` | 本地消息保留天数 |
+| `matrix.maxRooms` | number | `100` | 最大房间缓存数量 |
+| `matrix.didMapping.enabled` | boolean | `true` | 是否启用 DID 身份映射 |
+| `matrix.didMapping.autoDiscover` | boolean | `true` | 是否通过 WebFinger 自动发现映射 |
+
+**配置示例**（`.chainlesschain/config.json`）：
+
+```json
+{
+  "matrix": {
+    "enabled": true,
+    "defaultHomeserver": "https://matrix.example.com",
+    "e2eeEnabled": true,
+    "syncInterval": 15000,
+    "messageRetention": 30,
+    "maxRooms": 50,
+    "didMapping": {
+      "enabled": true,
+      "autoDiscover": false
+    }
+  }
+}
+```
+
+---
+
+## 测试覆盖
+
+### 单元测试
+
+| 测试文件 | 覆盖范围 | 测试数 |
+| --- | --- | --- |
+| `tests/unit/p2p/matrix-bridge.test.js` | 登录认证、房间管理、消息收发 | 24 |
+| `tests/unit/p2p/matrix-e2ee.test.js` | Olm/Megolm 加解密、密钥轮换 | 18 |
+| `tests/unit/p2p/matrix-did-mapper.test.js` | DID ↔ MXID 映射、WebFinger 发现 | 12 |
+| `src/renderer/stores/__tests__/matrixBridge.test.ts` | Pinia store 状态管理 | 16 |
+
+**运行测试**：
+
+```bash
+# Matrix 桥接全量测试
+cd desktop-app-vue && npx vitest run tests/unit/p2p/matrix-bridge.test.js
+
+# E2EE 加密测试
+cd desktop-app-vue && npx vitest run tests/unit/p2p/matrix-e2ee.test.js
+
+# Store 测试
+cd desktop-app-vue && npx vitest run src/renderer/stores/__tests__/matrixBridge.test.ts
+```
+
+### 集成测试要点
+
+- **登录认证**: 测试密码登录和 SSO 登录两种流程，mock Homeserver CS API 响应
+- **E2EE 加解密**: 验证 Olm 1:1 会话建立与 Megolm 群组加密的密钥交换流程
+- **DID 映射**: 测试手动绑定和 WebFinger 自动发现两种映射方式
+- **断线重连**: 模拟 Homeserver 断开，验证 `syncInterval` 触发重连逻辑
+
+---
+
 ## 安全考虑
 
 1. **E2EE 默认**: 所有房间默认启用端到端加密

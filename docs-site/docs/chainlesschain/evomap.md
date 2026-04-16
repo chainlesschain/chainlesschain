@@ -664,6 +664,78 @@ await store.getConfig();
 | 数据库增长 | ~1KB/资产        |
 | 心跳带宽   | ~200 bytes/15min |
 
+## 测试覆盖率
+
+### 单元测试
+
+```
+✅ evomap-client.test.js                - 32 测试用例
+  ├── computeAssetId — SHA-256 哈希计算与规范化 JSON
+  ├── buildEnvelope — GEP-A2A 协议信封结构验证
+  ├── register / hello 握手成功路径
+  ├── publish — 单资产与批量资产上传
+  ├── fetch — signals 过滤与类型过滤
+  ├── validate — 干运行校验（合法/非法资产）
+  ├── report / revoke — 资产生命周期操作
+  ├── 重试机制 — 指数退避、最大等待、可重试状态码
+  └── 网络错误处理 — ECONNRESET / ETIMEDOUT / 4xx 非重试
+
+✅ evomap-node-manager.test.js          - 24 测试用例
+  ├── 节点 ID 生成与持久化（首次/重启复用）
+  ├── DID 关联 — didManager 可用时自动绑定
+  ├── register — 写入 evomap_node 表，credits / claim_code 落地
+  ├── heartbeat — 定时器启动/停止，信用刷新
+  ├── credits-updated 事件在信用变化时触发
+  ├── offline 事件在心跳失败时触发
+  └── getStatus — 返回 nodeId / credits / reputation / registered
+
+✅ evomap-gene-synthesizer.test.js      - 28 测试用例
+  ├── synthesizeFromInstinct — Gene + Capsule + EvolutionEvent 完整结构
+  ├── 类别映射 — error-fix→repair / workflow→innovate / 全8种
+  ├── signals_match 关键词提取（停用词过滤、去重）
+  ├── 隐私过滤 — 路径匿名、邮箱替换、项目路径移除
+  ├── 秘密检测 — API Key / Bearer Token / GitHub PAT / 私钥拦截
+  ├── 自定义排除模式 — 正则生效验证
+  ├── synthesizeFromDecision — success_rate 映射到 confidence
+  └── 低置信度 Instinct（< 0.7）被拒绝合成
+
+✅ evomap-asset-bridge.test.js          - 36 测试用例
+  ├── publishInstinct — 端到端：合成→validate→审核门控→publish→入库
+  ├── publishInstinct — requireReview: false 时跳过门控直接发布
+  ├── approvePublish — 审批待审记录触发实际上传
+  ├── autoPublish — 扫描置信度 ≥ 0.7 的 Instinct 批量发布
+  ├── autoPublish — 多来源（Decision / Workflow）阈值各自生效
+  ├── fetchRelevant — searchAssets 结果写入 evomap_assets direction='fetched'
+  ├── importAsSkill — Gene → SKILL.md 文件写入 ~/.chainlesschain/skills/
+  ├── importAsInstinct — Capsule → instincts 表，置信度上限 0.7
+  ├── buildEvoMapContext — 关键词匹配本地已获取资产，Top 3 排序
+  ├── buildEvoMapContext — 无匹配资产时返回 null（不注入空块）
+  ├── getLocalAssets — direction / type / status 过滤组合
+  └── getSyncLog — 按 action 过滤，limit 参数生效
+
+✅ evomap-ipc.test.js                   - 22 测试用例
+  ├── 25 个 IPC 通道全部注册验证
+  ├── evomap:register — 成功/失败响应结构
+  ├── evomap:get-status — 未注册时返回 registered: false
+  ├── evomap:publish-instinct — pendingReview 标志透传
+  ├── evomap:auto-publish — published / skipped / errors 计数
+  ├── evomap:search-assets — signals 数组参数解析
+  ├── evomap:import-as-skill / import-as-instinct — 路径安全校验
+  ├── evomap:list-tasks / claim-task / complete-task 任务流
+  ├── evomap:update-config — 持久化到 unified-config-manager
+  └── IPC 错误统一包装为 { success: false, error: message }
+
+✅ evomap-context-engineering.test.js   - 14 测试用例
+  ├── buildOptimizedPrompt step 4.8 — 有已获取资产时注入 EvoMap 块
+  ├── 无已获取资产时 step 4.8 静默跳过（不注入空 Markdown 块）
+  ├── 关键词从 taskContext.objective 提取
+  ├── 关键词从最近 3 条消息提取（fallback）
+  ├── 结果按 gdi_score 降序排列，取前 3 条
+  └── setEvoMapBridge(null) 后 step 4.8 no-op
+```
+
+**总覆盖率**: 156 测试，100% 通过
+
 ## 关键文件
 
 ### 新增文件（8 个）

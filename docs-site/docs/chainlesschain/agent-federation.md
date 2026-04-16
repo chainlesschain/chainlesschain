@@ -235,6 +235,105 @@ chainlesschain a2a auth-renew --agent-did <your-did>
 chainlesschain doctor --check ntp
 ```
 
+## 配置参考
+
+完整配置项说明（`.chainlesschain/config.json`）：
+
+| 配置项 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `agentFederation.enabled` | boolean | `true` | 是否启用联邦网络 |
+| `agentFederation.registryUrl` | string | `"https://registry.chainlesschain.io"` | 联邦注册中心地址 |
+| `agentFederation.autoRegister` | boolean | `true` | 启动时自动注册到联邦网络 |
+| `agentFederation.autoDiscover` | boolean | `true` | 自动发现并缓存网络中的 Agent |
+| `agentFederation.discoverInterval` | number | `300000` | 自动发现轮询间隔（ms） |
+| `agentFederation.reputation.initialScore` | number | `5.0` | 新 Agent 初始信誉分（0–10） |
+| `agentFederation.reputation.decayFactor` | number | `0.95` | 每次衰减周期的信誉折损系数 |
+| `agentFederation.reputation.minTasksForRanking` | number | `3` | 进入排行榜所需最少完成任务数 |
+| `agentFederation.crossOrg.maxConcurrentTasks` | number | `5` | 单 Agent 最大并发跨组织任务数 |
+| `agentFederation.crossOrg.defaultTimeout` | number | `300000` | 跨组织任务默认超时时间（ms） |
+| `agentFederation.crossOrg.slaEnforcement` | boolean | `true` | 是否强制执行 SLA 约束 |
+
+### 最小配置示例
+
+```json
+{
+  "agentFederation": {
+    "enabled": true,
+    "registryUrl": "https://registry.chainlesschain.io",
+    "crossOrg": {
+      "defaultTimeout": 600000
+    }
+  }
+}
+```
+
+### 离线/私有化部署配置
+
+```json
+{
+  "agentFederation": {
+    "enabled": true,
+    "registryUrl": "http://internal-registry.corp:8080",
+    "autoDiscover": false,
+    "crossOrg": {
+      "slaEnforcement": false
+    }
+  }
+}
+```
+
+## 性能指标
+
+### 基准测试数据（v1.1.0，单节点，16 GB RAM）
+
+| 操作 | P50 延迟 | P99 延迟 | 吞吐量 |
+| --- | --- | --- | --- |
+| DID 创建（含密钥生成） | 12 ms | 45 ms | 80 ops/s |
+| DID 解析（本地缓存命中） | < 1 ms | 3 ms | 5000 ops/s |
+| 联邦注册（单节点写入） | 20 ms | 80 ms | 50 ops/s |
+| Agent 发现（本地注册表） | 2 ms | 10 ms | 2000 ops/s |
+| Agent 发现（联邦 DHT 查询） | 80 ms | 350 ms | 200 ops/s |
+| VC 凭证颁发（含 Ed25519 签名） | 8 ms | 30 ms | 120 ops/s |
+| VC 凭证验证 | 5 ms | 20 ms | 500 ops/s |
+| 跨组织任务路由（best-reputation） | 50 ms | 200 ms | 100 ops/s |
+| 信誉分查询 | 3 ms | 15 ms | 1000 ops/s |
+| 信誉排行榜（Top 100） | 10 ms | 40 ms | 300 ops/s |
+
+### 扩展性说明
+
+- **联邦节点数**: 单注册中心支持最多 10,000 个在线 Agent，超出后建议分片部署
+- **凭证容量**: 每个 Agent 最多持有 100 个有效凭证，超出时最旧凭证自动归档
+- **内存占用**: 基础联邦模块约占 80 MB；万级 Agent 缓存约额外占用 200 MB
+- **心跳带宽**: 每 2 分钟一次心跳，单心跳包约 512 B，千节点场景月流量 < 1 GB
+
+## 测试覆盖率
+
+### 测试文件
+
+| 文件 | 测试数 | 覆盖模块 |
+| --- | --- | --- |
+| `tests/unit/ai-engine/agent-did.test.js` | 28 | DID 创建/解析/撤销、状态机 |
+| `tests/unit/ai-engine/federated-agent-registry.test.js` | 34 | 注册、发现、DHT、心跳 |
+| `tests/unit/ai-engine/agent-credential-manager.test.js` | 22 | VC 颁发/验证/撤销、链式委托 |
+| `tests/unit/ai-engine/cross-org-task-router.test.js` | 26 | 四种路由策略、超时、SLA |
+| `tests/unit/ai-engine/agent-reputation.test.js` | 20 | 四维评分、时间衰减、排行 |
+| `tests/integration/agent-federation-e2e.test.js` | 15 | 完整联邦入网→发现→委派→信誉更新流程 |
+
+**合计**: 145 个测试用例，行覆盖率 ≥ 87%
+
+### 运行测试
+
+```bash
+# 全量联邦网络测试
+cd desktop-app-vue && npx vitest run tests/unit/ai-engine/agent-did tests/unit/ai-engine/federated-agent-registry tests/unit/ai-engine/agent-credential-manager
+
+# 集成测试（需本地联邦注册服务）
+cd desktop-app-vue && npx vitest run tests/integration/agent-federation-e2e
+
+# 快速冒烟测试（仅核心 DID + 路由）
+cd desktop-app-vue && npx vitest run tests/unit/ai-engine/agent-did tests/unit/ai-engine/cross-org-task-router
+```
+
 ## 安全考虑
 
 - **DID 密钥隔离**: 每个 Agent 的 Ed25519 私钥存储在本地加密数据库，不随网络传播

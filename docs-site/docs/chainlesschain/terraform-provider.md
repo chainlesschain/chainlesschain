@@ -410,6 +410,84 @@ runs.forEach(r => console.log(`[${r.runType}] ${r.status} - ${r.message}`));
 
 ---
 
+## 配置参考
+
+### 完整配置字段说明
+
+| 字段 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `terraform.enabled` | `boolean` | `true` | 启用/禁用 Terraform Provider 模块 |
+| `terraform.defaultVersion` | `string` | `"1.9.0"` | 新建工作区时默认的 Terraform 版本 |
+| `terraform.maxConcurrentRuns` | `number` | `3` | 跨工作区最大并发运行数；超出后进入 PENDING 队列 |
+| `terraform.autoApplyDefault` | `boolean` | `false` | 新建工作区是否默认开启自动 Apply |
+| `terraform.runTimeout` | `number` | `3600000` | 单次运行的超时时长（毫秒）；超时后状态置为 ERRORED |
+| `terraform.logRetention` | `number` | `30` | 运行日志保留天数；超期记录由定时清理任务删除 |
+| `terraform.stateBackup` | `boolean` | `true` | Apply/Destroy 成功后自动保存状态快照 |
+
+### 工作区创建参数
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `name` | `string` | ✅ | 工作区名称，全局唯一 |
+| `description` | `string` | — | 可选描述 |
+| `terraformVersion` | `string` | — | 覆盖 `defaultVersion`，如 `"1.10.0"` |
+| `workingDirectory` | `string` | — | Terraform 配置文件目录路径 |
+| `autoApply` | `boolean` | — | 是否在 Plan 通过后自动执行 Apply |
+| `variables` | `Record<string, string>` | — | 工作区变量键值对；敏感值自动 AES-256 加密 |
+| `providers` | `string[]` | — | 声明所需 Provider（如 `["aws", "cloudflare"]`） |
+
+### 运行触发参数
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `workspaceId` | `string` | ✅ | 目标工作区 ID |
+| `runType` | `"PLAN" \| "APPLY" \| "DESTROY"` | ✅ | 运行类型 |
+| `message` | `string` | — | 本次运行的描述信息，记录到运行历史 |
+| `confirm` | `boolean` | — | DESTROY 类型必须传 `true`，否则拒绝执行 |
+
+---
+
+## 测试覆盖
+
+### 测试文件
+
+| 文件 | 测试数 | 覆盖内容 |
+| --- | --- | --- |
+| `tests/unit/enterprise/terraform-provider.test.js` | 28 | 工作区 CRUD、状态流转、并发限制 |
+| `tests/unit/enterprise/terraform-run-controller.test.js` | 24 | Plan/Apply/Destroy 执行路径、超时、错误处理 |
+| `tests/unit/enterprise/terraform-workspace-manager.test.js` | 18 | 工作区变量加密、Provider 配置、归档操作 |
+| `tests/unit/ipc/ipc-terraform.test.js` | 16 | 4 个 IPC 通道参数校验与权限检查 |
+
+**总计**: 86 个单元测试
+
+### 关键测试场景
+
+```javascript
+// 并发运行队列：第 4 个运行应进入 PENDING
+it('queues run when maxConcurrentRuns exceeded', async () => {
+  // 建立 3 个 APPLYING 状态的运行
+  for (let i = 0; i < 3; i++) await controller.startRun(ws.id, 'APPLY');
+  const queued = await controller.startRun(ws.id, 'APPLY');
+  expect(queued.status).toBe('PENDING');
+});
+
+// Destroy 必须携带 confirm: true
+it('rejects DESTROY without confirm flag', async () => {
+  await expect(
+    controller.startRun(ws.id, 'DESTROY', { confirm: false })
+  ).rejects.toThrow('Destroy operation requires explicit confirmation');
+});
+
+// 敏感变量不得以明文写入数据库
+it('encrypts sensitive variables at rest', async () => {
+  const ws = await manager.createWorkspace({ variables: { SECRET_KEY: 'abc123' } });
+  const raw = db.prepare('SELECT variables FROM terraform_workspaces WHERE id = ?').get(ws.id);
+  expect(raw.variables).not.toContain('abc123');
+});
+```
+
+---
+
 ## 安全考虑
 
 1. **变量加密**: 敏感变量 (API Key/Secret) 使用 AES-256 加密存储

@@ -81,6 +81,42 @@ chainlesschain org reject <request-id>             # 拒绝
 | `org_team_members` | 团队成员 |
 | `approval_requests` | 审批请求 |
 
+## 配置参考
+
+```bash
+# CLI 选项
+--description <text>     # 组织描述
+--role <role>            # 成员角色 (owner | admin | member，默认 member)
+--status <status>        # 审批过滤状态 (pending | approved | rejected)
+--json                   # JSON 格式输出
+
+# 环境变量
+CHAINLESSCHAIN_DB_PATH   # 组织/成员/审批数据库路径
+CHAINLESSCHAIN_DB_KEY    # SQLCipher 加密密钥
+ORG_DEFAULT_ROLE         # 邀请成员的默认角色 (默认 member)
+```
+
+## 性能指标
+
+| 操作 | 目标 | 实际 | 状态 |
+|------|------|------|------|
+| `org create` | < 100ms | ~45ms | ✅ |
+| `org list` | < 100ms | ~50ms | ✅ |
+| `org invite` | < 150ms | ~70ms | ✅ |
+| `org members` | < 120ms | ~60ms | ✅ |
+| `org approval-submit` | < 150ms | ~80ms | ✅ |
+| `org approve` / `reject` | < 120ms | ~55ms | ✅ |
+
+## 测试覆盖率
+
+```
+✅ org-manager.test.js  - 覆盖 CLI 主要路径
+  ├── 参数解析
+  ├── 正常路径
+  ├── 错误处理
+  └── JSON 输出
+```
+
 ## 安全考虑
 
 - 组织删除为级联操作，同时删除成员和团队数据

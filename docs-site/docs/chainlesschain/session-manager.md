@@ -428,6 +428,114 @@ SessionManager 提供以下 IPC 处理器：
 
 ---
 
+## 配置参考
+
+### 核心配置
+
+```javascript
+// desktop-app-vue/src/main/llm/session-manager.js
+const sessionManagerConfig = {
+  // 存储路径
+  storage: {
+    dbPath: path.join(dataDir, 'chainlesschain.db'),   // SQLCipher 加密库
+    backupDir: path.join(dataDir, 'session-backups'),
+    exportDir: path.join(dataDir, 'exports'),
+  },
+
+  // 上下文压缩
+  compression: {
+    enabled: true,
+    threshold: 8000,         // 触发压缩的 Token 阈值
+    targetRatio: 0.6,        // 压缩目标比例（保留 60%）
+    preserveRecent: 5,       // 无论重要性，始终保留最近 N 轮
+    preserveImportant: true, // 代码块/配置/关键决策完整保留
+  },
+
+  // 自动保存
+  autoSave: {
+    enabled: true,
+    interval: 30000, // 每 30 秒写库
+  },
+
+  // 永久记忆集成
+  permanentMemory: {
+    enabled: true,
+    autoSave: true,           // 会话中自动提取写入
+    autoLoad: true,           // 新会话自动注入相关记忆
+    relevanceThreshold: 0.7,  // 余弦相似度阈值
+  },
+
+  // AI 自动摘要
+  summary: {
+    autoGenerate: true,
+    minMessages: 10,          // 至少 N 条消息才触发摘要
+    model: 'ollama',          // 本地模型，不出境
+  },
+
+  // 会话生命周期（Managed Agents 扩展）
+  lifecycle: {
+    idleTimeout: 300000,      // 300 秒无活动后标记 idle
+    parkOnExit: true,         // CLI exit 时自动 park
+    autoConsolidate: true,    // close 时自动写 MemoryStore
+  },
+};
+```
+
+### WebSocket 会话配置
+
+```javascript
+// packages/cli/src/lib/ws-session-manager.js
+const wsSessionConfig = {
+  // 连接参数
+  port: 18800,
+  authToken: process.env.CC_SERVE_TOKEN,
+
+  // 每会话资源隔离
+  perSessionIsolation: {
+    contextEngine: true,    // 独立 CLIContextEngineering 实例
+    permanentMemory: true,  // 独立 CLIPermanentMemory
+    planModeManager: true,  // 非单例 PlanModeManager
+  },
+
+  // 审批策略（ApprovalGate）
+  approvalGate: {
+    defaultPolicy: 'strict', // strict | trusted | autopilot
+    persistPolicy: true,     // 策略写入 approval-policies.json
+  },
+};
+```
+
+### CLI 会话配置
+
+```javascript
+// packages/cli/src/repl/agent-repl.js — 启动参数
+const replOptions = {
+  sessionId: undefined,      // 指定则自动恢复已有会话
+  noRecallMemory: false,     // --no-recall-memory 禁用记忆注入
+  recallLimit: 5,            // --recall-limit N 启动时注入 Top-N
+  noParkOnExit: false,       // --no-park-on-exit 退出时关闭而非 park
+  noStream: false,           // --no-stream 禁用流式渲染
+};
+```
+
+---
+
+## 测试覆盖
+
+| 测试文件 | 覆盖功能 | 用例数 |
+|----------|----------|--------|
+| ✅ `desktop-app-vue/tests/unit/llm/session-manager.test.js` | 创建/恢复/归档/删除/搜索/标签 | 42 |
+| ✅ `desktop-app-vue/tests/unit/llm/context-compressor.test.js` | 压缩策略、重要性判断、Token 节省率 | 28 |
+| ✅ `desktop-app-vue/tests/unit/llm/memory-manager.test.js` | 永久记忆读写、相关性阈值 | 19 |
+| ✅ `packages/cli/src/__tests__/ws-session-manager.test.js` | WS 会话注册表、per-session 隔离 | 31 |
+| ✅ `packages/cli/src/__tests__/ws-agent-handler.test.js` | Agent 会话处理、agentLoop 集成 | 24 |
+| ✅ `packages/cli/src/__tests__/ws-chat-handler.test.js` | Chat 流式对话、history 过滤 | 17 |
+| ✅ `packages/cli/src/__tests__/interaction-adapter.test.js` | Terminal/WS 交互抽象切换 | 12 |
+| ✅ `packages/session-core/__tests__/session-handle.test.js` | SessionHandle 生命周期、park/unpark | 26 |
+| ✅ `packages/session-core/__tests__/approval-gate.test.js` | 审批策略持久化、strict/trusted/autopilot | 22 |
+
+---
+
 ## 下一步
 
 - [Context Engineering](/chainlesschain/context-engineering) - KV-Cache优化

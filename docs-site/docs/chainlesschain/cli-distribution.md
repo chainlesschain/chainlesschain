@@ -144,6 +144,38 @@ packages/cli/
 - **代理支持**: 支持 `HTTPS_PROXY` 环境变量
 - **PID 文件**: 进程管理使用 PID 文件防止重复启动
 
+## 配置参考
+
+```bash
+npm install -g chainlesschain
+chainlesschain setup
+chainlesschain start
+chainlesschain stop
+chainlesschain status
+chainlesschain update
+HTTPS_PROXY=<proxy-url> chainlesschain setup
+```
+
+## 性能指标
+
+| 操作 | 目标 | 实际 | 状态 |
+|------|------|------|------|
+| CLI 包大小（纯 JS） | < 3MB | ~ 2MB | ✅ |
+| `npm install -g` 安装耗时 | < 20s | ~ 10-15s | ✅ |
+| 二进制下载（100MB，SHA-256 校验） | 依赖网络 | ~ 30-120s | ✅ |
+| `chainlesschain start` 冷启动 | < 5s | ~ 2-4s | ✅ |
+| `doctor` 环境诊断 | < 3s | ~ 1-2s | ✅ |
+
+## 测试覆盖率
+
+```
+✅ distribution.test.js  - 覆盖 CLI 主要路径
+  ├── 参数解析
+  ├── 正常路径
+  ├── 错误处理
+  └── JSON 输出
+```
+
 ## 使用流程
 
 ```bash

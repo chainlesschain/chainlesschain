@@ -353,6 +353,92 @@ await window.electronAPI.invoke("dlp:create-policy", {
 
 ---
 
+## 配置参考
+
+| 字段 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `enabled` | `boolean` | `true` | 是否启用 DLP 引擎 |
+| `realTimeScan` | `boolean` | `true` | 是否启用实时内容扫描（聊天/输入时触发） |
+| `defaultAction` | `string` | `"warn"` | 策略未匹配时的默认动作：`block` / `mask` / `warn` / `log` |
+| `maxContentSize` | `number` | `10485760` | 单次扫描最大内容大小（字节，默认 10 MB） |
+| `customDetectors` | `array` | `[]` | 自定义检测器列表（对象数组，含 `name` / `pattern` / `severity`） |
+| `excludePaths` | `array` | `["/tmp", "/cache"]` | 文件扫描排除路径，减少对临时目录的不必要扫描 |
+| `incidentRetention` | `number` | `90` | 事件记录保留天数，超期自动清理 |
+| `deepScanThreshold` | `string` | `"RESTRICTED"` | 触发深度扫描（OCR 等）的最低分类级别 |
+| `whitelistPatterns` | `array` | `[]` | 全局白名单正则，匹配的内容跳过所有检测器 |
+| `notifyAdmin` | `boolean` | `true` | `critical` 级别事件是否通知管理员 |
+
+**完整配置示例**:
+
+```json
+{
+  "compliance": {
+    "dlp": {
+      "enabled": true,
+      "realTimeScan": true,
+      "defaultAction": "warn",
+      "maxContentSize": 10485760,
+      "customDetectors": [
+        {
+          "name": "internal-employee-id",
+          "pattern": "EMP-\\d{6}",
+          "severity": "medium",
+          "action": "log"
+        }
+      ],
+      "excludePaths": ["/tmp", "/cache", "/.chainlesschain/logs"],
+      "incidentRetention": 90,
+      "deepScanThreshold": "RESTRICTED",
+      "whitelistPatterns": [],
+      "notifyAdmin": true
+    }
+  }
+}
+```
+
+---
+
+## 测试覆盖
+
+| 测试文件 | 覆盖范围 | 用例数 |
+| --- | --- | --- |
+| `tests/unit/security/dlp-engine.test.js` | 8 内置检测器正确性、Luhn 校验、边界值 | 32 |
+| `tests/unit/security/dlp-policy-manager.test.js` | 策略 CRUD、优先级排序、作用域匹配 | 20 |
+| `tests/unit/security/dlp-incident-manager.test.js` | 事件记录、状态流转（open→resolved）、统计聚合 | 18 |
+| `tests/unit/security/dlp-ipc.test.js` | 8 个 IPC Handler（scan / policy / incident / stats） | 24 |
+| `tests/integration/security/dlp-classification.test.js` | 与 Phase 43 数据分类联动、RESTRICTED 自动触发 | 10 |
+| `tests/integration/security/dlp-realtime.test.js` | 实时扫描延迟（<50ms）、并发扫描、误报率 | 12 |
+
+**运行测试**:
+
+```bash
+# 全部 DLP 单元测试
+cd desktop-app-vue && npx vitest run tests/unit/security/dlp-
+
+# 含集成测试
+cd desktop-app-vue && npx vitest run tests/unit/security/dlp- tests/integration/security/dlp-
+```
+
+**关键断言示例**:
+
+```javascript
+// 信用卡检测器命中并 Luhn 校验
+expect(result.violations[0].type).toBe("credit-card");
+expect(result.violations[0].severity).toBe("high");
+
+// mask 动作脱敏格式
+expect(maskedContent).toMatch(/4\d{3}\*{8}\d{4}/);
+
+// 实时扫描延迟满足 SLA
+expect(scanDuration).toBeLessThan(50); // ms
+
+// 事件状态流转
+expect(incident.status).toBe("resolved");
+expect(incident.resolvedAt).toBeDefined();
+```
+
+---
+
 ## 安全考虑
 
 1. **不存原文**: DLP 事件仅存储内容哈希，不存储原始敏感数据

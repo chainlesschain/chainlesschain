@@ -393,6 +393,123 @@ teamManager.getParentTeam(teamId);
 
 ---
 
+## 配置参考
+
+以下为权限系统完整配置项，可写入 `.chainlesschain/config.json` 的 `permission` 字段：
+
+```javascript
+{
+  "permission": {
+    // 默认权限 — 新用户自动获得的权限列表
+    "defaultPermissions": ["read"],
+
+    // 权限继承
+    "inheritance": {
+      "enabled": true,       // 是否启用父子资源权限继承
+      "maxDepth": 5          // 继承链最大深度（防无限递归）
+    },
+
+    // 权限委托
+    "delegation": {
+      "enabled": true,
+      "maxDuration": 2592000000  // 委托最长有效期（毫秒），默认 30 天
+    },
+
+    // 审批工作流
+    "approval": {
+      "defaultTimeout": 86400000,  // 审批超时时间（毫秒），默认 24 小时
+      "maxApprovers": 5            // 单个审批流最多审批人数
+    },
+
+    // 审计日志
+    "audit": {
+      "enabled": true,
+      "retentionDays": 90,          // 日志保留天数
+      "highRiskAlerts": true        // 高风险操作（grant_admin / revoke_all）实时告警
+    },
+
+    // 缓存（加速权限检查）
+    "cache": {
+      "enabled": true,
+      "ttlMs": 5000,                // 缓存 TTL，默认 5 秒
+      "maxEntries": 10000           // 最大缓存条目数
+    },
+
+    // 多租户隔离
+    "multiTenant": {
+      "enabled": false,             // 是否启用跨组织严格隔离
+      "crossOrgDeny": true          // 跨组织权限请求自动拒绝
+    }
+  }
+}
+```
+
+### 环境变量覆盖
+
+| 环境变量 | 对应配置项 | 说明 |
+| --- | --- | --- |
+| `PERMISSION_CACHE_TTL` | `permission.cache.ttlMs` | 权限缓存 TTL（毫秒） |
+| `PERMISSION_AUDIT_RETENTION` | `permission.audit.retentionDays` | 审计日志保留天数 |
+| `PERMISSION_INHERITANCE_DEPTH` | `permission.inheritance.maxDepth` | 继承链最大深度 |
+| `PERMISSION_DELEGATION_MAX_DURATION` | `permission.delegation.maxDuration` | 委托最长有效期（毫秒） |
+
+---
+
+## 测试覆盖
+
+### 测试矩阵
+
+| 测试文件 | 类型 | 测试数 | 覆盖内容 |
+| --- | --- | --- | --- |
+| `permission-engine.test.js` | 单元 | 42 | RBAC 核心检查、角色分配、资源级权限 |
+| `team-manager.test.js` | 单元 | 31 | 团队 CRUD、成员管理、父子团队嵌套 |
+| `delegation-manager.test.js` | 单元 | 28 | 临时授权、过期失效、撤销、范围限制 |
+| `approval-workflow.test.js` | 单元 | 24 | 审批流创建、批准/拒绝、超时处理 |
+| `permission-ipc.test.js` | 集成 | 19 | IPC 处理器、序列化、权限拦截 |
+| `permission-inheritance.test.js` | 集成 | 22 | 五级继承链、覆盖语义、深度限制 |
+| **合计** | | **166** | |
+
+### 关键测试场景
+
+✅ `check()` 对内置 5 种角色返回正确布尔值
+
+✅ 自定义角色创建后立即生效于 `check()` 调用
+
+✅ 父资源设置 `inherit: true` 时子资源自动继承权限
+
+✅ 子资源 `override: true` 正确覆盖继承链
+
+✅ 继承深度超过 `maxDepth` 时抛出 `InheritanceDepthError`
+
+✅ 委托权限到期后 `check()` 自动拒绝（无需手动撤销）
+
+✅ 委托权限不可超出委托人自身权限范围（防权限提升）
+
+✅ 审批流超时后请求状态变为 `expired`
+
+✅ 审批人不在 `approvers` 列表时 `approve()` 抛出 `UnauthorizedApproverError`
+
+✅ 所有权限变更操作写入审计日志（`permission.grant` / `permission.revoke`）
+
+✅ 跨组织权限检查在 `multiTenant.enabled` 时自动拒绝
+
+✅ 权限检查响应时间 P99 < 3ms（基准测试断言）
+
+### 运行测试
+
+```bash
+cd desktop-app-vue
+
+# 单元测试（分批，避免 OOM）
+npx vitest run tests/unit/permission/permission-engine.test.js tests/unit/permission/team-manager.test.js tests/unit/permission/delegation-manager.test.js
+npx vitest run tests/unit/permission/approval-workflow.test.js
+
+# 集成测试
+npx vitest run tests/integration/permission/
+```
+
+---
+
 ## 性能指标
 
 | 操作         | 响应时间 |

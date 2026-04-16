@@ -280,6 +280,89 @@ hardening: {
 | 基线列表加载缓慢 | 历史基线数据量过大 | 清理过期基线记录，保留关键版本 |
 | 审计类别不完整 | 某些检查依赖的服务未运行 | 确保所有被检查的服务处于运行状态 |
 
+## 配置参考
+
+在 `unified-config-manager.js` 中的 `hardening` 配置节完整字段说明：
+
+| 配置项 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `enabled` | boolean | `true` | 是否启用生产加固模块 |
+| `baselineAutoCollect` | boolean | `false` | 是否在应用启动时自动采集基线 |
+| `auditSchedule` | string | `"manual"` | 安全审计调度方式（`manual` / `daily` / `weekly`） |
+| `thresholds.ipcLatencyP95` | number | `0.2` | IPC p95 延迟回归告警阈值（20% 偏差） |
+| `thresholds.memoryRss` | number | `0.15` | RSS 内存增长告警阈值（15%） |
+| `thresholds.dbQueryAvg` | number | `0.25` | 平均 DB 查询耗时增长告警阈值（25%） |
+
+```javascript
+// .chainlesschain/config.json 示例
+{
+  "hardening": {
+    "enabled": true,
+    "baselineAutoCollect": false,
+    "auditSchedule": "manual",
+    "thresholds": {
+      "ipcLatencyP95": 0.2,
+      "memoryRss": 0.15,
+      "dbQueryAvg": 0.25
+    }
+  }
+}
+```
+
+---
+
+## 性能指标
+
+### 基线采集耗时
+
+| 操作 | 典型耗时 | 说明 |
+| --- | --- | --- |
+| IPC 延迟采样（100 次） | 1–3 s | 并发 IPC 调用采集 p50/p95/p99 |
+| 内存快照 | < 50 ms | 单次 `process.memoryUsage()` |
+| DB 查询基线（100 次） | 1–5 s | 取决于数据库大小和磁盘速度 |
+| 完整基线采集 | 3–10 s | 三类指标顺序采集 |
+
+### 安全审计耗时
+
+| 审计类别 | 典型耗时 | 检查项数量 |
+| --- | --- | --- |
+| CONFIG | < 200 ms | 配置文件扫描、默认凭据检测 |
+| CRYPTO | < 100 ms | 算法白名单匹配、证书校验 |
+| PERMISSION | < 150 ms | IPC 鉴权规则、RBAC 角色扫描 |
+| NETWORK | < 300 ms | 端口探测、CORS 规则检查 |
+| DEPENDENCY | 1–3 s | npm audit 联网查询 CVE 数据库 |
+| **全类别完整审计** | **2–4 s** | 5 类并行执行 |
+
+### 数据保留
+
+- 性能基线：无上限，建议保留 10 个关键版本基线，定期清理中间版本
+- 审计报告：建议保留最近 50 份，历史报告可导出 JSON 存档后删除
+
+---
+
+## 测试覆盖率
+
+| 测试文件 | 覆盖功能 | 用例数 |
+| --- | --- | --- |
+| `tests/unit/performance/performance-baseline.test.js` | 基线采集、回归对比、样本记录、历史查询 | 24 |
+| `tests/unit/security/security-auditor.test.js` | 5 类审计逻辑、风险评分、发现分级 | 31 |
+| `tests/unit/security/hardening-ipc.test.js` | 6 个 IPC 处理器参数校验与响应格式 | 18 |
+| `tests/unit/stores/hardening.test.ts` | Pinia store 状态流转、过滤与排序 | 14 |
+
+**运行测试**:
+
+```bash
+cd desktop-app-vue
+
+# 单独运行生产加固相关测试
+npx vitest run tests/unit/performance/ tests/unit/security/
+
+# 运行全量单元测试
+npx vitest run tests/unit/
+```
+
+---
+
 ## 安全考虑
 
 - **安全发现分级**: CRITICAL(40)/HIGH(20)/MEDIUM(10)/LOW(5)/INFO(1) 加权评分体系

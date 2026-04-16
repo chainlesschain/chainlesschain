@@ -326,6 +326,66 @@ const metrics = await window.electronAPI.invoke("recommendation:get-metrics");
 
 ---
 
+## 配置参考
+
+```javascript
+// desktop-app-vue/src/main/social/content-recommendation.js
+const DEFAULT_CONFIG = {
+  // 推荐引擎
+  strategy: "hybrid",               // 推荐策略: content | collaborative | trending | hybrid
+  weights: {
+    contentBased: 0.4,              // 内容相似度权重 (TF-IDF)
+    collaborative: 0.3,             // 协同过滤权重 (P2P 匿名)
+    trending: 0.3,                  // 热度推荐权重 (时间衰减)
+  },
+  maxRecommendations: 50,           // 每次最多推荐条数
+  refreshInterval: 3600000,         // 推荐缓存刷新间隔 (ms)，默认 1 小时
+  minConfidence: 0.3,               // 推荐最低置信度阈值 (0~1)
+  decayFactor: 0.95,                // 兴趣衰减系数 (每次更新)
+
+  // 兴趣画像
+  interestProfile: {
+    minInteractions: 5,             // 兴趣生效所需最低交互次数
+    maxTopics: 50,                  // 兴趣画像最大主题数
+    highConfidenceThreshold: 0.7,   // 高置信度阈值
+    mediumConfidenceThreshold: 0.4, // 中置信度阈值
+  },
+
+  // 差分隐私 (P2P 协同过滤)
+  privacy: {
+    enabled: true,                  // 启用差分隐私
+    epsilon: 1.0,                   // 隐私预算 (越小越安全，越大越准确)
+    noiseScale: 0.1,                // 兴趣向量噪声幅度
+  },
+};
+```
+
+| 配置项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `strategy` | `hybrid` | 推荐策略，`hybrid` 综合三种算法 |
+| `weights.contentBased` | `0.4` | 内容相似度在混合策略中的权重 |
+| `weights.collaborative` | `0.3` | 协同过滤权重，依赖 P2P 网络 |
+| `weights.trending` | `0.3` | 热度推荐权重，适合冷启动 |
+| `maxRecommendations` | `50` | 单次推荐上限，过大影响性能 |
+| `refreshInterval` | `3600000` | 毫秒，推荐缓存有效期 |
+| `minConfidence` | `0.3` | 低于此值的推荐被过滤 |
+| `decayFactor` | `0.95` | 每次画像更新时旧兴趣的衰减系数 |
+| `privacy.epsilon` | `1.0` | 差分隐私预算，建议范围 0.1~2.0 |
+
+---
+
+## 测试覆盖率
+
+```
+✅ content-recommendation.test.js        - 推荐引擎核心逻辑（混合策略、权重融合）
+✅ interest-profiler.test.js             - 兴趣画像构建（6 种行为信号权重）
+✅ local-recommender.test.js             - 本地推荐算法（TF-IDF / 协同过滤 / 热度）
+✅ recommendation-feedback.test.js       - 推荐反馈与负样本学习
+✅ stores/recommendation.test.ts         - Pinia Store 状态管理与 IPC 调用
+```
+
+---
+
 ## 故障排查
 
 ### 推荐结果为空或过少

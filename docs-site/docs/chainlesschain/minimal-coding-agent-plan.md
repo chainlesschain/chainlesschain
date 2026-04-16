@@ -5,20 +5,24 @@
 >
 > **最新状态（2026-04-07）**：6 个核心源文件均已落地；测试覆盖扩展到 **9 个文件 / 85 用例全部通过**（5 单元 + 3 集成 + 1 真实 CLI E2E）；主进程已接线注册 IPC v3，session-service 已支持 worktree diff / merge / preview / automation candidate；`coding-agent-bridge.js` 修复两处并发缺陷（send 失败未清理 pending、ws close 未拒绝 pending）。
 
+## 概述
+
+Minimal Coding Agent 是 v5.0.2.10 周期内规划的桌面端编码 agent MVP。目标是在 `desktop-app-vue` 中提供一个最小可用的多轮编码会话服务，复用 `packages/cli` 已有的 runtime / harness / tool registry 资产，避免在桌面端重复造轮子。
+
+设计遵循 `learn-coding-agent` 的”最小 agent loop 优先”思路：先打通会话与事件流，再接工具，最后再加权限、压缩与 MCP。所有副作用动作必须经过宿主层 plan mode + permission gate，不依赖 LLM 提示词的自我约束，确保高风险操作（写文件、shell 命令）始终在用户可见的批准链路下执行。
+
 ## 核心特性
 
-- 🔁 **多轮 Agent Loop**：从“单次 generate / review”升级为多轮对话式编码循环
+- 🔁 **多轮 Agent Loop**：从”单次 generate / review”升级为多轮对话式编码循环
 - 🛡 **统一权限门禁**：所有副作用操作走 plan mode + permission gate，不依赖 prompt 自觉
 - 🔌 **进程边界复用**：桌面端通过桥接层调用 `packages/cli` runtime，避免 ESM/CJS 边界爆炸
 - 🧰 **6 类核心工具闭环**：`read_file / search_files / list_dir / edit_file / write_file / run_shell`
 - 📡 **流式事件返回**：所有进度通过标准事件流推送到桌面端 UI
 - 🧩 **可恢复会话**：复用 `sessionManager` + `PromptCompressor`，长对话不爆上下文
-
-## 概述
-
-Minimal Coding Agent 是 v5.0.2.10 周期内规划的桌面端编码 agent MVP。目标是在 `desktop-app-vue` 中提供一个最小可用的多轮编码会话服务，复用 `packages/cli` 已有的 runtime / harness / tool registry 资产，避免在桌面端重复造轮子。
-
-设计遵循 `learn-coding-agent` 的“最小 agent loop 优先”思路：先打通会话与事件流，再接工具，最后再加权限、压缩与 MCP。所有副作用动作必须经过宿主层 plan mode + permission gate，不依赖 LLM 提示词的自我约束，确保高风险操作（写文件、shell 命令）始终在用户可见的批准链路下执行。
+- 🗂 **会话状态机**：`idle → starting → ready → running → waiting_approval → completed / failed / cancelled`
+- 🔗 **MCP 工具白名单**：MCP 工具调用同样走 plan mode / permission gate，不绕过宿主权限
+- 🌳 **Worktree 隔离预留**：多文件改动场景预留 worktree 隔离开关，避免污染主工作区
+- 🧪 **85/85 测试覆盖**：5 单元 + 2 集成 + 1 真实 CLI E2E，Phase 0–6 全部通过
 
 ## 系统架构
 

@@ -37,6 +37,56 @@
                   └─────────────────┘
 ```
 
+## 配置参考
+
+Social AI 引擎的完整配置项（位于 `~/.chainlesschain/config.json`）：
+
+```json
+{
+  "socialAI": {
+    "enabled": true,
+    "topicAnalysis": {
+      "minKeywords": 5,
+      "maxKeywords": 20,
+      "sentimentThreshold": 0.3,
+      "customCategories": [],
+      "language": "auto"
+    },
+    "socialGraph": {
+      "maxHops": 3,
+      "minCommunitySize": 3,
+      "edgeWeightDecay": 0.9,
+      "maxNodes": 10000,
+      "incrementalUpdate": true
+    },
+    "aiAssistant": {
+      "defaultStyle": "concise",
+      "maxReplyLength": 500,
+      "summaryMaxLength": 200
+    }
+  },
+  "activitypub": {
+    "instanceName": "ChainlessChain Node",
+    "instanceDomain": "localhost:9000",
+    "instanceDescription": "Decentralized Personal AI Assistant",
+    "adminEmail": "admin@localhost",
+    "rateLimit": {
+      "apiRequestsPerMin": 100,
+      "activitypubRequestsPerMin": 50
+    }
+  }
+}
+```
+
+| 配置项 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `topicAnalysis.language` | string | `"auto"` | NLP 语言：`auto` / `zh` / `en` / `ja` |
+| `topicAnalysis.customCategories` | array | `[]` | 自定义分类标签列表，补充默认 9 个分类 |
+| `socialGraph.maxNodes` | number | `10000` | 社交图谱最大节点数，超出则裁剪最老节点 |
+| `socialGraph.incrementalUpdate` | boolean | `true` | 是否使用增量更新避免全量重建 |
+| `aiAssistant.defaultStyle` | string | `"concise"` | 默认回复风格：`concise` / `detailed` / `humorous` |
+| `activitypub.rateLimit.apiRequestsPerMin` | number | `100` | API 请求速率限制（次/分钟） |
+
 ## 概述
 
 Phase 42 为 ChainlessChain 引入了智能社交分析和 ActivityPub 联邦宇宙集成,将去中心化社交能力扩展到整个 Fediverse (Mastodon、Pleroma 等平台),同时提供 AI 驱动的社交洞察。
@@ -400,6 +450,18 @@ await window.electronAPI.invoke('social:ap-import-remote-content', {
 ```
 
 ---
+
+## 测试覆盖率
+
+```
+✅ social-ai-engine.test.js              - AI 引擎核心功能集成测试
+✅ topic-analyzer.test.js                - TF-IDF 关键词提取/情感分析/分类测试
+✅ social-graph.test.js                  - 4 种中心性算法/Louvain 社区发现测试
+✅ activitypub-bridge.test.js            - S2S 协议/HTTP 签名/WebFinger 测试
+✅ ai-social-assistant.test.js           - 3 种风格回复生成/摘要/话题推荐测试
+✅ stores/socialAI.test.ts               - Pinia Store 状态管理测试
+✅ e2e/social/social-ai.e2e.test.ts      - 端到端主题分析与 ActivityPub 发布流程测试
+```
 
 ## 安全考虑
 

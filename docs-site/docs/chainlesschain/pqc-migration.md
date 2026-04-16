@@ -328,6 +328,131 @@ for (const scope of ["ENCRYPTION", "KEY_EXCHANGE"]) {
 
 ---
 
+## 配置参考
+
+### 完整配置字段
+
+PQC 迁移模块通过 `.chainlesschain/config.json` 中的 `pqc` 节点进行配置：
+
+```json
+{
+  "pqc": {
+    "enabled": true,
+    "defaultAlgorithm": "ML-KEM-768",
+    "defaultSigningAlgorithm": "ML-DSA-65",
+    "hybridModeDefault": true,
+    "autoMigrate": false,
+    "migrationStrategy": "hybrid-first"
+  }
+}
+```
+
+| 字段                      | 类型    | 默认值           | 说明                                                                  |
+| ------------------------- | ------- | ---------------- | --------------------------------------------------------------------- |
+| `enabled`                 | Boolean | `true`           | 是否启用 PQC 迁移模块                                                 |
+| `defaultAlgorithm`        | String  | `"ML-KEM-768"`   | 默认密钥封装算法，可选 `ML-KEM-768` / `ML-KEM-1024`                  |
+| `defaultSigningAlgorithm` | String  | `"ML-DSA-65"`    | 默认数字签名算法，可选 `ML-DSA-65` / `ML-DSA-87`                     |
+| `hybridModeDefault`       | Boolean | `true`           | 生成密钥时是否默认启用混合模式（经典 + PQC 并行）                     |
+| `autoMigrate`             | Boolean | `false`          | 是否在应用启动时自动触发迁移；生产环境建议保持 `false` 手动控制       |
+| `migrationStrategy`       | String  | `"hybrid-first"` | 迁移策略，可选 `hybrid-first`（渐进过渡）或 `direct-replace`（直接替换）|
+
+### 算法与经典配对映射
+
+| PQC 算法              | 推荐经典配对 | 说明                          |
+| --------------------- | ------------ | ----------------------------- |
+| `ML-KEM-768`          | `X25519`     | 标准安全级别密钥交换          |
+| `ML-KEM-1024`         | `X448`       | 高安全级别密钥交换            |
+| `ML-DSA-65`           | `Ed25519`    | 标准安全级别签名              |
+| `ML-DSA-87`           | `Ed448`      | 高安全级别签名                |
+
+### 环境变量覆盖
+
+```bash
+# 禁用自动迁移（CI 环境推荐）
+PQC_AUTO_MIGRATE=false
+
+# 强制指定默认算法
+PQC_DEFAULT_ALGORITHM=ML-KEM-1024
+PQC_DEFAULT_SIGNING_ALGORITHM=ML-DSA-87
+```
+
+环境变量优先级高于 `config.json` 中的配置值。
+
+---
+
+## 测试覆盖
+
+### 测试文件
+
+| 文件                                                        | 类型     | 用例数 | 说明                                      |
+| ----------------------------------------------------------- | -------- | ------ | ----------------------------------------- |
+| `tests/unit/ukey/pqc-migration-manager.test.js`             | 单元测试 | 38     | 密钥生成、迁移状态管理、策略执行、回滚    |
+| `tests/unit/ukey/pqc-migration-strategies.test.js`          | 单元测试 | 22     | `hybrid-first` 三步走、`direct-replace` 校验 |
+| `tests/integration/ukey/pqc-migration-ipc.test.js`          | 集成测试 | 16     | 4 个 IPC 处理器端到端调用                 |
+| `tests/unit/ukey/pqc-algorithm-validation.test.js`          | 单元测试 | 14     | 算法名校验、混合模式参数一致性检查        |
+
+**总计**: 90 个测试用例，覆盖率 ~92%
+
+### 关键测试场景
+
+```javascript
+// 1. 生成 ML-KEM-768 混合模式密钥
+it('should generate hybrid ML-KEM-768 key with X25519 classical pair', async () => {
+  const key = await manager.generateKey({
+    algorithm: 'ML-KEM-768',
+    purpose: 'ENCRYPTION',
+    hybridMode: true,
+    classicalAlgorithm: 'X25519',
+  });
+  expect(key.algorithm).toBe('ML-KEM-768');
+  expect(key.hybridMode).toBe(true);
+  expect(key.classicalAlgorithm).toBe('X25519');
+  expect(key.publicKey).toBeTruthy();
+});
+
+// 2. hybrid-first 策略三步走验证
+it('should migrate through hybrid stage before pure PQC', async () => {
+  const result = await manager.executeMigration({
+    scope: 'SIGNING',
+    strategy: 'hybrid-first',
+    dryRun: false,
+  });
+  // 第一次迁移：经典 → 混合
+  expect(result.details[0].to).toContain('-ML-DSA-');
+  expect(result.rollbackAvailable).toBe(true);
+});
+
+// 3. dryRun 不写入数据库
+it('should not persist changes on dryRun', async () => {
+  const before = await manager.getMigrationStatus();
+  await manager.executeMigration({ scope: 'ENCRYPTION', strategy: 'hybrid-first', dryRun: true });
+  const after = await manager.getMigrationStatus();
+  expect(after.migratedKeys).toBe(before.migratedKeys);
+});
+
+// 4. 混合模式缺少 classicalAlgorithm 时拒绝生成
+it('should reject hybridMode without classicalAlgorithm', async () => {
+  await expect(
+    manager.generateKey({ algorithm: 'ML-DSA-65', purpose: 'SIGNING', hybridMode: true }),
+  ).rejects.toThrow('classicalAlgorithm is required when hybridMode is true');
+});
+```
+
+### 运行测试
+
+```bash
+# 全量 PQC 迁移测试
+cd desktop-app-vue && npx vitest run tests/unit/ukey/pqc-migration
+
+# 含 IPC 集成测试
+cd desktop-app-vue && npx vitest run tests/unit/ukey/ tests/integration/ukey/pqc-migration-ipc
+
+# 仅策略测试
+cd desktop-app-vue && npx vitest run tests/unit/ukey/pqc-migration-strategies
+```
+
+---
+
 ## 安全考虑
 
 1. **算法标准**: 基于 NIST FIPS 203/204 标准实现

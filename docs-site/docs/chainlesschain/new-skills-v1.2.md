@@ -513,6 +513,97 @@ chainlesschain skill sources
 
 ---
 
+## 配置参考
+
+下表列出技能系统在 `.chainlesschain/config.json` 中的可配置项及其默认值：
+
+| 配置项 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `skills.enabled` | boolean | `true` | 是否启用技能系统 |
+| `skills.autoDiscover` | boolean | `true` | 是否自动发现工作区 SKILL.md 文件 |
+| `skills.layers.bundled` | boolean | `true` | 加载内置技能层（138 个） |
+| `skills.layers.marketplace` | boolean | `true` | 加载 EvoMap 市场技能层 |
+| `skills.layers.managed` | boolean | `true` | 加载用户托管技能层 |
+| `skills.layers.workspace` | boolean | `true` | 加载工作区技能层（最高优先级） |
+| `skills.lazyLoad` | boolean | `true` | 启用懒加载（仅解析 frontmatter，body 按需读取） |
+| `skills.executionTimeout` | integer | `30000` | 单次技能执行超时（ms） |
+| `skills.maxConcurrent` | integer | `3` | 最大并发执行技能数 |
+| `skills.tavilyApiKey` | string | `""` | Tavily 搜索 API Key（tavily-search 技能必需） |
+| `skills.proactiveAgent.maxWatchers` | integer | `10` | proactive-agent 最大同时监控目标数 |
+| `skills.proactiveAgent.pollInterval` | integer | `5000` | 阈值监控轮询间隔（ms） |
+| `skills.cronScheduler.maxJobs` | integer | `50` | cron-scheduler 最大任务数 |
+| `skills.deepResearch.maxSources` | integer | `20` | deep-research 单次最大搜索来源数 |
+| `skills.deepResearch.timeoutMs` | integer | `60000` | deep-research 总超时（ms） |
+| `skills.sandbox.enabled` | boolean | `true` | 是否在 Sandbox v2 中执行自定义技能 |
+| `skills.sandbox.allowedNetworkHosts` | string[] | `[]` | 自定义技能允许访问的外部主机白名单 |
+
+---
+
+## 性能指标
+
+以下为 v5.0.1 版本技能系统在标准开发机（Intel Core i7-12700 / 16 GB RAM）上的典型性能数据：
+
+| 操作 | 典型耗时 | 说明 |
+|------|----------|------|
+| 技能注册表初始化（138 个，懒加载） | 80–150 ms | 仅解析 YAML frontmatter，跳过 Markdown body |
+| 技能注册表初始化（138 个，全量加载） | 400–700 ms | 完整解析所有 SKILL.md 文件 |
+| 单个技能 body 按需加载 | 1–5 ms | 首次调用时触发，后续缓存命中 < 0.1 ms |
+| `/find-skills search` | < 50 ms | 本地注册表关键词检索 |
+| `/tavily-search search`（advanced） | 2–6 秒 | 依赖外部 Tavily API 网络延迟 |
+| `/deep-research research`（8 阶段） | 30–90 秒 | 含多源搜索与 LLM 综合分析 |
+| `/ultrathink analyze`（7 步推理） | 8–25 秒 | 依赖本地 LLM 推理速度 |
+| `/docker-compose-generator generate` | 1–3 秒 | 本地模板渲染 + LLM 参数填充 |
+| `/k8s-deployer manifest` | 2–5 秒 | 含安全最佳实践检查 |
+| `/pr-reviewer review`（diff < 500 行） | 5–15 秒 | 通过 `gh` CLI 拉取 diff + LLM 分析 |
+| `/skill-creator create`（脚手架生成） | 3–8 秒 | 生成 SKILL.md + handler.js + 测试文件 |
+| `/agent-browser navigate` | 1–3 秒 | Chromium 页面加载（含网络） |
+| proactive-agent 文件变更响应延迟 | < 100 ms | fs.watch 事件到技能触发的端到端延迟 |
+
+**并发处理能力**：
+
+- Agent 模式下最多同时执行 3 个技能（`maxConcurrent` 默认值）
+- proactive-agent 最多同时维护 10 个监控目标
+- cron-scheduler 最多调度 50 个任务（内存调度，重启后需重新注册）
+
+---
+
+## 测试覆盖率
+
+v1.2.0~v1.2.1 新增 28 个技能的测试覆盖分布如下，当前总覆盖率 **≥ 95%**（Handler 层 100%）：
+
+| 测试文件 | 测试数 | 覆盖技能 |
+|----------|--------|----------|
+| `tests/unit/ai-engine/skill-handlers.test.js` | 84 | 全部 28 个新增技能 Handler 的核心逻辑 |
+| `tests/unit/ai-engine/cowork/skill-registry.test.js` | 22 | 四层加载、优先级覆盖、懒加载触发 |
+| `tests/unit/ai-engine/cowork/skill-executor.test.js` | 18 | 执行超时、并发限制、错误捕获 |
+| `tests/unit/ai-engine/cowork/skill-mcp.test.js` | 26 | Skill-Embedded MCP 解析与 mount/unmount |
+| `tests/unit/skills/tavily-search.test.js` | 12 | API Key 校验、深度参数、结果格式 |
+| `tests/unit/skills/deep-research.test.js` | 15 | 8 阶段流水线、超时降级、引用格式 |
+| `tests/unit/skills/proactive-agent.test.js` | 14 | 4 种触发器、并发监控上限、停止清理 |
+| `tests/unit/skills/docker-compose-generator.test.js` | 10 | 10 种服务模板、YAML 合法性验证 |
+| `tests/unit/skills/k8s-deployer.test.js` | 13 | 清单生成、安全检查项、Helm 脚手架 |
+| `tests/unit/skills/skill-creator.test.js` | 16 | 脚手架生成、validate 规则、optimize 循环 |
+| `tests/unit/skills/community-skills.test.js` | 30 | 6 个社区技能（brainstorming 等）全模式覆盖 |
+| `tests/integration/skills/skill-workflow.test.js` | 8 | 多技能组合工作流端到端验证 |
+
+**运行测试**：
+
+```bash
+# 所有技能单元测试
+cd desktop-app-vue && npx vitest run tests/unit/ai-engine/skill-handlers.test.js
+
+# 技能注册表与执行器
+cd desktop-app-vue && npx vitest run tests/unit/ai-engine/cowork/
+
+# 单个技能测试
+cd desktop-app-vue && npx vitest run tests/unit/skills/deep-research.test.js
+
+# CLI 技能集成测试
+cd packages/cli && npx vitest run __tests__/skill
+```
+
+---
+
 ## 安全考虑
 
 ### 外部 API 密钥管理

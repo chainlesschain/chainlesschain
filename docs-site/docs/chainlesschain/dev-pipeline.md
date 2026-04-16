@@ -283,6 +283,124 @@ Agent: "请明确以下信息：
 | 烟雾测试超时 | 测试脚本执行时间超过 30 秒 | 调大 `smokeTestTimeoutMs` 或优化测试脚本 |
 | 项目风格分析为空 | 项目目录为空或超出扫描限制 | 确认项目路径正确，扫描限制为深度 5 层、500 文件 |
 
+## 配置参考
+
+在 `.chainlesschain/config.json` 中配置流水线编排器行为：
+
+```js
+// .chainlesschain/config.json — devPipeline 完整字段
+{
+  "devPipeline": {
+    // 规范翻译器
+    "specTranslator": {
+      "enabled": true,
+      "disambiguationRounds": 3,     // 最大消歧轮数，超过后强制继续
+      "confidenceThreshold": 0.75,   // 翻译置信度低于此值触发消歧
+      "cacheResults": true           // 缓存同文本的翻译结果
+    },
+
+    // 审批门控默认策略
+    "gates": {
+      "defaultType": "auto",         // "auto" | "manual" | "condition"
+      "testPassRateThreshold": 0.95, // condition 门控：测试通过率阈值
+      "deployApprovers": [],         // manual 门控：审批人 DID 列表
+      "timeoutMinutes": 60           // manual 门控超时后自动拒绝（0=不超时）
+    },
+
+    // 部署 Agent
+    "deployAgent": {
+      "strategy": "git-pr",          // "git-pr" | "docker" | "npm-publish" | "local" | "staging"
+      "deployTimeoutMs": 120000,
+      "smokeTestTimeoutMs": 30000,
+      "autoCreateBranch": true,
+      "branchPrefix": "pipeline/",
+      "dryRun": false                // true = 模拟部署，不实际执行
+    },
+
+    // 项目风格分析器
+    "styleAnalyzer": {
+      "cacheMinutes": 10,            // 分析结果缓存时长
+      "maxDepth": 5,                 // 目录树扫描最大深度
+      "maxFiles": 500,               // 扫描文件上限
+      "useKnowledgeGraph": true      // 结合代码知识图谱分析依赖
+    },
+
+    // 监控
+    "postDeployMonitor": {
+      "enabled": true,
+      "observationWindowMs": 300000, // 部署后观测窗口 5 分钟
+      "autoRollbackOnError": true
+    }
+  }
+}
+```
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `specTranslator.confidenceThreshold` | number | `0.75` | 低于此置信度自动触发消歧 |
+| `gates.testPassRateThreshold` | number | `0.95` | condition 门控测试通过率阈值 |
+| `gates.timeoutMinutes` | number | `60` | manual 门控超时后自动拒绝（0=不超时） |
+| `deployAgent.strategy` | string | `"git-pr"` | 部署策略；开发推荐 `git-pr` |
+| `deployAgent.dryRun` | boolean | `false` | 模拟部署模式，不实际执行 |
+| `styleAnalyzer.cacheMinutes` | number | `10` | 风格分析结果缓存时长 |
+| `postDeployMonitor.autoRollbackOnError` | boolean | `true` | 观测窗口内出错自动回滚 |
+
+---
+
+## 性能指标
+
+以下基准数据来自实测（中型项目，约 500 源文件）：
+
+| 指标 | 目标值 | 典型实测 | 说明 |
+|------|--------|---------|------|
+| 规范翻译耗时（首次） | < 3 s | ~1.8 s | NL→Spec，含意图分类 |
+| 规范翻译耗时（缓存命中） | < 100 ms | ~20 ms | 相同文本命中缓存 |
+| 阶段状态切换延迟 | < 200 ms | ~80 ms | IPC 通知到 UI 更新 |
+| 项目风格分析（冷启动） | < 5 s | ~2.4 s | 500 文件，深度 5 层 |
+| 项目风格分析（缓存命中） | < 50 ms | ~12 ms | 10 分钟内复用 |
+| 部署 git-pr 策略耗时 | < 30 s | ~12 s | 创建分支 + PR（本地 Git） |
+| 烟雾测试执行窗口 | ≤ 30 s | 依测试脚本 | 超时自动回滚 |
+| 流水线全程（feature 模板） | < 10 min | ~6 min | 含 LLM 代码生成阶段 |
+
+### 并发能力
+
+| 维度 | 推荐 | 说明 |
+|------|------|------|
+| 同时运行流水线数 | 3 | 超过 3 条时 LLM 吞吐成为瓶颈 |
+| 单流水线最大阶段数 | 10 | 超出内置 7 阶段时为自定义模板 |
+| manual 门控并发等待 | 无上限 | 按 DID 独立队列，互不阻塞 |
+
+---
+
+## 测试覆盖率
+
+| 测试文件 | 覆盖模块 | 用例数 |
+|----------|----------|--------|
+| `tests/unit/cowork/pipeline-orchestrator.test.js` | 7 阶段状态机、阶段跳过、错误回退 | 42 |
+| `tests/unit/cowork/spec-translator.test.js` | NL→Spec 翻译、消歧轮次、意图分类 | 36 |
+| `tests/unit/cowork/requirement-parser.test.js` | 需求分类、用户故事提取、依赖检测 | 28 |
+| `tests/unit/cowork/deploy-agent.test.js` | 5 种部署策略、dryRun 模式、烟雾测试 | 34 |
+| `tests/unit/cowork/post-deploy-monitor.test.js` | 观测窗口、自动回滚触发 | 18 |
+| `tests/unit/cowork/project-style-analyzer.test.js` | 6 维度分析、缓存命中、大目录限制 | 24 |
+| `tests/integration/cowork/pipeline-e2e.test.js` | feature / bugfix 模板端到端 | 16 |
+
+**测试用例覆盖点**：
+
+- ✅ `pipeline:create` — feature / bugfix / refactor / security-audit 四种内置模板
+- ✅ `pipeline:advance` — auto / manual / condition 三种门控类型
+- ✅ `pipeline:advance` — condition 门控：`testPassRate >= 0.95` 阈值判断
+- ✅ `pipeline:translate-spec` — 9 种意图类型正确分类
+- ✅ `pipeline:translate-spec` — 置信度不足触发消歧，最大轮次后强制继续
+- ✅ `pipeline:deploy` — `dryRun: true` 不实际修改 Git / Docker / NPM
+- ✅ `pipeline:deploy` — 烟雾测试超时自动回滚
+- ✅ `pipeline:status` — 所有 8 种阶段状态正确流转
+- ✅ `pipeline:analyze-style` — 缓存 10 分钟内复用，超时重新扫描
+- ✅ `pipeline:analyze-style` — 超过 500 文件 / 深度 5 层时截断并警告
+- ✅ `pipeline:list` — 按状态过滤、分页返回
+- ✅ IPC 通道总计 15 个处理器全部有对应测试桩
+
+---
+
 ## 安全考虑
 
 - **审批门控**: 关键阶段（测试、部署）支持强制人工审批，防止未经审查的代码上线

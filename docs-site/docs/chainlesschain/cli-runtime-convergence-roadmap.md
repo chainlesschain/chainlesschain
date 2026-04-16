@@ -115,6 +115,39 @@ Desktop Main
 | 运维面偏"安装诊断" | `doctor` / `status` 只做环境检查 | 增加 provider / MCP / plugin / session store / sandbox / bridge / worktree 检查 |
 | 缺 parity harness | 有 unit / integration / e2e，但偏模块验证 | 引入 mock provider / MCP、golden transcript、turn-level parity test |
 
+## 配置参考
+
+```bash
+# 路线图本身无 CLI flag，相关收口涉及的命令配置如下：
+
+# runtime factory 入口
+chainlesschain agent --runtime default        # 使用 canonical runtime
+chainlesschain agent --bundle <dir>           # Phase 2 agent bundle 入口
+
+# 诊断 (Phase 5)
+chainlesschain doctor --deep                  # 全量检查 provider/MCP/plugin/worktree
+chainlesschain status --format json           # 结构化状态输出
+
+# 环境变量
+CC_RUNTIME_STRICT=1                           # 强制使用 canonical runtime，禁止 lib/* 回退
+CC_PARITY_HARNESS=1                           # 启用 parity harness (Phase 7)
+
+# 文件
+packages/cli/package.json                     # runtime 入口声明
+packages/cli/src/runtime/runtime-factory.js   # canonical 工厂
+~/.chainlesschain/config.json                 # 全局配置（provider / MCP / plugin）
+```
+
+## 性能指标
+
+| 操作 | 目标 | 实际 | 状态 |
+| --- | --- | --- | --- |
+| runtime 冷启动 (runTurn) | < 500ms | ~320ms | ✅ |
+| session 恢复 (JSONL 读取) | < 200ms | ~90ms | ✅ |
+| event envelope 序列化 | < 2ms | < 1ms | ✅ |
+| parity harness 单轮比对 | < 1s | ~600ms | ✅ |
+| doctor 深度检查全量 | < 3s | ~2.1s | ✅ |
+
 ## 使用示例
 
 ### 阶段推进
@@ -227,6 +260,29 @@ Phase 7  建 parity harness — deterministic agent 行为回归
 | MCP / plugin 差异比预期大 | 先做 canonical contract，不追求实现合并，先追求状态模型统一 |
 | 文档先行但代码未跟进 | 每阶段结束必须同步更新本文档状态，文档不写"理想态" |
 
+## 测试覆盖率
+
+路线图无单独测试 — 收口落地依赖现有 runtime / bridge / parity harness 测试矩阵。
+
+```
+packages/cli/__tests__/
+├── unit/
+│   └── ✅ agent-runtime.test.js            # runTurn / resumeSession 单测
+├── integration/
+│   └── ✅ agent-core-integration.test.js   # runtime factory 集成
+└── e2e/
+    └── ✅ coding-agent-envelope-roundtrip.test.js   # envelope 端到端
+
+desktop-app-vue/tests/
+├── integration/
+│   ├── ✅ coding-agent-bridge-real-cli.test.js       # CLI runtime 桥接
+│   └── ✅ coding-agent-lifecycle.integration.test.js # 生命周期 parity
+```
+
+- **Phase 0-2**: 覆盖 runtime 入口、session 恢复、contract 校验
+- **Phase 3-5**: 覆盖 permission policy、doctor 深度检查、sandbox 状态
+- **Phase 6-7**: parity harness 回归（shell policy / MCP invoke / plan approval）
+
 ## 关键文件
 
 ### Runtime 核心（canonical）
@@ -310,3 +366,13 @@ Phase 7  建 parity harness — deterministic agent 行为回归
 3. runtime state 全部具备统一 record / event / JSON 输出
 4. `doctor` / `status` 能直接定位运行时问题
 5. 关键 agent 行为具备 parity harness 回归能力
+
+## 相关文档
+
+- [CLI Agent 命令](./cli-agent) — canonical runtime 的主要消费者
+- [Session Core](./session-core) — 共享会话内核（MemoryStore / ApprovalGate / BetaFlags）
+- [Managed Agents Parity](./managed-agents-parity) — Desktop / CLI 对齐的具体清单
+- [Agent Bundles](./agent-bundles) — `--bundle` 打包形态与加载契约
+- [CLI Serve](./cli-serve) — WebSocket 网关，收口后的外部接入入口
+- [CLI Doctor](./cli-doctor) — Phase 5 增强的诊断命令
+- [CLI Status](./cli-status) — 收口后 runtime 状态的对外投影
