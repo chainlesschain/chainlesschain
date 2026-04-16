@@ -185,7 +185,7 @@
     "7zip-bin": "^5.2.0",
     "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",
-    "axios": "^1.13.6",
+    "axios": "^1.15.0",
     "better-sqlite3-multiple-ciphers": "^12.5.0",
     "bip39": "^3.1.0",
     "blockstore-fs": "^2.0.0",
@@ -346,6 +346,7 @@
   },
   "overrides": {
     "cookie": ">=0.7.0",
-    "diff": ">=8.0.3"
+    "diff": ">=8.0.3",
+    "axios": "1.15.0"
   }
 }
