@@ -73,6 +73,7 @@ import { registerScimCommand } from "./commands/scim.js";
 // Phase 8: Infrastructure & Hardening
 import { registerTerraformCommand } from "./commands/terraform.js";
 import { registerHardeningCommand } from "./commands/hardening.js";
+import { registerStressCommand } from "./commands/stress.js";
 
 // Phase 8: Social Platform
 import { registerSocialCommand } from "./commands/social.js";
@@ -200,6 +201,7 @@ export function createProgram() {
   // Phase 8: Infrastructure & Hardening
   registerTerraformCommand(program);
   registerHardeningCommand(program);
+  registerStressCommand(program);
 
   // Phase 8: Social Platform
   registerSocialCommand(program);
