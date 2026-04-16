@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/manus-ipc.js`
 
-**Generated**: 2026-04-16T04:17:05.888Z
+**Generated**: 2026-04-16T04:30:00.206Z
 
 ---
 

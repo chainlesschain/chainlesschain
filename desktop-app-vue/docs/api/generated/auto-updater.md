@@ -2,7 +2,7 @@
 
 **Source**: `src/main/system/auto-updater.js`
 
-**Generated**: 2026-04-16T04:17:05.830Z
+**Generated**: 2026-04-16T04:30:00.147Z
 
 ---
 

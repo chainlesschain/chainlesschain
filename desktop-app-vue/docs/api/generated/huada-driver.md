@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ukey/huada-driver.js`
 
-**Generated**: 2026-04-16T04:17:05.821Z
+**Generated**: 2026-04-16T04:30:00.138Z
 
 ---
 
