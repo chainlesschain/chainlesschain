@@ -18,6 +18,10 @@ const NOSTR_CHANNELS = [
   "nostr:get-events",
   "nostr:generate-keypair",
   "nostr:map-did",
+  "nostr:publish-dm",
+  "nostr:decrypt-dm",
+  "nostr:publish-deletion",
+  "nostr:publish-reaction",
 ];
 
 /**
@@ -41,7 +45,7 @@ function registerNostrBridgeIPC({
   // 防止重复注册
   if (ipcGuard.isModuleRegistered("nostr-bridge-ipc")) {
     logger.info(
-      "[Nostr IPC] Module already registered, cleaning up old handlers..."
+      "[Nostr IPC] Module already registered, cleaning up old handlers...",
     );
     try {
       for (const channel of NOSTR_CHANNELS) {
@@ -163,11 +167,80 @@ function registerNostrBridgeIPC({
     }
   });
 
+  // ============================================================
+  // NIP-04 / NIP-09 / NIP-25 extensions
+  // ============================================================
+
+  /**
+   * Publish a NIP-04 encrypted direct message
+   * Channel: 'nostr:publish-dm'
+   */
+  ipcMain.handle("nostr:publish-dm", async (_event, params) => {
+    try {
+      if (!nostrBridge) {
+        throw new Error("Nostr Bridge 未初始化");
+      }
+      return await nostrBridge.publishDirectMessage(params);
+    } catch (error) {
+      logger.error("[Nostr IPC] 发送加密 DM 失败:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Decrypt a NIP-04 encrypted direct message
+   * Channel: 'nostr:decrypt-dm'
+   */
+  ipcMain.handle("nostr:decrypt-dm", async (_event, params) => {
+    try {
+      if (!nostrBridge) {
+        throw new Error("Nostr Bridge 未初始化");
+      }
+      const plaintext = await nostrBridge.decryptDirectMessage(params);
+      return { success: true, plaintext };
+    } catch (error) {
+      logger.error("[Nostr IPC] 解密 DM 失败:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Publish a NIP-09 deletion request
+   * Channel: 'nostr:publish-deletion'
+   */
+  ipcMain.handle("nostr:publish-deletion", async (_event, params) => {
+    try {
+      if (!nostrBridge) {
+        throw new Error("Nostr Bridge 未初始化");
+      }
+      return await nostrBridge.publishDeletion(params);
+    } catch (error) {
+      logger.error("[Nostr IPC] 发布删除请求失败:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Publish a NIP-25 reaction
+   * Channel: 'nostr:publish-reaction'
+   */
+  ipcMain.handle("nostr:publish-reaction", async (_event, params) => {
+    try {
+      if (!nostrBridge) {
+        throw new Error("Nostr Bridge 未初始化");
+      }
+      return await nostrBridge.publishReaction(params);
+    } catch (error) {
+      logger.error("[Nostr IPC] 发布 reaction 失败:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // Register with ipcGuard
   ipcGuard.registerModule("nostr-bridge-ipc", NOSTR_CHANNELS);
 
   logger.info(
-    `[Nostr IPC] Registered ${NOSTR_CHANNELS.length} Nostr Bridge IPC handlers`
+    `[Nostr IPC] Registered ${NOSTR_CHANNELS.length} Nostr Bridge IPC handlers`,
   );
   return { handlerCount: NOSTR_CHANNELS.length };
 }

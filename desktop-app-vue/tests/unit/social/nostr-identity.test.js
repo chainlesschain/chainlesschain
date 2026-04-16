@@ -24,46 +24,38 @@ vi.mock("../../../src/main/utils/logger.js", () => ({
   },
 }));
 
-// ─── Mock crypto ──────────────────────────────────────────────────────────────
-const fakePrivKeyHex = "aa".repeat(32);
-const fakePubKeyHex = "bb".repeat(32);
-
-vi.mock("crypto", () => {
-  return {
-    default: {
-      randomBytes: (n) => {
-        const hex = "aa".repeat(n);
-        return {
-          toString: () => hex,
-        };
-      },
-      createECDH: () => ({
-        setPrivateKey: vi.fn(),
-        getPublicKey: () => "02" + "bb".repeat(32),
-      }),
-      createHash: () => ({
-        update: () => ({
-          digest: () => "cc".repeat(32),
-        }),
-      }),
-    },
-    randomBytes: (n) => {
-      const hex = "aa".repeat(n);
-      return {
-        toString: () => hex,
-      };
-    },
-    createECDH: () => ({
-      setPrivateKey: vi.fn(),
-      getPublicKey: () => "02" + "bb".repeat(32),
-    }),
-    createHash: () => ({
-      update: () => ({
-        digest: () => "cc".repeat(32),
-      }),
-    }),
-  };
-});
+// ─── Real NIP-19 fixtures ─────────────────────────────────────────────────────
+// mapDIDToNostr() now delegates to @chainlesschain/session-core/nostr-crypto
+// which performs real bech32 decoding — fake "npub1abc" strings no longer
+// pass. Use pre-generated valid keypairs so tests still exercise the mapping
+// logic without needing network / randomness.
+const FIXTURES = {
+  A: {
+    npub: "npub19uaqrkyrqq8523wzmu4japexwawx822uk8pm58kjyvfm8gymcmxqnmeela",
+    nsec: "nsec18zw8tjmvwcwhe8cdu2kac0yjhfk6xk9pjmehse52lauff6tz9egsp90fau",
+    pub: "2f3a01d883000f4545c2df2b2e8726775c63a95cb1c3ba1ed22313b3a09bc6cc",
+  },
+  B: {
+    npub: "npub1srey00grsc04we76lsxde2ztrhze6vu65dvh559mlgmmmxv5j78ssyqzye",
+    nsec: "nsec1fmpkk3hh8vzrwx5vge3807zf98mkk3vslmxr4e7lx6d5nrcr256sxq43y4",
+    pub: "80f247bd03861f5767dafc0cdca84b1dc59d339aa3597a50bbfa37bd9994978f",
+  },
+  C: {
+    npub: "npub1fsa57ptkxrt8yg9agmsplpzz0u5tlsr4azlhjgdgjrplqnwv9mdqrxmlze",
+    nsec: "nsec1m2w9wxec0wrssf5xhqspu0e644em6wl38at5q29a6huz8v3fnt2q9cj8nr",
+    pub: "4c3b4f057630d67220bd46e01f84427f28bfc075e8bf7921a890c3f04dcc2eda",
+  },
+  D: {
+    npub: "npub1ztwxd926sts0wagfvu3l5rfwne90gamezd75wvsp5xwaugjxu43q5urmtv",
+    nsec: "nsec1hqqfns0f58jl23qesc632xsvhq4r8hel96jvfkjrfy6qxjqvuugs0n62w5",
+    pub: "12dc66955a82e0f775096723fa0d2e9e4af47779137d473201a19dde2246e562",
+  },
+  E: {
+    npub: "npub1h5wzm9yn27jw0cvvvekdqqv5zt2y522zl0e860fec52q5jhttv6qjhrtmk",
+    nsec: "nsec1nnnt2d0kwc98fkp50als7pn504yx3ccg5jf77utvljw6k3xa0twsgp6kkj",
+    pub: "bd1c2d949357a4e7e18c666cd0019412d44a2942fbf27d3d39c5140a4aeb5b34",
+  },
+};
 
 // ─── Module under test (ESM - dynamic import) ───────────────────────────────
 let NostrIdentity, getNostrIdentity;
@@ -148,8 +140,8 @@ describe("NostrIdentity", () => {
       const identity = new NostrIdentity(null);
       await identity.mapDIDToNostr({
         did: "did:example:123",
-        npub: "npub1abc",
-        nsec: "nsec1xyz",
+        npub: FIXTURES.A.npub,
+        nsec: FIXTURES.A.nsec,
       });
       expect(identity._keyPairs.has("did:example:123")).toBe(true);
     });
@@ -158,17 +150,17 @@ describe("NostrIdentity", () => {
       const identity = new NostrIdentity(null);
       const result = await identity.mapDIDToNostr({
         did: "did:example:456",
-        npub: "npub1def",
+        npub: FIXTURES.B.npub,
       });
       expect(result.success).toBe(true);
       expect(result.did).toBe("did:example:456");
-      expect(result.npub).toBe("npub1def");
+      expect(result.npub).toBe(FIXTURES.B.npub);
     });
 
     it("should throw if did is missing", async () => {
       const identity = new NostrIdentity(null);
       await expect(
-        identity.mapDIDToNostr({ npub: "npub1abc" }),
+        identity.mapDIDToNostr({ npub: FIXTURES.A.npub }),
       ).rejects.toThrow("Both did and npub are required");
     });
 
@@ -192,15 +184,16 @@ describe("NostrIdentity", () => {
       const identity = new NostrIdentity(null);
       await identity.mapDIDToNostr({
         did: "did:example:789",
-        npub: "npub1ghi",
-        nsec: "nsec1jkl",
+        npub: FIXTURES.C.npub,
+        nsec: FIXTURES.C.nsec,
       });
 
       const result = await identity.getNostrKeyForDID("did:example:789");
       expect(result).not.toBeNull();
       expect(result.did).toBe("did:example:789");
-      expect(result.npub).toBe("npub1ghi");
+      expect(result.npub).toBe(FIXTURES.C.npub);
       expect(result).toHaveProperty("publicKeyHex");
+      expect(result.publicKeyHex).toBe(FIXTURES.C.pub);
     });
   });
 
@@ -216,13 +209,13 @@ describe("NostrIdentity", () => {
       const identity = new NostrIdentity(null);
       await identity.mapDIDToNostr({
         did: "did:example:reverse",
-        npub: "npub1reverse",
+        npub: FIXTURES.D.npub,
       });
 
-      const result = await identity.getDIDForNpub("npub1reverse");
+      const result = await identity.getDIDForNpub(FIXTURES.D.npub);
       expect(result).not.toBeNull();
       expect(result.did).toBe("did:example:reverse");
-      expect(result.npub).toBe("npub1reverse");
+      expect(result.npub).toBe(FIXTURES.D.npub);
     });
   });
 
@@ -236,11 +229,11 @@ describe("NostrIdentity", () => {
 
     it("should return all mappings", async () => {
       const identity = new NostrIdentity(null);
-      await identity.mapDIDToNostr({ did: "did:1", npub: "npub1a" });
+      await identity.mapDIDToNostr({ did: "did:1", npub: FIXTURES.A.npub });
       await identity.mapDIDToNostr({
         did: "did:2",
-        npub: "npub1b",
-        nsec: "nsec1c",
+        npub: FIXTURES.B.npub,
+        nsec: FIXTURES.B.nsec,
       });
 
       const mappings = await identity.listMappings();
@@ -253,11 +246,14 @@ describe("NostrIdentity", () => {
 
     it("should indicate hasPrivateKey correctly", async () => {
       const identity = new NostrIdentity(null);
-      await identity.mapDIDToNostr({ did: "did:nopriv", npub: "npub1np" });
+      await identity.mapDIDToNostr({
+        did: "did:nopriv",
+        npub: FIXTURES.D.npub,
+      });
       await identity.mapDIDToNostr({
         did: "did:haspriv",
-        npub: "npub1hp",
-        nsec: "nsec1hp",
+        npub: FIXTURES.E.npub,
+        nsec: FIXTURES.E.nsec,
       });
 
       const mappings = await identity.listMappings();

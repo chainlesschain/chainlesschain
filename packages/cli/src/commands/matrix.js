@@ -14,6 +14,14 @@ import {
   getMessages,
   joinRoom,
   getLoginState,
+  sendThreadReply,
+  getThreadMessages,
+  getThreadRoots,
+  createSpace,
+  addSpaceChild,
+  removeSpaceChild,
+  listSpaceChildren,
+  listSpaces,
 } from "../lib/matrix-bridge.js";
 
 export function registerMatrixCommand(program) {
@@ -159,6 +167,281 @@ export function registerMatrixCommand(program) {
 
         const result = joinRoom(db, roomId);
         logger.success(`Joined room ${chalk.cyan(result.room.roomId)}`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // ── Threads (MSC3440 / spec §11.38) ──────────────────────────────
+
+  const thread = matrix
+    .command("thread")
+    .description("Matrix threaded replies (m.thread relation)");
+
+  thread
+    .command("send <room-id> <root-event-id> <body>")
+    .description("Send a threaded reply referencing a root event")
+    .option("-t, --type <msgtype>", "Message type", "m.text")
+    .option(
+      "--reply-to <event-id>",
+      "Event the reply directly targets (defaults to root)",
+    )
+    .option(
+      "--no-fallback",
+      "Disable is_falling_back (non-thread clients won't see it as a reply)",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (roomId, rootEventId, body, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureMatrixTables(db);
+
+        const result = sendThreadReply(db, {
+          roomId,
+          rootEventId,
+          body,
+          msgtype: options.type,
+          inReplyTo: options.replyTo,
+          isFallingBack: options.fallback !== false,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          logger.success(`Thread reply sent to ${chalk.cyan(roomId)}`);
+          logger.log(`  ${chalk.bold("Root:")}  ${rootEventId}`);
+          logger.log(`  ${chalk.bold("Event:")} ${result.event.eventId}`);
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  thread
+    .command("list <room-id> <root-event-id>")
+    .description("List all replies in a thread")
+    .option("--json", "Output as JSON")
+    .action(async (roomId, rootEventId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureMatrixTables(db);
+
+        const messages = getThreadMessages(roomId, rootEventId);
+        if (options.json) {
+          console.log(JSON.stringify(messages, null, 2));
+        } else if (messages.length === 0) {
+          logger.info("No replies in this thread.");
+        } else {
+          for (const m of messages) {
+            logger.log(`  ${chalk.gray(m.sender)} ${m.content.body}`);
+          }
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  thread
+    .command("roots <room-id>")
+    .description("List distinct thread roots within a room")
+    .option("--json", "Output as JSON")
+    .action(async (roomId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureMatrixTables(db);
+
+        const roots = getThreadRoots(roomId);
+        if (options.json) {
+          console.log(JSON.stringify(roots, null, 2));
+        } else if (roots.length === 0) {
+          logger.info("No threads found.");
+        } else {
+          for (const r of roots) {
+            logger.log(
+              `  ${chalk.cyan(r.rootEventId.slice(0, 16))}... replies=${r.replyCount} last=${r.lastReplyAt}`,
+            );
+          }
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // ── Spaces (spec §11.34) ─────────────────────────────────────────
+
+  const space = matrix
+    .command("space")
+    .description("Matrix Spaces — hierarchical room grouping (m.space)");
+
+  space
+    .command("create <name>")
+    .description("Create a new Matrix Space")
+    .option("-t, --topic <text>", "Space topic / description")
+    .option("--json", "Output as JSON")
+    .action(async (name, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureMatrixTables(db);
+
+        const result = createSpace(db, { name, topic: options.topic });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          logger.success(`Space created: ${chalk.cyan(result.space.name)}`);
+          logger.log(`  ${chalk.bold("Room ID:")} ${result.space.roomId}`);
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  space
+    .command("add-child <space-id> <child-room-id>")
+    .description("Add a child room to a Space")
+    .option("--via <server...>", "Homeserver(s) via which child is reachable")
+    .option("--json", "Output as JSON")
+    .action(async (spaceId, childRoomId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureMatrixTables(db);
+
+        const result = addSpaceChild(db, {
+          spaceId,
+          childRoomId,
+          via: options.via,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          logger.success(
+            `Added ${chalk.cyan(childRoomId)} to space ${chalk.cyan(spaceId)}`,
+          );
+          logger.log(`  ${chalk.bold("Via:")} ${result.via.join(", ")}`);
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  space
+    .command("remove-child <space-id> <child-room-id>")
+    .description("Remove a child room from a Space")
+    .action(async (spaceId, childRoomId) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureMatrixTables(db);
+
+        const result = removeSpaceChild(db, { spaceId, childRoomId });
+        if (result.removed) {
+          logger.success(
+            `Removed ${chalk.cyan(childRoomId)} from ${chalk.cyan(spaceId)}`,
+          );
+        } else {
+          logger.info(`${childRoomId} was not a child of ${spaceId}`);
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  space
+    .command("children <space-id>")
+    .description("List all child rooms of a Space")
+    .option("--json", "Output as JSON")
+    .action(async (spaceId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureMatrixTables(db);
+
+        const children = listSpaceChildren(spaceId);
+        if (options.json) {
+          console.log(JSON.stringify(children, null, 2));
+        } else if (children.length === 0) {
+          logger.info("Space has no children.");
+        } else {
+          for (const c of children) {
+            logger.log(`  ${chalk.cyan(c.childRoomId)} via=${c.via.join(",")}`);
+          }
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  space
+    .command("list")
+    .description("List all Spaces")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureMatrixTables(db);
+
+        const spaces = listSpaces();
+        if (options.json) {
+          console.log(JSON.stringify(spaces, null, 2));
+        } else if (spaces.length === 0) {
+          logger.info("No spaces found.");
+        } else {
+          for (const s of spaces) {
+            logger.log(`  ${chalk.cyan(s.roomId)} ${s.name}`);
+          }
+        }
         await shutdown();
       } catch (err) {
         logger.error(`Failed: ${err.message}`);

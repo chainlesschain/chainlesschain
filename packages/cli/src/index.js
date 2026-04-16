@@ -67,6 +67,7 @@ import { registerPqcCommand } from "./commands/pqc.js";
 // Phase 8: Communication Bridges
 import { registerNostrCommand } from "./commands/nostr.js";
 import { registerMatrixCommand } from "./commands/matrix.js";
+import { registerActivityPubCommand } from "./commands/activitypub.js";
 import { registerScimCommand } from "./commands/scim.js";
 
 // Phase 8: Infrastructure & Hardening
@@ -193,6 +194,7 @@ export function createProgram() {
   // Phase 8: Communication Bridges
   registerNostrCommand(program);
   registerMatrixCommand(program);
+  registerActivityPubCommand(program);
   registerScimCommand(program);
 
   // Phase 8: Infrastructure & Hardening

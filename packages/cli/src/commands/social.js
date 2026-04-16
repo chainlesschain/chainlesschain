@@ -24,6 +24,17 @@ import {
   getChatThreads,
   getSocialStats,
 } from "../lib/social-manager.js";
+import { classifyTopic, detectLanguage } from "../lib/topic-classifier.js";
+import {
+  ensureGraphTables,
+  addEdge as graphAddEdge,
+  removeEdge as graphRemoveEdge,
+  getNeighbors as graphGetNeighbors,
+  getGraphSnapshot,
+  loadFromDb as graphLoadFromDb,
+  subscribe as graphSubscribe,
+  EDGE_TYPES,
+} from "../lib/social-graph.js";
 
 export function registerSocialCommand(program) {
   const social = program
@@ -472,6 +483,260 @@ export function registerSocialCommand(program) {
           logger.log(`  ${chalk.bold("Pending:")}   ${stats.pendingRequests}`);
         }
         await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // ── Analyze (topic classification, language-aware) ──────────
+
+  social
+    .command("analyze <text>")
+    .description("Classify text into topics (language-aware, multilingual)")
+    .option("-k, --top-k <n>", "Top-K topics to return", "3")
+    .option("--lang <code>", "Override detected language (zh|ja|en|other)")
+    .option("--min-score <n>", "Drop topics with rawScore <= this", "0")
+    .option("--json", "Output as JSON")
+    .action((text, options) => {
+      try {
+        const topK = Math.max(1, parseInt(options.topK, 10) || 3);
+        const minScore = Number(options.minScore) || 0;
+        const result = classifyTopic(text, {
+          topK,
+          lang: options.lang,
+          minScore,
+        });
+
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+          return;
+        }
+
+        logger.log(
+          `  ${chalk.bold("Language:")} ${chalk.cyan(result.language)}`,
+        );
+        logger.log(`  ${chalk.bold("Tokens:")}   ${result.tokens.length}`);
+        if (result.topics.length === 0) {
+          logger.log(`  ${chalk.dim("(no topic matched)")}`);
+          return;
+        }
+        logger.log(`  ${chalk.bold("Top topics:")}`);
+        for (const t of result.topics) {
+          const pct = (t.score * 100).toFixed(1);
+          logger.log(
+            `    ${chalk.cyan(t.topic.padEnd(16))} ${pct}%  ` +
+              `${chalk.dim(`(raw=${t.rawScore}, hits=${t.hits})`)}`,
+          );
+        }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // Language-only quick helper.
+  social
+    .command("detect-lang <text>")
+    .description("Detect dominant language of text (zh|ja|en|other)")
+    .option("--json", "Output as JSON")
+    .action((text, options) => {
+      const language = detectLanguage(text);
+      if (options.json) {
+        console.log(JSON.stringify({ language }));
+      } else {
+        logger.log(chalk.cyan(language));
+      }
+    });
+
+  // ── Social Graph (realtime) ─────────────────────────────────
+
+  const graph = social
+    .command("graph")
+    .description("Social graph — typed edges, neighbors, live event stream");
+
+  graph
+    .command("add-edge <source> <target>")
+    .description(`Add a directed edge (types: ${EDGE_TYPES.join("|")})`)
+    .option("-t, --type <type>", "Edge type", "follow")
+    .option("-w, --weight <n>", "Edge weight", "1.0")
+    .option("-m, --metadata <json>", "JSON-encoded metadata")
+    .option("--json", "Output as JSON")
+    .action(async (source, target, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureGraphTables(db);
+        graphLoadFromDb(db);
+
+        const metadata = options.metadata ? JSON.parse(options.metadata) : null;
+        const result = graphAddEdge(db, source, target, options.type, {
+          weight: Number(options.weight) || 1.0,
+          metadata,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          const verb = result.created ? "added" : "updated";
+          logger.success(
+            `Edge ${verb}: ${chalk.cyan(source)} --${options.type}→ ${chalk.cyan(target)}`,
+          );
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  graph
+    .command("remove-edge <source> <target>")
+    .description("Remove a directed edge")
+    .option("-t, --type <type>", "Edge type", "follow")
+    .option("--json", "Output as JSON")
+    .action(async (source, target, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureGraphTables(db);
+        graphLoadFromDb(db);
+
+        const result = graphRemoveEdge(db, source, target, options.type);
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else if (result.removed) {
+          logger.success(
+            `Edge removed: ${chalk.cyan(source)} --${options.type}→ ${chalk.cyan(target)}`,
+          );
+        } else {
+          logger.warn("Edge not found");
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  graph
+    .command("neighbors <did>")
+    .description("List neighbors of a DID")
+    .option("-d, --direction <dir>", "Direction: out | in | both", "both")
+    .option("-t, --type <type>", "Filter by edge type")
+    .option("--json", "Output as JSON")
+    .action(async (did, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureGraphTables(db);
+        graphLoadFromDb(db);
+
+        const neighbors = graphGetNeighbors(did, {
+          direction: options.direction,
+          edgeType: options.type,
+        });
+        if (options.json) {
+          console.log(JSON.stringify({ did, neighbors }, null, 2));
+        } else if (neighbors.length === 0) {
+          logger.log(chalk.dim("(no neighbors)"));
+        } else {
+          for (const n of neighbors) logger.log(`  ${chalk.cyan(n)}`);
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  graph
+    .command("snapshot")
+    .description("Dump the full graph (nodes + edges + stats)")
+    .option("-t, --type <type>", "Filter by edge type")
+    .option("--json", "Output as JSON (default: yes — snapshot is raw)")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureGraphTables(db);
+        graphLoadFromDb(db);
+
+        const snapshot = getGraphSnapshot({ edgeType: options.type });
+        console.log(JSON.stringify(snapshot, null, 2));
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  graph
+    .command("watch")
+    .description("Stream graph change events as NDJSON on stdout")
+    .option("-e, --events <list>", "Comma-separated event types (default: all)")
+    .option("--once", "Emit the first event then exit")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureGraphTables(db);
+        graphLoadFromDb(db);
+
+        const events = options.events
+          ? options.events
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : null;
+
+        // Announce subscription on stdout so pipelines know the stream is live.
+        process.stdout.write(
+          JSON.stringify({
+            type: "watch.started",
+            events: events || "all",
+            at: new Date().toISOString(),
+          }) + "\n",
+        );
+
+        let unsubscribe = null;
+        const stop = async () => {
+          if (unsubscribe) unsubscribe();
+          await shutdown();
+          process.exit(0);
+        };
+
+        unsubscribe = graphSubscribe(
+          (evt) => {
+            process.stdout.write(
+              JSON.stringify({ ...evt, at: new Date().toISOString() }) + "\n",
+            );
+            if (options.once) void stop();
+          },
+          events ? { events } : undefined,
+        );
+
+        process.on("SIGINT", stop);
+        process.on("SIGTERM", stop);
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);

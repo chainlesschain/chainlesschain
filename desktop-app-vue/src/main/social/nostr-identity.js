@@ -12,7 +12,14 @@
 
 import { logger } from "../utils/logger.js";
 import EventEmitter from "events";
-import crypto from "crypto";
+import {
+  generatePrivateKey as _genPriv,
+  getPublicKey as _getPub,
+  npubEncode as _npubEncode,
+  nsecEncode as _nsecEncode,
+  npubDecode as _npubDecode,
+  nsecDecode as _nsecDecode,
+} from "@chainlesschain/session-core/nostr-crypto";
 
 // ============================================================
 // NostrIdentity
@@ -35,45 +42,24 @@ class NostrIdentity extends EventEmitter {
     // No additional tables needed for identity mapping (in-memory Map)
     this.initialized = true;
     logger.info(
-      "[NostrIdentity] Nostr identity manager initialized successfully"
+      "[NostrIdentity] Nostr identity manager initialized successfully",
     );
   }
 
   /**
-   * Generate a new secp256k1 keypair for Nostr
+   * Generate a new BIP-340 keypair for Nostr (schnorr-compatible).
    * @returns {Object} { npub, nsec, publicKeyHex, privateKeyHex }
    */
   async generateKeyPair() {
     try {
-      // Generate a 32-byte private key (secp256k1 compatible)
-      const privateKeyBytes = crypto.randomBytes(32);
-      const privateKeyHex = privateKeyBytes.toString("hex");
-
-      // Derive public key using ECDH with secp256k1
-      let publicKeyHex;
-      try {
-        const ecdh = crypto.createECDH("secp256k1");
-        ecdh.setPrivateKey(privateKeyBytes);
-        // Get compressed public key (33 bytes), take x-coordinate (32 bytes) for Nostr
-        const compressedPubKey = ecdh.getPublicKey("hex", "compressed");
-        // Nostr uses the 32-byte x-only pubkey (remove the 02/03 prefix)
-        publicKeyHex = compressedPubKey.slice(2);
-      } catch (_err) {
-        // Fallback: use hash of private key as public key placeholder
-        publicKeyHex = crypto
-          .createHash("sha256")
-          .update(privateKeyBytes)
-          .digest("hex");
-      }
-
-      const npub = this._hexToNpub(publicKeyHex);
-      const nsec = this._hexToNsec(privateKeyHex);
+      const privateKeyHex = _genPriv();
+      const publicKeyHex = _getPub(privateKeyHex);
+      const npub = _npubEncode(publicKeyHex);
+      const nsec = _nsecEncode(privateKeyHex);
 
       const keyPair = { npub, nsec, publicKeyHex, privateKeyHex };
-
       this.emit("keypair:generated", { npub, publicKeyHex });
       logger.info(`[NostrIdentity] Keypair generated: ${npub}`);
-
       return keyPair;
     } catch (err) {
       logger.error("[NostrIdentity] Failed to generate keypair:", err);
@@ -94,11 +80,22 @@ class NostrIdentity extends EventEmitter {
       throw new Error("Both did and npub are required for mapping");
     }
 
+    let publicKeyHex = npub;
+    let privateKeyHex = null;
+    if (npub.startsWith("npub1")) {
+      publicKeyHex = _npubDecode(npub);
+    }
+    if (nsec && nsec.startsWith("nsec1")) {
+      privateKeyHex = _nsecDecode(nsec);
+    } else if (nsec) {
+      privateKeyHex = nsec;
+    }
+
     this._keyPairs.set(did, {
       npub,
       nsec: nsec || null,
-      publicKeyHex: npub.startsWith("npub1") ? npub.slice(5) : npub,
-      privateKeyHex: nsec && nsec.startsWith("nsec1") ? nsec.slice(5) : null,
+      publicKeyHex,
+      privateKeyHex,
     });
 
     this.emit("mapping:created", { did, npub });
@@ -153,28 +150,6 @@ class NostrIdentity extends EventEmitter {
       });
     }
     return mappings;
-  }
-
-  /**
-   * Convert hex public key to npub bech32-like format
-   * @param {string} hex - Public key hex string
-   * @returns {string} npub-prefixed key
-   */
-  _hexToNpub(hex) {
-    // Simplified bech32-like encoding: npub1 + hex
-    // Real implementation would use proper bech32 encoding (NIP-19)
-    return `npub1${hex}`;
-  }
-
-  /**
-   * Convert hex private key to nsec bech32-like format
-   * @param {string} hex - Private key hex string
-   * @returns {string} nsec-prefixed key
-   */
-  _hexToNsec(hex) {
-    // Simplified bech32-like encoding: nsec1 + hex
-    // Real implementation would use proper bech32 encoding (NIP-19)
-    return `nsec1${hex}`;
   }
 }
 
