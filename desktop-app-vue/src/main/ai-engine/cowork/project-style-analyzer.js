@@ -103,23 +103,84 @@ class ProjectStyleAnalyzer extends EventEmitter {
       return cached;
     }
 
+    // Collect stream into result
+    let finalResult = null;
+    for await (const ev of this.analyzeStream(directory, options)) {
+      if (ev.type === "end" && ev.result) {
+        finalResult = ev.result;
+      }
+    }
+
+    if (!finalResult) {
+      throw new Error("Stream ended without result");
+    }
+    return finalResult;
+  }
+
+  /**
+   * Stream variant of analyze — yields StreamRouter-compatible events.
+   *
+   * Events yielded:
+   *   { type: "start", directory, ts }
+   *   { type: "message", content, phase }  — per analysis phase (naming, architecture, testing, style)
+   *   { type: "error", error }             — on failure
+   *   { type: "end", result, ts }
+   *
+   * @param {string} directory - Project directory path
+   * @param {Object} [options]
+   * @yields {Object} StreamEvent-compatible events
+   */
+  async *analyzeStream(directory, options = {}) {
     const startTime = Date.now();
     this.stats.totalAnalyses++;
+
+    yield { type: "start", directory, ts: Date.now() };
 
     try {
       const conventions = {
         projectPath: directory,
-        naming: await this._analyzeNaming(directory),
-        architecture: await this._analyzeArchitecture(directory),
-        testing: await this._analyzeTesting(directory),
-        style: await this._analyzeStyle(directory),
-        imports: this._analyzeImports(directory),
-        components: this._analyzeComponents(directory),
+        naming: null,
+        architecture: null,
+        testing: null,
+        style: null,
+        imports: null,
+        components: null,
         ckgInsights: null,
         instinctPatterns: null,
         confidence: 0,
         analyzedAt: new Date().toISOString(),
       };
+
+      conventions.naming = await this._analyzeNaming(directory);
+      yield {
+        type: "message",
+        content: `Naming: files=${conventions.naming.files}, components=${conventions.naming.components}`,
+        phase: "naming",
+      };
+
+      conventions.architecture = await this._analyzeArchitecture(directory);
+      yield {
+        type: "message",
+        content: `Architecture: ${conventions.architecture.structure}, state=${conventions.architecture.stateManagement}`,
+        phase: "architecture",
+      };
+
+      conventions.testing = await this._analyzeTesting(directory);
+      yield {
+        type: "message",
+        content: `Testing: ${conventions.testing.framework}, location=${conventions.testing.location}`,
+        phase: "testing",
+      };
+
+      conventions.style = await this._analyzeStyle(directory);
+      yield {
+        type: "message",
+        content: `Style: ${conventions.style.formatter}, linter=${conventions.style.linter}`,
+        phase: "style",
+      };
+
+      conventions.imports = this._analyzeImports(directory);
+      conventions.components = this._analyzeComponents(directory);
 
       // CKG enrichment
       if (this.config.enableCKG && this.ckg?.initialized) {
@@ -157,9 +218,11 @@ class ProjectStyleAnalyzer extends EventEmitter {
         `[ProjectStyleAnalyzer] Analyzed ${directory} (confidence=${conventions.confidence.toFixed(2)}, ${elapsed}ms)`,
       );
 
-      return conventions;
+      yield { type: "end", result: conventions, ts: Date.now() };
     } catch (error) {
       logger.error(`[ProjectStyleAnalyzer] Analysis error: ${error.message}`);
+      yield { type: "error", error: error.message };
+      yield { type: "end", result: null, ts: Date.now() };
       throw error;
     }
   }
@@ -666,4 +729,5 @@ module.exports = {
   ProjectStyleAnalyzer,
   getProjectStyleAnalyzer,
   CONVENTION_CATEGORIES,
+  ANALYZE_STREAM_EVENTS: Object.freeze(["start", "message", "error", "end"]),
 };

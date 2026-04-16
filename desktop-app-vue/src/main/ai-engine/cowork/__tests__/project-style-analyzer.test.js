@@ -234,6 +234,108 @@ describe("ProjectStyleAnalyzer", () => {
   });
 
   // ──────────────────────────────────────────────────────────────────────────
+  // analyzeStream() — Phase F StreamRouter-compatible async generator
+  // ──────────────────────────────────────────────────────────────────────────
+  describe("analyzeStream()", () => {
+    beforeEach(async () => {
+      await analyzer.initialize(db);
+    });
+
+    async function collectStream(gen) {
+      const events = [];
+      for await (const ev of gen) {
+        events.push(ev);
+      }
+      return events;
+    }
+
+    it("should yield start event first with directory", async () => {
+      const events = await collectStream(analyzer.analyzeStream(EXISTING_DIR));
+
+      const start = events[0];
+      expect(start.type).toBe("start");
+      expect(start.directory).toBe(EXISTING_DIR);
+      expect(start.ts).toBeTypeOf("number");
+    });
+
+    it("should yield message events for each analysis phase", async () => {
+      const events = await collectStream(analyzer.analyzeStream(EXISTING_DIR));
+
+      const phases = events
+        .filter((e) => e.type === "message")
+        .map((e) => e.phase);
+      expect(phases).toContain("naming");
+      expect(phases).toContain("architecture");
+      expect(phases).toContain("testing");
+      expect(phases).toContain("style");
+    });
+
+    it("should yield end event with result containing conventions", async () => {
+      const events = await collectStream(analyzer.analyzeStream(EXISTING_DIR));
+
+      const end = events[events.length - 1];
+      expect(end.type).toBe("end");
+      expect(end.result).toBeTruthy();
+      expect(end.result).toHaveProperty("naming");
+      expect(end.result).toHaveProperty("architecture");
+      expect(end.result).toHaveProperty("confidence");
+      expect(end.ts).toBeTypeOf("number");
+    });
+
+    it("should produce event sequence: start → naming → architecture → testing → style → end", async () => {
+      const events = await collectStream(analyzer.analyzeStream(EXISTING_DIR));
+
+      const types = events.map((e) => e.phase || e.type);
+      expect(types[0]).toBe("start");
+      expect(types).toContain("naming");
+      expect(types).toContain("architecture");
+      expect(types).toContain("testing");
+      expect(types).toContain("style");
+      expect(types[types.length - 1]).toBe("end");
+    });
+
+    it("analyze() should return same result as end event (backward compat)", async () => {
+      const syncResult = await analyzer.analyze(EXISTING_DIR, {
+        forceRefresh: true,
+      });
+
+      const analyzer2 = new ProjectStyleAnalyzer();
+      await analyzer2.initialize(createMockDatabase());
+      const events = await collectStream(analyzer2.analyzeStream(EXISTING_DIR));
+      const streamResult = events[events.length - 1].result;
+
+      expect(syncResult.projectPath).toBe(streamResult.projectPath);
+      expect(syncResult.naming.files).toBe(streamResult.naming.files);
+      expect(typeof syncResult.confidence).toBe(typeof streamResult.confidence);
+    });
+
+    it("should still emit analysis:completed event", async () => {
+      const handler = vi.fn();
+      analyzer.on("analysis:completed", handler);
+
+      const events = await collectStream(analyzer.analyzeStream(EXISTING_DIR));
+
+      expect(handler).toHaveBeenCalledOnce();
+      expect(events[events.length - 1].type).toBe("end");
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // ANALYZE_STREAM_EVENTS export
+  // ──────────────────────────────────────────────────────────────────────────
+  describe("ANALYZE_STREAM_EVENTS", () => {
+    it("should export a frozen array with start/message/error/end", () => {
+      const mod = require("../project-style-analyzer");
+      expect(mod.ANALYZE_STREAM_EVENTS).toBeTruthy();
+      expect(mod.ANALYZE_STREAM_EVENTS).toContain("start");
+      expect(mod.ANALYZE_STREAM_EVENTS).toContain("message");
+      expect(mod.ANALYZE_STREAM_EVENTS).toContain("error");
+      expect(mod.ANALYZE_STREAM_EVENTS).toContain("end");
+      expect(Object.isFrozen(mod.ANALYZE_STREAM_EVENTS)).toBe(true);
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
   // CONVENTION_CATEGORIES constant
   // ──────────────────────────────────────────────────────────────────────────
   describe("CONVENTION_CATEGORIES", () => {

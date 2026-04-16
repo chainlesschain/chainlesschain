@@ -28,13 +28,31 @@ function makeComparisonRow(overrides = {}) {
     id: "cmp-001",
     task_description: "Implement user authentication",
     variants: JSON.stringify([
-      { name: "concise-agent", code: "const auth = (u, p) => u && p;", style: "concise" },
-      { name: "robust-agent", code: "function auth(u, p) { try { if (!u || !p) throw new Error('Invalid'); return true; } catch(e) { return false; } }", style: "robust" },
+      {
+        name: "concise-agent",
+        code: "const auth = (u, p) => u && p;",
+        style: "concise",
+      },
+      {
+        name: "robust-agent",
+        code: "function auth(u, p) { try { if (!u || !p) throw new Error('Invalid'); return true; } catch(e) { return false; } }",
+        style: "robust",
+      },
     ]),
     winner: "robust-agent",
     scores: JSON.stringify({
-      "concise-agent": { conciseness: 90, errorHandling: 50, readability: 75, total: 70 },
-      "robust-agent":  { conciseness: 60, errorHandling: 90, readability: 80, total: 77 },
+      "concise-agent": {
+        conciseness: 90,
+        errorHandling: 50,
+        readability: 75,
+        total: 70,
+      },
+      "robust-agent": {
+        conciseness: 60,
+        errorHandling: 90,
+        readability: 80,
+        total: 77,
+      },
     }),
     created_at: "2024-01-01T00:00:00.000Z",
     ...overrides,
@@ -172,7 +190,8 @@ describe("ABComparator", () => {
       const freshDb = createMockDatabase();
       const mockCoordinator = {
         assignTask: vi.fn().mockResolvedValue({
-          output: "```js\nfunction factorial(n) { return n <= 1 ? 1 : n * factorial(n-1); }\n```",
+          output:
+            "```js\nfunction factorial(n) { return n <= 1 ? 1 : n * factorial(n-1); }\n```",
         }),
       };
       await freshAbc.initialize(freshDb, mockCoordinator);
@@ -273,7 +292,10 @@ describe("ABComparator", () => {
 
     it("should score conciseness higher for shorter code", () => {
       const short = abc._benchmarkVariant({ code: "const f = (x) => x;" });
-      const longCode = Array.from({ length: 20 }, (_, i) => `const v${i} = ${i};`).join("\n");
+      const longCode = Array.from(
+        { length: 20 },
+        (_, i) => `const v${i} = ${i};`,
+      ).join("\n");
       const long = abc._benchmarkVariant({ code: longCode });
 
       expect(short.conciseness).toBeGreaterThan(long.conciseness);
@@ -417,6 +439,133 @@ function addNumbers(firstNum, secondNum) {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
+  // compareStream — Phase F StreamRouter-compatible async generator
+  // ─────────────────────────────────────────────────────────────────────────
+  describe("compareStream()", () => {
+    beforeEach(async () => {
+      await abc.initialize(db);
+    });
+
+    async function collectStream(gen) {
+      const events = [];
+      for await (const ev of gen) {
+        events.push(ev);
+      }
+      return events;
+    }
+
+    it("should yield start event first with comparisonId and taskDescription", async () => {
+      const events = await collectStream(
+        abc.compareStream({
+          taskDescription: "Reverse a string",
+          variantCount: 2,
+        }),
+      );
+
+      const start = events[0];
+      expect(start.type).toBe("start");
+      expect(start.comparisonId).toBeTruthy();
+      expect(start.taskDescription).toBe("Reverse a string");
+      expect(start.variantCount).toBe(2);
+      expect(start.ts).toBeTypeOf("number");
+    });
+
+    it("should yield one message event per variant", async () => {
+      const events = await collectStream(
+        abc.compareStream({ taskDescription: "Sort array", variantCount: 3 }),
+      );
+
+      const variantMessages = events.filter(
+        (e) => e.type === "message" && e.variant,
+      );
+      expect(variantMessages).toHaveLength(3);
+      variantMessages.forEach((m, i) => {
+        expect(m.variantIndex).toBe(i);
+        expect(m.variant).toHaveProperty("name");
+        expect(m.content).toContain(m.variant.name);
+      });
+    });
+
+    it("should yield benchmark message and end event with result", async () => {
+      const events = await collectStream(
+        abc.compareStream({ taskDescription: "Parse JSON", variantCount: 2 }),
+      );
+
+      const benchmark = events.find(
+        (e) => e.type === "message" && e.phase === "benchmark",
+      );
+      expect(benchmark).toBeTruthy();
+      expect(benchmark.content).toContain("Winner:");
+
+      const end = events[events.length - 1];
+      expect(end.type).toBe("end");
+      expect(end.result).toBeTruthy();
+      expect(end.result.winner).toBeTruthy();
+      expect(end.ts).toBeTypeOf("number");
+    });
+
+    it("should yield error + end when taskDescription is missing", async () => {
+      const events = await collectStream(abc.compareStream({}));
+
+      const errorEv = events.find((e) => e.type === "error");
+      expect(errorEv).toBeTruthy();
+      expect(errorEv.error).toContain("taskDescription");
+
+      const end = events[events.length - 1];
+      expect(end.type).toBe("end");
+      expect(end.result.error).toBeTruthy();
+    });
+
+    it("should produce event sequence: start → messages → benchmark → end", async () => {
+      const events = await collectStream(
+        abc.compareStream({ taskDescription: "Test", variantCount: 1 }),
+      );
+
+      const types = events.map((e) =>
+        e.phase === "benchmark" ? "benchmark" : e.type,
+      );
+      expect(types[0]).toBe("start");
+      expect(types[1]).toBe("message"); // variant
+      expect(types[2]).toBe("benchmark");
+      expect(types[3]).toBe("end");
+    });
+
+    it("compare() should return same result as end event (backward compat)", async () => {
+      const syncResult = await abc.compare({
+        taskDescription: "Add numbers",
+        variantCount: 2,
+      });
+
+      const abc2 = new ABComparator();
+      const db2 = createMockDatabase();
+      await abc2.initialize(db2);
+      const events = await collectStream(
+        abc2.compareStream({ taskDescription: "Add numbers", variantCount: 2 }),
+      );
+      const streamResult = events[events.length - 1].result;
+
+      expect(syncResult.taskDescription).toBe(streamResult.taskDescription);
+      expect(syncResult.variants).toHaveLength(streamResult.variants.length);
+      expect(syncResult.winner).toBe(streamResult.winner);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // COMPARE_STREAM_EVENTS export
+  // ─────────────────────────────────────────────────────────────────────────
+  describe("COMPARE_STREAM_EVENTS", () => {
+    it("should export a frozen array with start/message/error/end", () => {
+      const mod = require("../ab-comparator");
+      expect(mod.COMPARE_STREAM_EVENTS).toBeTruthy();
+      expect(mod.COMPARE_STREAM_EVENTS).toContain("start");
+      expect(mod.COMPARE_STREAM_EVENTS).toContain("message");
+      expect(mod.COMPARE_STREAM_EVENTS).toContain("error");
+      expect(mod.COMPARE_STREAM_EVENTS).toContain("end");
+      expect(Object.isFrozen(mod.COMPARE_STREAM_EVENTS)).toBe(true);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
   // getStats
   // ─────────────────────────────────────────────────────────────────────────
   describe("getStats()", () => {
@@ -441,7 +590,7 @@ function addNumbers(firstNum, secondNum) {
 
     it("should track wins by agent name", () => {
       db._prep.get
-        .mockReturnValueOnce({ count: 5 })  // total
+        .mockReturnValueOnce({ count: 5 }) // total
         .mockReturnValueOnce({ count: 5 }); // withWinner
       db._prep.all.mockReturnValueOnce([
         { winner: "robust-agent" },

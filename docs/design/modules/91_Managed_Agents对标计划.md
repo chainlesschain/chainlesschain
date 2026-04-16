@@ -184,9 +184,10 @@
 
 **已完成上层集成**:
 - ✅ `debate-review.js` `startDebateStream()` async generator，yield `start → message(×N) → consensus → end`，`startDebate()` 向后兼容消费 (+8 tests, 42 total in debate-review.test.js)
+- ✅ `ab-comparator.js` `compareStream()` async generator，yield `start → message(×N variants) → benchmark → end`，`compare()` 向后兼容消费 (+7 tests, 41 total in ab-comparator.test.js)
+- ✅ `project-style-analyzer.js` `analyzeStream()` async generator，yield `start → naming → architecture → testing → style → end`，`analyze()` 向后兼容消费 (+8 tests, 26 total in project-style-analyzer.test.js)
 
 **未完成（上层集成）**:
-- `cowork analyze / compare` 现有非 stream 路径改走 `StreamRouter`
 - CLI 默认流式输出，`--no-stream` 关闭
 - Desktop IPC `agent:stream` 事件标准化为 `StreamEvent`
 
