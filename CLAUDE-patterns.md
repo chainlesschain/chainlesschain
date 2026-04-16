@@ -2,8 +2,8 @@
 
 > 记录项目中已验证的架构模式和解决方案，供 AI 助手和开发者参考
 >
-> **版本**: v1.4.0
-> **最后更新**: 2026-04-09
+> **版本**: v1.5.0
+> **最后更新**: 2026-04-16
 
 ---
 
@@ -1169,6 +1169,129 @@ class P2PSkillBridge @Inject constructor(
 ```
 
 **实现位置**: `android-app/core-p2p/.../RemoteSkillProvider.kt`, `android-app/app/.../di/RemoteModule.kt`
+
+---
+
+## 通用冲突解决 (Generic Conflict Resolution, v5.0.2.10)
+
+### Pattern: detect → score → rerun 三阶段冲突解决
+
+**问题**: CutClaw 的 ParallelShotOrchestrator 实现了"并行生成 → 检测冲突 → 质量评分 → 重跑输家"的模式，但它与视频剪辑强耦合。当 cowork debate 多方案择优、并行代码生成等场景也需要类似模式时，只能重新实现。
+
+**解决方案** (借鉴 CutClaw 泛化为 SubRuntimePool API):
+
+```javascript
+// sub-runtime-pool.js — 纯函数 + 实例方法
+// 1. 检测冲突对 (O(n²) 两两比较)
+const pairs = detectConflictPairs(results, (a, b) => {
+  // conflictDetector: 返回 true 表示 a/b 冲突
+  return a.targetFile === b.targetFile;
+});
+
+// 2. 用质量分数选出赢家/输家
+const { winners, losers } = pickWinnersAndLosers(pairs, (result) => {
+  // qualityScorer: 返回 0~1 的质量分
+  return result.testsPassed / result.testsTotal;
+});
+
+// 3. 带冲突解决的并行执行
+const results = await pool.runWithConflictResolution({
+  projectRoot, sessionId,
+  tasks: [...],
+  conflictDetector,  // (a, b) => boolean
+  qualityScorer,     // (result) => number
+  rerunBuilder,      // (loser, winners) => newTask | null
+  maxReruns: 3,      // 防止无限循环
+});
+// 事件: conflict-resolution:initial-done, round-start, rerun, round-end
+```
+
+**关键设计**: 三个回调 (`conflictDetector` / `qualityScorer` / `rerunBuilder`) 完全由调用方注入，SubRuntimePool 不了解业务语义。
+
+**实现位置**: `desktop-app-vue/src/main/ai-engine/code-agent/sub-runtime-pool.js`
+**消费方**: video-editing pipeline + `DebateReview.resolveConflictingVerdicts()`
+**测试**: `tests/unit/ai-engine/sub-runtime-conflict-resolution.test.js` (17 tests) + `cowork/__tests__/debate-review.test.js`
+
+---
+
+### Pattern: QualityGate 可插拔检查器注册表 (v5.0.2.10)
+
+**问题**: CutClaw 的质量检查（主角占比、美学评分、lint pass）硬编码在视频管线里。其他管线（代码生成、文档生成）也需要质量门控，但检查项完全不同。
+
+**解决方案** (session-core 通用 QualityGate):
+
+```javascript
+// packages/session-core/lib/quality-gate.js
+const gate = new QualityGate({ threshold: 0.7, aggregate: "weighted-mean" });
+
+// 注册检查器 — 每个检查器是 { name, check(result, ctx), weight?, tags? }
+gate.register(createProtagonistChecker({ minRatio: 0.3, weight: 2 }));
+gate.register(createDurationChecker({ tolerance: 0.15, weight: 1 }));
+gate.register(createThresholdChecker({
+  name: "aesthetic", field: "aestheticScore", minValue: 0.6, weight: 1.5
+}));
+
+// 执行检查 — 返回 { passed, score, checks[] }
+const result = gate.check(pipelineOutput, context, { tags: ["video"] });
+// result.passed === true  (score >= threshold)
+// result.score === 0.78   (weighted mean of individual checks)
+```
+
+**聚合策略**: `WEIGHTED_MEAN` (加权平均) / `MIN` (最低分) / `ALL_PASS` (全部通过)
+
+**实现位置**: `packages/session-core/lib/quality-gate.js`
+**测试**: `packages/session-core/__tests__/quality-gate.test.js` (39 tests)
+
+---
+
+### Pattern: LLM 类别路由媒体扩展 (v5.0.2.10)
+
+**问题**: v5.0.2.9 的 Category Routing 有 7 个类别 (quick/deep/reasoning/vision/creative/embedding/audio)，但视频剪辑需要区分 ASR (语音转文字)、音频分析 (beat detection 不需要 LLM)、视频理解 (需要原生视频模态 VLM)。
+
+**解决方案**: 扩展 LLM_CATEGORIES 到 10 个:
+
+```javascript
+// llm-manager.js — 新增 3 个媒体类别
+LLM_CATEGORIES.ASR            = "asr";            // 语音转文字
+LLM_CATEGORIES.AUDIO_ANALYSIS = "audio-analysis";  // 节拍检测/音频特征
+LLM_CATEGORIES.VIDEO_VLM      = "video-vlm";       // 视频理解 VLM
+
+// 每个类别有不同的 provider 偏好
+CATEGORY_PROVIDER_PRIORITY["asr"]            = ["openai", "gemini", "volcengine", "custom", "ollama"];
+CATEGORY_PROVIDER_PRIORITY["audio-analysis"] = ["ollama", "gemini", "openai", "custom"];  // 本地优先
+CATEGORY_PROVIDER_PRIORITY["video-vlm"]      = ["gemini", "openai", "anthropic", "volcengine", "custom"];
+
+// inferCategoryFromModelHints 新增映射
+// capability: "transcription" → ASR (not AUDIO)
+// capability: "beat-detection" / hints.beatDetection → AUDIO_ANALYSIS
+// capability: "video-review" / hints.videoVlm → VIDEO_VLM
+```
+
+**实现位置**: `desktop-app-vue/src/main/llm/llm-manager.js` (Category Routing 段末尾)
+**测试**: `tests/unit/llm/llm-manager-media-categories.test.js` (25 tests)
+
+---
+
+### Pattern: Desktop ApprovalGate 合流 (v5.0.2.10)
+
+**问题**: Phase H 在 Desktop 引入了 `evaluateToolCallWithApprovalGate()`，但 `_executeHostedTool` (CLI 子进程发来的 host-tool-call) 仍然调用同步的 `permissionGate.evaluateToolCall()`，绕过了 ApprovalGate 策略。
+
+**解决方案** (Phase J):
+
+```javascript
+// coding-agent-session-service.js
+// 修改前 — 同步，无 ApprovalGate
+const evaluation = this.permissionGate.evaluateToolCall({ toolName, session, ... });
+
+// 修改后 — 异步，走 ApprovalGate
+const evaluation = await this.evaluateToolCall({ toolName, session, sessionId, ... });
+// evaluateToolCall() 内部: 懒加载 singleton → gate.decide() → 合并到 Permission Gate 结果
+```
+
+同时 `closeSession` 新增 fire-and-forget `_autoConsolidate()` — 将 session events 映射为 TraceStore 事件，通过 MemoryConsolidator 写入 MemoryStore。
+
+**实现位置**: `desktop-app-vue/src/main/ai-engine/code-agent/coding-agent-session-service.js`
+**测试**: `__tests__/coding-agent-session-service.test.js` (36 tests, +8 Phase J)
 
 ---
 
