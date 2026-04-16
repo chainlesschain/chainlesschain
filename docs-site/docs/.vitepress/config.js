@@ -841,6 +841,27 @@ export default defineConfig({
           ],
         },
         {
+          text: "v5.0.2.10 Session-Core + Agent Bundle ⭐NEW",
+          items: [
+            {
+              text: "Session-Core 会话运行时",
+              link: "/chainlesschain/session-core",
+            },
+            {
+              text: "Agent Bundle 打包部署",
+              link: "/chainlesschain/agent-bundles",
+            },
+            {
+              text: "QualityGate 通用质量门控",
+              link: "/chainlesschain/quality-gate",
+            },
+            {
+              text: "视频剪辑 Agent (CutClaw)",
+              link: "/chainlesschain/video-editing",
+            },
+          ],
+        },
+        {
           text: "v5.0.2.13 自主学习闭环 ⭐NEW",
           items: [
             {
@@ -1056,6 +1077,9 @@ export default defineConfig({
             { text: "86 Web Cowork协作 ⭐NEW", link: "/design/modules/86-web-cowork" },
             { text: "88 Open-Agents 对标 ⭐NEW", link: "/design/modules/88-open-agents-parity" },
             { text: "91 Managed Agents 对标 ⭐NEW", link: "/design/modules/91-managed-agents-parity" },
+            { text: "92 Deep Agents Deploy ⭐NEW", link: "/design/modules/92-deep-agents-deploy" },
+            { text: "93 CutClaw 视频剪辑 Agent ⭐NEW", link: "/design/modules/93-cutclaw-video-editing-agent" },
+            { text: "94 QualityGate 通用质量门控 ⭐NEW", link: "/design/modules/94-quality-gate" },
             { text: "60b CLI指令技能包 ⭐", link: "/design/modules/60b-cli-skill-packs" },
           ],
         },
