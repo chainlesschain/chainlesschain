@@ -2,7 +2,7 @@
 
 **Source**: `src/main/organization/dashboard-ipc.js`
 
-**Generated**: 2026-04-16T02:06:49.447Z
+**Generated**: 2026-04-16T04:17:05.877Z
 
 ---
 
