@@ -1,6 +1,6 @@
 ﻿# Managed Agents 对标计划
 
-> 版本: v2.1 · 日期: 2026-04-16 · 状态: Phase A–H 全部落地 · Phase I 首批完成（CLI `session tail` + `session usage` + Hosted Session API over WS, 30 tests）· 全链闭环
+> 版本: v2.2 · 日期: 2026-04-16 · 状态: Phase A–I 全部落地（413 session-core tests + ~220 CLI tests + 23 Desktop IPC tests）· Phase J 候选评估中
 >
 > 对标对象: Anthropic **Claude Managed Agents** (2026-04-01 beta)
 >
@@ -142,7 +142,7 @@
 - ✅ CLI `chainlesschain memory recall` / `memory store` 已接入 `MemoryStore`
 - ✅ CLI 单例已通过 `memory-store.json` 复用 `MemoryStore + file adapter`
 - ✅ CLI `chainlesschain memory consolidate --session <id>` 已接入（JSONL→TraceStore 投影 + MemoryConsolidator，6 tests）
-- ⏳ Desktop SessionEnd hook 自动调用 consolidator
+- ✅ Desktop SessionEnd hook 自动调用 consolidator（Phase J: `closeSession` → `_autoConsolidate` fire-and-forget）
 - ✅ 新 session 启动时把 top-K 相关记忆注入 system prompt（`src/lib/memory-injection.js` + agent-repl 集成 + `--agent-id/--recall-limit/--no-recall-memory`，7 tests）
 
 ---
@@ -165,7 +165,7 @@
 - ✅ CLI `chainlesschain config beta list|enable|disable`
 - ✅ `~/.chainlesschain/beta-flags.json` 已通过 file adapter 持久化
 - ✅ ApprovalGate 已支持 `store` 注入 + `load()`；per-session policy 通过 `~/.chainlesschain/approval-policies.json` 跨 CLI 进程持久化 (v1.9)
-- ⏳ Desktop 仍未把现有 Permission Gate / Plan Mode 切到 ApprovalGate
+- ✅ Desktop `_executeHostedTool` + `_buildHostManagedToolPolicy` 已走 ApprovalGate（Phase J），Permission Gate 与 ApprovalGate 合流共存
 
 ---
 
@@ -285,6 +285,7 @@
 | G | ✅ 基本完成 | CLI 收口到 AgentGroup / StreamRouter / ApprovalGate / Consolidator | +40 done (cowork peer group + memory inject + stream + approval REPL 接线 + setConfirmer) | CLI 默认行为与 session-core 对齐 |
 | H | ✅ 已完成 | Desktop session service + 18 IPC + CLI 对称 lifecycle/stream/park-on-exit | Desktop 17 + CLI 52 = 69 tests | Desktop/CLI 语义与持久化一致，单点审批合流 |
 | I | ✅ 全部完成 | `cc session tail/usage` + Hosted Session API（17+2 WS 路由）+ 三端 token 记账 + Desktop Usage tab | CLI 25 ws-protocol + 9 usage + 7 tail + 10 chat-usage + 95 agent-core; Desktop 23 IPC | 远程驱动 session-core，token 记账可观测，Desktop/CLI 全对称 |
+| J | ✅ 已完成 | Desktop 上层集成收尾：hosted-tool ApprovalGate + auto-consolidate + policy sync | +8 tests (session-service 36 total) | 零死路径：所有 Desktop tool 执行路径统一走 ApprovalGate |
 
 **当前已落地**:
 - `session-core` 20 个测试文件，共 **413 tests**
@@ -310,6 +311,29 @@
 - ✅ `stream.run` → Phase 5 envelopeBus bridge：streaming handler 现在接受 `context = {server, ws, clientId}`，当 `context.server.envelopeBus` 存在且 `message.sessionId` 有值时，每个 StreamEvent 通过 `envelopeFromStreamEvent` 转换后发布到 bus，HTTP SSE 订阅者同步收到
 - ~~LLM 层自动 `appendTokenUsage`（OpenAI/Ollama/Anthropic 三端接线）~~ ✅ `chatWithTools` 三端返回 `usage`，`agentLoop` yield `token-usage` 事件，`agent-repl` 写入 JSONL（+4 tests agent-core, 95 total）
 - ~~Desktop Web Panel 暴露 usage 仪表盘~~ ✅ `session:usage` IPC + SessionCorePage Usage tab（Global summary + byAgent table）+ Pinia store `refreshUsage()`（+1 test, Desktop IPC 23 total）
+
+---
+
+### ✅ Phase J — Desktop 上层集成收尾（2026-04-16）
+
+**目标**: 消除 Desktop 侧 session-core 死路径 —— `_executeHostedTool` 绕过 ApprovalGate、`closeSession` 不触发 memory consolidation、`_buildHostManagedToolPolicy` policy sync 不反映 ApprovalGate 策略。
+
+**交付**:
+
+1. **`_executeHostedTool` → ApprovalGate 合流**: 改用 `await this.evaluateToolCall()` 替代同步 `this.permissionGate.evaluateToolCall()`。所有 Desktop 侧 tool 执行路径现在统一走 ApprovalGate 策略（strict/trusted/autopilot）。此修复消除了 Phase E/H 遗留的最重要的死路径。
+
+2. **`closeSession` → auto-consolidate**: 会话关闭时自动调用 `_autoConsolidate(sessionId, session)` 将 session events 写入 MemoryStore。fire-and-forget 模式，consolidation 失败不阻塞关闭。支持 `{ consolidate: false }` opt-out。
+
+3. **`_buildHostManagedToolPolicy` → ApprovalGate 感知**: policy snapshot 发送给 CLI 子进程前也经过 `evaluateToolCall()`，使 per-session ApprovalGate 策略能影响 CLI 端工具可用性。
+
+4. **`_mapEventToTraceType` helper**: 将 coding-agent 事件类型映射到 session-core TraceEvent 类型，供 consolidator 使用。
+
+**测试**: session-service 28 → 36 tests (+8 Phase J: 2 ApprovalGate 路由 + 3 auto-consolidate + 3 trace mapping)
+
+**未完成上层集成（低优先级）**:
+- ⏳ Desktop Permission Gate 完全替换为 ApprovalGate（当前是合流共存，非替换）
+- ⏳ Renderer UI surfacing of ApprovalGate deny events as dialog
+- ⏳ `cowork analyze/compare` 非 stream 路径改走 `StreamRouter`
 
 ---
 
@@ -399,4 +423,4 @@ Desktop 使用同名文件，位置在 `<userData>/.chainlesschain/`。
 ---
 
 **维护者**: ChainlessChain Agent Runtime 组
-**下次评审**: Phase I 剩余（LLM 自动 usage 接线 + 流式 WS 路由 + Desktop usage 仪表盘） / Phase J 候选评估
+**下次评审**: Phase J 已完成。剩余低优先级上层集成：Desktop Permission Gate 完全替换 / Renderer ApprovalGate deny UI / cowork non-stream→StreamRouter

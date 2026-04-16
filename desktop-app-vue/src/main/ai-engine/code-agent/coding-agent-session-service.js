@@ -350,7 +350,7 @@ class CodingAgentSessionService extends EventEmitter {
     };
   }
 
-  async closeSession(sessionId) {
+  async closeSession(sessionId, options = {}) {
     const response = await this.bridge.closeSession(sessionId);
 
     const session = this.sessions.get(sessionId);
@@ -373,12 +373,118 @@ class CodingAgentSessionService extends EventEmitter {
           { sessionId, requestId: response.id || null },
         ),
       );
+
+      // Phase J: auto-consolidate session memory on close.
+      // Fire-and-forget — consolidation failure must never block session close.
+      if (options.consolidate !== false) {
+        this._autoConsolidate(sessionId, session).catch((e) => {
+          logger.warn(
+            `[CodingAgentSessionService] auto-consolidate failed for ${sessionId}: ${e.message}`,
+          );
+        });
+      }
     }
 
     return {
       success: response.success !== false,
       sessionId,
     };
+  }
+
+  /**
+   * Phase J: auto-consolidate session trace into MemoryStore on close.
+   * Uses session-core MemoryConsolidator with the session's stored events.
+   * Fire-and-forget — callers should .catch() any errors.
+   */
+  async _autoConsolidate(sessionId, session) {
+    const sc = require("@chainlesschain/session-core");
+    const {
+      getMemoryStore,
+    } = require("../../session/session-core-singletons.js");
+    if (
+      !sc.MemoryConsolidator ||
+      !sc.TraceStore ||
+      typeof getMemoryStore !== "function"
+    ) {
+      return;
+    }
+
+    const memoryStore = await getMemoryStore();
+    const traceStore = new sc.TraceStore();
+
+    // Feed session events into trace store
+    const events = session?.events || [];
+    if (events.length === 0) {
+      return;
+    }
+    for (const evt of events) {
+      const traceType = this._mapEventToTraceType(evt);
+      if (traceType) {
+        traceStore.add(traceType);
+      }
+    }
+
+    const consolidator = new sc.MemoryConsolidator({ memoryStore });
+    const mockHandle = {
+      sessionId,
+      agentId: session?.agentId || null,
+      runtimeMs: session?.runtimeMs || 0,
+    };
+    const result = await consolidator.consolidate(mockHandle, traceStore, {
+      scope: "session",
+    });
+
+    logger.info(
+      `[CodingAgentSessionService] auto-consolidated ${events.length} events for session ${sessionId}`,
+      result,
+    );
+  }
+
+  /**
+   * Map a coding-agent event to a session-core TraceEvent type stub.
+   * Returns null for events that don't map to trace types.
+   */
+  _mapEventToTraceType(evt) {
+    if (!evt || !evt.type) {
+      return null;
+    }
+    const type = evt.type;
+    const payload = evt.payload || evt;
+
+    if (
+      type.includes("assistant.message") ||
+      type.includes("assistant.final")
+    ) {
+      return {
+        type: "assistant_message",
+        content: payload.content || payload.text || "",
+        ts: payload.timestamp || evt.timestamp,
+      };
+    }
+    if (type.includes("tool.call.started")) {
+      return {
+        type: "tool_call",
+        name: payload.toolName || payload.name || "",
+        args: payload.args || payload.toolArgs || {},
+        ts: payload.timestamp || evt.timestamp,
+      };
+    }
+    if (type.includes("tool.call.completed")) {
+      return {
+        type: "tool_result",
+        name: payload.toolName || payload.name || "",
+        result: payload.result || "",
+        ts: payload.timestamp || evt.timestamp,
+      };
+    }
+    if (type === "error" || type.includes("tool.call.failed")) {
+      return {
+        type: "error",
+        message: payload.error || payload.message || "",
+        ts: payload.timestamp || evt.timestamp,
+      };
+    }
+    return null;
   }
 
   async interruptSession(sessionId) {
@@ -1463,9 +1569,12 @@ class CodingAgentSessionService extends EventEmitter {
     const availableTools = await this.toolAdapter.listAvailableTools();
     const tools = {};
     for (const tool of availableTools) {
-      const evaluation = this.permissionGate.evaluateToolCall({
+      // Phase J: route through evaluateToolCall() so ApprovalGate policy
+      // influences the policy snapshot sent to the CLI sub-process.
+      const evaluation = await this.evaluateToolCall({
         toolName: tool.name,
         session: currentSession,
+        sessionId: currentSession.sessionId,
         confirmed: currentSession.highRiskConfirmationGranted === true,
         toolDescriptor: tool,
       });
@@ -1638,10 +1747,15 @@ class CodingAgentSessionService extends EventEmitter {
     // Even if the CLI requests a high-risk tool, the host must verify the
     // session has gone through plan approval and (for high-risk) the second
     // confirmation step before actually executing.
+    //
+    // Phase J: route through evaluateToolCall() (async) so ApprovalGate policy
+    // is honoured — previously used the synchronous permissionGate.evaluateToolCall
+    // which bypassed session-core ApprovalGate entirely.
     const session = sessionId ? this.sessions.get(sessionId) : null;
-    const evaluation = this.permissionGate.evaluateToolCall({
+    const evaluation = await this.evaluateToolCall({
       toolName,
       session,
+      sessionId,
       confirmed: session?.highRiskConfirmationGranted === true,
       toolDescriptor: descriptor,
       toolArgs: args,
