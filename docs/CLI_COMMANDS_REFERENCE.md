@@ -302,6 +302,13 @@ chainlesschain hardening config-check <path>                                    
 chainlesschain hardening config-check ./config.json -r db.host,server.port      # Validate required keys
 chainlesschain hardening config-check ./config.json -f changeme,your-api-key    # Custom forbidden substrings
 chainlesschain hardening deploy-check [--json]                                  # Evaluate the 6-item production-deployment checklist (exit 2 if not ready)
+chainlesschain stress levels                                                    # List built-in load levels
+chainlesschain stress run [-l light|medium|heavy|extreme] [-c N] [-r RPS] [-d MS] [--json]
+chainlesschain stress list [-l level] [-s running|complete|stopped] [--limit N] [--json]
+chainlesschain stress show <test-id> [--json]                                   # Full metrics + bottlenecks
+chainlesschain stress analyze <test-id> [--json]                                # Bottleneck analysis
+chainlesschain stress plan <test-id> [--json]                                   # Capacity planning recommendations
+chainlesschain stress stop <test-id>                                            # Mark a running test as stopped
 chainlesschain social contact / friend / post / chat / stats
 chainlesschain social analyze "<text>" [--top-k 3] [--lang zh|ja|en] [--json]
 chainlesschain social detect-lang "<text>" [--json]
