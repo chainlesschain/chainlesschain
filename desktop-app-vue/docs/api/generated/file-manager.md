@@ -2,7 +2,7 @@
 
 **Source**: `src/main/file/file-manager.js`
 
-**Generated**: 2026-04-16T08:39:51.903Z
+**Generated**: 2026-04-16T12:07:31.943Z
 
 ---
 
