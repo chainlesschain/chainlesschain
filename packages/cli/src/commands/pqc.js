@@ -12,6 +12,7 @@ import {
   generateKey,
   getMigrationStatus,
   migrate,
+  listAlgorithms,
 } from "../lib/pqc-manager.js";
 
 export function registerPqcCommand(program) {
@@ -121,6 +122,39 @@ export function registerPqcCommand(program) {
         }
 
         await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // pqc algorithms
+  pqc
+    .command("algorithms")
+    .description("List supported PQC algorithms (FIPS 203/204/205 + hybrid)")
+    .option(
+      "-f, --family <family>",
+      "Filter by family: ml-kem|ml-dsa|slh-dsa|hybrid",
+    )
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      try {
+        const algos = listAlgorithms({ family: options.family });
+        if (options.json) {
+          console.log(JSON.stringify(algos, null, 2));
+          return;
+        }
+        if (algos.length === 0) {
+          logger.info("No algorithms match filter.");
+          return;
+        }
+        for (const a of algos) {
+          const sig =
+            a.signatureBytes != null ? `sig=${a.signatureBytes}B` : "sig=—";
+          logger.log(
+            `  ${chalk.cyan(a.algorithm.padEnd(26))} ${chalk.dim(a.family.padEnd(8))} lvl=${a.keySize} pk=${a.publicKeyBytes}B ${sig}`,
+          );
+        }
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
