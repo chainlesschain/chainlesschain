@@ -171,6 +171,14 @@ chainlesschain mcp scaffold weather -t http -p 4001          # Streamable HTTP +
 chainlesschain mcp scaffold weather --dry-run --json         # Preview file set without touching disk
 chainlesschain mcp scaffold weather -d "Forecasts" -a Alice  # Custom description + package.json author
 chainlesschain mcp scaffold weather -o ~/projects/w --force  # Explicit output dir, overwrite existing
+chainlesschain mcp registry list                             # Browse curated catalog of community MCP servers
+chainlesschain mcp registry list -c database --sort rating --order desc
+chainlesschain mcp registry list -t browser,automation --json
+chainlesschain mcp registry search git                       # Keyword search (name/description/tags)
+chainlesschain mcp registry show filesystem                  # Full entry details (id or short name)
+chainlesschain mcp registry install github                   # Register catalog entry as MCP server
+chainlesschain mcp registry install github --as gh --auto-connect
+chainlesschain mcp registry categories                       # List registry categories
 chainlesschain browse fetch https://example.com  # Fetch web page
 chainlesschain browse scrape <url> -s "h2"       # Scrape elements
 chainlesschain llm providers           # List 10 LLM providers
