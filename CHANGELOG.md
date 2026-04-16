@@ -5,6 +5,47 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.2.10] - 2026-04-16 — Managed Agents A–J + Deep Agents Deploy + CutClaw B
+
+### Added
+
+- **Managed Agents Phase A–J** — Full parity with Anthropic Managed Agents architecture via `@chainlesschain/session-core` (0.3.0).
+  - Phase A: `SessionHandle`, `TraceStore`, `AgentDefinition` + cache (79 tests)
+  - Phase B: `SessionManager` — idle detection + park/unpark persistence (25 tests)
+  - Phase C: `IdleParker` — configurable idle threshold + interval polling (14 tests)
+  - Phase D: `MemoryStore` — scoped memory (global/session/agent/user) + `MemoryConsolidator` (55 tests)
+  - Phase E: `ApprovalGate` (strict/trusted/autopilot) + `BetaFlags` with date-based expiry (46 tests)
+  - Phase F: `StreamRouter` — unified `StreamEvent` protocol for all streaming paths (19 tests)
+  - Phase G: `AgentGroup` + `SharedTaskList` with rev-based concurrency control (52 tests)
+  - Phase H: Desktop IPC consumption — 24 IPC channels, singletons + preload namespace (33 tests)
+  - Phase I: Session tail/usage + 14 WS routes + `stream.run` + `sessions.subscribe` + 3-provider token accounting (30 tests)
+  - Phase J: Desktop `closeSession` → auto-consolidate + `_executeHostedTool` → ApprovalGate routing (36 tests)
+
+- **Deep Agents Deploy Phase 1–5** — Agent bundle system for portable agent packaging.
+  - Phase 1: `agent-bundle-schema` + `agent-bundle-loader` + `agent-bundle-resolver` (40 tests)
+  - Phase 2: USER.md memory seeding via `applyUserMemorySeed` + `parseUserMdSeed`
+  - Phase 3: `mcp-policy` — hosted/lan/local MCP transport gating (19 tests)
+  - Phase 4: `sandbox-policy` — scope-based sandbox lifecycle (26 tests)
+  - Phase 5: `service-envelope` + `envelope-sse` — unified wire format for WS/HTTP/SSE (30 tests)
+  - CLI: `cc agent --bundle <path>` + `cc serve --bundle <path>` integration (15 tests)
+  - Desktop: `bundle:load/info/unload` IPC channels + Pinia store integration
+
+- **CutClaw Path B verification** — Architecture alignment items all verified.
+  - B-1: `DebateReview.resolveConflictingVerdicts()` consumes `detectConflictPairs` + `pickWinnersAndLosers` from `sub-runtime-pool.js` (34 debate-review tests)
+  - B-2: 4 built-in `QualityGate` checker factories — `createProtagonistChecker`, `createDurationChecker`, `createThresholdChecker`, `createLintPassChecker` (39 quality-gate tests)
+  - B-3: 3 media categories (ASR/AUDIO_ANALYSIS/VIDEO_VLM) in `LLM_CATEGORIES` (25 tests)
+
+- **session-core v0.3.0** — 22 library modules, 21 test files, 452 tests total
+
+### Tests
+
+- session-core: 452 tests across 21 test files
+- Desktop session-core IPC: 33 tests
+- Desktop session-service Phase J: 36 tests
+- Desktop debate-review conflict resolution: 34 tests
+- CLI agent-bundle integration: 15 tests
+- CLI envelope-http-server: 11 tests
+
 ## [Unreleased] - 2026-04-09 — CLI Runtime 收口闭环 (Phase 7 Parity Harness)
 
 ### Added
