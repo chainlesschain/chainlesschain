@@ -52,7 +52,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies (workspace-aware)
-        run: npm install --legacy-peer-deps --ignore-optional
+        run: npm install --legacy-peer-deps
 
       - name: Run Rules Validator
         working-directory: ./desktop-app-vue
@@ -92,11 +92,11 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install root dependencies
-        run: npm install --legacy-peer-deps --ignore-optional
+        run: npm install --legacy-peer-deps
 
       - name: Install desktop-app-vue dependencies
         working-directory: ./desktop-app-vue
-        run: npm install --legacy-peer-deps --ignore-optional
+        run: npm install --legacy-peer-deps
 
       - name: Run npm audit (informational)
         run: npm audit --audit-level=high || true
@@ -131,7 +131,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies (workspace-aware)
-        run: npm install --legacy-peer-deps --ignore-optional
+        run: npm install --legacy-peer-deps
 
       - name: Check code style
         working-directory: ./desktop-app-vue
@@ -167,7 +167,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies (workspace-aware)
-        run: npm install --legacy-peer-deps --ignore-optional
+        run: npm install --legacy-peer-deps
 
       - name: Run database tests
         working-directory: ./desktop-app-vue
@@ -203,7 +203,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies (workspace-aware)
-        run: npm install --legacy-peer-deps --ignore-optional
+        run: npm install --legacy-peer-deps
 
       - name: Build main process
         working-directory: ./desktop-app-vue
