@@ -1,6 +1,6 @@
 {
   "name": "@chainlesschain/session-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Session lifecycle, trace store, agent definition, idle parker — shared by Desktop and CLI (Managed Agents parity)",
   "type": "commonjs",
   "main": "lib/index.js",
@@ -18,7 +18,14 @@
     "./approval-gate": "./lib/approval-gate.js",
     "./beta-flags": "./lib/beta-flags.js",
     "./stream-router": "./lib/stream-router.js",
-    "./file-adapters": "./lib/file-adapters.js"
+    "./file-adapters": "./lib/file-adapters.js",
+    "./agent-bundle-schema": "./lib/agent-bundle-schema.js",
+    "./agent-bundle-loader": "./lib/agent-bundle-loader.js",
+    "./agent-bundle-resolver": "./lib/agent-bundle-resolver.js",
+    "./mcp-policy": "./lib/mcp-policy.js",
+    "./sandbox-policy": "./lib/sandbox-policy.js",
+    "./service-envelope": "./lib/service-envelope.js",
+    "./envelope-sse": "./lib/envelope-sse.js"
   },
   "scripts": {
     "test": "vitest run",

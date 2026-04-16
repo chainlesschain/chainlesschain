@@ -6,6 +6,7 @@
  */
 
 import { createChatFn } from "../cowork-adapter.js";
+import { runPeerGroup } from "./agent-group-runner.js";
 
 const DEFAULT_CRITERIA = ["quality", "performance", "readability"];
 
@@ -51,33 +52,47 @@ export async function compare({
   const chat = createChatFn(llmOptions);
   const numVariants = Math.min(variants, VARIANT_PROFILES.length);
   const profiles = VARIANT_PROFILES.slice(0, numVariants);
-  const generatedVariants = [];
 
-  // Phase 1: Generate variants
-  for (const profile of profiles) {
-    const messages = [
-      { role: "system", content: profile.system },
-      {
-        role: "user",
-        content: `Provide a solution for the following task. Include code if applicable.\n\nTask: ${prompt}\n\nProvide your solution with:\n1. Approach summary (1-2 sentences)\n2. Implementation (code or detailed steps)\n3. Trade-offs (pros and cons of this approach)`,
-      },
-    ];
+  // Phase 1: Team of peer variant-generators; judge is the coordinator.
+  const peers = profiles.map((profile) => ({
+    agentId: `variant_${profile.name}`,
+    role: profile.name,
+    taskTitle: `Generate variant (${profile.name})`,
+    taskDescription: prompt,
+    payload: { profile },
+  }));
 
-    try {
+  const runResult = await runPeerGroup({
+    peers,
+    coordinator: { agentId: "judge", role: "Judge" },
+    metadata: { kind: "ab-comparator", prompt },
+    runPeer: async (peer) => {
+      const profile = peer.payload.profile;
+      const messages = [
+        { role: "system", content: profile.system },
+        {
+          role: "user",
+          content: `Provide a solution for the following task. Include code if applicable.\n\nTask: ${prompt}\n\nProvide your solution with:\n1. Approach summary (1-2 sentences)\n2. Implementation (code or detailed steps)\n3. Trade-offs (pros and cons of this approach)`,
+        },
+      ];
       const response = await chat(messages, { maxTokens: 2000 });
-      generatedVariants.push({
+      return {
         name: profile.name,
         profile: profile.system,
         solution: response,
-      });
-    } catch (err) {
-      generatedVariants.push({
-        name: profile.name,
-        profile: profile.system,
-        solution: `Error generating variant: ${err.message}`,
-      });
-    }
-  }
+      };
+    },
+  });
+
+  const generatedVariants = runResult.results.map((r) => {
+    if (r.ok) return r.value;
+    const profile = r.peer.payload.profile;
+    return {
+      name: profile.name,
+      profile: profile.system,
+      solution: `Error generating variant: ${r.error?.message || r.error}`,
+    };
+  });
 
   // Phase 2: Score each variant against criteria
   const scoringPrompt = `You are an impartial judge evaluating ${numVariants} solution variants against these criteria: ${criteria.join(", ")}.
@@ -136,6 +151,12 @@ REASON: (1-2 sentence justification)`;
     ranking,
     winner,
     reason,
+    group: {
+      groupId: runResult.groupId,
+      parentAgentId: runResult.parentAgentId,
+      members: runResult.members,
+      tasks: runResult.tasks,
+    },
   };
 }
 

@@ -152,7 +152,77 @@
       </a-table>
     </a-card>
 
-    <!-- Section 4: Cache Status -->
+    <!-- Section 4: Session Token Usage (Phase J — from JSONL sessions) -->
+    <a-card
+      title="Session Token Usage"
+      style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 20px;"
+    >
+      <template #extra>
+        <a-button size="small" :loading="sessionUsageLoading" @click="loadSessionUsage" style="background: var(--bg-card-hover); border-color: var(--border-color);">
+          <template #icon><ReloadOutlined /></template>
+          刷新
+        </a-button>
+      </template>
+
+      <div v-if="sessionUsageLoading" style="text-align: center; padding: 40px;"><a-spin /></div>
+      <template v-else>
+        <a-row :gutter="[16, 16]" style="margin-bottom: 16px;">
+          <a-col :xs="12" :sm="6">
+            <a-statistic
+              title="Session 调用总次数"
+              :value="sessionUsageSummary.totalCalls"
+              :value-style="{ color: '#1677ff', fontSize: '18px' }"
+            >
+              <template #prefix><BarChartOutlined /></template>
+            </a-statistic>
+          </a-col>
+          <a-col :xs="12" :sm="6">
+            <a-statistic
+              title="Input Tokens"
+              :value="sessionUsageSummary.inputTokens"
+              :value-style="{ color: '#52c41a', fontSize: '18px' }"
+            />
+          </a-col>
+          <a-col :xs="12" :sm="6">
+            <a-statistic
+              title="Output Tokens"
+              :value="sessionUsageSummary.outputTokens"
+              :value-style="{ color: '#faad14', fontSize: '18px' }"
+            />
+          </a-col>
+          <a-col :xs="12" :sm="6">
+            <a-statistic
+              title="Total Tokens"
+              :value="sessionUsageSummary.totalTokens"
+              :value-style="{ color: '#722ed1', fontSize: '18px' }"
+            />
+          </a-col>
+        </a-row>
+
+        <a-table
+          :columns="sessionUsageColumns"
+          :data-source="sessionUsageByModel"
+          :pagination="false"
+          size="small"
+          style="background: var(--bg-card);"
+          :row-class-name="() => 'analytics-row'"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'provider'">
+              <a-tag color="blue">{{ record.provider }}</a-tag>
+            </template>
+            <template v-if="column.key === 'model'">
+              <span style="color: #e0e0e0; font-family: monospace; font-size: 12px;">{{ record.model }}</span>
+            </template>
+          </template>
+          <template #emptyText>
+            <a-empty description="暂无 Session 用量数据 — 使用 cc chat 后刷新" />
+          </template>
+        </a-table>
+      </template>
+    </a-card>
+
+    <!-- Section 5: Cache Status -->
     <a-card
       title="缓存状态"
       style="background: var(--bg-card); border-color: var(--border-color);"
@@ -258,6 +328,24 @@ const cacheStats = reactive({
   tokensSaved: 0,
   expired: 0,
 })
+
+// --- Session Token Usage (Phase J — from JSONL via usage.global WS route) ---
+const sessionUsageLoading = ref(false)
+const sessionUsageSummary = reactive({
+  totalCalls: 0,
+  inputTokens: 0,
+  outputTokens: 0,
+  totalTokens: 0,
+})
+const sessionUsageByModel = ref([])
+const sessionUsageColumns = [
+  { title: 'Provider', key: 'provider', dataIndex: 'provider', width: '120px' },
+  { title: 'Model', key: 'model', dataIndex: 'model', ellipsis: true },
+  { title: '调用次数', key: 'calls', dataIndex: 'calls', width: '100px', sorter: (a, b) => (a.calls || 0) - (b.calls || 0) },
+  { title: 'Input', key: 'inputTokens', dataIndex: 'inputTokens', width: '110px', sorter: (a, b) => (a.inputTokens || 0) - (b.inputTokens || 0) },
+  { title: 'Output', key: 'outputTokens', dataIndex: 'outputTokens', width: '110px', sorter: (a, b) => (a.outputTokens || 0) - (b.outputTokens || 0) },
+  { title: 'Total', key: 'totalTokens', dataIndex: 'totalTokens', width: '110px', sorter: (a, b) => (a.totalTokens || 0) - (b.totalTokens || 0) },
+]
 
 // --- Table Columns ---
 const breakdownColumns = [
@@ -488,12 +576,40 @@ async function cacheCleanup() {
   }
 }
 
+async function loadSessionUsage() {
+  sessionUsageLoading.value = true
+  try {
+    const resp = await ws.sendRaw({ type: 'usage.global', limit: 1000 }, 15000)
+    if (resp.ok && resp.usage) {
+      const t = resp.usage.total || {}
+      sessionUsageSummary.totalCalls = t.calls ?? 0
+      sessionUsageSummary.inputTokens = t.inputTokens ?? t.input_tokens ?? 0
+      sessionUsageSummary.outputTokens = t.outputTokens ?? t.output_tokens ?? 0
+      sessionUsageSummary.totalTokens = t.totalTokens ?? t.total_tokens ?? 0
+      sessionUsageByModel.value = (resp.usage.byModel || []).map((m, i) => ({
+        key: i,
+        provider: m.provider || '-',
+        model: m.model || '-',
+        calls: m.calls ?? 0,
+        inputTokens: m.inputTokens ?? m.input_tokens ?? 0,
+        outputTokens: m.outputTokens ?? m.output_tokens ?? 0,
+        totalTokens: m.totalTokens ?? m.total_tokens ?? 0,
+      }))
+    }
+  } catch (e) {
+    console.warn('loadSessionUsage failed (route may not be available):', e.message)
+  } finally {
+    sessionUsageLoading.value = false
+  }
+}
+
 async function loadAll() {
   await Promise.all([
     loadSummary(),
     loadBreakdown(),
     loadRecent(),
     loadCache(),
+    loadSessionUsage(),
   ])
 }
 

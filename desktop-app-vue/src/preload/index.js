@@ -1001,6 +1001,27 @@ contextBridge.exposeInMainWorld("electronAPI", {
     },
   },
 
+  // 视频剪辑 Agent (CutClaw-inspired)
+  videoEditing: {
+    deconstruct: (options) =>
+      ipcRenderer.invoke("video-edit:deconstruct", removeUndefined(options)),
+    plan: (options) =>
+      ipcRenderer.invoke("video-edit:plan", removeUndefined(options)),
+    assemble: (options) =>
+      ipcRenderer.invoke("video-edit:assemble", removeUndefined(options)),
+    render: (options) =>
+      ipcRenderer.invoke("video-edit:render", removeUndefined(options)),
+    edit: (options) =>
+      ipcRenderer.invoke("video-edit:edit", removeUndefined(options)),
+    assetsList: () => ipcRenderer.invoke("video-edit:assets-list"),
+    cancel: (requestId) => ipcRenderer.invoke("video-edit:cancel", requestId),
+    onEvent: (cb) => {
+      const h = (_e, ev) => cb(ev);
+      ipcRenderer.on("video-edit:event", h);
+      return () => ipcRenderer.removeListener("video-edit:event", h);
+    },
+  },
+
   // 提示词模板管理
   promptTemplate: {
     getAll: (filters) => ipcRenderer.invoke("prompt-template:get-all", filters),
@@ -2626,6 +2647,64 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // 用于调用任意 IPC 通道（如 session:*, error:* 等）
   // ==========================================
   invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
+
+  // ==========================================
+  // session-core (Managed Agents parity Phase H)
+  // Shared file-backed singletons with CLI under ~/.chainlesschain/
+  // ==========================================
+  sessionCore: {
+    policy: {
+      get: (sessionId) => ipcRenderer.invoke("session:policy:get", sessionId),
+      set: (sessionId, policy) =>
+        ipcRenderer.invoke("session:policy:set", sessionId, policy),
+      clear: (sessionId) =>
+        ipcRenderer.invoke("session:policy:clear", sessionId),
+    },
+    session: {
+      list: (filter) => ipcRenderer.invoke("session:list", filter || {}),
+      show: (sessionId) => ipcRenderer.invoke("session:show", sessionId),
+      create: (opts) => ipcRenderer.invoke("session:create", opts),
+      recallOnStart: (opts) =>
+        ipcRenderer.invoke("session:recall-on-start", opts),
+      park: (sessionId) => ipcRenderer.invoke("session:park", sessionId),
+      resume: (sessionId) => ipcRenderer.invoke("session:resume", sessionId),
+      close: (sessionId, opts) =>
+        ipcRenderer.invoke("session:close", sessionId, opts),
+      usage: (opts) => ipcRenderer.invoke("session:usage", opts),
+      subscribe: (filter) => ipcRenderer.invoke("session:subscribe", filter),
+      onEvent: (handler) => {
+        const listener = (_ev, event) => handler(event);
+        ipcRenderer.on("session:event", listener);
+        return () => ipcRenderer.removeListener("session:event", listener);
+      },
+    },
+    memory: {
+      store: (entry) => ipcRenderer.invoke("memory:store", entry),
+      recall: (query) => ipcRenderer.invoke("memory:recall", query),
+      delete: (id) => ipcRenderer.invoke("memory:delete", id),
+      consolidate: (opts) => ipcRenderer.invoke("memory:consolidate", opts),
+    },
+    agent: {
+      streamStart: (opts) => ipcRenderer.invoke("agent:stream:start", opts),
+      streamCancel: (streamId) =>
+        ipcRenderer.invoke("agent:stream:cancel", streamId),
+      onStreamEvent: (handler) => {
+        const listener = (_ev, streamId, event) => handler(streamId, event);
+        ipcRenderer.on("agent:stream:event", listener);
+        return () => ipcRenderer.removeListener("agent:stream:event", listener);
+      },
+    },
+    beta: {
+      list: () => ipcRenderer.invoke("beta:list"),
+      enable: (flag) => ipcRenderer.invoke("beta:enable", flag),
+      disable: (flag) => ipcRenderer.invoke("beta:disable", flag),
+    },
+    bundle: {
+      load: (opts) => ipcRenderer.invoke("bundle:load", opts),
+      info: () => ipcRenderer.invoke("bundle:info"),
+      unload: () => ipcRenderer.invoke("bundle:unload"),
+    },
+  },
 
   // ==========================================
   // 错误日志记录

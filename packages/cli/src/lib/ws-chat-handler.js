@@ -46,6 +46,9 @@ export class WSChatHandler {
         model: session.model,
         baseUrl: session.baseUrl || "http://localhost:11434",
         apiKey: session.apiKey,
+        // Phase J — pipe WS session id so chat-core records token_usage
+        // into the JSONL session store; visible via `cc session usage`.
+        sessionId: session.sessionId || session.id,
       };
 
       const fullContent = await chatWithStreaming(

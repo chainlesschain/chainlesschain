@@ -14,6 +14,10 @@ import {
   DEFAULT_QUOTA,
   DEFAULT_PERMISSIONS,
   _resetState,
+  acquireSandbox,
+  touchSandbox,
+  pruneExpired,
+  restoreFromDb,
 } from "../../src/lib/sandbox-v2.js";
 
 describe("sandbox-v2", () => {
@@ -365,6 +369,137 @@ describe("sandbox-v2", () => {
       expect(DEFAULT_QUOTA.memory).toBe(256 * 1024 * 1024);
       expect(DEFAULT_QUOTA.storage).toBe(100 * 1024 * 1024);
       expect(DEFAULT_QUOTA.network).toBe(1000);
+    });
+
+    describe("Phase 4: bundle-aware lifecycle", () => {
+      it("createSandbox attaches a default policy", () => {
+        const { id } = createSandbox(db, "agent-1", {
+          policy: { scope: "assistant" },
+        });
+        // Reuse via acquireSandbox to confirm policy.scope landed
+        const again = acquireSandbox(db, "agent-1", {
+          policy: { scope: "assistant" },
+        });
+        expect(again.reused).toBe(true);
+        expect(again.id).toBe(id);
+        expect(again.scope).toBe("assistant");
+      });
+
+      it("acquireSandbox creates a new thread sandbox by default", () => {
+        const out = acquireSandbox(db, "agent-1");
+        expect(out.reused).toBe(false);
+        expect(out.scope).toBe("thread");
+      });
+
+      it("acquireSandbox does not reuse across agents", () => {
+        const a = acquireSandbox(db, "agent-1", {
+          policy: { scope: "assistant" },
+        });
+        const b = acquireSandbox(db, "agent-2", {
+          policy: { scope: "assistant" },
+        });
+        expect(b.reused).toBe(false);
+        expect(b.id).not.toBe(a.id);
+      });
+
+      it("touchSandbox refreshes lastUsedAtMs", () => {
+        const { id } = createSandbox(db, "agent-1");
+        expect(touchSandbox(id)).toBe(true);
+        expect(touchSandbox("nope")).toBe(false);
+      });
+
+      it("pruneExpired destroys ttl-expired sandboxes", () => {
+        const { id } = createSandbox(db, "agent-1", {
+          policy: { scope: "thread", ttlMs: 10, idleTtlMs: null },
+        });
+        // Force createdAtMs into the past by reaching into active map.
+        // destroySandbox check uses Date.now() - createdAtMs > ttlMs.
+        const out = pruneExpired(db, Date.now() + 1000);
+        expect(out.find((x) => x.id === id)?.reason).toBe("ttl");
+      });
+
+      it("pruneExpired ignores sandboxes with null ttls", () => {
+        createSandbox(db, "agent-1", {
+          policy: { ttlMs: null, idleTtlMs: null },
+        });
+        expect(pruneExpired(db, Date.now() + 10_000_000)).toEqual([]);
+      });
+
+      it("createSandbox persists policy + ms timestamps to DB", () => {
+        const { id } = createSandbox(db, "agent-persist", {
+          policy: { scope: "assistant", ttlMs: 5000 },
+        });
+        const row = db
+          .prepare(`SELECT * FROM sandbox_instances WHERE id = ?`)
+          .get(id);
+        expect(row).toBeTruthy();
+        expect(typeof row.created_at_ms).toBe("number");
+        expect(typeof row.last_used_at_ms).toBe("number");
+        const persistedPolicy = JSON.parse(row.policy);
+        expect(persistedPolicy.scope).toBe("assistant");
+      });
+
+      it("touchSandbox(id, db) syncs last_used_at_ms to DB", () => {
+        const { id } = createSandbox(db, "agent-touch");
+        const before = db
+          .prepare(`SELECT last_used_at_ms FROM sandbox_instances WHERE id = ?`)
+          .get(id).last_used_at_ms;
+        // Advance real clock slightly by busy-waiting 2ms
+        const target = Date.now() + 2;
+        while (Date.now() < target) {
+          /* spin */
+        }
+        expect(touchSandbox(id, db)).toBe(true);
+        const after = db
+          .prepare(`SELECT last_used_at_ms FROM sandbox_instances WHERE id = ?`)
+          .get(id).last_used_at_ms;
+        expect(after).toBeGreaterThanOrEqual(before);
+      });
+
+      it("restoreFromDb rehydrates active rows into the in-memory map", () => {
+        const { id } = createSandbox(db, "agent-restore", {
+          policy: { scope: "assistant" },
+        });
+        _resetState();
+        expect(restoreFromDb(db)).toBe(1);
+        const info = getSandbox(db, id);
+        expect(info).toBeTruthy();
+        expect(info.agentId).toBe("agent-restore");
+      });
+
+      it("restoreFromDb skips destroyed rows", () => {
+        const { id } = createSandbox(db, "agent-gone");
+        destroySandbox(db, id);
+        _resetState();
+        expect(restoreFromDb(db)).toBe(0);
+      });
+
+      it("acquireSandbox lazily rehydrates persisted state across restarts", () => {
+        // Seed a reusable assistant-scope sandbox, then wipe in-memory state
+        // to simulate a CLI restart. The second acquireSandbox call should
+        // rehydrate from DB and reuse instead of creating a fresh sandbox.
+        const first = acquireSandbox(db, "agent-reboot", {
+          policy: { scope: "assistant" },
+        });
+        expect(first.reused).toBe(false);
+        _resetState();
+
+        const second = acquireSandbox(db, "agent-reboot", {
+          policy: { scope: "assistant" },
+        });
+        expect(second.id).toBe(first.id);
+        expect(second.reused).toBe(true);
+      });
+
+      it("pruneExpired lazily rehydrates persisted state across restarts", () => {
+        const { id } = createSandbox(db, "agent-idle", {
+          policy: { scope: "thread", idleTtlMs: 100 },
+        });
+        _resetState();
+
+        const destroyed = pruneExpired(db, Date.now() + 10_000);
+        expect(destroyed.some((d) => d.id === id)).toBe(true);
+      });
     });
 
     it("DEFAULT_PERMISSIONS has expected structure", () => {

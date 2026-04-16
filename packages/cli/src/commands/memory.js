@@ -244,10 +244,10 @@ export function registerMemoryCommand(program) {
     .command("recall")
     .description("Recall scoped memory (session-core MemoryStore)")
     .argument("[query]", "Query string")
-    .option("--scope <scope>", "session | agent | global")
+    .option("--scope <scope>", "session | agent | user | global")
     .option(
       "--scope-id <id>",
-      "Session or agent id (required for session/agent)",
+      "Session/agent/user id (required for non-global scopes)",
     )
     .option("--category <cat>", "Filter by category")
     .option("--tags <tags>", "Comma-separated tags")
@@ -299,8 +299,8 @@ export function registerMemoryCommand(program) {
     .command("store")
     .description("Write a scoped memory (session-core MemoryStore)")
     .argument("<content>")
-    .requiredOption("--scope <scope>", "session | agent | global")
-    .option("--scope-id <id>", "Required for session/agent scope")
+    .requiredOption("--scope <scope>", "session | agent | user | global")
+    .option("--scope-id <id>", "Required for session/agent/user scope")
     .option("--category <cat>", "Category", "general")
     .option("--tags <tags>", "Comma-separated tags")
     .option("--json", "Output as JSON")
@@ -327,6 +327,87 @@ export function registerMemoryCommand(program) {
           logger.success(
             `Stored ${chalk.gray(m.id.slice(0, 12))} [${chalk.cyan(m.scope)}/${m.category}]`,
           );
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // memory consolidate — Managed Agents parity Phase G
+  // Reads a JSONL session and writes extracted facts into session-core MemoryStore
+  memory
+    .command("consolidate")
+    .description("Consolidate a session's trace into scoped memory")
+    .requiredOption("--session <id>", "Session ID (JSONL)")
+    .option("--scope <scope>", "session | agent | global", "agent")
+    .option("--scope-id <id>", "Override scope id (default: agent/session id)")
+    .option("--agent-id <id>", "Attach consolidated memories to this agent id")
+    .option("--dry-run", "Extract facts without writing to MemoryStore")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const { consolidateJsonlSession, buildTraceStoreFromJsonl } =
+          await import("../lib/session-consolidator.js");
+
+        if (options.dryRun) {
+          const { readEvents, sessionExists } =
+            await import("../harness/jsonl-session-store.js");
+          if (!sessionExists(options.session)) {
+            logger.error(`Session not found: ${options.session}`);
+            process.exit(1);
+          }
+          const events = readEvents(options.session);
+          const trace = buildTraceStoreFromJsonl(options.session, events);
+          const traceEvents = trace.query(options.session, {
+            limit: Number.MAX_SAFE_INTEGER,
+          });
+          const { defaultMemoryExtractor } =
+            await import("@chainlesschain/session-core");
+          const facts = defaultMemoryExtractor(traceEvents);
+          if (options.json) {
+            console.log(
+              JSON.stringify(
+                { dryRun: true, factCount: facts.length, facts },
+                null,
+                2,
+              ),
+            );
+          } else {
+            logger.log(
+              chalk.bold(
+                `Dry run: ${facts.length} facts would be written (no memory modified).\n`,
+              ),
+            );
+            for (const f of facts) {
+              logger.log(
+                `  ${chalk.cyan(f.category)}  ${chalk.gray((f.tags || []).join(","))}`,
+              );
+              logger.log(`    ${chalk.white(String(f.content).slice(0, 160))}`);
+            }
+          }
+          return;
+        }
+
+        const result = await consolidateJsonlSession(options.session, {
+          scope: options.scope,
+          scopeId: options.scopeId || null,
+          agentId: options.agentId || null,
+        });
+        await new Promise((r) => setImmediate(r)); // let adapter flush
+
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          logger.success(
+            `Consolidated ${chalk.cyan(result.writtenCount)} memory entries ` +
+              `(${result.eventCount} trace events, scope=${chalk.yellow(result.scope)}).`,
+          );
+          for (const m of result.written.slice(0, 10)) {
+            logger.log(
+              `  ${chalk.gray(m.id.slice(0, 12))}  ${chalk.cyan(m.category)}  ${chalk.white(String(m.content).slice(0, 120))}`,
+            );
+          }
+        }
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);

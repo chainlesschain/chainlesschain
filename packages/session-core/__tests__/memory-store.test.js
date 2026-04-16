@@ -287,7 +287,35 @@ describe("MemoryStore.list / size / clear / stats", () => {
     store.add({ scope: SCOPE.SESSION, scopeId: "s1", content: "a" });
     store.add({ scope: SCOPE.AGENT, scopeId: "a1", content: "b" });
     store.add({ scope: SCOPE.GLOBAL, content: "c" });
-    expect(store.stats()).toEqual({ total: 3, session: 1, agent: 1, global: 1 });
+    expect(store.stats()).toEqual({
+      total: 3,
+      session: 1,
+      agent: 1,
+      user: 0,
+      global: 1,
+    });
+  });
+
+  it("user scope requires scopeId and is isolated per user", () => {
+    const store = new MemoryStore();
+    expect(() => store.add({ scope: SCOPE.USER, content: "x" })).toThrow(
+      /scopeId required/
+    );
+    store.add({ scope: SCOPE.USER, scopeId: "u1", content: "alice-pref" });
+    store.add({ scope: SCOPE.USER, scopeId: "u2", content: "bob-pref" });
+    expect(store.list({ scope: SCOPE.USER, scopeId: "u1" })).toHaveLength(1);
+    expect(store.list({ scope: SCOPE.USER, scopeId: "u2" })).toHaveLength(1);
+    expect(store.stats()).toEqual({
+      total: 2,
+      session: 0,
+      agent: 0,
+      user: 2,
+      global: 0,
+    });
+  });
+
+  it("validateScope accepts user", () => {
+    expect(() => validateScope("user")).not.toThrow();
   });
 
   it("clear wipes all", () => {

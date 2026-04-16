@@ -14,6 +14,7 @@ import { registerChatCommand } from "./commands/chat.js";
 import { registerAskCommand } from "./commands/ask.js";
 import { registerLlmCommand } from "./commands/llm.js";
 import { registerAgentCommand } from "./commands/agent.js";
+import { registerStreamCommand } from "./commands/stream.js";
 import { registerSkillCommand } from "./commands/skill.js";
 import { registerSearchCommand } from "./commands/search.js";
 import { registerTokensCommand } from "./commands/tokens.js";
@@ -90,6 +91,9 @@ import { registerServeCommand } from "./commands/serve.js";
 // Web UI
 import { registerUiCommand } from "./commands/ui.js";
 
+// Video Editing Agent (CutClaw-inspired)
+import { registerVideoCommand } from "./commands/video.js";
+
 // Orchestration Layer: ChainlessChain → Claude Code/Codex agents → CI → Notify
 import { registerOrchestrateCommand } from "./commands/orchestrate.js";
 
@@ -126,6 +130,7 @@ export function createProgram() {
   registerAskCommand(program);
   registerLlmCommand(program);
   registerAgentCommand(program);
+  registerStreamCommand(program);
   registerSkillCommand(program);
 
   // Phase 1: AI intelligence layer
@@ -214,6 +219,9 @@ export function createProgram() {
 
   // Orchestration Layer
   registerOrchestrateCommand(program);
+
+  // Video Editing Agent
+  registerVideoCommand(program);
 
   return program;
 }

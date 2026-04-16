@@ -186,6 +186,75 @@ describe("ChainlessChainWSServer", () => {
     });
   });
 
+  // ---- Phase 5: service envelope helpers ----
+  describe("envelope helpers", () => {
+    function fakeWs() {
+      const sent = [];
+      return {
+        readyState: 1,
+        OPEN: 1,
+        send: (s) => sent.push(JSON.parse(s)),
+        _sent: sent,
+      };
+    }
+    it("sendEnvelope wraps a spec into a Phase-5 envelope", () => {
+      server = new ChainlessChainWSServer();
+      const ws = fakeWs();
+      server.sendEnvelope(ws, {
+        type: "run.token",
+        sessionId: "s1",
+        runId: "r1",
+        payload: { content: "hi" },
+      });
+      expect(ws._sent[0]).toMatchObject({
+        v: 1,
+        type: "run.token",
+        sessionId: "s1",
+        runId: "r1",
+        payload: { content: "hi" },
+      });
+    });
+    it("sendEnvelope passes through a pre-built envelope unchanged", () => {
+      server = new ChainlessChainWSServer();
+      const ws = fakeWs();
+      const env = {
+        v: 1,
+        type: "run.message",
+        sessionId: "s1",
+        runId: null,
+        requestId: null,
+        ts: 42,
+        payload: { content: "ok" },
+      };
+      server.sendEnvelope(ws, env);
+      expect(ws._sent[0]).toEqual(env);
+    });
+    it("sendEnvelope falls back to legacy send when envelope is invalid", () => {
+      server = new ChainlessChainWSServer();
+      const ws = fakeWs();
+      server.sendEnvelope(ws, { type: "no_dot_case", sessionId: "s1" });
+      // legacy fallback retains original spec
+      expect(ws._sent[0]).toMatchObject({ type: "no_dot_case" });
+    });
+    it("sendStreamEnvelope adapts StreamRouter events", () => {
+      server = new ChainlessChainWSServer();
+      const ws = fakeWs();
+      server.sendStreamEnvelope(
+        ws,
+        { type: "token", content: "hi" },
+        { sessionId: "s1", runId: "r1", requestId: "req-1" },
+      );
+      expect(ws._sent[0]).toMatchObject({
+        v: 1,
+        type: "run.token",
+        sessionId: "s1",
+        runId: "r1",
+        requestId: "req-1",
+        payload: { content: "hi" },
+      });
+    });
+  });
+
   // ---- Start / Stop lifecycle ----
   describe("start / stop", () => {
     it("emits listening event on start", async () => {

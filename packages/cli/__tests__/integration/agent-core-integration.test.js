@@ -117,8 +117,7 @@ describe("Integration: SlotFiller + agentLoop", () => {
     // from the message itself — so askSelect may only be called for remaining
     // unextracted required slots, or not at all if all are filled.
     // The key assertion: should still produce response-complete
-    const lastEvent = events[events.length - 1];
-    expect(lastEvent.type).toBe("response-complete");
+    expect(events.some((e) => e.type === "response-complete")).toBe(true);
   });
 
   it("Unrecognized intent → no slot-filling events", async () => {
@@ -159,6 +158,6 @@ describe("Integration: SlotFiller + agentLoop", () => {
     expect(mockInteraction.askInput).not.toHaveBeenCalled();
 
     // Should still complete normally
-    expect(events[events.length - 1].type).toBe("response-complete");
+    expect(events.some((e) => e.type === "response-complete")).toBe(true);
   });
 });

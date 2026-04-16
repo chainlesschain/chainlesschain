@@ -971,6 +971,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import("../pages/MultimediaDemo.vue"),
         meta: { title: "多媒体处理" },
       },
+      {
+        path: "video-editing",
+        name: "VideoEditing",
+        component: () => import("../pages/VideoEditingPage.vue"),
+        meta: { title: "视频剪辑 Agent" },
+      },
       // ===== 系统监控与维护 =====
       {
         path: "database/performance",
@@ -1007,6 +1013,16 @@ const routes: RouteRecordRaw[] = [
         name: "PermanentMemory",
         component: () => import("../pages/PermanentMemoryPage.vue"),
         meta: { title: "永久记忆" },
+      },
+      // ===== Session Core (Managed Agents Phase H) =====
+      {
+        path: "session-core",
+        name: "SessionCore",
+        component: () =>
+          import(
+            /* webpackChunkName: "session-core" */ "../pages/SessionCorePage.vue"
+          ),
+        meta: { title: "Session Core" },
       },
       // ===== Cowork 多代理协作路由 =====
       {

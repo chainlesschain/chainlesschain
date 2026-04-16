@@ -5,6 +5,34 @@
 const EventEmitter = require("events");
 const { logger } = require("../utils/logger.js");
 
+// Phase 4 (Sandbox Policy): shared policy schema from session-core.
+let _sandboxPolicy = null;
+function getSandboxPolicy() {
+  if (_sandboxPolicy) {
+    return _sandboxPolicy;
+  }
+  try {
+    _sandboxPolicy = require("@chainlesschain/session-core/sandbox-policy");
+  } catch (_e) {
+    // Tolerate missing dep so the rest of the manager keeps working.
+    _sandboxPolicy = {
+      DEFAULT_SANDBOX_POLICY: {
+        scope: "thread",
+        ttlMs: null,
+        idleTtlMs: null,
+        cleanupOnExit: true,
+        reuseAcrossRuns: false,
+      },
+      mergeSandboxPolicy: (_b, o) => ({ scope: "thread", ...(o || {}) }),
+      resolveBundleSandboxPolicy: () => ({ scope: "thread" }),
+      shouldReuseSandbox: () => false,
+      isSandboxExpired: () => false,
+      isSandboxIdleExpired: () => false,
+    };
+  }
+  return _sandboxPolicy;
+}
+
 class AgentSandboxV2 extends EventEmitter {
   constructor() {
     super();
@@ -33,7 +61,49 @@ class AgentSandboxV2 extends EventEmitter {
     this.db = db;
     this._ensureTables();
     this.initialized = true;
+    // Phase 4: rehydrate live sandbox rows from the DB so idleTtl math and
+    // reuse decisions work across process restart. Opt-out via autoRestore:false
+    // (tests that want a pristine in-memory state).
+    if (deps.autoRestore !== false) {
+      try {
+        const n = this.restoreFromDb();
+        if (n > 0) {
+          logger.info(`[AgentSandboxV2] Restored ${n} sandbox(es) from DB`);
+        }
+      } catch (error) {
+        logger.warn("[AgentSandboxV2] auto-restore failed:", error.message);
+      }
+    }
     logger.info("[AgentSandboxV2] Initialized");
+    if (deps.autoPrune !== false) {
+      this.startPruneTimer(deps.pruneIntervalMs || 60_000);
+    }
+  }
+
+  startPruneTimer(intervalMs = 60_000) {
+    this.stopPruneTimer();
+    this._pruneTimer = setInterval(() => {
+      try {
+        const out = this.pruneExpired();
+        if (out.length > 0) {
+          logger.info(
+            `[AgentSandboxV2] pruned ${out.length} expired sandbox(es)`,
+          );
+        }
+      } catch (error) {
+        logger.warn("[AgentSandboxV2] prune timer error:", error.message);
+      }
+    }, intervalMs);
+    if (this._pruneTimer.unref) {
+      this._pruneTimer.unref();
+    }
+  }
+
+  stopPruneTimer() {
+    if (this._pruneTimer) {
+      clearInterval(this._pruneTimer);
+      this._pruneTimer = null;
+    }
   }
 
   _ensureTables() {
@@ -45,6 +115,9 @@ class AgentSandboxV2 extends EventEmitter {
           status TEXT DEFAULT 'created',
           permissions TEXT,
           quota TEXT,
+          policy TEXT,
+          created_at_ms INTEGER,
+          last_used_at_ms INTEGER,
           created_at TEXT DEFAULT (datetime('now')),
           destroyed_at TEXT
         );
@@ -65,6 +138,19 @@ class AgentSandboxV2 extends EventEmitter {
           detected_at TEXT DEFAULT (datetime('now'))
         );
       `);
+      // Phase 4: add policy/timestamp columns to legacy DBs. ALTER is a no-op
+      // if the column already exists, so swallow "duplicate column" errors.
+      for (const ddl of [
+        "ALTER TABLE sandbox_instances ADD COLUMN policy TEXT",
+        "ALTER TABLE sandbox_instances ADD COLUMN created_at_ms INTEGER",
+        "ALTER TABLE sandbox_instances ADD COLUMN last_used_at_ms INTEGER",
+      ]) {
+        try {
+          this.db.exec(ddl);
+        } catch (_e) {
+          // column already present
+        }
+      }
     } catch (error) {
       logger.warn("[AgentSandboxV2] Table creation warning:", error.message);
     }
@@ -100,11 +186,18 @@ class AgentSandboxV2 extends EventEmitter {
       quota: { ...this._config.defaultQuota, ...(options.quota || {}) },
       usage: { cpu: 0, memory: 0, storage: 0, network: 0 },
       createdAt: Date.now(),
+      lastUsedAt: Date.now(),
+      // Phase 4: lifecycle policy attached to the sandbox instance.
+      policy: this._resolvePolicy(options),
     };
 
     this._sandboxes.set(id, sandbox);
     this._persistSandbox(sandbox);
-    this.emit("sandbox:created", { id, agentId });
+    this.emit("sandbox:created", {
+      id,
+      agentId,
+      scope: sandbox.policy?.scope || "thread",
+    });
     return {
       id,
       status: sandbox.status,
@@ -277,15 +370,128 @@ class AgentSandboxV2 extends EventEmitter {
     }
     sandbox.status = "destroyed";
     this._sandboxes.delete(sandboxId);
+    try {
+      this.db
+        .prepare(
+          "UPDATE sandbox_instances SET status = 'destroyed', destroyed_at = datetime('now') WHERE id = ?",
+        )
+        .run(sandboxId);
+    } catch (_e) {
+      // non-critical persistence failure
+    }
     this.emit("sandbox:destroyed", { sandboxId });
     return true;
+  }
+
+  // ---- Phase 4: bundle-aware lifecycle ----
+
+  _resolvePolicy(options = {}) {
+    const { mergeSandboxPolicy, resolveBundleSandboxPolicy } =
+      getSandboxPolicy();
+    if (options.bundle) {
+      const base = resolveBundleSandboxPolicy(options.bundle);
+      return mergeSandboxPolicy(base, options.policy || {});
+    }
+    return mergeSandboxPolicy({}, options.policy || {});
+  }
+
+  /**
+   * Touch a sandbox so idle TTL doesn't expire it.
+   */
+  touchSandbox(sandboxId) {
+    const sandbox = this._sandboxes.get(sandboxId);
+    if (!sandbox) {
+      return false;
+    }
+    sandbox.lastUsedAt = Date.now();
+    try {
+      this.db
+        .prepare(
+          "UPDATE sandbox_instances SET last_used_at_ms = ? WHERE id = ?",
+        )
+        .run(sandbox.lastUsedAt, sandboxId);
+    } catch (_e) {
+      // non-critical persistence failure
+    }
+    return true;
+  }
+
+  /**
+   * Acquire a sandbox for an agent: reuse an existing live one if the bundle's
+   * sandbox policy permits it, otherwise create a fresh sandbox.
+   *
+   * Returns `{ id, reused: boolean, scope }`.
+   */
+  acquireSandbox(agentId, options = {}) {
+    const { shouldReuseSandbox } = getSandboxPolicy();
+    const policy = this._resolvePolicy(options);
+    const now = Date.now();
+
+    if (policy.reuseAcrossRuns) {
+      for (const sandbox of this._sandboxes.values()) {
+        if (sandbox.agentId !== agentId) {
+          continue;
+        }
+        if (sandbox.status === "destroyed") {
+          continue;
+        }
+        if (
+          shouldReuseSandbox(
+            sandbox.policy || policy,
+            { createdAt: sandbox.createdAt, lastUsedAt: sandbox.lastUsedAt },
+            now,
+          )
+        ) {
+          sandbox.lastUsedAt = now;
+          this.emit("sandbox:reused", {
+            id: sandbox.id,
+            agentId,
+            scope: sandbox.policy?.scope || policy.scope,
+          });
+          return {
+            id: sandbox.id,
+            reused: true,
+            scope: sandbox.policy?.scope || policy.scope,
+          };
+        }
+      }
+    }
+
+    const created = this.createSandbox(agentId, { ...options, policy });
+    return { id: created.id, reused: false, scope: policy.scope };
+  }
+
+  /**
+   * Sweep sandboxes whose ttl or idle ttl expired. Destroys them and returns
+   * the destroyed ids. Safe to call from a periodic timer.
+   */
+  pruneExpired(now = Date.now()) {
+    const { isSandboxExpired, isSandboxIdleExpired } = getSandboxPolicy();
+    const destroyed = [];
+    for (const sandbox of Array.from(this._sandboxes.values())) {
+      const policy = sandbox.policy;
+      if (!policy) {
+        continue;
+      }
+      const ttlExpired = isSandboxExpired(policy, sandbox.createdAt, now);
+      const idleExpired = isSandboxIdleExpired(policy, sandbox.lastUsedAt, now);
+      if (ttlExpired || idleExpired) {
+        if (this.destroySandbox(sandbox.id)) {
+          destroyed.push({
+            id: sandbox.id,
+            reason: ttlExpired ? "ttl" : "idle",
+          });
+        }
+      }
+    }
+    return destroyed;
   }
 
   _persistSandbox(sandbox) {
     try {
       this.db
         .prepare(
-          "INSERT OR REPLACE INTO sandbox_instances (id, agent_id, status, permissions, quota) VALUES (?, ?, ?, ?, ?)",
+          "INSERT OR REPLACE INTO sandbox_instances (id, agent_id, status, permissions, quota, policy, created_at_ms, last_used_at_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .run(
           sandbox.id,
@@ -293,10 +499,56 @@ class AgentSandboxV2 extends EventEmitter {
           sandbox.status,
           JSON.stringify(sandbox.permissions),
           JSON.stringify(sandbox.quota),
+          sandbox.policy ? JSON.stringify(sandbox.policy) : null,
+          sandbox.createdAt ?? null,
+          sandbox.lastUsedAt ?? null,
         );
     } catch (error) {
       logger.error("[AgentSandboxV2] Persist failed:", error.message);
     }
+  }
+
+  /**
+   * Phase 4: restore live sandboxes from sqlite on startup so idleTtl math
+   * survives process restart. Rows with `status='destroyed'` are skipped.
+   * Returns the count of restored sandboxes.
+   */
+  restoreFromDb() {
+    let restored = 0;
+    try {
+      const rows = this.db
+        .prepare(
+          "SELECT id, agent_id, status, permissions, quota, policy, created_at_ms, last_used_at_ms FROM sandbox_instances WHERE status != 'destroyed'",
+        )
+        .all();
+      const now = Date.now();
+      for (const row of rows) {
+        if (!row || !row.id) {
+          continue;
+        }
+        const policy = row.policy ? JSON.parse(row.policy) : null;
+        this._sandboxes.set(row.id, {
+          id: row.id,
+          agentId: row.agent_id,
+          status: row.status || "idle",
+          permissions: row.permissions ? JSON.parse(row.permissions) : {},
+          quota: row.quota
+            ? JSON.parse(row.quota)
+            : { ...this._config.defaultQuota },
+          usage: { cpu: 0, memory: 0, storage: 0, network: 0 },
+          createdAt: row.created_at_ms || now,
+          lastUsedAt: row.last_used_at_ms || now,
+          policy,
+        });
+        restored += 1;
+      }
+    } catch (error) {
+      logger.warn("[AgentSandboxV2] restoreFromDb failed:", error.message);
+    }
+    if (restored > 0) {
+      logger.info(`[AgentSandboxV2] restored ${restored} sandbox(es) from db`);
+    }
+    return restored;
   }
 }
 

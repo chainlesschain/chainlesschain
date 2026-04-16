@@ -80,4 +80,90 @@ describe("session-core-singletons", () => {
     const b = mod.getMemoryStore();
     expect(a).toBe(b);
   });
+
+  it("SessionManager parks sessions to disk and restores them across reloads", async () => {
+    const mod1 = await import("../../src/lib/session-core-singletons.js");
+    const mgr1 = mod1.getSessionManager();
+    const h = mgr1.create({ agentId: "cli-agent", sessionId: "sess_cli_park" });
+    expect(mgr1.markIdle(h.sessionId)).toBe(true);
+    const parked = await mgr1.park(h.sessionId);
+    expect(parked).toBe(true);
+
+    const parkedFile = path.join(tmpHome, "parked-sessions.json");
+    expect(fs.existsSync(parkedFile)).toBe(true);
+    const disk = JSON.parse(fs.readFileSync(parkedFile, "utf8"));
+    expect(disk.sess_cli_park).toBeTruthy();
+    expect(disk.sess_cli_park.status).toBe("parked");
+
+    mod1.resetSessionCoreSingletonsForTests();
+    vi.resetModules();
+    const mod2 = await import("../../src/lib/session-core-singletons.js");
+    const mgr2 = mod2.getSessionManager();
+    const resumed = await mgr2.resume("sess_cli_park");
+    expect(resumed).toBe(true);
+    expect(mgr2.has("sess_cli_park")).toBe(true);
+  });
+
+  it("SessionManager close removes parked entry from disk", async () => {
+    const mod = await import("../../src/lib/session-core-singletons.js");
+    const mgr = mod.getSessionManager();
+    mgr.create({ agentId: "a", sessionId: "sess_close_1" });
+    mgr.markIdle("sess_close_1");
+    await mgr.park("sess_close_1");
+    await mgr.resume("sess_close_1");
+    const closed = await mgr.close("sess_close_1");
+    expect(closed).toBe(true);
+    const parkedFile = path.join(tmpHome, "parked-sessions.json");
+    if (fs.existsSync(parkedFile)) {
+      const disk = JSON.parse(fs.readFileSync(parkedFile, "utf8"));
+      expect(disk.sess_close_1).toBeUndefined();
+    }
+  });
+
+  it("agent-repl flow: handle by sessionId, idle→park→reload→unpark", async () => {
+    // Simulates what agent-repl.js does on startup (create handle keyed by
+    // JSONL sessionId) and on rl.close() (markIdle + park).
+    const replSessionId = "sess_repl_flow_1";
+    const mod1 = await import("../../src/lib/session-core-singletons.js");
+    const mgr1 = mod1.getSessionManager();
+    mgr1.create({
+      agentId: "cli-agent",
+      sessionId: replSessionId,
+      metadata: { provider: "ollama", model: "qwen2:7b" },
+    });
+    expect(mgr1.markIdle(replSessionId)).toBe(true);
+    expect(await mgr1.park(replSessionId)).toBe(true);
+
+    // New process — unpark resumes from disk
+    mod1.resetSessionCoreSingletonsForTests();
+    vi.resetModules();
+    const mod2 = await import("../../src/lib/session-core-singletons.js");
+    const mgr2 = mod2.getSessionManager();
+    const resumed = await mgr2.resume(replSessionId);
+    expect(resumed).toBe(true);
+    const h = mgr2.get(replSessionId);
+    expect(h.status).toBe("running");
+    expect(h.metadata?.provider).toBe("ollama");
+  });
+
+  it("--no-park-on-exit resolves policy.parkOnExit=false", async () => {
+    const { resolveAgentPolicy } =
+      await import("../../src/runtime/policies/agent-policy.js");
+    const defaults = resolveAgentPolicy({ overrides: {} });
+    expect(defaults.parkOnExit).toBe(true);
+    const opted = resolveAgentPolicy({ overrides: { parkOnExit: false } });
+    expect(opted.parkOnExit).toBe(false);
+  });
+
+  it("createStreamRouter returns a working StreamRouter", async () => {
+    const mod = await import("../../src/lib/session-core-singletons.js");
+    const router = mod.createStreamRouter();
+    expect(typeof router.stream).toBe("function");
+    async function* src() {
+      yield "hello";
+      yield " world";
+    }
+    const out = await router.collect(src());
+    expect(out.text).toBe("hello world");
+  });
 });

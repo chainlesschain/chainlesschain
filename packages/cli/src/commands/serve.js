@@ -27,6 +27,14 @@ export function registerServeCommand(program) {
       "Allow non-localhost connections (requires --token)",
     )
     .option("--project <path>", "Default project root for sessions")
+    .option(
+      "--http-port <port>",
+      "Hosted HTTP port for Phase 5 envelope SSE (disabled if unset)",
+    )
+    .option(
+      "--bundle <path>",
+      "Agent bundle directory — applies AGENTS.md, MCP, and approval policy to all sessions",
+    )
     .action(async (opts) => {
       try {
         const runtime = createAgentRuntimeFactory().createServerRuntime({
@@ -37,6 +45,8 @@ export function registerServeCommand(program) {
           timeout: parseInt(opts.timeout, 10),
           allowRemote: opts.allowRemote,
           project: opts.project,
+          httpPort: opts.httpPort ? parseInt(opts.httpPort, 10) : null,
+          bundlePath: opts.bundle || null,
         });
         await runtime.startServer();
       } catch (err) {

@@ -90,4 +90,23 @@ describe("Managed Agents parity E2E commands", () => {
     const output = runCli("session policy sess_e2e --set trusted");
     expect(output).toContain("trusted");
   });
+
+  it("memory --scope user persists per-user preferences (Phase 2 bundle)", () => {
+    runCli(
+      'memory store "Likes Rust and terse explanations." --scope user --scope-id u_alice --category preference',
+    );
+    const recalled = runCli(
+      "memory recall Rust --scope user --scope-id u_alice --json",
+    );
+    const parsed = JSON.parse(recalled);
+    expect(parsed.length).toBeGreaterThan(0);
+    expect(parsed[0].scope).toBe("user");
+    expect(parsed[0].scopeId).toBe("u_alice");
+
+    // 不同用户互相隔离
+    const otherUser = runCli(
+      "memory recall Rust --scope user --scope-id u_bob --json",
+    );
+    expect(JSON.parse(otherUser)).toEqual([]);
+  });
 });

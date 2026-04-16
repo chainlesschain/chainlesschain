@@ -16,6 +16,52 @@ const defaultMcpTypes = require("@modelcontextprotocol/sdk/types.js");
 const defaultHttpSseTransport = require("./transports/http-sse-transport");
 const EventEmitter = require("events");
 
+// Phase 3 (Hosted MCP Policy): shared policy from session-core.
+let _mcpPolicy = null;
+function getMcpPolicy() {
+  if (_mcpPolicy) {
+    return _mcpPolicy;
+  }
+  try {
+    _mcpPolicy = require("@chainlesschain/session-core/mcp-policy");
+  } catch (_e) {
+    _mcpPolicy = {
+      validateMcpServer: () => ({
+        allowed: true,
+        reason: null,
+        transport: null,
+      }),
+    };
+  }
+  return _mcpPolicy;
+}
+
+function resolveRuntimeMode(config) {
+  return (
+    config?.mode ||
+    process.env.CHAINLESSCHAIN_MODE ||
+    "local"
+  ).toLowerCase();
+}
+
+function toPolicyServer(serverConfig) {
+  if (!serverConfig) {
+    return {};
+  }
+  // map http-sse → http for policy purposes
+  let transport = serverConfig.transport;
+  if (transport === "http-sse") {
+    transport = "http";
+  }
+  return {
+    transport,
+    command: serverConfig.command,
+    args: serverConfig.args,
+    url: serverConfig.baseURL || serverConfig.url,
+    modeCompatibility: serverConfig.modeCompatibility,
+  };
+}
+
 /**
  * Transport types
  */
@@ -114,6 +160,22 @@ class MCPClientManager extends EventEmitter {
 
     try {
       logger.info(`[MCPClientManager] Connecting to server: ${serverName}`);
+
+      // Phase 3: enforce hosted MCP policy unless caller explicitly bypasses.
+      const mode = resolveRuntimeMode(this.config);
+      if (!serverConfig?.bypassPolicy) {
+        const { validateMcpServer } = getMcpPolicy();
+        const check = validateMcpServer(toPolicyServer(serverConfig), mode);
+        if (!check.allowed) {
+          const err = new Error(
+            `MCP server "${serverName}" blocked in mode "${mode}": ${check.reason}`,
+          );
+          err.code = "MCP_POLICY_BLOCKED";
+          err.mode = mode;
+          err.transport = check.transport;
+          throw err;
+        }
+      }
 
       // Check if already connected
       if (this.servers.has(serverName)) {

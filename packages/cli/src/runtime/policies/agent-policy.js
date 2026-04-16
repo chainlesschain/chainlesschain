@@ -18,6 +18,14 @@ export function resolveAgentPolicy({
         ? overrides.apiKey
         : llm.apiKey || defaults.apiKey || null,
     sessionId: overrides.sessionId || null,
+    agentId: overrides.agentId || null,
+    recallMemory:
+      overrides.recallMemory === false ? false : overrides.recallMemory,
+    recallLimit: overrides.recallLimit,
+    recallQuery: overrides.recallQuery,
+    noStream: overrides.noStream === true,
+    parkOnExit: overrides.parkOnExit === false ? false : true,
+    bundlePath: overrides.bundlePath || null,
   };
 }
 
@@ -30,6 +38,8 @@ export function resolveServerPolicy(overrides = {}) {
     timeout: overrides.timeout,
     allowRemote: Boolean(overrides.allowRemote),
     project: overrides.project || process.cwd(),
+    httpPort: overrides.httpPort || null,
+    bundlePath: overrides.bundlePath || null,
   };
 }
 

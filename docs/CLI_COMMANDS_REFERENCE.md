@@ -30,6 +30,11 @@ chainlesschain llm models  # List installed models
 chainlesschain llm test    # Test LLM connectivity
 chainlesschain agent       # Agentic AI session (Claude Code style)
 chainlesschain agent --session <id> # Resume previous agent session
+chainlesschain agent --agent-id <id>              # Scope memory recall to agent
+chainlesschain agent --recall-limit 5             # Inject top-5 memories at startup
+chainlesschain agent --no-recall-memory           # Disable startup memory recall
+chainlesschain agent --no-stream                  # Disable streamed rendering
+chainlesschain agent --bundle ./my-agent-bundle   # Load agent bundle (AGENTS.md + USER.md + skills/ + mcp.json)
 chainlesschain skill list  # List all skills (4-layer: bundled/marketplace/managed/workspace)
 chainlesschain skill list --category cli-direct  # List CLI command skill packs
 chainlesschain skill run code-review "Review this code"
@@ -56,15 +61,21 @@ chainlesschain session list      # Session management
 
 ## Managed Agents Parity (session-core)
 
-Phase D2 / E1 / E2 — shared with Desktop via `@chainlesschain/session-core`.
-All three persist under `~/.chainlesschain/`.
+Phase D–H — shared with Desktop via `@chainlesschain/session-core`.
+All persist under `~/.chainlesschain/`; Desktop reads the same files from `<userData>/.chainlesschain/`.
 
 ```bash
 # Scoped memory (MemoryStore — memory-store.json)
 chainlesschain memory store "Prefers TypeScript" --scope global --category preference
 chainlesschain memory store "Asked about P2P" --scope session --scope-id sess_123 --tags p2p,q
+chainlesschain memory store "Likes Rust" --scope user --scope-id u_alice --category preference
 chainlesschain memory recall "typescript" --scope global --json
+chainlesschain memory recall "rust" --scope user --scope-id u_alice --json
 chainlesschain memory recall --tags p2p --limit 20
+
+# Consolidate a JSONL session's trace into MemoryStore (Phase G)
+chainlesschain memory consolidate --session sess_123 --scope agent --agent-id coder
+chainlesschain memory consolidate --session sess_123 --dry-run --json
 
 # Per-session approval policy (ApprovalGate — approval-policies.json)
 chainlesschain session policy sess_123                        # show current
@@ -76,7 +87,67 @@ chainlesschain session policy sess_123 --json
 chainlesschain config beta list [--json]
 chainlesschain config beta enable idle-park-2026-05-01
 chainlesschain config beta disable idle-park-2026-05-01
+
+# Session lifecycle (SessionManager — parked-sessions.json) · Phase H
+chainlesschain session lifecycle                              # list running+parked
+chainlesschain session lifecycle --status parked --json
+chainlesschain session park sess_123                          # markIdle + park
+chainlesschain session unpark sess_123                        # restore parked
+chainlesschain session end sess_123 --consolidate             # close + write trace→MemoryStore
+chainlesschain agent --session sess_123                       # auto-unpark on start
+chainlesschain agent --no-park-on-exit                        # close handle on exit instead
+
+# Scriptable StreamRouter (NDJSON on stdout) · Phase H
+chainlesschain stream "summarize file X"                      # {type,ts,...} per line
+chainlesschain stream "..." --text                            # collect() concatenated text
+chainlesschain stream "..." --provider openai --model gpt-4o
+
+# Phase I — Session tail + usage rollup
+chainlesschain session tail sess_123                          # follow live JSONL events (NDJSON)
+chainlesschain session tail sess_123 --from-start             # replay from byte 0
+chainlesschain session tail sess_123 --type tool_call,assistant_message
+chainlesschain session tail sess_123 --since 1712000000000 --once
+chainlesschain session usage sess_123                         # per-session token rollup
+chainlesschain session usage                                  # global rollup
+chainlesschain session usage --json --limit 500
 ```
+
+## Hosted Session API (Phase I)
+
+`cc serve` exposes session-core over WebSocket. Route types (dot-case)
+return `<type>.response` envelopes with `{ ok, ... }`:
+
+| Type                    | Payload fields                                          |
+| ----------------------- | ------------------------------------------------------- |
+| `sessions.list`         | `agentId?`, `status?` → `{ sessions[] }`                |
+| `sessions.show`         | `sessionId` → `{ session, source: "live"\|"parked" }`   |
+| `sessions.park`         | `sessionId` → `{ parked: true }`                        |
+| `sessions.unpark`       | `sessionId` → `{ resumed: true }`                       |
+| `sessions.end`          | `sessionId`, `consolidate?`, `scope?`, `scopeId?`, `agentId?` |
+| `sessions.policy.get`   | `sessionId` → `{ policy }`                              |
+| `sessions.policy.set`   | `sessionId`, `policy` (strict/trusted/autopilot)        |
+| `memory.store`          | `content`, `scope?`, `scopeId?`, `tags?`, `category?`   |
+| `memory.recall`         | `query?`, `scope?`, `tags?`, `limit?` → `{ results[] }` |
+| `memory.delete`         | `id` → `{ deleted: true }`                              |
+| `memory.consolidate`    | `sessionId`, `scope?`, `dryRun?`                        |
+| `beta.list` / `beta.enable` / `beta.disable` | `flag` (format `<feature>-YYYY-MM-DD`) |
+| `usage.session`         | `sessionId` → `{ usage }`                               |
+| `usage.global`          | `limit?` → `{ usage: { sessions[], total, byModel[] } }` |
+
+Streaming routes emit intermediate `stream.event` envelopes followed by a
+terminal `<type>.end` envelope:
+
+| Type         | Payload fields                                                                                  |
+| ------------ | ----------------------------------------------------------------------------------------------- |
+| `stream.run` | `prompt`, `provider?`, `model?`, `baseUrl?`, `apiKey?` → events `{type:"stream.event", event}`, end `{ok, text}` |
+| `sessions.subscribe` | `events?:string[]` (default: all lifecycle) → events `{type:"stream.event", event:{type:"session.<lifecycle>", session}}`, end `{ok, unsubscribed:true, events}` |
+
+Lifecycle values forwarded by `sessions.subscribe`: `created`, `adopted`,
+`touched`, `idle`, `parked`, `resumed`, `closed`.
+
+Cancel a streaming request by sending `{type:"cancel", id}` — the server
+calls `AbortController.abort()` which detaches listeners (`sessions.subscribe`)
+or aborts the in-flight fetch (`stream.run`).
 
 ## Phase 2: Knowledge & Content Management
 
@@ -218,6 +289,7 @@ chainlesschain cli-anything doctor / scan / register / list / remove
 ```bash
 chainlesschain serve                            # WebSocket server (port 18800)
 chainlesschain serve --port 9000 --token <s>    # Custom port + auth
+chainlesschain serve --bundle ./agent-bundle    # Load bundle for all sessions (AGENTS.md + MCP + approval)
 chainlesschain ui                               # Web panel (port 18810)
 chainlesschain ui --port 18810 --ws-port 18800 --token <s>
 ```
@@ -230,4 +302,35 @@ chainlesschain orchestrate "task" --backends claude,gemini --strategy parallel-a
 chainlesschain orchestrate detect               # Detect AI CLI tools
 chainlesschain orchestrate --status [--json]    # Show status
 chainlesschain orchestrate --webhook [--webhook-port 9090]
+```
+
+## Video Editing Agent (CutClaw-inspired)
+
+```bash
+# Full pipeline: deconstruct → plan → assemble → render
+chainlesschain video edit --video raw.mp4 --audio bgm.mp3 --instruction "节奏感强的角色蒙太奇"
+chainlesschain video edit --video raw.mp4 --audio bgm.mp3 --instruction "..." --stream  # NDJSON
+chainlesschain video edit --video raw.mp4 --audio bgm.mp3 --instruction "..." --json
+
+# Phase 3: Parallel + quality gate
+chainlesschain video edit ... --parallel --review
+chainlesschain video edit ... --parallel --concurrency 8    # Max parallel sections
+
+# Phase 4: Audio precision — beat-snap + ducking
+chainlesschain video edit ... --use-madmom --snap-beats     # madmom beat detection + snap
+chainlesschain video edit ... --ducking                     # Dialogue ducking in audio mix
+chainlesschain video edit ... --use-madmom --snap-beats --ducking --parallel --review  # All flags
+
+# Step-by-step (for debugging / Web progress)
+chainlesschain video deconstruct --video raw.mp4 --audio bgm.mp3     # → cached asset hash
+chainlesschain video deconstruct --video raw.mp4 --audio bgm.mp3 --use-madmom  # madmom beats
+chainlesschain video plan --asset-dir <dir> --instruction "..."      # → shot_plan.json
+chainlesschain video assemble --asset-dir <dir> --plan shot_plan.json # → shot_point.json
+chainlesschain video assemble ... --parallel --review                 # Parallel + quality gate
+chainlesschain video render --video raw.mp4 --points shot_point.json --output final.mp4
+
+# Asset cache management
+chainlesschain video assets list                  # List deconstructed assets
+chainlesschain video assets show --hash <hash>    # Show asset details
+chainlesschain video assets prune --older-than 30 # Clean old caches
 ```

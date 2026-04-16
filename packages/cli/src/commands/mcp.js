@@ -8,6 +8,10 @@ import ora from "ora";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import { MCPClient, MCPServerConfig } from "../harness/mcp-client.js";
+import {
+  validateMcpServer,
+  annotateMcpCompatibility,
+} from "@chainlesschain/session-core";
 
 // Singleton MCP client for session reuse
 let mcpClient = null;
@@ -15,6 +19,28 @@ let mcpClient = null;
 function getClient() {
   if (!mcpClient) mcpClient = new MCPClient();
   return mcpClient;
+}
+
+// Phase 3 (Hosted MCP Policy): resolve runtime mode from --mode > env > local.
+function resolveMode(options) {
+  return (
+    options?.mode ||
+    process.env.CHAINLESSCHAIN_MODE ||
+    "local"
+  ).toLowerCase();
+}
+
+// Normalize a stored server row to mcp-policy's server shape.
+function toPolicyServer(row) {
+  return {
+    name: row.name,
+    command: row.command,
+    args: row.args,
+    env: row.env,
+    transport: row.transport,
+    url: row.url,
+    modeCompatibility: row.modeCompatibility,
+  };
 }
 
 export function registerMcpCommand(program) {
@@ -27,6 +53,7 @@ export function registerMcpCommand(program) {
     .command("servers")
     .description("List configured MCP servers")
     .option("--json", "Output as JSON")
+    .option("--mode <mode>", "Runtime mode (local | lan | hosted)")
     .action(async (options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
@@ -38,18 +65,44 @@ export function registerMcpCommand(program) {
         const db = ctx.db.getDatabase();
         const config = new MCPServerConfig(db);
         const servers = config.list();
+        const mode = resolveMode(options);
+        const annotated = servers.map((s) => {
+          const { allowed, reason, transport } = validateMcpServer(
+            toPolicyServer(s),
+            mode,
+          );
+          const modes = annotateMcpCompatibility(
+            toPolicyServer(s),
+          )._modeCompatibility;
+          return {
+            ...s,
+            _mode: mode,
+            _allowed: allowed,
+            _reason: reason,
+            _transport: transport,
+            _modeCompatibility: modes,
+          };
+        });
 
         if (options.json) {
-          console.log(JSON.stringify(servers, null, 2));
+          console.log(JSON.stringify(annotated, null, 2));
         } else if (servers.length === 0) {
           logger.info("No MCP servers configured. Use 'mcp add' to add one.");
         } else {
-          logger.log(chalk.bold(`MCP Servers (${servers.length}):\n`));
-          for (const s of servers) {
+          logger.log(
+            chalk.bold(`MCP Servers (${servers.length}) — mode: ${mode}\n`),
+          );
+          for (const s of annotated) {
             const auto = s.autoConnect ? chalk.green(" [auto]") : "";
-            logger.log(`  ${chalk.cyan(s.name)}${auto}`);
+            const flag = s._allowed
+              ? chalk.green(" [ok]")
+              : chalk.yellow(` [blocked: ${s._reason}]`);
+            logger.log(`  ${chalk.cyan(s.name)}${auto}${flag}`);
             logger.log(
               `    ${chalk.gray("Command:")} ${s.command} ${s.args.join(" ")}`,
+            );
+            logger.log(
+              `    ${chalk.gray("Compatible:")} ${s._modeCompatibility.join(", ") || "(none)"}`,
             );
           }
         }
@@ -69,6 +122,10 @@ export function registerMcpCommand(program) {
     .requiredOption("-c, --command <cmd>", "Server command to run")
     .option("-a, --args <args>", "Command arguments (comma-separated)")
     .option("--auto-connect", "Auto-connect on startup")
+    .option(
+      "--mode <mode>",
+      "Runtime mode to validate against (local | lan | hosted)",
+    )
     .option("--json", "Output as JSON")
     .action(async (name, options) => {
       try {
@@ -83,6 +140,17 @@ export function registerMcpCommand(program) {
         const args = options.args
           ? options.args.split(",").map((a) => a.trim())
           : [];
+
+        const mode = resolveMode(options);
+        const check = validateMcpServer(
+          { name, command: options.command, args },
+          mode,
+        );
+        if (!check.allowed) {
+          logger.warn(
+            `Server "${name}" is not compatible with mode "${mode}": ${check.reason}`,
+          );
+        }
 
         config.add(name, {
           command: options.command,
@@ -148,6 +216,8 @@ export function registerMcpCommand(program) {
     .command("connect")
     .description("Connect to an MCP server")
     .argument("<name>", "Server name (configured or command)")
+    .option("--mode <mode>", "Runtime mode (local | lan | hosted)")
+    .option("--force", "Bypass mode compatibility check")
     .option("--json", "Output as JSON")
     .action(async (name, options) => {
       try {
@@ -163,6 +233,18 @@ export function registerMcpCommand(program) {
 
         if (!serverConfig) {
           logger.error(`Server "${name}" not configured. Use 'mcp add' first.`);
+          process.exit(1);
+        }
+
+        const mode = resolveMode(options);
+        const check = validateMcpServer(
+          toPolicyServer({ name, ...serverConfig }),
+          mode,
+        );
+        if (!check.allowed && !options.force) {
+          logger.error(
+            `Server "${name}" blocked in mode "${mode}": ${check.reason}. Use --force to override.`,
+          );
           process.exit(1);
         }
 

@@ -450,6 +450,256 @@ export function registerSessionCommand(program) {
       }
     });
 
+  // ---------------------------------------------------------------
+  // session-core SessionManager lifecycle (Phase H — CLI parity)
+  // Parked sessions persist to ~/.chainlesschain/parked-sessions.json
+  // ---------------------------------------------------------------
+  session
+    .command("lifecycle")
+    .description("List session-core handles (running/idle/parked)")
+    .option("--status <s>", "Filter by status: running | idle | parked")
+    .option("--agent <id>", "Filter by agent id")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const { getSessionManager } =
+          await import("../lib/session-core-singletons.js");
+        const mgr = getSessionManager();
+        const live = mgr.list({
+          agentId: options.agent,
+          status: options.status,
+        });
+        let parked = [];
+        if (mgr._parkedStore) {
+          const all = await mgr._parkedStore.list();
+          parked = all
+            .filter((s) => !options.agent || s.agentId === options.agent)
+            .filter((s) => !options.status || s.status === options.status);
+        }
+        const merged = [
+          ...live.map((h) => h.toJSON()),
+          ...parked.filter(
+            (p) => !live.some((h) => h.sessionId === p.sessionId),
+          ),
+        ];
+        if (options.json) {
+          console.log(JSON.stringify(merged, null, 2));
+          return;
+        }
+        if (merged.length === 0) {
+          logger.info("No session-core handles");
+          return;
+        }
+        for (const h of merged) {
+          logger.log(
+            `${chalk.gray(h.sessionId.slice(0, 12))}  ${chalk.cyan(h.status.padEnd(7))}  agent=${h.agentId || "-"}`,
+          );
+        }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  session
+    .command("park")
+    .description("Park a session (persist to disk, free process memory)")
+    .argument("<id>", "Session ID")
+    .action(async (id) => {
+      try {
+        const { getSessionManager } =
+          await import("../lib/session-core-singletons.js");
+        const mgr = getSessionManager();
+        if (!mgr.has(id)) {
+          logger.error(`Session ${id} is not active in this process`);
+          process.exit(1);
+        }
+        mgr.markIdle(id);
+        const ok = await mgr.park(id);
+        if (!ok) {
+          logger.error(`Failed to park ${id}`);
+          process.exit(1);
+        }
+        logger.success(`Session ${chalk.gray(id.slice(0, 12))} parked`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  session
+    .command("unpark")
+    .description("Resume a parked session")
+    .argument("<id>", "Session ID")
+    .action(async (id) => {
+      try {
+        const { getSessionManager } =
+          await import("../lib/session-core-singletons.js");
+        const mgr = getSessionManager();
+        const ok = await mgr.resume(id);
+        if (!ok) {
+          logger.error(`No parked session ${id}`);
+          process.exit(1);
+        }
+        logger.success(`Session ${chalk.gray(id.slice(0, 12))} resumed`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  session
+    .command("end")
+    .description(
+      "Close a session (optionally consolidate trace into MemoryStore)",
+    )
+    .argument("<id>", "Session ID")
+    .option(
+      "--consolidate",
+      "Consolidate JSONL trace into MemoryStore before closing",
+    )
+    .option("--scope <s>", "Memory scope for consolidation", "session")
+    .option("--scope-id <id>", "Scope id (defaults to session id)")
+    .option("--agent-id <id>", "Agent id for scope=agent")
+    .action(async (id, options) => {
+      try {
+        const { getSessionManager } =
+          await import("../lib/session-core-singletons.js");
+        if (options.consolidate) {
+          try {
+            const { consolidateJsonlSession } =
+              await import("../lib/session-consolidator.js");
+            const res = await consolidateJsonlSession(id, {
+              scope: options.scope,
+              scopeId: options.scopeId || null,
+              agentId: options.agentId || null,
+            });
+            await new Promise((r) => setImmediate(r));
+            logger.info(
+              `Consolidated ${res.writtenCount} memory entries from session trace`,
+            );
+          } catch (e) {
+            logger.warn(`Consolidation skipped: ${e.message}`);
+          }
+        }
+        const mgr = getSessionManager();
+        const ok = await mgr.close(id);
+        if (!ok && mgr._parkedStore) {
+          await mgr._parkedStore.remove(id);
+        }
+        logger.success(`Session ${chalk.gray(id.slice(0, 12))} closed`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // ---------------------------------------------------------------
+  // session tail <id> — Phase I: follow JSONL events as NDJSON
+  // ---------------------------------------------------------------
+  session
+    .command("tail")
+    .description("Follow a JSONL session's events (NDJSON on stdout)")
+    .argument("<id>", "Session ID")
+    .option("--from-start", "Start from the first event (default: EOF)")
+    .option("--from-offset <n>", "Start from explicit byte offset")
+    .option("-t, --type <types>", "Comma-separated event types to include")
+    .option("--since <ms>", "Only events with timestamp >= ms")
+    .option("--once", "Drain current tail and exit (no follow)")
+    .option("--poll <ms>", "Poll interval", "200")
+    .action(async (id, options) => {
+      try {
+        const { followSession } = await import("../lib/session-tail.js");
+        const controller = new AbortController();
+        const onSig = () => controller.abort();
+        process.once("SIGINT", onSig);
+        process.once("SIGTERM", onSig);
+        const types = options.type
+          ? options.type
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : null;
+        const iter = followSession(id, {
+          signal: controller.signal,
+          pollMs: parseInt(options.poll, 10) || 200,
+          fromStart: Boolean(options.fromStart),
+          fromOffset:
+            options.fromOffset !== undefined
+              ? parseInt(options.fromOffset, 10)
+              : undefined,
+          types,
+          sinceMs: options.since ? parseInt(options.since, 10) : null,
+          once: Boolean(options.once),
+        });
+        for await (const { event } of iter) {
+          process.stdout.write(JSON.stringify(event) + "\n");
+        }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // ---------------------------------------------------------------
+  // session usage [id] — Phase I: aggregate token usage
+  // ---------------------------------------------------------------
+  session
+    .command("usage")
+    .description("Aggregate token usage (per-session or global)")
+    .argument("[id]", "Session ID (omit for global rollup)")
+    .option("--json", "Output as JSON")
+    .option("--limit <n>", "Max sessions for global rollup", "1000")
+    .action(async (id, options) => {
+      try {
+        const { sessionUsage, allSessionsUsage } =
+          await import("../lib/session-usage.js");
+        const result = id
+          ? sessionUsage(id)
+          : allSessionsUsage({ limit: parseInt(options.limit, 10) || 1000 });
+
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+          return;
+        }
+
+        if (id) {
+          logger.log(chalk.bold(`Session ${chalk.gray(id.slice(0, 16))}`));
+          const t = result.total;
+          logger.log(
+            `  total: ${chalk.cyan(t.totalTokens.toLocaleString())} tokens  in=${t.inputTokens}  out=${t.outputTokens}  calls=${t.calls}`,
+          );
+          if (result.byModel.length === 0) {
+            logger.log(chalk.gray("  (no token_usage events recorded)"));
+            return;
+          }
+          for (const row of result.byModel) {
+            logger.log(
+              `  ${chalk.gray((row.provider || "?").padEnd(10))} ${chalk.white((row.model || "?").padEnd(24))} in=${row.inputTokens}  out=${row.outputTokens}  calls=${row.calls}`,
+            );
+          }
+        } else {
+          const t = result.total;
+          logger.log(chalk.bold("Global usage"));
+          logger.log(
+            `  total: ${chalk.cyan(t.totalTokens.toLocaleString())} tokens  in=${t.inputTokens}  out=${t.outputTokens}  calls=${t.calls}  sessions=${result.sessions.length}`,
+          );
+          if (result.byModel.length === 0) {
+            logger.log(chalk.gray("  (no token_usage events recorded)"));
+            return;
+          }
+          for (const row of result.byModel) {
+            logger.log(
+              `  ${chalk.gray((row.provider || "?").padEnd(10))} ${chalk.white((row.model || "?").padEnd(24))} in=${row.inputTokens}  out=${row.outputTokens}  calls=${row.calls}`,
+            );
+          }
+        }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
   // session workflow — inspect canonical coding workflow state
   // Reads .chainlesschain/sessions/<id>/{intent.md,plan.md,progress.log,mode.json}
   // written by the 4 workflow skills ($deep-interview/$ralplan/$ralph/$team).

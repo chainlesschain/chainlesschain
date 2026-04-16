@@ -34,6 +34,7 @@ import {
   appendUserMessage,
   appendAssistantMessage,
   appendCompactEvent,
+  appendTokenUsage,
   rebuildMessages,
   sessionExists,
 } from "../harness/jsonl-session-store.js";
@@ -70,18 +71,24 @@ import {
  */
 let _hookDb = null;
 let _compressor = null;
+let _approvalGate = null;
 
 /**
  * Execute a tool call — delegates to agent-core with REPL's hookDb and cwd.
  */
 async function executeTool(name, args) {
-  return coreExecuteTool(name, args, { hookDb: _hookDb, cwd: process.cwd() });
+  return coreExecuteTool(name, args, {
+    hookDb: _hookDb,
+    cwd: process.cwd(),
+    approvalGate: _approvalGate,
+  });
 }
 
 /**
  * Agentic loop — wraps agent-core's async generator with REPL display output.
  */
 async function agentLoop(messages, options) {
+  const usageEvents = [];
   for await (const event of coreAgentLoop(messages, options)) {
     if (event.type === "tool-executing") {
       process.stdout.write(
@@ -97,6 +104,8 @@ async function agentLoop(messages, options) {
       } else if (event.result?.success) {
         process.stdout.write(chalk.green(`  Done\n`));
       }
+    } else if (event.type === "token-usage") {
+      usageEvents.push(event);
     } else if (event.type === "iteration-warning") {
       process.stdout.write(chalk.yellow(`\n  ${event.message}\n`));
     } else if (event.type === "iteration-budget-exhausted") {
@@ -104,10 +113,10 @@ async function agentLoop(messages, options) {
         chalk.red(`\n  [Budget Exhausted] ${event.budget}\n`),
       );
     } else if (event.type === "response-complete") {
-      return event.content;
+      return { content: event.content, usageEvents };
     }
   }
-  return "";
+  return { content: "", usageEvents };
 }
 
 /**
@@ -155,6 +164,39 @@ export async function startAgentRepl(options = {}) {
   // Set hook DB reference for tool pipeline
   _hookDb = db;
 
+  // Wire the persistent ApprovalGate singleton (approval-policies.json) with
+  // a readline confirm prompt. agent-core's run_shell branch gates
+  // MEDIUM/HIGH-risk commands against the session's policy tier
+  // (strict / trusted / autopilot).
+  try {
+    const { getApprovalGate } =
+      await import("../lib/session-core-singletons.js");
+    _approvalGate = await getApprovalGate();
+    if (typeof _approvalGate.setConfirmer === "function") {
+      _approvalGate.setConfirmer(async ({ args, riskLevel }) => {
+        const rlConfirm = readline.createInterface({
+          input: process.stdin,
+          output: process.stdout,
+        });
+        const q = (p) => new Promise((res) => rlConfirm.question(p, res));
+        const cmd = args?.command ? ` ${args.command}` : "";
+        const ans = (
+          await q(
+            chalk.yellow(
+              `\n[ApprovalGate] ${riskLevel || "medium"} risk command:${cmd}\n  Proceed? (y/N) `,
+            ),
+          )
+        )
+          .trim()
+          .toLowerCase();
+        rlConfirm.close();
+        return ans === "y" || ans === "yes";
+      });
+    }
+  } catch (_err) {
+    _approvalGate = null;
+  }
+
   // Resume existing session or create new one
   const useJsonl = feature("JSONL_SESSION");
 
@@ -200,9 +242,176 @@ export async function startAgentRepl(options = {}) {
     }
   }
 
+  // Phase H — register this session with session-core SessionManager so
+  // `cc session lifecycle / park / unpark / end` can see and control it.
+  // Resume a previously parked handle if --session points at one; otherwise
+  // create a fresh handle keyed by the JSONL sessionId.
+  let _sessionMgr = null;
+  let _sessionHandle = null;
+  try {
+    const { getSessionManager } =
+      await import("../lib/session-core-singletons.js");
+    _sessionMgr = getSessionManager();
+    if (sessionId) {
+      if (options.sessionId && !_sessionMgr.has(sessionId)) {
+        // Try unparking; no-op if nothing parked with that id
+        try {
+          await _sessionMgr.resume(sessionId);
+        } catch (_e) {
+          /* non-critical */
+        }
+      }
+      if (!_sessionMgr.has(sessionId)) {
+        _sessionHandle = _sessionMgr.create({
+          agentId: options.agentId || "cli-agent",
+          sessionId,
+          metadata: { provider, model },
+        });
+      } else {
+        _sessionHandle = _sessionMgr.get(sessionId);
+      }
+    }
+  } catch (_err) {
+    // Non-critical — SessionManager integration must not block startup
+  }
+
   const messages = [
     { role: "system", content: buildSystemPrompt(process.cwd()) },
   ];
+
+  // Deep Agents Deploy Phase 1 — load agent bundle if --bundle provided.
+  // Injects AGENTS.md as system prompt, seeds USER.md into MemoryStore,
+  // and applies bundle manifest metadata (model/provider override, agentId).
+  let _bundleResolved = null;
+  let _bundleMcpClient = null;
+  if (options.bundlePath) {
+    try {
+      const { loadBundle } =
+        await import("@chainlesschain/session-core/agent-bundle-loader");
+      const { resolveBundle } =
+        await import("@chainlesschain/session-core/agent-bundle-resolver");
+      const { getMemoryStore } =
+        await import("../lib/session-core-singletons.js");
+      const bundle = loadBundle(options.bundlePath);
+
+      const memoryStore = getMemoryStore();
+      _bundleResolved = resolveBundle(bundle, {
+        memoryStore,
+        seedOptions: {
+          userId: options.agentId || null,
+        },
+      });
+
+      if (_bundleResolved.systemPrompt) {
+        messages.push({
+          role: "system",
+          content: _bundleResolved.systemPrompt,
+        });
+      }
+
+      if (_bundleResolved.manifest) {
+        if (_bundleResolved.manifest.model && !options.model) {
+          model = _bundleResolved.manifest.model;
+        }
+        if (_bundleResolved.manifest.provider && !options.provider) {
+          provider = _bundleResolved.manifest.provider;
+        }
+      }
+
+      // Connect bundle MCP servers (stdio transport, local mode only).
+      const mcpServers = _bundleResolved.mcpConfig?.servers;
+      if (mcpServers && typeof mcpServers === "object") {
+        const serverEntries = Object.entries(mcpServers).filter(
+          ([, cfg]) => cfg && cfg.command,
+        );
+        if (serverEntries.length > 0) {
+          try {
+            const { MCPClient } = await import("../harness/mcp-client.js");
+            _bundleMcpClient = new MCPClient();
+            let connected = 0;
+            for (const [name, cfg] of serverEntries) {
+              try {
+                await _bundleMcpClient.connect(name, cfg);
+                connected += 1;
+              } catch (mcpErr) {
+                logger.log(
+                  chalk.yellow(
+                    `Bundle MCP: "${name}" connect failed — ${mcpErr.message}`,
+                  ),
+                );
+              }
+            }
+            if (connected === 0) {
+              await _bundleMcpClient.disconnectAll().catch(() => undefined);
+              _bundleMcpClient = null;
+            }
+          } catch (mcpInitErr) {
+            logger.log(
+              chalk.yellow(`Bundle MCP: init failed — ${mcpInitErr.message}`),
+            );
+            _bundleMcpClient = null;
+          }
+        }
+      }
+
+      const seedInfo = _bundleResolved.seedResult;
+      const seedMsg =
+        seedInfo && seedInfo.seeded > 0
+          ? `, seeded ${seedInfo.seeded} user memories`
+          : "";
+      const mcpMsg = _bundleMcpClient
+        ? `, ${_bundleMcpClient.servers.size} MCP servers`
+        : "";
+      const warnMsg =
+        _bundleResolved.warnings.length > 0
+          ? ` (${_bundleResolved.warnings.length} warnings)`
+          : "";
+      logger.log(
+        chalk.gray(
+          `Bundle: loaded ${_bundleResolved.manifest?.id || path.basename(options.bundlePath)}${seedMsg}${mcpMsg}${warnMsg}`,
+        ),
+      );
+    } catch (err) {
+      logger.log(chalk.red(`Bundle: failed to load — ${err.message}`));
+    }
+  }
+
+  // Apply bundle approval policy to this session (after both gate and sessionId are ready)
+  if (_bundleResolved?.approvalPolicy?.default && _approvalGate && sessionId) {
+    try {
+      _approvalGate.setSessionPolicy(
+        sessionId,
+        _bundleResolved.approvalPolicy.default,
+      );
+    } catch (_err) {
+      // Non-critical — invalid policy value is silently ignored
+    }
+  }
+
+  // Phase G #5 — inject top-K memory recall into system prompt for new sessions
+  // Skip on resume (existing context already reflects prior work) and when
+  // --no-recall-memory is passed.
+  if (!options.sessionId && options.recallMemory !== false) {
+    try {
+      const { buildMemoryInjection } =
+        await import("../lib/memory-injection.js");
+      const injection = buildMemoryInjection({
+        agentId: options.agentId || null,
+        query: options.recallQuery || "",
+        limit: Number(options.recallLimit) || undefined,
+      });
+      if (injection) {
+        messages.push({ role: injection.role, content: injection.content });
+        logger.log(
+          chalk.gray(
+            `Context: recalled ${injection.count} memory entries into system prompt`,
+          ),
+        );
+      }
+    } catch (_err) {
+      // Non-critical — memory recall failure must not block REPL startup
+    }
+  }
 
   // Load resumed session messages
   if (options.sessionId && sessionId) {
@@ -1235,7 +1444,7 @@ export async function startAgentRepl(options = {}) {
     try {
       process.stdout.write("\n");
       const iterationBudget = new IterationBudget({ owner: sessionId });
-      const response = await agentLoop(messages, {
+      const { content: response, usageEvents } = await agentLoop(messages, {
         provider,
         model: activeModel,
         baseUrl,
@@ -1245,7 +1454,23 @@ export async function startAgentRepl(options = {}) {
         sessionId,
         cwd: process.cwd(),
         prepareCall: defaultPrepareCall,
+        approvalGate: _approvalGate,
+        mcpClient: _bundleMcpClient || undefined,
       });
+
+      if (sessionId && usageEvents?.length) {
+        for (const ue of usageEvents) {
+          try {
+            appendTokenUsage(sessionId, {
+              provider: ue.provider,
+              model: ue.model,
+              usage: ue.usage,
+            });
+          } catch (_e) {
+            /* best-effort */
+          }
+        }
+      }
 
       // Fire AssistantResponse hook with rewrite/suppress support
       const responseDirective = await fireAssistantResponse(
@@ -1270,8 +1495,18 @@ export async function startAgentRepl(options = {}) {
       }
 
       if (effectiveResponse) {
-        process.stdout.write(`\n${effectiveResponse}\n\n`);
-        messages.push({ role: "assistant", content: effectiveResponse });
+        // Phase G #2 — route through StreamRouter so REPL / WS / future
+        // streaming providers share one StreamEvent protocol.
+        const { streamAgentResponse } = await import("../lib/agent-stream.js");
+        process.stdout.write("\n");
+        const noStream = options.noStream === true;
+        const streamResult = await streamAgentResponse(effectiveResponse, {
+          noStream,
+          writer: noStream ? null : (chunk) => process.stdout.write(chunk),
+        });
+        if (noStream) process.stdout.write(streamResult.text);
+        process.stdout.write("\n\n");
+        messages.push({ role: "assistant", content: streamResult.text });
       } else if (!responseDirective.suppress) {
         process.stdout.write("\n");
       }
@@ -1397,6 +1632,36 @@ export async function startAgentRepl(options = {}) {
       sessionId,
       messageCount: messages.length,
     });
+
+    // Phase H — park the SessionManager handle on clean exit so the session
+    // can be resumed later via `cc session unpark <id>`. `--no-park-on-exit`
+    // opts out; a SIGINT path (process-level) will force close instead.
+    if (_sessionMgr && sessionId) {
+      try {
+        if (options.parkOnExit === false) {
+          await _sessionMgr.close(sessionId);
+        } else {
+          _sessionMgr.markIdle(sessionId);
+          await _sessionMgr.park(sessionId);
+          logger.log(
+            chalk.gray(
+              `Session ${sessionId.slice(0, 12)} parked — resume with: cc session unpark ${sessionId}`,
+            ),
+          );
+        }
+      } catch (_e) {
+        // Non-critical — parking failure must not block shutdown
+      }
+    }
+
+    // Disconnect bundle MCP servers
+    if (_bundleMcpClient) {
+      try {
+        await _bundleMcpClient.disconnectAll();
+      } catch (_e) {
+        // Non-critical
+      }
+    }
 
     // Shutdown runtime
     try {

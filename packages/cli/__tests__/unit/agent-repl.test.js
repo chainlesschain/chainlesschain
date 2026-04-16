@@ -483,9 +483,9 @@ describe("agent-repl thin wrapper contracts", () => {
   it("executeTool wrapper passes hookDb and cwd to coreExecuteTool", () => {
     const content = readFileSync(agentReplPath, "utf8");
     // executeTool should delegate to coreExecuteTool with hookDb and cwd
-    expect(content).toContain(
-      "coreExecuteTool(name, args, { hookDb: _hookDb, cwd: process.cwd() })",
-    );
+    expect(content).toContain("coreExecuteTool(name, args, {");
+    expect(content).toContain("hookDb: _hookDb");
+    expect(content).toContain("cwd: process.cwd()");
   });
 
   it("agentLoop wrapper iterates coreAgentLoop and handles tool-executing events", () => {
@@ -502,10 +502,10 @@ describe("agent-repl thin wrapper contracts", () => {
     expect(content).toContain("event.result?.success");
   });
 
-  it("agentLoop wrapper returns event.content on response-complete", () => {
+  it("agentLoop wrapper returns structured result on response-complete", () => {
     const content = readFileSync(agentReplPath, "utf8");
     expect(content).toContain('event.type === "response-complete"');
-    expect(content).toContain("return event.content");
+    expect(content).toContain("return { content: event.content, usageEvents }");
   });
 });
 

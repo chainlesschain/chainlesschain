@@ -469,6 +469,14 @@ chainlesschain agent deploy --bundle ./agent-bundle --target chainless-hub
 - Desktop 可通过 adapter 读取同一 bundle
 - bundle 解析结果可稳定 snapshot
 
+### 状态: ✅ 已完成 (2026-04-16)
+
+- `packages/session-core/lib/agent-bundle-schema.js` + `agent-bundle-loader.js` + `agent-bundle-resolver.js`
+- 自动发现 `AGENTS.md` / `USER.md` / `skills/` / `mcp.json` / `policies/sandbox.json`
+- 测试: `__tests__/agent-bundle-{loader,resolver,schema}.test.js`
+- ✅ CLI consumption (2026-04-16): `cc agent --bundle <path>` loads bundle, injects AGENTS.md as system prompt, seeds USER.md into MemoryStore, applies manifest model/provider override, auto-connects `mcp.json` servers via MCPClient (passed to agentLoop, cleaned up on exit), applies `policies/approval.json` default to session ApprovalGate. 11 tests in `agent-bundle-integration.test.js`
+- ✅ WS server consumption (2026-04-16): `cc serve --bundle <path>` loads bundle at startup, injects AGENTS.md as `defaultSystemPromptExtension` for all new sessions via WSSessionManager, connects bundle MCP servers to shared mcpClient. +4 tests (server policy, WSSessionManager extension injection + per-session override). 15 tests total in `agent-bundle-integration.test.js`
+
 ### 优先级
 
 `P0`
@@ -494,6 +502,12 @@ chainlesschain agent deploy --bundle ./agent-bundle --target chainless-hub
 - 同一用户跨 session 可召回偏好
 - 不会覆盖已有用户记忆
 
+### 状态: ✅ 已完成 (2026-04-16)
+
+- `MemoryStore.SCOPE.USER` + `memory store/recall --scope user --scope-id <uid>` 已上线
+- `agent-bundle-loader` 解析 `USER.md` 作为 bundle-level user memory seed
+- CLI `memory` 命令支持 `--scope user` (参见 `docs/CLI_COMMANDS_REFERENCE.md`)
+
 ### 优先级
 
 `P0`
@@ -508,7 +522,7 @@ chainlesschain agent deploy --bundle ./agent-bundle --target chainless-hub
 
 ### 交付
 
-- `mcp.json` schema 扩展
+- `mcp.json` schema 扩展 (`modeCompatibility` 字段)
 - runtime mode = `local|lan|hosted`
 - hosted 模式拒绝 `stdio`
 - MCP 管理界面显示兼容模式
@@ -517,6 +531,14 @@ chainlesschain agent deploy --bundle ./agent-bundle --target chainless-hub
 
 - 本地 agent 仍兼容现有 `stdio`
 - hosted mode 下 bundle 校验阶段直接拦截不兼容 server
+- CLI `mcp servers/add/connect` 带 `--mode` 统一走同一策略
+
+### 状态: ✅ 已完成 (2026-04-16)
+
+- `packages/session-core/lib/mcp-policy.js` — `validateMcpServer` / `filterMcpServers` / `annotateCompatibility`
+- `agent-bundle-schema.validateBundle` 在 `lan`/`hosted` 模式下使用 `filterMcpServers` 拦截
+- `packages/cli/src/commands/mcp.js` — `--mode` 选项 + `servers` 列出兼容性 + `connect` 拒绝 + `add` 警告
+- 测试: `__tests__/mcp-policy.test.js` (19 tests) + 全量 session-core 354 tests 通过
 
 ### 优先级
 
@@ -543,6 +565,21 @@ chainlesschain agent deploy --bundle ./agent-bundle --target chainless-hub
 - 短任务 agent 默认使用 thread scope
 - session 恢复时 sandbox 复用或重建行为明确
 
+### 状态: ✅ Phase 4 (schema + desktop executor 落地, 2026-04-16)
+
+- `packages/session-core/lib/sandbox-policy.js` — `SCOPES` (thread/assistant), `SCOPE_DEFAULTS`, `validateSandboxPolicy`, `mergeSandboxPolicy`, `isSandboxExpired`, `isSandboxIdleExpired`, `shouldReuseSandbox`, `resolveBundleSandboxPolicy`
+- `agent-bundle-schema.validateBundle` 调 `validateSandboxPolicy` 校验 `policies/sandbox.json`
+- thread default: ttl=15min, idleTtl=5min, cleanupOnExit=true, reuseAcrossRuns=false
+- assistant default: ttl=24h, idleTtl=60min, cleanupOnExit=false, reuseAcrossRuns=true
+- desktop `agent-sandbox-v2`: `_resolvePolicy` (lazy require with fallback) + `acquireSandbox(agentId, {bundle?, policy?})` + `touchSandbox` + `pruneExpired(now?)`，`createSandbox` 自动附 `policy` 与 `lastUsedAt`，`sandbox:created` / `sandbox:reused` 事件带 scope
+- 测试: `__tests__/sandbox-policy.test.js` (26 tests), `__tests__/agent-sandbox-v2.test.js` (35 tests, 含 8 个 Phase 4 lifecycle 用例)
+
+### 待办（执行器适配）
+
+- ✅ CLI bundle 挂载复用 sandbox policy (2026-04-16): `sandbox create --bundle <path> [--scope thread|assistant]` 走 `acquireSandbox`（内部用 `resolveBundleSandboxPolicy` + `shouldReuseSandbox`），reuse 时输出 "Sandbox Reused:" 带 scope
+- ✅ 跨重启 idleTtl 生效 (2026-04-16): `sandbox-v2._syncFromDb(db)` 在 `acquireSandbox` / `pruneExpired` 入口按需重放 `sandbox_instances` 中 `status='active'` 的行（`created_at_ms`/`last_used_at_ms`/`policy` 都已持久化）。新增 `chainlesschain sandbox prune` 命令做 TTL / idle 一次性清扫，出脚本化 JSON
+- 测试: `__tests__/unit/sandbox-v2.test.js` +2 rehydrate 用例（45 tests total）
+
 ### 优先级
 
 `P1`
@@ -566,6 +603,21 @@ chainlesschain agent deploy --bundle ./agent-bundle --target chainless-hub
 
 - CLI / Desktop 不再维护两套流式事件真相
 - 对外暴露统一 session/run/approval/memory 语义
+
+### 状态: ✅ Phase 5 (envelope schema 落地, 2026-04-16)
+
+- `packages/session-core/lib/service-envelope.js` — `ENVELOPE_VERSION=1`, dot.case `TYPES` (session/run/approval/memory/sandbox), `createEnvelope`, `validateEnvelope`, `fromStreamEvent`, `toLegacyWsMessage`, `parseEnvelope`
+- 顶层稳定字段: `{ v, type, sessionId, runId?, requestId?, ts, payload }`
+- 与 StreamRouter (Phase F) 互通: `STREAM_TO_ENVELOPE` 把 start/token/tool_call/tool_result/message/error/end 映射到 run.* envelope
+- 兼容老 coding-agent WS 协议: `toLegacyWsMessage` 拍扁 payload 到根
+- 测试: `__tests__/service-envelope.test.js` (21 tests), 全量 session-core 401 tests 通过
+
+### 待办（gateway 适配）
+
+- ✅ CLI WS gateway: `session-protocol.js` 在 `ensureSessionHandler` 中按 beta flag `unified-envelope-2026-04-16` 给 `WebSocketInteractionAdapter` 注入 `enablePhase5Envelopes`；默认 off，opt-in 后 coding-agent 事件双发 legacy + envelope（2026-04-16）
+- ✅ Desktop IPC `agent-engine` 流事件改走 envelope 出口（`coding-agent:envelope` 通道，opt-in 通过 `enablePhase5Envelopes` 构造参数，2026-04-16）
+- ✅ Hosted HTTP service adapter primitive — `@chainlesschain/session-core/envelope-sse` (`sseResponseHeaders` / `formatEnvelopeAsSse` / `envelopeStreamToSse` with heartbeat + abort) lets any HTTP runtime stream Phase 5 envelopes as Server-Sent Events. 9 tests (2026-04-16)
+- ✅ CLI HTTP route wired: `packages/cli/src/gateways/http/envelope-http-server.js` + `createEnvelopeBus()` fan-out. `chainlesschain serve --http-port <port>` exposes `GET /v1/sessions/:id/events` (SSE) and `GET /v1/health`; bus publishes are driven by `ChainlessChainWSServer.broadcastEnvelope` (session lifecycle) and `WebSocketInteractionAdapter._sendPhase5Envelope` (run.* events). Bearer `--token` gates both WS and HTTP. 11 tests (2026-04-16)
 
 ### 优先级
 

@@ -502,6 +502,9 @@ export async function executeTool(name, args, context = {}) {
       externalToolDescriptors: context.externalToolDescriptors || null,
       externalToolExecutors: context.externalToolExecutors || null,
       mcpClient: context.mcpClient || null,
+      shellPolicyOverrides: context.shellPolicyOverrides || null,
+      approvalGate: context.approvalGate || null,
+      shellConfirm: context.shellConfirm || null,
     });
   } catch (err) {
     if (hookDb) {
@@ -569,6 +572,8 @@ async function executeToolInner(
     externalToolExecutors,
     mcpClient,
     shellPolicyOverrides,
+    approvalGate,
+    shellConfirm,
   },
 ) {
   const localToolDescriptor =
@@ -710,19 +715,49 @@ async function executeToolInner(
       const shellPolicyOpts = shellPolicyOverrides
         ? { overrideRuleIds: shellPolicyOverrides }
         : {};
-      const shellPolicy = evaluateShellCommandPolicy(
-        args.command,
-        shellPolicyOpts,
-      );
       const override = getRuntimeToolDescriptorByCommand(args.command);
-      if (!shellPolicy.allowed) {
-        return attachDescriptor(
-          {
-            error: `[Shell Policy] ${shellPolicy.reason}`,
-            shellCommandPolicy: shellPolicy,
-          },
-          override || runtimeDescriptor,
-        );
+      let shellPolicy;
+      let approvalOutcome = null;
+      if (approvalGate) {
+        const { evaluateShellCommandWithApproval } =
+          await import("../lib/shell-approval.js");
+        const gated = await evaluateShellCommandWithApproval({
+          command: args.command,
+          sessionId,
+          approvalGate,
+          shellPolicyOptions: shellPolicyOpts,
+        });
+        shellPolicy = gated.shellPolicy;
+        approvalOutcome = {
+          decision: gated.decision,
+          via: gated.via,
+          riskLevel: gated.riskLevel,
+          policy: gated.policy,
+        };
+        if (!gated.allowed) {
+          return attachDescriptor(
+            {
+              error:
+                gated.via === "shell-policy"
+                  ? `[Shell Policy] ${gated.reason}`
+                  : `[ApprovalGate] command denied (${gated.via})`,
+              shellCommandPolicy: shellPolicy,
+              approval: approvalOutcome,
+            },
+            override || runtimeDescriptor,
+          );
+        }
+      } else {
+        shellPolicy = evaluateShellCommandPolicy(args.command, shellPolicyOpts);
+        if (!shellPolicy.allowed) {
+          return attachDescriptor(
+            {
+              error: `[Shell Policy] ${shellPolicy.reason}`,
+              shellCommandPolicy: shellPolicy,
+            },
+            override || runtimeDescriptor,
+          );
+        }
       }
 
       try {
@@ -736,6 +771,7 @@ async function executeToolInner(
           {
             stdout: output.substring(0, 30000),
             shellCommandPolicy: shellPolicy,
+            approval: approvalOutcome,
           },
           override || runtimeDescriptor,
         );
@@ -746,6 +782,7 @@ async function executeToolInner(
             stderr: (err.stderr || "").substring(0, 2000),
             exitCode: err.status,
             shellCommandPolicy: shellPolicy,
+            approval: approvalOutcome,
           },
           override || runtimeDescriptor,
         );
@@ -1580,7 +1617,14 @@ export async function chatWithTools(rawMessages, options) {
     if (!response.ok) {
       throw new Error(`Ollama error: ${response.status}`);
     }
-    return await response.json();
+    const data = await response.json();
+    if (data.prompt_eval_count || data.eval_count) {
+      data.usage = {
+        input_tokens: data.prompt_eval_count || 0,
+        output_tokens: data.eval_count || 0,
+      };
+    }
+    return data;
   }
 
   if (provider === "anthropic") {
@@ -1627,7 +1671,14 @@ export async function chatWithTools(rawMessages, options) {
     }
 
     const data = await response.json();
-    return _normalizeAnthropicResponse(data);
+    const normalized = _normalizeAnthropicResponse(data);
+    if (data.usage) {
+      normalized.usage = {
+        input_tokens: data.usage.input_tokens || 0,
+        output_tokens: data.usage.output_tokens || 0,
+      };
+    }
+    return normalized;
   }
 
   // OpenAI-compatible providers
@@ -1696,7 +1747,14 @@ export async function chatWithTools(rawMessages, options) {
     throw new Error("Invalid API response: no choices returned");
   }
   const choice = data.choices[0];
-  return { message: choice.message };
+  const out = { message: choice.message };
+  if (data.usage) {
+    out.usage = {
+      input_tokens: data.usage.prompt_tokens || 0,
+      output_tokens: data.usage.completion_tokens || 0,
+    };
+  }
+  return out;
 }
 
 function _normalizeAnthropicResponse(data) {
@@ -1758,6 +1816,8 @@ export async function* agentLoop(messages, options) {
     parentMessages: messages, // pass parent messages for sub-agent auto-condensation
     interaction: options.interaction || null,
     shellPolicyOverrides: options.shellPolicyOverrides || null,
+    approvalGate: options.approvalGate || null,
+    shellConfirm: options.shellConfirm || null,
   };
 
   throwIfAborted(signal);
@@ -1816,6 +1876,17 @@ export async function* agentLoop(messages, options) {
   // real provider. Production code path is unchanged — the fallback is the
   // real `chatWithTools`.
   const llmCall = options.chatFn || chatWithTools;
+
+  // Phase 5 run bookends — a stable runId lets envelope subscribers correlate
+  // every tool_call / tool_result / message / ended event back to one run.
+  const runId =
+    options.runId ||
+    `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  yield {
+    type: "run-started",
+    runId,
+    sessionId: options.sessionId || null,
+  };
 
   while (budget.hasRemaining()) {
     budget.consume();
@@ -1877,8 +1948,18 @@ export async function* agentLoop(messages, options) {
     throwIfAborted(signal);
     const msg = result?.message;
 
+    if (result?.usage) {
+      yield {
+        type: "token-usage",
+        provider: options.provider || "ollama",
+        model: options.model || "unknown",
+        usage: result.usage,
+      };
+    }
+
     if (!msg) {
       yield { type: "response-complete", content: "(No response from LLM)" };
+      yield { type: "run-ended", runId, reason: "no-response" };
       return;
     }
 
@@ -1886,6 +1967,7 @@ export async function* agentLoop(messages, options) {
 
     if (!toolCalls || toolCalls.length === 0) {
       yield { type: "response-complete", content: msg.content || "" };
+      yield { type: "run-ended", runId, reason: "complete" };
       return;
     }
 
@@ -1948,6 +2030,7 @@ export async function* agentLoop(messages, options) {
     type: "response-complete",
     content: `(Iteration budget exhausted — ${budget.toSummary()})`,
   };
+  yield { type: "run-ended", runId, reason: "budget-exhausted" };
 }
 
 // ─── Format helpers ───────────────────────────────────────────────────────

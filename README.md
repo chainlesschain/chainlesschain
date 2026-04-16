@@ -1,25 +1,27 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 2026-04-16 增量更新（Managed Agents 对标 — session-core A-F 落地 + CLI 命令接入）
+## 2026-04-16 增量更新（Managed Agents Phase A–I 全部完成 + Deep Agents Deploy Phase 1–5 全部完成）
 
-对 Anthropic Claude Managed Agents 做本地优先版本的运行时对标，新增共享包 `@chainlesschain/session-core`，把 Session / Trace / Team-Subagent 语义 / Scoped Memory / Approval Policy / Beta Flags / Stream Router 抽到 CLI 与 Desktop 可共用的一层。
+对 Anthropic Claude Managed Agents + Deep Agents Deploy 做本地优先版本的运行时对标。新增共享包 `@chainlesschain/session-core`，把 Session / Trace / Team-Subagent / Scoped Memory / Approval Policy / Beta Flags / Stream Router / Service Envelope / MCP Policy / Sandbox Policy / Agent Bundle 抽到 CLI 与 Desktop 可共用的一层。
 
-本轮确认并补齐的落地项：
+### 关键交付
 
-- `session-core` 已完成 Phase A-F，当前测试 `293/293`
-- CLI 已接入 `chainlesschain memory recall|store`、`chainlesschain session policy`、`chainlesschain config beta list|enable|disable`
-- 本地持久化文件已落地：`memory-store.json`、`beta-flags.json`、`approval-policies.json`
-- 补齐针对性测试并修复 CLI 上下文工程测试中的真实 `USER.md` 泄漏问题
+- **session-core** 20 个测试文件，**413/413 tests** — 涵盖 SessionHandle、SessionManager、MemoryStore、MemoryConsolidator、ApprovalGate、BetaFlags、StreamRouter、TraceStore、SharedTaskList、ServiceEnvelope、MCPPolicy、SandboxPolicy、AgentBundle
+- **Hosted Session API** — `cc serve` WS 网关 17 req/resp + 2 streaming 路由（`stream.run` + `sessions.subscribe`），统一 `<type>.response` 信封
+- **CLI session/usage 命令** — `cc session tail/usage/lifecycle/park/unpark/end`、三端 (Ollama/OpenAI/Anthropic) 自动 token 记账
+- **Desktop IPC 收口** — 21 IPC channels（session lifecycle + memory + beta + usage + subscribe），Pinia store + SessionCorePage Usage tab
+- **Desktop/CLI 对称持久化** — 共用 `parked-sessions.json / memory-store.json / beta-flags.json / approval-policies.json`
 
 | 层 | 范围 | 通过 |
 | --- | --- | --- |
-| 共享包 | `@chainlesschain/session-core` | `293/293` |
-| 单元 | `session-core-singletons` / `cli-context-engineering` / `command-registration` | `85/85` |
-| 集成 | `managed-agents-cli.integration.test.js` | `3/3` |
-| E2E | `managed-agents-commands.test.js` | `6/6` |
+| 共享包 | `@chainlesschain/session-core` (20 files) | `413/413` |
+| CLI 单元 | ws-session-core (25) + agent-core (95) + chat-core-usage (10) + session-* (22) + singletons (10) + agent-repl (40) | `202/202` |
+| CLI 集成 | managed-agents + parity + shims + doc-creator | `696/696` |
+| CLI E2E | managed-agents + full e2e suite | `562/562` |
+| Desktop | session-core-ipc (23) + coding-agent (28) + sandbox (45) | `96/96` |
 
 用户文档：[docs-site/docs/chainlesschain/managed-agents-parity](./docs-site/docs/chainlesschain/managed-agents-parity.md)
-设计文档：[docs/design/modules/91_Managed_Agents对标计划](./docs/design/modules/91_Managed_Agents对标计划.md)
+设计文档：[docs/design/modules/91_Managed_Agents对标计划](./docs/design/modules/91_Managed_Agents对标计划.md) | [92_Deep_Agents_Deploy](./docs/design/modules/92_Deep_Agents_Deploy借鉴落地方案.md)
 
 ---
 ## 2026-04-15 增量更新（Open-Agents 对标补齐 — Phase 1–5 全部落地 + 140 测试）

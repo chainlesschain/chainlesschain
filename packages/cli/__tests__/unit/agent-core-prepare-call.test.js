@@ -73,7 +73,7 @@ describe("agent-core — prepareCall turn injection", () => {
       agentLoop([{ role: "user", content: "u" }], { chatFn, prepareCall }),
     );
 
-    expect(events.at(-1)).toMatchObject({
+    expect(events.find((e) => e.type === "response-complete")).toMatchObject({
       type: "response-complete",
       content: "fine",
     });
@@ -86,6 +86,8 @@ describe("agent-core — prepareCall turn injection", () => {
     const events = await drain(
       agentLoop([{ role: "user", content: "u" }], { chatFn }),
     );
-    expect(events.at(-1)).toMatchObject({ type: "response-complete" });
+    expect(events.find((e) => e.type === "response-complete")).toMatchObject({
+      type: "response-complete",
+    });
   });
 });

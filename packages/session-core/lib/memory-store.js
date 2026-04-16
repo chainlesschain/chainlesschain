@@ -19,6 +19,7 @@ const crypto = require("crypto");
 const SCOPE = Object.freeze({
   SESSION: "session",
   AGENT: "agent",
+  USER: "user",
   GLOBAL: "global",
 });
 
@@ -251,10 +252,10 @@ class MemoryStore extends EventEmitter {
    * 按 scope 汇总
    */
   stats() {
-    const counts = { total: 0, session: 0, agent: 0, global: 0 };
+    const counts = { total: 0, session: 0, agent: 0, user: 0, global: 0 };
     for (const m of this._memories.values()) {
       counts.total++;
-      counts[m.scope]++;
+      if (counts[m.scope] !== undefined) counts[m.scope]++;
     }
     return counts;
   }

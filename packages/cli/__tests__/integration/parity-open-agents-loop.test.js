@@ -27,7 +27,10 @@ import { vi } from "vitest";
 
 async function drain(iter) {
   const out = [];
-  for await (const ev of iter) out.push(ev);
+  for await (const ev of iter) {
+    if (ev.type === "run-started" || ev.type === "run-ended") continue;
+    out.push(ev);
+  }
   return out;
 }
 

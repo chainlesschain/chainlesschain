@@ -1966,7 +1966,8 @@ LLMManager.prototype.compressContent = function (content, type) {
 // ============================================================================
 
 /**
- * 5 个标准类别。新增类别需同时更新 CATEGORY_PROVIDER_PRIORITY 和 CATEGORY_OPTIONS。
+ * 10 个标准类别。新增类别需同时更新 CATEGORY_PROVIDER_PRIORITY 和 CATEGORY_OPTIONS。
+ * Path B-3: 新增 ASR / AUDIO_ANALYSIS / VIDEO_VLM 三个媒体类别。
  */
 const LLM_CATEGORIES = Object.freeze({
   QUICK: "quick", // 快速 / 补全 / 简单改写
@@ -1976,6 +1977,10 @@ const LLM_CATEGORIES = Object.freeze({
   CREATIVE: "creative", // 文案 / UI / 高发散
   EMBEDDING: "embedding", // 向量嵌入（RAG / 语义搜索 / nomic-embed-text）
   AUDIO: "audio", // 语音 / 转写 / TTS（gpt-4o-audio / whisper / gemini）
+  // Path B-3: media workload categories (CutClaw architecture alignment)
+  ASR: "asr", // 语音识别 / 字幕生成（whisper / 本地 whisper.cpp）
+  AUDIO_ANALYSIS: "audio-analysis", // 节拍检测 / 能量分析（本地工具优先，无需 LLM）
+  VIDEO_VLM: "video-vlm", // 视频理解 / 镜头质量评审（VLM: gemini / gpt-4o-video）
 });
 
 /**
@@ -2030,6 +2035,17 @@ const CATEGORY_PROVIDER_PRIORITY = Object.freeze({
   // Audio: gpt-4o-audio + whisper dominate; gemini handles native audio in/out;
   // fall back to custom (OpenAI-compatible whisper proxies) or local.
   audio: ["openai", "gemini", "volcengine", "custom", "ollama"],
+  // Path B-3: media workload categories
+  // ASR: whisper (OpenAI) is gold standard; gemini supports audio natively;
+  // local whisper.cpp via ollama as fallback.
+  asr: ["openai", "gemini", "volcengine", "custom", "ollama"],
+  // Audio analysis: beat detection / energy / segmentation — local tools only
+  // (madmom / ffmpeg volumedetect). No LLM needed; provider list is fallback
+  // for LLM-assisted captioning of audio segments.
+  "audio-analysis": ["ollama", "gemini", "openai", "custom"],
+  // Video VLM: frame-level quality review, protagonist detection, aesthetic
+  // scoring. Gemini leads (native video), GPT-4o-vision second, Claude third.
+  "video-vlm": ["gemini", "openai", "anthropic", "volcengine", "custom"],
 });
 
 /**
@@ -2043,6 +2059,10 @@ const CATEGORY_OPTIONS = Object.freeze({
   creative: { temperature: 0.9 },
   embedding: { requireEmbedding: true },
   audio: { requireAudio: true },
+  // Path B-3: media categories
+  asr: { requireAudio: true, task: "transcription" },
+  "audio-analysis": { localOnly: true, task: "beat-detection" },
+  "video-vlm": { requireMultimodal: true, task: "video-review" },
 });
 
 /**
@@ -2111,10 +2131,27 @@ function inferCategoryFromModelHints(modelHints) {
   if (
     capability === "audio" ||
     capability === "speech" ||
-    capability === "transcription" ||
     modelHints.audio === true
   ) {
     return LLM_CATEGORIES.AUDIO;
+  }
+  // Path B-3: media categories
+  if (capability === "transcription" || capability === "asr") {
+    return LLM_CATEGORIES.ASR;
+  }
+  if (
+    capability === "audio-analysis" ||
+    capability === "beat-detection" ||
+    modelHints.beatDetection === true
+  ) {
+    return LLM_CATEGORIES.AUDIO_ANALYSIS;
+  }
+  if (
+    capability === "video-vlm" ||
+    capability === "video-review" ||
+    modelHints.videoVlm === true
+  ) {
+    return LLM_CATEGORIES.VIDEO_VLM;
   }
   return LLM_CATEGORIES.QUICK;
 }
