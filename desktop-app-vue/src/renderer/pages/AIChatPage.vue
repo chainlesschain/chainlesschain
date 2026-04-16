@@ -260,6 +260,25 @@
             :message="`Blocked tool: ${currentBlockedTool.toolName || 'unknown'}`"
             :description="blockedToolDescription"
           />
+          <a-alert
+            v-if="currentApprovalDenied"
+            class="coding-agent-alert"
+            type="error"
+            show-icon
+            :message="`Approval denied: ${currentApprovalDenied.toolName || 'unknown'}`"
+            :description="approvalDeniedDescription"
+          >
+            <template v-if="currentApprovalDenied?.policy === 'strict'" #action>
+              <a-button
+                size="small"
+                type="primary"
+                :loading="isRelaxingPolicy"
+                @click="handleRelaxApprovalPolicy"
+              >
+                Switch to Trusted
+              </a-button>
+            </template>
+          </a-alert>
           <div v-if="showHarnessPanel" class="coding-agent-harness-panel">
             <div class="harness-panel-header">
               <div>
@@ -1237,10 +1256,12 @@ import ConversationInput from "@/components/projects/ConversationInput.vue";
 import BrowserPreview from "@/components/projects/BrowserPreview.vue";
 import StepDisplay from "@/components/projects/StepDisplay.vue";
 import { useCodingAgentStore } from "@/stores/coding-agent";
+import { useSessionCoreStore } from "@/stores/sessionCore";
 import { marked } from "marked";
 
 const authStore = useAuthStore();
 const codingAgentStore = useCodingAgentStore();
+const sessionCoreStore = useSessionCoreStore();
 const agentLogger = createLogger("AIChatPageCodingAgent");
 
 // 响应式状态
@@ -1582,6 +1603,20 @@ const currentBlockedTool = computed(() => {
     return null;
   }
   return codingAgentStore.latestBlockedToolEvent?.payload || null;
+});
+
+// Phase J+: surface ApprovalGate `approval.denied` events. Distinct from
+// `currentBlockedTool` (Plan Mode / Permission Gate) because the recovery
+// path is different — the user typically needs to flip the per-session
+// policy (strict→trusted) via the session-core API or `cc session policy`.
+const currentApprovalDenied = computed(() => {
+  if (!currentCodingAgentSessionId.value) {
+    return null;
+  }
+  if (codingAgentStore.currentSessionId !== currentCodingAgentSessionId.value) {
+    return null;
+  }
+  return codingAgentStore.latestApprovalDeniedEvent?.payload || null;
 });
 
 const planActionLabel = computed(() => {
@@ -2558,6 +2593,61 @@ const blockedToolDescription = computed(() => {
   return `${currentBlockedTool.value.reason || "The tool was blocked by the desktop permission gate."} ${riskSuffix}`.trim();
 });
 
+const isRelaxingPolicy = ref(false);
+const handleRelaxApprovalPolicy = async () => {
+  const sessionId = currentCodingAgentSessionId.value;
+  if (!sessionId) {
+    antMessage.warning("No active coding-agent session.");
+    return;
+  }
+  if (isRelaxingPolicy.value) {
+    return;
+  }
+  isRelaxingPolicy.value = true;
+  try {
+    const result = await sessionCoreStore.setPolicy(sessionId, "trusted");
+    if (result) {
+      antMessage.success(
+        `Session policy set to 'trusted'. Retry the tool to continue.`,
+      );
+    } else {
+      antMessage.error(
+        sessionCoreStore.lastError || "Failed to set session policy.",
+      );
+    }
+  } catch (error) {
+    antMessage.error(`Failed to set session policy: ${error.message || error}`);
+  } finally {
+    isRelaxingPolicy.value = false;
+  }
+};
+
+const approvalDeniedDescription = computed(() => {
+  const event = currentApprovalDenied.value;
+  if (!event) {
+    return "";
+  }
+
+  const parts = [];
+  if (event.reason) {
+    parts.push(event.reason);
+  } else {
+    parts.push("ApprovalGate denied this tool call.");
+  }
+  if (event.policy) {
+    parts.push(`Policy: ${event.policy}.`);
+  }
+  if (event.riskLevel) {
+    parts.push(`Risk: ${event.riskLevel}.`);
+  }
+  if (event.policy === "strict") {
+    parts.push(
+      "Relax the per-session policy (e.g. set to 'trusted') to allow this tool.",
+    );
+  }
+  return parts.join(" ");
+});
+
 const currentHighRiskToolNames = computed(() => {
   if (!currentCodingAgentSessionId.value) {
     return [];
@@ -3296,6 +3386,15 @@ const handleCodingAgentEvent = async (event) => {
       break;
     }
     case "approval-denied": {
+      // Phase J+: ApprovalGate auto-denies emit the same event type but with
+      // payload.source === "approval-gate" (plus a richer policy/via/risk
+      // shape). Those flow through the dedicated `currentApprovalDenied`
+      // alert + watcher → don't double-toast here, and don't clear the
+      // thinking spinner (the agent loop continues against ApprovalGate
+      // denies until the user changes policy or aborts).
+      if (event.payload?.source === "approval-gate") {
+        break;
+      }
       isThinking.value = false;
       if (event.payload.approvalType === "high-risk") {
         antMessage.info("High-risk actions were not confirmed.");
@@ -4358,6 +4457,25 @@ watch(
     }
 
     await handleCodingAgentEvent(latestEvent);
+  },
+);
+
+// Phase J+: fire a one-shot toast every time a *new* approval-denied event
+// arrives — the sticky banner (`currentApprovalDenied`) handles ongoing
+// visibility, but the toast catches the user's eye when the deny first lands.
+watch(
+  () => codingAgentStore.latestApprovalDeniedEvent?.id || null,
+  (eventId, previousId) => {
+    if (!eventId || eventId === previousId) {
+      return;
+    }
+    const payload = currentApprovalDenied.value;
+    if (!payload) {
+      return;
+    }
+    const tool = payload.toolName || "tool";
+    const policy = payload.policy ? ` (policy: ${payload.policy})` : "";
+    antMessage.warning(`Approval denied for ${tool}${policy}`);
   },
 );
 

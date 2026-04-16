@@ -26,6 +26,10 @@ const APPROVAL_REQUEST_EVENT_TYPES = [
   "approval-requested",
 ];
 const BLOCKED_TOOL_EVENT_TYPES = ["tool.call.failed", "tool-blocked"];
+// Phase J+: ApprovalGate-specific deny event. Distinct from BLOCKED_TOOL_EVENT_TYPES
+// because the recovery flow differs — the user typically needs to flip session
+// policy (strict→trusted) instead of approving a single plan/tool.
+const APPROVAL_DENIED_EVENT_TYPES = ["approval.denied", "approval-denied"];
 const SERVER_READY_EVENT_TYPES = ["runtime.server.ready", "server-ready"];
 const SERVER_STOPPED_EVENT_TYPES = ["runtime.server.stopped", "server-stopped"];
 const SESSION_STARTED_EVENT_TYPES = ["session.started", "session-created"];
@@ -243,6 +247,25 @@ export const useCodingAgentStore = defineStore("coding-agent", {
           .reverse()
           .find((event) =>
             matchesEventType(event.type, BLOCKED_TOOL_EVENT_TYPES),
+          ) || null
+      );
+    },
+
+    latestApprovalDeniedEvent(): CodingAgentEvent | null {
+      // Phase J+: only Phase J+ ApprovalGate emissions carry
+      // `payload.source === "approval-gate"`. The legacy plan / high-risk
+      // approval-denied event (emitted from `decideApproval` → see
+      // coding-agent-session-service.js) shares the same event type but
+      // has a totally different payload shape (`{ approvalType, tools }`)
+      // and a separate handler in AIChatPage.vue. Filtering by source here
+      // keeps the new alert + button bound to the right semantic.
+      return (
+        [...this.sessionEvents]
+          .reverse()
+          .find(
+            (event) =>
+              matchesEventType(event.type, APPROVAL_DENIED_EVENT_TYPES) &&
+              event.payload?.source === "approval-gate",
           ) || null
       );
     },

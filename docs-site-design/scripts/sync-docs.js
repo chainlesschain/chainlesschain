@@ -143,6 +143,14 @@ const MODULE_FILE_MAP = {
   "85_Hermes_Agent对标实施方案.md": "m85-hermes-agent-parity.md",
   "85_文档代码差距补全.md": "m85b-doc-code-gap-fill.md",
   "86_Web_Cowork日常任务协作系统.md": "m86-web-cowork.md",
+  "87_Cowork_Evolution_N1_N7.md": "m87-cowork-evolution.md",
+  "88_OpenAgents对标补齐方案.md": "m88-open-agents-parity.md",
+  "89_v5.0.2.9_六项优化_设计说明.md": "m89-runtime-six-enhancements.md",
+  "90_AI视频生成_Volcengine_Seedance.md": "m90-ai-video-generation-seedance.md",
+  "91_Managed_Agents对标计划.md": "m91-managed-agents-parity.md",
+  "92_Deep_Agents_Deploy借鉴落地方案.md": "m92-deep-agents-deploy.md",
+  "93_CutClaw借鉴_视频剪辑Agent.md": "m93-cutclaw-video-editing-agent.md",
+  "94_QualityGate通用质量门控.md": "m94-quality-gate.md",
 };
 
 /**

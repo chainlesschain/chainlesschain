@@ -1076,6 +1076,8 @@ export default defineConfig({
             { text: "85b 文档代码差距补全 ⭐NEW", link: "/design/modules/85b-doc-code-gap-fill" },
             { text: "86 Web Cowork协作 ⭐NEW", link: "/design/modules/86-web-cowork" },
             { text: "88 Open-Agents 对标 ⭐NEW", link: "/design/modules/88-open-agents-parity" },
+            { text: "89 v5.0.2.9 六项优化 ⭐NEW", link: "/design/modules/89-runtime-six-enhancements" },
+            { text: "90 AI视频生成 Seedance ⭐NEW", link: "/design/modules/90-ai-video-generation-seedance" },
             { text: "91 Managed Agents 对标 ⭐NEW", link: "/design/modules/91-managed-agents-parity" },
             { text: "92 Deep Agents Deploy ⭐NEW", link: "/design/modules/92-deep-agents-deploy" },
             { text: "93 CutClaw 视频剪辑 Agent ⭐NEW", link: "/design/modules/93-cutclaw-video-editing-agent" },

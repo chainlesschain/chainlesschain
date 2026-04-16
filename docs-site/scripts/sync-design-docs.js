@@ -143,6 +143,7 @@ const MODULE_FILE_MAP = {
   "85_Hermes_Agent对标实施方案.md": "85-hermes-agent-parity.md",
   "85_文档代码差距补全.md": "85b-doc-code-gap-fill.md",
   "86_Web_Cowork日常任务协作系统.md": "86-web-cowork.md",
+  "87_Cowork_Evolution_N1_N7.md": "87-cowork-evolution.md",
   "88_OpenAgents对标补齐方案.md": "88-open-agents-parity.md",
   "89_v5.0.2.9_六项优化_设计说明.md": "89-runtime-six-enhancements.md",
   "90_AI视频生成_Volcengine_Seedance.md": "90-ai-video-generation-seedance.md",

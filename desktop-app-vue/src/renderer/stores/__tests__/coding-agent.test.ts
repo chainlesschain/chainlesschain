@@ -472,11 +472,108 @@ describe("useCodingAgentStore", () => {
         sessionId: "session-1",
         payload: { toolName: "run_shell" },
       },
+      {
+        id: "evt-4",
+        type: "approval.denied",
+        timestamp: new Date().toISOString(),
+        sessionId: "session-1",
+        payload: {
+          toolName: "run_shell",
+          source: "approval-gate",
+          policy: "strict",
+          via: "strict",
+          riskLevel: "HIGH",
+          reason: "ApprovalGate denied (strict)",
+        },
+      },
     ] as any;
 
     expect(store.latestAssistantMessage).toBe("Done.");
     expect(store.latestApprovalRequest?.type).toBe("approval.requested");
     expect(store.latestBlockedToolEvent?.type).toBe("tool.call.failed");
+    expect(store.latestApprovalDeniedEvent?.type).toBe("approval.denied");
+    expect(store.latestApprovalDeniedEvent?.payload?.policy).toBe("strict");
+    expect(store.latestApprovalDeniedEvent?.payload?.source).toBe(
+      "approval-gate",
+    );
+  });
+
+  it("latestApprovalDeniedEvent returns null when no deny event in session", async () => {
+    const { useCodingAgentStore } = await import("../coding-agent");
+    const store = useCodingAgentStore();
+    store.currentSessionId = "session-1";
+    store.currentSession = {
+      sessionId: "session-1",
+      status: "ready",
+      history: [],
+    } as any;
+    store.events = [
+      {
+        id: "evt-1",
+        type: "assistant.final",
+        timestamp: new Date().toISOString(),
+        sessionId: "session-1",
+        payload: { content: "Done." },
+      },
+      // A blocked-tool event without an approval.denied event MUST NOT bleed
+      // into latestApprovalDeniedEvent — they have different recovery flows.
+      {
+        id: "evt-2",
+        type: "tool.call.failed",
+        timestamp: new Date().toISOString(),
+        sessionId: "session-1",
+        payload: { toolName: "run_shell" },
+      },
+    ] as any;
+
+    expect(store.latestApprovalDeniedEvent).toBeNull();
+    expect(store.latestBlockedToolEvent?.type).toBe("tool.call.failed");
+  });
+
+  it("latestApprovalDeniedEvent ignores legacy plan/high-risk approval rejections", async () => {
+    // Phase J+ regression guard: coding-agent-session-service.js has TWO
+    // emitters that share `CODING_AGENT_EVENT_TYPES.APPROVAL_DENIED`:
+    //   1. Legacy: plan/high-risk rejection — payload `{ approvalType, tools }`
+    //   2. Phase J+: ApprovalGate auto-deny — payload includes
+    //      `source: "approval-gate"` plus `policy/via/riskLevel/reason`
+    // The new getter must ONLY surface (2), since the recovery flow for (1)
+    // is "approve the plan" (handled by latestApprovalRequest) while (2) is
+    // "relax session policy" (handled by the new alert + button).
+    const { useCodingAgentStore } = await import("../coding-agent");
+    const store = useCodingAgentStore();
+    store.currentSessionId = "session-1";
+    store.currentSession = {
+      sessionId: "session-1",
+      status: "ready",
+      history: [],
+    } as any;
+    store.events = [
+      {
+        id: "evt-1",
+        type: "approval.denied",
+        timestamp: new Date().toISOString(),
+        sessionId: "session-1",
+        // Legacy shape — NO `source` field
+        payload: {
+          approvalType: "high-risk",
+          tools: ["run_shell"],
+        },
+      },
+      {
+        id: "evt-2",
+        type: "approval.denied",
+        timestamp: new Date().toISOString(),
+        sessionId: "session-1",
+        // Another legacy variant — `source` is something else
+        payload: {
+          approvalType: "plan",
+          source: "plan-mode",
+        },
+      },
+    ] as any;
+
+    // Both legacy events present, but neither carries `source: "approval-gate"`
+    expect(store.latestApprovalDeniedEvent).toBeNull();
   });
 
   it("reacts to unified dot-case runtime and session events", async () => {

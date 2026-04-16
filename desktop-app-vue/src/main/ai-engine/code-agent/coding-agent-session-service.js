@@ -1761,6 +1761,30 @@ class CodingAgentSessionService extends EventEmitter {
       toolArgs: args,
     });
     if (!evaluation.allowed) {
+      // Phase J+: when ApprovalGate (not Plan Mode) is the source of the deny,
+      // emit a structured `approval.denied` event so the renderer can surface
+      // a notification with policy context — instead of relying on the CLI to
+      // round-trip a generic `tool.call.failed` back through the bridge.
+      if (evaluation.approvalGate?.decision === "deny") {
+        this._storeEvent(
+          sessionId,
+          this._createEvent(
+            CODING_AGENT_EVENT_TYPES.APPROVAL_DENIED,
+            {
+              toolName,
+              reason: evaluation.denyReason || evaluation.reason || null,
+              policy: evaluation.approvalGate.policy || null,
+              via: evaluation.approvalGate.via || null,
+              riskLevel:
+                evaluation.approvalGate.riskLevel ||
+                evaluation.riskLevel ||
+                null,
+              source: "approval-gate",
+            },
+            { sessionId },
+          ),
+        );
+      }
       throw new Error(
         `[Host Policy] Tool "${toolName}" is blocked: ${evaluation.reason}`,
       );
