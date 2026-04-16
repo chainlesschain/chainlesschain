@@ -74,6 +74,26 @@ chainlesschain hardening audit report aud-001 --json
 
 查看指定审计报告的详细检查结果。
 
+### hardening config-check — 配置合规检查 (v5.0.2.10)
+
+```bash
+chainlesschain hardening config-check              # 全量扫描
+chainlesschain hardening config-check -f json      # JSON 输出
+chainlesschain hardening config-check -s critical  # 仅输出 critical 级别
+```
+
+对 `.chainlesschain/config.json`、环境变量、密钥存储、TLS 证书链等进行真检查（不再是 stub）。返回每条规则的 `pass / warn / fail` 状态与修复建议，覆盖 29_生产强化系统设计的安全基线清单。
+
+### hardening deploy-check — 部署前预检 (v5.0.2.10)
+
+```bash
+chainlesschain hardening deploy-check              # 部署前全链路预检
+chainlesschain hardening deploy-check -e production --json
+chainlesschain hardening deploy-check --strict     # 任一 warn 视为失败
+```
+
+面向 **CI/CD 部署阶段** 的快速卡口：检查端口占用、证书有效期、磁盘容量、依赖完整性、数据库迁移状态、PQC 密钥可用性、MCP 服务器联通等关键项。任何 `fail` 项返回非零退出码，便于流水线中断。
+
 ## 数据库表
 
 | 表名 | 说明 |

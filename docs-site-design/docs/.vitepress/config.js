@@ -665,8 +665,12 @@ export default defineConfig({
               link: "/modules/m93-cutclaw-video-editing-agent",
             },
             {
-              text: "94 QualityGate 通用质量门控 ⭐NEW",
+              text: "94 QualityGate 通用质量门控",
               link: "/modules/m94-quality-gate",
+            },
+            {
+              text: "95 社交协议生态补齐方案 ⭐NEW",
+              link: "/modules/m95-social-protocol-parity",
             },
           ],
         },
