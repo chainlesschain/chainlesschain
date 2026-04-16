@@ -113,6 +113,9 @@ import { registerCollabCommand } from "./commands/collab.js";
 // Phase 65: Skill Marketplace
 import { registerMarketplaceCommand } from "./commands/marketplace.js";
 
+// Phase 66: Token Incentive
+import { registerIncentiveCommand } from "./commands/incentive.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -254,6 +257,9 @@ export function createProgram() {
 
   // Phase 65: Skill Marketplace
   registerMarketplaceCommand(program);
+
+  // Phase 66: Token Incentive
+  registerIncentiveCommand(program);
 
   return program;
 }
