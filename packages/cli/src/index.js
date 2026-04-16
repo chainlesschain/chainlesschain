@@ -104,6 +104,9 @@ import { registerOrchestrateCommand } from "./commands/orchestrate.js";
 // Phase 62: Tech Learning Engine
 import { registerTechCommand } from "./commands/tech.js";
 
+// Phase 63: Autonomous Developer
+import { registerDevCommand } from "./commands/dev.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -236,6 +239,9 @@ export function createProgram() {
 
   // Phase 62: Tech Learning Engine
   registerTechCommand(program);
+
+  // Phase 63: Autonomous Developer
+  registerDevCommand(program);
 
   return program;
 }

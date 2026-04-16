@@ -338,6 +338,20 @@ chainlesschain tech detect <file> [--json]                                      
 chainlesschain tech practice <type> <name> <pattern> <level> [-d desc] [-s score]
 chainlesschain tech practices [-t type] [-n name] [-l level] [--limit N] [--json]
 chainlesschain tech recommend [--limit N] [--json]                              # Match practices to analyzed stack
+chainlesschain dev levels [--json]                                              # List autonomy levels L0..L4
+chainlesschain dev phases [--json]                                              # List dev phases (requirement_analysis → deployment)
+chainlesschain dev refactor-types [--json]                                      # List known refactoring types
+chainlesschain dev start "<requirement>" [-l 0..4] [-b author] [--json]         # Start a new dev session (default L2)
+chainlesschain dev list [-s active|paused|completed|failed] [-p phase] [--limit N] [--json]
+chainlesschain dev show <session-id> [--json]                                   # Full session details + review feedback
+chainlesschain dev phase <session-id> <phase> [--json]                          # Advance to a new phase
+chainlesschain dev pause <session-id>                                           # ACTIVE → PAUSED
+chainlesschain dev resume <session-id>                                          # PAUSED → ACTIVE
+chainlesschain dev complete <session-id>                                        # Mark session completed
+chainlesschain dev fail <session-id> [-r reason]                                # Mark session failed
+chainlesschain dev review <file> [-s session-id] [--min-score 0.7] [--json]     # Heuristic review (reuses tech detectAntiPatterns)
+chainlesschain dev adr <session-id> <title> <decision> [-c context] [-q conseq] [-a alt1,alt2] [-s proposed|accepted|deprecated|superseded] [--render] [--json]
+chainlesschain dev adrs [-s session-id] [-S status] [--limit N] [--json]        # List ADRs
 chainlesschain social contact / friend / post / chat / stats
 chainlesschain social analyze "<text>" [--top-k 3] [--lang zh|ja|en] [--json]
 chainlesschain social detect-lang "<text>" [--json]
