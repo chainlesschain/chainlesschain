@@ -151,6 +151,7 @@ const MODULE_FILE_MAP = {
   "92_Deep_Agents_Deploy借鉴落地方案.md": "m92-deep-agents-deploy.md",
   "93_CutClaw借鉴_视频剪辑Agent.md": "m93-cutclaw-video-editing-agent.md",
   "94_QualityGate通用质量门控.md": "m94-quality-gate.md",
+  "95_社交协议生态补齐方案.md": "m95-social-protocol-parity.md",
 };
 
 /**

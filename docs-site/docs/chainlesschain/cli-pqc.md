@@ -27,22 +27,50 @@ chainlesschain pqc keys --json
 
 列出所有 PQC 密钥，支持按算法过滤。
 
+### pqc algorithms — 列出支持的算法 (v5.0.2.10)
+
+```bash
+chainlesschain pqc algorithms                # 全部算法目录（ML-KEM / ML-DSA / SLH-DSA / Hybrid）
+chainlesschain pqc algorithms -f slh-dsa     # 过滤 SLH-DSA 变体（6 个）
+chainlesschain pqc algorithms -f hybrid --json
+```
+
+输出每个算法的名称、标准（FIPS 203 / 204 / 205）、用途、密钥大小与推荐场景。
+
 ### pqc generate — 生成密钥对
 
 ```bash
 chainlesschain pqc generate <algorithm>
-chainlesschain pqc generate ML-KEM-768 -p encryption
+
+# FIPS 203 — ML-KEM
+chainlesschain pqc generate ML-KEM-768  -p encryption
 chainlesschain pqc generate ML-KEM-1024 -p key_exchange
+
+# FIPS 204 — ML-DSA
 chainlesschain pqc generate ML-DSA-65 -p signing
 chainlesschain pqc generate ML-DSA-87 -p signing
+
+# FIPS 205 — SLH-DSA (v5.0.2.10)
+chainlesschain pqc generate SLH-DSA-128s -p signing   # 短签名、128 位安全
+chainlesschain pqc generate SLH-DSA-128f -p signing   # 快签名、128 位安全
+chainlesschain pqc generate SLH-DSA-192s -p signing
+chainlesschain pqc generate SLH-DSA-192f -p signing
+chainlesschain pqc generate SLH-DSA-256s -p signing
+chainlesschain pqc generate SLH-DSA-256f -p signing
+
+# 混合模式 (经典 + PQC) —— v5.0.2.10 扩展
+chainlesschain pqc generate HYBRID-ED25519-ML-DSA     -p signing
+chainlesschain pqc generate HYBRID-ED25519-SLH-DSA    -p signing
+chainlesschain pqc generate HYBRID-X25519-ML-KEM      -p encryption
 ```
 
 生成指定算法的 PQC 密钥对。
 
 支持的算法：
-- **ML-KEM-768** / **ML-KEM-1024** — 密钥封装机制（加密、密钥交换）
-- **ML-DSA-65** / **ML-DSA-87** — 数字签名算法（签名）
-- **hybrid** 模式 — 同时生成经典 + PQC 密钥
+- **ML-KEM-768** / **ML-KEM-1024** — 密钥封装机制（加密、密钥交换，FIPS 203）
+- **ML-DSA-65** / **ML-DSA-87** — 格基数字签名（签名，FIPS 204）
+- **SLH-DSA-{128,192,256}{s,f}** — 基于哈希的无状态签名（v5.0.2.10 · FIPS 205）：`s` 变体签名更短、速度慢；`f` 变体签名更大、速度快。共 6 个参数集
+- **Hybrid 混合模式** — 同时生成经典 (Ed25519/X25519) + PQC 密钥，过渡期双重安全保障
 
 ### pqc migration-status — 迁移状态
 

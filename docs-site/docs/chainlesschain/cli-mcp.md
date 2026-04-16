@@ -33,12 +33,35 @@ mcp 命令 → mcp.js (Commander) → MCPClient / MCPServerConfig
 ```bash
 chainlesschain mcp servers                 # 列出已配置的服务器
 chainlesschain mcp servers --json          # JSON 格式输出
-chainlesschain mcp add <name> -c <cmd>     # 添加服务器配置
+
+# 添加服务器 —— stdio 子进程
+chainlesschain mcp add <name> -c <cmd>
+# 添加服务器 —— 远程 HTTP/SSE（v5.0.2.10 Streamable HTTP）
+chainlesschain mcp add <name> -u <url>               # 从 URL 自动探测传输
+chainlesschain mcp add <name> -u <url> -t http       # 显式 Streamable HTTP
+chainlesschain mcp add <name> -u <url> -t sse        # 显式 SSE
+chainlesschain mcp add <name> -u <url> -H K=V        # 自定义请求头（可重复）
+
 chainlesschain mcp remove <name>           # 删除服务器配置
 chainlesschain mcp connect <name>          # 连接到服务器
 chainlesschain mcp disconnect <name>       # 断开连接
 chainlesschain mcp tools                   # 列出可用工具
 chainlesschain mcp call <tool>             # 调用工具
+
+# v5.0.2.10 — MCP Scaffold SDK
+chainlesschain mcp scaffold <name>                    # 生成 stdio MCP 服务器骨架
+chainlesschain mcp scaffold <name> -t http -p 4001    # 生成 HTTP+SSE 服务器
+chainlesschain mcp scaffold <name> --dry-run --json   # 预览不写盘
+chainlesschain mcp scaffold <name> -o <dir> --force   # 指定输出目录，覆盖已有
+
+# v5.0.2.10 — 社区服务器仓库
+chainlesschain mcp registry list                      # 浏览社区注册中心目录
+chainlesschain mcp registry list -c database          # 按类别过滤
+chainlesschain mcp registry search <query>            # 关键字搜索（name/description/tags）
+chainlesschain mcp registry show <id>                 # 查看条目详情
+chainlesschain mcp registry install <id>              # 注册为 MCP 服务器
+chainlesschain mcp registry install <id> --as <name> --auto-connect
+chainlesschain mcp registry categories                # 列出注册中心类别
 ```
 
 ## 子命令说明
@@ -54,19 +77,32 @@ chainlesschain mcp servers --json
 
 ### add
 
-添加或更新一个 MCP 服务器配置。配置存储在本地数据库中。
+添加或更新一个 MCP 服务器配置。支持两种传输模式：**stdio 子进程**（本地 npx / 可执行文件）与 **远程 HTTP/SSE**（Streamable HTTP / Server-Sent Events，v5.0.2.10 新增）。配置存储在本地数据库中。
 
 ```bash
+# stdio 模式 —— 本地子进程
 chainlesschain mcp add <name> -c <command> [-a <args>] [--auto-connect] [--json]
+
+# HTTP/SSE 模式 —— 远程服务器（v5.0.2.10）
+chainlesschain mcp add <name> -u <url> [-t http|sse|stdio] [-H K=V]... [--auto-connect] [--json]
 ```
 
 | 参数/选项 | 说明 |
 |-----------|------|
 | `<name>` | 服务器名称 |
-| `-c, --command <cmd>` | 服务器启动命令（必填） |
-| `-a, --args <args>` | 命令参数，逗号分隔 |
+| `-c, --command <cmd>` | 服务器启动命令（stdio 模式必填） |
+| `-a, --args <args>` | 命令参数，逗号分隔（stdio 模式） |
+| `-u, --url <url>` | 远程服务器 URL（http / https） |
+| `-t, --transport <type>` | 显式指定传输：`http`（Streamable HTTP）· `sse` · `stdio`。不指定时从 URL 自动探测 |
+| `-H, --header <K=V>` | 自定义请求头，可重复（如 `-H Authorization=Bearer+xxx`） |
 | `--auto-connect` | 启动时自动连接 |
 | `--json` | JSON 格式输出 |
+
+**Streamable HTTP 传输细节**（v5.0.2.10）：
+
+- 首次 `initialize` 握手后服务端返回 `Mcp-Session-Id`，客户端自动在后续请求里带上
+- SSE `event: message` / `data: ...` 多事件解析；保留 `ping` / `keep-alive` 心跳容忍
+- `fetch` 可被依赖注入（`_deps.fetch`）方便测试与私有代理
 
 ### remove
 
@@ -116,6 +152,46 @@ chainlesschain mcp call <tool> [-s <server>] [-a <json-args>] [--json]
 | `-s, --server <name>` | 指定服务器（可选，自动查找） |
 | `-a, --args <json>` | 工具参数，JSON 格式 |
 | `--json` | JSON 格式输出 |
+
+### scaffold (v5.0.2.10)
+
+生成 MCP 服务器脚手架项目，内置 `stdio` 与 `streamable HTTP + SSE` 两种传输模式。产出包含 `package.json`、示例工具、README 与（HTTP 模式）Express 启动器，可直接 `npm install` 运行。
+
+```bash
+chainlesschain mcp scaffold <name> [options]
+```
+
+| 参数/选项 | 说明 |
+|-----------|------|
+| `<name>` | 服务器名称（也作为包名默认前缀 `mcp-<name>`） |
+| `-t, --transport <type>` | 传输类型：`stdio`（默认）或 `http` |
+| `-p, --port <port>` | HTTP 模式监听端口（默认 `4001`） |
+| `-d, --description <text>` | package.json 描述 |
+| `-a, --author <name>` | package.json 作者 |
+| `-o, --output <dir>` | 输出目录（默认 `./<name>`） |
+| `--force` | 覆盖已有目录 |
+| `--dry-run` | 预览文件清单而不写盘 |
+| `--json` | JSON 格式输出 |
+
+### registry (v5.0.2.10)
+
+浏览、搜索、安装社区注册中心中的 MCP 服务器。内置目录涵盖 filesystem、git、github、browser、fetch、postgres、sqlite、memory 等常用服务器。支持远程注册中心扩展，网络不可用时降级为仅本地目录。
+
+```bash
+chainlesschain mcp registry list [options]
+chainlesschain mcp registry search <query> [options]
+chainlesschain mcp registry show <id-or-name> [options]
+chainlesschain mcp registry install <id> [options]
+chainlesschain mcp registry categories [--json]
+```
+
+| 子命令 | 关键选项 |
+|--------|---------|
+| `list` | `-c, --category <cat>` · `-t, --tags <tag1,tag2>` · `--sort <field>` · `--order <asc\|desc>` · `--json` |
+| `search` | `--json` — 匹配 name/description/tags |
+| `show` | 接受条目 `id` 或短名 |
+| `install` | `--as <alias>` 自定义服务器名 · `--auto-connect` 安装后立即连接 |
+| `categories` | `--json` |
 
 ## 配置参考
 

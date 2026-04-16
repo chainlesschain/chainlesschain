@@ -25,15 +25,27 @@ const everyday = [
 ];
 
 const evolution = [
-  { title: 'Hashline', sub: '内容哈希锚定编辑', desc: '用 6 字符哈希替代行号锚点，抗自动格式化漂移，成功率从 6.7% 跃升至 68.3%。' },
-  { title: 'Hooks 三件套', sub: '会话级生命周期钩子', desc: 'SessionStart / UserPromptSubmit / SessionEnd 三个生命周期点统一触发，fire-and-forget 零侵入。' },
-  { title: 'Skill-Embedded MCP', sub: '技能内联 MCP 服务器', desc: 'SKILL.md 内用 fenced code block 声明 MCP 服务器，按需 mount/unmount，解决工具爆炸问题。' },
-  { title: 'Category Routing', sub: '类别路由替代硬编码模型', desc: 'quick / deep / reasoning / vision / creative 五类别自动匹配已配置 provider，换模型零代码改动。' },
-  { title: 'Sub-Runtime Pool', sub: '子运行时池', desc: 'Electron 主进程 spawn 子进程，sessionId 分片避免冲突，stdio JSON-lines 协议。' },
-  { title: 'Canonical Workflow', sub: '标准化工作流编排', desc: '统一工作流描述语法，stage 间自动传递数据，支持串行 / 并行 / DAG 拓扑。' },
-  { title: 'Unified Tool Descriptor', sub: '工具描述规范统一', desc: 'inputSchema 为真源，parameters 只读镜像。CLI / Desktop / Renderer / MCP 四端字段对齐。' },
-  { title: 'Coding Agent Envelope', sub: 'WebSocket 信封协议', desc: 'dot-case 类型 + requestId 关联，bridge unwrap 双 awaitTypes 支持平滑迁移。' },
-  { title: 'Autonomous Learning Loop', sub: '自主学习循环', desc: '从执行历史中自动提炼模式、优化提示词与工具选择策略，越用越懂你。' },
+  // ── v5.0.2.9 Evolution ──
+  { tag: 'v5.0.2.9', title: 'Hashline', sub: '内容哈希锚定编辑', desc: '用 6 字符哈希替代行号锚点，抗自动格式化漂移，成功率从 6.7% 跃升至 68.3%。' },
+  { tag: 'v5.0.2.9', title: 'Hooks 三件套', sub: '会话级生命周期钩子', desc: 'SessionStart / UserPromptSubmit / SessionEnd 三个生命周期点统一触发，fire-and-forget 零侵入。' },
+  { tag: 'v5.0.2.9', title: 'Skill-Embedded MCP', sub: '技能内联 MCP 服务器', desc: 'SKILL.md 内用 fenced code block 声明 MCP 服务器，按需 mount/unmount，解决工具爆炸问题。' },
+  { tag: 'v5.0.2.9', title: 'Category Routing', sub: '类别路由替代硬编码模型', desc: 'quick / deep / reasoning / vision / creative 五类别自动匹配已配置 provider，换模型零代码改动。' },
+  { tag: 'v5.0.2.9', title: 'Sub-Runtime Pool', sub: '子运行时池', desc: 'Electron 主进程 spawn 子进程，sessionId 分片避免冲突，stdio JSON-lines 协议。' },
+  { tag: 'v5.0.2.9', title: 'Canonical Workflow', sub: '标准化工作流编排', desc: '统一工作流描述语法，stage 间自动传递数据，支持串行 / 并行 / DAG 拓扑。' },
+  { tag: 'v5.0.2.9', title: 'Unified Tool Descriptor', sub: '工具描述规范统一', desc: 'inputSchema 为真源，parameters 只读镜像。CLI / Desktop / Renderer / MCP 四端字段对齐。' },
+  { tag: 'v5.0.2.9', title: 'Coding Agent Envelope', sub: 'WebSocket 信封协议', desc: 'dot-case 类型 + requestId 关联，bridge unwrap 双 awaitTypes 支持平滑迁移。' },
+  { tag: 'v5.0.2.9', title: 'Autonomous Learning Loop', sub: '自主学习循环', desc: '从执行历史中自动提炼模式、优化提示词与工具选择策略，越用越懂你。' },
+
+  // ── v5.0.2.10 / v5.0.2.30 Evolution ──
+  { tag: 'v5.0.2.10', title: '去中心化社交协议矩阵', sub: 'Nostr + Matrix + ActivityPub', desc: 'NIP-04/09/25 + Matrix Threads/Spaces + ActivityPub C2S，加好友、发帖、回复与点赞跨协议互通。' },
+  { tag: 'v5.0.2.10', title: 'STIX 2.1 + UEBA', sub: '威胁情报与合规报告', desc: '导入/匹配 IoC、实体行为基线、SOC2 / ISO27001 / GDPR 模板化报告，一条命令生成 MD/HTML/JSON。' },
+  { tag: 'v5.0.2.10', title: 'MCP Scaffold + 社区注册中心', sub: '零成本扩展 MCP 生态', desc: '`mcp scaffold` 生成 stdio / HTTP+SSE 骨架；`mcp registry` 浏览、搜索、安装社区服务器。' },
+  { tag: 'v5.0.2.10', title: 'MCP Streamable HTTP/SSE', sub: '远程 MCP 服务器接入', desc: '`mcp add -u <url>` 直连远程服务器，自动 Mcp-Session-Id + SSE 事件流解析，私有请求头可注入。' },
+  { tag: 'v5.0.2.10', title: 'PQC SLH-DSA (FIPS 205)', sub: '6 个无状态哈希签名参数集', desc: 'SLH-DSA-{128,192,256}{s,f} 全部落地 + Ed25519/X25519 混合模式，过渡期双重安全保障。' },
+  { tag: 'v5.0.2.10', title: 'Managed Agents Phase I+J', sub: '托管 Agent 双向打通', desc: 'session tail / usage 回放 + WS sessions.subscribe + hosted-tool ApprovalGate + auto-consolidate。' },
+  { tag: 'v5.0.2.10', title: 'CutClaw 视频剪辑 Agent', sub: 'AI 端到端视频生产', desc: 'deconstruct → plan → assemble → render，--parallel 质量门控 + madmom beat-snap + 音频 ducking。' },
+  { tag: 'v5.0.2.10', title: '通用 QualityGate', sub: '可插拔质量检查器', desc: '加权平均 / 最低分 / 全通过三种聚合，配合 SubRuntimePool 的 detect→score→rerun 冲突解决流程。' },
+  { tag: 'v5.0.2.10', title: '生产强化 Deploy Check', sub: 'config-check + deploy-check', desc: '真实配置扫描 + CI 部署前全链路预检：端口、证书、磁盘、迁移、PQC 密钥、MCP 联通。' },
 ];
 
 const badges = [
@@ -53,7 +65,7 @@ const badges = [
       <div class="max-w-4xl">
         <div class="animate-fade-in flex items-center gap-3 mb-8">
           <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> v5.0.2.10 · Evolution Edition</span>
-          <span class="chip">CLI v0.47.0</span>
+          <span class="chip">CLI v0.47.9</span>
         </div>
 
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02] tracking-tight">
@@ -279,24 +291,29 @@ const badges = [
     </div>
   </section>
 
-  <!-- ═══════════════════════════════ COWORK EVOLUTION 9 ═══════════════════════════════ -->
+  <!-- ═══════════════════════════════ COWORK EVOLUTION ═══════════════════════════════ -->
   <section class="py-24 md:py-32 bg-cream/50 border-y border-line">
     <div class="container-wide">
       <div class="max-w-3xl mb-14">
-        <div class="chip mb-6">Cowork Evolution · 9 项架构演进</div>
+        <div class="chip mb-6">架构演进 · 18 项（v5.0.2.10 新增 9 项）</div>
         <h2 class="text-display-md md:text-5xl leading-tight">
           把多智能体做成<br/>
           <span class="italic">工程可复制的模式</span>。
         </h2>
         <p class="mt-6 text-xl text-muted leading-relaxed">
-          不是概念演示。是 9 个已落地、有测试、写进模式库的工程解决方案。
+          不是概念演示。是 18 个已落地、有测试、写进模式库的工程解决方案 —— 涵盖 Coding Agent 演进、去中心化社交、威胁情报、后量子密码与视频剪辑。
         </p>
       </div>
 
       <div class="grid md:grid-cols-3 gap-[1px] bg-line rounded-2xl overflow-hidden border border-line">
         {evolution.map((e, i) => (
           <a href="https://design.chainlesschain.com" rel="noopener" class="group bg-paper p-8 hover:bg-ember/5 transition-colors">
-            <div class="font-mono text-[10px] text-muted uppercase tracking-widest mb-4">0{i + 1} · Pattern</div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="font-mono text-[10px] text-muted uppercase tracking-widest">{(i + 1).toString().padStart(2, '0')} · Pattern</div>
+              {e.tag && (
+                <span class={`font-mono text-[10px] px-2 py-0.5 rounded-full ${e.tag === 'v5.0.2.10' ? 'bg-ember/15 text-ember' : 'bg-muted/10 text-muted'}`}>{e.tag}</span>
+              )}
+            </div>
             <h3 class="font-display text-2xl mb-1 group-hover:text-ember transition-colors">{e.title}</h3>
             <div class="text-xs text-muted mb-3 font-mono">{e.sub}</div>
             <p class="text-sm text-ink/80 leading-relaxed">{e.desc}</p>
@@ -483,7 +500,7 @@ const badges = [
       </div>
       <div class="grid md:grid-cols-3 gap-6">
         <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
-          <div class="font-mono text-xs text-muted mb-3">CLI · v0.47.0</div>
+          <div class="font-mono text-xs text-muted mb-3">CLI · v0.47.9</div>
           <h3 class="font-display text-2xl mb-3">命令行工具</h3>
           <div class="font-mono text-sm bg-ink text-cream px-3 py-2 rounded mb-4 cursor-pointer" data-copy="npm i -g chainlesschain">$ npm i -g chainlesschain</div>
           <p class="text-sm text-muted">支持 npm / yarn / pnpm / bun · 约 2MB</p>
