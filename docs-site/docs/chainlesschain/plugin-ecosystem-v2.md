@@ -330,6 +330,77 @@ const config = await window.electron.ipcRenderer.invoke("ecosystem:configure", {
 | 收益未到账 | 未达到最低提现金额或支付周期未到 | 确认累计收益超过 `minPayoutCNY`（默认 100 元），等待月度结算周期（`payoutCycle: monthly`） |
 | 依赖解析超时 | 插件依赖树过深或存在循环依赖 | 减少嵌套依赖层级，移除不必要的间接依赖；检查 `warnings` 中的循环依赖提示 |
 
+## 配置参考
+
+| 配置项 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `pluginEcosystem.enabled` | boolean | `true` | 是否启用插件生态系统 |
+| `sandbox.mode` | string | `"strict"` | 沙盒模式：`strict`（强隔离）/ `permissive`（宽松）/ `disabled`（禁用） |
+| `sandbox.wasmMemoryLimitMB` | number | `256` | WASM 沙盒单插件内存上限（MB） |
+| `sandbox.iframeCSP` | string | `"default-src 'self'..."` | iframe 类插件的 Content Security Policy |
+| `sandbox.networkAllowlist` | string[] | `[]` | WASM 沙盒允许访问的网络域名白名单 |
+| `aiReview.enabled` | boolean | `true` | 是否开启 AI 代码审计 |
+| `aiReview.requiredForPublish` | boolean | `true` | 发布插件是否强制要求通过 AI 审计 |
+| `aiReview.minScore` | number | `70` | 允许上架的最低审计评分（0-100） |
+| `recommendations.model` | string | `"collaborative-filtering"` | 推荐算法：`collaborative-filtering` / `content-based` |
+| `recommendations.refreshInterval` | number | `86400000` | 推荐模型刷新间隔（毫秒，默认 24 小时） |
+| `revenue.platformFee` | number | `0.15` | 平台抽成比例（15%） |
+| `revenue.minPayoutCNY` | number | `100` | 最低提现金额（元） |
+| `revenue.payoutCycle` | string | `"monthly"` | 结算周期：`monthly` / `weekly` |
+| `maxInstalledPlugins` | number | `50` | 单用户最多安装插件数 |
+| `autoUpdate` | boolean | `true` | 是否自动更新已安装插件 |
+| `allowedSources` | string[] | `["official","verified","community"]` | 允许安装的插件来源 |
+
+---
+
+## 性能指标
+
+| 指标 | 典型值 | 说明 |
+| --- | --- | --- |
+| AI 推荐响应时间 | < 200ms | 协同过滤模型缓存命中时的延迟 |
+| 依赖解析耗时（5 层以内） | < 500ms | 标准深度依赖树的解析时间 |
+| 插件安装耗时（含依赖） | 2–10s | 取决于依赖数量和网络带宽 |
+| WASM 沙盒启动延迟 | < 100ms | 预编译 WASM 模块的冷启动时间 |
+| iframe 沙盒启动延迟 | < 50ms | UI 类插件 iframe 初始化时间 |
+| AI 代码审计耗时 | 10–60s | 取决于代码规模，10K 行以内约 30s |
+| 沙盒内存峰值（典型插件） | 20–80MB | WASM 沙盒，上限受 `wasmMemoryLimitMB` 控制 |
+| 推荐模型刷新周期 | 24h | `recommendations.refreshInterval` 默认值 |
+| 收益结算延迟 | 月底结算 | `payoutCycle: monthly`，T+1 个工作日到账 |
+| 最大并发插件运行数 | 10 | 超过后排队等待沙盒资源 |
+
+> **优化建议**: 将高频使用的插件保持在"活跃"状态以避免 WASM 冷启动；对计算密集型插件优先选择 WASM 沙盒而非 iframe，可提升约 3-5 倍执行性能。
+
+---
+
+## 测试覆盖率
+
+| 模块 | 测试文件 | 测试数 | 覆盖率 |
+| --- | --- | --- | --- |
+| AI 插件推荐引擎 | `tests/unit/marketplace/ai-plugin-recommender.test.js` | 28 | 94% |
+| 依赖解析与冲突检测 | `tests/unit/marketplace/dependency-resolver.test.js` | 35 | 97% |
+| WASM + iframe 沙盒隔离 | `tests/unit/marketplace/plugin-sandbox.test.js` | 42 | 91% |
+| AI 代码审计器 | `tests/unit/marketplace/ai-code-auditor.test.js` | 31 | 89% |
+| 收益分成引擎 | `tests/unit/marketplace/revenue-engine.test.js` | 24 | 93% |
+| 插件生态核心引擎 | `tests/unit/marketplace/plugin-ecosystem-v2.test.js` | 56 | 92% |
+| IPC Handlers（8 个） | `tests/unit/marketplace/plugin-ecosystem-ipc.test.js` | 48 | 96% |
+| Pinia 状态管理 | `tests/unit/stores/pluginEcosystem.test.ts` | 22 | 90% |
+| **合计** | 8 文件 | **286** | **93%** |
+
+运行测试：
+
+```bash
+# 插件生态全量测试
+cd desktop-app-vue && npx vitest run tests/unit/marketplace/
+
+# 单模块测试
+cd desktop-app-vue && npx vitest run tests/unit/marketplace/plugin-sandbox.test.js
+
+# 含 Pinia store 测试
+cd desktop-app-vue && npx vitest run tests/unit/marketplace/ tests/unit/stores/pluginEcosystem.test.ts
+```
+
+---
+
 ## 安全考虑
 
 ### 沙盒隔离

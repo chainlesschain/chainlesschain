@@ -399,6 +399,112 @@ const sig = await window.electronAPI.invoke("ukey:threshold-sign", {
 2. 检查绑定关系是否仍然有效（未被撤销 `status: 'active'`）
 3. 生物验证和签名之间存在时间窗口限制（默认 30 秒），需在窗口内完成
 
+## 配置参考
+
+`.chainlesschain/config.json` 中 `thresholdSecurity` 字段的完整说明：
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `enabled` | boolean | `true` | 是否启用门限安全模块 |
+| `defaultThreshold` | number | `2` | 默认门限值 t（需要多少份 share 才能恢复） |
+| `defaultTotalShares` | number | `3` | 默认总份额数 n |
+| `shareLabels` | string[] | `["device","ukey","backup"]` | 各份额的标签，长度必须等于 `defaultTotalShares` |
+| `biometric.enabled` | boolean | `true` | 是否启用生物特征绑定 |
+| `biometric.allowedTypes` | string[] | `["fingerprint","face"]` | 允许的生物特征类型（`fingerprint` / `face` / `iris`） |
+| `biometric.verificationTimeout` | number (ms) | `30000` | 生物验证超时（毫秒），验证完成需在此窗口内完成签名 |
+| `biometric.maxRetries` | number | `3` | 生物验证失败后的最大重试次数，超出后锁定 |
+
+**最小配置示例**（仅门限，不启用生物绑定）：
+
+```json
+{
+  "thresholdSecurity": {
+    "enabled": true,
+    "defaultThreshold": 2,
+    "defaultTotalShares": 3,
+    "biometric": { "enabled": false }
+  }
+}
+```
+
+**高安全企业配置**（3-of-5 方案 + 虹膜）：
+
+```json
+{
+  "thresholdSecurity": {
+    "enabled": true,
+    "defaultThreshold": 3,
+    "defaultTotalShares": 5,
+    "shareLabels": ["ceo", "cto", "cfo", "legal", "backup"],
+    "biometric": {
+      "enabled": true,
+      "allowedTypes": ["fingerprint", "face", "iris"],
+      "verificationTimeout": 60000,
+      "maxRetries": 2
+    }
+  }
+}
+```
+
+---
+
+## 测试覆盖
+
+### 测试文件
+
+| 测试文件 | 覆盖范围 | 用例数 |
+|----------|----------|--------|
+| `desktop-app-vue/tests/unit/ukey/threshold-manager.test.js` | Shamir 分割、门限签名、密钥恢复、份额刷新 | 24 |
+| `desktop-app-vue/tests/unit/ukey/biometric-binding.test.js` | TEE 绑定注册、验证、撤销、多类型支持 | 18 |
+| `desktop-app-vue/tests/unit/ukey/threshold-ipc.test.js` | 8 个 IPC 处理器参数校验与错误处理 | 16 |
+| `desktop-app-vue/src/renderer/stores/__tests__/thresholdSecurity.test.ts` | Pinia store 状态流转与 IPC 调用 | 12 |
+
+**合计**: 70 个测试用例
+
+### 运行测试
+
+```bash
+# 所有门限安全测试
+cd desktop-app-vue && npx vitest run tests/unit/ukey/threshold-manager.test.js \
+  tests/unit/ukey/biometric-binding.test.js \
+  tests/unit/ukey/threshold-ipc.test.js
+
+# Pinia store 测试
+cd desktop-app-vue && npx vitest run src/renderer/stores/__tests__/thresholdSecurity.test.ts
+```
+
+### 关键测试场景
+
+```javascript
+// 1. 2-of-3 分割后使用任意两份恢复
+it('recovers key from any 2-of-3 shares', async () => {
+  const { shares } = await thresholdManager.splitKey('key-001', 2, 3)
+  const recovered1 = await thresholdManager.recoverKey([shares[0], shares[1]])
+  const recovered2 = await thresholdManager.recoverKey([shares[0], shares[2]])
+  const recovered3 = await thresholdManager.recoverKey([shares[1], shares[2]])
+  expect(recovered1).toEqual(recovered2)
+  expect(recovered2).toEqual(recovered3)
+})
+
+// 2. 单份 share 无法恢复（信息论安全）
+it('cannot recover key from a single share', async () => {
+  const { shares } = await thresholdManager.splitKey('key-002', 2, 3)
+  await expect(thresholdManager.recoverKey([shares[0]])).rejects.toThrow('insufficient shares')
+})
+
+// 3. 生物验证窗口超时后签名失败
+it('rejects sign when verification window expires', async () => {
+  vi.useFakeTimers()
+  const binding = await biometricBinding.register('key-001', 'fingerprint')
+  vi.advanceTimersByTime(31000) // 超过 30s 窗口
+  await expect(
+    biometricBinding.verifyAndSign(binding.bindingId, 'msg')
+  ).rejects.toThrow('verification window expired')
+})
+```
+
+---
+
 ## 安全考虑
 
 1. **Shamir 安全性**: 基于有限域上的多项式插值，信息论安全

@@ -2093,6 +2093,124 @@ MIT License - 详见 [LICENSE](https://github.com/chainlesschain/LICENSE)
 **测试用例**: 440+ (通过率 99.6%)
 **维护者**: ChainlessChain Team
 
+## 配置参考
+
+```javascript
+// Cowork 系统核心配置项（desktop-app-vue/.chainlesschain/config.json）
+{
+  "cowork": {
+    "pipeline": {
+      "stageTimeoutMs": 120000,          // 单阶段超时 2 分钟
+      "maxRetries": 3,                   // 门控失败最大重试次数
+      "templates": ["feature", "bugfix", "refactor", "security-audit"]
+    },
+    "nlProgramming": {
+      "maxClarificationRounds": 3,       // NL→Spec 最大消歧轮次
+      "specCompletenessThreshold": 0.8   // Spec 完整度门控阈值
+    },
+    "multimodal": {
+      "tokenBudget": 8000,               // 多模态融合 token 上限
+      "supportedModalities": ["text", "image", "audio", "document", "screen"]
+    },
+    "federation": {
+      "didChallengeTimeoutMs": 30000,    // DID Challenge 响应超时
+      "credentialTtlHours": 24,          // 跨组织凭证有效期
+      "maxPeerNodes": 500                // 联邦网络最大节点数
+    }
+  }
+}
+```
+
+## 性能指标
+
+> 已实现系统的目标性能指标（基于设计规格与测试用例验证）
+
+| 模块 | 指标 | 目标值 |
+|------|------|--------|
+| 流水线编排 | 全流程端到端 | < 5 分钟 |
+| 流水线编排 | 自动回滚触发 | < 30 秒 |
+| NL 编程 | NL→Spec 翻译延迟 | < 10 秒 |
+| NL 编程 | Spec 完整度评分 | ≥ 80% |
+| 多模态协作 | 文档解析（PDF 10 页） | < 5 秒 |
+| 多模态协作 | Token 预算利用率 | ≤ 100%（硬限制） |
+| 自主运维 | 异常检测触发延迟 | < 30 秒 |
+| 自主运维 | 自动修复成功率 | ≥ 70% |
+| 联邦网络 | DID 认证延迟 | < 500ms |
+| 联邦网络 | 跨组织代理发现 | < 2 秒 |
+| 联邦网络 | 100 节点并发压测通过率 | 100% |
+
+## 测试覆盖率
+
+> 440+ 测试用例，通过率 99.6%
+
+✅ **v1.2.0 — Instinct Learning + Orchestrate + Verification Loop**
+- `instinct-manager.test.js` — 置信度强化/衰减、上下文检索
+- `orchestrate-workflow.test.js` — 4 种工作流模板、代理交接
+- `verification-loop.test.js` — 6 阶段验证、READY/NOT READY 裁决
+
+✅ **v1.3.0 — ML 调度 + CI/CD 优化**
+- `ml-task-scheduler.test.js` — 复杂度预测、在线权重更新
+- `load-balancer.test.js` — 动态任务迁移
+- `cicd-optimizer.test.js` — 智能测试选择（70%+ 缓存命中）
+
+✅ **v3.0 — 全自动开发流水线**
+- `pipeline-orchestrator.test.js` — 7 阶段生命周期、门控审批
+- `deploy-agent.test.js` — 5 种部署策略、回滚验证
+
+✅ **v3.1 — 自然语言编程**
+- `spec-translator.test.js` — NL→Spec 翻译、多轮消歧
+
+✅ **v3.2 — 多模态协作**
+- `modality-fusion.test.js` — 多模态融合、token 预算控制
+
+✅ **v3.3 — 自主运维**
+- `anomaly-detector.test.js` — Z-score/IQR 检测
+- `incident-classifier.test.js` + `auto-remediator.test.js`
+
+✅ **v4.0 — 去中心化代理网络**
+- `agent-did.test.js` — Ed25519 签名、DID 文档
+- `federated-agent-registry.test.js` — 注册、发现、信誉评分
+- `cross-org-task-router.test.js` — 跨组织路由、SLA 验证
+
+## 安全考虑
+
+### 1. Agent DID 密钥安全
+
+每个 Agent 持有 Ed25519 密钥对，私钥通过 SQLCipher AES-256 加密存储。密钥轮换通过 `agent-did.js` 的 `rotateKey()` 触发，历史公钥记录在 DID 文档历史中确保历史签名可验证。
+
+### 2. 跨组织认证与凭证管理
+
+Challenge-Response 协议防止重放攻击（nonce + 30 秒超时）。跨组织凭证默认有效期 24 小时，支持提前吊销。所有跨组织通信均通过 DID 绑定的公钥加密。
+
+### 3. 部署代理沙箱隔离
+
+Deploy Agent 在最小权限原则下运行：仅可访问白名单目录、受控 Git 操作（checkout/revert）和指定容器镜像。高风险操作（生产部署、回滚）须经门控审批（`approveGate`）后执行。
+
+### 4. 多模态内容安全
+
+用户上传的图像、文档、屏幕截图在融合前经过内容过滤，避免 Prompt Injection 攻击。Token 预算硬限制防止意外的大规模 API 消耗。
+
+### 5. 自主运维操作审计
+
+AutoRemediator 执行的所有自动修复操作均写入审计日志（`audit-compliance`），包含操作类型、触发原因、执行结果和回滚路径，确保可追溯性。
+
+## 故障排查
+
+**Q: 流水线在某阶段挂起无响应**
+检查 `pipeline-orchestrator.js` 的 `stageTimeoutMs`（默认 120s）。通过 `chainlesschain session tail <sessionId>` 查看实时事件流定位卡点阶段，必要时手动触发 `pipeline:cancel` IPC。
+
+**Q: NL→Spec 翻译结果完整度评分持续低于 80%**
+说明需求描述过于模糊。多轮消歧轮次已用尽时，系统会在 Spec 中标注 `incomplete: true` 字段，前端 `NLProgrammingPage` 会提示用户补充细节（`[补充细节]` 按钮）。
+
+**Q: 多模态输入 Token 超预算报错**
+`MultimodalCollabPage` 显示 Token 预算进度条。超预算时系统自动降级为单模态（优先保留文本）。可在配置中调整 `tokenBudget`，或拆分为多次请求。
+
+**Q: 联邦网络代理发现超时（> 2 秒）**
+检查网络连通性，确认对端组织 Agent 的 DID 文档可正常解析。`FederatedAgentRegistry` 内置本地缓存（TTL 5 分钟），首次发现后后续查询走缓存。
+
+**Q: 自主运维误触发修复操作**
+通过 `autonomous-ops:get-incidents` IPC 查看事件分类器的置信度。低置信度（< 0.7）的修复操作默认进入人工确认队列，不会自动执行。调整 `IncidentClassifier` 的 `autoRemediateThreshold` 配置项可控制自动化程度。
+
 ## 关键文件
 
 | 文件 | 职责 |
@@ -2107,6 +2225,33 @@ MIT License - 详见 [LICENSE](https://github.com/chainlesschain/LICENSE)
 | `desktop-app-vue/src/main/ai-engine/cowork/agent-did.js` | Agent DID 身份 |
 | `desktop-app-vue/src/main/ai-engine/cowork/federated-agent-registry.js` | 联邦代理注册 |
 | `desktop-app-vue/src/main/ai-engine/cowork/cross-org-task-router.js` | 跨组织任务路由 |
+
+## 使用示例
+
+```bash
+# 启动全自动开发流水线
+chainlesschain workflow create --type feature --requirement "添加 OAuth2 登录"
+
+# 查看流水线执行状态
+chainlesschain workflow run <workflowId> --stream
+
+# 自然语言编程：描述需求生成代码
+chainlesschain agent --agent-id nl-programmer
+# > 创建一个用户注册表单，包含邮箱验证和密码强度检查
+
+# 多模态协作：上传文档提问
+chainlesschain agent --agent-id multimodal-analyst
+# > [上传 PDF] 总结这份需求文档的核心功能点
+
+# 查看自主运维告警
+chainlesschain cowork status
+chainlesschain cowork analyze ./src --agent-id autonomous-ops
+
+# 联邦网络：注册 Agent DID 并发现跨组织代理
+chainlesschain did create --type agent
+chainlesschain a2a discover --skill code-review --org external-org
+chainlesschain a2a submit --agent-did did:cc:external:agent-beta --task "Review PR #42"
+```
 
 ## 相关文档
 

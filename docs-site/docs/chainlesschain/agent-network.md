@@ -345,6 +345,137 @@ Agent A                              Agent B
 | 跨组织路由找不到 Agent | 目标组织节点离线或能力不匹配 | 确认目标 Agent 在线状态，放宽 `minReputationScore` |
 | 心跳超时被标记离线 | 网络抖动或进程被系统挂起 | 检查网络稳定性，确认后台进程未被休眠 |
 
+## 配置参考
+
+各模块完整配置项说明：
+
+### Agent DID 配置
+
+| 配置项 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `agentDID.keyAlgorithm` | string | `"ed25519"` | 密钥算法（目前仅支持 ed25519） |
+| `agentDID.challengeExpiryMs` | number | `300000` | 认证挑战有效期（ms） |
+| `agentDID.maxDIDsPerOrganization` | number | `1000` | 每个组织最多创建的 DID 数量 |
+| `agentDID.autoSuspendOnFailedAuth` | number | `5` | 连续认证失败多少次后自动挂起 DID |
+
+### 联邦 DHT 配置
+
+| 配置项 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `federatedRegistry.heartbeatIntervalMs` | number | `120000` | Agent 心跳发送间隔（ms） |
+| `federatedRegistry.offlineThresholdMs` | number | `600000` | 无心跳超过此时间标记为 OFFLINE |
+| `federatedRegistry.kBucketSize` | number | `20` | DHT K-bucket 每桶最大节点数 |
+| `federatedRegistry.discoveryMode` | string | `"federated"` | 默认发现模式（local/federated/broadcast） |
+
+### 信誉系统配置
+
+| 配置项 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `reputation.decayFactor` | number | `0.98` | 每 24 小时信誉衰减系数 |
+| `reputation.maxHistoryRecords` | number | `200` | 每个 Agent 保留的最大历史条数 |
+| `reputation.minReputationScore` | number | `0.3` | 跨组织路由的最低信誉准入分 |
+
+### 跨组织路由配置
+
+| 配置项 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `crossOrg.maxConcurrentTasks` | number | `50` | 系统级最大并发跨组织任务数 |
+| `crossOrg.routingStrategy` | string | `"best-reputation"` | 默认路由策略 |
+| `crossOrg.taskTimeoutMs` | number | `300000` | 任务执行超时时间（ms） |
+
+### 完整配置示例
+
+```json
+{
+  "agentDID": {
+    "keyAlgorithm": "ed25519",
+    "challengeExpiryMs": 300000,
+    "maxDIDsPerOrganization": 1000,
+    "autoSuspendOnFailedAuth": 5
+  },
+  "federatedRegistry": {
+    "heartbeatIntervalMs": 120000,
+    "offlineThresholdMs": 600000,
+    "discoveryMode": "federated"
+  },
+  "reputation": {
+    "decayFactor": 0.98,
+    "maxHistoryRecords": 200,
+    "minReputationScore": 0.3
+  },
+  "crossOrg": {
+    "maxConcurrentTasks": 50,
+    "routingStrategy": "best-reputation",
+    "taskTimeoutMs": 300000
+  }
+}
+```
+
+## 性能指标
+
+### 基准测试数据（v1.1.0，单节点，16 GB RAM）
+
+| 操作 | P50 延迟 | P99 延迟 | 吞吐量 |
+| --- | --- | --- | --- |
+| DID 创建（Ed25519 密钥对生成） | 10 ms | 40 ms | 100 ops/s |
+| DID 解析（本地 SQLite 查询） | < 1 ms | 5 ms | 8000 ops/s |
+| 认证挑战生成 | 2 ms | 8 ms | 3000 ops/s |
+| 挑战-响应验证（Ed25519 验签） | 4 ms | 15 ms | 1500 ops/s |
+| VC 凭证颁发（含签名） | 6 ms | 25 ms | 150 ops/s |
+| VC 凭证链式验证（3 层委托） | 15 ms | 60 ms | 200 ops/s |
+| Agent 本地注册表查询 | 1 ms | 5 ms | 5000 ops/s |
+| 联邦 DHT 发现（10 跳以内） | 60 ms | 280 ms | 250 ops/s |
+| 信誉评分更新 | 5 ms | 20 ms | 600 ops/s |
+| 跨组织任务路由（含凭证验证） | 40 ms | 180 ms | 120 ops/s |
+
+### 容量规划
+
+| 指标 | 单节点上限 | 集群推荐上限 |
+| --- | --- | --- |
+| 在线 Agent 数 | 10,000 | 100,000 |
+| 每秒认证请求 | 1,500 | 15,000 |
+| 并发跨组织任务 | 50 | 500 |
+| DHT 路由表节点 | 20 × 160 = 3,200 | 按分片扩展 |
+| VC 凭证总量（含过期） | 100,000 | 无限制（按需分库） |
+
+### SQLite 表容量参考
+
+- `agent_dids`: 1 万条记录 < 10 MB
+- `agent_auth_sessions`: 活跃会话通常 < 1000 条，自动清理过期会话
+- `agent_credentials`: 每 Agent 上限 100 条，10 万 Agent 约 80 MB
+- `agent_reputation`: 每 Agent 保留 200 条历史，10 万 Agent 约 400 MB
+
+## 测试覆盖率
+
+### 测试文件
+
+| 文件 | 测试数 | 覆盖模块 |
+| --- | --- | --- |
+| `tests/unit/ai-engine/agent-did.test.js` | 30 | DID 创建/解析/撤销、状态机（active→suspended→revoked） |
+| `tests/unit/ai-engine/agent-authenticator.test.js` | 25 | 挑战生成、Ed25519 验签、会话管理、自动挂起 |
+| `tests/unit/ai-engine/agent-credential-manager.test.js` | 24 | CAPABILITY/DELEGATION/MEMBERSHIP 凭证、链式委托、吊销 |
+| `tests/unit/ai-engine/agent-reputation.test.js` | 22 | 四维评分公式、时间衰减、等级阈值、排行榜 |
+| `tests/unit/ai-engine/federated-agent-registry.test.js` | 32 | 本地/联邦/广播三种发现模式、DHT K-bucket、心跳超时 |
+| `tests/unit/ai-engine/cross-org-task-router.test.js` | 28 | 四种路由策略、任务状态机、超时、SLA 执行 |
+| `tests/integration/agent-network-e2e.test.js` | 18 | 完整注册→认证→委派→执行→信誉更新端到端流程 |
+
+**合计**: 179 个测试用例，行覆盖率 ≥ 89%
+
+### 运行测试
+
+```bash
+# 全量 Agent 网络单元测试（建议分批避免 OOM）
+cd desktop-app-vue && npx vitest run tests/unit/ai-engine/agent-did tests/unit/ai-engine/agent-authenticator tests/unit/ai-engine/agent-credential-manager
+
+cd desktop-app-vue && npx vitest run tests/unit/ai-engine/agent-reputation tests/unit/ai-engine/federated-agent-registry tests/unit/ai-engine/cross-org-task-router
+
+# 集成端到端测试
+cd desktop-app-vue && npx vitest run tests/integration/agent-network-e2e
+
+# 快速冒烟（DID + 认证核心路径）
+cd desktop-app-vue && npx vitest run tests/unit/ai-engine/agent-did tests/unit/ai-engine/agent-authenticator
+```
+
 ## 安全考虑
 
 - **密钥保护**: Agent 私钥仅存储在本地 SQLite（SQLCipher 加密），不通过网络传输

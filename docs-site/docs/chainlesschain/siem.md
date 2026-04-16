@@ -424,6 +424,96 @@ console.log(`事件缩减率: ${(stats.reductionRate * 100).toFixed(0)}%`);
 
 ---
 
+## 配置参考
+
+| 字段 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `enabled` | `boolean` | `false` | 是否启用 SIEM 导出 |
+| `exporter.type` | `string` | `"splunk"` | 导出目标类型：`splunk` / `syslog` / `elasticsearch` / `azure-sentinel` |
+| `exporter.format` | `string` | `"json"` | 事件格式：`cef` / `leef` / `json` |
+| `exporter.config.url` | `string` | — | 目标平台地址（HTTP/HTTPS/Syslog 主机） |
+| `exporter.config.token` | `string` | — | HEC Token 或 API 密钥（加密存储） |
+| `exporter.config.index` | `string` | `"chainlesschain"` | Splunk/Elasticsearch 索引名 |
+| `exporter.config.port` | `number` | `514` | Syslog 端口（TCP/UDP/TLS） |
+| `exporter.config.protocol` | `string` | `"tcp"` | Syslog 传输协议：`tcp` / `udp` / `tls` |
+| `exporter.config.facility` | `string` | `"local0"` | Syslog facility |
+| `batchSize` | `number` | `100` | 批量发送大小（事件数） |
+| `flushInterval` | `number` | `5000` | 批量刷新间隔（毫秒） |
+| `retryAttempts` | `number` | `3` | 发送失败最大重试次数 |
+| `aggregation.enabled` | `boolean` | `true` | 是否启用事件聚合 |
+| `aggregation.defaultWindow` | `number` | `300` | 聚合时间窗口（秒） |
+| `aggregation.defaultThreshold` | `number` | `5` | 触发聚合的事件数阈值 |
+
+**完整配置示例**:
+
+```json
+{
+  "compliance": {
+    "siem": {
+      "enabled": true,
+      "exporter": {
+        "type": "splunk",
+        "format": "json",
+        "config": {
+          "url": "https://splunk.company.com:8088",
+          "token": "HEC-TOKEN",
+          "index": "chainlesschain",
+          "sourcetype": "chainlesschain:security"
+        }
+      },
+      "batchSize": 100,
+      "flushInterval": 5000,
+      "retryAttempts": 3,
+      "aggregation": {
+        "enabled": true,
+        "defaultWindow": 300,
+        "defaultThreshold": 5
+      }
+    }
+  }
+}
+```
+
+---
+
+## 测试覆盖
+
+| 测试文件 | 覆盖范围 | 用例数 |
+| --- | --- | --- |
+| `tests/unit/enterprise/siem-exporter.test.js` | 导出器初始化、批量发送、重试逻辑、flush 间隔 | 18 |
+| `tests/unit/enterprise/siem-formatter.test.js` | CEF / LEEF / JSON 格式化、特殊字符转义 | 24 |
+| `tests/unit/enterprise/siem-aggregator.test.js` | 聚合窗口计算、阈值触发、严重度提升 | 15 |
+| `tests/unit/enterprise/siem-ipc.test.js` | 4 个 IPC Handler（configure / test / send / list） | 12 |
+| `tests/integration/enterprise/siem-splunk.test.js` | Splunk HEC 端到端（mock server） | 8 |
+| `tests/integration/enterprise/siem-syslog.test.js` | Syslog TCP / UDP / TLS 推送 | 9 |
+
+**运行测试**:
+
+```bash
+# 全部 SIEM 单元测试
+cd desktop-app-vue && npx vitest run tests/unit/enterprise/siem-
+
+# 含集成测试（需 mock Splunk server）
+cd desktop-app-vue && npx vitest run tests/unit/enterprise/siem- tests/integration/enterprise/siem-
+```
+
+**关键断言示例**:
+
+```javascript
+// CEF 格式包含必要字段
+expect(cefLine).toMatch(/^CEF:0\|ChainlessChain\|/);
+expect(cefLine).toContain("DLP_VIOLATION");
+
+// 聚合后事件量减少
+expect(aggStats.reductionRate).toBeGreaterThan(0.8);
+
+// 重试 3 次后标记 failed
+expect(exportRecord.status).toBe("failed");
+expect(exportRecord.retryCount).toBe(3);
+```
+
+---
+
 ## 安全考虑
 
 1. **传输加密**: 所有 SIEM 通信使用 TLS 加密

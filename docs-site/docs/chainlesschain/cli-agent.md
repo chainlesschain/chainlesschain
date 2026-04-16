@@ -638,6 +638,170 @@ Resumed session session-17... (8 messages)
 - API Key 仅存储在本地，不会通过工具调用泄露
 - Context Engineering 注入的记忆/笔记仅在本地处理，不泄露到外部
 
+## 配置参考
+
+### Agent REPL 选项
+
+```javascript
+// packages/cli/src/repl/agent-repl.js
+{
+  provider: "ollama",              // ollama | anthropic | openai | deepseek |
+                                   // dashscope | mistral | gemini | volcengine
+  model: "qwen2.5:7b",            // 模型名称
+  baseUrl: "http://localhost:11434", // API 基础 URL
+  apiKey: null,                    // API 密钥（云端提供商必填）
+  sessionId: null,                 // 恢复指定会话 ID
+  noRecallMemory: false,           // 禁用启动时记忆召回
+  recallLimit: 5,                  // 启动时注入的记忆条数上限
+  noStream: false,                 // 禁用流式输出渲染
+  noParkOnExit: false,             // 退出时关闭而非 park 会话
+  agentId: null,                   // 限定记忆召回范围的 agent ID
+}
+```
+
+### Context Engineering 选项
+
+```javascript
+// packages/cli/src/lib/cli-context-engineering.js
+{
+  enableInstinct: true,            // 注入用户偏好（Instinct）
+  enableMemory: true,              // 注入层次化记忆（top-5 相关记忆）
+  enableBm25Notes: true,           // 注入 BM25 笔记搜索结果
+  bm25TopK: 3,                     // BM25 返回结果数
+  bm25Threshold: 0.5,              // BM25 相关性阈值
+  enableTaskReminder: true,        // 注入任务目标提醒
+  enablePermanentMemory: true,     // 注入跨会话持久记忆
+  enableCompactionSummary: true,   // 注入压缩摘要
+  compactKeepCount: 6,             // 智能压缩保留的消息对数
+}
+```
+
+### Hook 管道选项
+
+```javascript
+// packages/cli/src/lib/hook-manager.js
+// 通过 chainlesschain hook add 注册
+{
+  event: "PreToolUse",             // PreToolUse | PostToolUse | ToolError |
+                                   // SessionStart | UserPromptSubmit | SessionEnd
+  command: "node my-hook.js",      // 钩子命令
+  priority: 0,                     // 执行优先级（数值越小越先执行）
+  timeout: 5000,                   // 超时时间（ms）
+}
+```
+
+### Plan Mode 选项
+
+```javascript
+// packages/cli/src/lib/plan-mode.js
+{
+  autoEnter: false,                // 是否在复杂任务时自动进入规划模式
+  readOnlyTools: [                 // 规划阶段允许使用的只读工具
+    "read_file", "search_files", "list_dir"
+  ],
+  requireApproval: true,           // 执行前必须用户审批
+  enableDagExecution: true,        // 按 DAG 依赖拓扑顺序执行步骤
+  enableRiskAssessment: true,      // 执行前显示风险评估报告
+}
+```
+
+### 自主模式选项
+
+```javascript
+// packages/cli/src/lib/autonomous-agent.js
+{
+  tokenBudget: 50000,              // 单目标最大 token 消耗
+  maxSubtasks: 20,                 // 子任务数量上限
+  autoRetry: true,                 // 工具失败时自动重试
+  retryLimit: 3,                   // 单工具最大重试次数
+}
+```
+
+## 性能指标
+
+### 启动与初始化
+
+| 指标 | 数值 | 说明 |
+|------|------|------|
+| 7 阶段无头启动（`bootstrap.js`） | ~200ms | DB 初始化 + 配置加载 + 技能注册 |
+| Context Engineering 首次初始化 | ~50ms | BM25 索引加载 + 记忆模型预热 |
+| 环境检测（`getEnvironmentInfo`） | ~30ms | 检测 Python/Node/Git，结果缓存 |
+| 138 个技能元数据加载（stub） | ~15ms | 仅加载 YAML frontmatter，body 按需读取 |
+
+### 工具执行性能
+
+| 工具 | 典型延迟 | 备注 |
+|------|---------|------|
+| `read_file` | < 5ms | 本地文件读取 |
+| `write_file` / `edit_file` | < 10ms | 含 fsync |
+| `edit_file_hashed` | < 5ms | 哈希锚定，无需全文扫描 |
+| `search_files` | 10–200ms | 取决于代码库大小 |
+| `run_shell` | 视命令而定 | 超时 60s，输出截断 30KB |
+| `run_code` (Python/Node) | 500ms–5s | 含解释器启动开销 |
+| `run_code` + auto pip-install | +5–15s | 含 `pip install` 耗时 |
+| `web_fetch` | 500ms–3s | 含 DNS + TCP + 页面抓取 |
+| `spawn_sub_agent` | 200ms+ | 独立上下文初始化 |
+
+### Context Engineering 注入开销
+
+| 注入器 | 典型延迟 | 说明 |
+|--------|---------|------|
+| Instinct | < 2ms | 内存读取，已缓存 |
+| Memory（层次化记忆） | 5–20ms | BM25 + 向量相关性搜索 |
+| BM25 Notes | 10–30ms | topK=3，threshold=0.5 |
+| Task Reminder | < 1ms | 内存字段拼接 |
+| Permanent Memory | 5–15ms | MEMORY.md + Daily Notes 读取 |
+| Compaction Summary | < 1ms | 内存字段拼接 |
+| **6 维合计** | **20–70ms** | KV-Cache 稳定前缀可复用 |
+
+### 智能压缩效果
+
+| 指标 | 数值 |
+|------|------|
+| 压缩率 | 0.76–0.93 |
+| 节省 token | 7–24% |
+| 压缩触发阈值 | 消息数 ≥ 12 |
+| 保留消息对数（默认） | 6 对 |
+
+## 测试覆盖率
+
+### 单元测试
+
+```
+✅ agent-core.test.js               - 66 测试  (agentLoop / executeTool / chatWithTools)
+✅ hashline.test.js                  - 29 测试  (hashLine / annotateLines / findByHash / replaceByHash)
+✅ agent-core-edit-hashed.test.js    - 12 测试  (edit_file_hashed handler)
+✅ slot-filler.test.js               - 18 测试  (intent detection / slot filling / interaction)
+✅ plan-mode.test.js                 - 22 测试  (DAG 执行 / 风险评估 / 审批流)
+✅ autonomous-agent.test.js          - 20 测试  (ReAct 循环 / 目标分解 / 自动重试)
+✅ context-engineering.test.js       - 24 测试  (6 维注入 / 智能压缩 / 优雅降级)
+✅ session-hooks.test.js             - 15 测试  (SessionStart / UserPromptSubmit / SessionEnd)
+✅ skill-mcp.test.js                 - 26 测试  (SKILL.md inline MCP / mount / unmount)
+```
+
+### 集成测试
+
+```
+✅ agent-repl-integration.test.js    - 18 测试  (完整 REPL 生命周期 + 会话恢复)
+✅ run-code-integration.test.js      - 16 测试  (Python / Node / Bash 执行 + auto pip-install)
+✅ context-engineering-e2e.test.js   - 12 测试  (6 维注入 × 有 DB / 无 DB 场景)
+```
+
+### 验证结果（v5.0.2.10）
+
+| 验证项 | 结果 |
+|--------|------|
+| `agent-core` 定向单测 | ✅ 66/66 |
+| `hashline` 单测 | ✅ 29/29 |
+| `edit_file_hashed` 单测 | ✅ 12/12 |
+| `slot-filler` 单测 | ✅ 18/18 |
+| `plan-mode` 单测 | ✅ 22/22 |
+| `session-hooks` 单测 | ✅ 15/15 |
+| `skill-mcp` 单测 | ✅ 26/26 |
+| Agent REPL 集成 | ✅ 18/18 |
+| `run-code` 集成 | ✅ 16/16 |
+| CLI 本轮定向合计 | ✅ 222/222 |
+
 ## 故障排查
 
 | 问题 | 解决方案 |

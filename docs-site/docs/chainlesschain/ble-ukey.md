@@ -360,6 +360,75 @@ watch(() => ble.connectionStatus, (status) => {
 3. 检查 U-Key 是否正在执行耗时操作（如密钥生成），等待完成后重试
 4. 尝试断开并重新连接设备
 
+## 配置参考
+
+完整配置项说明（对应 `.chainlesschain/config.json` 中的 `unifiedKey.ble` 节点）：
+
+```json
+{
+  "unifiedKey": {
+    "ble": {
+      "enabled": true,
+      "scanDuration": 10000,
+      "autoReconnect": true,
+      "reconnectAttempts": 5,
+      "reconnectDelay": 2000,
+      "rssiThreshold": -80,
+      "serviceUUIDs": ["0000FF01-0000-1000-8000-00805F9B34FB"],
+      "mtuSize": 512,
+      "apduTimeout": 5000,
+      "pairingMode": "numeric-comparison",
+      "whitelist": []
+    },
+    "transport": {
+      "default": "auto",
+      "fallbackOrder": ["usb", "ble"]
+    }
+  }
+}
+```
+
+**配置项说明**:
+
+| 配置项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `enabled` | `true` | 是否启用 BLE 传输通道 |
+| `scanDuration` | `10000` | 单次扫描持续时间（毫秒） |
+| `autoReconnect` | `true` | 连接断开后是否自动重连 |
+| `reconnectAttempts` | `5` | 自动重连最大尝试次数 |
+| `reconnectDelay` | `2000` | 相邻重连尝试间隔（毫秒） |
+| `rssiThreshold` | `-80` | 信号强度过滤阈值（dBm），低于此值的设备不显示 |
+| `mtuSize` | `512` | BLE MTU 协商目标大小（字节） |
+| `apduTimeout` | `5000` | 单条 APDU 命令最大等待时间（毫秒） |
+| `pairingMode` | `numeric-comparison` | 配对模式：`numeric-comparison` \| `just-works` |
+| `whitelist` | `[]` | 已信任设备 ID 白名单，为空时允许所有已配对设备 |
+| `transport.default` | `auto` | 默认传输：`auto` \| `usb` \| `ble` |
+| `transport.fallbackOrder` | `["usb","ble"]` | `auto` 模式下的传输优先级顺序 |
+
+## 测试覆盖
+
+```
+✅ ble-transport.test.js          - BLE 连接/断开/自动重连/MTU 协商测试
+✅ ble-scanner.test.js            - 设备扫描、RSSI 过滤、UUID 过滤测试
+✅ apdu-handler.test.js           - APDU 命令封装、分包、响应解析测试
+✅ driver-registry.test.js        - USB/BLE 双通道注册、自动切换逻辑测试
+✅ stores/bleUkey.test.ts         - Pinia Store 状态管理、IPC 调用测试
+✅ e2e/ukey/ble-ukey.e2e.test.ts  - 端到端设备发现→连接→签名流程测试
+```
+
+**测试运行**:
+
+```bash
+# BLE 单元测试
+cd desktop-app-vue && npx vitest run tests/unit/ukey/
+
+# Store 测试
+cd desktop-app-vue && npx vitest run src/renderer/stores/__tests__/bleUkey.test.ts
+
+# 端到端测试（需要真实或模拟 BLE 设备）
+cd desktop-app-vue && npx vitest run tests/e2e/ukey/
+```
+
 ## 安全考虑
 
 1. **BLE 配对**: 使用 BLE 4.2+ Secure Connection (ECDH P-256)

@@ -1053,6 +1053,119 @@ git remote set-url --add --push origin git@gitlab.com:...
 | **v2.1.0** | 端到端加密同步 | 零知识加密           | 2027 Q1  |
 | **v2.2.0** | 智能同步策略   | AI 选择最优同步路径  | 2027 Q1  |
 
+## 配置参考
+
+### 核心配置字段
+
+| 字段                              | 类型      | 默认值     | 说明                                                   |
+| --------------------------------- | --------- | ---------- | ------------------------------------------------------ |
+| `sync.autoSync`                   | `boolean` | `true`     | 是否启用自动定时同步                                   |
+| `sync.syncInterval`               | `number`  | `5`        | 自动同步间隔（分钟）                                   |
+| `sync.syncOnChange`               | `boolean` | `true`     | 数据变更后立即触发同步                                 |
+| `sync.syncOnStartup`              | `boolean` | `true`     | 应用启动时自动同步                                     |
+| `sync.conflictStrategy`           | `string`  | `"manual"` | 冲突解决策略：`newest` / `local` / `remote` / `manual` |
+| `sync.shallowClone`               | `boolean` | `false`    | 是否使用浅克隆（新设备首次同步推荐开启）               |
+| `sync.depth`                      | `number`  | `10`       | 浅克隆深度（`shallowClone: true` 时生效）              |
+| `sync.lfsEnabled`                 | `boolean` | `false`    | 是否启用 Git LFS（大文件存储）                         |
+| `sync.lfsPatterns`                | `string[]`| `[]`       | LFS 跟踪的文件模式，如 `["*.mp4", "*.psd"]`            |
+
+### 远程仓库配置
+
+```json
+{
+  "sync": {
+    "remote": {
+      "provider": "github",
+      "username": "your-username",
+      "repo": "chainlesschain-data",
+      "branch": "main",
+      "token": "ghp_xxxxxxxxxxxxx"
+    }
+  }
+}
+```
+
+### 完整配置示例
+
+```json
+{
+  "sync": {
+    "autoSync": true,
+    "syncInterval": 5,
+    "syncOnChange": true,
+    "syncOnStartup": true,
+    "conflictStrategy": "manual",
+    "shallowClone": false,
+    "lfsEnabled": false,
+    "lfsPatterns": ["*.mp4", "*.mov", "*.psd"],
+    "remote": {
+      "provider": "github",
+      "username": "your-username",
+      "repo": "chainlesschain-data",
+      "branch": "main",
+      "token": "ghp_xxxxxxxxxxxxx"
+    },
+    "proxy": {
+      "enabled": false,
+      "type": "http",
+      "host": "127.0.0.1",
+      "port": 7890
+    }
+  }
+}
+```
+
+---
+
+## 测试覆盖
+
+### 测试文件
+
+| 测试文件 | 覆盖范围 | 用例数 |
+| -------- | -------- | ------ |
+| `packages/cli/src/commands/__tests__/git.test.js`   | `git status`、`git auto-commit` CLI 命令 | ~20 |
+| `packages/cli/src/lib/__tests__/git-integration.test.js` | isomorphic-git 封装、提交、推送、拉取 | ~35 |
+| `desktop-app-vue/tests/unit/git/git-manager.test.js`     | 自动提交检测、3-way merge、冲突解决 | ~40 |
+
+### 关键测试场景
+
+```javascript
+// 自动检测变更并生成有意义的 commit message
+it("auto-commit should detect changes and generate message", async () => {
+  await fs.writeFile("notes/test.md", "new content");
+  const result = await gitManager.autoCommit();
+  expect(result.committed).toBe(true);
+  expect(result.message).toMatch(/知识库|笔记|更新/);
+});
+
+// 增量同步：仅拉取最新提交的变更文件
+it("pull should only return changed files since last sync", async () => {
+  const changes = await gitManager.pull();
+  expect(changes.every(f => f.updatedAt > lastSyncTime)).toBe(true);
+});
+
+// 冲突检测：同一文件在两端均有修改
+it("should detect conflict when both sides modify same file", async () => {
+  const conflicts = await gitManager.detectConflicts(localRef, remoteRef);
+  expect(conflicts).toContain("knowledge/notes/shared-note.md");
+});
+```
+
+### 运行测试
+
+```bash
+# CLI git 命令测试
+cd packages/cli && npx vitest run src/commands/__tests__/git.test.js
+
+# Git 集成库测试
+cd packages/cli && npx vitest run src/lib/__tests__/git-integration.test.js
+
+# Desktop git-manager 测试
+cd desktop-app-vue && npx vitest run tests/unit/git/
+```
+
+---
+
 ## 安全考虑
 
 - **凭证安全存储**: Git Token 和密码通过 AES-256-GCM 加密存储在本地配置中，不以明文保存

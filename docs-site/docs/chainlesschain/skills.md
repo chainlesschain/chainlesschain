@@ -45,6 +45,124 @@ Skills 技能系统是 ChainlessChain AI 引擎的核心能力扩展框架，通
   └─────────┘ └─────────┘ └─────────┘
 ```
 
+## 配置参考
+
+技能系统支持通过统一配置管理器进行详细配置，以下是完整的配置选项说明。
+
+### 四层目录配置
+
+```javascript
+// .chainlesschain/config.json
+{
+  "skills": {
+    // 技能目录（四层加载路径）
+    "directories": {
+      "workspace": ".chainlesschain/skills",               // 工作区技能（最高优先级）
+      "managed": "~/.chainlesschain/skills",               // 用户管理技能
+      "marketplace": "~/.chainlesschain/marketplace/skills", // 插件市场技能
+      "bundled": "<app>/skills/builtin"                    // 内置技能（只读）
+    }
+  }
+}
+```
+
+### 加载与解析配置
+
+```javascript
+{
+  "skills": {
+    // 启动时自动加载所有技能层
+    "autoLoad": true,
+
+    // 懒加载：启动时仅解析 YAML frontmatter，body 按需加载（parseMetadataOnly）
+    "lazyLoad": true,
+
+    // gray-matter 不可用时自动回退到简易解析器
+    "parserFallback": true,
+
+    // 同名技能按层级优先级覆盖（workspace > managed > marketplace > bundled）
+    "layerOverride": true
+  }
+}
+```
+
+### 门控检查配置
+
+```javascript
+{
+  "skills": {
+    "gateChecks": {
+      // 启用门控检查（平台 / 二进制依赖 / 环境变量 / 自定义脚本）
+      "enabled": true,
+
+      // 严格模式：门控失败则自动禁用技能，防止误执行
+      "strict": false,
+
+      // 门控检查超时（毫秒）
+      "timeout": 5000
+    }
+  }
+}
+```
+
+### 执行限制配置
+
+```javascript
+{
+  "skills": {
+    "execution": {
+      // 单次技能执行超时（毫秒），默认 60 秒
+      "timeout": 60000,
+
+      // 最大并发执行数，超出后技能排队等待
+      "maxConcurrent": 3,
+
+      // 执行历史保留条数（用于 skill history 命令）
+      "historyLimit": 100
+    }
+  }
+}
+```
+
+### Skill-Embedded MCP 配置
+
+```javascript
+// SKILL.md 内联 MCP 服务器声明（fenced mcp-servers 块）
+// 技能激活时自动 mount，技能退出后 unmount，无需预注册 DB
+{
+  "skills": {
+    "mcpEmbed": {
+      // 允许技能通过 SKILL.md 内联声明 MCP 服务器
+      "enabled": true,
+
+      // 单个 MCP 服务器 mount 失败时跳过（不中断其他服务器启动）
+      "failSilently": true
+    }
+  }
+}
+```
+
+### 统一工具注册表配置
+
+```javascript
+{
+  "skills": {
+    "unifiedRegistry": {
+      // 启用 ToolSkillMapper 自动将未覆盖工具分组到 10 个默认类别
+      "autoGroupTools": true,
+
+      // 启用 MCPSkillGenerator：MCP 服务器连接时自动生成技能元数据
+      "autoGenerateMcpSkills": true,
+
+      // 工具名标准化：kebab-case → snake_case（内部匹配与 SKILL.md tools 字段对齐）
+      "normalizeToolNames": true
+    }
+  }
+}
+```
+
+---
+
 ## 系统概述
 
 ### 技能是什么
@@ -968,6 +1086,17 @@ description: 优化 JavaScript/TypeScript 文件的 import 语句，移除未使
 | `src/main/ai-engine/cowork/unified-tool-registry.js` | 统一工具注册表 | ~420 |
 | `src/main/ai-engine/cowork/skill-discoverer.js` | 技能发现与搜索 | ~280 |
 
+## 性能指标
+
+| 操作 | 目标 | 实际 | 状态 |
+| --- | --- | --- | --- |
+| 启动阶段加载技能 (元数据) | < 300ms | ~180ms (懒加载 stub) | ✅ |
+| 完整加载单个技能 (body+解析) | < 50ms | ~25ms (SKILL.md) | ✅ |
+| 技能发现 (名称/描述匹配) | < 50ms | ~15ms (内存索引) | ✅ |
+| 技能执行 Handler 分发 | < 20ms | ~8ms | ✅ |
+| 统一工具注册表构建 | < 500ms | ~260ms (138 技能) | ✅ |
+| MCP 嵌入 mount/unmount | < 200ms | ~110ms | ✅ |
+
 ## 故障排查
 
 ### 技能加载失败
@@ -999,6 +1128,66 @@ description: 优化 JavaScript/TypeScript 文件的 import 语句，移除未使
 - **参数格式**: 确认传入参数符合技能定义中的 `input-schema` 要求
 - **工具权限**: 技能仅能使用 `tools` 字段中声明的工具，未声明的工具调用会被拒绝
 - **日志排查**: 查看应用日志中 `[SkillExecutor]` 标签的错误信息
+
+---
+
+## 测试覆盖率
+
+Skills 系统的测试分布在 Desktop 和 CLI 两个包中，覆盖核心解析、四层加载、Handler 执行、工具注册表和 MCP 嵌入等全链路。
+
+### Desktop 测试文件
+
+| 测试文件 | 覆盖模块 | 用例数 |
+| --- | --- | --- |
+| ✅ `tests/unit/ai-engine/skill-handlers.test.js` | 138 个 Handler 端到端执行 | ~138 |
+| ✅ `tests/unit/ai-engine/skill-loader.test.js` | 四层加载、优先级覆盖、懒加载 stub | ~28 |
+| ✅ `tests/unit/ai-engine/skill-md-parser.test.js` | YAML frontmatter 解析、body sections、13 扩展字段 | ~35 |
+| ✅ `tests/unit/ai-engine/skill-mcp.test.js` | Skill-Embedded MCP 声明解析、mount/unmount | ~26 |
+| ✅ `tests/unit/ai-engine/unified-tool-registry.test.js` | FunctionCaller + MCP + Skills 聚合、clone-on-read | ~42 |
+| ✅ `tests/unit/ai-engine/tool-skill-mapper.test.js` | 10 个默认分组正则匹配、未覆盖工具兜底 | ~18 |
+| ✅ `tests/unit/mcp/mcp-skill-generator.test.js` | MCP 服务器自动生成技能元数据、BUILTIN_CATALOG | ~22 |
+| ✅ `tests/unit/ai-engine/skill-discoverer.test.js` | 技能搜索、按类别/来源筛选 | ~20 |
+| ✅ `tests/unit/ai-engine/demo-template-loader.test.js` | 10 个演示模板 JSON 解析与验证 | ~15 |
+
+### CLI 测试文件
+
+| 测试文件 | 覆盖模块 | 用例数 |
+| --- | --- | --- |
+| ✅ `packages/cli/__tests__/unit/skill-loader.test.js` | CLI 四层技能加载、workspace/managed/bundled | ~28 |
+| ✅ `packages/cli/__tests__/unit/skill-mcp.test.js` | CLI Skill-Embedded MCP 解析与容错 | ~26 |
+| ✅ `packages/cli/__tests__/integration/skill-run.test.js` | `chainlesschain skill run` 端到端执行 | ~30 |
+| ✅ `packages/cli/__tests__/unit/skill-sync-cli.test.js` | 9 个 CLI 命令技能包生成/同步/删除 | ~24 |
+
+### Agent Skills 扩展字段测试
+
+```javascript
+// skill-md-parser.test.js — 13 个扩展字段解析验证示例
+describe("Agent Skills 标准字段", () => {
+  it("解析 tools 字段", () => { /* ... */ });
+  it("解析 instructions 字段", () => { /* ... */ });
+  it("解析 examples 数组", () => { /* ... */ });
+  it("解析 input-schema / output-schema", () => { /* ... */ });
+  it("解析 model-hints.preferred", () => { /* ... */ });
+  it("解析 dependencies 数组", () => { /* ... */ });
+  it("解析 gates 门控块", () => { /* ... */ });
+  it("解析 mcp-servers fenced block", () => { /* ... */ });
+});
+```
+
+### 运行测试
+
+```bash
+# Desktop 技能相关测试
+cd desktop-app-vue && npx vitest run tests/unit/ai-engine/
+
+# CLI 技能相关测试
+cd packages/cli && npx vitest run __tests__/unit/skill-
+
+# 全量（注意 OOM：分批运行，每批最多 3 个文件）
+cd desktop-app-vue && npx vitest run tests/unit/ai-engine/skill-handlers.test.js \
+  tests/unit/ai-engine/skill-loader.test.js \
+  tests/unit/ai-engine/skill-md-parser.test.js
+```
 
 ---
 

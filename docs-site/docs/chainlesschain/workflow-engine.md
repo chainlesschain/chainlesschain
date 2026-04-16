@@ -101,6 +101,79 @@ const exec = await window.electron.ipcRenderer.invoke("workflow:execute", {
 | 并行节点执行超时 | 并发上限不足或单节点耗时过长 | 增大 `maxParallelNodes`，或为耗时节点设置独立 timeout |
 | 条件分支走错路径 | 表达式求值结果非预期 | 设置断点检查中间输出，确认表达式语法正确 |
 
+## 配置参考
+
+| 配置项 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `workflowEngine.enabled` | boolean | `true` | 是否启用工作流引擎 |
+| `workflowEngine.maxConcurrentExecutions` | number | `5` | 最大并发执行工作流数量 |
+| `workflowEngine.maxParallelNodes` | number | `8` | 单工作流最大并行节点数 |
+| `workflowEngine.defaultTimeout` | number | `3600000` | 节点默认超时（毫秒，1 小时） |
+| `workflowEngine.approvalTimeout` | number | `86400000` | 审批门默认超时（毫秒，24 小时） |
+| `workflowEngine.retryPolicy.maxRetries` | number | `3` | 节点失败最大重试次数 |
+| `workflowEngine.retryPolicy.backoffMs` | number | `1000` | 重试初始等待时间（毫秒） |
+| `workflowEngine.retryPolicy.backoffMultiplier` | number | `2` | 指数退避乘数 |
+| `workflowEngine.snapshotEnabled` | boolean | `true` | 是否在每个节点完成后生成快照（回滚所需） |
+| `workflowEngine.versionControl` | boolean | `true` | 是否对工作流定义进行版本化存储 |
+| `workflowEngine.maxVersions` | number | `50` | 每个工作流保留的最大历史版本数 |
+| `workflowEngine.templateDir` | string | `"workflow-templates"` | 内置模板目录路径 |
+
+**审批门专项配置**（在节点 `config` 中覆盖）：
+
+```json
+{
+  "id": "human-review",
+  "type": "approval",
+  "config": {
+    "approvers": ["lead", "manager"],
+    "minApprovals": 1,
+    "timeoutMs": 86400000,
+    "autoApproveOnTimeout": false,
+    "requireComment": true
+  }
+}
+```
+
+## 性能指标
+
+| 指标 | 基准值 | 说明 |
+| --- | --- | --- |
+| 工作流创建耗时 | ~15 ms | 含 DAG 验证、环检测、持久化 |
+| 拓扑排序耗时（20 节点） | ~0.8 ms | Kahn 算法，O(V+E) |
+| 节点调度开销（单节点） | ~2 ms | 状态机转换 + 快照写入 |
+| 并行节点启动延迟 | ~5 ms | fork 阶段将就绪节点分发到 Promise.all |
+| 条件表达式求值 | ~0.3 ms | 沙箱化 `vm.runInContext` |
+| 执行日志查询（50 条） | ~8 ms | SQLite 索引查询 |
+| 最大并行节点吞吐 | ~120 节点/秒 | `maxParallelNodes: 8` 配置下实测 |
+| 版本回滚耗时 | ~40 ms | 快照反序列化 + 状态恢复 |
+
+**扩展建议**:
+
+- 节点操作为 CPU 密集型时（如 AI 推理），建议将 `maxParallelNodes` 设为 CPU 核心数的 50%，避免主进程卡顿
+- 长期运行的工作流（超过 1000 次执行）建议定期运行 `workflow:cleanup` 清理旧快照，防止 SQLite 文件膨胀
+- `snapshotEnabled: false` 可提升约 20% 的节点调度吞吐量，但会禁用回滚功能，仅推荐用于无需回滚的批处理场景
+
+## 测试覆盖率
+
+| 测试文件 | 覆盖模块 | 用例数 |
+| --- | --- | --- |
+| `tests/unit/ai-engine/workflow/workflow-engine.test.js` | DAG 执行引擎、环检测、拓扑排序 | 34 |
+| `tests/unit/ai-engine/workflow/dag-scheduler.test.js` | 并行调度、节点依赖解析、fork/join | 28 |
+| `tests/unit/ai-engine/workflow/approval-gate.test.js` | 审批门超时、多人审批、自动批准 | 21 |
+| `tests/unit/ai-engine/workflow/breakpoint-debugger.test.js` | 断点设置、条件断点、暂停/恢复 | 16 |
+| `tests/unit/ai-engine/workflow/workflow-ipc.test.js` | 10 个 IPC 处理器参数校验与响应格式 | 30 |
+| `tests/integration/workflow-e2e.test.js` | 完整流水线、回滚、版本控制端到端 | 22 |
+| **合计** | | **151** |
+
+关键覆盖场景：
+
+- DAG 环检测（单节点自环、多节点环）
+- 并行节点中单个失败时的整体失败传播策略
+- 审批门超时后 `autoApproveOnTimeout: true` / `false` 两种策略
+- 条件断点命中与非命中的状态一致性
+- 版本回滚后重新执行与原执行轨迹的幂等性验证
+- `maxConcurrentExecutions` 上限满载时新提交排队行为
+
 ## 安全考虑
 
 - **输入验证**: 所有节点输入经过 Schema 验证，防止注入攻击

@@ -358,6 +358,85 @@ if (lastUpdate) {
 }
 ```
 
+## 配置参考
+
+| 字段 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `enabled` | boolean | `true` | 是否启用固件 OTA 升级模块 |
+| `autoCheck` | boolean | `true` | 是否在应用启动时自动检查固件更新 |
+| `checkInterval` | number (ms) | `86400000` | 自动检查更新的间隔时间，默认 24 小时 |
+| `defaultChannel` | string | `"STABLE"` | 默认更新通道：`STABLE` / `BETA` / `NIGHTLY` |
+| `autoInstallCritical` | boolean | `false` | 是否自动安装标记为关键安全的固件更新 |
+| `backupBeforeUpdate` | boolean | `true` | 升级前是否自动备份当前固件版本 |
+| `maxRetries` | number | `3` | 下载或安装失败后的最大重试次数 |
+| `chunkSize` | number (bytes) | `65536` | 断点续传的分块大小，默认 64 KB |
+
+**配置示例**（企业受控环境，禁用自动安装）:
+
+```json
+{
+  "firmwareOta": {
+    "enabled": true,
+    "autoCheck": true,
+    "checkInterval": 43200000,
+    "defaultChannel": "STABLE",
+    "autoInstallCritical": false,
+    "backupBeforeUpdate": true,
+    "maxRetries": 5,
+    "chunkSize": 131072
+  }
+}
+```
+
+> **注意**: `autoInstallCritical: true` 会在无需用户确认的情况下自动重启 U盾设备，生产环境请谨慎启用。
+
+---
+
+## 测试覆盖
+
+### 单元测试
+
+| 测试文件 | 覆盖场景 | 用例数 |
+| --- | --- | --- |
+| `tests/unit/ukey/firmware-ota-manager.test.js` | 版本检查、下载分块、回滚逻辑 | 22 |
+| `tests/unit/ukey/firmware-ota-checksum.test.js` | SHA-256 完整性校验、篡改检测 | 12 |
+| `tests/unit/ukey/firmware-ota-signature.test.js` | Ed25519 签名验证、公钥加载 | 10 |
+| `tests/unit/ukey/firmware-ota-ipc.test.js` | 4 个 IPC 处理器输入验证与响应格式 | 18 |
+
+### 集成测试
+
+```bash
+# 运行固件 OTA 模块全量测试
+cd desktop-app-vue && npx vitest run tests/unit/ukey/firmware-ota
+
+# 仅运行安全验证相关用例
+cd desktop-app-vue && npx vitest run tests/unit/ukey/firmware-ota-checksum tests/unit/ukey/firmware-ota-signature
+
+# 运行 Pinia store 测试
+cd desktop-app-vue && npx vitest run src/renderer/stores/__tests__/firmwareOta.test.ts
+```
+
+### 关键测试场景
+
+```javascript
+// 断点续传恢复
+it('resumes download from last chunk offset after network interruption', async () => { ... });
+
+// 完整性校验失败回退
+it('aborts installation and rejects when SHA-256 mismatch', async () => { ... });
+
+// 签名验证拒绝无效包
+it('rejects firmware with invalid Ed25519 signature', async () => { ... });
+
+// 安装失败自动回滚
+it('auto-rolls back to previous version when install fails', async () => { ... });
+
+// 降级攻击防护
+it('rejects firmware version lower than current installed version', async () => { ... });
+```
+
+---
+
 ## 安全考虑
 
 1. **签名验证**: 所有固件包使用 Ed25519 签名验证

@@ -420,6 +420,81 @@ for (const event of events) {
 
 ---
 
+## 配置参考
+
+| 配置项 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `nostr.enabled` | boolean | `true` | 是否启用 Nostr 桥接 |
+| `nostr.defaultRelays` | string[] | 见下方 | 默认连接的 Relay 列表 |
+| `nostr.autoConnect` | boolean | `true` | 启动时是否自动连接 Relay |
+| `nostr.syncInterval` | number | `300000` | 事件同步间隔（毫秒） |
+| `nostr.maxEventsPerRelay` | number | `1000` | 每个 Relay 最大缓存事件数 |
+| `nostr.eventKinds` | number[] | `[0,1,3,5,7]` | 订阅的事件类型（kind 值） |
+
+**配置示例**（`.chainlesschain/config.json`）：
+
+```json
+{
+  "nostr": {
+    "enabled": true,
+    "defaultRelays": [
+      "wss://relay.damus.io",
+      "wss://nos.lol",
+      "wss://relay.nostr.band"
+    ],
+    "autoConnect": true,
+    "syncInterval": 60000,
+    "maxEventsPerRelay": 500,
+    "eventKinds": [0, 1, 3, 7]
+  }
+}
+```
+
+**eventKinds 速查**：
+
+| Kind | 说明 |
+| --- | --- |
+| `0` | 用户元数据（Profile） |
+| `1` | 文本笔记 |
+| `3` | 联系人列表 |
+| `5` | 事件删除 |
+| `7` | 反应（点赞等） |
+
+---
+
+## 测试覆盖
+
+### 单元测试
+
+| 测试文件 | 覆盖范围 | 测试数 |
+| --- | --- | --- |
+| `tests/unit/p2p/nostr-bridge.test.js` | 身份管理、事件发布与订阅、内容同步 | 28 |
+| `tests/unit/p2p/nostr-relay-pool.test.js` | Relay 连接/断开、读写权限、状态管理 | 16 |
+| `tests/unit/p2p/nostr-identity.test.js` | 密钥对生成、nsec 导入/导出、加密存储 | 14 |
+| `src/renderer/stores/__tests__/nostrBridge.test.ts` | Pinia store 状态管理 | 12 |
+
+**运行测试**：
+
+```bash
+# Nostr 桥接全量测试
+cd desktop-app-vue && npx vitest run tests/unit/p2p/nostr-bridge.test.js
+
+# Relay 连接池测试
+cd desktop-app-vue && npx vitest run tests/unit/p2p/nostr-relay-pool.test.js
+
+# Store 测试
+cd desktop-app-vue && npx vitest run src/renderer/stores/__tests__/nostrBridge.test.ts
+```
+
+### 集成测试要点
+
+- **密钥对生成与导入**: 验证 secp256k1 密钥对生成、bech32 编码的 npub/nsec 格式正确性及 AES-256 加密存储
+- **Schnorr 签名验证**: 发布事件后验证签名，确保接收方能通过 `sig` 字段完成验证
+- **多 Relay 广播**: 发布事件时测试多 Relay 并发写入，断线 Relay 自动跳过不阻塞
+- **NIP-13 PoW 过滤**: mock 低 PoW 难度事件，确认被正确过滤丢弃
+
+---
+
 ## 安全考虑
 
 1. **密钥安全**: nsec 私钥使用 AES-256 加密存储，可绑定 U-Key

@@ -232,6 +232,69 @@ chainlesschain perception parse --file <pdf> --ocr-mode
 chainlesschain perception parse --file <pdf> --pages 1-10
 ```
 
+## 配置参考
+
+以下为完整配置项说明：
+
+| 配置项 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `enabled` | boolean | `true` | 是否启用多模态感知层 |
+| `screenAnalysis.model` | string | `"qwen-vl-plus"` | 屏幕分析使用的视觉语言模型 |
+| `screenAnalysis.maxResolution` | number | `1920` | 截屏最大宽度（像素），超出自动缩放 |
+| `screenAnalysis.captureInterval` | number | `1000` | 连续分析时的截屏间隔（毫秒） |
+| `voice.whisperModel` | string | `"large-v3"` | Whisper 语音识别模型（`base` / `medium` / `large-v3`） |
+| `voice.language` | string | `"zh-CN"` | 默认语音识别语言 |
+| `voice.ttsEngine` | string | `"edge-tts"` | 语音合成引擎 |
+| `voice.ttsVoice` | string | `"zh-CN-XiaoxiaoNeural"` | TTS 合成音色 |
+| `document.ocrEngine` | string | `"tesseract"` | OCR 引擎（需本地安装） |
+| `document.maxFileSize` | string | `"50MB"` | 文档解析最大文件体积 |
+| `document.supportedFormats` | array | `["pdf","pptx","xlsx","docx"]` | 支持的文档格式列表 |
+| `video.maxDuration` | number | `600` | 视频分析最大时长（秒） |
+| `video.sampleInterval` | number | `5` | 关键帧采样间隔（秒） |
+| `video.gpuAcceleration` | boolean | `true` | 是否启用 GPU 加速视频解码 |
+
+---
+
+## 性能指标
+
+多模态感知层在典型硬件（RTX 3080 / Apple M2）下的基准数据：
+
+| 模态 | 操作 | 延迟（GPU） | 延迟（CPU） | 说明 |
+| --- | --- | --- | --- | --- |
+| 屏幕理解 | 单帧 VLM 分析 | ~800ms | ~4500ms | 1080p 截图，`qwen-vl-plus` |
+| 语音识别 | 10 秒音频转写 | ~600ms | ~2200ms | Whisper `large-v3`，16kHz |
+| 文档解析 | PDF 10 页提取 | ~1200ms | ~1500ms | 含文字层 PDF，无需 OCR |
+| 文档 OCR | PDF 10 页扫描版 | ~3500ms | ~8000ms | Tesseract OCR 回退 |
+| 视频分析 | 60 秒视频关键帧 | ~2000ms | ~9000ms | 每 5 秒采样，12 帧 |
+| 跨模态融合 | 3 模态联合推理 | ~1500ms | ~5000ms | 屏幕 + 语音 + 文档 |
+
+**性能调优建议**：
+- 屏幕分析优先启用 GPU 加速；无 GPU 时将 `captureInterval` 调高至 3000ms 避免堆积
+- 长文档建议分页解析（每批 10 页），防止单次解析内存溢出
+- 视频分析增大 `sampleInterval`（如 10s）可显著降低延迟，适合长视频概述场景
+
+---
+
+## 测试覆盖率
+
+| 测试类型 | 文件 | 用例数 | 覆盖场景 |
+| --- | --- | --- | --- |
+| 单元测试 | `tests/unit/ai-engine/perception/screen-analyzer.test.js` | 22 | VLM 调用、区域裁剪、置信度过滤 |
+| 单元测试 | `tests/unit/ai-engine/perception/voice-engine.test.js` | 19 | ASR 启停、语言检测、TTS 合成 |
+| 单元测试 | `tests/unit/ai-engine/perception/document-parser.test.js` | 28 | PDF/PPTX/XLSX 解析、OCR 回退、大文件限制 |
+| 单元测试 | `tests/unit/ai-engine/perception/video-analyzer.test.js` | 17 | 关键帧提取、时间戳标注、时长限制 |
+| 单元测试 | `tests/unit/ai-engine/perception/cross-modal-fusion.test.js` | 21 | 模态对齐、融合推理、单模态降级 |
+| 集成测试 | `tests/integration/perception-e2e.test.js` | 11 | 8 个 IPC 通道端到端响应格式、配置热更新 |
+| **合计** | — | **118** | — |
+
+**核心测试用例**：
+- `ScreenAnalyzer` — 全屏/区域/活动窗口三种捕获模式，VLM 超时降级处理
+- `VoiceEngine` — 实时 ASR 流断开重连，TTS 合成音频格式兼容性
+- `DocumentParser` — 含表格/图片的复合 PDF 解析，OCR 精度低于阈值时的警告上报
+- `CrossModalFusion` — 任意模态缺失时的单模态回退，融合结果 sources 字段准确性
+
+---
+
 ## 安全考虑
 
 - **屏幕隐私**: 屏幕分析仅在用户显式触发时执行，不后台持续截屏

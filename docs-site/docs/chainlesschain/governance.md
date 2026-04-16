@@ -396,6 +396,83 @@ chainlesschain governance conflict-check --proposal-id <id>
 chainlesschain governance conflict-detail --proposal-id <id>
 ```
 
+## 配置参考
+
+| 字段 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `enabled` | boolean | `true` | 是否启用 AI 社区治理模块 |
+| `votingDuration` | number (ms) | `604800000` | 单次提案投票周期，默认 7 天 |
+| `quorumPercentage` | number (0–100) | `51` | 法定人数百分比，达到才能结算提案 |
+| `aiAnalysisEnabled` | boolean | `true` | 是否对新提案自动触发 AI 影响分析 |
+| `votePredictionEnabled` | boolean | `true` | 是否启用基于社区情感的投票结果预测 |
+| `maxActiveProposals` | number | `10` | 同时处于 ACTIVE 状态的最大提案数量 |
+| `proposalCooldown` | number (ms) | `86400000` | 同一 DID 连续提交提案的最短间隔，默认 24 小时 |
+
+**配置示例**（宽松社区环境）:
+
+```json
+{
+  "governance": {
+    "enabled": true,
+    "votingDuration": 1209600000,
+    "quorumPercentage": 30,
+    "aiAnalysisEnabled": true,
+    "votePredictionEnabled": true,
+    "maxActiveProposals": 20,
+    "proposalCooldown": 43200000
+  }
+}
+```
+
+> **注意**: `quorumPercentage` 设置过低（< 20%）可能导致少数人操纵治理结果；建议生产环境保持 ≥ 40%。
+
+---
+
+## 测试覆盖
+
+### 单元测试
+
+| 测试文件 | 覆盖场景 | 用例数 |
+| --- | --- | --- |
+| `tests/unit/social/governance-manager.test.js` | 提案 CRUD、状态流转、投票计数 | 24 |
+| `tests/unit/social/governance-ai-analysis.test.js` | AI 影响分析评级、推荐结论生成 | 16 |
+| `tests/unit/social/governance-vote-prediction.test.js` | 情感分析、预测置信度计算 | 14 |
+| `tests/unit/social/governance-ipc.test.js` | 4 个 IPC 处理器输入验证与响应格式 | 18 |
+
+### 集成测试
+
+```bash
+# 运行治理模块全量测试
+cd desktop-app-vue && npx vitest run tests/unit/social/governance
+
+# 仅运行 AI 分析相关用例
+cd desktop-app-vue && npx vitest run tests/unit/social/governance-ai-analysis
+
+# 运行 Pinia store 测试
+cd desktop-app-vue && npx vitest run src/renderer/stores/__tests__/governance.test.ts
+```
+
+### 关键测试场景
+
+```javascript
+// 提案状态流转
+it('proposal transitions from DRAFT → ACTIVE → PASSED', async () => { ... });
+
+// DID 唯一投票约束
+it('rejects duplicate vote from same DID', async () => { ... });
+
+// AI 分析影响等级映射
+it('maps HIGH security risk to impactLevel CRITICAL', async () => { ... });
+
+// 法定人数校验
+it('rejects result when participation below quorumPercentage', async () => { ... });
+
+// 投票预测置信度范围
+it('prediction confidence is between 0 and 1', async () => { ... });
+```
+
+---
+
 ## 安全考虑
 
 1. **DID 身份绑定**: 所有投票与 DID 绑定，防止刷票

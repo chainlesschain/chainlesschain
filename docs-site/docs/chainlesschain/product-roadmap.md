@@ -38,6 +38,103 @@
 └──────────────────────────────────────────────┘
 ```
 
+## 配置参考
+
+```javascript
+// 产品级全局配置（desktop-app-vue/.chainlesschain/config.json）
+{
+  "product": {
+    "version": "1.1.0",
+    "platform": "desktop",            // desktop | android | ios | web
+    "featureFlags": {
+      "agentFederation": true,         // v2.0 联邦网络
+      "nlProgramming": true,           // v3.1 自然语言编程
+      "multimodalCollab": true,        // v3.2 多模态协作
+      "autonomousOps": true            // v3.3 自主运维
+    }
+  },
+  "security": {
+    "hardwareMode": "simkey",          // simkey | ukey | simulation
+    "pqcMigration": false,             // 后量子密码迁移（v3.2.0 规划项）
+    "zkpEnabled": false                // ZKP 零知识证明（v1.1.0 Beta）
+  },
+  "enterprise": {
+    "rbacEnabled": true,
+    "ssoProvider": null,               // null | "saml" | "oidc"
+    "auditRetentionDays": 90
+  }
+}
+```
+
+## 性能指标
+
+> 目标性能指标（各阶段规划值，随版本演进持续优化）
+
+| 维度 | v1.1.0 目标 | v2.0.0 目标 | 长期愿景 |
+|------|-------------|-------------|---------|
+| 内置技能数 | 95 | 200+ | 500+ |
+| IPC 处理器数 | 557+ | 700+ | 1000+ |
+| 测试用例数 | 19,785+ | 25,000+ | 50,000+ |
+| 代理启动延迟 | < 2s | < 1s | < 500ms |
+| DID 认证延迟 | < 500ms | < 200ms | < 100ms |
+| 联邦网络节点规模 | 100 节点压测 | 1,000 节点 | 全球分布式 |
+| 多平台支持 | 4 平台 | 4 平台 + Web Panel | 统一平台层 |
+| 后量子密码覆盖 | 部分（ZKP Beta） | 全量迁移规划 | 完全 PQC |
+
+## 测试覆盖率
+
+路线图无单独测试 — 具体功能测试分散在各 feature 模块中。
+
+```
+tests/
+├── desktop-app-vue/tests/unit/           # Desktop 主进程单测（AI Engine / IPC / LLM）
+├── desktop-app-vue/src/renderer/stores/__tests__/   # Renderer Pinia stores 测试
+├── packages/cli/__tests__/                # CLI 命令与 runtime 单测
+├── packages/session-core/__tests__/       # 会话内核单测（MemoryStore / ApprovalGate）
+└── android-app/**/src/test/               # Android 模块单测（MockK + Robolectric）
+```
+
+- **v1.1.0 (AI 智能化)**: 覆盖 Agent/Skills/LLM/Memory 模块
+- **v1.2.0 (安全与合规)**: 覆盖 Audit/DLP/SIEM/PQC 模块
+- **v2.0.0 (去中心化)**: 覆盖 DID/P2P/联邦网络模块
+- **v3.0.0+ (长期愿景)**: 按迭代逐步扩展覆盖
+
+## 安全考虑
+
+### 1. 硬件安全主线
+
+U-Key/SIMKey 作为信任根，所有关键密钥操作（签名、加密、DID 私钥派生）均在硬件安全模块内执行，私钥从不以明文形式暴露到应用层。Windows 驱动不可用时自动进入软件模拟模式（仅开发用途）。
+
+### 2. 多主线安全隔离
+
+四条演进主线（AI 智能体、安全硬件、去中心化社交、企业平台）在数据层通过 `orgId` + `userId` 双维度隔离，跨主线数据访问须经 RBAC 权限检查（`auth:check` IPC）。
+
+### 3. 去中心化身份安全
+
+所有 DID 身份使用 Ed25519，P2P 通信使用 Signal Protocol 端到端加密，消息密钥每会话轮换。DAO 治理投票通过 DID 签名防止重复投票和身份伪造。
+
+### 4. 企业合规
+
+审计日志（`audit-compliance` 模块）记录所有敏感操作，保留期默认 90 天可配置。DLP 扫描集成防止数据外泄，SIEM 支持将事件导出至外部安全平台。
+
+### 5. 后量子密码规划
+
+v3.2.0 阶段规划全量后量子密码（PQC）迁移，采用 NIST 标准化算法（Kyber/Dilithium）替换当前 RSA/ECDSA，现有 Ed25519 签名在过渡期内双轨并行。
+
+## 故障排查
+
+**Q: 产品版本更新后 config.json 配置失效**
+检查 `.chainlesschain/config.json` 格式是否符合新版 schema（通过 `chainlesschain config list` 验证）。新版本可能新增必填字段，运行 `chainlesschain doctor` 自动诊断并提示修复建议。
+
+**Q: 硬件安全模式（SIMKey）在 macOS/Linux 下无法启动**
+U-Key/SIMKey 驱动仅支持 Windows。在 macOS/Linux 下需在配置中设置 `"hardwareMode": "simulation"`，此时密钥操作由软件模拟，仅适用于开发测试环境。
+
+**Q: 企业版 RBAC 权限配置后用户仍无法访问某功能**
+运行 `chainlesschain auth check <userId> "<permission>"` 验证权限是否正确分配。检查角色继承链是否完整（`auth:roles` IPC），确认 `rbacEnabled: true` 已在配置中设置。
+
+**Q: 路线图中标注已完成的功能在当前安装版本中不可用**
+路线图中 ✅ 标注为代码已实现，但部分功能需通过 Beta Feature Flags 开启。运行 `chainlesschain config beta list` 查看可用的 Beta 功能，通过 `chainlesschain config beta enable <flag>` 激活。
+
 ## 关键文件
 
 | 文件 | 职责 |
@@ -47,6 +144,45 @@
 | `desktop-app-vue/src/main/p2p/` | P2P 去中心化通信 |
 | `desktop-app-vue/src/main/enterprise/` | 企业平台模块 |
 | `desktop-app-vue/src/main/blockchain/` | 区块链与 DAO 治理 |
+
+## 使用示例
+
+```bash
+# 查看当前产品版本与功能状态
+chainlesschain status
+chainlesschain doctor
+
+# 查看并启用 Beta 功能
+chainlesschain config beta list
+chainlesschain config beta enable agent-federation-2026-06-01
+
+# AI 智能体主线：多代理协作
+chainlesschain cowork debate ./src/feature.js   # 多视角代码审查
+chainlesschain cowork analyze ./src --agent-id orchestrator
+
+# 安全硬件主线：DID 身份操作
+chainlesschain did create
+chainlesschain did sign "Hello ChainlessChain"
+chainlesschain encrypt file sensitive.txt
+
+# 去中心化社交主线：P2P 通信
+chainlesschain p2p peers
+chainlesschain social post "My first decentralized post"
+
+# 企业平台主线：RBAC 与审计
+chainlesschain auth roles
+chainlesschain auth check user1 "pipeline:start"
+chainlesschain audit log --limit 50
+```
+
+```javascript
+// 通过 IPC 查询产品演进状态（Renderer 层）
+const status = await window.electron.ipcRenderer.invoke('app:get-version')
+// → { version: '1.1.0', features: ['cowork-v3.3', 'agent-federation', ...] }
+
+const betaFlags = await window.electron.ipcRenderer.invoke('config:beta-list')
+// → [{ flag: 'idle-park-2026-05-01', enabled: false }, ...]
+```
 
 ## 相关文档
 

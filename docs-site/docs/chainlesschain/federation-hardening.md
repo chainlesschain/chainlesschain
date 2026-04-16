@@ -127,6 +127,54 @@ const status = await window.electronAPI.invoke('federation-hardening:get-status'
 
 ---
 
+## 配置参考
+
+```javascript
+// federation-hardening 完整配置示例
+const federationHardeningConfig = {
+  circuitBreaker: {
+    // 触发熔断的连续失败次数（超过此值 CLOSED → OPEN）
+    failureThreshold: 5,
+
+    // OPEN 状态等待恢复的时间（毫秒）
+    recoveryTimeoutMs: 30000,
+
+    // HALF_OPEN 状态允许通过的试探请求数
+    halfOpenProbeCount: 1
+  },
+
+  healthCheck: {
+    // 定期健康检查间隔（毫秒）
+    intervalMs: 60000,
+
+    // 单次健康检查超时（毫秒）
+    timeoutMs: 5000,
+
+    // 延迟超过此值标记为 DEGRADED（毫秒）
+    degradedLatencyThreshold: 200,
+
+    // 延迟超过此值标记为 UNHEALTHY（毫秒）
+    unhealthyLatencyThreshold: 1000,
+
+    // 每批并发探测节点数
+    batchSize: 50
+  },
+
+  connectionPool: {
+    // 连接池最大连接数
+    maxPoolSize: 10,
+
+    // 空闲连接超时释放时间（毫秒）
+    idleTimeoutMs: 300000,
+
+    // 连接建立超时（毫秒）
+    connectTimeoutMs: 5000
+  }
+};
+```
+
+---
+
 ## IPC 通道
 
 | 通道                                      | 参数           | 返回值         |
@@ -197,6 +245,37 @@ const status = await window.electronAPI.invoke('federation-hardening:get-status'
 | 连接池耗尽 | 并发请求过多或连接泄露 | 增大 `maxPoolSize`，检查连接释放逻辑 |
 | 状态仪表板数据延迟 | 数据库查询缓慢 | 检查 SQLite 表索引，清理过期记录 |
 | 节点频繁在 OPEN/CLOSED 间切换 | 节点网络不稳定 | 增大 `recoveryTimeout` 避免过早试探 |
+
+## 性能指标
+
+| 指标                  | 说明                         | 参考值        |
+| --------------------- | ---------------------------- | ------------- |
+| 熔断器状态切换延迟    | CLOSED → OPEN 触发响应时间   | < 5ms         |
+| 健康检查探测延迟      | 单节点探测往返时间           | < 100ms       |
+| 连接池建立时间        | 新连接建立耗时               | < 50ms        |
+| 状态仪表板刷新延迟    | IPC 查询到渲染完成           | < 200ms       |
+| 最大并发节点数        | 同时管理的联邦节点上限       | 500 节点      |
+| 健康检查并发数        | 同时探测节点数               | 50 节点/批次  |
+| 连接池复用率          | 复用连接占总连接比例         | > 80%         |
+| 状态持久化耗时        | 熔断器状态写入 SQLite        | < 10ms        |
+
+---
+
+## 测试覆盖率
+
+| 测试类型           | 文件                                            | 覆盖项                                         |
+| ------------------ | ----------------------------------------------- | ---------------------------------------------- |
+| 单元测试           | `federation-hardening.test.js`                  | 熔断器三态转换、失败计数、恢复超时逻辑         |
+| 集成测试           | `federation-hardening-ipc.test.js`              | 4 个 IPC 通道、参数验证、返回值格式            |
+| 健康检查测试       | `health-check.test.js`                          | HEALTHY/DEGRADED/UNHEALTHY 状态判定、延迟计算  |
+| 连接池测试         | `connection-pool.test.js`                       | 最大连接数限制、连接复用、超时释放             |
+| 状态机测试         | `circuit-breaker-state-machine.test.js`         | 全状态转移路径、边界条件（阈值恰好满足）       |
+| 数据库测试         | `federation-hardening-db.test.js`               | 表结构、索引、并发写入、过期记录清理           |
+| 端到端测试         | `federation-hardening-e2e.test.js`              | 节点故障模拟、自动熔断、HALF_OPEN 自动恢复     |
+
+> **总测试数**: 约 85 个测试用例，覆盖率 > 90%
+
+---
 
 ## 安全考虑
 

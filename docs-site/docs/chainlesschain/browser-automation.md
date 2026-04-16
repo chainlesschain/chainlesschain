@@ -375,6 +375,98 @@ async function scrapeProducts(page) {
 2. 排除动态内容区域（广告、时间戳）的影响
 3. 确保截图分辨率与基线一致（`defaultViewport` 配置）
 
+## 配置参考
+
+### BrowserEngine 启动选项
+
+| 选项                     | 类型      | 默认值                        | 说明                                              |
+| ------------------------ | --------- | ----------------------------- | ------------------------------------------------- |
+| `headless`               | `boolean` | `true`                        | 无头模式；调试时设为 `false` 可观察浏览器窗口     |
+| `defaultViewport.width`  | `number`  | `1280`                        | 视口宽度（像素）                                  |
+| `defaultViewport.height` | `number`  | `720`                         | 视口高度（像素）                                  |
+| `slowMo`                 | `number`  | `0`                           | 每次操作延迟（毫秒），便于调试观察                |
+| `timeout`                | `number`  | `30000`                       | 全局操作超时（毫秒）                              |
+| `executablePath`         | `string`  | Puppeteer 自动检测            | Chrome/Chromium 可执行文件路径                    |
+| `args`                   | `string[]`| `[]`                          | 附加启动参数（如 `--no-sandbox`、`--disable-gpu`）|
+
+### ElementLocator 定位选项
+
+| 选项            | 类型      | 默认值  | 说明                                      |
+| --------------- | --------- | ------- | ----------------------------------------- |
+| `timeout`       | `number`  | `5000`  | 单次定位超时（毫秒）                      |
+| `fallback`      | `boolean` | `false` | 启用后自动降级到低优先级策略              |
+| `retries`       | `number`  | `1`     | 定位失败重试次数                          |
+| `waitForVisible`| `boolean` | `true`  | 等待元素可见后再返回                      |
+
+### SnapshotEngine 对比选项
+
+| 选项          | 类型     | 默认值 | 说明                                         |
+| ------------- | -------- | ------ | -------------------------------------------- |
+| `threshold`   | `number` | `0.05` | 像素差异阈值（0–1），超过此值报告页面变更    |
+| `baselineDir` | `string` | `.snapshots/` | 基线截图存储目录                    |
+| `fullPage`    | `boolean`| `false`| `true` 时截取整页（含滚动内容）              |
+| `quality`     | `number` | `80`   | JPEG 压缩质量（1–100），仅对 `.jpg` 生效     |
+
+### SmartDiagnostics 修复选项
+
+| 选项                 | 类型      | 默认值 | 说明                                           |
+| -------------------- | --------- | ------ | ---------------------------------------------- |
+| `maxRetries`         | `number`  | `3`    | 自动修复最大重试次数                           |
+| `waitBetweenRetries` | `number`  | `1000` | 重试间隔（毫秒）                               |
+| `aiDiagnosis`        | `boolean` | `true` | 失败时调用本地 Ollama 进行 AI 诊断             |
+| `autoFix`            | `boolean` | `false`| 是否自动应用建议的新选择器                     |
+
+---
+
+## 测试覆盖
+
+浏览器自动化系统通过五大测试模块保证核心功能稳定性：
+
+| 测试文件                                                                     | 用例数 | 覆盖内容                              |
+| ---------------------------------------------------------------------------- | ------ | ------------------------------------- |
+| `desktop-app-vue/tests/unit/browser/browser-engine.test.js`                  | 28     | 启动/关闭、页面导航、截图、脚本执行   |
+| `desktop-app-vue/tests/unit/browser/element-locator.test.js`                 | 34     | 六级定位策略、Shadow DOM、超时/重试   |
+| `desktop-app-vue/tests/unit/browser/snapshot-engine.test.js`                 | 19     | 基线对比、差异区域检测、阈值边界      |
+| `desktop-app-vue/tests/unit/browser/recording-engine.test.js`                | 22     | 录制开始/停止、回放速度、三种导出格式 |
+| `desktop-app-vue/tests/unit/browser/smart-diagnostics.test.js`               | 25     | AI 诊断流程、自动修复重试、健康检查   |
+
+### 运行测试
+
+```bash
+# 全部浏览器自动化单元测试
+cd desktop-app-vue && npx vitest run tests/unit/browser/
+
+# 单独运行某个测试文件
+npx vitest run tests/unit/browser/element-locator.test.js
+
+# 覆盖率报告
+npx vitest run tests/unit/browser/ --coverage
+```
+
+### 测试示例
+
+```javascript
+// element-locator.test.js 节选 — 多策略降级
+it("falls back to text strategy when CSS selector fails", async () => {
+  const page = createMockPage({ cssMatch: false, textMatch: true });
+  const el = await ElementLocator.find(page, {
+    selector: "#non-existent",
+    text: "提交",
+    fallback: true,
+  });
+  expect(el).not.toBeNull();
+  expect(el._locatedBy).toBe("text");
+});
+
+// snapshot-engine.test.js 节选 — 阈值边界
+it("does not report change when diff is below threshold", async () => {
+  const diff = await SnapshotEngine.compare(page, "baseline", { threshold: 0.1 });
+  expect(diff.changed).toBe(false); // 差异 0.08 < threshold 0.1
+});
+```
+
+---
+
 ## 安全考虑
 
 1. **凭据保护**: 自动化脚本中不要硬编码用户名密码，使用环境变量或加密配置文件

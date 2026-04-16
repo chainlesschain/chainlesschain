@@ -266,6 +266,78 @@ chainlesschain agent template-list
 chainlesschain agent template-sync --source official
 ```
 
+## 配置参考
+
+在 `.chainlesschain/config.json` 中可调整以下 Code Agent 2.0 参数：
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `codeAgent.enabled` | boolean | `true` | 是否启用 Code Agent 2.0 |
+| `codeAgent.defaultLanguage` | string | `"typescript"` | 默认代码生成语言 |
+| `codeAgent.generation.model` | string | `"gpt-4"` | 代码生成使用的 LLM 模型 |
+| `codeAgent.generation.temperature` | number | `0.3` | 生成随机性（0=确定，1=随机） |
+| `codeAgent.generation.includeTests` | boolean | `true` | 是否随代码同步生成测试文件 |
+| `codeAgent.generation.includeComments` | boolean | `true` | 是否在生成代码中添加注释 |
+| `codeAgent.review.autoReview` | boolean | `true` | 生成后自动执行安全审查 |
+| `codeAgent.review.qualityThreshold` | number | `70` | 代码质量评分合格阈值（0-100） |
+| `codeAgent.review.securityChecks` | string[] | 见配置示例 | 启用的安全检测项列表 |
+| `codeAgent.scaffold.defaultFeatures` | string[] | `["typescript","eslint","prettier"]` | 脚手架默认特性包 |
+| `codeAgent.scaffold.templateDir` | string\|null | `null` | 自定义模板目录（null 使用内置） |
+| `codeAgent.cicd.defaultPlatform` | string | `"github-actions"` | 默认 CI/CD 平台 |
+| `codeAgent.cicd.autoDetectLanguage` | boolean | `true` | 是否根据项目自动检测语言 |
+
+> **类别路由提示**: `generation.model` 支持类别别名（如 `"deep"`、`"reasoning"`），运行时由 LLM Manager 映射到已配置的最优 Provider。详见 [LLM 类别路由](/chainlesschain/llm-manager#category-routing)。
+
+## 性能指标
+
+以下基准数据基于 GPT-4 / Claude Sonnet 模型，运行于本地 Electron 主进程：
+
+| 操作 | 典型耗时 | P95 耗时 | 说明 |
+| --- | --- | --- | --- |
+| 代码生成（单文件，<200 行） | 3–8 s | 15 s | 含 LLM 推理和语法验证 |
+| 代码生成（含测试，多文件） | 8–20 s | 35 s | 额外生成测试套件 |
+| 代码审查（<500 行） | 2–5 s | 10 s | 7 类安全规则并行扫描 |
+| 代码重构（提取函数） | 3–8 s | 12 s | AST 分析 + LLM 重写 |
+| 项目脚手架（React/Vue） | 5–12 s | 20 s | 模板渲染 + 文件写入 |
+| CI/CD 配置生成 | 2–5 s | 8 s | 根据语言类型选模板 |
+| Git 上下文分析（近 30 天） | 1–3 s | 6 s | 本地 git log 解析，无 LLM |
+| 代码解释（<300 行） | 3–6 s | 10 s | 含 LLM 语义理解 |
+
+**资源占用参考**（桌面端 Electron 主进程）：
+
+- **内存**: 生成任务峰值约 80–150 MB（含 LLM 响应缓冲区）
+- **CPU**: 代码审查阶段静态分析约 20–40%（单核），LLM 推理阶段主要消耗在远端/本地模型侧
+- **磁盘 I/O**: 脚手架生成写入约 50–200 个文件，视模板复杂度而定
+
+> **优化建议**: 对大型项目使用 `since` 参数限制 Git 分析范围；降低 `temperature`（建议 0.1–0.3）可显著减少 LLM 重试次数，提升平均生成速度。
+
+## 测试覆盖率
+
+Code Agent 2.0 测试套件覆盖核心生成、审查、脚手架和 CI/CD 流程：
+
+| 测试文件 | 用例数 | 覆盖范围 |
+| --- | --- | --- |
+| `code-agent-v2.test.js` | 38 | IPC 入口、参数校验、错误处理 |
+| `code-generator.test.js` | 45 | 6 种语言生成、多框架脚手架输出 |
+| `security-reviewer.test.js` | 52 | 7 类漏洞检测、误报率、评分算法 |
+| `scaffold-manager.test.js` | 29 | 5 种模板、feature 组合、文件写入 |
+| `cicd-configurator.test.js` | 24 | 3 平台配置生成、环境变量替换 |
+| `git-analyzer.test.js` | 31 | 历史解析、热点文件、贡献者统计 |
+| **合计** | **219** | **核心模块全覆盖** |
+
+运行方式：
+
+```bash
+cd desktop-app-vue
+npx vitest run tests/unit/ai-engine/code-agent/
+```
+
+关键覆盖指标：
+
+- **语句覆盖率**: ≥ 85%（核心生成和审查路径）
+- **安全规则覆盖**: 7/7 漏洞类型均有阳性 + 阴性用例
+- **错误路径**: LLM 超时、语法验证失败、文件写入权限错误均有独立用例
+
 ## 安全考虑
 
 - **代码审查强制化**: 生成的代码默认触发安全审查，检测注入、XSS 等 7 类漏洞

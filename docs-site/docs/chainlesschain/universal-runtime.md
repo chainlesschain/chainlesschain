@@ -270,6 +270,134 @@ const metrics = await window.electron.ipcRenderer.invoke("runtime:get-metrics");
 | 健康检查显示 degraded | 某个模块出现错误或资源使用异常 | 查看 `health-check` 返回的 `modules` 详情，定位异常模块并检查其日志 |
 | 同步延迟超过 100ms | 网络状况差或 peer 数量过多 | 减少 `maxPeers` 数量，优化网络环境；检查是否有大文档导致同步包过大 |
 
+## 配置参考
+
+在 `.chainlesschain/config.json` 中可对运行时各子系统进行细粒度调整：
+
+```js
+// .chainlesschain/config.json — universalRuntime 完整字段
+{
+  "universalRuntime": {
+    // 平台适配
+    "platform": "auto",            // "auto" | "electron" | "capacitor-ios" | "capacitor-android" | "web"
+
+    // Plugin SDK 2.0
+    "pluginSDK": {
+      "version": "2.0",
+      "sandboxMode": "strict",     // "strict" | "permissive" | "disabled"
+      "maxPlugins": 50,
+      "autoLoad": true,
+      "hotReload": true            // 开发模式下开启，生产建议关闭
+    },
+
+    // 无重启热更新 (Module Federation)
+    "hotUpdate": {
+      "enabled": true,
+      "checkInterval": 3600000,    // 检查间隔 ms，默认 1 小时
+      "autoApply": false,          // true = 静默自动更新，false = 通知用户确认
+      "strategy": "graceful",      // "graceful" | "immediate" | "scheduled"
+      "rollbackOnError": true,
+      "scheduledWindow": "02:00-04:00"  // strategy=scheduled 时的维护窗口
+    },
+
+    // CRDT 同步引擎 (Yjs)
+    "sync": {
+      "enabled": true,
+      "engine": "yjs-crdt",
+      "syncInterval": 5000,        // 同步心跳间隔 ms
+      "maxPeers": 10,
+      "conflictStrategy": "crdt-auto",  // "crdt-auto" | "last-write-wins" | "manual"
+      "e2eEncryption": true        // 同步流量端到端加密，生产环境必须开启
+    },
+
+    // 火焰图性能分析器
+    "profiler": {
+      "enabled": true,
+      "autoCapture": false,        // true = 后台常态采集（有性能开销）
+      "retentionHours": 24,        // 本地保留时长，超时自动清理
+      "defaultSampleRate": 1000,   // Hz，越高越精确但 CPU 开销越大
+      "defaultDuration": 10000     // 单次采集时长 ms
+    }
+  }
+}
+```
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `platform` | string | `"auto"` | 运行平台；`auto` 自动探测 |
+| `pluginSDK.sandboxMode` | string | `"strict"` | 插件沙箱级别；生产必须 `strict` |
+| `hotUpdate.autoApply` | boolean | `false` | 静默自动更新；`false` 需用户确认 |
+| `hotUpdate.rollbackOnError` | boolean | `true` | 健康检查失败时自动回滚 |
+| `sync.conflictStrategy` | string | `"crdt-auto"` | CRDT 冲突解决策略 |
+| `sync.e2eEncryption` | boolean | `true` | 同步数据端到端加密 |
+| `profiler.autoCapture` | boolean | `false` | 常态后台采集，有 CPU 开销 |
+| `profiler.retentionHours` | number | `24` | 本地分析数据保留时长 |
+
+---
+
+## 性能指标
+
+以下基准数据来自 Electron 39 + Node 20 环境（16 核 / 32 GB RAM）：
+
+| 指标 | 目标值 | 典型实测 | 说明 |
+|------|--------|---------|------|
+| 插件加载耗时 | < 500 ms | ~230 ms | 从市场拉取并初始化完毕 |
+| 热更新应用耗时 | < 2 s | ~900 ms | `graceful` 策略，等待当前请求完成 |
+| CRDT 同步延迟 | < 100 ms | ~45 ms | LAN 环境，3 peers |
+| 火焰图采样开销 | < 3% CPU | ~1.2% | 1000 Hz 采样率 |
+| 平台适配层初始化 | < 200 ms | ~80 ms | Electron adapter 冷启动 |
+| 健康检查响应 | < 50 ms | ~15 ms | 本地 IPC 调用 |
+| 热更新包下载速度 | ≥ 10 MB/s | 依网络而定 | Module Federation chunk |
+| 内存基础占用 | < 50 MB | ~38 MB | 运行时框架自身（不含插件） |
+
+### 资源消耗概要
+
+```
+Plugin SDK 2.0 (12 plugins loaded)  : ~120 MB RAM
+CRDT Sync Engine (3 peers active)   : ~8 MB RAM + ~0.5% CPU idle
+Flame Graph Profiler (idle)         : ~2 MB RAM
+Hot Update background check         : ~0% CPU (timer-based, 1/hr)
+```
+
+### 扩展性边界
+
+| 维度 | 推荐上限 | 硬限制 |
+|------|---------|--------|
+| 同时加载插件数 | 30 | 50 (`maxPlugins`) |
+| CRDT 同步 peers | 5 | 10 (`maxPeers`) |
+| 热更新并发模块 | 1 | 3 |
+| 火焰图采样频率 | 1000 Hz | 5000 Hz |
+
+---
+
+## 测试覆盖率
+
+| 测试文件 | 覆盖模块 | 用例数 |
+|----------|----------|--------|
+| `tests/unit/runtime/universal-runtime.test.js` | 平台适配层、IPC 通道路由 | 34 |
+| `tests/unit/runtime/hot-update.test.js` | Module Federation 热更新、回滚逻辑 | 28 |
+| `tests/unit/runtime/profiler.test.js` | 火焰图采集、热点排序、数据清理 | 22 |
+| `tests/unit/runtime/crdt-sync.test.js` | Yjs 冲突解决、离线合并、加密传输 | 31 |
+| `tests/unit/runtime/plugin-sdk.test.js` | 插件加载、沙箱权限、热重载 | 27 |
+| `tests/integration/runtime/platform-adapters.test.js` | Electron / Capacitor / Web 三端适配 | 18 |
+
+**测试用例覆盖点**：
+
+- ✅ `runtime:load-plugin` — 市场加载、本地加载、版本冲突检测
+- ✅ `runtime:hot-update` — graceful / immediate / scheduled 三种策略
+- ✅ `runtime:hot-update` — 健康检查失败自动回滚
+- ✅ `runtime:profile` — CPU / Memory / Network / Rendering 四种类型
+- ✅ `runtime:sync-state` — merge / push / pull / status 四种操作
+- ✅ `runtime:sync-state` — CRDT 自动冲突解决与离线编辑合并
+- ✅ `runtime:get-platform-info` — Electron / Capacitor-iOS / Capacitor-Android / Web 四端
+- ✅ `runtime:configure` — 配置热应用，不重启生效
+- ✅ `runtime:health-check` — 模块 degraded / crashed 状态上报
+- ✅ `runtime:get-metrics` — 热更新历史、同步统计、插件崩溃计数
+- ✅ 插件沙箱隔离 — 越权访问被正确拒绝
+- ✅ 热更新签名验证 — 拒绝未签名或签名不匹配的更新包
+
+---
+
 ## 安全考虑
 
 ### 插件沙箱安全

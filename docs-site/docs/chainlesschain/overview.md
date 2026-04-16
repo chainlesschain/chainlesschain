@@ -1486,6 +1486,65 @@ npm run dev:desktop
 
 ---
 
+## 配置参考
+
+在 `.chainlesschain/config.json` 中配置系统核心参数：
+
+```js
+{
+  "llm": {
+    "provider": "ollama",          // 默认本地提供商: ollama | anthropic | openai | gemini | ...
+    "model": "qwen2:7b",           // 默认模型（ollama 时为本地模型名）
+    "baseUrl": "http://localhost:11434",
+    "maxTokens": 8192,
+    "temperature": 0.7
+  },
+  "database": {
+    "encryptionEnabled": true,     // SQLCipher AES-256 加密
+    "walMode": true,               // WAL 模式，提升并发写性能
+    "busyTimeout": 30000           // 锁等待超时（ms）
+  },
+  "p2p": {
+    "enabled": true,
+    "listenAddresses": ["/ip4/0.0.0.0/tcp/0", "/ip4/0.0.0.0/udp/0/quic"],
+    "maxConnections": 50,
+    "signalingServer": "wss://signaling.chainlesschain.io:9001"
+  },
+  "memory": {
+    "enabled": true,
+    "hybridSearch": true,          // 向量(0.6) + BM25(0.4) 混合搜索
+    "dailyNotesEnabled": true,
+    "contextEngineering": true     // KV-Cache 静态/动态分离
+  },
+  "security": {
+    "ukeyEnabled": true,           // U-Key/SIMKey 硬件密钥
+    "pqcEnabled": false,           // 后量子密码（ML-KEM/ML-DSA），需 PQC 硬件
+    "auditLogEnabled": true
+  },
+  "skills": {
+    "bundledPath": "src/main/ai-engine/cowork/skills/builtin",
+    "workspacePath": ".chainlesschain/skills",
+    "lazyLoading": true            // 启动时仅加载元数据，首次调用再加载 body
+  }
+}
+```
+
+**优先级**: 环境变量 > `.chainlesschain/config.json` > 应用内默认值
+
+关键环境变量覆盖：
+
+```bash
+OLLAMA_HOST=http://localhost:11434   # Ollama 服务地址
+QDRANT_HOST=http://localhost:6333    # 向量数据库
+DB_HOST=localhost:5432               # PostgreSQL（后端服务）
+REDIS_HOST=localhost:6379            # Redis 缓存
+LLM_PROVIDER=anthropic               # 覆盖默认 LLM 提供商
+ANTHROPIC_API_KEY=sk-ant-...         # Anthropic API Key
+OPENAI_API_KEY=sk-...                # OpenAI API Key
+```
+
+---
+
 ## 路线图
 
 ### Phase 1: 基础平台 (v0.1–v0.26) ✅
@@ -1692,6 +1751,137 @@ npm run dev:desktop
 - [Web UI管理面板](/chainlesschain/web-ui) - HTTP管理界面 (v5.0.2)
 - [AI Orchestration](/chainlesschain/orchestration) - 多Agent编排层 (v5.0.2)
 - [产品路线图](/chainlesschain/product-roadmap) - 产品演进规划
+
+---
+
+## 测试覆盖率
+
+| 测试文件                                                                           | 覆盖范围                                        |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------- |
+| ✅ `desktop-app-vue/tests/unit/ai-engine/skill-handlers.test.js`                   | 138 技能 Handler 端到端（200+ tests）           |
+| ✅ `desktop-app-vue/tests/unit/ai-engine/sub-runtime-conflict-resolution.test.js`  | Sub-Runtime Pool 冲突解决（17 tests）           |
+| ✅ `desktop-app-vue/tests/unit/llm/llm-manager-category-routing.test.js`           | Category Routing 5 类别路由（26 tests）         |
+| ✅ `desktop-app-vue/src/renderer/stores/__tests__/*.test.ts`                       | 99 个 Pinia Store（431 tests，12 文件）         |
+| ✅ `packages/cli/__tests__/unit/hashline.test.js`                                  | Hashline 哈希锚定行编辑（29 tests）             |
+| ✅ `packages/cli/__tests__/unit/agent-core-edit-hashed.test.js`                    | edit_file_hashed IPC handler（12 tests）        |
+| ✅ `packages/cli/__tests__/unit/session-hooks.test.js`                             | Hooks 三件套（SessionStart/End/UserPrompt，15 tests）|
+| ✅ `packages/cli/__tests__/unit/skill-mcp.test.js`                                 | Skill-Embedded MCP mount/unmount（26 tests）    |
+| ✅ `packages/session-core/__tests__/quality-gate.test.js`                          | QualityGate 可插拔检查器注册表（39 tests）      |
+| ✅ `desktop-app-vue/tests/unit/cowork/debate-review.test.js`                       | Cowork debate-review 冲突仲裁（18 tests）       |
+| ✅ `packages/cli/__tests__/` (全量)                                                | CLI 64 命令，9 技能包，管理 Agent（5517+ tests）|
+
+**全项目合计**: 5517+ tests（Desktop 桌面 + CLI + Android）
+
+---
+
+## 安全考虑
+
+### 1. 硬件级密钥保护
+
+U-Key/SIMKey 私钥存储在安全单元（SE）内，永不导出明文。数据库通过 SQLCipher（AES-256-GCM）加密，密钥由硬件派生。生产环境强烈建议开启 `security.ukeyEnabled = true`；开发/测试环境可使用模拟模式（`simulationMode: true`）但不得用于生产。
+
+### 2. 端到端加密通信
+
+所有 P2P 消息通过 Signal Protocol（Double Ratchet + X3DH）端到端加密，服务器无法解密任何内容。WebRTC 音视频通话使用 DTLS-SRTP 加密。建议在 `p2p.signalingServer` 使用私有信令服务器以进一步降低元数据泄露风险。
+
+### 3. 权限最小化原则
+
+RBAC 权限引擎对每个 IPC 操作进行资源级细粒度检查。AI Agent 在 Plan Mode 下仅允许只读工具（`isReadOnly: true`）；写操作需要 `requiresPlanApproval: true` 审批。Cowork 文件沙箱启用 18+ 敏感路径检测，防止未授权访问 `.chainlesschain/` 核心文件。
+
+### 4. 审计与合规
+
+所有操作通过统一审计日志记录（`auditLogEnabled: true`），支持 GDPR DSR 请求（访问/擦除/更正）。合规检查覆盖 SOC 2/HIPAA/GDPR。审计日志写入后不可删除，支持完整性校验。
+
+### 5. 后量子密码学（PQC）
+
+v3.2.0+ 支持 ML-KEM（密钥封装）和 ML-DSA（数字签名）后量子算法，可通过 `security.pqcEnabled: true` 开启。当前处于迁移阶段，仅在已配置 PQC 硬件（PQC 固件 U-Key）的环境中启用。
+
+---
+
+## 故障排查
+
+**Q: 应用启动后 AI 功能无响应，提示 `ECONNREFUSED 127.0.0.1:11434`**
+
+A: Ollama 服务未启动。执行 `ollama serve` 或 `docker start chainlesschain-ollama`，然后检查 `chainlesschain llm test` 是否通过。
+
+**Q: 数据库报错 `SQLITE_BUSY: database is locked`**
+
+A: 并发写入冲突。确认 `database.walMode: true` 已启用（WAL 模式允许并发读），同时增大 `database.busyTimeout`（默认 30000ms）。参见 `CLAUDE-troubleshooting.md` 中的 SQLite 并发处理模式。
+
+**Q: P2P 消息无法送达，对方总是离线**
+
+A: NAT 穿透失败。检查防火墙是否放行 UDP 4001-4003 和 TCP 9001，确认信令服务器连接正常（`chainlesschain p2p peers`）。如果对方处于严格 NAT 环境，开启 Circuit Relay：在配置中添加 `p2p.relayEnabled: true`。
+
+**Q: 技能执行报错 `Skill not found: xxx`**
+
+A: 技能未加载。执行 `chainlesschain skill list` 检查技能层级。若技能在 workspace 层，确认 `.chainlesschain/skills/` 目录存在且 SKILL.md 格式正确（需有 `name` frontmatter 字段）。
+
+**Q: `chainlesschain agent` 启动后内存召回为空**
+
+A: MemoryStore 未初始化或路径异常。执行 `chainlesschain memory recall --json` 确认返回 `results: []`（空库）还是报错。若报错，检查 `~/.chainlesschain/memory-store.json` 是否存在且未损坏。
+
+**Q: 构建打包后应用启动白屏**
+
+A: 资源路径问题。确认 `vite.config.js` 中 `base: "./"` 使用相对路径，并确认 preload.js 路径为绝对路径。详见 `CLAUDE-troubleshooting.md` 中的「打包后应用启动白屏」条目。
+
+---
+
+## 使用示例
+
+### 示例 1: 本地 AI 问答 + 知识库增强
+
+```bash
+# 添加笔记到知识库
+chainlesschain note add "RAG 架构笔记" -c "RAG = Retrieval-Augmented Generation..." -t "ai,rag"
+
+# 基于知识库回答问题（RAG 模式）
+chainlesschain ask "什么是 RAG 检索增强生成？"
+
+# 交互式 AI 对话（流式输出）
+chainlesschain chat
+```
+
+### 示例 2: 多 Agent Cowork 协作
+
+```bash
+# 代码评审（多视角）
+chainlesschain cowork debate src/main/index.js
+
+# A/B 方案对比
+chainlesschain cowork compare "用 Rust 还是 Go 重写 P2P 模块？"
+
+# 运行 Agent 会话（恢复历史会话）
+chainlesschain agent --session sess_20260416_001 --recall-limit 5
+```
+
+### 示例 3: DID 身份管理
+
+```bash
+# 创建去中心化身份
+chainlesschain did create
+
+# 列出所有身份
+chainlesschain did list
+
+# 用 DID 签名消息
+chainlesschain did sign "Hello, World!"
+```
+
+### 示例 4: 企业 CLI 工作流
+
+```bash
+# RBAC 权限检查
+chainlesschain auth check user1 "note:read"
+
+# 审计日志查询
+chainlesschain audit log
+
+# 会话策略配置
+chainlesschain session policy sess_123 --set trusted
+
+# Beta 功能标志管理
+chainlesschain config beta enable idle-park-2026-05-01
+```
 
 ---
 

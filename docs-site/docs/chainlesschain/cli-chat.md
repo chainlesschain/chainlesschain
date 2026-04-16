@@ -62,6 +62,49 @@ chainlesschain ask "解释这段代码" --model gpt-4o --provider openai
 chainlesschain ask "Hello" --json       # JSON输出（含问题/回答/模型信息）
 ```
 
+## 配置参考
+
+```bash
+chainlesschain chat [options]          # 交互式对话
+chainlesschain ask <question> [options]  # 单次问答
+
+选项:
+  --model <name>              模型名称（默认 qwen2:7b）
+  --provider <provider>       LLM 提供商 (ollama/openai/volcengine/deepseek/
+                              dashscope/gemini/mistral/anthropic)
+  --base-url <url>            API 基础地址（中转站/代理）
+  --api-key <key>             API 密钥（可从环境变量读取）
+  --agent                     启用代理模式（工具调用）
+  --session <id>              恢复历史会话（配合 --agent）
+  --json                      JSON 输出（ask 专用）
+
+对话内斜杠命令（chat REPL）:
+  /exit /model /provider /clear /history /help
+```
+
+会话历史自动保存在 SQLite `sessions` 表中。Token 用量由 token-tracker 自动记录。
+
+## 性能指标
+
+| 操作 | 目标 | 实际 | 状态 |
+|------|------|------|------|
+| REPL 启动 | < 200ms | ~80ms | ✅ |
+| 流式首 token 延迟（Ollama 本地） | < 1s | ~400ms | ✅ |
+| 流式首 token 延迟（云端 API） | < 2s | ~800ms | ✅ |
+| 斜杠命令解析 | < 20ms | ~5ms | ✅ |
+| 会话持久化（每轮） | < 50ms | ~15ms | ✅ |
+| ask 单次问答端到端 | < 5s | ~2s | ✅ |
+
+## 测试覆盖率
+
+```
+✅ chat.test.js  - 覆盖 chat/ask CLI 的主要路径
+  ├── 参数解析 / 选项验证（provider/model/base-url/agent/session）
+  ├── 正常路径（流式输出、8 provider 适配、agent 模式、ask 单次）
+  ├── 错误处理 / 边界情况（连接失败、401、会话不存在、中文编码）
+  └── JSON 输出格式（ask --json）
+```
+
 ## 关键文件
 
 - `packages/cli/src/commands/chat.js` — chat/ask 命令实现

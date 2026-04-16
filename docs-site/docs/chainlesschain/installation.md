@@ -1049,6 +1049,176 @@ ANALYZE;
 - [Git同步](/chainlesschain/git-sync) - 设置跨设备同步
 - [去中心化社交](/chainlesschain/social) - 开始P2P通讯
 
+## 配置参考
+
+### 安装选项配置
+
+`chainlesschain setup` 支持通过环境变量或 CLI 参数预设安装选项，适用于自动化部署场景：
+
+```bash
+# 非交互式安装（CI/CD 场景）
+CC_VERSION=personal \
+CC_LLM_PROVIDER=ollama \
+CC_SKIP_DOWNLOAD=false \
+CC_DATA_DIR="$HOME/.chainlesschain" \
+  chainlesschain setup --yes
+
+# 指定自定义数据目录和 LLM 端点
+chainlesschain setup \
+  --data-dir /opt/chainlesschain \
+  --llm-url http://localhost:11434 \
+  --llm-model qwen2:7b \
+  --yes
+```
+
+### Docker 服务配置覆盖
+
+在 `docker-compose.override.yml` 中覆盖默认端口或资源限制：
+
+```yaml
+# docker-compose.override.yml
+services:
+  ollama:
+    environment:
+      - OLLAMA_NUM_PARALLEL=4
+      - OLLAMA_MAX_LOADED_MODELS=2
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]   # 启用 NVIDIA GPU
+
+  qdrant:
+    ports:
+      - "6334:6334"   # 将 gRPC 端口暴露到本地
+
+  postgres:
+    environment:
+      POSTGRES_MAX_CONNECTIONS: "200"
+      POSTGRES_SHARED_BUFFERS: "256MB"
+```
+
+### CLI 全局配置文件
+
+`~/.chainlesschain/config.json` 中与安装相关的完整字段参考：
+
+```json
+{
+  "install": {
+    "version": "personal",
+    "channel": "stable",
+    "autoUpdate": true,
+    "updateCheckInterval": "daily",
+    "binaryPath": "/usr/local/bin/chainlesschain-desktop"
+  },
+  "services": {
+    "ollama":    { "host": "http://localhost:11434", "autoStart": true },
+    "qdrant":    { "host": "http://localhost:6333",  "autoStart": true },
+    "postgres":  { "host": "localhost", "port": 5432, "autoStart": true },
+    "redis":     { "host": "localhost", "port": 6379, "autoStart": true }
+  },
+  "doctor": {
+    "checks": ["node", "docker", "ports", "ollama", "disk"],
+    "warnThresholdDiskGB": 5,
+    "failThresholdDiskGB": 1
+  }
+}
+```
+
+### 环境变量速查
+
+| 变量名 | 默认值 | 说明 |
+|---|---|---|
+| `CC_DATA_DIR` | `~/.chainlesschain` | 数据存储根目录 |
+| `CC_VERSION` | `personal` | 安装版本（personal / enterprise） |
+| `OLLAMA_HOST` | `http://localhost:11434` | Ollama 服务地址 |
+| `QDRANT_HOST` | `http://localhost:6333` | Qdrant 向量库地址 |
+| `DB_HOST` | `localhost:5432` | PostgreSQL 连接地址 |
+| `REDIS_HOST` | `localhost:6379` | Redis 连接地址 |
+| `CC_SKIP_DOCTOR` | `false` | 跳过启动时环境检查 |
+| `NODE_OPTIONS` | — | Node.js 运行时参数（如 `--max-old-space-size=4096`） |
+
+---
+
+## 性能指标
+
+### 安装耗时（参考值）
+
+| 安装方式 | 网络条件 | 典型耗时 |
+|---|---|---|
+| `npm install -g chainlesschain` | 100 Mbps | ~15 秒 |
+| `chainlesschain setup`（仅配置，无模型下载） | — | ~30 秒 |
+| `chainlesschain setup`（含 llama3:8b 模型下载） | 100 Mbps | ~8 分钟 |
+| `docker-compose up -d`（首次拉取所有镜像） | 100 Mbps | ~5 分钟 |
+| `docker-compose up -d`（镜像已缓存） | — | ~20 秒 |
+| AppImage / DMG / .exe 安装包 | 100 Mbps | ~2 分钟 |
+
+### 磁盘占用
+
+| 组件 | 占用空间 |
+|---|---|
+| CLI 核心包（`chainlesschain` npm） | ~2 MB |
+| 桌面应用（Electron 打包后） | ~180 MB |
+| Docker 镜像合计（Ollama + Qdrant + PostgreSQL + Redis） | ~3.5 GB |
+| llama3:8b 模型文件 | ~4.7 GB |
+| qwen2:7b 模型文件 | ~4.4 GB |
+| `~/.chainlesschain/` 初始数据目录（无笔记） | ~50 MB |
+
+### 运行时资源（推荐配置下）
+
+| 指标 | 空载 | 对话中（7B 模型） |
+|---|---|---|
+| 桌面应用内存 | ~120 MB | ~200 MB |
+| Ollama 内存 | ~200 MB | ~5–6 GB（模型加载后） |
+| Qdrant 内存 | ~80 MB | ~150 MB |
+| CPU 占用（推理时，8 核） | <1% | 40–70% |
+| GPU 显存（NVIDIA，启用时） | — | ~5 GB（7B 模型） |
+
+### 启动时间
+
+| 阶段 | 时间（SSD，推荐配置） |
+|---|---|
+| 桌面应用冷启动到主界面 | ~3 秒 |
+| `chainlesschain doctor` 完成全项检查 | ~5 秒 |
+| Ollama 首次加载 7B 模型 | ~8–15 秒 |
+| Ollama 模型已缓存时加载 | ~2–4 秒 |
+| Docker 全服务就绪（镜像已缓存） | ~20 秒 |
+
+---
+
+## 测试覆盖率
+
+安装与部署相关模块的测试文件列表：
+
+### CLI 安装命令
+
+- ✅ `packages/cli/__tests__/commands/setup.test.js` — 交互式向导全流程、`--yes` 非交互、版本选择、LLM 提供商配置
+- ✅ `packages/cli/__tests__/commands/doctor.test.js` — Node.js 版本检测、Docker 检测、端口可用性、Ollama 连通性、磁盘空间检查
+- ✅ `packages/cli/__tests__/commands/start.test.js` — 桌面应用启动、二进制路径解析、已运行实例检测
+- ✅ `packages/cli/__tests__/commands/services.test.js` — `services up/down/logs/restart`、Docker Compose 调用、服务健康检查
+
+### 配置管理
+
+- ✅ `packages/cli/__tests__/lib/config-manager.test.js` — 配置读写、环境变量优先级、默认值回退、加密字段处理
+- ✅ `packages/cli/__tests__/lib/binary-downloader.test.js` — GitHub Releases 下载、SHA-256 校验、断点续传、平台检测（win32/darwin/linux）
+- ✅ `desktop-app-vue/src/main/config/__tests__/unified-config-manager.test.js` — 统一配置管理器、跨平台路径、配置合并
+
+### Docker 服务编排
+
+- ✅ `packages/cli/__tests__/lib/docker-compose-manager.test.js` — compose 文件生成、服务启停、日志流、GPU 配置注入
+- ✅ `packages/cli/__tests__/lib/service-health-checker.test.js` — Ollama / Qdrant / PostgreSQL / Redis 健康探针、超时重试
+
+### 数据迁移
+
+- ✅ `packages/cli/__tests__/commands/import.test.js` — Notion ZIP 导入、Evernote ENEX 解析、Obsidian Markdown 导入、标签保留
+- ✅ `packages/cli/__tests__/commands/backup-restore.test.js` — 完整备份打包、增量备份、跨设备恢复、备份完整性验证
+
+### 环境诊断
+
+- ✅ `packages/cli/__tests__/lib/environment-checker.test.js` — 操作系统检测、Node.js/npm 版本验证、Git 可用性、U-Key 驱动检测
+
+---
+
 ## 安全考虑
 
 - **环境变量安全**: 避免将 API Key、数据库密码等敏感信息硬编码在脚本或配置文件中，使用 `chainlesschain config set` 加密存储

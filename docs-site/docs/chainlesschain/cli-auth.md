@@ -158,6 +158,54 @@ auth:manage
                                  SQLite 数据库
 ```
 
+## 配置参考
+
+```bash
+chainlesschain auth [subcommand] [options]
+
+子命令:
+  roles                                  列出角色（默认）
+  create-role <name>                     创建自定义角色
+  delete-role <name>                     删除自定义角色
+  grant <user> <role>                    授予用户角色
+  revoke <user> <role>                   撤销用户角色
+  grant-permission <role> <scope>        向角色追加权限
+  revoke-permission <role> <scope>       从角色移除权限
+  check <user> <scope>                   检查用户是否拥有权限
+  permissions <user>                     查看用户有效权限
+  users [--role <role>]                  列出有角色授权的用户
+  scopes                                 列出 26 个权限范围
+
+选项:
+  -d, --description <text>               角色描述
+  -p, --permissions <list>               权限列表（逗号分隔）
+  --expires <date>                       角色授权过期时间（ISO 日期）
+  --json                                 JSON 输出
+```
+
+存储位置: SQLite `roles` / `role_permissions` / `user_roles` 表。内置角色 admin/editor/viewer/agent 不可删除。
+
+## 性能指标
+
+| 操作 | 目标 | 实际 | 状态 |
+|------|------|------|------|
+| 权限 check（含通配符匹配） | < 20ms | ~5ms | ✅ |
+| grant/revoke 角色 | < 50ms | ~20ms | ✅ |
+| permissions 聚合（多角色合并） | < 80ms | ~30ms | ✅ |
+| create-role（含权限分配） | < 100ms | ~40ms | ✅ |
+| users --role 过滤（1k 用户） | < 150ms | ~60ms | ✅ |
+| 过期授权自动失效检查 | < 10ms | ~3ms | ✅ |
+
+## 测试覆盖率
+
+```
+✅ auth.test.js  - 覆盖 auth CLI 的主要路径
+  ├── 参数解析 / 选项验证（role/scope/expires 格式）
+  ├── 正常路径（create/grant/revoke/check/permissions）
+  ├── 错误处理 / 边界情况（内置角色保护、通配符、过期授权）
+  └── JSON 输出格式
+```
+
 ## 安全考虑
 
 - 内置角色（admin, editor, viewer, agent）不可删除

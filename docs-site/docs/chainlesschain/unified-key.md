@@ -409,6 +409,127 @@ const key2 = await window.electronAPI.invoke('ukey:rotate-key', {
 2. 检查 DID 文档是否已更新并包含新旧双公钥
 3. 确认对方客户端已拉取最新的 DID 文档
 
+## 配置参考
+
+`.chainlesschain/config.json` 中 `unifiedKey` 字段的完整说明：
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `enabled` | boolean | `true` | 是否启用统一密钥管理模块 |
+| `bip32.coinType` | number | `0` | BIP-44 币种编号（0 = Bitcoin 路径兼容） |
+| `bip32.accountIndex` | number | `0` | BIP-44 账户索引（多账户时递增） |
+| `bip32.passwordProtected` | boolean | `true` | 主密钥是否需要密码保护（PBKDF2 派生） |
+| `fido2.rpId` | string | `"chainlesschain.local"` | 依赖方 ID，必须与应用域名匹配 |
+| `fido2.rpName` | string | `"ChainlessChain"` | 依赖方显示名称 |
+| `fido2.timeout` | number (ms) | `30000` | FIDO2 操作超时（毫秒） |
+| `fido2.userVerification` | string | `"preferred"` | 用户验证策略：`required` / `preferred` / `discouraged` |
+| `usb.vendorIds` | number[] | `[4176, 2446]` | 允许连接的 USB 设备厂商 ID 白名单（十进制） |
+| `usb.reconnectAttempts` | number | `3` | USB 断连后自动重连次数 |
+| `usb.reconnectDelay` | number (ms) | `1000` | 相邻重连间隔（毫秒） |
+
+**最小配置示例**（仅 BIP-32，不启用 FIDO2 和 USB）：
+
+```json
+{
+  "unifiedKey": {
+    "enabled": true,
+    "bip32": {
+      "coinType": 0,
+      "accountIndex": 0,
+      "passwordProtected": true
+    },
+    "fido2": { "timeout": 30000, "userVerification": "discouraged" },
+    "usb": { "vendorIds": [], "reconnectAttempts": 0 }
+  }
+}
+```
+
+**企业高安全配置**（强制用户验证 + 严格厂商白名单）：
+
+```json
+{
+  "unifiedKey": {
+    "enabled": true,
+    "bip32": {
+      "coinType": 60,
+      "accountIndex": 0,
+      "passwordProtected": true
+    },
+    "fido2": {
+      "rpId": "corp.example.com",
+      "rpName": "Corp Secure Auth",
+      "timeout": 60000,
+      "userVerification": "required"
+    },
+    "usb": {
+      "vendorIds": [4176],
+      "reconnectAttempts": 5,
+      "reconnectDelay": 2000
+    }
+  }
+}
+```
+
+---
+
+## 测试覆盖
+
+### 测试文件
+
+| 测试文件 | 覆盖范围 | 用例数 |
+|----------|----------|--------|
+| `desktop-app-vue/tests/unit/ukey/unified-key-manager.test.js` | BIP-32 派生路径、密钥轮换、主密钥生成 | 22 |
+| `desktop-app-vue/tests/unit/ukey/fido2-driver.test.js` | MakeCredential、GetAssertion、Resident Keys、PIN 保护 | 20 |
+| `desktop-app-vue/tests/unit/ukey/usb-transport.test.js` | 设备枚举、APDU 收发、平台适配、错误状态字处理 | 18 |
+| `desktop-app-vue/tests/unit/ukey/driver-registry.test.js` | 驱动注册、能力查询、5 种驱动类型 | 10 |
+| `desktop-app-vue/src/renderer/stores/__tests__/unifiedKey.test.ts` | Pinia store 状态流转与 IPC 调用 | 12 |
+
+**合计**: 82 个测试用例
+
+### 运行测试
+
+```bash
+# 所有统一密钥测试
+cd desktop-app-vue && npx vitest run tests/unit/ukey/unified-key-manager.test.js \
+  tests/unit/ukey/fido2-driver.test.js \
+  tests/unit/ukey/usb-transport.test.js \
+  tests/unit/ukey/driver-registry.test.js
+
+# Pinia store 测试
+cd desktop-app-vue && npx vitest run src/renderer/stores/__tests__/unifiedKey.test.ts
+```
+
+### 关键测试场景
+
+```javascript
+// 1. BIP-32 派生路径确定性
+it('derives deterministic keys from the same master', async () => {
+  const key1 = await unifiedKeyManager.derivePurposeKey('signing', 0)
+  const key2 = await unifiedKeyManager.derivePurposeKey('signing', 0)
+  expect(key1.publicKey).toBe(key2.publicKey)
+  expect(key1.derivationPath).toBe("m/44'/0'/0'/0/0")
+})
+
+// 2. FIDO2 注册后可成功断言
+it('asserts after credential registration', async () => {
+  const challenge = crypto.randomBytes(32)
+  const cred = await fido2Driver.makeCredential({
+    rpId: 'test.local', userHandle: 'u1', challenge, displayName: 'Test'
+  })
+  const assertion = await fido2Driver.getAssertion({ rpId: 'test.local', challenge })
+  expect(assertion.credentialId).toBe(cred.credentialId)
+})
+
+// 3. APDU SW1/SW2 错误码解析
+it('parses APDU error status words correctly', async () => {
+  mockUsb.setResponse([0x6A, 0x82]) // File or application not found
+  await expect(usbTransport.sendApdu([0x00, 0xA4, 0x04, 0x00]))
+    .rejects.toThrow('6A82')
+})
+```
+
+---
+
 ## 安全考虑
 
 1. **主密钥保护**: PBKDF2 (100,000迭代) + AES-256 加密

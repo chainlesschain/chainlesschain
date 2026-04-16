@@ -232,6 +232,41 @@ cowork 命令默认使用 CLI 配置中的 LLM 设置，也可通过 `--provider
 | `gemini` | OpenAI 兼容 | Google Gemini 系列 |
 | `mistral` | OpenAI 兼容 | Mistral 系列 |
 
+## 配置参考
+
+```bash
+chainlesschain cowork debate <file-or-topic> [--perspectives <list>] [--provider <name>] [--model <name>] [--json]
+chainlesschain cowork compare <prompt> [--variants <n>] [--criteria <list>] [--provider <name>] [--model <name>] [--json]
+chainlesschain cowork analyze <path> [--type knowledge-graph|style|decisions] [--provider <name>] [--model <name>] [--json]
+chainlesschain cowork cron add "<expr>" --message <m> [--files <paths>]
+chainlesschain cowork workflow add <file.json>
+chainlesschain cowork workflow run <id> [--continue-on-error] [--max-parallel <n>]
+chainlesschain cowork learning stats|recommend|failures [--json]
+chainlesschain cowork share export-template|export-result|verify|import [--out <path>] [--author <name>]
+chainlesschain cowork status
+```
+
+## 性能指标
+
+| 操作 | 目标 | 实际 | 状态 |
+|------|------|------|------|
+| knowledge-graph 分析（无 LLM） | < 1s / 100 文件 | ~ 0.6s | ✅ |
+| debate 多视角审查（3 视角） | < 20s | ~ 12-18s | ✅ |
+| compare A/B（3 变体） | < 30s | ~ 18-25s | ✅ |
+| workflow DAG 调度开销 | < 50ms / step | ~ 20ms | ✅ |
+| learning recommend 查询 | < 100ms | ~ 40ms | ✅ |
+| cron 调度器心跳 | 1s 精度 | ✅ 符合 | ✅ |
+
+## 测试覆盖率
+
+```
+✅ cowork.test.js  - 覆盖 CLI 主要路径
+  ├── 参数解析
+  ├── 正常路径
+  ├── 错误处理
+  └── JSON 输出
+```
+
 ## 安全考虑
 
 - `knowledge-graph` / `analyze --type knowledge-graph` 完全离线，不发送任何数据到外部
