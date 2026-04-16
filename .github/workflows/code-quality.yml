@@ -47,9 +47,9 @@ jobs:
           path: |
             desktop-app-vue/node_modules
             ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-node-v2-
 
       - name: Install dependencies (workspace-aware)
         run: npm install --legacy-peer-deps
@@ -87,9 +87,9 @@ jobs:
             node_modules
             desktop-app-vue/node_modules
             ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-node-v2-
 
       - name: Install root dependencies
         run: npm install --legacy-peer-deps
@@ -126,9 +126,9 @@ jobs:
           path: |
             desktop-app-vue/node_modules
             ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-node-v2-
 
       - name: Install dependencies (workspace-aware)
         run: npm install --legacy-peer-deps
@@ -162,9 +162,9 @@ jobs:
           path: |
             desktop-app-vue/node_modules
             ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-node-v2-
 
       - name: Install dependencies (workspace-aware)
         run: npm install --legacy-peer-deps
@@ -198,9 +198,9 @@ jobs:
           path: |
             desktop-app-vue/node_modules
             ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-node-v2-
 
       - name: Install dependencies (workspace-aware)
         run: npm install --legacy-peer-deps
