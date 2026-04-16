@@ -57,6 +57,8 @@ All entry files are relative to `desktop-app-vue/src/`.
 | TypeScript Stores (52)        | `renderer/stores/*.ts`                                                   | —                                                                                  |
 | Video Editing Agent (CutClaw) | `main/video/video-editing-ipc.js`, `renderer/pages/VideoEditingPage.vue` | [设计文档](docs/design/modules/93_CutClaw借鉴_视频剪辑Agent.md)                   |
 | QualityGate (session-core)    | `packages/session-core/lib/quality-gate.js`                              | —                                                                                  |
+| Managed Agents (Phase A-J)    | `packages/session-core/`, `main/session/`, `main/ai-engine/code-agent/`  | [对标计划](docs/design/modules/91_Managed_Agents对标计划.md)                       |
+| Generic Conflict Resolution   | `main/ai-engine/code-agent/sub-runtime-pool.js`                          | —                                                                                  |
 
 ## v1.1.0 Features (v3.0-v4.0 Full-Stack)
 
