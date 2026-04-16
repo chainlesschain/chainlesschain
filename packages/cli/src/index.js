@@ -116,6 +116,9 @@ import { registerMarketplaceCommand } from "./commands/marketplace.js";
 // Phase 66: Token Incentive
 import { registerIncentiveCommand } from "./commands/incentive.js";
 
+// Phase 94: Enterprise Knowledge Graph
+import { registerKgCommand } from "./commands/kg.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -260,6 +263,9 @@ export function createProgram() {
 
   // Phase 66: Token Incentive
   registerIncentiveCommand(program);
+
+  // Phase 94: Enterprise Knowledge Graph
+  registerKgCommand(program);
 
   return program;
 }
