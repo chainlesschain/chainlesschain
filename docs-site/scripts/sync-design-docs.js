@@ -149,6 +149,7 @@ const MODULE_FILE_MAP = {
   "91_Managed_Agents对标计划.md": "91-managed-agents-parity.md",
   "92_Deep_Agents_Deploy借鉴落地方案.md": "92-deep-agents-deploy.md",
   "93_CutClaw借鉴_视频剪辑Agent.md": "93-cutclaw-video-editing-agent.md",
+  "94_QualityGate通用质量门控.md": "94-quality-gate.md",
 };
 
 // 构建反向映射（用于 rewriteInternalLinks）
