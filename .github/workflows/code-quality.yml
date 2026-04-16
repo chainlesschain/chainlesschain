@@ -51,8 +51,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
-        working-directory: ./desktop-app-vue
+      - name: Install dependencies (workspace-aware)
         run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Run Rules Validator
@@ -131,8 +130,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
-        working-directory: ./desktop-app-vue
+      - name: Install dependencies (workspace-aware)
         run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Check code style
@@ -168,8 +166,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
-        working-directory: ./desktop-app-vue
+      - name: Install dependencies (workspace-aware)
         run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Run database tests
@@ -205,9 +202,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
-        working-directory: ./desktop-app-vue
-        run: npm install --legacy-peer-deps
+      - name: Install dependencies (workspace-aware)
+        run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Build main process
         working-directory: ./desktop-app-vue

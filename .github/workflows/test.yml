@@ -38,9 +38,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
-        working-directory: ./desktop-app-vue
-        run: npm install --legacy-peer-deps --ignore-optional --ignore-optional
+      - name: Install dependencies (workspace-aware)
+        run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Run TypeScript type check
         working-directory: ./desktop-app-vue
@@ -136,8 +135,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
-        working-directory: ./desktop-app-vue
+      - name: Install dependencies (workspace-aware)
         run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Run ESLint
@@ -179,8 +177,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
-        working-directory: ./desktop-app-vue
+      - name: Install dependencies (workspace-aware)
         run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Build main process
@@ -224,8 +221,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
-        working-directory: ./desktop-app-vue
+      - name: Install dependencies (workspace-aware)
         run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Run database tests
@@ -258,8 +254,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
-        working-directory: ./desktop-app-vue
+      - name: Install dependencies (workspace-aware)
         run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Run all unit tests

@@ -28,9 +28,8 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
-        working-directory: packages/cli
-        run: npm ci --ignore-scripts
+      - name: Install dependencies (workspace-aware)
+        run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Run unit tests
         working-directory: packages/cli
@@ -66,9 +65,8 @@ jobs:
           node-version: "22.12.0"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Install dependencies
-        working-directory: packages/cli
-        run: npm ci --ignore-scripts
+      - name: Install dependencies (workspace-aware)
+        run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Dry-run publish
         working-directory: packages/cli
