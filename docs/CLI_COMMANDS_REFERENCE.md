@@ -260,6 +260,15 @@ chainlesschain economy pay / market list / nft mint
 chainlesschain zkp compile / prove / verify
 chainlesschain bi query / dashboard create / anomaly
 chainlesschain compliance evidence / report / classify / scan
+chainlesschain compliance frameworks [--json]                                   # List SOC2 / ISO27001 / GDPR templates
+chainlesschain compliance report soc2 --format md|html|json [--output file]     # Detailed framework report
+chainlesschain compliance report iso27001 --detailed                            # Force template reporter
+chainlesschain compliance report gdpr --format html -o gdpr.html                # Write to file
+chainlesschain compliance threat-intel import feed.json                         # Import STIX 2.1 bundle
+chainlesschain compliance threat-intel list [-t ipv4|domain|url|file-sha256...] # List stored IoCs
+chainlesschain compliance threat-intel match 1.2.3.4                            # Match observable; exit 2 on hit
+chainlesschain compliance threat-intel stats [--json]                           # Indicator counts per type
+chainlesschain compliance threat-intel remove ipv4 1.2.3.4                      # Remove a single indicator
 chainlesschain dlp scan / incidents / policy create
 chainlesschain siem targets / add-target / export
 chainlesschain pqc keys / generate / migration-status / migrate
