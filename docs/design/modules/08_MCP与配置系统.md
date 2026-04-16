@@ -369,7 +369,7 @@ stats: {
 **Phase 3 (Q1 2026)**: 🚧 计划中
 
 - [ ] UI 配置编辑器(图形化配置)
-- [ ] 更多官方HTTP+SSE服务器
+- [x] 更多官方HTTP+SSE服务器 ✅ 2026-04-16 (`cc mcp add -u <url> [-t http|sse] [-H KEY=VALUE]` + Streamable HTTP transport in `MCPClient` — `Mcp-Session-Id` capture, JSON + SSE response parsing, 52 tests)
 - [ ] 插件市场集成
 - [ ] 性能监控可视化
 

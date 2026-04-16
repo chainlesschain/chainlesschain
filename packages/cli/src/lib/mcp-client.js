@@ -12,4 +12,7 @@ export {
   ServerState,
   MCPClient,
   MCPServerConfig,
+  inferTransport,
+  isHttpTransport,
+  _deps,
 } from "../harness/mcp-client.js";

@@ -9,7 +9,11 @@ import chalk from "chalk";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
-import { MCPClient, MCPServerConfig } from "../harness/mcp-client.js";
+import {
+  MCPClient,
+  MCPServerConfig,
+  inferTransport,
+} from "../harness/mcp-client.js";
 import {
   validateMcpServer,
   annotateMcpCompatibility,
@@ -111,9 +115,15 @@ export function registerMcpCommand(program) {
               ? chalk.green(" [ok]")
               : chalk.yellow(` [blocked: ${s._reason}]`);
             logger.log(`  ${chalk.cyan(s.name)}${auto}${flag}`);
-            logger.log(
-              `    ${chalk.gray("Command:")} ${s.command} ${s.args.join(" ")}`,
-            );
+            if (s.url) {
+              logger.log(
+                `    ${chalk.gray("URL:")} ${s.url} ${chalk.gray(`[${s.transport || s._transport || "http"}]`)}`,
+              );
+            } else {
+              logger.log(
+                `    ${chalk.gray("Command:")} ${s.command} ${s.args.join(" ")}`,
+              );
+            }
             logger.log(
               `    ${chalk.gray("Compatible:")} ${s._modeCompatibility.join(", ") || "(none)"}`,
             );
@@ -132,8 +142,20 @@ export function registerMcpCommand(program) {
     .command("add")
     .description("Add or update an MCP server configuration")
     .argument("<name>", "Server name")
-    .requiredOption("-c, --command <cmd>", "Server command to run")
+    .option("-c, --command <cmd>", "Server command to run (stdio transport)")
     .option("-a, --args <args>", "Command arguments (comma-separated)")
+    .option(
+      "-u, --url <url>",
+      "Server URL (http / https / ws / wss transports)",
+    )
+    .option(
+      "-t, --transport <kind>",
+      "Transport kind: stdio | http | https | sse | ws | wss",
+    )
+    .option(
+      "-H, --header <header...>",
+      "HTTP header to include on requests (KEY=VALUE, repeatable)",
+    )
     .option("--auto-connect", "Auto-connect on startup")
     .option(
       "--mode <mode>",
@@ -142,6 +164,17 @@ export function registerMcpCommand(program) {
     .option("--json", "Output as JSON")
     .action(async (name, options) => {
       try {
+        if (!options.command && !options.url) {
+          logger.error(
+            "Provide either -c <command> (stdio) or -u <url> (http/ws).",
+          );
+          process.exit(1);
+        }
+        if (options.command && options.url) {
+          logger.error("Use either -c <command> or -u <url>, not both.");
+          process.exit(1);
+        }
+
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         if (!ctx.db) {
           logger.error("Database not available");
@@ -154,9 +187,43 @@ export function registerMcpCommand(program) {
           ? options.args.split(",").map((a) => a.trim())
           : [];
 
+        // Parse -H KEY=VALUE into { headers }
+        const headers = {};
+        if (Array.isArray(options.header)) {
+          for (const raw of options.header) {
+            const eq = raw.indexOf("=");
+            if (eq <= 0) {
+              logger.warn(
+                `Ignored malformed --header "${raw}" (expected KEY=VALUE)`,
+              );
+              continue;
+            }
+            headers[raw.slice(0, eq).trim()] = raw.slice(eq + 1);
+          }
+        }
+
+        const transport =
+          options.transport ||
+          (options.url ? inferTransport({ url: options.url }) : "stdio");
+
+        if (options.url) {
+          try {
+            new URL(options.url);
+          } catch (_e) {
+            logger.error(`Invalid URL: ${options.url}`);
+            process.exit(1);
+          }
+        }
+
         const mode = resolveMode(options);
         const check = validateMcpServer(
-          { name, command: options.command, args },
+          {
+            name,
+            command: options.command,
+            args,
+            url: options.url,
+            transport,
+          },
           mode,
         );
         if (!check.allowed) {
@@ -166,25 +233,37 @@ export function registerMcpCommand(program) {
         }
 
         config.add(name, {
-          command: options.command,
+          command: options.command || null,
           args,
+          url: options.url || null,
+          transport,
+          env: {},
           autoConnect: !!options.autoConnect,
+          headers: Object.keys(headers).length > 0 ? headers : undefined,
         });
 
+        const payload = {
+          name,
+          command: options.command || null,
+          args,
+          url: options.url || null,
+          transport,
+          autoConnect: !!options.autoConnect,
+        };
+
         if (options.json) {
-          console.log(
-            JSON.stringify({
-              name,
-              command: options.command,
-              args,
-              autoConnect: !!options.autoConnect,
-            }),
-          );
+          console.log(JSON.stringify(payload));
         } else {
           logger.success(`MCP server "${chalk.cyan(name)}" configured`);
-          logger.log(
-            `  ${chalk.gray("Command:")} ${options.command} ${args.join(" ")}`,
-          );
+          if (options.url) {
+            logger.log(
+              `  ${chalk.gray("URL:")} ${options.url} ${chalk.gray(`[${transport}]`)}`,
+            );
+          } else {
+            logger.log(
+              `  ${chalk.gray("Command:")} ${options.command} ${args.join(" ")}`,
+            );
+          }
         }
 
         await shutdown();
