@@ -388,6 +388,17 @@ chainlesschain incentive contribute <user-id> <type> [value] [-m metadata-json] 
 chainlesschain incentive reward <contribution-id> [-M multiplier] [--json]      # Reward a previously-recorded contribution
 chainlesschain incentive contributions [-u user] [-t type] [--rewarded|--unrewarded] [--limit N] [--json]
 chainlesschain incentive leaderboard [--limit N] [--json]                       # Top contributors by total reward earned
+chainlesschain kg entity-types [--json]                                         # List 7 standard entity types (Person/Organization/Project/Technology/Document/Concept/Event)
+chainlesschain kg add <name> <type> [-p props-json] [-g tags-csv] [--json]      # Add entity
+chainlesschain kg list [-t type] [-n name-substr] [-g tag] [--limit N] [--json] # List entities
+chainlesschain kg show <entity-id> [--json]                                     # Show entity details
+chainlesschain kg remove <entity-id>                                            # Remove entity (cascades to relations)
+chainlesschain kg add-relation <source-id> <target-id> <relation-type> [-w weight] [-p props-json] [--json]
+chainlesschain kg relations [-s source] [-t target] [-r type] [--limit N] [--json]
+chainlesschain kg reason <start-id> [-d max-depth] [--direction out|in|both] [-r rel-type] [--include-start] [--json]
+chainlesschain kg stats [--json]                                                # Entity/relation counts + type distribution + avg degree + density
+chainlesschain kg export [output-file]                                          # Export graph as JSON (stdout if no file)
+chainlesschain kg import <input-file> [--json]                                  # Import graph from JSON file
 chainlesschain social contact / friend / post / chat / stats
 chainlesschain social analyze "<text>" [--top-k 3] [--lang zh|ja|en] [--json]
 chainlesschain social detect-lang "<text>" [--json]
