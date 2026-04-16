@@ -107,6 +107,9 @@ import { registerTechCommand } from "./commands/tech.js";
 // Phase 63: Autonomous Developer
 import { registerDevCommand } from "./commands/dev.js";
 
+// Phase 64: Collaboration Governance
+import { registerCollabCommand } from "./commands/collab.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -242,6 +245,9 @@ export function createProgram() {
 
   // Phase 63: Autonomous Developer
   registerDevCommand(program);
+
+  // Phase 64: Collaboration Governance
+  registerCollabCommand(program);
 
   return program;
 }
