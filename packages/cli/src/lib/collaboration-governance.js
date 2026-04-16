@@ -1,0 +1,556 @@
+/**
+ * Collaboration Governance — CLI port of Phase 64
+ * (docs/design/modules/36_协作治理系统.md).
+ *
+ * The Desktop build drives long-running multi-agent coordination: raft/pbft
+ * consensus over P2P, ML-based auto-merge, real-time quality monitoring.
+ * The CLI can't host the P2P layer or the live agent mesh, so this port
+ * ships the tractable scaffolding:
+ *
+ *   - Governance decisions with voting (quorum/threshold tally) +
+ *     SQLite persistence.
+ *   - Per-agent autonomy-level + permission tier management.
+ *   - Pure-function task assignment helpers (skill match, load balance,
+ *     priority score, optimize assignment).
+ *   - Catalogs: decision types, conflict strategies, quality metrics,
+ *     priority levels, permission tiers.
+ *
+ * Raft/PBFT/Paxos consensus, real-time quality monitoring and ML-driven
+ * auto-merge rules are Desktop-only.
+ */
+
+import crypto from "crypto";
+
+/* ── Constants ─────────────────────────────────────────────── */
+
+export const DECISION_TYPES = Object.freeze({
+  TASK_ASSIGNMENT: "task_assignment",
+  RESOURCE_ALLOCATION: "resource_allocation",
+  CONFLICT_RESOLUTION: "conflict_resolution",
+  POLICY_UPDATE: "policy_update",
+  AUTONOMY_LEVEL: "autonomy_level",
+});
+
+export const DECISION_STATUS = Object.freeze({
+  PENDING: "pending",
+  VOTING: "voting",
+  APPROVED: "approved",
+  REJECTED: "rejected",
+  EXECUTED: "executed",
+});
+
+export const CONFLICT_STRATEGIES = Object.freeze({
+  VOTING: {
+    name: "voting",
+    types: ["majority", "weighted", "unanimous"],
+  },
+  ARBITRATION: {
+    name: "arbitration",
+    types: ["expert", "senior_agent", "human"],
+  },
+  CONSENSUS: {
+    name: "consensus",
+    algorithms: ["raft", "pbft", "paxos"],
+  },
+  AUTO_MERGE: {
+    name: "auto_merge",
+    rules: ["rule_based", "ml_based"],
+  },
+});
+
+export const QUALITY_METRICS = Object.freeze({
+  CODE_QUALITY: "code_quality",
+  COMMUNICATION_EFFICIENCY: "communication_efficiency",
+  TASK_COMPLETION_RATE: "task_completion_rate",
+  COLLABORATION_SATISFACTION: "collaboration_satisfaction",
+  CONFLICT_RESOLUTION_TIME: "conflict_resolution_time",
+});
+
+export const PRIORITY_LEVELS = Object.freeze({
+  CRITICAL: 5,
+  HIGH: 4,
+  MEDIUM: 3,
+  LOW: 2,
+  TRIVIAL: 1,
+});
+
+export const PERMISSION_TIERS = Object.freeze({
+  L0: ["read", "suggest"],
+  L1: ["read", "suggest", "write_simple"],
+  L2: ["read", "suggest", "write", "refactor", "test"],
+  L3: ["read", "suggest", "write", "refactor", "test", "design", "review"],
+  L4: ["all"],
+});
+
+const VALID_DECISION_TYPES = new Set(Object.values(DECISION_TYPES));
+const VALID_DECISION_STATUS = new Set(Object.values(DECISION_STATUS));
+const VALID_VOTES = new Set(["approve", "reject", "abstain"]);
+const VALID_LEVELS = new Set([0, 1, 2, 3, 4]);
+
+/* ── State ─────────────────────────────────────────────────── */
+
+const _decisions = new Map();
+const _agentLevels = new Map();
+let _seq = 0;
+
+/* ── Schema ────────────────────────────────────────────────── */
+
+export function ensureGovernanceTables(db) {
+  if (!db) return;
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS governance_decisions (
+      decision_id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      proposal TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      votes TEXT,
+      resolution TEXT,
+      executed_at INTEGER,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS autonomy_levels (
+      agent_id TEXT PRIMARY KEY,
+      current_level INTEGER NOT NULL,
+      permissions TEXT NOT NULL,
+      adjustment_history TEXT,
+      last_review_at INTEGER,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )
+  `);
+  db.exec(
+    `CREATE INDEX IF NOT EXISTS idx_governance_decisions_status ON governance_decisions(status)`,
+  );
+  db.exec(
+    `CREATE INDEX IF NOT EXISTS idx_governance_decisions_type ON governance_decisions(type)`,
+  );
+}
+
+/* ── Catalogs ──────────────────────────────────────────────── */
+
+export function listDecisionTypes() {
+  return Object.values(DECISION_TYPES);
+}
+
+export function listConflictStrategies() {
+  return Object.values(CONFLICT_STRATEGIES);
+}
+
+export function listQualityMetrics() {
+  return Object.values(QUALITY_METRICS);
+}
+
+export function listPriorityLevels() {
+  return Object.entries(PRIORITY_LEVELS).map(([name, value]) => ({
+    name,
+    value,
+  }));
+}
+
+export function listPermissionTiers() {
+  return Object.entries(PERMISSION_TIERS).map(([tier, permissions]) => ({
+    tier,
+    level: Number(tier.slice(1)),
+    permissions: [...permissions],
+  }));
+}
+
+function _strip(row) {
+  const { _seq: _omit, ...rest } = row;
+  void _omit;
+  return rest;
+}
+
+/* ── Decisions ─────────────────────────────────────────────── */
+
+export function createDecision(db, config = {}) {
+  const type = String(config.type || "").toLowerCase();
+  if (!VALID_DECISION_TYPES.has(type)) {
+    throw new Error(
+      `Unknown decision type: ${config.type} (known: ${[...VALID_DECISION_TYPES].join("/")})`,
+    );
+  }
+  const proposal = String(config.proposal || "").trim();
+  if (!proposal) throw new Error("proposal is required");
+
+  const now = Number(config.now ?? Date.now());
+  const decisionId = config.decisionId || crypto.randomUUID();
+  const decision = {
+    decisionId,
+    type,
+    proposal,
+    status: DECISION_STATUS.PENDING,
+    votes: {},
+    resolution: null,
+    executedAt: null,
+    createdAt: now,
+    updatedAt: now,
+    _seq: ++_seq,
+  };
+  _decisions.set(decisionId, decision);
+
+  if (db) {
+    db.prepare(
+      `INSERT INTO governance_decisions (decision_id, type, proposal, status, votes, resolution, executed_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      decisionId,
+      type,
+      proposal,
+      decision.status,
+      JSON.stringify(decision.votes),
+      null,
+      null,
+      now,
+      now,
+    );
+  }
+
+  return _strip(decision);
+}
+
+export function getDecision(decisionId) {
+  const d = _decisions.get(decisionId);
+  return d ? _strip(d) : null;
+}
+
+export function listDecisions(opts = {}) {
+  let rows = [..._decisions.values()];
+  if (opts.type) {
+    const t = String(opts.type).toLowerCase();
+    rows = rows.filter((d) => d.type === t);
+  }
+  if (opts.status) {
+    const s = String(opts.status).toLowerCase();
+    if (!VALID_DECISION_STATUS.has(s)) {
+      throw new Error(`Unknown status: ${opts.status}`);
+    }
+    rows = rows.filter((d) => d.status === s);
+  }
+  rows.sort((a, b) => b.createdAt - a.createdAt || b._seq - a._seq);
+  const limit = opts.limit || 50;
+  return rows.slice(0, limit).map(_strip);
+}
+
+function _mustGet(decisionId) {
+  const d = _decisions.get(decisionId);
+  if (!d) throw new Error(`Decision not found: ${decisionId}`);
+  return d;
+}
+
+function _persistDecision(db, decisionId, fields) {
+  if (!db) return;
+  const setClauses = Object.keys(fields)
+    .map((k) => `${k} = ?`)
+    .join(", ");
+  const values = Object.values(fields).map((v) =>
+    v && typeof v === "object" ? JSON.stringify(v) : v,
+  );
+  db.prepare(
+    `UPDATE governance_decisions SET ${setClauses} WHERE decision_id = ?`,
+  ).run(...values, decisionId);
+}
+
+export function vote(db, decisionId, agentId, voteValue, reason = "") {
+  const decision = _mustGet(decisionId);
+  if (
+    decision.status !== DECISION_STATUS.PENDING &&
+    decision.status !== DECISION_STATUS.VOTING
+  ) {
+    throw new Error(`Cannot vote on ${decision.status} decision`);
+  }
+  const normalizedVote = String(voteValue || "").toLowerCase();
+  if (!VALID_VOTES.has(normalizedVote)) {
+    throw new Error(
+      `Invalid vote: ${voteValue} (must be approve|reject|abstain)`,
+    );
+  }
+  const aid = String(agentId || "").trim();
+  if (!aid) throw new Error("agentId is required");
+
+  const now = Date.now();
+  decision.votes[aid] = { vote: normalizedVote, reason, votedAt: now };
+  decision.status = DECISION_STATUS.VOTING;
+  decision.updatedAt = now;
+
+  _persistDecision(db, decisionId, {
+    votes: decision.votes,
+    status: decision.status,
+    updated_at: now,
+  });
+
+  return _strip(decision);
+}
+
+export function tallyDecision(db, decisionId, opts = {}) {
+  const decision = _mustGet(decisionId);
+  if (
+    decision.status !== DECISION_STATUS.PENDING &&
+    decision.status !== DECISION_STATUS.VOTING
+  ) {
+    throw new Error(`Cannot tally ${decision.status} decision`);
+  }
+
+  const quorum = opts.quorum ?? 0.5;
+  const threshold = opts.threshold ?? 0.6;
+  const totalVoters = opts.totalVoters ?? Object.keys(decision.votes).length;
+
+  const tallied = { approve: 0, reject: 0, abstain: 0 };
+  for (const v of Object.values(decision.votes)) {
+    if (tallied[v.vote] != null) tallied[v.vote]++;
+  }
+  const participation =
+    totalVoters > 0
+      ? (tallied.approve + tallied.reject + tallied.abstain) / totalVoters
+      : 0;
+  const effectiveVotes = tallied.approve + tallied.reject;
+  const approvalRate =
+    effectiveVotes > 0 ? tallied.approve / effectiveVotes : 0;
+
+  let nextStatus;
+  let outcome;
+  if (participation < quorum) {
+    nextStatus = DECISION_STATUS.REJECTED;
+    outcome = `quorum not met (${(participation * 100).toFixed(1)}% < ${(quorum * 100).toFixed(0)}%)`;
+  } else if (approvalRate >= threshold) {
+    nextStatus = DECISION_STATUS.APPROVED;
+    outcome = `approved (${(approvalRate * 100).toFixed(1)}% ≥ ${(threshold * 100).toFixed(0)}%)`;
+  } else {
+    nextStatus = DECISION_STATUS.REJECTED;
+    outcome = `rejected (${(approvalRate * 100).toFixed(1)}% < ${(threshold * 100).toFixed(0)}%)`;
+  }
+
+  const now = Date.now();
+  const resolution = {
+    tally: tallied,
+    totalVoters,
+    participation: Number(participation.toFixed(3)),
+    approvalRate: Number(approvalRate.toFixed(3)),
+    quorum,
+    threshold,
+    outcome,
+    tallyAt: now,
+  };
+  decision.status = nextStatus;
+  decision.resolution = resolution;
+  decision.updatedAt = now;
+
+  _persistDecision(db, decisionId, {
+    status: nextStatus,
+    resolution,
+    updated_at: now,
+  });
+
+  return _strip(decision);
+}
+
+export function markExecuted(db, decisionId) {
+  const decision = _mustGet(decisionId);
+  if (decision.status !== DECISION_STATUS.APPROVED) {
+    throw new Error(
+      `Can only execute approved decisions (status=${decision.status})`,
+    );
+  }
+  const now = Date.now();
+  decision.status = DECISION_STATUS.EXECUTED;
+  decision.executedAt = now;
+  decision.updatedAt = now;
+
+  _persistDecision(db, decisionId, {
+    status: decision.status,
+    executed_at: now,
+    updated_at: now,
+  });
+
+  return _strip(decision);
+}
+
+/* ── Agent autonomy levels ─────────────────────────────────── */
+
+export function setAutonomyLevel(db, agentId, level, opts = {}) {
+  const aid = String(agentId || "").trim();
+  if (!aid) throw new Error("agentId is required");
+  const lvl = Number(level);
+  if (!VALID_LEVELS.has(lvl)) {
+    throw new Error(`Invalid autonomy level: ${level} (must be 0..4)`);
+  }
+  const permissions = PERMISSION_TIERS[`L${lvl}`];
+  const now = Number(opts.now ?? Date.now());
+
+  const existing = _agentLevels.get(aid);
+  const history = existing?.adjustmentHistory || [];
+  history.push({
+    level: lvl,
+    reason: opts.reason || "",
+    adjustedAt: now,
+  });
+
+  const record = {
+    agentId: aid,
+    currentLevel: lvl,
+    permissions: [...permissions],
+    adjustmentHistory: history,
+    lastReviewAt: now,
+    createdAt: existing?.createdAt || now,
+    updatedAt: now,
+    _seq: ++_seq,
+  };
+  _agentLevels.set(aid, record);
+
+  if (db) {
+    if (existing) {
+      db.prepare(
+        `UPDATE autonomy_levels SET current_level = ?, permissions = ?, adjustment_history = ?, last_review_at = ?, updated_at = ? WHERE agent_id = ?`,
+      ).run(
+        lvl,
+        JSON.stringify(record.permissions),
+        JSON.stringify(history),
+        now,
+        now,
+        aid,
+      );
+    } else {
+      db.prepare(
+        `INSERT INTO autonomy_levels (agent_id, current_level, permissions, adjustment_history, last_review_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        aid,
+        lvl,
+        JSON.stringify(record.permissions),
+        JSON.stringify(history),
+        now,
+        now,
+        now,
+      );
+    }
+  }
+
+  return _strip(record);
+}
+
+export function getAutonomyLevel(agentId) {
+  const r = _agentLevels.get(agentId);
+  return r ? _strip(r) : null;
+}
+
+export function listAutonomyAgents(opts = {}) {
+  let rows = [..._agentLevels.values()];
+  if (opts.level != null) {
+    const lvl = Number(opts.level);
+    rows = rows.filter((r) => r.currentLevel === lvl);
+  }
+  rows.sort((a, b) => b.updatedAt - a.updatedAt || b._seq - a._seq);
+  const limit = opts.limit || 50;
+  return rows.slice(0, limit).map(_strip);
+}
+
+/* ── Task assignment helpers ───────────────────────────────── */
+
+export function calculateSkillMatch(requiredSkills = [], agentSkills = {}) {
+  if (!Array.isArray(requiredSkills) || requiredSkills.length === 0) return 0;
+  let totalWeight = 0;
+  let totalScore = 0;
+  for (const skill of requiredSkills) {
+    const weight = Number(skill.weight ?? 1);
+    const requiredLevel = Number(
+      skill.requiredLevel ?? skill.required_level ?? 1,
+    );
+    const agentLevel = Number(agentSkills[skill.name] ?? 0);
+    const match =
+      requiredLevel > 0 ? Math.min(agentLevel / requiredLevel, 1.0) : 0;
+    totalScore += match * weight;
+    totalWeight += weight;
+  }
+  return totalWeight > 0 ? totalScore / totalWeight : 0;
+}
+
+export function balanceLoad(agents = []) {
+  if (!Array.isArray(agents) || agents.length === 0) return null;
+  const sorted = [...agents].sort((a, b) => {
+    const la = a.currentLoad / Math.max(a.maxCapacity, 1);
+    const lb = b.currentLoad / Math.max(b.maxCapacity, 1);
+    return la - lb;
+  });
+  return sorted[0];
+}
+
+export function calculatePriority(task = {}) {
+  const urgency = Number(task.urgency ?? 0);
+  const importance = Number(task.importance ?? 0);
+  const complexity = Number(task.complexity ?? 0);
+  const dependencies = Number(task.dependencies ?? 0);
+  return (
+    urgency * 0.4 + importance * 0.3 + complexity * 0.2 + dependencies * 0.1
+  );
+}
+
+export function optimizeTaskAssignment(tasks = [], agents = []) {
+  if (!Array.isArray(tasks) || !Array.isArray(agents)) {
+    throw new Error("tasks and agents must be arrays");
+  }
+  const sortedTasks = [...tasks].sort(
+    (a, b) => calculatePriority(b) - calculatePriority(a),
+  );
+  const agentLoad = new Map(
+    agents.map((a) => [
+      a.id,
+      {
+        ...a,
+        currentLoad: Number(a.currentLoad ?? 0),
+        maxCapacity: Number(a.maxCapacity ?? 1),
+      },
+    ]),
+  );
+
+  const assignments = [];
+  const unassigned = [];
+
+  for (const task of sortedTasks) {
+    const candidates = [...agentLoad.values()].filter(
+      (a) => a.currentLoad < a.maxCapacity,
+    );
+    if (candidates.length === 0) {
+      unassigned.push({ taskId: task.id, reason: "no capacity" });
+      continue;
+    }
+    const required = task.requiredSkills || [];
+    const scored = candidates
+      .map((a) => ({
+        agent: a,
+        skillScore: calculateSkillMatch(required, a.skills || {}),
+        loadRatio: a.currentLoad / Math.max(a.maxCapacity, 1),
+      }))
+      .sort((a, b) => b.skillScore - a.skillScore || a.loadRatio - b.loadRatio);
+    const best = scored[0];
+    if (best.skillScore === 0 && required.length > 0) {
+      unassigned.push({ taskId: task.id, reason: "no skill match" });
+      continue;
+    }
+    assignments.push({
+      taskId: task.id,
+      agentId: best.agent.id,
+      skillScore: Number(best.skillScore.toFixed(3)),
+      priority: Number(calculatePriority(task).toFixed(3)),
+    });
+    best.agent.currentLoad += 1;
+  }
+
+  return {
+    assignments,
+    unassigned,
+    totalTasks: tasks.length,
+    assigned: assignments.length,
+    unassignedCount: unassigned.length,
+  };
+}
+
+/* ── Reset (tests) ─────────────────────────────────────────── */
+
+export function _resetState() {
+  _decisions.clear();
+  _agentLevels.clear();
+  _seq = 0;
+}

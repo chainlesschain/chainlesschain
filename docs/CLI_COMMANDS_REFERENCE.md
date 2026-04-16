@@ -352,6 +352,22 @@ chainlesschain dev fail <session-id> [-r reason]                                
 chainlesschain dev review <file> [-s session-id] [--min-score 0.7] [--json]     # Heuristic review (reuses tech detectAntiPatterns)
 chainlesschain dev adr <session-id> <title> <decision> [-c context] [-q conseq] [-a alt1,alt2] [-s proposed|accepted|deprecated|superseded] [--render] [--json]
 chainlesschain dev adrs [-s session-id] [-S status] [--limit N] [--json]        # List ADRs
+chainlesschain collab decision-types [--json]                                   # List 5 decision types
+chainlesschain collab strategies [--json]                                       # List 4 conflict resolution strategies
+chainlesschain collab metrics [--json]                                          # List 5 quality metrics
+chainlesschain collab priorities [--json]                                       # List 5 priority levels (CRITICAL..TRIVIAL)
+chainlesschain collab permissions [--json]                                      # List 5 permission tiers (L0..L4)
+chainlesschain collab propose <type> "<proposal>" [--json]                      # Create a pending governance decision
+chainlesschain collab decisions [-t type] [-s status] [--limit N] [--json]
+chainlesschain collab show <decision-id> [--json]                               # Full details + vote list + tally
+chainlesschain collab vote <decision-id> <agent-id> <approve|reject|abstain> [-r reason]
+chainlesschain collab tally <decision-id> [-q quorum] [-t threshold] [-n totalVoters] [--json]
+chainlesschain collab execute <decision-id>                                     # Mark approved decision as executed
+chainlesschain collab set-level <agent-id> <0..4> [-r reason] [--json]          # Set agent autonomy level
+chainlesschain collab agent <agent-id> [--json]                                 # Show agent autonomy + permissions
+chainlesschain collab agents [-l level] [--limit N] [--json]
+chainlesschain collab match <required.json> <agent-skills.json> [--json]        # Skill match score
+chainlesschain collab optimize <tasks.json> <agents.json> [--json]              # Priority-sorted + skill-scored task assignment
 chainlesschain social contact / friend / post / chat / stats
 chainlesschain social analyze "<text>" [--top-k 3] [--lang zh|ja|en] [--json]
 chainlesschain social detect-lang "<text>" [--json]
