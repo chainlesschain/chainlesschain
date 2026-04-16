@@ -417,10 +417,10 @@ desktop-app-vue/src/main/media-asset-store/
 
 ### 5.5.4 路径 B 验收
 
-- [ ] Sub-Runtime Pool 冲突检测在 video-editing 之外至少有 1 个消费方（如 cowork debate 多方案择优）
+- [x] Sub-Runtime Pool 冲突检测在 video-editing 之外至少有 1 个消费方（如 cowork debate 多方案择优） — `DebateReview.resolveConflictingVerdicts()` consumes `detectConflictPairs` + `pickWinnersAndLosers` from `sub-runtime-pool.js`, 34 tests in `debate-review.test.js`
 - [x] quality-check checker 至少有 3 种实现（vision-protagonist / aesthetic / lint-pass） — `createProtagonistChecker` + `createThresholdChecker`(aesthetic) + `createLintPassChecker` + `createDurationChecker` = 4 built-in factories, 39 tests in `quality-gate.test.js`
 - [x] 新增 3 个媒体 category 在 SKILL.md 中可声明并被 resolveCategory 正确分发 — ASR/AUDIO_ANALYSIS/VIDEO_VLM in `LLM_CATEGORIES`, 25 tests in `llm-manager-media-categories.test.js`
-- [ ] 全量回归测试通过（不破坏现有 ApprovalGate 策略级功能）
+- [x] 全量回归测试通过（不破坏现有 ApprovalGate 策略级功能） — session-core 452 tests, debate-review 34 tests, sub-runtime-conflict 17 tests, quality-gate 39 tests all green
 
 ### 5.5.5 路径 A vs 路径 B 对比
 

@@ -15,6 +15,10 @@ const { logger } = require("../../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 const fs = require("fs");
 const path = require("path");
+const {
+  detectConflictPairs,
+  pickWinnersAndLosers,
+} = require("../code-agent/sub-runtime-pool.js");
 
 // ============================================================
 // Constants
@@ -171,11 +175,19 @@ class DebateReview {
       reviews.push(review);
     }
 
-    // Collect votes
-    const votes = reviews.map((r) => ({
+    // Resolve conflicting verdicts using sub-runtime-pool B-1 primitives
+    const {
+      resolved: resolvedReviews,
+      conflictPairs,
+      demotions,
+    } = this.resolveConflictingVerdicts(reviews);
+
+    // Collect votes (use resolved reviews so demoted ones are tagged)
+    const votes = resolvedReviews.map((r) => ({
       perspective: r.perspective,
       vote: r.vote,
       issues: r.issues || [],
+      _demoted: r._demoted || false,
     }));
 
     // Calculate consensus
@@ -187,10 +199,12 @@ class DebateReview {
     const result = {
       id,
       target,
-      reviews,
+      reviews: resolvedReviews,
       votes,
       verdict,
       consensusScore,
+      conflictResolution:
+        conflictPairs > 0 ? { conflictPairs, demotions } : null,
       duration,
       createdAt: new Date().toISOString(),
     };
@@ -473,6 +487,83 @@ class DebateReview {
       voteSet.size === 1 ? 1.0 : 1.0 - (voteSet.size - 1) * 0.3;
 
     return { verdict, consensusScore: Math.max(0, consensusScore) };
+  }
+
+  // ============================================================
+  // Conflict Resolution (second consumer of sub-runtime-pool B-1 pattern)
+  // ============================================================
+
+  /**
+   * Resolve conflicting reviewer verdicts using the same conflict-detection
+   * primitives as ParallelShotOrchestrator (sub-runtime-pool Path B-1).
+   *
+   * Two reviews "conflict" when they produce different verdicts. The
+   * quality scorer uses issue severity weighting to pick the more
+   * authoritative review. Losers are demoted so the moderator can give
+   * appropriate weight to each perspective.
+   *
+   * @param {object[]} reviews - [{ perspective, vote, issues, summary }]
+   * @returns {{ resolved: object[], conflictPairs: number, demotions: string[] }}
+   */
+  resolveConflictingVerdicts(reviews) {
+    if (!reviews || reviews.length < 2) {
+      return { resolved: reviews || [], conflictPairs: 0, demotions: [] };
+    }
+
+    // Wrap reviews so they look like task results with payload
+    const wrapped = reviews.map((r, idx) => ({
+      ...r,
+      _idx: idx,
+      payload: r,
+    }));
+
+    // Two reviews conflict when their verdicts disagree
+    const verdictConflictDetector = (a, b) => a.vote !== b.vote;
+
+    const pairs = detectConflictPairs(wrapped, verdictConflictDetector);
+    if (pairs.length === 0) {
+      return { resolved: reviews, conflictPairs: 0, demotions: [] };
+    }
+
+    // Score reviews by issue severity depth — more critical/warning issues
+    // from a reviewer indicate stronger evidence
+    const severityWeights = { critical: 3, warning: 1, info: 0.2 };
+    const verdictWeights = { REJECT: 2, NEEDS_WORK: 1, APPROVE: 0.5 };
+
+    const reviewQualityScorer = (r) => {
+      const issueScore = (r.issues || []).reduce(
+        (sum, issue) => sum + (severityWeights[issue.severity] || 0),
+        0,
+      );
+      const verdictWeight = verdictWeights[r.vote] || 1;
+      return issueScore * verdictWeight;
+    };
+
+    const { losers } = pickWinnersAndLosers(pairs, reviewQualityScorer);
+
+    // Demote losers: tag them so the moderator knows to weight them lower
+    const demotions = [];
+    const resolved = reviews.map((r, idx) => {
+      const wrappedR = wrapped[idx];
+      if (losers.has(wrappedR)) {
+        const winnerPerspectives = losers
+          .get(wrappedR)
+          .map((w) => w.perspective);
+        demotions.push(r.perspective);
+        return {
+          ...r,
+          _demoted: true,
+          _demotionReason: `Outscored by ${winnerPerspectives.join(", ")} on issue evidence depth`,
+        };
+      }
+      return r;
+    });
+
+    logger.info(
+      `[DebateReview] Conflict resolution: ${pairs.length} conflict pair(s), ${demotions.length} demotion(s)`,
+    );
+
+    return { resolved, conflictPairs: pairs.length, demotions };
   }
 
   // ============================================================
