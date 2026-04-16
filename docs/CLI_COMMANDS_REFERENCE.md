@@ -331,6 +331,13 @@ chainlesschain sla check <sla-id> [--json]                                      
 chainlesschain sla violations [-s sla-id] [-S minor|moderate|major|critical] [--limit N] [--json]
 chainlesschain sla compensate <violation-id> [--json]                           # base × multiplier, capped at 2.0
 chainlesschain sla report <sla-id> [--start ms] [--end ms] [--json]             # Compliance % + severity breakdown
+chainlesschain tech types [--json]                                              # List tech types / levels / anti-patterns
+chainlesschain tech analyze [path] [--json]                                     # Parse package.json / requirements.txt / Cargo.toml / go.mod
+chainlesschain tech profile [path] [--json]                                     # Show last analyzed profile
+chainlesschain tech detect <file> [--json]                                      # Heuristic anti-pattern scan
+chainlesschain tech practice <type> <name> <pattern> <level> [-d desc] [-s score]
+chainlesschain tech practices [-t type] [-n name] [-l level] [--limit N] [--json]
+chainlesschain tech recommend [--limit N] [--json]                              # Match practices to analyzed stack
 chainlesschain social contact / friend / post / chat / stats
 chainlesschain social analyze "<text>" [--top-k 3] [--lang zh|ja|en] [--json]
 chainlesschain social detect-lang "<text>" [--json]
