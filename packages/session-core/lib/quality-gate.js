@@ -322,6 +322,37 @@ function createThresholdChecker({ name, field, minValue, weight, tags, descripti
   };
 }
 
+/**
+ * Lint/test pass checker factory.
+ * Checks that result has zero errors (or error count below maxErrors).
+ * Works for code lint, test suites, document validation, etc.
+ */
+function createLintPassChecker(options = {}) {
+  const maxErrors = options.maxErrors ?? 0;
+  const errorsField = options.errorsField || "errorCount";
+  const totalField = options.totalField || "totalCount";
+  return {
+    name: options.name || "lint-pass",
+    description: options.description || `Checks ${errorsField} <= ${maxErrors}`,
+    weight: options.weight ?? 1,
+    tags: options.tags || ["code"],
+    fn: async (result) => {
+      const errors = typeof result[errorsField] === "number" ? result[errorsField] : null;
+      if (errors === null) {
+        return { pass: false, score: 0, reason: `missing ${errorsField} in result` };
+      }
+      const total = typeof result[totalField] === "number" ? result[totalField] : 1;
+      const pass = errors <= maxErrors;
+      const passRate = total > 0 ? Math.max(0, (total - errors) / total) : (pass ? 1 : 0);
+      return {
+        pass,
+        score: passRate,
+        reason: pass ? undefined : `${errors} errors (max ${maxErrors})`,
+      };
+    },
+  };
+}
+
 module.exports = {
   QualityGate,
   CHECK_RESULT,
@@ -333,4 +364,5 @@ module.exports = {
   createProtagonistChecker,
   createDurationChecker,
   createThresholdChecker,
+  createLintPassChecker,
 };

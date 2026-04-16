@@ -1,10 +1,11 @@
 /**
- * sessionCore Store — Managed Agents parity Phase H
+ * sessionCore Store — Managed Agents parity Phase H + Deep Agents Deploy bundle
  *
- * Wraps `window.electronAPI.sessionCore.*` IPC (21 channels backed by the shared
+ * Wraps `window.electronAPI.sessionCore.*` IPC (24 channels backed by the shared
  * CLI file-backed singletons under `~/.chainlesschain/`). Handles the
  * uniform `{ok, data|error}` envelope and exposes reactive state for session
- * policy, session lifecycle, scoped memory, beta flags, and StreamRouter events.
+ * policy, session lifecycle, scoped memory, beta flags, StreamRouter events,
+ * and agent bundle loading.
  */
 
 import { defineStore } from "pinia";
@@ -70,6 +71,44 @@ export interface StreamEvent {
   content?: string;
   error?: string;
   [k: string]: unknown;
+}
+
+export interface BundleManifest {
+  id: string;
+  name: string;
+  mode: string;
+  model?: string;
+  provider?: string;
+  [k: string]: unknown;
+}
+
+export interface BundleResolved {
+  manifest: BundleManifest;
+  systemPrompt: string | null;
+  mcpConfig: unknown;
+  approvalPolicy: unknown;
+  sandboxPolicy: unknown;
+  capabilities: unknown;
+  skillsDir: string | null;
+  seedResult: { seeded: number; skipped: number } | null;
+  warnings: string[];
+}
+
+export interface BundleInfo {
+  bundle: {
+    path: string;
+    manifest: BundleManifest;
+    hasAgentsMd: boolean;
+    hasUserMd: boolean;
+    hasMcpConfig: boolean;
+    hasApprovalPolicy: boolean;
+    hasSandboxPolicy: boolean;
+    hasCapabilities: boolean;
+    hasSkillsDir: boolean;
+    warnings: string[];
+  };
+  resolved: BundleResolved;
+  loadedAt: number;
 }
 
 type Envelope<T> = { ok: true; data: T } | { ok: false; error: string };
@@ -187,6 +226,15 @@ interface SessionCoreAPI {
       flag: string,
     ) => Promise<Envelope<{ flag: string; enabled: false }>>;
   };
+  bundle: {
+    load: (opts: {
+      bundlePath: string;
+      sessionId?: string;
+      userId?: string;
+    }) => Promise<Envelope<BundleInfo>>;
+    info: () => Promise<Envelope<BundleInfo | null>>;
+    unload: () => Promise<Envelope<{ unloaded: boolean }>>;
+  };
 }
 
 function unwrap<T>(env: Envelope<T>): T {
@@ -207,6 +255,7 @@ export const useSessionCoreStore = defineStore("sessionCore", () => {
   const betaFlags = ref<BetaFlagEntry[]>([]);
   const streams = ref<Map<string, StreamEvent[]>>(new Map());
   const usageSummary = ref<UsageSummary | null>(null);
+  const activeBundle = ref<BundleInfo | null>(null);
   const lastError = ref<string | null>(null);
 
   let streamUnsubscribe: (() => void) | null = null;
@@ -335,6 +384,27 @@ export const useSessionCoreStore = defineStore("sessionCore", () => {
     return r;
   };
 
+  // Bundle
+  async function loadBundle(opts: {
+    bundlePath: string;
+    sessionId?: string;
+    userId?: string;
+  }) {
+    const res = await call(() => api().bundle.load(opts));
+    if (res) activeBundle.value = res;
+    return res;
+  }
+  async function refreshBundleInfo() {
+    const res = await call(() => api().bundle.info());
+    activeBundle.value = res ?? null;
+    return res;
+  }
+  async function unloadBundle() {
+    const res = await call(() => api().bundle.unload());
+    if (res?.unloaded) activeBundle.value = null;
+    return res;
+  }
+
   function dispose() {
     streamUnsubscribe?.();
     streamUnsubscribe = null;
@@ -346,6 +416,7 @@ export const useSessionCoreStore = defineStore("sessionCore", () => {
     betaFlags,
     streams,
     usageSummary,
+    activeBundle,
     lastError,
     getPolicy,
     setPolicy,
@@ -368,6 +439,9 @@ export const useSessionCoreStore = defineStore("sessionCore", () => {
     refreshBetaFlags,
     enableBeta,
     disableBeta,
+    loadBundle,
+    refreshBundleInfo,
+    unloadBundle,
     dispose,
   };
 });

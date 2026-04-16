@@ -25,7 +25,8 @@
     "./mcp-policy": "./lib/mcp-policy.js",
     "./sandbox-policy": "./lib/sandbox-policy.js",
     "./service-envelope": "./lib/service-envelope.js",
-    "./envelope-sse": "./lib/envelope-sse.js"
+    "./envelope-sse": "./lib/envelope-sse.js",
+    "./quality-gate": "./lib/quality-gate.js"
   },
   "scripts": {
     "test": "vitest run",

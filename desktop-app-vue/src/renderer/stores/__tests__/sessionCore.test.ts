@@ -44,6 +44,11 @@ function buildMockApi() {
       enable: vi.fn(),
       disable: vi.fn(),
     },
+    bundle: {
+      load: vi.fn(),
+      info: vi.fn(),
+      unload: vi.fn(),
+    },
   };
 }
 
@@ -176,5 +181,71 @@ describe("useSessionCoreStore", () => {
     const buf = store.getStreamEvents("x");
     expect(buf).toHaveLength(3);
     expect(buf[2].type).toBe("end");
+  });
+
+  it("loadBundle sets activeBundle from ok envelope", async () => {
+    const bundleData = {
+      bundle: {
+        path: "/tmp/test",
+        manifest: { id: "t", name: "T", mode: "local" },
+        hasAgentsMd: true,
+        hasUserMd: false,
+        hasMcpConfig: false,
+        hasApprovalPolicy: false,
+        hasSandboxPolicy: false,
+        hasCapabilities: false,
+        hasSkillsDir: false,
+        warnings: [],
+      },
+      resolved: {
+        manifest: { id: "t", name: "T", mode: "local" },
+        systemPrompt: "You are T.",
+        mcpConfig: null,
+        approvalPolicy: null,
+        sandboxPolicy: null,
+        capabilities: null,
+        skillsDir: null,
+        seedResult: { seeded: 0, skipped: 0 },
+        warnings: [],
+      },
+      loadedAt: 1000,
+    };
+    api.bundle.load.mockResolvedValue({ ok: true, data: bundleData });
+    const store = useSessionCoreStore();
+    const res = await store.loadBundle({ bundlePath: "/tmp/test" });
+    expect(res).toBeTruthy();
+    expect(store.activeBundle?.resolved.manifest.id).toBe("t");
+  });
+
+  it("unloadBundle clears activeBundle", async () => {
+    api.bundle.load.mockResolvedValue({
+      ok: true,
+      data: {
+        bundle: { path: "/x", manifest: { id: "x" }, warnings: [] },
+        resolved: { manifest: { id: "x" }, warnings: [] },
+        loadedAt: 1,
+      },
+    });
+    api.bundle.unload.mockResolvedValue({
+      ok: true,
+      data: { unloaded: true },
+    });
+    const store = useSessionCoreStore();
+    await store.loadBundle({ bundlePath: "/x" });
+    expect(store.activeBundle).toBeTruthy();
+    await store.unloadBundle();
+    expect(store.activeBundle).toBeNull();
+  });
+
+  it("loadBundle captures error on failure", async () => {
+    api.bundle.load.mockResolvedValue({
+      ok: false,
+      error: "not a directory",
+    });
+    const store = useSessionCoreStore();
+    const res = await store.loadBundle({ bundlePath: "/bad" });
+    expect(res).toBeNull();
+    expect(store.lastError).toBe("not a directory");
+    expect(store.activeBundle).toBeNull();
   });
 });

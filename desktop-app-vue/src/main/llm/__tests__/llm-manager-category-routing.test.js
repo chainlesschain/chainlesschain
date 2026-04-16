@@ -359,10 +359,10 @@ describe("LLMManager Category Routing", () => {
       }
     });
 
-    it("EMBEDDING + AUDIO 是 7 个标准类别的一部分", () => {
+    it("EMBEDDING + AUDIO 是 10 个标准类别的一部分 (7 原始 + 3 媒体)", () => {
       expect(LLM_CATEGORIES.EMBEDDING).toBe("embedding");
       expect(LLM_CATEGORIES.AUDIO).toBe("audio");
-      expect(Object.keys(LLM_CATEGORIES)).toHaveLength(7);
+      expect(Object.keys(LLM_CATEGORIES)).toHaveLength(10);
     });
   });
 
@@ -379,12 +379,18 @@ describe("LLMManager Category Routing", () => {
       );
     });
 
-    it("modelHints.capability='audio' / 'speech' / 'transcription' → AUDIO", () => {
-      for (const cap of ["audio", "speech", "transcription"]) {
+    it("modelHints.capability='audio' / 'speech' → AUDIO", () => {
+      for (const cap of ["audio", "speech"]) {
         expect(inferCategoryFromModelHints({ capability: cap })).toBe(
           LLM_CATEGORIES.AUDIO,
         );
       }
+    });
+
+    it("modelHints.capability='transcription' → ASR (Path B-3 split)", () => {
+      expect(inferCategoryFromModelHints({ capability: "transcription" })).toBe(
+        LLM_CATEGORIES.ASR,
+      );
     });
 
     it("EMBEDDING 优先 ollama (本地零成本)", () => {
