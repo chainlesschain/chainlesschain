@@ -6,6 +6,8 @@ import {
   generateKey,
   getMigrationStatus,
   migrate,
+  listAlgorithms,
+  algorithmSpec,
   _resetState,
 } from "../../src/lib/pqc-manager.js";
 
@@ -138,6 +140,116 @@ describe("pqc-manager", () => {
       migrate(db, "plan-1", null, "ML-KEM-1024");
       migrate(db, "plan-2", "ML-KEM-768", "ML-DSA-87");
       expect(getMigrationStatus().length).toBe(2);
+    });
+  });
+
+  describe("SLH-DSA (FIPS 205)", () => {
+    it("accepts all six SLH-DSA parameter sets", () => {
+      const variants = [
+        "SLH-DSA-128s",
+        "SLH-DSA-128f",
+        "SLH-DSA-192s",
+        "SLH-DSA-192f",
+        "SLH-DSA-256s",
+        "SLH-DSA-256f",
+      ];
+      for (const v of variants) {
+        const k = generateKey(db, v, "signing");
+        expect(k.algorithm).toBe(v);
+        expect(k.family).toBe("slh-dsa");
+      }
+    });
+
+    it("derives keySize from security label (128/192/256)", () => {
+      expect(generateKey(db, "SLH-DSA-128s").keySize).toBe(128);
+      expect(generateKey(db, "SLH-DSA-192f").keySize).toBe(192);
+      expect(generateKey(db, "SLH-DSA-256s").keySize).toBe(256);
+    });
+
+    it("matches FIPS 205 public-key byte lengths (32/48/64)", () => {
+      // publicKey stored as hex → 2 hex chars per byte
+      expect(generateKey(db, "SLH-DSA-128s").publicKey.length).toBe(32 * 2);
+      expect(generateKey(db, "SLH-DSA-192s").publicKey.length).toBe(48 * 2);
+      expect(generateKey(db, "SLH-DSA-256f").publicKey.length).toBe(64 * 2);
+    });
+
+    it("exposes signature byte length (s variants < f variants)", () => {
+      const k128s = generateKey(db, "SLH-DSA-128s");
+      const k128f = generateKey(db, "SLH-DSA-128f");
+      expect(k128s.signatureBytes).toBe(7856);
+      expect(k128f.signatureBytes).toBe(17088);
+      expect(k128s.signatureBytes).toBeLessThan(k128f.signatureBytes);
+    });
+
+    it("defaults purpose to signing for SLH-DSA", () => {
+      const k = generateKey(db, "SLH-DSA-128s"); // no purpose arg
+      expect(k.purpose).toBe("signing");
+    });
+
+    it("supports hybrid Ed25519+SLH-DSA", () => {
+      const k = generateKey(db, "HYBRID-ED25519-SLH-DSA", "signing");
+      expect(k.hybridMode).toBe(true);
+      expect(k.classicalAlgorithm).toBe("Ed25519");
+      expect(k.family).toBe("hybrid");
+    });
+
+    it("is migratable from ML-DSA to SLH-DSA", () => {
+      generateKey(db, "ML-DSA-65", "signing");
+      generateKey(db, "ML-DSA-65", "signing");
+      const plan = migrate(db, "mldsa-to-slhdsa", "ML-DSA-65", "SLH-DSA-256s");
+      expect(plan.targetAlgorithm).toBe("SLH-DSA-256s");
+      expect(plan.totalKeys).toBe(2);
+      expect(plan.status).toBe("completed");
+    });
+
+    it("defaults key-exchange purpose for ML-KEM and signing for ML-DSA", () => {
+      expect(generateKey(db, "ML-KEM-768").purpose).toBe("key_exchange");
+      expect(generateKey(db, "ML-DSA-65").purpose).toBe("signing");
+    });
+  });
+
+  describe("listAlgorithms", () => {
+    it("returns all 13 supported algorithms", () => {
+      const all = listAlgorithms();
+      expect(all.length).toBe(13);
+    });
+
+    it("filters by family slh-dsa → 6 entries", () => {
+      const slh = listAlgorithms({ family: "slh-dsa" });
+      expect(slh.length).toBe(6);
+      expect(slh.every((a) => a.algorithm.startsWith("SLH-DSA-"))).toBe(true);
+    });
+
+    it("filters by family hybrid → 3 entries (X25519+ML-KEM, Ed25519+ML-DSA, Ed25519+SLH-DSA)", () => {
+      const hybrid = listAlgorithms({ family: "hybrid" });
+      expect(hybrid.length).toBe(3);
+    });
+
+    it("each entry carries keySize, publicKeyBytes, signatureBytes, family", () => {
+      for (const a of listAlgorithms()) {
+        expect(a.algorithm).toBeTypeOf("string");
+        expect(a.keySize).toBeTypeOf("number");
+        expect(a.publicKeyBytes).toBeTypeOf("number");
+        expect(a.family).toBeTypeOf("string");
+        // signatureBytes is null for KEM rows (ML-KEM-*, HYBRID-X25519-ML-KEM)
+        expect(
+          a.signatureBytes === null || typeof a.signatureBytes === "number",
+        ).toBe(true);
+      }
+    });
+  });
+
+  describe("algorithmSpec", () => {
+    it("returns full spec for known algorithm", () => {
+      const spec = algorithmSpec("SLH-DSA-128f");
+      expect(spec.keySize).toBe(128);
+      expect(spec.publicKeyBytes).toBe(32);
+      expect(spec.signatureBytes).toBe(17088);
+      expect(spec.family).toBe("slh-dsa");
+    });
+
+    it("returns null for unknown algorithm", () => {
+      expect(algorithmSpec("RSA-2048")).toBe(null);
     });
   });
 });

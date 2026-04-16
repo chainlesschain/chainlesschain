@@ -287,7 +287,11 @@ chainlesschain compliance threat-intel stats [--json]                           
 chainlesschain compliance threat-intel remove ipv4 1.2.3.4                      # Remove a single indicator
 chainlesschain dlp scan / incidents / policy create
 chainlesschain siem targets / add-target / export
-chainlesschain pqc keys / generate / migration-status / migrate
+chainlesschain pqc keys / generate / migration-status / migrate / algorithms
+chainlesschain pqc algorithms                     # FIPS 203/204/205 + hybrid catalog
+chainlesschain pqc algorithms -f slh-dsa --json   # Filter: 6 SLH-DSA variants (128/192/256 × s/f)
+chainlesschain pqc generate SLH-DSA-128s -p signing
+chainlesschain pqc generate HYBRID-ED25519-SLH-DSA -p signing
 chainlesschain nostr relays / publish / keygen / map-did / dm / dm-decrypt / delete / react
 chainlesschain matrix login / rooms / send / thread send|list|roots / space create|add-child|children|list
 chainlesschain activitypub actor create / publish / follow / accept / unfollow / like / announce / outbox / inbox / deliver / followers / following

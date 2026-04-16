@@ -14,9 +14,122 @@ const PQC_ALGORITHMS = {
   ML_KEM_1024: "ML-KEM-1024",
   ML_DSA_65: "ML-DSA-65",
   ML_DSA_87: "ML-DSA-87",
+  // FIPS 205 — SLH-DSA (Stateless Hash-Based Signatures).
+  // Suffix s = small-signature/slow-sign, f = fast-sign/large-signature.
+  SLH_DSA_128S: "SLH-DSA-128s",
+  SLH_DSA_128F: "SLH-DSA-128f",
+  SLH_DSA_192S: "SLH-DSA-192s",
+  SLH_DSA_192F: "SLH-DSA-192f",
+  SLH_DSA_256S: "SLH-DSA-256s",
+  SLH_DSA_256F: "SLH-DSA-256f",
   HYBRID_X25519_ML_KEM: "HYBRID-X25519-ML-KEM",
   HYBRID_ED25519_ML_DSA: "HYBRID-ED25519-ML-DSA",
+  HYBRID_ED25519_SLH_DSA: "HYBRID-ED25519-SLH-DSA",
 };
+
+/**
+ * Per-algorithm spec lookup. Sizes follow NIST FIPS 203 / 204 / 205.
+ * - keySize: security-category label in bits (mirrors legacy 768/1024 semantics
+ *   for ML-* and uses 128/192/256 for SLH-DSA).
+ * - publicKeyBytes: public-key length in bytes (used for placeholder key bytes).
+ * - signatureBytes: signature length in bytes (null for KEM / hybrid-KEM rows).
+ * - family: "ml-kem" | "ml-dsa" | "slh-dsa" | "hybrid".
+ */
+const ALGORITHM_SPECS = {
+  "ML-KEM-768": {
+    keySize: 768,
+    publicKeyBytes: 1184,
+    signatureBytes: null,
+    family: "ml-kem",
+  },
+  "ML-KEM-1024": {
+    keySize: 1024,
+    publicKeyBytes: 1568,
+    signatureBytes: null,
+    family: "ml-kem",
+  },
+  "ML-DSA-65": {
+    keySize: 768,
+    publicKeyBytes: 1952,
+    signatureBytes: 3309,
+    family: "ml-dsa",
+  },
+  "ML-DSA-87": {
+    keySize: 1024,
+    publicKeyBytes: 2592,
+    signatureBytes: 4627,
+    family: "ml-dsa",
+  },
+  "SLH-DSA-128s": {
+    keySize: 128,
+    publicKeyBytes: 32,
+    signatureBytes: 7856,
+    family: "slh-dsa",
+  },
+  "SLH-DSA-128f": {
+    keySize: 128,
+    publicKeyBytes: 32,
+    signatureBytes: 17088,
+    family: "slh-dsa",
+  },
+  "SLH-DSA-192s": {
+    keySize: 192,
+    publicKeyBytes: 48,
+    signatureBytes: 16224,
+    family: "slh-dsa",
+  },
+  "SLH-DSA-192f": {
+    keySize: 192,
+    publicKeyBytes: 48,
+    signatureBytes: 35664,
+    family: "slh-dsa",
+  },
+  "SLH-DSA-256s": {
+    keySize: 256,
+    publicKeyBytes: 64,
+    signatureBytes: 29792,
+    family: "slh-dsa",
+  },
+  "SLH-DSA-256f": {
+    keySize: 256,
+    publicKeyBytes: 64,
+    signatureBytes: 49856,
+    family: "slh-dsa",
+  },
+  "HYBRID-X25519-ML-KEM": {
+    keySize: 768,
+    publicKeyBytes: 1216,
+    signatureBytes: null,
+    family: "hybrid",
+  },
+  "HYBRID-ED25519-ML-DSA": {
+    keySize: 768,
+    publicKeyBytes: 1984,
+    signatureBytes: 3373,
+    family: "hybrid",
+  },
+  "HYBRID-ED25519-SLH-DSA": {
+    keySize: 128,
+    publicKeyBytes: 64,
+    signatureBytes: 7920,
+    family: "hybrid",
+  },
+};
+
+function _defaultPurposeFor(algorithm) {
+  const spec = ALGORITHM_SPECS[algorithm];
+  if (!spec) return KEY_PURPOSES.ENCRYPTION;
+  if (spec.family === "ml-kem") return KEY_PURPOSES.KEY_EXCHANGE;
+  if (spec.family === "ml-dsa" || spec.family === "slh-dsa")
+    return KEY_PURPOSES.SIGNING;
+  return KEY_PURPOSES.ENCRYPTION;
+}
+
+function _classicalPartner(algorithm) {
+  if (!algorithm.startsWith("HYBRID")) return null;
+  if (algorithm.includes("X25519")) return "X25519";
+  return "Ed25519";
+}
 
 const KEY_PURPOSES = {
   ENCRYPTION: "encryption",
@@ -91,22 +204,21 @@ export function generateKey(db, algorithm, purpose, opts = {}) {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
 
-  const keySize =
-    algorithm.includes("1024") || algorithm.includes("87") ? 1024 : 768;
-  const publicKey = crypto.randomBytes(keySize / 8).toString("hex");
+  const spec = ALGORITHM_SPECS[algorithm];
+  const keySize = spec.keySize;
+  const publicKey = crypto.randomBytes(spec.publicKeyBytes).toString("hex");
   const isHybrid = algorithm.startsWith("HYBRID");
-  const classicalAlgorithm = isHybrid
-    ? algorithm.includes("X25519")
-      ? "X25519"
-      : "Ed25519"
-    : null;
+  const classicalAlgorithm = _classicalPartner(algorithm);
 
   const key = {
     id,
     algorithm,
-    purpose: purpose || KEY_PURPOSES.ENCRYPTION,
+    family: spec.family,
+    purpose: purpose || _defaultPurposeFor(algorithm),
     publicKey,
     keySize,
+    publicKeyBytes: spec.publicKeyBytes,
+    signatureBytes: spec.signatureBytes,
     hybridMode: isHybrid,
     classicalAlgorithm,
     status: "active",
@@ -186,6 +298,26 @@ export function migrate(db, planName, sourceAlgorithm, targetAlgorithm) {
   );
 
   return plan;
+}
+
+/* ── Algorithm catalog helpers ─────────────────────────────── */
+
+export { PQC_ALGORITHMS, KEY_PURPOSES, MIGRATION_STATUS };
+
+export function listAlgorithms(filter = {}) {
+  const entries = Object.entries(ALGORITHM_SPECS).map(([name, spec]) => ({
+    algorithm: name,
+    ...spec,
+  }));
+  if (filter.family) {
+    return entries.filter((e) => e.family === filter.family);
+  }
+  return entries;
+}
+
+export function algorithmSpec(algorithm) {
+  const spec = ALGORITHM_SPECS[algorithm];
+  return spec ? { algorithm, ...spec } : null;
 }
 
 /* ── Reset (for testing) ───────────────────────────────────── */
