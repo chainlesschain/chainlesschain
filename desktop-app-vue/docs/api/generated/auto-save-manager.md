@@ -2,7 +2,7 @@
 
 **Source**: `src/main/system/auto-save-manager.js`
 
-**Generated**: 2026-04-15T16:37:39.698Z
+**Generated**: 2026-04-16T02:06:49.417Z
 
 ---
 

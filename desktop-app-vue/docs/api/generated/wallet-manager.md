@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/wallet-manager.js`
 
-**Generated**: 2026-04-15T16:37:39.802Z
+**Generated**: 2026-04-16T02:06:49.484Z
 
 ---
 
