@@ -572,7 +572,150 @@ describe("DebateReview", () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
-  // DEFAULT_PERSPECTIVES export
+  // startDebateStream — Phase F StreamRouter-compatible async generator
+  // ─────────────────────────────────────────────────────────────────────────
+  describe("startDebateStream()", () => {
+    beforeEach(async () => {
+      await dr.initialize(db);
+    });
+
+    async function collectStream(gen) {
+      const events = [];
+      for await (const ev of gen) {
+        events.push(ev);
+      }
+      return events;
+    }
+
+    it("should yield start event first with debateId, target, perspectives", async () => {
+      const events = await collectStream(
+        dr.startDebateStream({ target: "f.js", code: CLEAN_CODE }),
+      );
+
+      const start = events[0];
+      expect(start.type).toBe("start");
+      expect(start.debateId).toBeTruthy();
+      expect(start.target).toBe("f.js");
+      expect(start.perspectives).toEqual(DEFAULT_PERSPECTIVES);
+      expect(start.ts).toBeTypeOf("number");
+    });
+
+    it("should yield one message event per perspective", async () => {
+      const events = await collectStream(
+        dr.startDebateStream({ target: "f.js", code: CLEAN_CODE }),
+      );
+
+      const messages = events.filter(
+        (e) => e.type === "message" && e.perspective,
+      );
+      expect(messages).toHaveLength(DEFAULT_PERSPECTIVES.length);
+      messages.forEach((m, i) => {
+        expect(m.perspective).toBe(DEFAULT_PERSPECTIVES[i]);
+        expect(m.reviewIndex).toBe(i);
+        expect(m.review).toBeTruthy();
+        expect(m.content).toContain(m.perspective);
+      });
+    });
+
+    it("should yield consensus message and end event with result", async () => {
+      const events = await collectStream(
+        dr.startDebateStream({ target: "f.js", code: CLEAN_CODE }),
+      );
+
+      const consensus = events.find(
+        (e) => e.type === "message" && e.phase === "consensus",
+      );
+      expect(consensus).toBeTruthy();
+      expect(consensus.content).toContain("Verdict:");
+
+      const end = events[events.length - 1];
+      expect(end.type).toBe("end");
+      expect(end.result).toBeTruthy();
+      expect(end.result.verdict).toBeTruthy();
+      expect(end.result.reviews).toHaveLength(DEFAULT_PERSPECTIVES.length);
+      expect(end.ts).toBeTypeOf("number");
+    });
+
+    it("should yield error + end when no code provided", async () => {
+      const events = await collectStream(
+        dr.startDebateStream({ target: "nonexistent" }),
+      );
+
+      expect(events[0].type).toBe("start");
+      const errorEv = events.find((e) => e.type === "error");
+      expect(errorEv).toBeTruthy();
+      expect(errorEv.error).toContain("No code");
+
+      const end = events[events.length - 1];
+      expect(end.type).toBe("end");
+      expect(end.result.verdict).toBe("ERROR");
+    });
+
+    it("should produce event sequence: start → messages → consensus → end", async () => {
+      const events = await collectStream(
+        dr.startDebateStream({
+          target: "f.js",
+          code: CLEAN_CODE,
+          perspectives: ["performance"],
+        }),
+      );
+
+      const types = events.map((e) =>
+        e.phase === "consensus" ? "consensus" : e.type,
+      );
+      expect(types[0]).toBe("start");
+      expect(types[1]).toBe("message");
+      expect(types[2]).toBe("consensus");
+      expect(types[3]).toBe("end");
+    });
+
+    it("startDebate() should return same result as end event (backward compat)", async () => {
+      const syncResult = await dr.startDebate({
+        target: "f.js",
+        code: CLEAN_CODE,
+        perspectives: ["maintainability"],
+      });
+
+      // Re-init a fresh instance to get streaming result
+      const dr2 = new DebateReview();
+      const db2 = createMockDatabase();
+      await dr2.initialize(db2);
+      const events = await collectStream(
+        dr2.startDebateStream({
+          target: "f.js",
+          code: CLEAN_CODE,
+          perspectives: ["maintainability"],
+        }),
+      );
+      const streamResult = events[events.length - 1].result;
+
+      // Both should have same structure and verdict
+      expect(syncResult.target).toBe(streamResult.target);
+      expect(syncResult.verdict).toBe(streamResult.verdict);
+      expect(syncResult.reviews).toHaveLength(streamResult.reviews.length);
+    });
+
+    it("should use custom perspectives in stream", async () => {
+      const events = await collectStream(
+        dr.startDebateStream({
+          target: "f.js",
+          code: CLEAN_CODE,
+          perspectives: ["security"],
+        }),
+      );
+
+      const start = events[0];
+      expect(start.perspectives).toEqual(["security"]);
+      const messages = events.filter(
+        (e) => e.type === "message" && e.perspective,
+      );
+      expect(messages).toHaveLength(1);
+      expect(messages[0].perspective).toBe("security");
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // DEFAULT_PERSPECTIVES & DEBATE_STREAM_EVENTS exports
   // ─────────────────────────────────────────────────────────────────────────
   describe("exports", () => {
     it("should export DEFAULT_PERSPECTIVES array", () => {
@@ -580,6 +723,16 @@ describe("DebateReview", () => {
       expect(DEFAULT_PERSPECTIVES).toContain("performance");
       expect(DEFAULT_PERSPECTIVES).toContain("security");
       expect(DEFAULT_PERSPECTIVES).toContain("maintainability");
+    });
+
+    it("should export DEBATE_STREAM_EVENTS frozen array", () => {
+      const mod = require("../debate-review");
+      expect(mod.DEBATE_STREAM_EVENTS).toBeTruthy();
+      expect(mod.DEBATE_STREAM_EVENTS).toContain("start");
+      expect(mod.DEBATE_STREAM_EVENTS).toContain("message");
+      expect(mod.DEBATE_STREAM_EVENTS).toContain("error");
+      expect(mod.DEBATE_STREAM_EVENTS).toContain("end");
+      expect(Object.isFrozen(mod.DEBATE_STREAM_EVENTS)).toBe(true);
     });
   });
 });

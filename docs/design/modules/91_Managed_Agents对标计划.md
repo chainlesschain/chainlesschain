@@ -182,6 +182,9 @@
 - EventEmitter 的 `error` 事件改名 `stream-error`，避免 Node.js 未监听崩溃
 - `collect()` 聚合 token 得最终文本，message 存在时覆盖 token 拼接
 
+**已完成上层集成**:
+- ✅ `debate-review.js` `startDebateStream()` async generator，yield `start → message(×N) → consensus → end`，`startDebate()` 向后兼容消费 (+8 tests, 42 total in debate-review.test.js)
+
 **未完成（上层集成）**:
 - `cowork analyze / compare` 现有非 stream 路径改走 `StreamRouter`
 - CLI 默认流式输出，`--no-stream` 关闭
