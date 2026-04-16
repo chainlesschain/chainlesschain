@@ -130,7 +130,7 @@
   "author": "ChainlessChain Team",
   "license": "MIT",
   "dependencies": {
-    "@chainlesschain/session-core": "0.3.0",
+    "@chainlesschain/session-core": "0.3.1",
     "@chainsafe/libp2p-yamux": "^8.0.1",
     "@chroma-core/default-embed": "^0.1.9",
     "@codemirror/lang-css": "^6.3.1",
