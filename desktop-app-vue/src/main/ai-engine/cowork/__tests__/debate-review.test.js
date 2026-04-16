@@ -419,6 +419,159 @@ describe("DebateReview", () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
+  // resolveConflictingVerdicts (B-1: second consumer of conflict resolution)
+  // ─────────────────────────────────────────────────────────────────────────
+  describe("resolveConflictingVerdicts()", () => {
+    beforeEach(async () => {
+      await dr.initialize(db);
+    });
+
+    it("should return unchanged reviews when all verdicts agree", () => {
+      const reviews = [
+        { perspective: "performance", vote: "APPROVE", issues: [] },
+        { perspective: "security", vote: "APPROVE", issues: [] },
+      ];
+      const { resolved, conflictPairs, demotions } =
+        dr.resolveConflictingVerdicts(reviews);
+      expect(conflictPairs).toBe(0);
+      expect(demotions).toHaveLength(0);
+      expect(resolved).toEqual(reviews);
+    });
+
+    it("should detect conflict when verdicts disagree", () => {
+      const reviews = [
+        {
+          perspective: "security",
+          vote: "REJECT",
+          issues: [{ severity: "critical", description: "eval() usage" }],
+        },
+        {
+          perspective: "performance",
+          vote: "APPROVE",
+          issues: [],
+        },
+      ];
+      const { conflictPairs, demotions } =
+        dr.resolveConflictingVerdicts(reviews);
+      expect(conflictPairs).toBe(1);
+      expect(demotions).toHaveLength(1);
+    });
+
+    it("should demote the review with weaker evidence", () => {
+      const reviews = [
+        {
+          perspective: "security",
+          vote: "REJECT",
+          issues: [
+            { severity: "critical", description: "SQL injection" },
+            { severity: "warning", description: "Missing input validation" },
+          ],
+        },
+        {
+          perspective: "maintainability",
+          vote: "APPROVE",
+          issues: [{ severity: "info", description: "Long line" }],
+        },
+      ];
+      const { resolved, demotions } = dr.resolveConflictingVerdicts(reviews);
+      // security has critical+warning with REJECT weight, maintainability only has info with APPROVE weight
+      // security wins → maintainability is demoted
+      expect(demotions).toContain("maintainability");
+      expect(resolved[1]._demoted).toBe(true);
+      expect(resolved[0]._demoted).toBeUndefined();
+    });
+
+    it("should handle single review (no pairs possible)", () => {
+      const reviews = [{ perspective: "security", vote: "REJECT", issues: [] }];
+      const { conflictPairs } = dr.resolveConflictingVerdicts(reviews);
+      expect(conflictPairs).toBe(0);
+    });
+
+    it("should handle null/empty reviews", () => {
+      expect(dr.resolveConflictingVerdicts(null).conflictPairs).toBe(0);
+      expect(dr.resolveConflictingVerdicts([]).conflictPairs).toBe(0);
+    });
+
+    it("should detect multiple conflict pairs in 3-way disagreement", () => {
+      const reviews = [
+        {
+          perspective: "security",
+          vote: "REJECT",
+          issues: [{ severity: "critical", description: "injection" }],
+        },
+        {
+          perspective: "performance",
+          vote: "APPROVE",
+          issues: [],
+        },
+        {
+          perspective: "maintainability",
+          vote: "NEEDS_WORK",
+          issues: [{ severity: "warning", description: "DRY violation" }],
+        },
+      ];
+      const { conflictPairs } = dr.resolveConflictingVerdicts(reviews);
+      // All three have different verdicts → 3 pairs
+      expect(conflictPairs).toBe(3);
+    });
+
+    it("should include demotion reason referencing winner perspective", () => {
+      const reviews = [
+        {
+          perspective: "security",
+          vote: "REJECT",
+          issues: [{ severity: "critical", description: "RCE" }],
+        },
+        {
+          perspective: "performance",
+          vote: "APPROVE",
+          issues: [],
+        },
+      ];
+      const { resolved } = dr.resolveConflictingVerdicts(reviews);
+      const demoted = resolved.find((r) => r._demoted);
+      expect(demoted._demotionReason).toContain("security");
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // startDebate conflict resolution integration
+  // ─────────────────────────────────────────────────────────────────────────
+  describe("startDebate() - conflict resolution integration", () => {
+    beforeEach(async () => {
+      await dr.initialize(db);
+    });
+
+    it("should include conflictResolution in result when verdicts conflict", async () => {
+      // SECURITY_CODE triggers security REJECT + performance/maintainability may differ
+      const result = await dr.startDebate({
+        target: "conflict.js",
+        code: SECURITY_CODE,
+        perspectives: ["security", "performance"],
+      });
+
+      // security detects eval → REJECT; performance may see no issues → APPROVE
+      if (result.votes[0].vote !== result.votes[1].vote) {
+        expect(result.conflictResolution).toBeTruthy();
+        expect(result.conflictResolution.conflictPairs).toBeGreaterThan(0);
+      }
+    });
+
+    it("should return null conflictResolution when no conflicts", async () => {
+      const result = await dr.startDebate({
+        target: "clean.js",
+        code: CLEAN_CODE,
+        perspectives: ["performance", "maintainability"],
+      });
+
+      // Clean code → both APPROVE → no conflict
+      if (result.votes.every((v) => v.vote === "APPROVE")) {
+        expect(result.conflictResolution).toBeNull();
+      }
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
   // DEFAULT_PERSPECTIVES export
   // ─────────────────────────────────────────────────────────────────────────
   describe("exports", () => {
