@@ -138,15 +138,15 @@ class AgentSandboxV2 extends EventEmitter {
           detected_at TEXT DEFAULT (datetime('now'))
         );
       `);
-      // Phase 4: add policy/timestamp columns to legacy DBs. ALTER is a no-op
-      // if the column already exists, so swallow "duplicate column" errors.
+      // Phase 4: add policy/timestamp columns to legacy DBs. ALTER TABLE is
+      // a no-op if the column already exists, so swallow "duplicate column".
       for (const ddl of [
         "ALTER TABLE sandbox_instances ADD COLUMN policy TEXT",
         "ALTER TABLE sandbox_instances ADD COLUMN created_at_ms INTEGER",
         "ALTER TABLE sandbox_instances ADD COLUMN last_used_at_ms INTEGER",
       ]) {
         try {
-          this.db.exec(ddl);
+          this.db.prepare(ddl).run();
         } catch (_e) {
           // column already present
         }
