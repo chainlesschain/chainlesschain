@@ -1,6 +1,6 @@
 ﻿# Managed Agents 对标计划
 
-> 版本: v2.2 · 日期: 2026-04-16 · 状态: Phase A–I 全部落地（413 session-core tests + ~220 CLI tests + 23 Desktop IPC tests）· Phase J 候选评估中
+> 版本: v2.3.1 · 日期: 2026-04-16 · 状态: Phase A–J 全部落地（452 session-core tests + ~220 CLI tests + 23 Desktop IPC tests + Desktop session-service 38 tests + Renderer store 30 tests）· Phase J+ Renderer/CLI 对称提示完成（9 项交付 + Round 4 regression guard）
 >
 > 对标对象: Anthropic **Claude Managed Agents** (2026-04-01 beta)
 >
@@ -283,9 +283,9 @@
 | A | ✅ 已完成 | SessionHandle / TraceEvent / AgentDefinition | 79 tests | 冷启动 <100ms（结构层） |
 | B | ✅ 已完成 | session-hour / idle park | 39 tests | session / agent / global usage 可汇总 |
 | C | ✅ 已完成 | team/subagent / shared task | 52 tests | peer/child 语义分离 |
-| D | ✅ 底层完成 / ⏳ 集成中 | memory store / consolidator | 53 tests | consolidate 闭环可用，CLI/Desktop 待全接入 |
-| E | ✅ 底层完成 / ⏳ 集成中 | approvalPolicy / beta flags + 跨进程持久化 | 46 tests (+9 v1.9) | CLI `session policy` 已跨进程持久化；Desktop 未切换 |
-| F | ✅ 底层完成 / ⏳ 集成中 | stream first | 19 tests | StreamEvent 协议已定型 |
+| D | ✅ 已完成 | memory store / consolidator | 53 tests | consolidate 闭环可用，CLI `cc memory consolidate` + Desktop `closeSession → _autoConsolidate` 全接入 (Phase J) |
+| E | ✅ 已完成 | approvalPolicy / beta flags + 跨进程持久化 | 46 tests (+9 v1.9) | CLI `session policy` + Desktop `_executeHostedTool` / `_buildHostManagedToolPolicy` 全走 ApprovalGate (Phase J)；Permission Gate 与 ApprovalGate 合流共存 |
+| F | ✅ 已完成 | stream first | 19 tests | StreamEvent 协议已定型；CLI `--no-stream` + Desktop IPC `agent:stream:*` 已标准化；cowork 三件套 (`debate/compare/analyze`) 全部 async-generator 化 |
 | G | ✅ 基本完成 | CLI 收口到 AgentGroup / StreamRouter / ApprovalGate / Consolidator | +40 done (cowork peer group + memory inject + stream + approval REPL 接线 + setConfirmer) | CLI 默认行为与 session-core 对齐 |
 | H | ✅ 已完成 | Desktop session service + 18 IPC + CLI 对称 lifecycle/stream/park-on-exit | Desktop 17 + CLI 52 = 69 tests | Desktop/CLI 语义与持久化一致，单点审批合流 |
 | I | ✅ 全部完成 | `cc session tail/usage` + Hosted Session API（17+2 WS 路由）+ 三端 token 记账 + Desktop Usage tab | CLI 25 ws-protocol + 9 usage + 7 tail + 10 chat-usage + 95 agent-core; Desktop 23 IPC | 远程驱动 session-core，token 记账可观测，Desktop/CLI 全对称 |
@@ -332,12 +332,56 @@
 
 4. **`_mapEventToTraceType` helper**: 将 coding-agent 事件类型映射到 session-core TraceEvent 类型，供 consolidator 使用。
 
-**测试**: session-service 28 → 36 tests (+8 Phase J: 2 ApprovalGate 路由 + 3 auto-consolidate + 3 trace mapping)
+**测试**: session-service 28 → 38 tests (+10 Phase J/J+: 2 ApprovalGate 路由 + 3 auto-consolidate + 3 trace mapping + 2 approval.denied emission) · CLI agent-repl.test.js 40 → 41 (+1 ApprovalGate deny hint string check) · coding-agent store 28 → 30 (+2 Phase J+: latestApprovalDeniedEvent positive case + Round 4 regression guard 排除 legacy plan/high-risk payload shape)
+
+**Phase J+ 增量** (2026-04-16):
+
+5. **`_executeHostedTool` → `approval.denied` 事件**: 当 ApprovalGate（而非 Plan Mode）拒绝工具调用时，先 `_storeEvent` 一个 `CODING_AGENT_EVENT_TYPES.APPROVAL_DENIED` 事件再抛错。payload 包含 `{ toolName, reason, policy, via, riskLevel, source: "approval-gate" }`。Plan Mode 拒绝路径不会发出此事件（`evaluation.approvalGate?.decision === "deny"` 守卫）。
+
+6. **Renderer store**: `coding-agent.ts` 新增 `APPROVAL_DENIED_EVENT_TYPES` + `latestApprovalDeniedEvent` getter。与 `latestBlockedToolEvent` 区分开 — ApprovalGate deny 的恢复流是改 session policy（strict→trusted），不是审批 plan/tool。
+
+7. **Renderer UI 消费**: `AIChatPage.vue` 在原 `currentBlockedTool` alert 下方挂一条 `error` 类型的 sticky `<a-alert>`（`Approval denied: <toolName>`，描述行串联 `reason / policy / riskLevel`，policy=strict 时追加"放宽 session policy 即可放行"提示），并通过 `watch(latestApprovalDeniedEvent.id)` 在新事件落地时触发一次 `antMessage.warning` 浮层。banner + toast 两条路径都从同一个 store getter 读取，复用 Phase J+ 的 `approval.denied` payload schema。
+
+8. **一键放宽 policy**: 当 `approval.denied` 的 `policy === "strict"` 时，alert 在 `#action` 槽渲染 `Switch to Trusted` 按钮，点击经 `useSessionCoreStore().setPolicy(sessionId, "trusted")` 调 IPC `session:policy:set`（preload 已暴露，Phase H 落地）。成功后 `antMessage.success` 提示用户重试工具；失败回落到 `sessionCoreStore.lastError`。`isRelaxingPolicy` ref 防止重复点击。
+
+9. **CLI REPL 对称提示**: `agent-repl.js` 的 `agentLoop` 在 `tool-result` 事件中检测 `result.approval?.decision === "deny" && approval.via !== "shell-policy"` —— 与 Desktop 的 `Switch to Trusted` 按钮等价，CLI 端打印一条黄色提示行 `Hint: relax policy with cc session policy <sid> --set trusted`（policy=strict 时）或非 strict 时的 `cc session policy <sid>` 查询提示。让 CLI/Desktop 两端的 ApprovalGate 拒绝恢复路径完全对称。+1 test (agent-repl.test.js 41 total)。
 
 **未完成上层集成（低优先级）**:
-- ⏳ Desktop Permission Gate 完全替换为 ApprovalGate（当前是合流共存，非替换）
-- ⏳ Renderer UI surfacing of ApprovalGate deny events as dialog
+- ❌ ~~Desktop Permission Gate 完全替换为 ApprovalGate~~ → **决定不做**（见下方 ADR）
+- ✅ Renderer UI 消费 `latestApprovalDeniedEvent`（`AIChatPage` sticky alert + 一次性 toast，policy=strict 时给出放宽建议）
 - ✅ `cowork analyze/compare/debate` 已迁移到 StreamRouter async generator
+- ✅ `_executeHostedTool` 在 ApprovalGate 拒绝时发出 `approval.denied` 事件（payload 含 policy/via/riskLevel）
+
+#### ADR — 为什么 Permission Gate 与 ApprovalGate 必须共存（2026-04-16 评估）
+
+**背景**: 历史 backlog 中曾考虑"用 ApprovalGate 完全替换 Permission Gate"。深入读两边代码后判定**不可行也不必要**。
+
+**职责对照**:
+
+| 概念 | `coding-agent-permission-gate.js`（Desktop） | `session-core/lib/approval-gate.js`（共享） |
+|---|---|---|
+| 工具 descriptor / 能力模型 | ✓ `getToolDescriptor` / `getRiskLevel` | — |
+| Plan Mode 生命周期判定 | ✓ `isToolAllowedInPlanMode` / `getToolCategory` | — |
+| Plan 项风险过滤 | ✓ `getHighRiskToolsFromPlanItems` | — |
+| 工具错误回执解析 | ✓ `getToolResultAssessment` | — |
+| Per-session policy（strict/trusted/autopilot） | — | ✓ `setSessionPolicy` |
+| Confirm / deny 决策 | — | ✓ `decide()` |
+
+**当前实际接线**（非"合流共存"，而是"分层"）:
+
+```
+evaluateToolCall(opts)        // session-service 唯一决策入口
+  ├─ ApprovalGate 已加载 → permissionGate.evaluateToolCallWithApprovalGate()
+  │                          ├─ permissionGate.evaluateToolCall()  ← capability/Plan Mode
+  │                          └─ approvalGate.decide()              ← per-session policy
+  └─ ApprovalGate 未加载 → permissionGate.evaluateToolCall()       ← 安全降级
+```
+
+剩余 `permissionGate.*` 直调点（service line 1210/1634/1657/1683）全是**非决策性元数据 helper**（policy summary / 高风险 plan 项 / 工具回执解析），ApprovalGate 没有也不应该有这些能力。
+
+**决定**: 维持现状 — Permission Gate 作为能力 / Plan Mode 层，ApprovalGate 作为 policy overlay。删除 Permission Gate 会丢失 Plan Mode 集成与 fallback 安全网，是功能回归而非清理。
+
+**Backlog 关闭**: 这一项不再追踪。
 
 ---
 
@@ -427,4 +471,4 @@ Desktop 使用同名文件，位置在 `<userData>/.chainlesschain/`。
 ---
 
 **维护者**: ChainlessChain Agent Runtime 组
-**下次评审**: Phase J 已完成。剩余低优先级上层集成：Desktop Permission Gate 完全替换 / Renderer ApprovalGate deny UI / cowork non-stream→StreamRouter
+**下次评审**: Phase A–J + J+ 全部落地，无悬挂 backlog。Permission Gate 与 ApprovalGate 关系已通过 ADR 关闭（见第四节末），不再追踪"完全替换"项。

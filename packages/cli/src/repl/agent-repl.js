@@ -101,6 +101,29 @@ async function agentLoop(messages, options) {
         process.stdout.write(
           chalk.red(`  Error: ${event.error || event.result?.error}\n`),
         );
+        // Parity with Desktop AIChatPage's `Switch to Trusted` button:
+        // when the deny came from ApprovalGate (not shell-policy), surface
+        // the exact CLI command the user can run to relax the per-session
+        // policy. The structured `approval` outcome is attached by
+        // `evaluateShellCommandWithApproval` in agent-core.js.
+        const approval = event.result?.approval;
+        if (approval?.decision === "deny" && approval?.via !== "shell-policy") {
+          const sid = options?.sessionId;
+          const policy = approval.policy || "strict";
+          if (sid && policy === "strict") {
+            process.stdout.write(
+              chalk.yellow(
+                `  Hint: relax policy with  cc session policy ${sid} --set trusted\n`,
+              ),
+            );
+          } else if (sid) {
+            process.stdout.write(
+              chalk.yellow(
+                `  Hint: per-session policy is "${policy}" — see  cc session policy ${sid}\n`,
+              ),
+            );
+          }
+        }
       } else if (event.result?.success) {
         process.stdout.write(chalk.green(`  Done\n`));
       }

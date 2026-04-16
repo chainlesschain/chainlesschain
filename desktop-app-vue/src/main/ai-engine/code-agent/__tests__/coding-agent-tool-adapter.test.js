@@ -19,12 +19,14 @@ const {
 } = require("../../../../../../packages/cli/src/runtime/coding-agent-contract-shared.cjs");
 
 describe("CodingAgentToolAdapter", () => {
-  it("exposes the seven core coding-agent tools with stable metadata", () => {
+  it("exposes the eight core coding-agent tools with stable metadata", () => {
     const adapter = new CodingAgentToolAdapter();
 
     const tools = adapter.listCoreTools();
 
-    expect(tools).toHaveLength(7);
+    // mvp tier: read_file, write_file, edit_file, edit_file_hashed (Hashline
+    // pattern, v5.0.2.9), run_shell, git, search_files, list_dir
+    expect(tools).toHaveLength(8);
     expect(tools.map((tool) => tool.name)).toEqual(
       CORE_CODING_AGENT_TOOLS.map((tool) => tool.name),
     );
@@ -40,7 +42,10 @@ describe("CodingAgentToolAdapter", () => {
       },
       telemetry: {
         category: "filesystem",
-        tags: expect.arrayContaining(["tool:read_file", "contract:coding-agent"]),
+        tags: expect.arrayContaining([
+          "tool:read_file",
+          "contract:coding-agent",
+        ]),
       },
       source: "desktop-core",
     });
@@ -111,7 +116,10 @@ describe("CodingAgentToolAdapter", () => {
       },
       telemetry: {
         category: "filesystem",
-        tags: expect.arrayContaining(["tool:write_file", "contract:coding-agent"]),
+        tags: expect.arrayContaining([
+          "tool:write_file",
+          "contract:coding-agent",
+        ]),
       },
       source: "desktop-tool-manager:tool-1",
       isReadOnly: false,
@@ -156,7 +164,8 @@ describe("CodingAgentToolAdapter", () => {
 
     const tools = await adapter.listAvailableTools();
 
-    expect(tools).toHaveLength(8);
+    // 8 core (mvp tier incl. edit_file_hashed) + 1 allowlisted managed tool
+    expect(tools).toHaveLength(9);
     expect(
       tools.find((tool) => tool.name === DEFAULT_ALLOWED_MANAGED_TOOL_NAMES[0]),
     ).toMatchObject({

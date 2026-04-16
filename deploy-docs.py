@@ -7,12 +7,12 @@ PASS = "***REDACTED***"
 DEPLOYS = [
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.2.10-20260415.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.2.10-20260416.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.2.10-20260415.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.2.10-20260416.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
 ]

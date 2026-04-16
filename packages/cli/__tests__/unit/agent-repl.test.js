@@ -502,6 +502,17 @@ describe("agent-repl thin wrapper contracts", () => {
     expect(content).toContain("event.result?.success");
   });
 
+  it("agentLoop wrapper surfaces ApprovalGate deny recovery hint", () => {
+    const content = readFileSync(agentReplPath, "utf8");
+    // Parity with Desktop AIChatPage's `Switch to Trusted` button — when
+    // ApprovalGate (not shell-policy) denies, print the exact CLI command
+    // the user can run to relax the per-session policy.
+    expect(content).toContain('approval?.decision === "deny"');
+    expect(content).toContain('approval?.via !== "shell-policy"');
+    expect(content).toContain("cc session policy");
+    expect(content).toContain("--set trusted");
+  });
+
   it("agentLoop wrapper returns structured result on response-complete", () => {
     const content = readFileSync(agentReplPath, "utf8");
     expect(content).toContain('event.type === "response-complete"');

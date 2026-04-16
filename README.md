@@ -1,24 +1,27 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 2026-04-16 增量更新（Managed Agents Phase A–I 全部完成 + Deep Agents Deploy Phase 1–5 全部完成）
+## 2026-04-16 增量更新（Managed Agents Phase A–J + J+ 全部完成 + Deep Agents Deploy Phase 1–5 全部完成）
 
 对 Anthropic Claude Managed Agents + Deep Agents Deploy 做本地优先版本的运行时对标。新增共享包 `@chainlesschain/session-core`，把 Session / Trace / Team-Subagent / Scoped Memory / Approval Policy / Beta Flags / Stream Router / Service Envelope / MCP Policy / Sandbox Policy / Agent Bundle 抽到 CLI 与 Desktop 可共用的一层。
 
 ### 关键交付
 
-- **session-core** 20 个测试文件，**413/413 tests** — 涵盖 SessionHandle、SessionManager、MemoryStore、MemoryConsolidator、ApprovalGate、BetaFlags、StreamRouter、TraceStore、SharedTaskList、ServiceEnvelope、MCPPolicy、SandboxPolicy、AgentBundle
+- **session-core** 21 个测试文件，**452/452 tests** — 涵盖 SessionHandle、SessionManager、MemoryStore、MemoryConsolidator、ApprovalGate、BetaFlags、StreamRouter、TraceStore、SharedTaskList、ServiceEnvelope、MCPPolicy、SandboxPolicy、AgentBundle、QualityGate
 - **Hosted Session API** — `cc serve` WS 网关 17 req/resp + 2 streaming 路由（`stream.run` + `sessions.subscribe`），统一 `<type>.response` 信封
 - **CLI session/usage 命令** — `cc session tail/usage/lifecycle/park/unpark/end`、三端 (Ollama/OpenAI/Anthropic) 自动 token 记账
 - **Desktop IPC 收口** — 21 IPC channels（session lifecycle + memory + beta + usage + subscribe），Pinia store + SessionCorePage Usage tab
+- **Phase J — Hosted Tool ApprovalGate 合流** — `_executeHostedTool` 走 `evaluateToolCallWithApprovalGate`，`closeSession` fire-and-forget `_autoConsolidate`（trace → MemoryStore），不破坏现有 Permission Gate / Plan Mode 行为
+- **Phase J+ — Renderer/CLI 对称提示 + 防御** — `latestApprovalDeniedEvent` Pinia getter（按 `payload.source === "approval-gate"` 过滤）、`AIChatPage.vue` sticky alert + toast、`policy=strict` 时引导用户放宽 session policy；新增 Round 4 regression guard 锁定事件类型碰撞修复
+- **Permission Gate × ApprovalGate ADR** — 两层正交（capability vs policy）共存，`91_Managed_Agents对标计划` 第四节末已记录"完全替换 Permission Gate"决定为 won't-do
 - **Desktop/CLI 对称持久化** — 共用 `parked-sessions.json / memory-store.json / beta-flags.json / approval-policies.json`
 
 | 层 | 范围 | 通过 |
 | --- | --- | --- |
-| 共享包 | `@chainlesschain/session-core` (20 files) | `413/413` |
-| CLI 单元 | ws-session-core (25) + agent-core (95) + chat-core-usage (10) + session-* (22) + singletons (10) + agent-repl (40) | `202/202` |
+| 共享包 | `@chainlesschain/session-core` (21 files) | `452/452` |
+| CLI 单元 | ws-session-core (25) + agent-core (95) + chat-core-usage (10) + session-* (22) + singletons (10) + agent-repl (41 + ApprovalGate hint) | `203/203` |
 | CLI 集成 | managed-agents + parity + shims + doc-creator | `696/696` |
 | CLI E2E | managed-agents + full e2e suite | `562/562` |
-| Desktop | session-core-ipc (23) + coding-agent (28) + sandbox (45) | `96/96` |
+| Desktop | session-core-ipc (23) + coding-agent-session-service (38) + tool-adapter (8) + sandbox-v2 (41) + coding-agent store (30) | `140/140` |
 
 用户文档：[docs-site/docs/chainlesschain/managed-agents-parity](./docs-site/docs/chainlesschain/managed-agents-parity.md)
 设计文档：[docs/design/modules/91_Managed_Agents对标计划](./docs/design/modules/91_Managed_Agents对标计划.md) | [92_Deep_Agents_Deploy](./docs/design/modules/92_Deep_Agents_Deploy借鉴落地方案.md)

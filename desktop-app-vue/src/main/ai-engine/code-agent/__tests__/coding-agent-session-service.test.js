@@ -1503,6 +1503,135 @@ describe("CodingAgentSessionService", () => {
       });
       expect(lastMsg.error).toContain("blocked");
     });
+
+    it("emits approval.denied event when ApprovalGate denies", async () => {
+      const mockApprovalGate = {
+        decide: vi.fn().mockReturnValue({
+          decision: "deny",
+          via: "strict",
+          policy: "strict",
+          riskLevel: "HIGH",
+        }),
+      };
+      const localBridge = new MockBridge();
+      const toolDesc = {
+        name: "run_shell",
+        description: "Run a shell command",
+        isReadOnly: false,
+        riskLevel: "HIGH",
+        inputSchema: { type: "object", properties: {} },
+      };
+      const hostedService = new CodingAgentSessionService({
+        bridge: localBridge,
+        approvalGate: mockApprovalGate,
+        useSessionCoreApprovalGate: false,
+        toolManager: {
+          functionCaller: {
+            hasTool: vi.fn().mockReturnValue(true),
+            callTool: vi.fn().mockResolvedValue({ result: "ok" }),
+          },
+        },
+        toolAdapter: {
+          getToolDescriptorSync: vi.fn().mockReturnValue(toolDesc),
+          listAvailableTools: vi.fn().mockResolvedValue([toolDesc]),
+          buildFunctionToolDefinitions: vi.fn().mockReturnValue([]),
+        },
+      });
+
+      const emittedEvents = [];
+      hostedService.on("event", (event) => emittedEvents.push(event));
+
+      await hostedService.createSession();
+
+      localBridge.emit("message", {
+        type: "host-tool-call",
+        sessionId: "session-1",
+        requestId: "req-deny-evt",
+        toolName: "run_shell",
+        args: { command: "rm -rf /" },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const denyEvent = emittedEvents.find((e) => e.type === "approval.denied");
+      expect(denyEvent).toBeDefined();
+      expect(denyEvent).toMatchObject({
+        type: "approval.denied",
+        sessionId: "session-1",
+        payload: {
+          toolName: "run_shell",
+          source: "approval-gate",
+          policy: "strict",
+          via: "strict",
+          riskLevel: "HIGH",
+        },
+      });
+      expect(denyEvent.payload.reason).toContain("ApprovalGate denied");
+    });
+
+    it("does NOT emit approval.denied when Plan Mode (not ApprovalGate) is the deny source", async () => {
+      const localBridge = new MockBridge();
+      // No ApprovalGate, but Plan Mode evaluation will block a high-risk tool
+      // because the session is not in plan_approved/inactive state.
+      const toolDesc = {
+        name: "run_shell",
+        description: "Run a shell command",
+        isReadOnly: false,
+        riskLevel: "HIGH",
+        availableInPlanMode: false,
+        requiresPlanApproval: true,
+        inputSchema: { type: "object", properties: {} },
+      };
+      const planBlockedService = new CodingAgentSessionService({
+        bridge: localBridge,
+        useSessionCoreApprovalGate: false, // disable ApprovalGate entirely
+        toolManager: {
+          functionCaller: {
+            hasTool: vi.fn().mockReturnValue(true),
+            callTool: vi.fn().mockResolvedValue({ result: "ok" }),
+          },
+        },
+        toolAdapter: {
+          getToolDescriptorSync: vi.fn().mockReturnValue(toolDesc),
+          listAvailableTools: vi.fn().mockResolvedValue([toolDesc]),
+          buildFunctionToolDefinitions: vi.fn().mockReturnValue([]),
+        },
+      });
+
+      // Force Plan Mode evaluation to deny without ApprovalGate involvement
+      vi.spyOn(planBlockedService, "evaluateToolCall").mockResolvedValue({
+        allowed: false,
+        decision: "deny",
+        reason: "plan-mode block",
+        riskLevel: "HIGH",
+        // NOTE: no `approvalGate` field — pure Plan Mode deny
+      });
+
+      const emittedEvents = [];
+      planBlockedService.on("event", (event) => emittedEvents.push(event));
+
+      await planBlockedService.createSession();
+      // Drain creation events so we only inspect post-deny emissions
+      emittedEvents.length = 0;
+
+      localBridge.emit("message", {
+        type: "host-tool-call",
+        sessionId: "session-1",
+        requestId: "req-plan-deny",
+        toolName: "run_shell",
+        args: { command: "ls" },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const denyEvent = emittedEvents.find((e) => e.type === "approval.denied");
+      expect(denyEvent).toBeUndefined();
+
+      // The CLI bridge is still informed via the host-tool-result envelope.
+      const lastMsg = localBridge.sentMessages.at(-1);
+      expect(lastMsg).toMatchObject({
+        type: "host-tool-result",
+        success: false,
+      });
+    });
   });
 
   // ────────────────────────────────────────────────────────────────────────

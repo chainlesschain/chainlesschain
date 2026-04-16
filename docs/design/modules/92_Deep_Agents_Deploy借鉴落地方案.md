@@ -1,8 +1,8 @@
 # 92. Deep Agents Deploy 借鉴落地方案
 
-> 版本: v1.0
+> 版本: v1.1
 > 日期: 2026-04-16
-> 状态: 设计中
+> 状态: ✅ Phase 1–5 全部落地（agent-bundle / user-memory / mcp-policy / sandbox-policy / service-envelope；session-core 21 files / 452 tests）
 > 适用范围: `packages/cli`、`packages/session-core`、`desktop-app-vue/src/main/ai-engine`、`backend`
 > 参考对象: LangChain Deep Agents Deploy / Going to production（2026-04）
 > 关联文档: [82. CLI Runtime 收口路线图](./82_CLI_Runtime收口路线图.md) / [88. OpenAgents 对标补齐方案](./88_OpenAgents对标补齐方案.md) / [91. Managed Agents 对标计划](./91_Managed_Agents对标计划.md)

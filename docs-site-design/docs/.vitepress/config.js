@@ -633,8 +633,40 @@ export default defineConfig({
               link: "/modules/m85b-doc-code-gap-fill",
             },
             {
-              text: "86 Web Cowork日常任务协作系统 ⭐NEW",
+              text: "86 Web Cowork日常任务协作系统",
               link: "/modules/m86-web-cowork",
+            },
+            {
+              text: "87 Cowork Evolution N1-N7",
+              link: "/modules/m87-cowork-evolution",
+            },
+            {
+              text: "88 OpenAgents对标补齐方案",
+              link: "/modules/m88-open-agents-parity",
+            },
+            {
+              text: "89 v5.0.2.9 六项优化设计说明",
+              link: "/modules/m89-runtime-six-enhancements",
+            },
+            {
+              text: "90 AI视频生成 Volcengine Seedance",
+              link: "/modules/m90-ai-video-generation-seedance",
+            },
+            {
+              text: "91 Managed Agents对标计划",
+              link: "/modules/m91-managed-agents-parity",
+            },
+            {
+              text: "92 Deep Agents Deploy 借鉴落地方案",
+              link: "/modules/m92-deep-agents-deploy",
+            },
+            {
+              text: "93 CutClaw借鉴 视频剪辑Agent",
+              link: "/modules/m93-cutclaw-video-editing-agent",
+            },
+            {
+              text: "94 QualityGate 通用质量门控 ⭐NEW",
+              link: "/modules/m94-quality-gate",
             },
           ],
         },

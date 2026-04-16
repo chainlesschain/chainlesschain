@@ -1,6 +1,6 @@
 # Managed Agents 对标
 
-> 版本: v1.9 | 日期: 2026-04-16 | 状态: `session-core` Phase A-F 已落地，CLI 已接入 `memory recall/store`、`session policy`、`config beta`，Desktop 收口中。
+> 版本: v2.0 | 日期: 2026-04-16 | 状态: `session-core` Phase A–J + J+ 全部落地，CLI 已接入 `memory recall/store`、`session policy`、`config beta`、`session tail/usage/lifecycle/park/unpark/end`，Desktop 已收口（21 IPC channels + Pinia store + SessionCorePage Usage tab + 38 session-service tests + Round 4 regression guard）。
 
 ## 概述
 
@@ -206,7 +206,13 @@ CHAINLESSCHAIN_WS_TOKEN=your-secret-token
 
 ### Desktop 端测试
 
-- ✅ `coding-agent-session-service.test.js` — Phase J ApprovalGate 合流、auto-consolidate (+8 tests, 共 36 tests)
+- ✅ `coding-agent-session-service.test.js` — Phase J ApprovalGate 合流、auto-consolidate、Phase J+ 升级提示与降级二次确认 (+10 tests，共 38 tests)
+- ✅ `coding-agent-permission-gate.test.js` — Permission Gate ↔ ApprovalGate 双层合流（capability + Plan Mode + per-session policy）
+- ✅ `coding-agent-tool-adapter.test.js` — 8 个 mvp 核心工具（含 Hashline `edit_file_hashed`）+ MCP/Managed 工具白名单 (8 tests)
+- ✅ `agent-sandbox-v2.test.js` — Phase 4 bundle-aware lifecycle 持久化与还原 (41 tests)
+- ✅ `coding-agent.store.test.ts` (renderer) — Phase J+ 升级提示 + Round 4 regression guard（事件类型碰撞防御）(30 tests)
+
+> **架构 ADR**: Permission Gate 与 ApprovalGate 共存（capability vs policy 两层正交），不会被合并。详见 [`91_Managed_Agents对标计划`](../design/modules/91-managed-agents-parity.md) 第四节末 ADR。
 
 ## 安全考虑
 
