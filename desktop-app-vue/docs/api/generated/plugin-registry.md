@@ -2,7 +2,7 @@
 
 **Source**: `src/main/plugins/plugin-registry.js`
 
-**Generated**: 2026-04-16T04:17:05.867Z
+**Generated**: 2026-04-16T04:30:00.183Z
 
 ---
 

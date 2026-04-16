@@ -2,7 +2,7 @@
 
 **Source**: `src/main/webide/webide-manager.js`
 
-**Generated**: 2026-04-16T04:17:05.811Z
+**Generated**: 2026-04-16T04:30:00.129Z
 
 ---
 

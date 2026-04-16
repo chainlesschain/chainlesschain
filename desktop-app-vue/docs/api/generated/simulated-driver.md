@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ukey/simulated-driver.js`
 
-**Generated**: 2026-04-16T04:17:05.818Z
+**Generated**: 2026-04-16T04:30:00.136Z
 
 ---
 

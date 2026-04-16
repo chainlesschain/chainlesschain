@@ -2,7 +2,7 @@
 
 **Source**: `src/main/rag/rag-ipc.js`
 
-**Generated**: 2026-04-16T04:17:05.861Z
+**Generated**: 2026-04-16T04:30:00.177Z
 
 ---
 
