@@ -108,13 +108,31 @@ class ABComparator {
   /**
    * Run an A/B comparison
    * @param {Object} data - { taskDescription, variantCount, benchmark, context }
-   *   taskDescription: what to implement
-   *   variantCount: number of variants (default 3, max 5)
-   *   benchmark: whether to run verification-style benchmarks
-   *   context: additional context (language, framework, etc.)
    * @returns {Object} Comparison result with variants, scores, and winner
    */
   async compare(data) {
+    let finalResult = null;
+    for await (const ev of this.compareStream(data)) {
+      if (ev.type === "end" && ev.result) {
+        finalResult = ev.result;
+      }
+    }
+    return finalResult || { error: "Stream ended without result" };
+  }
+
+  /**
+   * Stream variant of compare — yields StreamRouter-compatible events.
+   *
+   * Events yielded:
+   *   { type: "start", comparisonId, taskDescription, variantCount }
+   *   { type: "message", content, variant, variantIndex }  — per variant generated
+   *   { type: "message", content, phase: "benchmark" }     — benchmark summary
+   *   { type: "end", result }
+   *
+   * @param {Object} data - { taskDescription, variantCount, benchmark, context }
+   * @yields {Object} StreamEvent-compatible events
+   */
+  async *compareStream(data) {
     const id = uuidv4();
     const startTime = Date.now();
     const taskDescription = data.taskDescription;
@@ -125,24 +143,42 @@ class ABComparator {
     const shouldBenchmark = data.benchmark !== false;
 
     if (!taskDescription) {
-      return { id, error: "taskDescription is required" };
+      const errorResult = { id, error: "taskDescription is required" };
+      yield { type: "error", error: errorResult.error };
+      yield { type: "end", result: errorResult, ts: Date.now() };
+      return;
     }
 
     logger.info(
       `[ABComparator] Starting comparison ${id}: "${taskDescription}" (${variantCount} variants)`,
     );
 
+    yield {
+      type: "start",
+      comparisonId: id,
+      taskDescription,
+      variantCount,
+      ts: Date.now(),
+    };
+
     // Generate variants
     const profiles = AGENT_PROFILES.slice(0, variantCount);
     const variants = [];
 
-    for (const profile of profiles) {
+    for (let i = 0; i < profiles.length; i++) {
       const variant = await this._generateVariant(
-        profile,
+        profiles[i],
         taskDescription,
         data.context,
       );
       variants.push(variant);
+
+      yield {
+        type: "message",
+        content: `[${variant.name}] Generated variant (${(variant.code || "").split("\n").length} lines)`,
+        variant,
+        variantIndex: i,
+      };
     }
 
     // Benchmark variants
@@ -210,7 +246,13 @@ class ABComparator {
       `[ABComparator] Comparison ${id} complete: winner=${winner} (${duration}ms)`,
     );
 
-    return result;
+    // Yield benchmark summary and end
+    yield {
+      type: "message",
+      content: `Winner: ${winner} (${Object.keys(scores).length} benchmarked)`,
+      phase: "benchmark",
+    };
+    yield { type: "end", result, ts: Date.now() };
   }
 
   /**
@@ -468,4 +510,5 @@ function getABComparator() {
 module.exports = {
   ABComparator,
   getABComparator,
+  COMPARE_STREAM_EVENTS: Object.freeze(["start", "message", "error", "end"]),
 };
