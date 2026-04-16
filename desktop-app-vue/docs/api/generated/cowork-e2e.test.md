@@ -2,7 +2,7 @@
 
 **Source**: `src/main/cowork/__tests__/integration/cowork-e2e.test.js`
 
-**Generated**: 2026-04-16T08:39:51.916Z
+**Generated**: 2026-04-16T12:07:31.959Z
 
 ---
 
