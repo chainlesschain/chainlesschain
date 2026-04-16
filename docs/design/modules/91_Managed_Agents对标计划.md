@@ -187,9 +187,9 @@
 - ✅ `ab-comparator.js` `compareStream()` async generator，yield `start → message(×N variants) → benchmark → end`，`compare()` 向后兼容消费 (+7 tests, 41 total in ab-comparator.test.js)
 - ✅ `project-style-analyzer.js` `analyzeStream()` async generator，yield `start → naming → architecture → testing → style → end`，`analyze()` 向后兼容消费 (+8 tests, 26 total in project-style-analyzer.test.js)
 
-**未完成（上层集成）**:
-- CLI 默认流式输出，`--no-stream` 关闭
-- Desktop IPC `agent:stream` 事件标准化为 `StreamEvent`
+**已完成（上层集成 — 全部就绪）**:
+- ✅ CLI `--no-stream` 已实现 (`agent.js` + `agent-stream.js` + `provider-stream.js`)，StreamRouter 已集成 (`agent-repl.js`, `ws-server.js`, `stream` 命令)
+- ✅ Desktop IPC `agent:stream:start/event/cancel` 已标准化为 StreamEvent (`session-core-ipc.js`)
 
 ---
 
@@ -337,7 +337,7 @@
 **未完成上层集成（低优先级）**:
 - ⏳ Desktop Permission Gate 完全替换为 ApprovalGate（当前是合流共存，非替换）
 - ⏳ Renderer UI surfacing of ApprovalGate deny events as dialog
-- ⏳ `cowork analyze/compare` 非 stream 路径改走 `StreamRouter`
+- ✅ `cowork analyze/compare/debate` 已迁移到 StreamRouter async generator
 
 ---
 
