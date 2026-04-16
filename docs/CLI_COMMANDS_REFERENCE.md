@@ -165,6 +165,9 @@ chainlesschain git auto-commit         # Auto-commit changes
 ```bash
 chainlesschain mcp servers             # List MCP servers
 chainlesschain mcp add fs -c npx -a "-y,@modelcontextprotocol/server-filesystem"
+chainlesschain mcp add weather -u https://mcp.example.com/weather            # Streamable HTTP transport (auto-detected)
+chainlesschain mcp add weather -u https://mcp.example.com/weather -t http    # Explicit transport (http|sse|stdio)
+chainlesschain mcp add weather -u https://... -H Authorization=Bearer+xyz    # Custom headers (repeatable)
 chainlesschain mcp tools               # List available tools
 chainlesschain mcp scaffold weather                          # Scaffold stdio MCP server in ./weather
 chainlesschain mcp scaffold weather -t http -p 4001          # Streamable HTTP + SSE on port 4001
