@@ -309,6 +309,17 @@ chainlesschain stress show <test-id> [--json]                                   
 chainlesschain stress analyze <test-id> [--json]                                # Bottleneck analysis
 chainlesschain stress plan <test-id> [--json]                                   # Capacity planning recommendations
 chainlesschain stress stop <test-id>                                            # Mark a running test as stopped
+chainlesschain reputation observe <did> <score> [-k kind] [-w weight] [--json]  # Record observation (score in [0,1])
+chainlesschain reputation score <did> [-d exponential|linear|step|none] [--lambda N] [--alpha N] [--json]
+chainlesschain reputation list [-d decay] [--limit N] [--json]                  # List DIDs by aggregated score
+chainlesschain reputation anomalies [-m z_score|iqr] [-t threshold] [-d decay] [--json]
+chainlesschain reputation optimize [-o accuracy|fairness|resilience|convergence_speed] [-i iterations] [--json]
+chainlesschain reputation status <run-id> [--json]                              # Optimization run status
+chainlesschain reputation analytics <run-id> [--json]                           # Distribution + anomalies + recommendations
+chainlesschain reputation runs [--limit N] [--json]                             # Optimization run history
+chainlesschain reputation apply <run-id>                                        # Mark run as applied
+chainlesschain reputation objectives [--json]                                   # List supported objectives
+chainlesschain rep ...                                                          # Short alias
 chainlesschain social contact / friend / post / chat / stats
 chainlesschain social analyze "<text>" [--top-k 3] [--lang zh|ja|en] [--json]
 chainlesschain social detect-lang "<text>" [--json]
