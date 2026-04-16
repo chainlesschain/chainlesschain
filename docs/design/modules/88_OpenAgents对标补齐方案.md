@@ -278,13 +278,13 @@ node ./scripts/extract.js $1
 
 ### 4.1 验收标准
 
-- [ ] Phase 1：agent 可调用 3 个新工具，headless 模式下 ask_user_question 优雅降级
-- [ ] Phase 2：`skill run foo "bar baz"` 正确替换 `$ARGUMENTS` / `$1` / `$2`
-- [ ] Phase 3：cowork 3 命令全部走 registry，新增 subagent 只需改一个文件
-- [ ] Phase 4：REPL 运行中 `/model` 切换立即生效，不需要重启 session
-- [ ] Phase 5：SKILL.md 同一份 providerOptions 在 anthropic / openai 下均能透传
-- [ ] 所有新增代码使用 `_deps` 注入模式，Vitest 测试在 forks pool 通过
-- [ ] 契约更新同步 `coding-agent-contract-shared.cjs` + `coding-agent-policy.cjs`，遵循 §83 canonical descriptor 规范
+- [x] Phase 1：agent 可调用 3 个新工具，headless 模式下 ask_user_question 优雅降级 — 落地于 `packages/cli/src/runtime/agent-core.js`（web_fetch / todo_write / ask_user_question）
+- [x] Phase 2：`skill run foo "bar baz"` 正确替换 `$ARGUMENTS` / `$1` / `$2` — 落地于 `packages/cli/src/lib/skill-loader.js`（substituteArguments）
+- [x] Phase 3：cowork 3 命令全部走 registry，新增 subagent 只需改一个文件 — 落地于 `packages/cli/src/lib/sub-agent-profiles.js`（SUBAGENT_REGISTRY）
+- [x] Phase 4：REPL 运行中 `/model` 切换立即生效，不需要重启 session — 落地于 `packages/cli/src/repl/agent-repl.js` + `turn-context.js`（prepareCall turn-scoped context）
+- [x] Phase 5：SKILL.md 同一份 providerOptions 在 anthropic / openai 下均能透传 — 落地于 `packages/cli/src/lib/provider-options.js`（mergeProviderOptions 三层深合并）
+- [x] 所有新增代码使用 `_deps` 注入模式，Vitest 测试在 forks pool 通过 — 158 tests pass
+- [x] 契约更新同步 `coding-agent-contract-shared.cjs` + `coding-agent-policy.cjs`，遵循 §83 canonical descriptor 规范
 
 ### 4.2 不做的事
 

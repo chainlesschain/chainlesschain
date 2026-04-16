@@ -444,10 +444,22 @@ desktop-app-vue/src/main/media-asset-store/
 
 ## 7. 验收标准
 
-- [ ] 5 分钟视频 + 1 首歌 → 生成 30 秒蒙太奇成片
-- [ ] 端到端测试覆盖 Phase 1-3 关键路径，不少于 20 个 test
-- [ ] 与 CutClaw 同输入对比，主观质量不低于其 80%
-- [ ] 渲染耗时 ≤ CutClaw 的 1.5 倍（受限于我们没复刻 ARC-Chapter 优化）
+- [~] 5 分钟视频 + 1 首歌 → 生成 30 秒蒙太奇成片 — 合成素材 smoke test 已验证端到端流水线可产出 mp4；真实 5 分钟素材验证需用户提供
+- [x] 端到端测试覆盖 Phase 1-3 关键路径，不少于 20 个 test — 共 132 tests（Phase 1 CLI tools 22 + pipeline 20 + E2E smoke 3 + Phase 2 WS protocol 15 + Phase 3 parallel 28 + Phase 4 audio 31 + Phase 5 Desktop IPC 13）
+- [ ] 与 CutClaw 同输入对比，主观质量不低于其 80% — 需真实素材 + 人工评审
+- [ ] 渲染耗时 ≤ CutClaw 的 1.5 倍（受限于我们没复刻 ARC-Chapter 优化） — 需真实素材 + benchmark baseline
+
+### 7.1 E2E Smoke Test（2026-04-16 落地）
+
+`packages/cli/__tests__/e2e/video-editing-smoke.test.js` — 用 ffmpeg 生成合成输入（9s 红→绿→蓝 concat 视频 + 9s 440Hz sine 音频），无 LLM 运行完整 `VideoPipeline.run()`，断言：
+
+- 四阶段 `phase.start` / `phase.end` 事件全部发射
+- 缓存产物齐全：`scene.json` / `audio_beats.json` / `audio_caption.json` / `video_caption.json` / `shot_plan.json` / `shot_point.json`
+- 输出 mp4 存在，ffprobe 验证 duration > 0 且 ≤ 10s
+- 二次 `deconstruct()` 复用 cache（`phase.end.cached === true`）
+- `phase.progress` 事件结构合法（`pct ∈ [0, 1]`，`phase` 在 4 阶段枚举内）
+
+Smoke test 自动在无 ffmpeg 环境 skip（`describe.skipIf(!ffmpegAvailable)`）。ffmpeg 8.1 本地测试 1.36s 完成 3 个 E2E 用例。
 
 ---
 

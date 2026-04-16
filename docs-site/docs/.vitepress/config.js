@@ -30,6 +30,13 @@ export default defineConfig({
           { text: "厂家管理系统", link: "/manufacturer/overview" },
         ],
       },
+      {
+        text: "专题指南 ⭐",
+        items: [
+          { text: "社交协议生态", link: "/guide/social-protocols" },
+          { text: "合规与威胁情报", link: "/guide/compliance-threat-intel" },
+        ],
+      },
       { text: "API参考", link: "/api/introduction" },
       { text: "设计文档", link: "/design/" },
       {
@@ -51,6 +58,19 @@ export default defineConfig({
             { text: "快速开始", link: "/guide/getting-started" },
             { text: "系统架构", link: "/guide/architecture" },
             { text: "技术栈", link: "/guide/tech-stack" },
+          ],
+        },
+        {
+          text: "专题指南 (v5.0.2.10)",
+          items: [
+            {
+              text: "社交协议生态 (Nostr/Matrix/ActivityPub)",
+              link: "/guide/social-protocols",
+            },
+            {
+              text: "合规与威胁情报 (STIX 2.1/UEBA/SOC2)",
+              link: "/guide/compliance-threat-intel",
+            },
           ],
         },
       ],
@@ -1082,6 +1102,7 @@ export default defineConfig({
             { text: "92 Deep Agents Deploy ⭐NEW", link: "/design/modules/92-deep-agents-deploy" },
             { text: "93 CutClaw 视频剪辑 Agent ⭐NEW", link: "/design/modules/93-cutclaw-video-editing-agent" },
             { text: "94 QualityGate 通用质量门控 ⭐NEW", link: "/design/modules/94-quality-gate" },
+            { text: "95 社交协议生态补齐 ⭐NEW", link: "/design/modules/95-social-protocols-landing" },
             { text: "60b CLI指令技能包 ⭐", link: "/design/modules/60b-cli-skill-packs" },
           ],
         },

@@ -685,6 +685,179 @@ class NostrBridge extends EventEmitter {
       event.content,
     ];
   }
+
+  // ============================================================
+  // NIP-04: Encrypted Direct Messages
+  // https://github.com/nostr-protocol/nips/blob/master/04.md
+  // ============================================================
+
+  /**
+   * Compute NIP-04 ECDH shared secret.
+   * Nostr pubkeys are x-only (32 bytes); we reconstruct a compressed point
+   * by prepending 0x02. The y-sign is irrelevant because negating a point
+   * yields the same x-coordinate for the shared secret.
+   * @param {string} privKeyHex - 32-byte private key (hex)
+   * @param {string} pubKeyHex - 32-byte x-only public key (hex)
+   * @returns {Buffer} 32-byte shared secret (x-coordinate)
+   */
+  _computeSharedSecret(privKeyHex, pubKeyHex) {
+    const ecdh = crypto.createECDH("secp256k1");
+    ecdh.setPrivateKey(Buffer.from(privKeyHex, "hex"));
+    const compressedPub = Buffer.concat([
+      Buffer.from([0x02]),
+      Buffer.from(pubKeyHex, "hex"),
+    ]);
+    return ecdh.computeSecret(compressedPub);
+  }
+
+  /**
+   * Publish a NIP-04 encrypted direct message (kind=4).
+   * @param {Object} params
+   * @param {string} params.senderPrivkey - Sender's 32-byte private key (hex)
+   * @param {string} params.senderPubkey - Sender's 32-byte x-only pubkey (hex)
+   * @param {string} params.recipientPubkey - Recipient's 32-byte x-only pubkey (hex)
+   * @param {string} params.plaintext - Message to encrypt
+   * @returns {Object} { success, event, sentCount }
+   */
+  async publishDirectMessage({
+    senderPrivkey,
+    senderPubkey,
+    recipientPubkey,
+    plaintext,
+  }) {
+    if (!senderPrivkey || !senderPubkey || !recipientPubkey) {
+      throw new Error(
+        "senderPrivkey, senderPubkey, and recipientPubkey are required",
+      );
+    }
+    if (plaintext === undefined || plaintext === null) {
+      throw new Error("plaintext is required");
+    }
+
+    const sharedSecret = this._computeSharedSecret(
+      senderPrivkey,
+      recipientPubkey,
+    );
+    const iv = crypto.randomBytes(16);
+
+    const cipher = crypto.createCipheriv("aes-256-cbc", sharedSecret, iv);
+    const encrypted = Buffer.concat([
+      cipher.update(plaintext, "utf8"),
+      cipher.final(),
+    ]);
+
+    const content = `${encrypted.toString("base64")}?iv=${iv.toString("base64")}`;
+
+    return this.publishEvent({
+      kind: EVENT_KINDS.ENCRYPTED_DM,
+      content,
+      tags: [["p", recipientPubkey]],
+      pubkey: senderPubkey,
+    });
+  }
+
+  /**
+   * Decrypt a NIP-04 encrypted direct message received from the peer.
+   * @param {Object} params
+   * @param {Object} params.event - NIP-04 event (kind=4) from the sender
+   * @param {string} params.recipientPrivkey - Recipient's 32-byte private key (hex)
+   * @returns {string} Decoded plaintext
+   */
+  async decryptDirectMessage({ event, recipientPrivkey }) {
+    if (!event || !event.content || !event.pubkey) {
+      throw new Error("event with content and pubkey is required");
+    }
+    if (!recipientPrivkey) {
+      throw new Error("recipientPrivkey is required");
+    }
+    if (event.kind !== EVENT_KINDS.ENCRYPTED_DM) {
+      throw new Error(
+        `Expected kind=${EVENT_KINDS.ENCRYPTED_DM}, got kind=${event.kind}`,
+      );
+    }
+
+    const parts = event.content.split("?iv=");
+    if (parts.length !== 2 || !parts[0] || !parts[1]) {
+      throw new Error("Invalid NIP-04 content format");
+    }
+
+    const ciphertext = Buffer.from(parts[0], "base64");
+    const iv = Buffer.from(parts[1], "base64");
+    const sharedSecret = this._computeSharedSecret(
+      recipientPrivkey,
+      event.pubkey,
+    );
+
+    const decipher = crypto.createDecipheriv("aes-256-cbc", sharedSecret, iv);
+    const decrypted = Buffer.concat([
+      decipher.update(ciphertext),
+      decipher.final(),
+    ]);
+
+    return decrypted.toString("utf8");
+  }
+
+  // ============================================================
+  // NIP-09: Event Deletion Request
+  // https://github.com/nostr-protocol/nips/blob/master/09.md
+  // ============================================================
+
+  /**
+   * Publish a NIP-09 deletion request (kind=5) referencing prior events.
+   * Relays MAY honor the request by dropping the referenced events.
+   * @param {Object} params
+   * @param {string[]} params.eventIds - Event IDs to request deletion for
+   * @param {string} [params.reason=""] - Optional human-readable reason
+   * @param {string} [params.pubkey] - Author pubkey (must match the target events' author)
+   * @returns {Object} { success, event, sentCount }
+   */
+  async publishDeletion({ eventIds, reason = "", pubkey }) {
+    if (!Array.isArray(eventIds) || eventIds.length === 0) {
+      throw new Error("eventIds must be a non-empty array");
+    }
+    const tags = eventIds.map((id) => ["e", id]);
+    return this.publishEvent({
+      kind: EVENT_KINDS.DELETE,
+      content: reason,
+      tags,
+      pubkey,
+    });
+  }
+
+  // ============================================================
+  // NIP-25: Reactions
+  // https://github.com/nostr-protocol/nips/blob/master/25.md
+  // ============================================================
+
+  /**
+   * Publish a NIP-25 reaction (kind=7) to another event.
+   * Content: "+" (like), "-" (dislike), or any emoji / shortcode.
+   * @param {Object} params
+   * @param {string} params.targetEventId - Event ID being reacted to
+   * @param {string} params.targetPubkey - Author pubkey of the target event
+   * @param {string} [params.content="+"] - Reaction symbol
+   * @param {string} [params.pubkey] - Author pubkey of the reaction
+   * @returns {Object} { success, event, sentCount }
+   */
+  async publishReaction({
+    targetEventId,
+    targetPubkey,
+    content = "+",
+    pubkey,
+  }) {
+    if (!targetEventId || !targetPubkey) {
+      throw new Error("targetEventId and targetPubkey are required");
+    }
+    return this.publishEvent({
+      kind: EVENT_KINDS.REACTION,
+      content,
+      tags: [
+        ["e", targetEventId],
+        ["p", targetPubkey],
+      ],
+      pubkey,
+    });
+  }
 }
 
 // ============================================================

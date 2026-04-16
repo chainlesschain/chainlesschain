@@ -166,6 +166,11 @@ chainlesschain git auto-commit         # Auto-commit changes
 chainlesschain mcp servers             # List MCP servers
 chainlesschain mcp add fs -c npx -a "-y,@modelcontextprotocol/server-filesystem"
 chainlesschain mcp tools               # List available tools
+chainlesschain mcp scaffold weather                          # Scaffold stdio MCP server in ./weather
+chainlesschain mcp scaffold weather -t http -p 4001          # Streamable HTTP + SSE on port 4001
+chainlesschain mcp scaffold weather --dry-run --json         # Preview file set without touching disk
+chainlesschain mcp scaffold weather -d "Forecasts" -a Alice  # Custom description + package.json author
+chainlesschain mcp scaffold weather -o ~/projects/w --force  # Explicit output dir, overwrite existing
 chainlesschain browse fetch https://example.com  # Fetch web page
 chainlesschain browse scrape <url> -s "h2"       # Scrape elements
 chainlesschain llm providers           # List 10 LLM providers
@@ -272,12 +277,20 @@ chainlesschain compliance threat-intel remove ipv4 1.2.3.4                      
 chainlesschain dlp scan / incidents / policy create
 chainlesschain siem targets / add-target / export
 chainlesschain pqc keys / generate / migration-status / migrate
-chainlesschain nostr relays / publish / keygen / map-did
-chainlesschain matrix login / rooms / send
+chainlesschain nostr relays / publish / keygen / map-did / dm / dm-decrypt / delete / react
+chainlesschain matrix login / rooms / send / thread send|list|roots / space create|add-child|children|list
+chainlesschain activitypub actor create / publish / follow / accept / unfollow / like / announce / outbox / inbox / deliver / followers / following
 chainlesschain scim users list / create / sync
 chainlesschain terraform workspaces / create / plan
 chainlesschain hardening baseline collect / compare / audit run
 chainlesschain social contact / friend / post / chat / stats
+chainlesschain social analyze "<text>" [--top-k 3] [--lang zh|ja|en] [--json]
+chainlesschain social detect-lang "<text>" [--json]
+chainlesschain social graph add-edge <source> <target> [-t follow|friend|like|mention|block] [-w 1.0] [-m '<json>']
+chainlesschain social graph remove-edge <source> <target> [-t follow]
+chainlesschain social graph neighbors <did> [-d out|in|both] [-t <type>] [--json]
+chainlesschain social graph snapshot [-t <type>]
+chainlesschain social graph watch [-e edge:added,edge:removed] [--once]   # NDJSON stream
 ```
 
 ## Phase 9: Low-Code & Multi-Agent

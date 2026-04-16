@@ -49,20 +49,22 @@
   },
   "homepage": "https://www.chainlesschain.com",
   "dependencies": {
-    "commander": "^12.1.0",
-    "@inquirer/prompts": "^7.2.0",
-    "chalk": "^5.4.1",
-    "ora": "^8.1.1",
-    "semver": "^7.6.3",
-    "@chainlesschain/core-env": "0.1.0",
-    "@chainlesschain/shared-logger": "0.1.0",
-    "@chainlesschain/core-db": "0.1.0",
     "@chainlesschain/core-config": "0.1.0",
+    "@chainlesschain/core-db": "0.1.0",
+    "@chainlesschain/core-env": "0.1.0",
     "@chainlesschain/core-infra": "0.1.0",
     "@chainlesschain/session-core": "0.3.0",
+    "@chainlesschain/shared-logger": "0.1.0",
+    "@inquirer/prompts": "^7.2.0",
+    "chalk": "^5.4.1",
+    "commander": "^12.1.0",
+    "ora": "^8.1.1",
+    "semver": "^7.6.3",
     "ws": "^8.14.2"
   },
   "devDependencies": {
+    "@noble/curves": "^1.9.7",
+    "@scure/base": "^1.2.6",
     "vitest": "^3.1.1"
   }
 }

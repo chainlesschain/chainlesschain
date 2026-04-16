@@ -26,7 +26,8 @@
     "./sandbox-policy": "./lib/sandbox-policy.js",
     "./service-envelope": "./lib/service-envelope.js",
     "./envelope-sse": "./lib/envelope-sse.js",
-    "./quality-gate": "./lib/quality-gate.js"
+    "./quality-gate": "./lib/quality-gate.js",
+    "./nostr-crypto": "./lib/nostr-crypto.js"
   },
   "scripts": {
     "test": "vitest run",
@@ -51,7 +52,10 @@
     "url": "https://github.com/chainlesschain/chainlesschain.git",
     "directory": "packages/session-core"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@noble/curves": "^1.9.7",
+    "@scure/base": "^1.2.6"
+  },
   "devDependencies": {
     "vitest": "^3.1.1"
   }

@@ -321,6 +321,22 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 **测试**（全部绿灯）：`stix-parser.test.js` 22 + `threat-intel.test.js` 26 + `compliance-framework-reporter.test.js` 32 + `ueba.test.js` 30 = 110 新测试。
 
+👉 用户指南：[`docs/guides/COMPLIANCE_THREAT_INTEL_GUIDE.md`](./docs/guides/COMPLIANCE_THREAT_INTEL_GUIDE.md)（含 STIX 导入、UEBA 基线、框架报告完整示例）。
+
+### 最新更新 - 社交协议生态补齐 (Nostr NIP-04/09/25 · Matrix Threads/Spaces · ActivityPub C2S · Social Graph · Topic Classifier, 2026-04-16) 🆕
+
+基于设计文档 [`95_社交协议生态补齐方案.md`](./docs/design/modules/95_社交协议生态补齐方案.md) 一次性补齐 5 个去中心化社交协议模块，统一走 `@chainlesschain/session-core/nostr-crypto`（BIP-340 schnorr + bech32 真实实现）：
+
+- **Nostr 扩展 NIP 支持**：NIP-04 加密 DM（x-only ECDH + AES-256-CBC + 每消息随机 IV）、NIP-09 删除请求（kind 5 + `["e", <id>]` 墓碑）、NIP-25 反应（kind 7 + `p` tag）。CLI 新增 `cc nostr dm|dm-decrypt|delete|react`；Desktop main 同步落地 `nostr-bridge.js` / `nostr-identity.js` / `nostr-bridge-ipc.js`。
+- **Matrix Threads + Spaces**：`m.thread`（MSC3440）和 `m.space`/`m.space.child` 全新落地，CLI 新增 `cc matrix thread send|list|roots` 和 `cc matrix space create|add-child|children|list`；`matrix_threads` / `matrix_spaces` / `matrix_space_children` 索引表。
+- **ActivityPub C2S**：新模块 `activitypub-bridge.js` 实现 Create/Follow/Accept/Undo/Like/Announce（W3C ActivityStreams 2.0），inbox 轮询 + outbox 队列化投递；CLI 新增 `cc activitypub actor|publish|follow|accept|unfollow|like|announce|outbox|inbox|deliver|followers|following`（`ap` 别名）。
+- **社交图谱**：`social-graph.js` 内存态类型化有向图（follow/friend/like/mention/block），SQLite `social_graph_edges` 持久化 + 启动时重放，EventEmitter 实时流；CLI 新增 `cc social graph add-edge|remove-edge|neighbors|snapshot|watch`（`watch` 输出 NDJSON）。
+- **多语言话题分类**：`topic-classifier.js` zh/ja/en Unicode 语言检测 + 8 大话题词典（tech/finance/sports/food/travel/music/politics/health），CJK 字符级分词支持子串匹配；CLI 新增 `cc social analyze|detect-lang`。
+
+**测试**（全部绿灯）：Desktop 侧 389（`nostr-identity` 21 + `nostr-bridge-nips` 345 + `nostr-bridge-ipc` 23）+ CLI 侧 126（`social-graph` 36 + `topic-classifier` 32 + `activitypub-bridge` 58）+ session-core `nostr-crypto` 21 + CLI 旧测回归 90 + 视频端到端烟雾 3 = **629 新/回归测试全绿**。
+
+👉 用户指南：[`docs/guides/SOCIAL_PROTOCOLS_GUIDE.md`](./docs/guides/SOCIAL_PROTOCOLS_GUIDE.md)（含密钥生成、NIP-04 DM、Matrix 线程、ActivityPub 投递、图谱事件流、话题分析完整示例）。
+
 ### 最新更新 - Managed Agents 对标 · CLI 持久化收口 (2026-04-16)
 
 `@chainlesschain/session-core` 的 MemoryStore / ApprovalGate / BetaFlags 三条基础能力现已通过 CLI 全链路跨进程持久化（Phase D2/E1/E2 集成收口）：
