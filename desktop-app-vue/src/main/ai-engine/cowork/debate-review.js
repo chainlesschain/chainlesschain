@@ -127,6 +127,36 @@ class DebateReview {
    * @returns {Object} Debate result with reviews, votes, and verdict
    */
   async startDebate(data) {
+    // Collect the stream variant into a single result
+    const events = [];
+    let finalResult = null;
+    for await (const ev of this.startDebateStream(data)) {
+      events.push(ev);
+      if (ev.type === "end" && ev.result) {
+        finalResult = ev.result;
+      }
+    }
+    return (
+      finalResult || { error: "Stream ended without result", verdict: "ERROR" }
+    );
+  }
+
+  /**
+   * Stream variant of startDebate — yields StreamRouter-compatible events.
+   *
+   * Phase F upper-layer: callers can feed this into StreamRouter.stream()
+   * for consistent event handling, or use startDebate() for all-at-once.
+   *
+   * Events yielded:
+   *   { type: "start", debateId, target, perspectives }
+   *   { type: "message", content: "...", perspective, reviewIndex }  — per reviewer
+   *   { type: "message", content: "...", phase: "consensus" }       — final result
+   *   { type: "end", result }
+   *
+   * @param {Object} data - same as startDebate
+   * @yields {Object} StreamEvent-compatible events
+   */
+  async *startDebateStream(data) {
     const id = uuidv4();
     const startTime = Date.now();
     const perspectives = data.perspectives || DEFAULT_PERSPECTIVES;
@@ -135,6 +165,8 @@ class DebateReview {
     logger.info(
       `[DebateReview] Starting debate ${id} on "${target}" with perspectives: ${perspectives.join(", ")}`,
     );
+
+    yield { type: "start", debateId: id, target, perspectives, ts: Date.now() };
 
     // Resolve code content
     let code = data.code || "";
@@ -147,12 +179,15 @@ class DebateReview {
     }
 
     if (!code) {
-      return {
+      const errorResult = {
         id,
         target,
         error: "No code content provided or readable",
         verdict: "ERROR",
       };
+      yield { type: "error", error: errorResult.error };
+      yield { type: "end", result: errorResult, ts: Date.now() };
+      return;
     }
 
     // Truncate very large files
@@ -162,10 +197,11 @@ class DebateReview {
         ? code.substring(0, maxCodeLen) + "\n\n... (truncated)"
         : code;
 
-    // Run reviews (sequentially if no TeammateTool, parallel otherwise)
+    // Run reviews — yield progress after each reviewer completes
     const reviews = [];
 
-    for (const perspective of perspectives) {
+    for (let i = 0; i < perspectives.length; i++) {
+      const perspective = perspectives[i];
       const review = await this._runReview(
         perspective,
         truncatedCode,
@@ -173,6 +209,14 @@ class DebateReview {
         data.context,
       );
       reviews.push(review);
+
+      yield {
+        type: "message",
+        content: `[${perspective}] ${review.vote} — ${(review.issues || []).length} issue(s)`,
+        perspective,
+        reviewIndex: i,
+        review,
+      };
     }
 
     // Resolve conflicting verdicts using sub-runtime-pool B-1 primitives
@@ -241,7 +285,13 @@ class DebateReview {
       `[DebateReview] Debate ${id} complete: ${verdict} (consensus: ${consensusScore.toFixed(2)}, ${duration}ms)`,
     );
 
-    return result;
+    // Yield consensus as a message event, then end
+    yield {
+      type: "message",
+      content: `Verdict: ${verdict} (consensus: ${consensusScore.toFixed(2)})`,
+      phase: "consensus",
+    };
+    yield { type: "end", result, ts: Date.now() };
   }
 
   /**
@@ -638,4 +688,6 @@ module.exports = {
   DebateReview,
   getDebateReview,
   DEFAULT_PERSPECTIVES,
+  // Re-export for convenience — callers can StreamRouter.collect(debate.startDebateStream(data))
+  DEBATE_STREAM_EVENTS: Object.freeze(["start", "message", "error", "end"]),
 };
