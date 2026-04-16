@@ -311,7 +311,17 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 ## ⭐ 当前版本: v5.0.2.10 Evolution Edition (2026-04-06)
 
-### 最新更新 - Managed Agents 对标 · CLI 持久化收口 (2026-04-16) 🆕
+### 最新更新 - 合规与威胁情报补齐 (STIX 2.1 · UEBA · Framework Reporter, 2026-04-16) 🆕
+
+基于设计文档 [`19_合规分类系统.md`](./docs/design/modules/19_合规分类系统.md)（v1.2）一次性补齐三项之前标记 "未完成" 的企业合规能力：
+
+- **STIX 2.1 威胁情报**：新模块 `packages/cli/src/lib/stix-parser.js` + `threat-intel.js` 解析标准 STIX 2.1 bundle，支持 9 种 observable 类型（`ipv4-addr`/`domain-name`/`url`/`file:hashes.'SHA-256'` 等），IoC 去重 + 持久化；CLI 新增 `cc compliance threat-intel import|list|match|stats|remove`（match 命中时 exit code = 2，便于 pipeline 使用）。
+- **自动合规报告**：`compliance-framework-reporter.js` 提供 SOC2 / ISO27001 / GDPR 模板化报告生成；CLI 新增 `cc compliance frameworks` 和 `cc compliance report <framework> --format md|html|json --output file`。
+- **UEBA 行为分析**：`ueba.js` 实现基线学习 + Z-score 异常检测 + 实体画像 + 告警聚合；CLI 新增 `cc compliance ueba baseline|detect|score|profile|alerts`。
+
+**测试**（全部绿灯）：`stix-parser.test.js` 22 + `threat-intel.test.js` 26 + `compliance-framework-reporter.test.js` 32 + `ueba.test.js` 30 = 110 新测试。
+
+### 最新更新 - Managed Agents 对标 · CLI 持久化收口 (2026-04-16)
 
 `@chainlesschain/session-core` 的 MemoryStore / ApprovalGate / BetaFlags 三条基础能力现已通过 CLI 全链路跨进程持久化（Phase D2/E1/E2 集成收口）：
 
