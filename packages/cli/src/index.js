@@ -75,6 +75,7 @@ import { registerTerraformCommand } from "./commands/terraform.js";
 import { registerHardeningCommand } from "./commands/hardening.js";
 import { registerStressCommand } from "./commands/stress.js";
 import { registerReputationCommand } from "./commands/reputation.js";
+import { registerSlaCommand } from "./commands/sla.js";
 
 // Phase 8: Social Platform
 import { registerSocialCommand } from "./commands/social.js";
@@ -204,6 +205,7 @@ export function createProgram() {
   registerHardeningCommand(program);
   registerStressCommand(program);
   registerReputationCommand(program);
+  registerSlaCommand(program);
 
   // Phase 8: Social Platform
   registerSocialCommand(program);

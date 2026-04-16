@@ -320,6 +320,17 @@ chainlesschain reputation runs [--limit N] [--json]                             
 chainlesschain reputation apply <run-id>                                        # Mark run as applied
 chainlesschain reputation objectives [--json]                                   # List supported objectives
 chainlesschain rep ...                                                          # Short alias
+chainlesschain sla tiers [--json]                                               # List built-in SLA tiers (gold/silver/bronze)
+chainlesschain sla create <org-id> [-t gold|silver|bronze] [-d duration-ms] [-f fee] [--json]
+chainlesschain sla list [-o org] [-t tier] [-s active|expired|terminated] [--limit N] [--json]
+chainlesschain sla show <sla-id> [--json]                                       # Show contract terms + status
+chainlesschain sla terminate <sla-id>                                           # Mark contract as terminated
+chainlesschain sla record <sla-id> <term> <value>                               # term: availability|response_time|throughput|error_rate
+chainlesschain sla metrics <sla-id> [--json]                                    # Aggregated mean/p95 per term
+chainlesschain sla check <sla-id> [--json]                                      # Detect violations (p95 for response_time, mean for rest)
+chainlesschain sla violations [-s sla-id] [-S minor|moderate|major|critical] [--limit N] [--json]
+chainlesschain sla compensate <violation-id> [--json]                           # base × multiplier, capped at 2.0
+chainlesschain sla report <sla-id> [--start ms] [--end ms] [--json]             # Compliance % + severity breakdown
 chainlesschain social contact / friend / post / chat / stats
 chainlesschain social analyze "<text>" [--top-k 3] [--lang zh|ja|en] [--json]
 chainlesschain social detect-lang "<text>" [--json]

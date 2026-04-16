@@ -1,0 +1,352 @@
+/**
+ * SLA commands
+ * chainlesschain sla tiers|create|list|show|terminate|record|metrics|check|violations|compensate|report
+ */
+
+import chalk from "chalk";
+import { logger } from "../lib/logger.js";
+import { bootstrap, shutdown } from "../runtime/bootstrap.js";
+import {
+  ensureSlaTables,
+  listTiers,
+  createSLA,
+  listSLAs,
+  getSLA,
+  terminateSLA,
+  recordMetric,
+  getSLAMetrics,
+  checkViolations,
+  listViolations,
+  calculateCompensation,
+  generateReport,
+  SLA_TERMS,
+  VIOLATION_SEVERITY,
+} from "../lib/sla-manager.js";
+
+function _dbFromCtx(ctx) {
+  if (!ctx.db) {
+    logger.error("Database not available");
+    process.exit(1);
+  }
+  const db = ctx.db.getDatabase();
+  ensureSlaTables(db);
+  return db;
+}
+
+export function registerSlaCommand(program) {
+  const sla = program
+    .command("sla")
+    .description(
+      "Cross-org SLA management — contracts, metrics, violations, compensation",
+    );
+
+  sla
+    .command("tiers")
+    .description("List built-in SLA tiers")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const tiers = listTiers();
+      if (options.json) {
+        console.log(JSON.stringify(tiers, null, 2));
+      } else {
+        for (const t of tiers) {
+          logger.log(
+            `  ${chalk.cyan(t.name.padEnd(8))} availability=${t.availability} p95<=${t.maxResponseTime}ms rps>=${t.minThroughput} comp=${(t.compensationRate * 100).toFixed(1)}%`,
+          );
+        }
+      }
+    });
+
+  sla
+    .command("create <org-id>")
+    .description("Create a new SLA contract")
+    .option("-t, --tier <tier>", "SLA tier (gold|silver|bronze)", "silver")
+    .option("-d, --duration <ms>", "Contract duration in ms", parseInt)
+    .option("-f, --fee <amount>", "Monthly fee", parseFloat, 0)
+    .option("--json", "Output as JSON")
+    .action(async (orgId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = _dbFromCtx(ctx);
+        const contract = createSLA(db, {
+          orgId,
+          tier: options.tier,
+          duration: options.duration,
+          monthlyFee: options.fee,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(contract, null, 2));
+        } else {
+          logger.success(`SLA contract created`);
+          logger.log(
+            `  ${chalk.bold("SLA ID:")} ${chalk.cyan(contract.slaId)}`,
+          );
+          logger.log(`  ${chalk.bold("Org:")}    ${contract.orgId}`);
+          logger.log(`  ${chalk.bold("Tier:")}   ${contract.tier}`);
+          logger.log(`  ${chalk.bold("Fee:")}    ${contract.monthlyFee}/month`);
+          logger.log(
+            `  ${chalk.bold("Expires:")} ${new Date(contract.endDate).toISOString()}`,
+          );
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  sla
+    .command("list")
+    .description("List SLA contracts")
+    .option("-o, --org <id>", "Filter by orgId")
+    .option("-t, --tier <tier>", "Filter by tier")
+    .option(
+      "-s, --status <status>",
+      "Filter by status (active|expired|terminated)",
+    )
+    .option("--limit <n>", "Maximum entries", parseInt, 50)
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        _dbFromCtx(ctx);
+        const rows = listSLAs({
+          orgId: options.org,
+          tier: options.tier,
+          status: options.status,
+          limit: options.limit,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(rows, null, 2));
+        } else if (rows.length === 0) {
+          logger.info("No SLA contracts recorded.");
+        } else {
+          for (const r of rows) {
+            logger.log(
+              `  ${chalk.cyan(r.slaId.slice(0, 8))} org=${r.orgId.padEnd(16)} tier=${r.tier.padEnd(7)} [${r.status}]`,
+            );
+          }
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  sla
+    .command("show <sla-id>")
+    .description("Show a single SLA contract")
+    .option("--json", "Output as JSON")
+    .action(async (slaId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        _dbFromCtx(ctx);
+        const r = getSLA(slaId);
+        if (options.json) {
+          console.log(JSON.stringify(r, null, 2));
+        } else {
+          logger.log(`  ${chalk.bold("SLA ID:")} ${chalk.cyan(r.slaId)}`);
+          logger.log(`  ${chalk.bold("Org:")}    ${r.orgId}`);
+          logger.log(`  ${chalk.bold("Tier:")}   ${r.tier}`);
+          logger.log(`  ${chalk.bold("Status:")} ${r.status}`);
+          logger.log(`  ${chalk.bold("Terms:")}  ${JSON.stringify(r.terms)}`);
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  sla
+    .command("terminate <sla-id>")
+    .description("Terminate an SLA contract")
+    .action(async (slaId) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = _dbFromCtx(ctx);
+        const r = terminateSLA(db, slaId);
+        logger.success(`SLA ${slaId.slice(0, 8)} → ${r.status}`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  sla
+    .command("record <sla-id> <term> <value>")
+    .description(
+      `Record a metric (term: ${Object.values(SLA_TERMS).join("|")})`,
+    )
+    .option("--json", "Output as JSON")
+    .action(async (slaId, term, value, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = _dbFromCtx(ctx);
+        const m = recordMetric(db, slaId, term, Number(value));
+        if (options.json) {
+          console.log(JSON.stringify(m, null, 2));
+        } else {
+          logger.success(`Metric recorded`);
+          logger.log(`  ${chalk.bold("Term:")}  ${m.term}`);
+          logger.log(`  ${chalk.bold("Value:")} ${m.value}`);
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  sla
+    .command("metrics <sla-id>")
+    .description("Show aggregated metrics for an SLA")
+    .option("--json", "Output as JSON")
+    .action(async (slaId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        _dbFromCtx(ctx);
+        const m = getSLAMetrics(slaId);
+        if (options.json) {
+          console.log(JSON.stringify(m, null, 2));
+        } else {
+          logger.log(`  ${chalk.bold("Samples:")} ${m.totalSamples}`);
+          for (const [term, agg] of Object.entries(m.byTerm)) {
+            logger.log(
+              `  ${chalk.cyan(term.padEnd(15))} mean=${agg.mean.toFixed(4)} p95=${agg.p95.toFixed(4)} (n=${agg.count})`,
+            );
+          }
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  sla
+    .command("check <sla-id>")
+    .description("Detect violations against the contract's terms")
+    .option("--json", "Output as JSON")
+    .action(async (slaId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = _dbFromCtx(ctx);
+        const r = checkViolations(db, slaId);
+        if (options.json) {
+          console.log(JSON.stringify(r, null, 2));
+        } else if (r.totalViolations === 0) {
+          logger.success("No violations detected.");
+        } else {
+          logger.warn(`${r.totalViolations} violation(s) detected`);
+          for (const v of r.violations) {
+            logger.log(
+              `  ${chalk.yellow(v.term.padEnd(15))} [${v.severity}] expected=${v.expectedValue} actual=${v.actualValue} dev=${v.deviationPercent}%`,
+            );
+          }
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  sla
+    .command("violations")
+    .description("List recorded violations")
+    .option("-s, --sla <id>", "Filter by SLA ID")
+    .option(
+      "-S, --severity <level>",
+      `Filter by severity (${Object.values(VIOLATION_SEVERITY).join("|")})`,
+    )
+    .option("--limit <n>", "Maximum entries", parseInt, 50)
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        _dbFromCtx(ctx);
+        const rows = listViolations({
+          slaId: options.sla,
+          severity: options.severity,
+          limit: options.limit,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(rows, null, 2));
+        } else if (rows.length === 0) {
+          logger.info("No violations recorded.");
+        } else {
+          for (const v of rows) {
+            logger.log(
+              `  ${chalk.cyan(v.violationId.slice(0, 8))} ${v.term.padEnd(15)} [${v.severity}] dev=${v.deviationPercent}%`,
+            );
+          }
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  sla
+    .command("compensate <violation-id>")
+    .description("Calculate compensation for a violation")
+    .option("--json", "Output as JSON")
+    .action(async (violationId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = _dbFromCtx(ctx);
+        const r = calculateCompensation(db, violationId);
+        if (options.json) {
+          console.log(JSON.stringify(r, null, 2));
+        } else {
+          logger.log(`  ${chalk.bold("Base:")}       ${r.base}`);
+          logger.log(`  ${chalk.bold("Multiplier:")} ${r.multiplier}`);
+          logger.log(`  ${chalk.bold("Amount:")}     ${chalk.green(r.amount)}`);
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  sla
+    .command("report <sla-id>")
+    .description("Generate an SLA compliance report")
+    .option("--start <ms>", "Start of window (ms since epoch)", parseInt)
+    .option("--end <ms>", "End of window (ms since epoch)", parseInt)
+    .option("--json", "Output as JSON")
+    .action(async (slaId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        _dbFromCtx(ctx);
+        const r = generateReport(slaId, {
+          startDate: options.start,
+          endDate: options.end,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(r, null, 2));
+        } else {
+          logger.log(`  ${chalk.bold("SLA:")}        ${chalk.cyan(r.slaId)}`);
+          logger.log(`  ${chalk.bold("Tier:")}       ${r.tier}`);
+          logger.log(
+            `  ${chalk.bold("Compliance:")} ${(r.compliance * 100).toFixed(2)}%`,
+          );
+          logger.log(
+            `  ${chalk.bold("Violations:")} ${r.violations.total} (comp=${r.violations.totalCompensation})`,
+          );
+          for (const [sev, n] of Object.entries(r.violations.bySeverity)) {
+            if (n > 0) logger.log(`    ${chalk.yellow(sev.padEnd(10))} ${n}`);
+          }
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+}

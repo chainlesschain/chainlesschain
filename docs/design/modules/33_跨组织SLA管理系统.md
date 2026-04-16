@@ -2,7 +2,7 @@
 
 **版本**: v2.0.0
 **创建日期**: 2026-02-28
-**状态**: ✅ 已实现 (v2.0.0)
+**状态**: ✅ 已实现 (v2.0.0 Desktop) · ✅ CLI 登陆 2026-04-16 (`cc sla tiers|create|list|show|terminate|record|metrics|check|violations|compensate|report`, `packages/cli/src/lib/sla-manager.js`, 51 tests)
 
 ---
 
