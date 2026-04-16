@@ -101,6 +101,9 @@ import { registerVideoCommand } from "./commands/video.js";
 // Orchestration Layer: ChainlessChain → Claude Code/Codex agents → CI → Notify
 import { registerOrchestrateCommand } from "./commands/orchestrate.js";
 
+// Phase 62: Tech Learning Engine
+import { registerTechCommand } from "./commands/tech.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -230,6 +233,9 @@ export function createProgram() {
 
   // Video Editing Agent
   registerVideoCommand(program);
+
+  // Phase 62: Tech Learning Engine
+  registerTechCommand(program);
 
   return program;
 }
