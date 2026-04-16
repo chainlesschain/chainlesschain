@@ -1,8 +1,8 @@
 # Component Reference
 
-**Generated**: 2026-04-15T16:37:39.946Z
+**Generated**: 2026-04-16T02:06:49.612Z
 
-**Total Components**: 563
+**Total Components**: 565
 
 ---
 
@@ -49,6 +49,14 @@
 **File**: `src/renderer/pages/VoiceInputTestPage.vue`
 
 **Description**: 左侧：语音输入组件
+
+---
+
+### VideoEditingPage
+
+**File**: `src/renderer/pages/VideoEditingPage.vue`
+
+**Description**: Left: Config Form
 
 ---
 
@@ -183,6 +191,14 @@
 **File**: `src/renderer/pages/SessionManagerPage.vue`
 
 **Description**: 页面头部
+
+---
+
+### SessionCorePage
+
+**File**: `src/renderer/pages/SessionCorePage.vue`
+
+**Description**: Sessions
 
 ---
 

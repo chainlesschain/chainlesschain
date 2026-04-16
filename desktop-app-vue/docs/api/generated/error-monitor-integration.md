@@ -2,7 +2,7 @@
 
 **Source**: `src/main/cowork/integrations/error-monitor-integration.js`
 
-**Generated**: 2026-04-15T16:37:39.789Z
+**Generated**: 2026-04-16T02:06:49.477Z
 
 ---
 

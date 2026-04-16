@@ -2,7 +2,7 @@
 
 **Source**: `src/main/video/video-importer.js`
 
-**Generated**: 2026-04-15T16:37:39.679Z
+**Generated**: 2026-04-16T02:06:49.406Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/llm-manager.js`
 
-**Generated**: 2026-04-15T16:37:39.757Z
+**Generated**: 2026-04-16T02:06:49.456Z
 
 ---
 
@@ -746,7 +746,8 @@ LLMManager.prototype.compressContent = function (content, type)
 const LLM_CATEGORIES = Object.freeze(
 ```
 
-* 5 个标准类别。新增类别需同时更新 CATEGORY_PROVIDER_PRIORITY 和 CATEGORY_OPTIONS。
+* 10 个标准类别。新增类别需同时更新 CATEGORY_PROVIDER_PRIORITY 和 CATEGORY_OPTIONS。
+ * Path B-3: 新增 ASR / AUDIO_ANALYSIS / VIDEO_VLM 三个媒体类别。
 
 ---
 

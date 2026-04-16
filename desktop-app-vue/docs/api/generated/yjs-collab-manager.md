@@ -2,7 +2,7 @@
 
 **Source**: `src/main/collaboration/yjs-collab-manager.js`
 
-**Generated**: 2026-04-15T16:37:39.792Z
+**Generated**: 2026-04-16T02:06:49.478Z
 
 ---
 
