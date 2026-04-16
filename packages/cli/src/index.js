@@ -110,6 +110,9 @@ import { registerDevCommand } from "./commands/dev.js";
 // Phase 64: Collaboration Governance
 import { registerCollabCommand } from "./commands/collab.js";
 
+// Phase 65: Skill Marketplace
+import { registerMarketplaceCommand } from "./commands/marketplace.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -248,6 +251,9 @@ export function createProgram() {
 
   // Phase 64: Collaboration Governance
   registerCollabCommand(program);
+
+  // Phase 65: Skill Marketplace
+  registerMarketplaceCommand(program);
 
   return program;
 }

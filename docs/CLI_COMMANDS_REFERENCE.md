@@ -368,6 +368,15 @@ chainlesschain collab agent <agent-id> [--json]                                 
 chainlesschain collab agents [-l level] [--limit N] [--json]
 chainlesschain collab match <required.json> <agent-skills.json> [--json]        # Skill match score
 chainlesschain collab optimize <tasks.json> <agents.json> [--json]              # Priority-sorted + skill-scored task assignment
+chainlesschain marketplace status-types [--json]                                # List 4 service statuses (draft|published|deprecated|suspended)
+chainlesschain marketplace invocation-statuses [--json]                         # List 5 invocation statuses
+chainlesschain marketplace publish <name> [-v version] [-d desc] [-e endpoint] [-o owner-did] [-p pricing-json] [-s status] [--json]
+chainlesschain marketplace list [-s status] [-o owner] [-n name-substr] [--limit N] [--json]
+chainlesschain marketplace show <service-id> [--json]                           # Full service details
+chainlesschain marketplace status <service-id> <new-status>                     # Transition (draft|published|deprecated|suspended)
+chainlesschain marketplace record <service-id> [-c caller] [-i input-json] [-o output-json] [-s status] [-d duration-ms] [-e error] [--json]
+chainlesschain marketplace invocations [-s service-id] [-c caller] [-S status] [--limit N] [--json]
+chainlesschain marketplace stats [-s service-id] [--json]                       # Aggregate: total, successRate, avgDurationMs, per-status counts
 chainlesschain social contact / friend / post / chat / stats
 chainlesschain social analyze "<text>" [--top-k 3] [--lang zh|ja|en] [--json]
 chainlesschain social detect-lang "<text>" [--json]
