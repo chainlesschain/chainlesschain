@@ -15,14 +15,14 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        // 阿里云镜像（优先使用，加速国内下载）
-        maven { url = uri("https://maven.aliyun.com/repository/google") }
-        maven { url = uri("https://maven.aliyun.com/repository/public") }
-
-        // 官方仓库（备用）
+        // 官方仓库（优先，CI 可靠）
         google()
         mavenCentral()
         maven { url = uri("https://jitpack.io") }
+
+        // 阿里云镜像（备用，国内开发者可受益于缓存）
+        maven { url = uri("https://maven.aliyun.com/repository/google") }
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
         // SQLCipher现在在Maven Central可用,不再需要CommonsWare仓库
     }
 }
