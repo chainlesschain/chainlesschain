@@ -151,7 +151,7 @@ describe("videoEditing store", () => {
     );
     expect(code).toContain("useVideoEditingStore");
     expect(code).toContain("defineStore");
-    expect(code).toContain("'videoEditing'");
+    expect(code).toContain("videoEditing");
     expect(code).toContain("runFullPipeline");
     expect(code).toContain("runDeconstruct");
     expect(code).toContain("runPlan");

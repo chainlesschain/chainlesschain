@@ -54,7 +54,9 @@ All entry files are relative to `desktop-app-vue/src/`.
 | Autonomous Agent Runner       | `main/ai-engine/autonomous/autonomous-agent-runner.js`                   | —                                                                                  |
 | i18n Internationalization     | `main/i18n/index.js`                                                     | —                                                                                  |
 | Performance Auto-Tuner        | `main/performance/auto-tuner.js`, `performance-monitor.js`               | —                                                                                  |
-| TypeScript Stores (51)        | `renderer/stores/*.ts`                                                   | —                                                                                  |
+| TypeScript Stores (52)        | `renderer/stores/*.ts`                                                   | —                                                                                  |
+| Video Editing Agent (CutClaw) | `main/video/video-editing-ipc.js`, `renderer/pages/VideoEditingPage.vue` | [设计文档](docs/design/modules/93_CutClaw借鉴_视频剪辑Agent.md)                   |
+| QualityGate (session-core)    | `packages/session-core/lib/quality-gate.js`                              | —                                                                                  |
 
 ## v1.1.0 Features (v3.0-v4.0 Full-Stack)
 
@@ -118,6 +120,7 @@ All entry files are relative to `desktop-app-vue/src/`.
 | 知识/研究/内容/生产力    | v0.38.2 | 10   | deep-research, tavily-search, summarizer, youtube-summarizer, news-monitor, obsidian, content-publisher, humanizer, notion, google-workspace                                                                                                         |
 | 系统/媒体/安全/工具/示例 | v0.38.3 | 11   | api-gateway, free-model-manager, find-skills, skill-creator, self-improving-agent, remotion-video, weather, zkp-toolkit, handler-test-skill, my-custom-skill, test-skill                                                                             |
 | 社区生态补充技能         | v1.2.1  | 6    | brainstorming, debugging-strategies, api-design, frontend-design, create-pr, doc-coauthoring                                                                                                                                                         |
+| 视频剪辑 Agent (CutClaw) | v5.0.2.10 | 1  | video-editing (CLI `cc video edit/deconstruct/plan/assemble/render/assets` + Desktop IPC 7ch + Pinia store + Vue page + parallel orchestrator + beat-snap + ducking + QualityGate)                                                                    |
 
 ### Hooks System
 

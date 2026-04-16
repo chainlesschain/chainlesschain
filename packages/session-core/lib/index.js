@@ -144,6 +144,7 @@ const {
   createProtagonistChecker,
   createDurationChecker,
   createThresholdChecker,
+  createLintPassChecker,
 } = require("./quality-gate.js");
 
 const {
@@ -272,4 +273,5 @@ module.exports = {
   createProtagonistChecker,
   createDurationChecker,
   createThresholdChecker,
+  createLintPassChecker,
 };
