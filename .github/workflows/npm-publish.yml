@@ -46,6 +46,9 @@ jobs:
           echo "=== core-infra tests ==="
           npm test --workspace=packages/core-infra || true
 
+          echo "=== session-core tests ==="
+          npm test --workspace=packages/session-core || true
+
       - name: Run CLI tests
         working-directory: packages/cli
         run: npx vitest run
@@ -170,6 +173,20 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: "Publish @chainlesschain/session-core"
+        working-directory: packages/session-core
+        run: |
+          CURRENT=$(npm view @chainlesschain/session-core version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          echo "npm: $CURRENT | local: $PKG_VER"
+          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: "Publish chainlesschain (CLI)"
         working-directory: packages/cli
         run: |
@@ -194,6 +211,7 @@ jobs:
           V_CFG=$(node -p "require('./packages/core-config/package.json').version")
           V_DB=$(node -p "require('./packages/core-db/package.json').version")
           V_INF=$(node -p "require('./packages/core-infra/package.json').version")
+          V_SC=$(node -p "require('./packages/session-core/package.json').version")
           {
             echo "## Publish Summary"
             echo ""
@@ -210,5 +228,6 @@ jobs:
             echo "| @chainlesschain/core-config | $V_CFG |"
             echo "| @chainlesschain/core-db | $V_DB |"
             echo "| @chainlesschain/core-infra | $V_INF |"
+            echo "| @chainlesschain/session-core | $V_SC |"
             echo "| chainlesschain | $VERSION |"
           } >> $GITHUB_STEP_SUMMARY
