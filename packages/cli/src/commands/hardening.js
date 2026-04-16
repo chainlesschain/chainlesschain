@@ -14,6 +14,8 @@ import {
   runAudit,
   getAuditReports,
   getAuditReport,
+  runConfigAudit,
+  deployCheck,
 } from "../lib/hardening-manager.js";
 
 export function registerHardeningCommand(program) {
@@ -187,6 +189,114 @@ export function registerHardeningCommand(program) {
             );
           }
         }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // config-check subcommand — real config-file audit
+  hardening
+    .command("config-check <config-path>")
+    .description("Audit a config file (presence, required keys, placeholders)")
+    .option("-n, --name <name>", "Audit name", "default")
+    .option(
+      "-r, --required <keys>",
+      "Comma-separated required key paths (e.g. db.host,server.port)",
+    )
+    .option(
+      "-f, --forbidden <placeholders>",
+      "Comma-separated forbidden placeholder substrings",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (configPath, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureHardeningTables(db);
+
+        const requiredKeys = options.required
+          ? options.required
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : undefined;
+        const forbiddenPlaceholders = options.forbidden
+          ? options.forbidden
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : undefined;
+
+        const result = runConfigAudit(db, {
+          name: options.name,
+          configPath,
+          requiredKeys,
+          forbiddenPlaceholders,
+        });
+
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          logger.success(`Config audit complete: score ${result.score}%`);
+          logger.log(`  ${chalk.bold("ID:")}     ${chalk.cyan(result.id)}`);
+          logger.log(`  ${chalk.bold("Path:")}   ${result.configPath}`);
+          logger.log(
+            `  ${chalk.bold("Passed:")} ${result.passed}/${result.checks.length}`,
+          );
+          for (const c of result.checks) {
+            const icon =
+              c.status === "pass" ? chalk.green("✓") : chalk.red("✗");
+            const sev = c.severity ? chalk.dim(`[${c.severity}]`) : "";
+            logger.log(`    ${icon} ${sev} ${c.name}: ${c.detail}`);
+          }
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // deploy-check subcommand — checklist from docs/design/modules/29_生产强化系统.md §八
+  hardening
+    .command("deploy-check")
+    .description("Evaluate the 6-item production-deployment checklist")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureHardeningTables(db);
+
+        const result = deployCheck();
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          logger.log(
+            `  ${chalk.bold("Ready:")}   ${result.ready ? chalk.green("YES") : chalk.red("NO")}`,
+          );
+          logger.log(`  ${chalk.bold("Summary:")} ${result.summary}`);
+          for (const it of result.items) {
+            const icon =
+              it.status === "pass"
+                ? chalk.green("✓")
+                : it.status === "skipped"
+                  ? chalk.yellow("—")
+                  : chalk.red("✗");
+            logger.log(`    ${icon} ${it.label}: ${it.detail}`);
+          }
+        }
+        if (!result.ready) process.exitCode = 2;
         await shutdown();
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
