@@ -298,6 +298,10 @@ chainlesschain activitypub actor create / publish / follow / accept / unfollow /
 chainlesschain scim users list / create / sync
 chainlesschain terraform workspaces / create / plan
 chainlesschain hardening baseline collect / compare / audit run
+chainlesschain hardening config-check <path>                                    # Real config audit: required keys, placeholders, dangerous defaults
+chainlesschain hardening config-check ./config.json -r db.host,server.port      # Validate required keys
+chainlesschain hardening config-check ./config.json -f changeme,your-api-key    # Custom forbidden substrings
+chainlesschain hardening deploy-check [--json]                                  # Evaluate the 6-item production-deployment checklist (exit 2 if not ready)
 chainlesschain social contact / friend / post / chat / stats
 chainlesschain social analyze "<text>" [--top-k 3] [--lang zh|ja|en] [--json]
 chainlesschain social detect-lang "<text>" [--json]
