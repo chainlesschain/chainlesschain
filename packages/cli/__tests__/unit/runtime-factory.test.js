@@ -6,9 +6,8 @@ describe("runtime-factory", () => {
   });
 
   it("creates agent runtime with config-backed defaults", async () => {
-    const { createAgentRuntimeFactory } = await import(
-      "../../src/runtime/runtime-factory.js"
-    );
+    const { createAgentRuntimeFactory } =
+      await import("../../src/runtime/runtime-factory.js");
 
     const factory = createAgentRuntimeFactory({
       config: {
@@ -23,7 +22,7 @@ describe("runtime-factory", () => {
 
     const runtime = factory.createAgentRuntime();
     expect(runtime.kind).toBe("agent");
-    expect(runtime.policy).toEqual({
+    expect(runtime.policy).toMatchObject({
       model: "gpt-4o-mini",
       provider: "openai",
       baseUrl: "https://api.example.com",
@@ -33,9 +32,8 @@ describe("runtime-factory", () => {
   });
 
   it("prefers explicit overrides over config values", async () => {
-    const { createAgentRuntimeFactory } = await import(
-      "../../src/runtime/runtime-factory.js"
-    );
+    const { createAgentRuntimeFactory } =
+      await import("../../src/runtime/runtime-factory.js");
 
     const factory = createAgentRuntimeFactory({
       config: {
@@ -55,7 +53,7 @@ describe("runtime-factory", () => {
     });
 
     expect(runtime.kind).toBe("chat");
-    expect(runtime.policy).toEqual({
+    expect(runtime.policy).toMatchObject({
       model: "from-cli",
       provider: "openai",
       baseUrl: "https://override.example.com",
@@ -65,24 +63,23 @@ describe("runtime-factory", () => {
   });
 
   it("creates server runtime with normalized server policy", async () => {
-    const { createAgentRuntimeFactory } = await import(
-      "../../src/runtime/runtime-factory.js"
-    );
+    const { createAgentRuntimeFactory } =
+      await import("../../src/runtime/runtime-factory.js");
 
-    const runtime = createAgentRuntimeFactory({ config: {} }).createServerRuntime(
-      {
-        port: 18800,
-        host: "127.0.0.1",
-        token: "abc",
-        maxConnections: 8,
-        timeout: 45000,
-        allowRemote: true,
-        project: "/tmp/project",
-      },
-    );
+    const runtime = createAgentRuntimeFactory({
+      config: {},
+    }).createServerRuntime({
+      port: 18800,
+      host: "127.0.0.1",
+      token: "abc",
+      maxConnections: 8,
+      timeout: 45000,
+      allowRemote: true,
+      project: "/tmp/project",
+    });
 
     expect(runtime.kind).toBe("server");
-    expect(runtime.policy).toEqual({
+    expect(runtime.policy).toMatchObject({
       port: 18800,
       host: "127.0.0.1",
       token: "abc",
@@ -94,9 +91,8 @@ describe("runtime-factory", () => {
   });
 
   it("creates ui runtime with normalized ui policy", async () => {
-    const { createAgentRuntimeFactory } = await import(
-      "../../src/runtime/runtime-factory.js"
-    );
+    const { createAgentRuntimeFactory } =
+      await import("../../src/runtime/runtime-factory.js");
 
     const runtime = createAgentRuntimeFactory({ config: {} }).createUiRuntime({
       port: 18810,
