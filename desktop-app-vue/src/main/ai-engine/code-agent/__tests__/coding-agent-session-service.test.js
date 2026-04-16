@@ -1396,4 +1396,182 @@ describe("CodingAgentSessionService", () => {
       expect(legacySends.length).toBeGreaterThan(0);
     });
   });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Phase J: ApprovalGate integration for hosted tool execution
+  // ────────────────────────────────────────────────────────────────────────
+  describe("Phase J — ApprovalGate in _executeHostedTool", () => {
+    it("_executeHostedTool routes through evaluateToolCall (async ApprovalGate path)", async () => {
+      const mockApprovalGate = {
+        decide: vi
+          .fn()
+          .mockReturnValue({ decision: "allow", via: "autopilot" }),
+      };
+      const localBridge = new MockBridge();
+      const toolDesc = {
+        name: "read_file",
+        description: "Read a file",
+        isReadOnly: true,
+        riskLevel: "LOW",
+        inputSchema: { type: "object", properties: {} },
+      };
+      const hostedService = new CodingAgentSessionService({
+        bridge: localBridge,
+        approvalGate: mockApprovalGate,
+        useSessionCoreApprovalGate: false,
+        toolManager: {
+          functionCaller: {
+            hasTool: vi.fn().mockReturnValue(true),
+            callTool: vi.fn().mockResolvedValue({ result: "ok" }),
+          },
+        },
+        toolAdapter: {
+          getToolDescriptorSync: vi.fn().mockReturnValue(toolDesc),
+          listAvailableTools: vi.fn().mockResolvedValue([toolDesc]),
+          buildFunctionToolDefinitions: vi.fn().mockReturnValue([]),
+        },
+      });
+
+      await hostedService.createSession();
+
+      // Spy on evaluateToolCall to confirm the async path is used
+      const evalSpy = vi.spyOn(hostedService, "evaluateToolCall");
+
+      localBridge.emit("message", {
+        type: "host-tool-call",
+        sessionId: "session-1",
+        requestId: "req-1",
+        toolName: "read_file",
+        args: { path: "/tmp/test" },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(evalSpy).toHaveBeenCalledTimes(1);
+      expect(evalSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          toolName: "read_file",
+          sessionId: "session-1",
+        }),
+      );
+    });
+
+    it("_executeHostedTool blocks tool when ApprovalGate denies", async () => {
+      const mockApprovalGate = {
+        decide: vi.fn().mockReturnValue({ decision: "deny", via: "strict" }),
+      };
+      const localBridge = new MockBridge();
+      const toolDesc = {
+        name: "run_shell",
+        description: "Run a shell command",
+        isReadOnly: false,
+        riskLevel: "HIGH",
+        inputSchema: { type: "object", properties: {} },
+      };
+      const hostedService = new CodingAgentSessionService({
+        bridge: localBridge,
+        approvalGate: mockApprovalGate,
+        useSessionCoreApprovalGate: false,
+        toolManager: {
+          functionCaller: {
+            hasTool: vi.fn().mockReturnValue(true),
+            callTool: vi.fn().mockResolvedValue({ result: "ok" }),
+          },
+        },
+        toolAdapter: {
+          getToolDescriptorSync: vi.fn().mockReturnValue(toolDesc),
+          listAvailableTools: vi.fn().mockResolvedValue([toolDesc]),
+          buildFunctionToolDefinitions: vi.fn().mockReturnValue([]),
+        },
+      });
+
+      await hostedService.createSession();
+
+      localBridge.emit("message", {
+        type: "host-tool-call",
+        sessionId: "session-1",
+        requestId: "req-deny",
+        toolName: "run_shell",
+        args: { command: "rm -rf /" },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const lastMsg = localBridge.sentMessages.at(-1);
+      expect(lastMsg).toMatchObject({
+        type: "host-tool-result",
+        sessionId: "session-1",
+        success: false,
+      });
+      expect(lastMsg.error).toContain("blocked");
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Phase J: Auto-consolidation on session close
+  // ────────────────────────────────────────────────────────────────────────
+  describe("Phase J — auto-consolidation on closeSession", () => {
+    it("closeSession calls _autoConsolidate by default", async () => {
+      await service.createSession();
+      const consolidateSpy = vi
+        .spyOn(service, "_autoConsolidate")
+        .mockResolvedValue(undefined);
+
+      await service.closeSession("session-1");
+
+      expect(consolidateSpy).toHaveBeenCalledWith(
+        "session-1",
+        expect.objectContaining({ status: "closed" }),
+      );
+    });
+
+    it("closeSession skips consolidation when consolidate=false", async () => {
+      await service.createSession();
+      const consolidateSpy = vi
+        .spyOn(service, "_autoConsolidate")
+        .mockResolvedValue(undefined);
+
+      await service.closeSession("session-1", { consolidate: false });
+
+      expect(consolidateSpy).not.toHaveBeenCalled();
+    });
+
+    it("_autoConsolidate failure does not break closeSession", async () => {
+      await service.createSession();
+      vi.spyOn(service, "_autoConsolidate").mockRejectedValue(
+        new Error("consolidation failed"),
+      );
+
+      // Should not throw
+      const result = await service.closeSession("session-1");
+      expect(result.success).toBe(true);
+    });
+
+    it("_mapEventToTraceType maps assistant.message to assistant_message", () => {
+      const result = service._mapEventToTraceType({
+        type: "assistant.message",
+        payload: { content: "hello" },
+      });
+      expect(result).toMatchObject({
+        type: "assistant_message",
+        content: "hello",
+      });
+    });
+
+    it("_mapEventToTraceType maps tool.call.started to tool_call", () => {
+      const result = service._mapEventToTraceType({
+        type: "tool.call.started",
+        payload: { toolName: "read_file", args: { path: "/tmp" } },
+      });
+      expect(result).toMatchObject({
+        type: "tool_call",
+        name: "read_file",
+      });
+    });
+
+    it("_mapEventToTraceType returns null for unknown event types", () => {
+      expect(
+        service._mapEventToTraceType({ type: "session.started" }),
+      ).toBeNull();
+      expect(service._mapEventToTraceType(null)).toBeNull();
+    });
+  });
 });
