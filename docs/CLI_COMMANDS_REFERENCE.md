@@ -377,6 +377,17 @@ chainlesschain marketplace status <service-id> <new-status>                     
 chainlesschain marketplace record <service-id> [-c caller] [-i input-json] [-o output-json] [-s status] [-d duration-ms] [-e error] [--json]
 chainlesschain marketplace invocations [-s service-id] [-c caller] [-S status] [--limit N] [--json]
 chainlesschain marketplace stats [-s service-id] [--json]                       # Aggregate: total, successRate, avgDurationMs, per-status counts
+chainlesschain incentive contribution-types [--json]                            # List 7 contribution types with base rewards
+chainlesschain incentive tx-types [--json]                                      # List 4 tx types (transfer|reward|mint|burn)
+chainlesschain incentive balance <account-id> [--json]                          # Query account balance + totalEarned/totalSpent
+chainlesschain incentive accounts [--limit N] [--json]                          # List accounts (sorted by balance DESC)
+chainlesschain incentive mint <to> <amount> [-r reason] [--json]                # Admin op: mint tokens into an account
+chainlesschain incentive transfer <from> <to> <amount> [-r reason] [--json]     # Transfer tokens between accounts
+chainlesschain incentive history [-a account] [-t type] [--limit N] [--json]    # Transaction history
+chainlesschain incentive contribute <user-id> <type> [value] [-m metadata-json] [-a] [-M multiplier] [--json]
+chainlesschain incentive reward <contribution-id> [-M multiplier] [--json]      # Reward a previously-recorded contribution
+chainlesschain incentive contributions [-u user] [-t type] [--rewarded|--unrewarded] [--limit N] [--json]
+chainlesschain incentive leaderboard [--limit N] [--json]                       # Top contributors by total reward earned
 chainlesschain social contact / friend / post / chat / stats
 chainlesschain social analyze "<text>" [--top-k 3] [--lang zh|ja|en] [--json]
 chainlesschain social detect-lang "<text>" [--json]
