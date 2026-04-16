@@ -375,8 +375,8 @@ stats: {
 
 **Phase 4 (Q2 2026)**: 📋 规划中
 
-- [ ] 自定义 MCP 服务器开发 SDK
-- [ ] 社区服务器仓库
+- [x] 自定义 MCP 服务器开发 SDK ✅ 2026-04-16 (`packages/cli/src/lib/mcp-scaffold.js` + `cc mcp scaffold <name>` — pure template generator, stdio/http transports, 27 tests)
+- [x] 社区服务器仓库 ✅ 2026-04-16 (`packages/cli/src/lib/mcp-registry.js` + `cc mcp registry list|search|show|install|categories` — bundled 8-server catalog mirroring desktop community-registry, 31 tests — read-only; install delegates to `MCPServerConfig.add`)
 - [ ] 高级权限管理(RBAC)
 - [ ] 多用户支持
 

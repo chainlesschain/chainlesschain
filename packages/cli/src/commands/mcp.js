@@ -3,6 +3,8 @@
  * chainlesschain mcp servers|connect|disconnect|tools|call
  */
 
+import fs from "fs";
+import path from "path";
 import chalk from "chalk";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
@@ -12,6 +14,17 @@ import {
   validateMcpServer,
   annotateMcpCompatibility,
 } from "@chainlesschain/session-core";
+import {
+  generateMcpServerScaffold,
+  SUPPORTED_TRANSPORTS,
+} from "../lib/mcp-scaffold.js";
+import {
+  CATALOG as REGISTRY_CATALOG,
+  CATEGORIES as REGISTRY_CATEGORIES,
+  listServers as registryListServers,
+  searchServers as registrySearchServers,
+  getServer as registryGetServer,
+} from "../lib/mcp-registry.js";
 
 // Singleton MCP client for session reuse
 let mcpClient = null;
@@ -379,6 +392,337 @@ export function registerMcpCommand(program) {
       } catch (err) {
         logger.error(`Tool call failed: ${err.message}`);
         process.exit(1);
+      }
+    });
+
+  // mcp scaffold — generate a boilerplate MCP server project
+  mcp
+    .command("scaffold <name>")
+    .description("Scaffold a new MCP server project (stdio or http+sse)")
+    .option("-d, --description <text>", "Short description of the server")
+    .option(
+      "-t, --transport <kind>",
+      `Transport: ${SUPPORTED_TRANSPORTS.join("|")}`,
+      "stdio",
+    )
+    .option("-o, --output <dir>", "Target directory (defaults to ./<name>)")
+    .option("-a, --author <name>", "package.json author field")
+    .option("-p, --port <n>", "HTTP port (http transport only)", (v) =>
+      parseInt(v, 10),
+    )
+    .option("--force", "Overwrite existing files")
+    .option("--dry-run", "Print files that would be written, don't touch disk")
+    .option("--json", "Output as JSON")
+    .action(async (name, options) => {
+      try {
+        const { files, summary } = generateMcpServerScaffold({
+          name,
+          description: options.description,
+          transport: options.transport,
+          author: options.author,
+          port: options.port,
+        });
+
+        const targetDir = path.resolve(options.output || `./${summary.name}`);
+
+        if (options.dryRun) {
+          if (options.json) {
+            console.log(JSON.stringify({ targetDir, summary, files }, null, 2));
+          } else {
+            logger.log(
+              `${chalk.bold("Would write")} ${files.length} files to ${chalk.cyan(targetDir)}:`,
+            );
+            for (const f of files) {
+              logger.log(
+                `  ${chalk.cyan(f.path)} ` +
+                  chalk.dim(`(${f.content.length} bytes)`),
+              );
+            }
+          }
+          return;
+        }
+
+        // Collision check — refuse to clobber unless --force.
+        if (!options.force && fs.existsSync(targetDir)) {
+          const clashing = files.filter((f) =>
+            fs.existsSync(path.join(targetDir, f.path)),
+          );
+          if (clashing.length > 0) {
+            logger.error(
+              `Refusing to overwrite existing files in ${targetDir}: ` +
+                clashing.map((f) => f.path).join(", ") +
+                `. Re-run with --force to overwrite.`,
+            );
+            process.exit(1);
+          }
+        }
+
+        fs.mkdirSync(targetDir, { recursive: true });
+        for (const f of files) {
+          const full = path.join(targetDir, f.path);
+          fs.mkdirSync(path.dirname(full), { recursive: true });
+          fs.writeFileSync(full, f.content, "utf-8");
+        }
+
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              {
+                targetDir,
+                summary,
+                files: files.map((f) => f.path),
+              },
+              null,
+              2,
+            ),
+          );
+        } else {
+          logger.success(
+            `Scaffolded ${chalk.cyan(summary.name)} ` +
+              chalk.dim(
+                `(${summary.transport}${summary.port ? `, port ${summary.port}` : ""})`,
+              ),
+          );
+          logger.log(`  ${chalk.bold("Path:")}     ${targetDir}`);
+          for (const f of files) {
+            logger.log(`    ${chalk.dim("+")} ${f.path}`);
+          }
+          logger.log("");
+          logger.log(chalk.bold("Next steps:"));
+          logger.log(
+            `  ${chalk.dim("$")} cd ${path.relative(process.cwd(), targetDir) || "."}`,
+          );
+          logger.log(`  ${chalk.dim("$")} npm install`);
+          if (summary.transport === "stdio") {
+            logger.log(
+              `  ${chalk.dim("$")} cc mcp add ${summary.name} -c node -a "./index.js"`,
+            );
+          } else {
+            logger.log(`  ${chalk.dim("$")} npm start`);
+            logger.log(
+              `  ${chalk.dim("$")} cc mcp add ${summary.name} -u http://localhost:${summary.port}/mcp`,
+            );
+          }
+        }
+      } catch (err) {
+        logger.error(`Scaffold failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // mcp registry — browse + search + one-shot install from the bundled catalog
+  const registry = mcp
+    .command("registry")
+    .description("Browse the curated catalog of community MCP servers");
+
+  registry
+    .command("list")
+    .description("List catalog entries (filter by category/tag/author)")
+    .option("-c, --category <name>", "Filter by category")
+    .option("-t, --tags <list>", "Filter by comma-separated tags (any match)")
+    .option("--author <name>", "Filter by author (substring, case-insensitive)")
+    .option("--sort <field>", "Sort by 'name' | 'rating' | 'category'", "name")
+    .option("--order <dir>", "'asc' | 'desc'", "asc")
+    .option("--limit <n>", "Max results", (v) => parseInt(v, 10))
+    .option("--offset <n>", "Pagination offset", (v) => parseInt(v, 10))
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      try {
+        const tags = options.tags
+          ? options.tags
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean)
+          : undefined;
+        const { servers, total } = registryListServers({
+          category: options.category,
+          tags,
+          author: options.author,
+          sortBy: options.sort,
+          sortOrder: options.order,
+          limit: options.limit,
+          offset: options.offset,
+        });
+
+        if (options.json) {
+          console.log(JSON.stringify({ servers, total }, null, 2));
+          return;
+        }
+
+        if (servers.length === 0) {
+          logger.info("No catalog entries match your filters.");
+          return;
+        }
+
+        logger.log(
+          chalk.bold(`MCP Registry — ${servers.length}/${total} servers\n`),
+        );
+        for (const s of servers) {
+          logger.log(
+            `  ${chalk.cyan(s.name)} ${chalk.gray(`(${s.id})`)} ` +
+              chalk.dim(`★${s.rating ?? "-"} ${s.category}`),
+          );
+          logger.log(`    ${chalk.gray(s.description)}`);
+          if (s.tags?.length) {
+            logger.log(
+              `    ${chalk.gray("tags:")} ${s.tags.slice(0, 5).join(", ")}`,
+            );
+          }
+        }
+      } catch (err) {
+        logger.error(`Registry list failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  registry
+    .command("search <keyword>")
+    .description("Keyword search across name/description/tags")
+    .option("--json", "Output as JSON")
+    .action((keyword, options) => {
+      try {
+        const hits = registrySearchServers(keyword);
+        if (options.json) {
+          console.log(JSON.stringify({ hits, total: hits.length }, null, 2));
+          return;
+        }
+        if (hits.length === 0) {
+          logger.info(`No matches for "${keyword}".`);
+          return;
+        }
+        logger.log(chalk.bold(`${hits.length} matches for "${keyword}":\n`));
+        for (const s of hits) {
+          logger.log(
+            `  ${chalk.cyan(s.name)} ${chalk.gray(`(${s.id})`)} ` +
+              chalk.dim(s.category),
+          );
+          logger.log(`    ${chalk.gray(s.description)}`);
+        }
+      } catch (err) {
+        logger.error(`Registry search failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  registry
+    .command("show <idOrName>")
+    .description("Show full catalog entry (id or short name)")
+    .option("--json", "Output as JSON")
+    .action((idOrName, options) => {
+      try {
+        const entry = registryGetServer(idOrName);
+        if (!entry) {
+          logger.error(`Not found: "${idOrName}".`);
+          process.exit(1);
+        }
+        if (options.json) {
+          console.log(JSON.stringify(entry, null, 2));
+          return;
+        }
+        logger.log(
+          `${chalk.bold(entry.displayName)} ${chalk.gray(`(${entry.id})`)}`,
+        );
+        logger.log(`  ${chalk.gray("Author:")}   ${entry.author}`);
+        logger.log(`  ${chalk.gray("Category:")} ${entry.category}`);
+        logger.log(`  ${chalk.gray("Version:")}  ${entry.version}`);
+        logger.log(`  ${chalk.gray("Rating:")}   ★${entry.rating ?? "-"}`);
+        logger.log(`  ${chalk.gray("Package:")}  ${entry.npmPackage}`);
+        logger.log(
+          `  ${chalk.gray("Command:")}  ${entry.command} ${entry.args.join(" ")}`,
+        );
+        logger.log(`  ${chalk.gray("Transport:")}${entry.transport}`);
+        if (entry.homepage) {
+          logger.log(`  ${chalk.gray("Homepage:")} ${entry.homepage}`);
+        }
+        logger.log(`\n  ${entry.description}`);
+        if (entry.tools?.length) {
+          logger.log(`\n  ${chalk.bold("Tools:")} ${entry.tools.join(", ")}`);
+        }
+        logger.log(
+          `\n  ${chalk.dim("Install:")} cc mcp registry install ${entry.name}`,
+        );
+      } catch (err) {
+        logger.error(`Registry show failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  registry
+    .command("install <idOrName>")
+    .description("Install a catalog entry by registering it as an MCP server")
+    .option("--as <name>", "Override the stored server name")
+    .option("--auto-connect", "Mark the server to auto-connect on startup")
+    .option("--json", "Output as JSON")
+    .action(async (idOrName, options) => {
+      try {
+        const entry = registryGetServer(idOrName);
+        if (!entry) {
+          logger.error(
+            `Not found: "${idOrName}". Try 'cc mcp registry list' or 'search'.`,
+          );
+          process.exit(1);
+        }
+
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+
+        const db = ctx.db.getDatabase();
+        const config = new MCPServerConfig(db);
+        const storedName = (options.as || entry.name).trim();
+
+        config.add(storedName, {
+          command: entry.command,
+          args: entry.args,
+          autoConnect: !!options.autoConnect,
+        });
+
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              {
+                name: storedName,
+                id: entry.id,
+                command: entry.command,
+                args: entry.args,
+                autoConnect: !!options.autoConnect,
+              },
+              null,
+              2,
+            ),
+          );
+        } else {
+          logger.success(
+            `Installed ${chalk.cyan(storedName)} ` + chalk.dim(`(${entry.id})`),
+          );
+          logger.log(
+            `  ${chalk.gray("Command:")} ${entry.command} ${entry.args.join(" ")}`,
+          );
+          logger.log(`  ${chalk.gray("Next:")} cc mcp connect ${storedName}`);
+        }
+
+        await shutdown();
+      } catch (err) {
+        logger.error(`Registry install failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  registry
+    .command("categories")
+    .description("List available registry categories")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      if (options.json) {
+        console.log(JSON.stringify(REGISTRY_CATEGORIES, null, 2));
+        return;
+      }
+      logger.log(chalk.bold("Categories:"));
+      for (const c of REGISTRY_CATEGORIES) {
+        const count = REGISTRY_CATALOG.filter((s) => s.category === c).length;
+        logger.log(`  ${chalk.cyan(c)} ${chalk.dim(`(${count})`)}`);
       }
     });
 }
