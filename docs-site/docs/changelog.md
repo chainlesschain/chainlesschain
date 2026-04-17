@@ -3,6 +3,46 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.2.33] - 2026-04-17 (npm 发布批次 · CLI 0.51.0)
+
+### Added
+
+- **Phase 17 IPFS 去中心化存储 CLI**：`cc ipfs node-start/add/get/pin/gc/set-quota/attach-knowledge`，确定性 bafy CID + AES-256-GCM + 配额/GC + 知识库附件，64 tests
+- **Phase 20 模型量化 CLI**：`cc quantize`，GGUF 14 级 + GPTQ 目录 + 作业生命周期 (pending→running→completed/failed/cancelled) + 进度追踪，48 tests
+- **Phase 27 多模态协作 CLI**：`cc mm session/stream/track/snapshot`，CRDT 风格会话状态 + 5 模态/7 文档格式/6 输出格式参考目录，68 tests
+- **Phase 28 自然语言编程 CLI**：`cc nlprog classify/extract/detect-stack/translate/refine/convention-add/conventions/stats`，启发式双语意图/实体/技术栈识别 + 翻译/惯例 CRUD，62 tests
+- **Phase 63 统一应用运行时 CLI**：`cc runtime`，OS/容器/云环境能力检测 + 自适应资源分配策略 + 运行时统计，60 tests
+- **5 个新 docs-site 页面**：`cli-ipfs.md` · `cli-quantize.md` · `cli-mm.md` · `cli-nlprog.md` · `cli-runtime.md`（由并行会话 commit `27267ed9f` 落地）
+- **VitePress 侧栏**：新增 2 个命令分组，去除过期 NEW 标记
+
+### Changed
+
+- **CLAUDE.md 计数更新**：90 → 102 CLI commands，7200+ → 7400+ tests
+- **CLI 包版本**：`chainlesschain@0.47.9 → 0.49.0 → 0.51.0`（v5.0.2.32 / v5.0.2.33 两次 npm 发布）
+- **docs-website-v2**：`index.astro` 升级到 36 条 evolution 条目，`cli.astro` 新增 3 个命令类别
+
+### npm
+
+| Tag | 版本 | 包含 Phase |
+| --- | --- | --- |
+| v5.0.2.31 | 0.48.0 | 2026-04-17 文档重构基线（本地 tag） |
+| v5.0.2.32 | 0.49.0 | + Phase 63 Universal Runtime |
+| v5.0.2.33 | 0.51.0 | + Phase 17 IPFS + Phase 27 Multimodal |
+
+发布渠道：`npm i -g chainlesschain@0.51.0`（别名 `cc` / `clc` / `clchain`）
+
+### Tests
+
+| 层 | 文件数 | 用例数 | 耗时 |
+| --- | --- | --- | --- |
+| CLI 单元 | 232 | **7082/7082** | 210s |
+| CLI 集成 | 40 | **696/696** | 76s |
+| CLI E2E | 38 | **565/565** | 459s |
+
+本批新增 Phase 17/20/27/28/63 共 **302 个 CLI 单元测试**（64 + 48 + 68 + 62 + 60），全部通过。E2E 首次运行时 vitest-worker 出现一次 `Timeout calling "onTaskUpdate"` RPC 告警（已知长跑套件抖动），重跑全绿。
+
+---
+
 ## [5.0.2.10-cli-wrap] - 2026-04-17
 
 ### Added

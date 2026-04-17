@@ -1,5 +1,30 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-17 Update — npm Release Batch · CLI 0.51.0
+
+Continuing the same day's CLI port batch, five additional Phases were consolidated into a single npm release cycle.
+
+- **Phase 17 IPFS Decentralized Storage** — `cc ipfs node-start/add/get/pin/gc/set-quota/attach-knowledge`: deterministic bafy CIDs + AES-256-GCM + quota/GC + knowledge-base attachments. **64 tests**.
+- **Phase 20 Model Quantization** — `cc quantize`: GGUF 14 levels + GPTQ catalog + job lifecycle (pending→running→completed/failed/cancelled) + progress tracking. **48 tests**.
+- **Phase 27 Multimodal Collaboration** — `cc mm session/stream/track/snapshot`: CRDT-style session state + catalog for 5 input modalities / 7 document formats / 6 output formats. **68 tests**.
+- **Phase 28 Natural-Language Programming** — `cc nlprog classify/extract/detect-stack/translate/refine/convention-add/conventions/stats`: heuristic bilingual intent / entity / tech-stack detection + translation & convention CRUD. **62 tests**.
+- **Phase 63 Universal Runtime** — `cc runtime`: OS / container / cloud capability detection + adaptive resource allocation + runtime stats. **60 tests**.
+
+**npm releases**: `v5.0.2.31 / 0.48.0` → `v5.0.2.32 / 0.49.0` → `v5.0.2.33 / 0.51.0` (three successive publishes). Run `npm i -g chainlesschain@0.51.0` to pick up the full batch.
+
+### Regression tests (2026-04-17 batch)
+
+| Tier | Files | Tests | Duration |
+| --- | --- | --- | --- |
+| CLI Unit | 232 | **7082/7082** | 210s |
+| CLI Integration | 40 | **696/696** | 76s |
+| CLI E2E | 38 | **565/565** | 459s |
+
+User docs: [cli-ipfs](./docs-site/docs/chainlesschain/cli-ipfs.md) · [cli-quantize](./docs-site/docs/chainlesschain/cli-quantize.md) · [cli-mm](./docs-site/docs/chainlesschain/cli-mm.md) · [cli-nlprog](./docs-site/docs/chainlesschain/cli-nlprog.md) · [cli-runtime](./docs-site/docs/chainlesschain/cli-runtime.md)
+Design docs: [17 IPFS Decentralized Storage](./docs/design/modules/17_IPFS去中心化存储.md) · [27 Multimodal Collaboration](./docs/design/modules/27_多模态协作.md) · [63 Universal Runtime](./docs/design/modules/63_统一应用运行时.md)
+
+---
+
 ## 2026-04-17 Update — CLI Port Wrap-up + Docs Restructure
 
 This update closes out five CLI-side Phase ports, regression-tests them, and restructures the command reference:

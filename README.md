@@ -1,5 +1,30 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-17 增量更新（npm 发布批次 · CLI 0.51.0）
+
+延续本日早些时候的 CLI 端口批次，把 Phase 17 / 20 / 27 / 28 / 63 五个 Phase 合并到同一轮 npm 发布。
+
+- **Phase 17 IPFS 去中心化存储** — `cc ipfs node-start/add/get/pin/gc/set-quota/attach-knowledge`，确定性 bafy CID + AES-256-GCM + 配额/GC + 知识库附件，**64 tests**
+- **Phase 20 模型量化** — `cc quantize`，GGUF 14 级 + GPTQ 目录 + 作业生命周期（pending→running→completed/failed/cancelled）+ 进度追踪，**48 tests**
+- **Phase 27 多模态协作** — `cc mm session/stream/track/snapshot`，CRDT 风格会话状态 + 5 模态/7 文档格式/6 输出格式参考目录，**68 tests**
+- **Phase 28 自然语言编程** — `cc nlprog classify/extract/detect-stack/translate/refine/convention-add/conventions/stats`，启发式双语意图/实体/技术栈识别 + 翻译/惯例 CRUD,**62 tests**
+- **Phase 63 统一应用运行时** — `cc runtime`,OS/容器/云环境能力检测 + 自适应资源分配策略 + 运行时统计，**60 tests**
+
+**npm 发布**：`v5.0.2.31 / 0.48.0` → `v5.0.2.32 / 0.49.0` → `v5.0.2.33 / 0.51.0`（三次独立 publish）。 `npm i -g chainlesschain@0.51.0` 即可拿到本批全部能力。
+
+### 回归测试（2026-04-17 本批）
+
+| 层 | 文件数 | 用例数 | 耗时 |
+| --- | --- | --- | --- |
+| CLI 单元 | 232 | **7082/7082** | 210s |
+| CLI 集成 | 40 | **696/696** | 76s |
+| CLI E2E | 38 | **565/565** | 459s |
+
+用户文档：[cli-ipfs](./docs-site/docs/chainlesschain/cli-ipfs.md) · [cli-quantize](./docs-site/docs/chainlesschain/cli-quantize.md) · [cli-mm](./docs-site/docs/chainlesschain/cli-mm.md) · [cli-nlprog](./docs-site/docs/chainlesschain/cli-nlprog.md) · [cli-runtime](./docs-site/docs/chainlesschain/cli-runtime.md)
+设计文档：[17 IPFS 去中心化存储](./docs/design/modules/17_IPFS去中心化存储.md) · [27 多模态协作](./docs/design/modules/27_多模态协作.md) · [63 统一应用运行时](./docs/design/modules/63_统一应用运行时.md)
+
+---
+
 ## 2026-04-17 增量更新（CLI 端口收官 + 文档重构）
 
 本轮聚焦 CLI 侧五大 Phase 的收口、测试回归和文档重构：
