@@ -1,5 +1,32 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-17 增量更新（CLI 端口收官 + 文档重构）
+
+本轮聚焦 CLI 侧五大 Phase 的收口、测试回归和文档重构：
+
+- **Phase 25 AIOps** — `cc ops` 异常检测 (Z-Score/IQR) + 事件生命周期 + playbook + postmortem，**48 tests**
+- **Phase 58 联邦硬化** — `cc federation` 熔断器状态机 (closed/open/half_open) + 健康检查 + 连接池，**59 tests**
+- **Phase 80 数据库演进** — `cc dbevo` 迁移 CRUD + 慢查询分析 + 索引建议，**47 tests**
+- **Phase 84 多模态感知** — `cc perception` 记录/索引/跨模态查询 + 语音会话状态机，**47 tests**
+- **Phase 86 代码生成 Agent 2.0** — `cc codegen` 生成追踪 + 5 条启发式安全规则 + 脚手架记录，**38 tests**
+
+**文档重构**：`docs/CLI_COMMANDS_REFERENCE.md` 由 54.8k → 4.4k 精简索引；完整命令清单拆到 `docs/cli/` 6 个子文件 (core-phases / managed-agents / blockchain-enterprise / observability / platform / video)，命令注释全量中文化 (~371 条)。新增 `docs-site` 页面 `cli-federation.md` / `cli-perception.md` + VitePress 侧栏。
+
+### 回归测试结果 (2026-04-17)
+
+| 层 | 文件数 | 用例数 | 耗时 |
+| --- | --- | --- | --- |
+| CLI 单元 | 219 | **6010/6010** | 114s |
+| CLI 集成 | 40 | **696/696** | 36s |
+| CLI E2E | 38 | **565/565** | 495s |
+
+> E2E 运行期间 vitest-worker 触发一次 `Timeout calling "onTaskUpdate"` RPC 超时告警（vitest 长跑套件已知问题），不影响任何用例结论。
+
+用户文档：[`docs-site/docs/chainlesschain/cli-federation`](./docs-site/docs/chainlesschain/cli-federation.md) · [`cli-perception`](./docs-site/docs/chainlesschain/cli-perception.md) · [`cli-codegen`](./docs-site/docs/chainlesschain/cli-codegen.md) · [`cli-dbevo`](./docs-site/docs/chainlesschain/cli-dbevo.md) · [`cli-ops`](./docs-site/docs/chainlesschain/cli-ops.md)
+设计文档：[30 联邦强化](./docs/design/modules/30_联邦强化系统.md) · [25 自治运维](./docs/design/modules/25_自治运维系统.md) · [45 数据库演进](./docs/design/modules/45_数据库演进与迁移框架.md) · [49 多模态感知](./docs/design/modules/49_多模态感知层.md) · [51 代码生成 Agent 2.0](./docs/design/modules/51_代码生成Agent2.0.md)
+
+---
+
 ## 2026-04-16 增量更新（Managed Agents Phase A–J + J+ 全部完成 + Deep Agents Deploy Phase 1–5 全部完成）
 
 对 Anthropic Claude Managed Agents + Deep Agents Deploy 做本地优先版本的运行时对标。新增共享包 `@chainlesschain/session-core`，把 Session / Trace / Team-Subagent / Scoped Memory / Approval Policy / Beta Flags / Stream Router / Service Envelope / MCP Policy / Sandbox Policy / Agent Bundle 抽到 CLI 与 Desktop 可共用的一层。

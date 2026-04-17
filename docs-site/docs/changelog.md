@@ -3,6 +3,39 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.2.10-cli-wrap] - 2026-04-17
+
+### Added
+
+- **Phase 58 联邦硬化 CLI**：`cc federation register/breaker/failure/success/half-open/check/node-health/pool-* /stats`，熔断器三态 (closed/open/half_open) + 健康检查最差态聚合 + 连接池模拟
+- **Phase 84 多模态感知 CLI**：`cc perception record/results/voice-start/voice-status/index-add/query/context/stats`，四模态 (screen/voice/document/video) + 语音会话状态机 + 跨模态索引搜索
+- **Phase 80 数据库演进 CLI**：`cc dbevo register/up/down/status/history/query-log/query-stats/analyze/suggestions/apply/stats`，迁移 CRUD + 慢查询分析 + 索引建议追踪
+- **Phase 25 AIOps CLI**：`cc ops detect/incidents/baselines/playbooks/postmortem/stats`，Z-Score/IQR 异常检测 + 事件四阶段生命周期 + playbook + 事后复盘
+- **Phase 86 代码生成 Agent 2.0 CLI**：`cc codegen generate/show/list/review/review-show/reviews/scaffold/scaffolds/stats`，生成追踪 + 5 条启发式安全规则 + 脚手架记录
+- **新增 docs-site 页面**：`cli-federation.md` (Phase 58 CLI 参考) · `cli-perception.md` (Phase 84 CLI 参考)，VitePress 侧栏新增"v5.0.2.10 联邦与多模态感知"分组
+
+### Changed
+
+- **`docs/CLI_COMMANDS_REFERENCE.md` 精简重构**：54.8k → 4.4k 精简索引；完整命令清单拆到 `docs/cli/` 6 个子文件 (core-phases / managed-agents / blockchain-enterprise / observability / platform / video)
+- **命令注释全量中文化**：~371 条 `#` 注释由英文翻译为中文，技术术语 (DID/P2P/MCP/PQC/...) 保留原文
+- **CLAUDE.md 计数更新**：65 → 90 CLI commands，5960+ → 7200+ tests
+
+### Tests
+
+| 层 | 文件数 | 用例数 | 耗时 |
+| --- | --- | --- | --- |
+| CLI 单元 | 219 | **6010/6010** | 114s |
+| CLI 集成 | 40 | **696/696** | 36s |
+| CLI E2E | 38 | **565/565** | 495s |
+
+本轮新增 Phase 25/58/80/84/86 共 **239 个 CLI 单元测试**（48 + 59 + 47 + 47 + 38），全部通过。E2E 运行过程中 vitest-worker 抛出一次 `Timeout calling "onTaskUpdate"` RPC 超时告警（长跑套件已知问题），不影响任何断言结果。
+
+### Fixed
+
+- `docs-site/docs/chainlesschain/ai-video-generation.md` 最后一个参考链接由已删除的锚点修正为 `cli/video.md`
+
+---
+
 ## [5.0.2.9-polish] - 2026-04-15
 
 ### Added

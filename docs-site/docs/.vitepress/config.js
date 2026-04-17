@@ -1058,6 +1058,19 @@ export default defineConfig({
           ],
         },
         {
+          text: "v5.0.2.10 联邦与多模态感知 ⭐NEW",
+          items: [
+            {
+              text: "联邦硬化 (federation)",
+              link: "/chainlesschain/cli-federation",
+            },
+            {
+              text: "多模态感知 (perception)",
+              link: "/chainlesschain/cli-perception",
+            },
+          ],
+        },
+        {
           text: "产品规划",
           items: [
             { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },
