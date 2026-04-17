@@ -449,6 +449,25 @@ chainlesschain recommend dismiss <rec-id> [--json]                              
 chainlesschain recommend stats <user-id> [--json]                               # Total/pending/viewed/feedback rate
 chainlesschain recommend top-interests <user-id> [--limit N] [--json]           # Top weighted topics
 chainlesschain recommend suggest <user-id> [--json]                             # Suggest profile adjustments from feedback
+chainlesschain crosschain chains [--json]                                       # List 5 supported chains (ethereum/polygon/bsc/arbitrum/solana)
+chainlesschain crosschain bridge-statuses [--json]                              # List 6 bridge statuses
+chainlesschain crosschain swap-statuses [--json]                                # List 5 swap statuses
+chainlesschain crosschain bridge <from> <to> <amount> [-a asset] [-s sender] [-r recipient] [--json]
+chainlesschain crosschain bridge-status <bridge-id> <status> [-t tx-hash] [-e error] [--json]
+chainlesschain crosschain bridge-show <bridge-id> [--json]
+chainlesschain crosschain bridges [-f from-chain] [-t to-chain] [-s status] [--limit N] [--json]
+chainlesschain crosschain swap <from> <to> <amount> [-a from-asset] [-b to-asset] [-c counterparty] [-t timeout-ms] [--json]
+chainlesschain crosschain swap-claim <swap-id> [-s secret] [-t tx-hash] [--json]
+chainlesschain crosschain swap-refund <swap-id> [-t tx-hash] [--json]
+chainlesschain crosschain swap-show <swap-id> [--json]
+chainlesschain crosschain swap-secret <swap-id> [--json]                        # Reveal HTLC secret (only after claim)
+chainlesschain crosschain swaps [-f from-chain] [-s status] [--limit N] [--json]
+chainlesschain crosschain send <from> <to> [-p payload] [-c contract] [--json]  # Cross-chain message
+chainlesschain crosschain msg-status <msg-id> <status> [-t tx-hash] [--json]
+chainlesschain crosschain msg-show <msg-id> [--json]
+chainlesschain crosschain messages [-f from] [-t to] [-s status] [--limit N] [--json]
+chainlesschain crosschain estimate-fee <from> <to> <amount> [--json]            # Heuristic fee estimate (USD)
+chainlesschain crosschain stats [--json]                                        # Bridge/swap/message counts + volume
 chainlesschain social contact / friend / post / chat / stats
 chainlesschain social analyze "<text>" [--top-k 3] [--lang zh|ja|en] [--json]
 chainlesschain social detect-lang "<text>" [--json]

@@ -128,6 +128,9 @@ import { registerGovernanceCommand } from "./commands/governance.js";
 // Phase 48: Smart Content Recommendation
 import { registerRecommendCommand } from "./commands/recommend.js";
 
+// Phase 89: Cross-Chain Interoperability
+import { registerCrossChainCommand } from "./commands/crosschain.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -284,6 +287,9 @@ export function createProgram() {
 
   // Phase 48: Smart Content Recommendation
   registerRecommendCommand(program);
+
+  // Phase 89: Cross-Chain Interoperability
+  registerCrossChainCommand(program);
 
   return program;
 }
