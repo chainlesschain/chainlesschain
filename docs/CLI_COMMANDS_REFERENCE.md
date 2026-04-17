@@ -526,6 +526,23 @@ chainlesschain social graph remove-edge <source> <target> [-t follow]
 chainlesschain social graph neighbors <did> [-d out|in|both] [-t <type>] [--json]
 chainlesschain social graph snapshot [-t <type>]
 chainlesschain social graph watch [-e edge:added,edge:removed] [--once]   # NDJSON stream
+chainlesschain fusion protocols [--json]                                        # List 4 protocols (did/activitypub/nostr/matrix)
+chainlesschain fusion quality-levels [--json]                                   # List quality levels (high/medium/low/harmful)
+chainlesschain fusion send -s <source> [-t target] [-f sender] -c <content>     # Cross-protocol message
+chainlesschain fusion msg-show <id> [--json]                                    # Show message details
+chainlesschain fusion messages [-p protocol] [--limit N] [--json]               # List unified messages
+chainlesschain fusion map-identity [-d did] [-a activitypub] [-n nostr] [-m matrix] [--json]
+chainlesschain fusion identity <did> [--json]                                   # Look up identity mapping by DID
+chainlesschain fusion identities [--limit N] [--json]                           # List identity mappings
+chainlesschain fusion verify-identity <id> [--json]                             # Verify identity mapping
+chainlesschain fusion assess <content> [-i content-id] [--json]                 # Assess content quality
+chainlesschain fusion quality-show <id> [--json]                                # Show quality score details
+chainlesschain fusion quality-scores [-l level] [--limit N] [--json]            # List quality scores
+chainlesschain fusion quality-report [--json]                                   # Content quality report
+chainlesschain fusion translate <text> -t <target-lang> [-s source-lang] [--json]  # Translate text (simulated)
+chainlesschain fusion detect-lang <text> [--json]                               # Detect language
+chainlesschain fusion translation-stats [--json]                                # Translation cache statistics
+chainlesschain fusion stats [--json]                                            # Protocol fusion & AI social stats
 ```
 
 ## Phase 9: Low-Code & Multi-Agent
