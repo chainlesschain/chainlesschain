@@ -161,6 +161,20 @@ import { registerRuntimeCommand } from "./commands/runtime.js";
 import { registerIpfsCommand } from "./commands/ipfs.js";
 // Phase 27: Multimodal Collaboration
 import { registerMultimodalCommand } from "./commands/multimodal.js";
+// Phase 22: Performance auto-tuning
+import { registerPerfCommand } from "./commands/perf.js";
+// Phase 24: Decentralized Agent Network
+import { registerAgentNetworkCommand } from "./commands/agent-network.js";
+// Phase 55: DID v2.0 — W3C DID + Verifiable Presentations + social recovery
+import { registerDIDv2Command } from "./commands/did-v2.js";
+// Phase 26: Development Pipeline Orchestration (7-stage AI pipeline + gates)
+import { registerPipelineCommand } from "./commands/pipeline.js";
+// Phase 64: Plugin Ecosystem 2.0 (registry + deps + install + AI review + publish + revenue)
+import { registerPluginEcosystemCommand } from "./commands/plugin-ecosystem.js";
+// Phase 96: Workflow Automation Engine (12 SaaS connectors + 5 triggers + DAG execution)
+import { registerAutomationCommand } from "./commands/automation.js";
+// Phase 14: SSO Enterprise Authentication (SAML / OAuth2 / OIDC + session lifecycle + DID bridge)
+import { registerSsoCommand } from "./commands/sso.js";
 
 export function createProgram() {
   const program = new Command();
@@ -342,6 +356,13 @@ export function createProgram() {
   registerRuntimeCommand(program);
   registerIpfsCommand(program);
   registerMultimodalCommand(program);
+  registerPerfCommand(program);
+  registerAgentNetworkCommand(program);
+  registerDIDv2Command(program);
+  registerPipelineCommand(program);
+  registerPluginEcosystemCommand(program);
+  registerAutomationCommand(program);
+  registerSsoCommand(program);
 
   return program;
 }

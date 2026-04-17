@@ -18,6 +18,23 @@ import {
   touchSandbox,
   pruneExpired,
   restoreFromDb,
+  // Phase 87 V2 additions
+  SANDBOX_STATUS,
+  PERMISSION_TYPE,
+  RISK_LEVEL,
+  QUOTA_TYPE,
+  pauseSandboxV2,
+  resumeSandboxV2,
+  terminateSandboxV2,
+  setQuotaTyped,
+  enforcePermission,
+  checkQuotaV2,
+  getRiskLevel,
+  calculateRiskScore,
+  autoIsolate,
+  listIsolations,
+  filterAuditLog,
+  getSandboxStatsV2,
 } from "../../src/lib/sandbox-v2.js";
 
 describe("sandbox-v2", () => {
@@ -508,6 +525,345 @@ describe("sandbox-v2", () => {
       expect(DEFAULT_PERMISSIONS.systemCalls).toBeDefined();
       expect(Array.isArray(DEFAULT_PERMISSIONS.fileSystem.read)).toBe(true);
       expect(Array.isArray(DEFAULT_PERMISSIONS.network.allowed)).toBe(true);
+    });
+  });
+
+  // ═════════════════════════════════════════════════════════════════
+  // Phase 87 — Agent Security Sandbox 2.0 additions
+  // ═════════════════════════════════════════════════════════════════
+
+  describe("Phase 87 frozen enums", () => {
+    it("SANDBOX_STATUS has 6 values and is frozen", () => {
+      expect(Object.values(SANDBOX_STATUS).sort()).toEqual(
+        [
+          "creating",
+          "error",
+          "paused",
+          "ready",
+          "running",
+          "terminated",
+        ].sort(),
+      );
+      expect(Object.isFrozen(SANDBOX_STATUS)).toBe(true);
+    });
+
+    it("PERMISSION_TYPE has 5 values and is frozen", () => {
+      expect(Object.values(PERMISSION_TYPE).sort()).toEqual(
+        ["filesystem", "ipc", "network", "process", "syscall"].sort(),
+      );
+      expect(Object.isFrozen(PERMISSION_TYPE)).toBe(true);
+    });
+
+    it("RISK_LEVEL has 5 values and is frozen", () => {
+      expect(Object.values(RISK_LEVEL).sort()).toEqual(
+        ["critical", "high", "low", "medium", "safe"].sort(),
+      );
+      expect(Object.isFrozen(RISK_LEVEL)).toBe(true);
+    });
+
+    it("QUOTA_TYPE has 5 values and is frozen", () => {
+      expect(Object.values(QUOTA_TYPE).sort()).toEqual(
+        [
+          "cpu_percent",
+          "disk_mb",
+          "memory_mb",
+          "network_kbps",
+          "process_count",
+        ].sort(),
+      );
+      expect(Object.isFrozen(QUOTA_TYPE)).toBe(true);
+    });
+  });
+
+  describe("pauseSandboxV2 / resumeSandboxV2 / terminateSandboxV2", () => {
+    it("pauseSandboxV2 transitions active → paused", () => {
+      const { id } = createSandbox(db, "agent-p1");
+      const r = pauseSandboxV2(db, id);
+      expect(r.status).toBe(SANDBOX_STATUS.PAUSED);
+      expect(r.previousStatus).toBe("active");
+      expect(getSandbox(db, id).status).toBe(SANDBOX_STATUS.PAUSED);
+    });
+
+    it("pauseSandboxV2 throws when already paused", () => {
+      const { id } = createSandbox(db, "agent-p2");
+      pauseSandboxV2(db, id);
+      expect(() => pauseSandboxV2(db, id)).toThrow(/already paused/);
+    });
+
+    it("pauseSandboxV2 throws for unknown sandbox", () => {
+      expect(() => pauseSandboxV2(db, "unknown-id")).toThrow(/not found/);
+    });
+
+    it("resumeSandboxV2 transitions paused → active", () => {
+      const { id } = createSandbox(db, "agent-r1");
+      pauseSandboxV2(db, id);
+      const r = resumeSandboxV2(db, id);
+      expect(r.status).toBe("active");
+      expect(getSandbox(db, id).status).toBe("active");
+    });
+
+    it("resumeSandboxV2 throws if not paused", () => {
+      const { id } = createSandbox(db, "agent-r2");
+      expect(() => resumeSandboxV2(db, id)).toThrow(/not paused/);
+    });
+
+    it("terminateSandboxV2 removes from activeSandboxes + records reason", () => {
+      const { id } = createSandbox(db, "agent-t1");
+      const r = terminateSandboxV2(db, id, "admin-kill");
+      expect(r.status).toBe(SANDBOX_STATUS.TERMINATED);
+      expect(r.reason).toBe("admin-kill");
+      // DB row persists with TERMINATED status; in-memory entry is gone
+      expect(getSandbox(db, id).status).toBe(SANDBOX_STATUS.TERMINATED);
+    });
+
+    it("terminateSandboxV2 throws for unknown sandbox", () => {
+      expect(() => terminateSandboxV2(db, "unknown-id")).toThrow(/not found/);
+    });
+  });
+
+  describe("setQuotaTyped + checkQuotaV2", () => {
+    it("setQuotaTyped merges single quota field", () => {
+      const { id } = createSandbox(db, "agent-q1");
+      const before = getSandbox(db, id).quota;
+      const r = setQuotaTyped(db, id, QUOTA_TYPE.MEMORY_MB, 128);
+      expect(r.quotaType).toBe(QUOTA_TYPE.MEMORY_MB);
+      expect(r.limit).toBe(128);
+      expect(r.quota.memory).toBe(128);
+      // other fields preserved
+      expect(r.quota.cpu).toBe(before.cpu);
+    });
+
+    it("setQuotaTyped rejects unknown quota type", () => {
+      const { id } = createSandbox(db, "agent-q2");
+      expect(() => setQuotaTyped(db, id, "garbage", 10)).toThrow(
+        /Invalid quotaType/,
+      );
+    });
+
+    it("setQuotaTyped rejects negative limit", () => {
+      const { id } = createSandbox(db, "agent-q3");
+      expect(() => setQuotaTyped(db, id, QUOTA_TYPE.CPU_PERCENT, -1)).toThrow(
+        /Invalid limit/,
+      );
+    });
+
+    it("checkQuotaV2 returns ok=true when within limit", () => {
+      const { id } = createSandbox(db, "agent-q4");
+      setQuotaTyped(db, id, QUOTA_TYPE.MEMORY_MB, 256);
+      const sandbox = getSandbox(db, id);
+      const r = checkQuotaV2(sandbox, QUOTA_TYPE.MEMORY_MB, 100);
+      expect(r.ok).toBe(true);
+      expect(r.limit).toBe(256);
+      expect(r.current).toBe(100);
+      expect(r.remaining).toBe(156);
+    });
+
+    it("checkQuotaV2 returns ok=false when over limit", () => {
+      const { id } = createSandbox(db, "agent-q5");
+      setQuotaTyped(db, id, QUOTA_TYPE.MEMORY_MB, 50);
+      const sandbox = getSandbox(db, id);
+      const r = checkQuotaV2(sandbox, QUOTA_TYPE.MEMORY_MB, 200);
+      expect(r.ok).toBe(false);
+      expect(r.remaining).toBe(0);
+    });
+  });
+
+  describe("enforcePermission", () => {
+    it("allows filesystem read within permissions", () => {
+      const { id } = createSandbox(db, "agent-e1", {
+        permissions: {
+          ...DEFAULT_PERMISSIONS,
+          fileSystem: { read: ["/tmp"], write: [], denied: [] },
+        },
+      });
+      const r = enforcePermission(getSandbox(db, id), {
+        type: PERMISSION_TYPE.FILESYSTEM,
+        target: "/tmp/foo.txt",
+        mode: "read",
+      });
+      expect(r.allowed).toBe(true);
+    });
+
+    it("denies filesystem read outside permissions", () => {
+      const { id } = createSandbox(db, "agent-e2", {
+        permissions: {
+          ...DEFAULT_PERMISSIONS,
+          fileSystem: { read: ["/tmp"], write: [], denied: [] },
+        },
+      });
+      const r = enforcePermission(getSandbox(db, id), {
+        type: PERMISSION_TYPE.FILESYSTEM,
+        target: "/etc/passwd",
+        mode: "read",
+      });
+      expect(r.allowed).toBe(false);
+    });
+
+    it("throws on denied when throwOnDeny=true", () => {
+      const { id } = createSandbox(db, "agent-e3", {
+        permissions: {
+          ...DEFAULT_PERMISSIONS,
+          fileSystem: { read: ["/tmp"], write: [], denied: [] },
+        },
+      });
+      expect(() =>
+        enforcePermission(getSandbox(db, id), {
+          type: PERMISSION_TYPE.FILESYSTEM,
+          target: "/etc/passwd",
+          mode: "read",
+          throwOnDeny: true,
+        }),
+      ).toThrow(/Permission denied/);
+    });
+
+    it("rejects invalid permission type", () => {
+      const { id } = createSandbox(db, "agent-e4");
+      expect(() =>
+        enforcePermission(getSandbox(db, id), {
+          type: "bogus",
+          target: "x",
+        }),
+      ).toThrow(/Invalid permission type/);
+    });
+
+    it("denies IPC by default (deny-by-default stub)", () => {
+      const { id } = createSandbox(db, "agent-e5");
+      const r = enforcePermission(getSandbox(db, id), {
+        type: PERMISSION_TYPE.IPC,
+        target: "some-channel",
+      });
+      expect(r.allowed).toBe(false);
+    });
+  });
+
+  describe("getRiskLevel + calculateRiskScore", () => {
+    it("getRiskLevel buckets correctly", () => {
+      expect(getRiskLevel(0)).toBe(RISK_LEVEL.SAFE);
+      expect(getRiskLevel(19)).toBe(RISK_LEVEL.SAFE);
+      expect(getRiskLevel(20)).toBe(RISK_LEVEL.LOW);
+      expect(getRiskLevel(39)).toBe(RISK_LEVEL.LOW);
+      expect(getRiskLevel(40)).toBe(RISK_LEVEL.MEDIUM);
+      expect(getRiskLevel(59)).toBe(RISK_LEVEL.MEDIUM);
+      expect(getRiskLevel(60)).toBe(RISK_LEVEL.HIGH);
+      expect(getRiskLevel(79)).toBe(RISK_LEVEL.HIGH);
+      expect(getRiskLevel(80)).toBe(RISK_LEVEL.CRITICAL);
+      expect(getRiskLevel(100)).toBe(RISK_LEVEL.CRITICAL);
+    });
+
+    it("getRiskLevel handles non-number input", () => {
+      expect(getRiskLevel(null)).toBe(RISK_LEVEL.SAFE);
+      expect(getRiskLevel(undefined)).toBe(RISK_LEVEL.SAFE);
+      expect(getRiskLevel("not-a-number")).toBe(RISK_LEVEL.SAFE);
+    });
+
+    it("calculateRiskScore returns safe for fresh sandbox", () => {
+      const { id } = createSandbox(db, "agent-risk");
+      const r = calculateRiskScore(db, id);
+      expect(r.sandboxId).toBe(id);
+      expect(r.riskScore).toBe(0);
+      expect(r.riskLevel).toBe(RISK_LEVEL.SAFE);
+      expect(Array.isArray(r.patterns)).toBe(true);
+    });
+  });
+
+  describe("autoIsolate + listIsolations", () => {
+    it("autoIsolate terminates sandbox and records entry", () => {
+      const { id } = createSandbox(db, "agent-iso1");
+      const entry = autoIsolate(db, id, "critical-risk");
+      expect(entry.sandboxId).toBe(id);
+      expect(entry.reason).toBe("critical-risk");
+      expect(entry.isolatedAt).toBeTruthy();
+      expect(getSandbox(db, id).status).toBe(SANDBOX_STATUS.TERMINATED);
+    });
+
+    it("listIsolations returns all entries", () => {
+      const { id: id1 } = createSandbox(db, "agent-iso2");
+      const { id: id2 } = createSandbox(db, "agent-iso3");
+      autoIsolate(db, id1, "high-risk");
+      autoIsolate(db, id2, "admin-request");
+      expect(listIsolations()).toHaveLength(2);
+    });
+
+    it("listIsolations filters by reason", () => {
+      const { id: id1 } = createSandbox(db, "agent-iso4");
+      const { id: id2 } = createSandbox(db, "agent-iso5");
+      autoIsolate(db, id1, "high-risk");
+      autoIsolate(db, id2, "admin-request");
+      const r = listIsolations({ reason: "high-risk" });
+      expect(r).toHaveLength(1);
+      expect(r[0].sandboxId).toBe(id1);
+    });
+
+    it("listIsolations filters by sandboxId", () => {
+      const { id: id1 } = createSandbox(db, "agent-iso6");
+      const { id: id2 } = createSandbox(db, "agent-iso7");
+      autoIsolate(db, id1, "r1");
+      autoIsolate(db, id2, "r2");
+      const r = listIsolations({ sandboxId: id2 });
+      expect(r).toHaveLength(1);
+      expect(r[0].reason).toBe("r2");
+    });
+  });
+
+  describe("filterAuditLog", () => {
+    it("filters by sandboxId", () => {
+      const { id } = createSandbox(db, "agent-a1");
+      pauseSandboxV2(db, id);
+      resumeSandboxV2(db, id);
+      const entries = filterAuditLog(db, id);
+      expect(entries.length).toBeGreaterThanOrEqual(3); // create+pause+resume
+      expect(entries.every((e) => e.sandboxId === id)).toBe(true);
+    });
+
+    it("filters by event types", () => {
+      const { id } = createSandbox(db, "agent-a2");
+      pauseSandboxV2(db, id);
+      resumeSandboxV2(db, id);
+      const pauseOnly = filterAuditLog(db, id, { eventTypes: ["pause"] });
+      expect(pauseOnly.every((e) => e.action === "pause")).toBe(true);
+      expect(pauseOnly).toHaveLength(1);
+    });
+
+    it("respects limit option", () => {
+      const { id } = createSandbox(db, "agent-a3");
+      pauseSandboxV2(db, id);
+      resumeSandboxV2(db, id);
+      const last = filterAuditLog(db, id, { limit: 1 });
+      expect(last).toHaveLength(1);
+    });
+  });
+
+  describe("getSandboxStatsV2", () => {
+    it("returns totalSandboxes and byStatus breakdown", () => {
+      createSandbox(db, "agent-s1");
+      const { id: id2 } = createSandbox(db, "agent-s2");
+      pauseSandboxV2(db, id2);
+      const stats = getSandboxStatsV2();
+      expect(stats.totalSandboxes).toBe(2);
+      expect(stats.byStatus.active).toBe(1);
+      expect(stats.byStatus.paused).toBe(1);
+    });
+
+    it("includes audit-by-action summary", () => {
+      const { id } = createSandbox(db, "agent-s3");
+      pauseSandboxV2(db, id);
+      const stats = getSandboxStatsV2();
+      expect(stats.auditByAction.create).toBeGreaterThanOrEqual(1);
+      expect(stats.auditByAction.pause).toBe(1);
+    });
+
+    it("includes isolations summary", () => {
+      const { id } = createSandbox(db, "agent-s4");
+      autoIsolate(db, id, "test");
+      const stats = getSandboxStatsV2();
+      expect(stats.isolations.total).toBe(1);
+      expect(stats.isolations.byReason.test).toBe(1);
+    });
+
+    it("handles empty state", () => {
+      const stats = getSandboxStatsV2();
+      expect(stats.totalSandboxes).toBe(0);
+      expect(stats.isolations.total).toBe(0);
     });
   });
 });

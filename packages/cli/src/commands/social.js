@@ -35,6 +35,18 @@ import {
   subscribe as graphSubscribe,
   EDGE_TYPES,
 } from "../lib/social-graph.js";
+import {
+  METRICS as ANALYTICS_METRICS,
+  degreeCentrality,
+  closenessCentrality,
+  betweennessCentrality,
+  eigenvectorCentrality,
+  influenceScore,
+  detectCommunities,
+  shortestPath,
+  topByMetric,
+  analyticsStats,
+} from "../lib/social-graph-analytics.js";
 
 export function registerSocialCommand(program) {
   const social = program
@@ -737,6 +749,305 @@ export function registerSocialCommand(program) {
 
         process.on("SIGINT", stop);
         process.on("SIGTERM", stop);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // ── Graph analytics (Phase 42) ──────────────────────────────
+
+  async function _loadSnapshot(options) {
+    const ctx = await bootstrap({ verbose: program.opts().verbose });
+    if (!ctx.db) {
+      logger.error("Database not available");
+      process.exit(1);
+    }
+    const db = ctx.db.getDatabase();
+    ensureGraphTables(db);
+    graphLoadFromDb(db);
+    return getGraphSnapshot({ edgeType: options.type });
+  }
+
+  function _splitEdgeTypes(list) {
+    if (!list) return undefined;
+    return list
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  function _printScoreMap(scores, limit) {
+    const entries = Object.entries(scores).sort((a, b) => {
+      if (b[1] !== a[1]) return b[1] - a[1];
+      return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0;
+    });
+    const slice = limit > 0 ? entries.slice(0, limit) : entries;
+    for (const [did, score] of slice) {
+      console.log(`${chalk.cyan(did.padEnd(28))} ${score.toFixed(6)}`);
+    }
+  }
+
+  graph
+    .command("degree")
+    .description("Degree centrality per DID")
+    .option("-d, --direction <in|out|both>", "Edge direction", "both")
+    .option("--no-normalize", "Disable normalization by (n-1)")
+    .option("-e, --edge-types <list>", "Comma-separated edge types to include")
+    .option("-l, --limit <n>", "Show top N", "10")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const snap = await _loadSnapshot(options);
+        const scores = degreeCentrality(snap, {
+          direction: options.direction,
+          normalize: options.normalize !== false,
+          edgeTypes: _splitEdgeTypes(options.edgeTypes),
+        });
+        if (options.json) console.log(JSON.stringify(scores, null, 2));
+        else _printScoreMap(scores, parseInt(options.limit, 10) || 10);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  graph
+    .command("closeness")
+    .description("Harmonic closeness centrality per DID")
+    .option("--directed", "Treat graph as directed")
+    .option("--no-normalize", "Disable normalization by (n-1)")
+    .option("-e, --edge-types <list>", "Comma-separated edge types")
+    .option("-l, --limit <n>", "Show top N", "10")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const snap = await _loadSnapshot(options);
+        const scores = closenessCentrality(snap, {
+          directed: !!options.directed,
+          normalize: options.normalize !== false,
+          edgeTypes: _splitEdgeTypes(options.edgeTypes),
+        });
+        if (options.json) console.log(JSON.stringify(scores, null, 2));
+        else _printScoreMap(scores, parseInt(options.limit, 10) || 10);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  graph
+    .command("betweenness")
+    .description("Betweenness centrality (Brandes' algorithm)")
+    .option("--directed", "Treat graph as directed")
+    .option("--no-normalize", "Disable normalization")
+    .option("-e, --edge-types <list>", "Comma-separated edge types")
+    .option("-l, --limit <n>", "Show top N", "10")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const snap = await _loadSnapshot(options);
+        const scores = betweennessCentrality(snap, {
+          directed: !!options.directed,
+          normalize: options.normalize !== false,
+          edgeTypes: _splitEdgeTypes(options.edgeTypes),
+        });
+        if (options.json) console.log(JSON.stringify(scores, null, 2));
+        else _printScoreMap(scores, parseInt(options.limit, 10) || 10);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  graph
+    .command("eigenvector")
+    .description("Eigenvector centrality via power iteration")
+    .option("--directed", "Treat graph as directed")
+    .option("-e, --edge-types <list>", "Comma-separated edge types")
+    .option("--iterations <n>", "Max iterations", "100")
+    .option("--tolerance <f>", "Convergence tolerance", "1e-6")
+    .option("-l, --limit <n>", "Show top N", "10")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const snap = await _loadSnapshot(options);
+        const scores = eigenvectorCentrality(snap, {
+          directed: !!options.directed,
+          edgeTypes: _splitEdgeTypes(options.edgeTypes),
+          iterations: parseInt(options.iterations, 10) || 100,
+          tolerance: parseFloat(options.tolerance) || 1e-6,
+        });
+        if (options.json) console.log(JSON.stringify(scores, null, 2));
+        else _printScoreMap(scores, parseInt(options.limit, 10) || 10);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  graph
+    .command("influence")
+    .description("Composite influence score (weighted sum of 4 centralities)")
+    .option("--directed", "Treat graph as directed")
+    .option("-e, --edge-types <list>", "Comma-separated edge types")
+    .option("--w-degree <f>", "Weight for degree", "0.25")
+    .option("--w-closeness <f>", "Weight for closeness", "0.25")
+    .option("--w-betweenness <f>", "Weight for betweenness", "0.25")
+    .option("--w-eigenvector <f>", "Weight for eigenvector", "0.25")
+    .option("-l, --limit <n>", "Show top N", "10")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const snap = await _loadSnapshot(options);
+        const scores = influenceScore(snap, {
+          directed: !!options.directed,
+          edgeTypes: _splitEdgeTypes(options.edgeTypes),
+          weights: {
+            degree: parseFloat(options.wDegree),
+            closeness: parseFloat(options.wCloseness),
+            betweenness: parseFloat(options.wBetweenness),
+            eigenvector: parseFloat(options.wEigenvector),
+          },
+        });
+        if (options.json) console.log(JSON.stringify(scores, null, 2));
+        else _printScoreMap(scores, parseInt(options.limit, 10) || 10);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  graph
+    .command("communities")
+    .description("Label-propagation community detection")
+    .option("-e, --edge-types <list>", "Comma-separated edge types")
+    .option("--max-iterations <n>", "Max propagation rounds", "20")
+    .option("--min-size <n>", "Drop communities smaller than this", "1")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const snap = await _loadSnapshot(options);
+        const result = detectCommunities(snap, {
+          edgeTypes: _splitEdgeTypes(options.edgeTypes),
+          maxIterations: parseInt(options.maxIterations, 10) || 20,
+          minSize: parseInt(options.minSize, 10) || 1,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          console.log(
+            chalk.bold(
+              `Communities: ${result.communities.length}    modularity: ${result.modularity.toFixed(4)}`,
+            ),
+          );
+          for (const c of result.communities) {
+            console.log(
+              `  ${chalk.cyan(c.id)} (size ${c.size}) ${c.members.join(", ")}`,
+            );
+          }
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  graph
+    .command("path <source> <target>")
+    .description("Shortest path between two DIDs (unweighted BFS)")
+    .option("--undirected", "Treat graph as undirected (default: directed)")
+    .option("-e, --edge-types <list>", "Comma-separated edge types")
+    .option("--json", "Output as JSON")
+    .action(async (source, target, options) => {
+      try {
+        const snap = await _loadSnapshot(options);
+        const result = shortestPath(snap, source, target, {
+          directed: !options.undirected,
+          edgeTypes: _splitEdgeTypes(options.edgeTypes),
+        });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else if (!result.found) {
+          console.log(chalk.yellow("No path found"));
+        } else {
+          console.log(
+            `${chalk.bold("distance")}: ${result.distance}    ${result.path.join(" → ")}`,
+          );
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  graph
+    .command("top <metric>")
+    .description(`Top-N DIDs by metric (${ANALYTICS_METRICS.join("|")})`)
+    .option("--directed", "Treat graph as directed (where applicable)")
+    .option("-e, --edge-types <list>", "Comma-separated edge types")
+    .option("-l, --limit <n>", "Limit", "10")
+    .option("--json", "Output as JSON")
+    .action(async (metric, options) => {
+      try {
+        const snap = await _loadSnapshot(options);
+        const rows = topByMetric(snap, metric, {
+          directed: !!options.directed,
+          edgeTypes: _splitEdgeTypes(options.edgeTypes),
+          limit: parseInt(options.limit, 10) || 10,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(rows, null, 2));
+        } else {
+          for (const r of rows) {
+            console.log(
+              `${chalk.cyan(r.did.padEnd(28))} ${r.score.toFixed(6)}`,
+            );
+          }
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  graph
+    .command("analytics-stats")
+    .description("Graph-wide analytics rollup (counts, density, top influence)")
+    .option("-e, --edge-types <list>", "Comma-separated edge types")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const snap = await _loadSnapshot(options);
+        const stats = analyticsStats(snap, {
+          edgeTypes: _splitEdgeTypes(options.edgeTypes),
+        });
+        if (options.json) {
+          console.log(JSON.stringify(stats, null, 2));
+        } else {
+          console.log(chalk.bold("Social Graph Analytics"));
+          console.log(`  Nodes:    ${stats.nodeCount}`);
+          console.log(`  Edges:    ${stats.edgeCount}`);
+          console.log(`  Density:  ${stats.density.toFixed(4)}`);
+          console.log(`  Generated: ${stats.generatedAt}`);
+          if (stats.topInfluence.length > 0) {
+            console.log(chalk.bold("\nTop influence:"));
+            for (const r of stats.topInfluence) {
+              console.log(
+                `  ${chalk.cyan(r.did.padEnd(28))} ${r.score.toFixed(6)}`,
+              );
+            }
+          }
+        }
+        await shutdown();
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);

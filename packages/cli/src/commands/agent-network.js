@@ -1,0 +1,785 @@
+/**
+ * `cc agent-network` (alias `anet`) — CLI port of Phase 24 去中心化Agent网络.
+ *
+ * Ed25519 Agent DIDs, W3C VC credentials, federated registry (Kademlia
+ * k-bucket simulation), challenge-response auth, and cross-org task
+ * routing with reputation-weighted agent selection.
+ */
+
+import { Command } from "commander";
+
+import {
+  DID_STATUS,
+  REG_STATUS,
+  AUTH_STATUS,
+  CRED_STATUS,
+  TASK_STATUS,
+  REPUTATION_DIMENSIONS,
+  ensureAgentNetworkTables,
+  createAgentDID,
+  resolveAgentDID,
+  listAgentDIDs,
+  deactivateAgentDID,
+  signWithAgent,
+  verifyWithAgent,
+  registerAgent,
+  unregisterAgent,
+  heartbeatAgent,
+  discoverAgents,
+  sweepStaleAgents,
+  addPeer,
+  removePeer,
+  listPeers,
+  startAuth,
+  completeAuth,
+  validateSession,
+  listSessions,
+  issueCredential,
+  getCredential,
+  verifyCredential,
+  revokeCredential,
+  listCredentials,
+  routeTask,
+  getTask,
+  updateTaskStatus,
+  cancelTask,
+  listTasks,
+  updateReputation,
+  getReputation,
+  getReputationHistory,
+  getTopAgents,
+  getNetworkStats,
+  getNetworkConfig,
+} from "../lib/agent-network.js";
+
+function _dbFromCtx(cmd) {
+  const root = cmd?.parent?.parent ?? cmd?.parent;
+  return root?._db;
+}
+
+function _json(v) {
+  console.log(JSON.stringify(v, null, 2));
+}
+
+function _fmtTs(ts) {
+  if (!ts) return "—";
+  return new Date(ts).toISOString();
+}
+
+function _parseJsonArg(s, fallback) {
+  if (s == null) return fallback;
+  try {
+    return JSON.parse(s);
+  } catch {
+    return fallback;
+  }
+}
+
+export function registerAgentNetworkCommand(program) {
+  const anet = new Command("agent-network")
+    .alias("anet")
+    .description(
+      "Decentralized Agent Network (Phase 24) — DID / registry / credentials / task routing",
+    )
+    .hook("preAction", (thisCmd) => {
+      const db = _dbFromCtx(thisCmd);
+      if (db) ensureAgentNetworkTables(db);
+    });
+
+  /* ── Catalogs ────────────────────────────────────── */
+
+  anet
+    .command("config")
+    .description("Show network constants & reputation weights")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const cfg = getNetworkConfig();
+      if (opts.json) return _json(cfg);
+      console.log(`Kademlia: ${cfg.kademliaBits} bits, k=${cfg.kademliaK}`);
+      console.log(
+        `Session TTL: ${cfg.sessionTtlMs}ms  Heartbeat timeout: ${cfg.heartbeatTimeoutMs}ms`,
+      );
+      console.log(`Reputation dimensions:`);
+      for (const d of cfg.reputationDimensions) {
+        console.log(`  ${d.padEnd(12)} weight=${cfg.reputationWeights[d]}`);
+      }
+      console.log(
+        `Reputation range: [${cfg.reputationRange[0]}, ${cfg.reputationRange[1]}]` +
+          `  weekly decay: ${cfg.reputationDecayWeekly}`,
+      );
+    });
+
+  anet
+    .command("dimensions")
+    .description("List reputation dimensions")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      if (opts.json) return _json(REPUTATION_DIMENSIONS);
+      for (const d of REPUTATION_DIMENSIONS) console.log(`  ${d}`);
+    });
+
+  anet
+    .command("task-statuses")
+    .description("List task lifecycle statuses")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const rows = Object.values(TASK_STATUS);
+      if (opts.json) return _json(rows);
+      for (const r of rows) console.log(`  ${r}`);
+    });
+
+  /* ── DID management ──────────────────────────────── */
+
+  anet
+    .command("did-create")
+    .description("Create an Agent DID (Ed25519 + DID document)")
+    .option("-n, --name <displayName>", "Display name")
+    .option(
+      "-m, --metadata <json>",
+      "Extra metadata (JSON object)",
+      (v) => _parseJsonArg(v, {}),
+      {},
+    )
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(anet);
+      const r = createAgentDID(db, {
+        displayName: opts.name,
+        metadata: opts.metadata,
+      });
+      if (opts.json) return _json(r);
+      console.log(`Created ${r.did}`);
+      console.log(`  publicKey: ${r.publicKey}`);
+    });
+
+  anet
+    .command("did-resolve")
+    .argument("<did>", "Agent DID")
+    .description("Resolve DID → DID document")
+    .option("--json", "JSON output")
+    .action((did, opts) => {
+      const db = _dbFromCtx(anet);
+      const r = resolveAgentDID(db, did);
+      if (!r) {
+        console.error(`Unknown DID: ${did}`);
+        process.exit(1);
+      }
+      if (opts.json) return _json(r);
+      console.log(`DID: ${r.did}  status=${r.status}`);
+      console.log(`publicKey: ${r.publicKey}`);
+      console.log(`metadata: ${JSON.stringify(r.metadata)}`);
+    });
+
+  anet
+    .command("dids")
+    .description("List Agent DIDs")
+    .option("-s, --status <status>", "Filter by status (active|deactivated)")
+    .option("--limit <n>", "Max rows", (v) => parseInt(v, 10), 50)
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(anet);
+      const rows = listAgentDIDs(db, {
+        status: opts.status,
+        limit: opts.limit,
+      });
+      if (opts.json) return _json(rows);
+      for (const r of rows)
+        console.log(`  ${r.did}  [${r.status}]  ${JSON.stringify(r.metadata)}`);
+      console.log(`(${rows.length} DIDs)`);
+    });
+
+  anet
+    .command("did-deactivate")
+    .argument("<did>", "Agent DID")
+    .description("Deactivate a DID (also forces registry offline)")
+    .option("--json", "JSON output")
+    .action((did, opts) => {
+      const db = _dbFromCtx(anet);
+      const r = deactivateAgentDID(db, did);
+      if (opts.json) return _json(r);
+      if (!r.changed) {
+        console.error(`DID not found: ${did}`);
+        process.exit(1);
+      }
+      console.log(`Deactivated ${did}`);
+    });
+
+  anet
+    .command("sign")
+    .argument("<did>", "Agent DID")
+    .argument("<data>", "Data to sign (UTF-8 string)")
+    .description("Sign data with agent's Ed25519 key")
+    .option("--json", "JSON output")
+    .action((did, data, opts) => {
+      const db = _dbFromCtx(anet);
+      const sig = signWithAgent(db, did, data);
+      if (opts.json) return _json({ did, signature: sig });
+      console.log(sig);
+    });
+
+  anet
+    .command("verify")
+    .argument("<did>", "Agent DID")
+    .argument("<data>", "Signed data (UTF-8 string)")
+    .argument("<signature>", "Signature hex")
+    .description("Verify a signature from an agent")
+    .option("--json", "JSON output")
+    .action((did, data, sig, opts) => {
+      const db = _dbFromCtx(anet);
+      const ok = verifyWithAgent(db, did, data, sig);
+      if (opts.json) return _json({ valid: ok });
+      console.log(ok ? "valid" : "invalid");
+      if (!ok) process.exit(1);
+    });
+
+  /* ── Federated registry ──────────────────────────── */
+
+  anet
+    .command("register")
+    .argument("<did>", "Agent DID")
+    .argument("<orgId>", "Owning org id")
+    .description("Register an Agent in the federated registry")
+    .option(
+      "-c, --capabilities <json>",
+      "Capabilities (JSON array)",
+      (v) => _parseJsonArg(v, []),
+      [],
+    )
+    .option("-e, --endpoint <url>", "Service endpoint")
+    .option("--json", "JSON output")
+    .action((did, orgId, opts) => {
+      const db = _dbFromCtx(anet);
+      const r = registerAgent(db, {
+        did,
+        orgId,
+        capabilities: opts.capabilities,
+        endpoint: opts.endpoint,
+      });
+      if (opts.json) return _json(r);
+      console.log(`Registered ${r.did} → org=${r.orgId}`);
+      console.log(`  caps=${JSON.stringify(r.capabilities)}`);
+    });
+
+  anet
+    .command("unregister")
+    .argument("<did>", "Agent DID")
+    .description("Remove an Agent from the registry")
+    .option("--json", "JSON output")
+    .action((did, opts) => {
+      const db = _dbFromCtx(anet);
+      const r = unregisterAgent(db, did);
+      if (opts.json) return _json(r);
+      if (!r.changed) {
+        console.error(`Agent not registered: ${did}`);
+        process.exit(1);
+      }
+      console.log(`Unregistered ${did}`);
+    });
+
+  anet
+    .command("heartbeat")
+    .argument("<did>", "Agent DID")
+    .description("Bump last_heartbeat (forces online)")
+    .option("--json", "JSON output")
+    .action((did, opts) => {
+      const db = _dbFromCtx(anet);
+      const r = heartbeatAgent(db, did);
+      if (opts.json) return _json(r);
+      if (!r.changed) {
+        console.error(`Agent not registered: ${did}`);
+        process.exit(1);
+      }
+      console.log(`Heartbeat ${did} @ ${_fmtTs(r.heartbeatAt)}`);
+    });
+
+  anet
+    .command("discover")
+    .description("Discover agents (capability / org / status)")
+    .option("-c, --capability <cap>", "Required capability")
+    .option("-o, --org <orgId>", "Filter by org")
+    .option("-s, --status <status>", "Filter by status", REG_STATUS.ONLINE)
+    .option("--limit <n>", "Max rows", (v) => parseInt(v, 10), 50)
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(anet);
+      const rows = discoverAgents(db, {
+        capability: opts.capability,
+        orgId: opts.org,
+        status: opts.status,
+        limit: opts.limit,
+      });
+      if (opts.json) return _json(rows);
+      for (const r of rows)
+        console.log(
+          `  ${r.agentDid}  [${r.status}]  org=${r.orgId}  caps=${JSON.stringify(r.capabilities)}`,
+        );
+      console.log(`(${rows.length} agents)`);
+    });
+
+  anet
+    .command("sweep")
+    .description("Mark stale online agents offline")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(anet);
+      const r = sweepStaleAgents(db);
+      if (opts.json) return _json(r);
+      console.log(`Swept ${r.swept} stale agents`);
+    });
+
+  /* ── Peer (Kademlia) bookkeeping ─────────────────── */
+
+  anet
+    .command("peer-add")
+    .argument("<peerId>", "Peer id")
+    .description("Add/update a Kademlia peer (k-bucket auto-computed)")
+    .option("-e, --endpoint <url>", "Peer endpoint")
+    .option("-d, --did <did>", "Agent DID served by peer")
+    .option("--json", "JSON output")
+    .action((peerId, opts) => {
+      const db = _dbFromCtx(anet);
+      const r = addPeer(db, {
+        peerId,
+        endpoint: opts.endpoint,
+        agentDid: opts.did,
+      });
+      if (opts.json) return _json(r);
+      console.log(`Peer ${peerId}  kBucket=${r.kBucket}`);
+    });
+
+  anet
+    .command("peer-remove")
+    .argument("<peerId>", "Peer id")
+    .description("Remove a peer")
+    .option("--json", "JSON output")
+    .action((peerId, opts) => {
+      const db = _dbFromCtx(anet);
+      const r = removePeer(db, peerId);
+      if (opts.json) return _json(r);
+      if (!r.changed) {
+        console.error(`Peer not found: ${peerId}`);
+        process.exit(1);
+      }
+      console.log(`Removed ${peerId}`);
+    });
+
+  anet
+    .command("peers")
+    .description("List peers (optionally by k-bucket)")
+    .option("-b, --bucket <n>", "k-bucket index", (v) => parseInt(v, 10))
+    .option("--limit <n>", "Max rows", (v) => parseInt(v, 10), 50)
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(anet);
+      const rows = listPeers(db, { kBucket: opts.bucket, limit: opts.limit });
+      if (opts.json) return _json(rows);
+      for (const r of rows)
+        console.log(
+          `  ${r.peerId}  bucket=${r.kBucket}  endpoint=${r.endpoint || "—"}  did=${r.agentDid || "—"}`,
+        );
+      console.log(`(${rows.length} peers)`);
+    });
+
+  /* ── Authentication ──────────────────────────────── */
+
+  anet
+    .command("auth-start")
+    .argument("<did>", "Agent DID")
+    .description("Issue an auth challenge for a DID")
+    .option("--json", "JSON output")
+    .action((did, opts) => {
+      const db = _dbFromCtx(anet);
+      const r = startAuth(db, did);
+      if (opts.json) return _json(r);
+      console.log(`session=${r.sessionId}`);
+      console.log(`challenge=${r.challenge}`);
+      console.log(`expiresAt=${_fmtTs(r.expiresAt)}`);
+    });
+
+  anet
+    .command("auth-complete")
+    .argument("<sessionId>", "Session id from auth-start")
+    .argument("<signature>", "Ed25519 signature over challenge (hex)")
+    .description("Complete auth with signature over challenge")
+    .option("--json", "JSON output")
+    .action((sessionId, signature, opts) => {
+      const db = _dbFromCtx(anet);
+      const r = completeAuth(db, sessionId, signature);
+      if (opts.json) return _json(r);
+      console.log(`token=${r.token}`);
+      console.log(`agentDid=${r.agentDid}`);
+      console.log(`expiresAt=${_fmtTs(r.expiresAt)}`);
+    });
+
+  anet
+    .command("auth-validate")
+    .argument("<token>", "Session token")
+    .description("Validate a session token (returns agentDid or exits 1)")
+    .option("--json", "JSON output")
+    .action((token, opts) => {
+      const db = _dbFromCtx(anet);
+      const r = validateSession(db, token);
+      if (opts.json) return _json(r);
+      if (!r) {
+        console.error("invalid or expired");
+        process.exit(1);
+      }
+      console.log(`agentDid=${r.agentDid}  expiresAt=${_fmtTs(r.expiresAt)}`);
+    });
+
+  anet
+    .command("auth-sessions")
+    .description("List auth sessions")
+    .option("-d, --did <did>", "Filter by DID")
+    .option("-s, --status <status>", "Filter by status")
+    .option("--limit <n>", "Max rows", (v) => parseInt(v, 10), 50)
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(anet);
+      const rows = listSessions(db, {
+        agentDid: opts.did,
+        status: opts.status,
+        limit: opts.limit,
+      });
+      if (opts.json) return _json(rows);
+      for (const r of rows)
+        console.log(
+          `  ${r.sessionId}  [${r.status}]  did=${r.agentDid}  exp=${_fmtTs(r.expiresAt)}`,
+        );
+      console.log(`(${rows.length} sessions)`);
+    });
+
+  /* ── Credentials (W3C VC) ────────────────────────── */
+
+  anet
+    .command("credential-issue")
+    .argument("<issuerDid>", "Issuer DID")
+    .argument("<subjectDid>", "Subject DID")
+    .description("Issue a VC with HMAC/Ed25519 proof")
+    .option("-t, --type <type>", "Credential type", "AgentCapabilityCredential")
+    .option(
+      "-c, --claims <json>",
+      "Claims (JSON object)",
+      (v) => _parseJsonArg(v, {}),
+      {},
+    )
+    .option("--expires-at <ms>", "Expiry (epoch ms)", (v) => parseInt(v, 10))
+    .option("--json", "JSON output")
+    .action((issuerDid, subjectDid, opts) => {
+      const db = _dbFromCtx(anet);
+      const r = issueCredential(db, {
+        issuerDid,
+        subjectDid,
+        type: opts.type,
+        claims: opts.claims,
+        expiresAt: opts.expiresAt,
+      });
+      if (opts.json) return _json(r);
+      console.log(`Issued ${r.id} (${r.type})`);
+      console.log(`  issuer=${r.issuer}  subject=${r.subject}`);
+    });
+
+  anet
+    .command("credential-verify")
+    .argument("<id>", "Credential id")
+    .description("Verify a VC (signature + expiry + revocation)")
+    .option("--json", "JSON output")
+    .action((id, opts) => {
+      const db = _dbFromCtx(anet);
+      const r = verifyCredential(db, id);
+      if (opts.json) return _json(r);
+      if (r.valid) {
+        console.log(`valid  type=${r.credential.type}`);
+      } else {
+        console.log(`invalid (${r.reason})`);
+        process.exit(1);
+      }
+    });
+
+  anet
+    .command("credential-revoke")
+    .argument("<id>", "Credential id")
+    .description("Revoke a credential")
+    .option("--json", "JSON output")
+    .action((id, opts) => {
+      const db = _dbFromCtx(anet);
+      const r = revokeCredential(db, id);
+      if (opts.json) return _json(r);
+      if (!r.changed) {
+        console.error("No change (unknown or already revoked)");
+        process.exit(1);
+      }
+      console.log(`Revoked ${id}`);
+    });
+
+  anet
+    .command("credential-show")
+    .argument("<id>", "Credential id")
+    .description("Show a credential")
+    .option("--json", "JSON output")
+    .action((id, opts) => {
+      const db = _dbFromCtx(anet);
+      const c = getCredential(db, id);
+      if (!c) {
+        console.error(`Not found: ${id}`);
+        process.exit(1);
+      }
+      if (opts.json) return _json(c);
+      console.log(`Credential ${c.id}  type=${c.type}  status=${c.status}`);
+      console.log(`  issuer=${c.issuer}  subject=${c.subject}`);
+      console.log(
+        `  issuedAt=${_fmtTs(c.issuedAt)}  expiresAt=${_fmtTs(c.expiresAt)}`,
+      );
+      console.log(`  claims=${JSON.stringify(c.claims)}`);
+    });
+
+  anet
+    .command("credentials")
+    .description("List credentials (filter by subject/issuer/status/type)")
+    .option("-s, --subject <did>", "Filter by subject DID")
+    .option("-i, --issuer <did>", "Filter by issuer DID")
+    .option("--status <status>", "Filter by status")
+    .option("-t, --type <type>", "Filter by type")
+    .option("--limit <n>", "Max rows", (v) => parseInt(v, 10), 50)
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(anet);
+      const rows = listCredentials(db, {
+        subjectDid: opts.subject,
+        issuerDid: opts.issuer,
+        status: opts.status,
+        type: opts.type,
+        limit: opts.limit,
+      });
+      if (opts.json) return _json(rows);
+      for (const r of rows)
+        console.log(
+          `  ${r.id}  [${r.status}]  type=${r.type}  subject=${r.subject}`,
+        );
+      console.log(`(${rows.length} credentials)`);
+    });
+
+  /* ── Cross-org task routing ──────────────────────── */
+
+  anet
+    .command("task-route")
+    .argument("<sourceOrg>", "Source org id")
+    .argument("<taskType>", "Task type")
+    .description("Route task → pick best-rep agent matching capability")
+    .option("-t, --target <orgId>", "Target org (optional)")
+    .option(
+      "-r, --requirements <json>",
+      "Requirements (JSON, supports {capability})",
+      (v) => _parseJsonArg(v, {}),
+      {},
+    )
+    .option("-p, --payload <json>", "Task payload (JSON)", (v) =>
+      _parseJsonArg(v, null),
+    )
+    .option("--json", "JSON output")
+    .action((sourceOrg, taskType, opts) => {
+      const db = _dbFromCtx(anet);
+      const r = routeTask(db, {
+        sourceOrg,
+        targetOrg: opts.target,
+        taskType,
+        requirements: opts.requirements,
+        payload: opts.payload,
+      });
+      if (opts.json) return _json(r);
+      console.log(`task=${r.taskId}  status=${r.status}`);
+      console.log(`  agentDid=${r.agentDid || "—"}  score=${r.score ?? "—"}`);
+    });
+
+  anet
+    .command("task-show")
+    .argument("<taskId>", "Task id")
+    .description("Show a task")
+    .option("--json", "JSON output")
+    .action((taskId, opts) => {
+      const db = _dbFromCtx(anet);
+      const t = getTask(db, taskId);
+      if (!t) {
+        console.error(`Not found: ${taskId}`);
+        process.exit(1);
+      }
+      if (opts.json) return _json(t);
+      console.log(
+        `Task ${t.taskId}  [${t.status}]  type=${t.taskType}  source=${t.sourceOrg}`,
+      );
+      console.log(
+        `  agentDid=${t.agentDid || "—"}  targetOrg=${t.targetOrg || "—"}`,
+      );
+      console.log(
+        `  createdAt=${_fmtTs(t.createdAt)}  completedAt=${_fmtTs(t.completedAt)}`,
+      );
+    });
+
+  anet
+    .command("task-status")
+    .argument("<taskId>", "Task id")
+    .argument(
+      "<status>",
+      "New status (pending|routed|running|completed|failed|cancelled)",
+    )
+    .description("Update task status (terminal states set completedAt)")
+    .option("-r, --result <json>", "Result payload (JSON)", (v) =>
+      _parseJsonArg(v, null),
+    )
+    .option("--json", "JSON output")
+    .action((taskId, status, opts) => {
+      const db = _dbFromCtx(anet);
+      const r = updateTaskStatus(db, taskId, status, opts.result);
+      if (opts.json) return _json(r);
+      if (!r.changed) {
+        console.error(`Unknown task: ${taskId}`);
+        process.exit(1);
+      }
+      console.log(`${taskId} → ${status}`);
+    });
+
+  anet
+    .command("task-cancel")
+    .argument("<taskId>", "Task id")
+    .description("Cancel a task (sets CANCELLED + reason)")
+    .option("-r, --reason <reason>", "Cancellation reason")
+    .option("--json", "JSON output")
+    .action((taskId, opts) => {
+      const db = _dbFromCtx(anet);
+      const r = cancelTask(db, taskId, opts.reason);
+      if (opts.json) return _json(r);
+      if (!r.changed) {
+        console.error(`Unknown task: ${taskId}`);
+        process.exit(1);
+      }
+      console.log(`${taskId} cancelled`);
+    });
+
+  anet
+    .command("tasks")
+    .description("List tasks")
+    .option("-o, --org <orgId>", "Filter by source org")
+    .option("-d, --did <did>", "Filter by agent DID")
+    .option("-s, --status <status>", "Filter by status")
+    .option("--limit <n>", "Max rows", (v) => parseInt(v, 10), 50)
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(anet);
+      const rows = listTasks(db, {
+        orgId: opts.org,
+        agentDid: opts.did,
+        status: opts.status,
+        limit: opts.limit,
+      });
+      if (opts.json) return _json(rows);
+      for (const r of rows)
+        console.log(
+          `  ${r.taskId}  [${r.status}]  type=${r.taskType}  agent=${r.agentDid || "—"}`,
+        );
+      console.log(`(${rows.length} tasks)`);
+    });
+
+  /* ── Reputation ─────────────────────────────────── */
+
+  anet
+    .command("rep-update")
+    .argument("<did>", "Agent DID")
+    .argument(
+      "<dimension>",
+      "Dimension (reliability|quality|speed|cooperation)",
+    )
+    .argument("<score>", "Score (0..5)")
+    .description("Record a reputation observation")
+    .option("-e, --evidence <text>", "Evidence note")
+    .option("--json", "JSON output")
+    .action((did, dimension, scoreStr, opts) => {
+      const db = _dbFromCtx(anet);
+      const score = Number(scoreStr);
+      const r = updateReputation(db, {
+        agentDid: did,
+        dimension,
+        score,
+        evidence: opts.evidence,
+      });
+      if (opts.json) return _json(r);
+      console.log(
+        `${r.agentDid}  ${r.dimension}=${r.score}  (${_fmtTs(r.createdAt)})`,
+      );
+    });
+
+  anet
+    .command("rep-show")
+    .argument("<did>", "Agent DID")
+    .description("Show reputation summary (weighted total + per-dim avg)")
+    .option("--json", "JSON output")
+    .action((did, opts) => {
+      const db = _dbFromCtx(anet);
+      const r = getReputation(db, did);
+      if (opts.json) return _json(r);
+      console.log(`${did}  total=${r.total.toFixed(3)}  samples=${r.samples}`);
+      for (const d of REPUTATION_DIMENSIONS) {
+        const info = r.dimensions[d];
+        if (!info) continue;
+        console.log(
+          `  ${d.padEnd(12)} avg=${info.score.toFixed(3)} samples=${info.samples}`,
+        );
+      }
+    });
+
+  anet
+    .command("rep-history")
+    .argument("<did>", "Agent DID")
+    .description("Show reputation history (newest first)")
+    .option("--limit <n>", "Max rows", (v) => parseInt(v, 10), 20)
+    .option("--json", "JSON output")
+    .action((did, opts) => {
+      const db = _dbFromCtx(anet);
+      const rows = getReputationHistory(db, did, opts.limit);
+      if (opts.json) return _json(rows);
+      for (const r of rows)
+        console.log(
+          `  ${_fmtTs(r.createdAt)}  ${r.dimension.padEnd(12)} ${r.score.toFixed(2)}  ${r.evidence || ""}`,
+        );
+      console.log(`(${rows.length} observations)`);
+    });
+
+  anet
+    .command("rep-top")
+    .description("Top agents by dimension (or total)")
+    .option("-d, --dimension <dim>", "Dimension to rank by")
+    .option("--limit <n>", "Max rows", (v) => parseInt(v, 10), 10)
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(anet);
+      const rows = getTopAgents(db, {
+        dimension: opts.dimension,
+        limit: opts.limit,
+      });
+      if (opts.json) return _json(rows);
+      for (const r of rows)
+        console.log(
+          `  ${r.agentDid}  score=${r.score.toFixed(3)}  samples=${r.samples}`,
+        );
+    });
+
+  /* ── Stats ──────────────────────────────────────── */
+
+  anet
+    .command("stats")
+    .description("Network-level statistics")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(anet);
+      const s = getNetworkStats(db);
+      if (opts.json) return _json(s);
+      console.log(`DIDs: ${JSON.stringify(s.dids)}`);
+      console.log(`Registry: ${JSON.stringify(s.registry)}`);
+      console.log(`Tasks: ${JSON.stringify(s.tasks)}`);
+      console.log(`Credentials: ${JSON.stringify(s.credentials)}`);
+      console.log(`Sessions: ${JSON.stringify(s.sessions)}`);
+      console.log(`Peers: ${s.peers}`);
+    });
+
+  program.addCommand(anet);
+  return anet;
+}

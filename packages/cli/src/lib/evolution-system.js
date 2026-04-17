@@ -506,3 +506,456 @@ export function _resetState() {
   growthLog.length = 0;
   diagnoses.length = 0;
 }
+
+// ═════════════════════════════════════════════════════════════
+// Phase 100 — Self-Evolving AI V2 (canonical surface)
+// Strictly additive — pre-existing exports above remain unchanged.
+// ═════════════════════════════════════════════════════════════
+
+export const CAPABILITY_DIMENSION = Object.freeze({
+  REASONING: "reasoning",
+  KNOWLEDGE: "knowledge",
+  CREATIVITY: "creativity",
+  ACCURACY: "accuracy",
+  SPEED: "speed",
+  ADAPTABILITY: "adaptability",
+});
+
+export const DIAGNOSIS_SEVERITY = Object.freeze({
+  NORMAL: "normal",
+  WARNING: "warning",
+  CRITICAL: "critical",
+  FATAL: "fatal",
+});
+
+export const REPAIR_STRATEGY = Object.freeze({
+  PARAMETER_TUNE: "parameter_tune",
+  MODEL_ROLLBACK: "model_rollback",
+  CACHE_REBUILD: "cache_rebuild",
+  FULL_RESET: "full_reset",
+});
+
+export const GROWTH_MILESTONE = Object.freeze({
+  CAPABILITY_GAIN: "capability_gain",
+  KNOWLEDGE_EXPANSION: "knowledge_expansion",
+  SELF_REPAIR_SUCCESS: "self_repair_success",
+  PREDICTION_ACCURACY: "prediction_accuracy",
+});
+
+const TRAIN_STRATEGY = Object.freeze({
+  REPLAY: "replay",
+  ELASTIC_WEIGHT: "elastic-weight",
+  KNOWLEDGE_DISTILL: "knowledge-distill",
+});
+
+const _v2CapabilitiesByDim = new Map(); // dimension → { id, dimension, score, previousScore, trend, sampleCount, assessedAt, metadata }
+const _v2TrainingLog = []; // { id, strategy, dataSize, lossBefore, lossAfter, knowledgeRetention, durationMs, status, createdAt }
+const _v2DiagnosisById = new Map(); // diagnosisId → { id, scope, severity, anomaliesDetected, rootCause, repairSuggestion, repairStatus, repairedAt, createdAt }
+const _v2Milestones = []; // { id, type, description, capabilityId?, details, timestamp }
+const _v2Config = {
+  enabled: true,
+  assessmentDimensions: Object.values(CAPABILITY_DIMENSION),
+  assessmentIntervalMs: 3600000,
+  trainingStrategy: TRAIN_STRATEGY.ELASTIC_WEIGHT,
+  knowledgeRetentionThreshold: 0.85,
+  diagnosisEnabled: true,
+  diagnosisIntervalMs: 600000,
+  autoRepairEnabled: true,
+  autoRepairMaxRetries: 3,
+  predictionHorizonMs: 86400000,
+  growthLogRetentionDays: 365,
+};
+
+function _isValidEnumValue(enumObj, value) {
+  return Object.values(enumObj).includes(value);
+}
+
+export function assessCapabilityV2({ dimension, score, metadata = {} }) {
+  if (!_isValidEnumValue(CAPABILITY_DIMENSION, dimension)) {
+    throw new Error(`Invalid dimension: ${dimension}`);
+  }
+  if (!Number.isFinite(score) || score < 0 || score > 1) {
+    throw new Error("Score must be a finite number in [0, 1]");
+  }
+  const now = Date.now();
+  let entry = _v2CapabilitiesByDim.get(dimension);
+  const isFirstSample = !entry;
+  if (!entry) {
+    entry = {
+      id: crypto.randomUUID(),
+      dimension,
+      score: 0,
+      previousScore: 0,
+      trend: "stable",
+      sampleCount: 0,
+      assessedAt: now,
+      metadata: { ...metadata },
+    };
+    _v2CapabilitiesByDim.set(dimension, entry);
+  }
+  entry.previousScore = entry.score;
+  entry.score = score;
+  entry.sampleCount += 1;
+  entry.assessedAt = now;
+  entry.metadata = { ...entry.metadata, ...metadata };
+  if (isFirstSample) {
+    entry.trend = "stable";
+  } else {
+    const delta = entry.score - entry.previousScore;
+    if (delta > 0.01) entry.trend = "improving";
+    else if (delta < -0.01) entry.trend = "declining";
+    else entry.trend = "stable";
+
+    if (entry.trend === "improving" && delta >= 0.1) {
+      recordMilestone({
+        type: GROWTH_MILESTONE.CAPABILITY_GAIN,
+        description: `${dimension} capability gained ${delta.toFixed(3)}`,
+        capabilityId: entry.id,
+        details: { dimension, delta, newScore: score },
+      });
+    }
+  }
+  return { ...entry };
+}
+
+export function getCapabilityV2(dimension) {
+  const entry = _v2CapabilitiesByDim.get(dimension);
+  return entry ? { ...entry } : null;
+}
+
+export function listCapabilitiesV2() {
+  return [..._v2CapabilitiesByDim.values()]
+    .map((e) => ({ ...e }))
+    .sort((a, b) => a.dimension.localeCompare(b.dimension));
+}
+
+export function trainIncrementalV2({
+  strategy,
+  dataSize,
+  lossBefore,
+  lossAfter,
+  durationMs = 0,
+}) {
+  if (!_isValidEnumValue(TRAIN_STRATEGY, strategy)) {
+    throw new Error(`Invalid training strategy: ${strategy}`);
+  }
+  if (!Number.isFinite(dataSize) || dataSize < 0) {
+    throw new Error("dataSize must be a finite non-negative number");
+  }
+  if (!Number.isFinite(lossBefore) || !Number.isFinite(lossAfter)) {
+    throw new Error("lossBefore and lossAfter must be finite numbers");
+  }
+  const denom = Math.max(Math.abs(lossBefore), 0.01);
+  const knowledgeRetention = Math.max(
+    0,
+    Math.min(1, 1 - Math.abs(lossAfter - lossBefore) / denom),
+  );
+  const entry = {
+    id: crypto.randomUUID(),
+    strategy,
+    dataSize,
+    lossBefore,
+    lossAfter,
+    knowledgeRetention,
+    durationMs,
+    status:
+      knowledgeRetention >= _v2Config.knowledgeRetentionThreshold
+        ? "completed"
+        : "retention_low",
+    createdAt: Date.now(),
+  };
+  _v2TrainingLog.push(entry);
+  if (entry.status === "completed" && lossAfter < lossBefore) {
+    recordMilestone({
+      type: GROWTH_MILESTONE.KNOWLEDGE_EXPANSION,
+      description: `${strategy} training reduced loss ${lossBefore}→${lossAfter}`,
+      details: { strategy, dataSize, knowledgeRetention },
+    });
+  }
+  return { ...entry };
+}
+
+export function listTrainingLogV2({ strategy, limit } = {}) {
+  let list = [..._v2TrainingLog];
+  if (strategy) list = list.filter((e) => e.strategy === strategy);
+  list.sort((a, b) => b.createdAt - a.createdAt);
+  if (Number.isFinite(limit) && limit > 0) list = list.slice(0, limit);
+  return list;
+}
+
+export function selfDiagnoseV2({ scope = "system", depth = "shallow" } = {}) {
+  const anomalies = [];
+  let severity = DIAGNOSIS_SEVERITY.NORMAL;
+
+  // Capability-based anomalies (V2 store)
+  for (const [, cap] of _v2CapabilitiesByDim) {
+    if (cap.trend === "declining" && cap.previousScore - cap.score >= 0.2) {
+      anomalies.push({
+        type: "sharp_capability_drop",
+        dimension: cap.dimension,
+        delta: cap.score - cap.previousScore,
+      });
+      if (severity === DIAGNOSIS_SEVERITY.NORMAL) {
+        severity = DIAGNOSIS_SEVERITY.WARNING;
+      }
+    }
+  }
+
+  // Training retention anomalies
+  const recentTrain = _v2TrainingLog.slice(-10);
+  const lowRetention = recentTrain.filter(
+    (t) => t.knowledgeRetention < _v2Config.knowledgeRetentionThreshold,
+  );
+  if (lowRetention.length >= 3) {
+    anomalies.push({
+      type: "catastrophic_forgetting",
+      count: lowRetention.length,
+    });
+    severity = DIAGNOSIS_SEVERITY.CRITICAL;
+  }
+
+  let rootCause = null;
+  let repairSuggestion = null;
+  if (anomalies.length > 0) {
+    const top = anomalies[0];
+    if (top.type === "sharp_capability_drop") {
+      rootCause = `Capability ${top.dimension} dropped sharply`;
+      repairSuggestion = REPAIR_STRATEGY.PARAMETER_TUNE;
+    } else if (top.type === "catastrophic_forgetting") {
+      rootCause = "Knowledge retention below threshold in recent training";
+      repairSuggestion = REPAIR_STRATEGY.MODEL_ROLLBACK;
+    }
+  }
+
+  const entry = {
+    id: crypto.randomUUID(),
+    scope,
+    depth,
+    severity,
+    anomaliesDetected: anomalies.length,
+    anomalies,
+    rootCause,
+    repairSuggestion,
+    repairStatus: "pending",
+    repairedAt: null,
+    createdAt: Date.now(),
+  };
+  _v2DiagnosisById.set(entry.id, entry);
+  return { ...entry };
+}
+
+export function getDiagnosisV2(diagnosisId) {
+  const entry = _v2DiagnosisById.get(diagnosisId);
+  return entry ? { ...entry } : null;
+}
+
+export function listDiagnosesV2({ severity } = {}) {
+  let list = [..._v2DiagnosisById.values()];
+  if (severity) list = list.filter((e) => e.severity === severity);
+  list.sort((a, b) => b.createdAt - a.createdAt);
+  return list.map((e) => ({ ...e }));
+}
+
+export function selfRepairV2({ diagnosisId, strategy }) {
+  if (!_isValidEnumValue(REPAIR_STRATEGY, strategy)) {
+    throw new Error(`Invalid repair strategy: ${strategy}`);
+  }
+  const entry = _v2DiagnosisById.get(diagnosisId);
+  if (!entry) throw new Error(`Diagnosis not found: ${diagnosisId}`);
+  if (entry.repairStatus === "completed") {
+    throw new Error("Diagnosis already repaired");
+  }
+
+  const actions = [];
+  switch (strategy) {
+    case REPAIR_STRATEGY.PARAMETER_TUNE:
+      actions.push("Adjusted adaptive hyperparameters");
+      break;
+    case REPAIR_STRATEGY.MODEL_ROLLBACK:
+      actions.push("Rolled back to last stable model checkpoint");
+      break;
+    case REPAIR_STRATEGY.CACHE_REBUILD:
+      actions.push("Invalidated inference caches; rebuild queued");
+      break;
+    case REPAIR_STRATEGY.FULL_RESET:
+      actions.push("Full reset scheduled — requires operator confirmation");
+      break;
+  }
+
+  entry.repairStatus = "completed";
+  entry.repairedAt = Date.now();
+  entry.repairStrategy = strategy;
+  entry.repairActions = actions;
+  _v2DiagnosisById.set(entry.id, entry);
+
+  recordMilestone({
+    type: GROWTH_MILESTONE.SELF_REPAIR_SUCCESS,
+    description: `Repaired diagnosis ${diagnosisId} via ${strategy}`,
+    details: { diagnosisId, strategy, actions },
+  });
+
+  return {
+    diagnosisId,
+    strategy,
+    actions,
+    repairedAt: entry.repairedAt,
+  };
+}
+
+export function predictBehaviorV2({ timeHorizonMs, context = {} } = {}) {
+  const horizon = Number.isFinite(timeHorizonMs)
+    ? timeHorizonMs
+    : _v2Config.predictionHorizonMs;
+  const recentMilestones = _v2Milestones.slice(-50);
+  const typeCounts = {};
+  for (const m of recentMilestones) {
+    typeCounts[m.type] = (typeCounts[m.type] || 0) + 1;
+  }
+  const total = recentMilestones.length || 1;
+  const predictions = Object.entries(typeCounts)
+    .map(([type, count]) => ({
+      type,
+      probability: parseFloat((count / total).toFixed(3)),
+    }))
+    .sort((a, b) => b.probability - a.probability);
+
+  const confidence = Math.min(0.95, 0.3 + recentMilestones.length * 0.015);
+  return {
+    horizonMs: horizon,
+    context,
+    predictions,
+    confidence: parseFloat(confidence.toFixed(3)),
+    basedOnMilestones: recentMilestones.length,
+  };
+}
+
+export function recordMilestone({
+  type,
+  description,
+  capabilityId = null,
+  details = {},
+}) {
+  if (!_isValidEnumValue(GROWTH_MILESTONE, type)) {
+    throw new Error(`Invalid milestone type: ${type}`);
+  }
+  const entry = {
+    id: crypto.randomUUID(),
+    type,
+    description: String(description || ""),
+    capabilityId,
+    details,
+    timestamp: Date.now(),
+  };
+  _v2Milestones.push(entry);
+  return { ...entry };
+}
+
+export function getGrowthLogV2({
+  period,
+  milestoneOnly = false,
+  milestoneType,
+  limit,
+} = {}) {
+  let list = [..._v2Milestones];
+  if (milestoneType) {
+    list = list.filter((m) => m.type === milestoneType);
+  } else if (milestoneOnly) {
+    // All entries in _v2Milestones are milestones by definition — keep for symmetry.
+  }
+  if (period && Number.isFinite(period.fromMs)) {
+    list = list.filter((m) => m.timestamp >= period.fromMs);
+  }
+  if (period && Number.isFinite(period.toMs)) {
+    list = list.filter((m) => m.timestamp <= period.toMs);
+  }
+  list.sort((a, b) => b.timestamp - a.timestamp);
+  if (Number.isFinite(limit) && limit > 0) list = list.slice(0, limit);
+  return list.map((e) => ({ ...e }));
+}
+
+const CONFIG_KEYS = Object.freeze([
+  "enabled",
+  "assessmentIntervalMs",
+  "trainingStrategy",
+  "knowledgeRetentionThreshold",
+  "diagnosisEnabled",
+  "diagnosisIntervalMs",
+  "autoRepairEnabled",
+  "autoRepairMaxRetries",
+  "predictionHorizonMs",
+  "growthLogRetentionDays",
+]);
+
+export function configureEvolution({ key, value }) {
+  if (!CONFIG_KEYS.includes(key)) {
+    throw new Error(`Unknown config key: ${key}`);
+  }
+  if (key === "trainingStrategy") {
+    if (!_isValidEnumValue(TRAIN_STRATEGY, value)) {
+      throw new Error(`Invalid trainingStrategy: ${value}`);
+    }
+  } else if (key === "knowledgeRetentionThreshold") {
+    if (!Number.isFinite(value) || value < 0 || value > 1) {
+      throw new Error("knowledgeRetentionThreshold must be in [0, 1]");
+    }
+  } else if (
+    key === "assessmentIntervalMs" ||
+    key === "diagnosisIntervalMs" ||
+    key === "predictionHorizonMs"
+  ) {
+    if (!Number.isFinite(value) || value <= 0) {
+      throw new Error(`${key} must be a positive finite number`);
+    }
+  } else if (
+    key === "autoRepairMaxRetries" ||
+    key === "growthLogRetentionDays"
+  ) {
+    if (!Number.isInteger(value) || value < 0) {
+      throw new Error(`${key} must be a non-negative integer`);
+    }
+  }
+  _v2Config[key] = value;
+  return { ...getEvolutionConfig() };
+}
+
+export function getEvolutionConfig() {
+  return {
+    ..._v2Config,
+    assessmentDimensions: [..._v2Config.assessmentDimensions],
+  };
+}
+
+export function getEvolutionStatsV2() {
+  const bySeverity = {};
+  for (const [, d] of _v2DiagnosisById) {
+    bySeverity[d.severity] = (bySeverity[d.severity] || 0) + 1;
+  }
+  const byMilestone = {};
+  for (const m of _v2Milestones) {
+    byMilestone[m.type] = (byMilestone[m.type] || 0) + 1;
+  }
+  return {
+    capabilityCount: _v2CapabilitiesByDim.size,
+    trainingRuns: _v2TrainingLog.length,
+    diagnoses: { total: _v2DiagnosisById.size, bySeverity },
+    milestones: { total: _v2Milestones.length, byType: byMilestone },
+  };
+}
+
+export function _resetV2State() {
+  _v2CapabilitiesByDim.clear();
+  _v2TrainingLog.length = 0;
+  _v2DiagnosisById.clear();
+  _v2Milestones.length = 0;
+  _v2Config.enabled = true;
+  _v2Config.assessmentDimensions = Object.values(CAPABILITY_DIMENSION);
+  _v2Config.assessmentIntervalMs = 3600000;
+  _v2Config.trainingStrategy = TRAIN_STRATEGY.ELASTIC_WEIGHT;
+  _v2Config.knowledgeRetentionThreshold = 0.85;
+  _v2Config.diagnosisEnabled = true;
+  _v2Config.diagnosisIntervalMs = 600000;
+  _v2Config.autoRepairEnabled = true;
+  _v2Config.autoRepairMaxRetries = 3;
+  _v2Config.predictionHorizonMs = 86400000;
+  _v2Config.growthLogRetentionDays = 365;
+}

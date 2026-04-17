@@ -587,3 +587,484 @@ export function getMemoryStats(db) {
     total: workingTotal + shortTermTotal + ltCount.count + coreCount.count,
   };
 }
+
+// ═════════════════════════════════════════════════════════════════
+// Phase 83 — Hierarchical Memory 2.0 additions (strictly-additive)
+// Frozen canonical enums + metadata-aware store + promote/demote
+// + permission-based sharing + episodic/semantic V2 search
+// + consolidation status tracking + timer lifecycle
+// ═════════════════════════════════════════════════════════════════
+
+export const MEMORY_LAYER = Object.freeze({
+  WORKING: "working",
+  SHORT_TERM: "short-term",
+  LONG_TERM: "long-term",
+  CORE: "core",
+});
+
+export const MEMORY_TYPE = Object.freeze({
+  EPISODIC: "episodic",
+  SEMANTIC: "semantic",
+  PROCEDURAL: "procedural",
+});
+
+export const CONSOLIDATION_STATUS = Object.freeze({
+  PENDING: "pending",
+  PROCESSING: "processing",
+  COMPLETED: "completed",
+  FAILED: "failed",
+});
+
+export const SHARE_PERMISSION = Object.freeze({
+  READ: "read",
+  COPY: "copy",
+  MODIFY: "modify",
+});
+
+const _LAYER_VALUES = new Set(Object.values(MEMORY_LAYER));
+const _TYPE_VALUES = new Set(Object.values(MEMORY_TYPE));
+const _PERM_VALUES = new Set(Object.values(SHARE_PERMISSION));
+
+// V2 state (parallel to existing in-memory maps)
+const _v2MetaNS = new Map();
+const _v2Shares = [];
+const _v2Consolidations = [];
+let _consolidationTimer = null;
+
+/**
+ * Public accessor for the Ebbinghaus forgetting curve used internally.
+ * retention = e^(-decay_rate * age_hours)
+ */
+export function applyForgettingCurve(
+  createdOrAccessed,
+  rate = MEMORY_CONFIG.forgettingRate,
+) {
+  return calcRetention(createdOrAccessed, rate);
+}
+
+/**
+ * Record V2 metadata for an already-stored memory. Metadata is not
+ * persisted to the DB — lives alongside the in-memory layer.
+ */
+export function attachMetadata(memoryId, metadata, namespace = DEFAULT_NS) {
+  if (!memoryId) throw new Error("memoryId is required");
+  if (!metadata || typeof metadata !== "object")
+    throw new Error("metadata must be an object");
+  if (!_v2MetaNS.has(namespace)) _v2MetaNS.set(namespace, new Map());
+  const meta = _v2MetaNS.get(namespace).get(memoryId) || {};
+  const merged = { ...meta, ...metadata, memoryId };
+  _v2MetaNS.get(namespace).set(memoryId, merged);
+  return merged;
+}
+
+/**
+ * Find which layer a memoryId lives in (in-memory only).
+ */
+function _locateInMemory(memoryId) {
+  for (const [ns, nsMap] of _workingNS) {
+    if (nsMap.has(memoryId))
+      return { layer: MEMORY_LAYER.WORKING, namespace: ns, nsMap };
+  }
+  for (const [ns, nsMap] of _shortTermNS) {
+    if (nsMap.has(memoryId))
+      return { layer: MEMORY_LAYER.SHORT_TERM, namespace: ns, nsMap };
+  }
+  return null;
+}
+
+/**
+ * Promote a memory one layer up: working → short-term → long-term.
+ */
+export function promoteMemoryV2(db, memoryId) {
+  if (!memoryId) throw new Error("memoryId is required");
+  const loc = _locateInMemory(memoryId);
+  if (loc && loc.layer === MEMORY_LAYER.WORKING) {
+    const mem = loc.nsMap.get(memoryId);
+    loc.nsMap.delete(memoryId);
+    _getShortTermNS(loc.namespace).set(memoryId, {
+      ...mem,
+      lastAccessed: nowISO(),
+    });
+    return {
+      id: memoryId,
+      from: MEMORY_LAYER.WORKING,
+      to: MEMORY_LAYER.SHORT_TERM,
+    };
+  }
+  if (loc && loc.layer === MEMORY_LAYER.SHORT_TERM) {
+    const mem = loc.nsMap.get(memoryId);
+    loc.nsMap.delete(memoryId);
+    ensureMemoryTables(db);
+    const now = nowISO();
+    db.prepare(
+      `INSERT INTO memory_long_term (id, content, type, importance, access_count, layer, created_at, last_accessed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      memoryId,
+      mem.content,
+      mem.type,
+      mem.importance,
+      mem.accessCount,
+      "long-term",
+      mem.createdAt,
+      now,
+    );
+    return {
+      id: memoryId,
+      from: MEMORY_LAYER.SHORT_TERM,
+      to: MEMORY_LAYER.LONG_TERM,
+    };
+  }
+  throw new Error(`Memory not found in working/short-term: ${memoryId}`);
+}
+
+/**
+ * Demote a memory one layer down: short-term → working.
+ * (long-term/core demotion requires DB round-trip; not exposed here.)
+ */
+export function demoteMemoryV2(memoryId) {
+  if (!memoryId) throw new Error("memoryId is required");
+  for (const [ns, nsMap] of _shortTermNS) {
+    if (nsMap.has(memoryId)) {
+      const mem = nsMap.get(memoryId);
+      nsMap.delete(memoryId);
+      _getWorkingNS(ns).set(memoryId, { ...mem, lastAccessed: nowISO() });
+      return {
+        id: memoryId,
+        from: MEMORY_LAYER.SHORT_TERM,
+        to: MEMORY_LAYER.WORKING,
+      };
+    }
+  }
+  throw new Error(`Memory not in short-term: ${memoryId}`);
+}
+
+/**
+ * Share a memory with fine-grained permissions.
+ * permissions: subset of {read, copy, modify} — validated against SHARE_PERMISSION.
+ */
+export function shareMemoryV2(
+  db,
+  { memoryId, sourceAgent, targetAgent, permissions = ["read"] } = {},
+) {
+  if (!memoryId || !targetAgent) {
+    throw new Error("memoryId and targetAgent are required");
+  }
+  const perms = Array.isArray(permissions) ? permissions : [permissions];
+  for (const p of perms) {
+    if (!_PERM_VALUES.has(p)) throw new Error(`Invalid permission: ${p}`);
+  }
+  ensureMemoryTables(db);
+  const id = `sharev2-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const sharedAt = nowISO();
+  const record = {
+    id,
+    memoryId,
+    sourceAgent: sourceAgent || "local",
+    targetAgent,
+    permissions: [...perms],
+    sharedAt,
+    revokedAt: null,
+  };
+  _v2Shares.push(record);
+  try {
+    db.prepare(
+      `INSERT INTO memory_sharing (id, memory_id, source_agent, target_agent, privacy_level, shared_at) VALUES (?, ?, ?, ?, ?, ?)`,
+    ).run(
+      id,
+      memoryId,
+      record.sourceAgent,
+      targetAgent,
+      perms.join(","),
+      sharedAt,
+    );
+  } catch {
+    /* schema drift tolerated */
+  }
+  return record;
+}
+
+export function revokeShare(shareId) {
+  const record = _v2Shares.find((s) => s.id === shareId);
+  if (!record) throw new Error(`Share not found: ${shareId}`);
+  if (record.revokedAt) throw new Error(`Share already revoked`);
+  record.revokedAt = nowISO();
+  return record;
+}
+
+export function listShares(options = {}) {
+  let result = [..._v2Shares];
+  if (options.memoryId)
+    result = result.filter((s) => s.memoryId === options.memoryId);
+  if (options.targetAgent)
+    result = result.filter((s) => s.targetAgent === options.targetAgent);
+  if (options.activeOnly) result = result.filter((s) => !s.revokedAt);
+  return result;
+}
+
+function _timeInRange(ts, range) {
+  if (!range) return true;
+  const t = new Date(ts).getTime();
+  if (range.from && t < new Date(range.from).getTime()) return false;
+  if (range.to && t > new Date(range.to).getTime()) return false;
+  return true;
+}
+
+/**
+ * Search episodic memories with time range + scene + context filters.
+ */
+export function searchEpisodicV2(db, options = {}) {
+  const { timeRange, scene, context, query, limit = 20, namespace } = options;
+  const results = [];
+  const scanLayer = (nsMap, ns, layerName) => {
+    for (const [id, mem] of nsMap) {
+      if (mem.type !== MEMORY_TYPE.EPISODIC) continue;
+      const meta = _v2MetaNS.get(ns)?.get(id);
+      if (timeRange && !_timeInRange(mem.createdAt, timeRange)) continue;
+      if (scene && meta?.scene !== scene) continue;
+      if (context && !(meta?.context || "").includes(context)) continue;
+      if (query && !mem.content.toLowerCase().includes(query.toLowerCase()))
+        continue;
+      results.push({ ...mem, layer: layerName, metadata: meta || null });
+    }
+  };
+  for (const [ns, nsMap] of _workingNS) {
+    if (namespace && ns !== namespace) continue;
+    scanLayer(nsMap, ns, MEMORY_LAYER.WORKING);
+  }
+  for (const [ns, nsMap] of _shortTermNS) {
+    if (namespace && ns !== namespace) continue;
+    scanLayer(nsMap, ns, MEMORY_LAYER.SHORT_TERM);
+  }
+  return results.slice(0, limit);
+}
+
+/**
+ * Search semantic memories with concept-overlap similarity.
+ * similarity = |A ∩ B| / max(|A|, |B|) (Szymkiewicz–Simpson-like)
+ */
+export function searchSemanticV2(db, options = {}) {
+  const {
+    concepts = [],
+    query,
+    similarityThreshold = 0,
+    limit = 20,
+    namespace,
+  } = options;
+  const results = [];
+  const scanLayer = (nsMap, ns, layerName) => {
+    for (const [id, mem] of nsMap) {
+      if (mem.type !== MEMORY_TYPE.SEMANTIC) continue;
+      const meta = _v2MetaNS.get(ns)?.get(id);
+      const memConcepts = meta?.concepts || [];
+      let sim = 0;
+      if (concepts.length > 0) {
+        const overlap = concepts.filter((c) => memConcepts.includes(c)).length;
+        const denom = Math.max(concepts.length, memConcepts.length) || 1;
+        sim = overlap / denom;
+        if (sim < similarityThreshold) continue;
+      }
+      if (query && !mem.content.toLowerCase().includes(query.toLowerCase()))
+        continue;
+      results.push({
+        ...mem,
+        layer: layerName,
+        metadata: meta || null,
+        similarity: sim,
+      });
+    }
+  };
+  for (const [ns, nsMap] of _workingNS) {
+    if (namespace && ns !== namespace) continue;
+    scanLayer(nsMap, ns, MEMORY_LAYER.WORKING);
+  }
+  for (const [ns, nsMap] of _shortTermNS) {
+    if (namespace && ns !== namespace) continue;
+    scanLayer(nsMap, ns, MEMORY_LAYER.SHORT_TERM);
+  }
+  results.sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
+  return results.slice(0, limit);
+}
+
+/**
+ * Consolidation run with status tracking and optional pattern extraction.
+ * Delegates to existing consolidateMemory() for promotion logic.
+ */
+export function consolidateV2(db, options = {}) {
+  const id = `consol-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const record = {
+    id,
+    status: CONSOLIDATION_STATUS.PROCESSING,
+    startedAt: nowISO(),
+    completedAt: null,
+    promoted: 0,
+    forgotten: 0,
+    patterns: [],
+    error: null,
+  };
+  _v2Consolidations.push(record);
+  try {
+    // Pattern extraction snapshot BEFORE consolidation (so we can see
+    // frequently-accessed short-term items before they get promoted out).
+    if (options.extractPatterns) {
+      for (const [, nsMap] of _shortTermNS) {
+        for (const mem of nsMap.values()) {
+          if (mem.accessCount >= 2) {
+            record.patterns.push({
+              id: mem.id,
+              type: mem.type,
+              content: mem.content.slice(0, 80),
+              accessCount: mem.accessCount,
+            });
+          }
+        }
+      }
+    }
+    const result = consolidateMemory(db);
+    record.promoted = result.promoted;
+    record.forgotten = result.forgotten;
+    record.status = CONSOLIDATION_STATUS.COMPLETED;
+    record.completedAt = nowISO();
+  } catch (err) {
+    record.status = CONSOLIDATION_STATUS.FAILED;
+    record.completedAt = nowISO();
+    record.error = err.message;
+  }
+  return record;
+}
+
+export function listConsolidations(options = {}) {
+  let result = [..._v2Consolidations];
+  if (options.status)
+    result = result.filter((c) => c.status === options.status);
+  return result;
+}
+
+/**
+ * Prune with per-layer scope + custom threshold.
+ */
+export function pruneV2(db, options = {}) {
+  const { layer, maxAge = 720, threshold } = options;
+  if (layer && !_LAYER_VALUES.has(layer))
+    throw new Error(`Invalid layer: ${layer}`);
+  const effectiveThreshold = threshold ?? MEMORY_CONFIG.recallThreshold;
+  let pruned = 0;
+
+  if (!layer || layer === MEMORY_LAYER.WORKING) {
+    for (const [, nsMap] of _workingNS) {
+      for (const [id, mem] of nsMap) {
+        const retention = calcRetention(mem.lastAccessed);
+        if (retention < effectiveThreshold) {
+          nsMap.delete(id);
+          pruned++;
+        }
+      }
+    }
+  }
+  if (!layer || layer === MEMORY_LAYER.SHORT_TERM) {
+    for (const [, nsMap] of _shortTermNS) {
+      for (const [id, mem] of nsMap) {
+        const retention = calcRetention(mem.lastAccessed);
+        if (retention < effectiveThreshold) {
+          nsMap.delete(id);
+          pruned++;
+        }
+      }
+    }
+  }
+  if (!layer || layer === MEMORY_LAYER.LONG_TERM) {
+    const cutoff = new Date(Date.now() - maxAge * 60 * 60 * 1000).toISOString();
+    ensureMemoryTables(db);
+    const result = db
+      .prepare(
+        `DELETE FROM memory_long_term WHERE last_accessed < ? AND access_count < 3`,
+      )
+      .run(cutoff);
+    pruned += result.changes || 0;
+  }
+
+  return { pruned, layer: layer || "all" };
+}
+
+/**
+ * Start a periodic consolidation timer. Returns timer handle.
+ * Only one timer at a time — repeat calls return the existing handle.
+ */
+export function startConsolidationTimer({
+  intervalMs = 60_000,
+  db,
+  onTick,
+} = {}) {
+  if (_consolidationTimer) return _consolidationTimer;
+  if (!db) throw new Error("db is required for consolidation timer");
+  _consolidationTimer = setInterval(() => {
+    const rec = consolidateV2(db);
+    if (onTick) {
+      try {
+        onTick(rec);
+      } catch {
+        /* swallow */
+      }
+    }
+  }, intervalMs);
+  return _consolidationTimer;
+}
+
+export function stopConsolidationTimer() {
+  if (_consolidationTimer) {
+    clearInterval(_consolidationTimer);
+    _consolidationTimer = null;
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Extended stats — base + per-layer breakdown + consolidation + shares.
+ */
+export function getStatsV2(db) {
+  const base = getMemoryStats(db);
+
+  const perLayer = {
+    [MEMORY_LAYER.WORKING]: base.working,
+    [MEMORY_LAYER.SHORT_TERM]: base.shortTerm,
+    [MEMORY_LAYER.LONG_TERM]: base.longTerm,
+    [MEMORY_LAYER.CORE]: base.core,
+  };
+
+  const byStatus = {};
+  for (const c of _v2Consolidations) {
+    byStatus[c.status] = (byStatus[c.status] || 0) + 1;
+  }
+
+  return {
+    ...base,
+    perLayer,
+    consolidation: {
+      total: _v2Consolidations.length,
+      byStatus,
+      last: _v2Consolidations[_v2Consolidations.length - 1] || null,
+    },
+    shares: {
+      total: _v2Shares.length,
+      active: _v2Shares.filter((s) => !s.revokedAt).length,
+      revoked: _v2Shares.filter((s) => s.revokedAt).length,
+    },
+    metadataEntries: [..._v2MetaNS.values()].reduce(
+      (sum, m) => sum + m.size,
+      0,
+    ),
+  };
+}
+
+/**
+ * Test helper — clear all V2 state + stop timer.
+ */
+export function _resetV2State() {
+  _v2MetaNS.clear();
+  _v2Shares.length = 0;
+  _v2Consolidations.length = 0;
+  if (_consolidationTimer) {
+    clearInterval(_consolidationTimer);
+    _consolidationTimer = null;
+  }
+}

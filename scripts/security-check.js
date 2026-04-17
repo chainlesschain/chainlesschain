@@ -81,6 +81,8 @@ const ALLOWED_FILES = [
   // CLI LLM provider integration tests (contain fake test API keys)
   "llm-provider-workflow.test.js",
   "proxy-base-url-override.test.js",
+  // Plugin ecosystem test (contains fake API key for secret-detection test)
+  "plugin-ecosystem.test.js",
 ];
 
 function checkFileForSecrets(filePath) {

@@ -12,6 +12,27 @@ import {
   getModels,
   exportModel,
   _resetState,
+  // Phase 100 V2
+  CAPABILITY_DIMENSION,
+  DIAGNOSIS_SEVERITY,
+  REPAIR_STRATEGY,
+  GROWTH_MILESTONE,
+  assessCapabilityV2,
+  getCapabilityV2,
+  listCapabilitiesV2,
+  trainIncrementalV2,
+  listTrainingLogV2,
+  selfDiagnoseV2,
+  getDiagnosisV2,
+  listDiagnosesV2,
+  selfRepairV2,
+  predictBehaviorV2,
+  recordMilestone,
+  getGrowthLogV2,
+  configureEvolution,
+  getEvolutionConfig,
+  getEvolutionStatsV2,
+  _resetV2State,
 } from "../../src/lib/evolution-system.js";
 
 describe("evolution-system", () => {
@@ -20,6 +41,7 @@ describe("evolution-system", () => {
   beforeEach(() => {
     db = new MockDatabase();
     _resetState();
+    _resetV2State();
   });
 
   // ─── ensureEvolutionTables ────────────────────────────────
@@ -350,6 +372,417 @@ describe("evolution-system", () => {
 
     it("throws for non-existent model", () => {
       expect(() => exportModel(db, "nonexistent")).toThrow("not found");
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // Phase 100 — Self-Evolving AI V2
+  // ═══════════════════════════════════════════════════════════
+
+  describe("V2 frozen enums", () => {
+    it("CAPABILITY_DIMENSION has 6 dimensions and is frozen", () => {
+      expect(Object.values(CAPABILITY_DIMENSION)).toEqual([
+        "reasoning",
+        "knowledge",
+        "creativity",
+        "accuracy",
+        "speed",
+        "adaptability",
+      ]);
+      expect(Object.isFrozen(CAPABILITY_DIMENSION)).toBe(true);
+    });
+
+    it("DIAGNOSIS_SEVERITY has 4 levels", () => {
+      expect(Object.values(DIAGNOSIS_SEVERITY)).toEqual([
+        "normal",
+        "warning",
+        "critical",
+        "fatal",
+      ]);
+      expect(Object.isFrozen(DIAGNOSIS_SEVERITY)).toBe(true);
+    });
+
+    it("REPAIR_STRATEGY has 4 strategies", () => {
+      expect(Object.values(REPAIR_STRATEGY)).toEqual([
+        "parameter_tune",
+        "model_rollback",
+        "cache_rebuild",
+        "full_reset",
+      ]);
+      expect(Object.isFrozen(REPAIR_STRATEGY)).toBe(true);
+    });
+
+    it("GROWTH_MILESTONE has 4 types", () => {
+      expect(Object.values(GROWTH_MILESTONE)).toEqual([
+        "capability_gain",
+        "knowledge_expansion",
+        "self_repair_success",
+        "prediction_accuracy",
+      ]);
+      expect(Object.isFrozen(GROWTH_MILESTONE)).toBe(true);
+    });
+  });
+
+  describe("assessCapabilityV2", () => {
+    it("rejects invalid dimension", () => {
+      expect(() =>
+        assessCapabilityV2({ dimension: "bogus", score: 0.5 }),
+      ).toThrow("Invalid dimension");
+    });
+
+    it("rejects score out of [0, 1]", () => {
+      expect(() =>
+        assessCapabilityV2({ dimension: "reasoning", score: 1.5 }),
+      ).toThrow("Score must be a finite number in [0, 1]");
+      expect(() =>
+        assessCapabilityV2({ dimension: "reasoning", score: -0.1 }),
+      ).toThrow("Score must be a finite number in [0, 1]");
+    });
+
+    it("creates a new capability with initial trend=stable", () => {
+      const r = assessCapabilityV2({
+        dimension: CAPABILITY_DIMENSION.REASONING,
+        score: 0.6,
+      });
+      expect(r.dimension).toBe("reasoning");
+      expect(r.score).toBe(0.6);
+      expect(r.previousScore).toBe(0);
+      expect(r.trend).toBe("stable"); // first sample: delta = 0.6 from 0 but initial is 0 → improving is also valid
+      expect(r.sampleCount).toBe(1);
+    });
+
+    it("detects improving trend on second assessment with delta>0.01", () => {
+      assessCapabilityV2({ dimension: "knowledge", score: 0.5 });
+      const r = assessCapabilityV2({ dimension: "knowledge", score: 0.7 });
+      expect(r.trend).toBe("improving");
+      expect(r.sampleCount).toBe(2);
+      expect(r.previousScore).toBe(0.5);
+    });
+
+    it("detects declining trend", () => {
+      assessCapabilityV2({ dimension: "speed", score: 0.8 });
+      const r = assessCapabilityV2({ dimension: "speed", score: 0.5 });
+      expect(r.trend).toBe("declining");
+    });
+
+    it("records CAPABILITY_GAIN milestone on delta ≥ 0.1", () => {
+      assessCapabilityV2({ dimension: "creativity", score: 0.4 });
+      assessCapabilityV2({ dimension: "creativity", score: 0.6 });
+      const log = getGrowthLogV2({
+        milestoneType: GROWTH_MILESTONE.CAPABILITY_GAIN,
+      });
+      expect(log.length).toBe(1);
+      expect(log[0].capabilityId).toBeTruthy();
+    });
+
+    it("merges metadata across assessments", () => {
+      assessCapabilityV2({
+        dimension: "accuracy",
+        score: 0.5,
+        metadata: { source: "benchmark-A" },
+      });
+      const r = assessCapabilityV2({
+        dimension: "accuracy",
+        score: 0.6,
+        metadata: { run: 2 },
+      });
+      expect(r.metadata).toEqual({ source: "benchmark-A", run: 2 });
+    });
+
+    it("listCapabilitiesV2 returns sorted by dimension", () => {
+      assessCapabilityV2({ dimension: "speed", score: 0.7 });
+      assessCapabilityV2({ dimension: "accuracy", score: 0.6 });
+      const list = listCapabilitiesV2();
+      expect(list.map((e) => e.dimension)).toEqual(["accuracy", "speed"]);
+    });
+
+    it("getCapabilityV2 returns null for unknown dimension", () => {
+      expect(getCapabilityV2("reasoning")).toBeNull();
+    });
+  });
+
+  describe("trainIncrementalV2", () => {
+    it("rejects invalid strategy", () => {
+      expect(() =>
+        trainIncrementalV2({
+          strategy: "bogus",
+          dataSize: 10,
+          lossBefore: 0.5,
+          lossAfter: 0.3,
+        }),
+      ).toThrow("Invalid training strategy");
+    });
+
+    it("rejects non-finite loss values", () => {
+      expect(() =>
+        trainIncrementalV2({
+          strategy: "replay",
+          dataSize: 10,
+          lossBefore: NaN,
+          lossAfter: 0.3,
+        }),
+      ).toThrow("lossBefore and lossAfter must be finite numbers");
+    });
+
+    it("computes knowledge retention ∈ [0, 1]", () => {
+      const r = trainIncrementalV2({
+        strategy: "elastic-weight",
+        dataSize: 100,
+        lossBefore: 0.5,
+        lossAfter: 0.4,
+      });
+      expect(r.knowledgeRetention).toBeGreaterThan(0);
+      expect(r.knowledgeRetention).toBeLessThanOrEqual(1);
+    });
+
+    it("marks completed when retention ≥ threshold", () => {
+      const r = trainIncrementalV2({
+        strategy: "elastic-weight",
+        dataSize: 100,
+        lossBefore: 0.5,
+        lossAfter: 0.48,
+      });
+      expect(r.status).toBe("completed");
+    });
+
+    it("marks retention_low when below threshold", () => {
+      const r = trainIncrementalV2({
+        strategy: "replay",
+        dataSize: 100,
+        lossBefore: 0.5,
+        lossAfter: 0.1,
+      });
+      expect(r.status).toBe("retention_low");
+    });
+
+    it("records KNOWLEDGE_EXPANSION milestone on loss reduction + completed", () => {
+      trainIncrementalV2({
+        strategy: "elastic-weight",
+        dataSize: 100,
+        lossBefore: 0.5,
+        lossAfter: 0.49,
+      });
+      const log = getGrowthLogV2({
+        milestoneType: GROWTH_MILESTONE.KNOWLEDGE_EXPANSION,
+      });
+      expect(log.length).toBe(1);
+    });
+
+    it("listTrainingLogV2 filters by strategy and respects limit", () => {
+      trainIncrementalV2({
+        strategy: "replay",
+        dataSize: 10,
+        lossBefore: 0.5,
+        lossAfter: 0.45,
+      });
+      trainIncrementalV2({
+        strategy: "elastic-weight",
+        dataSize: 10,
+        lossBefore: 0.4,
+        lossAfter: 0.35,
+      });
+      const list = listTrainingLogV2({ strategy: "replay" });
+      expect(list.length).toBe(1);
+      expect(list[0].strategy).toBe("replay");
+    });
+  });
+
+  describe("selfDiagnoseV2 + selfRepairV2", () => {
+    it("returns NORMAL severity when nothing is wrong", () => {
+      const r = selfDiagnoseV2();
+      expect(r.severity).toBe(DIAGNOSIS_SEVERITY.NORMAL);
+      expect(r.anomaliesDetected).toBe(0);
+      expect(r.rootCause).toBeNull();
+    });
+
+    it("flags WARNING on sharp capability drop ≥ 0.2", () => {
+      assessCapabilityV2({ dimension: "reasoning", score: 0.9 });
+      assessCapabilityV2({ dimension: "reasoning", score: 0.5 });
+      const r = selfDiagnoseV2();
+      expect(r.severity).toBe(DIAGNOSIS_SEVERITY.WARNING);
+      expect(r.repairSuggestion).toBe(REPAIR_STRATEGY.PARAMETER_TUNE);
+    });
+
+    it("flags CRITICAL on 3+ low-retention training runs", () => {
+      for (let i = 0; i < 3; i++) {
+        trainIncrementalV2({
+          strategy: "replay",
+          dataSize: 10,
+          lossBefore: 0.5,
+          lossAfter: 0.1,
+        });
+      }
+      const r = selfDiagnoseV2();
+      expect(r.severity).toBe(DIAGNOSIS_SEVERITY.CRITICAL);
+      expect(r.repairSuggestion).toBe(REPAIR_STRATEGY.MODEL_ROLLBACK);
+    });
+
+    it("selfRepairV2 rejects unknown diagnosis", () => {
+      expect(() =>
+        selfRepairV2({
+          diagnosisId: "missing",
+          strategy: REPAIR_STRATEGY.PARAMETER_TUNE,
+        }),
+      ).toThrow("Diagnosis not found");
+    });
+
+    it("selfRepairV2 rejects invalid strategy", () => {
+      const d = selfDiagnoseV2();
+      expect(() =>
+        selfRepairV2({ diagnosisId: d.id, strategy: "bogus" }),
+      ).toThrow("Invalid repair strategy");
+    });
+
+    it("selfRepairV2 marks diagnosis completed + records milestone", () => {
+      const d = selfDiagnoseV2();
+      const r = selfRepairV2({
+        diagnosisId: d.id,
+        strategy: REPAIR_STRATEGY.CACHE_REBUILD,
+      });
+      expect(r.strategy).toBe("cache_rebuild");
+      expect(r.actions.length).toBeGreaterThan(0);
+      const after = getDiagnosisV2(d.id);
+      expect(after.repairStatus).toBe("completed");
+      expect(after.repairedAt).toBeTruthy();
+      const log = getGrowthLogV2({
+        milestoneType: GROWTH_MILESTONE.SELF_REPAIR_SUCCESS,
+      });
+      expect(log.length).toBe(1);
+    });
+
+    it("selfRepairV2 rejects double-repair", () => {
+      const d = selfDiagnoseV2();
+      selfRepairV2({
+        diagnosisId: d.id,
+        strategy: REPAIR_STRATEGY.PARAMETER_TUNE,
+      });
+      expect(() =>
+        selfRepairV2({
+          diagnosisId: d.id,
+          strategy: REPAIR_STRATEGY.MODEL_ROLLBACK,
+        }),
+      ).toThrow("Diagnosis already repaired");
+    });
+
+    it("listDiagnosesV2 filters by severity", () => {
+      assessCapabilityV2({ dimension: "reasoning", score: 0.9 });
+      assessCapabilityV2({ dimension: "reasoning", score: 0.5 });
+      selfDiagnoseV2();
+      selfDiagnoseV2({ scope: "memory" });
+      const list = listDiagnosesV2({ severity: DIAGNOSIS_SEVERITY.WARNING });
+      expect(list.length).toBe(2);
+    });
+  });
+
+  describe("predictBehaviorV2 + milestones", () => {
+    it("predictBehaviorV2 defaults horizon from config", () => {
+      const r = predictBehaviorV2();
+      expect(r.horizonMs).toBe(86400000);
+      expect(Array.isArray(r.predictions)).toBe(true);
+    });
+
+    it("predictBehaviorV2 confidence grows with milestone count", () => {
+      const before = predictBehaviorV2();
+      for (let i = 0; i < 10; i++) {
+        recordMilestone({
+          type: GROWTH_MILESTONE.PREDICTION_ACCURACY,
+          description: `m${i}`,
+        });
+      }
+      const after = predictBehaviorV2();
+      expect(after.confidence).toBeGreaterThan(before.confidence);
+    });
+
+    it("recordMilestone rejects invalid type", () => {
+      expect(() =>
+        recordMilestone({ type: "bogus", description: "x" }),
+      ).toThrow("Invalid milestone type");
+    });
+
+    it("getGrowthLogV2 filters by period", () => {
+      const m = recordMilestone({
+        type: GROWTH_MILESTONE.CAPABILITY_GAIN,
+        description: "old",
+      });
+      const future = { fromMs: m.timestamp + 1000 };
+      expect(getGrowthLogV2({ period: future }).length).toBe(0);
+      expect(getGrowthLogV2({ period: { fromMs: 0 } }).length).toBe(1);
+    });
+
+    it("getGrowthLogV2 respects limit", () => {
+      for (let i = 0; i < 5; i++) {
+        recordMilestone({
+          type: GROWTH_MILESTONE.PREDICTION_ACCURACY,
+          description: `m${i}`,
+        });
+      }
+      expect(getGrowthLogV2({ limit: 2 }).length).toBe(2);
+    });
+  });
+
+  describe("configureEvolution + stats", () => {
+    it("rejects unknown config key", () => {
+      expect(() => configureEvolution({ key: "unknown", value: 1 })).toThrow(
+        "Unknown config key",
+      );
+    });
+
+    it("rejects invalid trainingStrategy", () => {
+      expect(() =>
+        configureEvolution({ key: "trainingStrategy", value: "bogus" }),
+      ).toThrow("Invalid trainingStrategy");
+    });
+
+    it("rejects threshold out of [0, 1]", () => {
+      expect(() =>
+        configureEvolution({
+          key: "knowledgeRetentionThreshold",
+          value: 1.5,
+        }),
+      ).toThrow("knowledgeRetentionThreshold must be in [0, 1]");
+    });
+
+    it("accepts valid config values", () => {
+      const c = configureEvolution({
+        key: "knowledgeRetentionThreshold",
+        value: 0.9,
+      });
+      expect(c.knowledgeRetentionThreshold).toBe(0.9);
+    });
+
+    it("getEvolutionConfig returns a copy (not a reference)", () => {
+      const c1 = getEvolutionConfig();
+      c1.assessmentDimensions.push("xxx");
+      const c2 = getEvolutionConfig();
+      expect(c2.assessmentDimensions).toEqual(
+        Object.values(CAPABILITY_DIMENSION),
+      );
+    });
+
+    it("getEvolutionStatsV2 aggregates V2 state", () => {
+      assessCapabilityV2({ dimension: "reasoning", score: 0.5 });
+      trainIncrementalV2({
+        strategy: "replay",
+        dataSize: 10,
+        lossBefore: 0.5,
+        lossAfter: 0.4,
+      });
+      selfDiagnoseV2();
+      const stats = getEvolutionStatsV2();
+      expect(stats.capabilityCount).toBe(1);
+      expect(stats.trainingRuns).toBe(1);
+      expect(stats.diagnoses.total).toBe(1);
+    });
+
+    it("_resetV2State clears V2 stores and restores defaults", () => {
+      assessCapabilityV2({ dimension: "reasoning", score: 0.5 });
+      configureEvolution({
+        key: "knowledgeRetentionThreshold",
+        value: 0.5,
+      });
+      _resetV2State();
+      expect(listCapabilitiesV2().length).toBe(0);
+      expect(getEvolutionConfig().knowledgeRetentionThreshold).toBe(0.85);
     });
   });
 });

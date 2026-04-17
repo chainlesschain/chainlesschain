@@ -298,3 +298,99 @@ chainlesschain infra routes [-t type] [-s status] [--limit N] [--json]          
 chainlesschain infra connectivity [--json]                                      # 连通性报告
 chainlesschain infra stats [--json]                                             # 基础设施统计
 ```
+
+### Phase 85 — Agent Economy 2.0 (`economy` extension)
+
+Strictly-additive V2 layer on top of the pre-existing `economy` command. Adds
+four frozen canonical enums (4 payment types / 5 channel statuses / 5 resource
+types / 4 NFT statuses), payment-type-aware pricing (per_call / per_token /
+per_minute / flat_rate), two-sided state-channel lifecycle with conservation-
+enforced settlement, NFT mint → list → buy (with royalty split) → burn state
+machine, and weighted task-contribution revenue distribution.
+
+```bash
+chainlesschain economy payment-types [--json]                   # per_call / per_token / per_minute / flat_rate
+chainlesschain economy channel-statuses [--json]                # open / active / settling / closed / disputed
+chainlesschain economy resource-types [--json]                  # compute / storage / model / data / skill
+chainlesschain economy nft-statuses [--json]                    # minted / listed / sold / burned
+
+# Pricing model (rate is the unit-price for the chosen payment type)
+chainlesschain economy price-v2 <service-id> <payment-type> <rate> [-m '{"json"}']
+chainlesschain economy price-get <service-id> [--json]
+
+# Unit-aware payment (picks --tokens|--minutes|--calls by pricing model)
+chainlesschain economy pay-v2 <from> <to> <service-id> [--tokens N | --minutes N | --calls N]
+
+# State channel lifecycle (deposits are two-sided; settlement preserves total)
+chainlesschain economy channel-open-v2 <partyA> <partyB> --deposit-a N --deposit-b N
+chainlesschain economy channel-activate <channel-id>
+chainlesschain economy channel-settle <channel-id> --final-a N --final-b N   # |a+b-total| < 1e-9
+chainlesschain economy channel-close-v2 <channel-id>
+chainlesschain economy channel-dispute <channel-id> [-r reason]
+chainlesschain economy channels-v2 [--status s] [--party did] [--json]
+
+# Resource listing & NFT lifecycle
+chainlesschain economy market-list-v2 <seller-id> --resource-type t --name n --price N [--available N]
+chainlesschain economy nft-mint-v2 <owner> --asset-type t [--royalty 0..50] [--metadata '{}']
+chainlesschain economy nft-list <nft-id> <price>
+chainlesschain economy nft-buy <nft-id> <buyer>                 # royalty split to current owner
+chainlesschain economy nft-burn <nft-id>
+chainlesschain economy nft-status <nft-id> [--json]
+
+# Weighted task-contribution revenue distribution
+chainlesschain economy contribute-task <task-id> <agent-id> <weight>
+chainlesschain economy contributions-task <task-id> [--json]
+chainlesschain economy distribute-v2 <task-id> <total>          # share = total × weight / totalWeight
+chainlesschain economy distributions [-t task-id] [--json]
+chainlesschain economy stats-v2 [--json]
+```
+
+**Settlement conservation**: `initiateSettlement` enforces
+`|finalBalanceA + finalBalanceB − (balanceA + balanceB)| < 1e-9` to prevent
+mint/burn via settlement. Violations throw `Settlement must preserve total`.
+
+**Royalty semantics**: V2 does not track original-minter separately; on first
+sale both royalty and sale proceeds credit the current `nft.owner`. Multi-
+resale royalty routing (original-minter registry) remains future work.
+
+**Scope / 未移植**: On-chain token settlement, zk-rollup batch verification,
+real payment-gateway bridges, and market-maker price oracles remain Desktop-
+only. The CLI port is the deterministic record-keeping + policy surface:
+enum validation, pricing math, channel lifecycle state machine, NFT state
+machine, and proportional revenue math.
+
+### Phase 88 — ZKP Engine (Zero-Knowledge Proof extension)
+
+Extends `chainlesschain zkp` with the Phase 88 canonical surface: frozen
+`PROOF_SCHEME` (groth16/plonk/bulletproofs) + `CIRCUIT_STATUS`
+(draft/compiled/verified/failed) enums, scheme-parametric proof generation
+(scheme-specific shapes + scheme-aware structural verification), credential
+registry with deterministic merkle-root, and on-demand selective disclosure
+that preserves the credential root.
+
+```bash
+# Schemes and statuses reference
+chainlesschain zkp schemes [--json]                         # groth16 / plonk / bulletproofs + circuit statuses
+
+# Circuit status lifecycle (compile auto-sets COMPILED, explicit override otherwise)
+chainlesschain zkp set-status <circuit-id> <status>         # draft|compiled|verified|failed
+
+# Scheme-parametric proof generation (default: groth16)
+chainlesschain zkp prove <circuit-id> --scheme plonk --private '{"x":1}' --public '[1]'
+chainlesschain zkp prove <circuit-id> --scheme bulletproofs
+
+# Credential registry (deterministic merkle root over sorted field-value-hash leaves)
+chainlesschain zkp register-credential --did did:example:alice --claims '{"name":"A","age":30}' [--json]
+chainlesschain zkp credentials [--did did:example:alice] [--json]
+
+# Selective disclosure (reveals subset, preserves credential merkle root)
+chainlesschain zkp disclose <credential-id> name,age --to did:example:verifier [--json]
+```
+
+**Scope / 未移植**: Real Groth16/PLONK/Bulletproofs proving circuits, snarkjs /
+circom toolchain integration, on-chain verifier contract generation, and
+trusted-setup ceremony coordination remain Desktop-only. The CLI port covers
+the deterministic record-keeping surface: circuit lifecycle state, scheme-aware
+proof shape validation, credential registry with merkle-root, and selective
+disclosure with root preservation — sufficient for policy prototyping,
+credential schema design, and verifier-side integration tests.
