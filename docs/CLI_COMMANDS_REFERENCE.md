@@ -608,6 +608,29 @@ chainlesschain ops postmortem <id> [--json]                                     
 chainlesschain ops stats [--json]                                                # AIOps statistics
 ```
 
+## Multimodal Perception Engine (Phase 84)
+
+```bash
+chainlesschain perception modalities [--json]                                    # List modalities (screen/voice/document/video)
+chainlesschain perception voice-statuses [--json]                                # List voice session statuses
+chainlesschain perception analysis-types [--json]                                # List analysis types (ocr/object_detection/scene_recognition/action_detection)
+chainlesschain perception record -m <modality> [-a analysis-type] [-i source] [-r result-json] [-c confidence] [--json]
+chainlesschain perception show <id> [--json]                                     # Show perception result details
+chainlesschain perception results [-m modality] [-a analysis-type] [--limit N] [--json]
+chainlesschain perception voice-start [-l language] [-m model] [--json]          # Start a voice session
+chainlesschain perception voice-status <id> <status> [--json]                    # Update voice session status
+chainlesschain perception voice-transcript <id> <text> [--json]                  # Set voice session transcript
+chainlesschain perception voice-show <id> [--json]                               # Show voice session details
+chainlesschain perception voice-sessions [-s status] [-l language] [--limit N] [--json]
+chainlesschain perception index-add -m <modality> -s <source-id> [-c summary] [-t tags-csv] [--json]
+chainlesschain perception index-show <id> [--json]                               # Show index entry details
+chainlesschain perception index-list [-m modality] [--limit N] [--json]          # List index entries
+chainlesschain perception index-remove <id> [--json]                             # Remove index entry
+chainlesschain perception query <text> [-m modalities-csv] [--limit N] [--json]  # Cross-modal search
+chainlesschain perception context [--json]                                       # Show perception context
+chainlesschain perception stats [--json]                                         # Perception engine statistics
+```
+
 ## Database Evolution Framework (Phase 80)
 
 ```bash
