@@ -3,6 +3,55 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.2.34] - 2026-04-17 (npm 0.66.0 · 7 个新命令组 + 8 个 V2 强化)
+
+### Added — 7 个新 CLI 命令组
+
+- **`cc agent-network`** — 去中心化 Agent 网络：Ed25519 DID + W3C VC + Kademlia k-bucket 模拟 + 4 维加权声誉任务路由 (Phase 24)
+- **`cc automation` / `cc auto`** — 工作流自动化引擎：12 个 SaaS 连接器 (Gmail/Slack/GitHub/Jira/Notion/Trello/Discord/Teams/Airtable/Figma/Linear/Confluence) + 5 种触发器 + DAG 流 (Phase 96)
+- **`cc didv2`** — W3C DID v2.0：did:key/web/chain + Ed25519 VC/VP + k-of-n 守护人社交恢复 + 身份漫游 (Phase 55)
+- **`cc perf`** — 性能自动调优：OS 真采样 + 5 规则带滞回 + 冷却，CLI 只汇报不自动应用 (Phase 22)
+- **`cc pipeline`** — 开发流水线编排：7 阶段 AI 开发流水线 (req→arch→code→test→review→deploy→monitor) + 4 模板 + 6 部署策略 (Phase 26)
+- **`cc ecosystem` / `cc eco`** — 智能插件生态 2.0：注册 + DFS 依赖求解器 + 沙箱日志 + 发布状态机 + 70/30 收益分账 (Phase 64)
+- **`cc sso`** — 企业身份认证：SAML/OAuth2/OIDC 配置 CRUD + PKCE S256 + AES-256-GCM Token 加密 + DID↔SSO 身份桥 (Phase 14)
+
+### Added — 8 个现有命令 V2 强化（严格增量，向后兼容）
+
+- **`cc social graph`** — 图分析：度/紧密度/中介中心性 + 影响力 + 社区发现 + BFS 最短路径 (Phase 42)
+- **`cc dao`** — 4 阶段生命周期 + 二次投票 (cost=n²) + 防环委托 + 时锁 + 多数+法定人数门槛 (Phase 92)
+- **`cc economy`** — 支付类型 + 双边状态通道 + NFT 铸造/列表/购买/销毁 + 任务贡献加权分账 (Phase 85)
+- **`cc evolution`** — 6 维能力评估 + 4 级严重度诊断 + 4 种修复策略 + 成长里程碑自动记录 (Phase 100)
+- **`cc hmemory`** — 4 层内存 + 3 类型 + 3 权限共享 + 巩固状态机 + 概念重叠语义搜索 (Phase 83)
+- **`cc sandbox`** — 沙箱状态机 + 5 类权限 + 5 级风险评分 + 5 类配额 + 自动隔离 + 审计过滤 (Phase 87)
+- **`cc workflow`** — 5 类标准模板 + 检查点快照 + 回滚到检查点 + 条件断点（正则安全） + JSON 导入/导出 (Phase 82)
+- **`cc zkp`** — 3 种证明方案 (Groth16/PLONK/Bulletproofs) + 方案参数化证明形状 + 凭证注册表 + 选择性披露 (Phase 88)
+
+### Changed
+
+- **CLI 包版本**：`chainlesschain@0.51.0 → 0.66.0`（单次 npm publish，包含 2026-04-17 下午全部新增）
+- **docs-site 新增 12 个命令参考页**：`cli-agent-network` / `cli-automation` / `cli-did-v2` / `cli-perf` / `cli-pipeline` / `cli-ecosystem` / `cli-sso` 等，VitePress 侧栏同步更新
+- **docs/cli 子文件**：`blockchain-enterprise.md` / `core-phases.md` / `platform.md` 吸收新命令项
+
+### Tests
+
+| 层 | 文件数 | 用例数 | 耗时 |
+| --- | --- | --- | --- |
+| CLI 单元 | 232 | **7618/7618** | 129s |
+| CLI 集成 | 40 | **696/696** | 46s |
+| CLI E2E | 38 | **565/565** | 427s |
+
+本批相较 0.51.0 新增 **536 个单元测试**（7082 → 7618），覆盖 15 个新 / 强化命令，全部通过；集成 / E2E 零回归。
+
+### npm
+
+| Tag | 版本 | 发布时间 |
+| --- | --- | --- |
+| v5.0.2.34 | 0.66.0 | 2026-04-17 晚 |
+
+`npm i -g chainlesschain@0.66.0`（别名 `cc` / `clc` / `clchain`）
+
+---
+
 ## [5.0.2.33] - 2026-04-17 (npm 发布批次 · CLI 0.51.0)
 
 ### Added

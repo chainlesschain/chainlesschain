@@ -1,5 +1,27 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-17 增量更新（CLI 0.66.0 · 7 新 + 8 强化）
+
+同日晚再推一轮，把并行会话落地的 **7 个全新 CLI 命令组** 和 **8 个现有命令的 V2 强化** 合并发布到 `chainlesschain@0.66.0`（tag `v5.0.2.34`）。
+
+**7 个新命令组**：`agent-network`（Phase 24）· `automation`（Phase 96）· `didv2`（Phase 55）· `perf`（Phase 22）· `pipeline`（Phase 26）· `ecosystem`（Phase 64）· `sso`（Phase 14）· `social graph`（Phase 42 新增分析子命令）
+
+**8 个 V2 强化**（严格增量，向后兼容）：`dao`（Phase 92 二次投票 + 防环委托 + 时锁）· `economy`（Phase 85 状态通道 + NFT）· `evolution`（Phase 100 6 维能力 + 4 级诊断）· `hmemory`（Phase 83 4 层 + 概念语义搜索）· `sandbox`（Phase 87 5 级风险 + 自动隔离）· `workflow`（Phase 82 检查点 + 正则安全断点）· `zkp`（Phase 88 3 方案参数化证明）
+
+### 回归测试（2026-04-17 晚）
+
+| 层 | 文件数 | 用例数 | 耗时 |
+| --- | --- | --- | --- |
+| CLI 单元 | 232 | **7618/7618** | 129s |
+| CLI 集成 | 40 | **696/696** | 46s |
+| CLI E2E | 38 | **565/565** | 427s |
+
+本批相较 0.51.0 新增 **536 个单元测试**，全部通过；集成 / E2E 零回归。
+
+**npm**：`npm i -g chainlesschain@0.66.0`（别名 `cc` / `clc` / `clchain`）
+
+---
+
 ## 2026-04-17 增量更新（npm 发布批次 · CLI 0.51.0）
 
 延续本日早些时候的 CLI 端口批次，把 Phase 17 / 20 / 27 / 28 / 63 五个 Phase 合并到同一轮 npm 发布。
