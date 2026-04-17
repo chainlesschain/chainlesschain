@@ -1,5 +1,29 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-17 Update — CLI Port Wrap-up + Docs Restructure
+
+This update closes out five CLI-side Phase ports, regression-tests them, and restructures the command reference:
+
+- **Phase 25 AIOps** — `cc ops`: Z-Score/IQR anomaly detection + incident lifecycle + playbooks + postmortem. **48 tests**.
+- **Phase 58 Federation Hardening** — `cc federation`: circuit-breaker state machine (closed/open/half_open) + health checks + connection pool. **59 tests**.
+- **Phase 80 Database Evolution** — `cc dbevo`: migration CRUD + slow-query analysis + index suggestions. **47 tests**.
+- **Phase 84 Multimodal Perception** — `cc perception`: record/index/cross-modal query + voice-session state machine. **47 tests**.
+- **Phase 86 Code Generation Agent 2.0** — `cc codegen`: generation tracking + 5-rule heuristic security review + scaffold catalog. **38 tests**.
+
+**Docs restructure**: `docs/CLI_COMMANDS_REFERENCE.md` trimmed from 54.8k → 4.4k (thin index). Full command listings moved to six sub-files under `docs/cli/` (core-phases / managed-agents / blockchain-enterprise / observability / platform / video), with all command comments translated to Chinese (~371 entries). New docs-site pages `cli-federation.md` / `cli-perception.md` added to the VitePress sidebar.
+
+### Regression test results (2026-04-17)
+
+| Tier | Files | Tests | Duration |
+| --- | --- | --- | --- |
+| CLI Unit | 219 | **6010/6010** | 114s |
+| CLI Integration | 40 | **696/696** | 36s |
+| CLI E2E | 38 | **565/565** | 495s |
+
+> During the E2E run vitest-worker surfaced a single `Timeout calling "onTaskUpdate"` RPC warning (known vitest issue for long-running suites); no test outcome was affected.
+
+---
+
 ## 2026-04-16 Update — Managed Agents Phase A–I + Deep Agents Deploy Phase 1–5 (All Complete)
 
 Local-first runtime parity with Anthropic Claude Managed Agents and Deep Agents Deploy. New shared package `@chainlesschain/session-core` provides Session / Trace / Team-Subagent / Scoped Memory / Approval Policy / Beta Flags / Stream Router / Service Envelope / MCP Policy / Sandbox Policy / Agent Bundle — shared by CLI and Desktop.
