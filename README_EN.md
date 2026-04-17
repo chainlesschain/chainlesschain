@@ -1,5 +1,27 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-17 Update — CLI 0.66.0 · 7 New + 8 V2 Enhanced
+
+Later the same day, a parallel session landed **7 brand-new CLI command groups** and **V2 enhancements to 8 existing commands**, all published together as `chainlesschain@0.66.0` (tag `v5.0.2.34`).
+
+**7 new command groups**: `agent-network` (Phase 24) · `automation` (Phase 96) · `didv2` (Phase 55) · `perf` (Phase 22) · `pipeline` (Phase 26) · `ecosystem` (Phase 64) · `sso` (Phase 14) · `social graph` (Phase 42 analytics subcommands)
+
+**8 V2 enhancements** (strictly additive, backwards-compatible): `dao` (Phase 92 quadratic voting + cycle-safe delegation + timelock) · `economy` (Phase 85 state channels + NFT) · `evolution` (Phase 100 6-dim capability + 4-level diagnosis) · `hmemory` (Phase 83 4 layers + concept-based semantic search) · `sandbox` (Phase 87 5-level risk + auto-isolation) · `workflow` (Phase 82 checkpoints + regex-safe breakpoints) · `zkp` (Phase 88 3 scheme-parametric proofs)
+
+### Regression tests (2026-04-17 evening)
+
+| Tier | Files | Tests | Duration |
+| --- | --- | --- | --- |
+| CLI Unit | 232 | **7618/7618** | 129s |
+| CLI Integration | 40 | **696/696** | 46s |
+| CLI E2E | 38 | **565/565** | 427s |
+
+This batch adds **536 new unit tests** over 0.51.0, all passing; integration / E2E zero regression.
+
+**npm**: `npm i -g chainlesschain@0.66.0` (aliases `cc` / `clc` / `clchain`)
+
+---
+
 ## 2026-04-17 Update — npm Release Batch · CLI 0.51.0
 
 Continuing the same day's CLI port batch, five additional Phases were consolidated into a single npm release cycle.
