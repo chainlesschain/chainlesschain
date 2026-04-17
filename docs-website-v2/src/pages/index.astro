@@ -68,6 +68,16 @@ const evolution = [
   { tag: 'v5.0.2.10', title: '统一应用运行时', sub: 'Phase 63 Universal Runtime', desc: '插件热加载/卸载 + semver 热更新与回滚 + LWW 状态同步 + 运行时 profiling。' },
   { tag: 'v5.0.2.10', title: 'IPFS 去中心化存储', sub: 'Phase 17 IPFS Storage', desc: '模拟 CID + AES-256-GCM 加密 + Pin 管理 + 配额/GC + 知识库附件关联。' },
   { tag: 'v5.0.2.10', title: '多模态协作', sub: 'Phase 27 Multimodal Collaboration', desc: '5 种模态加权融合 + 7 种文档原生解析 + 4000-token 上下文 + 6 种输出格式。' },
+
+  // ── v5.0.2.10 Phase 14/22/24/26/55/64/96 + V2 增强 ──
+  { tag: 'v5.0.2.10', title: '去中心化 Agent 网络', sub: 'Phase 24 Agent Network', desc: 'Ed25519 DID + Kademlia 发现 + challenge-response 认证 + W3C VC 凭证 + 4 维信誉任务路由。' },
+  { tag: 'v5.0.2.10', title: '工作流自动化引擎', sub: 'Phase 96 Automation Engine', desc: '12 SaaS 连接器 + webhook/schedule 触发器 + DAG 拓扑排序 + 条件分支执行。' },
+  { tag: 'v5.0.2.10', title: '去中心化身份 2.0', sub: 'Phase 55 DID v2', desc: 'did:key/web/chain + VC/VP 签发验证 + k-of-n 社交恢复 + 身份漫游 + 多源信誉聚合。' },
+  { tag: 'v5.0.2.10', title: '性能自动调优', sub: 'Phase 22 Performance Tuning', desc: '实时 OS 采样 + 5 条迟滞规则 + 冷却时间 + 调优建议生成与应用。' },
+  { tag: 'v5.0.2.10', title: '开发流水线编排', sub: 'Phase 26 Pipeline Orchestration', desc: '7 阶段流水线 + 4 模板 + 6 部署策略 + 双门审批 + 制品管理 + 监控。' },
+  { tag: 'v5.0.2.10', title: '智能插件生态 2.0', sub: 'Phase 64 Plugin Ecosystem', desc: 'DFS 依赖解析 + 8 规则 AI 审查 + 沙箱测试 + 审核发布 + 70/30 收益分成。' },
+  { tag: 'v5.0.2.10', title: 'SSO 企业认证', sub: 'Phase 14 SSO Authentication', desc: 'SAML/OAuth2/OIDC + PKCE S256 + AES-256-GCM 令牌加密 + DID 身份桥接。' },
+  { tag: 'v5.0.2.10', title: 'V2 增强套件', sub: '8 模块 V2 升级', desc: 'DAO 治理/经济/进化/记忆/沙箱/工作流/ZKP/社交图分析 — 全面升级到 V2 规范表面。' },
 ];
 
 const badges = [
@@ -87,7 +97,7 @@ const badges = [
       <div class="max-w-4xl">
         <div class="animate-fade-in flex items-center gap-3 mb-8">
           <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> v5.0.2.10 · Evolution Edition</span>
-          <span class="chip">CLI v0.58.0</span>
+          <span class="chip">CLI v0.66.0</span>
         </div>
 
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02] tracking-tight">
@@ -317,7 +327,7 @@ const badges = [
   <section class="py-24 md:py-32 bg-cream/50 border-y border-line">
     <div class="container-wide">
       <div class="max-w-3xl mb-14">
-        <div class="chip mb-6">架构演进 · 36 项（v5.0.2.10 新增 27 项）</div>
+        <div class="chip mb-6">架构演进 · 44 项（v5.0.2.10 新增 35 项）</div>
         <h2 class="text-display-md md:text-5xl leading-tight">
           把多智能体做成<br/>
           <span class="italic">工程可复制的模式</span>。
@@ -374,7 +384,7 @@ const badges = [
             <li>· CLI Agent · Claude Code 风格</li>
             <li>· Cowork 多 Agent 并行审查</li>
             <li>· MCP 工具生态 + 9 Skill Packs</li>
-            <li>· 83 命令 · 6200+ 测试</li>
+            <li>· 90 命令 · 6500+ 测试</li>
           </ul>
           <button class="btn-primary bg-ember text-ink hover:bg-ember-dark" data-copy="npm i -g chainlesschain">
             <span>$ npm i -g chainlesschain</span>
