@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v5.0.2.10 (Evolution Edition — 139 Desktop Skills + 28 Android Skills + 90 CLI Commands + 7200+ Tests)
+**Current Version**: v5.0.2.33 (Evolution Edition — 139 Desktop Skills + 28 Android Skills + 102 CLI Commands + 7400+ Tests) · npm: `chainlesschain@0.51.0`
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -66,7 +66,7 @@ Key highlights:
 |-------|------|-------------|
 | Desktop Main | `desktop-app-vue/src/main/` | Electron main process (AI, IPC, Security, Enterprise) |
 | Desktop Renderer | `desktop-app-vue/src/renderer/` | Vue3 + TypeScript (51 Pinia stores) |
-| CLI | `packages/cli/` | npm CLI (~2MB, 90 commands, Commander) |
+| CLI | `packages/cli/` | npm CLI (~2MB, 102 commands, Commander) |
 | Java Backend | `backend/project-service/` | Spring Boot 3.1.11 + Java 17 + PostgreSQL |
 | Python AI | `backend/ai-service/` | FastAPI + Ollama + Qdrant |
 | Android | `mobile-app/` | 28 skills (12 Kotlin + 8 doc-only + 8 REMOTE) |
