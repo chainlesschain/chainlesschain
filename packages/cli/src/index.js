@@ -141,6 +141,8 @@ import { registerInferenceCommand } from "./commands/inference.js";
 import { registerTrustCommand } from "./commands/trust.js";
 import { registerFusionCommand } from "./commands/fusion.js";
 import { registerInfraCommand } from "./commands/infra.js";
+// Phase 86: Code Generation Agent 2.0
+import { registerCodegenCommand } from "./commands/codegen.js";
 
 export function createProgram() {
   const program = new Command();
@@ -312,6 +314,7 @@ export function createProgram() {
   registerTrustCommand(program);
   registerFusionCommand(program);
   registerInfraCommand(program);
+  registerCodegenCommand(program);
 
   return program;
 }

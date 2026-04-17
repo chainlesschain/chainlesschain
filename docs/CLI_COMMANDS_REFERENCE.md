@@ -563,6 +563,25 @@ chainlesschain infra connectivity [--json]                                      
 chainlesschain infra stats [--json]                                             # Infrastructure statistics
 ```
 
+## Code Generation Agent (Phase 86)
+
+```bash
+chainlesschain codegen templates [--json]                                       # List scaffold templates (react/vue/express/fastapi/spring_boot)
+chainlesschain codegen severities [--json]                                      # List review severity levels
+chainlesschain codegen rules [--json]                                           # List security rules (eval/sql_injection/xss/path_traversal/command_injection)
+chainlesschain codegen platforms [--json]                                       # List CI/CD platforms
+chainlesschain codegen generate -p <prompt> [-l lang] [-f framework] [--code <code>] [--files N] [--tokens N]
+chainlesschain codegen show <id> [--json]                                       # Show generation details
+chainlesschain codegen list [-l lang] [-f framework] [--limit N] [--json]       # List code generations
+chainlesschain codegen review -c <code> [-g generation-id] [-l lang] [--json]   # Heuristic security code review
+chainlesschain codegen review-show <id> [--json]                                # Show review details + issues
+chainlesschain codegen reviews [-l lang] [--limit N] [--json]                   # List code reviews
+chainlesschain codegen scaffold -t <template> -n <name> [-o opts-json] [--files N] [--output path] [--json]
+chainlesschain codegen scaffold-show <id> [--json]                              # Show scaffold details
+chainlesschain codegen scaffolds [-t template] [--limit N] [--json]             # List scaffolds
+chainlesschain codegen stats [--json]                                           # Code agent statistics
+```
+
 ## Phase 9: Low-Code & Multi-Agent
 
 ```bash
