@@ -362,3 +362,382 @@ export function purgeLogs(db, daysToKeep = 90) {
 export function getRecentEvents(db, limit = 20) {
   return queryLogs(db, { limit });
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   V2 SURFACE (Phase 11 canonical) — strictly additive
+   ═══════════════════════════════════════════════════════════════ */
+
+export const LOG_STATUS_V2 = Object.freeze({
+  ACTIVE: "active",
+  ARCHIVED: "archived",
+  PURGED: "purged",
+});
+
+export const INTEGRITY_STATUS_V2 = Object.freeze({
+  UNVERIFIED: "unverified",
+  VERIFIED: "verified",
+  CORRUPTED: "corrupted",
+});
+
+export const ALERT_STATUS_V2 = Object.freeze({
+  OPEN: "open",
+  ACKNOWLEDGED: "acknowledged",
+  RESOLVED: "resolved",
+  DISMISSED: "dismissed",
+});
+
+export const EVENT_TYPES_V2 = Object.freeze([
+  "auth",
+  "permission",
+  "data",
+  "system",
+  "file",
+  "did",
+  "crypto",
+  "api",
+]);
+
+export const RISK_LEVELS_V2 = Object.freeze([
+  "low",
+  "medium",
+  "high",
+  "critical",
+]);
+
+export const AUDIT_DEFAULT_MAX_ALERTS_PER_ACTOR = 10;
+export const AUDIT_DEFAULT_ARCHIVE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+export const AUDIT_DEFAULT_PURGE_RETENTION_MS = 365 * 24 * 60 * 60 * 1000; // 365 days
+
+let _maxAlertsPerActor = AUDIT_DEFAULT_MAX_ALERTS_PER_ACTOR;
+let _archiveRetentionMs = AUDIT_DEFAULT_ARCHIVE_RETENTION_MS;
+let _purgeRetentionMs = AUDIT_DEFAULT_PURGE_RETENTION_MS;
+
+const _logStatesV2 = new Map();
+const _alertStatesV2 = new Map();
+let _lastChainHash = null;
+
+const LOG_TRANSITIONS_V2 = new Map([
+  ["active", new Set(["archived", "purged"])],
+  ["archived", new Set(["purged"])],
+]);
+const LOG_TERMINALS_V2 = new Set(["purged"]);
+
+const ALERT_TRANSITIONS_V2 = new Map([
+  ["open", new Set(["acknowledged", "dismissed"])],
+  ["acknowledged", new Set(["resolved", "dismissed"])],
+]);
+const ALERT_TERMINALS_V2 = new Set(["resolved", "dismissed"]);
+
+function _positiveInt(n, label) {
+  const v = Number(n);
+  if (!Number.isFinite(v) || v <= 0) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return Math.floor(v);
+}
+
+export function setMaxAlertsPerActor(n) {
+  _maxAlertsPerActor = _positiveInt(n, "maxAlertsPerActor");
+  return _maxAlertsPerActor;
+}
+
+export function setArchiveRetentionMs(ms) {
+  _archiveRetentionMs = _positiveInt(ms, "archiveRetentionMs");
+  return _archiveRetentionMs;
+}
+
+export function setPurgeRetentionMs(ms) {
+  _purgeRetentionMs = _positiveInt(ms, "purgeRetentionMs");
+  return _purgeRetentionMs;
+}
+
+export function getMaxAlertsPerActor() {
+  return _maxAlertsPerActor;
+}
+
+export function getArchiveRetentionMs() {
+  return _archiveRetentionMs;
+}
+
+export function getPurgeRetentionMs() {
+  return _purgeRetentionMs;
+}
+
+export function getOpenAlertCount(actor) {
+  let count = 0;
+  for (const entry of _alertStatesV2.values()) {
+    if (entry.status === ALERT_STATUS_V2.OPEN) {
+      if (!actor || entry.actor === actor) count += 1;
+    }
+  }
+  return count;
+}
+
+function _hashChainEntry(prevHash, entry) {
+  const payload = JSON.stringify({
+    logId: entry.logId,
+    eventType: entry.eventType,
+    operation: entry.operation,
+    actor: entry.actor,
+    riskLevel: entry.riskLevel,
+    createdAt: entry.createdAt,
+    prev: prevHash || "",
+  });
+  return crypto.createHash("sha256").update(payload).digest("hex");
+}
+
+/* ── Log V2 (hash-chained) ──────────────────────────────────── */
+
+export function logEventV2(
+  db,
+  {
+    logId,
+    eventType,
+    operation,
+    actor,
+    target,
+    details,
+    riskLevel,
+    ipAddress,
+    userAgent,
+    success,
+    errorMessage,
+  } = {},
+) {
+  if (!logId) throw new Error("logId is required");
+  if (!operation) throw new Error("operation is required");
+  if (!eventType) throw new Error("eventType is required");
+  if (!EVENT_TYPES_V2.includes(eventType)) {
+    throw new Error(`Invalid eventType: ${eventType}`);
+  }
+  if (_logStatesV2.has(logId)) {
+    throw new Error(`Log already registered: ${logId}`);
+  }
+  const risk = riskLevel || assessRisk(eventType, operation, details);
+  if (!RISK_LEVELS_V2.includes(risk)) {
+    throw new Error(`Invalid riskLevel: ${risk}`);
+  }
+  const now = Date.now();
+  const entry = {
+    logId,
+    eventType,
+    operation,
+    actor: actor || null,
+    target: target || null,
+    details: sanitizeDetails(details) || null,
+    riskLevel: risk,
+    ipAddress: ipAddress || null,
+    userAgent: userAgent || null,
+    success: success !== false,
+    errorMessage: errorMessage || null,
+    status: LOG_STATUS_V2.ACTIVE,
+    integrityStatus: INTEGRITY_STATUS_V2.UNVERIFIED,
+    prevHash: _lastChainHash,
+    hash: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+  entry.hash = _hashChainEntry(_lastChainHash, entry);
+  _lastChainHash = entry.hash;
+  _logStatesV2.set(logId, entry);
+
+  // Auto-create alert on critical events
+  if (risk === "critical" && actor) {
+    const openCount = getOpenAlertCount(actor);
+    if (openCount < _maxAlertsPerActor) {
+      const alertId = `alert-${logId}`;
+      _alertStatesV2.set(alertId, {
+        alertId,
+        logId,
+        actor,
+        operation,
+        riskLevel: risk,
+        status: ALERT_STATUS_V2.OPEN,
+        reason: null,
+        metadata: {},
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  }
+
+  return { ...entry };
+}
+
+export function getLogStatusV2(logId) {
+  const entry = _logStatesV2.get(logId);
+  return entry ? { ...entry } : null;
+}
+
+export function setLogStatusV2(db, logId, newStatus, patch = {}) {
+  const entry = _logStatesV2.get(logId);
+  if (!entry) throw new Error(`Log not found: ${logId}`);
+  if (!Object.values(LOG_STATUS_V2).includes(newStatus)) {
+    throw new Error(`Invalid log status: ${newStatus}`);
+  }
+  if (LOG_TERMINALS_V2.has(entry.status)) {
+    throw new Error(`Log is terminal: ${entry.status}`);
+  }
+  const allowed = LOG_TRANSITIONS_V2.get(entry.status) || new Set();
+  if (!allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${entry.status} → ${newStatus}`);
+  }
+  entry.status = newStatus;
+  entry.updatedAt = Date.now();
+  if (patch.reason !== undefined) entry.reason = patch.reason;
+  return { ...entry };
+}
+
+export function verifyChainV2() {
+  const results = [];
+  let prevHash = null;
+  const entries = [..._logStatesV2.values()].sort(
+    (a, b) => a.createdAt - b.createdAt,
+  );
+  for (const entry of entries) {
+    const expected = _hashChainEntry(prevHash, entry);
+    const valid = expected === entry.hash && entry.prevHash === prevHash;
+    entry.integrityStatus = valid
+      ? INTEGRITY_STATUS_V2.VERIFIED
+      : INTEGRITY_STATUS_V2.CORRUPTED;
+    results.push({
+      logId: entry.logId,
+      valid,
+      integrityStatus: entry.integrityStatus,
+    });
+    prevHash = entry.hash;
+  }
+  return results;
+}
+
+export function autoArchiveLogs(db, nowMs = Date.now()) {
+  const archived = [];
+  for (const entry of _logStatesV2.values()) {
+    if (entry.status !== LOG_STATUS_V2.ACTIVE) continue;
+    if (nowMs - entry.createdAt > _archiveRetentionMs) {
+      entry.status = LOG_STATUS_V2.ARCHIVED;
+      entry.updatedAt = nowMs;
+      archived.push({ ...entry });
+    }
+  }
+  return archived;
+}
+
+export function autoPurgeLogs(db, nowMs = Date.now()) {
+  const purged = [];
+  for (const entry of _logStatesV2.values()) {
+    if (entry.status !== LOG_STATUS_V2.ARCHIVED) continue;
+    if (nowMs - entry.createdAt > _purgeRetentionMs) {
+      entry.status = LOG_STATUS_V2.PURGED;
+      entry.updatedAt = nowMs;
+      purged.push({ ...entry });
+    }
+  }
+  return purged;
+}
+
+/* ── Alert V2 ───────────────────────────────────────────────── */
+
+export function getAlertStatusV2(alertId) {
+  const entry = _alertStatesV2.get(alertId);
+  return entry ? { ...entry } : null;
+}
+
+export function setAlertStatusV2(db, alertId, newStatus, patch = {}) {
+  const entry = _alertStatesV2.get(alertId);
+  if (!entry) throw new Error(`Alert not found: ${alertId}`);
+  if (!Object.values(ALERT_STATUS_V2).includes(newStatus)) {
+    throw new Error(`Invalid alert status: ${newStatus}`);
+  }
+  if (ALERT_TERMINALS_V2.has(entry.status)) {
+    throw new Error(`Alert is terminal: ${entry.status}`);
+  }
+  const allowed = ALERT_TRANSITIONS_V2.get(entry.status) || new Set();
+  if (!allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${entry.status} → ${newStatus}`);
+  }
+  entry.status = newStatus;
+  entry.updatedAt = Date.now();
+  if (patch.reason !== undefined) entry.reason = patch.reason;
+  if (patch.metadata) entry.metadata = { ...entry.metadata, ...patch.metadata };
+  return { ...entry };
+}
+
+export function acknowledgeAlert(db, alertId, reason) {
+  return setAlertStatusV2(db, alertId, ALERT_STATUS_V2.ACKNOWLEDGED, {
+    reason,
+  });
+}
+
+export function resolveAlert(db, alertId, reason) {
+  return setAlertStatusV2(db, alertId, ALERT_STATUS_V2.RESOLVED, { reason });
+}
+
+export function dismissAlert(db, alertId, reason) {
+  return setAlertStatusV2(db, alertId, ALERT_STATUS_V2.DISMISSED, { reason });
+}
+
+/* ── Stats V2 ───────────────────────────────────────────────── */
+
+export function getAuditStatsV2() {
+  const logsByStatus = { active: 0, archived: 0, purged: 0 };
+  const logsByRisk = { low: 0, medium: 0, high: 0, critical: 0 };
+  const logsByIntegrity = { unverified: 0, verified: 0, corrupted: 0 };
+  const logsByEventType = {
+    auth: 0,
+    permission: 0,
+    data: 0,
+    system: 0,
+    file: 0,
+    did: 0,
+    crypto: 0,
+    api: 0,
+  };
+  const alertsByStatus = {
+    open: 0,
+    acknowledged: 0,
+    resolved: 0,
+    dismissed: 0,
+  };
+
+  for (const entry of _logStatesV2.values()) {
+    if (logsByStatus[entry.status] !== undefined)
+      logsByStatus[entry.status] += 1;
+    if (logsByRisk[entry.riskLevel] !== undefined)
+      logsByRisk[entry.riskLevel] += 1;
+    if (logsByIntegrity[entry.integrityStatus] !== undefined)
+      logsByIntegrity[entry.integrityStatus] += 1;
+    if (logsByEventType[entry.eventType] !== undefined)
+      logsByEventType[entry.eventType] += 1;
+  }
+  for (const entry of _alertStatesV2.values()) {
+    if (alertsByStatus[entry.status] !== undefined)
+      alertsByStatus[entry.status] += 1;
+  }
+
+  return {
+    totalLogs: _logStatesV2.size,
+    totalAlerts: _alertStatesV2.size,
+    activeAlerts: alertsByStatus.open,
+    maxAlertsPerActor: _maxAlertsPerActor,
+    archiveRetentionMs: _archiveRetentionMs,
+    purgeRetentionMs: _purgeRetentionMs,
+    lastChainHash: _lastChainHash,
+    logsByStatus,
+    logsByRisk,
+    logsByIntegrity,
+    logsByEventType,
+    alertsByStatus,
+  };
+}
+
+/* ── Reset (for testing) ───────────────────────────────────── */
+
+export function _resetStateV2() {
+  _logStatesV2.clear();
+  _alertStatesV2.clear();
+  _lastChainHash = null;
+  _maxAlertsPerActor = AUDIT_DEFAULT_MAX_ALERTS_PER_ACTOR;
+  _archiveRetentionMs = AUDIT_DEFAULT_ARCHIVE_RETENTION_MS;
+  _purgeRetentionMs = AUDIT_DEFAULT_PURGE_RETENTION_MS;
+}

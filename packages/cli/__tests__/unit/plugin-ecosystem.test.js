@@ -33,6 +33,42 @@ import {
   recommend,
   getConfig,
   getStats,
+  // V2
+  PLUGIN_MATURITY_V2,
+  INSTALL_LIFECYCLE_V2,
+  PLUGIN_DEFAULT_MAX_ACTIVE_PER_DEVELOPER,
+  PLUGIN_DEFAULT_MAX_PENDING_INSTALLS_PER_USER,
+  PLUGIN_DEFAULT_AUTO_DEPRECATE_AFTER_MS,
+  PLUGIN_DEFAULT_AUTO_ARCHIVE_AFTER_MS,
+  setMaxActivePluginsPerDeveloper,
+  setMaxPendingInstallsPerUser,
+  setAutoDeprecateAfterMs,
+  setAutoArchiveAfterMs,
+  getMaxActivePluginsPerDeveloper,
+  getMaxPendingInstallsPerUser,
+  getAutoDeprecateAfterMs,
+  getAutoArchiveAfterMs,
+  getActivePluginCount,
+  getPendingInstallCount,
+  registerPluginV2,
+  getMaturityV2,
+  setPluginMaturityV2,
+  deprecatePlugin,
+  archivePluginV2,
+  removePluginV2,
+  touchPluginActivity,
+  submitInstallV2,
+  getInstallStatusV2,
+  setInstallStatusV2,
+  resolveInstall,
+  completeInstall,
+  failInstall,
+  uninstallInstallV2,
+  retryFailedInstall,
+  autoDeprecateStalePlugins,
+  autoArchiveLongDeprecated,
+  getEcosystemStatsV2,
+  _resetStateV2,
 } from "../../src/lib/plugin-ecosystem.js";
 import { MockDatabase } from "../helpers/mock-db.js";
 
@@ -778,6 +814,535 @@ describe("plugin-ecosystem", () => {
       const agg = getDeveloperRevenue(db, "dev-42");
       expect(agg.totalGross).toBe(20);
       expect(agg.totalDeveloperShare).toBeCloseTo(14, 5);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // Phase 64 V2 — maturity + install lifecycles, caps, auto-flip
+  // ═══════════════════════════════════════════════════════════════
+
+  describe("Phase 64 V2", () => {
+    beforeEach(() => _resetStateV2());
+
+    describe("frozen enums", () => {
+      it("defines 4 maturity statuses", () => {
+        expect(Object.values(PLUGIN_MATURITY_V2)).toEqual([
+          "active",
+          "deprecated",
+          "archived",
+          "removed",
+        ]);
+        expect(() => {
+          PLUGIN_MATURITY_V2.ACTIVE = "x";
+        }).toThrow();
+      });
+
+      it("defines 5 install lifecycle statuses", () => {
+        expect(Object.values(INSTALL_LIFECYCLE_V2)).toEqual([
+          "pending",
+          "resolving",
+          "installed",
+          "failed",
+          "uninstalled",
+        ]);
+      });
+
+      it("exports defaults", () => {
+        expect(PLUGIN_DEFAULT_MAX_ACTIVE_PER_DEVELOPER).toBe(20);
+        expect(PLUGIN_DEFAULT_MAX_PENDING_INSTALLS_PER_USER).toBe(5);
+        expect(PLUGIN_DEFAULT_AUTO_DEPRECATE_AFTER_MS).toBe(
+          180 * 24 * 60 * 60 * 1000,
+        );
+        expect(PLUGIN_DEFAULT_AUTO_ARCHIVE_AFTER_MS).toBe(
+          90 * 24 * 60 * 60 * 1000,
+        );
+      });
+    });
+
+    describe("config mutators", () => {
+      it("setMaxActivePluginsPerDeveloper floors + rejects non-positive", () => {
+        expect(setMaxActivePluginsPerDeveloper(30.9)).toBe(30);
+        expect(getMaxActivePluginsPerDeveloper()).toBe(30);
+        expect(() => setMaxActivePluginsPerDeveloper(0)).toThrow(
+          /positive integer/,
+        );
+        expect(() => setMaxActivePluginsPerDeveloper(-1)).toThrow();
+        expect(() => setMaxActivePluginsPerDeveloper(NaN)).toThrow();
+      });
+
+      it("setMaxPendingInstallsPerUser floors + rejects", () => {
+        expect(setMaxPendingInstallsPerUser(10)).toBe(10);
+        expect(getMaxPendingInstallsPerUser()).toBe(10);
+        expect(() => setMaxPendingInstallsPerUser(-5)).toThrow();
+      });
+
+      it("setAutoDeprecateAfterMs floors + rejects", () => {
+        expect(setAutoDeprecateAfterMs(1000.5)).toBe(1000);
+        expect(getAutoDeprecateAfterMs()).toBe(1000);
+        expect(() => setAutoDeprecateAfterMs(0)).toThrow();
+      });
+
+      it("setAutoArchiveAfterMs floors + rejects", () => {
+        expect(setAutoArchiveAfterMs(500)).toBe(500);
+        expect(getAutoArchiveAfterMs()).toBe(500);
+        expect(() => setAutoArchiveAfterMs(-1)).toThrow();
+      });
+
+      it("_resetStateV2 restores defaults", () => {
+        setMaxActivePluginsPerDeveloper(999);
+        setMaxPendingInstallsPerUser(999);
+        setAutoDeprecateAfterMs(1);
+        setAutoArchiveAfterMs(1);
+        _resetStateV2();
+        expect(getMaxActivePluginsPerDeveloper()).toBe(20);
+        expect(getMaxPendingInstallsPerUser()).toBe(5);
+        expect(getAutoDeprecateAfterMs()).toBe(
+          PLUGIN_DEFAULT_AUTO_DEPRECATE_AFTER_MS,
+        );
+        expect(getAutoArchiveAfterMs()).toBe(
+          PLUGIN_DEFAULT_AUTO_ARCHIVE_AFTER_MS,
+        );
+      });
+    });
+
+    describe("registerPluginV2", () => {
+      it("tags new plugin as ACTIVE", () => {
+        const entry = registerPluginV2(db, {
+          pluginId: "p1",
+          developerId: "dev-1",
+        });
+        expect(entry.status).toBe(PLUGIN_MATURITY_V2.ACTIVE);
+        expect(entry.developerId).toBe("dev-1");
+        expect(entry.reason).toBeNull();
+        expect(entry.metadata).toEqual({});
+      });
+
+      it("throws on missing pluginId", () => {
+        expect(() => registerPluginV2(db, { developerId: "dev-1" })).toThrow(
+          /pluginId is required/,
+        );
+      });
+
+      it("throws on missing developerId", () => {
+        expect(() => registerPluginV2(db, { pluginId: "p1" })).toThrow(
+          /developerId is required/,
+        );
+      });
+
+      it("throws on duplicate", () => {
+        registerPluginV2(db, { pluginId: "p1", developerId: "dev-1" });
+        expect(() =>
+          registerPluginV2(db, { pluginId: "p1", developerId: "dev-1" }),
+        ).toThrow(/already registered/);
+      });
+
+      it("preserves metadata", () => {
+        const entry = registerPluginV2(db, {
+          pluginId: "p1",
+          developerId: "dev-1",
+          metadata: { category: "dev-tools" },
+        });
+        expect(entry.metadata).toEqual({ category: "dev-tools" });
+      });
+
+      it("enforces per-developer active cap", () => {
+        setMaxActivePluginsPerDeveloper(2);
+        registerPluginV2(db, { pluginId: "p1", developerId: "dev-1" });
+        registerPluginV2(db, { pluginId: "p2", developerId: "dev-1" });
+        expect(() =>
+          registerPluginV2(db, { pluginId: "p3", developerId: "dev-1" }),
+        ).toThrow(/Max active plugins reached.*dev-1/);
+        // Other developer unaffected
+        expect(
+          registerPluginV2(db, { pluginId: "p4", developerId: "dev-2" }).status,
+        ).toBe("active");
+      });
+    });
+
+    describe("setPluginMaturityV2", () => {
+      beforeEach(() => {
+        registerPluginV2(db, { pluginId: "p1", developerId: "dev-1" });
+      });
+
+      it("active → deprecated → archived → active path", () => {
+        expect(deprecatePlugin(db, "p1", "old").status).toBe("deprecated");
+        expect(archivePluginV2(db, "p1", "cleanup").status).toBe("archived");
+        expect(
+          setPluginMaturityV2(db, "p1", "active", { reason: "revived" }).status,
+        ).toBe("active");
+      });
+
+      it("deprecated → removed is allowed", () => {
+        deprecatePlugin(db, "p1");
+        expect(removePluginV2(db, "p1", "gone").status).toBe("removed");
+      });
+
+      it("active → removed is NOT allowed", () => {
+        expect(() => removePluginV2(db, "p1")).toThrow(/Invalid transition/);
+      });
+
+      it("throws on terminal (removed)", () => {
+        deprecatePlugin(db, "p1");
+        removePluginV2(db, "p1");
+        expect(() => setPluginMaturityV2(db, "p1", "active")).toThrow(
+          /terminal/,
+        );
+      });
+
+      it("throws on unknown plugin", () => {
+        expect(() => setPluginMaturityV2(db, "nope", "deprecated")).toThrow(
+          /not registered/,
+        );
+      });
+
+      it("throws on invalid status", () => {
+        expect(() => setPluginMaturityV2(db, "p1", "zombie")).toThrow(
+          /Invalid maturity status/,
+        );
+      });
+
+      it("patch-merges metadata", () => {
+        registerPluginV2(db, {
+          pluginId: "p2",
+          developerId: "dev-1",
+          metadata: { a: 1 },
+        });
+        const entry = setPluginMaturityV2(db, "p2", "deprecated", {
+          reason: "r",
+          metadata: { b: 2 },
+        });
+        expect(entry.metadata).toEqual({ a: 1, b: 2 });
+        expect(entry.reason).toBe("r");
+      });
+
+      it("getMaturityV2 returns null for unknown", () => {
+        expect(getMaturityV2("nope")).toBeNull();
+      });
+    });
+
+    describe("touchPluginActivity", () => {
+      it("bumps lastActivityAt", async () => {
+        registerPluginV2(db, { pluginId: "p1", developerId: "dev-1" });
+        const before = getMaturityV2("p1").lastActivityAt;
+        await new Promise((r) => setTimeout(r, 5));
+        const after = touchPluginActivity("p1").lastActivityAt;
+        expect(after).toBeGreaterThan(before);
+      });
+
+      it("throws on unknown", () => {
+        expect(() => touchPluginActivity("nope")).toThrow(/not registered/);
+      });
+    });
+
+    describe("submitInstallV2", () => {
+      it("tags new install as PENDING", () => {
+        const entry = submitInstallV2(db, {
+          installId: "i1",
+          userId: "u1",
+          pluginId: "p1",
+        });
+        expect(entry.status).toBe(INSTALL_LIFECYCLE_V2.PENDING);
+        expect(entry.userId).toBe("u1");
+        expect(entry.pluginId).toBe("p1");
+      });
+
+      it("throws on missing fields", () => {
+        expect(() =>
+          submitInstallV2(db, { userId: "u1", pluginId: "p1" }),
+        ).toThrow(/installId/);
+        expect(() =>
+          submitInstallV2(db, { installId: "i1", pluginId: "p1" }),
+        ).toThrow(/userId/);
+        expect(() =>
+          submitInstallV2(db, { installId: "i1", userId: "u1" }),
+        ).toThrow(/pluginId/);
+      });
+
+      it("throws on duplicate", () => {
+        submitInstallV2(db, { installId: "i1", userId: "u1", pluginId: "p1" });
+        expect(() =>
+          submitInstallV2(db, {
+            installId: "i1",
+            userId: "u1",
+            pluginId: "p1",
+          }),
+        ).toThrow(/already registered/);
+      });
+
+      it("rejects install for archived plugin", () => {
+        registerPluginV2(db, { pluginId: "p1", developerId: "dev-1" });
+        deprecatePlugin(db, "p1");
+        archivePluginV2(db, "p1");
+        expect(() =>
+          submitInstallV2(db, {
+            installId: "i1",
+            userId: "u1",
+            pluginId: "p1",
+          }),
+        ).toThrow(/not installable/);
+      });
+
+      it("allows install for deprecated plugin (grace period)", () => {
+        registerPluginV2(db, { pluginId: "p1", developerId: "dev-1" });
+        deprecatePlugin(db, "p1");
+        expect(
+          submitInstallV2(db, {
+            installId: "i1",
+            userId: "u1",
+            pluginId: "p1",
+          }).status,
+        ).toBe("pending");
+      });
+
+      it("allows install for unregistered plugin (V2 state opt-in)", () => {
+        expect(
+          submitInstallV2(db, {
+            installId: "i1",
+            userId: "u1",
+            pluginId: "unknown",
+          }).status,
+        ).toBe("pending");
+      });
+
+      it("enforces per-user pending cap", () => {
+        setMaxPendingInstallsPerUser(2);
+        submitInstallV2(db, { installId: "i1", userId: "u1", pluginId: "p1" });
+        submitInstallV2(db, { installId: "i2", userId: "u1", pluginId: "p2" });
+        expect(() =>
+          submitInstallV2(db, {
+            installId: "i3",
+            userId: "u1",
+            pluginId: "p3",
+          }),
+        ).toThrow(/Max pending installs reached.*u1/);
+      });
+
+      it("per-user cap scopes correctly", () => {
+        setMaxPendingInstallsPerUser(1);
+        submitInstallV2(db, { installId: "i1", userId: "u1", pluginId: "p1" });
+        expect(
+          submitInstallV2(db, {
+            installId: "i2",
+            userId: "u2",
+            pluginId: "p1",
+          }).status,
+        ).toBe("pending");
+      });
+    });
+
+    describe("setInstallStatusV2 + shortcuts", () => {
+      beforeEach(() => {
+        submitInstallV2(db, {
+          installId: "i1",
+          userId: "u1",
+          pluginId: "p1",
+        });
+      });
+
+      it("pending → resolving → installed → uninstalled", () => {
+        expect(resolveInstall(db, "i1", "start").status).toBe("resolving");
+        expect(completeInstall(db, "i1", "done").status).toBe("installed");
+        expect(uninstallInstallV2(db, "i1", "bye").status).toBe("uninstalled");
+      });
+
+      it("pending → failed → pending (retry) → installed", () => {
+        expect(failInstall(db, "i1", "boom").status).toBe("failed");
+        expect(retryFailedInstall(db, "i1", "try again").status).toBe(
+          "pending",
+        );
+        resolveInstall(db, "i1");
+        expect(completeInstall(db, "i1").status).toBe("installed");
+      });
+
+      it("resolving → failed is allowed", () => {
+        resolveInstall(db, "i1");
+        expect(failInstall(db, "i1", "network").status).toBe("failed");
+      });
+
+      it("failed → uninstalled (abandon) is allowed", () => {
+        failInstall(db, "i1");
+        expect(uninstallInstallV2(db, "i1", "abandon").status).toBe(
+          "uninstalled",
+        );
+      });
+
+      it("installed → pending is NOT allowed", () => {
+        resolveInstall(db, "i1");
+        completeInstall(db, "i1");
+        expect(() => retryFailedInstall(db, "i1")).toThrow(
+          /Invalid transition/,
+        );
+      });
+
+      it("throws on terminal (uninstalled)", () => {
+        uninstallInstallV2(db, "i1", "bye");
+        expect(() => resolveInstall(db, "i1")).toThrow(/terminal/);
+      });
+
+      it("throws on unknown install", () => {
+        expect(() => resolveInstall(db, "nope")).toThrow(/not found/);
+      });
+
+      it("throws on invalid status", () => {
+        expect(() => setInstallStatusV2(db, "i1", "zombie")).toThrow(
+          /Invalid install status/,
+        );
+      });
+
+      it("patch-merges metadata", () => {
+        submitInstallV2(db, {
+          installId: "i2",
+          userId: "u1",
+          pluginId: "p2",
+          metadata: { a: 1 },
+        });
+        const entry = setInstallStatusV2(db, "i2", "resolving", {
+          reason: "r",
+          metadata: { b: 2 },
+        });
+        expect(entry.metadata).toEqual({ a: 1, b: 2 });
+        expect(entry.reason).toBe("r");
+      });
+    });
+
+    describe("counts", () => {
+      it("getActivePluginCount: zero initially + scopes by developer", () => {
+        expect(getActivePluginCount()).toBe(0);
+        expect(getActivePluginCount("dev-1")).toBe(0);
+        registerPluginV2(db, { pluginId: "p1", developerId: "dev-1" });
+        registerPluginV2(db, { pluginId: "p2", developerId: "dev-1" });
+        registerPluginV2(db, { pluginId: "p3", developerId: "dev-2" });
+        expect(getActivePluginCount()).toBe(3);
+        expect(getActivePluginCount("dev-1")).toBe(2);
+        expect(getActivePluginCount("dev-2")).toBe(1);
+      });
+
+      it("getActivePluginCount counts only ACTIVE", () => {
+        registerPluginV2(db, { pluginId: "p1", developerId: "dev-1" });
+        registerPluginV2(db, { pluginId: "p2", developerId: "dev-1" });
+        deprecatePlugin(db, "p1");
+        expect(getActivePluginCount("dev-1")).toBe(1);
+      });
+
+      it("getPendingInstallCount counts PENDING + RESOLVING", () => {
+        submitInstallV2(db, { installId: "i1", userId: "u1", pluginId: "p1" });
+        submitInstallV2(db, { installId: "i2", userId: "u1", pluginId: "p2" });
+        resolveInstall(db, "i2");
+        submitInstallV2(db, { installId: "i3", userId: "u2", pluginId: "p3" });
+        expect(getPendingInstallCount()).toBe(3);
+        expect(getPendingInstallCount("u1")).toBe(2);
+        expect(getPendingInstallCount("u2")).toBe(1);
+      });
+
+      it("getPendingInstallCount excludes INSTALLED / FAILED / UNINSTALLED", () => {
+        submitInstallV2(db, { installId: "i1", userId: "u1", pluginId: "p1" });
+        submitInstallV2(db, { installId: "i2", userId: "u1", pluginId: "p2" });
+        submitInstallV2(db, { installId: "i3", userId: "u1", pluginId: "p3" });
+        resolveInstall(db, "i1");
+        completeInstall(db, "i1");
+        failInstall(db, "i2");
+        expect(getPendingInstallCount("u1")).toBe(1);
+      });
+    });
+
+    describe("autoDeprecateStalePlugins", () => {
+      it("flips stale ACTIVE plugins to DEPRECATED", () => {
+        setAutoDeprecateAfterMs(100);
+        registerPluginV2(db, { pluginId: "p1", developerId: "dev-1" });
+        const now = Date.now();
+        const flipped = autoDeprecateStalePlugins(db, now + 1000);
+        expect(flipped).toHaveLength(1);
+        expect(flipped[0].pluginId).toBe("p1");
+        expect(flipped[0].reason).toBe("stale");
+        expect(getMaturityV2("p1").status).toBe("deprecated");
+      });
+
+      it("skips fresh plugins", () => {
+        setAutoDeprecateAfterMs(10_000);
+        registerPluginV2(db, { pluginId: "p1", developerId: "dev-1" });
+        const flipped = autoDeprecateStalePlugins(db, Date.now());
+        expect(flipped).toHaveLength(0);
+        expect(getMaturityV2("p1").status).toBe("active");
+      });
+
+      it("skips non-active plugins", () => {
+        setAutoDeprecateAfterMs(100);
+        registerPluginV2(db, { pluginId: "p1", developerId: "dev-1" });
+        deprecatePlugin(db, "p1");
+        const flipped = autoDeprecateStalePlugins(db, Date.now() + 1000);
+        expect(flipped).toHaveLength(0);
+      });
+    });
+
+    describe("autoArchiveLongDeprecated", () => {
+      it("flips long-deprecated plugins to ARCHIVED", () => {
+        setAutoArchiveAfterMs(100);
+        registerPluginV2(db, { pluginId: "p1", developerId: "dev-1" });
+        deprecatePlugin(db, "p1");
+        const flipped = autoArchiveLongDeprecated(db, Date.now() + 1000);
+        expect(flipped).toHaveLength(1);
+        expect(flipped[0].reason).toBe("long-deprecated");
+        expect(getMaturityV2("p1").status).toBe("archived");
+      });
+
+      it("skips non-deprecated plugins", () => {
+        setAutoArchiveAfterMs(100);
+        registerPluginV2(db, { pluginId: "p1", developerId: "dev-1" });
+        const flipped = autoArchiveLongDeprecated(db, Date.now() + 1000);
+        expect(flipped).toHaveLength(0);
+      });
+
+      it("skips fresh deprecated plugins", () => {
+        setAutoArchiveAfterMs(10_000);
+        registerPluginV2(db, { pluginId: "p1", developerId: "dev-1" });
+        deprecatePlugin(db, "p1");
+        const flipped = autoArchiveLongDeprecated(db, Date.now());
+        expect(flipped).toHaveLength(0);
+      });
+    });
+
+    describe("getEcosystemStatsV2", () => {
+      it("zero-init with default config", () => {
+        const s = getEcosystemStatsV2();
+        expect(s.totalPluginsV2).toBe(0);
+        expect(s.totalInstallsV2).toBe(0);
+        expect(s.maxActivePluginsPerDeveloper).toBe(20);
+        expect(s.maxPendingInstallsPerUser).toBe(5);
+        expect(s.maturityByStatus).toEqual({
+          active: 0,
+          deprecated: 0,
+          archived: 0,
+          removed: 0,
+        });
+        expect(s.installsByStatus).toEqual({
+          pending: 0,
+          resolving: 0,
+          installed: 0,
+          failed: 0,
+          uninstalled: 0,
+        });
+      });
+
+      it("aggregates across statuses", () => {
+        registerPluginV2(db, { pluginId: "p1", developerId: "dev-1" });
+        registerPluginV2(db, { pluginId: "p2", developerId: "dev-1" });
+        registerPluginV2(db, { pluginId: "p3", developerId: "dev-2" });
+        deprecatePlugin(db, "p1");
+        archivePluginV2(db, "p1");
+
+        submitInstallV2(db, { installId: "i1", userId: "u1", pluginId: "p2" });
+        submitInstallV2(db, { installId: "i2", userId: "u1", pluginId: "p3" });
+        resolveInstall(db, "i2");
+        completeInstall(db, "i2");
+
+        const s = getEcosystemStatsV2();
+        expect(s.totalPluginsV2).toBe(3);
+        expect(s.totalInstallsV2).toBe(2);
+        expect(s.maturityByStatus.active).toBe(2);
+        expect(s.maturityByStatus.archived).toBe(1);
+        expect(s.installsByStatus.pending).toBe(1);
+        expect(s.installsByStatus.installed).toBe(1);
+      });
     });
   });
 });

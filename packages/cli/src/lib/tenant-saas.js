@@ -829,3 +829,463 @@ export function _resetState() {
   _tenantUsage.clear();
   _seq = 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+ * Phase 97 V2 — Tenant Maturity + Subscription Lifecycle
+ * Strictly additive. Legacy surface above is preserved.
+ * ═════════════════════════════════════════════════════════════ */
+
+export const TENANT_MATURITY_V2 = Object.freeze({
+  PROVISIONING: "provisioning",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  ARCHIVED: "archived",
+  CANCELLED: "cancelled",
+});
+
+export const SUBSCRIPTION_LIFECYCLE_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAST_DUE: "past_due",
+  CANCELLED: "cancelled",
+  EXPIRED: "expired",
+});
+
+const TENANT_TRANSITIONS_V2 = new Map([
+  ["provisioning", new Set(["active", "cancelled"])],
+  ["active", new Set(["suspended", "archived", "cancelled"])],
+  ["suspended", new Set(["active", "archived", "cancelled"])],
+  ["archived", new Set(["active", "cancelled"])],
+]);
+const TENANT_TERMINALS_V2 = new Set(["cancelled"]);
+
+const SUBSCRIPTION_TRANSITIONS_V2 = new Map([
+  ["pending", new Set(["active", "cancelled"])],
+  ["active", new Set(["past_due", "cancelled", "expired"])],
+  ["past_due", new Set(["active", "cancelled", "expired"])],
+]);
+const SUBSCRIPTION_TERMINALS_V2 = new Set(["cancelled", "expired"]);
+
+export const SAAS_DEFAULT_MAX_ACTIVE_TENANTS_PER_PLAN = 1000;
+export const SAAS_DEFAULT_MAX_SUBSCRIPTIONS_PER_TENANT = 5;
+export const SAAS_DEFAULT_TENANT_IDLE_MS = 180 * 86400000; // 180 days
+export const SAAS_DEFAULT_PAST_DUE_GRACE_MS = 7 * 86400000; // 7 days
+
+let _maxActiveTenantsPerPlanV2 = SAAS_DEFAULT_MAX_ACTIVE_TENANTS_PER_PLAN;
+let _maxSubscriptionsPerTenantV2 = SAAS_DEFAULT_MAX_SUBSCRIPTIONS_PER_TENANT;
+let _tenantIdleMsV2 = SAAS_DEFAULT_TENANT_IDLE_MS;
+let _pastDueGraceMsV2 = SAAS_DEFAULT_PAST_DUE_GRACE_MS;
+
+const _tenantStatesV2 = new Map(); // tenantId → V2 record
+const _subscriptionStatesV2 = new Map(); // subId → V2 record
+
+function _positiveIntV2(n, label) {
+  const num = Number(n);
+  if (!Number.isFinite(num) || num <= 0) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return Math.floor(num);
+}
+
+function _validTenantStatusV2(s) {
+  return (
+    s === "provisioning" ||
+    s === "active" ||
+    s === "suspended" ||
+    s === "archived" ||
+    s === "cancelled"
+  );
+}
+
+function _validSubscriptionStatusV2(s) {
+  return (
+    s === "pending" ||
+    s === "active" ||
+    s === "past_due" ||
+    s === "cancelled" ||
+    s === "expired"
+  );
+}
+
+export function getDefaultMaxActiveTenantsPerPlanV2() {
+  return SAAS_DEFAULT_MAX_ACTIVE_TENANTS_PER_PLAN;
+}
+export function getMaxActiveTenantsPerPlanV2() {
+  return _maxActiveTenantsPerPlanV2;
+}
+export function setMaxActiveTenantsPerPlanV2(n) {
+  _maxActiveTenantsPerPlanV2 = _positiveIntV2(n, "maxActiveTenantsPerPlan");
+  return _maxActiveTenantsPerPlanV2;
+}
+
+export function getDefaultMaxSubscriptionsPerTenantV2() {
+  return SAAS_DEFAULT_MAX_SUBSCRIPTIONS_PER_TENANT;
+}
+export function getMaxSubscriptionsPerTenantV2() {
+  return _maxSubscriptionsPerTenantV2;
+}
+export function setMaxSubscriptionsPerTenantV2(n) {
+  _maxSubscriptionsPerTenantV2 = _positiveIntV2(n, "maxSubscriptionsPerTenant");
+  return _maxSubscriptionsPerTenantV2;
+}
+
+export function getDefaultTenantIdleMsV2() {
+  return SAAS_DEFAULT_TENANT_IDLE_MS;
+}
+export function getTenantIdleMsV2() {
+  return _tenantIdleMsV2;
+}
+export function setTenantIdleMsV2(ms) {
+  _tenantIdleMsV2 = _positiveIntV2(ms, "tenantIdleMs");
+  return _tenantIdleMsV2;
+}
+
+export function getDefaultPastDueGraceMsV2() {
+  return SAAS_DEFAULT_PAST_DUE_GRACE_MS;
+}
+export function getPastDueGraceMsV2() {
+  return _pastDueGraceMsV2;
+}
+export function setPastDueGraceMsV2(ms) {
+  _pastDueGraceMsV2 = _positiveIntV2(ms, "pastDueGraceMs");
+  return _pastDueGraceMsV2;
+}
+
+/* ── Tenant V2 ──────────────────────────────────────────────── */
+
+export function registerTenantV2(db, config = {}) {
+  void db;
+  const tenantId = String(config.tenantId || "").trim();
+  if (!tenantId) throw new Error("tenantId is required");
+  const plan = String(config.plan || "").trim();
+  if (!plan) throw new Error("plan is required");
+  if (_tenantStatesV2.has(tenantId)) {
+    throw new Error(`Tenant already registered in V2: ${tenantId}`);
+  }
+
+  const now = Number(config.now ?? Date.now());
+  const initialStatus = config.initialStatus || "provisioning";
+  if (!_validTenantStatusV2(initialStatus)) {
+    throw new Error(`Invalid initial status: ${initialStatus}`);
+  }
+  if (TENANT_TERMINALS_V2.has(initialStatus)) {
+    throw new Error(
+      `Cannot register tenant in terminal status '${initialStatus}'`,
+    );
+  }
+
+  if (initialStatus === "active") {
+    let activeCount = 0;
+    for (const rec of _tenantStatesV2.values()) {
+      if (rec.plan === plan && rec.status === "active") activeCount += 1;
+    }
+    if (activeCount >= _maxActiveTenantsPerPlanV2) {
+      throw new Error(
+        `Max active tenants per plan reached (${_maxActiveTenantsPerPlanV2})`,
+      );
+    }
+  }
+
+  const record = {
+    tenantId,
+    plan,
+    ownerId: config.ownerId ? String(config.ownerId) : null,
+    status: initialStatus,
+    metadata: config.metadata ? { ...config.metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+    lastActivityAt: now,
+    reason: null,
+  };
+  _tenantStatesV2.set(tenantId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getTenantV2(tenantId) {
+  const rec = _tenantStatesV2.get(String(tenantId || ""));
+  if (!rec) return null;
+  return { ...rec, metadata: { ...rec.metadata } };
+}
+
+export function setTenantMaturityV2(db, tenantId, newStatus, patch = {}) {
+  void db;
+  const id = String(tenantId || "");
+  const record = _tenantStatesV2.get(id);
+  if (!record) throw new Error(`Tenant not registered in V2: ${id}`);
+  if (!_validTenantStatusV2(newStatus)) {
+    throw new Error(`Invalid tenant status: ${newStatus}`);
+  }
+  if (TENANT_TERMINALS_V2.has(record.status)) {
+    throw new Error(
+      `Tenant is in terminal status '${record.status}' and cannot transition`,
+    );
+  }
+  const allowed = TENANT_TRANSITIONS_V2.get(record.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${record.status} → ${newStatus}`);
+  }
+
+  if (newStatus === "active" && record.status !== "active") {
+    let activeCount = 0;
+    for (const rec of _tenantStatesV2.values()) {
+      if (rec.plan === record.plan && rec.status === "active") activeCount += 1;
+    }
+    if (activeCount >= _maxActiveTenantsPerPlanV2) {
+      throw new Error(
+        `Max active tenants per plan reached (${_maxActiveTenantsPerPlanV2})`,
+      );
+    }
+  }
+
+  record.status = newStatus;
+  record.updatedAt = Number(patch.now ?? Date.now());
+  if (patch.reason !== undefined) record.reason = patch.reason;
+  if (patch.metadata && typeof patch.metadata === "object") {
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  }
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function activateTenant(db, tenantId, reason) {
+  return setTenantMaturityV2(db, tenantId, "active", { reason });
+}
+export function suspendTenant(db, tenantId, reason) {
+  return setTenantMaturityV2(db, tenantId, "suspended", { reason });
+}
+export function archiveTenantV2(db, tenantId, reason) {
+  return setTenantMaturityV2(db, tenantId, "archived", { reason });
+}
+export function cancelTenant(db, tenantId, reason) {
+  return setTenantMaturityV2(db, tenantId, "cancelled", { reason });
+}
+
+export function touchTenantActivity(tenantId) {
+  const rec = _tenantStatesV2.get(String(tenantId || ""));
+  if (!rec) throw new Error(`Tenant not registered in V2: ${tenantId}`);
+  rec.lastActivityAt = Date.now();
+  return { ...rec, metadata: { ...rec.metadata } };
+}
+
+/* ── Subscription V2 ────────────────────────────────────────── */
+
+export function registerSubscriptionV2(db, config = {}) {
+  void db;
+  const subscriptionId = String(config.subscriptionId || "").trim();
+  if (!subscriptionId) throw new Error("subscriptionId is required");
+  const tenantId = String(config.tenantId || "").trim();
+  if (!tenantId) throw new Error("tenantId is required");
+  const plan = String(config.plan || "").trim();
+  if (!plan) throw new Error("plan is required");
+
+  if (_subscriptionStatesV2.has(subscriptionId)) {
+    throw new Error(`Subscription already registered in V2: ${subscriptionId}`);
+  }
+
+  const tenant = _tenantStatesV2.get(tenantId);
+  if (!tenant) {
+    throw new Error(`Tenant not registered in V2: ${tenantId}`);
+  }
+  if (
+    tenant.status === "cancelled" ||
+    tenant.status === "archived" ||
+    tenant.status === "suspended"
+  ) {
+    throw new Error(`Tenant is ${tenant.status}, cannot register subscription`);
+  }
+
+  let openCount = 0;
+  for (const rec of _subscriptionStatesV2.values()) {
+    if (
+      rec.tenantId === tenantId &&
+      !SUBSCRIPTION_TERMINALS_V2.has(rec.status)
+    ) {
+      openCount += 1;
+    }
+  }
+  if (openCount >= _maxSubscriptionsPerTenantV2) {
+    throw new Error(
+      `Max subscriptions per tenant reached (${_maxSubscriptionsPerTenantV2})`,
+    );
+  }
+
+  const now = Number(config.now ?? Date.now());
+  const record = {
+    subscriptionId,
+    tenantId,
+    plan,
+    status: "pending",
+    metadata: config.metadata ? { ...config.metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    expiresAt: config.expiresAt ? Number(config.expiresAt) : null,
+    pastDueAt: null,
+    reason: null,
+  };
+  _subscriptionStatesV2.set(subscriptionId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getSubscriptionV2(subscriptionId) {
+  const rec = _subscriptionStatesV2.get(String(subscriptionId || ""));
+  if (!rec) return null;
+  return { ...rec, metadata: { ...rec.metadata } };
+}
+
+export function setSubscriptionStatusV2(
+  db,
+  subscriptionId,
+  newStatus,
+  patch = {},
+) {
+  void db;
+  const id = String(subscriptionId || "");
+  const record = _subscriptionStatesV2.get(id);
+  if (!record) throw new Error(`Subscription not registered in V2: ${id}`);
+  if (!_validSubscriptionStatusV2(newStatus)) {
+    throw new Error(`Invalid subscription status: ${newStatus}`);
+  }
+  if (SUBSCRIPTION_TERMINALS_V2.has(record.status)) {
+    throw new Error(
+      `Subscription is in terminal status '${record.status}' and cannot transition`,
+    );
+  }
+  const allowed = SUBSCRIPTION_TRANSITIONS_V2.get(record.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${record.status} → ${newStatus}`);
+  }
+  const now = Number(patch.now ?? Date.now());
+  record.status = newStatus;
+  record.updatedAt = now;
+  if (newStatus === "active" && record.activatedAt === null) {
+    record.activatedAt = now;
+  }
+  if (newStatus === "past_due" && record.pastDueAt === null) {
+    record.pastDueAt = now;
+  }
+  if (patch.reason !== undefined) record.reason = patch.reason;
+  if (patch.metadata && typeof patch.metadata === "object") {
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  }
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function activateSubscription(db, subscriptionId, reason) {
+  return setSubscriptionStatusV2(db, subscriptionId, "active", { reason });
+}
+export function markSubscriptionPastDue(db, subscriptionId, reason) {
+  return setSubscriptionStatusV2(db, subscriptionId, "past_due", { reason });
+}
+export function cancelSubscriptionV2(db, subscriptionId, reason) {
+  return setSubscriptionStatusV2(db, subscriptionId, "cancelled", { reason });
+}
+export function expireSubscription(db, subscriptionId, reason) {
+  return setSubscriptionStatusV2(db, subscriptionId, "expired", { reason });
+}
+
+/* ── Counts ─────────────────────────────────────────────────── */
+
+export function getActiveTenantCount(plan) {
+  let n = 0;
+  for (const rec of _tenantStatesV2.values()) {
+    if (rec.status !== "active") continue;
+    if (plan !== undefined && rec.plan !== String(plan)) continue;
+    n += 1;
+  }
+  return n;
+}
+
+export function getOpenSubscriptionCount(tenantId) {
+  let n = 0;
+  for (const rec of _subscriptionStatesV2.values()) {
+    if (SUBSCRIPTION_TERMINALS_V2.has(rec.status)) continue;
+    if (tenantId !== undefined && rec.tenantId !== String(tenantId)) continue;
+    n += 1;
+  }
+  return n;
+}
+
+/* ── Auto-flip Bulk Ops ─────────────────────────────────────── */
+
+export function autoArchiveIdleTenants(db, nowMs) {
+  void db;
+  const now = Number(nowMs ?? Date.now());
+  const flipped = [];
+  for (const rec of _tenantStatesV2.values()) {
+    if (rec.status !== "active" && rec.status !== "suspended") continue;
+    if (now - rec.lastActivityAt > _tenantIdleMsV2) {
+      rec.status = "archived";
+      rec.updatedAt = now;
+      rec.reason = "idle";
+      flipped.push(rec.tenantId);
+    }
+  }
+  return flipped;
+}
+
+export function autoExpirePastDueSubscriptions(db, nowMs) {
+  void db;
+  const now = Number(nowMs ?? Date.now());
+  const flipped = [];
+  for (const rec of _subscriptionStatesV2.values()) {
+    if (rec.status !== "past_due") continue;
+    const pastDueAt = rec.pastDueAt ?? rec.updatedAt;
+    if (now - pastDueAt > _pastDueGraceMsV2) {
+      rec.status = "expired";
+      rec.updatedAt = now;
+      rec.reason = "past_due_grace_expired";
+      flipped.push(rec.subscriptionId);
+    }
+  }
+  return flipped;
+}
+
+/* ── Stats V2 ───────────────────────────────────────────────── */
+
+export function getSaasStatsV2() {
+  const tenantsByStatus = {
+    provisioning: 0,
+    active: 0,
+    suspended: 0,
+    archived: 0,
+    cancelled: 0,
+  };
+  const subscriptionsByStatus = {
+    pending: 0,
+    active: 0,
+    past_due: 0,
+    cancelled: 0,
+    expired: 0,
+  };
+  for (const rec of _tenantStatesV2.values()) {
+    if (tenantsByStatus[rec.status] !== undefined) {
+      tenantsByStatus[rec.status] += 1;
+    }
+  }
+  for (const rec of _subscriptionStatesV2.values()) {
+    if (subscriptionsByStatus[rec.status] !== undefined) {
+      subscriptionsByStatus[rec.status] += 1;
+    }
+  }
+  return {
+    totalTenantsV2: _tenantStatesV2.size,
+    totalSubscriptionsV2: _subscriptionStatesV2.size,
+    maxActiveTenantsPerPlan: _maxActiveTenantsPerPlanV2,
+    maxSubscriptionsPerTenant: _maxSubscriptionsPerTenantV2,
+    tenantIdleMs: _tenantIdleMsV2,
+    pastDueGraceMs: _pastDueGraceMsV2,
+    tenantsByStatus,
+    subscriptionsByStatus,
+  };
+}
+
+/* ── Reset V2 (tests) ───────────────────────────────────────── */
+
+export function _resetStateV2() {
+  _tenantStatesV2.clear();
+  _subscriptionStatesV2.clear();
+  _maxActiveTenantsPerPlanV2 = SAAS_DEFAULT_MAX_ACTIVE_TENANTS_PER_PLAN;
+  _maxSubscriptionsPerTenantV2 = SAAS_DEFAULT_MAX_SUBSCRIPTIONS_PER_TENANT;
+  _tenantIdleMsV2 = SAAS_DEFAULT_TENANT_IDLE_MS;
+  _pastDueGraceMsV2 = SAAS_DEFAULT_PAST_DUE_GRACE_MS;
+}

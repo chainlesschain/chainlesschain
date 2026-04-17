@@ -22,6 +22,34 @@ import {
   CONTRIBUTION_TYPES,
   TX_TYPES,
   _resetState,
+  // V2
+  ACCOUNT_STATUS_V2,
+  CLAIM_STATUS_V2,
+  TOKEN_DEFAULT_MAX_PENDING_CLAIMS_PER_USER,
+  TOKEN_DEFAULT_CLAIM_EXPIRY_MS,
+  TOKEN_DEFAULT_MAX_CLAIM_AMOUNT,
+  setMaxPendingClaimsPerUser,
+  setClaimExpiryMs,
+  setMaxClaimAmount,
+  getMaxPendingClaimsPerUser,
+  getClaimExpiryMs,
+  getMaxClaimAmount,
+  getPendingClaimCount,
+  registerAccountV2,
+  getAccountStatusV2,
+  setAccountStatusV2,
+  freezeAccount,
+  unfreezeAccount,
+  closeAccount,
+  submitClaimV2,
+  getClaimStatusV2,
+  setClaimStatusV2,
+  approveClaim,
+  rejectClaim,
+  payClaim,
+  autoExpireUnclaimedClaims,
+  getTokenStatsV2,
+  _resetStateV2,
 } from "../../src/lib/token-incentive.js";
 
 describe("token-incentive", () => {
@@ -573,6 +601,410 @@ describe("token-incentive", () => {
       expect(rows).toHaveLength(1);
       expect(rows[0].totalReward).toBe(0);
       expect(rows[0].contributions).toBe(1);
+    });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Token Incentive V2 (Phase 66) — account + claim lifecycle
+// ═══════════════════════════════════════════════════════════════
+
+describe("Token Incentive V2", () => {
+  let db;
+
+  beforeEach(() => {
+    db = new MockDatabase();
+    _resetStateV2();
+  });
+
+  // ── Frozen enums ─────────────────────────────────────────────
+
+  describe("frozen enums", () => {
+    it("ACCOUNT_STATUS_V2 has 3 states", () => {
+      expect(Object.values(ACCOUNT_STATUS_V2)).toEqual([
+        "active",
+        "frozen",
+        "closed",
+      ]);
+      expect(Object.isFrozen(ACCOUNT_STATUS_V2)).toBe(true);
+    });
+
+    it("CLAIM_STATUS_V2 has 4 states", () => {
+      expect(Object.values(CLAIM_STATUS_V2)).toEqual([
+        "pending",
+        "approved",
+        "paid",
+        "rejected",
+      ]);
+      expect(Object.isFrozen(CLAIM_STATUS_V2)).toBe(true);
+    });
+
+    it("defaults are exported", () => {
+      expect(TOKEN_DEFAULT_MAX_PENDING_CLAIMS_PER_USER).toBe(50);
+      expect(TOKEN_DEFAULT_CLAIM_EXPIRY_MS).toBe(7 * 86400000);
+      expect(TOKEN_DEFAULT_MAX_CLAIM_AMOUNT).toBe(10000);
+    });
+  });
+
+  // ── Config mutators ──────────────────────────────────────────
+
+  describe("config mutators", () => {
+    it("setMaxPendingClaimsPerUser floors non-integer", () => {
+      expect(setMaxPendingClaimsPerUser(12.9)).toBe(12);
+      expect(getMaxPendingClaimsPerUser()).toBe(12);
+    });
+
+    it("setClaimExpiryMs rejects zero / NaN / negative", () => {
+      expect(() => setClaimExpiryMs(0)).toThrow();
+      expect(() => setClaimExpiryMs(NaN)).toThrow();
+      expect(() => setClaimExpiryMs(-1)).toThrow();
+    });
+
+    it("setMaxClaimAmount accepts positive number (not floored)", () => {
+      expect(setMaxClaimAmount(5000.5)).toBe(5000.5);
+      expect(getMaxClaimAmount()).toBe(5000.5);
+    });
+
+    it("setMaxClaimAmount rejects zero / NaN", () => {
+      expect(() => setMaxClaimAmount(0)).toThrow();
+      expect(() => setMaxClaimAmount(NaN)).toThrow();
+    });
+
+    it("_resetStateV2 restores defaults + clears state", () => {
+      setMaxPendingClaimsPerUser(1);
+      setClaimExpiryMs(123);
+      setMaxClaimAmount(99);
+      registerAccountV2(db, { accountId: "a" });
+      _resetStateV2();
+      expect(getMaxPendingClaimsPerUser()).toBe(
+        TOKEN_DEFAULT_MAX_PENDING_CLAIMS_PER_USER,
+      );
+      expect(getClaimExpiryMs()).toBe(TOKEN_DEFAULT_CLAIM_EXPIRY_MS);
+      expect(getMaxClaimAmount()).toBe(TOKEN_DEFAULT_MAX_CLAIM_AMOUNT);
+      expect(getAccountStatusV2("a")).toBeNull();
+    });
+  });
+
+  // ── registerAccountV2 ───────────────────────────────────────
+
+  describe("registerAccountV2", () => {
+    it("tags ACTIVE", () => {
+      const entry = registerAccountV2(db, { accountId: "alice" });
+      expect(entry.status).toBe("active");
+      expect(entry.reason).toBeNull();
+      expect(entry.metadata).toEqual({});
+    });
+
+    it("throws on missing accountId", () => {
+      expect(() => registerAccountV2(db, {})).toThrow(/accountId/);
+    });
+
+    it("throws on duplicate", () => {
+      registerAccountV2(db, { accountId: "dup" });
+      expect(() => registerAccountV2(db, { accountId: "dup" })).toThrow(
+        /already/,
+      );
+    });
+
+    it("preserves metadata", () => {
+      const entry = registerAccountV2(db, {
+        accountId: "a",
+        metadata: { tier: "gold" },
+      });
+      expect(entry.metadata.tier).toBe("gold");
+    });
+  });
+
+  // ── setAccountStatusV2 ───────────────────────────────────────
+
+  describe("setAccountStatusV2", () => {
+    beforeEach(() => {
+      registerAccountV2(db, { accountId: "alice" });
+    });
+
+    it("active → frozen", () => {
+      const r = freezeAccount(db, "alice", "suspicious");
+      expect(r.status).toBe("frozen");
+      expect(r.reason).toBe("suspicious");
+    });
+
+    it("frozen → active via unfreezeAccount", () => {
+      freezeAccount(db, "alice");
+      const r = unfreezeAccount(db, "alice", "cleared");
+      expect(r.status).toBe("active");
+    });
+
+    it("active → closed", () => {
+      const r = closeAccount(db, "alice", "user-req");
+      expect(r.status).toBe("closed");
+    });
+
+    it("frozen → closed", () => {
+      freezeAccount(db, "alice");
+      const r = closeAccount(db, "alice");
+      expect(r.status).toBe("closed");
+    });
+
+    it("throws on terminal (closed)", () => {
+      closeAccount(db, "alice");
+      expect(() => freezeAccount(db, "alice")).toThrow(/terminal/);
+    });
+
+    it("throws on invalid transition (active → active)", () => {
+      expect(() => setAccountStatusV2(db, "alice", "active")).toThrow(
+        /transition/,
+      );
+    });
+
+    it("throws on unknown account", () => {
+      expect(() => freezeAccount(db, "nope")).toThrow(/not found/);
+    });
+
+    it("throws on invalid status", () => {
+      expect(() => setAccountStatusV2(db, "alice", "bogus")).toThrow(/Invalid/);
+    });
+
+    it("patch merges metadata", () => {
+      const r = setAccountStatusV2(db, "alice", "frozen", {
+        metadata: { note: "x" },
+      });
+      expect(r.metadata.note).toBe("x");
+    });
+  });
+
+  // ── submitClaimV2 ────────────────────────────────────────────
+
+  describe("submitClaimV2", () => {
+    it("tags PENDING", () => {
+      const entry = submitClaimV2(db, {
+        claimId: "c1",
+        userId: "alice",
+        amount: 100,
+      });
+      expect(entry.status).toBe("pending");
+      expect(entry.amount).toBe(100);
+      expect(entry.paidAt).toBeNull();
+    });
+
+    it("throws on missing fields", () => {
+      expect(() => submitClaimV2(db, { userId: "a", amount: 1 })).toThrow(
+        /claimId/,
+      );
+      expect(() => submitClaimV2(db, { claimId: "c", amount: 1 })).toThrow(
+        /userId/,
+      );
+      expect(() => submitClaimV2(db, { claimId: "c", userId: "a" })).toThrow(
+        /amount/,
+      );
+    });
+
+    it("throws on invalid amount", () => {
+      expect(() =>
+        submitClaimV2(db, { claimId: "c", userId: "a", amount: 0 }),
+      ).toThrow();
+      expect(() =>
+        submitClaimV2(db, { claimId: "c", userId: "a", amount: -5 }),
+      ).toThrow();
+    });
+
+    it("throws when amount exceeds maxClaimAmount", () => {
+      setMaxClaimAmount(100);
+      expect(() =>
+        submitClaimV2(db, { claimId: "c", userId: "a", amount: 101 }),
+      ).toThrow(/exceeds/);
+    });
+
+    it("throws on duplicate claimId", () => {
+      submitClaimV2(db, { claimId: "dup", userId: "a", amount: 1 });
+      expect(() =>
+        submitClaimV2(db, { claimId: "dup", userId: "b", amount: 1 }),
+      ).toThrow(/already/);
+    });
+
+    it("rejects submit when account is frozen", () => {
+      registerAccountV2(db, { accountId: "alice" });
+      freezeAccount(db, "alice");
+      expect(() =>
+        submitClaimV2(db, { claimId: "c1", userId: "alice", amount: 10 }),
+      ).toThrow(/not active/);
+    });
+
+    it("allows submit when account absent (opt-in V2 state)", () => {
+      const entry = submitClaimV2(db, {
+        claimId: "c1",
+        userId: "stranger",
+        amount: 10,
+      });
+      expect(entry.status).toBe("pending");
+    });
+
+    it("enforces per-user pending cap", () => {
+      setMaxPendingClaimsPerUser(2);
+      submitClaimV2(db, { claimId: "c1", userId: "alice", amount: 1 });
+      submitClaimV2(db, { claimId: "c2", userId: "alice", amount: 1 });
+      expect(() =>
+        submitClaimV2(db, { claimId: "c3", userId: "alice", amount: 1 }),
+      ).toThrow(/Max pending claims/);
+    });
+
+    it("cap is per-user (other users unaffected)", () => {
+      setMaxPendingClaimsPerUser(1);
+      submitClaimV2(db, { claimId: "c1", userId: "alice", amount: 1 });
+      // Different user should be fine
+      const entry = submitClaimV2(db, {
+        claimId: "c2",
+        userId: "bob",
+        amount: 1,
+      });
+      expect(entry.status).toBe("pending");
+    });
+  });
+
+  // ── setClaimStatusV2 ─────────────────────────────────────────
+
+  describe("setClaimStatusV2", () => {
+    beforeEach(() => {
+      submitClaimV2(db, { claimId: "c1", userId: "alice", amount: 10 });
+    });
+
+    it("pending → approved via approveClaim", () => {
+      const r = approveClaim(db, "c1", "ok");
+      expect(r.status).toBe("approved");
+      expect(r.reason).toBe("ok");
+    });
+
+    it("pending → rejected via rejectClaim", () => {
+      const r = rejectClaim(db, "c1", "invalid");
+      expect(r.status).toBe("rejected");
+    });
+
+    it("approved → paid via payClaim stamps paidAt", () => {
+      approveClaim(db, "c1");
+      const r = payClaim(db, "c1");
+      expect(r.status).toBe("paid");
+      expect(r.paidAt).toBeGreaterThan(0);
+    });
+
+    it("approved → rejected (refund)", () => {
+      approveClaim(db, "c1");
+      const r = rejectClaim(db, "c1", "dup-payment");
+      expect(r.status).toBe("rejected");
+    });
+
+    it("throws on terminal (paid)", () => {
+      approveClaim(db, "c1");
+      payClaim(db, "c1");
+      expect(() => rejectClaim(db, "c1")).toThrow(/terminal/);
+    });
+
+    it("throws on invalid transition (pending → paid)", () => {
+      expect(() => payClaim(db, "c1")).toThrow(/transition/);
+    });
+
+    it("throws on unknown claim", () => {
+      expect(() => approveClaim(db, "nope")).toThrow(/not found/);
+    });
+
+    it("throws on invalid status", () => {
+      expect(() => setClaimStatusV2(db, "c1", "bogus")).toThrow(/Invalid/);
+    });
+
+    it("patch merges metadata", () => {
+      const r = setClaimStatusV2(db, "c1", "approved", {
+        metadata: { reviewer: "bob" },
+      });
+      expect(r.metadata.reviewer).toBe("bob");
+    });
+  });
+
+  // ── getPendingClaimCount ─────────────────────────────────────
+
+  describe("getPendingClaimCount", () => {
+    it("returns zero on empty state", () => {
+      expect(getPendingClaimCount()).toBe(0);
+      expect(getPendingClaimCount("alice")).toBe(0);
+    });
+
+    it("counts only PENDING claims", () => {
+      submitClaimV2(db, { claimId: "c1", userId: "alice", amount: 1 });
+      submitClaimV2(db, { claimId: "c2", userId: "alice", amount: 1 });
+      approveClaim(db, "c1");
+      expect(getPendingClaimCount("alice")).toBe(1);
+      expect(getPendingClaimCount()).toBe(1);
+    });
+
+    it("scopes by userId", () => {
+      submitClaimV2(db, { claimId: "c1", userId: "alice", amount: 1 });
+      submitClaimV2(db, { claimId: "c2", userId: "bob", amount: 1 });
+      expect(getPendingClaimCount("alice")).toBe(1);
+      expect(getPendingClaimCount("bob")).toBe(1);
+      expect(getPendingClaimCount()).toBe(2);
+    });
+  });
+
+  // ── autoExpireUnclaimedClaims ────────────────────────────────
+
+  describe("autoExpireUnclaimedClaims", () => {
+    it("rejects stale PENDING claims with 'expired' reason", () => {
+      setClaimExpiryMs(1000);
+      submitClaimV2(db, { claimId: "stale", userId: "a", amount: 1 });
+      const expired = autoExpireUnclaimedClaims(db, Date.now() + 5000);
+      expect(expired).toHaveLength(1);
+      expect(expired[0].status).toBe("rejected");
+      expect(expired[0].reason).toBe("expired");
+    });
+
+    it("skips fresh claims", () => {
+      submitClaimV2(db, { claimId: "fresh", userId: "a", amount: 1 });
+      const expired = autoExpireUnclaimedClaims(db, Date.now());
+      expect(expired).toHaveLength(0);
+    });
+
+    it("skips already-approved claims", () => {
+      setClaimExpiryMs(1);
+      submitClaimV2(db, { claimId: "c1", userId: "a", amount: 1 });
+      approveClaim(db, "c1");
+      const expired = autoExpireUnclaimedClaims(db, Date.now() + 10000);
+      expect(expired).toHaveLength(0);
+      expect(getClaimStatusV2("c1").status).toBe("approved");
+    });
+  });
+
+  // ── getTokenStatsV2 ──────────────────────────────────────────
+
+  describe("getTokenStatsV2", () => {
+    it("zero-inits all enum keys", () => {
+      const s = getTokenStatsV2();
+      expect(s.totalAccounts).toBe(0);
+      expect(s.totalClaims).toBe(0);
+      expect(s.totalPaidAmount).toBe(0);
+      expect(s.accountsByStatus).toEqual({ active: 0, frozen: 0, closed: 0 });
+      expect(s.claimsByStatus).toEqual({
+        pending: 0,
+        approved: 0,
+        paid: 0,
+        rejected: 0,
+      });
+    });
+
+    it("aggregates accounts + claims + paid amounts", () => {
+      registerAccountV2(db, { accountId: "alice" });
+      registerAccountV2(db, { accountId: "bob" });
+      freezeAccount(db, "bob");
+      submitClaimV2(db, { claimId: "c1", userId: "alice", amount: 100 });
+      submitClaimV2(db, { claimId: "c2", userId: "alice", amount: 50 });
+      approveClaim(db, "c1");
+      payClaim(db, "c1");
+      rejectClaim(db, "c2", "invalid");
+      const s = getTokenStatsV2();
+      expect(s.totalAccounts).toBe(2);
+      expect(s.totalClaims).toBe(2);
+      expect(s.totalClaimedAmount).toBe(150);
+      expect(s.totalPaidAmount).toBe(100);
+      expect(s.accountsByStatus.active).toBe(1);
+      expect(s.accountsByStatus.frozen).toBe(1);
+      expect(s.claimsByStatus.paid).toBe(1);
+      expect(s.claimsByStatus.rejected).toBe(1);
     });
   });
 });

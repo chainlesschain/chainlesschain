@@ -521,3 +521,481 @@ export function _resetState() {
   _playbooks.clear();
   _baselines.clear();
 }
+
+/* ═══════════════════════════════════════════════════════════════
+ * V2 SURFACE — Phase 25 AIOps lifecycle state machines
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * V2 adds two parallel lifecycles on top of the legacy incident/playbook
+ * store. Nothing above is modified.
+ *
+ *   Playbook maturity: draft      → { active, retired }
+ *                      active     → { deprecated, retired }
+ *                      deprecated → { active, retired }
+ *                      Terminal:  retired
+ *
+ *   Remediation exec:  pending    → { executing, aborted }
+ *                      executing  → { succeeded, failed, aborted }
+ *                      Terminals: succeeded, failed, aborted
+ *
+ * Caps: per-owner active-playbook count + per-owner in-flight
+ *       remediation count.
+ *
+ * Auto-flip: stale-playbook auto-retire + stuck-remediation auto-timeout.
+ *
+ * Stats: all enum keys zero-initialized for stable CI regression shape.
+ * ═════════════════════════════════════════════════════════════ */
+
+export const PLAYBOOK_MATURITY_V2 = Object.freeze({
+  DRAFT: "draft",
+  ACTIVE: "active",
+  DEPRECATED: "deprecated",
+  RETIRED: "retired",
+});
+
+export const REMEDIATION_LIFECYCLE_V2 = Object.freeze({
+  PENDING: "pending",
+  EXECUTING: "executing",
+  SUCCEEDED: "succeeded",
+  FAILED: "failed",
+  ABORTED: "aborted",
+});
+
+const PLAYBOOK_TRANSITIONS_V2 = new Map([
+  ["draft", new Set(["active", "retired"])],
+  ["active", new Set(["deprecated", "retired"])],
+  ["deprecated", new Set(["active", "retired"])],
+]);
+const PLAYBOOK_TERMINALS_V2 = new Set(["retired"]);
+
+const REMEDIATION_TRANSITIONS_V2 = new Map([
+  ["pending", new Set(["executing", "aborted"])],
+  ["executing", new Set(["succeeded", "failed", "aborted"])],
+]);
+const REMEDIATION_TERMINALS_V2 = new Set(["succeeded", "failed", "aborted"]);
+
+export const AIOPS_DEFAULT_MAX_ACTIVE_PLAYBOOKS_PER_OWNER = 50;
+export const AIOPS_DEFAULT_MAX_PENDING_REMEDIATIONS_PER_OWNER = 10;
+export const AIOPS_DEFAULT_PLAYBOOK_STALE_MS = 90 * 86400000; // 90 days
+export const AIOPS_DEFAULT_REMEDIATION_TIMEOUT_MS = 30 * 60 * 1000; // 30 min
+
+let _maxActivePlaybooksPerOwnerV2 =
+  AIOPS_DEFAULT_MAX_ACTIVE_PLAYBOOKS_PER_OWNER;
+let _maxPendingRemediationsPerOwnerV2 =
+  AIOPS_DEFAULT_MAX_PENDING_REMEDIATIONS_PER_OWNER;
+let _playbookStaleMsV2 = AIOPS_DEFAULT_PLAYBOOK_STALE_MS;
+let _remediationTimeoutMsV2 = AIOPS_DEFAULT_REMEDIATION_TIMEOUT_MS;
+
+const _playbookStatesV2 = new Map(); // playbookId → V2 record
+const _remediationStatesV2 = new Map(); // remediationId → V2 record
+
+function _positiveIntV2(n, label) {
+  const num = Number(n);
+  if (!Number.isFinite(num) || num <= 0) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return Math.floor(num);
+}
+
+function _validPlaybookStatusV2(status) {
+  return (
+    status === "draft" ||
+    status === "active" ||
+    status === "deprecated" ||
+    status === "retired"
+  );
+}
+
+function _validRemediationStatusV2(status) {
+  return (
+    status === "pending" ||
+    status === "executing" ||
+    status === "succeeded" ||
+    status === "failed" ||
+    status === "aborted"
+  );
+}
+
+export function getDefaultMaxActivePlaybooksPerOwnerV2() {
+  return AIOPS_DEFAULT_MAX_ACTIVE_PLAYBOOKS_PER_OWNER;
+}
+export function getMaxActivePlaybooksPerOwnerV2() {
+  return _maxActivePlaybooksPerOwnerV2;
+}
+export function setMaxActivePlaybooksPerOwnerV2(n) {
+  _maxActivePlaybooksPerOwnerV2 = _positiveIntV2(
+    n,
+    "maxActivePlaybooksPerOwner",
+  );
+  return _maxActivePlaybooksPerOwnerV2;
+}
+
+export function getDefaultMaxPendingRemediationsPerOwnerV2() {
+  return AIOPS_DEFAULT_MAX_PENDING_REMEDIATIONS_PER_OWNER;
+}
+export function getMaxPendingRemediationsPerOwnerV2() {
+  return _maxPendingRemediationsPerOwnerV2;
+}
+export function setMaxPendingRemediationsPerOwnerV2(n) {
+  _maxPendingRemediationsPerOwnerV2 = _positiveIntV2(
+    n,
+    "maxPendingRemediationsPerOwner",
+  );
+  return _maxPendingRemediationsPerOwnerV2;
+}
+
+export function getDefaultPlaybookStaleMsV2() {
+  return AIOPS_DEFAULT_PLAYBOOK_STALE_MS;
+}
+export function getPlaybookStaleMsV2() {
+  return _playbookStaleMsV2;
+}
+export function setPlaybookStaleMsV2(ms) {
+  _playbookStaleMsV2 = _positiveIntV2(ms, "playbookStaleMs");
+  return _playbookStaleMsV2;
+}
+
+export function getDefaultRemediationTimeoutMsV2() {
+  return AIOPS_DEFAULT_REMEDIATION_TIMEOUT_MS;
+}
+export function getRemediationTimeoutMsV2() {
+  return _remediationTimeoutMsV2;
+}
+export function setRemediationTimeoutMsV2(ms) {
+  _remediationTimeoutMsV2 = _positiveIntV2(ms, "remediationTimeoutMs");
+  return _remediationTimeoutMsV2;
+}
+
+/* ── Playbook V2 ─────────────────────────────────────────── */
+
+export function registerPlaybookV2(db, config = {}) {
+  void db;
+  const playbookId = String(config.playbookId || "").trim();
+  if (!playbookId) throw new Error("playbookId is required");
+  const ownerId = String(config.ownerId || "").trim();
+  if (!ownerId) throw new Error("ownerId is required");
+  if (_playbookStatesV2.has(playbookId)) {
+    throw new Error(`Playbook already registered in V2: ${playbookId}`);
+  }
+
+  const now = Number(config.now ?? Date.now());
+  const initialStatus = config.initialStatus || "draft";
+  if (!_validPlaybookStatusV2(initialStatus)) {
+    throw new Error(`Invalid initial status: ${initialStatus}`);
+  }
+  if (initialStatus === "retired") {
+    throw new Error("Cannot register playbook in terminal status 'retired'");
+  }
+
+  if (initialStatus === "active") {
+    let activeCount = 0;
+    for (const rec of _playbookStatesV2.values()) {
+      if (rec.ownerId === ownerId && rec.status === "active") activeCount += 1;
+    }
+    if (activeCount >= _maxActivePlaybooksPerOwnerV2) {
+      throw new Error(
+        `Max active playbooks per owner reached (${_maxActivePlaybooksPerOwnerV2})`,
+      );
+    }
+  }
+
+  const record = {
+    playbookId,
+    ownerId,
+    name: config.name ? String(config.name) : null,
+    status: initialStatus,
+    metadata: config.metadata ? { ...config.metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+    lastUsedAt: now,
+    reason: null,
+  };
+  _playbookStatesV2.set(playbookId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getPlaybookV2(playbookId) {
+  const rec = _playbookStatesV2.get(String(playbookId || ""));
+  if (!rec) return null;
+  return { ...rec, metadata: { ...rec.metadata } };
+}
+
+export function setPlaybookMaturityV2(db, playbookId, newStatus, patch = {}) {
+  void db;
+  const id = String(playbookId || "");
+  const record = _playbookStatesV2.get(id);
+  if (!record) throw new Error(`Playbook not registered in V2: ${id}`);
+  if (!_validPlaybookStatusV2(newStatus)) {
+    throw new Error(`Invalid playbook status: ${newStatus}`);
+  }
+  if (PLAYBOOK_TERMINALS_V2.has(record.status)) {
+    throw new Error(
+      `Playbook is in terminal status '${record.status}' and cannot transition`,
+    );
+  }
+  const allowed = PLAYBOOK_TRANSITIONS_V2.get(record.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${record.status} → ${newStatus}`);
+  }
+
+  if (newStatus === "active" && record.status !== "active") {
+    let activeCount = 0;
+    for (const rec of _playbookStatesV2.values()) {
+      if (rec.ownerId === record.ownerId && rec.status === "active")
+        activeCount += 1;
+    }
+    if (activeCount >= _maxActivePlaybooksPerOwnerV2) {
+      throw new Error(
+        `Max active playbooks per owner reached (${_maxActivePlaybooksPerOwnerV2})`,
+      );
+    }
+  }
+
+  record.status = newStatus;
+  record.updatedAt = Number(patch.now ?? Date.now());
+  if (patch.reason !== undefined) record.reason = patch.reason;
+  if (patch.metadata && typeof patch.metadata === "object") {
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  }
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function activatePlaybook(db, playbookId, reason) {
+  return setPlaybookMaturityV2(db, playbookId, "active", { reason });
+}
+export function deprecatePlaybookV2(db, playbookId, reason) {
+  return setPlaybookMaturityV2(db, playbookId, "deprecated", { reason });
+}
+export function retirePlaybook(db, playbookId, reason) {
+  return setPlaybookMaturityV2(db, playbookId, "retired", { reason });
+}
+
+export function touchPlaybookActivity(playbookId) {
+  const rec = _playbookStatesV2.get(String(playbookId || ""));
+  if (!rec) throw new Error(`Playbook not registered in V2: ${playbookId}`);
+  rec.lastUsedAt = Date.now();
+  return { ...rec, metadata: { ...rec.metadata } };
+}
+
+/* ── Remediation V2 ──────────────────────────────────────── */
+
+export function submitRemediationV2(db, config = {}) {
+  void db;
+  const remediationId = String(config.remediationId || "").trim();
+  if (!remediationId) throw new Error("remediationId is required");
+  const ownerId = String(config.ownerId || "").trim();
+  if (!ownerId) throw new Error("ownerId is required");
+  const playbookId = String(config.playbookId || "").trim();
+  if (!playbookId) throw new Error("playbookId is required");
+
+  if (_remediationStatesV2.has(remediationId)) {
+    throw new Error(`Remediation already registered in V2: ${remediationId}`);
+  }
+
+  const playbook = _playbookStatesV2.get(playbookId);
+  if (!playbook) {
+    throw new Error(`Playbook not registered in V2: ${playbookId}`);
+  }
+  if (playbook.status !== "active" && playbook.status !== "deprecated") {
+    throw new Error(
+      `Playbook is ${playbook.status}, cannot submit remediation`,
+    );
+  }
+
+  let inflightCount = 0;
+  for (const rec of _remediationStatesV2.values()) {
+    if (
+      rec.ownerId === ownerId &&
+      (rec.status === "pending" || rec.status === "executing")
+    ) {
+      inflightCount += 1;
+    }
+  }
+  if (inflightCount >= _maxPendingRemediationsPerOwnerV2) {
+    throw new Error(
+      `Max pending remediations per owner reached (${_maxPendingRemediationsPerOwnerV2})`,
+    );
+  }
+
+  const now = Number(config.now ?? Date.now());
+  const record = {
+    remediationId,
+    ownerId,
+    playbookId,
+    incidentId: config.incidentId ? String(config.incidentId) : null,
+    status: "pending",
+    metadata: config.metadata ? { ...config.metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    completedAt: null,
+    reason: null,
+  };
+  _remediationStatesV2.set(remediationId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getRemediationV2(remediationId) {
+  const rec = _remediationStatesV2.get(String(remediationId || ""));
+  if (!rec) return null;
+  return { ...rec, metadata: { ...rec.metadata } };
+}
+
+export function setRemediationStatusV2(
+  db,
+  remediationId,
+  newStatus,
+  patch = {},
+) {
+  void db;
+  const id = String(remediationId || "");
+  const record = _remediationStatesV2.get(id);
+  if (!record) throw new Error(`Remediation not registered in V2: ${id}`);
+  if (!_validRemediationStatusV2(newStatus)) {
+    throw new Error(`Invalid remediation status: ${newStatus}`);
+  }
+  if (REMEDIATION_TERMINALS_V2.has(record.status)) {
+    throw new Error(
+      `Remediation is in terminal status '${record.status}' and cannot transition`,
+    );
+  }
+  const allowed = REMEDIATION_TRANSITIONS_V2.get(record.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${record.status} → ${newStatus}`);
+  }
+  const now = Number(patch.now ?? Date.now());
+  record.status = newStatus;
+  record.updatedAt = now;
+  if (newStatus === "executing" && record.startedAt === null) {
+    record.startedAt = now;
+  }
+  if (REMEDIATION_TERMINALS_V2.has(newStatus)) {
+    record.completedAt = now;
+  }
+  if (patch.reason !== undefined) record.reason = patch.reason;
+  if (patch.metadata && typeof patch.metadata === "object") {
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  }
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function startRemediation(db, remediationId, reason) {
+  return setRemediationStatusV2(db, remediationId, "executing", { reason });
+}
+export function completeRemediation(db, remediationId, reason) {
+  return setRemediationStatusV2(db, remediationId, "succeeded", { reason });
+}
+export function failRemediation(db, remediationId, reason) {
+  return setRemediationStatusV2(db, remediationId, "failed", { reason });
+}
+export function abortRemediation(db, remediationId, reason) {
+  return setRemediationStatusV2(db, remediationId, "aborted", { reason });
+}
+
+/* ── Counts ──────────────────────────────────────────────── */
+
+export function getActivePlaybookCount(ownerId) {
+  let n = 0;
+  for (const rec of _playbookStatesV2.values()) {
+    if (rec.status !== "active") continue;
+    if (ownerId !== undefined && rec.ownerId !== String(ownerId)) continue;
+    n += 1;
+  }
+  return n;
+}
+
+export function getPendingRemediationCount(ownerId) {
+  let n = 0;
+  for (const rec of _remediationStatesV2.values()) {
+    if (rec.status !== "pending" && rec.status !== "executing") continue;
+    if (ownerId !== undefined && rec.ownerId !== String(ownerId)) continue;
+    n += 1;
+  }
+  return n;
+}
+
+/* ── Auto-flip Bulk Ops ──────────────────────────────────── */
+
+export function autoRetireStalePlaybooks(db, nowMs) {
+  void db;
+  const now = Number(nowMs ?? Date.now());
+  const flipped = [];
+  for (const rec of _playbookStatesV2.values()) {
+    if (PLAYBOOK_TERMINALS_V2.has(rec.status)) continue;
+    if (now - rec.lastUsedAt > _playbookStaleMsV2) {
+      rec.status = "retired";
+      rec.updatedAt = now;
+      rec.reason = "stale";
+      flipped.push(rec.playbookId);
+    }
+  }
+  return flipped;
+}
+
+export function autoTimeoutStuckRemediations(db, nowMs) {
+  void db;
+  const now = Number(nowMs ?? Date.now());
+  const flipped = [];
+  for (const rec of _remediationStatesV2.values()) {
+    if (rec.status !== "executing") continue;
+    const startedAt = rec.startedAt ?? rec.createdAt;
+    if (now - startedAt > _remediationTimeoutMsV2) {
+      rec.status = "failed";
+      rec.updatedAt = now;
+      rec.completedAt = now;
+      rec.reason = "timeout";
+      flipped.push(rec.remediationId);
+    }
+  }
+  return flipped;
+}
+
+/* ── Stats V2 ────────────────────────────────────────────── */
+
+export function getAiOpsStatsV2() {
+  const playbooksByStatus = {
+    draft: 0,
+    active: 0,
+    deprecated: 0,
+    retired: 0,
+  };
+  const remediationsByStatus = {
+    pending: 0,
+    executing: 0,
+    succeeded: 0,
+    failed: 0,
+    aborted: 0,
+  };
+  for (const rec of _playbookStatesV2.values()) {
+    if (playbooksByStatus[rec.status] !== undefined) {
+      playbooksByStatus[rec.status] += 1;
+    }
+  }
+  for (const rec of _remediationStatesV2.values()) {
+    if (remediationsByStatus[rec.status] !== undefined) {
+      remediationsByStatus[rec.status] += 1;
+    }
+  }
+  return {
+    totalPlaybooksV2: _playbookStatesV2.size,
+    totalRemediationsV2: _remediationStatesV2.size,
+    maxActivePlaybooksPerOwner: _maxActivePlaybooksPerOwnerV2,
+    maxPendingRemediationsPerOwner: _maxPendingRemediationsPerOwnerV2,
+    playbookStaleMs: _playbookStaleMsV2,
+    remediationTimeoutMs: _remediationTimeoutMsV2,
+    playbooksByStatus,
+    remediationsByStatus,
+  };
+}
+
+/* ── Reset V2 (tests) ────────────────────────────────────── */
+
+export function _resetStateV2() {
+  _playbookStatesV2.clear();
+  _remediationStatesV2.clear();
+  _maxActivePlaybooksPerOwnerV2 = AIOPS_DEFAULT_MAX_ACTIVE_PLAYBOOKS_PER_OWNER;
+  _maxPendingRemediationsPerOwnerV2 =
+    AIOPS_DEFAULT_MAX_PENDING_REMEDIATIONS_PER_OWNER;
+  _playbookStaleMsV2 = AIOPS_DEFAULT_PLAYBOOK_STALE_MS;
+  _remediationTimeoutMsV2 = AIOPS_DEFAULT_REMEDIATION_TIMEOUT_MS;
+}

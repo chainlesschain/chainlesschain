@@ -51,6 +51,43 @@ chainlesschain ops postmortem <id> [--json]                                     
 chainlesschain ops stats [--json]                                                # AIOps 统计
 ```
 
+### Phase 25 V2 — Playbook Maturity + Remediation Lifecycle
+
+4-state playbook maturity (`draft` / `active` / `deprecated` / `retired`) + 5-state
+remediation lifecycle (`pending` / `executing` / `succeeded` / `failed` / `aborted`),
+per-owner active-playbook cap, per-owner pending-remediation cap, auto-retire stale
+playbooks, auto-timeout stuck remediations. Legacy `ops` surface above is unchanged.
+
+```bash
+chainlesschain ops playbook-maturities-v2 | remediation-lifecycles-v2
+chainlesschain ops default-max-active-playbooks-per-owner | max-active-playbooks-per-owner |
+      set-max-active-playbooks-per-owner <n>
+chainlesschain ops default-max-pending-remediations-per-owner | max-pending-remediations-per-owner |
+      set-max-pending-remediations-per-owner <n>
+chainlesschain ops default-playbook-stale-ms | playbook-stale-ms | set-playbook-stale-ms <ms>
+chainlesschain ops default-remediation-timeout-ms | remediation-timeout-ms |
+      set-remediation-timeout-ms <ms>
+chainlesschain ops active-playbook-count [-o owner]
+chainlesschain ops pending-remediation-count [-o owner]
+chainlesschain ops register-playbook-v2 <playbook-id> -o <owner> [-n name] [-i initial-status] [-m metadata-json]
+chainlesschain ops playbook-v2 <playbook-id>
+chainlesschain ops set-playbook-maturity-v2 <playbook-id> <status> [-r reason] [-m metadata-json]
+chainlesschain ops activate-playbook <playbook-id> [-r reason]
+chainlesschain ops deprecate-playbook-v2 <playbook-id> [-r reason]
+chainlesschain ops retire-playbook <playbook-id> [-r reason]
+chainlesschain ops touch-playbook-activity <playbook-id>
+chainlesschain ops submit-remediation-v2 <remediation-id> -o <owner> -p <playbook> [-i incident] [-m metadata-json]
+chainlesschain ops remediation-v2 <remediation-id>
+chainlesschain ops set-remediation-status-v2 <remediation-id> <status> [-r reason] [-m metadata-json]
+chainlesschain ops start-remediation <remediation-id> [-r reason]
+chainlesschain ops complete-remediation <remediation-id> [-r reason]
+chainlesschain ops fail-remediation <remediation-id> [-r reason]
+chainlesschain ops abort-remediation <remediation-id> [-r reason]
+chainlesschain ops auto-retire-stale-playbooks
+chainlesschain ops auto-timeout-stuck-remediations
+chainlesschain ops stats-v2 [--json]
+```
+
 ## Multimodal Perception Engine (Phase 84)
 
 ```bash

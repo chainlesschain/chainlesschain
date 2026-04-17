@@ -511,3 +511,296 @@ export function _resetState() {
   _contributions.clear();
   _seq = 0;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Phase 66 V2 — Account + Claim lifecycle, per-user claim cap
+// ═══════════════════════════════════════════════════════════════
+
+export const ACCOUNT_STATUS_V2 = Object.freeze({
+  ACTIVE: "active",
+  FROZEN: "frozen",
+  CLOSED: "closed",
+});
+
+export const CLAIM_STATUS_V2 = Object.freeze({
+  PENDING: "pending",
+  APPROVED: "approved",
+  PAID: "paid",
+  REJECTED: "rejected",
+});
+
+export const TOKEN_DEFAULT_MAX_PENDING_CLAIMS_PER_USER = 50;
+export const TOKEN_DEFAULT_CLAIM_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+export const TOKEN_DEFAULT_MAX_CLAIM_AMOUNT = 10000;
+
+let _maxPendingClaimsPerUser = TOKEN_DEFAULT_MAX_PENDING_CLAIMS_PER_USER;
+let _claimExpiryMs = TOKEN_DEFAULT_CLAIM_EXPIRY_MS;
+let _maxClaimAmount = TOKEN_DEFAULT_MAX_CLAIM_AMOUNT;
+
+const _accountStatesV2 = new Map();
+const _claimStatesV2 = new Map();
+
+const ACCOUNT_TRANSITIONS_V2 = new Map([
+  ["active", new Set(["frozen", "closed"])],
+  ["frozen", new Set(["active", "closed"])],
+]);
+const ACCOUNT_TERMINALS_V2 = new Set(["closed"]);
+
+const CLAIM_TRANSITIONS_V2 = new Map([
+  ["pending", new Set(["approved", "rejected"])],
+  ["approved", new Set(["paid", "rejected"])],
+]);
+const CLAIM_TERMINALS_V2 = new Set(["paid", "rejected"]);
+
+function _positiveInt(n, label) {
+  const v = Number(n);
+  if (!Number.isFinite(v) || v <= 0) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return Math.floor(v);
+}
+
+export function setMaxPendingClaimsPerUser(n) {
+  _maxPendingClaimsPerUser = _positiveInt(n, "maxPendingClaimsPerUser");
+  return _maxPendingClaimsPerUser;
+}
+
+export function setClaimExpiryMs(ms) {
+  _claimExpiryMs = _positiveInt(ms, "claimExpiryMs");
+  return _claimExpiryMs;
+}
+
+export function setMaxClaimAmount(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v) || v <= 0) {
+    throw new Error("maxClaimAmount must be a positive number");
+  }
+  _maxClaimAmount = v;
+  return _maxClaimAmount;
+}
+
+export function getMaxPendingClaimsPerUser() {
+  return _maxPendingClaimsPerUser;
+}
+
+export function getClaimExpiryMs() {
+  return _claimExpiryMs;
+}
+
+export function getMaxClaimAmount() {
+  return _maxClaimAmount;
+}
+
+export function getPendingClaimCount(userId) {
+  let count = 0;
+  for (const entry of _claimStatesV2.values()) {
+    if (entry.status === CLAIM_STATUS_V2.PENDING) {
+      if (!userId || entry.userId === userId) count += 1;
+    }
+  }
+  return count;
+}
+
+/* ── Account V2 ─────────────────────────────────────────────── */
+
+export function registerAccountV2(db, { accountId, metadata } = {}) {
+  if (!accountId) throw new Error("accountId is required");
+  if (_accountStatesV2.has(accountId)) {
+    throw new Error(`Account already registered: ${accountId}`);
+  }
+  const now = Date.now();
+  const entry = {
+    accountId,
+    status: ACCOUNT_STATUS_V2.ACTIVE,
+    reason: null,
+    metadata: metadata ? { ...metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+  };
+  _accountStatesV2.set(accountId, entry);
+  return { ...entry };
+}
+
+export function getAccountStatusV2(accountId) {
+  const entry = _accountStatesV2.get(accountId);
+  return entry ? { ...entry } : null;
+}
+
+export function setAccountStatusV2(db, accountId, newStatus, patch = {}) {
+  const entry = _accountStatesV2.get(accountId);
+  if (!entry) throw new Error(`Account not found: ${accountId}`);
+  if (!Object.values(ACCOUNT_STATUS_V2).includes(newStatus)) {
+    throw new Error(`Invalid account status: ${newStatus}`);
+  }
+  if (ACCOUNT_TERMINALS_V2.has(entry.status)) {
+    throw new Error(`Account is terminal: ${entry.status}`);
+  }
+  const allowed = ACCOUNT_TRANSITIONS_V2.get(entry.status) || new Set();
+  if (!allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${entry.status} → ${newStatus}`);
+  }
+  entry.status = newStatus;
+  entry.updatedAt = Date.now();
+  if (patch.reason !== undefined) entry.reason = patch.reason;
+  if (patch.metadata) entry.metadata = { ...entry.metadata, ...patch.metadata };
+  return { ...entry };
+}
+
+export function freezeAccount(db, accountId, reason) {
+  return setAccountStatusV2(db, accountId, ACCOUNT_STATUS_V2.FROZEN, {
+    reason,
+  });
+}
+
+export function unfreezeAccount(db, accountId, reason) {
+  return setAccountStatusV2(db, accountId, ACCOUNT_STATUS_V2.ACTIVE, {
+    reason,
+  });
+}
+
+export function closeAccount(db, accountId, reason) {
+  return setAccountStatusV2(db, accountId, ACCOUNT_STATUS_V2.CLOSED, {
+    reason,
+  });
+}
+
+/* ── Claim V2 ───────────────────────────────────────────────── */
+
+export function submitClaimV2(
+  db,
+  { claimId, userId, amount, contributionId, metadata } = {},
+) {
+  if (!claimId) throw new Error("claimId is required");
+  if (!userId) throw new Error("userId is required");
+  const v = Number(amount);
+  if (!Number.isFinite(v) || v <= 0) {
+    throw new Error(`Invalid amount: ${amount} (must be > 0)`);
+  }
+  if (v > _maxClaimAmount) {
+    throw new Error(`Amount exceeds maxClaimAmount: ${v} > ${_maxClaimAmount}`);
+  }
+  if (_claimStatesV2.has(claimId)) {
+    throw new Error(`Claim already registered: ${claimId}`);
+  }
+  // Reject if account exists in V2 state and is frozen/closed
+  const accountEntry = _accountStatesV2.get(userId);
+  if (accountEntry && accountEntry.status !== ACCOUNT_STATUS_V2.ACTIVE) {
+    throw new Error(`Account not active: ${accountEntry.status}`);
+  }
+  // Enforce per-user pending cap
+  const pendingCount = getPendingClaimCount(userId);
+  if (pendingCount >= _maxPendingClaimsPerUser) {
+    throw new Error(
+      `Max pending claims reached (${pendingCount}/${_maxPendingClaimsPerUser}) for user ${userId}`,
+    );
+  }
+  const now = Date.now();
+  const entry = {
+    claimId,
+    userId,
+    amount: v,
+    contributionId: contributionId || null,
+    status: CLAIM_STATUS_V2.PENDING,
+    reason: null,
+    metadata: metadata ? { ...metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+    paidAt: null,
+  };
+  _claimStatesV2.set(claimId, entry);
+  return { ...entry };
+}
+
+export function getClaimStatusV2(claimId) {
+  const entry = _claimStatesV2.get(claimId);
+  return entry ? { ...entry } : null;
+}
+
+export function setClaimStatusV2(db, claimId, newStatus, patch = {}) {
+  const entry = _claimStatesV2.get(claimId);
+  if (!entry) throw new Error(`Claim not found: ${claimId}`);
+  if (!Object.values(CLAIM_STATUS_V2).includes(newStatus)) {
+    throw new Error(`Invalid claim status: ${newStatus}`);
+  }
+  if (CLAIM_TERMINALS_V2.has(entry.status)) {
+    throw new Error(`Claim is terminal: ${entry.status}`);
+  }
+  const allowed = CLAIM_TRANSITIONS_V2.get(entry.status) || new Set();
+  if (!allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${entry.status} → ${newStatus}`);
+  }
+  entry.status = newStatus;
+  entry.updatedAt = Date.now();
+  if (newStatus === CLAIM_STATUS_V2.PAID) entry.paidAt = entry.updatedAt;
+  if (patch.reason !== undefined) entry.reason = patch.reason;
+  if (patch.metadata) entry.metadata = { ...entry.metadata, ...patch.metadata };
+  return { ...entry };
+}
+
+export function approveClaim(db, claimId, reason) {
+  return setClaimStatusV2(db, claimId, CLAIM_STATUS_V2.APPROVED, { reason });
+}
+
+export function rejectClaim(db, claimId, reason) {
+  return setClaimStatusV2(db, claimId, CLAIM_STATUS_V2.REJECTED, { reason });
+}
+
+export function payClaim(db, claimId, reason) {
+  return setClaimStatusV2(db, claimId, CLAIM_STATUS_V2.PAID, { reason });
+}
+
+export function autoExpireUnclaimedClaims(db, nowMs = Date.now()) {
+  const expired = [];
+  for (const entry of _claimStatesV2.values()) {
+    if (entry.status !== CLAIM_STATUS_V2.PENDING) continue;
+    if (nowMs - entry.createdAt > _claimExpiryMs) {
+      entry.status = CLAIM_STATUS_V2.REJECTED;
+      entry.reason = "expired";
+      entry.updatedAt = nowMs;
+      expired.push({ ...entry });
+    }
+  }
+  return expired;
+}
+
+/* ── Stats V2 ───────────────────────────────────────────────── */
+
+export function getTokenStatsV2() {
+  const accountsByStatus = { active: 0, frozen: 0, closed: 0 };
+  const claimsByStatus = { pending: 0, approved: 0, paid: 0, rejected: 0 };
+  let totalClaimedAmount = 0;
+  let totalPaidAmount = 0;
+
+  for (const entry of _accountStatesV2.values()) {
+    if (accountsByStatus[entry.status] !== undefined)
+      accountsByStatus[entry.status] += 1;
+  }
+  for (const entry of _claimStatesV2.values()) {
+    if (claimsByStatus[entry.status] !== undefined)
+      claimsByStatus[entry.status] += 1;
+    totalClaimedAmount += entry.amount;
+    if (entry.status === CLAIM_STATUS_V2.PAID) totalPaidAmount += entry.amount;
+  }
+
+  return {
+    totalAccounts: _accountStatesV2.size,
+    totalClaims: _claimStatesV2.size,
+    totalClaimedAmount: Number(totalClaimedAmount.toFixed(4)),
+    totalPaidAmount: Number(totalPaidAmount.toFixed(4)),
+    maxPendingClaimsPerUser: _maxPendingClaimsPerUser,
+    claimExpiryMs: _claimExpiryMs,
+    maxClaimAmount: _maxClaimAmount,
+    accountsByStatus,
+    claimsByStatus,
+  };
+}
+
+/* ── Reset V2 (tests) ───────────────────────────────────────── */
+
+export function _resetStateV2() {
+  _accountStatesV2.clear();
+  _claimStatesV2.clear();
+  _maxPendingClaimsPerUser = TOKEN_DEFAULT_MAX_PENDING_CLAIMS_PER_USER;
+  _claimExpiryMs = TOKEN_DEFAULT_CLAIM_EXPIRY_MS;
+  _maxClaimAmount = TOKEN_DEFAULT_MAX_CLAIM_AMOUNT;
+}

@@ -28,6 +28,40 @@ import {
   getSaasStats,
   exportTenant,
   importTenant,
+  TENANT_MATURITY_V2,
+  SUBSCRIPTION_LIFECYCLE_V2,
+  getDefaultMaxActiveTenantsPerPlanV2,
+  getMaxActiveTenantsPerPlanV2,
+  setMaxActiveTenantsPerPlanV2,
+  getDefaultMaxSubscriptionsPerTenantV2,
+  getMaxSubscriptionsPerTenantV2,
+  setMaxSubscriptionsPerTenantV2,
+  getDefaultTenantIdleMsV2,
+  getTenantIdleMsV2,
+  setTenantIdleMsV2,
+  getDefaultPastDueGraceMsV2,
+  getPastDueGraceMsV2,
+  setPastDueGraceMsV2,
+  registerTenantV2,
+  getTenantV2,
+  setTenantMaturityV2,
+  activateTenant,
+  suspendTenant,
+  archiveTenantV2,
+  cancelTenant,
+  touchTenantActivity,
+  registerSubscriptionV2,
+  getSubscriptionV2,
+  setSubscriptionStatusV2,
+  activateSubscription,
+  markSubscriptionPastDue,
+  cancelSubscriptionV2,
+  expireSubscription,
+  getActiveTenantCount,
+  getOpenSubscriptionCount,
+  autoArchiveIdleTenants,
+  autoExpirePastDueSubscriptions,
+  getSaasStatsV2,
 } from "../lib/tenant-saas.js";
 
 function _dbFromCtx(ctx) {
@@ -572,5 +606,322 @@ export function registerTenantCommand(program) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
       }
+    });
+
+  /* ── V2: Tenant Maturity + Subscription Lifecycle ─────────── */
+
+  tenant
+    .command("maturities-v2")
+    .description("List tenant V2 maturity states")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const s = Object.values(TENANT_MATURITY_V2);
+      if (opts.json) console.log(JSON.stringify(s));
+      else s.forEach((v) => console.log(v));
+    });
+
+  tenant
+    .command("subscription-lifecycles-v2")
+    .description("List subscription V2 lifecycle states")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const s = Object.values(SUBSCRIPTION_LIFECYCLE_V2);
+      if (opts.json) console.log(JSON.stringify(s));
+      else s.forEach((v) => console.log(v));
+    });
+
+  tenant
+    .command("default-max-active-tenants-per-plan")
+    .description("Show default max-active-tenants-per-plan")
+    .action(() => console.log(getDefaultMaxActiveTenantsPerPlanV2()));
+  tenant
+    .command("max-active-tenants-per-plan")
+    .description("Show current max-active-tenants-per-plan")
+    .action(() => console.log(getMaxActiveTenantsPerPlanV2()));
+  tenant
+    .command("set-max-active-tenants-per-plan <n>")
+    .description("Set max-active-tenants-per-plan")
+    .action((n) => {
+      setMaxActiveTenantsPerPlanV2(n);
+      console.log(getMaxActiveTenantsPerPlanV2());
+    });
+
+  tenant
+    .command("default-max-subscriptions-per-tenant")
+    .description("Show default max-subscriptions-per-tenant")
+    .action(() => console.log(getDefaultMaxSubscriptionsPerTenantV2()));
+  tenant
+    .command("max-subscriptions-per-tenant")
+    .description("Show current max-subscriptions-per-tenant")
+    .action(() => console.log(getMaxSubscriptionsPerTenantV2()));
+  tenant
+    .command("set-max-subscriptions-per-tenant <n>")
+    .description("Set max-subscriptions-per-tenant")
+    .action((n) => {
+      setMaxSubscriptionsPerTenantV2(n);
+      console.log(getMaxSubscriptionsPerTenantV2());
+    });
+
+  tenant
+    .command("default-tenant-idle-ms")
+    .description("Show default tenant-idle-ms")
+    .action(() => console.log(getDefaultTenantIdleMsV2()));
+  tenant
+    .command("tenant-idle-ms")
+    .description("Show current tenant-idle-ms")
+    .action(() => console.log(getTenantIdleMsV2()));
+  tenant
+    .command("set-tenant-idle-ms <ms>")
+    .description("Set tenant-idle-ms")
+    .action((ms) => {
+      setTenantIdleMsV2(ms);
+      console.log(getTenantIdleMsV2());
+    });
+
+  tenant
+    .command("default-past-due-grace-ms")
+    .description("Show default past-due-grace-ms")
+    .action(() => console.log(getDefaultPastDueGraceMsV2()));
+  tenant
+    .command("past-due-grace-ms")
+    .description("Show current past-due-grace-ms")
+    .action(() => console.log(getPastDueGraceMsV2()));
+  tenant
+    .command("set-past-due-grace-ms <ms>")
+    .description("Set past-due-grace-ms")
+    .action((ms) => {
+      setPastDueGraceMsV2(ms);
+      console.log(getPastDueGraceMsV2());
+    });
+
+  tenant
+    .command("active-tenant-count")
+    .description("Active tenant count (optionally scoped by plan)")
+    .option("-p, --plan <plan>", "Plan ID")
+    .action((opts) => console.log(getActiveTenantCount(opts.plan)));
+
+  tenant
+    .command("open-subscription-count")
+    .description("Open subscription count (optionally scoped by tenant)")
+    .option("-t, --tenant <id>", "Tenant ID")
+    .action((opts) => console.log(getOpenSubscriptionCount(opts.tenant)));
+
+  tenant
+    .command("register-v2 <tenant-id>")
+    .description("Register a V2 tenant")
+    .requiredOption("-p, --plan <plan>", "Plan")
+    .option("-o, --owner <id>", "Owner ID")
+    .option(
+      "-i, --initial-status <status>",
+      "Initial status (default provisioning)",
+    )
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .action((tenantId, opts) => {
+      const config = { tenantId, plan: opts.plan };
+      if (opts.owner) config.ownerId = opts.owner;
+      if (opts.initialStatus) config.initialStatus = opts.initialStatus;
+      if (opts.metadata) config.metadata = JSON.parse(opts.metadata);
+      console.log(JSON.stringify(registerTenantV2(null, config), null, 2));
+    });
+
+  tenant
+    .command("tenant-v2 <tenant-id>")
+    .description("Get V2 tenant record")
+    .action((tenantId) => {
+      const rec = getTenantV2(tenantId);
+      console.log(rec ? JSON.stringify(rec, null, 2) : "null");
+    });
+
+  tenant
+    .command("set-maturity-v2 <tenant-id> <status>")
+    .description("Set tenant V2 maturity status")
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <json>", "Metadata JSON patch")
+    .action((tenantId, status, opts) => {
+      const patch = {};
+      if (opts.reason !== undefined) patch.reason = opts.reason;
+      if (opts.metadata) patch.metadata = JSON.parse(opts.metadata);
+      console.log(
+        JSON.stringify(
+          setTenantMaturityV2(null, tenantId, status, patch),
+          null,
+          2,
+        ),
+      );
+    });
+
+  tenant
+    .command("activate <tenant-id>")
+    .description("Transition tenant → active")
+    .option("-r, --reason <reason>", "Reason")
+    .action((tenantId, opts) =>
+      console.log(
+        JSON.stringify(activateTenant(null, tenantId, opts.reason), null, 2),
+      ),
+    );
+
+  tenant
+    .command("suspend <tenant-id>")
+    .description("Transition tenant → suspended")
+    .option("-r, --reason <reason>", "Reason")
+    .action((tenantId, opts) =>
+      console.log(
+        JSON.stringify(suspendTenant(null, tenantId, opts.reason), null, 2),
+      ),
+    );
+
+  tenant
+    .command("archive-v2 <tenant-id>")
+    .description("Transition tenant → archived")
+    .option("-r, --reason <reason>", "Reason")
+    .action((tenantId, opts) =>
+      console.log(
+        JSON.stringify(archiveTenantV2(null, tenantId, opts.reason), null, 2),
+      ),
+    );
+
+  tenant
+    .command("cancel-tenant <tenant-id>")
+    .description("Transition tenant → cancelled (terminal)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((tenantId, opts) =>
+      console.log(
+        JSON.stringify(cancelTenant(null, tenantId, opts.reason), null, 2),
+      ),
+    );
+
+  tenant
+    .command("touch-activity <tenant-id>")
+    .description("Bump lastActivityAt for a tenant")
+    .action((tenantId) =>
+      console.log(JSON.stringify(touchTenantActivity(tenantId), null, 2)),
+    );
+
+  tenant
+    .command("subscription-register-v2 <subscription-id>")
+    .description("Register a V2 subscription")
+    .requiredOption("-t, --tenant <id>", "Tenant ID")
+    .requiredOption("-p, --plan <plan>", "Plan")
+    .option("-e, --expires-at <ms>", "Expires at (epoch ms)")
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .action((subscriptionId, opts) => {
+      const config = {
+        subscriptionId,
+        tenantId: opts.tenant,
+        plan: opts.plan,
+      };
+      if (opts.expiresAt) config.expiresAt = Number(opts.expiresAt);
+      if (opts.metadata) config.metadata = JSON.parse(opts.metadata);
+      console.log(
+        JSON.stringify(registerSubscriptionV2(null, config), null, 2),
+      );
+    });
+
+  tenant
+    .command("subscription-v2 <subscription-id>")
+    .description("Get V2 subscription record")
+    .action((subscriptionId) => {
+      const rec = getSubscriptionV2(subscriptionId);
+      console.log(rec ? JSON.stringify(rec, null, 2) : "null");
+    });
+
+  tenant
+    .command("set-subscription-status-v2 <subscription-id> <status>")
+    .description("Set subscription V2 status")
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <json>", "Metadata JSON patch")
+    .action((subscriptionId, status, opts) => {
+      const patch = {};
+      if (opts.reason !== undefined) patch.reason = opts.reason;
+      if (opts.metadata) patch.metadata = JSON.parse(opts.metadata);
+      console.log(
+        JSON.stringify(
+          setSubscriptionStatusV2(null, subscriptionId, status, patch),
+          null,
+          2,
+        ),
+      );
+    });
+
+  tenant
+    .command("activate-subscription <subscription-id>")
+    .description("Transition subscription → active")
+    .option("-r, --reason <reason>", "Reason")
+    .action((subscriptionId, opts) =>
+      console.log(
+        JSON.stringify(
+          activateSubscription(null, subscriptionId, opts.reason),
+          null,
+          2,
+        ),
+      ),
+    );
+
+  tenant
+    .command("mark-past-due <subscription-id>")
+    .description("Transition subscription → past_due")
+    .option("-r, --reason <reason>", "Reason")
+    .action((subscriptionId, opts) =>
+      console.log(
+        JSON.stringify(
+          markSubscriptionPastDue(null, subscriptionId, opts.reason),
+          null,
+          2,
+        ),
+      ),
+    );
+
+  tenant
+    .command("cancel-subscription-v2 <subscription-id>")
+    .description("Transition subscription → cancelled (terminal)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((subscriptionId, opts) =>
+      console.log(
+        JSON.stringify(
+          cancelSubscriptionV2(null, subscriptionId, opts.reason),
+          null,
+          2,
+        ),
+      ),
+    );
+
+  tenant
+    .command("expire-subscription <subscription-id>")
+    .description("Transition subscription → expired (terminal)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((subscriptionId, opts) =>
+      console.log(
+        JSON.stringify(
+          expireSubscription(null, subscriptionId, opts.reason),
+          null,
+          2,
+        ),
+      ),
+    );
+
+  tenant
+    .command("auto-archive-idle-tenants")
+    .description("Bulk-flip idle tenants → archived")
+    .action(() => {
+      const flipped = autoArchiveIdleTenants(null);
+      console.log(JSON.stringify(flipped));
+    });
+
+  tenant
+    .command("auto-expire-past-due-subscriptions")
+    .description("Bulk-flip past-due subscriptions past grace → expired")
+    .action(() => {
+      const flipped = autoExpirePastDueSubscriptions(null);
+      console.log(JSON.stringify(flipped));
+    });
+
+  tenant
+    .command("stats-v2")
+    .description("Show V2 SaaS stats (all-enum-key)")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const s = getSaasStatsV2();
+      if (opts.json) console.log(JSON.stringify(s));
+      else console.log(JSON.stringify(s, null, 2));
     });
 }

@@ -16,6 +16,36 @@ import {
   listPolicies,
   addPolicy,
   checkAccess,
+  EVIDENCE_STATUS_V2,
+  POLICY_STATUS_V2,
+  REPORT_STATUS_V2,
+  SEVERITY_V2,
+  FRAMEWORKS_V2,
+  POLICY_TYPES_V2,
+  COMPLIANCE_DEFAULT_MAX_ACTIVE_POLICIES,
+  COMPLIANCE_DEFAULT_EVIDENCE_RETENTION_MS,
+  COMPLIANCE_DEFAULT_REPORT_RETENTION_MS,
+  setMaxActivePolicies,
+  setEvidenceRetentionMs,
+  setReportRetentionMs,
+  getMaxActivePolicies,
+  getEvidenceRetentionMs,
+  getReportRetentionMs,
+  getActivePolicyCount,
+  registerEvidenceV2,
+  getEvidenceStatusV2,
+  setEvidenceStatusV2,
+  autoExpireEvidence,
+  registerPolicyV2,
+  getPolicyStatusV2,
+  setPolicyStatusV2,
+  activatePolicy,
+  registerReportV2,
+  getReportStatusV2,
+  setReportStatusV2,
+  publishReport,
+  autoArchiveStaleReports,
+  getComplianceStatsV2,
 } from "../lib/compliance-manager.js";
 import {
   generateFrameworkReport,
@@ -803,5 +833,366 @@ export function registerComplianceCommand(program) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
       }
+    });
+
+  /* ═══════════════════════════════════════════════════════════════
+     V2 SURFACE (Phase 19 canonical) — compliance V2 subcommands
+     ═══════════════════════════════════════════════════════════════ */
+
+  const parseMeta = (s) => {
+    if (!s) return {};
+    try {
+      return JSON.parse(s);
+    } catch {
+      return {};
+    }
+  };
+
+  compliance
+    .command("evidence-statuses-v2")
+    .description("List evidence V2 lifecycle states")
+    .action(() => {
+      for (const v of Object.values(EVIDENCE_STATUS_V2)) console.log("  " + v);
+    });
+
+  compliance
+    .command("policy-statuses-v2")
+    .description("List policy V2 lifecycle states")
+    .action(() => {
+      for (const v of Object.values(POLICY_STATUS_V2)) console.log("  " + v);
+    });
+
+  compliance
+    .command("report-statuses-v2")
+    .description("List report V2 lifecycle states")
+    .action(() => {
+      for (const v of Object.values(REPORT_STATUS_V2)) console.log("  " + v);
+    });
+
+  compliance
+    .command("severities-v2")
+    .description("List V2 severity buckets")
+    .action(() => {
+      for (const v of Object.values(SEVERITY_V2)) console.log("  " + v);
+    });
+
+  compliance
+    .command("frameworks-v2")
+    .description("List V2 supported frameworks")
+    .action(() => {
+      for (const v of FRAMEWORKS_V2) console.log("  " + v);
+    });
+
+  compliance
+    .command("policy-types-v2")
+    .description("List V2 supported policy types")
+    .action(() => {
+      for (const v of POLICY_TYPES_V2) console.log("  " + v);
+    });
+
+  compliance
+    .command("default-max-active-policies")
+    .description("Show default max-active-policies cap")
+    .action(() => console.log(COMPLIANCE_DEFAULT_MAX_ACTIVE_POLICIES));
+
+  compliance
+    .command("max-active-policies")
+    .description("Show current max-active-policies cap")
+    .action(() => console.log(getMaxActivePolicies()));
+
+  compliance
+    .command("set-max-active-policies <n>")
+    .description("Set max-active-policies cap")
+    .action((n) => {
+      try {
+        console.log(setMaxActivePolicies(n));
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  compliance
+    .command("default-evidence-retention-ms")
+    .description("Show default evidence retention (ms)")
+    .action(() => console.log(COMPLIANCE_DEFAULT_EVIDENCE_RETENTION_MS));
+
+  compliance
+    .command("evidence-retention-ms")
+    .description("Show current evidence retention (ms)")
+    .action(() => console.log(getEvidenceRetentionMs()));
+
+  compliance
+    .command("set-evidence-retention-ms <ms>")
+    .description("Set evidence retention (ms)")
+    .action((ms) => {
+      try {
+        console.log(setEvidenceRetentionMs(ms));
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  compliance
+    .command("default-report-retention-ms")
+    .description("Show default report retention (ms)")
+    .action(() => console.log(COMPLIANCE_DEFAULT_REPORT_RETENTION_MS));
+
+  compliance
+    .command("report-retention-ms")
+    .description("Show current report retention (ms)")
+    .action(() => console.log(getReportRetentionMs()));
+
+  compliance
+    .command("set-report-retention-ms <ms>")
+    .description("Set report retention (ms)")
+    .action((ms) => {
+      try {
+        console.log(setReportRetentionMs(ms));
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  compliance
+    .command("active-policy-count")
+    .description("Show current active-policy count")
+    .option("-f, --framework <fw>", "Filter by framework")
+    .action((options) => {
+      console.log(getActivePolicyCount(options.framework));
+    });
+
+  compliance
+    .command("register-evidence-v2 <evidence-id>")
+    .description("Register a new V2 evidence entry (tagged COLLECTED)")
+    .option("-f, --framework <fw>", "Framework (gdpr|soc2|hipaa|iso27001)")
+    .option("-t, --type <type>", "Evidence type", "general")
+    .option("-d, --description <desc>", "Description")
+    .option("-s, --source <source>", "Source", "cli")
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .action((evidenceId, options) => {
+      try {
+        const r = registerEvidenceV2(null, {
+          evidenceId,
+          framework: options.framework,
+          type: options.type,
+          description: options.description,
+          source: options.source,
+          metadata: parseMeta(options.metadata),
+        });
+        console.log(JSON.stringify(r, null, 2));
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  compliance
+    .command("evidence-status-v2 <evidence-id>")
+    .description("Show V2 evidence lifecycle entry")
+    .action((evidenceId) => {
+      const r = getEvidenceStatusV2(evidenceId);
+      if (!r) {
+        logger.warn("Evidence not found");
+        process.exit(1);
+      }
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  compliance
+    .command("set-evidence-status-v2 <evidence-id> <status>")
+    .description(
+      "Transition V2 evidence lifecycle (collected/verified/rejected/expired)",
+    )
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <json>", "Metadata patch JSON")
+    .action((evidenceId, status, options) => {
+      try {
+        const r = setEvidenceStatusV2(null, evidenceId, status, {
+          reason: options.reason,
+          metadata: options.metadata ? parseMeta(options.metadata) : undefined,
+        });
+        console.log(JSON.stringify(r, null, 2));
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  compliance
+    .command("auto-expire-evidence")
+    .description("Bulk-flip stale evidence to EXPIRED")
+    .action(() => {
+      const r = autoExpireEvidence(null, Date.now());
+      console.log(JSON.stringify({ expired: r.length, entries: r }, null, 2));
+    });
+
+  compliance
+    .command("register-policy-v2 <policy-id>")
+    .description("Register a new V2 policy entry (tagged DRAFT)")
+    .option("-n, --name <name>", "Policy name")
+    .option("-t, --type <type>", "Policy type")
+    .option("-f, --framework <fw>", "Framework")
+    .option(
+      "-s, --severity <sev>",
+      "Severity (critical|high|medium|low)",
+      "medium",
+    )
+    .option("-r, --rules <json>", "Rules JSON")
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .action((policyId, options) => {
+      try {
+        const r = registerPolicyV2(null, {
+          policyId,
+          name: options.name,
+          type: options.type,
+          framework: options.framework,
+          severity: options.severity,
+          rules: parseMeta(options.rules),
+          metadata: parseMeta(options.metadata),
+        });
+        console.log(JSON.stringify(r, null, 2));
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  compliance
+    .command("policy-status-v2 <policy-id>")
+    .description("Show V2 policy lifecycle entry")
+    .action((policyId) => {
+      const r = getPolicyStatusV2(policyId);
+      if (!r) {
+        logger.warn("Policy not found");
+        process.exit(1);
+      }
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  compliance
+    .command("set-policy-status-v2 <policy-id> <status>")
+    .description(
+      "Transition V2 policy lifecycle (draft/active/suspended/deprecated)",
+    )
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <json>", "Metadata patch JSON")
+    .action((policyId, status, options) => {
+      try {
+        const r = setPolicyStatusV2(null, policyId, status, {
+          reason: options.reason,
+          metadata: options.metadata ? parseMeta(options.metadata) : undefined,
+        });
+        console.log(JSON.stringify(r, null, 2));
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  compliance
+    .command("activate-policy <policy-id>")
+    .description("Activate a V2 policy (DRAFT→ACTIVE, enforces max-active cap)")
+    .action((policyId) => {
+      try {
+        const r = activatePolicy(null, policyId);
+        console.log(JSON.stringify(r, null, 2));
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  compliance
+    .command("register-report-v2 <report-id>")
+    .description("Register a new V2 report entry (tagged PENDING)")
+    .option("-f, --framework <fw>", "Framework")
+    .option("-t, --title <title>", "Title")
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .action((reportId, options) => {
+      try {
+        const r = registerReportV2(null, {
+          reportId,
+          framework: options.framework,
+          title: options.title,
+          metadata: parseMeta(options.metadata),
+        });
+        console.log(JSON.stringify(r, null, 2));
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  compliance
+    .command("report-status-v2 <report-id>")
+    .description("Show V2 report lifecycle entry")
+    .action((reportId) => {
+      const r = getReportStatusV2(reportId);
+      if (!r) {
+        logger.warn("Report not found");
+        process.exit(1);
+      }
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  compliance
+    .command("set-report-status-v2 <report-id> <status>")
+    .description(
+      "Transition V2 report lifecycle (pending/generating/published/archived)",
+    )
+    .option("-r, --reason <reason>", "Reason")
+    .option("-s, --score <n>", "Score (on publish)")
+    .option("-y, --summary <text>", "Summary (on publish)")
+    .option("-m, --metadata <json>", "Metadata patch JSON")
+    .action((reportId, status, options) => {
+      try {
+        const r = setReportStatusV2(null, reportId, status, {
+          reason: options.reason,
+          score:
+            options.score !== undefined ? Number(options.score) : undefined,
+          summary: options.summary,
+          metadata: options.metadata ? parseMeta(options.metadata) : undefined,
+        });
+        console.log(JSON.stringify(r, null, 2));
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  compliance
+    .command("publish-report <report-id>")
+    .description("Publish a V2 report (pending→generating→published)")
+    .option("-s, --score <n>", "Score", "0")
+    .option("-y, --summary <text>", "Summary", "")
+    .action((reportId, options) => {
+      try {
+        const r = publishReport(null, reportId, {
+          score: Number(options.score),
+          summary: options.summary,
+        });
+        console.log(JSON.stringify(r, null, 2));
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  compliance
+    .command("auto-archive-stale-reports")
+    .description("Bulk-flip stale published reports to ARCHIVED")
+    .action(() => {
+      const r = autoArchiveStaleReports(null, Date.now());
+      console.log(JSON.stringify({ archived: r.length, entries: r }, null, 2));
+    });
+
+  compliance
+    .command("stats-v2")
+    .description("V2 compliance stats (all-enum-key zero-initialized)")
+    .action(() => {
+      console.log(JSON.stringify(getComplianceStatsV2(), null, 2));
     });
 }

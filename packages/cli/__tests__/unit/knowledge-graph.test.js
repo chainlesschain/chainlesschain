@@ -23,6 +23,45 @@ import {
   importGraph,
   ENTITY_TYPES,
   _resetState,
+  // V2 surface
+  ENTITY_STATUS_V2,
+  RELATION_STATUS_V2,
+  KG_DEFAULT_MAX_ACTIVE_ENTITIES_PER_OWNER,
+  KG_DEFAULT_MAX_RELATIONS_PER_ENTITY,
+  KG_DEFAULT_ENTITY_STALE_MS,
+  KG_DEFAULT_RELATION_STALE_MS,
+  getDefaultMaxActiveEntitiesPerOwnerV2,
+  getMaxActiveEntitiesPerOwnerV2,
+  setMaxActiveEntitiesPerOwnerV2,
+  getDefaultMaxRelationsPerEntityV2,
+  getMaxRelationsPerEntityV2,
+  setMaxRelationsPerEntityV2,
+  getDefaultEntityStaleMsV2,
+  getEntityStaleMsV2,
+  setEntityStaleMsV2,
+  getDefaultRelationStaleMsV2,
+  getRelationStaleMsV2,
+  setRelationStaleMsV2,
+  registerEntityV2,
+  getEntityV2,
+  setEntityStatusV2,
+  deprecateEntity,
+  archiveEntityV2,
+  removeEntityV2,
+  reviveEntity,
+  touchEntityActivity,
+  registerRelationV2,
+  getRelationV2,
+  setRelationStatusV2,
+  deprecateRelation,
+  removeRelationV2,
+  reviveRelation,
+  getActiveEntityCount,
+  getActiveRelationCount,
+  autoArchiveStaleEntities,
+  autoRemoveStaleRelations,
+  getKnowledgeGraphStatsV2,
+  _resetStateV2,
 } from "../../src/lib/knowledge-graph.js";
 
 describe("knowledge-graph", () => {
@@ -613,6 +652,713 @@ describe("knowledge-graph", () => {
       const result = importGraph(db, {});
       expect(result.importedEntities).toBe(0);
       expect(result.importedRelations).toBe(0);
+    });
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+ * Phase 94 Knowledge Graph V2 — 4-state entity + 3-state relation
+ * ═════════════════════════════════════════════════════════════ */
+
+describe("knowledge-graph V2 (Phase 94)", () => {
+  let db;
+
+  beforeEach(() => {
+    _resetState();
+    _resetStateV2();
+    db = new MockDatabase();
+    ensureKnowledgeGraphTables(db);
+  });
+
+  describe("Frozen enums + defaults", () => {
+    it("ENTITY_STATUS_V2 is frozen and exposes 4 states", () => {
+      expect(Object.isFrozen(ENTITY_STATUS_V2)).toBe(true);
+      expect(ENTITY_STATUS_V2.ACTIVE).toBe("active");
+      expect(ENTITY_STATUS_V2.DEPRECATED).toBe("deprecated");
+      expect(ENTITY_STATUS_V2.ARCHIVED).toBe("archived");
+      expect(ENTITY_STATUS_V2.REMOVED).toBe("removed");
+    });
+
+    it("RELATION_STATUS_V2 is frozen and exposes 3 states", () => {
+      expect(Object.isFrozen(RELATION_STATUS_V2)).toBe(true);
+      expect(RELATION_STATUS_V2.ACTIVE).toBe("active");
+      expect(RELATION_STATUS_V2.DEPRECATED).toBe("deprecated");
+      expect(RELATION_STATUS_V2.REMOVED).toBe("removed");
+    });
+
+    it("exposes all four defaults", () => {
+      expect(KG_DEFAULT_MAX_ACTIVE_ENTITIES_PER_OWNER).toBe(1000);
+      expect(KG_DEFAULT_MAX_RELATIONS_PER_ENTITY).toBe(100);
+      expect(KG_DEFAULT_ENTITY_STALE_MS).toBe(180 * 86400000);
+      expect(KG_DEFAULT_RELATION_STALE_MS).toBe(365 * 86400000);
+      expect(getDefaultMaxActiveEntitiesPerOwnerV2()).toBe(1000);
+      expect(getDefaultMaxRelationsPerEntityV2()).toBe(100);
+      expect(getDefaultEntityStaleMsV2()).toBe(180 * 86400000);
+      expect(getDefaultRelationStaleMsV2()).toBe(365 * 86400000);
+    });
+  });
+
+  describe("Config mutators", () => {
+    it("setMaxActiveEntitiesPerOwnerV2 floors + rejects bad", () => {
+      expect(setMaxActiveEntitiesPerOwnerV2(50)).toBe(50);
+      expect(getMaxActiveEntitiesPerOwnerV2()).toBe(50);
+      expect(setMaxActiveEntitiesPerOwnerV2(7.9)).toBe(7);
+      expect(() => setMaxActiveEntitiesPerOwnerV2(0)).toThrow(/positive/);
+      expect(() => setMaxActiveEntitiesPerOwnerV2(-1)).toThrow();
+      expect(() => setMaxActiveEntitiesPerOwnerV2(NaN)).toThrow();
+    });
+
+    it("setMaxRelationsPerEntityV2 floors + rejects bad", () => {
+      expect(setMaxRelationsPerEntityV2(20)).toBe(20);
+      expect(getMaxRelationsPerEntityV2()).toBe(20);
+      expect(setMaxRelationsPerEntityV2(5.4)).toBe(5);
+      expect(() => setMaxRelationsPerEntityV2(0)).toThrow();
+    });
+
+    it("setEntityStaleMsV2 + setRelationStaleMsV2 work and validate", () => {
+      expect(setEntityStaleMsV2(1000)).toBe(1000);
+      expect(getEntityStaleMsV2()).toBe(1000);
+      expect(setRelationStaleMsV2(5000)).toBe(5000);
+      expect(getRelationStaleMsV2()).toBe(5000);
+      expect(() => setEntityStaleMsV2(0)).toThrow();
+      expect(() => setRelationStaleMsV2(-10)).toThrow();
+    });
+
+    it("_resetStateV2 restores all four config defaults + clears maps", () => {
+      setMaxActiveEntitiesPerOwnerV2(5);
+      setMaxRelationsPerEntityV2(2);
+      setEntityStaleMsV2(100);
+      setRelationStaleMsV2(200);
+      registerEntityV2(db, { entityId: "e1", ownerId: "u1" });
+      _resetStateV2();
+      expect(getMaxActiveEntitiesPerOwnerV2()).toBe(1000);
+      expect(getMaxRelationsPerEntityV2()).toBe(100);
+      expect(getEntityStaleMsV2()).toBe(180 * 86400000);
+      expect(getRelationStaleMsV2()).toBe(365 * 86400000);
+      expect(getEntityV2("e1")).toBe(null);
+    });
+  });
+
+  describe("registerEntityV2", () => {
+    it("tags ACTIVE + createdAt + lastActivityAt", () => {
+      const rec = registerEntityV2(db, {
+        entityId: "e1",
+        ownerId: "u1",
+        name: "Alice",
+        type: "Person",
+        now: 1000,
+      });
+      expect(rec.status).toBe("active");
+      expect(rec.entityId).toBe("e1");
+      expect(rec.ownerId).toBe("u1");
+      expect(rec.createdAt).toBe(1000);
+      expect(rec.lastActivityAt).toBe(1000);
+    });
+
+    it("throws missing entityId", () => {
+      expect(() => registerEntityV2(db, { ownerId: "u1" })).toThrow(/entityId/);
+    });
+
+    it("throws missing ownerId", () => {
+      expect(() => registerEntityV2(db, { entityId: "e1" })).toThrow(/ownerId/);
+    });
+
+    it("throws on duplicate entityId", () => {
+      registerEntityV2(db, { entityId: "e1", ownerId: "u1" });
+      expect(() =>
+        registerEntityV2(db, { entityId: "e1", ownerId: "u2" }),
+      ).toThrow(/already/);
+    });
+
+    it("preserves metadata + isolates on read", () => {
+      const meta = { importance: "high" };
+      const rec = registerEntityV2(db, {
+        entityId: "e1",
+        ownerId: "u1",
+        metadata: meta,
+      });
+      rec.metadata.importance = "mutated";
+      const fresh = getEntityV2("e1");
+      expect(fresh.metadata.importance).toBe("high");
+    });
+
+    it("enforces per-owner active cap", () => {
+      setMaxActiveEntitiesPerOwnerV2(2);
+      registerEntityV2(db, { entityId: "e1", ownerId: "u1" });
+      registerEntityV2(db, { entityId: "e2", ownerId: "u1" });
+      expect(() =>
+        registerEntityV2(db, { entityId: "e3", ownerId: "u1" }),
+      ).toThrow(/Max active entities/);
+      // Other owner unaffected
+      expect(() =>
+        registerEntityV2(db, { entityId: "e4", ownerId: "u2" }),
+      ).not.toThrow();
+    });
+
+    it("non-active entities don't count toward per-owner cap", () => {
+      setMaxActiveEntitiesPerOwnerV2(2);
+      registerEntityV2(db, { entityId: "e1", ownerId: "u1" });
+      registerEntityV2(db, { entityId: "e2", ownerId: "u1" });
+      deprecateEntity(db, "e1");
+      expect(() =>
+        registerEntityV2(db, { entityId: "e3", ownerId: "u1" }),
+      ).not.toThrow();
+    });
+  });
+
+  describe("setEntityStatusV2", () => {
+    beforeEach(() => {
+      registerEntityV2(db, { entityId: "e1", ownerId: "u1" });
+    });
+
+    it("full traversal active → deprecated → archived → removed", () => {
+      expect(setEntityStatusV2(db, "e1", "deprecated").status).toBe(
+        "deprecated",
+      );
+      expect(setEntityStatusV2(db, "e1", "archived").status).toBe("archived");
+      expect(setEntityStatusV2(db, "e1", "removed").status).toBe("removed");
+    });
+
+    it("deprecated → active (revive)", () => {
+      setEntityStatusV2(db, "e1", "deprecated");
+      expect(reviveEntity(db, "e1").status).toBe("active");
+    });
+
+    it("archived → active (revive)", () => {
+      setEntityStatusV2(db, "e1", "deprecated");
+      setEntityStatusV2(db, "e1", "archived");
+      expect(reviveEntity(db, "e1").status).toBe("active");
+    });
+
+    it("active → removed is blocked (must go through deprecated or archived)", () => {
+      expect(() => setEntityStatusV2(db, "e1", "removed")).toThrow(
+        /Invalid transition/,
+      );
+    });
+
+    it("terminal removed cannot transition", () => {
+      setEntityStatusV2(db, "e1", "deprecated");
+      setEntityStatusV2(db, "e1", "removed");
+      expect(() => setEntityStatusV2(db, "e1", "active")).toThrow(/terminal/);
+    });
+
+    it("throws on unknown entity", () => {
+      expect(() => setEntityStatusV2(db, "unknown", "deprecated")).toThrow(
+        /not registered/,
+      );
+    });
+
+    it("throws on invalid status string", () => {
+      expect(() => setEntityStatusV2(db, "e1", "bogus")).toThrow(
+        /Invalid entity status/,
+      );
+    });
+
+    it("merges patch.metadata and keeps previous keys", () => {
+      registerEntityV2(db, {
+        entityId: "e2",
+        ownerId: "u1",
+        metadata: { score: 1, owner: "alice" },
+      });
+      setEntityStatusV2(db, "e2", "deprecated", {
+        reason: "superseded",
+        metadata: { score: 2, reviewedBy: "bob" },
+      });
+      const rec = getEntityV2("e2");
+      expect(rec.reason).toBe("superseded");
+      expect(rec.metadata.score).toBe(2);
+      expect(rec.metadata.owner).toBe("alice");
+      expect(rec.metadata.reviewedBy).toBe("bob");
+    });
+
+    it("getEntityV2 returns null for unknown", () => {
+      expect(getEntityV2("bogus")).toBe(null);
+    });
+  });
+
+  describe("touchEntityActivity", () => {
+    it("bumps lastActivityAt", async () => {
+      const rec = registerEntityV2(db, {
+        entityId: "e1",
+        ownerId: "u1",
+        now: 1000,
+      });
+      expect(rec.lastActivityAt).toBe(1000);
+      await new Promise((r) => setTimeout(r, 5));
+      const touched = touchEntityActivity("e1");
+      expect(touched.lastActivityAt).toBeGreaterThan(1000);
+    });
+
+    it("throws on unknown entity", () => {
+      expect(() => touchEntityActivity("unknown")).toThrow(/not registered/);
+    });
+  });
+
+  describe("registerRelationV2", () => {
+    beforeEach(() => {
+      registerEntityV2(db, { entityId: "e1", ownerId: "u1" });
+      registerEntityV2(db, { entityId: "e2", ownerId: "u1" });
+    });
+
+    it("tags ACTIVE + all fields preserved", () => {
+      const rec = registerRelationV2(db, {
+        relationId: "r1",
+        sourceEntityId: "e1",
+        targetEntityId: "e2",
+        relationType: "knows",
+      });
+      expect(rec.status).toBe("active");
+      expect(rec.sourceEntityId).toBe("e1");
+      expect(rec.targetEntityId).toBe("e2");
+      expect(rec.relationType).toBe("knows");
+    });
+
+    it("throws on missing required fields", () => {
+      expect(() =>
+        registerRelationV2(db, {
+          sourceEntityId: "e1",
+          targetEntityId: "e2",
+          relationType: "knows",
+        }),
+      ).toThrow(/relationId/);
+      expect(() =>
+        registerRelationV2(db, {
+          relationId: "r1",
+          targetEntityId: "e2",
+          relationType: "knows",
+        }),
+      ).toThrow(/sourceEntityId/);
+      expect(() =>
+        registerRelationV2(db, {
+          relationId: "r1",
+          sourceEntityId: "e1",
+          relationType: "knows",
+        }),
+      ).toThrow(/targetEntityId/);
+      expect(() =>
+        registerRelationV2(db, {
+          relationId: "r1",
+          sourceEntityId: "e1",
+          targetEntityId: "e2",
+        }),
+      ).toThrow(/relationType/);
+    });
+
+    it("rejects self-referencing relation", () => {
+      expect(() =>
+        registerRelationV2(db, {
+          relationId: "r1",
+          sourceEntityId: "e1",
+          targetEntityId: "e1",
+          relationType: "self",
+        }),
+      ).toThrow(/self-referencing/);
+    });
+
+    it("rejects duplicate relationId", () => {
+      registerRelationV2(db, {
+        relationId: "r1",
+        sourceEntityId: "e1",
+        targetEntityId: "e2",
+        relationType: "knows",
+      });
+      expect(() =>
+        registerRelationV2(db, {
+          relationId: "r1",
+          sourceEntityId: "e2",
+          targetEntityId: "e1",
+          relationType: "likes",
+        }),
+      ).toThrow(/already/);
+    });
+
+    it("rejects when source entity unregistered in V2", () => {
+      expect(() =>
+        registerRelationV2(db, {
+          relationId: "r1",
+          sourceEntityId: "unknown-src",
+          targetEntityId: "e2",
+          relationType: "knows",
+        }),
+      ).toThrow(/Source entity not registered/);
+    });
+
+    it("rejects when target entity unregistered in V2", () => {
+      expect(() =>
+        registerRelationV2(db, {
+          relationId: "r1",
+          sourceEntityId: "e1",
+          targetEntityId: "unknown-tgt",
+          relationType: "knows",
+        }),
+      ).toThrow(/Target entity not registered/);
+    });
+
+    it("rejects when source entity is archived/removed", () => {
+      setEntityStatusV2(db, "e1", "archived");
+      expect(() =>
+        registerRelationV2(db, {
+          relationId: "r1",
+          sourceEntityId: "e1",
+          targetEntityId: "e2",
+          relationType: "knows",
+        }),
+      ).toThrow(/Source entity is archived/);
+    });
+
+    it("allows source entity in deprecated state (grace period)", () => {
+      setEntityStatusV2(db, "e1", "deprecated");
+      expect(() =>
+        registerRelationV2(db, {
+          relationId: "r1",
+          sourceEntityId: "e1",
+          targetEntityId: "e2",
+          relationType: "knows",
+        }),
+      ).not.toThrow();
+    });
+
+    it("enforces per-source-entity active relation cap", () => {
+      setMaxRelationsPerEntityV2(2);
+      registerEntityV2(db, { entityId: "e3", ownerId: "u1" });
+      registerEntityV2(db, { entityId: "e4", ownerId: "u1" });
+      registerRelationV2(db, {
+        relationId: "r1",
+        sourceEntityId: "e1",
+        targetEntityId: "e2",
+        relationType: "a",
+      });
+      registerRelationV2(db, {
+        relationId: "r2",
+        sourceEntityId: "e1",
+        targetEntityId: "e3",
+        relationType: "b",
+      });
+      expect(() =>
+        registerRelationV2(db, {
+          relationId: "r3",
+          sourceEntityId: "e1",
+          targetEntityId: "e4",
+          relationType: "c",
+        }),
+      ).toThrow(/Max active relations per entity/);
+      // Other source unaffected
+      expect(() =>
+        registerRelationV2(db, {
+          relationId: "r4",
+          sourceEntityId: "e2",
+          targetEntityId: "e4",
+          relationType: "d",
+        }),
+      ).not.toThrow();
+    });
+
+    it("deprecated relations don't count toward per-entity cap", () => {
+      setMaxRelationsPerEntityV2(2);
+      registerEntityV2(db, { entityId: "e3", ownerId: "u1" });
+      registerEntityV2(db, { entityId: "e4", ownerId: "u1" });
+      registerRelationV2(db, {
+        relationId: "r1",
+        sourceEntityId: "e1",
+        targetEntityId: "e2",
+        relationType: "a",
+      });
+      registerRelationV2(db, {
+        relationId: "r2",
+        sourceEntityId: "e1",
+        targetEntityId: "e3",
+        relationType: "b",
+      });
+      deprecateRelation(db, "r1");
+      expect(() =>
+        registerRelationV2(db, {
+          relationId: "r3",
+          sourceEntityId: "e1",
+          targetEntityId: "e4",
+          relationType: "c",
+        }),
+      ).not.toThrow();
+    });
+  });
+
+  describe("setRelationStatusV2", () => {
+    beforeEach(() => {
+      registerEntityV2(db, { entityId: "e1", ownerId: "u1" });
+      registerEntityV2(db, { entityId: "e2", ownerId: "u1" });
+      registerRelationV2(db, {
+        relationId: "r1",
+        sourceEntityId: "e1",
+        targetEntityId: "e2",
+        relationType: "knows",
+      });
+    });
+
+    it("full traversal active → deprecated → removed", () => {
+      expect(setRelationStatusV2(db, "r1", "deprecated").status).toBe(
+        "deprecated",
+      );
+      expect(setRelationStatusV2(db, "r1", "removed").status).toBe("removed");
+    });
+
+    it("active → removed directly", () => {
+      expect(setRelationStatusV2(db, "r1", "removed").status).toBe("removed");
+    });
+
+    it("deprecated → active (revive)", () => {
+      setRelationStatusV2(db, "r1", "deprecated");
+      expect(reviveRelation(db, "r1").status).toBe("active");
+    });
+
+    it("terminal removed cannot transition", () => {
+      setRelationStatusV2(db, "r1", "removed");
+      expect(() => setRelationStatusV2(db, "r1", "active")).toThrow(/terminal/);
+    });
+
+    it("throws on unknown relation", () => {
+      expect(() => setRelationStatusV2(db, "unknown", "removed")).toThrow(
+        /not registered/,
+      );
+    });
+
+    it("throws on invalid status string", () => {
+      expect(() => setRelationStatusV2(db, "r1", "bogus")).toThrow(
+        /Invalid relation status/,
+      );
+    });
+
+    it("invalid direct transition rejected", () => {
+      // 'archived' is not a valid relation status
+      expect(() => setRelationStatusV2(db, "r1", "archived")).toThrow(
+        /Invalid relation status/,
+      );
+    });
+
+    it("merges patch.metadata", () => {
+      registerRelationV2(db, {
+        relationId: "r2",
+        sourceEntityId: "e2",
+        targetEntityId: "e1",
+        relationType: "likes",
+        metadata: { weight: 0.5, score: 1 },
+      });
+      setRelationStatusV2(db, "r2", "deprecated", {
+        reason: "stale",
+        metadata: { weight: 0.1, reviewer: "bob" },
+      });
+      const rec = getRelationV2("r2");
+      expect(rec.reason).toBe("stale");
+      expect(rec.metadata.weight).toBe(0.1);
+      expect(rec.metadata.score).toBe(1);
+      expect(rec.metadata.reviewer).toBe("bob");
+    });
+
+    it("getRelationV2 returns null for unknown", () => {
+      expect(getRelationV2("bogus")).toBe(null);
+    });
+  });
+
+  describe("Counts", () => {
+    beforeEach(() => {
+      registerEntityV2(db, { entityId: "e1", ownerId: "u1" });
+      registerEntityV2(db, { entityId: "e2", ownerId: "u1" });
+      registerEntityV2(db, { entityId: "e3", ownerId: "u2" });
+    });
+
+    it("getActiveEntityCount — global scope (no arg)", () => {
+      expect(getActiveEntityCount()).toBe(3);
+      deprecateEntity(db, "e2");
+      expect(getActiveEntityCount()).toBe(2);
+    });
+
+    it("getActiveEntityCount — per owner scope", () => {
+      expect(getActiveEntityCount("u1")).toBe(2);
+      expect(getActiveEntityCount("u2")).toBe(1);
+      expect(getActiveEntityCount("u3")).toBe(0);
+    });
+
+    it("counts only ACTIVE (excludes deprecated/archived/removed)", () => {
+      deprecateEntity(db, "e1");
+      archiveEntityV2(db, "e2");
+      expect(getActiveEntityCount("u1")).toBe(0);
+      expect(getActiveEntityCount("u2")).toBe(1);
+    });
+
+    it("getActiveRelationCount — global + per-source scopes", () => {
+      registerRelationV2(db, {
+        relationId: "r1",
+        sourceEntityId: "e1",
+        targetEntityId: "e2",
+        relationType: "a",
+      });
+      registerRelationV2(db, {
+        relationId: "r2",
+        sourceEntityId: "e1",
+        targetEntityId: "e3",
+        relationType: "b",
+      });
+      registerRelationV2(db, {
+        relationId: "r3",
+        sourceEntityId: "e2",
+        targetEntityId: "e3",
+        relationType: "c",
+      });
+      expect(getActiveRelationCount()).toBe(3);
+      expect(getActiveRelationCount("e1")).toBe(2);
+      expect(getActiveRelationCount("e2")).toBe(1);
+      deprecateRelation(db, "r1");
+      expect(getActiveRelationCount("e1")).toBe(1);
+    });
+  });
+
+  describe("autoArchiveStaleEntities", () => {
+    it("flips stale ACTIVE entities to archived with reason='stale'", () => {
+      setEntityStaleMsV2(1000);
+      registerEntityV2(db, { entityId: "e1", ownerId: "u1", now: 0 });
+      registerEntityV2(db, { entityId: "e2", ownerId: "u1", now: 5000 });
+      const flipped = autoArchiveStaleEntities(db, 2000);
+      expect(flipped).toEqual(["e1"]);
+      expect(getEntityV2("e1").status).toBe("archived");
+      expect(getEntityV2("e1").reason).toBe("stale");
+      expect(getEntityV2("e2").status).toBe("active");
+    });
+
+    it("skips non-active entities", () => {
+      setEntityStaleMsV2(1000);
+      registerEntityV2(db, { entityId: "e1", ownerId: "u1", now: 0 });
+      deprecateEntity(db, "e1");
+      const flipped = autoArchiveStaleEntities(db, 10000);
+      expect(flipped).toEqual([]);
+      expect(getEntityV2("e1").status).toBe("deprecated");
+    });
+
+    it("skips fresh entities within threshold", () => {
+      setEntityStaleMsV2(10000);
+      registerEntityV2(db, { entityId: "e1", ownerId: "u1", now: 0 });
+      const flipped = autoArchiveStaleEntities(db, 500);
+      expect(flipped).toEqual([]);
+    });
+  });
+
+  describe("autoRemoveStaleRelations", () => {
+    beforeEach(() => {
+      registerEntityV2(db, { entityId: "e1", ownerId: "u1" });
+      registerEntityV2(db, { entityId: "e2", ownerId: "u1" });
+    });
+
+    it("flips stale active relations to removed with reason='stale'", () => {
+      setRelationStaleMsV2(1000);
+      registerRelationV2(db, {
+        relationId: "r1",
+        sourceEntityId: "e1",
+        targetEntityId: "e2",
+        relationType: "a",
+        now: 0,
+      });
+      registerRelationV2(db, {
+        relationId: "r2",
+        sourceEntityId: "e2",
+        targetEntityId: "e1",
+        relationType: "b",
+        now: 5000,
+      });
+      const flipped = autoRemoveStaleRelations(db, 2000);
+      expect(flipped).toEqual(["r1"]);
+      expect(getRelationV2("r1").status).toBe("removed");
+      expect(getRelationV2("r1").reason).toBe("stale");
+      expect(getRelationV2("r2").status).toBe("active");
+    });
+
+    it("flips stale deprecated relations too", () => {
+      setRelationStaleMsV2(100);
+      registerRelationV2(db, {
+        relationId: "r1",
+        sourceEntityId: "e1",
+        targetEntityId: "e2",
+        relationType: "a",
+        now: 0,
+      });
+      deprecateRelation(db, "r1");
+      // updatedAt is now Date.now() from deprecateRelation, so we need
+      // to push forward enough
+      const futureNow = Date.now() + 10_000;
+      const flipped = autoRemoveStaleRelations(db, futureNow);
+      expect(flipped).toEqual(["r1"]);
+      expect(getRelationV2("r1").status).toBe("removed");
+    });
+
+    it("skips already-removed relations", () => {
+      setRelationStaleMsV2(100);
+      registerRelationV2(db, {
+        relationId: "r1",
+        sourceEntityId: "e1",
+        targetEntityId: "e2",
+        relationType: "a",
+        now: 0,
+      });
+      removeRelationV2(db, "r1");
+      const flipped = autoRemoveStaleRelations(db, Date.now() + 999_999);
+      expect(flipped).toEqual([]);
+    });
+  });
+
+  describe("getKnowledgeGraphStatsV2", () => {
+    it("zero-initializes all enum keys", () => {
+      const stats = getKnowledgeGraphStatsV2();
+      expect(stats.totalEntitiesV2).toBe(0);
+      expect(stats.totalRelationsV2).toBe(0);
+      expect(stats.maxActiveEntitiesPerOwner).toBe(1000);
+      expect(stats.maxRelationsPerEntity).toBe(100);
+      expect(stats.entityStaleMs).toBe(180 * 86400000);
+      expect(stats.relationStaleMs).toBe(365 * 86400000);
+      expect(stats.entitiesByStatus).toEqual({
+        active: 0,
+        deprecated: 0,
+        archived: 0,
+        removed: 0,
+      });
+      expect(stats.relationsByStatus).toEqual({
+        active: 0,
+        deprecated: 0,
+        removed: 0,
+      });
+    });
+
+    it("aggregates entity + relation counts across all statuses", () => {
+      registerEntityV2(db, { entityId: "e1", ownerId: "u1" });
+      registerEntityV2(db, { entityId: "e2", ownerId: "u1" });
+      registerEntityV2(db, { entityId: "e3", ownerId: "u1" });
+      registerEntityV2(db, { entityId: "e4", ownerId: "u1" });
+      deprecateEntity(db, "e2");
+      archiveEntityV2(db, "e3");
+      deprecateEntity(db, "e4");
+      removeEntityV2(db, "e4");
+
+      registerRelationV2(db, {
+        relationId: "r1",
+        sourceEntityId: "e1",
+        targetEntityId: "e2",
+        relationType: "a",
+      });
+      registerRelationV2(db, {
+        relationId: "r2",
+        sourceEntityId: "e2",
+        targetEntityId: "e1",
+        relationType: "b",
+      });
+      deprecateRelation(db, "r2");
+
+      const stats = getKnowledgeGraphStatsV2();
+      expect(stats.totalEntitiesV2).toBe(4);
+      expect(stats.entitiesByStatus).toEqual({
+        active: 1,
+        deprecated: 1,
+        archived: 1,
+        removed: 1,
+      });
+      expect(stats.totalRelationsV2).toBe(2);
+      expect(stats.relationsByStatus.active).toBe(1);
+      expect(stats.relationsByStatus.deprecated).toBe(1);
+      expect(stats.relationsByStatus.removed).toBe(0);
     });
   });
 });
