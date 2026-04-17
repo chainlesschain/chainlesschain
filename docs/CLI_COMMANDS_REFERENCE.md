@@ -484,6 +484,21 @@ chainlesschain privacy computations [-p proto] [-s status] [--limit N] [--json]
 chainlesschain privacy dp-publish [-d data] [-e epsilon] [-m mechanism] [--json] # Publish with DP noise
 chainlesschain privacy he-query [-d data] [-o operation] [-s scheme] [--json]    # Simulated HE query
 chainlesschain privacy report [--json]                                          # Privacy budget + FL/MPC stats
+chainlesschain inference node-statuses [--json]                                 # List node statuses (online/offline/busy/degraded)
+chainlesschain inference task-statuses [--json]                                 # List task statuses
+chainlesschain inference privacy-modes [--json]                                 # List privacy modes (standard/encrypted/federated)
+chainlesschain inference register <node-id> [-e url] [-c caps] [-g gpu-mb] [--json]
+chainlesschain inference unregister <id> [--json]                               # Remove inference node
+chainlesschain inference heartbeat <id> [--json]                                # Send node heartbeat
+chainlesschain inference node-status <id> <status> [--json]                     # Update node status
+chainlesschain inference show-node <id> [--json]
+chainlesschain inference nodes [-s status] [-c capability] [--limit N] [--json]
+chainlesschain inference submit <model> [-i input] [-p priority] [-m mode] [--json]
+chainlesschain inference complete <task-id> [-o output] [-d duration-ms] [--json]
+chainlesschain inference fail-task <task-id> [-e error] [--json]
+chainlesschain inference show-task <task-id> [--json]
+chainlesschain inference tasks [-s status] [-m model] [-p privacy] [--limit N] [--json]
+chainlesschain inference stats [--json]                                         # Node/task counts + avg latency
 chainlesschain social contact / friend / post / chat / stats
 chainlesschain social analyze "<text>" [--top-k 3] [--lang zh|ja|en] [--json]
 chainlesschain social detect-lang "<text>" [--json]

@@ -134,6 +134,9 @@ import { registerCrossChainCommand } from "./commands/crosschain.js";
 // Phase 91: Privacy Computing
 import { registerPrivacyCommand } from "./commands/privacy.js";
 
+// Phase 67: Decentralized Inference Network
+import { registerInferenceCommand } from "./commands/inference.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -296,6 +299,9 @@ export function createProgram() {
 
   // Phase 91: Privacy Computing
   registerPrivacyCommand(program);
+
+  // Phase 67: Decentralized Inference Network
+  registerInferenceCommand(program);
 
   return program;
 }
