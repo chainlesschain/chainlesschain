@@ -149,6 +149,8 @@ import { registerOpsCommand } from "./commands/ops.js";
 import { registerDbEvoCommand } from "./commands/dbevo.js";
 // Phase 84: Multimodal Perception Engine
 import { registerPerceptionCommand } from "./commands/perception.js";
+// Phase 58: Federation Hardening
+import { registerFederationCommand } from "./commands/federation.js";
 
 export function createProgram() {
   const program = new Command();
@@ -324,6 +326,7 @@ export function createProgram() {
   registerOpsCommand(program);
   registerDbEvoCommand(program);
   registerPerceptionCommand(program);
+  registerFederationCommand(program);
 
   return program;
 }
