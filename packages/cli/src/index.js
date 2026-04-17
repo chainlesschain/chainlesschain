@@ -151,6 +151,8 @@ import { registerDbEvoCommand } from "./commands/dbevo.js";
 import { registerPerceptionCommand } from "./commands/perception.js";
 // Phase 58: Federation Hardening
 import { registerFederationCommand } from "./commands/federation.js";
+// Phase 28: Natural Language Programming
+import { registerNlProgCommand } from "./commands/nlprog.js";
 
 export function createProgram() {
   const program = new Command();
@@ -327,6 +329,7 @@ export function createProgram() {
   registerDbEvoCommand(program);
   registerPerceptionCommand(program);
   registerFederationCommand(program);
+  registerNlProgCommand(program);
 
   return program;
 }

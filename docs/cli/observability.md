@@ -3,7 +3,8 @@
 > Parent: [`../CLI_COMMANDS_REFERENCE.md`](../CLI_COMMANDS_REFERENCE.md)
 >
 > Covers: Code Generation Agent (Phase 86), AIOps (Phase 25), Multimodal Perception
-> (Phase 84), Database Evolution (Phase 80), Federation Hardening (Phase 58).
+> (Phase 84), Database Evolution (Phase 80), Federation Hardening (Phase 58),
+> Natural Language Programming (Phase 28).
 
 ## Code Generation Agent (Phase 86)
 
@@ -122,4 +123,26 @@ chainlesschain federation pool-stats <node-id> [--json]                         
 chainlesschain federation pools [--json]                                         # 列出所有连接池
 chainlesschain federation pool-destroy <node-id> [--json]                        # 销毁连接池
 chainlesschain federation stats [--json]                                         # 联邦强化统计
+```
+
+## Natural Language Programming (Phase 28)
+
+```bash
+chainlesschain nlprog intents [--json]                                           # 列出 9 种意图类型
+chainlesschain nlprog statuses [--json]                                          # 列出翻译状态 (draft/complete/refined)
+chainlesschain nlprog style-categories [--json]                                  # 列出 6 种风格分析类别
+chainlesschain nlprog classify <text> [--json]                                   # 启发式意图分类 (支持中英文)
+chainlesschain nlprog extract <text> [--json]                                    # 提取实体 (引号/PascalCase/中文名词)
+chainlesschain nlprog detect-stack <text> [--json]                               # 检测技术栈
+chainlesschain nlprog translate <text> [-i intent] [-s spec-json] [-a ambiguities-json] [--json]
+chainlesschain nlprog show <id> [--json]                                         # 查看翻译详情
+chainlesschain nlprog list [-i intent] [-s status] [--limit N] [--json]          # 列出翻译记录
+chainlesschain nlprog status <id> <status> [--json]                              # 更新翻译状态
+chainlesschain nlprog refine <id> [-s spec-json] [-a ambiguities-json] [--json]  # 精化翻译规格
+chainlesschain nlprog remove <id> [--json]                                       # 删除翻译
+chainlesschain nlprog convention-add -c <category> -p <pattern> [-e examples-json] [-f confidence] [-s source-files-json] [--json]
+chainlesschain nlprog convention-show <id> [--json]                              # 查看惯例详情
+chainlesschain nlprog conventions [-c category] [--limit N] [--json]             # 列出项目惯例
+chainlesschain nlprog convention-remove <id> [--json]                            # 删除惯例
+chainlesschain nlprog stats [--json]                                             # NL Programming 统计
 ```
