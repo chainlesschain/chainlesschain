@@ -140,6 +140,7 @@ import { registerInferenceCommand } from "./commands/inference.js";
 // Phase 68-71: Trust & Security
 import { registerTrustCommand } from "./commands/trust.js";
 import { registerFusionCommand } from "./commands/fusion.js";
+import { registerInfraCommand } from "./commands/infra.js";
 
 export function createProgram() {
   const program = new Command();
@@ -310,6 +311,7 @@ export function createProgram() {
   // Phase 68-71: Trust & Security
   registerTrustCommand(program);
   registerFusionCommand(program);
+  registerInfraCommand(program);
 
   return program;
 }
