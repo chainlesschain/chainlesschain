@@ -431,6 +431,24 @@ chainlesschain governance tally <proposal-id> [-q quorum] [-t threshold] [-n tot
 chainlesschain governance analyze <proposal-id> [--json]                        # Heuristic impact analysis (risk/benefit/components)
 chainlesschain governance predict <proposal-id> [--json]                        # Heuristic vote prediction
 chainlesschain governance stats [--json]                                        # Proposal/vote counts + distributions
+chainlesschain recommend content-types [--json]                                 # List 4 content types (note/post/article/document)
+chainlesschain recommend statuses [--json]                                      # List recommendation statuses
+chainlesschain recommend feedback-values [--json]                               # List feedback values (like/dislike/later)
+chainlesschain recommend create-profile <user-id> [-t topics-json] [-w weights-json] [--json]
+chainlesschain recommend profile <user-id> [--json]                             # Show interest profile
+chainlesschain recommend update-profile <user-id> [-t topics-json] [-w weights-json] [-d decay] [--json]
+chainlesschain recommend delete-profile <user-id> [--json]
+chainlesschain recommend profiles [--limit N] [--json]                          # List all profiles
+chainlesschain recommend decay <user-id> [--json]                               # Apply time decay to topic weights
+chainlesschain recommend generate <user-id> -p <pool-json> [-l limit] [-m min-score] [--json]
+chainlesschain recommend list <user-id> [-s status] [-t type] [-m min-score] [--limit N] [--json]
+chainlesschain recommend show <rec-id> [--json]                                 # Show recommendation details
+chainlesschain recommend view <rec-id> [--json]                                 # Mark as viewed
+chainlesschain recommend feedback <rec-id> <like|dislike|later> [--json]        # Provide feedback
+chainlesschain recommend dismiss <rec-id> [--json]                              # Dismiss recommendation
+chainlesschain recommend stats <user-id> [--json]                               # Total/pending/viewed/feedback rate
+chainlesschain recommend top-interests <user-id> [--limit N] [--json]           # Top weighted topics
+chainlesschain recommend suggest <user-id> [--json]                             # Suggest profile adjustments from feedback
 chainlesschain social contact / friend / post / chat / stats
 chainlesschain social analyze "<text>" [--top-k 3] [--lang zh|ja|en] [--json]
 chainlesschain social detect-lang "<text>" [--json]

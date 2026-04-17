@@ -125,6 +125,9 @@ import { registerTenantCommand } from "./commands/tenant.js";
 // Phase 54: AI Community Governance
 import { registerGovernanceCommand } from "./commands/governance.js";
 
+// Phase 48: Smart Content Recommendation
+import { registerRecommendCommand } from "./commands/recommend.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -278,6 +281,9 @@ export function createProgram() {
 
   // Phase 54: AI Community Governance
   registerGovernanceCommand(program);
+
+  // Phase 48: Smart Content Recommendation
+  registerRecommendCommand(program);
 
   return program;
 }
