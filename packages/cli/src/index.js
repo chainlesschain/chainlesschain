@@ -143,6 +143,8 @@ import { registerFusionCommand } from "./commands/fusion.js";
 import { registerInfraCommand } from "./commands/infra.js";
 // Phase 86: Code Generation Agent 2.0
 import { registerCodegenCommand } from "./commands/codegen.js";
+// Phase 25: Autonomous Ops (AIOps)
+import { registerOpsCommand } from "./commands/ops.js";
 
 export function createProgram() {
   const program = new Command();
@@ -315,6 +317,7 @@ export function createProgram() {
   registerFusionCommand(program);
   registerInfraCommand(program);
   registerCodegenCommand(program);
+  registerOpsCommand(program);
 
   return program;
 }
