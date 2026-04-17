@@ -468,6 +468,22 @@ chainlesschain crosschain msg-show <msg-id> [--json]
 chainlesschain crosschain messages [-f from] [-t to] [-s status] [--limit N] [--json]
 chainlesschain crosschain estimate-fee <from> <to> <amount> [--json]            # Heuristic fee estimate (USD)
 chainlesschain crosschain stats [--json]                                        # Bridge/swap/message counts + volume
+chainlesschain privacy protocols [--json]                                       # List MPC protocols (shamir/beaver/gmw)
+chainlesschain privacy dp-mechanisms [--json]                                   # List DP mechanisms (laplace/gaussian/exponential)
+chainlesschain privacy he-schemes [--json]                                      # List HE schemes (paillier/bfv/ckks)
+chainlesschain privacy fl-statuses [--json]                                     # List FL statuses
+chainlesschain privacy create-model <name> [-t type] [-a arch] [-r rounds] [-l lr] [-p N] [--json]
+chainlesschain privacy train <model-id> [--json]                                # Run one training round
+chainlesschain privacy fail-model <model-id> [-r reason] [--json]
+chainlesschain privacy show-model <model-id> [--json]
+chainlesschain privacy models [-s status] [--limit N] [--json]
+chainlesschain privacy create-computation <type> [-p proto] [-i ids] [-t threshold] [--json]
+chainlesschain privacy submit-share <computation-id> [--json]                   # Submit MPC share
+chainlesschain privacy show-computation <computation-id> [--json]
+chainlesschain privacy computations [-p proto] [-s status] [--limit N] [--json]
+chainlesschain privacy dp-publish [-d data] [-e epsilon] [-m mechanism] [--json] # Publish with DP noise
+chainlesschain privacy he-query [-d data] [-o operation] [-s scheme] [--json]    # Simulated HE query
+chainlesschain privacy report [--json]                                          # Privacy budget + FL/MPC stats
 chainlesschain social contact / friend / post / chat / stats
 chainlesschain social analyze "<text>" [--top-k 3] [--lang zh|ja|en] [--json]
 chainlesschain social detect-lang "<text>" [--json]
