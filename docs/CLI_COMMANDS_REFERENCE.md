@@ -582,6 +582,32 @@ chainlesschain codegen scaffolds [-t template] [--limit N] [--json]             
 chainlesschain codegen stats [--json]                                           # Code agent statistics
 ```
 
+## Autonomous Ops / AIOps (Phase 25)
+
+```bash
+chainlesschain ops severities [--json]                                           # List severity levels (P0-P3)
+chainlesschain ops statuses [--json]                                             # List incident statuses
+chainlesschain ops algorithms [--json]                                           # List detection algorithms (z_score/iqr)
+chainlesschain ops rollback-types [--json]                                       # List rollback types (git/docker/config/service/custom)
+chainlesschain ops baseline-update <metric> -v <csv-values> [--json]             # Update metric baseline from values
+chainlesschain ops baseline-show <metric> [--json]                               # Show metric baseline (mean/stddev/Q1/Q3)
+chainlesschain ops baselines [--json]                                            # List metric baselines
+chainlesschain ops detect <metric> <value> [-a z_score|iqr] [--json]             # Detect anomaly for a metric value
+chainlesschain ops incident-create [-m metric] [-s P0-P3] [-d desc] [--json]     # Create an incident manually
+chainlesschain ops incident-show <id> [--json]                                   # Show incident details
+chainlesschain ops incident-ack <id> [--json]                                    # Acknowledge an incident
+chainlesschain ops incident-resolve <id> [--json]                                # Resolve an incident
+chainlesschain ops incident-close <id> [--json]                                  # Close a resolved incident
+chainlesschain ops incidents [-s severity] [-S status] [--limit N] [--json]      # List incidents
+chainlesschain ops playbook-create -n <name> [-t trigger-json] [-s steps-json] [--json]
+chainlesschain ops playbook-show <id> [--json]                                   # Show playbook details
+chainlesschain ops playbook-toggle <id> <on|off> [--json]                        # Enable or disable playbook
+chainlesschain ops playbook-record <id> <success|failure> [--json]               # Record playbook execution result
+chainlesschain ops playbooks [-e|--enabled] [-d|--disabled] [--limit N] [--json] # List playbooks
+chainlesschain ops postmortem <id> [--json]                                      # Generate postmortem for resolved incident
+chainlesschain ops stats [--json]                                                # AIOps statistics
+```
+
 ## Phase 9: Low-Code & Multi-Agent
 
 ```bash
