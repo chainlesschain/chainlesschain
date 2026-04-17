@@ -18,6 +18,46 @@ import {
   listScaffolds,
   getCodeAgentStats,
   _resetState,
+
+  // Phase 86 V2
+  AGENT_MATURITY_V2,
+  GEN_JOB_V2,
+  CGA_DEFAULT_MAX_ACTIVE_AGENTS_PER_OWNER,
+  CGA_DEFAULT_MAX_RUNNING_JOBS_PER_OWNER,
+  CGA_DEFAULT_AGENT_IDLE_MS,
+  CGA_DEFAULT_JOB_STUCK_MS,
+  getDefaultMaxActiveAgentsPerOwnerV2,
+  getMaxActiveAgentsPerOwnerV2,
+  setMaxActiveAgentsPerOwnerV2,
+  getDefaultMaxRunningJobsPerOwnerV2,
+  getMaxRunningJobsPerOwnerV2,
+  setMaxRunningJobsPerOwnerV2,
+  getDefaultAgentIdleMsV2,
+  getAgentIdleMsV2,
+  setAgentIdleMsV2,
+  getDefaultJobStuckMsV2,
+  getJobStuckMsV2,
+  setJobStuckMsV2,
+  registerAgentV2,
+  getAgentV2,
+  setAgentMaturityV2,
+  activateAgent,
+  deprecateAgent,
+  retireAgent,
+  touchAgentInvocation,
+  enqueueGenJobV2,
+  getGenJobV2,
+  setGenJobStatusV2,
+  startGenJob,
+  succeedGenJob,
+  failGenJob,
+  cancelGenJob,
+  getActiveAgentCount,
+  getRunningJobCount,
+  autoRetireIdleAgents,
+  autoFailStuckGenJobs,
+  getCodeAgentStatsV2,
+  _resetStateV2,
 } from "../../src/lib/code-agent.js";
 
 describe("code-agent", () => {
@@ -361,6 +401,355 @@ describe("code-agent", () => {
       expect(s.scaffolds.total).toBe(3);
       expect(s.scaffolds.byTemplate.react).toBe(2);
       expect(s.scaffolds.byTemplate.vue).toBe(1);
+    });
+  });
+});
+
+/* ═════════════════════════════════════════════════════════ *
+ *  Phase 86 V2 — Agent Maturity + Generation Job
+ * ═════════════════════════════════════════════════════════ */
+
+describe("code-agent V2 (Phase 86)", () => {
+  beforeEach(() => {
+    _resetStateV2();
+  });
+
+  describe("enums", () => {
+    it("AGENT_MATURITY_V2 has 4 frozen states", () => {
+      expect(Object.keys(AGENT_MATURITY_V2)).toHaveLength(4);
+      expect(Object.isFrozen(AGENT_MATURITY_V2)).toBe(true);
+      expect(AGENT_MATURITY_V2.DRAFT).toBe("draft");
+      expect(AGENT_MATURITY_V2.RETIRED).toBe("retired");
+    });
+
+    it("GEN_JOB_V2 has 5 frozen states", () => {
+      expect(Object.keys(GEN_JOB_V2)).toHaveLength(5);
+      expect(Object.isFrozen(GEN_JOB_V2)).toBe(true);
+      expect(GEN_JOB_V2.SUCCEEDED).toBe("succeeded");
+      expect(GEN_JOB_V2.CANCELED).toBe("canceled");
+    });
+  });
+
+  describe("config + setters", () => {
+    it("exposes defaults + getters", () => {
+      expect(getDefaultMaxActiveAgentsPerOwnerV2()).toBe(
+        CGA_DEFAULT_MAX_ACTIVE_AGENTS_PER_OWNER,
+      );
+      expect(getDefaultMaxRunningJobsPerOwnerV2()).toBe(
+        CGA_DEFAULT_MAX_RUNNING_JOBS_PER_OWNER,
+      );
+      expect(getDefaultAgentIdleMsV2()).toBe(CGA_DEFAULT_AGENT_IDLE_MS);
+      expect(getDefaultJobStuckMsV2()).toBe(CGA_DEFAULT_JOB_STUCK_MS);
+      expect(getMaxActiveAgentsPerOwnerV2()).toBe(
+        CGA_DEFAULT_MAX_ACTIVE_AGENTS_PER_OWNER,
+      );
+    });
+
+    it("setters validate positive", () => {
+      expect(setMaxActiveAgentsPerOwnerV2(5)).toBe(5);
+      expect(setMaxRunningJobsPerOwnerV2(2)).toBe(2);
+      expect(setAgentIdleMsV2(60000)).toBe(60000);
+      expect(setJobStuckMsV2(30000)).toBe(30000);
+      expect(() => setMaxActiveAgentsPerOwnerV2(0)).toThrow(/positive/);
+      expect(() => setJobStuckMsV2(-1)).toThrow(/positive/);
+      expect(() => setAgentIdleMsV2("abc")).toThrow(/positive/);
+    });
+  });
+
+  describe("registerAgentV2", () => {
+    it("registers with draft default", () => {
+      const r = registerAgentV2(null, { agentId: "a1", ownerId: "u1" });
+      expect(r.status).toBe("draft");
+      expect(r.name).toBe("a1");
+    });
+
+    it("validates required", () => {
+      expect(() => registerAgentV2(null, {})).toThrow(/agentId/);
+      expect(() => registerAgentV2(null, { agentId: "a" })).toThrow(/ownerId/);
+    });
+
+    it("rejects duplicate + invalid/terminal initial", () => {
+      registerAgentV2(null, { agentId: "a1", ownerId: "u1" });
+      expect(() =>
+        registerAgentV2(null, { agentId: "a1", ownerId: "u2" }),
+      ).toThrow(/already exists/);
+      expect(() =>
+        registerAgentV2(null, {
+          agentId: "a2",
+          ownerId: "u1",
+          initialStatus: "galaxy",
+        }),
+      ).toThrow(/Invalid initial status/);
+      expect(() =>
+        registerAgentV2(null, {
+          agentId: "a2",
+          ownerId: "u1",
+          initialStatus: "retired",
+        }),
+      ).toThrow(/terminal/);
+    });
+
+    it("enforces active cap on register", () => {
+      setMaxActiveAgentsPerOwnerV2(1);
+      registerAgentV2(null, {
+        agentId: "a1",
+        ownerId: "u1",
+        initialStatus: "active",
+      });
+      expect(() =>
+        registerAgentV2(null, {
+          agentId: "a2",
+          ownerId: "u1",
+          initialStatus: "active",
+        }),
+      ).toThrow(/cap/);
+    });
+  });
+
+  describe("setAgentMaturityV2 + shortcuts", () => {
+    beforeEach(() => {
+      registerAgentV2(null, { agentId: "a1", ownerId: "u1" });
+    });
+
+    it("draft → active → deprecated → active", () => {
+      activateAgent(null, "a1");
+      deprecateAgent(null, "a1");
+      activateAgent(null, "a1");
+      expect(getAgentV2("a1").status).toBe("active");
+    });
+
+    it("retire is terminal", () => {
+      retireAgent(null, "a1");
+      expect(() => activateAgent(null, "a1")).toThrow(/Invalid transition/);
+    });
+
+    it("rejects unknown + invalid status + invalid transition", () => {
+      expect(() => activateAgent(null, "nope")).toThrow(/Unknown/);
+      expect(() => setAgentMaturityV2(null, "a1", "galaxy")).toThrow(
+        /Invalid status/,
+      );
+      expect(() => deprecateAgent(null, "a1")).toThrow(/Invalid transition/);
+    });
+
+    it("enforces active cap on re-activate", () => {
+      setMaxActiveAgentsPerOwnerV2(1);
+      activateAgent(null, "a1");
+      registerAgentV2(null, { agentId: "a2", ownerId: "u1" });
+      expect(() => activateAgent(null, "a2")).toThrow(/cap/);
+    });
+
+    it("merges reason + metadata", () => {
+      const r = setAgentMaturityV2(null, "a1", "active", {
+        reason: "ok",
+        metadata: { k: "v" },
+      });
+      expect(r.lastReason).toBe("ok");
+      expect(r.metadata.k).toBe("v");
+    });
+  });
+
+  describe("touchAgentInvocation", () => {
+    it("updates lastInvokedAt", async () => {
+      registerAgentV2(null, { agentId: "a1", ownerId: "u1" });
+      const before = getAgentV2("a1").lastInvokedAt;
+      await new Promise((r) => setTimeout(r, 2));
+      const r = touchAgentInvocation("a1");
+      expect(r.lastInvokedAt).toBeGreaterThanOrEqual(before);
+    });
+
+    it("throws unknown", () => {
+      expect(() => touchAgentInvocation("nope")).toThrow(/Unknown/);
+    });
+  });
+
+  describe("enqueueGenJobV2 + lifecycle", () => {
+    it("enqueues queued", () => {
+      const r = enqueueGenJobV2(null, {
+        jobId: "j1",
+        ownerId: "u1",
+        agentId: "a1",
+        prompt: "hi",
+      });
+      expect(r.status).toBe("queued");
+    });
+
+    it("validates required + duplicate", () => {
+      expect(() => enqueueGenJobV2(null, {})).toThrow(/jobId/);
+      expect(() => enqueueGenJobV2(null, { jobId: "j" })).toThrow(/ownerId/);
+      expect(() => enqueueGenJobV2(null, { jobId: "j", ownerId: "u" })).toThrow(
+        /agentId/,
+      );
+      expect(() =>
+        enqueueGenJobV2(null, { jobId: "j", ownerId: "u", agentId: "a" }),
+      ).toThrow(/prompt/);
+      enqueueGenJobV2(null, {
+        jobId: "j1",
+        ownerId: "u",
+        agentId: "a",
+        prompt: "p",
+      });
+      expect(() =>
+        enqueueGenJobV2(null, {
+          jobId: "j1",
+          ownerId: "u",
+          agentId: "a",
+          prompt: "p",
+        }),
+      ).toThrow(/already exists/);
+    });
+
+    it("queued → running → succeeded", () => {
+      enqueueGenJobV2(null, {
+        jobId: "j1",
+        ownerId: "u1",
+        agentId: "a1",
+        prompt: "p",
+      });
+      const s = startGenJob(null, "j1");
+      expect(s.status).toBe("running");
+      expect(s.startedAt).toBeGreaterThan(0);
+      succeedGenJob(null, "j1");
+      expect(getGenJobV2("j1").status).toBe("succeeded");
+    });
+
+    it("queued → failed / canceled both valid", () => {
+      enqueueGenJobV2(null, {
+        jobId: "j1",
+        ownerId: "u",
+        agentId: "a",
+        prompt: "p",
+      });
+      failGenJob(null, "j1");
+      enqueueGenJobV2(null, {
+        jobId: "j2",
+        ownerId: "u",
+        agentId: "a",
+        prompt: "p",
+      });
+      cancelGenJob(null, "j2");
+      expect(getGenJobV2("j1").status).toBe("failed");
+      expect(getGenJobV2("j2").status).toBe("canceled");
+    });
+
+    it("terminals reject further transitions", () => {
+      enqueueGenJobV2(null, {
+        jobId: "j1",
+        ownerId: "u",
+        agentId: "a",
+        prompt: "p",
+      });
+      startGenJob(null, "j1");
+      succeedGenJob(null, "j1");
+      expect(() => failGenJob(null, "j1")).toThrow(/Invalid transition/);
+    });
+
+    it("running cap enforced", () => {
+      setMaxRunningJobsPerOwnerV2(1);
+      enqueueGenJobV2(null, {
+        jobId: "j1",
+        ownerId: "u",
+        agentId: "a",
+        prompt: "p",
+      });
+      enqueueGenJobV2(null, {
+        jobId: "j2",
+        ownerId: "u",
+        agentId: "a",
+        prompt: "p",
+      });
+      startGenJob(null, "j1");
+      expect(() => startGenJob(null, "j2")).toThrow(/cap/);
+    });
+
+    it("rejects unknown", () => {
+      expect(() => startGenJob(null, "nope")).toThrow(/Unknown/);
+    });
+  });
+
+  describe("counts + auto-flips + stats", () => {
+    it("counts active agents and running jobs", () => {
+      registerAgentV2(null, { agentId: "a1", ownerId: "u1" });
+      registerAgentV2(null, { agentId: "a2", ownerId: "u2" });
+      activateAgent(null, "a1");
+      activateAgent(null, "a2");
+      expect(getActiveAgentCount()).toBe(2);
+      expect(getActiveAgentCount("u1")).toBe(1);
+
+      setMaxRunningJobsPerOwnerV2(5);
+      enqueueGenJobV2(null, {
+        jobId: "j1",
+        ownerId: "u1",
+        agentId: "a1",
+        prompt: "p",
+      });
+      enqueueGenJobV2(null, {
+        jobId: "j2",
+        ownerId: "u2",
+        agentId: "a2",
+        prompt: "p",
+      });
+      startGenJob(null, "j1");
+      startGenJob(null, "j2");
+      expect(getRunningJobCount()).toBe(2);
+      expect(getRunningJobCount("u1")).toBe(1);
+    });
+
+    it("autoRetireIdleAgents flips active + deprecated", () => {
+      registerAgentV2(null, { agentId: "a1", ownerId: "u1" });
+      activateAgent(null, "a1");
+      registerAgentV2(null, { agentId: "a2", ownerId: "u1" });
+      activateAgent(null, "a2");
+      deprecateAgent(null, "a2");
+      registerAgentV2(null, { agentId: "a3", ownerId: "u1" }); // draft stays
+      const now = Date.now() + CGA_DEFAULT_AGENT_IDLE_MS + 1;
+      const r = autoRetireIdleAgents(null, now);
+      expect(r.count).toBe(2);
+      expect(r.flipped.sort()).toEqual(["a1", "a2"]);
+      expect(getAgentV2("a3").status).toBe("draft");
+    });
+
+    it("autoFailStuckGenJobs flips only RUNNING", () => {
+      setMaxRunningJobsPerOwnerV2(5);
+      enqueueGenJobV2(null, {
+        jobId: "j1",
+        ownerId: "u",
+        agentId: "a",
+        prompt: "p",
+      });
+      enqueueGenJobV2(null, {
+        jobId: "j2",
+        ownerId: "u",
+        agentId: "a",
+        prompt: "p",
+      });
+      startGenJob(null, "j1"); // running
+      // j2 stays queued
+      const now = Date.now() + CGA_DEFAULT_JOB_STUCK_MS + 1;
+      const r = autoFailStuckGenJobs(null, now);
+      expect(r.count).toBe(1);
+      expect(r.flipped).toEqual(["j1"]);
+      expect(getGenJobV2("j2").status).toBe("queued");
+    });
+
+    it("stats zero-initializes all enum keys", () => {
+      const s = getCodeAgentStatsV2();
+      expect(s.totalAgentsV2).toBe(0);
+      for (const k of Object.values(AGENT_MATURITY_V2))
+        expect(s.agentsByStatus[k]).toBe(0);
+      for (const k of Object.values(GEN_JOB_V2))
+        expect(s.jobsByStatus[k]).toBe(0);
+    });
+  });
+
+  describe("_resetStateV2", () => {
+    it("clears maps + restores config defaults", () => {
+      setMaxActiveAgentsPerOwnerV2(99);
+      registerAgentV2(null, { agentId: "a1", ownerId: "u1" });
+      _resetStateV2();
+      expect(getMaxActiveAgentsPerOwnerV2()).toBe(
+        CGA_DEFAULT_MAX_ACTIVE_AGENTS_PER_OWNER,
+      );
+      expect(getAgentV2("a1")).toBeNull();
     });
   });
 });

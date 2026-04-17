@@ -34,7 +34,50 @@ import {
   healthCheck,
   getMetrics,
   getRuntimeStats,
+  /* V2 (Phase 63) */
+  PLUGIN_MATURITY_V2,
+  RUNTIME_TASK_V2,
+  getDefaultMaxActivePluginsPerOwnerV2,
+  getMaxActivePluginsPerOwnerV2,
+  setMaxActivePluginsPerOwnerV2,
+  getDefaultMaxRunningTasksPerOwnerV2,
+  getMaxRunningTasksPerOwnerV2,
+  setMaxRunningTasksPerOwnerV2,
+  getDefaultPluginIdleMsV2,
+  getPluginIdleMsV2,
+  setPluginIdleMsV2,
+  getDefaultTaskStuckMsV2,
+  getTaskStuckMsV2,
+  setTaskStuckMsV2,
+  registerPluginV2,
+  getPluginV2,
+  setPluginMaturityV2,
+  activatePluginV2,
+  deprecatePluginV2,
+  retirePluginV2,
+  touchPluginInvocation,
+  enqueueRuntimeTaskV2,
+  getRuntimeTaskV2,
+  setRuntimeTaskStatusV2,
+  startRuntimeTask,
+  completeRuntimeTask,
+  failRuntimeTask,
+  cancelRuntimeTask,
+  getActivePluginCount,
+  getRunningTaskCount,
+  autoRetireIdlePlugins,
+  autoFailStuckRuntimeTasks,
+  getRuntimeStatsV2,
 } from "../lib/universal-runtime.js";
+
+function _parseMetaV2(s) {
+  if (!s) return undefined;
+  try {
+    return JSON.parse(s);
+  } catch {
+    throw new Error(`--metadata must be valid JSON`);
+  }
+}
 
 function _dbFromCtx(cmd) {
   const root = cmd?.parent?.parent ?? cmd?.parent;
@@ -494,6 +537,270 @@ export function registerRuntimeCommand(program) {
       }
       console.log(`Health:   ${s.health.status}`);
       console.log(`Uptime:   ${s.metrics.uptimeMs}ms`);
+    });
+
+  /* ═════════════════════════════════════════════════════ *
+   *  Phase 63 V2 — Plugin Maturity + Runtime Task Lifecycle
+   * ═════════════════════════════════════════════════════ */
+
+  runtime
+    .command("plugin-maturities-v2")
+    .description("List Phase 63 V2 plugin maturity states")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const v = Object.values(PLUGIN_MATURITY_V2);
+      if (opts.json) return console.log(JSON.stringify(v, null, 2));
+      for (const s of v) console.log(s);
+    });
+
+  runtime
+    .command("runtime-task-lifecycles-v2")
+    .description("List Phase 63 V2 runtime-task lifecycle states")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const v = Object.values(RUNTIME_TASK_V2);
+      if (opts.json) return console.log(JSON.stringify(v, null, 2));
+      for (const s of v) console.log(s);
+    });
+
+  runtime
+    .command("default-max-active-plugins-per-owner")
+    .action(() => console.log(getDefaultMaxActivePluginsPerOwnerV2()));
+  runtime
+    .command("max-active-plugins-per-owner")
+    .action(() => console.log(getMaxActivePluginsPerOwnerV2()));
+  runtime
+    .command("set-max-active-plugins-per-owner <n>")
+    .action((n) => console.log(setMaxActivePluginsPerOwnerV2(n)));
+
+  runtime
+    .command("default-max-running-tasks-per-owner")
+    .action(() => console.log(getDefaultMaxRunningTasksPerOwnerV2()));
+  runtime
+    .command("max-running-tasks-per-owner")
+    .action(() => console.log(getMaxRunningTasksPerOwnerV2()));
+  runtime
+    .command("set-max-running-tasks-per-owner <n>")
+    .action((n) => console.log(setMaxRunningTasksPerOwnerV2(n)));
+
+  runtime
+    .command("default-plugin-idle-ms")
+    .action(() => console.log(getDefaultPluginIdleMsV2()));
+  runtime
+    .command("plugin-idle-ms")
+    .action(() => console.log(getPluginIdleMsV2()));
+  runtime
+    .command("set-plugin-idle-ms <ms>")
+    .action((ms) => console.log(setPluginIdleMsV2(ms)));
+
+  runtime
+    .command("default-task-stuck-ms")
+    .action(() => console.log(getDefaultTaskStuckMsV2()));
+  runtime
+    .command("task-stuck-ms")
+    .action(() => console.log(getTaskStuckMsV2()));
+  runtime
+    .command("set-task-stuck-ms <ms>")
+    .action((ms) => console.log(setTaskStuckMsV2(ms)));
+
+  runtime
+    .command("active-plugin-count")
+    .option("-o, --owner <id>")
+    .action((opts) => console.log(getActivePluginCount(opts.owner)));
+
+  runtime
+    .command("running-task-count")
+    .option("-o, --owner <id>")
+    .action((opts) => console.log(getRunningTaskCount(opts.owner)));
+
+  runtime
+    .command("register-plugin-v2 <plugin-id>")
+    .requiredOption("-o, --owner <id>")
+    .option("-n, --name <text>")
+    .option("-v, --version <text>")
+    .option("-i, --initial-status <status>")
+    .option("-m, --metadata <json>")
+    .option("--json")
+    .action((pluginId, opts) => {
+      const rec = registerPluginV2(_dbFromCtx(runtime), {
+        pluginId,
+        ownerId: opts.owner,
+        name: opts.name,
+        version: opts.version,
+        initialStatus: opts.initialStatus,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      if (opts.json) return console.log(JSON.stringify(rec, null, 2));
+      console.log(`Registered plugin ${pluginId} (${rec.status})`);
+    });
+
+  runtime
+    .command("plugin-v2 <plugin-id>")
+    .option("--json")
+    .action((id, opts) => {
+      const rec = getPluginV2(id);
+      if (!rec) {
+        console.error(`Unknown plugin: ${id}`);
+        process.exitCode = 1;
+        return;
+      }
+      if (opts.json) return console.log(JSON.stringify(rec, null, 2));
+      console.log(`${rec.pluginId} [${rec.status}] owner=${rec.ownerId}`);
+    });
+
+  runtime
+    .command("set-plugin-maturity-v2 <plugin-id> <status>")
+    .option("-r, --reason <text>")
+    .option("-m, --metadata <json>")
+    .action((id, status, opts) => {
+      const rec = setPluginMaturityV2(_dbFromCtx(runtime), id, status, {
+        reason: opts.reason,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  runtime
+    .command("activate-plugin-v2 <plugin-id>")
+    .option("-r, --reason <text>")
+    .action((id, opts) => {
+      const rec = activatePluginV2(_dbFromCtx(runtime), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  runtime
+    .command("deprecate-plugin-v2 <plugin-id>")
+    .option("-r, --reason <text>")
+    .action((id, opts) => {
+      const rec = deprecatePluginV2(_dbFromCtx(runtime), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  runtime
+    .command("retire-plugin-v2 <plugin-id>")
+    .option("-r, --reason <text>")
+    .action((id, opts) => {
+      const rec = retirePluginV2(_dbFromCtx(runtime), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  runtime.command("touch-plugin-invocation <plugin-id>").action((id) => {
+    const r = touchPluginInvocation(id);
+    console.log(`${id} lastInvokedAt=${r.lastInvokedAt}`);
+  });
+
+  runtime
+    .command("enqueue-runtime-task-v2 <task-id>")
+    .requiredOption("-o, --owner <id>")
+    .requiredOption("-p, --plugin <id>")
+    .requiredOption("-k, --kind <name>")
+    .option("-m, --metadata <json>")
+    .option("--json")
+    .action((taskId, opts) => {
+      const rec = enqueueRuntimeTaskV2(_dbFromCtx(runtime), {
+        taskId,
+        ownerId: opts.owner,
+        pluginId: opts.plugin,
+        kind: opts.kind,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      if (opts.json) return console.log(JSON.stringify(rec, null, 2));
+      console.log(`Enqueued task ${taskId} (${rec.status})`);
+    });
+
+  runtime
+    .command("runtime-task-v2 <task-id>")
+    .option("--json")
+    .action((id, opts) => {
+      const rec = getRuntimeTaskV2(id);
+      if (!rec) {
+        console.error(`Unknown task: ${id}`);
+        process.exitCode = 1;
+        return;
+      }
+      if (opts.json) return console.log(JSON.stringify(rec, null, 2));
+      console.log(`${rec.taskId} [${rec.status}] owner=${rec.ownerId}`);
+    });
+
+  runtime
+    .command("set-runtime-task-status-v2 <task-id> <status>")
+    .option("-r, --reason <text>")
+    .option("-m, --metadata <json>")
+    .action((id, status, opts) => {
+      const rec = setRuntimeTaskStatusV2(_dbFromCtx(runtime), id, status, {
+        reason: opts.reason,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  runtime
+    .command("start-runtime-task <task-id>")
+    .option("-r, --reason <text>")
+    .action((id, opts) => {
+      const rec = startRuntimeTask(_dbFromCtx(runtime), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  runtime
+    .command("complete-runtime-task <task-id>")
+    .option("-r, --reason <text>")
+    .action((id, opts) => {
+      const rec = completeRuntimeTask(_dbFromCtx(runtime), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  runtime
+    .command("fail-runtime-task <task-id>")
+    .option("-r, --reason <text>")
+    .action((id, opts) => {
+      const rec = failRuntimeTask(_dbFromCtx(runtime), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  runtime
+    .command("cancel-runtime-task <task-id>")
+    .option("-r, --reason <text>")
+    .action((id, opts) => {
+      const rec = cancelRuntimeTask(_dbFromCtx(runtime), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  runtime
+    .command("auto-retire-idle-plugins")
+    .option("--json")
+    .action((opts) => {
+      const r = autoRetireIdlePlugins(_dbFromCtx(runtime));
+      if (opts.json) return console.log(JSON.stringify(r, null, 2));
+      console.log(`Retired ${r.count} idle plugin(s)`);
+    });
+
+  runtime
+    .command("auto-fail-stuck-runtime-tasks")
+    .option("--json")
+    .action((opts) => {
+      const r = autoFailStuckRuntimeTasks(_dbFromCtx(runtime));
+      if (opts.json) return console.log(JSON.stringify(r, null, 2));
+      console.log(`Failed ${r.count} stuck task(s)`);
+    });
+
+  runtime
+    .command("stats-v2")
+    .description("Phase 63 V2 statistics")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const s = getRuntimeStatsV2();
+      if (opts.json) return console.log(JSON.stringify(s, null, 2));
+      console.log(
+        `Plugins(V2)=${s.totalPluginsV2} Tasks(V2)=${s.totalTasksV2} ` +
+          `caps: active-plugins/owner=${s.maxActivePluginsPerOwner} running-tasks/owner=${s.maxRunningTasksPerOwner}`,
+      );
+      console.log("plugins-by-status:");
+      for (const [k, v] of Object.entries(s.pluginsByStatus))
+        console.log(`  ${k.padEnd(12)} ${v}`);
+      console.log("tasks-by-status:");
+      for (const [k, v] of Object.entries(s.tasksByStatus))
+        console.log(`  ${k.padEnd(12)} ${v}`);
     });
 
   program.addCommand(runtime);

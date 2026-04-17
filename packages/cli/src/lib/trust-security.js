@@ -471,3 +471,393 @@ export function _resetState() {
   _satMessages.clear();
   _hsmDevices.clear();
 }
+
+/* ── V2 Surface (Phase 68-71) ─────────────────────────────
+ * Strictly additive. Two parallel state machines:
+ *   - HSM device maturity (4 states, retired terminal)
+ *   - Satellite transmission lifecycle (5 states, 3 terminals)
+ * Per-operator active-device cap + per-device pending-transmission cap.
+ * Auto-flip: stale devices → retired; stuck sending transmissions → failed.
+ */
+
+export const HSM_MATURITY_V2 = Object.freeze({
+  PROVISIONAL: "provisional",
+  ACTIVE: "active",
+  DEGRADED: "degraded",
+  RETIRED: "retired",
+});
+
+export const TRANSMISSION_V2 = Object.freeze({
+  QUEUED: "queued",
+  SENDING: "sending",
+  CONFIRMED: "confirmed",
+  FAILED: "failed",
+  CANCELED: "canceled",
+});
+
+const _HSM_TRANSITIONS_V2 = new Map([
+  [
+    HSM_MATURITY_V2.PROVISIONAL,
+    new Set([HSM_MATURITY_V2.ACTIVE, HSM_MATURITY_V2.RETIRED]),
+  ],
+  [
+    HSM_MATURITY_V2.ACTIVE,
+    new Set([HSM_MATURITY_V2.DEGRADED, HSM_MATURITY_V2.RETIRED]),
+  ],
+  [
+    HSM_MATURITY_V2.DEGRADED,
+    new Set([HSM_MATURITY_V2.ACTIVE, HSM_MATURITY_V2.RETIRED]),
+  ],
+]);
+const _HSM_TERMINAL_V2 = new Set([HSM_MATURITY_V2.RETIRED]);
+
+const _TRANSMISSION_TRANSITIONS_V2 = new Map([
+  [
+    TRANSMISSION_V2.QUEUED,
+    new Set([
+      TRANSMISSION_V2.SENDING,
+      TRANSMISSION_V2.CANCELED,
+      TRANSMISSION_V2.FAILED,
+    ]),
+  ],
+  [
+    TRANSMISSION_V2.SENDING,
+    new Set([
+      TRANSMISSION_V2.CONFIRMED,
+      TRANSMISSION_V2.FAILED,
+      TRANSMISSION_V2.CANCELED,
+    ]),
+  ],
+]);
+const _TRANSMISSION_TERMINAL_V2 = new Set([
+  TRANSMISSION_V2.CONFIRMED,
+  TRANSMISSION_V2.FAILED,
+  TRANSMISSION_V2.CANCELED,
+]);
+
+export const TS_DEFAULT_MAX_ACTIVE_DEVICES_PER_OPERATOR = 8;
+export const TS_DEFAULT_MAX_PENDING_TRANSMISSIONS_PER_DEVICE = 20;
+export const TS_DEFAULT_DEVICE_IDLE_MS = 30 * 86400000;
+export const TS_DEFAULT_TRANSMISSION_STUCK_MS = 2 * 60000;
+
+let _tsMaxActiveDevicesPerOperator = TS_DEFAULT_MAX_ACTIVE_DEVICES_PER_OPERATOR;
+let _tsMaxPendingTransmissionsPerDevice =
+  TS_DEFAULT_MAX_PENDING_TRANSMISSIONS_PER_DEVICE;
+let _tsDeviceIdleMs = TS_DEFAULT_DEVICE_IDLE_MS;
+let _tsTransmissionStuckMs = TS_DEFAULT_TRANSMISSION_STUCK_MS;
+
+const _devicesV2 = new Map();
+const _transmissionsV2 = new Map();
+
+function _positiveIntV2(n, label) {
+  const f = Math.floor(n);
+  if (!Number.isFinite(f) || f <= 0)
+    throw new Error(`${label} must be a positive integer`);
+  return f;
+}
+
+export function getMaxActiveDevicesPerOperator() {
+  return _tsMaxActiveDevicesPerOperator;
+}
+export function setMaxActiveDevicesPerOperator(n) {
+  _tsMaxActiveDevicesPerOperator = _positiveIntV2(
+    n,
+    "maxActiveDevicesPerOperator",
+  );
+  return _tsMaxActiveDevicesPerOperator;
+}
+export function getMaxPendingTransmissionsPerDevice() {
+  return _tsMaxPendingTransmissionsPerDevice;
+}
+export function setMaxPendingTransmissionsPerDevice(n) {
+  _tsMaxPendingTransmissionsPerDevice = _positiveIntV2(
+    n,
+    "maxPendingTransmissionsPerDevice",
+  );
+  return _tsMaxPendingTransmissionsPerDevice;
+}
+export function getDeviceIdleMs() {
+  return _tsDeviceIdleMs;
+}
+export function setDeviceIdleMs(n) {
+  _tsDeviceIdleMs = _positiveIntV2(n, "deviceIdleMs");
+  return _tsDeviceIdleMs;
+}
+export function getTransmissionStuckMs() {
+  return _tsTransmissionStuckMs;
+}
+export function setTransmissionStuckMs(n) {
+  _tsTransmissionStuckMs = _positiveIntV2(n, "transmissionStuckMs");
+  return _tsTransmissionStuckMs;
+}
+
+export function getActiveDeviceCount(operator) {
+  let c = 0;
+  for (const d of _devicesV2.values()) {
+    if (d.status === HSM_MATURITY_V2.RETIRED) continue;
+    if (d.status === HSM_MATURITY_V2.PROVISIONAL) continue;
+    if (operator !== undefined && d.operator !== operator) continue;
+    c++;
+  }
+  return c;
+}
+
+export function getPendingTransmissionCount(deviceId) {
+  let c = 0;
+  for (const t of _transmissionsV2.values()) {
+    if (_TRANSMISSION_TERMINAL_V2.has(t.status)) continue;
+    if (deviceId !== undefined && t.deviceId !== deviceId) continue;
+    c++;
+  }
+  return c;
+}
+
+const _VALID_VENDORS = new Set(Object.values(HSM_VENDOR));
+
+export function registerDeviceV2({
+  id,
+  operator,
+  vendor,
+  initialStatus,
+  metadata,
+} = {}) {
+  if (!id) throw new Error("id required");
+  if (!operator) throw new Error("operator required");
+  if (!vendor || !_VALID_VENDORS.has(vendor)) throw new Error("invalid vendor");
+  if (_devicesV2.has(id)) throw new Error(`device ${id} already exists`);
+  const status = initialStatus ?? HSM_MATURITY_V2.PROVISIONAL;
+  if (!Object.values(HSM_MATURITY_V2).includes(status))
+    throw new Error(`invalid initial status ${status}`);
+  const countsActive =
+    status !== HSM_MATURITY_V2.RETIRED &&
+    status !== HSM_MATURITY_V2.PROVISIONAL;
+  if (
+    countsActive &&
+    getActiveDeviceCount(operator) >= _tsMaxActiveDevicesPerOperator
+  )
+    throw new Error(`operator ${operator} active device cap reached`);
+  const now = _now();
+  const d = {
+    id,
+    operator,
+    vendor,
+    status,
+    metadata: metadata ? { ...metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: status === HSM_MATURITY_V2.ACTIVE ? now : null,
+    lastUsedAt: now,
+  };
+  _devicesV2.set(id, d);
+  return { ...d, metadata: { ...d.metadata } };
+}
+
+export function getDeviceV2(id) {
+  const d = _devicesV2.get(id);
+  return d ? { ...d, metadata: { ...d.metadata } } : null;
+}
+
+export function listDevicesV2({ operator, status } = {}) {
+  const out = [];
+  for (const d of _devicesV2.values()) {
+    if (operator !== undefined && d.operator !== operator) continue;
+    if (status !== undefined && d.status !== status) continue;
+    out.push({ ...d, metadata: { ...d.metadata } });
+  }
+  return out;
+}
+
+export function setDeviceMaturityV2(id, nextStatus, { reason, metadata } = {}) {
+  const d = _devicesV2.get(id);
+  if (!d) throw new Error(`device ${id} not found`);
+  if (_HSM_TERMINAL_V2.has(d.status))
+    throw new Error(`device ${id} is terminal (${d.status})`);
+  const allowed = _HSM_TRANSITIONS_V2.get(d.status);
+  if (!allowed || !allowed.has(nextStatus))
+    throw new Error(`illegal transition ${d.status} → ${nextStatus}`);
+  const wasActive =
+    d.status !== HSM_MATURITY_V2.PROVISIONAL &&
+    d.status !== HSM_MATURITY_V2.RETIRED;
+  const willBeActive =
+    nextStatus !== HSM_MATURITY_V2.PROVISIONAL &&
+    nextStatus !== HSM_MATURITY_V2.RETIRED;
+  if (!wasActive && willBeActive) {
+    if (getActiveDeviceCount(d.operator) >= _tsMaxActiveDevicesPerOperator)
+      throw new Error(`operator ${d.operator} active device cap reached`);
+  }
+  d.status = nextStatus;
+  d.updatedAt = _now();
+  if (reason !== undefined) d.reason = reason;
+  if (metadata) d.metadata = { ...d.metadata, ...metadata };
+  if (nextStatus === HSM_MATURITY_V2.ACTIVE && !d.activatedAt)
+    d.activatedAt = d.updatedAt;
+  return { ...d, metadata: { ...d.metadata } };
+}
+
+export function activateDevice(id, opts) {
+  return setDeviceMaturityV2(id, HSM_MATURITY_V2.ACTIVE, opts);
+}
+export function degradeDevice(id, opts) {
+  return setDeviceMaturityV2(id, HSM_MATURITY_V2.DEGRADED, opts);
+}
+export function retireDevice(id, opts) {
+  return setDeviceMaturityV2(id, HSM_MATURITY_V2.RETIRED, opts);
+}
+
+export function touchDeviceUsage(id) {
+  const d = _devicesV2.get(id);
+  if (!d) throw new Error(`device ${id} not found`);
+  d.lastUsedAt = _now();
+  return { ...d, metadata: { ...d.metadata } };
+}
+
+export function enqueueTransmissionV2({
+  id,
+  deviceId,
+  provider,
+  payload,
+  metadata,
+} = {}) {
+  if (!id) throw new Error("id required");
+  if (!deviceId) throw new Error("deviceId required");
+  if (!provider) throw new Error("provider required");
+  if (!payload) throw new Error("payload required");
+  const d = _devicesV2.get(deviceId);
+  if (!d) throw new Error(`device ${deviceId} not found`);
+  if (_transmissionsV2.has(id))
+    throw new Error(`transmission ${id} already exists`);
+  if (
+    getPendingTransmissionCount(deviceId) >= _tsMaxPendingTransmissionsPerDevice
+  )
+    throw new Error(`device ${deviceId} pending transmission cap reached`);
+  const now = _now();
+  const t = {
+    id,
+    deviceId,
+    provider,
+    payload,
+    status: TRANSMISSION_V2.QUEUED,
+    metadata: metadata ? { ...metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+  };
+  _transmissionsV2.set(id, t);
+  return { ...t, metadata: { ...t.metadata } };
+}
+
+export function getTransmissionV2(id) {
+  const t = _transmissionsV2.get(id);
+  return t ? { ...t, metadata: { ...t.metadata } } : null;
+}
+
+export function listTransmissionsV2({ deviceId, status } = {}) {
+  const out = [];
+  for (const t of _transmissionsV2.values()) {
+    if (deviceId !== undefined && t.deviceId !== deviceId) continue;
+    if (status !== undefined && t.status !== status) continue;
+    out.push({ ...t, metadata: { ...t.metadata } });
+  }
+  return out;
+}
+
+export function setTransmissionStatusV2(
+  id,
+  nextStatus,
+  { reason, metadata } = {},
+) {
+  const t = _transmissionsV2.get(id);
+  if (!t) throw new Error(`transmission ${id} not found`);
+  if (_TRANSMISSION_TERMINAL_V2.has(t.status))
+    throw new Error(`transmission ${id} is terminal (${t.status})`);
+  const allowed = _TRANSMISSION_TRANSITIONS_V2.get(t.status);
+  if (!allowed || !allowed.has(nextStatus))
+    throw new Error(`illegal transition ${t.status} → ${nextStatus}`);
+  t.status = nextStatus;
+  t.updatedAt = _now();
+  if (reason !== undefined) t.reason = reason;
+  if (metadata) t.metadata = { ...t.metadata, ...metadata };
+  if (nextStatus === TRANSMISSION_V2.SENDING && !t.startedAt)
+    t.startedAt = t.updatedAt;
+  return { ...t, metadata: { ...t.metadata } };
+}
+
+export function startTransmission(id, opts) {
+  return setTransmissionStatusV2(id, TRANSMISSION_V2.SENDING, opts);
+}
+export function confirmTransmission(id, opts) {
+  return setTransmissionStatusV2(id, TRANSMISSION_V2.CONFIRMED, opts);
+}
+export function failTransmission(id, opts) {
+  return setTransmissionStatusV2(id, TRANSMISSION_V2.FAILED, opts);
+}
+export function cancelTransmission(id, opts) {
+  return setTransmissionStatusV2(id, TRANSMISSION_V2.CANCELED, opts);
+}
+
+export function autoRetireIdleDevices({ now } = {}) {
+  const cutoff = (now ?? _now()) - _tsDeviceIdleMs;
+  const flipped = [];
+  for (const d of _devicesV2.values()) {
+    if (
+      d.status !== HSM_MATURITY_V2.ACTIVE &&
+      d.status !== HSM_MATURITY_V2.DEGRADED
+    )
+      continue;
+    if ((d.lastUsedAt ?? d.createdAt) > cutoff) continue;
+    d.status = HSM_MATURITY_V2.RETIRED;
+    d.updatedAt = now ?? _now();
+    d.reason = "auto_retire_idle";
+    flipped.push(d.id);
+  }
+  return flipped;
+}
+
+export function autoFailStuckTransmissions({ now } = {}) {
+  const cutoff = (now ?? _now()) - _tsTransmissionStuckMs;
+  const flipped = [];
+  for (const t of _transmissionsV2.values()) {
+    if (t.status !== TRANSMISSION_V2.SENDING) continue;
+    if (!t.startedAt || t.startedAt > cutoff) continue;
+    t.status = TRANSMISSION_V2.FAILED;
+    t.updatedAt = now ?? _now();
+    t.reason = "auto_fail_stuck";
+    flipped.push(t.id);
+  }
+  return flipped;
+}
+
+function _zeroByEnum(enumObj) {
+  const out = {};
+  for (const v of Object.values(enumObj)) out[v] = 0;
+  return out;
+}
+
+export function getTrustSecurityStatsV2() {
+  const devices = [..._devicesV2.values()];
+  const transmissions = [..._transmissionsV2.values()];
+  const devicesByStatus = _zeroByEnum(HSM_MATURITY_V2);
+  for (const d of devices) devicesByStatus[d.status]++;
+  const transmissionsByStatus = _zeroByEnum(TRANSMISSION_V2);
+  for (const t of transmissions) transmissionsByStatus[t.status]++;
+  return {
+    totalDevicesV2: devices.length,
+    totalTransmissionsV2: transmissions.length,
+    maxActiveDevicesPerOperator: _tsMaxActiveDevicesPerOperator,
+    maxPendingTransmissionsPerDevice: _tsMaxPendingTransmissionsPerDevice,
+    deviceIdleMs: _tsDeviceIdleMs,
+    transmissionStuckMs: _tsTransmissionStuckMs,
+    devicesByStatus,
+    transmissionsByStatus,
+  };
+}
+
+export function _resetStateV2() {
+  _devicesV2.clear();
+  _transmissionsV2.clear();
+  _tsMaxActiveDevicesPerOperator = TS_DEFAULT_MAX_ACTIVE_DEVICES_PER_OPERATOR;
+  _tsMaxPendingTransmissionsPerDevice =
+    TS_DEFAULT_MAX_PENDING_TRANSMISSIONS_PER_DEVICE;
+  _tsDeviceIdleMs = TS_DEFAULT_DEVICE_IDLE_MS;
+  _tsTransmissionStuckMs = TS_DEFAULT_TRANSMISSION_STUCK_MS;
+}

@@ -498,3 +498,349 @@ export function _resetState() {
   _voiceSessions.clear();
   _indexEntries.clear();
 }
+
+/* ═════════════════════════════════════════════════════════ *
+ *  Phase 84 V2 — Sensor Maturity + Capture Lifecycle
+ * ═════════════════════════════════════════════════════════ */
+
+export const SENSOR_MATURITY_V2 = Object.freeze({
+  ONBOARDING: "onboarding",
+  ACTIVE: "active",
+  DEGRADED: "degraded",
+  OFFLINE: "offline",
+  RETIRED: "retired",
+});
+
+export const CAPTURE_LIFECYCLE_V2 = Object.freeze({
+  PENDING: "pending",
+  PROCESSING: "processing",
+  READY: "ready",
+  FAILED: "failed",
+  DISCARDED: "discarded",
+});
+
+const SENSOR_TRANSITIONS_V2 = new Map([
+  ["onboarding", new Set(["active", "retired"])],
+  ["active", new Set(["degraded", "offline", "retired"])],
+  ["degraded", new Set(["active", "offline", "retired"])],
+  ["offline", new Set(["active", "retired"])],
+]);
+const SENSOR_TERMINALS_V2 = new Set(["retired"]);
+
+const CAPTURE_TRANSITIONS_V2 = new Map([
+  ["pending", new Set(["processing", "discarded", "failed"])],
+  ["processing", new Set(["ready", "failed", "discarded"])],
+  ["failed", new Set(["pending", "discarded"])],
+]);
+const CAPTURE_TERMINALS_V2 = new Set(["ready", "discarded"]);
+
+export const PCP_DEFAULT_MAX_ACTIVE_SENSORS_PER_OPERATOR = 25;
+export const PCP_DEFAULT_MAX_PENDING_CAPTURES_PER_SENSOR = 50;
+export const PCP_DEFAULT_SENSOR_IDLE_MS = 30 * 86400000; // 30d
+export const PCP_DEFAULT_CAPTURE_STUCK_MS = 2 * 3600000; // 2h
+
+let _maxActiveSensorsPerOperatorV2 =
+  PCP_DEFAULT_MAX_ACTIVE_SENSORS_PER_OPERATOR;
+let _maxPendingCapturesPerSensorV2 =
+  PCP_DEFAULT_MAX_PENDING_CAPTURES_PER_SENSOR;
+let _sensorIdleMsV2 = PCP_DEFAULT_SENSOR_IDLE_MS;
+let _captureStuckMsV2 = PCP_DEFAULT_CAPTURE_STUCK_MS;
+
+function _positiveIntV2(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be a positive integer`);
+  return v;
+}
+
+export function getDefaultMaxActiveSensorsPerOperatorV2() {
+  return PCP_DEFAULT_MAX_ACTIVE_SENSORS_PER_OPERATOR;
+}
+export function getMaxActiveSensorsPerOperatorV2() {
+  return _maxActiveSensorsPerOperatorV2;
+}
+export function setMaxActiveSensorsPerOperatorV2(n) {
+  return (_maxActiveSensorsPerOperatorV2 = _positiveIntV2(
+    n,
+    "maxActiveSensorsPerOperator",
+  ));
+}
+export function getDefaultMaxPendingCapturesPerSensorV2() {
+  return PCP_DEFAULT_MAX_PENDING_CAPTURES_PER_SENSOR;
+}
+export function getMaxPendingCapturesPerSensorV2() {
+  return _maxPendingCapturesPerSensorV2;
+}
+export function setMaxPendingCapturesPerSensorV2(n) {
+  return (_maxPendingCapturesPerSensorV2 = _positiveIntV2(
+    n,
+    "maxPendingCapturesPerSensor",
+  ));
+}
+export function getDefaultSensorIdleMsV2() {
+  return PCP_DEFAULT_SENSOR_IDLE_MS;
+}
+export function getSensorIdleMsV2() {
+  return _sensorIdleMsV2;
+}
+export function setSensorIdleMsV2(ms) {
+  return (_sensorIdleMsV2 = _positiveIntV2(ms, "sensorIdleMs"));
+}
+export function getDefaultCaptureStuckMsV2() {
+  return PCP_DEFAULT_CAPTURE_STUCK_MS;
+}
+export function getCaptureStuckMsV2() {
+  return _captureStuckMsV2;
+}
+export function setCaptureStuckMsV2(ms) {
+  return (_captureStuckMsV2 = _positiveIntV2(ms, "captureStuckMs"));
+}
+
+const _sensorsV2 = new Map();
+const _capturesV2 = new Map();
+
+export function registerSensorV2(
+  _db,
+  { sensorId, operatorId, modality, initialStatus, metadata } = {},
+) {
+  if (!sensorId) throw new Error("sensorId is required");
+  if (!operatorId) throw new Error("operatorId is required");
+  if (!modality) throw new Error("modality is required");
+  if (!Object.values(MODALITY).includes(modality))
+    throw new Error(`Invalid modality: ${modality}`);
+  if (_sensorsV2.has(sensorId))
+    throw new Error(`Sensor ${sensorId} already exists`);
+  const status = initialStatus || SENSOR_MATURITY_V2.ONBOARDING;
+  if (!Object.values(SENSOR_MATURITY_V2).includes(status))
+    throw new Error(`Invalid initial status: ${status}`);
+  if (SENSOR_TERMINALS_V2.has(status))
+    throw new Error(`Cannot register in terminal status: ${status}`);
+  if (status === SENSOR_MATURITY_V2.ACTIVE) {
+    if (getActiveSensorCount(operatorId) >= _maxActiveSensorsPerOperatorV2)
+      throw new Error(
+        `Operator ${operatorId} reached active-sensor cap (${_maxActiveSensorsPerOperatorV2})`,
+      );
+  }
+  const now = Date.now();
+  const record = {
+    sensorId,
+    operatorId,
+    modality,
+    status,
+    metadata: metadata || {},
+    createdAt: now,
+    updatedAt: now,
+    lastHeartbeatAt: now,
+  };
+  _sensorsV2.set(sensorId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getSensorV2(sensorId) {
+  const r = _sensorsV2.get(sensorId);
+  return r ? { ...r, metadata: { ...r.metadata } } : null;
+}
+
+export function setSensorMaturityV2(_db, sensorId, newStatus, patch = {}) {
+  const record = _sensorsV2.get(sensorId);
+  if (!record) throw new Error(`Unknown sensor: ${sensorId}`);
+  if (!Object.values(SENSOR_MATURITY_V2).includes(newStatus))
+    throw new Error(`Invalid status: ${newStatus}`);
+  const allowed = SENSOR_TRANSITIONS_V2.get(record.status) || new Set();
+  if (!allowed.has(newStatus))
+    throw new Error(`Invalid transition: ${record.status} -> ${newStatus}`);
+  if (newStatus === SENSOR_MATURITY_V2.ACTIVE) {
+    if (
+      getActiveSensorCount(record.operatorId) >= _maxActiveSensorsPerOperatorV2
+    )
+      throw new Error(
+        `Operator ${record.operatorId} reached active-sensor cap (${_maxActiveSensorsPerOperatorV2})`,
+      );
+  }
+  record.status = newStatus;
+  record.updatedAt = Date.now();
+  if (patch.reason !== undefined) record.lastReason = patch.reason;
+  if (patch.metadata)
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function activateSensor(db, id, reason) {
+  return setSensorMaturityV2(db, id, SENSOR_MATURITY_V2.ACTIVE, { reason });
+}
+export function degradeSensor(db, id, reason) {
+  return setSensorMaturityV2(db, id, SENSOR_MATURITY_V2.DEGRADED, { reason });
+}
+export function offlineSensor(db, id, reason) {
+  return setSensorMaturityV2(db, id, SENSOR_MATURITY_V2.OFFLINE, { reason });
+}
+export function retireSensor(db, id, reason) {
+  return setSensorMaturityV2(db, id, SENSOR_MATURITY_V2.RETIRED, { reason });
+}
+
+export function touchSensorHeartbeat(sensorId) {
+  const record = _sensorsV2.get(sensorId);
+  if (!record) throw new Error(`Unknown sensor: ${sensorId}`);
+  record.lastHeartbeatAt = Date.now();
+  record.updatedAt = record.lastHeartbeatAt;
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function registerCaptureV2(
+  _db,
+  { captureId, sensorId, initialStatus, metadata } = {},
+) {
+  if (!captureId) throw new Error("captureId is required");
+  if (!sensorId) throw new Error("sensorId is required");
+  if (!_sensorsV2.has(sensorId)) throw new Error(`Unknown sensor: ${sensorId}`);
+  if (_capturesV2.has(captureId))
+    throw new Error(`Capture ${captureId} already exists`);
+  const status = initialStatus || CAPTURE_LIFECYCLE_V2.PENDING;
+  if (!Object.values(CAPTURE_LIFECYCLE_V2).includes(status))
+    throw new Error(`Invalid initial status: ${status}`);
+  if (CAPTURE_TERMINALS_V2.has(status))
+    throw new Error(`Cannot register in terminal status: ${status}`);
+  if (status === CAPTURE_LIFECYCLE_V2.PENDING) {
+    if (getPendingCaptureCount(sensorId) >= _maxPendingCapturesPerSensorV2)
+      throw new Error(
+        `Sensor ${sensorId} reached pending-capture cap (${_maxPendingCapturesPerSensorV2})`,
+      );
+  }
+  const now = Date.now();
+  const record = {
+    captureId,
+    sensorId,
+    status,
+    metadata: metadata || {},
+    createdAt: now,
+    updatedAt: now,
+  };
+  _capturesV2.set(captureId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getCaptureV2(captureId) {
+  const r = _capturesV2.get(captureId);
+  return r ? { ...r, metadata: { ...r.metadata } } : null;
+}
+
+export function setCaptureStatusV2(_db, captureId, newStatus, patch = {}) {
+  const record = _capturesV2.get(captureId);
+  if (!record) throw new Error(`Unknown capture: ${captureId}`);
+  if (!Object.values(CAPTURE_LIFECYCLE_V2).includes(newStatus))
+    throw new Error(`Invalid status: ${newStatus}`);
+  const allowed = CAPTURE_TRANSITIONS_V2.get(record.status) || new Set();
+  if (!allowed.has(newStatus))
+    throw new Error(`Invalid transition: ${record.status} -> ${newStatus}`);
+  if (
+    newStatus === CAPTURE_LIFECYCLE_V2.PROCESSING &&
+    !record.processingStartedAt
+  ) {
+    record.processingStartedAt = Date.now();
+  }
+  record.status = newStatus;
+  record.updatedAt = Date.now();
+  if (patch.reason !== undefined) record.lastReason = patch.reason;
+  if (patch.metadata)
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function startProcessingCapture(db, id, reason) {
+  return setCaptureStatusV2(db, id, CAPTURE_LIFECYCLE_V2.PROCESSING, {
+    reason,
+  });
+}
+export function markCaptureReady(db, id, reason) {
+  return setCaptureStatusV2(db, id, CAPTURE_LIFECYCLE_V2.READY, { reason });
+}
+export function failCapture(db, id, reason) {
+  return setCaptureStatusV2(db, id, CAPTURE_LIFECYCLE_V2.FAILED, { reason });
+}
+export function discardCapture(db, id, reason) {
+  return setCaptureStatusV2(db, id, CAPTURE_LIFECYCLE_V2.DISCARDED, { reason });
+}
+
+export function getActiveSensorCount(operatorId) {
+  let n = 0;
+  for (const r of _sensorsV2.values()) {
+    if (r.status !== SENSOR_MATURITY_V2.ACTIVE) continue;
+    if (operatorId && r.operatorId !== operatorId) continue;
+    n++;
+  }
+  return n;
+}
+
+export function getPendingCaptureCount(sensorId) {
+  let n = 0;
+  for (const r of _capturesV2.values()) {
+    if (r.status !== CAPTURE_LIFECYCLE_V2.PENDING) continue;
+    if (sensorId && r.sensorId !== sensorId) continue;
+    n++;
+  }
+  return n;
+}
+
+export function autoOfflineStaleSensors(_db, nowMs) {
+  const now = nowMs ?? Date.now();
+  const flipped = [];
+  for (const r of _sensorsV2.values()) {
+    if (
+      r.status === SENSOR_MATURITY_V2.ACTIVE ||
+      r.status === SENSOR_MATURITY_V2.DEGRADED
+    ) {
+      if (now - r.lastHeartbeatAt > _sensorIdleMsV2) {
+        r.status = SENSOR_MATURITY_V2.OFFLINE;
+        r.updatedAt = now;
+        r.lastReason = "heartbeat_timeout";
+        flipped.push(r.sensorId);
+      }
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function autoFailStuckProcessingCaptures(_db, nowMs) {
+  const now = nowMs ?? Date.now();
+  const flipped = [];
+  for (const r of _capturesV2.values()) {
+    if (r.status === CAPTURE_LIFECYCLE_V2.PROCESSING) {
+      const anchor = r.processingStartedAt || r.createdAt;
+      if (now - anchor > _captureStuckMsV2) {
+        r.status = CAPTURE_LIFECYCLE_V2.FAILED;
+        r.updatedAt = now;
+        r.lastReason = "processing_timeout";
+        flipped.push(r.captureId);
+      }
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function getPerceptionStatsV2() {
+  const sensorsByStatus = {};
+  for (const s of Object.values(SENSOR_MATURITY_V2)) sensorsByStatus[s] = 0;
+  const capturesByStatus = {};
+  for (const s of Object.values(CAPTURE_LIFECYCLE_V2)) capturesByStatus[s] = 0;
+  for (const r of _sensorsV2.values()) sensorsByStatus[r.status]++;
+  for (const r of _capturesV2.values()) capturesByStatus[r.status]++;
+  return {
+    totalSensorsV2: _sensorsV2.size,
+    totalCapturesV2: _capturesV2.size,
+    maxActiveSensorsPerOperator: _maxActiveSensorsPerOperatorV2,
+    maxPendingCapturesPerSensor: _maxPendingCapturesPerSensorV2,
+    sensorIdleMs: _sensorIdleMsV2,
+    captureStuckMs: _captureStuckMsV2,
+    sensorsByStatus,
+    capturesByStatus,
+  };
+}
+
+export function _resetStateV2() {
+  _maxActiveSensorsPerOperatorV2 = PCP_DEFAULT_MAX_ACTIVE_SENSORS_PER_OPERATOR;
+  _maxPendingCapturesPerSensorV2 = PCP_DEFAULT_MAX_PENDING_CAPTURES_PER_SENSOR;
+  _sensorIdleMsV2 = PCP_DEFAULT_SENSOR_IDLE_MS;
+  _captureStuckMsV2 = PCP_DEFAULT_CAPTURE_STUCK_MS;
+  _sensorsV2.clear();
+  _capturesV2.clear();
+}

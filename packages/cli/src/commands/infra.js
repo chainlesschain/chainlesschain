@@ -25,7 +25,52 @@ import {
   listRoutes,
   getConnectivityReport,
   getInfraStats,
+
+  // Phase 74-75 V2
+  PROVIDER_MATURITY_V2,
+  DEAL_LIFECYCLE_V2,
+  getDefaultMaxActiveProvidersPerOperatorV2,
+  getMaxActiveProvidersPerOperatorV2,
+  setMaxActiveProvidersPerOperatorV2,
+  getDefaultMaxActiveDealsPerProviderV2,
+  getMaxActiveDealsPerProviderV2,
+  setMaxActiveDealsPerProviderV2,
+  getDefaultProviderIdleMsV2,
+  getProviderIdleMsV2,
+  setProviderIdleMsV2,
+  getDefaultDealStuckMsV2,
+  getDealStuckMsV2,
+  setDealStuckMsV2,
+  registerProviderV2,
+  getProviderV2,
+  setProviderMaturityV2,
+  activateProvider,
+  degradeProvider,
+  offlineProvider,
+  retireProvider,
+  touchProviderHeartbeat,
+  enqueueDealV2,
+  getDealV2,
+  setDealStatusV2,
+  activateDeal,
+  completeDeal,
+  failDeal,
+  cancelDeal,
+  getActiveProviderCount,
+  getActiveDealCount,
+  autoOfflineStaleProviders,
+  autoFailStuckActiveDeals,
+  getDecentralInfraStatsV2,
 } from "../lib/decentral-infra.js";
+
+function _parseMetaV2(raw) {
+  if (!raw) return undefined;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error("--metadata must be valid JSON");
+  }
+}
 
 function _dbFromCtx(cmd) {
   const root = cmd?.parent?.parent ?? cmd?.parent;
@@ -356,6 +401,205 @@ export function registerInfraCommand(program) {
         `Routes:   ${s.connectivity.totalRoutes}  (${s.connectivity.activeRoutes} active, avg ${s.connectivity.avgLatencyMs}ms)`,
       );
     });
+
+  /* ═══════════════════════════════════════════════════ *
+   *  Phase 74-75 V2
+   * ═══════════════════════════════════════════════════ */
+
+  inf
+    .command("provider-maturities-v2")
+    .description("List V2 provider maturity states")
+    .option("--json", "JSON")
+    .action((opts) => {
+      const xs = Object.values(PROVIDER_MATURITY_V2);
+      if (opts.json) return console.log(JSON.stringify(xs, null, 2));
+      for (const x of xs) console.log(`  ${x}`);
+    });
+
+  inf
+    .command("deal-lifecycles-v2")
+    .description("List V2 deal lifecycle states")
+    .option("--json", "JSON")
+    .action((opts) => {
+      const xs = Object.values(DEAL_LIFECYCLE_V2);
+      if (opts.json) return console.log(JSON.stringify(xs, null, 2));
+      for (const x of xs) console.log(`  ${x}`);
+    });
+
+  inf
+    .command("default-max-active-providers-per-operator")
+    .action(() => console.log(getDefaultMaxActiveProvidersPerOperatorV2()));
+  inf
+    .command("max-active-providers-per-operator")
+    .action(() => console.log(getMaxActiveProvidersPerOperatorV2()));
+  inf
+    .command("set-max-active-providers-per-operator <n>")
+    .action((n) => console.log(setMaxActiveProvidersPerOperatorV2(n)));
+
+  inf
+    .command("default-max-active-deals-per-provider")
+    .action(() => console.log(getDefaultMaxActiveDealsPerProviderV2()));
+  inf
+    .command("max-active-deals-per-provider")
+    .action(() => console.log(getMaxActiveDealsPerProviderV2()));
+  inf
+    .command("set-max-active-deals-per-provider <n>")
+    .action((n) => console.log(setMaxActiveDealsPerProviderV2(n)));
+
+  inf
+    .command("default-provider-idle-ms")
+    .action(() => console.log(getDefaultProviderIdleMsV2()));
+  inf
+    .command("provider-idle-ms")
+    .action(() => console.log(getProviderIdleMsV2()));
+  inf
+    .command("set-provider-idle-ms <ms>")
+    .action((ms) => console.log(setProviderIdleMsV2(ms)));
+
+  inf
+    .command("default-deal-stuck-ms")
+    .action(() => console.log(getDefaultDealStuckMsV2()));
+  inf.command("deal-stuck-ms").action(() => console.log(getDealStuckMsV2()));
+  inf
+    .command("set-deal-stuck-ms <ms>")
+    .action((ms) => console.log(setDealStuckMsV2(ms)));
+
+  inf
+    .command("active-provider-count")
+    .option("-o, --operator <id>")
+    .action((opts) => console.log(getActiveProviderCount(opts.operator)));
+  inf
+    .command("active-deal-count")
+    .option("-p, --provider <id>")
+    .action((opts) => console.log(getActiveDealCount(opts.provider)));
+
+  inf
+    .command("register-provider-v2 <provider-id>")
+    .requiredOption("-o, --operator <id>")
+    .requiredOption("-k, --kind <kind>")
+    .option("-i, --initial-status <s>")
+    .option("--metadata <json>")
+    .action((id, opts) => {
+      const r = registerProviderV2(null, {
+        providerId: id,
+        operatorId: opts.operator,
+        kind: opts.kind,
+        initialStatus: opts.initialStatus,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  inf.command("provider-v2 <provider-id>").action((id) => {
+    const r = getProviderV2(id);
+    if (!r) {
+      console.error(`Unknown provider: ${id}`);
+      process.exitCode = 1;
+      return;
+    }
+    console.log(JSON.stringify(r, null, 2));
+  });
+
+  inf
+    .command("set-provider-maturity-v2 <provider-id> <status>")
+    .option("-r, --reason <text>")
+    .option("--metadata <json>")
+    .action((id, status, opts) => {
+      const r = setProviderMaturityV2(null, id, status, {
+        reason: opts.reason,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  for (const [name, fn] of [
+    ["activate-provider", activateProvider],
+    ["degrade-provider", degradeProvider],
+    ["offline-provider", offlineProvider],
+    ["retire-provider", retireProvider],
+  ]) {
+    inf
+      .command(`${name} <provider-id>`)
+      .option("-r, --reason <text>")
+      .action((id, opts) => {
+        const r = fn(null, id, opts.reason);
+        console.log(JSON.stringify(r, null, 2));
+      });
+  }
+
+  inf
+    .command("touch-provider-heartbeat <provider-id>")
+    .action((id) =>
+      console.log(JSON.stringify(touchProviderHeartbeat(id), null, 2)),
+    );
+
+  inf
+    .command("enqueue-deal-v2 <deal-id>")
+    .requiredOption("-p, --provider <id>")
+    .requiredOption("-o, --owner <id>")
+    .option("--metadata <json>")
+    .action((id, opts) => {
+      const r = enqueueDealV2(null, {
+        dealId: id,
+        providerId: opts.provider,
+        ownerId: opts.owner,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  inf.command("deal-v2 <deal-id>").action((id) => {
+    const r = getDealV2(id);
+    if (!r) {
+      console.error(`Unknown deal: ${id}`);
+      process.exitCode = 1;
+      return;
+    }
+    console.log(JSON.stringify(r, null, 2));
+  });
+
+  inf
+    .command("set-deal-status-v2 <deal-id> <status>")
+    .option("-r, --reason <text>")
+    .option("--metadata <json>")
+    .action((id, status, opts) => {
+      const r = setDealStatusV2(null, id, status, {
+        reason: opts.reason,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  for (const [name, fn] of [
+    ["activate-deal", activateDeal],
+    ["complete-deal", completeDeal],
+    ["fail-deal", failDeal],
+    ["cancel-deal", cancelDeal],
+  ]) {
+    inf
+      .command(`${name} <deal-id>`)
+      .option("-r, --reason <text>")
+      .action((id, opts) => {
+        const r = fn(null, id, opts.reason);
+        console.log(JSON.stringify(r, null, 2));
+      });
+  }
+
+  inf
+    .command("auto-offline-stale-providers")
+    .action(() =>
+      console.log(JSON.stringify(autoOfflineStaleProviders(null), null, 2)),
+    );
+  inf
+    .command("auto-fail-stuck-active-deals")
+    .action(() =>
+      console.log(JSON.stringify(autoFailStuckActiveDeals(null), null, 2)),
+    );
+  inf
+    .command("stats-v2")
+    .action(() =>
+      console.log(JSON.stringify(getDecentralInfraStatsV2(), null, 2)),
+    );
 
   program.addCommand(inf);
 }

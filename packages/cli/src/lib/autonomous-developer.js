@@ -522,3 +522,353 @@ export function _resetState() {
   _adrs.clear();
   _seq = 0;
 }
+
+/* ── V2 Surface (Autonomous Developer) ─────────────────────
+ * Strictly additive. Two parallel state machines:
+ *   - ADR maturity (4 states, superseded terminal)
+ *   - Dev session V2 lifecycle (5 states, 3 terminals)
+ * Per-author active-ADR cap + per-developer running-session cap.
+ * Auto-flip: stale draft ADRs → superseded; stuck running sessions → failed.
+ */
+
+export const ADR_MATURITY_V2 = Object.freeze({
+  DRAFT: "draft",
+  ACCEPTED: "accepted",
+  DEPRECATED: "deprecated",
+  SUPERSEDED: "superseded",
+});
+
+export const DEV_SESSION_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELED: "canceled",
+});
+
+const _ADR_TRANSITIONS_V2 = new Map([
+  [
+    ADR_MATURITY_V2.DRAFT,
+    new Set([ADR_MATURITY_V2.ACCEPTED, ADR_MATURITY_V2.SUPERSEDED]),
+  ],
+  [
+    ADR_MATURITY_V2.ACCEPTED,
+    new Set([ADR_MATURITY_V2.DEPRECATED, ADR_MATURITY_V2.SUPERSEDED]),
+  ],
+  [
+    ADR_MATURITY_V2.DEPRECATED,
+    new Set([ADR_MATURITY_V2.ACCEPTED, ADR_MATURITY_V2.SUPERSEDED]),
+  ],
+]);
+const _ADR_TERMINAL_V2 = new Set([ADR_MATURITY_V2.SUPERSEDED]);
+
+const _SESSION_TRANSITIONS_V2 = new Map([
+  [
+    DEV_SESSION_V2.QUEUED,
+    new Set([
+      DEV_SESSION_V2.RUNNING,
+      DEV_SESSION_V2.CANCELED,
+      DEV_SESSION_V2.FAILED,
+    ]),
+  ],
+  [
+    DEV_SESSION_V2.RUNNING,
+    new Set([
+      DEV_SESSION_V2.COMPLETED,
+      DEV_SESSION_V2.FAILED,
+      DEV_SESSION_V2.CANCELED,
+    ]),
+  ],
+]);
+const _SESSION_TERMINAL_V2 = new Set([
+  DEV_SESSION_V2.COMPLETED,
+  DEV_SESSION_V2.FAILED,
+  DEV_SESSION_V2.CANCELED,
+]);
+
+export const AD_DEFAULT_MAX_ACTIVE_ADRS_PER_AUTHOR = 20;
+export const AD_DEFAULT_MAX_RUNNING_SESSIONS_PER_DEVELOPER = 3;
+export const AD_DEFAULT_ADR_STALE_MS = 90 * 86400000;
+export const AD_DEFAULT_SESSION_STUCK_MS = 2 * 3600000;
+
+let _adMaxActiveAdrsPerAuthor = AD_DEFAULT_MAX_ACTIVE_ADRS_PER_AUTHOR;
+let _adMaxRunningSessionsPerDeveloper =
+  AD_DEFAULT_MAX_RUNNING_SESSIONS_PER_DEVELOPER;
+let _adAdrStaleMs = AD_DEFAULT_ADR_STALE_MS;
+let _adSessionStuckMs = AD_DEFAULT_SESSION_STUCK_MS;
+
+const _adrsV2 = new Map();
+const _sessionsV2 = new Map();
+
+function _positiveIntV2(n, label) {
+  const f = Math.floor(n);
+  if (!Number.isFinite(f) || f <= 0)
+    throw new Error(`${label} must be a positive integer`);
+  return f;
+}
+
+function _now() {
+  return Date.now();
+}
+
+export function getMaxActiveAdrsPerAuthor() {
+  return _adMaxActiveAdrsPerAuthor;
+}
+export function setMaxActiveAdrsPerAuthor(n) {
+  _adMaxActiveAdrsPerAuthor = _positiveIntV2(n, "maxActiveAdrsPerAuthor");
+  return _adMaxActiveAdrsPerAuthor;
+}
+export function getMaxRunningSessionsPerDeveloper() {
+  return _adMaxRunningSessionsPerDeveloper;
+}
+export function setMaxRunningSessionsPerDeveloper(n) {
+  _adMaxRunningSessionsPerDeveloper = _positiveIntV2(
+    n,
+    "maxRunningSessionsPerDeveloper",
+  );
+  return _adMaxRunningSessionsPerDeveloper;
+}
+export function getAdrStaleMs() {
+  return _adAdrStaleMs;
+}
+export function setAdrStaleMs(n) {
+  _adAdrStaleMs = _positiveIntV2(n, "adrStaleMs");
+  return _adAdrStaleMs;
+}
+export function getSessionStuckMs() {
+  return _adSessionStuckMs;
+}
+export function setSessionStuckMs(n) {
+  _adSessionStuckMs = _positiveIntV2(n, "sessionStuckMs");
+  return _adSessionStuckMs;
+}
+
+export function getActiveAdrCount(author) {
+  let c = 0;
+  for (const a of _adrsV2.values()) {
+    if (_ADR_TERMINAL_V2.has(a.status)) continue;
+    if (author !== undefined && a.author !== author) continue;
+    c++;
+  }
+  return c;
+}
+
+export function getRunningSessionCount(developer) {
+  let c = 0;
+  for (const s of _sessionsV2.values()) {
+    if (s.status !== DEV_SESSION_V2.RUNNING) continue;
+    if (developer !== undefined && s.developer !== developer) continue;
+    c++;
+  }
+  return c;
+}
+
+export function createAdrV2({
+  id,
+  author,
+  title,
+  initialStatus,
+  metadata,
+} = {}) {
+  if (!id) throw new Error("id required");
+  if (!author) throw new Error("author required");
+  if (!title) throw new Error("title required");
+  if (_adrsV2.has(id)) throw new Error(`ADR ${id} already exists`);
+  const status = initialStatus ?? ADR_MATURITY_V2.DRAFT;
+  if (!Object.values(ADR_MATURITY_V2).includes(status))
+    throw new Error(`invalid initial status ${status}`);
+  if (
+    !_ADR_TERMINAL_V2.has(status) &&
+    getActiveAdrCount(author) >= _adMaxActiveAdrsPerAuthor
+  )
+    throw new Error(`author ${author} active ADR cap reached`);
+  const now = _now();
+  const a = {
+    id,
+    author,
+    title,
+    status,
+    metadata: metadata ? { ...metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+    acceptedAt: status === ADR_MATURITY_V2.ACCEPTED ? now : null,
+  };
+  _adrsV2.set(id, a);
+  return { ...a, metadata: { ...a.metadata } };
+}
+
+export function getAdrV2(id) {
+  const a = _adrsV2.get(id);
+  return a ? { ...a, metadata: { ...a.metadata } } : null;
+}
+
+export function listAdrsV2({ author, status } = {}) {
+  const out = [];
+  for (const a of _adrsV2.values()) {
+    if (author !== undefined && a.author !== author) continue;
+    if (status !== undefined && a.status !== status) continue;
+    out.push({ ...a, metadata: { ...a.metadata } });
+  }
+  return out;
+}
+
+export function setAdrMaturityV2(id, nextStatus, { reason, metadata } = {}) {
+  const a = _adrsV2.get(id);
+  if (!a) throw new Error(`ADR ${id} not found`);
+  if (_ADR_TERMINAL_V2.has(a.status))
+    throw new Error(`ADR ${id} is terminal (${a.status})`);
+  const allowed = _ADR_TRANSITIONS_V2.get(a.status);
+  if (!allowed || !allowed.has(nextStatus))
+    throw new Error(`illegal transition ${a.status} → ${nextStatus}`);
+  a.status = nextStatus;
+  a.updatedAt = _now();
+  if (reason !== undefined) a.reason = reason;
+  if (metadata) a.metadata = { ...a.metadata, ...metadata };
+  if (nextStatus === ADR_MATURITY_V2.ACCEPTED && !a.acceptedAt)
+    a.acceptedAt = a.updatedAt;
+  return { ...a, metadata: { ...a.metadata } };
+}
+
+export function acceptAdr(id, opts) {
+  return setAdrMaturityV2(id, ADR_MATURITY_V2.ACCEPTED, opts);
+}
+export function deprecateAdr(id, opts) {
+  return setAdrMaturityV2(id, ADR_MATURITY_V2.DEPRECATED, opts);
+}
+export function supersedeAdr(id, opts) {
+  return setAdrMaturityV2(id, ADR_MATURITY_V2.SUPERSEDED, opts);
+}
+
+export function enqueueSessionV2({ id, developer, goal, metadata } = {}) {
+  if (!id) throw new Error("id required");
+  if (!developer) throw new Error("developer required");
+  if (!goal) throw new Error("goal required");
+  if (_sessionsV2.has(id)) throw new Error(`session ${id} already exists`);
+  const now = _now();
+  const s = {
+    id,
+    developer,
+    goal,
+    status: DEV_SESSION_V2.QUEUED,
+    metadata: metadata ? { ...metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+  };
+  _sessionsV2.set(id, s);
+  return { ...s, metadata: { ...s.metadata } };
+}
+
+export function getSessionV2(id) {
+  const s = _sessionsV2.get(id);
+  return s ? { ...s, metadata: { ...s.metadata } } : null;
+}
+
+export function listSessionsV2({ developer, status } = {}) {
+  const out = [];
+  for (const s of _sessionsV2.values()) {
+    if (developer !== undefined && s.developer !== developer) continue;
+    if (status !== undefined && s.status !== status) continue;
+    out.push({ ...s, metadata: { ...s.metadata } });
+  }
+  return out;
+}
+
+export function setSessionStatusV2(id, nextStatus, { reason, metadata } = {}) {
+  const s = _sessionsV2.get(id);
+  if (!s) throw new Error(`session ${id} not found`);
+  if (_SESSION_TERMINAL_V2.has(s.status))
+    throw new Error(`session ${id} is terminal (${s.status})`);
+  const allowed = _SESSION_TRANSITIONS_V2.get(s.status);
+  if (!allowed || !allowed.has(nextStatus))
+    throw new Error(`illegal transition ${s.status} → ${nextStatus}`);
+  if (nextStatus === DEV_SESSION_V2.RUNNING) {
+    if (
+      getRunningSessionCount(s.developer) >= _adMaxRunningSessionsPerDeveloper
+    )
+      throw new Error(`developer ${s.developer} running session cap reached`);
+  }
+  s.status = nextStatus;
+  s.updatedAt = _now();
+  if (reason !== undefined) s.reason = reason;
+  if (metadata) s.metadata = { ...s.metadata, ...metadata };
+  if (nextStatus === DEV_SESSION_V2.RUNNING && !s.startedAt)
+    s.startedAt = s.updatedAt;
+  return { ...s, metadata: { ...s.metadata } };
+}
+
+export function startSessionV2(id, opts) {
+  return setSessionStatusV2(id, DEV_SESSION_V2.RUNNING, opts);
+}
+export function completeSessionV2(id, opts) {
+  return setSessionStatusV2(id, DEV_SESSION_V2.COMPLETED, opts);
+}
+export function failSessionV2(id, opts) {
+  return setSessionStatusV2(id, DEV_SESSION_V2.FAILED, opts);
+}
+export function cancelSessionV2(id, opts) {
+  return setSessionStatusV2(id, DEV_SESSION_V2.CANCELED, opts);
+}
+
+export function autoSupersedeStaleDrafts({ now } = {}) {
+  const cutoff = (now ?? _now()) - _adAdrStaleMs;
+  const flipped = [];
+  for (const a of _adrsV2.values()) {
+    if (a.status !== ADR_MATURITY_V2.DRAFT) continue;
+    if ((a.updatedAt ?? a.createdAt) > cutoff) continue;
+    a.status = ADR_MATURITY_V2.SUPERSEDED;
+    a.updatedAt = now ?? _now();
+    a.reason = "auto_supersede_stale_draft";
+    flipped.push(a.id);
+  }
+  return flipped;
+}
+
+export function autoFailStuckSessions({ now } = {}) {
+  const cutoff = (now ?? _now()) - _adSessionStuckMs;
+  const flipped = [];
+  for (const s of _sessionsV2.values()) {
+    if (s.status !== DEV_SESSION_V2.RUNNING) continue;
+    if (!s.startedAt || s.startedAt > cutoff) continue;
+    s.status = DEV_SESSION_V2.FAILED;
+    s.updatedAt = now ?? _now();
+    s.reason = "auto_fail_stuck";
+    flipped.push(s.id);
+  }
+  return flipped;
+}
+
+function _zeroByEnum(enumObj) {
+  const out = {};
+  for (const v of Object.values(enumObj)) out[v] = 0;
+  return out;
+}
+
+export function getAutonomousDeveloperStatsV2() {
+  const adrs = [..._adrsV2.values()];
+  const sessions = [..._sessionsV2.values()];
+  const adrsByStatus = _zeroByEnum(ADR_MATURITY_V2);
+  for (const a of adrs) adrsByStatus[a.status]++;
+  const sessionsByStatus = _zeroByEnum(DEV_SESSION_V2);
+  for (const s of sessions) sessionsByStatus[s.status]++;
+  return {
+    totalAdrsV2: adrs.length,
+    totalSessionsV2: sessions.length,
+    maxActiveAdrsPerAuthor: _adMaxActiveAdrsPerAuthor,
+    maxRunningSessionsPerDeveloper: _adMaxRunningSessionsPerDeveloper,
+    adrStaleMs: _adAdrStaleMs,
+    sessionStuckMs: _adSessionStuckMs,
+    adrsByStatus,
+    sessionsByStatus,
+  };
+}
+
+export function _resetStateV2() {
+  _adrsV2.clear();
+  _sessionsV2.clear();
+  _adMaxActiveAdrsPerAuthor = AD_DEFAULT_MAX_ACTIVE_ADRS_PER_AUTHOR;
+  _adMaxRunningSessionsPerDeveloper =
+    AD_DEFAULT_MAX_RUNNING_SESSIONS_PER_DEVELOPER;
+  _adAdrStaleMs = AD_DEFAULT_ADR_STALE_MS;
+  _adSessionStuckMs = AD_DEFAULT_SESSION_STUCK_MS;
+}

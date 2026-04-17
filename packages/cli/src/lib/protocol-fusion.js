@@ -533,3 +533,420 @@ export function _resetState() {
   _qualityScores.clear();
   _translationCache.clear();
 }
+
+/* ── V2 Surface (Phase 72-73) ─────────────────────────────
+ * Strictly additive. Two parallel state machines:
+ *   - Bridge maturity (5 states, retired terminal)
+ *   - Translation run lifecycle (5 states, 3 terminals)
+ * Per-operator active-bridge cap + per-bridge running-translation cap.
+ * Auto-flip: idle-bridge → retired; stuck-running translation → failed.
+ */
+
+export const BRIDGE_MATURITY_V2 = Object.freeze({
+  PROVISIONAL: "provisional",
+  ACTIVE: "active",
+  DEGRADED: "degraded",
+  DEPRECATED: "deprecated",
+  RETIRED: "retired",
+});
+
+export const TRANSLATION_RUN_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  SUCCEEDED: "succeeded",
+  FAILED: "failed",
+  CANCELED: "canceled",
+});
+
+const _BRIDGE_TRANSITIONS_V2 = new Map([
+  [
+    BRIDGE_MATURITY_V2.PROVISIONAL,
+    new Set([BRIDGE_MATURITY_V2.ACTIVE, BRIDGE_MATURITY_V2.RETIRED]),
+  ],
+  [
+    BRIDGE_MATURITY_V2.ACTIVE,
+    new Set([
+      BRIDGE_MATURITY_V2.DEGRADED,
+      BRIDGE_MATURITY_V2.DEPRECATED,
+      BRIDGE_MATURITY_V2.RETIRED,
+    ]),
+  ],
+  [
+    BRIDGE_MATURITY_V2.DEGRADED,
+    new Set([
+      BRIDGE_MATURITY_V2.ACTIVE,
+      BRIDGE_MATURITY_V2.DEPRECATED,
+      BRIDGE_MATURITY_V2.RETIRED,
+    ]),
+  ],
+  [
+    BRIDGE_MATURITY_V2.DEPRECATED,
+    new Set([BRIDGE_MATURITY_V2.ACTIVE, BRIDGE_MATURITY_V2.RETIRED]),
+  ],
+]);
+const _BRIDGE_TERMINAL_V2 = new Set([BRIDGE_MATURITY_V2.RETIRED]);
+
+const _TRANSLATION_TRANSITIONS_V2 = new Map([
+  [
+    TRANSLATION_RUN_V2.QUEUED,
+    new Set([
+      TRANSLATION_RUN_V2.RUNNING,
+      TRANSLATION_RUN_V2.CANCELED,
+      TRANSLATION_RUN_V2.FAILED,
+    ]),
+  ],
+  [
+    TRANSLATION_RUN_V2.RUNNING,
+    new Set([
+      TRANSLATION_RUN_V2.SUCCEEDED,
+      TRANSLATION_RUN_V2.FAILED,
+      TRANSLATION_RUN_V2.CANCELED,
+    ]),
+  ],
+]);
+const _TRANSLATION_TERMINAL_V2 = new Set([
+  TRANSLATION_RUN_V2.SUCCEEDED,
+  TRANSLATION_RUN_V2.FAILED,
+  TRANSLATION_RUN_V2.CANCELED,
+]);
+
+export const PF_DEFAULT_MAX_ACTIVE_BRIDGES_PER_OPERATOR = 10;
+export const PF_DEFAULT_MAX_RUNNING_TRANSLATIONS_PER_BRIDGE = 5;
+export const PF_DEFAULT_BRIDGE_IDLE_MS = 14 * 86400000;
+export const PF_DEFAULT_TRANSLATION_STUCK_MS = 10 * 60000;
+
+let _pfMaxActiveBridgesPerOperator = PF_DEFAULT_MAX_ACTIVE_BRIDGES_PER_OPERATOR;
+let _pfMaxRunningTranslationsPerBridge =
+  PF_DEFAULT_MAX_RUNNING_TRANSLATIONS_PER_BRIDGE;
+let _pfBridgeIdleMs = PF_DEFAULT_BRIDGE_IDLE_MS;
+let _pfTranslationStuckMs = PF_DEFAULT_TRANSLATION_STUCK_MS;
+
+const _bridgesV2 = new Map();
+const _translationsV2 = new Map();
+
+function _positiveIntV2(n, label) {
+  const f = Math.floor(n);
+  if (!Number.isFinite(f) || f <= 0)
+    throw new Error(`${label} must be a positive integer`);
+  return f;
+}
+
+export function getMaxActiveBridgesPerOperator() {
+  return _pfMaxActiveBridgesPerOperator;
+}
+export function setMaxActiveBridgesPerOperator(n) {
+  _pfMaxActiveBridgesPerOperator = _positiveIntV2(
+    n,
+    "maxActiveBridgesPerOperator",
+  );
+  return _pfMaxActiveBridgesPerOperator;
+}
+export function getMaxRunningTranslationsPerBridge() {
+  return _pfMaxRunningTranslationsPerBridge;
+}
+export function setMaxRunningTranslationsPerBridge(n) {
+  _pfMaxRunningTranslationsPerBridge = _positiveIntV2(
+    n,
+    "maxRunningTranslationsPerBridge",
+  );
+  return _pfMaxRunningTranslationsPerBridge;
+}
+export function getBridgeIdleMs() {
+  return _pfBridgeIdleMs;
+}
+export function setBridgeIdleMs(n) {
+  _pfBridgeIdleMs = _positiveIntV2(n, "bridgeIdleMs");
+  return _pfBridgeIdleMs;
+}
+export function getTranslationStuckMs() {
+  return _pfTranslationStuckMs;
+}
+export function setTranslationStuckMs(n) {
+  _pfTranslationStuckMs = _positiveIntV2(n, "translationStuckMs");
+  return _pfTranslationStuckMs;
+}
+
+export function getActiveBridgeCount(operator) {
+  let c = 0;
+  for (const b of _bridgesV2.values()) {
+    if (b.status === BRIDGE_MATURITY_V2.RETIRED) continue;
+    if (b.status === BRIDGE_MATURITY_V2.PROVISIONAL) continue;
+    if (operator !== undefined && b.operator !== operator) continue;
+    c++;
+  }
+  return c;
+}
+
+export function getRunningTranslationCount(bridgeId) {
+  let c = 0;
+  for (const t of _translationsV2.values()) {
+    if (t.status !== TRANSLATION_RUN_V2.RUNNING) continue;
+    if (bridgeId !== undefined && t.bridgeId !== bridgeId) continue;
+    c++;
+  }
+  return c;
+}
+
+export function registerBridgeV2({
+  id,
+  operator,
+  sourceProtocol,
+  targetProtocol,
+  initialStatus,
+  metadata,
+} = {}) {
+  if (!id) throw new Error("id required");
+  if (!operator) throw new Error("operator required");
+  if (!sourceProtocol || !VALID_PROTOCOLS.has(sourceProtocol))
+    throw new Error("invalid sourceProtocol");
+  if (!targetProtocol || !VALID_PROTOCOLS.has(targetProtocol))
+    throw new Error("invalid targetProtocol");
+  if (_bridgesV2.has(id)) throw new Error(`bridge ${id} already exists`);
+  const status = initialStatus ?? BRIDGE_MATURITY_V2.PROVISIONAL;
+  if (!Object.values(BRIDGE_MATURITY_V2).includes(status))
+    throw new Error(`invalid initial status ${status}`);
+  const active =
+    status !== BRIDGE_MATURITY_V2.RETIRED &&
+    status !== BRIDGE_MATURITY_V2.PROVISIONAL;
+  if (
+    active &&
+    getActiveBridgeCount(operator) >= _pfMaxActiveBridgesPerOperator
+  )
+    throw new Error(`operator ${operator} active bridge cap reached`);
+  const now = _now();
+  const bridge = {
+    id,
+    operator,
+    sourceProtocol,
+    targetProtocol,
+    status,
+    metadata: metadata ? { ...metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: status === BRIDGE_MATURITY_V2.ACTIVE ? now : null,
+    lastUsedAt: now,
+  };
+  _bridgesV2.set(id, bridge);
+  return { ...bridge, metadata: { ...bridge.metadata } };
+}
+
+export function getBridgeV2(id) {
+  const b = _bridgesV2.get(id);
+  return b ? { ...b, metadata: { ...b.metadata } } : null;
+}
+
+export function listBridgesV2({ operator, status } = {}) {
+  const out = [];
+  for (const b of _bridgesV2.values()) {
+    if (operator !== undefined && b.operator !== operator) continue;
+    if (status !== undefined && b.status !== status) continue;
+    out.push({ ...b, metadata: { ...b.metadata } });
+  }
+  return out;
+}
+
+export function setBridgeMaturityV2(id, nextStatus, { reason, metadata } = {}) {
+  const b = _bridgesV2.get(id);
+  if (!b) throw new Error(`bridge ${id} not found`);
+  if (_BRIDGE_TERMINAL_V2.has(b.status))
+    throw new Error(`bridge ${id} is terminal (${b.status})`);
+  const allowed = _BRIDGE_TRANSITIONS_V2.get(b.status);
+  if (!allowed || !allowed.has(nextStatus))
+    throw new Error(`illegal transition ${b.status} → ${nextStatus}`);
+  const wasActive =
+    b.status !== BRIDGE_MATURITY_V2.RETIRED &&
+    b.status !== BRIDGE_MATURITY_V2.PROVISIONAL;
+  const willBeActive =
+    nextStatus !== BRIDGE_MATURITY_V2.RETIRED &&
+    nextStatus !== BRIDGE_MATURITY_V2.PROVISIONAL;
+  if (!wasActive && willBeActive) {
+    if (getActiveBridgeCount(b.operator) >= _pfMaxActiveBridgesPerOperator)
+      throw new Error(`operator ${b.operator} active bridge cap reached`);
+  }
+  b.status = nextStatus;
+  b.updatedAt = _now();
+  if (reason !== undefined) b.reason = reason;
+  if (metadata) b.metadata = { ...b.metadata, ...metadata };
+  if (nextStatus === BRIDGE_MATURITY_V2.ACTIVE && !b.activatedAt)
+    b.activatedAt = b.updatedAt;
+  return { ...b, metadata: { ...b.metadata } };
+}
+
+export function activateBridge(id, opts) {
+  return setBridgeMaturityV2(id, BRIDGE_MATURITY_V2.ACTIVE, opts);
+}
+export function degradeBridge(id, opts) {
+  return setBridgeMaturityV2(id, BRIDGE_MATURITY_V2.DEGRADED, opts);
+}
+export function deprecateBridge(id, opts) {
+  return setBridgeMaturityV2(id, BRIDGE_MATURITY_V2.DEPRECATED, opts);
+}
+export function retireBridge(id, opts) {
+  return setBridgeMaturityV2(id, BRIDGE_MATURITY_V2.RETIRED, opts);
+}
+
+export function touchBridgeUsage(id) {
+  const b = _bridgesV2.get(id);
+  if (!b) throw new Error(`bridge ${id} not found`);
+  b.lastUsedAt = _now();
+  return { ...b, metadata: { ...b.metadata } };
+}
+
+export function enqueueTranslationV2({
+  id,
+  bridgeId,
+  sourceLang,
+  targetLang,
+  text,
+  metadata,
+} = {}) {
+  if (!id) throw new Error("id required");
+  if (!bridgeId) throw new Error("bridgeId required");
+  if (!targetLang) throw new Error("targetLang required");
+  if (!text) throw new Error("text required");
+  const b = _bridgesV2.get(bridgeId);
+  if (!b) throw new Error(`bridge ${bridgeId} not found`);
+  if (_translationsV2.has(id))
+    throw new Error(`translation ${id} already exists`);
+  const now = _now();
+  const run = {
+    id,
+    bridgeId,
+    sourceLang: sourceLang || "auto",
+    targetLang,
+    text,
+    status: TRANSLATION_RUN_V2.QUEUED,
+    metadata: metadata ? { ...metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    result: null,
+  };
+  _translationsV2.set(id, run);
+  return { ...run, metadata: { ...run.metadata } };
+}
+
+export function getTranslationV2(id) {
+  const t = _translationsV2.get(id);
+  return t ? { ...t, metadata: { ...t.metadata } } : null;
+}
+
+export function listTranslationsV2({ bridgeId, status } = {}) {
+  const out = [];
+  for (const t of _translationsV2.values()) {
+    if (bridgeId !== undefined && t.bridgeId !== bridgeId) continue;
+    if (status !== undefined && t.status !== status) continue;
+    out.push({ ...t, metadata: { ...t.metadata } });
+  }
+  return out;
+}
+
+export function setTranslationStatusV2(
+  id,
+  nextStatus,
+  { reason, metadata, result } = {},
+) {
+  const t = _translationsV2.get(id);
+  if (!t) throw new Error(`translation ${id} not found`);
+  if (_TRANSLATION_TERMINAL_V2.has(t.status))
+    throw new Error(`translation ${id} is terminal (${t.status})`);
+  const allowed = _TRANSLATION_TRANSITIONS_V2.get(t.status);
+  if (!allowed || !allowed.has(nextStatus))
+    throw new Error(`illegal transition ${t.status} → ${nextStatus}`);
+  if (nextStatus === TRANSLATION_RUN_V2.RUNNING) {
+    if (
+      getRunningTranslationCount(t.bridgeId) >=
+      _pfMaxRunningTranslationsPerBridge
+    )
+      throw new Error(`bridge ${t.bridgeId} running translation cap reached`);
+  }
+  t.status = nextStatus;
+  t.updatedAt = _now();
+  if (reason !== undefined) t.reason = reason;
+  if (metadata) t.metadata = { ...t.metadata, ...metadata };
+  if (result !== undefined) t.result = result;
+  if (nextStatus === TRANSLATION_RUN_V2.RUNNING && !t.startedAt)
+    t.startedAt = t.updatedAt;
+  return { ...t, metadata: { ...t.metadata } };
+}
+
+export function startTranslation(id, opts) {
+  return setTranslationStatusV2(id, TRANSLATION_RUN_V2.RUNNING, opts);
+}
+export function succeedTranslation(id, opts) {
+  return setTranslationStatusV2(id, TRANSLATION_RUN_V2.SUCCEEDED, opts);
+}
+export function failTranslation(id, opts) {
+  return setTranslationStatusV2(id, TRANSLATION_RUN_V2.FAILED, opts);
+}
+export function cancelTranslation(id, opts) {
+  return setTranslationStatusV2(id, TRANSLATION_RUN_V2.CANCELED, opts);
+}
+
+export function autoRetireIdleBridges({ now } = {}) {
+  const cutoff = (now ?? _now()) - _pfBridgeIdleMs;
+  const flipped = [];
+  for (const b of _bridgesV2.values()) {
+    if (
+      b.status !== BRIDGE_MATURITY_V2.ACTIVE &&
+      b.status !== BRIDGE_MATURITY_V2.DEGRADED &&
+      b.status !== BRIDGE_MATURITY_V2.DEPRECATED
+    )
+      continue;
+    if ((b.lastUsedAt ?? b.createdAt) > cutoff) continue;
+    b.status = BRIDGE_MATURITY_V2.RETIRED;
+    b.updatedAt = now ?? _now();
+    b.reason = "auto_retire_idle";
+    flipped.push(b.id);
+  }
+  return flipped;
+}
+
+export function autoFailStuckRunningTranslations({ now } = {}) {
+  const cutoff = (now ?? _now()) - _pfTranslationStuckMs;
+  const flipped = [];
+  for (const t of _translationsV2.values()) {
+    if (t.status !== TRANSLATION_RUN_V2.RUNNING) continue;
+    if (!t.startedAt || t.startedAt > cutoff) continue;
+    t.status = TRANSLATION_RUN_V2.FAILED;
+    t.updatedAt = now ?? _now();
+    t.reason = "auto_fail_stuck";
+    flipped.push(t.id);
+  }
+  return flipped;
+}
+
+function _zeroByEnum(enumObj) {
+  const out = {};
+  for (const v of Object.values(enumObj)) out[v] = 0;
+  return out;
+}
+
+export function getProtocolFusionStatsV2() {
+  const bridges = [..._bridgesV2.values()];
+  const translations = [..._translationsV2.values()];
+  const bridgesByStatus = _zeroByEnum(BRIDGE_MATURITY_V2);
+  for (const b of bridges) bridgesByStatus[b.status]++;
+  const translationsByStatus = _zeroByEnum(TRANSLATION_RUN_V2);
+  for (const t of translations) translationsByStatus[t.status]++;
+  return {
+    totalBridgesV2: bridges.length,
+    totalTranslationsV2: translations.length,
+    maxActiveBridgesPerOperator: _pfMaxActiveBridgesPerOperator,
+    maxRunningTranslationsPerBridge: _pfMaxRunningTranslationsPerBridge,
+    bridgeIdleMs: _pfBridgeIdleMs,
+    translationStuckMs: _pfTranslationStuckMs,
+    bridgesByStatus,
+    translationsByStatus,
+  };
+}
+
+export function _resetStateV2() {
+  _bridgesV2.clear();
+  _translationsV2.clear();
+  _pfMaxActiveBridgesPerOperator = PF_DEFAULT_MAX_ACTIVE_BRIDGES_PER_OPERATOR;
+  _pfMaxRunningTranslationsPerBridge =
+    PF_DEFAULT_MAX_RUNNING_TRANSLATIONS_PER_BRIDGE;
+  _pfBridgeIdleMs = PF_DEFAULT_BRIDGE_IDLE_MS;
+  _pfTranslationStuckMs = PF_DEFAULT_TRANSLATION_STUCK_MS;
+}

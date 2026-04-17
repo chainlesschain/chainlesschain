@@ -649,3 +649,372 @@ export function _resetState() {
   _practices.clear();
   _seq = 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+ * V2 Surface — Tech Learning Engine V2 (additive)
+ * State machines + caps + auto-flip for tech profiles / learning runs
+ * ═══════════════════════════════════════════════════════════════ */
+
+export const PROFILE_MATURITY_V2 = Object.freeze({
+  DRAFT: "draft",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+
+export const LEARNING_RUN_V2 = Object.freeze({
+  QUEUED: "queued",
+  STUDYING: "studying",
+  COMPLETED: "completed",
+  ABANDONED: "abandoned",
+  FAILED: "failed",
+});
+
+const _PROFILE_TRANS_V2 = new Map([
+  [
+    PROFILE_MATURITY_V2.DRAFT,
+    new Set([PROFILE_MATURITY_V2.ACTIVE, PROFILE_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    PROFILE_MATURITY_V2.ACTIVE,
+    new Set([PROFILE_MATURITY_V2.STALE, PROFILE_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    PROFILE_MATURITY_V2.STALE,
+    new Set([PROFILE_MATURITY_V2.ACTIVE, PROFILE_MATURITY_V2.ARCHIVED]),
+  ],
+  [PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+
+const _RUN_TRANS_V2 = new Map([
+  [
+    LEARNING_RUN_V2.QUEUED,
+    new Set([
+      LEARNING_RUN_V2.STUDYING,
+      LEARNING_RUN_V2.ABANDONED,
+      LEARNING_RUN_V2.FAILED,
+    ]),
+  ],
+  [
+    LEARNING_RUN_V2.STUDYING,
+    new Set([
+      LEARNING_RUN_V2.COMPLETED,
+      LEARNING_RUN_V2.FAILED,
+      LEARNING_RUN_V2.ABANDONED,
+    ]),
+  ],
+  [LEARNING_RUN_V2.COMPLETED, new Set()],
+  [LEARNING_RUN_V2.ABANDONED, new Set()],
+  [LEARNING_RUN_V2.FAILED, new Set()],
+]);
+
+const _PROFILE_TERMINAL_V2 = new Set([PROFILE_MATURITY_V2.ARCHIVED]);
+const _RUN_TERMINAL_V2 = new Set([
+  LEARNING_RUN_V2.COMPLETED,
+  LEARNING_RUN_V2.ABANDONED,
+  LEARNING_RUN_V2.FAILED,
+]);
+
+export const TLE_DEFAULT_MAX_ACTIVE_PROFILES_PER_OWNER = 10;
+export const TLE_DEFAULT_MAX_STUDYING_RUNS_PER_LEARNER = 5;
+export const TLE_DEFAULT_PROFILE_STALE_MS = 60 * 24 * 60 * 60 * 1000;
+export const TLE_DEFAULT_RUN_STUCK_MS = 7 * 24 * 60 * 60 * 1000;
+
+let _tleMaxActiveProfiles = TLE_DEFAULT_MAX_ACTIVE_PROFILES_PER_OWNER;
+let _tleMaxStudyingRuns = TLE_DEFAULT_MAX_STUDYING_RUNS_PER_LEARNER;
+let _tleProfileStaleMs = TLE_DEFAULT_PROFILE_STALE_MS;
+let _tleRunStuckMs = TLE_DEFAULT_RUN_STUCK_MS;
+
+const _profilesV2 = new Map();
+const _runsV2 = new Map();
+
+function _posIntV2(n, label) {
+  const v = Number.isInteger(n) ? n : Math.floor(n);
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be a positive integer`);
+  return v;
+}
+
+export function getMaxActiveProfilesPerOwnerV2() {
+  return _tleMaxActiveProfiles;
+}
+export function setMaxActiveProfilesPerOwnerV2(n) {
+  _tleMaxActiveProfiles = _posIntV2(n, "maxActiveProfilesPerOwner");
+  return _tleMaxActiveProfiles;
+}
+export function getMaxStudyingRunsPerLearnerV2() {
+  return _tleMaxStudyingRuns;
+}
+export function setMaxStudyingRunsPerLearnerV2(n) {
+  _tleMaxStudyingRuns = _posIntV2(n, "maxStudyingRunsPerLearner");
+  return _tleMaxStudyingRuns;
+}
+export function getProfileStaleMsV2() {
+  return _tleProfileStaleMs;
+}
+export function setProfileStaleMsV2(n) {
+  _tleProfileStaleMs = _posIntV2(n, "profileStaleMs");
+  return _tleProfileStaleMs;
+}
+export function getRunStuckMsV2() {
+  return _tleRunStuckMs;
+}
+export function setRunStuckMsV2(n) {
+  _tleRunStuckMs = _posIntV2(n, "runStuckMs");
+  return _tleRunStuckMs;
+}
+
+export function getActiveProfileCountV2(owner) {
+  if (!owner) throw new Error("owner is required");
+  let c = 0;
+  for (const p of _profilesV2.values()) {
+    if (p.owner !== owner) continue;
+    if (p.status === PROFILE_MATURITY_V2.ARCHIVED) continue;
+    if (p.status === PROFILE_MATURITY_V2.DRAFT) continue;
+    c++;
+  }
+  return c;
+}
+
+export function getStudyingRunCountV2(learner) {
+  if (!learner) throw new Error("learner is required");
+  let c = 0;
+  for (const r of _runsV2.values()) {
+    if (r.learner !== learner) continue;
+    if (r.status !== LEARNING_RUN_V2.STUDYING) continue;
+    c++;
+  }
+  return c;
+}
+
+export function createProfileV2({ id, owner, stackName, metadata }) {
+  if (!id) throw new Error("id is required");
+  if (!owner) throw new Error("owner is required");
+  if (!stackName) throw new Error("stackName is required");
+  if (_profilesV2.has(id)) throw new Error(`profile ${id} already exists`);
+  const now = Date.now();
+  const profile = {
+    id,
+    owner,
+    stackName: String(stackName),
+    status: PROFILE_MATURITY_V2.DRAFT,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    lastTouchedAt: now,
+    metadata: metadata ? { ...metadata } : {},
+  };
+  _profilesV2.set(id, profile);
+  return { ...profile, metadata: { ...profile.metadata } };
+}
+
+export function getProfileV2(id) {
+  const p = _profilesV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+
+export function listProfilesV2({ owner, status } = {}) {
+  const out = [];
+  for (const p of _profilesV2.values()) {
+    if (owner && p.owner !== owner) continue;
+    if (status && p.status !== status) continue;
+    out.push({ ...p, metadata: { ...p.metadata } });
+  }
+  return out;
+}
+
+export function setProfileMaturityV2(
+  id,
+  nextStatus,
+  { reason, metadata } = {},
+) {
+  const p = _profilesV2.get(id);
+  if (!p) throw new Error(`profile ${id} not found`);
+  if (!_PROFILE_TRANS_V2.has(p.status))
+    throw new Error(`unknown status ${p.status}`);
+  const allowed = _PROFILE_TRANS_V2.get(p.status);
+  if (!allowed.has(nextStatus)) {
+    throw new Error(
+      `cannot transition profile ${id} from ${p.status} to ${nextStatus}`,
+    );
+  }
+  if (nextStatus === PROFILE_MATURITY_V2.ACTIVE && p.owner) {
+    const count = getActiveProfileCountV2(p.owner);
+    const wasActive =
+      p.status === PROFILE_MATURITY_V2.ACTIVE ||
+      p.status === PROFILE_MATURITY_V2.STALE;
+    if (!wasActive && count >= _tleMaxActiveProfiles) {
+      throw new Error(
+        `owner ${p.owner} exceeds max active profile cap ${_tleMaxActiveProfiles}`,
+      );
+    }
+  }
+  const now = Date.now();
+  p.status = nextStatus;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (nextStatus === PROFILE_MATURITY_V2.ACTIVE && !p.activatedAt)
+    p.activatedAt = now;
+  if (reason) p.reason = reason;
+  if (metadata) p.metadata = { ...p.metadata, ...metadata };
+  return { ...p, metadata: { ...p.metadata } };
+}
+
+export function activateProfileV2(id, opts) {
+  return setProfileMaturityV2(id, PROFILE_MATURITY_V2.ACTIVE, opts);
+}
+export function markProfileStaleV2(id, opts) {
+  return setProfileMaturityV2(id, PROFILE_MATURITY_V2.STALE, opts);
+}
+export function archiveProfileV2(id, opts) {
+  return setProfileMaturityV2(id, PROFILE_MATURITY_V2.ARCHIVED, opts);
+}
+
+export function touchProfileV2(id) {
+  const p = _profilesV2.get(id);
+  if (!p) throw new Error(`profile ${id} not found`);
+  if (_PROFILE_TERMINAL_V2.has(p.status))
+    throw new Error(`profile ${id} is terminal`);
+  p.lastTouchedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+
+export function enqueueRunV2({ id, learner, topic, metadata }) {
+  if (!id) throw new Error("id is required");
+  if (!learner) throw new Error("learner is required");
+  if (!topic) throw new Error("topic is required");
+  if (_runsV2.has(id)) throw new Error(`run ${id} already exists`);
+  const now = Date.now();
+  const run = {
+    id,
+    learner,
+    topic: String(topic),
+    status: LEARNING_RUN_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    endedAt: null,
+    metadata: metadata ? { ...metadata } : {},
+  };
+  _runsV2.set(id, run);
+  return { ...run, metadata: { ...run.metadata } };
+}
+
+export function getRunV2(id) {
+  const r = _runsV2.get(id);
+  if (!r) return null;
+  return { ...r, metadata: { ...r.metadata } };
+}
+
+export function listRunsV2({ learner, status } = {}) {
+  const out = [];
+  for (const r of _runsV2.values()) {
+    if (learner && r.learner !== learner) continue;
+    if (status && r.status !== status) continue;
+    out.push({ ...r, metadata: { ...r.metadata } });
+  }
+  return out;
+}
+
+export function setRunStatusV2(id, nextStatus, { reason, metadata } = {}) {
+  const r = _runsV2.get(id);
+  if (!r) throw new Error(`run ${id} not found`);
+  if (!_RUN_TRANS_V2.has(r.status))
+    throw new Error(`unknown status ${r.status}`);
+  const allowed = _RUN_TRANS_V2.get(r.status);
+  if (!allowed.has(nextStatus)) {
+    throw new Error(
+      `cannot transition run ${id} from ${r.status} to ${nextStatus}`,
+    );
+  }
+  if (nextStatus === LEARNING_RUN_V2.STUDYING) {
+    const count = getStudyingRunCountV2(r.learner);
+    if (count >= _tleMaxStudyingRuns) {
+      throw new Error(
+        `learner ${r.learner} exceeds max studying run cap ${_tleMaxStudyingRuns}`,
+      );
+    }
+  }
+  const now = Date.now();
+  r.status = nextStatus;
+  r.updatedAt = now;
+  if (nextStatus === LEARNING_RUN_V2.STUDYING && !r.startedAt)
+    r.startedAt = now;
+  if (_RUN_TERMINAL_V2.has(nextStatus)) r.endedAt = now;
+  if (reason) r.reason = reason;
+  if (metadata) r.metadata = { ...r.metadata, ...metadata };
+  return { ...r, metadata: { ...r.metadata } };
+}
+
+export function startRunV2(id, opts) {
+  return setRunStatusV2(id, LEARNING_RUN_V2.STUDYING, opts);
+}
+export function completeRunV2(id, opts) {
+  return setRunStatusV2(id, LEARNING_RUN_V2.COMPLETED, opts);
+}
+export function abandonRunV2(id, opts) {
+  return setRunStatusV2(id, LEARNING_RUN_V2.ABANDONED, opts);
+}
+export function failRunV2(id, opts) {
+  return setRunStatusV2(id, LEARNING_RUN_V2.FAILED, opts);
+}
+
+export function autoMarkStaleProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const out = [];
+  for (const p of _profilesV2.values()) {
+    if (p.status !== PROFILE_MATURITY_V2.ACTIVE) continue;
+    if (t - p.lastTouchedAt > _tleProfileStaleMs) {
+      p.status = PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      out.push(p.id);
+    }
+  }
+  return out;
+}
+
+export function autoFailStuckRunsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const out = [];
+  for (const r of _runsV2.values()) {
+    if (r.status !== LEARNING_RUN_V2.STUDYING) continue;
+    if (r.startedAt == null) continue;
+    if (t - r.startedAt > _tleRunStuckMs) {
+      r.status = LEARNING_RUN_V2.FAILED;
+      r.endedAt = t;
+      r.updatedAt = t;
+      r.reason = r.reason || "auto-fail: stuck studying";
+      out.push(r.id);
+    }
+  }
+  return out;
+}
+
+export function getTechLearningStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(PROFILE_MATURITY_V2)) profilesByStatus[v] = 0;
+  for (const p of _profilesV2.values()) profilesByStatus[p.status]++;
+  const runsByStatus = {};
+  for (const v of Object.values(LEARNING_RUN_V2)) runsByStatus[v] = 0;
+  for (const r of _runsV2.values()) runsByStatus[r.status]++;
+  return {
+    totalProfilesV2: _profilesV2.size,
+    totalRunsV2: _runsV2.size,
+    maxActiveProfilesPerOwner: _tleMaxActiveProfiles,
+    maxStudyingRunsPerLearner: _tleMaxStudyingRuns,
+    profileStaleMs: _tleProfileStaleMs,
+    runStuckMs: _tleRunStuckMs,
+    profilesByStatus,
+    runsByStatus,
+  };
+}
+
+export function _resetStateV2() {
+  _profilesV2.clear();
+  _runsV2.clear();
+  _tleMaxActiveProfiles = TLE_DEFAULT_MAX_ACTIVE_PROFILES_PER_OWNER;
+  _tleMaxStudyingRuns = TLE_DEFAULT_MAX_STUDYING_RUNS_PER_LEARNER;
+  _tleProfileStaleMs = TLE_DEFAULT_PROFILE_STALE_MS;
+  _tleRunStuckMs = TLE_DEFAULT_RUN_STUCK_MS;
+}

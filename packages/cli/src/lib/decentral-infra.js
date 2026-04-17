@@ -443,3 +443,343 @@ export function _resetState() {
   _versions.clear();
   _routes.clear();
 }
+
+/* ═════════════════════════════════════════════════════════ *
+ *  Phase 74-75 V2 — Provider Maturity + Deal Lifecycle
+ * ═════════════════════════════════════════════════════════ */
+
+export const PROVIDER_MATURITY_V2 = Object.freeze({
+  ONBOARDING: "onboarding",
+  ACTIVE: "active",
+  DEGRADED: "degraded",
+  OFFLINE: "offline",
+  RETIRED: "retired",
+});
+
+export const DEAL_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  ACTIVE: "active",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELED: "canceled",
+});
+
+const PROVIDER_TRANSITIONS_V2 = new Map([
+  ["onboarding", new Set(["active", "retired"])],
+  ["active", new Set(["degraded", "offline", "retired"])],
+  ["degraded", new Set(["active", "offline", "retired"])],
+  ["offline", new Set(["active", "retired"])],
+]);
+const PROVIDER_TERMINALS_V2 = new Set(["retired"]);
+
+const DEAL_TRANSITIONS_V2 = new Map([
+  ["queued", new Set(["active", "canceled", "failed"])],
+  ["active", new Set(["completed", "failed", "canceled"])],
+]);
+const DEAL_TERMINALS_V2 = new Set(["completed", "failed", "canceled"]);
+
+export const DI_DEFAULT_MAX_ACTIVE_PROVIDERS_PER_OPERATOR = 20;
+export const DI_DEFAULT_MAX_ACTIVE_DEALS_PER_PROVIDER = 10;
+export const DI_DEFAULT_PROVIDER_IDLE_MS = 7 * 86400000; // 7 days
+export const DI_DEFAULT_DEAL_STUCK_MS = 24 * 3600000; // 24 hours
+
+let _maxActiveProvidersPerOperatorV2 =
+  DI_DEFAULT_MAX_ACTIVE_PROVIDERS_PER_OPERATOR;
+let _maxActiveDealsPerProviderV2 = DI_DEFAULT_MAX_ACTIVE_DEALS_PER_PROVIDER;
+let _providerIdleMsV2 = DI_DEFAULT_PROVIDER_IDLE_MS;
+let _dealStuckMsV2 = DI_DEFAULT_DEAL_STUCK_MS;
+
+function _positiveIntV2(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be a positive integer`);
+  return v;
+}
+
+export function getDefaultMaxActiveProvidersPerOperatorV2() {
+  return DI_DEFAULT_MAX_ACTIVE_PROVIDERS_PER_OPERATOR;
+}
+export function getMaxActiveProvidersPerOperatorV2() {
+  return _maxActiveProvidersPerOperatorV2;
+}
+export function setMaxActiveProvidersPerOperatorV2(n) {
+  return (_maxActiveProvidersPerOperatorV2 = _positiveIntV2(
+    n,
+    "maxActiveProvidersPerOperator",
+  ));
+}
+export function getDefaultMaxActiveDealsPerProviderV2() {
+  return DI_DEFAULT_MAX_ACTIVE_DEALS_PER_PROVIDER;
+}
+export function getMaxActiveDealsPerProviderV2() {
+  return _maxActiveDealsPerProviderV2;
+}
+export function setMaxActiveDealsPerProviderV2(n) {
+  return (_maxActiveDealsPerProviderV2 = _positiveIntV2(
+    n,
+    "maxActiveDealsPerProvider",
+  ));
+}
+export function getDefaultProviderIdleMsV2() {
+  return DI_DEFAULT_PROVIDER_IDLE_MS;
+}
+export function getProviderIdleMsV2() {
+  return _providerIdleMsV2;
+}
+export function setProviderIdleMsV2(ms) {
+  return (_providerIdleMsV2 = _positiveIntV2(ms, "providerIdleMs"));
+}
+export function getDefaultDealStuckMsV2() {
+  return DI_DEFAULT_DEAL_STUCK_MS;
+}
+export function getDealStuckMsV2() {
+  return _dealStuckMsV2;
+}
+export function setDealStuckMsV2(ms) {
+  return (_dealStuckMsV2 = _positiveIntV2(ms, "dealStuckMs"));
+}
+
+const _providersV2 = new Map();
+const _dealsV2 = new Map();
+
+export function registerProviderV2(
+  _db,
+  { providerId, operatorId, kind, initialStatus, metadata } = {},
+) {
+  if (!providerId) throw new Error("providerId is required");
+  if (!operatorId) throw new Error("operatorId is required");
+  if (!kind) throw new Error("kind is required");
+  if (_providersV2.has(providerId))
+    throw new Error(`Provider ${providerId} already exists`);
+  const status = initialStatus || PROVIDER_MATURITY_V2.ONBOARDING;
+  if (!Object.values(PROVIDER_MATURITY_V2).includes(status))
+    throw new Error(`Invalid initial status: ${status}`);
+  if (PROVIDER_TERMINALS_V2.has(status))
+    throw new Error(`Cannot register in terminal status: ${status}`);
+  if (status === PROVIDER_MATURITY_V2.ACTIVE) {
+    if (getActiveProviderCount(operatorId) >= _maxActiveProvidersPerOperatorV2)
+      throw new Error(
+        `Operator ${operatorId} reached active-provider cap (${_maxActiveProvidersPerOperatorV2})`,
+      );
+  }
+  const now = Date.now();
+  const record = {
+    providerId,
+    operatorId,
+    kind,
+    status,
+    metadata: metadata || {},
+    createdAt: now,
+    updatedAt: now,
+    lastHeartbeatAt: now,
+  };
+  _providersV2.set(providerId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getProviderV2(providerId) {
+  const r = _providersV2.get(providerId);
+  return r ? { ...r, metadata: { ...r.metadata } } : null;
+}
+
+export function setProviderMaturityV2(_db, providerId, newStatus, patch = {}) {
+  const record = _providersV2.get(providerId);
+  if (!record) throw new Error(`Unknown provider: ${providerId}`);
+  if (!Object.values(PROVIDER_MATURITY_V2).includes(newStatus))
+    throw new Error(`Invalid status: ${newStatus}`);
+  const allowed = PROVIDER_TRANSITIONS_V2.get(record.status) || new Set();
+  if (!allowed.has(newStatus))
+    throw new Error(`Invalid transition: ${record.status} -> ${newStatus}`);
+  if (newStatus === PROVIDER_MATURITY_V2.ACTIVE) {
+    if (
+      getActiveProviderCount(record.operatorId) >=
+      _maxActiveProvidersPerOperatorV2
+    )
+      throw new Error(
+        `Operator ${record.operatorId} reached active-provider cap (${_maxActiveProvidersPerOperatorV2})`,
+      );
+  }
+  record.status = newStatus;
+  record.updatedAt = Date.now();
+  if (patch.reason !== undefined) record.lastReason = patch.reason;
+  if (patch.metadata)
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function activateProvider(db, id, reason) {
+  return setProviderMaturityV2(db, id, PROVIDER_MATURITY_V2.ACTIVE, { reason });
+}
+export function degradeProvider(db, id, reason) {
+  return setProviderMaturityV2(db, id, PROVIDER_MATURITY_V2.DEGRADED, {
+    reason,
+  });
+}
+export function offlineProvider(db, id, reason) {
+  return setProviderMaturityV2(db, id, PROVIDER_MATURITY_V2.OFFLINE, {
+    reason,
+  });
+}
+export function retireProvider(db, id, reason) {
+  return setProviderMaturityV2(db, id, PROVIDER_MATURITY_V2.RETIRED, {
+    reason,
+  });
+}
+
+export function touchProviderHeartbeat(providerId) {
+  const record = _providersV2.get(providerId);
+  if (!record) throw new Error(`Unknown provider: ${providerId}`);
+  record.lastHeartbeatAt = Date.now();
+  record.updatedAt = record.lastHeartbeatAt;
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function enqueueDealV2(
+  _db,
+  { dealId, providerId, ownerId, metadata } = {},
+) {
+  if (!dealId) throw new Error("dealId is required");
+  if (!providerId) throw new Error("providerId is required");
+  if (!ownerId) throw new Error("ownerId is required");
+  if (!_providersV2.has(providerId))
+    throw new Error(`Unknown provider: ${providerId}`);
+  if (_dealsV2.has(dealId)) throw new Error(`Deal ${dealId} already exists`);
+  const now = Date.now();
+  const record = {
+    dealId,
+    providerId,
+    ownerId,
+    status: DEAL_LIFECYCLE_V2.QUEUED,
+    metadata: metadata || {},
+    createdAt: now,
+    updatedAt: now,
+  };
+  _dealsV2.set(dealId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getDealV2(dealId) {
+  const r = _dealsV2.get(dealId);
+  return r ? { ...r, metadata: { ...r.metadata } } : null;
+}
+
+export function setDealStatusV2(_db, dealId, newStatus, patch = {}) {
+  const record = _dealsV2.get(dealId);
+  if (!record) throw new Error(`Unknown deal: ${dealId}`);
+  if (!Object.values(DEAL_LIFECYCLE_V2).includes(newStatus))
+    throw new Error(`Invalid status: ${newStatus}`);
+  const allowed = DEAL_TRANSITIONS_V2.get(record.status) || new Set();
+  if (!allowed.has(newStatus))
+    throw new Error(`Invalid transition: ${record.status} -> ${newStatus}`);
+  if (newStatus === DEAL_LIFECYCLE_V2.ACTIVE) {
+    if (getActiveDealCount(record.providerId) >= _maxActiveDealsPerProviderV2)
+      throw new Error(
+        `Provider ${record.providerId} reached active-deal cap (${_maxActiveDealsPerProviderV2})`,
+      );
+    if (!record.activatedAt) record.activatedAt = Date.now();
+  }
+  record.status = newStatus;
+  record.updatedAt = Date.now();
+  if (patch.reason !== undefined) record.lastReason = patch.reason;
+  if (patch.metadata)
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function activateDeal(db, id, reason) {
+  return setDealStatusV2(db, id, DEAL_LIFECYCLE_V2.ACTIVE, { reason });
+}
+export function completeDeal(db, id, reason) {
+  return setDealStatusV2(db, id, DEAL_LIFECYCLE_V2.COMPLETED, { reason });
+}
+export function failDeal(db, id, reason) {
+  return setDealStatusV2(db, id, DEAL_LIFECYCLE_V2.FAILED, { reason });
+}
+export function cancelDeal(db, id, reason) {
+  return setDealStatusV2(db, id, DEAL_LIFECYCLE_V2.CANCELED, { reason });
+}
+
+export function getActiveProviderCount(operatorId) {
+  let n = 0;
+  for (const r of _providersV2.values()) {
+    if (r.status !== PROVIDER_MATURITY_V2.ACTIVE) continue;
+    if (operatorId && r.operatorId !== operatorId) continue;
+    n++;
+  }
+  return n;
+}
+
+export function getActiveDealCount(providerId) {
+  let n = 0;
+  for (const r of _dealsV2.values()) {
+    if (r.status !== DEAL_LIFECYCLE_V2.ACTIVE) continue;
+    if (providerId && r.providerId !== providerId) continue;
+    n++;
+  }
+  return n;
+}
+
+export function autoOfflineStaleProviders(_db, nowMs) {
+  const now = nowMs ?? Date.now();
+  const flipped = [];
+  for (const r of _providersV2.values()) {
+    if (
+      r.status === PROVIDER_MATURITY_V2.ACTIVE ||
+      r.status === PROVIDER_MATURITY_V2.DEGRADED
+    ) {
+      if (now - r.lastHeartbeatAt > _providerIdleMsV2) {
+        r.status = PROVIDER_MATURITY_V2.OFFLINE;
+        r.updatedAt = now;
+        r.lastReason = "heartbeat_timeout";
+        flipped.push(r.providerId);
+      }
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function autoFailStuckActiveDeals(_db, nowMs) {
+  const now = nowMs ?? Date.now();
+  const flipped = [];
+  for (const r of _dealsV2.values()) {
+    if (r.status === DEAL_LIFECYCLE_V2.ACTIVE) {
+      const anchor = r.activatedAt || r.createdAt;
+      if (now - anchor > _dealStuckMsV2) {
+        r.status = DEAL_LIFECYCLE_V2.FAILED;
+        r.updatedAt = now;
+        r.lastReason = "deal_timeout";
+        flipped.push(r.dealId);
+      }
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function getDecentralInfraStatsV2() {
+  const providersByStatus = {};
+  for (const s of Object.values(PROVIDER_MATURITY_V2)) providersByStatus[s] = 0;
+  const dealsByStatus = {};
+  for (const s of Object.values(DEAL_LIFECYCLE_V2)) dealsByStatus[s] = 0;
+  for (const r of _providersV2.values()) providersByStatus[r.status]++;
+  for (const r of _dealsV2.values()) dealsByStatus[r.status]++;
+  return {
+    totalProvidersV2: _providersV2.size,
+    totalDealsV2: _dealsV2.size,
+    maxActiveProvidersPerOperator: _maxActiveProvidersPerOperatorV2,
+    maxActiveDealsPerProvider: _maxActiveDealsPerProviderV2,
+    providerIdleMs: _providerIdleMsV2,
+    dealStuckMs: _dealStuckMsV2,
+    providersByStatus,
+    dealsByStatus,
+  };
+}
+
+export function _resetStateV2() {
+  _maxActiveProvidersPerOperatorV2 =
+    DI_DEFAULT_MAX_ACTIVE_PROVIDERS_PER_OPERATOR;
+  _maxActiveDealsPerProviderV2 = DI_DEFAULT_MAX_ACTIVE_DEALS_PER_PROVIDER;
+  _providerIdleMsV2 = DI_DEFAULT_PROVIDER_IDLE_MS;
+  _dealStuckMsV2 = DI_DEFAULT_DEAL_STUCK_MS;
+  _providersV2.clear();
+  _dealsV2.clear();
+}

@@ -24,7 +24,50 @@ import {
   listConventions,
   removeConvention,
   getNlProgrammingStats,
+  /* V2 (Phase 28) */
+  SPEC_MATURITY_V2,
+  DIALOGUE_TURN_V2,
+  getDefaultMaxActiveSpecsPerAuthorV2,
+  getMaxActiveSpecsPerAuthorV2,
+  setMaxActiveSpecsPerAuthorV2,
+  getDefaultMaxPendingTurnsPerSpecV2,
+  getMaxPendingTurnsPerSpecV2,
+  setMaxPendingTurnsPerSpecV2,
+  getDefaultSpecIdleMsV2,
+  getSpecIdleMsV2,
+  setSpecIdleMsV2,
+  getDefaultTurnPendingMsV2,
+  getTurnPendingMsV2,
+  setTurnPendingMsV2,
+  registerSpecV2,
+  getSpecV2,
+  setSpecMaturityV2,
+  refineSpec,
+  approveSpec,
+  implementSpec,
+  archiveSpec,
+  touchSpecActivity,
+  registerDialogueTurnV2,
+  getDialogueTurnV2,
+  setDialogueTurnStatusV2,
+  answerTurn,
+  dismissTurn,
+  escalateTurn,
+  getActiveSpecCount,
+  getPendingTurnCount,
+  autoArchiveIdleSpecs,
+  autoDismissStalePendingTurns,
+  getNlProgrammingStatsV2,
 } from "../lib/nl-programming.js";
+
+function _parseMetaV2(s) {
+  if (!s) return undefined;
+  try {
+    return JSON.parse(s);
+  } catch {
+    throw new Error(`--metadata must be valid JSON`);
+  }
+}
 
 function _dbFromCtx(cmd) {
   const root = cmd?.parent?.parent ?? cmd?.parent;
@@ -323,6 +366,319 @@ export function registerNlProgCommand(program) {
       for (const [cat, count] of Object.entries(s.conventions.byCategory)) {
         if (count > 0) console.log(`  ${cat.padEnd(14)} ${count}`);
       }
+    });
+
+  /* ═════════════════════════════════════════════════════ *
+   *  Phase 28 V2 — Spec Maturity + Dialogue Lifecycle
+   * ═════════════════════════════════════════════════════ */
+
+  nlp
+    .command("spec-maturities-v2")
+    .description("List Phase 28 V2 spec maturity states")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const v = Object.values(SPEC_MATURITY_V2);
+      if (opts.json) return console.log(JSON.stringify(v, null, 2));
+      for (const s of v) console.log(s);
+    });
+
+  nlp
+    .command("dialogue-turn-lifecycles-v2")
+    .description("List Phase 28 V2 dialogue-turn lifecycle states")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const v = Object.values(DIALOGUE_TURN_V2);
+      if (opts.json) return console.log(JSON.stringify(v, null, 2));
+      for (const s of v) console.log(s);
+    });
+
+  nlp
+    .command("default-max-active-specs-per-author")
+    .description("Show default V2 per-author active-spec cap")
+    .action(() => console.log(getDefaultMaxActiveSpecsPerAuthorV2()));
+
+  nlp
+    .command("max-active-specs-per-author")
+    .description("Show current V2 per-author active-spec cap")
+    .action(() => console.log(getMaxActiveSpecsPerAuthorV2()));
+
+  nlp
+    .command("set-max-active-specs-per-author <n>")
+    .description("Set V2 per-author active-spec cap")
+    .action((n) => console.log(setMaxActiveSpecsPerAuthorV2(n)));
+
+  nlp
+    .command("default-max-pending-turns-per-spec")
+    .description("Show default V2 per-spec pending-turn cap")
+    .action(() => console.log(getDefaultMaxPendingTurnsPerSpecV2()));
+
+  nlp
+    .command("max-pending-turns-per-spec")
+    .description("Show current V2 per-spec pending-turn cap")
+    .action(() => console.log(getMaxPendingTurnsPerSpecV2()));
+
+  nlp
+    .command("set-max-pending-turns-per-spec <n>")
+    .description("Set V2 per-spec pending-turn cap")
+    .action((n) => console.log(setMaxPendingTurnsPerSpecV2(n)));
+
+  nlp
+    .command("default-spec-idle-ms")
+    .description("Show default V2 spec idle threshold")
+    .action(() => console.log(getDefaultSpecIdleMsV2()));
+
+  nlp
+    .command("spec-idle-ms")
+    .description("Show current V2 spec idle threshold")
+    .action(() => console.log(getSpecIdleMsV2()));
+
+  nlp
+    .command("set-spec-idle-ms <ms>")
+    .description("Set V2 spec idle threshold (ms)")
+    .action((ms) => console.log(setSpecIdleMsV2(ms)));
+
+  nlp
+    .command("default-turn-pending-ms")
+    .description("Show default V2 turn-pending threshold")
+    .action(() => console.log(getDefaultTurnPendingMsV2()));
+
+  nlp
+    .command("turn-pending-ms")
+    .description("Show current V2 turn-pending threshold")
+    .action(() => console.log(getTurnPendingMsV2()));
+
+  nlp
+    .command("set-turn-pending-ms <ms>")
+    .description("Set V2 turn-pending threshold (ms)")
+    .action((ms) => console.log(setTurnPendingMsV2(ms)));
+
+  nlp
+    .command("active-spec-count")
+    .description("Count active V2 specs (optionally scoped by author)")
+    .option("-a, --author <id>", "Author ID")
+    .action((opts) => console.log(getActiveSpecCount(opts.author)));
+
+  nlp
+    .command("pending-turn-count")
+    .description("Count pending V2 turns (optionally scoped by spec)")
+    .option("-s, --spec <id>", "Spec ID")
+    .action((opts) => console.log(getPendingTurnCount(opts.spec)));
+
+  nlp
+    .command("register-spec-v2 <spec-id>")
+    .description("Register a V2 spec")
+    .requiredOption("-a, --author <id>", "Author ID")
+    .option("-t, --title <text>", "Title")
+    .option("-i, --initial-status <status>", "Initial status")
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .option("--json", "JSON output")
+    .action((specId, opts) => {
+      const db = _dbFromCtx(nlp);
+      const rec = registerSpecV2(db, {
+        specId,
+        authorId: opts.author,
+        title: opts.title,
+        initialStatus: opts.initialStatus,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      if (opts.json) return console.log(JSON.stringify(rec, null, 2));
+      console.log(`Registered spec ${specId} (${rec.status})`);
+    });
+
+  nlp
+    .command("spec-v2 <spec-id>")
+    .description("Show a V2 spec")
+    .option("--json", "JSON output")
+    .action((id, opts) => {
+      const rec = getSpecV2(id);
+      if (!rec) {
+        console.error(`Unknown spec: ${id}`);
+        process.exitCode = 1;
+        return;
+      }
+      if (opts.json) return console.log(JSON.stringify(rec, null, 2));
+      console.log(`${rec.specId} [${rec.status}] author=${rec.authorId}`);
+    });
+
+  nlp
+    .command("set-spec-maturity-v2 <spec-id> <status>")
+    .description("Transition V2 spec maturity")
+    .option("-r, --reason <text>", "Reason")
+    .option("-m, --metadata <json>", "Metadata patch (JSON)")
+    .action((id, status, opts) => {
+      const db = _dbFromCtx(nlp);
+      const rec = setSpecMaturityV2(db, id, status, {
+        reason: opts.reason,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  nlp
+    .command("refine-spec <spec-id>")
+    .description("Transition a V2 spec to REFINING")
+    .option("-r, --reason <text>", "Reason")
+    .action((id, opts) => {
+      const rec = refineSpec(_dbFromCtx(nlp), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  nlp
+    .command("approve-spec <spec-id>")
+    .description("Transition a V2 spec to APPROVED")
+    .option("-r, --reason <text>", "Reason")
+    .action((id, opts) => {
+      const rec = approveSpec(_dbFromCtx(nlp), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  nlp
+    .command("implement-spec <spec-id>")
+    .description("Transition a V2 spec to IMPLEMENTED")
+    .option("-r, --reason <text>", "Reason")
+    .action((id, opts) => {
+      const rec = implementSpec(_dbFromCtx(nlp), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  nlp
+    .command("archive-spec <spec-id>")
+    .description("Transition a V2 spec to ARCHIVED")
+    .option("-r, --reason <text>", "Reason")
+    .action((id, opts) => {
+      const rec = archiveSpec(_dbFromCtx(nlp), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  nlp
+    .command("touch-spec-activity <spec-id>")
+    .description("Bump lastActivityAt for a V2 spec")
+    .action((id) => {
+      const rec = touchSpecActivity(id);
+      console.log(`${id} lastActivityAt=${rec.lastActivityAt}`);
+    });
+
+  nlp
+    .command("register-dialogue-turn-v2 <turn-id>")
+    .description("Register a V2 dialogue turn")
+    .requiredOption("-s, --spec <id>", "Spec ID")
+    .option("-R, --role <role>", "Role (user/assistant)")
+    .option("-q, --question <text>", "Question text")
+    .option("-i, --initial-status <status>", "Initial status")
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .option("--json", "JSON output")
+    .action((turnId, opts) => {
+      const db = _dbFromCtx(nlp);
+      const rec = registerDialogueTurnV2(db, {
+        turnId,
+        specId: opts.spec,
+        role: opts.role,
+        question: opts.question,
+        initialStatus: opts.initialStatus,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      if (opts.json) return console.log(JSON.stringify(rec, null, 2));
+      console.log(`Registered turn ${turnId} (${rec.status})`);
+    });
+
+  nlp
+    .command("dialogue-turn-v2 <turn-id>")
+    .description("Show a V2 dialogue turn")
+    .option("--json", "JSON output")
+    .action((id, opts) => {
+      const rec = getDialogueTurnV2(id);
+      if (!rec) {
+        console.error(`Unknown turn: ${id}`);
+        process.exitCode = 1;
+        return;
+      }
+      if (opts.json) return console.log(JSON.stringify(rec, null, 2));
+      console.log(`${rec.turnId} [${rec.status}] spec=${rec.specId}`);
+    });
+
+  nlp
+    .command("set-dialogue-turn-status-v2 <turn-id> <status>")
+    .description("Transition V2 dialogue turn status")
+    .option("-a, --answer <text>", "Answer text")
+    .option("-r, --reason <text>", "Reason")
+    .option("-m, --metadata <json>", "Metadata patch (JSON)")
+    .action((id, status, opts) => {
+      const db = _dbFromCtx(nlp);
+      const rec = setDialogueTurnStatusV2(db, id, status, {
+        answer: opts.answer,
+        reason: opts.reason,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  nlp
+    .command("answer-turn <turn-id>")
+    .description("Transition a V2 turn to ANSWERED (with answer)")
+    .requiredOption("-a, --answer <text>", "Answer text")
+    .option("-r, --reason <text>", "Reason")
+    .action((id, opts) => {
+      const rec = answerTurn(_dbFromCtx(nlp), id, opts.answer, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  nlp
+    .command("dismiss-turn <turn-id>")
+    .description("Transition a V2 turn to DISMISSED")
+    .option("-r, --reason <text>", "Reason")
+    .action((id, opts) => {
+      const rec = dismissTurn(_dbFromCtx(nlp), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  nlp
+    .command("escalate-turn <turn-id>")
+    .description("Transition a V2 turn to ESCALATED")
+    .option("-r, --reason <text>", "Reason")
+    .action((id, opts) => {
+      const rec = escalateTurn(_dbFromCtx(nlp), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  nlp
+    .command("auto-archive-idle-specs")
+    .description(
+      "Flip idle V2 specs (draft/refining/approved/implemented) → ARCHIVED",
+    )
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const r = autoArchiveIdleSpecs(_dbFromCtx(nlp));
+      if (opts.json) return console.log(JSON.stringify(r, null, 2));
+      console.log(`Archived ${r.count} idle spec(s)`);
+    });
+
+  nlp
+    .command("auto-dismiss-stale-pending-turns")
+    .description("Flip stale PENDING V2 turns → DISMISSED")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const r = autoDismissStalePendingTurns(_dbFromCtx(nlp));
+      if (opts.json) return console.log(JSON.stringify(r, null, 2));
+      console.log(`Dismissed ${r.count} stale turn(s)`);
+    });
+
+  nlp
+    .command("stats-v2")
+    .description("Phase 28 V2 statistics")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const s = getNlProgrammingStatsV2();
+      if (opts.json) return console.log(JSON.stringify(s, null, 2));
+      console.log(
+        `Specs(V2)=${s.totalSpecsV2} Turns(V2)=${s.totalTurnsV2} ` +
+          `caps: active-specs/author=${s.maxActiveSpecsPerAuthor} pending-turns/spec=${s.maxPendingTurnsPerSpec}`,
+      );
+      console.log("specs-by-status:");
+      for (const [k, v] of Object.entries(s.specsByStatus))
+        console.log(`  ${k.padEnd(12)} ${v}`);
+      console.log("turns-by-status:");
+      for (const [k, v] of Object.entries(s.turnsByStatus))
+        console.log(`  ${k.padEnd(12)} ${v}`);
     });
 
   program.addCommand(nlp);

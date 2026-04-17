@@ -30,6 +30,42 @@ import {
   PRIORITY_LEVELS,
   PERMISSION_TIERS,
   _resetState,
+  AGENT_MATURITY_CG_V2,
+  PROPOSAL_LIFECYCLE_V2,
+  CG_DEFAULT_MAX_ACTIVE_AGENTS_PER_REALM,
+  CG_DEFAULT_MAX_VOTING_PROPOSALS_PER_PROPOSER,
+  CG_DEFAULT_AGENT_IDLE_MS,
+  CG_DEFAULT_PROPOSAL_STUCK_MS,
+  getMaxActiveAgentsPerRealmCgV2,
+  setMaxActiveAgentsPerRealmCgV2,
+  getMaxVotingProposalsPerProposerV2,
+  setMaxVotingProposalsPerProposerV2,
+  getAgentIdleMsCgV2,
+  setAgentIdleMsCgV2,
+  getProposalStuckMsV2,
+  setProposalStuckMsV2,
+  getActiveAgentCountCgV2,
+  getVotingProposalCountV2,
+  registerAgentCgV2,
+  getAgentCgV2,
+  listAgentsCgV2,
+  setAgentMaturityCgV2,
+  activateAgentCgV2,
+  suspendAgentCgV2,
+  retireAgentCgV2,
+  touchAgentCgV2,
+  createProposalV2,
+  getProposalV2,
+  listProposalsV2,
+  setProposalStatusV2,
+  startVotingV2,
+  approveProposalV2,
+  rejectProposalV2,
+  withdrawProposalV2,
+  autoRetireIdleAgentsCgV2,
+  autoWithdrawStuckProposalsV2,
+  getCollaborationGovernanceStatsV2,
+  _resetStateCgV2,
 } from "../../src/lib/collaboration-governance.js";
 
 describe("collaboration-governance", () => {
@@ -604,6 +640,334 @@ describe("collaboration-governance", () => {
       // Each agent should get at least one task (lowest-load-ratio picked each round)
       const assignedAgents = new Set(result.assignments.map((a) => a.agentId));
       expect(assignedAgents.size).toBe(2);
+    });
+  });
+});
+
+/* ═══ Collaboration Governance V2 ═══ */
+
+describe("collaboration-governance V2", () => {
+  beforeEach(() => {
+    _resetStateCgV2();
+  });
+
+  describe("enums + defaults", () => {
+    it("AGENT_MATURITY_CG_V2 is frozen with 4 states", () => {
+      expect(Object.isFrozen(AGENT_MATURITY_CG_V2)).toBe(true);
+      expect(Object.values(AGENT_MATURITY_CG_V2).sort()).toEqual([
+        "active",
+        "provisional",
+        "retired",
+        "suspended",
+      ]);
+    });
+    it("PROPOSAL_LIFECYCLE_V2 is frozen with 5 states", () => {
+      expect(Object.isFrozen(PROPOSAL_LIFECYCLE_V2)).toBe(true);
+      expect(Object.values(PROPOSAL_LIFECYCLE_V2).sort()).toEqual([
+        "approved",
+        "draft",
+        "rejected",
+        "voting",
+        "withdrawn",
+      ]);
+    });
+    it("defaults exposed", () => {
+      expect(CG_DEFAULT_MAX_ACTIVE_AGENTS_PER_REALM).toBe(10);
+      expect(CG_DEFAULT_MAX_VOTING_PROPOSALS_PER_PROPOSER).toBe(3);
+      expect(CG_DEFAULT_AGENT_IDLE_MS).toBe(30 * 24 * 60 * 60 * 1000);
+      expect(CG_DEFAULT_PROPOSAL_STUCK_MS).toBe(7 * 24 * 60 * 60 * 1000);
+    });
+  });
+
+  describe("config setters", () => {
+    it("accept positive int, reject zero/NaN", () => {
+      expect(setMaxActiveAgentsPerRealmCgV2(5)).toBe(5);
+      expect(setMaxVotingProposalsPerProposerV2(2)).toBe(2);
+      expect(setAgentIdleMsCgV2(100)).toBe(100);
+      expect(setProposalStuckMsV2(50)).toBe(50);
+      expect(getMaxActiveAgentsPerRealmCgV2()).toBe(5);
+      expect(getMaxVotingProposalsPerProposerV2()).toBe(2);
+      expect(getAgentIdleMsCgV2()).toBe(100);
+      expect(getProposalStuckMsV2()).toBe(50);
+      expect(() => setMaxActiveAgentsPerRealmCgV2(0)).toThrow(/positive/);
+      expect(() => setMaxVotingProposalsPerProposerV2(NaN)).toThrow(/positive/);
+    });
+  });
+
+  describe("registerAgentCgV2", () => {
+    it("creates agent in provisional", () => {
+      const a = registerAgentCgV2({ id: "a1", realm: "r1", role: "reviewer" });
+      expect(a.status).toBe(AGENT_MATURITY_CG_V2.PROVISIONAL);
+      expect(a.activatedAt).toBeNull();
+    });
+    it("requires id, realm, role", () => {
+      expect(() => registerAgentCgV2({ realm: "r", role: "x" })).toThrow(/id/);
+      expect(() => registerAgentCgV2({ id: "a", role: "x" })).toThrow(/realm/);
+      expect(() => registerAgentCgV2({ id: "a", realm: "r" })).toThrow(/role/);
+    });
+    it("rejects duplicate", () => {
+      registerAgentCgV2({ id: "a1", realm: "r1", role: "x" });
+      expect(() =>
+        registerAgentCgV2({ id: "a1", realm: "r1", role: "x" }),
+      ).toThrow(/already/);
+    });
+  });
+
+  describe("agent state machine", () => {
+    it("provisional → active stamps activatedAt", () => {
+      registerAgentCgV2({ id: "a1", realm: "r1", role: "x" });
+      const a = activateAgentCgV2("a1");
+      expect(a.status).toBe(AGENT_MATURITY_CG_V2.ACTIVE);
+      expect(a.activatedAt).toBeTypeOf("number");
+    });
+    it("active → suspended → active recovery", () => {
+      registerAgentCgV2({ id: "a1", realm: "r1", role: "x" });
+      activateAgentCgV2("a1");
+      const first = getAgentCgV2("a1").activatedAt;
+      suspendAgentCgV2("a1");
+      const a2 = activateAgentCgV2("a1");
+      expect(a2.status).toBe(AGENT_MATURITY_CG_V2.ACTIVE);
+      expect(a2.activatedAt).toBe(first);
+    });
+    it("retired is terminal", () => {
+      registerAgentCgV2({ id: "a1", realm: "r1", role: "x" });
+      retireAgentCgV2("a1");
+      expect(() => activateAgentCgV2("a1")).toThrow(/cannot transition/);
+    });
+    it("provisional → suspended is invalid", () => {
+      registerAgentCgV2({ id: "a1", realm: "r1", role: "x" });
+      expect(() => suspendAgentCgV2("a1")).toThrow(/cannot transition/);
+    });
+    it("merges reason+metadata patch", () => {
+      registerAgentCgV2({
+        id: "a1",
+        realm: "r1",
+        role: "x",
+        metadata: { a: 1 },
+      });
+      const a = activateAgentCgV2("a1", {
+        reason: "ready",
+        metadata: { b: 2 },
+      });
+      expect(a.reason).toBe("ready");
+      expect(a.metadata).toEqual({ a: 1, b: 2 });
+    });
+  });
+
+  describe("active agent cap", () => {
+    it("excludes provisional+retired", () => {
+      registerAgentCgV2({ id: "a1", realm: "r1", role: "x" });
+      registerAgentCgV2({ id: "a2", realm: "r1", role: "x" });
+      activateAgentCgV2("a1");
+      registerAgentCgV2({ id: "a3", realm: "r1", role: "x" });
+      activateAgentCgV2("a3");
+      retireAgentCgV2("a3");
+      expect(getActiveAgentCountCgV2("r1")).toBe(1);
+    });
+    it("blocks activation past cap", () => {
+      setMaxActiveAgentsPerRealmCgV2(2);
+      for (let i = 1; i <= 3; i++)
+        registerAgentCgV2({ id: `a${i}`, realm: "r1", role: "x" });
+      activateAgentCgV2("a1");
+      activateAgentCgV2("a2");
+      expect(() => activateAgentCgV2("a3")).toThrow(/max active/);
+    });
+    it("requires realm", () => {
+      expect(() => getActiveAgentCountCgV2()).toThrow(/realm/);
+    });
+  });
+
+  describe("touchAgentCgV2", () => {
+    it("updates lastSeenAt", async () => {
+      registerAgentCgV2({ id: "a1", realm: "r1", role: "x" });
+      activateAgentCgV2("a1");
+      const before = getAgentCgV2("a1").lastSeenAt;
+      await new Promise((r) => setTimeout(r, 5));
+      const after = touchAgentCgV2("a1").lastSeenAt;
+      expect(after).toBeGreaterThan(before);
+    });
+    it("throws on terminal", () => {
+      registerAgentCgV2({ id: "a1", realm: "r1", role: "x" });
+      retireAgentCgV2("a1");
+      expect(() => touchAgentCgV2("a1")).toThrow(/terminal/);
+    });
+  });
+
+  describe("listAgentsCgV2", () => {
+    it("filters by realm and status", () => {
+      registerAgentCgV2({ id: "a1", realm: "r1", role: "x" });
+      registerAgentCgV2({ id: "a2", realm: "r2", role: "x" });
+      activateAgentCgV2("a1");
+      expect(listAgentsCgV2({ realm: "r1" })).toHaveLength(1);
+      expect(
+        listAgentsCgV2({ status: AGENT_MATURITY_CG_V2.ACTIVE }),
+      ).toHaveLength(1);
+    });
+  });
+
+  describe("createProposalV2", () => {
+    it("creates in draft", () => {
+      const p = createProposalV2({
+        id: "p1",
+        proposer: "alice",
+        topic: "policy",
+      });
+      expect(p.status).toBe(PROPOSAL_LIFECYCLE_V2.DRAFT);
+      expect(p.votingStartedAt).toBeNull();
+    });
+    it("requires id, proposer, topic", () => {
+      expect(() => createProposalV2({ proposer: "a", topic: "t" })).toThrow(
+        /id/,
+      );
+      expect(() => createProposalV2({ id: "p", topic: "t" })).toThrow(
+        /proposer/,
+      );
+      expect(() => createProposalV2({ id: "p", proposer: "a" })).toThrow(
+        /topic/,
+      );
+    });
+    it("rejects duplicate", () => {
+      createProposalV2({ id: "p1", proposer: "a", topic: "t" });
+      expect(() =>
+        createProposalV2({ id: "p1", proposer: "a", topic: "t" }),
+      ).toThrow(/already/);
+    });
+  });
+
+  describe("proposal state machine", () => {
+    it("draft → voting stamps votingStartedAt", () => {
+      createProposalV2({ id: "p1", proposer: "a", topic: "t" });
+      const p = startVotingV2("p1");
+      expect(p.status).toBe(PROPOSAL_LIFECYCLE_V2.VOTING);
+      expect(p.votingStartedAt).toBeTypeOf("number");
+    });
+    it("voting → approved stamps decidedAt", () => {
+      createProposalV2({ id: "p1", proposer: "a", topic: "t" });
+      startVotingV2("p1");
+      const p = approveProposalV2("p1");
+      expect(p.status).toBe(PROPOSAL_LIFECYCLE_V2.APPROVED);
+      expect(p.decidedAt).toBeTypeOf("number");
+    });
+    it("voting → rejected", () => {
+      createProposalV2({ id: "p1", proposer: "a", topic: "t" });
+      startVotingV2("p1");
+      const p = rejectProposalV2("p1");
+      expect(p.status).toBe(PROPOSAL_LIFECYCLE_V2.REJECTED);
+    });
+    it("draft → withdrawn", () => {
+      createProposalV2({ id: "p1", proposer: "a", topic: "t" });
+      const p = withdrawProposalV2("p1");
+      expect(p.status).toBe(PROPOSAL_LIFECYCLE_V2.WITHDRAWN);
+    });
+    it("terminals do not transition", () => {
+      createProposalV2({ id: "p1", proposer: "a", topic: "t" });
+      startVotingV2("p1");
+      approveProposalV2("p1");
+      expect(() => rejectProposalV2("p1")).toThrow(/cannot transition/);
+    });
+    it("draft → approved is invalid", () => {
+      createProposalV2({ id: "p1", proposer: "a", topic: "t" });
+      expect(() => approveProposalV2("p1")).toThrow(/cannot transition/);
+    });
+  });
+
+  describe("voting proposal cap", () => {
+    it("blocks startVoting past cap", () => {
+      setMaxVotingProposalsPerProposerV2(2);
+      for (let i = 1; i <= 3; i++)
+        createProposalV2({ id: `p${i}`, proposer: "a", topic: "t" });
+      startVotingV2("p1");
+      startVotingV2("p2");
+      expect(() => startVotingV2("p3")).toThrow(/max voting/);
+    });
+    it("approval frees the slot", () => {
+      setMaxVotingProposalsPerProposerV2(1);
+      createProposalV2({ id: "p1", proposer: "a", topic: "t" });
+      createProposalV2({ id: "p2", proposer: "a", topic: "t" });
+      startVotingV2("p1");
+      expect(() => startVotingV2("p2")).toThrow(/max voting/);
+      approveProposalV2("p1");
+      expect(() => startVotingV2("p2")).not.toThrow();
+    });
+    it("requires proposer", () => {
+      expect(() => getVotingProposalCountV2()).toThrow(/proposer/);
+    });
+  });
+
+  describe("autoRetireIdleAgentsCgV2", () => {
+    it("retires only non-terminal non-provisional past threshold", () => {
+      setAgentIdleMsCgV2(1000);
+      registerAgentCgV2({ id: "a1", realm: "r1", role: "x" });
+      activateAgentCgV2("a1");
+      registerAgentCgV2({ id: "a2", realm: "r1", role: "x" }); // provisional, untouched
+      const now = Date.now() + 5000;
+      const out = autoRetireIdleAgentsCgV2({ now });
+      expect(out).toEqual(["a1"]);
+      expect(getAgentCgV2("a2").status).toBe(AGENT_MATURITY_CG_V2.PROVISIONAL);
+    });
+    it("returns empty when nothing idle", () => {
+      setAgentIdleMsCgV2(1000 * 1000);
+      registerAgentCgV2({ id: "a1", realm: "r1", role: "x" });
+      activateAgentCgV2("a1");
+      expect(autoRetireIdleAgentsCgV2()).toEqual([]);
+    });
+  });
+
+  describe("autoWithdrawStuckProposalsV2", () => {
+    it("withdraws only voting proposals past threshold", () => {
+      setProposalStuckMsV2(500);
+      createProposalV2({ id: "p1", proposer: "a", topic: "t" });
+      startVotingV2("p1");
+      createProposalV2({ id: "p2", proposer: "a", topic: "t" }); // draft, untouched
+      const now = Date.now() + 5000;
+      const out = autoWithdrawStuckProposalsV2({ now });
+      expect(out).toEqual(["p1"]);
+      expect(getProposalV2("p2").status).toBe(PROPOSAL_LIFECYCLE_V2.DRAFT);
+      expect(getProposalV2("p1").reason).toMatch(/auto-withdraw/);
+    });
+  });
+
+  describe("listProposalsV2", () => {
+    it("filters by proposer and status", () => {
+      createProposalV2({ id: "p1", proposer: "a", topic: "t" });
+      createProposalV2({ id: "p2", proposer: "b", topic: "t" });
+      startVotingV2("p1");
+      expect(listProposalsV2({ proposer: "a" })).toHaveLength(1);
+      expect(
+        listProposalsV2({ status: PROPOSAL_LIFECYCLE_V2.VOTING }),
+      ).toHaveLength(1);
+    });
+  });
+
+  describe("getCollaborationGovernanceStatsV2", () => {
+    it("zero-initialized buckets", () => {
+      const s = getCollaborationGovernanceStatsV2();
+      expect(s.totalAgentsCgV2).toBe(0);
+      expect(s.totalProposalsV2).toBe(0);
+      expect(s.agentsByStatus.provisional).toBe(0);
+      expect(s.agentsByStatus.active).toBe(0);
+      expect(s.proposalsByStatus.draft).toBe(0);
+      expect(s.proposalsByStatus.approved).toBe(0);
+    });
+    it("counts mutations", () => {
+      registerAgentCgV2({ id: "a1", realm: "r1", role: "x" });
+      activateAgentCgV2("a1");
+      createProposalV2({ id: "p1", proposer: "a", topic: "t" });
+      startVotingV2("p1");
+      const s = getCollaborationGovernanceStatsV2();
+      expect(s.agentsByStatus.active).toBe(1);
+      expect(s.proposalsByStatus.voting).toBe(1);
+    });
+  });
+
+  describe("_resetStateCgV2", () => {
+    it("clears + restores defaults", () => {
+      registerAgentCgV2({ id: "a1", realm: "r1", role: "x" });
+      createProposalV2({ id: "p1", proposer: "a", topic: "t" });
+      setMaxActiveAgentsPerRealmCgV2(99);
+      _resetStateCgV2();
+      expect(getCollaborationGovernanceStatsV2().totalAgentsCgV2).toBe(0);
+      expect(getMaxActiveAgentsPerRealmCgV2()).toBe(10);
     });
   });
 });

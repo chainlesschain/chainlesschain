@@ -26,6 +26,44 @@ import {
   getRecommendationStats,
   getTopInterests,
   suggestTopics,
+  // V2 (Phase 48 V2)
+  PROFILE_MATURITY_V2,
+  FEED_LIFECYCLE_V2,
+  REC_DEFAULT_MAX_ACTIVE_PROFILES_PER_SEGMENT,
+  REC_DEFAULT_MAX_ACTIVE_FEEDS_PER_CURATOR,
+  REC_DEFAULT_PROFILE_IDLE_MS,
+  REC_DEFAULT_FEED_STALE_MS,
+  getDefaultMaxActiveProfilesPerSegmentV2,
+  getMaxActiveProfilesPerSegmentV2,
+  setMaxActiveProfilesPerSegmentV2,
+  getDefaultMaxActiveFeedsPerCuratorV2,
+  getMaxActiveFeedsPerCuratorV2,
+  setMaxActiveFeedsPerCuratorV2,
+  getDefaultProfileIdleMsV2,
+  getProfileIdleMsV2,
+  setProfileIdleMsV2,
+  getDefaultFeedStaleMsV2,
+  getFeedStaleMsV2,
+  setFeedStaleMsV2,
+  registerProfileV2,
+  getProfileV2,
+  setProfileMaturityV2,
+  activateProfile,
+  dormantProfile,
+  retireProfile,
+  touchProfileActivity,
+  registerFeedV2,
+  getFeedV2,
+  setFeedStatusV2,
+  activateFeed,
+  pauseFeed,
+  archiveFeed,
+  touchFeedPublish,
+  getActiveProfileCount,
+  getActiveFeedCount,
+  autoDormantIdleProfiles,
+  autoArchiveStaleFeeds,
+  getRecommendationStatsV2,
 } from "../lib/content-recommendation.js";
 
 function _dbFromCtx(cmd) {
@@ -330,6 +368,308 @@ export function registerRecommendCommand(program) {
         return console.log("No suggestions — need more feedback.");
       for (const s of suggestions)
         console.log(`  ${s.action.padEnd(8)} ${s.topic} by ${s.amount}`);
+    });
+
+  /* ── V2 (Phase 48 V2) ────────────────────────────── */
+
+  function _parseJsonFlag(value, label) {
+    if (value === undefined) return undefined;
+    try {
+      return JSON.parse(value);
+    } catch {
+      throw new Error(`Invalid JSON for ${label}`);
+    }
+  }
+
+  rec
+    .command("profile-maturities-v2")
+    .description("List V2 profile maturity states")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const out = Object.values(PROFILE_MATURITY_V2);
+      if (opts.json) return console.log(JSON.stringify(out, null, 2));
+      for (const s of out) console.log(`  ${s}`);
+    });
+
+  rec
+    .command("feed-lifecycles-v2")
+    .description("List V2 feed lifecycle states")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const out = Object.values(FEED_LIFECYCLE_V2);
+      if (opts.json) return console.log(JSON.stringify(out, null, 2));
+      for (const s of out) console.log(`  ${s}`);
+    });
+
+  rec
+    .command("default-max-active-profiles-per-segment")
+    .description("Show V2 default per-segment active-profile cap")
+    .action(() =>
+      console.log(String(getDefaultMaxActiveProfilesPerSegmentV2())),
+    );
+
+  rec
+    .command("max-active-profiles-per-segment")
+    .description("Show current V2 per-segment active-profile cap")
+    .action(() => console.log(String(getMaxActiveProfilesPerSegmentV2())));
+
+  rec
+    .command("set-max-active-profiles-per-segment <n>")
+    .description("Set V2 per-segment active-profile cap")
+    .action((n) =>
+      console.log(String(setMaxActiveProfilesPerSegmentV2(Number(n)))),
+    );
+
+  rec
+    .command("default-max-active-feeds-per-curator")
+    .description("Show V2 default per-curator active-feed cap")
+    .action(() => console.log(String(getDefaultMaxActiveFeedsPerCuratorV2())));
+
+  rec
+    .command("max-active-feeds-per-curator")
+    .description("Show current V2 per-curator active-feed cap")
+    .action(() => console.log(String(getMaxActiveFeedsPerCuratorV2())));
+
+  rec
+    .command("set-max-active-feeds-per-curator <n>")
+    .description("Set V2 per-curator active-feed cap")
+    .action((n) =>
+      console.log(String(setMaxActiveFeedsPerCuratorV2(Number(n)))),
+    );
+
+  rec
+    .command("default-profile-idle-ms")
+    .description("Show V2 default profile-idle window (ms)")
+    .action(() => console.log(String(getDefaultProfileIdleMsV2())));
+
+  rec
+    .command("profile-idle-ms")
+    .description("Show current V2 profile-idle window (ms)")
+    .action(() => console.log(String(getProfileIdleMsV2())));
+
+  rec
+    .command("set-profile-idle-ms <ms>")
+    .description("Set V2 profile-idle window (ms)")
+    .action((ms) => console.log(String(setProfileIdleMsV2(Number(ms)))));
+
+  rec
+    .command("default-feed-stale-ms")
+    .description("Show V2 default feed-stale window (ms)")
+    .action(() => console.log(String(getDefaultFeedStaleMsV2())));
+
+  rec
+    .command("feed-stale-ms")
+    .description("Show current V2 feed-stale window (ms)")
+    .action(() => console.log(String(getFeedStaleMsV2())));
+
+  rec
+    .command("set-feed-stale-ms <ms>")
+    .description("Set V2 feed-stale window (ms)")
+    .action((ms) => console.log(String(setFeedStaleMsV2(Number(ms)))));
+
+  rec
+    .command("active-profile-count")
+    .description("Count active V2 profiles (optionally scoped by segment)")
+    .option("-s, --segment <segment>", "Scope by segment")
+    .action((opts) => console.log(String(getActiveProfileCount(opts.segment))));
+
+  rec
+    .command("active-feed-count")
+    .description("Count active V2 feeds (optionally scoped by curator)")
+    .option("-c, --curator <curator>", "Scope by curator")
+    .action((opts) => console.log(String(getActiveFeedCount(opts.curator))));
+
+  rec
+    .command("register-profile-v2 <profile-id>")
+    .description("Register a V2 profile")
+    .requiredOption("-s, --segment <segment>", "Segment bucket")
+    .option("-u, --user-id <user-id>", "User id")
+    .option("-i, --initial-status <status>", "Initial maturity status")
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .action((profileId, opts) => {
+      const db = _dbFromCtx(rec);
+      const metadata = _parseJsonFlag(opts.metadata, "--metadata");
+      const out = registerProfileV2(db, {
+        profileId,
+        segment: opts.segment,
+        userId: opts.userId,
+        initialStatus: opts.initialStatus,
+        metadata,
+      });
+      console.log(JSON.stringify(out, null, 2));
+    });
+
+  rec
+    .command("profile-v2 <profile-id>")
+    .description("Show a V2 profile")
+    .action((profileId) => {
+      const out = getProfileV2(profileId);
+      console.log(out ? JSON.stringify(out, null, 2) : "null");
+    });
+
+  rec
+    .command("set-profile-maturity-v2 <profile-id> <status>")
+    .description("Set V2 profile maturity status")
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <json>", "Metadata JSON (merged)")
+    .action((profileId, status, opts) => {
+      const db = _dbFromCtx(rec);
+      const metadata = _parseJsonFlag(opts.metadata, "--metadata");
+      const out = setProfileMaturityV2(db, profileId, status, {
+        reason: opts.reason,
+        metadata,
+      });
+      console.log(JSON.stringify(out, null, 2));
+    });
+
+  rec
+    .command("activate-profile <profile-id>")
+    .description("Activate a V2 profile")
+    .option("-r, --reason <reason>", "Reason")
+    .action((profileId, opts) => {
+      const db = _dbFromCtx(rec);
+      console.log(
+        JSON.stringify(activateProfile(db, profileId, opts.reason), null, 2),
+      );
+    });
+
+  rec
+    .command("dormant-profile <profile-id>")
+    .description("Mark a V2 profile dormant")
+    .option("-r, --reason <reason>", "Reason")
+    .action((profileId, opts) => {
+      const db = _dbFromCtx(rec);
+      console.log(
+        JSON.stringify(dormantProfile(db, profileId, opts.reason), null, 2),
+      );
+    });
+
+  rec
+    .command("retire-profile <profile-id>")
+    .description("Retire a V2 profile")
+    .option("-r, --reason <reason>", "Reason")
+    .action((profileId, opts) => {
+      const db = _dbFromCtx(rec);
+      console.log(
+        JSON.stringify(retireProfile(db, profileId, opts.reason), null, 2),
+      );
+    });
+
+  rec
+    .command("touch-profile-activity <profile-id>")
+    .description("Bump lastActivityAt on a V2 profile")
+    .action((profileId) => {
+      console.log(JSON.stringify(touchProfileActivity(profileId), null, 2));
+    });
+
+  rec
+    .command("register-feed-v2 <feed-id>")
+    .description("Register a V2 feed")
+    .requiredOption("-c, --curator-id <curator>", "Curator id")
+    .option("-t, --topics <csv>", "Comma-separated topics")
+    .option("-i, --initial-status <status>", "Initial lifecycle status")
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .action((feedId, opts) => {
+      const db = _dbFromCtx(rec);
+      const metadata = _parseJsonFlag(opts.metadata, "--metadata");
+      const topics = opts.topics
+        ? opts.topics
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [];
+      const out = registerFeedV2(db, {
+        feedId,
+        curatorId: opts.curatorId,
+        topics,
+        initialStatus: opts.initialStatus,
+        metadata,
+      });
+      console.log(JSON.stringify(out, null, 2));
+    });
+
+  rec
+    .command("feed-v2 <feed-id>")
+    .description("Show a V2 feed")
+    .action((feedId) => {
+      const out = getFeedV2(feedId);
+      console.log(out ? JSON.stringify(out, null, 2) : "null");
+    });
+
+  rec
+    .command("set-feed-status-v2 <feed-id> <status>")
+    .description("Set V2 feed lifecycle status")
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <json>", "Metadata JSON (merged)")
+    .action((feedId, status, opts) => {
+      const db = _dbFromCtx(rec);
+      const metadata = _parseJsonFlag(opts.metadata, "--metadata");
+      const out = setFeedStatusV2(db, feedId, status, {
+        reason: opts.reason,
+        metadata,
+      });
+      console.log(JSON.stringify(out, null, 2));
+    });
+
+  rec
+    .command("activate-feed <feed-id>")
+    .description("Activate a V2 feed")
+    .option("-r, --reason <reason>", "Reason")
+    .action((feedId, opts) => {
+      const db = _dbFromCtx(rec);
+      console.log(
+        JSON.stringify(activateFeed(db, feedId, opts.reason), null, 2),
+      );
+    });
+
+  rec
+    .command("pause-feed <feed-id>")
+    .description("Pause a V2 feed")
+    .option("-r, --reason <reason>", "Reason")
+    .action((feedId, opts) => {
+      const db = _dbFromCtx(rec);
+      console.log(JSON.stringify(pauseFeed(db, feedId, opts.reason), null, 2));
+    });
+
+  rec
+    .command("archive-feed <feed-id>")
+    .description("Archive a V2 feed")
+    .option("-r, --reason <reason>", "Reason")
+    .action((feedId, opts) => {
+      const db = _dbFromCtx(rec);
+      console.log(
+        JSON.stringify(archiveFeed(db, feedId, opts.reason), null, 2),
+      );
+    });
+
+  rec
+    .command("touch-feed-publish <feed-id>")
+    .description("Bump lastPublishAt on a V2 feed")
+    .action((feedId) => {
+      console.log(JSON.stringify(touchFeedPublish(feedId), null, 2));
+    });
+
+  rec
+    .command("auto-dormant-idle-profiles")
+    .description("Auto-flip idle ACTIVE V2 profiles to DORMANT")
+    .action(() => {
+      const db = _dbFromCtx(rec);
+      console.log(JSON.stringify(autoDormantIdleProfiles(db), null, 2));
+    });
+
+  rec
+    .command("auto-archive-stale-feeds")
+    .description("Auto-flip stale ACTIVE/PAUSED V2 feeds to ARCHIVED")
+    .action(() => {
+      const db = _dbFromCtx(rec);
+      console.log(JSON.stringify(autoArchiveStaleFeeds(db), null, 2));
+    });
+
+  rec
+    .command("stats-v2")
+    .description("V2 recommendation stats (counts by state + config)")
+    .action(() => {
+      console.log(JSON.stringify(getRecommendationStatsV2(), null, 2));
     });
 
   program.addCommand(rec);

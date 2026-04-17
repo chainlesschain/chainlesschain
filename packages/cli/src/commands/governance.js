@@ -25,6 +25,38 @@ import {
   analyzeImpact,
   predictVote,
   getGovernanceStats,
+  PROPOSER_MATURITY_V2,
+  DELEGATION_LIFECYCLE_V2,
+  getDefaultMaxActiveProposersPerRealmV2,
+  getMaxActiveProposersPerRealmV2,
+  setMaxActiveProposersPerRealmV2,
+  getDefaultMaxActiveDelegationsPerDelegatorV2,
+  getMaxActiveDelegationsPerDelegatorV2,
+  setMaxActiveDelegationsPerDelegatorV2,
+  getDefaultProposerIdleMsV2,
+  getProposerIdleMsV2,
+  setProposerIdleMsV2,
+  getDefaultPendingDelegationMsV2,
+  getPendingDelegationMsV2,
+  setPendingDelegationMsV2,
+  registerProposerV2,
+  getProposerV2,
+  setProposerMaturityV2,
+  activateProposer,
+  suspendProposer,
+  retireProposer,
+  touchProposerActivity,
+  createDelegationV2,
+  getDelegationV2,
+  setDelegationStatusV2,
+  activateDelegation,
+  revokeDelegation,
+  expireDelegation,
+  getActiveProposerCount,
+  getActiveDelegationCount,
+  autoRetireIdleProposers,
+  autoExpireStalePendingDelegations,
+  getGovernanceStatsV2,
 } from "../lib/community-governance.js";
 
 function _dbFromCtx(ctx) {
@@ -501,5 +533,298 @@ export function registerGovernanceCommand(program) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
       }
+    });
+
+  /* ═════════════════════════════════════════════════════════════
+   * Phase 54 V2 — Proposer + Delegation V2 subcommands (in-memory,
+   * no DB bootstrap needed)
+   * ═══════════════════════════════════════════════════════════ */
+
+  gov
+    .command("proposer-maturities-v2")
+    .description("List proposer V2 maturity states")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const s = Object.values(PROPOSER_MATURITY_V2);
+      if (opts.json) console.log(JSON.stringify(s));
+      else s.forEach((v) => console.log(v));
+    });
+
+  gov
+    .command("delegation-lifecycles-v2")
+    .description("List delegation V2 lifecycle states")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const s = Object.values(DELEGATION_LIFECYCLE_V2);
+      if (opts.json) console.log(JSON.stringify(s));
+      else s.forEach((v) => console.log(v));
+    });
+
+  gov
+    .command("default-max-active-proposers-per-realm")
+    .description("Default per-realm active proposer cap")
+    .action(() => console.log(getDefaultMaxActiveProposersPerRealmV2()));
+
+  gov
+    .command("max-active-proposers-per-realm")
+    .description("Current per-realm active proposer cap")
+    .action(() => console.log(getMaxActiveProposersPerRealmV2()));
+
+  gov
+    .command("set-max-active-proposers-per-realm <n>")
+    .description("Set per-realm active proposer cap")
+    .action((n) => console.log(setMaxActiveProposersPerRealmV2(Number(n))));
+
+  gov
+    .command("default-max-active-delegations-per-delegator")
+    .description("Default per-delegator active delegation cap")
+    .action(() => console.log(getDefaultMaxActiveDelegationsPerDelegatorV2()));
+
+  gov
+    .command("max-active-delegations-per-delegator")
+    .description("Current per-delegator active delegation cap")
+    .action(() => console.log(getMaxActiveDelegationsPerDelegatorV2()));
+
+  gov
+    .command("set-max-active-delegations-per-delegator <n>")
+    .description("Set per-delegator active delegation cap")
+    .action((n) =>
+      console.log(setMaxActiveDelegationsPerDelegatorV2(Number(n))),
+    );
+
+  gov
+    .command("default-proposer-idle-ms")
+    .description("Default proposer idle window (ms)")
+    .action(() => console.log(getDefaultProposerIdleMsV2()));
+
+  gov
+    .command("proposer-idle-ms")
+    .description("Current proposer idle window (ms)")
+    .action(() => console.log(getProposerIdleMsV2()));
+
+  gov
+    .command("set-proposer-idle-ms <ms>")
+    .description("Set proposer idle window (ms)")
+    .action((ms) => console.log(setProposerIdleMsV2(Number(ms))));
+
+  gov
+    .command("default-pending-delegation-ms")
+    .description("Default pending delegation window (ms)")
+    .action(() => console.log(getDefaultPendingDelegationMsV2()));
+
+  gov
+    .command("pending-delegation-ms")
+    .description("Current pending delegation window (ms)")
+    .action(() => console.log(getPendingDelegationMsV2()));
+
+  gov
+    .command("set-pending-delegation-ms <ms>")
+    .description("Set pending delegation window (ms)")
+    .action((ms) => console.log(setPendingDelegationMsV2(Number(ms))));
+
+  gov
+    .command("active-proposer-count")
+    .description("Count active V2 proposers (scope by realm)")
+    .option("-r, --realm <realm>", "Realm scope")
+    .action((opts) => console.log(getActiveProposerCount(opts.realm)));
+
+  gov
+    .command("active-delegation-count")
+    .description("Count active V2 delegations (scope by delegator)")
+    .option("-d, --delegator <id>", "Delegator scope")
+    .action((opts) => console.log(getActiveDelegationCount(opts.delegator)));
+
+  gov
+    .command("register-proposer-v2 <proposer-id>")
+    .description("Register a V2 proposer")
+    .requiredOption("-r, --realm <realm>", "Realm")
+    .option("-n, --display-name <name>", "Display name")
+    .option(
+      "-i, --initial-status <status>",
+      "Initial status (default onboarding)",
+    )
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .action((proposerId, opts) => {
+      const config = { proposerId, realm: opts.realm };
+      if (opts.displayName) config.displayName = opts.displayName;
+      if (opts.initialStatus) config.initialStatus = opts.initialStatus;
+      if (opts.metadata) config.metadata = JSON.parse(opts.metadata);
+      console.log(JSON.stringify(registerProposerV2(null, config), null, 2));
+    });
+
+  gov
+    .command("proposer-v2 <proposer-id>")
+    .description("Get V2 proposer record")
+    .action((proposerId) => {
+      console.log(JSON.stringify(getProposerV2(proposerId), null, 2));
+    });
+
+  gov
+    .command("set-proposer-maturity-v2 <proposer-id> <status>")
+    .description("Set proposer V2 maturity status")
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <json>", "Metadata JSON patch")
+    .action((proposerId, status, opts) => {
+      const patch = {};
+      if (opts.reason !== undefined) patch.reason = opts.reason;
+      if (opts.metadata) patch.metadata = JSON.parse(opts.metadata);
+      console.log(
+        JSON.stringify(
+          setProposerMaturityV2(null, proposerId, status, patch),
+          null,
+          2,
+        ),
+      );
+    });
+
+  gov
+    .command("activate-proposer <proposer-id>")
+    .description("Activate V2 proposer")
+    .option("-r, --reason <reason>", "Reason")
+    .action((proposerId, opts) => {
+      console.log(
+        JSON.stringify(
+          activateProposer(null, proposerId, opts.reason),
+          null,
+          2,
+        ),
+      );
+    });
+
+  gov
+    .command("suspend-proposer <proposer-id>")
+    .description("Suspend V2 proposer")
+    .option("-r, --reason <reason>", "Reason")
+    .action((proposerId, opts) => {
+      console.log(
+        JSON.stringify(suspendProposer(null, proposerId, opts.reason), null, 2),
+      );
+    });
+
+  gov
+    .command("retire-proposer <proposer-id>")
+    .description("Retire V2 proposer (terminal)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((proposerId, opts) => {
+      console.log(
+        JSON.stringify(retireProposer(null, proposerId, opts.reason), null, 2),
+      );
+    });
+
+  gov
+    .command("touch-proposer-activity <proposer-id>")
+    .description("Touch V2 proposer lastActivityAt")
+    .action((proposerId) => {
+      console.log(JSON.stringify(touchProposerActivity(proposerId), null, 2));
+    });
+
+  gov
+    .command("create-delegation-v2 <delegation-id>")
+    .description("Create V2 vote delegation")
+    .requiredOption("-d, --delegator <id>", "Delegator ID")
+    .requiredOption("-t, --delegatee <id>", "Delegatee ID")
+    .requiredOption("-s, --scope <scope>", "Scope")
+    .option("-e, --expires-at <ms>", "Expires-at epoch ms")
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .action((delegationId, opts) => {
+      const config = {
+        delegationId,
+        delegatorId: opts.delegator,
+        delegateeId: opts.delegatee,
+        scope: opts.scope,
+      };
+      if (opts.expiresAt) config.expiresAt = Number(opts.expiresAt);
+      if (opts.metadata) config.metadata = JSON.parse(opts.metadata);
+      console.log(JSON.stringify(createDelegationV2(null, config), null, 2));
+    });
+
+  gov
+    .command("delegation-v2 <delegation-id>")
+    .description("Get V2 delegation record")
+    .action((delegationId) => {
+      console.log(JSON.stringify(getDelegationV2(delegationId), null, 2));
+    });
+
+  gov
+    .command("set-delegation-status-v2 <delegation-id> <status>")
+    .description("Set delegation V2 status")
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <json>", "Metadata JSON patch")
+    .action((delegationId, status, opts) => {
+      const patch = {};
+      if (opts.reason !== undefined) patch.reason = opts.reason;
+      if (opts.metadata) patch.metadata = JSON.parse(opts.metadata);
+      console.log(
+        JSON.stringify(
+          setDelegationStatusV2(null, delegationId, status, patch),
+          null,
+          2,
+        ),
+      );
+    });
+
+  gov
+    .command("activate-delegation <delegation-id>")
+    .description("Activate V2 delegation")
+    .option("-r, --reason <reason>", "Reason")
+    .action((delegationId, opts) => {
+      console.log(
+        JSON.stringify(
+          activateDelegation(null, delegationId, opts.reason),
+          null,
+          2,
+        ),
+      );
+    });
+
+  gov
+    .command("revoke-delegation <delegation-id>")
+    .description("Revoke V2 delegation (terminal)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((delegationId, opts) => {
+      console.log(
+        JSON.stringify(
+          revokeDelegation(null, delegationId, opts.reason),
+          null,
+          2,
+        ),
+      );
+    });
+
+  gov
+    .command("expire-delegation <delegation-id>")
+    .description("Expire V2 delegation (terminal)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((delegationId, opts) => {
+      console.log(
+        JSON.stringify(
+          expireDelegation(null, delegationId, opts.reason),
+          null,
+          2,
+        ),
+      );
+    });
+
+  gov
+    .command("auto-retire-idle-proposers")
+    .description("Auto-retire active/suspended proposers past idle window")
+    .action(() => {
+      console.log(JSON.stringify(autoRetireIdleProposers(null), null, 2));
+    });
+
+  gov
+    .command("auto-expire-stale-pending-delegations")
+    .description("Auto-expire pending delegations past window")
+    .action(() => {
+      console.log(
+        JSON.stringify(autoExpireStalePendingDelegations(null), null, 2),
+      );
+    });
+
+  gov
+    .command("stats-v2")
+    .description("V2 governance statistics")
+    .action(() => {
+      console.log(JSON.stringify(getGovernanceStatsV2(), null, 2));
     });
 }

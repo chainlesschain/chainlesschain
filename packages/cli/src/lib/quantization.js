@@ -360,3 +360,328 @@ export function getQuantizationStats(db) {
 export function _resetState() {
   _jobs.clear();
 }
+
+/* ═════════════════════════════════════════════════════════ *
+ *  Phase 20 V2 — Model Maturity + Job Ticket Lifecycle
+ * ═════════════════════════════════════════════════════════ */
+
+export const MODEL_MATURITY_V2 = Object.freeze({
+  ONBOARDING: "onboarding",
+  ACTIVE: "active",
+  DEPRECATED: "deprecated",
+  RETIRED: "retired",
+});
+
+export const JOB_TICKET_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELED: "canceled",
+});
+
+const MODEL_TRANSITIONS_V2 = new Map([
+  ["onboarding", new Set(["active", "retired"])],
+  ["active", new Set(["deprecated", "retired"])],
+  ["deprecated", new Set(["active", "retired"])],
+]);
+const MODEL_TERMINALS_V2 = new Set(["retired"]);
+
+const JOB_TRANSITIONS_V2 = new Map([
+  ["queued", new Set(["running", "canceled", "failed"])],
+  ["running", new Set(["completed", "failed", "canceled"])],
+]);
+const JOB_TERMINALS_V2 = new Set(["completed", "failed", "canceled"]);
+
+export const QUANT_DEFAULT_MAX_ACTIVE_MODELS_PER_OWNER = 50;
+export const QUANT_DEFAULT_MAX_RUNNING_JOBS_PER_OWNER = 3;
+export const QUANT_DEFAULT_MODEL_IDLE_MS = 120 * 86400000; // 120d
+export const QUANT_DEFAULT_JOB_STUCK_MS = 6 * 3600000; // 6h
+
+let _maxActiveModelsPerOwnerV2 = QUANT_DEFAULT_MAX_ACTIVE_MODELS_PER_OWNER;
+let _maxRunningJobsPerOwnerV2 = QUANT_DEFAULT_MAX_RUNNING_JOBS_PER_OWNER;
+let _modelIdleMsV2 = QUANT_DEFAULT_MODEL_IDLE_MS;
+let _jobStuckMsV2 = QUANT_DEFAULT_JOB_STUCK_MS;
+
+function _positiveIntV2(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be a positive integer`);
+  return v;
+}
+
+export function getDefaultMaxActiveModelsPerOwnerV2() {
+  return QUANT_DEFAULT_MAX_ACTIVE_MODELS_PER_OWNER;
+}
+export function getMaxActiveModelsPerOwnerV2() {
+  return _maxActiveModelsPerOwnerV2;
+}
+export function setMaxActiveModelsPerOwnerV2(n) {
+  return (_maxActiveModelsPerOwnerV2 = _positiveIntV2(
+    n,
+    "maxActiveModelsPerOwner",
+  ));
+}
+export function getDefaultMaxRunningJobsPerOwnerV2() {
+  return QUANT_DEFAULT_MAX_RUNNING_JOBS_PER_OWNER;
+}
+export function getMaxRunningJobsPerOwnerV2() {
+  return _maxRunningJobsPerOwnerV2;
+}
+export function setMaxRunningJobsPerOwnerV2(n) {
+  return (_maxRunningJobsPerOwnerV2 = _positiveIntV2(
+    n,
+    "maxRunningJobsPerOwner",
+  ));
+}
+export function getDefaultModelIdleMsV2() {
+  return QUANT_DEFAULT_MODEL_IDLE_MS;
+}
+export function getModelIdleMsV2() {
+  return _modelIdleMsV2;
+}
+export function setModelIdleMsV2(ms) {
+  return (_modelIdleMsV2 = _positiveIntV2(ms, "modelIdleMs"));
+}
+export function getDefaultJobStuckMsV2() {
+  return QUANT_DEFAULT_JOB_STUCK_MS;
+}
+export function getJobStuckMsV2() {
+  return _jobStuckMsV2;
+}
+export function setJobStuckMsV2(ms) {
+  return (_jobStuckMsV2 = _positiveIntV2(ms, "jobStuckMs"));
+}
+
+const _modelsV2 = new Map();
+const _jobTicketsV2 = new Map();
+
+export function registerModelV2(
+  _db,
+  { modelId, ownerId, family, initialStatus, metadata } = {},
+) {
+  if (!modelId) throw new Error("modelId is required");
+  if (!ownerId) throw new Error("ownerId is required");
+  if (_modelsV2.has(modelId))
+    throw new Error(`Model ${modelId} already exists`);
+  const status = initialStatus || MODEL_MATURITY_V2.ONBOARDING;
+  if (!Object.values(MODEL_MATURITY_V2).includes(status))
+    throw new Error(`Invalid initial status: ${status}`);
+  if (MODEL_TERMINALS_V2.has(status))
+    throw new Error(`Cannot register in terminal status: ${status}`);
+  if (status === MODEL_MATURITY_V2.ACTIVE) {
+    if (getActiveModelCount(ownerId) >= _maxActiveModelsPerOwnerV2)
+      throw new Error(
+        `Owner ${ownerId} reached active-model cap (${_maxActiveModelsPerOwnerV2})`,
+      );
+  }
+  const now = Date.now();
+  const record = {
+    modelId,
+    ownerId,
+    family: family || "",
+    status,
+    metadata: metadata || {},
+    createdAt: now,
+    updatedAt: now,
+    lastUsedAt: now,
+  };
+  _modelsV2.set(modelId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getModelV2(modelId) {
+  const r = _modelsV2.get(modelId);
+  return r ? { ...r, metadata: { ...r.metadata } } : null;
+}
+
+export function setModelMaturityV2(_db, modelId, newStatus, patch = {}) {
+  const record = _modelsV2.get(modelId);
+  if (!record) throw new Error(`Unknown model: ${modelId}`);
+  if (!Object.values(MODEL_MATURITY_V2).includes(newStatus))
+    throw new Error(`Invalid status: ${newStatus}`);
+  const allowed = MODEL_TRANSITIONS_V2.get(record.status) || new Set();
+  if (!allowed.has(newStatus))
+    throw new Error(`Invalid transition: ${record.status} -> ${newStatus}`);
+  if (newStatus === MODEL_MATURITY_V2.ACTIVE) {
+    if (getActiveModelCount(record.ownerId) >= _maxActiveModelsPerOwnerV2)
+      throw new Error(
+        `Owner ${record.ownerId} reached active-model cap (${_maxActiveModelsPerOwnerV2})`,
+      );
+  }
+  record.status = newStatus;
+  record.updatedAt = Date.now();
+  if (patch.reason !== undefined) record.lastReason = patch.reason;
+  if (patch.metadata)
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function activateModel(db, id, reason) {
+  return setModelMaturityV2(db, id, MODEL_MATURITY_V2.ACTIVE, { reason });
+}
+export function deprecateModel(db, id, reason) {
+  return setModelMaturityV2(db, id, MODEL_MATURITY_V2.DEPRECATED, { reason });
+}
+export function retireModel(db, id, reason) {
+  return setModelMaturityV2(db, id, MODEL_MATURITY_V2.RETIRED, { reason });
+}
+
+export function touchModelUsage(modelId) {
+  const record = _modelsV2.get(modelId);
+  if (!record) throw new Error(`Unknown model: ${modelId}`);
+  record.lastUsedAt = Date.now();
+  record.updatedAt = record.lastUsedAt;
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function enqueueJobTicketV2(
+  _db,
+  { ticketId, ownerId, modelId, quantType, level, metadata } = {},
+) {
+  if (!ticketId) throw new Error("ticketId is required");
+  if (!ownerId) throw new Error("ownerId is required");
+  if (!modelId) throw new Error("modelId is required");
+  if (!quantType) throw new Error("quantType is required");
+  if (_jobTicketsV2.has(ticketId))
+    throw new Error(`Ticket ${ticketId} already exists`);
+  const now = Date.now();
+  const record = {
+    ticketId,
+    ownerId,
+    modelId,
+    quantType,
+    level: level || null,
+    status: JOB_TICKET_V2.QUEUED,
+    metadata: metadata || {},
+    createdAt: now,
+    updatedAt: now,
+  };
+  _jobTicketsV2.set(ticketId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getJobTicketV2(ticketId) {
+  const r = _jobTicketsV2.get(ticketId);
+  return r ? { ...r, metadata: { ...r.metadata } } : null;
+}
+
+export function setJobTicketStatusV2(_db, ticketId, newStatus, patch = {}) {
+  const record = _jobTicketsV2.get(ticketId);
+  if (!record) throw new Error(`Unknown ticket: ${ticketId}`);
+  if (!Object.values(JOB_TICKET_V2).includes(newStatus))
+    throw new Error(`Invalid status: ${newStatus}`);
+  const allowed = JOB_TRANSITIONS_V2.get(record.status) || new Set();
+  if (!allowed.has(newStatus))
+    throw new Error(`Invalid transition: ${record.status} -> ${newStatus}`);
+  if (newStatus === JOB_TICKET_V2.RUNNING) {
+    if (getRunningJobCount(record.ownerId) >= _maxRunningJobsPerOwnerV2)
+      throw new Error(
+        `Owner ${record.ownerId} reached running-job cap (${_maxRunningJobsPerOwnerV2})`,
+      );
+    record.startedAt = Date.now();
+  }
+  record.status = newStatus;
+  record.updatedAt = Date.now();
+  if (patch.reason !== undefined) record.lastReason = patch.reason;
+  if (patch.metadata)
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function startJobTicket(db, id, reason) {
+  return setJobTicketStatusV2(db, id, JOB_TICKET_V2.RUNNING, { reason });
+}
+export function completeJobTicket(db, id, reason) {
+  return setJobTicketStatusV2(db, id, JOB_TICKET_V2.COMPLETED, { reason });
+}
+export function failJobTicket(db, id, reason) {
+  return setJobTicketStatusV2(db, id, JOB_TICKET_V2.FAILED, { reason });
+}
+export function cancelJobTicket(db, id, reason) {
+  return setJobTicketStatusV2(db, id, JOB_TICKET_V2.CANCELED, { reason });
+}
+
+export function getActiveModelCount(ownerId) {
+  let n = 0;
+  for (const r of _modelsV2.values()) {
+    if (r.status !== MODEL_MATURITY_V2.ACTIVE) continue;
+    if (ownerId && r.ownerId !== ownerId) continue;
+    n++;
+  }
+  return n;
+}
+
+export function getRunningJobCount(ownerId) {
+  let n = 0;
+  for (const r of _jobTicketsV2.values()) {
+    if (r.status !== JOB_TICKET_V2.RUNNING) continue;
+    if (ownerId && r.ownerId !== ownerId) continue;
+    n++;
+  }
+  return n;
+}
+
+export function autoRetireIdleModels(_db, nowMs) {
+  const now = nowMs ?? Date.now();
+  const flipped = [];
+  for (const r of _modelsV2.values()) {
+    if (
+      r.status === MODEL_MATURITY_V2.ACTIVE ||
+      r.status === MODEL_MATURITY_V2.DEPRECATED
+    ) {
+      if (now - r.lastUsedAt > _modelIdleMsV2) {
+        r.status = MODEL_MATURITY_V2.RETIRED;
+        r.updatedAt = now;
+        r.lastReason = "idle";
+        flipped.push(r.modelId);
+      }
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function autoFailStuckJobTickets(_db, nowMs) {
+  const now = nowMs ?? Date.now();
+  const flipped = [];
+  for (const r of _jobTicketsV2.values()) {
+    if (r.status === JOB_TICKET_V2.RUNNING) {
+      const anchor = r.startedAt || r.createdAt;
+      if (now - anchor > _jobStuckMsV2) {
+        r.status = JOB_TICKET_V2.FAILED;
+        r.updatedAt = now;
+        r.lastReason = "stuck_timeout";
+        flipped.push(r.ticketId);
+      }
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function getQuantizationStatsV2() {
+  const modelsByStatus = {};
+  for (const s of Object.values(MODEL_MATURITY_V2)) modelsByStatus[s] = 0;
+  const ticketsByStatus = {};
+  for (const s of Object.values(JOB_TICKET_V2)) ticketsByStatus[s] = 0;
+  for (const r of _modelsV2.values()) modelsByStatus[r.status]++;
+  for (const r of _jobTicketsV2.values()) ticketsByStatus[r.status]++;
+  return {
+    totalModelsV2: _modelsV2.size,
+    totalTicketsV2: _jobTicketsV2.size,
+    maxActiveModelsPerOwner: _maxActiveModelsPerOwnerV2,
+    maxRunningJobsPerOwner: _maxRunningJobsPerOwnerV2,
+    modelIdleMs: _modelIdleMsV2,
+    jobStuckMs: _jobStuckMsV2,
+    modelsByStatus,
+    ticketsByStatus,
+  };
+}
+
+export function _resetStateV2() {
+  _maxActiveModelsPerOwnerV2 = QUANT_DEFAULT_MAX_ACTIVE_MODELS_PER_OWNER;
+  _maxRunningJobsPerOwnerV2 = QUANT_DEFAULT_MAX_RUNNING_JOBS_PER_OWNER;
+  _modelIdleMsV2 = QUANT_DEFAULT_MODEL_IDLE_MS;
+  _jobStuckMsV2 = QUANT_DEFAULT_JOB_STUCK_MS;
+  _modelsV2.clear();
+  _jobTicketsV2.clear();
+}

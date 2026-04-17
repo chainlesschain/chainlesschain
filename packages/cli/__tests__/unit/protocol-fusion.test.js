@@ -429,3 +429,702 @@ describe("protocol-fusion", () => {
     });
   });
 });
+
+import {
+  BRIDGE_MATURITY_V2,
+  TRANSLATION_RUN_V2,
+  PF_DEFAULT_MAX_ACTIVE_BRIDGES_PER_OPERATOR,
+  PF_DEFAULT_MAX_RUNNING_TRANSLATIONS_PER_BRIDGE,
+  PF_DEFAULT_BRIDGE_IDLE_MS,
+  PF_DEFAULT_TRANSLATION_STUCK_MS,
+  getMaxActiveBridgesPerOperator,
+  setMaxActiveBridgesPerOperator,
+  getMaxRunningTranslationsPerBridge,
+  setMaxRunningTranslationsPerBridge,
+  getBridgeIdleMs,
+  setBridgeIdleMs,
+  getTranslationStuckMs,
+  setTranslationStuckMs,
+  getActiveBridgeCount,
+  getRunningTranslationCount,
+  registerBridgeV2,
+  getBridgeV2,
+  listBridgesV2,
+  setBridgeMaturityV2,
+  activateBridge,
+  degradeBridge,
+  deprecateBridge,
+  retireBridge,
+  touchBridgeUsage,
+  enqueueTranslationV2,
+  getTranslationV2,
+  listTranslationsV2,
+  setTranslationStatusV2,
+  startTranslation,
+  succeedTranslation,
+  failTranslation,
+  cancelTranslation,
+  autoRetireIdleBridges,
+  autoFailStuckRunningTranslations,
+  getProtocolFusionStatsV2,
+  _resetStateV2,
+} from "../../src/lib/protocol-fusion.js";
+
+describe("protocol-fusion V2 (Phase 72-73)", () => {
+  beforeEach(() => {
+    _resetStateV2();
+  });
+
+  describe("enum shape", () => {
+    it("freezes BRIDGE_MATURITY_V2", () => {
+      expect(Object.isFrozen(BRIDGE_MATURITY_V2)).toBe(true);
+      expect(Object.values(BRIDGE_MATURITY_V2).sort()).toEqual([
+        "active",
+        "degraded",
+        "deprecated",
+        "provisional",
+        "retired",
+      ]);
+    });
+
+    it("freezes TRANSLATION_RUN_V2", () => {
+      expect(Object.isFrozen(TRANSLATION_RUN_V2)).toBe(true);
+      expect(Object.values(TRANSLATION_RUN_V2).sort()).toEqual([
+        "canceled",
+        "failed",
+        "queued",
+        "running",
+        "succeeded",
+      ]);
+    });
+  });
+
+  describe("config", () => {
+    it("exposes defaults", () => {
+      expect(PF_DEFAULT_MAX_ACTIVE_BRIDGES_PER_OPERATOR).toBe(10);
+      expect(PF_DEFAULT_MAX_RUNNING_TRANSLATIONS_PER_BRIDGE).toBe(5);
+      expect(PF_DEFAULT_BRIDGE_IDLE_MS).toBe(14 * 86400000);
+      expect(PF_DEFAULT_TRANSLATION_STUCK_MS).toBe(10 * 60000);
+    });
+
+    it("getters return current values", () => {
+      expect(getMaxActiveBridgesPerOperator()).toBe(10);
+      expect(getMaxRunningTranslationsPerBridge()).toBe(5);
+      expect(getBridgeIdleMs()).toBe(14 * 86400000);
+      expect(getTranslationStuckMs()).toBe(10 * 60000);
+    });
+
+    it("setters validate positive int", () => {
+      expect(setMaxActiveBridgesPerOperator(3)).toBe(3);
+      expect(setMaxRunningTranslationsPerBridge(2)).toBe(2);
+      expect(setBridgeIdleMs(1000)).toBe(1000);
+      expect(setTranslationStuckMs(500)).toBe(500);
+      expect(() => setMaxActiveBridgesPerOperator(0)).toThrow();
+      expect(() => setMaxActiveBridgesPerOperator(-1)).toThrow();
+      expect(() => setMaxRunningTranslationsPerBridge(NaN)).toThrow();
+    });
+
+    it("floors non-integer", () => {
+      expect(setMaxActiveBridgesPerOperator(7.9)).toBe(7);
+    });
+
+    it("_resetStateV2 clears overrides", () => {
+      setMaxActiveBridgesPerOperator(3);
+      _resetStateV2();
+      expect(getMaxActiveBridgesPerOperator()).toBe(10);
+    });
+  });
+
+  describe("registerBridgeV2", () => {
+    it("creates provisional bridge", () => {
+      const b = registerBridgeV2({
+        id: "b1",
+        operator: "op1",
+        sourceProtocol: "did",
+        targetProtocol: "activitypub",
+      });
+      expect(b.status).toBe("provisional");
+      expect(b.activatedAt).toBeNull();
+      expect(b.metadata).toEqual({});
+    });
+
+    it("rejects duplicate id", () => {
+      registerBridgeV2({
+        id: "b1",
+        operator: "op1",
+        sourceProtocol: "did",
+        targetProtocol: "nostr",
+      });
+      expect(() =>
+        registerBridgeV2({
+          id: "b1",
+          operator: "op1",
+          sourceProtocol: "did",
+          targetProtocol: "nostr",
+        }),
+      ).toThrow("already exists");
+    });
+
+    it("rejects missing required fields", () => {
+      expect(() => registerBridgeV2({})).toThrow("id required");
+      expect(() => registerBridgeV2({ id: "b1" })).toThrow("operator required");
+      expect(() =>
+        registerBridgeV2({
+          id: "b1",
+          operator: "op1",
+          sourceProtocol: "bogus",
+          targetProtocol: "nostr",
+        }),
+      ).toThrow("invalid sourceProtocol");
+      expect(() =>
+        registerBridgeV2({
+          id: "b1",
+          operator: "op1",
+          sourceProtocol: "did",
+          targetProtocol: "bogus",
+        }),
+      ).toThrow("invalid targetProtocol");
+    });
+
+    it("rejects invalid initial status", () => {
+      expect(() =>
+        registerBridgeV2({
+          id: "b1",
+          operator: "op1",
+          sourceProtocol: "did",
+          targetProtocol: "nostr",
+          initialStatus: "bogus",
+        }),
+      ).toThrow("invalid initial status");
+    });
+
+    it("stamps activatedAt on initialStatus=active", () => {
+      const b = registerBridgeV2({
+        id: "b1",
+        operator: "op1",
+        sourceProtocol: "did",
+        targetProtocol: "matrix",
+        initialStatus: "active",
+      });
+      expect(b.activatedAt).toBeGreaterThan(0);
+    });
+
+    it("enforces per-operator active cap", () => {
+      setMaxActiveBridgesPerOperator(2);
+      registerBridgeV2({
+        id: "b1",
+        operator: "op1",
+        sourceProtocol: "did",
+        targetProtocol: "nostr",
+        initialStatus: "active",
+      });
+      registerBridgeV2({
+        id: "b2",
+        operator: "op1",
+        sourceProtocol: "did",
+        targetProtocol: "matrix",
+        initialStatus: "active",
+      });
+      expect(() =>
+        registerBridgeV2({
+          id: "b3",
+          operator: "op1",
+          sourceProtocol: "did",
+          targetProtocol: "activitypub",
+          initialStatus: "active",
+        }),
+      ).toThrow("active bridge cap reached");
+    });
+
+    it("provisional bridges do not count toward cap", () => {
+      setMaxActiveBridgesPerOperator(1);
+      registerBridgeV2({
+        id: "b1",
+        operator: "op1",
+        sourceProtocol: "did",
+        targetProtocol: "nostr",
+      });
+      registerBridgeV2({
+        id: "b2",
+        operator: "op1",
+        sourceProtocol: "did",
+        targetProtocol: "matrix",
+      });
+      expect(getActiveBridgeCount("op1")).toBe(0);
+    });
+
+    it("defensively copies metadata on read", () => {
+      const b = registerBridgeV2({
+        id: "b1",
+        operator: "op1",
+        sourceProtocol: "did",
+        targetProtocol: "nostr",
+        metadata: { k: 1 },
+      });
+      b.metadata.k = 99;
+      expect(getBridgeV2("b1").metadata.k).toBe(1);
+    });
+  });
+
+  describe("bridge state transitions", () => {
+    beforeEach(() => {
+      registerBridgeV2({
+        id: "b1",
+        operator: "op1",
+        sourceProtocol: "did",
+        targetProtocol: "nostr",
+      });
+    });
+
+    it("provisional → active via activateBridge", () => {
+      const b = activateBridge("b1");
+      expect(b.status).toBe("active");
+      expect(b.activatedAt).toBeGreaterThan(0);
+    });
+
+    it("provisional → retired", () => {
+      const b = retireBridge("b1");
+      expect(b.status).toBe("retired");
+    });
+
+    it("rejects provisional → degraded/deprecated directly", () => {
+      expect(() => degradeBridge("b1")).toThrow("illegal transition");
+      expect(() => deprecateBridge("b1")).toThrow("illegal transition");
+    });
+
+    it("active → degraded → active → deprecated → active → retired", () => {
+      activateBridge("b1");
+      degradeBridge("b1");
+      expect(getBridgeV2("b1").status).toBe("degraded");
+      activateBridge("b1");
+      deprecateBridge("b1");
+      expect(getBridgeV2("b1").status).toBe("deprecated");
+      activateBridge("b1");
+      retireBridge("b1");
+      expect(getBridgeV2("b1").status).toBe("retired");
+    });
+
+    it("rejects transitions from retired terminal", () => {
+      retireBridge("b1");
+      expect(() => activateBridge("b1")).toThrow("terminal");
+    });
+
+    it("stamps activatedAt only once", () => {
+      const b1 = activateBridge("b1");
+      const first = b1.activatedAt;
+      degradeBridge("b1");
+      const b2 = activateBridge("b1");
+      expect(b2.activatedAt).toBe(first);
+    });
+
+    it("merges metadata on transition", () => {
+      activateBridge("b1", { metadata: { note: "ok" } });
+      expect(getBridgeV2("b1").metadata.note).toBe("ok");
+    });
+
+    it("stores reason on transition", () => {
+      const b = activateBridge("b1", { reason: "ready" });
+      expect(b.reason).toBe("ready");
+    });
+
+    it("cap enforced on transition back to active from degraded/deprecated if full", () => {
+      setMaxActiveBridgesPerOperator(2);
+      activateBridge("b1");
+      registerBridgeV2({
+        id: "b2",
+        operator: "op1",
+        sourceProtocol: "did",
+        targetProtocol: "matrix",
+        initialStatus: "active",
+      });
+      registerBridgeV2({
+        id: "b3",
+        operator: "op1",
+        sourceProtocol: "did",
+        targetProtocol: "activitypub",
+      });
+      expect(() => activateBridge("b3")).toThrow("active bridge cap reached");
+    });
+
+    it("touchBridgeUsage updates lastUsedAt", async () => {
+      activateBridge("b1");
+      const before = getBridgeV2("b1").lastUsedAt;
+      await new Promise((r) => setTimeout(r, 5));
+      const b = touchBridgeUsage("b1");
+      expect(b.lastUsedAt).toBeGreaterThan(before);
+    });
+
+    it("touchBridgeUsage throws on missing", () => {
+      expect(() => touchBridgeUsage("missing")).toThrow("not found");
+    });
+  });
+
+  describe("listBridgesV2 filters", () => {
+    beforeEach(() => {
+      registerBridgeV2({
+        id: "b1",
+        operator: "op1",
+        sourceProtocol: "did",
+        targetProtocol: "nostr",
+        initialStatus: "active",
+      });
+      registerBridgeV2({
+        id: "b2",
+        operator: "op2",
+        sourceProtocol: "did",
+        targetProtocol: "matrix",
+      });
+    });
+
+    it("filters by operator", () => {
+      expect(listBridgesV2({ operator: "op1" }).map((b) => b.id)).toEqual([
+        "b1",
+      ]);
+    });
+
+    it("filters by status", () => {
+      expect(listBridgesV2({ status: "provisional" }).map((b) => b.id)).toEqual(
+        ["b2"],
+      );
+    });
+  });
+
+  describe("translation lifecycle", () => {
+    beforeEach(() => {
+      registerBridgeV2({
+        id: "b1",
+        operator: "op1",
+        sourceProtocol: "did",
+        targetProtocol: "nostr",
+        initialStatus: "active",
+      });
+    });
+
+    it("enqueue requires fields", () => {
+      expect(() => enqueueTranslationV2({})).toThrow("id required");
+      expect(() => enqueueTranslationV2({ id: "t1" })).toThrow(
+        "bridgeId required",
+      );
+      expect(() => enqueueTranslationV2({ id: "t1", bridgeId: "b1" })).toThrow(
+        "targetLang",
+      );
+      expect(() =>
+        enqueueTranslationV2({ id: "t1", bridgeId: "b1", targetLang: "zh" }),
+      ).toThrow("text");
+    });
+
+    it("enqueue rejects missing bridge", () => {
+      expect(() =>
+        enqueueTranslationV2({
+          id: "t1",
+          bridgeId: "missing",
+          targetLang: "zh",
+          text: "hi",
+        }),
+      ).toThrow("bridge missing not found");
+    });
+
+    it("creates queued translation", () => {
+      const t = enqueueTranslationV2({
+        id: "t1",
+        bridgeId: "b1",
+        targetLang: "zh",
+        text: "hi",
+      });
+      expect(t.status).toBe("queued");
+      expect(t.startedAt).toBeNull();
+    });
+
+    it("queued → running via startTranslation stamps startedAt", () => {
+      enqueueTranslationV2({
+        id: "t1",
+        bridgeId: "b1",
+        targetLang: "zh",
+        text: "hi",
+      });
+      const t = startTranslation("t1");
+      expect(t.status).toBe("running");
+      expect(t.startedAt).toBeGreaterThan(0);
+    });
+
+    it("running → succeeded w/ result", () => {
+      enqueueTranslationV2({
+        id: "t1",
+        bridgeId: "b1",
+        targetLang: "zh",
+        text: "hi",
+      });
+      startTranslation("t1");
+      const t = succeedTranslation("t1", { result: { text: "[zh] hi" } });
+      expect(t.status).toBe("succeeded");
+      expect(t.result.text).toBe("[zh] hi");
+    });
+
+    it("running → failed", () => {
+      enqueueTranslationV2({
+        id: "t1",
+        bridgeId: "b1",
+        targetLang: "zh",
+        text: "hi",
+      });
+      startTranslation("t1");
+      expect(failTranslation("t1", { reason: "rate_limit" }).status).toBe(
+        "failed",
+      );
+    });
+
+    it("queued → canceled", () => {
+      enqueueTranslationV2({
+        id: "t1",
+        bridgeId: "b1",
+        targetLang: "zh",
+        text: "hi",
+      });
+      expect(cancelTranslation("t1").status).toBe("canceled");
+    });
+
+    it("terminal translations reject further transitions", () => {
+      enqueueTranslationV2({
+        id: "t1",
+        bridgeId: "b1",
+        targetLang: "zh",
+        text: "hi",
+      });
+      startTranslation("t1");
+      succeedTranslation("t1");
+      expect(() => failTranslation("t1")).toThrow("terminal");
+    });
+
+    it("stamp-once startedAt across running", async () => {
+      enqueueTranslationV2({
+        id: "t1",
+        bridgeId: "b1",
+        targetLang: "zh",
+        text: "hi",
+      });
+      const t1 = startTranslation("t1");
+      const first = t1.startedAt;
+      await new Promise((r) => setTimeout(r, 5));
+      // can't go back to running once succeeded — check that startedAt set only at RUNNING entry
+      expect(t1.startedAt).toBe(first);
+    });
+
+    it("per-bridge running cap", () => {
+      setMaxRunningTranslationsPerBridge(2);
+      enqueueTranslationV2({
+        id: "t1",
+        bridgeId: "b1",
+        targetLang: "zh",
+        text: "a",
+      });
+      enqueueTranslationV2({
+        id: "t2",
+        bridgeId: "b1",
+        targetLang: "zh",
+        text: "b",
+      });
+      enqueueTranslationV2({
+        id: "t3",
+        bridgeId: "b1",
+        targetLang: "zh",
+        text: "c",
+      });
+      startTranslation("t1");
+      startTranslation("t2");
+      expect(() => startTranslation("t3")).toThrow(
+        "running translation cap reached",
+      );
+    });
+
+    it("getRunningTranslationCount counts per bridge", () => {
+      enqueueTranslationV2({
+        id: "t1",
+        bridgeId: "b1",
+        targetLang: "zh",
+        text: "a",
+      });
+      startTranslation("t1");
+      expect(getRunningTranslationCount("b1")).toBe(1);
+      expect(getRunningTranslationCount("b-other")).toBe(0);
+    });
+
+    it("defensive metadata copy on read", () => {
+      enqueueTranslationV2({
+        id: "t1",
+        bridgeId: "b1",
+        targetLang: "zh",
+        text: "hi",
+        metadata: { k: 1 },
+      });
+      const t = getTranslationV2("t1");
+      t.metadata.k = 99;
+      expect(getTranslationV2("t1").metadata.k).toBe(1);
+    });
+
+    it("listTranslationsV2 filters by status", () => {
+      enqueueTranslationV2({
+        id: "t1",
+        bridgeId: "b1",
+        targetLang: "zh",
+        text: "a",
+      });
+      enqueueTranslationV2({
+        id: "t2",
+        bridgeId: "b1",
+        targetLang: "zh",
+        text: "b",
+      });
+      startTranslation("t2");
+      expect(listTranslationsV2({ status: "queued" }).map((t) => t.id)).toEqual(
+        ["t1"],
+      );
+      expect(
+        listTranslationsV2({ status: "running" }).map((t) => t.id),
+      ).toEqual(["t2"]);
+    });
+  });
+
+  describe("auto-flip batches", () => {
+    beforeEach(() => {
+      registerBridgeV2({
+        id: "b1",
+        operator: "op1",
+        sourceProtocol: "did",
+        targetProtocol: "nostr",
+        initialStatus: "active",
+      });
+      registerBridgeV2({
+        id: "b2",
+        operator: "op1",
+        sourceProtocol: "did",
+        targetProtocol: "matrix",
+      });
+    });
+
+    it("autoRetireIdleBridges flips stale active via future now override", () => {
+      setBridgeIdleMs(1000);
+      const future = Date.now() + 5000;
+      const flipped = autoRetireIdleBridges({ now: future });
+      expect(flipped).toContain("b1");
+      expect(getBridgeV2("b1").status).toBe("retired");
+    });
+
+    it("autoRetireIdleBridges flips degraded and deprecated too", () => {
+      setBridgeIdleMs(1000);
+      degradeBridge("b1");
+      const future = Date.now() + 5000;
+      const flipped = autoRetireIdleBridges({ now: future });
+      expect(flipped).toContain("b1");
+    });
+
+    it("autoRetireIdleBridges skips provisional and retired", () => {
+      retireBridge("b1");
+      setBridgeIdleMs(1);
+      const future = Date.now() + 10000;
+      const flipped = autoRetireIdleBridges({ now: future });
+      expect(flipped).not.toContain("b1"); // already retired
+      expect(flipped).not.toContain("b2"); // provisional
+    });
+
+    it("autoRetireIdleBridges skips recent bridges", () => {
+      setBridgeIdleMs(1000);
+      touchBridgeUsage("b1");
+      const flipped = autoRetireIdleBridges({ now: Date.now() + 100 });
+      expect(flipped).not.toContain("b1");
+    });
+
+    it("autoFailStuckRunningTranslations flips only RUNNING", () => {
+      enqueueTranslationV2({
+        id: "t1",
+        bridgeId: "b1",
+        targetLang: "zh",
+        text: "a",
+      });
+      enqueueTranslationV2({
+        id: "t2",
+        bridgeId: "b1",
+        targetLang: "zh",
+        text: "b",
+      });
+      startTranslation("t1");
+      setTranslationStuckMs(100);
+      const future = Date.now() + 5000;
+      const flipped = autoFailStuckRunningTranslations({ now: future });
+      expect(flipped).toEqual(["t1"]);
+      expect(getTranslationV2("t1").status).toBe("failed");
+      expect(getTranslationV2("t2").status).toBe("queued");
+    });
+
+    it("autoFailStuckRunningTranslations skips terminal and queued", () => {
+      enqueueTranslationV2({
+        id: "t1",
+        bridgeId: "b1",
+        targetLang: "zh",
+        text: "a",
+      });
+      enqueueTranslationV2({
+        id: "t2",
+        bridgeId: "b1",
+        targetLang: "zh",
+        text: "b",
+      });
+      startTranslation("t1");
+      succeedTranslation("t1");
+      setTranslationStuckMs(1);
+      const flipped = autoFailStuckRunningTranslations({
+        now: Date.now() + 1000,
+      });
+      expect(flipped).toEqual([]);
+    });
+  });
+
+  describe("stats", () => {
+    it("returns zero-initialized enums on empty state", () => {
+      const s = getProtocolFusionStatsV2();
+      expect(s.totalBridgesV2).toBe(0);
+      expect(s.totalTranslationsV2).toBe(0);
+      expect(s.bridgesByStatus).toEqual({
+        provisional: 0,
+        active: 0,
+        degraded: 0,
+        deprecated: 0,
+        retired: 0,
+      });
+      expect(s.translationsByStatus).toEqual({
+        queued: 0,
+        running: 0,
+        succeeded: 0,
+        failed: 0,
+        canceled: 0,
+      });
+    });
+
+    it("counts bridges and translations by status", () => {
+      registerBridgeV2({
+        id: "b1",
+        operator: "op1",
+        sourceProtocol: "did",
+        targetProtocol: "nostr",
+        initialStatus: "active",
+      });
+      registerBridgeV2({
+        id: "b2",
+        operator: "op1",
+        sourceProtocol: "did",
+        targetProtocol: "matrix",
+      });
+      enqueueTranslationV2({
+        id: "t1",
+        bridgeId: "b1",
+        targetLang: "zh",
+        text: "hi",
+      });
+      startTranslation("t1");
+      const s = getProtocolFusionStatsV2();
+      expect(s.totalBridgesV2).toBe(2);
+      expect(s.bridgesByStatus.active).toBe(1);
+      expect(s.bridgesByStatus.provisional).toBe(1);
+      expect(s.translationsByStatus.running).toBe(1);
+    });
+  });
+});

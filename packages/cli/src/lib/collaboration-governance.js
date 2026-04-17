@@ -554,3 +554,367 @@ export function _resetState() {
   _agentLevels.clear();
   _seq = 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+ * V2 Surface — Collaboration Governance V2 (additive)
+ * ═══════════════════════════════════════════════════════════════ */
+
+export const AGENT_MATURITY_CG_V2 = Object.freeze({
+  PROVISIONAL: "provisional",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  RETIRED: "retired",
+});
+
+export const PROPOSAL_LIFECYCLE_V2 = Object.freeze({
+  DRAFT: "draft",
+  VOTING: "voting",
+  APPROVED: "approved",
+  REJECTED: "rejected",
+  WITHDRAWN: "withdrawn",
+});
+
+const _AGENT_TRANS_CG_V2 = new Map([
+  [
+    AGENT_MATURITY_CG_V2.PROVISIONAL,
+    new Set([AGENT_MATURITY_CG_V2.ACTIVE, AGENT_MATURITY_CG_V2.RETIRED]),
+  ],
+  [
+    AGENT_MATURITY_CG_V2.ACTIVE,
+    new Set([AGENT_MATURITY_CG_V2.SUSPENDED, AGENT_MATURITY_CG_V2.RETIRED]),
+  ],
+  [
+    AGENT_MATURITY_CG_V2.SUSPENDED,
+    new Set([AGENT_MATURITY_CG_V2.ACTIVE, AGENT_MATURITY_CG_V2.RETIRED]),
+  ],
+  [AGENT_MATURITY_CG_V2.RETIRED, new Set()],
+]);
+
+const _PROPOSAL_TRANS_V2 = new Map([
+  [
+    PROPOSAL_LIFECYCLE_V2.DRAFT,
+    new Set([PROPOSAL_LIFECYCLE_V2.VOTING, PROPOSAL_LIFECYCLE_V2.WITHDRAWN]),
+  ],
+  [
+    PROPOSAL_LIFECYCLE_V2.VOTING,
+    new Set([
+      PROPOSAL_LIFECYCLE_V2.APPROVED,
+      PROPOSAL_LIFECYCLE_V2.REJECTED,
+      PROPOSAL_LIFECYCLE_V2.WITHDRAWN,
+    ]),
+  ],
+  [PROPOSAL_LIFECYCLE_V2.APPROVED, new Set()],
+  [PROPOSAL_LIFECYCLE_V2.REJECTED, new Set()],
+  [PROPOSAL_LIFECYCLE_V2.WITHDRAWN, new Set()],
+]);
+
+const _AGENT_TERMINAL_CG_V2 = new Set([AGENT_MATURITY_CG_V2.RETIRED]);
+const _PROPOSAL_TERMINAL_V2 = new Set([
+  PROPOSAL_LIFECYCLE_V2.APPROVED,
+  PROPOSAL_LIFECYCLE_V2.REJECTED,
+  PROPOSAL_LIFECYCLE_V2.WITHDRAWN,
+]);
+
+export const CG_DEFAULT_MAX_ACTIVE_AGENTS_PER_REALM = 10;
+export const CG_DEFAULT_MAX_VOTING_PROPOSALS_PER_PROPOSER = 3;
+export const CG_DEFAULT_AGENT_IDLE_MS = 30 * 24 * 60 * 60 * 1000;
+export const CG_DEFAULT_PROPOSAL_STUCK_MS = 7 * 24 * 60 * 60 * 1000;
+
+let _cgMaxActiveAgents = CG_DEFAULT_MAX_ACTIVE_AGENTS_PER_REALM;
+let _cgMaxVotingProposals = CG_DEFAULT_MAX_VOTING_PROPOSALS_PER_PROPOSER;
+let _cgAgentIdleMs = CG_DEFAULT_AGENT_IDLE_MS;
+let _cgProposalStuckMs = CG_DEFAULT_PROPOSAL_STUCK_MS;
+
+const _agentsCgV2 = new Map();
+const _proposalsV2 = new Map();
+
+function _posIntCgV2(n, label) {
+  const v = Number.isInteger(n) ? n : Math.floor(n);
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be a positive integer`);
+  return v;
+}
+
+export function getMaxActiveAgentsPerRealmCgV2() {
+  return _cgMaxActiveAgents;
+}
+export function setMaxActiveAgentsPerRealmCgV2(n) {
+  _cgMaxActiveAgents = _posIntCgV2(n, "maxActiveAgentsPerRealm");
+  return _cgMaxActiveAgents;
+}
+export function getMaxVotingProposalsPerProposerV2() {
+  return _cgMaxVotingProposals;
+}
+export function setMaxVotingProposalsPerProposerV2(n) {
+  _cgMaxVotingProposals = _posIntCgV2(n, "maxVotingProposalsPerProposer");
+  return _cgMaxVotingProposals;
+}
+export function getAgentIdleMsCgV2() {
+  return _cgAgentIdleMs;
+}
+export function setAgentIdleMsCgV2(n) {
+  _cgAgentIdleMs = _posIntCgV2(n, "agentIdleMs");
+  return _cgAgentIdleMs;
+}
+export function getProposalStuckMsV2() {
+  return _cgProposalStuckMs;
+}
+export function setProposalStuckMsV2(n) {
+  _cgProposalStuckMs = _posIntCgV2(n, "proposalStuckMs");
+  return _cgProposalStuckMs;
+}
+
+export function getActiveAgentCountCgV2(realm) {
+  if (!realm) throw new Error("realm is required");
+  let c = 0;
+  for (const a of _agentsCgV2.values()) {
+    if (a.realm !== realm) continue;
+    if (a.status === AGENT_MATURITY_CG_V2.RETIRED) continue;
+    if (a.status === AGENT_MATURITY_CG_V2.PROVISIONAL) continue;
+    c++;
+  }
+  return c;
+}
+
+export function getVotingProposalCountV2(proposer) {
+  if (!proposer) throw new Error("proposer is required");
+  let c = 0;
+  for (const p of _proposalsV2.values()) {
+    if (p.proposer !== proposer) continue;
+    if (p.status !== PROPOSAL_LIFECYCLE_V2.VOTING) continue;
+    c++;
+  }
+  return c;
+}
+
+export function registerAgentCgV2({ id, realm, role, metadata }) {
+  if (!id) throw new Error("id is required");
+  if (!realm) throw new Error("realm is required");
+  if (!role) throw new Error("role is required");
+  if (_agentsCgV2.has(id)) throw new Error(`agent ${id} already exists`);
+  const now = Date.now();
+  const agent = {
+    id,
+    realm,
+    role: String(role),
+    status: AGENT_MATURITY_CG_V2.PROVISIONAL,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    lastSeenAt: now,
+    metadata: metadata ? { ...metadata } : {},
+  };
+  _agentsCgV2.set(id, agent);
+  return { ...agent, metadata: { ...agent.metadata } };
+}
+
+export function getAgentCgV2(id) {
+  const a = _agentsCgV2.get(id);
+  if (!a) return null;
+  return { ...a, metadata: { ...a.metadata } };
+}
+
+export function listAgentsCgV2({ realm, status } = {}) {
+  const out = [];
+  for (const a of _agentsCgV2.values()) {
+    if (realm && a.realm !== realm) continue;
+    if (status && a.status !== status) continue;
+    out.push({ ...a, metadata: { ...a.metadata } });
+  }
+  return out;
+}
+
+export function setAgentMaturityCgV2(
+  id,
+  nextStatus,
+  { reason, metadata } = {},
+) {
+  const a = _agentsCgV2.get(id);
+  if (!a) throw new Error(`agent ${id} not found`);
+  if (!_AGENT_TRANS_CG_V2.has(a.status))
+    throw new Error(`unknown status ${a.status}`);
+  const allowed = _AGENT_TRANS_CG_V2.get(a.status);
+  if (!allowed.has(nextStatus)) {
+    throw new Error(
+      `cannot transition agent ${id} from ${a.status} to ${nextStatus}`,
+    );
+  }
+  if (nextStatus === AGENT_MATURITY_CG_V2.ACTIVE) {
+    const wasActive =
+      a.status === AGENT_MATURITY_CG_V2.ACTIVE ||
+      a.status === AGENT_MATURITY_CG_V2.SUSPENDED;
+    if (!wasActive && getActiveAgentCountCgV2(a.realm) >= _cgMaxActiveAgents) {
+      throw new Error(
+        `realm ${a.realm} exceeds max active agent cap ${_cgMaxActiveAgents}`,
+      );
+    }
+  }
+  const now = Date.now();
+  a.status = nextStatus;
+  a.updatedAt = now;
+  a.lastSeenAt = now;
+  if (nextStatus === AGENT_MATURITY_CG_V2.ACTIVE && !a.activatedAt)
+    a.activatedAt = now;
+  if (reason) a.reason = reason;
+  if (metadata) a.metadata = { ...a.metadata, ...metadata };
+  return { ...a, metadata: { ...a.metadata } };
+}
+
+export function activateAgentCgV2(id, opts) {
+  return setAgentMaturityCgV2(id, AGENT_MATURITY_CG_V2.ACTIVE, opts);
+}
+export function suspendAgentCgV2(id, opts) {
+  return setAgentMaturityCgV2(id, AGENT_MATURITY_CG_V2.SUSPENDED, opts);
+}
+export function retireAgentCgV2(id, opts) {
+  return setAgentMaturityCgV2(id, AGENT_MATURITY_CG_V2.RETIRED, opts);
+}
+
+export function touchAgentCgV2(id) {
+  const a = _agentsCgV2.get(id);
+  if (!a) throw new Error(`agent ${id} not found`);
+  if (_AGENT_TERMINAL_CG_V2.has(a.status))
+    throw new Error(`agent ${id} is terminal`);
+  a.lastSeenAt = Date.now();
+  return { ...a, metadata: { ...a.metadata } };
+}
+
+export function createProposalV2({ id, proposer, topic, metadata }) {
+  if (!id) throw new Error("id is required");
+  if (!proposer) throw new Error("proposer is required");
+  if (!topic) throw new Error("topic is required");
+  if (_proposalsV2.has(id)) throw new Error(`proposal ${id} already exists`);
+  const now = Date.now();
+  const prop = {
+    id,
+    proposer,
+    topic: String(topic),
+    status: PROPOSAL_LIFECYCLE_V2.DRAFT,
+    createdAt: now,
+    updatedAt: now,
+    votingStartedAt: null,
+    decidedAt: null,
+    metadata: metadata ? { ...metadata } : {},
+  };
+  _proposalsV2.set(id, prop);
+  return { ...prop, metadata: { ...prop.metadata } };
+}
+
+export function getProposalV2(id) {
+  const p = _proposalsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+
+export function listProposalsV2({ proposer, status } = {}) {
+  const out = [];
+  for (const p of _proposalsV2.values()) {
+    if (proposer && p.proposer !== proposer) continue;
+    if (status && p.status !== status) continue;
+    out.push({ ...p, metadata: { ...p.metadata } });
+  }
+  return out;
+}
+
+export function setProposalStatusV2(id, nextStatus, { reason, metadata } = {}) {
+  const p = _proposalsV2.get(id);
+  if (!p) throw new Error(`proposal ${id} not found`);
+  if (!_PROPOSAL_TRANS_V2.has(p.status))
+    throw new Error(`unknown status ${p.status}`);
+  const allowed = _PROPOSAL_TRANS_V2.get(p.status);
+  if (!allowed.has(nextStatus)) {
+    throw new Error(
+      `cannot transition proposal ${id} from ${p.status} to ${nextStatus}`,
+    );
+  }
+  if (nextStatus === PROPOSAL_LIFECYCLE_V2.VOTING) {
+    if (getVotingProposalCountV2(p.proposer) >= _cgMaxVotingProposals) {
+      throw new Error(
+        `proposer ${p.proposer} exceeds max voting proposal cap ${_cgMaxVotingProposals}`,
+      );
+    }
+  }
+  const now = Date.now();
+  p.status = nextStatus;
+  p.updatedAt = now;
+  if (nextStatus === PROPOSAL_LIFECYCLE_V2.VOTING && !p.votingStartedAt)
+    p.votingStartedAt = now;
+  if (_PROPOSAL_TERMINAL_V2.has(nextStatus)) p.decidedAt = now;
+  if (reason) p.reason = reason;
+  if (metadata) p.metadata = { ...p.metadata, ...metadata };
+  return { ...p, metadata: { ...p.metadata } };
+}
+
+export function startVotingV2(id, opts) {
+  return setProposalStatusV2(id, PROPOSAL_LIFECYCLE_V2.VOTING, opts);
+}
+export function approveProposalV2(id, opts) {
+  return setProposalStatusV2(id, PROPOSAL_LIFECYCLE_V2.APPROVED, opts);
+}
+export function rejectProposalV2(id, opts) {
+  return setProposalStatusV2(id, PROPOSAL_LIFECYCLE_V2.REJECTED, opts);
+}
+export function withdrawProposalV2(id, opts) {
+  return setProposalStatusV2(id, PROPOSAL_LIFECYCLE_V2.WITHDRAWN, opts);
+}
+
+export function autoRetireIdleAgentsCgV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const out = [];
+  for (const a of _agentsCgV2.values()) {
+    if (a.status === AGENT_MATURITY_CG_V2.RETIRED) continue;
+    if (a.status === AGENT_MATURITY_CG_V2.PROVISIONAL) continue;
+    if (t - a.lastSeenAt > _cgAgentIdleMs) {
+      a.status = AGENT_MATURITY_CG_V2.RETIRED;
+      a.updatedAt = t;
+      out.push(a.id);
+    }
+  }
+  return out;
+}
+
+export function autoWithdrawStuckProposalsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const out = [];
+  for (const p of _proposalsV2.values()) {
+    if (p.status !== PROPOSAL_LIFECYCLE_V2.VOTING) continue;
+    if (p.votingStartedAt == null) continue;
+    if (t - p.votingStartedAt > _cgProposalStuckMs) {
+      p.status = PROPOSAL_LIFECYCLE_V2.WITHDRAWN;
+      p.decidedAt = t;
+      p.updatedAt = t;
+      p.reason = p.reason || "auto-withdraw: stuck voting";
+      out.push(p.id);
+    }
+  }
+  return out;
+}
+
+export function getCollaborationGovernanceStatsV2() {
+  const agentsByStatus = {};
+  for (const v of Object.values(AGENT_MATURITY_CG_V2)) agentsByStatus[v] = 0;
+  for (const a of _agentsCgV2.values()) agentsByStatus[a.status]++;
+  const proposalsByStatus = {};
+  for (const v of Object.values(PROPOSAL_LIFECYCLE_V2))
+    proposalsByStatus[v] = 0;
+  for (const p of _proposalsV2.values()) proposalsByStatus[p.status]++;
+  return {
+    totalAgentsCgV2: _agentsCgV2.size,
+    totalProposalsV2: _proposalsV2.size,
+    maxActiveAgentsPerRealm: _cgMaxActiveAgents,
+    maxVotingProposalsPerProposer: _cgMaxVotingProposals,
+    agentIdleMs: _cgAgentIdleMs,
+    proposalStuckMs: _cgProposalStuckMs,
+    agentsByStatus,
+    proposalsByStatus,
+  };
+}
+
+export function _resetStateCgV2() {
+  _agentsCgV2.clear();
+  _proposalsV2.clear();
+  _cgMaxActiveAgents = CG_DEFAULT_MAX_ACTIVE_AGENTS_PER_REALM;
+  _cgMaxVotingProposals = CG_DEFAULT_MAX_VOTING_PROPOSALS_PER_PROPOSER;
+  _cgAgentIdleMs = CG_DEFAULT_AGENT_IDLE_MS;
+  _cgProposalStuckMs = CG_DEFAULT_PROPOSAL_STUCK_MS;
+}

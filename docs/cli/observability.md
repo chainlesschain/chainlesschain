@@ -135,6 +135,56 @@ chainlesschain dbevo apply <id> [--json]                                        
 chainlesschain dbevo stats [--json]                                              # 数据库演进统计
 ```
 
+### Phase 80 V2 — Schema Baseline + Migration Run 状态机
+
+在原有 migration CRUD / query log / suggestion 基础上追加 V2 面：两条平行状态机 `SCHEMA_BASELINE_V2` (5 态：draft/validated/active/deprecated/retired) + `MIGRATION_RUN_V2` (5 态：queued/running/applied/failed/rolled_back；**2 个终态** failed/rolled_back；含 applied→rolled_back 恢复路径)。每 database 单 ACTIVE baseline 上限 + 每 database 单 RUNNING migration run 上限。`startedAt` 首次 RUNNING 跃迁一次性戳记并跨 applied→rolled_back 恢复路径保持。
+
+**配置默认值**:
+```
+DBEVO_DEFAULT_MAX_ACTIVE_BASELINES_PER_DB   = 1
+DBEVO_DEFAULT_MAX_RUNNING_MIGRATIONS_PER_DB = 1
+DBEVO_DEFAULT_BASELINE_IDLE_MS              = 180 * 86400000   // 180 天
+DBEVO_DEFAULT_MIGRATION_STUCK_MS            = 30 * 60000       // 30 分钟
+```
+
+**枚举 + 配置**:
+```bash
+cc dbevo schema-baselines-v2                                                     # 5 态
+cc dbevo migration-runs-v2                                                       # 5 态
+cc dbevo default-max-active-baselines-per-db | max-active-baselines-per-db | set-max-active-baselines-per-db <n>
+cc dbevo default-max-running-migrations-per-db | max-running-migrations-per-db | set-max-running-migrations-per-db <n>
+cc dbevo default-baseline-idle-ms | baseline-idle-ms | set-baseline-idle-ms <ms>
+cc dbevo default-migration-stuck-ms | migration-stuck-ms | set-migration-stuck-ms <ms>
+cc dbevo active-baseline-count [-d database]                                     # 仅 ACTIVE 计数
+cc dbevo running-migration-count [-d database]                                   # 仅 RUNNING 计数
+```
+
+**Baseline 生命周期（throws on cap / invalid transition / terminal initial）**:
+```bash
+cc dbevo register-baseline-v2 <baseline-id> -d <database> -v <version> [-i initial] [--metadata json]
+cc dbevo baseline-v2 <baseline-id>
+cc dbevo set-baseline-status-v2 <baseline-id> <status> [-r reason] [--metadata json]
+cc dbevo validate-baseline | activate-baseline | deprecate-baseline | retire-baseline <baseline-id> [-r reason]
+cc dbevo touch-baseline-activity <baseline-id>                                   # 推进 lastTouchedAt
+```
+
+**Migration Run 生命周期（throws on cap / invalid transition / invalid direction）**:
+```bash
+cc dbevo enqueue-migration-run-v2 <run-id> -d <database> -m <migration-id> --direction up|down [--metadata json]
+cc dbevo migration-run-v2 <run-id>
+cc dbevo set-migration-run-status-v2 <run-id> <status> [-r reason] [--metadata json]
+cc dbevo start-migration-run | apply-migration-run | fail-migration-run | rollback-migration-run <run-id> [-r reason]
+```
+
+**批量 auto-flip + 统计**:
+```bash
+cc dbevo auto-retire-idle-baselines          # DRAFT/VALIDATED/DEPRECATED → RETIRED（lastTouchedAt 超时）
+cc dbevo auto-fail-stuck-migration-runs      # 仅 RUNNING → FAILED；基于 startedAt
+cc dbevo stats-v2                            # 全枚举零初始化
+```
+
+> **未移植**: 真实 DDL 执行 (CLI 仅记录状态跃迁)；fluent QueryBuilder；EXPLAIN 查询计划分析；启动时自动迁移；迁移前数据库备份；周期性后台索引优化。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (baseline 成熟度 + 带 applied→rolled_back 恢复路径的 migration-run)、双维度上限 (per-db ACTIVE baseline + per-db RUNNING run)、throwing `registerBaselineV2`/`enqueueMigrationRunV2` + 8 shortcuts (stamp-once `startedAt` 跨恢复路径保持)、`touchBaselineActivity` + 2 批量 auto-flip、全枚举零初始化 `getDbEvoStatsV2`。
+
 ## Federation Hardening (Phase 58)
 
 ```bash
@@ -184,6 +234,48 @@ chainlesschain nlprog convention-remove <id> [--json]                           
 chainlesschain nlprog stats [--json]                                             # NL Programming 统计
 ```
 
+### Phase 28 V2 — Spec Maturity + Dialogue Turn Lifecycle
+
+V2 strictly additive in-memory surface. 5-state spec maturity (draft/refining/approved/implemented/archived; implemented is non-active for cap-counting) + 4-state dialogue-turn lifecycle (pending/answered/dismissed/escalated with `escalated→answered` recovery path). Per-author active-spec cap, per-spec pending-turn cap, auto-archive idle specs, auto-dismiss stale pending turns.
+
+```bash
+# Enum catalog
+cc nlprog spec-maturities-v2 | dialogue-turn-lifecycles-v2
+
+# Config (per-author / per-spec caps, idle/pending timeouts)
+cc nlprog default-max-active-specs-per-author | max-active-specs-per-author | set-max-active-specs-per-author <n>
+cc nlprog default-max-pending-turns-per-spec  | max-pending-turns-per-spec  | set-max-pending-turns-per-spec <n>
+cc nlprog default-spec-idle-ms    | spec-idle-ms    | set-spec-idle-ms <ms>
+cc nlprog default-turn-pending-ms | turn-pending-ms | set-turn-pending-ms <ms>
+
+# Counts
+cc nlprog active-spec-count [-a <author>]
+cc nlprog pending-turn-count [-s <spec>]
+
+# Spec lifecycle
+cc nlprog register-spec-v2 <spec-id> -a <author> [-t <title>] [-i <initial-status>] [-m <metadata>]
+cc nlprog spec-v2 <spec-id>
+cc nlprog set-spec-maturity-v2 <spec-id> <status> [-r <reason>] [-m <metadata>]
+cc nlprog refine-spec | approve-spec | implement-spec | archive-spec <spec-id> [-r <reason>]
+cc nlprog touch-spec-activity <spec-id>
+
+# Dialogue turn lifecycle (escalated turns kept for human review — not auto-dismissed)
+cc nlprog register-dialogue-turn-v2 <turn-id> -s <spec> [-R <role>] [-q <question>] [-i <initial>] [-m <metadata>]
+cc nlprog dialogue-turn-v2 <turn-id>
+cc nlprog set-dialogue-turn-status-v2 <turn-id> <status> [-a <answer>] [-r <reason>] [-m <metadata>]
+cc nlprog answer-turn <turn-id> -a <answer> [-r <reason>]
+cc nlprog dismiss-turn | escalate-turn <turn-id> [-r <reason>]
+
+# Bulk auto-flips (use current clock)
+cc nlprog auto-archive-idle-specs
+cc nlprog auto-dismiss-stale-pending-turns
+
+# All-enum-key zero-init stats
+cc nlprog stats-v2
+```
+
+Defaults: 30 active specs/author, 20 pending turns/spec, 45d idle, 7d turn-pending. 102 tests cover legacy + V2.
+
 ## Model Quantization (Phase 20)
 
 ```bash
@@ -202,3 +294,44 @@ chainlesschain quantize show <id> [--json]                                      
 chainlesschain quantize list [-s status] [-t type] [--limit N] [--json]          # 列出量化任务
 chainlesschain quantize stats [--json]                                           # 量化统计
 ```
+
+### Phase 20 V2 — Model Maturity + Job Ticket Lifecycle
+
+V2 strictly additive in-memory surface. 4-state model maturity (onboarding/active/deprecated/retired) + 5-state job-ticket lifecycle (queued/running/completed/failed/canceled, 3 terminals). Per-owner active-model cap, per-owner running-job cap, auto-retire idle models (active/deprecated), auto-fail stuck running tickets. `startedAt` stamped once on first RUNNING transition.
+
+```bash
+# Enum catalog
+cc quantize model-maturities-v2 | job-ticket-lifecycles-v2
+
+# Config (per-owner caps, idle/stuck timeouts)
+cc quantize default-max-active-models-per-owner | max-active-models-per-owner | set-max-active-models-per-owner <n>
+cc quantize default-max-running-jobs-per-owner  | max-running-jobs-per-owner  | set-max-running-jobs-per-owner <n>
+cc quantize default-model-idle-ms | model-idle-ms | set-model-idle-ms <ms>
+cc quantize default-job-stuck-ms  | job-stuck-ms  | set-job-stuck-ms <ms>
+
+# Counts
+cc quantize active-model-count [-o <owner>]
+cc quantize running-job-count [-o <owner>]
+
+# Model lifecycle
+cc quantize register-model-v2 <model-id> -o <owner> [-f <family>] [-i <initial-status>] [-m <metadata>]
+cc quantize model-v2 <model-id>
+cc quantize set-model-maturity-v2 <model-id> <status> [-r <reason>] [-m <metadata>]
+cc quantize activate-model | deprecate-model | retire-model <model-id> [-r <reason>]
+cc quantize touch-model-usage <model-id>
+
+# Job ticket lifecycle
+cc quantize enqueue-job-ticket-v2 <ticket-id> -o <owner> -M <model> -t <type> [-l <level>] [-m <metadata>]
+cc quantize job-ticket-v2 <ticket-id>
+cc quantize set-job-ticket-status-v2 <ticket-id> <status> [-r <reason>] [-m <metadata>]
+cc quantize start-job-ticket | complete-job-ticket | fail-job-ticket | cancel-job-ticket <ticket-id> [-r <reason>]
+
+# Bulk auto-flips (use current clock)
+cc quantize auto-retire-idle-models
+cc quantize auto-fail-stuck-job-tickets
+
+# All-enum-key zero-init stats
+cc quantize stats-v2
+```
+
+Defaults: 50 active models/owner, 3 running jobs/owner, 120d idle, 6h stuck. 86 tests cover legacy + V2.

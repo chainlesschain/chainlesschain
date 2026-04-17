@@ -667,3 +667,341 @@ export function _resetState() {
   _suggestions.clear();
   _slowQueryThresholdMs = 100;
 }
+
+/* ═════════════════════════════════════════════════════════ *
+ *  Phase 80 V2 — Schema Baseline + Migration-Run Lifecycle
+ * ═════════════════════════════════════════════════════════ */
+
+export const SCHEMA_BASELINE_V2 = Object.freeze({
+  DRAFT: "draft",
+  VALIDATED: "validated",
+  ACTIVE: "active",
+  DEPRECATED: "deprecated",
+  RETIRED: "retired",
+});
+
+export const MIGRATION_RUN_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  APPLIED: "applied",
+  FAILED: "failed",
+  ROLLED_BACK: "rolled_back",
+});
+
+const BASELINE_TRANSITIONS_V2 = new Map([
+  ["draft", new Set(["validated", "retired"])],
+  ["validated", new Set(["active", "retired"])],
+  ["active", new Set(["deprecated", "retired"])],
+  ["deprecated", new Set(["active", "retired"])],
+]);
+const BASELINE_TERMINALS_V2 = new Set(["retired"]);
+
+const RUN_TRANSITIONS_V2 = new Map([
+  ["queued", new Set(["running", "failed"])],
+  ["running", new Set(["applied", "failed", "rolled_back"])],
+  ["applied", new Set(["rolled_back"])],
+]);
+const RUN_TERMINALS_V2 = new Set(["failed", "rolled_back"]);
+
+export const DBEVO_DEFAULT_MAX_ACTIVE_BASELINES_PER_DB = 1;
+export const DBEVO_DEFAULT_MAX_RUNNING_MIGRATIONS_PER_DB = 1;
+export const DBEVO_DEFAULT_BASELINE_IDLE_MS = 180 * 86400000; // 180 days
+export const DBEVO_DEFAULT_MIGRATION_STUCK_MS = 30 * 60000; // 30 minutes
+
+let _maxActiveBaselinesPerDbV2 = DBEVO_DEFAULT_MAX_ACTIVE_BASELINES_PER_DB;
+let _maxRunningMigrationsPerDbV2 = DBEVO_DEFAULT_MAX_RUNNING_MIGRATIONS_PER_DB;
+let _baselineIdleMsV2 = DBEVO_DEFAULT_BASELINE_IDLE_MS;
+let _migrationStuckMsV2 = DBEVO_DEFAULT_MIGRATION_STUCK_MS;
+
+function _positiveIntV2(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be a positive integer`);
+  return v;
+}
+
+export function getDefaultMaxActiveBaselinesPerDbV2() {
+  return DBEVO_DEFAULT_MAX_ACTIVE_BASELINES_PER_DB;
+}
+export function getMaxActiveBaselinesPerDbV2() {
+  return _maxActiveBaselinesPerDbV2;
+}
+export function setMaxActiveBaselinesPerDbV2(n) {
+  return (_maxActiveBaselinesPerDbV2 = _positiveIntV2(
+    n,
+    "maxActiveBaselinesPerDb",
+  ));
+}
+export function getDefaultMaxRunningMigrationsPerDbV2() {
+  return DBEVO_DEFAULT_MAX_RUNNING_MIGRATIONS_PER_DB;
+}
+export function getMaxRunningMigrationsPerDbV2() {
+  return _maxRunningMigrationsPerDbV2;
+}
+export function setMaxRunningMigrationsPerDbV2(n) {
+  return (_maxRunningMigrationsPerDbV2 = _positiveIntV2(
+    n,
+    "maxRunningMigrationsPerDb",
+  ));
+}
+export function getDefaultBaselineIdleMsV2() {
+  return DBEVO_DEFAULT_BASELINE_IDLE_MS;
+}
+export function getBaselineIdleMsV2() {
+  return _baselineIdleMsV2;
+}
+export function setBaselineIdleMsV2(ms) {
+  return (_baselineIdleMsV2 = _positiveIntV2(ms, "baselineIdleMs"));
+}
+export function getDefaultMigrationStuckMsV2() {
+  return DBEVO_DEFAULT_MIGRATION_STUCK_MS;
+}
+export function getMigrationStuckMsV2() {
+  return _migrationStuckMsV2;
+}
+export function setMigrationStuckMsV2(ms) {
+  return (_migrationStuckMsV2 = _positiveIntV2(ms, "migrationStuckMs"));
+}
+
+const _baselinesV2 = new Map();
+const _runsV2 = new Map();
+
+export function registerBaselineV2(
+  _db,
+  { baselineId, databaseId, version, initialStatus, metadata } = {},
+) {
+  if (!baselineId) throw new Error("baselineId is required");
+  if (!databaseId) throw new Error("databaseId is required");
+  if (!version) throw new Error("version is required");
+  if (_baselinesV2.has(baselineId))
+    throw new Error(`Baseline ${baselineId} already exists`);
+  const status = initialStatus || SCHEMA_BASELINE_V2.DRAFT;
+  if (!Object.values(SCHEMA_BASELINE_V2).includes(status))
+    throw new Error(`Invalid initial status: ${status}`);
+  if (BASELINE_TERMINALS_V2.has(status))
+    throw new Error(`Cannot register in terminal status: ${status}`);
+  if (status === SCHEMA_BASELINE_V2.ACTIVE) {
+    if (getActiveBaselineCount(databaseId) >= _maxActiveBaselinesPerDbV2)
+      throw new Error(
+        `Database ${databaseId} reached active-baseline cap (${_maxActiveBaselinesPerDbV2})`,
+      );
+  }
+  const now = Date.now();
+  const record = {
+    baselineId,
+    databaseId,
+    version,
+    status,
+    metadata: metadata || {},
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+  };
+  _baselinesV2.set(baselineId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getBaselineV2(baselineId) {
+  const r = _baselinesV2.get(baselineId);
+  return r ? { ...r, metadata: { ...r.metadata } } : null;
+}
+
+export function setBaselineStatusV2(_db, baselineId, newStatus, patch = {}) {
+  const record = _baselinesV2.get(baselineId);
+  if (!record) throw new Error(`Unknown baseline: ${baselineId}`);
+  if (!Object.values(SCHEMA_BASELINE_V2).includes(newStatus))
+    throw new Error(`Invalid status: ${newStatus}`);
+  const allowed = BASELINE_TRANSITIONS_V2.get(record.status) || new Set();
+  if (!allowed.has(newStatus))
+    throw new Error(`Invalid transition: ${record.status} -> ${newStatus}`);
+  if (newStatus === SCHEMA_BASELINE_V2.ACTIVE) {
+    if (getActiveBaselineCount(record.databaseId) >= _maxActiveBaselinesPerDbV2)
+      throw new Error(
+        `Database ${record.databaseId} reached active-baseline cap (${_maxActiveBaselinesPerDbV2})`,
+      );
+  }
+  record.status = newStatus;
+  record.updatedAt = Date.now();
+  if (patch.reason !== undefined) record.lastReason = patch.reason;
+  if (patch.metadata)
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function validateBaseline(db, id, reason) {
+  return setBaselineStatusV2(db, id, SCHEMA_BASELINE_V2.VALIDATED, { reason });
+}
+export function activateBaseline(db, id, reason) {
+  return setBaselineStatusV2(db, id, SCHEMA_BASELINE_V2.ACTIVE, { reason });
+}
+export function deprecateBaseline(db, id, reason) {
+  return setBaselineStatusV2(db, id, SCHEMA_BASELINE_V2.DEPRECATED, { reason });
+}
+export function retireBaseline(db, id, reason) {
+  return setBaselineStatusV2(db, id, SCHEMA_BASELINE_V2.RETIRED, { reason });
+}
+
+export function touchBaselineActivity(baselineId) {
+  const record = _baselinesV2.get(baselineId);
+  if (!record) throw new Error(`Unknown baseline: ${baselineId}`);
+  record.lastTouchedAt = Date.now();
+  record.updatedAt = record.lastTouchedAt;
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function enqueueMigrationRunV2(
+  _db,
+  { runId, databaseId, migrationId, direction, metadata } = {},
+) {
+  if (!runId) throw new Error("runId is required");
+  if (!databaseId) throw new Error("databaseId is required");
+  if (!migrationId) throw new Error("migrationId is required");
+  if (!direction) throw new Error("direction is required");
+  if (!Object.values(MIGRATION_DIRECTION).includes(direction))
+    throw new Error(`Invalid direction: ${direction}`);
+  if (_runsV2.has(runId)) throw new Error(`Run ${runId} already exists`);
+  const now = Date.now();
+  const record = {
+    runId,
+    databaseId,
+    migrationId,
+    direction,
+    status: MIGRATION_RUN_V2.QUEUED,
+    metadata: metadata || {},
+    createdAt: now,
+    updatedAt: now,
+  };
+  _runsV2.set(runId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getMigrationRunV2(runId) {
+  const r = _runsV2.get(runId);
+  return r ? { ...r, metadata: { ...r.metadata } } : null;
+}
+
+export function setMigrationRunStatusV2(_db, runId, newStatus, patch = {}) {
+  const record = _runsV2.get(runId);
+  if (!record) throw new Error(`Unknown run: ${runId}`);
+  if (!Object.values(MIGRATION_RUN_V2).includes(newStatus))
+    throw new Error(`Invalid status: ${newStatus}`);
+  const allowed = RUN_TRANSITIONS_V2.get(record.status) || new Set();
+  if (!allowed.has(newStatus))
+    throw new Error(`Invalid transition: ${record.status} -> ${newStatus}`);
+  if (newStatus === MIGRATION_RUN_V2.RUNNING) {
+    if (
+      getRunningMigrationCount(record.databaseId) >=
+      _maxRunningMigrationsPerDbV2
+    )
+      throw new Error(
+        `Database ${record.databaseId} reached running-migration cap (${_maxRunningMigrationsPerDbV2})`,
+      );
+    if (!record.startedAt) record.startedAt = Date.now();
+  }
+  record.status = newStatus;
+  record.updatedAt = Date.now();
+  if (patch.reason !== undefined) record.lastReason = patch.reason;
+  if (patch.metadata)
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function startMigrationRun(db, id, reason) {
+  return setMigrationRunStatusV2(db, id, MIGRATION_RUN_V2.RUNNING, { reason });
+}
+export function applyMigrationRun(db, id, reason) {
+  return setMigrationRunStatusV2(db, id, MIGRATION_RUN_V2.APPLIED, { reason });
+}
+export function failMigrationRun(db, id, reason) {
+  return setMigrationRunStatusV2(db, id, MIGRATION_RUN_V2.FAILED, { reason });
+}
+export function rollbackMigrationRun(db, id, reason) {
+  return setMigrationRunStatusV2(db, id, MIGRATION_RUN_V2.ROLLED_BACK, {
+    reason,
+  });
+}
+
+export function getActiveBaselineCount(databaseId) {
+  let n = 0;
+  for (const r of _baselinesV2.values()) {
+    if (r.status !== SCHEMA_BASELINE_V2.ACTIVE) continue;
+    if (databaseId && r.databaseId !== databaseId) continue;
+    n++;
+  }
+  return n;
+}
+
+export function getRunningMigrationCount(databaseId) {
+  let n = 0;
+  for (const r of _runsV2.values()) {
+    if (r.status !== MIGRATION_RUN_V2.RUNNING) continue;
+    if (databaseId && r.databaseId !== databaseId) continue;
+    n++;
+  }
+  return n;
+}
+
+export function autoRetireIdleBaselines(_db, nowMs) {
+  const now = nowMs ?? Date.now();
+  const flipped = [];
+  for (const r of _baselinesV2.values()) {
+    if (
+      r.status === SCHEMA_BASELINE_V2.DEPRECATED ||
+      r.status === SCHEMA_BASELINE_V2.DRAFT ||
+      r.status === SCHEMA_BASELINE_V2.VALIDATED
+    ) {
+      if (now - r.lastTouchedAt > _baselineIdleMsV2) {
+        r.status = SCHEMA_BASELINE_V2.RETIRED;
+        r.updatedAt = now;
+        r.lastReason = "idle_timeout";
+        flipped.push(r.baselineId);
+      }
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function autoFailStuckMigrationRuns(_db, nowMs) {
+  const now = nowMs ?? Date.now();
+  const flipped = [];
+  for (const r of _runsV2.values()) {
+    if (r.status === MIGRATION_RUN_V2.RUNNING) {
+      const anchor = r.startedAt || r.createdAt;
+      if (now - anchor > _migrationStuckMsV2) {
+        r.status = MIGRATION_RUN_V2.FAILED;
+        r.updatedAt = now;
+        r.lastReason = "migration_timeout";
+        flipped.push(r.runId);
+      }
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function getDbEvoStatsV2() {
+  const baselinesByStatus = {};
+  for (const s of Object.values(SCHEMA_BASELINE_V2)) baselinesByStatus[s] = 0;
+  const runsByStatus = {};
+  for (const s of Object.values(MIGRATION_RUN_V2)) runsByStatus[s] = 0;
+  for (const r of _baselinesV2.values()) baselinesByStatus[r.status]++;
+  for (const r of _runsV2.values()) runsByStatus[r.status]++;
+  return {
+    totalBaselinesV2: _baselinesV2.size,
+    totalRunsV2: _runsV2.size,
+    maxActiveBaselinesPerDb: _maxActiveBaselinesPerDbV2,
+    maxRunningMigrationsPerDb: _maxRunningMigrationsPerDbV2,
+    baselineIdleMs: _baselineIdleMsV2,
+    migrationStuckMs: _migrationStuckMsV2,
+    baselinesByStatus,
+    runsByStatus,
+  };
+}
+
+export function _resetStateV2() {
+  _maxActiveBaselinesPerDbV2 = DBEVO_DEFAULT_MAX_ACTIVE_BASELINES_PER_DB;
+  _maxRunningMigrationsPerDbV2 = DBEVO_DEFAULT_MAX_RUNNING_MIGRATIONS_PER_DB;
+  _baselineIdleMsV2 = DBEVO_DEFAULT_BASELINE_IDLE_MS;
+  _migrationStuckMsV2 = DBEVO_DEFAULT_MIGRATION_STUCK_MS;
+  _baselinesV2.clear();
+  _runsV2.clear();
+}

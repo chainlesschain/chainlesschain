@@ -23,6 +23,47 @@ import {
   getConnectivityReport,
   getInfraStats,
   _resetState,
+
+  // Phase 74-75 V2
+  PROVIDER_MATURITY_V2,
+  DEAL_LIFECYCLE_V2,
+  DI_DEFAULT_MAX_ACTIVE_PROVIDERS_PER_OPERATOR,
+  DI_DEFAULT_MAX_ACTIVE_DEALS_PER_PROVIDER,
+  DI_DEFAULT_PROVIDER_IDLE_MS,
+  DI_DEFAULT_DEAL_STUCK_MS,
+  getDefaultMaxActiveProvidersPerOperatorV2,
+  getMaxActiveProvidersPerOperatorV2,
+  setMaxActiveProvidersPerOperatorV2,
+  getDefaultMaxActiveDealsPerProviderV2,
+  getMaxActiveDealsPerProviderV2,
+  setMaxActiveDealsPerProviderV2,
+  getDefaultProviderIdleMsV2,
+  getProviderIdleMsV2,
+  setProviderIdleMsV2,
+  getDefaultDealStuckMsV2,
+  getDealStuckMsV2,
+  setDealStuckMsV2,
+  registerProviderV2,
+  getProviderV2,
+  setProviderMaturityV2,
+  activateProvider,
+  degradeProvider,
+  offlineProvider,
+  retireProvider,
+  touchProviderHeartbeat,
+  enqueueDealV2,
+  getDealV2,
+  setDealStatusV2,
+  activateDeal,
+  completeDeal,
+  failDeal,
+  cancelDeal,
+  getActiveProviderCount,
+  getActiveDealCount,
+  autoOfflineStaleProviders,
+  autoFailStuckActiveDeals,
+  getDecentralInfraStatsV2,
+  _resetStateV2,
 } from "../../src/lib/decentral-infra.js";
 
 describe("decentral-infra", () => {
@@ -376,6 +417,339 @@ describe("decentral-infra", () => {
       expect(s.content.cached).toBe(1);
       expect(s.content.uniqueCids).toBe(2);
       expect(s.connectivity.totalRoutes).toBe(1);
+    });
+  });
+});
+
+/* ═════════════════════════════════════════════════════════ *
+ *  Phase 74-75 V2 — Provider Maturity + Deal Lifecycle
+ * ═════════════════════════════════════════════════════════ */
+
+describe("decentral-infra V2 (Phase 74-75)", () => {
+  beforeEach(() => {
+    _resetStateV2();
+  });
+
+  describe("enums", () => {
+    it("PROVIDER_MATURITY_V2 has 5 frozen states", () => {
+      expect(Object.keys(PROVIDER_MATURITY_V2)).toHaveLength(5);
+      expect(Object.isFrozen(PROVIDER_MATURITY_V2)).toBe(true);
+    });
+    it("DEAL_LIFECYCLE_V2 has 5 frozen states", () => {
+      expect(Object.keys(DEAL_LIFECYCLE_V2)).toHaveLength(5);
+      expect(Object.isFrozen(DEAL_LIFECYCLE_V2)).toBe(true);
+    });
+  });
+
+  describe("config + setters", () => {
+    it("defaults + getters", () => {
+      expect(getDefaultMaxActiveProvidersPerOperatorV2()).toBe(
+        DI_DEFAULT_MAX_ACTIVE_PROVIDERS_PER_OPERATOR,
+      );
+      expect(getDefaultMaxActiveDealsPerProviderV2()).toBe(
+        DI_DEFAULT_MAX_ACTIVE_DEALS_PER_PROVIDER,
+      );
+      expect(getDefaultProviderIdleMsV2()).toBe(DI_DEFAULT_PROVIDER_IDLE_MS);
+      expect(getDefaultDealStuckMsV2()).toBe(DI_DEFAULT_DEAL_STUCK_MS);
+      expect(getMaxActiveProvidersPerOperatorV2()).toBe(
+        DI_DEFAULT_MAX_ACTIVE_PROVIDERS_PER_OPERATOR,
+      );
+    });
+    it("setters validate positive", () => {
+      expect(setMaxActiveProvidersPerOperatorV2(3)).toBe(3);
+      expect(setMaxActiveDealsPerProviderV2(2)).toBe(2);
+      expect(setProviderIdleMsV2(1000)).toBe(1000);
+      expect(setDealStuckMsV2(500)).toBe(500);
+      expect(() => setMaxActiveProvidersPerOperatorV2(0)).toThrow(/positive/);
+      expect(() => setDealStuckMsV2(-1)).toThrow(/positive/);
+    });
+  });
+
+  describe("registerProviderV2", () => {
+    it("registers with onboarding default", () => {
+      const r = registerProviderV2(null, {
+        providerId: "p1",
+        operatorId: "op1",
+        kind: "filecoin",
+      });
+      expect(r.status).toBe("onboarding");
+      expect(r.kind).toBe("filecoin");
+    });
+
+    it("validates required + duplicate + invalid/terminal initial", () => {
+      expect(() => registerProviderV2(null, {})).toThrow(/providerId/);
+      expect(() => registerProviderV2(null, { providerId: "p" })).toThrow(
+        /operatorId/,
+      );
+      expect(() =>
+        registerProviderV2(null, { providerId: "p", operatorId: "o" }),
+      ).toThrow(/kind/);
+      registerProviderV2(null, {
+        providerId: "p1",
+        operatorId: "o",
+        kind: "k",
+      });
+      expect(() =>
+        registerProviderV2(null, {
+          providerId: "p1",
+          operatorId: "o",
+          kind: "k",
+        }),
+      ).toThrow(/already exists/);
+      expect(() =>
+        registerProviderV2(null, {
+          providerId: "p2",
+          operatorId: "o",
+          kind: "k",
+          initialStatus: "galaxy",
+        }),
+      ).toThrow(/Invalid initial/);
+      expect(() =>
+        registerProviderV2(null, {
+          providerId: "p2",
+          operatorId: "o",
+          kind: "k",
+          initialStatus: "retired",
+        }),
+      ).toThrow(/terminal/);
+    });
+
+    it("enforces active cap", () => {
+      setMaxActiveProvidersPerOperatorV2(1);
+      registerProviderV2(null, {
+        providerId: "p1",
+        operatorId: "o",
+        kind: "k",
+        initialStatus: "active",
+      });
+      expect(() =>
+        registerProviderV2(null, {
+          providerId: "p2",
+          operatorId: "o",
+          kind: "k",
+          initialStatus: "active",
+        }),
+      ).toThrow(/cap/);
+    });
+  });
+
+  describe("provider maturity + shortcuts", () => {
+    beforeEach(() => {
+      registerProviderV2(null, {
+        providerId: "p1",
+        operatorId: "o",
+        kind: "k",
+      });
+    });
+
+    it("onboarding→active→degraded→active", () => {
+      activateProvider(null, "p1");
+      degradeProvider(null, "p1");
+      activateProvider(null, "p1");
+      expect(getProviderV2("p1").status).toBe("active");
+    });
+
+    it("retire terminal; offline → active", () => {
+      activateProvider(null, "p1");
+      offlineProvider(null, "p1");
+      activateProvider(null, "p1");
+      retireProvider(null, "p1");
+      expect(() => activateProvider(null, "p1")).toThrow(/Invalid transition/);
+    });
+
+    it("rejects unknown + invalid target", () => {
+      expect(() => activateProvider(null, "nope")).toThrow(/Unknown/);
+      expect(() => setProviderMaturityV2(null, "p1", "galaxy")).toThrow(
+        /Invalid status/,
+      );
+    });
+
+    it("cap enforced on re-activate", () => {
+      setMaxActiveProvidersPerOperatorV2(1);
+      activateProvider(null, "p1");
+      registerProviderV2(null, {
+        providerId: "p2",
+        operatorId: "o",
+        kind: "k",
+      });
+      expect(() => activateProvider(null, "p2")).toThrow(/cap/);
+    });
+
+    it("merges reason + metadata", () => {
+      const r = setProviderMaturityV2(null, "p1", "active", {
+        reason: "ready",
+        metadata: { a: 1 },
+      });
+      expect(r.lastReason).toBe("ready");
+      expect(r.metadata.a).toBe(1);
+    });
+  });
+
+  describe("touchProviderHeartbeat", () => {
+    it("updates lastHeartbeatAt", async () => {
+      registerProviderV2(null, {
+        providerId: "p1",
+        operatorId: "o",
+        kind: "k",
+      });
+      const before = getProviderV2("p1").lastHeartbeatAt;
+      await new Promise((r) => setTimeout(r, 2));
+      const r = touchProviderHeartbeat("p1");
+      expect(r.lastHeartbeatAt).toBeGreaterThanOrEqual(before);
+    });
+    it("throws unknown", () => {
+      expect(() => touchProviderHeartbeat("nope")).toThrow(/Unknown/);
+    });
+  });
+
+  describe("deal lifecycle", () => {
+    beforeEach(() => {
+      registerProviderV2(null, {
+        providerId: "p1",
+        operatorId: "o",
+        kind: "k",
+      });
+    });
+
+    it("enqueue + queued", () => {
+      const r = enqueueDealV2(null, {
+        dealId: "d1",
+        providerId: "p1",
+        ownerId: "u",
+      });
+      expect(r.status).toBe("queued");
+    });
+
+    it("validates required + unknown provider + duplicate", () => {
+      expect(() => enqueueDealV2(null, {})).toThrow(/dealId/);
+      expect(() => enqueueDealV2(null, { dealId: "d" })).toThrow(/providerId/);
+      expect(() =>
+        enqueueDealV2(null, { dealId: "d", providerId: "p1" }),
+      ).toThrow(/ownerId/);
+      expect(() =>
+        enqueueDealV2(null, { dealId: "d", providerId: "px", ownerId: "o" }),
+      ).toThrow(/Unknown provider/);
+      enqueueDealV2(null, { dealId: "d1", providerId: "p1", ownerId: "u" });
+      expect(() =>
+        enqueueDealV2(null, { dealId: "d1", providerId: "p1", ownerId: "u" }),
+      ).toThrow(/already exists/);
+    });
+
+    it("queued → active → completed + stamp-once", () => {
+      enqueueDealV2(null, { dealId: "d1", providerId: "p1", ownerId: "u" });
+      const a = activateDeal(null, "d1");
+      expect(a.status).toBe("active");
+      expect(a.activatedAt).toBeGreaterThan(0);
+      completeDeal(null, "d1");
+      expect(getDealV2("d1").status).toBe("completed");
+    });
+
+    it("queued → failed / canceled both valid", () => {
+      enqueueDealV2(null, { dealId: "d1", providerId: "p1", ownerId: "u" });
+      failDeal(null, "d1");
+      enqueueDealV2(null, { dealId: "d2", providerId: "p1", ownerId: "u" });
+      cancelDeal(null, "d2");
+    });
+
+    it("terminals reject further transitions", () => {
+      enqueueDealV2(null, { dealId: "d1", providerId: "p1", ownerId: "u" });
+      activateDeal(null, "d1");
+      completeDeal(null, "d1");
+      expect(() => failDeal(null, "d1")).toThrow(/Invalid transition/);
+    });
+
+    it("active cap per provider", () => {
+      setMaxActiveDealsPerProviderV2(1);
+      enqueueDealV2(null, { dealId: "d1", providerId: "p1", ownerId: "u" });
+      enqueueDealV2(null, { dealId: "d2", providerId: "p1", ownerId: "u" });
+      activateDeal(null, "d1");
+      expect(() => activateDeal(null, "d2")).toThrow(/cap/);
+    });
+  });
+
+  describe("counts + auto-flips + stats", () => {
+    it("counts", () => {
+      registerProviderV2(null, {
+        providerId: "p1",
+        operatorId: "o1",
+        kind: "k",
+      });
+      registerProviderV2(null, {
+        providerId: "p2",
+        operatorId: "o2",
+        kind: "k",
+      });
+      activateProvider(null, "p1");
+      activateProvider(null, "p2");
+      expect(getActiveProviderCount()).toBe(2);
+      expect(getActiveProviderCount("o1")).toBe(1);
+      enqueueDealV2(null, { dealId: "d1", providerId: "p1", ownerId: "u" });
+      activateDeal(null, "d1");
+      expect(getActiveDealCount()).toBe(1);
+      expect(getActiveDealCount("p1")).toBe(1);
+      expect(getActiveDealCount("p2")).toBe(0);
+    });
+
+    it("autoOfflineStaleProviders flips active+degraded", () => {
+      registerProviderV2(null, {
+        providerId: "p1",
+        operatorId: "o",
+        kind: "k",
+      });
+      registerProviderV2(null, {
+        providerId: "p2",
+        operatorId: "o",
+        kind: "k",
+      });
+      activateProvider(null, "p1");
+      activateProvider(null, "p2");
+      degradeProvider(null, "p2");
+      const now = Date.now() + DI_DEFAULT_PROVIDER_IDLE_MS + 1;
+      const r = autoOfflineStaleProviders(null, now);
+      expect(r.count).toBe(2);
+      expect(r.flipped.sort()).toEqual(["p1", "p2"]);
+    });
+
+    it("autoFailStuckActiveDeals only flips ACTIVE", () => {
+      registerProviderV2(null, {
+        providerId: "p1",
+        operatorId: "o",
+        kind: "k",
+      });
+      setMaxActiveDealsPerProviderV2(5);
+      enqueueDealV2(null, { dealId: "d1", providerId: "p1", ownerId: "u" });
+      enqueueDealV2(null, { dealId: "d2", providerId: "p1", ownerId: "u" });
+      activateDeal(null, "d1");
+      const now = Date.now() + DI_DEFAULT_DEAL_STUCK_MS + 1;
+      const r = autoFailStuckActiveDeals(null, now);
+      expect(r.count).toBe(1);
+      expect(r.flipped).toEqual(["d1"]);
+      expect(getDealV2("d2").status).toBe("queued");
+    });
+
+    it("stats zero-initializes", () => {
+      const s = getDecentralInfraStatsV2();
+      expect(s.totalProvidersV2).toBe(0);
+      for (const k of Object.values(PROVIDER_MATURITY_V2))
+        expect(s.providersByStatus[k]).toBe(0);
+      for (const k of Object.values(DEAL_LIFECYCLE_V2))
+        expect(s.dealsByStatus[k]).toBe(0);
+    });
+  });
+
+  describe("_resetStateV2", () => {
+    it("clears + restores defaults", () => {
+      setMaxActiveProvidersPerOperatorV2(9);
+      registerProviderV2(null, {
+        providerId: "p1",
+        operatorId: "o",
+        kind: "k",
+      });
+      _resetStateV2();
+      expect(getMaxActiveProvidersPerOperatorV2()).toBe(
+        DI_DEFAULT_MAX_ACTIVE_PROVIDERS_PER_OPERATOR,
+      );
+      expect(getProviderV2("p1")).toBeNull();
     });
   });
 });

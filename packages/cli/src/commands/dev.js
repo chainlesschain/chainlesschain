@@ -25,7 +25,46 @@ import {
   listADRs,
   renderADR,
   AUTONOMY_LEVELS,
+  ADR_MATURITY_V2,
+  DEV_SESSION_V2,
+  getMaxActiveAdrsPerAuthor,
+  setMaxActiveAdrsPerAuthor,
+  getMaxRunningSessionsPerDeveloper,
+  setMaxRunningSessionsPerDeveloper,
+  getAdrStaleMs,
+  setAdrStaleMs,
+  getSessionStuckMs,
+  setSessionStuckMs,
+  getActiveAdrCount,
+  getRunningSessionCount,
+  createAdrV2,
+  getAdrV2,
+  listAdrsV2,
+  setAdrMaturityV2,
+  acceptAdr,
+  deprecateAdr,
+  supersedeAdr,
+  enqueueSessionV2,
+  getSessionV2,
+  listSessionsV2,
+  setSessionStatusV2,
+  startSessionV2,
+  completeSessionV2,
+  failSessionV2,
+  cancelSessionV2,
+  autoSupersedeStaleDrafts,
+  autoFailStuckSessions,
+  getAutonomousDeveloperStatsV2,
 } from "../lib/autonomous-developer.js";
+
+function _parseJsonV2(s) {
+  if (!s) return undefined;
+  try {
+    return JSON.parse(s);
+  } catch {
+    throw new Error(`invalid JSON: ${s}`);
+  }
+}
 
 function _dbFromCtx(ctx) {
   if (!ctx.db) {
@@ -408,4 +447,217 @@ export function registerDevCommand(program) {
 
   // silence unused import lints (AUTONOMY_LEVELS re-exported for consumers)
   void AUTONOMY_LEVELS;
+
+  /* ── V2 Surface (Autonomous Developer) ─────────────────── */
+
+  dev
+    .command("adr-maturities-v2")
+    .description("List ADR_MATURITY_V2 enum")
+    .action(() => {
+      for (const v of Object.values(ADR_MATURITY_V2)) console.log(`  ${v}`);
+    });
+
+  dev
+    .command("dev-sessions-v2")
+    .description("List DEV_SESSION_V2 enum")
+    .action(() => {
+      for (const v of Object.values(DEV_SESSION_V2)) console.log(`  ${v}`);
+    });
+
+  dev
+    .command("max-active-adrs-per-author")
+    .description("Get max-active-adrs-per-author cap")
+    .action(() => console.log(getMaxActiveAdrsPerAuthor()));
+  dev
+    .command("set-max-active-adrs-per-author <n>")
+    .action((n) => console.log(setMaxActiveAdrsPerAuthor(Number(n))));
+
+  dev
+    .command("max-running-sessions-per-developer")
+    .description("Get max-running-sessions-per-developer cap")
+    .action(() => console.log(getMaxRunningSessionsPerDeveloper()));
+  dev
+    .command("set-max-running-sessions-per-developer <n>")
+    .action((n) => console.log(setMaxRunningSessionsPerDeveloper(Number(n))));
+
+  dev
+    .command("adr-stale-ms")
+    .description("Get adr-stale-ms threshold")
+    .action(() => console.log(getAdrStaleMs()));
+  dev
+    .command("set-adr-stale-ms <n>")
+    .action((n) => console.log(setAdrStaleMs(Number(n))));
+
+  dev
+    .command("session-stuck-ms")
+    .description("Get session-stuck-ms threshold")
+    .action(() => console.log(getSessionStuckMs()));
+  dev
+    .command("set-session-stuck-ms <n>")
+    .action((n) => console.log(setSessionStuckMs(Number(n))));
+
+  dev
+    .command("active-adr-count")
+    .description("Count non-superseded ADRs (optionally by author)")
+    .option("-a, --author <author>")
+    .action((opts) => console.log(getActiveAdrCount(opts.author)));
+
+  dev
+    .command("running-session-count")
+    .description("Count RUNNING sessions (optionally by developer)")
+    .option("-d, --developer <developer>")
+    .action((opts) => console.log(getRunningSessionCount(opts.developer)));
+
+  dev
+    .command("create-adr-v2 <adr-id>")
+    .description("Create V2 ADR")
+    .requiredOption("-a, --author <author>", "author")
+    .requiredOption("-t, --title <title>", "title")
+    .option("-i, --initial <status>", "initial status", ADR_MATURITY_V2.DRAFT)
+    .option("--metadata <json>", "metadata JSON")
+    .action((id, opts) => {
+      const a = createAdrV2({
+        id,
+        author: opts.author,
+        title: opts.title,
+        initialStatus: opts.initial,
+        metadata: _parseJsonV2(opts.metadata),
+      });
+      console.log(JSON.stringify(a, null, 2));
+    });
+
+  dev
+    .command("adr-v2 <adr-id>")
+    .description("Show V2 ADR")
+    .action((id) => {
+      const a = getAdrV2(id);
+      if (!a) return console.error(`ADR ${id} not found`);
+      console.log(JSON.stringify(a, null, 2));
+    });
+
+  dev
+    .command("list-adrs-v2")
+    .description("List V2 ADRs")
+    .option("-a, --author <author>")
+    .option("-s, --status <status>")
+    .action((opts) => console.log(JSON.stringify(listAdrsV2(opts), null, 2)));
+
+  dev
+    .command("set-adr-maturity-v2 <adr-id> <status>")
+    .description("Transition V2 ADR maturity")
+    .option("-r, --reason <reason>")
+    .option("--metadata <json>")
+    .action((id, status, opts) => {
+      const a = setAdrMaturityV2(id, status, {
+        reason: opts.reason,
+        metadata: _parseJsonV2(opts.metadata),
+      });
+      console.log(JSON.stringify(a, null, 2));
+    });
+
+  for (const [name, fn] of [
+    ["accept-adr", acceptAdr],
+    ["deprecate-adr", deprecateAdr],
+    ["supersede-adr", supersedeAdr],
+  ]) {
+    dev
+      .command(`${name} <adr-id>`)
+      .description(`Shortcut for ${name.replace("-adr", "")} transition`)
+      .option("-r, --reason <reason>")
+      .action((id, opts) => {
+        const a = fn(id, { reason: opts.reason });
+        console.log(JSON.stringify(a, null, 2));
+      });
+  }
+
+  dev
+    .command("enqueue-session-v2 <session-id>")
+    .description("Enqueue V2 dev session")
+    .requiredOption("-d, --developer <developer>")
+    .requiredOption("-g, --goal <goal>")
+    .option("--metadata <json>")
+    .action((id, opts) => {
+      const s = enqueueSessionV2({
+        id,
+        developer: opts.developer,
+        goal: opts.goal,
+        metadata: _parseJsonV2(opts.metadata),
+      });
+      console.log(JSON.stringify(s, null, 2));
+    });
+
+  dev
+    .command("session-v2 <session-id>")
+    .description("Show V2 session")
+    .action((id) => {
+      const s = getSessionV2(id);
+      if (!s) return console.error(`session ${id} not found`);
+      console.log(JSON.stringify(s, null, 2));
+    });
+
+  dev
+    .command("list-sessions-v2")
+    .description("List V2 sessions")
+    .option("-d, --developer <developer>")
+    .option("-s, --status <status>")
+    .action((opts) =>
+      console.log(JSON.stringify(listSessionsV2(opts), null, 2)),
+    );
+
+  dev
+    .command("set-session-status-v2 <session-id> <status>")
+    .option("-r, --reason <reason>")
+    .option("--metadata <json>")
+    .action((id, status, opts) => {
+      const s = setSessionStatusV2(id, status, {
+        reason: opts.reason,
+        metadata: _parseJsonV2(opts.metadata),
+      });
+      console.log(JSON.stringify(s, null, 2));
+    });
+
+  for (const [name, fn] of [
+    ["start-session-v2", startSessionV2],
+    ["complete-session-v2", completeSessionV2],
+    ["fail-session-v2", failSessionV2],
+    ["cancel-session-v2", cancelSessionV2],
+  ]) {
+    dev
+      .command(`${name} <session-id>`)
+      .description(`Shortcut for ${name.replace("-session-v2", "")} transition`)
+      .option("-r, --reason <reason>")
+      .action((id, opts) => {
+        const s = fn(id, { reason: opts.reason });
+        console.log(JSON.stringify(s, null, 2));
+      });
+  }
+
+  dev
+    .command("auto-supersede-stale-drafts")
+    .description(
+      "Bulk-supersede DRAFT ADRs whose updatedAt is older than adrStaleMs",
+    )
+    .action(() =>
+      console.log(
+        JSON.stringify({ flipped: autoSupersedeStaleDrafts() }, null, 2),
+      ),
+    );
+
+  dev
+    .command("auto-fail-stuck-sessions")
+    .description(
+      "Bulk-fail RUNNING sessions whose startedAt is older than sessionStuckMs",
+    )
+    .action(() =>
+      console.log(
+        JSON.stringify({ flipped: autoFailStuckSessions() }, null, 2),
+      ),
+    );
+
+  dev
+    .command("stats-v2")
+    .description("Show V2 autonomous-developer stats")
+    .action(() =>
+      console.log(JSON.stringify(getAutonomousDeveloperStatsV2(), null, 2)),
+    );
 }

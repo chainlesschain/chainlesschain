@@ -140,6 +140,47 @@ chainlesschain runtime stats [--json]
 
 > **未移植**: 真实插件沙箱、Yjs CRDT 合并、真实 Flame Graph 采样、差量热补丁、自愈定时器。CLI 只是一次性调用，状态同步为最后写入胜出 (LWW) 而非真正的 CRDT。
 
+### Phase 63 V2 — Plugin Maturity + Runtime Task Lifecycle
+
+V2 strictly additive in-memory surface. 4-state plugin maturity (draft/active/deprecated/retired) + 5-state runtime-task lifecycle (queued/running/completed/failed/canceled, 3 terminals). Per-owner active-plugin cap, per-owner running-task cap, auto-retire idle plugins, auto-fail stuck running tasks. `startedAt` stamped once on first RUNNING transition.
+
+```bash
+# Enum catalog
+cc runtime plugin-maturities-v2 | runtime-task-lifecycles-v2
+
+# Config
+cc runtime default-max-active-plugins-per-owner | max-active-plugins-per-owner | set-max-active-plugins-per-owner <n>
+cc runtime default-max-running-tasks-per-owner  | max-running-tasks-per-owner  | set-max-running-tasks-per-owner <n>
+cc runtime default-plugin-idle-ms | plugin-idle-ms | set-plugin-idle-ms <ms>
+cc runtime default-task-stuck-ms  | task-stuck-ms  | set-task-stuck-ms <ms>
+
+# Counts
+cc runtime active-plugin-count [-o <owner>]
+cc runtime running-task-count [-o <owner>]
+
+# Plugin lifecycle
+cc runtime register-plugin-v2 <plugin-id> -o <owner> [-n <name>] [-v <version>] [-i <initial>] [-m <metadata>]
+cc runtime plugin-v2 <plugin-id>
+cc runtime set-plugin-maturity-v2 <plugin-id> <status> [-r <reason>] [-m <metadata>]
+cc runtime activate-plugin-v2 | deprecate-plugin-v2 | retire-plugin-v2 <plugin-id> [-r <reason>]
+cc runtime touch-plugin-invocation <plugin-id>
+
+# Task lifecycle
+cc runtime enqueue-runtime-task-v2 <task-id> -o <owner> -p <plugin> -k <kind> [-m <metadata>]
+cc runtime runtime-task-v2 <task-id>
+cc runtime set-runtime-task-status-v2 <task-id> <status> [-r <reason>] [-m <metadata>]
+cc runtime start-runtime-task | complete-runtime-task | fail-runtime-task | cancel-runtime-task <task-id> [-r <reason>]
+
+# Bulk auto-flips
+cc runtime auto-retire-idle-plugins
+cc runtime auto-fail-stuck-runtime-tasks
+
+# All-enum-key zero-init stats
+cc runtime stats-v2
+```
+
+Defaults: 40 active plugins/owner, 5 running tasks/owner, 90d idle, 4h stuck. 87 tests cover legacy + V2.
+
 ## IPFS 去中心化存储 (Phase 17)
 
 Phase 17 Desktop IPFS 模块的 CLI 端口 —— 不依赖真实 libp2p/Helia，使用确定性 CID 模拟 (`bafy` + sha256 hex 前缀) + AES-256-GCM 加密 + 配额/垃圾回收 + 知识附件链接。
@@ -179,6 +220,47 @@ chainlesschain ipfs attachments --knowledge-id <id> [--json]
 ```
 
 > **未移植**: 真实 libp2p/Helia 节点、DHT 发现、真实 CID v1 计算、gateway HTTP 服务。CLI 仅本地 SQLite 模拟，生产侧仍走桌面端原生实现。
+
+### Phase 17 V2 — Gateway Maturity + Pin Lifecycle
+
+V2 strictly additive in-memory surface. 5-state gateway maturity (onboarding/active/degraded/offline/retired) + 4-state pin lifecycle (pending/pinned/unpinned/failed, with `failed→pending` retry path). Per-operator active-gateway cap, per-owner pending-pin cap, auto-offline stale gateways (active/degraded), auto-fail stale pending pins.
+
+```bash
+# Enum catalog
+cc ipfs gateway-maturities-v2 | pin-lifecycles-v2
+
+# Config (per-operator / per-owner caps, idle/pending timeouts)
+cc ipfs default-max-active-gateways-per-operator | max-active-gateways-per-operator | set-max-active-gateways-per-operator <n>
+cc ipfs default-max-pending-pins-per-owner | max-pending-pins-per-owner | set-max-pending-pins-per-owner <n>
+cc ipfs default-gateway-idle-ms | gateway-idle-ms | set-gateway-idle-ms <ms>
+cc ipfs default-pin-pending-ms | pin-pending-ms | set-pin-pending-ms <ms>
+
+# Counts
+cc ipfs active-gateway-count [-o <operator>]
+cc ipfs pending-pin-count [-o <owner>]
+
+# Gateway lifecycle
+cc ipfs register-gateway-v2 <gateway-id> -o <operator> [-e <endpoint>] [-i <initial-status>] [-m <metadata-json>]
+cc ipfs gateway-v2 <gateway-id>
+cc ipfs set-gateway-maturity-v2 <gateway-id> <status> [-r <reason>] [-m <metadata>]
+cc ipfs activate-gateway | degrade-gateway | offline-gateway | retire-gateway <gateway-id> [-r <reason>]
+cc ipfs touch-gateway-heartbeat <gateway-id>
+
+# Pin lifecycle (pinnedAt stamp-once on first PINNED transition)
+cc ipfs register-pin-v2 <pin-id> -o <owner> -c <cid> [-z <size>] [-i <initial>] [-m <metadata>]
+cc ipfs pin-v2 <pin-id>
+cc ipfs set-pin-status-v2 <pin-id> <status> [-r <reason>] [-m <metadata>]
+cc ipfs confirm-pin | fail-pin | unpin-v2 <pin-id> [-r <reason>]
+
+# Bulk auto-flips (use current clock)
+cc ipfs auto-offline-stale-gateways
+cc ipfs auto-fail-stale-pending-pins
+
+# All-enum-key zero-init stats
+cc ipfs stats-v2
+```
+
+Defaults: 20 active gateways/operator, 100 pending pins/owner, 60d idle, 24h pending. 83 tests cover legacy + V2.
 
 ## 多模态协作 (Phase 27)
 
@@ -225,6 +307,31 @@ chainlesschain mm stats [--json]
 ```
 
 > **未移植**: 真实 PDF/DOCX/XLSX 解析 (报告 `parser_not_available`)、图像/音频/屏幕内容自动 OCR/ASR、浏览器端 Reveal.js / ECharts 交互渲染。CLI 仅做轻量文本流水线，生成产物是 HTML/JSON/Markdown 骨架。
+
+### Phase 27 V2 — Session Maturity + Artifact Lifecycle
+
+```bash
+chainlesschain mm session-maturities-v2 | artifact-lifecycles-v2 [--json]
+chainlesschain mm default-max-active-sessions-per-owner | max-active-sessions-per-owner | set-max-active-sessions-per-owner <n>
+chainlesschain mm default-max-artifacts-per-session     | max-artifacts-per-session     | set-max-artifacts-per-session <n>
+chainlesschain mm default-session-idle-ms   | session-idle-ms   | set-session-idle-ms <ms>
+chainlesschain mm default-artifact-stale-ms | artifact-stale-ms | set-artifact-stale-ms <ms>
+chainlesschain mm active-session-count [-o owner]
+chainlesschain mm artifact-count [-s session]
+chainlesschain mm register-session-v2 <session-id> -o <owner> [-t|-i|-m]
+chainlesschain mm session-v2 <session-id>
+chainlesschain mm set-session-maturity-v2 <session-id> <status> [-r|-m]
+chainlesschain mm activate-session | pause-session | complete-session-v2 | archive-session <session-id> [-r]
+chainlesschain mm touch-session-activity <session-id>
+chainlesschain mm register-artifact-v2 <artifact-id> -s <session> -M <modality> [-z|-i|-m]
+chainlesschain mm artifact-v2 <artifact-id>
+chainlesschain mm set-artifact-status-v2 <artifact-id> <status> [-r|-m]
+chainlesschain mm mark-artifact-ready | purge-artifact <artifact-id> [-r]
+chainlesschain mm touch-artifact-access <artifact-id>
+chainlesschain mm auto-archive-idle-sessions
+chainlesschain mm auto-purge-stale-artifacts
+chainlesschain mm stats-v2
+```
 
 ## 性能自动调优 (Phase 22)
 
@@ -612,3 +719,219 @@ chainlesschain automation stats [--json]                                # 流程
 ```
 
 > **未移植**: 真实 SaaS 连接（CLI 只暴露目录,不调用 Gmail/Slack/GitHub API）；真实 HTTP webhook 接收器 / cron 调度器 / event bus（CLI `fire-trigger` 由调用方推送）；action 节点真实执行（CLI `_simulateNodeOutput` 构造模拟输出）；OAuth / 密钥保管。条件节点使用正则安全求值器支持 `ctx.path OP 字面量` 语法（OP ∈ {<,<=,>,>=,==,!=}），不走 `eval`。循环检测基于拓扑排序缺失节点判定。
+
+---
+
+## Phase 84 V2 — Multimodal Perception (sensor maturity + capture lifecycle)
+
+`src/lib/perception.js` 在原有 perception CRUD / voice session / cross-modal index 基础上追加 V2 面：两条平行状态机 `SENSOR_MATURITY_V2` (5 态：onboarding/active/degraded/offline/retired) + `CAPTURE_LIFECYCLE_V2` (5 态：pending/processing/ready/failed/discarded；**2 个终态** ready/discarded；包含 failed→pending 重试路径)。每 operator ACTIVE sensor 上限 + 每 sensor PENDING capture 上限。`processingStartedAt` 在首次 PROCESSING 跃迁时一次性戳记并在 failed→pending→processing 重试循环中保持。
+
+**配置默认值**:
+```
+PCP_DEFAULT_MAX_ACTIVE_SENSORS_PER_OPERATOR = 25
+PCP_DEFAULT_MAX_PENDING_CAPTURES_PER_SENSOR = 50
+PCP_DEFAULT_SENSOR_IDLE_MS                  = 30 * 86400000   // 30 天
+PCP_DEFAULT_CAPTURE_STUCK_MS                = 2 * 3600000     // 2 小时
+```
+
+**枚举 + 配置**:
+```bash
+cc perception sensor-maturities-v2                                         # 5 态
+cc perception capture-lifecycles-v2                                        # 5 态
+cc perception default-max-active-sensors-per-operator | max-active-sensors-per-operator | set-max-active-sensors-per-operator <n>
+cc perception default-max-pending-captures-per-sensor | max-pending-captures-per-sensor | set-max-pending-captures-per-sensor <n>
+cc perception default-sensor-idle-ms | sensor-idle-ms | set-sensor-idle-ms <ms>
+cc perception default-capture-stuck-ms | capture-stuck-ms | set-capture-stuck-ms <ms>
+cc perception active-sensor-count [-o operator]                            # 仅 ACTIVE 计数
+cc perception pending-capture-count [-s sensor]                            # 仅 PENDING 计数
+```
+
+**Sensor 生命周期（throws on cap / invalid transition / terminal initial）**:
+```bash
+cc perception register-sensor-v2 <sensor-id> -o <operator> -m <modality> [-i initial] [--metadata json]
+cc perception sensor-v2 <sensor-id>
+cc perception set-sensor-maturity-v2 <sensor-id> <status> [-r reason] [--metadata json]
+cc perception activate-sensor | degrade-sensor | offline-sensor | retire-sensor <sensor-id> [-r reason]
+cc perception touch-sensor-heartbeat <sensor-id>                           # 推进 lastHeartbeatAt
+```
+
+**Capture 生命周期（throws on cap / invalid transition / terminal initial）**:
+```bash
+cc perception register-capture-v2 <capture-id> -s <sensor> [-i initial] [--metadata json]
+cc perception capture-v2 <capture-id>
+cc perception set-capture-status-v2 <capture-id> <status> [-r reason] [--metadata json]
+cc perception start-processing-capture | mark-capture-ready | fail-capture | discard-capture <capture-id> [-r reason]
+```
+
+**批量 auto-flip + 统计**:
+```bash
+cc perception auto-offline-stale-sensors              # ACTIVE/DEGRADED → OFFLINE（heartbeat 超时）
+cc perception auto-fail-stuck-processing-captures     # 仅 PROCESSING → FAILED；基于 processingStartedAt
+cc perception stats-v2                                 # 全枚举零初始化
+```
+
+> **未移植**: 真实 OCR / ASR / 视觉模型推理；摄像头 / 麦克风实时采集管道；WebRTC 屏幕共享实时感知；voice session 流式转录分片；CUDA 加速多模态嵌入。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (sensor 成熟度 + 带重试路径的 capture 生命周期)、双维度上限 (per-operator ACTIVE sensor + per-sensor PENDING capture)、throwing `registerSensorV2`/`registerCaptureV2` + 8 shortcuts (stamp-once `processingStartedAt` 跨重试循环保持)、`touchSensorHeartbeat` + 2 批量 auto-flip、全枚举零初始化 `getPerceptionStatsV2`。
+
+## Phase 74-75 V2 — Decentralized Infra (provider maturity + deal lifecycle)
+
+**状态机 (两条平行):**
+- Provider maturity (5 states, `retired` terminal): `onboarding → {active, retired}`, `active → {degraded, offline, retired}`, `degraded → {active, offline, retired}`, `offline → {active, retired}` (recovery)
+- Deal lifecycle (5 states, 3 terminals): `queued → {active, canceled, failed}`, `active → {completed, failed, canceled}`
+
+**双维度上限:**
+```bash
+cc infra max-active-providers-per-operator             # default 20
+cc infra set-max-active-providers-per-operator <n>
+cc infra max-active-deals-per-provider                 # default 10
+cc infra set-max-active-deals-per-provider <n>
+cc infra provider-idle-ms                              # default 7 days
+cc infra deal-stuck-ms                                 # default 24 hours
+```
+
+**Provider + Deal V2 CRUD:**
+```bash
+cc infra register-provider-v2 <provider-id> -o <operator> -k <kind> [-i initial] [--metadata json]
+cc infra provider-v2 <provider-id>
+cc infra set-provider-maturity-v2 <provider-id> <status> [-r reason] [--metadata json]
+cc infra activate-provider | degrade-provider | offline-provider | retire-provider <provider-id> [-r reason]
+cc infra touch-provider-heartbeat <provider-id>
+cc infra enqueue-deal-v2 <deal-id> -p <provider> -o <owner> [--metadata json]
+cc infra deal-v2 <deal-id>
+cc infra set-deal-status-v2 <deal-id> <status> [-r reason] [--metadata json]
+cc infra activate-deal | complete-deal | fail-deal | cancel-deal <deal-id> [-r reason]
+```
+
+**批量 auto-flip + 统计:**
+```bash
+cc infra auto-offline-stale-providers                  # ACTIVE/DEGRADED → OFFLINE (heartbeat timeout)
+cc infra auto-fail-stuck-active-deals                  # 仅 ACTIVE → FAILED；基于 startedAt
+cc infra stats-v2                                       # 全枚举零初始化
+```
+
+> **未移植**: 真实 Filecoin/IPFS deal 链上签名；provider 分布式健康探测；deal 反抽查 / PoRep / PoSt；CDN 多地域容错路由；gateway 带宽计费结算。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (provider 成熟度 w/ offline→active 恢复 + deal 3-terminal 生命周期)、双维度上限 (per-operator ACTIVE provider + per-provider active deal)、throwing `registerProviderV2`/`enqueueDealV2` (provider 必须已存在) + 8 shortcuts、stamp-once `activatedAt` + `lastHeartbeatAt` 追踪、`touchProviderHeartbeat` + 2 批量 auto-flip、全枚举零初始化 `getDecentralInfraStatsV2`。
+
+## Phase 72-73 V2 — Protocol Fusion (bridge maturity + translation-run lifecycle)
+
+**状态机 (两条平行):**
+- Bridge maturity (5 states, `retired` terminal): `provisional → {active, retired}`, `active → {degraded, deprecated, retired}`, `degraded → {active, deprecated, retired}`, `deprecated → {active, retired}`
+- Translation run (5 states, 3 terminals): `queued → {running, canceled, failed}`, `running → {succeeded, failed, canceled}`
+
+**双维度上限 + 阈值:**
+```bash
+cc fusion max-active-bridges-per-operator          # default 10
+cc fusion set-max-active-bridges-per-operator <n>
+cc fusion max-running-translations-per-bridge      # default 5
+cc fusion set-max-running-translations-per-bridge <n>
+cc fusion bridge-idle-ms                           # default 14 days
+cc fusion translation-stuck-ms                     # default 10 min
+```
+
+**Bridge + Translation V2 CRUD:**
+```bash
+cc fusion register-bridge-v2 <bridge-id> -o <operator> -s <source-protocol> -t <target-protocol> [-i initial] [--metadata json]
+cc fusion bridge-v2 <bridge-id>
+cc fusion list-bridges-v2 [-o operator] [-s status]
+cc fusion set-bridge-maturity-v2 <bridge-id> <status> [-r reason] [--metadata json]
+cc fusion activate-bridge | degrade-bridge | deprecate-bridge | retire-bridge <bridge-id> [-r reason]
+cc fusion touch-bridge-usage <bridge-id>
+cc fusion enqueue-translation-v2 <translation-id> -b <bridge> -t <target-lang> -x <text> [-s source-lang] [--metadata json]
+cc fusion translation-v2 <translation-id>
+cc fusion list-translations-v2 [-b bridge] [-s status]
+cc fusion set-translation-status-v2 <translation-id> <status> [-r reason] [--metadata json] [--result json]
+cc fusion start-translation | succeed-translation | fail-translation | cancel-translation <translation-id> [-r reason]
+```
+
+**批量 auto-flip + 统计:**
+```bash
+cc fusion auto-retire-idle-bridges                 # ACTIVE/DEGRADED/DEPRECATED → RETIRED (lastUsedAt 超时)
+cc fusion auto-fail-stuck-running-translations     # 仅 RUNNING → FAILED；基于 startedAt
+cc fusion stats-v2                                  # 全枚举零初始化
+```
+
+> **未移植**: 真实 DID/ActivityPub/Nostr/Matrix 协议桥；LLM 驱动的翻译引擎；WebSocket 实时消息订阅；ML 内容质量分类器。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (bridge 成熟度 w/ degraded→active 恢复 + translation 3-terminal 生命周期)、双维度上限 (per-operator ACTIVE bridge 排除 provisional + per-bridge RUNNING translation)、throwing `registerBridgeV2`/`enqueueTranslationV2` (bridge 必须已存在) + 8 shortcuts、stamp-once `activatedAt` + `startedAt`、`touchBridgeUsage` + 2 批量 auto-flip、全枚举零初始化 `getProtocolFusionStatsV2`。
+
+## Phase 68-71 V2 — Trust & Security (HSM maturity + satellite transmission)
+
+**状态机 (两条平行):**
+- HSM device maturity (4 states, `retired` terminal): `provisional → {active, retired}`, `active → {degraded, retired}`, `degraded → {active, retired}`
+- Transmission lifecycle (5 states, 3 terminals): `queued → {sending, canceled, failed}`, `sending → {confirmed, failed, canceled}`
+
+**双维度上限 + 阈值:**
+```bash
+cc trust max-active-devices-per-operator           # default 8
+cc trust set-max-active-devices-per-operator <n>
+cc trust max-pending-transmissions-per-device      # default 20
+cc trust device-idle-ms                             # default 30 days
+cc trust transmission-stuck-ms                      # default 2 min
+```
+
+**Device + Transmission V2 CRUD:**
+```bash
+cc trust register-device-v2 <device-id> -o <operator> -v <vendor> [-i initial] [--metadata json]
+cc trust device-v2 <device-id>
+cc trust list-devices-v2 [-o operator] [-s status]
+cc trust set-device-maturity-v2 <device-id> <status> [-r reason] [--metadata json]
+cc trust activate-device | degrade-device | retire-device <device-id> [-r reason]
+cc trust touch-device-usage <device-id>
+cc trust enqueue-transmission-v2 <transmission-id> -d <device> -p <provider> -x <payload> [--metadata json]
+cc trust transmission-v2 <transmission-id>
+cc trust list-transmissions-v2 [-d device] [-s status]
+cc trust set-transmission-status-v2 <transmission-id> <status> [-r reason] [--metadata json]
+cc trust start-transmission | confirm-transmission | fail-transmission | cancel-transmission <transmission-id> [-r reason]
+```
+
+**批量 auto-flip + 统计:**
+```bash
+cc trust auto-retire-idle-devices                  # ACTIVE/DEGRADED → RETIRED (lastUsedAt 超时)
+cc trust auto-fail-stuck-transmissions             # 仅 SENDING → FAILED；基于 startedAt
+cc trust stats-v2                                   # 全枚举零初始化
+```
+
+> **未移植**: 真实 TPM/TEE/SE 硬件信任根；USB HSM 驱动；Iridium/Starlink/BeiDou 实际卫星通信；PQC 密钥交换。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (HSM 成熟度 w/ degraded→active 恢复 + transmission 3-terminal 生命周期)、双维度上限 (per-operator active device 排除 provisional + per-device pending transmission)、throwing `registerDeviceV2`/`enqueueTransmissionV2` (device 必须已存在) + 7 shortcuts、stamp-once `activatedAt` + `startedAt`、`touchDeviceUsage` + 2 批量 auto-flip、全枚举零初始化 `getTrustSecurityStatsV2`。
+
+## Autonomous Developer V2 (CLI 0.103.0)
+
+**Target**: `packages/cli/src/lib/autonomous-developer.js` · `packages/cli/src/commands/dev.js`
+
+**V2 面**:
+- `ADR_MATURITY_V2` = { PROVISIONAL(draft), ACCEPTED, DEPRECATED, SUPERSEDED(terminal) }
+- `DEV_SESSION_V2` = { QUEUED, RUNNING, COMPLETED, FAILED, CANCELED } (3 terminals)
+- Config: `max-active-adrs-per-author=20`, `max-running-sessions-per-developer=3`, `adr-stale-ms=90d`, `session-stuck-ms=2h`
+- 计数: `getActiveAdrCount` 排除 superseded; `getRunningSessionCount` 仅 running
+- Auto-flip: `autoSupersedeStaleDrafts({now})` draft→superseded; `autoFailStuckSessions({now})` running→failed
+
+**命令**:
+```bash
+cc dev adr-maturities-v2 | dev-sessions-v2 | stats-v2
+cc dev create-adr-v2 <adr-id> -a <author> -t <title>
+cc dev enqueue-session-v2 <session-id> -d <dev> -g <goal>
+cc dev accept-adr | deprecate-adr | supersede-adr <adr-id>
+cc dev start-session-v2 | complete-session-v2 | fail-session-v2 | cancel-session-v2 <id>
+cc dev auto-supersede-stale-drafts | auto-fail-stuck-sessions
+```
+
+> **未移植**: 真实 LLM 驱动的 ADR 生成；git 驱动的会话 checkpoint；AI 代码审查管线。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (ADR 4-state w/ deprecated→accepted 恢复 + dev-session 3-terminal 生命周期)、双维度上限 (per-author active ADR + per-developer running session)、throwing `createAdrV2`/`enqueueSessionV2` + 7 shortcuts、V2 函数 V2 后缀避名冲突、2 批量 auto-flip、全枚举零初始化 `getAutonomousDeveloperStatsV2`。
+
+## Tech Learning Engine V2 (CLI 0.104.0)
+
+**Target**: `packages/cli/src/lib/tech-learning-engine.js` · `packages/cli/src/commands/tech.js`
+
+**V2 面**:
+- `PROFILE_MATURITY_V2` = { DRAFT, ACTIVE, STALE, ARCHIVED(terminal) } — stale→active 恢复
+- `LEARNING_RUN_V2` = { QUEUED, STUDYING, COMPLETED, ABANDONED, FAILED } (3 terminals)
+- Config: `max-active-profiles-per-owner=10`, `max-studying-runs-per-learner=5`, `profile-stale-ms=60d`, `run-stuck-ms=7d`
+- 计数: `getActiveProfileCountV2` 排除 draft+archived; `getStudyingRunCountV2` 仅 studying
+- Stamp-once: `activatedAt` (跨 stale→active 保留), `startedAt`
+- Auto-flip: `autoMarkStaleProfilesV2({now})` active→stale; `autoFailStuckRunsV2({now})` studying→failed
+
+**命令**:
+```bash
+cc tech profile-maturities-v2 | learning-runs-v2 | stats-v2
+cc tech create-profile-v2 <id> -o <owner> -s <stack>
+cc tech enqueue-run-v2 <id> -l <learner> -t <topic>
+cc tech activate-profile | mark-profile-stale | archive-profile | touch-profile <id>
+cc tech start-run-v2 | complete-run-v2 | fail-run-v2 | abandon-run-v2 <id>
+cc tech auto-mark-stale-profiles | auto-fail-stuck-runs
+```
+
+> **未移植**: 真实 crawler-based 开源仓库扫描；图数据库驱动的知识图谱；机器学习 pattern 提取。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (profile 4-state w/ stale→active 恢复 + learning-run 3-terminal 生命周期)、双维度上限 (per-owner active profile + per-learner studying run)、throwing `createProfileV2`/`enqueueRunV2` + 7 shortcuts、stamp-once `activatedAt` + `startedAt`、`touchProfileV2` + 2 批量 auto-flip、全枚举零初始化 `getTechLearningStatsV2`。

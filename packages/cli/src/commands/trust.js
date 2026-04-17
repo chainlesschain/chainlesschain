@@ -27,7 +27,47 @@ import {
   listHsmDevices,
   signWithHsm,
   getTrustSecurityStats,
+  HSM_MATURITY_V2,
+  TRANSMISSION_V2,
+  getMaxActiveDevicesPerOperator,
+  setMaxActiveDevicesPerOperator,
+  getMaxPendingTransmissionsPerDevice,
+  setMaxPendingTransmissionsPerDevice,
+  getDeviceIdleMs,
+  setDeviceIdleMs,
+  getTransmissionStuckMs,
+  setTransmissionStuckMs,
+  getActiveDeviceCount,
+  getPendingTransmissionCount,
+  registerDeviceV2,
+  getDeviceV2,
+  listDevicesV2,
+  setDeviceMaturityV2,
+  activateDevice,
+  degradeDevice,
+  retireDevice,
+  touchDeviceUsage,
+  enqueueTransmissionV2,
+  getTransmissionV2,
+  listTransmissionsV2,
+  setTransmissionStatusV2,
+  startTransmission,
+  confirmTransmission,
+  failTransmission,
+  cancelTransmission,
+  autoRetireIdleDevices,
+  autoFailStuckTransmissions,
+  getTrustSecurityStatsV2,
 } from "../lib/trust-security.js";
+
+function _parseJsonV2(s) {
+  if (!s) return undefined;
+  try {
+    return JSON.parse(s);
+  } catch {
+    throw new Error(`invalid JSON: ${s}`);
+  }
+}
 
 function _dbFromCtx(cmd) {
   const root = cmd?.parent?.parent ?? cmd?.parent;
@@ -361,6 +401,215 @@ export function registerTrustCommand(program) {
       );
       console.log(`HSM Devices:  ${s.hsm.total}`);
     });
+
+  /* ── V2 Surface (Phase 68-71) ─────────────────────────── */
+
+  tr.command("hsm-maturities-v2")
+    .description("List HSM_MATURITY_V2 enum")
+    .action(() => {
+      for (const v of Object.values(HSM_MATURITY_V2)) console.log(`  ${v}`);
+    });
+
+  tr.command("transmissions-v2")
+    .description("List TRANSMISSION_V2 enum")
+    .action(() => {
+      for (const v of Object.values(TRANSMISSION_V2)) console.log(`  ${v}`);
+    });
+
+  tr.command("max-active-devices-per-operator")
+    .description("Get current max-active-devices-per-operator cap")
+    .action(() => console.log(getMaxActiveDevicesPerOperator()));
+  tr.command("set-max-active-devices-per-operator <n>").action((n) =>
+    console.log(setMaxActiveDevicesPerOperator(Number(n))),
+  );
+
+  tr.command("max-pending-transmissions-per-device")
+    .description("Get current max-pending-transmissions-per-device cap")
+    .action(() => console.log(getMaxPendingTransmissionsPerDevice()));
+  tr.command("set-max-pending-transmissions-per-device <n>").action((n) =>
+    console.log(setMaxPendingTransmissionsPerDevice(Number(n))),
+  );
+
+  tr.command("device-idle-ms")
+    .description("Get current device-idle-ms threshold")
+    .action(() => console.log(getDeviceIdleMs()));
+  tr.command("set-device-idle-ms <n>").action((n) =>
+    console.log(setDeviceIdleMs(Number(n))),
+  );
+
+  tr.command("transmission-stuck-ms")
+    .description("Get current transmission-stuck-ms threshold")
+    .action(() => console.log(getTransmissionStuckMs()));
+  tr.command("set-transmission-stuck-ms <n>").action((n) =>
+    console.log(setTransmissionStuckMs(Number(n))),
+  );
+
+  tr.command("active-device-count")
+    .description("Count active+degraded devices (optionally by operator)")
+    .option("-o, --operator <operator>", "scope to operator")
+    .action((opts) => console.log(getActiveDeviceCount(opts.operator)));
+
+  tr.command("pending-transmission-count")
+    .description("Count non-terminal transmissions (optionally by device)")
+    .option("-d, --device <device>", "scope to device")
+    .action((opts) => console.log(getPendingTransmissionCount(opts.device)));
+
+  tr.command("register-device-v2 <device-id>")
+    .description("Register V2 HSM device")
+    .requiredOption("-o, --operator <operator>", "operator id")
+    .requiredOption("-v, --vendor <vendor>", "HSM vendor")
+    .option(
+      "-i, --initial <status>",
+      "initial status",
+      HSM_MATURITY_V2.PROVISIONAL,
+    )
+    .option("--metadata <json>", "metadata JSON")
+    .action((id, opts) => {
+      const d = registerDeviceV2({
+        id,
+        operator: opts.operator,
+        vendor: opts.vendor,
+        initialStatus: opts.initial,
+        metadata: _parseJsonV2(opts.metadata),
+      });
+      console.log(JSON.stringify(d, null, 2));
+    });
+
+  tr.command("device-v2 <device-id>")
+    .description("Show V2 device")
+    .action((id) => {
+      const d = getDeviceV2(id);
+      if (!d) return console.error(`device ${id} not found`);
+      console.log(JSON.stringify(d, null, 2));
+    });
+
+  tr.command("list-devices-v2")
+    .description("List V2 devices")
+    .option("-o, --operator <operator>", "filter by operator")
+    .option("-s, --status <status>", "filter by status")
+    .action((opts) =>
+      console.log(JSON.stringify(listDevicesV2(opts), null, 2)),
+    );
+
+  tr.command("set-device-maturity-v2 <device-id> <status>")
+    .description("Transition V2 device maturity")
+    .option("-r, --reason <reason>", "transition reason")
+    .option("--metadata <json>", "metadata patch JSON")
+    .action((id, status, opts) => {
+      const d = setDeviceMaturityV2(id, status, {
+        reason: opts.reason,
+        metadata: _parseJsonV2(opts.metadata),
+      });
+      console.log(JSON.stringify(d, null, 2));
+    });
+
+  for (const [name, fn] of [
+    ["activate-device", activateDevice],
+    ["degrade-device", degradeDevice],
+    ["retire-device", retireDevice],
+  ]) {
+    tr.command(`${name} <device-id>`)
+      .description(`Shortcut for ${name.replace("-device", "")} transition`)
+      .option("-r, --reason <reason>", "transition reason")
+      .action((id, opts) => {
+        const d = fn(id, { reason: opts.reason });
+        console.log(JSON.stringify(d, null, 2));
+      });
+  }
+
+  tr.command("touch-device-usage <device-id>")
+    .description("Mark V2 device as used now")
+    .action((id) => {
+      const d = touchDeviceUsage(id);
+      console.log(JSON.stringify(d, null, 2));
+    });
+
+  tr.command("enqueue-transmission-v2 <transmission-id>")
+    .description("Enqueue V2 satellite transmission")
+    .requiredOption("-d, --device <device>", "device id")
+    .requiredOption("-p, --provider <provider>", "satellite provider")
+    .requiredOption("-x, --payload <payload>", "message payload")
+    .option("--metadata <json>", "metadata JSON")
+    .action((id, opts) => {
+      const t = enqueueTransmissionV2({
+        id,
+        deviceId: opts.device,
+        provider: opts.provider,
+        payload: opts.payload,
+        metadata: _parseJsonV2(opts.metadata),
+      });
+      console.log(JSON.stringify(t, null, 2));
+    });
+
+  tr.command("transmission-v2 <transmission-id>")
+    .description("Show V2 transmission")
+    .action((id) => {
+      const t = getTransmissionV2(id);
+      if (!t) return console.error(`transmission ${id} not found`);
+      console.log(JSON.stringify(t, null, 2));
+    });
+
+  tr.command("list-transmissions-v2")
+    .description("List V2 transmissions")
+    .option("-d, --device <device>", "filter by device")
+    .option("-s, --status <status>", "filter by status")
+    .action((opts) =>
+      console.log(JSON.stringify(listTransmissionsV2(opts), null, 2)),
+    );
+
+  tr.command("set-transmission-status-v2 <transmission-id> <status>")
+    .option("-r, --reason <reason>", "transition reason")
+    .option("--metadata <json>", "metadata patch JSON")
+    .action((id, status, opts) => {
+      const t = setTransmissionStatusV2(id, status, {
+        reason: opts.reason,
+        metadata: _parseJsonV2(opts.metadata),
+      });
+      console.log(JSON.stringify(t, null, 2));
+    });
+
+  for (const [name, fn] of [
+    ["start-transmission", startTransmission],
+    ["confirm-transmission", confirmTransmission],
+    ["fail-transmission", failTransmission],
+    ["cancel-transmission", cancelTransmission],
+  ]) {
+    tr.command(`${name} <transmission-id>`)
+      .description(
+        `Shortcut for ${name.replace("-transmission", "")} transition`,
+      )
+      .option("-r, --reason <reason>", "transition reason")
+      .action((id, opts) => {
+        const t = fn(id, { reason: opts.reason });
+        console.log(JSON.stringify(t, null, 2));
+      });
+  }
+
+  tr.command("auto-retire-idle-devices")
+    .description(
+      "Bulk-retire ACTIVE/DEGRADED devices whose lastUsedAt is older than deviceIdleMs",
+    )
+    .action(() =>
+      console.log(
+        JSON.stringify({ flipped: autoRetireIdleDevices() }, null, 2),
+      ),
+    );
+
+  tr.command("auto-fail-stuck-transmissions")
+    .description(
+      "Bulk-fail SENDING transmissions whose startedAt is older than transmissionStuckMs",
+    )
+    .action(() =>
+      console.log(
+        JSON.stringify({ flipped: autoFailStuckTransmissions() }, null, 2),
+      ),
+    );
+
+  tr.command("stats-v2")
+    .description("Show V2 trust/security stats")
+    .action(() =>
+      console.log(JSON.stringify(getTrustSecurityStatsV2(), null, 2)),
+    );
 
   program.addCommand(tr);
 }

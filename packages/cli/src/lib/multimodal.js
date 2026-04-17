@@ -723,3 +723,349 @@ export function getMultimodalStats(db) {
 export function _resetState() {
   _contextCache.clear();
 }
+
+/* ═════════════════════════════════════════════════════════ *
+ *  Phase 27 V2 — Session Maturity + Artifact Lifecycle
+ * ═════════════════════════════════════════════════════════ */
+
+export const SESSION_MATURITY_V2 = Object.freeze({
+  ONBOARDING: "onboarding",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  COMPLETED: "completed",
+  ARCHIVED: "archived",
+});
+
+export const ARTIFACT_LIFECYCLE_V2 = Object.freeze({
+  PENDING: "pending",
+  READY: "ready",
+  PURGED: "purged",
+});
+
+const SESSION_TRANSITIONS_V2 = new Map([
+  ["onboarding", new Set(["active", "archived"])],
+  ["active", new Set(["paused", "completed", "archived"])],
+  ["paused", new Set(["active", "completed", "archived"])],
+  ["completed", new Set(["archived"])],
+]);
+const SESSION_TERMINALS_V2 = new Set(["archived"]);
+
+const ARTIFACT_TRANSITIONS_V2 = new Map([
+  ["pending", new Set(["ready", "purged"])],
+  ["ready", new Set(["purged"])],
+]);
+const ARTIFACT_TERMINALS_V2 = new Set(["purged"]);
+
+export const MM_DEFAULT_MAX_ACTIVE_SESSIONS_PER_OWNER = 50;
+export const MM_DEFAULT_MAX_ARTIFACTS_PER_SESSION = 200;
+export const MM_DEFAULT_SESSION_IDLE_MS = 30 * 86400000;
+export const MM_DEFAULT_ARTIFACT_STALE_MS = 14 * 86400000;
+
+let _maxActiveSessionsPerOwnerV2 = MM_DEFAULT_MAX_ACTIVE_SESSIONS_PER_OWNER;
+let _maxArtifactsPerSessionV2 = MM_DEFAULT_MAX_ARTIFACTS_PER_SESSION;
+let _sessionIdleMsV2 = MM_DEFAULT_SESSION_IDLE_MS;
+let _artifactStaleMsV2 = MM_DEFAULT_ARTIFACT_STALE_MS;
+
+function _positiveIntV2(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be a positive integer`);
+  return v;
+}
+
+export function getDefaultMaxActiveSessionsPerOwnerV2() {
+  return MM_DEFAULT_MAX_ACTIVE_SESSIONS_PER_OWNER;
+}
+export function getMaxActiveSessionsPerOwnerV2() {
+  return _maxActiveSessionsPerOwnerV2;
+}
+export function setMaxActiveSessionsPerOwnerV2(n) {
+  return (_maxActiveSessionsPerOwnerV2 = _positiveIntV2(
+    n,
+    "maxActiveSessionsPerOwner",
+  ));
+}
+export function getDefaultMaxArtifactsPerSessionV2() {
+  return MM_DEFAULT_MAX_ARTIFACTS_PER_SESSION;
+}
+export function getMaxArtifactsPerSessionV2() {
+  return _maxArtifactsPerSessionV2;
+}
+export function setMaxArtifactsPerSessionV2(n) {
+  return (_maxArtifactsPerSessionV2 = _positiveIntV2(
+    n,
+    "maxArtifactsPerSession",
+  ));
+}
+export function getDefaultSessionIdleMsV2() {
+  return MM_DEFAULT_SESSION_IDLE_MS;
+}
+export function getSessionIdleMsV2() {
+  return _sessionIdleMsV2;
+}
+export function setSessionIdleMsV2(ms) {
+  return (_sessionIdleMsV2 = _positiveIntV2(ms, "sessionIdleMs"));
+}
+export function getDefaultArtifactStaleMsV2() {
+  return MM_DEFAULT_ARTIFACT_STALE_MS;
+}
+export function getArtifactStaleMsV2() {
+  return _artifactStaleMsV2;
+}
+export function setArtifactStaleMsV2(ms) {
+  return (_artifactStaleMsV2 = _positiveIntV2(ms, "artifactStaleMs"));
+}
+
+const _sessionsV2 = new Map();
+const _artifactsV2 = new Map();
+
+export function registerSessionV2(
+  _db,
+  { sessionId, ownerId, title, initialStatus, metadata } = {},
+) {
+  if (!sessionId) throw new Error("sessionId is required");
+  if (!ownerId) throw new Error("ownerId is required");
+  if (_sessionsV2.has(sessionId))
+    throw new Error(`Session ${sessionId} already exists`);
+  const status = initialStatus || SESSION_MATURITY_V2.ONBOARDING;
+  if (!Object.values(SESSION_MATURITY_V2).includes(status))
+    throw new Error(`Invalid initial status: ${status}`);
+  if (SESSION_TERMINALS_V2.has(status))
+    throw new Error(`Cannot register in terminal status: ${status}`);
+  if (status === SESSION_MATURITY_V2.ACTIVE) {
+    if (getActiveSessionCount(ownerId) >= _maxActiveSessionsPerOwnerV2)
+      throw new Error(
+        `Owner ${ownerId} reached active-session cap (${_maxActiveSessionsPerOwnerV2})`,
+      );
+  }
+  const now = Date.now();
+  const record = {
+    sessionId,
+    ownerId,
+    title: title || "",
+    status,
+    metadata: metadata || {},
+    createdAt: now,
+    updatedAt: now,
+    lastActivityAt: now,
+  };
+  _sessionsV2.set(sessionId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getSessionV2(sessionId) {
+  const r = _sessionsV2.get(sessionId);
+  return r ? { ...r, metadata: { ...r.metadata } } : null;
+}
+
+export function setSessionMaturityV2(_db, sessionId, newStatus, patch = {}) {
+  const record = _sessionsV2.get(sessionId);
+  if (!record) throw new Error(`Unknown session: ${sessionId}`);
+  if (!Object.values(SESSION_MATURITY_V2).includes(newStatus))
+    throw new Error(`Invalid status: ${newStatus}`);
+  const allowed = SESSION_TRANSITIONS_V2.get(record.status) || new Set();
+  if (!allowed.has(newStatus))
+    throw new Error(`Invalid transition: ${record.status} -> ${newStatus}`);
+  if (newStatus === SESSION_MATURITY_V2.ACTIVE) {
+    if (getActiveSessionCount(record.ownerId) >= _maxActiveSessionsPerOwnerV2)
+      throw new Error(
+        `Owner ${record.ownerId} reached active-session cap (${_maxActiveSessionsPerOwnerV2})`,
+      );
+  }
+  record.status = newStatus;
+  record.updatedAt = Date.now();
+  if (patch.reason !== undefined) record.lastReason = patch.reason;
+  if (patch.metadata)
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function activateSession(db, sessionId, reason) {
+  return setSessionMaturityV2(db, sessionId, SESSION_MATURITY_V2.ACTIVE, {
+    reason,
+  });
+}
+export function pauseSession(db, sessionId, reason) {
+  return setSessionMaturityV2(db, sessionId, SESSION_MATURITY_V2.PAUSED, {
+    reason,
+  });
+}
+export function completeSessionV2(db, sessionId, reason) {
+  return setSessionMaturityV2(db, sessionId, SESSION_MATURITY_V2.COMPLETED, {
+    reason,
+  });
+}
+export function archiveSession(db, sessionId, reason) {
+  return setSessionMaturityV2(db, sessionId, SESSION_MATURITY_V2.ARCHIVED, {
+    reason,
+  });
+}
+
+export function touchSessionActivity(sessionId) {
+  const record = _sessionsV2.get(sessionId);
+  if (!record) throw new Error(`Unknown session: ${sessionId}`);
+  record.lastActivityAt = Date.now();
+  record.updatedAt = record.lastActivityAt;
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function registerArtifactV2(
+  _db,
+  { artifactId, sessionId, modality, size, initialStatus, metadata } = {},
+) {
+  if (!artifactId) throw new Error("artifactId is required");
+  if (!sessionId) throw new Error("sessionId is required");
+  if (!modality) throw new Error("modality is required");
+  if (!MODALITIES.includes(modality))
+    throw new Error(`Invalid modality: ${modality}`);
+  if (_artifactsV2.has(artifactId))
+    throw new Error(`Artifact ${artifactId} already exists`);
+  const status = initialStatus || ARTIFACT_LIFECYCLE_V2.PENDING;
+  if (!Object.values(ARTIFACT_LIFECYCLE_V2).includes(status))
+    throw new Error(`Invalid initial status: ${status}`);
+  if (ARTIFACT_TERMINALS_V2.has(status))
+    throw new Error(`Cannot register in terminal status: ${status}`);
+  if (getArtifactCount(sessionId) >= _maxArtifactsPerSessionV2)
+    throw new Error(
+      `Session ${sessionId} reached artifact cap (${_maxArtifactsPerSessionV2})`,
+    );
+  const now = Date.now();
+  const record = {
+    artifactId,
+    sessionId,
+    modality,
+    size: size || 0,
+    status,
+    metadata: metadata || {},
+    createdAt: now,
+    updatedAt: now,
+    lastAccessAt: now,
+  };
+  _artifactsV2.set(artifactId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getArtifactV2(artifactId) {
+  const r = _artifactsV2.get(artifactId);
+  return r ? { ...r, metadata: { ...r.metadata } } : null;
+}
+
+export function setArtifactStatusV2(_db, artifactId, newStatus, patch = {}) {
+  const record = _artifactsV2.get(artifactId);
+  if (!record) throw new Error(`Unknown artifact: ${artifactId}`);
+  if (!Object.values(ARTIFACT_LIFECYCLE_V2).includes(newStatus))
+    throw new Error(`Invalid status: ${newStatus}`);
+  const allowed = ARTIFACT_TRANSITIONS_V2.get(record.status) || new Set();
+  if (!allowed.has(newStatus))
+    throw new Error(`Invalid transition: ${record.status} -> ${newStatus}`);
+  record.status = newStatus;
+  record.updatedAt = Date.now();
+  if (patch.reason !== undefined) record.lastReason = patch.reason;
+  if (patch.metadata)
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function markArtifactReady(db, artifactId, reason) {
+  return setArtifactStatusV2(db, artifactId, ARTIFACT_LIFECYCLE_V2.READY, {
+    reason,
+  });
+}
+export function purgeArtifact(db, artifactId, reason) {
+  return setArtifactStatusV2(db, artifactId, ARTIFACT_LIFECYCLE_V2.PURGED, {
+    reason,
+  });
+}
+
+export function touchArtifactAccess(artifactId) {
+  const record = _artifactsV2.get(artifactId);
+  if (!record) throw new Error(`Unknown artifact: ${artifactId}`);
+  record.lastAccessAt = Date.now();
+  record.updatedAt = record.lastAccessAt;
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getActiveSessionCount(ownerId) {
+  let n = 0;
+  for (const r of _sessionsV2.values()) {
+    if (r.status !== SESSION_MATURITY_V2.ACTIVE) continue;
+    if (ownerId && r.ownerId !== ownerId) continue;
+    n++;
+  }
+  return n;
+}
+
+export function getArtifactCount(sessionId) {
+  let n = 0;
+  for (const r of _artifactsV2.values()) {
+    if (ARTIFACT_TERMINALS_V2.has(r.status)) continue;
+    if (sessionId && r.sessionId !== sessionId) continue;
+    n++;
+  }
+  return n;
+}
+
+export function autoArchiveIdleSessions(_db, nowMs) {
+  const now = nowMs ?? Date.now();
+  const flipped = [];
+  for (const r of _sessionsV2.values()) {
+    if (
+      r.status === SESSION_MATURITY_V2.ACTIVE ||
+      r.status === SESSION_MATURITY_V2.PAUSED ||
+      r.status === SESSION_MATURITY_V2.COMPLETED
+    ) {
+      if (now - r.lastActivityAt > _sessionIdleMsV2) {
+        r.status = SESSION_MATURITY_V2.ARCHIVED;
+        r.updatedAt = now;
+        r.lastReason = "idle";
+        flipped.push(r.sessionId);
+      }
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function autoPurgeStaleArtifacts(_db, nowMs) {
+  const now = nowMs ?? Date.now();
+  const flipped = [];
+  for (const r of _artifactsV2.values()) {
+    if (r.status === ARTIFACT_LIFECYCLE_V2.READY) {
+      if (now - r.lastAccessAt > _artifactStaleMsV2) {
+        r.status = ARTIFACT_LIFECYCLE_V2.PURGED;
+        r.updatedAt = now;
+        r.lastReason = "stale";
+        flipped.push(r.artifactId);
+      }
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function getMultimodalStatsV2() {
+  const sessionsByStatus = {};
+  for (const s of Object.values(SESSION_MATURITY_V2)) sessionsByStatus[s] = 0;
+  const artifactsByStatus = {};
+  for (const s of Object.values(ARTIFACT_LIFECYCLE_V2))
+    artifactsByStatus[s] = 0;
+  for (const r of _sessionsV2.values()) sessionsByStatus[r.status]++;
+  for (const r of _artifactsV2.values()) artifactsByStatus[r.status]++;
+  return {
+    totalSessionsV2: _sessionsV2.size,
+    totalArtifactsV2: _artifactsV2.size,
+    maxActiveSessionsPerOwner: _maxActiveSessionsPerOwnerV2,
+    maxArtifactsPerSession: _maxArtifactsPerSessionV2,
+    sessionIdleMs: _sessionIdleMsV2,
+    artifactStaleMs: _artifactStaleMsV2,
+    sessionsByStatus,
+    artifactsByStatus,
+  };
+}
+
+export function _resetStateV2() {
+  _maxActiveSessionsPerOwnerV2 = MM_DEFAULT_MAX_ACTIVE_SESSIONS_PER_OWNER;
+  _maxArtifactsPerSessionV2 = MM_DEFAULT_MAX_ARTIFACTS_PER_SESSION;
+  _sessionIdleMsV2 = MM_DEFAULT_SESSION_IDLE_MS;
+  _artifactStaleMsV2 = MM_DEFAULT_ARTIFACT_STALE_MS;
+  _sessionsV2.clear();
+  _artifactsV2.clear();
+}

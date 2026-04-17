@@ -207,6 +207,51 @@ chainlesschain governance tally <proposal-id> [-q quorum] [-t threshold] [-n tot
 chainlesschain governance analyze <proposal-id> [--json]                        # 启发式影响分析 (风险/收益/组件)
 chainlesschain governance predict <proposal-id> [--json]                        # 启发式投票预测
 chainlesschain governance stats [--json]                                        # 提案/投票计数 + 分布
+```
+
+### 📡 Phase 54 V2 — Proposer Maturity + Vote Delegation Lifecycle
+
+V2 新增两套并行状态机：**提案人成熟度** (onboarding/active/suspended/retired) 与
+**投票委托生命周期** (pending/active/revoked/expired)，按领域的活跃提案人容量上限、
+按委托人的活跃委托上限、空闲提案人自动退役、过期待定委托自动失效。
+V2 完全增量，合并到现有 `governance` 子命令（完全内存态，不需要 DB bootstrap）。
+
+```bash
+chainlesschain governance proposer-maturities-v2 [--json]                       # 4 种状态
+chainlesschain governance delegation-lifecycles-v2 [--json]                     # 4 种状态
+chainlesschain governance default-max-active-proposers-per-realm
+chainlesschain governance max-active-proposers-per-realm
+chainlesschain governance set-max-active-proposers-per-realm <n>
+chainlesschain governance default-max-active-delegations-per-delegator
+chainlesschain governance max-active-delegations-per-delegator
+chainlesschain governance set-max-active-delegations-per-delegator <n>
+chainlesschain governance default-proposer-idle-ms
+chainlesschain governance proposer-idle-ms
+chainlesschain governance set-proposer-idle-ms <ms>
+chainlesschain governance default-pending-delegation-ms
+chainlesschain governance pending-delegation-ms
+chainlesschain governance set-pending-delegation-ms <ms>
+chainlesschain governance active-proposer-count [-r realm]
+chainlesschain governance active-delegation-count [-d delegator]
+chainlesschain governance register-proposer-v2 <proposer-id> -r <realm> [-n name] [-i status] [-m metadata-json]
+chainlesschain governance proposer-v2 <proposer-id>
+chainlesschain governance set-proposer-maturity-v2 <proposer-id> <status> [-r reason] [-m metadata-json]
+chainlesschain governance activate-proposer <proposer-id> [-r reason]
+chainlesschain governance suspend-proposer <proposer-id> [-r reason]
+chainlesschain governance retire-proposer <proposer-id> [-r reason]                # 终止态
+chainlesschain governance touch-proposer-activity <proposer-id>
+chainlesschain governance create-delegation-v2 <delegation-id> -d <delegator> -t <delegatee> -s <scope> [-e expires-at] [-m metadata-json]
+chainlesschain governance delegation-v2 <delegation-id>
+chainlesschain governance set-delegation-status-v2 <delegation-id> <status> [-r reason] [-m metadata-json]
+chainlesschain governance activate-delegation <delegation-id> [-r reason]
+chainlesschain governance revoke-delegation <delegation-id> [-r reason]            # 终止态
+chainlesschain governance expire-delegation <delegation-id> [-r reason]            # 终止态
+chainlesschain governance auto-retire-idle-proposers
+chainlesschain governance auto-expire-stale-pending-delegations
+chainlesschain governance stats-v2
+```
+
+```bash
 chainlesschain recommend content-types [--json]                                 # 列出 4 种内容类型 (note/post/article/document)
 chainlesschain recommend statuses [--json]                                      # 列出推荐状态
 chainlesschain recommend feedback-values [--json]                               # 列出反馈值 (like/dislike/later)
@@ -225,6 +270,27 @@ chainlesschain recommend dismiss <rec-id> [--json]                              
 chainlesschain recommend stats <user-id> [--json]                               # 总数/待定/已查看/反馈率
 chainlesschain recommend top-interests <user-id> [--limit N] [--json]           # 权重最高的主题
 chainlesschain recommend suggest <user-id> [--json]                             # 基于反馈建议档案调整
+# Phase 48 V2 — profile maturity + feed lifecycle
+chainlesschain recommend profile-maturities-v2 | feed-lifecycles-v2 [--json]
+chainlesschain recommend default-max-active-profiles-per-segment | max-active-profiles-per-segment | set-max-active-profiles-per-segment <n>
+chainlesschain recommend default-max-active-feeds-per-curator  | max-active-feeds-per-curator  | set-max-active-feeds-per-curator <n>
+chainlesschain recommend default-profile-idle-ms | profile-idle-ms | set-profile-idle-ms <ms>
+chainlesschain recommend default-feed-stale-ms   | feed-stale-ms   | set-feed-stale-ms <ms>
+chainlesschain recommend active-profile-count [-s segment]
+chainlesschain recommend active-feed-count [-c curator]
+chainlesschain recommend register-profile-v2 <profile-id> -s <segment> [-u|-i|-m]
+chainlesschain recommend profile-v2 <profile-id>
+chainlesschain recommend set-profile-maturity-v2 <profile-id> <status> [-r|-m]
+chainlesschain recommend activate-profile | dormant-profile | retire-profile <profile-id> [-r]
+chainlesschain recommend touch-profile-activity <profile-id>
+chainlesschain recommend register-feed-v2 <feed-id> -c <curator> [-t topics-csv] [-i|-m]
+chainlesschain recommend feed-v2 <feed-id>
+chainlesschain recommend set-feed-status-v2 <feed-id> <status> [-r|-m]
+chainlesschain recommend activate-feed | pause-feed | archive-feed <feed-id> [-r]
+chainlesschain recommend touch-feed-publish <feed-id>
+chainlesschain recommend auto-dormant-idle-profiles
+chainlesschain recommend auto-archive-stale-feeds
+chainlesschain recommend stats-v2
 chainlesschain crosschain chains [--json]                                       # 列出 5 条支持的链 (ethereum/polygon/bsc/arbitrum/solana)
 chainlesschain crosschain bridge-statuses [--json]                              # 列出 6 种桥状态
 chainlesschain crosschain swap-statuses [--json]                                # 列出 5 种 swap 状态

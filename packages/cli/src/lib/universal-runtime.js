@@ -769,3 +769,328 @@ export function _resetState() {
     startedAt: Date.now(),
   };
 }
+
+/* ═════════════════════════════════════════════════════════ *
+ *  Phase 63 V2 — Plugin Maturity + Runtime Task Lifecycle
+ * ═════════════════════════════════════════════════════════ */
+
+export const PLUGIN_MATURITY_V2 = Object.freeze({
+  DRAFT: "draft",
+  ACTIVE: "active",
+  DEPRECATED: "deprecated",
+  RETIRED: "retired",
+});
+
+export const RUNTIME_TASK_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELED: "canceled",
+});
+
+const PLUGIN_TRANSITIONS_V2 = new Map([
+  ["draft", new Set(["active", "retired"])],
+  ["active", new Set(["deprecated", "retired"])],
+  ["deprecated", new Set(["active", "retired"])],
+]);
+const PLUGIN_TERMINALS_V2 = new Set(["retired"]);
+
+const RUNTIME_TASK_TRANSITIONS_V2 = new Map([
+  ["queued", new Set(["running", "canceled", "failed"])],
+  ["running", new Set(["completed", "failed", "canceled"])],
+]);
+const RUNTIME_TASK_TERMINALS_V2 = new Set(["completed", "failed", "canceled"]);
+
+export const RT_DEFAULT_MAX_ACTIVE_PLUGINS_PER_OWNER = 40;
+export const RT_DEFAULT_MAX_RUNNING_TASKS_PER_OWNER = 5;
+export const RT_DEFAULT_PLUGIN_IDLE_MS = 90 * 86400000; // 90d
+export const RT_DEFAULT_TASK_STUCK_MS = 4 * 3600000; // 4h
+
+let _maxActivePluginsPerOwnerV2 = RT_DEFAULT_MAX_ACTIVE_PLUGINS_PER_OWNER;
+let _maxRunningTasksPerOwnerV2 = RT_DEFAULT_MAX_RUNNING_TASKS_PER_OWNER;
+let _pluginIdleMsV2 = RT_DEFAULT_PLUGIN_IDLE_MS;
+let _taskStuckMsV2 = RT_DEFAULT_TASK_STUCK_MS;
+
+function _positiveIntV2(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be a positive integer`);
+  return v;
+}
+
+export function getDefaultMaxActivePluginsPerOwnerV2() {
+  return RT_DEFAULT_MAX_ACTIVE_PLUGINS_PER_OWNER;
+}
+export function getMaxActivePluginsPerOwnerV2() {
+  return _maxActivePluginsPerOwnerV2;
+}
+export function setMaxActivePluginsPerOwnerV2(n) {
+  return (_maxActivePluginsPerOwnerV2 = _positiveIntV2(
+    n,
+    "maxActivePluginsPerOwner",
+  ));
+}
+export function getDefaultMaxRunningTasksPerOwnerV2() {
+  return RT_DEFAULT_MAX_RUNNING_TASKS_PER_OWNER;
+}
+export function getMaxRunningTasksPerOwnerV2() {
+  return _maxRunningTasksPerOwnerV2;
+}
+export function setMaxRunningTasksPerOwnerV2(n) {
+  return (_maxRunningTasksPerOwnerV2 = _positiveIntV2(
+    n,
+    "maxRunningTasksPerOwner",
+  ));
+}
+export function getDefaultPluginIdleMsV2() {
+  return RT_DEFAULT_PLUGIN_IDLE_MS;
+}
+export function getPluginIdleMsV2() {
+  return _pluginIdleMsV2;
+}
+export function setPluginIdleMsV2(ms) {
+  return (_pluginIdleMsV2 = _positiveIntV2(ms, "pluginIdleMs"));
+}
+export function getDefaultTaskStuckMsV2() {
+  return RT_DEFAULT_TASK_STUCK_MS;
+}
+export function getTaskStuckMsV2() {
+  return _taskStuckMsV2;
+}
+export function setTaskStuckMsV2(ms) {
+  return (_taskStuckMsV2 = _positiveIntV2(ms, "taskStuckMs"));
+}
+
+const _pluginsV2 = new Map();
+const _runtimeTasksV2 = new Map();
+
+export function registerPluginV2(
+  _db,
+  { pluginId, ownerId, name, version, initialStatus, metadata } = {},
+) {
+  if (!pluginId) throw new Error("pluginId is required");
+  if (!ownerId) throw new Error("ownerId is required");
+  if (_pluginsV2.has(pluginId))
+    throw new Error(`Plugin ${pluginId} already exists`);
+  const status = initialStatus || PLUGIN_MATURITY_V2.DRAFT;
+  if (!Object.values(PLUGIN_MATURITY_V2).includes(status))
+    throw new Error(`Invalid initial status: ${status}`);
+  if (PLUGIN_TERMINALS_V2.has(status))
+    throw new Error(`Cannot register in terminal status: ${status}`);
+  if (status === PLUGIN_MATURITY_V2.ACTIVE) {
+    if (getActivePluginCount(ownerId) >= _maxActivePluginsPerOwnerV2)
+      throw new Error(
+        `Owner ${ownerId} reached active-plugin cap (${_maxActivePluginsPerOwnerV2})`,
+      );
+  }
+  const now = Date.now();
+  const record = {
+    pluginId,
+    ownerId,
+    name: name || "",
+    version: version || "0.0.0",
+    status,
+    metadata: metadata || {},
+    createdAt: now,
+    updatedAt: now,
+    lastInvokedAt: now,
+  };
+  _pluginsV2.set(pluginId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getPluginV2(pluginId) {
+  const r = _pluginsV2.get(pluginId);
+  return r ? { ...r, metadata: { ...r.metadata } } : null;
+}
+
+export function setPluginMaturityV2(_db, pluginId, newStatus, patch = {}) {
+  const record = _pluginsV2.get(pluginId);
+  if (!record) throw new Error(`Unknown plugin: ${pluginId}`);
+  if (!Object.values(PLUGIN_MATURITY_V2).includes(newStatus))
+    throw new Error(`Invalid status: ${newStatus}`);
+  const allowed = PLUGIN_TRANSITIONS_V2.get(record.status) || new Set();
+  if (!allowed.has(newStatus))
+    throw new Error(`Invalid transition: ${record.status} -> ${newStatus}`);
+  if (newStatus === PLUGIN_MATURITY_V2.ACTIVE) {
+    if (getActivePluginCount(record.ownerId) >= _maxActivePluginsPerOwnerV2)
+      throw new Error(
+        `Owner ${record.ownerId} reached active-plugin cap (${_maxActivePluginsPerOwnerV2})`,
+      );
+  }
+  record.status = newStatus;
+  record.updatedAt = Date.now();
+  if (patch.reason !== undefined) record.lastReason = patch.reason;
+  if (patch.metadata)
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function activatePluginV2(db, id, reason) {
+  return setPluginMaturityV2(db, id, PLUGIN_MATURITY_V2.ACTIVE, { reason });
+}
+export function deprecatePluginV2(db, id, reason) {
+  return setPluginMaturityV2(db, id, PLUGIN_MATURITY_V2.DEPRECATED, { reason });
+}
+export function retirePluginV2(db, id, reason) {
+  return setPluginMaturityV2(db, id, PLUGIN_MATURITY_V2.RETIRED, { reason });
+}
+
+export function touchPluginInvocation(pluginId) {
+  const record = _pluginsV2.get(pluginId);
+  if (!record) throw new Error(`Unknown plugin: ${pluginId}`);
+  record.lastInvokedAt = Date.now();
+  record.updatedAt = record.lastInvokedAt;
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function enqueueRuntimeTaskV2(
+  _db,
+  { taskId, ownerId, pluginId, kind, metadata } = {},
+) {
+  if (!taskId) throw new Error("taskId is required");
+  if (!ownerId) throw new Error("ownerId is required");
+  if (!pluginId) throw new Error("pluginId is required");
+  if (!kind) throw new Error("kind is required");
+  if (_runtimeTasksV2.has(taskId))
+    throw new Error(`Task ${taskId} already exists`);
+  const now = Date.now();
+  const record = {
+    taskId,
+    ownerId,
+    pluginId,
+    kind,
+    status: RUNTIME_TASK_V2.QUEUED,
+    metadata: metadata || {},
+    createdAt: now,
+    updatedAt: now,
+  };
+  _runtimeTasksV2.set(taskId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getRuntimeTaskV2(taskId) {
+  const r = _runtimeTasksV2.get(taskId);
+  return r ? { ...r, metadata: { ...r.metadata } } : null;
+}
+
+export function setRuntimeTaskStatusV2(_db, taskId, newStatus, patch = {}) {
+  const record = _runtimeTasksV2.get(taskId);
+  if (!record) throw new Error(`Unknown task: ${taskId}`);
+  if (!Object.values(RUNTIME_TASK_V2).includes(newStatus))
+    throw new Error(`Invalid status: ${newStatus}`);
+  const allowed = RUNTIME_TASK_TRANSITIONS_V2.get(record.status) || new Set();
+  if (!allowed.has(newStatus))
+    throw new Error(`Invalid transition: ${record.status} -> ${newStatus}`);
+  if (newStatus === RUNTIME_TASK_V2.RUNNING) {
+    if (getRunningTaskCount(record.ownerId) >= _maxRunningTasksPerOwnerV2)
+      throw new Error(
+        `Owner ${record.ownerId} reached running-task cap (${_maxRunningTasksPerOwnerV2})`,
+      );
+    record.startedAt = Date.now();
+  }
+  record.status = newStatus;
+  record.updatedAt = Date.now();
+  if (patch.reason !== undefined) record.lastReason = patch.reason;
+  if (patch.metadata)
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function startRuntimeTask(db, id, reason) {
+  return setRuntimeTaskStatusV2(db, id, RUNTIME_TASK_V2.RUNNING, { reason });
+}
+export function completeRuntimeTask(db, id, reason) {
+  return setRuntimeTaskStatusV2(db, id, RUNTIME_TASK_V2.COMPLETED, { reason });
+}
+export function failRuntimeTask(db, id, reason) {
+  return setRuntimeTaskStatusV2(db, id, RUNTIME_TASK_V2.FAILED, { reason });
+}
+export function cancelRuntimeTask(db, id, reason) {
+  return setRuntimeTaskStatusV2(db, id, RUNTIME_TASK_V2.CANCELED, { reason });
+}
+
+export function getActivePluginCount(ownerId) {
+  let n = 0;
+  for (const r of _pluginsV2.values()) {
+    if (r.status !== PLUGIN_MATURITY_V2.ACTIVE) continue;
+    if (ownerId && r.ownerId !== ownerId) continue;
+    n++;
+  }
+  return n;
+}
+
+export function getRunningTaskCount(ownerId) {
+  let n = 0;
+  for (const r of _runtimeTasksV2.values()) {
+    if (r.status !== RUNTIME_TASK_V2.RUNNING) continue;
+    if (ownerId && r.ownerId !== ownerId) continue;
+    n++;
+  }
+  return n;
+}
+
+export function autoRetireIdlePlugins(_db, nowMs) {
+  const now = nowMs ?? Date.now();
+  const flipped = [];
+  for (const r of _pluginsV2.values()) {
+    if (
+      r.status === PLUGIN_MATURITY_V2.ACTIVE ||
+      r.status === PLUGIN_MATURITY_V2.DEPRECATED
+    ) {
+      if (now - r.lastInvokedAt > _pluginIdleMsV2) {
+        r.status = PLUGIN_MATURITY_V2.RETIRED;
+        r.updatedAt = now;
+        r.lastReason = "idle";
+        flipped.push(r.pluginId);
+      }
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function autoFailStuckRuntimeTasks(_db, nowMs) {
+  const now = nowMs ?? Date.now();
+  const flipped = [];
+  for (const r of _runtimeTasksV2.values()) {
+    if (r.status === RUNTIME_TASK_V2.RUNNING) {
+      const anchor = r.startedAt || r.createdAt;
+      if (now - anchor > _taskStuckMsV2) {
+        r.status = RUNTIME_TASK_V2.FAILED;
+        r.updatedAt = now;
+        r.lastReason = "stuck_timeout";
+        flipped.push(r.taskId);
+      }
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function getRuntimeStatsV2() {
+  const pluginsByStatus = {};
+  for (const s of Object.values(PLUGIN_MATURITY_V2)) pluginsByStatus[s] = 0;
+  const tasksByStatus = {};
+  for (const s of Object.values(RUNTIME_TASK_V2)) tasksByStatus[s] = 0;
+  for (const r of _pluginsV2.values()) pluginsByStatus[r.status]++;
+  for (const r of _runtimeTasksV2.values()) tasksByStatus[r.status]++;
+  return {
+    totalPluginsV2: _pluginsV2.size,
+    totalTasksV2: _runtimeTasksV2.size,
+    maxActivePluginsPerOwner: _maxActivePluginsPerOwnerV2,
+    maxRunningTasksPerOwner: _maxRunningTasksPerOwnerV2,
+    pluginIdleMs: _pluginIdleMsV2,
+    taskStuckMs: _taskStuckMsV2,
+    pluginsByStatus,
+    tasksByStatus,
+  };
+}
+
+export function _resetStateV2() {
+  _maxActivePluginsPerOwnerV2 = RT_DEFAULT_MAX_ACTIVE_PLUGINS_PER_OWNER;
+  _maxRunningTasksPerOwnerV2 = RT_DEFAULT_MAX_RUNNING_TASKS_PER_OWNER;
+  _pluginIdleMsV2 = RT_DEFAULT_PLUGIN_IDLE_MS;
+  _taskStuckMsV2 = RT_DEFAULT_TASK_STUCK_MS;
+  _pluginsV2.clear();
+  _runtimeTasksV2.clear();
+}

@@ -88,6 +88,30 @@ vi.mock("@/stores/coding-agent", () => ({
   useCodingAgentStore: () => mockCodingAgentStore,
 }));
 
+const mockSessionCoreStore = vi.hoisted(() => ({
+  sessions: [],
+  memories: [],
+  betaFlags: [],
+  streams: new Map(),
+  usageSummary: null,
+  activeBundle: null,
+  lastError: null,
+  setPolicy: vi.fn().mockResolvedValue({ success: true }),
+  getPolicy: vi.fn().mockResolvedValue(null),
+  tail: vi.fn().mockResolvedValue([]),
+  usage: vi.fn().mockResolvedValue(null),
+  park: vi.fn().mockResolvedValue(true),
+  unpark: vi.fn().mockResolvedValue(true),
+  end: vi.fn().mockResolvedValue(true),
+  listSessions: vi.fn().mockResolvedValue([]),
+  listMemories: vi.fn().mockResolvedValue([]),
+  listBetaFlags: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/stores/sessionCore", () => ({
+  useSessionCoreStore: () => mockSessionCoreStore,
+}));
+
 // Hoist marked mock parse function so tests can access it
 const mockMarkedParse = vi.hoisted(() =>
   vi.fn((content) => `<p>${content}</p>`),

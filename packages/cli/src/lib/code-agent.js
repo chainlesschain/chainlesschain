@@ -440,3 +440,326 @@ export function _resetState() {
   _reviews.clear();
   _scaffolds.clear();
 }
+
+/* ═════════════════════════════════════════════════════════ *
+ *  Phase 86 V2 — Code Agent Maturity + Generation Job
+ * ═════════════════════════════════════════════════════════ */
+
+export const AGENT_MATURITY_V2 = Object.freeze({
+  DRAFT: "draft",
+  ACTIVE: "active",
+  DEPRECATED: "deprecated",
+  RETIRED: "retired",
+});
+
+export const GEN_JOB_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  SUCCEEDED: "succeeded",
+  FAILED: "failed",
+  CANCELED: "canceled",
+});
+
+const AGENT_TRANSITIONS_V2 = new Map([
+  ["draft", new Set(["active", "retired"])],
+  ["active", new Set(["deprecated", "retired"])],
+  ["deprecated", new Set(["active", "retired"])],
+]);
+const AGENT_TERMINALS_V2 = new Set(["retired"]);
+
+const JOB_TRANSITIONS_V2 = new Map([
+  ["queued", new Set(["running", "canceled", "failed"])],
+  ["running", new Set(["succeeded", "failed", "canceled"])],
+]);
+const JOB_TERMINALS_V2 = new Set(["succeeded", "failed", "canceled"]);
+
+export const CGA_DEFAULT_MAX_ACTIVE_AGENTS_PER_OWNER = 15;
+export const CGA_DEFAULT_MAX_RUNNING_JOBS_PER_OWNER = 3;
+export const CGA_DEFAULT_AGENT_IDLE_MS = 60 * 86400000; // 60 days
+export const CGA_DEFAULT_JOB_STUCK_MS = 15 * 60000; // 15 minutes
+
+let _maxActiveAgentsPerOwnerV2 = CGA_DEFAULT_MAX_ACTIVE_AGENTS_PER_OWNER;
+let _maxRunningJobsPerOwnerV2 = CGA_DEFAULT_MAX_RUNNING_JOBS_PER_OWNER;
+let _agentIdleMsV2 = CGA_DEFAULT_AGENT_IDLE_MS;
+let _jobStuckMsV2 = CGA_DEFAULT_JOB_STUCK_MS;
+
+function _positiveIntV2(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be a positive integer`);
+  return v;
+}
+
+export function getDefaultMaxActiveAgentsPerOwnerV2() {
+  return CGA_DEFAULT_MAX_ACTIVE_AGENTS_PER_OWNER;
+}
+export function getMaxActiveAgentsPerOwnerV2() {
+  return _maxActiveAgentsPerOwnerV2;
+}
+export function setMaxActiveAgentsPerOwnerV2(n) {
+  return (_maxActiveAgentsPerOwnerV2 = _positiveIntV2(
+    n,
+    "maxActiveAgentsPerOwner",
+  ));
+}
+export function getDefaultMaxRunningJobsPerOwnerV2() {
+  return CGA_DEFAULT_MAX_RUNNING_JOBS_PER_OWNER;
+}
+export function getMaxRunningJobsPerOwnerV2() {
+  return _maxRunningJobsPerOwnerV2;
+}
+export function setMaxRunningJobsPerOwnerV2(n) {
+  return (_maxRunningJobsPerOwnerV2 = _positiveIntV2(
+    n,
+    "maxRunningJobsPerOwner",
+  ));
+}
+export function getDefaultAgentIdleMsV2() {
+  return CGA_DEFAULT_AGENT_IDLE_MS;
+}
+export function getAgentIdleMsV2() {
+  return _agentIdleMsV2;
+}
+export function setAgentIdleMsV2(ms) {
+  return (_agentIdleMsV2 = _positiveIntV2(ms, "agentIdleMs"));
+}
+export function getDefaultJobStuckMsV2() {
+  return CGA_DEFAULT_JOB_STUCK_MS;
+}
+export function getJobStuckMsV2() {
+  return _jobStuckMsV2;
+}
+export function setJobStuckMsV2(ms) {
+  return (_jobStuckMsV2 = _positiveIntV2(ms, "jobStuckMs"));
+}
+
+const _agentsV2 = new Map();
+const _jobsV2 = new Map();
+
+export function registerAgentV2(
+  _db,
+  { agentId, ownerId, name, initialStatus, metadata } = {},
+) {
+  if (!agentId) throw new Error("agentId is required");
+  if (!ownerId) throw new Error("ownerId is required");
+  if (_agentsV2.has(agentId))
+    throw new Error(`Agent ${agentId} already exists`);
+  const status = initialStatus || AGENT_MATURITY_V2.DRAFT;
+  if (!Object.values(AGENT_MATURITY_V2).includes(status))
+    throw new Error(`Invalid initial status: ${status}`);
+  if (AGENT_TERMINALS_V2.has(status))
+    throw new Error(`Cannot register in terminal status: ${status}`);
+  if (status === AGENT_MATURITY_V2.ACTIVE) {
+    if (getActiveAgentCount(ownerId) >= _maxActiveAgentsPerOwnerV2)
+      throw new Error(
+        `Owner ${ownerId} reached active-agent cap (${_maxActiveAgentsPerOwnerV2})`,
+      );
+  }
+  const now = Date.now();
+  const record = {
+    agentId,
+    ownerId,
+    name: name || agentId,
+    status,
+    metadata: metadata || {},
+    createdAt: now,
+    updatedAt: now,
+    lastInvokedAt: now,
+  };
+  _agentsV2.set(agentId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getAgentV2(agentId) {
+  const r = _agentsV2.get(agentId);
+  return r ? { ...r, metadata: { ...r.metadata } } : null;
+}
+
+export function setAgentMaturityV2(_db, agentId, newStatus, patch = {}) {
+  const record = _agentsV2.get(agentId);
+  if (!record) throw new Error(`Unknown agent: ${agentId}`);
+  if (!Object.values(AGENT_MATURITY_V2).includes(newStatus))
+    throw new Error(`Invalid status: ${newStatus}`);
+  const allowed = AGENT_TRANSITIONS_V2.get(record.status) || new Set();
+  if (!allowed.has(newStatus))
+    throw new Error(`Invalid transition: ${record.status} -> ${newStatus}`);
+  if (newStatus === AGENT_MATURITY_V2.ACTIVE) {
+    if (getActiveAgentCount(record.ownerId) >= _maxActiveAgentsPerOwnerV2)
+      throw new Error(
+        `Owner ${record.ownerId} reached active-agent cap (${_maxActiveAgentsPerOwnerV2})`,
+      );
+  }
+  record.status = newStatus;
+  record.updatedAt = Date.now();
+  if (patch.reason !== undefined) record.lastReason = patch.reason;
+  if (patch.metadata)
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function activateAgent(db, id, reason) {
+  return setAgentMaturityV2(db, id, AGENT_MATURITY_V2.ACTIVE, { reason });
+}
+export function deprecateAgent(db, id, reason) {
+  return setAgentMaturityV2(db, id, AGENT_MATURITY_V2.DEPRECATED, { reason });
+}
+export function retireAgent(db, id, reason) {
+  return setAgentMaturityV2(db, id, AGENT_MATURITY_V2.RETIRED, { reason });
+}
+
+export function touchAgentInvocation(agentId) {
+  const record = _agentsV2.get(agentId);
+  if (!record) throw new Error(`Unknown agent: ${agentId}`);
+  record.lastInvokedAt = Date.now();
+  record.updatedAt = record.lastInvokedAt;
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function enqueueGenJobV2(
+  _db,
+  { jobId, ownerId, agentId, prompt, metadata } = {},
+) {
+  if (!jobId) throw new Error("jobId is required");
+  if (!ownerId) throw new Error("ownerId is required");
+  if (!agentId) throw new Error("agentId is required");
+  if (!prompt) throw new Error("prompt is required");
+  if (_jobsV2.has(jobId)) throw new Error(`Job ${jobId} already exists`);
+  const now = Date.now();
+  const record = {
+    jobId,
+    ownerId,
+    agentId,
+    prompt,
+    status: GEN_JOB_V2.QUEUED,
+    metadata: metadata || {},
+    createdAt: now,
+    updatedAt: now,
+  };
+  _jobsV2.set(jobId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getGenJobV2(jobId) {
+  const r = _jobsV2.get(jobId);
+  return r ? { ...r, metadata: { ...r.metadata } } : null;
+}
+
+export function setGenJobStatusV2(_db, jobId, newStatus, patch = {}) {
+  const record = _jobsV2.get(jobId);
+  if (!record) throw new Error(`Unknown job: ${jobId}`);
+  if (!Object.values(GEN_JOB_V2).includes(newStatus))
+    throw new Error(`Invalid status: ${newStatus}`);
+  const allowed = JOB_TRANSITIONS_V2.get(record.status) || new Set();
+  if (!allowed.has(newStatus))
+    throw new Error(`Invalid transition: ${record.status} -> ${newStatus}`);
+  if (newStatus === GEN_JOB_V2.RUNNING) {
+    if (getRunningJobCount(record.ownerId) >= _maxRunningJobsPerOwnerV2)
+      throw new Error(
+        `Owner ${record.ownerId} reached running-job cap (${_maxRunningJobsPerOwnerV2})`,
+      );
+    if (!record.startedAt) record.startedAt = Date.now();
+  }
+  record.status = newStatus;
+  record.updatedAt = Date.now();
+  if (patch.reason !== undefined) record.lastReason = patch.reason;
+  if (patch.metadata)
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function startGenJob(db, id, reason) {
+  return setGenJobStatusV2(db, id, GEN_JOB_V2.RUNNING, { reason });
+}
+export function succeedGenJob(db, id, reason) {
+  return setGenJobStatusV2(db, id, GEN_JOB_V2.SUCCEEDED, { reason });
+}
+export function failGenJob(db, id, reason) {
+  return setGenJobStatusV2(db, id, GEN_JOB_V2.FAILED, { reason });
+}
+export function cancelGenJob(db, id, reason) {
+  return setGenJobStatusV2(db, id, GEN_JOB_V2.CANCELED, { reason });
+}
+
+export function getActiveAgentCount(ownerId) {
+  let n = 0;
+  for (const r of _agentsV2.values()) {
+    if (r.status !== AGENT_MATURITY_V2.ACTIVE) continue;
+    if (ownerId && r.ownerId !== ownerId) continue;
+    n++;
+  }
+  return n;
+}
+
+export function getRunningJobCount(ownerId) {
+  let n = 0;
+  for (const r of _jobsV2.values()) {
+    if (r.status !== GEN_JOB_V2.RUNNING) continue;
+    if (ownerId && r.ownerId !== ownerId) continue;
+    n++;
+  }
+  return n;
+}
+
+export function autoRetireIdleAgents(_db, nowMs) {
+  const now = nowMs ?? Date.now();
+  const flipped = [];
+  for (const r of _agentsV2.values()) {
+    if (
+      r.status === AGENT_MATURITY_V2.ACTIVE ||
+      r.status === AGENT_MATURITY_V2.DEPRECATED
+    ) {
+      if (now - r.lastInvokedAt > _agentIdleMsV2) {
+        r.status = AGENT_MATURITY_V2.RETIRED;
+        r.updatedAt = now;
+        r.lastReason = "idle_timeout";
+        flipped.push(r.agentId);
+      }
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function autoFailStuckGenJobs(_db, nowMs) {
+  const now = nowMs ?? Date.now();
+  const flipped = [];
+  for (const r of _jobsV2.values()) {
+    if (r.status === GEN_JOB_V2.RUNNING) {
+      const anchor = r.startedAt || r.createdAt;
+      if (now - anchor > _jobStuckMsV2) {
+        r.status = GEN_JOB_V2.FAILED;
+        r.updatedAt = now;
+        r.lastReason = "job_timeout";
+        flipped.push(r.jobId);
+      }
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function getCodeAgentStatsV2() {
+  const agentsByStatus = {};
+  for (const s of Object.values(AGENT_MATURITY_V2)) agentsByStatus[s] = 0;
+  const jobsByStatus = {};
+  for (const s of Object.values(GEN_JOB_V2)) jobsByStatus[s] = 0;
+  for (const r of _agentsV2.values()) agentsByStatus[r.status]++;
+  for (const r of _jobsV2.values()) jobsByStatus[r.status]++;
+  return {
+    totalAgentsV2: _agentsV2.size,
+    totalJobsV2: _jobsV2.size,
+    maxActiveAgentsPerOwner: _maxActiveAgentsPerOwnerV2,
+    maxRunningJobsPerOwner: _maxRunningJobsPerOwnerV2,
+    agentIdleMs: _agentIdleMsV2,
+    jobStuckMs: _jobStuckMsV2,
+    agentsByStatus,
+    jobsByStatus,
+  };
+}
+
+export function _resetStateV2() {
+  _maxActiveAgentsPerOwnerV2 = CGA_DEFAULT_MAX_ACTIVE_AGENTS_PER_OWNER;
+  _maxRunningJobsPerOwnerV2 = CGA_DEFAULT_MAX_RUNNING_JOBS_PER_OWNER;
+  _agentIdleMsV2 = CGA_DEFAULT_AGENT_IDLE_MS;
+  _jobStuckMsV2 = CGA_DEFAULT_JOB_STUCK_MS;
+  _agentsV2.clear();
+  _jobsV2.clear();
+}
