@@ -266,6 +266,39 @@ const categories = [
       ['ops postmortem', '事后复盘报告'],
     ],
   },
+  {
+    name: '多模态感知 & 联邦',
+    key: 'perception',
+    cmds: [
+      ['perception record / results / query', '感知结果与跨模态搜索'],
+      ['perception voice-start / voice-status', '语音会话状态机'],
+      ['perception index-add / context', '多模态索引与上下文'],
+      ['federation register / breakers / check', '断路器 + 健康检查'],
+      ['federation pool-init / pool-stats', '连接池管理'],
+    ],
+  },
+  {
+    name: 'NL 编程 & 模型量化',
+    key: 'nlprog',
+    cmds: [
+      ['nlprog classify / extract / detect-stack', '意图 / 实体 / 栈检测'],
+      ['nlprog translate / refine', 'NL→结构化规格翻译'],
+      ['nlprog convention-add / conventions', '项目编码约定'],
+      ['quantize create / start / complete', 'GGUF/GPTQ 量化任务'],
+      ['quantize levels / gptq-bits', '量化级别目录'],
+    ],
+  },
+  {
+    name: '运行时 & IPFS & 多模态',
+    key: 'runtime',
+    cmds: [
+      ['runtime plugin-load / hot-update / rollback', '插件热更新与回滚'],
+      ['runtime state-set / state-get / state-list', 'LWW 状态同步'],
+      ['runtime profile / health / metrics', '运行时监控'],
+      ['ipfs add / get / pin / gc', 'IPFS 内容存取 + GC'],
+      ['mm session-create / fuse / generate', '多模态融合与生成'],
+    ],
+  },
 ];
 
 const packs = [
@@ -281,20 +314,20 @@ const packs = [
 ];
 ---
 <BaseLayout
-  title="CLI 工具 — 76 命令 · 139 Skills · 你的终端就是 AI 工作台 | ChainlessChain"
-  description="ChainlessChain CLI：73 条命令、139 内置 Skills、9 个 Skill Packs、本地 Ollama + 10 LLM Providers。Agent 模式、Cowork 多智能体、MCP 生态，全部在终端完成。"
+  title="CLI 工具 — 83 命令 · 139 Skills · 你的终端就是 AI 工作台 | ChainlessChain"
+  description="ChainlessChain CLI：83 条命令、139 内置 Skills、9 个 Skill Packs、本地 Ollama + 10 LLM Providers。Agent 模式、Cowork 多智能体、MCP 生态，全部在终端完成。"
   canonical="https://www.chainlesschain.com/cli"
 >
   <section class="relative overflow-hidden">
     <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
     <div class="container-wide relative pt-20 pb-16 md:pt-28 md:pb-20">
       <div class="max-w-4xl">
-        <div class="chip mb-6 animate-fade-in">CLI · v0.48.1</div>
+        <div class="chip mb-6 animate-fade-in">CLI · v0.58.0</div>
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
           你的终端，<br/><span class="italic text-ember">就是 AI 工作台</span>。
         </h1>
         <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
-          73 条命令，覆盖从知识库到链上治理的完整生命周期。零 GUI 依赖，纯文本输入输出，可管道可脚本可 CI。
+          83 条命令，覆盖从知识库到链上治理的完整生命周期。零 GUI 依赖，纯文本输入输出，可管道可脚本可 CI。
         </p>
 
         <!-- Install tabs -->
@@ -328,7 +361,7 @@ const packs = [
   <section class="py-16 md:py-24">
     <div class="container-wide">
       <div class="flex items-baseline justify-between mb-10">
-        <h2 class="text-4xl md:text-5xl">全部 76 条命令</h2>
+        <h2 class="text-4xl md:text-5xl">全部 83 条命令</h2>
         <span class="font-mono text-sm text-muted">{categories.length} 大类</span>
       </div>
       <div class="space-y-3">

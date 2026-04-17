@@ -959,7 +959,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.10 压力测试与运维 ⭐NEW",
+          text: "v5.0.2.10 压力测试与运维",
           items: [
             {
               text: "压力测试 (stress)",
@@ -980,7 +980,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.10 自主开发与治理 ⭐NEW",
+          text: "v5.0.2.10 自主开发与治理",
           items: [
             {
               text: "自主开发者 (dev)",
@@ -997,7 +997,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.10 市场与经济 ⭐NEW",
+          text: "v5.0.2.10 市场与经济",
           items: [
             {
               text: "技能市场 (marketplace)",
@@ -1010,7 +1010,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.10 知识与推荐 ⭐NEW",
+          text: "v5.0.2.10 知识与推荐",
           items: [
             {
               text: "知识图谱 (kg)",
@@ -1027,7 +1027,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.10 视频剪辑 ⭐NEW",
+          text: "v5.0.2.10 视频剪辑",
           items: [
             {
               text: "视频剪辑 Agent (video)",
@@ -1036,7 +1036,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.10 代码生成与数据库 ⭐NEW",
+          text: "v5.0.2.10 代码生成与数据库",
           items: [
             {
               text: "代码生成 Agent (codegen)",
@@ -1049,7 +1049,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.10 AIOps 智能运维 ⭐NEW",
+          text: "v5.0.2.10 AIOps 智能运维",
           items: [
             {
               text: "智能运维 (ops)",
@@ -1058,7 +1058,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.10 联邦与多模态感知 ⭐NEW",
+          text: "v5.0.2.10 联邦与多模态感知",
           items: [
             {
               text: "联邦硬化 (federation)",
@@ -1067,6 +1067,36 @@ export default defineConfig({
             {
               text: "多模态感知 (perception)",
               link: "/chainlesschain/cli-perception",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.10 NL编程与量化 ⭐NEW",
+          items: [
+            {
+              text: "自然语言编程 (nlprog)",
+              link: "/chainlesschain/cli-nlprog",
+            },
+            {
+              text: "模型量化 (quantize)",
+              link: "/chainlesschain/cli-quantize",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.10 运行时与存储 ⭐NEW",
+          items: [
+            {
+              text: "统一运行时 (runtime)",
+              link: "/chainlesschain/cli-runtime",
+            },
+            {
+              text: "IPFS存储 (ipfs)",
+              link: "/chainlesschain/cli-ipfs",
+            },
+            {
+              text: "多模态协作 (mm)",
+              link: "/chainlesschain/cli-mm",
             },
           ],
         },
