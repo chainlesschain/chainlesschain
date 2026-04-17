@@ -1,0 +1,361 @@
+/**
+ * `cc infra` — CLI surface for Phase 74-75 Decentralized Infrastructure.
+ */
+
+import { Command } from "commander";
+
+import {
+  DEAL_STATUS,
+  ROUTE_TYPE,
+  ROUTE_STATUS,
+  ensureDecentralInfraTables,
+  createDeal,
+  updateDealStatus,
+  renewDeal,
+  getDeal,
+  listDeals,
+  addContentVersion,
+  getContentVersion,
+  listContentVersions,
+  cacheVersion,
+  addRoute,
+  updateRouteStatus,
+  removeRoute,
+  getRoute,
+  listRoutes,
+  getConnectivityReport,
+  getInfraStats,
+} from "../lib/decentral-infra.js";
+
+function _dbFromCtx(cmd) {
+  const root = cmd?.parent?.parent ?? cmd?.parent;
+  return root?._db;
+}
+
+export function registerInfraCommand(program) {
+  const inf = new Command("infra")
+    .description("Decentralized infrastructure (Phase 74-75)")
+    .hook("preAction", (thisCmd) => {
+      const db = _dbFromCtx(thisCmd);
+      if (db) ensureDecentralInfraTables(db);
+    });
+
+  /* ── Catalogs ────────────────────────────────────── */
+
+  inf
+    .command("deal-statuses")
+    .description("List deal statuses")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const statuses = Object.values(DEAL_STATUS);
+      if (opts.json) return console.log(JSON.stringify(statuses, null, 2));
+      for (const s of statuses) console.log(`  ${s}`);
+    });
+
+  inf
+    .command("route-types")
+    .description("List route types")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const types = Object.values(ROUTE_TYPE);
+      if (opts.json) return console.log(JSON.stringify(types, null, 2));
+      for (const t of types) console.log(`  ${t}`);
+    });
+
+  /* ── Filecoin Storage (Phase 74) ��────────────────── */
+
+  inf
+    .command("deal-create")
+    .description("Create Filecoin storage deal")
+    .requiredOption("-c, --cid <cid>", "Content CID")
+    .requiredOption("-s, --size <bytes>", "Size in bytes", parseInt)
+    .option("-m, --miner <id>", "Miner ID")
+    .option("-p, --price <fil>", "Price in FIL", parseFloat)
+    .option("-d, --duration <epochs>", "Duration in epochs", parseInt)
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(inf);
+      const result = createDeal(db, {
+        cid: opts.cid,
+        minerId: opts.miner,
+        sizeBytes: opts.size,
+        priceFil: opts.price,
+        durationEpochs: opts.duration,
+      });
+      if (opts.json) return console.log(JSON.stringify(result, null, 2));
+      if (result.dealId) console.log(`Deal created: ${result.dealId}`);
+      else console.log(`Failed: ${result.reason}`);
+    });
+
+  inf
+    .command("deal-status <id> <status>")
+    .description("Update deal status")
+    .option("--json", "JSON output")
+    .action((id, status, opts) => {
+      const db = _dbFromCtx(inf);
+      const result = updateDealStatus(db, id, status);
+      if (opts.json) return console.log(JSON.stringify(result, null, 2));
+      console.log(
+        result.updated ? "Status updated." : `Failed: ${result.reason}`,
+      );
+    });
+
+  inf
+    .command("deal-renew <id>")
+    .description("Renew a storage deal")
+    .option("--json", "JSON output")
+    .action((id, opts) => {
+      const db = _dbFromCtx(inf);
+      const result = renewDeal(db, id);
+      if (opts.json) return console.log(JSON.stringify(result, null, 2));
+      if (result.renewed)
+        console.log(`Renewed (count: ${result.renewalCount})`);
+      else console.log(`Failed: ${result.reason}`);
+    });
+
+  inf
+    .command("deal-show <id>")
+    .description("Show deal details")
+    .option("--json", "JSON output")
+    .action((id, opts) => {
+      const db = _dbFromCtx(inf);
+      const d = getDeal(db, id);
+      if (!d) return console.log("Deal not found.");
+      if (opts.json) return console.log(JSON.stringify(d, null, 2));
+      console.log(`ID:       ${d.id}`);
+      console.log(`CID:      ${d.cid}`);
+      if (d.miner_id) console.log(`Miner:    ${d.miner_id}`);
+      console.log(`Size:     ${d.size_bytes} bytes`);
+      console.log(`Price:    ${d.price_fil} FIL`);
+      console.log(`Status:   ${d.status}`);
+      console.log(`Renewals: ${d.renewal_count}`);
+    });
+
+  inf
+    .command("deals")
+    .description("List storage deals")
+    .option("-s, --status <status>", "Filter by status")
+    .option("--limit <n>", "Max results", parseInt)
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(inf);
+      const deals = listDeals(db, {
+        status: opts.status,
+        limit: opts.limit,
+      });
+      if (opts.json) return console.log(JSON.stringify(deals, null, 2));
+      if (deals.length === 0) return console.log("No deals.");
+      for (const d of deals) {
+        console.log(
+          `  ${d.status.padEnd(10)} ${d.cid.slice(0, 20).padEnd(22)} ${d.size_bytes}B  ${d.id.slice(0, 8)}`,
+        );
+      }
+    });
+
+  /* ── Content Versions ────────────────────────────── */
+
+  inf
+    .command("version-add")
+    .description("Add content version")
+    .requiredOption("-c, --cid <cid>", "Content CID")
+    .option("-p, --parent <cid>", "Parent CID")
+    .option("-d, --dag <json>", "DAG structure")
+    .option("-n, --peers <n>", "Peer count", parseInt)
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(inf);
+      const result = addContentVersion(db, {
+        contentCid: opts.cid,
+        parentCid: opts.parent,
+        dagStructure: opts.dag,
+        peerCount: opts.peers,
+      });
+      if (opts.json) return console.log(JSON.stringify(result, null, 2));
+      if (result.versionId)
+        console.log(`Version ${result.version}: ${result.versionId}`);
+      else console.log(`Failed: ${result.reason}`);
+    });
+
+  inf
+    .command("version-show <id>")
+    .description("Show content version")
+    .option("--json", "JSON output")
+    .action((id, opts) => {
+      const db = _dbFromCtx(inf);
+      const v = getContentVersion(db, id);
+      if (!v) return console.log("Version not found.");
+      if (opts.json) return console.log(JSON.stringify(v, null, 2));
+      console.log(`ID:      ${v.id}`);
+      console.log(`CID:     ${v.content_cid}`);
+      console.log(`Version: ${v.version}`);
+      if (v.parent_cid) console.log(`Parent:  ${v.parent_cid}`);
+      console.log(`Cached:  ${v.cached ? "YES" : "NO"}`);
+      console.log(`Peers:   ${v.peer_count}`);
+    });
+
+  inf
+    .command("versions")
+    .description("List content versions")
+    .option("-c, --cid <cid>", "Filter by content CID")
+    .option("--limit <n>", "Max results", parseInt)
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(inf);
+      const vers = listContentVersions(db, {
+        contentCid: opts.cid,
+        limit: opts.limit,
+      });
+      if (opts.json) return console.log(JSON.stringify(vers, null, 2));
+      if (vers.length === 0) return console.log("No versions.");
+      for (const v of vers) {
+        console.log(
+          `  v${String(v.version).padEnd(4)} ${v.content_cid.slice(0, 20).padEnd(22)} ${v.cached ? "cached" : "      "}  ${v.id.slice(0, 8)}`,
+        );
+      }
+    });
+
+  inf
+    .command("version-cache <id>")
+    .description("Mark content version as cached")
+    .option("--json", "JSON output")
+    .action((id, opts) => {
+      const db = _dbFromCtx(inf);
+      const result = cacheVersion(db, id);
+      if (opts.json) return console.log(JSON.stringify(result, null, 2));
+      console.log(
+        result.cached ? "Version cached." : `Failed: ${result.reason}`,
+      );
+    });
+
+  /* ── Anti-Censorship Routes (Phase 75) ───────────── */
+
+  inf
+    .command("route-add")
+    .description("Add anti-censorship route")
+    .requiredOption(
+      "-t, --type <type>",
+      "Route type (tor/domain_front/mesh_ble/mesh_wifi/direct)",
+    )
+    .option("-e, --endpoint <url>", "Endpoint URL")
+    .option("-l, --latency <ms>", "Latency in ms", parseInt)
+    .option("-r, --reliability <0-1>", "Reliability score", parseFloat)
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(inf);
+      const result = addRoute(db, {
+        routeType: opts.type,
+        endpoint: opts.endpoint,
+        latencyMs: opts.latency,
+        reliability: opts.reliability,
+      });
+      if (opts.json) return console.log(JSON.stringify(result, null, 2));
+      if (result.routeId) console.log(`Route added: ${result.routeId}`);
+      else console.log(`Failed: ${result.reason}`);
+    });
+
+  inf
+    .command("route-status <id> <status>")
+    .description("Update route status")
+    .option("--json", "JSON output")
+    .action((id, status, opts) => {
+      const db = _dbFromCtx(inf);
+      const result = updateRouteStatus(db, id, status);
+      if (opts.json) return console.log(JSON.stringify(result, null, 2));
+      console.log(
+        result.updated ? "Status updated." : `Failed: ${result.reason}`,
+      );
+    });
+
+  inf
+    .command("route-remove <id>")
+    .description("Remove route")
+    .option("--json", "JSON output")
+    .action((id, opts) => {
+      const db = _dbFromCtx(inf);
+      const result = removeRoute(db, id);
+      if (opts.json) return console.log(JSON.stringify(result, null, 2));
+      console.log(
+        result.removed ? "Route removed." : `Failed: ${result.reason}`,
+      );
+    });
+
+  inf
+    .command("route-show <id>")
+    .description("Show route details")
+    .option("--json", "JSON output")
+    .action((id, opts) => {
+      const db = _dbFromCtx(inf);
+      const r = getRoute(db, id);
+      if (!r) return console.log("Route not found.");
+      if (opts.json) return console.log(JSON.stringify(r, null, 2));
+      console.log(`ID:          ${r.id}`);
+      console.log(`Type:        ${r.route_type}`);
+      if (r.endpoint) console.log(`Endpoint:    ${r.endpoint}`);
+      console.log(`Status:      ${r.status}`);
+      if (r.latency_ms != null) console.log(`Latency:     ${r.latency_ms}ms`);
+      console.log(`Reliability: ${r.reliability}`);
+    });
+
+  inf
+    .command("routes")
+    .description("List anti-censorship routes")
+    .option("-t, --type <type>", "Filter by route type")
+    .option("-s, --status <status>", "Filter by status")
+    .option("--limit <n>", "Max results", parseInt)
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(inf);
+      const routes = listRoutes(db, {
+        routeType: opts.type,
+        status: opts.status,
+        limit: opts.limit,
+      });
+      if (opts.json) return console.log(JSON.stringify(routes, null, 2));
+      if (routes.length === 0) return console.log("No routes.");
+      for (const r of routes) {
+        console.log(
+          `  ${r.status.padEnd(10)} ${r.route_type.padEnd(14)} ${(r.endpoint || "").slice(0, 30).padEnd(32)} ${r.id.slice(0, 8)}`,
+        );
+      }
+    });
+
+  inf
+    .command("connectivity")
+    .description("Connectivity report")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(inf);
+      const r = getConnectivityReport(db);
+      if (opts.json) return console.log(JSON.stringify(r, null, 2));
+      console.log(`Total:       ${r.totalRoutes}`);
+      console.log(`Active:      ${r.activeRoutes}`);
+      console.log(`Avg Latency: ${r.avgLatencyMs}ms`);
+      console.log(`Avg Reliability: ${r.avgReliability}`);
+      for (const [type, count] of Object.entries(r.byType)) {
+        console.log(`  ${type.padEnd(14)} ${count}`);
+      }
+    });
+
+  /* ── Stats ────────────────────────────────────��──── */
+
+  inf
+    .command("stats")
+    .description("Infrastructure statistics")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(inf);
+      const s = getInfraStats(db);
+      if (opts.json) return console.log(JSON.stringify(s, null, 2));
+      console.log(
+        `Storage:  ${s.storage.totalDeals} deals  (${s.storage.active} active, ${s.storage.totalSizeBytes}B, ${s.storage.totalPriceFil} FIL)`,
+      );
+      console.log(
+        `Content:  ${s.content.totalVersions} versions  (${s.content.cached} cached, ${s.content.uniqueCids} unique CIDs)`,
+      );
+      console.log(
+        `Routes:   ${s.connectivity.totalRoutes}  (${s.connectivity.activeRoutes} active, avg ${s.connectivity.avgLatencyMs}ms)`,
+      );
+    });
+
+  program.addCommand(inf);
+}

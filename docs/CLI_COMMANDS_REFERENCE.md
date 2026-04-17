@@ -543,6 +543,24 @@ chainlesschain fusion translate <text> -t <target-lang> [-s source-lang] [--json
 chainlesschain fusion detect-lang <text> [--json]                               # Detect language
 chainlesschain fusion translation-stats [--json]                                # Translation cache statistics
 chainlesschain fusion stats [--json]                                            # Protocol fusion & AI social stats
+chainlesschain infra deal-statuses [--json]                                     # List deal statuses (pending/active/expired/failed)
+chainlesschain infra route-types [--json]                                       # List route types (tor/domain_front/mesh_ble/mesh_wifi/direct)
+chainlesschain infra deal-create -c <cid> -s <bytes> [-m miner] [-p price] [-d epochs] [--json]
+chainlesschain infra deal-status <id> <status> [--json]                         # Update deal status
+chainlesschain infra deal-renew <id> [--json]                                   # Renew storage deal
+chainlesschain infra deal-show <id> [--json]                                    # Show deal details
+chainlesschain infra deals [-s status] [--limit N] [--json]                     # List storage deals
+chainlesschain infra version-add -c <cid> [-p parent] [-d dag] [-n peers] [--json]
+chainlesschain infra version-show <id> [--json]                                 # Show content version
+chainlesschain infra versions [-c cid] [--limit N] [--json]                     # List content versions
+chainlesschain infra version-cache <id> [--json]                                # Mark version as cached
+chainlesschain infra route-add -t <type> [-e endpoint] [-l latency] [-r reliability] [--json]
+chainlesschain infra route-status <id> <status> [--json]                        # Update route status
+chainlesschain infra route-remove <id> [--json]                                 # Remove route
+chainlesschain infra route-show <id> [--json]                                   # Show route details
+chainlesschain infra routes [-t type] [-s status] [--limit N] [--json]          # List anti-censorship routes
+chainlesschain infra connectivity [--json]                                      # Connectivity report
+chainlesschain infra stats [--json]                                             # Infrastructure statistics
 ```
 
 ## Phase 9: Low-Code & Multi-Agent
