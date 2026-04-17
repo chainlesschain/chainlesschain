@@ -36,3 +36,58 @@ chainlesschain orchestrate detect               # 检测 AI CLI 工具
 chainlesschain orchestrate --status [--json]    # 查看状态
 chainlesschain orchestrate --webhook [--webhook-port 9090]
 ```
+
+## Phase 63: Universal Runtime (`runtime`)
+
+统一应用运行时 — 插件生命周期、热更新/回滚、运行时剖析、状态同步、平台信息、健康检查、指标。
+
+**目录**:
+```bash
+chainlesschain runtime plugin-statuses [--json]     # loading/active/suspended/error/unloaded
+chainlesschain runtime update-types [--json]        # patch/minor/major/rollback
+chainlesschain runtime health-levels [--json]       # healthy/degraded/critical
+chainlesschain runtime profile-types [--json]       # cpu/memory/flamegraph
+```
+
+**插件生命周期**:
+```bash
+chainlesschain runtime plugin-load -n <name> [-v version] [-c config-json] [-a apis-json] [-p perms-json] [--json]
+chainlesschain runtime plugin-unload <id> [--json]
+chainlesschain runtime plugin-status <id> <status> [--json]
+chainlesschain runtime plugin-show <id> [--json]
+chainlesschain runtime plugins [-s status] [--limit N] [--json]
+```
+
+**热更新 / 回滚**:
+```bash
+chainlesschain runtime hot-update <pluginId> <newVersion> [-t patch|minor|major] [--json]
+chainlesschain runtime rollback <updateId> [--json]
+chainlesschain runtime updates [-p pluginId] [--limit N] [--json]
+```
+
+**剖析**:
+```bash
+chainlesschain runtime profile [-t cpu|memory|flamegraph] [-d ms] [--json]
+chainlesschain runtime profile-show <id> [--json]
+chainlesschain runtime profiles [-t type] [--limit N] [--json]
+```
+
+**状态同步 (LWW 键值)**:
+```bash
+chainlesschain runtime state-set <key> <value> [--json]       # value 可为 JSON 或字符串
+chainlesschain runtime state-get <key> [--json]
+chainlesschain runtime state-list [--limit N] [--json]
+chainlesschain runtime state-delete <key> [--json]
+```
+
+**平台 / 健康 / 指标 / 配置**:
+```bash
+chainlesschain runtime platform [--json]      # OS/arch/Node/CPU/memory/PID
+chainlesschain runtime health [--json]        # 堆使用率 + 插件计数 + 错误数
+chainlesschain runtime metrics [--json]       # 运行时计数器
+chainlesschain runtime configure <key> <value> [--json]
+chainlesschain runtime config [--json]
+chainlesschain runtime stats [--json]
+```
+
+> **未移植**: 真实插件沙箱、Yjs CRDT 合并、真实 Flame Graph 采样、差量热补丁、自愈定时器。CLI 只是一次性调用，状态同步为最后写入胜出 (LWW) 而非真正的 CRDT。
