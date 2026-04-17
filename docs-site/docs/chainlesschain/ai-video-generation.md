@@ -291,4 +291,4 @@ async function generate() {
 - [视频剪辑 Agent (CutClaw)](./video-editing-agent.md) — 完整剪辑管线：deconstruct → plan → assemble → render
 - [AI 设置配置](./ai-settings.md) — 火山方舟 apiKey 配置入口
 - [统一配置管理](./unified-config.md) — `.chainlesschain/config.json` 结构说明
-- [CLI 视频命令参考](../../CLI_COMMANDS_REFERENCE.md#video-editing-agent-cutclaw-inspired) — `cc video` 命令完整列表
+- [CLI 视频命令参考](../../cli/video.md) — `cc video` 命令完整列表
