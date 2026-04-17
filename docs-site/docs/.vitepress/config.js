@@ -1036,6 +1036,28 @@ export default defineConfig({
           ],
         },
         {
+          text: "v5.0.2.10 代码生成与数据库 ⭐NEW",
+          items: [
+            {
+              text: "代码生成 Agent (codegen)",
+              link: "/chainlesschain/cli-codegen",
+            },
+            {
+              text: "数据库演进 (dbevo)",
+              link: "/chainlesschain/cli-dbevo",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.10 AIOps 智能运维 ⭐NEW",
+          items: [
+            {
+              text: "智能运维 (ops)",
+              link: "/chainlesschain/cli-ops",
+            },
+          ],
+        },
+        {
           text: "产品规划",
           items: [
             { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },
