@@ -157,6 +157,10 @@ import { registerNlProgCommand } from "./commands/nlprog.js";
 import { registerQuantizationCommand } from "./commands/quantization.js";
 // Phase 63: Universal Runtime
 import { registerRuntimeCommand } from "./commands/runtime.js";
+// Phase 17: IPFS decentralized storage
+import { registerIpfsCommand } from "./commands/ipfs.js";
+// Phase 27: Multimodal Collaboration
+import { registerMultimodalCommand } from "./commands/multimodal.js";
 
 export function createProgram() {
   const program = new Command();
@@ -336,6 +340,8 @@ export function createProgram() {
   registerNlProgCommand(program);
   registerQuantizationCommand(program);
   registerRuntimeCommand(program);
+  registerIpfsCommand(program);
+  registerMultimodalCommand(program);
 
   return program;
 }
