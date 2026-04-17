@@ -153,6 +153,8 @@ import { registerPerceptionCommand } from "./commands/perception.js";
 import { registerFederationCommand } from "./commands/federation.js";
 // Phase 28: Natural Language Programming
 import { registerNlProgCommand } from "./commands/nlprog.js";
+// Phase 20: Model Quantization
+import { registerQuantizationCommand } from "./commands/quantization.js";
 
 export function createProgram() {
   const program = new Command();
@@ -330,6 +332,7 @@ export function createProgram() {
   registerPerceptionCommand(program);
   registerFederationCommand(program);
   registerNlProgCommand(program);
+  registerQuantizationCommand(program);
 
   return program;
 }
