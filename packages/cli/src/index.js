@@ -145,6 +145,8 @@ import { registerInfraCommand } from "./commands/infra.js";
 import { registerCodegenCommand } from "./commands/codegen.js";
 // Phase 25: Autonomous Ops (AIOps)
 import { registerOpsCommand } from "./commands/ops.js";
+// Phase 80: Database Evolution Framework
+import { registerDbEvoCommand } from "./commands/dbevo.js";
 
 export function createProgram() {
   const program = new Command();
@@ -318,6 +320,7 @@ export function createProgram() {
   registerInfraCommand(program);
   registerCodegenCommand(program);
   registerOpsCommand(program);
+  registerDbEvoCommand(program);
 
   return program;
 }
