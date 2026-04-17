@@ -608,6 +608,30 @@ chainlesschain ops postmortem <id> [--json]                                     
 chainlesschain ops stats [--json]                                                # AIOps statistics
 ```
 
+## Database Evolution Framework (Phase 80)
+
+```bash
+chainlesschain dbevo migration-statuses [--json]                                 # List migration statuses (success/failed/rolled_back)
+chainlesschain dbevo directions [--json]                                         # List migration directions (up/down)
+chainlesschain dbevo suggestion-types [--json]                                   # List index suggestion types
+chainlesschain dbevo register <version> -u <up-sql> [-d <down-sql>] [--description text] [--json]
+chainlesschain dbevo registered [--json]                                         # List registered migrations
+chainlesschain dbevo validate [--json]                                           # Validate migrations (gaps, missing down)
+chainlesschain dbevo status [--json]                                             # Show current migration status
+chainlesschain dbevo up [-t version] [--json]                                    # Migrate up (apply pending)
+chainlesschain dbevo down [-t version] [--json]                                  # Rollback migrations
+chainlesschain dbevo history [--limit N] [--json]                                # Show migration history
+chainlesschain dbevo query-log <sql> <duration-ms> [-s source] [-p params-json] [--json]
+chainlesschain dbevo query-stats [--json]                                        # Query statistics (slow queries, avg/max duration)
+chainlesschain dbevo slow-threshold <ms> [--json]                                # Set slow query threshold
+chainlesschain dbevo query-clear [--json]                                        # Clear query log
+chainlesschain dbevo analyze [--min-count N] [--json]                            # Analyze slow queries → index suggestions
+chainlesschain dbevo suggestions [-a|--applied] [-p|--pending] [--json]          # List index suggestions
+chainlesschain dbevo suggestion-show <id> [--json]                               # Show suggestion details
+chainlesschain dbevo apply <id> [--json]                                         # Apply an index suggestion
+chainlesschain dbevo stats [--json]                                              # Database evolution statistics
+```
+
 ## Phase 9: Low-Code & Multi-Agent
 
 ```bash
