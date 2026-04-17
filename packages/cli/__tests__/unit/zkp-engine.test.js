@@ -16,6 +16,26 @@ import {
   registerCredential,
   selectiveDisclose,
   listCredentials,
+  // V2 surface
+  PROOF_SCHEME_V2,
+  CIRCUIT_STATUS_V2,
+  PROOF_STATUS_V2,
+  ZKP_DEFAULT_MAX_CIRCUITS_PER_CREATOR,
+  ZKP_DEFAULT_PROOF_EXPIRY_MS,
+  setMaxCircuitsPerCreator,
+  getMaxCircuitsPerCreator,
+  getCircuitCountByCreator,
+  setProofExpiryMs,
+  getProofExpiryMs,
+  compileCircuitV2,
+  setCircuitStatusV2,
+  generateProofV2,
+  verifyProofV2,
+  failProof,
+  setProofStatus,
+  autoExpireProofs,
+  selectiveDiscloseV2,
+  getZKPStatsV2,
 } from "../../src/lib/zkp-engine.js";
 
 describe("zkp-engine", () => {
@@ -522,6 +542,401 @@ describe("zkp-engine", () => {
       registerCredential(db, { claims: { x: 1 } });
       registerCredential(db, { claims: { y: 2 } });
       expect(getZKPStats().credentials).toBe(2);
+    });
+  });
+
+  // ─── Phase 88 V2 ──────────────────────────────────────────
+
+  describe("V2 frozen enums", () => {
+    it("PROOF_SCHEME_V2 aliases legacy PROOF_SCHEME", () => {
+      expect(PROOF_SCHEME_V2).toBe(PROOF_SCHEME);
+      expect(Object.isFrozen(PROOF_SCHEME_V2)).toBe(true);
+    });
+
+    it("CIRCUIT_STATUS_V2 aliases legacy CIRCUIT_STATUS", () => {
+      expect(CIRCUIT_STATUS_V2).toBe(CIRCUIT_STATUS);
+      expect(Object.isFrozen(CIRCUIT_STATUS_V2)).toBe(true);
+    });
+
+    it("PROOF_STATUS_V2 has 4 explicit states", () => {
+      expect(Object.isFrozen(PROOF_STATUS_V2)).toBe(true);
+      expect(Object.values(PROOF_STATUS_V2).sort()).toEqual([
+        "expired",
+        "invalid",
+        "pending",
+        "verified",
+      ]);
+    });
+
+    it("default constants are exposed", () => {
+      expect(ZKP_DEFAULT_MAX_CIRCUITS_PER_CREATOR).toBe(10);
+      expect(ZKP_DEFAULT_PROOF_EXPIRY_MS).toBe(3600_000);
+    });
+  });
+
+  describe("setMaxCircuitsPerCreator", () => {
+    it("defaults to ZKP_DEFAULT_MAX_CIRCUITS_PER_CREATOR", () => {
+      expect(getMaxCircuitsPerCreator()).toBe(
+        ZKP_DEFAULT_MAX_CIRCUITS_PER_CREATOR,
+      );
+    });
+
+    it("accepts positive integer", () => {
+      setMaxCircuitsPerCreator(5);
+      expect(getMaxCircuitsPerCreator()).toBe(5);
+    });
+
+    it("floors non-integer inputs", () => {
+      setMaxCircuitsPerCreator(3.7);
+      expect(getMaxCircuitsPerCreator()).toBe(3);
+    });
+
+    it("rejects ≤0 / NaN / non-number", () => {
+      expect(() => setMaxCircuitsPerCreator(0)).toThrow();
+      expect(() => setMaxCircuitsPerCreator(-1)).toThrow();
+      expect(() => setMaxCircuitsPerCreator(NaN)).toThrow();
+      expect(() => setMaxCircuitsPerCreator("5")).toThrow();
+    });
+
+    it("_resetState restores default", () => {
+      setMaxCircuitsPerCreator(99);
+      _resetState();
+      ensureZKPTables(db);
+      expect(getMaxCircuitsPerCreator()).toBe(
+        ZKP_DEFAULT_MAX_CIRCUITS_PER_CREATOR,
+      );
+    });
+  });
+
+  describe("getCircuitCountByCreator", () => {
+    it("returns 0 for unknown creator", () => {
+      expect(getCircuitCountByCreator("did:alice")).toBe(0);
+      expect(getCircuitCountByCreator(null)).toBe(0);
+    });
+
+    it("counts circuits scoped per creator", () => {
+      compileCircuitV2(db, { name: "a", creator: "did:alice" });
+      compileCircuitV2(db, { name: "b", creator: "did:alice" });
+      compileCircuitV2(db, { name: "c", creator: "did:bob" });
+      expect(getCircuitCountByCreator("did:alice")).toBe(2);
+      expect(getCircuitCountByCreator("did:bob")).toBe(1);
+    });
+  });
+
+  describe("setProofExpiryMs", () => {
+    it("defaults to ZKP_DEFAULT_PROOF_EXPIRY_MS", () => {
+      expect(getProofExpiryMs()).toBe(ZKP_DEFAULT_PROOF_EXPIRY_MS);
+    });
+
+    it("accepts positive ms", () => {
+      setProofExpiryMs(60_000);
+      expect(getProofExpiryMs()).toBe(60_000);
+    });
+
+    it("rejects ≤0 / NaN", () => {
+      expect(() => setProofExpiryMs(0)).toThrow();
+      expect(() => setProofExpiryMs(-1)).toThrow();
+      expect(() => setProofExpiryMs(NaN)).toThrow();
+      expect(() => setProofExpiryMs("60000")).toThrow();
+    });
+  });
+
+  describe("compileCircuitV2", () => {
+    it("throws on missing name", () => {
+      expect(() => compileCircuitV2(db, {})).toThrow(/name is required/);
+    });
+
+    it("creates a circuit and tags creator", () => {
+      const c = compileCircuitV2(db, {
+        name: "age",
+        definition: { inputs: ["age"] },
+        creator: "did:alice",
+      });
+      expect(c.id).toBeDefined();
+      expect(c.creator).toBe("did:alice");
+    });
+
+    it("creates anonymous circuit (no creator)", () => {
+      const c = compileCircuitV2(db, { name: "x" });
+      expect(c.id).toBeDefined();
+      expect(c.creator).toBeUndefined();
+    });
+
+    it("enforces per-creator cap", () => {
+      setMaxCircuitsPerCreator(2);
+      compileCircuitV2(db, { name: "a", creator: "did:alice" });
+      compileCircuitV2(db, { name: "b", creator: "did:alice" });
+      expect(() =>
+        compileCircuitV2(db, { name: "c", creator: "did:alice" }),
+      ).toThrow(/Max circuits per creator reached/);
+    });
+
+    it("cap is per-creator — alice's cap does not affect bob", () => {
+      setMaxCircuitsPerCreator(1);
+      compileCircuitV2(db, { name: "a", creator: "did:alice" });
+      expect(() =>
+        compileCircuitV2(db, { name: "b", creator: "did:bob" }),
+      ).not.toThrow();
+    });
+  });
+
+  describe("setCircuitStatusV2", () => {
+    it("rejects unknown circuit", () => {
+      expect(() => setCircuitStatusV2(db, "nonexistent", "verified")).toThrow(
+        /not found/,
+      );
+    });
+
+    it("rejects unknown status", () => {
+      const c = compileCircuitV2(db, { name: "t" });
+      expect(() => setCircuitStatusV2(db, c.id, "garbage")).toThrow(
+        /Unknown circuit status/,
+      );
+    });
+
+    it("rejects invalid transition (verified → compiled)", () => {
+      const c = compileCircuitV2(db, { name: "t" });
+      setCircuitStatusV2(db, c.id, CIRCUIT_STATUS.VERIFIED);
+      expect(() =>
+        setCircuitStatusV2(db, c.id, CIRCUIT_STATUS.COMPILED),
+      ).toThrow(/Invalid transition/);
+    });
+
+    it("patches errorMessage on failed", () => {
+      const c = compileCircuitV2(db, { name: "t" });
+      const updated = setCircuitStatusV2(db, c.id, CIRCUIT_STATUS.FAILED, {
+        errorMessage: "compile failed",
+      });
+      expect(updated.status).toBe(CIRCUIT_STATUS.FAILED);
+      expect(updated.errorMessage).toBe("compile failed");
+    });
+  });
+
+  describe("generateProofV2", () => {
+    it("throws on missing circuitId", () => {
+      expect(() => generateProofV2(db, {})).toThrow(/circuitId is required/);
+    });
+
+    it("throws on unknown circuit", () => {
+      expect(() => generateProofV2(db, { circuitId: "nonexistent" })).toThrow(
+        /Circuit not found/,
+      );
+    });
+
+    it("rejects circuit not in compiled/verified state", () => {
+      const c = compileCircuitV2(db, { name: "t" });
+      setCircuitStatusV2(db, c.id, CIRCUIT_STATUS.FAILED, {
+        errorMessage: "x",
+      });
+      expect(() => generateProofV2(db, { circuitId: c.id })).toThrow(
+        /not ready/,
+      );
+    });
+
+    it("stamps pending status and expiresAt", () => {
+      setProofExpiryMs(60_000);
+      const c = compileCircuitV2(db, { name: "t" });
+      const before = Date.now();
+      const proof = generateProofV2(db, { circuitId: c.id });
+      expect(proof.status).toBe(PROOF_STATUS_V2.PENDING);
+      expect(proof.expiresAt).toBeGreaterThanOrEqual(before + 60_000 - 10);
+      expect(proof.expiresAt).toBeLessThanOrEqual(Date.now() + 60_000 + 10);
+    });
+  });
+
+  describe("verifyProofV2", () => {
+    it("throws on unknown proof", () => {
+      expect(() => verifyProofV2(db, "nonexistent")).toThrow(/not found/);
+    });
+
+    it("transitions pending → verified on success", () => {
+      const c = compileCircuitV2(db, { name: "t" });
+      const proof = generateProofV2(db, { circuitId: c.id });
+      const result = verifyProofV2(db, proof.id);
+      expect(result.valid).toBe(true);
+      expect(result.status).toBe(PROOF_STATUS_V2.VERIFIED);
+    });
+
+    it("auto-expires a proof past its deadline", () => {
+      setProofExpiryMs(1);
+      const c = compileCircuitV2(db, { name: "t" });
+      const proof = generateProofV2(db, { circuitId: c.id });
+      // force expiry
+      proof.expiresAt = Date.now() - 1000;
+      const stored = listProofs(db).find((p) => p.id === proof.id);
+      stored.expiresAt = Date.now() - 1000;
+      const result = verifyProofV2(db, proof.id);
+      expect(result.valid).toBe(false);
+      expect(result.reason).toBe("expired");
+      expect(result.status).toBe(PROOF_STATUS_V2.EXPIRED);
+    });
+
+    it("rejects re-verifying terminal proof", () => {
+      const c = compileCircuitV2(db, { name: "t" });
+      const proof = generateProofV2(db, { circuitId: c.id });
+      verifyProofV2(db, proof.id);
+      expect(() => verifyProofV2(db, proof.id)).toThrow(/terminal/);
+    });
+  });
+
+  describe("failProof", () => {
+    it("transitions non-terminal → invalid", () => {
+      const c = compileCircuitV2(db, { name: "t" });
+      const proof = generateProofV2(db, { circuitId: c.id });
+      const failed = failProof(db, proof.id, { reason: "bad inputs" });
+      expect(failed.status).toBe(PROOF_STATUS_V2.INVALID);
+      expect(failed.errorMessage).toBe("bad inputs");
+    });
+
+    it("rejects terminal proof", () => {
+      const c = compileCircuitV2(db, { name: "t" });
+      const proof = generateProofV2(db, { circuitId: c.id });
+      failProof(db, proof.id);
+      expect(() => failProof(db, proof.id)).toThrow(/terminal/);
+    });
+  });
+
+  describe("setProofStatus", () => {
+    it("rejects unknown status", () => {
+      const c = compileCircuitV2(db, { name: "t" });
+      const proof = generateProofV2(db, { circuitId: c.id });
+      expect(() => setProofStatus(db, proof.id, "garbage")).toThrow(
+        /Unknown proof status/,
+      );
+    });
+
+    it("rejects invalid transition", () => {
+      const c = compileCircuitV2(db, { name: "t" });
+      const proof = generateProofV2(db, { circuitId: c.id });
+      setProofStatus(db, proof.id, PROOF_STATUS_V2.VERIFIED);
+      expect(() =>
+        setProofStatus(db, proof.id, PROOF_STATUS_V2.INVALID),
+      ).toThrow(/Invalid transition/);
+    });
+
+    it("updates verified column on VERIFIED / INVALID", () => {
+      const c = compileCircuitV2(db, { name: "t" });
+      const proof = generateProofV2(db, { circuitId: c.id });
+      const updated = setProofStatus(db, proof.id, PROOF_STATUS_V2.VERIFIED);
+      expect(updated.verified).toBe(true);
+    });
+  });
+
+  describe("autoExpireProofs", () => {
+    it("bulk-flips past-deadline non-terminal proofs", () => {
+      setProofExpiryMs(1);
+      const c = compileCircuitV2(db, { name: "t" });
+      const p1 = generateProofV2(db, { circuitId: c.id });
+      const p2 = generateProofV2(db, { circuitId: c.id });
+      // force both past deadline
+      const all = listProofs(db);
+      all.find((p) => p.id === p1.id).expiresAt = Date.now() - 100;
+      all.find((p) => p.id === p2.id).expiresAt = Date.now() - 100;
+      const expired = autoExpireProofs(db);
+      expect(expired.length).toBe(2);
+      expect(expired.every((p) => p.status === PROOF_STATUS_V2.EXPIRED)).toBe(
+        true,
+      );
+    });
+
+    it("skips already-terminal proofs", () => {
+      const c = compileCircuitV2(db, { name: "t" });
+      const p = generateProofV2(db, { circuitId: c.id });
+      verifyProofV2(db, p.id);
+      // force past deadline
+      const stored = listProofs(db).find((x) => x.id === p.id);
+      stored.expiresAt = Date.now() - 100;
+      expect(autoExpireProofs(db)).toEqual([]);
+    });
+  });
+
+  describe("selectiveDiscloseV2", () => {
+    it("throws on missing credentialId", () => {
+      expect(() => selectiveDiscloseV2(db, {})).toThrow(
+        /credentialId is required/,
+      );
+    });
+
+    it("throws on non-array disclosedFields", () => {
+      expect(() =>
+        selectiveDiscloseV2(db, {
+          credentialId: "x",
+          disclosedFields: "age",
+        }),
+      ).toThrow(/must be an array/);
+    });
+
+    it("enforces requiredFields (must be in disclosed)", () => {
+      const cred = registerCredential(db, {
+        claims: { age: 30, name: "alice", city: "nyc" },
+      });
+      expect(() =>
+        selectiveDiscloseV2(db, {
+          credentialId: cred.id,
+          disclosedFields: ["name"],
+          requiredFields: ["age"],
+        }),
+      ).toThrow(/Required field missing/);
+    });
+
+    it("passes when required fields are disclosed", () => {
+      const cred = registerCredential(db, {
+        claims: { age: 30, name: "alice" },
+      });
+      const disclosed = selectiveDiscloseV2(db, {
+        credentialId: cred.id,
+        disclosedFields: ["age", "name"],
+        requiredFields: ["age"],
+      });
+      expect(disclosed.disclosed.age).toBe(30);
+      expect(disclosed.disclosed.name).toBe("alice");
+    });
+  });
+
+  describe("getZKPStatsV2", () => {
+    it("zero-inits all enum keys when empty", () => {
+      const stats = getZKPStatsV2();
+      expect(stats.totalCircuits).toBe(0);
+      expect(stats.totalProofs).toBe(0);
+      expect(stats.totalCredentials).toBe(0);
+      for (const s of Object.values(CIRCUIT_STATUS_V2)) {
+        expect(stats.circuitsByStatus[s]).toBe(0);
+      }
+      for (const s of Object.values(PROOF_STATUS_V2)) {
+        expect(stats.proofsByStatus[s]).toBe(0);
+      }
+      for (const s of Object.values(PROOF_SCHEME_V2)) {
+        expect(stats.proofsByScheme[s]).toBe(0);
+      }
+      expect(stats.maxCircuitsPerCreator).toBe(
+        ZKP_DEFAULT_MAX_CIRCUITS_PER_CREATOR,
+      );
+      expect(stats.proofExpiryMs).toBe(ZKP_DEFAULT_PROOF_EXPIRY_MS);
+    });
+
+    it("aggregates circuits/proofs/credentials correctly", () => {
+      const c1 = compileCircuitV2(db, { name: "a", creator: "did:alice" });
+      compileCircuitV2(db, { name: "b", creator: "did:bob" });
+      setCircuitStatusV2(db, c1.id, CIRCUIT_STATUS.VERIFIED);
+      const p1 = generateProofV2(db, { circuitId: c1.id });
+      verifyProofV2(db, p1.id);
+      generateProofV2(db, { circuitId: c1.id });
+      registerCredential(db, { did: "did:alice", claims: { x: 1 } });
+      registerCredential(db, { did: "did:alice", claims: { y: 2 } });
+      registerCredential(db, { claims: { z: 3 } });
+
+      const stats = getZKPStatsV2();
+      expect(stats.totalCircuits).toBe(2);
+      expect(stats.totalProofs).toBe(2);
+      expect(stats.totalCredentials).toBe(3);
+      expect(stats.verifiedProofs).toBe(1);
+      expect(stats.pendingProofs).toBe(1);
+      expect(stats.circuitsByStatus.verified).toBe(1);
+      expect(stats.circuitsByStatus.compiled).toBe(1);
+      expect(stats.proofsByStatus.verified).toBe(1);
+      expect(stats.proofsByStatus.pending).toBe(1);
+      expect(stats.credentialsByDid["did:alice"]).toBe(2);
+      expect(stats.credentialsByDid._anonymous).toBe(1);
     });
   });
 });
