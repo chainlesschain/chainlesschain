@@ -119,6 +119,9 @@ import { registerIncentiveCommand } from "./commands/incentive.js";
 // Phase 94: Enterprise Knowledge Graph
 import { registerKgCommand } from "./commands/kg.js";
 
+// Phase 97: Multi-Tenant SaaS Engine
+import { registerTenantCommand } from "./commands/tenant.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -266,6 +269,9 @@ export function createProgram() {
 
   // Phase 94: Enterprise Knowledge Graph
   registerKgCommand(program);
+
+  // Phase 97: Multi-Tenant SaaS Engine
+  registerTenantCommand(program);
 
   return program;
 }

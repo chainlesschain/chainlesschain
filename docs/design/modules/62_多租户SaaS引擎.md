@@ -2,7 +2,7 @@
 
 **版本**: v4.5.0
 **创建日期**: 2026-03-10
-**状态**: ✅ 已实现
+**状态**: ✅ 已实现 · ✅ CLI Phase 97 登陆 2026-04-16 (`cc tenant plans|metrics|create|configure|list|show|delete|record|usage|subscribe|subscription|cancel|subscriptions|check-quota|stats|export|import`, 租户 CRUD + 订阅切换 + 用量计量 + 四档计划配额校验 + JSON 快照导入导出, `packages/cli/src/lib/tenant-saas.js`, 77 tests; 物理隔离数据库 (`db_path`)、子域名路由、支付网关集成和租户管理面板仍为 Desktop-only)
 
 ---
 

@@ -399,6 +399,23 @@ chainlesschain kg reason <start-id> [-d max-depth] [--direction out|in|both] [-r
 chainlesschain kg stats [--json]                                                # Entity/relation counts + type distribution + avg degree + density
 chainlesschain kg export [output-file]                                          # Export graph as JSON (stdout if no file)
 chainlesschain kg import <input-file> [--json]                                  # Import graph from JSON file
+chainlesschain tenant plans [--json]                                            # List 4 plans (free/starter/pro/enterprise) with quotas
+chainlesschain tenant metrics [--json]                                          # List 3 tracked metrics (api_calls/storage_bytes/ai_requests)
+chainlesschain tenant create <name> <slug> [-p plan] [-o owner] [-c config-json] [--json]
+chainlesschain tenant configure <tenant-id> [-c config] [-p plan] [-s status] [-n name] [--json]
+chainlesschain tenant list [-s status] [-p plan] [-o owner-substr] [--limit N] [--json]
+chainlesschain tenant show <tenant-id> [--json]                                 # Tenant + active subscription
+chainlesschain tenant delete <tenant-id> [--hard]                               # Soft delete by default
+chainlesschain tenant record <tenant-id> <metric> <value> [-P period] [--json]
+chainlesschain tenant usage <tenant-id> [-P period] [-m metric] [--json]       # Aggregated by metric
+chainlesschain tenant subscribe <tenant-id> -p <plan> [-a amount] [-d duration-ms] [--json]
+chainlesschain tenant subscription <tenant-id> [--json]                         # Active subscription
+chainlesschain tenant cancel <tenant-id>                                        # Cancel active subscription
+chainlesschain tenant subscriptions [-t tenant-id] [-s status] [-p plan] [--limit N] [--json]
+chainlesschain tenant check-quota <tenant-id> <metric> [-P period] [--json]    # Usage vs plan limit
+chainlesschain tenant stats [--json]                                            # Tenant/sub/usage counts + distributions
+chainlesschain tenant export <tenant-id> [output-file]                          # JSON snapshot (stdout if no file)
+chainlesschain tenant import <input-file>                                       # Restore from JSON snapshot
 chainlesschain social contact / friend / post / chat / stats
 chainlesschain social analyze "<text>" [--top-k 3] [--lang zh|ja|en] [--json]
 chainlesschain social detect-lang "<text>" [--json]
