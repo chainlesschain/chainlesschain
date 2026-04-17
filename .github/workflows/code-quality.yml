@@ -203,7 +203,10 @@ jobs:
             ${{ runner.os }}-node-v2-
 
       - name: Install dependencies (workspace-aware)
-        run: npm install --legacy-peer-deps
+        run: |
+          npm install --legacy-peer-deps
+          # Workaround npm bug #4828: --legacy-peer-deps skips optional deps
+          npm ls @rollup/rollup-linux-x64-gnu 2>/dev/null || npm install --no-save @rollup/rollup-linux-x64-gnu
 
       - name: Build main process
         working-directory: ./desktop-app-vue
