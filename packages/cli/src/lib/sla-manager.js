@@ -481,4 +481,279 @@ export function _resetState() {
   _metrics.clear();
   _violations.clear();
   _seq = 0;
+  _maxActiveSlasPerOrg = DEFAULT_MAX_ACTIVE_SLAS_PER_ORG;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+ * V2 (Phase 61) — Frozen enums + contract/violation state
+ * machines + active-per-org cap + auto-expire + stats-v2.
+ * Strictly additive on top of the legacy surface above.
+ * ═══════════════════════════════════════════════════════════════ */
+
+export const SLA_STATUS_V2 = Object.freeze({
+  ACTIVE: "active",
+  EXPIRED: "expired",
+  TERMINATED: "terminated",
+});
+
+export const SLA_TIER_V2 = Object.freeze({
+  GOLD: "gold",
+  SILVER: "silver",
+  BRONZE: "bronze",
+});
+
+export const SLA_TERM_V2 = Object.freeze({
+  AVAILABILITY: "availability",
+  RESPONSE_TIME: "response_time",
+  THROUGHPUT: "throughput",
+  ERROR_RATE: "error_rate",
+});
+
+export const VIOLATION_SEVERITY_V2 = Object.freeze({
+  MINOR: "minor",
+  MODERATE: "moderate",
+  MAJOR: "major",
+  CRITICAL: "critical",
+});
+
+export const VIOLATION_STATUS_V2 = Object.freeze({
+  OPEN: "open",
+  ACKNOWLEDGED: "acknowledged",
+  RESOLVED: "resolved",
+  WAIVED: "waived",
+});
+
+const DEFAULT_MAX_ACTIVE_SLAS_PER_ORG = 1;
+let _maxActiveSlasPerOrg = DEFAULT_MAX_ACTIVE_SLAS_PER_ORG;
+export const SLA_DEFAULT_MAX_ACTIVE_PER_ORG = DEFAULT_MAX_ACTIVE_SLAS_PER_ORG;
+
+export function setMaxActiveSlasPerOrg(n) {
+  if (typeof n !== "number" || !Number.isFinite(n) || n < 1) {
+    throw new Error("maxActiveSlasPerOrg must be a positive integer");
+  }
+  _maxActiveSlasPerOrg = Math.floor(n);
+  return _maxActiveSlasPerOrg;
+}
+
+export function getMaxActiveSlasPerOrg() {
+  return _maxActiveSlasPerOrg;
+}
+
+// Contract state machine: active → { expired, terminated }; both terminal.
+const _contractTerminal = new Set([
+  SLA_STATUS_V2.EXPIRED,
+  SLA_STATUS_V2.TERMINATED,
+]);
+const _contractAllowed = new Map([
+  [
+    SLA_STATUS_V2.ACTIVE,
+    new Set([SLA_STATUS_V2.EXPIRED, SLA_STATUS_V2.TERMINATED]),
+  ],
+  [SLA_STATUS_V2.EXPIRED, new Set([])],
+  [SLA_STATUS_V2.TERMINATED, new Set([])],
+]);
+
+// Violation state machine: open → { acknowledged, resolved, waived };
+// acknowledged → { resolved, waived }; resolved/waived terminal.
+const _violationTerminal = new Set([
+  VIOLATION_STATUS_V2.RESOLVED,
+  VIOLATION_STATUS_V2.WAIVED,
+]);
+const _violationAllowed = new Map([
+  [
+    VIOLATION_STATUS_V2.OPEN,
+    new Set([
+      VIOLATION_STATUS_V2.ACKNOWLEDGED,
+      VIOLATION_STATUS_V2.RESOLVED,
+      VIOLATION_STATUS_V2.WAIVED,
+    ]),
+  ],
+  [
+    VIOLATION_STATUS_V2.ACKNOWLEDGED,
+    new Set([VIOLATION_STATUS_V2.RESOLVED, VIOLATION_STATUS_V2.WAIVED]),
+  ],
+  [VIOLATION_STATUS_V2.RESOLVED, new Set([])],
+  [VIOLATION_STATUS_V2.WAIVED, new Set([])],
+]);
+
+export function getActiveSlaCountForOrg(orgId) {
+  let count = 0;
+  for (const c of _contracts.values()) {
+    if (c.orgId === orgId && c.status === SLA_STATUS_V2.ACTIVE) count++;
+  }
+  return count;
+}
+
+/**
+ * createSLAV2 — like createSLA but enforces per-org active-contract cap
+ * and rejects unknown tier/status at the boundary. Augments stored
+ * contract with in-memory V2 fields (violationStatus doesn't apply here;
+ * see recordViolation*).
+ */
+export function createSLAV2(db, config = {}) {
+  const orgId = config.orgId;
+  if (!orgId) throw new Error("orgId is required");
+
+  const activeCount = getActiveSlaCountForOrg(orgId);
+  if (activeCount >= _maxActiveSlasPerOrg) {
+    throw new Error(
+      `Max active SLAs per org reached: ${activeCount}/${_maxActiveSlasPerOrg}`,
+    );
+  }
+
+  return createSLA(db, config);
+}
+
+export function setSLAStatus(db, slaId, newStatus) {
+  const contract = _contracts.get(slaId);
+  if (!contract) throw new Error(`SLA not found: ${slaId}`);
+
+  if (!Object.values(SLA_STATUS_V2).includes(newStatus)) {
+    throw new Error(`Unknown SLA status: ${newStatus}`);
+  }
+
+  const allowed = _contractAllowed.get(contract.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(
+      `Invalid SLA status transition: ${contract.status} → ${newStatus}`,
+    );
+  }
+
+  contract.status = newStatus;
+  contract.updatedAt = Date.now();
+  db.prepare(
+    `UPDATE sla_contracts SET status = ?, updated_at = ? WHERE sla_id = ?`,
+  ).run(contract.status, contract.updatedAt, slaId);
+
+  const { _seq: _omit, ...rest } = contract;
+  void _omit;
+  return rest;
+}
+
+export function expireSLA(db, slaId) {
+  return setSLAStatus(db, slaId, SLA_STATUS_V2.EXPIRED);
+}
+
+/**
+ * autoExpireSLAs — bulk-flip ACTIVE contracts whose endDate < now to
+ * EXPIRED. Returns the list of flipped contracts.
+ */
+export function autoExpireSLAs(db, nowMs = Date.now()) {
+  const flipped = [];
+  for (const contract of _contracts.values()) {
+    if (contract.status === SLA_STATUS_V2.ACTIVE && contract.endDate < nowMs) {
+      contract.status = SLA_STATUS_V2.EXPIRED;
+      contract.updatedAt = nowMs;
+      db.prepare(
+        `UPDATE sla_contracts SET status = ?, updated_at = ? WHERE sla_id = ?`,
+      ).run(contract.status, contract.updatedAt, contract.slaId);
+      const { _seq: _omit, ...rest } = contract;
+      void _omit;
+      flipped.push(rest);
+    }
+  }
+  return flipped;
+}
+
+export function setViolationStatus(db, violationId, newStatus, patch = {}) {
+  const violation = _violations.get(violationId);
+  if (!violation) throw new Error(`Violation not found: ${violationId}`);
+
+  if (!Object.values(VIOLATION_STATUS_V2).includes(newStatus)) {
+    throw new Error(`Unknown violation status: ${newStatus}`);
+  }
+
+  const current = violation.v2Status || VIOLATION_STATUS_V2.OPEN;
+  const allowed = _violationAllowed.get(current);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(
+      `Invalid violation status transition: ${current} → ${newStatus}`,
+    );
+  }
+
+  violation.v2Status = newStatus;
+  if (typeof patch.note === "string") {
+    violation.note = patch.note;
+  }
+  if (_violationTerminal.has(newStatus)) {
+    violation.resolvedAt = Date.now();
+    db.prepare(
+      `UPDATE sla_violations SET resolved_at = ? WHERE violation_id = ?`,
+    ).run(violation.resolvedAt, violationId);
+  }
+
+  return { ...violation };
+}
+
+export function acknowledgeViolation(db, violationId, note) {
+  return setViolationStatus(db, violationId, VIOLATION_STATUS_V2.ACKNOWLEDGED, {
+    note,
+  });
+}
+
+export function resolveViolation(db, violationId, note) {
+  return setViolationStatus(db, violationId, VIOLATION_STATUS_V2.RESOLVED, {
+    note,
+  });
+}
+
+export function waiveViolation(db, violationId, note) {
+  return setViolationStatus(db, violationId, VIOLATION_STATUS_V2.WAIVED, {
+    note,
+  });
+}
+
+export function getSLAStatsV2() {
+  const contracts = [..._contracts.values()];
+  const violations = [..._violations.values()];
+
+  const byStatus = {};
+  for (const s of Object.values(SLA_STATUS_V2)) byStatus[s] = 0;
+  for (const c of contracts) byStatus[c.status] = (byStatus[c.status] || 0) + 1;
+
+  const byTier = {};
+  for (const t of Object.values(SLA_TIER_V2)) byTier[t] = 0;
+  for (const c of contracts) byTier[c.tier] = (byTier[c.tier] || 0) + 1;
+
+  const bySeverity = {};
+  for (const s of Object.values(VIOLATION_SEVERITY_V2)) bySeverity[s] = 0;
+  for (const v of violations)
+    bySeverity[v.severity] = (bySeverity[v.severity] || 0) + 1;
+
+  const byTerm = {};
+  for (const t of Object.values(SLA_TERM_V2)) byTerm[t] = 0;
+  for (const v of violations) byTerm[v.term] = (byTerm[v.term] || 0) + 1;
+
+  const byViolationStatus = {};
+  for (const s of Object.values(VIOLATION_STATUS_V2)) byViolationStatus[s] = 0;
+  for (const v of violations) {
+    const s = v.v2Status || VIOLATION_STATUS_V2.OPEN;
+    byViolationStatus[s] = (byViolationStatus[s] || 0) + 1;
+  }
+
+  let totalCompensation = 0;
+  for (const v of violations) {
+    if (v.compensationAmount) totalCompensation += v.compensationAmount;
+  }
+
+  const activeOrgs = new Set();
+  for (const c of contracts) {
+    if (c.status === SLA_STATUS_V2.ACTIVE) activeOrgs.add(c.orgId);
+  }
+
+  return {
+    totalContracts: contracts.length,
+    activeContracts: byStatus[SLA_STATUS_V2.ACTIVE] || 0,
+    activeOrgs: activeOrgs.size,
+    maxActiveSlasPerOrg: _maxActiveSlasPerOrg,
+    byStatus,
+    byTier,
+    violations: {
+      total: violations.length,
+      byTerm,
+      bySeverity,
+      byStatus: byViolationStatus,
+      totalCompensation: Number(totalCompensation.toFixed(4)),
+    },
+  };
 }

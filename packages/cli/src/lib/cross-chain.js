@@ -666,4 +666,349 @@ export function _resetState() {
   _swaps.clear();
   _messages.clear();
   _chainConfigs.clear();
+  _maxActiveBridgesPerAddress = DEFAULT_MAX_ACTIVE_BRIDGES_PER_ADDRESS;
+}
+
+/* ══════════════════════════════════════════════════════════
+ * Phase 89 — Cross-Chain V2 surface (strictly additive)
+ *
+ * Adds canonical enums, per-address bridge concurrency cap,
+ * chain config CRUD, patch-merged state-machine setters,
+ * auto-expire swaps, and all-enum-key stats V2.
+ * ══════════════════════════════════════════════════════════ */
+
+/* ── V2 Frozen Enums ────────────────────────────────────── */
+
+export const BRIDGE_STATUS_V2 = Object.freeze({
+  PENDING: "pending",
+  LOCKED: "locked",
+  MINTED: "minted",
+  COMPLETED: "completed",
+  REFUNDED: "refunded",
+  FAILED: "failed",
+});
+
+export const SWAP_STATUS_V2 = Object.freeze({
+  INITIATED: "initiated",
+  HASH_LOCKED: "hash_locked",
+  CLAIMED: "claimed",
+  REFUNDED: "refunded",
+  EXPIRED: "expired",
+});
+
+export const MESSAGE_STATUS_V2 = Object.freeze({
+  PENDING: "pending",
+  SENT: "sent",
+  DELIVERED: "delivered",
+  FAILED: "failed",
+});
+
+export const CHAIN_ID_V2 = Object.freeze({
+  ETHEREUM: "ethereum",
+  POLYGON: "polygon",
+  BSC: "bsc",
+  ARBITRUM: "arbitrum",
+  SOLANA: "solana",
+});
+
+const DEFAULT_MAX_ACTIVE_BRIDGES_PER_ADDRESS = 3;
+export const CROSSCHAIN_DEFAULT_MAX_ACTIVE_BRIDGES_PER_ADDRESS =
+  DEFAULT_MAX_ACTIVE_BRIDGES_PER_ADDRESS;
+
+let _maxActiveBridgesPerAddress = DEFAULT_MAX_ACTIVE_BRIDGES_PER_ADDRESS;
+
+/* ── State Machine Definitions ──────────────────────────── */
+
+const BRIDGE_TRANSITIONS_V2 = new Map([
+  ["pending", new Set(["locked", "failed"])],
+  ["locked", new Set(["minted", "refunded", "failed"])],
+  ["minted", new Set(["completed", "failed"])],
+]);
+const BRIDGE_TERMINALS_V2 = new Set(["completed", "refunded", "failed"]);
+
+const SWAP_TRANSITIONS_V2 = new Map([
+  ["initiated", new Set(["hash_locked", "claimed", "refunded", "expired"])],
+  ["hash_locked", new Set(["claimed", "refunded", "expired"])],
+]);
+const SWAP_TERMINALS_V2 = new Set(["claimed", "refunded", "expired"]);
+
+const MESSAGE_TRANSITIONS_V2 = new Map([
+  ["pending", new Set(["sent", "failed"])],
+  ["sent", new Set(["delivered", "failed"])],
+  ["failed", new Set(["pending"])],
+]);
+const MESSAGE_TERMINALS_V2 = new Set(["delivered"]);
+
+/* ── Concurrency Cap ───────────────────────────────────── */
+
+export function setMaxActiveBridgesPerAddress(n) {
+  if (typeof n !== "number" || Number.isNaN(n) || n < 1) {
+    throw new Error("Max active bridges must be a positive integer");
+  }
+  _maxActiveBridgesPerAddress = Math.floor(n);
+}
+
+export function getMaxActiveBridgesPerAddress() {
+  return _maxActiveBridgesPerAddress;
+}
+
+export function getActiveBridgeCount(address) {
+  let count = 0;
+  for (const b of _bridges.values()) {
+    if (BRIDGE_TERMINALS_V2.has(b.status)) continue;
+    if (address == null || b.sender_address === address) count += 1;
+  }
+  return count;
+}
+
+/* ── Chain Config V2 ───────────────────────────────────── */
+
+export function configureChainV2({
+  chainId,
+  rpcUrl,
+  contractAddress,
+  enabled = true,
+}) {
+  if (!_validateChain(chainId)) {
+    throw new Error(`Unsupported chain: ${chainId}`);
+  }
+  const cfg = {
+    chainId,
+    rpcUrl: rpcUrl || null,
+    contractAddress: contractAddress || null,
+    enabled: enabled !== false,
+    updatedAt: _now(),
+  };
+  _chainConfigs.set(chainId, cfg);
+  return { ...cfg };
+}
+
+export function getChainConfigV2(chainId) {
+  const cfg = _chainConfigs.get(chainId);
+  return cfg ? { ...cfg } : null;
+}
+
+export function listChainsV2() {
+  return Object.values(SUPPORTED_CHAINS).map((chain) => {
+    const cfg = _chainConfigs.get(chain.id);
+    return {
+      ...chain,
+      enabled: cfg ? cfg.enabled : false,
+      rpcUrl: cfg ? cfg.rpcUrl : null,
+      contractAddress: cfg ? cfg.contractAddress : null,
+    };
+  });
+}
+
+/* ── Bridge V2 (throws + cap enforcement) ──────────────── */
+
+export function bridgeAssetV2(
+  db,
+  { fromChain, toChain, asset, amount, senderAddress, recipientAddress },
+) {
+  if (!_validateChain(fromChain)) {
+    throw new Error(`Unsupported source chain: ${fromChain}`);
+  }
+  if (!_validateChain(toChain)) {
+    throw new Error(`Unsupported destination chain: ${toChain}`);
+  }
+  if (fromChain === toChain) {
+    throw new Error("Source and destination chains must differ");
+  }
+  if (!amount || amount <= 0) {
+    throw new Error("Amount must be positive");
+  }
+  if (amount > DEFAULT_CONFIG.maxBridgeAmount) {
+    throw new Error(
+      `Amount ${amount} exceeds max ${DEFAULT_CONFIG.maxBridgeAmount}`,
+    );
+  }
+  if (senderAddress) {
+    const active = getActiveBridgeCount(senderAddress);
+    if (active >= _maxActiveBridgesPerAddress) {
+      throw new Error(
+        `Max active bridges per address reached (${active}/${_maxActiveBridgesPerAddress})`,
+      );
+    }
+  }
+
+  const result = bridgeAsset(db, {
+    fromChain,
+    toChain,
+    asset,
+    amount,
+    senderAddress,
+    recipientAddress,
+  });
+  return result;
+}
+
+/* ── Generic patch-merged state setters ────────────────── */
+
+export function setBridgeStatusV2(db, bridgeId, newStatus, patch = {}) {
+  const b = _bridges.get(bridgeId);
+  if (!b) throw new Error(`Bridge not found: ${bridgeId}`);
+
+  const allowed = BRIDGE_TRANSITIONS_V2.get(b.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid bridge transition: ${b.status} → ${newStatus}`);
+  }
+  if (!Object.values(BRIDGE_STATUS_V2).includes(newStatus)) {
+    throw new Error(`Unknown bridge status: ${newStatus}`);
+  }
+
+  b.status = newStatus;
+  if (patch.lockTxHash !== undefined) b.lock_tx_hash = patch.lockTxHash;
+  if (patch.mintTxHash !== undefined) b.mint_tx_hash = patch.mintTxHash;
+  if (patch.errorMessage !== undefined) b.error_message = patch.errorMessage;
+  if (BRIDGE_TERMINALS_V2.has(newStatus) && !b.completed_at) {
+    b.completed_at = _now();
+  }
+
+  db.prepare(
+    `UPDATE cc_bridges SET status = ?, lock_tx_hash = ?, mint_tx_hash = ?,
+     completed_at = ?, error_message = ? WHERE id = ?`,
+  ).run(
+    b.status,
+    b.lock_tx_hash,
+    b.mint_tx_hash,
+    b.completed_at,
+    b.error_message,
+    bridgeId,
+  );
+
+  return { ...b };
+}
+
+export function setSwapStatusV2(db, swapId, newStatus, patch = {}) {
+  const s = _swaps.get(swapId);
+  if (!s) throw new Error(`Swap not found: ${swapId}`);
+
+  const allowed = SWAP_TRANSITIONS_V2.get(s.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid swap transition: ${s.status} → ${newStatus}`);
+  }
+  if (!Object.values(SWAP_STATUS_V2).includes(newStatus)) {
+    throw new Error(`Unknown swap status: ${newStatus}`);
+  }
+
+  s.status = newStatus;
+  if (patch.claimTxHash !== undefined) s.claim_tx_hash = patch.claimTxHash;
+  if (patch.refundTxHash !== undefined) s.refund_tx_hash = patch.refundTxHash;
+
+  db.prepare(
+    `UPDATE cc_swaps SET status = ?, claim_tx_hash = ?, refund_tx_hash = ?
+     WHERE id = ?`,
+  ).run(s.status, s.claim_tx_hash, s.refund_tx_hash, swapId);
+
+  const out = { ...s };
+  delete out.secret;
+  return out;
+}
+
+export function setMessageStatusV2(db, messageId, newStatus, patch = {}) {
+  const m = _messages.get(messageId);
+  if (!m) throw new Error(`Message not found: ${messageId}`);
+
+  const allowed = MESSAGE_TRANSITIONS_V2.get(m.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid message transition: ${m.status} → ${newStatus}`);
+  }
+  if (!Object.values(MESSAGE_STATUS_V2).includes(newStatus)) {
+    throw new Error(`Unknown message status: ${newStatus}`);
+  }
+
+  m.status = newStatus;
+  if (patch.sourceTxHash !== undefined) m.source_tx_hash = patch.sourceTxHash;
+  if (patch.destinationTxHash !== undefined)
+    m.destination_tx_hash = patch.destinationTxHash;
+  if (newStatus === "delivered" && !m.delivered_at) m.delivered_at = _now();
+  if (newStatus === "pending") m.retries += 1;
+
+  db.prepare(
+    `UPDATE cc_messages SET status = ?, source_tx_hash = ?, destination_tx_hash = ?,
+     delivered_at = ?, retries = ? WHERE id = ?`,
+  ).run(
+    m.status,
+    m.source_tx_hash,
+    m.destination_tx_hash,
+    m.delivered_at,
+    m.retries,
+    messageId,
+  );
+
+  return { ...m };
+}
+
+/* ── Auto-expire swaps ─────────────────────────────────── */
+
+export function autoExpireSwapsV2(db) {
+  const now = _now();
+  const expired = [];
+  for (const s of _swaps.values()) {
+    if (s.status !== "initiated" && s.status !== "hash_locked") continue;
+    if (s.expires_at > now) continue;
+
+    s.status = "expired";
+    db.prepare("UPDATE cc_swaps SET status = ? WHERE id = ?").run(
+      "expired",
+      s.id,
+    );
+    const out = { ...s };
+    delete out.secret;
+    expired.push(out);
+  }
+  return expired;
+}
+
+/* ── Stats V2 ──────────────────────────────────────────── */
+
+export function getCrossChainStatsV2() {
+  const bridgesByStatus = {};
+  for (const v of Object.values(BRIDGE_STATUS_V2)) bridgesByStatus[v] = 0;
+  const swapsByStatus = {};
+  for (const v of Object.values(SWAP_STATUS_V2)) swapsByStatus[v] = 0;
+  const messagesByStatus = {};
+  for (const v of Object.values(MESSAGE_STATUS_V2)) messagesByStatus[v] = 0;
+  const chainUsage = {};
+  for (const v of Object.values(CHAIN_ID_V2)) chainUsage[v] = 0;
+
+  let totalBridgeVolume = 0;
+  let totalFees = 0;
+  let activeBridges = 0;
+  for (const b of _bridges.values()) {
+    bridgesByStatus[b.status] = (bridgesByStatus[b.status] || 0) + 1;
+    chainUsage[b.from_chain] = (chainUsage[b.from_chain] || 0) + 1;
+    chainUsage[b.to_chain] = (chainUsage[b.to_chain] || 0) + 1;
+    totalBridgeVolume += b.amount;
+    totalFees += b.fee_amount;
+    if (!BRIDGE_TERMINALS_V2.has(b.status)) activeBridges += 1;
+  }
+
+  for (const s of _swaps.values()) {
+    swapsByStatus[s.status] = (swapsByStatus[s.status] || 0) + 1;
+    chainUsage[s.from_chain] = (chainUsage[s.from_chain] || 0) + 1;
+    chainUsage[s.to_chain] = (chainUsage[s.to_chain] || 0) + 1;
+  }
+
+  for (const m of _messages.values()) {
+    messagesByStatus[m.status] = (messagesByStatus[m.status] || 0) + 1;
+    chainUsage[m.from_chain] = (chainUsage[m.from_chain] || 0) + 1;
+    chainUsage[m.to_chain] = (chainUsage[m.to_chain] || 0) + 1;
+  }
+
+  return {
+    totalBridges: _bridges.size,
+    totalSwaps: _swaps.size,
+    totalMessages: _messages.size,
+    activeBridges,
+    maxActiveBridgesPerAddress: _maxActiveBridgesPerAddress,
+    bridgesByStatus,
+    swapsByStatus,
+    messagesByStatus,
+    chainUsage,
+    totalBridgeVolume,
+    totalFees: Math.round(totalFees * 1000) / 1000,
+    configuredChains: _chainConfigs.size,
+  };
 }

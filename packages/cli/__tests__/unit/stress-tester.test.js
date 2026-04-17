@@ -12,6 +12,22 @@ import {
   analyzeBottlenecks,
   generateCapacityPlan,
   _resetState,
+  // V2 surface
+  RUN_STATUS_V2,
+  LEVEL_NAME_V2,
+  BOTTLENECK_KIND_V2,
+  BOTTLENECK_SEVERITY_V2,
+  STRESS_DEFAULT_MAX_CONCURRENT,
+  setMaxConcurrentTests,
+  getMaxConcurrentTests,
+  getActiveTestCount,
+  startStressTestV2,
+  completeStressTest,
+  stopStressTestV2,
+  failStressTest,
+  setRunStatus,
+  recommendLevelV2,
+  getStressStatsV2,
 } from "../../src/lib/stress-tester.js";
 
 describe("stress-tester", () => {
@@ -272,6 +288,272 @@ describe("stress-tester", () => {
 
     it("throws on unknown testId", () => {
       expect(() => generateCapacityPlan("nope")).toThrow(/not found/);
+    });
+  });
+});
+
+describe("stress-tester V2 (Phase 59)", () => {
+  let db;
+
+  beforeEach(() => {
+    db = new MockDatabase();
+    _resetState();
+    ensureStressTables(db);
+  });
+
+  describe("frozen enums", () => {
+    it("RUN_STATUS_V2 has 4 states", () => {
+      expect(Object.values(RUN_STATUS_V2).sort()).toEqual([
+        "complete",
+        "failed",
+        "running",
+        "stopped",
+      ]);
+      expect(Object.isFrozen(RUN_STATUS_V2)).toBe(true);
+    });
+
+    it("LEVEL_NAME_V2 has 4 levels", () => {
+      expect(Object.values(LEVEL_NAME_V2).sort()).toEqual([
+        "extreme",
+        "heavy",
+        "light",
+        "medium",
+      ]);
+      expect(Object.isFrozen(LEVEL_NAME_V2)).toBe(true);
+    });
+
+    it("BOTTLENECK_KIND_V2 has 4 kinds", () => {
+      expect(Object.values(BOTTLENECK_KIND_V2).sort()).toEqual([
+        "error-rate",
+        "response-time",
+        "tail-latency",
+        "throughput",
+      ]);
+      expect(Object.isFrozen(BOTTLENECK_KIND_V2)).toBe(true);
+    });
+
+    it("BOTTLENECK_SEVERITY_V2 has 3 severities", () => {
+      expect(Object.values(BOTTLENECK_SEVERITY_V2).sort()).toEqual([
+        "high",
+        "low",
+        "medium",
+      ]);
+      expect(Object.isFrozen(BOTTLENECK_SEVERITY_V2)).toBe(true);
+    });
+
+    it("STRESS_DEFAULT_MAX_CONCURRENT is 3", () => {
+      expect(STRESS_DEFAULT_MAX_CONCURRENT).toBe(3);
+    });
+  });
+
+  describe("setMaxConcurrentTests / getMaxConcurrentTests", () => {
+    it("defaults to 3", () => {
+      expect(getMaxConcurrentTests()).toBe(3);
+    });
+
+    it("accepts positive integer", () => {
+      setMaxConcurrentTests(5);
+      expect(getMaxConcurrentTests()).toBe(5);
+    });
+
+    it("floors non-integer input", () => {
+      setMaxConcurrentTests(3.7);
+      expect(getMaxConcurrentTests()).toBe(3);
+    });
+
+    it("rejects values < 1", () => {
+      expect(() => setMaxConcurrentTests(0)).toThrow(/positive integer/);
+      expect(() => setMaxConcurrentTests(-1)).toThrow(/positive integer/);
+    });
+
+    it("rejects NaN and non-number", () => {
+      expect(() => setMaxConcurrentTests(NaN)).toThrow(/positive integer/);
+      expect(() => setMaxConcurrentTests("5")).toThrow(/positive integer/);
+    });
+
+    it("is reset by _resetState", () => {
+      setMaxConcurrentTests(10);
+      _resetState();
+      expect(getMaxConcurrentTests()).toBe(3);
+    });
+  });
+
+  describe("startStressTestV2", () => {
+    it("creates a RUNNING run without metrics", () => {
+      const run = startStressTestV2(db, { level: "light" });
+      expect(run.status).toBe(RUN_STATUS_V2.RUNNING);
+      expect(run.loadLevel).toBe("light");
+      expect(run.completedAt).toBeNull();
+      expect(run.testId).toBeTruthy();
+    });
+
+    it("defaults to medium when level omitted", () => {
+      const run = startStressTestV2(db);
+      expect(run.loadLevel).toBe("medium");
+    });
+
+    it("rejects unknown level", () => {
+      expect(() => startStressTestV2(db, { level: "crazy" })).toThrow(
+        /Unknown load level/,
+      );
+    });
+
+    it("rejects when activeCount >= maxConcurrentTests", () => {
+      setMaxConcurrentTests(2);
+      startStressTestV2(db, { level: "light" });
+      startStressTestV2(db, { level: "light" });
+      expect(() => startStressTestV2(db, { level: "light" })).toThrow(
+        /Max concurrent stress tests reached/,
+      );
+    });
+
+    it("frees a slot after terminal transition", () => {
+      setMaxConcurrentTests(1);
+      const run = startStressTestV2(db, { level: "light" });
+      expect(getActiveTestCount()).toBe(1);
+      stopStressTestV2(db, run.testId);
+      expect(getActiveTestCount()).toBe(0);
+      expect(() => startStressTestV2(db, { level: "light" })).not.toThrow();
+    });
+  });
+
+  describe("completeStressTest", () => {
+    it("transitions running → complete and computes metrics", () => {
+      const run = startStressTestV2(db, { level: "light" });
+      const finished = completeStressTest(db, run.testId);
+      expect(finished.status).toBe(RUN_STATUS_V2.COMPLETE);
+      expect(finished.completedAt).toBeTruthy();
+      expect(finished.result).toBeTruthy();
+      expect(typeof finished.result.tps).toBe("number");
+      expect(finished.result.bottlenecks).toBeInstanceOf(Array);
+    });
+
+    it("rejects invalid transition from terminal state", () => {
+      const run = startStressTestV2(db, { level: "light" });
+      completeStressTest(db, run.testId);
+      expect(() => completeStressTest(db, run.testId)).toThrow(
+        /Invalid run status transition/,
+      );
+    });
+
+    it("throws on unknown testId", () => {
+      expect(() => completeStressTest(db, "nope")).toThrow(/not found/);
+    });
+  });
+
+  describe("stopStressTestV2 / failStressTest", () => {
+    it("stopStressTestV2 moves run to STOPPED", () => {
+      const run = startStressTestV2(db, { level: "light" });
+      const stopped = stopStressTestV2(db, run.testId);
+      expect(stopped.status).toBe(RUN_STATUS_V2.STOPPED);
+      expect(stopped.completedAt).toBeTruthy();
+    });
+
+    it("failStressTest moves run to FAILED with errorMessage patch", () => {
+      const run = startStressTestV2(db, { level: "light" });
+      const failed = failStressTest(db, run.testId, "upstream exploded");
+      expect(failed.status).toBe(RUN_STATUS_V2.FAILED);
+      expect(failed.errorMessage).toBe("upstream exploded");
+    });
+  });
+
+  describe("setRunStatus state machine", () => {
+    it("rejects transition from terminal state", () => {
+      const run = startStressTestV2(db, { level: "light" });
+      setRunStatus(db, run.testId, RUN_STATUS_V2.STOPPED);
+      expect(() => setRunStatus(db, run.testId, RUN_STATUS_V2.FAILED)).toThrow(
+        /Invalid run status transition/,
+      );
+    });
+
+    it("rejects unknown status", () => {
+      const run = startStressTestV2(db, { level: "light" });
+      expect(() => setRunStatus(db, run.testId, "foobar")).toThrow(
+        /Unknown run status/,
+      );
+    });
+
+    it("rejects unknown testId", () => {
+      expect(() => setRunStatus(db, "nope", RUN_STATUS_V2.STOPPED)).toThrow(
+        /not found/,
+      );
+    });
+
+    it("sets completedAt on terminal transition", () => {
+      const run = startStressTestV2(db, { level: "light" });
+      const stopped = setRunStatus(db, run.testId, RUN_STATUS_V2.STOPPED);
+      expect(stopped.completedAt).toBeTruthy();
+    });
+  });
+
+  describe("recommendLevelV2", () => {
+    it("returns light for small target", () => {
+      expect(recommendLevelV2(5).name).toBe("light");
+    });
+
+    it("returns medium for moderate target", () => {
+      expect(recommendLevelV2(200).name).toBe("medium");
+    });
+
+    it("returns heavy for high target", () => {
+      expect(recommendLevelV2(500).name).toBe("heavy");
+    });
+
+    it("returns extreme for very high target", () => {
+      expect(recommendLevelV2(5000).name).toBe("extreme");
+    });
+
+    it("rejects non-positive target", () => {
+      expect(() => recommendLevelV2(0)).toThrow(/positive number/);
+      expect(() => recommendLevelV2(-1)).toThrow(/positive number/);
+      expect(() => recommendLevelV2(NaN)).toThrow(/positive number/);
+    });
+  });
+
+  describe("getActiveTestCount", () => {
+    it("counts only RUNNING tests", () => {
+      expect(getActiveTestCount()).toBe(0);
+      const a = startStressTestV2(db, { level: "light" });
+      const b = startStressTestV2(db, { level: "light" });
+      expect(getActiveTestCount()).toBe(2);
+      completeStressTest(db, a.testId);
+      expect(getActiveTestCount()).toBe(1);
+      failStressTest(db, b.testId, "boom");
+      expect(getActiveTestCount()).toBe(0);
+    });
+  });
+
+  describe("getStressStatsV2", () => {
+    it("returns zero-state shape with all enum keys initialised", () => {
+      const stats = getStressStatsV2();
+      expect(stats.totalTests).toBe(0);
+      expect(stats.activeTests).toBe(0);
+      expect(stats.maxConcurrentTests).toBe(3);
+      for (const s of Object.values(RUN_STATUS_V2)) {
+        expect(stats.byStatus[s]).toBe(0);
+      }
+      for (const l of Object.values(LEVEL_NAME_V2)) {
+        expect(stats.byLevel[l]).toBe(0);
+      }
+      expect(stats.bottlenecks.total).toBe(0);
+      for (const k of Object.values(BOTTLENECK_KIND_V2)) {
+        expect(stats.bottlenecks.byKind[k]).toBe(0);
+      }
+      for (const s of Object.values(BOTTLENECK_SEVERITY_V2)) {
+        expect(stats.bottlenecks.bySeverity[s]).toBe(0);
+      }
+      expect(stats.aggregateMetrics.samples).toBe(0);
+    });
+
+    it("aggregates completed runs", () => {
+      const run = startStressTestV2(db, { level: "light" });
+      completeStressTest(db, run.testId);
+      const stats = getStressStatsV2();
+      expect(stats.totalTests).toBe(1);
+      expect(stats.byStatus.complete).toBe(1);
+      expect(stats.byLevel.light).toBe(1);
+      expect(stats.aggregateMetrics.samples).toBe(1);
+      expect(typeof stats.aggregateMetrics.avgTps).toBe("number");
     });
   });
 });

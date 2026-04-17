@@ -503,3 +503,242 @@ export function deployApp(db, appId, options = {}) {
   const deployedAt = new Date().toISOString();
   return { appId, outputDir, files: fileNames, deployedAt };
 }
+
+// ─── Phase 93 V2 surface (strictly additive) ───────────────────────────
+
+export const COMPONENT_CATEGORY = Object.freeze({
+  INPUT: "input",
+  DISPLAY: "display",
+  CHART: "chart",
+  LAYOUT: "layout",
+  OVERLAY: "overlay",
+});
+
+export const DATASOURCE_TYPE = Object.freeze({
+  REST: "rest",
+  GRAPHQL: "graphql",
+  DATABASE: "database",
+  CSV: "csv",
+});
+
+export const APP_STATUS = Object.freeze({
+  DRAFT: "draft",
+  PUBLISHED: "published",
+  ARCHIVED: "archived",
+});
+
+const _allowedStatusTransitions = Object.freeze({
+  draft: new Set(["published", "archived"]),
+  published: new Set(["draft", "archived"]),
+  archived: new Set(["draft"]),
+});
+
+const _v2DataSources = new Map();
+const _v2StatusHistory = new Map();
+
+function _isValidStatusTransition(from, to) {
+  if (from === to) return true;
+  const allowed = _allowedStatusTransitions[from];
+  return !!(allowed && allowed.has(to));
+}
+
+export function listComponentsV2({ category } = {}) {
+  const all = listComponents();
+  if (!category) return all.map((c) => ({ ...c }));
+  const valid = Object.values(COMPONENT_CATEGORY);
+  if (!valid.includes(category)) {
+    throw new Error(
+      `Invalid category '${category}'. Expected one of ${valid.join(", ")}`,
+    );
+  }
+  return all.filter((c) => c.category === category).map((c) => ({ ...c }));
+}
+
+export function registerDataSourceV2(db, { appId, name, type, config = {} }) {
+  const valid = Object.values(DATASOURCE_TYPE);
+  if (!valid.includes(type)) {
+    throw new Error(
+      `Invalid datasource type '${type}'. Expected one of ${valid.join(", ")}`,
+    );
+  }
+  if (!appId) throw new Error("appId is required");
+  if (!name) throw new Error("name is required");
+
+  const result = addDataSource(db, appId, name, type, config);
+  _v2DataSources.set(result.id, { ...result, config, validated: false });
+  return result;
+}
+
+export function testDataSourceConnection(dataSourceId) {
+  const ds = _v2DataSources.get(dataSourceId);
+  if (!ds) {
+    return { dataSourceId, ok: false, reason: "datasource not found" };
+  }
+  const config = ds.config || {};
+  let ok = false;
+  let reason = "";
+  switch (ds.type) {
+    case DATASOURCE_TYPE.REST:
+      ok = typeof config.url === "string" && config.url.length > 0;
+      reason = ok ? "ok" : "missing url";
+      break;
+    case DATASOURCE_TYPE.GRAPHQL:
+      ok = typeof config.endpoint === "string" && config.endpoint.length > 0;
+      reason = ok ? "ok" : "missing endpoint";
+      break;
+    case DATASOURCE_TYPE.DATABASE:
+      ok = typeof config.host === "string" && config.host.length > 0;
+      reason = ok ? "ok" : "missing host";
+      break;
+    case DATASOURCE_TYPE.CSV:
+      ok = typeof config.path === "string" && config.path.length > 0;
+      reason = ok ? "ok" : "missing path";
+      break;
+    default:
+      reason = "unknown type";
+  }
+  if (ok) {
+    ds.validated = true;
+    _v2DataSources.set(dataSourceId, ds);
+  }
+  return { dataSourceId, type: ds.type, ok, reason };
+}
+
+export function updateAppStatus(db, { appId, status }) {
+  const valid = Object.values(APP_STATUS);
+  if (!valid.includes(status)) {
+    throw new Error(
+      `Invalid status '${status}'. Expected one of ${valid.join(", ")}`,
+    );
+  }
+  const app = getApp(db, appId);
+  if (!app) throw new Error(`App '${appId}' not found`);
+
+  const currentStatus =
+    app.status === "deployed" ? APP_STATUS.PUBLISHED : app.status;
+  if (!_isValidStatusTransition(currentStatus, status)) {
+    throw new Error(`Invalid status transition: ${currentStatus} → ${status}`);
+  }
+
+  db.prepare(
+    `UPDATE lowcode_apps SET status = ?, updated_at = datetime('now') WHERE id = ?`,
+  ).run(status, appId);
+  if (_apps.has(appId)) _apps.get(appId).status = status;
+
+  const hist = _v2StatusHistory.get(appId) || [];
+  hist.push({
+    from: currentStatus,
+    to: status,
+    at: new Date().toISOString(),
+  });
+  _v2StatusHistory.set(appId, hist);
+  return { appId, status, previous: currentStatus };
+}
+
+export function archiveApp(db, appId) {
+  return updateAppStatus(db, { appId, status: APP_STATUS.ARCHIVED });
+}
+
+export function getStatusHistory(appId) {
+  return (_v2StatusHistory.get(appId) || []).slice();
+}
+
+export function cloneApp(db, { sourceId, newName }) {
+  const source = getApp(db, sourceId);
+  if (!source) throw new Error(`App '${sourceId}' not found`);
+  const cloned = createApp(db, {
+    name: newName || `${source.name} (Copy)`,
+    description: source.description,
+    platform: source.platform,
+    design: source.design,
+  });
+  // Persist the copied design so version snapshot matches source
+  if (
+    source.design &&
+    source.design.components &&
+    source.design.components.length > 0
+  ) {
+    saveDesign(db, cloned.id, source.design);
+  }
+  return { sourceId, clonedId: cloned.id, name: cloned.name };
+}
+
+export function exportAppJSON(db, appId) {
+  const app = getApp(db, appId);
+  if (!app) throw new Error(`App '${appId}' not found`);
+  const legacy = exportApp(appId);
+  return {
+    schema: "chainlesschain.lowcode.v2",
+    exportedAt: new Date().toISOString(),
+    app,
+    dataSources: legacy.dataSources,
+    versions: legacy.versions,
+  };
+}
+
+export function importAppJSON(db, json) {
+  if (!json || typeof json !== "object") {
+    throw new Error("import payload must be a JSON object");
+  }
+  if (json.schema !== "chainlesschain.lowcode.v2") {
+    throw new Error(
+      `unsupported schema '${json.schema}'. Expected 'chainlesschain.lowcode.v2'`,
+    );
+  }
+  if (!json.app || !json.app.name) {
+    throw new Error("import payload missing app.name");
+  }
+  const imported = createApp(db, {
+    name: json.app.name,
+    description: json.app.description || "",
+    platform: json.app.platform || "web",
+    design: json.app.design || { components: [], layout: {} },
+  });
+  let dsCount = 0;
+  for (const ds of json.dataSources || []) {
+    if (!ds.type || !ds.name) continue;
+    if (!Object.values(DATASOURCE_TYPE).includes(ds.type)) continue;
+    registerDataSourceV2(db, {
+      appId: imported.id,
+      name: ds.name,
+      type: ds.type,
+      config: ds.config || {},
+    });
+    dsCount++;
+  }
+  return { importedId: imported.id, name: imported.name, dataSources: dsCount };
+}
+
+export function getLowcodeStatsV2(db) {
+  const rows = db.prepare(`SELECT status, platform FROM lowcode_apps`).all();
+  const byStatus = { draft: 0, published: 0, archived: 0, deployed: 0 };
+  const byPlatform = {};
+  for (const r of rows) {
+    const s = r.status || "draft";
+    byStatus[s] = (byStatus[s] || 0) + 1;
+    const p = r.platform || "web";
+    byPlatform[p] = (byPlatform[p] || 0) + 1;
+  }
+
+  const dsRows = db.prepare(`SELECT type FROM lowcode_datasources`).all();
+  const byDataSourceType = {};
+  for (const r of dsRows) {
+    byDataSourceType[r.type] = (byDataSourceType[r.type] || 0) + 1;
+  }
+
+  return {
+    totalApps: rows.length,
+    byStatus,
+    byPlatform,
+    dataSources: {
+      total: dsRows.length,
+      byType: byDataSourceType,
+    },
+    componentsAvailable: listComponents().length,
+  };
+}
+
+export function _resetV2State() {
+  _v2DataSources.clear();
+  _v2StatusHistory.clear();
+}

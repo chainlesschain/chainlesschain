@@ -20,7 +20,22 @@ import {
   exportApp,
   listApps,
   deployApp,
+  // Phase 93 V2 surface
+  COMPONENT_CATEGORY,
+  DATASOURCE_TYPE,
+  APP_STATUS,
+  listComponentsV2,
+  registerDataSourceV2,
+  testDataSourceConnection,
+  updateAppStatus,
+  archiveApp,
+  getStatusHistory,
+  cloneApp,
+  exportAppJSON,
+  importAppJSON,
+  getLowcodeStatsV2,
 } from "../lib/app-builder.js";
+import fs from "fs";
 
 export function registerLowcodeCommand(program) {
   const lowcode = program
@@ -302,6 +317,347 @@ export function registerLowcodeCommand(program) {
         );
         logger.log(`  Data Sources: ${result.dataSources.length}`);
         logger.log(`  Versions:     ${result.versions.length}`);
+      }
+    });
+
+  // ─── Phase 93 V2 subcommands ────────────────────────────────
+
+  // lowcode categories
+  lowcode
+    .command("categories")
+    .description("List component categories (V2)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const categories = Object.values(COMPONENT_CATEGORY);
+      if (options.json) {
+        console.log(JSON.stringify(categories, null, 2));
+      } else {
+        logger.log(chalk.bold("Component Categories:"));
+        for (const c of categories) logger.log(`  ${chalk.cyan(c)}`);
+      }
+    });
+
+  // lowcode datasource-types
+  lowcode
+    .command("datasource-types")
+    .description("List supported data source types (V2)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const types = Object.values(DATASOURCE_TYPE);
+      if (options.json) {
+        console.log(JSON.stringify(types, null, 2));
+      } else {
+        logger.log(chalk.bold("Data Source Types:"));
+        for (const t of types) logger.log(`  ${chalk.cyan(t)}`);
+      }
+    });
+
+  // lowcode statuses
+  lowcode
+    .command("statuses")
+    .description("List canonical app statuses (V2)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const statuses = Object.values(APP_STATUS);
+      if (options.json) {
+        console.log(JSON.stringify(statuses, null, 2));
+      } else {
+        logger.log(chalk.bold("App Statuses:"));
+        for (const s of statuses) logger.log(`  ${chalk.cyan(s)}`);
+      }
+    });
+
+  // lowcode components-v2
+  lowcode
+    .command("components-v2")
+    .description("List built-in components with category filter (V2)")
+    .option("-c, --category <cat>", "Filter by category")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      try {
+        const list = listComponentsV2(
+          options.category ? { category: options.category } : {},
+        );
+        if (options.json) {
+          console.log(JSON.stringify(list, null, 2));
+        } else {
+          logger.log(chalk.bold(`Components (${list.length}):`));
+          for (const c of list) {
+            logger.log(
+              `  ${chalk.cyan(c.name)} [${c.category}] props: ${c.props.join(", ")}`,
+            );
+          }
+        }
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  // lowcode datasource-v2 <app-id> <name> <type>
+  lowcode
+    .command("datasource-v2")
+    .description("Register a validated data source (V2)")
+    .argument("<app-id>", "Application ID")
+    .argument("<name>", "Data source name")
+    .argument("<type>", "Type: rest|graphql|database|csv")
+    .option("--config <json>", "Config as JSON string", "{}")
+    .action(async (appId, name, type, options) => {
+      const spinner = ora("Registering data source...").start();
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          spinner.fail("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureLowcodeTables(db);
+
+        let config;
+        try {
+          config = JSON.parse(options.config);
+        } catch (_err) {
+          config = {};
+        }
+
+        const result = registerDataSourceV2(db, {
+          appId,
+          name,
+          type,
+          config,
+        });
+        spinner.succeed(
+          `Data source "${chalk.cyan(name)}" registered (${type})`,
+        );
+        logger.log(`  ID: ${chalk.gray(result.id)}`);
+
+        await shutdown();
+      } catch (err) {
+        spinner.fail(err.message);
+        process.exit(1);
+      }
+    });
+
+  // lowcode test-connection <datasource-id>
+  lowcode
+    .command("test-connection")
+    .description("Heuristic connection check for a data source (V2)")
+    .argument("<datasource-id>", "Data source ID")
+    .option("--json", "Output as JSON")
+    .action((dsId, options) => {
+      const result = testDataSourceConnection(dsId);
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        const icon = result.ok ? chalk.green("✓") : chalk.red("✗");
+        logger.log(
+          `${icon} ${chalk.cyan(dsId)} (${result.type || "?"}): ${result.reason}`,
+        );
+      }
+    });
+
+  // lowcode set-status <app-id> <status>
+  lowcode
+    .command("set-status")
+    .description("Update app status with validated transition (V2)")
+    .argument("<app-id>", "Application ID")
+    .argument("<status>", "New status: draft|published|archived")
+    .action(async (appId, status) => {
+      const spinner = ora(`Transitioning to ${status}...`).start();
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          spinner.fail("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureLowcodeTables(db);
+
+        const result = updateAppStatus(db, { appId, status });
+        spinner.succeed(
+          `${chalk.cyan(appId)}: ${result.previous} → ${chalk.bold(result.status)}`,
+        );
+
+        await shutdown();
+      } catch (err) {
+        spinner.fail(err.message);
+        process.exit(1);
+      }
+    });
+
+  // lowcode archive <app-id>
+  lowcode
+    .command("archive")
+    .description("Archive an application (V2)")
+    .argument("<app-id>", "Application ID")
+    .action(async (appId) => {
+      const spinner = ora("Archiving...").start();
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          spinner.fail("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureLowcodeTables(db);
+
+        archiveApp(db, appId);
+        spinner.succeed(`${chalk.cyan(appId)} archived`);
+
+        await shutdown();
+      } catch (err) {
+        spinner.fail(err.message);
+        process.exit(1);
+      }
+    });
+
+  // lowcode status-history <app-id>
+  lowcode
+    .command("status-history")
+    .description("Show status transition history for an app (V2)")
+    .argument("<app-id>", "Application ID")
+    .option("--json", "Output as JSON")
+    .action((appId, options) => {
+      const hist = getStatusHistory(appId);
+      if (options.json) {
+        console.log(JSON.stringify(hist, null, 2));
+      } else if (hist.length === 0) {
+        logger.info("No status transitions recorded");
+      } else {
+        logger.log(chalk.bold(`Status History (${hist.length}):`));
+        for (const h of hist) {
+          logger.log(`  ${chalk.gray(h.at)}  ${h.from} → ${chalk.cyan(h.to)}`);
+        }
+      }
+    });
+
+  // lowcode clone <source-id>
+  lowcode
+    .command("clone")
+    .description("Clone an application (V2)")
+    .argument("<source-id>", "Source app ID")
+    .option("--name <name>", "New name for the clone")
+    .action(async (sourceId, options) => {
+      const spinner = ora("Cloning...").start();
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          spinner.fail("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureLowcodeTables(db);
+
+        const result = cloneApp(db, {
+          sourceId,
+          newName: options.name,
+        });
+        spinner.succeed(`Cloned ${chalk.cyan(sourceId)} → ${result.clonedId}`);
+        logger.log(`  Name: ${result.name}`);
+
+        await shutdown();
+      } catch (err) {
+        spinner.fail(err.message);
+        process.exit(1);
+      }
+    });
+
+  // lowcode export-json <app-id>
+  lowcode
+    .command("export-json")
+    .description("Export an app as canonical JSON (V2)")
+    .argument("<app-id>", "Application ID")
+    .option("-o, --output <file>", "Write to file instead of stdout")
+    .action(async (appId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureLowcodeTables(db);
+
+        const result = exportAppJSON(db, appId);
+        const json = JSON.stringify(result, null, 2);
+        if (options.output) {
+          fs.writeFileSync(options.output, json, "utf-8");
+          logger.log(chalk.green(`Wrote ${options.output}`));
+        } else {
+          console.log(json);
+        }
+
+        await shutdown();
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  // lowcode import-json <file>
+  lowcode
+    .command("import-json")
+    .description("Import an app from a canonical JSON file (V2)")
+    .argument("<file>", "Path to JSON export")
+    .action(async (file) => {
+      const spinner = ora("Importing...").start();
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          spinner.fail("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureLowcodeTables(db);
+
+        const raw = fs.readFileSync(file, "utf-8");
+        const json = JSON.parse(raw);
+        const result = importAppJSON(db, json);
+        spinner.succeed(
+          `Imported "${chalk.cyan(result.name)}" → ${result.importedId}`,
+        );
+        logger.log(`  Data sources: ${result.dataSources}`);
+
+        await shutdown();
+      } catch (err) {
+        spinner.fail(err.message);
+        process.exit(1);
+      }
+    });
+
+  // lowcode stats-v2
+  lowcode
+    .command("stats-v2")
+    .description("Low-code platform statistics (V2)")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureLowcodeTables(db);
+
+        const stats = getLowcodeStatsV2(db);
+        if (options.json) {
+          console.log(JSON.stringify(stats, null, 2));
+        } else {
+          logger.log(chalk.bold("Low-Code Stats (V2):"));
+          logger.log(`  Total apps:    ${chalk.cyan(stats.totalApps)}`);
+          logger.log(`  By status:     ${JSON.stringify(stats.byStatus)}`);
+          logger.log(`  By platform:   ${JSON.stringify(stats.byPlatform)}`);
+          logger.log(
+            `  Data sources:  ${stats.dataSources.total} (${JSON.stringify(stats.dataSources.byType)})`,
+          );
+          logger.log(`  Components:    ${stats.componentsAvailable}`);
+        }
+
+        await shutdown();
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
       }
     });
 

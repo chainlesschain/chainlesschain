@@ -9,6 +9,11 @@ import {
   TASK_STATUS,
   PRIVACY_MODE,
   DEFAULT_CONFIG,
+  NODE_STATUS_V2,
+  TASK_STATUS_V2,
+  PRIVACY_MODE_V2,
+  INFERENCE_DEFAULT_MAX_CONCURRENT_TASKS_PER_NODE,
+  INFERENCE_DEFAULT_HEARTBEAT_TIMEOUT_MS,
   ensureInferenceTables,
   registerNode,
   unregisterNode,
@@ -22,6 +27,20 @@ import {
   getTask,
   listTasks,
   getSchedulerStats,
+  setMaxConcurrentTasksPerNode,
+  getMaxConcurrentTasksPerNode,
+  setHeartbeatTimeoutMs,
+  getHeartbeatTimeoutMs,
+  getActiveTasksPerNode,
+  submitTaskV2,
+  dispatchTaskV2,
+  startTask,
+  completeTaskV2,
+  failTaskV2,
+  setTaskStatus,
+  autoMarkOfflineNodes,
+  findEligibleNodes,
+  getInferenceStatsV2,
 } from "../lib/inference-network.js";
 
 function _dbFromCtx(cmd) {
@@ -298,6 +317,305 @@ export function registerInferenceCommand(program) {
         `Tasks:  ${t.total} total  (${t.queued} queued, ${t.completed} completed, ${t.failed} failed)`,
       );
       if (t.avgDurationMs > 0) console.log(`Avg latency: ${t.avgDurationMs}ms`);
+    });
+
+  /* ──────────────────────────────────────────────────
+   *  V2 — Phase 67 surface
+   * ────────────────────────────────────────────────── */
+
+  inf
+    .command("node-statuses-v2")
+    .description("List V2 node statuses")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const v = Object.values(NODE_STATUS_V2);
+      if (opts.json) return console.log(JSON.stringify(v, null, 2));
+      for (const s of v) console.log(`  ${s}`);
+    });
+
+  inf
+    .command("task-statuses-v2")
+    .description("List V2 task statuses")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const v = Object.values(TASK_STATUS_V2);
+      if (opts.json) return console.log(JSON.stringify(v, null, 2));
+      for (const s of v) console.log(`  ${s}`);
+    });
+
+  inf
+    .command("privacy-modes-v2")
+    .description("List V2 privacy modes")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const v = Object.values(PRIVACY_MODE_V2);
+      if (opts.json) return console.log(JSON.stringify(v, null, 2));
+      for (const m of v) console.log(`  ${m}`);
+    });
+
+  inf
+    .command("default-max-concurrent-tasks")
+    .description("Show default per-node concurrent task cap")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const v = INFERENCE_DEFAULT_MAX_CONCURRENT_TASKS_PER_NODE;
+      if (opts.json)
+        return console.log(JSON.stringify({ default: v }, null, 2));
+      console.log(v);
+    });
+
+  inf
+    .command("max-concurrent-tasks")
+    .description("Show current per-node concurrent task cap")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const v = getMaxConcurrentTasksPerNode();
+      if (opts.json) return console.log(JSON.stringify({ max: v }, null, 2));
+      console.log(v);
+    });
+
+  inf
+    .command("set-max-concurrent-tasks <n>")
+    .description("Set per-node concurrent task cap")
+    .option("--json", "JSON output")
+    .action((n, opts) => {
+      try {
+        setMaxConcurrentTasksPerNode(Number(n));
+        const v = getMaxConcurrentTasksPerNode();
+        if (opts.json) return console.log(JSON.stringify({ max: v }, null, 2));
+        console.log(`Max concurrent tasks per node: ${v}`);
+      } catch (e) {
+        if (opts.json)
+          return console.log(JSON.stringify({ error: e.message }, null, 2));
+        console.error(`Error: ${e.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  inf
+    .command("active-task-count <node-id>")
+    .description("Show current active tasks for a node")
+    .option("--json", "JSON output")
+    .action((nodeId, opts) => {
+      const v = getActiveTasksPerNode(nodeId);
+      if (opts.json)
+        return console.log(JSON.stringify({ nodeId, active: v }, null, 2));
+      console.log(v);
+    });
+
+  inf
+    .command("heartbeat-timeout")
+    .description("Show current heartbeat timeout (ms)")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const v = getHeartbeatTimeoutMs();
+      if (opts.json)
+        return console.log(JSON.stringify({ timeoutMs: v }, null, 2));
+      console.log(v);
+    });
+
+  inf
+    .command("set-heartbeat-timeout <ms>")
+    .description("Set heartbeat timeout (ms)")
+    .option("--json", "JSON output")
+    .action((ms, opts) => {
+      try {
+        setHeartbeatTimeoutMs(Number(ms));
+        const v = getHeartbeatTimeoutMs();
+        if (opts.json)
+          return console.log(JSON.stringify({ timeoutMs: v }, null, 2));
+        console.log(`Heartbeat timeout: ${v}ms`);
+      } catch (e) {
+        if (opts.json)
+          return console.log(JSON.stringify({ error: e.message }, null, 2));
+        console.error(`Error: ${e.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  inf
+    .command("submit-v2 <model>")
+    .description("Submit task (V2, creates queued no assignment)")
+    .option("-i, --input <text>", "Input data")
+    .option("-p, --priority <n>", "Priority (1-10)", parseInt)
+    .option("-m, --mode <mode>", "Privacy mode")
+    .option("--json", "JSON output")
+    .action((model, opts) => {
+      const db = _dbFromCtx(inf);
+      try {
+        const t = submitTaskV2(db, {
+          model,
+          input: opts.input,
+          privacyMode: opts.mode,
+          priority: opts.priority,
+        });
+        if (opts.json) return console.log(JSON.stringify(t, null, 2));
+        console.log(`Task submitted: ${t.id}`);
+        console.log(`Status: ${t.status}`);
+      } catch (e) {
+        if (opts.json)
+          return console.log(JSON.stringify({ error: e.message }, null, 2));
+        console.error(`Error: ${e.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  inf
+    .command("dispatch-v2 <task-id>")
+    .description("Dispatch queued task to online node")
+    .option("-n, --node <id>", "Specific node id (else least-loaded)")
+    .option("--json", "JSON output")
+    .action((taskId, opts) => {
+      const db = _dbFromCtx(inf);
+      try {
+        const t = dispatchTaskV2(db, taskId, { nodeId: opts.node });
+        if (opts.json) return console.log(JSON.stringify(t, null, 2));
+        console.log(`Dispatched ${t.id} → ${t.assigned_node}`);
+      } catch (e) {
+        if (opts.json)
+          return console.log(JSON.stringify({ error: e.message }, null, 2));
+        console.error(`Error: ${e.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  inf
+    .command("start-task <task-id>")
+    .description("Start dispatched task (dispatched → running)")
+    .option("--json", "JSON output")
+    .action((taskId, opts) => {
+      const db = _dbFromCtx(inf);
+      try {
+        const t = startTask(db, taskId);
+        if (opts.json) return console.log(JSON.stringify(t, null, 2));
+        console.log(`Task started at ${t.started_at}`);
+      } catch (e) {
+        if (opts.json)
+          return console.log(JSON.stringify({ error: e.message }, null, 2));
+        console.error(`Error: ${e.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  inf
+    .command("complete-v2 <task-id>")
+    .description("Complete running task (running → complete)")
+    .option("-o, --output <text>", "Task output")
+    .option("-d, --duration <ms>", "Duration in ms", parseInt)
+    .option("--json", "JSON output")
+    .action((taskId, opts) => {
+      const db = _dbFromCtx(inf);
+      try {
+        const t = completeTaskV2(db, taskId, {
+          output: opts.output,
+          durationMs: opts.duration,
+        });
+        if (opts.json) return console.log(JSON.stringify(t, null, 2));
+        console.log(`Completed ${t.id} (${t.duration_ms}ms)`);
+      } catch (e) {
+        if (opts.json)
+          return console.log(JSON.stringify({ error: e.message }, null, 2));
+        console.error(`Error: ${e.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  inf
+    .command("fail-v2 <task-id>")
+    .description("Fail task (any non-terminal → failed)")
+    .option("-e, --error <text>", "Error message")
+    .option("--json", "JSON output")
+    .action((taskId, opts) => {
+      const db = _dbFromCtx(inf);
+      try {
+        const t = failTaskV2(db, taskId, { error: opts.error });
+        if (opts.json) return console.log(JSON.stringify(t, null, 2));
+        console.log(`Failed ${t.id}: ${t.error_message || ""}`);
+      } catch (e) {
+        if (opts.json)
+          return console.log(JSON.stringify({ error: e.message }, null, 2));
+        console.error(`Error: ${e.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  inf
+    .command("set-task-status <task-id> <status>")
+    .description("Generic state-machine-guarded task status setter")
+    .option("-o, --output <text>", "Patch: output")
+    .option("-d, --duration <ms>", "Patch: durationMs", parseInt)
+    .option("-e, --error <text>", "Patch: errorMessage")
+    .option("--json", "JSON output")
+    .action((taskId, status, opts) => {
+      const db = _dbFromCtx(inf);
+      const patch = {};
+      if (opts.output !== undefined) patch.output = opts.output;
+      if (opts.duration !== undefined) patch.durationMs = opts.duration;
+      if (opts.error !== undefined) patch.errorMessage = opts.error;
+      try {
+        const t = setTaskStatus(db, taskId, status, patch);
+        if (opts.json) return console.log(JSON.stringify(t, null, 2));
+        console.log(`Task ${t.id} → ${t.status}`);
+      } catch (e) {
+        if (opts.json)
+          return console.log(JSON.stringify({ error: e.message }, null, 2));
+        console.error(`Error: ${e.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  inf
+    .command("auto-offline")
+    .description("Mark nodes with stale heartbeat as offline")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(inf);
+      const offlined = autoMarkOfflineNodes(db);
+      if (opts.json) return console.log(JSON.stringify(offlined, null, 2));
+      if (offlined.length === 0) return console.log("No stale nodes.");
+      for (const n of offlined)
+        console.log(`  ${n.node_id.padEnd(20)} → offline`);
+    });
+
+  inf
+    .command("eligible-nodes")
+    .description("List online, under-cap nodes matching capability")
+    .option("-c, --capability <cap>", "Required capability")
+    .option("-m, --mode <mode>", "Privacy mode (reserved)")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const nodes = findEligibleNodes({
+        capability: opts.capability,
+        privacyMode: opts.mode,
+      });
+      if (opts.json) return console.log(JSON.stringify(nodes, null, 2));
+      if (nodes.length === 0) return console.log("No eligible nodes.");
+      for (const n of nodes)
+        console.log(
+          `  ${n.node_id.padEnd(20)} load=${getActiveTasksPerNode(n.id)}  ${n.id.slice(0, 8)}`,
+        );
+    });
+
+  inf
+    .command("stats-v2")
+    .description("V2 inference statistics (all-enum-key zero init)")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const s = getInferenceStatsV2();
+      if (opts.json) return console.log(JSON.stringify(s, null, 2));
+      console.log(`Nodes: ${s.totalNodes}  Tasks: ${s.totalTasks}`);
+      console.log(`Max concurrent/node: ${s.maxConcurrentTasksPerNode}`);
+      console.log(`Heartbeat timeout:   ${s.heartbeatTimeoutMs}ms`);
+      console.log(`Avg duration:        ${s.avgDurationMs}ms`);
+      console.log("Nodes by status:");
+      for (const [k, v] of Object.entries(s.nodesByStatus))
+        console.log(`  ${k.padEnd(12)} ${v}`);
+      console.log("Tasks by status:");
+      for (const [k, v] of Object.entries(s.tasksByStatus))
+        console.log(`  ${k.padEnd(12)} ${v}`);
+      console.log("Tasks by privacy:");
+      for (const [k, v] of Object.entries(s.tasksByPrivacyMode))
+        console.log(`  ${k.padEnd(12)} ${v}`);
     });
 
   program.addCommand(inf);

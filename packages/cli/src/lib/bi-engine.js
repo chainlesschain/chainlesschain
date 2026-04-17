@@ -297,3 +297,341 @@ export function _resetState() {
   _reports.clear();
   _scheduledReports.clear();
 }
+
+// ─── Phase 95 V2 surface (strictly additive) ───────────────────────
+
+export const CHART_TYPE = Object.freeze({
+  TABLE: "table",
+  BAR: "bar",
+  LINE: "line",
+  PIE: "pie",
+  AREA: "area",
+  SCATTER: "scatter",
+  HEATMAP: "heatmap",
+  FUNNEL: "funnel",
+  GAUGE: "gauge",
+});
+
+export const ANOMALY_METHOD = Object.freeze({
+  Z_SCORE: "z_score",
+  IQR: "iqr",
+});
+
+export const REPORT_FORMAT = Object.freeze({
+  PDF: "pdf",
+  EXCEL: "excel",
+  CSV: "csv",
+  JSON: "json",
+});
+
+export const REPORT_STATUS = Object.freeze({
+  DRAFT: "draft",
+  GENERATED: "generated",
+  SCHEDULED: "scheduled",
+  ARCHIVED: "archived",
+});
+
+export const DASHBOARD_LAYOUT = Object.freeze({
+  GRID: "grid",
+  FLOW: "flow",
+  TABS: "tabs",
+});
+
+const _reportStatusV2 = new Map();
+const _statusHistoryV2 = new Map();
+
+const _allowedReportTransitions = Object.freeze({
+  draft: new Set(["generated", "archived"]),
+  generated: new Set(["scheduled", "archived", "draft"]),
+  scheduled: new Set(["generated", "archived"]),
+  archived: new Set(["draft"]),
+});
+
+function _quantile(sorted, q) {
+  if (sorted.length === 0) return NaN;
+  const pos = (sorted.length - 1) * q;
+  const lo = Math.floor(pos);
+  const hi = Math.ceil(pos);
+  if (lo === hi) return sorted[lo];
+  return sorted[lo] + (pos - lo) * (sorted[hi] - sorted[lo]);
+}
+
+export function nlQueryV2({ query, schema } = {}) {
+  if (!query || typeof query !== "string") {
+    throw new Error("query must be a non-empty string");
+  }
+  const normalized = query.replace(/['"]/g, "").trim().toLowerCase();
+  const tokens = normalized.split(/\s+/);
+
+  // Detect table name from schema (first match) or fall back to "data"
+  let table = "data";
+  const knownTables =
+    schema && Array.isArray(schema.tables)
+      ? schema.tables.map((t) => String(t).toLowerCase())
+      : [];
+  for (const t of knownTables) {
+    if (tokens.includes(t)) {
+      table = t;
+      break;
+    }
+  }
+
+  // Detect aggregate intent
+  let aggregate = null;
+  let intent = "list";
+  let visualization = CHART_TYPE.TABLE;
+
+  if (/\b(count|how many)\b/.test(normalized)) {
+    aggregate = "COUNT(*)";
+    intent = "count";
+    visualization = CHART_TYPE.BAR;
+  } else if (/\b(sum|total)\b/.test(normalized)) {
+    aggregate = "SUM(value)";
+    intent = "sum";
+    visualization = CHART_TYPE.GAUGE;
+  } else if (/\b(avg|average|mean)\b/.test(normalized)) {
+    aggregate = "AVG(value)";
+    intent = "avg";
+    visualization = CHART_TYPE.GAUGE;
+  } else if (/\b(trend|over time|timeline|history)\b/.test(normalized)) {
+    intent = "trend";
+    visualization = CHART_TYPE.LINE;
+  } else if (/\b(distribution|breakdown)\b/.test(normalized)) {
+    intent = "distribution";
+    visualization = CHART_TYPE.PIE;
+  }
+
+  // Detect top N
+  let limit = null;
+  const topMatch = normalized.match(/\btop\s+(\d+)\b/);
+  if (topMatch) {
+    limit = parseInt(topMatch[1], 10);
+    if (intent === "list") {
+      intent = "top";
+      visualization = CHART_TYPE.BAR;
+    }
+  }
+
+  // Build SQL
+  let sql;
+  if (aggregate) {
+    sql = `SELECT ${aggregate} FROM ${table}`;
+  } else {
+    sql = `SELECT * FROM ${table}`;
+  }
+  if (limit !== null) {
+    sql += ` ORDER BY value DESC LIMIT ${limit}`;
+  } else if (intent === "trend") {
+    sql += ` ORDER BY created_at ASC`;
+  }
+
+  return {
+    id: crypto.randomUUID(),
+    query,
+    intent,
+    sql,
+    table,
+    aggregate,
+    limit,
+    visualization,
+  };
+}
+
+export function detectAnomalyV2({
+  data,
+  method = ANOMALY_METHOD.Z_SCORE,
+  threshold,
+} = {}) {
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error("data must be a non-empty array of numbers");
+  }
+  const valid = Object.values(ANOMALY_METHOD);
+  if (!valid.includes(method)) {
+    throw new Error(
+      `Invalid method '${method}'. Expected one of ${valid.join(", ")}`,
+    );
+  }
+
+  if (method === ANOMALY_METHOD.Z_SCORE) {
+    const t = threshold == null ? 2 : threshold;
+    const legacy = detectAnomaly(data, { threshold: t });
+    return { method, threshold: t, ...legacy };
+  }
+
+  // IQR method
+  const sorted = [...data].sort((a, b) => a - b);
+  const q1 = _quantile(sorted, 0.25);
+  const q3 = _quantile(sorted, 0.75);
+  const iqr = q3 - q1;
+  const multiplier = threshold == null ? 1.5 : threshold;
+  const lowerBound = q1 - multiplier * iqr;
+  const upperBound = q3 + multiplier * iqr;
+
+  const anomalies = [];
+  for (let i = 0; i < data.length; i++) {
+    if (data[i] < lowerBound || data[i] > upperBound) {
+      anomalies.push({ index: i, value: data[i] });
+    }
+  }
+
+  return {
+    method,
+    threshold: multiplier,
+    q1,
+    q3,
+    iqr,
+    lowerBound,
+    upperBound,
+    anomalies,
+  };
+}
+
+export function predictTrendV2({ data, periods = 3, method = "linear" } = {}) {
+  if (!Array.isArray(data) || data.length < 2) {
+    throw new Error("data must be an array with at least 2 points");
+  }
+  if (method !== "linear") {
+    throw new Error(`Invalid method '${method}'. Only 'linear' is supported`);
+  }
+
+  const legacy = predictTrend(data, periods);
+
+  // Compute R² (coefficient of determination)
+  const n = data.length;
+  const meanY = data.reduce((s, v) => s + v, 0) / n;
+  let ssRes = 0;
+  let ssTot = 0;
+  for (let i = 0; i < n; i++) {
+    const predicted = legacy.slope * i + (meanY - legacy.slope * ((n - 1) / 2));
+    ssRes += (data[i] - predicted) ** 2;
+    ssTot += (data[i] - meanY) ** 2;
+  }
+  let r2 = ssTot === 0 ? 1 : 1 - ssRes / ssTot;
+  if (r2 < 0) r2 = 0;
+  if (r2 > 1) r2 = 1;
+
+  return {
+    method,
+    ...legacy,
+    r2: Math.round(r2 * 1000) / 1000,
+    confidence: r2 >= 0.7 ? "high" : r2 >= 0.4 ? "medium" : "low",
+  };
+}
+
+export function recommendChart({ intent, dataShape } = {}) {
+  if (intent) {
+    const i = String(intent).toLowerCase();
+    if (i.includes("trend") || i.includes("time")) return CHART_TYPE.LINE;
+    if (i.includes("distribution") || i.includes("share"))
+      return CHART_TYPE.PIE;
+    if (i.includes("compare") || i.includes("top")) return CHART_TYPE.BAR;
+    if (i.includes("correlation")) return CHART_TYPE.SCATTER;
+    if (i.includes("funnel")) return CHART_TYPE.FUNNEL;
+    if (i.includes("heat")) return CHART_TYPE.HEATMAP;
+    if (i.includes("gauge") || i.includes("kpi")) return CHART_TYPE.GAUGE;
+  }
+  if (dataShape) {
+    if (dataShape.dimensions === 1 && dataShape.categorical)
+      return CHART_TYPE.PIE;
+    if (dataShape.timeseries) return CHART_TYPE.LINE;
+    if (dataShape.dimensions === 2) return CHART_TYPE.SCATTER;
+  }
+  return CHART_TYPE.TABLE;
+}
+
+export function createDashboardV2(db, { name, widgets = [], layout } = {}) {
+  if (!name) throw new Error("name is required");
+  let layoutSpec;
+  if (!layout) {
+    layoutSpec = { type: DASHBOARD_LAYOUT.GRID, columns: 2 };
+  } else if (typeof layout === "string") {
+    const valid = Object.values(DASHBOARD_LAYOUT);
+    if (!valid.includes(layout)) {
+      throw new Error(
+        `Invalid layout '${layout}'. Expected one of ${valid.join(", ")}`,
+      );
+    }
+    layoutSpec = { type: layout, columns: 2 };
+  } else {
+    const type = layout.type || DASHBOARD_LAYOUT.GRID;
+    const valid = Object.values(DASHBOARD_LAYOUT);
+    if (!valid.includes(type)) {
+      throw new Error(
+        `Invalid layout type '${type}'. Expected one of ${valid.join(", ")}`,
+      );
+    }
+    layoutSpec = { ...layout, type };
+  }
+  return createDashboard(db, name, widgets, layoutSpec);
+}
+
+export function updateReportStatus(db, { reportId, status } = {}) {
+  const valid = Object.values(REPORT_STATUS);
+  if (!valid.includes(status)) {
+    throw new Error(
+      `Invalid status '${status}'. Expected one of ${valid.join(", ")}`,
+    );
+  }
+  const current = _reportStatusV2.get(reportId) || REPORT_STATUS.DRAFT;
+  const allowed = _allowedReportTransitions[current];
+  if (!allowed.has(status) && current !== status) {
+    throw new Error(`Invalid status transition: ${current} → ${status}`);
+  }
+  _reportStatusV2.set(reportId, status);
+  const hist = _statusHistoryV2.get(reportId) || [];
+  hist.push({
+    from: current,
+    to: status,
+    at: new Date().toISOString(),
+  });
+  _statusHistoryV2.set(reportId, hist);
+  return { reportId, status, previous: current };
+}
+
+export function getReportStatus(reportId) {
+  return _reportStatusV2.get(reportId) || REPORT_STATUS.DRAFT;
+}
+
+export function getReportStatusHistory(reportId) {
+  return (_statusHistoryV2.get(reportId) || []).slice();
+}
+
+export function getBIStatsV2(db) {
+  const dashboards = db.prepare(`SELECT id FROM bi_dashboards`).all();
+  const reports = db.prepare(`SELECT id, format FROM bi_reports`).all();
+  const scheduled = db.prepare(`SELECT id FROM bi_scheduled`).all();
+
+  const byStatus = {
+    draft: 0,
+    generated: 0,
+    scheduled: 0,
+    archived: 0,
+  };
+  for (const r of reports) {
+    const s = _reportStatusV2.get(r.id) || REPORT_STATUS.DRAFT;
+    byStatus[s] = (byStatus[s] || 0) + 1;
+  }
+
+  const byFormat = {};
+  for (const r of reports) {
+    const f = r.format || "pdf";
+    byFormat[f] = (byFormat[f] || 0) + 1;
+  }
+
+  return {
+    dashboards: dashboards.length,
+    reports: {
+      total: reports.length,
+      byStatus,
+      byFormat,
+    },
+    scheduled: scheduled.length,
+    templates: _templates.length,
+    chartTypes: Object.values(CHART_TYPE).length,
+  };
+}
+
+export function _resetV2State() {
+  _reportStatusV2.clear();
+  _statusHistoryV2.clear();
+}

@@ -380,4 +380,334 @@ export function _resetState() {
   _runs.clear();
   _results.clear();
   _seq = 0;
+  _maxConcurrentTests = DEFAULT_MAX_CONCURRENT_TESTS;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+ * V2 Canonical Surface (Phase 59 — Federation Stress Test)
+ *   Strictly additive; legacy exports above remain unchanged.
+ * ═══════════════════════════════════════════════════════════════ */
+
+export const RUN_STATUS_V2 = Object.freeze({
+  RUNNING: "running",
+  COMPLETE: "complete",
+  STOPPED: "stopped",
+  FAILED: "failed",
+});
+
+export const LEVEL_NAME_V2 = Object.freeze({
+  LIGHT: "light",
+  MEDIUM: "medium",
+  HEAVY: "heavy",
+  EXTREME: "extreme",
+});
+
+export const BOTTLENECK_KIND_V2 = Object.freeze({
+  ERROR_RATE: "error-rate",
+  TAIL_LATENCY: "tail-latency",
+  RESPONSE_TIME: "response-time",
+  THROUGHPUT: "throughput",
+});
+
+export const BOTTLENECK_SEVERITY_V2 = Object.freeze({
+  LOW: "low",
+  MEDIUM: "medium",
+  HIGH: "high",
+});
+
+const DEFAULT_MAX_CONCURRENT_TESTS = 3;
+let _maxConcurrentTests = DEFAULT_MAX_CONCURRENT_TESTS;
+
+export const STRESS_DEFAULT_MAX_CONCURRENT = DEFAULT_MAX_CONCURRENT_TESTS;
+
+export function setMaxConcurrentTests(n) {
+  if (typeof n !== "number" || !Number.isFinite(n) || n < 1) {
+    throw new Error("maxConcurrentTests must be a positive integer");
+  }
+  _maxConcurrentTests = Math.floor(n);
+  return _maxConcurrentTests;
+}
+
+export function getMaxConcurrentTests() {
+  return _maxConcurrentTests;
+}
+
+const _terminalRunStatuses = new Set([
+  RUN_STATUS_V2.COMPLETE,
+  RUN_STATUS_V2.STOPPED,
+  RUN_STATUS_V2.FAILED,
+]);
+
+// Run state machine: running → { complete, stopped, failed }
+const _allowedRunTransitions = new Map([
+  [
+    RUN_STATUS_V2.RUNNING,
+    new Set([
+      RUN_STATUS_V2.COMPLETE,
+      RUN_STATUS_V2.STOPPED,
+      RUN_STATUS_V2.FAILED,
+    ]),
+  ],
+  [RUN_STATUS_V2.COMPLETE, new Set([])],
+  [RUN_STATUS_V2.STOPPED, new Set([])],
+  [RUN_STATUS_V2.FAILED, new Set([])],
+]);
+
+export function getActiveTestCount() {
+  let count = 0;
+  for (const r of _runs.values()) {
+    if (r.status === RUN_STATUS_V2.RUNNING) count++;
+  }
+  return count;
+}
+
+/**
+ * startStressTestV2 — asynchronous lifecycle variant. Creates the run row in
+ * RUNNING state without computing metrics; caller is expected to call
+ * completeStressTest, stopStressTestV2, or failStressTest afterwards.
+ */
+export function startStressTestV2(db, config = {}) {
+  const levelName = config.level || LEVEL_NAME_V2.MEDIUM;
+  const level = resolveLevel(levelName);
+  if (!level) {
+    throw new Error(
+      `Unknown load level: ${levelName} (known: ${Object.values(LEVEL_NAME_V2).join("/")})`,
+    );
+  }
+
+  const concurrency = Number(config.concurrency ?? level.concurrency);
+  const requestsPerSecond = Number(
+    config.requestsPerSecond ?? level.requestsPerSecond,
+  );
+  const duration = Number(config.duration ?? level.duration);
+  if (concurrency <= 0 || duration <= 0 || requestsPerSecond <= 0) {
+    throw new Error("concurrency/duration/requestsPerSecond must all be > 0");
+  }
+
+  const activeCount = getActiveTestCount();
+  if (activeCount >= _maxConcurrentTests) {
+    throw new Error(
+      `Max concurrent stress tests reached: ${activeCount}/${_maxConcurrentTests}`,
+    );
+  }
+
+  const testId = crypto.randomUUID();
+  const now = Date.now();
+
+  const run = {
+    testId,
+    loadLevel: level.name,
+    concurrency,
+    requestsPerSecond,
+    duration,
+    status: RUN_STATUS_V2.RUNNING,
+    startedAt: now,
+    completedAt: null,
+    errorMessage: null,
+    _seq: ++_seq,
+  };
+
+  _runs.set(testId, run);
+  db.prepare(
+    `INSERT INTO stress_test_runs (test_id, load_level, concurrency, requests_per_second, duration, status, started_at, completed_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    testId,
+    level.name,
+    concurrency,
+    requestsPerSecond,
+    duration,
+    run.status,
+    now,
+    null,
+  );
+
+  const { _seq: _omit, ...rest } = run;
+  void _omit;
+  return rest;
+}
+
+export function completeStressTest(db, testId) {
+  const run = _runs.get(testId);
+  if (!run) throw new Error(`Stress test not found: ${testId}`);
+
+  const allowed = _allowedRunTransitions.get(run.status);
+  if (!allowed || !allowed.has(RUN_STATUS_V2.COMPLETE)) {
+    throw new Error(`Invalid run status transition: ${run.status} → complete`);
+  }
+
+  const seed = _hashSeed(testId);
+  const metrics = _synthesizeMetrics(
+    {
+      concurrency: run.concurrency,
+      requestsPerSecond: run.requestsPerSecond,
+      duration: run.duration,
+    },
+    seed,
+  );
+  const bottlenecks = _deriveBottlenecks(metrics, {
+    requestsPerSecond: run.requestsPerSecond,
+  });
+  const recommendations = _capacityRecommendations(
+    metrics,
+    { requestsPerSecond: run.requestsPerSecond },
+    bottlenecks,
+  );
+
+  const now = Date.now();
+  const resultId = crypto.randomUUID();
+  const result = {
+    resultId,
+    testId,
+    ...metrics,
+    bottlenecks,
+    capacityRecommendations: recommendations,
+    createdAt: now,
+  };
+  _results.set(testId, result);
+
+  db.prepare(
+    `INSERT INTO stress_test_results (result_id, test_id, tps, avg_response_time, p50_response_time, p95_response_time, p99_response_time, error_rate, bottlenecks, capacity_recommendations, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    resultId,
+    testId,
+    metrics.tps,
+    metrics.avgResponseTime,
+    metrics.p50ResponseTime,
+    metrics.p95ResponseTime,
+    metrics.p99ResponseTime,
+    metrics.errorRate,
+    JSON.stringify(bottlenecks),
+    JSON.stringify(recommendations),
+    now,
+  );
+
+  run.status = RUN_STATUS_V2.COMPLETE;
+  run.completedAt = now;
+  db.prepare(
+    `UPDATE stress_test_runs SET status = ?, completed_at = ? WHERE test_id = ?`,
+  ).run(RUN_STATUS_V2.COMPLETE, now, testId);
+
+  const { _seq: _omit, ...rest } = run;
+  void _omit;
+  return { ...rest, result };
+}
+
+export function stopStressTestV2(db, testId) {
+  return setRunStatus(db, testId, RUN_STATUS_V2.STOPPED);
+}
+
+export function failStressTest(db, testId, errorMessage) {
+  return setRunStatus(db, testId, RUN_STATUS_V2.FAILED, { errorMessage });
+}
+
+export function setRunStatus(db, testId, newStatus, patch = {}) {
+  const run = _runs.get(testId);
+  if (!run) throw new Error(`Stress test not found: ${testId}`);
+
+  const validStatuses = Object.values(RUN_STATUS_V2);
+  if (!validStatuses.includes(newStatus)) {
+    throw new Error(`Unknown run status: ${newStatus}`);
+  }
+
+  const allowed = _allowedRunTransitions.get(run.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(
+      `Invalid run status transition: ${run.status} → ${newStatus}`,
+    );
+  }
+
+  run.status = newStatus;
+  if (typeof patch.errorMessage === "string") {
+    run.errorMessage = patch.errorMessage;
+  }
+  if (_terminalRunStatuses.has(newStatus)) {
+    run.completedAt = Date.now();
+  }
+
+  db.prepare(
+    `UPDATE stress_test_runs SET status = ?, completed_at = ? WHERE test_id = ?`,
+  ).run(newStatus, run.completedAt, testId);
+
+  const { _seq: _omit, ...rest } = run;
+  void _omit;
+  return rest;
+}
+
+/**
+ * recommendLevelV2 — suggest the largest pre-defined level whose targetRps is
+ * still ≤ the caller's target. Returns `light` for any sub-light target,
+ * `extreme` for anything ≥ extreme.
+ */
+export function recommendLevelV2(targetRps) {
+  if (
+    typeof targetRps !== "number" ||
+    !Number.isFinite(targetRps) ||
+    targetRps <= 0
+  ) {
+    throw new Error("targetRps must be a positive number");
+  }
+  const levels = Object.values(LOAD_LEVELS)
+    .slice()
+    .sort((a, b) => a.requestsPerSecond - b.requestsPerSecond);
+  let chosen = levels[0];
+  for (const level of levels) {
+    if (targetRps >= level.requestsPerSecond) chosen = level;
+  }
+  return { ...chosen };
+}
+
+export function getStressStatsV2() {
+  const runs = [..._runs.values()];
+  const results = [..._results.values()];
+
+  const byStatus = {};
+  for (const s of Object.values(RUN_STATUS_V2)) byStatus[s] = 0;
+  for (const r of runs) byStatus[r.status] = (byStatus[r.status] || 0) + 1;
+
+  const byLevel = {};
+  for (const l of Object.values(LEVEL_NAME_V2)) byLevel[l] = 0;
+  for (const r of runs) byLevel[r.loadLevel] = (byLevel[r.loadLevel] || 0) + 1;
+
+  const byKind = {};
+  for (const k of Object.values(BOTTLENECK_KIND_V2)) byKind[k] = 0;
+  const bySeverity = {};
+  for (const s of Object.values(BOTTLENECK_SEVERITY_V2)) bySeverity[s] = 0;
+
+  let totalTps = 0;
+  let totalP95 = 0;
+  let metricSamples = 0;
+  let totalBottlenecks = 0;
+
+  for (const result of results) {
+    totalTps += result.tps || 0;
+    totalP95 += result.p95ResponseTime || 0;
+    metricSamples++;
+    for (const b of result.bottlenecks || []) {
+      totalBottlenecks++;
+      if (byKind[b.kind] !== undefined) byKind[b.kind]++;
+      if (bySeverity[b.severity] !== undefined) bySeverity[b.severity]++;
+    }
+  }
+
+  return {
+    totalTests: runs.length,
+    activeTests: getActiveTestCount(),
+    maxConcurrentTests: _maxConcurrentTests,
+    byStatus,
+    byLevel,
+    bottlenecks: {
+      total: totalBottlenecks,
+      byKind,
+      bySeverity,
+    },
+    aggregateMetrics: {
+      samples: metricSamples,
+      avgTps:
+        metricSamples > 0 ? Number((totalTps / metricSamples).toFixed(2)) : 0,
+      avgP95:
+        metricSamples > 0 ? Number((totalP95 / metricSamples).toFixed(2)) : 0,
+    },
+  };
 }

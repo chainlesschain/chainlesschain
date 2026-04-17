@@ -25,6 +25,24 @@ import {
   estimateFee,
   getCrossChainStats,
   _resetState,
+  // V2
+  BRIDGE_STATUS_V2,
+  SWAP_STATUS_V2,
+  MESSAGE_STATUS_V2,
+  CHAIN_ID_V2,
+  CROSSCHAIN_DEFAULT_MAX_ACTIVE_BRIDGES_PER_ADDRESS,
+  setMaxActiveBridgesPerAddress,
+  getMaxActiveBridgesPerAddress,
+  getActiveBridgeCount,
+  configureChainV2,
+  getChainConfigV2,
+  listChainsV2,
+  bridgeAssetV2,
+  setBridgeStatusV2,
+  setSwapStatusV2,
+  setMessageStatusV2,
+  autoExpireSwapsV2,
+  getCrossChainStatsV2,
 } from "../../src/lib/cross-chain.js";
 
 describe("cross-chain", () => {
@@ -508,6 +526,437 @@ describe("cross-chain", () => {
       expect(s.bridges.totalFees).toBeGreaterThan(0);
       expect(s.swaps.total).toBe(1);
       expect(s.messages.total).toBe(1);
+    });
+  });
+
+  /* ══════════════════════════════════════════════════════
+   * Phase 89 Cross-Chain V2 surface
+   * ══════════════════════════════════════════════════════ */
+
+  describe("cross-chain V2 (Phase 89)", () => {
+    describe("frozen enums", () => {
+      it("BRIDGE_STATUS_V2 has 6 states", () => {
+        expect(Object.keys(BRIDGE_STATUS_V2)).toHaveLength(6);
+        expect(Object.isFrozen(BRIDGE_STATUS_V2)).toBe(true);
+      });
+
+      it("SWAP_STATUS_V2 has 5 states", () => {
+        expect(Object.keys(SWAP_STATUS_V2)).toHaveLength(5);
+        expect(Object.isFrozen(SWAP_STATUS_V2)).toBe(true);
+      });
+
+      it("MESSAGE_STATUS_V2 has 4 states", () => {
+        expect(Object.keys(MESSAGE_STATUS_V2)).toHaveLength(4);
+        expect(Object.isFrozen(MESSAGE_STATUS_V2)).toBe(true);
+      });
+
+      it("CHAIN_ID_V2 has 5 chains", () => {
+        expect(Object.keys(CHAIN_ID_V2)).toHaveLength(5);
+        expect(Object.isFrozen(CHAIN_ID_V2)).toBe(true);
+      });
+
+      it("DEFAULT_MAX_ACTIVE_BRIDGES_PER_ADDRESS exposed", () => {
+        expect(CROSSCHAIN_DEFAULT_MAX_ACTIVE_BRIDGES_PER_ADDRESS).toBe(3);
+      });
+    });
+
+    describe("setMaxActiveBridgesPerAddress", () => {
+      it("default is 3", () => {
+        expect(getMaxActiveBridgesPerAddress()).toBe(3);
+      });
+
+      it("accepts positive integer", () => {
+        setMaxActiveBridgesPerAddress(10);
+        expect(getMaxActiveBridgesPerAddress()).toBe(10);
+      });
+
+      it("floors non-integer", () => {
+        setMaxActiveBridgesPerAddress(5.7);
+        expect(getMaxActiveBridgesPerAddress()).toBe(5);
+      });
+
+      it("rejects non-number/NaN/<1", () => {
+        expect(() => setMaxActiveBridgesPerAddress(0)).toThrow();
+        expect(() => setMaxActiveBridgesPerAddress(-1)).toThrow();
+        expect(() => setMaxActiveBridgesPerAddress(Number.NaN)).toThrow();
+        expect(() => setMaxActiveBridgesPerAddress("5")).toThrow();
+      });
+
+      it("_resetState restores default", () => {
+        setMaxActiveBridgesPerAddress(99);
+        _resetState();
+        expect(getMaxActiveBridgesPerAddress()).toBe(3);
+      });
+    });
+
+    describe("getActiveBridgeCount", () => {
+      it("counts non-terminal bridges globally when no address", () => {
+        bridgeAsset(db, {
+          fromChain: "ethereum",
+          toChain: "polygon",
+          amount: 10,
+          senderAddress: "0xA",
+        });
+        bridgeAsset(db, {
+          fromChain: "bsc",
+          toChain: "solana",
+          amount: 5,
+          senderAddress: "0xB",
+        });
+        expect(getActiveBridgeCount()).toBe(2);
+      });
+
+      it("filters by address", () => {
+        bridgeAsset(db, {
+          fromChain: "ethereum",
+          toChain: "polygon",
+          amount: 10,
+          senderAddress: "0xA",
+        });
+        bridgeAsset(db, {
+          fromChain: "bsc",
+          toChain: "solana",
+          amount: 5,
+          senderAddress: "0xB",
+        });
+        expect(getActiveBridgeCount("0xA")).toBe(1);
+        expect(getActiveBridgeCount("0xB")).toBe(1);
+        expect(getActiveBridgeCount("0xC")).toBe(0);
+      });
+
+      it("excludes terminal bridges", () => {
+        const { bridgeId } = bridgeAsset(db, {
+          fromChain: "ethereum",
+          toChain: "polygon",
+          amount: 10,
+          senderAddress: "0xA",
+        });
+        expect(getActiveBridgeCount("0xA")).toBe(1);
+        setBridgeStatusV2(db, bridgeId, "failed", {
+          errorMessage: "test",
+        });
+        expect(getActiveBridgeCount("0xA")).toBe(0);
+      });
+    });
+
+    describe("configureChainV2", () => {
+      it("configures a supported chain", () => {
+        const cfg = configureChainV2({
+          chainId: "ethereum",
+          rpcUrl: "https://eth.example.com",
+          contractAddress: "0xCCC",
+        });
+        expect(cfg.chainId).toBe("ethereum");
+        expect(cfg.enabled).toBe(true);
+        expect(cfg.rpcUrl).toBe("https://eth.example.com");
+      });
+
+      it("rejects unsupported chain", () => {
+        expect(() => configureChainV2({ chainId: "unknown" })).toThrow();
+      });
+
+      it("listChainsV2 reflects config", () => {
+        configureChainV2({
+          chainId: "polygon",
+          rpcUrl: "https://p.com",
+        });
+        const chains = listChainsV2();
+        const poly = chains.find((c) => c.id === "polygon");
+        expect(poly.enabled).toBe(true);
+        expect(poly.rpcUrl).toBe("https://p.com");
+        const eth = chains.find((c) => c.id === "ethereum");
+        expect(eth.enabled).toBe(false);
+      });
+
+      it("getChainConfigV2 returns null for unconfigured", () => {
+        expect(getChainConfigV2("solana")).toBeNull();
+      });
+    });
+
+    describe("bridgeAssetV2 + concurrency cap", () => {
+      it("throws on unsupported chain", () => {
+        expect(() =>
+          bridgeAssetV2(db, {
+            fromChain: "unknown",
+            toChain: "polygon",
+            amount: 10,
+          }),
+        ).toThrow(/Unsupported/);
+      });
+
+      it("throws on same-chain", () => {
+        expect(() =>
+          bridgeAssetV2(db, {
+            fromChain: "ethereum",
+            toChain: "ethereum",
+            amount: 10,
+          }),
+        ).toThrow(/must differ/);
+      });
+
+      it("throws on invalid amount", () => {
+        expect(() =>
+          bridgeAssetV2(db, {
+            fromChain: "ethereum",
+            toChain: "polygon",
+            amount: 0,
+          }),
+        ).toThrow(/positive/);
+      });
+
+      it("enforces per-address cap", () => {
+        setMaxActiveBridgesPerAddress(2);
+        bridgeAssetV2(db, {
+          fromChain: "ethereum",
+          toChain: "polygon",
+          amount: 10,
+          senderAddress: "0xA",
+        });
+        bridgeAssetV2(db, {
+          fromChain: "ethereum",
+          toChain: "bsc",
+          amount: 10,
+          senderAddress: "0xA",
+        });
+        expect(() =>
+          bridgeAssetV2(db, {
+            fromChain: "ethereum",
+            toChain: "solana",
+            amount: 10,
+            senderAddress: "0xA",
+          }),
+        ).toThrow(/Max active bridges per address reached/);
+      });
+
+      it("cap scoped per address (B independent of A)", () => {
+        setMaxActiveBridgesPerAddress(1);
+        bridgeAssetV2(db, {
+          fromChain: "ethereum",
+          toChain: "polygon",
+          amount: 10,
+          senderAddress: "0xA",
+        });
+        // B is independent
+        const r = bridgeAssetV2(db, {
+          fromChain: "ethereum",
+          toChain: "bsc",
+          amount: 10,
+          senderAddress: "0xB",
+        });
+        expect(r.bridgeId).toBeTruthy();
+      });
+
+      it("cap freed after terminal status", () => {
+        setMaxActiveBridgesPerAddress(1);
+        const { bridgeId } = bridgeAssetV2(db, {
+          fromChain: "ethereum",
+          toChain: "polygon",
+          amount: 10,
+          senderAddress: "0xA",
+        });
+        setBridgeStatusV2(db, bridgeId, "failed", { errorMessage: "x" });
+        // Now A can create another
+        const r = bridgeAssetV2(db, {
+          fromChain: "ethereum",
+          toChain: "bsc",
+          amount: 10,
+          senderAddress: "0xA",
+        });
+        expect(r.bridgeId).toBeTruthy();
+      });
+    });
+
+    describe("setBridgeStatusV2", () => {
+      let bridgeId;
+      beforeEach(() => {
+        const r = bridgeAsset(db, {
+          fromChain: "ethereum",
+          toChain: "polygon",
+          amount: 100,
+        });
+        bridgeId = r.bridgeId;
+      });
+
+      it("valid transition pending→locked w/ lockTxHash patch", () => {
+        const b = setBridgeStatusV2(db, bridgeId, "locked", {
+          lockTxHash: "0xLOCK",
+        });
+        expect(b.status).toBe("locked");
+        expect(b.lock_tx_hash).toBe("0xLOCK");
+      });
+
+      it("rejects invalid transition pending→completed", () => {
+        expect(() => setBridgeStatusV2(db, bridgeId, "completed")).toThrow(
+          /Invalid bridge transition/,
+        );
+      });
+
+      it("auto-sets completed_at on terminal", () => {
+        setBridgeStatusV2(db, bridgeId, "locked");
+        setBridgeStatusV2(db, bridgeId, "minted");
+        const b = setBridgeStatusV2(db, bridgeId, "completed");
+        expect(b.completed_at).toBeTruthy();
+      });
+
+      it("rejects unknown bridgeId", () => {
+        expect(() => setBridgeStatusV2(db, "bogus", "locked")).toThrow(
+          /not found/,
+        );
+      });
+
+      it("rejects transition from terminal", () => {
+        setBridgeStatusV2(db, bridgeId, "failed", { errorMessage: "x" });
+        expect(() => setBridgeStatusV2(db, bridgeId, "locked")).toThrow(
+          /Invalid bridge transition/,
+        );
+      });
+    });
+
+    describe("setSwapStatusV2", () => {
+      let swapId;
+      beforeEach(() => {
+        const r = initiateSwap(db, {
+          fromChain: "ethereum",
+          toChain: "polygon",
+          amount: 1,
+        });
+        swapId = r.swapId;
+      });
+
+      it("initiated→hash_locked valid", () => {
+        const s = setSwapStatusV2(db, swapId, "hash_locked");
+        expect(s.status).toBe("hash_locked");
+      });
+
+      it("rejects claimed→hash_locked", () => {
+        setSwapStatusV2(db, swapId, "claimed", { claimTxHash: "0xC" });
+        expect(() => setSwapStatusV2(db, swapId, "hash_locked")).toThrow(
+          /Invalid swap transition/,
+        );
+      });
+
+      it("does not leak secret in return", () => {
+        const s = setSwapStatusV2(db, swapId, "hash_locked");
+        expect(s.secret).toBeUndefined();
+      });
+    });
+
+    describe("setMessageStatusV2", () => {
+      let messageId;
+      beforeEach(() => {
+        const r = sendMessage(db, {
+          fromChain: "ethereum",
+          toChain: "polygon",
+          payload: "hello",
+        });
+        messageId = r.messageId;
+      });
+
+      it("pending→sent→delivered lifecycle", () => {
+        setMessageStatusV2(db, messageId, "sent", {
+          sourceTxHash: "0xS",
+        });
+        const m = setMessageStatusV2(db, messageId, "delivered", {
+          destinationTxHash: "0xD",
+        });
+        expect(m.status).toBe("delivered");
+        expect(m.delivered_at).toBeTruthy();
+        expect(m.source_tx_hash).toBe("0xS");
+        expect(m.destination_tx_hash).toBe("0xD");
+      });
+
+      it("failed→pending increments retries", () => {
+        setMessageStatusV2(db, messageId, "failed");
+        const m = setMessageStatusV2(db, messageId, "pending");
+        expect(m.retries).toBe(1);
+      });
+    });
+
+    describe("autoExpireSwapsV2", () => {
+      it("flips past-deadline INITIATED/HASH_LOCKED to EXPIRED", () => {
+        const r = initiateSwap(db, {
+          fromChain: "ethereum",
+          toChain: "polygon",
+          amount: 1,
+          timeoutMs: -1000, // already expired
+        });
+        const expired = autoExpireSwapsV2(db);
+        expect(expired.length).toBe(1);
+        expect(expired[0].id).toBe(r.swapId);
+        expect(expired[0].status).toBe("expired");
+      });
+
+      it("does not touch already-claimed swaps", () => {
+        const r = initiateSwap(db, {
+          fromChain: "ethereum",
+          toChain: "polygon",
+          amount: 1,
+          timeoutMs: -1000,
+        });
+        setSwapStatusV2(db, r.swapId, "claimed", { claimTxHash: "0xC" });
+        const expired = autoExpireSwapsV2(db);
+        expect(expired.length).toBe(0);
+      });
+
+      it("returns empty when none expired", () => {
+        initiateSwap(db, {
+          fromChain: "ethereum",
+          toChain: "polygon",
+          amount: 1,
+          timeoutMs: 3600000,
+        });
+        expect(autoExpireSwapsV2(db).length).toBe(0);
+      });
+    });
+
+    describe("getCrossChainStatsV2", () => {
+      it("zero-state has all-enum-keys", () => {
+        const s = getCrossChainStatsV2();
+        expect(s.totalBridges).toBe(0);
+        expect(s.activeBridges).toBe(0);
+        expect(s.bridgesByStatus.pending).toBe(0);
+        expect(s.bridgesByStatus.completed).toBe(0);
+        expect(s.swapsByStatus.initiated).toBe(0);
+        expect(s.messagesByStatus.delivered).toBe(0);
+        expect(s.chainUsage.ethereum).toBe(0);
+        expect(s.chainUsage.solana).toBe(0);
+        expect(s.maxActiveBridgesPerAddress).toBe(3);
+      });
+
+      it("aggregates activity", () => {
+        bridgeAsset(db, {
+          fromChain: "ethereum",
+          toChain: "polygon",
+          amount: 100,
+        });
+        bridgeAsset(db, {
+          fromChain: "bsc",
+          toChain: "solana",
+          amount: 50,
+        });
+        initiateSwap(db, {
+          fromChain: "ethereum",
+          toChain: "arbitrum",
+          amount: 1,
+        });
+        sendMessage(db, { fromChain: "polygon", toChain: "bsc" });
+
+        const s = getCrossChainStatsV2();
+        expect(s.totalBridges).toBe(2);
+        expect(s.totalSwaps).toBe(1);
+        expect(s.totalMessages).toBe(1);
+        expect(s.activeBridges).toBe(2);
+        expect(s.bridgesByStatus.pending).toBe(2);
+        expect(s.totalBridgeVolume).toBe(150);
+        expect(s.totalFees).toBeGreaterThan(0);
+        expect(s.chainUsage.ethereum).toBeGreaterThan(0);
+      });
+
+      it("reflects configuredChains count", () => {
+        configureChainV2({ chainId: "ethereum", rpcUrl: "x" });
+        configureChainV2({ chainId: "polygon", rpcUrl: "y" });
+        expect(getCrossChainStatsV2().configuredChains).toBe(2);
+      });
     });
   });
 });

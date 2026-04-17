@@ -112,6 +112,59 @@ chainlesschain hmemory store / recall / consolidate
 chainlesschain a2a register / discover / submit
 ```
 
+### Phase 81 — A2A Protocol V2 (`a2a` extension)
+
+Extends `chainlesschain a2a` with the Phase 81 canonical surface: 4 frozen
+enums (`TASK_STATUS_V2` with INPUT_REQUIRED + CANCELED, `CARD_STATUS_V2`,
+`SUBSCRIPTION_TYPE`, `NEGOTIATION_RESULT`), pure A2A schema validation,
+card lifecycle state machine (active ↔ inactive → expired, expired → active),
+full task state machine (submitted → working → {input-required | completed |
+failed | canceled}), timeout-aware tasks, typed subscriptions, and
+semver-compatible capability negotiation. V2 task state lives in-memory
+(parallel to the legacy DB-backed surface).
+
+```bash
+# Enum listings
+chainlesschain a2a task-statuses [--json]                    # 6 statuses incl. input-required / canceled
+chainlesschain a2a card-statuses [--json]                    # active / inactive / expired
+chainlesschain a2a subscription-types [--json]               # task_update / agent_status / capability_change
+chainlesschain a2a negotiation-results [--json]              # compatible / partial / incompatible
+
+# Pure schema validation (no DB)
+chainlesschain a2a validate-card Alice --card-version 1.2.3 --auth-type bearer --json
+
+# Card lifecycle
+chainlesschain a2a set-card-status <cardId> inactive         # active → inactive → expired
+chainlesschain a2a card-status <cardId>
+
+# V2 task lifecycle (in-memory)
+chainlesschain a2a send-task-v2 <agentId> "hi" [--timeout-ms 60000]
+chainlesschain a2a start-working <taskId>                    # submitted → working
+chainlesschain a2a request-input <taskId> "Pick a model"     # working → input-required
+chainlesschain a2a provide-input <taskId> "gpt4"             # input-required → working
+chainlesschain a2a complete-task-v2 <taskId> "done"          # working → completed
+chainlesschain a2a fail-task-v2 <taskId> "err"               # non-terminal → failed
+chainlesschain a2a cancel-task <taskId> "user aborted"       # non-terminal → canceled
+chainlesschain a2a check-timeout <taskId>                    # auto-fail if past deadline
+chainlesschain a2a task-v2 <taskId> [--json]
+chainlesschain a2a tasks-v2 [--agent-id a] [--status working] [--json]
+
+# Semver-compatible negotiation (client.minor ≤ server.minor required)
+chainlesschain a2a negotiate-v2 '{"name":"A","capabilities":["chat","code"],"version":"1.2.0"}' \
+  --required chat --preferred vision --client-version 1.1.0 --json
+
+# V2 aggregated stats
+chainlesschain a2a stats-v2 [--json]
+```
+
+**Scope / 未移植**: SSE/WebSocket server-push subscriptions, real-time Agent
+discovery over libp2p, HTTP endpoint for cross-host A2A calls, and the JSON-LD
+Agent Card discovery registry remain Desktop-only. The CLI port covers the
+deterministic protocol surface: validated cards, state-machine-enforced task
+lifecycle, timeout tracking, typed subscription filters (in-process), and
+semver-compatible capability negotiation — sufficient for protocol
+conformance tests, agent-card design, and off-the-wire lifecycle rehearsal.
+
 ### Phase 83 — Hierarchical Memory 2.0 (`hmemory` extension)
 
 Strictly-additive canonical surface on top of the original four-layer

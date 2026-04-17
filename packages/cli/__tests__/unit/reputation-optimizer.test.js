@@ -15,6 +15,22 @@ import {
   listOptimizationRuns,
   applyOptimizedParams,
   _resetState,
+  // V2 (Phase 60)
+  RUN_STATUS_V2,
+  OBJECTIVE_V2,
+  DECAY_MODEL_V2,
+  ANOMALY_METHOD_V2,
+  REPUTATION_DEFAULT_MAX_CONCURRENT,
+  setMaxConcurrentOptimizations,
+  getMaxConcurrentOptimizations,
+  getActiveOptimizationCount,
+  startOptimizationV2,
+  completeOptimization,
+  cancelOptimization,
+  failOptimization,
+  applyOptimization,
+  setRunStatus,
+  getReputationStatsV2,
 } from "../../src/lib/reputation-optimizer.js";
 
 describe("reputation-optimizer", () => {
@@ -411,6 +427,325 @@ describe("reputation-optimizer", () => {
 
     it("throws on unknown runId", () => {
       expect(() => applyOptimizedParams("unknown")).toThrow(/not found/);
+    });
+  });
+});
+
+describe("reputation-optimizer V2 (Phase 60)", () => {
+  let db;
+
+  beforeEach(() => {
+    db = new MockDatabase();
+    _resetState();
+    ensureReputationTables(db);
+  });
+
+  describe("frozen enums", () => {
+    it("RUN_STATUS_V2 has 5 canonical states", () => {
+      expect(Object.keys(RUN_STATUS_V2)).toEqual([
+        "RUNNING",
+        "COMPLETE",
+        "APPLIED",
+        "FAILED",
+        "CANCELLED",
+      ]);
+      expect(Object.isFrozen(RUN_STATUS_V2)).toBe(true);
+    });
+
+    it("OBJECTIVE_V2 has 4 objectives (frozen)", () => {
+      expect(Object.keys(OBJECTIVE_V2)).toEqual([
+        "ACCURACY",
+        "FAIRNESS",
+        "RESILIENCE",
+        "CONVERGENCE_SPEED",
+      ]);
+      expect(Object.isFrozen(OBJECTIVE_V2)).toBe(true);
+    });
+
+    it("DECAY_MODEL_V2 is frozen with 4 models", () => {
+      expect(Object.keys(DECAY_MODEL_V2)).toEqual([
+        "EXPONENTIAL",
+        "LINEAR",
+        "STEP",
+        "NONE",
+      ]);
+      expect(Object.isFrozen(DECAY_MODEL_V2)).toBe(true);
+    });
+
+    it("ANOMALY_METHOD_V2 is frozen with iqr/z_score", () => {
+      expect(ANOMALY_METHOD_V2.IQR).toBe("iqr");
+      expect(ANOMALY_METHOD_V2.Z_SCORE).toBe("z_score");
+      expect(Object.isFrozen(ANOMALY_METHOD_V2)).toBe(true);
+    });
+
+    it("REPUTATION_DEFAULT_MAX_CONCURRENT is 2", () => {
+      expect(REPUTATION_DEFAULT_MAX_CONCURRENT).toBe(2);
+    });
+  });
+
+  describe("setMaxConcurrentOptimizations", () => {
+    it("defaults to REPUTATION_DEFAULT_MAX_CONCURRENT", () => {
+      expect(getMaxConcurrentOptimizations()).toBe(
+        REPUTATION_DEFAULT_MAX_CONCURRENT,
+      );
+    });
+
+    it("accepts a positive integer", () => {
+      expect(setMaxConcurrentOptimizations(5)).toBe(5);
+      expect(getMaxConcurrentOptimizations()).toBe(5);
+    });
+
+    it("floors non-integer input", () => {
+      expect(setMaxConcurrentOptimizations(3.7)).toBe(3);
+    });
+
+    it("rejects non-positive / NaN / non-number", () => {
+      expect(() => setMaxConcurrentOptimizations(0)).toThrow(/positive/);
+      expect(() => setMaxConcurrentOptimizations(-1)).toThrow(/positive/);
+      expect(() => setMaxConcurrentOptimizations(NaN)).toThrow(/positive/);
+      expect(() => setMaxConcurrentOptimizations("5")).toThrow(/positive/);
+    });
+
+    it("is restored by _resetState", () => {
+      setMaxConcurrentOptimizations(9);
+      _resetState();
+      expect(getMaxConcurrentOptimizations()).toBe(
+        REPUTATION_DEFAULT_MAX_CONCURRENT,
+      );
+    });
+  });
+
+  describe("startOptimizationV2 + concurrency cap", () => {
+    it("creates a RUNNING run with no iterations computed yet", () => {
+      const run = startOptimizationV2(db);
+      expect(run.runId).toBeDefined();
+      expect(run.status).toBe(RUN_STATUS_V2.RUNNING);
+      expect(run.objective).toBe("accuracy");
+      expect(run.iterations).toBe(50);
+      expect(run.bestParams).toBeNull();
+      expect(run.bestScore).toBeNull();
+      expect(run.completedAt).toBeNull();
+      expect(getActiveOptimizationCount()).toBe(1);
+    });
+
+    it("persists row to DB with status=running", () => {
+      const run = startOptimizationV2(db, { iterations: 3 });
+      const rows = db.data.get("reputation_optimization_runs");
+      expect(rows.length).toBe(1);
+      expect(rows[0].run_id).toBe(run.runId);
+      expect(rows[0].status).toBe("running");
+    });
+
+    it("accepts explicit objective + iterations", () => {
+      const run = startOptimizationV2(db, {
+        objective: "fairness",
+        iterations: 7,
+      });
+      expect(run.objective).toBe("fairness");
+      expect(run.iterations).toBe(7);
+    });
+
+    it("rejects unknown objective", () => {
+      expect(() =>
+        startOptimizationV2(db, { objective: "omniscience" }),
+      ).toThrow(/Unknown objective/);
+    });
+
+    it("clamps iterations into [1, 1000]", () => {
+      const low = startOptimizationV2(db, { iterations: 0 });
+      expect(low.iterations).toBe(1);
+    });
+
+    it("rejects when activeCount >= maxConcurrent", () => {
+      setMaxConcurrentOptimizations(2);
+      startOptimizationV2(db);
+      startOptimizationV2(db);
+      expect(() => startOptimizationV2(db)).toThrow(/Max concurrent/);
+    });
+
+    it("getActiveOptimizationCount decrements after terminal transition", () => {
+      setMaxConcurrentOptimizations(1);
+      const r1 = startOptimizationV2(db);
+      expect(getActiveOptimizationCount()).toBe(1);
+      cancelOptimization(db, r1.runId);
+      expect(getActiveOptimizationCount()).toBe(0);
+      // cap now free
+      const r2 = startOptimizationV2(db);
+      expect(r2.runId).not.toBe(r1.runId);
+    });
+  });
+
+  describe("completeOptimization", () => {
+    it("transitions RUNNING → COMPLETE with bestParams + analytics", () => {
+      const run = startOptimizationV2(db, { iterations: 5 });
+      const completed = completeOptimization(db, run.runId);
+      expect(completed.status).toBe(RUN_STATUS_V2.COMPLETE);
+      expect(completed.bestParams).toBeTruthy();
+      expect(typeof completed.bestScore).toBe("number");
+      expect(completed.completedAt).toBeGreaterThan(0);
+      expect(completed.analytics).toBeDefined();
+      expect(completed.analytics.reputationDistribution).toBeDefined();
+      expect(Array.isArray(completed.analytics.recommendations)).toBe(true);
+    });
+
+    it("persists analytics row", () => {
+      const run = startOptimizationV2(db, { iterations: 3 });
+      completeOptimization(db, run.runId);
+      const rows = db.data.get("reputation_analytics");
+      expect(rows.length).toBe(1);
+      expect(rows[0].run_id).toBe(run.runId);
+    });
+
+    it("refuses to complete a cancelled run", () => {
+      const run = startOptimizationV2(db);
+      cancelOptimization(db, run.runId);
+      expect(() => completeOptimization(db, run.runId)).toThrow(
+        /Invalid run status transition/,
+      );
+    });
+
+    it("throws on unknown runId", () => {
+      expect(() => completeOptimization(db, "unknown")).toThrow(/not found/);
+    });
+  });
+
+  describe("cancelOptimization / failOptimization shortcuts", () => {
+    it("cancel transitions RUNNING → CANCELLED", () => {
+      const run = startOptimizationV2(db);
+      const result = cancelOptimization(db, run.runId);
+      expect(result.status).toBe(RUN_STATUS_V2.CANCELLED);
+      expect(result.completedAt).toBeGreaterThan(0);
+    });
+
+    it("fail transitions RUNNING → FAILED and stores errorMessage", () => {
+      const run = startOptimizationV2(db);
+      const result = failOptimization(db, run.runId, "boom");
+      expect(result.status).toBe(RUN_STATUS_V2.FAILED);
+      expect(result.errorMessage).toBe("boom");
+      expect(result.completedAt).toBeGreaterThan(0);
+    });
+  });
+
+  describe("applyOptimization + state machine", () => {
+    it("applies a completed run (COMPLETE → APPLIED)", () => {
+      const run = startOptimizationV2(db, { iterations: 3 });
+      completeOptimization(db, run.runId);
+      const applied = applyOptimization(db, run.runId);
+      expect(applied.status).toBe(RUN_STATUS_V2.APPLIED);
+    });
+
+    it("refuses to apply a RUNNING run directly", () => {
+      const run = startOptimizationV2(db);
+      expect(() => applyOptimization(db, run.runId)).toThrow(
+        /Invalid run status transition/,
+      );
+    });
+
+    it("refuses to re-apply an already-APPLIED run", () => {
+      const run = startOptimizationV2(db, { iterations: 3 });
+      completeOptimization(db, run.runId);
+      applyOptimization(db, run.runId);
+      expect(() => applyOptimization(db, run.runId)).toThrow(
+        /Invalid run status transition/,
+      );
+    });
+  });
+
+  describe("setRunStatus (generic)", () => {
+    it("accepts valid transition with patch.errorMessage", () => {
+      const run = startOptimizationV2(db);
+      const result = setRunStatus(db, run.runId, RUN_STATUS_V2.FAILED, {
+        errorMessage: "fatal",
+      });
+      expect(result.status).toBe("failed");
+      expect(result.errorMessage).toBe("fatal");
+    });
+
+    it("rejects unknown status", () => {
+      const run = startOptimizationV2(db);
+      expect(() => setRunStatus(db, run.runId, "haunted")).toThrow(
+        /Unknown run status/,
+      );
+    });
+
+    it("rejects running → applied (must go via complete)", () => {
+      const run = startOptimizationV2(db);
+      expect(() => setRunStatus(db, run.runId, RUN_STATUS_V2.APPLIED)).toThrow(
+        /Invalid run status transition/,
+      );
+    });
+
+    it("rejects any outgoing transition from FAILED / CANCELLED / APPLIED", () => {
+      const run = startOptimizationV2(db, { iterations: 3 });
+      failOptimization(db, run.runId, "err");
+      for (const target of [
+        RUN_STATUS_V2.RUNNING,
+        RUN_STATUS_V2.COMPLETE,
+        RUN_STATUS_V2.CANCELLED,
+        RUN_STATUS_V2.APPLIED,
+      ]) {
+        expect(() => setRunStatus(db, run.runId, target)).toThrow(
+          /Invalid run status transition/,
+        );
+      }
+    });
+
+    it("throws on unknown runId", () => {
+      expect(() => setRunStatus(db, "unknown", RUN_STATUS_V2.COMPLETE)).toThrow(
+        /not found/,
+      );
+    });
+
+    it("auto-sets completedAt on terminal transition", () => {
+      const run = startOptimizationV2(db);
+      const result = setRunStatus(db, run.runId, RUN_STATUS_V2.CANCELLED);
+      expect(result.completedAt).toBeGreaterThan(0);
+    });
+  });
+
+  describe("getReputationStatsV2", () => {
+    it("returns zero-state shape with all enum keys", () => {
+      const stats = getReputationStatsV2();
+      expect(stats.totalRuns).toBe(0);
+      expect(stats.activeRuns).toBe(0);
+      expect(stats.maxConcurrentOptimizations).toBe(
+        REPUTATION_DEFAULT_MAX_CONCURRENT,
+      );
+      for (const s of Object.values(RUN_STATUS_V2)) {
+        expect(stats.byStatus[s]).toBe(0);
+      }
+      for (const o of Object.values(OBJECTIVE_V2)) {
+        expect(stats.byObjective[o]).toBe(0);
+      }
+      expect(stats.observations.totalDids).toBe(0);
+      expect(stats.observations.totalObservations).toBe(0);
+      expect(stats.bestScoreEver).toBeNull();
+    });
+
+    it("aggregates runs + observations + bestScore", () => {
+      addObservation(db, "did:key:a", 0.3);
+      addObservation(db, "did:key:b", 0.8);
+      addObservation(db, "did:key:b", 0.9);
+
+      const r1 = startOptimizationV2(db, { iterations: 3 });
+      completeOptimization(db, r1.runId);
+
+      const r2 = startOptimizationV2(db, {
+        objective: "fairness",
+        iterations: 3,
+      });
+      cancelOptimization(db, r2.runId);
+
+      const stats = getReputationStatsV2();
+      expect(stats.totalRuns).toBe(2);
+      expect(stats.activeRuns).toBe(0);
+      expect(stats.byStatus.complete).toBe(1);
+      expect(stats.byStatus.cancelled).toBe(1);
+      expect(stats.byObjective.accuracy).toBe(1);
+      expect(stats.byObjective.fairness).toBe(1);
+      expect(stats.observations.totalDids).toBe(2);
+      expect(stats.observations.totalObservations).toBe(3);
+      expect(stats.bestScoreEver).not.toBeNull();
     });
   });
 });

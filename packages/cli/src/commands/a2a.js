@@ -17,6 +17,26 @@ import {
   getTaskStatus,
   negotiateCapability,
   listPeers,
+  // V2 (Phase 81)
+  TASK_STATUS_V2,
+  CARD_STATUS_V2,
+  SUBSCRIPTION_TYPE,
+  NEGOTIATION_RESULT,
+  validateAgentCard,
+  setCardStatus,
+  getCardStatusV2,
+  sendTaskV2,
+  startWorking,
+  requestInput,
+  provideInput,
+  completeTaskV2,
+  failTaskV2,
+  cancelTask,
+  checkTaskTimeout,
+  getTaskV2,
+  listTasksV2,
+  negotiateCapabilityV2,
+  getA2AStatsV2,
 } from "../lib/a2a-protocol.js";
 
 export function registerA2aCommand(program) {
@@ -369,6 +389,366 @@ export function registerA2aCommand(program) {
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
+      }
+    });
+
+  // ═══════════════════════════════════════════════════════════════
+  // Phase 81 — A2A Protocol V2
+  // ═══════════════════════════════════════════════════════════════
+
+  // Enum listings (no DB required)
+  a2a
+    .command("task-statuses")
+    .description("List V2 task statuses (Phase 81)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const statuses = Object.values(TASK_STATUS_V2);
+      if (options.json) console.log(JSON.stringify(statuses, null, 2));
+      else statuses.forEach((s) => logger.log(`  ${s}`));
+    });
+
+  a2a
+    .command("card-statuses")
+    .description("List V2 card statuses (Phase 81)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const statuses = Object.values(CARD_STATUS_V2);
+      if (options.json) console.log(JSON.stringify(statuses, null, 2));
+      else statuses.forEach((s) => logger.log(`  ${s}`));
+    });
+
+  a2a
+    .command("subscription-types")
+    .description("List V2 subscription types (Phase 81)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const types = Object.values(SUBSCRIPTION_TYPE);
+      if (options.json) console.log(JSON.stringify(types, null, 2));
+      else types.forEach((t) => logger.log(`  ${t}`));
+    });
+
+  a2a
+    .command("negotiation-results")
+    .description("List V2 negotiation outcomes (Phase 81)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const outcomes = Object.values(NEGOTIATION_RESULT);
+      if (options.json) console.log(JSON.stringify(outcomes, null, 2));
+      else outcomes.forEach((o) => logger.log(`  ${o}`));
+    });
+
+  // validate-card — pure, no DB
+  a2a
+    .command("validate-card")
+    .description("Validate an agent card against the A2A schema")
+    .argument("<name>", "Agent name")
+    .option("--description <desc>", "Description", "")
+    .option("--url <url>", "URL", "")
+    .option("--capabilities <csv>", "Capabilities CSV", "")
+    .option("--skills <csv>", "Skills CSV", "")
+    .option("--card-version <semver>", "Card version (major.minor.patch)")
+    .option("--auth-type <t>", "Auth type (none|bearer|basic|oauth2)")
+    .option("--json", "Output as JSON")
+    .action((name, options) => {
+      const card = {
+        name,
+        description: options.description,
+        url: options.url,
+        capabilities: options.capabilities
+          ? options.capabilities.split(",").map((s) => s.trim())
+          : [],
+        skills: options.skills
+          ? options.skills.split(",").map((s) => s.trim())
+          : [],
+      };
+      if (options.cardVersion) card.version = options.cardVersion;
+      if (options.authType) card.auth_type = options.authType;
+      const result = validateAgentCard(card);
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else if (result.valid) {
+        logger.success("Card is valid");
+      } else {
+        logger.warn("Card is invalid");
+        result.errors.forEach((e) => logger.log(`  - ${e}`));
+        process.exit(1);
+      }
+    });
+
+  // set-card-status <cardId> <status>
+  a2a
+    .command("set-card-status")
+    .description("Transition a card between active/inactive/expired")
+    .argument("<cardId>", "Card ID")
+    .argument("<status>", "active|inactive|expired")
+    .option("--json", "Output as JSON")
+    .action(async (cardId, status, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db?.getDatabase?.() || null;
+        const result = setCardStatus(db, cardId, status);
+        if (options.json) console.log(JSON.stringify(result, null, 2));
+        else logger.success(`Card ${cardId} → ${status}`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // card-status <cardId>
+  a2a
+    .command("card-status")
+    .description("Show a card's V2 status")
+    .argument("<cardId>", "Card ID")
+    .option("--json", "Output as JSON")
+    .action((cardId, options) => {
+      const status = getCardStatusV2(cardId);
+      if (options.json) console.log(JSON.stringify({ cardId, status }));
+      else logger.log(`${cardId}: ${status}`);
+    });
+
+  // send-task-v2 <agentId> <input> [--timeout-ms N]
+  a2a
+    .command("send-task-v2")
+    .description("Submit a V2 task (in-memory, with optional timeout)")
+    .argument("<agentId>", "Agent ID")
+    .argument("<input>", "Task input")
+    .option("--timeout-ms <ms>", "Timeout in ms", parseInt)
+    .option("--json", "Output as JSON")
+    .action((agentId, input, options) => {
+      const res = sendTaskV2(null, {
+        agentId,
+        input,
+        timeoutMs: options.timeoutMs,
+      });
+      if (options.json) console.log(JSON.stringify(res, null, 2));
+      else logger.success(`Task ${res.taskId} submitted`);
+    });
+
+  a2a
+    .command("start-working")
+    .description("Transition a V2 task to working")
+    .argument("<taskId>", "Task ID")
+    .option("--json", "Output as JSON")
+    .action((taskId, options) => {
+      try {
+        const res = startWorking(null, taskId);
+        if (options.json) console.log(JSON.stringify(res, null, 2));
+        else logger.success(`Task ${taskId} → working`);
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  a2a
+    .command("request-input")
+    .description("Request user input while a V2 task is working")
+    .argument("<taskId>", "Task ID")
+    .argument("<prompt>", "Prompt to surface")
+    .option("--json", "Output as JSON")
+    .action((taskId, prompt, options) => {
+      try {
+        const res = requestInput(null, taskId, prompt);
+        if (options.json) console.log(JSON.stringify(res, null, 2));
+        else logger.success(`Task ${taskId} → input-required`);
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  a2a
+    .command("provide-input")
+    .description("Provide input for an input-required V2 task")
+    .argument("<taskId>", "Task ID")
+    .argument("<input>", "User-provided input")
+    .option("--json", "Output as JSON")
+    .action((taskId, input, options) => {
+      try {
+        const res = provideInput(null, taskId, input);
+        if (options.json) console.log(JSON.stringify(res, null, 2));
+        else logger.success(`Task ${taskId} → working`);
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  a2a
+    .command("complete-task-v2")
+    .description("Complete a V2 task (from working only)")
+    .argument("<taskId>", "Task ID")
+    .argument("[output]", "Task output", "")
+    .option("--json", "Output as JSON")
+    .action((taskId, output, options) => {
+      try {
+        const res = completeTaskV2(null, taskId, output);
+        if (options.json) console.log(JSON.stringify(res, null, 2));
+        else logger.success(`Task ${taskId} → completed`);
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  a2a
+    .command("fail-task-v2")
+    .description("Fail a V2 task with an error message")
+    .argument("<taskId>", "Task ID")
+    .argument("[error]", "Error message", "Unknown error")
+    .option("--json", "Output as JSON")
+    .action((taskId, error, options) => {
+      try {
+        const res = failTaskV2(null, taskId, error);
+        if (options.json) console.log(JSON.stringify(res, null, 2));
+        else logger.warn(`Task ${taskId} → failed`);
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  a2a
+    .command("cancel-task")
+    .description("Cancel a non-terminal V2 task")
+    .argument("<taskId>", "Task ID")
+    .argument("[reason]", "Cancel reason", "user_requested")
+    .option("--json", "Output as JSON")
+    .action((taskId, reason, options) => {
+      try {
+        const res = cancelTask(null, taskId, reason);
+        if (options.json) console.log(JSON.stringify(res, null, 2));
+        else logger.log(`Task ${taskId} → canceled`);
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  a2a
+    .command("check-timeout")
+    .description("Check V2 task timeout (auto-fails if past deadline)")
+    .argument("<taskId>", "Task ID")
+    .option("--json", "Output as JSON")
+    .action((taskId, options) => {
+      try {
+        const res = checkTaskTimeout(null, taskId);
+        if (options.json) console.log(JSON.stringify(res, null, 2));
+        else if (res.timedOut) logger.warn(`Task ${taskId} timed out`);
+        else logger.log(`Task ${taskId} status: ${res.status}`);
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  a2a
+    .command("task-v2")
+    .description("Show a V2 task snapshot")
+    .argument("<taskId>", "Task ID")
+    .option("--json", "Output as JSON")
+    .action((taskId, options) => {
+      try {
+        const task = getTaskV2(taskId);
+        if (options.json) console.log(JSON.stringify(task, null, 2));
+        else {
+          logger.log(`Task: ${task.taskId}`);
+          logger.log(`  Agent:    ${task.agentId}`);
+          logger.log(`  Status:   ${task.status}`);
+          logger.log(`  History:  ${task.history.length} entries`);
+          if (task.deadline)
+            logger.log(`  Deadline: ${new Date(task.deadline).toISOString()}`);
+          if (task.inputPrompt) logger.log(`  Prompt:   ${task.inputPrompt}`);
+          if (task.cancelReason) logger.log(`  Cancel:   ${task.cancelReason}`);
+        }
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  a2a
+    .command("tasks-v2")
+    .description("List V2 tasks")
+    .option("--agent-id <id>", "Filter by agent ID")
+    .option("--status <s>", "Filter by status")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const filter = {};
+      if (options.agentId) filter.agentId = options.agentId;
+      if (options.status) filter.status = options.status;
+      const tasks = listTasksV2(filter);
+      if (options.json) console.log(JSON.stringify(tasks, null, 2));
+      else {
+        if (!tasks.length) {
+          logger.log("No V2 tasks");
+          return;
+        }
+        tasks.forEach((t) => {
+          logger.log(
+            `  ${t.taskId}  [${t.status}]  agent=${t.agentId}  history=${t.history.length}`,
+          );
+        });
+      }
+    });
+
+  a2a
+    .command("negotiate-v2")
+    .description("Phase 81 capability negotiation against an agent card")
+    .argument("<cardJson>", "Agent card as JSON string")
+    .option("--required <csv>", "Required capabilities CSV", "")
+    .option("--preferred <csv>", "Preferred capabilities CSV", "")
+    .option("--client-version <semver>", "Client version")
+    .option("--json", "Output as JSON")
+    .action((cardJson, options) => {
+      let card;
+      try {
+        card = JSON.parse(cardJson);
+      } catch (_err) {
+        logger.error("cardJson must be valid JSON");
+        process.exit(1);
+      }
+      const result = negotiateCapabilityV2(card, {
+        required: options.required
+          ? options.required.split(",").map((s) => s.trim())
+          : [],
+        preferred: options.preferred
+          ? options.preferred.split(",").map((s) => s.trim())
+          : [],
+        version: options.clientVersion,
+      });
+      if (options.json) console.log(JSON.stringify(result, null, 2));
+      else {
+        logger.log(`Result: ${result.result}`);
+        if (result.missingRequired.length)
+          logger.log(
+            `  Missing required:  ${result.missingRequired.join(", ")}`,
+          );
+        if (result.missingPreferred.length)
+          logger.log(
+            `  Missing preferred: ${result.missingPreferred.join(", ")}`,
+          );
+        logger.log(`  Version OK:        ${result.versionOk}`);
+      }
+    });
+
+  a2a
+    .command("stats-v2")
+    .description("Aggregate V2 stats (tasks + cards + subscriptions)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const s = getA2AStatsV2();
+      if (options.json) console.log(JSON.stringify(s, null, 2));
+      else {
+        logger.log("A2A V2 Stats:");
+        logger.log(`  Tasks total:     ${s.tasks.total}`);
+        logger.log(`  Tasks by status: ${JSON.stringify(s.tasks.byStatus)}`);
+        logger.log(`  With deadline:   ${s.tasks.withDeadline}`);
+        logger.log(`  Cards tracked:   ${s.cards.tracked}`);
+        logger.log(`  Subs (legacy):   ${s.subscriptions.legacy}`);
+        logger.log(`  Subs (typed):    ${s.subscriptions.typed}`);
       }
     });
 }

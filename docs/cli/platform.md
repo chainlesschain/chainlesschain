@@ -10,6 +10,54 @@
 chainlesschain lowcode create / components / publish
 ```
 
+### Phase 93 — Low-Code Platform V2 (`lowcode` extension)
+
+V2 canonical surface — strictly additive on the legacy `create / list / preview / publish / components / datasource / versions / rollback / export / deploy` commands. Adds frozen enums, validated data source registration with heuristic connection check, a proper status state machine (`draft ↔ published ↔ archived`, with `archived → published` blocked — must go via draft), app cloning, and canonical JSON import/export.
+
+**Frozen enums**:
+```bash
+chainlesschain lowcode categories [--json]         # input/display/chart/layout/overlay
+chainlesschain lowcode datasource-types [--json]   # rest/graphql/database/csv
+chainlesschain lowcode statuses [--json]           # draft/published/archived
+```
+
+**Components V2 (with category filter)**:
+```bash
+chainlesschain lowcode components-v2 [-c category] [--json]
+```
+
+**Data sources V2**:
+```bash
+chainlesschain lowcode datasource-v2 <app-id> <name> <type> [--config <json>]
+chainlesschain lowcode test-connection <datasource-id> [--json]
+# REST → needs config.url; GraphQL → config.endpoint; DB → config.host; CSV → config.path
+```
+
+**Status state machine**:
+```bash
+chainlesschain lowcode set-status <app-id> <status>    # validated transition
+chainlesschain lowcode archive <app-id>                # shortcut to archived
+chainlesschain lowcode status-history <app-id> [--json]
+```
+
+Legacy `deployed` status is treated as `published` for transition purposes.
+
+**Clone / import / export**:
+```bash
+chainlesschain lowcode clone <source-id> [--name <new>]
+chainlesschain lowcode export-json <app-id> [-o file]  # schema=chainlesschain.lowcode.v2
+chainlesschain lowcode import-json <file>              # imports app + valid data sources
+chainlesschain lowcode stats-v2 [--json]
+```
+
+**Scope / 未移植 (Desktop-only)**:
+- Live component canvas + drag-drop design surface — Desktop renderer only.
+- Real SaaS connector execution (Airtable / Notion sync) — Desktop only.
+- Multi-platform compile (web → mobile → desktop) — Desktop only.
+
+The CLI port handles record-keeping and state transitions: enum validation, connection heuristics, status history, clone/import/export schema.
+
+
 ## EvoMap & CLI-Anything
 
 ```bash

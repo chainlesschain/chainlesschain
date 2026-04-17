@@ -14,6 +14,21 @@ import {
   listApps,
   getApp,
   deployApp,
+  // V2 additions (Phase 93)
+  COMPONENT_CATEGORY,
+  DATASOURCE_TYPE,
+  APP_STATUS,
+  listComponentsV2,
+  registerDataSourceV2,
+  testDataSourceConnection,
+  updateAppStatus,
+  archiveApp,
+  getStatusHistory,
+  cloneApp,
+  exportAppJSON,
+  importAppJSON,
+  getLowcodeStatsV2,
+  _resetV2State,
 } from "../../src/lib/app-builder.js";
 import fs from "fs";
 import path from "path";
@@ -25,6 +40,7 @@ describe("app-builder", () => {
   beforeEach(() => {
     db = new MockDatabase();
     ensureLowcodeTables(db);
+    _resetV2State();
   });
 
   // ─── ensureLowcodeTables ─────────────────────────────
@@ -387,6 +403,428 @@ describe("app-builder", () => {
       const css = fs.readFileSync(path.join(tmpDir, "style.css"), "utf-8");
       expect(css).toContain(".lc-container");
       expect(css).toContain(".lc-component");
+    });
+  });
+
+  // ─── V2 frozen enums ─────────────────────────────────
+
+  describe("V2 frozen enums", () => {
+    it("COMPONENT_CATEGORY is frozen", () => {
+      expect(Object.isFrozen(COMPONENT_CATEGORY)).toBe(true);
+      expect(COMPONENT_CATEGORY.INPUT).toBe("input");
+      expect(COMPONENT_CATEGORY.DISPLAY).toBe("display");
+      expect(COMPONENT_CATEGORY.CHART).toBe("chart");
+      expect(COMPONENT_CATEGORY.LAYOUT).toBe("layout");
+      expect(COMPONENT_CATEGORY.OVERLAY).toBe("overlay");
+    });
+
+    it("DATASOURCE_TYPE is frozen and covers 4 types", () => {
+      expect(Object.isFrozen(DATASOURCE_TYPE)).toBe(true);
+      expect(Object.values(DATASOURCE_TYPE).length).toBe(4);
+      expect(DATASOURCE_TYPE.REST).toBe("rest");
+      expect(DATASOURCE_TYPE.GRAPHQL).toBe("graphql");
+      expect(DATASOURCE_TYPE.DATABASE).toBe("database");
+      expect(DATASOURCE_TYPE.CSV).toBe("csv");
+    });
+
+    it("APP_STATUS is frozen and covers 3 canonical states", () => {
+      expect(Object.isFrozen(APP_STATUS)).toBe(true);
+      expect(APP_STATUS.DRAFT).toBe("draft");
+      expect(APP_STATUS.PUBLISHED).toBe("published");
+      expect(APP_STATUS.ARCHIVED).toBe("archived");
+    });
+  });
+
+  // ─── listComponentsV2 ────────────────────────────────
+
+  describe("listComponentsV2", () => {
+    it("returns all 15 components when no category filter", () => {
+      expect(listComponentsV2()).toHaveLength(15);
+    });
+
+    it("returns copies (not the cached reference)", () => {
+      const first = listComponentsV2();
+      const second = listComponentsV2();
+      expect(first).not.toBe(second);
+    });
+
+    it("filters by category=input", () => {
+      const inputs = listComponentsV2({ category: COMPONENT_CATEGORY.INPUT });
+      expect(inputs.every((c) => c.category === "input")).toBe(true);
+      expect(inputs.length).toBeGreaterThan(0);
+    });
+
+    it("filters by category=chart (3 components)", () => {
+      const charts = listComponentsV2({ category: COMPONENT_CATEGORY.CHART });
+      expect(charts).toHaveLength(3);
+    });
+
+    it("rejects invalid category", () => {
+      expect(() => listComponentsV2({ category: "bogus" })).toThrow(
+        "Invalid category",
+      );
+    });
+  });
+
+  // ─── registerDataSourceV2 ────────────────────────────
+
+  describe("registerDataSourceV2", () => {
+    it("registers a REST datasource", () => {
+      const app = createApp(db, { name: "DS V2" });
+      const result = registerDataSourceV2(db, {
+        appId: app.id,
+        name: "API",
+        type: DATASOURCE_TYPE.REST,
+        config: { url: "https://api.x.com" },
+      });
+      expect(result.id).toBeTruthy();
+      expect(result.type).toBe("rest");
+    });
+
+    it("rejects unknown datasource type", () => {
+      const app = createApp(db, { name: "DS Bad" });
+      expect(() =>
+        registerDataSourceV2(db, {
+          appId: app.id,
+          name: "Weird",
+          type: "quantum",
+        }),
+      ).toThrow("Invalid datasource type");
+    });
+
+    it("rejects missing appId", () => {
+      expect(() =>
+        registerDataSourceV2(db, {
+          name: "x",
+          type: DATASOURCE_TYPE.REST,
+        }),
+      ).toThrow("appId is required");
+    });
+
+    it("rejects missing name", () => {
+      const app = createApp(db, { name: "DS No Name" });
+      expect(() =>
+        registerDataSourceV2(db, {
+          appId: app.id,
+          type: DATASOURCE_TYPE.REST,
+        }),
+      ).toThrow("name is required");
+    });
+  });
+
+  // ─── testDataSourceConnection ────────────────────────
+
+  describe("testDataSourceConnection", () => {
+    it("validates REST datasource with URL", () => {
+      const app = createApp(db, { name: "Test REST" });
+      const ds = registerDataSourceV2(db, {
+        appId: app.id,
+        name: "API",
+        type: DATASOURCE_TYPE.REST,
+        config: { url: "https://example.com" },
+      });
+      const check = testDataSourceConnection(ds.id);
+      expect(check.ok).toBe(true);
+      expect(check.reason).toBe("ok");
+    });
+
+    it("fails REST datasource without URL", () => {
+      const app = createApp(db, { name: "Bad REST" });
+      const ds = registerDataSourceV2(db, {
+        appId: app.id,
+        name: "API",
+        type: DATASOURCE_TYPE.REST,
+        config: {},
+      });
+      const check = testDataSourceConnection(ds.id);
+      expect(check.ok).toBe(false);
+      expect(check.reason).toBe("missing url");
+    });
+
+    it("validates GRAPHQL datasource with endpoint", () => {
+      const app = createApp(db, { name: "GQL" });
+      const ds = registerDataSourceV2(db, {
+        appId: app.id,
+        name: "G",
+        type: DATASOURCE_TYPE.GRAPHQL,
+        config: { endpoint: "https://gql.example.com" },
+      });
+      expect(testDataSourceConnection(ds.id).ok).toBe(true);
+    });
+
+    it("validates DATABASE datasource with host", () => {
+      const app = createApp(db, { name: "DB" });
+      const ds = registerDataSourceV2(db, {
+        appId: app.id,
+        name: "PG",
+        type: DATASOURCE_TYPE.DATABASE,
+        config: { host: "localhost" },
+      });
+      expect(testDataSourceConnection(ds.id).ok).toBe(true);
+    });
+
+    it("validates CSV datasource with path", () => {
+      const app = createApp(db, { name: "CSV" });
+      const ds = registerDataSourceV2(db, {
+        appId: app.id,
+        name: "F",
+        type: DATASOURCE_TYPE.CSV,
+        config: { path: "/tmp/data.csv" },
+      });
+      expect(testDataSourceConnection(ds.id).ok).toBe(true);
+    });
+
+    it("returns not found for unknown datasource id", () => {
+      const check = testDataSourceConnection("does-not-exist");
+      expect(check.ok).toBe(false);
+      expect(check.reason).toBe("datasource not found");
+    });
+  });
+
+  // ─── updateAppStatus / archiveApp / getStatusHistory ─
+
+  describe("updateAppStatus state machine", () => {
+    it("allows draft → published", () => {
+      const app = createApp(db, { name: "S1" });
+      const result = updateAppStatus(db, {
+        appId: app.id,
+        status: APP_STATUS.PUBLISHED,
+      });
+      expect(result.status).toBe("published");
+      expect(result.previous).toBe("draft");
+    });
+
+    it("allows draft → archived", () => {
+      const app = createApp(db, { name: "S2" });
+      const result = updateAppStatus(db, {
+        appId: app.id,
+        status: APP_STATUS.ARCHIVED,
+      });
+      expect(result.status).toBe("archived");
+    });
+
+    it("allows published → archived", () => {
+      const app = createApp(db, { name: "S3" });
+      updateAppStatus(db, { appId: app.id, status: APP_STATUS.PUBLISHED });
+      const result = updateAppStatus(db, {
+        appId: app.id,
+        status: APP_STATUS.ARCHIVED,
+      });
+      expect(result.status).toBe("archived");
+    });
+
+    it("rejects archived → published (must go via draft)", () => {
+      const app = createApp(db, { name: "S4" });
+      updateAppStatus(db, { appId: app.id, status: APP_STATUS.ARCHIVED });
+      expect(() =>
+        updateAppStatus(db, {
+          appId: app.id,
+          status: APP_STATUS.PUBLISHED,
+        }),
+      ).toThrow("Invalid status transition");
+    });
+
+    it("allows archived → draft", () => {
+      const app = createApp(db, { name: "S5" });
+      updateAppStatus(db, { appId: app.id, status: APP_STATUS.ARCHIVED });
+      const result = updateAppStatus(db, {
+        appId: app.id,
+        status: APP_STATUS.DRAFT,
+      });
+      expect(result.status).toBe("draft");
+    });
+
+    it("rejects invalid status value", () => {
+      const app = createApp(db, { name: "S6" });
+      expect(() =>
+        updateAppStatus(db, { appId: app.id, status: "launched" }),
+      ).toThrow("Invalid status");
+    });
+
+    it("throws when app not found", () => {
+      expect(() =>
+        updateAppStatus(db, {
+          appId: "ghost",
+          status: APP_STATUS.PUBLISHED,
+        }),
+      ).toThrow("not found");
+    });
+
+    it("records status history entries", () => {
+      const app = createApp(db, { name: "Hist" });
+      updateAppStatus(db, { appId: app.id, status: APP_STATUS.PUBLISHED });
+      updateAppStatus(db, { appId: app.id, status: APP_STATUS.ARCHIVED });
+      const hist = getStatusHistory(app.id);
+      expect(hist).toHaveLength(2);
+      expect(hist[0].from).toBe("draft");
+      expect(hist[0].to).toBe("published");
+      expect(hist[1].from).toBe("published");
+      expect(hist[1].to).toBe("archived");
+    });
+
+    it("treats deployed apps as published for transition purposes", () => {
+      const app = createApp(db, { name: "Deployed" });
+      // Manually set to deployed (legacy state)
+      db.prepare(`UPDATE lowcode_apps SET status = ? WHERE id = ?`).run(
+        "deployed",
+        app.id,
+      );
+      const result = updateAppStatus(db, {
+        appId: app.id,
+        status: APP_STATUS.ARCHIVED,
+      });
+      expect(result.status).toBe("archived");
+      expect(result.previous).toBe("published");
+    });
+  });
+
+  describe("archiveApp", () => {
+    it("archives a draft app", () => {
+      const app = createApp(db, { name: "Arch" });
+      const result = archiveApp(db, app.id);
+      expect(result.status).toBe("archived");
+    });
+  });
+
+  // ─── cloneApp ────────────────────────────────────────
+
+  describe("cloneApp", () => {
+    it("clones an app with a new name", () => {
+      const app = createApp(db, { name: "Original", description: "orig" });
+      saveDesign(db, app.id, {
+        components: [{ type: "Button" }],
+        layout: {},
+      });
+      const result = cloneApp(db, { sourceId: app.id, newName: "Copy" });
+      expect(result.clonedId).toBeTruthy();
+      expect(result.clonedId).not.toBe(app.id);
+      expect(result.name).toBe("Copy");
+    });
+
+    it("uses default name when newName omitted", () => {
+      const app = createApp(db, { name: "Base" });
+      const result = cloneApp(db, { sourceId: app.id });
+      expect(result.name).toBe("Base (Copy)");
+    });
+
+    it("throws for missing source app", () => {
+      expect(() => cloneApp(db, { sourceId: "ghost" })).toThrow("not found");
+    });
+  });
+
+  // ─── exportAppJSON / importAppJSON ───────────────────
+
+  describe("exportAppJSON + importAppJSON", () => {
+    it("exports with schema + timestamp", () => {
+      const app = createApp(db, { name: "Exp" });
+      const json = exportAppJSON(db, app.id);
+      expect(json.schema).toBe("chainlesschain.lowcode.v2");
+      expect(json.exportedAt).toBeTruthy();
+      expect(json.app.name).toBe("Exp");
+    });
+
+    it("exports throws for missing app", () => {
+      expect(() => exportAppJSON(db, "ghost")).toThrow("not found");
+    });
+
+    it("imports a valid export payload", () => {
+      const app = createApp(db, { name: "Source" });
+      registerDataSourceV2(db, {
+        appId: app.id,
+        name: "API",
+        type: DATASOURCE_TYPE.REST,
+        config: { url: "x" },
+      });
+      const json = exportAppJSON(db, app.id);
+      const result = importAppJSON(db, json);
+      expect(result.importedId).toBeTruthy();
+      expect(result.name).toBe("Source");
+      expect(result.dataSources).toBe(1);
+    });
+
+    it("rejects non-object payload", () => {
+      expect(() => importAppJSON(db, null)).toThrow("JSON object");
+    });
+
+    it("rejects wrong schema", () => {
+      expect(() =>
+        importAppJSON(db, {
+          schema: "wrong",
+          app: { name: "X" },
+        }),
+      ).toThrow("unsupported schema");
+    });
+
+    it("rejects missing app.name", () => {
+      expect(() =>
+        importAppJSON(db, {
+          schema: "chainlesschain.lowcode.v2",
+          app: {},
+        }),
+      ).toThrow("missing app.name");
+    });
+
+    it("skips datasources with unknown types", () => {
+      const result = importAppJSON(db, {
+        schema: "chainlesschain.lowcode.v2",
+        app: { name: "With Bad DS", platform: "web" },
+        dataSources: [
+          { name: "ok", type: "rest", config: { url: "y" } },
+          { name: "bad", type: "quantum", config: {} },
+        ],
+        versions: [],
+      });
+      expect(result.dataSources).toBe(1);
+    });
+  });
+
+  // ─── getLowcodeStatsV2 ───────────────────────────────
+
+  describe("getLowcodeStatsV2", () => {
+    it("returns zeros for empty database", () => {
+      const stats = getLowcodeStatsV2(db);
+      expect(stats.totalApps).toBe(0);
+      expect(stats.dataSources.total).toBe(0);
+      expect(stats.componentsAvailable).toBe(15);
+    });
+
+    it("aggregates apps by status", () => {
+      const a = createApp(db, { name: "A" });
+      const b = createApp(db, { name: "B" });
+      updateAppStatus(db, { appId: a.id, status: APP_STATUS.PUBLISHED });
+      updateAppStatus(db, { appId: b.id, status: APP_STATUS.ARCHIVED });
+      createApp(db, { name: "C" }); // draft
+      const stats = getLowcodeStatsV2(db);
+      expect(stats.totalApps).toBe(3);
+      expect(stats.byStatus.draft).toBe(1);
+      expect(stats.byStatus.published).toBe(1);
+      expect(stats.byStatus.archived).toBe(1);
+    });
+
+    it("aggregates datasources by type", () => {
+      const app = createApp(db, { name: "Stats DS" });
+      registerDataSourceV2(db, {
+        appId: app.id,
+        name: "r",
+        type: DATASOURCE_TYPE.REST,
+        config: { url: "x" },
+      });
+      registerDataSourceV2(db, {
+        appId: app.id,
+        name: "r2",
+        type: DATASOURCE_TYPE.REST,
+        config: { url: "y" },
+      });
+      registerDataSourceV2(db, {
+        appId: app.id,
+        name: "db",
+        type: DATASOURCE_TYPE.DATABASE,
+        config: { host: "h" },
+      });
+      const stats = getLowcodeStatsV2(db);
+      expect(stats.dataSources.total).toBe(3);
+      expect(stats.dataSources.byType.rest).toBe(2);
+      expect(stats.dataSources.byType.database).toBe(1);
     });
   });
 });

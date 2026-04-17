@@ -11,6 +11,22 @@ import {
   listTemplates,
   exportReport,
   _resetState,
+  // Phase 95 V2
+  CHART_TYPE,
+  ANOMALY_METHOD,
+  REPORT_FORMAT,
+  REPORT_STATUS,
+  DASHBOARD_LAYOUT,
+  nlQueryV2,
+  detectAnomalyV2,
+  predictTrendV2,
+  recommendChart,
+  createDashboardV2,
+  updateReportStatus,
+  getReportStatus,
+  getReportStatusHistory,
+  getBIStatsV2,
+  _resetV2State,
 } from "../../src/lib/bi-engine.js";
 
 describe("bi-engine", () => {
@@ -19,6 +35,7 @@ describe("bi-engine", () => {
   beforeEach(() => {
     db = new MockDatabase();
     _resetState();
+    _resetV2State();
     ensureBITables(db);
   });
 
@@ -308,6 +325,399 @@ describe("bi-engine", () => {
       const r = generateReport(db, "Default Format", { format: "excel" });
       const exp = exportReport(r.id);
       expect(exp.format).toBe("excel");
+    });
+  });
+
+  // ─── V2 frozen enums ─────────────────────────────────────
+
+  describe("V2 frozen enums", () => {
+    it("CHART_TYPE has 9 chart types and is frozen", () => {
+      expect(Object.isFrozen(CHART_TYPE)).toBe(true);
+      expect(Object.values(CHART_TYPE).length).toBe(9);
+      expect(CHART_TYPE.LINE).toBe("line");
+      expect(CHART_TYPE.BAR).toBe("bar");
+    });
+
+    it("ANOMALY_METHOD has 2 methods and is frozen", () => {
+      expect(Object.isFrozen(ANOMALY_METHOD)).toBe(true);
+      expect(ANOMALY_METHOD.Z_SCORE).toBe("z_score");
+      expect(ANOMALY_METHOD.IQR).toBe("iqr");
+    });
+
+    it("REPORT_FORMAT covers pdf/excel/csv/json", () => {
+      expect(Object.isFrozen(REPORT_FORMAT)).toBe(true);
+      expect(Object.values(REPORT_FORMAT).sort()).toEqual([
+        "csv",
+        "excel",
+        "json",
+        "pdf",
+      ]);
+    });
+
+    it("REPORT_STATUS covers 4 canonical states", () => {
+      expect(Object.isFrozen(REPORT_STATUS)).toBe(true);
+      expect(REPORT_STATUS.DRAFT).toBe("draft");
+      expect(REPORT_STATUS.GENERATED).toBe("generated");
+      expect(REPORT_STATUS.SCHEDULED).toBe("scheduled");
+      expect(REPORT_STATUS.ARCHIVED).toBe("archived");
+    });
+
+    it("DASHBOARD_LAYOUT covers grid/flow/tabs", () => {
+      expect(Object.isFrozen(DASHBOARD_LAYOUT)).toBe(true);
+      expect(DASHBOARD_LAYOUT.GRID).toBe("grid");
+      expect(DASHBOARD_LAYOUT.FLOW).toBe("flow");
+      expect(DASHBOARD_LAYOUT.TABS).toBe("tabs");
+    });
+  });
+
+  // ─── nlQueryV2 ───────────────────────────────────────────
+
+  describe("nlQueryV2", () => {
+    it("detects count intent and picks BAR chart", () => {
+      const r = nlQueryV2({ query: "count of users" });
+      expect(r.intent).toBe("count");
+      expect(r.aggregate).toBe("COUNT(*)");
+      expect(r.visualization).toBe(CHART_TYPE.BAR);
+    });
+
+    it("detects sum intent and picks GAUGE chart", () => {
+      const r = nlQueryV2({ query: "total revenue" });
+      expect(r.intent).toBe("sum");
+      expect(r.visualization).toBe(CHART_TYPE.GAUGE);
+    });
+
+    it("detects avg intent", () => {
+      const r = nlQueryV2({ query: "average order value" });
+      expect(r.intent).toBe("avg");
+      expect(r.aggregate).toContain("AVG");
+    });
+
+    it("detects trend intent and picks LINE chart", () => {
+      const r = nlQueryV2({ query: "revenue trend over time" });
+      expect(r.intent).toBe("trend");
+      expect(r.visualization).toBe(CHART_TYPE.LINE);
+      expect(r.sql).toContain("ORDER BY created_at");
+    });
+
+    it("detects top N and builds LIMIT clause", () => {
+      const r = nlQueryV2({ query: "top 5 products" });
+      expect(r.intent).toBe("top");
+      expect(r.limit).toBe(5);
+      expect(r.sql).toContain("LIMIT 5");
+      expect(r.visualization).toBe(CHART_TYPE.BAR);
+    });
+
+    it("defaults to TABLE + SELECT * for generic list queries", () => {
+      const r = nlQueryV2({ query: "show me users" });
+      expect(r.intent).toBe("list");
+      expect(r.visualization).toBe(CHART_TYPE.TABLE);
+      expect(r.sql).toContain("SELECT *");
+    });
+
+    it("picks table name from schema when query mentions it", () => {
+      const r = nlQueryV2({
+        query: "list all orders",
+        schema: { tables: ["users", "orders", "products"] },
+      });
+      expect(r.table).toBe("orders");
+      expect(r.sql).toContain("FROM orders");
+    });
+
+    it("falls back to 'data' when schema match not found", () => {
+      const r = nlQueryV2({
+        query: "show widgets",
+        schema: { tables: ["users", "orders"] },
+      });
+      expect(r.table).toBe("data");
+    });
+
+    it("throws on empty query", () => {
+      expect(() => nlQueryV2({ query: "" })).toThrow("non-empty string");
+    });
+
+    it("throws on non-string query", () => {
+      expect(() => nlQueryV2({ query: 123 })).toThrow("non-empty string");
+    });
+  });
+
+  // ─── detectAnomalyV2 ─────────────────────────────────────
+
+  describe("detectAnomalyV2", () => {
+    it("defaults to z_score method", () => {
+      const r = detectAnomalyV2({ data: [1, 2, 3, 100, 4, 5] });
+      expect(r.method).toBe(ANOMALY_METHOD.Z_SCORE);
+      expect(r.anomalies.length).toBeGreaterThan(0);
+    });
+
+    it("supports IQR method and finds outliers", () => {
+      const data = [10, 12, 14, 13, 15, 11, 100];
+      const r = detectAnomalyV2({ data, method: ANOMALY_METHOD.IQR });
+      expect(r.method).toBe("iqr");
+      expect(r.q1).toBeDefined();
+      expect(r.q3).toBeDefined();
+      expect(r.iqr).toBeGreaterThan(0);
+      const flagged = r.anomalies.map((a) => a.value);
+      expect(flagged).toContain(100);
+    });
+
+    it("IQR returns no anomalies for uniform data", () => {
+      const data = [10, 10, 11, 10, 11, 10, 11];
+      const r = detectAnomalyV2({ data, method: ANOMALY_METHOD.IQR });
+      expect(r.anomalies.length).toBe(0);
+    });
+
+    it("rejects unknown method", () => {
+      expect(() =>
+        detectAnomalyV2({ data: [1, 2, 3], method: "random" }),
+      ).toThrow("Invalid method");
+    });
+
+    it("rejects empty data", () => {
+      expect(() => detectAnomalyV2({ data: [] })).toThrow("non-empty array");
+    });
+
+    it("respects custom IQR multiplier", () => {
+      const data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 25];
+      const strict = detectAnomalyV2({
+        data,
+        method: ANOMALY_METHOD.IQR,
+        threshold: 1.0,
+      });
+      const loose = detectAnomalyV2({
+        data,
+        method: ANOMALY_METHOD.IQR,
+        threshold: 3.0,
+      });
+      expect(strict.anomalies.length).toBeGreaterThanOrEqual(
+        loose.anomalies.length,
+      );
+    });
+  });
+
+  // ─── predictTrendV2 ──────────────────────────────────────
+
+  describe("predictTrendV2", () => {
+    it("returns r² and confidence for linear trend", () => {
+      const r = predictTrendV2({ data: [1, 2, 3, 4, 5] });
+      expect(r.r2).toBeGreaterThanOrEqual(0.95);
+      expect(r.confidence).toBe("high");
+      expect(r.trend).toBe("up");
+    });
+
+    it("labels noisy data as medium or low confidence", () => {
+      const r = predictTrendV2({ data: [1, 9, 2, 8, 3, 7] });
+      expect(["medium", "low"]).toContain(r.confidence);
+    });
+
+    it("defaults to 3 prediction periods", () => {
+      const r = predictTrendV2({ data: [1, 2, 3] });
+      expect(r.predictions.length).toBe(3);
+    });
+
+    it("rejects non-linear method", () => {
+      expect(() =>
+        predictTrendV2({ data: [1, 2], method: "polynomial" }),
+      ).toThrow("Only 'linear' is supported");
+    });
+
+    it("rejects insufficient data", () => {
+      expect(() => predictTrendV2({ data: [5] })).toThrow("at least 2 points");
+    });
+
+    it("clamps r² into [0,1] for constant data", () => {
+      const r = predictTrendV2({ data: [5, 5, 5, 5] });
+      expect(r.r2).toBeGreaterThanOrEqual(0);
+      expect(r.r2).toBeLessThanOrEqual(1);
+    });
+  });
+
+  // ─── recommendChart ──────────────────────────────────────
+
+  describe("recommendChart", () => {
+    it("picks LINE for trend intent", () => {
+      expect(recommendChart({ intent: "trend" })).toBe(CHART_TYPE.LINE);
+    });
+
+    it("picks PIE for distribution intent", () => {
+      expect(recommendChart({ intent: "distribution" })).toBe(CHART_TYPE.PIE);
+    });
+
+    it("picks BAR for compare/top intent", () => {
+      expect(recommendChart({ intent: "compare monthly" })).toBe(
+        CHART_TYPE.BAR,
+      );
+      expect(recommendChart({ intent: "top N sellers" })).toBe(CHART_TYPE.BAR);
+    });
+
+    it("picks SCATTER for correlation intent", () => {
+      expect(recommendChart({ intent: "correlation x vs y" })).toBe(
+        CHART_TYPE.SCATTER,
+      );
+    });
+
+    it("picks LINE when dataShape is timeseries", () => {
+      expect(recommendChart({ dataShape: { timeseries: true } })).toBe(
+        CHART_TYPE.LINE,
+      );
+    });
+
+    it("falls back to TABLE when no signal", () => {
+      expect(recommendChart({})).toBe(CHART_TYPE.TABLE);
+    });
+  });
+
+  // ─── createDashboardV2 ───────────────────────────────────
+
+  describe("createDashboardV2", () => {
+    it("creates dashboard with default grid layout", () => {
+      const d = createDashboardV2(db, { name: "D1" });
+      expect(d.layout.type).toBe("grid");
+    });
+
+    it("accepts layout as string", () => {
+      const d = createDashboardV2(db, { name: "D2", layout: "flow" });
+      expect(d.layout.type).toBe("flow");
+    });
+
+    it("accepts layout as object", () => {
+      const d = createDashboardV2(db, {
+        name: "D3",
+        layout: { type: "tabs", columns: 3 },
+      });
+      expect(d.layout.type).toBe("tabs");
+      expect(d.layout.columns).toBe(3);
+    });
+
+    it("rejects invalid layout string", () => {
+      expect(() =>
+        createDashboardV2(db, { name: "bad", layout: "masonry" }),
+      ).toThrow("Invalid layout");
+    });
+
+    it("rejects missing name", () => {
+      expect(() => createDashboardV2(db, {})).toThrow("name is required");
+    });
+  });
+
+  // ─── updateReportStatus state machine ────────────────────
+
+  describe("updateReportStatus", () => {
+    it("transitions draft → generated", () => {
+      const r = updateReportStatus(db, {
+        reportId: "r1",
+        status: REPORT_STATUS.GENERATED,
+      });
+      expect(r.previous).toBe("draft");
+      expect(r.status).toBe("generated");
+    });
+
+    it("transitions generated → scheduled", () => {
+      updateReportStatus(db, {
+        reportId: "r2",
+        status: REPORT_STATUS.GENERATED,
+      });
+      const r = updateReportStatus(db, {
+        reportId: "r2",
+        status: REPORT_STATUS.SCHEDULED,
+      });
+      expect(r.status).toBe("scheduled");
+    });
+
+    it("rejects draft → scheduled (must go through generated)", () => {
+      expect(() =>
+        updateReportStatus(db, {
+          reportId: "r3",
+          status: REPORT_STATUS.SCHEDULED,
+        }),
+      ).toThrow("Invalid status transition");
+    });
+
+    it("rejects archived → generated (must go via draft)", () => {
+      updateReportStatus(db, {
+        reportId: "r4",
+        status: REPORT_STATUS.ARCHIVED,
+      });
+      expect(() =>
+        updateReportStatus(db, {
+          reportId: "r4",
+          status: REPORT_STATUS.GENERATED,
+        }),
+      ).toThrow("Invalid status transition");
+    });
+
+    it("allows archived → draft", () => {
+      updateReportStatus(db, {
+        reportId: "r5",
+        status: REPORT_STATUS.ARCHIVED,
+      });
+      const r = updateReportStatus(db, {
+        reportId: "r5",
+        status: REPORT_STATUS.DRAFT,
+      });
+      expect(r.status).toBe("draft");
+    });
+
+    it("records transition history", () => {
+      updateReportStatus(db, {
+        reportId: "r6",
+        status: REPORT_STATUS.GENERATED,
+      });
+      updateReportStatus(db, {
+        reportId: "r6",
+        status: REPORT_STATUS.ARCHIVED,
+      });
+      const hist = getReportStatusHistory("r6");
+      expect(hist).toHaveLength(2);
+      expect(hist[0].from).toBe("draft");
+      expect(hist[0].to).toBe("generated");
+    });
+
+    it("getReportStatus returns draft by default", () => {
+      expect(getReportStatus("never-touched")).toBe("draft");
+    });
+
+    it("rejects invalid status value", () => {
+      expect(() =>
+        updateReportStatus(db, { reportId: "r7", status: "published" }),
+      ).toThrow("Invalid status");
+    });
+  });
+
+  // ─── getBIStatsV2 ────────────────────────────────────────
+
+  describe("getBIStatsV2", () => {
+    it("returns zeros for empty DB", () => {
+      const s = getBIStatsV2(db);
+      expect(s.dashboards).toBe(0);
+      expect(s.reports.total).toBe(0);
+      expect(s.scheduled).toBe(0);
+      expect(s.templates).toBe(5);
+      expect(s.chartTypes).toBe(9);
+    });
+
+    it("aggregates dashboards + reports + scheduled counts", () => {
+      createDashboardV2(db, { name: "D1" });
+      createDashboardV2(db, { name: "D2" });
+      const r1 = generateReport(db, "R1", { format: "pdf" });
+      const r2 = generateReport(db, "R2", { format: "excel" });
+      scheduleReport(db, r1.id, "0 0 * * *");
+      updateReportStatus(db, {
+        reportId: r1.id,
+        status: REPORT_STATUS.GENERATED,
+      });
+      updateReportStatus(db, {
+        reportId: r2.id,
+        status: REPORT_STATUS.ARCHIVED,
+      });
+
+      const s = getBIStatsV2(db);
+      expect(s.dashboards).toBe(2);
+      expect(s.reports.total).toBe(2);
+      expect(s.scheduled).toBe(1);
+      expect(s.reports.byStatus.generated).toBe(1);
+      expect(s.reports.byStatus.archived).toBe(1);
+      expect(s.reports.byFormat.pdf).toBe(1);
+      expect(s.reports.byFormat.excel).toBe(1);
     });
   });
 });
