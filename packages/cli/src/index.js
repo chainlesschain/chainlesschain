@@ -137,6 +137,9 @@ import { registerPrivacyCommand } from "./commands/privacy.js";
 // Phase 67: Decentralized Inference Network
 import { registerInferenceCommand } from "./commands/inference.js";
 
+// Phase 68-71: Trust & Security
+import { registerTrustCommand } from "./commands/trust.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -302,6 +305,9 @@ export function createProgram() {
 
   // Phase 67: Decentralized Inference Network
   registerInferenceCommand(program);
+
+  // Phase 68-71: Trust & Security
+  registerTrustCommand(program);
 
   return program;
 }

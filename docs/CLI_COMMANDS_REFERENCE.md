@@ -499,6 +499,25 @@ chainlesschain inference fail-task <task-id> [-e error] [--json]
 chainlesschain inference show-task <task-id> [--json]
 chainlesschain inference tasks [-s status] [-m model] [-p privacy] [--limit N] [--json]
 chainlesschain inference stats [--json]                                         # Node/task counts + avg latency
+chainlesschain trust anchors [--json]                                           # List trust anchors (tpm/tee/secure_element)
+chainlesschain trust hsm-vendors [--json]                                       # List HSM vendors (yubikey/ledger/trezor/generic)
+chainlesschain trust compliance-levels [--json]                                 # List compliance levels (fips_140_2/fips_140_3/cc_eal4)
+chainlesschain trust sat-providers [--json]                                     # List satellite providers (iridium/starlink/beidou)
+chainlesschain trust attest <anchor> [-c challenge] [-f fingerprint] [--json]   # Trust attestation
+chainlesschain trust attest-show <id> [--json]
+chainlesschain trust attestations [-a anchor] [-s status] [--limit N] [--json]
+chainlesschain trust interop-test <algorithm> [-p peer] [-l latency-ms] [--json] # PQC interop test
+chainlesschain trust interop-tests [-a algorithm] [--limit N] [--json]
+chainlesschain trust sat-send <payload> [-p provider] [-r priority] [--json]    # Send satellite message
+chainlesschain trust sat-status <id> <status> [--json]                          # Update satellite message status
+chainlesschain trust sat-show <id> [--json]
+chainlesschain trust sat-messages [-p provider] [-s status] [--limit N] [--json]
+chainlesschain trust hsm-register <vendor> [-m model] [-s serial] [-c compliance] [-f firmware] [--json]
+chainlesschain trust hsm-remove <id> [--json]
+chainlesschain trust hsm-show <id> [--json]
+chainlesschain trust hsm-devices [-v vendor] [--limit N] [--json]
+chainlesschain trust hsm-sign <device-id> [-d data] [-a algorithm] [--json]     # Sign with HSM
+chainlesschain trust stats [--json]                                             # Attestation/interop/satellite/HSM counts
 chainlesschain social contact / friend / post / chat / stats
 chainlesschain social analyze "<text>" [--top-k 3] [--lang zh|ja|en] [--json]
 chainlesschain social detect-lang "<text>" [--json]
