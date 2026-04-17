@@ -36,6 +36,7 @@ const KNOWN_UNFIXABLE_PACKAGES = [
   "elliptic", // crypto operations, no patched version
   "xlsx", // Excel processing, no patched version
   "jspdf", // PDF generation, no patched version for critical vuln
+  "protobufjs", // transitive via onnxruntime-web + libsignal, override >=7.5.5 set but npm doesn't always dedupe
 ];
 
 // Parse command line args
