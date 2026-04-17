@@ -19,6 +19,25 @@ import {
   calculateCompensation,
   generateReport,
   _resetState,
+  // V2
+  SLA_STATUS_V2,
+  SLA_TIER_V2,
+  SLA_TERM_V2,
+  VIOLATION_SEVERITY_V2,
+  VIOLATION_STATUS_V2,
+  SLA_DEFAULT_MAX_ACTIVE_PER_ORG,
+  setMaxActiveSlasPerOrg,
+  getMaxActiveSlasPerOrg,
+  getActiveSlaCountForOrg,
+  createSLAV2,
+  setSLAStatus,
+  expireSLA,
+  autoExpireSLAs,
+  setViolationStatus,
+  acknowledgeViolation,
+  resolveViolation,
+  waiveViolation,
+  getSLAStatsV2,
 } from "../../src/lib/sla-manager.js";
 
 describe("sla-manager", () => {
@@ -439,6 +458,287 @@ describe("sla-manager", () => {
         "minor",
         "moderate",
       ]);
+    });
+  });
+});
+
+describe("sla-manager V2 (Phase 61)", () => {
+  let db;
+
+  beforeEach(() => {
+    db = new MockDatabase();
+    _resetState();
+    ensureSlaTables(db);
+  });
+
+  describe("frozen enums", () => {
+    it("SLA_STATUS_V2 has 3 states", () => {
+      expect(Object.values(SLA_STATUS_V2).sort()).toEqual([
+        "active",
+        "expired",
+        "terminated",
+      ]);
+      expect(Object.isFrozen(SLA_STATUS_V2)).toBe(true);
+    });
+
+    it("SLA_TIER_V2 has 3 tiers", () => {
+      expect(Object.values(SLA_TIER_V2).sort()).toEqual([
+        "bronze",
+        "gold",
+        "silver",
+      ]);
+      expect(Object.isFrozen(SLA_TIER_V2)).toBe(true);
+    });
+
+    it("SLA_TERM_V2 has 4 terms", () => {
+      expect(Object.values(SLA_TERM_V2).sort()).toEqual([
+        "availability",
+        "error_rate",
+        "response_time",
+        "throughput",
+      ]);
+      expect(Object.isFrozen(SLA_TERM_V2)).toBe(true);
+    });
+
+    it("VIOLATION_SEVERITY_V2 has 4 levels", () => {
+      expect(Object.values(VIOLATION_SEVERITY_V2).sort()).toEqual([
+        "critical",
+        "major",
+        "minor",
+        "moderate",
+      ]);
+      expect(Object.isFrozen(VIOLATION_SEVERITY_V2)).toBe(true);
+    });
+
+    it("VIOLATION_STATUS_V2 has 4 states", () => {
+      expect(Object.values(VIOLATION_STATUS_V2).sort()).toEqual([
+        "acknowledged",
+        "open",
+        "resolved",
+        "waived",
+      ]);
+      expect(Object.isFrozen(VIOLATION_STATUS_V2)).toBe(true);
+    });
+
+    it("SLA_DEFAULT_MAX_ACTIVE_PER_ORG is 1", () => {
+      expect(SLA_DEFAULT_MAX_ACTIVE_PER_ORG).toBe(1);
+    });
+  });
+
+  describe("setMaxActiveSlasPerOrg / getMaxActiveSlasPerOrg", () => {
+    it("defaults to 1", () => {
+      expect(getMaxActiveSlasPerOrg()).toBe(1);
+    });
+
+    it("accepts positive integer", () => {
+      setMaxActiveSlasPerOrg(5);
+      expect(getMaxActiveSlasPerOrg()).toBe(5);
+    });
+
+    it("floors non-integer input", () => {
+      setMaxActiveSlasPerOrg(3.7);
+      expect(getMaxActiveSlasPerOrg()).toBe(3);
+    });
+
+    it("rejects <1 / NaN / non-number", () => {
+      expect(() => setMaxActiveSlasPerOrg(0)).toThrow(/positive integer/);
+      expect(() => setMaxActiveSlasPerOrg(-1)).toThrow(/positive integer/);
+      expect(() => setMaxActiveSlasPerOrg(NaN)).toThrow(/positive integer/);
+      expect(() => setMaxActiveSlasPerOrg("5")).toThrow(/positive integer/);
+    });
+
+    it("is reset by _resetState", () => {
+      setMaxActiveSlasPerOrg(10);
+      _resetState();
+      expect(getMaxActiveSlasPerOrg()).toBe(1);
+    });
+  });
+
+  describe("createSLAV2 + getActiveSlaCountForOrg", () => {
+    it("creates an ACTIVE contract and increments org count", () => {
+      const c = createSLAV2(db, { orgId: "org-a", tier: "gold" });
+      expect(c.status).toBe(SLA_STATUS_V2.ACTIVE);
+      expect(getActiveSlaCountForOrg("org-a")).toBe(1);
+      expect(getActiveSlaCountForOrg("org-b")).toBe(0);
+    });
+
+    it("rejects second ACTIVE contract for same org at default cap", () => {
+      createSLAV2(db, { orgId: "org-a", tier: "gold" });
+      expect(() => createSLAV2(db, { orgId: "org-a", tier: "silver" })).toThrow(
+        /Max active SLAs per org reached/,
+      );
+    });
+
+    it("allows second contract after first is terminated", () => {
+      const first = createSLAV2(db, { orgId: "org-a", tier: "gold" });
+      setSLAStatus(db, first.slaId, SLA_STATUS_V2.TERMINATED);
+      expect(() =>
+        createSLAV2(db, { orgId: "org-a", tier: "silver" }),
+      ).not.toThrow();
+    });
+
+    it("allows multiple orgs independently", () => {
+      createSLAV2(db, { orgId: "org-a", tier: "gold" });
+      createSLAV2(db, { orgId: "org-b", tier: "silver" });
+      expect(getActiveSlaCountForOrg("org-a")).toBe(1);
+      expect(getActiveSlaCountForOrg("org-b")).toBe(1);
+    });
+
+    it("rejects missing orgId", () => {
+      expect(() => createSLAV2(db)).toThrow(/orgId is required/);
+    });
+  });
+
+  describe("setSLAStatus state machine", () => {
+    it("active → expired is allowed", () => {
+      const c = createSLAV2(db, { orgId: "org-a" });
+      const out = setSLAStatus(db, c.slaId, SLA_STATUS_V2.EXPIRED);
+      expect(out.status).toBe("expired");
+    });
+
+    it("active → terminated is allowed", () => {
+      const c = createSLAV2(db, { orgId: "org-a" });
+      const out = setSLAStatus(db, c.slaId, SLA_STATUS_V2.TERMINATED);
+      expect(out.status).toBe("terminated");
+    });
+
+    it("rejects transition from terminal state", () => {
+      const c = createSLAV2(db, { orgId: "org-a" });
+      setSLAStatus(db, c.slaId, SLA_STATUS_V2.EXPIRED);
+      expect(() => setSLAStatus(db, c.slaId, SLA_STATUS_V2.TERMINATED)).toThrow(
+        /Invalid SLA status transition/,
+      );
+    });
+
+    it("rejects unknown status", () => {
+      const c = createSLAV2(db, { orgId: "org-a" });
+      expect(() => setSLAStatus(db, c.slaId, "foo")).toThrow(
+        /Unknown SLA status/,
+      );
+    });
+
+    it("rejects unknown slaId", () => {
+      expect(() => setSLAStatus(db, "nope", SLA_STATUS_V2.EXPIRED)).toThrow(
+        /not found/,
+      );
+    });
+
+    it("expireSLA is a shortcut", () => {
+      const c = createSLAV2(db, { orgId: "org-a" });
+      const out = expireSLA(db, c.slaId);
+      expect(out.status).toBe("expired");
+    });
+  });
+
+  describe("autoExpireSLAs", () => {
+    it("flips ACTIVE contracts past endDate to EXPIRED", () => {
+      const c = createSLAV2(db, { orgId: "org-a", duration: 1 });
+      const flipped = autoExpireSLAs(db, Date.now() + 10000);
+      expect(flipped).toHaveLength(1);
+      expect(flipped[0].slaId).toBe(c.slaId);
+      expect(flipped[0].status).toBe("expired");
+    });
+
+    it("leaves future-dated ACTIVE contracts alone", () => {
+      createSLAV2(db, { orgId: "org-a", duration: 1_000_000 });
+      const flipped = autoExpireSLAs(db, Date.now());
+      expect(flipped).toHaveLength(0);
+    });
+
+    it("is a no-op for already-terminal contracts", () => {
+      const c = createSLAV2(db, { orgId: "org-a", duration: 1 });
+      setSLAStatus(db, c.slaId, SLA_STATUS_V2.TERMINATED);
+      const flipped = autoExpireSLAs(db, Date.now() + 10000);
+      expect(flipped).toHaveLength(0);
+    });
+  });
+
+  describe("violation status machine", () => {
+    function seedViolation() {
+      const c = createSLAV2(db, { orgId: "org-a", tier: "gold" });
+      recordMetric(db, c.slaId, "availability", 0.5);
+      const { violations } = checkViolations(db, c.slaId);
+      return violations[0];
+    }
+
+    it("open → acknowledged → resolved", () => {
+      const v = seedViolation();
+      const a = acknowledgeViolation(db, v.violationId, "investigating");
+      expect(a.v2Status).toBe("acknowledged");
+      expect(a.note).toBe("investigating");
+      const r = resolveViolation(db, v.violationId, "patched");
+      expect(r.v2Status).toBe("resolved");
+      expect(r.resolvedAt).toBeTruthy();
+    });
+
+    it("open → waived (skip ack)", () => {
+      const v = seedViolation();
+      const w = waiveViolation(db, v.violationId, "scheduled maintenance");
+      expect(w.v2Status).toBe("waived");
+      expect(w.resolvedAt).toBeTruthy();
+    });
+
+    it("rejects resolved → acknowledged", () => {
+      const v = seedViolation();
+      resolveViolation(db, v.violationId);
+      expect(() => acknowledgeViolation(db, v.violationId)).toThrow(
+        /Invalid violation status transition/,
+      );
+    });
+
+    it("rejects unknown status", () => {
+      const v = seedViolation();
+      expect(() => setViolationStatus(db, v.violationId, "pending")).toThrow(
+        /Unknown violation status/,
+      );
+    });
+
+    it("rejects unknown violationId", () => {
+      expect(() =>
+        setViolationStatus(db, "nope", VIOLATION_STATUS_V2.ACKNOWLEDGED),
+      ).toThrow(/not found/);
+    });
+  });
+
+  describe("getSLAStatsV2", () => {
+    it("returns zero-state shape with all enum keys initialised", () => {
+      const stats = getSLAStatsV2();
+      expect(stats.totalContracts).toBe(0);
+      expect(stats.activeContracts).toBe(0);
+      expect(stats.activeOrgs).toBe(0);
+      expect(stats.maxActiveSlasPerOrg).toBe(1);
+      for (const s of Object.values(SLA_STATUS_V2)) {
+        expect(stats.byStatus[s]).toBe(0);
+      }
+      for (const t of Object.values(SLA_TIER_V2)) {
+        expect(stats.byTier[t]).toBe(0);
+      }
+      expect(stats.violations.total).toBe(0);
+      for (const t of Object.values(SLA_TERM_V2)) {
+        expect(stats.violations.byTerm[t]).toBe(0);
+      }
+      for (const s of Object.values(VIOLATION_SEVERITY_V2)) {
+        expect(stats.violations.bySeverity[s]).toBe(0);
+      }
+      for (const s of Object.values(VIOLATION_STATUS_V2)) {
+        expect(stats.violations.byStatus[s]).toBe(0);
+      }
+    });
+
+    it("aggregates contracts and violations", () => {
+      const c = createSLAV2(db, { orgId: "org-a", tier: "gold" });
+      recordMetric(db, c.slaId, "availability", 0.5);
+      checkViolations(db, c.slaId);
+
+      const stats = getSLAStatsV2();
+      expect(stats.totalContracts).toBe(1);
+      expect(stats.activeContracts).toBe(1);
+      expect(stats.activeOrgs).toBe(1);
+      expect(stats.byStatus.active).toBe(1);
+      expect(stats.byTier.gold).toBe(1);
+      expect(stats.violations.total).toBe(1);
+      expect(stats.violations.byTerm.availability).toBe(1);
+      expect(stats.violations.byStatus.open).toBe(1);
     });
   });
 });

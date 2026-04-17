@@ -135,3 +135,336 @@ export function _resetState() {
   _targets.clear();
   _exports.length = 0;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// V2 Canonical Surface (Phase 51)
+// ═══════════════════════════════════════════════════════════════
+
+export const SIEM_FORMAT = Object.freeze({
+  JSON: "json",
+  CEF: "cef",
+  LEEF: "leef",
+});
+
+export const SIEM_TARGET_TYPE = Object.freeze({
+  SPLUNK_HEC: "splunk_hec",
+  ELASTICSEARCH: "elasticsearch",
+  AZURE_SENTINEL: "azure_sentinel",
+});
+
+export const SIEM_SEVERITY = Object.freeze({
+  DEBUG: "debug",
+  INFO: "info",
+  WARN: "warn",
+  ERROR: "error",
+  CRITICAL: "critical",
+  FATAL: "fatal",
+});
+
+export const SIEM_TARGET_STATUS = Object.freeze({
+  ACTIVE: "active",
+  PAUSED: "paused",
+  DISABLED: "disabled",
+  ERROR: "error",
+});
+
+export const SIEM_DEFAULT_BATCH_SIZE = 100;
+
+// Design §二 severity-to-CEF table (0-10 scale, per ArcSight spec).
+const _severityCEF = Object.freeze({
+  debug: 1,
+  info: 3,
+  warn: 5,
+  error: 7,
+  critical: 9,
+  fatal: 10,
+});
+
+const _allowedTargetTransitions = new Map([
+  ["active", new Set(["paused", "disabled", "error"])],
+  ["paused", new Set(["active", "disabled", "error"])],
+  ["disabled", new Set(["active", "error"])],
+  ["error", new Set(["active", "paused", "disabled"])],
+]);
+
+function _validateFormat(format) {
+  if (!Object.values(SIEM_FORMAT).includes(format)) {
+    throw new Error(
+      `Invalid format: ${format}. Expected one of ${Object.values(SIEM_FORMAT).join("|")}`,
+    );
+  }
+}
+
+function _validateTargetType(type) {
+  if (!Object.values(SIEM_TARGET_TYPE).includes(type)) {
+    throw new Error(
+      `Invalid target type: ${type}. Expected one of ${Object.values(SIEM_TARGET_TYPE).join("|")}`,
+    );
+  }
+}
+
+function _validateSeverity(severity) {
+  if (!Object.values(SIEM_SEVERITY).includes(severity)) {
+    throw new Error(
+      `Invalid severity: ${severity}. Expected one of ${Object.values(SIEM_SEVERITY).join("|")}`,
+    );
+  }
+}
+
+function _validateStatus(status) {
+  if (!Object.values(SIEM_TARGET_STATUS).includes(status)) {
+    throw new Error(
+      `Invalid status: ${status}. Expected one of ${Object.values(SIEM_TARGET_STATUS).join("|")}`,
+    );
+  }
+}
+
+/**
+ * Map a SIEM_SEVERITY value to a CEF severity integer (0-10).
+ */
+export function severityToCEF(severity) {
+  const key = (severity || "").toLowerCase();
+  const n = _severityCEF[key];
+  if (n === undefined) {
+    throw new Error(`Unknown severity: ${severity}`);
+  }
+  return n;
+}
+
+// CEF extension-value escape (| \ = → escaped).
+function _escapeCEFExt(value) {
+  return String(value == null ? "" : value)
+    .replace(/\\/g, "\\\\")
+    .replace(/\|/g, "\\|")
+    .replace(/=/g, "\\=")
+    .replace(/\r?\n/g, "\\n");
+}
+
+function _flatExtensions(log) {
+  const pairs = [];
+  const md = log.metadata || {};
+  for (const [k, v] of Object.entries(md)) {
+    pairs.push(`${k}=${_escapeCEFExt(v)}`);
+  }
+  if (log.userId != null) pairs.push(`suser=${_escapeCEFExt(log.userId)}`);
+  if (log.ip != null) pairs.push(`src=${_escapeCEFExt(log.ip)}`);
+  if (log.message != null) pairs.push(`msg=${_escapeCEFExt(log.message)}`);
+  if (log.timestamp != null) pairs.push(`rt=${_escapeCEFExt(log.timestamp)}`);
+  return pairs;
+}
+
+/**
+ * Format a log record as CEF (ArcSight).
+ * CEF:0|Vendor|Product|Version|{eventId}|{eventName}|{severity}|{extensions}
+ */
+export function formatLogCEF(log, opts = {}) {
+  const vendor = opts.vendor || "ChainlessChain";
+  const product = opts.product || "CLI";
+  const version = opts.version || "1.0.0";
+  const eventId = log.eventId || log.id || "unknown";
+  const eventName = log.eventName || log.message || "event";
+  const severity = severityToCEF(log.severity || "info");
+  const pipeEscape = (s) => String(s).replace(/\|/g, "\\|");
+  const extensions = _flatExtensions(log).join(" ");
+  return `CEF:0|${pipeEscape(vendor)}|${pipeEscape(product)}|${pipeEscape(version)}|${pipeEscape(eventId)}|${pipeEscape(eventName)}|${severity}|${extensions}`;
+}
+
+/**
+ * Format a log record as LEEF 2.0 (IBM QRadar).
+ * LEEF:2.0|Vendor|Product|Version|{eventId}|<tab-separated key=value>
+ */
+export function formatLogLEEF(log, opts = {}) {
+  const vendor = opts.vendor || "ChainlessChain";
+  const product = opts.product || "CLI";
+  const version = opts.version || "1.0.0";
+  const eventId = log.eventId || log.id || "unknown";
+  const pipeEscape = (s) => String(s).replace(/\|/g, "\\|");
+  const pairs = [];
+  if (log.timestamp != null) pairs.push(`devTime=${log.timestamp}`);
+  if (log.userId != null) pairs.push(`usrName=${log.userId}`);
+  if (log.action != null) pairs.push(`action=${log.action}`);
+  if (log.ip != null) pairs.push(`src=${log.ip}`);
+  if (log.message != null) pairs.push(`msg=${log.message}`);
+  const md = log.metadata || {};
+  for (const [k, v] of Object.entries(md)) {
+    pairs.push(`${k}=${v}`);
+  }
+  return `LEEF:2.0|${pipeEscape(vendor)}|${pipeEscape(product)}|${pipeEscape(version)}|${pipeEscape(eventId)}|${pairs.join("\t")}`;
+}
+
+/**
+ * Format a log record as the canonical JSON envelope (Phase 51 §二).
+ */
+export function formatLogJSON(log) {
+  return {
+    timestamp: log.timestamp || Date.now(),
+    severity: (log.severity || "info").toUpperCase(),
+    source: log.source || "chainlesschain-cli",
+    message: log.message || "",
+    metadata: {
+      ...(log.metadata || {}),
+      eventId: log.eventId || log.id || null,
+      userId: log.userId || null,
+      action: log.action || null,
+      resource: log.resource || null,
+      ip: log.ip || null,
+    },
+  };
+}
+
+/**
+ * Dispatch by format. Returns string for CEF/LEEF, object for JSON.
+ */
+export function formatLog(format, log, opts) {
+  _validateFormat(format);
+  if (format === SIEM_FORMAT.CEF) return formatLogCEF(log, opts);
+  if (format === SIEM_FORMAT.LEEF) return formatLogLEEF(log, opts);
+  return formatLogJSON(log);
+}
+
+/**
+ * Add a SIEM target with V2 canonical validation.
+ */
+export function addTargetV2(db, options) {
+  if (!options || typeof options !== "object") {
+    throw new Error("options object is required");
+  }
+  const { type, url, format = SIEM_FORMAT.JSON, config = {} } = options;
+  _validateTargetType(type);
+  if (!url) throw new Error("Target URL is required");
+  _validateFormat(format);
+  return addTarget(db, type, url, format, config);
+}
+
+/**
+ * Remove a target by id. Throws if unknown.
+ */
+export function removeTarget(db, targetId) {
+  const target = _targets.get(targetId);
+  if (!target) throw new Error(`Target not found: ${targetId}`);
+  _targets.delete(targetId);
+  db.prepare(`DELETE FROM siem_exports WHERE id = ?`).run(targetId);
+  return { success: true, targetId };
+}
+
+/**
+ * Transition a target's status using the allowed state machine.
+ * active ↔ paused/disabled/error; disabled → active/error; error → any.
+ */
+export function setTargetStatus(db, targetId, newStatus) {
+  const target = _targets.get(targetId);
+  if (!target) throw new Error(`Target not found: ${targetId}`);
+  _validateStatus(newStatus);
+  if (target.status === newStatus) {
+    return { ...target };
+  }
+  const allowed = _allowedTargetTransitions.get(target.status) || new Set();
+  if (!allowed.has(newStatus)) {
+    throw new Error(
+      `Invalid status transition: ${target.status} → ${newStatus}`,
+    );
+  }
+  target.status = newStatus;
+  db.prepare(`UPDATE siem_exports SET status = ? WHERE id = ?`).run(
+    newStatus,
+    targetId,
+  );
+  return { ...target };
+}
+
+/**
+ * Batch-export logs to a target.
+ * - Skips when target.status !== "active" (returns { skipped: true, ... }).
+ * - Chunks logs into slices of batchSize (default 100).
+ * - Returns { batches, exported, skipped, lastId }.
+ */
+export function exportLogsV2(db, options) {
+  if (!options || typeof options !== "object") {
+    throw new Error("options object is required");
+  }
+  const { targetId, logs = [], batchSize = SIEM_DEFAULT_BATCH_SIZE } = options;
+  if (!Number.isInteger(batchSize) || batchSize <= 0) {
+    throw new Error("batchSize must be a positive integer");
+  }
+  const target = _targets.get(targetId);
+  if (!target) throw new Error(`Target not found: ${targetId}`);
+  if (target.status !== SIEM_TARGET_STATUS.ACTIVE) {
+    return {
+      skipped: true,
+      reason: `target status is ${target.status}`,
+      batches: 0,
+      exported: 0,
+      lastId: target.lastExportedLogId,
+    };
+  }
+  if (!Array.isArray(logs)) {
+    throw new Error("logs must be an array");
+  }
+
+  let batches = 0;
+  let exported = 0;
+  for (let i = 0; i < logs.length; i += batchSize) {
+    const slice = logs.slice(i, i + batchSize);
+    exportLogs(db, targetId, slice);
+    batches += 1;
+    exported += slice.length;
+  }
+  // Handle zero-length input — register one empty batch for stats parity.
+  if (logs.length === 0) {
+    exportLogs(db, targetId, []);
+    batches = 0; // no real batch was sent
+  }
+  return {
+    skipped: false,
+    batches,
+    exported,
+    lastId: target.lastExportedLogId,
+  };
+}
+
+/**
+ * Extended stats with byFormat / byType / byStatus breakdowns + totals.
+ */
+export function getSIEMStatsV2() {
+  const targets = [..._targets.values()];
+  const byFormat = {};
+  for (const v of Object.values(SIEM_FORMAT)) byFormat[v] = 0;
+  const byType = {};
+  for (const v of Object.values(SIEM_TARGET_TYPE)) byType[v] = 0;
+  const byStatus = {};
+  for (const v of Object.values(SIEM_TARGET_STATUS)) byStatus[v] = 0;
+  let totalExported = 0;
+  for (const t of targets) {
+    if (byFormat[t.format] !== undefined) byFormat[t.format] += 1;
+    if (byType[t.type] !== undefined) byType[t.type] += 1;
+    if (byStatus[t.status] !== undefined) byStatus[t.status] += 1;
+    totalExported += t.exportedCount || 0;
+  }
+  return {
+    totalTargets: targets.length,
+    totalExported,
+    totalBatches: _exports.length,
+    byFormat,
+    byType,
+    byStatus,
+    targets: targets.map((t) => ({
+      id: t.id,
+      type: t.type,
+      url: t.url,
+      format: t.format,
+      status: t.status,
+      exportedCount: t.exportedCount,
+      lastExportAt: t.lastExportAt,
+    })),
+  };
+}
+
+/**
+ * List targets filtered by status.
+ */
+export function listTargetsByStatus(status) {
+  _validateStatus(status);
+  return [..._targets.values()].filter((t) => t.status === status);
+}
+
+export { _severityCEF, _allowedTargetTransitions };

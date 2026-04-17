@@ -19,6 +19,21 @@ import {
   SERVICE_STATUS,
   INVOCATION_STATUS,
   _resetState,
+  // V2 (Phase 65)
+  SERVICE_STATUS_V2,
+  INVOCATION_STATUS_V2,
+  PRICING_MODEL_V2,
+  MARKETPLACE_DEFAULT_MAX_CONCURRENT_INVOCATIONS,
+  setMaxConcurrentInvocations,
+  getMaxConcurrentInvocations,
+  getActiveInvocationCount,
+  beginInvocationV2,
+  startInvocation,
+  completeInvocationV2,
+  failInvocationV2,
+  timeoutInvocationV2,
+  setInvocationStatus,
+  getMarketplaceStatsV2,
 } from "../../src/lib/skill-marketplace.js";
 
 describe("skill-marketplace", () => {
@@ -424,6 +439,306 @@ describe("skill-marketplace", () => {
       const stats = getInvocationStats({ serviceId: svcId });
       expect(stats.total).toBe(0);
       expect(stats.successRate).toBe(0);
+    });
+  });
+});
+
+describe("skill-marketplace V2 (Phase 65)", () => {
+  let db;
+  let svc;
+
+  beforeEach(() => {
+    _resetState();
+    db = new MockDatabase();
+    ensureMarketplaceTables(db);
+    svc = publishService(db, {
+      name: "llm-skill",
+      status: "published",
+    });
+  });
+
+  describe("frozen enums", () => {
+    it("SERVICE_STATUS_V2 has 4 canonical states", () => {
+      expect(Object.keys(SERVICE_STATUS_V2)).toEqual([
+        "DRAFT",
+        "PUBLISHED",
+        "DEPRECATED",
+        "SUSPENDED",
+      ]);
+      expect(Object.isFrozen(SERVICE_STATUS_V2)).toBe(true);
+    });
+
+    it("INVOCATION_STATUS_V2 has 5 states", () => {
+      expect(Object.keys(INVOCATION_STATUS_V2)).toEqual([
+        "PENDING",
+        "RUNNING",
+        "SUCCESS",
+        "FAILED",
+        "TIMEOUT",
+      ]);
+      expect(Object.isFrozen(INVOCATION_STATUS_V2)).toBe(true);
+    });
+
+    it("PRICING_MODEL_V2 has 4 models", () => {
+      expect(Object.keys(PRICING_MODEL_V2)).toEqual([
+        "FREE",
+        "PAY_PER_CALL",
+        "SUBSCRIPTION",
+        "TIERED",
+      ]);
+      expect(Object.isFrozen(PRICING_MODEL_V2)).toBe(true);
+    });
+
+    it("MARKETPLACE_DEFAULT_MAX_CONCURRENT_INVOCATIONS is 10", () => {
+      expect(MARKETPLACE_DEFAULT_MAX_CONCURRENT_INVOCATIONS).toBe(10);
+    });
+  });
+
+  describe("setMaxConcurrentInvocations", () => {
+    it("defaults to the module constant", () => {
+      expect(getMaxConcurrentInvocations()).toBe(
+        MARKETPLACE_DEFAULT_MAX_CONCURRENT_INVOCATIONS,
+      );
+    });
+
+    it("accepts a positive integer and floors decimals", () => {
+      expect(setMaxConcurrentInvocations(5)).toBe(5);
+      expect(setMaxConcurrentInvocations(3.7)).toBe(3);
+    });
+
+    it("rejects ≤0 / NaN / non-number", () => {
+      expect(() => setMaxConcurrentInvocations(0)).toThrow(/positive/);
+      expect(() => setMaxConcurrentInvocations(-2)).toThrow(/positive/);
+      expect(() => setMaxConcurrentInvocations(NaN)).toThrow(/positive/);
+      expect(() => setMaxConcurrentInvocations("5")).toThrow(/positive/);
+    });
+
+    it("is restored by _resetState", () => {
+      setMaxConcurrentInvocations(20);
+      _resetState();
+      expect(getMaxConcurrentInvocations()).toBe(
+        MARKETPLACE_DEFAULT_MAX_CONCURRENT_INVOCATIONS,
+      );
+    });
+  });
+
+  describe("beginInvocationV2 + concurrency cap", () => {
+    it("creates a PENDING invocation with no output/durationMs", () => {
+      const inv = beginInvocationV2(db, {
+        serviceId: svc.id,
+        callerId: "caller-1",
+        input: { q: "hello" },
+      });
+      expect(inv.status).toBe(INVOCATION_STATUS_V2.PENDING);
+      expect(inv.output).toBeNull();
+      expect(inv.durationMs).toBeNull();
+      expect(inv.error).toBeNull();
+      expect(inv.startedAt).toBeNull();
+      expect(inv.completedAt).toBeNull();
+      expect(getActiveInvocationCount(svc.id)).toBe(1);
+    });
+
+    it("rejects invocation on non-PUBLISHED service", () => {
+      const draft = publishService(db, {
+        name: "draft-svc",
+        status: "draft",
+      });
+      expect(() => beginInvocationV2(db, { serviceId: draft.id })).toThrow(
+        /non-published/,
+      );
+    });
+
+    it("rejects when activeCount >= max per service", () => {
+      setMaxConcurrentInvocations(2);
+      beginInvocationV2(db, { serviceId: svc.id });
+      beginInvocationV2(db, { serviceId: svc.id });
+      expect(() => beginInvocationV2(db, { serviceId: svc.id })).toThrow(
+        /Max concurrent invocations/,
+      );
+    });
+
+    it("cap is scoped per service (separate services don't interact)", () => {
+      setMaxConcurrentInvocations(1);
+      const other = publishService(db, {
+        name: "other-svc",
+        status: "published",
+      });
+      beginInvocationV2(db, { serviceId: svc.id });
+      // other service should still be allowed
+      const inv = beginInvocationV2(db, { serviceId: other.id });
+      expect(inv.serviceId).toBe(other.id);
+    });
+
+    it("activeCount decrements when invocation transitions to terminal", () => {
+      const inv = beginInvocationV2(db, { serviceId: svc.id });
+      expect(getActiveInvocationCount(svc.id)).toBe(1);
+      setInvocationStatus(db, inv.id, INVOCATION_STATUS_V2.FAILED, {
+        error: "bad input",
+      });
+      expect(getActiveInvocationCount(svc.id)).toBe(0);
+    });
+
+    it("requires serviceId", () => {
+      expect(() => beginInvocationV2(db, {})).toThrow(/serviceId/);
+    });
+  });
+
+  describe("startInvocation / completeInvocationV2", () => {
+    it("startInvocation transitions PENDING → RUNNING with startedAt", () => {
+      const inv = beginInvocationV2(db, { serviceId: svc.id });
+      const running = startInvocation(db, inv.id, { now: 123456 });
+      expect(running.status).toBe(INVOCATION_STATUS_V2.RUNNING);
+      expect(running.startedAt).toBe(123456);
+    });
+
+    it("completeInvocationV2 transitions RUNNING → SUCCESS + output + durationMs", () => {
+      const inv = beginInvocationV2(db, { serviceId: svc.id });
+      startInvocation(db, inv.id);
+      const done = completeInvocationV2(db, inv.id, {
+        output: { result: 42 },
+        durationMs: 80,
+      });
+      expect(done.status).toBe(INVOCATION_STATUS_V2.SUCCESS);
+      expect(done.output).toEqual({ result: 42 });
+      expect(done.durationMs).toBe(80);
+      expect(done.completedAt).toBeGreaterThan(0);
+    });
+
+    it("refuses to complete a PENDING invocation directly", () => {
+      const inv = beginInvocationV2(db, { serviceId: svc.id });
+      expect(() => completeInvocationV2(db, inv.id)).toThrow(
+        /Invalid invocation status transition/,
+      );
+    });
+  });
+
+  describe("failInvocationV2 / timeoutInvocationV2", () => {
+    it("failInvocationV2 transitions to FAILED with error + durationMs", () => {
+      const inv = beginInvocationV2(db, { serviceId: svc.id });
+      startInvocation(db, inv.id);
+      const f = failInvocationV2(db, inv.id, "boom", { durationMs: 50 });
+      expect(f.status).toBe(INVOCATION_STATUS_V2.FAILED);
+      expect(f.error).toBe("boom");
+      expect(f.durationMs).toBe(50);
+      expect(f.completedAt).toBeGreaterThan(0);
+    });
+
+    it("timeoutInvocationV2 defaults error to 'timeout'", () => {
+      const inv = beginInvocationV2(db, { serviceId: svc.id });
+      startInvocation(db, inv.id);
+      const t = timeoutInvocationV2(db, inv.id, { durationMs: 5000 });
+      expect(t.status).toBe(INVOCATION_STATUS_V2.TIMEOUT);
+      expect(t.error).toBe("timeout");
+      expect(t.durationMs).toBe(5000);
+    });
+
+    it("can fail directly from PENDING (no running step)", () => {
+      const inv = beginInvocationV2(db, { serviceId: svc.id });
+      const f = failInvocationV2(db, inv.id, "rejected");
+      expect(f.status).toBe(INVOCATION_STATUS_V2.FAILED);
+    });
+
+    it("rejects invalid durationMs patch", () => {
+      const inv = beginInvocationV2(db, { serviceId: svc.id });
+      startInvocation(db, inv.id);
+      expect(() =>
+        completeInvocationV2(db, inv.id, { durationMs: -5 }),
+      ).toThrow(/Invalid durationMs/);
+    });
+  });
+
+  describe("setInvocationStatus (generic)", () => {
+    it("rejects unknown status", () => {
+      const inv = beginInvocationV2(db, { serviceId: svc.id });
+      expect(() => setInvocationStatus(db, inv.id, "haunted")).toThrow(
+        /Unknown invocation status/,
+      );
+    });
+
+    it("rejects running → pending", () => {
+      const inv = beginInvocationV2(db, { serviceId: svc.id });
+      startInvocation(db, inv.id);
+      expect(() =>
+        setInvocationStatus(db, inv.id, INVOCATION_STATUS_V2.PENDING),
+      ).toThrow(/Invalid invocation status transition/);
+    });
+
+    it("rejects any outgoing transition from terminal", () => {
+      const inv = beginInvocationV2(db, { serviceId: svc.id });
+      startInvocation(db, inv.id);
+      completeInvocationV2(db, inv.id);
+      for (const target of Object.values(INVOCATION_STATUS_V2)) {
+        expect(() => setInvocationStatus(db, inv.id, target)).toThrow(
+          /Invalid invocation status transition/,
+        );
+      }
+    });
+
+    it("throws on unknown invocationId", () => {
+      expect(() =>
+        setInvocationStatus(db, "unknown", INVOCATION_STATUS_V2.RUNNING),
+      ).toThrow(/not found/);
+    });
+
+    it("bumps service.invocationCount exactly once on terminal", () => {
+      const inv = beginInvocationV2(db, { serviceId: svc.id });
+      startInvocation(db, inv.id);
+      expect(getService(svc.id).invocationCount).toBe(0);
+      completeInvocationV2(db, inv.id);
+      expect(getService(svc.id).invocationCount).toBe(1);
+    });
+  });
+
+  describe("getMarketplaceStatsV2", () => {
+    it("returns zero-state shape with all-enum keys", () => {
+      _resetState();
+      const stats = getMarketplaceStatsV2();
+      expect(stats.totalServices).toBe(0);
+      expect(stats.totalInvocations).toBe(0);
+      expect(stats.activeInvocations).toBe(0);
+      expect(stats.maxConcurrentInvocations).toBe(
+        MARKETPLACE_DEFAULT_MAX_CONCURRENT_INVOCATIONS,
+      );
+      for (const s of Object.values(SERVICE_STATUS_V2)) {
+        expect(stats.servicesByStatus[s]).toBe(0);
+      }
+      for (const s of Object.values(INVOCATION_STATUS_V2)) {
+        expect(stats.invocationsByStatus[s]).toBe(0);
+      }
+      for (const p of Object.values(PRICING_MODEL_V2)) {
+        expect(stats.servicesByPricing[p]).toBe(0);
+      }
+      expect(stats.avgDurationMs).toBe(0);
+      expect(stats.successRate).toBe(0);
+    });
+
+    it("aggregates services by status / pricing and invocations by status", () => {
+      publishService(db, {
+        name: "paid",
+        status: "published",
+        pricing: { model: "pay_per_call", unitPrice: 0.01 },
+      });
+      publishService(db, { name: "draft-only", status: "draft" });
+
+      const a = beginInvocationV2(db, { serviceId: svc.id });
+      startInvocation(db, a.id);
+      completeInvocationV2(db, a.id, { durationMs: 100 });
+
+      const b = beginInvocationV2(db, { serviceId: svc.id });
+      startInvocation(db, b.id);
+      failInvocationV2(db, b.id, "err");
+
+      const stats = getMarketplaceStatsV2();
+      expect(stats.totalServices).toBe(3);
+      expect(stats.servicesByStatus.published).toBe(2);
+      expect(stats.servicesByStatus.draft).toBe(1);
+      expect(stats.servicesByPricing.free).toBe(2);
+      expect(stats.servicesByPricing.pay_per_call).toBe(1);
+      expect(stats.totalInvocations).toBe(2);
+      expect(stats.invocationsByStatus.success).toBe(1);
+      expect(stats.invocationsByStatus.failed).toBe(1);
+      expect(stats.avgDurationMs).toBe(100);
+      expect(stats.successRate).toBe(0.5);
     });
   });
 });

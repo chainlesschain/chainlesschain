@@ -17,6 +17,14 @@ import {
   getPressureReport,
   recombineGenes,
   getLineage,
+  HUB_STATUS_V2,
+  TRUST_TIER,
+  MUTATION_TYPE,
+  trustTier,
+  setHubStatus,
+  listHubsV2,
+  buildFederationContext,
+  getFederationStatsV2,
 } from "../lib/evomap-federation.js";
 import {
   ensureEvoMapGovernanceTables,
@@ -25,6 +33,18 @@ import {
   createGovernanceProposal,
   voteOnGovernanceProposal,
   getGovernanceDashboard,
+  PROPOSAL_STATUS_V2,
+  PROPOSAL_TYPE,
+  VOTE_DIRECTION,
+  createGovernanceProposalV2,
+  castVoteV2,
+  setProposalStatus,
+  executeProposal,
+  cancelProposal,
+  expireProposalsV2,
+  listProposalsV2,
+  traceContributions,
+  getGovernanceStatsV2,
 } from "../lib/evomap-governance.js";
 
 export function registerEvoMapCommand(program) {
@@ -549,6 +569,380 @@ export function registerEvoMapCommand(program) {
           logger.log(`  ${chalk.bold("Executed:")}        ${result.executed}`);
         }
 
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // ═══════════════════════════════════════════════════════════════
+  // V2 Canonical Subcommands (Phase 42)
+  // ═══════════════════════════════════════════════════════════════
+
+  federation
+    .command("hub-statuses")
+    .description("List V2 hub status values")
+    .action(() => {
+      console.log(JSON.stringify(Object.values(HUB_STATUS_V2), null, 2));
+    });
+
+  federation
+    .command("trust-tiers")
+    .description("List V2 trust tier values")
+    .action(() => {
+      console.log(JSON.stringify(Object.values(TRUST_TIER), null, 2));
+    });
+
+  federation
+    .command("mutation-types")
+    .description("List V2 mutation types")
+    .action(() => {
+      console.log(JSON.stringify(Object.values(MUTATION_TYPE), null, 2));
+    });
+
+  federation
+    .command("trust-tier <score>")
+    .description("Classify a trust score as low|medium|high")
+    .action((score) => {
+      try {
+        const num = Number(score);
+        console.log(JSON.stringify({ score: num, tier: trustTier(num) }));
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  federation
+    .command("set-hub-status <hub-id> <status>")
+    .description("Transition a hub's status (V2 state machine)")
+    .action(async (hubId, status) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureEvoMapFederationTables(db);
+        console.log(JSON.stringify(setHubStatus(db, hubId, status), null, 2));
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  federation
+    .command("list-hubs-v2")
+    .description("List hubs with V2 filters (trust tier, minTrust)")
+    .option("--status <status>", "Filter by hub status")
+    .option("--region <region>", "Filter by region")
+    .option("--min-trust <n>", "Minimum trust score (0-1)")
+    .option("--trust-tier <tier>", "Filter by trust tier (low|medium|high)")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureEvoMapFederationTables(db);
+        const hubs = listHubsV2(db, {
+          status: options.status,
+          region: options.region,
+          minTrust: options.minTrust ? Number(options.minTrust) : undefined,
+          trustTier: options.trustTier,
+        });
+        console.log(JSON.stringify(hubs, null, 2));
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  federation
+    .command("context")
+    .description("Build federation context for LLM consumption")
+    .action(async () => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureEvoMapFederationTables(db);
+        console.log(JSON.stringify(buildFederationContext(), null, 2));
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  federation
+    .command("stats-v2")
+    .description("Show V2 federation stats (byStatus/byRegion/byTrustTier)")
+    .action(async () => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureEvoMapFederationTables(db);
+        console.log(JSON.stringify(getFederationStatsV2(), null, 2));
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  gov
+    .command("proposal-statuses")
+    .description("List V2 proposal status values")
+    .action(() => {
+      console.log(JSON.stringify(Object.values(PROPOSAL_STATUS_V2), null, 2));
+    });
+
+  gov
+    .command("proposal-types")
+    .description("List V2 proposal type values")
+    .action(() => {
+      console.log(JSON.stringify(Object.values(PROPOSAL_TYPE), null, 2));
+    });
+
+  gov
+    .command("vote-directions")
+    .description("List V2 vote direction values")
+    .action(() => {
+      console.log(JSON.stringify(Object.values(VOTE_DIRECTION), null, 2));
+    });
+
+  gov
+    .command("propose-v2")
+    .description("Create a V2 governance proposal with type/quorum/threshold")
+    .requiredOption("-t, --title <title>", "Proposal title")
+    .option("-d, --description <text>", "Proposal description")
+    .option("-p, --proposer <did>", "Proposer DID", "cli-user")
+    .option(
+      "--type <type>",
+      "Proposal type (standard|gene_standard|...)",
+      "standard",
+    )
+    .option("--quorum <n>", "Quorum (min votes)", "3")
+    .option("--threshold <n>", "Threshold (0-1)", "0.5")
+    .option("--voting-duration-ms <n>", "Voting duration in ms")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureEvoMapGovernanceTables(db);
+        const p = createGovernanceProposalV2(db, {
+          title: options.title,
+          description: options.description,
+          proposerDid: options.proposer,
+          type: options.type,
+          quorum: Number(options.quorum),
+          threshold: Number(options.threshold),
+          votingDurationMs: options.votingDurationMs
+            ? Number(options.votingDurationMs)
+            : undefined,
+        });
+        console.log(JSON.stringify(p, null, 2));
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  gov
+    .command("vote-v2 <proposal-id> <direction>")
+    .description("Cast a weighted V2 vote (for|against|abstain)")
+    .option("-v, --voter <did>", "Voter DID", "cli-user")
+    .option("-w, --weight <n>", "Vote weight", "1")
+    .action(async (proposalId, direction, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureEvoMapGovernanceTables(db);
+        const r = castVoteV2(db, {
+          proposalId,
+          voterDid: options.voter,
+          direction,
+          weight: Number(options.weight),
+        });
+        console.log(JSON.stringify(r, null, 2));
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  gov
+    .command("set-status <proposal-id> <status>")
+    .description("Transition a proposal's status (V2 state machine)")
+    .action(async (proposalId, status) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureEvoMapGovernanceTables(db);
+        console.log(
+          JSON.stringify(setProposalStatus(db, proposalId, status), null, 2),
+        );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  gov
+    .command("execute <proposal-id>")
+    .description("Execute a passed proposal")
+    .action(async (proposalId) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureEvoMapGovernanceTables(db);
+        console.log(JSON.stringify(executeProposal(db, proposalId), null, 2));
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  gov
+    .command("cancel <proposal-id>")
+    .description("Cancel a proposal")
+    .action(async (proposalId) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureEvoMapGovernanceTables(db);
+        console.log(JSON.stringify(cancelProposal(db, proposalId), null, 2));
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  gov
+    .command("expire")
+    .description("Bulk-expire active proposals past voting deadline (V2)")
+    .action(async () => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureEvoMapGovernanceTables(db);
+        console.log(JSON.stringify(expireProposalsV2(db), null, 2));
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  gov
+    .command("list-v2")
+    .description("List proposals with V2 filters")
+    .option("--status <status>", "Filter by status")
+    .option("--type <type>", "Filter by type")
+    .option("--proposer <did>", "Filter by proposer DID")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureEvoMapGovernanceTables(db);
+        console.log(
+          JSON.stringify(
+            listProposalsV2(db, {
+              status: options.status,
+              type: options.type,
+              proposerDid: options.proposer,
+            }),
+            null,
+            2,
+          ),
+        );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  gov
+    .command("contributions <gene-id>")
+    .description("Trace gene contributions (V2 alias of ownership-trace)")
+    .action(async (geneId) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureEvoMapGovernanceTables(db);
+        console.log(JSON.stringify(traceContributions(geneId), null, 2));
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  gov
+    .command("stats-v2")
+    .description("Show V2 governance stats (byStatus/byType, weight totals)")
+    .action(async () => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureEvoMapGovernanceTables(db);
+        console.log(JSON.stringify(getGovernanceStatsV2(), null, 2));
         await shutdown();
       } catch (err) {
         logger.error(`Failed: ${err.message}`);

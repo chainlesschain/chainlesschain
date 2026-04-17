@@ -27,6 +27,24 @@ import {
   listMessages,
   estimateFee,
   getCrossChainStats,
+  // V2
+  BRIDGE_STATUS_V2,
+  SWAP_STATUS_V2,
+  MESSAGE_STATUS_V2,
+  CHAIN_ID_V2,
+  CROSSCHAIN_DEFAULT_MAX_ACTIVE_BRIDGES_PER_ADDRESS,
+  setMaxActiveBridgesPerAddress,
+  getMaxActiveBridgesPerAddress,
+  getActiveBridgeCount,
+  configureChainV2,
+  getChainConfigV2,
+  listChainsV2,
+  bridgeAssetV2,
+  setBridgeStatusV2,
+  setSwapStatusV2,
+  setMessageStatusV2,
+  autoExpireSwapsV2,
+  getCrossChainStatsV2,
 } from "../lib/cross-chain.js";
 
 function _dbFromCtx(cmd) {
@@ -376,6 +394,206 @@ export function registerCrossChainCommand(program) {
       );
       console.log(`Swaps:     ${stats.swaps.total}`);
       console.log(`Messages:  ${stats.messages.total}`);
+    });
+
+  /* ══════════════════════════════════════════════════
+   * Phase 89 — Cross-Chain V2 subcommands
+   * ══════════════════════════════════════════════════ */
+
+  cc.command("bridge-statuses-v2")
+    .description("List V2 bridge statuses")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const values = Object.values(BRIDGE_STATUS_V2);
+      if (opts.json) return console.log(JSON.stringify(values, null, 2));
+      for (const v of values) console.log(`  ${v}`);
+    });
+
+  cc.command("swap-statuses-v2")
+    .description("List V2 swap statuses")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const values = Object.values(SWAP_STATUS_V2);
+      if (opts.json) return console.log(JSON.stringify(values, null, 2));
+      for (const v of values) console.log(`  ${v}`);
+    });
+
+  cc.command("message-statuses-v2")
+    .description("List V2 message statuses")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const values = Object.values(MESSAGE_STATUS_V2);
+      if (opts.json) return console.log(JSON.stringify(values, null, 2));
+      for (const v of values) console.log(`  ${v}`);
+    });
+
+  cc.command("chain-ids-v2")
+    .description("List V2 chain IDs")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const values = Object.values(CHAIN_ID_V2);
+      if (opts.json) return console.log(JSON.stringify(values, null, 2));
+      for (const v of values) console.log(`  ${v}`);
+    });
+
+  cc.command("default-max-active-bridges")
+    .description("Show default max active bridges per address")
+    .action(() => {
+      console.log(`  ${CROSSCHAIN_DEFAULT_MAX_ACTIVE_BRIDGES_PER_ADDRESS}`);
+    });
+
+  cc.command("max-active-bridges")
+    .description("Show current max active bridges per address")
+    .action(() => {
+      console.log(`  ${getMaxActiveBridgesPerAddress()}`);
+    });
+
+  cc.command("active-bridge-count [address]")
+    .description("Active (non-terminal) bridge count, optionally by address")
+    .action((address) => {
+      console.log(`  ${getActiveBridgeCount(address)}`);
+    });
+
+  cc.command("set-max-active-bridges <n>")
+    .description("Set max active bridges per address (positive integer)")
+    .action((n) => {
+      setMaxActiveBridgesPerAddress(parseFloat(n));
+      console.log(
+        `  Max active bridges per address = ${getMaxActiveBridgesPerAddress()}`,
+      );
+    });
+
+  cc.command("configure-chain <chain-id>")
+    .description("Configure a supported chain (rpcUrl, contract, enabled)")
+    .option("--rpc-url <url>", "RPC URL")
+    .option("--contract <addr>", "Contract address")
+    .option("--disabled", "Set enabled=false")
+    .option("--json", "JSON output")
+    .action((chainId, opts) => {
+      const cfg = configureChainV2({
+        chainId,
+        rpcUrl: opts.rpcUrl,
+        contractAddress: opts.contract,
+        enabled: !opts.disabled,
+      });
+      if (opts.json) return console.log(JSON.stringify(cfg, null, 2));
+      console.log(`  Configured ${cfg.chainId} (enabled=${cfg.enabled})`);
+    });
+
+  cc.command("chain-config <chain-id>")
+    .description("Show chain config (or 'not configured')")
+    .option("--json", "JSON output")
+    .action((chainId, opts) => {
+      const cfg = getChainConfigV2(chainId);
+      if (opts.json) return console.log(JSON.stringify(cfg, null, 2));
+      if (!cfg) return console.log("  not configured");
+      console.log(
+        `  ${cfg.chainId}  enabled=${cfg.enabled}  rpc=${cfg.rpcUrl ?? "-"}  contract=${cfg.contractAddress ?? "-"}`,
+      );
+    });
+
+  cc.command("list-chains-v2")
+    .description("List chains enriched with V2 config")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const chains = listChainsV2();
+      if (opts.json) return console.log(JSON.stringify(chains, null, 2));
+      for (const c of chains) {
+        console.log(
+          `  ${c.id.padEnd(12)} ${c.symbol.padEnd(6)} enabled=${c.enabled}  rpc=${c.rpcUrl ?? "-"}`,
+        );
+      }
+    });
+
+  cc.command("bridge-v2 <from-chain> <to-chain> <amount>")
+    .description(
+      "Create a bridge (V2: throws on error, enforces per-address cap)",
+    )
+    .option("--asset <name>", "Asset symbol", "native")
+    .option("--sender <addr>", "Sender address")
+    .option("--recipient <addr>", "Recipient address")
+    .option("--json", "JSON output")
+    .action((fromChain, toChain, amount, opts) => {
+      const r = bridgeAssetV2(_dbFromCtx(cc), {
+        fromChain,
+        toChain,
+        asset: opts.asset,
+        amount: parseFloat(amount),
+        senderAddress: opts.sender,
+        recipientAddress: opts.recipient,
+      });
+      if (opts.json) return console.log(JSON.stringify(r, null, 2));
+      console.log(`  Bridge created: ${r.bridgeId}  fee=${r.fee}`);
+    });
+
+  cc.command("set-bridge-status <bridge-id> <status>")
+    .description("Set bridge status with state-machine guard")
+    .option("--lock-tx <hash>", "Lock tx hash")
+    .option("--mint-tx <hash>", "Mint tx hash")
+    .option("--message <msg>", "Error message")
+    .option("--json", "JSON output")
+    .action((bridgeId, status, opts) => {
+      const b = setBridgeStatusV2(_dbFromCtx(cc), bridgeId, status, {
+        lockTxHash: opts.lockTx,
+        mintTxHash: opts.mintTx,
+        errorMessage: opts.message,
+      });
+      if (opts.json) return console.log(JSON.stringify(b, null, 2));
+      console.log(`  ${b.id}  ${b.status}`);
+    });
+
+  cc.command("set-swap-status <swap-id> <status>")
+    .description("Set swap status with state-machine guard")
+    .option("--claim-tx <hash>", "Claim tx hash")
+    .option("--refund-tx <hash>", "Refund tx hash")
+    .option("--json", "JSON output")
+    .action((swapId, status, opts) => {
+      const s = setSwapStatusV2(_dbFromCtx(cc), swapId, status, {
+        claimTxHash: opts.claimTx,
+        refundTxHash: opts.refundTx,
+      });
+      if (opts.json) return console.log(JSON.stringify(s, null, 2));
+      console.log(`  ${s.id}  ${s.status}`);
+    });
+
+  cc.command("set-message-status <message-id> <status>")
+    .description("Set message status with state-machine guard")
+    .option("--source-tx <hash>", "Source tx hash")
+    .option("--dest-tx <hash>", "Destination tx hash")
+    .option("--json", "JSON output")
+    .action((messageId, status, opts) => {
+      const m = setMessageStatusV2(_dbFromCtx(cc), messageId, status, {
+        sourceTxHash: opts.sourceTx,
+        destinationTxHash: opts.destTx,
+      });
+      if (opts.json) return console.log(JSON.stringify(m, null, 2));
+      console.log(`  ${m.id}  ${m.status}  retries=${m.retries}`);
+    });
+
+  cc.command("auto-expire-swaps")
+    .description("Bulk-flip past-deadline swaps to EXPIRED")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const expired = autoExpireSwapsV2(_dbFromCtx(cc));
+      if (opts.json) return console.log(JSON.stringify(expired, null, 2));
+      console.log(`  Expired ${expired.length} swap(s)`);
+    });
+
+  cc.command("stats-v2")
+    .description("V2 cross-chain statistics (all-enum-key)")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const s = getCrossChainStatsV2();
+      if (opts.json) return console.log(JSON.stringify(s, null, 2));
+      console.log(
+        `  Bridges:  ${s.totalBridges} (active ${s.activeBridges}, volume ${s.totalBridgeVolume}, fees ${s.totalFees})`,
+      );
+      console.log(`  Swaps:    ${s.totalSwaps}`);
+      console.log(`  Messages: ${s.totalMessages}`);
+      console.log(`  Configured chains: ${s.configuredChains}`);
+      console.log(
+        `  Max active bridges / addr: ${s.maxActiveBridgesPerAddress}`,
+      );
     });
 
   program.addCommand(cc);

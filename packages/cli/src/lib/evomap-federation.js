@@ -238,3 +238,180 @@ export function _resetState() {
   _hubs.clear();
   _lineage.clear();
 }
+
+/* ═══════════════════════════════════════════════════════════════
+ * V2 Canonical Surface (Phase 42 — EvoMap Advanced Federation)
+ *   Strictly additive; legacy exports above remain unchanged.
+ * ═══════════════════════════════════════════════════════════════ */
+
+export const HUB_STATUS_V2 = Object.freeze({
+  ONLINE: "online",
+  OFFLINE: "offline",
+  SYNCING: "syncing",
+  DEGRADED: "degraded",
+});
+
+export const TRUST_TIER = Object.freeze({
+  LOW: "low",
+  MEDIUM: "medium",
+  HIGH: "high",
+});
+
+export const MUTATION_TYPE = Object.freeze({
+  MUTATION: "mutation",
+  RECOMBINATION: "recombination",
+  CROSSOVER: "crossover",
+  DRIFT: "drift",
+});
+
+const _allowedHubTransitions = new Map([
+  [
+    HUB_STATUS_V2.ONLINE,
+    new Set([
+      HUB_STATUS_V2.OFFLINE,
+      HUB_STATUS_V2.SYNCING,
+      HUB_STATUS_V2.DEGRADED,
+    ]),
+  ],
+  [
+    HUB_STATUS_V2.OFFLINE,
+    new Set([HUB_STATUS_V2.SYNCING, HUB_STATUS_V2.ONLINE]),
+  ],
+  [
+    HUB_STATUS_V2.SYNCING,
+    new Set([
+      HUB_STATUS_V2.ONLINE,
+      HUB_STATUS_V2.DEGRADED,
+      HUB_STATUS_V2.OFFLINE,
+    ]),
+  ],
+  [
+    HUB_STATUS_V2.DEGRADED,
+    new Set([HUB_STATUS_V2.ONLINE, HUB_STATUS_V2.OFFLINE]),
+  ],
+]);
+
+export function trustTier(score) {
+  if (typeof score !== "number" || Number.isNaN(score)) {
+    throw new Error("Trust score must be a number");
+  }
+  if (score < 0.3) return TRUST_TIER.LOW;
+  if (score < 0.7) return TRUST_TIER.MEDIUM;
+  return TRUST_TIER.HIGH;
+}
+
+export function setHubStatus(db, hubId, newStatus) {
+  const hub = _hubs.get(hubId);
+  if (!hub) throw new Error(`Hub not found: ${hubId}`);
+
+  const validStatuses = Object.values(HUB_STATUS_V2);
+  if (!validStatuses.includes(newStatus)) {
+    throw new Error(`Unknown hub status: ${newStatus}`);
+  }
+
+  const allowed = _allowedHubTransitions.get(hub.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(
+      `Invalid hub status transition: ${hub.status} → ${newStatus}`,
+    );
+  }
+
+  hub.status = newStatus;
+
+  db.prepare(`UPDATE evomap_hub_federation SET status = ? WHERE id = ?`).run(
+    newStatus,
+    hubId,
+  );
+
+  return { hubId, status: newStatus };
+}
+
+export function listHubsV2(db, filter = {}) {
+  let hubs = [..._hubs.values()];
+
+  if (filter.status) {
+    hubs = hubs.filter((h) => h.status === filter.status);
+  }
+  if (filter.region) {
+    hubs = hubs.filter((h) => h.region === filter.region);
+  }
+  if (typeof filter.minTrust === "number") {
+    hubs = hubs.filter((h) => h.trustScore >= filter.minTrust);
+  }
+  if (filter.trustTier) {
+    hubs = hubs.filter((h) => trustTier(h.trustScore) === filter.trustTier);
+  }
+
+  const limit = filter.limit || 50;
+  return hubs.slice(0, limit).map((h) => ({
+    ...h,
+    trustTier: trustTier(h.trustScore),
+  }));
+}
+
+export function buildFederationContext() {
+  const hubs = [..._hubs.values()];
+  const lineageEntries = [..._lineage.values()];
+
+  const onlineHubs = hubs.filter(
+    (h) => h.status === HUB_STATUS_V2.ONLINE,
+  ).length;
+  const totalGenes = lineageEntries.length;
+  const avgFitness =
+    totalGenes === 0
+      ? 0
+      : lineageEntries.reduce((s, e) => s + e.fitnessScore, 0) / totalGenes;
+  const avgTrust =
+    hubs.length === 0
+      ? 0
+      : hubs.reduce((s, h) => s + h.trustScore, 0) / hubs.length;
+
+  return {
+    hubCount: hubs.length,
+    onlineHubs,
+    totalGenes,
+    avgFitness,
+    avgTrust,
+    avgTrustTier: hubs.length === 0 ? null : trustTier(avgTrust),
+    regions: [...new Set(hubs.map((h) => h.region))],
+  };
+}
+
+export function getFederationStatsV2() {
+  const hubs = [..._hubs.values()];
+  const lineageEntries = [..._lineage.values()];
+
+  const byStatus = {};
+  for (const status of Object.values(HUB_STATUS_V2)) {
+    byStatus[status] = hubs.filter((h) => h.status === status).length;
+  }
+
+  const byRegion = {};
+  for (const h of hubs) {
+    byRegion[h.region] = (byRegion[h.region] || 0) + 1;
+  }
+
+  const byTrustTier = {
+    [TRUST_TIER.LOW]: 0,
+    [TRUST_TIER.MEDIUM]: 0,
+    [TRUST_TIER.HIGH]: 0,
+  };
+  for (const h of hubs) {
+    byTrustTier[trustTier(h.trustScore)]++;
+  }
+
+  const byMutationType = {};
+  for (const e of lineageEntries) {
+    const type = e.mutationType || "unknown";
+    byMutationType[type] = (byMutationType[type] || 0) + 1;
+  }
+
+  return {
+    totalHubs: hubs.length,
+    totalGenes: lineageEntries.length,
+    byStatus,
+    byRegion,
+    byTrustTier,
+    byMutationType,
+  };
+}

@@ -18,6 +18,22 @@ import {
   listOptimizationRuns,
   applyOptimizedParams,
   OPTIMIZATION_OBJECTIVES,
+  // V2 (Phase 60)
+  RUN_STATUS_V2,
+  OBJECTIVE_V2,
+  DECAY_MODEL_V2,
+  ANOMALY_METHOD_V2,
+  REPUTATION_DEFAULT_MAX_CONCURRENT,
+  setMaxConcurrentOptimizations,
+  getMaxConcurrentOptimizations,
+  getActiveOptimizationCount,
+  startOptimizationV2,
+  completeOptimization,
+  cancelOptimization,
+  failOptimization,
+  applyOptimization,
+  setRunStatus,
+  getReputationStatsV2,
 } from "../lib/reputation-optimizer.js";
 
 function _dbFromCtx(ctx) {
@@ -344,6 +360,251 @@ export function registerReputationCommand(program) {
         console.log(JSON.stringify(values, null, 2));
       } else {
         for (const v of values) logger.log(`  ${chalk.cyan(v)}`);
+      }
+    });
+
+  /* ── V2 (Phase 60) ───────────────────────────────────────── */
+
+  rep
+    .command("run-statuses")
+    .description(
+      "List V2 run statuses (running/complete/applied/failed/cancelled)",
+    )
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const values = Object.values(RUN_STATUS_V2);
+      if (options.json) console.log(JSON.stringify(values, null, 2));
+      else for (const v of values) logger.log(`  ${chalk.cyan(v)}`);
+    });
+
+  rep
+    .command("v2-objectives")
+    .description("List V2 objectives (frozen enum)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const values = Object.values(OBJECTIVE_V2);
+      if (options.json) console.log(JSON.stringify(values, null, 2));
+      else for (const v of values) logger.log(`  ${chalk.cyan(v)}`);
+    });
+
+  rep
+    .command("decay-models")
+    .description("List V2 decay models (frozen enum)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const values = Object.values(DECAY_MODEL_V2);
+      if (options.json) console.log(JSON.stringify(values, null, 2));
+      else for (const v of values) logger.log(`  ${chalk.cyan(v)}`);
+    });
+
+  rep
+    .command("anomaly-methods")
+    .description("List V2 anomaly methods (frozen enum)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const values = Object.values(ANOMALY_METHOD_V2);
+      if (options.json) console.log(JSON.stringify(values, null, 2));
+      else for (const v of values) logger.log(`  ${chalk.cyan(v)}`);
+    });
+
+  rep
+    .command("default-max-concurrent")
+    .description("Show default max concurrent optimizations")
+    .action(() => {
+      logger.log(`  ${REPUTATION_DEFAULT_MAX_CONCURRENT}`);
+    });
+
+  rep
+    .command("max-concurrent")
+    .description("Show current max concurrent optimizations")
+    .action(() => {
+      logger.log(`  ${getMaxConcurrentOptimizations()}`);
+    });
+
+  rep
+    .command("active-optimization-count")
+    .description("Show count of currently-RUNNING optimizations")
+    .action(() => {
+      logger.log(`  ${getActiveOptimizationCount()}`);
+    });
+
+  rep
+    .command("set-max-concurrent <n>")
+    .description("Set the concurrency cap for RUNNING optimizations")
+    .action((n) => {
+      try {
+        const v = setMaxConcurrentOptimizations(Number(n));
+        logger.success(`Max concurrent = ${v}`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  rep
+    .command("start-v2")
+    .description(
+      "Start a V2 optimization (RUNNING only, driven by complete/cancel/fail)",
+    )
+    .option(
+      "-o, --objective <name>",
+      "Objective (accuracy|fairness|resilience|convergence_speed)",
+      "accuracy",
+    )
+    .option("-i, --iterations <n>", "Iteration count", parseInt, 50)
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = _dbFromCtx(ctx);
+        const run = startOptimizationV2(db, {
+          objective: options.objective,
+          iterations: options.iterations,
+        });
+        if (options.json) console.log(JSON.stringify(run, null, 2));
+        else {
+          logger.success(`Optimization started [${run.status}]`);
+          logger.log(`  ${chalk.bold("Run ID:")}     ${chalk.cyan(run.runId)}`);
+          logger.log(`  ${chalk.bold("Objective:")}  ${run.objective}`);
+          logger.log(`  ${chalk.bold("Iterations:")} ${run.iterations}`);
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  rep
+    .command("complete <run-id>")
+    .description(
+      "Complete a V2 optimization (RUNNING → COMPLETE, runs iterations)",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (runId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = _dbFromCtx(ctx);
+        const result = completeOptimization(db, runId);
+        if (options.json) console.log(JSON.stringify(result, null, 2));
+        else {
+          logger.success(`Completed [${result.status}]`);
+          logger.log(`  ${chalk.bold("Best score:")}  ${result.bestScore}`);
+          logger.log(
+            `  ${chalk.bold("Best params:")} ${JSON.stringify(result.bestParams)}`,
+          );
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  rep
+    .command("cancel <run-id>")
+    .description("Cancel a V2 RUNNING optimization")
+    .action(async (runId) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = _dbFromCtx(ctx);
+        const result = cancelOptimization(db, runId);
+        logger.success(`Cancelled [${result.status}]`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  rep
+    .command("fail <run-id>")
+    .description("Fail a V2 RUNNING optimization")
+    .option("--message <msg>", "Error message")
+    .action(async (runId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = _dbFromCtx(ctx);
+        const result = failOptimization(db, runId, options.message);
+        logger.success(`Failed [${result.status}]`);
+        if (result.errorMessage)
+          logger.log(`  ${chalk.bold("Error:")} ${result.errorMessage}`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  rep
+    .command("apply-v2 <run-id>")
+    .description("Apply a V2 COMPLETE optimization (COMPLETE → APPLIED)")
+    .action(async (runId) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = _dbFromCtx(ctx);
+        const result = applyOptimization(db, runId);
+        logger.success(`Applied [${result.status}]`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  rep
+    .command("set-status <run-id> <status>")
+    .description("Set V2 run status via the state machine")
+    .option("--message <msg>", "Error message (FAILED only)")
+    .option("--json", "Output as JSON")
+    .action(async (runId, status, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = _dbFromCtx(ctx);
+        const patch = options.message ? { errorMessage: options.message } : {};
+        const result = setRunStatus(db, runId, status, patch);
+        if (options.json) console.log(JSON.stringify(result, null, 2));
+        else logger.success(`Status = ${result.status}`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  rep
+    .command("stats-v2")
+    .description("V2 aggregated stats")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        _dbFromCtx(ctx);
+        const stats = getReputationStatsV2();
+        if (options.json) console.log(JSON.stringify(stats, null, 2));
+        else {
+          logger.log(`  ${chalk.bold("Total runs:")}   ${stats.totalRuns}`);
+          logger.log(`  ${chalk.bold("Active:")}       ${stats.activeRuns}`);
+          logger.log(
+            `  ${chalk.bold("Max concurrent:")} ${stats.maxConcurrentOptimizations}`,
+          );
+          logger.log(`  ${chalk.bold("By status:")}`);
+          for (const [k, v] of Object.entries(stats.byStatus))
+            logger.log(`    ${k.padEnd(12)} ${v}`);
+          logger.log(`  ${chalk.bold("By objective:")}`);
+          for (const [k, v] of Object.entries(stats.byObjective))
+            logger.log(`    ${k.padEnd(20)} ${v}`);
+          logger.log(
+            `  ${chalk.bold("Observations:")} ${stats.observations.totalObservations} (${stats.observations.totalDids} DIDs)`,
+          );
+          logger.log(
+            `  ${chalk.bold("Best score ever:")} ${stats.bestScoreEver}`,
+          );
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
       }
     });
 }

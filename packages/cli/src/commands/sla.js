@@ -21,6 +21,25 @@ import {
   generateReport,
   SLA_TERMS,
   VIOLATION_SEVERITY,
+  // V2
+  SLA_STATUS_V2,
+  SLA_TIER_V2,
+  SLA_TERM_V2,
+  VIOLATION_SEVERITY_V2,
+  VIOLATION_STATUS_V2,
+  SLA_DEFAULT_MAX_ACTIVE_PER_ORG,
+  setMaxActiveSlasPerOrg,
+  getMaxActiveSlasPerOrg,
+  getActiveSlaCountForOrg,
+  createSLAV2,
+  setSLAStatus,
+  expireSLA,
+  autoExpireSLAs,
+  setViolationStatus,
+  acknowledgeViolation,
+  resolveViolation,
+  waiveViolation,
+  getSLAStatsV2,
 } from "../lib/sla-manager.js";
 
 function _dbFromCtx(ctx) {
@@ -348,5 +367,245 @@ export function registerSlaCommand(program) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
       }
+    });
+
+  // ---------- V2 (Phase 61) ----------
+  const withDb = async (fn) => {
+    const ctx = await bootstrap({ verbose: program.opts().verbose });
+    if (!ctx.db) {
+      logger.error("Database not available");
+      process.exit(1);
+    }
+    try {
+      const db = ctx.db.getDatabase();
+      ensureSlaTables(db);
+      return await fn(db);
+    } finally {
+      await shutdown();
+    }
+  };
+
+  sla
+    .command("statuses")
+    .description("List SLA_STATUS_V2 values")
+    .action(() => {
+      console.log(JSON.stringify(Object.values(SLA_STATUS_V2), null, 2));
+    });
+
+  sla
+    .command("tier-names")
+    .description("List SLA_TIER_V2 values")
+    .action(() => {
+      console.log(JSON.stringify(Object.values(SLA_TIER_V2), null, 2));
+    });
+
+  sla
+    .command("term-names")
+    .description("List SLA_TERM_V2 values")
+    .action(() => {
+      console.log(JSON.stringify(Object.values(SLA_TERM_V2), null, 2));
+    });
+
+  sla
+    .command("severities")
+    .description("List VIOLATION_SEVERITY_V2 values")
+    .action(() => {
+      console.log(
+        JSON.stringify(Object.values(VIOLATION_SEVERITY_V2), null, 2),
+      );
+    });
+
+  sla
+    .command("violation-statuses")
+    .description("List VIOLATION_STATUS_V2 values")
+    .action(() => {
+      console.log(JSON.stringify(Object.values(VIOLATION_STATUS_V2), null, 2));
+    });
+
+  sla
+    .command("default-max-active")
+    .description("Show SLA_DEFAULT_MAX_ACTIVE_PER_ORG")
+    .action(() => {
+      console.log(SLA_DEFAULT_MAX_ACTIVE_PER_ORG);
+    });
+
+  sla
+    .command("max-active")
+    .description("Show current max active SLAs per org")
+    .action(() => {
+      console.log(getMaxActiveSlasPerOrg());
+    });
+
+  sla
+    .command("set-max-active <n>")
+    .description("Set per-org active-contract admission cap")
+    .action((n) => {
+      try {
+        const v = setMaxActiveSlasPerOrg(Number(n));
+        logger.success(`maxActiveSlasPerOrg=${v}`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  sla
+    .command("active-count <org-id>")
+    .description("Show active SLA count for an org")
+    .action((orgId) => {
+      console.log(getActiveSlaCountForOrg(orgId));
+    });
+
+  sla
+    .command("create-v2 <org-id>")
+    .description("Create a V2 SLA contract (enforces per-org active cap)")
+    .option("-t, --tier <tier>", "gold|silver|bronze", "silver")
+    .option("-d, --duration <ms>", "Contract duration in ms", parseInt)
+    .option("-f, --fee <amount>", "Monthly fee", parseFloat)
+    .option("--json", "Output as JSON")
+    .action(async (orgId, options) => {
+      try {
+        await withDb((db) => {
+          const c = createSLAV2(db, {
+            orgId,
+            tier: options.tier,
+            duration: options.duration,
+            monthlyFee: options.fee,
+          });
+          if (options.json) {
+            console.log(JSON.stringify(c, null, 2));
+          } else {
+            logger.success(
+              `Created ${c.slaId.slice(0, 8)} [${c.tier}] → ${c.status}`,
+            );
+          }
+        });
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  sla
+    .command("set-status <sla-id> <status>")
+    .description("Transition SLA to a given status (state-machine guarded)")
+    .action(async (slaId, status) => {
+      try {
+        await withDb((db) => {
+          const c = setSLAStatus(db, slaId, status);
+          logger.success(`${c.slaId.slice(0, 8)} → ${c.status}`);
+        });
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  sla
+    .command("expire <sla-id>")
+    .description("Expire an SLA (shortcut for set-status ... expired)")
+    .action(async (slaId) => {
+      try {
+        await withDb((db) => {
+          const c = expireSLA(db, slaId);
+          logger.success(`${c.slaId.slice(0, 8)} → ${c.status}`);
+        });
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  sla
+    .command("auto-expire")
+    .description("Bulk-flip ACTIVE contracts past endDate to EXPIRED")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        await withDb((db) => {
+          const flipped = autoExpireSLAs(db);
+          if (options.json) {
+            console.log(JSON.stringify(flipped, null, 2));
+          } else {
+            logger.success(`Auto-expired ${flipped.length} contract(s)`);
+          }
+        });
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  sla
+    .command("set-violation-status <violation-id> <status>")
+    .description("Transition a violation (open→{acknowledged,resolved,waived})")
+    .option("--note <note>", "Attach a note")
+    .action(async (violationId, status, options) => {
+      try {
+        await withDb((db) => {
+          const v = setViolationStatus(db, violationId, status, {
+            note: options.note,
+          });
+          logger.success(`${v.violationId.slice(0, 8)} → ${v.v2Status}`);
+        });
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  sla
+    .command("acknowledge-violation <violation-id>")
+    .description("Acknowledge a violation")
+    .option("--note <note>", "Attach a note")
+    .action(async (violationId, options) => {
+      try {
+        await withDb((db) => {
+          const v = acknowledgeViolation(db, violationId, options.note);
+          logger.success(`${v.violationId.slice(0, 8)} → ${v.v2Status}`);
+        });
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  sla
+    .command("resolve-violation <violation-id>")
+    .description("Resolve a violation")
+    .option("--note <note>", "Attach a note")
+    .action(async (violationId, options) => {
+      try {
+        await withDb((db) => {
+          const v = resolveViolation(db, violationId, options.note);
+          logger.success(`${v.violationId.slice(0, 8)} → ${v.v2Status}`);
+        });
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  sla
+    .command("waive-violation <violation-id>")
+    .description("Waive a violation")
+    .option("--note <note>", "Attach a note")
+    .action(async (violationId, options) => {
+      try {
+        await withDb((db) => {
+          const v = waiveViolation(db, violationId, options.note);
+          logger.success(`${v.violationId.slice(0, 8)} → ${v.v2Status}`);
+        });
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  sla
+    .command("stats-v2")
+    .description("Show aggregate V2 SLA stats (byStatus/byTier/violations)")
+    .action(() => {
+      console.log(JSON.stringify(getSLAStatsV2(), null, 2));
     });
 }

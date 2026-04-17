@@ -572,4 +572,431 @@ export function _resetState() {
   _models.clear();
   _computations.clear();
   _privacyBudget = { spent: 0, limit: DEFAULT_CONFIG.maxBudget };
+  _maxActiveMpcComputations = PRIVACY_DEFAULT_MAX_ACTIVE_MPC_COMPUTATIONS;
+}
+
+/* ──────────────────────────────────────────────────────────
+ *  V2 — Phase 91 surface (strictly additive)
+ * ────────────────────────────────────────────────────────── */
+
+export const FL_STATUS_V2 = FL_STATUS;
+
+export const MPC_STATUS_V2 = Object.freeze({
+  PENDING: "pending",
+  COMPUTING: "computing",
+  COMPLETED: "completed",
+  FAILED: "failed",
+});
+
+export const DP_MECHANISM_V2 = Object.freeze({
+  LAPLACE: "laplace",
+  GAUSSIAN: "gaussian",
+  EXPONENTIAL: "exponential",
+});
+
+export const HE_SCHEME_V2 = Object.freeze({
+  PAILLIER: "paillier",
+  BFV: "bfv",
+  CKKS: "ckks",
+});
+
+export const MPC_PROTOCOL_V2 = Object.freeze({
+  SHAMIR: "shamir",
+  BEAVER: "beaver",
+  GMW: "gmw",
+});
+
+export const PRIVACY_DEFAULT_MAX_ACTIVE_MPC_COMPUTATIONS = 20;
+
+let _maxActiveMpcComputations = PRIVACY_DEFAULT_MAX_ACTIVE_MPC_COMPUTATIONS;
+
+const FL_TRANSITIONS_V2 = new Map([
+  ["initializing", new Set(["training", "failed"])],
+  ["training", new Set(["aggregating", "failed"])],
+  ["aggregating", new Set(["training", "completed", "failed"])],
+]);
+const FL_TERMINALS_V2 = new Set(["completed", "failed"]);
+
+const MPC_TRANSITIONS_V2 = new Map([
+  ["pending", new Set(["computing", "failed"])],
+  ["computing", new Set(["completed", "failed"])],
+]);
+const MPC_TERMINALS_V2 = new Set(["completed", "failed"]);
+
+/* ── Config ────────────────────────────────────────────── */
+
+export function setMaxActiveMpcComputations(n) {
+  if (typeof n !== "number" || Number.isNaN(n) || n < 1) {
+    throw new Error("maxActiveMpcComputations must be a positive integer");
+  }
+  _maxActiveMpcComputations = Math.floor(n);
+}
+
+export function getMaxActiveMpcComputations() {
+  return _maxActiveMpcComputations;
+}
+
+export function getActiveMpcCount() {
+  let count = 0;
+  for (const c of _computations.values()) {
+    if (c.status === "pending" || c.status === "computing") count += 1;
+  }
+  return count;
+}
+
+export function setPrivacyBudgetLimit(n) {
+  if (typeof n !== "number" || Number.isNaN(n) || n <= 0) {
+    throw new Error("privacyBudgetLimit must be a positive number");
+  }
+  _privacyBudget.limit = n;
+}
+
+export function getPrivacyBudgetLimit() {
+  return _privacyBudget.limit;
+}
+
+export function getPrivacyBudgetSpent() {
+  return _privacyBudget.spent;
+}
+
+export function resetPrivacyBudget() {
+  _privacyBudget.spent = 0;
+}
+
+/* ── Federated Learning V2 ─────────────────────────────── */
+
+export function createModelV2(
+  db,
+  {
+    name,
+    modelType,
+    architecture,
+    totalRounds,
+    learningRate,
+    participants,
+  } = {},
+) {
+  if (!name) throw new Error("name is required");
+  const rounds = totalRounds ?? 10;
+  if (typeof rounds !== "number" || Number.isNaN(rounds) || rounds < 1) {
+    throw new Error("totalRounds must be a positive integer");
+  }
+  const legacy = createModel(db, name, {
+    modelType,
+    architecture,
+    totalRounds: rounds,
+    learningRate,
+    participants,
+  });
+  const m = _models.get(legacy.modelId);
+  return { ...m };
+}
+
+export function trainRoundV2(db, modelId) {
+  const m = _models.get(modelId);
+  if (!m) throw new Error(`Unknown model: ${modelId}`);
+  if (m.status === "initializing") m.status = "training";
+  if (m.status !== "training") {
+    throw new Error(
+      `Invalid transition: ${m.status} (must be training/initializing)`,
+    );
+  }
+
+  m.current_round += 1;
+  const baseAcc = 0.5;
+  const progress = m.current_round / m.total_rounds;
+  m.accuracy = Math.round((baseAcc + progress * 0.45) * 1000) / 1000;
+  m.loss = Math.round((1 - m.accuracy) * 0.5 * 1000) / 1000;
+  m.privacy_budget_spent += DEFAULT_CONFIG.defaultEpsilon * 0.1;
+  _privacyBudget.spent += DEFAULT_CONFIG.defaultEpsilon * 0.1;
+  m.updated_at = _now();
+
+  db.prepare(
+    `UPDATE fl_models SET status = ?, current_round = ?, accuracy = ?, loss = ?,
+     privacy_budget_spent = ?, updated_at = ? WHERE id = ?`,
+  ).run(
+    m.status,
+    m.current_round,
+    m.accuracy,
+    m.loss,
+    m.privacy_budget_spent,
+    m.updated_at,
+    modelId,
+  );
+
+  return { ...m };
+}
+
+export function aggregateRound(db, modelId) {
+  const m = _models.get(modelId);
+  if (!m) throw new Error(`Unknown model: ${modelId}`);
+  if (m.status !== "training") {
+    throw new Error(
+      `Invalid transition: ${m.status} → aggregating (must be training)`,
+    );
+  }
+  m.status = "aggregating";
+  m.updated_at = _now();
+  db.prepare(
+    "UPDATE fl_models SET status = ?, updated_at = ? WHERE id = ?",
+  ).run("aggregating", m.updated_at, modelId);
+
+  if (m.current_round >= m.total_rounds) {
+    m.status = "completed";
+    db.prepare(
+      "UPDATE fl_models SET status = ?, updated_at = ? WHERE id = ?",
+    ).run("completed", _now(), modelId);
+  } else {
+    m.status = "training";
+    db.prepare(
+      "UPDATE fl_models SET status = ?, updated_at = ? WHERE id = ?",
+    ).run("training", _now(), modelId);
+  }
+  return { ...m };
+}
+
+export function failModelV2(db, modelId, { error } = {}) {
+  const m = _models.get(modelId);
+  if (!m) throw new Error(`Unknown model: ${modelId}`);
+  if (FL_TERMINALS_V2.has(m.status)) {
+    throw new Error(`Invalid transition: ${m.status} → failed (terminal)`);
+  }
+  m.status = "failed";
+  m.error_message = error || null;
+  m.updated_at = _now();
+  db.prepare(
+    "UPDATE fl_models SET status = ?, updated_at = ? WHERE id = ?",
+  ).run("failed", m.updated_at, modelId);
+  return { ...m };
+}
+
+export function setFLStatusV2(db, modelId, newStatus, patch = {}) {
+  const m = _models.get(modelId);
+  if (!m) throw new Error(`Unknown model: ${modelId}`);
+  if (!Object.values(FL_STATUS).includes(newStatus)) {
+    throw new Error(`Unknown FL status: ${newStatus}`);
+  }
+  const allowed = FL_TRANSITIONS_V2.get(m.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${m.status} → ${newStatus}`);
+  }
+  m.status = newStatus;
+  if (patch.errorMessage !== undefined) m.error_message = patch.errorMessage;
+  if (patch.accuracy !== undefined) m.accuracy = patch.accuracy;
+  if (patch.loss !== undefined) m.loss = patch.loss;
+  m.updated_at = _now();
+  db.prepare(
+    `UPDATE fl_models SET status = ?, accuracy = ?, loss = ?, updated_at = ? WHERE id = ?`,
+  ).run(newStatus, m.accuracy, m.loss, m.updated_at, modelId);
+  return { ...m };
+}
+
+/* ── MPC V2 ────────────────────────────────────────────── */
+
+export function createComputationV2(
+  db,
+  { computationType, protocol, participantIds, sharesRequired } = {},
+) {
+  if (!computationType) throw new Error("computationType is required");
+  const proto = protocol || "shamir";
+  if (!Object.values(MPC_PROTOCOL_V2).includes(proto)) {
+    throw new Error(`Invalid protocol: ${proto}`);
+  }
+  const ids = participantIds || [];
+  if (!Array.isArray(ids) || ids.length === 0) {
+    throw new Error("participantIds must be a non-empty array");
+  }
+  const activeCount = getActiveMpcCount();
+  if (activeCount >= _maxActiveMpcComputations) {
+    throw new Error(
+      `Max active MPC computations reached (${activeCount}/${_maxActiveMpcComputations})`,
+    );
+  }
+  const legacy = createComputation(db, computationType, {
+    protocol: proto,
+    participantIds: ids,
+    sharesRequired,
+  });
+  const c = _computations.get(legacy.computationId);
+  return { ...c };
+}
+
+export function submitShareV2(db, computationId) {
+  const c = _computations.get(computationId);
+  if (!c) throw new Error(`Unknown computation: ${computationId}`);
+  if (MPC_TERMINALS_V2.has(c.status)) {
+    throw new Error(
+      `Invalid transition: cannot submit share to terminal (${c.status})`,
+    );
+  }
+  c.shares_received += 1;
+  if (c.status === "pending") c.status = "computing";
+
+  if (c.shares_received >= c.shares_required) {
+    c.status = "completed";
+    c.completed_at = _now();
+    c.computation_time_ms = c.completed_at - c.created_at;
+    c.result_hash = crypto
+      .createHash("sha256")
+      .update(`result-${c.id}`)
+      .digest("hex")
+      .slice(0, 16);
+  }
+
+  db.prepare(
+    `UPDATE mpc_computations SET shares_received = ?, status = ?, completed_at = ?,
+     computation_time_ms = ?, result_hash = ? WHERE id = ?`,
+  ).run(
+    c.shares_received,
+    c.status,
+    c.completed_at,
+    c.computation_time_ms,
+    c.result_hash,
+    computationId,
+  );
+
+  return { ...c };
+}
+
+export function failComputation(db, computationId, { error } = {}) {
+  const c = _computations.get(computationId);
+  if (!c) throw new Error(`Unknown computation: ${computationId}`);
+  if (MPC_TERMINALS_V2.has(c.status)) {
+    throw new Error(`Invalid transition: ${c.status} → failed (terminal)`);
+  }
+  c.status = "failed";
+  c.error_message = error || null;
+  c.completed_at = _now();
+  db.prepare(
+    `UPDATE mpc_computations SET status = ?, error_message = ?, completed_at = ? WHERE id = ?`,
+  ).run("failed", c.error_message, c.completed_at, computationId);
+  return { ...c };
+}
+
+export function setMPCStatusV2(db, computationId, newStatus, patch = {}) {
+  const c = _computations.get(computationId);
+  if (!c) throw new Error(`Unknown computation: ${computationId}`);
+  if (!Object.values(MPC_STATUS_V2).includes(newStatus)) {
+    throw new Error(`Unknown MPC status: ${newStatus}`);
+  }
+  const allowed = MPC_TRANSITIONS_V2.get(c.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${c.status} → ${newStatus}`);
+  }
+  c.status = newStatus;
+  if (patch.errorMessage !== undefined) c.error_message = patch.errorMessage;
+  if (patch.resultHash !== undefined) c.result_hash = patch.resultHash;
+  if (MPC_TERMINALS_V2.has(newStatus)) {
+    c.completed_at = c.completed_at || _now();
+    if (c.computation_time_ms == null) {
+      c.computation_time_ms = c.completed_at - c.created_at;
+    }
+  }
+  db.prepare(
+    `UPDATE mpc_computations SET status = ?, error_message = ?, result_hash = ?,
+     completed_at = ?, computation_time_ms = ? WHERE id = ?`,
+  ).run(
+    newStatus,
+    c.error_message,
+    c.result_hash,
+    c.completed_at,
+    c.computation_time_ms,
+    computationId,
+  );
+  return { ...c };
+}
+
+/* ── DP / HE V2 ────────────────────────────────────────── */
+
+export function dpPublishV2(
+  db,
+  { data, epsilon, delta, mechanism, sensitivity } = {},
+) {
+  const eps = epsilon ?? DEFAULT_CONFIG.defaultEpsilon;
+  const mech = mechanism || "laplace";
+  if (!Object.values(DP_MECHANISM_V2).includes(mech)) {
+    throw new Error(`Invalid DP mechanism: ${mech}`);
+  }
+  if (typeof eps !== "number" || Number.isNaN(eps) || eps <= 0) {
+    throw new Error("epsilon must be a positive number");
+  }
+  if (_privacyBudget.spent + eps > _privacyBudget.limit) {
+    throw new Error(
+      `Privacy budget exceeded (${_privacyBudget.spent + eps} > ${_privacyBudget.limit})`,
+    );
+  }
+  return dpPublish(db, {
+    data,
+    epsilon: eps,
+    delta,
+    mechanism: mech,
+    sensitivity,
+  });
+}
+
+export function heQueryV2({ data, operation, scheme } = {}) {
+  const sch = scheme || "paillier";
+  if (!Object.values(HE_SCHEME_V2).includes(sch)) {
+    throw new Error(`Invalid HE scheme: ${sch}`);
+  }
+  const validOps = ["sum", "product", "mean", "count"];
+  if (!validOps.includes(operation)) {
+    throw new Error(`Invalid HE operation: ${operation}`);
+  }
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error("data must be a non-empty array");
+  }
+  return heQuery({ data, operation, scheme: sch });
+}
+
+/* ── V2 Stats ──────────────────────────────────────────── */
+
+export function getPrivacyStatsV2() {
+  const flByStatus = {};
+  for (const s of Object.values(FL_STATUS)) flByStatus[s] = 0;
+  const mpcByStatus = {};
+  for (const s of Object.values(MPC_STATUS_V2)) mpcByStatus[s] = 0;
+  const mpcByProtocol = {};
+  for (const p of Object.values(MPC_PROTOCOL_V2)) mpcByProtocol[p] = 0;
+
+  let accSum = 0;
+  let accCount = 0;
+  for (const m of _models.values()) {
+    flByStatus[m.status] = (flByStatus[m.status] || 0) + 1;
+    if (m.status === "completed" && typeof m.accuracy === "number") {
+      accSum += m.accuracy;
+      accCount += 1;
+    }
+  }
+
+  let timeSum = 0;
+  let timeCount = 0;
+  for (const c of _computations.values()) {
+    mpcByStatus[c.status] = (mpcByStatus[c.status] || 0) + 1;
+    mpcByProtocol[c.protocol] = (mpcByProtocol[c.protocol] || 0) + 1;
+    if (c.status === "completed" && typeof c.computation_time_ms === "number") {
+      timeSum += c.computation_time_ms;
+      timeCount += 1;
+    }
+  }
+
+  return {
+    totalModels: _models.size,
+    totalComputations: _computations.size,
+    activeMpcCount: getActiveMpcCount(),
+    maxActiveMpcComputations: _maxActiveMpcComputations,
+    flByStatus,
+    mpcByStatus,
+    mpcByProtocol,
+    budget: {
+      spent: Math.round(_privacyBudget.spent * 1000) / 1000,
+      limit: _privacyBudget.limit,
+      remaining:
+        Math.round((_privacyBudget.limit - _privacyBudget.spent) * 1000) / 1000,
+      exhausted: _privacyBudget.spent >= _privacyBudget.limit,
+    },
+    avgAccuracy:
+      accCount > 0 ? Math.round((accSum / accCount) * 1000) / 1000 : 0,
+    avgComputationTimeMs: timeCount > 0 ? Math.round(timeSum / timeCount) : 0,
+  };
 }

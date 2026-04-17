@@ -13,6 +13,29 @@ import {
   subscribeToTask,
   TASK_STATUS,
   _subscriptions,
+  // V2 (Phase 81)
+  TASK_STATUS_V2,
+  CARD_STATUS_V2,
+  SUBSCRIPTION_TYPE,
+  NEGOTIATION_RESULT,
+  validateAgentCard,
+  setCardStatus,
+  getCardStatusV2,
+  sendTaskV2,
+  startWorking,
+  requestInput,
+  provideInput,
+  completeTaskV2,
+  failTaskV2,
+  cancelTask,
+  checkTaskTimeout,
+  getTaskV2,
+  listTasksV2,
+  subscribeTyped,
+  negotiateCapabilityV2,
+  getA2AStatsV2,
+  _resetV2State,
+  _v2Tasks,
 } from "../../src/lib/a2a-protocol.js";
 
 // ─── Mock DB ─────────────────────────────────────────────────────
@@ -109,6 +132,7 @@ describe("a2a-protocol", () => {
   beforeEach(() => {
     db = createMockDb();
     _subscriptions.clear();
+    _resetV2State();
   });
 
   // ─── ensureA2ATables ──────────────────────────────────────────
@@ -389,6 +413,381 @@ describe("a2a-protocol", () => {
       expect(TASK_STATUS.COMPLETED).toBe("completed");
       expect(TASK_STATUS.FAILED).toBe("failed");
       expect(TASK_STATUS.INPUT_REQUIRED).toBe("input-required");
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // Phase 81 — A2A Protocol V2
+  // ═══════════════════════════════════════════════════════════════
+
+  describe("V2 frozen enums", () => {
+    it("TASK_STATUS_V2 has 6 statuses including canceled", () => {
+      expect(TASK_STATUS_V2.SUBMITTED).toBe("submitted");
+      expect(TASK_STATUS_V2.WORKING).toBe("working");
+      expect(TASK_STATUS_V2.INPUT_REQUIRED).toBe("input-required");
+      expect(TASK_STATUS_V2.COMPLETED).toBe("completed");
+      expect(TASK_STATUS_V2.FAILED).toBe("failed");
+      expect(TASK_STATUS_V2.CANCELED).toBe("canceled");
+      expect(() => (TASK_STATUS_V2.NEW = "x")).toThrow();
+    });
+    it("CARD_STATUS_V2 / SUBSCRIPTION_TYPE / NEGOTIATION_RESULT frozen", () => {
+      expect(CARD_STATUS_V2.ACTIVE).toBe("active");
+      expect(CARD_STATUS_V2.INACTIVE).toBe("inactive");
+      expect(CARD_STATUS_V2.EXPIRED).toBe("expired");
+      expect(SUBSCRIPTION_TYPE.TASK_UPDATE).toBe("task_update");
+      expect(SUBSCRIPTION_TYPE.AGENT_STATUS).toBe("agent_status");
+      expect(SUBSCRIPTION_TYPE.CAPABILITY_CHANGE).toBe("capability_change");
+      expect(NEGOTIATION_RESULT.COMPATIBLE).toBe("compatible");
+      expect(NEGOTIATION_RESULT.PARTIAL).toBe("partial");
+      expect(NEGOTIATION_RESULT.INCOMPATIBLE).toBe("incompatible");
+    });
+  });
+
+  describe("validateAgentCard", () => {
+    it("passes a minimal valid card", () => {
+      const r = validateAgentCard({ name: "A" });
+      expect(r.valid).toBe(true);
+      expect(r.errors).toEqual([]);
+    });
+    it("rejects missing name", () => {
+      const r = validateAgentCard({});
+      expect(r.valid).toBe(false);
+      expect(r.errors.join(" ")).toContain("name");
+    });
+    it("rejects non-object", () => {
+      expect(validateAgentCard(null).valid).toBe(false);
+      expect(validateAgentCard("x").valid).toBe(false);
+    });
+    it("rejects non-array capabilities", () => {
+      const r = validateAgentCard({ name: "A", capabilities: "chat" });
+      expect(r.valid).toBe(false);
+    });
+    it("rejects bad semver version", () => {
+      expect(validateAgentCard({ name: "A", version: "1.0" }).valid).toBe(
+        false,
+      );
+      expect(validateAgentCard({ name: "A", version: "1.0.0" }).valid).toBe(
+        true,
+      );
+    });
+    it("rejects unknown auth_type", () => {
+      const r = validateAgentCard({ name: "A", auth_type: "kerberos" });
+      expect(r.valid).toBe(false);
+    });
+    it("accepts known auth_type", () => {
+      expect(validateAgentCard({ name: "A", auth_type: "bearer" }).valid).toBe(
+        true,
+      );
+    });
+  });
+
+  describe("setCardStatus state machine", () => {
+    it("active → inactive → expired allowed", () => {
+      setCardStatus(null, "card-1", "inactive");
+      expect(getCardStatusV2("card-1")).toBe("inactive");
+      setCardStatus(null, "card-1", "expired");
+      expect(getCardStatusV2("card-1")).toBe("expired");
+    });
+    it("expired → inactive blocked (must go via active)", () => {
+      setCardStatus(null, "card-1", "inactive");
+      setCardStatus(null, "card-1", "expired");
+      expect(() => setCardStatus(null, "card-1", "inactive")).toThrow(
+        /Invalid card transition/,
+      );
+      setCardStatus(null, "card-1", "active");
+      setCardStatus(null, "card-1", "inactive");
+    });
+    it("invalid status rejected", () => {
+      expect(() => setCardStatus(null, "c", "bogus")).toThrow(
+        /Invalid card status/,
+      );
+    });
+    it("missing cardId rejected", () => {
+      expect(() => setCardStatus(null, null, "inactive")).toThrow();
+    });
+    it("defaults to 'active' for untracked cards", () => {
+      expect(getCardStatusV2("never-seen")).toBe("active");
+    });
+  });
+
+  describe("sendTaskV2 + startWorking + completeTaskV2", () => {
+    it("submits a task with submitted status", () => {
+      const r = sendTaskV2(null, { agentId: "a1", input: "hi" });
+      expect(r.taskId).toMatch(/^task-/);
+      expect(r.status).toBe("submitted");
+      expect(r.deadline).toBeNull();
+    });
+    it("applies timeoutMs as deadline", () => {
+      const r = sendTaskV2(null, { agentId: "a", input: "x", timeoutMs: 5000 });
+      expect(r.deadline).toBeGreaterThan(Date.now());
+    });
+    it("submitted → working → completed", () => {
+      const { taskId } = sendTaskV2(null, { agentId: "a", input: "hi" });
+      startWorking(null, taskId);
+      completeTaskV2(null, taskId, "done");
+      expect(getTaskV2(taskId).status).toBe("completed");
+      expect(getTaskV2(taskId).output).toBe("done");
+    });
+    it("rejects submitted → completed (must go via working)", () => {
+      const { taskId } = sendTaskV2(null, { agentId: "a", input: "hi" });
+      expect(() => completeTaskV2(null, taskId, "x")).toThrow(
+        /Invalid task transition/,
+      );
+    });
+    it("rejects starting work on completed task", () => {
+      const { taskId } = sendTaskV2(null, { agentId: "a", input: "hi" });
+      startWorking(null, taskId);
+      completeTaskV2(null, taskId, "ok");
+      expect(() => startWorking(null, taskId)).toThrow(
+        /Invalid task transition/,
+      );
+    });
+    it("throws on missing agentId or input", () => {
+      expect(() => sendTaskV2(null, { input: "x" })).toThrow();
+      expect(() => sendTaskV2(null, { agentId: "a" })).toThrow();
+    });
+  });
+
+  describe("requestInput / provideInput", () => {
+    it("working → input-required stores prompt", () => {
+      const { taskId } = sendTaskV2(null, { agentId: "a", input: "x" });
+      startWorking(null, taskId);
+      requestInput(null, taskId, "What model?");
+      expect(getTaskV2(taskId).status).toBe("input-required");
+      expect(getTaskV2(taskId).inputPrompt).toBe("What model?");
+    });
+    it("provideInput → working and clears prompt", () => {
+      const { taskId } = sendTaskV2(null, { agentId: "a", input: "x" });
+      startWorking(null, taskId);
+      requestInput(null, taskId, "Which?");
+      provideInput(null, taskId, "gpt4");
+      expect(getTaskV2(taskId).status).toBe("working");
+      expect(getTaskV2(taskId).inputPrompt).toBeNull();
+    });
+    it("provideInput on non-input-required throws", () => {
+      const { taskId } = sendTaskV2(null, { agentId: "a", input: "x" });
+      expect(() => provideInput(null, taskId, "y")).toThrow(
+        /requires status input-required/,
+      );
+    });
+    it("requestInput requires non-empty prompt", () => {
+      const { taskId } = sendTaskV2(null, { agentId: "a", input: "x" });
+      startWorking(null, taskId);
+      expect(() => requestInput(null, taskId, "")).toThrow(
+        /Prompt is required/,
+      );
+    });
+  });
+
+  describe("cancelTask + failTaskV2", () => {
+    it("cancels from submitted", () => {
+      const { taskId } = sendTaskV2(null, { agentId: "a", input: "x" });
+      cancelTask(null, taskId, "user aborted");
+      expect(getTaskV2(taskId).status).toBe("canceled");
+      expect(getTaskV2(taskId).cancelReason).toBe("user aborted");
+    });
+    it("cancels from working", () => {
+      const { taskId } = sendTaskV2(null, { agentId: "a", input: "x" });
+      startWorking(null, taskId);
+      cancelTask(null, taskId);
+      expect(getTaskV2(taskId).cancelReason).toBe("user_requested");
+    });
+    it("cannot cancel terminal tasks", () => {
+      const { taskId } = sendTaskV2(null, { agentId: "a", input: "x" });
+      startWorking(null, taskId);
+      failTaskV2(null, taskId, "err");
+      expect(() => cancelTask(null, taskId)).toThrow(/Invalid task transition/);
+    });
+    it("failTaskV2 from working records error + rejects terminal re-fail", () => {
+      const { taskId } = sendTaskV2(null, { agentId: "a", input: "x" });
+      startWorking(null, taskId);
+      failTaskV2(null, taskId, "boom");
+      expect(getTaskV2(taskId).status).toBe("failed");
+      expect(getTaskV2(taskId).error).toBe("boom");
+      expect(() => failTaskV2(null, taskId, "again")).toThrow(
+        /Invalid task transition/,
+      );
+    });
+    it("failTaskV2 allowed from submitted (timeout path)", () => {
+      const { taskId } = sendTaskV2(null, { agentId: "a", input: "x" });
+      failTaskV2(null, taskId, "never-assigned");
+      expect(getTaskV2(taskId).status).toBe("failed");
+    });
+  });
+
+  describe("checkTaskTimeout", () => {
+    it("no deadline → never times out", () => {
+      const { taskId } = sendTaskV2(null, { agentId: "a", input: "x" });
+      expect(checkTaskTimeout(null, taskId).timedOut).toBe(false);
+    });
+    it("past deadline + non-terminal → auto-fails", () => {
+      const { taskId } = sendTaskV2(null, {
+        agentId: "a",
+        input: "x",
+        timeoutMs: 1000,
+      });
+      const r = checkTaskTimeout(null, taskId, Date.now() + 10000);
+      expect(r.timedOut).toBe(true);
+      expect(r.status).toBe("failed");
+      expect(getTaskV2(taskId).error).toBe("timeout");
+    });
+    it("past deadline + terminal → no-op", () => {
+      const { taskId } = sendTaskV2(null, {
+        agentId: "a",
+        input: "x",
+        timeoutMs: 1000,
+      });
+      startWorking(null, taskId);
+      completeTaskV2(null, taskId, "ok");
+      const r = checkTaskTimeout(null, taskId, Date.now() + 10000);
+      expect(r.timedOut).toBe(false);
+      expect(r.status).toBe("completed");
+    });
+  });
+
+  describe("listTasksV2", () => {
+    it("filters by agentId and status", () => {
+      sendTaskV2(null, { agentId: "a1", input: "x" });
+      const t2 = sendTaskV2(null, { agentId: "a2", input: "y" });
+      startWorking(null, t2.taskId);
+      expect(listTasksV2({ agentId: "a1" })).toHaveLength(1);
+      expect(listTasksV2({ status: "working" })).toHaveLength(1);
+      expect(listTasksV2({ agentId: "a2", status: "submitted" })).toHaveLength(
+        0,
+      );
+    });
+  });
+
+  describe("subscribeTyped", () => {
+    it("receives TASK_UPDATE events", () => {
+      const events = [];
+      const unsub = subscribeTyped(
+        SUBSCRIPTION_TYPE.TASK_UPDATE,
+        "task-watch",
+        (e) => events.push(e),
+      );
+      // Pre-register listener then fire via task whose id matches
+      const { taskId } = sendTaskV2(null, { agentId: "a", input: "x" });
+      // Subscribe specifically to that task
+      subscribeTyped(SUBSCRIPTION_TYPE.TASK_UPDATE, taskId, (e) =>
+        events.push(e),
+      );
+      startWorking(null, taskId);
+      expect(
+        events.some((e) => e.taskId === taskId && e.status === "working"),
+      ).toBe(true);
+      unsub();
+    });
+    it("rejects invalid type", () => {
+      expect(() => subscribeTyped("bogus", "r", () => {})).toThrow(
+        /Invalid subscription type/,
+      );
+    });
+    it("unsub returns and cleans up", () => {
+      const unsub = subscribeTyped(
+        SUBSCRIPTION_TYPE.AGENT_STATUS,
+        "a1",
+        () => {},
+      );
+      unsub();
+      // After unsub, map entry should be cleaned up
+      expect(getA2AStatsV2().subscriptions.typed).toBe(0);
+    });
+  });
+
+  describe("negotiateCapabilityV2", () => {
+    const baseCard = {
+      name: "A",
+      capabilities: ["chat", "code", "search"],
+      version: "1.2.0",
+    };
+    it("COMPATIBLE when required + preferred all present + version ok", () => {
+      const r = negotiateCapabilityV2(baseCard, {
+        required: ["chat"],
+        preferred: ["code"],
+        version: "1.1.0",
+      });
+      expect(r.result).toBe("compatible");
+      expect(r.missingRequired).toEqual([]);
+      expect(r.missingPreferred).toEqual([]);
+    });
+    it("PARTIAL when some preferred missing", () => {
+      const r = negotiateCapabilityV2(baseCard, {
+        required: ["chat"],
+        preferred: ["code", "vision"],
+      });
+      expect(r.result).toBe("partial");
+      expect(r.missingPreferred).toEqual(["vision"]);
+      expect(r.supportedPreferred).toEqual(["code"]);
+    });
+    it("INCOMPATIBLE when required missing", () => {
+      const r = negotiateCapabilityV2(baseCard, { required: ["vision"] });
+      expect(r.result).toBe("incompatible");
+      expect(r.missingRequired).toEqual(["vision"]);
+    });
+    it("INCOMPATIBLE when major version mismatch", () => {
+      const r = negotiateCapabilityV2(baseCard, {
+        required: ["chat"],
+        version: "2.0.0",
+      });
+      expect(r.result).toBe("incompatible");
+      expect(r.versionOk).toBe(false);
+    });
+    it("INCOMPATIBLE when client minor > server minor (same major)", () => {
+      const r = negotiateCapabilityV2(baseCard, {
+        required: ["chat"],
+        version: "1.3.0",
+      });
+      expect(r.result).toBe("incompatible");
+      expect(r.versionOk).toBe(false);
+    });
+    it("treats unknown versions as compatible", () => {
+      const r = negotiateCapabilityV2(
+        { ...baseCard, version: undefined },
+        { required: ["chat"], version: "1.0.0" },
+      );
+      expect(r.versionOk).toBe(true);
+    });
+    it("throws on missing agentCard", () => {
+      expect(() => negotiateCapabilityV2(null, {})).toThrow(
+        /agentCard is required/,
+      );
+    });
+  });
+
+  describe("getA2AStatsV2", () => {
+    it("aggregates tasks + cards + subscriptions", () => {
+      sendTaskV2(null, { agentId: "a", input: "x" });
+      const t2 = sendTaskV2(null, { agentId: "b", input: "y" });
+      startWorking(null, t2.taskId);
+      cancelTask(null, t2.taskId, "test");
+      setCardStatus(null, "c-1", "inactive");
+      subscribeTyped(SUBSCRIPTION_TYPE.TASK_UPDATE, "x", () => {});
+      const s = getA2AStatsV2();
+      expect(s.tasks.total).toBe(2);
+      expect(s.tasks.byStatus.submitted).toBe(1);
+      expect(s.tasks.byStatus.canceled).toBe(1);
+      expect(s.tasks.canceledWithReason).toBe(1);
+      expect(s.cards.tracked).toBe(1);
+      expect(s.cards.byStatus.inactive).toBe(1);
+      expect(s.subscriptions.typed).toBe(1);
+    });
+    it("initial stats show zeros", () => {
+      const s = getA2AStatsV2();
+      expect(s.tasks.total).toBe(0);
+      expect(s.cards.tracked).toBe(0);
+    });
+  });
+
+  describe("_resetV2State", () => {
+    it("clears all V2 state", () => {
+      sendTaskV2(null, { agentId: "a", input: "x" });
+      setCardStatus(null, "c", "inactive");
+      subscribeTyped(SUBSCRIPTION_TYPE.TASK_UPDATE, "x", () => {});
+      _resetV2State();
+      expect(_v2Tasks.size).toBe(0);
+      expect(getA2AStatsV2().cards.tracked).toBe(0);
+      expect(getA2AStatsV2().subscriptions.typed).toBe(0);
     });
   });
 });

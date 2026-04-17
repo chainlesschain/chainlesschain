@@ -15,6 +15,21 @@ import {
   detectAnomaly,
   predictTrend,
   listTemplates,
+  // Phase 95 V2
+  CHART_TYPE,
+  ANOMALY_METHOD,
+  REPORT_FORMAT,
+  REPORT_STATUS,
+  DASHBOARD_LAYOUT,
+  nlQueryV2,
+  detectAnomalyV2,
+  predictTrendV2,
+  recommendChart,
+  createDashboardV2,
+  updateReportStatus,
+  getReportStatus,
+  getReportStatusHistory,
+  getBIStatsV2,
 } from "../lib/bi-engine.js";
 
 export function registerBiCommand(program) {
@@ -210,6 +225,339 @@ export function registerBiCommand(program) {
             `  ${chalk.bold("Predictions:")} ${result.predictions.join(", ")}`,
           );
         }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // ─── Phase 95 V2 subcommands ──────────────────────────────
+
+  // bi chart-types
+  bi.command("chart-types")
+    .description("List supported chart types (V2)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const types = Object.values(CHART_TYPE);
+      if (options.json) {
+        console.log(JSON.stringify(types, null, 2));
+      } else {
+        logger.log(chalk.bold("Chart Types:"));
+        for (const t of types) logger.log(`  ${chalk.cyan(t)}`);
+      }
+    });
+
+  // bi anomaly-methods
+  bi.command("anomaly-methods")
+    .description("List supported anomaly detection methods (V2)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const methods = Object.values(ANOMALY_METHOD);
+      if (options.json) {
+        console.log(JSON.stringify(methods, null, 2));
+      } else {
+        logger.log(chalk.bold("Anomaly Methods:"));
+        for (const m of methods) logger.log(`  ${chalk.cyan(m)}`);
+      }
+    });
+
+  // bi report-formats
+  bi.command("report-formats")
+    .description("List supported report formats (V2)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const formats = Object.values(REPORT_FORMAT);
+      if (options.json) {
+        console.log(JSON.stringify(formats, null, 2));
+      } else {
+        logger.log(chalk.bold("Report Formats:"));
+        for (const f of formats) logger.log(`  ${chalk.cyan(f)}`);
+      }
+    });
+
+  // bi report-statuses
+  bi.command("report-statuses")
+    .description("List canonical report statuses (V2)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const statuses = Object.values(REPORT_STATUS);
+      if (options.json) {
+        console.log(JSON.stringify(statuses, null, 2));
+      } else {
+        logger.log(chalk.bold("Report Statuses:"));
+        for (const s of statuses) logger.log(`  ${chalk.cyan(s)}`);
+      }
+    });
+
+  // bi dashboard-layouts
+  bi.command("dashboard-layouts")
+    .description("List supported dashboard layouts (V2)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const layouts = Object.values(DASHBOARD_LAYOUT);
+      if (options.json) {
+        console.log(JSON.stringify(layouts, null, 2));
+      } else {
+        logger.log(chalk.bold("Dashboard Layouts:"));
+        for (const l of layouts) logger.log(`  ${chalk.cyan(l)}`);
+      }
+    });
+
+  // bi query-v2 <question>
+  bi.command("query-v2 <question>")
+    .description("Heuristic NL→SQL with intent detection (V2)")
+    .option("--schema <json>", "Schema hint as JSON, e.g. '{\"tables\":[...]}'")
+    .option("--json", "Output as JSON")
+    .action((question, options) => {
+      try {
+        const schema = options.schema ? JSON.parse(options.schema) : undefined;
+        const result = nlQueryV2({ query: question, schema });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          logger.success(`Intent: ${chalk.cyan(result.intent)}`);
+          logger.log(`  ${chalk.bold("SQL:")}    ${result.sql}`);
+          logger.log(`  ${chalk.bold("Table:")}  ${result.table}`);
+          logger.log(`  ${chalk.bold("Visual:")} ${result.visualization}`);
+          if (result.aggregate)
+            logger.log(`  ${chalk.bold("Agg:")}    ${result.aggregate}`);
+          if (result.limit !== null)
+            logger.log(`  ${chalk.bold("Limit:")}  ${result.limit}`);
+        }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // bi anomaly-v2
+  bi.command("anomaly-v2")
+    .description("Anomaly detection with method choice (V2)")
+    .option("--data <json>", "Data as JSON array of numbers")
+    .option("--method <m>", "Method: z_score|iqr", "z_score")
+    .option("--threshold <n>", "Threshold (z_score σ or iqr multiplier)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      try {
+        const data = options.data ? JSON.parse(options.data) : [];
+        const threshold =
+          options.threshold !== undefined
+            ? parseFloat(options.threshold)
+            : undefined;
+        const result = detectAnomalyV2({
+          data,
+          method: options.method,
+          threshold,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          logger.log(chalk.bold(`Method: ${result.method}`));
+          logger.log(`  ${chalk.bold("Threshold:")} ${result.threshold}`);
+          if (result.method === "iqr") {
+            logger.log(
+              `  ${chalk.bold("Q1/Q3/IQR:")} ${result.q1} / ${result.q3} / ${result.iqr}`,
+            );
+            logger.log(
+              `  ${chalk.bold("Bounds:")}    [${result.lowerBound}, ${result.upperBound}]`,
+            );
+          } else {
+            logger.log(`  ${chalk.bold("Mean:")}     ${result.mean}`);
+            logger.log(`  ${chalk.bold("Std:")}      ${result.std}`);
+          }
+          logger.log(
+            `  ${chalk.bold("Anomalies:")} ${result.anomalies.length}`,
+          );
+        }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // bi predict-v2
+  bi.command("predict-v2")
+    .description("Trend prediction with r² confidence (V2)")
+    .option("--data <json>", "Data as JSON array of numbers")
+    .option("--periods <n>", "Number of periods to predict", "3")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      try {
+        const data = options.data ? JSON.parse(options.data) : [];
+        const result = predictTrendV2({
+          data,
+          periods: parseInt(options.periods, 10),
+        });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          logger.log(chalk.bold(`Trend: ${chalk.cyan(result.trend)}`));
+          logger.log(`  ${chalk.bold("Slope:")}       ${result.slope}`);
+          logger.log(
+            `  ${chalk.bold("R²:")}          ${result.r2} (${result.confidence})`,
+          );
+          logger.log(
+            `  ${chalk.bold("Predictions:")} ${result.predictions.join(", ")}`,
+          );
+        }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // bi recommend-chart
+  bi.command("recommend-chart")
+    .description("Recommend chart type from intent or data shape (V2)")
+    .option("--intent <text>", "User intent description")
+    .option("--shape <json>", "Data shape hint as JSON")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      try {
+        const shape = options.shape ? JSON.parse(options.shape) : undefined;
+        const chart = recommendChart({
+          intent: options.intent,
+          dataShape: shape,
+        });
+        if (options.json) {
+          console.log(JSON.stringify({ chart }, null, 2));
+        } else {
+          logger.log(`Recommended chart: ${chalk.cyan(chart)}`);
+        }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // bi dashboard-v2 <name>
+  bi.command("dashboard-v2 <name>")
+    .description("Create dashboard with validated layout (V2)")
+    .option("--widgets <json>", "Widgets as JSON array", "[]")
+    .option("--layout <spec>", "Layout: grid|flow|tabs OR JSON object")
+    .option("--json", "Output as JSON")
+    .action(async (name, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureBITables(db);
+
+        const widgets = JSON.parse(options.widgets);
+        let layout;
+        if (options.layout) {
+          try {
+            layout = JSON.parse(options.layout);
+          } catch (_err) {
+            layout = options.layout;
+          }
+        }
+        const dashboard = createDashboardV2(db, { name, widgets, layout });
+        if (options.json) {
+          console.log(JSON.stringify(dashboard, null, 2));
+        } else {
+          logger.success(`Dashboard created: ${chalk.cyan(name)}`);
+          logger.log(`  ${chalk.bold("ID:")}     ${dashboard.id}`);
+          logger.log(`  ${chalk.bold("Layout:")} ${dashboard.layout.type}`);
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // bi set-report-status <report-id> <status>
+  bi.command("set-report-status <report-id> <status>")
+    .description("Update report status with validated transition (V2)")
+    .option("--json", "Output as JSON")
+    .action(async (reportId, status, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureBITables(db);
+
+        const result = updateReportStatus(db, { reportId, status });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          logger.success(
+            `${chalk.cyan(reportId)}: ${result.previous} → ${chalk.bold(result.status)}`,
+          );
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // bi report-status <report-id>
+  bi.command("report-status <report-id>")
+    .description("Show current report status (V2)")
+    .option("--json", "Output as JSON")
+    .action((reportId, options) => {
+      const status = getReportStatus(reportId);
+      if (options.json) {
+        console.log(JSON.stringify({ reportId, status }, null, 2));
+      } else {
+        logger.log(`${chalk.cyan(reportId)}: ${chalk.bold(status)}`);
+      }
+    });
+
+  // bi report-history <report-id>
+  bi.command("report-history <report-id>")
+    .description("Show report status transition history (V2)")
+    .option("--json", "Output as JSON")
+    .action((reportId, options) => {
+      const hist = getReportStatusHistory(reportId);
+      if (options.json) {
+        console.log(JSON.stringify(hist, null, 2));
+      } else if (hist.length === 0) {
+        logger.info("No transitions recorded");
+      } else {
+        logger.log(chalk.bold(`History (${hist.length}):`));
+        for (const h of hist) {
+          logger.log(`  ${chalk.gray(h.at)}  ${h.from} → ${chalk.cyan(h.to)}`);
+        }
+      }
+    });
+
+  // bi stats-v2
+  bi.command("stats-v2")
+    .description("BI platform statistics (V2)")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureBITables(db);
+
+        const stats = getBIStatsV2(db);
+        if (options.json) {
+          console.log(JSON.stringify(stats, null, 2));
+        } else {
+          logger.log(chalk.bold("BI Stats (V2):"));
+          logger.log(`  Dashboards:   ${stats.dashboards}`);
+          logger.log(
+            `  Reports:      ${stats.reports.total}  byStatus=${JSON.stringify(stats.reports.byStatus)}`,
+          );
+          logger.log(`  Scheduled:    ${stats.scheduled}`);
+          logger.log(`  Templates:    ${stats.templates}`);
+          logger.log(`  Chart types:  ${stats.chartTypes}`);
+        }
+        await shutdown();
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);

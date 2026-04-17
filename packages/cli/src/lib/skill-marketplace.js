@@ -394,4 +394,329 @@ export function _resetState() {
   _services.clear();
   _invocations.clear();
   _seq = 0;
+  _maxConcurrentInvocationsPerService =
+    DEFAULT_MAX_CONCURRENT_INVOCATIONS_PER_SERVICE;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+ * V2 (Phase 65) — Frozen enums + async invocation lifecycle +
+ * per-service concurrency cap + patch-merged setInvocationStatus +
+ * stats-v2. Strictly additive on top of the legacy surface above.
+ * ═══════════════════════════════════════════════════════════════ */
+
+export const SERVICE_STATUS_V2 = Object.freeze({
+  DRAFT: "draft",
+  PUBLISHED: "published",
+  DEPRECATED: "deprecated",
+  SUSPENDED: "suspended",
+});
+
+export const INVOCATION_STATUS_V2 = Object.freeze({
+  PENDING: "pending",
+  RUNNING: "running",
+  SUCCESS: "success",
+  FAILED: "failed",
+  TIMEOUT: "timeout",
+});
+
+export const PRICING_MODEL_V2 = Object.freeze({
+  FREE: "free",
+  PAY_PER_CALL: "pay_per_call",
+  SUBSCRIPTION: "subscription",
+  TIERED: "tiered",
+});
+
+const DEFAULT_MAX_CONCURRENT_INVOCATIONS_PER_SERVICE = 10;
+let _maxConcurrentInvocationsPerService =
+  DEFAULT_MAX_CONCURRENT_INVOCATIONS_PER_SERVICE;
+export const MARKETPLACE_DEFAULT_MAX_CONCURRENT_INVOCATIONS =
+  DEFAULT_MAX_CONCURRENT_INVOCATIONS_PER_SERVICE;
+
+export function setMaxConcurrentInvocations(n) {
+  if (typeof n !== "number" || !Number.isFinite(n) || n < 1) {
+    throw new Error("maxConcurrentInvocations must be a positive integer");
+  }
+  _maxConcurrentInvocationsPerService = Math.floor(n);
+  return _maxConcurrentInvocationsPerService;
+}
+
+export function getMaxConcurrentInvocations() {
+  return _maxConcurrentInvocationsPerService;
+}
+
+export function getActiveInvocationCount(serviceId) {
+  let count = 0;
+  for (const inv of _invocations.values()) {
+    if (
+      (serviceId == null || inv.serviceId === serviceId) &&
+      (inv.status === INVOCATION_STATUS_V2.PENDING ||
+        inv.status === INVOCATION_STATUS_V2.RUNNING)
+    ) {
+      count++;
+    }
+  }
+  return count;
+}
+
+// Invocation state machine:
+//   pending → { running, failed, timeout }
+//   running → { success, failed, timeout }
+//   success/failed/timeout are terminal.
+const _invocationTerminal = new Set([
+  INVOCATION_STATUS_V2.SUCCESS,
+  INVOCATION_STATUS_V2.FAILED,
+  INVOCATION_STATUS_V2.TIMEOUT,
+]);
+const _invocationAllowed = new Map([
+  [
+    INVOCATION_STATUS_V2.PENDING,
+    new Set([
+      INVOCATION_STATUS_V2.RUNNING,
+      INVOCATION_STATUS_V2.FAILED,
+      INVOCATION_STATUS_V2.TIMEOUT,
+    ]),
+  ],
+  [
+    INVOCATION_STATUS_V2.RUNNING,
+    new Set([
+      INVOCATION_STATUS_V2.SUCCESS,
+      INVOCATION_STATUS_V2.FAILED,
+      INVOCATION_STATUS_V2.TIMEOUT,
+    ]),
+  ],
+  [INVOCATION_STATUS_V2.SUCCESS, new Set([])],
+  [INVOCATION_STATUS_V2.FAILED, new Set([])],
+  [INVOCATION_STATUS_V2.TIMEOUT, new Set([])],
+]);
+
+/**
+ * beginInvocationV2 — creates a PENDING invocation row (no output/duration).
+ * Caller drives the transition via startInvocation (→ RUNNING),
+ * completeInvocation (→ SUCCESS), failInvocation / timeoutInvocation,
+ * or the generic setInvocationStatus.
+ */
+export function beginInvocationV2(db, config = {}) {
+  const serviceId = String(config.serviceId || "").trim();
+  if (!serviceId) throw new Error("serviceId is required");
+  const service = _mustGetService(serviceId);
+  if (service.status !== SERVICE_STATUS_V2.PUBLISHED) {
+    throw new Error(
+      `Cannot invoke non-published service (status=${service.status})`,
+    );
+  }
+
+  const activeCount = getActiveInvocationCount(serviceId);
+  if (activeCount >= _maxConcurrentInvocationsPerService) {
+    throw new Error(
+      `Max concurrent invocations reached: ${activeCount}/${_maxConcurrentInvocationsPerService}`,
+    );
+  }
+
+  const callerId = config.callerId ? String(config.callerId).trim() : null;
+  const input = config.input ?? null;
+  const now = Number(config.now ?? Date.now());
+  const id = config.id || crypto.randomUUID();
+
+  const invocation = {
+    id,
+    serviceId,
+    callerId,
+    input,
+    output: null,
+    status: INVOCATION_STATUS_V2.PENDING,
+    durationMs: null,
+    error: null,
+    startedAt: null,
+    completedAt: null,
+    createdAt: now,
+    _seq: ++_seq,
+  };
+  _invocations.set(id, invocation);
+
+  if (db) {
+    db.prepare(
+      `INSERT INTO skill_invocations (id, service_id, caller_id, input, output, status, duration_ms, error, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      id,
+      serviceId,
+      callerId,
+      input == null ? null : JSON.stringify(input),
+      null,
+      INVOCATION_STATUS_V2.PENDING,
+      null,
+      null,
+      now,
+    );
+  }
+
+  return _strip(invocation);
+}
+
+function _mustGetInvocation(invocationId) {
+  const inv = _invocations.get(invocationId);
+  if (!inv) throw new Error(`Invocation not found: ${invocationId}`);
+  return inv;
+}
+
+function _persistInvocation(db, invocationId, fields) {
+  if (!db) return;
+  const setClauses = Object.keys(fields)
+    .map((k) => `${k} = ?`)
+    .join(", ");
+  const values = Object.values(fields).map((v) =>
+    v && typeof v === "object" ? JSON.stringify(v) : v,
+  );
+  db.prepare(`UPDATE skill_invocations SET ${setClauses} WHERE id = ?`).run(
+    ...values,
+    invocationId,
+  );
+}
+
+export function startInvocation(db, invocationId, opts = {}) {
+  return setInvocationStatus(db, invocationId, INVOCATION_STATUS_V2.RUNNING, {
+    startedAt: Number(opts.now ?? Date.now()),
+  });
+}
+
+export function completeInvocationV2(db, invocationId, opts = {}) {
+  return setInvocationStatus(db, invocationId, INVOCATION_STATUS_V2.SUCCESS, {
+    output: opts.output ?? null,
+    durationMs: opts.durationMs == null ? null : Number(opts.durationMs),
+  });
+}
+
+export function failInvocationV2(db, invocationId, errorMessage, opts = {}) {
+  return setInvocationStatus(db, invocationId, INVOCATION_STATUS_V2.FAILED, {
+    error: errorMessage ? String(errorMessage) : null,
+    durationMs: opts.durationMs == null ? null : Number(opts.durationMs),
+  });
+}
+
+export function timeoutInvocationV2(db, invocationId, opts = {}) {
+  return setInvocationStatus(db, invocationId, INVOCATION_STATUS_V2.TIMEOUT, {
+    error: opts.error ? String(opts.error) : "timeout",
+    durationMs: opts.durationMs == null ? null : Number(opts.durationMs),
+  });
+}
+
+export function setInvocationStatus(db, invocationId, newStatus, patch = {}) {
+  const inv = _mustGetInvocation(invocationId);
+
+  if (!Object.values(INVOCATION_STATUS_V2).includes(newStatus)) {
+    throw new Error(`Unknown invocation status: ${newStatus}`);
+  }
+
+  const allowed = _invocationAllowed.get(inv.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(
+      `Invalid invocation status transition: ${inv.status} → ${newStatus}`,
+    );
+  }
+
+  const now = Date.now();
+  inv.status = newStatus;
+
+  const dbFields = { status: newStatus };
+
+  if (patch.output !== undefined) {
+    inv.output = patch.output;
+    dbFields.output =
+      patch.output == null ? null : JSON.stringify(patch.output);
+  }
+  if (patch.error !== undefined) {
+    inv.error = patch.error;
+    dbFields.error = patch.error;
+  }
+  if (patch.durationMs !== undefined) {
+    const d = patch.durationMs == null ? null : Number(patch.durationMs);
+    if (d != null && (Number.isNaN(d) || d < 0)) {
+      throw new Error(`Invalid durationMs: ${patch.durationMs}`);
+    }
+    inv.durationMs = d;
+    dbFields.duration_ms = d;
+  }
+  if (patch.startedAt !== undefined) {
+    inv.startedAt = patch.startedAt;
+  }
+
+  if (_invocationTerminal.has(newStatus) && inv.completedAt == null) {
+    inv.completedAt = now;
+    // Bump the service's invocation counter once on terminal.
+    const service = _services.get(inv.serviceId);
+    if (service) {
+      service.invocationCount = (service.invocationCount || 0) + 1;
+      service.updatedAt = now;
+      _persistService(db, inv.serviceId, {
+        invocation_count: service.invocationCount,
+        updated_at: now,
+      });
+    }
+  }
+
+  _persistInvocation(db, invocationId, dbFields);
+
+  return _strip(inv);
+}
+
+export function getMarketplaceStatsV2() {
+  const services = [..._services.values()];
+  const invocations = [..._invocations.values()];
+
+  const servicesByStatus = {};
+  for (const s of Object.values(SERVICE_STATUS_V2)) servicesByStatus[s] = 0;
+  for (const s of services)
+    servicesByStatus[s.status] = (servicesByStatus[s.status] || 0) + 1;
+
+  const invocationsByStatus = {};
+  for (const s of Object.values(INVOCATION_STATUS_V2))
+    invocationsByStatus[s] = 0;
+  for (const inv of invocations)
+    invocationsByStatus[inv.status] =
+      (invocationsByStatus[inv.status] || 0) + 1;
+
+  const servicesByPricing = {};
+  for (const p of Object.values(PRICING_MODEL_V2)) servicesByPricing[p] = 0;
+  for (const s of services) {
+    const model =
+      s.pricing && typeof s.pricing === "object" && s.pricing.model
+        ? String(s.pricing.model)
+        : PRICING_MODEL_V2.FREE;
+    if (servicesByPricing[model] == null) servicesByPricing[model] = 0;
+    servicesByPricing[model]++;
+  }
+
+  let totalDuration = 0;
+  let durationSamples = 0;
+  for (const inv of invocations) {
+    if (inv.durationMs != null && inv.status === INVOCATION_STATUS_V2.SUCCESS) {
+      totalDuration += inv.durationMs;
+      durationSamples++;
+    }
+  }
+  const avgDurationMs =
+    durationSamples > 0
+      ? Number((totalDuration / durationSamples).toFixed(1))
+      : 0;
+  const successRate =
+    invocations.length > 0
+      ? Number(
+          (
+            invocationsByStatus[INVOCATION_STATUS_V2.SUCCESS] /
+            invocations.length
+          ).toFixed(3),
+        )
+      : 0;
+
+  return {
+    totalServices: services.length,
+    totalInvocations: invocations.length,
+    activeInvocations: getActiveInvocationCount(),
+    maxConcurrentInvocations: _maxConcurrentInvocationsPerService,
+    servicesByStatus,
+    invocationsByStatus,
+    servicesByPricing,
+    avgDurationMs,
+    successRate,
+  };
 }

@@ -394,3 +394,955 @@ the deterministic record-keeping surface: circuit lifecycle state, scheme-aware
 proof shape validation, credential registry with merkle-root, and selective
 disclosure with root preservation — sufficient for policy prototyping,
 credential schema design, and verifier-side integration tests.
+
+### Phase 95 — BI Analytics V2 (`bi` extension)
+
+Extends `chainlesschain bi` with the Phase 95 canonical surface: 5 frozen
+enums (`CHART_TYPE`, `ANOMALY_METHOD`, `REPORT_FORMAT`, `REPORT_STATUS`,
+`DASHBOARD_LAYOUT`), intent-detection NL→SQL, IQR anomaly method alongside
+existing z-score, R²-backed trend confidence, chart recommendation from
+intent/data shape, layout-validated dashboards, and a report status state
+machine.
+
+```bash
+# Enum listings
+chainlesschain bi chart-types [--json]               # table/bar/line/pie/area/scatter/heatmap/funnel/gauge
+chainlesschain bi anomaly-methods [--json]           # z_score / iqr
+chainlesschain bi report-formats [--json]            # pdf / excel / csv / json
+chainlesschain bi report-statuses [--json]           # draft / generated / scheduled / archived
+chainlesschain bi dashboard-layouts [--json]         # grid / flow / tabs
+
+# Intent-detection NL→SQL (heuristic; no LLM call)
+chainlesschain bi query-v2 "how many users?"                           # COUNT(*) + bar
+chainlesschain bi query-v2 "total revenue" --schema '{"tables":["sales"]}'  # SUM + gauge
+chainlesschain bi query-v2 "revenue trend over time"                   # LINE + ORDER BY created_at ASC
+chainlesschain bi query-v2 "top 5 users by revenue" --json             # LIMIT 5 + bar
+
+# Anomaly detection with method selection
+chainlesschain bi anomaly-v2 --data 1,2,3,4,100 --method iqr [--threshold 1.5] [--json]
+chainlesschain bi anomaly-v2 --data 10,12,11,13,50 --method z_score --threshold 2 --json
+
+# Linear trend prediction with R² confidence (high/medium/low)
+chainlesschain bi predict-v2 --data 1,2,3,4,5 --periods 3 [--json]     # method=linear (only)
+
+# Chart recommendation from intent keywords + data shape
+chainlesschain bi recommend-chart --intent "trend over last year"      # → line
+chainlesschain bi recommend-chart --intent "distribution of types"     # → pie
+chainlesschain bi recommend-chart --data-shape timeseries              # → line
+
+# Dashboard with layout validation (grid | flow | tabs)
+chainlesschain bi dashboard-v2 --name "Sales" --layout grid --widgets '[{"type":"kpi"}]'
+
+# Report status state machine (draft↔generated→scheduled; archived→draft only)
+chainlesschain bi set-report-status <report-id> generated
+chainlesschain bi set-report-status <report-id> scheduled              # only from generated
+chainlesschain bi report-status <report-id> [--json]
+chainlesschain bi report-history <report-id> [--json]
+
+# V2 aggregated stats
+chainlesschain bi stats-v2 [--json]    # dashboards + reports byStatus/byFormat + scheduled + templates + chartTypes
+```
+
+**Scope / 未移植**: Real NL→SQL with schema introspection + LLM grounding,
+live dashboard rendering (WebGL/D3 charts), PDF/Excel export engines, and cron
+scheduler for scheduled reports remain Desktop-only. The CLI port covers the
+deterministic analytics-surface: intent-classified SQL templates, bounded
+anomaly detection (z-score + IQR), R²-scored trend prediction, chart-type
+advisor, layout-validated dashboard records, and the report lifecycle state
+machine — sufficient for agent-driven BI scaffolding, CI regression against
+query templates, and policy prototyping.
+
+### Phase 50 — DLP V2 (`dlp` extension)
+
+Extends `chainlesschain dlp` with the Phase 50 canonical surface: 3 frozen
+enums (`DLP_ACTION`, `DLP_CHANNEL`, `DLP_SEVERITY`), channel-scoped policies
+with descriptions, a UTF-8-byte-length size gate on scans, metadata attachment
+on every incident, rich incident filters, 5 built-in policy templates, and an
+extended stats breakdown. Strictly additive — pre-existing `scan/incidents/
+resolve/stats/policy create|list|delete` commands are preserved.
+
+```bash
+# Enum listings
+chainlesschain dlp actions          # allow / alert / block / quarantine
+chainlesschain dlp channels         # email / chat / file_transfer / clipboard / export
+chainlesschain dlp severities       # low / medium / high / critical
+chainlesschain dlp default-max-size # Default scan size limit (10 MB)
+
+# V2 policy create — channel filter + description
+chainlesschain dlp policy create-v2 "SSN" \
+  -d "Detects SSN in outbound email" \
+  -c email,chat \
+  -p "\\d{3}-\\d{2}-\\d{4}" \
+  -a block -s high
+
+chainlesschain dlp policy show-v2 <policy-id>             # policy + description + channels
+chainlesschain dlp policy active-for email                # enabled + channel-applicable
+
+# Built-in templates — credit-card / cn-id-number / email-address / api-key / plaintext-password
+chainlesschain dlp templates list
+chainlesschain dlp templates install                      # install all 5
+chainlesschain dlp templates install credit-card api-key  # install selected
+
+# V2 scan — channel filter + UTF-8 byte-size gate + metadata
+chainlesschain dlp scan-v2 "content here" -c email -u alice \
+  -m '{"source":"smtp","ip":"10.0.0.1"}'
+chainlesschain dlp scan-v2 "...payload..." -c chat --max-size 524288  # override 512 KB
+
+# V2 incidents — rich filter (channel/severity/resolved/user/policy/fromDate/toDate/limit)
+chainlesschain dlp incidents-v2 -c email -s high -r false -u alice --limit 20
+chainlesschain dlp incidents-v2 --from 2026-04-01T00:00:00Z --to 2026-04-17T23:59:59Z
+chainlesschain dlp incident-v2 <incident-id>                          # full record + metadata
+
+# V2 stats + highest-severity aggregate
+chainlesschain dlp stats-v2            # byAction/bySeverity/byChannel/topPolicies[5]+activePolicies
+chainlesschain dlp highest-severity    # {highestSeverity: "critical" | null}
+```
+
+**Action priority aggregation**: when multiple policies match a single scan,
+the highest action wins: `allow < alert < block < quarantine`. Scans returning
+`block` or `quarantine` report `allowed=false`; `alert` is allowed through
+but still records an incident.
+
+**Channel filter semantics**: a policy with `channels: []` acts as a wildcard
+(applies to every channel). A non-empty `channels[]` restricts the policy to
+that set. During `scan-v2`, channel-mismatched policies are temporarily
+disabled for the duration of the scan (state restored in `finally`) so
+subsequent scans on matching channels still hit them.
+
+**Scope / 未移植**: OS-level file/clipboard/email hooks, outbound TLS MITM
+for real-time network DLP, OCR/image-based content matching, encrypted-at-rest
+quarantine vault, and SOAR playbook automation remain Desktop-only. The CLI
+port covers the deterministic detection surface: regex+keyword policies with
+channel targeting, size-gated + metadata-stamped scans, the 4-action priority
+aggregation, incident lifecycle + rich queries, and 5 built-in templates
+— sufficient for CI regression on policy libraries, scripted scanning in data
+pipelines, and agent-driven policy design.
+
+### Phase 51 — SIEM V2 (`siem` extension)
+
+Extends `chainlesschain siem` with the Phase 51 canonical surface: 4 frozen
+enums (`SIEM_FORMAT`, `SIEM_TARGET_TYPE`, `SIEM_SEVERITY`, `SIEM_TARGET_STATUS`),
+CEF/LEEF/JSON format builders with ArcSight severity mapping (DEBUG=1…FATAL=10),
+target state machine (active ↔ paused/disabled/error, disabled→active only via
+active), batch-aware exporter (default 100 logs/batch), extended stats
+breakdown, and status-filtered listing. Strictly additive — pre-existing
+`targets / add-target / export / stats` commands are preserved.
+
+```bash
+# Enum listings
+chainlesschain siem formats                 # json / cef / leef
+chainlesschain siem target-types            # splunk_hec / elasticsearch / azure_sentinel
+chainlesschain siem severities              # debug / info / warn / error / critical / fatal
+chainlesschain siem statuses                # active / paused / disabled / error
+chainlesschain siem default-batch-size      # {"batchSize": 100}
+
+# Severity → CEF integer (0-10)
+chainlesschain siem severity-cef warn       # {"severity":"warn","cef":5}
+chainlesschain siem severity-cef critical   # {"severity":"critical","cef":9}
+
+# Format a single log record for inspection
+chainlesschain siem format-log cef -l '{"eventId":"e1","severity":"error","message":"boom","userId":"alice"}'
+chainlesschain siem format-log leef -l '{"eventId":"e2","timestamp":1709100000000,"userId":"bob","action":"export"}'
+chainlesschain siem format-log json -l '{"severity":"info","message":"hi","userId":"u1"}'
+
+# V2 target CRUD with canonical options
+chainlesschain siem add-target-v2 -t splunk_hec -u https://splunk.example.com/hec -f cef -c '{"token":"abc"}'
+chainlesschain siem remove-target <target-id>
+chainlesschain siem set-status <target-id> paused      # state machine enforced
+chainlesschain siem by-status active                   # filter targets by status
+
+# V2 batch export — skipped when target status != active
+chainlesschain siem export-v2 <target-id> -l '[{"id":"1"},{"id":"2"}]'
+chainlesschain siem export-v2 <target-id> -l '[...250 logs...]' -b 50    # 5 batches
+
+# V2 extended stats
+chainlesschain siem stats-v2   # totalTargets + totalExported + byFormat/byType/byStatus + per-target
+```
+
+**Target state machine**: `active` ↔ `paused` ↔ `active`, `active → disabled`,
+`disabled → active` (re-enable), `error` is recoverable to any other state.
+`disabled → paused` is rejected — disabled targets must transition through
+`active` first.
+
+**Batch semantics**: `exportLogsV2` chunks logs into slices of `batchSize`
+(default `SIEM_DEFAULT_BATCH_SIZE = 100`). Non-active targets return
+`{ skipped: true, reason }` instead of exporting. Empty-log input records
+no batches but still touches `lastExportAt` for observability parity.
+
+**Scope / 未移植**: Real HTTP POST to Splunk/Elasticsearch/Sentinel, TLS
+client cert auth, retry/backoff on transport failure, live audit-log tailing,
+auto-export cron, and SIEM-side ingestion ACK tracking remain Desktop-only.
+The CLI port covers deterministic format conversion, target lifecycle,
+batch accounting, and stats aggregation — sufficient for CI regression
+against CEF/LEEF templates, integration-test fixtures, and SIEM-target
+design.
+
+### Phase 42 — EvoMap Advanced Federation & Governance V2 (`evomap` extension)
+
+Strictly-additive V2 surface on top of `evomap federation` / `evomap gov`.
+All legacy subcommands continue to work unchanged.
+
+```bash
+# Federation — enums & classifiers
+cc evomap federation hub-statuses           # [online,offline,syncing,degraded]
+cc evomap federation trust-tiers            # [low,medium,high]
+cc evomap federation mutation-types         # [mutation,recombination,crossover,drift]
+cc evomap federation trust-tier <score>     # classify 0..1 → low|medium|high
+cc evomap federation set-hub-status <id> <status>  # V2 state machine
+cc evomap federation list-hubs-v2 [--min-trust <n>] [--trust-tier <tier>]
+cc evomap federation context                # LLM-friendly aggregate snapshot
+cc evomap federation stats-v2               # byStatus/byRegion/byTrustTier/byMutationType
+
+# Governance — enums & V2 proposal lifecycle
+cc evomap gov proposal-statuses             # [draft,active,passed,rejected,executed,expired,cancelled]
+cc evomap gov proposal-types                # [standard,gene_standard,config_change,dispute,funding]
+cc evomap gov vote-directions               # [for,against,abstain]
+cc evomap gov propose-v2 -t <title> [--type <t>] [--quorum <n>] [--threshold <r>]
+cc evomap gov vote-v2 <proposal-id> <direction> [-w <weight>]
+cc evomap gov set-status <proposal-id> <status>   # V2 state machine
+cc evomap gov execute <proposal-id>               # passed → executed
+cc evomap gov cancel <proposal-id>                # active → cancelled
+cc evomap gov expire                              # bulk expire past-deadline active proposals
+cc evomap gov list-v2 [--status s] [--type t] [--proposer did]
+cc evomap gov contributions <gene-id>
+cc evomap gov stats-v2
+```
+
+**Hub status state machine**:
+
+- `online` → {offline, syncing, degraded}
+- `offline` → {syncing, online}
+- `syncing` → {online, degraded, offline}
+- `degraded` → {online, offline}
+
+Unknown statuses or illegal transitions throw; the backing DB row is updated
+only after the in-memory state machine approves the transition.
+
+**Trust tiers**: `low < 0.3 ≤ medium < 0.7 ≤ high`. `listHubsV2` annotates each
+hub with its tier and supports `--min-trust` / `--trust-tier` filters on top
+of the legacy region/status filters.
+
+**Proposal state machine**:
+
+- `draft` → {active, cancelled}
+- `active` → {passed, rejected, expired, cancelled}
+- `passed` → {executed}
+- Terminal: rejected, executed, expired, cancelled
+
+**Weighted voting**: `vote-v2` accepts a `--weight` value (default 1).
+Passage is computed from the `for` weight ratio over the decisive weight
+(for + against), ignoring abstain in the ratio but counting it toward the
+quorum. The proposal flips to `passed` when `weightFor / (weightFor +
+weightAgainst) >= threshold` *and* total votes (including abstain) ≥ quorum.
+
+**Bulk expiry**: `expire` walks active proposals, flips any whose
+`votingDeadline` is in the past to `expired`, and returns
+`{ expiredCount, expiredIds }`.
+
+**Federation context**: `buildFederationContext()` returns `{ hubCount,
+onlineHubs, totalGenes, avgFitness, avgTrust, avgTrustTier, regions }` —
+sized for LLM prompt injection without listing individual hubs.
+
+**Stats V2 shape**:
+
+```json
+{
+  "totalHubs": 3,
+  "totalGenes": 12,
+  "byStatus":   { "online": 2, "offline": 1, "syncing": 0, "degraded": 0 },
+  "byRegion":   { "us": 2, "eu": 1 },
+  "byTrustTier": { "low": 0, "medium": 2, "high": 1 },
+  "byMutationType": { "mutation": 8, "recombination": 4 }
+}
+```
+
+```json
+{
+  "totalProposals": 5,
+  "totalOwnerships": 8,
+  "totalVotes": 23,
+  "totalWeight": 41,
+  "byStatus": { "active": 2, "passed": 2, "rejected": 1, ... },
+  "byType":   { "standard": 3, "funding": 2, ... }
+}
+```
+
+**Scope / 未移植**: Multi-Hub libp2p sync with real gene-payload transfer,
+DID+VC originality proofs with cryptographic verification, reputation-weighted
+voting stakes, on-chain proposal execution settlement, automatic revenue
+distribution to `revenueSplit` DIDs, plagiarism detection via gene-content
+similarity, and EvoMap DAO dispute arbitration all remain Desktop-only. The
+CLI port covers hub/proposal lifecycle state machines, weighted voting math,
+type-scoped quorum/threshold, and aggregate stats — sufficient for CI
+regression against Phase 76-77 design invariants and test fixtures.
+
+### Phase 56 — Terraform V2 (`terraform` extension)
+
+Extends `chainlesschain terraform` with the Phase 56 canonical surface:
+3 frozen enums, a concurrency limiter, two state machines (workspace +
+run lifecycle), and V2 stats — strictly additive on top of the legacy
+`workspaces` / `create` / `plan` / `runs` subcommands.
+
+```bash
+# Frozen enums
+chainlesschain terraform run-statuses           # 9 states
+chainlesschain terraform run-types              # 3 types
+chainlesschain terraform workspace-statuses     # 3 states
+
+# Concurrency controls
+chainlesschain terraform default-max-concurrent # 5
+chainlesschain terraform max-concurrent         # current value
+chainlesschain terraform active-run-count       # runtime count
+chainlesschain terraform set-max-concurrent 10
+
+# Workspace V2 (unique-name + state machine)
+chainlesschain terraform create-workspace-v2 prod --providers "aws,gcp"
+chainlesschain terraform set-workspace-status <ws-id> locked
+chainlesschain terraform archive-workspace <ws-id>
+
+# Run V2 (concurrency-limited + state machine + patch)
+chainlesschain terraform plan-run-v2 <ws-id> --run-type apply --triggered-by alice
+chainlesschain terraform set-run-status <run-id> planning
+chainlesschain terraform set-run-status <run-id> planned --plan-output "+ 3 to add"
+chainlesschain terraform set-run-status <run-id> applying
+chainlesschain terraform set-run-status <run-id> applied --resources-added 3
+chainlesschain terraform cancel-run <run-id>
+chainlesschain terraform fail-run <run-id> "provider timeout"
+
+# Stats
+chainlesschain terraform stats-v2
+```
+
+**Enums**:
+
+```js
+RUN_STATUS_V2 = {
+  PENDING, PLANNING, PLANNED, APPLYING, APPLIED,
+  DESTROYING, DESTROYED, ERRORED, CANCELLED,
+}
+RUN_TYPE_V2         = { PLAN, APPLY, DESTROY }
+WORKSPACE_STATUS_V2 = { ACTIVE, LOCKED, ARCHIVED }
+```
+
+**Run state machine**:
+
+```
+pending   → { planning, cancelled, errored }
+planning  → { planned, errored, cancelled }
+planned   → { applying, destroying, cancelled, errored }
+applying  → { applied, errored }
+destroying → { destroyed, errored }
+Terminal: applied, destroyed, errored, cancelled
+```
+
+**Workspace state machine**:
+
+```
+active   → { locked, archived }
+locked   → { active, archived }
+archived → { active }   // unarchive only
+```
+
+**Concurrency limit**: `TERRAFORM_DEFAULT_MAX_CONCURRENT=5`; runs in
+`pending`/`planning`/`applying`/`destroying` count as active. `planRunV2`
+rejects with `Max concurrent runs reached: N/LIMIT` when the limit is hit,
+and with `Cannot plan run on archived workspace` when the workspace is
+archived. Slots free up on any terminal transition.
+
+**State-version bump**: `setRunStatus` bumps the parent `workspace.stateVersion`
+and records `lastRunId` / `lastRunAt` only on transitions to `applied` or
+`destroyed` — not on `errored` or `cancelled`.
+
+**Patch merging**: `setRunStatus(db, runId, newStatus, patch)` merges
+`planOutput` / `applyOutput` / `resourcesAdded` / `resourcesChanged` /
+`resourcesDestroyed` / `errorMessage`. Terminal states automatically set
+`completedAt = ISO-string`.
+
+**stats-v2 shape**:
+
+```jsonc
+{
+  "totalWorkspaces": 3,
+  "totalRuns": 2,
+  "activeRuns": 1,
+  "maxConcurrentRuns": 5,
+  "workspacesByStatus": { "active": 2, "locked": 0, "archived": 1 },
+  "runsByStatus":       { "pending": 1, "planning": 0, ..., "applied": 1, ... },
+  "runsByType":         { "plan": 0, "apply": 1, "destroy": 1 },
+  "totalResources":     { "added": 4, "changed": 2, "destroyed": 0 }
+}
+```
+
+**Scope / 未移植**: Real `terraform plan|apply|destroy` subprocess execution,
+remote-state backends (S3/Consul/Terraform Cloud), plan-file artifact
+storage, policy-as-code enforcement (Sentinel/OPA), drift detection,
+VCS-triggered runs, and approval workflows all remain Desktop-only. The
+CLI port covers workspace uniqueness, run+workspace lifecycle state
+machines, concurrency admission, and aggregate stats — sufficient for CI
+regression against Phase 56 design invariants.
+
+### Phase 59 — Stress Test V2 (`stress` extension)
+
+Extends `chainlesschain stress` with an async lifecycle variant (start →
+complete/stop/fail instead of the legacy synchronous `run`), a run state
+machine, a concurrency limiter, bottleneck kind/severity taxonomy, a
+level recommender, and V2 stats — strictly additive on top of the legacy
+`run` / `list` / `show` / `analyze` / `plan` / `stop` / `levels` subcommands.
+
+```bash
+# Frozen enums
+chainlesschain stress run-statuses            # running|complete|stopped|failed
+chainlesschain stress level-names             # light|medium|heavy|extreme
+chainlesschain stress bottleneck-kinds        # error-rate|tail-latency|response-time|throughput
+chainlesschain stress bottleneck-severities   # low|medium|high
+
+# Concurrency controls
+chainlesschain stress default-max-concurrent  # 3
+chainlesschain stress max-concurrent          # current value
+chainlesschain stress active-test-count       # runtime count
+chainlesschain stress set-max-concurrent 5
+
+# Async lifecycle
+chainlesschain stress start-v2 -l light
+chainlesschain stress complete <test-id>
+chainlesschain stress stop-v2 <test-id>
+chainlesschain stress fail <test-id> "upstream 503"
+chainlesschain stress set-status <test-id> stopped
+
+# Planning helpers
+chainlesschain stress recommend-level 500     # → heavy
+chainlesschain stress stats-v2
+```
+
+**Enums**:
+
+```js
+RUN_STATUS_V2         = { RUNNING, COMPLETE, STOPPED, FAILED }
+LEVEL_NAME_V2         = { LIGHT, MEDIUM, HEAVY, EXTREME }
+BOTTLENECK_KIND_V2    = { ERROR_RATE, TAIL_LATENCY, RESPONSE_TIME, THROUGHPUT }
+BOTTLENECK_SEVERITY_V2 = { LOW, MEDIUM, HIGH }
+```
+
+**Run state machine**:
+
+```
+running → { complete, stopped, failed }
+Terminal: complete, stopped, failed
+```
+
+`startStressTestV2(db, config)` creates a row in `RUNNING` without
+computing metrics; the caller drives the transition via
+`completeStressTest` / `stopStressTestV2` / `failStressTest`, or the
+generic `setRunStatus(db, testId, status, patch)`. The legacy synchronous
+`startStressTest` + `stopStressTest` surface is unchanged.
+
+**Concurrency limit**: `STRESS_DEFAULT_MAX_CONCURRENT=3`; only runs in
+`RUNNING` count as active. `startStressTestV2` rejects with
+`Max concurrent stress tests reached: N/LIMIT` when the limit is hit.
+Slots free up on any terminal transition. `setMaxConcurrentTests(n)`
+floors non-integer input (e.g. `3.7 → 3`) and rejects ≤0 / NaN /
+non-number.
+
+**Level recommender**: `recommendLevelV2(targetRps)` returns the largest
+built-in level whose `requestsPerSecond` is still ≤ target:
+
+```
+targetRps=5    → light
+targetRps=200  → medium
+targetRps=500  → heavy
+targetRps=5000 → extreme
+```
+
+**stats-v2 shape**:
+
+```jsonc
+{
+  "totalTests": 2,
+  "activeTests": 1,
+  "maxConcurrentTests": 3,
+  "byStatus": { "running": 1, "complete": 1, "stopped": 0, "failed": 0 },
+  "byLevel":  { "light": 1, "medium": 1, "heavy": 0, "extreme": 0 },
+  "bottlenecks": {
+    "total": 2,
+    "byKind":     { "error-rate": 0, "tail-latency": 1, "response-time": 1, "throughput": 0 },
+    "bySeverity": { "low": 0, "medium": 1, "high": 1 }
+  },
+  "aggregateMetrics": { "samples": 1, "avgTps": 312.5, "avgP95": 84.3 }
+}
+```
+
+**Scope / 未移植**: Real multi-process load generators, tail-latency
+histograms, distributed federation stressor agents, live traffic shaping,
+and remote capacity planner integration all remain Desktop-only. The CLI
+port covers lifecycle state-machine invariants, concurrency admission,
+bottleneck taxonomy bookkeeping, level recommendation, and aggregate
+stats — sufficient for CI regression against Phase 59 design invariants.
+
+### Phase 61 — SLA V2 (`sla` extension)
+
+Extends `chainlesschain sla` with 5 frozen enums, a per-org active-contract
+admission cap, contract + violation state machines, bulk auto-expiration,
+and V2 stats — strictly additive on top of the legacy
+`tiers` / `create` / `list` / `show` / `terminate` / `record` / `metrics` /
+`check` / `violations` / `compensate` / `report` subcommands.
+
+```bash
+# Frozen enums
+chainlesschain sla statuses             # active|expired|terminated
+chainlesschain sla tier-names           # gold|silver|bronze
+chainlesschain sla term-names           # availability|response_time|throughput|error_rate
+chainlesschain sla severities           # minor|moderate|major|critical
+chainlesschain sla violation-statuses   # open|acknowledged|resolved|waived
+
+# Per-org admission cap
+chainlesschain sla default-max-active   # 1
+chainlesschain sla max-active           # current value
+chainlesschain sla active-count <org-id>
+chainlesschain sla set-max-active 3
+
+# Contract lifecycle
+chainlesschain sla create-v2 acme -t gold -d 2592000000
+chainlesschain sla set-status <sla-id> expired
+chainlesschain sla expire <sla-id>
+chainlesschain sla auto-expire          # bulk flip past endDate
+
+# Violation lifecycle
+chainlesschain sla set-violation-status <v-id> acknowledged --note "investigating"
+chainlesschain sla acknowledge-violation <v-id>
+chainlesschain sla resolve-violation <v-id> --note "patched"
+chainlesschain sla waive-violation <v-id> --note "scheduled"
+
+chainlesschain sla stats-v2
+```
+
+**Enums**:
+
+```js
+SLA_STATUS_V2         = { ACTIVE, EXPIRED, TERMINATED }
+SLA_TIER_V2           = { GOLD, SILVER, BRONZE }
+SLA_TERM_V2           = { AVAILABILITY, RESPONSE_TIME, THROUGHPUT, ERROR_RATE }
+VIOLATION_SEVERITY_V2 = { MINOR, MODERATE, MAJOR, CRITICAL }
+VIOLATION_STATUS_V2   = { OPEN, ACKNOWLEDGED, RESOLVED, WAIVED }
+```
+
+**Contract state machine** (both terminals — no `expired ↔ terminated`):
+
+```
+active → { expired, terminated }
+Terminal: expired, terminated
+```
+
+**Violation state machine**:
+
+```
+open         → { acknowledged, resolved, waived }
+acknowledged → { resolved, waived }
+Terminal: resolved, waived
+```
+
+**Per-org admission cap**: `SLA_DEFAULT_MAX_ACTIVE_PER_ORG=1`. `createSLAV2`
+rejects with `Max active SLAs per org reached: N/LIMIT` when an org is
+already at its cap. Slots free up only when an existing contract
+transitions to a terminal state (`expired` via `auto-expire` / `expire` /
+`set-status`, or `terminated` via `set-status`). `setMaxActiveSlasPerOrg`
+floors non-integer input and rejects ≤0 / NaN / non-number.
+
+**Violation patch merging**: `setViolationStatus(db, id, status, patch)`
+merges `note`. Terminal transitions (`resolved` / `waived`) automatically
+set `resolvedAt = Date.now()` on both the in-memory record and the DB row.
+
+**stats-v2 shape**:
+
+```jsonc
+{
+  "totalContracts": 2,
+  "activeContracts": 1,
+  "activeOrgs": 1,
+  "maxActiveSlasPerOrg": 1,
+  "byStatus": { "active": 1, "expired": 1, "terminated": 0 },
+  "byTier":   { "gold": 1, "silver": 1, "bronze": 0 },
+  "violations": {
+    "total": 3,
+    "byTerm":     { "availability": 2, "response_time": 1, "throughput": 0, "error_rate": 0 },
+    "bySeverity": { "minor": 0, "moderate": 2, "major": 1, "critical": 0 },
+    "byStatus":   { "open": 1, "acknowledged": 1, "resolved": 1, "waived": 0 },
+    "totalCompensation": 42.3
+  }
+}
+```
+
+**Scope / 未移植**: Live federation telemetry collection, scheduled
+auto-expire cron, multi-region SLA dashboards, and on-chain compensation
+settlement remain Desktop-only. The CLI port covers the admission cap,
+both state machines, deviation-severity classification, compensation
+computation, and aggregate stats — sufficient for CI regression against
+Phase 61 design invariants.
+
+### Phase 60 — Reputation Optimizer V2 (`reputation` extension)
+
+Extends `chainlesschain reputation` with the Phase 60 canonical surface:
+five-state run lifecycle, concurrency limiter, frozen enums, patch-merged
+`setRunStatus`, and stats-v2. Strictly additive on top of the legacy
+`observe` / `score` / `optimize` / `analytics` / `apply` commands.
+
+**Frozen enums**
+
+```bash
+cc reputation run-statuses          # running | complete | applied | failed | cancelled
+cc reputation v2-objectives         # accuracy | fairness | resilience | convergence_speed
+cc reputation decay-models          # exponential | linear | step | none
+cc reputation anomaly-methods       # iqr | z_score
+```
+
+**Concurrency cap** (`REPUTATION_DEFAULT_MAX_CONCURRENT = 2`)
+
+```bash
+cc reputation default-max-concurrent
+cc reputation max-concurrent
+cc reputation active-optimization-count
+cc reputation set-max-concurrent <n>
+```
+
+- `setMaxConcurrentOptimizations(n)` floors non-integers (`3.7 → 3`) and
+  rejects `n < 1`, `NaN`, or non-number input.
+- `getActiveOptimizationCount()` counts only `RUNNING` rows in the V2 run
+  map.
+- `_resetState()` restores the default cap.
+
+**Run state machine**
+
+```
+running  → { complete, failed, cancelled }
+complete → { applied }
+Terminal (no outgoing): applied, failed, cancelled
+```
+
+Enforced by `setRunStatus(db, runId, newStatus, patch = {})`. The patch
+may carry `errorMessage` (stored in-memory on the run), and terminal
+transitions auto-set `completedAt` if missing.
+
+**Async lifecycle split**
+
+- `start-v2` — creates a `RUNNING` row without computing iterations. Enforces
+  the concurrency cap (`activeCount < max` or throws).
+- `complete` — runs the iteration loop, computes `bestParams` / `bestScore`,
+  writes analytics, and transitions `RUNNING → COMPLETE`.
+- `cancel` / `fail` / `apply-v2` — shortcuts over `setRunStatus`.
+
+```bash
+cc reputation start-v2 [-o <objective>] [-i <iters>] [--json]
+cc reputation complete <run-id> [--json]
+cc reputation cancel <run-id>
+cc reputation fail <run-id> [--message <msg>]
+cc reputation apply-v2 <run-id>
+cc reputation set-status <run-id> <status> [--message <msg>] [--json]
+```
+
+**Stats-v2**
+
+```bash
+cc reputation stats-v2 [--json]
+# { totalRuns, activeRuns, maxConcurrentOptimizations,
+#   byStatus: { running, complete, applied, failed, cancelled },
+#   byObjective: { accuracy, fairness, resilience, convergence_speed },
+#   observations: { totalDids, totalObservations },
+#   bestScoreEver }
+```
+
+**未移植 (Desktop-Only)**
+
+- Live Gaussian-process surrogate with acquisition-function guided sampling
+- Real-time telemetry-driven continuous optimization loop
+- Reputation-weighted on-chain reward settlement
+- Multi-tenant parameter governance with RBAC gates
+- Cross-cluster federated optimization (HP sweep across shards)
+- Dashboard + heatmap visualization of distribution/anomalies
+- Automatic rollout of applied params to live reputation scoring
+
+CLI port covers the concurrency cap, 5-state run lifecycle, objective
+enumeration, decay-model/anomaly-method enumeration, synchronous
+iteration sampling + analytics, and aggregate stats — sufficient for CI
+regression against Phase 60 design invariants.
+
+### Phase 65 — Skill Marketplace V2 (`marketplace` extension)
+
+Extends `chainlesschain marketplace` with the Phase 65 canonical surface:
+
+```bash
+cc marketplace service-statuses-v2 [--json]
+cc marketplace invocation-statuses-v2 [--json]
+cc marketplace pricing-models [--json]
+cc marketplace default-max-concurrent
+cc marketplace max-concurrent
+cc marketplace active-invocation-count [service-id]
+cc marketplace set-max-concurrent <n>
+cc marketplace begin-v2 <service-id> [--caller <did>] [--input <json>] [--json]
+cc marketplace start-invocation <id>
+cc marketplace complete-invocation <id> [--output <json>] [--duration <ms>] [--json]
+cc marketplace fail-invocation <id> [--message <msg>] [--duration <ms>]
+cc marketplace timeout-invocation <id> [--message <msg>] [--duration <ms>]
+cc marketplace set-invocation-status <id> <status> [--output <json>] [--error <msg>] [--duration <ms>] [--json]
+cc marketplace stats-v2 [--json]
+```
+
+**Frozen enums**:
+
+```js
+SERVICE_STATUS_V2    = { DRAFT, PUBLISHED, DEPRECATED, SUSPENDED }
+INVOCATION_STATUS_V2 = { PENDING, RUNNING, SUCCESS, FAILED, TIMEOUT }
+PRICING_MODEL_V2     = { FREE, PAY_PER_CALL, SUBSCRIPTION, TIERED }
+MARKETPLACE_DEFAULT_MAX_CONCURRENT_INVOCATIONS = 10
+```
+
+**Per-service concurrency cap** — `getActiveInvocationCount(serviceId)` filters
+by service; unrelated services don't starve each other. `beginInvocationV2`
+rejects when `activeCount >= max` with `Max concurrent invocations reached for
+service`. `setMaxConcurrentInvocations(n)` floors non-integer (`3.7 → 3`),
+rejects `≤ 0`, `NaN`, and non-number.
+
+**Invocation state machine**:
+
+```
+pending  → { running, failed, timeout }
+running  → { success, failed, timeout }
+Terminal: success, failed, timeout
+```
+
+Enforced by `setInvocationStatus(db, id, newStatus, patch = {})`. Patch may
+carry `output`, `error`, `durationMs`, `startedAt` (stored in-memory on the
+invocation record). Terminal transitions auto-set `completedAt` if missing
+and bump `service.invocationCount` exactly once.
+
+**Async lifecycle split** (distinct from the legacy synchronous
+`invokeService`):
+
+- `beginInvocationV2(db, config)` — creates PENDING row, enforces per-service
+  cap, returns `{ invocationId, status: pending, serviceId, caller, input, ... }`.
+- `startInvocation(db, id)` — PENDING → RUNNING, stamps `startedAt`.
+- `completeInvocationV2(db, id, { output, durationMs })` — RUNNING → SUCCESS.
+- `failInvocationV2(db, id, errorMessage, { durationMs })` — → FAILED.
+- `timeoutInvocationV2(db, id, { durationMs })` — → TIMEOUT (defaults
+  `error="timeout"`).
+
+**getMarketplaceStatsV2()** returns:
+
+```js
+{
+  totalServices, totalInvocations, activeInvocations,
+  maxConcurrentInvocations,
+  servicesByStatus:    { draft, published, deprecated, suspended },
+  invocationsByStatus: { pending, running, success, failed, timeout },
+  servicesByPricing:   { free, pay_per_call, subscription, tiered },
+  avgDurationMs,
+  successRate,        // terminal successes / terminal count
+}
+```
+
+**未移植 (Desktop-Only)**:
+
+- Real P2P/libp2p service invocation transport
+- Matrix/ActivityPub cross-instance routing
+- Streaming output channels
+- Context Engineering skill/prompt injection per invocation
+- On-chain marketplace settlement + payout split
+- Service catalog federation across instances
+- Reputation-weighted discovery ranking
+
+CLI port covers the per-service concurrency cap, 5-state invocation
+lifecycle, service status enumeration, async lifecycle split
+(begin → start → complete/fail/timeout), patch-merged transitions,
+pricing-model aggregation, and marketplace-wide stats — sufficient for
+CI regression against Phase 65 design invariants.
+
+### Phase 89 — Cross-Chain Interoperability V2 (`crosschain` extension)
+
+Extends `chainlesschain crosschain` with the Phase 89 canonical surface:
+
+```bash
+cc crosschain bridge-statuses-v2 [--json]
+cc crosschain swap-statuses-v2 [--json]
+cc crosschain message-statuses-v2 [--json]
+cc crosschain chain-ids-v2 [--json]
+cc crosschain default-max-active-bridges
+cc crosschain max-active-bridges
+cc crosschain active-bridge-count [address]
+cc crosschain set-max-active-bridges <n>
+cc crosschain configure-chain <chain-id> [--rpc-url <url>] [--contract <addr>] [--disabled] [--json]
+cc crosschain chain-config <chain-id> [--json]
+cc crosschain list-chains-v2 [--json]
+cc crosschain bridge-v2 <from> <to> <amount> [--asset <s>] [--sender <addr>] [--recipient <addr>] [--json]
+cc crosschain set-bridge-status <id> <status> [--lock-tx <h>] [--mint-tx <h>] [--message <m>] [--json]
+cc crosschain set-swap-status <id> <status> [--claim-tx <h>] [--refund-tx <h>] [--json]
+cc crosschain set-message-status <id> <status> [--source-tx <h>] [--dest-tx <h>] [--json]
+cc crosschain auto-expire-swaps [--json]
+cc crosschain stats-v2 [--json]
+```
+
+**Frozen enums**:
+
+```js
+BRIDGE_STATUS_V2  = { PENDING, LOCKED, MINTED, COMPLETED, REFUNDED, FAILED }
+SWAP_STATUS_V2    = { INITIATED, HASH_LOCKED, CLAIMED, REFUNDED, EXPIRED }
+MESSAGE_STATUS_V2 = { PENDING, SENT, DELIVERED, FAILED }
+CHAIN_ID_V2       = { ETHEREUM, POLYGON, BSC, ARBITRUM, SOLANA }
+CROSSCHAIN_DEFAULT_MAX_ACTIVE_BRIDGES_PER_ADDRESS = 3
+```
+
+**Per-address bridge concurrency cap** — `getActiveBridgeCount(address?)`
+counts non-terminal bridges (terminals: `completed`, `refunded`, `failed`);
+when `address` omitted, counts globally. `bridgeAssetV2` throws `Max active
+bridges per address reached (n/max)` when `activeCount >= max` for the
+given `senderAddress`. Cap is per-sender so unrelated wallets don't
+interact. `setMaxActiveBridgesPerAddress(n)` floors non-integer (`5.7 → 5`),
+rejects `≤ 0`, `NaN`, and non-number.
+
+**Bridge state machine**:
+
+```
+pending → { locked, failed }
+locked  → { minted, refunded, failed }
+minted  → { completed, failed }
+Terminal: completed, refunded, failed
+```
+
+**Swap state machine**:
+
+```
+initiated   → { hash_locked, claimed, refunded, expired }
+hash_locked → { claimed, refunded, expired }
+Terminal: claimed, refunded, expired
+```
+
+**Message state machine**:
+
+```
+pending → { sent, failed }
+sent    → { delivered, failed }
+failed  → { pending }              // retry bumps retries counter
+Terminal: delivered
+```
+
+**Patch-merged setters** — `setBridgeStatusV2` / `setSwapStatusV2` /
+`setMessageStatusV2` all validate transition, reject unknown status, reject
+unknown id, and merge patch fields (bridge: `lockTxHash`/`mintTxHash`/
+`errorMessage`; swap: `claimTxHash`/`refundTxHash`; message: `sourceTxHash`/
+`destinationTxHash`). Terminal bridge transitions auto-set `completed_at`;
+message `delivered` transitions auto-set `delivered_at`; message `pending`
+re-entry increments `retries`.
+
+**Chain config CRUD** (missing from legacy CLI):
+
+- `configureChainV2({ chainId, rpcUrl, contractAddress, enabled })` —
+  persists in-memory config for one of the 5 supported chains; rejects
+  unsupported chainId.
+- `getChainConfigV2(chainId)` — returns `{ chainId, rpcUrl, contractAddress,
+  enabled, updatedAt }` or `null`.
+- `listChainsV2()` — enriches `SUPPORTED_CHAINS` with `enabled`, `rpcUrl`,
+  `contractAddress` from config; chains without config default to
+  `enabled=false`.
+
+**Auto-expire** — `autoExpireSwapsV2(db)` bulk-flips all swaps with
+`status ∈ { initiated, hash_locked }` and `expires_at < now` to `expired`.
+Skips already-terminal swaps. Returns expired swap records (secret stripped).
+
+**getCrossChainStatsV2()** returns all-enum-key zero init:
+
+```js
+{
+  totalBridges, totalSwaps, totalMessages,
+  activeBridges, maxActiveBridgesPerAddress,
+  bridgesByStatus:  { pending, locked, minted, completed, refunded, failed },
+  swapsByStatus:    { initiated, hash_locked, claimed, refunded, expired },
+  messagesByStatus: { pending, sent, delivered, failed },
+  chainUsage:       { ethereum, polygon, bsc, arbitrum, solana },
+  totalBridgeVolume, totalFees, configuredChains,
+}
+```
+
+**未移植 (Desktop-Only)**:
+
+- Real RPC chain adapters (Ethereum/Polygon/BSC/Arbitrum/Solana)
+- Actual on-chain transactions (lock / mint / claim / refund)
+- WebSocket event subscriptions for bridge/swap completion
+- HTLC secret reveal via on-chain transaction monitoring
+- Balance query via RPC (`getBalances({ address, chains })`)
+- CrossChainBridgePage.vue + Pinia store UI
+- Cross-chain message payload encryption
+- Multi-hop routing + path optimization
+- On-chain fee oracle (replaces heuristic `estimateFee`)
+
+CLI port covers the frozen enum surface, per-address bridge concurrency
+cap, chain config CRUD, patch-merged state-machine setters for all three
+resources (bridge / swap / message), auto-expire of stale swaps, and
+all-enum-key stats — sufficient for CI regression against Phase 89
+design invariants.
+
+### Phase 67 — Decentralized Inference Network V2 (`inference` extension)
+
+Extends `chainlesschain inference` with the Phase 67 canonical surface:
+per-node concurrent task cap, async 4-stage task lifecycle (queued →
+dispatched → running → complete), heartbeat-timeout auto-offline, and
+capability-filtered eligibility.
+
+```bash
+# V2 catalogs
+cc inference node-statuses-v2 | task-statuses-v2 | privacy-modes-v2
+
+# Per-node concurrency cap (default: 4)
+cc inference default-max-concurrent-tasks
+cc inference max-concurrent-tasks
+cc inference active-task-count <node-id>
+cc inference set-max-concurrent-tasks <n>
+
+# Heartbeat timeout (default: 90000ms)
+cc inference heartbeat-timeout
+cc inference set-heartbeat-timeout <ms>
+
+# V2 async task lifecycle
+cc inference submit-v2 <model> [-i <input>] [-p <priority>] [-m <mode>]
+cc inference dispatch-v2 <task-id> [-n <node-id>]
+cc inference start-task <task-id>
+cc inference complete-v2 <task-id> [-o <output>] [-d <ms>]
+cc inference fail-v2 <task-id> [-e <error>]
+cc inference set-task-status <task-id> <status> [-o|-d|-e]
+
+# Node health & discovery
+cc inference auto-offline
+cc inference eligible-nodes [-c <capability>] [-m <mode>]
+
+# V2 stats
+cc inference stats-v2
+```
+
+Frozen enums:
+
+```js
+NODE_STATUS_V2    = { ONLINE, OFFLINE, BUSY, DEGRADED }
+TASK_STATUS_V2    = { QUEUED, DISPATCHED, RUNNING, COMPLETE, FAILED }
+PRIVACY_MODE_V2   = { STANDARD, ENCRYPTED, FEDERATED }
+INFERENCE_DEFAULT_MAX_CONCURRENT_TASKS_PER_NODE = 4
+INFERENCE_DEFAULT_HEARTBEAT_TIMEOUT_MS          = 90000
+```
+
+Task state machine:
+
+```
+queued     → { dispatched, failed }
+dispatched → { running, failed }
+running    → { complete, failed }
+Terminal: complete, failed
+```
+
+Per-node concurrency cap is enforced by `dispatchTaskV2` — if
+`getActiveTasksPerNode(nodeId) >= max`, the call throws
+`Max concurrent tasks reached for node {id}`. `findEligibleNodes` filters
+out both non-online and over-cap nodes, returning the list sorted by
+current load (least first). `autoMarkOfflineNodes` bulk-flips nodes
+whose `last_heartbeat < now - heartbeatTimeoutMs` to `OFFLINE`.
+
+Not ported (Desktop-only): real libp2p node discovery, GPU probe,
+encrypted/federated inference RPC, streaming token output, on-chain
+settlement, priority scheduling, WebSocket task-dispatch push.
+Strictly additive — legacy `registerNode`, `heartbeat`, `updateNodeStatus`,
+`submitTask`, `completeTask`, `failTask`, `getTask`, `listTasks`,
+`getSchedulerStats`, `ensureInferenceTables`, `_resetState` all preserved.

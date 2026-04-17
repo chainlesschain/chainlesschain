@@ -18,6 +18,21 @@ import {
   recordInvocation,
   listInvocations,
   getInvocationStats,
+  // V2 (Phase 65)
+  SERVICE_STATUS_V2,
+  INVOCATION_STATUS_V2,
+  PRICING_MODEL_V2,
+  MARKETPLACE_DEFAULT_MAX_CONCURRENT_INVOCATIONS,
+  setMaxConcurrentInvocations,
+  getMaxConcurrentInvocations,
+  getActiveInvocationCount,
+  beginInvocationV2,
+  startInvocation,
+  completeInvocationV2,
+  failInvocationV2,
+  timeoutInvocationV2,
+  setInvocationStatus,
+  getMarketplaceStatsV2,
 } from "../lib/skill-marketplace.js";
 
 function _dbFromCtx(ctx) {
@@ -316,6 +331,247 @@ export function registerMarketplaceCommand(program) {
               `  ${chalk.bold("Scope:")}         service ${stats.scopedToService.slice(0, 8)}`,
             );
           }
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  /* ── V2 (Phase 65) ───────────────────────────────────────── */
+
+  mp.command("service-statuses-v2")
+    .description("List V2 service statuses (frozen enum)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const values = Object.values(SERVICE_STATUS_V2);
+      if (options.json) console.log(JSON.stringify(values, null, 2));
+      else for (const v of values) logger.log(`  ${chalk.cyan(v)}`);
+    });
+
+  mp.command("invocation-statuses-v2")
+    .description("List V2 invocation statuses (frozen enum)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const values = Object.values(INVOCATION_STATUS_V2);
+      if (options.json) console.log(JSON.stringify(values, null, 2));
+      else for (const v of values) logger.log(`  ${chalk.cyan(v)}`);
+    });
+
+  mp.command("pricing-models")
+    .description("List V2 pricing models (frozen enum)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const values = Object.values(PRICING_MODEL_V2);
+      if (options.json) console.log(JSON.stringify(values, null, 2));
+      else for (const v of values) logger.log(`  ${chalk.cyan(v)}`);
+    });
+
+  mp.command("default-max-concurrent")
+    .description("Show default per-service concurrency cap")
+    .action(() => {
+      logger.log(`  ${MARKETPLACE_DEFAULT_MAX_CONCURRENT_INVOCATIONS}`);
+    });
+
+  mp.command("max-concurrent")
+    .description("Show current per-service concurrency cap")
+    .action(() => {
+      logger.log(`  ${getMaxConcurrentInvocations()}`);
+    });
+
+  mp.command("active-invocation-count [service-id]")
+    .description(
+      "Show count of PENDING + RUNNING invocations (all services by default)",
+    )
+    .action((serviceId) => {
+      logger.log(`  ${getActiveInvocationCount(serviceId)}`);
+    });
+
+  mp.command("set-max-concurrent <n>")
+    .description("Set the per-service concurrency cap")
+    .action((n) => {
+      try {
+        const v = setMaxConcurrentInvocations(Number(n));
+        logger.success(`Max concurrent invocations = ${v}`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  mp.command("begin-v2 <service-id>")
+    .description("Begin a V2 invocation (creates PENDING, enforces cap)")
+    .option("-c, --caller <id>", "Caller ID")
+    .option("-i, --input <json>", "JSON-encoded input")
+    .option("--json", "Output as JSON")
+    .action(async (serviceId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = _dbFromCtx(ctx);
+        let input = null;
+        if (options.input) {
+          try {
+            input = JSON.parse(options.input);
+          } catch {
+            input = options.input;
+          }
+        }
+        const inv = beginInvocationV2(db, {
+          serviceId,
+          callerId: options.caller,
+          input,
+        });
+        if (options.json) console.log(JSON.stringify(inv, null, 2));
+        else {
+          logger.success(`Invocation queued [${inv.status}]`);
+          logger.log(`  ${chalk.bold("ID:")} ${chalk.cyan(inv.id)}`);
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  mp.command("start-invocation <invocation-id>")
+    .description("Start a V2 invocation (PENDING → RUNNING)")
+    .option("--json", "Output as JSON")
+    .action(async (invocationId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = _dbFromCtx(ctx);
+        const result = startInvocation(db, invocationId);
+        if (options.json) console.log(JSON.stringify(result, null, 2));
+        else logger.success(`Status = ${result.status}`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  mp.command("complete-invocation <invocation-id>")
+    .description("Complete a V2 invocation (RUNNING → SUCCESS)")
+    .option("-o, --output <json>", "JSON-encoded output")
+    .option("-d, --duration-ms <n>", "Duration in milliseconds", parseInt)
+    .option("--json", "Output as JSON")
+    .action(async (invocationId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = _dbFromCtx(ctx);
+        let output = null;
+        if (options.output) {
+          try {
+            output = JSON.parse(options.output);
+          } catch {
+            output = options.output;
+          }
+        }
+        const result = completeInvocationV2(db, invocationId, {
+          output,
+          durationMs: options.durationMs,
+        });
+        if (options.json) console.log(JSON.stringify(result, null, 2));
+        else logger.success(`Status = ${result.status}`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  mp.command("fail-invocation <invocation-id>")
+    .description("Fail a V2 invocation")
+    .option("-m, --message <msg>", "Error message")
+    .option("-d, --duration-ms <n>", "Duration in milliseconds", parseInt)
+    .action(async (invocationId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = _dbFromCtx(ctx);
+        const result = failInvocationV2(db, invocationId, options.message, {
+          durationMs: options.durationMs,
+        });
+        logger.success(`Status = ${result.status}`);
+        if (result.error) logger.log(`  Error: ${result.error}`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  mp.command("timeout-invocation <invocation-id>")
+    .description("Timeout a V2 invocation")
+    .option("-d, --duration-ms <n>", "Duration in milliseconds", parseInt)
+    .action(async (invocationId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = _dbFromCtx(ctx);
+        const result = timeoutInvocationV2(db, invocationId, {
+          durationMs: options.durationMs,
+        });
+        logger.success(`Status = ${result.status}`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  mp.command("set-invocation-status <invocation-id> <status>")
+    .description("Set V2 invocation status via the state machine")
+    .option("-m, --message <msg>", "Error message (FAILED/TIMEOUT)")
+    .option("--json", "Output as JSON")
+    .action(async (invocationId, status, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = _dbFromCtx(ctx);
+        const patch = options.message ? { error: options.message } : {};
+        const result = setInvocationStatus(db, invocationId, status, patch);
+        if (options.json) console.log(JSON.stringify(result, null, 2));
+        else logger.success(`Status = ${result.status}`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  mp.command("stats-v2")
+    .description("V2 aggregated stats")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        _dbFromCtx(ctx);
+        const stats = getMarketplaceStatsV2();
+        if (options.json) console.log(JSON.stringify(stats, null, 2));
+        else {
+          logger.log(
+            `  ${chalk.bold("Services:")}       ${stats.totalServices}`,
+          );
+          logger.log(
+            `  ${chalk.bold("Invocations:")}    ${stats.totalInvocations} (active: ${stats.activeInvocations})`,
+          );
+          logger.log(
+            `  ${chalk.bold("Max concurrent:")} ${stats.maxConcurrentInvocations}`,
+          );
+          logger.log(`  ${chalk.bold("Services by status:")}`);
+          for (const [k, v] of Object.entries(stats.servicesByStatus))
+            logger.log(`    ${k.padEnd(12)} ${v}`);
+          logger.log(`  ${chalk.bold("Services by pricing:")}`);
+          for (const [k, v] of Object.entries(stats.servicesByPricing))
+            logger.log(`    ${k.padEnd(14)} ${v}`);
+          logger.log(`  ${chalk.bold("Invocations by status:")}`);
+          for (const [k, v] of Object.entries(stats.invocationsByStatus))
+            logger.log(`    ${k.padEnd(10)} ${v}`);
+          logger.log(
+            `  ${chalk.bold("Success rate:")}   ${(stats.successRate * 100).toFixed(1)}%`,
+          );
+          logger.log(
+            `  ${chalk.bold("Avg duration:")}   ${stats.avgDurationMs}ms`,
+          );
         }
         await shutdown();
       } catch (err) {

@@ -10,6 +10,15 @@ import {
   getLineage,
   addLineageEntry,
   _resetState,
+  // V2
+  HUB_STATUS_V2,
+  TRUST_TIER,
+  MUTATION_TYPE,
+  trustTier,
+  setHubStatus,
+  listHubsV2,
+  buildFederationContext,
+  getFederationStatsV2,
 } from "../../src/lib/evomap-federation.js";
 
 describe("evomap-federation", () => {
@@ -230,6 +239,171 @@ describe("evomap-federation", () => {
       const parentLineage = getLineage("parent");
       expect(parentLineage.length).toBe(1);
       expect(parentLineage[0].geneId).toBe("child");
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // V2 Canonical Surface (Phase 42)
+  // ═══════════════════════════════════════════════════════════════
+
+  describe("V2 frozen enums", () => {
+    it("HUB_STATUS_V2 is frozen with 4 values", () => {
+      expect(Object.isFrozen(HUB_STATUS_V2)).toBe(true);
+      expect(Object.values(HUB_STATUS_V2).length).toBe(4);
+      expect(HUB_STATUS_V2.ONLINE).toBe("online");
+      expect(HUB_STATUS_V2.DEGRADED).toBe("degraded");
+    });
+
+    it("TRUST_TIER is frozen with 3 values", () => {
+      expect(Object.isFrozen(TRUST_TIER)).toBe(true);
+      expect(Object.values(TRUST_TIER)).toEqual(["low", "medium", "high"]);
+    });
+
+    it("MUTATION_TYPE is frozen", () => {
+      expect(Object.isFrozen(MUTATION_TYPE)).toBe(true);
+      expect(MUTATION_TYPE.RECOMBINATION).toBe("recombination");
+    });
+  });
+
+  describe("trustTier", () => {
+    it("returns LOW for score < 0.3", () => {
+      expect(trustTier(0)).toBe(TRUST_TIER.LOW);
+      expect(trustTier(0.29)).toBe(TRUST_TIER.LOW);
+    });
+
+    it("returns MEDIUM for 0.3 <= score < 0.7", () => {
+      expect(trustTier(0.3)).toBe(TRUST_TIER.MEDIUM);
+      expect(trustTier(0.5)).toBe(TRUST_TIER.MEDIUM);
+      expect(trustTier(0.69)).toBe(TRUST_TIER.MEDIUM);
+    });
+
+    it("returns HIGH for score >= 0.7", () => {
+      expect(trustTier(0.7)).toBe(TRUST_TIER.HIGH);
+      expect(trustTier(1.0)).toBe(TRUST_TIER.HIGH);
+    });
+
+    it("throws on non-number", () => {
+      expect(() => trustTier("foo")).toThrow("Trust score must be a number");
+      expect(() => trustTier(NaN)).toThrow();
+    });
+  });
+
+  describe("setHubStatus", () => {
+    it("transitions offline → syncing", () => {
+      const hub = addFederatedHub(db, "hub://a", "A", "us");
+      const result = setHubStatus(db, hub.id, HUB_STATUS_V2.SYNCING);
+      expect(result.status).toBe("syncing");
+    });
+
+    it("transitions syncing → online", () => {
+      const hub = addFederatedHub(db, "hub://a", "A", "us");
+      setHubStatus(db, hub.id, HUB_STATUS_V2.SYNCING);
+      setHubStatus(db, hub.id, HUB_STATUS_V2.ONLINE);
+    });
+
+    it("rejects invalid transition offline → degraded", () => {
+      const hub = addFederatedHub(db, "hub://a", "A", "us");
+      expect(() => setHubStatus(db, hub.id, HUB_STATUS_V2.DEGRADED)).toThrow(
+        /Invalid hub status transition/,
+      );
+    });
+
+    it("rejects unknown status", () => {
+      const hub = addFederatedHub(db, "hub://a", "A", "us");
+      expect(() => setHubStatus(db, hub.id, "zombie")).toThrow(
+        /Unknown hub status/,
+      );
+    });
+
+    it("rejects unknown hub", () => {
+      expect(() => setHubStatus(db, "missing", HUB_STATUS_V2.ONLINE)).toThrow(
+        /Hub not found/,
+      );
+    });
+  });
+
+  describe("listHubsV2", () => {
+    beforeEach(() => {
+      const a = addFederatedHub(db, "hub://a", "A", "us");
+      const b = addFederatedHub(db, "hub://b", "B", "eu");
+      // bump trust scores via sync
+      syncGenes(db, a.id, []);
+      syncGenes(db, a.id, []);
+      syncGenes(db, a.id, []);
+      syncGenes(db, a.id, []);
+      syncGenes(db, a.id, []);
+    });
+
+    it("annotates with trustTier", () => {
+      const hubs = listHubsV2(db, {});
+      for (const h of hubs) {
+        expect(["low", "medium", "high"]).toContain(h.trustTier);
+      }
+    });
+
+    it("filters by region", () => {
+      const hubs = listHubsV2(db, { region: "eu" });
+      expect(hubs.length).toBe(1);
+      expect(hubs[0].region).toBe("eu");
+    });
+
+    it("filters by minTrust", () => {
+      const hubs = listHubsV2(db, { minTrust: 0.7 });
+      expect(hubs.every((h) => h.trustScore >= 0.7)).toBe(true);
+    });
+
+    it("filters by trustTier", () => {
+      const hubs = listHubsV2(db, { trustTier: TRUST_TIER.LOW });
+      expect(hubs.every((h) => h.trustTier === "low")).toBe(true);
+    });
+  });
+
+  describe("buildFederationContext", () => {
+    it("returns zero-stats for empty state", () => {
+      const ctx = buildFederationContext();
+      expect(ctx.hubCount).toBe(0);
+      expect(ctx.totalGenes).toBe(0);
+      expect(ctx.avgTrust).toBe(0);
+      expect(ctx.avgTrustTier).toBeNull();
+    });
+
+    it("aggregates hubs and genes", () => {
+      const a = addFederatedHub(db, "hub://a", "A", "us");
+      syncGenes(db, a.id, []);
+      addLineageEntry(db, "g1", null, {
+        fitnessScore: 0.8,
+        mutationType: "mutation",
+      });
+      const ctx = buildFederationContext();
+      expect(ctx.hubCount).toBe(1);
+      expect(ctx.onlineHubs).toBeGreaterThanOrEqual(1);
+      expect(ctx.totalGenes).toBe(1);
+      expect(ctx.avgFitness).toBeCloseTo(0.8);
+      expect(ctx.regions).toContain("us");
+    });
+  });
+
+  describe("getFederationStatsV2", () => {
+    it("returns per-status/region/trust breakdown", () => {
+      const a = addFederatedHub(db, "hub://a", "A", "us");
+      const b = addFederatedHub(db, "hub://b", "B", "eu");
+      syncGenes(db, a.id, []); // moves A to online
+      const stats = getFederationStatsV2();
+      expect(stats.totalHubs).toBe(2);
+      expect(stats.byStatus.online).toBe(1);
+      expect(stats.byStatus.offline).toBe(1);
+      expect(stats.byRegion.us).toBe(1);
+      expect(stats.byRegion.eu).toBe(1);
+      expect(stats.byTrustTier.medium).toBeGreaterThanOrEqual(1);
+      void b;
+    });
+
+    it("counts lineage mutations by type", () => {
+      addLineageEntry(db, "g1", null, { mutationType: "mutation" });
+      recombineGenes(db, "g1", "g2");
+      const stats = getFederationStatsV2();
+      expect(stats.byMutationType.mutation).toBe(1);
+      expect(stats.byMutationType.recombination).toBe(1);
     });
   });
 });

@@ -506,4 +506,303 @@ export function _resetState() {
   _runs.clear();
   _analytics.clear();
   _seq = 0;
+  _maxConcurrentOptimizations = DEFAULT_MAX_CONCURRENT_OPTIMIZATIONS;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+ * V2 (Phase 60) — Frozen enums + async optimization lifecycle +
+ * concurrency limiter + patch-merged setRunStatus + stats-v2.
+ * Strictly additive on top of the legacy surface above.
+ * ═══════════════════════════════════════════════════════════════ */
+
+export const RUN_STATUS_V2 = Object.freeze({
+  RUNNING: "running",
+  COMPLETE: "complete",
+  APPLIED: "applied",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+
+export const OBJECTIVE_V2 = Object.freeze({
+  ACCURACY: "accuracy",
+  FAIRNESS: "fairness",
+  RESILIENCE: "resilience",
+  CONVERGENCE_SPEED: "convergence_speed",
+});
+
+export const DECAY_MODEL_V2 = Object.freeze({
+  EXPONENTIAL: "exponential",
+  LINEAR: "linear",
+  STEP: "step",
+  NONE: "none",
+});
+
+export const ANOMALY_METHOD_V2 = Object.freeze({
+  IQR: "iqr",
+  Z_SCORE: "z_score",
+});
+
+const DEFAULT_MAX_CONCURRENT_OPTIMIZATIONS = 2;
+let _maxConcurrentOptimizations = DEFAULT_MAX_CONCURRENT_OPTIMIZATIONS;
+export const REPUTATION_DEFAULT_MAX_CONCURRENT =
+  DEFAULT_MAX_CONCURRENT_OPTIMIZATIONS;
+
+export function setMaxConcurrentOptimizations(n) {
+  if (typeof n !== "number" || !Number.isFinite(n) || n < 1) {
+    throw new Error("maxConcurrentOptimizations must be a positive integer");
+  }
+  _maxConcurrentOptimizations = Math.floor(n);
+  return _maxConcurrentOptimizations;
+}
+
+export function getMaxConcurrentOptimizations() {
+  return _maxConcurrentOptimizations;
+}
+
+// Run state machine:
+//   running  → { complete, failed, cancelled }
+//   complete → { applied }
+//   applied/failed/cancelled are terminal.
+const _runTerminal = new Set([
+  RUN_STATUS_V2.APPLIED,
+  RUN_STATUS_V2.FAILED,
+  RUN_STATUS_V2.CANCELLED,
+]);
+const _runAllowed = new Map([
+  [
+    RUN_STATUS_V2.RUNNING,
+    new Set([
+      RUN_STATUS_V2.COMPLETE,
+      RUN_STATUS_V2.FAILED,
+      RUN_STATUS_V2.CANCELLED,
+    ]),
+  ],
+  [RUN_STATUS_V2.COMPLETE, new Set([RUN_STATUS_V2.APPLIED])],
+  [RUN_STATUS_V2.APPLIED, new Set([])],
+  [RUN_STATUS_V2.FAILED, new Set([])],
+  [RUN_STATUS_V2.CANCELLED, new Set([])],
+]);
+
+export function getActiveOptimizationCount() {
+  let count = 0;
+  for (const r of _runs.values()) {
+    if (r.status === RUN_STATUS_V2.RUNNING) count++;
+  }
+  return count;
+}
+
+/**
+ * startOptimizationV2 — creates a RUNNING row without computing iterations.
+ * Caller drives the transition via completeOptimization or
+ * cancelOptimization / failOptimization, or the generic setRunStatus.
+ */
+export function startOptimizationV2(db, opts = {}) {
+  const objective = opts.objective || OBJECTIVE_V2.ACCURACY;
+  if (!Object.values(OBJECTIVE_V2).includes(objective)) {
+    throw new Error(`Unknown objective: ${objective}`);
+  }
+  const rawIter = opts.iterations == null ? 50 : Number(opts.iterations);
+  const iterations = Math.max(
+    1,
+    Math.min(1000, Number.isFinite(rawIter) ? rawIter : 50),
+  );
+
+  const activeCount = getActiveOptimizationCount();
+  if (activeCount >= _maxConcurrentOptimizations) {
+    throw new Error(
+      `Max concurrent optimizations reached: ${activeCount}/${_maxConcurrentOptimizations}`,
+    );
+  }
+
+  const runId = crypto.randomUUID();
+  const now = Date.now();
+  const paramSpace = {
+    lambda: [0.01, 0.5],
+    kappa: [0.5, 3.0],
+    contamination: [0.01, 0.2],
+  };
+
+  const run = {
+    runId,
+    objective,
+    iterations,
+    paramSpace,
+    bestParams: null,
+    bestScore: null,
+    errorMessage: null,
+    status: RUN_STATUS_V2.RUNNING,
+    createdAt: now,
+    completedAt: null,
+    _seq: ++_seq,
+  };
+  _runs.set(runId, run);
+
+  db.prepare(
+    `INSERT INTO reputation_optimization_runs (run_id, objective, iterations, param_space, best_params, best_score, status, created_at, completed_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    runId,
+    objective,
+    iterations,
+    JSON.stringify(paramSpace),
+    null,
+    null,
+    run.status,
+    now,
+    null,
+  );
+
+  const { _seq: _omit, ...rest } = run;
+  void _omit;
+  return rest;
+}
+
+/**
+ * completeOptimization — advances RUNNING → COMPLETE, runs the iteration
+ * loop, writes analytics, and returns the same { ...run, analytics }
+ * shape as legacy startOptimization.
+ */
+export function completeOptimization(db, runId) {
+  const run = _runs.get(runId);
+  if (!run) throw new Error(`Optimization run not found: ${runId}`);
+
+  const allowed = _runAllowed.get(run.status);
+  if (!allowed || !allowed.has(RUN_STATUS_V2.COMPLETE)) {
+    throw new Error(`Invalid run status transition: ${run.status} → complete`);
+  }
+
+  let bestParams = null;
+  let bestScore = -Infinity;
+  const history = [];
+
+  for (let i = 0; i < run.iterations; i++) {
+    const params = _sampleParams(run._seq * 101 + i * 17 + 1);
+    const score = _evaluateParams(params, run.objective, i);
+    history.push({ iteration: i, params, score });
+    if (score > bestScore) {
+      bestScore = score;
+      bestParams = params;
+    }
+  }
+
+  const now = Date.now();
+  run.status = RUN_STATUS_V2.COMPLETE;
+  run.bestParams = bestParams;
+  run.bestScore = Number(bestScore.toFixed(6));
+  run.completedAt = now;
+  run.history = history;
+
+  db.prepare(
+    `UPDATE reputation_optimization_runs SET status = ?, best_params = ?, best_score = ?, completed_at = ? WHERE run_id = ?`,
+  ).run(run.status, JSON.stringify(bestParams), run.bestScore, now, runId);
+
+  const distribution = _buildDistribution(listScores({ decay: "none" }));
+  const anomalies = detectAnomalies({ method: "z_score" });
+  const recommendations = _buildRecommendations(run.objective, bestParams);
+  const analyticsId = crypto.randomUUID();
+  const analytics = {
+    analyticsId,
+    runId,
+    reputationDistribution: distribution,
+    anomalies,
+    recommendations,
+    createdAt: now,
+  };
+  _analytics.set(runId, analytics);
+  db.prepare(
+    `INSERT INTO reputation_analytics (analytics_id, run_id, reputation_distribution, anomalies, recommendations, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  ).run(
+    analyticsId,
+    runId,
+    JSON.stringify(distribution),
+    JSON.stringify(anomalies),
+    JSON.stringify(recommendations),
+    now,
+  );
+
+  const { _seq: _omit, ...rest } = run;
+  void _omit;
+  return { ...rest, analytics };
+}
+
+export function cancelOptimization(db, runId) {
+  return setRunStatus(db, runId, RUN_STATUS_V2.CANCELLED);
+}
+
+export function failOptimization(db, runId, errorMessage) {
+  return setRunStatus(db, runId, RUN_STATUS_V2.FAILED, { errorMessage });
+}
+
+export function applyOptimization(db, runId) {
+  return setRunStatus(db, runId, RUN_STATUS_V2.APPLIED);
+}
+
+export function setRunStatus(db, runId, newStatus, patch = {}) {
+  const run = _runs.get(runId);
+  if (!run) throw new Error(`Optimization run not found: ${runId}`);
+
+  if (!Object.values(RUN_STATUS_V2).includes(newStatus)) {
+    throw new Error(`Unknown run status: ${newStatus}`);
+  }
+
+  const allowed = _runAllowed.get(run.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(
+      `Invalid run status transition: ${run.status} → ${newStatus}`,
+    );
+  }
+
+  run.status = newStatus;
+  if (typeof patch.errorMessage === "string") {
+    run.errorMessage = patch.errorMessage;
+  }
+  if (_runTerminal.has(newStatus) && run.completedAt == null) {
+    run.completedAt = Date.now();
+  }
+
+  db.prepare(
+    `UPDATE reputation_optimization_runs SET status = ?, completed_at = ? WHERE run_id = ?`,
+  ).run(newStatus, run.completedAt, runId);
+
+  const { _seq: _omit, ...rest } = run;
+  void _omit;
+  return rest;
+}
+
+export function getReputationStatsV2() {
+  const runs = [..._runs.values()];
+  const observations = [];
+  for (const arr of _observations.values()) observations.push(...arr);
+
+  const byStatus = {};
+  for (const s of Object.values(RUN_STATUS_V2)) byStatus[s] = 0;
+  for (const r of runs) byStatus[r.status] = (byStatus[r.status] || 0) + 1;
+
+  const byObjective = {};
+  for (const o of Object.values(OBJECTIVE_V2)) byObjective[o] = 0;
+  for (const r of runs)
+    byObjective[r.objective] = (byObjective[r.objective] || 0) + 1;
+
+  let totalObservations = observations.length;
+  let totalDids = _observations.size;
+  let bestScore = null;
+  for (const r of runs) {
+    if (r.bestScore != null && (bestScore == null || r.bestScore > bestScore)) {
+      bestScore = r.bestScore;
+    }
+  }
+
+  return {
+    totalRuns: runs.length,
+    activeRuns: getActiveOptimizationCount(),
+    maxConcurrentOptimizations: _maxConcurrentOptimizations,
+    byStatus,
+    byObjective,
+    observations: {
+      totalDids,
+      totalObservations,
+    },
+    bestScoreEver: bestScore,
+  };
 }
