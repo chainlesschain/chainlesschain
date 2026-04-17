@@ -147,6 +147,8 @@ import { registerCodegenCommand } from "./commands/codegen.js";
 import { registerOpsCommand } from "./commands/ops.js";
 // Phase 80: Database Evolution Framework
 import { registerDbEvoCommand } from "./commands/dbevo.js";
+// Phase 84: Multimodal Perception Engine
+import { registerPerceptionCommand } from "./commands/perception.js";
 
 export function createProgram() {
   const program = new Command();
@@ -321,6 +323,7 @@ export function createProgram() {
   registerCodegenCommand(program);
   registerOpsCommand(program);
   registerDbEvoCommand(program);
+  registerPerceptionCommand(program);
 
   return program;
 }
