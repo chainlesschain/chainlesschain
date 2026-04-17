@@ -1071,7 +1071,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.10 NL编程与量化 ⭐NEW",
+          text: "v5.0.2.10 NL编程与量化",
           items: [
             {
               text: "自然语言编程 (nlprog)",
@@ -1084,7 +1084,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.10 运行时与存储 ⭐NEW",
+          text: "v5.0.2.10 运行时与存储",
           items: [
             {
               text: "统一运行时 (runtime)",
@@ -1097,6 +1097,44 @@ export default defineConfig({
             {
               text: "多模态协作 (mm)",
               link: "/chainlesschain/cli-mm",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.10 Agent网络与身份 ⭐NEW",
+          items: [
+            {
+              text: "Agent 网络 (agent-network)",
+              link: "/chainlesschain/cli-agent-network",
+            },
+            {
+              text: "去中心化身份 2.0 (did-v2)",
+              link: "/chainlesschain/cli-did-v2",
+            },
+            {
+              text: "SSO 企业认证 (sso)",
+              link: "/chainlesschain/cli-sso",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.10 流水线与自动化 ⭐NEW",
+          items: [
+            {
+              text: "开发流水线 (pipeline)",
+              link: "/chainlesschain/cli-pipeline",
+            },
+            {
+              text: "工作流自动化 (automation)",
+              link: "/chainlesschain/cli-automation",
+            },
+            {
+              text: "插件生态 2.0 (ecosystem)",
+              link: "/chainlesschain/cli-ecosystem",
+            },
+            {
+              text: "性能调优 (perf)",
+              link: "/chainlesschain/cli-perf",
             },
           ],
         },
