@@ -20,6 +20,33 @@ import {
   rewardContribution,
   getContributions,
   getLeaderboard,
+  // V2
+  ACCOUNT_STATUS_V2,
+  CLAIM_STATUS_V2,
+  TOKEN_DEFAULT_MAX_PENDING_CLAIMS_PER_USER,
+  TOKEN_DEFAULT_CLAIM_EXPIRY_MS,
+  TOKEN_DEFAULT_MAX_CLAIM_AMOUNT,
+  setMaxPendingClaimsPerUser,
+  setClaimExpiryMs,
+  setMaxClaimAmount,
+  getMaxPendingClaimsPerUser,
+  getClaimExpiryMs,
+  getMaxClaimAmount,
+  getPendingClaimCount,
+  registerAccountV2,
+  getAccountStatusV2,
+  setAccountStatusV2,
+  freezeAccount,
+  unfreezeAccount,
+  closeAccount,
+  submitClaimV2,
+  getClaimStatusV2,
+  setClaimStatusV2,
+  approveClaim,
+  rejectClaim,
+  payClaim,
+  autoExpireUnclaimedClaims,
+  getTokenStatsV2,
 } from "../lib/token-incentive.js";
 
 function _dbFromCtx(ctx) {
@@ -369,5 +396,300 @@ export function registerIncentiveCommand(program) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
       }
+    });
+
+  // ─────────────────────────────────────────────────────────────
+  // Phase 66 V2 — Account + Claim lifecycle
+  // ─────────────────────────────────────────────────────────────
+
+  inc
+    .command("account-statuses-v2")
+    .description("List V2 account states")
+    .action(() => {
+      for (const v of Object.values(ACCOUNT_STATUS_V2)) logger.log(v);
+    });
+
+  inc
+    .command("claim-statuses-v2")
+    .description("List V2 claim states")
+    .action(() => {
+      for (const v of Object.values(CLAIM_STATUS_V2)) logger.log(v);
+    });
+
+  inc
+    .command("default-max-pending-claims-per-user")
+    .description("Show default per-user pending claim cap")
+    .action(() =>
+      logger.log(String(TOKEN_DEFAULT_MAX_PENDING_CLAIMS_PER_USER)),
+    );
+
+  inc
+    .command("max-pending-claims-per-user")
+    .description("Show current per-user pending claim cap")
+    .action(() => logger.log(String(getMaxPendingClaimsPerUser())));
+
+  inc
+    .command("set-max-pending-claims-per-user <n>")
+    .description("Update per-user pending claim cap")
+    .action((n) => {
+      logger.log(String(setMaxPendingClaimsPerUser(n)));
+    });
+
+  inc
+    .command("default-claim-expiry-ms")
+    .description("Show default claim expiry (ms)")
+    .action(() => logger.log(String(TOKEN_DEFAULT_CLAIM_EXPIRY_MS)));
+
+  inc
+    .command("claim-expiry-ms")
+    .description("Show current claim expiry (ms)")
+    .action(() => logger.log(String(getClaimExpiryMs())));
+
+  inc
+    .command("set-claim-expiry-ms <ms>")
+    .description("Update claim expiry (ms)")
+    .action((ms) => {
+      logger.log(String(setClaimExpiryMs(ms)));
+    });
+
+  inc
+    .command("default-max-claim-amount")
+    .description("Show default max claim amount")
+    .action(() => logger.log(String(TOKEN_DEFAULT_MAX_CLAIM_AMOUNT)));
+
+  inc
+    .command("max-claim-amount")
+    .description("Show current max claim amount")
+    .action(() => logger.log(String(getMaxClaimAmount())));
+
+  inc
+    .command("set-max-claim-amount <n>")
+    .description("Update max claim amount")
+    .action((n) => {
+      logger.log(String(setMaxClaimAmount(n)));
+    });
+
+  inc
+    .command("pending-claim-count")
+    .description("Count PENDING claims (optionally scoped to user)")
+    .option("-u, --user <user>", "Scope to user")
+    .action((opts) => {
+      logger.log(String(getPendingClaimCount(opts.user)));
+    });
+
+  inc
+    .command("register-account-v2 <account-id>")
+    .description("V2: register a tracked account (tags ACTIVE)")
+    .option("-m, --metadata <meta>", "Metadata (JSON)")
+    .action((accountId, opts) => {
+      const ctx = bootstrap();
+      try {
+        const db = _dbFromCtx(ctx);
+        const metadata = opts.metadata ? JSON.parse(opts.metadata) : undefined;
+        const entry = registerAccountV2(db, { accountId, metadata });
+        logger.log(JSON.stringify(entry, null, 2));
+      } finally {
+        shutdown();
+      }
+    });
+
+  inc
+    .command("account-status-v2 <account-id>")
+    .description("V2: show account status")
+    .action((accountId) => {
+      const entry = getAccountStatusV2(accountId);
+      if (!entry) {
+        logger.log(chalk.yellow("(not found)"));
+        return;
+      }
+      logger.log(JSON.stringify(entry, null, 2));
+    });
+
+  inc
+    .command("set-account-status-v2 <account-id> <status>")
+    .description("V2: transition account status (active|frozen|closed)")
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <meta>", "Metadata (JSON)")
+    .action((accountId, status, opts) => {
+      const ctx = bootstrap();
+      try {
+        const db = _dbFromCtx(ctx);
+        const metadata = opts.metadata ? JSON.parse(opts.metadata) : undefined;
+        const entry = setAccountStatusV2(db, accountId, status, {
+          reason: opts.reason,
+          metadata,
+        });
+        logger.log(JSON.stringify(entry, null, 2));
+      } finally {
+        shutdown();
+      }
+    });
+
+  inc
+    .command("freeze-account <account-id>")
+    .description("V2: shortcut → frozen")
+    .option("-r, --reason <reason>", "Reason")
+    .action((accountId, opts) => {
+      const ctx = bootstrap();
+      try {
+        const db = _dbFromCtx(ctx);
+        const entry = freezeAccount(db, accountId, opts.reason);
+        logger.log(JSON.stringify(entry, null, 2));
+      } finally {
+        shutdown();
+      }
+    });
+
+  inc
+    .command("unfreeze-account <account-id>")
+    .description("V2: shortcut → active (from frozen)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((accountId, opts) => {
+      const ctx = bootstrap();
+      try {
+        const db = _dbFromCtx(ctx);
+        const entry = unfreezeAccount(db, accountId, opts.reason);
+        logger.log(JSON.stringify(entry, null, 2));
+      } finally {
+        shutdown();
+      }
+    });
+
+  inc
+    .command("close-account <account-id>")
+    .description("V2: shortcut → closed")
+    .option("-r, --reason <reason>", "Reason")
+    .action((accountId, opts) => {
+      const ctx = bootstrap();
+      try {
+        const db = _dbFromCtx(ctx);
+        const entry = closeAccount(db, accountId, opts.reason);
+        logger.log(JSON.stringify(entry, null, 2));
+      } finally {
+        shutdown();
+      }
+    });
+
+  inc
+    .command("submit-claim-v2 <claim-id>")
+    .description("V2: submit a claim (tags PENDING)")
+    .requiredOption("-u, --user <user>", "User ID")
+    .requiredOption("-a, --amount <amount>", "Amount")
+    .option("-c, --contribution <id>", "Contribution ID")
+    .option("-m, --metadata <meta>", "Metadata (JSON)")
+    .action((claimId, opts) => {
+      const ctx = bootstrap();
+      try {
+        const db = _dbFromCtx(ctx);
+        const metadata = opts.metadata ? JSON.parse(opts.metadata) : undefined;
+        const entry = submitClaimV2(db, {
+          claimId,
+          userId: opts.user,
+          amount: Number(opts.amount),
+          contributionId: opts.contribution,
+          metadata,
+        });
+        logger.log(JSON.stringify(entry, null, 2));
+      } finally {
+        shutdown();
+      }
+    });
+
+  inc
+    .command("claim-status-v2 <claim-id>")
+    .description("V2: show claim status")
+    .action((claimId) => {
+      const entry = getClaimStatusV2(claimId);
+      if (!entry) {
+        logger.log(chalk.yellow("(not found)"));
+        return;
+      }
+      logger.log(JSON.stringify(entry, null, 2));
+    });
+
+  inc
+    .command("set-claim-status-v2 <claim-id> <status>")
+    .description("V2: transition claim (pending|approved|paid|rejected)")
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <meta>", "Metadata (JSON)")
+    .action((claimId, status, opts) => {
+      const ctx = bootstrap();
+      try {
+        const db = _dbFromCtx(ctx);
+        const metadata = opts.metadata ? JSON.parse(opts.metadata) : undefined;
+        const entry = setClaimStatusV2(db, claimId, status, {
+          reason: opts.reason,
+          metadata,
+        });
+        logger.log(JSON.stringify(entry, null, 2));
+      } finally {
+        shutdown();
+      }
+    });
+
+  inc
+    .command("approve-claim <claim-id>")
+    .description("V2: shortcut → approved")
+    .option("-r, --reason <reason>", "Reason")
+    .action((claimId, opts) => {
+      const ctx = bootstrap();
+      try {
+        const db = _dbFromCtx(ctx);
+        const entry = approveClaim(db, claimId, opts.reason);
+        logger.log(JSON.stringify(entry, null, 2));
+      } finally {
+        shutdown();
+      }
+    });
+
+  inc
+    .command("reject-claim <claim-id>")
+    .description("V2: shortcut → rejected")
+    .option("-r, --reason <reason>", "Reason")
+    .action((claimId, opts) => {
+      const ctx = bootstrap();
+      try {
+        const db = _dbFromCtx(ctx);
+        const entry = rejectClaim(db, claimId, opts.reason);
+        logger.log(JSON.stringify(entry, null, 2));
+      } finally {
+        shutdown();
+      }
+    });
+
+  inc
+    .command("pay-claim <claim-id>")
+    .description("V2: shortcut → paid (stamps paidAt)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((claimId, opts) => {
+      const ctx = bootstrap();
+      try {
+        const db = _dbFromCtx(ctx);
+        const entry = payClaim(db, claimId, opts.reason);
+        logger.log(JSON.stringify(entry, null, 2));
+      } finally {
+        shutdown();
+      }
+    });
+
+  inc
+    .command("auto-expire-unclaimed-claims")
+    .description("V2: bulk-reject stale PENDING claims")
+    .action(() => {
+      const ctx = bootstrap();
+      try {
+        const db = _dbFromCtx(ctx);
+        const expired = autoExpireUnclaimedClaims(db);
+        logger.log(`Expired ${expired.length} claim(s)`);
+      } finally {
+        shutdown();
+      }
+    });
+
+  inc
+    .command("stats-v2")
+    .description("V2: all-enum-key stats snapshot")
+    .action(() => {
+      logger.log(JSON.stringify(getTokenStatsV2(), null, 2));
     });
 }

@@ -528,3 +528,435 @@ export function _resetState() {
   _inEdges.clear();
   _seq = 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+ * V2 SURFACE — Phase 94 lifecycle state machines
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * V2 adds two parallel lifecycles on top of the legacy entity/relation
+ * store. Nothing above is modified.
+ *
+ *   Entity maturity: active → { deprecated, archived }
+ *                   deprecated → { active, archived, removed }
+ *                   archived  → { active, removed }
+ *                   Terminal:  removed
+ *
+ *   Relation status: active     → { deprecated, removed }
+ *                    deprecated → { active, removed }
+ *                    Terminal:  removed
+ *
+ * Caps: per-owner active-entity count + per-source-entity active-relation
+ *       count.
+ *
+ * Auto-flip: stale-entity auto-archive + stale-relation auto-remove.
+ *
+ * Stats: all enum keys zero-initialized for stable CI regression shape.
+ * ═════════════════════════════════════════════════════════════ */
+
+export const ENTITY_STATUS_V2 = Object.freeze({
+  ACTIVE: "active",
+  DEPRECATED: "deprecated",
+  ARCHIVED: "archived",
+  REMOVED: "removed",
+});
+
+export const RELATION_STATUS_V2 = Object.freeze({
+  ACTIVE: "active",
+  DEPRECATED: "deprecated",
+  REMOVED: "removed",
+});
+
+const ENTITY_TRANSITIONS_V2 = new Map([
+  ["active", new Set(["deprecated", "archived"])],
+  ["deprecated", new Set(["active", "archived", "removed"])],
+  ["archived", new Set(["active", "removed"])],
+]);
+const ENTITY_TERMINALS_V2 = new Set(["removed"]);
+
+const RELATION_TRANSITIONS_V2 = new Map([
+  ["active", new Set(["deprecated", "removed"])],
+  ["deprecated", new Set(["active", "removed"])],
+]);
+const RELATION_TERMINALS_V2 = new Set(["removed"]);
+
+export const KG_DEFAULT_MAX_ACTIVE_ENTITIES_PER_OWNER = 1000;
+export const KG_DEFAULT_MAX_RELATIONS_PER_ENTITY = 100;
+export const KG_DEFAULT_ENTITY_STALE_MS = 180 * 86400000; // 180 days
+export const KG_DEFAULT_RELATION_STALE_MS = 365 * 86400000; // 365 days
+
+let _maxActiveEntitiesPerOwnerV2 = KG_DEFAULT_MAX_ACTIVE_ENTITIES_PER_OWNER;
+let _maxRelationsPerEntityV2 = KG_DEFAULT_MAX_RELATIONS_PER_ENTITY;
+let _entityStaleMsV2 = KG_DEFAULT_ENTITY_STALE_MS;
+let _relationStaleMsV2 = KG_DEFAULT_RELATION_STALE_MS;
+
+const _entityStatesV2 = new Map(); // entityId → V2 record
+const _relationStatesV2 = new Map(); // relationId → V2 record
+
+function _positiveIntV2(n, label) {
+  const num = Number(n);
+  if (!Number.isFinite(num) || num <= 0) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return Math.floor(num);
+}
+
+function _validEntityStatusV2(status) {
+  return (
+    status === "active" ||
+    status === "deprecated" ||
+    status === "archived" ||
+    status === "removed"
+  );
+}
+
+function _validRelationStatusV2(status) {
+  return status === "active" || status === "deprecated" || status === "removed";
+}
+
+export function getDefaultMaxActiveEntitiesPerOwnerV2() {
+  return KG_DEFAULT_MAX_ACTIVE_ENTITIES_PER_OWNER;
+}
+export function getMaxActiveEntitiesPerOwnerV2() {
+  return _maxActiveEntitiesPerOwnerV2;
+}
+export function setMaxActiveEntitiesPerOwnerV2(n) {
+  _maxActiveEntitiesPerOwnerV2 = _positiveIntV2(n, "maxActiveEntitiesPerOwner");
+  return _maxActiveEntitiesPerOwnerV2;
+}
+
+export function getDefaultMaxRelationsPerEntityV2() {
+  return KG_DEFAULT_MAX_RELATIONS_PER_ENTITY;
+}
+export function getMaxRelationsPerEntityV2() {
+  return _maxRelationsPerEntityV2;
+}
+export function setMaxRelationsPerEntityV2(n) {
+  _maxRelationsPerEntityV2 = _positiveIntV2(n, "maxRelationsPerEntity");
+  return _maxRelationsPerEntityV2;
+}
+
+export function getDefaultEntityStaleMsV2() {
+  return KG_DEFAULT_ENTITY_STALE_MS;
+}
+export function getEntityStaleMsV2() {
+  return _entityStaleMsV2;
+}
+export function setEntityStaleMsV2(ms) {
+  _entityStaleMsV2 = _positiveIntV2(ms, "entityStaleMs");
+  return _entityStaleMsV2;
+}
+
+export function getDefaultRelationStaleMsV2() {
+  return KG_DEFAULT_RELATION_STALE_MS;
+}
+export function getRelationStaleMsV2() {
+  return _relationStaleMsV2;
+}
+export function setRelationStaleMsV2(ms) {
+  _relationStaleMsV2 = _positiveIntV2(ms, "relationStaleMs");
+  return _relationStaleMsV2;
+}
+
+/* ── Entity V2 ─────────────────────────────────────────────── */
+
+export function registerEntityV2(db, config = {}) {
+  void db;
+  const entityId = String(config.entityId || "").trim();
+  if (!entityId) throw new Error("entityId is required");
+  const ownerId = String(config.ownerId || "").trim();
+  if (!ownerId) throw new Error("ownerId is required");
+  if (_entityStatesV2.has(entityId)) {
+    throw new Error(`Entity already registered in V2: ${entityId}`);
+  }
+
+  let activeCount = 0;
+  for (const rec of _entityStatesV2.values()) {
+    if (rec.ownerId === ownerId && rec.status === "active") activeCount += 1;
+  }
+  if (activeCount >= _maxActiveEntitiesPerOwnerV2) {
+    throw new Error(
+      `Max active entities per owner reached (${_maxActiveEntitiesPerOwnerV2})`,
+    );
+  }
+
+  const now = Number(config.now ?? Date.now());
+  const record = {
+    entityId,
+    ownerId,
+    name: config.name ? String(config.name) : null,
+    type: config.type ? String(config.type) : null,
+    status: "active",
+    metadata: config.metadata ? { ...config.metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+    lastActivityAt: now,
+    reason: null,
+  };
+  _entityStatesV2.set(entityId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getEntityV2(entityId) {
+  const rec = _entityStatesV2.get(String(entityId || ""));
+  if (!rec) return null;
+  return { ...rec, metadata: { ...rec.metadata } };
+}
+
+export function setEntityStatusV2(db, entityId, newStatus, patch = {}) {
+  void db;
+  const id = String(entityId || "");
+  const record = _entityStatesV2.get(id);
+  if (!record) throw new Error(`Entity not registered in V2: ${id}`);
+  if (!_validEntityStatusV2(newStatus)) {
+    throw new Error(`Invalid entity status: ${newStatus}`);
+  }
+  if (ENTITY_TERMINALS_V2.has(record.status)) {
+    throw new Error(
+      `Entity is in terminal status '${record.status}' and cannot transition`,
+    );
+  }
+  const allowed = ENTITY_TRANSITIONS_V2.get(record.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${record.status} → ${newStatus}`);
+  }
+  record.status = newStatus;
+  record.updatedAt = Number(patch.now ?? Date.now());
+  if (patch.reason !== undefined) record.reason = patch.reason;
+  if (patch.metadata && typeof patch.metadata === "object") {
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  }
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function deprecateEntity(db, entityId, reason) {
+  return setEntityStatusV2(db, entityId, "deprecated", { reason });
+}
+export function archiveEntityV2(db, entityId, reason) {
+  return setEntityStatusV2(db, entityId, "archived", { reason });
+}
+export function removeEntityV2(db, entityId, reason) {
+  return setEntityStatusV2(db, entityId, "removed", { reason });
+}
+export function reviveEntity(db, entityId, reason) {
+  return setEntityStatusV2(db, entityId, "active", { reason });
+}
+
+export function touchEntityActivity(entityId) {
+  const rec = _entityStatesV2.get(String(entityId || ""));
+  if (!rec) throw new Error(`Entity not registered in V2: ${entityId}`);
+  rec.lastActivityAt = Date.now();
+  return { ...rec, metadata: { ...rec.metadata } };
+}
+
+/* ── Relation V2 ───────────────────────────────────────────── */
+
+export function registerRelationV2(db, config = {}) {
+  void db;
+  const relationId = String(config.relationId || "").trim();
+  if (!relationId) throw new Error("relationId is required");
+  const sourceEntityId = String(config.sourceEntityId || "").trim();
+  if (!sourceEntityId) throw new Error("sourceEntityId is required");
+  const targetEntityId = String(config.targetEntityId || "").trim();
+  if (!targetEntityId) throw new Error("targetEntityId is required");
+  const relationType = String(config.relationType || "").trim();
+  if (!relationType) throw new Error("relationType is required");
+
+  if (sourceEntityId === targetEntityId) {
+    throw new Error("Cannot create self-referencing relation");
+  }
+  if (_relationStatesV2.has(relationId)) {
+    throw new Error(`Relation already registered in V2: ${relationId}`);
+  }
+
+  const src = _entityStatesV2.get(sourceEntityId);
+  if (!src) {
+    throw new Error(`Source entity not registered in V2: ${sourceEntityId}`);
+  }
+  if (src.status !== "active" && src.status !== "deprecated") {
+    throw new Error(`Source entity is ${src.status}, cannot create relation`);
+  }
+  const tgt = _entityStatesV2.get(targetEntityId);
+  if (!tgt) {
+    throw new Error(`Target entity not registered in V2: ${targetEntityId}`);
+  }
+  if (tgt.status !== "active" && tgt.status !== "deprecated") {
+    throw new Error(`Target entity is ${tgt.status}, cannot create relation`);
+  }
+
+  let sourceCount = 0;
+  for (const rel of _relationStatesV2.values()) {
+    if (rel.sourceEntityId === sourceEntityId && rel.status === "active") {
+      sourceCount += 1;
+    }
+  }
+  if (sourceCount >= _maxRelationsPerEntityV2) {
+    throw new Error(
+      `Max active relations per entity reached (${_maxRelationsPerEntityV2})`,
+    );
+  }
+
+  const now = Number(config.now ?? Date.now());
+  const record = {
+    relationId,
+    sourceEntityId,
+    targetEntityId,
+    relationType,
+    status: "active",
+    metadata: config.metadata ? { ...config.metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+    reason: null,
+  };
+  _relationStatesV2.set(relationId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getRelationV2(relationId) {
+  const rec = _relationStatesV2.get(String(relationId || ""));
+  if (!rec) return null;
+  return { ...rec, metadata: { ...rec.metadata } };
+}
+
+export function setRelationStatusV2(db, relationId, newStatus, patch = {}) {
+  void db;
+  const id = String(relationId || "");
+  const record = _relationStatesV2.get(id);
+  if (!record) throw new Error(`Relation not registered in V2: ${id}`);
+  if (!_validRelationStatusV2(newStatus)) {
+    throw new Error(`Invalid relation status: ${newStatus}`);
+  }
+  if (RELATION_TERMINALS_V2.has(record.status)) {
+    throw new Error(
+      `Relation is in terminal status '${record.status}' and cannot transition`,
+    );
+  }
+  const allowed = RELATION_TRANSITIONS_V2.get(record.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${record.status} → ${newStatus}`);
+  }
+  record.status = newStatus;
+  record.updatedAt = Number(patch.now ?? Date.now());
+  if (patch.reason !== undefined) record.reason = patch.reason;
+  if (patch.metadata && typeof patch.metadata === "object") {
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  }
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function deprecateRelation(db, relationId, reason) {
+  return setRelationStatusV2(db, relationId, "deprecated", { reason });
+}
+export function removeRelationV2(db, relationId, reason) {
+  return setRelationStatusV2(db, relationId, "removed", { reason });
+}
+export function reviveRelation(db, relationId, reason) {
+  return setRelationStatusV2(db, relationId, "active", { reason });
+}
+
+/* ── Counts ────────────────────────────────────────────────── */
+
+export function getActiveEntityCount(ownerId) {
+  let n = 0;
+  for (const rec of _entityStatesV2.values()) {
+    if (rec.status !== "active") continue;
+    if (ownerId !== undefined && rec.ownerId !== String(ownerId)) continue;
+    n += 1;
+  }
+  return n;
+}
+
+export function getActiveRelationCount(sourceEntityId) {
+  let n = 0;
+  for (const rel of _relationStatesV2.values()) {
+    if (rel.status !== "active") continue;
+    if (
+      sourceEntityId !== undefined &&
+      rel.sourceEntityId !== String(sourceEntityId)
+    ) {
+      continue;
+    }
+    n += 1;
+  }
+  return n;
+}
+
+/* ── Auto-flip Bulk Ops ────────────────────────────────────── */
+
+export function autoArchiveStaleEntities(db, nowMs) {
+  void db;
+  const now = Number(nowMs ?? Date.now());
+  const flipped = [];
+  for (const rec of _entityStatesV2.values()) {
+    if (rec.status !== "active") continue;
+    if (now - rec.lastActivityAt > _entityStaleMsV2) {
+      rec.status = "archived";
+      rec.updatedAt = now;
+      rec.reason = "stale";
+      flipped.push(rec.entityId);
+    }
+  }
+  return flipped;
+}
+
+export function autoRemoveStaleRelations(db, nowMs) {
+  void db;
+  const now = Number(nowMs ?? Date.now());
+  const flipped = [];
+  for (const rel of _relationStatesV2.values()) {
+    if (rel.status === "removed") continue;
+    if (now - rel.updatedAt > _relationStaleMsV2) {
+      rel.status = "removed";
+      rel.updatedAt = now;
+      rel.reason = "stale";
+      flipped.push(rel.relationId);
+    }
+  }
+  return flipped;
+}
+
+/* ── Stats V2 ──────────────────────────────────────────────── */
+
+export function getKnowledgeGraphStatsV2() {
+  const entitiesByStatus = {
+    active: 0,
+    deprecated: 0,
+    archived: 0,
+    removed: 0,
+  };
+  const relationsByStatus = {
+    active: 0,
+    deprecated: 0,
+    removed: 0,
+  };
+  for (const rec of _entityStatesV2.values()) {
+    if (entitiesByStatus[rec.status] !== undefined) {
+      entitiesByStatus[rec.status] += 1;
+    }
+  }
+  for (const rel of _relationStatesV2.values()) {
+    if (relationsByStatus[rel.status] !== undefined) {
+      relationsByStatus[rel.status] += 1;
+    }
+  }
+  return {
+    totalEntitiesV2: _entityStatesV2.size,
+    totalRelationsV2: _relationStatesV2.size,
+    maxActiveEntitiesPerOwner: _maxActiveEntitiesPerOwnerV2,
+    maxRelationsPerEntity: _maxRelationsPerEntityV2,
+    entityStaleMs: _entityStaleMsV2,
+    relationStaleMs: _relationStaleMsV2,
+    entitiesByStatus,
+    relationsByStatus,
+  };
+}
+
+/* ── Reset V2 (tests) ──────────────────────────────────────── */
+
+export function _resetStateV2() {
+  _entityStatesV2.clear();
+  _relationStatesV2.clear();
+  _maxActiveEntitiesPerOwnerV2 = KG_DEFAULT_MAX_ACTIVE_ENTITIES_PER_OWNER;
+  _maxRelationsPerEntityV2 = KG_DEFAULT_MAX_RELATIONS_PER_ENTITY;
+  _entityStaleMsV2 = KG_DEFAULT_ENTITY_STALE_MS;
+  _relationStaleMsV2 = KG_DEFAULT_RELATION_STALE_MS;
+}

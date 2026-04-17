@@ -681,4 +681,352 @@ export function deployCheck() {
 export function _resetState() {
   _baselines.clear();
   _audits.clear();
+  _auditStatesV2.clear();
+  _baselineStatesV2.clear();
+  _maxConcurrentAudits = HARDENING_DEFAULT_MAX_CONCURRENT_AUDITS;
+  _baselineRetentionMs = HARDENING_DEFAULT_BASELINE_RETENTION_MS;
+  _auditTimeoutMs = HARDENING_DEFAULT_AUDIT_TIMEOUT_MS;
+}
+
+/* ──────────────────────────────────────────────────────────
+ *  V2 — Phase 29 Production Hardening surface (strictly additive)
+ * ────────────────────────────────────────────────────────── */
+
+export const AUDIT_STATUS_V2 = Object.freeze({
+  PENDING: "pending",
+  RUNNING: "running",
+  PASSED: "passed",
+  FAILED: "failed",
+  WARNING: "warning",
+});
+
+export const BASELINE_STATUS_V2 = Object.freeze({
+  DRAFT: "draft",
+  ACTIVE: "active",
+  SUPERSEDED: "superseded",
+  ARCHIVED: "archived",
+});
+
+export const SEVERITY_V2 = Object.freeze({
+  CRITICAL: "critical",
+  HIGH: "high",
+  MEDIUM: "medium",
+  LOW: "low",
+  INFO: "info",
+});
+
+export const HARDENING_DEFAULT_MAX_CONCURRENT_AUDITS = 5;
+export const HARDENING_DEFAULT_BASELINE_RETENTION_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
+export const HARDENING_DEFAULT_AUDIT_TIMEOUT_MS = 300_000; // 5 minutes
+
+const _auditStatesV2 = new Map();
+const _baselineStatesV2 = new Map();
+let _maxConcurrentAudits = HARDENING_DEFAULT_MAX_CONCURRENT_AUDITS;
+let _baselineRetentionMs = HARDENING_DEFAULT_BASELINE_RETENTION_MS;
+let _auditTimeoutMs = HARDENING_DEFAULT_AUDIT_TIMEOUT_MS;
+
+const AUDIT_TRANSITIONS_V2 = new Map([
+  ["pending", new Set(["running", "failed"])],
+  ["running", new Set(["passed", "failed", "warning"])],
+]);
+const AUDIT_TERMINALS_V2 = new Set(["passed", "failed", "warning"]);
+
+const BASELINE_TRANSITIONS_V2 = new Map([
+  ["draft", new Set(["active", "archived"])],
+  ["active", new Set(["superseded", "archived"])],
+  ["superseded", new Set(["archived"])],
+]);
+const BASELINE_TERMINALS_V2 = new Set(["archived"]);
+
+function _positiveIntV2(n, label) {
+  if (typeof n !== "number" || Number.isNaN(n) || n < 1) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return Math.floor(n);
+}
+
+function _nowMs() {
+  return Date.now();
+}
+
+/* ── Config Mutators ──────────────────────────────────────── */
+
+export function setMaxConcurrentAudits(n) {
+  _maxConcurrentAudits = _positiveIntV2(n, "maxConcurrentAudits");
+}
+export function getMaxConcurrentAudits() {
+  return _maxConcurrentAudits;
+}
+
+export function setBaselineRetentionMs(ms) {
+  _baselineRetentionMs = _positiveIntV2(ms, "baselineRetentionMs");
+}
+export function getBaselineRetentionMs() {
+  return _baselineRetentionMs;
+}
+
+export function setAuditTimeoutMs(ms) {
+  _auditTimeoutMs = _positiveIntV2(ms, "auditTimeoutMs");
+}
+export function getAuditTimeoutMs() {
+  return _auditTimeoutMs;
+}
+
+export function getRunningAuditCount() {
+  let count = 0;
+  for (const s of _auditStatesV2.values()) {
+    if (s.status === AUDIT_STATUS_V2.RUNNING) count += 1;
+  }
+  return count;
+}
+
+/* ── Audit Lifecycle V2 ───────────────────────────────────── */
+
+export function registerAuditV2(db, { name, type, severity, metadata } = {}) {
+  if (!name) throw new Error("name is required");
+  if (
+    severity !== undefined &&
+    !Object.values(SEVERITY_V2).includes(severity)
+  ) {
+    throw new Error(`Unknown severity: ${severity}`);
+  }
+  const id = crypto.randomUUID();
+  const now = _nowMs();
+  const entry = {
+    audit_id: id,
+    name,
+    type: type || "generic",
+    severity: severity || SEVERITY_V2.MEDIUM,
+    status: AUDIT_STATUS_V2.PENDING,
+    metadata: metadata || null,
+    registered_at: now,
+    started_at: null,
+    completed_at: null,
+  };
+  _auditStatesV2.set(id, entry);
+  return { ...entry };
+}
+
+export function startAudit(db, auditId) {
+  const entry = _auditStatesV2.get(auditId);
+  if (!entry) throw new Error(`Audit not found: ${auditId}`);
+  if (entry.status !== AUDIT_STATUS_V2.PENDING) {
+    throw new Error(
+      `Cannot start audit in status ${entry.status} (must be pending)`,
+    );
+  }
+  const running = getRunningAuditCount();
+  if (running >= _maxConcurrentAudits) {
+    throw new Error(
+      `Max concurrent audits reached (${running}/${_maxConcurrentAudits})`,
+    );
+  }
+  entry.status = AUDIT_STATUS_V2.RUNNING;
+  entry.started_at = _nowMs();
+  return { ...entry };
+}
+
+export function completeAudit(
+  db,
+  auditId,
+  {
+    passed = 0,
+    failed = 0,
+    score,
+    recommendations = [],
+    warningThreshold = 0.8,
+  } = {},
+) {
+  const entry = _auditStatesV2.get(auditId);
+  if (!entry) throw new Error(`Audit not found: ${auditId}`);
+  if (entry.status !== AUDIT_STATUS_V2.RUNNING) {
+    throw new Error(
+      `Cannot complete audit in status ${entry.status} (must be running)`,
+    );
+  }
+  const total = passed + failed;
+  const computedScore =
+    typeof score === "number" ? score : total === 0 ? 1 : passed / total;
+  let newStatus;
+  if (failed === 0) newStatus = AUDIT_STATUS_V2.PASSED;
+  else if (computedScore >= warningThreshold)
+    newStatus = AUDIT_STATUS_V2.WARNING;
+  else newStatus = AUDIT_STATUS_V2.FAILED;
+
+  entry.status = newStatus;
+  entry.completed_at = _nowMs();
+  entry.passed = passed;
+  entry.failed = failed;
+  entry.score = computedScore;
+  entry.recommendations = recommendations;
+  return { ...entry };
+}
+
+export function setAuditStatusV2(db, auditId, newStatus, patch = {}) {
+  const entry = _auditStatesV2.get(auditId);
+  if (!entry) throw new Error(`Audit not found: ${auditId}`);
+  if (!Object.values(AUDIT_STATUS_V2).includes(newStatus)) {
+    throw new Error(`Unknown audit status: ${newStatus}`);
+  }
+  if (AUDIT_TERMINALS_V2.has(entry.status)) {
+    throw new Error(
+      `Invalid transition: ${entry.status} → ${newStatus} (terminal)`,
+    );
+  }
+  const allowed = AUDIT_TRANSITIONS_V2.get(entry.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${entry.status} → ${newStatus}`);
+  }
+  if (
+    newStatus === AUDIT_STATUS_V2.RUNNING &&
+    entry.status !== AUDIT_STATUS_V2.RUNNING
+  ) {
+    const running = getRunningAuditCount();
+    if (running >= _maxConcurrentAudits) {
+      throw new Error(
+        `Max concurrent audits reached (${running}/${_maxConcurrentAudits})`,
+      );
+    }
+  }
+  entry.status = newStatus;
+  if (AUDIT_TERMINALS_V2.has(newStatus)) entry.completed_at = _nowMs();
+  if (patch.errorMessage !== undefined) entry.errorMessage = patch.errorMessage;
+  if (patch.metadata !== undefined) entry.metadata = patch.metadata;
+  return { ...entry };
+}
+
+export function getAuditStatusV2(auditId) {
+  const entry = _auditStatesV2.get(auditId);
+  return entry ? { ...entry } : null;
+}
+
+export function autoTimeoutAudits(db) {
+  const now = _nowMs();
+  const timedOut = [];
+  for (const entry of _auditStatesV2.values()) {
+    if (entry.status !== AUDIT_STATUS_V2.RUNNING) continue;
+    if (entry.started_at == null) continue;
+    if (now - entry.started_at >= _auditTimeoutMs) {
+      entry.status = AUDIT_STATUS_V2.FAILED;
+      entry.completed_at = now;
+      entry.errorMessage = `auto-timeout after ${_auditTimeoutMs}ms`;
+      timedOut.push({ ...entry });
+    }
+  }
+  return timedOut;
+}
+
+/* ── Baseline Lifecycle V2 ────────────────────────────────── */
+
+export function createBaselineV2(db, { name, version, metadata } = {}) {
+  if (!name) throw new Error("name is required");
+  const id = crypto.randomUUID();
+  const now = _nowMs();
+  const entry = {
+    baseline_id: id,
+    name,
+    version: version || "1.0.0",
+    status: BASELINE_STATUS_V2.DRAFT,
+    metadata: metadata || null,
+    created_at: now,
+    activated_at: null,
+    archived_at: null,
+  };
+  _baselineStatesV2.set(id, entry);
+  return { ...entry };
+}
+
+export function getBaselineStatusV2(baselineId) {
+  const entry = _baselineStatesV2.get(baselineId);
+  return entry ? { ...entry } : null;
+}
+
+export function setBaselineStatusV2(db, baselineId, newStatus, patch = {}) {
+  const entry = _baselineStatesV2.get(baselineId);
+  if (!entry) throw new Error(`Baseline not found: ${baselineId}`);
+  if (!Object.values(BASELINE_STATUS_V2).includes(newStatus)) {
+    throw new Error(`Unknown baseline status: ${newStatus}`);
+  }
+  if (BASELINE_TERMINALS_V2.has(entry.status)) {
+    throw new Error(
+      `Invalid transition: ${entry.status} → ${newStatus} (terminal)`,
+    );
+  }
+  const allowed = BASELINE_TRANSITIONS_V2.get(entry.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${entry.status} → ${newStatus}`);
+  }
+  entry.status = newStatus;
+  if (newStatus === BASELINE_STATUS_V2.ACTIVE) entry.activated_at = _nowMs();
+  if (newStatus === BASELINE_STATUS_V2.ARCHIVED) entry.archived_at = _nowMs();
+  if (patch.metadata !== undefined) entry.metadata = patch.metadata;
+  if (patch.reason !== undefined) entry.reason = patch.reason;
+  return { ...entry };
+}
+
+export function activateBaseline(db, baselineId) {
+  const entry = _baselineStatesV2.get(baselineId);
+  if (!entry) throw new Error(`Baseline not found: ${baselineId}`);
+  if (entry.status !== BASELINE_STATUS_V2.DRAFT) {
+    throw new Error(
+      `Cannot activate baseline in status ${entry.status} (must be draft)`,
+    );
+  }
+  for (const other of _baselineStatesV2.values()) {
+    if (
+      other.baseline_id !== baselineId &&
+      other.status === BASELINE_STATUS_V2.ACTIVE
+    ) {
+      other.status = BASELINE_STATUS_V2.SUPERSEDED;
+    }
+  }
+  entry.status = BASELINE_STATUS_V2.ACTIVE;
+  entry.activated_at = _nowMs();
+  return { ...entry };
+}
+
+export function autoArchiveStaleBaselines(db) {
+  const now = _nowMs();
+  const archived = [];
+  for (const entry of _baselineStatesV2.values()) {
+    if (entry.status !== BASELINE_STATUS_V2.SUPERSEDED) continue;
+    if (now - entry.created_at >= _baselineRetentionMs) {
+      entry.status = BASELINE_STATUS_V2.ARCHIVED;
+      entry.archived_at = now;
+      archived.push({ ...entry });
+    }
+  }
+  return archived;
+}
+
+/* ── V2 Stats ─────────────────────────────────────────────── */
+
+export function getHardeningStatsV2() {
+  const auditsByStatus = {};
+  for (const s of Object.values(AUDIT_STATUS_V2)) auditsByStatus[s] = 0;
+  const auditsBySeverity = {};
+  for (const s of Object.values(SEVERITY_V2)) auditsBySeverity[s] = 0;
+  for (const a of _auditStatesV2.values()) {
+    auditsByStatus[a.status] = (auditsByStatus[a.status] || 0) + 1;
+    auditsBySeverity[a.severity] = (auditsBySeverity[a.severity] || 0) + 1;
+  }
+
+  const baselinesByStatus = {};
+  for (const s of Object.values(BASELINE_STATUS_V2)) baselinesByStatus[s] = 0;
+  for (const b of _baselineStatesV2.values()) {
+    baselinesByStatus[b.status] = (baselinesByStatus[b.status] || 0) + 1;
+  }
+
+  return {
+    totalAudits: _auditStatesV2.size,
+    runningAudits: auditsByStatus[AUDIT_STATUS_V2.RUNNING],
+    totalBaselines: _baselineStatesV2.size,
+    activeBaselines: baselinesByStatus[BASELINE_STATUS_V2.ACTIVE],
+    maxConcurrentAudits: _maxConcurrentAudits,
+    baselineRetentionMs: _baselineRetentionMs,
+    auditTimeoutMs: _auditTimeoutMs,
+    auditsByStatus,
+    auditsBySeverity,
+    baselinesByStatus,
+  };
 }

@@ -6,6 +6,45 @@ import { describe, it, expect, beforeEach } from "vitest";
 
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
+  TENANT_MATURITY_V2,
+  SUBSCRIPTION_LIFECYCLE_V2,
+  SAAS_DEFAULT_MAX_ACTIVE_TENANTS_PER_PLAN,
+  SAAS_DEFAULT_MAX_SUBSCRIPTIONS_PER_TENANT,
+  SAAS_DEFAULT_TENANT_IDLE_MS,
+  SAAS_DEFAULT_PAST_DUE_GRACE_MS,
+  getDefaultMaxActiveTenantsPerPlanV2,
+  getMaxActiveTenantsPerPlanV2,
+  setMaxActiveTenantsPerPlanV2,
+  getDefaultMaxSubscriptionsPerTenantV2,
+  getMaxSubscriptionsPerTenantV2,
+  setMaxSubscriptionsPerTenantV2,
+  getDefaultTenantIdleMsV2,
+  getTenantIdleMsV2,
+  setTenantIdleMsV2,
+  getDefaultPastDueGraceMsV2,
+  getPastDueGraceMsV2,
+  setPastDueGraceMsV2,
+  registerTenantV2,
+  getTenantV2,
+  setTenantMaturityV2,
+  activateTenant,
+  suspendTenant,
+  archiveTenantV2,
+  cancelTenant,
+  touchTenantActivity,
+  registerSubscriptionV2,
+  getSubscriptionV2,
+  setSubscriptionStatusV2,
+  activateSubscription,
+  markSubscriptionPastDue,
+  cancelSubscriptionV2,
+  expireSubscription,
+  getActiveTenantCount,
+  getOpenSubscriptionCount,
+  autoArchiveIdleTenants,
+  autoExpirePastDueSubscriptions,
+  getSaasStatsV2,
+  _resetStateV2,
   ensureTenantTables,
   listPlans,
   getPlan,
@@ -704,6 +743,718 @@ describe("tenant-saas", () => {
 
     it("rejects exporting unknown tenant", () => {
       expect(() => exportTenant("nope")).toThrow(/not found/);
+    });
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+ * Phase 97 V2 — Tenant Maturity + Subscription Lifecycle
+ * ═════════════════════════════════════════════════════════════ */
+
+describe("Tenant SaaS V2 — Phase 97", () => {
+  let db;
+  beforeEach(() => {
+    _resetStateV2();
+    db = new MockDatabase();
+  });
+
+  describe("frozen enums + defaults", () => {
+    it("exposes 5-state tenant maturity enum", () => {
+      expect(Object.values(TENANT_MATURITY_V2)).toEqual([
+        "provisioning",
+        "active",
+        "suspended",
+        "archived",
+        "cancelled",
+      ]);
+    });
+
+    it("exposes 5-state subscription lifecycle enum", () => {
+      expect(Object.values(SUBSCRIPTION_LIFECYCLE_V2)).toEqual([
+        "pending",
+        "active",
+        "past_due",
+        "cancelled",
+        "expired",
+      ]);
+    });
+
+    it("exposes V2 defaults", () => {
+      expect(SAAS_DEFAULT_MAX_ACTIVE_TENANTS_PER_PLAN).toBe(1000);
+      expect(SAAS_DEFAULT_MAX_SUBSCRIPTIONS_PER_TENANT).toBe(5);
+      expect(SAAS_DEFAULT_TENANT_IDLE_MS).toBe(180 * 86400000);
+      expect(SAAS_DEFAULT_PAST_DUE_GRACE_MS).toBe(7 * 86400000);
+    });
+  });
+
+  describe("config mutators", () => {
+    it("set/get max-active-tenants-per-plan floors and rejects", () => {
+      setMaxActiveTenantsPerPlanV2(2.7);
+      expect(getMaxActiveTenantsPerPlanV2()).toBe(2);
+      expect(() => setMaxActiveTenantsPerPlanV2(0)).toThrow(/positive/);
+      expect(() => setMaxActiveTenantsPerPlanV2("abc")).toThrow(/positive/);
+    });
+
+    it("set/get max-subscriptions-per-tenant floors and rejects", () => {
+      setMaxSubscriptionsPerTenantV2(3.9);
+      expect(getMaxSubscriptionsPerTenantV2()).toBe(3);
+      expect(() => setMaxSubscriptionsPerTenantV2(-1)).toThrow(/positive/);
+    });
+
+    it("set/get tenant-idle-ms floors and rejects", () => {
+      setTenantIdleMsV2(500.5);
+      expect(getTenantIdleMsV2()).toBe(500);
+      expect(() => setTenantIdleMsV2(0)).toThrow(/positive/);
+    });
+
+    it("set/get past-due-grace-ms resets with _resetStateV2", () => {
+      setPastDueGraceMsV2(1000);
+      _resetStateV2();
+      expect(getPastDueGraceMsV2()).toBe(getDefaultPastDueGraceMsV2());
+      expect(getMaxActiveTenantsPerPlanV2()).toBe(
+        getDefaultMaxActiveTenantsPerPlanV2(),
+      );
+      expect(getMaxSubscriptionsPerTenantV2()).toBe(
+        getDefaultMaxSubscriptionsPerTenantV2(),
+      );
+      expect(getTenantIdleMsV2()).toBe(getDefaultTenantIdleMsV2());
+    });
+  });
+
+  describe("registerTenantV2", () => {
+    it("tags PROVISIONING by default", () => {
+      const r = registerTenantV2(db, { tenantId: "t1", plan: "pro" });
+      expect(r.status).toBe("provisioning");
+      expect(r.tenantId).toBe("t1");
+      expect(r.plan).toBe("pro");
+      expect(r.createdAt).toBeGreaterThan(0);
+      expect(r.lastActivityAt).toBe(r.createdAt);
+    });
+
+    it("honors initialStatus active", () => {
+      const r = registerTenantV2(db, {
+        tenantId: "t1",
+        plan: "pro",
+        initialStatus: "active",
+      });
+      expect(r.status).toBe("active");
+    });
+
+    it("throws missing tenantId", () => {
+      expect(() => registerTenantV2(db, { plan: "pro" })).toThrow(/tenantId/);
+    });
+
+    it("throws missing plan", () => {
+      expect(() => registerTenantV2(db, { tenantId: "t1" })).toThrow(/plan/);
+    });
+
+    it("throws duplicate tenantId", () => {
+      registerTenantV2(db, { tenantId: "t1", plan: "pro" });
+      expect(() =>
+        registerTenantV2(db, { tenantId: "t1", plan: "free" }),
+      ).toThrow(/already registered/);
+    });
+
+    it("rejects terminal cancelled initial", () => {
+      expect(() =>
+        registerTenantV2(db, {
+          tenantId: "t1",
+          plan: "pro",
+          initialStatus: "cancelled",
+        }),
+      ).toThrow(/terminal/);
+    });
+
+    it("rejects invalid initial status", () => {
+      expect(() =>
+        registerTenantV2(db, {
+          tenantId: "t1",
+          plan: "pro",
+          initialStatus: "ghost",
+        }),
+      ).toThrow(/Invalid initial status/);
+    });
+
+    it("enforces per-plan active cap when initialStatus is active", () => {
+      setMaxActiveTenantsPerPlanV2(2);
+      registerTenantV2(db, {
+        tenantId: "t1",
+        plan: "pro",
+        initialStatus: "active",
+      });
+      registerTenantV2(db, {
+        tenantId: "t2",
+        plan: "pro",
+        initialStatus: "active",
+      });
+      expect(() =>
+        registerTenantV2(db, {
+          tenantId: "t3",
+          plan: "pro",
+          initialStatus: "active",
+        }),
+      ).toThrow(/Max active tenants/);
+      registerTenantV2(db, {
+        tenantId: "t4",
+        plan: "free",
+        initialStatus: "active",
+      });
+      registerTenantV2(db, { tenantId: "t5", plan: "pro" });
+    });
+
+    it("provisioning does NOT count against active cap", () => {
+      setMaxActiveTenantsPerPlanV2(1);
+      registerTenantV2(db, { tenantId: "t1", plan: "pro" });
+      registerTenantV2(db, { tenantId: "t2", plan: "pro" });
+      registerTenantV2(db, { tenantId: "t3", plan: "pro" });
+      expect(getActiveTenantCount("pro")).toBe(0);
+    });
+  });
+
+  describe("setTenantMaturityV2", () => {
+    beforeEach(() => {
+      registerTenantV2(db, { tenantId: "t1", plan: "pro" });
+    });
+
+    it("provisioning → active → suspended → active → archived → active → cancelled", () => {
+      expect(activateTenant(db, "t1").status).toBe("active");
+      expect(suspendTenant(db, "t1").status).toBe("suspended");
+      expect(activateTenant(db, "t1").status).toBe("active");
+      expect(archiveTenantV2(db, "t1").status).toBe("archived");
+      expect(activateTenant(db, "t1").status).toBe("active");
+      expect(cancelTenant(db, "t1").status).toBe("cancelled");
+    });
+
+    it("provisioning → cancelled direct", () => {
+      expect(cancelTenant(db, "t1").status).toBe("cancelled");
+    });
+
+    it("archived → cancelled direct", () => {
+      activateTenant(db, "t1");
+      archiveTenantV2(db, "t1");
+      expect(cancelTenant(db, "t1").status).toBe("cancelled");
+    });
+
+    it("provisioning → suspended blocked (must pass through active)", () => {
+      expect(() => suspendTenant(db, "t1")).toThrow(/Invalid transition/);
+    });
+
+    it("terminal cancelled cannot transition", () => {
+      cancelTenant(db, "t1");
+      expect(() => activateTenant(db, "t1")).toThrow(/terminal/);
+    });
+
+    it("unknown tenant throws", () => {
+      expect(() => setTenantMaturityV2(db, "ghost", "active")).toThrow(
+        /not registered/,
+      );
+    });
+
+    it("invalid status rejected", () => {
+      expect(() => setTenantMaturityV2(db, "t1", "ghost")).toThrow(
+        /Invalid tenant status/,
+      );
+    });
+
+    it("activate enforces per-plan cap", () => {
+      setMaxActiveTenantsPerPlanV2(1);
+      registerTenantV2(db, {
+        tenantId: "t2",
+        plan: "pro",
+        initialStatus: "active",
+      });
+      expect(() => activateTenant(db, "t1")).toThrow(/Max active tenants/);
+    });
+
+    it("patch merges metadata + reason", () => {
+      activateTenant(db, "t1");
+      const r = setTenantMaturityV2(db, "t1", "suspended", {
+        reason: "billing",
+        metadata: { note: "grace" },
+      });
+      expect(r.reason).toBe("billing");
+      expect(r.metadata).toEqual({ note: "grace" });
+    });
+
+    it("getTenantV2 returns null for unknown", () => {
+      expect(getTenantV2("ghost")).toBeNull();
+    });
+  });
+
+  describe("touchTenantActivity", () => {
+    it("bumps lastActivityAt", async () => {
+      const r = registerTenantV2(db, { tenantId: "t1", plan: "pro" });
+      await new Promise((res) => setTimeout(res, 2));
+      const r2 = touchTenantActivity("t1");
+      expect(r2.lastActivityAt).toBeGreaterThan(r.lastActivityAt);
+    });
+
+    it("throws unknown", () => {
+      expect(() => touchTenantActivity("ghost")).toThrow(/not registered/);
+    });
+  });
+
+  describe("registerSubscriptionV2", () => {
+    beforeEach(() => {
+      registerTenantV2(db, {
+        tenantId: "t1",
+        plan: "pro",
+        initialStatus: "active",
+      });
+    });
+
+    it("tags PENDING by default", () => {
+      const r = registerSubscriptionV2(db, {
+        subscriptionId: "s1",
+        tenantId: "t1",
+        plan: "pro",
+      });
+      expect(r.status).toBe("pending");
+      expect(r.activatedAt).toBeNull();
+    });
+
+    it("each missing field throws", () => {
+      expect(() =>
+        registerSubscriptionV2(db, { tenantId: "t1", plan: "pro" }),
+      ).toThrow(/subscriptionId/);
+      expect(() =>
+        registerSubscriptionV2(db, { subscriptionId: "s1", plan: "pro" }),
+      ).toThrow(/tenantId/);
+      expect(() =>
+        registerSubscriptionV2(db, {
+          subscriptionId: "s1",
+          tenantId: "t1",
+        }),
+      ).toThrow(/plan/);
+    });
+
+    it("duplicate subscriptionId throws", () => {
+      registerSubscriptionV2(db, {
+        subscriptionId: "s1",
+        tenantId: "t1",
+        plan: "pro",
+      });
+      expect(() =>
+        registerSubscriptionV2(db, {
+          subscriptionId: "s1",
+          tenantId: "t1",
+          plan: "free",
+        }),
+      ).toThrow(/already registered/);
+    });
+
+    it("unregistered tenant throws", () => {
+      expect(() =>
+        registerSubscriptionV2(db, {
+          subscriptionId: "s1",
+          tenantId: "ghost",
+          plan: "pro",
+        }),
+      ).toThrow(/Tenant not registered/);
+    });
+
+    it("suspended/archived/cancelled tenant rejected", () => {
+      registerTenantV2(db, { tenantId: "t2", plan: "pro" });
+      activateTenant(db, "t2");
+      suspendTenant(db, "t2");
+      expect(() =>
+        registerSubscriptionV2(db, {
+          subscriptionId: "s1",
+          tenantId: "t2",
+          plan: "pro",
+        }),
+      ).toThrow(/suspended/);
+
+      registerTenantV2(db, { tenantId: "t3", plan: "pro" });
+      activateTenant(db, "t3");
+      archiveTenantV2(db, "t3");
+      expect(() =>
+        registerSubscriptionV2(db, {
+          subscriptionId: "s2",
+          tenantId: "t3",
+          plan: "pro",
+        }),
+      ).toThrow(/archived/);
+    });
+
+    it("provisioning tenant allowed (grace before activation)", () => {
+      registerTenantV2(db, { tenantId: "t4", plan: "pro" });
+      const r = registerSubscriptionV2(db, {
+        subscriptionId: "s1",
+        tenantId: "t4",
+        plan: "pro",
+      });
+      expect(r.status).toBe("pending");
+    });
+
+    it("per-tenant open cap enforced", () => {
+      setMaxSubscriptionsPerTenantV2(2);
+      registerSubscriptionV2(db, {
+        subscriptionId: "s1",
+        tenantId: "t1",
+        plan: "pro",
+      });
+      registerSubscriptionV2(db, {
+        subscriptionId: "s2",
+        tenantId: "t1",
+        plan: "pro",
+      });
+      expect(() =>
+        registerSubscriptionV2(db, {
+          subscriptionId: "s3",
+          tenantId: "t1",
+          plan: "pro",
+        }),
+      ).toThrow(/Max subscriptions/);
+    });
+
+    it("terminal subscription excluded from cap", () => {
+      setMaxSubscriptionsPerTenantV2(1);
+      registerSubscriptionV2(db, {
+        subscriptionId: "s1",
+        tenantId: "t1",
+        plan: "pro",
+      });
+      cancelSubscriptionV2(db, "s1");
+      registerSubscriptionV2(db, {
+        subscriptionId: "s2",
+        tenantId: "t1",
+        plan: "pro",
+      });
+    });
+  });
+
+  describe("setSubscriptionStatusV2", () => {
+    beforeEach(() => {
+      registerTenantV2(db, {
+        tenantId: "t1",
+        plan: "pro",
+        initialStatus: "active",
+      });
+      registerSubscriptionV2(db, {
+        subscriptionId: "s1",
+        tenantId: "t1",
+        plan: "pro",
+      });
+    });
+
+    it("pending → active → past_due → active → expired", () => {
+      expect(activateSubscription(db, "s1").status).toBe("active");
+      expect(markSubscriptionPastDue(db, "s1").status).toBe("past_due");
+      expect(activateSubscription(db, "s1").status).toBe("active");
+      expect(expireSubscription(db, "s1").status).toBe("expired");
+    });
+
+    it("pending → cancelled direct", () => {
+      expect(cancelSubscriptionV2(db, "s1").status).toBe("cancelled");
+    });
+
+    it("active → cancelled direct", () => {
+      activateSubscription(db, "s1");
+      expect(cancelSubscriptionV2(db, "s1").status).toBe("cancelled");
+    });
+
+    it("past_due → expired direct", () => {
+      activateSubscription(db, "s1");
+      markSubscriptionPastDue(db, "s1");
+      expect(expireSubscription(db, "s1").status).toBe("expired");
+    });
+
+    it("pending → expired blocked (must go via active)", () => {
+      expect(() => expireSubscription(db, "s1")).toThrow(/Invalid transition/);
+    });
+
+    it("cancelled terminal cannot transition", () => {
+      cancelSubscriptionV2(db, "s1");
+      expect(() => activateSubscription(db, "s1")).toThrow(/terminal/);
+    });
+
+    it("expired terminal cannot transition", () => {
+      activateSubscription(db, "s1");
+      expireSubscription(db, "s1");
+      expect(() => activateSubscription(db, "s1")).toThrow(/terminal/);
+    });
+
+    it("unknown subscription throws", () => {
+      expect(() => setSubscriptionStatusV2(db, "ghost", "active")).toThrow(
+        /not registered/,
+      );
+    });
+
+    it("invalid status rejected", () => {
+      expect(() => setSubscriptionStatusV2(db, "s1", "ghost")).toThrow(
+        /Invalid subscription status/,
+      );
+    });
+
+    it("activatedAt stamped once, pastDueAt stamped once", () => {
+      const r1 = activateSubscription(db, "s1");
+      const stampedAt = r1.activatedAt;
+      expect(stampedAt).toBeGreaterThan(0);
+      markSubscriptionPastDue(db, "s1");
+      const r2 = activateSubscription(db, "s1");
+      expect(r2.activatedAt).toBe(stampedAt); // not overwritten on reactivation
+
+      markSubscriptionPastDue(db, "s1");
+      const r3 = getSubscriptionV2("s1");
+      const pastDueFirst = r3.pastDueAt;
+      activateSubscription(db, "s1");
+      markSubscriptionPastDue(db, "s1");
+      // pastDueAt was already set, stays
+      expect(getSubscriptionV2("s1").pastDueAt).toBe(pastDueFirst);
+    });
+
+    it("patch merges metadata + reason", () => {
+      const r = activateSubscription(db, "s1", "initial");
+      expect(r.reason).toBe("initial");
+      const r2 = setSubscriptionStatusV2(db, "s1", "past_due", {
+        reason: "payment_failed",
+        metadata: { attempt: 1 },
+      });
+      expect(r2.reason).toBe("payment_failed");
+      expect(r2.metadata).toEqual({ attempt: 1 });
+    });
+  });
+
+  describe("counts", () => {
+    it("getActiveTenantCount scopes by plan + only ACTIVE", () => {
+      registerTenantV2(db, {
+        tenantId: "t1",
+        plan: "pro",
+        initialStatus: "active",
+      });
+      registerTenantV2(db, {
+        tenantId: "t2",
+        plan: "pro",
+        initialStatus: "active",
+      });
+      registerTenantV2(db, {
+        tenantId: "t3",
+        plan: "free",
+        initialStatus: "active",
+      });
+      registerTenantV2(db, { tenantId: "t4", plan: "pro" });
+      expect(getActiveTenantCount()).toBe(3);
+      expect(getActiveTenantCount("pro")).toBe(2);
+      expect(getActiveTenantCount("free")).toBe(1);
+      expect(getActiveTenantCount("enterprise")).toBe(0);
+    });
+
+    it("getOpenSubscriptionCount scopes + terminal exclusion", () => {
+      registerTenantV2(db, {
+        tenantId: "t1",
+        plan: "pro",
+        initialStatus: "active",
+      });
+      registerTenantV2(db, {
+        tenantId: "t2",
+        plan: "pro",
+        initialStatus: "active",
+      });
+      registerSubscriptionV2(db, {
+        subscriptionId: "s1",
+        tenantId: "t1",
+        plan: "pro",
+      });
+      registerSubscriptionV2(db, {
+        subscriptionId: "s2",
+        tenantId: "t1",
+        plan: "pro",
+      });
+      cancelSubscriptionV2(db, "s2");
+      registerSubscriptionV2(db, {
+        subscriptionId: "s3",
+        tenantId: "t2",
+        plan: "pro",
+      });
+      expect(getOpenSubscriptionCount()).toBe(2);
+      expect(getOpenSubscriptionCount("t1")).toBe(1);
+      expect(getOpenSubscriptionCount("t2")).toBe(1);
+    });
+  });
+
+  describe("autoArchiveIdleTenants", () => {
+    it("flips idle active tenants", () => {
+      setTenantIdleMsV2(100);
+      registerTenantV2(db, {
+        tenantId: "t1",
+        plan: "pro",
+        initialStatus: "active",
+        now: 1000,
+      });
+      const flipped = autoArchiveIdleTenants(db, 2000);
+      expect(flipped).toEqual(["t1"]);
+      expect(getTenantV2("t1").status).toBe("archived");
+    });
+
+    it("flips idle suspended tenants", () => {
+      setTenantIdleMsV2(100);
+      registerTenantV2(db, {
+        tenantId: "t1",
+        plan: "pro",
+        now: 1000,
+      });
+      activateTenant(db, "t1");
+      suspendTenant(db, "t1");
+      // touch activity so it's still 1000
+      const flipped = autoArchiveIdleTenants(db, 100000);
+      // lastActivityAt was initial 1000, now 100000 > 100ms
+      expect(flipped).toContain("t1");
+    });
+
+    it("skips cancelled/archived/provisioning", () => {
+      setTenantIdleMsV2(100);
+      registerTenantV2(db, { tenantId: "t1", plan: "pro", now: 1000 });
+      registerTenantV2(db, {
+        tenantId: "t2",
+        plan: "pro",
+        initialStatus: "active",
+        now: 1000,
+      });
+      archiveTenantV2(db, "t2");
+      const flipped = autoArchiveIdleTenants(db, 2000);
+      expect(flipped).not.toContain("t1"); // provisioning not flipped
+      expect(flipped).not.toContain("t2"); // already archived
+    });
+
+    it("skips fresh tenants", () => {
+      setTenantIdleMsV2(86400000); // 1 day
+      registerTenantV2(db, {
+        tenantId: "t1",
+        plan: "pro",
+        initialStatus: "active",
+      });
+      const flipped = autoArchiveIdleTenants(db);
+      expect(flipped).toEqual([]);
+    });
+  });
+
+  describe("autoExpirePastDueSubscriptions", () => {
+    beforeEach(() => {
+      registerTenantV2(db, {
+        tenantId: "t1",
+        plan: "pro",
+        initialStatus: "active",
+      });
+      registerSubscriptionV2(db, {
+        subscriptionId: "s1",
+        tenantId: "t1",
+        plan: "pro",
+      });
+    });
+
+    it("flips past_due past grace", () => {
+      setPastDueGraceMsV2(100);
+      activateSubscription(db, "s1");
+      markSubscriptionPastDue(db, "s1");
+      const flipped = autoExpirePastDueSubscriptions(db, Date.now() + 1000);
+      expect(flipped).toEqual(["s1"]);
+      expect(getSubscriptionV2("s1").status).toBe("expired");
+    });
+
+    it("skips fresh past_due within grace", () => {
+      setPastDueGraceMsV2(1000000);
+      activateSubscription(db, "s1");
+      markSubscriptionPastDue(db, "s1");
+      const flipped = autoExpirePastDueSubscriptions(db);
+      expect(flipped).toEqual([]);
+    });
+
+    it("skips non-past_due subscriptions", () => {
+      setPastDueGraceMsV2(100);
+      activateSubscription(db, "s1");
+      const flipped = autoExpirePastDueSubscriptions(db, Date.now() + 1000);
+      expect(flipped).toEqual([]);
+    });
+  });
+
+  describe("getSaasStatsV2", () => {
+    it("zero-init with all enum keys", () => {
+      const s = getSaasStatsV2();
+      expect(s.totalTenantsV2).toBe(0);
+      expect(s.totalSubscriptionsV2).toBe(0);
+      expect(s.maxActiveTenantsPerPlan).toBe(1000);
+      expect(s.tenantsByStatus).toEqual({
+        provisioning: 0,
+        active: 0,
+        suspended: 0,
+        archived: 0,
+        cancelled: 0,
+      });
+      expect(s.subscriptionsByStatus).toEqual({
+        pending: 0,
+        active: 0,
+        past_due: 0,
+        cancelled: 0,
+        expired: 0,
+      });
+    });
+
+    it("aggregates across all states", () => {
+      registerTenantV2(db, { tenantId: "t1", plan: "pro" }); // provisioning
+      registerTenantV2(db, {
+        tenantId: "t2",
+        plan: "pro",
+        initialStatus: "active",
+      });
+      registerTenantV2(db, {
+        tenantId: "t3",
+        plan: "pro",
+        initialStatus: "active",
+      });
+      suspendTenant(db, "t3");
+      registerTenantV2(db, { tenantId: "t4", plan: "pro" });
+      cancelTenant(db, "t4");
+
+      registerSubscriptionV2(db, {
+        subscriptionId: "s1",
+        tenantId: "t2",
+        plan: "pro",
+      }); // pending
+      registerSubscriptionV2(db, {
+        subscriptionId: "s2",
+        tenantId: "t2",
+        plan: "pro",
+      });
+      activateSubscription(db, "s2");
+      registerSubscriptionV2(db, {
+        subscriptionId: "s3",
+        tenantId: "t2",
+        plan: "pro",
+      });
+      activateSubscription(db, "s3");
+      markSubscriptionPastDue(db, "s3");
+      registerSubscriptionV2(db, {
+        subscriptionId: "s4",
+        tenantId: "t2",
+        plan: "pro",
+      });
+      cancelSubscriptionV2(db, "s4");
+      registerSubscriptionV2(db, {
+        subscriptionId: "s5",
+        tenantId: "t2",
+        plan: "pro",
+      });
+      activateSubscription(db, "s5");
+      expireSubscription(db, "s5");
+
+      const s = getSaasStatsV2();
+      expect(s.totalTenantsV2).toBe(4);
+      expect(s.tenantsByStatus).toEqual({
+        provisioning: 1,
+        active: 1,
+        suspended: 1,
+        archived: 0,
+        cancelled: 1,
+      });
+      expect(s.totalSubscriptionsV2).toBe(5);
+      expect(s.subscriptionsByStatus).toEqual({
+        pending: 1,
+        active: 1,
+        past_due: 1,
+        cancelled: 1,
+        expired: 1,
+      });
     });
   });
 });

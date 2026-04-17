@@ -1107,3 +1107,380 @@ export function getStats(db) {
     totalDeveloperShare,
   };
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Phase 64 V2 — Plugin maturity + formal install lifecycles,
+// per-developer active-plugin cap, per-user pending-install cap,
+// auto-deprecate + auto-archive
+// ═══════════════════════════════════════════════════════════════
+
+export const PLUGIN_MATURITY_V2 = Object.freeze({
+  ACTIVE: "active",
+  DEPRECATED: "deprecated",
+  ARCHIVED: "archived",
+  REMOVED: "removed",
+});
+
+export const INSTALL_LIFECYCLE_V2 = Object.freeze({
+  PENDING: "pending",
+  RESOLVING: "resolving",
+  INSTALLED: "installed",
+  FAILED: "failed",
+  UNINSTALLED: "uninstalled",
+});
+
+export const PLUGIN_DEFAULT_MAX_ACTIVE_PER_DEVELOPER = 20;
+export const PLUGIN_DEFAULT_MAX_PENDING_INSTALLS_PER_USER = 5;
+export const PLUGIN_DEFAULT_AUTO_DEPRECATE_AFTER_MS = 180 * 24 * 60 * 60 * 1000;
+export const PLUGIN_DEFAULT_AUTO_ARCHIVE_AFTER_MS = 90 * 24 * 60 * 60 * 1000;
+
+let _maxActivePluginsPerDeveloper = PLUGIN_DEFAULT_MAX_ACTIVE_PER_DEVELOPER;
+let _maxPendingInstallsPerUser = PLUGIN_DEFAULT_MAX_PENDING_INSTALLS_PER_USER;
+let _autoDeprecateAfterMs = PLUGIN_DEFAULT_AUTO_DEPRECATE_AFTER_MS;
+let _autoArchiveAfterMs = PLUGIN_DEFAULT_AUTO_ARCHIVE_AFTER_MS;
+
+const _maturityStatesV2 = new Map();
+const _installStatesV2 = new Map();
+
+const MATURITY_TRANSITIONS_V2 = new Map([
+  ["active", new Set(["deprecated", "archived"])],
+  ["deprecated", new Set(["active", "archived", "removed"])],
+  ["archived", new Set(["active", "removed"])],
+]);
+const MATURITY_TERMINALS_V2 = new Set(["removed"]);
+
+const INSTALL_TRANSITIONS_V2 = new Map([
+  ["pending", new Set(["resolving", "failed", "uninstalled"])],
+  ["resolving", new Set(["installed", "failed"])],
+  ["installed", new Set(["uninstalled"])],
+  ["failed", new Set(["pending", "uninstalled"])],
+]);
+const INSTALL_TERMINALS_V2 = new Set(["uninstalled"]);
+
+function _positiveIntV2(n, label) {
+  const v = Number(n);
+  if (!Number.isFinite(v) || v <= 0) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return Math.floor(v);
+}
+
+export function setMaxActivePluginsPerDeveloper(n) {
+  _maxActivePluginsPerDeveloper = _positiveIntV2(
+    n,
+    "maxActivePluginsPerDeveloper",
+  );
+  return _maxActivePluginsPerDeveloper;
+}
+
+export function setMaxPendingInstallsPerUser(n) {
+  _maxPendingInstallsPerUser = _positiveIntV2(n, "maxPendingInstallsPerUser");
+  return _maxPendingInstallsPerUser;
+}
+
+export function setAutoDeprecateAfterMs(ms) {
+  _autoDeprecateAfterMs = _positiveIntV2(ms, "autoDeprecateAfterMs");
+  return _autoDeprecateAfterMs;
+}
+
+export function setAutoArchiveAfterMs(ms) {
+  _autoArchiveAfterMs = _positiveIntV2(ms, "autoArchiveAfterMs");
+  return _autoArchiveAfterMs;
+}
+
+export function getMaxActivePluginsPerDeveloper() {
+  return _maxActivePluginsPerDeveloper;
+}
+
+export function getMaxPendingInstallsPerUser() {
+  return _maxPendingInstallsPerUser;
+}
+
+export function getAutoDeprecateAfterMs() {
+  return _autoDeprecateAfterMs;
+}
+
+export function getAutoArchiveAfterMs() {
+  return _autoArchiveAfterMs;
+}
+
+export function getActivePluginCount(developerId) {
+  let count = 0;
+  for (const entry of _maturityStatesV2.values()) {
+    if (entry.status !== PLUGIN_MATURITY_V2.ACTIVE) continue;
+    if (!developerId || entry.developerId === developerId) count += 1;
+  }
+  return count;
+}
+
+export function getPendingInstallCount(userId) {
+  let count = 0;
+  for (const entry of _installStatesV2.values()) {
+    if (
+      entry.status !== INSTALL_LIFECYCLE_V2.PENDING &&
+      entry.status !== INSTALL_LIFECYCLE_V2.RESOLVING
+    ) {
+      continue;
+    }
+    if (!userId || entry.userId === userId) count += 1;
+  }
+  return count;
+}
+
+/* ── Maturity V2 ────────────────────────────────────── */
+
+export function registerPluginV2(db, { pluginId, developerId, metadata } = {}) {
+  if (!pluginId) throw new Error("pluginId is required");
+  if (!developerId) throw new Error("developerId is required");
+  if (_maturityStatesV2.has(pluginId)) {
+    throw new Error(`Plugin already registered: ${pluginId}`);
+  }
+  const activeCount = getActivePluginCount(developerId);
+  if (activeCount >= _maxActivePluginsPerDeveloper) {
+    throw new Error(
+      `Max active plugins reached (${activeCount}/${_maxActivePluginsPerDeveloper}) for developer ${developerId}`,
+    );
+  }
+  const now = Date.now();
+  const entry = {
+    pluginId,
+    developerId,
+    status: PLUGIN_MATURITY_V2.ACTIVE,
+    reason: null,
+    metadata: metadata ? { ...metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+    lastActivityAt: now,
+  };
+  _maturityStatesV2.set(pluginId, entry);
+  return { ...entry };
+}
+
+export function getMaturityV2(pluginId) {
+  const entry = _maturityStatesV2.get(pluginId);
+  return entry ? { ...entry } : null;
+}
+
+export function setPluginMaturityV2(db, pluginId, newStatus, patch = {}) {
+  const entry = _maturityStatesV2.get(pluginId);
+  if (!entry) throw new Error(`Plugin not registered: ${pluginId}`);
+  if (!Object.values(PLUGIN_MATURITY_V2).includes(newStatus)) {
+    throw new Error(`Invalid maturity status: ${newStatus}`);
+  }
+  if (MATURITY_TERMINALS_V2.has(entry.status)) {
+    throw new Error(`Plugin is terminal: ${entry.status}`);
+  }
+  const allowed = MATURITY_TRANSITIONS_V2.get(entry.status) || new Set();
+  if (!allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${entry.status} → ${newStatus}`);
+  }
+  entry.status = newStatus;
+  entry.updatedAt = Date.now();
+  if (patch.reason !== undefined) entry.reason = patch.reason;
+  if (patch.metadata) entry.metadata = { ...entry.metadata, ...patch.metadata };
+  return { ...entry };
+}
+
+export function deprecatePlugin(db, pluginId, reason) {
+  return setPluginMaturityV2(db, pluginId, PLUGIN_MATURITY_V2.DEPRECATED, {
+    reason,
+  });
+}
+
+export function archivePluginV2(db, pluginId, reason) {
+  return setPluginMaturityV2(db, pluginId, PLUGIN_MATURITY_V2.ARCHIVED, {
+    reason,
+  });
+}
+
+export function removePluginV2(db, pluginId, reason) {
+  return setPluginMaturityV2(db, pluginId, PLUGIN_MATURITY_V2.REMOVED, {
+    reason,
+  });
+}
+
+export function touchPluginActivity(pluginId) {
+  const entry = _maturityStatesV2.get(pluginId);
+  if (!entry) throw new Error(`Plugin not registered: ${pluginId}`);
+  const now = Date.now();
+  entry.lastActivityAt = now;
+  entry.updatedAt = now;
+  return { ...entry };
+}
+
+/* ── Install V2 ─────────────────────────────────────── */
+
+export function submitInstallV2(
+  db,
+  { installId, userId, pluginId, metadata } = {},
+) {
+  if (!installId) throw new Error("installId is required");
+  if (!userId) throw new Error("userId is required");
+  if (!pluginId) throw new Error("pluginId is required");
+  if (_installStatesV2.has(installId)) {
+    throw new Error(`Install already registered: ${installId}`);
+  }
+  const maturityEntry = _maturityStatesV2.get(pluginId);
+  if (
+    maturityEntry &&
+    maturityEntry.status !== PLUGIN_MATURITY_V2.ACTIVE &&
+    maturityEntry.status !== PLUGIN_MATURITY_V2.DEPRECATED
+  ) {
+    throw new Error(`Plugin not installable: ${maturityEntry.status}`);
+  }
+  const pendingCount = getPendingInstallCount(userId);
+  if (pendingCount >= _maxPendingInstallsPerUser) {
+    throw new Error(
+      `Max pending installs reached (${pendingCount}/${_maxPendingInstallsPerUser}) for user ${userId}`,
+    );
+  }
+  const now = Date.now();
+  const entry = {
+    installId,
+    userId,
+    pluginId,
+    status: INSTALL_LIFECYCLE_V2.PENDING,
+    reason: null,
+    metadata: metadata ? { ...metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+  };
+  _installStatesV2.set(installId, entry);
+  return { ...entry };
+}
+
+export function getInstallStatusV2(installId) {
+  const entry = _installStatesV2.get(installId);
+  return entry ? { ...entry } : null;
+}
+
+export function setInstallStatusV2(db, installId, newStatus, patch = {}) {
+  const entry = _installStatesV2.get(installId);
+  if (!entry) throw new Error(`Install not found: ${installId}`);
+  if (!Object.values(INSTALL_LIFECYCLE_V2).includes(newStatus)) {
+    throw new Error(`Invalid install status: ${newStatus}`);
+  }
+  if (INSTALL_TERMINALS_V2.has(entry.status)) {
+    throw new Error(`Install is terminal: ${entry.status}`);
+  }
+  const allowed = INSTALL_TRANSITIONS_V2.get(entry.status) || new Set();
+  if (!allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${entry.status} → ${newStatus}`);
+  }
+  entry.status = newStatus;
+  entry.updatedAt = Date.now();
+  if (patch.reason !== undefined) entry.reason = patch.reason;
+  if (patch.metadata) entry.metadata = { ...entry.metadata, ...patch.metadata };
+  return { ...entry };
+}
+
+export function resolveInstall(db, installId, reason) {
+  return setInstallStatusV2(db, installId, INSTALL_LIFECYCLE_V2.RESOLVING, {
+    reason,
+  });
+}
+
+export function completeInstall(db, installId, reason) {
+  return setInstallStatusV2(db, installId, INSTALL_LIFECYCLE_V2.INSTALLED, {
+    reason,
+  });
+}
+
+export function failInstall(db, installId, reason) {
+  return setInstallStatusV2(db, installId, INSTALL_LIFECYCLE_V2.FAILED, {
+    reason,
+  });
+}
+
+export function uninstallInstallV2(db, installId, reason) {
+  return setInstallStatusV2(db, installId, INSTALL_LIFECYCLE_V2.UNINSTALLED, {
+    reason,
+  });
+}
+
+export function retryFailedInstall(db, installId, reason) {
+  return setInstallStatusV2(db, installId, INSTALL_LIFECYCLE_V2.PENDING, {
+    reason,
+  });
+}
+
+/* ── Auto-flip bulk operations ──────────────────────── */
+
+export function autoDeprecateStalePlugins(db, nowMs = Date.now()) {
+  const deprecated = [];
+  for (const entry of _maturityStatesV2.values()) {
+    if (entry.status !== PLUGIN_MATURITY_V2.ACTIVE) continue;
+    if (nowMs - entry.lastActivityAt > _autoDeprecateAfterMs) {
+      entry.status = PLUGIN_MATURITY_V2.DEPRECATED;
+      entry.reason = "stale";
+      entry.updatedAt = nowMs;
+      deprecated.push({ ...entry });
+    }
+  }
+  return deprecated;
+}
+
+export function autoArchiveLongDeprecated(db, nowMs = Date.now()) {
+  const archived = [];
+  for (const entry of _maturityStatesV2.values()) {
+    if (entry.status !== PLUGIN_MATURITY_V2.DEPRECATED) continue;
+    if (nowMs - entry.updatedAt > _autoArchiveAfterMs) {
+      entry.status = PLUGIN_MATURITY_V2.ARCHIVED;
+      entry.reason = "long-deprecated";
+      entry.updatedAt = nowMs;
+      archived.push({ ...entry });
+    }
+  }
+  return archived;
+}
+
+/* ── Stats V2 ───────────────────────────────────────── */
+
+export function getEcosystemStatsV2() {
+  const maturityByStatus = {
+    active: 0,
+    deprecated: 0,
+    archived: 0,
+    removed: 0,
+  };
+  const installsByStatus = {
+    pending: 0,
+    resolving: 0,
+    installed: 0,
+    failed: 0,
+    uninstalled: 0,
+  };
+
+  for (const entry of _maturityStatesV2.values()) {
+    if (maturityByStatus[entry.status] !== undefined) {
+      maturityByStatus[entry.status] += 1;
+    }
+  }
+  for (const entry of _installStatesV2.values()) {
+    if (installsByStatus[entry.status] !== undefined) {
+      installsByStatus[entry.status] += 1;
+    }
+  }
+
+  return {
+    totalPluginsV2: _maturityStatesV2.size,
+    totalInstallsV2: _installStatesV2.size,
+    maxActivePluginsPerDeveloper: _maxActivePluginsPerDeveloper,
+    maxPendingInstallsPerUser: _maxPendingInstallsPerUser,
+    autoDeprecateAfterMs: _autoDeprecateAfterMs,
+    autoArchiveAfterMs: _autoArchiveAfterMs,
+    maturityByStatus,
+    installsByStatus,
+  };
+}
+
+/* ── Reset V2 (tests) ───────────────────────────────── */
+
+export function _resetStateV2() {
+  _maturityStatesV2.clear();
+  _installStatesV2.clear();
+  _maxActivePluginsPerDeveloper = PLUGIN_DEFAULT_MAX_ACTIVE_PER_DEVELOPER;
+  _maxPendingInstallsPerUser = PLUGIN_DEFAULT_MAX_PENDING_INSTALLS_PER_USER;
+  _autoDeprecateAfterMs = PLUGIN_DEFAULT_AUTO_DEPRECATE_AFTER_MS;
+  _autoArchiveAfterMs = PLUGIN_DEFAULT_AUTO_ARCHIVE_AFTER_MS;
+}

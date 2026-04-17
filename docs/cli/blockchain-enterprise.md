@@ -152,6 +152,46 @@ chainlesschain tenant check-quota <tenant-id> <metric> [-P period] [--json]    #
 chainlesschain tenant stats [--json]                                            # 租户/订阅/用量计数 + 分布
 chainlesschain tenant export <tenant-id> [output-file]                          # JSON 快照 (无文件则输出到 stdout)
 chainlesschain tenant import <input-file>                                       # 从 JSON 快照恢复
+```
+
+### Phase 97 V2 — Tenant Maturity + Subscription Lifecycle
+
+5-state tenant maturity (`provisioning` / `active` / `suspended` / `archived` / `cancelled`)
++ 5-state subscription lifecycle (`pending` / `active` / `past_due` / `cancelled` / `expired`),
+per-plan active-tenant cap, per-tenant open-subscription cap, auto-archive idle tenants,
+auto-expire past-due subscriptions past grace. Legacy `tenant` surface above is unchanged.
+
+```bash
+chainlesschain tenant maturities-v2 | subscription-lifecycles-v2
+chainlesschain tenant default-max-active-tenants-per-plan | max-active-tenants-per-plan |
+      set-max-active-tenants-per-plan <n>
+chainlesschain tenant default-max-subscriptions-per-tenant | max-subscriptions-per-tenant |
+      set-max-subscriptions-per-tenant <n>
+chainlesschain tenant default-tenant-idle-ms | tenant-idle-ms | set-tenant-idle-ms <ms>
+chainlesschain tenant default-past-due-grace-ms | past-due-grace-ms | set-past-due-grace-ms <ms>
+chainlesschain tenant active-tenant-count [-p plan]
+chainlesschain tenant open-subscription-count [-t tenant]
+chainlesschain tenant register-v2 <tenant-id> -p <plan> [-o owner] [-i initial-status] [-m metadata-json]
+chainlesschain tenant tenant-v2 <tenant-id>
+chainlesschain tenant set-maturity-v2 <tenant-id> <status> [-r reason] [-m metadata-json]
+chainlesschain tenant activate <tenant-id> [-r reason]
+chainlesschain tenant suspend <tenant-id> [-r reason]
+chainlesschain tenant archive-v2 <tenant-id> [-r reason]
+chainlesschain tenant cancel-tenant <tenant-id> [-r reason]
+chainlesschain tenant touch-activity <tenant-id>
+chainlesschain tenant subscription-register-v2 <sub-id> -t <tenant> -p <plan> [-e expires-at-ms] [-m metadata-json]
+chainlesschain tenant subscription-v2 <sub-id>
+chainlesschain tenant set-subscription-status-v2 <sub-id> <status> [-r reason] [-m metadata-json]
+chainlesschain tenant activate-subscription <sub-id> [-r reason]
+chainlesschain tenant mark-past-due <sub-id> [-r reason]
+chainlesschain tenant cancel-subscription-v2 <sub-id> [-r reason]
+chainlesschain tenant expire-subscription <sub-id> [-r reason]
+chainlesschain tenant auto-archive-idle-tenants
+chainlesschain tenant auto-expire-past-due-subscriptions
+chainlesschain tenant stats-v2 [--json]
+```
+
+```bash
 chainlesschain governance types [--json]                                        # 列出 4 种提案类型 (parameter_change/feature_request/policy_update/budget_allocation)
 chainlesschain governance statuses [--json]                                     # 列出 5 种提案状态
 chainlesschain governance impact-levels [--json]                                # 列出 4 种影响级别 (low/medium/high/critical)
@@ -1488,3 +1528,569 @@ ZKPPage.vue + Pinia store. Strictly additive — legacy `compileCircuit`,
 `selectiveDisclose`, `listCircuits`, `listProofs`, `listCredentials`,
 `getZKPStats`, `setCircuitStatus`, `ensureZKPTables`, `_resetState` all
 preserved.
+
+### Phase 58 — Federation Hardening V2 (`federation` extension)
+
+Extends `chainlesschain federation` with the Phase 58 canonical surface:
+
+```bash
+cc federation node-statuses-v2
+cc federation default-failure-threshold | failure-threshold | set-failure-threshold <n>
+cc federation default-half-open-cooldown-ms | half-open-cooldown-ms | set-half-open-cooldown-ms <ms>
+cc federation default-unhealthy-threshold | unhealthy-threshold | set-unhealthy-threshold <n>
+cc federation default-max-active-nodes | max-active-nodes | active-node-count | set-max-active-nodes <n>
+cc federation register-v2 <node-id> [-m]
+cc federation node-status-v2 <node-id>
+cc federation set-node-status-v2 <node-id> <status> [-r|-m]
+cc federation record-health-v2 <node-id> [-t|-s|-m]
+cc federation trip-circuit <node-id>
+cc federation auto-isolate-unhealthy
+cc federation stats-v2
+```
+
+V2 aliases legacy circuit/health enums (`CIRCUIT_STATE_V2`, `HEALTH_STATUS_V2`,
+`HEALTH_METRIC_V2`) and adds a new 4-state node lifecycle
+`NODE_STATUS_V2` — `registered` / `active` / `isolated` / `decommissioned`.
+
+Node state machine: `registered → {active, decommissioned}` /
+`active → {isolated, decommissioned}` / `isolated → {active,
+decommissioned}`. Terminal: `decommissioned`.
+
+Four config mutators (all `positive integer`; floor non-integers; reject ≤0
+/ NaN / non-number): `setFailureThreshold` (default 5), `setHalfOpenCooldownMs`
+(default 60 000), `setUnhealthyThreshold` (default 3), `setMaxActiveNodes`
+(default 50). `_resetState()` restores all four.
+
+Per-federation active-node cap: `setNodeStatusV2` rejects transitions to
+`ACTIVE` when `activeCount >= maxActiveNodes` with
+`Max active nodes reached (N/M)`. Transitions away from `ACTIVE` always
+release a cap slot.
+
+`registerNodeV2` throws on missing `nodeId` and on duplicate (`Node already
+registered`); tags the node `REGISTERED` and also creates a circuit breaker
+seeded with the current `failureThreshold` / `halfOpenCooldownMs`.
+
+`setNodeStatusV2` is state-machine guarded, rejects terminal mutation, and
+accepts patch keys `metadata` + `reason`.
+
+`recordHealthCheckV2` is a throwing wrapper over `recordHealthCheck` —
+rejects missing `nodeId`, unknown `checkType`, unknown `status`, and NaN
+values in `metrics`.
+
+`tripCircuit` is a shortcut that flips a closed/half_open breaker to `open`
+(rejects unknown node and already-open circuits).
+
+`autoIsolateUnhealthyNodes` bulk-flips `ACTIVE → ISOLATED` when the last
+`unhealthyThreshold` consecutive health checks are all `UNHEALTHY`. It
+skips non-ACTIVE nodes, skips nodes with fewer than N checks, and skips
+when any of the last N is not `UNHEALTHY`.
+
+`getFederationHardeningStatsV2` returns all-enum-key zero-initialized
+`circuitsByState` / `nodesByStatus` / `healthByStatus` / `healthByMetric` +
+`totalNodes` / `activeNodes` / `isolatedNodes` / `totalCircuits` /
+`totalHealthChecks` + `maxActiveNodes` / `failureThreshold` /
+`halfOpenCooldownMs` / `unhealthyThreshold` — stable shape for CI
+regression.
+
+Not ported (Desktop-only): real WebRTC/libp2p connections, live heartbeat
+monitoring, actual connection pooling, periodic health check cron,
+scheduled auto-isolate, on-chain federation governance. Strictly additive
+— legacy `registerNode`, `recordFailure`, `recordSuccess`, `tryHalfOpen`,
+`resetCircuitBreaker`, `recordHealthCheck`, `initPool`, `acquireConnection`,
+`getFederationHardeningStats`, `_resetState` all preserved.
+
+### Phase 29 — Production Hardening V2 (`hardening` extension)
+
+Extends `chainlesschain hardening` with the Phase 29 canonical surface:
+
+```bash
+cc hardening audit-statuses-v2 | baseline-statuses-v2 | severities-v2
+cc hardening default-max-concurrent-audits | max-concurrent-audits | set-max-concurrent-audits <n>
+cc hardening default-baseline-retention-ms | baseline-retention-ms | set-baseline-retention-ms <ms>
+cc hardening default-audit-timeout-ms | audit-timeout-ms | set-audit-timeout-ms <ms>
+cc hardening running-audit-count
+cc hardening register-audit-v2 <audit-id> [-n|-s|-m]
+cc hardening start-audit <audit-id>
+cc hardening complete-audit <audit-id> [-s|-f|-w]
+cc hardening set-audit-status-v2 <audit-id> <status> [-e|-m]
+cc hardening audit-status-v2 <audit-id>
+cc hardening auto-timeout-audits
+cc hardening create-baseline-v2 <baseline-id> [-n|-s|-m]
+cc hardening activate-baseline <baseline-id>
+cc hardening set-baseline-status-v2 <baseline-id> <status> [-r|-m]
+cc hardening baseline-status-v2 <baseline-id>
+cc hardening auto-archive-stale-baselines
+cc hardening stats-v2
+```
+
+V2 introduces three frozen enums: `AUDIT_STATUS_V2` (`pending` / `running` /
+`passed` / `failed` / `warning`), `BASELINE_STATUS_V2` (`draft` / `active` /
+`superseded` / `archived`), and `SEVERITY_V2` (`critical` / `high` /
+`medium` / `low` / `info`).
+
+Audit state machine: `pending → {running, failed}` / `running → {passed,
+failed, warning}`. Terminals: `passed` / `failed` / `warning`.
+
+Baseline state machine: `draft → {active, archived}` / `active →
+{superseded, archived}` / `superseded → {archived}`. Terminal: `archived`.
+
+Three config mutators (all `positive integer`; floor non-integers; reject
+≤0 / NaN / non-number): `setMaxConcurrentAudits` (default 5),
+`setBaselineRetentionMs` (default 90 days = 7 776 000 000 ms),
+`setAuditTimeoutMs` (default 5 min = 300 000 ms). `_resetState()` restores
+all three plus clears `_auditStatesV2` and `_baselineStatesV2`.
+
+Per-system audit concurrency cap: `startAudit` and
+`setAuditStatusV2(→RUNNING)` both reject when
+`runningCount >= maxConcurrentAudits` with
+`Max concurrent audits reached (N/M)`. Transitions away from `RUNNING`
+release a slot.
+
+`registerAuditV2` throws on missing `name` and rejects invalid `severity`;
+tags the entry `PENDING` with default `severity = MEDIUM`.
+
+`completeAudit` applies warning-threshold logic: all-clean (no
+`CRITICAL` / `HIGH` findings, score ≥ 1) → `PASSED`; score ≥
+`warningThreshold` (default 0.8) with some findings → `WARNING`;
+otherwise → `FAILED`.
+
+`activateBaseline` auto-supersedes any previously-`ACTIVE` baseline (only
+one `ACTIVE` at a time).
+
+`autoTimeoutAudits` bulk-flips `RUNNING → FAILED` when
+`(now - started_at) > auditTimeoutMs`, setting
+`reason = "timeout: exceeded {N}ms"`.
+
+`autoArchiveStaleBaselines` bulk-flips `SUPERSEDED → ARCHIVED` when
+`(now - created_at) > baselineRetentionMs`, setting
+`reason = "auto-archived: retention exceeded"`.
+
+`getHardeningStatsV2` returns all-enum-key zero-initialized
+`auditsByStatus` / `baselinesByStatus` / `auditsBySeverity` +
+`totalAudits` / `runningAudits` / `totalBaselines` / `activeBaselines` +
+`maxConcurrentAudits` / `baselineRetentionMs` / `auditTimeoutMs` — stable
+shape for CI regression.
+
+Not ported (Desktop-only): real TLS handshake checks, real network port
+scans, actual file permission inspection, integration with external
+security scanners (OpenVAS, Nessus), scheduled cron for periodic audits,
+real baseline diff against running system state, GUI for severity heatmap.
+Strictly additive — legacy `ensureHardeningTables`, `collectBaseline`,
+`compareBaseline`, `runAudit`, `runConfigAudit`, `deployCheck`,
+`_resetState` all preserved.
+
+### Phase 19 — Compliance Manager V2 (`compliance` extension)
+
+Extends `chainlesschain compliance` with the Phase 19 canonical surface:
+
+```bash
+cc compliance evidence-statuses-v2 | policy-statuses-v2 | report-statuses-v2 | severities-v2 | frameworks-v2 | policy-types-v2
+cc compliance default-max-active-policies | max-active-policies | set-max-active-policies <n>
+cc compliance default-evidence-retention-ms | evidence-retention-ms | set-evidence-retention-ms <ms>
+cc compliance default-report-retention-ms | report-retention-ms | set-report-retention-ms <ms>
+cc compliance active-policy-count [-f <fw>]
+cc compliance register-evidence-v2 <evidence-id> [-f|-t|-d|-s|-m]
+cc compliance evidence-status-v2 <evidence-id>
+cc compliance set-evidence-status-v2 <evidence-id> <status> [-r|-m]
+cc compliance auto-expire-evidence
+cc compliance register-policy-v2 <policy-id> [-n|-t|-f|-s|-r|-m]
+cc compliance policy-status-v2 <policy-id>
+cc compliance set-policy-status-v2 <policy-id> <status> [-r|-m]
+cc compliance activate-policy <policy-id>
+cc compliance register-report-v2 <report-id> [-f|-t|-m]
+cc compliance report-status-v2 <report-id>
+cc compliance set-report-status-v2 <report-id> <status> [-r|-s|-y|-m]
+cc compliance publish-report <report-id> [-s|-y]
+cc compliance auto-archive-stale-reports
+cc compliance stats-v2
+```
+
+V2 introduces four frozen enums: `EVIDENCE_STATUS_V2`
+(`collected`/`verified`/`rejected`/`expired`), `POLICY_STATUS_V2`
+(`draft`/`active`/`suspended`/`deprecated`), `REPORT_STATUS_V2`
+(`pending`/`generating`/`published`/`archived`), `SEVERITY_V2`
+(`critical`/`high`/`medium`/`low`), plus canonical `FRAMEWORKS_V2` and
+`POLICY_TYPES_V2`.
+
+Evidence state machine: `collected → {verified, rejected, expired}` /
+`verified → {expired}` / `rejected → {expired}`. Terminal: `expired`.
+
+Policy state machine: `draft → {active, deprecated}` / `active →
+{suspended, deprecated}` / `suspended → {active, deprecated}`.
+Terminal: `deprecated`.
+
+Report state machine: `pending → {generating, archived}` / `generating
+→ {published, archived}` / `published → {archived}`. Terminal:
+`archived`.
+
+Three config mutators (all `positive integer`; floor non-integers;
+reject ≤0 / NaN / non-number): `setMaxActivePolicies` (default 20),
+`setEvidenceRetentionMs` (default 180 days = 15 552 000 000 ms),
+`setReportRetentionMs` (default 365 days = 31 536 000 000 ms).
+`_resetState()` restores all three plus clears `_evidenceStatesV2` /
+`_policyStatesV2` / `_reportStatesV2`.
+
+Per-framework active-policy cap: `setPolicyStatusV2(→ACTIVE)` rejects
+when `activeCount >= maxActivePolicies` for the policy's framework.
+`getActivePolicyCount(framework)` scopes to a framework when given;
+otherwise counts globally.
+
+`registerEvidenceV2` / `registerPolicyV2` / `registerReportV2` throw on
+missing required fields, reject invalid enums, reject duplicates, and
+tag entries with the initial state (`COLLECTED` / `DRAFT` / `PENDING`).
+
+`publishReport` is a shortcut that transitions `PENDING → GENERATING →
+PUBLISHED` in one call and stamps `publishedAt` + `score` + `summary`.
+
+`autoExpireEvidence` bulk-flips non-terminal evidence to `EXPIRED`
+when `(now - createdAt) > evidenceRetentionMs`, setting
+`reason = "auto-expired: retention exceeded"`.
+
+`autoArchiveStaleReports` bulk-flips `PUBLISHED → ARCHIVED` when
+`(now - publishedAt) > reportRetentionMs`, setting
+`reason = "auto-archived: retention exceeded"`.
+
+`getComplianceStatsV2` returns all-enum-key zero-initialized
+`evidenceByStatus` / `policyByStatus` / `reportByStatus` /
+`policyBySeverity` plus `totalEvidence` / `totalPolicies` /
+`activePolicies` / `totalReports` / `publishedReports` /
+`maxActivePolicies` / `evidenceRetentionMs` / `reportRetentionMs` —
+stable shape for CI regression.
+
+Not ported (Desktop-only): real-time evidence collection from running
+systems, integration with external scanners (Qualys, Tenable), OCR/PDF
+evidence intake, scheduled cron for periodic auto-expire / archive,
+encrypted evidence storage at rest, real-time policy violation alerting,
+SIEM correlation. Strictly additive — legacy `ensureComplianceTables`,
+`collectEvidence`, `generateReport`, `classifyData`, `scanCompliance`,
+`listPolicies`, `addPolicy`, `checkAccess`, `_resetState` all preserved.
+
+### Audit Logger V2 (Phase 11) — Hash-Chained Integrity
+
+Layered on top of legacy `audit log/search/stats/export/purge`.
+
+```bash
+cc audit log-statuses-v2 | integrity-statuses-v2 | alert-statuses-v2 |
+         event-types-v2 | risk-levels-v2
+cc audit default-max-alerts-per-actor | max-alerts-per-actor |
+         set-max-alerts-per-actor <n>
+cc audit default-archive-retention-ms | archive-retention-ms |
+         set-archive-retention-ms <ms>
+cc audit default-purge-retention-ms | purge-retention-ms |
+         set-purge-retention-ms <ms>
+cc audit open-alert-count [-a]
+cc audit log-event-v2 <log-id> [-t|-o|-a|-x|-d|-r|-i|-u]
+cc audit log-status-v2 <log-id>
+cc audit set-log-status-v2 <log-id> <status> [-r]
+cc audit verify-chain-v2
+cc audit auto-archive-logs | auto-purge-logs
+cc audit alert-status-v2 <alert-id>
+cc audit set-alert-status-v2 <alert-id> <status> [-r|-m]
+cc audit acknowledge-alert <alert-id> [-r]
+cc audit resolve-alert <alert-id> [-r]
+cc audit dismiss-alert <alert-id> [-r]
+cc audit stats-v2
+```
+
+Frozen enums: `LOG_STATUS_V2 = {active, archived, purged}`,
+`INTEGRITY_STATUS_V2 = {unverified, verified, corrupted}`,
+`ALERT_STATUS_V2 = {open, acknowledged, resolved, dismissed}`,
+`EVENT_TYPES_V2 = [auth, permission, data, system, file, did, crypto, api]`,
+`RISK_LEVELS_V2 = [low, medium, high, critical]`.
+
+State machines:
+
+```
+Log:    active    → { archived, purged }
+        archived  → { purged }
+        Terminal: purged
+
+Alert:  open         → { acknowledged, dismissed }
+        acknowledged → { resolved, dismissed }
+        Terminal:    resolved, dismissed
+```
+
+Defaults: `AUDIT_DEFAULT_MAX_ALERTS_PER_ACTOR = 10`,
+`AUDIT_DEFAULT_ARCHIVE_RETENTION_MS = 30 days`,
+`AUDIT_DEFAULT_PURGE_RETENTION_MS = 365 days`. Three `_positiveInt`
+mutators floor non-integer input and reject ≤0 / NaN / non-number.
+`_resetStateV2()` restores all three plus clears the two V2 maps and
+the rolling `_lastChainHash`.
+
+`logEventV2(db, { logId, eventType, operation, actor, target, details,
+riskLevel, ipAddress, userAgent, success, errorMessage })` rejects
+missing `logId` / `eventType` / `operation`, invalid event type / risk
+level, and duplicate `logId`. Each entry computes a SHA-256 hash over
+`{logId, eventType, operation, actor, riskLevel, createdAt, prev}` and
+chains it to the rolling `_lastChainHash`. Critical events with an
+`actor` auto-create an `OPEN` alert (id `alert-{logId}`) when the
+per-actor `OPEN` count is under `maxAlertsPerActor` — cap enforcement
+is silent (alert-creation is a side effect, not a throw).
+
+`setLogStatusV2(db, logId, newStatus, patch)` is state-machine guarded
+(terminal `purged`); patch key `reason`. `verifyChainV2()` walks the
+chain in `createdAt` order, recomputes each hash, and marks each entry
+`VERIFIED` or `CORRUPTED` — returns `[{logId, valid, integrityStatus}]`.
+`autoArchiveLogs(db, now?)` bulk-flips `ACTIVE → ARCHIVED` past
+`archiveRetentionMs`; `autoPurgeLogs(db, now?)` bulk-flips
+`ARCHIVED → PURGED` past `purgeRetentionMs` (skips `ACTIVE`).
+
+`setAlertStatusV2(db, alertId, newStatus, patch)` is state-machine
+guarded (terminal `resolved` / `dismissed`); patch keys `reason` +
+`metadata`. Shortcuts: `acknowledgeAlert` / `resolveAlert` /
+`dismissAlert`.
+
+`getAuditStatsV2()` returns all-enum-key zero-initialized snapshot:
+`logsByStatus` / `logsByRisk` / `logsByIntegrity` / `logsByEventType` /
+`alertsByStatus` plus `totalLogs` / `totalAlerts` / `activeAlerts` /
+`maxAlertsPerActor` / `archiveRetentionMs` / `purgeRetentionMs` /
+`lastChainHash` — stable shape for CI regression.
+
+Not ported (Desktop-only): durable SQLite-backed V2 storage (in-memory
+Maps only), SIEM streaming, real-time alert push notifications,
+cryptographic log sealing (WORM), external notarization (blockchain
+anchoring), signed export bundles, per-actor alert deduplication
+policies. Strictly additive — legacy `ensureAuditTables`, `logEvent`,
+`queryLogs`, `getStatistics`, `exportLogs`, `purgeLogs`,
+`getRecentEvents`, `assessRisk`, `sanitizeDetails` all preserved.
+
+### Token Incentive V2 (Phase 66) — Account + Claim Lifecycle
+
+Layered on top of legacy `cc incentive contribute/reward/transfer/mint/history`.
+
+```bash
+cc incentive account-statuses-v2 | claim-statuses-v2
+cc incentive default-max-pending-claims-per-user | max-pending-claims-per-user |
+             set-max-pending-claims-per-user <n>
+cc incentive default-claim-expiry-ms | claim-expiry-ms |
+             set-claim-expiry-ms <ms>
+cc incentive default-max-claim-amount | max-claim-amount |
+             set-max-claim-amount <n>
+cc incentive pending-claim-count [-u]
+cc incentive register-account-v2 <account-id> [-m]
+cc incentive account-status-v2 <account-id>
+cc incentive set-account-status-v2 <account-id> <status> [-r|-m]
+cc incentive freeze-account <account-id> [-r]
+cc incentive unfreeze-account <account-id> [-r]
+cc incentive close-account <account-id> [-r]
+cc incentive submit-claim-v2 <claim-id> -u <user> -a <amount> [-c|-m]
+cc incentive claim-status-v2 <claim-id>
+cc incentive set-claim-status-v2 <claim-id> <status> [-r|-m]
+cc incentive approve-claim <claim-id> [-r]
+cc incentive reject-claim <claim-id> [-r]
+cc incentive pay-claim <claim-id> [-r]
+cc incentive auto-expire-unclaimed-claims
+cc incentive stats-v2
+```
+
+Frozen enums: `ACCOUNT_STATUS_V2 = {active, frozen, closed}`,
+`CLAIM_STATUS_V2 = {pending, approved, paid, rejected}`.
+
+State machines:
+
+```
+Account: active → { frozen, closed }
+         frozen → { active, closed }
+         Terminal: closed
+
+Claim:   pending  → { approved, rejected }
+         approved → { paid, rejected }
+         Terminal: paid, rejected
+```
+
+Defaults: `TOKEN_DEFAULT_MAX_PENDING_CLAIMS_PER_USER = 50`,
+`TOKEN_DEFAULT_CLAIM_EXPIRY_MS = 7 days`,
+`TOKEN_DEFAULT_MAX_CLAIM_AMOUNT = 10000`. `setMaxPendingClaimsPerUser`
+and `setClaimExpiryMs` share `_positiveInt` (floor non-integer, reject
+≤0 / NaN). `setMaxClaimAmount` accepts positive floats (not floored).
+`_resetStateV2()` restores all three + clears two V2 maps.
+
+`registerAccountV2(db, { accountId, metadata })` throws missing
+`accountId` / duplicate; tags `ACTIVE`. Accounts registered here
+participate in V2 lifecycle enforcement. Accounts not registered in V2
+state are treated as always-active for `submitClaimV2` (opt-in V2).
+
+`submitClaimV2(db, { claimId, userId, amount, contributionId,
+metadata })` throws missing `claimId` / `userId` / invalid amount
+(≤0 / NaN) / amount > `maxClaimAmount` / duplicate `claimId` / account
+not-active / per-user pending cap reached. Tags `PENDING`.
+
+`setAccountStatusV2(db, accountId, newStatus, patch)` is state-machine
+guarded (terminal `closed`). `setClaimStatusV2(db, claimId, newStatus,
+patch)` is state-machine guarded (terminal `paid` / `rejected`);
+`→paid` stamps `paidAt`. Both accept patch keys `reason` + `metadata`
+(merged). Shortcuts: `freezeAccount` / `unfreezeAccount` /
+`closeAccount`, `approveClaim` / `rejectClaim` / `payClaim`.
+
+`autoExpireUnclaimedClaims(db, now?)` bulk-flips `PENDING → REJECTED`
+with `reason: "expired"` when `(now - createdAt) > claimExpiryMs`.
+Skips non-pending claims.
+
+`getTokenStatsV2()` returns all-enum-key zero-initialized snapshot:
+`accountsByStatus` / `claimsByStatus` plus `totalAccounts` /
+`totalClaims` / `totalClaimedAmount` / `totalPaidAmount` /
+`maxPendingClaimsPerUser` / `claimExpiryMs` / `maxClaimAmount` —
+stable shape for CI regression.
+
+Not ported (Desktop-only): on-chain settlement, P2P cross-wallet
+transfer, reputation-weighted reward calculation, multi-sig claim
+approval flows, claim receipts with cryptographic signatures,
+external payment-rail integration (Stripe / crypto bridges),
+claim appeal / arbitration workflows, per-tier reward multipliers.
+Strictly additive — legacy `ensureTokenTables`, `transfer`, `mint`,
+`recordContribution`, `rewardContribution`, `getContributions`,
+`getLeaderboard`, `getBalance`, `listAccounts`, `getTransactionHistory`,
+`_resetState` all preserved.
+
+### Plugin Ecosystem V2 (Phase 64) — Maturity + Install Lifecycle
+
+```bash
+# Enum catalogs
+cc ecosystem maturity-statuses-v2              # [active, deprecated, archived, removed]
+cc ecosystem install-lifecycle-v2              # [pending, resolving, installed, failed, uninstalled]
+
+# Config (show / mutate)
+cc ecosystem default-max-active-plugins-per-developer | max-active-plugins-per-developer | set-max-active-plugins-per-developer <n>
+cc ecosystem default-max-pending-installs-per-user | max-pending-installs-per-user | set-max-pending-installs-per-user <n>
+cc ecosystem default-auto-deprecate-after-ms | auto-deprecate-after-ms | set-auto-deprecate-after-ms <ms>
+cc ecosystem default-auto-archive-after-ms | auto-archive-after-ms | set-auto-archive-after-ms <ms>
+
+# Counts (all / scoped)
+cc ecosystem active-plugin-count [-d <developer>]
+cc ecosystem pending-install-count [-u <user>]
+
+# Maturity state machine
+cc ecosystem register-plugin-v2 <plugin-id> -d <developer> [-m <json>]
+cc ecosystem maturity-v2 <plugin-id>
+cc ecosystem set-maturity-v2 <plugin-id> <status> [-r <reason>] [-m <json>]
+cc ecosystem deprecate-plugin <plugin-id> [-r]
+cc ecosystem archive-plugin-v2 <plugin-id> [-r]
+cc ecosystem remove-plugin-v2 <plugin-id> [-r]
+cc ecosystem touch-plugin-activity <plugin-id>
+
+# Install state machine
+cc ecosystem submit-install-v2 <install-id> -u <user> -p <plugin> [-m <json>]
+cc ecosystem install-status-v2 <install-id>
+cc ecosystem set-install-status-v2 <install-id> <status> [-r] [-m]
+cc ecosystem resolve-install <install-id> [-r]
+cc ecosystem complete-install <install-id> [-r]
+cc ecosystem fail-install <install-id> [-r]
+cc ecosystem uninstall-install-v2 <install-id> [-r]
+cc ecosystem retry-failed-install <install-id> [-r]
+
+# Bulk auto-flip
+cc ecosystem auto-deprecate-stale-plugins      # active → deprecated on lastActivityAt > autoDeprecateAfterMs
+cc ecosystem auto-archive-long-deprecated      # deprecated → archived on updatedAt > autoArchiveAfterMs
+
+# Aggregate
+cc ecosystem stats-v2
+```
+
+Maturity lifecycle: `active → {deprecated, archived}`,
+`deprecated → {active, archived, removed}`, `archived → {active, removed}`;
+terminal `removed`. Install lifecycle:
+`pending → {resolving, failed, uninstalled}`, `resolving → {installed, failed}`,
+`installed → uninstalled`, `failed → {pending, uninstalled}` (retry or abandon);
+terminal `uninstalled`. Per-developer active-plugin cap (default 20) enforced on
+`registerPluginV2`; per-user pending+resolving install cap (default 5) enforced on
+`submitInstallV2`. Unregistered plugins bypass the installable check (opt-in V2);
+archived/removed plugins reject new installs; deprecated plugins remain
+installable (grace period). `autoDeprecateStalePlugins` bulk-flips ACTIVE plugins
+whose `lastActivityAt` exceeds `autoDeprecateAfterMs` (default 180 days) to
+DEPRECATED with reason `"stale"`; `autoArchiveLongDeprecated` bulk-flips
+DEPRECATED plugins whose `updatedAt` exceeds `autoArchiveAfterMs` (default 90 days)
+to ARCHIVED with reason `"long-deprecated"`. `stats-v2` returns
+`{ totalPluginsV2, totalInstallsV2, maxActivePluginsPerDeveloper,
+maxPendingInstallsPerUser, autoDeprecateAfterMs, autoArchiveAfterMs,
+maturityByStatus, installsByStatus }` with all enum keys zero-initialized —
+stable shape for CI regression.
+
+Not ported (Desktop-only): AI-driven recommendation (collaborative filtering +
+embedding match), semver range negotiation in dep resolver, real sandbox
+(vm2 / process isolation / resource limits), LLM-backed code review, real
+packaging + signing + upload, payment gateway integration for revenue payouts,
+reputation-weighted plugin ranking, A/B experimentation for recommendations.
+Strictly additive — legacy `ensurePluginEcosystemTables`, `registerPlugin`,
+`installPlugin`, `aiReviewCode`, `recordSandboxTest`, `submitForReview`,
+`approvePlugin`, `rejectPlugin`, `publishPlugin`, `recordRevenue`,
+`getDeveloperRevenue`, `recommend`, `getStats`, `getConfig` all preserved.
+
+### Knowledge Graph V2 (Phase 94) — Entity + Relation Lifecycle
+
+```bash
+# V2 enums + config
+cc kg entity-statuses-v2                           # list 4 entity states
+cc kg relation-statuses-v2                         # list 3 relation states
+cc kg default-max-active-entities-per-owner        # show default (1000)
+cc kg max-active-entities-per-owner                # show current
+cc kg set-max-active-entities-per-owner <n>        # floor + reject ≤0
+cc kg default-max-relations-per-entity             # show default (100)
+cc kg set-max-relations-per-entity <n>
+cc kg default-entity-stale-ms                      # 180 days
+cc kg set-entity-stale-ms <ms>
+cc kg default-relation-stale-ms                    # 365 days
+cc kg set-relation-stale-ms <ms>
+
+# Counts (global or scoped)
+cc kg active-entity-count [-o <owner>]
+cc kg active-relation-count [-s <source>]
+
+# Entity V2 lifecycle
+cc kg register-entity-v2 <entity-id> -o <owner> [-n name] [-t type] [-m json]
+cc kg entity-v2 <entity-id>                        # show state
+cc kg set-entity-status-v2 <entity-id> <status> [-r|-m]
+cc kg deprecate-entity <entity-id> [-r reason]
+cc kg archive-entity-v2 <entity-id> [-r reason]
+cc kg remove-entity-v2 <entity-id> [-r reason]     # terminal
+cc kg revive-entity <entity-id> [-r reason]
+cc kg touch-entity-activity <entity-id>            # bump lastActivityAt
+
+# Relation V2 lifecycle
+cc kg register-relation-v2 <relation-id> -s <src> -t <tgt> -r <type> [-m json]
+cc kg relation-v2 <relation-id>                    # show state
+cc kg set-relation-status-v2 <relation-id> <status> [-r|-m]
+cc kg deprecate-relation <relation-id> [-r reason]
+cc kg remove-relation-v2 <relation-id> [-r reason] # terminal
+cc kg revive-relation <relation-id> [-r reason]
+
+# Auto-flip bulk operations
+cc kg auto-archive-stale-entities
+cc kg auto-remove-stale-relations
+
+# V2 stats
+cc kg stats-v2                                     # all-enum-key zero-init
+```
+
+Phase 94 adds two parallel lifecycle state machines on top of the legacy
+knowledge graph. Entity maturity has 4 states (`active → {deprecated,
+archived}`, `deprecated → {active, archived, removed}`, `archived →
+{active, removed}`, terminal `removed`). Relation lifecycle has 3 states
+(`active → {deprecated, removed}`, `deprecated → {active, removed}`,
+terminal `removed`). `registerEntityV2` enforces a per-owner active-entity
+cap (default 1000); `registerRelationV2` enforces a per-source-entity
+active-relation cap (default 100) and requires both source and target to
+be registered in V2 and in active/deprecated state (archived/removed
+entities reject new relations; deprecated entities allowed as grace
+period). Self-referencing relations rejected. Lifecycle setters accept
+`{reason, metadata}` patches with metadata deep-merged.
+`touchEntityActivity` bumps `lastActivityAt` to signal the entity is
+still relevant (resets auto-archive timer). `autoArchiveStaleEntities`
+bulk-flips ACTIVE entities whose `(now - lastActivityAt) > entityStaleMs`
+(default 180 days) to ARCHIVED with reason `"stale"`;
+`autoRemoveStaleRelations` bulk-flips non-removed relations whose
+`(now - updatedAt) > relationStaleMs` (default 365 days) to REMOVED with
+reason `"stale"`. `stats-v2` returns `{ totalEntitiesV2,
+totalRelationsV2, maxActiveEntitiesPerOwner, maxRelationsPerEntity,
+entityStaleMs, relationStaleMs, entitiesByStatus, relationsByStatus }`
+with all enum keys zero-initialized — stable shape for CI regression.
+
+Not ported (Desktop-only): GraphRAG fusion (entity embeddings + vector
+retrieval + LLM augmentation), force-directed visualization, real-time
+collaborative graph editing UI, entity deduplication via semantic
+similarity, LLM-powered relation extraction, community detection
+(Louvain/Leiden), graph embeddings (node2vec/GNN), temporal graph
+reasoning, ontology reasoning (RDFS/OWL). Strictly additive — legacy
+`ensureKnowledgeGraphTables`, `addEntity`, `getEntity`, `listEntities`,
+`removeEntity`, `addRelation`, `getRelation`, `listRelations`,
+`removeRelation`, `reason`, `query`, `getStats`, `exportGraph`,
+`importGraph` all preserved.

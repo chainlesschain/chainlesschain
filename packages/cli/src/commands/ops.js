@@ -27,6 +27,39 @@ import {
   listPlaybooks,
   generatePostmortem,
   getOpsStats,
+  PLAYBOOK_MATURITY_V2,
+  REMEDIATION_LIFECYCLE_V2,
+  getDefaultMaxActivePlaybooksPerOwnerV2,
+  getMaxActivePlaybooksPerOwnerV2,
+  setMaxActivePlaybooksPerOwnerV2,
+  getDefaultMaxPendingRemediationsPerOwnerV2,
+  getMaxPendingRemediationsPerOwnerV2,
+  setMaxPendingRemediationsPerOwnerV2,
+  getDefaultPlaybookStaleMsV2,
+  getPlaybookStaleMsV2,
+  setPlaybookStaleMsV2,
+  getDefaultRemediationTimeoutMsV2,
+  getRemediationTimeoutMsV2,
+  setRemediationTimeoutMsV2,
+  registerPlaybookV2,
+  getPlaybookV2,
+  setPlaybookMaturityV2,
+  activatePlaybook,
+  deprecatePlaybookV2,
+  retirePlaybook,
+  touchPlaybookActivity,
+  submitRemediationV2,
+  getRemediationV2,
+  setRemediationStatusV2,
+  startRemediation,
+  completeRemediation,
+  failRemediation,
+  abortRemediation,
+  getActivePlaybookCount,
+  getPendingRemediationCount,
+  autoRetireStalePlaybooks,
+  autoTimeoutStuckRemediations,
+  getAiOpsStatsV2,
 } from "../lib/aiops.js";
 
 function _dbFromCtx(cmd) {
@@ -402,6 +435,327 @@ export function registerOpsCommand(program) {
         `Playbooks: ${s.playbooks.total}  (${s.playbooks.enabled} enabled, ${s.playbooks.totalSuccess} ok / ${s.playbooks.totalFailure} fail)`,
       );
       console.log(`Baselines: ${s.baselines.total} metrics`);
+    });
+
+  /* ── V2: Playbook Maturity + Remediation Lifecycle ───────── */
+
+  ops
+    .command("playbook-maturities-v2")
+    .description("List playbook V2 maturity states")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const s = Object.values(PLAYBOOK_MATURITY_V2);
+      if (opts.json) console.log(JSON.stringify(s));
+      else s.forEach((v) => console.log(v));
+    });
+
+  ops
+    .command("remediation-lifecycles-v2")
+    .description("List remediation V2 lifecycle states")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const s = Object.values(REMEDIATION_LIFECYCLE_V2);
+      if (opts.json) console.log(JSON.stringify(s));
+      else s.forEach((v) => console.log(v));
+    });
+
+  ops
+    .command("default-max-active-playbooks-per-owner")
+    .description("Show default max-active-playbooks-per-owner")
+    .action(() => console.log(getDefaultMaxActivePlaybooksPerOwnerV2()));
+  ops
+    .command("max-active-playbooks-per-owner")
+    .description("Show current max-active-playbooks-per-owner")
+    .action(() => console.log(getMaxActivePlaybooksPerOwnerV2()));
+  ops
+    .command("set-max-active-playbooks-per-owner <n>")
+    .description("Set max-active-playbooks-per-owner")
+    .action((n) => {
+      setMaxActivePlaybooksPerOwnerV2(n);
+      console.log(getMaxActivePlaybooksPerOwnerV2());
+    });
+
+  ops
+    .command("default-max-pending-remediations-per-owner")
+    .description("Show default max-pending-remediations-per-owner")
+    .action(() => console.log(getDefaultMaxPendingRemediationsPerOwnerV2()));
+  ops
+    .command("max-pending-remediations-per-owner")
+    .description("Show current max-pending-remediations-per-owner")
+    .action(() => console.log(getMaxPendingRemediationsPerOwnerV2()));
+  ops
+    .command("set-max-pending-remediations-per-owner <n>")
+    .description("Set max-pending-remediations-per-owner")
+    .action((n) => {
+      setMaxPendingRemediationsPerOwnerV2(n);
+      console.log(getMaxPendingRemediationsPerOwnerV2());
+    });
+
+  ops
+    .command("default-playbook-stale-ms")
+    .description("Show default playbook-stale-ms")
+    .action(() => console.log(getDefaultPlaybookStaleMsV2()));
+  ops
+    .command("playbook-stale-ms")
+    .description("Show current playbook-stale-ms")
+    .action(() => console.log(getPlaybookStaleMsV2()));
+  ops
+    .command("set-playbook-stale-ms <ms>")
+    .description("Set playbook-stale-ms")
+    .action((ms) => {
+      setPlaybookStaleMsV2(ms);
+      console.log(getPlaybookStaleMsV2());
+    });
+
+  ops
+    .command("default-remediation-timeout-ms")
+    .description("Show default remediation-timeout-ms")
+    .action(() => console.log(getDefaultRemediationTimeoutMsV2()));
+  ops
+    .command("remediation-timeout-ms")
+    .description("Show current remediation-timeout-ms")
+    .action(() => console.log(getRemediationTimeoutMsV2()));
+  ops
+    .command("set-remediation-timeout-ms <ms>")
+    .description("Set remediation-timeout-ms")
+    .action((ms) => {
+      setRemediationTimeoutMsV2(ms);
+      console.log(getRemediationTimeoutMsV2());
+    });
+
+  ops
+    .command("active-playbook-count")
+    .description("Active playbook count (optionally scoped by owner)")
+    .option("-o, --owner <id>", "Owner ID")
+    .action((opts) => console.log(getActivePlaybookCount(opts.owner)));
+
+  ops
+    .command("pending-remediation-count")
+    .description(
+      "Pending/executing remediation count (optionally scoped by owner)",
+    )
+    .option("-o, --owner <id>", "Owner ID")
+    .action((opts) => console.log(getPendingRemediationCount(opts.owner)));
+
+  ops
+    .command("register-playbook-v2 <playbook-id>")
+    .description("Register a V2 playbook")
+    .requiredOption("-o, --owner <id>", "Owner ID")
+    .option("-n, --name <name>", "Name")
+    .option("-i, --initial-status <status>", "Initial status (default draft)")
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .action((playbookId, opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      const config = { playbookId, ownerId: opts.owner };
+      if (opts.name) config.name = opts.name;
+      if (opts.initialStatus) config.initialStatus = opts.initialStatus;
+      if (opts.metadata) config.metadata = JSON.parse(opts.metadata);
+      console.log(JSON.stringify(registerPlaybookV2(db, config), null, 2));
+    });
+
+  ops
+    .command("playbook-v2 <playbook-id>")
+    .description("Get V2 playbook record")
+    .action((playbookId) => {
+      const rec = getPlaybookV2(playbookId);
+      console.log(rec ? JSON.stringify(rec, null, 2) : "null");
+    });
+
+  ops
+    .command("set-playbook-maturity-v2 <playbook-id> <status>")
+    .description("Set playbook V2 maturity status")
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <json>", "Metadata JSON patch")
+    .action((playbookId, status, opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      const patch = {};
+      if (opts.reason !== undefined) patch.reason = opts.reason;
+      if (opts.metadata) patch.metadata = JSON.parse(opts.metadata);
+      console.log(
+        JSON.stringify(
+          setPlaybookMaturityV2(db, playbookId, status, patch),
+          null,
+          2,
+        ),
+      );
+    });
+
+  ops
+    .command("activate-playbook <playbook-id>")
+    .description("Transition playbook → active")
+    .option("-r, --reason <reason>", "Reason")
+    .action((playbookId, opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      console.log(
+        JSON.stringify(activatePlaybook(db, playbookId, opts.reason), null, 2),
+      );
+    });
+
+  ops
+    .command("deprecate-playbook-v2 <playbook-id>")
+    .description("Transition playbook → deprecated")
+    .option("-r, --reason <reason>", "Reason")
+    .action((playbookId, opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      console.log(
+        JSON.stringify(
+          deprecatePlaybookV2(db, playbookId, opts.reason),
+          null,
+          2,
+        ),
+      );
+    });
+
+  ops
+    .command("retire-playbook <playbook-id>")
+    .description("Transition playbook → retired (terminal)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((playbookId, opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      console.log(
+        JSON.stringify(retirePlaybook(db, playbookId, opts.reason), null, 2),
+      );
+    });
+
+  ops
+    .command("touch-playbook-activity <playbook-id>")
+    .description("Bump lastUsedAt for a playbook")
+    .action((playbookId) => {
+      console.log(JSON.stringify(touchPlaybookActivity(playbookId), null, 2));
+    });
+
+  ops
+    .command("submit-remediation-v2 <remediation-id>")
+    .description("Submit a V2 remediation")
+    .requiredOption("-o, --owner <id>", "Owner ID")
+    .requiredOption("-p, --playbook <id>", "Playbook ID")
+    .option("-i, --incident <id>", "Incident ID")
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .action((remediationId, opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      const config = {
+        remediationId,
+        ownerId: opts.owner,
+        playbookId: opts.playbook,
+      };
+      if (opts.incident) config.incidentId = opts.incident;
+      if (opts.metadata) config.metadata = JSON.parse(opts.metadata);
+      console.log(JSON.stringify(submitRemediationV2(db, config), null, 2));
+    });
+
+  ops
+    .command("remediation-v2 <remediation-id>")
+    .description("Get V2 remediation record")
+    .action((remediationId) => {
+      const rec = getRemediationV2(remediationId);
+      console.log(rec ? JSON.stringify(rec, null, 2) : "null");
+    });
+
+  ops
+    .command("set-remediation-status-v2 <remediation-id> <status>")
+    .description("Set remediation V2 status")
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <json>", "Metadata JSON patch")
+    .action((remediationId, status, opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      const patch = {};
+      if (opts.reason !== undefined) patch.reason = opts.reason;
+      if (opts.metadata) patch.metadata = JSON.parse(opts.metadata);
+      console.log(
+        JSON.stringify(
+          setRemediationStatusV2(db, remediationId, status, patch),
+          null,
+          2,
+        ),
+      );
+    });
+
+  ops
+    .command("start-remediation <remediation-id>")
+    .description("Transition remediation → executing")
+    .option("-r, --reason <reason>", "Reason")
+    .action((remediationId, opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      console.log(
+        JSON.stringify(
+          startRemediation(db, remediationId, opts.reason),
+          null,
+          2,
+        ),
+      );
+    });
+
+  ops
+    .command("complete-remediation <remediation-id>")
+    .description("Transition remediation → succeeded (terminal)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((remediationId, opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      console.log(
+        JSON.stringify(
+          completeRemediation(db, remediationId, opts.reason),
+          null,
+          2,
+        ),
+      );
+    });
+
+  ops
+    .command("fail-remediation <remediation-id>")
+    .description("Transition remediation → failed (terminal)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((remediationId, opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      console.log(
+        JSON.stringify(
+          failRemediation(db, remediationId, opts.reason),
+          null,
+          2,
+        ),
+      );
+    });
+
+  ops
+    .command("abort-remediation <remediation-id>")
+    .description("Transition remediation → aborted (terminal)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((remediationId, opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      console.log(
+        JSON.stringify(
+          abortRemediation(db, remediationId, opts.reason),
+          null,
+          2,
+        ),
+      );
+    });
+
+  ops
+    .command("auto-retire-stale-playbooks")
+    .description("Bulk-flip stale playbooks → retired")
+    .action((_opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      const flipped = autoRetireStalePlaybooks(db);
+      console.log(JSON.stringify(flipped));
+    });
+
+  ops
+    .command("auto-timeout-stuck-remediations")
+    .description("Bulk-flip stuck executing remediations → failed")
+    .action((_opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      const flipped = autoTimeoutStuckRemediations(db);
+      console.log(JSON.stringify(flipped));
+    });
+
+  ops
+    .command("stats-v2")
+    .description("Show V2 AIOps stats (all-enum-key)")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const s = getAiOpsStatsV2();
+      if (opts.json) console.log(JSON.stringify(s));
+      else console.log(JSON.stringify(s, null, 2));
     });
 
   program.addCommand(ops);

@@ -21,6 +21,40 @@ import {
   getStats,
   exportGraph,
   importGraph,
+  // V2 surface
+  ENTITY_STATUS_V2,
+  RELATION_STATUS_V2,
+  KG_DEFAULT_MAX_ACTIVE_ENTITIES_PER_OWNER,
+  KG_DEFAULT_MAX_RELATIONS_PER_ENTITY,
+  KG_DEFAULT_ENTITY_STALE_MS,
+  KG_DEFAULT_RELATION_STALE_MS,
+  getMaxActiveEntitiesPerOwnerV2,
+  setMaxActiveEntitiesPerOwnerV2,
+  getMaxRelationsPerEntityV2,
+  setMaxRelationsPerEntityV2,
+  getEntityStaleMsV2,
+  setEntityStaleMsV2,
+  getRelationStaleMsV2,
+  setRelationStaleMsV2,
+  registerEntityV2,
+  getEntityV2,
+  setEntityStatusV2,
+  deprecateEntity,
+  archiveEntityV2,
+  removeEntityV2,
+  reviveEntity,
+  touchEntityActivity,
+  registerRelationV2,
+  getRelationV2,
+  setRelationStatusV2,
+  deprecateRelation,
+  removeRelationV2,
+  reviveRelation,
+  getActiveEntityCount,
+  getActiveRelationCount,
+  autoArchiveStaleEntities,
+  autoRemoveStaleRelations,
+  getKnowledgeGraphStatsV2,
 } from "../lib/knowledge-graph.js";
 
 function _dbFromCtx(ctx) {
@@ -366,6 +400,359 @@ export function registerKgCommand(program) {
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
+      }
+    });
+
+  /* ── V2 subcommands (Phase 94) ───────────────────────────────── */
+
+  kg.command("entity-statuses-v2")
+    .description("List V2 entity maturity statuses")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const statuses = Object.values(ENTITY_STATUS_V2);
+      if (options.json) {
+        console.log(JSON.stringify(statuses, null, 2));
+      } else {
+        for (const s of statuses) logger.log(`  ${chalk.yellow(s)}`);
+      }
+    });
+
+  kg.command("relation-statuses-v2")
+    .description("List V2 relation statuses")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const statuses = Object.values(RELATION_STATUS_V2);
+      if (options.json) {
+        console.log(JSON.stringify(statuses, null, 2));
+      } else {
+        for (const s of statuses) logger.log(`  ${chalk.yellow(s)}`);
+      }
+    });
+
+  kg.command("default-max-active-entities-per-owner")
+    .description("Show default V2 per-owner active-entity cap")
+    .action(() => logger.log(String(KG_DEFAULT_MAX_ACTIVE_ENTITIES_PER_OWNER)));
+  kg.command("max-active-entities-per-owner")
+    .description("Show current V2 per-owner active-entity cap")
+    .action(() => logger.log(String(getMaxActiveEntitiesPerOwnerV2())));
+  kg.command("set-max-active-entities-per-owner <n>")
+    .description("Set V2 per-owner active-entity cap")
+    .action((n) =>
+      logger.log(String(setMaxActiveEntitiesPerOwnerV2(parseInt(n, 10)))),
+    );
+
+  kg.command("default-max-relations-per-entity")
+    .description("Show default V2 per-entity active-relation cap")
+    .action(() => logger.log(String(KG_DEFAULT_MAX_RELATIONS_PER_ENTITY)));
+  kg.command("max-relations-per-entity")
+    .description("Show current V2 per-entity active-relation cap")
+    .action(() => logger.log(String(getMaxRelationsPerEntityV2())));
+  kg.command("set-max-relations-per-entity <n>")
+    .description("Set V2 per-entity active-relation cap")
+    .action((n) =>
+      logger.log(String(setMaxRelationsPerEntityV2(parseInt(n, 10)))),
+    );
+
+  kg.command("default-entity-stale-ms")
+    .description("Show default V2 entity staleness threshold (ms)")
+    .action(() => logger.log(String(KG_DEFAULT_ENTITY_STALE_MS)));
+  kg.command("entity-stale-ms")
+    .description("Show current V2 entity staleness threshold (ms)")
+    .action(() => logger.log(String(getEntityStaleMsV2())));
+  kg.command("set-entity-stale-ms <ms>")
+    .description("Set V2 entity staleness threshold (ms)")
+    .action((ms) => logger.log(String(setEntityStaleMsV2(parseInt(ms, 10)))));
+
+  kg.command("default-relation-stale-ms")
+    .description("Show default V2 relation staleness threshold (ms)")
+    .action(() => logger.log(String(KG_DEFAULT_RELATION_STALE_MS)));
+  kg.command("relation-stale-ms")
+    .description("Show current V2 relation staleness threshold (ms)")
+    .action(() => logger.log(String(getRelationStaleMsV2())));
+  kg.command("set-relation-stale-ms <ms>")
+    .description("Set V2 relation staleness threshold (ms)")
+    .action((ms) => logger.log(String(setRelationStaleMsV2(parseInt(ms, 10)))));
+
+  kg.command("active-entity-count")
+    .description("Active V2 entity count (scoped by owner)")
+    .option("-o, --owner <id>", "Scope by owner ID")
+    .action((opts) => logger.log(String(getActiveEntityCount(opts.owner))));
+
+  kg.command("active-relation-count")
+    .description("Active V2 relation count (scoped by source entity)")
+    .option("-s, --source <id>", "Scope by source entity ID")
+    .action((opts) => logger.log(String(getActiveRelationCount(opts.source))));
+
+  kg.command("register-entity-v2 <entity-id>")
+    .description("Register a V2 entity")
+    .requiredOption("-o, --owner <id>", "Owner ID")
+    .option("-n, --name <name>", "Entity name")
+    .option("-t, --type <type>", "Entity type")
+    .option("-m, --metadata <json>", "JSON metadata")
+    .option("--json", "Output as JSON")
+    .action((entityId, opts) => {
+      try {
+        const metadata = opts.metadata ? JSON.parse(opts.metadata) : undefined;
+        const rec = registerEntityV2(null, {
+          entityId,
+          ownerId: opts.owner,
+          name: opts.name,
+          type: opts.type,
+          metadata,
+        });
+        if (opts.json) console.log(JSON.stringify(rec, null, 2));
+        else logger.success(`Entity registered: ${entityId} (${rec.status})`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  kg.command("entity-v2 <entity-id>")
+    .description("Show V2 entity lifecycle state")
+    .option("--json", "Output as JSON")
+    .action((entityId, opts) => {
+      const rec = getEntityV2(entityId);
+      if (!rec) {
+        logger.error(`Entity not registered in V2: ${entityId}`);
+        process.exit(1);
+      }
+      if (opts.json) console.log(JSON.stringify(rec, null, 2));
+      else {
+        logger.log(`  ${chalk.bold("Entity:")} ${rec.entityId}`);
+        logger.log(`  ${chalk.bold("Status:")} ${chalk.yellow(rec.status)}`);
+        logger.log(`  ${chalk.bold("Owner:")}  ${rec.ownerId}`);
+      }
+    });
+
+  kg.command("set-entity-status-v2 <entity-id> <status>")
+    .description("Transition a V2 entity status")
+    .option("-r, --reason <text>", "Reason")
+    .option("-m, --metadata <json>", "JSON metadata to merge")
+    .action((entityId, status, opts) => {
+      try {
+        const patch = {};
+        if (opts.reason) patch.reason = opts.reason;
+        if (opts.metadata) patch.metadata = JSON.parse(opts.metadata);
+        const rec = setEntityStatusV2(null, entityId, status, patch);
+        logger.success(`Entity ${entityId} → ${rec.status}`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  kg.command("deprecate-entity <entity-id>")
+    .description("Deprecate a V2 entity (grace period)")
+    .option("-r, --reason <text>", "Reason")
+    .action((entityId, opts) => {
+      try {
+        deprecateEntity(null, entityId, opts.reason);
+        logger.success(`Entity ${entityId} deprecated`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  kg.command("archive-entity-v2 <entity-id>")
+    .description("Archive a V2 entity")
+    .option("-r, --reason <text>", "Reason")
+    .action((entityId, opts) => {
+      try {
+        archiveEntityV2(null, entityId, opts.reason);
+        logger.success(`Entity ${entityId} archived`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  kg.command("remove-entity-v2 <entity-id>")
+    .description("Remove a V2 entity (terminal)")
+    .option("-r, --reason <text>", "Reason")
+    .action((entityId, opts) => {
+      try {
+        removeEntityV2(null, entityId, opts.reason);
+        logger.success(`Entity ${entityId} removed`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  kg.command("revive-entity <entity-id>")
+    .description("Restore a V2 entity to active")
+    .option("-r, --reason <text>", "Reason")
+    .action((entityId, opts) => {
+      try {
+        reviveEntity(null, entityId, opts.reason);
+        logger.success(`Entity ${entityId} revived`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  kg.command("touch-entity-activity <entity-id>")
+    .description("Bump lastActivityAt on a V2 entity")
+    .action((entityId) => {
+      try {
+        touchEntityActivity(entityId);
+        logger.success(`Entity ${entityId} activity bumped`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  kg.command("register-relation-v2 <relation-id>")
+    .description("Register a V2 relation")
+    .requiredOption("-s, --source <id>", "Source entity ID")
+    .requiredOption("-t, --target <id>", "Target entity ID")
+    .requiredOption("-r, --relation-type <type>", "Relation type")
+    .option("-m, --metadata <json>", "JSON metadata")
+    .option("--json", "Output as JSON")
+    .action((relationId, opts) => {
+      try {
+        const metadata = opts.metadata ? JSON.parse(opts.metadata) : undefined;
+        const rec = registerRelationV2(null, {
+          relationId,
+          sourceEntityId: opts.source,
+          targetEntityId: opts.target,
+          relationType: opts.relationType,
+          metadata,
+        });
+        if (opts.json) console.log(JSON.stringify(rec, null, 2));
+        else
+          logger.success(`Relation registered: ${relationId} (${rec.status})`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  kg.command("relation-v2 <relation-id>")
+    .description("Show V2 relation lifecycle state")
+    .option("--json", "Output as JSON")
+    .action((relationId, opts) => {
+      const rec = getRelationV2(relationId);
+      if (!rec) {
+        logger.error(`Relation not registered in V2: ${relationId}`);
+        process.exit(1);
+      }
+      if (opts.json) console.log(JSON.stringify(rec, null, 2));
+      else {
+        logger.log(`  ${chalk.bold("Relation:")} ${rec.relationId}`);
+        logger.log(`  ${chalk.bold("Status:")}   ${chalk.yellow(rec.status)}`);
+        logger.log(
+          `  ${chalk.bold("Edge:")}     ${rec.sourceEntityId} ─[${rec.relationType}]→ ${rec.targetEntityId}`,
+        );
+      }
+    });
+
+  kg.command("set-relation-status-v2 <relation-id> <status>")
+    .description("Transition a V2 relation status")
+    .option("-r, --reason <text>", "Reason")
+    .option("-m, --metadata <json>", "JSON metadata to merge")
+    .action((relationId, status, opts) => {
+      try {
+        const patch = {};
+        if (opts.reason) patch.reason = opts.reason;
+        if (opts.metadata) patch.metadata = JSON.parse(opts.metadata);
+        const rec = setRelationStatusV2(null, relationId, status, patch);
+        logger.success(`Relation ${relationId} → ${rec.status}`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  kg.command("deprecate-relation <relation-id>")
+    .description("Deprecate a V2 relation")
+    .option("-r, --reason <text>", "Reason")
+    .action((relationId, opts) => {
+      try {
+        deprecateRelation(null, relationId, opts.reason);
+        logger.success(`Relation ${relationId} deprecated`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  kg.command("remove-relation-v2 <relation-id>")
+    .description("Remove a V2 relation (terminal)")
+    .option("-r, --reason <text>", "Reason")
+    .action((relationId, opts) => {
+      try {
+        removeRelationV2(null, relationId, opts.reason);
+        logger.success(`Relation ${relationId} removed`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  kg.command("revive-relation <relation-id>")
+    .description("Restore a V2 relation to active")
+    .option("-r, --reason <text>", "Reason")
+    .action((relationId, opts) => {
+      try {
+        reviveRelation(null, relationId, opts.reason);
+        logger.success(`Relation ${relationId} revived`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  kg.command("auto-archive-stale-entities")
+    .description("Bulk-flip stale V2 entities → archived")
+    .option("--json", "Output as JSON")
+    .action((opts) => {
+      const flipped = autoArchiveStaleEntities(null);
+      if (opts.json) console.log(JSON.stringify(flipped, null, 2));
+      else logger.success(`Archived ${flipped.length} stale entities`);
+    });
+
+  kg.command("auto-remove-stale-relations")
+    .description("Bulk-flip stale V2 relations → removed")
+    .option("--json", "Output as JSON")
+    .action((opts) => {
+      const flipped = autoRemoveStaleRelations(null);
+      if (opts.json) console.log(JSON.stringify(flipped, null, 2));
+      else logger.success(`Removed ${flipped.length} stale relations`);
+    });
+
+  kg.command("stats-v2")
+    .description("V2 knowledge graph stats (all-enum-key zero-init)")
+    .option("--json", "Output as JSON")
+    .action((opts) => {
+      const stats = getKnowledgeGraphStatsV2();
+      if (opts.json) {
+        console.log(JSON.stringify(stats, null, 2));
+      } else {
+        logger.log(
+          `  ${chalk.bold("Total entities:")}  ${stats.totalEntitiesV2}`,
+        );
+        logger.log(
+          `  ${chalk.bold("Total relations:")} ${stats.totalRelationsV2}`,
+        );
+        logger.log(
+          `  ${chalk.bold("Caps:")}            per-owner=${stats.maxActiveEntitiesPerOwner}, per-entity=${stats.maxRelationsPerEntity}`,
+        );
+        logger.log(
+          `  ${chalk.bold("Stale thresholds:")} entity=${stats.entityStaleMs}ms, relation=${stats.relationStaleMs}ms`,
+        );
+        logger.log(chalk.bold("  Entities by status:"));
+        for (const [k, v] of Object.entries(stats.entitiesByStatus)) {
+          logger.log(`    ${chalk.yellow(k.padEnd(12))} ${v}`);
+        }
+        logger.log(chalk.bold("  Relations by status:"));
+        for (const [k, v] of Object.entries(stats.relationsByStatus)) {
+          logger.log(`    ${chalk.yellow(k.padEnd(12))} ${v}`);
+        }
       }
     });
 }

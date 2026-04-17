@@ -15,6 +15,34 @@ import {
   purgeLogs,
   EVENT_TYPES,
   RISK_LEVELS,
+  // V2
+  LOG_STATUS_V2,
+  INTEGRITY_STATUS_V2,
+  ALERT_STATUS_V2,
+  EVENT_TYPES_V2,
+  RISK_LEVELS_V2,
+  AUDIT_DEFAULT_MAX_ALERTS_PER_ACTOR,
+  AUDIT_DEFAULT_ARCHIVE_RETENTION_MS,
+  AUDIT_DEFAULT_PURGE_RETENTION_MS,
+  setMaxAlertsPerActor,
+  setArchiveRetentionMs,
+  setPurgeRetentionMs,
+  getMaxAlertsPerActor,
+  getArchiveRetentionMs,
+  getPurgeRetentionMs,
+  getOpenAlertCount,
+  logEventV2,
+  getLogStatusV2,
+  setLogStatusV2,
+  verifyChainV2,
+  autoArchiveLogs,
+  autoPurgeLogs,
+  getAlertStatusV2,
+  setAlertStatusV2,
+  acknowledgeAlert,
+  resolveAlert,
+  dismissAlert,
+  getAuditStatsV2,
 } from "../lib/audit-logger.js";
 
 const RISK_COLORS = {
@@ -282,5 +310,279 @@ export function registerAuditCommand(program) {
         const color = RISK_COLORS[value] || chalk.gray;
         logger.log(`  ${color(value.padEnd(15))} ${chalk.gray(key)}`);
       }
+    });
+
+  // ─────────────────────────────────────────────────────────────
+  // Phase 11 V2 — hash-chained integrity + log/alert lifecycle
+  // ─────────────────────────────────────────────────────────────
+
+  audit
+    .command("log-statuses-v2")
+    .description("List V2 log lifecycle states")
+    .action(() => {
+      for (const v of Object.values(LOG_STATUS_V2)) logger.log(v);
+    });
+
+  audit
+    .command("integrity-statuses-v2")
+    .description("List V2 integrity states")
+    .action(() => {
+      for (const v of Object.values(INTEGRITY_STATUS_V2)) logger.log(v);
+    });
+
+  audit
+    .command("alert-statuses-v2")
+    .description("List V2 alert lifecycle states")
+    .action(() => {
+      for (const v of Object.values(ALERT_STATUS_V2)) logger.log(v);
+    });
+
+  audit
+    .command("event-types-v2")
+    .description("List V2 event types")
+    .action(() => {
+      for (const v of EVENT_TYPES_V2) logger.log(v);
+    });
+
+  audit
+    .command("risk-levels-v2")
+    .description("List V2 risk levels")
+    .action(() => {
+      for (const v of RISK_LEVELS_V2) logger.log(v);
+    });
+
+  audit
+    .command("default-max-alerts-per-actor")
+    .description("Show default max alerts per actor")
+    .action(() => logger.log(String(AUDIT_DEFAULT_MAX_ALERTS_PER_ACTOR)));
+
+  audit
+    .command("max-alerts-per-actor")
+    .description("Show current max alerts per actor")
+    .action(() => logger.log(String(getMaxAlertsPerActor())));
+
+  audit
+    .command("set-max-alerts-per-actor <n>")
+    .description("Update max alerts per actor")
+    .action((n) => {
+      logger.log(String(setMaxAlertsPerActor(n)));
+    });
+
+  audit
+    .command("default-archive-retention-ms")
+    .description("Show default archive retention")
+    .action(() => logger.log(String(AUDIT_DEFAULT_ARCHIVE_RETENTION_MS)));
+
+  audit
+    .command("archive-retention-ms")
+    .description("Show current archive retention")
+    .action(() => logger.log(String(getArchiveRetentionMs())));
+
+  audit
+    .command("set-archive-retention-ms <ms>")
+    .description("Update archive retention (ms)")
+    .action((ms) => {
+      logger.log(String(setArchiveRetentionMs(ms)));
+    });
+
+  audit
+    .command("default-purge-retention-ms")
+    .description("Show default purge retention")
+    .action(() => logger.log(String(AUDIT_DEFAULT_PURGE_RETENTION_MS)));
+
+  audit
+    .command("purge-retention-ms")
+    .description("Show current purge retention")
+    .action(() => logger.log(String(getPurgeRetentionMs())));
+
+  audit
+    .command("set-purge-retention-ms <ms>")
+    .description("Update purge retention (ms)")
+    .action((ms) => {
+      logger.log(String(setPurgeRetentionMs(ms)));
+    });
+
+  audit
+    .command("open-alert-count")
+    .description("Count OPEN alerts (optionally scoped to actor)")
+    .option("-a, --actor <actor>", "Scope to actor")
+    .action((opts) => {
+      logger.log(String(getOpenAlertCount(opts.actor)));
+    });
+
+  audit
+    .command("log-event-v2 <log-id>")
+    .description("V2: register a hash-chained log entry")
+    .option("-t, --event-type <t>", "Event type (required)")
+    .option("-o, --operation <op>", "Operation (required)")
+    .option("-a, --actor <actor>", "Actor")
+    .option("-x, --target <target>", "Target")
+    .option("-d, --details <d>", "Details (JSON)")
+    .option("-r, --risk-level <rl>", "Risk level")
+    .option("-i, --ip-address <ip>", "IP address")
+    .option("-u, --user-agent <ua>", "User agent")
+    .action((logId, opts) => {
+      const db = bootstrap();
+      try {
+        const details = opts.details ? JSON.parse(opts.details) : undefined;
+        const entry = logEventV2(db, {
+          logId,
+          eventType: opts.eventType,
+          operation: opts.operation,
+          actor: opts.actor,
+          target: opts.target,
+          details,
+          riskLevel: opts.riskLevel,
+          ipAddress: opts.ipAddress,
+          userAgent: opts.userAgent,
+        });
+        logger.log(JSON.stringify(entry, null, 2));
+      } finally {
+        shutdown();
+      }
+    });
+
+  audit
+    .command("log-status-v2 <log-id>")
+    .description("V2: show log status + integrity")
+    .action((logId) => {
+      const entry = getLogStatusV2(logId);
+      if (!entry) {
+        logger.log(chalk.yellow("(not found)"));
+        return;
+      }
+      logger.log(JSON.stringify(entry, null, 2));
+    });
+
+  audit
+    .command("set-log-status-v2 <log-id> <status>")
+    .description("V2: transition log status (active|archived|purged)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((logId, status, opts) => {
+      const db = bootstrap();
+      try {
+        const entry = setLogStatusV2(db, logId, status, {
+          reason: opts.reason,
+        });
+        logger.log(JSON.stringify(entry, null, 2));
+      } finally {
+        shutdown();
+      }
+    });
+
+  audit
+    .command("verify-chain-v2")
+    .description("V2: re-hash the chain and mark each entry verified/corrupted")
+    .action(() => {
+      const results = verifyChainV2();
+      logger.log(JSON.stringify(results, null, 2));
+    });
+
+  audit
+    .command("auto-archive-logs")
+    .description("V2: bulk-flip stale ACTIVE logs → ARCHIVED")
+    .action(() => {
+      const db = bootstrap();
+      try {
+        const archived = autoArchiveLogs(db);
+        logger.log(`Archived ${archived.length} log(s)`);
+      } finally {
+        shutdown();
+      }
+    });
+
+  audit
+    .command("auto-purge-logs")
+    .description("V2: bulk-flip stale ARCHIVED logs → PURGED")
+    .action(() => {
+      const db = bootstrap();
+      try {
+        const purged = autoPurgeLogs(db);
+        logger.log(`Purged ${purged.length} log(s)`);
+      } finally {
+        shutdown();
+      }
+    });
+
+  audit
+    .command("alert-status-v2 <alert-id>")
+    .description("V2: show alert status")
+    .action((alertId) => {
+      const entry = getAlertStatusV2(alertId);
+      if (!entry) {
+        logger.log(chalk.yellow("(not found)"));
+        return;
+      }
+      logger.log(JSON.stringify(entry, null, 2));
+    });
+
+  audit
+    .command("set-alert-status-v2 <alert-id> <status>")
+    .description(
+      "V2: transition alert status (open|acknowledged|resolved|dismissed)",
+    )
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <meta>", "Metadata (JSON)")
+    .action((alertId, status, opts) => {
+      const db = bootstrap();
+      try {
+        const metadata = opts.metadata ? JSON.parse(opts.metadata) : undefined;
+        const entry = setAlertStatusV2(db, alertId, status, {
+          reason: opts.reason,
+          metadata,
+        });
+        logger.log(JSON.stringify(entry, null, 2));
+      } finally {
+        shutdown();
+      }
+    });
+
+  audit
+    .command("acknowledge-alert <alert-id>")
+    .description("V2: shortcut → acknowledged")
+    .option("-r, --reason <reason>", "Reason")
+    .action((alertId, opts) => {
+      const db = bootstrap();
+      try {
+        const entry = acknowledgeAlert(db, alertId, opts.reason);
+        logger.log(JSON.stringify(entry, null, 2));
+      } finally {
+        shutdown();
+      }
+    });
+
+  audit
+    .command("resolve-alert <alert-id>")
+    .description("V2: shortcut → resolved")
+    .option("-r, --reason <reason>", "Reason")
+    .action((alertId, opts) => {
+      const db = bootstrap();
+      try {
+        const entry = resolveAlert(db, alertId, opts.reason);
+        logger.log(JSON.stringify(entry, null, 2));
+      } finally {
+        shutdown();
+      }
+    });
+
+  audit
+    .command("dismiss-alert <alert-id>")
+    .description("V2: shortcut → dismissed")
+    .option("-r, --reason <reason>", "Reason")
+    .action((alertId, opts) => {
+      const db = bootstrap();
+      try {
+        const entry = dismissAlert(db, alertId, opts.reason);
+        logger.log(JSON.stringify(entry, null, 2));
+      } finally {
+        shutdown();
+      }
+    });
+
+  audit
+    .command("stats-v2")
+    .description("V2: all-enum-key stats snapshot")
+    .action(() => {
+      logger.log(JSON.stringify(getAuditStatsV2(), null, 2));
     });
 }

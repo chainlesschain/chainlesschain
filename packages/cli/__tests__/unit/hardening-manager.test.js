@@ -13,6 +13,32 @@ import {
   deployCheck,
   _deps,
   _resetState,
+  // V2 (Phase 29)
+  AUDIT_STATUS_V2,
+  BASELINE_STATUS_V2,
+  SEVERITY_V2,
+  HARDENING_DEFAULT_MAX_CONCURRENT_AUDITS,
+  HARDENING_DEFAULT_BASELINE_RETENTION_MS,
+  HARDENING_DEFAULT_AUDIT_TIMEOUT_MS,
+  setMaxConcurrentAudits,
+  getMaxConcurrentAudits,
+  setBaselineRetentionMs,
+  getBaselineRetentionMs,
+  setAuditTimeoutMs,
+  getAuditTimeoutMs,
+  getRunningAuditCount,
+  registerAuditV2,
+  startAudit,
+  completeAudit,
+  setAuditStatusV2,
+  getAuditStatusV2,
+  autoTimeoutAudits,
+  createBaselineV2,
+  getBaselineStatusV2,
+  setBaselineStatusV2,
+  activateBaseline,
+  autoArchiveStaleBaselines,
+  getHardeningStatsV2,
 } from "../../src/lib/hardening-manager.js";
 
 describe("hardening-manager", () => {
@@ -474,6 +500,428 @@ describe("hardening-manager", () => {
       } finally {
         _deps.fs = original;
       }
+    });
+  });
+
+  /* ──────────────────────────────────────────────────
+   *  V2 — Phase 29 Production Hardening
+   * ────────────────────────────────────────────────── */
+
+  describe("V2 frozen enums", () => {
+    it("AUDIT_STATUS_V2 has 5 states", () => {
+      expect(Object.values(AUDIT_STATUS_V2).sort()).toEqual([
+        "failed",
+        "passed",
+        "pending",
+        "running",
+        "warning",
+      ]);
+    });
+
+    it("BASELINE_STATUS_V2 has 4 states", () => {
+      expect(Object.values(BASELINE_STATUS_V2).sort()).toEqual([
+        "active",
+        "archived",
+        "draft",
+        "superseded",
+      ]);
+    });
+
+    it("SEVERITY_V2 has 5 buckets", () => {
+      expect(Object.values(SEVERITY_V2).sort()).toEqual([
+        "critical",
+        "high",
+        "info",
+        "low",
+        "medium",
+      ]);
+    });
+
+    it("exposes defaults", () => {
+      expect(HARDENING_DEFAULT_MAX_CONCURRENT_AUDITS).toBe(5);
+      expect(HARDENING_DEFAULT_BASELINE_RETENTION_MS).toBe(
+        90 * 24 * 60 * 60 * 1000,
+      );
+      expect(HARDENING_DEFAULT_AUDIT_TIMEOUT_MS).toBe(300_000);
+    });
+  });
+
+  describe("V2 config validation", () => {
+    it("setMaxConcurrentAudits floors + rejects", () => {
+      setMaxConcurrentAudits(3.7);
+      expect(getMaxConcurrentAudits()).toBe(3);
+      expect(() => setMaxConcurrentAudits(0)).toThrow(/positive integer/);
+      expect(() => setMaxConcurrentAudits(Number.NaN)).toThrow(
+        /positive integer/,
+      );
+      expect(() => setMaxConcurrentAudits("5")).toThrow(/positive integer/);
+    });
+
+    it("setBaselineRetentionMs set/get + rejects", () => {
+      setBaselineRetentionMs(1000);
+      expect(getBaselineRetentionMs()).toBe(1000);
+      expect(() => setBaselineRetentionMs(-1)).toThrow(/positive integer/);
+    });
+
+    it("setAuditTimeoutMs set/get + rejects", () => {
+      setAuditTimeoutMs(60000);
+      expect(getAuditTimeoutMs()).toBe(60000);
+      expect(() => setAuditTimeoutMs(0)).toThrow(/positive integer/);
+    });
+
+    it("_resetState restores defaults + clears v2 maps", () => {
+      setMaxConcurrentAudits(99);
+      setBaselineRetentionMs(1000);
+      registerAuditV2(db, { name: "x" });
+      createBaselineV2(db, { name: "b" });
+      _resetState();
+      expect(getMaxConcurrentAudits()).toBe(
+        HARDENING_DEFAULT_MAX_CONCURRENT_AUDITS,
+      );
+      expect(getBaselineRetentionMs()).toBe(
+        HARDENING_DEFAULT_BASELINE_RETENTION_MS,
+      );
+      expect(getHardeningStatsV2().totalAudits).toBe(0);
+      expect(getHardeningStatsV2().totalBaselines).toBe(0);
+    });
+  });
+
+  describe("registerAuditV2", () => {
+    it("throws missing name", () => {
+      expect(() => registerAuditV2(db, {})).toThrow(/name is required/);
+    });
+
+    it("throws unknown severity", () => {
+      expect(() =>
+        registerAuditV2(db, { name: "x", severity: "bogus" }),
+      ).toThrow(/Unknown severity/);
+    });
+
+    it("creates entry in PENDING with defaults", () => {
+      const r = registerAuditV2(db, { name: "sec-audit" });
+      expect(r.status).toBe(AUDIT_STATUS_V2.PENDING);
+      expect(r.severity).toBe(SEVERITY_V2.MEDIUM);
+      expect(r.type).toBe("generic");
+      expect(r.audit_id).toBeTruthy();
+    });
+
+    it("accepts custom type, severity, and metadata", () => {
+      const r = registerAuditV2(db, {
+        name: "sec-audit",
+        type: "compliance",
+        severity: SEVERITY_V2.CRITICAL,
+        metadata: { owner: "sec-team" },
+      });
+      expect(r.type).toBe("compliance");
+      expect(r.severity).toBe("critical");
+      expect(r.metadata).toEqual({ owner: "sec-team" });
+    });
+  });
+
+  describe("startAudit", () => {
+    it("throws unknown audit", () => {
+      expect(() => startAudit(db, "ghost")).toThrow(/Audit not found/);
+    });
+
+    it("flips PENDING → RUNNING", () => {
+      const r = registerAuditV2(db, { name: "a" });
+      const s = startAudit(db, r.audit_id);
+      expect(s.status).toBe(AUDIT_STATUS_V2.RUNNING);
+      expect(s.started_at).toBeTruthy();
+    });
+
+    it("rejects when not PENDING", () => {
+      const r = registerAuditV2(db, { name: "a" });
+      startAudit(db, r.audit_id);
+      expect(() => startAudit(db, r.audit_id)).toThrow(
+        /Cannot start audit in status/,
+      );
+    });
+
+    it("enforces concurrency cap", () => {
+      setMaxConcurrentAudits(2);
+      const a = registerAuditV2(db, { name: "a" });
+      const b = registerAuditV2(db, { name: "b" });
+      const c = registerAuditV2(db, { name: "c" });
+      startAudit(db, a.audit_id);
+      startAudit(db, b.audit_id);
+      expect(() => startAudit(db, c.audit_id)).toThrow(
+        /Max concurrent audits reached/,
+      );
+    });
+  });
+
+  describe("getRunningAuditCount", () => {
+    it("zero when none running", () => {
+      expect(getRunningAuditCount()).toBe(0);
+      registerAuditV2(db, { name: "a" });
+      expect(getRunningAuditCount()).toBe(0);
+    });
+
+    it("counts only RUNNING entries", () => {
+      const a = registerAuditV2(db, { name: "a" });
+      const b = registerAuditV2(db, { name: "b" });
+      startAudit(db, a.audit_id);
+      startAudit(db, b.audit_id);
+      completeAudit(db, a.audit_id, { passed: 3, failed: 0 });
+      expect(getRunningAuditCount()).toBe(1);
+    });
+  });
+
+  describe("completeAudit", () => {
+    let auditId;
+    beforeEach(() => {
+      const r = registerAuditV2(db, { name: "a" });
+      startAudit(db, r.audit_id);
+      auditId = r.audit_id;
+    });
+
+    it("flips to PASSED when no failures", () => {
+      const r = completeAudit(db, auditId, { passed: 5, failed: 0 });
+      expect(r.status).toBe(AUDIT_STATUS_V2.PASSED);
+      expect(r.score).toBe(1);
+    });
+
+    it("flips to WARNING when score ≥ warningThreshold with some failures", () => {
+      const r = completeAudit(db, auditId, {
+        passed: 9,
+        failed: 1,
+        warningThreshold: 0.8,
+      });
+      expect(r.status).toBe(AUDIT_STATUS_V2.WARNING);
+    });
+
+    it("flips to FAILED when score < warningThreshold", () => {
+      const r = completeAudit(db, auditId, {
+        passed: 1,
+        failed: 9,
+        warningThreshold: 0.8,
+      });
+      expect(r.status).toBe(AUDIT_STATUS_V2.FAILED);
+    });
+
+    it("rejects when not RUNNING", () => {
+      completeAudit(db, auditId, { passed: 1, failed: 0 });
+      expect(() =>
+        completeAudit(db, auditId, { passed: 1, failed: 0 }),
+      ).toThrow(/Cannot complete audit/);
+    });
+  });
+
+  describe("setAuditStatusV2", () => {
+    it("throws unknown audit", () => {
+      expect(() =>
+        setAuditStatusV2(db, "ghost", AUDIT_STATUS_V2.RUNNING),
+      ).toThrow(/Audit not found/);
+    });
+
+    it("throws unknown status", () => {
+      const r = registerAuditV2(db, { name: "a" });
+      expect(() => setAuditStatusV2(db, r.audit_id, "bogus")).toThrow(
+        /Unknown audit status/,
+      );
+    });
+
+    it("rejects terminal mutation", () => {
+      const r = registerAuditV2(db, { name: "a" });
+      startAudit(db, r.audit_id);
+      completeAudit(db, r.audit_id, { passed: 5, failed: 0 });
+      expect(() =>
+        setAuditStatusV2(db, r.audit_id, AUDIT_STATUS_V2.RUNNING),
+      ).toThrow(/terminal/);
+    });
+
+    it("rejects invalid transition", () => {
+      const r = registerAuditV2(db, { name: "a" });
+      expect(() =>
+        setAuditStatusV2(db, r.audit_id, AUDIT_STATUS_V2.PASSED),
+      ).toThrow(/Invalid transition/);
+    });
+
+    it("patches errorMessage and metadata on terminal", () => {
+      const r = registerAuditV2(db, { name: "a" });
+      startAudit(db, r.audit_id);
+      const s = setAuditStatusV2(db, r.audit_id, AUDIT_STATUS_V2.FAILED, {
+        errorMessage: "script failed",
+        metadata: { exit: 1 },
+      });
+      expect(s.errorMessage).toBe("script failed");
+      expect(s.metadata).toEqual({ exit: 1 });
+      expect(s.completed_at).toBeTruthy();
+    });
+  });
+
+  describe("autoTimeoutAudits", () => {
+    it("flips RUNNING → FAILED after auditTimeoutMs", () => {
+      setAuditTimeoutMs(1);
+      const r = registerAuditV2(db, { name: "a" });
+      startAudit(db, r.audit_id);
+      // Manipulate started_at backwards
+      const entry = getAuditStatusV2(r.audit_id);
+      expect(entry.status).toBe(AUDIT_STATUS_V2.RUNNING);
+      // wait for timeout
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const timedOut = autoTimeoutAudits(db);
+          expect(timedOut).toHaveLength(1);
+          expect(timedOut[0].status).toBe(AUDIT_STATUS_V2.FAILED);
+          expect(timedOut[0].errorMessage).toMatch(/auto-timeout/);
+          resolve();
+        }, 10);
+      });
+    });
+
+    it("skips non-RUNNING audits", () => {
+      setAuditTimeoutMs(1);
+      registerAuditV2(db, { name: "a" }); // pending
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          expect(autoTimeoutAudits(db)).toEqual([]);
+          resolve();
+        }, 10);
+      });
+    });
+  });
+
+  describe("createBaselineV2 + state transitions", () => {
+    it("creates in DRAFT", () => {
+      const r = createBaselineV2(db, { name: "b1", version: "2.0.0" });
+      expect(r.status).toBe(BASELINE_STATUS_V2.DRAFT);
+      expect(r.version).toBe("2.0.0");
+      expect(r.baseline_id).toBeTruthy();
+    });
+
+    it("throws missing name", () => {
+      expect(() => createBaselineV2(db, {})).toThrow(/name is required/);
+    });
+
+    it("setBaselineStatusV2 state-machine guarded", () => {
+      const r = createBaselineV2(db, { name: "b1" });
+      expect(() =>
+        setBaselineStatusV2(db, r.baseline_id, BASELINE_STATUS_V2.SUPERSEDED),
+      ).toThrow(/Invalid transition/);
+      setBaselineStatusV2(db, r.baseline_id, BASELINE_STATUS_V2.ACTIVE);
+      setBaselineStatusV2(db, r.baseline_id, BASELINE_STATUS_V2.ARCHIVED);
+      expect(() =>
+        setBaselineStatusV2(db, r.baseline_id, BASELINE_STATUS_V2.ACTIVE),
+      ).toThrow(/terminal/);
+    });
+
+    it("rejects unknown status", () => {
+      const r = createBaselineV2(db, { name: "b1" });
+      expect(() => setBaselineStatusV2(db, r.baseline_id, "bogus")).toThrow(
+        /Unknown baseline status/,
+      );
+    });
+  });
+
+  describe("activateBaseline", () => {
+    it("DRAFT → ACTIVE and supersedes previous ACTIVE", () => {
+      const a = createBaselineV2(db, { name: "a" });
+      const b = createBaselineV2(db, { name: "b" });
+      activateBaseline(db, a.baseline_id);
+      expect(getBaselineStatusV2(a.baseline_id).status).toBe(
+        BASELINE_STATUS_V2.ACTIVE,
+      );
+      activateBaseline(db, b.baseline_id);
+      expect(getBaselineStatusV2(a.baseline_id).status).toBe(
+        BASELINE_STATUS_V2.SUPERSEDED,
+      );
+      expect(getBaselineStatusV2(b.baseline_id).status).toBe(
+        BASELINE_STATUS_V2.ACTIVE,
+      );
+    });
+
+    it("rejects non-DRAFT", () => {
+      const a = createBaselineV2(db, { name: "a" });
+      activateBaseline(db, a.baseline_id);
+      expect(() => activateBaseline(db, a.baseline_id)).toThrow(
+        /Cannot activate baseline/,
+      );
+    });
+
+    it("throws unknown baseline", () => {
+      expect(() => activateBaseline(db, "ghost")).toThrow(/Baseline not found/);
+    });
+  });
+
+  describe("autoArchiveStaleBaselines", () => {
+    it("flips SUPERSEDED → ARCHIVED past retention", async () => {
+      setBaselineRetentionMs(1);
+      const a = createBaselineV2(db, { name: "a" });
+      const b = createBaselineV2(db, { name: "b" });
+      activateBaseline(db, a.baseline_id);
+      activateBaseline(db, b.baseline_id);
+      // a is now SUPERSEDED
+      await new Promise((r) => setTimeout(r, 10));
+      const archived = autoArchiveStaleBaselines(db);
+      expect(archived).toHaveLength(1);
+      expect(archived[0].baseline_id).toBe(a.baseline_id);
+      expect(getBaselineStatusV2(a.baseline_id).status).toBe(
+        BASELINE_STATUS_V2.ARCHIVED,
+      );
+    });
+
+    it("skips non-SUPERSEDED baselines", () => {
+      setBaselineRetentionMs(1);
+      const a = createBaselineV2(db, { name: "a" }); // DRAFT
+      expect(autoArchiveStaleBaselines(db)).toEqual([]);
+    });
+  });
+
+  describe("getHardeningStatsV2", () => {
+    it("all-enum-key zero init", () => {
+      const s = getHardeningStatsV2();
+      expect(s.totalAudits).toBe(0);
+      expect(s.totalBaselines).toBe(0);
+      expect(s.maxConcurrentAudits).toBe(
+        HARDENING_DEFAULT_MAX_CONCURRENT_AUDITS,
+      );
+      expect(s.auditsByStatus).toEqual({
+        pending: 0,
+        running: 0,
+        passed: 0,
+        failed: 0,
+        warning: 0,
+      });
+      expect(s.auditsBySeverity).toEqual({
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+        info: 0,
+      });
+      expect(s.baselinesByStatus).toEqual({
+        draft: 0,
+        active: 0,
+        superseded: 0,
+        archived: 0,
+      });
+    });
+
+    it("aggregates correctly", () => {
+      const a = registerAuditV2(db, { name: "a", severity: SEVERITY_V2.HIGH });
+      const b = registerAuditV2(db, {
+        name: "b",
+        severity: SEVERITY_V2.CRITICAL,
+      });
+      startAudit(db, a.audit_id);
+      completeAudit(db, a.audit_id, { passed: 5, failed: 0 });
+      createBaselineV2(db, { name: "bl1" });
+      const active = createBaselineV2(db, { name: "bl2" });
+      activateBaseline(db, active.baseline_id);
+
+      const s = getHardeningStatsV2();
+      expect(s.totalAudits).toBe(2);
+      expect(s.runningAudits).toBe(0);
+      expect(s.auditsByStatus.passed).toBe(1);
+      expect(s.auditsByStatus.pending).toBe(1);
+      expect(s.auditsBySeverity.high).toBe(1);
+      expect(s.auditsBySeverity.critical).toBe(1);
+      expect(s.totalBaselines).toBe(2);
+      expect(s.activeBaselines).toBe(1);
+      expect(s.baselinesByStatus.draft).toBe(1);
+      expect(s.baselinesByStatus.active).toBe(1);
     });
   });
 });

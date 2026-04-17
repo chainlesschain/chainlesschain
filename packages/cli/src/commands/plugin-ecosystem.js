@@ -40,6 +40,41 @@ import {
   recommend,
   getConfig,
   getStats,
+  // V2
+  PLUGIN_MATURITY_V2,
+  INSTALL_LIFECYCLE_V2,
+  PLUGIN_DEFAULT_MAX_ACTIVE_PER_DEVELOPER,
+  PLUGIN_DEFAULT_MAX_PENDING_INSTALLS_PER_USER,
+  PLUGIN_DEFAULT_AUTO_DEPRECATE_AFTER_MS,
+  PLUGIN_DEFAULT_AUTO_ARCHIVE_AFTER_MS,
+  setMaxActivePluginsPerDeveloper,
+  setMaxPendingInstallsPerUser,
+  setAutoDeprecateAfterMs,
+  setAutoArchiveAfterMs,
+  getMaxActivePluginsPerDeveloper,
+  getMaxPendingInstallsPerUser,
+  getAutoDeprecateAfterMs,
+  getAutoArchiveAfterMs,
+  getActivePluginCount,
+  getPendingInstallCount,
+  registerPluginV2,
+  getMaturityV2,
+  setPluginMaturityV2,
+  deprecatePlugin,
+  archivePluginV2,
+  removePluginV2,
+  touchPluginActivity,
+  submitInstallV2,
+  getInstallStatusV2,
+  setInstallStatusV2,
+  resolveInstall,
+  completeInstall,
+  failInstall,
+  uninstallInstallV2,
+  retryFailedInstall,
+  autoDeprecateStalePlugins,
+  autoArchiveLongDeprecated,
+  getEcosystemStatsV2,
 } from "../lib/plugin-ecosystem.js";
 
 function _dbFromCtx(cmd) {
@@ -511,6 +546,244 @@ export function registerPluginEcosystemCommand(program) {
       if (!db) return console.error("No database");
       _json(getStats(db));
     });
+
+  /* ── Phase 64 V2 ──────────────────────────────────── */
+
+  eco
+    .command("maturity-statuses-v2")
+    .description("List V2 plugin maturity statuses")
+    .action(() => _json(Object.values(PLUGIN_MATURITY_V2)));
+
+  eco
+    .command("install-lifecycle-v2")
+    .description("List V2 install lifecycle statuses")
+    .action(() => _json(Object.values(INSTALL_LIFECYCLE_V2)));
+
+  eco
+    .command("default-max-active-plugins-per-developer")
+    .description("Show V2 default max active plugins per developer")
+    .action(() => _json(PLUGIN_DEFAULT_MAX_ACTIVE_PER_DEVELOPER));
+
+  eco
+    .command("max-active-plugins-per-developer")
+    .description("Show current V2 max active plugins per developer")
+    .action(() => _json(getMaxActivePluginsPerDeveloper()));
+
+  eco
+    .command("set-max-active-plugins-per-developer <n>")
+    .description("Set V2 max active plugins per developer")
+    .action((n) => _json(setMaxActivePluginsPerDeveloper(Number(n))));
+
+  eco
+    .command("default-max-pending-installs-per-user")
+    .description("Show V2 default max pending installs per user")
+    .action(() => _json(PLUGIN_DEFAULT_MAX_PENDING_INSTALLS_PER_USER));
+
+  eco
+    .command("max-pending-installs-per-user")
+    .description("Show current V2 max pending installs per user")
+    .action(() => _json(getMaxPendingInstallsPerUser()));
+
+  eco
+    .command("set-max-pending-installs-per-user <n>")
+    .description("Set V2 max pending installs per user")
+    .action((n) => _json(setMaxPendingInstallsPerUser(Number(n))));
+
+  eco
+    .command("default-auto-deprecate-after-ms")
+    .description("Show V2 default auto-deprecate threshold (ms)")
+    .action(() => _json(PLUGIN_DEFAULT_AUTO_DEPRECATE_AFTER_MS));
+
+  eco
+    .command("auto-deprecate-after-ms")
+    .description("Show current V2 auto-deprecate threshold (ms)")
+    .action(() => _json(getAutoDeprecateAfterMs()));
+
+  eco
+    .command("set-auto-deprecate-after-ms <ms>")
+    .description("Set V2 auto-deprecate threshold (ms)")
+    .action((ms) => _json(setAutoDeprecateAfterMs(Number(ms))));
+
+  eco
+    .command("default-auto-archive-after-ms")
+    .description("Show V2 default auto-archive threshold (ms)")
+    .action(() => _json(PLUGIN_DEFAULT_AUTO_ARCHIVE_AFTER_MS));
+
+  eco
+    .command("auto-archive-after-ms")
+    .description("Show current V2 auto-archive threshold (ms)")
+    .action(() => _json(getAutoArchiveAfterMs()));
+
+  eco
+    .command("set-auto-archive-after-ms <ms>")
+    .description("Set V2 auto-archive threshold (ms)")
+    .action((ms) => _json(setAutoArchiveAfterMs(Number(ms))));
+
+  eco
+    .command("active-plugin-count")
+    .description("Count V2 active plugins (optionally scoped)")
+    .option("-d, --developer <id>", "Filter by developer ID")
+    .action((opts) => _json(getActivePluginCount(opts.developer)));
+
+  eco
+    .command("pending-install-count")
+    .description("Count V2 pending+resolving installs (optionally scoped)")
+    .option("-u, --user <id>", "Filter by user ID")
+    .action((opts) => _json(getPendingInstallCount(opts.user)));
+
+  eco
+    .command("register-plugin-v2 <plugin-id>")
+    .description("Register V2 plugin (status=active)")
+    .requiredOption("-d, --developer <id>", "Developer ID")
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .action((pluginId, opts) => {
+      _json(
+        registerPluginV2(null, {
+          pluginId,
+          developerId: opts.developer,
+          metadata: _parseJsonArg(opts.metadata, undefined),
+        }),
+      );
+    });
+
+  eco
+    .command("maturity-v2 <plugin-id>")
+    .description("Show V2 plugin maturity")
+    .action((pluginId) => _json(getMaturityV2(pluginId)));
+
+  eco
+    .command("set-maturity-v2 <plugin-id> <status>")
+    .description("Transition V2 plugin maturity")
+    .option("-r, --reason <text>", "Reason")
+    .option("-m, --metadata <json>", "Metadata JSON to merge")
+    .action((pluginId, status, opts) => {
+      _json(
+        setPluginMaturityV2(null, pluginId, status, {
+          reason: opts.reason,
+          metadata: _parseJsonArg(opts.metadata, undefined),
+        }),
+      );
+    });
+
+  eco
+    .command("deprecate-plugin <plugin-id>")
+    .description("Deprecate V2 plugin")
+    .option("-r, --reason <text>", "Reason")
+    .action((pluginId, opts) =>
+      _json(deprecatePlugin(null, pluginId, opts.reason)),
+    );
+
+  eco
+    .command("archive-plugin-v2 <plugin-id>")
+    .description("Archive V2 plugin")
+    .option("-r, --reason <text>", "Reason")
+    .action((pluginId, opts) =>
+      _json(archivePluginV2(null, pluginId, opts.reason)),
+    );
+
+  eco
+    .command("remove-plugin-v2 <plugin-id>")
+    .description("Remove V2 plugin (terminal)")
+    .option("-r, --reason <text>", "Reason")
+    .action((pluginId, opts) =>
+      _json(removePluginV2(null, pluginId, opts.reason)),
+    );
+
+  eco
+    .command("touch-plugin-activity <plugin-id>")
+    .description("Bump lastActivityAt for V2 plugin")
+    .action((pluginId) => _json(touchPluginActivity(pluginId)));
+
+  eco
+    .command("submit-install-v2 <install-id>")
+    .description("Submit V2 install (status=pending)")
+    .requiredOption("-u, --user <id>", "User ID")
+    .requiredOption("-p, --plugin <id>", "Plugin ID")
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .action((installId, opts) => {
+      _json(
+        submitInstallV2(null, {
+          installId,
+          userId: opts.user,
+          pluginId: opts.plugin,
+          metadata: _parseJsonArg(opts.metadata, undefined),
+        }),
+      );
+    });
+
+  eco
+    .command("install-status-v2 <install-id>")
+    .description("Show V2 install status")
+    .action((installId) => _json(getInstallStatusV2(installId)));
+
+  eco
+    .command("set-install-status-v2 <install-id> <status>")
+    .description("Transition V2 install status")
+    .option("-r, --reason <text>", "Reason")
+    .option("-m, --metadata <json>", "Metadata JSON to merge")
+    .action((installId, status, opts) => {
+      _json(
+        setInstallStatusV2(null, installId, status, {
+          reason: opts.reason,
+          metadata: _parseJsonArg(opts.metadata, undefined),
+        }),
+      );
+    });
+
+  eco
+    .command("resolve-install <install-id>")
+    .description("Mark V2 install as resolving")
+    .option("-r, --reason <text>", "Reason")
+    .action((installId, opts) =>
+      _json(resolveInstall(null, installId, opts.reason)),
+    );
+
+  eco
+    .command("complete-install <install-id>")
+    .description("Mark V2 install as installed")
+    .option("-r, --reason <text>", "Reason")
+    .action((installId, opts) =>
+      _json(completeInstall(null, installId, opts.reason)),
+    );
+
+  eco
+    .command("fail-install <install-id>")
+    .description("Mark V2 install as failed")
+    .option("-r, --reason <text>", "Reason")
+    .action((installId, opts) =>
+      _json(failInstall(null, installId, opts.reason)),
+    );
+
+  eco
+    .command("uninstall-install-v2 <install-id>")
+    .description("Mark V2 install as uninstalled (terminal)")
+    .option("-r, --reason <text>", "Reason")
+    .action((installId, opts) =>
+      _json(uninstallInstallV2(null, installId, opts.reason)),
+    );
+
+  eco
+    .command("retry-failed-install <install-id>")
+    .description("Retry a failed V2 install (failed → pending)")
+    .option("-r, --reason <text>", "Reason")
+    .action((installId, opts) =>
+      _json(retryFailedInstall(null, installId, opts.reason)),
+    );
+
+  eco
+    .command("auto-deprecate-stale-plugins")
+    .description("Bulk-flip stale V2 ACTIVE plugins to DEPRECATED")
+    .action(() => _json(autoDeprecateStalePlugins(null)));
+
+  eco
+    .command("auto-archive-long-deprecated")
+    .description("Bulk-flip long-deprecated V2 plugins to ARCHIVED")
+    .action(() => _json(autoArchiveLongDeprecated(null)));
+
+  eco
+    .command("stats-v2")
+    .description("Show V2 ecosystem stats (maturity + install)")
+    .action(() => _json(getEcosystemStatsV2()));
 
   program.addCommand(eco);
   return eco;
