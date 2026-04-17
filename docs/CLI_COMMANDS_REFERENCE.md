@@ -416,6 +416,21 @@ chainlesschain tenant check-quota <tenant-id> <metric> [-P period] [--json]    #
 chainlesschain tenant stats [--json]                                            # Tenant/sub/usage counts + distributions
 chainlesschain tenant export <tenant-id> [output-file]                          # JSON snapshot (stdout if no file)
 chainlesschain tenant import <input-file>                                       # Restore from JSON snapshot
+chainlesschain governance types [--json]                                        # List 4 proposal types (parameter_change/feature_request/policy_update/budget_allocation)
+chainlesschain governance statuses [--json]                                     # List 5 proposal statuses
+chainlesschain governance impact-levels [--json]                                # List 4 impact levels (low/medium/high/critical)
+chainlesschain governance create <title> [-t type] [-d description] [-p proposer-did] [--json]
+chainlesschain governance list [-s status] [-t type] [--limit N] [--json]
+chainlesschain governance show <proposal-id> [--json]
+chainlesschain governance activate <proposal-id> [-d duration-ms] [--json]     # draft → active
+chainlesschain governance close <proposal-id> [-q quorum] [-t threshold] [-n total-voters] [--json]  # active → passed/rejected
+chainlesschain governance expire <proposal-id>                                  # draft|active → expired
+chainlesschain governance vote <proposal-id> <voter-did> <yes|no|abstain> [-r reason] [-w weight] [--json]
+chainlesschain governance votes <proposal-id> [--limit N] [--json]
+chainlesschain governance tally <proposal-id> [-q quorum] [-t threshold] [-n total-voters] [--json]
+chainlesschain governance analyze <proposal-id> [--json]                        # Heuristic impact analysis (risk/benefit/components)
+chainlesschain governance predict <proposal-id> [--json]                        # Heuristic vote prediction
+chainlesschain governance stats [--json]                                        # Proposal/vote counts + distributions
 chainlesschain social contact / friend / post / chat / stats
 chainlesschain social analyze "<text>" [--top-k 3] [--lang zh|ja|en] [--json]
 chainlesschain social detect-lang "<text>" [--json]

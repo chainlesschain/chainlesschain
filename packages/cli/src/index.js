@@ -122,6 +122,9 @@ import { registerKgCommand } from "./commands/kg.js";
 // Phase 97: Multi-Tenant SaaS Engine
 import { registerTenantCommand } from "./commands/tenant.js";
 
+// Phase 54: AI Community Governance
+import { registerGovernanceCommand } from "./commands/governance.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -272,6 +275,9 @@ export function createProgram() {
 
   // Phase 97: Multi-Tenant SaaS Engine
   registerTenantCommand(program);
+
+  // Phase 54: AI Community Governance
+  registerGovernanceCommand(program);
 
   return program;
 }
