@@ -166,6 +166,7 @@ const categories = [
     cmds: [
       ['serve', 'WebSocket 服务器（18800）'],
       ['ui', 'Web 管理面板（18810）'],
+      ['stream', 'NDJSON 流式输出'],
     ],
   },
   {
@@ -175,6 +176,74 @@ const categories = [
       ['orchestrate "task"', '自动检测 Agent 后端'],
       ['orchestrate detect', '检测 Claude Code / Codex'],
       ['orchestrate --webhook', 'Webhook 服务（企微 / 钉钉 / 飞书）'],
+    ],
+  },
+  {
+    name: '通信桥接 & 社交',
+    key: 'social',
+    cmds: [
+      ['nostr keygen / publish / dm', 'Nostr NIP-01/04/09/25'],
+      ['matrix login / rooms / send', 'Matrix 线程 & 空间'],
+      ['activitypub actor / publish / follow', 'ActivityPub C2S 联邦'],
+      ['social graph add-edge / neighbors', '社交图谱（有向加权边）'],
+      ['social analyze / detect-lang', '多语言主题分类'],
+    ],
+  },
+  {
+    name: '压力测试 & 运维',
+    key: 'ops',
+    cmds: [
+      ['stress run / analyze / plan', '压力测试 + 容量规划'],
+      ['sla create / check / report', 'SLA 管理（gold/silver/bronze）'],
+      ['reputation observe / score / anomalies', '信誉评分 + 异常检测'],
+      ['tech analyze / detect / recommend', '技术栈分析 + 反模式检测'],
+      ['hardening config-check / deploy-check', '配置审计 + 部署预检'],
+    ],
+  },
+  {
+    name: '自主开发 & 治理',
+    key: 'dev',
+    cmds: [
+      ['dev start / phase / review / adr', '自主开发者（L0-L4 自治等级）'],
+      ['collab propose / vote / execute', '协作治理 + 任务分配'],
+      ['governance create / vote / tally', '社区治理（提案 + 投票）'],
+      ['learning reflect / synthesize', '自主学习系统'],
+    ],
+  },
+  {
+    name: '市场 & 经济',
+    key: 'market',
+    cmds: [
+      ['marketplace publish / list / stats', '技能市场（发布 + 调用统计）'],
+      ['incentive mint / transfer / leaderboard', '代币激励（7 种贡献类型）'],
+      ['crosschain bridge / swap / send', '跨链互操作'],
+    ],
+  },
+  {
+    name: '知识图谱 & 推荐',
+    key: 'knowledge',
+    cmds: [
+      ['kg add / query / reason', '企业知识图谱（多跳推理）'],
+      ['recommend profile / recommend / feedback', '智能推荐系统'],
+      ['tenant create / subscribe / check-quota', '多租户 SaaS 引擎'],
+    ],
+  },
+  {
+    name: '视频剪辑 Agent',
+    key: 'video',
+    cmds: [
+      ['video edit', '端到端视频剪辑（CutClaw）'],
+      ['video deconstruct / plan / assemble / render', '分步工作流'],
+      ['video assets list / prune', '资产缓存管理'],
+    ],
+  },
+  {
+    name: '隐私计算',
+    key: 'privacy',
+    cmds: [
+      ['privacy create-model / train', '联邦学习（FL）'],
+      ['privacy create-computation / submit-share', '安全多方计算（MPC）'],
+      ['privacy dp-publish / he-query', '差分隐私 / 同态加密'],
     ],
   },
 ];
@@ -192,20 +261,20 @@ const packs = [
 ];
 ---
 <BaseLayout
-  title="CLI 工具 — 65 命令 · 139 Skills · 你的终端就是 AI 工作台 | ChainlessChain"
-  description="ChainlessChain CLI：65 条命令、139 内置 Skills、9 个 Skill Packs、本地 Ollama + 10 LLM Providers。Agent 模式、Cowork 多智能体、MCP 生态，全部在终端完成。"
+  title="CLI 工具 — 73 命令 · 139 Skills · 你的终端就是 AI 工作台 | ChainlessChain"
+  description="ChainlessChain CLI：73 条命令、139 内置 Skills、9 个 Skill Packs、本地 Ollama + 10 LLM Providers。Agent 模式、Cowork 多智能体、MCP 生态，全部在终端完成。"
   canonical="https://www.chainlesschain.com/cli"
 >
   <section class="relative overflow-hidden">
     <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
     <div class="container-wide relative pt-20 pb-16 md:pt-28 md:pb-20">
       <div class="max-w-4xl">
-        <div class="chip mb-6 animate-fade-in">CLI · v0.47.0</div>
+        <div class="chip mb-6 animate-fade-in">CLI · v0.48.1</div>
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
           你的终端，<br/><span class="italic text-ember">就是 AI 工作台</span>。
         </h1>
         <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
-          65 条命令，覆盖从知识库到链上治理的完整生命周期。零 GUI 依赖，纯文本输入输出，可管道可脚本可 CI。
+          73 条命令，覆盖从知识库到链上治理的完整生命周期。零 GUI 依赖，纯文本输入输出，可管道可脚本可 CI。
         </p>
 
         <!-- Install tabs -->
@@ -239,7 +308,7 @@ const packs = [
   <section class="py-16 md:py-24">
     <div class="container-wide">
       <div class="flex items-baseline justify-between mb-10">
-        <h2 class="text-4xl md:text-5xl">全部 65 条命令</h2>
+        <h2 class="text-4xl md:text-5xl">全部 73 条命令</h2>
         <span class="font-mono text-sm text-muted">{categories.length} 大类</span>
       </div>
       <div class="space-y-3">
