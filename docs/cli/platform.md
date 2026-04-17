@@ -91,3 +91,89 @@ chainlesschain runtime stats [--json]
 ```
 
 > **未移植**: 真实插件沙箱、Yjs CRDT 合并、真实 Flame Graph 采样、差量热补丁、自愈定时器。CLI 只是一次性调用，状态同步为最后写入胜出 (LWW) 而非真正的 CRDT。
+
+## IPFS 去中心化存储 (Phase 17)
+
+Phase 17 Desktop IPFS 模块的 CLI 端口 —— 不依赖真实 libp2p/Helia，使用确定性 CID 模拟 (`bafy` + sha256 hex 前缀) + AES-256-GCM 加密 + 配额/垃圾回收 + 知识附件链接。
+
+**节点生命周期 / 模式**:
+```bash
+chainlesschain ipfs node-start [--mode light|full|gateway] [--json]
+chainlesschain ipfs node-stop [--json]
+chainlesschain ipfs node-status [--json]
+chainlesschain ipfs set-mode <mode> [--json]
+chainlesschain ipfs modes [--json]
+chainlesschain ipfs statuses [--json]
+```
+
+**内容存取**:
+```bash
+chainlesschain ipfs add [-f <file>] [-t text|json] [--json-body <string>] [--encrypt] [--passphrase <p>] [--json]
+chainlesschain ipfs get <cid> [--passphrase <p>] [--json]
+chainlesschain ipfs show <cid> [--json]
+chainlesschain ipfs list [--type text|json|binary] [--limit N] [--json]
+```
+
+**钉选 / 统计 / 回收 / 配额**:
+```bash
+chainlesschain ipfs pin <cid> [--json]
+chainlesschain ipfs unpin <cid> [--json]
+chainlesschain ipfs pins [--json]
+chainlesschain ipfs stats [--json]
+chainlesschain ipfs gc [--json]                                 # 清理未钉选内容
+chainlesschain ipfs set-quota <bytes> [--json]
+```
+
+**知识库附件**:
+```bash
+chainlesschain ipfs attach <cid> --knowledge-id <id> [--json]
+chainlesschain ipfs attachments --knowledge-id <id> [--json]
+```
+
+> **未移植**: 真实 libp2p/Helia 节点、DHT 发现、真实 CID v1 计算、gateway HTTP 服务。CLI 仅本地 SQLite 模拟，生产侧仍走桌面端原生实现。
+
+## 多模态协作 (Phase 27)
+
+Phase 27 Desktop 多模态协作层的 CLI 端口 —— 5 种模态 (text/document/image/audio/screen) + 加权融合 + 原生解析 (txt/md/csv/json) + 上下文构建 (4000 token cap) + 6 种输出格式 (markdown/html/chart/slides/json/csv)。
+
+**会话 / 模态目录**:
+```bash
+chainlesschain multimodal modalities [--json]          # 5 模态 + 权重
+chainlesschain multimodal input-formats [--json]       # 7 输入格式
+chainlesschain multimodal output-formats [--json]      # 6 输出格式
+chainlesschain multimodal statuses [--json]
+```
+
+**会话生命周期**:
+```bash
+chainlesschain mm session-create [--title <t>] [--metadata <json>] [--json]
+chainlesschain mm session-show <sessionId> [--json]
+chainlesschain mm sessions [--status active|completed] [--limit N] [--json]
+chainlesschain mm session-complete <sessionId> [--json]
+chainlesschain mm session-delete <sessionId> [--json]
+```
+
+**添加 / 查看模态**:
+```bash
+chainlesschain mm add <sessionId> <modality> [-c <content>] [-f <file>] [--json]
+chainlesschain mm modalities-of <sessionId> [--json]
+```
+
+**融合 / 文档解析**:
+```bash
+chainlesschain mm fuse <sessionId> [--json]            # 按权重拼接
+chainlesschain mm parse <file> [--json]                # 原生: txt/md/csv/json
+```
+
+**上下文 / 输出**:
+```bash
+chainlesschain mm build-context <sessionId> [--max-tokens N] [--json]
+chainlesschain mm get-context <sessionId> [--json]
+chainlesschain mm clear-context <sessionId> [--json]
+chainlesschain mm trim-context <sessionId> --max-tokens N [--json]
+chainlesschain mm generate <sessionId> <format> [--json]   # 生成并存入 artifacts
+chainlesschain mm artifacts <sessionId> [--type input|output] [--modality <m>] [--limit N] [--json]
+chainlesschain mm stats [--json]
+```
+
+> **未移植**: 真实 PDF/DOCX/XLSX 解析 (报告 `parser_not_available`)、图像/音频/屏幕内容自动 OCR/ASR、浏览器端 Reveal.js / ECharts 交互渲染。CLI 仅做轻量文本流水线，生成产物是 HTML/JSON/Markdown 骨架。
