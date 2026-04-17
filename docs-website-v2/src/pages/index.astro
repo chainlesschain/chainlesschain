@@ -59,6 +59,15 @@ const evolution = [
   { tag: 'v5.0.2.10', title: '代码生成 Agent 2.0', sub: 'Phase 86 Code Generation', desc: '14 子命令覆盖生成/审查/脚手架全流程，5 种安全规则 + 3 CI/CD 平台集成。' },
   { tag: 'v5.0.2.10', title: '数据库演进框架', sub: 'Phase 80 Database Evolution', desc: '迁移注册/执行/回滚 + 慢查询日志 + 索引建议自动生成与应用。' },
   { tag: 'v5.0.2.10', title: 'AIOps 智能运维', sub: 'Phase 25 Autonomous Ops', desc: '指标基线 + Z-score/IQR 异常检测 + 事件生命周期 + Playbook 自动修复 + 事后复盘。' },
+
+  // ── v5.0.2.10 Phase 17/20/27/28/58/63/84 CLI Ports ──
+  { tag: 'v5.0.2.10', title: '多模态感知引擎', sub: 'Phase 84 Multimodal Perception', desc: '感知结果记录 + 语音会话状态机 + 跨模态索引 + 多维度查询与上下文聚合。' },
+  { tag: 'v5.0.2.10', title: '联邦网络硬化', sub: 'Phase 58 Federation Hardening', desc: '断路器状态机（closed→open→half-open）+ 节点健康检查 + 连接池管理。' },
+  { tag: 'v5.0.2.10', title: '自然语言编程', sub: 'Phase 28 NL Programming', desc: '意图分类 + 实体提取 + 技术栈检测 + NL→结构化规格翻译 + 项目编码约定管理。' },
+  { tag: 'v5.0.2.10', title: '模型量化系统', sub: 'Phase 20 Model Quantization', desc: 'GGUF 14 级量化 + GPTQ 多位宽 + 量化任务全生命周期（create→start→complete/fail/cancel）。' },
+  { tag: 'v5.0.2.10', title: '统一应用运行时', sub: 'Phase 63 Universal Runtime', desc: '插件热加载/卸载 + semver 热更新与回滚 + LWW 状态同步 + 运行时 profiling。' },
+  { tag: 'v5.0.2.10', title: 'IPFS 去中心化存储', sub: 'Phase 17 IPFS Storage', desc: '模拟 CID + AES-256-GCM 加密 + Pin 管理 + 配额/GC + 知识库附件关联。' },
+  { tag: 'v5.0.2.10', title: '多模态协作', sub: 'Phase 27 Multimodal Collaboration', desc: '5 种模态加权融合 + 7 种文档原生解析 + 4000-token 上下文 + 6 种输出格式。' },
 ];
 
 const badges = [
@@ -78,7 +87,7 @@ const badges = [
       <div class="max-w-4xl">
         <div class="animate-fade-in flex items-center gap-3 mb-8">
           <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> v5.0.2.10 · Evolution Edition</span>
-          <span class="chip">CLI v0.48.1</span>
+          <span class="chip">CLI v0.58.0</span>
         </div>
 
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02] tracking-tight">
@@ -308,7 +317,7 @@ const badges = [
   <section class="py-24 md:py-32 bg-cream/50 border-y border-line">
     <div class="container-wide">
       <div class="max-w-3xl mb-14">
-        <div class="chip mb-6">架构演进 · 29 项（v5.0.2.10 新增 20 项）</div>
+        <div class="chip mb-6">架构演进 · 36 项（v5.0.2.10 新增 27 项）</div>
         <h2 class="text-display-md md:text-5xl leading-tight">
           把多智能体做成<br/>
           <span class="italic">工程可复制的模式</span>。
@@ -365,7 +374,7 @@ const badges = [
             <li>· CLI Agent · Claude Code 风格</li>
             <li>· Cowork 多 Agent 并行审查</li>
             <li>· MCP 工具生态 + 9 Skill Packs</li>
-            <li>· 76 命令 · 5960+ 测试</li>
+            <li>· 83 命令 · 6200+ 测试</li>
           </ul>
           <button class="btn-primary bg-ember text-ink hover:bg-ember-dark" data-copy="npm i -g chainlesschain">
             <span>$ npm i -g chainlesschain</span>
