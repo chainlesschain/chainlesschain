@@ -131,6 +131,9 @@ import { registerRecommendCommand } from "./commands/recommend.js";
 // Phase 89: Cross-Chain Interoperability
 import { registerCrossChainCommand } from "./commands/crosschain.js";
 
+// Phase 91: Privacy Computing
+import { registerPrivacyCommand } from "./commands/privacy.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -290,6 +293,9 @@ export function createProgram() {
 
   // Phase 89: Cross-Chain Interoperability
   registerCrossChainCommand(program);
+
+  // Phase 91: Privacy Computing
+  registerPrivacyCommand(program);
 
   return program;
 }
