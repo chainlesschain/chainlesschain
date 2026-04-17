@@ -4,7 +4,7 @@
 >
 > Covers: Code Generation Agent (Phase 86), AIOps (Phase 25), Multimodal Perception
 > (Phase 84), Database Evolution (Phase 80), Federation Hardening (Phase 58),
-> Natural Language Programming (Phase 28).
+> Natural Language Programming (Phase 28), Model Quantization (Phase 20).
 
 ## Code Generation Agent (Phase 86)
 
@@ -145,4 +145,23 @@ chainlesschain nlprog convention-show <id> [--json]                             
 chainlesschain nlprog conventions [-c category] [--limit N] [--json]             # 列出项目惯例
 chainlesschain nlprog convention-remove <id> [--json]                            # 删除惯例
 chainlesschain nlprog stats [--json]                                             # NL Programming 统计
+```
+
+## Model Quantization (Phase 20)
+
+```bash
+chainlesschain quantize statuses [--json]                                        # 列出任务状态 (pending/running/completed/failed/cancelled)
+chainlesschain quantize types [--json]                                           # 列出量化类型 (gguf/gptq)
+chainlesschain quantize levels [--json]                                          # 列出 14 级 GGUF 量化级别
+chainlesschain quantize gptq-bits [--json]                                       # 列出 GPTQ 位宽 (2/3/4/8)
+chainlesschain quantize create -i <path> -t <gguf|gptq> [-l level] [-o path] [-c config-json] [--json]
+chainlesschain quantize start <id> [--json]                                      # 启动待处理任务 (模拟)
+chainlesschain quantize progress <id> <percent> [--json]                         # 更新进度 (0-100)
+chainlesschain quantize complete <id> [-o path] [-s bytes] [--json]              # 标记完成
+chainlesschain quantize fail <id> [-e message] [--json]                          # 标记失败
+chainlesschain quantize cancel <id> [--json]                                     # 取消任务
+chainlesschain quantize delete <id> [--json]                                     # 删除非运行任务
+chainlesschain quantize show <id> [--json]                                       # 查看任务详情
+chainlesschain quantize list [-s status] [-t type] [--limit N] [--json]          # 列出量化任务
+chainlesschain quantize stats [--json]                                           # 量化统计
 ```
