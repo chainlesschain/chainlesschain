@@ -27,7 +27,52 @@ import {
   getSuggestion,
   applySuggestion,
   getDbEvoStats,
+
+  // Phase 80 V2
+  SCHEMA_BASELINE_V2,
+  MIGRATION_RUN_V2,
+  getDefaultMaxActiveBaselinesPerDbV2,
+  getMaxActiveBaselinesPerDbV2,
+  setMaxActiveBaselinesPerDbV2,
+  getDefaultMaxRunningMigrationsPerDbV2,
+  getMaxRunningMigrationsPerDbV2,
+  setMaxRunningMigrationsPerDbV2,
+  getDefaultBaselineIdleMsV2,
+  getBaselineIdleMsV2,
+  setBaselineIdleMsV2,
+  getDefaultMigrationStuckMsV2,
+  getMigrationStuckMsV2,
+  setMigrationStuckMsV2,
+  registerBaselineV2,
+  getBaselineV2,
+  setBaselineStatusV2,
+  validateBaseline,
+  activateBaseline,
+  deprecateBaseline,
+  retireBaseline,
+  touchBaselineActivity,
+  enqueueMigrationRunV2,
+  getMigrationRunV2,
+  setMigrationRunStatusV2,
+  startMigrationRun,
+  applyMigrationRun,
+  failMigrationRun,
+  rollbackMigrationRun,
+  getActiveBaselineCount,
+  getRunningMigrationCount,
+  autoRetireIdleBaselines,
+  autoFailStuckMigrationRuns,
+  getDbEvoStatsV2,
 } from "../lib/dbevo.js";
+
+function _parseMetaV2(raw) {
+  if (!raw) return undefined;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error("--metadata must be valid JSON");
+  }
+}
 
 function _dbFromCtx(cmd) {
   const root = cmd?.parent?.parent ?? cmd?.parent;
@@ -383,6 +428,245 @@ export function registerDbEvoCommand(program) {
         `Suggestions: ${s.suggestions.total} total, ${s.suggestions.pending} pending, ${s.suggestions.applied} applied`,
       );
     });
+
+  /* ═══════════════════════════════════════════════════ *
+   *  Phase 80 V2 — Schema Baseline + Migration Run
+   * ═══════════════════════════════════════════════════ */
+
+  dbevo
+    .command("schema-baselines-v2")
+    .description("List V2 baseline states")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const xs = Object.values(SCHEMA_BASELINE_V2);
+      if (opts.json) return console.log(JSON.stringify(xs, null, 2));
+      for (const x of xs) console.log(`  ${x}`);
+    });
+
+  dbevo
+    .command("migration-runs-v2")
+    .description("List V2 migration-run states")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const xs = Object.values(MIGRATION_RUN_V2);
+      if (opts.json) return console.log(JSON.stringify(xs, null, 2));
+      for (const x of xs) console.log(`  ${x}`);
+    });
+
+  dbevo
+    .command("default-max-active-baselines-per-db")
+    .description("Default active-baseline cap")
+    .action(() => console.log(getDefaultMaxActiveBaselinesPerDbV2()));
+  dbevo
+    .command("max-active-baselines-per-db")
+    .description("Current active-baseline cap")
+    .action(() => console.log(getMaxActiveBaselinesPerDbV2()));
+  dbevo
+    .command("set-max-active-baselines-per-db <n>")
+    .description("Set active-baseline cap")
+    .action((n) => console.log(setMaxActiveBaselinesPerDbV2(n)));
+
+  dbevo
+    .command("default-max-running-migrations-per-db")
+    .description("Default running-migration cap")
+    .action(() => console.log(getDefaultMaxRunningMigrationsPerDbV2()));
+  dbevo
+    .command("max-running-migrations-per-db")
+    .description("Current running-migration cap")
+    .action(() => console.log(getMaxRunningMigrationsPerDbV2()));
+  dbevo
+    .command("set-max-running-migrations-per-db <n>")
+    .description("Set running-migration cap")
+    .action((n) => console.log(setMaxRunningMigrationsPerDbV2(n)));
+
+  dbevo
+    .command("default-baseline-idle-ms")
+    .description("Default baseline idle ms")
+    .action(() => console.log(getDefaultBaselineIdleMsV2()));
+  dbevo
+    .command("baseline-idle-ms")
+    .description("Current baseline idle ms")
+    .action(() => console.log(getBaselineIdleMsV2()));
+  dbevo
+    .command("set-baseline-idle-ms <ms>")
+    .description("Set baseline idle ms")
+    .action((ms) => console.log(setBaselineIdleMsV2(ms)));
+
+  dbevo
+    .command("default-migration-stuck-ms")
+    .description("Default migration stuck ms")
+    .action(() => console.log(getDefaultMigrationStuckMsV2()));
+  dbevo
+    .command("migration-stuck-ms")
+    .description("Current migration stuck ms")
+    .action(() => console.log(getMigrationStuckMsV2()));
+  dbevo
+    .command("set-migration-stuck-ms <ms>")
+    .description("Set migration stuck ms")
+    .action((ms) => console.log(setMigrationStuckMsV2(ms)));
+
+  dbevo
+    .command("active-baseline-count")
+    .description("Count of ACTIVE baselines")
+    .option("-d, --database <id>", "filter by database")
+    .action((opts) => console.log(getActiveBaselineCount(opts.database)));
+
+  dbevo
+    .command("running-migration-count")
+    .description("Count of RUNNING migration runs")
+    .option("-d, --database <id>", "filter by database")
+    .action((opts) => console.log(getRunningMigrationCount(opts.database)));
+
+  // ── Baseline CRUD ──────────────────────────────────
+
+  dbevo
+    .command("register-baseline-v2 <baseline-id>")
+    .description("Register a V2 baseline")
+    .requiredOption("-d, --database <id>", "database id")
+    .requiredOption("-v, --version <ver>", "schema version")
+    .option("-i, --initial-status <s>", "initial status")
+    .option("--metadata <json>", "metadata JSON")
+    .action((id, opts) => {
+      const r = registerBaselineV2(null, {
+        baselineId: id,
+        databaseId: opts.database,
+        version: opts.version,
+        initialStatus: opts.initialStatus,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  dbevo
+    .command("baseline-v2 <baseline-id>")
+    .description("Get a V2 baseline")
+    .action((id) => {
+      const r = getBaselineV2(id);
+      if (!r) {
+        console.error(`Unknown baseline: ${id}`);
+        process.exitCode = 1;
+        return;
+      }
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  dbevo
+    .command("set-baseline-status-v2 <baseline-id> <status>")
+    .description("Transition baseline status")
+    .option("-r, --reason <text>", "reason")
+    .option("--metadata <json>", "metadata JSON")
+    .action((id, status, opts) => {
+      const r = setBaselineStatusV2(null, id, status, {
+        reason: opts.reason,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  for (const [name, fn] of [
+    ["validate-baseline", validateBaseline],
+    ["activate-baseline", activateBaseline],
+    ["deprecate-baseline", deprecateBaseline],
+    ["retire-baseline", retireBaseline],
+  ]) {
+    dbevo
+      .command(`${name} <baseline-id>`)
+      .description(`Transition baseline (${name})`)
+      .option("-r, --reason <text>", "reason")
+      .action((id, opts) => {
+        const r = fn(null, id, opts.reason);
+        console.log(JSON.stringify(r, null, 2));
+      });
+  }
+
+  dbevo
+    .command("touch-baseline-activity <baseline-id>")
+    .description("Bump lastTouchedAt")
+    .action((id) => {
+      const r = touchBaselineActivity(id);
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  // ── Migration Run CRUD ─────────────────────────────
+
+  dbevo
+    .command("enqueue-migration-run-v2 <run-id>")
+    .description("Enqueue a V2 migration run")
+    .requiredOption("-d, --database <id>", "database id")
+    .requiredOption("-m, --migration <id>", "migration id")
+    .requiredOption("--direction <up|down>", "direction")
+    .option("--metadata <json>", "metadata JSON")
+    .action((id, opts) => {
+      const r = enqueueMigrationRunV2(null, {
+        runId: id,
+        databaseId: opts.database,
+        migrationId: opts.migration,
+        direction: opts.direction,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  dbevo
+    .command("migration-run-v2 <run-id>")
+    .description("Get a V2 migration run")
+    .action((id) => {
+      const r = getMigrationRunV2(id);
+      if (!r) {
+        console.error(`Unknown run: ${id}`);
+        process.exitCode = 1;
+        return;
+      }
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  dbevo
+    .command("set-migration-run-status-v2 <run-id> <status>")
+    .description("Transition migration-run status")
+    .option("-r, --reason <text>", "reason")
+    .option("--metadata <json>", "metadata JSON")
+    .action((id, status, opts) => {
+      const r = setMigrationRunStatusV2(null, id, status, {
+        reason: opts.reason,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  for (const [name, fn] of [
+    ["start-migration-run", startMigrationRun],
+    ["apply-migration-run", applyMigrationRun],
+    ["fail-migration-run", failMigrationRun],
+    ["rollback-migration-run", rollbackMigrationRun],
+  ]) {
+    dbevo
+      .command(`${name} <run-id>`)
+      .description(`Transition migration run (${name})`)
+      .option("-r, --reason <text>", "reason")
+      .action((id, opts) => {
+        const r = fn(null, id, opts.reason);
+        console.log(JSON.stringify(r, null, 2));
+      });
+  }
+
+  dbevo
+    .command("auto-retire-idle-baselines")
+    .description("Flip idle draft/validated/deprecated → RETIRED")
+    .action(() =>
+      console.log(JSON.stringify(autoRetireIdleBaselines(null), null, 2)),
+    );
+
+  dbevo
+    .command("auto-fail-stuck-migration-runs")
+    .description("Flip stuck RUNNING → FAILED")
+    .action(() =>
+      console.log(JSON.stringify(autoFailStuckMigrationRuns(null), null, 2)),
+    );
+
+  dbevo
+    .command("stats-v2")
+    .description("V2 stats snapshot")
+    .action(() => console.log(JSON.stringify(getDbEvoStatsV2(), null, 2)));
 
   program.addCommand(dbevo);
 }

@@ -20,7 +20,51 @@ import {
   getScaffold,
   listScaffolds,
   getCodeAgentStats,
+
+  // Phase 86 V2
+  AGENT_MATURITY_V2,
+  GEN_JOB_V2,
+  getDefaultMaxActiveAgentsPerOwnerV2,
+  getMaxActiveAgentsPerOwnerV2,
+  setMaxActiveAgentsPerOwnerV2,
+  getDefaultMaxRunningJobsPerOwnerV2,
+  getMaxRunningJobsPerOwnerV2,
+  setMaxRunningJobsPerOwnerV2,
+  getDefaultAgentIdleMsV2,
+  getAgentIdleMsV2,
+  setAgentIdleMsV2,
+  getDefaultJobStuckMsV2,
+  getJobStuckMsV2,
+  setJobStuckMsV2,
+  registerAgentV2,
+  getAgentV2,
+  setAgentMaturityV2,
+  activateAgent,
+  deprecateAgent,
+  retireAgent,
+  touchAgentInvocation,
+  enqueueGenJobV2,
+  getGenJobV2,
+  setGenJobStatusV2,
+  startGenJob,
+  succeedGenJob,
+  failGenJob,
+  cancelGenJob,
+  getActiveAgentCount,
+  getRunningJobCount,
+  autoRetireIdleAgents,
+  autoFailStuckGenJobs,
+  getCodeAgentStatsV2,
 } from "../lib/code-agent.js";
+
+function _parseMetaV2(raw) {
+  if (!raw) return undefined;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error("--metadata must be valid JSON");
+  }
+}
 
 function _dbFromCtx(cmd) {
   const root = cmd?.parent?.parent ?? cmd?.parent;
@@ -298,6 +342,186 @@ export function registerCodegenCommand(program) {
         console.log(`  ${tmpl.padEnd(14)} ${count}`);
       }
     });
+
+  /* ═══════════════════════════════════════════════════ *
+   *  Phase 86 V2
+   * ═══════════════════════════════════════════════════ */
+
+  cg.command("agent-maturities-v2")
+    .description("List V2 agent maturity states")
+    .option("--json", "JSON")
+    .action((opts) => {
+      const xs = Object.values(AGENT_MATURITY_V2);
+      if (opts.json) return console.log(JSON.stringify(xs, null, 2));
+      for (const x of xs) console.log(`  ${x}`);
+    });
+
+  cg.command("gen-jobs-v2")
+    .description("List V2 generation-job states")
+    .option("--json", "JSON")
+    .action((opts) => {
+      const xs = Object.values(GEN_JOB_V2);
+      if (opts.json) return console.log(JSON.stringify(xs, null, 2));
+      for (const x of xs) console.log(`  ${x}`);
+    });
+
+  cg.command("default-max-active-agents-per-owner").action(() =>
+    console.log(getDefaultMaxActiveAgentsPerOwnerV2()),
+  );
+  cg.command("max-active-agents-per-owner").action(() =>
+    console.log(getMaxActiveAgentsPerOwnerV2()),
+  );
+  cg.command("set-max-active-agents-per-owner <n>").action((n) =>
+    console.log(setMaxActiveAgentsPerOwnerV2(n)),
+  );
+
+  cg.command("default-max-running-jobs-per-owner").action(() =>
+    console.log(getDefaultMaxRunningJobsPerOwnerV2()),
+  );
+  cg.command("max-running-jobs-per-owner").action(() =>
+    console.log(getMaxRunningJobsPerOwnerV2()),
+  );
+  cg.command("set-max-running-jobs-per-owner <n>").action((n) =>
+    console.log(setMaxRunningJobsPerOwnerV2(n)),
+  );
+
+  cg.command("default-agent-idle-ms").action(() =>
+    console.log(getDefaultAgentIdleMsV2()),
+  );
+  cg.command("agent-idle-ms").action(() => console.log(getAgentIdleMsV2()));
+  cg.command("set-agent-idle-ms <ms>").action((ms) =>
+    console.log(setAgentIdleMsV2(ms)),
+  );
+
+  cg.command("default-job-stuck-ms").action(() =>
+    console.log(getDefaultJobStuckMsV2()),
+  );
+  cg.command("job-stuck-ms").action(() => console.log(getJobStuckMsV2()));
+  cg.command("set-job-stuck-ms <ms>").action((ms) =>
+    console.log(setJobStuckMsV2(ms)),
+  );
+
+  cg.command("active-agent-count")
+    .option("-o, --owner <id>")
+    .action((opts) => console.log(getActiveAgentCount(opts.owner)));
+  cg.command("running-job-count")
+    .option("-o, --owner <id>")
+    .action((opts) => console.log(getRunningJobCount(opts.owner)));
+
+  cg.command("register-agent-v2 <agent-id>")
+    .requiredOption("-o, --owner <id>")
+    .option("-n, --name <name>")
+    .option("-i, --initial-status <s>")
+    .option("--metadata <json>")
+    .action((id, opts) => {
+      const r = registerAgentV2(null, {
+        agentId: id,
+        ownerId: opts.owner,
+        name: opts.name,
+        initialStatus: opts.initialStatus,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  cg.command("agent-v2 <agent-id>").action((id) => {
+    const r = getAgentV2(id);
+    if (!r) {
+      console.error(`Unknown agent: ${id}`);
+      process.exitCode = 1;
+      return;
+    }
+    console.log(JSON.stringify(r, null, 2));
+  });
+
+  cg.command("set-agent-maturity-v2 <agent-id> <status>")
+    .option("-r, --reason <text>")
+    .option("--metadata <json>")
+    .action((id, status, opts) => {
+      const r = setAgentMaturityV2(null, id, status, {
+        reason: opts.reason,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  for (const [name, fn] of [
+    ["activate-agent", activateAgent],
+    ["deprecate-agent", deprecateAgent],
+    ["retire-agent", retireAgent],
+  ]) {
+    cg.command(`${name} <agent-id>`)
+      .option("-r, --reason <text>")
+      .action((id, opts) => {
+        const r = fn(null, id, opts.reason);
+        console.log(JSON.stringify(r, null, 2));
+      });
+  }
+
+  cg.command("touch-agent-invocation <agent-id>").action((id) =>
+    console.log(JSON.stringify(touchAgentInvocation(id), null, 2)),
+  );
+
+  cg.command("enqueue-gen-job-v2 <job-id>")
+    .requiredOption("-o, --owner <id>")
+    .requiredOption("-a, --agent <id>")
+    .requiredOption("-p, --prompt <text>")
+    .option("--metadata <json>")
+    .action((id, opts) => {
+      const r = enqueueGenJobV2(null, {
+        jobId: id,
+        ownerId: opts.owner,
+        agentId: opts.agent,
+        prompt: opts.prompt,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  cg.command("gen-job-v2 <job-id>").action((id) => {
+    const r = getGenJobV2(id);
+    if (!r) {
+      console.error(`Unknown job: ${id}`);
+      process.exitCode = 1;
+      return;
+    }
+    console.log(JSON.stringify(r, null, 2));
+  });
+
+  cg.command("set-gen-job-status-v2 <job-id> <status>")
+    .option("-r, --reason <text>")
+    .option("--metadata <json>")
+    .action((id, status, opts) => {
+      const r = setGenJobStatusV2(null, id, status, {
+        reason: opts.reason,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  for (const [name, fn] of [
+    ["start-gen-job", startGenJob],
+    ["succeed-gen-job", succeedGenJob],
+    ["fail-gen-job", failGenJob],
+    ["cancel-gen-job", cancelGenJob],
+  ]) {
+    cg.command(`${name} <job-id>`)
+      .option("-r, --reason <text>")
+      .action((id, opts) => {
+        const r = fn(null, id, opts.reason);
+        console.log(JSON.stringify(r, null, 2));
+      });
+  }
+
+  cg.command("auto-retire-idle-agents").action(() =>
+    console.log(JSON.stringify(autoRetireIdleAgents(null), null, 2)),
+  );
+  cg.command("auto-fail-stuck-gen-jobs").action(() =>
+    console.log(JSON.stringify(autoFailStuckGenJobs(null), null, 2)),
+  );
+  cg.command("stats-v2").action(() =>
+    console.log(JSON.stringify(getCodeAgentStatsV2(), null, 2)),
+  );
 
   program.addCommand(cg);
 }

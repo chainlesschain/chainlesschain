@@ -518,3 +518,493 @@ describe("content-recommendation", () => {
     });
   });
 });
+
+/* ═══════════════════════════════════════════════════════════════
+ * Phase 48 V2 — Profile Maturity + Feed Lifecycle
+ * ═════════════════════════════════════════════════════════════ */
+
+import {
+  PROFILE_MATURITY_V2,
+  FEED_LIFECYCLE_V2,
+  REC_DEFAULT_MAX_ACTIVE_PROFILES_PER_SEGMENT,
+  REC_DEFAULT_MAX_ACTIVE_FEEDS_PER_CURATOR,
+  REC_DEFAULT_PROFILE_IDLE_MS,
+  REC_DEFAULT_FEED_STALE_MS,
+  getDefaultMaxActiveProfilesPerSegmentV2,
+  getMaxActiveProfilesPerSegmentV2,
+  setMaxActiveProfilesPerSegmentV2,
+  getDefaultMaxActiveFeedsPerCuratorV2,
+  getMaxActiveFeedsPerCuratorV2,
+  setMaxActiveFeedsPerCuratorV2,
+  getDefaultProfileIdleMsV2,
+  getProfileIdleMsV2,
+  setProfileIdleMsV2,
+  getDefaultFeedStaleMsV2,
+  getFeedStaleMsV2,
+  setFeedStaleMsV2,
+  registerProfileV2,
+  getProfileV2,
+  setProfileMaturityV2,
+  activateProfile,
+  dormantProfile,
+  retireProfile,
+  touchProfileActivity,
+  registerFeedV2,
+  getFeedV2,
+  setFeedStatusV2,
+  activateFeed,
+  pauseFeed,
+  archiveFeed,
+  touchFeedPublish,
+  getActiveProfileCount,
+  getActiveFeedCount,
+  autoDormantIdleProfiles,
+  autoArchiveStaleFeeds,
+  getRecommendationStatsV2,
+  _resetStateV2,
+} from "../../src/lib/content-recommendation.js";
+
+describe("content-recommendation V2", () => {
+  beforeEach(() => {
+    _resetStateV2();
+  });
+
+  describe("enums + defaults", () => {
+    it("PROFILE_MATURITY_V2 frozen, 4 states", () => {
+      expect(Object.values(PROFILE_MATURITY_V2).sort()).toEqual(
+        ["active", "dormant", "onboarding", "retired"].sort(),
+      );
+      expect(Object.isFrozen(PROFILE_MATURITY_V2)).toBe(true);
+    });
+    it("FEED_LIFECYCLE_V2 frozen, 4 states", () => {
+      expect(Object.values(FEED_LIFECYCLE_V2).sort()).toEqual(
+        ["active", "archived", "draft", "paused"].sort(),
+      );
+      expect(Object.isFrozen(FEED_LIFECYCLE_V2)).toBe(true);
+    });
+    it("defaults", () => {
+      expect(REC_DEFAULT_MAX_ACTIVE_PROFILES_PER_SEGMENT).toBe(10000);
+      expect(REC_DEFAULT_MAX_ACTIVE_FEEDS_PER_CURATOR).toBe(20);
+      expect(REC_DEFAULT_PROFILE_IDLE_MS).toBe(90 * 86400000);
+      expect(REC_DEFAULT_FEED_STALE_MS).toBe(30 * 86400000);
+    });
+  });
+
+  describe("config mutators", () => {
+    it("floors + validates + reset", () => {
+      expect(setMaxActiveProfilesPerSegmentV2(42.9)).toBe(42);
+      expect(getMaxActiveProfilesPerSegmentV2()).toBe(42);
+      expect(() => setMaxActiveProfilesPerSegmentV2(0)).toThrow();
+      expect(getDefaultMaxActiveProfilesPerSegmentV2()).toBe(10000);
+
+      expect(setMaxActiveFeedsPerCuratorV2(5.5)).toBe(5);
+      expect(getMaxActiveFeedsPerCuratorV2()).toBe(5);
+      expect(() => setMaxActiveFeedsPerCuratorV2(-1)).toThrow();
+      expect(getDefaultMaxActiveFeedsPerCuratorV2()).toBe(20);
+
+      expect(setProfileIdleMsV2(86400000)).toBe(86400000);
+      expect(getProfileIdleMsV2()).toBe(86400000);
+      expect(() => setProfileIdleMsV2(NaN)).toThrow();
+      expect(getDefaultProfileIdleMsV2()).toBe(90 * 86400000);
+
+      expect(setFeedStaleMsV2(3600000)).toBe(3600000);
+      expect(getFeedStaleMsV2()).toBe(3600000);
+      expect(() => setFeedStaleMsV2("x")).toThrow();
+      expect(getDefaultFeedStaleMsV2()).toBe(30 * 86400000);
+
+      _resetStateV2();
+      expect(getMaxActiveProfilesPerSegmentV2()).toBe(10000);
+      expect(getMaxActiveFeedsPerCuratorV2()).toBe(20);
+      expect(getProfileIdleMsV2()).toBe(90 * 86400000);
+      expect(getFeedStaleMsV2()).toBe(30 * 86400000);
+    });
+  });
+
+  describe("profile V2", () => {
+    it("registers default onboarding", () => {
+      const p = registerProfileV2(null, {
+        profileId: "p1",
+        segment: "seg",
+      });
+      expect(p.status).toBe("onboarding");
+    });
+    it("honors initial active", () => {
+      const p = registerProfileV2(null, {
+        profileId: "p1",
+        segment: "seg",
+        initialStatus: "active",
+      });
+      expect(p.status).toBe("active");
+    });
+    it("rejects missing, duplicate, terminal", () => {
+      expect(() => registerProfileV2(null, { segment: "s" })).toThrow(
+        /profileId/,
+      );
+      expect(() => registerProfileV2(null, { profileId: "p" })).toThrow(
+        /segment/,
+      );
+      registerProfileV2(null, { profileId: "p", segment: "s" });
+      expect(() =>
+        registerProfileV2(null, { profileId: "p", segment: "s" }),
+      ).toThrow(/already registered/);
+      expect(() =>
+        registerProfileV2(null, {
+          profileId: "q",
+          segment: "s",
+          initialStatus: "retired",
+        }),
+      ).toThrow(/terminal/);
+      expect(() =>
+        registerProfileV2(null, {
+          profileId: "q",
+          segment: "s",
+          initialStatus: "bogus",
+        }),
+      ).toThrow(/Invalid initial status/);
+    });
+    it("enforces per-segment active cap (active-only counted)", () => {
+      setMaxActiveProfilesPerSegmentV2(2);
+      registerProfileV2(null, {
+        profileId: "a",
+        segment: "s",
+        initialStatus: "active",
+      });
+      registerProfileV2(null, {
+        profileId: "b",
+        segment: "s",
+        initialStatus: "active",
+      });
+      expect(() =>
+        registerProfileV2(null, {
+          profileId: "c",
+          segment: "s",
+          initialStatus: "active",
+        }),
+      ).toThrow(/Max active profiles/);
+      expect(
+        registerProfileV2(null, {
+          profileId: "d",
+          segment: "other",
+          initialStatus: "active",
+        }).status,
+      ).toBe("active");
+      expect(
+        registerProfileV2(null, { profileId: "e", segment: "s" }).status,
+      ).toBe("onboarding");
+    });
+    it("state machine: traversal + terminal + cap + patch merge", () => {
+      registerProfileV2(null, { profileId: "p", segment: "s" });
+      expect(setProfileMaturityV2(null, "p", "active").status).toBe("active");
+      expect(setProfileMaturityV2(null, "p", "dormant").status).toBe("dormant");
+      expect(setProfileMaturityV2(null, "p", "active").status).toBe("active");
+      expect(
+        setProfileMaturityV2(null, "p", "retired", {
+          reason: "done",
+          metadata: { x: 1 },
+        }).metadata.x,
+      ).toBe(1);
+      expect(() => setProfileMaturityV2(null, "p", "active")).toThrow(
+        /terminal/,
+      );
+      expect(() => setProfileMaturityV2(null, "ghost", "active")).toThrow(
+        /not registered/,
+      );
+    });
+    it("blocks onboarding→dormant (not adjacent)", () => {
+      registerProfileV2(null, { profileId: "p", segment: "s" });
+      expect(() => setProfileMaturityV2(null, "p", "dormant")).toThrow(
+        /Invalid transition/,
+      );
+    });
+    it("enforces cap on transition to active", () => {
+      setMaxActiveProfilesPerSegmentV2(1);
+      registerProfileV2(null, {
+        profileId: "a",
+        segment: "s",
+        initialStatus: "active",
+      });
+      registerProfileV2(null, { profileId: "b", segment: "s" });
+      expect(() => setProfileMaturityV2(null, "b", "active")).toThrow(
+        /Max active profiles/,
+      );
+    });
+    it("shortcuts", () => {
+      registerProfileV2(null, { profileId: "p", segment: "s" });
+      activateProfile(null, "p");
+      dormantProfile(null, "p");
+      expect(getProfileV2("p").status).toBe("dormant");
+      retireProfile(null, "p");
+      expect(getProfileV2("p").status).toBe("retired");
+    });
+    it("touchProfileActivity", async () => {
+      const p = registerProfileV2(null, { profileId: "p", segment: "s" });
+      await new Promise((r) => setTimeout(r, 2));
+      const u = touchProfileActivity("p");
+      expect(u.lastActivityAt).toBeGreaterThanOrEqual(p.lastActivityAt);
+      expect(() => touchProfileActivity("ghost")).toThrow(/not registered/);
+    });
+  });
+
+  describe("feed V2", () => {
+    it("registers default draft", () => {
+      const f = registerFeedV2(null, {
+        feedId: "f1",
+        curatorId: "c",
+        name: "My Feed",
+      });
+      expect(f.status).toBe("draft");
+      expect(f.name).toBe("My Feed");
+    });
+    it("rejects missing fields", () => {
+      expect(() => registerFeedV2(null, { curatorId: "c", name: "x" })).toThrow(
+        /feedId/,
+      );
+      expect(() => registerFeedV2(null, { feedId: "f", name: "x" })).toThrow(
+        /curatorId/,
+      );
+      expect(() =>
+        registerFeedV2(null, { feedId: "f", curatorId: "c" }),
+      ).toThrow(/name/);
+    });
+    it("rejects duplicate + terminal + invalid", () => {
+      registerFeedV2(null, { feedId: "f", curatorId: "c", name: "n" });
+      expect(() =>
+        registerFeedV2(null, { feedId: "f", curatorId: "c", name: "n" }),
+      ).toThrow(/already registered/);
+      expect(() =>
+        registerFeedV2(null, {
+          feedId: "g",
+          curatorId: "c",
+          name: "n",
+          initialStatus: "archived",
+        }),
+      ).toThrow(/terminal/);
+      expect(() =>
+        registerFeedV2(null, {
+          feedId: "g",
+          curatorId: "c",
+          name: "n",
+          initialStatus: "bogus",
+        }),
+      ).toThrow(/Invalid initial status/);
+    });
+    it("per-curator active cap", () => {
+      setMaxActiveFeedsPerCuratorV2(1);
+      registerFeedV2(null, {
+        feedId: "f1",
+        curatorId: "c",
+        name: "a",
+        initialStatus: "active",
+      });
+      expect(() =>
+        registerFeedV2(null, {
+          feedId: "f2",
+          curatorId: "c",
+          name: "b",
+          initialStatus: "active",
+        }),
+      ).toThrow(/Max active feeds/);
+      // other curator unaffected
+      expect(
+        registerFeedV2(null, {
+          feedId: "f3",
+          curatorId: "other",
+          name: "x",
+          initialStatus: "active",
+        }).status,
+      ).toBe("active");
+    });
+    it("state machine + shortcuts + terminal", () => {
+      registerFeedV2(null, { feedId: "f", curatorId: "c", name: "n" });
+      activateFeed(null, "f");
+      pauseFeed(null, "f");
+      expect(getFeedV2("f").status).toBe("paused");
+      activateFeed(null, "f");
+      archiveFeed(null, "f", "done");
+      expect(getFeedV2("f").status).toBe("archived");
+      expect(() => setFeedStatusV2(null, "f", "active")).toThrow(/terminal/);
+      expect(() => setFeedStatusV2(null, "ghost", "active")).toThrow(
+        /not registered/,
+      );
+      expect(() => {
+        registerFeedV2(null, { feedId: "g", curatorId: "c", name: "n" });
+        setFeedStatusV2(null, "g", "paused");
+      }).toThrow(/Invalid transition/);
+    });
+    it("copies topics (no aliasing)", () => {
+      const topics = ["ai", "ml"];
+      const f = registerFeedV2(null, {
+        feedId: "f",
+        curatorId: "c",
+        name: "n",
+        topics,
+      });
+      topics.push("bad");
+      expect(f.topics).toEqual(["ai", "ml"]);
+      expect(getFeedV2("f").topics).toEqual(["ai", "ml"]);
+    });
+    it("touchFeedPublish", async () => {
+      const f = registerFeedV2(null, {
+        feedId: "f",
+        curatorId: "c",
+        name: "n",
+      });
+      await new Promise((r) => setTimeout(r, 2));
+      const u = touchFeedPublish("f");
+      expect(u.lastPublishedAt).toBeGreaterThanOrEqual(f.lastPublishedAt);
+      expect(() => touchFeedPublish("ghost")).toThrow(/not registered/);
+    });
+  });
+
+  describe("counts", () => {
+    it("scoped counts", () => {
+      registerProfileV2(null, {
+        profileId: "a",
+        segment: "s1",
+        initialStatus: "active",
+      });
+      registerProfileV2(null, { profileId: "b", segment: "s1" });
+      registerProfileV2(null, {
+        profileId: "c",
+        segment: "s2",
+        initialStatus: "active",
+      });
+      expect(getActiveProfileCount()).toBe(2);
+      expect(getActiveProfileCount("s1")).toBe(1);
+      expect(getActiveProfileCount("s2")).toBe(1);
+      expect(getActiveProfileCount("none")).toBe(0);
+
+      registerFeedV2(null, {
+        feedId: "f1",
+        curatorId: "c1",
+        name: "n",
+        initialStatus: "active",
+      });
+      registerFeedV2(null, {
+        feedId: "f2",
+        curatorId: "c2",
+        name: "n",
+        initialStatus: "active",
+      });
+      expect(getActiveFeedCount()).toBe(2);
+      expect(getActiveFeedCount("c1")).toBe(1);
+    });
+  });
+
+  describe("auto-flip", () => {
+    it("autoDormantIdleProfiles flips only active past idle", () => {
+      registerProfileV2(null, {
+        profileId: "a",
+        segment: "s",
+        initialStatus: "active",
+        now: 1_000_000,
+      });
+      registerProfileV2(null, {
+        profileId: "b",
+        segment: "s",
+        now: 1_000_000,
+      });
+      setProfileIdleMsV2(1000);
+      const flipped = autoDormantIdleProfiles(null, 1_002_000);
+      expect(flipped).toEqual(["a"]);
+      expect(getProfileV2("a").status).toBe("dormant");
+      expect(getProfileV2("a").reason).toBe("idle");
+      expect(getProfileV2("b").status).toBe("onboarding");
+    });
+    it("autoDormantIdleProfiles skips fresh", () => {
+      registerProfileV2(null, {
+        profileId: "a",
+        segment: "s",
+        initialStatus: "active",
+        now: 1_000_000,
+      });
+      setProfileIdleMsV2(1_000_000);
+      expect(autoDormantIdleProfiles(null, 1_001_000)).toEqual([]);
+    });
+    it("autoArchiveStaleFeeds flips active + paused", () => {
+      registerFeedV2(null, {
+        feedId: "f1",
+        curatorId: "c",
+        name: "n",
+        initialStatus: "active",
+        now: 1_000_000,
+      });
+      registerFeedV2(null, {
+        feedId: "f2",
+        curatorId: "c",
+        name: "n",
+        now: 1_000_000,
+      });
+      activateFeed(null, "f2");
+      pauseFeed(null, "f2");
+      // reset lastPublishedAt
+      const recF2 = getFeedV2("f2");
+      expect(recF2.status).toBe("paused");
+      setFeedStaleMsV2(1000);
+      const flipped = autoArchiveStaleFeeds(null, 1_002_000);
+      expect(flipped.sort()).toEqual(["f1", "f2"]);
+      expect(getFeedV2("f1").reason).toBe("stale");
+    });
+    it("autoArchiveStaleFeeds skips draft + archived", () => {
+      registerFeedV2(null, {
+        feedId: "f1",
+        curatorId: "c",
+        name: "n",
+        now: 1_000_000,
+      });
+      registerFeedV2(null, {
+        feedId: "f2",
+        curatorId: "c",
+        name: "n",
+        initialStatus: "active",
+        now: 1_000_000,
+      });
+      archiveFeed(null, "f2");
+      setFeedStaleMsV2(1000);
+      expect(autoArchiveStaleFeeds(null, 1_002_000)).toEqual([]);
+    });
+  });
+
+  describe("stats V2", () => {
+    it("zero-init + aggregate", () => {
+      const s0 = getRecommendationStatsV2();
+      expect(s0.profilesByStatus).toEqual({
+        onboarding: 0,
+        active: 0,
+        dormant: 0,
+        retired: 0,
+      });
+      expect(s0.feedsByStatus).toEqual({
+        draft: 0,
+        active: 0,
+        paused: 0,
+        archived: 0,
+      });
+      expect(s0.maxActiveProfilesPerSegment).toBe(10000);
+      expect(s0.maxActiveFeedsPerCurator).toBe(20);
+
+      registerProfileV2(null, { profileId: "a", segment: "s" });
+      registerProfileV2(null, {
+        profileId: "b",
+        segment: "s",
+        initialStatus: "active",
+      });
+      dormantProfile(null, "b");
+      registerFeedV2(null, { feedId: "f1", curatorId: "c", name: "n" });
+      registerFeedV2(null, {
+        feedId: "f2",
+        curatorId: "c",
+        name: "n",
+        initialStatus: "active",
+      });
+      archiveFeed(null, "f2");
+      const s = getRecommendationStatsV2();
+      expect(s.totalProfilesV2).toBe(2);
+      expect(s.profilesByStatus.onboarding).toBe(1);
+      expect(s.profilesByStatus.dormant).toBe(1);
+      expect(s.totalFeedsV2).toBe(2);
+      expect(s.feedsByStatus.draft).toBe(1);
+      expect(s.feedsByStatus.archived).toBe(1);
+    });
+  });
+});

@@ -506,3 +506,517 @@ describe("quantization", () => {
     });
   });
 });
+
+/* ═════════════════════════════════════════════════════════ *
+ *  Phase 20 V2 tests
+ * ═════════════════════════════════════════════════════════ */
+
+import {
+  MODEL_MATURITY_V2,
+  JOB_TICKET_V2,
+  QUANT_DEFAULT_MAX_ACTIVE_MODELS_PER_OWNER,
+  QUANT_DEFAULT_MAX_RUNNING_JOBS_PER_OWNER,
+  QUANT_DEFAULT_MODEL_IDLE_MS,
+  QUANT_DEFAULT_JOB_STUCK_MS,
+  getDefaultMaxActiveModelsPerOwnerV2,
+  getMaxActiveModelsPerOwnerV2,
+  setMaxActiveModelsPerOwnerV2,
+  getDefaultMaxRunningJobsPerOwnerV2,
+  getMaxRunningJobsPerOwnerV2,
+  setMaxRunningJobsPerOwnerV2,
+  getDefaultModelIdleMsV2,
+  getModelIdleMsV2,
+  setModelIdleMsV2,
+  getDefaultJobStuckMsV2,
+  getJobStuckMsV2,
+  setJobStuckMsV2,
+  registerModelV2,
+  getModelV2,
+  setModelMaturityV2,
+  activateModel,
+  deprecateModel,
+  retireModel,
+  touchModelUsage,
+  enqueueJobTicketV2,
+  getJobTicketV2,
+  setJobTicketStatusV2,
+  startJobTicket,
+  completeJobTicket,
+  failJobTicket,
+  cancelJobTicket,
+  getActiveModelCount,
+  getRunningJobCount,
+  autoRetireIdleModels,
+  autoFailStuckJobTickets,
+  getQuantizationStatsV2,
+  _resetStateV2,
+} from "../../src/lib/quantization.js";
+
+describe("quantization V2", () => {
+  beforeEach(() => {
+    _resetStateV2();
+  });
+
+  describe("enums", () => {
+    it("MODEL_MATURITY_V2 frozen with 4 states", () => {
+      expect(Object.values(MODEL_MATURITY_V2)).toEqual([
+        "onboarding",
+        "active",
+        "deprecated",
+        "retired",
+      ]);
+      expect(Object.isFrozen(MODEL_MATURITY_V2)).toBe(true);
+    });
+
+    it("JOB_TICKET_V2 frozen with 5 states", () => {
+      expect(Object.values(JOB_TICKET_V2)).toEqual([
+        "queued",
+        "running",
+        "completed",
+        "failed",
+        "canceled",
+      ]);
+      expect(Object.isFrozen(JOB_TICKET_V2)).toBe(true);
+    });
+  });
+
+  describe("config defaults + setters", () => {
+    it("exposes frozen defaults", () => {
+      expect(QUANT_DEFAULT_MAX_ACTIVE_MODELS_PER_OWNER).toBe(50);
+      expect(QUANT_DEFAULT_MAX_RUNNING_JOBS_PER_OWNER).toBe(3);
+      expect(QUANT_DEFAULT_MODEL_IDLE_MS).toBe(120 * 86400000);
+      expect(QUANT_DEFAULT_JOB_STUCK_MS).toBe(6 * 3600000);
+      expect(getDefaultMaxActiveModelsPerOwnerV2()).toBe(50);
+      expect(getDefaultMaxRunningJobsPerOwnerV2()).toBe(3);
+      expect(getDefaultModelIdleMsV2()).toBe(120 * 86400000);
+      expect(getDefaultJobStuckMsV2()).toBe(6 * 3600000);
+    });
+
+    it("mutates config values", () => {
+      setMaxActiveModelsPerOwnerV2(5);
+      setMaxRunningJobsPerOwnerV2(2);
+      setModelIdleMsV2(1000);
+      setJobStuckMsV2(500);
+      expect(getMaxActiveModelsPerOwnerV2()).toBe(5);
+      expect(getMaxRunningJobsPerOwnerV2()).toBe(2);
+      expect(getModelIdleMsV2()).toBe(1000);
+      expect(getJobStuckMsV2()).toBe(500);
+    });
+
+    it("rejects non-positive", () => {
+      expect(() => setMaxActiveModelsPerOwnerV2(0)).toThrow();
+      expect(() => setMaxRunningJobsPerOwnerV2(-1)).toThrow();
+      expect(() => setModelIdleMsV2(NaN)).toThrow();
+      expect(() => setJobStuckMsV2("x")).toThrow();
+    });
+
+    it("_resetStateV2 restores defaults + clears maps", () => {
+      setMaxActiveModelsPerOwnerV2(10);
+      registerModelV2(null, { modelId: "m", ownerId: "o" });
+      enqueueJobTicketV2(null, {
+        ticketId: "t",
+        ownerId: "o",
+        modelId: "m",
+        quantType: "gguf",
+      });
+      _resetStateV2();
+      expect(getMaxActiveModelsPerOwnerV2()).toBe(50);
+      expect(getModelV2("m")).toBeNull();
+      expect(getJobTicketV2("t")).toBeNull();
+    });
+  });
+
+  describe("registerModelV2", () => {
+    it("creates onboarding model", () => {
+      const m = registerModelV2(null, {
+        modelId: "m1",
+        ownerId: "alice",
+        family: "llama",
+      });
+      expect(m.status).toBe("onboarding");
+      expect(m.ownerId).toBe("alice");
+      expect(m.family).toBe("llama");
+    });
+
+    it("accepts active initial", () => {
+      const m = registerModelV2(null, {
+        modelId: "m",
+        ownerId: "a",
+        initialStatus: "active",
+      });
+      expect(m.status).toBe("active");
+    });
+
+    it("throws missing modelId/ownerId", () => {
+      expect(() => registerModelV2(null, { ownerId: "a" })).toThrow();
+      expect(() => registerModelV2(null, { modelId: "m" })).toThrow();
+    });
+
+    it("throws on duplicate", () => {
+      registerModelV2(null, { modelId: "m", ownerId: "a" });
+      expect(() =>
+        registerModelV2(null, { modelId: "m", ownerId: "a" }),
+      ).toThrow(/already exists/);
+    });
+
+    it("throws on invalid initial", () => {
+      expect(() =>
+        registerModelV2(null, {
+          modelId: "m",
+          ownerId: "a",
+          initialStatus: "x",
+        }),
+      ).toThrow();
+    });
+
+    it("throws on terminal initial", () => {
+      expect(() =>
+        registerModelV2(null, {
+          modelId: "m",
+          ownerId: "a",
+          initialStatus: "retired",
+        }),
+      ).toThrow(/terminal/);
+    });
+
+    it("enforces per-owner active cap", () => {
+      setMaxActiveModelsPerOwnerV2(2);
+      registerModelV2(null, {
+        modelId: "m1",
+        ownerId: "a",
+        initialStatus: "active",
+      });
+      registerModelV2(null, {
+        modelId: "m2",
+        ownerId: "a",
+        initialStatus: "active",
+      });
+      expect(() =>
+        registerModelV2(null, {
+          modelId: "m3",
+          ownerId: "a",
+          initialStatus: "active",
+        }),
+      ).toThrow(/cap/);
+    });
+  });
+
+  describe("setModelMaturityV2 + shortcuts", () => {
+    beforeEach(() => {
+      registerModelV2(null, { modelId: "m", ownerId: "a" });
+    });
+
+    it("onboarding → active → deprecated → active → retired", () => {
+      activateModel(null, "m", "ready");
+      expect(getModelV2("m").status).toBe("active");
+      deprecateModel(null, "m", "old");
+      expect(getModelV2("m").status).toBe("deprecated");
+      activateModel(null, "m", "re-enabled");
+      expect(getModelV2("m").status).toBe("active");
+      retireModel(null, "m");
+      expect(getModelV2("m").status).toBe("retired");
+    });
+
+    it("rejects invalid transition (onboarding → deprecated)", () => {
+      expect(() => deprecateModel(null, "m")).toThrow(/Invalid transition/);
+    });
+
+    it("retired is terminal", () => {
+      activateModel(null, "m");
+      retireModel(null, "m");
+      expect(() => activateModel(null, "m")).toThrow();
+    });
+
+    it("enforces cap on transition to active", () => {
+      setMaxActiveModelsPerOwnerV2(1);
+      registerModelV2(null, {
+        modelId: "m2",
+        ownerId: "a",
+        initialStatus: "active",
+      });
+      expect(() => activateModel(null, "m")).toThrow(/cap/);
+    });
+
+    it("patch-merges metadata + reason", () => {
+      activateModel(null, "m");
+      setModelMaturityV2(null, "m", "deprecated", {
+        reason: "deprecating",
+        metadata: { note: "legacy" },
+      });
+      const r = getModelV2("m");
+      expect(r.lastReason).toBe("deprecating");
+      expect(r.metadata.note).toBe("legacy");
+    });
+
+    it("throws unknown model", () => {
+      expect(() => activateModel(null, "nope")).toThrow(/Unknown model/);
+    });
+  });
+
+  describe("touchModelUsage", () => {
+    it("bumps lastUsedAt", async () => {
+      registerModelV2(null, { modelId: "m", ownerId: "a" });
+      const before = getModelV2("m").lastUsedAt;
+      await new Promise((r) => setTimeout(r, 5));
+      const touched = touchModelUsage("m");
+      expect(touched.lastUsedAt).toBeGreaterThan(before);
+    });
+
+    it("throws unknown", () => {
+      expect(() => touchModelUsage("x")).toThrow();
+    });
+  });
+
+  describe("enqueueJobTicketV2", () => {
+    beforeEach(() => {
+      registerModelV2(null, { modelId: "m", ownerId: "a" });
+    });
+
+    it("enqueues queued ticket", () => {
+      const t = enqueueJobTicketV2(null, {
+        ticketId: "t1",
+        ownerId: "a",
+        modelId: "m",
+        quantType: "gguf",
+        level: "Q4_K_M",
+      });
+      expect(t.status).toBe("queued");
+      expect(t.level).toBe("Q4_K_M");
+    });
+
+    it("throws missing required", () => {
+      expect(() => enqueueJobTicketV2(null, { ownerId: "a" })).toThrow();
+      expect(() =>
+        enqueueJobTicketV2(null, { ticketId: "t", ownerId: "a", modelId: "m" }),
+      ).toThrow(/quantType/);
+    });
+
+    it("throws on duplicate", () => {
+      enqueueJobTicketV2(null, {
+        ticketId: "t",
+        ownerId: "a",
+        modelId: "m",
+        quantType: "gguf",
+      });
+      expect(() =>
+        enqueueJobTicketV2(null, {
+          ticketId: "t",
+          ownerId: "a",
+          modelId: "m",
+          quantType: "gguf",
+        }),
+      ).toThrow(/already/);
+    });
+  });
+
+  describe("setJobTicketStatusV2 + shortcuts", () => {
+    beforeEach(() => {
+      registerModelV2(null, { modelId: "m", ownerId: "a" });
+      enqueueJobTicketV2(null, {
+        ticketId: "t",
+        ownerId: "a",
+        modelId: "m",
+        quantType: "gguf",
+      });
+    });
+
+    it("queued → running → completed", () => {
+      startJobTicket(null, "t");
+      expect(getJobTicketV2("t").status).toBe("running");
+      expect(getJobTicketV2("t").startedAt).toBeDefined();
+      completeJobTicket(null, "t");
+      expect(getJobTicketV2("t").status).toBe("completed");
+    });
+
+    it("queued → failed / canceled", () => {
+      failJobTicket(null, "t", "oops");
+      expect(getJobTicketV2("t").status).toBe("failed");
+    });
+
+    it("running → canceled", () => {
+      startJobTicket(null, "t");
+      cancelJobTicket(null, "t");
+      expect(getJobTicketV2("t").status).toBe("canceled");
+    });
+
+    it("terminal states block further transitions", () => {
+      startJobTicket(null, "t");
+      completeJobTicket(null, "t");
+      expect(() => failJobTicket(null, "t")).toThrow(/Invalid transition/);
+      expect(() => cancelJobTicket(null, "t")).toThrow(/Invalid transition/);
+    });
+
+    it("enforces running-job cap", () => {
+      setMaxRunningJobsPerOwnerV2(1);
+      enqueueJobTicketV2(null, {
+        ticketId: "t2",
+        ownerId: "a",
+        modelId: "m",
+        quantType: "gguf",
+      });
+      startJobTicket(null, "t");
+      expect(() => startJobTicket(null, "t2")).toThrow(/cap/);
+    });
+
+    it("startedAt stamp-once on RUNNING entry", async () => {
+      startJobTicket(null, "t");
+      const first = getJobTicketV2("t").startedAt;
+      await new Promise((r) => setTimeout(r, 5));
+      completeJobTicket(null, "t");
+      expect(getJobTicketV2("t").startedAt).toBe(first);
+    });
+
+    it("patch-merges metadata/reason", () => {
+      startJobTicket(null, "t");
+      setJobTicketStatusV2(null, "t", "completed", {
+        reason: "done",
+        metadata: { bytes: 1024 },
+      });
+      const r = getJobTicketV2("t");
+      expect(r.lastReason).toBe("done");
+      expect(r.metadata.bytes).toBe(1024);
+    });
+
+    it("throws unknown ticket", () => {
+      expect(() => startJobTicket(null, "nope")).toThrow(/Unknown ticket/);
+    });
+  });
+
+  describe("counts", () => {
+    it("getActiveModelCount scopes by owner", () => {
+      registerModelV2(null, {
+        modelId: "m1",
+        ownerId: "a",
+        initialStatus: "active",
+      });
+      registerModelV2(null, {
+        modelId: "m2",
+        ownerId: "a",
+        initialStatus: "active",
+      });
+      registerModelV2(null, {
+        modelId: "m3",
+        ownerId: "b",
+        initialStatus: "active",
+      });
+      registerModelV2(null, { modelId: "m4", ownerId: "a" }); // onboarding
+      expect(getActiveModelCount()).toBe(3);
+      expect(getActiveModelCount("a")).toBe(2);
+      expect(getActiveModelCount("b")).toBe(1);
+    });
+
+    it("getRunningJobCount scopes by owner", () => {
+      registerModelV2(null, { modelId: "m", ownerId: "a" });
+      enqueueJobTicketV2(null, {
+        ticketId: "t1",
+        ownerId: "a",
+        modelId: "m",
+        quantType: "gguf",
+      });
+      enqueueJobTicketV2(null, {
+        ticketId: "t2",
+        ownerId: "a",
+        modelId: "m",
+        quantType: "gguf",
+      });
+      enqueueJobTicketV2(null, {
+        ticketId: "t3",
+        ownerId: "b",
+        modelId: "m",
+        quantType: "gguf",
+      });
+      startJobTicket(null, "t1");
+      startJobTicket(null, "t3");
+      expect(getRunningJobCount()).toBe(2);
+      expect(getRunningJobCount("a")).toBe(1);
+      expect(getRunningJobCount("b")).toBe(1);
+    });
+  });
+
+  describe("auto-flip bulk", () => {
+    it("autoRetireIdleModels flips active + deprecated past idle window", () => {
+      registerModelV2(null, {
+        modelId: "m1",
+        ownerId: "a",
+        initialStatus: "active",
+      });
+      registerModelV2(null, {
+        modelId: "m2",
+        ownerId: "a",
+        initialStatus: "active",
+      });
+      setModelMaturityV2(null, "m2", "deprecated");
+      registerModelV2(null, { modelId: "m3", ownerId: "a" }); // onboarding, skipped
+      setModelIdleMsV2(100);
+      const future = Date.now() + 1000;
+      const r = autoRetireIdleModels(null, future);
+      expect(r.count).toBe(2);
+      expect(r.flipped.sort()).toEqual(["m1", "m2"]);
+      expect(getModelV2("m3").status).toBe("onboarding");
+    });
+
+    it("autoFailStuckJobTickets flips only running", () => {
+      registerModelV2(null, { modelId: "m", ownerId: "a" });
+      enqueueJobTicketV2(null, {
+        ticketId: "t1",
+        ownerId: "a",
+        modelId: "m",
+        quantType: "gguf",
+      });
+      enqueueJobTicketV2(null, {
+        ticketId: "t2",
+        ownerId: "a",
+        modelId: "m",
+        quantType: "gguf",
+      });
+      startJobTicket(null, "t1");
+      setJobStuckMsV2(100);
+      const future = Date.now() + 1000;
+      const r = autoFailStuckJobTickets(null, future);
+      expect(r.count).toBe(1);
+      expect(r.flipped).toEqual(["t1"]);
+      expect(getJobTicketV2("t1").status).toBe("failed");
+      expect(getJobTicketV2("t2").status).toBe("queued");
+    });
+  });
+
+  describe("getQuantizationStatsV2", () => {
+    it("returns zero-init enum keys for empty state", () => {
+      const s = getQuantizationStatsV2();
+      expect(s.totalModelsV2).toBe(0);
+      expect(s.totalTicketsV2).toBe(0);
+      expect(s.maxActiveModelsPerOwner).toBe(50);
+      expect(s.maxRunningJobsPerOwner).toBe(3);
+      expect(Object.keys(s.modelsByStatus).sort()).toEqual(
+        ["active", "deprecated", "onboarding", "retired"].sort(),
+      );
+      expect(Object.keys(s.ticketsByStatus).sort()).toEqual(
+        ["canceled", "completed", "failed", "queued", "running"].sort(),
+      );
+      for (const v of Object.values(s.modelsByStatus)) expect(v).toBe(0);
+      for (const v of Object.values(s.ticketsByStatus)) expect(v).toBe(0);
+    });
+
+    it("counts models + tickets by status", () => {
+      registerModelV2(null, {
+        modelId: "m1",
+        ownerId: "a",
+        initialStatus: "active",
+      });
+      registerModelV2(null, { modelId: "m2", ownerId: "a" });
+      enqueueJobTicketV2(null, {
+        ticketId: "t1",
+        ownerId: "a",
+        modelId: "m1",
+        quantType: "gguf",
+      });
+      startJobTicket(null, "t1");
+      const s = getQuantizationStatsV2();
+      expect(s.totalModelsV2).toBe(2);
+      expect(s.modelsByStatus.active).toBe(1);
+      expect(s.modelsByStatus.onboarding).toBe(1);
+      expect(s.totalTicketsV2).toBe(1);
+      expect(s.ticketsByStatus.running).toBe(1);
+    });
+  });
+});

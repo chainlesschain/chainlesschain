@@ -598,3 +598,472 @@ export function _resetState() {
   _userRecs.clear();
   _seq = 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+ * Phase 48 V2 — Profile Maturity + Feed Channel Lifecycle
+ * Strictly additive. Legacy surface above is preserved.
+ * ═════════════════════════════════════════════════════════════ */
+
+export const PROFILE_MATURITY_V2 = Object.freeze({
+  ONBOARDING: "onboarding",
+  ACTIVE: "active",
+  DORMANT: "dormant",
+  RETIRED: "retired",
+});
+
+export const FEED_LIFECYCLE_V2 = Object.freeze({
+  DRAFT: "draft",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+
+const PROFILE_TRANSITIONS_V2 = new Map([
+  ["onboarding", new Set(["active", "retired"])],
+  ["active", new Set(["dormant", "retired"])],
+  ["dormant", new Set(["active", "retired"])],
+]);
+const PROFILE_TERMINALS_V2 = new Set(["retired"]);
+
+const FEED_TRANSITIONS_V2 = new Map([
+  ["draft", new Set(["active", "archived"])],
+  ["active", new Set(["paused", "archived"])],
+  ["paused", new Set(["active", "archived"])],
+]);
+const FEED_TERMINALS_V2 = new Set(["archived"]);
+
+export const REC_DEFAULT_MAX_ACTIVE_PROFILES_PER_SEGMENT = 10000;
+export const REC_DEFAULT_MAX_ACTIVE_FEEDS_PER_CURATOR = 20;
+export const REC_DEFAULT_PROFILE_IDLE_MS = 90 * 86400000; // 90 days
+export const REC_DEFAULT_FEED_STALE_MS = 30 * 86400000; // 30 days
+
+let _maxActiveProfilesPerSegmentV2 =
+  REC_DEFAULT_MAX_ACTIVE_PROFILES_PER_SEGMENT;
+let _maxActiveFeedsPerCuratorV2 = REC_DEFAULT_MAX_ACTIVE_FEEDS_PER_CURATOR;
+let _profileIdleMsV2 = REC_DEFAULT_PROFILE_IDLE_MS;
+let _feedStaleMsV2 = REC_DEFAULT_FEED_STALE_MS;
+
+const _profileStatesV2 = new Map(); // profileId → V2 record
+const _feedStatesV2 = new Map(); // feedId → V2 record
+
+function _positiveIntV2(n, label) {
+  const num = Number(n);
+  if (!Number.isFinite(num) || num <= 0) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return Math.floor(num);
+}
+
+function _validProfileStatusV2(s) {
+  return (
+    s === "onboarding" || s === "active" || s === "dormant" || s === "retired"
+  );
+}
+
+function _validFeedStatusV2(s) {
+  return s === "draft" || s === "active" || s === "paused" || s === "archived";
+}
+
+export function getDefaultMaxActiveProfilesPerSegmentV2() {
+  return REC_DEFAULT_MAX_ACTIVE_PROFILES_PER_SEGMENT;
+}
+export function getMaxActiveProfilesPerSegmentV2() {
+  return _maxActiveProfilesPerSegmentV2;
+}
+export function setMaxActiveProfilesPerSegmentV2(n) {
+  _maxActiveProfilesPerSegmentV2 = _positiveIntV2(
+    n,
+    "maxActiveProfilesPerSegment",
+  );
+  return _maxActiveProfilesPerSegmentV2;
+}
+
+export function getDefaultMaxActiveFeedsPerCuratorV2() {
+  return REC_DEFAULT_MAX_ACTIVE_FEEDS_PER_CURATOR;
+}
+export function getMaxActiveFeedsPerCuratorV2() {
+  return _maxActiveFeedsPerCuratorV2;
+}
+export function setMaxActiveFeedsPerCuratorV2(n) {
+  _maxActiveFeedsPerCuratorV2 = _positiveIntV2(n, "maxActiveFeedsPerCurator");
+  return _maxActiveFeedsPerCuratorV2;
+}
+
+export function getDefaultProfileIdleMsV2() {
+  return REC_DEFAULT_PROFILE_IDLE_MS;
+}
+export function getProfileIdleMsV2() {
+  return _profileIdleMsV2;
+}
+export function setProfileIdleMsV2(ms) {
+  _profileIdleMsV2 = _positiveIntV2(ms, "profileIdleMs");
+  return _profileIdleMsV2;
+}
+
+export function getDefaultFeedStaleMsV2() {
+  return REC_DEFAULT_FEED_STALE_MS;
+}
+export function getFeedStaleMsV2() {
+  return _feedStaleMsV2;
+}
+export function setFeedStaleMsV2(ms) {
+  _feedStaleMsV2 = _positiveIntV2(ms, "feedStaleMs");
+  return _feedStaleMsV2;
+}
+
+/* ── Profile V2 ─────────────────────────────────────────────── */
+
+export function registerProfileV2(db, config = {}) {
+  void db;
+  const profileId = String(config.profileId || "").trim();
+  if (!profileId) throw new Error("profileId is required");
+  const segment = String(config.segment || "").trim();
+  if (!segment) throw new Error("segment is required");
+  if (_profileStatesV2.has(profileId)) {
+    throw new Error(`Profile already registered in V2: ${profileId}`);
+  }
+
+  const now = Number(config.now ?? Date.now());
+  const initialStatus = config.initialStatus || "onboarding";
+  if (!_validProfileStatusV2(initialStatus)) {
+    throw new Error(`Invalid initial status: ${initialStatus}`);
+  }
+  if (PROFILE_TERMINALS_V2.has(initialStatus)) {
+    throw new Error(
+      `Cannot register profile in terminal status '${initialStatus}'`,
+    );
+  }
+
+  if (initialStatus === "active") {
+    let activeCount = 0;
+    for (const rec of _profileStatesV2.values()) {
+      if (rec.segment === segment && rec.status === "active") {
+        activeCount += 1;
+      }
+    }
+    if (activeCount >= _maxActiveProfilesPerSegmentV2) {
+      throw new Error(
+        `Max active profiles per segment reached (${_maxActiveProfilesPerSegmentV2})`,
+      );
+    }
+  }
+
+  const record = {
+    profileId,
+    segment,
+    ownerId: config.ownerId ? String(config.ownerId) : null,
+    status: initialStatus,
+    metadata: config.metadata ? { ...config.metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+    lastActivityAt: now,
+    reason: null,
+  };
+  _profileStatesV2.set(profileId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getProfileV2(profileId) {
+  const rec = _profileStatesV2.get(String(profileId || ""));
+  if (!rec) return null;
+  return { ...rec, metadata: { ...rec.metadata } };
+}
+
+export function setProfileMaturityV2(db, profileId, newStatus, patch = {}) {
+  void db;
+  const id = String(profileId || "");
+  const record = _profileStatesV2.get(id);
+  if (!record) throw new Error(`Profile not registered in V2: ${id}`);
+  if (!_validProfileStatusV2(newStatus)) {
+    throw new Error(`Invalid profile status: ${newStatus}`);
+  }
+  if (PROFILE_TERMINALS_V2.has(record.status)) {
+    throw new Error(
+      `Profile is in terminal status '${record.status}' and cannot transition`,
+    );
+  }
+  const allowed = PROFILE_TRANSITIONS_V2.get(record.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${record.status} → ${newStatus}`);
+  }
+
+  if (newStatus === "active" && record.status !== "active") {
+    let activeCount = 0;
+    for (const rec of _profileStatesV2.values()) {
+      if (rec.segment === record.segment && rec.status === "active") {
+        activeCount += 1;
+      }
+    }
+    if (activeCount >= _maxActiveProfilesPerSegmentV2) {
+      throw new Error(
+        `Max active profiles per segment reached (${_maxActiveProfilesPerSegmentV2})`,
+      );
+    }
+  }
+
+  record.status = newStatus;
+  record.updatedAt = Number(patch.now ?? Date.now());
+  if (patch.reason !== undefined) record.reason = patch.reason;
+  if (patch.metadata && typeof patch.metadata === "object") {
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  }
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function activateProfile(db, profileId, reason) {
+  return setProfileMaturityV2(db, profileId, "active", { reason });
+}
+export function dormantProfile(db, profileId, reason) {
+  return setProfileMaturityV2(db, profileId, "dormant", { reason });
+}
+export function retireProfile(db, profileId, reason) {
+  return setProfileMaturityV2(db, profileId, "retired", { reason });
+}
+
+export function touchProfileActivity(profileId) {
+  const rec = _profileStatesV2.get(String(profileId || ""));
+  if (!rec) throw new Error(`Profile not registered in V2: ${profileId}`);
+  rec.lastActivityAt = Date.now();
+  return { ...rec, metadata: { ...rec.metadata } };
+}
+
+/* ── Feed V2 ────────────────────────────────────────────────── */
+
+export function registerFeedV2(db, config = {}) {
+  void db;
+  const feedId = String(config.feedId || "").trim();
+  if (!feedId) throw new Error("feedId is required");
+  const curatorId = String(config.curatorId || "").trim();
+  if (!curatorId) throw new Error("curatorId is required");
+  const name = String(config.name || "").trim();
+  if (!name) throw new Error("name is required");
+  if (_feedStatesV2.has(feedId)) {
+    throw new Error(`Feed already registered in V2: ${feedId}`);
+  }
+
+  const now = Number(config.now ?? Date.now());
+  const initialStatus = config.initialStatus || "draft";
+  if (!_validFeedStatusV2(initialStatus)) {
+    throw new Error(`Invalid initial status: ${initialStatus}`);
+  }
+  if (FEED_TERMINALS_V2.has(initialStatus)) {
+    throw new Error(
+      `Cannot register feed in terminal status '${initialStatus}'`,
+    );
+  }
+
+  if (initialStatus === "active") {
+    let activeCount = 0;
+    for (const rec of _feedStatesV2.values()) {
+      if (rec.curatorId === curatorId && rec.status === "active") {
+        activeCount += 1;
+      }
+    }
+    if (activeCount >= _maxActiveFeedsPerCuratorV2) {
+      throw new Error(
+        `Max active feeds per curator reached (${_maxActiveFeedsPerCuratorV2})`,
+      );
+    }
+  }
+
+  const record = {
+    feedId,
+    curatorId,
+    name,
+    topics: Array.isArray(config.topics) ? [...config.topics] : [],
+    status: initialStatus,
+    metadata: config.metadata ? { ...config.metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+    lastPublishedAt: now,
+    reason: null,
+  };
+  _feedStatesV2.set(feedId, record);
+  return {
+    ...record,
+    topics: [...record.topics],
+    metadata: { ...record.metadata },
+  };
+}
+
+export function getFeedV2(feedId) {
+  const rec = _feedStatesV2.get(String(feedId || ""));
+  if (!rec) return null;
+  return {
+    ...rec,
+    topics: [...rec.topics],
+    metadata: { ...rec.metadata },
+  };
+}
+
+export function setFeedStatusV2(db, feedId, newStatus, patch = {}) {
+  void db;
+  const id = String(feedId || "");
+  const record = _feedStatesV2.get(id);
+  if (!record) throw new Error(`Feed not registered in V2: ${id}`);
+  if (!_validFeedStatusV2(newStatus)) {
+    throw new Error(`Invalid feed status: ${newStatus}`);
+  }
+  if (FEED_TERMINALS_V2.has(record.status)) {
+    throw new Error(
+      `Feed is in terminal status '${record.status}' and cannot transition`,
+    );
+  }
+  const allowed = FEED_TRANSITIONS_V2.get(record.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${record.status} → ${newStatus}`);
+  }
+
+  if (newStatus === "active" && record.status !== "active") {
+    let activeCount = 0;
+    for (const rec of _feedStatesV2.values()) {
+      if (rec.curatorId === record.curatorId && rec.status === "active") {
+        activeCount += 1;
+      }
+    }
+    if (activeCount >= _maxActiveFeedsPerCuratorV2) {
+      throw new Error(
+        `Max active feeds per curator reached (${_maxActiveFeedsPerCuratorV2})`,
+      );
+    }
+  }
+
+  record.status = newStatus;
+  record.updatedAt = Number(patch.now ?? Date.now());
+  if (patch.reason !== undefined) record.reason = patch.reason;
+  if (patch.metadata && typeof patch.metadata === "object") {
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  }
+  return {
+    ...record,
+    topics: [...record.topics],
+    metadata: { ...record.metadata },
+  };
+}
+
+export function activateFeed(db, feedId, reason) {
+  return setFeedStatusV2(db, feedId, "active", { reason });
+}
+export function pauseFeed(db, feedId, reason) {
+  return setFeedStatusV2(db, feedId, "paused", { reason });
+}
+export function archiveFeed(db, feedId, reason) {
+  return setFeedStatusV2(db, feedId, "archived", { reason });
+}
+
+export function touchFeedPublish(feedId) {
+  const rec = _feedStatesV2.get(String(feedId || ""));
+  if (!rec) throw new Error(`Feed not registered in V2: ${feedId}`);
+  rec.lastPublishedAt = Date.now();
+  return {
+    ...rec,
+    topics: [...rec.topics],
+    metadata: { ...rec.metadata },
+  };
+}
+
+/* ── Counts ─────────────────────────────────────────────────── */
+
+export function getActiveProfileCount(segment) {
+  let n = 0;
+  for (const rec of _profileStatesV2.values()) {
+    if (rec.status !== "active") continue;
+    if (segment !== undefined && rec.segment !== String(segment)) continue;
+    n += 1;
+  }
+  return n;
+}
+
+export function getActiveFeedCount(curatorId) {
+  let n = 0;
+  for (const rec of _feedStatesV2.values()) {
+    if (rec.status !== "active") continue;
+    if (curatorId !== undefined && rec.curatorId !== String(curatorId)) {
+      continue;
+    }
+    n += 1;
+  }
+  return n;
+}
+
+/* ── Auto-flip Bulk Ops ─────────────────────────────────────── */
+
+export function autoDormantIdleProfiles(db, nowMs) {
+  void db;
+  const now = Number(nowMs ?? Date.now());
+  const flipped = [];
+  for (const rec of _profileStatesV2.values()) {
+    if (rec.status !== "active") continue;
+    if (now - rec.lastActivityAt > _profileIdleMsV2) {
+      rec.status = "dormant";
+      rec.updatedAt = now;
+      rec.reason = "idle";
+      flipped.push(rec.profileId);
+    }
+  }
+  return flipped;
+}
+
+export function autoArchiveStaleFeeds(db, nowMs) {
+  void db;
+  const now = Number(nowMs ?? Date.now());
+  const flipped = [];
+  for (const rec of _feedStatesV2.values()) {
+    if (rec.status !== "active" && rec.status !== "paused") continue;
+    if (now - rec.lastPublishedAt > _feedStaleMsV2) {
+      rec.status = "archived";
+      rec.updatedAt = now;
+      rec.reason = "stale";
+      flipped.push(rec.feedId);
+    }
+  }
+  return flipped;
+}
+
+/* ── Stats V2 ───────────────────────────────────────────────── */
+
+export function getRecommendationStatsV2() {
+  const profilesByStatus = {
+    onboarding: 0,
+    active: 0,
+    dormant: 0,
+    retired: 0,
+  };
+  const feedsByStatus = {
+    draft: 0,
+    active: 0,
+    paused: 0,
+    archived: 0,
+  };
+  for (const rec of _profileStatesV2.values()) {
+    if (profilesByStatus[rec.status] !== undefined) {
+      profilesByStatus[rec.status] += 1;
+    }
+  }
+  for (const rec of _feedStatesV2.values()) {
+    if (feedsByStatus[rec.status] !== undefined) {
+      feedsByStatus[rec.status] += 1;
+    }
+  }
+  return {
+    totalProfilesV2: _profileStatesV2.size,
+    totalFeedsV2: _feedStatesV2.size,
+    maxActiveProfilesPerSegment: _maxActiveProfilesPerSegmentV2,
+    maxActiveFeedsPerCurator: _maxActiveFeedsPerCuratorV2,
+    profileIdleMs: _profileIdleMsV2,
+    feedStaleMs: _feedStaleMsV2,
+    profilesByStatus,
+    feedsByStatus,
+  };
+}
+
+/* ── Reset V2 (tests) ───────────────────────────────────────── */
+
+export function _resetStateV2() {
+  _profileStatesV2.clear();
+  _feedStatesV2.clear();
+  _maxActiveProfilesPerSegmentV2 = REC_DEFAULT_MAX_ACTIVE_PROFILES_PER_SEGMENT;
+  _maxActiveFeedsPerCuratorV2 = REC_DEFAULT_MAX_ACTIVE_FEEDS_PER_CURATOR;
+  _profileIdleMsV2 = REC_DEFAULT_PROFILE_IDLE_MS;
+  _feedStaleMsV2 = REC_DEFAULT_FEED_STALE_MS;
+}

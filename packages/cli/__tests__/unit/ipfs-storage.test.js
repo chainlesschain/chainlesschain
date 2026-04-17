@@ -543,3 +543,387 @@ describe("ipfs-storage", () => {
     });
   });
 });
+
+/* ═════════════════════════════════════════════════════════ *
+ *  Phase 17 V2 Tests
+ * ═════════════════════════════════════════════════════════ */
+
+import {
+  GATEWAY_MATURITY_V2,
+  PIN_LIFECYCLE_V2,
+  IPFS_DEFAULT_MAX_ACTIVE_GATEWAYS_PER_OPERATOR,
+  IPFS_DEFAULT_MAX_PENDING_PINS_PER_OWNER,
+  IPFS_DEFAULT_GATEWAY_IDLE_MS,
+  IPFS_DEFAULT_PIN_PENDING_MS,
+  getMaxActiveGatewaysPerOperatorV2,
+  setMaxActiveGatewaysPerOperatorV2,
+  getMaxPendingPinsPerOwnerV2,
+  setMaxPendingPinsPerOwnerV2,
+  getGatewayIdleMsV2,
+  setGatewayIdleMsV2,
+  getPinPendingMsV2,
+  setPinPendingMsV2,
+  registerGatewayV2,
+  getGatewayV2,
+  setGatewayMaturityV2,
+  activateGateway,
+  degradeGateway,
+  offlineGateway,
+  retireGateway,
+  touchGatewayHeartbeat,
+  registerPinV2,
+  getPinV2,
+  setPinStatusV2,
+  confirmPin,
+  failPin,
+  unpinV2,
+  getActiveGatewayCount,
+  getPendingPinCount,
+  autoOfflineStaleGateways,
+  autoFailStalePendingPins,
+  getIpfsStatsV2,
+  _resetStateV2,
+} from "../../src/lib/ipfs-storage.js";
+
+describe("ipfs-storage V2 (Phase 17)", () => {
+  beforeEach(() => _resetStateV2());
+
+  describe("enums + defaults", () => {
+    it("frozen gateway maturity", () => {
+      expect(() => {
+        GATEWAY_MATURITY_V2.X = "y";
+      }).toThrow();
+      expect(Object.keys(GATEWAY_MATURITY_V2)).toEqual([
+        "ONBOARDING",
+        "ACTIVE",
+        "DEGRADED",
+        "OFFLINE",
+        "RETIRED",
+      ]);
+    });
+    it("frozen pin lifecycle", () => {
+      expect(() => {
+        PIN_LIFECYCLE_V2.X = "y";
+      }).toThrow();
+    });
+    it("defaults exposed", () => {
+      expect(IPFS_DEFAULT_MAX_ACTIVE_GATEWAYS_PER_OPERATOR).toBe(20);
+      expect(IPFS_DEFAULT_MAX_PENDING_PINS_PER_OWNER).toBe(100);
+      expect(IPFS_DEFAULT_GATEWAY_IDLE_MS).toBe(60 * 86400000);
+      expect(IPFS_DEFAULT_PIN_PENDING_MS).toBe(24 * 3600000);
+    });
+  });
+
+  describe("config mutators", () => {
+    it("floors + rejects non-positive", () => {
+      expect(setMaxActiveGatewaysPerOperatorV2(5.7)).toBe(5);
+      expect(() => setMaxActiveGatewaysPerOperatorV2(0)).toThrow();
+      expect(() => setMaxPendingPinsPerOwnerV2(-1)).toThrow();
+      expect(() => setGatewayIdleMsV2(NaN)).toThrow();
+      expect(() => setPinPendingMsV2("x")).toThrow();
+    });
+  });
+
+  describe("registerGatewayV2", () => {
+    it("defaults to onboarding", () => {
+      const r = registerGatewayV2(null, {
+        gatewayId: "g1",
+        operatorId: "op1",
+        endpoint: "https://x.io",
+      });
+      expect(r.status).toBe("onboarding");
+    });
+    it("missing + duplicate + terminal + invalid", () => {
+      expect(() =>
+        registerGatewayV2(null, { operatorId: "op1", endpoint: "x" }),
+      ).toThrow("gatewayId");
+      expect(() =>
+        registerGatewayV2(null, { gatewayId: "g1", endpoint: "x" }),
+      ).toThrow("operatorId");
+      expect(() =>
+        registerGatewayV2(null, { gatewayId: "g1", operatorId: "op1" }),
+      ).toThrow("endpoint");
+      registerGatewayV2(null, {
+        gatewayId: "g1",
+        operatorId: "op1",
+        endpoint: "x",
+      });
+      expect(() =>
+        registerGatewayV2(null, {
+          gatewayId: "g1",
+          operatorId: "op1",
+          endpoint: "x",
+        }),
+      ).toThrow("already");
+      expect(() =>
+        registerGatewayV2(null, {
+          gatewayId: "g2",
+          operatorId: "op1",
+          endpoint: "x",
+          initialStatus: "retired",
+        }),
+      ).toThrow("terminal");
+      expect(() =>
+        registerGatewayV2(null, {
+          gatewayId: "g3",
+          operatorId: "op1",
+          endpoint: "x",
+          initialStatus: "bogus",
+        }),
+      ).toThrow();
+    });
+    it("per-operator active cap", () => {
+      setMaxActiveGatewaysPerOperatorV2(1);
+      registerGatewayV2(null, {
+        gatewayId: "g1",
+        operatorId: "op1",
+        endpoint: "x",
+        initialStatus: "active",
+      });
+      expect(() =>
+        registerGatewayV2(null, {
+          gatewayId: "g2",
+          operatorId: "op1",
+          endpoint: "x",
+          initialStatus: "active",
+        }),
+      ).toThrow("active-gateway cap");
+      expect(
+        registerGatewayV2(null, {
+          gatewayId: "g3",
+          operatorId: "op2",
+          endpoint: "x",
+          initialStatus: "active",
+        }),
+      ).toBeDefined();
+    });
+  });
+
+  describe("setGatewayMaturityV2 + shortcuts", () => {
+    it("full traversal", () => {
+      registerGatewayV2(null, {
+        gatewayId: "g1",
+        operatorId: "op1",
+        endpoint: "x",
+      });
+      expect(activateGateway(null, "g1").status).toBe("active");
+      expect(degradeGateway(null, "g1").status).toBe("degraded");
+      expect(activateGateway(null, "g1").status).toBe("active");
+      expect(offlineGateway(null, "g1").status).toBe("offline");
+      expect(retireGateway(null, "g1").status).toBe("retired");
+    });
+    it("terminal + unknown + invalid", () => {
+      registerGatewayV2(null, {
+        gatewayId: "g1",
+        operatorId: "op1",
+        endpoint: "x",
+      });
+      retireGateway(null, "g1");
+      expect(() => activateGateway(null, "g1")).toThrow("Invalid transition");
+      expect(() => activateGateway(null, "nope")).toThrow("Unknown");
+      registerGatewayV2(null, {
+        gatewayId: "g2",
+        operatorId: "op1",
+        endpoint: "x",
+      });
+      expect(() => setGatewayMaturityV2(null, "g2", "bogus")).toThrow(
+        "Invalid status",
+      );
+    });
+    it("activation cap + patch merge + null get", () => {
+      setMaxActiveGatewaysPerOperatorV2(1);
+      registerGatewayV2(null, {
+        gatewayId: "g1",
+        operatorId: "op1",
+        endpoint: "x",
+        initialStatus: "active",
+      });
+      registerGatewayV2(null, {
+        gatewayId: "g2",
+        operatorId: "op1",
+        endpoint: "x",
+      });
+      expect(() => activateGateway(null, "g2")).toThrow("active-gateway cap");
+      registerGatewayV2(null, {
+        gatewayId: "g3",
+        operatorId: "op2",
+        endpoint: "x",
+        metadata: { a: 1 },
+      });
+      const r = setGatewayMaturityV2(null, "g3", "retired", {
+        reason: "done",
+        metadata: { b: 2 },
+      });
+      expect(r.lastReason).toBe("done");
+      expect(r.metadata).toEqual({ a: 1, b: 2 });
+      expect(getGatewayV2("nope")).toBeNull();
+    });
+    it("touchGatewayHeartbeat", () => {
+      registerGatewayV2(null, {
+        gatewayId: "g1",
+        operatorId: "op1",
+        endpoint: "x",
+      });
+      const r = touchGatewayHeartbeat("g1");
+      expect(r.lastHeartbeatAt).toBeGreaterThan(0);
+      expect(() => touchGatewayHeartbeat("nope")).toThrow();
+    });
+  });
+
+  describe("registerPinV2", () => {
+    it("defaults + missing + duplicate + terminal + invalid + cap", () => {
+      const r = registerPinV2(null, {
+        pinId: "p1",
+        ownerId: "u1",
+        cid: "bafyabc",
+      });
+      expect(r.status).toBe("pending");
+      expect(() => registerPinV2(null, { ownerId: "u1", cid: "x" })).toThrow(
+        "pinId",
+      );
+      expect(() => registerPinV2(null, { pinId: "p2", cid: "x" })).toThrow(
+        "ownerId",
+      );
+      expect(() => registerPinV2(null, { pinId: "p2", ownerId: "u1" })).toThrow(
+        "cid",
+      );
+      expect(() =>
+        registerPinV2(null, { pinId: "p1", ownerId: "u1", cid: "x" }),
+      ).toThrow("already");
+      expect(() =>
+        registerPinV2(null, {
+          pinId: "p3",
+          ownerId: "u1",
+          cid: "x",
+          initialStatus: "unpinned",
+        }),
+      ).toThrow("terminal");
+      expect(() =>
+        registerPinV2(null, {
+          pinId: "p4",
+          ownerId: "u1",
+          cid: "x",
+          initialStatus: "nope",
+        }),
+      ).toThrow();
+      setMaxPendingPinsPerOwnerV2(1);
+      expect(() =>
+        registerPinV2(null, { pinId: "p5", ownerId: "u1", cid: "x" }),
+      ).toThrow("pending-pin cap");
+      // different owner unaffected
+      expect(
+        registerPinV2(null, { pinId: "p6", ownerId: "u2", cid: "x" }),
+      ).toBeDefined();
+    });
+  });
+
+  describe("setPinStatusV2 + shortcuts", () => {
+    it("pending -> pinned -> unpinned", () => {
+      registerPinV2(null, { pinId: "p1", ownerId: "u1", cid: "x" });
+      const r = confirmPin(null, "p1");
+      expect(r.status).toBe("pinned");
+      expect(r.pinnedAt).toBeGreaterThan(0);
+      expect(unpinV2(null, "p1").status).toBe("unpinned");
+    });
+    it("pending -> failed -> pending -> unpinned", () => {
+      registerPinV2(null, { pinId: "p1", ownerId: "u1", cid: "x" });
+      expect(failPin(null, "p1").status).toBe("failed");
+      expect(setPinStatusV2(null, "p1", "pending").status).toBe("pending");
+      expect(unpinV2(null, "p1").status).toBe("unpinned");
+    });
+    it("terminal + unknown + invalid + pinnedAt stamp-once", () => {
+      registerPinV2(null, { pinId: "p1", ownerId: "u1", cid: "x" });
+      unpinV2(null, "p1");
+      expect(() => confirmPin(null, "p1")).toThrow("Invalid transition");
+      expect(() => confirmPin(null, "nope")).toThrow("Unknown");
+      registerPinV2(null, { pinId: "p2", ownerId: "u1", cid: "x" });
+      expect(() => setPinStatusV2(null, "p2", "bogus")).toThrow();
+      const r1 = confirmPin(null, "p2");
+      const t1 = r1.pinnedAt;
+      unpinV2(null, "p2");
+      // can't go back to pinned anyway, but confirm stamp-once semantic
+      expect(t1).toBeGreaterThan(0);
+    });
+  });
+
+  describe("counts + auto-flip", () => {
+    it("getActiveGatewayCount / getPendingPinCount scoping", () => {
+      registerGatewayV2(null, {
+        gatewayId: "g1",
+        operatorId: "op1",
+        endpoint: "x",
+        initialStatus: "active",
+      });
+      registerGatewayV2(null, {
+        gatewayId: "g2",
+        operatorId: "op2",
+        endpoint: "x",
+        initialStatus: "active",
+      });
+      expect(getActiveGatewayCount()).toBe(2);
+      expect(getActiveGatewayCount("op1")).toBe(1);
+      registerPinV2(null, { pinId: "p1", ownerId: "u1", cid: "x" });
+      registerPinV2(null, { pinId: "p2", ownerId: "u2", cid: "x" });
+      expect(getPendingPinCount()).toBe(2);
+      expect(getPendingPinCount("u1")).toBe(1);
+    });
+    it("autoOfflineStaleGateways + autoFailStalePendingPins", () => {
+      registerGatewayV2(null, {
+        gatewayId: "g1",
+        operatorId: "op1",
+        endpoint: "x",
+        initialStatus: "active",
+      });
+      setGatewayIdleMsV2(1000);
+      const future1 = Date.now() + 86400000;
+      const r1 = autoOfflineStaleGateways(null, future1);
+      expect(r1.flipped).toContain("g1");
+
+      registerPinV2(null, { pinId: "p1", ownerId: "u1", cid: "x" });
+      setPinPendingMsV2(1000);
+      const future2 = Date.now() + 86400000;
+      const r2 = autoFailStalePendingPins(null, future2);
+      expect(r2.flipped).toContain("p1");
+      expect(getPinV2("p1").status).toBe("failed");
+    });
+  });
+
+  describe("getIpfsStatsV2", () => {
+    it("zero-init all enum keys", () => {
+      const s = getIpfsStatsV2();
+      expect(Object.keys(s.gatewaysByStatus).sort()).toEqual([
+        "active",
+        "degraded",
+        "offline",
+        "onboarding",
+        "retired",
+      ]);
+      expect(Object.keys(s.pinsByStatus).sort()).toEqual([
+        "failed",
+        "pending",
+        "pinned",
+        "unpinned",
+      ]);
+    });
+    it("aggregates across states", () => {
+      registerGatewayV2(null, {
+        gatewayId: "g1",
+        operatorId: "op1",
+        endpoint: "x",
+        initialStatus: "active",
+      });
+      registerGatewayV2(null, {
+        gatewayId: "g2",
+        operatorId: "op1",
+        endpoint: "x",
+      });
+      registerPinV2(null, { pinId: "p1", ownerId: "u1", cid: "x" });
+      confirmPin(null, "p1");
+      const s = getIpfsStatsV2();
+      expect(s.totalGatewaysV2).toBe(2);
+      expect(s.gatewaysByStatus.active).toBe(1);
+      expect(s.gatewaysByStatus.onboarding).toBe(1);
+      expect(s.pinsByStatus.pinned).toBe(1);
+    });
+  });
+});

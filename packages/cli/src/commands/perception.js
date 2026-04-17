@@ -24,7 +24,52 @@ import {
   crossModalQuery,
   getPerceptionContext,
   getPerceptionStats,
+
+  // Phase 84 V2
+  SENSOR_MATURITY_V2,
+  CAPTURE_LIFECYCLE_V2,
+  getDefaultMaxActiveSensorsPerOperatorV2,
+  getMaxActiveSensorsPerOperatorV2,
+  setMaxActiveSensorsPerOperatorV2,
+  getDefaultMaxPendingCapturesPerSensorV2,
+  getMaxPendingCapturesPerSensorV2,
+  setMaxPendingCapturesPerSensorV2,
+  getDefaultSensorIdleMsV2,
+  getSensorIdleMsV2,
+  setSensorIdleMsV2,
+  getDefaultCaptureStuckMsV2,
+  getCaptureStuckMsV2,
+  setCaptureStuckMsV2,
+  registerSensorV2,
+  getSensorV2,
+  setSensorMaturityV2,
+  activateSensor,
+  degradeSensor,
+  offlineSensor,
+  retireSensor,
+  touchSensorHeartbeat,
+  registerCaptureV2,
+  getCaptureV2,
+  setCaptureStatusV2,
+  startProcessingCapture,
+  markCaptureReady,
+  failCapture,
+  discardCapture,
+  getActiveSensorCount,
+  getPendingCaptureCount,
+  autoOfflineStaleSensors,
+  autoFailStuckProcessingCaptures,
+  getPerceptionStatsV2,
 } from "../lib/perception.js";
+
+function _parseMetaV2(raw) {
+  if (!raw) return undefined;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error("--metadata must be valid JSON");
+  }
+}
 
 function _dbFromCtx(cmd) {
   const root = cmd?.parent?.parent ?? cmd?.parent;
@@ -380,6 +425,251 @@ export function registerPerceptionCommand(program) {
       );
       console.log(`Index:    ${s.index.total} entries`);
     });
+
+  /* ═══════════════════════════════════════════════════ *
+   *  Phase 84 V2 — Sensor Maturity + Capture Lifecycle
+   * ═══════════════════════════════════════════════════ */
+
+  perc
+    .command("sensor-maturities-v2")
+    .description("List V2 sensor maturity states")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const xs = Object.values(SENSOR_MATURITY_V2);
+      if (opts.json) return console.log(JSON.stringify(xs, null, 2));
+      for (const x of xs) console.log(`  ${x}`);
+    });
+
+  perc
+    .command("capture-lifecycles-v2")
+    .description("List V2 capture lifecycle states")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const xs = Object.values(CAPTURE_LIFECYCLE_V2);
+      if (opts.json) return console.log(JSON.stringify(xs, null, 2));
+      for (const x of xs) console.log(`  ${x}`);
+    });
+
+  // ── Config defaults/getters/setters ────────────────
+
+  perc
+    .command("default-max-active-sensors-per-operator")
+    .description("Default cap")
+    .action(() => console.log(getDefaultMaxActiveSensorsPerOperatorV2()));
+  perc
+    .command("max-active-sensors-per-operator")
+    .description("Current cap")
+    .action(() => console.log(getMaxActiveSensorsPerOperatorV2()));
+  perc
+    .command("set-max-active-sensors-per-operator <n>")
+    .description("Set cap")
+    .action((n) => console.log(setMaxActiveSensorsPerOperatorV2(n)));
+
+  perc
+    .command("default-max-pending-captures-per-sensor")
+    .description("Default cap")
+    .action(() => console.log(getDefaultMaxPendingCapturesPerSensorV2()));
+  perc
+    .command("max-pending-captures-per-sensor")
+    .description("Current cap")
+    .action(() => console.log(getMaxPendingCapturesPerSensorV2()));
+  perc
+    .command("set-max-pending-captures-per-sensor <n>")
+    .description("Set cap")
+    .action((n) => console.log(setMaxPendingCapturesPerSensorV2(n)));
+
+  perc
+    .command("default-sensor-idle-ms")
+    .description("Default idle ms")
+    .action(() => console.log(getDefaultSensorIdleMsV2()));
+  perc
+    .command("sensor-idle-ms")
+    .description("Current idle ms")
+    .action(() => console.log(getSensorIdleMsV2()));
+  perc
+    .command("set-sensor-idle-ms <ms>")
+    .description("Set idle ms")
+    .action((ms) => console.log(setSensorIdleMsV2(ms)));
+
+  perc
+    .command("default-capture-stuck-ms")
+    .description("Default stuck ms")
+    .action(() => console.log(getDefaultCaptureStuckMsV2()));
+  perc
+    .command("capture-stuck-ms")
+    .description("Current stuck ms")
+    .action(() => console.log(getCaptureStuckMsV2()));
+  perc
+    .command("set-capture-stuck-ms <ms>")
+    .description("Set stuck ms")
+    .action((ms) => console.log(setCaptureStuckMsV2(ms)));
+
+  // ── Counts ─────────────────────────────────────────
+
+  perc
+    .command("active-sensor-count")
+    .description("Count of ACTIVE sensors")
+    .option("-o, --operator <id>", "filter by operator")
+    .action((opts) => console.log(getActiveSensorCount(opts.operator)));
+
+  perc
+    .command("pending-capture-count")
+    .description("Count of PENDING captures")
+    .option("-s, --sensor <id>", "filter by sensor")
+    .action((opts) => console.log(getPendingCaptureCount(opts.sensor)));
+
+  // ── Sensor lifecycle ───────────────────────────────
+
+  perc
+    .command("register-sensor-v2 <sensor-id>")
+    .description("Register a V2 sensor")
+    .requiredOption("-o, --operator <id>", "operator id")
+    .requiredOption("-m, --modality <mod>", "modality")
+    .option("-i, --initial-status <status>", "initial status")
+    .option("--metadata <json>", "metadata JSON")
+    .action((id, opts) => {
+      const r = registerSensorV2(null, {
+        sensorId: id,
+        operatorId: opts.operator,
+        modality: opts.modality,
+        initialStatus: opts.initialStatus,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  perc
+    .command("sensor-v2 <sensor-id>")
+    .description("Get a V2 sensor")
+    .action((id) => {
+      const r = getSensorV2(id);
+      if (!r) {
+        console.error(`Unknown sensor: ${id}`);
+        process.exitCode = 1;
+        return;
+      }
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  perc
+    .command("set-sensor-maturity-v2 <sensor-id> <status>")
+    .description("Transition sensor maturity")
+    .option("-r, --reason <text>", "reason")
+    .option("--metadata <json>", "metadata JSON")
+    .action((id, status, opts) => {
+      const r = setSensorMaturityV2(null, id, status, {
+        reason: opts.reason,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  for (const [name, fn] of [
+    ["activate-sensor", activateSensor],
+    ["degrade-sensor", degradeSensor],
+    ["offline-sensor", offlineSensor],
+    ["retire-sensor", retireSensor],
+  ]) {
+    perc
+      .command(`${name} <sensor-id>`)
+      .description(`Transition to ${name.split("-")[0]}`)
+      .option("-r, --reason <text>", "reason")
+      .action((id, opts) => {
+        const r = fn(null, id, opts.reason);
+        console.log(JSON.stringify(r, null, 2));
+      });
+  }
+
+  perc
+    .command("touch-sensor-heartbeat <sensor-id>")
+    .description("Bump lastHeartbeatAt")
+    .action((id) => {
+      const r = touchSensorHeartbeat(id);
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  // ── Capture lifecycle ──────────────────────────────
+
+  perc
+    .command("register-capture-v2 <capture-id>")
+    .description("Register a V2 capture")
+    .requiredOption("-s, --sensor <id>", "sensor id")
+    .option("-i, --initial-status <status>", "initial status")
+    .option("--metadata <json>", "metadata JSON")
+    .action((id, opts) => {
+      const r = registerCaptureV2(null, {
+        captureId: id,
+        sensorId: opts.sensor,
+        initialStatus: opts.initialStatus,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  perc
+    .command("capture-v2 <capture-id>")
+    .description("Get a V2 capture")
+    .action((id) => {
+      const r = getCaptureV2(id);
+      if (!r) {
+        console.error(`Unknown capture: ${id}`);
+        process.exitCode = 1;
+        return;
+      }
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  perc
+    .command("set-capture-status-v2 <capture-id> <status>")
+    .description("Transition capture lifecycle")
+    .option("-r, --reason <text>", "reason")
+    .option("--metadata <json>", "metadata JSON")
+    .action((id, status, opts) => {
+      const r = setCaptureStatusV2(null, id, status, {
+        reason: opts.reason,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  for (const [name, fn] of [
+    ["start-processing-capture", startProcessingCapture],
+    ["mark-capture-ready", markCaptureReady],
+    ["fail-capture", failCapture],
+    ["discard-capture", discardCapture],
+  ]) {
+    perc
+      .command(`${name} <capture-id>`)
+      .description(`Transition capture (${name})`)
+      .option("-r, --reason <text>", "reason")
+      .action((id, opts) => {
+        const r = fn(null, id, opts.reason);
+        console.log(JSON.stringify(r, null, 2));
+      });
+  }
+
+  // ── Auto-flips + stats ─────────────────────────────
+
+  perc
+    .command("auto-offline-stale-sensors")
+    .description("Flip stale ACTIVE/DEGRADED sensors → OFFLINE")
+    .action(() =>
+      console.log(JSON.stringify(autoOfflineStaleSensors(null), null, 2)),
+    );
+
+  perc
+    .command("auto-fail-stuck-processing-captures")
+    .description("Flip stuck PROCESSING captures → FAILED")
+    .action(() =>
+      console.log(
+        JSON.stringify(autoFailStuckProcessingCaptures(null), null, 2),
+      ),
+    );
+
+  perc
+    .command("stats-v2")
+    .description("V2 stats snapshot")
+    .action(() => console.log(JSON.stringify(getPerceptionStatsV2(), null, 2)));
 
   program.addCommand(perc);
 }

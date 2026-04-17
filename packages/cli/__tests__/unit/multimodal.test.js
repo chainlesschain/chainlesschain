@@ -591,3 +591,536 @@ describe("multimodal", () => {
     });
   });
 });
+
+/* ═════════════════════════════════════════════════════════ *
+ *  Phase 27 V2 Tests
+ * ═════════════════════════════════════════════════════════ */
+
+import {
+  SESSION_MATURITY_V2,
+  ARTIFACT_LIFECYCLE_V2,
+  MM_DEFAULT_MAX_ACTIVE_SESSIONS_PER_OWNER,
+  MM_DEFAULT_MAX_ARTIFACTS_PER_SESSION,
+  MM_DEFAULT_SESSION_IDLE_MS,
+  MM_DEFAULT_ARTIFACT_STALE_MS,
+  getDefaultMaxActiveSessionsPerOwnerV2,
+  getMaxActiveSessionsPerOwnerV2,
+  setMaxActiveSessionsPerOwnerV2,
+  getDefaultMaxArtifactsPerSessionV2,
+  getMaxArtifactsPerSessionV2,
+  setMaxArtifactsPerSessionV2,
+  getDefaultSessionIdleMsV2,
+  getSessionIdleMsV2,
+  setSessionIdleMsV2,
+  getDefaultArtifactStaleMsV2,
+  getArtifactStaleMsV2,
+  setArtifactStaleMsV2,
+  registerSessionV2,
+  getSessionV2,
+  setSessionMaturityV2,
+  activateSession,
+  pauseSession,
+  completeSessionV2,
+  archiveSession,
+  touchSessionActivity,
+  registerArtifactV2,
+  getArtifactV2,
+  setArtifactStatusV2,
+  markArtifactReady,
+  purgeArtifact,
+  touchArtifactAccess,
+  getActiveSessionCount,
+  getArtifactCount,
+  autoArchiveIdleSessions,
+  autoPurgeStaleArtifacts,
+  getMultimodalStatsV2,
+  _resetStateV2,
+} from "../../src/lib/multimodal.js";
+
+describe("multimodal V2 (Phase 27)", () => {
+  beforeEach(() => {
+    _resetStateV2();
+  });
+
+  describe("enums + defaults", () => {
+    it("frozen session maturity", () => {
+      expect(() => {
+        SESSION_MATURITY_V2.X = "y";
+      }).toThrow();
+      expect(Object.keys(SESSION_MATURITY_V2)).toEqual([
+        "ONBOARDING",
+        "ACTIVE",
+        "PAUSED",
+        "COMPLETED",
+        "ARCHIVED",
+      ]);
+    });
+    it("frozen artifact lifecycle", () => {
+      expect(() => {
+        ARTIFACT_LIFECYCLE_V2.X = "y";
+      }).toThrow();
+    });
+    it("defaults exposed", () => {
+      expect(MM_DEFAULT_MAX_ACTIVE_SESSIONS_PER_OWNER).toBe(50);
+      expect(MM_DEFAULT_MAX_ARTIFACTS_PER_SESSION).toBe(200);
+      expect(MM_DEFAULT_SESSION_IDLE_MS).toBe(30 * 86400000);
+      expect(MM_DEFAULT_ARTIFACT_STALE_MS).toBe(14 * 86400000);
+    });
+  });
+
+  describe("config mutators", () => {
+    it("floors + rejects non-positive", () => {
+      expect(setMaxActiveSessionsPerOwnerV2(75.9)).toBe(75);
+      expect(() => setMaxActiveSessionsPerOwnerV2(0)).toThrow();
+      expect(() => setMaxArtifactsPerSessionV2(-1)).toThrow();
+      expect(() => setSessionIdleMsV2(NaN)).toThrow();
+      expect(() => setArtifactStaleMsV2("x")).toThrow();
+    });
+    it("reset restores defaults", () => {
+      setMaxActiveSessionsPerOwnerV2(5);
+      setMaxArtifactsPerSessionV2(7);
+      _resetStateV2();
+      expect(getMaxActiveSessionsPerOwnerV2()).toBe(
+        getDefaultMaxActiveSessionsPerOwnerV2(),
+      );
+      expect(getMaxArtifactsPerSessionV2()).toBe(
+        getDefaultMaxArtifactsPerSessionV2(),
+      );
+      expect(getSessionIdleMsV2()).toBe(getDefaultSessionIdleMsV2());
+      expect(getArtifactStaleMsV2()).toBe(getDefaultArtifactStaleMsV2());
+    });
+  });
+
+  describe("registerSessionV2", () => {
+    it("defaults to onboarding", () => {
+      const r = registerSessionV2(null, { sessionId: "s1", ownerId: "o1" });
+      expect(r.status).toBe("onboarding");
+    });
+    it("active initial passes cap check", () => {
+      const r = registerSessionV2(null, {
+        sessionId: "s1",
+        ownerId: "o1",
+        initialStatus: "active",
+      });
+      expect(r.status).toBe("active");
+    });
+    it("missing fields throw", () => {
+      expect(() => registerSessionV2(null, { ownerId: "o1" })).toThrow(
+        "sessionId",
+      );
+      expect(() => registerSessionV2(null, { sessionId: "s1" })).toThrow(
+        "ownerId",
+      );
+    });
+    it("duplicate throws", () => {
+      registerSessionV2(null, { sessionId: "s1", ownerId: "o1" });
+      expect(() =>
+        registerSessionV2(null, { sessionId: "s1", ownerId: "o1" }),
+      ).toThrow("already exists");
+    });
+    it("invalid + terminal initial throws", () => {
+      expect(() =>
+        registerSessionV2(null, {
+          sessionId: "s1",
+          ownerId: "o1",
+          initialStatus: "nope",
+        }),
+      ).toThrow();
+      expect(() =>
+        registerSessionV2(null, {
+          sessionId: "s1",
+          ownerId: "o1",
+          initialStatus: "archived",
+        }),
+      ).toThrow("terminal");
+    });
+    it("per-owner active cap", () => {
+      setMaxActiveSessionsPerOwnerV2(2);
+      registerSessionV2(null, {
+        sessionId: "s1",
+        ownerId: "o1",
+        initialStatus: "active",
+      });
+      registerSessionV2(null, {
+        sessionId: "s2",
+        ownerId: "o1",
+        initialStatus: "active",
+      });
+      expect(() =>
+        registerSessionV2(null, {
+          sessionId: "s3",
+          ownerId: "o1",
+          initialStatus: "active",
+        }),
+      ).toThrow("active-session cap");
+      // different owner unaffected
+      expect(
+        registerSessionV2(null, {
+          sessionId: "s4",
+          ownerId: "o2",
+          initialStatus: "active",
+        }),
+      ).toBeDefined();
+    });
+  });
+
+  describe("setSessionMaturityV2", () => {
+    it("full valid traversal", () => {
+      registerSessionV2(null, { sessionId: "s1", ownerId: "o1" });
+      expect(setSessionMaturityV2(null, "s1", "active").status).toBe("active");
+      expect(setSessionMaturityV2(null, "s1", "paused").status).toBe("paused");
+      expect(setSessionMaturityV2(null, "s1", "active").status).toBe("active");
+      expect(setSessionMaturityV2(null, "s1", "completed").status).toBe(
+        "completed",
+      );
+      expect(setSessionMaturityV2(null, "s1", "archived").status).toBe(
+        "archived",
+      );
+    });
+    it("terminal + unknown + invalid throw", () => {
+      registerSessionV2(null, { sessionId: "s1", ownerId: "o1" });
+      setSessionMaturityV2(null, "s1", "archived");
+      expect(() => setSessionMaturityV2(null, "s1", "active")).toThrow(
+        "Invalid transition",
+      );
+      expect(() => setSessionMaturityV2(null, "nope", "active")).toThrow(
+        "Unknown",
+      );
+      registerSessionV2(null, { sessionId: "s2", ownerId: "o1" });
+      expect(() => setSessionMaturityV2(null, "s2", "bogus")).toThrow(
+        "Invalid status",
+      );
+    });
+    it("activation cap + patch merge", () => {
+      setMaxActiveSessionsPerOwnerV2(1);
+      registerSessionV2(null, {
+        sessionId: "s1",
+        ownerId: "o1",
+        initialStatus: "active",
+      });
+      registerSessionV2(null, { sessionId: "s2", ownerId: "o1" });
+      expect(() => setSessionMaturityV2(null, "s2", "active")).toThrow(
+        "active-session cap",
+      );
+      registerSessionV2(null, {
+        sessionId: "s3",
+        ownerId: "o1",
+        metadata: { a: 1 },
+      });
+      const r = setSessionMaturityV2(null, "s3", "archived", {
+        reason: "abc",
+        metadata: { b: 2 },
+      });
+      expect(r.lastReason).toBe("abc");
+      expect(r.metadata).toEqual({ a: 1, b: 2 });
+    });
+  });
+
+  describe("shortcuts + touch", () => {
+    it("activate/pause/complete/archive", () => {
+      registerSessionV2(null, { sessionId: "s1", ownerId: "o1" });
+      expect(activateSession(null, "s1", "r").status).toBe("active");
+      expect(pauseSession(null, "s1", "r").status).toBe("paused");
+      activateSession(null, "s1");
+      expect(completeSessionV2(null, "s1", "done").status).toBe("completed");
+      expect(archiveSession(null, "s1", "d").status).toBe("archived");
+    });
+    it("touchSessionActivity bumps + unknown throws", () => {
+      registerSessionV2(null, { sessionId: "s1", ownerId: "o1" });
+      const t1 = getSessionV2("s1").lastActivityAt;
+      const r = touchSessionActivity("s1");
+      expect(r.lastActivityAt).toBeGreaterThanOrEqual(t1);
+      expect(() => touchSessionActivity("nope")).toThrow();
+    });
+    it("getSessionV2 unknown returns null", () => {
+      expect(getSessionV2("nope")).toBeNull();
+    });
+  });
+
+  describe("registerArtifactV2", () => {
+    it("defaults + full flow", () => {
+      registerSessionV2(null, { sessionId: "s1", ownerId: "o1" });
+      const r = registerArtifactV2(null, {
+        artifactId: "a1",
+        sessionId: "s1",
+        modality: "text",
+      });
+      expect(r.status).toBe("pending");
+    });
+    it("missing fields + invalid modality throw", () => {
+      expect(() =>
+        registerArtifactV2(null, { sessionId: "s1", modality: "text" }),
+      ).toThrow("artifactId");
+      expect(() =>
+        registerArtifactV2(null, { artifactId: "a1", modality: "text" }),
+      ).toThrow("sessionId");
+      expect(() =>
+        registerArtifactV2(null, { artifactId: "a1", sessionId: "s1" }),
+      ).toThrow("modality");
+      expect(() =>
+        registerArtifactV2(null, {
+          artifactId: "a1",
+          sessionId: "s1",
+          modality: "bogus",
+        }),
+      ).toThrow("Invalid modality");
+    });
+    it("duplicate + terminal initial throw", () => {
+      registerArtifactV2(null, {
+        artifactId: "a1",
+        sessionId: "s1",
+        modality: "text",
+      });
+      expect(() =>
+        registerArtifactV2(null, {
+          artifactId: "a1",
+          sessionId: "s1",
+          modality: "text",
+        }),
+      ).toThrow("already exists");
+      expect(() =>
+        registerArtifactV2(null, {
+          artifactId: "a2",
+          sessionId: "s1",
+          modality: "text",
+          initialStatus: "purged",
+        }),
+      ).toThrow("terminal");
+    });
+    it("per-session cap", () => {
+      setMaxArtifactsPerSessionV2(2);
+      registerArtifactV2(null, {
+        artifactId: "a1",
+        sessionId: "s1",
+        modality: "text",
+      });
+      registerArtifactV2(null, {
+        artifactId: "a2",
+        sessionId: "s1",
+        modality: "text",
+      });
+      expect(() =>
+        registerArtifactV2(null, {
+          artifactId: "a3",
+          sessionId: "s1",
+          modality: "text",
+        }),
+      ).toThrow("artifact cap");
+      // other session unaffected
+      expect(
+        registerArtifactV2(null, {
+          artifactId: "a4",
+          sessionId: "s2",
+          modality: "text",
+        }),
+      ).toBeDefined();
+    });
+    it("purged artifacts excluded from cap", () => {
+      setMaxArtifactsPerSessionV2(2);
+      registerArtifactV2(null, {
+        artifactId: "a1",
+        sessionId: "s1",
+        modality: "text",
+      });
+      registerArtifactV2(null, {
+        artifactId: "a2",
+        sessionId: "s1",
+        modality: "text",
+      });
+      purgeArtifact(null, "a1");
+      expect(
+        registerArtifactV2(null, {
+          artifactId: "a3",
+          sessionId: "s1",
+          modality: "text",
+        }),
+      ).toBeDefined();
+    });
+  });
+
+  describe("setArtifactStatusV2", () => {
+    it("pending -> ready -> purged", () => {
+      registerArtifactV2(null, {
+        artifactId: "a1",
+        sessionId: "s1",
+        modality: "text",
+      });
+      expect(markArtifactReady(null, "a1").status).toBe("ready");
+      expect(purgeArtifact(null, "a1").status).toBe("purged");
+    });
+    it("pending -> purged (direct)", () => {
+      registerArtifactV2(null, {
+        artifactId: "a1",
+        sessionId: "s1",
+        modality: "text",
+      });
+      expect(purgeArtifact(null, "a1").status).toBe("purged");
+    });
+    it("terminal + unknown + invalid throw", () => {
+      registerArtifactV2(null, {
+        artifactId: "a1",
+        sessionId: "s1",
+        modality: "text",
+      });
+      purgeArtifact(null, "a1");
+      expect(() => purgeArtifact(null, "a1")).toThrow("Invalid transition");
+      expect(() => markArtifactReady(null, "nope")).toThrow("Unknown");
+      registerArtifactV2(null, {
+        artifactId: "a2",
+        sessionId: "s1",
+        modality: "text",
+      });
+      expect(() => setArtifactStatusV2(null, "a2", "bogus")).toThrow(
+        "Invalid status",
+      );
+    });
+    it("touchArtifactAccess + getArtifactV2 null", () => {
+      registerArtifactV2(null, {
+        artifactId: "a1",
+        sessionId: "s1",
+        modality: "text",
+      });
+      const r = touchArtifactAccess("a1");
+      expect(r.lastAccessAt).toBeGreaterThan(0);
+      expect(() => touchArtifactAccess("nope")).toThrow();
+      expect(getArtifactV2("nope")).toBeNull();
+    });
+  });
+
+  describe("counts", () => {
+    it("getActiveSessionCount scopes by owner", () => {
+      registerSessionV2(null, {
+        sessionId: "s1",
+        ownerId: "o1",
+        initialStatus: "active",
+      });
+      registerSessionV2(null, {
+        sessionId: "s2",
+        ownerId: "o1",
+        initialStatus: "active",
+      });
+      registerSessionV2(null, {
+        sessionId: "s3",
+        ownerId: "o2",
+        initialStatus: "active",
+      });
+      registerSessionV2(null, {
+        sessionId: "s4",
+        ownerId: "o1",
+      });
+      expect(getActiveSessionCount()).toBe(3);
+      expect(getActiveSessionCount("o1")).toBe(2);
+      expect(getActiveSessionCount("o2")).toBe(1);
+    });
+    it("getArtifactCount excludes terminals + scopes by session", () => {
+      registerArtifactV2(null, {
+        artifactId: "a1",
+        sessionId: "s1",
+        modality: "text",
+      });
+      registerArtifactV2(null, {
+        artifactId: "a2",
+        sessionId: "s1",
+        modality: "text",
+      });
+      registerArtifactV2(null, {
+        artifactId: "a3",
+        sessionId: "s2",
+        modality: "text",
+      });
+      purgeArtifact(null, "a2");
+      expect(getArtifactCount("s1")).toBe(1);
+      expect(getArtifactCount()).toBe(2);
+    });
+  });
+
+  describe("autoArchiveIdleSessions", () => {
+    it("archives idle active/paused/completed", () => {
+      registerSessionV2(null, {
+        sessionId: "s1",
+        ownerId: "o1",
+        initialStatus: "active",
+      });
+      registerSessionV2(null, {
+        sessionId: "s2",
+        ownerId: "o1",
+      });
+      setSessionIdleMsV2(1000);
+      const future = Date.now() + 86400000;
+      const r = autoArchiveIdleSessions(null, future);
+      expect(r.flipped).toContain("s1");
+      // onboarding (s2) skipped
+      expect(r.flipped).not.toContain("s2");
+      expect(getSessionV2("s1").status).toBe("archived");
+    });
+    it("skips fresh", () => {
+      registerSessionV2(null, {
+        sessionId: "s1",
+        ownerId: "o1",
+        initialStatus: "active",
+      });
+      const r = autoArchiveIdleSessions(null, Date.now());
+      expect(r.count).toBe(0);
+    });
+  });
+
+  describe("autoPurgeStaleArtifacts", () => {
+    it("purges stale READY only", () => {
+      registerArtifactV2(null, {
+        artifactId: "a1",
+        sessionId: "s1",
+        modality: "text",
+      });
+      markArtifactReady(null, "a1");
+      registerArtifactV2(null, {
+        artifactId: "a2",
+        sessionId: "s1",
+        modality: "text",
+      });
+      // pending, NOT purged
+      setArtifactStaleMsV2(1000);
+      const future = Date.now() + 86400000;
+      const r = autoPurgeStaleArtifacts(null, future);
+      expect(r.flipped).toContain("a1");
+      expect(r.flipped).not.toContain("a2");
+    });
+  });
+
+  describe("getMultimodalStatsV2", () => {
+    it("zero-init all enum keys", () => {
+      const s = getMultimodalStatsV2();
+      expect(Object.keys(s.sessionsByStatus).sort()).toEqual([
+        "active",
+        "archived",
+        "completed",
+        "onboarding",
+        "paused",
+      ]);
+      expect(Object.keys(s.artifactsByStatus).sort()).toEqual([
+        "pending",
+        "purged",
+        "ready",
+      ]);
+    });
+    it("aggregates across states", () => {
+      registerSessionV2(null, {
+        sessionId: "s1",
+        ownerId: "o1",
+        initialStatus: "active",
+      });
+      registerSessionV2(null, { sessionId: "s2", ownerId: "o1" });
+      registerArtifactV2(null, {
+        artifactId: "a1",
+        sessionId: "s1",
+        modality: "text",
+      });
+      markArtifactReady(null, "a1");
+      const s = getMultimodalStatsV2();
+      expect(s.totalSessionsV2).toBe(2);
+      expect(s.sessionsByStatus.active).toBe(1);
+      expect(s.sessionsByStatus.onboarding).toBe(1);
+      expect(s.totalArtifactsV2).toBe(1);
+      expect(s.artifactsByStatus.ready).toBe(1);
+    });
+  });
+});

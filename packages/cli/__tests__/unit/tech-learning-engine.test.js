@@ -15,6 +15,42 @@ import {
   listPractices,
   getRecommendations,
   _resetState,
+  PROFILE_MATURITY_V2,
+  LEARNING_RUN_V2,
+  TLE_DEFAULT_MAX_ACTIVE_PROFILES_PER_OWNER,
+  TLE_DEFAULT_MAX_STUDYING_RUNS_PER_LEARNER,
+  TLE_DEFAULT_PROFILE_STALE_MS,
+  TLE_DEFAULT_RUN_STUCK_MS,
+  getMaxActiveProfilesPerOwnerV2,
+  setMaxActiveProfilesPerOwnerV2,
+  getMaxStudyingRunsPerLearnerV2,
+  setMaxStudyingRunsPerLearnerV2,
+  getProfileStaleMsV2,
+  setProfileStaleMsV2,
+  getRunStuckMsV2,
+  setRunStuckMsV2,
+  getActiveProfileCountV2,
+  getStudyingRunCountV2,
+  createProfileV2,
+  getProfileV2,
+  listProfilesV2,
+  setProfileMaturityV2,
+  activateProfileV2,
+  markProfileStaleV2,
+  archiveProfileV2,
+  touchProfileV2,
+  enqueueRunV2,
+  getRunV2,
+  listRunsV2,
+  setRunStatusV2,
+  startRunV2,
+  completeRunV2,
+  abandonRunV2,
+  failRunV2,
+  autoMarkStaleProfilesV2,
+  autoFailStuckRunsV2,
+  getTechLearningStatsV2,
+  _resetStateV2,
 } from "../../src/lib/tech-learning-engine.js";
 
 describe("tech-learning-engine", () => {
@@ -544,6 +580,459 @@ describe("tech-learning-engine", () => {
       }
       const r = getRecommendations({ limit: 2 });
       expect(r.recommendations).toHaveLength(2);
+    });
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+ * V2 Surface Tests — Tech Learning Engine V2
+ * ═══════════════════════════════════════════════════════════════ */
+
+describe("tech-learning-engine V2", () => {
+  beforeEach(() => {
+    _resetStateV2();
+  });
+
+  describe("enums", () => {
+    it("PROFILE_MATURITY_V2 has 4 states and is frozen", () => {
+      expect(Object.isFrozen(PROFILE_MATURITY_V2)).toBe(true);
+      expect(Object.values(PROFILE_MATURITY_V2).sort()).toEqual([
+        "active",
+        "archived",
+        "draft",
+        "stale",
+      ]);
+    });
+    it("LEARNING_RUN_V2 has 5 states and is frozen", () => {
+      expect(Object.isFrozen(LEARNING_RUN_V2)).toBe(true);
+      expect(Object.values(LEARNING_RUN_V2).sort()).toEqual([
+        "abandoned",
+        "completed",
+        "failed",
+        "queued",
+        "studying",
+      ]);
+    });
+  });
+
+  describe("defaults", () => {
+    it("exposes default constants", () => {
+      expect(TLE_DEFAULT_MAX_ACTIVE_PROFILES_PER_OWNER).toBe(10);
+      expect(TLE_DEFAULT_MAX_STUDYING_RUNS_PER_LEARNER).toBe(5);
+      expect(TLE_DEFAULT_PROFILE_STALE_MS).toBe(60 * 24 * 60 * 60 * 1000);
+      expect(TLE_DEFAULT_RUN_STUCK_MS).toBe(7 * 24 * 60 * 60 * 1000);
+    });
+    it("getters match defaults after reset", () => {
+      expect(getMaxActiveProfilesPerOwnerV2()).toBe(10);
+      expect(getMaxStudyingRunsPerLearnerV2()).toBe(5);
+      expect(getProfileStaleMsV2()).toBe(TLE_DEFAULT_PROFILE_STALE_MS);
+      expect(getRunStuckMsV2()).toBe(TLE_DEFAULT_RUN_STUCK_MS);
+    });
+  });
+
+  describe("config setters", () => {
+    it("accept positive ints, reject zero/NaN/negative", () => {
+      expect(setMaxActiveProfilesPerOwnerV2(3)).toBe(3);
+      expect(setMaxStudyingRunsPerLearnerV2(2)).toBe(2);
+      expect(setProfileStaleMsV2(1000)).toBe(1000);
+      expect(setRunStuckMsV2(500)).toBe(500);
+      expect(() => setMaxActiveProfilesPerOwnerV2(0)).toThrow(
+        /positive integer/,
+      );
+      expect(() => setMaxStudyingRunsPerLearnerV2(-1)).toThrow(
+        /positive integer/,
+      );
+      expect(() => setProfileStaleMsV2(NaN)).toThrow(/positive integer/);
+      expect(() => setRunStuckMsV2("foo")).toThrow(/positive integer/);
+    });
+    it("floors non-integer positive inputs", () => {
+      expect(setMaxActiveProfilesPerOwnerV2(3.7)).toBe(3);
+    });
+  });
+
+  describe("createProfileV2", () => {
+    it("creates a profile in draft", () => {
+      const p = createProfileV2({
+        id: "p1",
+        owner: "alice",
+        stackName: "react-stack",
+      });
+      expect(p.status).toBe(PROFILE_MATURITY_V2.DRAFT);
+      expect(p.activatedAt).toBeNull();
+      expect(p.owner).toBe("alice");
+      expect(p.stackName).toBe("react-stack");
+    });
+    it("requires id, owner, stackName", () => {
+      expect(() => createProfileV2({ owner: "a", stackName: "s" })).toThrow(
+        /id is required/,
+      );
+      expect(() => createProfileV2({ id: "p1", stackName: "s" })).toThrow(
+        /owner is required/,
+      );
+      expect(() => createProfileV2({ id: "p1", owner: "a" })).toThrow(
+        /stackName is required/,
+      );
+    });
+    it("rejects duplicate id", () => {
+      createProfileV2({ id: "p1", owner: "a", stackName: "s" });
+      expect(() =>
+        createProfileV2({ id: "p1", owner: "a", stackName: "s" }),
+      ).toThrow(/already exists/);
+    });
+    it("copies metadata defensively", () => {
+      const meta = { tag: "x" };
+      const p = createProfileV2({
+        id: "p1",
+        owner: "a",
+        stackName: "s",
+        metadata: meta,
+      });
+      meta.tag = "y";
+      expect(getProfileV2("p1").metadata.tag).toBe("x");
+      p.metadata.tag = "z";
+      expect(getProfileV2("p1").metadata.tag).toBe("x");
+    });
+  });
+
+  describe("getProfileV2 / listProfilesV2", () => {
+    it("returns null for unknown id", () => {
+      expect(getProfileV2("nope")).toBeNull();
+    });
+    it("filters by owner and status", () => {
+      createProfileV2({ id: "p1", owner: "a", stackName: "s1" });
+      createProfileV2({ id: "p2", owner: "a", stackName: "s2" });
+      createProfileV2({ id: "p3", owner: "b", stackName: "s3" });
+      activateProfileV2("p1");
+      expect(listProfilesV2({ owner: "a" })).toHaveLength(2);
+      expect(listProfilesV2({ owner: "b" })).toHaveLength(1);
+      expect(
+        listProfilesV2({ status: PROFILE_MATURITY_V2.ACTIVE }),
+      ).toHaveLength(1);
+    });
+  });
+
+  describe("setProfileMaturityV2 state machine", () => {
+    it("draft → active", () => {
+      createProfileV2({ id: "p1", owner: "a", stackName: "s" });
+      const p = setProfileMaturityV2("p1", PROFILE_MATURITY_V2.ACTIVE);
+      expect(p.status).toBe(PROFILE_MATURITY_V2.ACTIVE);
+      expect(p.activatedAt).toBeTypeOf("number");
+    });
+    it("active → stale", () => {
+      createProfileV2({ id: "p1", owner: "a", stackName: "s" });
+      activateProfileV2("p1");
+      const p = markProfileStaleV2("p1");
+      expect(p.status).toBe(PROFILE_MATURITY_V2.STALE);
+    });
+    it("stale → active (recovery)", () => {
+      createProfileV2({ id: "p1", owner: "a", stackName: "s" });
+      activateProfileV2("p1");
+      markProfileStaleV2("p1");
+      const p = activateProfileV2("p1");
+      expect(p.status).toBe(PROFILE_MATURITY_V2.ACTIVE);
+    });
+    it("any non-terminal → archived", () => {
+      createProfileV2({ id: "p1", owner: "a", stackName: "s" });
+      archiveProfileV2("p1");
+      expect(getProfileV2("p1").status).toBe(PROFILE_MATURITY_V2.ARCHIVED);
+
+      createProfileV2({ id: "p2", owner: "a", stackName: "s" });
+      activateProfileV2("p2");
+      archiveProfileV2("p2");
+      expect(getProfileV2("p2").status).toBe(PROFILE_MATURITY_V2.ARCHIVED);
+    });
+    it("archived is terminal", () => {
+      createProfileV2({ id: "p1", owner: "a", stackName: "s" });
+      archiveProfileV2("p1");
+      expect(() => activateProfileV2("p1")).toThrow(/cannot transition/);
+      expect(() => markProfileStaleV2("p1")).toThrow(/cannot transition/);
+    });
+    it("draft cannot go directly to stale", () => {
+      createProfileV2({ id: "p1", owner: "a", stackName: "s" });
+      expect(() => markProfileStaleV2("p1")).toThrow(/cannot transition/);
+    });
+    it("throws on unknown id", () => {
+      expect(() =>
+        setProfileMaturityV2("nope", PROFILE_MATURITY_V2.ACTIVE),
+      ).toThrow(/not found/);
+    });
+    it("stamps activatedAt once", () => {
+      createProfileV2({ id: "p1", owner: "a", stackName: "s" });
+      const p1 = activateProfileV2("p1");
+      const first = p1.activatedAt;
+      markProfileStaleV2("p1");
+      const p2 = activateProfileV2("p1");
+      expect(p2.activatedAt).toBe(first);
+    });
+    it("merges reason and metadata patch", () => {
+      createProfileV2({
+        id: "p1",
+        owner: "a",
+        stackName: "s",
+        metadata: { a: 1 },
+      });
+      const p = activateProfileV2("p1", {
+        reason: "ready",
+        metadata: { b: 2 },
+      });
+      expect(p.reason).toBe("ready");
+      expect(p.metadata).toEqual({ a: 1, b: 2 });
+    });
+  });
+
+  describe("getActiveProfileCountV2 / cap", () => {
+    it("excludes draft and archived", () => {
+      createProfileV2({ id: "p1", owner: "a", stackName: "s1" });
+      createProfileV2({ id: "p2", owner: "a", stackName: "s2" });
+      activateProfileV2("p2");
+      createProfileV2({ id: "p3", owner: "a", stackName: "s3" });
+      archiveProfileV2("p3");
+      expect(getActiveProfileCountV2("a")).toBe(1);
+    });
+    it("counts active and stale", () => {
+      createProfileV2({ id: "p1", owner: "a", stackName: "s1" });
+      activateProfileV2("p1");
+      createProfileV2({ id: "p2", owner: "a", stackName: "s2" });
+      activateProfileV2("p2");
+      markProfileStaleV2("p2");
+      expect(getActiveProfileCountV2("a")).toBe(2);
+    });
+    it("requires owner", () => {
+      expect(() => getActiveProfileCountV2()).toThrow(/owner is required/);
+    });
+    it("activation blocked when cap reached", () => {
+      setMaxActiveProfilesPerOwnerV2(2);
+      createProfileV2({ id: "p1", owner: "a", stackName: "s1" });
+      activateProfileV2("p1");
+      createProfileV2({ id: "p2", owner: "a", stackName: "s2" });
+      activateProfileV2("p2");
+      createProfileV2({ id: "p3", owner: "a", stackName: "s3" });
+      expect(() => activateProfileV2("p3")).toThrow(/max active profile cap/);
+    });
+    it("stale→active recovery bypasses cap (already counted)", () => {
+      setMaxActiveProfilesPerOwnerV2(1);
+      createProfileV2({ id: "p1", owner: "a", stackName: "s1" });
+      activateProfileV2("p1");
+      markProfileStaleV2("p1");
+      expect(() => activateProfileV2("p1")).not.toThrow();
+    });
+  });
+
+  describe("touchProfileV2", () => {
+    it("updates lastTouchedAt", async () => {
+      createProfileV2({ id: "p1", owner: "a", stackName: "s" });
+      activateProfileV2("p1");
+      const before = getProfileV2("p1").lastTouchedAt;
+      await new Promise((r) => setTimeout(r, 5));
+      const after = touchProfileV2("p1").lastTouchedAt;
+      expect(after).toBeGreaterThan(before);
+    });
+    it("throws on terminal profile", () => {
+      createProfileV2({ id: "p1", owner: "a", stackName: "s" });
+      archiveProfileV2("p1");
+      expect(() => touchProfileV2("p1")).toThrow(/terminal/);
+    });
+    it("throws on unknown id", () => {
+      expect(() => touchProfileV2("nope")).toThrow(/not found/);
+    });
+  });
+
+  describe("enqueueRunV2", () => {
+    it("creates a run in queued", () => {
+      const r = enqueueRunV2({ id: "r1", learner: "bob", topic: "rust" });
+      expect(r.status).toBe(LEARNING_RUN_V2.QUEUED);
+      expect(r.startedAt).toBeNull();
+      expect(r.endedAt).toBeNull();
+    });
+    it("requires id, learner, topic", () => {
+      expect(() => enqueueRunV2({ learner: "b", topic: "t" })).toThrow(
+        /id is required/,
+      );
+      expect(() => enqueueRunV2({ id: "r1", topic: "t" })).toThrow(
+        /learner is required/,
+      );
+      expect(() => enqueueRunV2({ id: "r1", learner: "b" })).toThrow(
+        /topic is required/,
+      );
+    });
+    it("rejects duplicate id", () => {
+      enqueueRunV2({ id: "r1", learner: "b", topic: "t" });
+      expect(() =>
+        enqueueRunV2({ id: "r1", learner: "b", topic: "t" }),
+      ).toThrow(/already/);
+    });
+  });
+
+  describe("run state machine", () => {
+    it("queued → studying", () => {
+      enqueueRunV2({ id: "r1", learner: "b", topic: "t" });
+      const r = startRunV2("r1");
+      expect(r.status).toBe(LEARNING_RUN_V2.STUDYING);
+      expect(r.startedAt).toBeTypeOf("number");
+    });
+    it("studying → completed", () => {
+      enqueueRunV2({ id: "r1", learner: "b", topic: "t" });
+      startRunV2("r1");
+      const r = completeRunV2("r1");
+      expect(r.status).toBe(LEARNING_RUN_V2.COMPLETED);
+      expect(r.endedAt).toBeTypeOf("number");
+    });
+    it("studying → failed", () => {
+      enqueueRunV2({ id: "r1", learner: "b", topic: "t" });
+      startRunV2("r1");
+      const r = failRunV2("r1", { reason: "broken" });
+      expect(r.status).toBe(LEARNING_RUN_V2.FAILED);
+      expect(r.reason).toBe("broken");
+    });
+    it("queued → abandoned", () => {
+      enqueueRunV2({ id: "r1", learner: "b", topic: "t" });
+      const r = abandonRunV2("r1");
+      expect(r.status).toBe(LEARNING_RUN_V2.ABANDONED);
+    });
+    it("terminals do not transition", () => {
+      enqueueRunV2({ id: "r1", learner: "b", topic: "t" });
+      startRunV2("r1");
+      completeRunV2("r1");
+      expect(() => failRunV2("r1")).toThrow(/cannot transition/);
+      expect(() => abandonRunV2("r1")).toThrow(/cannot transition/);
+    });
+    it("stamps startedAt once", () => {
+      enqueueRunV2({ id: "r1", learner: "b", topic: "t" });
+      const r1 = startRunV2("r1");
+      expect(r1.startedAt).toBeTypeOf("number");
+    });
+    it("throws on unknown id", () => {
+      expect(() => startRunV2("nope")).toThrow(/not found/);
+    });
+    it("cannot queued → completed directly", () => {
+      enqueueRunV2({ id: "r1", learner: "b", topic: "t" });
+      expect(() => completeRunV2("r1")).toThrow(/cannot transition/);
+    });
+  });
+
+  describe("studying-run cap", () => {
+    it("per-learner cap blocks start", () => {
+      setMaxStudyingRunsPerLearnerV2(2);
+      for (let i = 1; i <= 3; i++) {
+        enqueueRunV2({ id: `r${i}`, learner: "b", topic: "t" });
+      }
+      startRunV2("r1");
+      startRunV2("r2");
+      expect(() => startRunV2("r3")).toThrow(/max studying run cap/);
+    });
+    it("completion frees the slot", () => {
+      setMaxStudyingRunsPerLearnerV2(1);
+      enqueueRunV2({ id: "r1", learner: "b", topic: "t" });
+      enqueueRunV2({ id: "r2", learner: "b", topic: "t" });
+      startRunV2("r1");
+      expect(() => startRunV2("r2")).toThrow(/max studying run cap/);
+      completeRunV2("r1");
+      expect(() => startRunV2("r2")).not.toThrow();
+    });
+    it("getStudyingRunCountV2 requires learner", () => {
+      expect(() => getStudyingRunCountV2()).toThrow(/learner is required/);
+    });
+  });
+
+  describe("listRunsV2", () => {
+    it("filters by learner and status", () => {
+      enqueueRunV2({ id: "r1", learner: "a", topic: "t" });
+      enqueueRunV2({ id: "r2", learner: "a", topic: "t" });
+      enqueueRunV2({ id: "r3", learner: "b", topic: "t" });
+      startRunV2("r1");
+      expect(listRunsV2({ learner: "a" })).toHaveLength(2);
+      expect(listRunsV2({ status: LEARNING_RUN_V2.STUDYING })).toHaveLength(1);
+      expect(
+        listRunsV2({ learner: "b", status: LEARNING_RUN_V2.QUEUED }),
+      ).toHaveLength(1);
+    });
+  });
+
+  describe("autoMarkStaleProfilesV2", () => {
+    it("flips only active profiles past stale threshold", () => {
+      setProfileStaleMsV2(1000);
+      createProfileV2({ id: "p1", owner: "a", stackName: "s1" });
+      activateProfileV2("p1");
+      createProfileV2({ id: "p2", owner: "a", stackName: "s2" });
+      activateProfileV2("p2");
+      touchProfileV2("p2");
+      const now = Date.now() + 5000;
+      const flipped = autoMarkStaleProfilesV2({ now });
+      expect(flipped).toEqual(expect.arrayContaining(["p1", "p2"]));
+      expect(getProfileV2("p1").status).toBe(PROFILE_MATURITY_V2.STALE);
+    });
+    it("ignores non-active profiles", () => {
+      setProfileStaleMsV2(10);
+      createProfileV2({ id: "p1", owner: "a", stackName: "s1" });
+      const now = Date.now() + 100000;
+      const flipped = autoMarkStaleProfilesV2({ now });
+      expect(flipped).toEqual([]);
+    });
+    it("returns empty when nothing stale", () => {
+      setProfileStaleMsV2(1000 * 1000);
+      createProfileV2({ id: "p1", owner: "a", stackName: "s1" });
+      activateProfileV2("p1");
+      expect(autoMarkStaleProfilesV2()).toEqual([]);
+    });
+  });
+
+  describe("autoFailStuckRunsV2", () => {
+    it("fails only studying runs past stuck threshold", () => {
+      setRunStuckMsV2(500);
+      enqueueRunV2({ id: "r1", learner: "b", topic: "t" });
+      startRunV2("r1");
+      enqueueRunV2({ id: "r2", learner: "b", topic: "t" });
+      startRunV2("r2");
+      const now = Date.now() + 5000;
+      const failed = autoFailStuckRunsV2({ now });
+      expect(failed).toEqual(expect.arrayContaining(["r1", "r2"]));
+      expect(getRunV2("r1").status).toBe(LEARNING_RUN_V2.FAILED);
+      expect(getRunV2("r1").reason).toMatch(/auto-fail/);
+    });
+    it("ignores queued runs", () => {
+      setRunStuckMsV2(10);
+      enqueueRunV2({ id: "r1", learner: "b", topic: "t" });
+      const now = Date.now() + 100000;
+      expect(autoFailStuckRunsV2({ now })).toEqual([]);
+    });
+  });
+
+  describe("getTechLearningStatsV2", () => {
+    it("reports totals + zero-initialized status buckets", () => {
+      const s = getTechLearningStatsV2();
+      expect(s.totalProfilesV2).toBe(0);
+      expect(s.totalRunsV2).toBe(0);
+      expect(s.profilesByStatus.draft).toBe(0);
+      expect(s.profilesByStatus.active).toBe(0);
+      expect(s.profilesByStatus.stale).toBe(0);
+      expect(s.profilesByStatus.archived).toBe(0);
+      expect(s.runsByStatus.queued).toBe(0);
+      expect(s.runsByStatus.studying).toBe(0);
+      expect(s.runsByStatus.completed).toBe(0);
+    });
+    it("counts by status after mutations", () => {
+      createProfileV2({ id: "p1", owner: "a", stackName: "s1" });
+      activateProfileV2("p1");
+      createProfileV2({ id: "p2", owner: "a", stackName: "s2" });
+      enqueueRunV2({ id: "r1", learner: "b", topic: "t" });
+      startRunV2("r1");
+      const s = getTechLearningStatsV2();
+      expect(s.totalProfilesV2).toBe(2);
+      expect(s.profilesByStatus.active).toBe(1);
+      expect(s.profilesByStatus.draft).toBe(1);
+      expect(s.runsByStatus.studying).toBe(1);
+    });
+  });
+
+  describe("_resetStateV2", () => {
+    it("clears maps and restores defaults", () => {
+      createProfileV2({ id: "p1", owner: "a", stackName: "s" });
+      enqueueRunV2({ id: "r1", learner: "b", topic: "t" });
+      setMaxActiveProfilesPerOwnerV2(99);
+      _resetStateV2();
+      expect(getTechLearningStatsV2().totalProfilesV2).toBe(0);
+      expect(getTechLearningStatsV2().totalRunsV2).toBe(0);
+      expect(getMaxActiveProfilesPerOwnerV2()).toBe(10);
     });
   });
 });

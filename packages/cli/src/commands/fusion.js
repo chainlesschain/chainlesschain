@@ -24,7 +24,48 @@ import {
   detectLanguage,
   getTranslationStats,
   getProtocolFusionStats,
+  BRIDGE_MATURITY_V2,
+  TRANSLATION_RUN_V2,
+  getMaxActiveBridgesPerOperator,
+  setMaxActiveBridgesPerOperator,
+  getMaxRunningTranslationsPerBridge,
+  setMaxRunningTranslationsPerBridge,
+  getBridgeIdleMs,
+  setBridgeIdleMs,
+  getTranslationStuckMs,
+  setTranslationStuckMs,
+  getActiveBridgeCount,
+  getRunningTranslationCount,
+  registerBridgeV2,
+  getBridgeV2,
+  listBridgesV2,
+  setBridgeMaturityV2,
+  activateBridge,
+  degradeBridge,
+  deprecateBridge,
+  retireBridge,
+  touchBridgeUsage,
+  enqueueTranslationV2,
+  getTranslationV2,
+  listTranslationsV2,
+  setTranslationStatusV2,
+  startTranslation,
+  succeedTranslation,
+  failTranslation,
+  cancelTranslation,
+  autoRetireIdleBridges,
+  autoFailStuckRunningTranslations,
+  getProtocolFusionStatsV2,
 } from "../lib/protocol-fusion.js";
+
+function _parseJson(s) {
+  if (!s) return undefined;
+  try {
+    return JSON.parse(s);
+  } catch {
+    throw new Error(`invalid JSON: ${s}`);
+  }
+}
 
 function _dbFromCtx(cmd) {
   const root = cmd?.parent?.parent ?? cmd?.parent;
@@ -326,6 +367,223 @@ export function registerFusionCommand(program) {
       console.log(
         `Translations: ${s.translations.total}  (cache: ${s.translations.cacheSize})`,
       );
+    });
+
+  /* ── V2 Surface (Phase 72-73) ─────────────────────────── */
+
+  fu.command("bridge-maturities-v2")
+    .description("List BRIDGE_MATURITY_V2 enum values")
+    .action(() => {
+      for (const v of Object.values(BRIDGE_MATURITY_V2)) console.log(`  ${v}`);
+    });
+
+  fu.command("translation-runs-v2")
+    .description("List TRANSLATION_RUN_V2 enum values")
+    .action(() => {
+      for (const v of Object.values(TRANSLATION_RUN_V2)) console.log(`  ${v}`);
+    });
+
+  fu.command("max-active-bridges-per-operator")
+    .description("Get current max-active-bridges-per-operator cap")
+    .action(() => console.log(getMaxActiveBridgesPerOperator()));
+  fu.command("set-max-active-bridges-per-operator <n>")
+    .description("Set max-active-bridges-per-operator cap")
+    .action((n) => console.log(setMaxActiveBridgesPerOperator(Number(n))));
+
+  fu.command("max-running-translations-per-bridge")
+    .description("Get current max-running-translations-per-bridge cap")
+    .action(() => console.log(getMaxRunningTranslationsPerBridge()));
+  fu.command("set-max-running-translations-per-bridge <n>")
+    .description("Set max-running-translations-per-bridge cap")
+    .action((n) => console.log(setMaxRunningTranslationsPerBridge(Number(n))));
+
+  fu.command("bridge-idle-ms")
+    .description("Get current bridge-idle-ms threshold")
+    .action(() => console.log(getBridgeIdleMs()));
+  fu.command("set-bridge-idle-ms <n>")
+    .description("Set bridge-idle-ms threshold")
+    .action((n) => console.log(setBridgeIdleMs(Number(n))));
+
+  fu.command("translation-stuck-ms")
+    .description("Get current translation-stuck-ms threshold")
+    .action(() => console.log(getTranslationStuckMs()));
+  fu.command("set-translation-stuck-ms <n>")
+    .description("Set translation-stuck-ms threshold")
+    .action((n) => console.log(setTranslationStuckMs(Number(n))));
+
+  fu.command("active-bridge-count")
+    .description(
+      "Count non-retired, non-provisional bridges (optionally by operator)",
+    )
+    .option("-o, --operator <operator>", "scope to operator")
+    .action((opts) => console.log(getActiveBridgeCount(opts.operator)));
+
+  fu.command("running-translation-count")
+    .description("Count RUNNING translations (optionally by bridge)")
+    .option("-b, --bridge <bridge>", "scope to bridge")
+    .action((opts) => console.log(getRunningTranslationCount(opts.bridge)));
+
+  fu.command("register-bridge-v2 <bridge-id>")
+    .description("Register V2 bridge (provisional by default)")
+    .requiredOption("-o, --operator <operator>", "operator id")
+    .requiredOption("-s, --source <protocol>", "source protocol")
+    .requiredOption("-t, --target <protocol>", "target protocol")
+    .option(
+      "-i, --initial <status>",
+      "initial status",
+      BRIDGE_MATURITY_V2.PROVISIONAL,
+    )
+    .option("--metadata <json>", "metadata JSON")
+    .action((id, opts) => {
+      const b = registerBridgeV2({
+        id,
+        operator: opts.operator,
+        sourceProtocol: opts.source,
+        targetProtocol: opts.target,
+        initialStatus: opts.initial,
+        metadata: _parseJson(opts.metadata),
+      });
+      console.log(JSON.stringify(b, null, 2));
+    });
+
+  fu.command("bridge-v2 <bridge-id>")
+    .description("Show V2 bridge state")
+    .action((id) => {
+      const b = getBridgeV2(id);
+      if (!b) return console.error(`bridge ${id} not found`);
+      console.log(JSON.stringify(b, null, 2));
+    });
+
+  fu.command("list-bridges-v2")
+    .description("List V2 bridges")
+    .option("-o, --operator <operator>", "filter by operator")
+    .option("-s, --status <status>", "filter by status")
+    .action((opts) => {
+      console.log(JSON.stringify(listBridgesV2(opts), null, 2));
+    });
+
+  fu.command("set-bridge-maturity-v2 <bridge-id> <status>")
+    .description("Transition V2 bridge maturity")
+    .option("-r, --reason <reason>", "transition reason")
+    .option("--metadata <json>", "metadata patch JSON")
+    .action((id, status, opts) => {
+      const b = setBridgeMaturityV2(id, status, {
+        reason: opts.reason,
+        metadata: _parseJson(opts.metadata),
+      });
+      console.log(JSON.stringify(b, null, 2));
+    });
+
+  for (const [name, fn] of [
+    ["activate-bridge", activateBridge],
+    ["degrade-bridge", degradeBridge],
+    ["deprecate-bridge", deprecateBridge],
+    ["retire-bridge", retireBridge],
+  ]) {
+    fu.command(`${name} <bridge-id>`)
+      .description(`Shortcut for ${name.replace("-bridge", "")} transition`)
+      .option("-r, --reason <reason>", "transition reason")
+      .action((id, opts) => {
+        const b = fn(id, { reason: opts.reason });
+        console.log(JSON.stringify(b, null, 2));
+      });
+  }
+
+  fu.command("touch-bridge-usage <bridge-id>")
+    .description("Mark V2 bridge as used now (for idle auto-retire)")
+    .action((id) => {
+      const b = touchBridgeUsage(id);
+      console.log(JSON.stringify(b, null, 2));
+    });
+
+  fu.command("enqueue-translation-v2 <translation-id>")
+    .description("Enqueue a V2 translation run")
+    .requiredOption("-b, --bridge <bridge>", "bridge id")
+    .requiredOption("-t, --target <lang>", "target language")
+    .requiredOption("-x, --text <text>", "text to translate")
+    .option("-s, --source <lang>", "source language", "auto")
+    .option("--metadata <json>", "metadata JSON")
+    .action((id, opts) => {
+      const t = enqueueTranslationV2({
+        id,
+        bridgeId: opts.bridge,
+        targetLang: opts.target,
+        text: opts.text,
+        sourceLang: opts.source,
+        metadata: _parseJson(opts.metadata),
+      });
+      console.log(JSON.stringify(t, null, 2));
+    });
+
+  fu.command("translation-v2 <translation-id>")
+    .description("Show V2 translation state")
+    .action((id) => {
+      const t = getTranslationV2(id);
+      if (!t) return console.error(`translation ${id} not found`);
+      console.log(JSON.stringify(t, null, 2));
+    });
+
+  fu.command("list-translations-v2")
+    .description("List V2 translations")
+    .option("-b, --bridge <bridge>", "filter by bridge")
+    .option("-s, --status <status>", "filter by status")
+    .action((opts) => {
+      console.log(JSON.stringify(listTranslationsV2(opts), null, 2));
+    });
+
+  fu.command("set-translation-status-v2 <translation-id> <status>")
+    .description("Transition V2 translation status")
+    .option("-r, --reason <reason>", "transition reason")
+    .option("--metadata <json>", "metadata patch JSON")
+    .option("--result <json>", "result JSON (on success)")
+    .action((id, status, opts) => {
+      const t = setTranslationStatusV2(id, status, {
+        reason: opts.reason,
+        metadata: _parseJson(opts.metadata),
+        result: _parseJson(opts.result),
+      });
+      console.log(JSON.stringify(t, null, 2));
+    });
+
+  for (const [name, fn] of [
+    ["start-translation", startTranslation],
+    ["succeed-translation", succeedTranslation],
+    ["fail-translation", failTranslation],
+    ["cancel-translation", cancelTranslation],
+  ]) {
+    fu.command(`${name} <translation-id>`)
+      .description(
+        `Shortcut for ${name.replace("-translation", "")} transition`,
+      )
+      .option("-r, --reason <reason>", "transition reason")
+      .action((id, opts) => {
+        const t = fn(id, { reason: opts.reason });
+        console.log(JSON.stringify(t, null, 2));
+      });
+  }
+
+  fu.command("auto-retire-idle-bridges")
+    .description(
+      "Bulk-retire ACTIVE/DEGRADED/DEPRECATED bridges whose lastUsedAt is older than bridgeIdleMs",
+    )
+    .action(() => {
+      const flipped = autoRetireIdleBridges();
+      console.log(JSON.stringify({ flipped }, null, 2));
+    });
+
+  fu.command("auto-fail-stuck-running-translations")
+    .description(
+      "Bulk-fail RUNNING translations whose startedAt is older than translationStuckMs",
+    )
+    .action(() => {
+      const flipped = autoFailStuckRunningTranslations();
+      console.log(JSON.stringify({ flipped }, null, 2));
+    });
+
+  fu.command("stats-v2")
+    .description("Show V2 stats with all-enum zero-initialized counters")
+    .action(() => {
+      console.log(JSON.stringify(getProtocolFusionStatsV2(), null, 2));
     });
 
   program.addCommand(fu);

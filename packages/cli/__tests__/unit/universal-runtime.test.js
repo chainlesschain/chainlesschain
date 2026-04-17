@@ -491,3 +491,406 @@ describe("universal-runtime", () => {
     });
   });
 });
+
+/* ═════════════════════════════════════════════════════════ *
+ *  Phase 63 V2 tests
+ * ═════════════════════════════════════════════════════════ */
+
+import {
+  PLUGIN_MATURITY_V2,
+  RUNTIME_TASK_V2,
+  RT_DEFAULT_MAX_ACTIVE_PLUGINS_PER_OWNER,
+  RT_DEFAULT_MAX_RUNNING_TASKS_PER_OWNER,
+  RT_DEFAULT_PLUGIN_IDLE_MS,
+  RT_DEFAULT_TASK_STUCK_MS,
+  getDefaultMaxActivePluginsPerOwnerV2,
+  getMaxActivePluginsPerOwnerV2,
+  setMaxActivePluginsPerOwnerV2,
+  getDefaultMaxRunningTasksPerOwnerV2,
+  getMaxRunningTasksPerOwnerV2,
+  setMaxRunningTasksPerOwnerV2,
+  getDefaultPluginIdleMsV2,
+  getPluginIdleMsV2,
+  setPluginIdleMsV2,
+  getDefaultTaskStuckMsV2,
+  getTaskStuckMsV2,
+  setTaskStuckMsV2,
+  registerPluginV2,
+  getPluginV2,
+  setPluginMaturityV2,
+  activatePluginV2,
+  deprecatePluginV2,
+  retirePluginV2,
+  touchPluginInvocation,
+  enqueueRuntimeTaskV2,
+  getRuntimeTaskV2,
+  setRuntimeTaskStatusV2,
+  startRuntimeTask,
+  completeRuntimeTask,
+  failRuntimeTask,
+  cancelRuntimeTask,
+  getActivePluginCount,
+  getRunningTaskCount,
+  autoRetireIdlePlugins,
+  autoFailStuckRuntimeTasks,
+  getRuntimeStatsV2,
+  _resetStateV2,
+} from "../../src/lib/universal-runtime.js";
+
+describe("universal-runtime V2", () => {
+  beforeEach(() => {
+    _resetStateV2();
+  });
+
+  describe("enums", () => {
+    it("PLUGIN_MATURITY_V2 frozen with 4 states", () => {
+      expect(Object.values(PLUGIN_MATURITY_V2)).toEqual([
+        "draft",
+        "active",
+        "deprecated",
+        "retired",
+      ]);
+      expect(Object.isFrozen(PLUGIN_MATURITY_V2)).toBe(true);
+    });
+
+    it("RUNTIME_TASK_V2 frozen with 5 states", () => {
+      expect(Object.values(RUNTIME_TASK_V2)).toEqual([
+        "queued",
+        "running",
+        "completed",
+        "failed",
+        "canceled",
+      ]);
+      expect(Object.isFrozen(RUNTIME_TASK_V2)).toBe(true);
+    });
+  });
+
+  describe("config defaults + setters", () => {
+    it("exposes frozen defaults", () => {
+      expect(RT_DEFAULT_MAX_ACTIVE_PLUGINS_PER_OWNER).toBe(40);
+      expect(RT_DEFAULT_MAX_RUNNING_TASKS_PER_OWNER).toBe(5);
+      expect(RT_DEFAULT_PLUGIN_IDLE_MS).toBe(90 * 86400000);
+      expect(RT_DEFAULT_TASK_STUCK_MS).toBe(4 * 3600000);
+      expect(getDefaultMaxActivePluginsPerOwnerV2()).toBe(40);
+      expect(getDefaultMaxRunningTasksPerOwnerV2()).toBe(5);
+      expect(getDefaultPluginIdleMsV2()).toBe(90 * 86400000);
+      expect(getDefaultTaskStuckMsV2()).toBe(4 * 3600000);
+    });
+
+    it("mutates config", () => {
+      setMaxActivePluginsPerOwnerV2(5);
+      setMaxRunningTasksPerOwnerV2(2);
+      setPluginIdleMsV2(1000);
+      setTaskStuckMsV2(500);
+      expect(getMaxActivePluginsPerOwnerV2()).toBe(5);
+      expect(getMaxRunningTasksPerOwnerV2()).toBe(2);
+      expect(getPluginIdleMsV2()).toBe(1000);
+      expect(getTaskStuckMsV2()).toBe(500);
+    });
+
+    it("rejects non-positive", () => {
+      expect(() => setMaxActivePluginsPerOwnerV2(0)).toThrow();
+      expect(() => setPluginIdleMsV2(-1)).toThrow();
+      expect(() => setTaskStuckMsV2("x")).toThrow();
+    });
+
+    it("_resetStateV2 restores defaults + clears maps", () => {
+      setMaxActivePluginsPerOwnerV2(10);
+      registerPluginV2(null, { pluginId: "p", ownerId: "o" });
+      enqueueRuntimeTaskV2(null, {
+        taskId: "t",
+        ownerId: "o",
+        pluginId: "p",
+        kind: "invoke",
+      });
+      _resetStateV2();
+      expect(getMaxActivePluginsPerOwnerV2()).toBe(40);
+      expect(getPluginV2("p")).toBeNull();
+      expect(getRuntimeTaskV2("t")).toBeNull();
+    });
+  });
+
+  describe("registerPluginV2", () => {
+    it("creates draft plugin", () => {
+      const p = registerPluginV2(null, {
+        pluginId: "p",
+        ownerId: "alice",
+        name: "foo",
+        version: "1.0.0",
+      });
+      expect(p.status).toBe("draft");
+    });
+
+    it("throws missing/duplicate/invalid/terminal", () => {
+      expect(() => registerPluginV2(null, { ownerId: "a" })).toThrow();
+      expect(() => registerPluginV2(null, { pluginId: "p" })).toThrow();
+      registerPluginV2(null, { pluginId: "p", ownerId: "a" });
+      expect(() =>
+        registerPluginV2(null, { pluginId: "p", ownerId: "a" }),
+      ).toThrow(/already/);
+      expect(() =>
+        registerPluginV2(null, {
+          pluginId: "p2",
+          ownerId: "a",
+          initialStatus: "x",
+        }),
+      ).toThrow();
+      expect(() =>
+        registerPluginV2(null, {
+          pluginId: "p3",
+          ownerId: "a",
+          initialStatus: "retired",
+        }),
+      ).toThrow(/terminal/);
+    });
+
+    it("enforces per-owner active cap", () => {
+      setMaxActivePluginsPerOwnerV2(2);
+      registerPluginV2(null, {
+        pluginId: "p1",
+        ownerId: "a",
+        initialStatus: "active",
+      });
+      registerPluginV2(null, {
+        pluginId: "p2",
+        ownerId: "a",
+        initialStatus: "active",
+      });
+      expect(() =>
+        registerPluginV2(null, {
+          pluginId: "p3",
+          ownerId: "a",
+          initialStatus: "active",
+        }),
+      ).toThrow(/cap/);
+    });
+  });
+
+  describe("setPluginMaturityV2 + shortcuts", () => {
+    beforeEach(() => {
+      registerPluginV2(null, { pluginId: "p", ownerId: "a" });
+    });
+
+    it("draft → active → deprecated → active → retired", () => {
+      activatePluginV2(null, "p");
+      expect(getPluginV2("p").status).toBe("active");
+      deprecatePluginV2(null, "p");
+      expect(getPluginV2("p").status).toBe("deprecated");
+      activatePluginV2(null, "p");
+      expect(getPluginV2("p").status).toBe("active");
+      retirePluginV2(null, "p");
+      expect(getPluginV2("p").status).toBe("retired");
+    });
+
+    it("rejects invalid transition", () => {
+      expect(() => deprecatePluginV2(null, "p")).toThrow(/Invalid transition/);
+    });
+
+    it("retired is terminal", () => {
+      activatePluginV2(null, "p");
+      retirePluginV2(null, "p");
+      expect(() => activatePluginV2(null, "p")).toThrow();
+    });
+
+    it("enforces cap on re-activate", () => {
+      setMaxActivePluginsPerOwnerV2(1);
+      registerPluginV2(null, {
+        pluginId: "p2",
+        ownerId: "a",
+        initialStatus: "active",
+      });
+      expect(() => activatePluginV2(null, "p")).toThrow(/cap/);
+    });
+
+    it("patch-merges metadata + reason", () => {
+      activatePluginV2(null, "p");
+      setPluginMaturityV2(null, "p", "deprecated", {
+        reason: "old",
+        metadata: { note: "legacy" },
+      });
+      const r = getPluginV2("p");
+      expect(r.lastReason).toBe("old");
+      expect(r.metadata.note).toBe("legacy");
+    });
+
+    it("throws unknown", () => {
+      expect(() => activatePluginV2(null, "nope")).toThrow(/Unknown plugin/);
+    });
+  });
+
+  describe("touchPluginInvocation", () => {
+    it("bumps lastInvokedAt", async () => {
+      registerPluginV2(null, { pluginId: "p", ownerId: "a" });
+      const before = getPluginV2("p").lastInvokedAt;
+      await new Promise((r) => setTimeout(r, 5));
+      const t = touchPluginInvocation("p");
+      expect(t.lastInvokedAt).toBeGreaterThan(before);
+    });
+
+    it("throws unknown", () => {
+      expect(() => touchPluginInvocation("x")).toThrow();
+    });
+  });
+
+  describe("enqueueRuntimeTaskV2 + lifecycle", () => {
+    beforeEach(() => {
+      registerPluginV2(null, { pluginId: "p", ownerId: "a" });
+    });
+
+    it("enqueues queued task", () => {
+      const t = enqueueRuntimeTaskV2(null, {
+        taskId: "t",
+        ownerId: "a",
+        pluginId: "p",
+        kind: "invoke",
+      });
+      expect(t.status).toBe("queued");
+    });
+
+    it("throws missing required / duplicate", () => {
+      expect(() =>
+        enqueueRuntimeTaskV2(null, { taskId: "t", ownerId: "a" }),
+      ).toThrow(/pluginId/);
+      enqueueRuntimeTaskV2(null, {
+        taskId: "t",
+        ownerId: "a",
+        pluginId: "p",
+        kind: "invoke",
+      });
+      expect(() =>
+        enqueueRuntimeTaskV2(null, {
+          taskId: "t",
+          ownerId: "a",
+          pluginId: "p",
+          kind: "invoke",
+        }),
+      ).toThrow(/already/);
+    });
+
+    it("queued → running → completed", () => {
+      enqueueRuntimeTaskV2(null, {
+        taskId: "t",
+        ownerId: "a",
+        pluginId: "p",
+        kind: "invoke",
+      });
+      startRuntimeTask(null, "t");
+      expect(getRuntimeTaskV2("t").startedAt).toBeDefined();
+      completeRuntimeTask(null, "t");
+      expect(getRuntimeTaskV2("t").status).toBe("completed");
+    });
+
+    it("enforces running-task cap", () => {
+      setMaxRunningTasksPerOwnerV2(1);
+      enqueueRuntimeTaskV2(null, {
+        taskId: "t1",
+        ownerId: "a",
+        pluginId: "p",
+        kind: "invoke",
+      });
+      enqueueRuntimeTaskV2(null, {
+        taskId: "t2",
+        ownerId: "a",
+        pluginId: "p",
+        kind: "invoke",
+      });
+      startRuntimeTask(null, "t1");
+      expect(() => startRuntimeTask(null, "t2")).toThrow(/cap/);
+    });
+
+    it("startedAt stamp-once", async () => {
+      enqueueRuntimeTaskV2(null, {
+        taskId: "t",
+        ownerId: "a",
+        pluginId: "p",
+        kind: "invoke",
+      });
+      startRuntimeTask(null, "t");
+      const first = getRuntimeTaskV2("t").startedAt;
+      await new Promise((r) => setTimeout(r, 5));
+      completeRuntimeTask(null, "t");
+      expect(getRuntimeTaskV2("t").startedAt).toBe(first);
+    });
+
+    it("terminal states block further transitions", () => {
+      enqueueRuntimeTaskV2(null, {
+        taskId: "t",
+        ownerId: "a",
+        pluginId: "p",
+        kind: "invoke",
+      });
+      startRuntimeTask(null, "t");
+      failRuntimeTask(null, "t");
+      expect(() => completeRuntimeTask(null, "t")).toThrow(/Invalid/);
+    });
+  });
+
+  describe("counts + auto-flips + stats", () => {
+    it("counts scoped by owner", () => {
+      registerPluginV2(null, {
+        pluginId: "p1",
+        ownerId: "a",
+        initialStatus: "active",
+      });
+      registerPluginV2(null, {
+        pluginId: "p2",
+        ownerId: "b",
+        initialStatus: "active",
+      });
+      expect(getActivePluginCount()).toBe(2);
+      expect(getActivePluginCount("a")).toBe(1);
+    });
+
+    it("autoRetireIdlePlugins flips active + deprecated", () => {
+      registerPluginV2(null, {
+        pluginId: "p1",
+        ownerId: "a",
+        initialStatus: "active",
+      });
+      registerPluginV2(null, {
+        pluginId: "p2",
+        ownerId: "a",
+        initialStatus: "active",
+      });
+      setPluginMaturityV2(null, "p2", "deprecated");
+      registerPluginV2(null, { pluginId: "p3", ownerId: "a" }); // draft skipped
+      setPluginIdleMsV2(100);
+      const r = autoRetireIdlePlugins(null, Date.now() + 1000);
+      expect(r.count).toBe(2);
+    });
+
+    it("autoFailStuckRuntimeTasks flips only running", () => {
+      registerPluginV2(null, { pluginId: "p", ownerId: "a" });
+      enqueueRuntimeTaskV2(null, {
+        taskId: "t1",
+        ownerId: "a",
+        pluginId: "p",
+        kind: "invoke",
+      });
+      enqueueRuntimeTaskV2(null, {
+        taskId: "t2",
+        ownerId: "a",
+        pluginId: "p",
+        kind: "invoke",
+      });
+      startRuntimeTask(null, "t1");
+      setTaskStuckMsV2(100);
+      const r = autoFailStuckRuntimeTasks(null, Date.now() + 1000);
+      expect(r.count).toBe(1);
+      expect(getRuntimeTaskV2("t1").status).toBe("failed");
+      expect(getRuntimeTaskV2("t2").status).toBe("queued");
+    });
+
+    it("stats zero-init", () => {
+      const s = getRuntimeStatsV2();
+      expect(s.totalPluginsV2).toBe(0);
+      expect(s.totalTasksV2).toBe(0);
+      expect(Object.keys(s.pluginsByStatus).sort()).toEqual(
+        ["active", "deprecated", "draft", "retired"].sort(),
+      );
+      expect(Object.keys(s.tasksByStatus).sort()).toEqual(
+        ["canceled", "completed", "failed", "queued", "running"].sort(),
+      );
+    });
+  });
+});

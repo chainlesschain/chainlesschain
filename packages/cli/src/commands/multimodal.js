@@ -35,6 +35,40 @@ import {
   getOutputFormats,
   listArtifacts,
   getMultimodalStats,
+  // V2 (Phase 27 V2)
+  SESSION_MATURITY_V2,
+  ARTIFACT_LIFECYCLE_V2,
+  getDefaultMaxActiveSessionsPerOwnerV2,
+  getMaxActiveSessionsPerOwnerV2,
+  setMaxActiveSessionsPerOwnerV2,
+  getDefaultMaxArtifactsPerSessionV2,
+  getMaxArtifactsPerSessionV2,
+  setMaxArtifactsPerSessionV2,
+  getDefaultSessionIdleMsV2,
+  getSessionIdleMsV2,
+  setSessionIdleMsV2,
+  getDefaultArtifactStaleMsV2,
+  getArtifactStaleMsV2,
+  setArtifactStaleMsV2,
+  registerSessionV2,
+  getSessionV2,
+  setSessionMaturityV2,
+  activateSession,
+  pauseSession,
+  completeSessionV2,
+  archiveSession,
+  touchSessionActivity,
+  registerArtifactV2,
+  getArtifactV2,
+  setArtifactStatusV2,
+  markArtifactReady,
+  purgeArtifact,
+  touchArtifactAccess,
+  getActiveSessionCount,
+  getArtifactCount,
+  autoArchiveIdleSessions,
+  autoPurgeStaleArtifacts,
+  getMultimodalStatsV2,
 } from "../lib/multimodal.js";
 
 function _dbFromCtx(cmd) {
@@ -399,6 +433,268 @@ export function registerMultimodalCommand(program) {
       for (const [k, v] of Object.entries(s.byModality))
         console.log(`  ${k}: ${v}`);
     });
+
+  /* ── V2 (Phase 27 V2) ────────────────────────────── */
+
+  function _parseJsonFlag(value, label) {
+    if (value === undefined) return undefined;
+    try {
+      return JSON.parse(value);
+    } catch {
+      throw new Error(`Invalid JSON for ${label}`);
+    }
+  }
+
+  mm.command("session-maturities-v2")
+    .option("--json", "JSON output")
+    .description("List V2 session maturity states")
+    .action((opts) => {
+      const out = Object.values(SESSION_MATURITY_V2);
+      if (opts.json) return console.log(JSON.stringify(out, null, 2));
+      for (const s of out) console.log(`  ${s}`);
+    });
+
+  mm.command("artifact-lifecycles-v2")
+    .option("--json", "JSON output")
+    .description("List V2 artifact lifecycle states")
+    .action((opts) => {
+      const out = Object.values(ARTIFACT_LIFECYCLE_V2);
+      if (opts.json) return console.log(JSON.stringify(out, null, 2));
+      for (const s of out) console.log(`  ${s}`);
+    });
+
+  mm.command("default-max-active-sessions-per-owner")
+    .description("Show V2 default per-owner active-session cap")
+    .action(() => console.log(String(getDefaultMaxActiveSessionsPerOwnerV2())));
+  mm.command("max-active-sessions-per-owner")
+    .description("Show current V2 per-owner active-session cap")
+    .action(() => console.log(String(getMaxActiveSessionsPerOwnerV2())));
+  mm.command("set-max-active-sessions-per-owner <n>")
+    .description("Set V2 per-owner active-session cap")
+    .action((n) =>
+      console.log(String(setMaxActiveSessionsPerOwnerV2(Number(n)))),
+    );
+
+  mm.command("default-max-artifacts-per-session")
+    .description("Show V2 default per-session artifact cap")
+    .action(() => console.log(String(getDefaultMaxArtifactsPerSessionV2())));
+  mm.command("max-artifacts-per-session")
+    .description("Show current V2 per-session artifact cap")
+    .action(() => console.log(String(getMaxArtifactsPerSessionV2())));
+  mm.command("set-max-artifacts-per-session <n>")
+    .description("Set V2 per-session artifact cap")
+    .action((n) => console.log(String(setMaxArtifactsPerSessionV2(Number(n)))));
+
+  mm.command("default-session-idle-ms")
+    .description("Show V2 default session-idle window (ms)")
+    .action(() => console.log(String(getDefaultSessionIdleMsV2())));
+  mm.command("session-idle-ms")
+    .description("Show current V2 session-idle window (ms)")
+    .action(() => console.log(String(getSessionIdleMsV2())));
+  mm.command("set-session-idle-ms <ms>")
+    .description("Set V2 session-idle window (ms)")
+    .action((ms) => console.log(String(setSessionIdleMsV2(Number(ms)))));
+
+  mm.command("default-artifact-stale-ms")
+    .description("Show V2 default artifact-stale window (ms)")
+    .action(() => console.log(String(getDefaultArtifactStaleMsV2())));
+  mm.command("artifact-stale-ms")
+    .description("Show current V2 artifact-stale window (ms)")
+    .action(() => console.log(String(getArtifactStaleMsV2())));
+  mm.command("set-artifact-stale-ms <ms>")
+    .description("Set V2 artifact-stale window (ms)")
+    .action((ms) => console.log(String(setArtifactStaleMsV2(Number(ms)))));
+
+  mm.command("active-session-count")
+    .description("Count active V2 sessions (optionally scoped by owner)")
+    .option("-o, --owner <owner>", "Scope by owner")
+    .action((opts) => console.log(String(getActiveSessionCount(opts.owner))));
+
+  mm.command("artifact-count")
+    .description("Count open V2 artifacts (optionally scoped by session)")
+    .option("-s, --session <session>", "Scope by session")
+    .action((opts) => console.log(String(getArtifactCount(opts.session))));
+
+  mm.command("register-session-v2 <session-id>")
+    .description("Register a V2 session")
+    .requiredOption("-o, --owner-id <owner>", "Owner id")
+    .option("-t, --title <title>", "Title")
+    .option("-i, --initial-status <status>", "Initial maturity status")
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .action((sessionId, opts) => {
+      const db = _dbFromCtx(mm);
+      const metadata = _parseJsonFlag(opts.metadata, "--metadata");
+      console.log(
+        JSON.stringify(
+          registerSessionV2(db, {
+            sessionId,
+            ownerId: opts.ownerId,
+            title: opts.title,
+            initialStatus: opts.initialStatus,
+            metadata,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  mm.command("session-v2 <session-id>")
+    .description("Show a V2 session")
+    .action((sessionId) => {
+      const out = getSessionV2(sessionId);
+      console.log(out ? JSON.stringify(out, null, 2) : "null");
+    });
+
+  mm.command("set-session-maturity-v2 <session-id> <status>")
+    .description("Set V2 session maturity status")
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <json>", "Metadata JSON (merged)")
+    .action((sessionId, status, opts) => {
+      const db = _dbFromCtx(mm);
+      const metadata = _parseJsonFlag(opts.metadata, "--metadata");
+      console.log(
+        JSON.stringify(
+          setSessionMaturityV2(db, sessionId, status, {
+            reason: opts.reason,
+            metadata,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  mm.command("activate-session <session-id>")
+    .option("-r, --reason <reason>")
+    .description("Activate a V2 session")
+    .action((id, opts) => {
+      const db = _dbFromCtx(mm);
+      console.log(
+        JSON.stringify(activateSession(db, id, opts.reason), null, 2),
+      );
+    });
+  mm.command("pause-session <session-id>")
+    .option("-r, --reason <reason>")
+    .description("Pause a V2 session")
+    .action((id, opts) => {
+      const db = _dbFromCtx(mm);
+      console.log(JSON.stringify(pauseSession(db, id, opts.reason), null, 2));
+    });
+  mm.command("complete-session-v2 <session-id>")
+    .option("-r, --reason <reason>")
+    .description("Complete a V2 session")
+    .action((id, opts) => {
+      const db = _dbFromCtx(mm);
+      console.log(
+        JSON.stringify(completeSessionV2(db, id, opts.reason), null, 2),
+      );
+    });
+  mm.command("archive-session <session-id>")
+    .option("-r, --reason <reason>")
+    .description("Archive a V2 session")
+    .action((id, opts) => {
+      const db = _dbFromCtx(mm);
+      console.log(JSON.stringify(archiveSession(db, id, opts.reason), null, 2));
+    });
+  mm.command("touch-session-activity <session-id>")
+    .description("Bump lastActivityAt on a V2 session")
+    .action((id) =>
+      console.log(JSON.stringify(touchSessionActivity(id), null, 2)),
+    );
+
+  mm.command("register-artifact-v2 <artifact-id>")
+    .description("Register a V2 artifact")
+    .requiredOption("-s, --session-id <session>", "Session id")
+    .requiredOption(
+      "-M, --modality <modality>",
+      "Modality (text/document/image/audio/screen)",
+    )
+    .option("-z, --size <bytes>", "Size in bytes", (v) => Number(v))
+    .option("-i, --initial-status <status>", "Initial lifecycle status")
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .action((artifactId, opts) => {
+      const db = _dbFromCtx(mm);
+      const metadata = _parseJsonFlag(opts.metadata, "--metadata");
+      console.log(
+        JSON.stringify(
+          registerArtifactV2(db, {
+            artifactId,
+            sessionId: opts.sessionId,
+            modality: opts.modality,
+            size: opts.size,
+            initialStatus: opts.initialStatus,
+            metadata,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  mm.command("artifact-v2 <artifact-id>")
+    .description("Show a V2 artifact")
+    .action((id) => {
+      const out = getArtifactV2(id);
+      console.log(out ? JSON.stringify(out, null, 2) : "null");
+    });
+
+  mm.command("set-artifact-status-v2 <artifact-id> <status>")
+    .option("-r, --reason <reason>")
+    .option("-m, --metadata <json>")
+    .description("Set V2 artifact lifecycle status")
+    .action((id, status, opts) => {
+      const db = _dbFromCtx(mm);
+      const metadata = _parseJsonFlag(opts.metadata, "--metadata");
+      console.log(
+        JSON.stringify(
+          setArtifactStatusV2(db, id, status, {
+            reason: opts.reason,
+            metadata,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  mm.command("mark-artifact-ready <artifact-id>")
+    .option("-r, --reason <reason>")
+    .description("Mark V2 artifact ready")
+    .action((id, opts) => {
+      const db = _dbFromCtx(mm);
+      console.log(
+        JSON.stringify(markArtifactReady(db, id, opts.reason), null, 2),
+      );
+    });
+  mm.command("purge-artifact <artifact-id>")
+    .option("-r, --reason <reason>")
+    .description("Purge a V2 artifact")
+    .action((id, opts) => {
+      const db = _dbFromCtx(mm);
+      console.log(JSON.stringify(purgeArtifact(db, id, opts.reason), null, 2));
+    });
+  mm.command("touch-artifact-access <artifact-id>")
+    .description("Bump lastAccessAt on a V2 artifact")
+    .action((id) =>
+      console.log(JSON.stringify(touchArtifactAccess(id), null, 2)),
+    );
+
+  mm.command("auto-archive-idle-sessions")
+    .description("Auto-flip idle V2 sessions to ARCHIVED")
+    .action(() => {
+      const db = _dbFromCtx(mm);
+      console.log(JSON.stringify(autoArchiveIdleSessions(db), null, 2));
+    });
+  mm.command("auto-purge-stale-artifacts")
+    .description("Auto-flip stale READY V2 artifacts to PURGED")
+    .action(() => {
+      const db = _dbFromCtx(mm);
+      console.log(JSON.stringify(autoPurgeStaleArtifacts(db), null, 2));
+    });
+  mm.command("stats-v2")
+    .description("V2 multimodal stats (counts by state + config)")
+    .action(() => console.log(JSON.stringify(getMultimodalStatsV2(), null, 2)));
 
   program.addCommand(mm);
 }

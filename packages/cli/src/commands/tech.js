@@ -17,6 +17,37 @@ import {
   TECH_TYPES,
   PRACTICE_LEVELS,
   ANTI_PATTERNS,
+  PROFILE_MATURITY_V2,
+  LEARNING_RUN_V2,
+  getMaxActiveProfilesPerOwnerV2,
+  setMaxActiveProfilesPerOwnerV2,
+  getMaxStudyingRunsPerLearnerV2,
+  setMaxStudyingRunsPerLearnerV2,
+  getProfileStaleMsV2,
+  setProfileStaleMsV2,
+  getRunStuckMsV2,
+  setRunStuckMsV2,
+  getActiveProfileCountV2,
+  getStudyingRunCountV2,
+  createProfileV2,
+  getProfileV2,
+  listProfilesV2,
+  setProfileMaturityV2,
+  activateProfileV2,
+  markProfileStaleV2,
+  archiveProfileV2,
+  touchProfileV2,
+  enqueueRunV2,
+  getRunV2,
+  listRunsV2,
+  setRunStatusV2,
+  startRunV2,
+  completeRunV2,
+  abandonRunV2,
+  failRunV2,
+  autoMarkStaleProfilesV2,
+  autoFailStuckRunsV2,
+  getTechLearningStatsV2,
 } from "../lib/tech-learning-engine.js";
 
 function _dbFromCtx(ctx) {
@@ -264,5 +295,312 @@ export function registerTechCommand(program) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
       }
+    });
+
+  /* ═══ V2 Surface ═══ */
+
+  function _parseMeta(s) {
+    if (!s) return undefined;
+    try {
+      return JSON.parse(s);
+    } catch {
+      throw new Error("--metadata must be valid JSON");
+    }
+  }
+
+  tech
+    .command("profile-maturities-v2")
+    .description("List profile maturity states (V2)")
+    .action(() => {
+      for (const v of Object.values(PROFILE_MATURITY_V2)) logger.log(`  ${v}`);
+    });
+
+  tech
+    .command("learning-runs-v2")
+    .description("List learning run states (V2)")
+    .action(() => {
+      for (const v of Object.values(LEARNING_RUN_V2)) logger.log(`  ${v}`);
+    });
+
+  tech
+    .command("stats-v2")
+    .description("Tech Learning V2 stats")
+    .action(() => {
+      console.log(JSON.stringify(getTechLearningStatsV2(), null, 2));
+    });
+
+  tech
+    .command("max-active-profiles-per-owner")
+    .description("Get/set max active profiles per owner (V2)")
+    .option("-s, --set <n>", "Set value", (v) => parseInt(v, 10))
+    .action((o) => {
+      if (typeof o.set === "number")
+        console.log(setMaxActiveProfilesPerOwnerV2(o.set));
+      else console.log(getMaxActiveProfilesPerOwnerV2());
+    });
+
+  tech
+    .command("max-studying-runs-per-learner")
+    .description("Get/set max studying runs per learner (V2)")
+    .option("-s, --set <n>", "Set value", (v) => parseInt(v, 10))
+    .action((o) => {
+      if (typeof o.set === "number")
+        console.log(setMaxStudyingRunsPerLearnerV2(o.set));
+      else console.log(getMaxStudyingRunsPerLearnerV2());
+    });
+
+  tech
+    .command("profile-stale-ms")
+    .description("Get/set profile stale threshold ms (V2)")
+    .option("-s, --set <n>", "Set value", (v) => parseInt(v, 10))
+    .action((o) => {
+      if (typeof o.set === "number") console.log(setProfileStaleMsV2(o.set));
+      else console.log(getProfileStaleMsV2());
+    });
+
+  tech
+    .command("run-stuck-ms")
+    .description("Get/set run stuck threshold ms (V2)")
+    .option("-s, --set <n>", "Set value", (v) => parseInt(v, 10))
+    .action((o) => {
+      if (typeof o.set === "number") console.log(setRunStuckMsV2(o.set));
+      else console.log(getRunStuckMsV2());
+    });
+
+  tech
+    .command("active-profile-count")
+    .description("Count active+stale profiles for owner (V2)")
+    .requiredOption("-o, --owner <owner>", "Owner")
+    .action((o) => {
+      console.log(getActiveProfileCountV2(o.owner));
+    });
+
+  tech
+    .command("studying-run-count")
+    .description("Count studying runs for learner (V2)")
+    .requiredOption("-l, --learner <learner>", "Learner")
+    .action((o) => {
+      console.log(getStudyingRunCountV2(o.learner));
+    });
+
+  tech
+    .command("create-profile-v2 <id>")
+    .description("Create a profile V2 (draft)")
+    .requiredOption("-o, --owner <owner>", "Owner")
+    .requiredOption("-s, --stack <stack>", "Stack name")
+    .option("-m, --metadata <json>", "JSON metadata")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(
+          createProfileV2({
+            id,
+            owner: o.owner,
+            stackName: o.stack,
+            metadata: _parseMeta(o.metadata),
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  tech
+    .command("profile-v2 <id>")
+    .description("Show profile V2")
+    .action((id) => {
+      const p = getProfileV2(id);
+      if (!p) {
+        logger.error(`profile ${id} not found`);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(p, null, 2));
+    });
+
+  tech
+    .command("list-profiles-v2")
+    .description("List profiles V2")
+    .option("-o, --owner <owner>", "Filter by owner")
+    .option("-s, --status <status>", "Filter by status")
+    .action((o) => {
+      console.log(
+        JSON.stringify(
+          listProfilesV2({ owner: o.owner, status: o.status }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  tech
+    .command("set-profile-maturity-v2 <id> <status>")
+    .description("Transition profile V2 to status")
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <json>", "JSON metadata patch")
+    .action((id, status, o) => {
+      console.log(
+        JSON.stringify(
+          setProfileMaturityV2(id, status, {
+            reason: o.reason,
+            metadata: _parseMeta(o.metadata),
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  tech
+    .command("activate-profile <id>")
+    .description("Transition profile → active (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(activateProfileV2(id, { reason: o.reason }), null, 2),
+      );
+    });
+
+  tech
+    .command("mark-profile-stale <id>")
+    .description("Transition profile → stale (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(markProfileStaleV2(id, { reason: o.reason }), null, 2),
+      );
+    });
+
+  tech
+    .command("archive-profile <id>")
+    .description("Transition profile → archived (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(archiveProfileV2(id, { reason: o.reason }), null, 2),
+      );
+    });
+
+  tech
+    .command("touch-profile <id>")
+    .description("Update lastTouchedAt (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(touchProfileV2(id), null, 2));
+    });
+
+  tech
+    .command("enqueue-run-v2 <id>")
+    .description("Enqueue a learning run (V2)")
+    .requiredOption("-l, --learner <learner>", "Learner")
+    .requiredOption("-t, --topic <topic>", "Topic")
+    .option("-m, --metadata <json>", "JSON metadata")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(
+          enqueueRunV2({
+            id,
+            learner: o.learner,
+            topic: o.topic,
+            metadata: _parseMeta(o.metadata),
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  tech
+    .command("run-v2 <id>")
+    .description("Show learning run V2")
+    .action((id) => {
+      const r = getRunV2(id);
+      if (!r) {
+        logger.error(`run ${id} not found`);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  tech
+    .command("list-runs-v2")
+    .description("List learning runs V2")
+    .option("-l, --learner <learner>", "Filter by learner")
+    .option("-s, --status <status>", "Filter by status")
+    .action((o) => {
+      console.log(
+        JSON.stringify(
+          listRunsV2({ learner: o.learner, status: o.status }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  tech
+    .command("set-run-status-v2 <id> <status>")
+    .description("Transition run V2 to status")
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <json>", "JSON metadata patch")
+    .action((id, status, o) => {
+      console.log(
+        JSON.stringify(
+          setRunStatusV2(id, status, {
+            reason: o.reason,
+            metadata: _parseMeta(o.metadata),
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  tech
+    .command("start-run-v2 <id>")
+    .description("Transition run → studying (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(startRunV2(id, { reason: o.reason }), null, 2),
+      );
+    });
+
+  tech
+    .command("complete-run-v2 <id>")
+    .description("Transition run → completed (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(completeRunV2(id, { reason: o.reason }), null, 2),
+      );
+    });
+
+  tech
+    .command("fail-run-v2 <id>")
+    .description("Transition run → failed (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(JSON.stringify(failRunV2(id, { reason: o.reason }), null, 2));
+    });
+
+  tech
+    .command("abandon-run-v2 <id>")
+    .description("Transition run → abandoned (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(abandonRunV2(id, { reason: o.reason }), null, 2),
+      );
+    });
+
+  tech
+    .command("auto-mark-stale-profiles")
+    .description("Bulk auto-flip active→stale past threshold (V2)")
+    .action(() => {
+      console.log(JSON.stringify(autoMarkStaleProfilesV2(), null, 2));
+    });
+
+  tech
+    .command("auto-fail-stuck-runs")
+    .description("Bulk auto-fail studying runs past threshold (V2)")
+    .action(() => {
+      console.log(JSON.stringify(autoFailStuckRunsV2(), null, 2));
     });
 }

@@ -32,6 +32,40 @@ import {
   setQuota,
   addKnowledgeAttachment,
   getKnowledgeAttachments,
+  // V2 (Phase 17 V2)
+  GATEWAY_MATURITY_V2,
+  PIN_LIFECYCLE_V2,
+  getDefaultMaxActiveGatewaysPerOperatorV2,
+  getMaxActiveGatewaysPerOperatorV2,
+  setMaxActiveGatewaysPerOperatorV2,
+  getDefaultMaxPendingPinsPerOwnerV2,
+  getMaxPendingPinsPerOwnerV2,
+  setMaxPendingPinsPerOwnerV2,
+  getDefaultGatewayIdleMsV2,
+  getGatewayIdleMsV2,
+  setGatewayIdleMsV2,
+  getDefaultPinPendingMsV2,
+  getPinPendingMsV2,
+  setPinPendingMsV2,
+  registerGatewayV2,
+  getGatewayV2,
+  setGatewayMaturityV2,
+  activateGateway,
+  degradeGateway,
+  offlineGateway,
+  retireGateway,
+  touchGatewayHeartbeat,
+  registerPinV2,
+  getPinV2,
+  setPinStatusV2,
+  confirmPin,
+  failPin,
+  unpinV2,
+  getActiveGatewayCount,
+  getPendingPinCount,
+  autoOfflineStaleGateways,
+  autoFailStalePendingPins,
+  getIpfsStatsV2,
 } from "../lib/ipfs-storage.js";
 
 function _dbFromCtx(cmd) {
@@ -387,6 +421,290 @@ export function registerIpfsCommand(program) {
           `  ${r.cid.slice(0, 16)}…  ${String(r.size).padStart(7)}  ${r.filename || "(unnamed)"}`,
         );
     });
+
+  /* ── V2 (Phase 17 V2) ────────────────────────────── */
+
+  function _parseJsonFlag(value, label) {
+    if (value === undefined) return undefined;
+    try {
+      return JSON.parse(value);
+    } catch {
+      throw new Error(`Invalid JSON for ${label}`);
+    }
+  }
+
+  ipfs
+    .command("gateway-maturities-v2")
+    .option("--json", "JSON output")
+    .description("List V2 gateway maturity states")
+    .action((opts) => {
+      const out = Object.values(GATEWAY_MATURITY_V2);
+      if (opts.json) return console.log(JSON.stringify(out, null, 2));
+      for (const s of out) console.log(`  ${s}`);
+    });
+  ipfs
+    .command("pin-lifecycles-v2")
+    .option("--json", "JSON output")
+    .description("List V2 pin lifecycle states")
+    .action((opts) => {
+      const out = Object.values(PIN_LIFECYCLE_V2);
+      if (opts.json) return console.log(JSON.stringify(out, null, 2));
+      for (const s of out) console.log(`  ${s}`);
+    });
+
+  ipfs
+    .command("default-max-active-gateways-per-operator")
+    .description("Show V2 default per-operator active-gateway cap")
+    .action(() =>
+      console.log(String(getDefaultMaxActiveGatewaysPerOperatorV2())),
+    );
+  ipfs
+    .command("max-active-gateways-per-operator")
+    .description("Show current V2 per-operator active-gateway cap")
+    .action(() => console.log(String(getMaxActiveGatewaysPerOperatorV2())));
+  ipfs
+    .command("set-max-active-gateways-per-operator <n>")
+    .description("Set V2 per-operator active-gateway cap")
+    .action((n) =>
+      console.log(String(setMaxActiveGatewaysPerOperatorV2(Number(n)))),
+    );
+
+  ipfs
+    .command("default-max-pending-pins-per-owner")
+    .description("Show V2 default per-owner pending-pin cap")
+    .action(() => console.log(String(getDefaultMaxPendingPinsPerOwnerV2())));
+  ipfs
+    .command("max-pending-pins-per-owner")
+    .description("Show current V2 per-owner pending-pin cap")
+    .action(() => console.log(String(getMaxPendingPinsPerOwnerV2())));
+  ipfs
+    .command("set-max-pending-pins-per-owner <n>")
+    .description("Set V2 per-owner pending-pin cap")
+    .action((n) => console.log(String(setMaxPendingPinsPerOwnerV2(Number(n)))));
+
+  ipfs
+    .command("default-gateway-idle-ms")
+    .description("Show V2 default gateway-idle window (ms)")
+    .action(() => console.log(String(getDefaultGatewayIdleMsV2())));
+  ipfs
+    .command("gateway-idle-ms")
+    .description("Show current V2 gateway-idle window (ms)")
+    .action(() => console.log(String(getGatewayIdleMsV2())));
+  ipfs
+    .command("set-gateway-idle-ms <ms>")
+    .description("Set V2 gateway-idle window (ms)")
+    .action((ms) => console.log(String(setGatewayIdleMsV2(Number(ms)))));
+
+  ipfs
+    .command("default-pin-pending-ms")
+    .description("Show V2 default pin-pending window (ms)")
+    .action(() => console.log(String(getDefaultPinPendingMsV2())));
+  ipfs
+    .command("pin-pending-ms")
+    .description("Show current V2 pin-pending window (ms)")
+    .action(() => console.log(String(getPinPendingMsV2())));
+  ipfs
+    .command("set-pin-pending-ms <ms>")
+    .description("Set V2 pin-pending window (ms)")
+    .action((ms) => console.log(String(setPinPendingMsV2(Number(ms)))));
+
+  ipfs
+    .command("active-gateway-count")
+    .description("Count active V2 gateways (optionally scoped by operator)")
+    .option("-o, --operator <operator>", "Scope by operator")
+    .action((opts) =>
+      console.log(String(getActiveGatewayCount(opts.operator))),
+    );
+  ipfs
+    .command("pending-pin-count")
+    .description("Count pending V2 pins (optionally scoped by owner)")
+    .option("-o, --owner <owner>", "Scope by owner")
+    .action((opts) => console.log(String(getPendingPinCount(opts.owner))));
+
+  ipfs
+    .command("register-gateway-v2 <gateway-id>")
+    .description("Register a V2 gateway")
+    .requiredOption("-o, --operator-id <operator>", "Operator id")
+    .requiredOption("-e, --endpoint <url>", "Endpoint URL")
+    .option("-i, --initial-status <status>", "Initial maturity status")
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .action((gatewayId, opts) => {
+      const db = _dbFromCtx(ipfs);
+      const metadata = _parseJsonFlag(opts.metadata, "--metadata");
+      console.log(
+        JSON.stringify(
+          registerGatewayV2(db, {
+            gatewayId,
+            operatorId: opts.operatorId,
+            endpoint: opts.endpoint,
+            initialStatus: opts.initialStatus,
+            metadata,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+  ipfs
+    .command("gateway-v2 <gateway-id>")
+    .description("Show a V2 gateway")
+    .action((id) => {
+      const out = getGatewayV2(id);
+      console.log(out ? JSON.stringify(out, null, 2) : "null");
+    });
+  ipfs
+    .command("set-gateway-maturity-v2 <gateway-id> <status>")
+    .option("-r, --reason <reason>")
+    .option("-m, --metadata <json>")
+    .description("Set V2 gateway maturity status")
+    .action((id, status, opts) => {
+      const db = _dbFromCtx(ipfs);
+      const metadata = _parseJsonFlag(opts.metadata, "--metadata");
+      console.log(
+        JSON.stringify(
+          setGatewayMaturityV2(db, id, status, {
+            reason: opts.reason,
+            metadata,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+  ipfs
+    .command("activate-gateway <gateway-id>")
+    .option("-r, --reason <reason>")
+    .description("Activate a V2 gateway")
+    .action((id, opts) => {
+      const db = _dbFromCtx(ipfs);
+      console.log(
+        JSON.stringify(activateGateway(db, id, opts.reason), null, 2),
+      );
+    });
+  ipfs
+    .command("degrade-gateway <gateway-id>")
+    .option("-r, --reason <reason>")
+    .description("Degrade a V2 gateway")
+    .action((id, opts) => {
+      const db = _dbFromCtx(ipfs);
+      console.log(JSON.stringify(degradeGateway(db, id, opts.reason), null, 2));
+    });
+  ipfs
+    .command("offline-gateway <gateway-id>")
+    .option("-r, --reason <reason>")
+    .description("Offline a V2 gateway")
+    .action((id, opts) => {
+      const db = _dbFromCtx(ipfs);
+      console.log(JSON.stringify(offlineGateway(db, id, opts.reason), null, 2));
+    });
+  ipfs
+    .command("retire-gateway <gateway-id>")
+    .option("-r, --reason <reason>")
+    .description("Retire a V2 gateway")
+    .action((id, opts) => {
+      const db = _dbFromCtx(ipfs);
+      console.log(JSON.stringify(retireGateway(db, id, opts.reason), null, 2));
+    });
+  ipfs
+    .command("touch-gateway-heartbeat <gateway-id>")
+    .description("Bump lastHeartbeatAt on a V2 gateway")
+    .action((id) =>
+      console.log(JSON.stringify(touchGatewayHeartbeat(id), null, 2)),
+    );
+
+  ipfs
+    .command("register-pin-v2 <pin-id>")
+    .description("Register a V2 pin request")
+    .requiredOption("-o, --owner-id <owner>", "Owner id")
+    .requiredOption("-c, --cid <cid>", "CID")
+    .option("-i, --initial-status <status>", "Initial lifecycle status")
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .action((pinId, opts) => {
+      const db = _dbFromCtx(ipfs);
+      const metadata = _parseJsonFlag(opts.metadata, "--metadata");
+      console.log(
+        JSON.stringify(
+          registerPinV2(db, {
+            pinId,
+            ownerId: opts.ownerId,
+            cid: opts.cid,
+            initialStatus: opts.initialStatus,
+            metadata,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+  ipfs
+    .command("pin-v2 <pin-id>")
+    .description("Show a V2 pin record")
+    .action((id) => {
+      const out = getPinV2(id);
+      console.log(out ? JSON.stringify(out, null, 2) : "null");
+    });
+  ipfs
+    .command("set-pin-status-v2 <pin-id> <status>")
+    .option("-r, --reason <reason>")
+    .option("-m, --metadata <json>")
+    .description("Set V2 pin lifecycle status")
+    .action((id, status, opts) => {
+      const db = _dbFromCtx(ipfs);
+      const metadata = _parseJsonFlag(opts.metadata, "--metadata");
+      console.log(
+        JSON.stringify(
+          setPinStatusV2(db, id, status, {
+            reason: opts.reason,
+            metadata,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+  ipfs
+    .command("confirm-pin <pin-id>")
+    .option("-r, --reason <reason>")
+    .description("Confirm a V2 pin (pending -> pinned)")
+    .action((id, opts) => {
+      const db = _dbFromCtx(ipfs);
+      console.log(JSON.stringify(confirmPin(db, id, opts.reason), null, 2));
+    });
+  ipfs
+    .command("fail-pin <pin-id>")
+    .option("-r, --reason <reason>")
+    .description("Fail a V2 pin")
+    .action((id, opts) => {
+      const db = _dbFromCtx(ipfs);
+      console.log(JSON.stringify(failPin(db, id, opts.reason), null, 2));
+    });
+  ipfs
+    .command("unpin-v2 <pin-id>")
+    .option("-r, --reason <reason>")
+    .description("Unpin a V2 pin (terminal)")
+    .action((id, opts) => {
+      const db = _dbFromCtx(ipfs);
+      console.log(JSON.stringify(unpinV2(db, id, opts.reason), null, 2));
+    });
+
+  ipfs
+    .command("auto-offline-stale-gateways")
+    .description("Auto-flip stale ACTIVE/DEGRADED V2 gateways to OFFLINE")
+    .action(() => {
+      const db = _dbFromCtx(ipfs);
+      console.log(JSON.stringify(autoOfflineStaleGateways(db), null, 2));
+    });
+  ipfs
+    .command("auto-fail-stale-pending-pins")
+    .description("Auto-flip stale PENDING V2 pins to FAILED")
+    .action(() => {
+      const db = _dbFromCtx(ipfs);
+      console.log(JSON.stringify(autoFailStalePendingPins(db), null, 2));
+    });
+  ipfs
+    .command("stats-v2")
+    .description("V2 IPFS stats (counts by state + config)")
+    .action(() => console.log(JSON.stringify(getIpfsStatsV2(), null, 2)));
 
   program.addCommand(ipfs);
 }

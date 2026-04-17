@@ -593,3 +593,346 @@ export function _resetState() {
   _translations.clear();
   _conventions.clear();
 }
+
+/* ═════════════════════════════════════════════════════════ *
+ *  Phase 28 V2 — Spec Maturity + Dialogue Lifecycle
+ * ═════════════════════════════════════════════════════════ */
+
+export const SPEC_MATURITY_V2 = Object.freeze({
+  DRAFT: "draft",
+  REFINING: "refining",
+  APPROVED: "approved",
+  IMPLEMENTED: "implemented",
+  ARCHIVED: "archived",
+});
+
+export const DIALOGUE_TURN_V2 = Object.freeze({
+  PENDING: "pending",
+  ANSWERED: "answered",
+  DISMISSED: "dismissed",
+  ESCALATED: "escalated",
+});
+
+const SPEC_TRANSITIONS_V2 = new Map([
+  ["draft", new Set(["refining", "approved", "archived"])],
+  ["refining", new Set(["draft", "approved", "archived"])],
+  ["approved", new Set(["refining", "implemented", "archived"])],
+  ["implemented", new Set(["archived"])],
+]);
+const SPEC_TERMINALS_V2 = new Set(["archived"]);
+
+const DIALOGUE_TRANSITIONS_V2 = new Map([
+  ["pending", new Set(["answered", "dismissed", "escalated"])],
+  ["escalated", new Set(["answered", "dismissed"])],
+]);
+const DIALOGUE_TERMINALS_V2 = new Set(["answered", "dismissed"]);
+
+export const NLPROG_DEFAULT_MAX_ACTIVE_SPECS_PER_AUTHOR = 30;
+export const NLPROG_DEFAULT_MAX_PENDING_TURNS_PER_SPEC = 20;
+export const NLPROG_DEFAULT_SPEC_IDLE_MS = 45 * 86400000; // 45d
+export const NLPROG_DEFAULT_TURN_PENDING_MS = 7 * 86400000; // 7d
+
+let _maxActiveSpecsPerAuthorV2 = NLPROG_DEFAULT_MAX_ACTIVE_SPECS_PER_AUTHOR;
+let _maxPendingTurnsPerSpecV2 = NLPROG_DEFAULT_MAX_PENDING_TURNS_PER_SPEC;
+let _specIdleMsV2 = NLPROG_DEFAULT_SPEC_IDLE_MS;
+let _turnPendingMsV2 = NLPROG_DEFAULT_TURN_PENDING_MS;
+
+function _positiveIntV2(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be a positive integer`);
+  return v;
+}
+
+export function getDefaultMaxActiveSpecsPerAuthorV2() {
+  return NLPROG_DEFAULT_MAX_ACTIVE_SPECS_PER_AUTHOR;
+}
+export function getMaxActiveSpecsPerAuthorV2() {
+  return _maxActiveSpecsPerAuthorV2;
+}
+export function setMaxActiveSpecsPerAuthorV2(n) {
+  return (_maxActiveSpecsPerAuthorV2 = _positiveIntV2(
+    n,
+    "maxActiveSpecsPerAuthor",
+  ));
+}
+export function getDefaultMaxPendingTurnsPerSpecV2() {
+  return NLPROG_DEFAULT_MAX_PENDING_TURNS_PER_SPEC;
+}
+export function getMaxPendingTurnsPerSpecV2() {
+  return _maxPendingTurnsPerSpecV2;
+}
+export function setMaxPendingTurnsPerSpecV2(n) {
+  return (_maxPendingTurnsPerSpecV2 = _positiveIntV2(
+    n,
+    "maxPendingTurnsPerSpec",
+  ));
+}
+export function getDefaultSpecIdleMsV2() {
+  return NLPROG_DEFAULT_SPEC_IDLE_MS;
+}
+export function getSpecIdleMsV2() {
+  return _specIdleMsV2;
+}
+export function setSpecIdleMsV2(ms) {
+  return (_specIdleMsV2 = _positiveIntV2(ms, "specIdleMs"));
+}
+export function getDefaultTurnPendingMsV2() {
+  return NLPROG_DEFAULT_TURN_PENDING_MS;
+}
+export function getTurnPendingMsV2() {
+  return _turnPendingMsV2;
+}
+export function setTurnPendingMsV2(ms) {
+  return (_turnPendingMsV2 = _positiveIntV2(ms, "turnPendingMs"));
+}
+
+const _specsV2 = new Map();
+const _turnsV2 = new Map();
+
+function _isActiveSpec(s) {
+  return (
+    s === SPEC_MATURITY_V2.DRAFT ||
+    s === SPEC_MATURITY_V2.REFINING ||
+    s === SPEC_MATURITY_V2.APPROVED
+  );
+}
+
+export function registerSpecV2(
+  _db,
+  { specId, authorId, title, initialStatus, metadata } = {},
+) {
+  if (!specId) throw new Error("specId is required");
+  if (!authorId) throw new Error("authorId is required");
+  if (_specsV2.has(specId)) throw new Error(`Spec ${specId} already exists`);
+  const status = initialStatus || SPEC_MATURITY_V2.DRAFT;
+  if (!Object.values(SPEC_MATURITY_V2).includes(status))
+    throw new Error(`Invalid initial status: ${status}`);
+  if (SPEC_TERMINALS_V2.has(status))
+    throw new Error(`Cannot register in terminal status: ${status}`);
+  if (_isActiveSpec(status)) {
+    if (getActiveSpecCount(authorId) >= _maxActiveSpecsPerAuthorV2)
+      throw new Error(
+        `Author ${authorId} reached active-spec cap (${_maxActiveSpecsPerAuthorV2})`,
+      );
+  }
+  const now = _now();
+  const record = {
+    specId,
+    authorId,
+    title: title || "",
+    status,
+    metadata: metadata || {},
+    createdAt: now,
+    updatedAt: now,
+    lastActivityAt: now,
+  };
+  _specsV2.set(specId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getSpecV2(specId) {
+  const r = _specsV2.get(specId);
+  return r ? { ...r, metadata: { ...r.metadata } } : null;
+}
+
+export function setSpecMaturityV2(_db, specId, newStatus, patch = {}) {
+  const record = _specsV2.get(specId);
+  if (!record) throw new Error(`Unknown spec: ${specId}`);
+  if (!Object.values(SPEC_MATURITY_V2).includes(newStatus))
+    throw new Error(`Invalid status: ${newStatus}`);
+  const allowed = SPEC_TRANSITIONS_V2.get(record.status) || new Set();
+  if (!allowed.has(newStatus))
+    throw new Error(`Invalid transition: ${record.status} -> ${newStatus}`);
+  if (_isActiveSpec(newStatus) && !_isActiveSpec(record.status)) {
+    if (getActiveSpecCount(record.authorId) >= _maxActiveSpecsPerAuthorV2)
+      throw new Error(
+        `Author ${record.authorId} reached active-spec cap (${_maxActiveSpecsPerAuthorV2})`,
+      );
+  }
+  record.status = newStatus;
+  record.updatedAt = _now();
+  if (patch.reason !== undefined) record.lastReason = patch.reason;
+  if (patch.metadata)
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function refineSpec(db, id, reason) {
+  return setSpecMaturityV2(db, id, SPEC_MATURITY_V2.REFINING, { reason });
+}
+export function approveSpec(db, id, reason) {
+  return setSpecMaturityV2(db, id, SPEC_MATURITY_V2.APPROVED, { reason });
+}
+export function implementSpec(db, id, reason) {
+  return setSpecMaturityV2(db, id, SPEC_MATURITY_V2.IMPLEMENTED, { reason });
+}
+export function archiveSpec(db, id, reason) {
+  return setSpecMaturityV2(db, id, SPEC_MATURITY_V2.ARCHIVED, { reason });
+}
+
+export function touchSpecActivity(specId) {
+  const record = _specsV2.get(specId);
+  if (!record) throw new Error(`Unknown spec: ${specId}`);
+  record.lastActivityAt = _now();
+  record.updatedAt = record.lastActivityAt;
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function registerDialogueTurnV2(
+  _db,
+  { turnId, specId, role, question, initialStatus, metadata } = {},
+) {
+  if (!turnId) throw new Error("turnId is required");
+  if (!specId) throw new Error("specId is required");
+  if (!_specsV2.has(specId)) throw new Error(`Unknown spec: ${specId}`);
+  if (_turnsV2.has(turnId)) throw new Error(`Turn ${turnId} already exists`);
+  const status = initialStatus || DIALOGUE_TURN_V2.PENDING;
+  if (!Object.values(DIALOGUE_TURN_V2).includes(status))
+    throw new Error(`Invalid initial status: ${status}`);
+  if (DIALOGUE_TERMINALS_V2.has(status))
+    throw new Error(`Cannot register in terminal status: ${status}`);
+  if (status === DIALOGUE_TURN_V2.PENDING) {
+    if (getPendingTurnCount(specId) >= _maxPendingTurnsPerSpecV2)
+      throw new Error(
+        `Spec ${specId} reached pending-turn cap (${_maxPendingTurnsPerSpecV2})`,
+      );
+  }
+  const now = _now();
+  const record = {
+    turnId,
+    specId,
+    role: role || "user",
+    question: question || "",
+    status,
+    metadata: metadata || {},
+    createdAt: now,
+    updatedAt: now,
+  };
+  _turnsV2.set(turnId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getDialogueTurnV2(turnId) {
+  const r = _turnsV2.get(turnId);
+  return r ? { ...r, metadata: { ...r.metadata } } : null;
+}
+
+export function setDialogueTurnStatusV2(_db, turnId, newStatus, patch = {}) {
+  const record = _turnsV2.get(turnId);
+  if (!record) throw new Error(`Unknown turn: ${turnId}`);
+  if (!Object.values(DIALOGUE_TURN_V2).includes(newStatus))
+    throw new Error(`Invalid status: ${newStatus}`);
+  const allowed = DIALOGUE_TRANSITIONS_V2.get(record.status) || new Set();
+  if (!allowed.has(newStatus))
+    throw new Error(`Invalid transition: ${record.status} -> ${newStatus}`);
+  record.status = newStatus;
+  record.updatedAt = _now();
+  if (patch.answer !== undefined) record.answer = patch.answer;
+  if (patch.reason !== undefined) record.lastReason = patch.reason;
+  if (patch.metadata)
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function answerTurn(db, id, answer, reason) {
+  return setDialogueTurnStatusV2(db, id, DIALOGUE_TURN_V2.ANSWERED, {
+    answer,
+    reason,
+  });
+}
+export function dismissTurn(db, id, reason) {
+  return setDialogueTurnStatusV2(db, id, DIALOGUE_TURN_V2.DISMISSED, {
+    reason,
+  });
+}
+export function escalateTurn(db, id, reason) {
+  return setDialogueTurnStatusV2(db, id, DIALOGUE_TURN_V2.ESCALATED, {
+    reason,
+  });
+}
+
+export function getActiveSpecCount(authorId) {
+  let n = 0;
+  for (const r of _specsV2.values()) {
+    if (!_isActiveSpec(r.status)) continue;
+    if (authorId && r.authorId !== authorId) continue;
+    n++;
+  }
+  return n;
+}
+
+export function getPendingTurnCount(specId) {
+  let n = 0;
+  for (const r of _turnsV2.values()) {
+    if (r.status !== DIALOGUE_TURN_V2.PENDING) continue;
+    if (specId && r.specId !== specId) continue;
+    n++;
+  }
+  return n;
+}
+
+export function autoArchiveIdleSpecs(_db, nowMs) {
+  const now = nowMs ?? _now();
+  const flipped = [];
+  for (const r of _specsV2.values()) {
+    if (
+      r.status === SPEC_MATURITY_V2.DRAFT ||
+      r.status === SPEC_MATURITY_V2.REFINING ||
+      r.status === SPEC_MATURITY_V2.APPROVED ||
+      r.status === SPEC_MATURITY_V2.IMPLEMENTED
+    ) {
+      if (now - r.lastActivityAt > _specIdleMsV2) {
+        r.status = SPEC_MATURITY_V2.ARCHIVED;
+        r.updatedAt = now;
+        r.lastReason = "idle";
+        flipped.push(r.specId);
+      }
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function autoDismissStalePendingTurns(_db, nowMs) {
+  const now = nowMs ?? _now();
+  const flipped = [];
+  for (const r of _turnsV2.values()) {
+    if (r.status === DIALOGUE_TURN_V2.PENDING) {
+      if (now - r.createdAt > _turnPendingMsV2) {
+        r.status = DIALOGUE_TURN_V2.DISMISSED;
+        r.updatedAt = now;
+        r.lastReason = "pending_timeout";
+        flipped.push(r.turnId);
+      }
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function getNlProgrammingStatsV2() {
+  const specsByStatus = {};
+  for (const s of Object.values(SPEC_MATURITY_V2)) specsByStatus[s] = 0;
+  const turnsByStatus = {};
+  for (const s of Object.values(DIALOGUE_TURN_V2)) turnsByStatus[s] = 0;
+  for (const r of _specsV2.values()) specsByStatus[r.status]++;
+  for (const r of _turnsV2.values()) turnsByStatus[r.status]++;
+  return {
+    totalSpecsV2: _specsV2.size,
+    totalTurnsV2: _turnsV2.size,
+    maxActiveSpecsPerAuthor: _maxActiveSpecsPerAuthorV2,
+    maxPendingTurnsPerSpec: _maxPendingTurnsPerSpecV2,
+    specIdleMs: _specIdleMsV2,
+    turnPendingMs: _turnPendingMsV2,
+    specsByStatus,
+    turnsByStatus,
+  };
+}
+
+export function _resetStateV2() {
+  _maxActiveSpecsPerAuthorV2 = NLPROG_DEFAULT_MAX_ACTIVE_SPECS_PER_AUTHOR;
+  _maxPendingTurnsPerSpecV2 = NLPROG_DEFAULT_MAX_PENDING_TURNS_PER_SPEC;
+  _specIdleMsV2 = NLPROG_DEFAULT_SPEC_IDLE_MS;
+  _turnPendingMsV2 = NLPROG_DEFAULT_TURN_PENDING_MS;
+  _specsV2.clear();
+  _turnsV2.clear();
+}

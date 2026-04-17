@@ -647,3 +647,439 @@ export function _resetState() {
   _proposalVotes.clear();
   _seq = 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+ * Phase 54 V2 — Proposer Maturity + Vote Delegation Lifecycle
+ * Strictly additive. Legacy surface above is preserved.
+ * ═════════════════════════════════════════════════════════════ */
+
+export const PROPOSER_MATURITY_V2 = Object.freeze({
+  ONBOARDING: "onboarding",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  RETIRED: "retired",
+});
+
+export const DELEGATION_LIFECYCLE_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  REVOKED: "revoked",
+  EXPIRED: "expired",
+});
+
+const PROPOSER_TRANSITIONS_V2 = new Map([
+  ["onboarding", new Set(["active", "retired"])],
+  ["active", new Set(["suspended", "retired"])],
+  ["suspended", new Set(["active", "retired"])],
+]);
+const PROPOSER_TERMINALS_V2 = new Set(["retired"]);
+
+const DELEGATION_TRANSITIONS_V2 = new Map([
+  ["pending", new Set(["active", "revoked", "expired"])],
+  ["active", new Set(["revoked", "expired"])],
+]);
+const DELEGATION_TERMINALS_V2 = new Set(["revoked", "expired"]);
+
+export const GOV_DEFAULT_MAX_ACTIVE_PROPOSERS_PER_REALM = 100;
+export const GOV_DEFAULT_MAX_ACTIVE_DELEGATIONS_PER_DELEGATOR = 5;
+export const GOV_DEFAULT_PROPOSER_IDLE_MS = 180 * 86400000; // 180 days
+export const GOV_DEFAULT_PENDING_DELEGATION_MS = 7 * 86400000; // 7 days
+
+let _maxActiveProposersPerRealmV2 = GOV_DEFAULT_MAX_ACTIVE_PROPOSERS_PER_REALM;
+let _maxActiveDelegationsPerDelegatorV2 =
+  GOV_DEFAULT_MAX_ACTIVE_DELEGATIONS_PER_DELEGATOR;
+let _proposerIdleMsV2 = GOV_DEFAULT_PROPOSER_IDLE_MS;
+let _pendingDelegationMsV2 = GOV_DEFAULT_PENDING_DELEGATION_MS;
+
+const _proposerStatesV2 = new Map(); // proposerId → V2 record
+const _delegationStatesV2 = new Map(); // delegationId → V2 record
+
+function _positiveIntV2(n, label) {
+  const num = Number(n);
+  if (!Number.isFinite(num) || num <= 0) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return Math.floor(num);
+}
+
+function _validProposerStatusV2(s) {
+  return (
+    s === "onboarding" || s === "active" || s === "suspended" || s === "retired"
+  );
+}
+
+function _validDelegationStatusV2(s) {
+  return (
+    s === "pending" || s === "active" || s === "revoked" || s === "expired"
+  );
+}
+
+export function getDefaultMaxActiveProposersPerRealmV2() {
+  return GOV_DEFAULT_MAX_ACTIVE_PROPOSERS_PER_REALM;
+}
+export function getMaxActiveProposersPerRealmV2() {
+  return _maxActiveProposersPerRealmV2;
+}
+export function setMaxActiveProposersPerRealmV2(n) {
+  _maxActiveProposersPerRealmV2 = _positiveIntV2(
+    n,
+    "maxActiveProposersPerRealm",
+  );
+  return _maxActiveProposersPerRealmV2;
+}
+
+export function getDefaultMaxActiveDelegationsPerDelegatorV2() {
+  return GOV_DEFAULT_MAX_ACTIVE_DELEGATIONS_PER_DELEGATOR;
+}
+export function getMaxActiveDelegationsPerDelegatorV2() {
+  return _maxActiveDelegationsPerDelegatorV2;
+}
+export function setMaxActiveDelegationsPerDelegatorV2(n) {
+  _maxActiveDelegationsPerDelegatorV2 = _positiveIntV2(
+    n,
+    "maxActiveDelegationsPerDelegator",
+  );
+  return _maxActiveDelegationsPerDelegatorV2;
+}
+
+export function getDefaultProposerIdleMsV2() {
+  return GOV_DEFAULT_PROPOSER_IDLE_MS;
+}
+export function getProposerIdleMsV2() {
+  return _proposerIdleMsV2;
+}
+export function setProposerIdleMsV2(ms) {
+  _proposerIdleMsV2 = _positiveIntV2(ms, "proposerIdleMs");
+  return _proposerIdleMsV2;
+}
+
+export function getDefaultPendingDelegationMsV2() {
+  return GOV_DEFAULT_PENDING_DELEGATION_MS;
+}
+export function getPendingDelegationMsV2() {
+  return _pendingDelegationMsV2;
+}
+export function setPendingDelegationMsV2(ms) {
+  _pendingDelegationMsV2 = _positiveIntV2(ms, "pendingDelegationMs");
+  return _pendingDelegationMsV2;
+}
+
+/* ── Proposer V2 ────────────────────────────────────────────── */
+
+export function registerProposerV2(db, config = {}) {
+  void db;
+  const proposerId = String(config.proposerId || "").trim();
+  if (!proposerId) throw new Error("proposerId is required");
+  const realm = String(config.realm || "").trim();
+  if (!realm) throw new Error("realm is required");
+  if (_proposerStatesV2.has(proposerId)) {
+    throw new Error(`Proposer already registered in V2: ${proposerId}`);
+  }
+
+  const now = Number(config.now ?? Date.now());
+  const initialStatus = config.initialStatus || "onboarding";
+  if (!_validProposerStatusV2(initialStatus)) {
+    throw new Error(`Invalid initial status: ${initialStatus}`);
+  }
+  if (PROPOSER_TERMINALS_V2.has(initialStatus)) {
+    throw new Error(
+      `Cannot register proposer in terminal status '${initialStatus}'`,
+    );
+  }
+
+  if (initialStatus === "active") {
+    let activeCount = 0;
+    for (const rec of _proposerStatesV2.values()) {
+      if (rec.realm === realm && rec.status === "active") activeCount += 1;
+    }
+    if (activeCount >= _maxActiveProposersPerRealmV2) {
+      throw new Error(
+        `Max active proposers per realm reached (${_maxActiveProposersPerRealmV2})`,
+      );
+    }
+  }
+
+  const record = {
+    proposerId,
+    realm,
+    displayName: config.displayName ? String(config.displayName) : null,
+    status: initialStatus,
+    metadata: config.metadata ? { ...config.metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+    lastActivityAt: now,
+    reason: null,
+  };
+  _proposerStatesV2.set(proposerId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getProposerV2(proposerId) {
+  const rec = _proposerStatesV2.get(String(proposerId || ""));
+  if (!rec) return null;
+  return { ...rec, metadata: { ...rec.metadata } };
+}
+
+export function setProposerMaturityV2(db, proposerId, newStatus, patch = {}) {
+  void db;
+  const id = String(proposerId || "");
+  const record = _proposerStatesV2.get(id);
+  if (!record) throw new Error(`Proposer not registered in V2: ${id}`);
+  if (!_validProposerStatusV2(newStatus)) {
+    throw new Error(`Invalid proposer status: ${newStatus}`);
+  }
+  if (PROPOSER_TERMINALS_V2.has(record.status)) {
+    throw new Error(
+      `Proposer is in terminal status '${record.status}' and cannot transition`,
+    );
+  }
+  const allowed = PROPOSER_TRANSITIONS_V2.get(record.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${record.status} → ${newStatus}`);
+  }
+
+  if (newStatus === "active" && record.status !== "active") {
+    let activeCount = 0;
+    for (const rec of _proposerStatesV2.values()) {
+      if (rec.realm === record.realm && rec.status === "active") {
+        activeCount += 1;
+      }
+    }
+    if (activeCount >= _maxActiveProposersPerRealmV2) {
+      throw new Error(
+        `Max active proposers per realm reached (${_maxActiveProposersPerRealmV2})`,
+      );
+    }
+  }
+
+  record.status = newStatus;
+  record.updatedAt = Number(patch.now ?? Date.now());
+  if (patch.reason !== undefined) record.reason = patch.reason;
+  if (patch.metadata && typeof patch.metadata === "object") {
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  }
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function activateProposer(db, proposerId, reason) {
+  return setProposerMaturityV2(db, proposerId, "active", { reason });
+}
+export function suspendProposer(db, proposerId, reason) {
+  return setProposerMaturityV2(db, proposerId, "suspended", { reason });
+}
+export function retireProposer(db, proposerId, reason) {
+  return setProposerMaturityV2(db, proposerId, "retired", { reason });
+}
+
+export function touchProposerActivity(proposerId) {
+  const rec = _proposerStatesV2.get(String(proposerId || ""));
+  if (!rec) throw new Error(`Proposer not registered in V2: ${proposerId}`);
+  rec.lastActivityAt = Date.now();
+  return { ...rec, metadata: { ...rec.metadata } };
+}
+
+/* ── Delegation V2 ──────────────────────────────────────────── */
+
+export function createDelegationV2(db, config = {}) {
+  void db;
+  const delegationId = String(config.delegationId || "").trim();
+  if (!delegationId) throw new Error("delegationId is required");
+  const delegatorId = String(config.delegatorId || "").trim();
+  if (!delegatorId) throw new Error("delegatorId is required");
+  const delegateeId = String(config.delegateeId || "").trim();
+  if (!delegateeId) throw new Error("delegateeId is required");
+  if (delegatorId === delegateeId) {
+    throw new Error("delegatorId and delegateeId must differ");
+  }
+  const scope = String(config.scope || "").trim();
+  if (!scope) throw new Error("scope is required");
+
+  if (_delegationStatesV2.has(delegationId)) {
+    throw new Error(`Delegation already registered in V2: ${delegationId}`);
+  }
+
+  let openCount = 0;
+  for (const rec of _delegationStatesV2.values()) {
+    if (
+      rec.delegatorId === delegatorId &&
+      !DELEGATION_TERMINALS_V2.has(rec.status)
+    ) {
+      openCount += 1;
+    }
+  }
+  if (openCount >= _maxActiveDelegationsPerDelegatorV2) {
+    throw new Error(
+      `Max active delegations per delegator reached (${_maxActiveDelegationsPerDelegatorV2})`,
+    );
+  }
+
+  const now = Number(config.now ?? Date.now());
+  const record = {
+    delegationId,
+    delegatorId,
+    delegateeId,
+    scope,
+    status: "pending",
+    metadata: config.metadata ? { ...config.metadata } : {},
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    expiresAt: config.expiresAt ? Number(config.expiresAt) : null,
+    reason: null,
+  };
+  _delegationStatesV2.set(delegationId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getDelegationV2(delegationId) {
+  const rec = _delegationStatesV2.get(String(delegationId || ""));
+  if (!rec) return null;
+  return { ...rec, metadata: { ...rec.metadata } };
+}
+
+export function setDelegationStatusV2(db, delegationId, newStatus, patch = {}) {
+  void db;
+  const id = String(delegationId || "");
+  const record = _delegationStatesV2.get(id);
+  if (!record) throw new Error(`Delegation not registered in V2: ${id}`);
+  if (!_validDelegationStatusV2(newStatus)) {
+    throw new Error(`Invalid delegation status: ${newStatus}`);
+  }
+  if (DELEGATION_TERMINALS_V2.has(record.status)) {
+    throw new Error(
+      `Delegation is in terminal status '${record.status}' and cannot transition`,
+    );
+  }
+  const allowed = DELEGATION_TRANSITIONS_V2.get(record.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${record.status} → ${newStatus}`);
+  }
+  const now = Number(patch.now ?? Date.now());
+  record.status = newStatus;
+  record.updatedAt = now;
+  if (newStatus === "active" && record.activatedAt === null) {
+    record.activatedAt = now;
+  }
+  if (patch.reason !== undefined) record.reason = patch.reason;
+  if (patch.metadata && typeof patch.metadata === "object") {
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  }
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function activateDelegation(db, delegationId, reason) {
+  return setDelegationStatusV2(db, delegationId, "active", { reason });
+}
+export function revokeDelegation(db, delegationId, reason) {
+  return setDelegationStatusV2(db, delegationId, "revoked", { reason });
+}
+export function expireDelegation(db, delegationId, reason) {
+  return setDelegationStatusV2(db, delegationId, "expired", { reason });
+}
+
+/* ── Counts ─────────────────────────────────────────────────── */
+
+export function getActiveProposerCount(realm) {
+  let n = 0;
+  for (const rec of _proposerStatesV2.values()) {
+    if (rec.status !== "active") continue;
+    if (realm !== undefined && rec.realm !== String(realm)) continue;
+    n += 1;
+  }
+  return n;
+}
+
+export function getActiveDelegationCount(delegatorId) {
+  let n = 0;
+  for (const rec of _delegationStatesV2.values()) {
+    if (DELEGATION_TERMINALS_V2.has(rec.status)) continue;
+    if (delegatorId !== undefined && rec.delegatorId !== String(delegatorId)) {
+      continue;
+    }
+    n += 1;
+  }
+  return n;
+}
+
+/* ── Auto-flip Bulk Ops ─────────────────────────────────────── */
+
+export function autoRetireIdleProposers(db, nowMs) {
+  void db;
+  const now = Number(nowMs ?? Date.now());
+  const flipped = [];
+  for (const rec of _proposerStatesV2.values()) {
+    if (rec.status !== "active" && rec.status !== "suspended") continue;
+    if (now - rec.lastActivityAt > _proposerIdleMsV2) {
+      rec.status = "retired";
+      rec.updatedAt = now;
+      rec.reason = "idle";
+      flipped.push(rec.proposerId);
+    }
+  }
+  return flipped;
+}
+
+export function autoExpireStalePendingDelegations(db, nowMs) {
+  void db;
+  const now = Number(nowMs ?? Date.now());
+  const flipped = [];
+  for (const rec of _delegationStatesV2.values()) {
+    if (rec.status !== "pending") continue;
+    if (now - rec.createdAt > _pendingDelegationMsV2) {
+      rec.status = "expired";
+      rec.updatedAt = now;
+      rec.reason = "pending_timeout";
+      flipped.push(rec.delegationId);
+    }
+  }
+  return flipped;
+}
+
+/* ── Stats V2 ───────────────────────────────────────────────── */
+
+export function getGovernanceStatsV2() {
+  const proposersByStatus = {
+    onboarding: 0,
+    active: 0,
+    suspended: 0,
+    retired: 0,
+  };
+  const delegationsByStatus = {
+    pending: 0,
+    active: 0,
+    revoked: 0,
+    expired: 0,
+  };
+  for (const rec of _proposerStatesV2.values()) {
+    if (proposersByStatus[rec.status] !== undefined) {
+      proposersByStatus[rec.status] += 1;
+    }
+  }
+  for (const rec of _delegationStatesV2.values()) {
+    if (delegationsByStatus[rec.status] !== undefined) {
+      delegationsByStatus[rec.status] += 1;
+    }
+  }
+  return {
+    totalProposersV2: _proposerStatesV2.size,
+    totalDelegationsV2: _delegationStatesV2.size,
+    maxActiveProposersPerRealm: _maxActiveProposersPerRealmV2,
+    maxActiveDelegationsPerDelegator: _maxActiveDelegationsPerDelegatorV2,
+    proposerIdleMs: _proposerIdleMsV2,
+    pendingDelegationMs: _pendingDelegationMsV2,
+    proposersByStatus,
+    delegationsByStatus,
+  };
+}
+
+/* ── Reset V2 (tests) ───────────────────────────────────────── */
+
+export function _resetStateV2() {
+  _proposerStatesV2.clear();
+  _delegationStatesV2.clear();
+  _maxActiveProposersPerRealmV2 = GOV_DEFAULT_MAX_ACTIVE_PROPOSERS_PER_REALM;
+  _maxActiveDelegationsPerDelegatorV2 =
+    GOV_DEFAULT_MAX_ACTIVE_DELEGATIONS_PER_DELEGATOR;
+  _proposerIdleMsV2 = GOV_DEFAULT_PROPOSER_IDLE_MS;
+  _pendingDelegationMsV2 = GOV_DEFAULT_PENDING_DELEGATION_MS;
+}

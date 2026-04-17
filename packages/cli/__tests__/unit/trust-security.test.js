@@ -347,3 +347,504 @@ describe("trust-security", () => {
     });
   });
 });
+
+import {
+  HSM_MATURITY_V2,
+  TRANSMISSION_V2,
+  TS_DEFAULT_MAX_ACTIVE_DEVICES_PER_OPERATOR,
+  TS_DEFAULT_MAX_PENDING_TRANSMISSIONS_PER_DEVICE,
+  TS_DEFAULT_DEVICE_IDLE_MS,
+  TS_DEFAULT_TRANSMISSION_STUCK_MS,
+  getMaxActiveDevicesPerOperator,
+  setMaxActiveDevicesPerOperator,
+  getMaxPendingTransmissionsPerDevice,
+  setMaxPendingTransmissionsPerDevice,
+  getDeviceIdleMs,
+  setDeviceIdleMs,
+  getTransmissionStuckMs,
+  setTransmissionStuckMs,
+  getActiveDeviceCount,
+  getPendingTransmissionCount,
+  registerDeviceV2,
+  getDeviceV2,
+  listDevicesV2,
+  setDeviceMaturityV2,
+  activateDevice,
+  degradeDevice,
+  retireDevice,
+  touchDeviceUsage,
+  enqueueTransmissionV2,
+  getTransmissionV2,
+  listTransmissionsV2,
+  setTransmissionStatusV2,
+  startTransmission,
+  confirmTransmission,
+  failTransmission,
+  cancelTransmission,
+  autoRetireIdleDevices,
+  autoFailStuckTransmissions,
+  getTrustSecurityStatsV2,
+  _resetStateV2,
+} from "../../src/lib/trust-security.js";
+
+describe("trust-security V2 (Phase 68-71)", () => {
+  beforeEach(() => {
+    _resetStateV2();
+  });
+
+  it("freezes HSM_MATURITY_V2 and TRANSMISSION_V2", () => {
+    expect(Object.isFrozen(HSM_MATURITY_V2)).toBe(true);
+    expect(Object.isFrozen(TRANSMISSION_V2)).toBe(true);
+    expect(Object.values(HSM_MATURITY_V2).sort()).toEqual([
+      "active",
+      "degraded",
+      "provisional",
+      "retired",
+    ]);
+    expect(Object.values(TRANSMISSION_V2).sort()).toEqual([
+      "canceled",
+      "confirmed",
+      "failed",
+      "queued",
+      "sending",
+    ]);
+  });
+
+  it("exposes config defaults", () => {
+    expect(TS_DEFAULT_MAX_ACTIVE_DEVICES_PER_OPERATOR).toBe(8);
+    expect(TS_DEFAULT_MAX_PENDING_TRANSMISSIONS_PER_DEVICE).toBe(20);
+    expect(TS_DEFAULT_DEVICE_IDLE_MS).toBe(30 * 86400000);
+    expect(TS_DEFAULT_TRANSMISSION_STUCK_MS).toBe(2 * 60000);
+    expect(getMaxActiveDevicesPerOperator()).toBe(8);
+    expect(getMaxPendingTransmissionsPerDevice()).toBe(20);
+    expect(getDeviceIdleMs()).toBe(30 * 86400000);
+    expect(getTransmissionStuckMs()).toBe(2 * 60000);
+  });
+
+  it("setters validate + floor + reset", () => {
+    expect(setMaxActiveDevicesPerOperator(3)).toBe(3);
+    expect(setMaxPendingTransmissionsPerDevice(5.7)).toBe(5);
+    expect(setDeviceIdleMs(100)).toBe(100);
+    expect(setTransmissionStuckMs(200)).toBe(200);
+    expect(() => setMaxActiveDevicesPerOperator(0)).toThrow();
+    expect(() => setMaxActiveDevicesPerOperator(-1)).toThrow();
+    expect(() => setTransmissionStuckMs(NaN)).toThrow();
+    _resetStateV2();
+    expect(getMaxActiveDevicesPerOperator()).toBe(8);
+  });
+
+  describe("device registration", () => {
+    it("creates provisional device", () => {
+      const d = registerDeviceV2({
+        id: "d1",
+        operator: "op1",
+        vendor: "yubikey",
+      });
+      expect(d.status).toBe("provisional");
+      expect(d.activatedAt).toBeNull();
+    });
+
+    it("validates required fields", () => {
+      expect(() => registerDeviceV2({})).toThrow("id required");
+      expect(() => registerDeviceV2({ id: "d1" })).toThrow("operator required");
+      expect(() => registerDeviceV2({ id: "d1", operator: "op1" })).toThrow(
+        "invalid vendor",
+      );
+      expect(() =>
+        registerDeviceV2({ id: "d1", operator: "op1", vendor: "bogus" }),
+      ).toThrow("invalid vendor");
+    });
+
+    it("rejects duplicate id", () => {
+      registerDeviceV2({ id: "d1", operator: "op1", vendor: "yubikey" });
+      expect(() =>
+        registerDeviceV2({ id: "d1", operator: "op1", vendor: "ledger" }),
+      ).toThrow("already exists");
+    });
+
+    it("rejects invalid initial status", () => {
+      expect(() =>
+        registerDeviceV2({
+          id: "d1",
+          operator: "op1",
+          vendor: "yubikey",
+          initialStatus: "bogus",
+        }),
+      ).toThrow("invalid initial status");
+    });
+
+    it("stamps activatedAt on initialStatus=active", () => {
+      const d = registerDeviceV2({
+        id: "d1",
+        operator: "op1",
+        vendor: "yubikey",
+        initialStatus: "active",
+      });
+      expect(d.activatedAt).toBeGreaterThan(0);
+    });
+
+    it("enforces per-operator active cap (provisional excluded)", () => {
+      setMaxActiveDevicesPerOperator(2);
+      registerDeviceV2({
+        id: "d1",
+        operator: "op1",
+        vendor: "yubikey",
+        initialStatus: "active",
+      });
+      registerDeviceV2({
+        id: "d2",
+        operator: "op1",
+        vendor: "ledger",
+        initialStatus: "active",
+      });
+      expect(() =>
+        registerDeviceV2({
+          id: "d3",
+          operator: "op1",
+          vendor: "trezor",
+          initialStatus: "active",
+        }),
+      ).toThrow("active device cap");
+      registerDeviceV2({ id: "d4", operator: "op1", vendor: "generic" }); // provisional ok
+      expect(getActiveDeviceCount("op1")).toBe(2);
+    });
+
+    it("defensively copies metadata on read", () => {
+      const d = registerDeviceV2({
+        id: "d1",
+        operator: "op1",
+        vendor: "yubikey",
+        metadata: { k: 1 },
+      });
+      d.metadata.k = 99;
+      expect(getDeviceV2("d1").metadata.k).toBe(1);
+    });
+  });
+
+  describe("device transitions", () => {
+    beforeEach(() => {
+      registerDeviceV2({ id: "d1", operator: "op1", vendor: "yubikey" });
+    });
+
+    it("provisional → active", () => {
+      const d = activateDevice("d1");
+      expect(d.status).toBe("active");
+      expect(d.activatedAt).toBeGreaterThan(0);
+    });
+
+    it("provisional → retired", () => {
+      expect(retireDevice("d1").status).toBe("retired");
+    });
+
+    it("rejects provisional → degraded", () => {
+      expect(() => degradeDevice("d1")).toThrow("illegal transition");
+    });
+
+    it("active → degraded → active (recovery) → retired", () => {
+      activateDevice("d1");
+      degradeDevice("d1");
+      expect(getDeviceV2("d1").status).toBe("degraded");
+      activateDevice("d1");
+      retireDevice("d1");
+      expect(getDeviceV2("d1").status).toBe("retired");
+    });
+
+    it("retired is terminal", () => {
+      retireDevice("d1");
+      expect(() => activateDevice("d1")).toThrow("terminal");
+    });
+
+    it("stamp-once activatedAt across degrade/reactivate cycle", () => {
+      const a = activateDevice("d1");
+      const first = a.activatedAt;
+      degradeDevice("d1");
+      const b = activateDevice("d1");
+      expect(b.activatedAt).toBe(first);
+    });
+
+    it("degraded counts toward active cap", () => {
+      setMaxActiveDevicesPerOperator(2);
+      activateDevice("d1");
+      registerDeviceV2({
+        id: "d2",
+        operator: "op1",
+        vendor: "ledger",
+        initialStatus: "active",
+      });
+      registerDeviceV2({ id: "d3", operator: "op1", vendor: "trezor" });
+      degradeDevice("d1"); // still counts as "active" in getActiveDeviceCount
+      expect(() => activateDevice("d3")).toThrow("active device cap");
+    });
+
+    it("merges metadata + stores reason on transition", () => {
+      activateDevice("d1", { reason: "online", metadata: { region: "eu" } });
+      const d = getDeviceV2("d1");
+      expect(d.reason).toBe("online");
+      expect(d.metadata.region).toBe("eu");
+    });
+
+    it("touchDeviceUsage bumps lastUsedAt", async () => {
+      activateDevice("d1");
+      const before = getDeviceV2("d1").lastUsedAt;
+      await new Promise((r) => setTimeout(r, 5));
+      const d = touchDeviceUsage("d1");
+      expect(d.lastUsedAt).toBeGreaterThan(before);
+    });
+  });
+
+  describe("listDevicesV2 filters", () => {
+    beforeEach(() => {
+      registerDeviceV2({
+        id: "d1",
+        operator: "op1",
+        vendor: "yubikey",
+        initialStatus: "active",
+      });
+      registerDeviceV2({ id: "d2", operator: "op2", vendor: "ledger" });
+    });
+
+    it("filters by operator and status", () => {
+      expect(listDevicesV2({ operator: "op1" }).map((d) => d.id)).toEqual([
+        "d1",
+      ]);
+      expect(listDevicesV2({ status: "provisional" }).map((d) => d.id)).toEqual(
+        ["d2"],
+      );
+    });
+  });
+
+  describe("transmissions", () => {
+    beforeEach(() => {
+      registerDeviceV2({
+        id: "d1",
+        operator: "op1",
+        vendor: "yubikey",
+        initialStatus: "active",
+      });
+    });
+
+    it("enqueue requires fields", () => {
+      expect(() => enqueueTransmissionV2({})).toThrow("id required");
+      expect(() => enqueueTransmissionV2({ id: "t1" })).toThrow(
+        "deviceId required",
+      );
+      expect(() => enqueueTransmissionV2({ id: "t1", deviceId: "d1" })).toThrow(
+        "provider required",
+      );
+      expect(() =>
+        enqueueTransmissionV2({
+          id: "t1",
+          deviceId: "d1",
+          provider: "iridium",
+        }),
+      ).toThrow("payload required");
+    });
+
+    it("rejects missing device", () => {
+      expect(() =>
+        enqueueTransmissionV2({
+          id: "t1",
+          deviceId: "missing",
+          provider: "iridium",
+          payload: "hi",
+        }),
+      ).toThrow("device missing not found");
+    });
+
+    it("enqueue creates queued transmission", () => {
+      const t = enqueueTransmissionV2({
+        id: "t1",
+        deviceId: "d1",
+        provider: "iridium",
+        payload: "hi",
+      });
+      expect(t.status).toBe("queued");
+      expect(t.startedAt).toBeNull();
+    });
+
+    it("per-device pending cap", () => {
+      setMaxPendingTransmissionsPerDevice(2);
+      enqueueTransmissionV2({
+        id: "t1",
+        deviceId: "d1",
+        provider: "iridium",
+        payload: "a",
+      });
+      enqueueTransmissionV2({
+        id: "t2",
+        deviceId: "d1",
+        provider: "iridium",
+        payload: "b",
+      });
+      expect(() =>
+        enqueueTransmissionV2({
+          id: "t3",
+          deviceId: "d1",
+          provider: "iridium",
+          payload: "c",
+        }),
+      ).toThrow("pending transmission cap");
+    });
+
+    it("queued → sending stamps startedAt", () => {
+      enqueueTransmissionV2({
+        id: "t1",
+        deviceId: "d1",
+        provider: "iridium",
+        payload: "hi",
+      });
+      const t = startTransmission("t1");
+      expect(t.status).toBe("sending");
+      expect(t.startedAt).toBeGreaterThan(0);
+    });
+
+    it("sending → confirmed", () => {
+      enqueueTransmissionV2({
+        id: "t1",
+        deviceId: "d1",
+        provider: "iridium",
+        payload: "hi",
+      });
+      startTransmission("t1");
+      expect(confirmTransmission("t1").status).toBe("confirmed");
+    });
+
+    it("sending → failed", () => {
+      enqueueTransmissionV2({
+        id: "t1",
+        deviceId: "d1",
+        provider: "iridium",
+        payload: "hi",
+      });
+      startTransmission("t1");
+      expect(failTransmission("t1").status).toBe("failed");
+    });
+
+    it("queued → canceled", () => {
+      enqueueTransmissionV2({
+        id: "t1",
+        deviceId: "d1",
+        provider: "iridium",
+        payload: "hi",
+      });
+      expect(cancelTransmission("t1").status).toBe("canceled");
+    });
+
+    it("terminal rejects further transitions", () => {
+      enqueueTransmissionV2({
+        id: "t1",
+        deviceId: "d1",
+        provider: "iridium",
+        payload: "hi",
+      });
+      cancelTransmission("t1");
+      expect(() => startTransmission("t1")).toThrow("terminal");
+    });
+
+    it("getPendingTransmissionCount", () => {
+      enqueueTransmissionV2({
+        id: "t1",
+        deviceId: "d1",
+        provider: "iridium",
+        payload: "a",
+      });
+      enqueueTransmissionV2({
+        id: "t2",
+        deviceId: "d1",
+        provider: "iridium",
+        payload: "b",
+      });
+      startTransmission("t2");
+      expect(getPendingTransmissionCount("d1")).toBe(2); // queued + sending
+      confirmTransmission("t2");
+      expect(getPendingTransmissionCount("d1")).toBe(1);
+    });
+  });
+
+  describe("auto-flip batches", () => {
+    beforeEach(() => {
+      registerDeviceV2({
+        id: "d1",
+        operator: "op1",
+        vendor: "yubikey",
+        initialStatus: "active",
+      });
+    });
+
+    it("autoRetireIdleDevices flips stale active via future now", () => {
+      setDeviceIdleMs(100);
+      const flipped = autoRetireIdleDevices({ now: Date.now() + 5000 });
+      expect(flipped).toContain("d1");
+      expect(getDeviceV2("d1").status).toBe("retired");
+    });
+
+    it("autoRetireIdleDevices skips provisional and retired", () => {
+      registerDeviceV2({ id: "d2", operator: "op1", vendor: "ledger" });
+      retireDevice("d1");
+      setDeviceIdleMs(1);
+      const flipped = autoRetireIdleDevices({ now: Date.now() + 10000 });
+      expect(flipped).not.toContain("d1");
+      expect(flipped).not.toContain("d2");
+    });
+
+    it("autoFailStuckTransmissions flips only SENDING", () => {
+      enqueueTransmissionV2({
+        id: "t1",
+        deviceId: "d1",
+        provider: "iridium",
+        payload: "a",
+      });
+      enqueueTransmissionV2({
+        id: "t2",
+        deviceId: "d1",
+        provider: "iridium",
+        payload: "b",
+      });
+      startTransmission("t1");
+      setTransmissionStuckMs(100);
+      const flipped = autoFailStuckTransmissions({ now: Date.now() + 5000 });
+      expect(flipped).toEqual(["t1"]);
+      expect(getTransmissionV2("t2").status).toBe("queued");
+    });
+  });
+
+  describe("stats", () => {
+    it("zero-initialized enums empty state", () => {
+      const s = getTrustSecurityStatsV2();
+      expect(s.devicesByStatus).toEqual({
+        provisional: 0,
+        active: 0,
+        degraded: 0,
+        retired: 0,
+      });
+      expect(s.transmissionsByStatus).toEqual({
+        queued: 0,
+        sending: 0,
+        confirmed: 0,
+        failed: 0,
+        canceled: 0,
+      });
+    });
+
+    it("counts by status", () => {
+      registerDeviceV2({
+        id: "d1",
+        operator: "op1",
+        vendor: "yubikey",
+        initialStatus: "active",
+      });
+      registerDeviceV2({ id: "d2", operator: "op1", vendor: "ledger" });
+      enqueueTransmissionV2({
+        id: "t1",
+        deviceId: "d1",
+        provider: "iridium",
+        payload: "a",
+      });
+      startTransmission("t1");
+      const s = getTrustSecurityStatsV2();
+      expect(s.totalDevicesV2).toBe(2);
+      expect(s.devicesByStatus.active).toBe(1);
+      expect(s.transmissionsByStatus.sending).toBe(1);
+    });
+  });
+});

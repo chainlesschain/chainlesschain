@@ -25,6 +25,47 @@ import {
   applySuggestion,
   getDbEvoStats,
   _resetState,
+
+  // Phase 80 V2
+  SCHEMA_BASELINE_V2,
+  MIGRATION_RUN_V2,
+  DBEVO_DEFAULT_MAX_ACTIVE_BASELINES_PER_DB,
+  DBEVO_DEFAULT_MAX_RUNNING_MIGRATIONS_PER_DB,
+  DBEVO_DEFAULT_BASELINE_IDLE_MS,
+  DBEVO_DEFAULT_MIGRATION_STUCK_MS,
+  getDefaultMaxActiveBaselinesPerDbV2,
+  getMaxActiveBaselinesPerDbV2,
+  setMaxActiveBaselinesPerDbV2,
+  getDefaultMaxRunningMigrationsPerDbV2,
+  getMaxRunningMigrationsPerDbV2,
+  setMaxRunningMigrationsPerDbV2,
+  getDefaultBaselineIdleMsV2,
+  getBaselineIdleMsV2,
+  setBaselineIdleMsV2,
+  getDefaultMigrationStuckMsV2,
+  getMigrationStuckMsV2,
+  setMigrationStuckMsV2,
+  registerBaselineV2,
+  getBaselineV2,
+  setBaselineStatusV2,
+  validateBaseline,
+  activateBaseline,
+  deprecateBaseline,
+  retireBaseline,
+  touchBaselineActivity,
+  enqueueMigrationRunV2,
+  getMigrationRunV2,
+  setMigrationRunStatusV2,
+  startMigrationRun,
+  applyMigrationRun,
+  failMigrationRun,
+  rollbackMigrationRun,
+  getActiveBaselineCount,
+  getRunningMigrationCount,
+  autoRetireIdleBaselines,
+  autoFailStuckMigrationRuns,
+  getDbEvoStatsV2,
+  _resetStateV2,
 } from "../../src/lib/dbevo.js";
 
 describe("dbevo", () => {
@@ -512,6 +553,526 @@ describe("dbevo", () => {
       expect(s.queryLog.slowQueries).toBe(2);
       expect(s.suggestions.total).toBeGreaterThanOrEqual(1);
       expect(s.suggestions.pending).toBeGreaterThanOrEqual(1);
+    });
+  });
+});
+
+/* ═════════════════════════════════════════════════════════ *
+ *  Phase 80 V2 — Schema Baseline + Migration-Run Lifecycle
+ * ═════════════════════════════════════════════════════════ */
+
+describe("dbevo V2 (Phase 80)", () => {
+  beforeEach(() => {
+    _resetStateV2();
+  });
+
+  describe("enums", () => {
+    it("SCHEMA_BASELINE_V2 has 5 frozen states", () => {
+      expect(Object.keys(SCHEMA_BASELINE_V2)).toHaveLength(5);
+      expect(Object.isFrozen(SCHEMA_BASELINE_V2)).toBe(true);
+      expect(SCHEMA_BASELINE_V2.DRAFT).toBe("draft");
+      expect(SCHEMA_BASELINE_V2.RETIRED).toBe("retired");
+    });
+
+    it("MIGRATION_RUN_V2 has 5 frozen states", () => {
+      expect(Object.keys(MIGRATION_RUN_V2)).toHaveLength(5);
+      expect(Object.isFrozen(MIGRATION_RUN_V2)).toBe(true);
+      expect(MIGRATION_RUN_V2.APPLIED).toBe("applied");
+      expect(MIGRATION_RUN_V2.ROLLED_BACK).toBe("rolled_back");
+    });
+  });
+
+  describe("config + setters", () => {
+    it("exposes defaults", () => {
+      expect(getDefaultMaxActiveBaselinesPerDbV2()).toBe(
+        DBEVO_DEFAULT_MAX_ACTIVE_BASELINES_PER_DB,
+      );
+      expect(getDefaultMaxRunningMigrationsPerDbV2()).toBe(
+        DBEVO_DEFAULT_MAX_RUNNING_MIGRATIONS_PER_DB,
+      );
+      expect(getDefaultBaselineIdleMsV2()).toBe(DBEVO_DEFAULT_BASELINE_IDLE_MS);
+      expect(getDefaultMigrationStuckMsV2()).toBe(
+        DBEVO_DEFAULT_MIGRATION_STUCK_MS,
+      );
+    });
+
+    it("getters + setters validate positive", () => {
+      expect(setMaxActiveBaselinesPerDbV2(3)).toBe(3);
+      expect(getMaxActiveBaselinesPerDbV2()).toBe(3);
+      expect(setMaxRunningMigrationsPerDbV2(4)).toBe(4);
+      expect(getMaxRunningMigrationsPerDbV2()).toBe(4);
+      expect(setBaselineIdleMsV2(10000)).toBe(10000);
+      expect(setMigrationStuckMsV2(5000)).toBe(5000);
+      expect(() => setMaxActiveBaselinesPerDbV2(0)).toThrow(/positive/);
+      expect(() => setMigrationStuckMsV2(-1)).toThrow(/positive/);
+    });
+  });
+
+  describe("registerBaselineV2", () => {
+    it("registers with draft default", () => {
+      const b = registerBaselineV2(null, {
+        baselineId: "b1",
+        databaseId: "primary",
+        version: "1.0.0",
+      });
+      expect(b.status).toBe("draft");
+      expect(b.version).toBe("1.0.0");
+    });
+
+    it("validates required", () => {
+      expect(() => registerBaselineV2(null, {})).toThrow(/baselineId/);
+      expect(() => registerBaselineV2(null, { baselineId: "b" })).toThrow(
+        /databaseId/,
+      );
+      expect(() =>
+        registerBaselineV2(null, { baselineId: "b", databaseId: "d" }),
+      ).toThrow(/version/);
+    });
+
+    it("rejects duplicate + invalid/terminal initial", () => {
+      registerBaselineV2(null, {
+        baselineId: "b1",
+        databaseId: "d",
+        version: "1",
+      });
+      expect(() =>
+        registerBaselineV2(null, {
+          baselineId: "b1",
+          databaseId: "d",
+          version: "1",
+        }),
+      ).toThrow(/already exists/);
+      expect(() =>
+        registerBaselineV2(null, {
+          baselineId: "b2",
+          databaseId: "d",
+          version: "1",
+          initialStatus: "galaxy",
+        }),
+      ).toThrow(/Invalid initial status/);
+      expect(() =>
+        registerBaselineV2(null, {
+          baselineId: "b2",
+          databaseId: "d",
+          version: "1",
+          initialStatus: "retired",
+        }),
+      ).toThrow(/terminal/);
+    });
+
+    it("enforces active cap on register", () => {
+      setMaxActiveBaselinesPerDbV2(1);
+      registerBaselineV2(null, {
+        baselineId: "b1",
+        databaseId: "d",
+        version: "1",
+        initialStatus: "active",
+      });
+      expect(() =>
+        registerBaselineV2(null, {
+          baselineId: "b2",
+          databaseId: "d",
+          version: "2",
+          initialStatus: "active",
+        }),
+      ).toThrow(/cap/);
+    });
+  });
+
+  describe("setBaselineStatusV2 + shortcuts", () => {
+    beforeEach(() => {
+      registerBaselineV2(null, {
+        baselineId: "b1",
+        databaseId: "d",
+        version: "1",
+      });
+    });
+
+    it("draft → validated → active → deprecated → active", () => {
+      validateBaseline(null, "b1");
+      activateBaseline(null, "b1");
+      deprecateBaseline(null, "b1");
+      activateBaseline(null, "b1");
+      expect(getBaselineV2("b1").status).toBe("active");
+    });
+
+    it("any → retired (terminal)", () => {
+      retireBaseline(null, "b1");
+      expect(() => validateBaseline(null, "b1")).toThrow(/Invalid transition/);
+    });
+
+    it("rejects unknown + invalid transition + invalid status", () => {
+      expect(() => activateBaseline(null, "nope")).toThrow(/Unknown/);
+      expect(() => activateBaseline(null, "b1")).toThrow(/Invalid transition/);
+      expect(() => setBaselineStatusV2(null, "b1", "galaxy")).toThrow(
+        /Invalid status/,
+      );
+    });
+
+    it("enforces active cap on re-activate", () => {
+      setMaxActiveBaselinesPerDbV2(1);
+      validateBaseline(null, "b1");
+      activateBaseline(null, "b1");
+      registerBaselineV2(null, {
+        baselineId: "b2",
+        databaseId: "d",
+        version: "2",
+      });
+      validateBaseline(null, "b2");
+      expect(() => activateBaseline(null, "b2")).toThrow(/cap/);
+    });
+
+    it("merges reason + metadata patch", () => {
+      const r = setBaselineStatusV2(null, "b1", "validated", {
+        reason: "ok",
+        metadata: { k: "v" },
+      });
+      expect(r.lastReason).toBe("ok");
+      expect(r.metadata.k).toBe("v");
+    });
+  });
+
+  describe("touchBaselineActivity", () => {
+    it("updates lastTouchedAt", async () => {
+      registerBaselineV2(null, {
+        baselineId: "b1",
+        databaseId: "d",
+        version: "1",
+      });
+      const before = getBaselineV2("b1").lastTouchedAt;
+      await new Promise((r) => setTimeout(r, 2));
+      const r = touchBaselineActivity("b1");
+      expect(r.lastTouchedAt).toBeGreaterThanOrEqual(before);
+    });
+
+    it("throws unknown", () => {
+      expect(() => touchBaselineActivity("nope")).toThrow(/Unknown/);
+    });
+  });
+
+  describe("enqueueMigrationRunV2 + lifecycle", () => {
+    it("enqueues queued", () => {
+      const r = enqueueMigrationRunV2(null, {
+        runId: "r1",
+        databaseId: "d",
+        migrationId: "001",
+        direction: "up",
+      });
+      expect(r.status).toBe("queued");
+    });
+
+    it("validates required + direction + duplicate", () => {
+      expect(() => enqueueMigrationRunV2(null, {})).toThrow(/runId/);
+      expect(() => enqueueMigrationRunV2(null, { runId: "r" })).toThrow(
+        /databaseId/,
+      );
+      expect(() =>
+        enqueueMigrationRunV2(null, { runId: "r", databaseId: "d" }),
+      ).toThrow(/migrationId/);
+      expect(() =>
+        enqueueMigrationRunV2(null, {
+          runId: "r",
+          databaseId: "d",
+          migrationId: "m",
+        }),
+      ).toThrow(/direction/);
+      expect(() =>
+        enqueueMigrationRunV2(null, {
+          runId: "r",
+          databaseId: "d",
+          migrationId: "m",
+          direction: "sideways",
+        }),
+      ).toThrow(/Invalid direction/);
+      enqueueMigrationRunV2(null, {
+        runId: "r1",
+        databaseId: "d",
+        migrationId: "m",
+        direction: "up",
+      });
+      expect(() =>
+        enqueueMigrationRunV2(null, {
+          runId: "r1",
+          databaseId: "d",
+          migrationId: "m",
+          direction: "up",
+        }),
+      ).toThrow(/already exists/);
+    });
+
+    it("queued → running → applied → rolled_back", () => {
+      enqueueMigrationRunV2(null, {
+        runId: "r1",
+        databaseId: "d",
+        migrationId: "m",
+        direction: "up",
+      });
+      const s = startMigrationRun(null, "r1");
+      expect(s.status).toBe("running");
+      expect(s.startedAt).toBeGreaterThan(0);
+      applyMigrationRun(null, "r1");
+      rollbackMigrationRun(null, "r1");
+      expect(getMigrationRunV2("r1").status).toBe("rolled_back");
+    });
+
+    it("queued → failed (no running)", () => {
+      enqueueMigrationRunV2(null, {
+        runId: "r1",
+        databaseId: "d",
+        migrationId: "m",
+        direction: "up",
+      });
+      failMigrationRun(null, "r1");
+      expect(getMigrationRunV2("r1").status).toBe("failed");
+    });
+
+    it("running → failed / rolled_back both valid", () => {
+      enqueueMigrationRunV2(null, {
+        runId: "r1",
+        databaseId: "d",
+        migrationId: "m",
+        direction: "up",
+      });
+      startMigrationRun(null, "r1");
+      failMigrationRun(null, "r1");
+      expect(getMigrationRunV2("r1").status).toBe("failed");
+
+      enqueueMigrationRunV2(null, {
+        runId: "r2",
+        databaseId: "d",
+        migrationId: "m",
+        direction: "up",
+      });
+      startMigrationRun(null, "r2");
+      rollbackMigrationRun(null, "r2");
+      expect(getMigrationRunV2("r2").status).toBe("rolled_back");
+    });
+
+    it("failed + rolled_back terminal", () => {
+      enqueueMigrationRunV2(null, {
+        runId: "r1",
+        databaseId: "d",
+        migrationId: "m",
+        direction: "up",
+      });
+      failMigrationRun(null, "r1");
+      expect(() => startMigrationRun(null, "r1")).toThrow(/Invalid transition/);
+    });
+
+    it("startedAt stamp-once", () => {
+      setMaxRunningMigrationsPerDbV2(2);
+      enqueueMigrationRunV2(null, {
+        runId: "r1",
+        databaseId: "d",
+        migrationId: "m",
+        direction: "up",
+      });
+      const s1 = startMigrationRun(null, "r1");
+      applyMigrationRun(null, "r1");
+      // applied→rolled_back preserves startedAt (no stamp-once on rolled_back)
+      const rb = rollbackMigrationRun(null, "r1");
+      expect(rb.startedAt).toBe(s1.startedAt);
+    });
+
+    it("enforces running cap", () => {
+      setMaxRunningMigrationsPerDbV2(1);
+      enqueueMigrationRunV2(null, {
+        runId: "r1",
+        databaseId: "d",
+        migrationId: "m1",
+        direction: "up",
+      });
+      enqueueMigrationRunV2(null, {
+        runId: "r2",
+        databaseId: "d",
+        migrationId: "m2",
+        direction: "up",
+      });
+      startMigrationRun(null, "r1");
+      expect(() => startMigrationRun(null, "r2")).toThrow(/cap/);
+    });
+
+    it("rejects unknown run", () => {
+      expect(() => startMigrationRun(null, "nope")).toThrow(/Unknown run/);
+    });
+  });
+
+  describe("counts", () => {
+    it("active baselines per db", () => {
+      registerBaselineV2(null, {
+        baselineId: "b1",
+        databaseId: "d1",
+        version: "1",
+        initialStatus: "active",
+      });
+      registerBaselineV2(null, {
+        baselineId: "b2",
+        databaseId: "d2",
+        version: "1",
+        initialStatus: "active",
+      });
+      expect(getActiveBaselineCount()).toBe(2);
+      expect(getActiveBaselineCount("d1")).toBe(1);
+      expect(getActiveBaselineCount("dX")).toBe(0);
+    });
+
+    it("running migrations per db", () => {
+      setMaxRunningMigrationsPerDbV2(5);
+      for (const id of ["r1", "r2"]) {
+        enqueueMigrationRunV2(null, {
+          runId: id,
+          databaseId: "d1",
+          migrationId: "m",
+          direction: "up",
+        });
+        startMigrationRun(null, id);
+      }
+      enqueueMigrationRunV2(null, {
+        runId: "r3",
+        databaseId: "d2",
+        migrationId: "m",
+        direction: "up",
+      });
+      startMigrationRun(null, "r3");
+      expect(getRunningMigrationCount()).toBe(3);
+      expect(getRunningMigrationCount("d1")).toBe(2);
+      expect(getRunningMigrationCount("d2")).toBe(1);
+    });
+  });
+
+  describe("autoRetireIdleBaselines", () => {
+    it("flips draft/validated/deprecated when idle; skips active/retired", () => {
+      registerBaselineV2(null, {
+        baselineId: "b-draft",
+        databaseId: "d",
+        version: "1",
+      });
+      registerBaselineV2(null, {
+        baselineId: "b-val",
+        databaseId: "d",
+        version: "2",
+      });
+      validateBaseline(null, "b-val");
+      registerBaselineV2(null, {
+        baselineId: "b-active",
+        databaseId: "d",
+        version: "3",
+      });
+      validateBaseline(null, "b-active");
+      activateBaseline(null, "b-active");
+      registerBaselineV2(null, {
+        baselineId: "b-dep",
+        databaseId: "d",
+        version: "4",
+      });
+      validateBaseline(null, "b-dep");
+      setMaxActiveBaselinesPerDbV2(5);
+      activateBaseline(null, "b-dep");
+      deprecateBaseline(null, "b-dep");
+      const now = Date.now() + DBEVO_DEFAULT_BASELINE_IDLE_MS + 1;
+      const r = autoRetireIdleBaselines(null, now);
+      expect(r.count).toBe(3);
+      expect(r.flipped.sort()).toEqual(["b-dep", "b-draft", "b-val"]);
+      expect(getBaselineV2("b-active").status).toBe("active");
+    });
+
+    it("skips when fresh", () => {
+      registerBaselineV2(null, {
+        baselineId: "b1",
+        databaseId: "d",
+        version: "1",
+      });
+      const r = autoRetireIdleBaselines(null);
+      expect(r.count).toBe(0);
+    });
+  });
+
+  describe("autoFailStuckMigrationRuns", () => {
+    it("flips only RUNNING based on startedAt anchor", () => {
+      setMaxRunningMigrationsPerDbV2(5);
+      enqueueMigrationRunV2(null, {
+        runId: "r1",
+        databaseId: "d",
+        migrationId: "m",
+        direction: "up",
+      });
+      enqueueMigrationRunV2(null, {
+        runId: "r2",
+        databaseId: "d",
+        migrationId: "m",
+        direction: "up",
+      });
+      startMigrationRun(null, "r1");
+      startMigrationRun(null, "r2");
+      applyMigrationRun(null, "r1"); // r1 leaves RUNNING
+      const now = Date.now() + DBEVO_DEFAULT_MIGRATION_STUCK_MS + 1;
+      const r = autoFailStuckMigrationRuns(null, now);
+      expect(r.count).toBe(1);
+      expect(r.flipped).toEqual(["r2"]);
+      expect(getMigrationRunV2("r1").status).toBe("applied");
+      expect(getMigrationRunV2("r2").status).toBe("failed");
+    });
+
+    it("skips queued (never stamped startedAt)", () => {
+      enqueueMigrationRunV2(null, {
+        runId: "r1",
+        databaseId: "d",
+        migrationId: "m",
+        direction: "up",
+      });
+      const now = Date.now() + DBEVO_DEFAULT_MIGRATION_STUCK_MS + 1;
+      const r = autoFailStuckMigrationRuns(null, now);
+      expect(r.count).toBe(0);
+    });
+  });
+
+  describe("getDbEvoStatsV2", () => {
+    it("zero-initializes all enum keys + reports config", () => {
+      const s = getDbEvoStatsV2();
+      expect(s.totalBaselinesV2).toBe(0);
+      expect(s.totalRunsV2).toBe(0);
+      for (const k of Object.values(SCHEMA_BASELINE_V2))
+        expect(s.baselinesByStatus[k]).toBe(0);
+      for (const k of Object.values(MIGRATION_RUN_V2))
+        expect(s.runsByStatus[k]).toBe(0);
+      expect(s.maxActiveBaselinesPerDb).toBe(
+        DBEVO_DEFAULT_MAX_ACTIVE_BASELINES_PER_DB,
+      );
+    });
+
+    it("reflects current state", () => {
+      registerBaselineV2(null, {
+        baselineId: "b1",
+        databaseId: "d",
+        version: "1",
+      });
+      validateBaseline(null, "b1");
+      enqueueMigrationRunV2(null, {
+        runId: "r1",
+        databaseId: "d",
+        migrationId: "m",
+        direction: "up",
+      });
+      startMigrationRun(null, "r1");
+      const s = getDbEvoStatsV2();
+      expect(s.baselinesByStatus.validated).toBe(1);
+      expect(s.runsByStatus.running).toBe(1);
+    });
+  });
+
+  describe("_resetStateV2", () => {
+    it("clears maps + restores config defaults", () => {
+      setMaxActiveBaselinesPerDbV2(9);
+      registerBaselineV2(null, {
+        baselineId: "b1",
+        databaseId: "d",
+        version: "1",
+      });
+      _resetStateV2();
+      expect(getMaxActiveBaselinesPerDbV2()).toBe(
+        DBEVO_DEFAULT_MAX_ACTIVE_BASELINES_PER_DB,
+      );
+      expect(getBaselineV2("b1")).toBeNull();
     });
   });
 });

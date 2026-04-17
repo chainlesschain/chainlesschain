@@ -573,3 +573,337 @@ export function _resetState() {
   };
   _quotaBytes = DEFAULT_QUOTA_BYTES;
 }
+
+/* ═════════════════════════════════════════════════════════ *
+ *  Phase 17 V2 — Gateway Maturity + Pin Lifecycle
+ * ═════════════════════════════════════════════════════════ */
+
+export const GATEWAY_MATURITY_V2 = Object.freeze({
+  ONBOARDING: "onboarding",
+  ACTIVE: "active",
+  DEGRADED: "degraded",
+  OFFLINE: "offline",
+  RETIRED: "retired",
+});
+
+export const PIN_LIFECYCLE_V2 = Object.freeze({
+  PENDING: "pending",
+  PINNED: "pinned",
+  UNPINNED: "unpinned",
+  FAILED: "failed",
+});
+
+const GATEWAY_TRANSITIONS_V2 = new Map([
+  ["onboarding", new Set(["active", "retired"])],
+  ["active", new Set(["degraded", "offline", "retired"])],
+  ["degraded", new Set(["active", "offline", "retired"])],
+  ["offline", new Set(["active", "retired"])],
+]);
+const GATEWAY_TERMINALS_V2 = new Set(["retired"]);
+
+const PIN_TRANSITIONS_V2 = new Map([
+  ["pending", new Set(["pinned", "failed", "unpinned"])],
+  ["pinned", new Set(["unpinned"])],
+  ["failed", new Set(["pending", "unpinned"])],
+]);
+const PIN_TERMINALS_V2 = new Set(["unpinned"]);
+
+export const IPFS_DEFAULT_MAX_ACTIVE_GATEWAYS_PER_OPERATOR = 20;
+export const IPFS_DEFAULT_MAX_PENDING_PINS_PER_OWNER = 100;
+export const IPFS_DEFAULT_GATEWAY_IDLE_MS = 60 * 86400000; // 60d
+export const IPFS_DEFAULT_PIN_PENDING_MS = 24 * 3600000; // 24h
+
+let _maxActiveGatewaysPerOperatorV2 =
+  IPFS_DEFAULT_MAX_ACTIVE_GATEWAYS_PER_OPERATOR;
+let _maxPendingPinsPerOwnerV2 = IPFS_DEFAULT_MAX_PENDING_PINS_PER_OWNER;
+let _gatewayIdleMsV2 = IPFS_DEFAULT_GATEWAY_IDLE_MS;
+let _pinPendingMsV2 = IPFS_DEFAULT_PIN_PENDING_MS;
+
+function _positiveIntV2(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be a positive integer`);
+  return v;
+}
+
+export function getDefaultMaxActiveGatewaysPerOperatorV2() {
+  return IPFS_DEFAULT_MAX_ACTIVE_GATEWAYS_PER_OPERATOR;
+}
+export function getMaxActiveGatewaysPerOperatorV2() {
+  return _maxActiveGatewaysPerOperatorV2;
+}
+export function setMaxActiveGatewaysPerOperatorV2(n) {
+  return (_maxActiveGatewaysPerOperatorV2 = _positiveIntV2(
+    n,
+    "maxActiveGatewaysPerOperator",
+  ));
+}
+export function getDefaultMaxPendingPinsPerOwnerV2() {
+  return IPFS_DEFAULT_MAX_PENDING_PINS_PER_OWNER;
+}
+export function getMaxPendingPinsPerOwnerV2() {
+  return _maxPendingPinsPerOwnerV2;
+}
+export function setMaxPendingPinsPerOwnerV2(n) {
+  return (_maxPendingPinsPerOwnerV2 = _positiveIntV2(
+    n,
+    "maxPendingPinsPerOwner",
+  ));
+}
+export function getDefaultGatewayIdleMsV2() {
+  return IPFS_DEFAULT_GATEWAY_IDLE_MS;
+}
+export function getGatewayIdleMsV2() {
+  return _gatewayIdleMsV2;
+}
+export function setGatewayIdleMsV2(ms) {
+  return (_gatewayIdleMsV2 = _positiveIntV2(ms, "gatewayIdleMs"));
+}
+export function getDefaultPinPendingMsV2() {
+  return IPFS_DEFAULT_PIN_PENDING_MS;
+}
+export function getPinPendingMsV2() {
+  return _pinPendingMsV2;
+}
+export function setPinPendingMsV2(ms) {
+  return (_pinPendingMsV2 = _positiveIntV2(ms, "pinPendingMs"));
+}
+
+const _gatewaysV2 = new Map();
+const _pinsV2 = new Map();
+
+export function registerGatewayV2(
+  _db,
+  { gatewayId, operatorId, endpoint, initialStatus, metadata } = {},
+) {
+  if (!gatewayId) throw new Error("gatewayId is required");
+  if (!operatorId) throw new Error("operatorId is required");
+  if (!endpoint) throw new Error("endpoint is required");
+  if (_gatewaysV2.has(gatewayId))
+    throw new Error(`Gateway ${gatewayId} already exists`);
+  const status = initialStatus || GATEWAY_MATURITY_V2.ONBOARDING;
+  if (!Object.values(GATEWAY_MATURITY_V2).includes(status))
+    throw new Error(`Invalid initial status: ${status}`);
+  if (GATEWAY_TERMINALS_V2.has(status))
+    throw new Error(`Cannot register in terminal status: ${status}`);
+  if (status === GATEWAY_MATURITY_V2.ACTIVE) {
+    if (getActiveGatewayCount(operatorId) >= _maxActiveGatewaysPerOperatorV2)
+      throw new Error(
+        `Operator ${operatorId} reached active-gateway cap (${_maxActiveGatewaysPerOperatorV2})`,
+      );
+  }
+  const now = Date.now();
+  const record = {
+    gatewayId,
+    operatorId,
+    endpoint,
+    status,
+    metadata: metadata || {},
+    createdAt: now,
+    updatedAt: now,
+    lastHeartbeatAt: now,
+  };
+  _gatewaysV2.set(gatewayId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getGatewayV2(gatewayId) {
+  const r = _gatewaysV2.get(gatewayId);
+  return r ? { ...r, metadata: { ...r.metadata } } : null;
+}
+
+export function setGatewayMaturityV2(_db, gatewayId, newStatus, patch = {}) {
+  const record = _gatewaysV2.get(gatewayId);
+  if (!record) throw new Error(`Unknown gateway: ${gatewayId}`);
+  if (!Object.values(GATEWAY_MATURITY_V2).includes(newStatus))
+    throw new Error(`Invalid status: ${newStatus}`);
+  const allowed = GATEWAY_TRANSITIONS_V2.get(record.status) || new Set();
+  if (!allowed.has(newStatus))
+    throw new Error(`Invalid transition: ${record.status} -> ${newStatus}`);
+  if (newStatus === GATEWAY_MATURITY_V2.ACTIVE) {
+    if (
+      getActiveGatewayCount(record.operatorId) >=
+      _maxActiveGatewaysPerOperatorV2
+    )
+      throw new Error(
+        `Operator ${record.operatorId} reached active-gateway cap (${_maxActiveGatewaysPerOperatorV2})`,
+      );
+  }
+  record.status = newStatus;
+  record.updatedAt = Date.now();
+  if (patch.reason !== undefined) record.lastReason = patch.reason;
+  if (patch.metadata)
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function activateGateway(db, id, reason) {
+  return setGatewayMaturityV2(db, id, GATEWAY_MATURITY_V2.ACTIVE, { reason });
+}
+export function degradeGateway(db, id, reason) {
+  return setGatewayMaturityV2(db, id, GATEWAY_MATURITY_V2.DEGRADED, { reason });
+}
+export function offlineGateway(db, id, reason) {
+  return setGatewayMaturityV2(db, id, GATEWAY_MATURITY_V2.OFFLINE, { reason });
+}
+export function retireGateway(db, id, reason) {
+  return setGatewayMaturityV2(db, id, GATEWAY_MATURITY_V2.RETIRED, { reason });
+}
+
+export function touchGatewayHeartbeat(gatewayId) {
+  const record = _gatewaysV2.get(gatewayId);
+  if (!record) throw new Error(`Unknown gateway: ${gatewayId}`);
+  record.lastHeartbeatAt = Date.now();
+  record.updatedAt = record.lastHeartbeatAt;
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function registerPinV2(
+  _db,
+  { pinId, ownerId, cid, initialStatus, metadata } = {},
+) {
+  if (!pinId) throw new Error("pinId is required");
+  if (!ownerId) throw new Error("ownerId is required");
+  if (!cid) throw new Error("cid is required");
+  if (_pinsV2.has(pinId)) throw new Error(`Pin ${pinId} already exists`);
+  const status = initialStatus || PIN_LIFECYCLE_V2.PENDING;
+  if (!Object.values(PIN_LIFECYCLE_V2).includes(status))
+    throw new Error(`Invalid initial status: ${status}`);
+  if (PIN_TERMINALS_V2.has(status))
+    throw new Error(`Cannot register in terminal status: ${status}`);
+  if (status === PIN_LIFECYCLE_V2.PENDING) {
+    if (getPendingPinCount(ownerId) >= _maxPendingPinsPerOwnerV2)
+      throw new Error(
+        `Owner ${ownerId} reached pending-pin cap (${_maxPendingPinsPerOwnerV2})`,
+      );
+  }
+  const now = Date.now();
+  const record = {
+    pinId,
+    ownerId,
+    cid,
+    status,
+    metadata: metadata || {},
+    createdAt: now,
+    updatedAt: now,
+  };
+  _pinsV2.set(pinId, record);
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function getPinV2(pinId) {
+  const r = _pinsV2.get(pinId);
+  return r ? { ...r, metadata: { ...r.metadata } } : null;
+}
+
+export function setPinStatusV2(_db, pinId, newStatus, patch = {}) {
+  const record = _pinsV2.get(pinId);
+  if (!record) throw new Error(`Unknown pin: ${pinId}`);
+  if (!Object.values(PIN_LIFECYCLE_V2).includes(newStatus))
+    throw new Error(`Invalid status: ${newStatus}`);
+  const allowed = PIN_TRANSITIONS_V2.get(record.status) || new Set();
+  if (!allowed.has(newStatus))
+    throw new Error(`Invalid transition: ${record.status} -> ${newStatus}`);
+  record.status = newStatus;
+  record.updatedAt = Date.now();
+  if (newStatus === PIN_LIFECYCLE_V2.PINNED && !record.pinnedAt)
+    record.pinnedAt = record.updatedAt;
+  if (patch.reason !== undefined) record.lastReason = patch.reason;
+  if (patch.metadata)
+    record.metadata = { ...record.metadata, ...patch.metadata };
+  return { ...record, metadata: { ...record.metadata } };
+}
+
+export function confirmPin(db, pinId, reason) {
+  return setPinStatusV2(db, pinId, PIN_LIFECYCLE_V2.PINNED, { reason });
+}
+export function failPin(db, pinId, reason) {
+  return setPinStatusV2(db, pinId, PIN_LIFECYCLE_V2.FAILED, { reason });
+}
+export function unpinV2(db, pinId, reason) {
+  return setPinStatusV2(db, pinId, PIN_LIFECYCLE_V2.UNPINNED, { reason });
+}
+
+export function getActiveGatewayCount(operatorId) {
+  let n = 0;
+  for (const r of _gatewaysV2.values()) {
+    if (r.status !== GATEWAY_MATURITY_V2.ACTIVE) continue;
+    if (operatorId && r.operatorId !== operatorId) continue;
+    n++;
+  }
+  return n;
+}
+
+export function getPendingPinCount(ownerId) {
+  let n = 0;
+  for (const r of _pinsV2.values()) {
+    if (r.status !== PIN_LIFECYCLE_V2.PENDING) continue;
+    if (ownerId && r.ownerId !== ownerId) continue;
+    n++;
+  }
+  return n;
+}
+
+export function autoOfflineStaleGateways(_db, nowMs) {
+  const now = nowMs ?? Date.now();
+  const flipped = [];
+  for (const r of _gatewaysV2.values()) {
+    if (
+      r.status === GATEWAY_MATURITY_V2.ACTIVE ||
+      r.status === GATEWAY_MATURITY_V2.DEGRADED
+    ) {
+      if (now - r.lastHeartbeatAt > _gatewayIdleMsV2) {
+        r.status = GATEWAY_MATURITY_V2.OFFLINE;
+        r.updatedAt = now;
+        r.lastReason = "heartbeat_timeout";
+        flipped.push(r.gatewayId);
+      }
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function autoFailStalePendingPins(_db, nowMs) {
+  const now = nowMs ?? Date.now();
+  const flipped = [];
+  for (const r of _pinsV2.values()) {
+    if (r.status === PIN_LIFECYCLE_V2.PENDING) {
+      if (now - r.createdAt > _pinPendingMsV2) {
+        r.status = PIN_LIFECYCLE_V2.FAILED;
+        r.updatedAt = now;
+        r.lastReason = "pending_timeout";
+        flipped.push(r.pinId);
+      }
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function getIpfsStatsV2() {
+  const gatewaysByStatus = {};
+  for (const s of Object.values(GATEWAY_MATURITY_V2)) gatewaysByStatus[s] = 0;
+  const pinsByStatus = {};
+  for (const s of Object.values(PIN_LIFECYCLE_V2)) pinsByStatus[s] = 0;
+  for (const r of _gatewaysV2.values()) gatewaysByStatus[r.status]++;
+  for (const r of _pinsV2.values()) pinsByStatus[r.status]++;
+  return {
+    totalGatewaysV2: _gatewaysV2.size,
+    totalPinsV2: _pinsV2.size,
+    maxActiveGatewaysPerOperator: _maxActiveGatewaysPerOperatorV2,
+    maxPendingPinsPerOwner: _maxPendingPinsPerOwnerV2,
+    gatewayIdleMs: _gatewayIdleMsV2,
+    pinPendingMs: _pinPendingMsV2,
+    gatewaysByStatus,
+    pinsByStatus,
+  };
+}
+
+export function _resetStateV2() {
+  _maxActiveGatewaysPerOperatorV2 =
+    IPFS_DEFAULT_MAX_ACTIVE_GATEWAYS_PER_OPERATOR;
+  _maxPendingPinsPerOwnerV2 = IPFS_DEFAULT_MAX_PENDING_PINS_PER_OWNER;
+  _gatewayIdleMsV2 = IPFS_DEFAULT_GATEWAY_IDLE_MS;
+  _pinPendingMsV2 = IPFS_DEFAULT_PIN_PENDING_MS;
+  _gatewaysV2.clear();
+  _pinsV2.clear();
+}

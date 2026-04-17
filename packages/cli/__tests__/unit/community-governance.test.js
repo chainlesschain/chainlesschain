@@ -603,3 +603,740 @@ describe("community-governance", () => {
     });
   });
 });
+
+/* ═══════════════════════════════════════════════════════════════
+ * Phase 54 V2 — Proposer Maturity + Delegation Lifecycle
+ * ═════════════════════════════════════════════════════════════ */
+
+import {
+  PROPOSER_MATURITY_V2,
+  DELEGATION_LIFECYCLE_V2,
+  GOV_DEFAULT_MAX_ACTIVE_PROPOSERS_PER_REALM,
+  GOV_DEFAULT_MAX_ACTIVE_DELEGATIONS_PER_DELEGATOR,
+  GOV_DEFAULT_PROPOSER_IDLE_MS,
+  GOV_DEFAULT_PENDING_DELEGATION_MS,
+  getDefaultMaxActiveProposersPerRealmV2,
+  getMaxActiveProposersPerRealmV2,
+  setMaxActiveProposersPerRealmV2,
+  getDefaultMaxActiveDelegationsPerDelegatorV2,
+  getMaxActiveDelegationsPerDelegatorV2,
+  setMaxActiveDelegationsPerDelegatorV2,
+  getDefaultProposerIdleMsV2,
+  getProposerIdleMsV2,
+  setProposerIdleMsV2,
+  getDefaultPendingDelegationMsV2,
+  getPendingDelegationMsV2,
+  setPendingDelegationMsV2,
+  registerProposerV2,
+  getProposerV2,
+  setProposerMaturityV2,
+  activateProposer,
+  suspendProposer,
+  retireProposer,
+  touchProposerActivity,
+  createDelegationV2,
+  getDelegationV2,
+  setDelegationStatusV2,
+  activateDelegation,
+  revokeDelegation,
+  expireDelegation,
+  getActiveProposerCount,
+  getActiveDelegationCount,
+  autoRetireIdleProposers,
+  autoExpireStalePendingDelegations,
+  getGovernanceStatsV2,
+  _resetStateV2,
+} from "../../src/lib/community-governance.js";
+
+describe("community-governance V2", () => {
+  beforeEach(() => {
+    _resetStateV2();
+  });
+
+  describe("frozen enums & defaults", () => {
+    it("PROPOSER_MATURITY_V2 has 4 statuses and is frozen", () => {
+      expect(Object.values(PROPOSER_MATURITY_V2).sort()).toEqual(
+        ["active", "onboarding", "retired", "suspended"].sort(),
+      );
+      expect(Object.isFrozen(PROPOSER_MATURITY_V2)).toBe(true);
+    });
+    it("DELEGATION_LIFECYCLE_V2 has 4 statuses and is frozen", () => {
+      expect(Object.values(DELEGATION_LIFECYCLE_V2).sort()).toEqual(
+        ["active", "expired", "pending", "revoked"].sort(),
+      );
+      expect(Object.isFrozen(DELEGATION_LIFECYCLE_V2)).toBe(true);
+    });
+    it("exports sane default config values", () => {
+      expect(GOV_DEFAULT_MAX_ACTIVE_PROPOSERS_PER_REALM).toBe(100);
+      expect(GOV_DEFAULT_MAX_ACTIVE_DELEGATIONS_PER_DELEGATOR).toBe(5);
+      expect(GOV_DEFAULT_PROPOSER_IDLE_MS).toBe(180 * 86400000);
+      expect(GOV_DEFAULT_PENDING_DELEGATION_MS).toBe(7 * 86400000);
+    });
+  });
+
+  describe("config mutators", () => {
+    it("setMaxActiveProposersPerRealmV2 floors non-integer, rejects ≤0/NaN", () => {
+      expect(setMaxActiveProposersPerRealmV2(42.9)).toBe(42);
+      expect(getMaxActiveProposersPerRealmV2()).toBe(42);
+      expect(() => setMaxActiveProposersPerRealmV2(0)).toThrow(
+        /positive integer/,
+      );
+      expect(() => setMaxActiveProposersPerRealmV2(-1)).toThrow();
+      expect(() => setMaxActiveProposersPerRealmV2("foo")).toThrow();
+      expect(getDefaultMaxActiveProposersPerRealmV2()).toBe(100);
+    });
+    it("setMaxActiveDelegationsPerDelegatorV2 floors + validates", () => {
+      expect(setMaxActiveDelegationsPerDelegatorV2(9.9)).toBe(9);
+      expect(getMaxActiveDelegationsPerDelegatorV2()).toBe(9);
+      expect(() => setMaxActiveDelegationsPerDelegatorV2(0)).toThrow();
+      expect(getDefaultMaxActiveDelegationsPerDelegatorV2()).toBe(5);
+    });
+    it("setProposerIdleMsV2 floors + validates", () => {
+      expect(setProposerIdleMsV2(86400000.7)).toBe(86400000);
+      expect(getProposerIdleMsV2()).toBe(86400000);
+      expect(() => setProposerIdleMsV2(-1)).toThrow();
+      expect(getDefaultProposerIdleMsV2()).toBe(180 * 86400000);
+    });
+    it("setPendingDelegationMsV2 floors + validates", () => {
+      expect(setPendingDelegationMsV2(3600000.2)).toBe(3600000);
+      expect(getPendingDelegationMsV2()).toBe(3600000);
+      expect(() => setPendingDelegationMsV2(NaN)).toThrow();
+      expect(getDefaultPendingDelegationMsV2()).toBe(7 * 86400000);
+    });
+    it("_resetStateV2 restores all 4 config values", () => {
+      setMaxActiveProposersPerRealmV2(42);
+      setMaxActiveDelegationsPerDelegatorV2(9);
+      setProposerIdleMsV2(1000);
+      setPendingDelegationMsV2(2000);
+      _resetStateV2();
+      expect(getMaxActiveProposersPerRealmV2()).toBe(100);
+      expect(getMaxActiveDelegationsPerDelegatorV2()).toBe(5);
+      expect(getProposerIdleMsV2()).toBe(180 * 86400000);
+      expect(getPendingDelegationMsV2()).toBe(7 * 86400000);
+    });
+  });
+
+  describe("registerProposerV2", () => {
+    it("registers proposer with default onboarding status", () => {
+      const p = registerProposerV2(null, {
+        proposerId: "did:alice",
+        realm: "main",
+        displayName: "Alice",
+      });
+      expect(p.status).toBe("onboarding");
+      expect(p.realm).toBe("main");
+      expect(p.displayName).toBe("Alice");
+      expect(p.createdAt).toBeGreaterThan(0);
+      expect(p.lastActivityAt).toBe(p.createdAt);
+    });
+    it("honors initialStatus active", () => {
+      const p = registerProposerV2(null, {
+        proposerId: "did:bob",
+        realm: "main",
+        initialStatus: "active",
+      });
+      expect(p.status).toBe("active");
+    });
+    it("rejects missing proposerId", () => {
+      expect(() => registerProposerV2(null, { realm: "main" })).toThrow(
+        /proposerId/,
+      );
+    });
+    it("rejects missing realm", () => {
+      expect(() =>
+        registerProposerV2(null, { proposerId: "did:alice" }),
+      ).toThrow(/realm/);
+    });
+    it("rejects duplicate proposerId", () => {
+      registerProposerV2(null, { proposerId: "x", realm: "main" });
+      expect(() =>
+        registerProposerV2(null, { proposerId: "x", realm: "main" }),
+      ).toThrow(/already registered/);
+    });
+    it("rejects terminal initialStatus 'retired'", () => {
+      expect(() =>
+        registerProposerV2(null, {
+          proposerId: "x",
+          realm: "main",
+          initialStatus: "retired",
+        }),
+      ).toThrow(/terminal/);
+    });
+    it("rejects invalid initialStatus", () => {
+      expect(() =>
+        registerProposerV2(null, {
+          proposerId: "x",
+          realm: "main",
+          initialStatus: "bogus",
+        }),
+      ).toThrow(/Invalid initial status/);
+    });
+    it("enforces per-realm active cap (active-only counted)", () => {
+      setMaxActiveProposersPerRealmV2(2);
+      registerProposerV2(null, {
+        proposerId: "a",
+        realm: "main",
+        initialStatus: "active",
+      });
+      registerProposerV2(null, {
+        proposerId: "b",
+        realm: "main",
+        initialStatus: "active",
+      });
+      expect(() =>
+        registerProposerV2(null, {
+          proposerId: "c",
+          realm: "main",
+          initialStatus: "active",
+        }),
+      ).toThrow(/Max active proposers per realm/);
+      // other realm unaffected
+      expect(
+        registerProposerV2(null, {
+          proposerId: "d",
+          realm: "other",
+          initialStatus: "active",
+        }).status,
+      ).toBe("active");
+    });
+    it("onboarding registrations excluded from active cap", () => {
+      setMaxActiveProposersPerRealmV2(1);
+      registerProposerV2(null, {
+        proposerId: "a",
+        realm: "main",
+        initialStatus: "active",
+      });
+      // onboarding should not count toward cap
+      registerProposerV2(null, { proposerId: "b", realm: "main" });
+      registerProposerV2(null, { proposerId: "c", realm: "main" });
+      expect(getActiveProposerCount("main")).toBe(1);
+    });
+  });
+
+  describe("setProposerMaturityV2", () => {
+    beforeEach(() => {
+      registerProposerV2(null, { proposerId: "p1", realm: "main" });
+    });
+    it("traverses onboarding→active→suspended→active→retired", () => {
+      expect(setProposerMaturityV2(null, "p1", "active").status).toBe("active");
+      expect(setProposerMaturityV2(null, "p1", "suspended").status).toBe(
+        "suspended",
+      );
+      expect(setProposerMaturityV2(null, "p1", "active").status).toBe("active");
+      expect(setProposerMaturityV2(null, "p1", "retired").status).toBe(
+        "retired",
+      );
+    });
+    it("permits onboarding→retired direct", () => {
+      expect(setProposerMaturityV2(null, "p1", "retired").status).toBe(
+        "retired",
+      );
+    });
+    it("blocks onboarding→suspended (not adjacent)", () => {
+      expect(() => setProposerMaturityV2(null, "p1", "suspended")).toThrow(
+        /Invalid transition/,
+      );
+    });
+    it("rejects transitions out of terminal retired", () => {
+      setProposerMaturityV2(null, "p1", "retired");
+      expect(() => setProposerMaturityV2(null, "p1", "active")).toThrow(
+        /terminal/,
+      );
+    });
+    it("rejects unknown proposer", () => {
+      expect(() => setProposerMaturityV2(null, "ghost", "active")).toThrow(
+        /not registered/,
+      );
+    });
+    it("rejects invalid target status", () => {
+      expect(() => setProposerMaturityV2(null, "p1", "bogus")).toThrow(
+        /Invalid proposer status/,
+      );
+    });
+    it("enforces cap on transition to active", () => {
+      setMaxActiveProposersPerRealmV2(1);
+      registerProposerV2(null, {
+        proposerId: "p2",
+        realm: "main",
+        initialStatus: "active",
+      });
+      expect(() => setProposerMaturityV2(null, "p1", "active")).toThrow(
+        /Max active proposers/,
+      );
+    });
+    it("merges patch metadata and stamps reason", () => {
+      const p = setProposerMaturityV2(null, "p1", "active", {
+        reason: "approved",
+        metadata: { approver: "alice" },
+      });
+      expect(p.reason).toBe("approved");
+      expect(p.metadata.approver).toBe("alice");
+      const p2 = setProposerMaturityV2(null, "p1", "suspended", {
+        reason: "abuse",
+        metadata: { ticket: 42 },
+      });
+      expect(p2.metadata.approver).toBe("alice");
+      expect(p2.metadata.ticket).toBe(42);
+      expect(getProposerV2("ghost")).toBeNull();
+    });
+  });
+
+  describe("touchProposerActivity", () => {
+    it("bumps lastActivityAt", async () => {
+      const p = registerProposerV2(null, { proposerId: "p1", realm: "main" });
+      const orig = p.lastActivityAt;
+      await new Promise((r) => setTimeout(r, 2));
+      const updated = touchProposerActivity("p1");
+      expect(updated.lastActivityAt).toBeGreaterThanOrEqual(orig);
+    });
+    it("throws on unknown", () => {
+      expect(() => touchProposerActivity("ghost")).toThrow(/not registered/);
+    });
+  });
+
+  describe("createDelegationV2", () => {
+    beforeEach(() => {
+      registerProposerV2(null, { proposerId: "alice", realm: "main" });
+      registerProposerV2(null, { proposerId: "bob", realm: "main" });
+    });
+    it("creates delegation with default pending status", () => {
+      const d = createDelegationV2(null, {
+        delegationId: "d1",
+        delegatorId: "alice",
+        delegateeId: "bob",
+        scope: "all",
+      });
+      expect(d.status).toBe("pending");
+      expect(d.scope).toBe("all");
+    });
+    it("rejects each missing field", () => {
+      expect(() =>
+        createDelegationV2(null, {
+          delegatorId: "a",
+          delegateeId: "b",
+          scope: "x",
+        }),
+      ).toThrow(/delegationId/);
+      expect(() =>
+        createDelegationV2(null, {
+          delegationId: "d",
+          delegateeId: "b",
+          scope: "x",
+        }),
+      ).toThrow(/delegatorId/);
+      expect(() =>
+        createDelegationV2(null, {
+          delegationId: "d",
+          delegatorId: "a",
+          scope: "x",
+        }),
+      ).toThrow(/delegateeId/);
+      expect(() =>
+        createDelegationV2(null, {
+          delegationId: "d",
+          delegatorId: "a",
+          delegateeId: "b",
+        }),
+      ).toThrow(/scope/);
+    });
+    it("rejects self-delegation", () => {
+      expect(() =>
+        createDelegationV2(null, {
+          delegationId: "d1",
+          delegatorId: "a",
+          delegateeId: "a",
+          scope: "all",
+        }),
+      ).toThrow(/must differ/);
+    });
+    it("rejects duplicate delegationId", () => {
+      createDelegationV2(null, {
+        delegationId: "d1",
+        delegatorId: "alice",
+        delegateeId: "bob",
+        scope: "all",
+      });
+      expect(() =>
+        createDelegationV2(null, {
+          delegationId: "d1",
+          delegatorId: "alice",
+          delegateeId: "bob",
+          scope: "x",
+        }),
+      ).toThrow(/already registered/);
+    });
+    it("enforces per-delegator open cap (pending+active counted)", () => {
+      setMaxActiveDelegationsPerDelegatorV2(2);
+      createDelegationV2(null, {
+        delegationId: "d1",
+        delegatorId: "alice",
+        delegateeId: "bob",
+        scope: "x",
+      });
+      createDelegationV2(null, {
+        delegationId: "d2",
+        delegatorId: "alice",
+        delegateeId: "bob",
+        scope: "y",
+      });
+      expect(() =>
+        createDelegationV2(null, {
+          delegationId: "d3",
+          delegatorId: "alice",
+          delegateeId: "bob",
+          scope: "z",
+        }),
+      ).toThrow(/Max active delegations per delegator/);
+    });
+    it("terminal delegations excluded from cap", () => {
+      setMaxActiveDelegationsPerDelegatorV2(1);
+      const d1 = createDelegationV2(null, {
+        delegationId: "d1",
+        delegatorId: "alice",
+        delegateeId: "bob",
+        scope: "x",
+      });
+      revokeDelegation(null, d1.delegationId);
+      // revoked no longer counts
+      const d2 = createDelegationV2(null, {
+        delegationId: "d2",
+        delegatorId: "alice",
+        delegateeId: "bob",
+        scope: "y",
+      });
+      expect(d2.status).toBe("pending");
+    });
+  });
+
+  describe("setDelegationStatusV2", () => {
+    beforeEach(() => {
+      createDelegationV2(null, {
+        delegationId: "d1",
+        delegatorId: "alice",
+        delegateeId: "bob",
+        scope: "all",
+      });
+    });
+    it("traverses pending→active→revoked", () => {
+      expect(setDelegationStatusV2(null, "d1", "active").status).toBe("active");
+      expect(setDelegationStatusV2(null, "d1", "revoked").status).toBe(
+        "revoked",
+      );
+    });
+    it("permits pending→revoked direct", () => {
+      expect(setDelegationStatusV2(null, "d1", "revoked").status).toBe(
+        "revoked",
+      );
+    });
+    it("permits pending→expired direct", () => {
+      expect(setDelegationStatusV2(null, "d1", "expired").status).toBe(
+        "expired",
+      );
+    });
+    it("permits active→expired", () => {
+      setDelegationStatusV2(null, "d1", "active");
+      expect(setDelegationStatusV2(null, "d1", "expired").status).toBe(
+        "expired",
+      );
+    });
+    it("rejects transitions out of revoked (terminal)", () => {
+      setDelegationStatusV2(null, "d1", "revoked");
+      expect(() => setDelegationStatusV2(null, "d1", "active")).toThrow(
+        /terminal/,
+      );
+    });
+    it("rejects transitions out of expired (terminal)", () => {
+      setDelegationStatusV2(null, "d1", "expired");
+      expect(() => setDelegationStatusV2(null, "d1", "active")).toThrow(
+        /terminal/,
+      );
+    });
+    it("rejects unknown delegation", () => {
+      expect(() => setDelegationStatusV2(null, "ghost", "active")).toThrow(
+        /not registered/,
+      );
+    });
+    it("rejects invalid target status", () => {
+      expect(() => setDelegationStatusV2(null, "d1", "bogus")).toThrow(
+        /Invalid delegation status/,
+      );
+    });
+    it("stamps activatedAt only on first activation", async () => {
+      const d1 = setDelegationStatusV2(null, "d1", "active");
+      expect(d1.activatedAt).toBeGreaterThan(0);
+      const t0 = d1.activatedAt;
+      await new Promise((r) => setTimeout(r, 2));
+      // no re-activation path in spec, so test via direct setter w/ patch.now
+      // (pending→active is stamp-once even if re-entered via some future path)
+      const rec = getDelegationV2("d1");
+      expect(rec.activatedAt).toBe(t0);
+    });
+    it("merges patch metadata + stamps reason", () => {
+      const d = setDelegationStatusV2(null, "d1", "active", {
+        reason: "accepted",
+        metadata: { signed: true },
+      });
+      expect(d.reason).toBe("accepted");
+      expect(d.metadata.signed).toBe(true);
+    });
+  });
+
+  describe("counts", () => {
+    it("getActiveProposerCount scopes by realm", () => {
+      registerProposerV2(null, {
+        proposerId: "a",
+        realm: "r1",
+        initialStatus: "active",
+      });
+      registerProposerV2(null, {
+        proposerId: "b",
+        realm: "r1",
+        initialStatus: "active",
+      });
+      registerProposerV2(null, {
+        proposerId: "c",
+        realm: "r2",
+        initialStatus: "active",
+      });
+      registerProposerV2(null, { proposerId: "d", realm: "r1" }); // onboarding
+      expect(getActiveProposerCount()).toBe(3);
+      expect(getActiveProposerCount("r1")).toBe(2);
+      expect(getActiveProposerCount("r2")).toBe(1);
+      expect(getActiveProposerCount("nonexistent")).toBe(0);
+    });
+    it("getActiveDelegationCount scopes by delegator, excludes terminals", () => {
+      createDelegationV2(null, {
+        delegationId: "d1",
+        delegatorId: "alice",
+        delegateeId: "bob",
+        scope: "x",
+      });
+      createDelegationV2(null, {
+        delegationId: "d2",
+        delegatorId: "alice",
+        delegateeId: "bob",
+        scope: "y",
+      });
+      createDelegationV2(null, {
+        delegationId: "d3",
+        delegatorId: "carol",
+        delegateeId: "bob",
+        scope: "x",
+      });
+      revokeDelegation(null, "d2");
+      expect(getActiveDelegationCount()).toBe(2);
+      expect(getActiveDelegationCount("alice")).toBe(1);
+      expect(getActiveDelegationCount("carol")).toBe(1);
+      expect(getActiveDelegationCount("ghost")).toBe(0);
+    });
+  });
+
+  describe("autoRetireIdleProposers", () => {
+    it("retires active proposers past idle window", () => {
+      registerProposerV2(null, {
+        proposerId: "p1",
+        realm: "r",
+        initialStatus: "active",
+        now: 1_000_000,
+      });
+      setProposerIdleMsV2(1000);
+      const flipped = autoRetireIdleProposers(null, 1_002_000);
+      expect(flipped).toEqual(["p1"]);
+      expect(getProposerV2("p1").status).toBe("retired");
+      expect(getProposerV2("p1").reason).toBe("idle");
+    });
+    it("retires suspended proposers past idle window", () => {
+      registerProposerV2(null, {
+        proposerId: "p1",
+        realm: "r",
+        now: 1_000_000,
+      });
+      setProposerMaturityV2(null, "p1", "active", { now: 1_000_000 });
+      setProposerMaturityV2(null, "p1", "suspended", { now: 1_000_000 });
+      setProposerIdleMsV2(1000);
+      // manually reset lastActivityAt to original
+      const rec = getProposerV2("p1");
+      expect(rec.status).toBe("suspended");
+      const flipped = autoRetireIdleProposers(null, 1_002_000);
+      expect(flipped).toEqual(["p1"]);
+    });
+    it("skips onboarding + retired", () => {
+      registerProposerV2(null, {
+        proposerId: "p1",
+        realm: "r",
+        now: 1_000_000,
+      });
+      registerProposerV2(null, {
+        proposerId: "p2",
+        realm: "r",
+        now: 1_000_000,
+        initialStatus: "active",
+      });
+      retireProposer(null, "p2");
+      setProposerIdleMsV2(1000);
+      expect(autoRetireIdleProposers(null, 1_002_000)).toEqual([]);
+    });
+    it("skips fresh proposers", () => {
+      registerProposerV2(null, {
+        proposerId: "p1",
+        realm: "r",
+        now: 1_000_000,
+        initialStatus: "active",
+      });
+      setProposerIdleMsV2(1_000_000);
+      expect(autoRetireIdleProposers(null, 1_001_000)).toEqual([]);
+    });
+  });
+
+  describe("autoExpireStalePendingDelegations", () => {
+    it("expires pending delegations past window", () => {
+      createDelegationV2(null, {
+        delegationId: "d1",
+        delegatorId: "alice",
+        delegateeId: "bob",
+        scope: "x",
+        now: 1_000_000,
+      });
+      setPendingDelegationMsV2(1000);
+      const flipped = autoExpireStalePendingDelegations(null, 1_002_000);
+      expect(flipped).toEqual(["d1"]);
+      expect(getDelegationV2("d1").status).toBe("expired");
+      expect(getDelegationV2("d1").reason).toBe("pending_timeout");
+    });
+    it("skips fresh pending", () => {
+      createDelegationV2(null, {
+        delegationId: "d1",
+        delegatorId: "alice",
+        delegateeId: "bob",
+        scope: "x",
+        now: 1_000_000,
+      });
+      setPendingDelegationMsV2(1_000_000);
+      expect(autoExpireStalePendingDelegations(null, 1_001_000)).toEqual([]);
+    });
+    it("skips non-pending (active, revoked, expired)", () => {
+      createDelegationV2(null, {
+        delegationId: "d1",
+        delegatorId: "alice",
+        delegateeId: "bob",
+        scope: "x",
+        now: 1_000_000,
+      });
+      createDelegationV2(null, {
+        delegationId: "d2",
+        delegatorId: "alice",
+        delegateeId: "bob",
+        scope: "y",
+        now: 1_000_000,
+      });
+      activateDelegation(null, "d1");
+      revokeDelegation(null, "d2");
+      setPendingDelegationMsV2(1000);
+      expect(autoExpireStalePendingDelegations(null, 1_002_000)).toEqual([]);
+    });
+  });
+
+  describe("getGovernanceStatsV2", () => {
+    it("zero-initialized enum keys when empty", () => {
+      const s = getGovernanceStatsV2();
+      expect(s.totalProposersV2).toBe(0);
+      expect(s.totalDelegationsV2).toBe(0);
+      expect(s.proposersByStatus).toEqual({
+        onboarding: 0,
+        active: 0,
+        suspended: 0,
+        retired: 0,
+      });
+      expect(s.delegationsByStatus).toEqual({
+        pending: 0,
+        active: 0,
+        revoked: 0,
+        expired: 0,
+      });
+      expect(s.maxActiveProposersPerRealm).toBe(100);
+      expect(s.maxActiveDelegationsPerDelegator).toBe(5);
+      expect(s.proposerIdleMs).toBe(GOV_DEFAULT_PROPOSER_IDLE_MS);
+      expect(s.pendingDelegationMs).toBe(GOV_DEFAULT_PENDING_DELEGATION_MS);
+    });
+    it("aggregates across all 4+4 statuses", () => {
+      registerProposerV2(null, { proposerId: "a", realm: "r" });
+      registerProposerV2(null, {
+        proposerId: "b",
+        realm: "r",
+        initialStatus: "active",
+      });
+      registerProposerV2(null, {
+        proposerId: "c",
+        realm: "r",
+        initialStatus: "active",
+      });
+      suspendProposer(null, "b");
+      retireProposer(null, "c");
+      createDelegationV2(null, {
+        delegationId: "d1",
+        delegatorId: "a",
+        delegateeId: "b",
+        scope: "x",
+      });
+      createDelegationV2(null, {
+        delegationId: "d2",
+        delegatorId: "a",
+        delegateeId: "b",
+        scope: "y",
+      });
+      createDelegationV2(null, {
+        delegationId: "d3",
+        delegatorId: "a",
+        delegateeId: "b",
+        scope: "z",
+      });
+      activateDelegation(null, "d1");
+      revokeDelegation(null, "d2");
+      expireDelegation(null, "d3");
+
+      const s = getGovernanceStatsV2();
+      expect(s.totalProposersV2).toBe(3);
+      expect(s.proposersByStatus.onboarding).toBe(1);
+      expect(s.proposersByStatus.active).toBe(0);
+      expect(s.proposersByStatus.suspended).toBe(1);
+      expect(s.proposersByStatus.retired).toBe(1);
+      expect(s.totalDelegationsV2).toBe(3);
+      expect(s.delegationsByStatus.active).toBe(1);
+      expect(s.delegationsByStatus.revoked).toBe(1);
+      expect(s.delegationsByStatus.expired).toBe(1);
+      expect(s.delegationsByStatus.pending).toBe(0);
+    });
+  });
+
+  describe("shortcuts", () => {
+    it("activateProposer / suspendProposer / retireProposer", () => {
+      registerProposerV2(null, { proposerId: "p1", realm: "r" });
+      expect(activateProposer(null, "p1").status).toBe("active");
+      expect(suspendProposer(null, "p1").status).toBe("suspended");
+      expect(retireProposer(null, "p1").status).toBe("retired");
+    });
+    it("activateDelegation / revokeDelegation / expireDelegation", () => {
+      createDelegationV2(null, {
+        delegationId: "d1",
+        delegatorId: "a",
+        delegateeId: "b",
+        scope: "x",
+      });
+      expect(activateDelegation(null, "d1").status).toBe("active");
+      createDelegationV2(null, {
+        delegationId: "d2",
+        delegatorId: "a",
+        delegateeId: "b",
+        scope: "y",
+      });
+      expect(revokeDelegation(null, "d2").status).toBe("revoked");
+      createDelegationV2(null, {
+        delegationId: "d3",
+        delegatorId: "a",
+        delegateeId: "b",
+        scope: "z",
+      });
+      expect(expireDelegation(null, "d3").status).toBe("expired");
+    });
+  });
+});

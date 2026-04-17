@@ -20,7 +20,50 @@ import {
   cancelJob,
   deleteJob,
   getQuantizationStats,
+  /* V2 (Phase 20) */
+  MODEL_MATURITY_V2,
+  JOB_TICKET_V2,
+  getDefaultMaxActiveModelsPerOwnerV2,
+  getMaxActiveModelsPerOwnerV2,
+  setMaxActiveModelsPerOwnerV2,
+  getDefaultMaxRunningJobsPerOwnerV2,
+  getMaxRunningJobsPerOwnerV2,
+  setMaxRunningJobsPerOwnerV2,
+  getDefaultModelIdleMsV2,
+  getModelIdleMsV2,
+  setModelIdleMsV2,
+  getDefaultJobStuckMsV2,
+  getJobStuckMsV2,
+  setJobStuckMsV2,
+  registerModelV2,
+  getModelV2,
+  setModelMaturityV2,
+  activateModel,
+  deprecateModel,
+  retireModel,
+  touchModelUsage,
+  enqueueJobTicketV2,
+  getJobTicketV2,
+  setJobTicketStatusV2,
+  startJobTicket,
+  completeJobTicket,
+  failJobTicket,
+  cancelJobTicket,
+  getActiveModelCount,
+  getRunningJobCount,
+  autoRetireIdleModels,
+  autoFailStuckJobTickets,
+  getQuantizationStatsV2,
 } from "../lib/quantization.js";
+
+function _parseMetaV2(s) {
+  if (!s) return undefined;
+  try {
+    return JSON.parse(s);
+  } catch {
+    throw new Error(`--metadata must be valid JSON`);
+  }
+}
 
 function _dbFromCtx(cmd) {
   const root = cmd?.parent?.parent ?? cmd?.parent;
@@ -274,6 +317,314 @@ export function registerQuantizationCommand(program) {
         console.log(`Total output: ${s.totalSizeBytes} bytes`);
       if (s.avgDurationMs > 0)
         console.log(`Avg duration: ${s.avgDurationMs}ms`);
+    });
+
+  /* ═════════════════════════════════════════════════════ *
+   *  Phase 20 V2 — Model Maturity + Job Ticket Lifecycle
+   * ═════════════════════════════════════════════════════ */
+
+  quant
+    .command("model-maturities-v2")
+    .description("List Phase 20 V2 model maturity states")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const v = Object.values(MODEL_MATURITY_V2);
+      if (opts.json) return console.log(JSON.stringify(v, null, 2));
+      for (const s of v) console.log(s);
+    });
+
+  quant
+    .command("job-ticket-lifecycles-v2")
+    .description("List Phase 20 V2 job-ticket lifecycle states")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const v = Object.values(JOB_TICKET_V2);
+      if (opts.json) return console.log(JSON.stringify(v, null, 2));
+      for (const s of v) console.log(s);
+    });
+
+  quant
+    .command("default-max-active-models-per-owner")
+    .description("Show default V2 per-owner active-model cap")
+    .action(() => console.log(getDefaultMaxActiveModelsPerOwnerV2()));
+
+  quant
+    .command("max-active-models-per-owner")
+    .description("Show current V2 per-owner active-model cap")
+    .action(() => console.log(getMaxActiveModelsPerOwnerV2()));
+
+  quant
+    .command("set-max-active-models-per-owner <n>")
+    .description("Set V2 per-owner active-model cap")
+    .action((n) => console.log(setMaxActiveModelsPerOwnerV2(n)));
+
+  quant
+    .command("default-max-running-jobs-per-owner")
+    .description("Show default V2 per-owner running-job cap")
+    .action(() => console.log(getDefaultMaxRunningJobsPerOwnerV2()));
+
+  quant
+    .command("max-running-jobs-per-owner")
+    .description("Show current V2 per-owner running-job cap")
+    .action(() => console.log(getMaxRunningJobsPerOwnerV2()));
+
+  quant
+    .command("set-max-running-jobs-per-owner <n>")
+    .description("Set V2 per-owner running-job cap")
+    .action((n) => console.log(setMaxRunningJobsPerOwnerV2(n)));
+
+  quant
+    .command("default-model-idle-ms")
+    .description("Show default V2 model-idle threshold")
+    .action(() => console.log(getDefaultModelIdleMsV2()));
+
+  quant
+    .command("model-idle-ms")
+    .description("Show current V2 model-idle threshold")
+    .action(() => console.log(getModelIdleMsV2()));
+
+  quant
+    .command("set-model-idle-ms <ms>")
+    .description("Set V2 model-idle threshold (ms)")
+    .action((ms) => console.log(setModelIdleMsV2(ms)));
+
+  quant
+    .command("default-job-stuck-ms")
+    .description("Show default V2 job-stuck threshold")
+    .action(() => console.log(getDefaultJobStuckMsV2()));
+
+  quant
+    .command("job-stuck-ms")
+    .description("Show current V2 job-stuck threshold")
+    .action(() => console.log(getJobStuckMsV2()));
+
+  quant
+    .command("set-job-stuck-ms <ms>")
+    .description("Set V2 job-stuck threshold (ms)")
+    .action((ms) => console.log(setJobStuckMsV2(ms)));
+
+  quant
+    .command("active-model-count")
+    .description("Count active V2 models (optionally scoped by owner)")
+    .option("-o, --owner <id>", "Owner ID")
+    .action((opts) => console.log(getActiveModelCount(opts.owner)));
+
+  quant
+    .command("running-job-count")
+    .description("Count running V2 job tickets (optionally scoped by owner)")
+    .option("-o, --owner <id>", "Owner ID")
+    .action((opts) => console.log(getRunningJobCount(opts.owner)));
+
+  quant
+    .command("register-model-v2 <model-id>")
+    .description("Register a V2 model")
+    .requiredOption("-o, --owner <id>", "Owner ID")
+    .option("-f, --family <name>", "Model family (e.g. llama)")
+    .option("-i, --initial-status <status>", "Initial status")
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .option("--json", "JSON output")
+    .action((modelId, opts) => {
+      const db = _dbFromCtx(quant);
+      const rec = registerModelV2(db, {
+        modelId,
+        ownerId: opts.owner,
+        family: opts.family,
+        initialStatus: opts.initialStatus,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      if (opts.json) return console.log(JSON.stringify(rec, null, 2));
+      console.log(`Registered model ${modelId} (${rec.status})`);
+    });
+
+  quant
+    .command("model-v2 <model-id>")
+    .description("Show a V2 model")
+    .option("--json", "JSON output")
+    .action((id, opts) => {
+      const rec = getModelV2(id);
+      if (!rec) {
+        console.error(`Unknown model: ${id}`);
+        process.exitCode = 1;
+        return;
+      }
+      if (opts.json) return console.log(JSON.stringify(rec, null, 2));
+      console.log(`${rec.modelId} [${rec.status}] owner=${rec.ownerId}`);
+    });
+
+  quant
+    .command("set-model-maturity-v2 <model-id> <status>")
+    .description("Transition V2 model maturity")
+    .option("-r, --reason <text>", "Reason")
+    .option("-m, --metadata <json>", "Metadata patch (JSON)")
+    .action((id, status, opts) => {
+      const db = _dbFromCtx(quant);
+      const rec = setModelMaturityV2(db, id, status, {
+        reason: opts.reason,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  quant
+    .command("activate-model <model-id>")
+    .description("Transition a V2 model to ACTIVE")
+    .option("-r, --reason <text>", "Reason")
+    .action((id, opts) => {
+      const rec = activateModel(_dbFromCtx(quant), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  quant
+    .command("deprecate-model <model-id>")
+    .description("Transition a V2 model to DEPRECATED")
+    .option("-r, --reason <text>", "Reason")
+    .action((id, opts) => {
+      const rec = deprecateModel(_dbFromCtx(quant), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  quant
+    .command("retire-model <model-id>")
+    .description("Transition a V2 model to RETIRED")
+    .option("-r, --reason <text>", "Reason")
+    .action((id, opts) => {
+      const rec = retireModel(_dbFromCtx(quant), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  quant
+    .command("touch-model-usage <model-id>")
+    .description("Bump lastUsedAt for a V2 model")
+    .action((id) => {
+      const rec = touchModelUsage(id);
+      console.log(`${id} lastUsedAt=${rec.lastUsedAt}`);
+    });
+
+  quant
+    .command("enqueue-job-ticket-v2 <ticket-id>")
+    .description("Enqueue a V2 quantization job ticket")
+    .requiredOption("-o, --owner <id>", "Owner ID")
+    .requiredOption("-M, --model <id>", "Model ID")
+    .requiredOption("-t, --quant-type <type>", "Quant type (gguf/gptq)")
+    .option("-l, --level <lvl>", "Level (e.g. Q4_K_M)")
+    .option("-m, --metadata <json>", "Metadata JSON")
+    .option("--json", "JSON output")
+    .action((ticketId, opts) => {
+      const db = _dbFromCtx(quant);
+      const rec = enqueueJobTicketV2(db, {
+        ticketId,
+        ownerId: opts.owner,
+        modelId: opts.model,
+        quantType: opts.quantType,
+        level: opts.level,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      if (opts.json) return console.log(JSON.stringify(rec, null, 2));
+      console.log(`Enqueued ticket ${ticketId} (${rec.status})`);
+    });
+
+  quant
+    .command("job-ticket-v2 <ticket-id>")
+    .description("Show a V2 job ticket")
+    .option("--json", "JSON output")
+    .action((id, opts) => {
+      const rec = getJobTicketV2(id);
+      if (!rec) {
+        console.error(`Unknown ticket: ${id}`);
+        process.exitCode = 1;
+        return;
+      }
+      if (opts.json) return console.log(JSON.stringify(rec, null, 2));
+      console.log(`${rec.ticketId} [${rec.status}] owner=${rec.ownerId}`);
+    });
+
+  quant
+    .command("set-job-ticket-status-v2 <ticket-id> <status>")
+    .description("Transition V2 job ticket status")
+    .option("-r, --reason <text>", "Reason")
+    .option("-m, --metadata <json>", "Metadata patch (JSON)")
+    .action((id, status, opts) => {
+      const db = _dbFromCtx(quant);
+      const rec = setJobTicketStatusV2(db, id, status, {
+        reason: opts.reason,
+        metadata: _parseMetaV2(opts.metadata),
+      });
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  quant
+    .command("start-job-ticket <ticket-id>")
+    .description("Transition a V2 job ticket to RUNNING")
+    .option("-r, --reason <text>", "Reason")
+    .action((id, opts) => {
+      const rec = startJobTicket(_dbFromCtx(quant), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  quant
+    .command("complete-job-ticket <ticket-id>")
+    .description("Transition a V2 job ticket to COMPLETED")
+    .option("-r, --reason <text>", "Reason")
+    .action((id, opts) => {
+      const rec = completeJobTicket(_dbFromCtx(quant), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  quant
+    .command("fail-job-ticket <ticket-id>")
+    .description("Transition a V2 job ticket to FAILED")
+    .option("-r, --reason <text>", "Reason")
+    .action((id, opts) => {
+      const rec = failJobTicket(_dbFromCtx(quant), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  quant
+    .command("cancel-job-ticket <ticket-id>")
+    .description("Transition a V2 job ticket to CANCELED")
+    .option("-r, --reason <text>", "Reason")
+    .action((id, opts) => {
+      const rec = cancelJobTicket(_dbFromCtx(quant), id, opts.reason);
+      console.log(`${id} → ${rec.status}`);
+    });
+
+  quant
+    .command("auto-retire-idle-models")
+    .description("Flip idle V2 models (active+deprecated) → RETIRED")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const r = autoRetireIdleModels(_dbFromCtx(quant));
+      if (opts.json) return console.log(JSON.stringify(r, null, 2));
+      console.log(`Retired ${r.count} idle model(s)`);
+    });
+
+  quant
+    .command("auto-fail-stuck-job-tickets")
+    .description("Flip stuck RUNNING V2 tickets → FAILED")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const r = autoFailStuckJobTickets(_dbFromCtx(quant));
+      if (opts.json) return console.log(JSON.stringify(r, null, 2));
+      console.log(`Failed ${r.count} stuck ticket(s)`);
+    });
+
+  quant
+    .command("stats-v2")
+    .description("Phase 20 V2 statistics")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const s = getQuantizationStatsV2();
+      if (opts.json) return console.log(JSON.stringify(s, null, 2));
+      console.log(
+        `Models(V2)=${s.totalModelsV2} Tickets(V2)=${s.totalTicketsV2} ` +
+          `caps: active-models/owner=${s.maxActiveModelsPerOwner} running-jobs/owner=${s.maxRunningJobsPerOwner}`,
+      );
+      console.log("models-by-status:");
+      for (const [k, v] of Object.entries(s.modelsByStatus))
+        console.log(`  ${k.padEnd(12)} ${v}`);
+      console.log("tickets-by-status:");
+      for (const [k, v] of Object.entries(s.ticketsByStatus))
+        console.log(`  ${k.padEnd(12)} ${v}`);
     });
 
   program.addCommand(quant);
