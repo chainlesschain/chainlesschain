@@ -46,6 +46,16 @@ const evolution = [
   { tag: 'v5.0.2.10', title: 'CutClaw 视频剪辑 Agent', sub: 'AI 端到端视频生产', desc: 'deconstruct → plan → assemble → render，--parallel 质量门控 + madmom beat-snap + 音频 ducking。' },
   { tag: 'v5.0.2.10', title: '通用 QualityGate', sub: '可插拔质量检查器', desc: '加权平均 / 最低分 / 全通过三种聚合，配合 SubRuntimePool 的 detect→score→rerun 冲突解决流程。' },
   { tag: 'v5.0.2.10', title: '生产强化 Deploy Check', sub: 'config-check + deploy-check', desc: '真实配置扫描 + CI 部署前全链路预检：端口、证书、磁盘、迁移、PQC 密钥、MCP 联通。' },
+
+  // ── v5.0.2.10 Phase 59-66 + 94/97/48/54 CLI Ports ──
+  { tag: 'v5.0.2.10', title: '自主开发者系统', sub: 'Phase 63 Autonomous Developer', desc: 'L0-L4 自治等级 + 开发会话生命周期 + ADR 架构决策记录 + 代码反模式检测 review。' },
+  { tag: 'v5.0.2.10', title: '协作治理引擎', sub: 'Phase 64 Collaboration Governance', desc: '治理决策提案→投票→裁定→执行，Agent 自治级别管控，技能匹配与任务分配优化。' },
+  { tag: 'v5.0.2.10', title: '技能市场', sub: 'Phase 65 Skill Marketplace', desc: '发布/订阅技能服务，调用计量 + 统计面板，版本管理与定价策略。' },
+  { tag: 'v5.0.2.10', title: '代币激励系统', sub: 'Phase 66 Token Incentive', desc: 'Token 账本 mint/transfer/balance + 7 种贡献类型自动奖励 + 排行榜。' },
+  { tag: 'v5.0.2.10', title: '企业知识图谱', sub: 'Phase 94 Knowledge Graph', desc: '实体/关系 CRUD + BFS 多跳推理 + 图密度分析 + JSON 导入导出。' },
+  { tag: 'v5.0.2.10', title: '多租户 SaaS 引擎', sub: 'Phase 97 Multi-Tenant', desc: '4 档订阅 (free/starter/pro/enterprise) + 用量计量 + 配额检查 + 快照导入导出。' },
+  { tag: 'v5.0.2.10', title: '智能推荐系统', sub: 'Phase 48 Content Recommendation', desc: '兴趣画像 + 内容评分 + 反馈回路 + 时间衰减，17 个子命令覆盖全流程。' },
+  { tag: 'v5.0.2.10', title: '社区治理', sub: 'Phase 54 AI Community Governance', desc: '提案生命周期 + 加权投票 + 影响分析 + 预测置信度，去中心化社区自治。' },
 ];
 
 const badges = [
@@ -65,7 +75,7 @@ const badges = [
       <div class="max-w-4xl">
         <div class="animate-fade-in flex items-center gap-3 mb-8">
           <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> v5.0.2.10 · Evolution Edition</span>
-          <span class="chip">CLI v0.47.9</span>
+          <span class="chip">CLI v0.48.1</span>
         </div>
 
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02] tracking-tight">
@@ -120,7 +130,7 @@ const badges = [
         </p>
         <div class="grid grid-cols-3 gap-6 mb-8">
           <div>
-            <div class="font-display text-4xl text-ember">65</div>
+            <div class="font-display text-4xl text-ember">73</div>
             <div class="text-sm text-muted mt-1">CLI 命令</div>
           </div>
           <div>
@@ -295,7 +305,7 @@ const badges = [
   <section class="py-24 md:py-32 bg-cream/50 border-y border-line">
     <div class="container-wide">
       <div class="max-w-3xl mb-14">
-        <div class="chip mb-6">架构演进 · 18 项（v5.0.2.10 新增 9 项）</div>
+        <div class="chip mb-6">架构演进 · 26 项（v5.0.2.10 新增 17 项）</div>
         <h2 class="text-display-md md:text-5xl leading-tight">
           把多智能体做成<br/>
           <span class="italic">工程可复制的模式</span>。
@@ -352,7 +362,7 @@ const badges = [
             <li>· CLI Agent · Claude Code 风格</li>
             <li>· Cowork 多 Agent 并行审查</li>
             <li>· MCP 工具生态 + 9 Skill Packs</li>
-            <li>· 65 命令 · 5517+ 测试</li>
+            <li>· 73 命令 · 5960+ 测试</li>
           </ul>
           <button class="btn-primary bg-ember text-ink hover:bg-ember-dark" data-copy="npm i -g chainlesschain">
             <span>$ npm i -g chainlesschain</span>

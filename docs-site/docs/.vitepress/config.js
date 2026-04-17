@@ -679,6 +679,14 @@ export default defineConfig({
               text: "DAO治理v2 (dao)",
               link: "/chainlesschain/cli-dao",
             },
+            {
+              text: "EvoMap 演化地图 (evomap)",
+              link: "/chainlesschain/cli-evomap",
+            },
+            {
+              text: "跨链互操作 (crosschain)",
+              link: "/chainlesschain/cli-crosschain",
+            },
           ],
         },
         {
@@ -712,6 +720,10 @@ export default defineConfig({
             {
               text: "Matrix桥接 (matrix)",
               link: "/chainlesschain/cli-matrix",
+            },
+            {
+              text: "ActivityPub 联邦协议 (activitypub)",
+              link: "/chainlesschain/cli-activitypub",
             },
             {
               text: "SCIM用户配置 (scim)",
@@ -751,6 +763,23 @@ export default defineConfig({
             {
               text: "WebSocket服务器 (serve)",
               link: "/chainlesschain/cli-serve",
+            },
+            {
+              text: "流式输出 (stream)",
+              link: "/chainlesschain/cli-stream",
+            },
+          ],
+        },
+        {
+          text: "v5.0.1 学习与隐私",
+          items: [
+            {
+              text: "自主学习系统 (learning)",
+              link: "/chainlesschain/cli-learning",
+            },
+            {
+              text: "隐私计算 (privacy)",
+              link: "/chainlesschain/cli-privacy",
             },
           ],
         },
@@ -813,7 +842,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.8 Web 管理面板 10模块+4主题 ⭐NEW",
+          text: "v5.0.2.8 Web 管理面板 10模块+4主题",
           items: [
             {
               text: "Web 管理面板 (ui)",
@@ -831,7 +860,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.9 Agent 架构优化 ⭐NEW",
+          text: "v5.0.2.9 Agent 架构优化",
           items: [
             {
               text: "Agent 架构优化系统",
@@ -882,7 +911,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.13 自主学习闭环 ⭐NEW",
+          text: "v5.0.2.13 自主学习闭环",
           items: [
             {
               text: "自主学习闭环系统",
@@ -891,7 +920,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "Hermes Agent 对标 ⭐NEW",
+          text: "Hermes Agent 对标",
           items: [
             {
               text: "Hermes Agent 对标实施 (6 Phase)",
@@ -900,7 +929,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "Managed Agents 对标 ⭐NEW",
+          text: "Managed Agents 对标",
           items: [
             {
               text: "Managed Agents 对标与 CLI 接入",
@@ -909,7 +938,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.14 Web Cowork 日常协作 ⭐NEW",
+          text: "v5.0.2.14 Web Cowork 日常协作",
           items: [
             {
               text: "日常任务协作 (Web Cowork)",
@@ -926,6 +955,83 @@ export default defineConfig({
             {
               text: "协作路线图",
               link: "/chainlesschain/cowork-roadmap",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.10 压力测试与运维 ⭐NEW",
+          items: [
+            {
+              text: "压力测试 (stress)",
+              link: "/chainlesschain/cli-stress",
+            },
+            {
+              text: "SLA 管理 (sla)",
+              link: "/chainlesschain/cli-sla",
+            },
+            {
+              text: "信誉优化 (reputation)",
+              link: "/chainlesschain/cli-reputation",
+            },
+            {
+              text: "技术学习引擎 (tech)",
+              link: "/chainlesschain/cli-tech",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.10 自主开发与治理 ⭐NEW",
+          items: [
+            {
+              text: "自主开发者 (dev)",
+              link: "/chainlesschain/cli-dev",
+            },
+            {
+              text: "协作治理 (collab)",
+              link: "/chainlesschain/cli-collab",
+            },
+            {
+              text: "社区治理 (governance)",
+              link: "/chainlesschain/cli-governance",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.10 市场与经济 ⭐NEW",
+          items: [
+            {
+              text: "技能市场 (marketplace)",
+              link: "/chainlesschain/cli-marketplace",
+            },
+            {
+              text: "代币激励 (incentive)",
+              link: "/chainlesschain/cli-incentive",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.10 知识与推荐 ⭐NEW",
+          items: [
+            {
+              text: "知识图谱 (kg)",
+              link: "/chainlesschain/cli-kg",
+            },
+            {
+              text: "智能推荐 (recommend)",
+              link: "/chainlesschain/cli-recommend",
+            },
+            {
+              text: "多租户 SaaS (tenant)",
+              link: "/chainlesschain/cli-tenant",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.10 视频剪辑 ⭐NEW",
+          items: [
+            {
+              text: "视频剪辑 Agent (video)",
+              link: "/chainlesschain/cli-video",
             },
           ],
         },
