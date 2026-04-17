@@ -45,7 +45,14 @@ docker-compose up -d
 
 ## CLI Commands Reference
 
-@./docs/CLI_COMMANDS_REFERENCE.md
+**See [`docs/CLI_COMMANDS_REFERENCE.md`](docs/CLI_COMMANDS_REFERENCE.md)** for the full 90-command reference (thin index → 6 sub-files in `docs/cli/`). Read on demand, not auto-loaded.
+
+Key CLI entry points:
+- `cc setup/start/stop/status/doctor` — system management
+- `cc chat/ask/agent/skill` — AI headless commands
+- `cc note/search/memory/session` — knowledge & sessions
+- `cc mcp/browse/did/encrypt/auth` — integrations & security
+- `cc cowork/workflow/hook/a2a` — multi-agent & orchestration
 
 ## Feature Index
 
@@ -95,9 +102,9 @@ REDIS_HOST=localhost:6379
 
 ## Documentation References
 
-- **Architecture Patterns**: @./CLAUDE-patterns.md
+- **Architecture Patterns**: `CLAUDE-patterns.md` (44k — read on demand when working with patterns)
 - **Architecture Decisions**: `CLAUDE-decisions.md`
-- **Troubleshooting**: @./CLAUDE-troubleshooting.md
+- **Troubleshooting**: `CLAUDE-troubleshooting.md` (22k — read on demand when debugging issues)
 - **System Design**: `docs/design/系统设计_主文档.md`
 - **Quick Start**: `QUICK_START.md`, `HOW_TO_RUN.md`
 - **README**: `README.md` (Chinese), `README_EN.md` (English)
