@@ -155,6 +155,8 @@ import { registerFederationCommand } from "./commands/federation.js";
 import { registerNlProgCommand } from "./commands/nlprog.js";
 // Phase 20: Model Quantization
 import { registerQuantizationCommand } from "./commands/quantization.js";
+// Phase 63: Universal Runtime
+import { registerRuntimeCommand } from "./commands/runtime.js";
 
 export function createProgram() {
   const program = new Command();
@@ -333,6 +335,7 @@ export function createProgram() {
   registerFederationCommand(program);
   registerNlProgCommand(program);
   registerQuantizationCommand(program);
+  registerRuntimeCommand(program);
 
   return program;
 }
