@@ -18,6 +18,23 @@ import {
   getSandbox,
   setQuota,
   monitorBehavior,
+  // Phase 87 V2
+  SANDBOX_STATUS,
+  PERMISSION_TYPE,
+  RISK_LEVEL,
+  QUOTA_TYPE,
+  pauseSandboxV2,
+  resumeSandboxV2,
+  terminateSandboxV2,
+  setQuotaTyped,
+  enforcePermission,
+  checkQuotaV2,
+  getRiskLevel,
+  calculateRiskScore,
+  autoIsolate,
+  listIsolations,
+  filterAuditLog,
+  getSandboxStatsV2,
 } from "../lib/sandbox-v2.js";
 
 export function registerSandboxCommand(program) {
@@ -431,6 +448,390 @@ export function registerSandboxCommand(program) {
           }
         }
 
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // ═════════════════════════════════════════════════════════════════
+  // Phase 87 — Agent Security Sandbox 2.0 subcommands
+  // ═════════════════════════════════════════════════════════════════
+
+  // sandbox statuses
+  sandbox
+    .command("statuses")
+    .description("List sandbox lifecycle status enum values (Phase 87)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const values = Object.values(SANDBOX_STATUS);
+      if (options.json) console.log(JSON.stringify(values, null, 2));
+      else values.forEach((v) => logger.log(`  ${chalk.cyan(v)}`));
+    });
+
+  // sandbox permission-types
+  sandbox
+    .command("permission-types")
+    .description("List permission type enum values (Phase 87)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const values = Object.values(PERMISSION_TYPE);
+      if (options.json) console.log(JSON.stringify(values, null, 2));
+      else values.forEach((v) => logger.log(`  ${chalk.cyan(v)}`));
+    });
+
+  // sandbox risk-levels
+  sandbox
+    .command("risk-levels")
+    .description("List risk level enum values (Phase 87)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const values = Object.values(RISK_LEVEL);
+      if (options.json) console.log(JSON.stringify(values, null, 2));
+      else values.forEach((v) => logger.log(`  ${chalk.cyan(v)}`));
+    });
+
+  // sandbox quota-types
+  sandbox
+    .command("quota-types")
+    .description("List quota type enum values (Phase 87)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const values = Object.values(QUOTA_TYPE);
+      if (options.json) console.log(JSON.stringify(values, null, 2));
+      else values.forEach((v) => logger.log(`  ${chalk.cyan(v)}`));
+    });
+
+  // sandbox pause <id>
+  sandbox
+    .command("pause")
+    .description("Pause a running sandbox (Phase 87)")
+    .argument("<id>", "Sandbox ID")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const r = pauseSandboxV2(db, id);
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else
+          logger.log(
+            `${chalk.green("✓ Paused")} ${chalk.cyan(id)} (was ${chalk.yellow(r.previousStatus)})`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // sandbox resume <id>
+  sandbox
+    .command("resume")
+    .description("Resume a paused sandbox (Phase 87)")
+    .argument("<id>", "Sandbox ID")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const r = resumeSandboxV2(db, id);
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else logger.log(`${chalk.green("✓ Resumed")} ${chalk.cyan(id)}`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // sandbox terminate <id>
+  sandbox
+    .command("terminate")
+    .description(
+      "Terminate a sandbox (Phase 87 canonical; more explicit than destroy)",
+    )
+    .argument("<id>", "Sandbox ID")
+    .option("--reason <reason>", "Termination reason", "manual")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const r = terminateSandboxV2(db, id, options.reason);
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else
+          logger.log(
+            `${chalk.green("✓ Terminated")} ${chalk.cyan(id)} reason=${chalk.yellow(r.reason)}`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // sandbox set-quota-typed <id> <type> <limit>
+  sandbox
+    .command("set-quota-typed")
+    .description("Set a single quota by type (Phase 87)")
+    .argument("<id>", "Sandbox ID")
+    .argument(
+      "<type>",
+      "Quota type (cpu_percent|memory_mb|disk_mb|network_kbps|process_count)",
+    )
+    .argument("<limit>", "Numeric limit")
+    .option("--json", "Output as JSON")
+    .action(async (id, type, limit, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const r = setQuotaTyped(db, id, type, Number(limit));
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else
+          logger.log(
+            `${chalk.green("✓ Quota set")} ${chalk.cyan(id)} ${type}=${chalk.yellow(limit)}`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // sandbox check-permission <id> <type> <target>
+  sandbox
+    .command("check-permission")
+    .description(
+      "Check whether a sandbox may perform a permission op (Phase 87)",
+    )
+    .argument("<id>", "Sandbox ID")
+    .argument(
+      "<type>",
+      "Permission type (filesystem|network|syscall|ipc|process)",
+    )
+    .argument("<target>", "Target (path / host / syscall name)")
+    .option("--mode <mode>", "File mode (read|write)", "read")
+    .option("--json", "Output as JSON")
+    .action(async (id, type, target, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const sandbox = getSandbox(db, id);
+        if (!sandbox) {
+          logger.error(`Sandbox not found: ${id}`);
+          await shutdown();
+          process.exit(1);
+          return;
+        }
+        const r = enforcePermission(sandbox, {
+          type,
+          target,
+          mode: options.mode,
+        });
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else
+          logger.log(
+            `${r.allowed ? chalk.green("allowed") : chalk.red("denied")} ${type} ${options.mode} ${target}`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // sandbox check-quota <id> <type> [amount]
+  sandbox
+    .command("check-quota")
+    .description("Check quota availability for a type (Phase 87)")
+    .argument("<id>", "Sandbox ID")
+    .argument("<type>", "Quota type")
+    .argument("[amount]", "Amount to check", "0")
+    .option("--json", "Output as JSON")
+    .action(async (id, type, amount, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const sandbox = getSandbox(db, id);
+        if (!sandbox) {
+          logger.error(`Sandbox not found: ${id}`);
+          await shutdown();
+          process.exit(1);
+          return;
+        }
+        const r = checkQuotaV2(sandbox, type, Number(amount));
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else
+          logger.log(
+            `${r.ok ? chalk.green("ok") : chalk.red("exceeded")} ${type}: ${r.current}/${r.limit ?? "∞"} (remaining ${r.remaining})`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // sandbox risk-score <id>
+  sandbox
+    .command("risk-score")
+    .description("Compute risk score + risk level for a sandbox (Phase 87)")
+    .argument("<id>", "Sandbox ID")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const r = calculateRiskScore(db, id);
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else {
+          const color =
+            r.riskLevel === RISK_LEVEL.CRITICAL
+              ? chalk.red
+              : r.riskLevel === RISK_LEVEL.HIGH
+                ? chalk.magenta
+                : r.riskLevel === RISK_LEVEL.MEDIUM
+                  ? chalk.yellow
+                  : chalk.green;
+          logger.log(
+            `risk=${color(r.riskLevel)}  score=${chalk.cyan(r.riskScore)}  patterns=${r.patterns.length}  events=${r.totalEvents}`,
+          );
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // sandbox risk-level <score>
+  sandbox
+    .command("risk-level")
+    .description("Map a risk score to a RISK_LEVEL bucket (Phase 87)")
+    .argument("<score>", "Numeric score 0-100")
+    .option("--json", "Output as JSON")
+    .action((score, options) => {
+      const level = getRiskLevel(Number(score));
+      if (options.json)
+        console.log(JSON.stringify({ score: Number(score), level }, null, 2));
+      else logger.log(`score=${score} → ${chalk.cyan(level)}`);
+    });
+
+  // sandbox auto-isolate <id>
+  sandbox
+    .command("auto-isolate")
+    .description("Auto-isolate a sandbox: record + terminate (Phase 87)")
+    .argument("<id>", "Sandbox ID")
+    .option("--reason <reason>", "Isolation reason", "high-risk")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const entry = autoIsolate(db, id, options.reason);
+        if (options.json) console.log(JSON.stringify(entry, null, 2));
+        else
+          logger.log(
+            `${chalk.red("⊘ Isolated")} ${chalk.cyan(id)} reason=${chalk.yellow(entry.reason)} at ${entry.isolatedAt}`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // sandbox isolations
+  sandbox
+    .command("isolations")
+    .description("List isolation records (Phase 87)")
+    .option("-s, --sandbox <id>", "Filter by sandbox ID")
+    .option("--reason <reason>", "Filter by reason")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        await bootstrap({ verbose: program.opts().verbose });
+        const items = listIsolations({
+          sandboxId: options.sandbox,
+          reason: options.reason,
+        });
+        if (options.json) console.log(JSON.stringify(items, null, 2));
+        else if (items.length === 0) logger.info("No isolation records.");
+        else
+          items.forEach((i) =>
+            logger.log(
+              `  ${chalk.cyan(i.sandboxId)}  reason=${chalk.yellow(i.reason)}  at=${i.isolatedAt}`,
+            ),
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // sandbox audit-filter <id>
+  sandbox
+    .command("audit-filter")
+    .description("Filter audit log by event types / time range (Phase 87)")
+    .argument("[id]", "Sandbox ID (omit for all)")
+    .option("-e, --events <types>", "Comma-separated event types")
+    .option("--from <iso>", "ISO timestamp lower bound")
+    .option("--to <iso>", "ISO timestamp upper bound")
+    .option("-l, --limit <n>", "Max entries to return", parseInt)
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const filter = {};
+        if (options.events)
+          filter.eventTypes = options.events.split(",").map((s) => s.trim());
+        if (options.from || options.to)
+          filter.timeRange = { from: options.from, to: options.to };
+        if (options.limit) filter.limit = options.limit;
+        const entries = filterAuditLog(db, id, filter);
+        if (options.json) console.log(JSON.stringify(entries, null, 2));
+        else if (entries.length === 0)
+          logger.info("No matching audit entries.");
+        else
+          entries.forEach((e) =>
+            logger.log(
+              `  ${chalk.gray(e.timestamp)}  ${chalk.cyan(e.sandboxId)}  ${chalk.yellow(e.action)}`,
+            ),
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // sandbox stats-v2
+  sandbox
+    .command("stats-v2")
+    .description(
+      "Extended V2 stats (byStatus / auditByAction / isolations) (Phase 87)",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        await bootstrap({ verbose: program.opts().verbose });
+        const stats = getSandboxStatsV2();
+        if (options.json) console.log(JSON.stringify(stats, null, 2));
+        else {
+          logger.log(chalk.bold("Sandbox stats (Phase 87):"));
+          logger.log(`  total: ${chalk.cyan(stats.totalSandboxes)}`);
+          logger.log(`  by status:`);
+          for (const [k, v] of Object.entries(stats.byStatus))
+            logger.log(`    ${k}: ${chalk.cyan(v)}`);
+          logger.log(`  audit events: ${chalk.cyan(stats.auditEventCount)}`);
+          logger.log(
+            `  isolations: total=${chalk.cyan(stats.isolations.total)}`,
+          );
+        }
         await shutdown();
       } catch (err) {
         logger.error(`Failed: ${err.message}`);

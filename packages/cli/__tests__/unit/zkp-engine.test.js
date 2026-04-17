@@ -10,6 +10,12 @@ import {
   listCircuits,
   listProofs,
   _resetState,
+  PROOF_SCHEME,
+  CIRCUIT_STATUS,
+  setCircuitStatus,
+  registerCredential,
+  selectiveDisclose,
+  listCredentials,
 } from "../../src/lib/zkp-engine.js";
 
 describe("zkp-engine", () => {
@@ -269,6 +275,253 @@ describe("zkp-engine", () => {
       generateProof(db, c.id, {}, []);
       generateProof(db, c.id, {}, []);
       expect(listProofs(db, {}).length).toBe(2);
+    });
+  });
+
+  // ─── Phase 88: frozen enums ───────────────────────────────
+
+  describe("PROOF_SCHEME / CIRCUIT_STATUS", () => {
+    it("PROOF_SCHEME is frozen", () => {
+      expect(Object.isFrozen(PROOF_SCHEME)).toBe(true);
+    });
+
+    it("CIRCUIT_STATUS is frozen", () => {
+      expect(Object.isFrozen(CIRCUIT_STATUS)).toBe(true);
+    });
+
+    it("PROOF_SCHEME contains spec values", () => {
+      expect(PROOF_SCHEME.GROTH16).toBe("groth16");
+      expect(PROOF_SCHEME.PLONK).toBe("plonk");
+      expect(PROOF_SCHEME.BULLETPROOFS).toBe("bulletproofs");
+    });
+
+    it("CIRCUIT_STATUS contains spec values", () => {
+      expect(CIRCUIT_STATUS.DRAFT).toBe("draft");
+      expect(CIRCUIT_STATUS.COMPILED).toBe("compiled");
+      expect(CIRCUIT_STATUS.VERIFIED).toBe("verified");
+      expect(CIRCUIT_STATUS.FAILED).toBe("failed");
+    });
+  });
+
+  // ─── Phase 88: circuit status ─────────────────────────────
+
+  describe("circuit status", () => {
+    it("compileCircuit sets status to COMPILED", () => {
+      const c = compileCircuit(db, "test", {});
+      expect(c.status).toBe(CIRCUIT_STATUS.COMPILED);
+    });
+
+    it("setCircuitStatus updates status", () => {
+      const c = compileCircuit(db, "test", {});
+      const result = setCircuitStatus(db, c.id, CIRCUIT_STATUS.VERIFIED);
+      expect(result.status).toBe("verified");
+    });
+
+    it("setCircuitStatus rejects invalid status", () => {
+      const c = compileCircuit(db, "test", {});
+      expect(() => setCircuitStatus(db, c.id, "bogus")).toThrow(
+        "Invalid circuit status",
+      );
+    });
+
+    it("setCircuitStatus throws for unknown circuit", () => {
+      expect(() =>
+        setCircuitStatus(db, "unknown", CIRCUIT_STATUS.FAILED),
+      ).toThrow("Circuit not found");
+    });
+  });
+
+  // ─── Phase 88: scheme parameter on generateProof ──────────
+
+  describe("generateProof scheme parameter", () => {
+    it("defaults to GROTH16", () => {
+      const c = compileCircuit(db, "t", {});
+      const p = generateProof(db, c.id, {}, []);
+      expect(p.scheme).toBe(PROOF_SCHEME.GROTH16);
+      expect(typeof p.proof.a).toBe("string");
+    });
+
+    it("accepts PLONK scheme with correct proof shape", () => {
+      const c = compileCircuit(db, "t", {});
+      const p = generateProof(db, c.id, {}, [], { scheme: PROOF_SCHEME.PLONK });
+      expect(p.scheme).toBe("plonk");
+      expect(typeof p.proof.commitments).toBe("string");
+      expect(typeof p.proof.evaluations).toBe("string");
+    });
+
+    it("accepts BULLETPROOFS scheme with correct proof shape", () => {
+      const c = compileCircuit(db, "t", {});
+      const p = generateProof(db, c.id, {}, [], {
+        scheme: PROOF_SCHEME.BULLETPROOFS,
+      });
+      expect(p.scheme).toBe("bulletproofs");
+      expect(typeof p.proof.V).toBe("string");
+      expect(typeof p.proof.A).toBe("string");
+    });
+
+    it("rejects unsupported scheme", () => {
+      const c = compileCircuit(db, "t", {});
+      expect(() =>
+        generateProof(db, c.id, {}, [], { scheme: "snark-v9000" }),
+      ).toThrow("Unsupported proof scheme");
+    });
+
+    it("verifyProof validates PLONK proof structure", () => {
+      const c = compileCircuit(db, "t", {});
+      const p = generateProof(db, c.id, {}, [], { scheme: PROOF_SCHEME.PLONK });
+      const r = verifyProof(db, p.id);
+      expect(r.valid).toBe(true);
+      expect(r.scheme).toBe("plonk");
+    });
+
+    it("verifyProof validates BULLETPROOFS proof structure", () => {
+      const c = compileCircuit(db, "t", {});
+      const p = generateProof(db, c.id, {}, [], {
+        scheme: PROOF_SCHEME.BULLETPROOFS,
+      });
+      expect(verifyProof(db, p.id).valid).toBe(true);
+    });
+  });
+
+  // ─── Phase 88: credentials + selectiveDisclose ────────────
+
+  describe("registerCredential", () => {
+    it("registers a credential with merkle root", () => {
+      const cred = registerCredential(db, {
+        did: "did:example:alice",
+        claims: { name: "Alice", age: 30, country: "US" },
+      });
+      expect(cred.id).toBeDefined();
+      expect(cred.did).toBe("did:example:alice");
+      expect(typeof cred.merkleRoot).toBe("string");
+      expect(cred.merkleRoot.length).toBe(64);
+    });
+
+    it("produces deterministic merkle root for same claims", () => {
+      const a = registerCredential(db, { claims: { x: 1, y: 2 } });
+      const b = registerCredential(db, { claims: { y: 2, x: 1 } });
+      expect(a.merkleRoot).toBe(b.merkleRoot);
+    });
+
+    it("differs for different claims", () => {
+      const a = registerCredential(db, { claims: { x: 1 } });
+      const b = registerCredential(db, { claims: { x: 2 } });
+      expect(a.merkleRoot).not.toBe(b.merkleRoot);
+    });
+
+    it("throws on invalid claims", () => {
+      expect(() => registerCredential(db, { claims: null })).toThrow(
+        "Claims must be an object",
+      );
+    });
+
+    it("accepts credentials without DID", () => {
+      const cred = registerCredential(db, { claims: { a: 1 } });
+      expect(cred.did).toBeNull();
+    });
+  });
+
+  describe("selectiveDisclose", () => {
+    it("discloses only the requested fields", () => {
+      const cred = registerCredential(db, {
+        did: "did:example:alice",
+        claims: { name: "Alice", age: 30, country: "US", ssn: "XXX" },
+      });
+      const result = selectiveDisclose(db, cred.id, ["name", "country"]);
+      expect(result.disclosed).toEqual({ name: "Alice", country: "US" });
+      expect(result.hiddenCount).toBe(2);
+      expect(result.hiddenFields.sort()).toEqual(["age", "ssn"]);
+    });
+
+    it("preserves the credential's merkle root", () => {
+      const cred = registerCredential(db, {
+        claims: { a: 1, b: 2, c: 3 },
+      });
+      const result = selectiveDisclose(db, cred.id, ["a"]);
+      expect(result.merkleRoot).toBe(cred.merkleRoot);
+    });
+
+    it("includes recipient DID when provided", () => {
+      const cred = registerCredential(db, { claims: { x: 1 } });
+      const result = selectiveDisclose(db, cred.id, ["x"], "did:example:bob");
+      expect(result.recipientDid).toBe("did:example:bob");
+    });
+
+    it("throws for unknown credential", () => {
+      expect(() => selectiveDisclose(db, "missing", ["x"])).toThrow(
+        "Credential not found",
+      );
+    });
+
+    it("throws when disclosedFields is not an array", () => {
+      const cred = registerCredential(db, { claims: { x: 1 } });
+      expect(() => selectiveDisclose(db, cred.id, "x")).toThrow(
+        "disclosedFields must be an array",
+      );
+    });
+
+    it("returns type selective-disclosure", () => {
+      const cred = registerCredential(db, { claims: { x: 1 } });
+      const result = selectiveDisclose(db, cred.id, []);
+      expect(result.type).toBe("selective-disclosure");
+    });
+
+    it("empty disclosedFields hides everything", () => {
+      const cred = registerCredential(db, {
+        claims: { a: 1, b: 2, c: 3 },
+      });
+      const result = selectiveDisclose(db, cred.id, []);
+      expect(Object.keys(result.disclosed).length).toBe(0);
+      expect(result.hiddenCount).toBe(3);
+    });
+  });
+
+  describe("listCredentials", () => {
+    it("returns empty array initially", () => {
+      expect(listCredentials(db)).toEqual([]);
+    });
+
+    it("returns all credentials", () => {
+      registerCredential(db, { claims: { x: 1 } });
+      registerCredential(db, { claims: { y: 2 } });
+      expect(listCredentials(db).length).toBe(2);
+    });
+
+    it("filters by DID", () => {
+      registerCredential(db, { did: "a", claims: { x: 1 } });
+      registerCredential(db, { did: "b", claims: { y: 2 } });
+      registerCredential(db, { did: "a", claims: { z: 3 } });
+      expect(listCredentials(db, { did: "a" }).length).toBe(2);
+    });
+  });
+
+  // ─── Phase 88: stats extensions ───────────────────────────
+
+  describe("getZKPStats Phase 88 fields", () => {
+    it("includes proofsByScheme breakdown", () => {
+      const c = compileCircuit(db, "t", {});
+      generateProof(db, c.id, {}, [], { scheme: PROOF_SCHEME.GROTH16 });
+      generateProof(db, c.id, {}, [], { scheme: PROOF_SCHEME.PLONK });
+      generateProof(db, c.id, {}, [], { scheme: PROOF_SCHEME.PLONK });
+      const stats = getZKPStats();
+      expect(stats.proofsByScheme.groth16).toBe(1);
+      expect(stats.proofsByScheme.plonk).toBe(2);
+      expect(stats.proofsByScheme.bulletproofs).toBe(0);
+    });
+
+    it("includes circuitsByStatus breakdown", () => {
+      const c1 = compileCircuit(db, "t1", {});
+      compileCircuit(db, "t2", {});
+      setCircuitStatus(db, c1.id, CIRCUIT_STATUS.VERIFIED);
+      const stats = getZKPStats();
+      expect(stats.circuitsByStatus.compiled).toBe(1);
+      expect(stats.circuitsByStatus.verified).toBe(1);
+    });
+
+    it("counts credentials", () => {
+      registerCredential(db, { claims: { x: 1 } });
+      registerCredential(db, { claims: { y: 2 } });
+      expect(getZKPStats().credentials).toBe(2);
     });
   });
 });

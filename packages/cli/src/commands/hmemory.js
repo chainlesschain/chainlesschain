@@ -16,6 +16,23 @@ import {
   getMemoryStats,
   shareMemory,
   pruneMemory,
+  // Phase 83 V2
+  MEMORY_LAYER,
+  MEMORY_TYPE,
+  CONSOLIDATION_STATUS,
+  SHARE_PERMISSION,
+  attachMetadata,
+  promoteMemoryV2,
+  demoteMemoryV2,
+  shareMemoryV2,
+  revokeShare,
+  listShares,
+  searchEpisodicV2,
+  searchSemanticV2,
+  consolidateV2,
+  listConsolidations,
+  pruneV2,
+  getStatsV2,
 } from "../lib/hierarchical-memory.js";
 
 export function registerHmemoryCommand(program) {
@@ -264,6 +281,431 @@ export function registerHmemoryCommand(program) {
         const result = pruneMemory(db, { maxAge: options.maxAge });
         spinner.succeed(`Pruned ${chalk.red(result.pruned)} stale memories`);
 
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // ═════════════════════════════════════════════════════════════
+  // Phase 83 — Hierarchical Memory 2.0 subcommands
+  // ═════════════════════════════════════════════════════════════
+
+  // hmemory layers
+  hmemory
+    .command("layers")
+    .description("List MEMORY_LAYER enum values")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const layers = Object.values(MEMORY_LAYER);
+      if (options.json) console.log(JSON.stringify(layers, null, 2));
+      else for (const l of layers) logger.log(`  ${chalk.cyan(l)}`);
+    });
+
+  // hmemory types
+  hmemory
+    .command("types")
+    .description("List MEMORY_TYPE enum values")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const types = Object.values(MEMORY_TYPE);
+      if (options.json) console.log(JSON.stringify(types, null, 2));
+      else for (const t of types) logger.log(`  ${chalk.cyan(t)}`);
+    });
+
+  // hmemory statuses
+  hmemory
+    .command("statuses")
+    .description("List CONSOLIDATION_STATUS enum values")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const sts = Object.values(CONSOLIDATION_STATUS);
+      if (options.json) console.log(JSON.stringify(sts, null, 2));
+      else for (const s of sts) logger.log(`  ${chalk.cyan(s)}`);
+    });
+
+  // hmemory permissions
+  hmemory
+    .command("permissions")
+    .description("List SHARE_PERMISSION enum values")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const ps = Object.values(SHARE_PERMISSION);
+      if (options.json) console.log(JSON.stringify(ps, null, 2));
+      else for (const p of ps) logger.log(`  ${chalk.cyan(p)}`);
+    });
+
+  // hmemory attach-metadata <id>
+  hmemory
+    .command("attach-metadata <id>")
+    .description("Attach V2 metadata (scene/context/concepts) to a memory")
+    .option("--scene <s>", "Scene tag")
+    .option("--context <c>", "Context description")
+    .option("--concepts <c1,c2>", "Comma-separated concept tags")
+    .option("--agent-id <id>", "Associated agent ID")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        await bootstrap({ verbose: program.opts().verbose });
+        const meta = {};
+        if (options.scene) meta.scene = options.scene;
+        if (options.context) meta.context = options.context;
+        if (options.concepts)
+          meta.concepts = options.concepts
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+        if (options.agentId) meta.agentId = options.agentId;
+
+        const result = attachMetadata(id, meta);
+        if (options.json) console.log(JSON.stringify(result, null, 2));
+        else
+          logger.success(
+            `Metadata attached to ${chalk.gray(id.slice(0, 16))}: ${chalk.cyan(Object.keys(meta).join(","))}`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // hmemory promote-v2 <id>
+  hmemory
+    .command("promote-v2 <id>")
+    .description("Promote memory one layer up (working→short-term→long-term)")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const result = promoteMemoryV2(db, id);
+        if (options.json) console.log(JSON.stringify(result, null, 2));
+        else
+          logger.success(
+            `Promoted: ${chalk.gray(id.slice(0, 16))} ${chalk.yellow(result.from)} → ${chalk.cyan(result.to)}`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // hmemory demote-v2 <id>
+  hmemory
+    .command("demote-v2 <id>")
+    .description("Demote memory one layer down (short-term → working)")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        await bootstrap({ verbose: program.opts().verbose });
+        const result = demoteMemoryV2(id);
+        if (options.json) console.log(JSON.stringify(result, null, 2));
+        else
+          logger.success(
+            `Demoted: ${chalk.gray(id.slice(0, 16))} ${chalk.yellow(result.from)} → ${chalk.cyan(result.to)}`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // hmemory share-v2 <id> <target>
+  hmemory
+    .command("share-v2 <id> <target>")
+    .description("Share a memory with permissions (read,copy,modify)")
+    .option("--source <agent>", "Source agent ID", "local")
+    .option("--permissions <p1,p2>", "Comma-separated perms", "read")
+    .option("--json", "Output as JSON")
+    .action(async (id, target, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const perms = options.permissions
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+        const record = shareMemoryV2(db, {
+          memoryId: id,
+          sourceAgent: options.source,
+          targetAgent: target,
+          permissions: perms,
+        });
+        if (options.json) console.log(JSON.stringify(record, null, 2));
+        else
+          logger.success(
+            `Shared ${chalk.gray(id.slice(0, 16))} → ${chalk.cyan(target)} [${perms.join(",")}]`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // hmemory revoke-share <shareId>
+  hmemory
+    .command("revoke-share <shareId>")
+    .description("Revoke a sharing record")
+    .option("--json", "Output as JSON")
+    .action(async (shareId, options) => {
+      try {
+        await bootstrap({ verbose: program.opts().verbose });
+        const record = revokeShare(shareId);
+        if (options.json) console.log(JSON.stringify(record, null, 2));
+        else
+          logger.success(
+            `Revoked ${chalk.gray(shareId.slice(0, 20))} at ${record.revokedAt}`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // hmemory shares
+  hmemory
+    .command("shares")
+    .description("List V2 sharing records")
+    .option("--memory-id <id>", "Filter by memoryId")
+    .option("--target <agent>", "Filter by targetAgent")
+    .option("--active-only", "Only active (non-revoked) shares")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        await bootstrap({ verbose: program.opts().verbose });
+        const shares = listShares({
+          memoryId: options.memoryId,
+          targetAgent: options.target,
+          activeOnly: options.activeOnly,
+        });
+        if (options.json) console.log(JSON.stringify(shares, null, 2));
+        else if (shares.length === 0) logger.info("No shares matching filters");
+        else {
+          for (const s of shares) {
+            const status = s.revokedAt
+              ? chalk.red("revoked")
+              : chalk.green("active");
+            logger.log(
+              `  ${chalk.gray(s.id.slice(0, 16))} ${chalk.cyan(s.memoryId)} → ${s.targetAgent} [${s.permissions.join(",")}] (${status})`,
+            );
+          }
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // hmemory search-episodic-v2
+  hmemory
+    .command("search-episodic-v2 [query]")
+    .description("Search episodic memories with time/scene/context filters")
+    .option("--from <iso>", "Time range start (ISO)")
+    .option("--to <iso>", "Time range end (ISO)")
+    .option("--scene <s>", "Filter by scene metadata")
+    .option("--context <c>", "Filter by context substring")
+    .option("-n, --limit <n>", "Max results", "20")
+    .option("--json", "Output as JSON")
+    .action(async (query, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const timeRange =
+          options.from || options.to
+            ? { from: options.from, to: options.to }
+            : null;
+        const results = searchEpisodicV2(db, {
+          query,
+          timeRange,
+          scene: options.scene,
+          context: options.context,
+          limit: parseInt(options.limit) || 20,
+        });
+        if (options.json) console.log(JSON.stringify(results, null, 2));
+        else if (results.length === 0) logger.info("No episodic matches");
+        else {
+          logger.log(chalk.bold(`Episodic V2 results (${results.length}):\n`));
+          for (const r of results) {
+            const meta = r.metadata
+              ? ` {scene=${r.metadata.scene || "-"}}`
+              : "";
+            logger.log(
+              `  ${chalk.gray(r.id.slice(0, 16))} [${chalk.cyan(r.layer)}]${meta}`,
+            );
+            logger.log(`    ${chalk.white(r.content.slice(0, 100))}`);
+          }
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // hmemory search-semantic-v2
+  hmemory
+    .command("search-semantic-v2 [query]")
+    .description("Search semantic memories with concept similarity")
+    .option("--concepts <c1,c2>", "Comma-separated concept tags")
+    .option("--similarity <n>", "Similarity threshold 0..1", "0")
+    .option("-n, --limit <n>", "Max results", "20")
+    .option("--json", "Output as JSON")
+    .action(async (query, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const concepts = options.concepts
+          ? options.concepts
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [];
+        const results = searchSemanticV2(db, {
+          query,
+          concepts,
+          similarityThreshold: parseFloat(options.similarity) || 0,
+          limit: parseInt(options.limit) || 20,
+        });
+        if (options.json) console.log(JSON.stringify(results, null, 2));
+        else if (results.length === 0) logger.info("No semantic matches");
+        else {
+          logger.log(chalk.bold(`Semantic V2 results (${results.length}):\n`));
+          for (const r of results) {
+            const sim = (r.similarity * 100).toFixed(0);
+            logger.log(
+              `  ${chalk.gray(r.id.slice(0, 16))} [${chalk.cyan(r.layer)}] sim=${chalk.yellow(sim + "%")}`,
+            );
+            logger.log(`    ${chalk.white(r.content.slice(0, 100))}`);
+          }
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // hmemory consolidate-v2
+  hmemory
+    .command("consolidate-v2")
+    .description("Run V2 consolidation with status tracking")
+    .option("--extract-patterns", "Snapshot patterns from short-term")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const record = consolidateV2(db, {
+          extractPatterns: options.extractPatterns,
+        });
+        if (options.json) console.log(JSON.stringify(record, null, 2));
+        else {
+          const color = record.status === "completed" ? chalk.green : chalk.red;
+          logger.log(
+            `${color(record.status)} — promoted=${record.promoted} forgotten=${record.forgotten} patterns=${record.patterns.length}`,
+          );
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // hmemory consolidations
+  hmemory
+    .command("consolidations")
+    .description("List V2 consolidation run history")
+    .option("--status <s>", "Filter by status")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        await bootstrap({ verbose: program.opts().verbose });
+        const records = listConsolidations({ status: options.status });
+        if (options.json) console.log(JSON.stringify(records, null, 2));
+        else if (records.length === 0) logger.info("No consolidation history");
+        else
+          for (const r of records) {
+            logger.log(
+              `  ${chalk.gray(r.id.slice(0, 20))} [${chalk.cyan(r.status)}] promoted=${r.promoted} forgotten=${r.forgotten}`,
+            );
+          }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // hmemory prune-v2
+  hmemory
+    .command("prune-v2")
+    .description("Layer-scoped prune with custom threshold")
+    .option("--layer <l>", "working | short-term | long-term")
+    .option("--max-age <hours>", "Max age hours for long-term", "720")
+    .option("--threshold <n>", "Retention threshold override 0..1")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const result = pruneV2(db, {
+          layer: options.layer,
+          maxAge: parseFloat(options.maxAge) || 720,
+          threshold:
+            options.threshold !== undefined
+              ? parseFloat(options.threshold)
+              : undefined,
+        });
+        if (options.json) console.log(JSON.stringify(result, null, 2));
+        else
+          logger.success(
+            `Pruned ${chalk.red(result.pruned)} from layer=${chalk.cyan(result.layer)}`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // hmemory stats-v2
+  hmemory
+    .command("stats-v2")
+    .description("Extended V2 stats with per-layer + consolidation + shares")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const stats = getStatsV2(db);
+        if (options.json) console.log(JSON.stringify(stats, null, 2));
+        else {
+          logger.log(chalk.bold("Hierarchical Memory 2.0 Stats:\n"));
+          logger.log(`  Per-layer:`);
+          for (const [l, n] of Object.entries(stats.perLayer)) {
+            logger.log(`    ${chalk.cyan(l.padEnd(12))} ${chalk.yellow(n)}`);
+          }
+          logger.log(`  Consolidations: total=${stats.consolidation.total}`);
+          for (const [k, v] of Object.entries(
+            stats.consolidation.byStatus || {},
+          )) {
+            logger.log(`    ${chalk.cyan(k.padEnd(12))} ${chalk.yellow(v)}`);
+          }
+          logger.log(
+            `  Shares: total=${stats.shares.total} active=${chalk.green(stats.shares.active)} revoked=${chalk.red(stats.shares.revoked)}`,
+          );
+          logger.log(
+            `  Metadata entries: ${chalk.yellow(stats.metadataEntries)}`,
+          );
+        }
         await shutdown();
       } catch (err) {
         logger.error(`Failed: ${err.message}`);

@@ -12,6 +12,26 @@ import {
   getStats,
   configure,
   _resetState,
+  // Phase 92 canonical surface
+  PROPOSAL_STATUS,
+  VOTE_TYPE,
+  DELEGATION_STATUS,
+  TREASURY_TX_TYPE,
+  createProposalV2,
+  activateProposal,
+  castVote,
+  delegateVotingPower,
+  revokeDelegation,
+  getActiveDelegations,
+  queueProposal,
+  executeProposalV2,
+  cancelProposal,
+  allocateFundsV2,
+  getTreasuryState,
+  getGovernanceStatsV2,
+  configureV2,
+  getConfigV2,
+  depositToTreasuryV2,
 } from "../../src/lib/dao-governance.js";
 
 describe("dao-governance", () => {
@@ -263,6 +283,490 @@ describe("dao-governance", () => {
       const cfg = configure({ quorum: 0.2 });
       expect(cfg.votingPeriod).toBe(604800000);
       expect(cfg.executionDelay).toBe(86400000);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════
+  // Phase 92 (DAO 2.0) canonical surface
+  // ══════════════════════════════════════════════════════════
+
+  describe("Phase 92 enums", () => {
+    it("PROPOSAL_STATUS has all 7 spec values", () => {
+      expect(PROPOSAL_STATUS.DRAFT).toBe("draft");
+      expect(PROPOSAL_STATUS.ACTIVE).toBe("active");
+      expect(PROPOSAL_STATUS.QUEUE).toBe("queue");
+      expect(PROPOSAL_STATUS.EXECUTE).toBe("execute");
+      expect(PROPOSAL_STATUS.PASSED).toBe("passed");
+      expect(PROPOSAL_STATUS.REJECTED).toBe("rejected");
+      expect(PROPOSAL_STATUS.CANCELLED).toBe("cancelled");
+      expect(Object.isFrozen(PROPOSAL_STATUS)).toBe(true);
+    });
+
+    it("VOTE_TYPE has FOR/AGAINST/ABSTAIN", () => {
+      expect(VOTE_TYPE.FOR).toBe("for");
+      expect(VOTE_TYPE.AGAINST).toBe("against");
+      expect(VOTE_TYPE.ABSTAIN).toBe("abstain");
+      expect(Object.isFrozen(VOTE_TYPE)).toBe(true);
+    });
+
+    it("DELEGATION_STATUS has ACTIVE/REVOKED/EXPIRED", () => {
+      expect(DELEGATION_STATUS.ACTIVE).toBe("active");
+      expect(DELEGATION_STATUS.REVOKED).toBe("revoked");
+      expect(DELEGATION_STATUS.EXPIRED).toBe("expired");
+      expect(Object.isFrozen(DELEGATION_STATUS)).toBe(true);
+    });
+
+    it("TREASURY_TX_TYPE covers ALLOCATION/WITHDRAWAL/REFUND/REWARD/DEPOSIT", () => {
+      expect(TREASURY_TX_TYPE.ALLOCATION).toBe("allocation");
+      expect(TREASURY_TX_TYPE.WITHDRAWAL).toBe("withdrawal");
+      expect(TREASURY_TX_TYPE.REFUND).toBe("refund");
+      expect(TREASURY_TX_TYPE.REWARD).toBe("reward");
+      expect(TREASURY_TX_TYPE.DEPOSIT).toBe("deposit");
+      expect(Object.isFrozen(TREASURY_TX_TYPE)).toBe(true);
+    });
+  });
+
+  describe("createProposalV2 + activateProposal", () => {
+    it("creates proposal with DRAFT status (not auto-active)", () => {
+      const p = createProposalV2(db, {
+        title: "Fund R&D",
+        description: "Details",
+        proposerDid: "did:example:alice",
+      });
+      expect(p.status).toBe(PROPOSAL_STATUS.DRAFT);
+      expect(p.proposerDid).toBe("did:example:alice");
+      expect(p.actions).toEqual([]);
+      expect(p.votingStart).toBeNull();
+      expect(p.votingEnd).toBeNull();
+    });
+
+    it("stores actions array", () => {
+      const p = createProposalV2(db, {
+        title: "x",
+        proposerDid: "did:example:a",
+        actions: [{ kind: "transfer", to: "bob", amount: 100 }],
+      });
+      expect(p.actions).toHaveLength(1);
+      expect(p.actions[0].kind).toBe("transfer");
+    });
+
+    it("requires title and proposerDid", () => {
+      expect(() => createProposalV2(db, { proposerDid: "a" })).toThrow(/Title/);
+      expect(() => createProposalV2(db, { title: "x" })).toThrow(/proposerDid/);
+    });
+
+    it("activateProposal moves DRAFT → ACTIVE and sets voting window", () => {
+      const p = createProposalV2(db, {
+        title: "x",
+        proposerDid: "did:a",
+      });
+      const active = activateProposal(db, p.id);
+      expect(active.status).toBe(PROPOSAL_STATUS.ACTIVE);
+      expect(active.votingStart).toBeTruthy();
+      expect(active.votingEnd).toBeTruthy();
+    });
+
+    it("activateProposal rejects non-DRAFT", () => {
+      const p = createProposalV2(db, { title: "x", proposerDid: "did:a" });
+      activateProposal(db, p.id);
+      expect(() => activateProposal(db, p.id)).toThrow(/DRAFT/);
+    });
+
+    it("activateProposal throws for unknown id", () => {
+      expect(() => activateProposal(db, "nope")).toThrow(/not found/);
+    });
+  });
+
+  describe("castVote (quadratic cost n²)", () => {
+    let proposalId;
+    beforeEach(() => {
+      const p = createProposalV2(db, {
+        title: "x",
+        proposerDid: "did:a",
+      });
+      activateProposal(db, p.id);
+      proposalId = p.id;
+    });
+
+    it("charges n² tokens for n votes", () => {
+      const v = castVote(db, {
+        proposalId,
+        voterDid: "did:b",
+        voteType: VOTE_TYPE.FOR,
+        voteCount: 5,
+        balance: 100,
+      });
+      expect(v.quadraticCost).toBe(25);
+      expect(v.voteCount).toBe(5);
+    });
+
+    it("rejects when balance < n²", () => {
+      expect(() =>
+        castVote(db, {
+          proposalId,
+          voterDid: "did:b",
+          voteType: VOTE_TYPE.FOR,
+          voteCount: 10,
+          balance: 50,
+        }),
+      ).toThrow(/Insufficient balance/);
+    });
+
+    it("rejects duplicate voter (anti-sybil)", () => {
+      castVote(db, {
+        proposalId,
+        voterDid: "did:b",
+        voteType: VOTE_TYPE.FOR,
+        voteCount: 1,
+        balance: 100,
+      });
+      expect(() =>
+        castVote(db, {
+          proposalId,
+          voterDid: "did:b",
+          voteType: VOTE_TYPE.AGAINST,
+          voteCount: 1,
+          balance: 100,
+        }),
+      ).toThrow(/already voted/);
+    });
+
+    it("rejects invalid voteType", () => {
+      expect(() =>
+        castVote(db, {
+          proposalId,
+          voterDid: "did:b",
+          voteType: "maybe",
+          voteCount: 1,
+          balance: 100,
+        }),
+      ).toThrow(/Invalid voteType/);
+    });
+
+    it("rejects when proposal is not ACTIVE", () => {
+      const p = createProposalV2(db, {
+        title: "y",
+        proposerDid: "did:a",
+      });
+      expect(() =>
+        castVote(db, {
+          proposalId: p.id,
+          voterDid: "did:b",
+          voteType: VOTE_TYPE.FOR,
+          voteCount: 1,
+          balance: 100,
+        }),
+      ).toThrow(/not ACTIVE/);
+    });
+
+    it("supports ABSTAIN vote", () => {
+      const v = castVote(db, {
+        proposalId,
+        voterDid: "did:b",
+        voteType: VOTE_TYPE.ABSTAIN,
+        voteCount: 3,
+        balance: 100,
+      });
+      expect(v.voteType).toBe(VOTE_TYPE.ABSTAIN);
+      expect(v.quadraticCost).toBe(9);
+    });
+  });
+
+  describe("delegateVotingPower / revokeDelegation", () => {
+    it("creates an ACTIVE delegation", () => {
+      const d = delegateVotingPower(db, {
+        fromDid: "did:a",
+        toDid: "did:b",
+      });
+      expect(d.status).toBe(DELEGATION_STATUS.ACTIVE);
+      expect(d.fromDid).toBe("did:a");
+      expect(d.toDid).toBe("did:b");
+    });
+
+    it("rejects self-delegation", () => {
+      expect(() =>
+        delegateVotingPower(db, { fromDid: "did:a", toDid: "did:a" }),
+      ).toThrow(/self/);
+    });
+
+    it("detects cyclic delegation", () => {
+      delegateVotingPower(db, { fromDid: "did:b", toDid: "did:a" });
+      expect(() =>
+        delegateVotingPower(db, { fromDid: "did:a", toDid: "did:b" }),
+      ).toThrow(/[Cc]ycl/);
+    });
+
+    it("enforces max delegation depth", () => {
+      configureV2({ maxDelegationDepth: 2 });
+      delegateVotingPower(db, { fromDid: "did:c", toDid: "did:d" });
+      delegateVotingPower(db, { fromDid: "did:b", toDid: "did:c" });
+      expect(() =>
+        delegateVotingPower(db, { fromDid: "did:a", toDid: "did:b" }),
+      ).toThrow(/depth/);
+    });
+
+    it("revokeDelegation flips status to REVOKED", () => {
+      delegateVotingPower(db, { fromDid: "did:a", toDid: "did:b" });
+      const r = revokeDelegation(db, "did:a");
+      expect(r.status).toBe(DELEGATION_STATUS.REVOKED);
+      expect(r.revokedAt).toBeTruthy();
+    });
+
+    it("revokeDelegation throws when no active delegation", () => {
+      expect(() => revokeDelegation(db, "did:nobody")).toThrow(/active/);
+    });
+
+    it("getActiveDelegations filters ACTIVE only", () => {
+      delegateVotingPower(db, { fromDid: "did:a", toDid: "did:b" });
+      delegateVotingPower(db, { fromDid: "did:c", toDid: "did:d" });
+      revokeDelegation(db, "did:a");
+      const active = getActiveDelegations();
+      expect(active).toHaveLength(1);
+      expect(active[0].fromDid).toBe("did:c");
+    });
+
+    it("getActiveDelegations auto-expires past expiresAt", () => {
+      delegateVotingPower(db, {
+        fromDid: "did:a",
+        toDid: "did:b",
+        expiresAt: "2000-01-01T00:00:00.000Z",
+      });
+      const active = getActiveDelegations();
+      expect(active).toHaveLength(0);
+    });
+  });
+
+  describe("queueProposal + executeProposalV2 (timelock)", () => {
+    let pid;
+    beforeEach(() => {
+      const p = createProposalV2(db, { title: "x", proposerDid: "did:a" });
+      activateProposal(db, p.id);
+      pid = p.id;
+      configureV2({ timelockMs: 0, quorumPercentage: 10 });
+    });
+
+    it("queueProposal moves ACTIVE → QUEUE when passed + quorum", () => {
+      castVote(db, {
+        proposalId: pid,
+        voterDid: "did:v1",
+        voteType: VOTE_TYPE.FOR,
+        voteCount: 5,
+        balance: 100,
+      });
+      castVote(db, {
+        proposalId: pid,
+        voterDid: "did:v2",
+        voteType: VOTE_TYPE.FOR,
+        voteCount: 3,
+        balance: 100,
+      });
+      const q = queueProposal(db, pid);
+      expect(q.status).toBe(PROPOSAL_STATUS.QUEUE);
+      expect(q.quorumReached).toBe(true);
+      expect(q.queueEnd).toBeTruthy();
+    });
+
+    it("rejects queueing without majority", () => {
+      castVote(db, {
+        proposalId: pid,
+        voterDid: "did:v1",
+        voteType: VOTE_TYPE.AGAINST,
+        voteCount: 5,
+        balance: 100,
+      });
+      castVote(db, {
+        proposalId: pid,
+        voterDid: "did:v2",
+        voteType: VOTE_TYPE.FOR,
+        voteCount: 1,
+        balance: 100,
+      });
+      expect(() => queueProposal(db, pid)).toThrow(/majority/);
+    });
+
+    it("executeProposalV2 moves QUEUE → EXECUTE after timelock", () => {
+      castVote(db, {
+        proposalId: pid,
+        voterDid: "did:v1",
+        voteType: VOTE_TYPE.FOR,
+        voteCount: 5,
+        balance: 100,
+      });
+      queueProposal(db, pid);
+      const e = executeProposalV2(db, pid);
+      expect(e.status).toBe(PROPOSAL_STATUS.EXECUTE);
+      expect(e.executedAt).toBeTruthy();
+    });
+
+    it("executeProposalV2 rejects before timelock elapsed", () => {
+      castVote(db, {
+        proposalId: pid,
+        voterDid: "did:v1",
+        voteType: VOTE_TYPE.FOR,
+        voteCount: 5,
+        balance: 100,
+      });
+      configureV2({ timelockMs: 1000000 });
+      queueProposal(db, pid);
+      expect(() => executeProposalV2(db, pid)).toThrow(/Timelock/);
+    });
+
+    it("executeProposalV2 rejects non-QUEUE proposal", () => {
+      expect(() => executeProposalV2(db, pid)).toThrow(/QUEUED/);
+    });
+
+    it("cancelProposal flips to CANCELLED", () => {
+      const c = cancelProposal(db, pid);
+      expect(c.status).toBe(PROPOSAL_STATUS.CANCELLED);
+      expect(c.cancelledAt).toBeTruthy();
+    });
+
+    it("cancelProposal rejects already-executed", () => {
+      castVote(db, {
+        proposalId: pid,
+        voterDid: "did:v1",
+        voteType: VOTE_TYPE.FOR,
+        voteCount: 5,
+        balance: 100,
+      });
+      queueProposal(db, pid);
+      executeProposalV2(db, pid);
+      expect(() => cancelProposal(db, pid)).toThrow(/Cannot cancel/);
+    });
+  });
+
+  describe("allocateFundsV2 (proposal-linked, balance_after)", () => {
+    let pid;
+    beforeEach(() => {
+      depositToTreasuryV2(db, { amount: 10000 });
+      const p = createProposalV2(db, { title: "x", proposerDid: "did:a" });
+      activateProposal(db, p.id);
+      castVote(db, {
+        proposalId: p.id,
+        voterDid: "did:v1",
+        voteType: VOTE_TYPE.FOR,
+        voteCount: 5,
+        balance: 100,
+      });
+      configureV2({ timelockMs: 0 });
+      queueProposal(db, p.id);
+      executeProposalV2(db, p.id);
+      pid = p.id;
+    });
+
+    it("records balance_after on allocation", () => {
+      const tx = allocateFundsV2(db, {
+        proposalId: pid,
+        recipient: "did:recipient",
+        amount: 1000,
+      });
+      expect(tx.balanceAfter).toBe(9000);
+      expect(tx.txType).toBe(TREASURY_TX_TYPE.ALLOCATION);
+    });
+
+    it("rejects allocation for non-EXECUTED proposal", () => {
+      const p2 = createProposalV2(db, {
+        title: "y",
+        proposerDid: "did:a",
+      });
+      expect(() =>
+        allocateFundsV2(db, {
+          proposalId: p2.id,
+          recipient: "r",
+          amount: 100,
+        }),
+      ).toThrow(/EXECUTED/);
+    });
+
+    it("rejects when amount exceeds maxSingleAllocation", () => {
+      configureV2({ maxSingleAllocation: 500 });
+      expect(() =>
+        allocateFundsV2(db, {
+          proposalId: pid,
+          recipient: "r",
+          amount: 1000,
+        }),
+      ).toThrow(/maxSingleAllocation/);
+    });
+
+    it("rejects on insufficient treasury", () => {
+      expect(() =>
+        allocateFundsV2(db, {
+          proposalId: pid,
+          recipient: "r",
+          amount: 999999,
+        }),
+      ).toThrow(/maxSingleAllocation|Insufficient/);
+    });
+  });
+
+  describe("getTreasuryState + depositToTreasuryV2", () => {
+    it("returns balance + totalAllocated + recentTxs", () => {
+      depositToTreasuryV2(db, { amount: 5000, memo: "seed" });
+      const s = getTreasuryState();
+      expect(s.balance).toBe(5000);
+      expect(s.transactions).toHaveLength(1);
+      expect(s.transactions[0].txType).toBe(TREASURY_TX_TYPE.DEPOSIT);
+      expect(s.transactions[0].balanceAfter).toBe(5000);
+    });
+  });
+
+  describe("getGovernanceStatsV2", () => {
+    it("computes participation rate against member count", () => {
+      const p = createProposalV2(db, { title: "x", proposerDid: "did:a" });
+      activateProposal(db, p.id);
+      castVote(db, {
+        proposalId: p.id,
+        voterDid: "did:v1",
+        voteType: VOTE_TYPE.FOR,
+        voteCount: 1,
+        balance: 100,
+      });
+      castVote(db, {
+        proposalId: p.id,
+        voterDid: "did:v2",
+        voteType: VOTE_TYPE.AGAINST,
+        voteCount: 1,
+        balance: 100,
+      });
+      const s = getGovernanceStatsV2(10);
+      expect(s.uniqueVoters).toBe(2);
+      expect(s.participationRate).toBeCloseTo(0.2, 5);
+      expect(s.byStatus[PROPOSAL_STATUS.ACTIVE]).toBe(1);
+    });
+
+    it("computes delegation coverage", () => {
+      delegateVotingPower(db, { fromDid: "did:a", toDid: "did:b" });
+      delegateVotingPower(db, { fromDid: "did:c", toDid: "did:d" });
+      const s = getGovernanceStatsV2(10);
+      expect(s.activeDelegations).toBe(2);
+      expect(s.delegationCoverage).toBeCloseTo(0.2, 5);
+    });
+
+    it("zero-member safe", () => {
+      const s = getGovernanceStatsV2();
+      expect(s.participationRate).toBe(0);
+      expect(s.delegationCoverage).toBe(0);
+    });
+  });
+
+  describe("configureV2 / getConfigV2", () => {
+    it("updates only allowed keys", () => {
+      const cfg = configureV2({
+        quorumPercentage: 25,
+        timelockMs: 100,
+        nonsense: "ignored",
+      });
+      expect(cfg.quorumPercentage).toBe(25);
+      expect(cfg.timelockMs).toBe(100);
+      expect(cfg.nonsense).toBeUndefined();
+    });
+
+    it("getConfigV2 returns a copy", () => {
+      const a = getConfigV2();
+      const b = getConfigV2();
+      expect(a).not.toBe(b);
+      expect(a).toEqual(b);
     });
   });
 });

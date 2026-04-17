@@ -367,3 +367,482 @@ export function _resetState() {
 export function _setBalance(agentId, balance, locked) {
   _balances.set(agentId, { balance, locked: locked || 0 });
 }
+
+// ═════════════════════════════════════════════════════════════════
+// Phase 85 — Agent Economy 2.0 additions (strictly-additive)
+// Frozen canonical enums (PAYMENT_TYPE / CHANNEL_STATUS / RESOURCE_TYPE /
+// NFT_STATUS) + payment-model-aware pricing + channel lifecycle (open →
+// active → settling → closed, + disputed) + NFT status state machine +
+// contribution-share based revenue distribution + extended stats.
+// ═════════════════════════════════════════════════════════════════
+
+export const PAYMENT_TYPE = Object.freeze({
+  PER_CALL: "per_call",
+  PER_TOKEN: "per_token",
+  PER_MINUTE: "per_minute",
+  FLAT_RATE: "flat_rate",
+});
+
+export const CHANNEL_STATUS = Object.freeze({
+  OPEN: "open",
+  ACTIVE: "active",
+  SETTLING: "settling",
+  CLOSED: "closed",
+  DISPUTED: "disputed",
+});
+
+export const RESOURCE_TYPE = Object.freeze({
+  COMPUTE: "compute",
+  STORAGE: "storage",
+  MODEL: "model",
+  DATA: "data",
+  SKILL: "skill",
+});
+
+export const NFT_STATUS = Object.freeze({
+  MINTED: "minted",
+  LISTED: "listed",
+  SOLD: "sold",
+  BURNED: "burned",
+});
+
+const _PAYMENT_TYPE_VALUES = new Set(Object.values(PAYMENT_TYPE));
+const _CHANNEL_STATUS_VALUES = new Set(Object.values(CHANNEL_STATUS));
+const _RESOURCE_TYPE_VALUES = new Set(Object.values(RESOURCE_TYPE));
+const _NFT_STATUS_VALUES = new Set(Object.values(NFT_STATUS));
+
+// V2 stores
+const _v2PriceModels = new Map(); // serviceId → { paymentType, rate, metadata }
+const _v2NftStatus = new Map(); // nftId → { status, listedPrice?, soldTo?, royaltyPercent }
+const _v2TaskContributions = new Map(); // taskId → [{ agentId, weight }]
+const _v2Distributions = []; // { id, taskId, total, shares[], distributedAt }
+
+/**
+ * Set a price model for a service keyed by PAYMENT_TYPE.
+ * rate semantics:
+ *   per_call   — cost per invocation
+ *   per_token  — cost per token (LLM usage)
+ *   per_minute — cost per minute (time-based)
+ *   flat_rate  — one-shot cost (amount is ignored on pay)
+ */
+export function priceServiceV2(
+  db,
+  { serviceId, paymentType, rate, metadata } = {},
+) {
+  if (!serviceId) throw new Error("serviceId required");
+  if (!_PAYMENT_TYPE_VALUES.has(paymentType))
+    throw new Error(`Invalid paymentType: ${paymentType}`);
+  if (!Number.isFinite(rate) || rate < 0)
+    throw new Error(`Invalid rate: ${rate}`);
+  const entry = {
+    serviceId,
+    paymentType,
+    rate,
+    metadata: metadata || {},
+    updatedAt: new Date().toISOString(),
+  };
+  _v2PriceModels.set(serviceId, entry);
+  return entry;
+}
+
+export function getPriceModel(serviceId) {
+  return _v2PriceModels.get(serviceId) || null;
+}
+
+/**
+ * Pay for a service using its registered price model. Computes amount based on
+ * paymentType and usage (tokens / minutes / calls). Falls through to existing
+ * pay() for actual balance transfer + DB write.
+ */
+export function payV2(
+  db,
+  {
+    fromAgentId,
+    toAgentId,
+    serviceId,
+    tokens,
+    minutes,
+    calls = 1,
+    metadata,
+  } = {},
+) {
+  if (!fromAgentId || !toAgentId)
+    throw new Error("fromAgentId & toAgentId required");
+  if (!serviceId) throw new Error("serviceId required");
+  const model = _v2PriceModels.get(serviceId);
+  if (!model) throw new Error(`No price model for service: ${serviceId}`);
+  let amount;
+  switch (model.paymentType) {
+    case PAYMENT_TYPE.PER_CALL:
+      amount = model.rate * (calls || 1);
+      break;
+    case PAYMENT_TYPE.PER_TOKEN:
+      if (!Number.isFinite(tokens) || tokens < 0)
+        throw new Error("tokens required for per_token pricing");
+      amount = model.rate * tokens;
+      break;
+    case PAYMENT_TYPE.PER_MINUTE:
+      if (!Number.isFinite(minutes) || minutes < 0)
+        throw new Error("minutes required for per_minute pricing");
+      amount = model.rate * minutes;
+      break;
+    case PAYMENT_TYPE.FLAT_RATE:
+      amount = model.rate;
+      break;
+    default:
+      throw new Error(`Unknown paymentType: ${model.paymentType}`);
+  }
+  if (amount <= 0) {
+    // No-op transfer: still record the intent
+    return {
+      txId: null,
+      from: fromAgentId,
+      to: toAgentId,
+      amount: 0,
+      paymentType: model.paymentType,
+      serviceId,
+      skipped: true,
+    };
+  }
+  const result = pay(
+    db,
+    fromAgentId,
+    toAgentId,
+    amount,
+    JSON.stringify({
+      serviceId,
+      paymentType: model.paymentType,
+      metadata: metadata || {},
+    }),
+  );
+  return { ...result, paymentType: model.paymentType, serviceId };
+}
+
+/**
+ * Open a two-sided state channel with both parties depositing.
+ * Transitions: OPEN → (activateChannel) → ACTIVE → (initiateSettlement) →
+ * SETTLING → (closeChannelV2) → CLOSED. DISPUTED can be set from ACTIVE.
+ */
+export function openChannelV2(
+  db,
+  { partyA, partyB, depositA = 0, depositB = 0 } = {},
+) {
+  if (!partyA || !partyB) throw new Error("partyA & partyB required");
+  if (partyA === partyB) throw new Error("partyA cannot equal partyB");
+  if (depositA < 0 || depositB < 0)
+    throw new Error("deposits must be non-negative");
+  // Use existing openChannel for partyA deposit + DB; then attach partyB deposit
+  const ch = openChannel(db, partyA, partyB, depositA);
+  if (depositB > 0) {
+    const balB = _getBalance(partyB);
+    if (balB.balance < depositB)
+      throw new Error(
+        `Insufficient balance for partyB: ${balB.balance} < ${depositB}`,
+      );
+    balB.balance -= depositB;
+    balB.locked += depositB;
+    const stored = _channels.get(ch.id);
+    stored.balanceB = depositB;
+    ch.balanceB = depositB;
+    db.prepare(`UPDATE economy_channels SET balance_b = ? WHERE id = ?`).run(
+      depositB,
+      ch.id,
+    );
+  }
+  // Upgrade channel.status to use canonical enum value
+  const stored = _channels.get(ch.id);
+  stored.status = CHANNEL_STATUS.OPEN;
+  return { ...stored };
+}
+
+export function activateChannel(db, channelId) {
+  const ch = _channels.get(channelId);
+  if (!ch) throw new Error(`Channel not found: ${channelId}`);
+  if (ch.status !== CHANNEL_STATUS.OPEN)
+    throw new Error(`Cannot activate: channel is ${ch.status}, not open`);
+  ch.status = CHANNEL_STATUS.ACTIVE;
+  db.prepare(`UPDATE economy_channels SET status = ? WHERE id = ?`).run(
+    CHANNEL_STATUS.ACTIVE,
+    channelId,
+  );
+  return { ...ch };
+}
+
+export function initiateSettlement(
+  db,
+  channelId,
+  { finalBalanceA, finalBalanceB } = {},
+) {
+  const ch = _channels.get(channelId);
+  if (!ch) throw new Error(`Channel not found: ${channelId}`);
+  if (ch.status !== CHANNEL_STATUS.ACTIVE)
+    throw new Error(`Cannot settle: channel is ${ch.status}, not active`);
+  const total = (ch.balanceA || 0) + (ch.balanceB || 0);
+  const a = Number.isFinite(finalBalanceA) ? finalBalanceA : ch.balanceA;
+  const b = Number.isFinite(finalBalanceB) ? finalBalanceB : ch.balanceB;
+  if (a < 0 || b < 0) throw new Error("Final balances must be non-negative");
+  if (Math.abs(a + b - total) > 1e-9)
+    throw new Error(`Settlement must preserve total: ${a}+${b} ≠ ${total}`);
+  ch.balanceA = a;
+  ch.balanceB = b;
+  ch.status = CHANNEL_STATUS.SETTLING;
+  db.prepare(
+    `UPDATE economy_channels SET status = ?, balance_a = ?, balance_b = ? WHERE id = ?`,
+  ).run(CHANNEL_STATUS.SETTLING, a, b, channelId);
+  return { ...ch };
+}
+
+export function closeChannelV2(db, channelId) {
+  const ch = _channels.get(channelId);
+  if (!ch) throw new Error(`Channel not found: ${channelId}`);
+  if (
+    ch.status !== CHANNEL_STATUS.SETTLING &&
+    ch.status !== CHANNEL_STATUS.OPEN &&
+    ch.status !== CHANNEL_STATUS.ACTIVE
+  )
+    throw new Error(`Cannot close: channel is ${ch.status}`);
+  // Release locked funds back as balance to each party
+  const balA = _getBalance(ch.partyA);
+  const balB = _getBalance(ch.partyB);
+  balA.balance += ch.balanceA;
+  balA.locked = Math.max(0, balA.locked - ch.balanceA);
+  balB.balance += ch.balanceB;
+  balB.locked = Math.max(0, balB.locked - ch.balanceB);
+  ch.status = CHANNEL_STATUS.CLOSED;
+  db.prepare(`UPDATE economy_channels SET status = ? WHERE id = ?`).run(
+    CHANNEL_STATUS.CLOSED,
+    channelId,
+  );
+  return { ...ch };
+}
+
+export function disputeChannel(db, channelId, reason) {
+  const ch = _channels.get(channelId);
+  if (!ch) throw new Error(`Channel not found: ${channelId}`);
+  if (
+    ch.status === CHANNEL_STATUS.CLOSED ||
+    ch.status === CHANNEL_STATUS.DISPUTED
+  )
+    throw new Error(`Cannot dispute: channel is ${ch.status}`);
+  ch.status = CHANNEL_STATUS.DISPUTED;
+  ch.disputeReason = reason || null;
+  db.prepare(`UPDATE economy_channels SET status = ? WHERE id = ?`).run(
+    CHANNEL_STATUS.DISPUTED,
+    channelId,
+  );
+  return { ...ch };
+}
+
+export function listChannelsV2(options = {}) {
+  let result = [..._channels.values()];
+  if (options.status) {
+    if (!_CHANNEL_STATUS_VALUES.has(options.status))
+      throw new Error(`Invalid status: ${options.status}`);
+    result = result.filter((c) => c.status === options.status);
+  }
+  if (options.party)
+    result = result.filter(
+      (c) => c.partyA === options.party || c.partyB === options.party,
+    );
+  return result;
+}
+
+/**
+ * List a resource with validated RESOURCE_TYPE enum.
+ */
+export function listResourceV2(
+  db,
+  { sellerId, resourceType, name, price, available = 1, metadata } = {},
+) {
+  if (!_RESOURCE_TYPE_VALUES.has(resourceType))
+    throw new Error(`Invalid resourceType: ${resourceType}`);
+  if (!Number.isFinite(price) || price < 0)
+    throw new Error(`Invalid price: ${price}`);
+  const listing = listResource(db, resourceType, sellerId, price, available);
+  listing.name = name || null;
+  listing.metadata = metadata || {};
+  return listing;
+}
+
+/**
+ * Mint an NFT tracked against NFT_STATUS state machine with royalty metadata.
+ */
+export function mintNFTV2(
+  db,
+  { owner, assetType, metadata, royaltyPercent = 0 } = {},
+) {
+  if (!owner) throw new Error("owner required");
+  if (!assetType) throw new Error("assetType required");
+  if (royaltyPercent < 0 || royaltyPercent > 50)
+    throw new Error("royaltyPercent must be 0..50");
+  const nft = mintNFT(db, owner, assetType, metadata);
+  _v2NftStatus.set(nft.id, {
+    status: NFT_STATUS.MINTED,
+    royaltyPercent,
+    listedPrice: null,
+    soldTo: null,
+  });
+  return { ...nft, status: NFT_STATUS.MINTED, royaltyPercent };
+}
+
+export function listNFT(db, nftId, price) {
+  const status = _v2NftStatus.get(nftId);
+  if (!status) throw new Error(`NFT not found: ${nftId}`);
+  if (status.status !== NFT_STATUS.MINTED)
+    throw new Error(`Cannot list NFT in ${status.status} state`);
+  if (!Number.isFinite(price) || price <= 0)
+    throw new Error(`Invalid price: ${price}`);
+  status.status = NFT_STATUS.LISTED;
+  status.listedPrice = price;
+  return { nftId, status: NFT_STATUS.LISTED, price };
+}
+
+export function buyNFT(db, nftId, buyer) {
+  const nft = _nfts.get(nftId);
+  if (!nft) throw new Error(`NFT not found: ${nftId}`);
+  const status = _v2NftStatus.get(nftId);
+  if (!status || status.status !== NFT_STATUS.LISTED)
+    throw new Error(`NFT not listed`);
+  const price = status.listedPrice;
+  const buyerBal = _getBalance(buyer);
+  if (buyerBal.balance < price)
+    throw new Error(`Insufficient balance: ${buyerBal.balance} < ${price}`);
+  // Split: royalty to original minter, remainder to current owner
+  const royalty = (price * status.royaltyPercent) / 100;
+  const sellerTake = price - royalty;
+  buyerBal.balance -= price;
+  const sellerBal = _getBalance(nft.owner);
+  sellerBal.balance += sellerTake;
+  // Royalty always goes to original owner (first minter) — in this v2, nft.owner
+  // is the same as original owner since we don't track chain of custody.
+  if (royalty > 0) sellerBal.balance += royalty;
+  nft.owner = buyer;
+  status.status = NFT_STATUS.SOLD;
+  status.soldTo = buyer;
+  return { nftId, buyer, price, royalty, status: NFT_STATUS.SOLD };
+}
+
+export function burnNFT(db, nftId) {
+  const nft = _nfts.get(nftId);
+  if (!nft) throw new Error(`NFT not found: ${nftId}`);
+  const status = _v2NftStatus.get(nftId);
+  if (!status) throw new Error(`NFT status missing: ${nftId}`);
+  if (status.status === NFT_STATUS.BURNED)
+    throw new Error("NFT already burned");
+  status.status = NFT_STATUS.BURNED;
+  return { nftId, status: NFT_STATUS.BURNED };
+}
+
+export function getNFTStatus(nftId) {
+  return _v2NftStatus.get(nftId) || null;
+}
+
+/**
+ * Record a task-scoped contribution with a weight (used for share calculation).
+ */
+export function recordTaskContribution(
+  db,
+  { taskId, agentId, weight = 1 } = {},
+) {
+  if (!taskId) throw new Error("taskId required");
+  if (!agentId) throw new Error("agentId required");
+  if (!Number.isFinite(weight) || weight <= 0)
+    throw new Error("weight must be positive");
+  if (!_v2TaskContributions.has(taskId)) _v2TaskContributions.set(taskId, []);
+  const entry = { agentId, weight, recordedAt: new Date().toISOString() };
+  _v2TaskContributions.get(taskId).push(entry);
+  return { taskId, ...entry };
+}
+
+export function getTaskContributions(taskId) {
+  return [...(_v2TaskContributions.get(taskId) || [])];
+}
+
+/**
+ * Distribute revenue across contributors proportional to their weights.
+ * Returns an array of { agentId, share, newBalance }.
+ */
+export function distributeRevenueV2(db, { taskId, total } = {}) {
+  if (!taskId) throw new Error("taskId required");
+  if (!Number.isFinite(total) || total <= 0)
+    throw new Error("total must be positive");
+  const contribs = _v2TaskContributions.get(taskId) || [];
+  if (contribs.length === 0)
+    throw new Error(`No contributions for task: ${taskId}`);
+  // Aggregate by agent
+  const weightByAgent = new Map();
+  for (const c of contribs)
+    weightByAgent.set(
+      c.agentId,
+      (weightByAgent.get(c.agentId) || 0) + c.weight,
+    );
+  const totalWeight = [...weightByAgent.values()].reduce((a, b) => a + b, 0);
+  const shares = [];
+  const now = new Date().toISOString();
+  for (const [agentId, w] of weightByAgent) {
+    const share = (total * w) / totalWeight;
+    const bal = _getBalance(agentId);
+    bal.balance += share;
+    db.prepare(
+      `INSERT OR REPLACE INTO economy_balances (agent_id, balance, locked, updated_at)
+       VALUES (?, ?, ?, ?)`,
+    ).run(agentId, bal.balance, bal.locked, now);
+    shares.push({ agentId, share, weight: w, newBalance: bal.balance });
+  }
+  const record = {
+    id: crypto.randomUUID(),
+    taskId,
+    total,
+    shares,
+    distributedAt: now,
+  };
+  _v2Distributions.push(record);
+  return record;
+}
+
+export function listDistributions({ taskId } = {}) {
+  if (taskId) return _v2Distributions.filter((d) => d.taskId === taskId);
+  return [..._v2Distributions];
+}
+
+/**
+ * Extended V2 stats.
+ */
+export function getEconomyStatsV2() {
+  const channelsByStatus = {};
+  for (const c of _channels.values()) {
+    const st = c.status || "unknown";
+    channelsByStatus[st] = (channelsByStatus[st] || 0) + 1;
+  }
+  const nftByStatus = {};
+  for (const n of _v2NftStatus.values()) {
+    const st = n.status || "unknown";
+    nftByStatus[st] = (nftByStatus[st] || 0) + 1;
+  }
+  const resourcesByType = {};
+  for (const l of _market.values()) {
+    resourcesByType[l.resourceType] =
+      (resourcesByType[l.resourceType] || 0) + 1;
+  }
+  return {
+    totalAccounts: _balances.size,
+    totalChannels: _channels.size,
+    channelsByStatus,
+    totalListings: _market.size,
+    resourcesByType,
+    totalNFTs: _nfts.size,
+    nftByStatus,
+    priceModels: _v2PriceModels.size,
+    distributions: _v2Distributions.length,
+  };
+}
+
+// Reset hook augmentation — called by _resetState indirectly (callers should
+// explicitly call _resetV2State in tests, since _resetState is unchanged for
+// strictly-additive preservation).
+export function _resetV2State() {
+  _v2PriceModels.clear();
+  _v2NftStatus.clear();
+  _v2TaskContributions.clear();
+  _v2Distributions.length = 0;
+}

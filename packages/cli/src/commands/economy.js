@@ -21,6 +21,31 @@ import {
   recordContribution,
   getContributions,
   distributeRevenue,
+  // Phase 85 V2
+  PAYMENT_TYPE,
+  CHANNEL_STATUS,
+  RESOURCE_TYPE,
+  NFT_STATUS,
+  priceServiceV2,
+  getPriceModel,
+  payV2,
+  openChannelV2,
+  activateChannel,
+  initiateSettlement,
+  closeChannelV2,
+  disputeChannel,
+  listChannelsV2,
+  listResourceV2,
+  mintNFTV2,
+  listNFT,
+  buyNFT,
+  burnNFT,
+  getNFTStatus,
+  recordTaskContribution,
+  getTaskContributions,
+  distributeRevenueV2,
+  listDistributions,
+  getEconomyStatsV2,
 } from "../lib/agent-economy.js";
 
 export function registerEconomyCommand(program) {
@@ -366,6 +391,559 @@ export function registerEconomyCommand(program) {
         logger.log(`  ${chalk.bold("Type:")}  ${c.type}`);
         logger.log(`  ${chalk.bold("Value:")} ${c.value}`);
 
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // ═════════════════════════════════════════════════════════════════
+  // Phase 85 — Agent Economy 2.0 subcommands
+  // ═════════════════════════════════════════════════════════════════
+
+  economy
+    .command("payment-types")
+    .description("List PAYMENT_TYPE enum values (Phase 85)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const v = Object.values(PAYMENT_TYPE);
+      if (options.json) console.log(JSON.stringify(v, null, 2));
+      else v.forEach((x) => logger.log(`  ${chalk.cyan(x)}`));
+    });
+
+  economy
+    .command("channel-statuses")
+    .description("List CHANNEL_STATUS enum values (Phase 85)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const v = Object.values(CHANNEL_STATUS);
+      if (options.json) console.log(JSON.stringify(v, null, 2));
+      else v.forEach((x) => logger.log(`  ${chalk.cyan(x)}`));
+    });
+
+  economy
+    .command("resource-types")
+    .description("List RESOURCE_TYPE enum values (Phase 85)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const v = Object.values(RESOURCE_TYPE);
+      if (options.json) console.log(JSON.stringify(v, null, 2));
+      else v.forEach((x) => logger.log(`  ${chalk.cyan(x)}`));
+    });
+
+  economy
+    .command("nft-statuses")
+    .description("List NFT_STATUS enum values (Phase 85)")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const v = Object.values(NFT_STATUS);
+      if (options.json) console.log(JSON.stringify(v, null, 2));
+      else v.forEach((x) => logger.log(`  ${chalk.cyan(x)}`));
+    });
+
+  economy
+    .command("price-v2")
+    .description("Set a service price with payment-type model (Phase 85)")
+    .argument("<service-id>", "Service ID")
+    .argument("<payment-type>", "per_call|per_token|per_minute|flat_rate")
+    .argument("<rate>", "Unit rate")
+    .option("--json", "Output as JSON")
+    .action(async (serviceId, paymentType, rate, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const m = priceServiceV2(db, {
+          serviceId,
+          paymentType,
+          rate: parseFloat(rate),
+        });
+        if (options.json) console.log(JSON.stringify(m, null, 2));
+        else
+          logger.log(
+            `${chalk.green("✓")} priced ${chalk.cyan(serviceId)} as ${paymentType}@${rate}`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  economy
+    .command("price-get")
+    .description("Get a service's price model (Phase 85)")
+    .argument("<service-id>", "Service ID")
+    .option("--json", "Output as JSON")
+    .action(async (serviceId, options) => {
+      try {
+        await bootstrap({ verbose: program.opts().verbose });
+        const m = getPriceModel(serviceId);
+        if (options.json) console.log(JSON.stringify(m, null, 2));
+        else if (!m) logger.info("No price model.");
+        else
+          logger.log(
+            `${chalk.cyan(m.serviceId)} ${m.paymentType}@${chalk.yellow(m.rate)}`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  economy
+    .command("pay-v2")
+    .description(
+      "Pay for a priced service (computes amount from usage) (Phase 85)",
+    )
+    .argument("<from>", "From agent ID")
+    .argument("<to>", "To agent ID")
+    .argument("<service-id>", "Service ID")
+    .option("--tokens <n>", "Token count (for per_token)", parseInt)
+    .option("--minutes <n>", "Minute count (for per_minute)", parseFloat)
+    .option("--calls <n>", "Call count (for per_call)", parseInt)
+    .option("--json", "Output as JSON")
+    .action(async (from, to, serviceId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const r = payV2(db, {
+          fromAgentId: from,
+          toAgentId: to,
+          serviceId,
+          tokens: options.tokens,
+          minutes: options.minutes,
+          calls: options.calls,
+        });
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else
+          logger.log(
+            `${chalk.green("✓")} paid ${chalk.yellow(r.amount)} via ${r.paymentType}`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  economy
+    .command("channel-open-v2")
+    .description("Open a two-sided channel (Phase 85)")
+    .argument("<party-a>", "Party A ID")
+    .argument("<party-b>", "Party B ID")
+    .option("--deposit-a <n>", "Deposit from party A", parseFloat)
+    .option("--deposit-b <n>", "Deposit from party B", parseFloat)
+    .option("--json", "Output as JSON")
+    .action(async (a, b, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const ch = openChannelV2(db, {
+          partyA: a,
+          partyB: b,
+          depositA: options.depositA || 0,
+          depositB: options.depositB || 0,
+        });
+        if (options.json) console.log(JSON.stringify(ch, null, 2));
+        else
+          logger.log(
+            `${chalk.green("✓")} channel ${chalk.cyan(ch.id)} opened (${ch.balanceA}↔${ch.balanceB})`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  economy
+    .command("channel-activate")
+    .description("OPEN → ACTIVE (Phase 85)")
+    .argument("<id>", "Channel ID")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const r = activateChannel(db, id);
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else logger.log(`${chalk.green("✓ Active")} ${chalk.cyan(id)}`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  economy
+    .command("channel-settle")
+    .description("ACTIVE → SETTLING with final balances (Phase 85)")
+    .argument("<id>", "Channel ID")
+    .requiredOption("--final-a <n>", "Final balance A", parseFloat)
+    .requiredOption("--final-b <n>", "Final balance B", parseFloat)
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const r = initiateSettlement(db, id, {
+          finalBalanceA: options.finalA,
+          finalBalanceB: options.finalB,
+        });
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else
+          logger.log(
+            `${chalk.green("✓ Settling")} ${chalk.cyan(id)} a=${r.balanceA} b=${r.balanceB}`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  economy
+    .command("channel-close-v2")
+    .description("Close channel and release locked funds (Phase 85)")
+    .argument("<id>", "Channel ID")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const r = closeChannelV2(db, id);
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else logger.log(`${chalk.green("✓ Closed")} ${chalk.cyan(id)}`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  economy
+    .command("channel-dispute")
+    .description("Mark channel DISPUTED (Phase 85)")
+    .argument("<id>", "Channel ID")
+    .option("--reason <r>", "Dispute reason", "dispute")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const r = disputeChannel(db, id, options.reason);
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else
+          logger.log(
+            `${chalk.red("⚠ Disputed")} ${chalk.cyan(id)} reason=${options.reason}`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  economy
+    .command("channels-v2")
+    .description("List channels with optional status/party filter (Phase 85)")
+    .option("-s, --status <s>", "Filter by status")
+    .option("-p, --party <id>", "Filter by party")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        await bootstrap({ verbose: program.opts().verbose });
+        const r = listChannelsV2({
+          status: options.status,
+          party: options.party,
+        });
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else if (r.length === 0) logger.info("No channels.");
+        else
+          r.forEach((c) =>
+            logger.log(
+              `  ${chalk.cyan(c.id)}  ${c.partyA}↔${c.partyB}  ${chalk.yellow(c.status)}`,
+            ),
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  economy
+    .command("market-list-v2")
+    .description("List a resource with validated RESOURCE_TYPE (Phase 85)")
+    .argument("<seller>", "Seller ID")
+    .argument("<resource-type>", "compute|storage|model|data|skill")
+    .argument("<price>", "Price per unit")
+    .option("--name <n>", "Display name")
+    .option("--available <n>", "Available quantity", parseInt, 1)
+    .option("--json", "Output as JSON")
+    .action(async (seller, resourceType, price, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const r = listResourceV2(db, {
+          sellerId: seller,
+          resourceType,
+          price: parseFloat(price),
+          name: options.name,
+          available: options.available,
+        });
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else
+          logger.log(
+            `${chalk.green("✓")} listing ${chalk.cyan(r.id)} ${resourceType}@${price}`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  economy
+    .command("nft-mint-v2")
+    .description("Mint NFT with royalty tracking (Phase 85)")
+    .argument("<owner>", "Owner ID")
+    .argument("<asset-type>", "Asset type")
+    .option("--royalty <pct>", "Royalty percent (0-50)", parseFloat, 0)
+    .option("--metadata <json>", "Metadata JSON")
+    .option("--json", "Output as JSON")
+    .action(async (owner, assetType, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const n = mintNFTV2(db, {
+          owner,
+          assetType,
+          royaltyPercent: options.royalty,
+          metadata: options.metadata ? JSON.parse(options.metadata) : {},
+        });
+        if (options.json) console.log(JSON.stringify(n, null, 2));
+        else
+          logger.log(
+            `${chalk.green("✓ Minted")} ${chalk.cyan(n.id)} ${assetType} royalty=${n.royaltyPercent}%`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  economy
+    .command("nft-list")
+    .description("List NFT for sale at a price (Phase 85)")
+    .argument("<id>", "NFT ID")
+    .argument("<price>", "Listing price")
+    .option("--json", "Output as JSON")
+    .action(async (id, price, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const r = listNFT(db, id, parseFloat(price));
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else
+          logger.log(`${chalk.green("✓ Listed")} ${chalk.cyan(id)}@${price}`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  economy
+    .command("nft-buy")
+    .description("Buy a listed NFT (Phase 85)")
+    .argument("<id>", "NFT ID")
+    .argument("<buyer>", "Buyer ID")
+    .option("--json", "Output as JSON")
+    .action(async (id, buyer, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const r = buyNFT(db, id, buyer);
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else
+          logger.log(
+            `${chalk.green("✓ Sold")} ${chalk.cyan(id)} → ${buyer} for ${r.price} (royalty ${r.royalty})`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  economy
+    .command("nft-burn")
+    .description("Burn an NFT (Phase 85)")
+    .argument("<id>", "NFT ID")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const r = burnNFT(db, id);
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else logger.log(`${chalk.red("🔥 Burned")} ${chalk.cyan(id)}`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  economy
+    .command("nft-status")
+    .description("Get NFT status (Phase 85)")
+    .argument("<id>", "NFT ID")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        await bootstrap({ verbose: program.opts().verbose });
+        const s = getNFTStatus(id);
+        if (options.json) console.log(JSON.stringify(s, null, 2));
+        else if (!s) logger.info("No NFT found.");
+        else
+          logger.log(
+            `${chalk.cyan(id)} ${chalk.yellow(s.status)} royalty=${s.royaltyPercent}%`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  economy
+    .command("contribute-task")
+    .description("Record a weighted task contribution (Phase 85)")
+    .argument("<task-id>", "Task ID")
+    .argument("<agent-id>", "Agent ID")
+    .option("--weight <w>", "Weight", parseFloat, 1)
+    .option("--json", "Output as JSON")
+    .action(async (taskId, agentId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const r = recordTaskContribution(db, {
+          taskId,
+          agentId,
+          weight: options.weight,
+        });
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else
+          logger.log(
+            `${chalk.green("✓")} ${chalk.cyan(agentId)} → ${taskId} weight=${options.weight}`,
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  economy
+    .command("contributions-task")
+    .description("List contributions for a task (Phase 85)")
+    .argument("<task-id>", "Task ID")
+    .option("--json", "Output as JSON")
+    .action(async (taskId, options) => {
+      try {
+        await bootstrap({ verbose: program.opts().verbose });
+        const r = getTaskContributions(taskId);
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else if (r.length === 0) logger.info("No contributions.");
+        else
+          r.forEach((c) =>
+            logger.log(`  ${chalk.cyan(c.agentId)}  weight=${c.weight}`),
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  economy
+    .command("distribute-v2")
+    .description("Distribute revenue across task contributors (Phase 85)")
+    .argument("<task-id>", "Task ID")
+    .argument("<total>", "Total amount to distribute")
+    .option("--json", "Output as JSON")
+    .action(async (taskId, total, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        const r = distributeRevenueV2(db, { taskId, total: parseFloat(total) });
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else {
+          logger.log(chalk.bold(`Distributed ${total} for task ${taskId}:`));
+          r.shares.forEach((s) =>
+            logger.log(
+              `  ${chalk.cyan(s.agentId)}  share=${chalk.yellow(s.share.toFixed(2))}  balance=${s.newBalance.toFixed(2)}`,
+            ),
+          );
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  economy
+    .command("distributions")
+    .description("List distribution records (Phase 85)")
+    .option("-t, --task <id>", "Filter by task ID")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        await bootstrap({ verbose: program.opts().verbose });
+        const r = listDistributions({ taskId: options.task });
+        if (options.json) console.log(JSON.stringify(r, null, 2));
+        else if (r.length === 0) logger.info("No distributions.");
+        else
+          r.forEach((d) =>
+            logger.log(
+              `  ${chalk.cyan(d.id.slice(0, 8))}  task=${d.taskId}  total=${chalk.yellow(d.total)}  shares=${d.shares.length}`,
+            ),
+          );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  economy
+    .command("stats-v2")
+    .description("Extended economy stats (Phase 85)")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        await bootstrap({ verbose: program.opts().verbose });
+        const s = getEconomyStatsV2();
+        if (options.json) console.log(JSON.stringify(s, null, 2));
+        else {
+          logger.log(chalk.bold("Economy stats (Phase 85):"));
+          logger.log(`  accounts: ${chalk.cyan(s.totalAccounts)}`);
+          logger.log(`  channels: ${chalk.cyan(s.totalChannels)}`);
+          for (const [k, v] of Object.entries(s.channelsByStatus))
+            logger.log(`    ${k}: ${v}`);
+          logger.log(`  listings: ${chalk.cyan(s.totalListings)}`);
+          logger.log(`  NFTs: ${chalk.cyan(s.totalNFTs)}`);
+          for (const [k, v] of Object.entries(s.nftByStatus))
+            logger.log(`    ${k}: ${v}`);
+          logger.log(`  price models: ${chalk.cyan(s.priceModels)}`);
+          logger.log(`  distributions: ${chalk.cyan(s.distributions)}`);
+        }
         await shutdown();
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
