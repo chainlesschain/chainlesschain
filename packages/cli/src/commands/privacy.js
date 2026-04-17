@@ -367,5 +367,300 @@ export function registerPrivacyCommand(program) {
       );
     });
 
+  /* ──────────────────────────────────────────────────────────
+   *  V2 — Phase 91
+   * ────────────────────────────────────────────────────────── */
+
+  pc.command("fl-statuses-v2")
+    .description("List V2 FL statuses")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const v = Object.values(FL_STATUS_V2);
+      if (opts.json) return console.log(JSON.stringify(v, null, 2));
+      v.forEach((s) => console.log(s));
+    });
+
+  pc.command("mpc-statuses-v2")
+    .description("List V2 MPC statuses")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const v = Object.values(MPC_STATUS_V2);
+      if (opts.json) return console.log(JSON.stringify(v, null, 2));
+      v.forEach((s) => console.log(s));
+    });
+
+  pc.command("dp-mechanisms-v2")
+    .description("List V2 DP mechanisms")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const v = Object.values(DP_MECHANISM_V2);
+      if (opts.json) return console.log(JSON.stringify(v, null, 2));
+      v.forEach((s) => console.log(s));
+    });
+
+  pc.command("he-schemes-v2")
+    .description("List V2 HE schemes")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const v = Object.values(HE_SCHEME_V2);
+      if (opts.json) return console.log(JSON.stringify(v, null, 2));
+      v.forEach((s) => console.log(s));
+    });
+
+  pc.command("mpc-protocols-v2")
+    .description("List V2 MPC protocols")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const v = Object.values(MPC_PROTOCOL_V2);
+      if (opts.json) return console.log(JSON.stringify(v, null, 2));
+      v.forEach((s) => console.log(s));
+    });
+
+  pc.command("default-max-active-mpc")
+    .description("Show V2 default max active MPC computations")
+    .action(() =>
+      console.log(String(PRIVACY_DEFAULT_MAX_ACTIVE_MPC_COMPUTATIONS)),
+    );
+
+  pc.command("max-active-mpc")
+    .description("Show current max active MPC computations")
+    .action(() => console.log(String(getMaxActiveMpcComputations())));
+
+  pc.command("active-mpc-count")
+    .description("Show currently-active MPC computation count")
+    .action(() => console.log(String(getActiveMpcCount())));
+
+  pc.command("set-max-active-mpc <n>")
+    .description("Set max concurrent active MPC computations")
+    .action((n) => {
+      setMaxActiveMpcComputations(Number(n));
+      console.log(`max-active-mpc = ${getMaxActiveMpcComputations()}`);
+    });
+
+  pc.command("budget-limit")
+    .description("Show privacy budget limit")
+    .action(() => console.log(String(getPrivacyBudgetLimit())));
+
+  pc.command("budget-spent")
+    .description("Show privacy budget spent")
+    .action(() => console.log(String(getPrivacyBudgetSpent())));
+
+  pc.command("set-budget-limit <n>")
+    .description("Set privacy budget limit")
+    .action((n) => {
+      setPrivacyBudgetLimit(Number(n));
+      console.log(`budget-limit = ${getPrivacyBudgetLimit()}`);
+    });
+
+  pc.command("reset-budget")
+    .description("Reset privacy budget spent counter to 0")
+    .action(() => {
+      resetPrivacyBudget();
+      console.log("budget reset");
+    });
+
+  pc.command("create-model-v2 <name>")
+    .description("V2 create FL model (throws on invalid input)")
+    .option("-t, --total-rounds <n>", "Total rounds (default 10)")
+    .option("-l, --learning-rate <n>", "Learning rate (default 0.01)")
+    .option("-a, --architecture <arch>", "Architecture")
+    .option("-m, --model-type <type>", "Model type")
+    .option("--json", "JSON output")
+    .action((name, opts) => {
+      const db = _dbFromCtx(pc);
+      const m = createModelV2(db, {
+        name,
+        totalRounds: opts.totalRounds ? Number(opts.totalRounds) : undefined,
+        learningRate: opts.learningRate ? Number(opts.learningRate) : undefined,
+        architecture: opts.architecture,
+        modelType: opts.modelType,
+      });
+      if (opts.json) return console.log(JSON.stringify(m, null, 2));
+      console.log(`Model: ${m.id} (${m.name}, rounds=${m.total_rounds})`);
+    });
+
+  pc.command("train-round-v2 <model-id>")
+    .description("V2 train one FL round (auto initializing → training)")
+    .option("--json", "JSON output")
+    .action((id, opts) => {
+      const db = _dbFromCtx(pc);
+      const m = trainRoundV2(db, id);
+      if (opts.json) return console.log(JSON.stringify(m, null, 2));
+      console.log(
+        `Round ${m.current_round}/${m.total_rounds}  status=${m.status}  acc=${m.accuracy}`,
+      );
+    });
+
+  pc.command("aggregate-round <model-id>")
+    .description("Aggregate FL round (training → training next / completed)")
+    .option("--json", "JSON output")
+    .action((id, opts) => {
+      const db = _dbFromCtx(pc);
+      const m = aggregateRound(db, id);
+      if (opts.json) return console.log(JSON.stringify(m, null, 2));
+      console.log(`Model ${m.id} status=${m.status} round=${m.current_round}`);
+    });
+
+  pc.command("fail-model-v2 <model-id>")
+    .description("V2 fail FL model (any non-terminal → failed)")
+    .option("-e, --error <msg>", "Error message")
+    .option("--json", "JSON output")
+    .action((id, opts) => {
+      const db = _dbFromCtx(pc);
+      const m = failModelV2(db, id, { error: opts.error });
+      if (opts.json) return console.log(JSON.stringify(m, null, 2));
+      console.log(`Model ${m.id} failed: ${m.error_message || ""}`);
+    });
+
+  pc.command("set-fl-status <model-id> <status>")
+    .description("V2 state-machine guarded FL status setter")
+    .option("-a, --accuracy <n>")
+    .option("-l, --loss <n>")
+    .option("-e, --error <msg>")
+    .option("--json", "JSON output")
+    .action((id, status, opts) => {
+      const db = _dbFromCtx(pc);
+      const patch = {};
+      if (opts.accuracy !== undefined) patch.accuracy = Number(opts.accuracy);
+      if (opts.loss !== undefined) patch.loss = Number(opts.loss);
+      if (opts.error !== undefined) patch.errorMessage = opts.error;
+      const m = setFLStatusV2(db, id, status, patch);
+      if (opts.json) return console.log(JSON.stringify(m, null, 2));
+      console.log(`Model ${m.id} status=${m.status}`);
+    });
+
+  pc.command("create-computation-v2 <type>")
+    .description("V2 create MPC computation (throws on invalid input)")
+    .option("-p, --protocol <proto>", "Protocol (shamir|beaver|gmw)")
+    .option("-i, --participants <csv>", "Comma-separated participant IDs")
+    .option("-s, --shares-required <n>", "Shares required")
+    .option("--json", "JSON output")
+    .action((type, opts) => {
+      const db = _dbFromCtx(pc);
+      const ids = opts.participants
+        ? opts.participants
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [];
+      const c = createComputationV2(db, {
+        computationType: type,
+        protocol: opts.protocol,
+        participantIds: ids,
+        sharesRequired: opts.sharesRequired
+          ? Number(opts.sharesRequired)
+          : undefined,
+      });
+      if (opts.json) return console.log(JSON.stringify(c, null, 2));
+      console.log(
+        `Computation: ${c.id}  protocol=${c.protocol}  required=${c.shares_required}`,
+      );
+    });
+
+  pc.command("submit-share-v2 <comp-id>")
+    .description("V2 submit MPC share (state-guarded)")
+    .option("--json", "JSON output")
+    .action((id, opts) => {
+      const db = _dbFromCtx(pc);
+      const c = submitShareV2(db, id);
+      if (opts.json) return console.log(JSON.stringify(c, null, 2));
+      console.log(
+        `Comp ${c.id} shares=${c.shares_received}/${c.shares_required} status=${c.status}`,
+      );
+    });
+
+  pc.command("fail-computation <comp-id>")
+    .description("Fail MPC computation (any non-terminal → failed)")
+    .option("-e, --error <msg>")
+    .option("--json", "JSON output")
+    .action((id, opts) => {
+      const db = _dbFromCtx(pc);
+      const c = failComputation(db, id, { error: opts.error });
+      if (opts.json) return console.log(JSON.stringify(c, null, 2));
+      console.log(`Comp ${c.id} failed: ${c.error_message || ""}`);
+    });
+
+  pc.command("set-mpc-status <comp-id> <status>")
+    .description("V2 state-machine guarded MPC status setter")
+    .option("-h, --result-hash <hash>")
+    .option("-e, --error <msg>")
+    .option("--json", "JSON output")
+    .action((id, status, opts) => {
+      const db = _dbFromCtx(pc);
+      const patch = {};
+      if (opts.resultHash !== undefined) patch.resultHash = opts.resultHash;
+      if (opts.error !== undefined) patch.errorMessage = opts.error;
+      const c = setMPCStatusV2(db, id, status, patch);
+      if (opts.json) return console.log(JSON.stringify(c, null, 2));
+      console.log(`Comp ${c.id} status=${c.status}`);
+    });
+
+  pc.command("dp-publish-v2")
+    .description("V2 DP publish (throws on invalid input / exceeded budget)")
+    .requiredOption("-d, --data <n>", "Data value", Number)
+    .option("-e, --epsilon <n>", "Epsilon", Number)
+    .option("--delta <n>", "Delta", Number)
+    .option("-m, --mechanism <mech>", "Mechanism")
+    .option("-s, --sensitivity <n>", "Sensitivity", Number)
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(pc);
+      const r = dpPublishV2(db, {
+        data: opts.data,
+        epsilon: opts.epsilon,
+        delta: opts.delta,
+        mechanism: opts.mechanism,
+        sensitivity: opts.sensitivity,
+      });
+      if (opts.json) return console.log(JSON.stringify(r, null, 2));
+      console.log(
+        `Published: orig=${r.originalValue}  noised=${r.noisedValue}  ε=${r.epsilon}`,
+      );
+    });
+
+  pc.command("he-query-v2")
+    .description("V2 HE query (throws on invalid input)")
+    .requiredOption("-o, --operation <op>", "sum|product|mean|count")
+    .requiredOption("-d, --data <json>", "JSON array of numbers")
+    .option("-s, --scheme <scheme>", "Scheme")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      let data;
+      try {
+        data = JSON.parse(opts.data);
+      } catch (_e) {
+        throw new Error("Invalid --data JSON");
+      }
+      const r = heQueryV2({
+        data,
+        operation: opts.operation,
+        scheme: opts.scheme,
+      });
+      if (opts.json) return console.log(JSON.stringify(r, null, 2));
+      console.log(
+        `Result: ${r.result}  (${r.operation} over ${r.inputCount} items, scheme=${r.scheme})`,
+      );
+    });
+
+  pc.command("stats-v2")
+    .description("V2 all-enum-key zero-init stats")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const s = getPrivacyStatsV2();
+      if (opts.json) return console.log(JSON.stringify(s, null, 2));
+      console.log(
+        `Models: ${s.totalModels}  Computations: ${s.totalComputations}`,
+      );
+      console.log(
+        `Active MPC: ${s.activeMpcCount}/${s.maxActiveMpcComputations}`,
+      );
+      console.log(
+        `Budget: ${s.budget.spent}/${s.budget.limit} (${s.budget.remaining} remaining)`,
+      );
+      console.log(
+        `Avg accuracy: ${s.avgAccuracy}  Avg comp time ms: ${s.avgComputationTimeMs}`,
+      );
+    });
+
   program.addCommand(pc);
 }

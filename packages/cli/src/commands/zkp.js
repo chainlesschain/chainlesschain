@@ -22,6 +22,26 @@ import {
   registerCredential,
   selectiveDisclose,
   listCredentials,
+  // V2 — Phase 88
+  PROOF_SCHEME_V2,
+  CIRCUIT_STATUS_V2,
+  PROOF_STATUS_V2,
+  ZKP_DEFAULT_MAX_CIRCUITS_PER_CREATOR,
+  ZKP_DEFAULT_PROOF_EXPIRY_MS,
+  setMaxCircuitsPerCreator,
+  getMaxCircuitsPerCreator,
+  getCircuitCountByCreator,
+  setProofExpiryMs,
+  getProofExpiryMs,
+  compileCircuitV2,
+  setCircuitStatusV2,
+  generateProofV2,
+  verifyProofV2,
+  failProof,
+  setProofStatus,
+  autoExpireProofs,
+  selectiveDiscloseV2,
+  getZKPStatsV2,
 } from "../lib/zkp-engine.js";
 
 export function registerZkpCommand(program) {
@@ -494,6 +514,321 @@ export function registerZkpCommand(program) {
           }
         }
 
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  /* ── V2 — Phase 88 ──────────────────────────────────────── */
+
+  // Enum dumps
+  zkp
+    .command("proof-schemes-v2")
+    .description("List V2 proof schemes")
+    .action(() => {
+      console.log(JSON.stringify(PROOF_SCHEME_V2, null, 2));
+    });
+
+  zkp
+    .command("circuit-statuses-v2")
+    .description("List V2 circuit statuses")
+    .action(() => {
+      console.log(JSON.stringify(CIRCUIT_STATUS_V2, null, 2));
+    });
+
+  zkp
+    .command("proof-statuses-v2")
+    .description("List V2 proof statuses (pending/verified/invalid/expired)")
+    .action(() => {
+      console.log(JSON.stringify(PROOF_STATUS_V2, null, 2));
+    });
+
+  zkp
+    .command("default-max-circuits-per-creator")
+    .description("Show default max circuits per creator")
+    .action(() => {
+      console.log(ZKP_DEFAULT_MAX_CIRCUITS_PER_CREATOR);
+    });
+
+  zkp
+    .command("max-circuits-per-creator")
+    .description("Show current max circuits per creator")
+    .action(() => {
+      console.log(getMaxCircuitsPerCreator());
+    });
+
+  zkp
+    .command("set-max-circuits-per-creator <n>")
+    .description("Set max circuits per creator (positive integer)")
+    .action((n) => {
+      try {
+        setMaxCircuitsPerCreator(Number(n));
+        logger.success(
+          `Max circuits per creator = ${getMaxCircuitsPerCreator()}`,
+        );
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  zkp
+    .command("circuit-count-by-creator <creator>")
+    .description("Count circuits owned by a creator")
+    .action((creator) => {
+      console.log(getCircuitCountByCreator(creator));
+    });
+
+  zkp
+    .command("default-proof-expiry-ms")
+    .description("Show default proof expiry (ms)")
+    .action(() => {
+      console.log(ZKP_DEFAULT_PROOF_EXPIRY_MS);
+    });
+
+  zkp
+    .command("proof-expiry-ms")
+    .description("Show current proof expiry (ms)")
+    .action(() => {
+      console.log(getProofExpiryMs());
+    });
+
+  zkp
+    .command("set-proof-expiry-ms <ms>")
+    .description("Set proof expiry in ms")
+    .action((ms) => {
+      try {
+        setProofExpiryMs(Number(ms));
+        logger.success(`Proof expiry = ${getProofExpiryMs()}ms`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  zkp
+    .command("compile-v2 <name>")
+    .description("Compile circuit (V2 — creator cap enforced)")
+    .option("-d, --definition <json>", "Circuit definition as JSON")
+    .option("-c, --creator <did>", "Creator DID")
+    .action(async (name, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        ensureZKPTables(db);
+        const def = options.definition ? JSON.parse(options.definition) : {};
+        const circuit = compileCircuitV2(db, {
+          name,
+          definition: def,
+          creator: options.creator,
+        });
+        logger.success(`Circuit compiled (V2): ${chalk.cyan(name)}`);
+        logger.log(`  ${chalk.bold("ID:")}      ${chalk.cyan(circuit.id)}`);
+        if (circuit.creator) {
+          logger.log(`  ${chalk.bold("Creator:")} ${circuit.creator}`);
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  zkp
+    .command("set-circuit-status-v2 <circuit-id> <status>")
+    .description("Set circuit status (state-machine guarded)")
+    .option("-e, --error-message <msg>", "Error message (for failed status)")
+    .action(async (circuitId, status, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        ensureZKPTables(db);
+        const patch = {};
+        if (options.errorMessage !== undefined) {
+          patch.errorMessage = options.errorMessage;
+        }
+        const updated = setCircuitStatusV2(db, circuitId, status, patch);
+        logger.success(`Circuit ${circuitId} → ${updated.status}`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  zkp
+    .command("prove-v2 <circuit-id>")
+    .description("Generate proof (V2 — stamps pending + expiresAt)")
+    .option("--private <json>", "Private inputs JSON", "{}")
+    .option("--public <json>", "Public inputs JSON", "[]")
+    .option("-s, --scheme <scheme>", "Proof scheme")
+    .action(async (circuitId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        ensureZKPTables(db);
+        const proof = generateProofV2(db, {
+          circuitId,
+          privateInputs: JSON.parse(options.private),
+          publicInputs: JSON.parse(options.public),
+          scheme: options.scheme,
+        });
+        logger.success("Proof generated (V2)");
+        logger.log(`  ${chalk.bold("ID:")}        ${chalk.cyan(proof.id)}`);
+        logger.log(`  ${chalk.bold("Status:")}    ${proof.status}`);
+        logger.log(
+          `  ${chalk.bold("ExpiresAt:")} ${new Date(proof.expiresAt).toISOString()}`,
+        );
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  zkp
+    .command("verify-v2 <proof-id>")
+    .description("Verify proof (V2 — auto-expire past deadline)")
+    .action(async (proofId) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        ensureZKPTables(db);
+        const result = verifyProofV2(db, proofId);
+        if (result.valid) {
+          logger.success(`Proof ${proofId} VERIFIED`);
+        } else {
+          logger.error(
+            `Proof ${proofId} INVALID (reason: ${result.reason || result.status})`,
+          );
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  zkp
+    .command("fail-proof <proof-id>")
+    .description("Mark proof as invalid")
+    .option("-r, --reason <reason>", "Failure reason")
+    .action(async (proofId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        ensureZKPTables(db);
+        failProof(db, proofId, { reason: options.reason });
+        logger.success(`Proof ${proofId} → invalid`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  zkp
+    .command("set-proof-status <proof-id> <status>")
+    .description("Set proof status (state-machine guarded)")
+    .option("-e, --error-message <msg>", "Error message")
+    .action(async (proofId, status, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        ensureZKPTables(db);
+        const patch = {};
+        if (options.errorMessage !== undefined) {
+          patch.errorMessage = options.errorMessage;
+        }
+        const updated = setProofStatus(db, proofId, status, patch);
+        logger.success(`Proof ${proofId} → ${updated.status}`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  zkp
+    .command("auto-expire-proofs")
+    .description("Bulk-expire proofs past their deadline")
+    .action(async () => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        ensureZKPTables(db);
+        const expired = autoExpireProofs(db);
+        logger.success(`Expired ${expired.length} proofs`);
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  zkp
+    .command("selective-disclose-v2 <credential-id>")
+    .description(
+      "Selectively disclose credential fields (requiredFields enforced)",
+    )
+    .option(
+      "-d, --disclosed <fields>",
+      "Comma-separated fields to disclose",
+      "",
+    )
+    .option(
+      "-r, --required <fields>",
+      "Comma-separated fields REQUIRED in disclosure",
+      "",
+    )
+    .option("--recipient <did>", "Recipient DID")
+    .action(async (credentialId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        ensureZKPTables(db);
+        const disclosedFields = options.disclosed
+          ? options.disclosed
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [];
+        const requiredFields = options.required
+          ? options.required
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : undefined;
+        const result = selectiveDiscloseV2(db, {
+          credentialId,
+          disclosedFields,
+          requiredFields,
+          recipientDid: options.recipient,
+        });
+        console.log(JSON.stringify(result, null, 2));
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  zkp
+    .command("stats-v2")
+    .description("V2 stats (all-enum-key zero init)")
+    .action(async () => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const db = ctx.db.getDatabase();
+        ensureZKPTables(db);
+        const stats = getZKPStatsV2();
+        console.log(JSON.stringify(stats, null, 2));
         await shutdown();
       } catch (err) {
         logger.error(`Failed: ${err.message}`);

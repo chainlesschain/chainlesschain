@@ -1346,3 +1346,145 @@ settlement, priority scheduling, WebSocket task-dispatch push.
 Strictly additive — legacy `registerNode`, `heartbeat`, `updateNodeStatus`,
 `submitTask`, `completeTask`, `failTask`, `getTask`, `listTasks`,
 `getSchedulerStats`, `ensureInferenceTables`, `_resetState` all preserved.
+
+### Phase 91 — Privacy Computing V2 (`privacy` extension)
+
+Extends `chainlesschain privacy` with the Phase 91 canonical surface:
+
+```bash
+cc privacy fl-statuses-v2 | mpc-statuses-v2 | dp-mechanisms-v2 | he-schemes-v2 | mpc-protocols-v2
+cc privacy default-max-active-mpc | max-active-mpc | active-mpc-count | set-max-active-mpc <n>
+cc privacy budget-limit | budget-spent | set-budget-limit <n> | reset-budget
+cc privacy create-model-v2 <name> [-t <rounds>] [-l <lr>] [-a <arch>] [-m <type>]
+cc privacy train-round-v2 <model-id> | aggregate-round <model-id>
+cc privacy fail-model-v2 <model-id> [-e <err>] | set-fl-status <model-id> <status> [-a|-l|-e]
+cc privacy create-computation-v2 <type> [-p <proto>] [-i <csv>] [-s <shares>]
+cc privacy submit-share-v2 <comp-id> | fail-computation <comp-id> [-e <err>]
+cc privacy set-mpc-status <comp-id> <status> [-h <hash>] [-e <err>]
+cc privacy dp-publish-v2 -d <n> [-e <eps>] [--delta <n>] [-m <mech>] [-s <sens>]
+cc privacy he-query-v2 -o <op> -d <json> [-s <scheme>]
+cc privacy stats-v2
+```
+
+The V2 surface adds five frozen enums — `FL_STATUS_V2` (mirror of `FL_STATUS`:
+initializing/training/aggregating/completed/failed), `MPC_STATUS_V2`
+(pending/computing/completed/failed), `DP_MECHANISM_V2`
+(laplace/gaussian/exponential), `HE_SCHEME_V2` (paillier/bfv/ckks),
+`MPC_PROTOCOL_V2` (shamir/beaver/gmw) — and a per-system active-MPC cap
+(`PRIVACY_DEFAULT_MAX_ACTIVE_MPC_COMPUTATIONS = 20`) that counts only
+pending + computing computations.
+
+Two state machines:
+
+```
+FL:  initializing → { training, failed }
+     training     → { aggregating, failed }
+     aggregating  → { training, completed, failed }
+     Terminal: completed, failed
+
+MPC: pending    → { computing, failed }
+     computing  → { completed, failed }
+     Terminal: completed, failed
+```
+
+`createComputationV2` throws `Max active MPC computations reached
+({active}/{max})` when the cap is hit; the cap is released when
+computations transition to a terminal state. `submitShareV2` auto-stamps
+`completed_at` + `computation_time_ms` + a deterministic `result_hash`
+when `shares_received >= shares_required`. `setMPCStatusV2` is the
+state-machine-guarded generic setter with patch keys `errorMessage` and
+`resultHash` (auto-stamps `completed_at` + `computation_time_ms` on
+terminal). `setFLStatusV2` applies patch keys `errorMessage` /
+`accuracy` / `loss`.
+
+`dpPublishV2` throws on invalid mechanism / non-positive epsilon /
+exceeded budget (`{spent+eps} > {limit}`); privacy-budget mutators
+`setPrivacyBudgetLimit` / `resetPrivacyBudget` are exposed for testing.
+`heQueryV2` throws on invalid scheme / invalid operation (sum / product
+/ mean / count) / empty data. `getPrivacyStatsV2` returns all-enum-key
+zero-initialized `flByStatus` / `mpcByStatus` / `mpcByProtocol` plus
+`activeMpcCount` / `maxActiveMpcComputations` / `budget` /
+`avgAccuracy` / `avgComputationTimeMs` — stable shape for CI regression.
+
+Not ported (Desktop-only): real Shamir polynomial reconstruction,
+Paillier key generation and ciphertext arithmetic, true Laplace/Gaussian
+noise calibration against global sensitivity, federated gradient
+aggregation (FedAvg on actual model weights), secure multi-party
+network transport, PrivacyComputingPage.vue + Pinia store, privacy-
+budget alerting. Strictly additive — legacy `createModel`, `trainRound`,
+`failModel`, `getModel`, `listModels`, `createComputation`,
+`submitShare`, `getComputation`, `listComputations`, `dpPublish`,
+`heQuery`, `getPrivacyReport`, `ensurePrivacyTables`, `_resetState` all
+preserved.
+
+### Phase 88 — ZKP Engine V2 (`zkp` extension)
+
+Extends `chainlesschain zkp` with the Phase 88 canonical surface:
+
+```bash
+cc zkp proof-schemes-v2 | circuit-statuses-v2 | proof-statuses-v2
+cc zkp default-max-circuits-per-creator | max-circuits-per-creator
+cc zkp set-max-circuits-per-creator <n>
+cc zkp circuit-count-by-creator <creator>
+cc zkp default-proof-expiry-ms | proof-expiry-ms | set-proof-expiry-ms <ms>
+cc zkp compile-v2 <name> [-d|-c]
+cc zkp set-circuit-status-v2 <circuit-id> <status> [-e]
+cc zkp prove-v2 <circuit-id> [--private|--public|-s]
+cc zkp verify-v2 <proof-id>
+cc zkp fail-proof <proof-id> [-r]
+cc zkp set-proof-status <proof-id> <status> [-e]
+cc zkp auto-expire-proofs
+cc zkp selective-disclose-v2 <credential-id> [-d|-r|--recipient]
+cc zkp stats-v2
+```
+
+Frozen V2 enums: `PROOF_SCHEME_V2` (alias — groth16/plonk/bulletproofs),
+`CIRCUIT_STATUS_V2` (alias — draft/compiled/verified/failed), `PROOF_STATUS_V2`
+(new — pending/verified/invalid/expired).
+
+Per-creator circuit cap (default 10): `compileCircuitV2` rejects with
+`Max circuits per creator reached ({count}/{max})` when creator exceeds the
+cap. `setMaxCircuitsPerCreator` floors non-integer (3.7→3) and rejects ≤0 /
+NaN / non-number.
+
+Proof expiration (default 3_600_000 ms / 1 h): `setProofExpiryMs` accepts
+positive ms; `generateProofV2` stamps `expiresAt = Date.now() + expiry`;
+`verifyProofV2` auto-flips past-deadline proofs to `EXPIRED` (returns
+`{valid:false, reason:"expired"}`); `autoExpireProofs` bulk-expires past-
+deadline non-terminal proofs.
+
+Circuit state machine: `draft → {compiled, failed} / compiled → {verified,
+failed}`; terminals `verified`, `failed`. `setCircuitStatusV2` is state-
+machine guarded with patch-merged `errorMessage`.
+
+Proof state machine: `pending → {verified, invalid, expired}`; terminals
+`verified`, `invalid`, `expired`. `setProofStatus` is state-machine
+guarded with patch-merged `errorMessage` + auto-writes `zkp_proofs.verified`
+column (1 for VERIFIED, 0 otherwise). `failProof` shortcut: any non-terminal
+→ INVALID. `verifyProofV2` rejects terminal proofs.
+
+`generateProofV2` requires circuit status ∈ {COMPILED, VERIFIED} — rejects
+DRAFT/FAILED circuits with `Circuit not ready (status=..., must be
+compiled/verified)`.
+
+`selectiveDiscloseV2` is a throwing wrapper over `selectiveDisclose` —
+rejects missing `credentialId`, non-array `disclosedFields`, and enforces
+`requiredFields` must all be members of `disclosedFields` AND present in the
+credential (`Required field missing from disclosure` /
+`Required field not in credential`).
+
+`getZKPStatsV2` returns all-enum-key zero-initialized `circuitsByStatus` /
+`proofsByStatus` / `proofsByScheme` + `credentialsByDid` (anonymous as
+`_anonymous`) + `totalCircuits` / `totalProofs` / `totalCredentials` /
+`verifiedProofs` / `pendingProofs` / `maxCircuitsPerCreator` /
+`proofExpiryMs` — stable shape for CI regression.
+
+Not ported (Desktop-only): real Groth16/PLONK proving key ceremony,
+circuit compilation via Circom/arkworks, BN254/BLS12-381 elliptic-curve
+pairings, Merkle proof construction for selective disclosure receiver,
+ZK-SNARK recursive composition, on-chain verifier contract deployment,
+ZKPPage.vue + Pinia store. Strictly additive — legacy `compileCircuit`,
+`generateProof`, `verifyProof`, `createIdentityProof`, `registerCredential`,
+`selectiveDisclose`, `listCircuits`, `listProofs`, `listCredentials`,
+`getZKPStats`, `setCircuitStatus`, `ensureZKPTables`, `_resetState` all
+preserved.

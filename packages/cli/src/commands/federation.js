@@ -29,6 +29,28 @@ import {
   listPools,
   destroyPool,
   getFederationHardeningStats,
+  // V2 (Phase 58)
+  NODE_STATUS_V2,
+  FED_DEFAULT_FAILURE_THRESHOLD,
+  FED_DEFAULT_HALF_OPEN_COOLDOWN_MS,
+  FED_DEFAULT_UNHEALTHY_THRESHOLD,
+  FED_DEFAULT_MAX_ACTIVE_NODES,
+  setFailureThreshold,
+  getFailureThreshold,
+  setHalfOpenCooldownMs,
+  getHalfOpenCooldownMs,
+  setUnhealthyThreshold,
+  getUnhealthyThreshold,
+  setMaxActiveNodes,
+  getMaxActiveNodes,
+  getActiveNodeCount,
+  registerNodeV2,
+  getNodeStatusV2,
+  setNodeStatusV2,
+  recordHealthCheckV2,
+  tripCircuit,
+  autoIsolateUnhealthyNodes,
+  getFederationHardeningStatsV2,
 } from "../lib/federation-hardening.js";
 
 function _dbFromCtx(cmd) {
@@ -420,6 +442,267 @@ export function registerFederationCommand(program) {
       }
       console.log(
         `Connection pools: ${s.connectionPools.total} (active: ${s.connectionPools.totalActive}, idle: ${s.connectionPools.totalIdle})`,
+      );
+    });
+
+  /* ── V2 (Phase 58) ──────────────────────────────── */
+
+  fed
+    .command("node-statuses-v2")
+    .description("List V2 node lifecycle statuses")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const statuses = Object.values(NODE_STATUS_V2);
+      if (opts.json) return console.log(JSON.stringify(statuses, null, 2));
+      for (const s of statuses) console.log(`  ${s}`);
+    });
+
+  fed
+    .command("default-failure-threshold")
+    .description("Default circuit-breaker failure threshold")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      if (opts.json)
+        return console.log(JSON.stringify(FED_DEFAULT_FAILURE_THRESHOLD));
+      console.log(FED_DEFAULT_FAILURE_THRESHOLD);
+    });
+
+  fed
+    .command("failure-threshold")
+    .description("Current failure threshold")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const n = getFailureThreshold();
+      if (opts.json) return console.log(JSON.stringify(n));
+      console.log(n);
+    });
+
+  fed
+    .command("set-failure-threshold <n>")
+    .description("Set failure threshold (positive integer)")
+    .option("--json", "JSON output")
+    .action((n, opts) => {
+      setFailureThreshold(Number(n));
+      const out = { failureThreshold: getFailureThreshold() };
+      if (opts.json) return console.log(JSON.stringify(out, null, 2));
+      console.log(`failureThreshold = ${out.failureThreshold}`);
+    });
+
+  fed
+    .command("default-half-open-cooldown-ms")
+    .description("Default half-open cooldown in ms")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      if (opts.json)
+        return console.log(JSON.stringify(FED_DEFAULT_HALF_OPEN_COOLDOWN_MS));
+      console.log(FED_DEFAULT_HALF_OPEN_COOLDOWN_MS);
+    });
+
+  fed
+    .command("half-open-cooldown-ms")
+    .description("Current half-open cooldown in ms")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const n = getHalfOpenCooldownMs();
+      if (opts.json) return console.log(JSON.stringify(n));
+      console.log(n);
+    });
+
+  fed
+    .command("set-half-open-cooldown-ms <ms>")
+    .description("Set half-open cooldown (positive integer ms)")
+    .option("--json", "JSON output")
+    .action((ms, opts) => {
+      setHalfOpenCooldownMs(Number(ms));
+      const out = { halfOpenCooldownMs: getHalfOpenCooldownMs() };
+      if (opts.json) return console.log(JSON.stringify(out, null, 2));
+      console.log(`halfOpenCooldownMs = ${out.halfOpenCooldownMs}`);
+    });
+
+  fed
+    .command("default-unhealthy-threshold")
+    .description("Default consecutive-unhealthy isolation threshold")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      if (opts.json)
+        return console.log(JSON.stringify(FED_DEFAULT_UNHEALTHY_THRESHOLD));
+      console.log(FED_DEFAULT_UNHEALTHY_THRESHOLD);
+    });
+
+  fed
+    .command("unhealthy-threshold")
+    .description("Current consecutive-unhealthy threshold")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const n = getUnhealthyThreshold();
+      if (opts.json) return console.log(JSON.stringify(n));
+      console.log(n);
+    });
+
+  fed
+    .command("set-unhealthy-threshold <n>")
+    .description("Set consecutive-unhealthy threshold")
+    .option("--json", "JSON output")
+    .action((n, opts) => {
+      setUnhealthyThreshold(Number(n));
+      const out = { unhealthyThreshold: getUnhealthyThreshold() };
+      if (opts.json) return console.log(JSON.stringify(out, null, 2));
+      console.log(`unhealthyThreshold = ${out.unhealthyThreshold}`);
+    });
+
+  fed
+    .command("default-max-active-nodes")
+    .description("Default max active nodes cap")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      if (opts.json)
+        return console.log(JSON.stringify(FED_DEFAULT_MAX_ACTIVE_NODES));
+      console.log(FED_DEFAULT_MAX_ACTIVE_NODES);
+    });
+
+  fed
+    .command("max-active-nodes")
+    .description("Current max active nodes cap")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const n = getMaxActiveNodes();
+      if (opts.json) return console.log(JSON.stringify(n));
+      console.log(n);
+    });
+
+  fed
+    .command("active-node-count")
+    .description("Number of currently ACTIVE nodes")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const n = getActiveNodeCount();
+      if (opts.json) return console.log(JSON.stringify(n));
+      console.log(n);
+    });
+
+  fed
+    .command("set-max-active-nodes <n>")
+    .description("Set max active nodes cap")
+    .option("--json", "JSON output")
+    .action((n, opts) => {
+      setMaxActiveNodes(Number(n));
+      const out = { maxActiveNodes: getMaxActiveNodes() };
+      if (opts.json) return console.log(JSON.stringify(out, null, 2));
+      console.log(`maxActiveNodes = ${out.maxActiveNodes}`);
+    });
+
+  fed
+    .command("register-v2 <node-id>")
+    .description("Register a node with V2 lifecycle tracking")
+    .option("-m, --metadata <json>", "JSON metadata")
+    .option("--json", "JSON output")
+    .action((nodeId, opts) => {
+      const db = _dbFromCtx(fed);
+      const metadata = opts.metadata ? JSON.parse(opts.metadata) : undefined;
+      const r = registerNodeV2(db, { nodeId, metadata });
+      if (opts.json) return console.log(JSON.stringify(r, null, 2));
+      console.log(`Registered ${nodeId} (status: ${r.status})`);
+    });
+
+  fed
+    .command("node-status-v2 <node-id>")
+    .description("Get V2 node status")
+    .option("--json", "JSON output")
+    .action((nodeId, opts) => {
+      const r = getNodeStatusV2(nodeId);
+      if (opts.json) return console.log(JSON.stringify(r, null, 2));
+      if (!r) return console.log("(not found)");
+      console.log(`${nodeId}: ${r.status}${r.reason ? ` — ${r.reason}` : ""}`);
+    });
+
+  fed
+    .command("set-node-status-v2 <node-id> <status>")
+    .description("Transition node to a new status")
+    .option("-r, --reason <reason>")
+    .option("-m, --metadata <json>")
+    .option("--json", "JSON output")
+    .action((nodeId, status, opts) => {
+      const db = _dbFromCtx(fed);
+      const patch = {};
+      if (opts.reason !== undefined) patch.reason = opts.reason;
+      if (opts.metadata !== undefined)
+        patch.metadata = JSON.parse(opts.metadata);
+      const r = setNodeStatusV2(db, nodeId, status, patch);
+      if (opts.json) return console.log(JSON.stringify(r, null, 2));
+      console.log(`${nodeId} → ${r.status}`);
+    });
+
+  fed
+    .command("record-health-v2 <node-id>")
+    .description("Record a V2 health check (throws on invalid input)")
+    .option(
+      "-t, --type <checkType>",
+      "heartbeat|latency|success_rate|cpu_usage|memory_usage",
+      "heartbeat",
+    )
+    .option(
+      "-s, --status <status>",
+      "healthy|degraded|unhealthy|unknown",
+      "healthy",
+    )
+    .option("-m, --metrics <json>", "Optional metrics JSON")
+    .option("--json", "JSON output")
+    .action((nodeId, opts) => {
+      const db = _dbFromCtx(fed);
+      const metrics = opts.metrics ? JSON.parse(opts.metrics) : undefined;
+      const r = recordHealthCheckV2(db, {
+        nodeId,
+        checkType: opts.type,
+        status: opts.status,
+        metrics,
+      });
+      if (opts.json) return console.log(JSON.stringify(r, null, 2));
+      console.log(`recorded check ${r.checkId}`);
+    });
+
+  fed
+    .command("trip-circuit <node-id>")
+    .description("Force-trip a circuit breaker (closed/half_open → open)")
+    .option("--json", "JSON output")
+    .action((nodeId, opts) => {
+      const db = _dbFromCtx(fed);
+      const r = tripCircuit(db, nodeId);
+      if (opts.json) return console.log(JSON.stringify(r, null, 2));
+      console.log(`${nodeId} circuit → ${r.state}`);
+    });
+
+  fed
+    .command("auto-isolate-unhealthy")
+    .description(
+      "Bulk-isolate ACTIVE nodes with N consecutive UNHEALTHY checks",
+    )
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(fed);
+      const r = autoIsolateUnhealthyNodes(db);
+      if (opts.json) return console.log(JSON.stringify(r, null, 2));
+      console.log(`Isolated ${r.length} node(s)`);
+      for (const n of r) console.log(`  ${n.node_id}`);
+    });
+
+  fed
+    .command("stats-v2")
+    .description("V2 federation hardening statistics")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const db = _dbFromCtx(fed);
+      const s = getFederationHardeningStatsV2(db);
+      if (opts.json) return console.log(JSON.stringify(s, null, 2));
+      console.log(
+        `Nodes: ${s.totalNodes} (active=${s.activeNodes}, isolated=${s.isolatedNodes})`,
+      );
+      console.log(`Circuits: ${s.totalCircuits}`);
+      for (const [state, count] of Object.entries(s.circuitsByState)) {
+        if (count > 0) console.log(`  ${state.padEnd(10)} ${count}`);
+      }
+      console.log(`Health checks: ${s.totalHealthChecks}`);
+      console.log(
+        `config: failureThreshold=${s.failureThreshold} halfOpenCooldownMs=${s.halfOpenCooldownMs} unhealthyThreshold=${s.unhealthyThreshold} maxActiveNodes=${s.maxActiveNodes}`,
       );
     });
 

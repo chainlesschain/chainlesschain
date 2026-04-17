@@ -467,4 +467,278 @@ export function _resetState() {
   _proofs.clear();
   _verificationKeys.clear();
   _credentials.clear();
+  _maxCircuitsPerCreator = ZKP_DEFAULT_MAX_CIRCUITS_PER_CREATOR;
+  _proofExpiryMs = ZKP_DEFAULT_PROOF_EXPIRY_MS;
+}
+
+/* ──────────────────────────────────────────────────────────
+ *  V2 — Phase 88 surface (strictly additive)
+ * ────────────────────────────────────────────────────────── */
+
+export const PROOF_SCHEME_V2 = PROOF_SCHEME;
+export const CIRCUIT_STATUS_V2 = CIRCUIT_STATUS;
+
+export const PROOF_STATUS_V2 = Object.freeze({
+  PENDING: "pending",
+  VERIFIED: "verified",
+  INVALID: "invalid",
+  EXPIRED: "expired",
+});
+
+export const ZKP_DEFAULT_MAX_CIRCUITS_PER_CREATOR = 10;
+export const ZKP_DEFAULT_PROOF_EXPIRY_MS = 3600_000; // 1h
+
+let _maxCircuitsPerCreator = ZKP_DEFAULT_MAX_CIRCUITS_PER_CREATOR;
+let _proofExpiryMs = ZKP_DEFAULT_PROOF_EXPIRY_MS;
+
+const CIRCUIT_TRANSITIONS_V2 = new Map([
+  ["draft", new Set(["compiled", "failed"])],
+  ["compiled", new Set(["verified", "failed"])],
+]);
+const CIRCUIT_TERMINALS_V2 = new Set(["verified", "failed"]);
+
+const PROOF_TRANSITIONS_V2 = new Map([
+  ["pending", new Set(["verified", "invalid", "expired"])],
+]);
+const PROOF_TERMINALS_V2 = new Set(["verified", "invalid", "expired"]);
+
+/* ── Config ────────────────────────────────────────────── */
+
+export function setMaxCircuitsPerCreator(n) {
+  if (typeof n !== "number" || Number.isNaN(n) || n < 1) {
+    throw new Error("maxCircuitsPerCreator must be a positive integer");
+  }
+  _maxCircuitsPerCreator = Math.floor(n);
+}
+
+export function getMaxCircuitsPerCreator() {
+  return _maxCircuitsPerCreator;
+}
+
+export function getCircuitCountByCreator(creator) {
+  if (!creator) return 0;
+  let count = 0;
+  for (const c of _circuits.values()) {
+    if (c.creator === creator) count += 1;
+  }
+  return count;
+}
+
+export function setProofExpiryMs(ms) {
+  if (typeof ms !== "number" || Number.isNaN(ms) || ms < 1) {
+    throw new Error("proofExpiryMs must be a positive integer");
+  }
+  _proofExpiryMs = Math.floor(ms);
+}
+
+export function getProofExpiryMs() {
+  return _proofExpiryMs;
+}
+
+/* ── Circuit V2 ────────────────────────────────────────── */
+
+export function compileCircuitV2(db, { name, definition, creator } = {}) {
+  if (!name) throw new Error("name is required");
+  if (creator) {
+    const count = getCircuitCountByCreator(creator);
+    if (count >= _maxCircuitsPerCreator) {
+      throw new Error(
+        `Max circuits per creator reached (${count}/${_maxCircuitsPerCreator})`,
+      );
+    }
+  }
+  const circuit = compileCircuit(db, name, definition);
+  if (creator) {
+    circuit.creator = creator;
+  }
+  return { ...circuit };
+}
+
+export function setCircuitStatusV2(db, circuitId, newStatus, patch = {}) {
+  const circuit = _circuits.get(circuitId);
+  if (!circuit) throw new Error(`Circuit not found: ${circuitId}`);
+  if (!Object.values(CIRCUIT_STATUS_V2).includes(newStatus)) {
+    throw new Error(`Unknown circuit status: ${newStatus}`);
+  }
+  const allowed = CIRCUIT_TRANSITIONS_V2.get(circuit.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${circuit.status} → ${newStatus}`);
+  }
+  circuit.status = newStatus;
+  if (patch.errorMessage !== undefined)
+    circuit.errorMessage = patch.errorMessage;
+  db.prepare("UPDATE zkp_circuits SET status = ? WHERE id = ?").run(
+    newStatus,
+    circuitId,
+  );
+  return { ...circuit };
+}
+
+/* ── Proof V2 ──────────────────────────────────────────── */
+
+export function generateProofV2(
+  db,
+  { circuitId, privateInputs, publicInputs, scheme } = {},
+) {
+  if (!circuitId) throw new Error("circuitId is required");
+  const circuit = _circuits.get(circuitId);
+  if (!circuit) throw new Error(`Circuit not found: ${circuitId}`);
+  if (
+    circuit.status !== CIRCUIT_STATUS.COMPILED &&
+    circuit.status !== CIRCUIT_STATUS.VERIFIED
+  ) {
+    throw new Error(
+      `Circuit not ready (status=${circuit.status}, must be compiled/verified)`,
+    );
+  }
+  const proof = generateProof(db, circuitId, privateInputs, publicInputs, {
+    scheme,
+  });
+  const stored = _proofs.get(proof.id);
+  stored.status = PROOF_STATUS_V2.PENDING;
+  stored.expiresAt = Date.now() + _proofExpiryMs;
+  return { ...stored };
+}
+
+export function verifyProofV2(db, proofId) {
+  const proof = _proofs.get(proofId);
+  if (!proof) throw new Error(`Proof not found: ${proofId}`);
+  const current = proof.status || PROOF_STATUS_V2.PENDING;
+  if (PROOF_TERMINALS_V2.has(current)) {
+    throw new Error(`Invalid transition: ${current} → verify (terminal)`);
+  }
+  if (proof.expiresAt && Date.now() > proof.expiresAt) {
+    proof.status = PROOF_STATUS_V2.EXPIRED;
+    db.prepare("UPDATE zkp_proofs SET verified = 0 WHERE id = ?").run(proofId);
+    return { ...proof, valid: false, reason: "expired" };
+  }
+  const result = verifyProof(db, proofId);
+  proof.status = result.valid
+    ? PROOF_STATUS_V2.VERIFIED
+    : PROOF_STATUS_V2.INVALID;
+  return { ...proof, valid: result.valid };
+}
+
+export function failProof(db, proofId, { reason } = {}) {
+  const proof = _proofs.get(proofId);
+  if (!proof) throw new Error(`Proof not found: ${proofId}`);
+  const current = proof.status || PROOF_STATUS_V2.PENDING;
+  if (PROOF_TERMINALS_V2.has(current)) {
+    throw new Error(`Invalid transition: ${current} → invalid (terminal)`);
+  }
+  proof.status = PROOF_STATUS_V2.INVALID;
+  proof.verified = false;
+  if (reason !== undefined) proof.errorMessage = reason;
+  db.prepare("UPDATE zkp_proofs SET verified = 0 WHERE id = ?").run(proofId);
+  return { ...proof };
+}
+
+export function setProofStatus(db, proofId, newStatus, patch = {}) {
+  const proof = _proofs.get(proofId);
+  if (!proof) throw new Error(`Proof not found: ${proofId}`);
+  if (!Object.values(PROOF_STATUS_V2).includes(newStatus)) {
+    throw new Error(`Unknown proof status: ${newStatus}`);
+  }
+  const current = proof.status || PROOF_STATUS_V2.PENDING;
+  const allowed = PROOF_TRANSITIONS_V2.get(current);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${current} → ${newStatus}`);
+  }
+  proof.status = newStatus;
+  if (patch.errorMessage !== undefined) proof.errorMessage = patch.errorMessage;
+  if (newStatus === PROOF_STATUS_V2.VERIFIED) {
+    proof.verified = true;
+    db.prepare("UPDATE zkp_proofs SET verified = 1 WHERE id = ?").run(proofId);
+  } else {
+    proof.verified = false;
+    db.prepare("UPDATE zkp_proofs SET verified = 0 WHERE id = ?").run(proofId);
+  }
+  return { ...proof };
+}
+
+export function autoExpireProofs(db) {
+  const now = Date.now();
+  const expired = [];
+  for (const proof of _proofs.values()) {
+    const current = proof.status || PROOF_STATUS_V2.PENDING;
+    if (PROOF_TERMINALS_V2.has(current)) continue;
+    if (proof.expiresAt && now > proof.expiresAt) {
+      proof.status = PROOF_STATUS_V2.EXPIRED;
+      proof.verified = false;
+      db.prepare("UPDATE zkp_proofs SET verified = 0 WHERE id = ?").run(
+        proof.id,
+      );
+      expired.push({ ...proof });
+    }
+  }
+  return expired;
+}
+
+/* ── Selective Disclosure V2 ───────────────────────────── */
+
+export function selectiveDiscloseV2(
+  db,
+  { credentialId, disclosedFields, requiredFields, recipientDid } = {},
+) {
+  if (!credentialId) throw new Error("credentialId is required");
+  if (!Array.isArray(disclosedFields)) {
+    throw new Error("disclosedFields must be an array");
+  }
+  const credential = _credentials.get(credentialId);
+  if (!credential) throw new Error(`Credential not found: ${credentialId}`);
+  if (Array.isArray(requiredFields)) {
+    for (const f of requiredFields) {
+      if (!disclosedFields.includes(f)) {
+        throw new Error(`Required field missing from disclosure: ${f}`);
+      }
+      if (!(f in credential.claims)) {
+        throw new Error(`Required field not in credential: ${f}`);
+      }
+    }
+  }
+  return selectiveDisclose(db, credentialId, disclosedFields, recipientDid);
+}
+
+/* ── V2 Stats ──────────────────────────────────────────── */
+
+export function getZKPStatsV2() {
+  const circuitsByStatus = {};
+  for (const s of Object.values(CIRCUIT_STATUS_V2)) circuitsByStatus[s] = 0;
+  const proofsByStatus = {};
+  for (const s of Object.values(PROOF_STATUS_V2)) proofsByStatus[s] = 0;
+  const proofsByScheme = {};
+  for (const s of Object.values(PROOF_SCHEME_V2)) proofsByScheme[s] = 0;
+
+  for (const c of _circuits.values()) {
+    circuitsByStatus[c.status] = (circuitsByStatus[c.status] || 0) + 1;
+  }
+  let verifiedCount = 0;
+  let pendingCount = 0;
+  for (const p of _proofs.values()) {
+    const status = p.status || PROOF_STATUS_V2.PENDING;
+    proofsByStatus[status] = (proofsByStatus[status] || 0) + 1;
+    proofsByScheme[p.scheme] = (proofsByScheme[p.scheme] || 0) + 1;
+    if (status === PROOF_STATUS_V2.VERIFIED) verifiedCount += 1;
+    if (status === PROOF_STATUS_V2.PENDING) pendingCount += 1;
+  }
+
+  const credentialsByDid = {};
+  for (const c of _credentials.values()) {
+    const key = c.did || "_anonymous";
+    credentialsByDid[key] = (credentialsByDid[key] || 0) + 1;
+  }
+
+  return {
+    totalCircuits: _circuits.size,
+    totalProofs: _proofs.size,
+    totalCredentials: _credentials.size,
+    verifiedProofs: verifiedCount,
+    pendingProofs: pendingCount,
+    maxCircuitsPerCreator: _maxCircuitsPerCreator,
+    proofExpiryMs: _proofExpiryMs,
+    circuitsByStatus,
+    proofsByStatus,
+    proofsByScheme,
+    credentialsByDid,
+  };
 }

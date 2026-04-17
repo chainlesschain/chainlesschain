@@ -584,4 +584,263 @@ export function _resetState() {
   _breakers.clear();
   _healthChecks.clear();
   _pools.clear();
+  _nodeStatuses.clear();
+  _failureThreshold = FED_DEFAULT_FAILURE_THRESHOLD;
+  _halfOpenCooldownMs = FED_DEFAULT_HALF_OPEN_COOLDOWN_MS;
+  _unhealthyThreshold = FED_DEFAULT_UNHEALTHY_THRESHOLD;
+  _maxActiveNodes = FED_DEFAULT_MAX_ACTIVE_NODES;
+}
+
+/* ──────────────────────────────────────────────────────────
+ *  V2 — Phase 58 surface (strictly additive)
+ * ────────────────────────────────────────────────────────── */
+
+export const CIRCUIT_STATE_V2 = CIRCUIT_STATE;
+export const HEALTH_STATUS_V2 = HEALTH_STATUS;
+export const HEALTH_METRIC_V2 = HEALTH_METRIC;
+
+export const NODE_STATUS_V2 = Object.freeze({
+  REGISTERED: "registered",
+  ACTIVE: "active",
+  ISOLATED: "isolated",
+  DECOMMISSIONED: "decommissioned",
+});
+
+export const FED_DEFAULT_FAILURE_THRESHOLD = 5;
+export const FED_DEFAULT_HALF_OPEN_COOLDOWN_MS = 60_000;
+export const FED_DEFAULT_UNHEALTHY_THRESHOLD = 3;
+export const FED_DEFAULT_MAX_ACTIVE_NODES = 50;
+
+let _nodeStatuses = new Map();
+let _failureThreshold = FED_DEFAULT_FAILURE_THRESHOLD;
+let _halfOpenCooldownMs = FED_DEFAULT_HALF_OPEN_COOLDOWN_MS;
+let _unhealthyThreshold = FED_DEFAULT_UNHEALTHY_THRESHOLD;
+let _maxActiveNodes = FED_DEFAULT_MAX_ACTIVE_NODES;
+
+const NODE_TRANSITIONS_V2 = new Map([
+  ["registered", new Set(["active", "decommissioned"])],
+  ["active", new Set(["isolated", "decommissioned"])],
+  ["isolated", new Set(["active", "decommissioned"])],
+]);
+const NODE_TERMINALS_V2 = new Set(["decommissioned"]);
+
+/* ── Config ────────────────────────────────────────────── */
+
+function _positiveInt(n, label) {
+  if (typeof n !== "number" || Number.isNaN(n) || n < 1) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return Math.floor(n);
+}
+
+export function setFailureThreshold(n) {
+  _failureThreshold = _positiveInt(n, "failureThreshold");
+}
+export function getFailureThreshold() {
+  return _failureThreshold;
+}
+
+export function setHalfOpenCooldownMs(ms) {
+  _halfOpenCooldownMs = _positiveInt(ms, "halfOpenCooldownMs");
+}
+export function getHalfOpenCooldownMs() {
+  return _halfOpenCooldownMs;
+}
+
+export function setUnhealthyThreshold(n) {
+  _unhealthyThreshold = _positiveInt(n, "unhealthyThreshold");
+}
+export function getUnhealthyThreshold() {
+  return _unhealthyThreshold;
+}
+
+export function setMaxActiveNodes(n) {
+  _maxActiveNodes = _positiveInt(n, "maxActiveNodes");
+}
+export function getMaxActiveNodes() {
+  return _maxActiveNodes;
+}
+
+export function getActiveNodeCount() {
+  let count = 0;
+  for (const s of _nodeStatuses.values()) {
+    if (s.status === NODE_STATUS_V2.ACTIVE) count += 1;
+  }
+  return count;
+}
+
+/* ── Node Lifecycle V2 ─────────────────────────────────── */
+
+export function registerNodeV2(db, { nodeId, metadata } = {}) {
+  if (!nodeId) throw new Error("nodeId is required");
+  if (_nodeStatuses.has(nodeId)) {
+    throw new Error(`Node already registered: ${nodeId}`);
+  }
+  const now = _now();
+  const entry = {
+    node_id: nodeId,
+    status: NODE_STATUS_V2.REGISTERED,
+    metadata: metadata || null,
+    registered_at: now,
+    updated_at: now,
+  };
+  _nodeStatuses.set(nodeId, entry);
+
+  if (!_breakers.has(nodeId)) {
+    registerNode(db, nodeId, {
+      failureThreshold: _failureThreshold,
+      openTimeout: _halfOpenCooldownMs,
+      metadata: metadata || null,
+    });
+  }
+  return { ...entry };
+}
+
+export function getNodeStatusV2(nodeId) {
+  const s = _nodeStatuses.get(nodeId);
+  return s ? { ...s } : null;
+}
+
+export function setNodeStatusV2(db, nodeId, newStatus, patch = {}) {
+  const entry = _nodeStatuses.get(nodeId);
+  if (!entry) throw new Error(`Node not found: ${nodeId}`);
+  if (!Object.values(NODE_STATUS_V2).includes(newStatus)) {
+    throw new Error(`Unknown node status: ${newStatus}`);
+  }
+  if (NODE_TERMINALS_V2.has(entry.status)) {
+    throw new Error(
+      `Invalid transition: ${entry.status} → ${newStatus} (terminal)`,
+    );
+  }
+  const allowed = NODE_TRANSITIONS_V2.get(entry.status);
+  if (!allowed || !allowed.has(newStatus)) {
+    throw new Error(`Invalid transition: ${entry.status} → ${newStatus}`);
+  }
+  if (newStatus === NODE_STATUS_V2.ACTIVE) {
+    const active = getActiveNodeCount();
+    if (entry.status !== NODE_STATUS_V2.ACTIVE && active >= _maxActiveNodes) {
+      throw new Error(
+        `Max active nodes reached (${active}/${_maxActiveNodes})`,
+      );
+    }
+  }
+  entry.status = newStatus;
+  entry.updated_at = _now();
+  if (patch.metadata !== undefined) entry.metadata = patch.metadata;
+  if (patch.reason !== undefined) entry.reason = patch.reason;
+  return { ...entry };
+}
+
+/* ── Health Check V2 ───────────────────────────────────── */
+
+const VALID_METRIC_V2 = new Set(Object.values(HEALTH_METRIC_V2));
+const VALID_HEALTH_STATUS_V2 = new Set(Object.values(HEALTH_STATUS_V2));
+
+export function recordHealthCheckV2(
+  db,
+  { nodeId, checkType, status, metrics } = {},
+) {
+  if (!nodeId) throw new Error("nodeId is required");
+  if (!checkType || !VALID_METRIC_V2.has(checkType)) {
+    throw new Error(`Invalid check type: ${checkType}`);
+  }
+  if (!status || !VALID_HEALTH_STATUS_V2.has(status)) {
+    throw new Error(`Invalid status: ${status}`);
+  }
+  if (metrics && typeof metrics === "object") {
+    for (const [k, v] of Object.entries(metrics)) {
+      if (typeof v === "number" && Number.isNaN(v)) {
+        throw new Error(`Metric ${k} is NaN`);
+      }
+    }
+  }
+  const result = recordHealthCheck(db, { nodeId, checkType, status, metrics });
+  if (!result.recorded) throw new Error(`Failed to record: ${result.reason}`);
+  return { ...result };
+}
+
+/* ── Circuit V2 Shortcuts ──────────────────────────────── */
+
+export function tripCircuit(db, nodeId) {
+  const b = _breakers.get(nodeId);
+  if (!b) throw new Error(`Node not found: ${nodeId}`);
+  if (b.state === "open") {
+    throw new Error(`Circuit already open: ${nodeId}`);
+  }
+  const now = _now();
+  b.state = "open";
+  b.state_changed_at = now;
+  b.success_count = 0;
+  b.updated_at = now;
+  db.prepare(
+    `UPDATE federation_circuit_breakers
+     SET state = 'open', success_count = 0, state_changed_at = ?, updated_at = ?
+     WHERE node_id = ?`,
+  ).run(now, now, nodeId);
+  return { state: "open", nodeId };
+}
+
+/* ── Auto-Isolate ──────────────────────────────────────── */
+
+export function autoIsolateUnhealthyNodes(db) {
+  const isolated = [];
+  for (const [nodeId, nodeEntry] of _nodeStatuses.entries()) {
+    if (nodeEntry.status !== NODE_STATUS_V2.ACTIVE) continue;
+    const checks = [..._healthChecks.values()]
+      .filter((c) => c.node_id === nodeId)
+      .sort((a, b) => b.checked_at - a.checked_at)
+      .slice(0, _unhealthyThreshold);
+    if (checks.length < _unhealthyThreshold) continue;
+    const allUnhealthy = checks.every(
+      (c) => c.status === HEALTH_STATUS_V2.UNHEALTHY,
+    );
+    if (allUnhealthy) {
+      nodeEntry.status = NODE_STATUS_V2.ISOLATED;
+      nodeEntry.updated_at = _now();
+      nodeEntry.reason = `auto-isolated: ${_unhealthyThreshold} consecutive unhealthy checks`;
+      isolated.push({ ...nodeEntry });
+    }
+  }
+  return isolated;
+}
+
+/* ── V2 Stats ──────────────────────────────────────────── */
+
+export function getFederationHardeningStatsV2(db) {
+  const circuitsByState = {};
+  for (const s of Object.values(CIRCUIT_STATE_V2)) circuitsByState[s] = 0;
+  for (const b of _breakers.values()) {
+    circuitsByState[b.state] = (circuitsByState[b.state] || 0) + 1;
+  }
+
+  const nodesByStatus = {};
+  for (const s of Object.values(NODE_STATUS_V2)) nodesByStatus[s] = 0;
+  for (const n of _nodeStatuses.values()) {
+    nodesByStatus[n.status] = (nodesByStatus[n.status] || 0) + 1;
+  }
+
+  const healthByStatus = {};
+  for (const s of Object.values(HEALTH_STATUS_V2)) healthByStatus[s] = 0;
+  const healthByMetric = {};
+  for (const m of Object.values(HEALTH_METRIC_V2)) healthByMetric[m] = 0;
+  for (const c of _healthChecks.values()) {
+    healthByStatus[c.status] = (healthByStatus[c.status] || 0) + 1;
+    healthByMetric[c.check_type] = (healthByMetric[c.check_type] || 0) + 1;
+  }
+
+  return {
+    totalNodes: _nodeStatuses.size,
+    activeNodes: nodesByStatus[NODE_STATUS_V2.ACTIVE],
+    isolatedNodes: nodesByStatus[NODE_STATUS_V2.ISOLATED],
+    totalCircuits: _breakers.size,
+    totalHealthChecks: _healthChecks.size,
+    maxActiveNodes: _maxActiveNodes,
+    failureThreshold: _failureThreshold,
+    halfOpenCooldownMs: _halfOpenCooldownMs,
+    unhealthyThreshold: _unhealthyThreshold,
+    circuitsByState,
+    nodesByStatus,
+    healthByStatus,
+    healthByMetric,
+  };
 }
