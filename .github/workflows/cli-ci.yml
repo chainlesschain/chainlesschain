@@ -29,7 +29,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies (workspace-aware)
-        run: npm install --legacy-peer-deps --ignore-optional
+        run: npm install --legacy-peer-deps
 
       - name: Run unit tests
         working-directory: packages/cli
@@ -66,7 +66,7 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies (workspace-aware)
-        run: npm install --legacy-peer-deps --ignore-optional
+        run: npm install --legacy-peer-deps
 
       - name: Dry-run publish
         working-directory: packages/cli

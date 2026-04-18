@@ -62,7 +62,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies (workspace-aware)
-        run: npm install --legacy-peer-deps --ignore-optional
+        run: npm install --legacy-peer-deps
 
       - name: Preview documentation changes
         working-directory: ./desktop-app-vue

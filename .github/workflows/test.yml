@@ -39,7 +39,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies (workspace-aware)
-        run: npm install --legacy-peer-deps --ignore-optional
+        run: npm install --legacy-peer-deps
 
       - name: Run TypeScript type check
         working-directory: ./desktop-app-vue
@@ -136,7 +136,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies (workspace-aware)
-        run: npm install --legacy-peer-deps --ignore-optional
+        run: npm install --legacy-peer-deps
 
       - name: Run ESLint
         working-directory: ./desktop-app-vue
@@ -178,7 +178,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies (workspace-aware)
-        run: npm install --legacy-peer-deps --ignore-optional
+        run: npm install --legacy-peer-deps
 
       - name: Build main process
         working-directory: ./desktop-app-vue
@@ -222,7 +222,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies (workspace-aware)
-        run: npm install --legacy-peer-deps --ignore-optional
+        run: npm install --legacy-peer-deps
 
       - name: Run database tests
         working-directory: ./desktop-app-vue
@@ -255,7 +255,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies (workspace-aware)
-        run: npm install --legacy-peer-deps --ignore-optional
+        run: npm install --legacy-peer-deps
 
       - name: Run all unit tests
         working-directory: ./desktop-app-vue
