@@ -2,7 +2,7 @@
 
 **Source**: `src/main/performance/ipc-performance-interceptor.js`
 
-**Generated**: 2026-04-16T12:07:31.906Z
+**Generated**: 2026-04-18T04:01:13.250Z
 
 ---
 
