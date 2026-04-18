@@ -3,6 +3,83 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.2.10 / CLI 0.119.0] - 2026-04-18 晚 (V2 第六批 · 13 个运行时管家)
+
+### Added — 13 个 V2 规范表面（严格增量，全部基于内存 governance 层，与遗留 SQLite/ 文件态独立）
+
+- **`cc automation` V2** — `AUTOMATION_MATURITY_V2` draft/active/paused/archived + `EXECUTION_LIFECYCLE_V2` queued/running/succeeded/failed/cancelled，per-owner active-automation cap = 20、per-flow pending-execution cap = 30，`autoPauseIdle*` + `autoCancelStuck*`。
+- **`cc instinct` V2** — `PROFILE_MATURITY_V2` pending/active/dormant/archived + `OBSERVATION_LIFECYCLE_V2` captured/reviewed/reinforced/discarded/promoted，per-user 5、per-profile 100，`autoDormantIdleProfilesV2` + `autoDiscardStaleObservationsV2`。
+- **`cc memory` V2** — `ENTRY_MATURITY_V2` draft/active/stale/archived + `CONSOLIDATION_LIFECYCLE_V2` pending/running/merged/rejected/superseded，per-owner 200、per-owner 20，`autoStaleEntries*` + `autoSupersedeStuck*`。
+- **`cc note` V2** — `NOTE_MATURITY_V2` draft/active/stale/archived + `REVISION_LIFECYCLE_V2` pending/applied/rolled_back/conflicting/discarded，per-author 100、per-note 50，`autoStaleNotesV2` + `autoDiscardStaleRevisionsV2`。
+- **`cc org` V2** — `ORG_MATURITY_V2` provisional/active/suspended/archived + `MEMBER_LIFECYCLE_V2` invited/active/suspended/removed/expired，per-owner 10、per-org 500，`autoSuspendIdleOrgsV2` + `autoExpireStaleMembersV2`。
+- **`cc permmem` V2**（新命令组）— `PIN_MATURITY_V2` pending/active/dormant/archived + `RETENTION_JOB_LIFECYCLE_V2` queued/running/succeeded/failed/cancelled，per-owner 100、per-pin 10，`autoDormantIdlePinsV2` + `autoCancelStuckJobsV2`。
+- **`cc rcache` V2**（新命令组）— `PROFILE_MATURITY_V2` pending/active/suspended/archived + `REFRESH_JOB_LIFECYCLE_V2` queued/running/completed/failed/cancelled，per-owner active-profile 25、per-profile pending-job 4，`autoSuspendIdleProfilesV2` + `autoFailStuckRefreshJobsV2`。与 legacy LRU `cc tokens cache` 并存不冲突。
+- **`cc scim` V2** — `IDENTITY_LIFECYCLE_V2` pending/provisioned/suspended/deprovisioned + `SYNC_JOB_V2` queued/running/succeeded/failed/cancelled，per-tenant 5000、per-idp 50，`autoSuspendIdleIdentitiesV2` + `autoFailStuckSyncJobsV2`。
+- **`cc session` V2** — `CONVERSATION_MATURITY_V2` active/idle/closed/archived + `TURN_LIFECYCLE_V2` queued/running/completed/failed/cancelled，per-user 20、per-session 100，`autoIdleConversationsV2` + `autoFailStuckTurnsV2`。
+- **`cc social` V2** — `RELATIONSHIP_MATURITY_V2` pending/active/muted/blocked + `THREAD_LIFECYCLE_V2` draft/posted/archived/flagged/removed，per-user 1000、per-user 500，`autoMuteStaleRelationshipsV2` + `autoArchiveStaleThreadsV2`。
+- **`cc sync` V2** — `RESOURCE_MATURITY_V2` pending/active/paused/archived + `SYNC_RUN_V2` queued/running/succeeded/failed/cancelled，per-owner 50、per-resource 20，`autoPauseIdleResourcesV2` + `autoFailStuckRunsV2`。
+- **`cc tokens` V2** — `BUDGET_MATURITY_V2` pending/active/warning/exhausted + `USAGE_RECORD_LIFECYCLE_V2` pending/committed/refunded/rejected/disputed，per-owner 10、per-budget 10000，`autoExhaustBudgetsV2` + `autoCommitStaleRecordsV2`。
+- **`cc wallet` V2** — `WALLET_MATURITY_V2` provisioned/active/frozen/retired + `TX_LIFECYCLE_V2` pending/submitted/confirmed/failed/cancelled，per-user 10、per-wallet 100，`autoFreezeIdleWalletsV2` + `autoCancelStuckTxsV2`。
+
+### Changed
+
+- **CLI 包版本**：`chainlesschain@0.106.0 → 0.119.0`（V2 第六批一次性推进 12 个管家）
+- **README**：中/英双语在最新版本区前插入 V2 第六批条目，替换安装命令到 `chainlesschain@0.119.0`
+
+### Tests
+
+| 模块 | 单元测试（新/总） | 状态 |
+| --- | --- | --- |
+| `automation-engine.test.js` | +46 / 114 | 全通过 |
+| `instinct-manager.test.js` | +48 / 73 | 全通过 |
+| `memory-manager.test.js` | +47 / 101 | 全通过 |
+| `note-versioning.test.js` | +49 / 71 | 全通过 |
+| `org-manager.test.js` | +43 / 75 | 全通过 |
+| `permanent-memory.test.js` | +46 / 71 | 全通过 |
+| `response-cache.test.js` | +46 / 66 | 全通过 |
+| `scim-manager.test.js` | +39 / 62 | 全通过 |
+| `session-manager.test.js` | +33 / 77 | 全通过 |
+| `social-manager.test.js` | +34 / 75 | 全通过 |
+| `sync-manager.test.js` | +39 / 65 | 全通过 |
+| `token-tracker.test.js` | +49 / 88 | 全通过 |
+| `wallet-manager.test.js` | +41 / 70 | 全通过 |
+
+本批相较 0.106.0 累计新增 **560 个 V2 单元测试**，零回归。
+
+- CLI 单元：232 文件 / **9219/9229**（10 skipped）
+- CLI 集成：40 文件 / **696/696**
+- CLI E2E：38 文件 / **565/565**
+- Desktop core+database / renderer stores / ai-engine sample 全部绿（15+16+3 files / 1587 pass）
+
+---
+
+## [5.0.2.10 / CLI 0.106.0] - 2026-04-18 (V2 第五批 · 协作治理 + UEBA + 威胁情报)
+
+### Added — 3 个 V2 规范表面（严格增量）
+
+- **`cc collab` V2** (CLI 0.105.0)：4-state Agent 成熟度 (`provisional/active/suspended/retired`，`suspended→active` 恢复) + 5-state 提案生命周期 (`draft/voting/approved/rejected/withdrawn`，3 终态)，per-realm active-agent cap = 10、per-proposer voting-proposal cap = 3，`autoRetireIdleAgentsCgV2` + `autoWithdrawStuckProposalsV2` 批量 auto-flip。
+- **`cc compliance ueba` V2** (CLI 0.105.0)：4-state baseline 成熟度 (`draft/active/stale/archived`，`stale→active` 恢复) + 5-state investigation 生命周期 (`open/investigating/closed/dismissed/escalated`，3 终态)，per-owner active-baseline cap = 20、per-analyst open-investigation cap = 10（在 `openInvestigationV2` 创建时强制，因 open 即起始态），`autoMarkStaleBaselinesV2` + `autoEscalateStuckInvestigationsV2`。
+- **`cc compliance threat-intel` V2** (CLI 0.106.0)：4-state Feed 成熟度 (`pending/trusted/deprecated/retired`，`deprecated→trusted` 恢复) + 5-state Indicator 生命周期 (`pending/active/expired/revoked/superseded`，3 终态)，per-owner active-feed cap、per-feed active-indicator cap、`autoDeprecateIdleFeedsV2` + `autoExpireStaleIndicatorsV2`。SQLite IoC 目录之上叠加纯内存 V2 层。
+
+### Changed
+
+- **CLI 包版本**：`chainlesschain@0.104.0 → 0.105.0 → 0.106.0`（V2 第五批分两次推进）
+- **docs-site**：`cli-collab.md` / `cli-compliance.md` 追加 V2 规范表面段（共 4 个枚举 + 3 状态机 + 6 个 auto-flip + 18 配额配置）
+- **docs-website-v2**：`index.astro` 升级到 48 条 evolution 条目（v5.0.2.10 新增 39 项，第五批 V2 列入）；CLI chip 从 `v0.104.0` 升至 `v0.106.0`
+- **docs/cli/platform.md**：吸收 Collaboration Governance V2 / Compliance UEBA V2 段（项目根反向同步）
+
+### Tests
+
+| 模块 | 单元测试 | V2 新增 | 状态 |
+| --- | --- | --- | --- |
+| `collaboration-governance.test.js` | 98 | 37 | 全通过 |
+| `ueba.test.js` | 59 | 29 | 全通过 |
+| `threat-intel.test.js` | 69 | 41 | 全通过 |
+
+本批相较 0.104.0 累计新增 **107 个 V2 单元测试**，零回归。
+
+---
+
 ## [5.0.2.34] - 2026-04-17 (npm 0.66.0 · 7 个新命令组 + 8 个 V2 强化)
 
 ### Added — 7 个新 CLI 命令组

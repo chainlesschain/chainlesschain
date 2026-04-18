@@ -1,5 +1,60 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-18 增量更新（CLI 0.119.0 · V2 第六批 · 13 个运行时管家）
+
+第五批（0.106.0，collab + UEBA + threat-intel）当天晚些时候再推一轮，把 **13 个运行时管家模块**全部拉通 V2 规范表面。CLI 包从 `0.106.0 → 0.119.0`（Tag `v5.0.2.10`）。
+
+**13 个 V2 规范表面**（严格增量、向后兼容，全部基于内存 governance 层，与遗留 SQLite/ 文件态独立）：
+
+| 模块 | Maturity / Work-unit enum | 人均 active cap | 人均 pending cap | 自动批处理 |
+| --- | --- | --- | --- | --- |
+| `cc automation` V2 | `AUTOMATION_MATURITY_V2` + `EXECUTION_LIFECYCLE_V2` | per-owner 20 | per-flow 30 | autoPause + autoCancel |
+| `cc instinct` V2 | `PROFILE_MATURITY_V2` + `OBSERVATION_LIFECYCLE_V2` | per-user 5 | per-profile 100 | autoDormant + autoDiscard |
+| `cc memory` V2 | `ENTRY_MATURITY_V2` + `CONSOLIDATION_LIFECYCLE_V2` | per-owner 200 | per-owner 20 | autoStale + autoSupersede |
+| `cc note` V2 | `NOTE_MATURITY_V2` + `REVISION_LIFECYCLE_V2` | per-author 100 | per-note 50 | autoStale + autoDiscard |
+| `cc org` V2 | `ORG_MATURITY_V2` + `MEMBER_LIFECYCLE_V2` | per-owner 10 | per-org 500 | autoSuspend + autoExpire |
+| `cc permmem` V2（新命令组） | `PIN_MATURITY_V2` + `RETENTION_JOB_LIFECYCLE_V2` | per-owner 100 | per-pin 10 | autoDormant + autoCancel |
+| `cc rcache` V2（新命令组） | `PROFILE_MATURITY_V2` + `REFRESH_JOB_LIFECYCLE_V2` | per-owner 25 | per-profile 4 | autoSuspend + autoFail |
+| `cc scim` V2 | `IDENTITY_LIFECYCLE_V2` + `SYNC_JOB_V2` | per-tenant 5000 | per-idp 50 | autoSuspend + autoFail |
+| `cc session` V2 | `CONVERSATION_MATURITY_V2` + `TURN_LIFECYCLE_V2` | per-user 20 | per-session 100 | autoIdle + autoFail |
+| `cc social` V2 | `RELATIONSHIP_MATURITY_V2` + `THREAD_LIFECYCLE_V2` | per-user 1000 | per-user 500 | autoMute + autoArchive |
+| `cc sync` V2 | `RESOURCE_MATURITY_V2` + `SYNC_RUN_V2` | per-owner 50 | per-resource 20 | autoPause + autoFail |
+| `cc tokens` V2 | `BUDGET_MATURITY_V2` + `USAGE_RECORD_LIFECYCLE_V2` | per-owner 10 | per-budget 10000 | autoExhaust + autoCommit |
+| `cc wallet` V2 | `WALLET_MATURITY_V2` + `TX_LIFECYCLE_V2` | per-user 10 | per-wallet 100 | autoFreeze + autoCancel |
+
+每个模块都遵循同一骨架：`register*V2` / `get*V2` / `list*V2` / `set*StatusV2` + 状态快捷设置器、per-owner active cap + per-container pending cap、stamp-once `activatedAt` / lifecycle 时间戳、`auto*` 批处理方法、`get*StatsV2` 及 `_resetState*V2`（测试隔离）。`cc rcache` 与 legacy LRU `cc tokens cache` 并存不冲突。
+
+### 回归测试（2026-04-18 晚）
+
+| 层 | 文件数 | 用例数 | 耗时 |
+| --- | --- | --- | --- |
+| CLI 单元 | 232 | **9219/9229**（10 skipped） | ~130s |
+| CLI 集成 | 40 | **696/696** | 38s |
+| CLI E2E | 38 | **565/565** | 427s |
+| Desktop 单元（core+database） | 15 | **836/846**（10 skipped） | 141s |
+| Desktop 单元（renderer stores） | 16 | **486/486** | 25s |
+| Desktop 单元（ai-engine sample） | 3 | **265/346**（81 skipped） | 28s |
+
+本批相较 0.106.0 累计新增 **560 个 V2 单元测试**（automation 46 + instinct 48 + memory 47 + note 49 + org 43 + permanent-memory 46 + response-cache 46 + scim 39 + session 33 + social 34 + sync 39 + token-tracker 49 + wallet 41），零回归。
+
+**npm**：`npm i -g chainlesschain@0.119.0`（别名 `cc` / `clc` / `clchain`）
+
+---
+
+## 2026-04-18 增量更新（CLI 0.106.0 · V2 第五批 · collab + UEBA + threat-intel）
+
+紧接昨日 0.104.0 的第四批 V2 增量，今日推进第五批：`cc collab` + `cc compliance ueba` + `cc compliance threat-intel` 三条命令族叠加 V2 规范表面。CLI 包从 `0.104.0 → 0.106.0`（Tag `v5.0.2.10`）。
+
+**3 个 V2 规范表面**（严格增量、向后兼容）：
+
+- **`cc collab` V2**：4-state Agent 成熟度 (`provisional/active/suspended/retired`，`suspended→active` 恢复) + 5-state 提案生命周期 (`draft/voting/approved/rejected/withdrawn`，3 终态)，per-realm active-agent cap = 10、per-proposer voting-proposal cap = 3，`autoRetireIdleAgentsCgV2` + `autoWithdrawStuckProposalsV2`。
+- **`cc compliance ueba` V2**：4-state baseline 成熟度 (`draft/active/stale/archived`，`stale→active` 恢复) + 5-state investigation 生命周期 (`open/investigating/closed/dismissed/escalated`，3 终态)，per-owner active-baseline cap = 20、per-analyst open-investigation cap = 10（在 `openInvestigationV2` 创建时强制），`autoMarkStaleBaselinesV2` + `autoEscalateStuckInvestigationsV2`。
+- **`cc compliance threat-intel` V2**：4-state Feed 成熟度 (`pending/trusted/deprecated/retired`，`deprecated→trusted` 恢复) + 5-state Indicator 生命周期 (`pending/active/expired/revoked/superseded`，3 终态)，per-owner active-feed cap = 15、per-feed active-indicator cap = 500，`autoDeprecateIdleFeedsV2` + `autoExpireStaleIndicatorsV2`。V2 层叠加在 SQLite IoC catalog 之上，与遗留 `importStixBundle`/`matchObservable` 完全独立。
+
+本批相较 0.104.0 累计新增 **107 个 V2 单元测试**（collab 37 + ueba 29 + threat-intel 41），零回归。
+
+---
+
 ## 2026-04-17 增量更新（CLI 0.66.0 · 7 新 + 8 强化）
 
 同日晚再推一轮，把并行会话落地的 **7 个全新 CLI 命令组** 和 **8 个现有命令的 V2 强化** 合并发布到 `chainlesschain@0.66.0`（tag `v5.0.2.34`）。
