@@ -27,7 +27,9 @@ jobs:
           node-version: "22.12.0"
 
       - name: Install root dependencies (workspaces)
-        run: npm install --legacy-peer-deps
+        run: |
+          rm -f package-lock.json
+          npm install --legacy-peer-deps
 
       - name: Run core package tests
         run: |
@@ -71,7 +73,9 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Install root dependencies (workspaces)
-        run: npm install --legacy-peer-deps
+        run: |
+          rm -f package-lock.json
+          npm install --legacy-peer-deps
 
       - name: Resolve version
         id: version
