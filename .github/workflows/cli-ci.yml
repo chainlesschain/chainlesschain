@@ -31,8 +31,10 @@ jobs:
       - name: Install dependencies (workspace-aware)
         shell: bash
         run: |
-          rm -f package-lock.json
           npm install --legacy-peer-deps
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
+          fi
 
       - name: Run unit tests
         working-directory: packages/cli
@@ -70,8 +72,8 @@ jobs:
 
       - name: Install dependencies (workspace-aware)
         run: |
-          rm -f package-lock.json
           npm install --legacy-peer-deps
+          npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
 
       - name: Dry-run publish
         working-directory: packages/cli

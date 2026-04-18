@@ -28,8 +28,8 @@ jobs:
 
       - name: Install root dependencies (workspaces)
         run: |
-          rm -f package-lock.json
           npm install --legacy-peer-deps
+          npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
 
       - name: Run core package tests
         run: |
@@ -74,8 +74,8 @@ jobs:
 
       - name: Install root dependencies (workspaces)
         run: |
-          rm -f package-lock.json
           npm install --legacy-peer-deps
+          npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
 
       - name: Resolve version
         id: version
