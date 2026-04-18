@@ -33,6 +33,37 @@ import {
   FLOW_STATUS,
   EXECUTION_STATUS,
   TRIGGER_TYPE,
+  AUTOMATION_MATURITY_V2,
+  EXECUTION_LIFECYCLE_V2,
+  getMaxActiveAutomationsPerOwnerV2,
+  setMaxActiveAutomationsPerOwnerV2,
+  getMaxRunningExecutionsPerAutomationV2,
+  setMaxRunningExecutionsPerAutomationV2,
+  getAutomationIdleMsV2,
+  setAutomationIdleMsV2,
+  getExecutionStuckMsV2,
+  setExecutionStuckMsV2,
+  registerAutomationV2,
+  getAutomationV2,
+  listAutomationsV2,
+  setAutomationStatusV2,
+  activateAutomationV2,
+  pauseAutomationV2,
+  retireAutomationV2,
+  touchAutomationV2,
+  getActiveAutomationCountV2,
+  createExecutionV2,
+  getExecutionV2 as getExecutionV2Surface,
+  listExecutionsV2,
+  setExecutionStatusV2,
+  startExecutionV2,
+  succeedExecutionV2,
+  failExecutionV2,
+  cancelExecutionV2,
+  getRunningExecutionCountV2,
+  autoPauseIdleAutomationsV2,
+  autoFailStuckExecutionsV2,
+  getAutomationEngineStatsV2,
 } from "../lib/automation-engine.js";
 
 function _dbFromCtx(cmd) {
@@ -68,7 +99,8 @@ export function registerAutomationCommand(program) {
       .description(
         "Workflow automation engine — 12 SaaS connectors + triggers (Phase 96)",
       )
-      .hook("preAction", async (thisCommand) => {
+      .hook("preAction", async (thisCommand, actionCommand) => {
+        if (actionCommand && actionCommand.name().endsWith("-v2")) return;
         const db = await _prepare(thisCommand);
         thisCommand._db = db;
       });
@@ -651,4 +683,242 @@ function _wire(root) {
         await shutdown();
       }
     });
+
+  // ── V2 Surface ──
+
+  const outV2 = (obj) => console.log(JSON.stringify(obj, null, 2));
+  const tryRunV2 = (fn) => {
+    try {
+      fn();
+    } catch (err) {
+      logger.error(err.message);
+      process.exit(1);
+    }
+  };
+
+  root
+    .command("automation-maturities-v2")
+    .description("List V2 automation maturity states")
+    .action(() => outV2(Object.values(AUTOMATION_MATURITY_V2)));
+
+  root
+    .command("execution-lifecycles-v2")
+    .description("List V2 execution lifecycle states")
+    .action(() => outV2(Object.values(EXECUTION_LIFECYCLE_V2)));
+
+  root
+    .command("stats-v2")
+    .description("V2 automation engine stats")
+    .action(() => outV2(getAutomationEngineStatsV2()));
+
+  root
+    .command("get-max-active-automations-v2")
+    .description("Get max active automations per owner (V2)")
+    .action(() =>
+      outV2({
+        maxActiveAutomationsPerOwner: getMaxActiveAutomationsPerOwnerV2(),
+      }),
+    );
+
+  root
+    .command("set-max-active-automations-v2 <n>")
+    .description("Set max active automations per owner (V2)")
+    .action((n) =>
+      tryRunV2(() => {
+        setMaxActiveAutomationsPerOwnerV2(Number(n));
+        outV2({
+          maxActiveAutomationsPerOwner: getMaxActiveAutomationsPerOwnerV2(),
+        });
+      }),
+    );
+
+  root
+    .command("get-max-running-executions-v2")
+    .description("Get max running executions per automation (V2)")
+    .action(() =>
+      outV2({
+        maxRunningExecutionsPerAutomation:
+          getMaxRunningExecutionsPerAutomationV2(),
+      }),
+    );
+
+  root
+    .command("set-max-running-executions-v2 <n>")
+    .description("Set max running executions per automation (V2)")
+    .action((n) =>
+      tryRunV2(() => {
+        setMaxRunningExecutionsPerAutomationV2(Number(n));
+        outV2({
+          maxRunningExecutionsPerAutomation:
+            getMaxRunningExecutionsPerAutomationV2(),
+        });
+      }),
+    );
+
+  root
+    .command("get-automation-idle-ms-v2")
+    .description("Get automation idle threshold (V2)")
+    .action(() => outV2({ automationIdleMs: getAutomationIdleMsV2() }));
+
+  root
+    .command("set-automation-idle-ms-v2 <ms>")
+    .description("Set automation idle threshold (V2)")
+    .action((ms) =>
+      tryRunV2(() => {
+        setAutomationIdleMsV2(Number(ms));
+        outV2({ automationIdleMs: getAutomationIdleMsV2() });
+      }),
+    );
+
+  root
+    .command("get-execution-stuck-ms-v2")
+    .description("Get execution stuck threshold (V2)")
+    .action(() => outV2({ executionStuckMs: getExecutionStuckMsV2() }));
+
+  root
+    .command("set-execution-stuck-ms-v2 <ms>")
+    .description("Set execution stuck threshold (V2)")
+    .action((ms) =>
+      tryRunV2(() => {
+        setExecutionStuckMsV2(Number(ms));
+        outV2({ executionStuckMs: getExecutionStuckMsV2() });
+      }),
+    );
+
+  root
+    .command("active-automation-count-v2 <ownerId>")
+    .description("Active automation count for owner (V2)")
+    .action((ownerId) =>
+      outV2({ ownerId, count: getActiveAutomationCountV2(ownerId) }),
+    );
+
+  root
+    .command("running-execution-count-v2 <automationId>")
+    .description("Running execution count for automation (V2)")
+    .action((automationId) =>
+      outV2({
+        automationId,
+        count: getRunningExecutionCountV2(automationId),
+      }),
+    );
+
+  root
+    .command("register-automation-v2 <id>")
+    .description("Register a V2 automation")
+    .requiredOption("-o, --owner <id>", "owner id")
+    .requiredOption("-n, --name <name>", "automation name")
+    .action((id, opts) =>
+      tryRunV2(() =>
+        outV2(
+          registerAutomationV2(id, { ownerId: opts.owner, name: opts.name }),
+        ),
+      ),
+    );
+
+  root
+    .command("get-automation-v2 <id>")
+    .description("Get a V2 automation")
+    .action((id) => outV2(getAutomationV2(id)));
+
+  root
+    .command("list-automations-v2")
+    .description("List V2 automations")
+    .option("-o, --owner <id>", "filter by owner")
+    .option("-s, --status <status>", "filter by status")
+    .action((opts) =>
+      outV2(listAutomationsV2({ ownerId: opts.owner, status: opts.status })),
+    );
+
+  root
+    .command("set-automation-status-v2 <id> <next>")
+    .description("Set V2 automation status")
+    .action((id, next) =>
+      tryRunV2(() => outV2(setAutomationStatusV2(id, next))),
+    );
+
+  root
+    .command("activate-automation-v2 <id>")
+    .description("Activate a V2 automation")
+    .action((id) => tryRunV2(() => outV2(activateAutomationV2(id))));
+
+  root
+    .command("pause-automation-v2 <id>")
+    .description("Pause a V2 automation")
+    .action((id) => tryRunV2(() => outV2(pauseAutomationV2(id))));
+
+  root
+    .command("retire-automation-v2 <id>")
+    .description("Retire a V2 automation")
+    .action((id) => tryRunV2(() => outV2(retireAutomationV2(id))));
+
+  root
+    .command("touch-automation-v2 <id>")
+    .description("Touch a V2 automation")
+    .action((id) => tryRunV2(() => outV2(touchAutomationV2(id))));
+
+  root
+    .command("create-execution-v2 <id>")
+    .description("Create a V2 execution")
+    .requiredOption("-a, --automation <id>", "automation id")
+    .action((id, opts) =>
+      tryRunV2(() =>
+        outV2(createExecutionV2(id, { automationId: opts.automation })),
+      ),
+    );
+
+  root
+    .command("get-execution-v2 <id>")
+    .description("Get a V2 execution")
+    .action((id) => outV2(getExecutionV2Surface(id)));
+
+  root
+    .command("list-executions-v2")
+    .description("List V2 executions")
+    .option("-a, --automation <id>", "filter by automation")
+    .option("-s, --status <status>", "filter by status")
+    .action((opts) =>
+      outV2(
+        listExecutionsV2({
+          automationId: opts.automation,
+          status: opts.status,
+        }),
+      ),
+    );
+
+  root
+    .command("set-execution-status-v2 <id> <next>")
+    .description("Set V2 execution status")
+    .action((id, next) =>
+      tryRunV2(() => outV2(setExecutionStatusV2(id, next))),
+    );
+
+  root
+    .command("start-execution-v2 <id>")
+    .description("Start a V2 execution")
+    .action((id) => tryRunV2(() => outV2(startExecutionV2(id))));
+
+  root
+    .command("succeed-execution-v2 <id>")
+    .description("Succeed a V2 execution")
+    .action((id) => tryRunV2(() => outV2(succeedExecutionV2(id))));
+
+  root
+    .command("fail-execution-v2 <id>")
+    .description("Fail a V2 execution")
+    .action((id) => tryRunV2(() => outV2(failExecutionV2(id))));
+
+  root
+    .command("cancel-execution-v2 <id>")
+    .description("Cancel a V2 execution")
+    .action((id) => tryRunV2(() => outV2(cancelExecutionV2(id))));
+
+  root
+    .command("auto-pause-idle-automations-v2")
+    .description("Auto-pause idle V2 automations")
+    .action(() => outV2(autoPauseIdleAutomationsV2()));
+
+  root
+    .command("auto-fail-stuck-executions-v2")
+    .description("Auto-fail stuck V2 executions")
+    .action(() => outV2(autoFailStuckExecutionsV2()));
 }

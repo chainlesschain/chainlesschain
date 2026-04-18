@@ -345,3 +345,436 @@ describe("Org Manager", () => {
     });
   });
 });
+
+/* ═══════════════════════════════════════════════════════════════
+ * V2 Surface Tests — org maturity + member lifecycle
+ * ═══════════════════════════════════════════════════════════════ */
+
+import {
+  ORG_MATURITY_V2,
+  MEMBER_LIFECYCLE_V2,
+  ORG_DEFAULT_MAX_ACTIVE_ORGS_PER_OWNER,
+  ORG_DEFAULT_MAX_ACTIVE_MEMBERS_PER_ORG,
+  ORG_DEFAULT_ORG_IDLE_MS,
+  ORG_DEFAULT_INVITE_STALE_MS,
+  getMaxActiveOrgsPerOwnerV2,
+  setMaxActiveOrgsPerOwnerV2,
+  getMaxActiveMembersPerOrgV2,
+  setMaxActiveMembersPerOrgV2,
+  getOrgIdleMsV2,
+  setOrgIdleMsV2,
+  getInviteStaleMsV2,
+  setInviteStaleMsV2,
+  getActiveOrgCountV2,
+  getActiveMemberCountV2,
+  registerOrgV2,
+  getOrgV2,
+  listOrgsV2,
+  setOrgMaturityV2,
+  activateOrgV2,
+  suspendOrgV2,
+  archiveOrgV2,
+  touchOrgV2,
+  inviteMemberV2,
+  getMemberV2,
+  listMembersV2,
+  setMemberStatusV2,
+  activateMemberV2,
+  suspendMemberV2,
+  revokeMemberV2,
+  departMemberV2,
+  autoArchiveIdleOrgsV2,
+  autoRevokeStaleInvitesV2,
+  getOrgManagerStatsV2,
+  _resetStateOrgManagerV2,
+} from "../../src/lib/org-manager.js";
+
+describe("org-manager V2", () => {
+  beforeEach(() => {
+    _resetStateOrgManagerV2();
+  });
+
+  describe("enums + defaults", () => {
+    it("exposes 4 org maturities + 5 member statuses", () => {
+      expect(Object.values(ORG_MATURITY_V2)).toHaveLength(4);
+      expect(Object.values(MEMBER_LIFECYCLE_V2)).toHaveLength(5);
+    });
+
+    it("defaults match exported constants", () => {
+      expect(getMaxActiveOrgsPerOwnerV2()).toBe(
+        ORG_DEFAULT_MAX_ACTIVE_ORGS_PER_OWNER,
+      );
+      expect(getMaxActiveMembersPerOrgV2()).toBe(
+        ORG_DEFAULT_MAX_ACTIVE_MEMBERS_PER_ORG,
+      );
+      expect(getOrgIdleMsV2()).toBe(ORG_DEFAULT_ORG_IDLE_MS);
+      expect(getInviteStaleMsV2()).toBe(ORG_DEFAULT_INVITE_STALE_MS);
+    });
+  });
+
+  describe("config setters", () => {
+    it("accepts positive integers + floors floats", () => {
+      setMaxActiveOrgsPerOwnerV2(7.9);
+      setMaxActiveMembersPerOrgV2(99.4);
+      setOrgIdleMsV2(1000.7);
+      setInviteStaleMsV2(2000.9);
+      expect(getMaxActiveOrgsPerOwnerV2()).toBe(7);
+      expect(getMaxActiveMembersPerOrgV2()).toBe(99);
+      expect(getOrgIdleMsV2()).toBe(1000);
+      expect(getInviteStaleMsV2()).toBe(2000);
+    });
+
+    it("rejects ≤0 / NaN", () => {
+      expect(() => setMaxActiveOrgsPerOwnerV2(0)).toThrow(/positive/);
+      expect(() => setMaxActiveMembersPerOrgV2(NaN)).toThrow(/positive/);
+      expect(() => setOrgIdleMsV2(-5)).toThrow(/positive/);
+      expect(() => setInviteStaleMsV2("nope")).toThrow(/positive/);
+    });
+  });
+
+  describe("registerOrgV2", () => {
+    it("creates a provisional org with metadata copy", () => {
+      const o = registerOrgV2("o1", {
+        owner: "alice",
+        name: "Acme",
+        metadata: { plan: "pro" },
+      });
+      expect(o.maturity).toBe("provisional");
+      expect(o.activatedAt).toBeNull();
+      expect(o.metadata).toEqual({ plan: "pro" });
+    });
+
+    it("rejects bad inputs + duplicates", () => {
+      expect(() => registerOrgV2("", { owner: "a", name: "n" })).toThrow();
+      expect(() => registerOrgV2("o", { owner: "", name: "n" })).toThrow();
+      expect(() => registerOrgV2("o", { owner: "a", name: "" })).toThrow();
+      registerOrgV2("dup", { owner: "a", name: "n" });
+      expect(() => registerOrgV2("dup", { owner: "a", name: "n" })).toThrow(
+        /already exists/,
+      );
+    });
+
+    it("returns defensive copies", () => {
+      registerOrgV2("o", { owner: "a", name: "n", metadata: { x: 1 } });
+      const got = getOrgV2("o");
+      got.metadata.x = 999;
+      expect(getOrgV2("o").metadata.x).toBe(1);
+    });
+  });
+
+  describe("org maturity transitions", () => {
+    beforeEach(() => {
+      registerOrgV2("o1", { owner: "alice", name: "Acme" });
+    });
+
+    it("provisional → active stamps activatedAt once", () => {
+      const a1 = activateOrgV2("o1", { now: 1000 });
+      expect(a1.activatedAt).toBe(1000);
+      suspendOrgV2("o1", { now: 2000 });
+      const a2 = activateOrgV2("o1", { now: 3000 });
+      expect(a2.activatedAt).toBe(1000);
+    });
+
+    it("active ↔ suspended recovery works", () => {
+      activateOrgV2("o1");
+      suspendOrgV2("o1");
+      expect(getOrgV2("o1").maturity).toBe("suspended");
+      activateOrgV2("o1");
+      expect(getOrgV2("o1").maturity).toBe("active");
+    });
+
+    it("archived is terminal", () => {
+      activateOrgV2("o1");
+      archiveOrgV2("o1");
+      expect(() => activateOrgV2("o1")).toThrow(/terminal/);
+    });
+
+    it("rejects unknown next state", () => {
+      expect(() => setOrgMaturityV2("o1", "bogus")).toThrow(/unknown/);
+    });
+
+    it("rejects illegal transitions", () => {
+      expect(() => suspendOrgV2("o1")).toThrow(/cannot transition/);
+    });
+
+    it("throws on unknown id", () => {
+      expect(() => activateOrgV2("nope")).toThrow(/not found/);
+    });
+  });
+
+  describe("per-owner active-org cap", () => {
+    it("enforces cap on provisional → active", () => {
+      setMaxActiveOrgsPerOwnerV2(2);
+      registerOrgV2("a", { owner: "x", name: "A" });
+      registerOrgV2("b", { owner: "x", name: "B" });
+      registerOrgV2("c", { owner: "x", name: "C" });
+      activateOrgV2("a");
+      activateOrgV2("b");
+      expect(() => activateOrgV2("c")).toThrow(/cap/);
+    });
+
+    it("does not enforce cap on suspended → active recovery", () => {
+      setMaxActiveOrgsPerOwnerV2(1);
+      registerOrgV2("a", { owner: "x", name: "A" });
+      activateOrgV2("a");
+      suspendOrgV2("a");
+      expect(() => activateOrgV2("a")).not.toThrow();
+    });
+
+    it("getActiveOrgCountV2 counts only active", () => {
+      registerOrgV2("a", { owner: "x", name: "A" });
+      registerOrgV2("b", { owner: "x", name: "B" });
+      activateOrgV2("a");
+      activateOrgV2("b");
+      suspendOrgV2("b");
+      expect(getActiveOrgCountV2("x")).toBe(1);
+    });
+  });
+
+  describe("touchOrgV2", () => {
+    it("updates lastSeenAt", () => {
+      registerOrgV2("o", { owner: "a", name: "n" });
+      const t = touchOrgV2("o", { now: 5000 });
+      expect(t.lastSeenAt).toBe(5000);
+    });
+
+    it("throws on unknown id", () => {
+      expect(() => touchOrgV2("nope")).toThrow(/not found/);
+    });
+  });
+
+  describe("inviteMemberV2", () => {
+    beforeEach(() => {
+      registerOrgV2("o1", { owner: "a", name: "Acme" });
+    });
+
+    it("creates invited member under existing org", () => {
+      const m = inviteMemberV2("m1", { orgId: "o1", userId: "u1" });
+      expect(m.status).toBe("invited");
+      expect(m.role).toBe("member");
+      expect(m.activatedAt).toBeNull();
+      expect(m.departedAt).toBeNull();
+    });
+
+    it("rejects unknown org", () => {
+      expect(() =>
+        inviteMemberV2("m", { orgId: "ghost", userId: "u" }),
+      ).toThrow(/not found/);
+    });
+
+    it("rejects duplicate id", () => {
+      inviteMemberV2("m", { orgId: "o1", userId: "u" });
+      expect(() => inviteMemberV2("m", { orgId: "o1", userId: "u" })).toThrow(
+        /already exists/,
+      );
+    });
+
+    it("rejects bad inputs", () => {
+      expect(() => inviteMemberV2("", { orgId: "o1", userId: "u" })).toThrow();
+      expect(() => inviteMemberV2("z", { orgId: "", userId: "u" })).toThrow();
+      expect(() => inviteMemberV2("z", { orgId: "o1", userId: "" })).toThrow();
+    });
+  });
+
+  describe("member lifecycle transitions", () => {
+    beforeEach(() => {
+      registerOrgV2("o1", { owner: "a", name: "Acme" });
+      inviteMemberV2("m1", { orgId: "o1", userId: "u1" });
+    });
+
+    it("invited → active stamps activatedAt once", () => {
+      const r = activateMemberV2("m1", { now: 100 });
+      expect(r.activatedAt).toBe(100);
+    });
+
+    it("active → suspended → active recovery preserves activatedAt", () => {
+      const a1 = activateMemberV2("m1", { now: 100 });
+      suspendMemberV2("m1");
+      const a2 = activateMemberV2("m1", { now: 200 });
+      expect(a2.activatedAt).toBe(a1.activatedAt);
+    });
+
+    it("revoke from invited stamps departedAt", () => {
+      const r = revokeMemberV2("m1", { now: 500 });
+      expect(r.status).toBe("revoked");
+      expect(r.departedAt).toBe(500);
+    });
+
+    it("depart from active terminal stamps departedAt", () => {
+      activateMemberV2("m1");
+      const r = departMemberV2("m1", { now: 999 });
+      expect(r.status).toBe("departed");
+      expect(r.departedAt).toBe(999);
+    });
+
+    it("terminals are sticky", () => {
+      revokeMemberV2("m1");
+      expect(() => activateMemberV2("m1")).toThrow(/terminal/);
+    });
+
+    it("invited → suspended forbidden", () => {
+      expect(() => suspendMemberV2("m1")).toThrow(/cannot transition/);
+    });
+
+    it("rejects unknown next state", () => {
+      expect(() => setMemberStatusV2("m1", "bogus")).toThrow(/unknown/);
+    });
+
+    it("throws on unknown id", () => {
+      expect(() => activateMemberV2("ghost")).toThrow(/not found/);
+    });
+  });
+
+  describe("per-org active-member cap", () => {
+    beforeEach(() => {
+      registerOrgV2("o1", { owner: "a", name: "Acme" });
+    });
+
+    it("enforces cap on invited → active", () => {
+      setMaxActiveMembersPerOrgV2(2);
+      inviteMemberV2("a", { orgId: "o1", userId: "u1" });
+      inviteMemberV2("b", { orgId: "o1", userId: "u2" });
+      inviteMemberV2("c", { orgId: "o1", userId: "u3" });
+      activateMemberV2("a");
+      activateMemberV2("b");
+      expect(() => activateMemberV2("c")).toThrow(/cap/);
+    });
+
+    it("does not enforce cap on suspended → active recovery", () => {
+      setMaxActiveMembersPerOrgV2(1);
+      inviteMemberV2("a", { orgId: "o1", userId: "u1" });
+      activateMemberV2("a");
+      suspendMemberV2("a");
+      expect(() => activateMemberV2("a")).not.toThrow();
+    });
+
+    it("getActiveMemberCountV2 counts only active", () => {
+      inviteMemberV2("a", { orgId: "o1", userId: "u1" });
+      inviteMemberV2("b", { orgId: "o1", userId: "u2" });
+      activateMemberV2("a");
+      activateMemberV2("b");
+      suspendMemberV2("b");
+      expect(getActiveMemberCountV2("o1")).toBe(1);
+    });
+  });
+
+  describe("listOrgsV2 / listMembersV2", () => {
+    it("filters orgs by owner + maturity", () => {
+      registerOrgV2("a", { owner: "x", name: "A" });
+      registerOrgV2("b", { owner: "x", name: "B" });
+      registerOrgV2("c", { owner: "y", name: "C" });
+      activateOrgV2("a");
+      expect(listOrgsV2({ owner: "x" })).toHaveLength(2);
+      expect(listOrgsV2({ maturity: "active" })).toHaveLength(1);
+    });
+
+    it("filters members by org + status", () => {
+      registerOrgV2("o1", { owner: "a", name: "A" });
+      inviteMemberV2("m1", { orgId: "o1", userId: "u1" });
+      inviteMemberV2("m2", { orgId: "o1", userId: "u2" });
+      activateMemberV2("m1");
+      expect(listMembersV2({ orgId: "o1" })).toHaveLength(2);
+      expect(listMembersV2({ status: "active" })).toHaveLength(1);
+      expect(listMembersV2({ status: "invited" })).toHaveLength(1);
+    });
+  });
+
+  describe("autoArchiveIdleOrgsV2", () => {
+    it("archives non-provisional orgs whose lastSeenAt exceeds idle window", () => {
+      setOrgIdleMsV2(1000);
+      registerOrgV2("a", { owner: "x", name: "A", now: 0 });
+      registerOrgV2("b", { owner: "x", name: "B", now: 0 });
+      activateOrgV2("a", { now: 0 });
+      activateOrgV2("b", { now: 5000 });
+      const flipped = autoArchiveIdleOrgsV2({ now: 2000 });
+      expect(flipped.map((o) => o.id)).toEqual(["a"]);
+      expect(getOrgV2("a").maturity).toBe("archived");
+      expect(getOrgV2("b").maturity).toBe("active");
+    });
+
+    it("ignores provisional orgs", () => {
+      setOrgIdleMsV2(1);
+      registerOrgV2("p", { owner: "x", name: "P", now: 0 });
+      const flipped = autoArchiveIdleOrgsV2({ now: 1_000_000 });
+      expect(flipped).toHaveLength(0);
+    });
+  });
+
+  describe("autoRevokeStaleInvitesV2", () => {
+    it("revokes only invites whose lastSeenAt exceeds stale window", () => {
+      setInviteStaleMsV2(1000);
+      registerOrgV2("o", { owner: "a", name: "O" });
+      inviteMemberV2("m1", { orgId: "o", userId: "u1", now: 0 });
+      inviteMemberV2("m2", { orgId: "o", userId: "u2", now: 5000 });
+      const flipped = autoRevokeStaleInvitesV2({ now: 2000 });
+      expect(flipped.map((m) => m.id)).toEqual(["m1"]);
+      expect(getMemberV2("m1").status).toBe("revoked");
+      expect(getMemberV2("m2").status).toBe("invited");
+    });
+
+    it("stamps departedAt on auto-revoke", () => {
+      setInviteStaleMsV2(1);
+      registerOrgV2("o", { owner: "a", name: "O" });
+      inviteMemberV2("m1", { orgId: "o", userId: "u1", now: 0 });
+      autoRevokeStaleInvitesV2({ now: 1_000_000 });
+      expect(getMemberV2("m1").departedAt).toBe(1_000_000);
+    });
+
+    it("ignores active members", () => {
+      setInviteStaleMsV2(1);
+      registerOrgV2("o", { owner: "a", name: "O" });
+      inviteMemberV2("m", { orgId: "o", userId: "u", now: 0 });
+      activateMemberV2("m");
+      const flipped = autoRevokeStaleInvitesV2({ now: 1_000_000 });
+      expect(flipped).toHaveLength(0);
+    });
+  });
+
+  describe("getOrgManagerStatsV2", () => {
+    it("zero-init all enum buckets", () => {
+      const s = getOrgManagerStatsV2();
+      expect(s.totalOrgsV2).toBe(0);
+      expect(s.totalMembersV2).toBe(0);
+      expect(s.orgsByMaturity).toEqual({
+        provisional: 0,
+        active: 0,
+        suspended: 0,
+        archived: 0,
+      });
+      expect(s.membersByStatus).toEqual({
+        invited: 0,
+        active: 0,
+        suspended: 0,
+        revoked: 0,
+        departed: 0,
+      });
+    });
+
+    it("reflects live state", () => {
+      registerOrgV2("o", { owner: "a", name: "O" });
+      activateOrgV2("o");
+      inviteMemberV2("m1", { orgId: "o", userId: "u1" });
+      inviteMemberV2("m2", { orgId: "o", userId: "u2" });
+      activateMemberV2("m1");
+      revokeMemberV2("m2");
+      const s = getOrgManagerStatsV2();
+      expect(s.totalOrgsV2).toBe(1);
+      expect(s.totalMembersV2).toBe(2);
+      expect(s.orgsByMaturity.active).toBe(1);
+      expect(s.membersByStatus.active).toBe(1);
+      expect(s.membersByStatus.revoked).toBe(1);
+    });
+  });
+
+  describe("_resetStateOrgManagerV2", () => {
+    it("clears Maps + restores default config", () => {
+      registerOrgV2("o", { owner: "a", name: "O" });
+      setMaxActiveOrgsPerOwnerV2(99);
+      _resetStateOrgManagerV2();
+      expect(getOrgManagerStatsV2().totalOrgsV2).toBe(0);
+      expect(getMaxActiveOrgsPerOwnerV2()).toBe(
+        ORG_DEFAULT_MAX_ACTIVE_ORGS_PER_OWNER,
+      );
+    });
+  });
+});

@@ -368,3 +368,323 @@ export class CLIPermanentMemory {
     }
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+ * V2 Surface — Permanent memory governance layer.
+ * Tracks per-owner pin maturity + per-pin retention-job lifecycle
+ * independent of file/SQLite/BM25 layers.
+ * ═══════════════════════════════════════════════════════════════ */
+
+export const PIN_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  DORMANT: "dormant",
+  ARCHIVED: "archived",
+});
+
+export const RETENTION_JOB_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+
+const PIN_TRANSITIONS_V2 = new Map([
+  ["pending", new Set(["active", "archived"])],
+  ["active", new Set(["dormant", "archived"])],
+  ["dormant", new Set(["active", "archived"])],
+  ["archived", new Set()],
+]);
+const PIN_TERMINALS_V2 = new Set(["archived"]);
+
+const JOB_TRANSITIONS_V2 = new Map([
+  ["queued", new Set(["running", "cancelled"])],
+  ["running", new Set(["completed", "failed", "cancelled"])],
+  ["completed", new Set()],
+  ["failed", new Set()],
+  ["cancelled", new Set()],
+]);
+const JOB_TERMINALS_V2 = new Set(["completed", "failed", "cancelled"]);
+
+export const PERMMEM_DEFAULT_MAX_ACTIVE_PINS_PER_OWNER = 500;
+export const PERMMEM_DEFAULT_MAX_PENDING_JOBS_PER_PIN = 2;
+export const PERMMEM_DEFAULT_PIN_IDLE_MS = 1000 * 60 * 60 * 24 * 90; // 90 days
+export const PERMMEM_DEFAULT_JOB_STUCK_MS = 1000 * 60 * 15; // 15 min
+
+const _pinsV2 = new Map();
+const _jobsV2 = new Map();
+let _maxActivePinsPerOwnerV2 = PERMMEM_DEFAULT_MAX_ACTIVE_PINS_PER_OWNER;
+let _maxPendingJobsPerPinV2 = PERMMEM_DEFAULT_MAX_PENDING_JOBS_PER_PIN;
+let _pinIdleMsV2 = PERMMEM_DEFAULT_PIN_IDLE_MS;
+let _jobStuckMsV2 = PERMMEM_DEFAULT_JOB_STUCK_MS;
+
+function _posIntPermMemV2(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be a positive integer`);
+  return v;
+}
+
+export function getMaxActivePinsPerOwnerV2() {
+  return _maxActivePinsPerOwnerV2;
+}
+export function setMaxActivePinsPerOwnerV2(n) {
+  _maxActivePinsPerOwnerV2 = _posIntPermMemV2(n, "maxActivePinsPerOwner");
+}
+export function getMaxPendingJobsPerPinV2() {
+  return _maxPendingJobsPerPinV2;
+}
+export function setMaxPendingJobsPerPinV2(n) {
+  _maxPendingJobsPerPinV2 = _posIntPermMemV2(n, "maxPendingJobsPerPin");
+}
+export function getPinIdleMsV2() {
+  return _pinIdleMsV2;
+}
+export function setPinIdleMsV2(n) {
+  _pinIdleMsV2 = _posIntPermMemV2(n, "pinIdleMs");
+}
+export function getJobStuckMsV2() {
+  return _jobStuckMsV2;
+}
+export function setJobStuckMsV2(n) {
+  _jobStuckMsV2 = _posIntPermMemV2(n, "jobStuckMs");
+}
+
+export function getActivePinCountV2(ownerId) {
+  let n = 0;
+  for (const p of _pinsV2.values()) {
+    if (p.ownerId === ownerId && p.status === "active") n += 1;
+  }
+  return n;
+}
+
+export function getPendingJobCountV2(pinId) {
+  let n = 0;
+  for (const j of _jobsV2.values()) {
+    if (j.pinId === pinId && (j.status === "queued" || j.status === "running"))
+      n += 1;
+  }
+  return n;
+}
+
+function _copyPinV2(p) {
+  return { ...p, metadata: { ...p.metadata } };
+}
+function _copyJobV2(j) {
+  return { ...j, metadata: { ...j.metadata } };
+}
+
+export function registerPinV2(
+  id,
+  { ownerId, label, metadata = {}, now = Date.now() } = {},
+) {
+  if (!id || typeof id !== "string") throw new Error("id must be a string");
+  if (!ownerId || typeof ownerId !== "string")
+    throw new Error("ownerId must be a string");
+  if (!label || typeof label !== "string")
+    throw new Error("label must be a string");
+  if (_pinsV2.has(id)) throw new Error(`pin ${id} already exists`);
+  const p = {
+    id,
+    ownerId,
+    label,
+    status: "pending",
+    createdAt: now,
+    lastSeenAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...metadata },
+  };
+  _pinsV2.set(id, p);
+  return _copyPinV2(p);
+}
+
+export function getPinV2(id) {
+  const p = _pinsV2.get(id);
+  return p ? _copyPinV2(p) : null;
+}
+
+export function listPinsV2({ ownerId, status } = {}) {
+  const out = [];
+  for (const p of _pinsV2.values()) {
+    if (ownerId && p.ownerId !== ownerId) continue;
+    if (status && p.status !== status) continue;
+    out.push(_copyPinV2(p));
+  }
+  return out;
+}
+
+export function setPinStatusV2(id, next, { now = Date.now() } = {}) {
+  const p = _pinsV2.get(id);
+  if (!p) throw new Error(`pin ${id} not found`);
+  if (!PIN_TRANSITIONS_V2.has(next))
+    throw new Error(`unknown pin status: ${next}`);
+  if (PIN_TERMINALS_V2.has(p.status))
+    throw new Error(`pin ${id} is in terminal state ${p.status}`);
+  const allowed = PIN_TRANSITIONS_V2.get(p.status);
+  if (!allowed.has(next))
+    throw new Error(`cannot transition pin from ${p.status} to ${next}`);
+  if (next === "active") {
+    if (p.status === "pending") {
+      const count = getActivePinCountV2(p.ownerId);
+      if (count >= _maxActivePinsPerOwnerV2)
+        throw new Error(
+          `owner ${p.ownerId} already at active-pin cap (${_maxActivePinsPerOwnerV2})`,
+        );
+    }
+    if (!p.activatedAt) p.activatedAt = now;
+  }
+  if (next === "archived" && !p.archivedAt) p.archivedAt = now;
+  p.status = next;
+  p.lastSeenAt = now;
+  return _copyPinV2(p);
+}
+
+export function activatePinV2(id, opts) {
+  return setPinStatusV2(id, "active", opts);
+}
+export function dormantPinV2(id, opts) {
+  return setPinStatusV2(id, "dormant", opts);
+}
+export function archivePinV2(id, opts) {
+  return setPinStatusV2(id, "archived", opts);
+}
+
+export function touchPinV2(id, { now = Date.now() } = {}) {
+  const p = _pinsV2.get(id);
+  if (!p) throw new Error(`pin ${id} not found`);
+  p.lastSeenAt = now;
+  return _copyPinV2(p);
+}
+
+export function createRetentionJobV2(
+  id,
+  { pinId, kind = "review", metadata = {}, now = Date.now() } = {},
+) {
+  if (!id || typeof id !== "string") throw new Error("id must be a string");
+  if (!pinId || typeof pinId !== "string")
+    throw new Error("pinId must be a string");
+  if (_jobsV2.has(id)) throw new Error(`job ${id} already exists`);
+  const count = getPendingJobCountV2(pinId);
+  if (count >= _maxPendingJobsPerPinV2)
+    throw new Error(
+      `pin ${pinId} already at pending-job cap (${_maxPendingJobsPerPinV2})`,
+    );
+  const j = {
+    id,
+    pinId,
+    kind,
+    status: "queued",
+    createdAt: now,
+    lastSeenAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...metadata },
+  };
+  _jobsV2.set(id, j);
+  return _copyJobV2(j);
+}
+
+export function getRetentionJobV2(id) {
+  const j = _jobsV2.get(id);
+  return j ? _copyJobV2(j) : null;
+}
+
+export function listRetentionJobsV2({ pinId, status } = {}) {
+  const out = [];
+  for (const j of _jobsV2.values()) {
+    if (pinId && j.pinId !== pinId) continue;
+    if (status && j.status !== status) continue;
+    out.push(_copyJobV2(j));
+  }
+  return out;
+}
+
+export function setRetentionJobStatusV2(id, next, { now = Date.now() } = {}) {
+  const j = _jobsV2.get(id);
+  if (!j) throw new Error(`job ${id} not found`);
+  if (!JOB_TRANSITIONS_V2.has(next))
+    throw new Error(`unknown job status: ${next}`);
+  if (JOB_TERMINALS_V2.has(j.status))
+    throw new Error(`job ${id} is in terminal state ${j.status}`);
+  const allowed = JOB_TRANSITIONS_V2.get(j.status);
+  if (!allowed.has(next))
+    throw new Error(`cannot transition job from ${j.status} to ${next}`);
+  if (next === "running" && !j.startedAt) j.startedAt = now;
+  if (JOB_TERMINALS_V2.has(next) && !j.settledAt) j.settledAt = now;
+  j.status = next;
+  j.lastSeenAt = now;
+  return _copyJobV2(j);
+}
+
+export function startRetentionJobV2(id, opts) {
+  return setRetentionJobStatusV2(id, "running", opts);
+}
+export function completeRetentionJobV2(id, opts) {
+  return setRetentionJobStatusV2(id, "completed", opts);
+}
+export function failRetentionJobV2(id, opts) {
+  return setRetentionJobStatusV2(id, "failed", opts);
+}
+export function cancelRetentionJobV2(id, opts) {
+  return setRetentionJobStatusV2(id, "cancelled", opts);
+}
+
+export function autoDormantIdlePinsV2({ now = Date.now() } = {}) {
+  const flipped = [];
+  for (const p of _pinsV2.values()) {
+    if (p.status !== "active") continue;
+    if (now - p.lastSeenAt > _pinIdleMsV2) {
+      p.status = "dormant";
+      p.lastSeenAt = now;
+      flipped.push(_copyPinV2(p));
+    }
+  }
+  return flipped;
+}
+
+export function autoFailStuckJobsV2({ now = Date.now() } = {}) {
+  const flipped = [];
+  for (const j of _jobsV2.values()) {
+    if (j.status !== "running") continue;
+    if (now - j.lastSeenAt > _jobStuckMsV2) {
+      j.status = "failed";
+      j.lastSeenAt = now;
+      if (!j.settledAt) j.settledAt = now;
+      flipped.push(_copyJobV2(j));
+    }
+  }
+  return flipped;
+}
+
+export function getPermanentMemoryStatsV2() {
+  const pinsByStatus = {};
+  for (const v of Object.values(PIN_MATURITY_V2)) pinsByStatus[v] = 0;
+  for (const p of _pinsV2.values()) pinsByStatus[p.status] += 1;
+
+  const jobsByStatus = {};
+  for (const v of Object.values(RETENTION_JOB_LIFECYCLE_V2))
+    jobsByStatus[v] = 0;
+  for (const j of _jobsV2.values()) jobsByStatus[j.status] += 1;
+
+  return {
+    totalPinsV2: _pinsV2.size,
+    totalJobsV2: _jobsV2.size,
+    maxActivePinsPerOwner: _maxActivePinsPerOwnerV2,
+    maxPendingJobsPerPin: _maxPendingJobsPerPinV2,
+    pinIdleMs: _pinIdleMsV2,
+    jobStuckMs: _jobStuckMsV2,
+    pinsByStatus,
+    jobsByStatus,
+  };
+}
+
+export function _resetStatePermanentMemoryV2() {
+  _pinsV2.clear();
+  _jobsV2.clear();
+  _maxActivePinsPerOwnerV2 = PERMMEM_DEFAULT_MAX_ACTIVE_PINS_PER_OWNER;
+  _maxPendingJobsPerPinV2 = PERMMEM_DEFAULT_MAX_PENDING_JOBS_PER_PIN;
+  _pinIdleMsV2 = PERMMEM_DEFAULT_PIN_IDLE_MS;
+  _jobStuckMsV2 = PERMMEM_DEFAULT_JOB_STUCK_MS;
+}

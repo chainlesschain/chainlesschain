@@ -437,3 +437,432 @@ describe("memory-manager", () => {
     });
   });
 });
+
+// ═══════════════════════════════════════════════════════════════
+// V2 Surface — Memory governance layer
+// ═══════════════════════════════════════════════════════════════
+
+import {
+  ENTRY_MATURITY_V2,
+  CONSOLIDATION_LIFECYCLE_V2,
+  MEMORY_DEFAULT_MAX_ACTIVE_ENTRIES_PER_CATEGORY,
+  MEMORY_DEFAULT_MAX_RUNNING_JOBS_PER_SOURCE,
+  MEMORY_DEFAULT_ENTRY_IDLE_MS,
+  MEMORY_DEFAULT_JOB_STUCK_MS,
+  getMaxActiveEntriesPerCategoryV2,
+  setMaxActiveEntriesPerCategoryV2,
+  getMaxRunningJobsPerSourceV2,
+  setMaxRunningJobsPerSourceV2,
+  getEntryIdleMsV2,
+  setEntryIdleMsV2,
+  getJobStuckMsV2,
+  setJobStuckMsV2,
+  getActiveEntryCountV2,
+  getRunningJobCountV2,
+  registerEntryV2,
+  getEntryV2,
+  listEntriesV2,
+  setEntryStatusV2,
+  activateEntryV2,
+  parkEntryV2,
+  archiveEntryV2,
+  touchEntryV2,
+  createConsolidationJobV2,
+  getConsolidationJobV2,
+  listConsolidationJobsV2,
+  setJobStatusV2,
+  startConsolidationJobV2,
+  succeedConsolidationJobV2,
+  failConsolidationJobV2,
+  cancelConsolidationJobV2,
+  autoParkIdleEntriesV2,
+  autoFailStuckJobsV2,
+  getMemoryManagerStatsV2,
+  _resetStateMemoryManagerV2,
+} from "../../src/lib/memory-manager.js";
+
+describe("Memory Manager V2", () => {
+  beforeEach(() => {
+    _resetStateMemoryManagerV2();
+  });
+
+  describe("enums", () => {
+    it("ENTRY_MATURITY_V2 is frozen with 4 states", () => {
+      expect(Object.values(ENTRY_MATURITY_V2)).toEqual([
+        "pending",
+        "active",
+        "parked",
+        "archived",
+      ]);
+      expect(Object.isFrozen(ENTRY_MATURITY_V2)).toBe(true);
+    });
+    it("CONSOLIDATION_LIFECYCLE_V2 is frozen with 5 states", () => {
+      expect(Object.values(CONSOLIDATION_LIFECYCLE_V2)).toEqual([
+        "queued",
+        "running",
+        "succeeded",
+        "failed",
+        "cancelled",
+      ]);
+      expect(Object.isFrozen(CONSOLIDATION_LIFECYCLE_V2)).toBe(true);
+    });
+  });
+
+  describe("config defaults & setters", () => {
+    it("exposes defaults", () => {
+      expect(MEMORY_DEFAULT_MAX_ACTIVE_ENTRIES_PER_CATEGORY).toBe(200);
+      expect(MEMORY_DEFAULT_MAX_RUNNING_JOBS_PER_SOURCE).toBe(2);
+      expect(MEMORY_DEFAULT_ENTRY_IDLE_MS).toBe(1000 * 60 * 60 * 24 * 90);
+      expect(MEMORY_DEFAULT_JOB_STUCK_MS).toBe(1000 * 60 * 10);
+    });
+    it("getters return current values", () => {
+      expect(getMaxActiveEntriesPerCategoryV2()).toBe(200);
+      expect(getMaxRunningJobsPerSourceV2()).toBe(2);
+      expect(getEntryIdleMsV2()).toBeGreaterThan(0);
+      expect(getJobStuckMsV2()).toBeGreaterThan(0);
+    });
+    it("setters update values and floor non-integers", () => {
+      setMaxActiveEntriesPerCategoryV2(11.7);
+      expect(getMaxActiveEntriesPerCategoryV2()).toBe(11);
+      setMaxRunningJobsPerSourceV2(3.9);
+      expect(getMaxRunningJobsPerSourceV2()).toBe(3);
+      setEntryIdleMsV2(99);
+      expect(getEntryIdleMsV2()).toBe(99);
+      setJobStuckMsV2(11);
+      expect(getJobStuckMsV2()).toBe(11);
+    });
+    it("setters reject zero/negative/NaN", () => {
+      expect(() => setMaxActiveEntriesPerCategoryV2(0)).toThrow();
+      expect(() => setMaxRunningJobsPerSourceV2(-1)).toThrow();
+      expect(() => setEntryIdleMsV2(NaN)).toThrow();
+      expect(() => setJobStuckMsV2(0)).toThrow();
+    });
+    it("_resetStateMemoryManagerV2 restores defaults", () => {
+      setMaxActiveEntriesPerCategoryV2(99);
+      setMaxRunningJobsPerSourceV2(99);
+      setEntryIdleMsV2(99);
+      setJobStuckMsV2(99);
+      _resetStateMemoryManagerV2();
+      expect(getMaxActiveEntriesPerCategoryV2()).toBe(200);
+      expect(getMaxRunningJobsPerSourceV2()).toBe(2);
+      expect(getEntryIdleMsV2()).toBe(MEMORY_DEFAULT_ENTRY_IDLE_MS);
+      expect(getJobStuckMsV2()).toBe(MEMORY_DEFAULT_JOB_STUCK_MS);
+    });
+  });
+
+  describe("registerEntryV2", () => {
+    it("creates a pending entry", () => {
+      const e = registerEntryV2("e1", { category: "kb", summary: "fact" });
+      expect(e.id).toBe("e1");
+      expect(e.status).toBe("pending");
+      expect(e.activatedAt).toBeNull();
+      expect(e.archivedAt).toBeNull();
+    });
+    it("rejects missing/invalid params", () => {
+      expect(() =>
+        registerEntryV2("", { category: "c", summary: "s" }),
+      ).toThrow();
+      expect(() =>
+        registerEntryV2("e", { category: "", summary: "s" }),
+      ).toThrow();
+      expect(() =>
+        registerEntryV2("e", { category: "c", summary: "" }),
+      ).toThrow();
+    });
+    it("rejects duplicate id", () => {
+      registerEntryV2("e1", { category: "c", summary: "s" });
+      expect(() =>
+        registerEntryV2("e1", { category: "c", summary: "s" }),
+      ).toThrow(/already exists/);
+    });
+    it("returns defensive copy", () => {
+      const e = registerEntryV2("e1", {
+        category: "c",
+        summary: "s",
+        metadata: { tag: "x" },
+      });
+      e.metadata.tag = "mutated";
+      expect(getEntryV2("e1").metadata.tag).toBe("x");
+    });
+  });
+
+  describe("entry transitions", () => {
+    beforeEach(() => {
+      registerEntryV2("e1", { category: "kb", summary: "fact" });
+    });
+    it("pending → active stamps activatedAt", () => {
+      const e = activateEntryV2("e1", { now: 1000 });
+      expect(e.status).toBe("active");
+      expect(e.activatedAt).toBe(1000);
+    });
+    it("active → parked → active recovery preserves activatedAt", () => {
+      const a = activateEntryV2("e1", { now: 1000 });
+      parkEntryV2("e1", { now: 2000 });
+      const r = activateEntryV2("e1", { now: 3000 });
+      expect(r.status).toBe("active");
+      expect(r.activatedAt).toBe(a.activatedAt);
+    });
+    it("→ archived stamps archivedAt and is terminal", () => {
+      activateEntryV2("e1");
+      const ar = archiveEntryV2("e1", { now: 5000 });
+      expect(ar.status).toBe("archived");
+      expect(ar.archivedAt).toBe(5000);
+      expect(() => activateEntryV2("e1")).toThrow(/terminal/);
+    });
+    it("rejects unknown next status", () => {
+      expect(() => setEntryStatusV2("e1", "weird")).toThrow(/unknown/);
+    });
+    it("rejects illegal transition (pending → parked)", () => {
+      expect(() => parkEntryV2("e1")).toThrow(/cannot transition/);
+    });
+    it("throws on missing entry", () => {
+      expect(() => activateEntryV2("ghost")).toThrow(/not found/);
+    });
+    it("enforces per-category active-entry cap on pending → active only", () => {
+      setMaxActiveEntriesPerCategoryV2(2);
+      registerEntryV2("e2", { category: "kb", summary: "s" });
+      registerEntryV2("e3", { category: "kb", summary: "s" });
+      activateEntryV2("e1");
+      activateEntryV2("e2");
+      expect(() => activateEntryV2("e3")).toThrow(/cap/);
+    });
+    it("parked → active recovery is exempt from cap", () => {
+      setMaxActiveEntriesPerCategoryV2(1);
+      activateEntryV2("e1");
+      parkEntryV2("e1");
+      registerEntryV2("e2", { category: "kb", summary: "s" });
+      activateEntryV2("e2");
+      expect(() => activateEntryV2("e1")).not.toThrow();
+    });
+    it("cap is per-category", () => {
+      setMaxActiveEntriesPerCategoryV2(1);
+      registerEntryV2("e2", { category: "other", summary: "s" });
+      activateEntryV2("e1");
+      expect(() => activateEntryV2("e2")).not.toThrow();
+    });
+  });
+
+  describe("touchEntryV2", () => {
+    it("updates lastSeenAt", () => {
+      registerEntryV2("e1", { category: "c", summary: "s", now: 100 });
+      const e = touchEntryV2("e1", { now: 500 });
+      expect(e.lastSeenAt).toBe(500);
+    });
+    it("throws on missing entry", () => {
+      expect(() => touchEntryV2("ghost")).toThrow(/not found/);
+    });
+  });
+
+  describe("listEntriesV2 + getActiveEntryCountV2", () => {
+    beforeEach(() => {
+      registerEntryV2("e1", { category: "kb", summary: "s" });
+      registerEntryV2("e2", { category: "kb", summary: "s" });
+      registerEntryV2("e3", { category: "other", summary: "s" });
+      activateEntryV2("e1");
+      activateEntryV2("e2");
+    });
+    it("filters by category/status", () => {
+      expect(listEntriesV2({ category: "kb" })).toHaveLength(2);
+      expect(listEntriesV2({ status: "active" })).toHaveLength(2);
+      expect(listEntriesV2({ status: "pending" })).toHaveLength(1);
+    });
+    it("counts only active per category", () => {
+      expect(getActiveEntryCountV2("kb")).toBe(2);
+      expect(getActiveEntryCountV2("other")).toBe(0);
+    });
+  });
+
+  describe("createConsolidationJobV2", () => {
+    it("creates a queued job", () => {
+      const j = createConsolidationJobV2("j1", {
+        source: "auto",
+        scope: "daily",
+      });
+      expect(j.status).toBe("queued");
+      expect(j.startedAt).toBeNull();
+      expect(j.finishedAt).toBeNull();
+    });
+    it("rejects missing/invalid params", () => {
+      expect(() =>
+        createConsolidationJobV2("", { source: "s", scope: "x" }),
+      ).toThrow();
+      expect(() =>
+        createConsolidationJobV2("j", { source: "", scope: "x" }),
+      ).toThrow();
+      expect(() =>
+        createConsolidationJobV2("j", { source: "s", scope: "" }),
+      ).toThrow();
+    });
+    it("rejects duplicate id", () => {
+      createConsolidationJobV2("j1", { source: "s", scope: "x" });
+      expect(() =>
+        createConsolidationJobV2("j1", { source: "s", scope: "x" }),
+      ).toThrow(/already exists/);
+    });
+  });
+
+  describe("job transitions", () => {
+    beforeEach(() => {
+      createConsolidationJobV2("j1", { source: "auto", scope: "daily" });
+    });
+    it("queued → running stamps startedAt", () => {
+      const j = startConsolidationJobV2("j1", { now: 100 });
+      expect(j.status).toBe("running");
+      expect(j.startedAt).toBe(100);
+    });
+    it("running → succeeded stamps finishedAt and is terminal", () => {
+      startConsolidationJobV2("j1");
+      const j = succeedConsolidationJobV2("j1", { now: 200 });
+      expect(j.status).toBe("succeeded");
+      expect(j.finishedAt).toBe(200);
+      expect(() => failConsolidationJobV2("j1")).toThrow(/terminal/);
+    });
+    it("running → failed stamps finishedAt and is terminal", () => {
+      startConsolidationJobV2("j1");
+      const j = failConsolidationJobV2("j1", { now: 300 });
+      expect(j.status).toBe("failed");
+      expect(j.finishedAt).toBe(300);
+    });
+    it("queued → cancelled stamps finishedAt", () => {
+      const j = cancelConsolidationJobV2("j1", { now: 400 });
+      expect(j.status).toBe("cancelled");
+      expect(j.finishedAt).toBe(400);
+    });
+    it("rejects unknown next status", () => {
+      expect(() => setJobStatusV2("j1", "weird")).toThrow(/unknown/);
+    });
+    it("rejects illegal transition (queued → succeeded)", () => {
+      expect(() => succeedConsolidationJobV2("j1")).toThrow(
+        /cannot transition/,
+      );
+    });
+    it("throws on missing job", () => {
+      expect(() => startConsolidationJobV2("ghost")).toThrow(/not found/);
+    });
+    it("enforces per-source running-job cap on queued → running only", () => {
+      setMaxRunningJobsPerSourceV2(1);
+      createConsolidationJobV2("j2", { source: "auto", scope: "daily" });
+      startConsolidationJobV2("j1");
+      expect(() => startConsolidationJobV2("j2")).toThrow(/cap/);
+    });
+    it("cap is per-source", () => {
+      setMaxRunningJobsPerSourceV2(1);
+      createConsolidationJobV2("j2", { source: "user", scope: "daily" });
+      startConsolidationJobV2("j1");
+      expect(() => startConsolidationJobV2("j2")).not.toThrow();
+    });
+  });
+
+  describe("listConsolidationJobsV2 + getRunningJobCountV2", () => {
+    beforeEach(() => {
+      createConsolidationJobV2("j1", { source: "auto", scope: "daily" });
+      createConsolidationJobV2("j2", { source: "auto", scope: "daily" });
+      createConsolidationJobV2("j3", { source: "user", scope: "weekly" });
+      startConsolidationJobV2("j1");
+      startConsolidationJobV2("j2");
+    });
+    it("filters by source/status", () => {
+      expect(listConsolidationJobsV2({ source: "auto" })).toHaveLength(2);
+      expect(listConsolidationJobsV2({ status: "running" })).toHaveLength(2);
+      expect(listConsolidationJobsV2({ status: "queued" })).toHaveLength(1);
+    });
+    it("counts only running per source", () => {
+      expect(getRunningJobCountV2("auto")).toBe(2);
+      expect(getRunningJobCountV2("user")).toBe(0);
+    });
+  });
+
+  describe("autoParkIdleEntriesV2", () => {
+    it("flips active entries past idle threshold", () => {
+      registerEntryV2("e1", { category: "kb", summary: "s", now: 0 });
+      activateEntryV2("e1", { now: 0 });
+      setEntryIdleMsV2(1000);
+      const flipped = autoParkIdleEntriesV2({ now: 5000 });
+      expect(flipped).toHaveLength(1);
+      expect(flipped[0].status).toBe("parked");
+    });
+    it("skips non-active entries", () => {
+      registerEntryV2("e1", { category: "kb", summary: "s", now: 0 });
+      const flipped = autoParkIdleEntriesV2({ now: 9999999 });
+      expect(flipped).toHaveLength(0);
+    });
+    it("preserves active under idle threshold", () => {
+      registerEntryV2("e1", { category: "kb", summary: "s", now: 0 });
+      activateEntryV2("e1", { now: 0 });
+      setEntryIdleMsV2(10000);
+      const flipped = autoParkIdleEntriesV2({ now: 500 });
+      expect(flipped).toHaveLength(0);
+    });
+  });
+
+  describe("autoFailStuckJobsV2", () => {
+    it("flips running past stuck threshold to failed", () => {
+      createConsolidationJobV2("j1", {
+        source: "auto",
+        scope: "daily",
+        now: 0,
+      });
+      startConsolidationJobV2("j1", { now: 0 });
+      setJobStuckMsV2(1000);
+      const flipped = autoFailStuckJobsV2({ now: 5000 });
+      expect(flipped).toHaveLength(1);
+      expect(flipped[0].status).toBe("failed");
+      expect(flipped[0].finishedAt).toBe(5000);
+    });
+    it("skips terminal jobs", () => {
+      createConsolidationJobV2("j1", {
+        source: "auto",
+        scope: "daily",
+        now: 0,
+      });
+      cancelConsolidationJobV2("j1", { now: 0 });
+      const flipped = autoFailStuckJobsV2({ now: 9999999 });
+      expect(flipped).toHaveLength(0);
+    });
+    it("skips queued (not running)", () => {
+      createConsolidationJobV2("j1", {
+        source: "auto",
+        scope: "daily",
+        now: 0,
+      });
+      setJobStuckMsV2(1);
+      const flipped = autoFailStuckJobsV2({ now: 9999999 });
+      expect(flipped).toHaveLength(0);
+    });
+  });
+
+  describe("getMemoryManagerStatsV2", () => {
+    it("zero-initializes all enum keys", () => {
+      const s = getMemoryManagerStatsV2();
+      expect(s.entriesByStatus.pending).toBe(0);
+      expect(s.entriesByStatus.active).toBe(0);
+      expect(s.entriesByStatus.parked).toBe(0);
+      expect(s.entriesByStatus.archived).toBe(0);
+      expect(s.jobsByStatus.queued).toBe(0);
+      expect(s.jobsByStatus.running).toBe(0);
+      expect(s.jobsByStatus.succeeded).toBe(0);
+      expect(s.jobsByStatus.failed).toBe(0);
+      expect(s.jobsByStatus.cancelled).toBe(0);
+      expect(s.totalEntriesV2).toBe(0);
+      expect(s.totalJobsV2).toBe(0);
+    });
+    it("counts entries + jobs by status", () => {
+      registerEntryV2("e1", { category: "c", summary: "s" });
+      activateEntryV2("e1");
+      createConsolidationJobV2("j1", { source: "auto", scope: "daily" });
+      startConsolidationJobV2("j1");
+      const s = getMemoryManagerStatsV2();
+      expect(s.entriesByStatus.active).toBe(1);
+      expect(s.jobsByStatus.running).toBe(1);
+      expect(s.totalEntriesV2).toBe(1);
+      expect(s.totalJobsV2).toBe(1);
+    });
+    it("includes config snapshot", () => {
+      const s = getMemoryManagerStatsV2();
+      expect(s.maxActiveEntriesPerCategory).toBe(200);
+      expect(s.maxRunningJobsPerSource).toBe(2);
+      expect(s.entryIdleMs).toBeGreaterThan(0);
+      expect(s.jobStuckMs).toBeGreaterThan(0);
+    });
+  });
+});

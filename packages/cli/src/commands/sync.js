@@ -16,6 +16,35 @@ import {
   clearSyncData,
   registerResource,
   getAllSyncStates,
+  RESOURCE_MATURITY_V2,
+  SYNC_RUN_V2,
+  getMaxActiveResourcesPerOwnerV2,
+  setMaxActiveResourcesPerOwnerV2,
+  getMaxRunningRunsPerResourceV2,
+  setMaxRunningRunsPerResourceV2,
+  getResourceIdleMsV2,
+  setResourceIdleMsV2,
+  getRunStuckMsV2,
+  setRunStuckMsV2,
+  getActiveResourceCountV2,
+  getRunningRunCountV2,
+  registerResourceV2,
+  getResourceV2,
+  listResourcesV2,
+  activateResourceV2,
+  pauseResourceV2,
+  archiveResourceV2,
+  touchResourceV2,
+  createSyncRunV2,
+  getSyncRunV2,
+  listSyncRunsV2,
+  startSyncRunV2,
+  succeedSyncRunV2,
+  failSyncRunV2,
+  cancelSyncRunV2,
+  autoArchiveIdleResourcesV2,
+  autoFailStuckSyncRunsV2,
+  getSyncManagerStatsV2,
 } from "../lib/sync-manager.js";
 
 export function registerSyncCommand(program) {
@@ -245,5 +274,232 @@ export function registerSyncCommand(program) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
       }
+    });
+
+  // ─────────────────────────────────────────────────────────────
+  // V2 Surface — resource + sync-run lifecycle (in-memory, throwing API)
+  // ─────────────────────────────────────────────────────────────
+
+  sync
+    .command("resource-maturities-v2")
+    .description("List V2 resource maturity states")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const v = Object.values(RESOURCE_MATURITY_V2);
+      if (options.json) console.log(JSON.stringify(v));
+      else logger.log(v.join(", "));
+    });
+
+  sync
+    .command("run-lifecycles-v2")
+    .description("List V2 sync-run lifecycle states")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const v = Object.values(SYNC_RUN_V2);
+      if (options.json) console.log(JSON.stringify(v));
+      else logger.log(v.join(", "));
+    });
+
+  sync
+    .command("stats-v2")
+    .description("Show V2 sync stats")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const stats = getSyncManagerStatsV2();
+      if (options.json) console.log(JSON.stringify(stats, null, 2));
+      else logger.log(JSON.stringify(stats, null, 2));
+    });
+
+  sync
+    .command("get-max-active-resources-v2")
+    .description("Get max active resources per owner")
+    .action(() => logger.log(String(getMaxActiveResourcesPerOwnerV2())));
+  sync
+    .command("set-max-active-resources-v2 <n>")
+    .description("Set max active resources per owner")
+    .action((n) => {
+      setMaxActiveResourcesPerOwnerV2(Number(n));
+      logger.log(String(getMaxActiveResourcesPerOwnerV2()));
+    });
+  sync
+    .command("get-max-running-runs-v2")
+    .description("Get max running runs per resource")
+    .action(() => logger.log(String(getMaxRunningRunsPerResourceV2())));
+  sync
+    .command("set-max-running-runs-v2 <n>")
+    .description("Set max running runs per resource")
+    .action((n) => {
+      setMaxRunningRunsPerResourceV2(Number(n));
+      logger.log(String(getMaxRunningRunsPerResourceV2()));
+    });
+  sync
+    .command("get-resource-idle-ms-v2")
+    .description("Get resource idle ms")
+    .action(() => logger.log(String(getResourceIdleMsV2())));
+  sync
+    .command("set-resource-idle-ms-v2 <ms>")
+    .description("Set resource idle ms")
+    .action((ms) => {
+      setResourceIdleMsV2(Number(ms));
+      logger.log(String(getResourceIdleMsV2()));
+    });
+  sync
+    .command("get-run-stuck-ms-v2")
+    .description("Get run stuck ms")
+    .action(() => logger.log(String(getRunStuckMsV2())));
+  sync
+    .command("set-run-stuck-ms-v2 <ms>")
+    .description("Set run stuck ms")
+    .action((ms) => {
+      setRunStuckMsV2(Number(ms));
+      logger.log(String(getRunStuckMsV2()));
+    });
+
+  sync
+    .command("active-resource-count-v2 <owner>")
+    .description("Count active resources for owner")
+    .action((owner) => logger.log(String(getActiveResourceCountV2(owner))));
+  sync
+    .command("running-run-count-v2 <resourceId>")
+    .description("Count running runs for resource")
+    .action((resourceId) =>
+      logger.log(String(getRunningRunCountV2(resourceId))),
+    );
+
+  sync
+    .command("register-resource-v2 <id>")
+    .description("Register V2 resource (initial=pending)")
+    .requiredOption("-o, --owner <owner>", "owner")
+    .requiredOption("-k, --kind <kind>", "kind (file/note/...)")
+    .option("-m, --metadata <json>", "metadata JSON", "{}")
+    .action((id, opts) => {
+      const meta = JSON.parse(opts.metadata);
+      const r = registerResourceV2(id, {
+        owner: opts.owner,
+        kind: opts.kind,
+        metadata: meta,
+      });
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  sync
+    .command("get-resource-v2 <id>")
+    .description("Get V2 resource by id")
+    .action((id) => {
+      const r = getResourceV2(id);
+      if (!r) {
+        logger.error(`resource ${id} not found`);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  sync
+    .command("list-resources-v2")
+    .description("List V2 resources")
+    .option("-o, --owner <owner>", "filter by owner")
+    .option("-k, --kind <kind>", "filter by kind")
+    .option("-s, --status <state>", "filter by status")
+    .action((opts) => {
+      const out = listResourcesV2({
+        owner: opts.owner,
+        kind: opts.kind,
+        status: opts.status,
+      });
+      console.log(JSON.stringify(out, null, 2));
+    });
+
+  sync
+    .command("activate-resource-v2 <id>")
+    .description("Transition resource → active")
+    .action((id) =>
+      console.log(JSON.stringify(activateResourceV2(id), null, 2)),
+    );
+  sync
+    .command("pause-resource-v2 <id>")
+    .description("Transition resource → paused")
+    .action((id) => console.log(JSON.stringify(pauseResourceV2(id), null, 2)));
+  sync
+    .command("archive-resource-v2 <id>")
+    .description("Transition resource → archived (terminal)")
+    .action((id) =>
+      console.log(JSON.stringify(archiveResourceV2(id), null, 2)),
+    );
+  sync
+    .command("touch-resource-v2 <id>")
+    .description("Update resource lastSeenAt")
+    .action((id) => console.log(JSON.stringify(touchResourceV2(id), null, 2)));
+
+  sync
+    .command("create-sync-run-v2 <id>")
+    .description("Create V2 sync run (initial=queued)")
+    .requiredOption("-r, --resource <id>", "resource id")
+    .option("-k, --kind <kind>", "run kind", "push")
+    .option("-m, --metadata <json>", "metadata JSON", "{}")
+    .action((id, opts) => {
+      const meta = JSON.parse(opts.metadata);
+      const j = createSyncRunV2(id, {
+        resourceId: opts.resource,
+        kind: opts.kind,
+        metadata: meta,
+      });
+      console.log(JSON.stringify(j, null, 2));
+    });
+
+  sync
+    .command("get-sync-run-v2 <id>")
+    .description("Get V2 sync run by id")
+    .action((id) => {
+      const j = getSyncRunV2(id);
+      if (!j) {
+        logger.error(`syncRun ${id} not found`);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(j, null, 2));
+    });
+
+  sync
+    .command("list-sync-runs-v2")
+    .description("List V2 sync runs")
+    .option("-r, --resource <id>", "filter by resource")
+    .option("-s, --status <state>", "filter by status")
+    .action((opts) => {
+      const out = listSyncRunsV2({
+        resourceId: opts.resource,
+        status: opts.status,
+      });
+      console.log(JSON.stringify(out, null, 2));
+    });
+
+  sync
+    .command("start-sync-run-v2 <id>")
+    .description("Transition sync run → running")
+    .action((id) => console.log(JSON.stringify(startSyncRunV2(id), null, 2)));
+  sync
+    .command("succeed-sync-run-v2 <id>")
+    .description("Transition sync run → succeeded (terminal)")
+    .action((id) => console.log(JSON.stringify(succeedSyncRunV2(id), null, 2)));
+  sync
+    .command("fail-sync-run-v2 <id>")
+    .description("Transition sync run → failed (terminal)")
+    .action((id) => console.log(JSON.stringify(failSyncRunV2(id), null, 2)));
+  sync
+    .command("cancel-sync-run-v2 <id>")
+    .description("Transition sync run → cancelled (terminal)")
+    .action((id) => console.log(JSON.stringify(cancelSyncRunV2(id), null, 2)));
+
+  sync
+    .command("auto-archive-idle-v2")
+    .description("Auto-archive idle resources; output flipped")
+    .action(() => {
+      const flipped = autoArchiveIdleResourcesV2();
+      console.log(JSON.stringify(flipped, null, 2));
+    });
+  sync
+    .command("auto-fail-stuck-runs-v2")
+    .description("Auto-fail stuck running syncs; output flipped")
+    .action(() => {
+      const flipped = autoFailStuckSyncRunsV2();
+      console.log(JSON.stringify(flipped, null, 2));
     });
 }

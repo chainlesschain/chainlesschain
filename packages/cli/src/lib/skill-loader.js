@@ -356,3 +356,380 @@ export class CLISkillLoader {
     this._cache = null;
   }
 }
+
+// ─── V2 Governance Layer ────────────────────────────────────────────
+//
+// In-memory governance for skill registrations + execution tickets,
+// independent of the file-based 4-layer CLISkillLoader (which scans
+// bundled/marketplace/managed/workspace dirs). V2 tracks maturity
+// transitions, per-owner active-skill caps, per-skill pending-execution
+// caps, stamp-once timestamps, and bulk auto-flip routines.
+
+export const SKILL_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  DEPRECATED: "deprecated",
+  ARCHIVED: "archived",
+});
+
+export const EXECUTION_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  SUCCEEDED: "succeeded",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+
+const _SKILL_TRANSITIONS_V2 = new Map([
+  [
+    SKILL_MATURITY_V2.PENDING,
+    new Set([SKILL_MATURITY_V2.ACTIVE, SKILL_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    SKILL_MATURITY_V2.ACTIVE,
+    new Set([SKILL_MATURITY_V2.DEPRECATED, SKILL_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    SKILL_MATURITY_V2.DEPRECATED,
+    new Set([SKILL_MATURITY_V2.ACTIVE, SKILL_MATURITY_V2.ARCHIVED]),
+  ],
+  [SKILL_MATURITY_V2.ARCHIVED, new Set()],
+]);
+
+const _SKILL_TERMINALS_V2 = new Set([SKILL_MATURITY_V2.ARCHIVED]);
+
+const _EXEC_TRANSITIONS_V2 = new Map([
+  [
+    EXECUTION_LIFECYCLE_V2.QUEUED,
+    new Set([EXECUTION_LIFECYCLE_V2.RUNNING, EXECUTION_LIFECYCLE_V2.CANCELLED]),
+  ],
+  [
+    EXECUTION_LIFECYCLE_V2.RUNNING,
+    new Set([
+      EXECUTION_LIFECYCLE_V2.SUCCEEDED,
+      EXECUTION_LIFECYCLE_V2.FAILED,
+      EXECUTION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [EXECUTION_LIFECYCLE_V2.SUCCEEDED, new Set()],
+  [EXECUTION_LIFECYCLE_V2.FAILED, new Set()],
+  [EXECUTION_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+
+const _EXEC_TERMINALS_V2 = new Set([
+  EXECUTION_LIFECYCLE_V2.SUCCEEDED,
+  EXECUTION_LIFECYCLE_V2.FAILED,
+  EXECUTION_LIFECYCLE_V2.CANCELLED,
+]);
+
+export const SKILL_DEFAULT_MAX_ACTIVE_PER_OWNER = 30;
+export const SKILL_DEFAULT_MAX_PENDING_EXECUTIONS_PER_SKILL = 5;
+export const SKILL_DEFAULT_SKILL_IDLE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+export const SKILL_DEFAULT_EXEC_STUCK_MS = 15 * 60 * 1000; // 15 min
+
+const _stateV2 = {
+  skills: new Map(),
+  executions: new Map(),
+  maxActiveSkillsPerOwner: SKILL_DEFAULT_MAX_ACTIVE_PER_OWNER,
+  maxPendingExecutionsPerSkill: SKILL_DEFAULT_MAX_PENDING_EXECUTIONS_PER_SKILL,
+  skillIdleMs: SKILL_DEFAULT_SKILL_IDLE_MS,
+  execStuckMs: SKILL_DEFAULT_EXEC_STUCK_MS,
+};
+
+function _posIntSkillV2(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0) {
+    throw new Error(`${label} must be a positive integer, got ${n}`);
+  }
+  return v;
+}
+
+export function getMaxActiveSkillsPerOwnerV2() {
+  return _stateV2.maxActiveSkillsPerOwner;
+}
+
+export function setMaxActiveSkillsPerOwnerV2(n) {
+  _stateV2.maxActiveSkillsPerOwner = _posIntSkillV2(
+    n,
+    "maxActiveSkillsPerOwner",
+  );
+}
+
+export function getMaxPendingExecutionsPerSkillV2() {
+  return _stateV2.maxPendingExecutionsPerSkill;
+}
+
+export function setMaxPendingExecutionsPerSkillV2(n) {
+  _stateV2.maxPendingExecutionsPerSkill = _posIntSkillV2(
+    n,
+    "maxPendingExecutionsPerSkill",
+  );
+}
+
+export function getSkillIdleMsV2() {
+  return _stateV2.skillIdleMs;
+}
+
+export function setSkillIdleMsV2(ms) {
+  _stateV2.skillIdleMs = _posIntSkillV2(ms, "skillIdleMs");
+}
+
+export function getExecStuckMsV2() {
+  return _stateV2.execStuckMs;
+}
+
+export function setExecStuckMsV2(ms) {
+  _stateV2.execStuckMs = _posIntSkillV2(ms, "execStuckMs");
+}
+
+function _copySkillV2(s) {
+  return { ...s, metadata: { ...s.metadata } };
+}
+
+function _copyExecV2(e) {
+  return { ...e, metadata: { ...e.metadata } };
+}
+
+export function getActiveSkillCountV2(ownerId) {
+  let count = 0;
+  for (const s of _stateV2.skills.values()) {
+    if (s.ownerId === ownerId && s.status === SKILL_MATURITY_V2.ACTIVE) count++;
+  }
+  return count;
+}
+
+export function getPendingExecutionCountV2(skillId) {
+  let count = 0;
+  for (const e of _stateV2.executions.values()) {
+    if (
+      e.skillId === skillId &&
+      (e.status === EXECUTION_LIFECYCLE_V2.QUEUED ||
+        e.status === EXECUTION_LIFECYCLE_V2.RUNNING)
+    ) {
+      count++;
+    }
+  }
+  return count;
+}
+
+export function registerSkillV2(id, { ownerId, name, layer, metadata } = {}) {
+  if (!id) throw new Error("skill id is required");
+  if (!ownerId) throw new Error("ownerId is required");
+  if (!name) throw new Error("name is required");
+  if (_stateV2.skills.has(id)) throw new Error(`skill ${id} already exists`);
+  const now = Date.now();
+  const skill = {
+    id,
+    ownerId,
+    name,
+    layer: layer || "workspace",
+    status: SKILL_MATURITY_V2.PENDING,
+    createdAt: now,
+    lastSeenAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: metadata ? { ...metadata } : {},
+  };
+  _stateV2.skills.set(id, skill);
+  return _copySkillV2(skill);
+}
+
+export function getSkillV2(id) {
+  const s = _stateV2.skills.get(id);
+  return s ? _copySkillV2(s) : null;
+}
+
+export function listSkillsV2({ ownerId, status, layer } = {}) {
+  const out = [];
+  for (const s of _stateV2.skills.values()) {
+    if (ownerId && s.ownerId !== ownerId) continue;
+    if (status && s.status !== status) continue;
+    if (layer && s.layer !== layer) continue;
+    out.push(_copySkillV2(s));
+  }
+  return out;
+}
+
+export function setSkillStatusV2(id, next) {
+  const s = _stateV2.skills.get(id);
+  if (!s) throw new Error(`skill ${id} not found`);
+  const allowed = _SKILL_TRANSITIONS_V2.get(s.status);
+  if (!allowed || !allowed.has(next)) {
+    throw new Error(`invalid skill transition: ${s.status} → ${next}`);
+  }
+  if (
+    s.status === SKILL_MATURITY_V2.PENDING &&
+    next === SKILL_MATURITY_V2.ACTIVE
+  ) {
+    const count = getActiveSkillCountV2(s.ownerId);
+    if (count >= _stateV2.maxActiveSkillsPerOwner) {
+      throw new Error(
+        `owner ${s.ownerId} active-skill cap reached (${count}/${_stateV2.maxActiveSkillsPerOwner})`,
+      );
+    }
+  }
+  const now = Date.now();
+  s.status = next;
+  s.lastSeenAt = now;
+  if (next === SKILL_MATURITY_V2.ACTIVE && !s.activatedAt) s.activatedAt = now;
+  if (_SKILL_TERMINALS_V2.has(next) && !s.archivedAt) s.archivedAt = now;
+  return _copySkillV2(s);
+}
+
+export function activateSkillV2(id) {
+  return setSkillStatusV2(id, SKILL_MATURITY_V2.ACTIVE);
+}
+
+export function deprecateSkillV2(id) {
+  return setSkillStatusV2(id, SKILL_MATURITY_V2.DEPRECATED);
+}
+
+export function archiveSkillV2(id) {
+  return setSkillStatusV2(id, SKILL_MATURITY_V2.ARCHIVED);
+}
+
+export function touchSkillV2(id) {
+  const s = _stateV2.skills.get(id);
+  if (!s) throw new Error(`skill ${id} not found`);
+  s.lastSeenAt = Date.now();
+  return _copySkillV2(s);
+}
+
+export function createExecutionV2(id, { skillId, kind, metadata } = {}) {
+  if (!id) throw new Error("execution id is required");
+  if (!skillId) throw new Error("skillId is required");
+  if (_stateV2.executions.has(id))
+    throw new Error(`execution ${id} already exists`);
+  const skill = _stateV2.skills.get(skillId);
+  if (!skill) throw new Error(`skill ${skillId} not found`);
+  const pending = getPendingExecutionCountV2(skillId);
+  if (pending >= _stateV2.maxPendingExecutionsPerSkill) {
+    throw new Error(
+      `skill ${skillId} pending-execution cap reached (${pending}/${_stateV2.maxPendingExecutionsPerSkill})`,
+    );
+  }
+  const now = Date.now();
+  const exec = {
+    id,
+    skillId,
+    kind: kind || "invoke",
+    status: EXECUTION_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    lastSeenAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: metadata ? { ...metadata } : {},
+  };
+  _stateV2.executions.set(id, exec);
+  return _copyExecV2(exec);
+}
+
+export function getExecutionV2(id) {
+  const e = _stateV2.executions.get(id);
+  return e ? _copyExecV2(e) : null;
+}
+
+export function listExecutionsV2({ skillId, status } = {}) {
+  const out = [];
+  for (const e of _stateV2.executions.values()) {
+    if (skillId && e.skillId !== skillId) continue;
+    if (status && e.status !== status) continue;
+    out.push(_copyExecV2(e));
+  }
+  return out;
+}
+
+export function setExecutionStatusV2(id, next) {
+  const e = _stateV2.executions.get(id);
+  if (!e) throw new Error(`execution ${id} not found`);
+  const allowed = _EXEC_TRANSITIONS_V2.get(e.status);
+  if (!allowed || !allowed.has(next)) {
+    throw new Error(`invalid execution transition: ${e.status} → ${next}`);
+  }
+  const now = Date.now();
+  e.status = next;
+  e.lastSeenAt = now;
+  if (next === EXECUTION_LIFECYCLE_V2.RUNNING && !e.startedAt)
+    e.startedAt = now;
+  if (_EXEC_TERMINALS_V2.has(next) && !e.settledAt) e.settledAt = now;
+  return _copyExecV2(e);
+}
+
+export function startExecutionV2(id) {
+  return setExecutionStatusV2(id, EXECUTION_LIFECYCLE_V2.RUNNING);
+}
+
+export function succeedExecutionV2(id) {
+  return setExecutionStatusV2(id, EXECUTION_LIFECYCLE_V2.SUCCEEDED);
+}
+
+export function failExecutionV2(id) {
+  return setExecutionStatusV2(id, EXECUTION_LIFECYCLE_V2.FAILED);
+}
+
+export function cancelExecutionV2(id) {
+  return setExecutionStatusV2(id, EXECUTION_LIFECYCLE_V2.CANCELLED);
+}
+
+export function autoDeprecateIdleSkillsV2({ now = Date.now() } = {}) {
+  const flipped = [];
+  for (const s of _stateV2.skills.values()) {
+    if (
+      s.status === SKILL_MATURITY_V2.ACTIVE &&
+      now - s.lastSeenAt > _stateV2.skillIdleMs
+    ) {
+      s.status = SKILL_MATURITY_V2.DEPRECATED;
+      s.lastSeenAt = now;
+      flipped.push(_copySkillV2(s));
+    }
+  }
+  return flipped;
+}
+
+export function autoFailStuckExecutionsV2({ now = Date.now() } = {}) {
+  const flipped = [];
+  for (const e of _stateV2.executions.values()) {
+    if (
+      e.status === EXECUTION_LIFECYCLE_V2.RUNNING &&
+      now - e.lastSeenAt > _stateV2.execStuckMs
+    ) {
+      e.status = EXECUTION_LIFECYCLE_V2.FAILED;
+      e.lastSeenAt = now;
+      if (!e.settledAt) e.settledAt = now;
+      flipped.push(_copyExecV2(e));
+    }
+  }
+  return flipped;
+}
+
+export function getSkillLoaderStatsV2() {
+  const skillsByStatus = {};
+  for (const v of Object.values(SKILL_MATURITY_V2)) skillsByStatus[v] = 0;
+  for (const s of _stateV2.skills.values()) skillsByStatus[s.status]++;
+
+  const executionsByStatus = {};
+  for (const v of Object.values(EXECUTION_LIFECYCLE_V2))
+    executionsByStatus[v] = 0;
+  for (const e of _stateV2.executions.values()) executionsByStatus[e.status]++;
+
+  return {
+    totalSkillsV2: _stateV2.skills.size,
+    totalExecutionsV2: _stateV2.executions.size,
+    maxActiveSkillsPerOwner: _stateV2.maxActiveSkillsPerOwner,
+    maxPendingExecutionsPerSkill: _stateV2.maxPendingExecutionsPerSkill,
+    skillIdleMs: _stateV2.skillIdleMs,
+    execStuckMs: _stateV2.execStuckMs,
+    skillsByStatus,
+    executionsByStatus,
+  };
+}
+
+export function _resetStateSkillLoaderV2() {
+  _stateV2.skills.clear();
+  _stateV2.executions.clear();
+  _stateV2.maxActiveSkillsPerOwner = SKILL_DEFAULT_MAX_ACTIVE_PER_OWNER;
+  _stateV2.maxPendingExecutionsPerSkill =
+    SKILL_DEFAULT_MAX_PENDING_EXECUTIONS_PER_SKILL;
+  _stateV2.skillIdleMs = SKILL_DEFAULT_SKILL_IDLE_MS;
+  _stateV2.execStuckMs = SKILL_DEFAULT_EXEC_STUCK_MS;
+}

@@ -14,6 +14,35 @@ import {
   decayInstincts,
   generateInstinctPrompt,
   INSTINCT_CATEGORIES,
+  PROFILE_MATURITY_V2,
+  OBSERVATION_LIFECYCLE_V2,
+  getMaxActiveProfilesPerUserV2,
+  setMaxActiveProfilesPerUserV2,
+  getMaxPendingObsPerProfileV2,
+  setMaxPendingObsPerProfileV2,
+  getProfileIdleMsV2,
+  setProfileIdleMsV2,
+  getObsStuckMsV2,
+  setObsStuckMsV2,
+  getActiveProfileCountV2,
+  getPendingObsCountV2,
+  registerProfileV2,
+  getProfileV2,
+  listProfilesV2,
+  activateProfileV2,
+  dormantProfileV2,
+  archiveProfileV2,
+  touchProfileV2,
+  createObservationV2,
+  getObservationV2,
+  listObservationsV2,
+  reviewObservationV2,
+  reinforceObservationV2,
+  promoteObservationV2,
+  discardObservationV2,
+  autoDormantIdleProfilesV2,
+  autoDiscardStaleObservationsV2,
+  getInstinctManagerStatsV2,
 } from "../lib/instinct-manager.js";
 
 export function registerInstinctCommand(program) {
@@ -199,4 +228,235 @@ export function registerInstinctCommand(program) {
         process.exit(1);
       }
     });
+
+  // ─── V2 governance surface ─────────────────────────────────
+
+  instinct
+    .command("profile-maturities-v2")
+    .description("List V2 profile maturity states")
+    .action(() => {
+      console.log(JSON.stringify(Object.values(PROFILE_MATURITY_V2), null, 2));
+    });
+
+  instinct
+    .command("observation-lifecycles-v2")
+    .description("List V2 observation lifecycle states")
+    .action(() => {
+      console.log(
+        JSON.stringify(Object.values(OBSERVATION_LIFECYCLE_V2), null, 2),
+      );
+    });
+
+  instinct
+    .command("stats-v2")
+    .description("Show V2 governance stats")
+    .action(() => {
+      console.log(JSON.stringify(getInstinctManagerStatsV2(), null, 2));
+    });
+
+  instinct
+    .command("get-max-active-profiles-v2")
+    .description("Get max active profiles per user")
+    .action(() => console.log(getMaxActiveProfilesPerUserV2()));
+
+  instinct
+    .command("set-max-active-profiles-v2 <n>")
+    .description("Set max active profiles per user")
+    .action((n) => {
+      setMaxActiveProfilesPerUserV2(Number(n));
+      console.log(getMaxActiveProfilesPerUserV2());
+    });
+
+  instinct
+    .command("get-max-pending-obs-v2")
+    .description("Get max pending observations per profile")
+    .action(() => console.log(getMaxPendingObsPerProfileV2()));
+
+  instinct
+    .command("set-max-pending-obs-v2 <n>")
+    .description("Set max pending observations per profile")
+    .action((n) => {
+      setMaxPendingObsPerProfileV2(Number(n));
+      console.log(getMaxPendingObsPerProfileV2());
+    });
+
+  instinct
+    .command("get-profile-idle-ms-v2")
+    .description("Get profile idle threshold (ms)")
+    .action(() => console.log(getProfileIdleMsV2()));
+
+  instinct
+    .command("set-profile-idle-ms-v2 <n>")
+    .description("Set profile idle threshold (ms)")
+    .action((n) => {
+      setProfileIdleMsV2(Number(n));
+      console.log(getProfileIdleMsV2());
+    });
+
+  instinct
+    .command("get-obs-stuck-ms-v2")
+    .description("Get observation stuck threshold (ms)")
+    .action(() => console.log(getObsStuckMsV2()));
+
+  instinct
+    .command("set-obs-stuck-ms-v2 <n>")
+    .description("Set observation stuck threshold (ms)")
+    .action((n) => {
+      setObsStuckMsV2(Number(n));
+      console.log(getObsStuckMsV2());
+    });
+
+  instinct
+    .command("active-profile-count-v2 <userId>")
+    .description("Count active profiles for a user")
+    .action((userId) => console.log(getActiveProfileCountV2(userId)));
+
+  instinct
+    .command("pending-obs-count-v2 <profileId>")
+    .description("Count pending observations for a profile")
+    .action((profileId) => console.log(getPendingObsCountV2(profileId)));
+
+  instinct
+    .command("register-profile-v2 <id>")
+    .description("Register a V2 profile")
+    .requiredOption("-u, --user <userId>", "User id")
+    .requiredOption("-c, --category <category>", "Category")
+    .action((id, opts) => {
+      const p = registerProfileV2(id, {
+        userId: opts.user,
+        category: opts.category,
+      });
+      console.log(JSON.stringify(p, null, 2));
+    });
+
+  instinct
+    .command("get-profile-v2 <id>")
+    .description("Get a V2 profile")
+    .action((id) => {
+      const p = getProfileV2(id);
+      console.log(p ? JSON.stringify(p, null, 2) : "null");
+    });
+
+  instinct
+    .command("list-profiles-v2")
+    .description("List V2 profiles")
+    .option("-u, --user <userId>", "Filter by user")
+    .option("-c, --category <category>", "Filter by category")
+    .option("-s, --status <status>", "Filter by status")
+    .action((opts) => {
+      console.log(
+        JSON.stringify(
+          listProfilesV2({
+            userId: opts.user,
+            category: opts.category,
+            status: opts.status,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  instinct
+    .command("activate-profile-v2 <id>")
+    .description("pending|dormant → active")
+    .action((id) =>
+      console.log(JSON.stringify(activateProfileV2(id), null, 2)),
+    );
+
+  instinct
+    .command("dormant-profile-v2 <id>")
+    .description("active → dormant")
+    .action((id) => console.log(JSON.stringify(dormantProfileV2(id), null, 2)));
+
+  instinct
+    .command("archive-profile-v2 <id>")
+    .description("→ archived (terminal)")
+    .action((id) => console.log(JSON.stringify(archiveProfileV2(id), null, 2)));
+
+  instinct
+    .command("touch-profile-v2 <id>")
+    .description("Update lastSeenAt")
+    .action((id) => console.log(JSON.stringify(touchProfileV2(id), null, 2)));
+
+  instinct
+    .command("create-observation-v2 <id>")
+    .description("Create a V2 observation")
+    .requiredOption("-p, --profile <profileId>", "Profile id")
+    .requiredOption("-s, --signal <signal>", "Signal text")
+    .action((id, opts) => {
+      const o = createObservationV2(id, {
+        profileId: opts.profile,
+        signal: opts.signal,
+      });
+      console.log(JSON.stringify(o, null, 2));
+    });
+
+  instinct
+    .command("get-observation-v2 <id>")
+    .description("Get a V2 observation")
+    .action((id) => {
+      const o = getObservationV2(id);
+      console.log(o ? JSON.stringify(o, null, 2) : "null");
+    });
+
+  instinct
+    .command("list-observations-v2")
+    .description("List V2 observations")
+    .option("-p, --profile <profileId>", "Filter by profile")
+    .option("-s, --status <status>", "Filter by status")
+    .action((opts) => {
+      console.log(
+        JSON.stringify(
+          listObservationsV2({
+            profileId: opts.profile,
+            status: opts.status,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  instinct
+    .command("review-observation-v2 <id>")
+    .description("captured → reviewed")
+    .action((id) =>
+      console.log(JSON.stringify(reviewObservationV2(id), null, 2)),
+    );
+
+  instinct
+    .command("reinforce-observation-v2 <id>")
+    .description("reviewed → reinforced")
+    .action((id) =>
+      console.log(JSON.stringify(reinforceObservationV2(id), null, 2)),
+    );
+
+  instinct
+    .command("promote-observation-v2 <id>")
+    .description("reviewed|reinforced → promoted (terminal)")
+    .action((id) =>
+      console.log(JSON.stringify(promoteObservationV2(id), null, 2)),
+    );
+
+  instinct
+    .command("discard-observation-v2 <id>")
+    .description("→ discarded (terminal)")
+    .action((id) =>
+      console.log(JSON.stringify(discardObservationV2(id), null, 2)),
+    );
+
+  instinct
+    .command("auto-dormant-idle-profiles-v2")
+    .description("Flip idle active profiles → dormant")
+    .action(() =>
+      console.log(JSON.stringify(autoDormantIdleProfilesV2(), null, 2)),
+    );
+
+  instinct
+    .command("auto-discard-stale-observations-v2")
+    .description("Flip stale captured/reviewed → discarded")
+    .action(() =>
+      console.log(JSON.stringify(autoDiscardStaleObservationsV2(), null, 2)),
+    );
 }

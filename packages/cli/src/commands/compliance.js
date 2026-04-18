@@ -59,6 +59,38 @@ import {
   matchObservable,
   getStats as getThreatIntelStats,
   removeIndicator,
+  FEED_MATURITY_V2,
+  INDICATOR_LIFECYCLE_V2,
+  getMaxActiveFeedsPerOwnerV2,
+  setMaxActiveFeedsPerOwnerV2,
+  getMaxActiveIndicatorsPerFeedV2,
+  setMaxActiveIndicatorsPerFeedV2,
+  getFeedIdleMsV2,
+  setFeedIdleMsV2,
+  getIndicatorStaleMsV2,
+  setIndicatorStaleMsV2,
+  getActiveFeedCountV2,
+  getActiveIndicatorCountV2,
+  registerFeedV2,
+  getFeedV2,
+  listFeedsV2,
+  setFeedMaturityV2,
+  trustFeedV2,
+  deprecateFeedV2,
+  retireFeedV2,
+  touchFeedV2,
+  createIndicatorV2,
+  getIndicatorV2,
+  listIndicatorsV2,
+  setIndicatorStatusV2,
+  activateIndicatorV2,
+  expireIndicatorV2,
+  revokeIndicatorV2,
+  supersedeIndicatorV2,
+  refreshIndicatorV2,
+  autoDeprecateIdleFeedsV2,
+  autoExpireStaleIndicatorsV2,
+  getThreatIntelStatsV2,
 } from "../lib/threat-intel.js";
 import { IOC_TYPES } from "../lib/stix-parser.js";
 import {
@@ -70,6 +102,37 @@ import {
   detectAnomalies,
   rankEntities,
   scoreEvent,
+  BASELINE_MATURITY_V2,
+  INVESTIGATION_V2,
+  getMaxActiveBaselinesPerOwnerV2,
+  setMaxActiveBaselinesPerOwnerV2,
+  getMaxOpenInvestigationsPerAnalystV2,
+  setMaxOpenInvestigationsPerAnalystV2,
+  getBaselineStaleMsV2,
+  setBaselineStaleMsV2,
+  getInvestigationStuckMsV2,
+  setInvestigationStuckMsV2,
+  getActiveBaselineCountV2,
+  getOpenInvestigationCountV2,
+  createBaselineV2,
+  getBaselineV2,
+  listBaselinesV2,
+  setBaselineMaturityV2,
+  activateBaselineV2,
+  markBaselineStaleV2,
+  archiveBaselineV2,
+  refreshBaselineV2,
+  openInvestigationV2,
+  getInvestigationV2,
+  listInvestigationsV2,
+  setInvestigationStatusV2,
+  startInvestigationV2,
+  closeInvestigationV2,
+  dismissInvestigationV2,
+  escalateInvestigationV2,
+  autoMarkStaleBaselinesV2,
+  autoEscalateStuckInvestigationsV2,
+  getUebaStatsV2,
 } from "../lib/ueba.js";
 
 function _loadEvidenceFromDb(db, framework) {
@@ -573,6 +636,260 @@ export function registerComplianceCommand(program) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
       }
+    });
+
+  /* ═══ Threat-Intel V2 — feed maturity + indicator lifecycle ═══ */
+
+  threat
+    .command("feed-maturities-v2")
+    .description("List feed maturity states (V2)")
+    .action(() => {
+      for (const v of Object.values(FEED_MATURITY_V2)) console.log(`  ${v}`);
+    });
+
+  threat
+    .command("indicator-lifecycles-v2")
+    .description("List indicator lifecycle states (V2)")
+    .action(() => {
+      for (const v of Object.values(INDICATOR_LIFECYCLE_V2))
+        console.log(`  ${v}`);
+    });
+
+  threat
+    .command("stats-v2")
+    .description("Show V2 feed/indicator stats")
+    .action(() => {
+      console.log(JSON.stringify(getThreatIntelStatsV2(), null, 2));
+    });
+
+  threat
+    .command("max-active-feeds-per-owner")
+    .argument("[n]", "New cap")
+    .description("Get/set max active feeds per owner (V2)")
+    .action((n) => {
+      if (n !== undefined) setMaxActiveFeedsPerOwnerV2(n);
+      console.log(getMaxActiveFeedsPerOwnerV2());
+    });
+
+  threat
+    .command("max-active-indicators-per-feed")
+    .argument("[n]", "New cap")
+    .description("Get/set max active indicators per feed (V2)")
+    .action((n) => {
+      if (n !== undefined) setMaxActiveIndicatorsPerFeedV2(n);
+      console.log(getMaxActiveIndicatorsPerFeedV2());
+    });
+
+  threat
+    .command("feed-idle-ms")
+    .argument("[ms]", "New idle window")
+    .description("Get/set feed idle window ms (V2)")
+    .action((ms) => {
+      if (ms !== undefined) setFeedIdleMsV2(ms);
+      console.log(getFeedIdleMsV2());
+    });
+
+  threat
+    .command("indicator-stale-ms")
+    .argument("[ms]", "New stale window")
+    .description("Get/set indicator stale window ms (V2)")
+    .action((ms) => {
+      if (ms !== undefined) setIndicatorStaleMsV2(ms);
+      console.log(getIndicatorStaleMsV2());
+    });
+
+  threat
+    .command("active-feed-count-v2 <owner>")
+    .description("Count active feeds for owner (V2)")
+    .action((owner) => {
+      console.log(getActiveFeedCountV2(owner));
+    });
+
+  threat
+    .command("active-indicator-count-v2 <feedId>")
+    .description("Count active indicators for feed (V2)")
+    .action((feedId) => {
+      console.log(getActiveIndicatorCountV2(feedId));
+    });
+
+  threat
+    .command("register-feed-v2 <id>")
+    .requiredOption("-o, --owner <owner>", "Owner")
+    .requiredOption("-n, --name <name>", "Feed name")
+    .description("Register a new pending feed (V2)")
+    .action((id, opts) => {
+      console.log(
+        JSON.stringify(
+          registerFeedV2(id, { owner: opts.owner, name: opts.name }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  threat
+    .command("feed-v2 <id>")
+    .description("Show feed by id (V2)")
+    .action((id) => {
+      const f = getFeedV2(id);
+      if (!f) {
+        console.error(`feed ${id} not found`);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(f, null, 2));
+    });
+
+  threat
+    .command("list-feeds-v2")
+    .option("-o, --owner <owner>", "Filter by owner")
+    .option("-m, --maturity <m>", "Filter by maturity")
+    .description("List feeds (V2)")
+    .action((opts) => {
+      console.log(
+        JSON.stringify(
+          listFeedsV2({ owner: opts.owner, maturity: opts.maturity }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  threat
+    .command("set-feed-maturity-v2 <id> <next>")
+    .description("Transition feed maturity (V2)")
+    .action((id, next) => {
+      console.log(JSON.stringify(setFeedMaturityV2(id, next), null, 2));
+    });
+
+  threat
+    .command("trust-feed-v2 <id>")
+    .description("Trust feed (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(trustFeedV2(id), null, 2));
+    });
+
+  threat
+    .command("deprecate-feed-v2 <id>")
+    .description("Deprecate feed (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(deprecateFeedV2(id), null, 2));
+    });
+
+  threat
+    .command("retire-feed-v2 <id>")
+    .description("Retire feed terminally (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(retireFeedV2(id), null, 2));
+    });
+
+  threat
+    .command("touch-feed-v2 <id>")
+    .description("Update feed lastSeenAt (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(touchFeedV2(id), null, 2));
+    });
+
+  threat
+    .command("create-indicator-v2 <id>")
+    .requiredOption("-f, --feed <feedId>", "Feed id")
+    .requiredOption("-t, --type <iocType>", "IoC type")
+    .requiredOption("-v, --value <value>", "IoC value")
+    .description("Create a pending indicator under a feed (V2)")
+    .action((id, opts) => {
+      console.log(
+        JSON.stringify(
+          createIndicatorV2(id, {
+            feedId: opts.feed,
+            iocType: opts.type,
+            value: opts.value,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  threat
+    .command("indicator-v2 <id>")
+    .description("Show indicator by id (V2)")
+    .action((id) => {
+      const i = getIndicatorV2(id);
+      if (!i) {
+        console.error(`indicator ${id} not found`);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(i, null, 2));
+    });
+
+  threat
+    .command("list-indicators-v2")
+    .option("-f, --feed <feedId>", "Filter by feedId")
+    .option("-s, --status <s>", "Filter by status")
+    .description("List indicators (V2)")
+    .action((opts) => {
+      console.log(
+        JSON.stringify(
+          listIndicatorsV2({ feedId: opts.feed, status: opts.status }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  threat
+    .command("set-indicator-status-v2 <id> <next>")
+    .description("Transition indicator status (V2)")
+    .action((id, next) => {
+      console.log(JSON.stringify(setIndicatorStatusV2(id, next), null, 2));
+    });
+
+  threat
+    .command("activate-indicator-v2 <id>")
+    .description("Activate indicator (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(activateIndicatorV2(id), null, 2));
+    });
+
+  threat
+    .command("expire-indicator-v2 <id>")
+    .description("Expire indicator terminally (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(expireIndicatorV2(id), null, 2));
+    });
+
+  threat
+    .command("revoke-indicator-v2 <id>")
+    .description("Revoke indicator terminally (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(revokeIndicatorV2(id), null, 2));
+    });
+
+  threat
+    .command("supersede-indicator-v2 <id>")
+    .description("Supersede indicator terminally (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(supersedeIndicatorV2(id), null, 2));
+    });
+
+  threat
+    .command("refresh-indicator-v2 <id>")
+    .description("Update indicator lastSeenAt (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(refreshIndicatorV2(id), null, 2));
+    });
+
+  threat
+    .command("auto-deprecate-idle-feeds")
+    .description("Auto-deprecate trusted feeds idle past window (V2)")
+    .action(() => {
+      console.log(JSON.stringify(autoDeprecateIdleFeedsV2(), null, 2));
+    });
+
+  threat
+    .command("auto-expire-stale-indicators")
+    .description("Auto-expire active indicators stale past window (V2)")
+    .action(() => {
+      console.log(JSON.stringify(autoExpireStaleIndicatorsV2(), null, 2));
     });
 
   // ── UEBA ────────────────────────────────────────────────────
@@ -1194,5 +1511,332 @@ export function registerComplianceCommand(program) {
     .description("V2 compliance stats (all-enum-key zero-initialized)")
     .action(() => {
       console.log(JSON.stringify(getComplianceStatsV2(), null, 2));
+    });
+
+  /* ═══ UEBA V2 ═══ */
+
+  function _parseMetaUeba(s) {
+    if (!s) return undefined;
+    try {
+      return JSON.parse(s);
+    } catch {
+      throw new Error("--metadata must be valid JSON");
+    }
+  }
+
+  ueba
+    .command("baseline-maturities-v2")
+    .description("List baseline maturity states (V2)")
+    .action(() => {
+      for (const v of Object.values(BASELINE_MATURITY_V2)) logger.log(`  ${v}`);
+    });
+
+  ueba
+    .command("investigation-lifecycles-v2")
+    .description("List investigation lifecycle states (V2)")
+    .action(() => {
+      for (const v of Object.values(INVESTIGATION_V2)) logger.log(`  ${v}`);
+    });
+
+  ueba
+    .command("stats-v2")
+    .description("UEBA V2 stats")
+    .action(() => {
+      console.log(JSON.stringify(getUebaStatsV2(), null, 2));
+    });
+
+  ueba
+    .command("max-active-baselines-per-owner")
+    .description("Get/set max active baselines per owner (V2)")
+    .option("-s, --set <n>", "Set value", (v) => parseInt(v, 10))
+    .action((o) => {
+      if (typeof o.set === "number")
+        console.log(setMaxActiveBaselinesPerOwnerV2(o.set));
+      else console.log(getMaxActiveBaselinesPerOwnerV2());
+    });
+
+  ueba
+    .command("max-open-investigations-per-analyst")
+    .description("Get/set max open investigations per analyst (V2)")
+    .option("-s, --set <n>", "Set value", (v) => parseInt(v, 10))
+    .action((o) => {
+      if (typeof o.set === "number")
+        console.log(setMaxOpenInvestigationsPerAnalystV2(o.set));
+      else console.log(getMaxOpenInvestigationsPerAnalystV2());
+    });
+
+  ueba
+    .command("baseline-stale-ms")
+    .description("Get/set baseline stale threshold ms (V2)")
+    .option("-s, --set <n>", "Set value", (v) => parseInt(v, 10))
+    .action((o) => {
+      if (typeof o.set === "number") console.log(setBaselineStaleMsV2(o.set));
+      else console.log(getBaselineStaleMsV2());
+    });
+
+  ueba
+    .command("investigation-stuck-ms")
+    .description("Get/set investigation stuck threshold ms (V2)")
+    .option("-s, --set <n>", "Set value", (v) => parseInt(v, 10))
+    .action((o) => {
+      if (typeof o.set === "number")
+        console.log(setInvestigationStuckMsV2(o.set));
+      else console.log(getInvestigationStuckMsV2());
+    });
+
+  ueba
+    .command("active-baseline-count")
+    .description("Count active baselines for owner (V2)")
+    .requiredOption("-o, --owner <owner>", "Owner")
+    .action((o) => {
+      console.log(getActiveBaselineCountV2(o.owner));
+    });
+
+  ueba
+    .command("open-investigation-count")
+    .description("Count open investigations for analyst (V2)")
+    .requiredOption("-a, --analyst <analyst>", "Analyst")
+    .action((o) => {
+      console.log(getOpenInvestigationCountV2(o.analyst));
+    });
+
+  ueba
+    .command("create-baseline-v2 <id>")
+    .description("Create baseline V2 (draft)")
+    .requiredOption("-o, --owner <owner>", "Owner")
+    .requiredOption("-e, --entity <entity>", "Entity")
+    .option("-m, --metadata <json>", "JSON metadata")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(
+          createBaselineV2({
+            id,
+            owner: o.owner,
+            entity: o.entity,
+            metadata: _parseMetaUeba(o.metadata),
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  ueba
+    .command("baseline-v2 <id>")
+    .description("Show baseline V2")
+    .action((id) => {
+      const b = getBaselineV2(id);
+      if (!b) {
+        logger.error(`baseline ${id} not found`);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(b, null, 2));
+    });
+
+  ueba
+    .command("list-baselines-v2")
+    .description("List baselines V2")
+    .option("-o, --owner <owner>", "Filter by owner")
+    .option("-s, --status <status>", "Filter by status")
+    .action((o) => {
+      console.log(
+        JSON.stringify(
+          listBaselinesV2({ owner: o.owner, status: o.status }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  ueba
+    .command("set-baseline-maturity-v2 <id> <status>")
+    .description("Transition baseline V2 to status")
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <json>", "JSON metadata patch")
+    .action((id, status, o) => {
+      console.log(
+        JSON.stringify(
+          setBaselineMaturityV2(id, status, {
+            reason: o.reason,
+            metadata: _parseMetaUeba(o.metadata),
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  ueba
+    .command("activate-baseline-v2 <id>")
+    .description("Baseline → active (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(activateBaselineV2(id, { reason: o.reason }), null, 2),
+      );
+    });
+
+  ueba
+    .command("mark-baseline-stale <id>")
+    .description("Baseline → stale (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(markBaselineStaleV2(id, { reason: o.reason }), null, 2),
+      );
+    });
+
+  ueba
+    .command("archive-baseline-v2 <id>")
+    .description("Baseline → archived (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(archiveBaselineV2(id, { reason: o.reason }), null, 2),
+      );
+    });
+
+  ueba
+    .command("refresh-baseline-v2 <id>")
+    .description("Update lastRefreshedAt (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(refreshBaselineV2(id), null, 2));
+    });
+
+  ueba
+    .command("open-investigation-v2 <id>")
+    .description("Open investigation V2")
+    .requiredOption("-a, --analyst <analyst>", "Analyst")
+    .requiredOption("-b, --baseline <baselineId>", "Baseline id")
+    .option("--summary <summary>", "Summary")
+    .option("-m, --metadata <json>", "JSON metadata")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(
+          openInvestigationV2({
+            id,
+            analyst: o.analyst,
+            baselineId: o.baseline,
+            summary: o.summary,
+            metadata: _parseMetaUeba(o.metadata),
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  ueba
+    .command("investigation-v2 <id>")
+    .description("Show investigation V2")
+    .action((id) => {
+      const i = getInvestigationV2(id);
+      if (!i) {
+        logger.error(`investigation ${id} not found`);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(i, null, 2));
+    });
+
+  ueba
+    .command("list-investigations-v2")
+    .description("List investigations V2")
+    .option("-a, --analyst <analyst>", "Filter by analyst")
+    .option("-s, --status <status>", "Filter by status")
+    .option("-b, --baseline <baselineId>", "Filter by baseline")
+    .action((o) => {
+      console.log(
+        JSON.stringify(
+          listInvestigationsV2({
+            analyst: o.analyst,
+            status: o.status,
+            baselineId: o.baseline,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  ueba
+    .command("set-investigation-status-v2 <id> <status>")
+    .description("Transition investigation V2 to status")
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <json>", "JSON metadata patch")
+    .action((id, status, o) => {
+      console.log(
+        JSON.stringify(
+          setInvestigationStatusV2(id, status, {
+            reason: o.reason,
+            metadata: _parseMetaUeba(o.metadata),
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  ueba
+    .command("start-investigation-v2 <id>")
+    .description("Investigation → investigating (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(startInvestigationV2(id, { reason: o.reason }), null, 2),
+      );
+    });
+
+  ueba
+    .command("close-investigation-v2 <id>")
+    .description("Investigation → closed (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(closeInvestigationV2(id, { reason: o.reason }), null, 2),
+      );
+    });
+
+  ueba
+    .command("dismiss-investigation-v2 <id>")
+    .description("Investigation → dismissed (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(
+          dismissInvestigationV2(id, { reason: o.reason }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  ueba
+    .command("escalate-investigation-v2 <id>")
+    .description("Investigation → escalated (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(
+          escalateInvestigationV2(id, { reason: o.reason }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  ueba
+    .command("auto-mark-stale-baselines")
+    .description("Bulk auto-flip active→stale past threshold (V2)")
+    .action(() => {
+      console.log(JSON.stringify(autoMarkStaleBaselinesV2(), null, 2));
+    });
+
+  ueba
+    .command("auto-escalate-stuck-investigations")
+    .description(
+      "Bulk auto-escalate investigating → escalated past threshold (V2)",
+    )
+    .action(() => {
+      console.log(JSON.stringify(autoEscalateStuckInvestigationsV2(), null, 2));
     });
 }

@@ -13,6 +13,35 @@ import {
   getSession,
   deleteSession,
   exportSessionMarkdown,
+  CONVERSATION_MATURITY_V2,
+  TURN_LIFECYCLE_V2,
+  getMaxActiveConvPerUserV2,
+  setMaxActiveConvPerUserV2,
+  getMaxPendingTurnsPerConvV2,
+  setMaxPendingTurnsPerConvV2,
+  getConvIdleMsV2,
+  setConvIdleMsV2,
+  getTurnStuckMsV2,
+  setTurnStuckMsV2,
+  getActiveConvCountV2,
+  getPendingTurnCountV2,
+  registerConversationV2,
+  getConversationV2,
+  listConversationsV2,
+  activateConversationV2,
+  pauseConversationV2,
+  archiveConversationV2,
+  touchConversationV2,
+  createTurnV2,
+  getTurnV2,
+  listTurnsV2,
+  streamTurnV2,
+  completeTurnV2,
+  failTurnV2,
+  cancelTurnV2,
+  autoArchiveIdleConversationsV2,
+  autoFailStuckTurnsV2,
+  getSessionManagerStatsV2,
 } from "../lib/session-manager.js";
 import {
   listJsonlSessions,
@@ -784,5 +813,234 @@ export function registerSessionCommand(program) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
       }
+    });
+
+  // ─────────────────────────────────────────────────────────────
+  // V2 Surface — conversation + turn lifecycle (in-memory, throwing API)
+  // ─────────────────────────────────────────────────────────────
+
+  session
+    .command("conversation-maturities-v2")
+    .description("List V2 conversation maturity states")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const v = Object.values(CONVERSATION_MATURITY_V2);
+      if (options.json) console.log(JSON.stringify(v));
+      else logger.log(v.join(", "));
+    });
+
+  session
+    .command("turn-lifecycles-v2")
+    .description("List V2 turn lifecycle states")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const v = Object.values(TURN_LIFECYCLE_V2);
+      if (options.json) console.log(JSON.stringify(v));
+      else logger.log(v.join(", "));
+    });
+
+  session
+    .command("stats-v2")
+    .description("Show V2 session stats")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const stats = getSessionManagerStatsV2();
+      if (options.json) console.log(JSON.stringify(stats, null, 2));
+      else logger.log(JSON.stringify(stats, null, 2));
+    });
+
+  session
+    .command("get-max-active-conv-v2")
+    .description("Get max active conversations per user")
+    .action(() => logger.log(String(getMaxActiveConvPerUserV2())));
+  session
+    .command("set-max-active-conv-v2 <n>")
+    .description("Set max active conversations per user")
+    .action((n) => {
+      setMaxActiveConvPerUserV2(Number(n));
+      logger.log(String(getMaxActiveConvPerUserV2()));
+    });
+  session
+    .command("get-max-pending-turns-v2")
+    .description("Get max pending turns per conversation")
+    .action(() => logger.log(String(getMaxPendingTurnsPerConvV2())));
+  session
+    .command("set-max-pending-turns-v2 <n>")
+    .description("Set max pending turns per conversation")
+    .action((n) => {
+      setMaxPendingTurnsPerConvV2(Number(n));
+      logger.log(String(getMaxPendingTurnsPerConvV2()));
+    });
+  session
+    .command("get-conv-idle-ms-v2")
+    .description("Get conversation idle ms")
+    .action(() => logger.log(String(getConvIdleMsV2())));
+  session
+    .command("set-conv-idle-ms-v2 <ms>")
+    .description("Set conversation idle ms")
+    .action((ms) => {
+      setConvIdleMsV2(Number(ms));
+      logger.log(String(getConvIdleMsV2()));
+    });
+  session
+    .command("get-turn-stuck-ms-v2")
+    .description("Get turn stuck ms")
+    .action(() => logger.log(String(getTurnStuckMsV2())));
+  session
+    .command("set-turn-stuck-ms-v2 <ms>")
+    .description("Set turn stuck ms")
+    .action((ms) => {
+      setTurnStuckMsV2(Number(ms));
+      logger.log(String(getTurnStuckMsV2()));
+    });
+
+  session
+    .command("active-conv-count-v2 <userId>")
+    .description("Count active conversations for user")
+    .action((userId) => logger.log(String(getActiveConvCountV2(userId))));
+  session
+    .command("pending-turn-count-v2 <conversationId>")
+    .description("Count pending+streaming turns for conversation")
+    .action((conversationId) =>
+      logger.log(String(getPendingTurnCountV2(conversationId))),
+    );
+
+  session
+    .command("register-conversation-v2 <id>")
+    .description("Register V2 conversation (initial=draft)")
+    .requiredOption("-u, --user <userId>", "user id")
+    .requiredOption("-m, --model <model>", "model")
+    .option("--metadata <json>", "metadata JSON", "{}")
+    .action((id, opts) => {
+      const meta = JSON.parse(opts.metadata);
+      const c = registerConversationV2(id, {
+        userId: opts.user,
+        model: opts.model,
+        metadata: meta,
+      });
+      console.log(JSON.stringify(c, null, 2));
+    });
+
+  session
+    .command("get-conversation-v2 <id>")
+    .description("Get V2 conversation by id")
+    .action((id) => {
+      const c = getConversationV2(id);
+      if (!c) {
+        logger.error(`conversation ${id} not found`);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(c, null, 2));
+    });
+
+  session
+    .command("list-conversations-v2")
+    .description("List V2 conversations")
+    .option("-u, --user <userId>", "filter by user")
+    .option("-s, --status <state>", "filter by status")
+    .action((opts) => {
+      const out = listConversationsV2({
+        userId: opts.user,
+        status: opts.status,
+      });
+      console.log(JSON.stringify(out, null, 2));
+    });
+
+  session
+    .command("activate-conversation-v2 <id>")
+    .description("Transition conversation → active")
+    .action((id) =>
+      console.log(JSON.stringify(activateConversationV2(id), null, 2)),
+    );
+  session
+    .command("pause-conversation-v2 <id>")
+    .description("Transition conversation → paused")
+    .action((id) =>
+      console.log(JSON.stringify(pauseConversationV2(id), null, 2)),
+    );
+  session
+    .command("archive-conversation-v2 <id>")
+    .description("Transition conversation → archived (terminal)")
+    .action((id) =>
+      console.log(JSON.stringify(archiveConversationV2(id), null, 2)),
+    );
+  session
+    .command("touch-conversation-v2 <id>")
+    .description("Update conversation lastSeenAt")
+    .action((id) =>
+      console.log(JSON.stringify(touchConversationV2(id), null, 2)),
+    );
+
+  session
+    .command("create-turn-v2 <id>")
+    .description("Create V2 turn (initial=pending)")
+    .requiredOption("-c, --conversation <id>", "conversation id")
+    .option("-r, --role <role>", "role (user/assistant)", "user")
+    .option("-m, --metadata <json>", "metadata JSON", "{}")
+    .action((id, opts) => {
+      const meta = JSON.parse(opts.metadata);
+      const t = createTurnV2(id, {
+        conversationId: opts.conversation,
+        role: opts.role,
+        metadata: meta,
+      });
+      console.log(JSON.stringify(t, null, 2));
+    });
+
+  session
+    .command("get-turn-v2 <id>")
+    .description("Get V2 turn by id")
+    .action((id) => {
+      const t = getTurnV2(id);
+      if (!t) {
+        logger.error(`turn ${id} not found`);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(t, null, 2));
+    });
+
+  session
+    .command("list-turns-v2")
+    .description("List V2 turns")
+    .option("-c, --conversation <id>", "filter by conversation")
+    .option("-s, --status <state>", "filter by status")
+    .action((opts) => {
+      const out = listTurnsV2({
+        conversationId: opts.conversation,
+        status: opts.status,
+      });
+      console.log(JSON.stringify(out, null, 2));
+    });
+
+  session
+    .command("stream-turn-v2 <id>")
+    .description("Transition turn → streaming")
+    .action((id) => console.log(JSON.stringify(streamTurnV2(id), null, 2)));
+  session
+    .command("complete-turn-v2 <id>")
+    .description("Transition turn → completed (terminal)")
+    .action((id) => console.log(JSON.stringify(completeTurnV2(id), null, 2)));
+  session
+    .command("fail-turn-v2 <id>")
+    .description("Transition turn → failed (terminal)")
+    .action((id) => console.log(JSON.stringify(failTurnV2(id), null, 2)));
+  session
+    .command("cancel-turn-v2 <id>")
+    .description("Transition turn → cancelled (terminal)")
+    .action((id) => console.log(JSON.stringify(cancelTurnV2(id), null, 2)));
+
+  session
+    .command("auto-archive-idle-conv-v2")
+    .description("Auto-archive idle conversations; output flipped")
+    .action(() => {
+      const flipped = autoArchiveIdleConversationsV2();
+      console.log(JSON.stringify(flipped, null, 2));
+    });
+  session
+    .command("auto-fail-stuck-turns-v2")
+    .description("Auto-fail stuck streaming turns; output flipped")
+    .action(() => {
+      const flipped = autoFailStuckTurnsV2();
+      console.log(JSON.stringify(flipped, null, 2));
     });
 }

@@ -401,3 +401,392 @@ export function loadAllBaselines(db) {
   }
   return deserializeBaseline(dict);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+ * V2 Surface — UEBA V2 (additive)
+ * Baseline maturity + investigation lifecycle + caps + auto-flip
+ * ═══════════════════════════════════════════════════════════════ */
+
+export const BASELINE_MATURITY_V2 = Object.freeze({
+  DRAFT: "draft",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+
+export const INVESTIGATION_V2 = Object.freeze({
+  OPEN: "open",
+  INVESTIGATING: "investigating",
+  CLOSED: "closed",
+  DISMISSED: "dismissed",
+  ESCALATED: "escalated",
+});
+
+const _BASELINE_TRANS_V2 = new Map([
+  [
+    BASELINE_MATURITY_V2.DRAFT,
+    new Set([BASELINE_MATURITY_V2.ACTIVE, BASELINE_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    BASELINE_MATURITY_V2.ACTIVE,
+    new Set([BASELINE_MATURITY_V2.STALE, BASELINE_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    BASELINE_MATURITY_V2.STALE,
+    new Set([BASELINE_MATURITY_V2.ACTIVE, BASELINE_MATURITY_V2.ARCHIVED]),
+  ],
+  [BASELINE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+
+const _INVESTIGATION_TRANS_V2 = new Map([
+  [
+    INVESTIGATION_V2.OPEN,
+    new Set([
+      INVESTIGATION_V2.INVESTIGATING,
+      INVESTIGATION_V2.DISMISSED,
+      INVESTIGATION_V2.ESCALATED,
+    ]),
+  ],
+  [
+    INVESTIGATION_V2.INVESTIGATING,
+    new Set([
+      INVESTIGATION_V2.CLOSED,
+      INVESTIGATION_V2.ESCALATED,
+      INVESTIGATION_V2.DISMISSED,
+    ]),
+  ],
+  [INVESTIGATION_V2.CLOSED, new Set()],
+  [INVESTIGATION_V2.DISMISSED, new Set()],
+  [INVESTIGATION_V2.ESCALATED, new Set()],
+]);
+
+const _BASELINE_TERMINAL_V2 = new Set([BASELINE_MATURITY_V2.ARCHIVED]);
+const _INVESTIGATION_TERMINAL_V2 = new Set([
+  INVESTIGATION_V2.CLOSED,
+  INVESTIGATION_V2.DISMISSED,
+  INVESTIGATION_V2.ESCALATED,
+]);
+
+export const UEBA_DEFAULT_MAX_ACTIVE_BASELINES_PER_OWNER = 20;
+export const UEBA_DEFAULT_MAX_OPEN_INVESTIGATIONS_PER_ANALYST = 10;
+export const UEBA_DEFAULT_BASELINE_STALE_MS = 30 * 24 * 60 * 60 * 1000;
+export const UEBA_DEFAULT_INVESTIGATION_STUCK_MS = 14 * 24 * 60 * 60 * 1000;
+
+let _uebaMaxActiveBaselines = UEBA_DEFAULT_MAX_ACTIVE_BASELINES_PER_OWNER;
+let _uebaMaxOpenInvestigations =
+  UEBA_DEFAULT_MAX_OPEN_INVESTIGATIONS_PER_ANALYST;
+let _uebaBaselineStaleMs = UEBA_DEFAULT_BASELINE_STALE_MS;
+let _uebaInvestigationStuckMs = UEBA_DEFAULT_INVESTIGATION_STUCK_MS;
+
+const _baselinesV2 = new Map();
+const _investigationsV2 = new Map();
+
+function _posIntUebaV2(n, label) {
+  const v = Number.isInteger(n) ? n : Math.floor(n);
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be a positive integer`);
+  return v;
+}
+
+export function getMaxActiveBaselinesPerOwnerV2() {
+  return _uebaMaxActiveBaselines;
+}
+export function setMaxActiveBaselinesPerOwnerV2(n) {
+  _uebaMaxActiveBaselines = _posIntUebaV2(n, "maxActiveBaselinesPerOwner");
+  return _uebaMaxActiveBaselines;
+}
+export function getMaxOpenInvestigationsPerAnalystV2() {
+  return _uebaMaxOpenInvestigations;
+}
+export function setMaxOpenInvestigationsPerAnalystV2(n) {
+  _uebaMaxOpenInvestigations = _posIntUebaV2(
+    n,
+    "maxOpenInvestigationsPerAnalyst",
+  );
+  return _uebaMaxOpenInvestigations;
+}
+export function getBaselineStaleMsV2() {
+  return _uebaBaselineStaleMs;
+}
+export function setBaselineStaleMsV2(n) {
+  _uebaBaselineStaleMs = _posIntUebaV2(n, "baselineStaleMs");
+  return _uebaBaselineStaleMs;
+}
+export function getInvestigationStuckMsV2() {
+  return _uebaInvestigationStuckMs;
+}
+export function setInvestigationStuckMsV2(n) {
+  _uebaInvestigationStuckMs = _posIntUebaV2(n, "investigationStuckMs");
+  return _uebaInvestigationStuckMs;
+}
+
+export function getActiveBaselineCountV2(owner) {
+  if (!owner) throw new Error("owner is required");
+  let c = 0;
+  for (const b of _baselinesV2.values()) {
+    if (b.owner !== owner) continue;
+    if (b.status === BASELINE_MATURITY_V2.ARCHIVED) continue;
+    if (b.status === BASELINE_MATURITY_V2.DRAFT) continue;
+    c++;
+  }
+  return c;
+}
+
+export function getOpenInvestigationCountV2(analyst) {
+  if (!analyst) throw new Error("analyst is required");
+  let c = 0;
+  for (const i of _investigationsV2.values()) {
+    if (i.analyst !== analyst) continue;
+    if (_INVESTIGATION_TERMINAL_V2.has(i.status)) continue;
+    c++;
+  }
+  return c;
+}
+
+export function createBaselineV2({ id, owner, entity, metadata }) {
+  if (!id) throw new Error("id is required");
+  if (!owner) throw new Error("owner is required");
+  if (!entity) throw new Error("entity is required");
+  if (_baselinesV2.has(id)) throw new Error(`baseline ${id} already exists`);
+  const now = Date.now();
+  const baseline = {
+    id,
+    owner,
+    entity: String(entity),
+    status: BASELINE_MATURITY_V2.DRAFT,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    lastRefreshedAt: now,
+    metadata: metadata ? { ...metadata } : {},
+  };
+  _baselinesV2.set(id, baseline);
+  return { ...baseline, metadata: { ...baseline.metadata } };
+}
+
+export function getBaselineV2(id) {
+  const b = _baselinesV2.get(id);
+  if (!b) return null;
+  return { ...b, metadata: { ...b.metadata } };
+}
+
+export function listBaselinesV2({ owner, status } = {}) {
+  const out = [];
+  for (const b of _baselinesV2.values()) {
+    if (owner && b.owner !== owner) continue;
+    if (status && b.status !== status) continue;
+    out.push({ ...b, metadata: { ...b.metadata } });
+  }
+  return out;
+}
+
+export function setBaselineMaturityV2(
+  id,
+  nextStatus,
+  { reason, metadata } = {},
+) {
+  const b = _baselinesV2.get(id);
+  if (!b) throw new Error(`baseline ${id} not found`);
+  if (!_BASELINE_TRANS_V2.has(b.status))
+    throw new Error(`unknown status ${b.status}`);
+  const allowed = _BASELINE_TRANS_V2.get(b.status);
+  if (!allowed.has(nextStatus)) {
+    throw new Error(
+      `cannot transition baseline ${id} from ${b.status} to ${nextStatus}`,
+    );
+  }
+  if (nextStatus === BASELINE_MATURITY_V2.ACTIVE) {
+    const wasActive =
+      b.status === BASELINE_MATURITY_V2.ACTIVE ||
+      b.status === BASELINE_MATURITY_V2.STALE;
+    if (
+      !wasActive &&
+      getActiveBaselineCountV2(b.owner) >= _uebaMaxActiveBaselines
+    ) {
+      throw new Error(
+        `owner ${b.owner} exceeds max active baseline cap ${_uebaMaxActiveBaselines}`,
+      );
+    }
+  }
+  const now = Date.now();
+  b.status = nextStatus;
+  b.updatedAt = now;
+  b.lastRefreshedAt = now;
+  if (nextStatus === BASELINE_MATURITY_V2.ACTIVE && !b.activatedAt)
+    b.activatedAt = now;
+  if (reason) b.reason = reason;
+  if (metadata) b.metadata = { ...b.metadata, ...metadata };
+  return { ...b, metadata: { ...b.metadata } };
+}
+
+export function activateBaselineV2(id, opts) {
+  return setBaselineMaturityV2(id, BASELINE_MATURITY_V2.ACTIVE, opts);
+}
+export function markBaselineStaleV2(id, opts) {
+  return setBaselineMaturityV2(id, BASELINE_MATURITY_V2.STALE, opts);
+}
+export function archiveBaselineV2(id, opts) {
+  return setBaselineMaturityV2(id, BASELINE_MATURITY_V2.ARCHIVED, opts);
+}
+
+export function refreshBaselineV2(id) {
+  const b = _baselinesV2.get(id);
+  if (!b) throw new Error(`baseline ${id} not found`);
+  if (_BASELINE_TERMINAL_V2.has(b.status))
+    throw new Error(`baseline ${id} is terminal`);
+  b.lastRefreshedAt = Date.now();
+  return { ...b, metadata: { ...b.metadata } };
+}
+
+export function openInvestigationV2({
+  id,
+  analyst,
+  baselineId,
+  summary,
+  metadata,
+}) {
+  if (!id) throw new Error("id is required");
+  if (!analyst) throw new Error("analyst is required");
+  if (!baselineId) throw new Error("baselineId is required");
+  if (!_baselinesV2.has(baselineId))
+    throw new Error(`baseline ${baselineId} not found`);
+  if (_investigationsV2.has(id))
+    throw new Error(`investigation ${id} already exists`);
+  if (getOpenInvestigationCountV2(analyst) >= _uebaMaxOpenInvestigations) {
+    throw new Error(
+      `analyst ${analyst} exceeds max open investigation cap ${_uebaMaxOpenInvestigations}`,
+    );
+  }
+  const now = Date.now();
+  const inv = {
+    id,
+    analyst,
+    baselineId,
+    summary: summary ? String(summary) : "",
+    status: INVESTIGATION_V2.OPEN,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    closedAt: null,
+    metadata: metadata ? { ...metadata } : {},
+  };
+  _investigationsV2.set(id, inv);
+  return { ...inv, metadata: { ...inv.metadata } };
+}
+
+export function getInvestigationV2(id) {
+  const i = _investigationsV2.get(id);
+  if (!i) return null;
+  return { ...i, metadata: { ...i.metadata } };
+}
+
+export function listInvestigationsV2({ analyst, status, baselineId } = {}) {
+  const out = [];
+  for (const i of _investigationsV2.values()) {
+    if (analyst && i.analyst !== analyst) continue;
+    if (status && i.status !== status) continue;
+    if (baselineId && i.baselineId !== baselineId) continue;
+    out.push({ ...i, metadata: { ...i.metadata } });
+  }
+  return out;
+}
+
+export function setInvestigationStatusV2(
+  id,
+  nextStatus,
+  { reason, metadata } = {},
+) {
+  const i = _investigationsV2.get(id);
+  if (!i) throw new Error(`investigation ${id} not found`);
+  if (!_INVESTIGATION_TRANS_V2.has(i.status))
+    throw new Error(`unknown status ${i.status}`);
+  const allowed = _INVESTIGATION_TRANS_V2.get(i.status);
+  if (!allowed.has(nextStatus)) {
+    throw new Error(
+      `cannot transition investigation ${id} from ${i.status} to ${nextStatus}`,
+    );
+  }
+  const now = Date.now();
+  i.status = nextStatus;
+  i.updatedAt = now;
+  if (nextStatus === INVESTIGATION_V2.INVESTIGATING && !i.startedAt)
+    i.startedAt = now;
+  if (_INVESTIGATION_TERMINAL_V2.has(nextStatus)) i.closedAt = now;
+  if (reason) i.reason = reason;
+  if (metadata) i.metadata = { ...i.metadata, ...metadata };
+  return { ...i, metadata: { ...i.metadata } };
+}
+
+export function startInvestigationV2(id, opts) {
+  return setInvestigationStatusV2(id, INVESTIGATION_V2.INVESTIGATING, opts);
+}
+export function closeInvestigationV2(id, opts) {
+  return setInvestigationStatusV2(id, INVESTIGATION_V2.CLOSED, opts);
+}
+export function dismissInvestigationV2(id, opts) {
+  return setInvestigationStatusV2(id, INVESTIGATION_V2.DISMISSED, opts);
+}
+export function escalateInvestigationV2(id, opts) {
+  return setInvestigationStatusV2(id, INVESTIGATION_V2.ESCALATED, opts);
+}
+
+export function autoMarkStaleBaselinesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const out = [];
+  for (const b of _baselinesV2.values()) {
+    if (b.status !== BASELINE_MATURITY_V2.ACTIVE) continue;
+    if (t - b.lastRefreshedAt > _uebaBaselineStaleMs) {
+      b.status = BASELINE_MATURITY_V2.STALE;
+      b.updatedAt = t;
+      out.push(b.id);
+    }
+  }
+  return out;
+}
+
+export function autoEscalateStuckInvestigationsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const out = [];
+  for (const i of _investigationsV2.values()) {
+    if (i.status !== INVESTIGATION_V2.INVESTIGATING) continue;
+    if (i.startedAt == null) continue;
+    if (t - i.startedAt > _uebaInvestigationStuckMs) {
+      i.status = INVESTIGATION_V2.ESCALATED;
+      i.closedAt = t;
+      i.updatedAt = t;
+      i.reason = i.reason || "auto-escalate: stuck investigating";
+      out.push(i.id);
+    }
+  }
+  return out;
+}
+
+export function getUebaStatsV2() {
+  const baselinesByStatus = {};
+  for (const v of Object.values(BASELINE_MATURITY_V2)) baselinesByStatus[v] = 0;
+  for (const b of _baselinesV2.values()) baselinesByStatus[b.status]++;
+  const investigationsByStatus = {};
+  for (const v of Object.values(INVESTIGATION_V2))
+    investigationsByStatus[v] = 0;
+  for (const i of _investigationsV2.values())
+    investigationsByStatus[i.status]++;
+  return {
+    totalBaselinesV2: _baselinesV2.size,
+    totalInvestigationsV2: _investigationsV2.size,
+    maxActiveBaselinesPerOwner: _uebaMaxActiveBaselines,
+    maxOpenInvestigationsPerAnalyst: _uebaMaxOpenInvestigations,
+    baselineStaleMs: _uebaBaselineStaleMs,
+    investigationStuckMs: _uebaInvestigationStuckMs,
+    baselinesByStatus,
+    investigationsByStatus,
+  };
+}
+
+export function _resetStateUebaV2() {
+  _baselinesV2.clear();
+  _investigationsV2.clear();
+  _uebaMaxActiveBaselines = UEBA_DEFAULT_MAX_ACTIVE_BASELINES_PER_OWNER;
+  _uebaMaxOpenInvestigations = UEBA_DEFAULT_MAX_OPEN_INVESTIGATIONS_PER_ANALYST;
+  _uebaBaselineStaleMs = UEBA_DEFAULT_BASELINE_STALE_MS;
+  _uebaInvestigationStuckMs = UEBA_DEFAULT_INVESTIGATION_STUCK_MS;
+}

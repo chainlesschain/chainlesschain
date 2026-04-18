@@ -11,6 +11,37 @@ import {
   getTodayStats,
   getCostBreakdown,
   getRecentUsage,
+  BUDGET_MATURITY_V2,
+  USAGE_RECORD_LIFECYCLE_V2,
+  getMaxActiveBudgetsPerOwnerV2,
+  setMaxActiveBudgetsPerOwnerV2,
+  getMaxPendingRecordsPerBudgetV2,
+  setMaxPendingRecordsPerBudgetV2,
+  getBudgetIdleMsV2,
+  setBudgetIdleMsV2,
+  getRecordStuckMsV2,
+  setRecordStuckMsV2,
+  registerBudgetV2,
+  getBudgetV2,
+  listBudgetsV2,
+  setBudgetStatusV2,
+  activateBudgetV2,
+  suspendBudgetV2,
+  archiveBudgetV2,
+  touchBudgetV2,
+  getActiveBudgetCountV2,
+  createUsageRecordV2,
+  getUsageRecordV2,
+  listUsageRecordsV2,
+  setUsageRecordStatusV2,
+  recordUsageV2,
+  billUsageV2,
+  rejectUsageV2,
+  refundUsageV2,
+  getPendingRecordCountV2,
+  autoSuspendIdleBudgetsV2,
+  autoRejectStaleRecordsV2,
+  getTokenTrackerStatsV2,
 } from "../lib/token-tracker.js";
 import {
   getCacheStats,
@@ -211,4 +242,242 @@ export function registerTokensCommand(program) {
         process.exit(1);
       }
     });
+
+  // ── V2 Surface ──
+
+  const out = (json, obj) => {
+    if (json) console.log(JSON.stringify(obj, null, 2));
+    else console.log(JSON.stringify(obj, null, 2));
+  };
+  const tryRun = (fn) => {
+    try {
+      fn();
+    } catch (err) {
+      logger.error(err.message);
+      process.exit(1);
+    }
+  };
+
+  tokens
+    .command("budget-maturities-v2")
+    .description("List V2 budget maturity states")
+    .action(() => out(true, Object.values(BUDGET_MATURITY_V2)));
+
+  tokens
+    .command("usage-record-lifecycles-v2")
+    .description("List V2 usage record lifecycle states")
+    .action(() => out(true, Object.values(USAGE_RECORD_LIFECYCLE_V2)));
+
+  tokens
+    .command("stats-v2")
+    .description("V2 token-tracker stats")
+    .action(() => out(true, getTokenTrackerStatsV2()));
+
+  tokens
+    .command("get-max-active-budgets-v2")
+    .description("Get max active budgets per owner (V2)")
+    .action(() =>
+      out(true, { maxActiveBudgetsPerOwner: getMaxActiveBudgetsPerOwnerV2() }),
+    );
+
+  tokens
+    .command("set-max-active-budgets-v2 <n>")
+    .description("Set max active budgets per owner (V2)")
+    .action((n) =>
+      tryRun(() => {
+        setMaxActiveBudgetsPerOwnerV2(Number(n));
+        out(true, {
+          maxActiveBudgetsPerOwner: getMaxActiveBudgetsPerOwnerV2(),
+        });
+      }),
+    );
+
+  tokens
+    .command("get-max-pending-records-v2")
+    .description("Get max pending records per budget (V2)")
+    .action(() =>
+      out(true, {
+        maxPendingRecordsPerBudget: getMaxPendingRecordsPerBudgetV2(),
+      }),
+    );
+
+  tokens
+    .command("set-max-pending-records-v2 <n>")
+    .description("Set max pending records per budget (V2)")
+    .action((n) =>
+      tryRun(() => {
+        setMaxPendingRecordsPerBudgetV2(Number(n));
+        out(true, {
+          maxPendingRecordsPerBudget: getMaxPendingRecordsPerBudgetV2(),
+        });
+      }),
+    );
+
+  tokens
+    .command("get-budget-idle-ms-v2")
+    .description("Get budget idle threshold (V2)")
+    .action(() => out(true, { budgetIdleMs: getBudgetIdleMsV2() }));
+
+  tokens
+    .command("set-budget-idle-ms-v2 <ms>")
+    .description("Set budget idle threshold (V2)")
+    .action((ms) =>
+      tryRun(() => {
+        setBudgetIdleMsV2(Number(ms));
+        out(true, { budgetIdleMs: getBudgetIdleMsV2() });
+      }),
+    );
+
+  tokens
+    .command("get-record-stuck-ms-v2")
+    .description("Get record stuck threshold (V2)")
+    .action(() => out(true, { recordStuckMs: getRecordStuckMsV2() }));
+
+  tokens
+    .command("set-record-stuck-ms-v2 <ms>")
+    .description("Set record stuck threshold (V2)")
+    .action((ms) =>
+      tryRun(() => {
+        setRecordStuckMsV2(Number(ms));
+        out(true, { recordStuckMs: getRecordStuckMsV2() });
+      }),
+    );
+
+  tokens
+    .command("active-budget-count-v2 <ownerId>")
+    .description("Active budget count for owner (V2)")
+    .action((ownerId) =>
+      out(true, { ownerId, count: getActiveBudgetCountV2(ownerId) }),
+    );
+
+  tokens
+    .command("pending-record-count-v2 <budgetId>")
+    .description("Pending record count for budget (V2)")
+    .action((budgetId) =>
+      out(true, { budgetId, count: getPendingRecordCountV2(budgetId) }),
+    );
+
+  tokens
+    .command("register-budget-v2 <id>")
+    .description("Register a V2 budget")
+    .requiredOption("-o, --owner <id>", "owner id")
+    .requiredOption("-l, --label <label>", "budget label")
+    .action((id, opts) =>
+      tryRun(() =>
+        out(
+          true,
+          registerBudgetV2(id, { ownerId: opts.owner, label: opts.label }),
+        ),
+      ),
+    );
+
+  tokens
+    .command("get-budget-v2 <id>")
+    .description("Get a V2 budget")
+    .action((id) => out(true, getBudgetV2(id)));
+
+  tokens
+    .command("list-budgets-v2")
+    .description("List V2 budgets")
+    .option("-o, --owner <id>", "filter by owner")
+    .option("-s, --status <status>", "filter by status")
+    .action((opts) =>
+      out(true, listBudgetsV2({ ownerId: opts.owner, status: opts.status })),
+    );
+
+  tokens
+    .command("set-budget-status-v2 <id> <next>")
+    .description("Set V2 budget status")
+    .action((id, next) => tryRun(() => out(true, setBudgetStatusV2(id, next))));
+
+  tokens
+    .command("activate-budget-v2 <id>")
+    .description("Activate a V2 budget")
+    .action((id) => tryRun(() => out(true, activateBudgetV2(id))));
+
+  tokens
+    .command("suspend-budget-v2 <id>")
+    .description("Suspend a V2 budget")
+    .action((id) => tryRun(() => out(true, suspendBudgetV2(id))));
+
+  tokens
+    .command("archive-budget-v2 <id>")
+    .description("Archive a V2 budget")
+    .action((id) => tryRun(() => out(true, archiveBudgetV2(id))));
+
+  tokens
+    .command("touch-budget-v2 <id>")
+    .description("Touch a V2 budget")
+    .action((id) => tryRun(() => out(true, touchBudgetV2(id))));
+
+  tokens
+    .command("create-usage-record-v2 <id>")
+    .description("Create a V2 usage record")
+    .requiredOption("-b, --budget <id>", "budget id")
+    .requiredOption("-u, --units <n>", "usage units")
+    .action((id, opts) =>
+      tryRun(() =>
+        out(
+          true,
+          createUsageRecordV2(id, {
+            budgetId: opts.budget,
+            units: Number(opts.units),
+          }),
+        ),
+      ),
+    );
+
+  tokens
+    .command("get-usage-record-v2 <id>")
+    .description("Get a V2 usage record")
+    .action((id) => out(true, getUsageRecordV2(id)));
+
+  tokens
+    .command("list-usage-records-v2")
+    .description("List V2 usage records")
+    .option("-b, --budget <id>", "filter by budget")
+    .option("-s, --status <status>", "filter by status")
+    .action((opts) =>
+      out(
+        true,
+        listUsageRecordsV2({ budgetId: opts.budget, status: opts.status }),
+      ),
+    );
+
+  tokens
+    .command("set-usage-record-status-v2 <id> <next>")
+    .description("Set V2 usage record status")
+    .action((id, next) =>
+      tryRun(() => out(true, setUsageRecordStatusV2(id, next))),
+    );
+
+  tokens
+    .command("record-usage-v2 <id>")
+    .description("Mark V2 usage record recorded")
+    .action((id) => tryRun(() => out(true, recordUsageV2(id))));
+
+  tokens
+    .command("bill-usage-v2 <id>")
+    .description("Bill V2 usage record")
+    .action((id) => tryRun(() => out(true, billUsageV2(id))));
+
+  tokens
+    .command("reject-usage-v2 <id>")
+    .description("Reject V2 usage record")
+    .action((id) => tryRun(() => out(true, rejectUsageV2(id))));
+
+  tokens
+    .command("refund-usage-v2 <id>")
+    .description("Refund V2 usage record")
+    .action((id) => tryRun(() => out(true, refundUsageV2(id))));
+
+  tokens
+    .command("auto-suspend-idle-budgets-v2")
+    .description("Auto-suspend idle V2 budgets")
+    .action(() => out(true, autoSuspendIdleBudgetsV2()));
+
+  tokens
+    .command("auto-reject-stale-records-v2")
+    .description("Auto-reject stale V2 records")
+    .action(() => out(true, autoRejectStaleRecordsV2()));
 }

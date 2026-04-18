@@ -817,3 +817,469 @@ describe("automation-engine (Phase 96)", () => {
     });
   });
 });
+
+// ── V2 Surface ──
+
+import {
+  AUTOMATION_MATURITY_V2,
+  EXECUTION_LIFECYCLE_V2,
+  AUTOMATION_DEFAULT_MAX_ACTIVE_PER_OWNER,
+  AUTOMATION_DEFAULT_MAX_RUNNING_PER_AUTOMATION,
+  AUTOMATION_DEFAULT_AUTOMATION_IDLE_MS,
+  AUTOMATION_DEFAULT_EXECUTION_STUCK_MS,
+  getMaxActiveAutomationsPerOwnerV2,
+  setMaxActiveAutomationsPerOwnerV2,
+  getMaxRunningExecutionsPerAutomationV2,
+  setMaxRunningExecutionsPerAutomationV2,
+  getAutomationIdleMsV2,
+  setAutomationIdleMsV2,
+  getExecutionStuckMsV2,
+  setExecutionStuckMsV2,
+  registerAutomationV2,
+  getAutomationV2,
+  listAutomationsV2,
+  setAutomationStatusV2,
+  activateAutomationV2,
+  pauseAutomationV2,
+  retireAutomationV2,
+  touchAutomationV2,
+  getActiveAutomationCountV2,
+  createExecutionV2,
+  getExecutionV2,
+  listExecutionsV2,
+  setExecutionStatusV2,
+  startExecutionV2,
+  succeedExecutionV2,
+  failExecutionV2,
+  cancelExecutionV2,
+  getRunningExecutionCountV2,
+  autoPauseIdleAutomationsV2,
+  autoFailStuckExecutionsV2,
+  getAutomationEngineStatsV2,
+  _resetStateAutomationEngineV2,
+} from "../../src/lib/automation-engine.js";
+
+describe("automation-engine V2", () => {
+  beforeEach(() => {
+    _resetStateAutomationEngineV2();
+  });
+
+  describe("enums", () => {
+    it("AUTOMATION_MATURITY_V2 frozen 4 states", () => {
+      expect(Object.values(AUTOMATION_MATURITY_V2)).toEqual([
+        "draft",
+        "active",
+        "paused",
+        "retired",
+      ]);
+      expect(Object.isFrozen(AUTOMATION_MATURITY_V2)).toBe(true);
+    });
+
+    it("EXECUTION_LIFECYCLE_V2 frozen 5 states", () => {
+      expect(Object.values(EXECUTION_LIFECYCLE_V2)).toEqual([
+        "queued",
+        "running",
+        "succeeded",
+        "failed",
+        "cancelled",
+      ]);
+      expect(Object.isFrozen(EXECUTION_LIFECYCLE_V2)).toBe(true);
+    });
+  });
+
+  describe("config defaults & setters", () => {
+    it("defaults match constants", () => {
+      expect(getMaxActiveAutomationsPerOwnerV2()).toBe(
+        AUTOMATION_DEFAULT_MAX_ACTIVE_PER_OWNER,
+      );
+      expect(getMaxRunningExecutionsPerAutomationV2()).toBe(
+        AUTOMATION_DEFAULT_MAX_RUNNING_PER_AUTOMATION,
+      );
+      expect(getAutomationIdleMsV2()).toBe(
+        AUTOMATION_DEFAULT_AUTOMATION_IDLE_MS,
+      );
+      expect(getExecutionStuckMsV2()).toBe(
+        AUTOMATION_DEFAULT_EXECUTION_STUCK_MS,
+      );
+    });
+
+    it("setters update", () => {
+      setMaxActiveAutomationsPerOwnerV2(50);
+      expect(getMaxActiveAutomationsPerOwnerV2()).toBe(50);
+      setMaxRunningExecutionsPerAutomationV2(7);
+      expect(getMaxRunningExecutionsPerAutomationV2()).toBe(7);
+      setAutomationIdleMsV2(1234);
+      expect(getAutomationIdleMsV2()).toBe(1234);
+      setExecutionStuckMsV2(5678);
+      expect(getExecutionStuckMsV2()).toBe(5678);
+    });
+
+    it("setters floor non-integers", () => {
+      setMaxActiveAutomationsPerOwnerV2(8.6);
+      expect(getMaxActiveAutomationsPerOwnerV2()).toBe(8);
+    });
+
+    it("setters reject zero/negative/NaN", () => {
+      expect(() => setMaxActiveAutomationsPerOwnerV2(0)).toThrow();
+      expect(() => setMaxRunningExecutionsPerAutomationV2(-1)).toThrow();
+      expect(() => setAutomationIdleMsV2(NaN)).toThrow();
+      expect(() => setExecutionStuckMsV2("nope")).toThrow();
+    });
+
+    it("_resetState restores defaults", () => {
+      setMaxActiveAutomationsPerOwnerV2(99);
+      _resetStateAutomationEngineV2();
+      expect(getMaxActiveAutomationsPerOwnerV2()).toBe(
+        AUTOMATION_DEFAULT_MAX_ACTIVE_PER_OWNER,
+      );
+    });
+  });
+
+  describe("registerAutomationV2", () => {
+    it("creates draft automation", () => {
+      const a = registerAutomationV2("a1", {
+        ownerId: "u1",
+        name: "Sync flow",
+        now: 1000,
+      });
+      expect(a.status).toBe("draft");
+      expect(a.ownerId).toBe("u1");
+      expect(a.activatedAt).toBeNull();
+      expect(a.retiredAt).toBeNull();
+    });
+
+    it("rejects invalid id/owner/name", () => {
+      expect(() =>
+        registerAutomationV2("", { ownerId: "u", name: "n" }),
+      ).toThrow();
+      expect(() =>
+        registerAutomationV2("a", { ownerId: "", name: "n" }),
+      ).toThrow();
+      expect(() =>
+        registerAutomationV2("a", { ownerId: "u", name: "" }),
+      ).toThrow();
+    });
+
+    it("rejects duplicate", () => {
+      registerAutomationV2("a1", { ownerId: "u", name: "n" });
+      expect(() =>
+        registerAutomationV2("a1", { ownerId: "u", name: "n2" }),
+      ).toThrow(/already exists/);
+    });
+
+    it("returns defensive copy", () => {
+      const a = registerAutomationV2("a1", {
+        ownerId: "u",
+        name: "n",
+        metadata: { k: "v" },
+      });
+      a.metadata.k = "tampered";
+      expect(getAutomationV2("a1").metadata.k).toBe("v");
+    });
+  });
+
+  describe("automation transitions", () => {
+    beforeEach(() => {
+      registerAutomationV2("a1", { ownerId: "u1", name: "n", now: 1000 });
+    });
+
+    it("draft→active stamps activatedAt", () => {
+      const a = activateAutomationV2("a1", { now: 2000 });
+      expect(a.status).toBe("active");
+      expect(a.activatedAt).toBe(2000);
+    });
+
+    it("paused→active recovery preserves activatedAt", () => {
+      activateAutomationV2("a1", { now: 2000 });
+      pauseAutomationV2("a1", { now: 3000 });
+      const a = activateAutomationV2("a1", { now: 4000 });
+      expect(a.activatedAt).toBe(2000);
+    });
+
+    it("→retired stamps retiredAt and is terminal", () => {
+      const a = retireAutomationV2("a1", { now: 5000 });
+      expect(a.retiredAt).toBe(5000);
+      expect(() => activateAutomationV2("a1")).toThrow(/terminal/);
+    });
+
+    it("rejects unknown status", () => {
+      expect(() => setAutomationStatusV2("a1", "bogus")).toThrow(/unknown/);
+    });
+
+    it("rejects illegal draft→paused", () => {
+      expect(() => pauseAutomationV2("a1")).toThrow(/cannot transition/);
+    });
+
+    it("rejects missing", () => {
+      expect(() => activateAutomationV2("nope")).toThrow(/not found/);
+    });
+
+    it("per-owner cap enforced on draft→active only", () => {
+      setMaxActiveAutomationsPerOwnerV2(2);
+      registerAutomationV2("a2", { ownerId: "u1", name: "n" });
+      registerAutomationV2("a3", { ownerId: "u1", name: "n" });
+      activateAutomationV2("a1");
+      activateAutomationV2("a2");
+      expect(() => activateAutomationV2("a3")).toThrow(/active-automation cap/);
+    });
+
+    it("paused→active recovery exempt from cap", () => {
+      setMaxActiveAutomationsPerOwnerV2(2);
+      registerAutomationV2("a2", { ownerId: "u1", name: "n" });
+      registerAutomationV2("a3", { ownerId: "u1", name: "n" });
+      activateAutomationV2("a1");
+      activateAutomationV2("a2");
+      pauseAutomationV2("a1");
+      activateAutomationV2("a3");
+      const a1 = activateAutomationV2("a1");
+      expect(a1.status).toBe("active");
+    });
+
+    it("per-owner cap is owner-scoped", () => {
+      setMaxActiveAutomationsPerOwnerV2(1);
+      registerAutomationV2("a2", { ownerId: "u2", name: "n" });
+      activateAutomationV2("a1");
+      const a = activateAutomationV2("a2");
+      expect(a.status).toBe("active");
+    });
+  });
+
+  describe("touchAutomationV2", () => {
+    it("updates lastSeenAt", () => {
+      registerAutomationV2("a1", { ownerId: "u", name: "n", now: 1000 });
+      activateAutomationV2("a1", { now: 2000 });
+      const a = touchAutomationV2("a1", { now: 9999 });
+      expect(a.lastSeenAt).toBe(9999);
+      expect(a.status).toBe("active");
+    });
+
+    it("throws on missing", () => {
+      expect(() => touchAutomationV2("nope")).toThrow(/not found/);
+    });
+  });
+
+  describe("listAutomationsV2 + getActiveAutomationCountV2", () => {
+    it("filters by ownerId/status", () => {
+      registerAutomationV2("a1", { ownerId: "u1", name: "n" });
+      registerAutomationV2("a2", { ownerId: "u1", name: "n" });
+      registerAutomationV2("a3", { ownerId: "u2", name: "n" });
+      activateAutomationV2("a1");
+      expect(listAutomationsV2({ ownerId: "u1" })).toHaveLength(2);
+      expect(listAutomationsV2({ status: "active" })).toHaveLength(1);
+    });
+
+    it("counts only active", () => {
+      registerAutomationV2("a1", { ownerId: "u", name: "n" });
+      registerAutomationV2("a2", { ownerId: "u", name: "n" });
+      activateAutomationV2("a1");
+      expect(getActiveAutomationCountV2("u")).toBe(1);
+    });
+  });
+
+  describe("createExecutionV2", () => {
+    beforeEach(() => {
+      registerAutomationV2("a1", { ownerId: "u", name: "n" });
+    });
+
+    it("creates queued execution", () => {
+      const e = createExecutionV2("e1", {
+        automationId: "a1",
+        now: 1000,
+      });
+      expect(e.status).toBe("queued");
+      expect(e.startedAt).toBeNull();
+      expect(e.settledAt).toBeNull();
+    });
+
+    it("rejects invalid id/automationId", () => {
+      expect(() => createExecutionV2("", { automationId: "a1" })).toThrow();
+      expect(() => createExecutionV2("e", { automationId: "" })).toThrow();
+    });
+
+    it("rejects duplicate", () => {
+      createExecutionV2("e1", { automationId: "a1" });
+      expect(() => createExecutionV2("e1", { automationId: "a1" })).toThrow(
+        /already exists/,
+      );
+    });
+  });
+
+  describe("execution transitions", () => {
+    beforeEach(() => {
+      registerAutomationV2("a1", { ownerId: "u", name: "n" });
+      createExecutionV2("e1", { automationId: "a1", now: 1000 });
+    });
+
+    it("queued→running stamps startedAt", () => {
+      const e = startExecutionV2("e1", { now: 2000 });
+      expect(e.status).toBe("running");
+      expect(e.startedAt).toBe(2000);
+      expect(e.settledAt).toBeNull();
+    });
+
+    it("running→succeeded stamps settledAt (terminal)", () => {
+      startExecutionV2("e1", { now: 2000 });
+      const e = succeedExecutionV2("e1", { now: 3000 });
+      expect(e.settledAt).toBe(3000);
+      expect(() => failExecutionV2("e1")).toThrow(/terminal/);
+    });
+
+    it("running→failed stamps settledAt", () => {
+      startExecutionV2("e1", { now: 2000 });
+      const e = failExecutionV2("e1", { now: 3000 });
+      expect(e.status).toBe("failed");
+      expect(e.settledAt).toBe(3000);
+    });
+
+    it("queued→cancelled stamps settledAt", () => {
+      const e = cancelExecutionV2("e1", { now: 2500 });
+      expect(e.status).toBe("cancelled");
+      expect(e.settledAt).toBe(2500);
+    });
+
+    it("queued cannot succeed directly", () => {
+      expect(() => succeedExecutionV2("e1")).toThrow(/cannot transition/);
+    });
+
+    it("rejects unknown status", () => {
+      expect(() => setExecutionStatusV2("e1", "bogus")).toThrow(/unknown/);
+    });
+
+    it("rejects missing", () => {
+      expect(() => startExecutionV2("nope")).toThrow(/not found/);
+    });
+
+    it("per-automation running cap enforced at queued→running", () => {
+      setMaxRunningExecutionsPerAutomationV2(2);
+      createExecutionV2("e2", { automationId: "a1" });
+      createExecutionV2("e3", { automationId: "a1" });
+      startExecutionV2("e1");
+      startExecutionV2("e2");
+      expect(() => startExecutionV2("e3")).toThrow(/running-execution cap/);
+    });
+
+    it("running cap excludes terminals", () => {
+      setMaxRunningExecutionsPerAutomationV2(2);
+      createExecutionV2("e2", { automationId: "a1" });
+      createExecutionV2("e3", { automationId: "a1" });
+      startExecutionV2("e1");
+      startExecutionV2("e2");
+      succeedExecutionV2("e1");
+      const e3 = startExecutionV2("e3");
+      expect(e3.status).toBe("running");
+    });
+  });
+
+  describe("listExecutionsV2 + getRunningExecutionCountV2", () => {
+    beforeEach(() => {
+      registerAutomationV2("a1", { ownerId: "u", name: "n" });
+      registerAutomationV2("a2", { ownerId: "u", name: "n" });
+      createExecutionV2("e1", { automationId: "a1" });
+      createExecutionV2("e2", { automationId: "a1" });
+      createExecutionV2("e3", { automationId: "a2" });
+      startExecutionV2("e1");
+    });
+
+    it("filters by automationId/status", () => {
+      expect(listExecutionsV2({ automationId: "a1" })).toHaveLength(2);
+      expect(listExecutionsV2({ status: "queued" })).toHaveLength(2);
+    });
+
+    it("counts only running per automation", () => {
+      expect(getRunningExecutionCountV2("a1")).toBe(1);
+      expect(getRunningExecutionCountV2("a2")).toBe(0);
+    });
+  });
+
+  describe("autoPauseIdleAutomationsV2", () => {
+    it("flips active→paused when idle", () => {
+      registerAutomationV2("a1", { ownerId: "u", name: "n", now: 1000 });
+      activateAutomationV2("a1", { now: 1000 });
+      setAutomationIdleMsV2(500);
+      const flipped = autoPauseIdleAutomationsV2({ now: 2000 });
+      expect(flipped).toHaveLength(1);
+      expect(flipped[0].status).toBe("paused");
+    });
+
+    it("skips non-active", () => {
+      registerAutomationV2("a1", { ownerId: "u", name: "n", now: 1000 });
+      setAutomationIdleMsV2(500);
+      const flipped = autoPauseIdleAutomationsV2({ now: 999_999 });
+      expect(flipped).toHaveLength(0);
+    });
+
+    it("preserves under-threshold", () => {
+      registerAutomationV2("a1", { ownerId: "u", name: "n", now: 1000 });
+      activateAutomationV2("a1", { now: 1000 });
+      setAutomationIdleMsV2(5000);
+      const flipped = autoPauseIdleAutomationsV2({ now: 2000 });
+      expect(flipped).toHaveLength(0);
+    });
+  });
+
+  describe("autoFailStuckExecutionsV2", () => {
+    beforeEach(() => {
+      registerAutomationV2("a1", { ownerId: "u", name: "n" });
+    });
+
+    it("flips running→failed when stuck", () => {
+      createExecutionV2("e1", { automationId: "a1", now: 1000 });
+      startExecutionV2("e1", { now: 1000 });
+      setExecutionStuckMsV2(500);
+      const flipped = autoFailStuckExecutionsV2({ now: 2000 });
+      expect(flipped).toHaveLength(1);
+      expect(flipped[0].status).toBe("failed");
+      expect(flipped[0].settledAt).toBe(2000);
+    });
+
+    it("skips non-running (queued)", () => {
+      createExecutionV2("e1", { automationId: "a1", now: 1000 });
+      setExecutionStuckMsV2(500);
+      const flipped = autoFailStuckExecutionsV2({ now: 999_999 });
+      expect(flipped).toHaveLength(0);
+    });
+
+    it("skips terminals", () => {
+      createExecutionV2("e1", { automationId: "a1", now: 1000 });
+      cancelExecutionV2("e1", { now: 1000 });
+      setExecutionStuckMsV2(500);
+      const flipped = autoFailStuckExecutionsV2({ now: 999_999 });
+      expect(flipped).toHaveLength(0);
+    });
+  });
+
+  describe("getAutomationEngineStatsV2", () => {
+    it("zero-init when empty", () => {
+      const s = getAutomationEngineStatsV2();
+      expect(s.totalAutomationsV2).toBe(0);
+      expect(s.totalExecutionsV2).toBe(0);
+      expect(s.automationsByStatus).toEqual({
+        draft: 0,
+        active: 0,
+        paused: 0,
+        retired: 0,
+      });
+      expect(s.executionsByStatus).toEqual({
+        queued: 0,
+        running: 0,
+        succeeded: 0,
+        failed: 0,
+        cancelled: 0,
+      });
+    });
+
+    it("counts by status + config snapshot", () => {
+      registerAutomationV2("a1", { ownerId: "u", name: "n" });
+      activateAutomationV2("a1");
+      createExecutionV2("e1", { automationId: "a1" });
+      startExecutionV2("e1");
+      setMaxActiveAutomationsPerOwnerV2(33);
+      const s = getAutomationEngineStatsV2();
+      expect(s.totalAutomationsV2).toBe(1);
+      expect(s.automationsByStatus.active).toBe(1);
+      expect(s.totalExecutionsV2).toBe(1);
+      expect(s.executionsByStatus.running).toBe(1);
+      expect(s.maxActiveAutomationsPerOwner).toBe(33);
+    });
+  });
+});
