@@ -1181,4 +1181,225 @@ export function registerCoworkCommand(program) {
       );
       logger.log("");
     });
+
+  // ===== V2 governance subcommands (agent-coordinator V2) =====
+  cowork
+    .command("coord-agent-maturities-v2")
+    .description("List coord agent maturity states (V2)")
+    .action(async () => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(JSON.stringify(m.COORD_AGENT_MATURITY_V2, null, 2));
+    });
+  cowork
+    .command("coord-assignment-lifecycle-v2")
+    .description("List coord assignment lifecycle states (V2)")
+    .action(async () => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(JSON.stringify(m.COORD_ASSIGNMENT_LIFECYCLE_V2, null, 2));
+    });
+  cowork
+    .command("coord-stats-v2")
+    .description("Show agent-coordinator V2 stats")
+    .action(async () => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(JSON.stringify(m.getAgentCoordinatorStatsV2(), null, 2));
+    });
+  cowork
+    .command("coord-config-v2")
+    .description("Show agent-coordinator V2 config")
+    .action(async () => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(
+        JSON.stringify(
+          {
+            maxActiveAgentsPerOwner: m.getMaxActiveAgentsPerOwnerCoordV2(),
+            maxPendingAssignmentsPerAgent:
+              m.getMaxPendingAssignmentsPerAgentV2(),
+            agentIdleMs: m.getAgentIdleMsCoordV2(),
+            assignmentStuckMs: m.getAssignmentStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  cowork
+    .command("coord-register-agent-v2 <id> <owner>")
+    .description("Register a coord agent (V2)")
+    .action(async (id, owner) => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(
+        JSON.stringify(m.registerCoordAgentV2({ id, owner }), null, 2),
+      );
+    });
+  cowork
+    .command("coord-activate-agent-v2 <id>")
+    .description("Activate a coord agent (V2)")
+    .action(async (id) => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(JSON.stringify(m.activateCoordAgentV2(id), null, 2));
+    });
+  cowork
+    .command("coord-idle-agent-v2 <id>")
+    .description("Mark coord agent as idle (V2)")
+    .action(async (id) => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(JSON.stringify(m.idleCoordAgentV2(id), null, 2));
+    });
+  cowork
+    .command("coord-retire-agent-v2 <id>")
+    .description("Retire a coord agent (V2)")
+    .action(async (id) => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(JSON.stringify(m.retireCoordAgentV2(id), null, 2));
+    });
+  cowork
+    .command("coord-touch-agent-v2 <id>")
+    .description("Touch a coord agent (V2)")
+    .action(async (id) => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(JSON.stringify(m.touchCoordAgentV2(id), null, 2));
+    });
+  cowork
+    .command("coord-get-agent-v2 <id>")
+    .description("Get a coord agent (V2)")
+    .action(async (id) => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(JSON.stringify(m.getCoordAgentV2(id), null, 2));
+    });
+  cowork
+    .command("coord-list-agents-v2")
+    .description("List coord agents (V2)")
+    .action(async () => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(JSON.stringify(m.listCoordAgentsV2(), null, 2));
+    });
+  cowork
+    .command("coord-create-assignment-v2 <id> <agentId>")
+    .description("Create a coord assignment (V2)")
+    .action(async (id, agentId) => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(
+        JSON.stringify(m.createAssignmentV2({ id, agentId }), null, 2),
+      );
+    });
+  cowork
+    .command("coord-dispatch-assignment-v2 <id>")
+    .description("Dispatch a coord assignment (V2)")
+    .action(async (id) => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(JSON.stringify(m.dispatchAssignmentV2(id), null, 2));
+    });
+  cowork
+    .command("coord-complete-assignment-v2 <id>")
+    .description("Complete a coord assignment (V2)")
+    .action(async (id) => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(JSON.stringify(m.completeAssignmentV2(id), null, 2));
+    });
+  cowork
+    .command("coord-fail-assignment-v2 <id> [reason]")
+    .description("Fail a coord assignment (V2)")
+    .action(async (id, reason) => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(JSON.stringify(m.failAssignmentV2(id, reason), null, 2));
+    });
+  cowork
+    .command("coord-cancel-assignment-v2 <id> [reason]")
+    .description("Cancel a coord assignment (V2)")
+    .action(async (id, reason) => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(JSON.stringify(m.cancelAssignmentV2(id, reason), null, 2));
+    });
+  cowork
+    .command("coord-get-assignment-v2 <id>")
+    .description("Get a coord assignment (V2)")
+    .action(async (id) => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(JSON.stringify(m.getAssignmentV2(id), null, 2));
+    });
+  cowork
+    .command("coord-list-assignments-v2")
+    .description("List coord assignments (V2)")
+    .action(async () => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(JSON.stringify(m.listAssignmentsV2(), null, 2));
+    });
+  cowork
+    .command("coord-auto-idle-agents-v2")
+    .description("Auto-idle coord agents (V2)")
+    .action(async () => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(JSON.stringify(m.autoIdleCoordAgentsV2(), null, 2));
+    });
+  cowork
+    .command("coord-auto-fail-stuck-assignments-v2")
+    .description("Auto-fail stuck coord assignments (V2)")
+    .action(async () => {
+      const m = await import("../lib/agent-coordinator.js");
+      console.log(JSON.stringify(m.autoFailStuckAssignmentsV2(), null, 2));
+    });
+  cowork
+    .command("coord-set-max-active-agents-v2 <n>")
+    .description("Set max active coord agents per owner (V2)")
+    .action(async (n) => {
+      const m = await import("../lib/agent-coordinator.js");
+      m.setMaxActiveAgentsPerOwnerCoordV2(parseInt(n, 10));
+      console.log(
+        JSON.stringify(
+          { maxActiveAgentsPerOwner: m.getMaxActiveAgentsPerOwnerCoordV2() },
+          null,
+          2,
+        ),
+      );
+    });
+  cowork
+    .command("coord-set-max-pending-assignments-v2 <n>")
+    .description("Set max pending coord assignments per agent (V2)")
+    .action(async (n) => {
+      const m = await import("../lib/agent-coordinator.js");
+      m.setMaxPendingAssignmentsPerAgentV2(parseInt(n, 10));
+      console.log(
+        JSON.stringify(
+          {
+            maxPendingAssignmentsPerAgent:
+              m.getMaxPendingAssignmentsPerAgentV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  cowork
+    .command("coord-set-agent-idle-ms-v2 <n>")
+    .description("Set coord agent idle timeout ms (V2)")
+    .action(async (n) => {
+      const m = await import("../lib/agent-coordinator.js");
+      m.setAgentIdleMsCoordV2(parseInt(n, 10));
+      console.log(
+        JSON.stringify({ agentIdleMs: m.getAgentIdleMsCoordV2() }, null, 2),
+      );
+    });
+  cowork
+    .command("coord-set-assignment-stuck-ms-v2 <n>")
+    .description("Set coord assignment stuck timeout ms (V2)")
+    .action(async (n) => {
+      const m = await import("../lib/agent-coordinator.js");
+      m.setAssignmentStuckMsV2(parseInt(n, 10));
+      console.log(
+        JSON.stringify(
+          { assignmentStuckMs: m.getAssignmentStuckMsV2() },
+          null,
+          2,
+        ),
+      );
+    });
+  cowork
+    .command("coord-reset-state-v2")
+    .description("Reset agent-coordinator V2 in-memory state")
+    .action(async () => {
+      const m = await import("../lib/agent-coordinator.js");
+      m._resetStateAgentCoordinatorV2();
+      console.log(JSON.stringify({ ok: true }, null, 2));
+    });
 }

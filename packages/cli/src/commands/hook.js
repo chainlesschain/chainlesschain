@@ -334,4 +334,152 @@ export function registerHookCommand(program) {
         logger.log(`  ${chalk.cyan(ev)}`);
       }
     });
+
+  // ===== V2 governance subcommands (hook-manager V2) =====
+  hook
+    .command("maturities-v2")
+    .description("List hook profile maturity states (V2)")
+    .action(async () => {
+      const m = await import("../lib/hook-manager.js");
+      console.log(JSON.stringify(m.HOOK_PROFILE_MATURITY_V2, null, 2));
+    });
+  hook
+    .command("exec-lifecycle-v2")
+    .description("List hook exec lifecycle states (V2)")
+    .action(async () => {
+      const m = await import("../lib/hook-manager.js");
+      console.log(JSON.stringify(m.HOOK_EXEC_LIFECYCLE_V2, null, 2));
+    });
+  hook
+    .command("stats-v2")
+    .description("Show hook-manager V2 stats")
+    .action(async () => {
+      const m = await import("../lib/hook-manager.js");
+      console.log(JSON.stringify(m.getHookManagerStatsV2(), null, 2));
+    });
+  hook
+    .command("config-v2")
+    .description("Show hook-manager V2 config")
+    .action(async () => {
+      const m = await import("../lib/hook-manager.js");
+      console.log(
+        JSON.stringify(
+          {
+            maxActiveHooksPerOwner: m.getMaxActiveHooksPerOwnerV2(),
+            maxPendingExecsPerHook: m.getMaxPendingExecsPerHookV2(),
+            hookIdleMs: m.getHookIdleMsV2(),
+            hookExecStuckMs: m.getHookExecStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  hook
+    .command("register-profile-v2 <id> <owner> [event]")
+    .action(async (id, owner, event) => {
+      const m = await import("../lib/hook-manager.js");
+      console.log(
+        JSON.stringify(m.registerHookProfileV2({ id, owner, event }), null, 2),
+      );
+    });
+  hook.command("activate-profile-v2 <id>").action(async (id) => {
+    const m = await import("../lib/hook-manager.js");
+    console.log(JSON.stringify(m.activateHookProfileV2(id), null, 2));
+  });
+  hook.command("disable-profile-v2 <id>").action(async (id) => {
+    const m = await import("../lib/hook-manager.js");
+    console.log(JSON.stringify(m.disableHookProfileV2(id), null, 2));
+  });
+  hook.command("retire-profile-v2 <id>").action(async (id) => {
+    const m = await import("../lib/hook-manager.js");
+    console.log(JSON.stringify(m.retireHookProfileV2(id), null, 2));
+  });
+  hook.command("touch-profile-v2 <id>").action(async (id) => {
+    const m = await import("../lib/hook-manager.js");
+    console.log(JSON.stringify(m.touchHookProfileV2(id), null, 2));
+  });
+  hook.command("get-profile-v2 <id>").action(async (id) => {
+    const m = await import("../lib/hook-manager.js");
+    console.log(JSON.stringify(m.getHookProfileV2(id), null, 2));
+  });
+  hook.command("list-profiles-v2").action(async () => {
+    const m = await import("../lib/hook-manager.js");
+    console.log(JSON.stringify(m.listHookProfilesV2(), null, 2));
+  });
+  hook.command("create-exec-v2 <id> <hookId>").action(async (id, hookId) => {
+    const m = await import("../lib/hook-manager.js");
+    console.log(JSON.stringify(m.createHookExecV2({ id, hookId }), null, 2));
+  });
+  hook.command("start-exec-v2 <id>").action(async (id) => {
+    const m = await import("../lib/hook-manager.js");
+    console.log(JSON.stringify(m.startHookExecV2(id), null, 2));
+  });
+  hook.command("complete-exec-v2 <id>").action(async (id) => {
+    const m = await import("../lib/hook-manager.js");
+    console.log(JSON.stringify(m.completeHookExecV2(id), null, 2));
+  });
+  hook.command("fail-exec-v2 <id> [reason]").action(async (id, reason) => {
+    const m = await import("../lib/hook-manager.js");
+    console.log(JSON.stringify(m.failHookExecV2(id, reason), null, 2));
+  });
+  hook.command("cancel-exec-v2 <id> [reason]").action(async (id, reason) => {
+    const m = await import("../lib/hook-manager.js");
+    console.log(JSON.stringify(m.cancelHookExecV2(id, reason), null, 2));
+  });
+  hook.command("get-exec-v2 <id>").action(async (id) => {
+    const m = await import("../lib/hook-manager.js");
+    console.log(JSON.stringify(m.getHookExecV2(id), null, 2));
+  });
+  hook.command("list-execs-v2").action(async () => {
+    const m = await import("../lib/hook-manager.js");
+    console.log(JSON.stringify(m.listHookExecsV2(), null, 2));
+  });
+  hook.command("auto-disable-idle-v2").action(async () => {
+    const m = await import("../lib/hook-manager.js");
+    console.log(JSON.stringify(m.autoDisableIdleHooksV2(), null, 2));
+  });
+  hook.command("auto-fail-stuck-v2").action(async () => {
+    const m = await import("../lib/hook-manager.js");
+    console.log(JSON.stringify(m.autoFailStuckHookExecsV2(), null, 2));
+  });
+  hook.command("set-max-active-hooks-v2 <n>").action(async (n) => {
+    const m = await import("../lib/hook-manager.js");
+    m.setMaxActiveHooksPerOwnerV2(parseInt(n, 10));
+    console.log(
+      JSON.stringify(
+        { maxActiveHooksPerOwner: m.getMaxActiveHooksPerOwnerV2() },
+        null,
+        2,
+      ),
+    );
+  });
+  hook.command("set-max-pending-execs-v2 <n>").action(async (n) => {
+    const m = await import("../lib/hook-manager.js");
+    m.setMaxPendingExecsPerHookV2(parseInt(n, 10));
+    console.log(
+      JSON.stringify(
+        { maxPendingExecsPerHook: m.getMaxPendingExecsPerHookV2() },
+        null,
+        2,
+      ),
+    );
+  });
+  hook.command("set-hook-idle-ms-v2 <n>").action(async (n) => {
+    const m = await import("../lib/hook-manager.js");
+    m.setHookIdleMsV2(parseInt(n, 10));
+    console.log(JSON.stringify({ hookIdleMs: m.getHookIdleMsV2() }, null, 2));
+  });
+  hook.command("set-hook-exec-stuck-ms-v2 <n>").action(async (n) => {
+    const m = await import("../lib/hook-manager.js");
+    m.setHookExecStuckMsV2(parseInt(n, 10));
+    console.log(
+      JSON.stringify({ hookExecStuckMs: m.getHookExecStuckMsV2() }, null, 2),
+    );
+  });
+  hook.command("reset-state-v2").action(async () => {
+    const m = await import("../lib/hook-manager.js");
+    m._resetStateHookManagerV2();
+    console.log(JSON.stringify({ ok: true }, null, 2));
+  });
 }

@@ -395,3 +395,398 @@ export class AgentRouter extends EventEmitter {
     }));
   }
 }
+
+// ===== V2 Surface: Agent Router governance overlay (CLI v0.132.0) =====
+// In-memory governance for router profiles + dispatch lifecycle, independent of
+// the AgentRouter class above (legacy ClaudeCodePool/createChatFn untouched).
+
+export const ROUTER_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  DEGRADED: "degraded",
+  RETIRED: "retired",
+});
+
+export const ROUTER_DISPATCH_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  DISPATCHING: "dispatching",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+
+const _profileTransitionsV2 = new Map([
+  [
+    ROUTER_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      ROUTER_PROFILE_MATURITY_V2.ACTIVE,
+      ROUTER_PROFILE_MATURITY_V2.RETIRED,
+    ]),
+  ],
+  [
+    ROUTER_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      ROUTER_PROFILE_MATURITY_V2.DEGRADED,
+      ROUTER_PROFILE_MATURITY_V2.RETIRED,
+    ]),
+  ],
+  [
+    ROUTER_PROFILE_MATURITY_V2.DEGRADED,
+    new Set([
+      ROUTER_PROFILE_MATURITY_V2.ACTIVE,
+      ROUTER_PROFILE_MATURITY_V2.RETIRED,
+    ]),
+  ],
+  [ROUTER_PROFILE_MATURITY_V2.RETIRED, new Set()],
+]);
+const _profileTerminalV2 = new Set([ROUTER_PROFILE_MATURITY_V2.RETIRED]);
+
+const _dispatchTransitionsV2 = new Map([
+  [
+    ROUTER_DISPATCH_LIFECYCLE_V2.QUEUED,
+    new Set([
+      ROUTER_DISPATCH_LIFECYCLE_V2.DISPATCHING,
+      ROUTER_DISPATCH_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    ROUTER_DISPATCH_LIFECYCLE_V2.DISPATCHING,
+    new Set([
+      ROUTER_DISPATCH_LIFECYCLE_V2.COMPLETED,
+      ROUTER_DISPATCH_LIFECYCLE_V2.FAILED,
+      ROUTER_DISPATCH_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [ROUTER_DISPATCH_LIFECYCLE_V2.COMPLETED, new Set()],
+  [ROUTER_DISPATCH_LIFECYCLE_V2.FAILED, new Set()],
+  [ROUTER_DISPATCH_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _dispatchTerminalV2 = new Set([
+  ROUTER_DISPATCH_LIFECYCLE_V2.COMPLETED,
+  ROUTER_DISPATCH_LIFECYCLE_V2.FAILED,
+  ROUTER_DISPATCH_LIFECYCLE_V2.CANCELLED,
+]);
+
+const _profilesV2 = new Map();
+const _dispatchesV2 = new Map();
+let _maxActiveProfilesPerOwnerRouterV2 = 8;
+let _maxPendingDispatchesPerProfileV2 = 16;
+let _profileIdleMsRouterV2 = 6 * 60 * 60 * 1000;
+let _dispatchStuckMsV2 = 5 * 60 * 1000;
+
+function _routerPosIntV2(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+
+export function setMaxActiveProfilesPerOwnerRouterV2(n) {
+  _maxActiveProfilesPerOwnerRouterV2 = _routerPosIntV2(
+    n,
+    "maxActiveProfilesPerOwner",
+  );
+}
+export function getMaxActiveProfilesPerOwnerRouterV2() {
+  return _maxActiveProfilesPerOwnerRouterV2;
+}
+export function setMaxPendingDispatchesPerProfileV2(n) {
+  _maxPendingDispatchesPerProfileV2 = _routerPosIntV2(
+    n,
+    "maxPendingDispatchesPerProfile",
+  );
+}
+export function getMaxPendingDispatchesPerProfileV2() {
+  return _maxPendingDispatchesPerProfileV2;
+}
+export function setProfileIdleMsRouterV2(n) {
+  _profileIdleMsRouterV2 = _routerPosIntV2(n, "profileIdleMs");
+}
+export function getProfileIdleMsRouterV2() {
+  return _profileIdleMsRouterV2;
+}
+export function setDispatchStuckMsV2(n) {
+  _dispatchStuckMsV2 = _routerPosIntV2(n, "dispatchStuckMs");
+}
+export function getDispatchStuckMsV2() {
+  return _dispatchStuckMsV2;
+}
+
+export function _resetStateAgentRouterV2() {
+  _profilesV2.clear();
+  _dispatchesV2.clear();
+  _maxActiveProfilesPerOwnerRouterV2 = 8;
+  _maxPendingDispatchesPerProfileV2 = 16;
+  _profileIdleMsRouterV2 = 6 * 60 * 60 * 1000;
+  _dispatchStuckMsV2 = 5 * 60 * 1000;
+}
+
+export function registerRouterProfileV2({
+  id,
+  owner,
+  strategy,
+  metadata,
+} = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!owner || typeof owner !== "string") throw new Error("owner is required");
+  if (_profilesV2.has(id)) throw new Error(`profile ${id} already registered`);
+  const now = Date.now();
+  const profile = {
+    id,
+    owner,
+    strategy: strategy || "round-robin",
+    status: ROUTER_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    retiredAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
+  _profilesV2.set(id, profile);
+  return { ...profile, metadata: { ...profile.metadata } };
+}
+
+function _routerCheckTransition(from, to) {
+  const allowed = _profileTransitionsV2.get(from);
+  if (!allowed || !allowed.has(to))
+    throw new Error(`invalid profile transition ${from} → ${to}`);
+}
+
+function _countActiveProfilesByOwner(owner) {
+  let n = 0;
+  for (const p of _profilesV2.values()) {
+    if (p.owner === owner && p.status === ROUTER_PROFILE_MATURITY_V2.ACTIVE)
+      n++;
+  }
+  return n;
+}
+
+export function activateRouterProfileV2(id) {
+  const p = _profilesV2.get(id);
+  if (!p) throw new Error(`profile ${id} not found`);
+  _routerCheckTransition(p.status, ROUTER_PROFILE_MATURITY_V2.ACTIVE);
+  const isRecovery = p.status === ROUTER_PROFILE_MATURITY_V2.DEGRADED;
+  if (!isRecovery) {
+    const active = _countActiveProfilesByOwner(p.owner);
+    if (active >= _maxActiveProfilesPerOwnerRouterV2) {
+      throw new Error(
+        `max active profiles per owner (${_maxActiveProfilesPerOwnerRouterV2}) reached for ${p.owner}`,
+      );
+    }
+  }
+  const now = Date.now();
+  p.status = ROUTER_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+
+export function degradeRouterProfileV2(id) {
+  const p = _profilesV2.get(id);
+  if (!p) throw new Error(`profile ${id} not found`);
+  _routerCheckTransition(p.status, ROUTER_PROFILE_MATURITY_V2.DEGRADED);
+  const now = Date.now();
+  p.status = ROUTER_PROFILE_MATURITY_V2.DEGRADED;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+
+export function retireRouterProfileV2(id) {
+  const p = _profilesV2.get(id);
+  if (!p) throw new Error(`profile ${id} not found`);
+  _routerCheckTransition(p.status, ROUTER_PROFILE_MATURITY_V2.RETIRED);
+  const now = Date.now();
+  p.status = ROUTER_PROFILE_MATURITY_V2.RETIRED;
+  p.updatedAt = now;
+  if (!p.retiredAt) p.retiredAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+
+export function touchRouterProfileV2(id) {
+  const p = _profilesV2.get(id);
+  if (!p) throw new Error(`profile ${id} not found`);
+  if (_profileTerminalV2.has(p.status))
+    throw new Error(`cannot touch terminal profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+
+export function getRouterProfileV2(id) {
+  const p = _profilesV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+
+export function listRouterProfilesV2() {
+  return [..._profilesV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+
+function _countPendingDispatchesByProfile(profileId) {
+  let n = 0;
+  for (const d of _dispatchesV2.values()) {
+    if (
+      d.profileId === profileId &&
+      (d.status === ROUTER_DISPATCH_LIFECYCLE_V2.QUEUED ||
+        d.status === ROUTER_DISPATCH_LIFECYCLE_V2.DISPATCHING)
+    )
+      n++;
+  }
+  return n;
+}
+
+export function createDispatchV2({ id, profileId, task, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!profileId || typeof profileId !== "string")
+    throw new Error("profileId is required");
+  if (_dispatchesV2.has(id)) throw new Error(`dispatch ${id} already exists`);
+  const profile = _profilesV2.get(profileId);
+  if (!profile) throw new Error(`profile ${profileId} not found`);
+  const pending = _countPendingDispatchesByProfile(profileId);
+  if (pending >= _maxPendingDispatchesPerProfileV2) {
+    throw new Error(
+      `max pending dispatches per profile (${_maxPendingDispatchesPerProfileV2}) reached for ${profileId}`,
+    );
+  }
+  const now = Date.now();
+  const d = {
+    id,
+    profileId,
+    task: task || "",
+    status: ROUTER_DISPATCH_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    dispatchedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _dispatchesV2.set(id, d);
+  return { ...d, metadata: { ...d.metadata } };
+}
+
+function _dispatchCheckTransition(from, to) {
+  const allowed = _dispatchTransitionsV2.get(from);
+  if (!allowed || !allowed.has(to))
+    throw new Error(`invalid dispatch transition ${from} → ${to}`);
+}
+
+export function dispatchDispatchV2(id) {
+  const d = _dispatchesV2.get(id);
+  if (!d) throw new Error(`dispatch ${id} not found`);
+  _dispatchCheckTransition(d.status, ROUTER_DISPATCH_LIFECYCLE_V2.DISPATCHING);
+  const now = Date.now();
+  d.status = ROUTER_DISPATCH_LIFECYCLE_V2.DISPATCHING;
+  d.updatedAt = now;
+  if (!d.dispatchedAt) d.dispatchedAt = now;
+  return { ...d, metadata: { ...d.metadata } };
+}
+
+export function completeDispatchV2(id) {
+  const d = _dispatchesV2.get(id);
+  if (!d) throw new Error(`dispatch ${id} not found`);
+  _dispatchCheckTransition(d.status, ROUTER_DISPATCH_LIFECYCLE_V2.COMPLETED);
+  const now = Date.now();
+  d.status = ROUTER_DISPATCH_LIFECYCLE_V2.COMPLETED;
+  d.updatedAt = now;
+  if (!d.settledAt) d.settledAt = now;
+  return { ...d, metadata: { ...d.metadata } };
+}
+
+export function failDispatchV2(id, reason) {
+  const d = _dispatchesV2.get(id);
+  if (!d) throw new Error(`dispatch ${id} not found`);
+  _dispatchCheckTransition(d.status, ROUTER_DISPATCH_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  d.status = ROUTER_DISPATCH_LIFECYCLE_V2.FAILED;
+  d.updatedAt = now;
+  if (!d.settledAt) d.settledAt = now;
+  if (reason) d.metadata.failReason = String(reason);
+  return { ...d, metadata: { ...d.metadata } };
+}
+
+export function cancelDispatchV2(id, reason) {
+  const d = _dispatchesV2.get(id);
+  if (!d) throw new Error(`dispatch ${id} not found`);
+  _dispatchCheckTransition(d.status, ROUTER_DISPATCH_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  d.status = ROUTER_DISPATCH_LIFECYCLE_V2.CANCELLED;
+  d.updatedAt = now;
+  if (!d.settledAt) d.settledAt = now;
+  if (reason) d.metadata.cancelReason = String(reason);
+  return { ...d, metadata: { ...d.metadata } };
+}
+
+export function getDispatchV2(id) {
+  const d = _dispatchesV2.get(id);
+  if (!d) return null;
+  return { ...d, metadata: { ...d.metadata } };
+}
+
+export function listDispatchesV2() {
+  return [..._dispatchesV2.values()].map((d) => ({
+    ...d,
+    metadata: { ...d.metadata },
+  }));
+}
+
+export function autoDegradeIdleProfilesRouterV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _profilesV2.values()) {
+    if (
+      p.status === ROUTER_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _profileIdleMsRouterV2
+    ) {
+      p.status = ROUTER_PROFILE_MATURITY_V2.DEGRADED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function autoFailStuckDispatchesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const d of _dispatchesV2.values()) {
+    if (
+      d.status === ROUTER_DISPATCH_LIFECYCLE_V2.DISPATCHING &&
+      d.dispatchedAt != null &&
+      t - d.dispatchedAt >= _dispatchStuckMsV2
+    ) {
+      d.status = ROUTER_DISPATCH_LIFECYCLE_V2.FAILED;
+      d.updatedAt = t;
+      if (!d.settledAt) d.settledAt = t;
+      d.metadata.failReason = "auto-fail-stuck";
+      flipped.push(d.id);
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function getAgentRouterStatsV2() {
+  const profilesByStatus = {};
+  for (const s of Object.values(ROUTER_PROFILE_MATURITY_V2))
+    profilesByStatus[s] = 0;
+  for (const p of _profilesV2.values()) profilesByStatus[p.status]++;
+  const dispatchesByStatus = {};
+  for (const s of Object.values(ROUTER_DISPATCH_LIFECYCLE_V2))
+    dispatchesByStatus[s] = 0;
+  for (const d of _dispatchesV2.values()) dispatchesByStatus[d.status]++;
+  return {
+    totalProfilesV2: _profilesV2.size,
+    totalDispatchesV2: _dispatchesV2.size,
+    maxActiveProfilesPerOwner: _maxActiveProfilesPerOwnerRouterV2,
+    maxPendingDispatchesPerProfile: _maxPendingDispatchesPerProfileV2,
+    profileIdleMs: _profileIdleMsRouterV2,
+    dispatchStuckMs: _dispatchStuckMsV2,
+    profilesByStatus,
+    dispatchesByStatus,
+  };
+}

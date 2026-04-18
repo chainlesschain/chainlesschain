@@ -302,3 +302,271 @@ describe("AgentRouter edge cases", () => {
     expect(completeFn.mock.calls[0][0].backendType).toBe(BACKEND_TYPE.CLAUDE);
   });
 });
+
+// ===== V2 Tests: Agent Router governance overlay =====
+import {
+  ROUTER_PROFILE_MATURITY_V2,
+  ROUTER_DISPATCH_LIFECYCLE_V2,
+  registerRouterProfileV2,
+  activateRouterProfileV2,
+  degradeRouterProfileV2,
+  retireRouterProfileV2,
+  touchRouterProfileV2,
+  getRouterProfileV2,
+  listRouterProfilesV2,
+  createDispatchV2,
+  dispatchDispatchV2,
+  completeDispatchV2,
+  failDispatchV2,
+  cancelDispatchV2,
+  getDispatchV2,
+  listDispatchesV2,
+  autoDegradeIdleProfilesRouterV2,
+  autoFailStuckDispatchesV2,
+  getAgentRouterStatsV2,
+  _resetStateAgentRouterV2,
+  setMaxActiveProfilesPerOwnerRouterV2,
+  getMaxActiveProfilesPerOwnerRouterV2,
+  setMaxPendingDispatchesPerProfileV2,
+  getMaxPendingDispatchesPerProfileV2,
+  setProfileIdleMsRouterV2,
+  getProfileIdleMsRouterV2,
+  setDispatchStuckMsV2,
+  getDispatchStuckMsV2,
+} from "../../src/lib/agent-router.js";
+
+describe("Agent Router V2 governance overlay", () => {
+  beforeEach(() => {
+    _resetStateAgentRouterV2();
+  });
+
+  describe("enums", () => {
+    it("profile maturity has 4 states", () => {
+      expect(Object.keys(ROUTER_PROFILE_MATURITY_V2).sort()).toEqual([
+        "ACTIVE",
+        "DEGRADED",
+        "PENDING",
+        "RETIRED",
+      ]);
+      expect(Object.isFrozen(ROUTER_PROFILE_MATURITY_V2)).toBe(true);
+    });
+    it("dispatch lifecycle has 5 states", () => {
+      expect(Object.keys(ROUTER_DISPATCH_LIFECYCLE_V2).sort()).toEqual([
+        "CANCELLED",
+        "COMPLETED",
+        "DISPATCHING",
+        "FAILED",
+        "QUEUED",
+      ]);
+      expect(Object.isFrozen(ROUTER_DISPATCH_LIFECYCLE_V2)).toBe(true);
+    });
+  });
+
+  describe("profile lifecycle", () => {
+    it("registers with pending status", () => {
+      const p = registerRouterProfileV2({ id: "r1", owner: "u1" });
+      expect(p.status).toBe("pending");
+      expect(p.activatedAt).toBeNull();
+    });
+    it("rejects duplicate id", () => {
+      registerRouterProfileV2({ id: "r1", owner: "u1" });
+      expect(() => registerRouterProfileV2({ id: "r1", owner: "u1" })).toThrow(
+        /already/,
+      );
+    });
+    it("pending → active stamps activatedAt", () => {
+      registerRouterProfileV2({ id: "r1", owner: "u1" });
+      const p = activateRouterProfileV2("r1");
+      expect(p.status).toBe("active");
+      expect(p.activatedAt).not.toBeNull();
+    });
+    it("active → degraded → active preserves activatedAt (recovery)", () => {
+      registerRouterProfileV2({ id: "r1", owner: "u1" });
+      activateRouterProfileV2("r1");
+      const t1 = getRouterProfileV2("r1").activatedAt;
+      degradeRouterProfileV2("r1");
+      const p = activateRouterProfileV2("r1");
+      expect(p.status).toBe("active");
+      expect(p.activatedAt).toBe(t1);
+    });
+    it("retire stamps retiredAt and blocks further transitions", () => {
+      registerRouterProfileV2({ id: "r1", owner: "u1" });
+      const p = retireRouterProfileV2("r1");
+      expect(p.retiredAt).not.toBeNull();
+      expect(() => activateRouterProfileV2("r1")).toThrow(/invalid/);
+    });
+    it("invalid transition throws", () => {
+      registerRouterProfileV2({ id: "r1", owner: "u1" });
+      expect(() => degradeRouterProfileV2("r1")).toThrow(/invalid/);
+    });
+    it("touch on terminal throws", () => {
+      registerRouterProfileV2({ id: "r1", owner: "u1" });
+      retireRouterProfileV2("r1");
+      expect(() => touchRouterProfileV2("r1")).toThrow(/terminal/);
+    });
+  });
+
+  describe("active profile cap", () => {
+    it("recovery (degraded→active) exempt from cap", () => {
+      setMaxActiveProfilesPerOwnerRouterV2(1);
+      registerRouterProfileV2({ id: "a", owner: "u" });
+      activateRouterProfileV2("a");
+      degradeRouterProfileV2("a");
+      registerRouterProfileV2({ id: "b", owner: "u" });
+      activateRouterProfileV2("b");
+      const p = activateRouterProfileV2("a");
+      expect(p.status).toBe("active");
+    });
+    it("initial activation enforces cap", () => {
+      setMaxActiveProfilesPerOwnerRouterV2(1);
+      registerRouterProfileV2({ id: "a", owner: "u" });
+      activateRouterProfileV2("a");
+      registerRouterProfileV2({ id: "b", owner: "u" });
+      expect(() => activateRouterProfileV2("b")).toThrow(/max active/);
+    });
+  });
+
+  describe("dispatch lifecycle", () => {
+    beforeEach(() => {
+      registerRouterProfileV2({ id: "p1", owner: "u1" });
+    });
+    it("creates queued dispatch", () => {
+      const d = createDispatchV2({ id: "d1", profileId: "p1", task: "t" });
+      expect(d.status).toBe("queued");
+    });
+    it("missing profile throws", () => {
+      expect(() => createDispatchV2({ id: "d1", profileId: "nope" })).toThrow(
+        /not found/,
+      );
+    });
+    it("dispatch stamps dispatchedAt", () => {
+      createDispatchV2({ id: "d1", profileId: "p1" });
+      const d = dispatchDispatchV2("d1");
+      expect(d.status).toBe("dispatching");
+      expect(d.dispatchedAt).not.toBeNull();
+    });
+    it("complete stamps settledAt", () => {
+      createDispatchV2({ id: "d1", profileId: "p1" });
+      dispatchDispatchV2("d1");
+      const d = completeDispatchV2("d1");
+      expect(d.status).toBe("completed");
+      expect(d.settledAt).not.toBeNull();
+    });
+    it("fail records reason", () => {
+      createDispatchV2({ id: "d1", profileId: "p1" });
+      dispatchDispatchV2("d1");
+      const d = failDispatchV2("d1", "boom");
+      expect(d.status).toBe("failed");
+      expect(d.metadata.failReason).toBe("boom");
+    });
+    it("cancel from queued works", () => {
+      createDispatchV2({ id: "d1", profileId: "p1" });
+      const d = cancelDispatchV2("d1", "stop");
+      expect(d.status).toBe("cancelled");
+      expect(d.metadata.cancelReason).toBe("stop");
+    });
+    it("invalid transition throws", () => {
+      createDispatchV2({ id: "d1", profileId: "p1" });
+      expect(() => completeDispatchV2("d1")).toThrow(/invalid/);
+    });
+  });
+
+  describe("pending dispatch cap", () => {
+    it("enforces cap at createDispatchV2", () => {
+      setMaxPendingDispatchesPerProfileV2(2);
+      registerRouterProfileV2({ id: "p1", owner: "u1" });
+      createDispatchV2({ id: "d1", profileId: "p1" });
+      createDispatchV2({ id: "d2", profileId: "p1" });
+      expect(() => createDispatchV2({ id: "d3", profileId: "p1" })).toThrow(
+        /max pending/,
+      );
+    });
+    it("frees cap slot on settle", () => {
+      setMaxPendingDispatchesPerProfileV2(1);
+      registerRouterProfileV2({ id: "p1", owner: "u1" });
+      createDispatchV2({ id: "d1", profileId: "p1" });
+      dispatchDispatchV2("d1");
+      completeDispatchV2("d1");
+      const d = createDispatchV2({ id: "d2", profileId: "p1" });
+      expect(d.status).toBe("queued");
+    });
+  });
+
+  describe("auto flip", () => {
+    it("auto-degrade idle active profiles", () => {
+      setProfileIdleMsRouterV2(1000);
+      registerRouterProfileV2({ id: "p1", owner: "u1" });
+      activateRouterProfileV2("p1");
+      const base = getRouterProfileV2("p1").lastTouchedAt;
+      const r = autoDegradeIdleProfilesRouterV2({ now: base + 5000 });
+      expect(r.count).toBe(1);
+      expect(getRouterProfileV2("p1").status).toBe("degraded");
+    });
+    it("auto-fail stuck dispatches", () => {
+      setDispatchStuckMsV2(500);
+      registerRouterProfileV2({ id: "p1", owner: "u1" });
+      createDispatchV2({ id: "d1", profileId: "p1" });
+      dispatchDispatchV2("d1");
+      const base = getDispatchV2("d1").dispatchedAt;
+      const r = autoFailStuckDispatchesV2({ now: base + 5000 });
+      expect(r.count).toBe(1);
+      expect(getDispatchV2("d1").status).toBe("failed");
+    });
+  });
+
+  describe("config setters", () => {
+    it("rejects non-positive ints", () => {
+      expect(() => setMaxActiveProfilesPerOwnerRouterV2(0)).toThrow();
+      expect(() => setMaxActiveProfilesPerOwnerRouterV2(-1)).toThrow();
+      expect(() => setDispatchStuckMsV2("abc")).toThrow();
+    });
+    it("floors non-integer", () => {
+      setMaxActiveProfilesPerOwnerRouterV2(7.9);
+      expect(getMaxActiveProfilesPerOwnerRouterV2()).toBe(7);
+    });
+    it("all getters round-trip", () => {
+      setMaxPendingDispatchesPerProfileV2(42);
+      setProfileIdleMsRouterV2(100);
+      setDispatchStuckMsV2(200);
+      expect(getMaxPendingDispatchesPerProfileV2()).toBe(42);
+      expect(getProfileIdleMsRouterV2()).toBe(100);
+      expect(getDispatchStuckMsV2()).toBe(200);
+    });
+  });
+
+  describe("listing & defensive copy", () => {
+    it("lists profiles", () => {
+      registerRouterProfileV2({ id: "p1", owner: "u1" });
+      registerRouterProfileV2({ id: "p2", owner: "u1" });
+      expect(listRouterProfilesV2().length).toBe(2);
+    });
+    it("lists dispatches", () => {
+      registerRouterProfileV2({ id: "p1", owner: "u1" });
+      createDispatchV2({ id: "d1", profileId: "p1" });
+      expect(listDispatchesV2().length).toBe(1);
+    });
+    it("defensive copy on profile get", () => {
+      registerRouterProfileV2({ id: "p1", owner: "u1", metadata: { k: "v" } });
+      const p = getRouterProfileV2("p1");
+      p.metadata.k = "tampered";
+      expect(getRouterProfileV2("p1").metadata.k).toBe("v");
+    });
+  });
+
+  describe("stats & reset", () => {
+    it("stats zero-initialized", () => {
+      const s = getAgentRouterStatsV2();
+      for (const v of Object.values(ROUTER_PROFILE_MATURITY_V2))
+        expect(s.profilesByStatus[v]).toBe(0);
+      for (const v of Object.values(ROUTER_DISPATCH_LIFECYCLE_V2))
+        expect(s.dispatchesByStatus[v]).toBe(0);
+    });
+    it("reset clears maps and config", () => {
+      setMaxActiveProfilesPerOwnerRouterV2(99);
+      registerRouterProfileV2({ id: "p1", owner: "u1" });
+      _resetStateAgentRouterV2();
+      expect(getAgentRouterStatsV2().totalProfilesV2).toBe(0);
+      expect(getMaxActiveProfilesPerOwnerRouterV2()).toBe(8);
+    });
+  });
+});

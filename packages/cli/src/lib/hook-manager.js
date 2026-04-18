@@ -387,3 +387,383 @@ export function updateHookStats(
     "UPDATE hooks SET execution_count = ?, error_count = ?, total_execution_time = ?, updated_at = datetime('now') WHERE id = ?",
   ).run(newCount, newErrorCount, newTotalTime, hookId);
 }
+
+// ===== V2 Surface: Hook Manager governance overlay (CLI v0.132.0) =====
+// In-memory governance for hook profiles + execution lifecycle, independent of
+// the legacy registerHook/executeHooks SQLite-backed path above.
+
+export const HOOK_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  DISABLED: "disabled",
+  RETIRED: "retired",
+});
+
+export const HOOK_EXEC_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+
+const _hookProfileTransitionsV2 = new Map([
+  [
+    HOOK_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      HOOK_PROFILE_MATURITY_V2.ACTIVE,
+      HOOK_PROFILE_MATURITY_V2.RETIRED,
+    ]),
+  ],
+  [
+    HOOK_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      HOOK_PROFILE_MATURITY_V2.DISABLED,
+      HOOK_PROFILE_MATURITY_V2.RETIRED,
+    ]),
+  ],
+  [
+    HOOK_PROFILE_MATURITY_V2.DISABLED,
+    new Set([
+      HOOK_PROFILE_MATURITY_V2.ACTIVE,
+      HOOK_PROFILE_MATURITY_V2.RETIRED,
+    ]),
+  ],
+  [HOOK_PROFILE_MATURITY_V2.RETIRED, new Set()],
+]);
+const _hookProfileTerminalV2 = new Set([HOOK_PROFILE_MATURITY_V2.RETIRED]);
+
+const _hookExecTransitionsV2 = new Map([
+  [
+    HOOK_EXEC_LIFECYCLE_V2.QUEUED,
+    new Set([HOOK_EXEC_LIFECYCLE_V2.RUNNING, HOOK_EXEC_LIFECYCLE_V2.CANCELLED]),
+  ],
+  [
+    HOOK_EXEC_LIFECYCLE_V2.RUNNING,
+    new Set([
+      HOOK_EXEC_LIFECYCLE_V2.COMPLETED,
+      HOOK_EXEC_LIFECYCLE_V2.FAILED,
+      HOOK_EXEC_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [HOOK_EXEC_LIFECYCLE_V2.COMPLETED, new Set()],
+  [HOOK_EXEC_LIFECYCLE_V2.FAILED, new Set()],
+  [HOOK_EXEC_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _hookExecTerminalV2 = new Set([
+  HOOK_EXEC_LIFECYCLE_V2.COMPLETED,
+  HOOK_EXEC_LIFECYCLE_V2.FAILED,
+  HOOK_EXEC_LIFECYCLE_V2.CANCELLED,
+]);
+
+const _hookProfilesV2 = new Map();
+const _hookExecsV2 = new Map();
+let _maxActiveHooksPerOwnerV2 = 20;
+let _maxPendingExecsPerHookV2 = 32;
+let _hookIdleMsV2 = 24 * 60 * 60 * 1000;
+let _hookExecStuckMsV2 = 60 * 1000;
+
+function _hookPosIntV2(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+
+export function setMaxActiveHooksPerOwnerV2(n) {
+  _maxActiveHooksPerOwnerV2 = _hookPosIntV2(n, "maxActiveHooksPerOwner");
+}
+export function getMaxActiveHooksPerOwnerV2() {
+  return _maxActiveHooksPerOwnerV2;
+}
+export function setMaxPendingExecsPerHookV2(n) {
+  _maxPendingExecsPerHookV2 = _hookPosIntV2(n, "maxPendingExecsPerHook");
+}
+export function getMaxPendingExecsPerHookV2() {
+  return _maxPendingExecsPerHookV2;
+}
+export function setHookIdleMsV2(n) {
+  _hookIdleMsV2 = _hookPosIntV2(n, "hookIdleMs");
+}
+export function getHookIdleMsV2() {
+  return _hookIdleMsV2;
+}
+export function setHookExecStuckMsV2(n) {
+  _hookExecStuckMsV2 = _hookPosIntV2(n, "hookExecStuckMs");
+}
+export function getHookExecStuckMsV2() {
+  return _hookExecStuckMsV2;
+}
+
+export function _resetStateHookManagerV2() {
+  _hookProfilesV2.clear();
+  _hookExecsV2.clear();
+  _maxActiveHooksPerOwnerV2 = 20;
+  _maxPendingExecsPerHookV2 = 32;
+  _hookIdleMsV2 = 24 * 60 * 60 * 1000;
+  _hookExecStuckMsV2 = 60 * 1000;
+}
+
+export function registerHookProfileV2({ id, owner, event, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!owner || typeof owner !== "string") throw new Error("owner is required");
+  if (_hookProfilesV2.has(id))
+    throw new Error(`hook profile ${id} already registered`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    event: event || "*",
+    status: HOOK_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    retiredAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
+  _hookProfilesV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+
+function _hookProfileCheck(from, to) {
+  const allowed = _hookProfileTransitionsV2.get(from);
+  if (!allowed || !allowed.has(to))
+    throw new Error(`invalid hook profile transition ${from} → ${to}`);
+}
+
+function _countActiveHooksByOwner(owner) {
+  let n = 0;
+  for (const p of _hookProfilesV2.values()) {
+    if (p.owner === owner && p.status === HOOK_PROFILE_MATURITY_V2.ACTIVE) n++;
+  }
+  return n;
+}
+
+export function activateHookProfileV2(id) {
+  const p = _hookProfilesV2.get(id);
+  if (!p) throw new Error(`hook profile ${id} not found`);
+  _hookProfileCheck(p.status, HOOK_PROFILE_MATURITY_V2.ACTIVE);
+  const isRecovery = p.status === HOOK_PROFILE_MATURITY_V2.DISABLED;
+  if (!isRecovery) {
+    const active = _countActiveHooksByOwner(p.owner);
+    if (active >= _maxActiveHooksPerOwnerV2) {
+      throw new Error(
+        `max active hooks per owner (${_maxActiveHooksPerOwnerV2}) reached for ${p.owner}`,
+      );
+    }
+  }
+  const now = Date.now();
+  p.status = HOOK_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+
+export function disableHookProfileV2(id) {
+  const p = _hookProfilesV2.get(id);
+  if (!p) throw new Error(`hook profile ${id} not found`);
+  _hookProfileCheck(p.status, HOOK_PROFILE_MATURITY_V2.DISABLED);
+  const now = Date.now();
+  p.status = HOOK_PROFILE_MATURITY_V2.DISABLED;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+
+export function retireHookProfileV2(id) {
+  const p = _hookProfilesV2.get(id);
+  if (!p) throw new Error(`hook profile ${id} not found`);
+  _hookProfileCheck(p.status, HOOK_PROFILE_MATURITY_V2.RETIRED);
+  const now = Date.now();
+  p.status = HOOK_PROFILE_MATURITY_V2.RETIRED;
+  p.updatedAt = now;
+  if (!p.retiredAt) p.retiredAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+
+export function touchHookProfileV2(id) {
+  const p = _hookProfilesV2.get(id);
+  if (!p) throw new Error(`hook profile ${id} not found`);
+  if (_hookProfileTerminalV2.has(p.status))
+    throw new Error(`cannot touch terminal hook profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+
+export function getHookProfileV2(id) {
+  const p = _hookProfilesV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+
+export function listHookProfilesV2() {
+  return [..._hookProfilesV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+
+function _countPendingExecsByHook(hookId) {
+  let n = 0;
+  for (const e of _hookExecsV2.values()) {
+    if (
+      e.hookId === hookId &&
+      (e.status === HOOK_EXEC_LIFECYCLE_V2.QUEUED ||
+        e.status === HOOK_EXEC_LIFECYCLE_V2.RUNNING)
+    )
+      n++;
+  }
+  return n;
+}
+
+export function createHookExecV2({ id, hookId, payload, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!hookId || typeof hookId !== "string")
+    throw new Error("hookId is required");
+  if (_hookExecsV2.has(id)) throw new Error(`hook exec ${id} already exists`);
+  const hook = _hookProfilesV2.get(hookId);
+  if (!hook) throw new Error(`hook profile ${hookId} not found`);
+  const pending = _countPendingExecsByHook(hookId);
+  if (pending >= _maxPendingExecsPerHookV2) {
+    throw new Error(
+      `max pending execs per hook (${_maxPendingExecsPerHookV2}) reached for ${hookId}`,
+    );
+  }
+  const now = Date.now();
+  const e = {
+    id,
+    hookId,
+    payload: payload || null,
+    status: HOOK_EXEC_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _hookExecsV2.set(id, e);
+  return { ...e, metadata: { ...e.metadata } };
+}
+
+function _hookExecCheck(from, to) {
+  const allowed = _hookExecTransitionsV2.get(from);
+  if (!allowed || !allowed.has(to))
+    throw new Error(`invalid hook exec transition ${from} → ${to}`);
+}
+
+export function startHookExecV2(id) {
+  const e = _hookExecsV2.get(id);
+  if (!e) throw new Error(`hook exec ${id} not found`);
+  _hookExecCheck(e.status, HOOK_EXEC_LIFECYCLE_V2.RUNNING);
+  const now = Date.now();
+  e.status = HOOK_EXEC_LIFECYCLE_V2.RUNNING;
+  e.updatedAt = now;
+  if (!e.startedAt) e.startedAt = now;
+  return { ...e, metadata: { ...e.metadata } };
+}
+
+export function completeHookExecV2(id) {
+  const e = _hookExecsV2.get(id);
+  if (!e) throw new Error(`hook exec ${id} not found`);
+  _hookExecCheck(e.status, HOOK_EXEC_LIFECYCLE_V2.COMPLETED);
+  const now = Date.now();
+  e.status = HOOK_EXEC_LIFECYCLE_V2.COMPLETED;
+  e.updatedAt = now;
+  if (!e.settledAt) e.settledAt = now;
+  return { ...e, metadata: { ...e.metadata } };
+}
+
+export function failHookExecV2(id, reason) {
+  const e = _hookExecsV2.get(id);
+  if (!e) throw new Error(`hook exec ${id} not found`);
+  _hookExecCheck(e.status, HOOK_EXEC_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  e.status = HOOK_EXEC_LIFECYCLE_V2.FAILED;
+  e.updatedAt = now;
+  if (!e.settledAt) e.settledAt = now;
+  if (reason) e.metadata.failReason = String(reason);
+  return { ...e, metadata: { ...e.metadata } };
+}
+
+export function cancelHookExecV2(id, reason) {
+  const e = _hookExecsV2.get(id);
+  if (!e) throw new Error(`hook exec ${id} not found`);
+  _hookExecCheck(e.status, HOOK_EXEC_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  e.status = HOOK_EXEC_LIFECYCLE_V2.CANCELLED;
+  e.updatedAt = now;
+  if (!e.settledAt) e.settledAt = now;
+  if (reason) e.metadata.cancelReason = String(reason);
+  return { ...e, metadata: { ...e.metadata } };
+}
+
+export function getHookExecV2(id) {
+  const e = _hookExecsV2.get(id);
+  if (!e) return null;
+  return { ...e, metadata: { ...e.metadata } };
+}
+
+export function listHookExecsV2() {
+  return [..._hookExecsV2.values()].map((e) => ({
+    ...e,
+    metadata: { ...e.metadata },
+  }));
+}
+
+export function autoDisableIdleHooksV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _hookProfilesV2.values()) {
+    if (
+      p.status === HOOK_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _hookIdleMsV2
+    ) {
+      p.status = HOOK_PROFILE_MATURITY_V2.DISABLED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function autoFailStuckHookExecsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const e of _hookExecsV2.values()) {
+    if (
+      e.status === HOOK_EXEC_LIFECYCLE_V2.RUNNING &&
+      e.startedAt != null &&
+      t - e.startedAt >= _hookExecStuckMsV2
+    ) {
+      e.status = HOOK_EXEC_LIFECYCLE_V2.FAILED;
+      e.updatedAt = t;
+      if (!e.settledAt) e.settledAt = t;
+      e.metadata.failReason = "auto-fail-stuck";
+      flipped.push(e.id);
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function getHookManagerStatsV2() {
+  const profilesByStatus = {};
+  for (const s of Object.values(HOOK_PROFILE_MATURITY_V2))
+    profilesByStatus[s] = 0;
+  for (const p of _hookProfilesV2.values()) profilesByStatus[p.status]++;
+  const execsByStatus = {};
+  for (const s of Object.values(HOOK_EXEC_LIFECYCLE_V2)) execsByStatus[s] = 0;
+  for (const e of _hookExecsV2.values()) execsByStatus[e.status]++;
+  return {
+    totalProfilesV2: _hookProfilesV2.size,
+    totalExecsV2: _hookExecsV2.size,
+    maxActiveHooksPerOwner: _maxActiveHooksPerOwnerV2,
+    maxPendingExecsPerHook: _maxPendingExecsPerHookV2,
+    hookIdleMs: _hookIdleMsV2,
+    hookExecStuckMs: _hookExecStuckMsV2,
+    profilesByStatus,
+    execsByStatus,
+  };
+}
