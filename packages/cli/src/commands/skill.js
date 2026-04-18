@@ -11,7 +11,41 @@ import ora from "ora";
 import fs from "fs";
 import path from "path";
 import { logger } from "../lib/logger.js";
-import { CLISkillLoader, LAYER_NAMES } from "../lib/skill-loader.js";
+import {
+  CLISkillLoader,
+  LAYER_NAMES,
+  SKILL_MATURITY_V2,
+  EXECUTION_LIFECYCLE_V2,
+  getMaxActiveSkillsPerOwnerV2,
+  setMaxActiveSkillsPerOwnerV2,
+  getMaxPendingExecutionsPerSkillV2,
+  setMaxPendingExecutionsPerSkillV2,
+  getSkillIdleMsV2,
+  setSkillIdleMsV2,
+  getExecStuckMsV2,
+  setExecStuckMsV2,
+  registerSkillV2,
+  getSkillV2,
+  listSkillsV2,
+  setSkillStatusV2,
+  activateSkillV2,
+  deprecateSkillV2,
+  archiveSkillV2,
+  touchSkillV2,
+  getActiveSkillCountV2,
+  createExecutionV2,
+  getExecutionV2,
+  listExecutionsV2,
+  setExecutionStatusV2,
+  startExecutionV2,
+  succeedExecutionV2,
+  failExecutionV2,
+  cancelExecutionV2,
+  getPendingExecutionCountV2,
+  autoDeprecateIdleSkillsV2,
+  autoFailStuckExecutionsV2,
+  getSkillLoaderStatsV2,
+} from "../lib/skill-loader.js";
 import { getElectronUserDataDir } from "../lib/paths.js";
 import { findProjectRoot } from "../lib/project-detector.js";
 import {
@@ -695,4 +729,236 @@ export function registerSkillCommand(program) {
         `  ${chalk.bold("Total:")} ${allSkills.length} skills resolved\n`,
       );
     });
+
+  // ─── V2 Governance Layer ──────────────────────────────────────────
+  const out = (obj) => console.log(JSON.stringify(obj, null, 2));
+  const tryRun = (fn) => {
+    try {
+      fn();
+    } catch (err) {
+      logger.error(err.message);
+      process.exit(1);
+    }
+  };
+
+  skill
+    .command("skill-maturities-v2")
+    .description("List V2 skill maturity states")
+    .action(() => out(Object.values(SKILL_MATURITY_V2)));
+
+  skill
+    .command("execution-lifecycles-v2")
+    .description("List V2 execution lifecycle states")
+    .action(() => out(Object.values(EXECUTION_LIFECYCLE_V2)));
+
+  skill
+    .command("stats-v2")
+    .description("V2 skill-loader stats")
+    .action(() => out(getSkillLoaderStatsV2()));
+
+  skill
+    .command("get-max-active-skills-v2")
+    .description("Get max active skills per owner (V2)")
+    .action(() =>
+      out({ maxActiveSkillsPerOwner: getMaxActiveSkillsPerOwnerV2() }),
+    );
+
+  skill
+    .command("set-max-active-skills-v2 <n>")
+    .description("Set max active skills per owner (V2)")
+    .action((n) =>
+      tryRun(() => {
+        setMaxActiveSkillsPerOwnerV2(Number(n));
+        out({ maxActiveSkillsPerOwner: getMaxActiveSkillsPerOwnerV2() });
+      }),
+    );
+
+  skill
+    .command("get-max-pending-executions-v2")
+    .description("Get max pending executions per skill (V2)")
+    .action(() =>
+      out({
+        maxPendingExecutionsPerSkill: getMaxPendingExecutionsPerSkillV2(),
+      }),
+    );
+
+  skill
+    .command("set-max-pending-executions-v2 <n>")
+    .description("Set max pending executions per skill (V2)")
+    .action((n) =>
+      tryRun(() => {
+        setMaxPendingExecutionsPerSkillV2(Number(n));
+        out({
+          maxPendingExecutionsPerSkill: getMaxPendingExecutionsPerSkillV2(),
+        });
+      }),
+    );
+
+  skill
+    .command("get-skill-idle-ms-v2")
+    .description("Get skill idle threshold (V2)")
+    .action(() => out({ skillIdleMs: getSkillIdleMsV2() }));
+
+  skill
+    .command("set-skill-idle-ms-v2 <ms>")
+    .description("Set skill idle threshold (V2)")
+    .action((ms) =>
+      tryRun(() => {
+        setSkillIdleMsV2(Number(ms));
+        out({ skillIdleMs: getSkillIdleMsV2() });
+      }),
+    );
+
+  skill
+    .command("get-exec-stuck-ms-v2")
+    .description("Get execution stuck threshold (V2)")
+    .action(() => out({ execStuckMs: getExecStuckMsV2() }));
+
+  skill
+    .command("set-exec-stuck-ms-v2 <ms>")
+    .description("Set execution stuck threshold (V2)")
+    .action((ms) =>
+      tryRun(() => {
+        setExecStuckMsV2(Number(ms));
+        out({ execStuckMs: getExecStuckMsV2() });
+      }),
+    );
+
+  skill
+    .command("active-skill-count-v2 <ownerId>")
+    .description("Active skill count for owner (V2)")
+    .action((ownerId) =>
+      out({ ownerId, count: getActiveSkillCountV2(ownerId) }),
+    );
+
+  skill
+    .command("pending-execution-count-v2 <skillId>")
+    .description("Pending execution count for skill (V2)")
+    .action((skillId) =>
+      out({ skillId, count: getPendingExecutionCountV2(skillId) }),
+    );
+
+  skill
+    .command("register-skill-v2 <id>")
+    .description("Register a V2 skill")
+    .requiredOption("-o, --owner <id>", "owner id")
+    .requiredOption("-n, --name <name>", "skill name")
+    .option("-l, --layer <layer>", "skill layer", "workspace")
+    .action((id, opts) =>
+      tryRun(() =>
+        out(
+          registerSkillV2(id, {
+            ownerId: opts.owner,
+            name: opts.name,
+            layer: opts.layer,
+          }),
+        ),
+      ),
+    );
+
+  skill
+    .command("get-skill-v2 <id>")
+    .description("Get a V2 skill")
+    .action((id) => out(getSkillV2(id)));
+
+  skill
+    .command("list-skills-v2")
+    .description("List V2 skills")
+    .option("-o, --owner <id>", "filter by owner")
+    .option("-s, --status <status>", "filter by status")
+    .option("-l, --layer <layer>", "filter by layer")
+    .action((opts) =>
+      out(
+        listSkillsV2({
+          ownerId: opts.owner,
+          status: opts.status,
+          layer: opts.layer,
+        }),
+      ),
+    );
+
+  skill
+    .command("set-skill-status-v2 <id> <next>")
+    .description("Set V2 skill status")
+    .action((id, next) => tryRun(() => out(setSkillStatusV2(id, next))));
+
+  skill
+    .command("activate-skill-v2 <id>")
+    .description("Activate a V2 skill")
+    .action((id) => tryRun(() => out(activateSkillV2(id))));
+
+  skill
+    .command("deprecate-skill-v2 <id>")
+    .description("Deprecate a V2 skill")
+    .action((id) => tryRun(() => out(deprecateSkillV2(id))));
+
+  skill
+    .command("archive-skill-v2 <id>")
+    .description("Archive a V2 skill")
+    .action((id) => tryRun(() => out(archiveSkillV2(id))));
+
+  skill
+    .command("touch-skill-v2 <id>")
+    .description("Touch a V2 skill")
+    .action((id) => tryRun(() => out(touchSkillV2(id))));
+
+  skill
+    .command("create-execution-v2 <id>")
+    .description("Create a V2 execution")
+    .requiredOption("-s, --skill <id>", "skill id")
+    .option("-k, --kind <kind>", "execution kind", "invoke")
+    .action((id, opts) =>
+      tryRun(() =>
+        out(createExecutionV2(id, { skillId: opts.skill, kind: opts.kind })),
+      ),
+    );
+
+  skill
+    .command("get-execution-v2 <id>")
+    .description("Get a V2 execution")
+    .action((id) => out(getExecutionV2(id)));
+
+  skill
+    .command("list-executions-v2")
+    .description("List V2 executions")
+    .option("-s, --skill <id>", "filter by skill")
+    .option("-t, --status <status>", "filter by status")
+    .action((opts) =>
+      out(listExecutionsV2({ skillId: opts.skill, status: opts.status })),
+    );
+
+  skill
+    .command("set-execution-status-v2 <id> <next>")
+    .description("Set V2 execution status")
+    .action((id, next) => tryRun(() => out(setExecutionStatusV2(id, next))));
+
+  skill
+    .command("start-execution-v2 <id>")
+    .description("Start a V2 execution")
+    .action((id) => tryRun(() => out(startExecutionV2(id))));
+
+  skill
+    .command("succeed-execution-v2 <id>")
+    .description("Succeed a V2 execution")
+    .action((id) => tryRun(() => out(succeedExecutionV2(id))));
+
+  skill
+    .command("fail-execution-v2 <id>")
+    .description("Fail a V2 execution")
+    .action((id) => tryRun(() => out(failExecutionV2(id))));
+
+  skill
+    .command("cancel-execution-v2 <id>")
+    .description("Cancel a V2 execution")
+    .action((id) => tryRun(() => out(cancelExecutionV2(id))));
+
+  skill
+    .command("auto-deprecate-idle-skills-v2")
+    .description("Auto-deprecate idle V2 skills")
+    .action(() => out(autoDeprecateIdleSkillsV2()));
+
+  skill
+    .command("auto-fail-stuck-executions-v2")
+    .description("Auto-fail stuck V2 executions")
+    .action(() => out(autoFailStuckExecutionsV2()));
 }

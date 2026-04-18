@@ -1285,7 +1285,7 @@ cc automation auto-pause-idle-automations-v2 | auto-fail-stuck-executions-v2
 
 > **未移植**: 真实 SaaS 连接器认证;触发器订阅注册到 V2;模板克隆与 V2 治理。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (automation 4-state w/ paused→active 恢复 + execution 5-state w/ 3 terminals)、双维度上限 (per-owner active 在 draft→active only + per-automation running 在 queued→running 强制)、throwing `registerAutomationV2`/`createExecutionV2` + 7 shortcuts、stamp-once `activatedAt`/`retiredAt`/`startedAt`/`settledAt`、`touchAutomationV2` + 2 批量 auto-flip、全枚举零初始化 `getAutomationEngineStatsV2`、`actionCommand.name()` 钩子旁路保护 V2 子命令免被强制 DB 引导。
 
-## Permanent Memory V2 (cli 0.119.0)
+## Permanent Memory V2 (cli 0.122.0)
 
 V2 治理层位于 `src/lib/permanent-memory.js`,新建 `cc permmem` 顶级命名空间(避免与已存在的 `cc memory` 冲突,后者属于 memory-manager 模块)。V2 与原有 `CLIPermanentMemory` 类(MEMORY.md 文件 I/O、SQLite、daily notes、BM25 混合搜索)完全独立:
 
@@ -1306,7 +1306,7 @@ cc permmem auto-dormant-idle-pins-v2 | auto-fail-stuck-jobs-v2
 
 > **未移植**: 真实 BM25/向量索引与 V2 治理联动;MEMORY.md 文件挂钩到 pin 元数据;daily notes 与 retention-job 联动调度。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (pin 4-state w/ dormant→active 恢复 + retention-job 5-state w/ 3 terminals)、双维度上限 (per-owner active 在 pending→active only + per-pin queued+running 在 createRetentionJobV2 创建时强制)、throwing `registerPinV2`/`createRetentionJobV2` + 7 shortcuts、stamp-once `activatedAt`/`archivedAt`/`startedAt`/`settledAt`、`touchPinV2` + 2 批量 auto-flip、全枚举零初始化 `getPermanentMemoryStatsV2`、新建 `cc permmem` 命名空间(避免与 `cc memory` 冲突)。CLIPermanentMemory 类与 V2 内存层完全独立。
 
-## Response Cache V2 (cli 0.119.0)
+## Response Cache V2 (cli 0.122.0)
 
 V2 治理层位于 `src/lib/response-cache.js`,新建 `cc rcache` 顶级命名空间(legacy LRU 工具仍位于 `cc tokens cache`)。V2 与 SQLite `llm_cache` 表完全独立,聚焦缓存档案 (cache profile) + 刷新作业 (refresh job) 的状态机治理:
 
@@ -1368,3 +1368,34 @@ cc export auto-pause-idle-targets-v2 | auto-fail-stuck-export-jobs-v2
 ```
 
 > **未移植**: 真实 SQLite notes 表 → V2 export target 联动;markdown/site 写盘进度回报到 V2 export job;增量导出去重 / 缓存命中重用。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (target 4-state w/ paused→active 恢复 + export-job 5-state w/ 3 terminals)、双维度上限 (per-owner active 在 pending→active only + per-target queued+running 在 createExportJobV2 创建时强制)、throwing `registerTargetV2`/`createExportJobV2` + 7 shortcuts、stamp-once `activatedAt`/`archivedAt`/`startedAt`/`settledAt`、`touchTargetV2` + 2 批量 auto-flip、全枚举零初始化 `getKnowledgeExporterStatsV2`、追加到 `cc export` 命名空间(legacy 子命令直接 `bootstrap()`,无 preAction 钩子)。SQLite notes 表与 V2 内存层完全独立。
+
+### Skill Loader V2 (`cc skill` V2 surface, cli 0.123.0)
+
+在已有四层 `CLISkillLoader` (bundled < marketplace < managed < workspace) 之上叠加内存治理层,跟踪 *skill 清单*的成熟度与执行生命周期。Legacy loader 完全不动,V2 仅维护两个独立 Map (skills / executions) 与默认配额。
+
+- **冻结枚举**: `SKILL_MATURITY_V2` = pending|active|deprecated|archived (archived 终态;deprecated→active 恢复且豁免 cap);`EXECUTION_LIFECYCLE_V2` = queued|running|succeeded|failed|cancelled (3 终态)。
+- **双维度上限**: per-owner active-skill cap 仅在 pending→active 强制 (恢复豁免);per-skill pending-execution cap 计 queued+running,在 `createExecutionV2` 创建时强制。
+- **Stamp-once**: `activatedAt` 在 deprecated→active 恢复期间保留;`archivedAt`/`startedAt`/`settledAt` 一次性写入。
+- **Auto-flip**: `autoDeprecateIdleSkillsV2({ now })` 把 `lastSeenAt` 超过 `skillIdleMs` (默认 30 天) 的 active 清单转 deprecated;`autoFailStuckExecutionsV2({ now })` 把 `startedAt` 超过 `execStuckMs` (默认 15 分钟) 的 running 执行转 failed。
+- **CLI 子命令**: 28 个 V2 子命令追加到现有 `cc skill` 命名空间 (skill.js 无 preAction 钩子,无需 bypass)。
+
+```text
+cc skill skill-maturities-v2 | execution-lifecycles-v2 | stats-v2
+cc skill get/set-max-active-skills-v2 [n]
+cc skill get/set-max-pending-executions-v2 [n]
+cc skill get/set-skill-idle-ms-v2 [ms]
+cc skill get/set-exec-stuck-ms-v2 [ms]
+cc skill active-skill-count-v2 <ownerId>
+cc skill pending-execution-count-v2 <skillId>
+cc skill register-skill-v2 <id> -o <owner> -n <name> [-l <layer>]
+cc skill get-skill-v2 <id> | list-skills-v2 [-o] [-s] [-l]
+cc skill set-skill-status-v2 <id> <next>
+cc skill activate/deprecate/archive-skill-v2 | touch-skill-v2 <id>
+cc skill create-execution-v2 <id> -s <skillId> [-k <kind>]
+cc skill get-execution-v2 <id> | list-executions-v2 [-s] [-t]
+cc skill set-execution-status-v2 <id> <next>
+cc skill start/succeed/fail/cancel-execution-v2 <id>
+cc skill auto-deprecate-idle-skills-v2 | auto-fail-stuck-executions-v2
+```
+
+> **未移植**: 真实文件系统 skill 目录扫描 → V2 skill 清单联动;`skill run` 调用执行器进度回报到 V2 execution;layer 优先级冲突解析。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (skill 4-state w/ deprecated→active 恢复 + execution 5-state w/ 3 terminals)、双维度上限 (per-owner active 在 pending→active only + per-skill queued+running 在 createExecutionV2 创建时强制)、throwing `registerSkillV2`/`createExecutionV2` + 7 shortcuts、stamp-once `activatedAt`/`archivedAt`/`startedAt`/`settledAt`、`touchSkillV2` + 2 批量 auto-flip、全枚举零初始化 `getSkillLoaderStatsV2`、追加到 `cc skill` 命名空间。Multi-layer CLISkillLoader 与 V2 内存层完全独立。

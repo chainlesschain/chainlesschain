@@ -1,8 +1,8 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## 2026-04-18 Update — CLI 0.119.0 · V2 Batch 6 · 13 Runtime Managers
+## 2026-04-18 Update — CLI 0.123.0 · V2 Batch 6 · 13 Runtime Managers
 
-Later the same day that 0.106.0 (V2 batch 5) shipped, we pushed one more round: **all 13 runtime-manager modules** now carry the V2 canonical surface. CLI bumps `0.106.0 → 0.119.0` (tag `v5.0.2.10`).
+Later the same day that 0.106.0 (V2 batch 5) shipped, we pushed one more round: **all 13 runtime-manager modules** now carry the V2 canonical surface. CLI bumps `0.106.0 → 0.123.0` (tag `v5.0.2.10`).
 
 **13 V2 canonical surfaces** (strictly additive, backwards-compatible — in-memory governance layer, independent of legacy SQLite / file state):
 
@@ -37,7 +37,7 @@ Every module follows the same skeleton: `register*V2` / `get*V2` / `list*V2` / `
 
 This batch adds **560 new V2 unit tests** (automation 46 + instinct 48 + memory 47 + note 49 + org 43 + permanent-memory 46 + response-cache 46 + scim 39 + session 33 + social 34 + sync 39 + token-tracker 49 + wallet 41) over 0.106.0, zero regressions.
 
-**npm**: `npm i -g chainlesschain@0.119.0` (aliases `cc` / `clc` / `clchain`)
+**npm**: `npm i -g chainlesschain@0.123.0` (aliases `cc` / `clc` / `clchain`)
 
 ---
 
