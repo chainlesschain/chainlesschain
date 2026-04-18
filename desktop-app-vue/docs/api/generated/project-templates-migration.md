@@ -2,7 +2,7 @@
 
 **Source**: `src/main/database/migrations/project-templates-migration.js`
 
-**Generated**: 2026-04-16T12:07:31.955Z
+**Generated**: 2026-04-18T04:01:13.300Z
 
 ---
 

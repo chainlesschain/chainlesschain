@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/cowork/skills/index.js`
 
-**Generated**: 2026-04-16T12:07:32.003Z
+**Generated**: 2026-04-18T04:01:13.346Z
 
 ---
 
