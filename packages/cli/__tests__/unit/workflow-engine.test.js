@@ -758,3 +758,297 @@ describe("workflow-engine", () => {
     });
   });
 });
+
+// ===== V2 Surface Tests (cli 0.130.0) =====
+import { describe, it, expect, beforeEach } from "vitest";
+import {
+  WORKFLOW_MATURITY_V2,
+  RUN_LIFECYCLE_V2,
+  registerWorkflowV2,
+  activateWorkflowV2,
+  pauseWorkflowV2,
+  retireWorkflowV2,
+  touchWorkflowV2,
+  getWorkflowV2,
+  listWorkflowsV2,
+  createRunV2,
+  startRunV2,
+  completeRunV2,
+  failRunV2,
+  cancelRunV2,
+  getRunV2,
+  listRunsV2,
+  autoPauseIdleWorkflowsV2,
+  autoFailStuckRunsV2,
+  getWorkflowEngineStatsV2,
+  setMaxActiveWorkflowsPerOwnerV2,
+  setMaxPendingRunsPerWorkflowV2,
+  setWorkflowIdleMsV2,
+  setRunStuckMsV2,
+  getMaxActiveWorkflowsPerOwnerV2,
+  getMaxPendingRunsPerWorkflowV2,
+  getWorkflowIdleMsV2,
+  getRunStuckMsV2,
+  _resetStateWorkflowEngineV2,
+} from "../../src/lib/workflow-engine.js";
+
+describe("Workflow Engine V2", () => {
+  beforeEach(() => _resetStateWorkflowEngineV2());
+
+  describe("enums", () => {
+    it("workflow maturity has 4 states", () => {
+      expect(Object.keys(WORKFLOW_MATURITY_V2).sort()).toEqual([
+        "ACTIVE",
+        "DRAFT",
+        "PAUSED",
+        "RETIRED",
+      ]);
+    });
+    it("run lifecycle has 5 states", () => {
+      expect(Object.keys(RUN_LIFECYCLE_V2).sort()).toEqual([
+        "CANCELLED",
+        "COMPLETED",
+        "FAILED",
+        "QUEUED",
+        "RUNNING",
+      ]);
+    });
+    it("enums are frozen", () => {
+      expect(Object.isFrozen(WORKFLOW_MATURITY_V2)).toBe(true);
+      expect(Object.isFrozen(RUN_LIFECYCLE_V2)).toBe(true);
+    });
+  });
+
+  describe("workflow lifecycle", () => {
+    it("registers in draft", () => {
+      const w = registerWorkflowV2({ id: "w1", owner: "alice" });
+      expect(w.status).toBe("draft");
+      expect(w.activatedAt).toBeNull();
+    });
+    it("rejects duplicate id", () => {
+      registerWorkflowV2({ id: "w1", owner: "alice" });
+      expect(() => registerWorkflowV2({ id: "w1", owner: "bob" })).toThrow();
+    });
+    it("rejects missing required fields", () => {
+      expect(() => registerWorkflowV2({})).toThrow();
+      expect(() => registerWorkflowV2({ id: "w1" })).toThrow();
+    });
+    it("activates draft → active", () => {
+      registerWorkflowV2({ id: "w1", owner: "alice" });
+      const w = activateWorkflowV2("w1");
+      expect(w.status).toBe("active");
+      expect(w.activatedAt).toBeGreaterThan(0);
+    });
+    it("pauses active → paused", () => {
+      registerWorkflowV2({ id: "w1", owner: "alice" });
+      activateWorkflowV2("w1");
+      expect(pauseWorkflowV2("w1").status).toBe("paused");
+    });
+    it("recovers paused → active (preserves activatedAt)", () => {
+      registerWorkflowV2({ id: "w1", owner: "alice" });
+      const first = activateWorkflowV2("w1").activatedAt;
+      pauseWorkflowV2("w1");
+      const r = activateWorkflowV2("w1");
+      expect(r.activatedAt).toBe(first);
+    });
+    it("retires (terminal)", () => {
+      registerWorkflowV2({ id: "w1", owner: "alice" });
+      const w = retireWorkflowV2("w1");
+      expect(w.retiredAt).toBeGreaterThan(0);
+      expect(() => activateWorkflowV2("w1")).toThrow();
+    });
+    it("rejects invalid transition draft → paused", () => {
+      registerWorkflowV2({ id: "w1", owner: "alice" });
+      expect(() => pauseWorkflowV2("w1")).toThrow();
+    });
+    it("touches lastSeenAt", async () => {
+      registerWorkflowV2({ id: "w1", owner: "alice" });
+      const before = getWorkflowV2("w1").lastSeenAt;
+      await new Promise((r) => setTimeout(r, 5));
+      const after = touchWorkflowV2("w1").lastSeenAt;
+      expect(after).toBeGreaterThan(before);
+    });
+  });
+
+  describe("active-workflow cap", () => {
+    it("enforces per-owner cap on draft → active", () => {
+      setMaxActiveWorkflowsPerOwnerV2(2);
+      ["a", "b", "c"].forEach((id) =>
+        registerWorkflowV2({ id, owner: "alice" }),
+      );
+      activateWorkflowV2("a");
+      activateWorkflowV2("b");
+      expect(() => activateWorkflowV2("c")).toThrow(/cap reached/);
+    });
+    it("does not apply to other owners", () => {
+      setMaxActiveWorkflowsPerOwnerV2(1);
+      registerWorkflowV2({ id: "a", owner: "alice" });
+      registerWorkflowV2({ id: "b", owner: "bob" });
+      activateWorkflowV2("a");
+      expect(activateWorkflowV2("b").status).toBe("active");
+    });
+    it("recovery exempt", () => {
+      setMaxActiveWorkflowsPerOwnerV2(1);
+      registerWorkflowV2({ id: "a", owner: "alice" });
+      activateWorkflowV2("a");
+      pauseWorkflowV2("a");
+      registerWorkflowV2({ id: "b", owner: "alice" });
+      activateWorkflowV2("b");
+      expect(activateWorkflowV2("a").status).toBe("active");
+    });
+  });
+
+  describe("run lifecycle", () => {
+    beforeEach(() => {
+      registerWorkflowV2({ id: "w1", owner: "alice" });
+      activateWorkflowV2("w1");
+    });
+    it("creates queued", () => {
+      const r = createRunV2({ id: "R1", workflowId: "w1" });
+      expect(r.status).toBe("queued");
+      expect(r.trigger).toBe("manual");
+    });
+    it("rejects on retired workflow", () => {
+      retireWorkflowV2("w1");
+      expect(() => createRunV2({ id: "R1", workflowId: "w1" })).toThrow(
+        /retired/,
+      );
+    });
+    it("starts queued → running", () => {
+      createRunV2({ id: "R1", workflowId: "w1" });
+      const r = startRunV2("R1");
+      expect(r.status).toBe("running");
+      expect(r.startedAt).toBeGreaterThan(0);
+    });
+    it("completes (terminal)", () => {
+      createRunV2({ id: "R1", workflowId: "w1" });
+      startRunV2("R1");
+      const r = completeRunV2("R1");
+      expect(r.status).toBe("completed");
+      expect(r.settledAt).toBeGreaterThan(0);
+      expect(() => failRunV2("R1", "x")).toThrow();
+    });
+    it("fails (terminal) with error", () => {
+      createRunV2({ id: "R1", workflowId: "w1" });
+      startRunV2("R1");
+      const r = failRunV2("R1", "broken");
+      expect(r.metadata.error).toBe("broken");
+    });
+    it("cancels from queued", () => {
+      createRunV2({ id: "R1", workflowId: "w1" });
+      const r = cancelRunV2("R1");
+      expect(r.status).toBe("cancelled");
+    });
+  });
+
+  describe("pending-run cap", () => {
+    beforeEach(() => {
+      registerWorkflowV2({ id: "w1", owner: "alice" });
+      activateWorkflowV2("w1");
+    });
+    it("enforces at create time", () => {
+      setMaxPendingRunsPerWorkflowV2(2);
+      createRunV2({ id: "R1", workflowId: "w1" });
+      createRunV2({ id: "R2", workflowId: "w1" });
+      expect(() => createRunV2({ id: "R3", workflowId: "w1" })).toThrow(
+        /cap reached/,
+      );
+    });
+    it("frees up after terminal", () => {
+      setMaxPendingRunsPerWorkflowV2(2);
+      createRunV2({ id: "R1", workflowId: "w1" });
+      createRunV2({ id: "R2", workflowId: "w1" });
+      startRunV2("R1");
+      completeRunV2("R1");
+      expect(createRunV2({ id: "R3", workflowId: "w1" }).status).toBe("queued");
+    });
+  });
+
+  describe("auto-flip", () => {
+    it("auto-pause idle workflows", () => {
+      registerWorkflowV2({ id: "w1", owner: "alice" });
+      activateWorkflowV2("w1");
+      const flipped = autoPauseIdleWorkflowsV2({
+        now: Date.now() + 65 * 24 * 60 * 60 * 1000,
+      });
+      expect(flipped.length).toBe(1);
+      expect(flipped[0].status).toBe("paused");
+    });
+    it("auto-fail stuck runs", () => {
+      registerWorkflowV2({ id: "w1", owner: "alice" });
+      activateWorkflowV2("w1");
+      createRunV2({ id: "R1", workflowId: "w1" });
+      startRunV2("R1");
+      const flipped = autoFailStuckRunsV2({ now: Date.now() + 20 * 60 * 1000 });
+      expect(flipped.length).toBe(1);
+      expect(flipped[0].metadata.error).toBe("stuck-timeout");
+    });
+  });
+
+  describe("config setters", () => {
+    it("rejects bad inputs", () => {
+      expect(() => setMaxActiveWorkflowsPerOwnerV2(0)).toThrow();
+      expect(() => setMaxPendingRunsPerWorkflowV2(-2)).toThrow();
+      expect(() => setWorkflowIdleMsV2(NaN)).toThrow();
+      expect(() => setRunStuckMsV2("x")).toThrow();
+    });
+    it("floors floats", () => {
+      setMaxActiveWorkflowsPerOwnerV2(11.7);
+      expect(getMaxActiveWorkflowsPerOwnerV2()).toBe(11);
+    });
+    it("setters update config", () => {
+      setMaxPendingRunsPerWorkflowV2(20);
+      setWorkflowIdleMsV2(12345);
+      setRunStuckMsV2(6789);
+      expect(getMaxPendingRunsPerWorkflowV2()).toBe(20);
+      expect(getWorkflowIdleMsV2()).toBe(12345);
+      expect(getRunStuckMsV2()).toBe(6789);
+    });
+  });
+
+  describe("listing & defensive copy", () => {
+    it("filters work", () => {
+      registerWorkflowV2({ id: "w1", owner: "alice" });
+      registerWorkflowV2({ id: "w2", owner: "bob" });
+      activateWorkflowV2("w1");
+      createRunV2({ id: "R1", workflowId: "w1", trigger: "schedule" });
+      expect(listWorkflowsV2({ owner: "alice" }).length).toBe(1);
+      expect(listWorkflowsV2({ status: "active" }).length).toBe(1);
+      expect(listRunsV2({ trigger: "schedule" }).length).toBe(1);
+    });
+    it("deep copy on read", () => {
+      registerWorkflowV2({ id: "w1", owner: "alice", metadata: { tag: "x" } });
+      const w = getWorkflowV2("w1");
+      w.metadata.tag = "MUT";
+      expect(getWorkflowV2("w1").metadata.tag).toBe("x");
+    });
+  });
+
+  describe("stats", () => {
+    it("zero-initializes all enum keys", () => {
+      const s = getWorkflowEngineStatsV2();
+      expect(s.workflowsByStatus.draft).toBe(0);
+      expect(s.workflowsByStatus.retired).toBe(0);
+      expect(s.runsByStatus.completed).toBe(0);
+    });
+    it("counts match state", () => {
+      registerWorkflowV2({ id: "w1", owner: "alice" });
+      activateWorkflowV2("w1");
+      createRunV2({ id: "R1", workflowId: "w1" });
+      const s = getWorkflowEngineStatsV2();
+      expect(s.totalWorkflowsV2).toBe(1);
+      expect(s.workflowsByStatus.active).toBe(1);
+      expect(s.runsByStatus.queued).toBe(1);
+    });
+  });
+
+  describe("reset", () => {
+    it("clears + restores defaults", () => {
+      setMaxActiveWorkflowsPerOwnerV2(99);
+      registerWorkflowV2({ id: "w1", owner: "alice" });
+      _resetStateWorkflowEngineV2();
+      expect(getMaxActiveWorkflowsPerOwnerV2()).toBe(12);
+      expect(listWorkflowsV2({}).length).toBe(0);
+    });
+  });
+});

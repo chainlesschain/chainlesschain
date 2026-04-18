@@ -1648,3 +1648,79 @@ cc encrypt auto-rotate-idle-keys-v2 | auto-fail-stuck-jobs-v2
 ```
 
 > **未移植**: 真实 AES-256-GCM 密钥派生/加解密路径与 V2 key 联动;真实加解密任务调度(并发/重试/Worker)与 V2 job 联动。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (key 4-state w/ rotated→active 恢复 + job 5-state w/ 3 terminals)、双维度上限、throwing API、stamp-once、`touchKeyV2` + 2 批量 auto-flip、全枚举零初始化 stats、追加到 `cc encrypt` 命名空间(无 preAction hook,V2 子命令直接跳过 bootstrap)。
+
+## SSO Manager V2 (cli 0.130.0)
+
+在 `packages/cli/src/lib/sso-manager.js` 末尾追加 V2 内存治理面,与既有 SQLite SSO 表 (`sso_configurations` / `sso_sessions` / `sso_identity_mappings`) 与 PKCE/SAML/OIDC 助手完全独立。
+
+### 双状态机
+
+- `PROVIDER_MATURITY_V2` = {PENDING, ACTIVE, DEPRECATED, RETIRED}
+  - `retired` 终态;`deprecated → active` 为恢复转移,豁免 per-owner 上限
+- `LOGIN_LIFECYCLE_V2` = {QUEUED, AUTHENTICATING, AUTHENTICATED, FAILED, CANCELLED}
+  - 3 终态:`authenticated` / `failed` / `cancelled`
+
+### 默认配置
+
+- 每 owner 8 active provider / 每 provider 16 pending login / provider idle 30 天 / login stuck 5 分钟
+
+### 双维度上限
+
+- **per-owner active-provider** 仅在 `pending → active` 首次激活时检查
+- **per-provider pending-login** 在 `createLoginV2` 时按 (queued + authenticating) 计数强制
+
+### Auto-flip
+
+- `autoDeprecateIdleProvidersV2` / `autoFailStuckLoginsV2`,均接受 `{ now }` 覆盖
+
+### CLI
+
+```bash
+cc sso provider-maturities-v2 | login-lifecycles-v2 | stats-v2 | config-v2
+cc sso register-provider-v2 <id> -o <owner> -p <protocol> [-d displayName]
+cc sso activate-provider-v2 | deprecate-provider-v2 | retire-provider-v2 | touch-provider-v2 <id>
+cc sso list-providers-v2 [-o] [-s] [-p]
+cc sso create-login-v2 <id> -p <providerId> [-s subject]
+cc sso start/complete/fail/cancel-login-v2 <id>
+cc sso auto-deprecate-idle-providers-v2 | auto-fail-stuck-logins-v2
+```
+
+> **未移植**: 真实 SAML/OIDC/OAuth2 提供商交互、PKCE 流转与 V2 provider 联动;真实 IdP token 流与 V2 login 联动。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (provider 4-state w/ deprecated→active 恢复 + login 5-state w/ 3 terminals)、双维度上限、throwing API、stamp-once、`touchProviderV2` + 2 批量 auto-flip、全枚举零初始化 stats、追加到 `cc sso` 命名空间(preAction hook 通过 `actionCommand.name().endsWith("-v2")` 旁路 bootstrap)。
+
+## Workflow Engine V2 (cli 0.130.0)
+
+在 `packages/cli/src/lib/workflow-engine.js` 末尾追加 V2 内存治理面,与既有 SQLite workflow 表与 DAG 执行器 (`createWorkflow` / `executeWorkflow` / templates / checkpoints / breakpoints) 完全独立。
+
+### 双状态机
+
+- `WORKFLOW_MATURITY_V2` = {DRAFT, ACTIVE, PAUSED, RETIRED}
+  - `retired` 终态;`paused → active` 为恢复转移,豁免 per-owner 上限
+- `RUN_LIFECYCLE_V2` = {QUEUED, RUNNING, COMPLETED, FAILED, CANCELLED}
+  - 3 终态:`completed` / `failed` / `cancelled`
+
+### 默认配置
+
+- 每 owner 12 active workflow / 每 workflow 8 pending run / workflow idle 60 天 / run stuck 10 分钟
+
+### 双维度上限
+
+- **per-owner active-workflow** 仅在 `draft → active` 首次激活时检查
+- **per-workflow pending-run** 在 `createRunV2` 时按 (queued + running) 计数强制
+
+### Auto-flip
+
+- `autoPauseIdleWorkflowsV2` / `autoFailStuckRunsV2`,均接受 `{ now }` 覆盖
+
+### CLI
+
+```bash
+cc workflow workflow-maturities-v2 | run-lifecycles-v2 | stats-v2 | config-v2
+cc workflow register-workflow-v2 <id> -o <owner> [-n name]
+cc workflow activate-workflow-v2 | pause-workflow-v2 | retire-workflow-v2 | touch-workflow-v2 <id>
+cc workflow list-workflows-v2 [-o] [-s]
+cc workflow create-run-v2 <id> -w <workflowId> [-t trigger]
+cc workflow start/complete/fail/cancel-run-v2 <id>
+cc workflow auto-pause-idle-workflows-v2 | auto-fail-stuck-runs-v2
+```
+
+> **未移植**: 真实 DAG 拓扑执行、checkpoints/rollback/breakpoints 与 V2 workflow 联动;真实 Kahn 排序/state-channel 调度与 V2 run 联动。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (workflow 4-state w/ paused→active 恢复 + run 5-state w/ 3 terminals)、双维度上限、throwing API、stamp-once、`touchWorkflowV2` + 2 批量 auto-flip、全枚举零初始化 stats、追加到 `cc workflow` 命名空间(无 preAction hook,V2 子命令直接跳过 bootstrap)。

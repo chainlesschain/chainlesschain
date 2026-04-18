@@ -42,6 +42,33 @@ import {
   listIdentityMappings,
   checkIdentityConflict,
   getStats,
+  PROVIDER_MATURITY_V2 as PMV2,
+  LOGIN_LIFECYCLE_V2 as LLV2,
+  registerProviderV2,
+  activateProviderV2,
+  deprecateProviderV2,
+  retireProviderV2,
+  touchProviderV2,
+  getProviderV2,
+  listProvidersV2,
+  createLoginV2,
+  startLoginV2,
+  completeLoginV2,
+  failLoginV2,
+  cancelLoginV2,
+  getLoginV2,
+  listLoginsV2,
+  autoDeprecateIdleProvidersV2,
+  autoFailStuckLoginsV2,
+  getSsoManagerStatsV2,
+  setMaxActiveProvidersPerOwnerV2,
+  setMaxPendingLoginsPerProviderV2,
+  setProviderIdleMsV2,
+  setLoginStuckMsV2,
+  getMaxActiveProvidersPerOwnerV2,
+  getMaxPendingLoginsPerProviderV2,
+  getProviderIdleMsV2,
+  getLoginStuckMsV2,
 } from "../lib/sso-manager.js";
 
 function _dbFromCtx(cmd) {
@@ -76,7 +103,8 @@ export function registerSsoCommand(program) {
     .description(
       "SSO enterprise authentication — SAML / OAuth2 / OIDC (Phase 14)",
     )
-    .hook("preAction", async (thisCommand) => {
+    .hook("preAction", async (thisCommand, actionCommand) => {
+      if (actionCommand && actionCommand.name().endsWith("-v2")) return;
       const db = await _prepare(thisCommand);
       thisCommand._db = db;
     });
@@ -795,4 +823,161 @@ export function registerSsoCommand(program) {
         await shutdown();
       }
     });
+
+  // ===== V2 Commands (cli 0.130.0) =====
+  const _v2json = (o) => console.log(JSON.stringify(o, null, 2));
+  sso
+    .command("provider-maturities-v2")
+    .description("List V2 provider maturity states")
+    .action(() => Object.values(PMV2).forEach((s) => console.log(s)));
+  sso
+    .command("login-lifecycles-v2")
+    .description("List V2 login lifecycle states")
+    .action(() => Object.values(LLV2).forEach((s) => console.log(s)));
+  sso
+    .command("stats-v2")
+    .description("V2 stats")
+    .action(() => _v2json(getSsoManagerStatsV2()));
+  sso
+    .command("config-v2")
+    .description("V2 config")
+    .action(() => {
+      console.log(
+        `maxActiveProvidersPerOwner: ${getMaxActiveProvidersPerOwnerV2()}`,
+      );
+      console.log(
+        `maxPendingLoginsPerProvider: ${getMaxPendingLoginsPerProviderV2()}`,
+      );
+      console.log(`providerIdleMs: ${getProviderIdleMsV2()}`);
+      console.log(`loginStuckMs: ${getLoginStuckMsV2()}`);
+    });
+  sso
+    .command("set-max-active-providers-v2 <n>")
+    .description("Set V2 active provider cap")
+    .action((n) => {
+      setMaxActiveProvidersPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  sso
+    .command("set-max-pending-logins-v2 <n>")
+    .description("Set V2 pending login cap")
+    .action((n) => {
+      setMaxPendingLoginsPerProviderV2(Number(n));
+      console.log("ok");
+    });
+  sso
+    .command("set-provider-idle-ms-v2 <n>")
+    .description("Set V2 provider idle ms")
+    .action((n) => {
+      setProviderIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  sso
+    .command("set-login-stuck-ms-v2 <n>")
+    .description("Set V2 login stuck ms")
+    .action((n) => {
+      setLoginStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  sso
+    .command("register-provider-v2 <id>")
+    .description("V2 register provider")
+    .requiredOption("-o, --owner <o>")
+    .requiredOption("-p, --protocol <p>")
+    .option("-d, --display-name <n>")
+    .action((id, opts) =>
+      _v2json(
+        registerProviderV2({
+          id,
+          owner: opts.owner,
+          protocol: opts.protocol,
+          displayName: opts.displayName,
+        }),
+      ),
+    );
+  sso
+    .command("activate-provider-v2 <id>")
+    .description("V2 activate provider")
+    .action((id) => _v2json(activateProviderV2(id)));
+  sso
+    .command("deprecate-provider-v2 <id>")
+    .description("V2 deprecate provider")
+    .action((id) => _v2json(deprecateProviderV2(id)));
+  sso
+    .command("retire-provider-v2 <id>")
+    .description("V2 retire provider")
+    .action((id) => _v2json(retireProviderV2(id)));
+  sso
+    .command("touch-provider-v2 <id>")
+    .description("V2 touch provider")
+    .action((id) => _v2json(touchProviderV2(id)));
+  sso
+    .command("get-provider-v2 <id>")
+    .description("V2 get provider")
+    .action((id) => _v2json(getProviderV2(id)));
+  sso
+    .command("list-providers-v2")
+    .description("V2 list providers")
+    .option("-o, --owner <o>")
+    .option("-s, --status <s>")
+    .option("-p, --protocol <p>")
+    .action((opts) => _v2json(listProvidersV2(opts)));
+  sso
+    .command("create-login-v2 <id>")
+    .description("V2 create login")
+    .requiredOption("-p, --provider-id <p>")
+    .option("-s, --subject <s>")
+    .action((id, opts) =>
+      _v2json(
+        createLoginV2({
+          id,
+          providerId: opts.providerId,
+          subject: opts.subject,
+        }),
+      ),
+    );
+  sso
+    .command("start-login-v2 <id>")
+    .description("V2 start login")
+    .action((id) => _v2json(startLoginV2(id)));
+  sso
+    .command("complete-login-v2 <id>")
+    .description("V2 complete login")
+    .action((id) => _v2json(completeLoginV2(id)));
+  sso
+    .command("fail-login-v2 <id>")
+    .description("V2 fail login")
+    .option("-e, --error <e>")
+    .action((id, opts) => _v2json(failLoginV2(id, opts.error)));
+  sso
+    .command("cancel-login-v2 <id>")
+    .description("V2 cancel login")
+    .action((id) => _v2json(cancelLoginV2(id)));
+  sso
+    .command("get-login-v2 <id>")
+    .description("V2 get login")
+    .action((id) => _v2json(getLoginV2(id)));
+  sso
+    .command("list-logins-v2")
+    .description("V2 list logins")
+    .option("-p, --provider-id <p>")
+    .option("-s, --status <s>")
+    .option("-S, --subject <s>")
+    .action((opts) =>
+      _v2json(
+        listLoginsV2({
+          providerId: opts.providerId,
+          status: opts.status,
+          subject: opts.subject,
+        }),
+      ),
+    );
+  sso
+    .command("auto-deprecate-idle-providers-v2")
+    .description("V2 auto-deprecate idle")
+    .action(() => _v2json(autoDeprecateIdleProvidersV2()));
+  sso
+    .command("auto-fail-stuck-logins-v2")
+    .description("V2 auto-fail stuck")
+    .action(() => _v2json(autoFailStuckLoginsV2()));
 }

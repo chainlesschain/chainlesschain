@@ -28,6 +28,33 @@ import {
   removeBreakpoint,
   exportWorkflow,
   importWorkflow,
+  WORKFLOW_MATURITY_V2 as WMV2,
+  RUN_LIFECYCLE_V2 as RLV2,
+  registerWorkflowV2,
+  activateWorkflowV2,
+  pauseWorkflowV2,
+  retireWorkflowV2,
+  touchWorkflowV2,
+  getWorkflowV2,
+  listWorkflowsV2,
+  createRunV2,
+  startRunV2,
+  completeRunV2,
+  failRunV2,
+  cancelRunV2,
+  getRunV2,
+  listRunsV2,
+  autoPauseIdleWorkflowsV2,
+  autoFailStuckRunsV2,
+  getWorkflowEngineStatsV2,
+  setMaxActiveWorkflowsPerOwnerV2,
+  setMaxPendingRunsPerWorkflowV2,
+  setWorkflowIdleMsV2,
+  setRunStuckMsV2,
+  getMaxActiveWorkflowsPerOwnerV2,
+  getMaxPendingRunsPerWorkflowV2,
+  getWorkflowIdleMsV2,
+  getRunStuckMsV2,
 } from "../lib/workflow-engine.js";
 import fs from "fs";
 
@@ -676,4 +703,148 @@ export function registerWorkflowCommand(program) {
         process.exit(1);
       }
     });
+
+  // ===== V2 Commands (cli 0.130.0) =====
+  const _v2json = (o) => console.log(JSON.stringify(o, null, 2));
+  workflow
+    .command("workflow-maturities-v2")
+    .description("List V2 workflow maturity states")
+    .action(() => Object.values(WMV2).forEach((s) => console.log(s)));
+  workflow
+    .command("run-lifecycles-v2")
+    .description("List V2 run lifecycle states")
+    .action(() => Object.values(RLV2).forEach((s) => console.log(s)));
+  workflow
+    .command("stats-v2")
+    .description("V2 stats")
+    .action(() => _v2json(getWorkflowEngineStatsV2()));
+  workflow
+    .command("config-v2")
+    .description("V2 config")
+    .action(() => {
+      console.log(
+        `maxActiveWorkflowsPerOwner: ${getMaxActiveWorkflowsPerOwnerV2()}`,
+      );
+      console.log(
+        `maxPendingRunsPerWorkflow: ${getMaxPendingRunsPerWorkflowV2()}`,
+      );
+      console.log(`workflowIdleMs: ${getWorkflowIdleMsV2()}`);
+      console.log(`runStuckMs: ${getRunStuckMsV2()}`);
+    });
+  workflow
+    .command("set-max-active-workflows-v2 <n>")
+    .description("Set V2 active workflow cap")
+    .action((n) => {
+      setMaxActiveWorkflowsPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  workflow
+    .command("set-max-pending-runs-v2 <n>")
+    .description("Set V2 pending run cap")
+    .action((n) => {
+      setMaxPendingRunsPerWorkflowV2(Number(n));
+      console.log("ok");
+    });
+  workflow
+    .command("set-workflow-idle-ms-v2 <n>")
+    .description("Set V2 workflow idle ms")
+    .action((n) => {
+      setWorkflowIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  workflow
+    .command("set-run-stuck-ms-v2 <n>")
+    .description("Set V2 run stuck ms")
+    .action((n) => {
+      setRunStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  workflow
+    .command("register-workflow-v2 <id>")
+    .description("V2 register workflow")
+    .requiredOption("-o, --owner <o>")
+    .option("-n, --name <n>")
+    .action((id, opts) =>
+      _v2json(registerWorkflowV2({ id, owner: opts.owner, name: opts.name })),
+    );
+  workflow
+    .command("activate-workflow-v2 <id>")
+    .description("V2 activate")
+    .action((id) => _v2json(activateWorkflowV2(id)));
+  workflow
+    .command("pause-workflow-v2 <id>")
+    .description("V2 pause")
+    .action((id) => _v2json(pauseWorkflowV2(id)));
+  workflow
+    .command("retire-workflow-v2 <id>")
+    .description("V2 retire")
+    .action((id) => _v2json(retireWorkflowV2(id)));
+  workflow
+    .command("touch-workflow-v2 <id>")
+    .description("V2 touch")
+    .action((id) => _v2json(touchWorkflowV2(id)));
+  workflow
+    .command("get-workflow-v2 <id>")
+    .description("V2 get")
+    .action((id) => _v2json(getWorkflowV2(id)));
+  workflow
+    .command("list-workflows-v2")
+    .description("V2 list")
+    .option("-o, --owner <o>")
+    .option("-s, --status <s>")
+    .action((opts) => _v2json(listWorkflowsV2(opts)));
+  workflow
+    .command("create-run-v2 <id>")
+    .description("V2 create run")
+    .requiredOption("-w, --workflow-id <w>")
+    .option("-t, --trigger <t>")
+    .action((id, opts) =>
+      _v2json(
+        createRunV2({ id, workflowId: opts.workflowId, trigger: opts.trigger }),
+      ),
+    );
+  workflow
+    .command("start-run-v2 <id>")
+    .description("V2 start run")
+    .action((id) => _v2json(startRunV2(id)));
+  workflow
+    .command("complete-run-v2 <id>")
+    .description("V2 complete run")
+    .action((id) => _v2json(completeRunV2(id)));
+  workflow
+    .command("fail-run-v2 <id>")
+    .description("V2 fail run")
+    .option("-e, --error <e>")
+    .action((id, opts) => _v2json(failRunV2(id, opts.error)));
+  workflow
+    .command("cancel-run-v2 <id>")
+    .description("V2 cancel run")
+    .action((id) => _v2json(cancelRunV2(id)));
+  workflow
+    .command("get-run-v2 <id>")
+    .description("V2 get run")
+    .action((id) => _v2json(getRunV2(id)));
+  workflow
+    .command("list-runs-v2")
+    .description("V2 list runs")
+    .option("-w, --workflow-id <w>")
+    .option("-s, --status <s>")
+    .option("-t, --trigger <t>")
+    .action((opts) =>
+      _v2json(
+        listRunsV2({
+          workflowId: opts.workflowId,
+          status: opts.status,
+          trigger: opts.trigger,
+        }),
+      ),
+    );
+  workflow
+    .command("auto-pause-idle-workflows-v2")
+    .description("V2 auto-pause idle")
+    .action(() => _v2json(autoPauseIdleWorkflowsV2()));
+  workflow
+    .command("auto-fail-stuck-runs-v2")
+    .description("V2 auto-fail stuck")
+    .action(() => _v2json(autoFailStuckRunsV2()));
 }
