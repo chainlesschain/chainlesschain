@@ -1119,3 +1119,390 @@ export function getNetworkConfig() {
     credStatuses: Object.values(CRED_STATUS),
   };
 }
+
+/* ─────────────────────────────────────────────────────────────────
+ * V2 Governance Layer (in-memory, independent of SQLite tables)
+ *
+ *   Agent maturity: pending → active → suspended → revoked
+ *     - revoked terminal
+ *     - suspended → active recovery (cap-exempt)
+ *
+ *   Task lifecycle: queued → running → completed | failed | cancelled
+ *     - 3 terminals
+ *     - per-agent pending-task cap counts queued+running
+ *
+ *   Per-network active-agent cap on pending→active only (recovery exempt).
+ *   Per-agent pending-task cap enforced at createTaskV2.
+ *
+ *   Auto-flip:
+ *     - autoSuspendIdleAgentsV2  active w/ lastSeenAt past idle threshold → suspended
+ *     - autoFailStuckTasksV2     running w/ startedAt past stuck threshold → failed
+ * ───────────────────────────────────────────────────────────────── */
+
+export const AGENT_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  REVOKED: "revoked",
+});
+
+export const TASK_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+
+const _AGENT_TRANSITIONS_V2 = new Map([
+  [
+    AGENT_MATURITY_V2.PENDING,
+    new Set([AGENT_MATURITY_V2.ACTIVE, AGENT_MATURITY_V2.REVOKED]),
+  ],
+  [
+    AGENT_MATURITY_V2.ACTIVE,
+    new Set([AGENT_MATURITY_V2.SUSPENDED, AGENT_MATURITY_V2.REVOKED]),
+  ],
+  [
+    AGENT_MATURITY_V2.SUSPENDED,
+    new Set([AGENT_MATURITY_V2.ACTIVE, AGENT_MATURITY_V2.REVOKED]),
+  ],
+  [AGENT_MATURITY_V2.REVOKED, new Set()],
+]);
+const _AGENT_TERMINALS_V2 = new Set([AGENT_MATURITY_V2.REVOKED]);
+
+const _TASK_TRANSITIONS_V2 = new Map([
+  [
+    TASK_LIFECYCLE_V2.QUEUED,
+    new Set([TASK_LIFECYCLE_V2.RUNNING, TASK_LIFECYCLE_V2.CANCELLED]),
+  ],
+  [
+    TASK_LIFECYCLE_V2.RUNNING,
+    new Set([
+      TASK_LIFECYCLE_V2.COMPLETED,
+      TASK_LIFECYCLE_V2.FAILED,
+      TASK_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [TASK_LIFECYCLE_V2.COMPLETED, new Set()],
+  [TASK_LIFECYCLE_V2.FAILED, new Set()],
+  [TASK_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _TASK_TERMINALS_V2 = new Set([
+  TASK_LIFECYCLE_V2.COMPLETED,
+  TASK_LIFECYCLE_V2.FAILED,
+  TASK_LIFECYCLE_V2.CANCELLED,
+]);
+
+export const AGENT_DEFAULT_MAX_ACTIVE_PER_NETWORK = 50;
+export const AGENT_DEFAULT_MAX_PENDING_TASKS_PER_AGENT = 10;
+export const AGENT_DEFAULT_AGENT_IDLE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+export const AGENT_DEFAULT_TASK_STUCK_MS = 30 * 60 * 1000; // 30 min
+
+const _stateAnetV2 = {
+  agents: new Map(),
+  tasks: new Map(),
+  maxActiveAgentsPerNetwork: AGENT_DEFAULT_MAX_ACTIVE_PER_NETWORK,
+  maxPendingTasksPerAgent: AGENT_DEFAULT_MAX_PENDING_TASKS_PER_AGENT,
+  agentIdleMs: AGENT_DEFAULT_AGENT_IDLE_MS,
+  taskStuckMs: AGENT_DEFAULT_TASK_STUCK_MS,
+};
+
+function _posIntAnetV2(n, label) {
+  const v = Math.floor(n);
+  if (!Number.isFinite(v) || v <= 0) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return v;
+}
+
+function _copyAgentV2(a) {
+  return { ...a, metadata: { ...a.metadata } };
+}
+
+function _copyTaskV2(t) {
+  return { ...t, metadata: { ...t.metadata } };
+}
+
+export function getMaxActiveAgentsPerNetworkV2() {
+  return _stateAnetV2.maxActiveAgentsPerNetwork;
+}
+
+export function setMaxActiveAgentsPerNetworkV2(n) {
+  _stateAnetV2.maxActiveAgentsPerNetwork = _posIntAnetV2(
+    n,
+    "maxActiveAgentsPerNetwork",
+  );
+}
+
+export function getMaxPendingTasksPerAgentV2() {
+  return _stateAnetV2.maxPendingTasksPerAgent;
+}
+
+export function setMaxPendingTasksPerAgentV2(n) {
+  _stateAnetV2.maxPendingTasksPerAgent = _posIntAnetV2(
+    n,
+    "maxPendingTasksPerAgent",
+  );
+}
+
+export function getAgentIdleMsV2() {
+  return _stateAnetV2.agentIdleMs;
+}
+
+export function setAgentIdleMsV2(ms) {
+  _stateAnetV2.agentIdleMs = _posIntAnetV2(ms, "agentIdleMs");
+}
+
+export function getTaskStuckMsV2() {
+  return _stateAnetV2.taskStuckMs;
+}
+
+export function setTaskStuckMsV2(ms) {
+  _stateAnetV2.taskStuckMs = _posIntAnetV2(ms, "taskStuckMs");
+}
+
+export function getActiveAgentCountV2(networkId) {
+  let count = 0;
+  for (const a of _stateAnetV2.agents.values()) {
+    if (a.networkId === networkId && a.status === AGENT_MATURITY_V2.ACTIVE) {
+      count++;
+    }
+  }
+  return count;
+}
+
+export function getPendingTaskCountV2(agentId) {
+  let count = 0;
+  for (const t of _stateAnetV2.tasks.values()) {
+    if (
+      t.agentId === agentId &&
+      (t.status === TASK_LIFECYCLE_V2.QUEUED ||
+        t.status === TASK_LIFECYCLE_V2.RUNNING)
+    ) {
+      count++;
+    }
+  }
+  return count;
+}
+
+export function registerAgentV2(
+  id,
+  { networkId, did, displayName, metadata } = {},
+) {
+  if (!id) throw new Error("agent id is required");
+  if (!networkId) throw new Error("networkId is required");
+  if (!did) throw new Error("did is required");
+  if (_stateAnetV2.agents.has(id))
+    throw new Error(`agent ${id} already exists`);
+  const now = Date.now();
+  const agent = {
+    id,
+    networkId,
+    did,
+    displayName: displayName || id,
+    status: AGENT_MATURITY_V2.PENDING,
+    createdAt: now,
+    lastSeenAt: now,
+    activatedAt: null,
+    revokedAt: null,
+    metadata: metadata ? { ...metadata } : {},
+  };
+  _stateAnetV2.agents.set(id, agent);
+  return _copyAgentV2(agent);
+}
+
+export function getAgentV2(id) {
+  const a = _stateAnetV2.agents.get(id);
+  return a ? _copyAgentV2(a) : null;
+}
+
+export function listAgentsV2({ networkId, status } = {}) {
+  const out = [];
+  for (const a of _stateAnetV2.agents.values()) {
+    if (networkId && a.networkId !== networkId) continue;
+    if (status && a.status !== status) continue;
+    out.push(_copyAgentV2(a));
+  }
+  return out;
+}
+
+export function setAgentStatusV2(id, next) {
+  const a = _stateAnetV2.agents.get(id);
+  if (!a) throw new Error(`agent ${id} not found`);
+  const allowed = _AGENT_TRANSITIONS_V2.get(a.status);
+  if (!allowed || !allowed.has(next)) {
+    throw new Error(`invalid agent transition: ${a.status} → ${next}`);
+  }
+  if (
+    a.status === AGENT_MATURITY_V2.PENDING &&
+    next === AGENT_MATURITY_V2.ACTIVE
+  ) {
+    const count = getActiveAgentCountV2(a.networkId);
+    if (count >= _stateAnetV2.maxActiveAgentsPerNetwork) {
+      throw new Error(
+        `network ${a.networkId} active-agent cap reached (${count}/${_stateAnetV2.maxActiveAgentsPerNetwork})`,
+      );
+    }
+  }
+  const now = Date.now();
+  a.status = next;
+  a.lastSeenAt = now;
+  if (next === AGENT_MATURITY_V2.ACTIVE && !a.activatedAt) a.activatedAt = now;
+  if (_AGENT_TERMINALS_V2.has(next) && !a.revokedAt) a.revokedAt = now;
+  return _copyAgentV2(a);
+}
+
+export function activateAgentV2(id) {
+  return setAgentStatusV2(id, AGENT_MATURITY_V2.ACTIVE);
+}
+
+export function suspendAgentV2(id) {
+  return setAgentStatusV2(id, AGENT_MATURITY_V2.SUSPENDED);
+}
+
+export function revokeAgentV2(id) {
+  return setAgentStatusV2(id, AGENT_MATURITY_V2.REVOKED);
+}
+
+export function touchAgentV2(id) {
+  const a = _stateAnetV2.agents.get(id);
+  if (!a) throw new Error(`agent ${id} not found`);
+  a.lastSeenAt = Date.now();
+  return _copyAgentV2(a);
+}
+
+export function createTaskV2(id, { agentId, kind, metadata } = {}) {
+  if (!id) throw new Error("task id is required");
+  if (!agentId) throw new Error("agentId is required");
+  if (_stateAnetV2.tasks.has(id)) throw new Error(`task ${id} already exists`);
+  const agent = _stateAnetV2.agents.get(agentId);
+  if (!agent) throw new Error(`agent ${agentId} not found`);
+  const pending = getPendingTaskCountV2(agentId);
+  if (pending >= _stateAnetV2.maxPendingTasksPerAgent) {
+    throw new Error(
+      `agent ${agentId} pending-task cap reached (${pending}/${_stateAnetV2.maxPendingTasksPerAgent})`,
+    );
+  }
+  const now = Date.now();
+  const task = {
+    id,
+    agentId,
+    kind: kind || "invoke",
+    status: TASK_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    lastSeenAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: metadata ? { ...metadata } : {},
+  };
+  _stateAnetV2.tasks.set(id, task);
+  return _copyTaskV2(task);
+}
+
+export function getTaskV2(id) {
+  const t = _stateAnetV2.tasks.get(id);
+  return t ? _copyTaskV2(t) : null;
+}
+
+export function listTasksV2({ agentId, status } = {}) {
+  const out = [];
+  for (const t of _stateAnetV2.tasks.values()) {
+    if (agentId && t.agentId !== agentId) continue;
+    if (status && t.status !== status) continue;
+    out.push(_copyTaskV2(t));
+  }
+  return out;
+}
+
+export function setTaskStatusV2(id, next) {
+  const t = _stateAnetV2.tasks.get(id);
+  if (!t) throw new Error(`task ${id} not found`);
+  const allowed = _TASK_TRANSITIONS_V2.get(t.status);
+  if (!allowed || !allowed.has(next)) {
+    throw new Error(`invalid task transition: ${t.status} → ${next}`);
+  }
+  const now = Date.now();
+  t.status = next;
+  t.lastSeenAt = now;
+  if (next === TASK_LIFECYCLE_V2.RUNNING && !t.startedAt) t.startedAt = now;
+  if (_TASK_TERMINALS_V2.has(next) && !t.settledAt) t.settledAt = now;
+  return _copyTaskV2(t);
+}
+
+export function startTaskV2(id) {
+  return setTaskStatusV2(id, TASK_LIFECYCLE_V2.RUNNING);
+}
+
+export function completeTaskV2(id) {
+  return setTaskStatusV2(id, TASK_LIFECYCLE_V2.COMPLETED);
+}
+
+export function failTaskV2(id) {
+  return setTaskStatusV2(id, TASK_LIFECYCLE_V2.FAILED);
+}
+
+export function cancelTaskV2(id) {
+  return setTaskStatusV2(id, TASK_LIFECYCLE_V2.CANCELLED);
+}
+
+export function autoSuspendIdleAgentsV2({ now = Date.now() } = {}) {
+  const flipped = [];
+  for (const a of _stateAnetV2.agents.values()) {
+    if (
+      a.status === AGENT_MATURITY_V2.ACTIVE &&
+      now - a.lastSeenAt >= _stateAnetV2.agentIdleMs
+    ) {
+      a.status = AGENT_MATURITY_V2.SUSPENDED;
+      a.lastSeenAt = now;
+      flipped.push(a.id);
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function autoFailStuckTasksV2({ now = Date.now() } = {}) {
+  const flipped = [];
+  for (const t of _stateAnetV2.tasks.values()) {
+    if (
+      t.status === TASK_LIFECYCLE_V2.RUNNING &&
+      t.startedAt &&
+      now - t.startedAt >= _stateAnetV2.taskStuckMs
+    ) {
+      t.status = TASK_LIFECYCLE_V2.FAILED;
+      t.lastSeenAt = now;
+      if (!t.settledAt) t.settledAt = now;
+      flipped.push(t.id);
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function getAgentNetworkStatsV2() {
+  const agentsByStatus = {};
+  for (const s of Object.values(AGENT_MATURITY_V2)) agentsByStatus[s] = 0;
+  for (const a of _stateAnetV2.agents.values()) agentsByStatus[a.status]++;
+  const tasksByStatus = {};
+  for (const s of Object.values(TASK_LIFECYCLE_V2)) tasksByStatus[s] = 0;
+  for (const t of _stateAnetV2.tasks.values()) tasksByStatus[t.status]++;
+  return {
+    totalAgentsV2: _stateAnetV2.agents.size,
+    totalTasksV2: _stateAnetV2.tasks.size,
+    maxActiveAgentsPerNetwork: _stateAnetV2.maxActiveAgentsPerNetwork,
+    maxPendingTasksPerAgent: _stateAnetV2.maxPendingTasksPerAgent,
+    agentIdleMs: _stateAnetV2.agentIdleMs,
+    taskStuckMs: _stateAnetV2.taskStuckMs,
+    agentsByStatus,
+    tasksByStatus,
+  };
+}
+
+export function _resetStateAgentNetworkV2() {
+  _stateAnetV2.agents.clear();
+  _stateAnetV2.tasks.clear();
+  _stateAnetV2.maxActiveAgentsPerNetwork = AGENT_DEFAULT_MAX_ACTIVE_PER_NETWORK;
+  _stateAnetV2.maxPendingTasksPerAgent =
+    AGENT_DEFAULT_MAX_PENDING_TASKS_PER_AGENT;
+  _stateAnetV2.agentIdleMs = AGENT_DEFAULT_AGENT_IDLE_MS;
+  _stateAnetV2.taskStuckMs = AGENT_DEFAULT_TASK_STUCK_MS;
+}

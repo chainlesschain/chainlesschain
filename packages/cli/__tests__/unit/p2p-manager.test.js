@@ -300,3 +300,400 @@ describe("P2P Manager", () => {
     });
   });
 });
+
+import {
+  PEER_MATURITY_V2,
+  MESSAGE_LIFECYCLE_V2,
+  PEER_DEFAULT_MAX_ACTIVE_PER_NETWORK,
+  PEER_DEFAULT_MAX_PENDING_MESSAGES_PER_PEER,
+  PEER_DEFAULT_PEER_IDLE_MS,
+  PEER_DEFAULT_MESSAGE_STUCK_MS,
+  getMaxActivePeersPerNetworkV2,
+  setMaxActivePeersPerNetworkV2,
+  getMaxPendingMessagesPerPeerV2,
+  setMaxPendingMessagesPerPeerV2,
+  getPeerIdleMsV2,
+  setPeerIdleMsV2,
+  getMessageStuckMsV2,
+  setMessageStuckMsV2,
+  registerPeerV2,
+  getPeerV2,
+  listPeersV2,
+  setPeerStatusV2,
+  activatePeerV2,
+  offlinePeerV2,
+  archivePeerV2,
+  touchPeerV2,
+  createMessageV2,
+  getMessageV2,
+  listMessagesV2,
+  setMessageStatusV2,
+  startMessageV2,
+  deliverMessageV2,
+  failMessageV2,
+  cancelMessageV2,
+  getActivePeerCountV2,
+  getPendingMessageCountV2,
+  autoOfflineIdlePeersV2,
+  autoFailStuckMessagesV2,
+  getP2pManagerStatsV2,
+  _resetStateP2pManagerV2,
+} from "../../src/lib/p2p-manager.js";
+
+describe("P2P Manager V2", () => {
+  beforeEach(() => _resetStateP2pManagerV2());
+
+  describe("frozen enums + defaults", () => {
+    it("freezes PEER_MATURITY_V2", () => {
+      expect(Object.isFrozen(PEER_MATURITY_V2)).toBe(true);
+      expect(Object.values(PEER_MATURITY_V2).sort()).toEqual([
+        "active",
+        "archived",
+        "offline",
+        "pending",
+      ]);
+    });
+    it("freezes MESSAGE_LIFECYCLE_V2", () => {
+      expect(Object.isFrozen(MESSAGE_LIFECYCLE_V2)).toBe(true);
+      expect(Object.values(MESSAGE_LIFECYCLE_V2).sort()).toEqual([
+        "cancelled",
+        "delivered",
+        "failed",
+        "queued",
+        "sending",
+      ]);
+    });
+    it("exposes defaults", () => {
+      expect(PEER_DEFAULT_MAX_ACTIVE_PER_NETWORK).toBe(100);
+      expect(PEER_DEFAULT_MAX_PENDING_MESSAGES_PER_PEER).toBe(50);
+      expect(PEER_DEFAULT_PEER_IDLE_MS).toBe(10 * 60 * 1000);
+      expect(PEER_DEFAULT_MESSAGE_STUCK_MS).toBe(60 * 1000);
+    });
+  });
+
+  describe("config getters/setters", () => {
+    it("returns defaults", () => {
+      expect(getMaxActivePeersPerNetworkV2()).toBe(100);
+      expect(getMaxPendingMessagesPerPeerV2()).toBe(50);
+    });
+    it("setters accept positives + floor non-integer", () => {
+      setMaxActivePeersPerNetworkV2(2.7);
+      setMaxPendingMessagesPerPeerV2(3);
+      setPeerIdleMsV2(5_000);
+      setMessageStuckMsV2(2_000);
+      expect(getMaxActivePeersPerNetworkV2()).toBe(2);
+      expect(getMaxPendingMessagesPerPeerV2()).toBe(3);
+      expect(getPeerIdleMsV2()).toBe(5_000);
+      expect(getMessageStuckMsV2()).toBe(2_000);
+    });
+    it("rejects bad values", () => {
+      expect(() => setMaxActivePeersPerNetworkV2(0)).toThrow();
+      expect(() => setMaxPendingMessagesPerPeerV2(-1)).toThrow();
+      expect(() => setPeerIdleMsV2(NaN)).toThrow();
+      expect(() => setMessageStuckMsV2("x")).toThrow();
+    });
+  });
+
+  describe("registerPeerV2", () => {
+    it("registers PENDING with required fields", () => {
+      const p = registerPeerV2("p1", {
+        networkId: "n1",
+        deviceName: "Phone",
+        deviceType: "mobile",
+      });
+      expect(p.status).toBe("pending");
+      expect(p.networkId).toBe("n1");
+      expect(p.deviceName).toBe("Phone");
+      expect(p.deviceType).toBe("mobile");
+      expect(p.activatedAt).toBeNull();
+    });
+    it("defaults deviceName to id, deviceType to desktop", () => {
+      const p = registerPeerV2("p1", { networkId: "n1" });
+      expect(p.deviceName).toBe("p1");
+      expect(p.deviceType).toBe("desktop");
+    });
+    it("rejects duplicate id", () => {
+      registerPeerV2("p1", { networkId: "n1" });
+      expect(() => registerPeerV2("p1", { networkId: "n1" })).toThrow(
+        /already exists/,
+      );
+    });
+    it("rejects missing required", () => {
+      expect(() => registerPeerV2("p1")).toThrow(/networkId/);
+      expect(() => registerPeerV2("", { networkId: "n1" })).toThrow(/peer id/);
+    });
+    it("metadata copied defensively", () => {
+      const meta = { v: 1 };
+      registerPeerV2("p1", { networkId: "n1", metadata: meta });
+      meta.v = 99;
+      expect(getPeerV2("p1").metadata.v).toBe(1);
+    });
+  });
+
+  describe("peer state machine", () => {
+    beforeEach(() => {
+      registerPeerV2("p1", { networkId: "n1" });
+    });
+    it("pending→active stamps activatedAt", () => {
+      const p = activatePeerV2("p1");
+      expect(p.status).toBe("active");
+      expect(p.activatedAt).toBeGreaterThan(0);
+    });
+    it("active→offline→active preserves activatedAt", () => {
+      const p1 = activatePeerV2("p1");
+      const ts = p1.activatedAt;
+      offlinePeerV2("p1");
+      const p3 = activatePeerV2("p1");
+      expect(p3.activatedAt).toBe(ts);
+    });
+    it("archived terminal", () => {
+      activatePeerV2("p1");
+      archivePeerV2("p1");
+      expect(() => activatePeerV2("p1")).toThrow(/invalid peer transition/);
+    });
+    it("archivedAt stamped on first terminal", () => {
+      activatePeerV2("p1");
+      const p = archivePeerV2("p1");
+      expect(p.archivedAt).toBeGreaterThan(0);
+    });
+    it("rejects pending→offline", () => {
+      expect(() => offlinePeerV2("p1")).toThrow(/invalid peer transition/);
+    });
+    it("rejects unknown peer", () => {
+      expect(() => activatePeerV2("nope")).toThrow(/not found/);
+    });
+  });
+
+  describe("per-network active-peer cap", () => {
+    it("rejects pending→active beyond cap", () => {
+      setMaxActivePeersPerNetworkV2(2);
+      registerPeerV2("p1", { networkId: "n1" });
+      registerPeerV2("p2", { networkId: "n1" });
+      registerPeerV2("p3", { networkId: "n1" });
+      activatePeerV2("p1");
+      activatePeerV2("p2");
+      expect(() => activatePeerV2("p3")).toThrow(/active-peer cap/);
+    });
+    it("recovery is exempt from cap", () => {
+      setMaxActivePeersPerNetworkV2(1);
+      registerPeerV2("p1", { networkId: "n1" });
+      registerPeerV2("p2", { networkId: "n1" });
+      activatePeerV2("p1");
+      offlinePeerV2("p1");
+      activatePeerV2("p2");
+      const p = activatePeerV2("p1");
+      expect(p.status).toBe("active");
+    });
+    it("scoped by network", () => {
+      setMaxActivePeersPerNetworkV2(1);
+      registerPeerV2("p1", { networkId: "n1" });
+      registerPeerV2("p2", { networkId: "n2" });
+      activatePeerV2("p1");
+      const p = activatePeerV2("p2");
+      expect(p.status).toBe("active");
+    });
+  });
+
+  describe("listPeersV2", () => {
+    it("filters by network/status/deviceType", () => {
+      registerPeerV2("p1", { networkId: "n1", deviceType: "mobile" });
+      registerPeerV2("p2", { networkId: "n1", deviceType: "desktop" });
+      registerPeerV2("p3", { networkId: "n2", deviceType: "mobile" });
+      activatePeerV2("p1");
+      expect(listPeersV2({ networkId: "n1" })).toHaveLength(2);
+      expect(listPeersV2({ deviceType: "mobile" })).toHaveLength(2);
+      expect(listPeersV2({ status: "active" })).toHaveLength(1);
+    });
+  });
+
+  describe("touchPeerV2", () => {
+    it("updates lastSeenAt", async () => {
+      registerPeerV2("p1", { networkId: "n1" });
+      const before = getPeerV2("p1").lastSeenAt;
+      await new Promise((r) => setTimeout(r, 5));
+      const p = touchPeerV2("p1");
+      expect(p.lastSeenAt).toBeGreaterThan(before);
+    });
+    it("throws on unknown id", () => {
+      expect(() => touchPeerV2("nope")).toThrow(/not found/);
+    });
+  });
+
+  describe("createMessageV2", () => {
+    beforeEach(() => {
+      registerPeerV2("p1", { networkId: "n1" });
+    });
+    it("creates QUEUED with required fields", () => {
+      const m = createMessageV2("m1", { peerId: "p1", kind: "image" });
+      expect(m.status).toBe("queued");
+      expect(m.peerId).toBe("p1");
+      expect(m.kind).toBe("image");
+      expect(m.startedAt).toBeNull();
+    });
+    it("defaults kind to text", () => {
+      const m = createMessageV2("m1", { peerId: "p1" });
+      expect(m.kind).toBe("text");
+    });
+    it("rejects duplicate id", () => {
+      createMessageV2("m1", { peerId: "p1" });
+      expect(() => createMessageV2("m1", { peerId: "p1" })).toThrow(
+        /already exists/,
+      );
+    });
+    it("rejects unknown peer", () => {
+      expect(() => createMessageV2("m1", { peerId: "ghost" })).toThrow(
+        /not found/,
+      );
+    });
+    it("enforces per-peer pending cap (counts queued+sending)", () => {
+      setMaxPendingMessagesPerPeerV2(2);
+      createMessageV2("m1", { peerId: "p1" });
+      createMessageV2("m2", { peerId: "p1" });
+      expect(() => createMessageV2("m3", { peerId: "p1" })).toThrow(
+        /pending-message cap/,
+      );
+      startMessageV2("m1");
+      expect(() => createMessageV2("m3", { peerId: "p1" })).toThrow(
+        /pending-message cap/,
+      );
+      deliverMessageV2("m1");
+      const m3 = createMessageV2("m3", { peerId: "p1" });
+      expect(m3.status).toBe("queued");
+    });
+  });
+
+  describe("message state machine", () => {
+    beforeEach(() => {
+      registerPeerV2("p1", { networkId: "n1" });
+      createMessageV2("m1", { peerId: "p1" });
+    });
+    it("queued→sending stamps startedAt", () => {
+      const m = startMessageV2("m1");
+      expect(m.status).toBe("sending");
+      expect(m.startedAt).toBeGreaterThan(0);
+    });
+    it("sending→delivered stamps settledAt", () => {
+      startMessageV2("m1");
+      const m = deliverMessageV2("m1");
+      expect(m.settledAt).toBeGreaterThan(0);
+    });
+    it("sending→failed stamps settledAt", () => {
+      startMessageV2("m1");
+      const m = failMessageV2("m1");
+      expect(m.settledAt).toBeGreaterThan(0);
+    });
+    it("queued and sending both → cancelled", () => {
+      cancelMessageV2("m1");
+      expect(getMessageV2("m1").status).toBe("cancelled");
+      createMessageV2("m2", { peerId: "p1" });
+      startMessageV2("m2");
+      cancelMessageV2("m2");
+      expect(getMessageV2("m2").status).toBe("cancelled");
+    });
+    it("rejects invalid transitions", () => {
+      expect(() => deliverMessageV2("m1")).toThrow(
+        /invalid message transition/,
+      );
+    });
+  });
+
+  describe("listMessagesV2", () => {
+    it("filters by peer and status", () => {
+      registerPeerV2("p1", { networkId: "n1" });
+      registerPeerV2("p2", { networkId: "n1" });
+      createMessageV2("m1", { peerId: "p1" });
+      createMessageV2("m2", { peerId: "p1" });
+      createMessageV2("m3", { peerId: "p2" });
+      startMessageV2("m1");
+      expect(listMessagesV2({ peerId: "p1" })).toHaveLength(2);
+      expect(listMessagesV2({ status: "queued" })).toHaveLength(2);
+    });
+  });
+
+  describe("autoOfflineIdlePeersV2", () => {
+    it("flips active peers past idle threshold", () => {
+      setPeerIdleMsV2(1000);
+      registerPeerV2("p1", { networkId: "n1" });
+      activatePeerV2("p1");
+      const r = autoOfflineIdlePeersV2({ now: Date.now() + 5_000 });
+      expect(r.count).toBe(1);
+      expect(getPeerV2("p1").status).toBe("offline");
+    });
+  });
+
+  describe("autoFailStuckMessagesV2", () => {
+    it("flips sending messages past stuck threshold", () => {
+      setMessageStuckMsV2(1000);
+      registerPeerV2("p1", { networkId: "n1" });
+      createMessageV2("m1", { peerId: "p1" });
+      startMessageV2("m1");
+      const r = autoFailStuckMessagesV2({ now: Date.now() + 5_000 });
+      expect(r.count).toBe(1);
+      expect(getMessageV2("m1").status).toBe("failed");
+    });
+    it("ignores queued messages", () => {
+      registerPeerV2("p1", { networkId: "n1" });
+      createMessageV2("m1", { peerId: "p1" });
+      const r = autoFailStuckMessagesV2({ now: Date.now() + 1e9 });
+      expect(r.count).toBe(0);
+    });
+  });
+
+  describe("getP2pManagerStatsV2", () => {
+    it("zero state has all keys", () => {
+      const s = getP2pManagerStatsV2();
+      expect(s.peersByStatus).toEqual({
+        pending: 0,
+        active: 0,
+        offline: 0,
+        archived: 0,
+      });
+      expect(s.messagesByStatus).toEqual({
+        queued: 0,
+        sending: 0,
+        delivered: 0,
+        failed: 0,
+        cancelled: 0,
+      });
+    });
+    it("counts after operations", () => {
+      registerPeerV2("p1", { networkId: "n1" });
+      activatePeerV2("p1");
+      createMessageV2("m1", { peerId: "p1" });
+      startMessageV2("m1");
+      const s = getP2pManagerStatsV2();
+      expect(s.peersByStatus.active).toBe(1);
+      expect(s.messagesByStatus.sending).toBe(1);
+    });
+  });
+
+  describe("counts", () => {
+    it("getActivePeerCountV2 scoped by network", () => {
+      registerPeerV2("p1", { networkId: "n1" });
+      registerPeerV2("p2", { networkId: "n2" });
+      activatePeerV2("p1");
+      activatePeerV2("p2");
+      expect(getActivePeerCountV2("n1")).toBe(1);
+      expect(getActivePeerCountV2("nope")).toBe(0);
+    });
+    it("getPendingMessageCountV2 counts queued+sending", () => {
+      registerPeerV2("p1", { networkId: "n1" });
+      createMessageV2("m1", { peerId: "p1" });
+      createMessageV2("m2", { peerId: "p1" });
+      startMessageV2("m1");
+      expect(getPendingMessageCountV2("p1")).toBe(2);
+      deliverMessageV2("m1");
+      expect(getPendingMessageCountV2("p1")).toBe(1);
+    });
+  });
+
+  describe("_resetStateP2pManagerV2", () => {
+    it("clears state and restores defaults", () => {
+      setMaxActivePeersPerNetworkV2(99);
+      registerPeerV2("p1", { networkId: "n1" });
+      _resetStateP2pManagerV2();
+      expect(getMaxActivePeersPerNetworkV2()).toBe(100);
+      expect(getPeerV2("p1")).toBeNull();
+    });
+  });
+});

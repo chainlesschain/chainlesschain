@@ -315,3 +315,390 @@ export class P2PBridge extends EventEmitter {
     };
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────
+ * V2 Governance Layer (in-memory, independent of SQLite p2p tables)
+ *
+ *   Peer maturity: pending → active → offline → archived
+ *     - archived terminal
+ *     - offline → active recovery (cap-exempt)
+ *
+ *   Message lifecycle: queued → sending → delivered | failed | cancelled
+ *     - 3 terminals
+ *     - per-peer pending-message cap counts queued+sending
+ *
+ *   Per-network active-peer cap on pending→active only (recovery exempt).
+ *   Per-peer pending-message cap enforced at createMessageV2.
+ *
+ *   Auto-flip:
+ *     - autoOfflineIdlePeersV2  active w/ lastSeenAt past idle threshold → offline
+ *     - autoFailStuckMessagesV2 sending w/ startedAt past stuck threshold → failed
+ * ───────────────────────────────────────────────────────────────── */
+
+export const PEER_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  OFFLINE: "offline",
+  ARCHIVED: "archived",
+});
+
+export const MESSAGE_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  SENDING: "sending",
+  DELIVERED: "delivered",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+
+const _PEER_TRANSITIONS_V2 = new Map([
+  [
+    PEER_MATURITY_V2.PENDING,
+    new Set([PEER_MATURITY_V2.ACTIVE, PEER_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    PEER_MATURITY_V2.ACTIVE,
+    new Set([PEER_MATURITY_V2.OFFLINE, PEER_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    PEER_MATURITY_V2.OFFLINE,
+    new Set([PEER_MATURITY_V2.ACTIVE, PEER_MATURITY_V2.ARCHIVED]),
+  ],
+  [PEER_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _PEER_TERMINALS_V2 = new Set([PEER_MATURITY_V2.ARCHIVED]);
+
+const _MSG_TRANSITIONS_V2 = new Map([
+  [
+    MESSAGE_LIFECYCLE_V2.QUEUED,
+    new Set([MESSAGE_LIFECYCLE_V2.SENDING, MESSAGE_LIFECYCLE_V2.CANCELLED]),
+  ],
+  [
+    MESSAGE_LIFECYCLE_V2.SENDING,
+    new Set([
+      MESSAGE_LIFECYCLE_V2.DELIVERED,
+      MESSAGE_LIFECYCLE_V2.FAILED,
+      MESSAGE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [MESSAGE_LIFECYCLE_V2.DELIVERED, new Set()],
+  [MESSAGE_LIFECYCLE_V2.FAILED, new Set()],
+  [MESSAGE_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _MSG_TERMINALS_V2 = new Set([
+  MESSAGE_LIFECYCLE_V2.DELIVERED,
+  MESSAGE_LIFECYCLE_V2.FAILED,
+  MESSAGE_LIFECYCLE_V2.CANCELLED,
+]);
+
+export const PEER_DEFAULT_MAX_ACTIVE_PER_NETWORK = 100;
+export const PEER_DEFAULT_MAX_PENDING_MESSAGES_PER_PEER = 50;
+export const PEER_DEFAULT_PEER_IDLE_MS = 10 * 60 * 1000;
+export const PEER_DEFAULT_MESSAGE_STUCK_MS = 60 * 1000;
+
+const _stateP2pV2 = {
+  peers: new Map(),
+  messages: new Map(),
+  maxActivePeersPerNetwork: PEER_DEFAULT_MAX_ACTIVE_PER_NETWORK,
+  maxPendingMessagesPerPeer: PEER_DEFAULT_MAX_PENDING_MESSAGES_PER_PEER,
+  peerIdleMs: PEER_DEFAULT_PEER_IDLE_MS,
+  messageStuckMs: PEER_DEFAULT_MESSAGE_STUCK_MS,
+};
+
+function _posIntP2pV2(n, label) {
+  const v = Math.floor(n);
+  if (!Number.isFinite(v) || v <= 0) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return v;
+}
+
+function _copyPeerV2(p) {
+  return { ...p, metadata: { ...p.metadata } };
+}
+
+function _copyMsgV2(m) {
+  return { ...m, metadata: { ...m.metadata } };
+}
+
+export function getMaxActivePeersPerNetworkV2() {
+  return _stateP2pV2.maxActivePeersPerNetwork;
+}
+
+export function setMaxActivePeersPerNetworkV2(n) {
+  _stateP2pV2.maxActivePeersPerNetwork = _posIntP2pV2(
+    n,
+    "maxActivePeersPerNetwork",
+  );
+}
+
+export function getMaxPendingMessagesPerPeerV2() {
+  return _stateP2pV2.maxPendingMessagesPerPeer;
+}
+
+export function setMaxPendingMessagesPerPeerV2(n) {
+  _stateP2pV2.maxPendingMessagesPerPeer = _posIntP2pV2(
+    n,
+    "maxPendingMessagesPerPeer",
+  );
+}
+
+export function getPeerIdleMsV2() {
+  return _stateP2pV2.peerIdleMs;
+}
+
+export function setPeerIdleMsV2(ms) {
+  _stateP2pV2.peerIdleMs = _posIntP2pV2(ms, "peerIdleMs");
+}
+
+export function getMessageStuckMsV2() {
+  return _stateP2pV2.messageStuckMs;
+}
+
+export function setMessageStuckMsV2(ms) {
+  _stateP2pV2.messageStuckMs = _posIntP2pV2(ms, "messageStuckMs");
+}
+
+export function getActivePeerCountV2(networkId) {
+  let count = 0;
+  for (const p of _stateP2pV2.peers.values()) {
+    if (p.networkId === networkId && p.status === PEER_MATURITY_V2.ACTIVE) {
+      count++;
+    }
+  }
+  return count;
+}
+
+export function getPendingMessageCountV2(peerId) {
+  let count = 0;
+  for (const m of _stateP2pV2.messages.values()) {
+    if (
+      m.peerId === peerId &&
+      (m.status === MESSAGE_LIFECYCLE_V2.QUEUED ||
+        m.status === MESSAGE_LIFECYCLE_V2.SENDING)
+    ) {
+      count++;
+    }
+  }
+  return count;
+}
+
+export function registerPeerV2(
+  id,
+  { networkId, deviceName, deviceType, metadata } = {},
+) {
+  if (!id) throw new Error("peer id is required");
+  if (!networkId) throw new Error("networkId is required");
+  if (_stateP2pV2.peers.has(id)) throw new Error(`peer ${id} already exists`);
+  const now = Date.now();
+  const peer = {
+    id,
+    networkId,
+    deviceName: deviceName || id,
+    deviceType: deviceType || "desktop",
+    status: PEER_MATURITY_V2.PENDING,
+    createdAt: now,
+    lastSeenAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: metadata ? { ...metadata } : {},
+  };
+  _stateP2pV2.peers.set(id, peer);
+  return _copyPeerV2(peer);
+}
+
+export function getPeerV2(id) {
+  const p = _stateP2pV2.peers.get(id);
+  return p ? _copyPeerV2(p) : null;
+}
+
+export function listPeersV2({ networkId, status, deviceType } = {}) {
+  const out = [];
+  for (const p of _stateP2pV2.peers.values()) {
+    if (networkId && p.networkId !== networkId) continue;
+    if (status && p.status !== status) continue;
+    if (deviceType && p.deviceType !== deviceType) continue;
+    out.push(_copyPeerV2(p));
+  }
+  return out;
+}
+
+export function setPeerStatusV2(id, next) {
+  const p = _stateP2pV2.peers.get(id);
+  if (!p) throw new Error(`peer ${id} not found`);
+  const allowed = _PEER_TRANSITIONS_V2.get(p.status);
+  if (!allowed || !allowed.has(next)) {
+    throw new Error(`invalid peer transition: ${p.status} → ${next}`);
+  }
+  if (
+    p.status === PEER_MATURITY_V2.PENDING &&
+    next === PEER_MATURITY_V2.ACTIVE
+  ) {
+    const count = getActivePeerCountV2(p.networkId);
+    if (count >= _stateP2pV2.maxActivePeersPerNetwork) {
+      throw new Error(
+        `network ${p.networkId} active-peer cap reached (${count}/${_stateP2pV2.maxActivePeersPerNetwork})`,
+      );
+    }
+  }
+  const now = Date.now();
+  p.status = next;
+  p.lastSeenAt = now;
+  if (next === PEER_MATURITY_V2.ACTIVE && !p.activatedAt) p.activatedAt = now;
+  if (_PEER_TERMINALS_V2.has(next) && !p.archivedAt) p.archivedAt = now;
+  return _copyPeerV2(p);
+}
+
+export function activatePeerV2(id) {
+  return setPeerStatusV2(id, PEER_MATURITY_V2.ACTIVE);
+}
+
+export function offlinePeerV2(id) {
+  return setPeerStatusV2(id, PEER_MATURITY_V2.OFFLINE);
+}
+
+export function archivePeerV2(id) {
+  return setPeerStatusV2(id, PEER_MATURITY_V2.ARCHIVED);
+}
+
+export function touchPeerV2(id) {
+  const p = _stateP2pV2.peers.get(id);
+  if (!p) throw new Error(`peer ${id} not found`);
+  p.lastSeenAt = Date.now();
+  return _copyPeerV2(p);
+}
+
+export function createMessageV2(id, { peerId, kind, metadata } = {}) {
+  if (!id) throw new Error("message id is required");
+  if (!peerId) throw new Error("peerId is required");
+  if (_stateP2pV2.messages.has(id))
+    throw new Error(`message ${id} already exists`);
+  const peer = _stateP2pV2.peers.get(peerId);
+  if (!peer) throw new Error(`peer ${peerId} not found`);
+  const pending = getPendingMessageCountV2(peerId);
+  if (pending >= _stateP2pV2.maxPendingMessagesPerPeer) {
+    throw new Error(
+      `peer ${peerId} pending-message cap reached (${pending}/${_stateP2pV2.maxPendingMessagesPerPeer})`,
+    );
+  }
+  const now = Date.now();
+  const msg = {
+    id,
+    peerId,
+    kind: kind || "text",
+    status: MESSAGE_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    lastSeenAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: metadata ? { ...metadata } : {},
+  };
+  _stateP2pV2.messages.set(id, msg);
+  return _copyMsgV2(msg);
+}
+
+export function getMessageV2(id) {
+  const m = _stateP2pV2.messages.get(id);
+  return m ? _copyMsgV2(m) : null;
+}
+
+export function listMessagesV2({ peerId, status } = {}) {
+  const out = [];
+  for (const m of _stateP2pV2.messages.values()) {
+    if (peerId && m.peerId !== peerId) continue;
+    if (status && m.status !== status) continue;
+    out.push(_copyMsgV2(m));
+  }
+  return out;
+}
+
+export function setMessageStatusV2(id, next) {
+  const m = _stateP2pV2.messages.get(id);
+  if (!m) throw new Error(`message ${id} not found`);
+  const allowed = _MSG_TRANSITIONS_V2.get(m.status);
+  if (!allowed || !allowed.has(next)) {
+    throw new Error(`invalid message transition: ${m.status} → ${next}`);
+  }
+  const now = Date.now();
+  m.status = next;
+  m.lastSeenAt = now;
+  if (next === MESSAGE_LIFECYCLE_V2.SENDING && !m.startedAt) m.startedAt = now;
+  if (_MSG_TERMINALS_V2.has(next) && !m.settledAt) m.settledAt = now;
+  return _copyMsgV2(m);
+}
+
+export function startMessageV2(id) {
+  return setMessageStatusV2(id, MESSAGE_LIFECYCLE_V2.SENDING);
+}
+
+export function deliverMessageV2(id) {
+  return setMessageStatusV2(id, MESSAGE_LIFECYCLE_V2.DELIVERED);
+}
+
+export function failMessageV2(id) {
+  return setMessageStatusV2(id, MESSAGE_LIFECYCLE_V2.FAILED);
+}
+
+export function cancelMessageV2(id) {
+  return setMessageStatusV2(id, MESSAGE_LIFECYCLE_V2.CANCELLED);
+}
+
+export function autoOfflineIdlePeersV2({ now = Date.now() } = {}) {
+  const flipped = [];
+  for (const p of _stateP2pV2.peers.values()) {
+    if (
+      p.status === PEER_MATURITY_V2.ACTIVE &&
+      now - p.lastSeenAt >= _stateP2pV2.peerIdleMs
+    ) {
+      p.status = PEER_MATURITY_V2.OFFLINE;
+      p.lastSeenAt = now;
+      flipped.push(p.id);
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function autoFailStuckMessagesV2({ now = Date.now() } = {}) {
+  const flipped = [];
+  for (const m of _stateP2pV2.messages.values()) {
+    if (
+      m.status === MESSAGE_LIFECYCLE_V2.SENDING &&
+      m.startedAt &&
+      now - m.startedAt >= _stateP2pV2.messageStuckMs
+    ) {
+      m.status = MESSAGE_LIFECYCLE_V2.FAILED;
+      m.lastSeenAt = now;
+      if (!m.settledAt) m.settledAt = now;
+      flipped.push(m.id);
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function getP2pManagerStatsV2() {
+  const peersByStatus = {};
+  for (const s of Object.values(PEER_MATURITY_V2)) peersByStatus[s] = 0;
+  for (const p of _stateP2pV2.peers.values()) peersByStatus[p.status]++;
+  const messagesByStatus = {};
+  for (const s of Object.values(MESSAGE_LIFECYCLE_V2)) messagesByStatus[s] = 0;
+  for (const m of _stateP2pV2.messages.values()) messagesByStatus[m.status]++;
+  return {
+    totalPeersV2: _stateP2pV2.peers.size,
+    totalMessagesV2: _stateP2pV2.messages.size,
+    maxActivePeersPerNetwork: _stateP2pV2.maxActivePeersPerNetwork,
+    maxPendingMessagesPerPeer: _stateP2pV2.maxPendingMessagesPerPeer,
+    peerIdleMs: _stateP2pV2.peerIdleMs,
+    messageStuckMs: _stateP2pV2.messageStuckMs,
+    peersByStatus,
+    messagesByStatus,
+  };
+}
+
+export function _resetStateP2pManagerV2() {
+  _stateP2pV2.peers.clear();
+  _stateP2pV2.messages.clear();
+  _stateP2pV2.maxActivePeersPerNetwork = PEER_DEFAULT_MAX_ACTIVE_PER_NETWORK;
+  _stateP2pV2.maxPendingMessagesPerPeer =
+    PEER_DEFAULT_MAX_PENDING_MESSAGES_PER_PEER;
+  _stateP2pV2.peerIdleMs = PEER_DEFAULT_PEER_IDLE_MS;
+  _stateP2pV2.messageStuckMs = PEER_DEFAULT_MESSAGE_STUCK_MS;
+}

@@ -268,3 +268,370 @@ export function resolveDID(db, did) {
   if (!identity) return null;
   return JSON.parse(identity.did_document || "{}");
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * V2 in-memory governance layer (independent of SQLite did_identities)
+ * ───────────────────────────────────────────────────────────────────────── */
+
+export const IDENTITY_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  REVOKED: "revoked",
+});
+
+export const ISSUANCE_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  ISSUING: "issuing",
+  ISSUED: "issued",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+
+const IDENTITY_TERMINAL_V2 = new Set([IDENTITY_MATURITY_V2.REVOKED]);
+const ISSUANCE_TERMINAL_V2 = new Set([
+  ISSUANCE_LIFECYCLE_V2.ISSUED,
+  ISSUANCE_LIFECYCLE_V2.FAILED,
+  ISSUANCE_LIFECYCLE_V2.CANCELLED,
+]);
+
+const IDENTITY_TRANSITIONS_V2 = new Map([
+  [
+    IDENTITY_MATURITY_V2.PENDING,
+    new Set([IDENTITY_MATURITY_V2.ACTIVE, IDENTITY_MATURITY_V2.REVOKED]),
+  ],
+  [
+    IDENTITY_MATURITY_V2.ACTIVE,
+    new Set([IDENTITY_MATURITY_V2.SUSPENDED, IDENTITY_MATURITY_V2.REVOKED]),
+  ],
+  [
+    IDENTITY_MATURITY_V2.SUSPENDED,
+    new Set([IDENTITY_MATURITY_V2.ACTIVE, IDENTITY_MATURITY_V2.REVOKED]),
+  ],
+]);
+
+const ISSUANCE_TRANSITIONS_V2 = new Map([
+  [
+    ISSUANCE_LIFECYCLE_V2.QUEUED,
+    new Set([ISSUANCE_LIFECYCLE_V2.ISSUING, ISSUANCE_LIFECYCLE_V2.CANCELLED]),
+  ],
+  [
+    ISSUANCE_LIFECYCLE_V2.ISSUING,
+    new Set([
+      ISSUANCE_LIFECYCLE_V2.ISSUED,
+      ISSUANCE_LIFECYCLE_V2.FAILED,
+      ISSUANCE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+]);
+
+export const DID_DEFAULT_MAX_ACTIVE_IDENTITIES_PER_OWNER = 8;
+export const DID_DEFAULT_MAX_PENDING_ISSUANCES_PER_IDENTITY = 12;
+export const DID_DEFAULT_IDENTITY_IDLE_MS = 90 * 24 * 60 * 60 * 1000;
+export const DID_DEFAULT_ISSUANCE_STUCK_MS = 5 * 60 * 1000;
+
+let _maxActiveIdentitiesPerOwnerV2 =
+  DID_DEFAULT_MAX_ACTIVE_IDENTITIES_PER_OWNER;
+let _maxPendingIssuancesPerIdentityV2 =
+  DID_DEFAULT_MAX_PENDING_ISSUANCES_PER_IDENTITY;
+let _identityIdleMsV2 = DID_DEFAULT_IDENTITY_IDLE_MS;
+let _issuanceStuckMsV2 = DID_DEFAULT_ISSUANCE_STUCK_MS;
+
+const _identitiesV2 = new Map();
+const _issuancesV2 = new Map();
+
+function _posIntDidV2(n, label) {
+  if (typeof n !== "number" || !Number.isFinite(n) || n <= 0) {
+    throw new Error(`${label} must be a positive number`);
+  }
+  return Math.floor(n);
+}
+
+export function getMaxActiveIdentitiesPerOwnerV2() {
+  return _maxActiveIdentitiesPerOwnerV2;
+}
+export function setMaxActiveIdentitiesPerOwnerV2(n) {
+  _maxActiveIdentitiesPerOwnerV2 = _posIntDidV2(
+    n,
+    "maxActiveIdentitiesPerOwner",
+  );
+  return _maxActiveIdentitiesPerOwnerV2;
+}
+export function getMaxPendingIssuancesPerIdentityV2() {
+  return _maxPendingIssuancesPerIdentityV2;
+}
+export function setMaxPendingIssuancesPerIdentityV2(n) {
+  _maxPendingIssuancesPerIdentityV2 = _posIntDidV2(
+    n,
+    "maxPendingIssuancesPerIdentity",
+  );
+  return _maxPendingIssuancesPerIdentityV2;
+}
+export function getIdentityIdleMsV2() {
+  return _identityIdleMsV2;
+}
+export function setIdentityIdleMsV2(ms) {
+  _identityIdleMsV2 = _posIntDidV2(ms, "identityIdleMs");
+  return _identityIdleMsV2;
+}
+export function getIssuanceStuckMsV2() {
+  return _issuanceStuckMsV2;
+}
+export function setIssuanceStuckMsV2(ms) {
+  _issuanceStuckMsV2 = _posIntDidV2(ms, "issuanceStuckMs");
+  return _issuanceStuckMsV2;
+}
+
+export function getActiveIdentityCountV2(ownerId) {
+  let n = 0;
+  for (const i of _identitiesV2.values()) {
+    if (i.status !== IDENTITY_MATURITY_V2.ACTIVE) continue;
+    if (ownerId && i.ownerId !== ownerId) continue;
+    n++;
+  }
+  return n;
+}
+
+export function getPendingIssuanceCountV2(identityId) {
+  let n = 0;
+  for (const j of _issuancesV2.values()) {
+    if (
+      j.status !== ISSUANCE_LIFECYCLE_V2.QUEUED &&
+      j.status !== ISSUANCE_LIFECYCLE_V2.ISSUING
+    )
+      continue;
+    if (identityId && j.identityId !== identityId) continue;
+    n++;
+  }
+  return n;
+}
+
+function _cloneIdentityV2(i) {
+  return { ...i, metadata: { ...i.metadata } };
+}
+function _cloneIssuanceV2(j) {
+  return { ...j, metadata: { ...j.metadata } };
+}
+
+export function registerIdentityV2(
+  id,
+  { ownerId, didMethod, displayName, metadata } = {},
+) {
+  if (!id || typeof id !== "string") throw new Error("identity id required");
+  if (!ownerId || typeof ownerId !== "string")
+    throw new Error("ownerId required");
+  if (!didMethod || typeof didMethod !== "string")
+    throw new Error("didMethod required");
+  if (_identitiesV2.has(id)) throw new Error(`identity ${id} already exists`);
+  const now = Date.now();
+  const identity = {
+    id,
+    ownerId,
+    didMethod,
+    displayName: displayName || id,
+    status: IDENTITY_MATURITY_V2.PENDING,
+    createdAt: now,
+    activatedAt: null,
+    revokedAt: null,
+    lastSeenAt: now,
+    metadata: metadata ? { ...metadata } : {},
+  };
+  _identitiesV2.set(id, identity);
+  return _cloneIdentityV2(identity);
+}
+
+export function getIdentityV2(id) {
+  const i = _identitiesV2.get(id);
+  return i ? _cloneIdentityV2(i) : null;
+}
+
+export function listIdentitiesV2({ ownerId, status, didMethod } = {}) {
+  const out = [];
+  for (const i of _identitiesV2.values()) {
+    if (ownerId && i.ownerId !== ownerId) continue;
+    if (status && i.status !== status) continue;
+    if (didMethod && i.didMethod !== didMethod) continue;
+    out.push(_cloneIdentityV2(i));
+  }
+  return out;
+}
+
+export function setIdentityStatusV2(id, next) {
+  const i = _identitiesV2.get(id);
+  if (!i) throw new Error(`unknown identity ${id}`);
+  if (IDENTITY_TERMINAL_V2.has(i.status)) {
+    throw new Error(`identity ${id} is terminal (${i.status})`);
+  }
+  const allowed = IDENTITY_TRANSITIONS_V2.get(i.status);
+  if (!allowed || !allowed.has(next)) {
+    throw new Error(`invalid identity transition ${i.status} -> ${next}`);
+  }
+  if (
+    next === IDENTITY_MATURITY_V2.ACTIVE &&
+    i.status === IDENTITY_MATURITY_V2.PENDING
+  ) {
+    const owned = getActiveIdentityCountV2(i.ownerId);
+    if (owned >= _maxActiveIdentitiesPerOwnerV2) {
+      throw new Error(
+        `owner ${i.ownerId} active identity cap reached (${_maxActiveIdentitiesPerOwnerV2})`,
+      );
+    }
+  }
+  const now = Date.now();
+  i.status = next;
+  if (next === IDENTITY_MATURITY_V2.ACTIVE && !i.activatedAt)
+    i.activatedAt = now;
+  if (next === IDENTITY_MATURITY_V2.REVOKED && !i.revokedAt) i.revokedAt = now;
+  i.lastSeenAt = now;
+  return _cloneIdentityV2(i);
+}
+
+export function activateIdentityV2(id) {
+  return setIdentityStatusV2(id, IDENTITY_MATURITY_V2.ACTIVE);
+}
+export function suspendIdentityV2(id) {
+  return setIdentityStatusV2(id, IDENTITY_MATURITY_V2.SUSPENDED);
+}
+export function revokeIdentityV2(id) {
+  return setIdentityStatusV2(id, IDENTITY_MATURITY_V2.REVOKED);
+}
+
+export function touchIdentityV2(id) {
+  const i = _identitiesV2.get(id);
+  if (!i) throw new Error(`unknown identity ${id}`);
+  i.lastSeenAt = Date.now();
+  return _cloneIdentityV2(i);
+}
+
+export function createIssuanceV2(
+  id,
+  { identityId, credentialType, metadata } = {},
+) {
+  if (!id || typeof id !== "string") throw new Error("issuance id required");
+  if (!identityId || typeof identityId !== "string")
+    throw new Error("identityId required");
+  if (!credentialType || typeof credentialType !== "string")
+    throw new Error("credentialType required");
+  if (_issuancesV2.has(id)) throw new Error(`issuance ${id} already exists`);
+  if (!_identitiesV2.has(identityId))
+    throw new Error(`unknown identity ${identityId}`);
+  const pending = getPendingIssuanceCountV2(identityId);
+  if (pending >= _maxPendingIssuancesPerIdentityV2) {
+    throw new Error(
+      `identity ${identityId} pending issuance cap reached (${_maxPendingIssuancesPerIdentityV2})`,
+    );
+  }
+  const now = Date.now();
+  const job = {
+    id,
+    identityId,
+    credentialType,
+    status: ISSUANCE_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: metadata ? { ...metadata } : {},
+  };
+  _issuancesV2.set(id, job);
+  return _cloneIssuanceV2(job);
+}
+
+export function getIssuanceV2(id) {
+  const j = _issuancesV2.get(id);
+  return j ? _cloneIssuanceV2(j) : null;
+}
+
+export function listIssuancesV2({ identityId, status } = {}) {
+  const out = [];
+  for (const j of _issuancesV2.values()) {
+    if (identityId && j.identityId !== identityId) continue;
+    if (status && j.status !== status) continue;
+    out.push(_cloneIssuanceV2(j));
+  }
+  return out;
+}
+
+export function setIssuanceStatusV2(id, next) {
+  const j = _issuancesV2.get(id);
+  if (!j) throw new Error(`unknown issuance ${id}`);
+  if (ISSUANCE_TERMINAL_V2.has(j.status)) {
+    throw new Error(`issuance ${id} is terminal (${j.status})`);
+  }
+  const allowed = ISSUANCE_TRANSITIONS_V2.get(j.status);
+  if (!allowed || !allowed.has(next)) {
+    throw new Error(`invalid issuance transition ${j.status} -> ${next}`);
+  }
+  const now = Date.now();
+  j.status = next;
+  if (next === ISSUANCE_LIFECYCLE_V2.ISSUING && !j.startedAt) j.startedAt = now;
+  if (ISSUANCE_TERMINAL_V2.has(next) && !j.settledAt) j.settledAt = now;
+  return _cloneIssuanceV2(j);
+}
+
+export function startIssuanceV2(id) {
+  return setIssuanceStatusV2(id, ISSUANCE_LIFECYCLE_V2.ISSUING);
+}
+export function completeIssuanceV2(id) {
+  return setIssuanceStatusV2(id, ISSUANCE_LIFECYCLE_V2.ISSUED);
+}
+export function failIssuanceV2(id) {
+  return setIssuanceStatusV2(id, ISSUANCE_LIFECYCLE_V2.FAILED);
+}
+export function cancelIssuanceV2(id) {
+  return setIssuanceStatusV2(id, ISSUANCE_LIFECYCLE_V2.CANCELLED);
+}
+
+export function autoSuspendIdleIdentitiesV2({ now = Date.now() } = {}) {
+  const out = [];
+  for (const i of _identitiesV2.values()) {
+    if (i.status !== IDENTITY_MATURITY_V2.ACTIVE) continue;
+    if (now - i.lastSeenAt < _identityIdleMsV2) continue;
+    i.status = IDENTITY_MATURITY_V2.SUSPENDED;
+    i.lastSeenAt = now;
+    out.push(_cloneIdentityV2(i));
+  }
+  return out;
+}
+
+export function autoFailStuckIssuancesV2({ now = Date.now() } = {}) {
+  const out = [];
+  for (const j of _issuancesV2.values()) {
+    if (j.status !== ISSUANCE_LIFECYCLE_V2.ISSUING) continue;
+    if (!j.startedAt || now - j.startedAt < _issuanceStuckMsV2) continue;
+    j.status = ISSUANCE_LIFECYCLE_V2.FAILED;
+    j.settledAt = now;
+    out.push(_cloneIssuanceV2(j));
+  }
+  return out;
+}
+
+export function getDidManagerStatsV2() {
+  const identitiesByStatus = {};
+  for (const s of Object.values(IDENTITY_MATURITY_V2))
+    identitiesByStatus[s] = 0;
+  for (const i of _identitiesV2.values()) identitiesByStatus[i.status]++;
+  const issuancesByStatus = {};
+  for (const s of Object.values(ISSUANCE_LIFECYCLE_V2))
+    issuancesByStatus[s] = 0;
+  for (const j of _issuancesV2.values()) issuancesByStatus[j.status]++;
+  return {
+    totalIdentitiesV2: _identitiesV2.size,
+    totalIssuancesV2: _issuancesV2.size,
+    maxActiveIdentitiesPerOwner: _maxActiveIdentitiesPerOwnerV2,
+    maxPendingIssuancesPerIdentity: _maxPendingIssuancesPerIdentityV2,
+    identityIdleMs: _identityIdleMsV2,
+    issuanceStuckMs: _issuanceStuckMsV2,
+    identitiesByStatus,
+    issuancesByStatus,
+  };
+}
+
+export function _resetStateDidManagerV2() {
+  _identitiesV2.clear();
+  _issuancesV2.clear();
+  _maxActiveIdentitiesPerOwnerV2 = DID_DEFAULT_MAX_ACTIVE_IDENTITIES_PER_OWNER;
+  _maxPendingIssuancesPerIdentityV2 =
+    DID_DEFAULT_MAX_PENDING_ISSUANCES_PER_IDENTITY;
+  _identityIdleMsV2 = DID_DEFAULT_IDENTITY_IDLE_MS;
+  _issuanceStuckMsV2 = DID_DEFAULT_ISSUANCE_STUCK_MS;
+}

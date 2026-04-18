@@ -611,3 +611,454 @@ describe("agent-network", () => {
     });
   });
 });
+
+import {
+  AGENT_MATURITY_V2,
+  TASK_LIFECYCLE_V2,
+  AGENT_DEFAULT_MAX_ACTIVE_PER_NETWORK,
+  AGENT_DEFAULT_MAX_PENDING_TASKS_PER_AGENT,
+  AGENT_DEFAULT_AGENT_IDLE_MS,
+  AGENT_DEFAULT_TASK_STUCK_MS,
+  getMaxActiveAgentsPerNetworkV2,
+  setMaxActiveAgentsPerNetworkV2,
+  getMaxPendingTasksPerAgentV2,
+  setMaxPendingTasksPerAgentV2,
+  getAgentIdleMsV2,
+  setAgentIdleMsV2,
+  getTaskStuckMsV2,
+  setTaskStuckMsV2,
+  registerAgentV2,
+  getAgentV2,
+  listAgentsV2,
+  setAgentStatusV2,
+  activateAgentV2,
+  suspendAgentV2,
+  revokeAgentV2,
+  touchAgentV2,
+  createTaskV2,
+  getTaskV2,
+  listTasksV2,
+  setTaskStatusV2,
+  startTaskV2,
+  completeTaskV2,
+  failTaskV2,
+  cancelTaskV2,
+  getActiveAgentCountV2,
+  getPendingTaskCountV2,
+  autoSuspendIdleAgentsV2,
+  autoFailStuckTasksV2,
+  getAgentNetworkStatsV2,
+  _resetStateAgentNetworkV2,
+} from "../../src/lib/agent-network.js";
+
+describe("Agent Network V2", () => {
+  beforeEach(() => _resetStateAgentNetworkV2());
+
+  describe("frozen enums + defaults", () => {
+    it("freezes AGENT_MATURITY_V2", () => {
+      expect(Object.isFrozen(AGENT_MATURITY_V2)).toBe(true);
+      expect(Object.values(AGENT_MATURITY_V2).sort()).toEqual([
+        "active",
+        "pending",
+        "revoked",
+        "suspended",
+      ]);
+    });
+    it("freezes TASK_LIFECYCLE_V2", () => {
+      expect(Object.isFrozen(TASK_LIFECYCLE_V2)).toBe(true);
+      expect(Object.values(TASK_LIFECYCLE_V2).sort()).toEqual([
+        "cancelled",
+        "completed",
+        "failed",
+        "queued",
+        "running",
+      ]);
+    });
+    it("exposes defaults", () => {
+      expect(AGENT_DEFAULT_MAX_ACTIVE_PER_NETWORK).toBe(50);
+      expect(AGENT_DEFAULT_MAX_PENDING_TASKS_PER_AGENT).toBe(10);
+      expect(AGENT_DEFAULT_AGENT_IDLE_MS).toBe(7 * 24 * 60 * 60 * 1000);
+      expect(AGENT_DEFAULT_TASK_STUCK_MS).toBe(30 * 60 * 1000);
+    });
+  });
+
+  describe("config getters/setters", () => {
+    it("returns defaults", () => {
+      expect(getMaxActiveAgentsPerNetworkV2()).toBe(50);
+      expect(getMaxPendingTasksPerAgentV2()).toBe(10);
+      expect(getAgentIdleMsV2()).toBe(AGENT_DEFAULT_AGENT_IDLE_MS);
+      expect(getTaskStuckMsV2()).toBe(AGENT_DEFAULT_TASK_STUCK_MS);
+    });
+    it("setters accept positives", () => {
+      setMaxActiveAgentsPerNetworkV2(7);
+      setMaxPendingTasksPerAgentV2(3);
+      setAgentIdleMsV2(60_000);
+      setTaskStuckMsV2(5_000);
+      expect(getMaxActiveAgentsPerNetworkV2()).toBe(7);
+      expect(getMaxPendingTasksPerAgentV2()).toBe(3);
+      expect(getAgentIdleMsV2()).toBe(60_000);
+      expect(getTaskStuckMsV2()).toBe(5_000);
+    });
+    it("setters floor non-integer positives", () => {
+      setMaxActiveAgentsPerNetworkV2(2.7);
+      expect(getMaxActiveAgentsPerNetworkV2()).toBe(2);
+    });
+    it("setters reject zero/negative/non-finite", () => {
+      expect(() => setMaxActiveAgentsPerNetworkV2(0)).toThrow();
+      expect(() => setMaxPendingTasksPerAgentV2(-1)).toThrow();
+      expect(() => setAgentIdleMsV2(NaN)).toThrow();
+      expect(() => setTaskStuckMsV2("x")).toThrow();
+    });
+  });
+
+  describe("registerAgentV2", () => {
+    it("registers PENDING with required fields", () => {
+      const a = registerAgentV2("a1", {
+        networkId: "n1",
+        did: "did:key:z1",
+        displayName: "Alice",
+      });
+      expect(a.status).toBe("pending");
+      expect(a.networkId).toBe("n1");
+      expect(a.did).toBe("did:key:z1");
+      expect(a.displayName).toBe("Alice");
+      expect(a.activatedAt).toBeNull();
+      expect(a.revokedAt).toBeNull();
+    });
+    it("defaults displayName to id", () => {
+      const a = registerAgentV2("a1", { networkId: "n1", did: "did:k:1" });
+      expect(a.displayName).toBe("a1");
+    });
+    it("rejects duplicate id", () => {
+      registerAgentV2("a1", { networkId: "n1", did: "did:k:1" });
+      expect(() =>
+        registerAgentV2("a1", { networkId: "n1", did: "did:k:2" }),
+      ).toThrow(/already exists/);
+    });
+    it("rejects missing required", () => {
+      expect(() => registerAgentV2("a1")).toThrow(/networkId/);
+      expect(() => registerAgentV2("a1", { networkId: "n1" })).toThrow(/did/);
+      expect(() => registerAgentV2("", { networkId: "n1", did: "x" })).toThrow(
+        /agent id/,
+      );
+    });
+    it("metadata defaults to {} and is copied", () => {
+      const meta = { v: 1 };
+      const a = registerAgentV2("a1", {
+        networkId: "n1",
+        did: "did:k:1",
+        metadata: meta,
+      });
+      expect(a.metadata).toEqual({ v: 1 });
+      meta.v = 99;
+      expect(getAgentV2("a1").metadata.v).toBe(1);
+    });
+  });
+
+  describe("agent state machine", () => {
+    beforeEach(() => {
+      registerAgentV2("a1", { networkId: "n1", did: "did:k:1" });
+    });
+    it("pending→active stamps activatedAt", () => {
+      const a = activateAgentV2("a1");
+      expect(a.status).toBe("active");
+      expect(a.activatedAt).toBeGreaterThan(0);
+    });
+    it("active→suspended→active preserves activatedAt", () => {
+      const a1 = activateAgentV2("a1");
+      const ts = a1.activatedAt;
+      suspendAgentV2("a1");
+      const a3 = activateAgentV2("a1");
+      expect(a3.activatedAt).toBe(ts);
+    });
+    it("revoked terminal", () => {
+      activateAgentV2("a1");
+      revokeAgentV2("a1");
+      expect(() => activateAgentV2("a1")).toThrow(/invalid agent transition/);
+    });
+    it("revokedAt stamped on first terminal entry", () => {
+      activateAgentV2("a1");
+      const a = revokeAgentV2("a1");
+      expect(a.revokedAt).toBeGreaterThan(0);
+    });
+    it("rejects pending→suspended", () => {
+      expect(() => suspendAgentV2("a1")).toThrow(/invalid agent transition/);
+    });
+    it("rejects unknown agent", () => {
+      expect(() => activateAgentV2("nope")).toThrow(/not found/);
+    });
+  });
+
+  describe("per-network active-agent cap", () => {
+    it("rejects pending→active beyond cap", () => {
+      setMaxActiveAgentsPerNetworkV2(2);
+      registerAgentV2("a1", { networkId: "n1", did: "d1" });
+      registerAgentV2("a2", { networkId: "n1", did: "d2" });
+      registerAgentV2("a3", { networkId: "n1", did: "d3" });
+      activateAgentV2("a1");
+      activateAgentV2("a2");
+      expect(() => activateAgentV2("a3")).toThrow(/active-agent cap/);
+    });
+    it("recovery is exempt from cap", () => {
+      setMaxActiveAgentsPerNetworkV2(1);
+      registerAgentV2("a1", { networkId: "n1", did: "d1" });
+      registerAgentV2("a2", { networkId: "n1", did: "d2" });
+      activateAgentV2("a1");
+      // suspend a1, activate a2 fills cap
+      suspendAgentV2("a1");
+      activateAgentV2("a2");
+      // recover a1 even though a2 already at cap (recovery exempt)
+      const a = activateAgentV2("a1");
+      expect(a.status).toBe("active");
+      expect(getActiveAgentCountV2("n1")).toBe(2);
+    });
+    it("scoped by network", () => {
+      setMaxActiveAgentsPerNetworkV2(1);
+      registerAgentV2("a1", { networkId: "n1", did: "d1" });
+      registerAgentV2("a2", { networkId: "n2", did: "d2" });
+      activateAgentV2("a1");
+      const a2 = activateAgentV2("a2");
+      expect(a2.status).toBe("active");
+    });
+  });
+
+  describe("listAgentsV2", () => {
+    it("filters by network and status", () => {
+      registerAgentV2("a1", { networkId: "n1", did: "d1" });
+      registerAgentV2("a2", { networkId: "n1", did: "d2" });
+      registerAgentV2("a3", { networkId: "n2", did: "d3" });
+      activateAgentV2("a1");
+      expect(listAgentsV2({ networkId: "n1" })).toHaveLength(2);
+      expect(listAgentsV2({ networkId: "n1", status: "active" })).toHaveLength(
+        1,
+      );
+      expect(listAgentsV2({ status: "pending" })).toHaveLength(2);
+    });
+  });
+
+  describe("touchAgentV2", () => {
+    it("updates lastSeenAt", async () => {
+      registerAgentV2("a1", { networkId: "n1", did: "d1" });
+      const before = getAgentV2("a1").lastSeenAt;
+      await new Promise((r) => setTimeout(r, 5));
+      const a = touchAgentV2("a1");
+      expect(a.lastSeenAt).toBeGreaterThan(before);
+    });
+    it("throws on unknown id", () => {
+      expect(() => touchAgentV2("nope")).toThrow(/not found/);
+    });
+  });
+
+  describe("createTaskV2", () => {
+    beforeEach(() => {
+      registerAgentV2("a1", { networkId: "n1", did: "d1" });
+    });
+    it("creates QUEUED with required fields", () => {
+      const t = createTaskV2("t1", { agentId: "a1", kind: "summarize" });
+      expect(t.status).toBe("queued");
+      expect(t.agentId).toBe("a1");
+      expect(t.kind).toBe("summarize");
+      expect(t.startedAt).toBeNull();
+      expect(t.settledAt).toBeNull();
+    });
+    it("defaults kind to invoke", () => {
+      const t = createTaskV2("t1", { agentId: "a1" });
+      expect(t.kind).toBe("invoke");
+    });
+    it("rejects duplicate id", () => {
+      createTaskV2("t1", { agentId: "a1" });
+      expect(() => createTaskV2("t1", { agentId: "a1" })).toThrow(
+        /already exists/,
+      );
+    });
+    it("rejects unknown agent", () => {
+      expect(() => createTaskV2("t1", { agentId: "ghost" })).toThrow(
+        /agent ghost not found/,
+      );
+    });
+    it("rejects missing required", () => {
+      expect(() => createTaskV2("t1")).toThrow(/agentId/);
+      expect(() => createTaskV2("", { agentId: "a1" })).toThrow(/task id/);
+    });
+    it("enforces per-agent pending cap on create (counts queued+running)", () => {
+      setMaxPendingTasksPerAgentV2(2);
+      createTaskV2("t1", { agentId: "a1" });
+      createTaskV2("t2", { agentId: "a1" });
+      // 2 queued — at cap
+      expect(() => createTaskV2("t3", { agentId: "a1" })).toThrow(
+        /pending-task cap/,
+      );
+      // start one, still 2 pending (1 queued + 1 running)
+      startTaskV2("t1");
+      expect(() => createTaskV2("t3", { agentId: "a1" })).toThrow(
+        /pending-task cap/,
+      );
+      // complete the running one, now 1 pending — accept
+      completeTaskV2("t1");
+      const t3 = createTaskV2("t3", { agentId: "a1" });
+      expect(t3.status).toBe("queued");
+    });
+  });
+
+  describe("task state machine", () => {
+    beforeEach(() => {
+      registerAgentV2("a1", { networkId: "n1", did: "d1" });
+      createTaskV2("t1", { agentId: "a1" });
+    });
+    it("queued→running stamps startedAt", () => {
+      const t = startTaskV2("t1");
+      expect(t.status).toBe("running");
+      expect(t.startedAt).toBeGreaterThan(0);
+    });
+    it("running→completed stamps settledAt", () => {
+      startTaskV2("t1");
+      const t = completeTaskV2("t1");
+      expect(t.status).toBe("completed");
+      expect(t.settledAt).toBeGreaterThan(0);
+    });
+    it("running→failed stamps settledAt", () => {
+      startTaskV2("t1");
+      const t = failTaskV2("t1");
+      expect(t.status).toBe("failed");
+      expect(t.settledAt).toBeGreaterThan(0);
+    });
+    it("queued→cancelled and running→cancelled both work", () => {
+      cancelTaskV2("t1");
+      expect(getTaskV2("t1").status).toBe("cancelled");
+      // new task to test running→cancelled
+      createTaskV2("t2", { agentId: "a1" });
+      startTaskV2("t2");
+      cancelTaskV2("t2");
+      expect(getTaskV2("t2").status).toBe("cancelled");
+    });
+    it("rejects invalid transitions", () => {
+      expect(() => completeTaskV2("t1")).toThrow(/invalid task transition/);
+      cancelTaskV2("t1");
+      expect(() => startTaskV2("t1")).toThrow(/invalid task transition/);
+    });
+    it("rejects unknown task", () => {
+      expect(() => startTaskV2("ghost")).toThrow(/not found/);
+    });
+  });
+
+  describe("listTasksV2", () => {
+    it("filters by agent and status", () => {
+      registerAgentV2("a1", { networkId: "n1", did: "d1" });
+      registerAgentV2("a2", { networkId: "n1", did: "d2" });
+      createTaskV2("t1", { agentId: "a1" });
+      createTaskV2("t2", { agentId: "a1" });
+      createTaskV2("t3", { agentId: "a2" });
+      startTaskV2("t1");
+      expect(listTasksV2({ agentId: "a1" })).toHaveLength(2);
+      expect(listTasksV2({ status: "queued" })).toHaveLength(2);
+      expect(listTasksV2({ agentId: "a1", status: "running" })).toHaveLength(1);
+    });
+  });
+
+  describe("autoSuspendIdleAgentsV2", () => {
+    it("flips active agents past idle threshold to suspended", () => {
+      setAgentIdleMsV2(1000);
+      registerAgentV2("a1", { networkId: "n1", did: "d1" });
+      activateAgentV2("a1");
+      const future = Date.now() + 5_000;
+      const r = autoSuspendIdleAgentsV2({ now: future });
+      expect(r.count).toBe(1);
+      expect(r.flipped).toEqual(["a1"]);
+      expect(getAgentV2("a1").status).toBe("suspended");
+    });
+    it("does not touch fresh agents", () => {
+      registerAgentV2("a1", { networkId: "n1", did: "d1" });
+      activateAgentV2("a1");
+      const r = autoSuspendIdleAgentsV2({ now: Date.now() });
+      expect(r.count).toBe(0);
+    });
+  });
+
+  describe("autoFailStuckTasksV2", () => {
+    it("flips running tasks past stuck threshold to failed", () => {
+      setTaskStuckMsV2(1000);
+      registerAgentV2("a1", { networkId: "n1", did: "d1" });
+      createTaskV2("t1", { agentId: "a1" });
+      startTaskV2("t1");
+      const future = Date.now() + 5_000;
+      const r = autoFailStuckTasksV2({ now: future });
+      expect(r.count).toBe(1);
+      expect(getTaskV2("t1").status).toBe("failed");
+      expect(getTaskV2("t1").settledAt).toBeGreaterThan(0);
+    });
+    it("ignores queued tasks (no startedAt)", () => {
+      registerAgentV2("a1", { networkId: "n1", did: "d1" });
+      createTaskV2("t1", { agentId: "a1" });
+      const r = autoFailStuckTasksV2({ now: Date.now() + 1e9 });
+      expect(r.count).toBe(0);
+    });
+  });
+
+  describe("getAgentNetworkStatsV2", () => {
+    it("zero state has all keys", () => {
+      const s = getAgentNetworkStatsV2();
+      expect(s.totalAgentsV2).toBe(0);
+      expect(s.totalTasksV2).toBe(0);
+      expect(s.agentsByStatus).toEqual({
+        pending: 0,
+        active: 0,
+        suspended: 0,
+        revoked: 0,
+      });
+      expect(s.tasksByStatus).toEqual({
+        queued: 0,
+        running: 0,
+        completed: 0,
+        failed: 0,
+        cancelled: 0,
+      });
+    });
+    it("counts after operations", () => {
+      registerAgentV2("a1", { networkId: "n1", did: "d1" });
+      registerAgentV2("a2", { networkId: "n1", did: "d2" });
+      activateAgentV2("a1");
+      createTaskV2("t1", { agentId: "a1" });
+      startTaskV2("t1");
+      createTaskV2("t2", { agentId: "a1" });
+      const s = getAgentNetworkStatsV2();
+      expect(s.totalAgentsV2).toBe(2);
+      expect(s.agentsByStatus.active).toBe(1);
+      expect(s.agentsByStatus.pending).toBe(1);
+      expect(s.totalTasksV2).toBe(2);
+      expect(s.tasksByStatus.running).toBe(1);
+      expect(s.tasksByStatus.queued).toBe(1);
+    });
+  });
+
+  describe("counts", () => {
+    it("getActiveAgentCountV2 scoped by network", () => {
+      registerAgentV2("a1", { networkId: "n1", did: "d1" });
+      registerAgentV2("a2", { networkId: "n2", did: "d2" });
+      activateAgentV2("a1");
+      activateAgentV2("a2");
+      expect(getActiveAgentCountV2("n1")).toBe(1);
+      expect(getActiveAgentCountV2("n2")).toBe(1);
+      expect(getActiveAgentCountV2("nope")).toBe(0);
+    });
+    it("getPendingTaskCountV2 counts queued+running", () => {
+      registerAgentV2("a1", { networkId: "n1", did: "d1" });
+      createTaskV2("t1", { agentId: "a1" });
+      createTaskV2("t2", { agentId: "a1" });
+      startTaskV2("t1");
+      expect(getPendingTaskCountV2("a1")).toBe(2);
+      completeTaskV2("t1");
+      expect(getPendingTaskCountV2("a1")).toBe(1);
+    });
+  });
+
+  describe("_resetStateAgentNetworkV2", () => {
+    it("clears state and restores defaults", () => {
+      setMaxActiveAgentsPerNetworkV2(99);
+      registerAgentV2("a1", { networkId: "n1", did: "d1" });
+      _resetStateAgentNetworkV2();
+      expect(getMaxActiveAgentsPerNetworkV2()).toBe(50);
+      expect(getAgentV2("a1")).toBeNull();
+      expect(getAgentNetworkStatsV2().totalAgentsV2).toBe(0);
+    });
+  });
+});

@@ -954,3 +954,325 @@ export function importWorkflow(db, definition) {
     stages: definition.stages,
   });
 }
+
+// ===== V2 Surface (cli 0.130.0) — in-memory governance =====
+export const WORKFLOW_MATURITY_V2 = Object.freeze({
+  DRAFT: "draft",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  RETIRED: "retired",
+});
+export const RUN_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+
+const _WM_V2 = WORKFLOW_MATURITY_V2;
+const _RL_V2 = RUN_LIFECYCLE_V2;
+const _WM_TRANS_V2 = new Map([
+  [_WM_V2.DRAFT, new Set([_WM_V2.ACTIVE, _WM_V2.RETIRED])],
+  [_WM_V2.ACTIVE, new Set([_WM_V2.PAUSED, _WM_V2.RETIRED])],
+  [_WM_V2.PAUSED, new Set([_WM_V2.ACTIVE, _WM_V2.RETIRED])],
+  [_WM_V2.RETIRED, new Set()],
+]);
+const _RL_TRANS_V2 = new Map([
+  [_RL_V2.QUEUED, new Set([_RL_V2.RUNNING, _RL_V2.CANCELLED])],
+  [
+    _RL_V2.RUNNING,
+    new Set([_RL_V2.COMPLETED, _RL_V2.FAILED, _RL_V2.CANCELLED]),
+  ],
+  [_RL_V2.COMPLETED, new Set()],
+  [_RL_V2.FAILED, new Set()],
+  [_RL_V2.CANCELLED, new Set()],
+]);
+const _RL_TERM_V2 = new Set([
+  _RL_V2.COMPLETED,
+  _RL_V2.FAILED,
+  _RL_V2.CANCELLED,
+]);
+
+const WF_DEFAULT_MAX_ACTIVE_WORKFLOWS_PER_OWNER = 12;
+const WF_DEFAULT_MAX_PENDING_RUNS_PER_WORKFLOW = 8;
+const WF_DEFAULT_WORKFLOW_IDLE_MS = 60 * 24 * 60 * 60 * 1000;
+const WF_DEFAULT_RUN_STUCK_MS = 10 * 60 * 1000;
+
+const _wfWorkflowsV2 = new Map();
+const _wfRunsV2 = new Map();
+let _wfConfigV2 = {
+  maxActiveWorkflowsPerOwner: WF_DEFAULT_MAX_ACTIVE_WORKFLOWS_PER_OWNER,
+  maxPendingRunsPerWorkflow: WF_DEFAULT_MAX_PENDING_RUNS_PER_WORKFLOW,
+  workflowIdleMs: WF_DEFAULT_WORKFLOW_IDLE_MS,
+  runStuckMs: WF_DEFAULT_RUN_STUCK_MS,
+};
+
+function _wfPosIntV2(n, label) {
+  if (typeof n !== "number" || !isFinite(n) || isNaN(n))
+    throw new Error(`${label} must be positive integer`);
+  const v = Math.floor(n);
+  if (v <= 0) throw new Error(`${label} must be positive integer`);
+  return v;
+}
+
+export function _resetStateWorkflowEngineV2() {
+  _wfWorkflowsV2.clear();
+  _wfRunsV2.clear();
+  _wfConfigV2 = {
+    maxActiveWorkflowsPerOwner: WF_DEFAULT_MAX_ACTIVE_WORKFLOWS_PER_OWNER,
+    maxPendingRunsPerWorkflow: WF_DEFAULT_MAX_PENDING_RUNS_PER_WORKFLOW,
+    workflowIdleMs: WF_DEFAULT_WORKFLOW_IDLE_MS,
+    runStuckMs: WF_DEFAULT_RUN_STUCK_MS,
+  };
+}
+
+export function setMaxActiveWorkflowsPerOwnerV2(n) {
+  _wfConfigV2.maxActiveWorkflowsPerOwner = _wfPosIntV2(
+    n,
+    "maxActiveWorkflowsPerOwner",
+  );
+}
+export function setMaxPendingRunsPerWorkflowV2(n) {
+  _wfConfigV2.maxPendingRunsPerWorkflow = _wfPosIntV2(
+    n,
+    "maxPendingRunsPerWorkflow",
+  );
+}
+export function setWorkflowIdleMsV2(n) {
+  _wfConfigV2.workflowIdleMs = _wfPosIntV2(n, "workflowIdleMs");
+}
+export function setRunStuckMsV2(n) {
+  _wfConfigV2.runStuckMs = _wfPosIntV2(n, "runStuckMs");
+}
+export function getMaxActiveWorkflowsPerOwnerV2() {
+  return _wfConfigV2.maxActiveWorkflowsPerOwner;
+}
+export function getMaxPendingRunsPerWorkflowV2() {
+  return _wfConfigV2.maxPendingRunsPerWorkflow;
+}
+export function getWorkflowIdleMsV2() {
+  return _wfConfigV2.workflowIdleMs;
+}
+export function getRunStuckMsV2() {
+  return _wfConfigV2.runStuckMs;
+}
+
+function _copyWorkflowV2(w) {
+  return { ...w, metadata: { ...(w.metadata || {}) } };
+}
+function _copyRunV2(r) {
+  return { ...r, metadata: { ...(r.metadata || {}) } };
+}
+
+export function registerWorkflowV2({ id, owner, name, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id required");
+  if (!owner || typeof owner !== "string") throw new Error("owner required");
+  if (_wfWorkflowsV2.has(id))
+    throw new Error(`workflow ${id} already registered`);
+  const now = Date.now();
+  const w = {
+    id,
+    owner,
+    name: name || id,
+    status: _WM_V2.DRAFT,
+    activatedAt: null,
+    retiredAt: null,
+    lastSeenAt: now,
+    createdAt: now,
+    metadata: metadata && typeof metadata === "object" ? { ...metadata } : {},
+  };
+  _wfWorkflowsV2.set(id, w);
+  return _copyWorkflowV2(w);
+}
+
+function _activeWorkflowCountForOwnerV2(owner) {
+  let c = 0;
+  for (const w of _wfWorkflowsV2.values())
+    if (w.owner === owner && w.status === _WM_V2.ACTIVE) c++;
+  return c;
+}
+
+function _transitionWorkflowV2(id, next) {
+  const w = _wfWorkflowsV2.get(id);
+  if (!w) throw new Error(`workflow ${id} not found`);
+  const allowed = _WM_TRANS_V2.get(w.status);
+  if (!allowed || !allowed.has(next))
+    throw new Error(`invalid transition ${w.status} -> ${next}`);
+  if (next === _WM_V2.ACTIVE && w.status === _WM_V2.DRAFT) {
+    if (
+      _activeWorkflowCountForOwnerV2(w.owner) >=
+      _wfConfigV2.maxActiveWorkflowsPerOwner
+    ) {
+      throw new Error(
+        `owner ${w.owner} active-workflow cap reached (${_wfConfigV2.maxActiveWorkflowsPerOwner})`,
+      );
+    }
+  }
+  const now = Date.now();
+  w.status = next;
+  if (next === _WM_V2.ACTIVE && !w.activatedAt) w.activatedAt = now;
+  if (next === _WM_V2.RETIRED && !w.retiredAt) w.retiredAt = now;
+  w.lastSeenAt = now;
+  return _copyWorkflowV2(w);
+}
+
+export function activateWorkflowV2(id) {
+  return _transitionWorkflowV2(id, _WM_V2.ACTIVE);
+}
+export function pauseWorkflowV2(id) {
+  return _transitionWorkflowV2(id, _WM_V2.PAUSED);
+}
+export function retireWorkflowV2(id) {
+  return _transitionWorkflowV2(id, _WM_V2.RETIRED);
+}
+export function touchWorkflowV2(id) {
+  const w = _wfWorkflowsV2.get(id);
+  if (!w) throw new Error(`workflow ${id} not found`);
+  w.lastSeenAt = Date.now();
+  return _copyWorkflowV2(w);
+}
+export function getWorkflowV2(id) {
+  const w = _wfWorkflowsV2.get(id);
+  return w ? _copyWorkflowV2(w) : null;
+}
+export function listWorkflowsV2({ owner, status } = {}) {
+  const out = [];
+  for (const w of _wfWorkflowsV2.values()) {
+    if (owner && w.owner !== owner) continue;
+    if (status && w.status !== status) continue;
+    out.push(_copyWorkflowV2(w));
+  }
+  return out;
+}
+
+function _pendingRunCountForWorkflowV2(workflowId) {
+  let c = 0;
+  for (const r of _wfRunsV2.values()) {
+    if (r.workflowId !== workflowId) continue;
+    if (r.status === _RL_V2.QUEUED || r.status === _RL_V2.RUNNING) c++;
+  }
+  return c;
+}
+
+export function createRunV2({ id, workflowId, trigger, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id required");
+  if (!workflowId || typeof workflowId !== "string")
+    throw new Error("workflowId required");
+  if (_wfRunsV2.has(id)) throw new Error(`run ${id} already exists`);
+  const wf = _wfWorkflowsV2.get(workflowId);
+  if (!wf) throw new Error(`workflow ${workflowId} not found`);
+  if (wf.status === _WM_V2.RETIRED)
+    throw new Error(`workflow ${workflowId} retired`);
+  if (
+    _pendingRunCountForWorkflowV2(workflowId) >=
+    _wfConfigV2.maxPendingRunsPerWorkflow
+  ) {
+    throw new Error(
+      `workflow ${workflowId} pending-run cap reached (${_wfConfigV2.maxPendingRunsPerWorkflow})`,
+    );
+  }
+  const now = Date.now();
+  const r = {
+    id,
+    workflowId,
+    trigger: trigger || "manual",
+    status: _RL_V2.QUEUED,
+    startedAt: null,
+    settledAt: null,
+    createdAt: now,
+    metadata: metadata && typeof metadata === "object" ? { ...metadata } : {},
+  };
+  _wfRunsV2.set(id, r);
+  return _copyRunV2(r);
+}
+
+function _transitionRunV2(id, next, extra = {}) {
+  const r = _wfRunsV2.get(id);
+  if (!r) throw new Error(`run ${id} not found`);
+  const allowed = _RL_TRANS_V2.get(r.status);
+  if (!allowed || !allowed.has(next))
+    throw new Error(`invalid transition ${r.status} -> ${next}`);
+  const now = Date.now();
+  r.status = next;
+  if (next === _RL_V2.RUNNING && !r.startedAt) r.startedAt = now;
+  if (_RL_TERM_V2.has(next) && !r.settledAt) r.settledAt = now;
+  if (extra.error) r.metadata.error = extra.error;
+  return _copyRunV2(r);
+}
+
+export function startRunV2(id) {
+  return _transitionRunV2(id, _RL_V2.RUNNING);
+}
+export function completeRunV2(id) {
+  return _transitionRunV2(id, _RL_V2.COMPLETED);
+}
+export function failRunV2(id, error) {
+  return _transitionRunV2(id, _RL_V2.FAILED, { error });
+}
+export function cancelRunV2(id) {
+  return _transitionRunV2(id, _RL_V2.CANCELLED);
+}
+
+export function getRunV2(id) {
+  const r = _wfRunsV2.get(id);
+  return r ? _copyRunV2(r) : null;
+}
+export function listRunsV2({ workflowId, status, trigger } = {}) {
+  const out = [];
+  for (const r of _wfRunsV2.values()) {
+    if (workflowId && r.workflowId !== workflowId) continue;
+    if (status && r.status !== status) continue;
+    if (trigger && r.trigger !== trigger) continue;
+    out.push(_copyRunV2(r));
+  }
+  return out;
+}
+
+export function autoPauseIdleWorkflowsV2({ now } = {}) {
+  const t = typeof now === "number" ? now : Date.now();
+  const flipped = [];
+  for (const w of _wfWorkflowsV2.values()) {
+    if (w.status !== _WM_V2.ACTIVE) continue;
+    if (t - w.lastSeenAt > _wfConfigV2.workflowIdleMs) {
+      w.status = _WM_V2.PAUSED;
+      w.lastSeenAt = t;
+      flipped.push(_copyWorkflowV2(w));
+    }
+  }
+  return flipped;
+}
+
+export function autoFailStuckRunsV2({ now } = {}) {
+  const t = typeof now === "number" ? now : Date.now();
+  const flipped = [];
+  for (const r of _wfRunsV2.values()) {
+    if (r.status !== _RL_V2.RUNNING) continue;
+    if (r.startedAt && t - r.startedAt > _wfConfigV2.runStuckMs) {
+      r.status = _RL_V2.FAILED;
+      r.settledAt = t;
+      r.metadata.error = "stuck-timeout";
+      flipped.push(_copyRunV2(r));
+    }
+  }
+  return flipped;
+}
+
+export function getWorkflowEngineStatsV2() {
+  const workflowsByStatus = {};
+  for (const s of Object.values(_WM_V2)) workflowsByStatus[s] = 0;
+  for (const w of _wfWorkflowsV2.values()) workflowsByStatus[w.status]++;
+  const runsByStatus = {};
+  for (const s of Object.values(_RL_V2)) runsByStatus[s] = 0;
+  for (const r of _wfRunsV2.values()) runsByStatus[r.status]++;
+  return {
+    totalWorkflowsV2: _wfWorkflowsV2.size,
+    totalRunsV2: _wfRunsV2.size,
+    maxActiveWorkflowsPerOwner: _wfConfigV2.maxActiveWorkflowsPerOwner,
+    maxPendingRunsPerWorkflow: _wfConfigV2.maxPendingRunsPerWorkflow,
+    workflowIdleMs: _wfConfigV2.workflowIdleMs,
+    runStuckMs: _wfConfigV2.runStuckMs,
+    workflowsByStatus,
+    runsByStatus,
+  };
+}

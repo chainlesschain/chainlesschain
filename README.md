@@ -1,8 +1,8 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 2026-04-18 增量更新（CLI 0.123.0 · V2 第六批 · 13 个运行时管家）
+## 2026-04-18 增量更新（CLI 0.129.0 · V2 第六批 · 13 个运行时管家）
 
-第五批（0.106.0，collab + UEBA + threat-intel）当天晚些时候再推一轮，把 **13 个运行时管家模块**全部拉通 V2 规范表面。CLI 包从 `0.106.0 → 0.123.0`（Tag `v5.0.2.10`）。
+第五批（0.106.0，collab + UEBA + threat-intel）当天晚些时候再推一轮，把 **13 个运行时管家模块**全部拉通 V2 规范表面。CLI 包从 `0.106.0 → 0.129.0`（Tag `v5.0.2.10`）。
 
 **13 个 V2 规范表面**（严格增量、向后兼容，全部基于内存 governance 层，与遗留 SQLite/ 文件态独立）：
 
@@ -37,7 +37,7 @@
 
 本批相较 0.106.0 累计新增 **560 个 V2 单元测试**（automation 46 + instinct 48 + memory 47 + note 49 + org 43 + permanent-memory 46 + response-cache 46 + scim 39 + session 33 + social 34 + sync 39 + token-tracker 49 + wallet 41），零回归。
 
-**npm**：`npm i -g chainlesschain@0.123.0`（别名 `cc` / `clc` / `clchain`）
+**npm**：`npm i -g chainlesschain@0.129.0`（别名 `cc` / `clc` / `clchain`）
 
 ---
 

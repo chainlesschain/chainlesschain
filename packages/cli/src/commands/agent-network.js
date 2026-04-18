@@ -50,6 +50,37 @@ import {
   getTopAgents,
   getNetworkStats,
   getNetworkConfig,
+  AGENT_MATURITY_V2,
+  TASK_LIFECYCLE_V2,
+  getMaxActiveAgentsPerNetworkV2,
+  setMaxActiveAgentsPerNetworkV2,
+  getMaxPendingTasksPerAgentV2,
+  setMaxPendingTasksPerAgentV2,
+  getAgentIdleMsV2,
+  setAgentIdleMsV2,
+  getTaskStuckMsV2,
+  setTaskStuckMsV2,
+  registerAgentV2,
+  getAgentV2,
+  listAgentsV2,
+  setAgentStatusV2,
+  activateAgentV2,
+  suspendAgentV2,
+  revokeAgentV2,
+  touchAgentV2,
+  createTaskV2,
+  getTaskV2,
+  listTasksV2,
+  setTaskStatusV2,
+  startTaskV2,
+  completeTaskV2,
+  failTaskV2,
+  cancelTaskV2,
+  getActiveAgentCountV2,
+  getPendingTaskCountV2,
+  autoSuspendIdleAgentsV2,
+  autoFailStuckTasksV2,
+  getAgentNetworkStatsV2,
 } from "../lib/agent-network.js";
 
 function _dbFromCtx(cmd) {
@@ -81,7 +112,8 @@ export function registerAgentNetworkCommand(program) {
     .description(
       "Decentralized Agent Network (Phase 24) — DID / registry / credentials / task routing",
     )
-    .hook("preAction", (thisCmd) => {
+    .hook("preAction", (thisCmd, actionCommand) => {
+      if (actionCommand && actionCommand.name().endsWith("-v2")) return;
       const db = _dbFromCtx(thisCmd);
       if (db) ensureAgentNetworkTables(db);
     });
@@ -779,6 +811,227 @@ export function registerAgentNetworkCommand(program) {
       console.log(`Sessions: ${JSON.stringify(s.sessions)}`);
       console.log(`Peers: ${s.peers}`);
     });
+
+  // ─── V2 Governance Layer ──────────────────────────────────────────
+  const out = (obj) => console.log(JSON.stringify(obj, null, 2));
+  const tryRun = (fn) => {
+    try {
+      fn();
+    } catch (err) {
+      console.error(err.message);
+      process.exit(1);
+    }
+  };
+
+  anet
+    .command("agent-maturities-v2")
+    .description("List V2 agent maturity states")
+    .action(() => out(Object.values(AGENT_MATURITY_V2)));
+
+  anet
+    .command("task-lifecycles-v2")
+    .description("List V2 task lifecycle states")
+    .action(() => out(Object.values(TASK_LIFECYCLE_V2)));
+
+  anet
+    .command("stats-v2")
+    .description("V2 agent-network stats")
+    .action(() => out(getAgentNetworkStatsV2()));
+
+  anet
+    .command("get-max-active-agents-v2")
+    .description("Get max active agents per network (V2)")
+    .action(() =>
+      out({ maxActiveAgentsPerNetwork: getMaxActiveAgentsPerNetworkV2() }),
+    );
+
+  anet
+    .command("set-max-active-agents-v2 <n>")
+    .description("Set max active agents per network (V2)")
+    .action((n) =>
+      tryRun(() => {
+        setMaxActiveAgentsPerNetworkV2(Number(n));
+        out({ maxActiveAgentsPerNetwork: getMaxActiveAgentsPerNetworkV2() });
+      }),
+    );
+
+  anet
+    .command("get-max-pending-tasks-v2")
+    .description("Get max pending tasks per agent (V2)")
+    .action(() =>
+      out({ maxPendingTasksPerAgent: getMaxPendingTasksPerAgentV2() }),
+    );
+
+  anet
+    .command("set-max-pending-tasks-v2 <n>")
+    .description("Set max pending tasks per agent (V2)")
+    .action((n) =>
+      tryRun(() => {
+        setMaxPendingTasksPerAgentV2(Number(n));
+        out({ maxPendingTasksPerAgent: getMaxPendingTasksPerAgentV2() });
+      }),
+    );
+
+  anet
+    .command("get-agent-idle-ms-v2")
+    .description("Get agent idle threshold (V2)")
+    .action(() => out({ agentIdleMs: getAgentIdleMsV2() }));
+
+  anet
+    .command("set-agent-idle-ms-v2 <ms>")
+    .description("Set agent idle threshold (V2)")
+    .action((ms) =>
+      tryRun(() => {
+        setAgentIdleMsV2(Number(ms));
+        out({ agentIdleMs: getAgentIdleMsV2() });
+      }),
+    );
+
+  anet
+    .command("get-task-stuck-ms-v2")
+    .description("Get task stuck threshold (V2)")
+    .action(() => out({ taskStuckMs: getTaskStuckMsV2() }));
+
+  anet
+    .command("set-task-stuck-ms-v2 <ms>")
+    .description("Set task stuck threshold (V2)")
+    .action((ms) =>
+      tryRun(() => {
+        setTaskStuckMsV2(Number(ms));
+        out({ taskStuckMs: getTaskStuckMsV2() });
+      }),
+    );
+
+  anet
+    .command("active-agent-count-v2 <networkId>")
+    .description("Active agent count for network (V2)")
+    .action((networkId) =>
+      out({ networkId, count: getActiveAgentCountV2(networkId) }),
+    );
+
+  anet
+    .command("pending-task-count-v2 <agentId>")
+    .description("Pending task count for agent (V2)")
+    .action((agentId) =>
+      out({ agentId, count: getPendingTaskCountV2(agentId) }),
+    );
+
+  anet
+    .command("register-agent-v2 <id>")
+    .description("Register a V2 agent")
+    .requiredOption("-n, --network <id>", "network id")
+    .requiredOption("-d, --did <did>", "agent DID")
+    .option("--display <name>", "display name")
+    .action((id, opts) =>
+      tryRun(() =>
+        out(
+          registerAgentV2(id, {
+            networkId: opts.network,
+            did: opts.did,
+            displayName: opts.display,
+          }),
+        ),
+      ),
+    );
+
+  anet
+    .command("get-agent-v2 <id>")
+    .description("Get a V2 agent")
+    .action((id) => out(getAgentV2(id)));
+
+  anet
+    .command("list-agents-v2")
+    .description("List V2 agents")
+    .option("-n, --network <id>", "filter by network")
+    .option("-s, --status <status>", "filter by status")
+    .action((opts) =>
+      out(listAgentsV2({ networkId: opts.network, status: opts.status })),
+    );
+
+  anet
+    .command("set-agent-status-v2 <id> <next>")
+    .description("Set V2 agent status")
+    .action((id, next) => tryRun(() => out(setAgentStatusV2(id, next))));
+
+  anet
+    .command("activate-agent-v2 <id>")
+    .description("Activate a V2 agent")
+    .action((id) => tryRun(() => out(activateAgentV2(id))));
+
+  anet
+    .command("suspend-agent-v2 <id>")
+    .description("Suspend a V2 agent")
+    .action((id) => tryRun(() => out(suspendAgentV2(id))));
+
+  anet
+    .command("revoke-agent-v2 <id>")
+    .description("Revoke a V2 agent")
+    .action((id) => tryRun(() => out(revokeAgentV2(id))));
+
+  anet
+    .command("touch-agent-v2 <id>")
+    .description("Touch a V2 agent")
+    .action((id) => tryRun(() => out(touchAgentV2(id))));
+
+  anet
+    .command("create-task-v2 <id>")
+    .description("Create a V2 task")
+    .requiredOption("-a, --agent <id>", "agent id")
+    .option("-k, --kind <kind>", "task kind", "invoke")
+    .action((id, opts) =>
+      tryRun(() =>
+        out(createTaskV2(id, { agentId: opts.agent, kind: opts.kind })),
+      ),
+    );
+
+  anet
+    .command("get-task-v2 <id>")
+    .description("Get a V2 task")
+    .action((id) => out(getTaskV2(id)));
+
+  anet
+    .command("list-tasks-v2")
+    .description("List V2 tasks")
+    .option("-a, --agent <id>", "filter by agent")
+    .option("-s, --status <status>", "filter by status")
+    .action((opts) =>
+      out(listTasksV2({ agentId: opts.agent, status: opts.status })),
+    );
+
+  anet
+    .command("set-task-status-v2 <id> <next>")
+    .description("Set V2 task status")
+    .action((id, next) => tryRun(() => out(setTaskStatusV2(id, next))));
+
+  anet
+    .command("start-task-v2 <id>")
+    .description("Start a V2 task")
+    .action((id) => tryRun(() => out(startTaskV2(id))));
+
+  anet
+    .command("complete-task-v2 <id>")
+    .description("Complete a V2 task")
+    .action((id) => tryRun(() => out(completeTaskV2(id))));
+
+  anet
+    .command("fail-task-v2 <id>")
+    .description("Fail a V2 task")
+    .action((id) => tryRun(() => out(failTaskV2(id))));
+
+  anet
+    .command("cancel-task-v2 <id>")
+    .description("Cancel a V2 task")
+    .action((id) => tryRun(() => out(cancelTaskV2(id))));
+
+  anet
+    .command("auto-suspend-idle-agents-v2")
+    .description("Auto-suspend idle V2 agents")
+    .action(() => out(autoSuspendIdleAgentsV2()));
+
+  anet
+    .command("auto-fail-stuck-tasks-v2")
+    .description("Auto-fail stuck V2 tasks")
+    .action(() => out(autoFailStuckTasksV2()));
 
   program.addCommand(anet);
   return anet;

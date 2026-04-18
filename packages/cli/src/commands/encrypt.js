@@ -14,6 +14,35 @@ import {
   getDbEncryptionStatus,
   setDbEncryptionStatus,
   hashPassword,
+  KEY_MATURITY_V2 as CRYPTO_KEY_MATURITY_V2,
+  CRYPTO_JOB_LIFECYCLE_V2,
+  getMaxActiveKeysPerOwnerV2 as cryptoGetMaxActiveKeys,
+  setMaxActiveKeysPerOwnerV2 as cryptoSetMaxActiveKeys,
+  getMaxPendingJobsPerKeyV2 as cryptoGetMaxPendingJobs,
+  setMaxPendingJobsPerKeyV2 as cryptoSetMaxPendingJobs,
+  getKeyIdleMsV2 as cryptoGetKeyIdleMs,
+  setKeyIdleMsV2 as cryptoSetKeyIdleMs,
+  getJobStuckMsV2,
+  setJobStuckMsV2,
+  registerKeyV2 as cryptoRegisterKey,
+  getKeyV2 as cryptoGetKey,
+  listKeysV2 as cryptoListKeys,
+  activateKeyV2 as cryptoActivateKey,
+  rotateKeyV2,
+  retireKeyV2,
+  touchKeyV2 as cryptoTouchKey,
+  createJobV2,
+  getJobV2,
+  listJobsV2,
+  startJobV2,
+  completeJobV2,
+  failJobV2,
+  cancelJobV2,
+  getActiveKeyCountV2 as cryptoGetActiveKeyCount,
+  getPendingJobCountV2,
+  autoRotateIdleKeysV2,
+  autoFailStuckJobsV2,
+  getCryptoManagerStatsV2,
 } from "../lib/crypto-manager.js";
 
 async function promptPassword(message = "Password:") {
@@ -230,4 +259,316 @@ export function registerEncryptCommand(program) {
         process.exit(1);
       }
     });
+
+  // ===== V2 in-memory governance surface (no DB, no bootstrap) =====
+
+  enc
+    .command("key-maturities-v2")
+    .description("[V2] List crypto key maturity states")
+    .option("--json")
+    .action((o) => {
+      const s = Object.values(CRYPTO_KEY_MATURITY_V2);
+      if (o.json) console.log(JSON.stringify(s, null, 2));
+      else for (const v of s) logger.log(v);
+    });
+  enc
+    .command("job-lifecycles-v2")
+    .description("[V2] List crypto job lifecycle states")
+    .option("--json")
+    .action((o) => {
+      const s = Object.values(CRYPTO_JOB_LIFECYCLE_V2);
+      if (o.json) console.log(JSON.stringify(s, null, 2));
+      else for (const v of s) logger.log(v);
+    });
+  enc
+    .command("config-v2")
+    .description("[V2] Show governance config")
+    .option("--json")
+    .action((o) => {
+      const cfg = {
+        maxActiveKeysPerOwner: cryptoGetMaxActiveKeys(),
+        maxPendingJobsPerKey: cryptoGetMaxPendingJobs(),
+        keyIdleMs: cryptoGetKeyIdleMs(),
+        jobStuckMs: getJobStuckMsV2(),
+      };
+      if (o.json) console.log(JSON.stringify(cfg, null, 2));
+      else for (const [k, v] of Object.entries(cfg)) logger.log(`${k}: ${v}`);
+    });
+  enc
+    .command("set-max-active-keys-per-owner-v2 <n>")
+    .description("[V2] Set per-owner active key cap")
+    .action((n) => {
+      try {
+        cryptoSetMaxActiveKeys(Number(n));
+        logger.success(`= ${cryptoGetMaxActiveKeys()}`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  enc
+    .command("set-max-pending-jobs-per-key-v2 <n>")
+    .description("[V2] Set per-key pending job cap")
+    .action((n) => {
+      try {
+        cryptoSetMaxPendingJobs(Number(n));
+        logger.success(`= ${cryptoGetMaxPendingJobs()}`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  enc
+    .command("set-key-idle-ms-v2 <ms>")
+    .description("[V2] Set key idle threshold (ms)")
+    .action((m) => {
+      try {
+        cryptoSetKeyIdleMs(Number(m));
+        logger.success(`= ${cryptoGetKeyIdleMs()}`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  enc
+    .command("set-job-stuck-ms-v2 <ms>")
+    .description("[V2] Set job stuck threshold (ms)")
+    .action((m) => {
+      try {
+        setJobStuckMsV2(Number(m));
+        logger.success(`= ${getJobStuckMsV2()}`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+
+  enc
+    .command("register-key-v2 <id>")
+    .description("[V2] Register a crypto key profile (PENDING)")
+    .requiredOption("-o, --owner <id>")
+    .requiredOption("-a, --algorithm <algo>")
+    .option("-p, --purpose <p>", "Purpose", "encryption")
+    .action((id, o) => {
+      try {
+        const k = cryptoRegisterKey(id, {
+          ownerId: o.owner,
+          algorithm: o.algorithm,
+          purpose: o.purpose,
+        });
+        logger.success(`key ${k.id} registered (status=${k.status})`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  enc
+    .command("activate-key-v2 <id>")
+    .description("[V2] Activate key (pending|rotated -> active)")
+    .action((id) => {
+      try {
+        cryptoActivateKey(id);
+        logger.success(`key ${id} active`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  enc
+    .command("rotate-key-v2 <id>")
+    .description("[V2] Rotate key (active -> rotated)")
+    .action((id) => {
+      try {
+        rotateKeyV2(id);
+        logger.success(`key ${id} rotated`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  enc
+    .command("retire-key-v2 <id>")
+    .description("[V2] Retire key (terminal)")
+    .action((id) => {
+      try {
+        retireKeyV2(id);
+        logger.success(`key ${id} retired`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  enc
+    .command("touch-key-v2 <id>")
+    .description("[V2] Bump key lastSeenAt")
+    .action((id) => {
+      try {
+        cryptoTouchKey(id);
+        logger.success(`key ${id} touched`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  enc
+    .command("get-key-v2 <id>")
+    .description("[V2] Show crypto key profile")
+    .option("--json")
+    .action((id) => {
+      const k = cryptoGetKey(id);
+      if (!k) {
+        logger.info("key not found");
+        return;
+      }
+      console.log(JSON.stringify(k, null, 2));
+    });
+  enc
+    .command("list-keys-v2")
+    .description("[V2] List crypto key profiles")
+    .option("-o, --owner <id>")
+    .option("-s, --status <s>")
+    .option("-a, --algorithm <algo>")
+    .option("--json")
+    .action((o) => {
+      const list = cryptoListKeys({
+        ownerId: o.owner,
+        status: o.status,
+        algorithm: o.algorithm,
+      });
+      if (o.json) console.log(JSON.stringify(list, null, 2));
+      else
+        for (const k of list)
+          logger.log(`${k.id}\t${k.ownerId}\t${k.status}\t${k.algorithm}`);
+    });
+
+  enc
+    .command("create-job-v2 <id>")
+    .description("[V2] Create a queued V2 crypto job")
+    .requiredOption("-k, --key <keyId>")
+    .option("-K, --kind <kind>", "Job kind", "encrypt")
+    .action((id, o) => {
+      try {
+        const j = createJobV2(id, { keyId: o.key, kind: o.kind });
+        logger.success(`job ${j.id} queued (key=${j.keyId} kind=${j.kind})`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  enc
+    .command("start-job-v2 <id>")
+    .description("[V2] Start crypto job (queued -> running)")
+    .action((id) => {
+      try {
+        startJobV2(id);
+        logger.success(`job ${id} running`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  enc
+    .command("complete-job-v2 <id>")
+    .description("[V2] Complete crypto job (running -> completed)")
+    .action((id) => {
+      try {
+        completeJobV2(id);
+        logger.success(`job ${id} completed`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  enc
+    .command("fail-job-v2 <id>")
+    .description("[V2] Fail crypto job (running -> failed)")
+    .action((id) => {
+      try {
+        failJobV2(id);
+        logger.success(`job ${id} failed`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  enc
+    .command("cancel-job-v2 <id>")
+    .description("[V2] Cancel crypto job (queued|running -> cancelled)")
+    .action((id) => {
+      try {
+        cancelJobV2(id);
+        logger.success(`job ${id} cancelled`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  enc
+    .command("get-job-v2 <id>")
+    .description("[V2] Show crypto job")
+    .option("--json")
+    .action((id) => {
+      const j = getJobV2(id);
+      if (!j) {
+        logger.info("job not found");
+        return;
+      }
+      console.log(JSON.stringify(j, null, 2));
+    });
+  enc
+    .command("list-jobs-v2")
+    .description("[V2] List V2 crypto jobs")
+    .option("-k, --key <keyId>")
+    .option("-s, --status <s>")
+    .option("-K, --kind <kind>")
+    .option("--json")
+    .action((o) => {
+      const list = listJobsV2({ keyId: o.key, status: o.status, kind: o.kind });
+      if (o.json) console.log(JSON.stringify(list, null, 2));
+      else
+        for (const j of list)
+          logger.log(`${j.id}\t${j.keyId}\t${j.status}\t${j.kind}`);
+    });
+
+  enc
+    .command("active-key-count-v2")
+    .description("[V2] Count active crypto keys (optional --owner)")
+    .option("-o, --owner <id>")
+    .action((o) => logger.log(String(cryptoGetActiveKeyCount(o.owner))));
+  enc
+    .command("pending-job-count-v2")
+    .description("[V2] Count pending crypto jobs (queued+running)")
+    .option("-k, --key <keyId>")
+    .action((o) => logger.log(String(getPendingJobCountV2(o.key))));
+  enc
+    .command("auto-rotate-idle-keys-v2")
+    .description("[V2] Rotate idle active keys")
+    .option("--now <ms>")
+    .option("--json")
+    .action((o) => {
+      const list = autoRotateIdleKeysV2(
+        o.now ? { now: Number(o.now) } : undefined,
+      );
+      if (o.json) console.log(JSON.stringify(list, null, 2));
+      else logger.success(`rotated ${list.length}`);
+    });
+  enc
+    .command("auto-fail-stuck-jobs-v2")
+    .description("[V2] Fail stuck running crypto jobs")
+    .option("--now <ms>")
+    .option("--json")
+    .action((o) => {
+      const list = autoFailStuckJobsV2(
+        o.now ? { now: Number(o.now) } : undefined,
+      );
+      if (o.json) console.log(JSON.stringify(list, null, 2));
+      else logger.success(`failed ${list.length}`);
+    });
+  enc
+    .command("stats-v2")
+    .description("[V2] Show governance stats")
+    .option("--json")
+    .action(() =>
+      console.log(JSON.stringify(getCryptoManagerStatsV2(), null, 2)),
+    );
 }
