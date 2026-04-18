@@ -365,3 +365,394 @@ export class LLMProviderRegistry {
     return { ok: true, elapsed: Date.now() - start, response: text.trim() };
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────
+ * V2 Governance Layer (in-memory, independent of SQLite llm_providers)
+ *
+ *   Provider profile maturity: pending → active → suspended → retired
+ *     - retired terminal
+ *     - suspended → active recovery (cap-exempt)
+ *
+ *   Request lifecycle: queued → running → completed | failed | cancelled
+ *     - 3 terminals
+ *     - per-profile pending-request cap counts queued+running
+ *
+ *   Per-owner active-profile cap on pending→active only (recovery exempt).
+ *   Per-profile pending-request cap enforced at createRequestV2.
+ *
+ *   Auto-flip:
+ *     - autoSuspendIdleProfilesV2  active w/ lastSeenAt past idle threshold → suspended
+ *     - autoFailStuckRequestsV2    running w/ startedAt past stuck threshold → failed
+ * ───────────────────────────────────────────────────────────────── */
+
+export const PROVIDER_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  RETIRED: "retired",
+});
+
+export const REQUEST_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+
+const _PROVIDER_TRANSITIONS_V2 = new Map([
+  [
+    PROVIDER_MATURITY_V2.PENDING,
+    new Set([PROVIDER_MATURITY_V2.ACTIVE, PROVIDER_MATURITY_V2.RETIRED]),
+  ],
+  [
+    PROVIDER_MATURITY_V2.ACTIVE,
+    new Set([PROVIDER_MATURITY_V2.SUSPENDED, PROVIDER_MATURITY_V2.RETIRED]),
+  ],
+  [
+    PROVIDER_MATURITY_V2.SUSPENDED,
+    new Set([PROVIDER_MATURITY_V2.ACTIVE, PROVIDER_MATURITY_V2.RETIRED]),
+  ],
+  [PROVIDER_MATURITY_V2.RETIRED, new Set()],
+]);
+const _PROVIDER_TERMINALS_V2 = new Set([PROVIDER_MATURITY_V2.RETIRED]);
+
+const _REQUEST_TRANSITIONS_V2 = new Map([
+  [
+    REQUEST_LIFECYCLE_V2.QUEUED,
+    new Set([REQUEST_LIFECYCLE_V2.RUNNING, REQUEST_LIFECYCLE_V2.CANCELLED]),
+  ],
+  [
+    REQUEST_LIFECYCLE_V2.RUNNING,
+    new Set([
+      REQUEST_LIFECYCLE_V2.COMPLETED,
+      REQUEST_LIFECYCLE_V2.FAILED,
+      REQUEST_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [REQUEST_LIFECYCLE_V2.COMPLETED, new Set()],
+  [REQUEST_LIFECYCLE_V2.FAILED, new Set()],
+  [REQUEST_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _REQUEST_TERMINALS_V2 = new Set([
+  REQUEST_LIFECYCLE_V2.COMPLETED,
+  REQUEST_LIFECYCLE_V2.FAILED,
+  REQUEST_LIFECYCLE_V2.CANCELLED,
+]);
+
+export const PROVIDER_DEFAULT_MAX_ACTIVE_PER_OWNER = 8;
+export const PROVIDER_DEFAULT_MAX_PENDING_REQUESTS_PER_PROFILE = 16;
+export const PROVIDER_DEFAULT_PROFILE_IDLE_MS = 14 * 24 * 60 * 60 * 1000;
+export const PROVIDER_DEFAULT_REQUEST_STUCK_MS = 5 * 60 * 1000;
+
+const _stateLlmV2 = {
+  profiles: new Map(),
+  requests: new Map(),
+  maxActiveProfilesPerOwner: PROVIDER_DEFAULT_MAX_ACTIVE_PER_OWNER,
+  maxPendingRequestsPerProfile:
+    PROVIDER_DEFAULT_MAX_PENDING_REQUESTS_PER_PROFILE,
+  profileIdleMs: PROVIDER_DEFAULT_PROFILE_IDLE_MS,
+  requestStuckMs: PROVIDER_DEFAULT_REQUEST_STUCK_MS,
+};
+
+function _posIntLlmV2(n, label) {
+  const v = Math.floor(n);
+  if (!Number.isFinite(v) || v <= 0) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return v;
+}
+
+function _copyProfileV2(p) {
+  return { ...p, metadata: { ...p.metadata } };
+}
+
+function _copyRequestV2(r) {
+  return { ...r, metadata: { ...r.metadata } };
+}
+
+export function getMaxActiveProfilesPerOwnerV2() {
+  return _stateLlmV2.maxActiveProfilesPerOwner;
+}
+
+export function setMaxActiveProfilesPerOwnerV2(n) {
+  _stateLlmV2.maxActiveProfilesPerOwner = _posIntLlmV2(
+    n,
+    "maxActiveProfilesPerOwner",
+  );
+}
+
+export function getMaxPendingRequestsPerProfileV2() {
+  return _stateLlmV2.maxPendingRequestsPerProfile;
+}
+
+export function setMaxPendingRequestsPerProfileV2(n) {
+  _stateLlmV2.maxPendingRequestsPerProfile = _posIntLlmV2(
+    n,
+    "maxPendingRequestsPerProfile",
+  );
+}
+
+export function getProfileIdleMsV2() {
+  return _stateLlmV2.profileIdleMs;
+}
+
+export function setProfileIdleMsV2(ms) {
+  _stateLlmV2.profileIdleMs = _posIntLlmV2(ms, "profileIdleMs");
+}
+
+export function getRequestStuckMsV2() {
+  return _stateLlmV2.requestStuckMs;
+}
+
+export function setRequestStuckMsV2(ms) {
+  _stateLlmV2.requestStuckMs = _posIntLlmV2(ms, "requestStuckMs");
+}
+
+export function getActiveProfileCountV2(ownerId) {
+  let count = 0;
+  for (const p of _stateLlmV2.profiles.values()) {
+    if (p.ownerId === ownerId && p.status === PROVIDER_MATURITY_V2.ACTIVE) {
+      count++;
+    }
+  }
+  return count;
+}
+
+export function getPendingRequestCountV2(profileId) {
+  let count = 0;
+  for (const r of _stateLlmV2.requests.values()) {
+    if (
+      r.profileId === profileId &&
+      (r.status === REQUEST_LIFECYCLE_V2.QUEUED ||
+        r.status === REQUEST_LIFECYCLE_V2.RUNNING)
+    ) {
+      count++;
+    }
+  }
+  return count;
+}
+
+export function registerProfileV2(
+  id,
+  { ownerId, provider, model, metadata } = {},
+) {
+  if (!id) throw new Error("profile id is required");
+  if (!ownerId) throw new Error("ownerId is required");
+  if (!provider) throw new Error("provider is required");
+  if (_stateLlmV2.profiles.has(id))
+    throw new Error(`profile ${id} already exists`);
+  const now = Date.now();
+  const profile = {
+    id,
+    ownerId,
+    provider,
+    model: model || "default",
+    status: PROVIDER_MATURITY_V2.PENDING,
+    createdAt: now,
+    lastSeenAt: now,
+    activatedAt: null,
+    retiredAt: null,
+    metadata: metadata ? { ...metadata } : {},
+  };
+  _stateLlmV2.profiles.set(id, profile);
+  return _copyProfileV2(profile);
+}
+
+export function getProfileV2(id) {
+  const p = _stateLlmV2.profiles.get(id);
+  return p ? _copyProfileV2(p) : null;
+}
+
+export function listProfilesV2({ ownerId, status, provider } = {}) {
+  const out = [];
+  for (const p of _stateLlmV2.profiles.values()) {
+    if (ownerId && p.ownerId !== ownerId) continue;
+    if (status && p.status !== status) continue;
+    if (provider && p.provider !== provider) continue;
+    out.push(_copyProfileV2(p));
+  }
+  return out;
+}
+
+export function setProfileStatusV2(id, next) {
+  const p = _stateLlmV2.profiles.get(id);
+  if (!p) throw new Error(`profile ${id} not found`);
+  const allowed = _PROVIDER_TRANSITIONS_V2.get(p.status);
+  if (!allowed || !allowed.has(next)) {
+    throw new Error(`invalid profile transition: ${p.status} → ${next}`);
+  }
+  if (
+    p.status === PROVIDER_MATURITY_V2.PENDING &&
+    next === PROVIDER_MATURITY_V2.ACTIVE
+  ) {
+    const count = getActiveProfileCountV2(p.ownerId);
+    if (count >= _stateLlmV2.maxActiveProfilesPerOwner) {
+      throw new Error(
+        `owner ${p.ownerId} active-profile cap reached (${count}/${_stateLlmV2.maxActiveProfilesPerOwner})`,
+      );
+    }
+  }
+  const now = Date.now();
+  p.status = next;
+  p.lastSeenAt = now;
+  if (next === PROVIDER_MATURITY_V2.ACTIVE && !p.activatedAt)
+    p.activatedAt = now;
+  if (_PROVIDER_TERMINALS_V2.has(next) && !p.retiredAt) p.retiredAt = now;
+  return _copyProfileV2(p);
+}
+
+export function activateProfileV2(id) {
+  return setProfileStatusV2(id, PROVIDER_MATURITY_V2.ACTIVE);
+}
+
+export function suspendProfileV2(id) {
+  return setProfileStatusV2(id, PROVIDER_MATURITY_V2.SUSPENDED);
+}
+
+export function retireProfileV2(id) {
+  return setProfileStatusV2(id, PROVIDER_MATURITY_V2.RETIRED);
+}
+
+export function touchProfileV2(id) {
+  const p = _stateLlmV2.profiles.get(id);
+  if (!p) throw new Error(`profile ${id} not found`);
+  p.lastSeenAt = Date.now();
+  return _copyProfileV2(p);
+}
+
+export function createRequestV2(id, { profileId, kind, metadata } = {}) {
+  if (!id) throw new Error("request id is required");
+  if (!profileId) throw new Error("profileId is required");
+  if (_stateLlmV2.requests.has(id))
+    throw new Error(`request ${id} already exists`);
+  const profile = _stateLlmV2.profiles.get(profileId);
+  if (!profile) throw new Error(`profile ${profileId} not found`);
+  const pending = getPendingRequestCountV2(profileId);
+  if (pending >= _stateLlmV2.maxPendingRequestsPerProfile) {
+    throw new Error(
+      `profile ${profileId} pending-request cap reached (${pending}/${_stateLlmV2.maxPendingRequestsPerProfile})`,
+    );
+  }
+  const now = Date.now();
+  const req = {
+    id,
+    profileId,
+    kind: kind || "completion",
+    status: REQUEST_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    lastSeenAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: metadata ? { ...metadata } : {},
+  };
+  _stateLlmV2.requests.set(id, req);
+  return _copyRequestV2(req);
+}
+
+export function getRequestV2(id) {
+  const r = _stateLlmV2.requests.get(id);
+  return r ? _copyRequestV2(r) : null;
+}
+
+export function listRequestsV2({ profileId, status } = {}) {
+  const out = [];
+  for (const r of _stateLlmV2.requests.values()) {
+    if (profileId && r.profileId !== profileId) continue;
+    if (status && r.status !== status) continue;
+    out.push(_copyRequestV2(r));
+  }
+  return out;
+}
+
+export function setRequestStatusV2(id, next) {
+  const r = _stateLlmV2.requests.get(id);
+  if (!r) throw new Error(`request ${id} not found`);
+  const allowed = _REQUEST_TRANSITIONS_V2.get(r.status);
+  if (!allowed || !allowed.has(next)) {
+    throw new Error(`invalid request transition: ${r.status} → ${next}`);
+  }
+  const now = Date.now();
+  r.status = next;
+  r.lastSeenAt = now;
+  if (next === REQUEST_LIFECYCLE_V2.RUNNING && !r.startedAt) r.startedAt = now;
+  if (_REQUEST_TERMINALS_V2.has(next) && !r.settledAt) r.settledAt = now;
+  return _copyRequestV2(r);
+}
+
+export function startRequestV2(id) {
+  return setRequestStatusV2(id, REQUEST_LIFECYCLE_V2.RUNNING);
+}
+
+export function completeRequestV2(id) {
+  return setRequestStatusV2(id, REQUEST_LIFECYCLE_V2.COMPLETED);
+}
+
+export function failRequestV2(id) {
+  return setRequestStatusV2(id, REQUEST_LIFECYCLE_V2.FAILED);
+}
+
+export function cancelRequestV2(id) {
+  return setRequestStatusV2(id, REQUEST_LIFECYCLE_V2.CANCELLED);
+}
+
+export function autoSuspendIdleProfilesV2({ now = Date.now() } = {}) {
+  const flipped = [];
+  for (const p of _stateLlmV2.profiles.values()) {
+    if (
+      p.status === PROVIDER_MATURITY_V2.ACTIVE &&
+      now - p.lastSeenAt >= _stateLlmV2.profileIdleMs
+    ) {
+      p.status = PROVIDER_MATURITY_V2.SUSPENDED;
+      p.lastSeenAt = now;
+      flipped.push(p.id);
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function autoFailStuckRequestsV2({ now = Date.now() } = {}) {
+  const flipped = [];
+  for (const r of _stateLlmV2.requests.values()) {
+    if (
+      r.status === REQUEST_LIFECYCLE_V2.RUNNING &&
+      r.startedAt &&
+      now - r.startedAt >= _stateLlmV2.requestStuckMs
+    ) {
+      r.status = REQUEST_LIFECYCLE_V2.FAILED;
+      r.lastSeenAt = now;
+      if (!r.settledAt) r.settledAt = now;
+      flipped.push(r.id);
+    }
+  }
+  return { flipped, count: flipped.length };
+}
+
+export function getLlmProvidersStatsV2() {
+  const profilesByStatus = {};
+  for (const s of Object.values(PROVIDER_MATURITY_V2)) profilesByStatus[s] = 0;
+  for (const p of _stateLlmV2.profiles.values()) profilesByStatus[p.status]++;
+  const requestsByStatus = {};
+  for (const s of Object.values(REQUEST_LIFECYCLE_V2)) requestsByStatus[s] = 0;
+  for (const r of _stateLlmV2.requests.values()) requestsByStatus[r.status]++;
+  return {
+    totalProfilesV2: _stateLlmV2.profiles.size,
+    totalRequestsV2: _stateLlmV2.requests.size,
+    maxActiveProfilesPerOwner: _stateLlmV2.maxActiveProfilesPerOwner,
+    maxPendingRequestsPerProfile: _stateLlmV2.maxPendingRequestsPerProfile,
+    profileIdleMs: _stateLlmV2.profileIdleMs,
+    requestStuckMs: _stateLlmV2.requestStuckMs,
+    profilesByStatus,
+    requestsByStatus,
+  };
+}
+
+export function _resetStateLlmProvidersV2() {
+  _stateLlmV2.profiles.clear();
+  _stateLlmV2.requests.clear();
+  _stateLlmV2.maxActiveProfilesPerOwner = PROVIDER_DEFAULT_MAX_ACTIVE_PER_OWNER;
+  _stateLlmV2.maxPendingRequestsPerProfile =
+    PROVIDER_DEFAULT_MAX_PENDING_REQUESTS_PER_PROFILE;
+  _stateLlmV2.profileIdleMs = PROVIDER_DEFAULT_PROFILE_IDLE_MS;
+  _stateLlmV2.requestStuckMs = PROVIDER_DEFAULT_REQUEST_STUCK_MS;
+}

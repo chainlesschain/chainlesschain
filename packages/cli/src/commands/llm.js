@@ -10,6 +10,37 @@ import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   BUILT_IN_PROVIDERS,
   LLMProviderRegistry,
+  PROVIDER_MATURITY_V2,
+  REQUEST_LIFECYCLE_V2,
+  getMaxActiveProfilesPerOwnerV2,
+  setMaxActiveProfilesPerOwnerV2,
+  getMaxPendingRequestsPerProfileV2,
+  setMaxPendingRequestsPerProfileV2,
+  getProfileIdleMsV2,
+  setProfileIdleMsV2,
+  getRequestStuckMsV2,
+  setRequestStuckMsV2,
+  registerProfileV2,
+  getProfileV2,
+  listProfilesV2,
+  setProfileStatusV2,
+  activateProfileV2,
+  suspendProfileV2,
+  retireProfileV2,
+  touchProfileV2,
+  createRequestV2,
+  getRequestV2,
+  listRequestsV2,
+  setRequestStatusV2,
+  startRequestV2,
+  completeRequestV2,
+  failRequestV2,
+  cancelRequestV2,
+  getActiveProfileCountV2,
+  getPendingRequestCountV2,
+  autoSuspendIdleProfilesV2,
+  autoFailStuckRequestsV2,
+  getLlmProvidersStatsV2,
 } from "../lib/llm-providers.js";
 
 export function registerLlmCommand(program) {
@@ -285,4 +316,236 @@ export function registerLlmCommand(program) {
         process.exit(1);
       }
     });
+
+  // ─── V2 Governance Layer ──────────────────────────────────────────
+  const out = (obj) => console.log(JSON.stringify(obj, null, 2));
+  const tryRun = (fn) => {
+    try {
+      fn();
+    } catch (err) {
+      logger.error(err.message);
+      process.exit(1);
+    }
+  };
+
+  llm
+    .command("provider-maturities-v2")
+    .description("List V2 provider maturity states")
+    .action(() => out(Object.values(PROVIDER_MATURITY_V2)));
+
+  llm
+    .command("request-lifecycles-v2")
+    .description("List V2 request lifecycle states")
+    .action(() => out(Object.values(REQUEST_LIFECYCLE_V2)));
+
+  llm
+    .command("stats-v2")
+    .description("V2 llm-providers stats")
+    .action(() => out(getLlmProvidersStatsV2()));
+
+  llm
+    .command("get-max-active-profiles-v2")
+    .description("Get max active profiles per owner (V2)")
+    .action(() =>
+      out({ maxActiveProfilesPerOwner: getMaxActiveProfilesPerOwnerV2() }),
+    );
+
+  llm
+    .command("set-max-active-profiles-v2 <n>")
+    .description("Set max active profiles per owner (V2)")
+    .action((n) =>
+      tryRun(() => {
+        setMaxActiveProfilesPerOwnerV2(Number(n));
+        out({ maxActiveProfilesPerOwner: getMaxActiveProfilesPerOwnerV2() });
+      }),
+    );
+
+  llm
+    .command("get-max-pending-requests-v2")
+    .description("Get max pending requests per profile (V2)")
+    .action(() =>
+      out({
+        maxPendingRequestsPerProfile: getMaxPendingRequestsPerProfileV2(),
+      }),
+    );
+
+  llm
+    .command("set-max-pending-requests-v2 <n>")
+    .description("Set max pending requests per profile (V2)")
+    .action((n) =>
+      tryRun(() => {
+        setMaxPendingRequestsPerProfileV2(Number(n));
+        out({
+          maxPendingRequestsPerProfile: getMaxPendingRequestsPerProfileV2(),
+        });
+      }),
+    );
+
+  llm
+    .command("get-profile-idle-ms-v2")
+    .description("Get profile idle threshold (V2)")
+    .action(() => out({ profileIdleMs: getProfileIdleMsV2() }));
+
+  llm
+    .command("set-profile-idle-ms-v2 <ms>")
+    .description("Set profile idle threshold (V2)")
+    .action((ms) =>
+      tryRun(() => {
+        setProfileIdleMsV2(Number(ms));
+        out({ profileIdleMs: getProfileIdleMsV2() });
+      }),
+    );
+
+  llm
+    .command("get-request-stuck-ms-v2")
+    .description("Get request stuck threshold (V2)")
+    .action(() => out({ requestStuckMs: getRequestStuckMsV2() }));
+
+  llm
+    .command("set-request-stuck-ms-v2 <ms>")
+    .description("Set request stuck threshold (V2)")
+    .action((ms) =>
+      tryRun(() => {
+        setRequestStuckMsV2(Number(ms));
+        out({ requestStuckMs: getRequestStuckMsV2() });
+      }),
+    );
+
+  llm
+    .command("active-profile-count-v2 <ownerId>")
+    .description("Active profile count for owner (V2)")
+    .action((ownerId) =>
+      out({ ownerId, count: getActiveProfileCountV2(ownerId) }),
+    );
+
+  llm
+    .command("pending-request-count-v2 <profileId>")
+    .description("Pending request count for profile (V2)")
+    .action((profileId) =>
+      out({ profileId, count: getPendingRequestCountV2(profileId) }),
+    );
+
+  llm
+    .command("register-profile-v2 <id>")
+    .description("Register a V2 profile")
+    .requiredOption("-o, --owner <id>", "owner id")
+    .requiredOption("-p, --provider <name>", "provider name")
+    .option("-m, --model <name>", "model name", "default")
+    .action((id, opts) =>
+      tryRun(() =>
+        out(
+          registerProfileV2(id, {
+            ownerId: opts.owner,
+            provider: opts.provider,
+            model: opts.model,
+          }),
+        ),
+      ),
+    );
+
+  llm
+    .command("get-profile-v2 <id>")
+    .description("Get a V2 profile")
+    .action((id) => out(getProfileV2(id)));
+
+  llm
+    .command("list-profiles-v2")
+    .description("List V2 profiles")
+    .option("-o, --owner <id>", "filter by owner")
+    .option("-s, --status <status>", "filter by status")
+    .option("-p, --provider <name>", "filter by provider")
+    .action((opts) =>
+      out(
+        listProfilesV2({
+          ownerId: opts.owner,
+          status: opts.status,
+          provider: opts.provider,
+        }),
+      ),
+    );
+
+  llm
+    .command("set-profile-status-v2 <id> <next>")
+    .description("Set V2 profile status")
+    .action((id, next) => tryRun(() => out(setProfileStatusV2(id, next))));
+
+  llm
+    .command("activate-profile-v2 <id>")
+    .description("Activate a V2 profile")
+    .action((id) => tryRun(() => out(activateProfileV2(id))));
+
+  llm
+    .command("suspend-profile-v2 <id>")
+    .description("Suspend a V2 profile")
+    .action((id) => tryRun(() => out(suspendProfileV2(id))));
+
+  llm
+    .command("retire-profile-v2 <id>")
+    .description("Retire a V2 profile")
+    .action((id) => tryRun(() => out(retireProfileV2(id))));
+
+  llm
+    .command("touch-profile-v2 <id>")
+    .description("Touch a V2 profile")
+    .action((id) => tryRun(() => out(touchProfileV2(id))));
+
+  llm
+    .command("create-request-v2 <id>")
+    .description("Create a V2 request")
+    .requiredOption("-p, --profile <id>", "profile id")
+    .option("-k, --kind <kind>", "request kind", "completion")
+    .action((id, opts) =>
+      tryRun(() =>
+        out(createRequestV2(id, { profileId: opts.profile, kind: opts.kind })),
+      ),
+    );
+
+  llm
+    .command("get-request-v2 <id>")
+    .description("Get a V2 request")
+    .action((id) => out(getRequestV2(id)));
+
+  llm
+    .command("list-requests-v2")
+    .description("List V2 requests")
+    .option("-p, --profile <id>", "filter by profile")
+    .option("-s, --status <status>", "filter by status")
+    .action((opts) =>
+      out(listRequestsV2({ profileId: opts.profile, status: opts.status })),
+    );
+
+  llm
+    .command("set-request-status-v2 <id> <next>")
+    .description("Set V2 request status")
+    .action((id, next) => tryRun(() => out(setRequestStatusV2(id, next))));
+
+  llm
+    .command("start-request-v2 <id>")
+    .description("Start a V2 request")
+    .action((id) => tryRun(() => out(startRequestV2(id))));
+
+  llm
+    .command("complete-request-v2 <id>")
+    .description("Complete a V2 request")
+    .action((id) => tryRun(() => out(completeRequestV2(id))));
+
+  llm
+    .command("fail-request-v2 <id>")
+    .description("Fail a V2 request")
+    .action((id) => tryRun(() => out(failRequestV2(id))));
+
+  llm
+    .command("cancel-request-v2 <id>")
+    .description("Cancel a V2 request")
+    .action((id) => tryRun(() => out(cancelRequestV2(id))));
+
+  llm
+    .command("auto-suspend-idle-profiles-v2")
+    .description("Auto-suspend idle V2 profiles")
+    .action(() => out(autoSuspendIdleProfilesV2()));
+
+  llm
+    .command("auto-fail-stuck-requests-v2")
+    .description("Auto-fail stuck V2 requests")
+    .action(() => out(autoFailStuckRequestsV2()));
 }

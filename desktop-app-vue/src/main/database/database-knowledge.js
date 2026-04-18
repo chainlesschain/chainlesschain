@@ -8,6 +8,8 @@
  * Extracted on 2026-04-07.
  */
 
+const { v4: uuidv4 } = require("uuid");
+
 function getKnowledgeItems(dbManager, logger, limit = 100, offset = 0) {
   // 数据库未初始化检查
   if (!dbManager.db) {

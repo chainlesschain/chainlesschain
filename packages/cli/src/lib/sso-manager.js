@@ -839,3 +839,335 @@ export function getStats(db) {
     },
   };
 }
+
+// ===== V2 Surface (cli 0.130.0) — in-memory governance =====
+export const PROVIDER_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  DEPRECATED: "deprecated",
+  RETIRED: "retired",
+});
+export const LOGIN_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  AUTHENTICATING: "authenticating",
+  AUTHENTICATED: "authenticated",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+
+const _PM_V2 = PROVIDER_MATURITY_V2;
+const _LL_V2 = LOGIN_LIFECYCLE_V2;
+const _PM_TRANS_V2 = new Map([
+  [_PM_V2.PENDING, new Set([_PM_V2.ACTIVE, _PM_V2.RETIRED])],
+  [_PM_V2.ACTIVE, new Set([_PM_V2.DEPRECATED, _PM_V2.RETIRED])],
+  [_PM_V2.DEPRECATED, new Set([_PM_V2.ACTIVE, _PM_V2.RETIRED])],
+  [_PM_V2.RETIRED, new Set()],
+]);
+const _LL_TRANS_V2 = new Map([
+  [_LL_V2.QUEUED, new Set([_LL_V2.AUTHENTICATING, _LL_V2.CANCELLED])],
+  [
+    _LL_V2.AUTHENTICATING,
+    new Set([_LL_V2.AUTHENTICATED, _LL_V2.FAILED, _LL_V2.CANCELLED]),
+  ],
+  [_LL_V2.AUTHENTICATED, new Set()],
+  [_LL_V2.FAILED, new Set()],
+  [_LL_V2.CANCELLED, new Set()],
+]);
+const _LL_TERM_V2 = new Set([
+  _LL_V2.AUTHENTICATED,
+  _LL_V2.FAILED,
+  _LL_V2.CANCELLED,
+]);
+
+const SSO_DEFAULT_MAX_ACTIVE_PROVIDERS_PER_OWNER = 8;
+const SSO_DEFAULT_MAX_PENDING_LOGINS_PER_PROVIDER = 16;
+const SSO_DEFAULT_PROVIDER_IDLE_MS = 30 * 24 * 60 * 60 * 1000;
+const SSO_DEFAULT_LOGIN_STUCK_MS = 5 * 60 * 1000;
+
+const _ssoProvidersV2 = new Map();
+const _ssoLoginsV2 = new Map();
+let _ssoConfigV2 = {
+  maxActiveProvidersPerOwner: SSO_DEFAULT_MAX_ACTIVE_PROVIDERS_PER_OWNER,
+  maxPendingLoginsPerProvider: SSO_DEFAULT_MAX_PENDING_LOGINS_PER_PROVIDER,
+  providerIdleMs: SSO_DEFAULT_PROVIDER_IDLE_MS,
+  loginStuckMs: SSO_DEFAULT_LOGIN_STUCK_MS,
+};
+
+function _ssoPosIntV2(n, label) {
+  if (typeof n !== "number" || !isFinite(n) || isNaN(n))
+    throw new Error(`${label} must be positive integer`);
+  const v = Math.floor(n);
+  if (v <= 0) throw new Error(`${label} must be positive integer`);
+  return v;
+}
+
+export function _resetStateSsoManagerV2() {
+  _ssoProvidersV2.clear();
+  _ssoLoginsV2.clear();
+  _ssoConfigV2 = {
+    maxActiveProvidersPerOwner: SSO_DEFAULT_MAX_ACTIVE_PROVIDERS_PER_OWNER,
+    maxPendingLoginsPerProvider: SSO_DEFAULT_MAX_PENDING_LOGINS_PER_PROVIDER,
+    providerIdleMs: SSO_DEFAULT_PROVIDER_IDLE_MS,
+    loginStuckMs: SSO_DEFAULT_LOGIN_STUCK_MS,
+  };
+}
+
+export function setMaxActiveProvidersPerOwnerV2(n) {
+  _ssoConfigV2.maxActiveProvidersPerOwner = _ssoPosIntV2(
+    n,
+    "maxActiveProvidersPerOwner",
+  );
+}
+export function setMaxPendingLoginsPerProviderV2(n) {
+  _ssoConfigV2.maxPendingLoginsPerProvider = _ssoPosIntV2(
+    n,
+    "maxPendingLoginsPerProvider",
+  );
+}
+export function setProviderIdleMsV2(n) {
+  _ssoConfigV2.providerIdleMs = _ssoPosIntV2(n, "providerIdleMs");
+}
+export function setLoginStuckMsV2(n) {
+  _ssoConfigV2.loginStuckMs = _ssoPosIntV2(n, "loginStuckMs");
+}
+export function getMaxActiveProvidersPerOwnerV2() {
+  return _ssoConfigV2.maxActiveProvidersPerOwner;
+}
+export function getMaxPendingLoginsPerProviderV2() {
+  return _ssoConfigV2.maxPendingLoginsPerProvider;
+}
+export function getProviderIdleMsV2() {
+  return _ssoConfigV2.providerIdleMs;
+}
+export function getLoginStuckMsV2() {
+  return _ssoConfigV2.loginStuckMs;
+}
+
+function _copyProviderV2(p) {
+  return { ...p, metadata: { ...(p.metadata || {}) } };
+}
+function _copyLoginV2(l) {
+  return { ...l, metadata: { ...(l.metadata || {}) } };
+}
+
+export function registerProviderV2({
+  id,
+  owner,
+  protocol,
+  displayName,
+  metadata,
+} = {}) {
+  if (!id || typeof id !== "string") throw new Error("id required");
+  if (!owner || typeof owner !== "string") throw new Error("owner required");
+  if (!protocol || typeof protocol !== "string")
+    throw new Error("protocol required");
+  if (_ssoProvidersV2.has(id))
+    throw new Error(`provider ${id} already registered`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    protocol,
+    displayName: displayName || id,
+    status: _PM_V2.PENDING,
+    activatedAt: null,
+    retiredAt: null,
+    lastSeenAt: now,
+    createdAt: now,
+    metadata: metadata && typeof metadata === "object" ? { ...metadata } : {},
+  };
+  _ssoProvidersV2.set(id, p);
+  return _copyProviderV2(p);
+}
+
+function _activeProviderCountForOwnerV2(owner) {
+  let c = 0;
+  for (const p of _ssoProvidersV2.values())
+    if (p.owner === owner && p.status === _PM_V2.ACTIVE) c++;
+  return c;
+}
+
+function _transitionProviderV2(id, next) {
+  const p = _ssoProvidersV2.get(id);
+  if (!p) throw new Error(`provider ${id} not found`);
+  const allowed = _PM_TRANS_V2.get(p.status);
+  if (!allowed || !allowed.has(next))
+    throw new Error(`invalid transition ${p.status} -> ${next}`);
+  if (next === _PM_V2.ACTIVE && p.status === _PM_V2.PENDING) {
+    if (
+      _activeProviderCountForOwnerV2(p.owner) >=
+      _ssoConfigV2.maxActiveProvidersPerOwner
+    ) {
+      throw new Error(
+        `owner ${p.owner} active-provider cap reached (${_ssoConfigV2.maxActiveProvidersPerOwner})`,
+      );
+    }
+  }
+  const now = Date.now();
+  p.status = next;
+  if (next === _PM_V2.ACTIVE && !p.activatedAt) p.activatedAt = now;
+  if (next === _PM_V2.RETIRED && !p.retiredAt) p.retiredAt = now;
+  p.lastSeenAt = now;
+  return _copyProviderV2(p);
+}
+
+export function activateProviderV2(id) {
+  return _transitionProviderV2(id, _PM_V2.ACTIVE);
+}
+export function deprecateProviderV2(id) {
+  return _transitionProviderV2(id, _PM_V2.DEPRECATED);
+}
+export function retireProviderV2(id) {
+  return _transitionProviderV2(id, _PM_V2.RETIRED);
+}
+export function touchProviderV2(id) {
+  const p = _ssoProvidersV2.get(id);
+  if (!p) throw new Error(`provider ${id} not found`);
+  p.lastSeenAt = Date.now();
+  return _copyProviderV2(p);
+}
+export function getProviderV2(id) {
+  const p = _ssoProvidersV2.get(id);
+  return p ? _copyProviderV2(p) : null;
+}
+export function listProvidersV2({ owner, status, protocol } = {}) {
+  const out = [];
+  for (const p of _ssoProvidersV2.values()) {
+    if (owner && p.owner !== owner) continue;
+    if (status && p.status !== status) continue;
+    if (protocol && p.protocol !== protocol) continue;
+    out.push(_copyProviderV2(p));
+  }
+  return out;
+}
+
+function _pendingLoginCountForProviderV2(providerId) {
+  let c = 0;
+  for (const l of _ssoLoginsV2.values()) {
+    if (l.providerId !== providerId) continue;
+    if (l.status === _LL_V2.QUEUED || l.status === _LL_V2.AUTHENTICATING) c++;
+  }
+  return c;
+}
+
+export function createLoginV2({ id, providerId, subject, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id required");
+  if (!providerId || typeof providerId !== "string")
+    throw new Error("providerId required");
+  if (_ssoLoginsV2.has(id)) throw new Error(`login ${id} already exists`);
+  const provider = _ssoProvidersV2.get(providerId);
+  if (!provider) throw new Error(`provider ${providerId} not found`);
+  if (provider.status === _PM_V2.RETIRED)
+    throw new Error(`provider ${providerId} retired`);
+  if (
+    _pendingLoginCountForProviderV2(providerId) >=
+    _ssoConfigV2.maxPendingLoginsPerProvider
+  ) {
+    throw new Error(
+      `provider ${providerId} pending-login cap reached (${_ssoConfigV2.maxPendingLoginsPerProvider})`,
+    );
+  }
+  const now = Date.now();
+  const l = {
+    id,
+    providerId,
+    subject: subject || "anonymous",
+    status: _LL_V2.QUEUED,
+    startedAt: null,
+    settledAt: null,
+    createdAt: now,
+    metadata: metadata && typeof metadata === "object" ? { ...metadata } : {},
+  };
+  _ssoLoginsV2.set(id, l);
+  return _copyLoginV2(l);
+}
+
+function _transitionLoginV2(id, next, extra = {}) {
+  const l = _ssoLoginsV2.get(id);
+  if (!l) throw new Error(`login ${id} not found`);
+  const allowed = _LL_TRANS_V2.get(l.status);
+  if (!allowed || !allowed.has(next))
+    throw new Error(`invalid transition ${l.status} -> ${next}`);
+  const now = Date.now();
+  l.status = next;
+  if (next === _LL_V2.AUTHENTICATING && !l.startedAt) l.startedAt = now;
+  if (_LL_TERM_V2.has(next) && !l.settledAt) l.settledAt = now;
+  if (extra.error) l.metadata.error = extra.error;
+  return _copyLoginV2(l);
+}
+
+export function startLoginV2(id) {
+  return _transitionLoginV2(id, _LL_V2.AUTHENTICATING);
+}
+export function completeLoginV2(id) {
+  return _transitionLoginV2(id, _LL_V2.AUTHENTICATED);
+}
+export function failLoginV2(id, error) {
+  return _transitionLoginV2(id, _LL_V2.FAILED, { error });
+}
+export function cancelLoginV2(id) {
+  return _transitionLoginV2(id, _LL_V2.CANCELLED);
+}
+
+export function getLoginV2(id) {
+  const l = _ssoLoginsV2.get(id);
+  return l ? _copyLoginV2(l) : null;
+}
+export function listLoginsV2({ providerId, status, subject } = {}) {
+  const out = [];
+  for (const l of _ssoLoginsV2.values()) {
+    if (providerId && l.providerId !== providerId) continue;
+    if (status && l.status !== status) continue;
+    if (subject && l.subject !== subject) continue;
+    out.push(_copyLoginV2(l));
+  }
+  return out;
+}
+
+export function autoDeprecateIdleProvidersV2({ now } = {}) {
+  const t = typeof now === "number" ? now : Date.now();
+  const flipped = [];
+  for (const p of _ssoProvidersV2.values()) {
+    if (p.status !== _PM_V2.ACTIVE) continue;
+    if (t - p.lastSeenAt > _ssoConfigV2.providerIdleMs) {
+      p.status = _PM_V2.DEPRECATED;
+      p.lastSeenAt = t;
+      flipped.push(_copyProviderV2(p));
+    }
+  }
+  return flipped;
+}
+
+export function autoFailStuckLoginsV2({ now } = {}) {
+  const t = typeof now === "number" ? now : Date.now();
+  const flipped = [];
+  for (const l of _ssoLoginsV2.values()) {
+    if (l.status !== _LL_V2.AUTHENTICATING) continue;
+    if (l.startedAt && t - l.startedAt > _ssoConfigV2.loginStuckMs) {
+      l.status = _LL_V2.FAILED;
+      l.settledAt = t;
+      l.metadata.error = "stuck-timeout";
+      flipped.push(_copyLoginV2(l));
+    }
+  }
+  return flipped;
+}
+
+export function getSsoManagerStatsV2() {
+  const providersByStatus = {};
+  for (const s of Object.values(_PM_V2)) providersByStatus[s] = 0;
+  for (const p of _ssoProvidersV2.values()) providersByStatus[p.status]++;
+  const loginsByStatus = {};
+  for (const s of Object.values(_LL_V2)) loginsByStatus[s] = 0;
+  for (const l of _ssoLoginsV2.values()) loginsByStatus[l.status]++;
+  return {
+    totalProvidersV2: _ssoProvidersV2.size,
+    totalLoginsV2: _ssoLoginsV2.size,
+    maxActiveProvidersPerOwner: _ssoConfigV2.maxActiveProvidersPerOwner,
+    maxPendingLoginsPerProvider: _ssoConfigV2.maxPendingLoginsPerProvider,
+    providerIdleMs: _ssoConfigV2.providerIdleMs,
+    loginStuckMs: _ssoConfigV2.loginStuckMs,
+    providersByStatus,
+    loginsByStatus,
+  };
+}

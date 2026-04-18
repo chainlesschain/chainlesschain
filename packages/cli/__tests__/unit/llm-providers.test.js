@@ -333,3 +333,429 @@ describe("LLM Providers", () => {
     });
   });
 });
+
+import {
+  PROVIDER_MATURITY_V2,
+  REQUEST_LIFECYCLE_V2,
+  PROVIDER_DEFAULT_MAX_ACTIVE_PER_OWNER,
+  PROVIDER_DEFAULT_MAX_PENDING_REQUESTS_PER_PROFILE,
+  PROVIDER_DEFAULT_PROFILE_IDLE_MS,
+  PROVIDER_DEFAULT_REQUEST_STUCK_MS,
+  getMaxActiveProfilesPerOwnerV2,
+  setMaxActiveProfilesPerOwnerV2,
+  getMaxPendingRequestsPerProfileV2,
+  setMaxPendingRequestsPerProfileV2,
+  getProfileIdleMsV2,
+  setProfileIdleMsV2,
+  getRequestStuckMsV2,
+  setRequestStuckMsV2,
+  registerProfileV2,
+  getProfileV2,
+  listProfilesV2,
+  setProfileStatusV2,
+  activateProfileV2,
+  suspendProfileV2,
+  retireProfileV2,
+  touchProfileV2,
+  createRequestV2,
+  getRequestV2,
+  listRequestsV2,
+  setRequestStatusV2,
+  startRequestV2,
+  completeRequestV2,
+  failRequestV2,
+  cancelRequestV2,
+  getActiveProfileCountV2,
+  getPendingRequestCountV2,
+  autoSuspendIdleProfilesV2,
+  autoFailStuckRequestsV2,
+  getLlmProvidersStatsV2,
+  _resetStateLlmProvidersV2,
+} from "../../src/lib/llm-providers.js";
+
+describe("LLM Providers V2", () => {
+  beforeEach(() => _resetStateLlmProvidersV2());
+
+  describe("frozen enums + defaults", () => {
+    it("freezes PROVIDER_MATURITY_V2", () => {
+      expect(Object.isFrozen(PROVIDER_MATURITY_V2)).toBe(true);
+      expect(Object.values(PROVIDER_MATURITY_V2).sort()).toEqual([
+        "active",
+        "pending",
+        "retired",
+        "suspended",
+      ]);
+    });
+    it("freezes REQUEST_LIFECYCLE_V2", () => {
+      expect(Object.isFrozen(REQUEST_LIFECYCLE_V2)).toBe(true);
+      expect(Object.values(REQUEST_LIFECYCLE_V2).sort()).toEqual([
+        "cancelled",
+        "completed",
+        "failed",
+        "queued",
+        "running",
+      ]);
+    });
+    it("exposes defaults", () => {
+      expect(PROVIDER_DEFAULT_MAX_ACTIVE_PER_OWNER).toBe(8);
+      expect(PROVIDER_DEFAULT_MAX_PENDING_REQUESTS_PER_PROFILE).toBe(16);
+      expect(PROVIDER_DEFAULT_PROFILE_IDLE_MS).toBe(14 * 24 * 60 * 60 * 1000);
+      expect(PROVIDER_DEFAULT_REQUEST_STUCK_MS).toBe(5 * 60 * 1000);
+    });
+  });
+
+  describe("config getters/setters", () => {
+    it("returns defaults", () => {
+      expect(getMaxActiveProfilesPerOwnerV2()).toBe(8);
+      expect(getMaxPendingRequestsPerProfileV2()).toBe(16);
+    });
+    it("setters accept positives", () => {
+      setMaxActiveProfilesPerOwnerV2(3);
+      setMaxPendingRequestsPerProfileV2(2);
+      setProfileIdleMsV2(10_000);
+      setRequestStuckMsV2(2_000);
+      expect(getMaxActiveProfilesPerOwnerV2()).toBe(3);
+      expect(getMaxPendingRequestsPerProfileV2()).toBe(2);
+      expect(getProfileIdleMsV2()).toBe(10_000);
+      expect(getRequestStuckMsV2()).toBe(2_000);
+    });
+    it("floors non-integer positives", () => {
+      setMaxActiveProfilesPerOwnerV2(3.7);
+      expect(getMaxActiveProfilesPerOwnerV2()).toBe(3);
+    });
+    it("rejects zero/negative/non-finite", () => {
+      expect(() => setMaxActiveProfilesPerOwnerV2(0)).toThrow();
+      expect(() => setMaxPendingRequestsPerProfileV2(-1)).toThrow();
+      expect(() => setProfileIdleMsV2(NaN)).toThrow();
+      expect(() => setRequestStuckMsV2("x")).toThrow();
+    });
+  });
+
+  describe("registerProfileV2", () => {
+    it("registers PENDING with required fields", () => {
+      const p = registerProfileV2("p1", {
+        ownerId: "o1",
+        provider: "openai",
+        model: "gpt-4",
+      });
+      expect(p.status).toBe("pending");
+      expect(p.ownerId).toBe("o1");
+      expect(p.provider).toBe("openai");
+      expect(p.model).toBe("gpt-4");
+      expect(p.activatedAt).toBeNull();
+      expect(p.retiredAt).toBeNull();
+    });
+    it("defaults model to 'default'", () => {
+      const p = registerProfileV2("p1", {
+        ownerId: "o1",
+        provider: "openai",
+      });
+      expect(p.model).toBe("default");
+    });
+    it("rejects duplicate id", () => {
+      registerProfileV2("p1", { ownerId: "o1", provider: "openai" });
+      expect(() =>
+        registerProfileV2("p1", { ownerId: "o1", provider: "openai" }),
+      ).toThrow(/already exists/);
+    });
+    it("rejects missing required", () => {
+      expect(() => registerProfileV2("p1")).toThrow(/ownerId/);
+      expect(() => registerProfileV2("p1", { ownerId: "o1" })).toThrow(
+        /provider/,
+      );
+      expect(() =>
+        registerProfileV2("", { ownerId: "o1", provider: "x" }),
+      ).toThrow(/profile id/);
+    });
+    it("metadata copied defensively", () => {
+      const meta = { v: 1 };
+      registerProfileV2("p1", {
+        ownerId: "o1",
+        provider: "openai",
+        metadata: meta,
+      });
+      meta.v = 99;
+      expect(getProfileV2("p1").metadata.v).toBe(1);
+    });
+  });
+
+  describe("profile state machine", () => {
+    beforeEach(() => {
+      registerProfileV2("p1", { ownerId: "o1", provider: "openai" });
+    });
+    it("pending→active stamps activatedAt", () => {
+      const p = activateProfileV2("p1");
+      expect(p.status).toBe("active");
+      expect(p.activatedAt).toBeGreaterThan(0);
+    });
+    it("active→suspended→active preserves activatedAt", () => {
+      const p1 = activateProfileV2("p1");
+      const ts = p1.activatedAt;
+      suspendProfileV2("p1");
+      const p3 = activateProfileV2("p1");
+      expect(p3.activatedAt).toBe(ts);
+    });
+    it("retired terminal", () => {
+      activateProfileV2("p1");
+      retireProfileV2("p1");
+      expect(() => activateProfileV2("p1")).toThrow(
+        /invalid profile transition/,
+      );
+    });
+    it("retiredAt stamped on first terminal entry", () => {
+      activateProfileV2("p1");
+      const p = retireProfileV2("p1");
+      expect(p.retiredAt).toBeGreaterThan(0);
+    });
+    it("rejects pending→suspended", () => {
+      expect(() => suspendProfileV2("p1")).toThrow(
+        /invalid profile transition/,
+      );
+    });
+    it("rejects unknown profile", () => {
+      expect(() => activateProfileV2("nope")).toThrow(/not found/);
+    });
+  });
+
+  describe("per-owner active-profile cap", () => {
+    it("rejects pending→active beyond cap", () => {
+      setMaxActiveProfilesPerOwnerV2(2);
+      registerProfileV2("p1", { ownerId: "o1", provider: "openai" });
+      registerProfileV2("p2", { ownerId: "o1", provider: "openai" });
+      registerProfileV2("p3", { ownerId: "o1", provider: "openai" });
+      activateProfileV2("p1");
+      activateProfileV2("p2");
+      expect(() => activateProfileV2("p3")).toThrow(/active-profile cap/);
+    });
+    it("recovery is exempt from cap", () => {
+      setMaxActiveProfilesPerOwnerV2(1);
+      registerProfileV2("p1", { ownerId: "o1", provider: "openai" });
+      registerProfileV2("p2", { ownerId: "o1", provider: "openai" });
+      activateProfileV2("p1");
+      suspendProfileV2("p1");
+      activateProfileV2("p2");
+      const p = activateProfileV2("p1");
+      expect(p.status).toBe("active");
+    });
+    it("scoped by owner", () => {
+      setMaxActiveProfilesPerOwnerV2(1);
+      registerProfileV2("p1", { ownerId: "o1", provider: "openai" });
+      registerProfileV2("p2", { ownerId: "o2", provider: "openai" });
+      activateProfileV2("p1");
+      const p = activateProfileV2("p2");
+      expect(p.status).toBe("active");
+    });
+  });
+
+  describe("listProfilesV2", () => {
+    it("filters by owner / status / provider", () => {
+      registerProfileV2("p1", { ownerId: "o1", provider: "openai" });
+      registerProfileV2("p2", { ownerId: "o1", provider: "anthropic" });
+      registerProfileV2("p3", { ownerId: "o2", provider: "openai" });
+      activateProfileV2("p1");
+      expect(listProfilesV2({ ownerId: "o1" })).toHaveLength(2);
+      expect(listProfilesV2({ provider: "openai" })).toHaveLength(2);
+      expect(listProfilesV2({ status: "active" })).toHaveLength(1);
+    });
+  });
+
+  describe("touchProfileV2", () => {
+    it("updates lastSeenAt", async () => {
+      registerProfileV2("p1", { ownerId: "o1", provider: "openai" });
+      const before = getProfileV2("p1").lastSeenAt;
+      await new Promise((r) => setTimeout(r, 5));
+      const p = touchProfileV2("p1");
+      expect(p.lastSeenAt).toBeGreaterThan(before);
+    });
+    it("throws on unknown id", () => {
+      expect(() => touchProfileV2("nope")).toThrow(/not found/);
+    });
+  });
+
+  describe("createRequestV2", () => {
+    beforeEach(() => {
+      registerProfileV2("p1", { ownerId: "o1", provider: "openai" });
+    });
+    it("creates QUEUED with required fields", () => {
+      const r = createRequestV2("r1", { profileId: "p1", kind: "chat" });
+      expect(r.status).toBe("queued");
+      expect(r.profileId).toBe("p1");
+      expect(r.kind).toBe("chat");
+      expect(r.startedAt).toBeNull();
+      expect(r.settledAt).toBeNull();
+    });
+    it("defaults kind to completion", () => {
+      const r = createRequestV2("r1", { profileId: "p1" });
+      expect(r.kind).toBe("completion");
+    });
+    it("rejects duplicate id", () => {
+      createRequestV2("r1", { profileId: "p1" });
+      expect(() => createRequestV2("r1", { profileId: "p1" })).toThrow(
+        /already exists/,
+      );
+    });
+    it("rejects unknown profile", () => {
+      expect(() => createRequestV2("r1", { profileId: "ghost" })).toThrow(
+        /not found/,
+      );
+    });
+    it("enforces per-profile pending cap on create (counts queued+running)", () => {
+      setMaxPendingRequestsPerProfileV2(2);
+      createRequestV2("r1", { profileId: "p1" });
+      createRequestV2("r2", { profileId: "p1" });
+      expect(() => createRequestV2("r3", { profileId: "p1" })).toThrow(
+        /pending-request cap/,
+      );
+      startRequestV2("r1");
+      expect(() => createRequestV2("r3", { profileId: "p1" })).toThrow(
+        /pending-request cap/,
+      );
+      completeRequestV2("r1");
+      const r3 = createRequestV2("r3", { profileId: "p1" });
+      expect(r3.status).toBe("queued");
+    });
+  });
+
+  describe("request state machine", () => {
+    beforeEach(() => {
+      registerProfileV2("p1", { ownerId: "o1", provider: "openai" });
+      createRequestV2("r1", { profileId: "p1" });
+    });
+    it("queued→running stamps startedAt", () => {
+      const r = startRequestV2("r1");
+      expect(r.status).toBe("running");
+      expect(r.startedAt).toBeGreaterThan(0);
+    });
+    it("running→completed stamps settledAt", () => {
+      startRequestV2("r1");
+      const r = completeRequestV2("r1");
+      expect(r.settledAt).toBeGreaterThan(0);
+    });
+    it("running→failed stamps settledAt", () => {
+      startRequestV2("r1");
+      const r = failRequestV2("r1");
+      expect(r.settledAt).toBeGreaterThan(0);
+    });
+    it("queued and running both → cancelled", () => {
+      cancelRequestV2("r1");
+      expect(getRequestV2("r1").status).toBe("cancelled");
+      createRequestV2("r2", { profileId: "p1" });
+      startRequestV2("r2");
+      cancelRequestV2("r2");
+      expect(getRequestV2("r2").status).toBe("cancelled");
+    });
+    it("rejects invalid transitions", () => {
+      expect(() => completeRequestV2("r1")).toThrow(
+        /invalid request transition/,
+      );
+      cancelRequestV2("r1");
+      expect(() => startRequestV2("r1")).toThrow(/invalid request transition/);
+    });
+  });
+
+  describe("listRequestsV2", () => {
+    it("filters by profile and status", () => {
+      registerProfileV2("p1", { ownerId: "o1", provider: "openai" });
+      registerProfileV2("p2", { ownerId: "o1", provider: "openai" });
+      createRequestV2("r1", { profileId: "p1" });
+      createRequestV2("r2", { profileId: "p1" });
+      createRequestV2("r3", { profileId: "p2" });
+      startRequestV2("r1");
+      expect(listRequestsV2({ profileId: "p1" })).toHaveLength(2);
+      expect(listRequestsV2({ status: "queued" })).toHaveLength(2);
+    });
+  });
+
+  describe("autoSuspendIdleProfilesV2", () => {
+    it("flips active profiles past idle threshold", () => {
+      setProfileIdleMsV2(1000);
+      registerProfileV2("p1", { ownerId: "o1", provider: "openai" });
+      activateProfileV2("p1");
+      const r = autoSuspendIdleProfilesV2({ now: Date.now() + 5_000 });
+      expect(r.count).toBe(1);
+      expect(getProfileV2("p1").status).toBe("suspended");
+    });
+    it("does not touch fresh profiles", () => {
+      registerProfileV2("p1", { ownerId: "o1", provider: "openai" });
+      activateProfileV2("p1");
+      const r = autoSuspendIdleProfilesV2({ now: Date.now() });
+      expect(r.count).toBe(0);
+    });
+  });
+
+  describe("autoFailStuckRequestsV2", () => {
+    it("flips running requests past stuck threshold", () => {
+      setRequestStuckMsV2(1000);
+      registerProfileV2("p1", { ownerId: "o1", provider: "openai" });
+      createRequestV2("r1", { profileId: "p1" });
+      startRequestV2("r1");
+      const r = autoFailStuckRequestsV2({ now: Date.now() + 5_000 });
+      expect(r.count).toBe(1);
+      expect(getRequestV2("r1").status).toBe("failed");
+    });
+    it("ignores queued requests", () => {
+      registerProfileV2("p1", { ownerId: "o1", provider: "openai" });
+      createRequestV2("r1", { profileId: "p1" });
+      const r = autoFailStuckRequestsV2({ now: Date.now() + 1e9 });
+      expect(r.count).toBe(0);
+    });
+  });
+
+  describe("getLlmProvidersStatsV2", () => {
+    it("zero state has all keys", () => {
+      const s = getLlmProvidersStatsV2();
+      expect(s.profilesByStatus).toEqual({
+        pending: 0,
+        active: 0,
+        suspended: 0,
+        retired: 0,
+      });
+      expect(s.requestsByStatus).toEqual({
+        queued: 0,
+        running: 0,
+        completed: 0,
+        failed: 0,
+        cancelled: 0,
+      });
+    });
+    it("counts after operations", () => {
+      registerProfileV2("p1", { ownerId: "o1", provider: "openai" });
+      activateProfileV2("p1");
+      createRequestV2("r1", { profileId: "p1" });
+      startRequestV2("r1");
+      const s = getLlmProvidersStatsV2();
+      expect(s.profilesByStatus.active).toBe(1);
+      expect(s.requestsByStatus.running).toBe(1);
+    });
+  });
+
+  describe("counts", () => {
+    it("getActiveProfileCountV2 scoped by owner", () => {
+      registerProfileV2("p1", { ownerId: "o1", provider: "openai" });
+      registerProfileV2("p2", { ownerId: "o2", provider: "openai" });
+      activateProfileV2("p1");
+      activateProfileV2("p2");
+      expect(getActiveProfileCountV2("o1")).toBe(1);
+      expect(getActiveProfileCountV2("nope")).toBe(0);
+    });
+    it("getPendingRequestCountV2 counts queued+running", () => {
+      registerProfileV2("p1", { ownerId: "o1", provider: "openai" });
+      createRequestV2("r1", { profileId: "p1" });
+      createRequestV2("r2", { profileId: "p1" });
+      startRequestV2("r1");
+      expect(getPendingRequestCountV2("p1")).toBe(2);
+      completeRequestV2("r1");
+      expect(getPendingRequestCountV2("p1")).toBe(1);
+    });
+  });
+
+  describe("_resetStateLlmProvidersV2", () => {
+    it("clears state and restores defaults", () => {
+      setMaxActiveProfilesPerOwnerV2(99);
+      registerProfileV2("p1", { ownerId: "o1", provider: "openai" });
+      _resetStateLlmProvidersV2();
+      expect(getMaxActiveProfilesPerOwnerV2()).toBe(8);
+      expect(getProfileV2("p1")).toBeNull();
+    });
+  });
+});

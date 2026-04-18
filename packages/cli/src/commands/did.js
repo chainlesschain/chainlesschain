@@ -16,6 +16,35 @@ import {
   verifyWithDID,
   exportIdentity,
   resolveDID,
+  IDENTITY_MATURITY_V2,
+  ISSUANCE_LIFECYCLE_V2,
+  getMaxActiveIdentitiesPerOwnerV2,
+  setMaxActiveIdentitiesPerOwnerV2,
+  getMaxPendingIssuancesPerIdentityV2,
+  setMaxPendingIssuancesPerIdentityV2,
+  getIdentityIdleMsV2,
+  setIdentityIdleMsV2,
+  getIssuanceStuckMsV2,
+  setIssuanceStuckMsV2,
+  registerIdentityV2,
+  getIdentityV2,
+  listIdentitiesV2,
+  activateIdentityV2,
+  suspendIdentityV2,
+  revokeIdentityV2,
+  touchIdentityV2,
+  createIssuanceV2,
+  getIssuanceV2,
+  listIssuancesV2,
+  startIssuanceV2,
+  completeIssuanceV2,
+  failIssuanceV2,
+  cancelIssuanceV2,
+  getActiveIdentityCountV2,
+  getPendingIssuanceCountV2,
+  autoSuspendIdleIdentitiesV2,
+  autoFailStuckIssuancesV2,
+  getDidManagerStatsV2,
 } from "../lib/did-manager.js";
 
 export function registerDidCommand(program) {
@@ -373,4 +402,333 @@ export function registerDidCommand(program) {
         process.exit(1);
       }
     });
+
+  // ===== V2 in-memory governance surface (no DB, no bootstrap) =====
+
+  did
+    .command("identity-maturities-v2")
+    .description("[V2] List identity maturity states")
+    .option("--json")
+    .action((o) => {
+      const s = Object.values(IDENTITY_MATURITY_V2);
+      if (o.json) console.log(JSON.stringify(s, null, 2));
+      else for (const v of s) logger.log(v);
+    });
+  did
+    .command("issuance-lifecycles-v2")
+    .description("[V2] List issuance lifecycle states")
+    .option("--json")
+    .action((o) => {
+      const s = Object.values(ISSUANCE_LIFECYCLE_V2);
+      if (o.json) console.log(JSON.stringify(s, null, 2));
+      else for (const v of s) logger.log(v);
+    });
+  did
+    .command("config-v2")
+    .description("[V2] Show governance config")
+    .option("--json")
+    .action((o) => {
+      const cfg = {
+        maxActiveIdentitiesPerOwner: getMaxActiveIdentitiesPerOwnerV2(),
+        maxPendingIssuancesPerIdentity: getMaxPendingIssuancesPerIdentityV2(),
+        identityIdleMs: getIdentityIdleMsV2(),
+        issuanceStuckMs: getIssuanceStuckMsV2(),
+      };
+      if (o.json) console.log(JSON.stringify(cfg, null, 2));
+      else for (const [k, v] of Object.entries(cfg)) logger.log(`${k}: ${v}`);
+    });
+  did
+    .command("set-max-active-identities-per-owner-v2 <n>")
+    .description("[V2] Set per-owner active identity cap")
+    .action((n) => {
+      try {
+        setMaxActiveIdentitiesPerOwnerV2(Number(n));
+        logger.success(`= ${getMaxActiveIdentitiesPerOwnerV2()}`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  did
+    .command("set-max-pending-issuances-per-identity-v2 <n>")
+    .description("[V2] Set per-identity pending issuance cap")
+    .action((n) => {
+      try {
+        setMaxPendingIssuancesPerIdentityV2(Number(n));
+        logger.success(`= ${getMaxPendingIssuancesPerIdentityV2()}`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  did
+    .command("set-identity-idle-ms-v2 <ms>")
+    .description("[V2] Set identity idle threshold (ms)")
+    .action((m) => {
+      try {
+        setIdentityIdleMsV2(Number(m));
+        logger.success(`= ${getIdentityIdleMsV2()}`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  did
+    .command("set-issuance-stuck-ms-v2 <ms>")
+    .description("[V2] Set issuance stuck threshold (ms)")
+    .action((m) => {
+      try {
+        setIssuanceStuckMsV2(Number(m));
+        logger.success(`= ${getIssuanceStuckMsV2()}`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+
+  did
+    .command("register-identity-v2 <id>")
+    .description("[V2] Register a DID identity profile (PENDING)")
+    .requiredOption("-o, --owner <id>")
+    .requiredOption("-m, --method <method>")
+    .option("-d, --display-name <name>")
+    .action((id, o) => {
+      try {
+        const i = registerIdentityV2(id, {
+          ownerId: o.owner,
+          didMethod: o.method,
+          displayName: o.displayName,
+        });
+        logger.success(`identity ${i.id} registered (status=${i.status})`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  did
+    .command("activate-identity-v2 <id>")
+    .description("[V2] Activate identity (pending|suspended -> active)")
+    .action((id) => {
+      try {
+        activateIdentityV2(id);
+        logger.success(`identity ${id} active`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  did
+    .command("suspend-identity-v2 <id>")
+    .description("[V2] Suspend identity (active -> suspended)")
+    .action((id) => {
+      try {
+        suspendIdentityV2(id);
+        logger.success(`identity ${id} suspended`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  did
+    .command("revoke-identity-v2 <id>")
+    .description("[V2] Revoke identity (terminal)")
+    .action((id) => {
+      try {
+        revokeIdentityV2(id);
+        logger.success(`identity ${id} revoked`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  did
+    .command("touch-identity-v2 <id>")
+    .description("[V2] Bump identity lastSeenAt")
+    .action((id) => {
+      try {
+        touchIdentityV2(id);
+        logger.success(`identity ${id} touched`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  did
+    .command("get-identity-v2 <id>")
+    .description("[V2] Show identity profile")
+    .option("--json")
+    .action((id, o) => {
+      try {
+        const i = getIdentityV2(id);
+        if (!i) {
+          logger.info("identity not found");
+          return;
+        }
+        console.log(JSON.stringify(i, null, 2));
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  did
+    .command("list-identities-v2")
+    .description("[V2] List identity profiles")
+    .option("-o, --owner <id>")
+    .option("-s, --status <s>")
+    .option("-m, --method <method>")
+    .option("--json")
+    .action((o) => {
+      const list = listIdentitiesV2({
+        ownerId: o.owner,
+        status: o.status,
+        didMethod: o.method,
+      });
+      if (o.json) console.log(JSON.stringify(list, null, 2));
+      else
+        for (const i of list)
+          logger.log(`${i.id}\t${i.ownerId}\t${i.status}\t${i.didMethod}`);
+    });
+
+  did
+    .command("create-issuance-v2 <id>")
+    .description("[V2] Create a queued V2 issuance")
+    .requiredOption("-i, --identity <id>")
+    .requiredOption("-t, --type <ctype>")
+    .action((id, o) => {
+      try {
+        const j = createIssuanceV2(id, {
+          identityId: o.identity,
+          credentialType: o.type,
+        });
+        logger.success(
+          `issuance ${j.id} queued (identity=${j.identityId} type=${j.credentialType})`,
+        );
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  did
+    .command("start-issuance-v2 <id>")
+    .description("[V2] Start issuance (queued -> issuing)")
+    .action((id) => {
+      try {
+        startIssuanceV2(id);
+        logger.success(`issuance ${id} issuing`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  did
+    .command("complete-issuance-v2 <id>")
+    .description("[V2] Complete issuance (issuing -> issued)")
+    .action((id) => {
+      try {
+        completeIssuanceV2(id);
+        logger.success(`issuance ${id} issued`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  did
+    .command("fail-issuance-v2 <id>")
+    .description("[V2] Fail issuance (issuing -> failed)")
+    .action((id) => {
+      try {
+        failIssuanceV2(id);
+        logger.success(`issuance ${id} failed`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  did
+    .command("cancel-issuance-v2 <id>")
+    .description("[V2] Cancel issuance (queued|issuing -> cancelled)")
+    .action((id) => {
+      try {
+        cancelIssuanceV2(id);
+        logger.success(`issuance ${id} cancelled`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  did
+    .command("get-issuance-v2 <id>")
+    .description("[V2] Show issuance")
+    .option("--json")
+    .action((id, o) => {
+      try {
+        const j = getIssuanceV2(id);
+        if (!j) {
+          logger.info("issuance not found");
+          return;
+        }
+        console.log(JSON.stringify(j, null, 2));
+      } catch (e) {
+        logger.error(e.message);
+        process.exit(1);
+      }
+    });
+  did
+    .command("list-issuances-v2")
+    .description("[V2] List V2 issuances")
+    .option("-i, --identity <id>")
+    .option("-s, --status <s>")
+    .option("--json")
+    .action((o) => {
+      const list = listIssuancesV2({
+        identityId: o.identity,
+        status: o.status,
+      });
+      if (o.json) console.log(JSON.stringify(list, null, 2));
+      else
+        for (const j of list)
+          logger.log(
+            `${j.id}\t${j.identityId}\t${j.status}\t${j.credentialType}`,
+          );
+    });
+
+  did
+    .command("active-identity-count-v2")
+    .description("[V2] Count active identities (optional --owner)")
+    .option("-o, --owner <id>")
+    .action((o) => logger.log(String(getActiveIdentityCountV2(o.owner))));
+  did
+    .command("pending-issuance-count-v2")
+    .description("[V2] Count pending issuances (queued+issuing)")
+    .option("-i, --identity <id>")
+    .action((o) => logger.log(String(getPendingIssuanceCountV2(o.identity))));
+  did
+    .command("auto-suspend-idle-identities-v2")
+    .description("[V2] Suspend idle active identities")
+    .option("--now <ms>")
+    .option("--json")
+    .action((o) => {
+      const list = autoSuspendIdleIdentitiesV2(
+        o.now ? { now: Number(o.now) } : undefined,
+      );
+      if (o.json) console.log(JSON.stringify(list, null, 2));
+      else logger.success(`suspended ${list.length}`);
+    });
+  did
+    .command("auto-fail-stuck-issuances-v2")
+    .description("[V2] Fail stuck issuing")
+    .option("--now <ms>")
+    .option("--json")
+    .action((o) => {
+      const list = autoFailStuckIssuancesV2(
+        o.now ? { now: Number(o.now) } : undefined,
+      );
+      if (o.json) console.log(JSON.stringify(list, null, 2));
+      else logger.success(`failed ${list.length}`);
+    });
+  did
+    .command("stats-v2")
+    .description("[V2] Show governance stats")
+    .option("--json")
+    .action(() => console.log(JSON.stringify(getDidManagerStatsV2(), null, 2)));
 }

@@ -1399,3 +1399,252 @@ cc skill auto-deprecate-idle-skills-v2 | auto-fail-stuck-executions-v2
 ```
 
 > **未移植**: 真实文件系统 skill 目录扫描 → V2 skill 清单联动;`skill run` 调用执行器进度回报到 V2 execution;layer 优先级冲突解析。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (skill 4-state w/ deprecated→active 恢复 + execution 5-state w/ 3 terminals)、双维度上限 (per-owner active 在 pending→active only + per-skill queued+running 在 createExecutionV2 创建时强制)、throwing `registerSkillV2`/`createExecutionV2` + 7 shortcuts、stamp-once `activatedAt`/`archivedAt`/`startedAt`/`settledAt`、`touchSkillV2` + 2 批量 auto-flip、全枚举零初始化 `getSkillLoaderStatsV2`、追加到 `cc skill` 命名空间。Multi-layer CLISkillLoader 与 V2 内存层完全独立。
+
+### Agent Network V2 (`cc anet` V2 surface, cli 0.124.0)
+
+在 Phase 24 去中心化 Agent 网络的 SQLite 表 (agent_dids / federated_registry_peers / agent_credentials / agent_tasks / sessions) 之上叠加内存治理层,跟踪 *agent registry 条目*的成熟度与 *task* 生命周期。Legacy DID/Kademlia/credential/task-router 代码完全不动,V2 仅维护两个独立 Map (agents / tasks) 与默认配额。
+
+- **冻结枚举**: `AGENT_MATURITY_V2` = pending|active|suspended|revoked (revoked 终态;suspended→active 恢复且豁免 cap);`TASK_LIFECYCLE_V2` = queued|running|completed|failed|cancelled (3 终态)。
+- **双维度上限**: per-network active-agent cap 仅在 pending→active 强制 (恢复豁免);per-agent pending-task cap 计 queued+running,在 `createTaskV2` 创建时强制。
+- **Stamp-once**: `activatedAt` 在 suspended→active 恢复期间保留;`revokedAt`/`startedAt`/`settledAt` 一次性写入。
+- **Auto-flip**: `autoSuspendIdleAgentsV2({ now })` 把 `lastSeenAt` 超过 `agentIdleMs` (默认 7 天) 的 active agent 转 suspended;`autoFailStuckTasksV2({ now })` 把 `startedAt` 超过 `taskStuckMs` (默认 30 分钟) 的 running task 转 failed。
+- **CLI 子命令**: 28 个 V2 子命令追加到现有 `cc anet` 命名空间;preAction 钩子通过 `actionCommand.name().endsWith("-v2")` 提前 return,V2 子命令跳过 `_dbFromCtx` / `ensureAgentNetworkTables` 调用。
+
+```text
+cc anet agent-maturities-v2 | task-lifecycles-v2 | stats-v2
+cc anet get/set-max-active-agents-v2 [n]
+cc anet get/set-max-pending-tasks-v2 [n]
+cc anet get/set-agent-idle-ms-v2 [ms]
+cc anet get/set-task-stuck-ms-v2 [ms]
+cc anet active-agent-count-v2 <networkId>
+cc anet pending-task-count-v2 <agentId>
+cc anet register-agent-v2 <id> -n <networkId> -d <did> [--display name]
+cc anet get-agent-v2 <id> | list-agents-v2 [-n] [-s]
+cc anet set-agent-status-v2 <id> <next>
+cc anet activate/suspend/revoke-agent-v2 | touch-agent-v2 <id>
+cc anet create-task-v2 <id> -a <agentId> [-k kind]
+cc anet get-task-v2 <id> | list-tasks-v2 [-a] [-s]
+cc anet set-task-status-v2 <id> <next>
+cc anet start/complete/fail/cancel-task-v2 <id>
+cc anet auto-suspend-idle-agents-v2 | auto-fail-stuck-tasks-v2
+```
+
+> **未移植**: 真实 SQLite agent_dids / federated_registry_peers / agent_tasks 表 → V2 agent/task 联动;Kademlia DHT 路由 / Ed25519 签名 / VC 颁发回报到 V2 agent;心跳 sweep / cross-org 任务路由进度回报到 V2 task。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (agent 4-state w/ suspended→active 恢复 + task 5-state w/ 3 terminals)、双维度上限 (per-network active 在 pending→active only + per-agent queued+running 在 createTaskV2 创建时强制)、throwing `registerAgentV2`/`createTaskV2` + 7 shortcuts、stamp-once `activatedAt`/`revokedAt`/`startedAt`/`settledAt`、`touchAgentV2` + 2 批量 auto-flip、全枚举零初始化 `getAgentNetworkStatsV2`、追加到 `cc anet` 命名空间(preAction 钩子 V2 旁路)。Phase 24 SQLite 表与 V2 内存层完全独立。
+
+### LLM Providers V2 (`cc llm` V2 surface, cli 0.125.0)
+
+在已有 `LLMProviderRegistry` 类与 SQLite `llm_providers` 表之上叠加内存治理层,跟踪 *provider profile* 的成熟度与 *request* 生命周期。Legacy `BUILT_IN_PROVIDERS` 目录与 Ollama/OpenAI 接口完全不动。
+
+- **冻结枚举**: `PROVIDER_MATURITY_V2` = pending|active|suspended|retired (retired 终态;suspended→active 恢复且豁免 cap);`REQUEST_LIFECYCLE_V2` = queued|running|completed|failed|cancelled (3 终态)。
+- **双维度上限**: per-owner active-profile cap 仅在 pending→active 强制 (恢复豁免);per-profile pending-request cap 计 queued+running,在 `createRequestV2` 创建时强制。
+- **Stamp-once**: `activatedAt` 在 suspended→active 恢复期间保留;`retiredAt`/`startedAt`/`settledAt` 一次性写入。
+- **Auto-flip**: `autoSuspendIdleProfilesV2({ now })` 把 `lastSeenAt` 超过 `profileIdleMs` (默认 14 天) 的 active profile 转 suspended;`autoFailStuckRequestsV2({ now })` 把 `startedAt` 超过 `requestStuckMs` (默认 5 分钟) 的 running request 转 failed。
+- **CLI 子命令**: 28 个 V2 子命令追加到现有 `cc llm` 命名空间(llm.js 无 preAction 钩子,V2 子命令直接跳过 bootstrap)。
+
+```text
+cc llm provider-maturities-v2 | request-lifecycles-v2 | stats-v2
+cc llm get/set-max-active-profiles-v2 [n]
+cc llm get/set-max-pending-requests-v2 [n]
+cc llm get/set-profile-idle-ms-v2 [ms]
+cc llm get/set-request-stuck-ms-v2 [ms]
+cc llm active-profile-count-v2 <ownerId>
+cc llm pending-request-count-v2 <profileId>
+cc llm register-profile-v2 <id> -o <ownerId> -p <provider> [-m model]
+cc llm get-profile-v2 <id> | list-profiles-v2 [-o] [-s] [-p]
+cc llm set-profile-status-v2 <id> <next>
+cc llm activate/suspend/retire-profile-v2 | touch-profile-v2 <id>
+cc llm create-request-v2 <id> -p <profileId> [-k kind]
+cc llm get-request-v2 <id> | list-requests-v2 [-p] [-s]
+cc llm set-request-status-v2 <id> <next>
+cc llm start/complete/fail/cancel-request-v2 <id>
+cc llm auto-suspend-idle-profiles-v2 | auto-fail-stuck-requests-v2
+```
+
+> **未移植**: 真实 SQLite `llm_providers` CRUD → V2 profile 联动;Ollama/OpenAI 实际请求执行进度回报到 V2 request;模型切换 / API key 解密 / 测速回报到 V2 profile。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (profile 4-state w/ suspended→active 恢复 + request 5-state w/ 3 terminals)、双维度上限 (per-owner active 在 pending→active only + per-profile queued+running 在 createRequestV2 创建时强制)、throwing `registerProfileV2`/`createRequestV2` + 7 shortcuts、stamp-once `activatedAt`/`retiredAt`/`startedAt`/`settledAt`、`touchProfileV2` + 2 批量 auto-flip、全枚举零初始化 `getLlmProvidersStatsV2`、追加到 `cc llm` 命名空间。`LLMProviderRegistry` 类与 V2 内存层完全独立。
+
+---
+
+## P2P Manager V2 (cli 0.126.0)
+
+在 `packages/cli/src/lib/p2p-manager.js` 末尾追加 ~330 LOC V2 内存治理面,SQLite `p2p_peers` / `p2p_messages` 表与 `P2PBridge` 类保持独立。
+
+### 双状态机
+
+- `PEER_MATURITY_V2` = {PENDING, ACTIVE, OFFLINE, ARCHIVED}
+  - `archived` 终态;`offline → active` 为恢复转移,豁免 per-network active 上限
+- `MESSAGE_LIFECYCLE_V2` = {QUEUED, SENDING, DELIVERED, FAILED, CANCELLED}
+  - 3 终态:`delivered` / `failed` / `cancelled`
+
+### 默认配置
+
+- 每网络 100 active peer
+- 每 peer 50 pending message (queued+sending)
+- peer idle 阈值 10 分钟
+- message stuck 阈值 60 秒
+
+### 双维度上限
+
+- **per-network active-peer** 仅在 `pending → active` 首次激活时检查 (offline → active 恢复豁免)
+- **per-peer pending-message** 在 `createMessageV2` 时按 (queued + sending) 计数强制
+
+### Auto-flip
+
+- `autoOfflineIdlePeersV2({ now })` — `lastSeenAt` 距 `now` 超过 `peerIdleMs` 的 active peer → offline
+- `autoFailStuckMessagesV2({ now })` — `startedAt` 距 `now` 超过 `messageStuckMs` 的 sending message → failed
+
+### Stamp-once 时间戳
+
+- `activatedAt` 仅首次 active 时戳一次,offline → active 恢复保持原值
+- `archivedAt` / `startedAt` / `settledAt` 各仅戳一次
+
+### CLI
+
+```bash
+cc p2p peer-maturities-v2 | message-lifecycles-v2 | stats-v2 | config-v2
+cc p2p set-max-active-peers-per-network-v2 <n>
+cc p2p set-max-pending-messages-per-peer-v2 <n>
+cc p2p register-peer-v2 <id> -n <network> [-d name] [-t type]
+cc p2p activate-peer-v2 | offline-peer-v2 | archive-peer-v2 | touch-peer-v2 <id>
+cc p2p list-peers-v2 [-n] [-s] [-t]
+cc p2p create-message-v2 <id> -p <peerId> [-k kind]
+cc p2p start/deliver/fail/cancel-message-v2 <id>
+cc p2p auto-offline-idle-peers-v2 | auto-fail-stuck-messages-v2
+```
+
+> **未移植**: 真实 SQLite peer/message CRUD、`P2PBridge` 实际网络收发、`pairDevice` / `confirmPairing` 设备配对流程都不与 V2 联动。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (peer 4-state w/ offline→active 恢复 + message 5-state w/ 3 terminals)、双维度上限 (per-network active 在 pending→active only + per-peer queued+sending 在 createMessageV2 创建时强制)、throwing `registerPeerV2` / `createMessageV2` + 7 shortcuts、stamp-once `activatedAt` / `archivedAt` / `startedAt` / `settledAt`、`touchPeerV2` + 2 批量 auto-flip、全枚举零初始化 `getP2pManagerStatsV2`、追加到 `cc p2p` 命名空间(p2p.js 无 preAction hook,V2 子命令直接跳过 bootstrap)。
+
+---
+
+## PQC Manager V2 (cli 0.127.0)
+
+在 `packages/cli/src/lib/pqc-manager.js` 末尾追加 V2 内存治理面,SQLite `pqc_keys` 表与 NIST FIPS 203/204/205 算法目录 (`ML-KEM-*` / `ML-DSA-*` / `SLH-DSA-*` + 3 hybrid) 完全独立。
+
+### 双状态机
+
+- `KEY_MATURITY_V2` = {PENDING, ACTIVE, DEPRECATED, ARCHIVED}
+  - `archived` 终态;`deprecated → active` 为恢复转移,豁免 per-owner active 上限
+- `MIGRATION_LIFECYCLE_V2` = {QUEUED, RUNNING, COMPLETED, FAILED, CANCELLED}
+  - 3 终态:`completed` / `failed` / `cancelled`
+
+### 默认配置
+
+- 每 owner 16 active key
+- 每 key 8 pending migration (queued+running)
+- key idle 阈值 30 天
+- migration stuck 阈值 10 分钟
+
+### 双维度上限
+
+- **per-owner active-key** 仅在 `pending → active` 首次激活时检查(deprecated → active 恢复豁免)
+- **per-key pending-migration** 在 `createMigrationV2` 时按 (queued + running) 计数强制
+
+### Auto-flip
+
+- `autoDeprecateIdleKeysV2({ now })` — `lastSeenAt` 距 `now` 超过 `keyIdleMs` 的 active key → deprecated
+- `autoFailStuckMigrationsV2({ now })` — `startedAt` 距 `now` 超过 `migrationStuckMs` 的 running migration → failed
+
+### Stamp-once 时间戳
+
+- `activatedAt` 仅首次 active 时戳一次,deprecated → active 恢复保持原值
+- `archivedAt` / `startedAt` / `settledAt` 各仅戳一次
+
+### CLI
+
+```bash
+cc pqc key-maturities-v2 | migration-lifecycles-v2 | stats-v2 | config-v2
+cc pqc set-max-active-keys-per-owner-v2 <n>
+cc pqc set-max-pending-migrations-per-key-v2 <n>
+cc pqc register-key-v2 <id> -o <owner> -a <algo> [-p purpose]
+cc pqc activate-key-v2 | deprecate-key-v2 | archive-key-v2 | touch-key-v2 <id>
+cc pqc list-keys-v2 [-o] [-s] [-a]
+cc pqc create-migration-v2 <id> -k <keyId> -t <targetAlgo>
+cc pqc start/complete/fail/cancel-migration-v2 <id>
+cc pqc auto-deprecate-idle-keys-v2 | auto-fail-stuck-migrations-v2
+```
+
+> **未移植**: 真实 SQLite `pqc_keys` CRUD 与 V2 key 联动;`generateKey` 真实 PQC 密钥生成回报到 V2;`migrate` 历史迁移计划与 V2 migration 联动;`ALGORITHM_SPECS` / `algorithmSpec` / `listAlgorithms` 仅在 legacy 面使用。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (key 4-state w/ deprecated→active 恢复 + migration 5-state w/ 3 terminals)、双维度上限 (per-owner active 在 pending→active only + per-key queued+running 在 createMigrationV2 创建时强制,sourceAlgorithm 自动从 key 取)、throwing `registerKeyV2` / `createMigrationV2` + 7 shortcuts、stamp-once `activatedAt` / `archivedAt` / `startedAt` / `settledAt`、`touchKeyV2` + 2 批量 auto-flip、全枚举零初始化 `getPqcManagerStatsV2`、追加到 `cc pqc` 命名空间(pqc.js 无 preAction hook,V2 子命令直接跳过 bootstrap)。
+
+---
+
+## DID Manager V2 (cli 0.128.0)
+
+在 `packages/cli/src/lib/did-manager.js` 末尾追加 V2 内存治理面,SQLite `did_identities` 表与 Ed25519 sign/verify 辅助函数 (`createIdentity` / `signMessage` / `verifyWithDID` / `resolveDID`) 完全独立,`did-v2-manager` 也不受影响。
+
+### 双状态机
+
+- `IDENTITY_MATURITY_V2` = {PENDING, ACTIVE, SUSPENDED, REVOKED}
+  - `revoked` 终态;`suspended → active` 为恢复转移,豁免 per-owner 上限
+- `ISSUANCE_LIFECYCLE_V2` = {QUEUED, ISSUING, ISSUED, FAILED, CANCELLED}
+  - 3 终态:`issued` / `failed` / `cancelled`
+
+### 默认配置
+
+- 每 owner 8 active identity / 每 identity 12 pending issuance / identity idle 90 天 / issuance stuck 5 分钟
+
+### 双维度上限
+
+- **per-owner active-identity** 仅在 `pending → active` 首次激活时检查
+- **per-identity pending-issuance** 在 `createIssuanceV2` 时按 (queued + issuing) 计数强制
+
+### Auto-flip
+
+- `autoSuspendIdleIdentitiesV2` / `autoFailStuckIssuancesV2`,均接受 `{ now }` 覆盖
+
+### CLI
+
+```bash
+cc did identity-maturities-v2 | issuance-lifecycles-v2 | stats-v2 | config-v2
+cc did register-identity-v2 <id> -o <owner> -m <method> [-d displayName]
+cc did activate-identity-v2 | suspend-identity-v2 | revoke-identity-v2 | touch-identity-v2 <id>
+cc did list-identities-v2 [-o] [-s] [-m]
+cc did create-issuance-v2 <id> -i <identityId> -t <credentialType>
+cc did start/complete/fail/cancel-issuance-v2 <id>
+cc did auto-suspend-idle-identities-v2 | auto-fail-stuck-issuances-v2
+```
+
+> **未移植**: 真实 Ed25519 密钥/DID 文档生成与 V2 identity 联动;真实 VC issuance/JSON-LD 与 V2 issuance 联动;`did-v2-manager` (DID v2.0 W3C key/web/chain) 完全独立。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (identity 4-state w/ suspended→active 恢复 + issuance 5-state w/ 3 terminals)、双维度上限、throwing API、stamp-once、`touchIdentityV2` + 2 批量 auto-flip、全枚举零初始化 stats、追加到 `cc did` 命名空间(无 preAction hook,V2 子命令直接跳过 bootstrap)。
+
+## Crypto Manager V2 (cli 0.129.0)
+
+在 `packages/cli/src/lib/crypto-manager.js` 末尾追加 V2 内存治理面,与既有 AES-256-GCM 加解密辅助函数完全独立。V2 命令文件 (`encrypt.js`) 通过 import alias (`KEY_MATURITY_V2 as CRYPTO_KEY_MATURITY_V2`、`cryptoRegisterKey` 等) 避免与其他 V2 模块的同名导出冲突。
+
+### 双状态机
+
+- `KEY_MATURITY_V2` = {PENDING, ACTIVE, ROTATED, RETIRED}
+  - `retired` 终态;`rotated → active` 为恢复转移,豁免 per-owner 上限
+- `CRYPTO_JOB_LIFECYCLE_V2` = {QUEUED, RUNNING, COMPLETED, FAILED, CANCELLED}
+  - 3 终态:`completed` / `failed` / `cancelled`
+
+### 默认配置
+
+- 每 owner 12 active key / 每 key 16 pending job / key idle 14 天 / job stuck 5 分钟
+- `createJobV2` 的 `kind` 默认 `"encrypt"`,`purpose` 默认 `"encryption"`
+
+### 双维度上限
+
+- **per-owner active-key** 仅在 `pending → active` 首次激活时检查
+- **per-key pending-job** 在 `createJobV2` 时按 (queued + running) 计数强制
+
+### Auto-flip
+
+- `autoRotateIdleKeysV2` / `autoFailStuckJobsV2`,均接受 `{ now }` 覆盖
+- 闲置 active key → rotated;停滞 running job → failed
+
+### Stamp-once 时间戳
+
+- `activatedAt` (穿越 `rotated → active` 恢复保留)
+- `retiredAt` / `startedAt` / `settledAt` 一次性写入
+
+### CLI
+
+```bash
+cc encrypt key-maturities-v2 | crypto-job-lifecycles-v2 | stats-v2 | config-v2
+cc encrypt register-key-v2 <id> -o <owner> -a <algorithm> [-p purpose]
+cc encrypt activate-key-v2 | rotate-key-v2 | retire-key-v2 | touch-key-v2 <id>
+cc encrypt list-keys-v2 [-o] [-s] [-a]
+cc encrypt create-job-v2 <id> -k <keyId> [-K kind] [-P payloadHash]
+cc encrypt start/complete/fail/cancel-job-v2 <id>
+cc encrypt auto-rotate-idle-keys-v2 | auto-fail-stuck-jobs-v2
+```
+
+> **未移植**: 真实 AES-256-GCM 密钥派生/加解密路径与 V2 key 联动;真实加解密任务调度(并发/重试/Worker)与 V2 job 联动。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (key 4-state w/ rotated→active 恢复 + job 5-state w/ 3 terminals)、双维度上限、throwing API、stamp-once、`touchKeyV2` + 2 批量 auto-flip、全枚举零初始化 stats、追加到 `cc encrypt` 命名空间(无 preAction hook,V2 子命令直接跳过 bootstrap)。

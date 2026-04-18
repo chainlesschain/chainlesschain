@@ -9,6 +9,9 @@
  * Extracted on 2026-04-07.
  */
 
+const fs = require("fs");
+const path = require("path");
+
 function ensureTaskBoardOwnerSchema(dbManager, logger) {
   try {
     const tableInfo = dbManager.db
