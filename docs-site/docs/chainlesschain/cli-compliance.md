@@ -209,3 +209,104 @@ chainlesschain compliance policies --framework hipaa
 - [审计日志](./cli-audit) — 审计事件记录
 - [权限管理](./cli-auth) — RBAC 角色与权限
 - [数据防泄漏](./cli-dlp) — DLP 内容扫描
+
+## UEBA V2 规范表面 (CLI 0.105.0+)
+
+> 严格增量。Legacy `compliance ueba <baseline|score|detect|rank>` 子命令保留；V2 在 `cc compliance ueba` 下新增基线成熟度 + 调查生命周期 + 双维度上限 + 批量 auto-flip。
+
+**枚举**：
+
+- `BASELINE_MATURITY_V2` = `draft → active → stale → archived (terminal)`，`stale → active` 恢复路径
+- `INVESTIGATION_V2` = `open → investigating → closed | dismissed | escalated` (3 终态)
+
+**配额配置（默认值）**：
+
+```bash
+cc compliance ueba max-active-baselines-per-owner          # 默认 20
+cc compliance ueba max-open-investigations-per-analyst     # 默认 10
+cc compliance ueba baseline-stale-ms                       # 默认 30d
+cc compliance ueba investigation-stuck-ms                  # 默认 14d
+```
+
+**基线成熟度 V2**：
+
+```bash
+cc compliance ueba create-baseline-v2 <id> -o <owner> -e <entity> [-m '<json>']
+cc compliance ueba baseline-v2 <id>
+cc compliance ueba list-baselines-v2 [-o <owner>] [-s <status>]
+cc compliance ueba activate-baseline-v2 | mark-baseline-stale | archive-baseline-v2 <id>
+cc compliance ueba refresh-baseline-v2 <id>     # touch lastObservedAt + 解除 stale
+cc compliance ueba set-baseline-maturity-v2 <id> <status> [-r <reason>]
+```
+
+**调查生命周期 V2**：
+
+```bash
+cc compliance ueba open-investigation-v2 <id> -a <analyst> -b <baseline> [-m '<json>']
+cc compliance ueba investigation-v2 <id>
+cc compliance ueba list-investigations-v2 [-a <analyst>] [-s <status>]
+cc compliance ueba start-investigation-v2 | close-investigation-v2 | dismiss-investigation-v2 | escalate-investigation-v2 <id>
+```
+
+**批量 auto-flip + stats**：
+
+```bash
+cc compliance ueba auto-mark-stale-baselines              # active 超时 → stale
+cc compliance ueba auto-escalate-stuck-investigations     # investigating 超时 → escalated
+cc compliance ueba stats-v2                               # 全枚举零初始化统计
+```
+
+**Stamp-once 时间戳**：`activatedAt`（跨 stale→active 保留）/ `startedAt` (open→investigating) / `closedAt` (任意终态)。
+计数：`getActiveBaselineCountV2` 仅 active；`getOpenInvestigationCountV2` = 非终态 (open + investigating)；per-analyst 上限在 `openInvestigationV2` 创建时直接强制（open 即起始态）。
+
+测试：`__tests__/unit/ueba.test.js` 59 用例全部通过。
+
+## 威胁情报 V2 规范表面 (CLI 0.106.0+)
+
+> 严格增量。在 SQLite IoC 目录之上叠加纯内存 V2 层 — Feed 成熟度 + Indicator 生命周期 + 双维度上限 + 批量 auto-flip。
+
+**枚举**：
+
+- `FEED_MATURITY_V2` = `pending → trusted → deprecated → retired (terminal)`，`deprecated → trusted` 恢复路径
+- `INDICATOR_LIFECYCLE_V2` = `pending → active → expired | revoked | superseded` (3 终态)
+
+**配额配置（默认值）**：
+
+```bash
+cc compliance threat-intel max-active-feeds-per-owner          # 默认 50
+cc compliance threat-intel max-active-indicators-per-feed      # 默认 5000
+cc compliance threat-intel feed-idle-ms                        # 默认 30d
+cc compliance threat-intel indicator-stale-ms                  # 默认 90d
+```
+
+**Feed 成熟度 V2**：
+
+```bash
+cc compliance threat-intel register-feed-v2 <id> -o <owner> -n <name>
+cc compliance threat-intel feed-v2 <id>
+cc compliance threat-intel list-feeds-v2 [-o <owner>] [-m <maturity>]
+cc compliance threat-intel trust-feed-v2 | deprecate-feed-v2 | retire-feed-v2 <id>
+cc compliance threat-intel touch-feed-v2 <id>      # 更新 lastSeenAt
+cc compliance threat-intel set-feed-maturity-v2 <id> <next>
+```
+
+**Indicator 生命周期 V2**：
+
+```bash
+cc compliance threat-intel create-indicator-v2 <id> -f <feed> -t <type> -v <value>
+cc compliance threat-intel indicator-v2 <id>
+cc compliance threat-intel list-indicators-v2 [-f <feed>] [-s <status>]
+cc compliance threat-intel activate-indicator-v2 | expire-indicator-v2 | revoke-indicator-v2 | supersede-indicator-v2 <id>
+cc compliance threat-intel refresh-indicator-v2 <id>
+```
+
+**批量 auto-flip + stats**：
+
+```bash
+cc compliance threat-intel auto-deprecate-idle-feeds        # trusted + 超时 → deprecated
+cc compliance threat-intel auto-expire-stale-indicators     # active + 超时 → expired
+cc compliance threat-intel stats-v2                         # 全枚举零初始化统计
+```
+
+测试：`__tests__/unit/threat-intel.test.js` 69 用例全部通过。
+

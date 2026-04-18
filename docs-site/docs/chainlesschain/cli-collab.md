@@ -199,3 +199,57 @@ chainlesschain collab optimize tasks.json agents.json --json
 |------|------|
 | `packages/cli/src/commands/collab.js` | collab 命令主入口 (Phase 64) |
 | `packages/cli/src/lib/collaboration-governance.js` | 决策管理、投票计票、自治等级、技能匹配、任务优化核心实现 |
+
+## V2 规范表面 (CLI 0.105.0+)
+
+> 严格增量，向后兼容。Legacy 命令保持不变，V2 在原命令旁追加 4-state Agent 成熟度 + 5-state 提案生命周期、双维度上限、批量 auto-flip。
+
+**枚举**：
+
+- `AGENT_MATURITY_CG_V2` = `provisional → active → suspended → retired (terminal)`，`suspended → active` 恢复路径
+- `PROPOSAL_LIFECYCLE_V2` = `draft → voting → approved | rejected | withdrawn` (3 终态)
+
+**配额配置（默认值）**：
+
+```bash
+cc collab max-active-agents-per-realm        # 默认 10
+cc collab max-voting-proposals-per-proposer  # 默认 3
+cc collab agent-idle-ms-cg                   # 默认 30d
+cc collab proposal-stuck-ms                  # 默认 7d
+# 任意命令带 -s <n> 即可设置
+```
+
+**Agent 成熟度 V2**：
+
+```bash
+cc collab register-agent-cg-v2 <id> -r <realm> --role <role> [-m '<json>']
+cc collab agent-cg-v2 <id>
+cc collab list-agents-cg-v2 [-r <realm>] [-s <status>]
+cc collab activate-agent-cg | suspend-agent-cg | retire-agent-cg <id> [-r <reason>]
+cc collab set-agent-maturity-cg-v2 <id> <status> [-r <reason>] [-m '<json>']
+cc collab touch-agent-cg <id>            # 更新 lastSeenAt
+```
+
+**提案生命周期 V2**：
+
+```bash
+cc collab create-proposal-v2 <id> -p <proposer> -t <topic> [-m '<json>']
+cc collab proposal-v2 <id>
+cc collab list-proposals-v2 [-p <proposer>] [-s <status>]
+cc collab start-voting-v2 | approve-proposal-v2 | reject-proposal-v2 | withdraw-proposal-v2 <id>
+cc collab set-proposal-status-v2 <id> <status> [-r <reason>]
+```
+
+**批量 auto-flip + stats**：
+
+```bash
+cc collab auto-retire-idle-agents-cg          # 非终态 + 非 provisional 超时 → retired
+cc collab auto-withdraw-stuck-proposals       # voting 超时 → withdrawn
+cc collab stats-v2                            # 全枚举零初始化统计
+```
+
+**Stamp-once 时间戳**：`activatedAt`（跨 suspended→active 保留）/ `votingStartedAt` / `decidedAt`。
+计数：`getActiveAgentCountCgV2` 排除 provisional + retired；`getVotingProposalCountV2` 仅计 voting。
+
+测试：`__tests__/unit/collaboration-governance.test.js` 98 用例全部通过。
+

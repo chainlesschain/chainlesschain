@@ -1,5 +1,60 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-18 Update — CLI 0.119.0 · V2 Batch 6 · 13 Runtime Managers
+
+Later the same day that 0.106.0 (V2 batch 5) shipped, we pushed one more round: **all 13 runtime-manager modules** now carry the V2 canonical surface. CLI bumps `0.106.0 → 0.119.0` (tag `v5.0.2.10`).
+
+**13 V2 canonical surfaces** (strictly additive, backwards-compatible — in-memory governance layer, independent of legacy SQLite / file state):
+
+| Module | Maturity / work-unit enums | Active cap | Pending cap | Auto batchers |
+| --- | --- | --- | --- | --- |
+| `cc automation` V2 | `AUTOMATION_MATURITY_V2` + `EXECUTION_LIFECYCLE_V2` | per-owner 20 | per-flow 30 | autoPause + autoCancel |
+| `cc instinct` V2 | `PROFILE_MATURITY_V2` + `OBSERVATION_LIFECYCLE_V2` | per-user 5 | per-profile 100 | autoDormant + autoDiscard |
+| `cc memory` V2 | `ENTRY_MATURITY_V2` + `CONSOLIDATION_LIFECYCLE_V2` | per-owner 200 | per-owner 20 | autoStale + autoSupersede |
+| `cc note` V2 | `NOTE_MATURITY_V2` + `REVISION_LIFECYCLE_V2` | per-author 100 | per-note 50 | autoStale + autoDiscard |
+| `cc org` V2 | `ORG_MATURITY_V2` + `MEMBER_LIFECYCLE_V2` | per-owner 10 | per-org 500 | autoSuspend + autoExpire |
+| `cc permmem` V2 (new group) | `PIN_MATURITY_V2` + `RETENTION_JOB_LIFECYCLE_V2` | per-owner 100 | per-pin 10 | autoDormant + autoCancel |
+| `cc rcache` V2 (new group) | `PROFILE_MATURITY_V2` + `REFRESH_JOB_LIFECYCLE_V2` | per-owner 25 | per-profile 4 | autoSuspend + autoFail |
+| `cc scim` V2 | `IDENTITY_LIFECYCLE_V2` + `SYNC_JOB_V2` | per-tenant 5000 | per-idp 50 | autoSuspend + autoFail |
+| `cc session` V2 | `CONVERSATION_MATURITY_V2` + `TURN_LIFECYCLE_V2` | per-user 20 | per-session 100 | autoIdle + autoFail |
+| `cc social` V2 | `RELATIONSHIP_MATURITY_V2` + `THREAD_LIFECYCLE_V2` | per-user 1000 | per-user 500 | autoMute + autoArchive |
+| `cc sync` V2 | `RESOURCE_MATURITY_V2` + `SYNC_RUN_V2` | per-owner 50 | per-resource 20 | autoPause + autoFail |
+| `cc tokens` V2 | `BUDGET_MATURITY_V2` + `USAGE_RECORD_LIFECYCLE_V2` | per-owner 10 | per-budget 10000 | autoExhaust + autoCommit |
+| `cc wallet` V2 | `WALLET_MATURITY_V2` + `TX_LIFECYCLE_V2` | per-user 10 | per-wallet 100 | autoFreeze + autoCancel |
+
+Every module follows the same skeleton: `register*V2` / `get*V2` / `list*V2` / `set*StatusV2` + status shortcuts, per-owner active cap + per-container pending cap, stamp-once `activatedAt` / lifecycle timestamps, `auto*` batch methods, `get*StatsV2` and `_resetState*V2` (for test isolation). `cc rcache` coexists with the legacy LRU `cc tokens cache` without conflict.
+
+### Regression tests (2026-04-18 evening)
+
+| Tier | Files | Tests | Duration |
+| --- | --- | --- | --- |
+| CLI Unit | 232 | **9219/9229** (10 skipped) | ~130s |
+| CLI Integration | 40 | **696/696** | 38s |
+| CLI E2E | 38 | **565/565** | 427s |
+| Desktop Unit (core+database) | 15 | **836/846** (10 skipped) | 141s |
+| Desktop Unit (renderer stores) | 16 | **486/486** | 25s |
+| Desktop Unit (ai-engine sample) | 3 | **265/346** (81 skipped) | 28s |
+
+This batch adds **560 new V2 unit tests** (automation 46 + instinct 48 + memory 47 + note 49 + org 43 + permanent-memory 46 + response-cache 46 + scim 39 + session 33 + social 34 + sync 39 + token-tracker 49 + wallet 41) over 0.106.0, zero regressions.
+
+**npm**: `npm i -g chainlesschain@0.119.0` (aliases `cc` / `clc` / `clchain`)
+
+---
+
+## 2026-04-18 Update — CLI 0.106.0 · V2 Batch 5 · collab + UEBA + threat-intel
+
+Continuing yesterday's 0.104.0 V2 batch 4, today lands batch 5: three more command families gain V2 canonical surfaces — `cc collab` + `cc compliance ueba` + `cc compliance threat-intel`. CLI bumps `0.104.0 → 0.106.0` (tag `v5.0.2.10`).
+
+**3 V2 canonical surfaces** (strictly additive, backwards-compatible):
+
+- **`cc collab` V2**: 4-state agent maturity (`provisional/active/suspended/retired`, `suspended→active` recovery) + 5-state proposal lifecycle (`draft/voting/approved/rejected/withdrawn`, 3 terminals), per-realm active-agent cap = 10, per-proposer voting-proposal cap = 3, `autoRetireIdleAgentsCgV2` + `autoWithdrawStuckProposalsV2`.
+- **`cc compliance ueba` V2**: 4-state baseline maturity (`draft/active/stale/archived`, `stale→active` recovery) + 5-state investigation lifecycle (`open/investigating/closed/dismissed/escalated`, 3 terminals), per-owner active-baseline cap = 20, per-analyst open-investigation cap = 10 (enforced at `openInvestigationV2` creation), `autoMarkStaleBaselinesV2` + `autoEscalateStuckInvestigationsV2`.
+- **`cc compliance threat-intel` V2**: 4-state feed maturity (`pending/trusted/deprecated/retired`, `deprecated→trusted` recovery) + 5-state indicator lifecycle (`pending/active/expired/revoked/superseded`, 3 terminals), per-owner active-feed cap = 15, per-feed active-indicator cap = 500, `autoDeprecateIdleFeedsV2` + `autoExpireStaleIndicatorsV2`. The V2 layer sits on top of the SQLite IoC catalog and is fully independent of legacy `importStixBundle`/`matchObservable`.
+
+This batch adds **107 new V2 unit tests** (collab 37 + ueba 29 + threat-intel 41) over 0.104.0, zero regressions.
+
+---
+
 ## 2026-04-17 Update — CLI 0.66.0 · 7 New + 8 V2 Enhanced
 
 Later the same day, a parallel session landed **7 brand-new CLI command groups** and **V2 enhancements to 8 existing commands**, all published together as `chainlesschain@0.66.0` (tag `v5.0.2.34`).

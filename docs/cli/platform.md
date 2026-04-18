@@ -935,3 +935,436 @@ cc tech auto-mark-stale-profiles | auto-fail-stuck-runs
 ```
 
 > **未移植**: 真实 crawler-based 开源仓库扫描；图数据库驱动的知识图谱；机器学习 pattern 提取。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (profile 4-state w/ stale→active 恢复 + learning-run 3-terminal 生命周期)、双维度上限 (per-owner active profile + per-learner studying run)、throwing `createProfileV2`/`enqueueRunV2` + 7 shortcuts、stamp-once `activatedAt` + `startedAt`、`touchProfileV2` + 2 批量 auto-flip、全枚举零初始化 `getTechLearningStatsV2`。
+
+## Collaboration Governance V2 (CLI 0.105.0)
+
+**Target**: `packages/cli/src/lib/collaboration-governance.js` · `packages/cli/src/commands/collab.js`
+
+**V2 面**:
+- `AGENT_MATURITY_CG_V2` = { PROVISIONAL, ACTIVE, SUSPENDED, RETIRED(terminal) } — suspended→active 恢复
+- `PROPOSAL_LIFECYCLE_V2` = { DRAFT, VOTING, APPROVED, REJECTED, WITHDRAWN } (3 terminals)
+- Config: `max-active-agents-per-realm=10`, `max-voting-proposals-per-proposer=3`, `agent-idle-ms-cg=30d`, `proposal-stuck-ms=7d`
+- 计数: `getActiveAgentCountCgV2` 排除 provisional+retired; `getVotingProposalCountV2` 仅 voting
+- Stamp-once: `activatedAt` (跨 suspended→active 保留), `votingStartedAt`, `decidedAt`
+- Auto-flip: `autoRetireIdleAgentsCgV2({now})` 非终态非 provisional → retired; `autoWithdrawStuckProposalsV2({now})` voting → withdrawn
+
+**命令**:
+```bash
+cc collab agent-maturities-cg-v2 | proposal-lifecycles-v2 | stats-v2
+cc collab register-agent-cg-v2 <id> -r <realm> --role <role>
+cc collab create-proposal-v2 <id> -p <proposer> -t <topic>
+cc collab activate/suspend/retire-agent-cg | touch-agent-cg <id>
+cc collab start-voting-v2 | approve/reject/withdraw-proposal-v2 <id>
+cc collab auto-retire-idle-agents-cg | auto-withdraw-stuck-proposals
+```
+
+> **未移植**: 真实 raft/PBFT/Paxos 共识；ML-driven auto-merge；real-time quality monitoring。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (CG agent 4-state w/ suspended→active 恢复 + proposal 5-state w/ 3 terminals)、双维度上限 (per-realm active agent 排除 provisional + per-proposer voting proposal)、throwing `registerAgentCgV2`/`createProposalV2` + 8 shortcuts (4 agent + 4 proposal)、stamp-once `activatedAt`/`votingStartedAt`/`decidedAt`、`touchAgentCgV2` + 2 批量 auto-flip、全枚举零初始化 `getCollaborationGovernanceStatsV2`。
+
+## Compliance UEBA V2 (Phase 19 UEBA 扩展)
+
+**Target**: `packages/cli/src/lib/ueba.js` · `packages/cli/src/commands/compliance.js`
+
+**V2 面**:
+- `BASELINE_MATURITY_V2` = { DRAFT, ACTIVE, STALE, ARCHIVED(terminal) } — stale→active 恢复
+- `INVESTIGATION_V2` = { OPEN, INVESTIGATING, CLOSED, DISMISSED, ESCALATED } (3 terminals)
+- Config: `max-active-baselines-per-owner=20`, `max-open-investigations-per-analyst=10`, `baseline-stale-ms=30d`, `investigation-stuck-ms=14d`
+- 计数: `getActiveBaselineCountV2` 仅 active; `getOpenInvestigationCountV2` 非终态 (open+investigating)
+- Cap 例外: per-analyst 上限在 `openInvestigationV2` **创建时**强制(非过渡时),因为 open 本身就是起始态
+- Stamp-once: `activatedAt` (跨 stale→active 保留), `startedAt` (open→investigating), `closedAt` (任意终态)
+- Auto-flip: `autoMarkStaleBaselinesV2({now})` active → stale; `autoEscalateStuckInvestigationsV2({now})` investigating → escalated
+
+**命令**:
+```bash
+cc compliance ueba baseline-maturities-v2 | investigation-lifecycles-v2 | stats-v2
+cc compliance ueba create-baseline-v2 <id> -o <owner> -e <entity>
+cc compliance ueba open-investigation-v2 <id> -a <analyst> -b <baseline>
+cc compliance ueba activate/mark-stale/archive-baseline-v2 <id>
+cc compliance ueba refresh-baseline-v2 <id>
+cc compliance ueba start/close/dismiss/escalate-investigation-v2 <id>
+cc compliance ueba auto-mark-stale-baselines | auto-escalate-stuck-investigations
+```
+
+> **未移植**: 真实 ML 异常检测;图神经网络行为相关性;SIEM 告警集成。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (baseline 4-state w/ stale→active 恢复 + investigation 5-state w/ 3 terminals)、双维度上限 (per-owner active baseline + per-analyst open investigation 在 openInvestigationV2 创建时强制)、throwing `createBaselineV2`/`openInvestigationV2` + 7 shortcuts、stamp-once `activatedAt`/`startedAt`/`closedAt`、`refreshBaselineV2` + 2 批量 auto-flip、全枚举零初始化 `getUebaStatsV2`。
+
+## Compliance Threat-Intel V2 (Phase 19 STIX 扩展)
+
+**Target**: `packages/cli/src/lib/threat-intel.js` · `packages/cli/src/commands/compliance.js`
+
+**说明**: V2 是叠加在 SQLite IoC catalog **之上**的内存态 feed/indicator 生命周期治理层,与遗留 `importStixBundle`/`matchObservable`/`listIndicators` SQLite 流程**独立**。
+
+**V2 面**:
+- `FEED_MATURITY_V2` = { PENDING, TRUSTED, DEPRECATED, RETIRED(terminal) } — deprecated→trusted 恢复
+- `INDICATOR_LIFECYCLE_V2` = { PENDING, ACTIVE, EXPIRED, REVOKED, SUPERSEDED } (3 terminals)
+- Config: `max-active-feeds-per-owner=15`, `max-active-indicators-per-feed=500`, `feed-idle-ms=60d`, `indicator-stale-ms=90d`
+- 计数: `getActiveFeedCountV2` 仅 trusted; `getActiveIndicatorCountV2` 仅 active
+- Cap: per-owner active-feed 仅在 `pending → trusted` 强制(deprecated→trusted 恢复豁免);per-feed active-indicator 仅在 `pending → active` 强制
+- Stamp-once: feed `activatedAt` (跨 deprecated→trusted 保留); indicator `activatedAt` (pending→active); indicator `resolvedAt` (任意终态)
+- Auto-flip: `autoDeprecateIdleFeedsV2({now})` trusted → deprecated; `autoExpireStaleIndicatorsV2({now})` active → expired
+
+**命令**:
+```bash
+cc compliance threat-intel feed-maturities-v2 | indicator-lifecycles-v2 | stats-v2
+cc compliance threat-intel register-feed-v2 <id> -o <owner> -n <name>
+cc compliance threat-intel create-indicator-v2 <id> -f <feedId> -t <iocType> -v <value>
+cc compliance threat-intel trust/deprecate/retire-feed-v2 | touch-feed-v2 <id>
+cc compliance threat-intel activate/expire/revoke/supersede-indicator-v2 | refresh-indicator-v2 <id>
+cc compliance threat-intel auto-deprecate-idle-feeds | auto-expire-stale-indicators
+```
+
+> **未移植**: 真实 STIX 2.1 TAXII 服务订阅;ML-driven IoC 评分;cross-feed deduplication & confidence merging。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (feed 4-state w/ deprecated→trusted 恢复 + indicator 5-state w/ 3 terminals)、双维度上限 (per-owner active feed + per-feed active indicator)、throwing `registerFeedV2`/`createIndicatorV2` + 9 shortcuts、stamp-once `activatedAt`(feed+indicator)/`resolvedAt`、`touchFeedV2`/`refreshIndicatorV2` + 2 批量 auto-flip、全枚举零初始化 `getThreatIntelStatsV2`、SQLite catalog 与 V2 内存层完全独立。
+
+## Org Manager V2 (Phase 14 Org 扩展)
+
+**Target**: `packages/cli/src/lib/org-manager.js` · `packages/cli/src/commands/org.js`
+
+**说明**: V2 是叠加在 SQLite org/team/approval 表之上的内存态 org/member 生命周期治理层,与遗留 `createOrg`/`inviteMember`/`getMembers` SQLite 流程**独立**。
+
+**V2 面**:
+- `ORG_MATURITY_V2` = { PROVISIONAL, ACTIVE, SUSPENDED, ARCHIVED(terminal) } — suspended→active 恢复
+- `MEMBER_LIFECYCLE_V2` = { INVITED, ACTIVE, SUSPENDED, REVOKED, DEPARTED } (2 terminals)
+- Config: `max-active-orgs-per-owner=5`, `max-active-members-per-org=200`, `org-idle-ms=90d`, `invite-stale-ms=30d`
+- 计数: `getActiveOrgCountV2` 仅 active; `getActiveMemberCountV2` 仅 active
+- Cap: per-owner active-org 仅在 `provisional → active` 强制(suspended→active 恢复豁免);per-org active-member 仅在 `invited → active` 强制
+- Stamp-once: org `activatedAt` (跨 suspended→active 保留); member `activatedAt` (跨 suspended→active 保留); member `departedAt` (任意终态)
+- `registerOrgV2`/`inviteMemberV2` 接受 `now` 覆盖以支持确定性测试
+- Auto-flip: `autoArchiveIdleOrgsV2({now})` 非 provisional 非 archived → archived; `autoRevokeStaleInvitesV2({now})` invited → revoked
+
+**命令**:
+```bash
+cc org maturities-v2 | member-lifecycles-v2 | stats-v2
+cc org register-org-v2 <id> -o <owner> -n <name>
+cc org invite-member-v2 <id> -o <orgId> -u <userId> [-r <role>]
+cc org activate/suspend/archive-org-v2 | touch-org-v2 <id>
+cc org activate/suspend/revoke/depart-member-v2 <id>
+cc org auto-archive-idle-orgs | auto-revoke-stale-invites
+```
+
+> **未移植**: 真实 RBAC 与团队角色继承;org 跨域联邦;SaaS 计费集成。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (org 4-state w/ suspended→active 恢复 + member 5-state w/ suspended→active 恢复 + 2 terminals)、双维度上限 (per-owner active org + per-org active member)、throwing `registerOrgV2`/`inviteMemberV2` + 8 shortcuts、stamp-once `activatedAt`(org+member)/`departedAt`、`touchOrgV2` + 2 批量 auto-flip、全枚举零初始化 `getOrgManagerStatsV2`、SQLite tables 与 V2 内存层完全独立。
+
+## Wallet Manager V2 (Wallet 扩展)
+
+**Target**: `packages/cli/src/lib/wallet-manager.js` · `packages/cli/src/commands/wallet.js`
+
+**说明**: V2 是叠加在 SQLite wallet/asset/transaction 表之上的内存态 wallet/tx 生命周期治理层,与遗留 `createWallet`/`transferAsset`/`getTransactions` SQLite 流程**独立**。
+
+**V2 面**:
+- `WALLET_MATURITY_V2` = { PROVISIONAL, ACTIVE, FROZEN, RETIRED(terminal) } — frozen→active 恢复
+- `TX_LIFECYCLE_V2` = { PENDING, SUBMITTED, CONFIRMED, FAILED, REJECTED } (3 terminals)
+- Config: `max-active-wallets-per-owner=10`, `max-pending-tx-per-wallet=25`, `wallet-idle-ms=180d`, `tx-stuck-ms=1d`
+- 计数: `getActiveWalletCountV2` 仅 active; `getPendingTxCountV2` pending+submitted (in-flight)
+- Cap: per-owner active-wallet 仅在 `provisional → active` 强制(frozen→active 恢复豁免);per-wallet pending-tx 在 `createTxV2` **创建时**强制
+- Stamp-once: wallet `activatedAt` (跨 frozen→active 保留); tx `submittedAt` (pending→submitted); tx `settledAt` (任意终态)
+- `registerWalletV2`/`createTxV2` 接受 `now` 覆盖
+- Auto-flip: `autoRetireIdleWalletsV2({now})` 非 provisional 非 retired → retired; `autoFailStuckTxV2({now})` submitted → failed (基于 submittedAt)
+
+**命令**:
+```bash
+cc wallet maturities-v2 | tx-lifecycles-v2 | stats-v2
+cc wallet register-wallet-v2 <id> -o <owner> -a <address>
+cc wallet create-tx-v2 <id> -w <walletId> -k <kind> [-a <amount>]
+cc wallet activate/freeze/retire-wallet-v2 | touch-wallet-v2 <id>
+cc wallet submit/confirm/fail/reject-tx-v2 <id>
+cc wallet auto-retire-idle-wallets | auto-fail-stuck-tx
+```
+
+> **未移植**: 真实链上签名/广播;HD wallet 派生;multi-sig 支持;真实 gas 估算。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (wallet 4-state w/ frozen→active 恢复 + tx 5-state w/ 3 terminals)、双维度上限 (per-owner active wallet 排除 frozen + per-wallet pending+submitted tx 在 createTxV2 创建时强制)、throwing `registerWalletV2`/`createTxV2` + 8 shortcuts、stamp-once `activatedAt`(wallet)/`submittedAt`/`settledAt`、`touchWalletV2` + 2 批量 auto-flip、全枚举零初始化 `getWalletManagerStatsV2`、SQLite tables 与 V2 内存层完全独立。
+
+### SCIM Manager V2 — `cc scim ...-v2` (Phase enterprise/SCIM)
+
+**Lib**: `packages/cli/src/lib/scim-manager.js` (V2 surface追加 ~330 LOC,与 SCIM SQLite tables 完全独立)
+**测试**: `__tests__/unit/scim-manager.test.js` (62 V2 tests)
+
+**枚举**:
+- `IDENTITY_LIFECYCLE_V2` = `{PENDING, PROVISIONED, SUSPENDED, DEPROVISIONED}` (4 states, deprovisioned terminal, suspended→provisioned 恢复)
+- `SYNC_JOB_V2` = `{QUEUED, RUNNING, SUCCEEDED, FAILED, CANCELLED}` (5 states, 3 terminals)
+
+**默认配置**:
+- `SCIM_DEFAULT_MAX_PROVISIONED_PER_CONNECTOR` = 1000
+- `SCIM_DEFAULT_MAX_RUNNING_SYNC_PER_CONNECTOR` = 2
+- `SCIM_DEFAULT_IDENTITY_IDLE_MS` = 90 天
+- `SCIM_DEFAULT_SYNC_STUCK_MS` = 30 分钟
+
+**命令**:
+```bash
+cc scim identity-lifecycles-v2 | sync-lifecycles-v2 | stats-v2
+cc scim register-identity-v2 <id> -c <connectorId> -e <externalId> [-m <json>]
+cc scim create-sync-job-v2 <id> -c <connectorId> [-k <kind>] [-m <json>]
+cc scim provision/suspend/deprovision-identity-v2 | touch-identity-v2 <id>
+cc scim start/succeed/fail/cancel-sync-job-v2 <id>
+cc scim auto-deprovision-idle-v2 | auto-fail-stuck-sync-v2
+```
+
+> **未移植**: 真实 SCIM 2.0 PATCH 操作语义;真实 IdP 双向同步;Schema discovery & extensions。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (identity 4-state w/ suspended→provisioned 恢复 + syncJob 5-state w/ 3 terminals)、双维度上限 (per-connector provisioned 在 pending→provisioned only + per-connector running 在 queued→running)、throwing `registerIdentityV2`/`createSyncJobV2` + 8 shortcuts、stamp-once `provisionedAt`/`deprovisionedAt`/`startedAt`/`finishedAt`、`touchIdentityV2` + 2 批量 auto-flip、全枚举零初始化 `getScimManagerStatsV2`、SQLite SCIM tables 与 V2 内存层完全独立。
+
+### Sync Manager V2 — `cc sync ...-v2` (Phase sync/governance)
+
+**Lib**: `packages/cli/src/lib/sync-manager.js` (V2 surface追加 ~330 LOC,与 sync_state/conflicts/log SQLite tables 完全独立)
+**测试**: `__tests__/unit/sync-manager.test.js` (65 V2 tests)
+
+**枚举**:
+- `RESOURCE_MATURITY_V2` = `{PENDING, ACTIVE, PAUSED, ARCHIVED}` (4 states, archived terminal, paused→active 恢复)
+- `SYNC_RUN_V2` = `{QUEUED, RUNNING, SUCCEEDED, FAILED, CANCELLED}` (5 states, 3 terminals)
+
+**默认配置**:
+- `SYNC_DEFAULT_MAX_ACTIVE_RESOURCES_PER_OWNER` = 200
+- `SYNC_DEFAULT_MAX_RUNNING_RUNS_PER_RESOURCE` = 1
+- `SYNC_DEFAULT_RESOURCE_IDLE_MS` = 30 天
+- `SYNC_DEFAULT_RUN_STUCK_MS` = 15 分钟
+
+**命令**:
+```bash
+cc sync resource-maturities-v2 | run-lifecycles-v2 | stats-v2
+cc sync register-resource-v2 <id> -o <owner> -k <kind> [-m <json>]
+cc sync create-sync-run-v2 <id> -r <resourceId> [-k <kind>] [-m <json>]
+cc sync activate/pause/archive-resource-v2 | touch-resource-v2 <id>
+cc sync start/succeed/fail/cancel-sync-run-v2 <id>
+cc sync auto-archive-idle-v2 | auto-fail-stuck-runs-v2
+```
+
+> **未移植**: 真实远程 push/pull 协议;增量 diff/merge;冲突 UI 选择器。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (resource 4-state w/ paused→active 恢复 + syncRun 5-state w/ 3 terminals)、双维度上限 (per-owner active resource 在 pending→active only + per-resource running run 在 queued→running)、throwing `registerResourceV2`/`createSyncRunV2` + 8 shortcuts、stamp-once `activatedAt`/`archivedAt`/`startedAt`/`finishedAt`、`touchResourceV2` + 2 批量 auto-flip、全枚举零初始化 `getSyncManagerStatsV2`、SQLite sync tables 与 V2 内存层完全独立。
+
+### Session Manager V2 — `cc session ...-v2` (Phase session/governance)
+
+**Lib**: `packages/cli/src/lib/session-manager.js` (V2 surface追加 ~330 LOC,与 llm_sessions SQLite table 完全独立)
+**测试**: `__tests__/unit/session-manager.test.js` (77 V2 tests)
+
+**枚举**:
+- `CONVERSATION_MATURITY_V2` = `{DRAFT, ACTIVE, PAUSED, ARCHIVED}` (4 states, archived terminal, paused→active 恢复)
+- `TURN_LIFECYCLE_V2` = `{PENDING, STREAMING, COMPLETED, FAILED, CANCELLED}` (5 states, 3 terminals)
+
+**默认配置**:
+- `SESSION_DEFAULT_MAX_ACTIVE_CONV_PER_USER` = 50
+- `SESSION_DEFAULT_MAX_PENDING_TURNS_PER_CONV` = 3
+- `SESSION_DEFAULT_CONV_IDLE_MS` = 14 天
+- `SESSION_DEFAULT_TURN_STUCK_MS` = 5 分钟
+
+**命令**:
+```bash
+cc session conversation-maturities-v2 | turn-lifecycles-v2 | stats-v2
+cc session register-conversation-v2 <id> -u <userId> -m <model>
+cc session create-turn-v2 <id> -c <conversationId> [-r <role>]
+cc session activate/pause/archive-conversation-v2 | touch-conversation-v2 <id>
+cc session stream/complete/fail/cancel-turn-v2 <id>
+cc session auto-archive-idle-conv-v2 | auto-fail-stuck-turns-v2
+```
+
+> **未移植**: 真实 LLM 流式接入;真实 token 累计;真实多模态附件追踪。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (conversation 4-state w/ paused→active 恢复 + turn 5-state w/ 3 terminals)、双维度上限 (per-user active conv 在 draft→active only + per-conv pending+streaming turn 在 createTurnV2 创建时强制)、throwing `registerConversationV2`/`createTurnV2` + 8 shortcuts、stamp-once `activatedAt`/`archivedAt`/`streamingStartedAt`/`settledAt`、`touchConversationV2` + 2 批量 auto-flip、全枚举零初始化 `getSessionManagerStatsV2`、SQLite llm_sessions 与 V2 内存层完全独立。
+
+### Social Manager V2 — `cc social ...-v2` (Phase social/governance)
+
+**Lib**: `packages/cli/src/lib/social-manager.js` (V2 surface追加 ~340 LOC,与 social_contacts/friends/posts/messages SQLite tables 完全独立)
+**测试**: `__tests__/unit/social-manager.test.js` (75 V2 tests)
+
+**枚举**:
+- `RELATIONSHIP_MATURITY_V2` = `{PENDING, CONNECTED, MUTED, BLOCKED}` (4 states, blocked terminal, muted→connected 恢复)
+- `THREAD_LIFECYCLE_V2` = `{OPEN, ENGAGED, RESOLVED, ABANDONED, REPORTED}` (5 states, 3 terminals;open 必须先 engage 才能 resolve)
+
+**默认配置**:
+- `SOCIAL_DEFAULT_MAX_CONNECTED_PER_USER` = 500
+- `SOCIAL_DEFAULT_MAX_OPEN_THREADS_PER_USER` = 50
+- `SOCIAL_DEFAULT_RELATIONSHIP_IDLE_MS` = 180 天
+- `SOCIAL_DEFAULT_THREAD_STUCK_MS` = 7 天
+
+**命令**:
+```bash
+cc social relationship-maturities-v2 | thread-lifecycles-v2 | stats-v2
+cc social register-relationship-v2 <id> -u <userId> -p <peerId>
+cc social create-thread-v2 <id> -u <userId> -t <topic>
+cc social connect/mute/block-relationship-v2 | touch-relationship-v2 <id>
+cc social engage/resolve/abandon/report-thread-v2 <id>
+cc social auto-mute-idle-rel-v2 | auto-abandon-stuck-threads-v2
+```
+
+> **未移植**: 真实 P2P 联邦同步;真实 IPFS 帖子持久化;反垃圾/审核 ML 模型。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (relationship 4-state w/ muted→connected 恢复 + thread 5-state w/ 3 terminals,open 必须 engage 后再 resolve)、双维度上限 (per-user connected 在 pending→connected only + per-user open+engaged thread 在 createThreadV2 创建时强制)、throwing `registerRelationshipV2`/`createThreadV2` + 8 shortcuts、stamp-once `connectedAt`/`blockedAt`/`engagedAt`/`settledAt`、`touchRelationshipV2` + 2 批量 auto-flip、全枚举零初始化 `getSocialManagerStatsV2`、SQLite social tables 与 V2 内存层完全独立。
+
+## Instinct Manager V2 (cli 0.114.0)
+
+V2 治理层位于 `src/lib/instinct-manager.js`,在已有 SQLite `instincts` 表之上叠加内存态 profile/observation 治理(legacy `recordInstinct`/`getInstincts`/`decayInstincts` 不变):
+
+- **Profile 成熟度** (4 状态, archived 终态, dormant→active 恢复): `pending → {active, archived}` · `active → {dormant, archived}` · `dormant → {active, archived}` · `archived` 终态
+- **Observation 生命周期** (5 状态, 2 终态: discarded/promoted): `captured → {reviewed, discarded}` · `reviewed → {reinforced, discarded, promoted}` · `reinforced → {promoted, discarded}` · `captured` 不能直接 promote (必须先 review)
+- **Caps**: 每用户 active-profile 上限 (默认 5,仅在 `pending → active` 强制,`dormant → active` 恢复豁免) · 每 profile pending-obs 上限 (默认 100,统计 captured + reviewed,在 `createObservationV2` 创建时强制)
+- **Stamp-once**: `activatedAt` (首次 pending→active,跨 dormant 恢复保留) · `archivedAt` · `reviewedAt` (首次 captured→reviewed) · `settledAt` (任意 observation 终态 discarded/promoted)
+- **Auto-flip**: `autoDormantIdleProfilesV2({ now })` (active→dormant,默认 60 天阈值) · `autoDiscardStaleObservationsV2({ now })` (captured/reviewed→discarded,默认 14 天阈值)
+
+```bash
+cc instinct profile-maturities-v2 | observation-lifecycles-v2 | stats-v2
+cc instinct register-profile-v2 <id> -u <userId> -c <category>
+cc instinct create-observation-v2 <id> -p <profileId> -s <signal>
+cc instinct activate/dormant/archive-profile-v2 | touch-profile-v2<id>
+cc instinct review/reinforce/promote/discard-observation-v2 <id>
+cc instinct auto-dormant-idle-profiles-v2 | auto-discard-stale-observations-v2
+```
+
+> **未移植**: 真实跨会话观察聚合;LLM-based 偏好评估器;长期 RL 自举权重。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (profile 4-state w/ dormant→active 恢复 + observation 5-state w/ 2 terminals,captured 必须先 review 才能 promote)、双维度上限 (per-user active 在 pending→active only + per-profile captured+reviewed 在 createObservationV2 创建时强制)、throwing `registerProfileV2`/`createObservationV2` + 7 shortcuts、stamp-once `activatedAt`/`archivedAt`/`reviewedAt`/`settledAt`、`touchProfileV2` + 2 批量 auto-flip、全枚举零初始化 `getInstinctManagerStatsV2`、SQLite instincts 表与 V2 内存层完全独立。
+
+## Memory Manager V2 (cli 0.115.0)
+
+V2 治理层位于 `src/lib/memory-manager.js`,在已有 SQLite `memory_entries` 表(及文件系统 daily notes / MEMORY.md)之上叠加内存态 entry / consolidation-job 治理(legacy `addMemory`/`searchMemory`/`listMemory`/`deleteMemory` 与 `appendDailyNote`/`updateMemoryFile` 不变):
+
+- **Entry 成熟度** (4 状态, archived 终态, parked→active 恢复): `pending → {active, archived}` · `active → {parked, archived}` · `parked → {active, archived}` · `archived` 终态
+- **Consolidation-job 生命周期** (5 状态, 3 终态: succeeded/failed/cancelled): `queued → {running, cancelled}` · `running → {succeeded, failed, cancelled}`
+- **Caps**: 每 category active-entry 上限 (默认 200,仅在 `pending → active` 强制,`parked → active` 恢复豁免) · 每 source running-job 上限 (默认 2,仅在 `queued → running` 强制)
+- **Stamp-once**: `activatedAt` (首次 pending→active,跨 parked 恢复保留) · `archivedAt` · `startedAt` (首次 queued→running) · `finishedAt` (任意 job 终态 succeeded/failed/cancelled)
+- **Auto-flip**: `autoParkIdleEntriesV2({ now })` (active→parked,默认 90 天阈值) · `autoFailStuckJobsV2({ now })` (running→failed,默认 10 分钟阈值)
+
+```bash
+cc memory entry-maturities-v2 | consolidation-lifecycles-v2 | stats-v2
+cc memory register-entry-v2 <id> -c <category> -s <summary>
+cc memory create-job-v2 <id> -s <source> -c <scope>
+cc memory activate/park/archive-entry-v2 | touch-entry-v2 <id>
+cc memory start/succeed/fail/cancel-job-v2 <id>
+cc memory auto-park-idle-entries-v2 | auto-fail-stuck-jobs-v2
+```
+
+> **未移植**: 真实 LLM-based 摘要/聚类工作流;BM25 增量索引;跨 daily-notes 的语义合并。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (entry 4-state w/ parked→active 恢复 + job 5-state w/ 3 terminals)、双维度上限 (per-category active 在 pending→active only + per-source running 在 queued→running only)、throwing `registerEntryV2`/`createConsolidationJobV2` + 7 shortcuts、stamp-once `activatedAt`/`archivedAt`/`startedAt`/`finishedAt`、`touchEntryV2` + 2 批量 auto-flip、全枚举零初始化 `getMemoryManagerStatsV2`、SQLite memory_entries 表与 V2 内存层完全独立。
+
+## Note Versioning V2 (cli 0.116.0)
+
+V2 治理层位于 `src/lib/note-versioning.js`,在已有 SQLite `note_versions` 表之上叠加内存态 note + revision 治理(legacy `saveVersion`/`getHistory`/`getVersion`/`revertToVersion`/`simpleDiff`/`formatDiff` 不变):
+
+- **Note 成熟度** (4 状态, archived 终态, locked→active 恢复): `draft → {active, archived}` · `active → {locked, archived}` · `locked → {active, archived}` (恢复 — unlock) · `archived` 终态
+- **Revision 生命周期** (5 状态, 3 终态): `proposed → {reviewed, discarded}` · `reviewed → {applied, discarded, superseded}` · `applied → {superseded}` (applied **非终态** — 仍可被新 revision supersede) · 终态: superseded, discarded
+- **Caps**: 每作者 active-note 上限 (默认 100,仅在 `draft → active` 强制,`locked → active` 恢复豁免) · 每 note open-revision 上限 (默认 10,统计 proposed + reviewed,在 `createRevisionV2` 创建时强制)
+- **Stamp-once**: `activatedAt` (首次 draft→active,跨 locked 恢复保留) · `archivedAt` · `reviewedAt` (首次 proposed→reviewed) · `appliedAt` (首次 reviewed→applied,**非** settledAt) · `settledAt` (任意 revision 终态 superseded/discarded)
+- **Auto-flip**: `autoLockIdleNotesV2({ now })` (active→locked,默认 30 天阈值) · `autoDiscardStaleRevisionsV2({ now })` (proposed/reviewed→discarded,默认 7 天阈值)
+
+```bash
+cc note note-maturities-v2 | revision-lifecycles-v2 | stats-v2
+cc note register-note-v2 <id> -a <authorId> -t <title>
+cc note create-revision-v2 <id> -n <noteId> -s <summary>
+cc note activate/lock/archive-note-v2 | touch-note-v2 <id>
+cc note review/apply/supersede/discard-revision-v2 <id>
+cc note auto-lock-idle-notes-v2 | auto-discard-stale-revisions-v2
+```
+
+> **未移植**: 真实 OT/CRDT 协同编辑;LLM-based 自动 review;diff 阻塞规则。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (note 4-state w/ locked→active 恢复 + revision 5-state w/ 3 terminals 且 applied **非终态** 可被新 rev supersede)、双维度上限 (per-author active 在 draft→active only + per-note proposed+reviewed 在 createRevisionV2 创建时强制)、throwing `registerNoteV2`/`createRevisionV2` + 7 shortcuts、stamp-once `activatedAt`/`archivedAt`/`reviewedAt`/`appliedAt` (非 settledAt) /`settledAt`、`touchNoteV2` + 2 批量 auto-flip、全枚举零初始化 `getNoteVersioningStatsV2`、SQLite note_versions 表与 V2 内存层完全独立。
+
+## Token Tracker V2 (cli 0.117.0)
+
+V2 治理层位于 `src/lib/token-tracker.js`,在已有 SQLite `llm_usage_log` 表之上叠加内存态 budget + usage-record 治理(legacy `recordUsage`/`getUsageStats`/`getCostBreakdown`/`getRecentUsage`/`getTodayStats`/`calculateCost` 不变):
+
+- **Budget 成熟度** (4 状态, archived 终态, suspended→active 恢复): `planning → {active, archived}` · `active → {suspended, archived}` · `suspended → {active, archived}` (恢复) · `archived` 终态
+- **Usage Record 生命周期** (5 状态, 3 终态: billed/rejected/refunded): `pending → {recorded, rejected}` · `recorded → {billed, rejected, refunded}` · 终态: billed, rejected, refunded
+- **Caps**: 每 owner active-budget 上限 (默认 10,仅在 `planning → active` 强制,`suspended → active` 恢复豁免) · 每 budget pending-record 上限 (默认 500,统计 pending + recorded,在 `createUsageRecordV2` 创建时强制)
+- **Stamp-once**: `activatedAt` (首次 planning→active,跨 suspended 恢复保留) · `archivedAt` · `recordedAt` (首次 pending→recorded) · `settledAt` (任意 record 终态 billed/rejected/refunded)
+- **Special**: `units` 接受 `0` (非负有限数);拒绝负数/NaN
+- **Auto-flip**: `autoSuspendIdleBudgetsV2({ now })` (active→suspended,默认 30 天阈值) · `autoRejectStaleRecordsV2({ now })` (pending/recorded→rejected,默认 1 小时阈值)
+
+```bash
+cc tokens budget-maturities-v2 | usage-record-lifecycles-v2 | stats-v2
+cc tokens register-budget-v2 <id> -o <ownerId> -l <label>
+cc tokens create-usage-record-v2 <id> -b <budgetId> -u <units>
+cc tokens activate/suspend/archive-budget-v2 | touch-budget-v2 <id>
+cc tokens record/bill/reject/refund-usage-v2 <id>
+cc tokens auto-suspend-idle-budgets-v2 | auto-reject-stale-records-v2
+```
+
+> **未移植**: 真实计费/出账系统集成;LLM 调用前置预算检查;退款审批工作流。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (budget 4-state w/ suspended→active 恢复 + record 5-state w/ 3 terminals)、双维度上限 (per-owner active 在 planning→active only + per-budget pending+recorded 在 createUsageRecordV2 创建时强制)、throwing `registerBudgetV2`/`createUsageRecordV2` + 7 shortcuts、stamp-once `activatedAt`/`archivedAt`/`recordedAt`/`settledAt`、`touchBudgetV2` + 2 批量 auto-flip、全枚举零初始化 `getTokenTrackerStatsV2`、SQLite llm_usage_log 表与 V2 内存层完全独立。
+
+## Automation Engine V2 (cli 0.118.0)
+
+V2 治理层位于 `src/lib/automation-engine.js`,在已有 SQLite automation 表之上叠加内存态 automation + execution 治理(legacy `createFlow`/`executeFlow`/`fireTrigger`/连接器/模板/触发器/统计 不变):
+
+- **Automation 成熟度** (4 状态, retired 终态, paused→active 恢复): `draft → {active, retired}` · `active → {paused, retired}` · `paused → {active, retired}` (恢复) · `retired` 终态
+- **Execution 生命周期** (5 状态, 3 终态: succeeded/failed/cancelled): `queued → {running, cancelled}` · `running → {succeeded, failed, cancelled}` · 终态: succeeded, failed, cancelled
+- **Caps**: 每 owner active-automation 上限 (默认 20,仅在 `draft → active` 强制,`paused → active` 恢复豁免) · 每 automation running-execution 上限 (默认 3,在 `queued → running` 强制,因为 execution 创建时为 queued)
+- **Stamp-once**: `activatedAt` (首次 draft→active,跨 paused 恢复保留) · `retiredAt` · `startedAt` (首次 queued→running) · `settledAt` (任意 execution 终态 succeeded/failed/cancelled)
+- **Hook 旁路**: 父命令 `automation`/`auto` 的 `preAction` 钩子初始化数据库;V2 子命令通过 `actionCommand.name().endsWith("-v2")` 提前 return,跳过 DB 引导。
+- **Auto-flip**: `autoPauseIdleAutomationsV2({ now })` (active→paused,默认 14 天阈值) · `autoFailStuckExecutionsV2({ now })` (running→failed,默认 30 分钟阈值)
+
+```bash
+cc automation automation-maturities-v2 | execution-lifecycles-v2 | stats-v2
+cc automation register-automation-v2 <id> -o <ownerId> -n <name>
+cc automation create-execution-v2 <id> -a <automationId>
+cc automation activate/pause/retire-automation-v2 | touch-automation-v2 <id>
+cc automation start/succeed/fail/cancel-execution-v2 <id>
+cc automation auto-pause-idle-automations-v2 | auto-fail-stuck-executions-v2
+# 同样的命令也可用 cc auto <subcmd>
+```
+
+> **未移植**: 真实 SaaS 连接器认证;触发器订阅注册到 V2;模板克隆与 V2 治理。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (automation 4-state w/ paused→active 恢复 + execution 5-state w/ 3 terminals)、双维度上限 (per-owner active 在 draft→active only + per-automation running 在 queued→running 强制)、throwing `registerAutomationV2`/`createExecutionV2` + 7 shortcuts、stamp-once `activatedAt`/`retiredAt`/`startedAt`/`settledAt`、`touchAutomationV2` + 2 批量 auto-flip、全枚举零初始化 `getAutomationEngineStatsV2`、`actionCommand.name()` 钩子旁路保护 V2 子命令免被强制 DB 引导。
+
+## Permanent Memory V2 (cli 0.119.0)
+
+V2 治理层位于 `src/lib/permanent-memory.js`,新建 `cc permmem` 顶级命名空间(避免与已存在的 `cc memory` 冲突,后者属于 memory-manager 模块)。V2 与原有 `CLIPermanentMemory` 类(MEMORY.md 文件 I/O、SQLite、daily notes、BM25 混合搜索)完全独立:
+
+- **Pin 成熟度** (4 状态, archived 终态, dormant→active 恢复): `pending → {active, archived}` · `active → {dormant, archived}` · `dormant → {active, archived}` (恢复) · `archived` 终态
+- **Retention Job 生命周期** (5 状态, 3 终态: completed/failed/cancelled): `queued → {running, cancelled}` · `running → {completed, failed, cancelled}` · 终态: completed, failed, cancelled
+- **Caps**: 每 owner active-pin 上限 (默认 500,仅在 `pending → active` 强制,`dormant → active` 恢复豁免) · 每 pin pending-job 上限 (默认 2,统计 queued + running,在 `createRetentionJobV2` 创建时强制)
+- **Stamp-once**: `activatedAt` (首次 pending→active,跨 dormant 恢复保留) · `archivedAt` · `startedAt` (首次 queued→running) · `settledAt` (任意 job 终态)
+- **Auto-flip**: `autoDormantIdlePinsV2({ now })` (active→dormant,默认 90 天阈值) · `autoFailStuckJobsV2({ now })` (running→failed,默认 15 分钟阈值)
+
+```bash
+cc permmem pin-maturities-v2 | retention-job-lifecycles-v2 | stats-v2
+cc permmem register-pin-v2 <id> -o <ownerId> -l <label>
+cc permmem create-retention-job-v2 <id> -p <pinId> [-k <kind>]
+cc permmem activate/dormant/archive-pin-v2 | touch-pin-v2 <id>
+cc permmem start/complete/fail/cancel-retention-job-v2 <id>
+cc permmem auto-dormant-idle-pins-v2 | auto-fail-stuck-jobs-v2
+```
+
+> **未移植**: 真实 BM25/向量索引与 V2 治理联动;MEMORY.md 文件挂钩到 pin 元数据;daily notes 与 retention-job 联动调度。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (pin 4-state w/ dormant→active 恢复 + retention-job 5-state w/ 3 terminals)、双维度上限 (per-owner active 在 pending→active only + per-pin queued+running 在 createRetentionJobV2 创建时强制)、throwing `registerPinV2`/`createRetentionJobV2` + 7 shortcuts、stamp-once `activatedAt`/`archivedAt`/`startedAt`/`settledAt`、`touchPinV2` + 2 批量 auto-flip、全枚举零初始化 `getPermanentMemoryStatsV2`、新建 `cc permmem` 命名空间(避免与 `cc memory` 冲突)。CLIPermanentMemory 类与 V2 内存层完全独立。
+
+## Response Cache V2 (cli 0.119.0)
+
+V2 治理层位于 `src/lib/response-cache.js`,新建 `cc rcache` 顶级命名空间(legacy LRU 工具仍位于 `cc tokens cache`)。V2 与 SQLite `llm_cache` 表完全独立,聚焦缓存档案 (cache profile) + 刷新作业 (refresh job) 的状态机治理:
+
+- **Profile 成熟度** (4 状态, archived 终态, suspended→active 恢复): `pending → {active, archived}` · `active → {suspended, archived}` · `suspended → {active, archived}` (恢复) · `archived` 终态
+- **Refresh Job 生命周期** (5 状态, 3 终态: completed/failed/cancelled): `queued → {running, cancelled}` · `running → {completed, failed, cancelled}` · 终态: completed, failed, cancelled
+- **Caps**: 每 owner active-profile 上限 (默认 25,仅在 `pending → active` 强制,`suspended → active` 恢复豁免) · 每 profile pending-job 上限 (默认 4,统计 queued + running,在 `createRefreshJobV2` 创建时强制)
+- **Stamp-once**: `activatedAt` (首次 pending→active,跨 suspended 恢复保留) · `archivedAt` · `startedAt` (首次 queued→running) · `settledAt` (任意 job 终态)
+- **Auto-flip**: `autoSuspendIdleProfilesV2({ now })` (active→suspended,默认 7 天阈值) · `autoFailStuckRefreshJobsV2({ now })` (running→failed,默认 10 分钟阈值)
+
+```bash
+cc rcache profile-maturities-v2 | refresh-job-lifecycles-v2 | stats-v2
+cc rcache register-profile-v2 <id> -o <ownerId> -l <label>
+cc rcache create-refresh-job-v2 <id> -p <profileId> [-k <kind>]
+cc rcache activate/suspend/archive-profile-v2 | touch-profile-v2 <id>
+cc rcache start/complete/fail/cancel-refresh-job-v2 <id>
+cc rcache auto-suspend-idle-profiles-v2 | auto-fail-stuck-refresh-jobs-v2
+```
+
+> **未移植**: SQLite llm_cache 表 LRU 与 V2 治理联动;真实 LLM 响应预热作业;profile 维度的命中率 / 命中区分计费。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (profile 4-state w/ suspended→active 恢复 + refresh-job 5-state w/ 3 terminals)、双维度上限 (per-owner active 在 pending→active only + per-profile queued+running 在 createRefreshJobV2 创建时强制)、throwing `registerProfileV2`/`createRefreshJobV2` + 7 shortcuts、stamp-once `activatedAt`/`archivedAt`/`startedAt`/`settledAt`、`touchProfileV2` + 2 批量 auto-flip、全枚举零初始化 `getResponseCacheStatsV2`、新建 `cc rcache` 命名空间(legacy LRU 仍在 `cc tokens cache`)。SQLite llm_cache 表与 V2 内存层完全独立。
+
+## Knowledge Importer V2 (cli 0.121.0)
+
+V2 治理层位于 `src/lib/knowledge-importer.js`,在已有 `cc import` 命名空间上追加(legacy `markdown`/`evernote`/`notion`/`pdf` 子命令各自直接调用 `bootstrap()`,无共享 preAction 钩子)。V2 与 SQLite `notes` 表完全独立,聚焦 source manifest + 导入作业的状态机治理:
+
+- **Source 成熟度** (4 状态, archived 终态, paused→active 恢复): `pending → {active, archived}` · `active → {paused, archived}` · `paused → {active, archived}` (恢复) · `archived` 终态
+- **Import Job 生命周期** (5 状态, 3 终态: completed/failed/cancelled): `queued → {running, cancelled}` · `running → {completed, failed, cancelled}` · 终态: completed, failed, cancelled
+- **Caps**: 每 owner active-source 上限 (默认 15,仅在 `pending → active` 强制,`paused → active` 恢复豁免) · 每 source pending-job 上限 (默认 3,统计 queued + running,在 `createImportJobV2` 创建时强制)
+- **Stamp-once**: `activatedAt` (首次 pending→active,跨 paused 恢复保留) · `archivedAt` · `startedAt` (首次 queued→running) · `settledAt` (任意 job 终态)
+- **Auto-flip**: `autoPauseIdleSourcesV2({ now })` (active→paused,默认 7 天阈值) · `autoFailStuckImportJobsV2({ now })` (running→failed,默认 20 分钟阈值)
+
+```bash
+cc import source-maturities-v2 | import-job-lifecycles-v2 | stats-v2
+cc import register-source-v2 <id> -o <ownerId> -l <label> [-k <kind>]
+cc import create-import-job-v2 <id> -s <sourceId> [-k <kind>]
+cc import activate/pause/archive-source-v2 | touch-source-v2 <id>
+cc import start/complete/fail/cancel-import-job-v2 <id>
+cc import auto-pause-idle-sources-v2 | auto-fail-stuck-import-jobs-v2
+```
+
+> **未移植**: 真实 SQLite notes 表与 V2 source manifest 联动;markdown/ENEX/Notion 解析进度回报到 V2 import job;PDF 大文件分页流式导入。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (source 4-state w/ paused→active 恢复 + import-job 5-state w/ 3 terminals)、双维度上限 (per-owner active 在 pending→active only + per-source queued+running 在 createImportJobV2 创建时强制)、throwing `registerSourceV2`/`createImportJobV2` + 7 shortcuts、stamp-once `activatedAt`/`archivedAt`/`startedAt`/`settledAt`、`touchSourceV2` + 2 批量 auto-flip、全枚举零初始化 `getKnowledgeImporterStatsV2`、追加到 `cc import` 命名空间(legacy 子命令直接 `bootstrap()`,无 preAction 钩子)。SQLite notes 表与 V2 内存层完全独立。
+
+## Knowledge Exporter V2 (cli 0.122.0)
+
+V2 治理层位于 `src/lib/knowledge-exporter.js`,在已有 `cc export` 命名空间上追加(legacy `markdown`/`site` 子命令各自直接调用 `bootstrap()`,无共享 preAction 钩子)。V2 与 SQLite `notes` 表完全独立,聚焦 export target + 导出作业的状态机治理:
+
+- **Target 成熟度** (4 状态, archived 终态, paused→active 恢复): `pending → {active, archived}` · `active → {paused, archived}` · `paused → {active, archived}` (恢复) · `archived` 终态
+- **Export Job 生命周期** (5 状态, 3 终态: completed/failed/cancelled): `queued → {running, cancelled}` · `running → {completed, failed, cancelled}` · 终态: completed, failed, cancelled
+- **Caps**: 每 owner active-target 上限 (默认 12,仅在 `pending → active` 强制,`paused → active` 恢复豁免) · 每 target pending-job 上限 (默认 3,统计 queued + running,在 `createExportJobV2` 创建时强制)
+- **Stamp-once**: `activatedAt` (首次 pending→active,跨 paused 恢复保留) · `archivedAt` · `startedAt` (首次 queued→running) · `settledAt` (任意 job 终态)
+- **Auto-flip**: `autoPauseIdleTargetsV2({ now })` (active→paused,默认 14 天阈值) · `autoFailStuckExportJobsV2({ now })` (running→failed,默认 25 分钟阈值)
+
+```bash
+cc export target-maturities-v2 | export-job-lifecycles-v2 | stats-v2
+cc export register-target-v2 <id> -o <ownerId> -l <label> [-f <format>]
+cc export create-export-job-v2 <id> -t <targetId> [-k <kind>]
+cc export activate/pause/archive-target-v2 | touch-target-v2 <id>
+cc export start/complete/fail/cancel-export-job-v2 <id>
+cc export auto-pause-idle-targets-v2 | auto-fail-stuck-export-jobs-v2
+```
+
+> **未移植**: 真实 SQLite notes 表 → V2 export target 联动;markdown/site 写盘进度回报到 V2 export job;增量导出去重 / 缓存命中重用。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (target 4-state w/ paused→active 恢复 + export-job 5-state w/ 3 terminals)、双维度上限 (per-owner active 在 pending→active only + per-target queued+running 在 createExportJobV2 创建时强制)、throwing `registerTargetV2`/`createExportJobV2` + 7 shortcuts、stamp-once `activatedAt`/`archivedAt`/`startedAt`/`settledAt`、`touchTargetV2` + 2 批量 auto-flip、全枚举零初始化 `getKnowledgeExporterStatsV2`、追加到 `cc export` 命名空间(legacy 子命令直接 `bootstrap()`,无 preAction 钩子)。SQLite notes 表与 V2 内存层完全独立。
