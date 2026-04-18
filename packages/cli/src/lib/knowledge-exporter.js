@@ -300,3 +300,384 @@ function markdownToSimpleHtml(md) {
     .replace(/^/, "<p>")
     .replace(/$/, "</p>");
 }
+
+// ─── V2 Governance Layer ────────────────────────────────────────────
+//
+// In-memory governance for export targets + export jobs, independent
+// of the SQLite notes table read by legacy export* helpers. V2 tracks
+// target maturity transitions, per-owner active-target caps, per-target
+// pending-job caps, stamp-once timestamps, and bulk auto-flip routines.
+
+export const TARGET_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+
+export const EXPORT_JOB_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+
+const _TARGET_TRANSITIONS_V2 = new Map([
+  [
+    TARGET_MATURITY_V2.PENDING,
+    new Set([TARGET_MATURITY_V2.ACTIVE, TARGET_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    TARGET_MATURITY_V2.ACTIVE,
+    new Set([TARGET_MATURITY_V2.PAUSED, TARGET_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    TARGET_MATURITY_V2.PAUSED,
+    new Set([TARGET_MATURITY_V2.ACTIVE, TARGET_MATURITY_V2.ARCHIVED]),
+  ],
+  [TARGET_MATURITY_V2.ARCHIVED, new Set()],
+]);
+
+const _TARGET_TERMINALS_V2 = new Set([TARGET_MATURITY_V2.ARCHIVED]);
+
+const _JOB_TRANSITIONS_V2 = new Map([
+  [
+    EXPORT_JOB_LIFECYCLE_V2.QUEUED,
+    new Set([
+      EXPORT_JOB_LIFECYCLE_V2.RUNNING,
+      EXPORT_JOB_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    EXPORT_JOB_LIFECYCLE_V2.RUNNING,
+    new Set([
+      EXPORT_JOB_LIFECYCLE_V2.COMPLETED,
+      EXPORT_JOB_LIFECYCLE_V2.FAILED,
+      EXPORT_JOB_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [EXPORT_JOB_LIFECYCLE_V2.COMPLETED, new Set()],
+  [EXPORT_JOB_LIFECYCLE_V2.FAILED, new Set()],
+  [EXPORT_JOB_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+
+const _JOB_TERMINALS_V2 = new Set([
+  EXPORT_JOB_LIFECYCLE_V2.COMPLETED,
+  EXPORT_JOB_LIFECYCLE_V2.FAILED,
+  EXPORT_JOB_LIFECYCLE_V2.CANCELLED,
+]);
+
+export const EXPORTER_DEFAULT_MAX_ACTIVE_TARGETS_PER_OWNER = 12;
+export const EXPORTER_DEFAULT_MAX_PENDING_JOBS_PER_TARGET = 3;
+export const EXPORTER_DEFAULT_TARGET_IDLE_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
+export const EXPORTER_DEFAULT_JOB_STUCK_MS = 25 * 60 * 1000; // 25 min
+
+const _stateV2 = {
+  targets: new Map(),
+  jobs: new Map(),
+  maxActiveTargetsPerOwner: EXPORTER_DEFAULT_MAX_ACTIVE_TARGETS_PER_OWNER,
+  maxPendingJobsPerTarget: EXPORTER_DEFAULT_MAX_PENDING_JOBS_PER_TARGET,
+  targetIdleMs: EXPORTER_DEFAULT_TARGET_IDLE_MS,
+  jobStuckMs: EXPORTER_DEFAULT_JOB_STUCK_MS,
+};
+
+function _posIntExporterV2(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0) {
+    throw new Error(`${label} must be a positive integer, got ${n}`);
+  }
+  return v;
+}
+
+export function getMaxActiveTargetsPerOwnerV2() {
+  return _stateV2.maxActiveTargetsPerOwner;
+}
+
+export function setMaxActiveTargetsPerOwnerV2(n) {
+  _stateV2.maxActiveTargetsPerOwner = _posIntExporterV2(
+    n,
+    "maxActiveTargetsPerOwner",
+  );
+}
+
+export function getMaxPendingJobsPerTargetV2() {
+  return _stateV2.maxPendingJobsPerTarget;
+}
+
+export function setMaxPendingJobsPerTargetV2(n) {
+  _stateV2.maxPendingJobsPerTarget = _posIntExporterV2(
+    n,
+    "maxPendingJobsPerTarget",
+  );
+}
+
+export function getTargetIdleMsV2() {
+  return _stateV2.targetIdleMs;
+}
+
+export function setTargetIdleMsV2(ms) {
+  _stateV2.targetIdleMs = _posIntExporterV2(ms, "targetIdleMs");
+}
+
+export function getJobStuckMsV2() {
+  return _stateV2.jobStuckMs;
+}
+
+export function setJobStuckMsV2(ms) {
+  _stateV2.jobStuckMs = _posIntExporterV2(ms, "jobStuckMs");
+}
+
+function _copyTargetV2(t) {
+  return { ...t, metadata: { ...t.metadata } };
+}
+
+function _copyJobV2(j) {
+  return { ...j, metadata: { ...j.metadata } };
+}
+
+export function getActiveTargetCountV2(ownerId) {
+  let count = 0;
+  for (const t of _stateV2.targets.values()) {
+    if (t.ownerId === ownerId && t.status === TARGET_MATURITY_V2.ACTIVE)
+      count++;
+  }
+  return count;
+}
+
+export function getPendingJobCountV2(targetId) {
+  let count = 0;
+  for (const j of _stateV2.jobs.values()) {
+    if (
+      j.targetId === targetId &&
+      (j.status === EXPORT_JOB_LIFECYCLE_V2.QUEUED ||
+        j.status === EXPORT_JOB_LIFECYCLE_V2.RUNNING)
+    ) {
+      count++;
+    }
+  }
+  return count;
+}
+
+export function registerTargetV2(
+  id,
+  { ownerId, label, format, metadata } = {},
+) {
+  if (!id) throw new Error("target id is required");
+  if (!ownerId) throw new Error("ownerId is required");
+  if (!label) throw new Error("label is required");
+  if (_stateV2.targets.has(id)) throw new Error(`target ${id} already exists`);
+  const now = Date.now();
+  const target = {
+    id,
+    ownerId,
+    label,
+    format: format || "markdown",
+    status: TARGET_MATURITY_V2.PENDING,
+    createdAt: now,
+    lastSeenAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: metadata ? { ...metadata } : {},
+  };
+  _stateV2.targets.set(id, target);
+  return _copyTargetV2(target);
+}
+
+export function getTargetV2(id) {
+  const t = _stateV2.targets.get(id);
+  return t ? _copyTargetV2(t) : null;
+}
+
+export function listTargetsV2({ ownerId, status } = {}) {
+  const out = [];
+  for (const t of _stateV2.targets.values()) {
+    if (ownerId && t.ownerId !== ownerId) continue;
+    if (status && t.status !== status) continue;
+    out.push(_copyTargetV2(t));
+  }
+  return out;
+}
+
+export function setTargetStatusV2(id, next) {
+  const t = _stateV2.targets.get(id);
+  if (!t) throw new Error(`target ${id} not found`);
+  const allowed = _TARGET_TRANSITIONS_V2.get(t.status);
+  if (!allowed || !allowed.has(next)) {
+    throw new Error(`invalid target transition: ${t.status} → ${next}`);
+  }
+  if (
+    t.status === TARGET_MATURITY_V2.PENDING &&
+    next === TARGET_MATURITY_V2.ACTIVE
+  ) {
+    const count = getActiveTargetCountV2(t.ownerId);
+    if (count >= _stateV2.maxActiveTargetsPerOwner) {
+      throw new Error(
+        `owner ${t.ownerId} active-target cap reached (${count}/${_stateV2.maxActiveTargetsPerOwner})`,
+      );
+    }
+  }
+  const now = Date.now();
+  t.status = next;
+  t.lastSeenAt = now;
+  if (next === TARGET_MATURITY_V2.ACTIVE && !t.activatedAt) t.activatedAt = now;
+  if (_TARGET_TERMINALS_V2.has(next) && !t.archivedAt) t.archivedAt = now;
+  return _copyTargetV2(t);
+}
+
+export function activateTargetV2(id) {
+  return setTargetStatusV2(id, TARGET_MATURITY_V2.ACTIVE);
+}
+
+export function pauseTargetV2(id) {
+  return setTargetStatusV2(id, TARGET_MATURITY_V2.PAUSED);
+}
+
+export function archiveTargetV2(id) {
+  return setTargetStatusV2(id, TARGET_MATURITY_V2.ARCHIVED);
+}
+
+export function touchTargetV2(id) {
+  const t = _stateV2.targets.get(id);
+  if (!t) throw new Error(`target ${id} not found`);
+  t.lastSeenAt = Date.now();
+  return _copyTargetV2(t);
+}
+
+export function createExportJobV2(id, { targetId, kind, metadata } = {}) {
+  if (!id) throw new Error("job id is required");
+  if (!targetId) throw new Error("targetId is required");
+  if (_stateV2.jobs.has(id)) throw new Error(`job ${id} already exists`);
+  const target = _stateV2.targets.get(targetId);
+  if (!target) throw new Error(`target ${targetId} not found`);
+  const pending = getPendingJobCountV2(targetId);
+  if (pending >= _stateV2.maxPendingJobsPerTarget) {
+    throw new Error(
+      `target ${targetId} pending-job cap reached (${pending}/${_stateV2.maxPendingJobsPerTarget})`,
+    );
+  }
+  const now = Date.now();
+  const job = {
+    id,
+    targetId,
+    kind: kind || "snapshot",
+    status: EXPORT_JOB_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    lastSeenAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: metadata ? { ...metadata } : {},
+  };
+  _stateV2.jobs.set(id, job);
+  return _copyJobV2(job);
+}
+
+export function getExportJobV2(id) {
+  const j = _stateV2.jobs.get(id);
+  return j ? _copyJobV2(j) : null;
+}
+
+export function listExportJobsV2({ targetId, status } = {}) {
+  const out = [];
+  for (const j of _stateV2.jobs.values()) {
+    if (targetId && j.targetId !== targetId) continue;
+    if (status && j.status !== status) continue;
+    out.push(_copyJobV2(j));
+  }
+  return out;
+}
+
+export function setExportJobStatusV2(id, next) {
+  const j = _stateV2.jobs.get(id);
+  if (!j) throw new Error(`job ${id} not found`);
+  const allowed = _JOB_TRANSITIONS_V2.get(j.status);
+  if (!allowed || !allowed.has(next)) {
+    throw new Error(`invalid job transition: ${j.status} → ${next}`);
+  }
+  const now = Date.now();
+  j.status = next;
+  j.lastSeenAt = now;
+  if (next === EXPORT_JOB_LIFECYCLE_V2.RUNNING && !j.startedAt)
+    j.startedAt = now;
+  if (_JOB_TERMINALS_V2.has(next) && !j.settledAt) j.settledAt = now;
+  return _copyJobV2(j);
+}
+
+export function startExportJobV2(id) {
+  return setExportJobStatusV2(id, EXPORT_JOB_LIFECYCLE_V2.RUNNING);
+}
+
+export function completeExportJobV2(id) {
+  return setExportJobStatusV2(id, EXPORT_JOB_LIFECYCLE_V2.COMPLETED);
+}
+
+export function failExportJobV2(id) {
+  return setExportJobStatusV2(id, EXPORT_JOB_LIFECYCLE_V2.FAILED);
+}
+
+export function cancelExportJobV2(id) {
+  return setExportJobStatusV2(id, EXPORT_JOB_LIFECYCLE_V2.CANCELLED);
+}
+
+export function autoPauseIdleTargetsV2({ now = Date.now() } = {}) {
+  const flipped = [];
+  for (const t of _stateV2.targets.values()) {
+    if (
+      t.status === TARGET_MATURITY_V2.ACTIVE &&
+      now - t.lastSeenAt > _stateV2.targetIdleMs
+    ) {
+      t.status = TARGET_MATURITY_V2.PAUSED;
+      t.lastSeenAt = now;
+      flipped.push(_copyTargetV2(t));
+    }
+  }
+  return flipped;
+}
+
+export function autoFailStuckExportJobsV2({ now = Date.now() } = {}) {
+  const flipped = [];
+  for (const j of _stateV2.jobs.values()) {
+    if (
+      j.status === EXPORT_JOB_LIFECYCLE_V2.RUNNING &&
+      now - j.lastSeenAt > _stateV2.jobStuckMs
+    ) {
+      j.status = EXPORT_JOB_LIFECYCLE_V2.FAILED;
+      j.lastSeenAt = now;
+      if (!j.settledAt) j.settledAt = now;
+      flipped.push(_copyJobV2(j));
+    }
+  }
+  return flipped;
+}
+
+export function getKnowledgeExporterStatsV2() {
+  const targetsByStatus = {};
+  for (const v of Object.values(TARGET_MATURITY_V2)) targetsByStatus[v] = 0;
+  for (const t of _stateV2.targets.values()) targetsByStatus[t.status]++;
+
+  const jobsByStatus = {};
+  for (const v of Object.values(EXPORT_JOB_LIFECYCLE_V2)) jobsByStatus[v] = 0;
+  for (const j of _stateV2.jobs.values()) jobsByStatus[j.status]++;
+
+  return {
+    totalTargetsV2: _stateV2.targets.size,
+    totalExportJobsV2: _stateV2.jobs.size,
+    maxActiveTargetsPerOwner: _stateV2.maxActiveTargetsPerOwner,
+    maxPendingJobsPerTarget: _stateV2.maxPendingJobsPerTarget,
+    targetIdleMs: _stateV2.targetIdleMs,
+    jobStuckMs: _stateV2.jobStuckMs,
+    targetsByStatus,
+    jobsByStatus,
+  };
+}
+
+export function _resetStateKnowledgeExporterV2() {
+  _stateV2.targets.clear();
+  _stateV2.jobs.clear();
+  _stateV2.maxActiveTargetsPerOwner =
+    EXPORTER_DEFAULT_MAX_ACTIVE_TARGETS_PER_OWNER;
+  _stateV2.maxPendingJobsPerTarget =
+    EXPORTER_DEFAULT_MAX_PENDING_JOBS_PER_TARGET;
+  _stateV2.targetIdleMs = EXPORTER_DEFAULT_TARGET_IDLE_MS;
+  _stateV2.jobStuckMs = EXPORTER_DEFAULT_JOB_STUCK_MS;
+}

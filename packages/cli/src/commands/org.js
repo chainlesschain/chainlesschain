@@ -28,6 +28,37 @@ import {
   rejectRequest,
   getApprovals,
   getOrgSummary,
+  ORG_MATURITY_V2,
+  MEMBER_LIFECYCLE_V2,
+  getMaxActiveOrgsPerOwnerV2,
+  setMaxActiveOrgsPerOwnerV2,
+  getMaxActiveMembersPerOrgV2,
+  setMaxActiveMembersPerOrgV2,
+  getOrgIdleMsV2,
+  setOrgIdleMsV2,
+  getInviteStaleMsV2,
+  setInviteStaleMsV2,
+  getActiveOrgCountV2,
+  getActiveMemberCountV2,
+  registerOrgV2,
+  getOrgV2,
+  listOrgsV2,
+  setOrgMaturityV2,
+  activateOrgV2,
+  suspendOrgV2,
+  archiveOrgV2,
+  touchOrgV2,
+  inviteMemberV2,
+  getMemberV2,
+  listMembersV2,
+  setMemberStatusV2,
+  activateMemberV2,
+  suspendMemberV2,
+  revokeMemberV2,
+  departMemberV2,
+  autoArchiveIdleOrgsV2,
+  autoRevokeStaleInvitesV2,
+  getOrgManagerStatsV2,
 } from "../lib/org-manager.js";
 
 export function registerOrgCommand(program) {
@@ -501,5 +532,251 @@ export function registerOrgCommand(program) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
       }
+    });
+
+  /* ═══ Org V2 — in-memory maturity + member lifecycle ═══ */
+
+  org
+    .command("maturities-v2")
+    .description("List org maturity states (V2)")
+    .action(() => {
+      for (const v of Object.values(ORG_MATURITY_V2)) console.log(`  ${v}`);
+    });
+
+  org
+    .command("member-lifecycles-v2")
+    .description("List member lifecycle states (V2)")
+    .action(() => {
+      for (const v of Object.values(MEMBER_LIFECYCLE_V2)) console.log(`  ${v}`);
+    });
+
+  org
+    .command("stats-v2")
+    .description("Show V2 org/member stats")
+    .action(() => {
+      console.log(JSON.stringify(getOrgManagerStatsV2(), null, 2));
+    });
+
+  org
+    .command("max-active-orgs-per-owner")
+    .argument("[n]", "New cap")
+    .description("Get/set max active orgs per owner (V2)")
+    .action((n) => {
+      if (n !== undefined) setMaxActiveOrgsPerOwnerV2(n);
+      console.log(getMaxActiveOrgsPerOwnerV2());
+    });
+
+  org
+    .command("max-active-members-per-org")
+    .argument("[n]", "New cap")
+    .description("Get/set max active members per org (V2)")
+    .action((n) => {
+      if (n !== undefined) setMaxActiveMembersPerOrgV2(n);
+      console.log(getMaxActiveMembersPerOrgV2());
+    });
+
+  org
+    .command("org-idle-ms")
+    .argument("[ms]", "New idle window")
+    .description("Get/set org idle window ms (V2)")
+    .action((ms) => {
+      if (ms !== undefined) setOrgIdleMsV2(ms);
+      console.log(getOrgIdleMsV2());
+    });
+
+  org
+    .command("invite-stale-ms")
+    .argument("[ms]", "New invite stale window")
+    .description("Get/set invite stale window ms (V2)")
+    .action((ms) => {
+      if (ms !== undefined) setInviteStaleMsV2(ms);
+      console.log(getInviteStaleMsV2());
+    });
+
+  org
+    .command("active-org-count-v2 <owner>")
+    .description("Count active orgs for owner (V2)")
+    .action((owner) => {
+      console.log(getActiveOrgCountV2(owner));
+    });
+
+  org
+    .command("active-member-count-v2 <orgId>")
+    .description("Count active members for org (V2)")
+    .action((orgId) => {
+      console.log(getActiveMemberCountV2(orgId));
+    });
+
+  org
+    .command("register-org-v2 <id>")
+    .requiredOption("-o, --owner <owner>", "Owner")
+    .requiredOption("-n, --name <name>", "Org name")
+    .description("Register a new provisional org (V2)")
+    .action((id, opts) => {
+      console.log(
+        JSON.stringify(
+          registerOrgV2(id, { owner: opts.owner, name: opts.name }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  org
+    .command("org-v2 <id>")
+    .description("Show org by id (V2)")
+    .action((id) => {
+      const o = getOrgV2(id);
+      if (!o) {
+        console.error(`org ${id} not found`);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(o, null, 2));
+    });
+
+  org
+    .command("list-orgs-v2")
+    .option("-o, --owner <owner>", "Filter by owner")
+    .option("-m, --maturity <m>", "Filter by maturity")
+    .description("List orgs (V2)")
+    .action((opts) => {
+      console.log(
+        JSON.stringify(
+          listOrgsV2({ owner: opts.owner, maturity: opts.maturity }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  org
+    .command("set-org-maturity-v2 <id> <next>")
+    .description("Transition org maturity (V2)")
+    .action((id, next) => {
+      console.log(JSON.stringify(setOrgMaturityV2(id, next), null, 2));
+    });
+
+  org
+    .command("activate-org-v2 <id>")
+    .description("Activate org (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(activateOrgV2(id), null, 2));
+    });
+
+  org
+    .command("suspend-org-v2 <id>")
+    .description("Suspend org (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(suspendOrgV2(id), null, 2));
+    });
+
+  org
+    .command("archive-org-v2 <id>")
+    .description("Archive org terminally (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(archiveOrgV2(id), null, 2));
+    });
+
+  org
+    .command("touch-org-v2 <id>")
+    .description("Update org lastSeenAt (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(touchOrgV2(id), null, 2));
+    });
+
+  org
+    .command("invite-member-v2 <id>")
+    .requiredOption("-o, --org <orgId>", "Org id")
+    .requiredOption("-u, --user <userId>", "User id")
+    .option("-r, --role <role>", "Role", "member")
+    .description("Invite a member to an org (V2)")
+    .action((id, opts) => {
+      console.log(
+        JSON.stringify(
+          inviteMemberV2(id, {
+            orgId: opts.org,
+            userId: opts.user,
+            role: opts.role,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  org
+    .command("member-v2 <id>")
+    .description("Show member by id (V2)")
+    .action((id) => {
+      const m = getMemberV2(id);
+      if (!m) {
+        console.error(`member ${id} not found`);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(m, null, 2));
+    });
+
+  org
+    .command("list-members-v2")
+    .option("-o, --org <orgId>", "Filter by orgId")
+    .option("-s, --status <s>", "Filter by status")
+    .description("List members (V2)")
+    .action((opts) => {
+      console.log(
+        JSON.stringify(
+          listMembersV2({ orgId: opts.org, status: opts.status }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  org
+    .command("set-member-status-v2 <id> <next>")
+    .description("Transition member status (V2)")
+    .action((id, next) => {
+      console.log(JSON.stringify(setMemberStatusV2(id, next), null, 2));
+    });
+
+  org
+    .command("activate-member-v2 <id>")
+    .description("Activate member (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(activateMemberV2(id), null, 2));
+    });
+
+  org
+    .command("suspend-member-v2 <id>")
+    .description("Suspend member (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(suspendMemberV2(id), null, 2));
+    });
+
+  org
+    .command("revoke-member-v2 <id>")
+    .description("Revoke member terminally (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(revokeMemberV2(id), null, 2));
+    });
+
+  org
+    .command("depart-member-v2 <id>")
+    .description("Depart member terminally (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(departMemberV2(id), null, 2));
+    });
+
+  org
+    .command("auto-archive-idle-orgs")
+    .description("Auto-archive non-provisional orgs idle past window (V2)")
+    .action(() => {
+      console.log(JSON.stringify(autoArchiveIdleOrgsV2(), null, 2));
+    });
+
+  org
+    .command("auto-revoke-stale-invites")
+    .description("Auto-revoke invited members stale past window (V2)")
+    .action(() => {
+      console.log(JSON.stringify(autoRevokeStaleInvitesV2(), null, 2));
     });
 }

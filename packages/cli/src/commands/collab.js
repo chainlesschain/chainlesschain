@@ -28,6 +28,37 @@ import {
   calculateSkillMatch,
   optimizeTaskAssignment,
   calculatePriority,
+  AGENT_MATURITY_CG_V2,
+  PROPOSAL_LIFECYCLE_V2,
+  getMaxActiveAgentsPerRealmCgV2,
+  setMaxActiveAgentsPerRealmCgV2,
+  getMaxVotingProposalsPerProposerV2,
+  setMaxVotingProposalsPerProposerV2,
+  getAgentIdleMsCgV2,
+  setAgentIdleMsCgV2,
+  getProposalStuckMsV2,
+  setProposalStuckMsV2,
+  getActiveAgentCountCgV2,
+  getVotingProposalCountV2,
+  registerAgentCgV2,
+  getAgentCgV2,
+  listAgentsCgV2,
+  setAgentMaturityCgV2,
+  activateAgentCgV2,
+  suspendAgentCgV2,
+  retireAgentCgV2,
+  touchAgentCgV2,
+  createProposalV2,
+  getProposalV2,
+  listProposalsV2,
+  setProposalStatusV2,
+  startVotingV2,
+  approveProposalV2,
+  rejectProposalV2,
+  withdrawProposalV2,
+  autoRetireIdleAgentsCgV2,
+  autoWithdrawStuckProposalsV2,
+  getCollaborationGovernanceStatsV2,
 } from "../lib/collaboration-governance.js";
 
 function _dbFromCtx(ctx) {
@@ -479,4 +510,314 @@ export function registerCollabCommand(program) {
 
   // silence unused-import lint
   void calculatePriority;
+
+  /* ═══ V2 Surface ═══ */
+
+  function _parseMeta(s) {
+    if (!s) return undefined;
+    try {
+      return JSON.parse(s);
+    } catch {
+      throw new Error("--metadata must be valid JSON");
+    }
+  }
+
+  collab
+    .command("agent-maturities-cg-v2")
+    .description("List agent maturity states (V2)")
+    .action(() => {
+      for (const v of Object.values(AGENT_MATURITY_CG_V2)) logger.log(`  ${v}`);
+    });
+
+  collab
+    .command("proposal-lifecycles-v2")
+    .description("List proposal lifecycle states (V2)")
+    .action(() => {
+      for (const v of Object.values(PROPOSAL_LIFECYCLE_V2))
+        logger.log(`  ${v}`);
+    });
+
+  collab
+    .command("stats-v2")
+    .description("Collaboration Governance V2 stats")
+    .action(() => {
+      console.log(JSON.stringify(getCollaborationGovernanceStatsV2(), null, 2));
+    });
+
+  collab
+    .command("max-active-agents-per-realm")
+    .description("Get/set max active agents per realm (V2)")
+    .option("-s, --set <n>", "Set value", (v) => parseInt(v, 10))
+    .action((o) => {
+      if (typeof o.set === "number")
+        console.log(setMaxActiveAgentsPerRealmCgV2(o.set));
+      else console.log(getMaxActiveAgentsPerRealmCgV2());
+    });
+
+  collab
+    .command("max-voting-proposals-per-proposer")
+    .description("Get/set max voting proposals per proposer (V2)")
+    .option("-s, --set <n>", "Set value", (v) => parseInt(v, 10))
+    .action((o) => {
+      if (typeof o.set === "number")
+        console.log(setMaxVotingProposalsPerProposerV2(o.set));
+      else console.log(getMaxVotingProposalsPerProposerV2());
+    });
+
+  collab
+    .command("agent-idle-ms-cg")
+    .description("Get/set agent idle threshold ms (V2)")
+    .option("-s, --set <n>", "Set value", (v) => parseInt(v, 10))
+    .action((o) => {
+      if (typeof o.set === "number") console.log(setAgentIdleMsCgV2(o.set));
+      else console.log(getAgentIdleMsCgV2());
+    });
+
+  collab
+    .command("proposal-stuck-ms")
+    .description("Get/set proposal stuck threshold ms (V2)")
+    .option("-s, --set <n>", "Set value", (v) => parseInt(v, 10))
+    .action((o) => {
+      if (typeof o.set === "number") console.log(setProposalStuckMsV2(o.set));
+      else console.log(getProposalStuckMsV2());
+    });
+
+  collab
+    .command("active-agent-count-cg")
+    .description("Count active agents for realm (V2)")
+    .requiredOption("-r, --realm <realm>", "Realm")
+    .action((o) => {
+      console.log(getActiveAgentCountCgV2(o.realm));
+    });
+
+  collab
+    .command("voting-proposal-count")
+    .description("Count voting proposals for proposer (V2)")
+    .requiredOption("-p, --proposer <proposer>", "Proposer")
+    .action((o) => {
+      console.log(getVotingProposalCountV2(o.proposer));
+    });
+
+  collab
+    .command("register-agent-cg-v2 <id>")
+    .description("Register a CG agent V2 (provisional)")
+    .requiredOption("-r, --realm <realm>", "Realm")
+    .requiredOption("--role <role>", "Role")
+    .option("-m, --metadata <json>", "JSON metadata")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(
+          registerAgentCgV2({
+            id,
+            realm: o.realm,
+            role: o.role,
+            metadata: _parseMeta(o.metadata),
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  collab
+    .command("agent-cg-v2 <id>")
+    .description("Show CG agent V2")
+    .action((id) => {
+      const a = getAgentCgV2(id);
+      if (!a) {
+        logger.error(`agent ${id} not found`);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(a, null, 2));
+    });
+
+  collab
+    .command("list-agents-cg-v2")
+    .description("List CG agents V2")
+    .option("-r, --realm <realm>", "Filter by realm")
+    .option("-s, --status <status>", "Filter by status")
+    .action((o) => {
+      console.log(
+        JSON.stringify(
+          listAgentsCgV2({ realm: o.realm, status: o.status }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  collab
+    .command("set-agent-maturity-cg-v2 <id> <status>")
+    .description("Transition CG agent V2 to status")
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <json>", "JSON metadata patch")
+    .action((id, status, o) => {
+      console.log(
+        JSON.stringify(
+          setAgentMaturityCgV2(id, status, {
+            reason: o.reason,
+            metadata: _parseMeta(o.metadata),
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  collab
+    .command("activate-agent-cg <id>")
+    .description("CG agent → active (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(activateAgentCgV2(id, { reason: o.reason }), null, 2),
+      );
+    });
+
+  collab
+    .command("suspend-agent-cg <id>")
+    .description("CG agent → suspended (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(suspendAgentCgV2(id, { reason: o.reason }), null, 2),
+      );
+    });
+
+  collab
+    .command("retire-agent-cg <id>")
+    .description("CG agent → retired (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(retireAgentCgV2(id, { reason: o.reason }), null, 2),
+      );
+    });
+
+  collab
+    .command("touch-agent-cg <id>")
+    .description("Update lastSeenAt (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(touchAgentCgV2(id), null, 2));
+    });
+
+  collab
+    .command("create-proposal-v2 <id>")
+    .description("Create a proposal V2 (draft)")
+    .requiredOption("-p, --proposer <proposer>", "Proposer")
+    .requiredOption("-t, --topic <topic>", "Topic")
+    .option("-m, --metadata <json>", "JSON metadata")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(
+          createProposalV2({
+            id,
+            proposer: o.proposer,
+            topic: o.topic,
+            metadata: _parseMeta(o.metadata),
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  collab
+    .command("proposal-v2 <id>")
+    .description("Show proposal V2")
+    .action((id) => {
+      const p = getProposalV2(id);
+      if (!p) {
+        logger.error(`proposal ${id} not found`);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(p, null, 2));
+    });
+
+  collab
+    .command("list-proposals-v2")
+    .description("List proposals V2")
+    .option("-p, --proposer <proposer>", "Filter by proposer")
+    .option("-s, --status <status>", "Filter by status")
+    .action((o) => {
+      console.log(
+        JSON.stringify(
+          listProposalsV2({ proposer: o.proposer, status: o.status }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  collab
+    .command("set-proposal-status-v2 <id> <status>")
+    .description("Transition proposal V2 to status")
+    .option("-r, --reason <reason>", "Reason")
+    .option("-m, --metadata <json>", "JSON metadata patch")
+    .action((id, status, o) => {
+      console.log(
+        JSON.stringify(
+          setProposalStatusV2(id, status, {
+            reason: o.reason,
+            metadata: _parseMeta(o.metadata),
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  collab
+    .command("start-voting-v2 <id>")
+    .description("Proposal → voting (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(startVotingV2(id, { reason: o.reason }), null, 2),
+      );
+    });
+
+  collab
+    .command("approve-proposal-v2 <id>")
+    .description("Proposal → approved (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(approveProposalV2(id, { reason: o.reason }), null, 2),
+      );
+    });
+
+  collab
+    .command("reject-proposal-v2 <id>")
+    .description("Proposal → rejected (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(rejectProposalV2(id, { reason: o.reason }), null, 2),
+      );
+    });
+
+  collab
+    .command("withdraw-proposal-v2 <id>")
+    .description("Proposal → withdrawn (V2)")
+    .option("-r, --reason <reason>", "Reason")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(withdrawProposalV2(id, { reason: o.reason }), null, 2),
+      );
+    });
+
+  collab
+    .command("auto-retire-idle-agents-cg")
+    .description("Bulk auto-retire idle agents past threshold (V2)")
+    .action(() => {
+      console.log(JSON.stringify(autoRetireIdleAgentsCgV2(), null, 2));
+    });
+
+  collab
+    .command("auto-withdraw-stuck-proposals")
+    .description("Bulk auto-withdraw voting proposals past threshold (V2)")
+    .action(() => {
+      console.log(JSON.stringify(autoWithdrawStuckProposalsV2(), null, 2));
+    });
 }

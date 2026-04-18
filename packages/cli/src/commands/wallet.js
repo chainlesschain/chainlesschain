@@ -18,6 +18,37 @@ import {
   transferAsset,
   getTransactions,
   getWalletSummary,
+  WALLET_MATURITY_V2,
+  TX_LIFECYCLE_V2,
+  getMaxActiveWalletsPerOwnerV2,
+  setMaxActiveWalletsPerOwnerV2,
+  getMaxPendingTxPerWalletV2,
+  setMaxPendingTxPerWalletV2,
+  getWalletIdleMsV2,
+  setWalletIdleMsV2,
+  getTxStuckMsV2,
+  setTxStuckMsV2,
+  getActiveWalletCountV2,
+  getPendingTxCountV2,
+  registerWalletV2,
+  getWalletV2,
+  listWalletsV2,
+  setWalletMaturityV2,
+  activateWalletV2,
+  freezeWalletV2,
+  retireWalletV2,
+  touchWalletV2,
+  createTxV2,
+  getTxV2,
+  listTxsV2,
+  setTxStatusV2,
+  submitTxV2,
+  confirmTxV2,
+  failTxV2,
+  rejectTxV2,
+  autoRetireIdleWalletsV2,
+  autoFailStuckTxV2,
+  getWalletManagerStatsV2,
 } from "../lib/wallet-manager.js";
 
 export function registerWalletCommand(program) {
@@ -412,5 +443,251 @@ export function registerWalletCommand(program) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
       }
+    });
+
+  /* ═══ Wallet V2 — in-memory maturity + tx lifecycle ═══ */
+
+  wallet
+    .command("maturities-v2")
+    .description("List wallet maturity states (V2)")
+    .action(() => {
+      for (const v of Object.values(WALLET_MATURITY_V2)) console.log(`  ${v}`);
+    });
+
+  wallet
+    .command("tx-lifecycles-v2")
+    .description("List tx lifecycle states (V2)")
+    .action(() => {
+      for (const v of Object.values(TX_LIFECYCLE_V2)) console.log(`  ${v}`);
+    });
+
+  wallet
+    .command("stats-v2")
+    .description("Show V2 wallet/tx stats")
+    .action(() => {
+      console.log(JSON.stringify(getWalletManagerStatsV2(), null, 2));
+    });
+
+  wallet
+    .command("max-active-wallets-per-owner")
+    .argument("[n]", "New cap")
+    .description("Get/set max active wallets per owner (V2)")
+    .action((n) => {
+      if (n !== undefined) setMaxActiveWalletsPerOwnerV2(n);
+      console.log(getMaxActiveWalletsPerOwnerV2());
+    });
+
+  wallet
+    .command("max-pending-tx-per-wallet")
+    .argument("[n]", "New cap")
+    .description("Get/set max pending+submitted tx per wallet (V2)")
+    .action((n) => {
+      if (n !== undefined) setMaxPendingTxPerWalletV2(n);
+      console.log(getMaxPendingTxPerWalletV2());
+    });
+
+  wallet
+    .command("wallet-idle-ms")
+    .argument("[ms]", "New idle window")
+    .description("Get/set wallet idle window ms (V2)")
+    .action((ms) => {
+      if (ms !== undefined) setWalletIdleMsV2(ms);
+      console.log(getWalletIdleMsV2());
+    });
+
+  wallet
+    .command("tx-stuck-ms")
+    .argument("[ms]", "New stuck window")
+    .description("Get/set tx stuck window ms (V2)")
+    .action((ms) => {
+      if (ms !== undefined) setTxStuckMsV2(ms);
+      console.log(getTxStuckMsV2());
+    });
+
+  wallet
+    .command("active-wallet-count-v2 <owner>")
+    .description("Count active wallets for owner (V2)")
+    .action((owner) => {
+      console.log(getActiveWalletCountV2(owner));
+    });
+
+  wallet
+    .command("pending-tx-count-v2 <walletId>")
+    .description("Count pending+submitted tx for wallet (V2)")
+    .action((walletId) => {
+      console.log(getPendingTxCountV2(walletId));
+    });
+
+  wallet
+    .command("register-wallet-v2 <id>")
+    .requiredOption("-o, --owner <owner>", "Owner")
+    .requiredOption("-a, --address <address>", "Wallet address")
+    .description("Register a new provisional wallet (V2)")
+    .action((id, opts) => {
+      console.log(
+        JSON.stringify(
+          registerWalletV2(id, { owner: opts.owner, address: opts.address }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  wallet
+    .command("wallet-v2 <id>")
+    .description("Show wallet by id (V2)")
+    .action((id) => {
+      const w = getWalletV2(id);
+      if (!w) {
+        console.error(`wallet ${id} not found`);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(w, null, 2));
+    });
+
+  wallet
+    .command("list-wallets-v2")
+    .option("-o, --owner <owner>", "Filter by owner")
+    .option("-m, --maturity <m>", "Filter by maturity")
+    .description("List wallets (V2)")
+    .action((opts) => {
+      console.log(
+        JSON.stringify(
+          listWalletsV2({ owner: opts.owner, maturity: opts.maturity }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  wallet
+    .command("set-wallet-maturity-v2 <id> <next>")
+    .description("Transition wallet maturity (V2)")
+    .action((id, next) => {
+      console.log(JSON.stringify(setWalletMaturityV2(id, next), null, 2));
+    });
+
+  wallet
+    .command("activate-wallet-v2 <id>")
+    .description("Activate wallet (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(activateWalletV2(id), null, 2));
+    });
+
+  wallet
+    .command("freeze-wallet-v2 <id>")
+    .description("Freeze wallet (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(freezeWalletV2(id), null, 2));
+    });
+
+  wallet
+    .command("retire-wallet-v2 <id>")
+    .description("Retire wallet terminally (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(retireWalletV2(id), null, 2));
+    });
+
+  wallet
+    .command("touch-wallet-v2 <id>")
+    .description("Update wallet lastSeenAt (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(touchWalletV2(id), null, 2));
+    });
+
+  wallet
+    .command("create-tx-v2 <id>")
+    .requiredOption("-w, --wallet <walletId>", "Wallet id")
+    .requiredOption("-k, --kind <kind>", "Tx kind")
+    .option("-a, --amount <n>", "Amount")
+    .description("Create a pending tx (V2)")
+    .action((id, opts) => {
+      console.log(
+        JSON.stringify(
+          createTxV2(id, {
+            walletId: opts.wallet,
+            kind: opts.kind,
+            amount: opts.amount,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  wallet
+    .command("tx-v2 <id>")
+    .description("Show tx by id (V2)")
+    .action((id) => {
+      const t = getTxV2(id);
+      if (!t) {
+        console.error(`tx ${id} not found`);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(t, null, 2));
+    });
+
+  wallet
+    .command("list-txs-v2")
+    .option("-w, --wallet <walletId>", "Filter by walletId")
+    .option("-s, --status <s>", "Filter by status")
+    .description("List txs (V2)")
+    .action((opts) => {
+      console.log(
+        JSON.stringify(
+          listTxsV2({ walletId: opts.wallet, status: opts.status }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  wallet
+    .command("set-tx-status-v2 <id> <next>")
+    .description("Transition tx status (V2)")
+    .action((id, next) => {
+      console.log(JSON.stringify(setTxStatusV2(id, next), null, 2));
+    });
+
+  wallet
+    .command("submit-tx-v2 <id>")
+    .description("Submit tx (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(submitTxV2(id), null, 2));
+    });
+
+  wallet
+    .command("confirm-tx-v2 <id>")
+    .description("Confirm tx terminally (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(confirmTxV2(id), null, 2));
+    });
+
+  wallet
+    .command("fail-tx-v2 <id>")
+    .description("Fail tx terminally (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(failTxV2(id), null, 2));
+    });
+
+  wallet
+    .command("reject-tx-v2 <id>")
+    .description("Reject tx terminally (V2)")
+    .action((id) => {
+      console.log(JSON.stringify(rejectTxV2(id), null, 2));
+    });
+
+  wallet
+    .command("auto-retire-idle-wallets")
+    .description("Auto-retire non-provisional wallets idle past window (V2)")
+    .action(() => {
+      console.log(JSON.stringify(autoRetireIdleWalletsV2(), null, 2));
+    });
+
+  wallet
+    .command("auto-fail-stuck-tx")
+    .description("Auto-fail submitted tx stuck past window (V2)")
+    .action(() => {
+      console.log(JSON.stringify(autoFailStuckTxV2(), null, 2));
     });
 }

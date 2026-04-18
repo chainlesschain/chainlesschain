@@ -262,3 +262,332 @@ export function exportSessionMarkdown(session) {
 
   return lines.join("\n");
 }
+
+/* ═══════════════════════════════════════════════════════════════
+ * V2 Surface — Session governance layer.
+ * Tracks conversation maturity + turn lifecycle independent of
+ * legacy llm_sessions SQLite store above.
+ * ═══════════════════════════════════════════════════════════════ */
+
+export const CONVERSATION_MATURITY_V2 = Object.freeze({
+  DRAFT: "draft",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+
+export const TURN_LIFECYCLE_V2 = Object.freeze({
+  PENDING: "pending",
+  STREAMING: "streaming",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+
+const CONV_TRANSITIONS_V2 = new Map([
+  ["draft", new Set(["active", "archived"])],
+  ["active", new Set(["paused", "archived"])],
+  ["paused", new Set(["active", "archived"])],
+  ["archived", new Set()],
+]);
+const CONV_TERMINALS_V2 = new Set(["archived"]);
+
+const TURN_TRANSITIONS_V2 = new Map([
+  ["pending", new Set(["streaming", "cancelled"])],
+  ["streaming", new Set(["completed", "failed", "cancelled"])],
+  ["completed", new Set()],
+  ["failed", new Set()],
+  ["cancelled", new Set()],
+]);
+const TURN_TERMINALS_V2 = new Set(["completed", "failed", "cancelled"]);
+
+export const SESSION_DEFAULT_MAX_ACTIVE_CONV_PER_USER = 50;
+export const SESSION_DEFAULT_MAX_PENDING_TURNS_PER_CONV = 3;
+export const SESSION_DEFAULT_CONV_IDLE_MS = 1000 * 60 * 60 * 24 * 14; // 14 days
+export const SESSION_DEFAULT_TURN_STUCK_MS = 1000 * 60 * 5; // 5 min
+
+const _conversationsV2 = new Map();
+const _turnsV2 = new Map();
+let _maxActiveConvPerUserV2 = SESSION_DEFAULT_MAX_ACTIVE_CONV_PER_USER;
+let _maxPendingTurnsPerConvV2 = SESSION_DEFAULT_MAX_PENDING_TURNS_PER_CONV;
+let _convIdleMsV2 = SESSION_DEFAULT_CONV_IDLE_MS;
+let _turnStuckMsV2 = SESSION_DEFAULT_TURN_STUCK_MS;
+
+function _posIntSessionV2(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be a positive integer`);
+  return v;
+}
+
+export function getMaxActiveConvPerUserV2() {
+  return _maxActiveConvPerUserV2;
+}
+export function setMaxActiveConvPerUserV2(n) {
+  _maxActiveConvPerUserV2 = _posIntSessionV2(n, "maxActiveConvPerUser");
+}
+export function getMaxPendingTurnsPerConvV2() {
+  return _maxPendingTurnsPerConvV2;
+}
+export function setMaxPendingTurnsPerConvV2(n) {
+  _maxPendingTurnsPerConvV2 = _posIntSessionV2(n, "maxPendingTurnsPerConv");
+}
+export function getConvIdleMsV2() {
+  return _convIdleMsV2;
+}
+export function setConvIdleMsV2(n) {
+  _convIdleMsV2 = _posIntSessionV2(n, "convIdleMs");
+}
+export function getTurnStuckMsV2() {
+  return _turnStuckMsV2;
+}
+export function setTurnStuckMsV2(n) {
+  _turnStuckMsV2 = _posIntSessionV2(n, "turnStuckMs");
+}
+
+export function getActiveConvCountV2(userId) {
+  let n = 0;
+  for (const c of _conversationsV2.values()) {
+    if (c.userId === userId && c.status === "active") n += 1;
+  }
+  return n;
+}
+
+export function getPendingTurnCountV2(conversationId) {
+  let n = 0;
+  for (const t of _turnsV2.values()) {
+    if (
+      t.conversationId === conversationId &&
+      (t.status === "pending" || t.status === "streaming")
+    )
+      n += 1;
+  }
+  return n;
+}
+
+function _copyConvV2(c) {
+  return { ...c, metadata: { ...c.metadata } };
+}
+function _copyTurnV2(t) {
+  return { ...t, metadata: { ...t.metadata } };
+}
+
+export function registerConversationV2(
+  id,
+  { userId, model, metadata = {}, now = Date.now() } = {},
+) {
+  if (!id || typeof id !== "string") throw new Error("id must be a string");
+  if (!userId || typeof userId !== "string")
+    throw new Error("userId must be a string");
+  if (!model || typeof model !== "string")
+    throw new Error("model must be a string");
+  if (_conversationsV2.has(id))
+    throw new Error(`conversation ${id} already exists`);
+  const c = {
+    id,
+    userId,
+    model,
+    status: "draft",
+    createdAt: now,
+    lastSeenAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...metadata },
+  };
+  _conversationsV2.set(id, c);
+  return _copyConvV2(c);
+}
+
+export function getConversationV2(id) {
+  const c = _conversationsV2.get(id);
+  return c ? _copyConvV2(c) : null;
+}
+
+export function listConversationsV2({ userId, status } = {}) {
+  const out = [];
+  for (const c of _conversationsV2.values()) {
+    if (userId && c.userId !== userId) continue;
+    if (status && c.status !== status) continue;
+    out.push(_copyConvV2(c));
+  }
+  return out;
+}
+
+export function setConversationStatusV2(id, next, { now = Date.now() } = {}) {
+  const c = _conversationsV2.get(id);
+  if (!c) throw new Error(`conversation ${id} not found`);
+  if (!CONV_TRANSITIONS_V2.has(next))
+    throw new Error(`unknown conversation status: ${next}`);
+  if (CONV_TERMINALS_V2.has(c.status))
+    throw new Error(`conversation ${id} is in terminal state ${c.status}`);
+  const allowed = CONV_TRANSITIONS_V2.get(c.status);
+  if (!allowed.has(next))
+    throw new Error(
+      `cannot transition conversation from ${c.status} to ${next}`,
+    );
+  if (next === "active") {
+    if (c.status === "draft") {
+      const count = getActiveConvCountV2(c.userId);
+      if (count >= _maxActiveConvPerUserV2)
+        throw new Error(
+          `user ${c.userId} already at active-conversation cap (${_maxActiveConvPerUserV2})`,
+        );
+    }
+    if (!c.activatedAt) c.activatedAt = now;
+  }
+  if (next === "archived" && !c.archivedAt) c.archivedAt = now;
+  c.status = next;
+  c.lastSeenAt = now;
+  return _copyConvV2(c);
+}
+
+export function activateConversationV2(id, opts) {
+  return setConversationStatusV2(id, "active", opts);
+}
+export function pauseConversationV2(id, opts) {
+  return setConversationStatusV2(id, "paused", opts);
+}
+export function archiveConversationV2(id, opts) {
+  return setConversationStatusV2(id, "archived", opts);
+}
+
+export function touchConversationV2(id, { now = Date.now() } = {}) {
+  const c = _conversationsV2.get(id);
+  if (!c) throw new Error(`conversation ${id} not found`);
+  c.lastSeenAt = now;
+  return _copyConvV2(c);
+}
+
+export function createTurnV2(
+  id,
+  { conversationId, role = "user", metadata = {}, now = Date.now() } = {},
+) {
+  if (!id || typeof id !== "string") throw new Error("id must be a string");
+  if (!conversationId || typeof conversationId !== "string")
+    throw new Error("conversationId must be a string");
+  if (_turnsV2.has(id)) throw new Error(`turn ${id} already exists`);
+  const count = getPendingTurnCountV2(conversationId);
+  if (count >= _maxPendingTurnsPerConvV2)
+    throw new Error(
+      `conversation ${conversationId} already at pending-turn cap (${_maxPendingTurnsPerConvV2})`,
+    );
+  const t = {
+    id,
+    conversationId,
+    role,
+    status: "pending",
+    createdAt: now,
+    lastSeenAt: now,
+    streamingStartedAt: null,
+    settledAt: null,
+    metadata: { ...metadata },
+  };
+  _turnsV2.set(id, t);
+  return _copyTurnV2(t);
+}
+
+export function getTurnV2(id) {
+  const t = _turnsV2.get(id);
+  return t ? _copyTurnV2(t) : null;
+}
+
+export function listTurnsV2({ conversationId, status } = {}) {
+  const out = [];
+  for (const t of _turnsV2.values()) {
+    if (conversationId && t.conversationId !== conversationId) continue;
+    if (status && t.status !== status) continue;
+    out.push(_copyTurnV2(t));
+  }
+  return out;
+}
+
+export function setTurnStatusV2(id, next, { now = Date.now() } = {}) {
+  const t = _turnsV2.get(id);
+  if (!t) throw new Error(`turn ${id} not found`);
+  if (!TURN_TRANSITIONS_V2.has(next))
+    throw new Error(`unknown turn status: ${next}`);
+  if (TURN_TERMINALS_V2.has(t.status))
+    throw new Error(`turn ${id} is in terminal state ${t.status}`);
+  const allowed = TURN_TRANSITIONS_V2.get(t.status);
+  if (!allowed.has(next))
+    throw new Error(`cannot transition turn from ${t.status} to ${next}`);
+  if (next === "streaming" && !t.streamingStartedAt) t.streamingStartedAt = now;
+  if (TURN_TERMINALS_V2.has(next) && !t.settledAt) t.settledAt = now;
+  t.status = next;
+  t.lastSeenAt = now;
+  return _copyTurnV2(t);
+}
+
+export function streamTurnV2(id, opts) {
+  return setTurnStatusV2(id, "streaming", opts);
+}
+export function completeTurnV2(id, opts) {
+  return setTurnStatusV2(id, "completed", opts);
+}
+export function failTurnV2(id, opts) {
+  return setTurnStatusV2(id, "failed", opts);
+}
+export function cancelTurnV2(id, opts) {
+  return setTurnStatusV2(id, "cancelled", opts);
+}
+
+export function autoArchiveIdleConversationsV2({ now = Date.now() } = {}) {
+  const flipped = [];
+  for (const c of _conversationsV2.values()) {
+    if (c.status === "archived" || c.status === "draft") continue;
+    if (now - c.lastSeenAt > _convIdleMsV2) {
+      c.status = "archived";
+      c.lastSeenAt = now;
+      if (!c.archivedAt) c.archivedAt = now;
+      flipped.push(_copyConvV2(c));
+    }
+  }
+  return flipped;
+}
+
+export function autoFailStuckTurnsV2({ now = Date.now() } = {}) {
+  const flipped = [];
+  for (const t of _turnsV2.values()) {
+    if (t.status !== "streaming") continue;
+    const ref = t.streamingStartedAt ?? t.lastSeenAt;
+    if (now - ref > _turnStuckMsV2) {
+      t.status = "failed";
+      t.lastSeenAt = now;
+      if (!t.settledAt) t.settledAt = now;
+      flipped.push(_copyTurnV2(t));
+    }
+  }
+  return flipped;
+}
+
+export function getSessionManagerStatsV2() {
+  const conversationsByStatus = {};
+  for (const v of Object.values(CONVERSATION_MATURITY_V2))
+    conversationsByStatus[v] = 0;
+  for (const c of _conversationsV2.values())
+    conversationsByStatus[c.status] += 1;
+
+  const turnsByStatus = {};
+  for (const v of Object.values(TURN_LIFECYCLE_V2)) turnsByStatus[v] = 0;
+  for (const t of _turnsV2.values()) turnsByStatus[t.status] += 1;
+
+  return {
+    totalConversationsV2: _conversationsV2.size,
+    totalTurnsV2: _turnsV2.size,
+    maxActiveConvPerUser: _maxActiveConvPerUserV2,
+    maxPendingTurnsPerConv: _maxPendingTurnsPerConvV2,
+    convIdleMs: _convIdleMsV2,
+    turnStuckMs: _turnStuckMsV2,
+    conversationsByStatus,
+    turnsByStatus,
+  };
+}
+
+export function _resetStateSessionManagerV2() {
+  _conversationsV2.clear();
+  _turnsV2.clear();
+  _maxActiveConvPerUserV2 = SESSION_DEFAULT_MAX_ACTIVE_CONV_PER_USER;
+  _maxPendingTurnsPerConvV2 = SESSION_DEFAULT_MAX_PENDING_TURNS_PER_CONV;
+  _convIdleMsV2 = SESSION_DEFAULT_CONV_IDLE_MS;
+  _turnStuckMsV2 = SESSION_DEFAULT_TURN_STUCK_MS;
+}

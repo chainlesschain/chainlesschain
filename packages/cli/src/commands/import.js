@@ -13,6 +13,37 @@ import {
   importMarkdownDir,
   importEnexFile,
   importNotionDir,
+  SOURCE_MATURITY_V2,
+  IMPORT_JOB_LIFECYCLE_V2,
+  getMaxActiveSourcesPerOwnerV2,
+  setMaxActiveSourcesPerOwnerV2,
+  getMaxPendingJobsPerSourceV2,
+  setMaxPendingJobsPerSourceV2,
+  getSourceIdleMsV2,
+  setSourceIdleMsV2,
+  getJobStuckMsV2,
+  setJobStuckMsV2,
+  registerSourceV2,
+  getSourceV2,
+  listSourcesV2,
+  setSourceStatusV2,
+  activateSourceV2,
+  pauseSourceV2,
+  archiveSourceV2,
+  touchSourceV2,
+  getActiveSourceCountV2,
+  createImportJobV2,
+  getImportJobV2,
+  listImportJobsV2,
+  setImportJobStatusV2,
+  startImportJobV2,
+  completeImportJobV2,
+  failImportJobV2,
+  cancelImportJobV2,
+  getPendingJobCountV2,
+  autoPauseIdleSourcesV2,
+  autoFailStuckImportJobsV2,
+  getKnowledgeImporterStatsV2,
 } from "../lib/knowledge-importer.js";
 
 export function registerImportCommand(program) {
@@ -256,4 +287,225 @@ export function registerImportCommand(program) {
         process.exit(1);
       }
     });
+
+  // ─── V2 Governance Layer ──────────────────────────────────────────
+  const out = (obj) => console.log(JSON.stringify(obj, null, 2));
+  const tryRun = (fn) => {
+    try {
+      fn();
+    } catch (err) {
+      logger.error(err.message);
+      process.exit(1);
+    }
+  };
+
+  imp
+    .command("source-maturities-v2")
+    .description("List V2 source maturity states")
+    .action(() => out(Object.values(SOURCE_MATURITY_V2)));
+
+  imp
+    .command("import-job-lifecycles-v2")
+    .description("List V2 import-job lifecycle states")
+    .action(() => out(Object.values(IMPORT_JOB_LIFECYCLE_V2)));
+
+  imp
+    .command("stats-v2")
+    .description("V2 knowledge-importer stats")
+    .action(() => out(getKnowledgeImporterStatsV2()));
+
+  imp
+    .command("get-max-active-sources-v2")
+    .description("Get max active sources per owner (V2)")
+    .action(() =>
+      out({ maxActiveSourcesPerOwner: getMaxActiveSourcesPerOwnerV2() }),
+    );
+
+  imp
+    .command("set-max-active-sources-v2 <n>")
+    .description("Set max active sources per owner (V2)")
+    .action((n) =>
+      tryRun(() => {
+        setMaxActiveSourcesPerOwnerV2(Number(n));
+        out({ maxActiveSourcesPerOwner: getMaxActiveSourcesPerOwnerV2() });
+      }),
+    );
+
+  imp
+    .command("get-max-pending-jobs-v2")
+    .description("Get max pending jobs per source (V2)")
+    .action(() =>
+      out({ maxPendingJobsPerSource: getMaxPendingJobsPerSourceV2() }),
+    );
+
+  imp
+    .command("set-max-pending-jobs-v2 <n>")
+    .description("Set max pending jobs per source (V2)")
+    .action((n) =>
+      tryRun(() => {
+        setMaxPendingJobsPerSourceV2(Number(n));
+        out({ maxPendingJobsPerSource: getMaxPendingJobsPerSourceV2() });
+      }),
+    );
+
+  imp
+    .command("get-source-idle-ms-v2")
+    .description("Get source idle threshold (V2)")
+    .action(() => out({ sourceIdleMs: getSourceIdleMsV2() }));
+
+  imp
+    .command("set-source-idle-ms-v2 <ms>")
+    .description("Set source idle threshold (V2)")
+    .action((ms) =>
+      tryRun(() => {
+        setSourceIdleMsV2(Number(ms));
+        out({ sourceIdleMs: getSourceIdleMsV2() });
+      }),
+    );
+
+  imp
+    .command("get-job-stuck-ms-v2")
+    .description("Get import-job stuck threshold (V2)")
+    .action(() => out({ jobStuckMs: getJobStuckMsV2() }));
+
+  imp
+    .command("set-job-stuck-ms-v2 <ms>")
+    .description("Set import-job stuck threshold (V2)")
+    .action((ms) =>
+      tryRun(() => {
+        setJobStuckMsV2(Number(ms));
+        out({ jobStuckMs: getJobStuckMsV2() });
+      }),
+    );
+
+  imp
+    .command("active-source-count-v2 <ownerId>")
+    .description("Active source count for owner (V2)")
+    .action((ownerId) =>
+      out({ ownerId, count: getActiveSourceCountV2(ownerId) }),
+    );
+
+  imp
+    .command("pending-job-count-v2 <sourceId>")
+    .description("Pending import-job count for source (V2)")
+    .action((sourceId) =>
+      out({ sourceId, count: getPendingJobCountV2(sourceId) }),
+    );
+
+  imp
+    .command("register-source-v2 <id>")
+    .description("Register a V2 source manifest")
+    .requiredOption("-o, --owner <id>", "owner id")
+    .requiredOption("-l, --label <label>", "source label")
+    .option("-k, --kind <kind>", "source kind", "markdown")
+    .action((id, opts) =>
+      tryRun(() =>
+        out(
+          registerSourceV2(id, {
+            ownerId: opts.owner,
+            label: opts.label,
+            kind: opts.kind,
+          }),
+        ),
+      ),
+    );
+
+  imp
+    .command("get-source-v2 <id>")
+    .description("Get a V2 source")
+    .action((id) => out(getSourceV2(id)));
+
+  imp
+    .command("list-sources-v2")
+    .description("List V2 sources")
+    .option("-o, --owner <id>", "filter by owner")
+    .option("-s, --status <status>", "filter by status")
+    .action((opts) =>
+      out(listSourcesV2({ ownerId: opts.owner, status: opts.status })),
+    );
+
+  imp
+    .command("set-source-status-v2 <id> <next>")
+    .description("Set V2 source status")
+    .action((id, next) => tryRun(() => out(setSourceStatusV2(id, next))));
+
+  imp
+    .command("activate-source-v2 <id>")
+    .description("Activate a V2 source")
+    .action((id) => tryRun(() => out(activateSourceV2(id))));
+
+  imp
+    .command("pause-source-v2 <id>")
+    .description("Pause a V2 source")
+    .action((id) => tryRun(() => out(pauseSourceV2(id))));
+
+  imp
+    .command("archive-source-v2 <id>")
+    .description("Archive a V2 source")
+    .action((id) => tryRun(() => out(archiveSourceV2(id))));
+
+  imp
+    .command("touch-source-v2 <id>")
+    .description("Touch a V2 source")
+    .action((id) => tryRun(() => out(touchSourceV2(id))));
+
+  imp
+    .command("create-import-job-v2 <id>")
+    .description("Create a V2 import job")
+    .requiredOption("-s, --source <id>", "source id")
+    .option("-k, --kind <kind>", "job kind", "scan")
+    .action((id, opts) =>
+      tryRun(() =>
+        out(createImportJobV2(id, { sourceId: opts.source, kind: opts.kind })),
+      ),
+    );
+
+  imp
+    .command("get-import-job-v2 <id>")
+    .description("Get a V2 import job")
+    .action((id) => out(getImportJobV2(id)));
+
+  imp
+    .command("list-import-jobs-v2")
+    .description("List V2 import jobs")
+    .option("-s, --source <id>", "filter by source")
+    .option("-t, --status <status>", "filter by status")
+    .action((opts) =>
+      out(listImportJobsV2({ sourceId: opts.source, status: opts.status })),
+    );
+
+  imp
+    .command("set-import-job-status-v2 <id> <next>")
+    .description("Set V2 import-job status")
+    .action((id, next) => tryRun(() => out(setImportJobStatusV2(id, next))));
+
+  imp
+    .command("start-import-job-v2 <id>")
+    .description("Start a V2 import job")
+    .action((id) => tryRun(() => out(startImportJobV2(id))));
+
+  imp
+    .command("complete-import-job-v2 <id>")
+    .description("Complete a V2 import job")
+    .action((id) => tryRun(() => out(completeImportJobV2(id))));
+
+  imp
+    .command("fail-import-job-v2 <id>")
+    .description("Fail a V2 import job")
+    .action((id) => tryRun(() => out(failImportJobV2(id))));
+
+  imp
+    .command("cancel-import-job-v2 <id>")
+    .description("Cancel a V2 import job")
+    .action((id) => tryRun(() => out(cancelImportJobV2(id))));
+
+  imp
+    .command("auto-pause-idle-sources-v2")
+    .description("Auto-pause idle V2 sources")
+    .action(() => out(autoPauseIdleSourcesV2()));
+
+  imp
+    .command("auto-fail-stuck-import-jobs-v2")
+    .description("Auto-fail stuck V2 import jobs")
+    .action(() => out(autoFailStuckImportJobsV2()));
 }

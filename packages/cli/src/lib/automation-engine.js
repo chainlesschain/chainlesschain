@@ -946,3 +946,333 @@ export function getConfig() {
     nodeTypes: Object.values(NODE_TYPE),
   };
 }
+
+/* ═══════════════════════════════════════════════════════════════
+ * V2 Surface — Automation engine governance layer.
+ * Tracks per-owner automation maturity + per-automation execution
+ * lifecycle independent of legacy SQLite tables.
+ * ═══════════════════════════════════════════════════════════════ */
+
+export const AUTOMATION_MATURITY_V2 = Object.freeze({
+  DRAFT: "draft",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  RETIRED: "retired",
+});
+
+export const EXECUTION_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  SUCCEEDED: "succeeded",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+
+const AUTOMATION_TRANSITIONS_V2 = new Map([
+  ["draft", new Set(["active", "retired"])],
+  ["active", new Set(["paused", "retired"])],
+  ["paused", new Set(["active", "retired"])],
+  ["retired", new Set()],
+]);
+const AUTOMATION_TERMINALS_V2 = new Set(["retired"]);
+
+const EXECUTION_TRANSITIONS_V2 = new Map([
+  ["queued", new Set(["running", "cancelled"])],
+  ["running", new Set(["succeeded", "failed", "cancelled"])],
+  ["succeeded", new Set()],
+  ["failed", new Set()],
+  ["cancelled", new Set()],
+]);
+const EXECUTION_TERMINALS_V2 = new Set(["succeeded", "failed", "cancelled"]);
+
+export const AUTOMATION_DEFAULT_MAX_ACTIVE_PER_OWNER = 20;
+export const AUTOMATION_DEFAULT_MAX_RUNNING_PER_AUTOMATION = 3;
+export const AUTOMATION_DEFAULT_AUTOMATION_IDLE_MS = 1000 * 60 * 60 * 24 * 14; // 14 days
+export const AUTOMATION_DEFAULT_EXECUTION_STUCK_MS = 1000 * 60 * 30; // 30 min
+
+const _automationsV2 = new Map();
+const _executionsV2 = new Map();
+let _maxActiveAutomationsPerOwnerV2 = AUTOMATION_DEFAULT_MAX_ACTIVE_PER_OWNER;
+let _maxRunningExecutionsPerAutomationV2 =
+  AUTOMATION_DEFAULT_MAX_RUNNING_PER_AUTOMATION;
+let _automationIdleMsV2 = AUTOMATION_DEFAULT_AUTOMATION_IDLE_MS;
+let _executionStuckMsV2 = AUTOMATION_DEFAULT_EXECUTION_STUCK_MS;
+
+function _posIntAutomationV2(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be a positive integer`);
+  return v;
+}
+
+export function getMaxActiveAutomationsPerOwnerV2() {
+  return _maxActiveAutomationsPerOwnerV2;
+}
+export function setMaxActiveAutomationsPerOwnerV2(n) {
+  _maxActiveAutomationsPerOwnerV2 = _posIntAutomationV2(
+    n,
+    "maxActiveAutomationsPerOwner",
+  );
+}
+export function getMaxRunningExecutionsPerAutomationV2() {
+  return _maxRunningExecutionsPerAutomationV2;
+}
+export function setMaxRunningExecutionsPerAutomationV2(n) {
+  _maxRunningExecutionsPerAutomationV2 = _posIntAutomationV2(
+    n,
+    "maxRunningExecutionsPerAutomation",
+  );
+}
+export function getAutomationIdleMsV2() {
+  return _automationIdleMsV2;
+}
+export function setAutomationIdleMsV2(n) {
+  _automationIdleMsV2 = _posIntAutomationV2(n, "automationIdleMs");
+}
+export function getExecutionStuckMsV2() {
+  return _executionStuckMsV2;
+}
+export function setExecutionStuckMsV2(n) {
+  _executionStuckMsV2 = _posIntAutomationV2(n, "executionStuckMs");
+}
+
+export function getActiveAutomationCountV2(ownerId) {
+  let n = 0;
+  for (const a of _automationsV2.values()) {
+    if (a.ownerId === ownerId && a.status === "active") n += 1;
+  }
+  return n;
+}
+
+export function getRunningExecutionCountV2(automationId) {
+  let n = 0;
+  for (const e of _executionsV2.values()) {
+    if (e.automationId === automationId && e.status === "running") n += 1;
+  }
+  return n;
+}
+
+function _copyAutomationV2(a) {
+  return { ...a, metadata: { ...a.metadata } };
+}
+function _copyExecutionV2(e) {
+  return { ...e, metadata: { ...e.metadata } };
+}
+
+export function registerAutomationV2(
+  id,
+  { ownerId, name, metadata = {}, now = Date.now() } = {},
+) {
+  if (!id || typeof id !== "string") throw new Error("id must be a string");
+  if (!ownerId || typeof ownerId !== "string")
+    throw new Error("ownerId must be a string");
+  if (!name || typeof name !== "string")
+    throw new Error("name must be a string");
+  if (_automationsV2.has(id))
+    throw new Error(`automation ${id} already exists`);
+  const a = {
+    id,
+    ownerId,
+    name,
+    status: "draft",
+    createdAt: now,
+    lastSeenAt: now,
+    activatedAt: null,
+    retiredAt: null,
+    metadata: { ...metadata },
+  };
+  _automationsV2.set(id, a);
+  return _copyAutomationV2(a);
+}
+
+export function getAutomationV2(id) {
+  const a = _automationsV2.get(id);
+  return a ? _copyAutomationV2(a) : null;
+}
+
+export function listAutomationsV2({ ownerId, status } = {}) {
+  const out = [];
+  for (const a of _automationsV2.values()) {
+    if (ownerId && a.ownerId !== ownerId) continue;
+    if (status && a.status !== status) continue;
+    out.push(_copyAutomationV2(a));
+  }
+  return out;
+}
+
+export function setAutomationStatusV2(id, next, { now = Date.now() } = {}) {
+  const a = _automationsV2.get(id);
+  if (!a) throw new Error(`automation ${id} not found`);
+  if (!AUTOMATION_TRANSITIONS_V2.has(next))
+    throw new Error(`unknown automation status: ${next}`);
+  if (AUTOMATION_TERMINALS_V2.has(a.status))
+    throw new Error(`automation ${id} is in terminal state ${a.status}`);
+  const allowed = AUTOMATION_TRANSITIONS_V2.get(a.status);
+  if (!allowed.has(next))
+    throw new Error(`cannot transition automation from ${a.status} to ${next}`);
+  if (next === "active") {
+    if (a.status === "draft") {
+      const count = getActiveAutomationCountV2(a.ownerId);
+      if (count >= _maxActiveAutomationsPerOwnerV2)
+        throw new Error(
+          `owner ${a.ownerId} already at active-automation cap (${_maxActiveAutomationsPerOwnerV2})`,
+        );
+    }
+    if (!a.activatedAt) a.activatedAt = now;
+  }
+  if (next === "retired" && !a.retiredAt) a.retiredAt = now;
+  a.status = next;
+  a.lastSeenAt = now;
+  return _copyAutomationV2(a);
+}
+
+export function activateAutomationV2(id, opts) {
+  return setAutomationStatusV2(id, "active", opts);
+}
+export function pauseAutomationV2(id, opts) {
+  return setAutomationStatusV2(id, "paused", opts);
+}
+export function retireAutomationV2(id, opts) {
+  return setAutomationStatusV2(id, "retired", opts);
+}
+
+export function touchAutomationV2(id, { now = Date.now() } = {}) {
+  const a = _automationsV2.get(id);
+  if (!a) throw new Error(`automation ${id} not found`);
+  a.lastSeenAt = now;
+  return _copyAutomationV2(a);
+}
+
+export function createExecutionV2(
+  id,
+  { automationId, metadata = {}, now = Date.now() } = {},
+) {
+  if (!id || typeof id !== "string") throw new Error("id must be a string");
+  if (!automationId || typeof automationId !== "string")
+    throw new Error("automationId must be a string");
+  if (_executionsV2.has(id)) throw new Error(`execution ${id} already exists`);
+  const e = {
+    id,
+    automationId,
+    status: "queued",
+    createdAt: now,
+    lastSeenAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...metadata },
+  };
+  _executionsV2.set(id, e);
+  return _copyExecutionV2(e);
+}
+
+export function getExecutionV2(id) {
+  const e = _executionsV2.get(id);
+  return e ? _copyExecutionV2(e) : null;
+}
+
+export function listExecutionsV2({ automationId, status } = {}) {
+  const out = [];
+  for (const e of _executionsV2.values()) {
+    if (automationId && e.automationId !== automationId) continue;
+    if (status && e.status !== status) continue;
+    out.push(_copyExecutionV2(e));
+  }
+  return out;
+}
+
+export function setExecutionStatusV2(id, next, { now = Date.now() } = {}) {
+  const e = _executionsV2.get(id);
+  if (!e) throw new Error(`execution ${id} not found`);
+  if (!EXECUTION_TRANSITIONS_V2.has(next))
+    throw new Error(`unknown execution status: ${next}`);
+  if (EXECUTION_TERMINALS_V2.has(e.status))
+    throw new Error(`execution ${id} is in terminal state ${e.status}`);
+  const allowed = EXECUTION_TRANSITIONS_V2.get(e.status);
+  if (!allowed.has(next))
+    throw new Error(`cannot transition execution from ${e.status} to ${next}`);
+  if (next === "running") {
+    const count = getRunningExecutionCountV2(e.automationId);
+    if (count >= _maxRunningExecutionsPerAutomationV2)
+      throw new Error(
+        `automation ${e.automationId} already at running-execution cap (${_maxRunningExecutionsPerAutomationV2})`,
+      );
+    if (!e.startedAt) e.startedAt = now;
+  }
+  if (EXECUTION_TERMINALS_V2.has(next) && !e.settledAt) e.settledAt = now;
+  e.status = next;
+  e.lastSeenAt = now;
+  return _copyExecutionV2(e);
+}
+
+export function startExecutionV2(id, opts) {
+  return setExecutionStatusV2(id, "running", opts);
+}
+export function succeedExecutionV2(id, opts) {
+  return setExecutionStatusV2(id, "succeeded", opts);
+}
+export function failExecutionV2(id, opts) {
+  return setExecutionStatusV2(id, "failed", opts);
+}
+export function cancelExecutionV2(id, opts) {
+  return setExecutionStatusV2(id, "cancelled", opts);
+}
+
+export function autoPauseIdleAutomationsV2({ now = Date.now() } = {}) {
+  const flipped = [];
+  for (const a of _automationsV2.values()) {
+    if (a.status !== "active") continue;
+    if (now - a.lastSeenAt > _automationIdleMsV2) {
+      a.status = "paused";
+      a.lastSeenAt = now;
+      flipped.push(_copyAutomationV2(a));
+    }
+  }
+  return flipped;
+}
+
+export function autoFailStuckExecutionsV2({ now = Date.now() } = {}) {
+  const flipped = [];
+  for (const e of _executionsV2.values()) {
+    if (e.status !== "running") continue;
+    if (now - e.lastSeenAt > _executionStuckMsV2) {
+      e.status = "failed";
+      e.lastSeenAt = now;
+      if (!e.settledAt) e.settledAt = now;
+      flipped.push(_copyExecutionV2(e));
+    }
+  }
+  return flipped;
+}
+
+export function getAutomationEngineStatsV2() {
+  const automationsByStatus = {};
+  for (const v of Object.values(AUTOMATION_MATURITY_V2))
+    automationsByStatus[v] = 0;
+  for (const a of _automationsV2.values()) automationsByStatus[a.status] += 1;
+
+  const executionsByStatus = {};
+  for (const v of Object.values(EXECUTION_LIFECYCLE_V2))
+    executionsByStatus[v] = 0;
+  for (const e of _executionsV2.values()) executionsByStatus[e.status] += 1;
+
+  return {
+    totalAutomationsV2: _automationsV2.size,
+    totalExecutionsV2: _executionsV2.size,
+    maxActiveAutomationsPerOwner: _maxActiveAutomationsPerOwnerV2,
+    maxRunningExecutionsPerAutomation: _maxRunningExecutionsPerAutomationV2,
+    automationIdleMs: _automationIdleMsV2,
+    executionStuckMs: _executionStuckMsV2,
+    automationsByStatus,
+    executionsByStatus,
+  };
+}
+
+export function _resetStateAutomationEngineV2() {
+  _automationsV2.clear();
+  _executionsV2.clear();
+  _maxActiveAutomationsPerOwnerV2 = AUTOMATION_DEFAULT_MAX_ACTIVE_PER_OWNER;
+  _maxRunningExecutionsPerAutomationV2 =
+    AUTOMATION_DEFAULT_MAX_RUNNING_PER_AUTOMATION;
+  _automationIdleMsV2 = AUTOMATION_DEFAULT_AUTOMATION_IDLE_MS;
+  _executionStuckMsV2 = AUTOMATION_DEFAULT_EXECUTION_STUCK_MS;
+}

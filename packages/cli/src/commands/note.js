@@ -14,6 +14,35 @@ import {
   simpleDiff,
   formatDiff,
   revertToVersion,
+  NOTE_MATURITY_V2,
+  REVISION_LIFECYCLE_V2,
+  getMaxActiveNotesPerAuthorV2,
+  setMaxActiveNotesPerAuthorV2,
+  getMaxOpenRevsPerNoteV2,
+  setMaxOpenRevsPerNoteV2,
+  getNoteIdleMsV2,
+  setNoteIdleMsV2,
+  getRevStuckMsV2,
+  setRevStuckMsV2,
+  getActiveNoteCountV2,
+  getOpenRevCountV2,
+  registerNoteV2,
+  getNoteV2,
+  listNotesV2,
+  activateNoteV2,
+  lockNoteV2,
+  archiveNoteV2,
+  touchNoteV2,
+  createRevisionV2,
+  getRevisionV2,
+  listRevisionsV2,
+  reviewRevisionV2,
+  applyRevisionV2,
+  supersedeRevisionV2,
+  discardRevisionV2,
+  autoLockIdleNotesV2,
+  autoDiscardStaleRevisionsV2,
+  getNoteVersioningStatsV2,
 } from "../lib/note-versioning.js";
 
 /**
@@ -486,4 +515,219 @@ export function registerNoteCommand(program) {
         process.exit(1);
       }
     });
+
+  // ─── V2 governance surface ─────────────────────────────────
+
+  note
+    .command("note-maturities-v2")
+    .description("List V2 note maturity states")
+    .action(() => {
+      console.log(JSON.stringify(Object.values(NOTE_MATURITY_V2), null, 2));
+    });
+
+  note
+    .command("revision-lifecycles-v2")
+    .description("List V2 revision lifecycle states")
+    .action(() => {
+      console.log(
+        JSON.stringify(Object.values(REVISION_LIFECYCLE_V2), null, 2),
+      );
+    });
+
+  note
+    .command("stats-v2")
+    .description("Show V2 governance stats")
+    .action(() => {
+      console.log(JSON.stringify(getNoteVersioningStatsV2(), null, 2));
+    });
+
+  note
+    .command("get-max-active-notes-v2")
+    .description("Get max active notes per author")
+    .action(() => console.log(getMaxActiveNotesPerAuthorV2()));
+
+  note
+    .command("set-max-active-notes-v2 <n>")
+    .description("Set max active notes per author")
+    .action((n) => {
+      setMaxActiveNotesPerAuthorV2(Number(n));
+      console.log(getMaxActiveNotesPerAuthorV2());
+    });
+
+  note
+    .command("get-max-open-revs-v2")
+    .description("Get max open revisions per note")
+    .action(() => console.log(getMaxOpenRevsPerNoteV2()));
+
+  note
+    .command("set-max-open-revs-v2 <n>")
+    .description("Set max open revisions per note")
+    .action((n) => {
+      setMaxOpenRevsPerNoteV2(Number(n));
+      console.log(getMaxOpenRevsPerNoteV2());
+    });
+
+  note
+    .command("get-note-idle-ms-v2")
+    .description("Get note idle threshold (ms)")
+    .action(() => console.log(getNoteIdleMsV2()));
+
+  note
+    .command("set-note-idle-ms-v2 <n>")
+    .description("Set note idle threshold (ms)")
+    .action((n) => {
+      setNoteIdleMsV2(Number(n));
+      console.log(getNoteIdleMsV2());
+    });
+
+  note
+    .command("get-rev-stuck-ms-v2")
+    .description("Get revision stuck threshold (ms)")
+    .action(() => console.log(getRevStuckMsV2()));
+
+  note
+    .command("set-rev-stuck-ms-v2 <n>")
+    .description("Set revision stuck threshold (ms)")
+    .action((n) => {
+      setRevStuckMsV2(Number(n));
+      console.log(getRevStuckMsV2());
+    });
+
+  note
+    .command("active-note-count-v2 <authorId>")
+    .description("Count active notes for an author")
+    .action((authorId) => console.log(getActiveNoteCountV2(authorId)));
+
+  note
+    .command("open-rev-count-v2 <noteId>")
+    .description("Count open revisions for a note")
+    .action((noteId) => console.log(getOpenRevCountV2(noteId)));
+
+  note
+    .command("register-note-v2 <id>")
+    .description("Register a V2 note")
+    .requiredOption("-a, --author <authorId>", "Author id")
+    .requiredOption("-t, --title <title>", "Title")
+    .action((id, opts) => {
+      const n = registerNoteV2(id, {
+        authorId: opts.author,
+        title: opts.title,
+      });
+      console.log(JSON.stringify(n, null, 2));
+    });
+
+  note
+    .command("get-note-v2 <id>")
+    .description("Get a V2 note")
+    .action((id) => {
+      const n = getNoteV2(id);
+      console.log(n ? JSON.stringify(n, null, 2) : "null");
+    });
+
+  note
+    .command("list-notes-v2")
+    .description("List V2 notes")
+    .option("-a, --author <authorId>", "Filter by author")
+    .option("-s, --status <status>", "Filter by status")
+    .action((opts) => {
+      console.log(
+        JSON.stringify(
+          listNotesV2({ authorId: opts.author, status: opts.status }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  note
+    .command("activate-note-v2 <id>")
+    .description("draft|locked → active")
+    .action((id) => console.log(JSON.stringify(activateNoteV2(id), null, 2)));
+
+  note
+    .command("lock-note-v2 <id>")
+    .description("active → locked")
+    .action((id) => console.log(JSON.stringify(lockNoteV2(id), null, 2)));
+
+  note
+    .command("archive-note-v2 <id>")
+    .description("→ archived (terminal)")
+    .action((id) => console.log(JSON.stringify(archiveNoteV2(id), null, 2)));
+
+  note
+    .command("touch-note-v2 <id>")
+    .description("Update lastSeenAt")
+    .action((id) => console.log(JSON.stringify(touchNoteV2(id), null, 2)));
+
+  note
+    .command("create-revision-v2 <id>")
+    .description("Create a V2 revision")
+    .requiredOption("-n, --note <noteId>", "Note id")
+    .requiredOption("-s, --summary <summary>", "Summary")
+    .action((id, opts) => {
+      const r = createRevisionV2(id, {
+        noteId: opts.note,
+        summary: opts.summary,
+      });
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  note
+    .command("get-revision-v2 <id>")
+    .description("Get a V2 revision")
+    .action((id) => {
+      const r = getRevisionV2(id);
+      console.log(r ? JSON.stringify(r, null, 2) : "null");
+    });
+
+  note
+    .command("list-revisions-v2")
+    .description("List V2 revisions")
+    .option("-n, --note <noteId>", "Filter by note")
+    .option("-s, --status <status>", "Filter by status")
+    .action((opts) => {
+      console.log(
+        JSON.stringify(
+          listRevisionsV2({ noteId: opts.note, status: opts.status }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  note
+    .command("review-revision-v2 <id>")
+    .description("proposed → reviewed")
+    .action((id) => console.log(JSON.stringify(reviewRevisionV2(id), null, 2)));
+
+  note
+    .command("apply-revision-v2 <id>")
+    .description("reviewed → applied (non-terminal)")
+    .action((id) => console.log(JSON.stringify(applyRevisionV2(id), null, 2)));
+
+  note
+    .command("supersede-revision-v2 <id>")
+    .description("reviewed|applied → superseded (terminal)")
+    .action((id) =>
+      console.log(JSON.stringify(supersedeRevisionV2(id), null, 2)),
+    );
+
+  note
+    .command("discard-revision-v2 <id>")
+    .description("→ discarded (terminal)")
+    .action((id) =>
+      console.log(JSON.stringify(discardRevisionV2(id), null, 2)),
+    );
+
+  note
+    .command("auto-lock-idle-notes-v2")
+    .description("Flip idle active notes → locked")
+    .action(() => console.log(JSON.stringify(autoLockIdleNotesV2(), null, 2)));
+
+  note
+    .command("auto-discard-stale-revisions-v2")
+    .description("Flip stale proposed/reviewed → discarded")
+    .action(() =>
+      console.log(JSON.stringify(autoDiscardStaleRevisionsV2(), null, 2)),
+    );
 }

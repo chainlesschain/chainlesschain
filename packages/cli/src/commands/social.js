@@ -23,6 +23,35 @@ import {
   getChatMessages,
   getChatThreads,
   getSocialStats,
+  RELATIONSHIP_MATURITY_V2,
+  THREAD_LIFECYCLE_V2,
+  getMaxConnectedPerUserV2,
+  setMaxConnectedPerUserV2,
+  getMaxOpenThreadsPerUserV2,
+  setMaxOpenThreadsPerUserV2,
+  getRelationshipIdleMsV2,
+  setRelationshipIdleMsV2,
+  getThreadStuckMsV2,
+  setThreadStuckMsV2,
+  getConnectedCountV2,
+  getOpenThreadCountV2,
+  registerRelationshipV2,
+  getRelationshipV2,
+  listRelationshipsV2,
+  connectRelationshipV2,
+  muteRelationshipV2,
+  blockRelationshipV2,
+  touchRelationshipV2,
+  createThreadV2,
+  getThreadV2,
+  listThreadsV2,
+  engageThreadV2,
+  resolveThreadV2,
+  abandonThreadV2,
+  reportThreadV2,
+  autoMuteIdleRelationshipsV2,
+  autoAbandonStuckThreadsV2,
+  getSocialManagerStatsV2,
 } from "../lib/social-manager.js";
 import { classifyTopic, detectLanguage } from "../lib/topic-classifier.js";
 import {
@@ -1052,5 +1081,232 @@ export function registerSocialCommand(program) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
       }
+    });
+
+  // ─────────────────────────────────────────────────────────────
+  // V2 Surface — relationship + thread lifecycle (in-memory, throwing)
+  // ─────────────────────────────────────────────────────────────
+
+  social
+    .command("relationship-maturities-v2")
+    .description("List V2 relationship maturity states")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const v = Object.values(RELATIONSHIP_MATURITY_V2);
+      if (options.json) console.log(JSON.stringify(v));
+      else logger.log(v.join(", "));
+    });
+
+  social
+    .command("thread-lifecycles-v2")
+    .description("List V2 thread lifecycle states")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const v = Object.values(THREAD_LIFECYCLE_V2);
+      if (options.json) console.log(JSON.stringify(v));
+      else logger.log(v.join(", "));
+    });
+
+  social
+    .command("stats-v2")
+    .description("Show V2 social stats")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const stats = getSocialManagerStatsV2();
+      if (options.json) console.log(JSON.stringify(stats, null, 2));
+      else logger.log(JSON.stringify(stats, null, 2));
+    });
+
+  social
+    .command("get-max-connected-v2")
+    .description("Get max connected per user")
+    .action(() => logger.log(String(getMaxConnectedPerUserV2())));
+  social
+    .command("set-max-connected-v2 <n>")
+    .description("Set max connected per user")
+    .action((n) => {
+      setMaxConnectedPerUserV2(Number(n));
+      logger.log(String(getMaxConnectedPerUserV2()));
+    });
+  social
+    .command("get-max-open-threads-v2")
+    .description("Get max open threads per user")
+    .action(() => logger.log(String(getMaxOpenThreadsPerUserV2())));
+  social
+    .command("set-max-open-threads-v2 <n>")
+    .description("Set max open threads per user")
+    .action((n) => {
+      setMaxOpenThreadsPerUserV2(Number(n));
+      logger.log(String(getMaxOpenThreadsPerUserV2()));
+    });
+  social
+    .command("get-relationship-idle-ms-v2")
+    .description("Get relationship idle ms")
+    .action(() => logger.log(String(getRelationshipIdleMsV2())));
+  social
+    .command("set-relationship-idle-ms-v2 <ms>")
+    .description("Set relationship idle ms")
+    .action((ms) => {
+      setRelationshipIdleMsV2(Number(ms));
+      logger.log(String(getRelationshipIdleMsV2()));
+    });
+  social
+    .command("get-thread-stuck-ms-v2")
+    .description("Get thread stuck ms")
+    .action(() => logger.log(String(getThreadStuckMsV2())));
+  social
+    .command("set-thread-stuck-ms-v2 <ms>")
+    .description("Set thread stuck ms")
+    .action((ms) => {
+      setThreadStuckMsV2(Number(ms));
+      logger.log(String(getThreadStuckMsV2()));
+    });
+
+  social
+    .command("connected-count-v2 <userId>")
+    .description("Count connected relationships for user")
+    .action((userId) => logger.log(String(getConnectedCountV2(userId))));
+  social
+    .command("open-thread-count-v2 <userId>")
+    .description("Count open+engaged threads for user")
+    .action((userId) => logger.log(String(getOpenThreadCountV2(userId))));
+
+  social
+    .command("register-relationship-v2 <id>")
+    .description("Register V2 relationship (initial=pending)")
+    .requiredOption("-u, --user <userId>", "user id")
+    .requiredOption("-p, --peer <peerId>", "peer id")
+    .option("-m, --metadata <json>", "metadata JSON", "{}")
+    .action((id, opts) => {
+      const meta = JSON.parse(opts.metadata);
+      const r = registerRelationshipV2(id, {
+        userId: opts.user,
+        peerId: opts.peer,
+        metadata: meta,
+      });
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  social
+    .command("get-relationship-v2 <id>")
+    .description("Get V2 relationship by id")
+    .action((id) => {
+      const r = getRelationshipV2(id);
+      if (!r) {
+        logger.error(`relationship ${id} not found`);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(r, null, 2));
+    });
+
+  social
+    .command("list-relationships-v2")
+    .description("List V2 relationships")
+    .option("-u, --user <userId>", "filter by user")
+    .option("-s, --status <state>", "filter by status")
+    .action((opts) => {
+      const out = listRelationshipsV2({
+        userId: opts.user,
+        status: opts.status,
+      });
+      console.log(JSON.stringify(out, null, 2));
+    });
+
+  social
+    .command("connect-relationship-v2 <id>")
+    .description("Transition relationship → connected")
+    .action((id) =>
+      console.log(JSON.stringify(connectRelationshipV2(id), null, 2)),
+    );
+  social
+    .command("mute-relationship-v2 <id>")
+    .description("Transition relationship → muted")
+    .action((id) =>
+      console.log(JSON.stringify(muteRelationshipV2(id), null, 2)),
+    );
+  social
+    .command("block-relationship-v2 <id>")
+    .description("Transition relationship → blocked (terminal)")
+    .action((id) =>
+      console.log(JSON.stringify(blockRelationshipV2(id), null, 2)),
+    );
+  social
+    .command("touch-relationship-v2 <id>")
+    .description("Update relationship lastSeenAt")
+    .action((id) =>
+      console.log(JSON.stringify(touchRelationshipV2(id), null, 2)),
+    );
+
+  social
+    .command("create-thread-v2 <id>")
+    .description("Create V2 thread (initial=open)")
+    .requiredOption("-u, --user <userId>", "user id")
+    .requiredOption("-t, --topic <topic>", "topic")
+    .option("-m, --metadata <json>", "metadata JSON", "{}")
+    .action((id, opts) => {
+      const meta = JSON.parse(opts.metadata);
+      const t = createThreadV2(id, {
+        userId: opts.user,
+        topic: opts.topic,
+        metadata: meta,
+      });
+      console.log(JSON.stringify(t, null, 2));
+    });
+
+  social
+    .command("get-thread-v2 <id>")
+    .description("Get V2 thread by id")
+    .action((id) => {
+      const t = getThreadV2(id);
+      if (!t) {
+        logger.error(`thread ${id} not found`);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(t, null, 2));
+    });
+
+  social
+    .command("list-threads-v2")
+    .description("List V2 threads")
+    .option("-u, --user <userId>", "filter by user")
+    .option("-s, --status <state>", "filter by status")
+    .action((opts) => {
+      const out = listThreadsV2({
+        userId: opts.user,
+        status: opts.status,
+      });
+      console.log(JSON.stringify(out, null, 2));
+    });
+
+  social
+    .command("engage-thread-v2 <id>")
+    .description("Transition thread → engaged")
+    .action((id) => console.log(JSON.stringify(engageThreadV2(id), null, 2)));
+  social
+    .command("resolve-thread-v2 <id>")
+    .description("Transition thread → resolved (terminal)")
+    .action((id) => console.log(JSON.stringify(resolveThreadV2(id), null, 2)));
+  social
+    .command("abandon-thread-v2 <id>")
+    .description("Transition thread → abandoned (terminal)")
+    .action((id) => console.log(JSON.stringify(abandonThreadV2(id), null, 2)));
+  social
+    .command("report-thread-v2 <id>")
+    .description("Transition thread → reported (terminal)")
+    .action((id) => console.log(JSON.stringify(reportThreadV2(id), null, 2)));
+
+  social
+    .command("auto-mute-idle-rel-v2")
+    .description("Auto-mute idle connected relationships; output flipped")
+    .action(() => {
+      const flipped = autoMuteIdleRelationshipsV2();
+      console.log(JSON.stringify(flipped, null, 2));
+    });
+  social
+    .command("auto-abandon-stuck-threads-v2")
+    .description("Auto-abandon stuck threads; output flipped")
+    .action(() => {
+      const flipped = autoAbandonStuckThreadsV2();
+      console.log(JSON.stringify(flipped, null, 2));
     });
 }

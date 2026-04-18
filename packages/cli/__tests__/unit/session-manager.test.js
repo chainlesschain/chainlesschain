@@ -464,3 +464,349 @@ describe("session-manager", () => {
     });
   });
 });
+
+// ═══════════════════════════════════════════════════════════════
+// V2 Surface tests — Session governance layer
+// ═══════════════════════════════════════════════════════════════
+
+import {
+  CONVERSATION_MATURITY_V2,
+  TURN_LIFECYCLE_V2,
+  SESSION_DEFAULT_MAX_ACTIVE_CONV_PER_USER,
+  SESSION_DEFAULT_MAX_PENDING_TURNS_PER_CONV,
+  SESSION_DEFAULT_CONV_IDLE_MS,
+  SESSION_DEFAULT_TURN_STUCK_MS,
+  getMaxActiveConvPerUserV2,
+  setMaxActiveConvPerUserV2,
+  getMaxPendingTurnsPerConvV2,
+  setMaxPendingTurnsPerConvV2,
+  getConvIdleMsV2,
+  setConvIdleMsV2,
+  getTurnStuckMsV2,
+  setTurnStuckMsV2,
+  getActiveConvCountV2,
+  getPendingTurnCountV2,
+  registerConversationV2,
+  getConversationV2,
+  listConversationsV2,
+  setConversationStatusV2,
+  activateConversationV2,
+  pauseConversationV2,
+  archiveConversationV2,
+  touchConversationV2,
+  createTurnV2,
+  getTurnV2,
+  listTurnsV2,
+  setTurnStatusV2,
+  streamTurnV2,
+  completeTurnV2,
+  failTurnV2,
+  cancelTurnV2,
+  autoArchiveIdleConversationsV2,
+  autoFailStuckTurnsV2,
+  getSessionManagerStatsV2,
+  _resetStateSessionManagerV2,
+} from "../../src/lib/session-manager.js";
+
+describe("Session Manager V2", () => {
+  beforeEach(() => _resetStateSessionManagerV2());
+
+  describe("enums + defaults", () => {
+    it("CONVERSATION_MATURITY_V2 frozen 4 states", () => {
+      expect(Object.values(CONVERSATION_MATURITY_V2).sort()).toEqual([
+        "active",
+        "archived",
+        "draft",
+        "paused",
+      ]);
+      expect(Object.isFrozen(CONVERSATION_MATURITY_V2)).toBe(true);
+    });
+    it("TURN_LIFECYCLE_V2 frozen 5 states", () => {
+      expect(Object.values(TURN_LIFECYCLE_V2).sort()).toEqual([
+        "cancelled",
+        "completed",
+        "failed",
+        "pending",
+        "streaming",
+      ]);
+      expect(Object.isFrozen(TURN_LIFECYCLE_V2)).toBe(true);
+    });
+    it("default config", () => {
+      expect(SESSION_DEFAULT_MAX_ACTIVE_CONV_PER_USER).toBe(50);
+      expect(SESSION_DEFAULT_MAX_PENDING_TURNS_PER_CONV).toBe(3);
+      expect(SESSION_DEFAULT_CONV_IDLE_MS).toBe(1000 * 60 * 60 * 24 * 14);
+      expect(SESSION_DEFAULT_TURN_STUCK_MS).toBe(1000 * 60 * 5);
+    });
+  });
+
+  describe("config setters", () => {
+    it("max-active-conv rejects non-positive + floors", () => {
+      expect(() => setMaxActiveConvPerUserV2(0)).toThrow();
+      expect(() => setMaxActiveConvPerUserV2(-1)).toThrow();
+      setMaxActiveConvPerUserV2(2.9);
+      expect(getMaxActiveConvPerUserV2()).toBe(2);
+    });
+    it("max-pending-turns + idle/stuck setters", () => {
+      setMaxPendingTurnsPerConvV2(5);
+      setConvIdleMsV2(1000);
+      setTurnStuckMsV2(500);
+      expect(getMaxPendingTurnsPerConvV2()).toBe(5);
+      expect(getConvIdleMsV2()).toBe(1000);
+      expect(getTurnStuckMsV2()).toBe(500);
+    });
+  });
+
+  describe("registerConversationV2", () => {
+    it("creates draft conversation", () => {
+      const c = registerConversationV2("c1", {
+        userId: "alice",
+        model: "gpt-4",
+        now: 100,
+      });
+      expect(c.status).toBe("draft");
+      expect(c.userId).toBe("alice");
+      expect(c.model).toBe("gpt-4");
+      expect(c.createdAt).toBe(100);
+      expect(c.activatedAt).toBeNull();
+    });
+    it("rejects bad inputs / duplicates", () => {
+      expect(() => registerConversationV2("")).toThrow();
+      expect(() => registerConversationV2("c1", { model: "x" })).toThrow();
+      expect(() => registerConversationV2("c1", { userId: "u" })).toThrow();
+      registerConversationV2("c1", { userId: "u", model: "m" });
+      expect(() =>
+        registerConversationV2("c1", { userId: "u", model: "m" }),
+      ).toThrow();
+    });
+    it("returns defensive copy", () => {
+      const c = registerConversationV2("c1", {
+        userId: "u",
+        model: "m",
+        metadata: { tag: "x" },
+      });
+      c.metadata.tag = "MUTATED";
+      expect(getConversationV2("c1").metadata.tag).toBe("x");
+    });
+  });
+
+  describe("conversation lifecycle", () => {
+    beforeEach(() =>
+      registerConversationV2("c1", { userId: "u", model: "m", now: 0 }),
+    );
+    it("draft → active stamps activatedAt", () => {
+      const c = activateConversationV2("c1", { now: 50 });
+      expect(c.status).toBe("active");
+      expect(c.activatedAt).toBe(50);
+    });
+    it("activatedAt stamp-once across paused→active recovery", () => {
+      activateConversationV2("c1", { now: 50 });
+      pauseConversationV2("c1", { now: 60 });
+      const c = activateConversationV2("c1", { now: 70 });
+      expect(c.activatedAt).toBe(50);
+    });
+    it("archived terminal sticks", () => {
+      archiveConversationV2("c1", { now: 100 });
+      expect(() => activateConversationV2("c1")).toThrow(/terminal/);
+    });
+    it("rejects illegal transitions", () => {
+      expect(() => setConversationStatusV2("c1", "paused")).toThrow(/cannot/);
+      expect(() => setConversationStatusV2("c1", "bogus")).toThrow(/unknown/);
+    });
+  });
+
+  describe("per-user active-conversation cap", () => {
+    it("enforces on draft→active only", () => {
+      setMaxActiveConvPerUserV2(2);
+      registerConversationV2("c1", { userId: "u", model: "m" });
+      registerConversationV2("c2", { userId: "u", model: "m" });
+      registerConversationV2("c3", { userId: "u", model: "m" });
+      activateConversationV2("c1");
+      activateConversationV2("c2");
+      expect(() => activateConversationV2("c3")).toThrow(
+        /active-conversation cap/,
+      );
+    });
+    it("recovery (paused→active) exempt", () => {
+      setMaxActiveConvPerUserV2(2);
+      registerConversationV2("c1", { userId: "u", model: "m" });
+      registerConversationV2("c2", { userId: "u", model: "m" });
+      activateConversationV2("c1");
+      activateConversationV2("c2");
+      pauseConversationV2("c1");
+      activateConversationV2("c1");
+      expect(getActiveConvCountV2("u")).toBe(2);
+    });
+  });
+
+  describe("touchConversationV2", () => {
+    it("updates lastSeenAt", () => {
+      registerConversationV2("c1", { userId: "u", model: "m", now: 0 });
+      const c = touchConversationV2("c1", { now: 999 });
+      expect(c.lastSeenAt).toBe(999);
+    });
+    it("throws if not found", () => {
+      expect(() => touchConversationV2("nope")).toThrow(/not found/);
+    });
+  });
+
+  describe("createTurnV2", () => {
+    beforeEach(() => registerConversationV2("c1", { userId: "u", model: "m" }));
+    it("creates pending turn", () => {
+      const t = createTurnV2("t1", { conversationId: "c1", now: 100 });
+      expect(t.status).toBe("pending");
+      expect(t.conversationId).toBe("c1");
+      expect(t.role).toBe("user");
+      expect(t.streamingStartedAt).toBeNull();
+    });
+    it("rejects bad inputs / duplicates", () => {
+      expect(() => createTurnV2("")).toThrow();
+      expect(() => createTurnV2("t1", {})).toThrow();
+      createTurnV2("t1", { conversationId: "c1" });
+      expect(() => createTurnV2("t1", { conversationId: "c1" })).toThrow();
+    });
+    it("enforces per-conversation pending-turn cap at create", () => {
+      setMaxPendingTurnsPerConvV2(2);
+      createTurnV2("t1", { conversationId: "c1" });
+      createTurnV2("t2", { conversationId: "c1" });
+      expect(() => createTurnV2("t3", { conversationId: "c1" })).toThrow(
+        /pending-turn cap/,
+      );
+    });
+    it("pending+streaming both count toward cap", () => {
+      setMaxPendingTurnsPerConvV2(2);
+      createTurnV2("t1", { conversationId: "c1" });
+      createTurnV2("t2", { conversationId: "c1" });
+      streamTurnV2("t1");
+      // both pending+streaming = 2 = at cap
+      expect(() => createTurnV2("t3", { conversationId: "c1" })).toThrow(
+        /pending-turn cap/,
+      );
+      // settling t1 frees a slot
+      completeTurnV2("t1");
+      const t3 = createTurnV2("t3", { conversationId: "c1" });
+      expect(t3.status).toBe("pending");
+    });
+  });
+
+  describe("turn lifecycle", () => {
+    beforeEach(() => {
+      registerConversationV2("c1", { userId: "u", model: "m" });
+      createTurnV2("t1", { conversationId: "c1", now: 0 });
+    });
+    it("pending → streaming stamps streamingStartedAt", () => {
+      const t = streamTurnV2("t1", { now: 50 });
+      expect(t.status).toBe("streaming");
+      expect(t.streamingStartedAt).toBe(50);
+    });
+    it("terminal stamps settledAt", () => {
+      streamTurnV2("t1", { now: 50 });
+      const t = completeTurnV2("t1", { now: 100 });
+      expect(t.settledAt).toBe(100);
+    });
+    it("cancelled from pending allowed", () => {
+      const t = cancelTurnV2("t1", { now: 30 });
+      expect(t.status).toBe("cancelled");
+      expect(t.settledAt).toBe(30);
+      expect(t.streamingStartedAt).toBeNull();
+    });
+    it("terminal sticks", () => {
+      streamTurnV2("t1");
+      completeTurnV2("t1");
+      expect(() => failTurnV2("t1")).toThrow(/terminal/);
+    });
+    it("rejects illegal", () => {
+      expect(() => completeTurnV2("t1")).toThrow(/cannot/);
+      expect(() => setTurnStatusV2("t1", "bogus")).toThrow(/unknown/);
+    });
+  });
+
+  describe("listConversationsV2 / listTurnsV2", () => {
+    it("filters", () => {
+      registerConversationV2("c1", { userId: "a", model: "m" });
+      registerConversationV2("c2", { userId: "b", model: "m" });
+      activateConversationV2("c1");
+      expect(listConversationsV2({ userId: "a" })).toHaveLength(1);
+      expect(listConversationsV2({ status: "active" })).toHaveLength(1);
+      createTurnV2("t1", { conversationId: "c1" });
+      streamTurnV2("t1");
+      expect(listTurnsV2({ conversationId: "c1" })).toHaveLength(1);
+      expect(listTurnsV2({ status: "streaming" })).toHaveLength(1);
+    });
+  });
+
+  describe("autoArchiveIdleConversationsV2", () => {
+    it("archives idle non-draft non-archived", () => {
+      setConvIdleMsV2(100);
+      registerConversationV2("c1", { userId: "u", model: "m", now: 0 });
+      activateConversationV2("c1", { now: 0 });
+      const flipped = autoArchiveIdleConversationsV2({ now: 200 });
+      expect(flipped).toHaveLength(1);
+      expect(flipped[0].status).toBe("archived");
+      expect(flipped[0].archivedAt).toBe(200);
+    });
+    it("skips draft and archived", () => {
+      setConvIdleMsV2(100);
+      registerConversationV2("c1", { userId: "u", model: "m", now: 0 });
+      const flipped = autoArchiveIdleConversationsV2({ now: 1000 });
+      expect(flipped).toHaveLength(0);
+    });
+  });
+
+  describe("autoFailStuckTurnsV2", () => {
+    it("fails streaming turns past stuck threshold", () => {
+      setTurnStuckMsV2(100);
+      registerConversationV2("c1", { userId: "u", model: "m" });
+      createTurnV2("t1", { conversationId: "c1", now: 0 });
+      streamTurnV2("t1", { now: 0 });
+      const flipped = autoFailStuckTurnsV2({ now: 200 });
+      expect(flipped).toHaveLength(1);
+      expect(flipped[0].status).toBe("failed");
+      expect(flipped[0].settledAt).toBe(200);
+    });
+    it("skips pending/terminal turns", () => {
+      setTurnStuckMsV2(100);
+      registerConversationV2("c1", { userId: "u", model: "m" });
+      createTurnV2("t1", { conversationId: "c1", now: 0 });
+      const flipped = autoFailStuckTurnsV2({ now: 1000 });
+      expect(flipped).toHaveLength(0);
+    });
+  });
+
+  describe("getSessionManagerStatsV2", () => {
+    it("zero-init all enum keys", () => {
+      const s = getSessionManagerStatsV2();
+      expect(s.totalConversationsV2).toBe(0);
+      expect(s.totalTurnsV2).toBe(0);
+      expect(s.conversationsByStatus.draft).toBe(0);
+      expect(s.conversationsByStatus.active).toBe(0);
+      expect(s.conversationsByStatus.paused).toBe(0);
+      expect(s.conversationsByStatus.archived).toBe(0);
+      expect(s.turnsByStatus.pending).toBe(0);
+      expect(s.turnsByStatus.streaming).toBe(0);
+      expect(s.turnsByStatus.completed).toBe(0);
+      expect(s.turnsByStatus.failed).toBe(0);
+      expect(s.turnsByStatus.cancelled).toBe(0);
+    });
+    it("reflects live state", () => {
+      registerConversationV2("c1", { userId: "u", model: "m" });
+      activateConversationV2("c1");
+      createTurnV2("t1", { conversationId: "c1" });
+      streamTurnV2("t1");
+      const s = getSessionManagerStatsV2();
+      expect(s.conversationsByStatus.active).toBe(1);
+      expect(s.turnsByStatus.streaming).toBe(1);
+    });
+  });
+
+  describe("_resetStateSessionManagerV2", () => {
+    it("clears state and restores defaults", () => {
+      setMaxActiveConvPerUserV2(1);
+      registerConversationV2("c1", { userId: "u", model: "m" });
+      _resetStateSessionManagerV2();
+      expect(getMaxActiveConvPerUserV2()).toBe(
+        SESSION_DEFAULT_MAX_ACTIVE_CONV_PER_USER,
+      );
+      expect(getConversationV2("c1")).toBeNull();
+    });
+  });
+});

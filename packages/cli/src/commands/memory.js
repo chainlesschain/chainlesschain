@@ -17,6 +17,35 @@ import {
   listDailyNotes,
   getMemoryFile,
   updateMemoryFile,
+  ENTRY_MATURITY_V2,
+  CONSOLIDATION_LIFECYCLE_V2,
+  getMaxActiveEntriesPerCategoryV2,
+  setMaxActiveEntriesPerCategoryV2,
+  getMaxRunningJobsPerSourceV2,
+  setMaxRunningJobsPerSourceV2,
+  getEntryIdleMsV2,
+  setEntryIdleMsV2,
+  getJobStuckMsV2,
+  setJobStuckMsV2,
+  getActiveEntryCountV2,
+  getRunningJobCountV2,
+  registerEntryV2,
+  getEntryV2,
+  listEntriesV2,
+  activateEntryV2,
+  parkEntryV2,
+  archiveEntryV2,
+  touchEntryV2,
+  createConsolidationJobV2,
+  getConsolidationJobV2,
+  listConsolidationJobsV2,
+  startConsolidationJobV2,
+  succeedConsolidationJobV2,
+  failConsolidationJobV2,
+  cancelConsolidationJobV2,
+  autoParkIdleEntriesV2,
+  autoFailStuckJobsV2,
+  getMemoryManagerStatsV2,
 } from "../lib/memory-manager.js";
 
 export function registerMemoryCommand(program) {
@@ -454,4 +483,223 @@ export function registerMemoryCommand(program) {
         process.exit(1);
       }
     });
+
+  // ─── V2 governance surface ─────────────────────────────────
+
+  memory
+    .command("entry-maturities-v2")
+    .description("List V2 entry maturity states")
+    .action(() => {
+      console.log(JSON.stringify(Object.values(ENTRY_MATURITY_V2), null, 2));
+    });
+
+  memory
+    .command("consolidation-lifecycles-v2")
+    .description("List V2 consolidation job lifecycle states")
+    .action(() => {
+      console.log(
+        JSON.stringify(Object.values(CONSOLIDATION_LIFECYCLE_V2), null, 2),
+      );
+    });
+
+  memory
+    .command("stats-v2")
+    .description("Show V2 governance stats")
+    .action(() => {
+      console.log(JSON.stringify(getMemoryManagerStatsV2(), null, 2));
+    });
+
+  memory
+    .command("get-max-active-entries-v2")
+    .description("Get max active entries per category")
+    .action(() => console.log(getMaxActiveEntriesPerCategoryV2()));
+
+  memory
+    .command("set-max-active-entries-v2 <n>")
+    .description("Set max active entries per category")
+    .action((n) => {
+      setMaxActiveEntriesPerCategoryV2(Number(n));
+      console.log(getMaxActiveEntriesPerCategoryV2());
+    });
+
+  memory
+    .command("get-max-running-jobs-v2")
+    .description("Get max running jobs per source")
+    .action(() => console.log(getMaxRunningJobsPerSourceV2()));
+
+  memory
+    .command("set-max-running-jobs-v2 <n>")
+    .description("Set max running jobs per source")
+    .action((n) => {
+      setMaxRunningJobsPerSourceV2(Number(n));
+      console.log(getMaxRunningJobsPerSourceV2());
+    });
+
+  memory
+    .command("get-entry-idle-ms-v2")
+    .description("Get entry idle threshold (ms)")
+    .action(() => console.log(getEntryIdleMsV2()));
+
+  memory
+    .command("set-entry-idle-ms-v2 <n>")
+    .description("Set entry idle threshold (ms)")
+    .action((n) => {
+      setEntryIdleMsV2(Number(n));
+      console.log(getEntryIdleMsV2());
+    });
+
+  memory
+    .command("get-job-stuck-ms-v2")
+    .description("Get job stuck threshold (ms)")
+    .action(() => console.log(getJobStuckMsV2()));
+
+  memory
+    .command("set-job-stuck-ms-v2 <n>")
+    .description("Set job stuck threshold (ms)")
+    .action((n) => {
+      setJobStuckMsV2(Number(n));
+      console.log(getJobStuckMsV2());
+    });
+
+  memory
+    .command("active-entry-count-v2 <category>")
+    .description("Count active entries for a category")
+    .action((category) => console.log(getActiveEntryCountV2(category)));
+
+  memory
+    .command("running-job-count-v2 <source>")
+    .description("Count running jobs for a source")
+    .action((source) => console.log(getRunningJobCountV2(source)));
+
+  memory
+    .command("register-entry-v2 <id>")
+    .description("Register a V2 entry")
+    .requiredOption("-c, --category <category>", "Category")
+    .requiredOption("-s, --summary <summary>", "Summary")
+    .action((id, opts) => {
+      const e = registerEntryV2(id, {
+        category: opts.category,
+        summary: opts.summary,
+      });
+      console.log(JSON.stringify(e, null, 2));
+    });
+
+  memory
+    .command("get-entry-v2 <id>")
+    .description("Get a V2 entry")
+    .action((id) => {
+      const e = getEntryV2(id);
+      console.log(e ? JSON.stringify(e, null, 2) : "null");
+    });
+
+  memory
+    .command("list-entries-v2")
+    .description("List V2 entries")
+    .option("-c, --category <category>", "Filter by category")
+    .option("-s, --status <status>", "Filter by status")
+    .action((opts) => {
+      console.log(
+        JSON.stringify(
+          listEntriesV2({ category: opts.category, status: opts.status }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  memory
+    .command("activate-entry-v2 <id>")
+    .description("pending|parked → active")
+    .action((id) => console.log(JSON.stringify(activateEntryV2(id), null, 2)));
+
+  memory
+    .command("park-entry-v2 <id>")
+    .description("active → parked")
+    .action((id) => console.log(JSON.stringify(parkEntryV2(id), null, 2)));
+
+  memory
+    .command("archive-entry-v2 <id>")
+    .description("→ archived (terminal)")
+    .action((id) => console.log(JSON.stringify(archiveEntryV2(id), null, 2)));
+
+  memory
+    .command("touch-entry-v2 <id>")
+    .description("Update lastSeenAt")
+    .action((id) => console.log(JSON.stringify(touchEntryV2(id), null, 2)));
+
+  memory
+    .command("create-job-v2 <id>")
+    .description("Create a V2 consolidation job")
+    .requiredOption("-s, --source <source>", "Source")
+    .requiredOption("-c, --scope <scope>", "Scope")
+    .action((id, opts) => {
+      const j = createConsolidationJobV2(id, {
+        source: opts.source,
+        scope: opts.scope,
+      });
+      console.log(JSON.stringify(j, null, 2));
+    });
+
+  memory
+    .command("get-job-v2 <id>")
+    .description("Get a V2 consolidation job")
+    .action((id) => {
+      const j = getConsolidationJobV2(id);
+      console.log(j ? JSON.stringify(j, null, 2) : "null");
+    });
+
+  memory
+    .command("list-jobs-v2")
+    .description("List V2 consolidation jobs")
+    .option("-s, --source <source>", "Filter by source")
+    .option("--status <status>", "Filter by status")
+    .action((opts) => {
+      console.log(
+        JSON.stringify(
+          listConsolidationJobsV2({ source: opts.source, status: opts.status }),
+          null,
+          2,
+        ),
+      );
+    });
+
+  memory
+    .command("start-job-v2 <id>")
+    .description("queued → running")
+    .action((id) =>
+      console.log(JSON.stringify(startConsolidationJobV2(id), null, 2)),
+    );
+
+  memory
+    .command("succeed-job-v2 <id>")
+    .description("running → succeeded (terminal)")
+    .action((id) =>
+      console.log(JSON.stringify(succeedConsolidationJobV2(id), null, 2)),
+    );
+
+  memory
+    .command("fail-job-v2 <id>")
+    .description("running → failed (terminal)")
+    .action((id) =>
+      console.log(JSON.stringify(failConsolidationJobV2(id), null, 2)),
+    );
+
+  memory
+    .command("cancel-job-v2 <id>")
+    .description("queued|running → cancelled (terminal)")
+    .action((id) =>
+      console.log(JSON.stringify(cancelConsolidationJobV2(id), null, 2)),
+    );
+
+  memory
+    .command("auto-park-idle-entries-v2")
+    .description("Flip idle active entries → parked")
+    .action(() =>
+      console.log(JSON.stringify(autoParkIdleEntriesV2(), null, 2)),
+    );
+
+  memory
+    .command("auto-fail-stuck-jobs-v2")
+    .description("Flip stuck running jobs → failed")
+    .action(() => console.log(JSON.stringify(autoFailStuckJobsV2(), null, 2)));
 }

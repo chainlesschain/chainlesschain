@@ -242,3 +242,330 @@ export function revertToVersion(db, noteId, version) {
     title: targetVersion.title,
   };
 }
+
+/* ═══════════════════════════════════════════════════════════════
+ * V2 Surface — Note governance layer.
+ * Tracks per-author note maturity + per-note revision lifecycle
+ * independent of legacy SQLite note_versions table.
+ * ═══════════════════════════════════════════════════════════════ */
+
+export const NOTE_MATURITY_V2 = Object.freeze({
+  DRAFT: "draft",
+  ACTIVE: "active",
+  LOCKED: "locked",
+  ARCHIVED: "archived",
+});
+
+export const REVISION_LIFECYCLE_V2 = Object.freeze({
+  PROPOSED: "proposed",
+  REVIEWED: "reviewed",
+  APPLIED: "applied",
+  SUPERSEDED: "superseded",
+  DISCARDED: "discarded",
+});
+
+const NOTE_TRANSITIONS_V2 = new Map([
+  ["draft", new Set(["active", "archived"])],
+  ["active", new Set(["locked", "archived"])],
+  ["locked", new Set(["active", "archived"])],
+  ["archived", new Set()],
+]);
+const NOTE_TERMINALS_V2 = new Set(["archived"]);
+
+const REV_TRANSITIONS_V2 = new Map([
+  ["proposed", new Set(["reviewed", "discarded"])],
+  ["reviewed", new Set(["applied", "discarded", "superseded"])],
+  ["applied", new Set(["superseded"])],
+  ["superseded", new Set()],
+  ["discarded", new Set()],
+]);
+const REV_TERMINALS_V2 = new Set(["superseded", "discarded"]);
+
+export const NOTE_DEFAULT_MAX_ACTIVE_NOTES_PER_AUTHOR = 100;
+export const NOTE_DEFAULT_MAX_OPEN_REVS_PER_NOTE = 10;
+export const NOTE_DEFAULT_NOTE_IDLE_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
+export const NOTE_DEFAULT_REV_STUCK_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
+
+const _notesV2 = new Map();
+const _revsV2 = new Map();
+let _maxActiveNotesPerAuthorV2 = NOTE_DEFAULT_MAX_ACTIVE_NOTES_PER_AUTHOR;
+let _maxOpenRevsPerNoteV2 = NOTE_DEFAULT_MAX_OPEN_REVS_PER_NOTE;
+let _noteIdleMsV2 = NOTE_DEFAULT_NOTE_IDLE_MS;
+let _revStuckMsV2 = NOTE_DEFAULT_REV_STUCK_MS;
+
+function _posIntNoteV2(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be a positive integer`);
+  return v;
+}
+
+export function getMaxActiveNotesPerAuthorV2() {
+  return _maxActiveNotesPerAuthorV2;
+}
+export function setMaxActiveNotesPerAuthorV2(n) {
+  _maxActiveNotesPerAuthorV2 = _posIntNoteV2(n, "maxActiveNotesPerAuthor");
+}
+export function getMaxOpenRevsPerNoteV2() {
+  return _maxOpenRevsPerNoteV2;
+}
+export function setMaxOpenRevsPerNoteV2(n) {
+  _maxOpenRevsPerNoteV2 = _posIntNoteV2(n, "maxOpenRevsPerNote");
+}
+export function getNoteIdleMsV2() {
+  return _noteIdleMsV2;
+}
+export function setNoteIdleMsV2(n) {
+  _noteIdleMsV2 = _posIntNoteV2(n, "noteIdleMs");
+}
+export function getRevStuckMsV2() {
+  return _revStuckMsV2;
+}
+export function setRevStuckMsV2(n) {
+  _revStuckMsV2 = _posIntNoteV2(n, "revStuckMs");
+}
+
+export function getActiveNoteCountV2(authorId) {
+  let n = 0;
+  for (const note of _notesV2.values()) {
+    if (note.authorId === authorId && note.status === "active") n += 1;
+  }
+  return n;
+}
+
+export function getOpenRevCountV2(noteId) {
+  let n = 0;
+  for (const r of _revsV2.values()) {
+    if (
+      r.noteId === noteId &&
+      (r.status === "proposed" || r.status === "reviewed")
+    )
+      n += 1;
+  }
+  return n;
+}
+
+function _copyNoteV2(n) {
+  return { ...n, metadata: { ...n.metadata } };
+}
+function _copyRevV2(r) {
+  return { ...r, metadata: { ...r.metadata } };
+}
+
+export function registerNoteV2(
+  id,
+  { authorId, title, metadata = {}, now = Date.now() } = {},
+) {
+  if (!id || typeof id !== "string") throw new Error("id must be a string");
+  if (!authorId || typeof authorId !== "string")
+    throw new Error("authorId must be a string");
+  if (!title || typeof title !== "string")
+    throw new Error("title must be a string");
+  if (_notesV2.has(id)) throw new Error(`note ${id} already exists`);
+  const note = {
+    id,
+    authorId,
+    title,
+    status: "draft",
+    createdAt: now,
+    lastSeenAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...metadata },
+  };
+  _notesV2.set(id, note);
+  return _copyNoteV2(note);
+}
+
+export function getNoteV2(id) {
+  const note = _notesV2.get(id);
+  return note ? _copyNoteV2(note) : null;
+}
+
+export function listNotesV2({ authorId, status } = {}) {
+  const out = [];
+  for (const note of _notesV2.values()) {
+    if (authorId && note.authorId !== authorId) continue;
+    if (status && note.status !== status) continue;
+    out.push(_copyNoteV2(note));
+  }
+  return out;
+}
+
+export function setNoteStatusV2(id, next, { now = Date.now() } = {}) {
+  const note = _notesV2.get(id);
+  if (!note) throw new Error(`note ${id} not found`);
+  if (!NOTE_TRANSITIONS_V2.has(next))
+    throw new Error(`unknown note status: ${next}`);
+  if (NOTE_TERMINALS_V2.has(note.status))
+    throw new Error(`note ${id} is in terminal state ${note.status}`);
+  const allowed = NOTE_TRANSITIONS_V2.get(note.status);
+  if (!allowed.has(next))
+    throw new Error(`cannot transition note from ${note.status} to ${next}`);
+  if (next === "active") {
+    if (note.status === "draft") {
+      const count = getActiveNoteCountV2(note.authorId);
+      if (count >= _maxActiveNotesPerAuthorV2)
+        throw new Error(
+          `author ${note.authorId} already at active-note cap (${_maxActiveNotesPerAuthorV2})`,
+        );
+    }
+    if (!note.activatedAt) note.activatedAt = now;
+  }
+  if (next === "archived" && !note.archivedAt) note.archivedAt = now;
+  note.status = next;
+  note.lastSeenAt = now;
+  return _copyNoteV2(note);
+}
+
+export function activateNoteV2(id, opts) {
+  return setNoteStatusV2(id, "active", opts);
+}
+export function lockNoteV2(id, opts) {
+  return setNoteStatusV2(id, "locked", opts);
+}
+export function archiveNoteV2(id, opts) {
+  return setNoteStatusV2(id, "archived", opts);
+}
+
+export function touchNoteV2(id, { now = Date.now() } = {}) {
+  const note = _notesV2.get(id);
+  if (!note) throw new Error(`note ${id} not found`);
+  note.lastSeenAt = now;
+  return _copyNoteV2(note);
+}
+
+export function createRevisionV2(
+  id,
+  { noteId, summary, metadata = {}, now = Date.now() } = {},
+) {
+  if (!id || typeof id !== "string") throw new Error("id must be a string");
+  if (!noteId || typeof noteId !== "string")
+    throw new Error("noteId must be a string");
+  if (!summary || typeof summary !== "string")
+    throw new Error("summary must be a string");
+  if (_revsV2.has(id)) throw new Error(`revision ${id} already exists`);
+  const count = getOpenRevCountV2(noteId);
+  if (count >= _maxOpenRevsPerNoteV2)
+    throw new Error(
+      `note ${noteId} already at open-revision cap (${_maxOpenRevsPerNoteV2})`,
+    );
+  const r = {
+    id,
+    noteId,
+    summary,
+    status: "proposed",
+    createdAt: now,
+    lastSeenAt: now,
+    reviewedAt: null,
+    appliedAt: null,
+    settledAt: null,
+    metadata: { ...metadata },
+  };
+  _revsV2.set(id, r);
+  return _copyRevV2(r);
+}
+
+export function getRevisionV2(id) {
+  const r = _revsV2.get(id);
+  return r ? _copyRevV2(r) : null;
+}
+
+export function listRevisionsV2({ noteId, status } = {}) {
+  const out = [];
+  for (const r of _revsV2.values()) {
+    if (noteId && r.noteId !== noteId) continue;
+    if (status && r.status !== status) continue;
+    out.push(_copyRevV2(r));
+  }
+  return out;
+}
+
+export function setRevisionStatusV2(id, next, { now = Date.now() } = {}) {
+  const r = _revsV2.get(id);
+  if (!r) throw new Error(`revision ${id} not found`);
+  if (!REV_TRANSITIONS_V2.has(next))
+    throw new Error(`unknown revision status: ${next}`);
+  if (REV_TERMINALS_V2.has(r.status))
+    throw new Error(`revision ${id} is in terminal state ${r.status}`);
+  const allowed = REV_TRANSITIONS_V2.get(r.status);
+  if (!allowed.has(next))
+    throw new Error(`cannot transition revision from ${r.status} to ${next}`);
+  if (next === "reviewed" && !r.reviewedAt) r.reviewedAt = now;
+  if (next === "applied" && !r.appliedAt) r.appliedAt = now;
+  if (REV_TERMINALS_V2.has(next) && !r.settledAt) r.settledAt = now;
+  r.status = next;
+  r.lastSeenAt = now;
+  return _copyRevV2(r);
+}
+
+export function reviewRevisionV2(id, opts) {
+  return setRevisionStatusV2(id, "reviewed", opts);
+}
+export function applyRevisionV2(id, opts) {
+  return setRevisionStatusV2(id, "applied", opts);
+}
+export function supersedeRevisionV2(id, opts) {
+  return setRevisionStatusV2(id, "superseded", opts);
+}
+export function discardRevisionV2(id, opts) {
+  return setRevisionStatusV2(id, "discarded", opts);
+}
+
+export function autoLockIdleNotesV2({ now = Date.now() } = {}) {
+  const flipped = [];
+  for (const note of _notesV2.values()) {
+    if (note.status !== "active") continue;
+    if (now - note.lastSeenAt > _noteIdleMsV2) {
+      note.status = "locked";
+      note.lastSeenAt = now;
+      flipped.push(_copyNoteV2(note));
+    }
+  }
+  return flipped;
+}
+
+export function autoDiscardStaleRevisionsV2({ now = Date.now() } = {}) {
+  const flipped = [];
+  for (const r of _revsV2.values()) {
+    if (r.status !== "proposed" && r.status !== "reviewed") continue;
+    if (now - r.lastSeenAt > _revStuckMsV2) {
+      r.status = "discarded";
+      r.lastSeenAt = now;
+      if (!r.settledAt) r.settledAt = now;
+      flipped.push(_copyRevV2(r));
+    }
+  }
+  return flipped;
+}
+
+export function getNoteVersioningStatsV2() {
+  const notesByStatus = {};
+  for (const v of Object.values(NOTE_MATURITY_V2)) notesByStatus[v] = 0;
+  for (const note of _notesV2.values()) notesByStatus[note.status] += 1;
+
+  const revisionsByStatus = {};
+  for (const v of Object.values(REVISION_LIFECYCLE_V2))
+    revisionsByStatus[v] = 0;
+  for (const r of _revsV2.values()) revisionsByStatus[r.status] += 1;
+
+  return {
+    totalNotesV2: _notesV2.size,
+    totalRevisionsV2: _revsV2.size,
+    maxActiveNotesPerAuthor: _maxActiveNotesPerAuthorV2,
+    maxOpenRevsPerNote: _maxOpenRevsPerNoteV2,
+    noteIdleMs: _noteIdleMsV2,
+    revStuckMs: _revStuckMsV2,
+    notesByStatus,
+    revisionsByStatus,
+  };
+}
+
+export function _resetStateNoteVersioningV2() {
+  _notesV2.clear();
+  _revsV2.clear();
+  _maxActiveNotesPerAuthorV2 = NOTE_DEFAULT_MAX_ACTIVE_NOTES_PER_AUTHOR;
+  _maxOpenRevsPerNoteV2 = NOTE_DEFAULT_MAX_OPEN_REVS_PER_NOTE;
+  _noteIdleMsV2 = NOTE_DEFAULT_NOTE_IDLE_MS;
+  _revStuckMsV2 = NOTE_DEFAULT_REV_STUCK_MS;
+}
