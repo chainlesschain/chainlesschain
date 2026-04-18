@@ -806,3 +806,335 @@ describe("sso-manager (Phase 14)", () => {
     });
   });
 });
+
+// ===== V2 Surface Tests (cli 0.130.0) =====
+import { describe, it, expect, beforeEach } from "vitest";
+import {
+  PROVIDER_MATURITY_V2,
+  LOGIN_LIFECYCLE_V2,
+  registerProviderV2,
+  activateProviderV2,
+  deprecateProviderV2,
+  retireProviderV2,
+  touchProviderV2,
+  getProviderV2,
+  listProvidersV2,
+  createLoginV2,
+  startLoginV2,
+  completeLoginV2,
+  failLoginV2,
+  cancelLoginV2,
+  getLoginV2,
+  listLoginsV2,
+  autoDeprecateIdleProvidersV2,
+  autoFailStuckLoginsV2,
+  getSsoManagerStatsV2,
+  setMaxActiveProvidersPerOwnerV2,
+  setMaxPendingLoginsPerProviderV2,
+  setProviderIdleMsV2,
+  setLoginStuckMsV2,
+  getMaxActiveProvidersPerOwnerV2,
+  getMaxPendingLoginsPerProviderV2,
+  getProviderIdleMsV2,
+  getLoginStuckMsV2,
+  _resetStateSsoManagerV2,
+} from "../../src/lib/sso-manager.js";
+
+describe("SSO Manager V2", () => {
+  beforeEach(() => _resetStateSsoManagerV2());
+
+  describe("enums", () => {
+    it("provider maturity has 4 states", () => {
+      expect(Object.keys(PROVIDER_MATURITY_V2).sort()).toEqual([
+        "ACTIVE",
+        "DEPRECATED",
+        "PENDING",
+        "RETIRED",
+      ]);
+    });
+    it("login lifecycle has 5 states", () => {
+      expect(Object.keys(LOGIN_LIFECYCLE_V2).sort()).toEqual([
+        "AUTHENTICATED",
+        "AUTHENTICATING",
+        "CANCELLED",
+        "FAILED",
+        "QUEUED",
+      ]);
+    });
+    it("enums are frozen", () => {
+      expect(Object.isFrozen(PROVIDER_MATURITY_V2)).toBe(true);
+      expect(Object.isFrozen(LOGIN_LIFECYCLE_V2)).toBe(true);
+    });
+  });
+
+  describe("provider lifecycle", () => {
+    it("registers in pending", () => {
+      const p = registerProviderV2({
+        id: "p1",
+        owner: "alice",
+        protocol: "saml",
+      });
+      expect(p.status).toBe("pending");
+      expect(p.activatedAt).toBeNull();
+    });
+    it("rejects duplicate id", () => {
+      registerProviderV2({ id: "p1", owner: "alice", protocol: "saml" });
+      expect(() =>
+        registerProviderV2({ id: "p1", owner: "bob", protocol: "oidc" }),
+      ).toThrow();
+    });
+    it("rejects missing required fields", () => {
+      expect(() => registerProviderV2({})).toThrow();
+      expect(() => registerProviderV2({ id: "p1" })).toThrow();
+      expect(() => registerProviderV2({ id: "p1", owner: "alice" })).toThrow();
+    });
+    it("activates pending → active", () => {
+      registerProviderV2({ id: "p1", owner: "alice", protocol: "saml" });
+      const p = activateProviderV2("p1");
+      expect(p.status).toBe("active");
+      expect(p.activatedAt).toBeGreaterThan(0);
+    });
+    it("deprecates active → deprecated", () => {
+      registerProviderV2({ id: "p1", owner: "alice", protocol: "saml" });
+      activateProviderV2("p1");
+      const p = deprecateProviderV2("p1");
+      expect(p.status).toBe("deprecated");
+    });
+    it("recovers deprecated → active (preserves activatedAt)", () => {
+      registerProviderV2({ id: "p1", owner: "alice", protocol: "saml" });
+      const a = activateProviderV2("p1");
+      const firstActivated = a.activatedAt;
+      deprecateProviderV2("p1");
+      const r = activateProviderV2("p1");
+      expect(r.status).toBe("active");
+      expect(r.activatedAt).toBe(firstActivated);
+    });
+    it("retires (terminal)", () => {
+      registerProviderV2({ id: "p1", owner: "alice", protocol: "saml" });
+      const p = retireProviderV2("p1");
+      expect(p.status).toBe("retired");
+      expect(p.retiredAt).toBeGreaterThan(0);
+      expect(() => activateProviderV2("p1")).toThrow();
+    });
+    it("rejects invalid transition active → pending", () => {
+      registerProviderV2({ id: "p1", owner: "alice", protocol: "saml" });
+      activateProviderV2("p1");
+      expect(() => activateProviderV2("p1")).toThrow();
+    });
+    it("touches lastSeenAt", async () => {
+      registerProviderV2({ id: "p1", owner: "alice", protocol: "saml" });
+      const before = getProviderV2("p1").lastSeenAt;
+      await new Promise((r) => setTimeout(r, 5));
+      const after = touchProviderV2("p1").lastSeenAt;
+      expect(after).toBeGreaterThan(before);
+    });
+  });
+
+  describe("active-provider cap", () => {
+    it("enforces per-owner cap on pending → active", () => {
+      setMaxActiveProvidersPerOwnerV2(2);
+      ["a", "b", "c"].forEach((id) =>
+        registerProviderV2({ id, owner: "alice", protocol: "saml" }),
+      );
+      activateProviderV2("a");
+      activateProviderV2("b");
+      expect(() => activateProviderV2("c")).toThrow(/cap reached/);
+    });
+    it("does not apply to other owners", () => {
+      setMaxActiveProvidersPerOwnerV2(1);
+      registerProviderV2({ id: "a", owner: "alice", protocol: "saml" });
+      registerProviderV2({ id: "b", owner: "bob", protocol: "oidc" });
+      activateProviderV2("a");
+      expect(activateProviderV2("b").status).toBe("active");
+    });
+    it("recovery exempt from cap", () => {
+      setMaxActiveProvidersPerOwnerV2(1);
+      registerProviderV2({ id: "a", owner: "alice", protocol: "saml" });
+      activateProviderV2("a");
+      deprecateProviderV2("a");
+      registerProviderV2({ id: "b", owner: "alice", protocol: "saml" });
+      activateProviderV2("b");
+      expect(activateProviderV2("a").status).toBe("active");
+    });
+  });
+
+  describe("login lifecycle", () => {
+    beforeEach(() => {
+      registerProviderV2({ id: "p1", owner: "alice", protocol: "saml" });
+      activateProviderV2("p1");
+    });
+    it("creates queued", () => {
+      const l = createLoginV2({
+        id: "L1",
+        providerId: "p1",
+        subject: "alice@x",
+      });
+      expect(l.status).toBe("queued");
+      expect(l.startedAt).toBeNull();
+    });
+    it("rejects login on retired provider", () => {
+      retireProviderV2("p1");
+      expect(() => createLoginV2({ id: "L1", providerId: "p1" })).toThrow(
+        /retired/,
+      );
+    });
+    it("starts queued → authenticating", () => {
+      createLoginV2({ id: "L1", providerId: "p1" });
+      const l = startLoginV2("L1");
+      expect(l.status).toBe("authenticating");
+      expect(l.startedAt).toBeGreaterThan(0);
+    });
+    it("completes (terminal)", () => {
+      createLoginV2({ id: "L1", providerId: "p1" });
+      startLoginV2("L1");
+      const l = completeLoginV2("L1");
+      expect(l.status).toBe("authenticated");
+      expect(l.settledAt).toBeGreaterThan(0);
+      expect(() => failLoginV2("L1", "x")).toThrow();
+    });
+    it("fails (terminal) with error", () => {
+      createLoginV2({ id: "L1", providerId: "p1" });
+      startLoginV2("L1");
+      const l = failLoginV2("L1", "bad-cred");
+      expect(l.status).toBe("failed");
+      expect(l.metadata.error).toBe("bad-cred");
+    });
+    it("cancels from queued", () => {
+      createLoginV2({ id: "L1", providerId: "p1" });
+      const l = cancelLoginV2("L1");
+      expect(l.status).toBe("cancelled");
+      expect(l.settledAt).toBeGreaterThan(0);
+    });
+  });
+
+  describe("pending-login cap", () => {
+    beforeEach(() => {
+      registerProviderV2({ id: "p1", owner: "alice", protocol: "saml" });
+      activateProviderV2("p1");
+    });
+    it("enforces at create time (counts queued+authenticating)", () => {
+      setMaxPendingLoginsPerProviderV2(2);
+      createLoginV2({ id: "L1", providerId: "p1" });
+      createLoginV2({ id: "L2", providerId: "p1" });
+      expect(() => createLoginV2({ id: "L3", providerId: "p1" })).toThrow(
+        /cap reached/,
+      );
+    });
+    it("frees up after terminal", () => {
+      setMaxPendingLoginsPerProviderV2(2);
+      createLoginV2({ id: "L1", providerId: "p1" });
+      createLoginV2({ id: "L2", providerId: "p1" });
+      startLoginV2("L1");
+      completeLoginV2("L1");
+      expect(createLoginV2({ id: "L3", providerId: "p1" }).status).toBe(
+        "queued",
+      );
+    });
+  });
+
+  describe("auto-flip", () => {
+    it("auto-deprecate idle providers", () => {
+      registerProviderV2({ id: "p1", owner: "alice", protocol: "saml" });
+      activateProviderV2("p1");
+      const flipped = autoDeprecateIdleProvidersV2({
+        now: Date.now() + 99 * 24 * 60 * 60 * 1000,
+      });
+      expect(flipped.length).toBe(1);
+      expect(flipped[0].status).toBe("deprecated");
+    });
+    it("auto-fail stuck logins", () => {
+      registerProviderV2({ id: "p1", owner: "alice", protocol: "saml" });
+      activateProviderV2("p1");
+      createLoginV2({ id: "L1", providerId: "p1" });
+      startLoginV2("L1");
+      const flipped = autoFailStuckLoginsV2({
+        now: Date.now() + 10 * 60 * 1000,
+      });
+      expect(flipped.length).toBe(1);
+      expect(flipped[0].status).toBe("failed");
+      expect(flipped[0].metadata.error).toBe("stuck-timeout");
+    });
+  });
+
+  describe("config setters", () => {
+    it("rejects non-positive integers", () => {
+      expect(() => setMaxActiveProvidersPerOwnerV2(0)).toThrow();
+      expect(() => setMaxActiveProvidersPerOwnerV2(-1)).toThrow();
+      expect(() => setMaxActiveProvidersPerOwnerV2(NaN)).toThrow();
+      expect(() => setMaxActiveProvidersPerOwnerV2("8")).toThrow();
+    });
+    it("floors floats", () => {
+      setMaxActiveProvidersPerOwnerV2(7.9);
+      expect(getMaxActiveProvidersPerOwnerV2()).toBe(7);
+    });
+    it("setters update config", () => {
+      setMaxActiveProvidersPerOwnerV2(20);
+      setMaxPendingLoginsPerProviderV2(30);
+      setProviderIdleMsV2(99999);
+      setLoginStuckMsV2(11111);
+      expect(getMaxActiveProvidersPerOwnerV2()).toBe(20);
+      expect(getMaxPendingLoginsPerProviderV2()).toBe(30);
+      expect(getProviderIdleMsV2()).toBe(99999);
+      expect(getLoginStuckMsV2()).toBe(11111);
+    });
+  });
+
+  describe("listing & defensive copy", () => {
+    it("list filters by owner/status/protocol", () => {
+      registerProviderV2({ id: "p1", owner: "alice", protocol: "saml" });
+      registerProviderV2({ id: "p2", owner: "bob", protocol: "oidc" });
+      activateProviderV2("p1");
+      expect(listProvidersV2({ owner: "alice" }).length).toBe(1);
+      expect(listProvidersV2({ status: "active" }).length).toBe(1);
+      expect(listProvidersV2({ protocol: "oidc" }).length).toBe(1);
+    });
+    it("listLoginsV2 filters", () => {
+      registerProviderV2({ id: "p1", owner: "alice", protocol: "saml" });
+      activateProviderV2("p1");
+      createLoginV2({ id: "L1", providerId: "p1", subject: "alice" });
+      createLoginV2({ id: "L2", providerId: "p1", subject: "bob" });
+      expect(listLoginsV2({ subject: "alice" }).length).toBe(1);
+    });
+    it("returns deep copy of metadata", () => {
+      registerProviderV2({
+        id: "p1",
+        owner: "alice",
+        protocol: "saml",
+        metadata: { tag: "x" },
+      });
+      const p = getProviderV2("p1");
+      p.metadata.tag = "MUTATED";
+      expect(getProviderV2("p1").metadata.tag).toBe("x");
+    });
+  });
+
+  describe("stats", () => {
+    it("zero-initializes all enum keys", () => {
+      const s = getSsoManagerStatsV2();
+      expect(s.providersByStatus.pending).toBe(0);
+      expect(s.providersByStatus.deprecated).toBe(0);
+      expect(s.loginsByStatus.queued).toBe(0);
+      expect(s.loginsByStatus.cancelled).toBe(0);
+    });
+    it("includes config + counts", () => {
+      registerProviderV2({ id: "p1", owner: "alice", protocol: "saml" });
+      activateProviderV2("p1");
+      createLoginV2({ id: "L1", providerId: "p1" });
+      const s = getSsoManagerStatsV2();
+      expect(s.totalProvidersV2).toBe(1);
+      expect(s.totalLoginsV2).toBe(1);
+      expect(s.providersByStatus.active).toBe(1);
+      expect(s.loginsByStatus.queued).toBe(1);
+    });
+  });
+
+  describe("reset", () => {
+    it("clears state and restores defaults", () => {
+      setMaxActiveProvidersPerOwnerV2(99);
+      registerProviderV2({ id: "p1", owner: "alice", protocol: "saml" });
+      _resetStateSsoManagerV2();
+      expect(getMaxActiveProvidersPerOwnerV2()).toBe(8);
+      expect(listProvidersV2({}).length).toBe(0);
+    });
+  });
+});
