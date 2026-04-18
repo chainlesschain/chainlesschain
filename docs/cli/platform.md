@@ -1724,3 +1724,83 @@ cc workflow auto-pause-idle-workflows-v2 | auto-fail-stuck-runs-v2
 ```
 
 > **未移植**: 真实 DAG 拓扑执行、checkpoints/rollback/breakpoints 与 V2 workflow 联动;真实 Kahn 排序/state-channel 调度与 V2 run 联动。CLI V2 仅覆盖冻结枚举面、两条平行状态机 (workflow 4-state w/ paused→active 恢复 + run 5-state w/ 3 terminals)、双维度上限、throwing API、stamp-once、`touchWorkflowV2` + 2 批量 auto-flip、全枚举零初始化 stats、追加到 `cc workflow` 命名空间(无 preAction hook,V2 子命令直接跳过 bootstrap)。
+
+## MCP Registry V2 (`cc mcp ... -v2`) — Phase added 2026-04-18
+
+V2 治理覆盖层叠加在 `cc mcp` 命名空间(MCPClient 传输层不动)。状态机:server 4-state(retired 终态,degraded→active 恢复)+ invocation 5-state(3 terminals)。
+
+```bash
+cc mcp server-maturities-v2 | invocation-lifecycle-v2
+cc mcp stats-v2 | config-v2 | reset-state-v2
+cc mcp register-server-v2 <id> <owner> <endpoint>
+cc mcp activate/degrade/retire/touch-server-v2 <id>
+cc mcp get-server-v2 <id> | list-servers-v2
+cc mcp create-invocation-v2 <id> <serverId> <tool>
+cc mcp dispatch/complete/fail/cancel-invocation-v2 <id>
+cc mcp get-invocation-v2 <id> | list-invocations-v2
+cc mcp auto-degrade-idle-servers-v2 | auto-fail-stuck-invocations-v2
+cc mcp set-max-active-servers-v2 <n> | set-max-pending-invocations-v2 <n>
+cc mcp set-server-idle-ms-v2 <n> | set-invocation-stuck-ms-v2 <n>
+```
+
+> **未移植**: 真实 MCP transport(stdio/sse/ws)与 V2 lifecycle 联动;tool/call 调用结果回灌 V2 invocation。CLI V2 仅覆盖冻结枚举面、两条平行状态机(server 4-state w/ degraded→active 恢复 + invocation 5-state w/ 3 terminals)、双维度上限(`maxActiveServersPerOwner=10`,`maxPendingInvocationsPerServer=20`)、throwing API、stamp-once、`touchServerV2` + 2 批量 auto-flip(`serverIdleMs=7d`,`invocationStuckMs=2min`)、全枚举零初始化 stats。33 V2 tests / 65 file total。
+
+## Agent Coordinator V2 (`cc cowork coord-*-v2`) — Phase added 2026-04-18
+
+V2 治理覆盖层叠加在 `cc cowork` 命名空间(team/template/result 流程不动)。函数名使用 `Coord` 前缀避免与现有导出冲突。状态机:agent 4-state(retired 终态,idle→active 恢复)+ assignment 5-state(3 terminals)。
+
+```bash
+cc cowork coord-agent-maturities-v2 | coord-assignment-lifecycle-v2
+cc cowork coord-stats-v2 | coord-config-v2 | coord-reset-state-v2
+cc cowork coord-register-agent-v2 <id> <owner>
+cc cowork coord-activate/idle/retire/touch-agent-v2 <id>
+cc cowork coord-get-agent-v2 <id> | coord-list-agents-v2
+cc cowork coord-create-assignment-v2 <id> <agentId>
+cc cowork coord-dispatch/complete/fail/cancel-assignment-v2 <id>
+cc cowork coord-get-assignment-v2 <id> | coord-list-assignments-v2
+cc cowork coord-auto-idle-agents-v2 | coord-auto-fail-stuck-assignments-v2
+cc cowork coord-set-max-active-agents-v2 <n> | coord-set-max-pending-assignments-v2 <n>
+cc cowork coord-set-agent-idle-ms-v2 <n> | coord-set-assignment-stuck-ms-v2 <n>
+```
+
+> **未移植**: 真实 cowork team/template 调度与 V2 agent/assignment 联动;skill-tool-system 工具回调挂接到 V2 lifecycle。CLI V2 仅覆盖冻结枚举面、两条平行状态机(agent 4-state w/ idle→active 恢复 + assignment 5-state w/ 3 terminals)、双维度上限(`maxActiveAgentsPerOwner=8`,`maxPendingAssignmentsPerAgent=12`)、throwing API、stamp-once、`touchCoordAgentV2` + 2 批量 auto-flip(`agentIdleMs=1hr`,`assignmentStuckMs=5min`)、全枚举零初始化 stats。32 V2 tests / 74 file total。
+
+## Agent Router V2 (`cc router ...-v2`) — Phase added 2026-04-18
+
+V2 治理覆盖层以新顶层 `cc router` 命名空间引入(`cc orchestrate` 本体不动)。状态机:profile 4-state(retired 终态,degraded→active 恢复)+ dispatch 5-state(3 terminals)。
+
+```bash
+cc router maturities-v2 | dispatch-lifecycle-v2
+cc router stats-v2 | config-v2 | reset-state-v2
+cc router register-profile-v2 <id> <owner>
+cc router activate/degrade/retire/touch-profile-v2 <id>
+cc router get-profile-v2 <id> | list-profiles-v2
+cc router create-dispatch-v2 <id> <profileId> [task]
+cc router dispatch-v2 <id> | complete/fail/cancel-dispatch-v2 <id>
+cc router get-dispatch-v2 <id> | list-dispatches-v2
+cc router auto-degrade-idle-v2 | auto-fail-stuck-v2
+cc router set-max-active-profiles-v2 <n> | set-max-pending-dispatches-v2 <n>
+cc router set-profile-idle-ms-v2 <n> | set-dispatch-stuck-ms-v2 <n>
+```
+
+> **未移植**: 真实 ClaudeCodePool/Codex/Gemini/Ollama 多路后端调度与 V2 dispatch 联动;parallel-all 策略与 V2 dispatchedAt 写入。CLI V2 仅覆盖冻结枚举面、两条平行状态机(profile 4-state w/ degraded→active 恢复 + dispatch 5-state w/ 3 terminals)、双维度上限(`maxActiveProfilesPerOwner=8`,`maxPendingDispatchesPerProfile=16`)、throwing API、stamp-once、`touchRouterProfileV2` + 2 批量 auto-flip(`profileIdleMs=6hr`,`dispatchStuckMs=5min`)、全枚举零初始化 stats。37 V2 tests / 43 file total。
+
+## Hook Manager V2 (`cc hook ...-v2`) — Phase added 2026-04-18
+
+V2 治理覆盖层叠加在现有 `cc hook` 命名空间(SQLite 钩子表、`registerHook`/`executeHooks` 不动)。状态机:profile 4-state(retired 终态,disabled→active 恢复)+ exec 5-state(3 terminals)。
+
+```bash
+cc hook maturities-v2 | exec-lifecycle-v2
+cc hook stats-v2 | config-v2 | reset-state-v2
+cc hook register-profile-v2 <id> <owner> [event]
+cc hook activate/disable/retire/touch-profile-v2 <id>
+cc hook get-profile-v2 <id> | list-profiles-v2
+cc hook create-exec-v2 <id> <hookId>
+cc hook start/complete/fail/cancel-exec-v2 <id>
+cc hook get-exec-v2 <id> | list-execs-v2
+cc hook auto-disable-idle-v2 | auto-fail-stuck-v2
+cc hook set-max-active-hooks-v2 <n> | set-max-pending-execs-v2 <n>
+cc hook set-hook-idle-ms-v2 <n> | set-hook-exec-stuck-ms-v2 <n>
+```
+
+> **未移植**: HookEvents 枚举全集与 V2 profile event 字段的自动匹配;PreToolUse/PostToolUse/IPCError 全链路命令/脚本执行与 V2 exec lifecycle 联动。CLI V2 仅覆盖冻结枚举面、两条平行状态机(profile 4-state w/ disabled→active 恢复 + exec 5-state w/ 3 terminals)、双维度上限(`maxActiveHooksPerOwner=20`,`maxPendingExecsPerHook=32`)、throwing API、stamp-once、`touchHookProfileV2` + 2 批量 auto-flip(`hookIdleMs=24hr`,`hookExecStuckMs=1min`)、全枚举零初始化 stats。42 V2 tests / 76 file total。

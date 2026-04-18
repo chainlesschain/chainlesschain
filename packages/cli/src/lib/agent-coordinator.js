@@ -382,3 +382,328 @@ export async function executeDecomposedTask(decomposition, options = {}) {
     summary: aggregated.summary,
   };
 }
+
+// ===== V2 Surface (cli 0.131.0) — in-memory governance =====
+export const COORD_AGENT_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  IDLE: "idle",
+  RETIRED: "retired",
+});
+export const COORD_ASSIGNMENT_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  DISPATCHED: "dispatched",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+
+const _CA_V2 = COORD_AGENT_MATURITY_V2;
+const _CL_V2 = COORD_ASSIGNMENT_LIFECYCLE_V2;
+const _CA_TRANS_V2 = new Map([
+  [_CA_V2.PENDING, new Set([_CA_V2.ACTIVE, _CA_V2.RETIRED])],
+  [_CA_V2.ACTIVE, new Set([_CA_V2.IDLE, _CA_V2.RETIRED])],
+  [_CA_V2.IDLE, new Set([_CA_V2.ACTIVE, _CA_V2.RETIRED])],
+  [_CA_V2.RETIRED, new Set()],
+]);
+const _CL_TRANS_V2 = new Map([
+  [_CL_V2.QUEUED, new Set([_CL_V2.DISPATCHED, _CL_V2.CANCELLED])],
+  [
+    _CL_V2.DISPATCHED,
+    new Set([_CL_V2.COMPLETED, _CL_V2.FAILED, _CL_V2.CANCELLED]),
+  ],
+  [_CL_V2.COMPLETED, new Set()],
+  [_CL_V2.FAILED, new Set()],
+  [_CL_V2.CANCELLED, new Set()],
+]);
+const _CL_TERM_V2 = new Set([
+  _CL_V2.COMPLETED,
+  _CL_V2.FAILED,
+  _CL_V2.CANCELLED,
+]);
+
+const COORD_DEFAULT_MAX_ACTIVE_AGENTS_PER_OWNER = 8;
+const COORD_DEFAULT_MAX_PENDING_ASSIGNMENTS_PER_AGENT = 12;
+const COORD_DEFAULT_AGENT_IDLE_MS = 60 * 60 * 1000;
+const COORD_DEFAULT_ASSIGNMENT_STUCK_MS = 5 * 60 * 1000;
+
+const _coordAgentsV2 = new Map();
+const _coordAssignmentsV2 = new Map();
+let _coordConfigV2 = {
+  maxActiveAgentsPerOwner: COORD_DEFAULT_MAX_ACTIVE_AGENTS_PER_OWNER,
+  maxPendingAssignmentsPerAgent:
+    COORD_DEFAULT_MAX_PENDING_ASSIGNMENTS_PER_AGENT,
+  agentIdleMs: COORD_DEFAULT_AGENT_IDLE_MS,
+  assignmentStuckMs: COORD_DEFAULT_ASSIGNMENT_STUCK_MS,
+};
+
+function _coordPosIntV2(n, label) {
+  if (typeof n !== "number" || !isFinite(n) || isNaN(n))
+    throw new Error(`${label} must be positive integer`);
+  const v = Math.floor(n);
+  if (v <= 0) throw new Error(`${label} must be positive integer`);
+  return v;
+}
+
+export function _resetStateAgentCoordinatorV2() {
+  _coordAgentsV2.clear();
+  _coordAssignmentsV2.clear();
+  _coordConfigV2 = {
+    maxActiveAgentsPerOwner: COORD_DEFAULT_MAX_ACTIVE_AGENTS_PER_OWNER,
+    maxPendingAssignmentsPerAgent:
+      COORD_DEFAULT_MAX_PENDING_ASSIGNMENTS_PER_AGENT,
+    agentIdleMs: COORD_DEFAULT_AGENT_IDLE_MS,
+    assignmentStuckMs: COORD_DEFAULT_ASSIGNMENT_STUCK_MS,
+  };
+}
+
+export function setMaxActiveAgentsPerOwnerCoordV2(n) {
+  _coordConfigV2.maxActiveAgentsPerOwner = _coordPosIntV2(
+    n,
+    "maxActiveAgentsPerOwner",
+  );
+}
+export function setMaxPendingAssignmentsPerAgentV2(n) {
+  _coordConfigV2.maxPendingAssignmentsPerAgent = _coordPosIntV2(
+    n,
+    "maxPendingAssignmentsPerAgent",
+  );
+}
+export function setAgentIdleMsCoordV2(n) {
+  _coordConfigV2.agentIdleMs = _coordPosIntV2(n, "agentIdleMs");
+}
+export function setAssignmentStuckMsV2(n) {
+  _coordConfigV2.assignmentStuckMs = _coordPosIntV2(n, "assignmentStuckMs");
+}
+export function getMaxActiveAgentsPerOwnerCoordV2() {
+  return _coordConfigV2.maxActiveAgentsPerOwner;
+}
+export function getMaxPendingAssignmentsPerAgentV2() {
+  return _coordConfigV2.maxPendingAssignmentsPerAgent;
+}
+export function getAgentIdleMsCoordV2() {
+  return _coordConfigV2.agentIdleMs;
+}
+export function getAssignmentStuckMsV2() {
+  return _coordConfigV2.assignmentStuckMs;
+}
+
+function _copyCoordAgentV2(a) {
+  return { ...a, metadata: { ...(a.metadata || {}) } };
+}
+function _copyAssignmentV2(a) {
+  return { ...a, metadata: { ...(a.metadata || {}) } };
+}
+
+export function registerCoordAgentV2({ id, owner, role, name, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id required");
+  if (!owner || typeof owner !== "string") throw new Error("owner required");
+  if (!role || typeof role !== "string") throw new Error("role required");
+  if (_coordAgentsV2.has(id)) throw new Error(`agent ${id} already registered`);
+  const now = Date.now();
+  const a = {
+    id,
+    owner,
+    role,
+    name: name || id,
+    status: _CA_V2.PENDING,
+    activatedAt: null,
+    retiredAt: null,
+    lastSeenAt: now,
+    createdAt: now,
+    metadata: metadata && typeof metadata === "object" ? { ...metadata } : {},
+  };
+  _coordAgentsV2.set(id, a);
+  return _copyCoordAgentV2(a);
+}
+
+function _activeCoordAgentCountForOwnerV2(owner) {
+  let c = 0;
+  for (const a of _coordAgentsV2.values())
+    if (a.owner === owner && a.status === _CA_V2.ACTIVE) c++;
+  return c;
+}
+
+function _transitionCoordAgentV2(id, next) {
+  const a = _coordAgentsV2.get(id);
+  if (!a) throw new Error(`agent ${id} not found`);
+  const allowed = _CA_TRANS_V2.get(a.status);
+  if (!allowed || !allowed.has(next))
+    throw new Error(`invalid transition ${a.status} -> ${next}`);
+  if (next === _CA_V2.ACTIVE && a.status === _CA_V2.PENDING) {
+    if (
+      _activeCoordAgentCountForOwnerV2(a.owner) >=
+      _coordConfigV2.maxActiveAgentsPerOwner
+    ) {
+      throw new Error(
+        `owner ${a.owner} active-agent cap reached (${_coordConfigV2.maxActiveAgentsPerOwner})`,
+      );
+    }
+  }
+  const now = Date.now();
+  a.status = next;
+  if (next === _CA_V2.ACTIVE && !a.activatedAt) a.activatedAt = now;
+  if (next === _CA_V2.RETIRED && !a.retiredAt) a.retiredAt = now;
+  a.lastSeenAt = now;
+  return _copyCoordAgentV2(a);
+}
+
+export function activateCoordAgentV2(id) {
+  return _transitionCoordAgentV2(id, _CA_V2.ACTIVE);
+}
+export function idleCoordAgentV2(id) {
+  return _transitionCoordAgentV2(id, _CA_V2.IDLE);
+}
+export function retireCoordAgentV2(id) {
+  return _transitionCoordAgentV2(id, _CA_V2.RETIRED);
+}
+export function touchCoordAgentV2(id) {
+  const a = _coordAgentsV2.get(id);
+  if (!a) throw new Error(`agent ${id} not found`);
+  a.lastSeenAt = Date.now();
+  return _copyCoordAgentV2(a);
+}
+export function getCoordAgentV2(id) {
+  const a = _coordAgentsV2.get(id);
+  return a ? _copyCoordAgentV2(a) : null;
+}
+export function listCoordAgentsV2({ owner, status, role } = {}) {
+  const out = [];
+  for (const a of _coordAgentsV2.values()) {
+    if (owner && a.owner !== owner) continue;
+    if (status && a.status !== status) continue;
+    if (role && a.role !== role) continue;
+    out.push(_copyCoordAgentV2(a));
+  }
+  return out;
+}
+
+function _pendingAssignmentCountForAgentV2(agentId) {
+  let c = 0;
+  for (const a of _coordAssignmentsV2.values()) {
+    if (a.agentId !== agentId) continue;
+    if (a.status === _CL_V2.QUEUED || a.status === _CL_V2.DISPATCHED) c++;
+  }
+  return c;
+}
+
+export function createAssignmentV2({ id, agentId, subtask, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id required");
+  if (!agentId || typeof agentId !== "string")
+    throw new Error("agentId required");
+  if (_coordAssignmentsV2.has(id))
+    throw new Error(`assignment ${id} already exists`);
+  const agent = _coordAgentsV2.get(agentId);
+  if (!agent) throw new Error(`agent ${agentId} not found`);
+  if (agent.status === _CA_V2.RETIRED)
+    throw new Error(`agent ${agentId} retired`);
+  if (
+    _pendingAssignmentCountForAgentV2(agentId) >=
+    _coordConfigV2.maxPendingAssignmentsPerAgent
+  ) {
+    throw new Error(
+      `agent ${agentId} pending-assignment cap reached (${_coordConfigV2.maxPendingAssignmentsPerAgent})`,
+    );
+  }
+  const now = Date.now();
+  const a = {
+    id,
+    agentId,
+    subtask: subtask || "untitled",
+    status: _CL_V2.QUEUED,
+    startedAt: null,
+    settledAt: null,
+    createdAt: now,
+    metadata: metadata && typeof metadata === "object" ? { ...metadata } : {},
+  };
+  _coordAssignmentsV2.set(id, a);
+  return _copyAssignmentV2(a);
+}
+
+function _transitionAssignmentV2(id, next, extra = {}) {
+  const a = _coordAssignmentsV2.get(id);
+  if (!a) throw new Error(`assignment ${id} not found`);
+  const allowed = _CL_TRANS_V2.get(a.status);
+  if (!allowed || !allowed.has(next))
+    throw new Error(`invalid transition ${a.status} -> ${next}`);
+  const now = Date.now();
+  a.status = next;
+  if (next === _CL_V2.DISPATCHED && !a.startedAt) a.startedAt = now;
+  if (_CL_TERM_V2.has(next) && !a.settledAt) a.settledAt = now;
+  if (extra.error) a.metadata.error = extra.error;
+  return _copyAssignmentV2(a);
+}
+
+export function dispatchAssignmentV2(id) {
+  return _transitionAssignmentV2(id, _CL_V2.DISPATCHED);
+}
+export function completeAssignmentV2(id) {
+  return _transitionAssignmentV2(id, _CL_V2.COMPLETED);
+}
+export function failAssignmentV2(id, error) {
+  return _transitionAssignmentV2(id, _CL_V2.FAILED, { error });
+}
+export function cancelAssignmentV2(id) {
+  return _transitionAssignmentV2(id, _CL_V2.CANCELLED);
+}
+export function getAssignmentV2(id) {
+  const a = _coordAssignmentsV2.get(id);
+  return a ? _copyAssignmentV2(a) : null;
+}
+export function listAssignmentsV2({ agentId, status } = {}) {
+  const out = [];
+  for (const a of _coordAssignmentsV2.values()) {
+    if (agentId && a.agentId !== agentId) continue;
+    if (status && a.status !== status) continue;
+    out.push(_copyAssignmentV2(a));
+  }
+  return out;
+}
+
+export function autoIdleCoordAgentsV2({ now } = {}) {
+  const t = typeof now === "number" ? now : Date.now();
+  const flipped = [];
+  for (const a of _coordAgentsV2.values()) {
+    if (a.status !== _CA_V2.ACTIVE) continue;
+    if (t - a.lastSeenAt > _coordConfigV2.agentIdleMs) {
+      a.status = _CA_V2.IDLE;
+      a.lastSeenAt = t;
+      flipped.push(_copyCoordAgentV2(a));
+    }
+  }
+  return flipped;
+}
+
+export function autoFailStuckAssignmentsV2({ now } = {}) {
+  const t = typeof now === "number" ? now : Date.now();
+  const flipped = [];
+  for (const a of _coordAssignmentsV2.values()) {
+    if (a.status !== _CL_V2.DISPATCHED) continue;
+    if (a.startedAt && t - a.startedAt > _coordConfigV2.assignmentStuckMs) {
+      a.status = _CL_V2.FAILED;
+      a.settledAt = t;
+      a.metadata.error = "stuck-timeout";
+      flipped.push(_copyAssignmentV2(a));
+    }
+  }
+  return flipped;
+}
+
+export function getAgentCoordinatorStatsV2() {
+  const agentsByStatus = {};
+  for (const s of Object.values(_CA_V2)) agentsByStatus[s] = 0;
+  for (const a of _coordAgentsV2.values()) agentsByStatus[a.status]++;
+  const assignmentsByStatus = {};
+  for (const s of Object.values(_CL_V2)) assignmentsByStatus[s] = 0;
+  for (const a of _coordAssignmentsV2.values()) assignmentsByStatus[a.status]++;
+  return {
+    totalAgentsV2: _coordAgentsV2.size,
+    totalAssignmentsV2: _coordAssignmentsV2.size,
+    maxActiveAgentsPerOwner: _coordConfigV2.maxActiveAgentsPerOwner,
+    maxPendingAssignmentsPerAgent: _coordConfigV2.maxPendingAssignmentsPerAgent,
+    agentIdleMs: _coordConfigV2.agentIdleMs,
+    assignmentStuckMs: _coordConfigV2.assignmentStuckMs,
+    agentsByStatus,
+    assignmentsByStatus,
+  };
+}

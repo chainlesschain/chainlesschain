@@ -345,3 +345,336 @@ export function getServer(idOrName) {
     ) || null
   );
 }
+
+// ===== V2 Surface (cli 0.131.0) — in-memory governance =====
+export const MCP_SERVER_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  DEGRADED: "degraded",
+  RETIRED: "retired",
+});
+export const MCP_INVOCATION_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  DISPATCHING: "dispatching",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+
+const _MS_V2 = MCP_SERVER_MATURITY_V2;
+const _MI_V2 = MCP_INVOCATION_LIFECYCLE_V2;
+const _MS_TRANS_V2 = new Map([
+  [_MS_V2.PENDING, new Set([_MS_V2.ACTIVE, _MS_V2.RETIRED])],
+  [_MS_V2.ACTIVE, new Set([_MS_V2.DEGRADED, _MS_V2.RETIRED])],
+  [_MS_V2.DEGRADED, new Set([_MS_V2.ACTIVE, _MS_V2.RETIRED])],
+  [_MS_V2.RETIRED, new Set()],
+]);
+const _MI_TRANS_V2 = new Map([
+  [_MI_V2.QUEUED, new Set([_MI_V2.DISPATCHING, _MI_V2.CANCELLED])],
+  [
+    _MI_V2.DISPATCHING,
+    new Set([_MI_V2.COMPLETED, _MI_V2.FAILED, _MI_V2.CANCELLED]),
+  ],
+  [_MI_V2.COMPLETED, new Set()],
+  [_MI_V2.FAILED, new Set()],
+  [_MI_V2.CANCELLED, new Set()],
+]);
+const _MI_TERM_V2 = new Set([
+  _MI_V2.COMPLETED,
+  _MI_V2.FAILED,
+  _MI_V2.CANCELLED,
+]);
+
+const MCP_DEFAULT_MAX_ACTIVE_SERVERS_PER_OWNER = 10;
+const MCP_DEFAULT_MAX_PENDING_INVOCATIONS_PER_SERVER = 20;
+const MCP_DEFAULT_SERVER_IDLE_MS = 7 * 24 * 60 * 60 * 1000;
+const MCP_DEFAULT_INVOCATION_STUCK_MS = 2 * 60 * 1000;
+
+const _mcpServersV2 = new Map();
+const _mcpInvocationsV2 = new Map();
+let _mcpConfigV2 = {
+  maxActiveServersPerOwner: MCP_DEFAULT_MAX_ACTIVE_SERVERS_PER_OWNER,
+  maxPendingInvocationsPerServer:
+    MCP_DEFAULT_MAX_PENDING_INVOCATIONS_PER_SERVER,
+  serverIdleMs: MCP_DEFAULT_SERVER_IDLE_MS,
+  invocationStuckMs: MCP_DEFAULT_INVOCATION_STUCK_MS,
+};
+
+function _mcpPosIntV2(n, label) {
+  if (typeof n !== "number" || !isFinite(n) || isNaN(n))
+    throw new Error(`${label} must be positive integer`);
+  const v = Math.floor(n);
+  if (v <= 0) throw new Error(`${label} must be positive integer`);
+  return v;
+}
+
+export function _resetStateMcpRegistryV2() {
+  _mcpServersV2.clear();
+  _mcpInvocationsV2.clear();
+  _mcpConfigV2 = {
+    maxActiveServersPerOwner: MCP_DEFAULT_MAX_ACTIVE_SERVERS_PER_OWNER,
+    maxPendingInvocationsPerServer:
+      MCP_DEFAULT_MAX_PENDING_INVOCATIONS_PER_SERVER,
+    serverIdleMs: MCP_DEFAULT_SERVER_IDLE_MS,
+    invocationStuckMs: MCP_DEFAULT_INVOCATION_STUCK_MS,
+  };
+}
+
+export function setMaxActiveServersPerOwnerV2(n) {
+  _mcpConfigV2.maxActiveServersPerOwner = _mcpPosIntV2(
+    n,
+    "maxActiveServersPerOwner",
+  );
+}
+export function setMaxPendingInvocationsPerServerV2(n) {
+  _mcpConfigV2.maxPendingInvocationsPerServer = _mcpPosIntV2(
+    n,
+    "maxPendingInvocationsPerServer",
+  );
+}
+export function setServerIdleMsV2(n) {
+  _mcpConfigV2.serverIdleMs = _mcpPosIntV2(n, "serverIdleMs");
+}
+export function setInvocationStuckMsV2(n) {
+  _mcpConfigV2.invocationStuckMs = _mcpPosIntV2(n, "invocationStuckMs");
+}
+export function getMaxActiveServersPerOwnerV2() {
+  return _mcpConfigV2.maxActiveServersPerOwner;
+}
+export function getMaxPendingInvocationsPerServerV2() {
+  return _mcpConfigV2.maxPendingInvocationsPerServer;
+}
+export function getServerIdleMsV2() {
+  return _mcpConfigV2.serverIdleMs;
+}
+export function getInvocationStuckMsV2() {
+  return _mcpConfigV2.invocationStuckMs;
+}
+
+function _copyServerV2(s) {
+  return { ...s, metadata: { ...(s.metadata || {}) } };
+}
+function _copyInvocationV2(i) {
+  return { ...i, metadata: { ...(i.metadata || {}) } };
+}
+
+export function registerServerV2({
+  id,
+  owner,
+  transport,
+  name,
+  metadata,
+} = {}) {
+  if (!id || typeof id !== "string") throw new Error("id required");
+  if (!owner || typeof owner !== "string") throw new Error("owner required");
+  if (!transport || typeof transport !== "string")
+    throw new Error("transport required");
+  if (_mcpServersV2.has(id)) throw new Error(`server ${id} already registered`);
+  const now = Date.now();
+  const s = {
+    id,
+    owner,
+    transport,
+    name: name || id,
+    status: _MS_V2.PENDING,
+    activatedAt: null,
+    retiredAt: null,
+    lastSeenAt: now,
+    createdAt: now,
+    metadata: metadata && typeof metadata === "object" ? { ...metadata } : {},
+  };
+  _mcpServersV2.set(id, s);
+  return _copyServerV2(s);
+}
+
+function _activeServerCountForOwnerV2(owner) {
+  let c = 0;
+  for (const s of _mcpServersV2.values())
+    if (s.owner === owner && s.status === _MS_V2.ACTIVE) c++;
+  return c;
+}
+
+function _transitionServerV2(id, next) {
+  const s = _mcpServersV2.get(id);
+  if (!s) throw new Error(`server ${id} not found`);
+  const allowed = _MS_TRANS_V2.get(s.status);
+  if (!allowed || !allowed.has(next))
+    throw new Error(`invalid transition ${s.status} -> ${next}`);
+  if (next === _MS_V2.ACTIVE && s.status === _MS_V2.PENDING) {
+    if (
+      _activeServerCountForOwnerV2(s.owner) >=
+      _mcpConfigV2.maxActiveServersPerOwner
+    ) {
+      throw new Error(
+        `owner ${s.owner} active-server cap reached (${_mcpConfigV2.maxActiveServersPerOwner})`,
+      );
+    }
+  }
+  const now = Date.now();
+  s.status = next;
+  if (next === _MS_V2.ACTIVE && !s.activatedAt) s.activatedAt = now;
+  if (next === _MS_V2.RETIRED && !s.retiredAt) s.retiredAt = now;
+  s.lastSeenAt = now;
+  return _copyServerV2(s);
+}
+
+export function activateServerV2(id) {
+  return _transitionServerV2(id, _MS_V2.ACTIVE);
+}
+export function degradeServerV2(id) {
+  return _transitionServerV2(id, _MS_V2.DEGRADED);
+}
+export function retireServerV2(id) {
+  return _transitionServerV2(id, _MS_V2.RETIRED);
+}
+export function touchServerV2(id) {
+  const s = _mcpServersV2.get(id);
+  if (!s) throw new Error(`server ${id} not found`);
+  s.lastSeenAt = Date.now();
+  return _copyServerV2(s);
+}
+export function getServerV2(id) {
+  const s = _mcpServersV2.get(id);
+  return s ? _copyServerV2(s) : null;
+}
+export function listServersV2({ owner, status, transport } = {}) {
+  const out = [];
+  for (const s of _mcpServersV2.values()) {
+    if (owner && s.owner !== owner) continue;
+    if (status && s.status !== status) continue;
+    if (transport && s.transport !== transport) continue;
+    out.push(_copyServerV2(s));
+  }
+  return out;
+}
+
+function _pendingInvocationCountForServerV2(serverId) {
+  let c = 0;
+  for (const i of _mcpInvocationsV2.values()) {
+    if (i.serverId !== serverId) continue;
+    if (i.status === _MI_V2.QUEUED || i.status === _MI_V2.DISPATCHING) c++;
+  }
+  return c;
+}
+
+export function createInvocationV2({ id, serverId, tool, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id required");
+  if (!serverId || typeof serverId !== "string")
+    throw new Error("serverId required");
+  if (_mcpInvocationsV2.has(id))
+    throw new Error(`invocation ${id} already exists`);
+  const server = _mcpServersV2.get(serverId);
+  if (!server) throw new Error(`server ${serverId} not found`);
+  if (server.status === _MS_V2.RETIRED)
+    throw new Error(`server ${serverId} retired`);
+  if (
+    _pendingInvocationCountForServerV2(serverId) >=
+    _mcpConfigV2.maxPendingInvocationsPerServer
+  ) {
+    throw new Error(
+      `server ${serverId} pending-invocation cap reached (${_mcpConfigV2.maxPendingInvocationsPerServer})`,
+    );
+  }
+  const now = Date.now();
+  const i = {
+    id,
+    serverId,
+    tool: tool || "unknown",
+    status: _MI_V2.QUEUED,
+    startedAt: null,
+    settledAt: null,
+    createdAt: now,
+    metadata: metadata && typeof metadata === "object" ? { ...metadata } : {},
+  };
+  _mcpInvocationsV2.set(id, i);
+  return _copyInvocationV2(i);
+}
+
+function _transitionInvocationV2(id, next, extra = {}) {
+  const inv = _mcpInvocationsV2.get(id);
+  if (!inv) throw new Error(`invocation ${id} not found`);
+  const allowed = _MI_TRANS_V2.get(inv.status);
+  if (!allowed || !allowed.has(next))
+    throw new Error(`invalid transition ${inv.status} -> ${next}`);
+  const now = Date.now();
+  inv.status = next;
+  if (next === _MI_V2.DISPATCHING && !inv.startedAt) inv.startedAt = now;
+  if (_MI_TERM_V2.has(next) && !inv.settledAt) inv.settledAt = now;
+  if (extra.error) inv.metadata.error = extra.error;
+  return _copyInvocationV2(inv);
+}
+
+export function dispatchInvocationV2(id) {
+  return _transitionInvocationV2(id, _MI_V2.DISPATCHING);
+}
+export function completeInvocationV2(id) {
+  return _transitionInvocationV2(id, _MI_V2.COMPLETED);
+}
+export function failInvocationV2(id, error) {
+  return _transitionInvocationV2(id, _MI_V2.FAILED, { error });
+}
+export function cancelInvocationV2(id) {
+  return _transitionInvocationV2(id, _MI_V2.CANCELLED);
+}
+export function getInvocationV2(id) {
+  const i = _mcpInvocationsV2.get(id);
+  return i ? _copyInvocationV2(i) : null;
+}
+export function listInvocationsV2({ serverId, status, tool } = {}) {
+  const out = [];
+  for (const i of _mcpInvocationsV2.values()) {
+    if (serverId && i.serverId !== serverId) continue;
+    if (status && i.status !== status) continue;
+    if (tool && i.tool !== tool) continue;
+    out.push(_copyInvocationV2(i));
+  }
+  return out;
+}
+
+export function autoDegradeIdleServersV2({ now } = {}) {
+  const t = typeof now === "number" ? now : Date.now();
+  const flipped = [];
+  for (const s of _mcpServersV2.values()) {
+    if (s.status !== _MS_V2.ACTIVE) continue;
+    if (t - s.lastSeenAt > _mcpConfigV2.serverIdleMs) {
+      s.status = _MS_V2.DEGRADED;
+      s.lastSeenAt = t;
+      flipped.push(_copyServerV2(s));
+    }
+  }
+  return flipped;
+}
+
+export function autoFailStuckInvocationsV2({ now } = {}) {
+  const t = typeof now === "number" ? now : Date.now();
+  const flipped = [];
+  for (const i of _mcpInvocationsV2.values()) {
+    if (i.status !== _MI_V2.DISPATCHING) continue;
+    if (i.startedAt && t - i.startedAt > _mcpConfigV2.invocationStuckMs) {
+      i.status = _MI_V2.FAILED;
+      i.settledAt = t;
+      i.metadata.error = "stuck-timeout";
+      flipped.push(_copyInvocationV2(i));
+    }
+  }
+  return flipped;
+}
+
+export function getMcpRegistryStatsV2() {
+  const serversByStatus = {};
+  for (const s of Object.values(_MS_V2)) serversByStatus[s] = 0;
+  for (const s of _mcpServersV2.values()) serversByStatus[s.status]++;
+  const invocationsByStatus = {};
+  for (const s of Object.values(_MI_V2)) invocationsByStatus[s] = 0;
+  for (const i of _mcpInvocationsV2.values()) invocationsByStatus[i.status]++;
+  return {
+    totalServersV2: _mcpServersV2.size,
+    totalInvocationsV2: _mcpInvocationsV2.size,
+    maxActiveServersPerOwner: _mcpConfigV2.maxActiveServersPerOwner,
+    maxPendingInvocationsPerServer: _mcpConfigV2.maxPendingInvocationsPerServer,
+    serverIdleMs: _mcpConfigV2.serverIdleMs,
+    invocationStuckMs: _mcpConfigV2.invocationStuckMs,
+    serversByStatus,
+    invocationsByStatus,
+  };
+}

@@ -804,4 +804,225 @@ export function registerMcpCommand(program) {
         logger.log(`  ${chalk.cyan(c)} ${chalk.dim(`(${count})`)}`);
       }
     });
+
+  // ===== V2 governance subcommands (mcp-registry V2) =====
+  mcp
+    .command("server-maturities-v2")
+    .description("List MCP server maturity states (V2)")
+    .action(async () => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(JSON.stringify(m.MCP_SERVER_MATURITY_V2, null, 2));
+    });
+  mcp
+    .command("invocation-lifecycle-v2")
+    .description("List MCP invocation lifecycle states (V2)")
+    .action(async () => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(JSON.stringify(m.MCP_INVOCATION_LIFECYCLE_V2, null, 2));
+    });
+  mcp
+    .command("stats-v2")
+    .description("Show MCP registry V2 stats")
+    .action(async () => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(JSON.stringify(m.getMcpRegistryStatsV2(), null, 2));
+    });
+  mcp
+    .command("config-v2")
+    .description("Show MCP registry V2 config")
+    .action(async () => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(
+        JSON.stringify(
+          {
+            maxActiveServersPerOwner: m.getMaxActiveServersPerOwnerV2(),
+            maxPendingInvocationsPerServer:
+              m.getMaxPendingInvocationsPerServerV2(),
+            serverIdleMs: m.getServerIdleMsV2(),
+            invocationStuckMs: m.getInvocationStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  mcp
+    .command("register-server-v2 <id> <owner> <endpoint>")
+    .description("Register an MCP server (V2)")
+    .action(async (id, owner, endpoint) => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(
+        JSON.stringify(m.registerServerV2({ id, owner, endpoint }), null, 2),
+      );
+    });
+  mcp
+    .command("activate-server-v2 <id>")
+    .description("Activate an MCP server (V2)")
+    .action(async (id) => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(JSON.stringify(m.activateServerV2(id), null, 2));
+    });
+  mcp
+    .command("degrade-server-v2 <id>")
+    .description("Degrade an MCP server (V2)")
+    .action(async (id) => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(JSON.stringify(m.degradeServerV2(id), null, 2));
+    });
+  mcp
+    .command("retire-server-v2 <id>")
+    .description("Retire an MCP server (V2)")
+    .action(async (id) => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(JSON.stringify(m.retireServerV2(id), null, 2));
+    });
+  mcp
+    .command("touch-server-v2 <id>")
+    .description("Touch an MCP server (V2)")
+    .action(async (id) => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(JSON.stringify(m.touchServerV2(id), null, 2));
+    });
+  mcp
+    .command("get-server-v2 <id>")
+    .description("Get an MCP server (V2)")
+    .action(async (id) => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(JSON.stringify(m.getServerV2(id), null, 2));
+    });
+  mcp
+    .command("list-servers-v2")
+    .description("List MCP servers (V2)")
+    .action(async () => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(JSON.stringify(m.listServersV2(), null, 2));
+    });
+  mcp
+    .command("create-invocation-v2 <id> <serverId> <tool>")
+    .description("Create an MCP invocation (V2)")
+    .action(async (id, serverId, tool) => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(
+        JSON.stringify(m.createInvocationV2({ id, serverId, tool }), null, 2),
+      );
+    });
+  mcp
+    .command("dispatch-invocation-v2 <id>")
+    .description("Dispatch an MCP invocation (V2)")
+    .action(async (id) => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(JSON.stringify(m.dispatchInvocationV2(id), null, 2));
+    });
+  mcp
+    .command("complete-invocation-v2 <id>")
+    .description("Complete an MCP invocation (V2)")
+    .action(async (id) => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(JSON.stringify(m.completeInvocationV2(id), null, 2));
+    });
+  mcp
+    .command("fail-invocation-v2 <id> [reason]")
+    .description("Fail an MCP invocation (V2)")
+    .action(async (id, reason) => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(JSON.stringify(m.failInvocationV2(id, reason), null, 2));
+    });
+  mcp
+    .command("cancel-invocation-v2 <id> [reason]")
+    .description("Cancel an MCP invocation (V2)")
+    .action(async (id, reason) => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(JSON.stringify(m.cancelInvocationV2(id, reason), null, 2));
+    });
+  mcp
+    .command("get-invocation-v2 <id>")
+    .description("Get an MCP invocation (V2)")
+    .action(async (id) => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(JSON.stringify(m.getInvocationV2(id), null, 2));
+    });
+  mcp
+    .command("list-invocations-v2")
+    .description("List MCP invocations (V2)")
+    .action(async () => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(JSON.stringify(m.listInvocationsV2(), null, 2));
+    });
+  mcp
+    .command("auto-degrade-idle-servers-v2")
+    .description("Auto-degrade idle MCP servers (V2)")
+    .action(async () => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(JSON.stringify(m.autoDegradeIdleServersV2(), null, 2));
+    });
+  mcp
+    .command("auto-fail-stuck-invocations-v2")
+    .description("Auto-fail stuck MCP invocations (V2)")
+    .action(async () => {
+      const m = await import("../lib/mcp-registry.js");
+      console.log(JSON.stringify(m.autoFailStuckInvocationsV2(), null, 2));
+    });
+  mcp
+    .command("set-max-active-servers-v2 <n>")
+    .description("Set max active servers per owner (V2)")
+    .action(async (n) => {
+      const m = await import("../lib/mcp-registry.js");
+      m.setMaxActiveServersPerOwnerV2(parseInt(n, 10));
+      console.log(
+        JSON.stringify(
+          { maxActiveServersPerOwner: m.getMaxActiveServersPerOwnerV2() },
+          null,
+          2,
+        ),
+      );
+    });
+  mcp
+    .command("set-max-pending-invocations-v2 <n>")
+    .description("Set max pending invocations per server (V2)")
+    .action(async (n) => {
+      const m = await import("../lib/mcp-registry.js");
+      m.setMaxPendingInvocationsPerServerV2(parseInt(n, 10));
+      console.log(
+        JSON.stringify(
+          {
+            maxPendingInvocationsPerServer:
+              m.getMaxPendingInvocationsPerServerV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  mcp
+    .command("set-server-idle-ms-v2 <n>")
+    .description("Set MCP server idle timeout in ms (V2)")
+    .action(async (n) => {
+      const m = await import("../lib/mcp-registry.js");
+      m.setServerIdleMsV2(parseInt(n, 10));
+      console.log(
+        JSON.stringify({ serverIdleMs: m.getServerIdleMsV2() }, null, 2),
+      );
+    });
+  mcp
+    .command("set-invocation-stuck-ms-v2 <n>")
+    .description("Set MCP invocation stuck timeout in ms (V2)")
+    .action(async (n) => {
+      const m = await import("../lib/mcp-registry.js");
+      m.setInvocationStuckMsV2(parseInt(n, 10));
+      console.log(
+        JSON.stringify(
+          { invocationStuckMs: m.getInvocationStuckMsV2() },
+          null,
+          2,
+        ),
+      );
+    });
+  mcp
+    .command("reset-state-v2")
+    .description("Reset MCP registry V2 in-memory state")
+    .action(async () => {
+      const m = await import("../lib/mcp-registry.js");
+      m._resetStateMcpRegistryV2();
+      console.log(JSON.stringify({ ok: true }, null, 2));
+    });
 }

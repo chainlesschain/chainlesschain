@@ -169,6 +169,172 @@ export function registerOrchestrateCommand(program) {
     // Pretty output
     _runPretty(orch, taskText, options, cwd);
   });
+
+  // ===== V2 governance subcommands (agent-router V2) =====
+  const router = program
+    .command("router")
+    .description("Agent router V2 governance");
+  router
+    .command("maturities-v2")
+    .description("List router profile maturity states (V2)")
+    .action(async () => {
+      const m = await import("../lib/agent-router.js");
+      console.log(JSON.stringify(m.ROUTER_PROFILE_MATURITY_V2, null, 2));
+    });
+  router
+    .command("dispatch-lifecycle-v2")
+    .description("List router dispatch lifecycle states (V2)")
+    .action(async () => {
+      const m = await import("../lib/agent-router.js");
+      console.log(JSON.stringify(m.ROUTER_DISPATCH_LIFECYCLE_V2, null, 2));
+    });
+  router
+    .command("stats-v2")
+    .description("Show agent-router V2 stats")
+    .action(async () => {
+      const m = await import("../lib/agent-router.js");
+      console.log(JSON.stringify(m.getAgentRouterStatsV2(), null, 2));
+    });
+  router
+    .command("config-v2")
+    .description("Show agent-router V2 config")
+    .action(async () => {
+      const m = await import("../lib/agent-router.js");
+      console.log(
+        JSON.stringify(
+          {
+            maxActiveProfilesPerOwner: m.getMaxActiveProfilesPerOwnerRouterV2(),
+            maxPendingDispatchesPerProfile:
+              m.getMaxPendingDispatchesPerProfileV2(),
+            profileIdleMs: m.getProfileIdleMsRouterV2(),
+            dispatchStuckMs: m.getDispatchStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  router
+    .command("register-profile-v2 <id> <owner>")
+    .description("Register a router profile (V2)")
+    .action(async (id, owner) => {
+      const m = await import("../lib/agent-router.js");
+      console.log(
+        JSON.stringify(m.registerRouterProfileV2({ id, owner }), null, 2),
+      );
+    });
+  router.command("activate-profile-v2 <id>").action(async (id) => {
+    const m = await import("../lib/agent-router.js");
+    console.log(JSON.stringify(m.activateRouterProfileV2(id), null, 2));
+  });
+  router.command("degrade-profile-v2 <id>").action(async (id) => {
+    const m = await import("../lib/agent-router.js");
+    console.log(JSON.stringify(m.degradeRouterProfileV2(id), null, 2));
+  });
+  router.command("retire-profile-v2 <id>").action(async (id) => {
+    const m = await import("../lib/agent-router.js");
+    console.log(JSON.stringify(m.retireRouterProfileV2(id), null, 2));
+  });
+  router.command("touch-profile-v2 <id>").action(async (id) => {
+    const m = await import("../lib/agent-router.js");
+    console.log(JSON.stringify(m.touchRouterProfileV2(id), null, 2));
+  });
+  router.command("get-profile-v2 <id>").action(async (id) => {
+    const m = await import("../lib/agent-router.js");
+    console.log(JSON.stringify(m.getRouterProfileV2(id), null, 2));
+  });
+  router.command("list-profiles-v2").action(async () => {
+    const m = await import("../lib/agent-router.js");
+    console.log(JSON.stringify(m.listRouterProfilesV2(), null, 2));
+  });
+  router
+    .command("create-dispatch-v2 <id> <profileId> [task]")
+    .action(async (id, profileId, task) => {
+      const m = await import("../lib/agent-router.js");
+      console.log(
+        JSON.stringify(m.createDispatchV2({ id, profileId, task }), null, 2),
+      );
+    });
+  router.command("dispatch-v2 <id>").action(async (id) => {
+    const m = await import("../lib/agent-router.js");
+    console.log(JSON.stringify(m.dispatchDispatchV2(id), null, 2));
+  });
+  router.command("complete-dispatch-v2 <id>").action(async (id) => {
+    const m = await import("../lib/agent-router.js");
+    console.log(JSON.stringify(m.completeDispatchV2(id), null, 2));
+  });
+  router
+    .command("fail-dispatch-v2 <id> [reason]")
+    .action(async (id, reason) => {
+      const m = await import("../lib/agent-router.js");
+      console.log(JSON.stringify(m.failDispatchV2(id, reason), null, 2));
+    });
+  router
+    .command("cancel-dispatch-v2 <id> [reason]")
+    .action(async (id, reason) => {
+      const m = await import("../lib/agent-router.js");
+      console.log(JSON.stringify(m.cancelDispatchV2(id, reason), null, 2));
+    });
+  router.command("get-dispatch-v2 <id>").action(async (id) => {
+    const m = await import("../lib/agent-router.js");
+    console.log(JSON.stringify(m.getDispatchV2(id), null, 2));
+  });
+  router.command("list-dispatches-v2").action(async () => {
+    const m = await import("../lib/agent-router.js");
+    console.log(JSON.stringify(m.listDispatchesV2(), null, 2));
+  });
+  router.command("auto-degrade-idle-v2").action(async () => {
+    const m = await import("../lib/agent-router.js");
+    console.log(JSON.stringify(m.autoDegradeIdleProfilesRouterV2(), null, 2));
+  });
+  router.command("auto-fail-stuck-v2").action(async () => {
+    const m = await import("../lib/agent-router.js");
+    console.log(JSON.stringify(m.autoFailStuckDispatchesV2(), null, 2));
+  });
+  router.command("set-max-active-profiles-v2 <n>").action(async (n) => {
+    const m = await import("../lib/agent-router.js");
+    m.setMaxActiveProfilesPerOwnerRouterV2(parseInt(n, 10));
+    console.log(
+      JSON.stringify(
+        { maxActiveProfilesPerOwner: m.getMaxActiveProfilesPerOwnerRouterV2() },
+        null,
+        2,
+      ),
+    );
+  });
+  router.command("set-max-pending-dispatches-v2 <n>").action(async (n) => {
+    const m = await import("../lib/agent-router.js");
+    m.setMaxPendingDispatchesPerProfileV2(parseInt(n, 10));
+    console.log(
+      JSON.stringify(
+        {
+          maxPendingDispatchesPerProfile:
+            m.getMaxPendingDispatchesPerProfileV2(),
+        },
+        null,
+        2,
+      ),
+    );
+  });
+  router.command("set-profile-idle-ms-v2 <n>").action(async (n) => {
+    const m = await import("../lib/agent-router.js");
+    m.setProfileIdleMsRouterV2(parseInt(n, 10));
+    console.log(
+      JSON.stringify({ profileIdleMs: m.getProfileIdleMsRouterV2() }, null, 2),
+    );
+  });
+  router.command("set-dispatch-stuck-ms-v2 <n>").action(async (n) => {
+    const m = await import("../lib/agent-router.js");
+    m.setDispatchStuckMsV2(parseInt(n, 10));
+    console.log(
+      JSON.stringify({ dispatchStuckMs: m.getDispatchStuckMsV2() }, null, 2),
+    );
+  });
+  router.command("reset-state-v2").action(async () => {
+    const m = await import("../lib/agent-router.js");
+    m._resetStateAgentRouterV2();
+    console.log(JSON.stringify({ ok: true }, null, 2));
+  });
 }
 
 // ─── Pretty (interactive) run ────────────────────────────────────

@@ -483,3 +483,271 @@ describe("Hook Manager", () => {
     });
   });
 });
+
+// ===== V2 Tests: Hook Manager governance overlay =====
+import {
+  HOOK_PROFILE_MATURITY_V2,
+  HOOK_EXEC_LIFECYCLE_V2,
+  registerHookProfileV2,
+  activateHookProfileV2,
+  disableHookProfileV2,
+  retireHookProfileV2,
+  touchHookProfileV2,
+  getHookProfileV2,
+  listHookProfilesV2,
+  createHookExecV2,
+  startHookExecV2,
+  completeHookExecV2,
+  failHookExecV2,
+  cancelHookExecV2,
+  getHookExecV2,
+  listHookExecsV2,
+  autoDisableIdleHooksV2,
+  autoFailStuckHookExecsV2,
+  getHookManagerStatsV2,
+  _resetStateHookManagerV2,
+  setMaxActiveHooksPerOwnerV2,
+  getMaxActiveHooksPerOwnerV2,
+  setMaxPendingExecsPerHookV2,
+  getMaxPendingExecsPerHookV2,
+  setHookIdleMsV2,
+  getHookIdleMsV2,
+  setHookExecStuckMsV2,
+  getHookExecStuckMsV2,
+} from "../../src/lib/hook-manager.js";
+
+describe("Hook Manager V2 governance overlay", () => {
+  beforeEach(() => {
+    _resetStateHookManagerV2();
+  });
+
+  describe("enums", () => {
+    it("profile maturity has 4 states", () => {
+      expect(Object.keys(HOOK_PROFILE_MATURITY_V2).sort()).toEqual([
+        "ACTIVE",
+        "DISABLED",
+        "PENDING",
+        "RETIRED",
+      ]);
+      expect(Object.isFrozen(HOOK_PROFILE_MATURITY_V2)).toBe(true);
+    });
+    it("exec lifecycle has 5 states", () => {
+      expect(Object.keys(HOOK_EXEC_LIFECYCLE_V2).sort()).toEqual([
+        "CANCELLED",
+        "COMPLETED",
+        "FAILED",
+        "QUEUED",
+        "RUNNING",
+      ]);
+      expect(Object.isFrozen(HOOK_EXEC_LIFECYCLE_V2)).toBe(true);
+    });
+  });
+
+  describe("profile lifecycle", () => {
+    it("registers with pending", () => {
+      const p = registerHookProfileV2({
+        id: "h1",
+        owner: "u1",
+        event: "PreToolUse",
+      });
+      expect(p.status).toBe("pending");
+      expect(p.event).toBe("PreToolUse");
+    });
+    it("rejects duplicate", () => {
+      registerHookProfileV2({ id: "h1", owner: "u1" });
+      expect(() => registerHookProfileV2({ id: "h1", owner: "u1" })).toThrow(
+        /already/,
+      );
+    });
+    it("activate stamps activatedAt", () => {
+      registerHookProfileV2({ id: "h1", owner: "u1" });
+      const p = activateHookProfileV2("h1");
+      expect(p.status).toBe("active");
+      expect(p.activatedAt).not.toBeNull();
+    });
+    it("disable → activate preserves activatedAt (recovery)", () => {
+      registerHookProfileV2({ id: "h1", owner: "u1" });
+      activateHookProfileV2("h1");
+      const t1 = getHookProfileV2("h1").activatedAt;
+      disableHookProfileV2("h1");
+      const p = activateHookProfileV2("h1");
+      expect(p.activatedAt).toBe(t1);
+    });
+    it("retire stamps retiredAt and blocks", () => {
+      registerHookProfileV2({ id: "h1", owner: "u1" });
+      const p = retireHookProfileV2("h1");
+      expect(p.retiredAt).not.toBeNull();
+      expect(() => activateHookProfileV2("h1")).toThrow(/invalid/);
+    });
+    it("invalid transitions throw", () => {
+      registerHookProfileV2({ id: "h1", owner: "u1" });
+      expect(() => disableHookProfileV2("h1")).toThrow(/invalid/);
+    });
+    it("touch terminal throws", () => {
+      registerHookProfileV2({ id: "h1", owner: "u1" });
+      retireHookProfileV2("h1");
+      expect(() => touchHookProfileV2("h1")).toThrow(/terminal/);
+    });
+  });
+
+  describe("active hook cap", () => {
+    it("recovery exempt from cap", () => {
+      setMaxActiveHooksPerOwnerV2(1);
+      registerHookProfileV2({ id: "a", owner: "u" });
+      activateHookProfileV2("a");
+      disableHookProfileV2("a");
+      registerHookProfileV2({ id: "b", owner: "u" });
+      activateHookProfileV2("b");
+      const p = activateHookProfileV2("a");
+      expect(p.status).toBe("active");
+    });
+    it("initial activation respects cap", () => {
+      setMaxActiveHooksPerOwnerV2(1);
+      registerHookProfileV2({ id: "a", owner: "u" });
+      activateHookProfileV2("a");
+      registerHookProfileV2({ id: "b", owner: "u" });
+      expect(() => activateHookProfileV2("b")).toThrow(/max active/);
+    });
+  });
+
+  describe("exec lifecycle", () => {
+    beforeEach(() => {
+      registerHookProfileV2({ id: "h1", owner: "u1" });
+    });
+    it("create queued", () => {
+      const e = createHookExecV2({ id: "e1", hookId: "h1", payload: { a: 1 } });
+      expect(e.status).toBe("queued");
+    });
+    it("missing hook throws", () => {
+      expect(() => createHookExecV2({ id: "e1", hookId: "nope" })).toThrow(
+        /not found/,
+      );
+    });
+    it("start stamps startedAt", () => {
+      createHookExecV2({ id: "e1", hookId: "h1" });
+      const e = startHookExecV2("e1");
+      expect(e.status).toBe("running");
+      expect(e.startedAt).not.toBeNull();
+    });
+    it("complete stamps settledAt", () => {
+      createHookExecV2({ id: "e1", hookId: "h1" });
+      startHookExecV2("e1");
+      const e = completeHookExecV2("e1");
+      expect(e.settledAt).not.toBeNull();
+    });
+    it("fail records reason", () => {
+      createHookExecV2({ id: "e1", hookId: "h1" });
+      startHookExecV2("e1");
+      const e = failHookExecV2("e1", "crash");
+      expect(e.status).toBe("failed");
+      expect(e.metadata.failReason).toBe("crash");
+    });
+    it("cancel from queued", () => {
+      createHookExecV2({ id: "e1", hookId: "h1" });
+      const e = cancelHookExecV2("e1", "abort");
+      expect(e.status).toBe("cancelled");
+    });
+    it("invalid transition throws", () => {
+      createHookExecV2({ id: "e1", hookId: "h1" });
+      expect(() => completeHookExecV2("e1")).toThrow(/invalid/);
+    });
+  });
+
+  describe("pending exec cap", () => {
+    it("enforces cap", () => {
+      setMaxPendingExecsPerHookV2(2);
+      registerHookProfileV2({ id: "h1", owner: "u1" });
+      createHookExecV2({ id: "e1", hookId: "h1" });
+      createHookExecV2({ id: "e2", hookId: "h1" });
+      expect(() => createHookExecV2({ id: "e3", hookId: "h1" })).toThrow(
+        /max pending/,
+      );
+    });
+    it("frees cap on settle", () => {
+      setMaxPendingExecsPerHookV2(1);
+      registerHookProfileV2({ id: "h1", owner: "u1" });
+      createHookExecV2({ id: "e1", hookId: "h1" });
+      startHookExecV2("e1");
+      completeHookExecV2("e1");
+      const e = createHookExecV2({ id: "e2", hookId: "h1" });
+      expect(e.status).toBe("queued");
+    });
+  });
+
+  describe("auto flip", () => {
+    it("auto-disable idle active hooks", () => {
+      setHookIdleMsV2(1000);
+      registerHookProfileV2({ id: "h1", owner: "u1" });
+      activateHookProfileV2("h1");
+      const base = getHookProfileV2("h1").lastTouchedAt;
+      const r = autoDisableIdleHooksV2({ now: base + 5000 });
+      expect(r.count).toBe(1);
+      expect(getHookProfileV2("h1").status).toBe("disabled");
+    });
+    it("auto-fail stuck running execs", () => {
+      setHookExecStuckMsV2(500);
+      registerHookProfileV2({ id: "h1", owner: "u1" });
+      createHookExecV2({ id: "e1", hookId: "h1" });
+      startHookExecV2("e1");
+      const base = getHookExecV2("e1").startedAt;
+      const r = autoFailStuckHookExecsV2({ now: base + 5000 });
+      expect(r.count).toBe(1);
+      expect(getHookExecV2("e1").status).toBe("failed");
+    });
+  });
+
+  describe("config setters", () => {
+    it("rejects invalid", () => {
+      expect(() => setMaxActiveHooksPerOwnerV2(0)).toThrow();
+      expect(() => setMaxActiveHooksPerOwnerV2(NaN)).toThrow();
+    });
+    it("floors non-integer", () => {
+      setMaxPendingExecsPerHookV2(15.4);
+      expect(getMaxPendingExecsPerHookV2()).toBe(15);
+    });
+    it("getters round-trip", () => {
+      setMaxActiveHooksPerOwnerV2(50);
+      setHookIdleMsV2(10);
+      setHookExecStuckMsV2(20);
+      expect(getMaxActiveHooksPerOwnerV2()).toBe(50);
+      expect(getHookIdleMsV2()).toBe(10);
+      expect(getHookExecStuckMsV2()).toBe(20);
+    });
+  });
+
+  describe("listing & defensive copy", () => {
+    it("lists", () => {
+      registerHookProfileV2({ id: "h1", owner: "u1" });
+      registerHookProfileV2({ id: "h2", owner: "u1" });
+      expect(listHookProfilesV2().length).toBe(2);
+    });
+    it("lists execs", () => {
+      registerHookProfileV2({ id: "h1", owner: "u1" });
+      createHookExecV2({ id: "e1", hookId: "h1" });
+      expect(listHookExecsV2().length).toBe(1);
+    });
+    it("defensive copy", () => {
+      registerHookProfileV2({ id: "h1", owner: "u1", metadata: { k: "v" } });
+      const p = getHookProfileV2("h1");
+      p.metadata.k = "tampered";
+      expect(getHookProfileV2("h1").metadata.k).toBe("v");
+    });
+  });
+
+  describe("stats & reset", () => {
+    it("stats zero-init", () => {
+      const s = getHookManagerStatsV2();
+      for (const v of Object.values(HOOK_PROFILE_MATURITY_V2))
+        expect(s.profilesByStatus[v]).toBe(0);
+      for (const v of Object.values(HOOK_EXEC_LIFECYCLE_V2))
+        expect(s.execsByStatus[v]).toBe(0);
+    });
+    it("reset clears state and restores config", () => {
+      setMaxActiveHooksPerOwnerV2(999);
+      registerHookProfileV2({ id: "h1", owner: "u1" });
+      _resetStateHookManagerV2();
+      expect(getHookManagerStatsV2().totalProfilesV2).toBe(0);
+      expect(getMaxActiveHooksPerOwnerV2()).toBe(20);
+    });
+  });
+});

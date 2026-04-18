@@ -223,3 +223,320 @@ describe("mcp-registry", () => {
     });
   });
 });
+
+// ===== V2 Surface Tests (cli 0.131.0) =====
+import {
+  describe as describeV2,
+  it as itV2,
+  expect as expectV2,
+  beforeEach as beforeEachV2,
+} from "vitest";
+import {
+  MCP_SERVER_MATURITY_V2,
+  MCP_INVOCATION_LIFECYCLE_V2,
+  registerServerV2,
+  activateServerV2,
+  degradeServerV2,
+  retireServerV2,
+  touchServerV2,
+  getServerV2,
+  listServersV2,
+  createInvocationV2,
+  dispatchInvocationV2,
+  completeInvocationV2,
+  failInvocationV2,
+  cancelInvocationV2,
+  getInvocationV2,
+  listInvocationsV2,
+  autoDegradeIdleServersV2,
+  autoFailStuckInvocationsV2,
+  getMcpRegistryStatsV2,
+  setMaxActiveServersPerOwnerV2,
+  setMaxPendingInvocationsPerServerV2,
+  setServerIdleMsV2,
+  setInvocationStuckMsV2,
+  getMaxActiveServersPerOwnerV2,
+  getMaxPendingInvocationsPerServerV2,
+  getServerIdleMsV2,
+  getInvocationStuckMsV2,
+  _resetStateMcpRegistryV2,
+} from "../../src/lib/mcp-registry.js";
+
+describeV2("MCP Registry V2", () => {
+  beforeEachV2(() => _resetStateMcpRegistryV2());
+
+  describeV2("enums", () => {
+    itV2("server maturity has 4 states", () => {
+      expectV2(Object.keys(MCP_SERVER_MATURITY_V2).sort()).toEqual([
+        "ACTIVE",
+        "DEGRADED",
+        "PENDING",
+        "RETIRED",
+      ]);
+    });
+    itV2("invocation lifecycle has 5 states", () => {
+      expectV2(Object.keys(MCP_INVOCATION_LIFECYCLE_V2).sort()).toEqual([
+        "CANCELLED",
+        "COMPLETED",
+        "DISPATCHING",
+        "FAILED",
+        "QUEUED",
+      ]);
+    });
+    itV2("enums are frozen", () => {
+      expectV2(Object.isFrozen(MCP_SERVER_MATURITY_V2)).toBe(true);
+      expectV2(Object.isFrozen(MCP_INVOCATION_LIFECYCLE_V2)).toBe(true);
+    });
+  });
+
+  describeV2("server lifecycle", () => {
+    itV2("registers in pending", () => {
+      const s = registerServerV2({
+        id: "s1",
+        owner: "alice",
+        transport: "stdio",
+      });
+      expectV2(s.status).toBe("pending");
+      expectV2(s.activatedAt).toBeNull();
+    });
+    itV2("rejects duplicate id", () => {
+      registerServerV2({ id: "s1", owner: "alice", transport: "stdio" });
+      expectV2(() =>
+        registerServerV2({ id: "s1", owner: "bob", transport: "http" }),
+      ).toThrow();
+    });
+    itV2("rejects missing required fields", () => {
+      expectV2(() => registerServerV2({})).toThrow();
+      expectV2(() => registerServerV2({ id: "s1" })).toThrow();
+      expectV2(() => registerServerV2({ id: "s1", owner: "x" })).toThrow();
+    });
+    itV2("activates pending → active", () => {
+      registerServerV2({ id: "s1", owner: "alice", transport: "stdio" });
+      const s = activateServerV2("s1");
+      expectV2(s.status).toBe("active");
+      expectV2(s.activatedAt).toBeGreaterThan(0);
+    });
+    itV2("degrades active → degraded", () => {
+      registerServerV2({ id: "s1", owner: "alice", transport: "stdio" });
+      activateServerV2("s1");
+      expectV2(degradeServerV2("s1").status).toBe("degraded");
+    });
+    itV2("recovers degraded → active (preserves activatedAt)", () => {
+      registerServerV2({ id: "s1", owner: "alice", transport: "stdio" });
+      const first = activateServerV2("s1").activatedAt;
+      degradeServerV2("s1");
+      const r = activateServerV2("s1");
+      expectV2(r.activatedAt).toBe(first);
+    });
+    itV2("retires (terminal)", () => {
+      registerServerV2({ id: "s1", owner: "alice", transport: "stdio" });
+      retireServerV2("s1");
+      expectV2(() => activateServerV2("s1")).toThrow();
+    });
+    itV2("rejects invalid transition", () => {
+      registerServerV2({ id: "s1", owner: "alice", transport: "stdio" });
+      expectV2(() => degradeServerV2("s1")).toThrow();
+    });
+    itV2("touches lastSeenAt", async () => {
+      registerServerV2({ id: "s1", owner: "alice", transport: "stdio" });
+      const before = getServerV2("s1").lastSeenAt;
+      await new Promise((r) => setTimeout(r, 5));
+      expectV2(touchServerV2("s1").lastSeenAt).toBeGreaterThan(before);
+    });
+  });
+
+  describeV2("active-server cap", () => {
+    itV2("enforces per-owner cap on pending → active", () => {
+      setMaxActiveServersPerOwnerV2(2);
+      ["a", "b", "c"].forEach((id) =>
+        registerServerV2({ id, owner: "alice", transport: "stdio" }),
+      );
+      activateServerV2("a");
+      activateServerV2("b");
+      expectV2(() => activateServerV2("c")).toThrow(/cap reached/);
+    });
+    itV2("does not apply to other owners", () => {
+      setMaxActiveServersPerOwnerV2(1);
+      registerServerV2({ id: "a", owner: "alice", transport: "stdio" });
+      registerServerV2({ id: "b", owner: "bob", transport: "http" });
+      activateServerV2("a");
+      expectV2(activateServerV2("b").status).toBe("active");
+    });
+    itV2("recovery exempt", () => {
+      setMaxActiveServersPerOwnerV2(1);
+      registerServerV2({ id: "a", owner: "alice", transport: "stdio" });
+      activateServerV2("a");
+      degradeServerV2("a");
+      registerServerV2({ id: "b", owner: "alice", transport: "stdio" });
+      activateServerV2("b");
+      expectV2(activateServerV2("a").status).toBe("active");
+    });
+  });
+
+  describeV2("invocation lifecycle", () => {
+    beforeEachV2(() => {
+      registerServerV2({ id: "s1", owner: "alice", transport: "stdio" });
+      activateServerV2("s1");
+    });
+    itV2("creates queued", () => {
+      const i = createInvocationV2({ id: "I1", serverId: "s1", tool: "echo" });
+      expectV2(i.status).toBe("queued");
+      expectV2(i.tool).toBe("echo");
+    });
+    itV2("rejects on retired server", () => {
+      retireServerV2("s1");
+      expectV2(() => createInvocationV2({ id: "I1", serverId: "s1" })).toThrow(
+        /retired/,
+      );
+    });
+    itV2("dispatches queued → dispatching", () => {
+      createInvocationV2({ id: "I1", serverId: "s1" });
+      const i = dispatchInvocationV2("I1");
+      expectV2(i.status).toBe("dispatching");
+      expectV2(i.startedAt).toBeGreaterThan(0);
+    });
+    itV2("completes (terminal)", () => {
+      createInvocationV2({ id: "I1", serverId: "s1" });
+      dispatchInvocationV2("I1");
+      const i = completeInvocationV2("I1");
+      expectV2(i.status).toBe("completed");
+      expectV2(i.settledAt).toBeGreaterThan(0);
+      expectV2(() => failInvocationV2("I1", "x")).toThrow();
+    });
+    itV2("fails (terminal) with error", () => {
+      createInvocationV2({ id: "I1", serverId: "s1" });
+      dispatchInvocationV2("I1");
+      expectV2(failInvocationV2("I1", "boom").metadata.error).toBe("boom");
+    });
+    itV2("cancels from queued", () => {
+      createInvocationV2({ id: "I1", serverId: "s1" });
+      expectV2(cancelInvocationV2("I1").status).toBe("cancelled");
+    });
+  });
+
+  describeV2("pending-invocation cap", () => {
+    beforeEachV2(() => {
+      registerServerV2({ id: "s1", owner: "alice", transport: "stdio" });
+      activateServerV2("s1");
+    });
+    itV2("enforces at create time", () => {
+      setMaxPendingInvocationsPerServerV2(2);
+      createInvocationV2({ id: "I1", serverId: "s1" });
+      createInvocationV2({ id: "I2", serverId: "s1" });
+      expectV2(() => createInvocationV2({ id: "I3", serverId: "s1" })).toThrow(
+        /cap reached/,
+      );
+    });
+    itV2("frees up after terminal", () => {
+      setMaxPendingInvocationsPerServerV2(2);
+      createInvocationV2({ id: "I1", serverId: "s1" });
+      createInvocationV2({ id: "I2", serverId: "s1" });
+      dispatchInvocationV2("I1");
+      completeInvocationV2("I1");
+      expectV2(createInvocationV2({ id: "I3", serverId: "s1" }).status).toBe(
+        "queued",
+      );
+    });
+  });
+
+  describeV2("auto-flip", () => {
+    itV2("auto-degrade idle servers", () => {
+      registerServerV2({ id: "s1", owner: "alice", transport: "stdio" });
+      activateServerV2("s1");
+      const flipped = autoDegradeIdleServersV2({
+        now: Date.now() + 8 * 24 * 60 * 60 * 1000,
+      });
+      expectV2(flipped.length).toBe(1);
+      expectV2(flipped[0].status).toBe("degraded");
+    });
+    itV2("auto-fail stuck invocations", () => {
+      registerServerV2({ id: "s1", owner: "alice", transport: "stdio" });
+      activateServerV2("s1");
+      createInvocationV2({ id: "I1", serverId: "s1" });
+      dispatchInvocationV2("I1");
+      const flipped = autoFailStuckInvocationsV2({
+        now: Date.now() + 5 * 60 * 1000,
+      });
+      expectV2(flipped.length).toBe(1);
+      expectV2(flipped[0].metadata.error).toBe("stuck-timeout");
+    });
+  });
+
+  describeV2("config setters", () => {
+    itV2("rejects bad inputs", () => {
+      expectV2(() => setMaxActiveServersPerOwnerV2(0)).toThrow();
+      expectV2(() => setMaxPendingInvocationsPerServerV2(-1)).toThrow();
+      expectV2(() => setServerIdleMsV2(NaN)).toThrow();
+      expectV2(() => setInvocationStuckMsV2("x")).toThrow();
+    });
+    itV2("floors floats", () => {
+      setMaxActiveServersPerOwnerV2(9.7);
+      expectV2(getMaxActiveServersPerOwnerV2()).toBe(9);
+    });
+    itV2("setters update config", () => {
+      setMaxPendingInvocationsPerServerV2(33);
+      setServerIdleMsV2(7777);
+      setInvocationStuckMsV2(3333);
+      expectV2(getMaxPendingInvocationsPerServerV2()).toBe(33);
+      expectV2(getServerIdleMsV2()).toBe(7777);
+      expectV2(getInvocationStuckMsV2()).toBe(3333);
+    });
+  });
+
+  describeV2("listing & defensive copy", () => {
+    itV2("filters work", () => {
+      registerServerV2({ id: "s1", owner: "alice", transport: "stdio" });
+      registerServerV2({ id: "s2", owner: "bob", transport: "http" });
+      activateServerV2("s1");
+      expectV2(listServersV2({ owner: "alice" }).length).toBe(1);
+      expectV2(listServersV2({ status: "active" }).length).toBe(1);
+      expectV2(listServersV2({ transport: "http" }).length).toBe(1);
+    });
+    itV2("listInvocationsV2 filters by tool", () => {
+      registerServerV2({ id: "s1", owner: "alice", transport: "stdio" });
+      activateServerV2("s1");
+      createInvocationV2({ id: "I1", serverId: "s1", tool: "echo" });
+      createInvocationV2({ id: "I2", serverId: "s1", tool: "ping" });
+      expectV2(listInvocationsV2({ tool: "echo" }).length).toBe(1);
+    });
+    itV2("deep copy on read", () => {
+      registerServerV2({
+        id: "s1",
+        owner: "alice",
+        transport: "stdio",
+        metadata: { tag: "x" },
+      });
+      const s = getServerV2("s1");
+      s.metadata.tag = "MUT";
+      expectV2(getServerV2("s1").metadata.tag).toBe("x");
+    });
+  });
+
+  describeV2("stats", () => {
+    itV2("zero-initializes all enum keys", () => {
+      const s = getMcpRegistryStatsV2();
+      expectV2(s.serversByStatus.pending).toBe(0);
+      expectV2(s.serversByStatus.degraded).toBe(0);
+      expectV2(s.invocationsByStatus.dispatching).toBe(0);
+    });
+    itV2("counts match state", () => {
+      registerServerV2({ id: "s1", owner: "alice", transport: "stdio" });
+      activateServerV2("s1");
+      createInvocationV2({ id: "I1", serverId: "s1" });
+      const s = getMcpRegistryStatsV2();
+      expectV2(s.totalServersV2).toBe(1);
+      expectV2(s.serversByStatus.active).toBe(1);
+      expectV2(s.invocationsByStatus.queued).toBe(1);
+    });
+  });
+
+  describeV2("reset", () => {
+    itV2("clears + restores defaults", () => {
+      setMaxActiveServersPerOwnerV2(99);
+      registerServerV2({ id: "s1", owner: "alice", transport: "stdio" });
+      _resetStateMcpRegistryV2();
+      expectV2(getMaxActiveServersPerOwnerV2()).toBe(10);
+      expectV2(listServersV2({}).length).toBe(0);
+    });
+  });
+});
