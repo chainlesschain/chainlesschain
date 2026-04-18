@@ -310,14 +310,14 @@ function _trimRingBuffer(db) {
 }
 
 export function listSamples(db, { limit = 100, sinceMs } = {}) {
-  let rows = db.prepare("SELECT * FROM perf_samples").all();
-  rows = rows.map(_strip);
+  let rows = db.prepare("SELECT *, rowid AS _rid FROM perf_samples").all();
+  rows = rows.map((r) => ({ ..._strip(r), _rid: r._rid }));
   if (sinceMs) {
     const cutoff = _now() - sinceMs;
     rows = rows.filter((r) => r.ts >= cutoff);
   }
   return rows
-    .sort((a, b) => b.ts - a.ts)
+    .sort((a, b) => b.ts - a.ts || b._rid - a._rid)
     .slice(0, limit)
     .map(_toSampleOut)
     .reverse();
