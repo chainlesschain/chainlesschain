@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/file-sync-protocols.js`
 
-**Generated**: 2026-04-18T04:01:13.255Z
+**Generated**: 2026-04-18T05:46:29.922Z
 
 ---
 

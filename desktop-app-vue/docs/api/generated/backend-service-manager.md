@@ -2,7 +2,7 @@
 
 **Source**: `src/main/api/backend-service-manager.js`
 
-**Generated**: 2026-04-18T04:01:13.321Z
+**Generated**: 2026-04-18T05:46:29.990Z
 
 ---
 

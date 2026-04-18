@@ -2,7 +2,7 @@
 
 **Source**: `src/main/cowork/__tests__/integration/file-sandbox-integration.test.js`
 
-**Generated**: 2026-04-18T04:01:13.304Z
+**Generated**: 2026-04-18T05:46:29.970Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/remote/logging/performance-config.js`
 
-**Generated**: 2026-04-18T04:01:13.236Z
+**Generated**: 2026-04-18T05:46:29.904Z
 
 ---
 
