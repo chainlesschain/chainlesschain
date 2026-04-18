@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/anthropic-client.js`
 
-**Generated**: 2026-04-18T04:01:13.272Z
+**Generated**: 2026-04-18T05:46:29.940Z
 
 ---
 

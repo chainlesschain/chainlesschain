@@ -2,7 +2,7 @@
 
 **Source**: `src/main/did/did-ipc.js`
 
-**Generated**: 2026-04-18T04:01:13.296Z
+**Generated**: 2026-04-18T05:46:29.962Z
 
 ---
 

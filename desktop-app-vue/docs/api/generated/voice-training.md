@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/voice-training.js`
 
-**Generated**: 2026-04-18T04:01:13.212Z
+**Generated**: 2026-04-18T05:46:29.882Z
 
 ---
 

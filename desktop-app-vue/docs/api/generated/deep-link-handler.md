@@ -2,7 +2,7 @@
 
 **Source**: `src/main/system/deep-link-handler.js`
 
-**Generated**: 2026-04-18T04:01:13.208Z
+**Generated**: 2026-04-18T05:46:29.879Z
 
 ---
 
