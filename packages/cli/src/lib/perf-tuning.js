@@ -102,8 +102,11 @@ export const BUILTIN_RULES = Object.freeze([
 
 /* ── Helpers ────────────────────────────────────────────── */
 
+let _lastNow = 0;
 function _now() {
-  return Date.now();
+  const n = Date.now();
+  _lastNow = n > _lastNow ? n : _lastNow + 1;
+  return _lastNow;
 }
 
 function _strip(row) {
@@ -310,14 +313,14 @@ function _trimRingBuffer(db) {
 }
 
 export function listSamples(db, { limit = 100, sinceMs } = {}) {
-  let rows = db.prepare("SELECT *, rowid AS _rid FROM perf_samples").all();
-  rows = rows.map((r) => ({ ..._strip(r), _rid: r._rid }));
+  let rows = db.prepare("SELECT * FROM perf_samples").all();
+  rows = rows.map(_strip);
   if (sinceMs) {
     const cutoff = _now() - sinceMs;
     rows = rows.filter((r) => r.ts >= cutoff);
   }
   return rows
-    .sort((a, b) => b.ts - a.ts || b._rid - a._rid)
+    .sort((a, b) => b.ts - a.ts)
     .slice(0, limit)
     .map(_toSampleOut)
     .reverse();
