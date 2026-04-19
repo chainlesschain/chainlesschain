@@ -5,10 +5,13 @@ on:
     branches: [main]
     paths:
       - "packages/cli/**"
+      - ".github/workflows/cli-ci.yml"
   pull_request:
     branches: [main]
     paths:
       - "packages/cli/**"
+      - ".github/workflows/cli-ci.yml"
+  workflow_dispatch:
 
 jobs:
   test:
@@ -34,6 +37,11 @@ jobs:
           npm install --legacy-peer-deps
           if [ "${{ runner.os }}" = "Linux" ]; then
             npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            # macos-latest runner is arm64 — vite needs the runner's rollup binary
+            npm install @rollup/rollup-darwin-arm64 @rollup/rollup-darwin-x64 --no-save --legacy-peer-deps || true
+          elif [ "${{ runner.os }}" = "Windows" ]; then
+            npm install @rollup/rollup-win32-x64-msvc --no-save --legacy-peer-deps || true
           fi
 
       - name: Run unit tests
