@@ -36,8 +36,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install --legacy-peer-deps
-          npm install @rollup/rollup-win32-x64-msvc --no-save --legacy-peer-deps || true
+          npm ci
+          npm install @rollup/rollup-win32-x64-msvc --no-save || true
         shell: bash
 
       - name: Build main process
@@ -99,8 +99,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install --legacy-peer-deps
-          npm install @rollup/rollup-darwin-${{ matrix.arch }} --no-save --legacy-peer-deps || true
+          npm ci
+          npm install @rollup/rollup-darwin-${{ matrix.arch }} --no-save || true
 
       - name: Build main process
         working-directory: desktop-app-vue
@@ -160,8 +160,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install --legacy-peer-deps
-          npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
+          npm ci
+          npm install @rollup/rollup-linux-x64-gnu --no-save || true
 
       - name: Build main process
         working-directory: desktop-app-vue
@@ -623,8 +623,8 @@ jobs:
 
       - name: Install dependencies (workspaces)
         run: |
-          npm install --legacy-peer-deps
-          npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
+          npm ci
+          npm install @rollup/rollup-linux-x64-gnu --no-save || true
 
       - name: Run CLI tests
         working-directory: packages/cli
