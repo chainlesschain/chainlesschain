@@ -100,7 +100,8 @@ jobs:
       - name: Install dependencies
         run: |
           npm ci
-          npm install @rollup/rollup-darwin-${{ matrix.arch }} --no-save || true
+          # macos-latest runner is arm64 regardless of target arch — vite needs the runner's rollup binary
+          npm install @rollup/rollup-darwin-arm64 @rollup/rollup-darwin-x64 --no-save || true
 
       - name: Build main process
         working-directory: desktop-app-vue
@@ -161,7 +162,8 @@ jobs:
       - name: Install dependencies
         run: |
           npm ci
-          npm install @rollup/rollup-linux-x64-gnu --no-save || true
+          # electron-installer-debian is optionalDependencies of maker-deb; npm ci may skip it
+          npm install @rollup/rollup-linux-x64-gnu electron-installer-debian --no-save || true
 
       - name: Build main process
         working-directory: desktop-app-vue
