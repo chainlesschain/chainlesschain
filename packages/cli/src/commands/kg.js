@@ -962,3 +962,198 @@ export function registerKgovV2Commands(program) {
       console.log(JSON.stringify(m.getKnowledgeGraphGovStatsV2(), null, 2));
     });
 }
+
+// === Iter28 V2 governance overlay: Kggov ===
+export function registerKgV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "kg");
+  if (!parent) return;
+  const L = async () => await import("../lib/knowledge-graph.js");
+  parent
+    .command("kggov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.KGGOV_PROFILE_MATURITY_V2,
+            queryLifecycle: m.KGGOV_QUERY_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("kggov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveKgProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingKgQuerysPerProfileV2(),
+            idleMs: m.getKgProfileIdleMsV2(),
+            stuckMs: m.getKgQueryStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("kggov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveKgProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("kggov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingKgQuerysPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("kggov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setKgProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("kggov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setKgQueryStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("kggov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--kind <v>", "kind")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerKgProfileV2({ id, owner, kind: o.kind }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("kggov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).activateKgProfileV2(id), null, 2));
+    });
+  parent
+    .command("kggov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).staleKgProfileV2(id), null, 2));
+    });
+  parent
+    .command("kggov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).archiveKgProfileV2(id), null, 2));
+    });
+  parent
+    .command("kggov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchKgProfileV2(id), null, 2));
+    });
+  parent
+    .command("kggov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getKgProfileV2(id), null, 2));
+    });
+  parent
+    .command("kggov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listKgProfilesV2(), null, 2));
+    });
+  parent
+    .command("kggov-create-query-v2 <id> <profileId>")
+    .description("Create query")
+    .option("--queryId <v>", "queryId")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createKgQueryV2({ id, profileId, queryId: o.queryId }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("kggov-querying-query-v2 <id>")
+    .description("Mark query as querying")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).queryingKgQueryV2(id), null, 2));
+    });
+  parent
+    .command("kggov-complete-query-v2 <id>")
+    .description("Complete query")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completeQueryKgV2(id), null, 2));
+    });
+  parent
+    .command("kggov-fail-query-v2 <id> [reason]")
+    .description("Fail query")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failKgQueryV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("kggov-cancel-query-v2 <id> [reason]")
+    .description("Cancel query")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelKgQueryV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("kggov-get-query-v2 <id>")
+    .description("Get query")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getKgQueryV2(id), null, 2));
+    });
+  parent
+    .command("kggov-list-querys-v2")
+    .description("List querys")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listKgQuerysV2(), null, 2));
+    });
+  parent
+    .command("kggov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleKgProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("kggov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck querys")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckKgQuerysV2(), null, 2),
+      );
+    });
+  parent
+    .command("kggov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).getKggovStatsV2(), null, 2));
+    });
+}

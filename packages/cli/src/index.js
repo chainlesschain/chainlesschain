@@ -299,6 +299,62 @@ import { registerDevgovV2Commands } from "./commands/dev.js";
 import { registerTigovV2Commands } from "./commands/compliance.js";
 import { registerUebgovV2Commands } from "./commands/compliance.js";
 
+// Iter25 V2 governance overlays
+import { registerCttgovV2Commands } from "./commands/cowork.js";
+import { registerCtmgovV2Commands } from "./commands/cowork.js";
+import { registerClibgovV2Commands } from "./commands/cli-anything.js";
+import { registerArgovV2Commands } from "./commands/orchestrate.js";
+import { registerSaregovV2Commands } from "./commands/agent.js";
+import { registerTodogovV2Commands } from "./commands/agent.js";
+import { registerEbgovV2Commands } from "./commands/agent.js";
+import { registerEvfedgovV2Commands } from "./commands/evomap.js";
+
+// Iter26 V2 governance overlays
+import { registerPlannergovV2Commands } from "./commands/planmode.js";
+import { registerCtxenggovV2Commands } from "./commands/cli-anything.js";
+import { registerSactxgovV2Commands } from "./commands/agent.js";
+import { registerIagovV2Commands } from "./commands/chat.js";
+import { registerWfexgovV2Commands } from "./commands/workflow.js";
+import { registerPadgovV2Commands } from "./commands/plugin.js";
+import { registerHlgovV2Commands } from "./commands/memory.js";
+import { registerWebuigovV2Commands } from "./commands/ui.js";
+
+// Iter27 V2 governance overlays
+import { registerDlgovV2Commands } from "./commands/setup.js";
+import { registerSmcpgovV2Commands } from "./commands/skill.js";
+import { registerCmcpgovV2Commands } from "./commands/cowork.js";
+import { registerStixgovV2Commands } from "./commands/compliance.js";
+import { registerSapgovV2Commands } from "./commands/agent.js";
+import { registerCobsgovV2Commands } from "./commands/cowork.js";
+import { registerPmgrgovV2Commands } from "./commands/start.js";
+import { registerWscgovV2Commands } from "./commands/chat.js";
+import { registerEvcligovV2Commands } from "./commands/evomap.js";
+import { registerPoptgovV2Commands } from "./commands/llm.js";
+import { registerScsgovV2Commands } from "./commands/config.js";
+import { registerSmgrgovV2Commands } from "./commands/services.js";
+import { registerCeadgovV2Commands } from "./commands/cowork.js";
+import { registerPstrmgovV2Commands } from "./commands/stream.js";
+import { registerCohtgovV2Commands } from "./commands/cowork.js";
+import { registerCadpgovV2Commands } from "./commands/cowork.js";
+
+// Iter28 V2 governance overlays
+import { registerA2apV2Commands } from "./commands/a2a.js";
+import { registerAcrdV2Commands } from "./commands/orchestrate.js";
+import { registerAecoV2Commands } from "./commands/economy.js";
+import { registerAutagV2Commands } from "./commands/agent.js";
+import { registerCcoreV2Commands } from "./commands/chat.js";
+import { registerCmpmV2Commands } from "./commands/compliance.js";
+import { registerCrchV2Commands } from "./commands/crosschain.js";
+import { registerCryV2Commands } from "./commands/encrypt.js";
+import { registerDaomV2Commands } from "./commands/dao.js";
+import { registerEsysV2Commands } from "./commands/evolution.js";
+import { registerEmgrV2Commands } from "./commands/evomap.js";
+import { registerHmemV2Commands } from "./commands/hmemory.js";
+import { registerInfnetV2Commands } from "./commands/inference.js";
+import { registerKgV2Commands } from "./commands/kg.js";
+import { registerPmodeV2Commands } from "./commands/planmode.js";
+import { registerPipoV2Commands } from "./commands/pipeline.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -607,6 +663,62 @@ export function createProgram() {
   registerDevgovV2Commands(program);
   registerTigovV2Commands(program);
   registerUebgovV2Commands(program);
+
+  // Iter25 V2 governance overlays
+  registerCttgovV2Commands(program);
+  registerCtmgovV2Commands(program);
+  registerClibgovV2Commands(program);
+  registerArgovV2Commands(program);
+  registerSaregovV2Commands(program);
+  registerTodogovV2Commands(program);
+  registerEbgovV2Commands(program);
+  registerEvfedgovV2Commands(program);
+
+  // Iter26 V2 governance overlays
+  registerPlannergovV2Commands(program);
+  registerCtxenggovV2Commands(program);
+  registerSactxgovV2Commands(program);
+  registerIagovV2Commands(program);
+  registerWfexgovV2Commands(program);
+  registerPadgovV2Commands(program);
+  registerHlgovV2Commands(program);
+  registerWebuigovV2Commands(program);
+
+  // Iter27 V2 governance overlays
+  registerDlgovV2Commands(program);
+  registerSmcpgovV2Commands(program);
+  registerCmcpgovV2Commands(program);
+  registerStixgovV2Commands(program);
+  registerSapgovV2Commands(program);
+  registerCobsgovV2Commands(program);
+  registerPmgrgovV2Commands(program);
+  registerWscgovV2Commands(program);
+  registerEvcligovV2Commands(program);
+  registerPoptgovV2Commands(program);
+  registerScsgovV2Commands(program);
+  registerSmgrgovV2Commands(program);
+  registerCeadgovV2Commands(program);
+  registerPstrmgovV2Commands(program);
+  registerCohtgovV2Commands(program);
+  registerCadpgovV2Commands(program);
+
+  // Iter28 V2 governance overlays
+  registerA2apV2Commands(program);
+  registerAcrdV2Commands(program);
+  registerAecoV2Commands(program);
+  registerAutagV2Commands(program);
+  registerCcoreV2Commands(program);
+  registerCmpmV2Commands(program);
+  registerCrchV2Commands(program);
+  registerCryV2Commands(program);
+  registerDaomV2Commands(program);
+  registerEsysV2Commands(program);
+  registerEmgrV2Commands(program);
+  registerHmemV2Commands(program);
+  registerInfnetV2Commands(program);
+  registerKgV2Commands(program);
+  registerPmodeV2Commands(program);
+  registerPipoV2Commands(program);
 
   return program;
 }

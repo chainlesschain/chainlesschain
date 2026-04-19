@@ -1091,3 +1091,206 @@ export function registerDaoV2Command(dao) {
       console.log(JSON.stringify(getDaoGovernanceGovStatsV2(), null, 2));
     });
 }
+
+// === Iter28 V2 governance overlay: Daomgov ===
+export function registerDaomV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "dao");
+  if (!parent) return;
+  const L = async () => await import("../lib/dao-governance.js");
+  parent
+    .command("daomgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.DAOMGOV_PROFILE_MATURITY_V2,
+            proposalLifecycle: m.DAOMGOV_PROPOSAL_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("daomgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveDaomProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingDaomProposalsPerProfileV2(),
+            idleMs: m.getDaomProfileIdleMsV2(),
+            stuckMs: m.getDaomProposalStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("daomgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveDaomProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("daomgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingDaomProposalsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("daomgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setDaomProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("daomgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setDaomProposalStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("daomgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--realm <v>", "realm")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerDaomProfileV2({ id, owner, realm: o.realm }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("daomgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateDaomProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("daomgov-paused-v2 <id>")
+    .description("Paused profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).pausedDaomProfileV2(id), null, 2));
+    });
+  parent
+    .command("daomgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveDaomProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("daomgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchDaomProfileV2(id), null, 2));
+    });
+  parent
+    .command("daomgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getDaomProfileV2(id), null, 2));
+    });
+  parent
+    .command("daomgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listDaomProfilesV2(), null, 2));
+    });
+  parent
+    .command("daomgov-create-proposal-v2 <id> <profileId>")
+    .description("Create proposal")
+    .option("--proposalId <v>", "proposalId")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createDaomProposalV2({ id, profileId, proposalId: o.proposalId }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("daomgov-voting-proposal-v2 <id>")
+    .description("Mark proposal as voting")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).votingDaomProposalV2(id), null, 2),
+      );
+    });
+  parent
+    .command("daomgov-complete-proposal-v2 <id>")
+    .description("Complete proposal")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeProposalDaomV2(id), null, 2),
+      );
+    });
+  parent
+    .command("daomgov-fail-proposal-v2 <id> [reason]")
+    .description("Fail proposal")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failDaomProposalV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("daomgov-cancel-proposal-v2 <id> [reason]")
+    .description("Cancel proposal")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelDaomProposalV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("daomgov-get-proposal-v2 <id>")
+    .description("Get proposal")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getDaomProposalV2(id), null, 2));
+    });
+  parent
+    .command("daomgov-list-proposals-v2")
+    .description("List proposals")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listDaomProposalsV2(), null, 2));
+    });
+  parent
+    .command("daomgov-auto-paused-idle-v2")
+    .description("Auto-paused idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoPausedIdleDaomProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("daomgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck proposals")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckDaomProposalsV2(), null, 2),
+      );
+    });
+  parent
+    .command("daomgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).getDaomgovStatsV2(), null, 2));
+    });
+}

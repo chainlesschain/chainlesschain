@@ -658,3 +658,202 @@ function _registerPipelineV2Commands(parent) {
       );
     });
 }
+
+// === Iter28 V2 governance overlay: Pipogov ===
+export function registerPipoV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "pipeline");
+  if (!parent) return;
+  const L = async () => await import("../lib/pipeline-orchestrator.js");
+  parent
+    .command("pipogov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.PIPOGOV_PROFILE_MATURITY_V2,
+            runLifecycle: m.PIPOGOV_RUN_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pipogov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActivePipoProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingPipoRunsPerProfileV2(),
+            idleMs: m.getPipoProfileIdleMsV2(),
+            stuckMs: m.getPipoRunStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pipogov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActivePipoProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pipogov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingPipoRunsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pipogov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setPipoProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pipogov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setPipoRunStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pipogov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--pipeline <v>", "pipeline")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerPipoProfileV2({ id, owner, pipeline: o.pipeline }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pipogov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activatePipoProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("pipogov-paused-v2 <id>")
+    .description("Paused profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).pausedPipoProfileV2(id), null, 2));
+    });
+  parent
+    .command("pipogov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archivePipoProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("pipogov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchPipoProfileV2(id), null, 2));
+    });
+  parent
+    .command("pipogov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getPipoProfileV2(id), null, 2));
+    });
+  parent
+    .command("pipogov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listPipoProfilesV2(), null, 2));
+    });
+  parent
+    .command("pipogov-create-run-v2 <id> <profileId>")
+    .description("Create run")
+    .option("--runId <v>", "runId")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createPipoRunV2({ id, profileId, runId: o.runId }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pipogov-running-run-v2 <id>")
+    .description("Mark run as running")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).runningPipoRunV2(id), null, 2));
+    });
+  parent
+    .command("pipogov-complete-run-v2 <id>")
+    .description("Complete run")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completeRunPipoV2(id), null, 2));
+    });
+  parent
+    .command("pipogov-fail-run-v2 <id> [reason]")
+    .description("Fail run")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failPipoRunV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("pipogov-cancel-run-v2 <id> [reason]")
+    .description("Cancel run")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelPipoRunV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("pipogov-get-run-v2 <id>")
+    .description("Get run")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getPipoRunV2(id), null, 2));
+    });
+  parent
+    .command("pipogov-list-runs-v2")
+    .description("List runs")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listPipoRunsV2(), null, 2));
+    });
+  parent
+    .command("pipogov-auto-paused-idle-v2")
+    .description("Auto-paused idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoPausedIdlePipoProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("pipogov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck runs")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckPipoRunsV2(), null, 2),
+      );
+    });
+  parent
+    .command("pipogov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).getPipogovStatsV2(), null, 2));
+    });
+}

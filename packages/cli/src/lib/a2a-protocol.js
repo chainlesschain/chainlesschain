@@ -1193,3 +1193,335 @@ export function getA2aProtocolGovStatsV2() {
     messagesByStatus,
   };
 }
+
+// === Iter28 V2 governance overlay: A2apgov ===
+export const A2APGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const A2APGOV_MSG_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  DISPATCHING: "dispatching",
+  DELIVERED: "delivered",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _a2apgovPTrans = new Map([
+  [
+    A2APGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      A2APGOV_PROFILE_MATURITY_V2.ACTIVE,
+      A2APGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    A2APGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      A2APGOV_PROFILE_MATURITY_V2.STALE,
+      A2APGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    A2APGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      A2APGOV_PROFILE_MATURITY_V2.ACTIVE,
+      A2APGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [A2APGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _a2apgovPTerminal = new Set([A2APGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _a2apgovJTrans = new Map([
+  [
+    A2APGOV_MSG_LIFECYCLE_V2.QUEUED,
+    new Set([
+      A2APGOV_MSG_LIFECYCLE_V2.DISPATCHING,
+      A2APGOV_MSG_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    A2APGOV_MSG_LIFECYCLE_V2.DISPATCHING,
+    new Set([
+      A2APGOV_MSG_LIFECYCLE_V2.DELIVERED,
+      A2APGOV_MSG_LIFECYCLE_V2.FAILED,
+      A2APGOV_MSG_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [A2APGOV_MSG_LIFECYCLE_V2.DELIVERED, new Set()],
+  [A2APGOV_MSG_LIFECYCLE_V2.FAILED, new Set()],
+  [A2APGOV_MSG_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _a2apgovPsV2 = new Map();
+const _a2apgovJsV2 = new Map();
+let _a2apgovMaxActive = 8,
+  _a2apgovMaxPending = 20,
+  _a2apgovIdleMs = 2592000000,
+  _a2apgovStuckMs = 60 * 1000;
+function _a2apgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _a2apgovCheckP(from, to) {
+  const a = _a2apgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid a2apgov profile transition ${from} → ${to}`);
+}
+function _a2apgovCheckJ(from, to) {
+  const a = _a2apgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid a2apgov msg transition ${from} → ${to}`);
+}
+function _a2apgovCountActive(owner) {
+  let c = 0;
+  for (const p of _a2apgovPsV2.values())
+    if (p.owner === owner && p.status === A2APGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _a2apgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _a2apgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === A2APGOV_MSG_LIFECYCLE_V2.QUEUED ||
+        j.status === A2APGOV_MSG_LIFECYCLE_V2.DISPATCHING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveA2apProfilesPerOwnerV2(n) {
+  _a2apgovMaxActive = _a2apgovPos(n, "maxActiveA2apProfilesPerOwner");
+}
+export function getMaxActiveA2apProfilesPerOwnerV2() {
+  return _a2apgovMaxActive;
+}
+export function setMaxPendingA2apMsgsPerProfileV2(n) {
+  _a2apgovMaxPending = _a2apgovPos(n, "maxPendingA2apMsgsPerProfile");
+}
+export function getMaxPendingA2apMsgsPerProfileV2() {
+  return _a2apgovMaxPending;
+}
+export function setA2apProfileIdleMsV2(n) {
+  _a2apgovIdleMs = _a2apgovPos(n, "a2apgovProfileIdleMs");
+}
+export function getA2apProfileIdleMsV2() {
+  return _a2apgovIdleMs;
+}
+export function setA2apMsgStuckMsV2(n) {
+  _a2apgovStuckMs = _a2apgovPos(n, "a2apgovMsgStuckMs");
+}
+export function getA2apMsgStuckMsV2() {
+  return _a2apgovStuckMs;
+}
+export function _resetStateA2apgovV2() {
+  _a2apgovPsV2.clear();
+  _a2apgovJsV2.clear();
+  _a2apgovMaxActive = 8;
+  _a2apgovMaxPending = 20;
+  _a2apgovIdleMs = 2592000000;
+  _a2apgovStuckMs = 60 * 1000;
+}
+export function registerA2apProfileV2({ id, owner, endpoint, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_a2apgovPsV2.has(id))
+    throw new Error(`a2apgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    endpoint: endpoint || "default",
+    status: A2APGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _a2apgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateA2apProfileV2(id) {
+  const p = _a2apgovPsV2.get(id);
+  if (!p) throw new Error(`a2apgov profile ${id} not found`);
+  const isInitial = p.status === A2APGOV_PROFILE_MATURITY_V2.PENDING;
+  _a2apgovCheckP(p.status, A2APGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _a2apgovCountActive(p.owner) >= _a2apgovMaxActive)
+    throw new Error(`max active a2apgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = A2APGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleA2apProfileV2(id) {
+  const p = _a2apgovPsV2.get(id);
+  if (!p) throw new Error(`a2apgov profile ${id} not found`);
+  _a2apgovCheckP(p.status, A2APGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = A2APGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveA2apProfileV2(id) {
+  const p = _a2apgovPsV2.get(id);
+  if (!p) throw new Error(`a2apgov profile ${id} not found`);
+  _a2apgovCheckP(p.status, A2APGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = A2APGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchA2apProfileV2(id) {
+  const p = _a2apgovPsV2.get(id);
+  if (!p) throw new Error(`a2apgov profile ${id} not found`);
+  if (_a2apgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal a2apgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getA2apProfileV2(id) {
+  const p = _a2apgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listA2apProfilesV2() {
+  return [..._a2apgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createA2apMsgV2({ id, profileId, messageId, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_a2apgovJsV2.has(id)) throw new Error(`a2apgov msg ${id} already exists`);
+  if (!_a2apgovPsV2.has(profileId))
+    throw new Error(`a2apgov profile ${profileId} not found`);
+  if (_a2apgovCountPending(profileId) >= _a2apgovMaxPending)
+    throw new Error(
+      `max pending a2apgov msgs for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    messageId: messageId || "",
+    status: A2APGOV_MSG_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _a2apgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function dispatchingA2apMsgV2(id) {
+  const j = _a2apgovJsV2.get(id);
+  if (!j) throw new Error(`a2apgov msg ${id} not found`);
+  _a2apgovCheckJ(j.status, A2APGOV_MSG_LIFECYCLE_V2.DISPATCHING);
+  const now = Date.now();
+  j.status = A2APGOV_MSG_LIFECYCLE_V2.DISPATCHING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeMsgA2apV2(id) {
+  const j = _a2apgovJsV2.get(id);
+  if (!j) throw new Error(`a2apgov msg ${id} not found`);
+  _a2apgovCheckJ(j.status, A2APGOV_MSG_LIFECYCLE_V2.DELIVERED);
+  const now = Date.now();
+  j.status = A2APGOV_MSG_LIFECYCLE_V2.DELIVERED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failA2apMsgV2(id, reason) {
+  const j = _a2apgovJsV2.get(id);
+  if (!j) throw new Error(`a2apgov msg ${id} not found`);
+  _a2apgovCheckJ(j.status, A2APGOV_MSG_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = A2APGOV_MSG_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelA2apMsgV2(id, reason) {
+  const j = _a2apgovJsV2.get(id);
+  if (!j) throw new Error(`a2apgov msg ${id} not found`);
+  _a2apgovCheckJ(j.status, A2APGOV_MSG_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = A2APGOV_MSG_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getA2apMsgV2(id) {
+  const j = _a2apgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listA2apMsgsV2() {
+  return [..._a2apgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleA2apProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _a2apgovPsV2.values())
+    if (
+      p.status === A2APGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _a2apgovIdleMs
+    ) {
+      p.status = A2APGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckA2apMsgsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _a2apgovJsV2.values())
+    if (
+      j.status === A2APGOV_MSG_LIFECYCLE_V2.DISPATCHING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _a2apgovStuckMs
+    ) {
+      j.status = A2APGOV_MSG_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getA2apgovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(A2APGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _a2apgovPsV2.values()) profilesByStatus[p.status]++;
+  const msgsByStatus = {};
+  for (const v of Object.values(A2APGOV_MSG_LIFECYCLE_V2)) msgsByStatus[v] = 0;
+  for (const j of _a2apgovJsV2.values()) msgsByStatus[j.status]++;
+  return {
+    totalA2apProfilesV2: _a2apgovPsV2.size,
+    totalA2apMsgsV2: _a2apgovJsV2.size,
+    maxActiveA2apProfilesPerOwner: _a2apgovMaxActive,
+    maxPendingA2apMsgsPerProfile: _a2apgovMaxPending,
+    a2apgovProfileIdleMs: _a2apgovIdleMs,
+    a2apgovMsgStuckMs: _a2apgovStuckMs,
+    profilesByStatus,
+    msgsByStatus,
+  };
+}

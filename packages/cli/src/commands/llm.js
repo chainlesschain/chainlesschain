@@ -766,3 +766,212 @@ export function registerLlmgovV2Commands(program) {
       );
     });
 }
+
+// === Iter27 V2 governance overlay ===
+export function registerPoptgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "llm");
+  if (!parent) return;
+  const L = async () => await import("../lib/provider-options.js");
+  parent
+    .command("poptgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.POPTGOV_PROFILE_MATURITY_V2,
+            resolveLifecycle: m.POPTGOV_RESOLVE_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("poptgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActivePoptgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingPoptgovResolvesPerProfileV2(),
+            idleMs: m.getPoptgovProfileIdleMsV2(),
+            stuckMs: m.getPoptgovResolveStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("poptgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActivePoptgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("poptgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingPoptgovResolvesPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("poptgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setPoptgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("poptgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setPoptgovResolveStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("poptgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--provider <v>", "provider")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerPoptgovProfileV2({ id, owner, provider: o.provider }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("poptgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activatePoptgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("poptgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).stalePoptgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("poptgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archivePoptgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("poptgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchPoptgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("poptgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getPoptgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("poptgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listPoptgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("poptgov-create-resolve-v2 <id> <profileId>")
+    .description("Create resolve")
+    .option("--option <v>", "option")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createPoptgovResolveV2({ id, profileId, option: o.option }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("poptgov-resolving-resolve-v2 <id>")
+    .description("Mark resolve as resolving")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).resolvingPoptgovResolveV2(id), null, 2),
+      );
+    });
+  parent
+    .command("poptgov-complete-resolve-v2 <id>")
+    .description("Complete resolve")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeResolvePoptgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("poptgov-fail-resolve-v2 <id> [reason]")
+    .description("Fail resolve")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failPoptgovResolveV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("poptgov-cancel-resolve-v2 <id> [reason]")
+    .description("Cancel resolve")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelPoptgovResolveV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("poptgov-get-resolve-v2 <id>")
+    .description("Get resolve")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getPoptgovResolveV2(id), null, 2));
+    });
+  parent
+    .command("poptgov-list-resolves-v2")
+    .description("List resolves")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listPoptgovResolvesV2(), null, 2));
+    });
+  parent
+    .command("poptgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdlePoptgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("poptgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck resolves")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckPoptgovResolvesV2(), null, 2),
+      );
+    });
+  parent
+    .command("poptgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getProviderOptionsGovStatsV2(), null, 2),
+      );
+    });
+}

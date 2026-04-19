@@ -445,3 +445,339 @@ export function getTodoManagerStatsV2() {
     itemsByStatus,
   };
 }
+
+// =====================================================================
+// todo-manager V2 governance overlay (iter25)
+// =====================================================================
+export const TODOGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const TODOGOV_STEP_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  DOING: "doing",
+  DONE: "done",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _todogovPTrans = new Map([
+  [
+    TODOGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      TODOGOV_PROFILE_MATURITY_V2.ACTIVE,
+      TODOGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    TODOGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      TODOGOV_PROFILE_MATURITY_V2.PAUSED,
+      TODOGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    TODOGOV_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      TODOGOV_PROFILE_MATURITY_V2.ACTIVE,
+      TODOGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [TODOGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _todogovPTerminal = new Set([TODOGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _todogovJTrans = new Map([
+  [
+    TODOGOV_STEP_LIFECYCLE_V2.QUEUED,
+    new Set([
+      TODOGOV_STEP_LIFECYCLE_V2.DOING,
+      TODOGOV_STEP_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    TODOGOV_STEP_LIFECYCLE_V2.DOING,
+    new Set([
+      TODOGOV_STEP_LIFECYCLE_V2.DONE,
+      TODOGOV_STEP_LIFECYCLE_V2.FAILED,
+      TODOGOV_STEP_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [TODOGOV_STEP_LIFECYCLE_V2.DONE, new Set()],
+  [TODOGOV_STEP_LIFECYCLE_V2.FAILED, new Set()],
+  [TODOGOV_STEP_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _todogovPsV2 = new Map();
+const _todogovJsV2 = new Map();
+let _todogovMaxActive = 10,
+  _todogovMaxPending = 30,
+  _todogovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _todogovStuckMs = 60 * 1000;
+function _todogovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _todogovCheckP(from, to) {
+  const a = _todogovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid todogov profile transition ${from} → ${to}`);
+}
+function _todogovCheckJ(from, to) {
+  const a = _todogovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid todogov step transition ${from} → ${to}`);
+}
+function _todogovCountActive(owner) {
+  let c = 0;
+  for (const p of _todogovPsV2.values())
+    if (p.owner === owner && p.status === TODOGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _todogovCountPending(profileId) {
+  let c = 0;
+  for (const j of _todogovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === TODOGOV_STEP_LIFECYCLE_V2.QUEUED ||
+        j.status === TODOGOV_STEP_LIFECYCLE_V2.DOING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveTodogovProfilesPerOwnerV2(n) {
+  _todogovMaxActive = _todogovPos(n, "maxActiveTodogovProfilesPerOwner");
+}
+export function getMaxActiveTodogovProfilesPerOwnerV2() {
+  return _todogovMaxActive;
+}
+export function setMaxPendingTodogovStepsPerProfileV2(n) {
+  _todogovMaxPending = _todogovPos(n, "maxPendingTodogovStepsPerProfile");
+}
+export function getMaxPendingTodogovStepsPerProfileV2() {
+  return _todogovMaxPending;
+}
+export function setTodogovProfileIdleMsV2(n) {
+  _todogovIdleMs = _todogovPos(n, "todogovProfileIdleMs");
+}
+export function getTodogovProfileIdleMsV2() {
+  return _todogovIdleMs;
+}
+export function setTodogovStepStuckMsV2(n) {
+  _todogovStuckMs = _todogovPos(n, "todogovStepStuckMs");
+}
+export function getTodogovStepStuckMsV2() {
+  return _todogovStuckMs;
+}
+export function _resetStateTodoManagerGovV2() {
+  _todogovPsV2.clear();
+  _todogovJsV2.clear();
+  _todogovMaxActive = 10;
+  _todogovMaxPending = 30;
+  _todogovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _todogovStuckMs = 60 * 1000;
+}
+export function registerTodogovProfileV2({ id, owner, list, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_todogovPsV2.has(id))
+    throw new Error(`todogov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    list: list || "default",
+    status: TODOGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _todogovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateTodogovProfileV2(id) {
+  const p = _todogovPsV2.get(id);
+  if (!p) throw new Error(`todogov profile ${id} not found`);
+  const isInitial = p.status === TODOGOV_PROFILE_MATURITY_V2.PENDING;
+  _todogovCheckP(p.status, TODOGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _todogovCountActive(p.owner) >= _todogovMaxActive)
+    throw new Error(`max active todogov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = TODOGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pauseTodogovProfileV2(id) {
+  const p = _todogovPsV2.get(id);
+  if (!p) throw new Error(`todogov profile ${id} not found`);
+  _todogovCheckP(p.status, TODOGOV_PROFILE_MATURITY_V2.PAUSED);
+  p.status = TODOGOV_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveTodogovProfileV2(id) {
+  const p = _todogovPsV2.get(id);
+  if (!p) throw new Error(`todogov profile ${id} not found`);
+  _todogovCheckP(p.status, TODOGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = TODOGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchTodogovProfileV2(id) {
+  const p = _todogovPsV2.get(id);
+  if (!p) throw new Error(`todogov profile ${id} not found`);
+  if (_todogovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal todogov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getTodogovProfileV2(id) {
+  const p = _todogovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listTodogovProfilesV2() {
+  return [..._todogovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createTodogovStepV2({ id, profileId, title, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_todogovJsV2.has(id))
+    throw new Error(`todogov step ${id} already exists`);
+  if (!_todogovPsV2.has(profileId))
+    throw new Error(`todogov profile ${profileId} not found`);
+  if (_todogovCountPending(profileId) >= _todogovMaxPending)
+    throw new Error(
+      `max pending todogov steps for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    title: title || "",
+    status: TODOGOV_STEP_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _todogovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function doingTodogovStepV2(id) {
+  const j = _todogovJsV2.get(id);
+  if (!j) throw new Error(`todogov step ${id} not found`);
+  _todogovCheckJ(j.status, TODOGOV_STEP_LIFECYCLE_V2.DOING);
+  const now = Date.now();
+  j.status = TODOGOV_STEP_LIFECYCLE_V2.DOING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeStepTodogovV2(id) {
+  const j = _todogovJsV2.get(id);
+  if (!j) throw new Error(`todogov step ${id} not found`);
+  _todogovCheckJ(j.status, TODOGOV_STEP_LIFECYCLE_V2.DONE);
+  const now = Date.now();
+  j.status = TODOGOV_STEP_LIFECYCLE_V2.DONE;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failTodogovStepV2(id, reason) {
+  const j = _todogovJsV2.get(id);
+  if (!j) throw new Error(`todogov step ${id} not found`);
+  _todogovCheckJ(j.status, TODOGOV_STEP_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = TODOGOV_STEP_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelTodogovStepV2(id, reason) {
+  const j = _todogovJsV2.get(id);
+  if (!j) throw new Error(`todogov step ${id} not found`);
+  _todogovCheckJ(j.status, TODOGOV_STEP_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = TODOGOV_STEP_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getTodogovStepV2(id) {
+  const j = _todogovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listTodogovStepsV2() {
+  return [..._todogovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPauseIdleTodogovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _todogovPsV2.values())
+    if (
+      p.status === TODOGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _todogovIdleMs
+    ) {
+      p.status = TODOGOV_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckTodogovStepsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _todogovJsV2.values())
+    if (
+      j.status === TODOGOV_STEP_LIFECYCLE_V2.DOING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _todogovStuckMs
+    ) {
+      j.status = TODOGOV_STEP_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getTodoManagerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(TODOGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _todogovPsV2.values()) profilesByStatus[p.status]++;
+  const stepsByStatus = {};
+  for (const v of Object.values(TODOGOV_STEP_LIFECYCLE_V2))
+    stepsByStatus[v] = 0;
+  for (const j of _todogovJsV2.values()) stepsByStatus[j.status]++;
+  return {
+    totalTodogovProfilesV2: _todogovPsV2.size,
+    totalTodogovStepsV2: _todogovJsV2.size,
+    maxActiveTodogovProfilesPerOwner: _todogovMaxActive,
+    maxPendingTodogovStepsPerProfile: _todogovMaxPending,
+    todogovProfileIdleMs: _todogovIdleMs,
+    todogovStepStuckMs: _todogovStuckMs,
+    profilesByStatus,
+    stepsByStatus,
+  };
+}

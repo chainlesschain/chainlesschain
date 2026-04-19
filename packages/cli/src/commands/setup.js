@@ -197,3 +197,208 @@ async function runSetup(options) {
   );
   logger.newline();
 }
+
+// === Iter27 V2 governance overlay ===
+export function registerDlgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "setup");
+  if (!parent) return;
+  const L = async () => await import("../lib/downloader.js");
+  parent
+    .command("dlgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.DLGOV_PROFILE_MATURITY_V2,
+            downloadLifecycle: m.DLGOV_DOWNLOAD_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dlgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveDlgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingDlgovDownloadsPerProfileV2(),
+            idleMs: m.getDlgovProfileIdleMsV2(),
+            stuckMs: m.getDlgovDownloadStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dlgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveDlgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("dlgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingDlgovDownloadsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("dlgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setDlgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("dlgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setDlgovDownloadStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("dlgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--mirror <v>", "mirror")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerDlgovProfileV2({ id, owner, mirror: o.mirror }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dlgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateDlgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dlgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).staleDlgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("dlgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveDlgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dlgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchDlgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("dlgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getDlgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("dlgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listDlgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("dlgov-create-download-v2 <id> <profileId>")
+    .description("Create download")
+    .option("--url <v>", "url")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createDlgovDownloadV2({ id, profileId, url: o.url }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dlgov-fetching-download-v2 <id>")
+    .description("Mark download as fetching")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).fetchingDlgovDownloadV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dlgov-complete-download-v2 <id>")
+    .description("Complete download")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeDownloadDlgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dlgov-fail-download-v2 <id> [reason]")
+    .description("Fail download")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failDlgovDownloadV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("dlgov-cancel-download-v2 <id> [reason]")
+    .description("Cancel download")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelDlgovDownloadV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("dlgov-get-download-v2 <id>")
+    .description("Get download")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getDlgovDownloadV2(id), null, 2));
+    });
+  parent
+    .command("dlgov-list-downloads-v2")
+    .description("List downloads")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listDlgovDownloadsV2(), null, 2));
+    });
+  parent
+    .command("dlgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleDlgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("dlgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck downloads")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckDlgovDownloadsV2(), null, 2),
+      );
+    });
+  parent
+    .command("dlgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getDownloaderGovStatsV2(), null, 2),
+      );
+    });
+}

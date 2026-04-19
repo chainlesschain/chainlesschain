@@ -577,3 +577,339 @@ export function getSubAgentRegistryStatsV2() {
     tasksByStatus,
   };
 }
+
+// =====================================================================
+// sub-agent-registry V2 governance overlay (iter25)
+// =====================================================================
+export const SAREGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  ARCHIVED: "archived",
+});
+export const SAREGOV_SPAWN_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  SPAWNING: "spawning",
+  SPAWNED: "spawned",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _saregovPTrans = new Map([
+  [
+    SAREGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      SAREGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SAREGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SAREGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      SAREGOV_PROFILE_MATURITY_V2.SUSPENDED,
+      SAREGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SAREGOV_PROFILE_MATURITY_V2.SUSPENDED,
+    new Set([
+      SAREGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SAREGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [SAREGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _saregovPTerminal = new Set([SAREGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _saregovJTrans = new Map([
+  [
+    SAREGOV_SPAWN_LIFECYCLE_V2.QUEUED,
+    new Set([
+      SAREGOV_SPAWN_LIFECYCLE_V2.SPAWNING,
+      SAREGOV_SPAWN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    SAREGOV_SPAWN_LIFECYCLE_V2.SPAWNING,
+    new Set([
+      SAREGOV_SPAWN_LIFECYCLE_V2.SPAWNED,
+      SAREGOV_SPAWN_LIFECYCLE_V2.FAILED,
+      SAREGOV_SPAWN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [SAREGOV_SPAWN_LIFECYCLE_V2.SPAWNED, new Set()],
+  [SAREGOV_SPAWN_LIFECYCLE_V2.FAILED, new Set()],
+  [SAREGOV_SPAWN_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _saregovPsV2 = new Map();
+const _saregovJsV2 = new Map();
+let _saregovMaxActive = 10,
+  _saregovMaxPending = 25,
+  _saregovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _saregovStuckMs = 60 * 1000;
+function _saregovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _saregovCheckP(from, to) {
+  const a = _saregovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid saregov profile transition ${from} → ${to}`);
+}
+function _saregovCheckJ(from, to) {
+  const a = _saregovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid saregov spawn transition ${from} → ${to}`);
+}
+function _saregovCountActive(owner) {
+  let c = 0;
+  for (const p of _saregovPsV2.values())
+    if (p.owner === owner && p.status === SAREGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _saregovCountPending(profileId) {
+  let c = 0;
+  for (const j of _saregovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === SAREGOV_SPAWN_LIFECYCLE_V2.QUEUED ||
+        j.status === SAREGOV_SPAWN_LIFECYCLE_V2.SPAWNING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveSaregovProfilesPerOwnerV2(n) {
+  _saregovMaxActive = _saregovPos(n, "maxActiveSaregovProfilesPerOwner");
+}
+export function getMaxActiveSaregovProfilesPerOwnerV2() {
+  return _saregovMaxActive;
+}
+export function setMaxPendingSaregovSpawnsPerProfileV2(n) {
+  _saregovMaxPending = _saregovPos(n, "maxPendingSaregovSpawnsPerProfile");
+}
+export function getMaxPendingSaregovSpawnsPerProfileV2() {
+  return _saregovMaxPending;
+}
+export function setSaregovProfileIdleMsV2(n) {
+  _saregovIdleMs = _saregovPos(n, "saregovProfileIdleMs");
+}
+export function getSaregovProfileIdleMsV2() {
+  return _saregovIdleMs;
+}
+export function setSaregovSpawnStuckMsV2(n) {
+  _saregovStuckMs = _saregovPos(n, "saregovSpawnStuckMs");
+}
+export function getSaregovSpawnStuckMsV2() {
+  return _saregovStuckMs;
+}
+export function _resetStateSubAgentRegistryGovV2() {
+  _saregovPsV2.clear();
+  _saregovJsV2.clear();
+  _saregovMaxActive = 10;
+  _saregovMaxPending = 25;
+  _saregovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _saregovStuckMs = 60 * 1000;
+}
+export function registerSaregovProfileV2({ id, owner, kind, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_saregovPsV2.has(id))
+    throw new Error(`saregov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    kind: kind || "general",
+    status: SAREGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _saregovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateSaregovProfileV2(id) {
+  const p = _saregovPsV2.get(id);
+  if (!p) throw new Error(`saregov profile ${id} not found`);
+  const isInitial = p.status === SAREGOV_PROFILE_MATURITY_V2.PENDING;
+  _saregovCheckP(p.status, SAREGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _saregovCountActive(p.owner) >= _saregovMaxActive)
+    throw new Error(`max active saregov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = SAREGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function suspendSaregovProfileV2(id) {
+  const p = _saregovPsV2.get(id);
+  if (!p) throw new Error(`saregov profile ${id} not found`);
+  _saregovCheckP(p.status, SAREGOV_PROFILE_MATURITY_V2.SUSPENDED);
+  p.status = SAREGOV_PROFILE_MATURITY_V2.SUSPENDED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveSaregovProfileV2(id) {
+  const p = _saregovPsV2.get(id);
+  if (!p) throw new Error(`saregov profile ${id} not found`);
+  _saregovCheckP(p.status, SAREGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = SAREGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchSaregovProfileV2(id) {
+  const p = _saregovPsV2.get(id);
+  if (!p) throw new Error(`saregov profile ${id} not found`);
+  if (_saregovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal saregov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getSaregovProfileV2(id) {
+  const p = _saregovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listSaregovProfilesV2() {
+  return [..._saregovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createSaregovSpawnV2({ id, profileId, task, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_saregovJsV2.has(id))
+    throw new Error(`saregov spawn ${id} already exists`);
+  if (!_saregovPsV2.has(profileId))
+    throw new Error(`saregov profile ${profileId} not found`);
+  if (_saregovCountPending(profileId) >= _saregovMaxPending)
+    throw new Error(
+      `max pending saregov spawns for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    task: task || "",
+    status: SAREGOV_SPAWN_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _saregovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function spawningSaregovSpawnV2(id) {
+  const j = _saregovJsV2.get(id);
+  if (!j) throw new Error(`saregov spawn ${id} not found`);
+  _saregovCheckJ(j.status, SAREGOV_SPAWN_LIFECYCLE_V2.SPAWNING);
+  const now = Date.now();
+  j.status = SAREGOV_SPAWN_LIFECYCLE_V2.SPAWNING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeSpawnSaregovV2(id) {
+  const j = _saregovJsV2.get(id);
+  if (!j) throw new Error(`saregov spawn ${id} not found`);
+  _saregovCheckJ(j.status, SAREGOV_SPAWN_LIFECYCLE_V2.SPAWNED);
+  const now = Date.now();
+  j.status = SAREGOV_SPAWN_LIFECYCLE_V2.SPAWNED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failSaregovSpawnV2(id, reason) {
+  const j = _saregovJsV2.get(id);
+  if (!j) throw new Error(`saregov spawn ${id} not found`);
+  _saregovCheckJ(j.status, SAREGOV_SPAWN_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = SAREGOV_SPAWN_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelSaregovSpawnV2(id, reason) {
+  const j = _saregovJsV2.get(id);
+  if (!j) throw new Error(`saregov spawn ${id} not found`);
+  _saregovCheckJ(j.status, SAREGOV_SPAWN_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = SAREGOV_SPAWN_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getSaregovSpawnV2(id) {
+  const j = _saregovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listSaregovSpawnsV2() {
+  return [..._saregovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoSuspendIdleSaregovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _saregovPsV2.values())
+    if (
+      p.status === SAREGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _saregovIdleMs
+    ) {
+      p.status = SAREGOV_PROFILE_MATURITY_V2.SUSPENDED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckSaregovSpawnsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _saregovJsV2.values())
+    if (
+      j.status === SAREGOV_SPAWN_LIFECYCLE_V2.SPAWNING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _saregovStuckMs
+    ) {
+      j.status = SAREGOV_SPAWN_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getSubAgentRegistryGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(SAREGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _saregovPsV2.values()) profilesByStatus[p.status]++;
+  const spawnsByStatus = {};
+  for (const v of Object.values(SAREGOV_SPAWN_LIFECYCLE_V2))
+    spawnsByStatus[v] = 0;
+  for (const j of _saregovJsV2.values()) spawnsByStatus[j.status]++;
+  return {
+    totalSaregovProfilesV2: _saregovPsV2.size,
+    totalSaregovSpawnsV2: _saregovJsV2.size,
+    maxActiveSaregovProfilesPerOwner: _saregovMaxActive,
+    maxPendingSaregovSpawnsPerProfile: _saregovMaxPending,
+    saregovProfileIdleMs: _saregovIdleMs,
+    saregovSpawnStuckMs: _saregovStuckMs,
+    profilesByStatus,
+    spawnsByStatus,
+  };
+}

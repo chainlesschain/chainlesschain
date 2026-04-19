@@ -814,3 +814,206 @@ export function registerCrossChainV2Command(cc) {
       console.log(JSON.stringify(getCrossChainGovStatsV2(), null, 2));
     });
 }
+
+// === Iter28 V2 governance overlay: Crchgov ===
+export function registerCrchV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "crosschain");
+  if (!parent) return;
+  const L = async () => await import("../lib/cross-chain.js");
+  parent
+    .command("crchgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.CRCHGOV_PROFILE_MATURITY_V2,
+            transferLifecycle: m.CRCHGOV_TRANSFER_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("crchgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveCrchProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingCrchTransfersPerProfileV2(),
+            idleMs: m.getCrchProfileIdleMsV2(),
+            stuckMs: m.getCrchTransferStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("crchgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveCrchProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("crchgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingCrchTransfersPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("crchgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setCrchProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("crchgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setCrchTransferStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("crchgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--bridge <v>", "bridge")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerCrchProfileV2({ id, owner, bridge: o.bridge }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("crchgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateCrchProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("crchgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).staleCrchProfileV2(id), null, 2));
+    });
+  parent
+    .command("crchgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveCrchProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("crchgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchCrchProfileV2(id), null, 2));
+    });
+  parent
+    .command("crchgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCrchProfileV2(id), null, 2));
+    });
+  parent
+    .command("crchgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCrchProfilesV2(), null, 2));
+    });
+  parent
+    .command("crchgov-create-transfer-v2 <id> <profileId>")
+    .description("Create transfer")
+    .option("--transferId <v>", "transferId")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createCrchTransferV2({ id, profileId, transferId: o.transferId }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("crchgov-transferring-transfer-v2 <id>")
+    .description("Mark transfer as transferring")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).transferringCrchTransferV2(id), null, 2),
+      );
+    });
+  parent
+    .command("crchgov-complete-transfer-v2 <id>")
+    .description("Complete transfer")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeTransferCrchV2(id), null, 2),
+      );
+    });
+  parent
+    .command("crchgov-fail-transfer-v2 <id> [reason]")
+    .description("Fail transfer")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failCrchTransferV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("crchgov-cancel-transfer-v2 <id> [reason]")
+    .description("Cancel transfer")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelCrchTransferV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("crchgov-get-transfer-v2 <id>")
+    .description("Get transfer")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCrchTransferV2(id), null, 2));
+    });
+  parent
+    .command("crchgov-list-transfers-v2")
+    .description("List transfers")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCrchTransfersV2(), null, 2));
+    });
+  parent
+    .command("crchgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleCrchProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("crchgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck transfers")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckCrchTransfersV2(), null, 2),
+      );
+    });
+  parent
+    .command("crchgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).getCrchgovStatsV2(), null, 2));
+    });
+}

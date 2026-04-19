@@ -688,3 +688,338 @@ export function getChatCoreGovStatsV2() {
     messagesByStatus,
   };
 }
+
+// === Iter28 V2 governance overlay: Ccoregov ===
+export const CCOREGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  IDLE: "idle",
+  ARCHIVED: "archived",
+});
+export const CCOREGOV_MSG_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  SENDING: "sending",
+  SENT: "sent",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _ccoregovPTrans = new Map([
+  [
+    CCOREGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      CCOREGOV_PROFILE_MATURITY_V2.ACTIVE,
+      CCOREGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CCOREGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      CCOREGOV_PROFILE_MATURITY_V2.IDLE,
+      CCOREGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CCOREGOV_PROFILE_MATURITY_V2.IDLE,
+    new Set([
+      CCOREGOV_PROFILE_MATURITY_V2.ACTIVE,
+      CCOREGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [CCOREGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _ccoregovPTerminal = new Set([CCOREGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _ccoregovJTrans = new Map([
+  [
+    CCOREGOV_MSG_LIFECYCLE_V2.QUEUED,
+    new Set([
+      CCOREGOV_MSG_LIFECYCLE_V2.SENDING,
+      CCOREGOV_MSG_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    CCOREGOV_MSG_LIFECYCLE_V2.SENDING,
+    new Set([
+      CCOREGOV_MSG_LIFECYCLE_V2.SENT,
+      CCOREGOV_MSG_LIFECYCLE_V2.FAILED,
+      CCOREGOV_MSG_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [CCOREGOV_MSG_LIFECYCLE_V2.SENT, new Set()],
+  [CCOREGOV_MSG_LIFECYCLE_V2.FAILED, new Set()],
+  [CCOREGOV_MSG_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _ccoregovPsV2 = new Map();
+const _ccoregovJsV2 = new Map();
+let _ccoregovMaxActive = 10,
+  _ccoregovMaxPending = 25,
+  _ccoregovIdleMs = 2592000000,
+  _ccoregovStuckMs = 60 * 1000;
+function _ccoregovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _ccoregovCheckP(from, to) {
+  const a = _ccoregovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid ccoregov profile transition ${from} → ${to}`);
+}
+function _ccoregovCheckJ(from, to) {
+  const a = _ccoregovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid ccoregov msg transition ${from} → ${to}`);
+}
+function _ccoregovCountActive(owner) {
+  let c = 0;
+  for (const p of _ccoregovPsV2.values())
+    if (p.owner === owner && p.status === CCOREGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _ccoregovCountPending(profileId) {
+  let c = 0;
+  for (const j of _ccoregovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === CCOREGOV_MSG_LIFECYCLE_V2.QUEUED ||
+        j.status === CCOREGOV_MSG_LIFECYCLE_V2.SENDING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveCcoreProfilesPerOwnerV2(n) {
+  _ccoregovMaxActive = _ccoregovPos(n, "maxActiveCcoreProfilesPerOwner");
+}
+export function getMaxActiveCcoreProfilesPerOwnerV2() {
+  return _ccoregovMaxActive;
+}
+export function setMaxPendingCcoreMsgsPerProfileV2(n) {
+  _ccoregovMaxPending = _ccoregovPos(n, "maxPendingCcoreMsgsPerProfile");
+}
+export function getMaxPendingCcoreMsgsPerProfileV2() {
+  return _ccoregovMaxPending;
+}
+export function setCcoreProfileIdleMsV2(n) {
+  _ccoregovIdleMs = _ccoregovPos(n, "ccoregovProfileIdleMs");
+}
+export function getCcoreProfileIdleMsV2() {
+  return _ccoregovIdleMs;
+}
+export function setCcoreMsgStuckMsV2(n) {
+  _ccoregovStuckMs = _ccoregovPos(n, "ccoregovMsgStuckMs");
+}
+export function getCcoreMsgStuckMsV2() {
+  return _ccoregovStuckMs;
+}
+export function _resetStateCcoregovV2() {
+  _ccoregovPsV2.clear();
+  _ccoregovJsV2.clear();
+  _ccoregovMaxActive = 10;
+  _ccoregovMaxPending = 25;
+  _ccoregovIdleMs = 2592000000;
+  _ccoregovStuckMs = 60 * 1000;
+}
+export function registerCcoreProfileV2({ id, owner, channel, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_ccoregovPsV2.has(id))
+    throw new Error(`ccoregov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    channel: channel || "default",
+    status: CCOREGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _ccoregovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateCcoreProfileV2(id) {
+  const p = _ccoregovPsV2.get(id);
+  if (!p) throw new Error(`ccoregov profile ${id} not found`);
+  const isInitial = p.status === CCOREGOV_PROFILE_MATURITY_V2.PENDING;
+  _ccoregovCheckP(p.status, CCOREGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _ccoregovCountActive(p.owner) >= _ccoregovMaxActive)
+    throw new Error(
+      `max active ccoregov profiles for owner ${p.owner} reached`,
+    );
+  const now = Date.now();
+  p.status = CCOREGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function idleCcoreProfileV2(id) {
+  const p = _ccoregovPsV2.get(id);
+  if (!p) throw new Error(`ccoregov profile ${id} not found`);
+  _ccoregovCheckP(p.status, CCOREGOV_PROFILE_MATURITY_V2.IDLE);
+  p.status = CCOREGOV_PROFILE_MATURITY_V2.IDLE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveCcoreProfileV2(id) {
+  const p = _ccoregovPsV2.get(id);
+  if (!p) throw new Error(`ccoregov profile ${id} not found`);
+  _ccoregovCheckP(p.status, CCOREGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = CCOREGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchCcoreProfileV2(id) {
+  const p = _ccoregovPsV2.get(id);
+  if (!p) throw new Error(`ccoregov profile ${id} not found`);
+  if (_ccoregovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal ccoregov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getCcoreProfileV2(id) {
+  const p = _ccoregovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listCcoreProfilesV2() {
+  return [..._ccoregovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createCcoreMsgV2({ id, profileId, messageId, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_ccoregovJsV2.has(id))
+    throw new Error(`ccoregov msg ${id} already exists`);
+  if (!_ccoregovPsV2.has(profileId))
+    throw new Error(`ccoregov profile ${profileId} not found`);
+  if (_ccoregovCountPending(profileId) >= _ccoregovMaxPending)
+    throw new Error(
+      `max pending ccoregov msgs for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    messageId: messageId || "",
+    status: CCOREGOV_MSG_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _ccoregovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function sendingCcoreMsgV2(id) {
+  const j = _ccoregovJsV2.get(id);
+  if (!j) throw new Error(`ccoregov msg ${id} not found`);
+  _ccoregovCheckJ(j.status, CCOREGOV_MSG_LIFECYCLE_V2.SENDING);
+  const now = Date.now();
+  j.status = CCOREGOV_MSG_LIFECYCLE_V2.SENDING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeMsgCcoreV2(id) {
+  const j = _ccoregovJsV2.get(id);
+  if (!j) throw new Error(`ccoregov msg ${id} not found`);
+  _ccoregovCheckJ(j.status, CCOREGOV_MSG_LIFECYCLE_V2.SENT);
+  const now = Date.now();
+  j.status = CCOREGOV_MSG_LIFECYCLE_V2.SENT;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failCcoreMsgV2(id, reason) {
+  const j = _ccoregovJsV2.get(id);
+  if (!j) throw new Error(`ccoregov msg ${id} not found`);
+  _ccoregovCheckJ(j.status, CCOREGOV_MSG_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = CCOREGOV_MSG_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelCcoreMsgV2(id, reason) {
+  const j = _ccoregovJsV2.get(id);
+  if (!j) throw new Error(`ccoregov msg ${id} not found`);
+  _ccoregovCheckJ(j.status, CCOREGOV_MSG_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = CCOREGOV_MSG_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getCcoreMsgV2(id) {
+  const j = _ccoregovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listCcoreMsgsV2() {
+  return [..._ccoregovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoIdleIdleCcoreProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _ccoregovPsV2.values())
+    if (
+      p.status === CCOREGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _ccoregovIdleMs
+    ) {
+      p.status = CCOREGOV_PROFILE_MATURITY_V2.IDLE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckCcoreMsgsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _ccoregovJsV2.values())
+    if (
+      j.status === CCOREGOV_MSG_LIFECYCLE_V2.SENDING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _ccoregovStuckMs
+    ) {
+      j.status = CCOREGOV_MSG_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getCcoregovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(CCOREGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _ccoregovPsV2.values()) profilesByStatus[p.status]++;
+  const msgsByStatus = {};
+  for (const v of Object.values(CCOREGOV_MSG_LIFECYCLE_V2)) msgsByStatus[v] = 0;
+  for (const j of _ccoregovJsV2.values()) msgsByStatus[j.status]++;
+  return {
+    totalCcoreProfilesV2: _ccoregovPsV2.size,
+    totalCcoreMsgsV2: _ccoregovJsV2.size,
+    maxActiveCcoreProfilesPerOwner: _ccoregovMaxActive,
+    maxPendingCcoreMsgsPerProfile: _ccoregovMaxPending,
+    ccoregovProfileIdleMs: _ccoregovIdleMs,
+    ccoregovMsgStuckMs: _ccoregovStuckMs,
+    profilesByStatus,
+    msgsByStatus,
+  };
+}

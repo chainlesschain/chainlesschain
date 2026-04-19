@@ -588,3 +588,333 @@ export function getExecutionBackendStatsV2() {
     jobsByStatus,
   };
 }
+
+// =====================================================================
+// execution-backend V2 governance overlay (iter25)
+// =====================================================================
+export const EBGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  DEGRADED: "degraded",
+  ARCHIVED: "archived",
+});
+export const EBGOV_JOB_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  EXECUTING: "executing",
+  SUCCEEDED: "succeeded",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _ebgovPTrans = new Map([
+  [
+    EBGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      EBGOV_PROFILE_MATURITY_V2.ACTIVE,
+      EBGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    EBGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      EBGOV_PROFILE_MATURITY_V2.DEGRADED,
+      EBGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    EBGOV_PROFILE_MATURITY_V2.DEGRADED,
+    new Set([
+      EBGOV_PROFILE_MATURITY_V2.ACTIVE,
+      EBGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [EBGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _ebgovPTerminal = new Set([EBGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _ebgovJTrans = new Map([
+  [
+    EBGOV_JOB_LIFECYCLE_V2.QUEUED,
+    new Set([
+      EBGOV_JOB_LIFECYCLE_V2.EXECUTING,
+      EBGOV_JOB_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    EBGOV_JOB_LIFECYCLE_V2.EXECUTING,
+    new Set([
+      EBGOV_JOB_LIFECYCLE_V2.SUCCEEDED,
+      EBGOV_JOB_LIFECYCLE_V2.FAILED,
+      EBGOV_JOB_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [EBGOV_JOB_LIFECYCLE_V2.SUCCEEDED, new Set()],
+  [EBGOV_JOB_LIFECYCLE_V2.FAILED, new Set()],
+  [EBGOV_JOB_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _ebgovPsV2 = new Map();
+const _ebgovJsV2 = new Map();
+let _ebgovMaxActive = 6,
+  _ebgovMaxPending = 15,
+  _ebgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _ebgovStuckMs = 60 * 1000;
+function _ebgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _ebgovCheckP(from, to) {
+  const a = _ebgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid ebgov profile transition ${from} → ${to}`);
+}
+function _ebgovCheckJ(from, to) {
+  const a = _ebgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid ebgov job transition ${from} → ${to}`);
+}
+function _ebgovCountActive(owner) {
+  let c = 0;
+  for (const p of _ebgovPsV2.values())
+    if (p.owner === owner && p.status === EBGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _ebgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _ebgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === EBGOV_JOB_LIFECYCLE_V2.QUEUED ||
+        j.status === EBGOV_JOB_LIFECYCLE_V2.EXECUTING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveEbgovProfilesPerOwnerV2(n) {
+  _ebgovMaxActive = _ebgovPos(n, "maxActiveEbgovProfilesPerOwner");
+}
+export function getMaxActiveEbgovProfilesPerOwnerV2() {
+  return _ebgovMaxActive;
+}
+export function setMaxPendingEbgovJobsPerProfileV2(n) {
+  _ebgovMaxPending = _ebgovPos(n, "maxPendingEbgovJobsPerProfile");
+}
+export function getMaxPendingEbgovJobsPerProfileV2() {
+  return _ebgovMaxPending;
+}
+export function setEbgovProfileIdleMsV2(n) {
+  _ebgovIdleMs = _ebgovPos(n, "ebgovProfileIdleMs");
+}
+export function getEbgovProfileIdleMsV2() {
+  return _ebgovIdleMs;
+}
+export function setEbgovJobStuckMsV2(n) {
+  _ebgovStuckMs = _ebgovPos(n, "ebgovJobStuckMs");
+}
+export function getEbgovJobStuckMsV2() {
+  return _ebgovStuckMs;
+}
+export function _resetStateExecutionBackendGovV2() {
+  _ebgovPsV2.clear();
+  _ebgovJsV2.clear();
+  _ebgovMaxActive = 6;
+  _ebgovMaxPending = 15;
+  _ebgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _ebgovStuckMs = 60 * 1000;
+}
+export function registerEbgovProfileV2({ id, owner, backend, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_ebgovPsV2.has(id)) throw new Error(`ebgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    backend: backend || "local",
+    status: EBGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _ebgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateEbgovProfileV2(id) {
+  const p = _ebgovPsV2.get(id);
+  if (!p) throw new Error(`ebgov profile ${id} not found`);
+  const isInitial = p.status === EBGOV_PROFILE_MATURITY_V2.PENDING;
+  _ebgovCheckP(p.status, EBGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _ebgovCountActive(p.owner) >= _ebgovMaxActive)
+    throw new Error(`max active ebgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = EBGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function degradeEbgovProfileV2(id) {
+  const p = _ebgovPsV2.get(id);
+  if (!p) throw new Error(`ebgov profile ${id} not found`);
+  _ebgovCheckP(p.status, EBGOV_PROFILE_MATURITY_V2.DEGRADED);
+  p.status = EBGOV_PROFILE_MATURITY_V2.DEGRADED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveEbgovProfileV2(id) {
+  const p = _ebgovPsV2.get(id);
+  if (!p) throw new Error(`ebgov profile ${id} not found`);
+  _ebgovCheckP(p.status, EBGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = EBGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchEbgovProfileV2(id) {
+  const p = _ebgovPsV2.get(id);
+  if (!p) throw new Error(`ebgov profile ${id} not found`);
+  if (_ebgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal ebgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getEbgovProfileV2(id) {
+  const p = _ebgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listEbgovProfilesV2() {
+  return [..._ebgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createEbgovJobV2({ id, profileId, task, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_ebgovJsV2.has(id)) throw new Error(`ebgov job ${id} already exists`);
+  if (!_ebgovPsV2.has(profileId))
+    throw new Error(`ebgov profile ${profileId} not found`);
+  if (_ebgovCountPending(profileId) >= _ebgovMaxPending)
+    throw new Error(`max pending ebgov jobs for profile ${profileId} reached`);
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    task: task || "",
+    status: EBGOV_JOB_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _ebgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function executingEbgovJobV2(id) {
+  const j = _ebgovJsV2.get(id);
+  if (!j) throw new Error(`ebgov job ${id} not found`);
+  _ebgovCheckJ(j.status, EBGOV_JOB_LIFECYCLE_V2.EXECUTING);
+  const now = Date.now();
+  j.status = EBGOV_JOB_LIFECYCLE_V2.EXECUTING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeJobEbgovV2(id) {
+  const j = _ebgovJsV2.get(id);
+  if (!j) throw new Error(`ebgov job ${id} not found`);
+  _ebgovCheckJ(j.status, EBGOV_JOB_LIFECYCLE_V2.SUCCEEDED);
+  const now = Date.now();
+  j.status = EBGOV_JOB_LIFECYCLE_V2.SUCCEEDED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failEbgovJobV2(id, reason) {
+  const j = _ebgovJsV2.get(id);
+  if (!j) throw new Error(`ebgov job ${id} not found`);
+  _ebgovCheckJ(j.status, EBGOV_JOB_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = EBGOV_JOB_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelEbgovJobV2(id, reason) {
+  const j = _ebgovJsV2.get(id);
+  if (!j) throw new Error(`ebgov job ${id} not found`);
+  _ebgovCheckJ(j.status, EBGOV_JOB_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = EBGOV_JOB_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getEbgovJobV2(id) {
+  const j = _ebgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listEbgovJobsV2() {
+  return [..._ebgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoDegradeIdleEbgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _ebgovPsV2.values())
+    if (
+      p.status === EBGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _ebgovIdleMs
+    ) {
+      p.status = EBGOV_PROFILE_MATURITY_V2.DEGRADED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckEbgovJobsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _ebgovJsV2.values())
+    if (
+      j.status === EBGOV_JOB_LIFECYCLE_V2.EXECUTING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _ebgovStuckMs
+    ) {
+      j.status = EBGOV_JOB_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getExecutionBackendGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(EBGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _ebgovPsV2.values()) profilesByStatus[p.status]++;
+  const jobsByStatus = {};
+  for (const v of Object.values(EBGOV_JOB_LIFECYCLE_V2)) jobsByStatus[v] = 0;
+  for (const j of _ebgovJsV2.values()) jobsByStatus[j.status]++;
+  return {
+    totalEbgovProfilesV2: _ebgovPsV2.size,
+    totalEbgovJobsV2: _ebgovJsV2.size,
+    maxActiveEbgovProfilesPerOwner: _ebgovMaxActive,
+    maxPendingEbgovJobsPerProfile: _ebgovMaxPending,
+    ebgovProfileIdleMs: _ebgovIdleMs,
+    ebgovJobStuckMs: _ebgovStuckMs,
+    profilesByStatus,
+    jobsByStatus,
+  };
+}

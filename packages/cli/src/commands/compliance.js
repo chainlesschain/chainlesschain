@@ -2670,3 +2670,415 @@ export function registerUebgovV2Commands(program) {
       console.log(JSON.stringify((await L()).getUebaGovStatsV2(), null, 2));
     });
 }
+
+// === Iter27 V2 governance overlay ===
+export function registerStixgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "compliance");
+  if (!parent) return;
+  const L = async () => await import("../lib/stix-parser.js");
+  parent
+    .command("stixgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.STIXGOV_PROFILE_MATURITY_V2,
+            parseLifecycle: m.STIXGOV_PARSE_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("stixgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveStixgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingStixgovParsesPerProfileV2(),
+            idleMs: m.getStixgovProfileIdleMsV2(),
+            stuckMs: m.getStixgovParseStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("stixgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveStixgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("stixgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingStixgovParsesPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("stixgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setStixgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("stixgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setStixgovParseStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("stixgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--stixVersion <v>", "stixVersion")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerStixgovProfileV2({ id, owner, stixVersion: o.stixVersion }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("stixgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateStixgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("stixgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleStixgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("stixgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveStixgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("stixgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchStixgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("stixgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getStixgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("stixgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listStixgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("stixgov-create-parse-v2 <id> <profileId>")
+    .description("Create parse")
+    .option("--bundleId <v>", "bundleId")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createStixgovParseV2({ id, profileId, bundleId: o.bundleId }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("stixgov-parsing-parse-v2 <id>")
+    .description("Mark parse as parsing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).parsingStixgovParseV2(id), null, 2),
+      );
+    });
+  parent
+    .command("stixgov-complete-parse-v2 <id>")
+    .description("Complete parse")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeParseStixgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("stixgov-fail-parse-v2 <id> [reason]")
+    .description("Fail parse")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failStixgovParseV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("stixgov-cancel-parse-v2 <id> [reason]")
+    .description("Cancel parse")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelStixgovParseV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("stixgov-get-parse-v2 <id>")
+    .description("Get parse")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getStixgovParseV2(id), null, 2));
+    });
+  parent
+    .command("stixgov-list-parses-v2")
+    .description("List parses")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listStixgovParsesV2(), null, 2));
+    });
+  parent
+    .command("stixgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleStixgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("stixgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck parses")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckStixgovParsesV2(), null, 2),
+      );
+    });
+  parent
+    .command("stixgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getStixParserGovStatsV2(), null, 2),
+      );
+    });
+}
+
+// === Iter28 V2 governance overlay: Cmpmgov ===
+export function registerCmpmV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "compliance");
+  if (!parent) return;
+  const L = async () => await import("../lib/compliance-manager.js");
+  parent
+    .command("cmpmgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.CMPMGOV_PROFILE_MATURITY_V2,
+            reportLifecycle: m.CMPMGOV_REPORT_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cmpmgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveCmpmProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingCmpmReportsPerProfileV2(),
+            idleMs: m.getCmpmProfileIdleMsV2(),
+            stuckMs: m.getCmpmReportStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cmpmgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveCmpmProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cmpmgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingCmpmReportsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cmpmgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setCmpmProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cmpmgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setCmpmReportStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cmpmgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--framework <v>", "framework")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerCmpmProfileV2({ id, owner, framework: o.framework }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cmpmgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateCmpmProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cmpmgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).staleCmpmProfileV2(id), null, 2));
+    });
+  parent
+    .command("cmpmgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveCmpmProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cmpmgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchCmpmProfileV2(id), null, 2));
+    });
+  parent
+    .command("cmpmgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCmpmProfileV2(id), null, 2));
+    });
+  parent
+    .command("cmpmgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCmpmProfilesV2(), null, 2));
+    });
+  parent
+    .command("cmpmgov-create-report-v2 <id> <profileId>")
+    .description("Create report")
+    .option("--reportId <v>", "reportId")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createCmpmReportV2({ id, profileId, reportId: o.reportId }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cmpmgov-reporting-report-v2 <id>")
+    .description("Mark report as reporting")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).reportingCmpmReportV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cmpmgov-complete-report-v2 <id>")
+    .description("Complete report")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeReportCmpmV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cmpmgov-fail-report-v2 <id> [reason]")
+    .description("Fail report")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failCmpmReportV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cmpmgov-cancel-report-v2 <id> [reason]")
+    .description("Cancel report")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelCmpmReportV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cmpmgov-get-report-v2 <id>")
+    .description("Get report")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCmpmReportV2(id), null, 2));
+    });
+  parent
+    .command("cmpmgov-list-reports-v2")
+    .description("List reports")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCmpmReportsV2(), null, 2));
+    });
+  parent
+    .command("cmpmgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleCmpmProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("cmpmgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck reports")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckCmpmReportsV2(), null, 2),
+      );
+    });
+  parent
+    .command("cmpmgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).getCmpmgovStatsV2(), null, 2));
+    });
+}

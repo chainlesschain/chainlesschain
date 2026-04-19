@@ -707,3 +707,337 @@ export function getAgentCoordinatorStatsV2() {
     assignmentsByStatus,
   };
 }
+
+// === Iter28 V2 governance overlay: Acrdgov ===
+export const ACRDGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  IDLE: "idle",
+  ARCHIVED: "archived",
+});
+export const ACRDGOV_COORD_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  COORDINATING: "coordinating",
+  COORDINATED: "coordinated",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _acrdgovPTrans = new Map([
+  [
+    ACRDGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      ACRDGOV_PROFILE_MATURITY_V2.ACTIVE,
+      ACRDGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    ACRDGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      ACRDGOV_PROFILE_MATURITY_V2.IDLE,
+      ACRDGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    ACRDGOV_PROFILE_MATURITY_V2.IDLE,
+    new Set([
+      ACRDGOV_PROFILE_MATURITY_V2.ACTIVE,
+      ACRDGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [ACRDGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _acrdgovPTerminal = new Set([ACRDGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _acrdgovJTrans = new Map([
+  [
+    ACRDGOV_COORD_LIFECYCLE_V2.QUEUED,
+    new Set([
+      ACRDGOV_COORD_LIFECYCLE_V2.COORDINATING,
+      ACRDGOV_COORD_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    ACRDGOV_COORD_LIFECYCLE_V2.COORDINATING,
+    new Set([
+      ACRDGOV_COORD_LIFECYCLE_V2.COORDINATED,
+      ACRDGOV_COORD_LIFECYCLE_V2.FAILED,
+      ACRDGOV_COORD_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [ACRDGOV_COORD_LIFECYCLE_V2.COORDINATED, new Set()],
+  [ACRDGOV_COORD_LIFECYCLE_V2.FAILED, new Set()],
+  [ACRDGOV_COORD_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _acrdgovPsV2 = new Map();
+const _acrdgovJsV2 = new Map();
+let _acrdgovMaxActive = 6,
+  _acrdgovMaxPending = 15,
+  _acrdgovIdleMs = 2592000000,
+  _acrdgovStuckMs = 60 * 1000;
+function _acrdgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _acrdgovCheckP(from, to) {
+  const a = _acrdgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid acrdgov profile transition ${from} → ${to}`);
+}
+function _acrdgovCheckJ(from, to) {
+  const a = _acrdgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid acrdgov coord transition ${from} → ${to}`);
+}
+function _acrdgovCountActive(owner) {
+  let c = 0;
+  for (const p of _acrdgovPsV2.values())
+    if (p.owner === owner && p.status === ACRDGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _acrdgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _acrdgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === ACRDGOV_COORD_LIFECYCLE_V2.QUEUED ||
+        j.status === ACRDGOV_COORD_LIFECYCLE_V2.COORDINATING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveAcrdProfilesPerOwnerV2(n) {
+  _acrdgovMaxActive = _acrdgovPos(n, "maxActiveAcrdProfilesPerOwner");
+}
+export function getMaxActiveAcrdProfilesPerOwnerV2() {
+  return _acrdgovMaxActive;
+}
+export function setMaxPendingAcrdCoordsPerProfileV2(n) {
+  _acrdgovMaxPending = _acrdgovPos(n, "maxPendingAcrdCoordsPerProfile");
+}
+export function getMaxPendingAcrdCoordsPerProfileV2() {
+  return _acrdgovMaxPending;
+}
+export function setAcrdProfileIdleMsV2(n) {
+  _acrdgovIdleMs = _acrdgovPos(n, "acrdgovProfileIdleMs");
+}
+export function getAcrdProfileIdleMsV2() {
+  return _acrdgovIdleMs;
+}
+export function setAcrdCoordStuckMsV2(n) {
+  _acrdgovStuckMs = _acrdgovPos(n, "acrdgovCoordStuckMs");
+}
+export function getAcrdCoordStuckMsV2() {
+  return _acrdgovStuckMs;
+}
+export function _resetStateAcrdgovV2() {
+  _acrdgovPsV2.clear();
+  _acrdgovJsV2.clear();
+  _acrdgovMaxActive = 6;
+  _acrdgovMaxPending = 15;
+  _acrdgovIdleMs = 2592000000;
+  _acrdgovStuckMs = 60 * 1000;
+}
+export function registerAcrdProfileV2({ id, owner, role, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_acrdgovPsV2.has(id))
+    throw new Error(`acrdgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    role: role || "leader",
+    status: ACRDGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _acrdgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateAcrdProfileV2(id) {
+  const p = _acrdgovPsV2.get(id);
+  if (!p) throw new Error(`acrdgov profile ${id} not found`);
+  const isInitial = p.status === ACRDGOV_PROFILE_MATURITY_V2.PENDING;
+  _acrdgovCheckP(p.status, ACRDGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _acrdgovCountActive(p.owner) >= _acrdgovMaxActive)
+    throw new Error(`max active acrdgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = ACRDGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function idleAcrdProfileV2(id) {
+  const p = _acrdgovPsV2.get(id);
+  if (!p) throw new Error(`acrdgov profile ${id} not found`);
+  _acrdgovCheckP(p.status, ACRDGOV_PROFILE_MATURITY_V2.IDLE);
+  p.status = ACRDGOV_PROFILE_MATURITY_V2.IDLE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveAcrdProfileV2(id) {
+  const p = _acrdgovPsV2.get(id);
+  if (!p) throw new Error(`acrdgov profile ${id} not found`);
+  _acrdgovCheckP(p.status, ACRDGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = ACRDGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchAcrdProfileV2(id) {
+  const p = _acrdgovPsV2.get(id);
+  if (!p) throw new Error(`acrdgov profile ${id} not found`);
+  if (_acrdgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal acrdgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getAcrdProfileV2(id) {
+  const p = _acrdgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listAcrdProfilesV2() {
+  return [..._acrdgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createAcrdCoordV2({ id, profileId, taskId, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_acrdgovJsV2.has(id))
+    throw new Error(`acrdgov coord ${id} already exists`);
+  if (!_acrdgovPsV2.has(profileId))
+    throw new Error(`acrdgov profile ${profileId} not found`);
+  if (_acrdgovCountPending(profileId) >= _acrdgovMaxPending)
+    throw new Error(
+      `max pending acrdgov coords for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    taskId: taskId || "",
+    status: ACRDGOV_COORD_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _acrdgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function coordinatingAcrdCoordV2(id) {
+  const j = _acrdgovJsV2.get(id);
+  if (!j) throw new Error(`acrdgov coord ${id} not found`);
+  _acrdgovCheckJ(j.status, ACRDGOV_COORD_LIFECYCLE_V2.COORDINATING);
+  const now = Date.now();
+  j.status = ACRDGOV_COORD_LIFECYCLE_V2.COORDINATING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeCoordAcrdV2(id) {
+  const j = _acrdgovJsV2.get(id);
+  if (!j) throw new Error(`acrdgov coord ${id} not found`);
+  _acrdgovCheckJ(j.status, ACRDGOV_COORD_LIFECYCLE_V2.COORDINATED);
+  const now = Date.now();
+  j.status = ACRDGOV_COORD_LIFECYCLE_V2.COORDINATED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failAcrdCoordV2(id, reason) {
+  const j = _acrdgovJsV2.get(id);
+  if (!j) throw new Error(`acrdgov coord ${id} not found`);
+  _acrdgovCheckJ(j.status, ACRDGOV_COORD_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = ACRDGOV_COORD_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelAcrdCoordV2(id, reason) {
+  const j = _acrdgovJsV2.get(id);
+  if (!j) throw new Error(`acrdgov coord ${id} not found`);
+  _acrdgovCheckJ(j.status, ACRDGOV_COORD_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = ACRDGOV_COORD_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getAcrdCoordV2(id) {
+  const j = _acrdgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listAcrdCoordsV2() {
+  return [..._acrdgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoIdleIdleAcrdProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _acrdgovPsV2.values())
+    if (
+      p.status === ACRDGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _acrdgovIdleMs
+    ) {
+      p.status = ACRDGOV_PROFILE_MATURITY_V2.IDLE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckAcrdCoordsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _acrdgovJsV2.values())
+    if (
+      j.status === ACRDGOV_COORD_LIFECYCLE_V2.COORDINATING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _acrdgovStuckMs
+    ) {
+      j.status = ACRDGOV_COORD_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getAcrdgovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(ACRDGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _acrdgovPsV2.values()) profilesByStatus[p.status]++;
+  const coordsByStatus = {};
+  for (const v of Object.values(ACRDGOV_COORD_LIFECYCLE_V2))
+    coordsByStatus[v] = 0;
+  for (const j of _acrdgovJsV2.values()) coordsByStatus[j.status]++;
+  return {
+    totalAcrdProfilesV2: _acrdgovPsV2.size,
+    totalAcrdCoordsV2: _acrdgovJsV2.size,
+    maxActiveAcrdProfilesPerOwner: _acrdgovMaxActive,
+    maxPendingAcrdCoordsPerProfile: _acrdgovMaxPending,
+    acrdgovProfileIdleMs: _acrdgovIdleMs,
+    acrdgovCoordStuckMs: _acrdgovStuckMs,
+    profilesByStatus,
+    coordsByStatus,
+  };
+}

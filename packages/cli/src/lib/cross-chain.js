@@ -1377,3 +1377,342 @@ export function getCrossChainGovStatsV2() {
     transfersByStatus,
   };
 }
+
+// === Iter28 V2 governance overlay: Crchgov ===
+export const CRCHGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const CRCHGOV_TRANSFER_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  TRANSFERRING: "transferring",
+  TRANSFERRED: "transferred",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _crchgovPTrans = new Map([
+  [
+    CRCHGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      CRCHGOV_PROFILE_MATURITY_V2.ACTIVE,
+      CRCHGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CRCHGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      CRCHGOV_PROFILE_MATURITY_V2.STALE,
+      CRCHGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CRCHGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      CRCHGOV_PROFILE_MATURITY_V2.ACTIVE,
+      CRCHGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [CRCHGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _crchgovPTerminal = new Set([CRCHGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _crchgovJTrans = new Map([
+  [
+    CRCHGOV_TRANSFER_LIFECYCLE_V2.QUEUED,
+    new Set([
+      CRCHGOV_TRANSFER_LIFECYCLE_V2.TRANSFERRING,
+      CRCHGOV_TRANSFER_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    CRCHGOV_TRANSFER_LIFECYCLE_V2.TRANSFERRING,
+    new Set([
+      CRCHGOV_TRANSFER_LIFECYCLE_V2.TRANSFERRED,
+      CRCHGOV_TRANSFER_LIFECYCLE_V2.FAILED,
+      CRCHGOV_TRANSFER_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [CRCHGOV_TRANSFER_LIFECYCLE_V2.TRANSFERRED, new Set()],
+  [CRCHGOV_TRANSFER_LIFECYCLE_V2.FAILED, new Set()],
+  [CRCHGOV_TRANSFER_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _crchgovPsV2 = new Map();
+const _crchgovJsV2 = new Map();
+let _crchgovMaxActive = 6,
+  _crchgovMaxPending = 15,
+  _crchgovIdleMs = 2592000000,
+  _crchgovStuckMs = 60 * 1000;
+function _crchgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _crchgovCheckP(from, to) {
+  const a = _crchgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid crchgov profile transition ${from} → ${to}`);
+}
+function _crchgovCheckJ(from, to) {
+  const a = _crchgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid crchgov transfer transition ${from} → ${to}`);
+}
+function _crchgovCountActive(owner) {
+  let c = 0;
+  for (const p of _crchgovPsV2.values())
+    if (p.owner === owner && p.status === CRCHGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _crchgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _crchgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === CRCHGOV_TRANSFER_LIFECYCLE_V2.QUEUED ||
+        j.status === CRCHGOV_TRANSFER_LIFECYCLE_V2.TRANSFERRING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveCrchProfilesPerOwnerV2(n) {
+  _crchgovMaxActive = _crchgovPos(n, "maxActiveCrchProfilesPerOwner");
+}
+export function getMaxActiveCrchProfilesPerOwnerV2() {
+  return _crchgovMaxActive;
+}
+export function setMaxPendingCrchTransfersPerProfileV2(n) {
+  _crchgovMaxPending = _crchgovPos(n, "maxPendingCrchTransfersPerProfile");
+}
+export function getMaxPendingCrchTransfersPerProfileV2() {
+  return _crchgovMaxPending;
+}
+export function setCrchProfileIdleMsV2(n) {
+  _crchgovIdleMs = _crchgovPos(n, "crchgovProfileIdleMs");
+}
+export function getCrchProfileIdleMsV2() {
+  return _crchgovIdleMs;
+}
+export function setCrchTransferStuckMsV2(n) {
+  _crchgovStuckMs = _crchgovPos(n, "crchgovTransferStuckMs");
+}
+export function getCrchTransferStuckMsV2() {
+  return _crchgovStuckMs;
+}
+export function _resetStateCrchgovV2() {
+  _crchgovPsV2.clear();
+  _crchgovJsV2.clear();
+  _crchgovMaxActive = 6;
+  _crchgovMaxPending = 15;
+  _crchgovIdleMs = 2592000000;
+  _crchgovStuckMs = 60 * 1000;
+}
+export function registerCrchProfileV2({ id, owner, bridge, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_crchgovPsV2.has(id))
+    throw new Error(`crchgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    bridge: bridge || "default",
+    status: CRCHGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _crchgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateCrchProfileV2(id) {
+  const p = _crchgovPsV2.get(id);
+  if (!p) throw new Error(`crchgov profile ${id} not found`);
+  const isInitial = p.status === CRCHGOV_PROFILE_MATURITY_V2.PENDING;
+  _crchgovCheckP(p.status, CRCHGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _crchgovCountActive(p.owner) >= _crchgovMaxActive)
+    throw new Error(`max active crchgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = CRCHGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleCrchProfileV2(id) {
+  const p = _crchgovPsV2.get(id);
+  if (!p) throw new Error(`crchgov profile ${id} not found`);
+  _crchgovCheckP(p.status, CRCHGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = CRCHGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveCrchProfileV2(id) {
+  const p = _crchgovPsV2.get(id);
+  if (!p) throw new Error(`crchgov profile ${id} not found`);
+  _crchgovCheckP(p.status, CRCHGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = CRCHGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchCrchProfileV2(id) {
+  const p = _crchgovPsV2.get(id);
+  if (!p) throw new Error(`crchgov profile ${id} not found`);
+  if (_crchgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal crchgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getCrchProfileV2(id) {
+  const p = _crchgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listCrchProfilesV2() {
+  return [..._crchgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createCrchTransferV2({
+  id,
+  profileId,
+  transferId,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_crchgovJsV2.has(id))
+    throw new Error(`crchgov transfer ${id} already exists`);
+  if (!_crchgovPsV2.has(profileId))
+    throw new Error(`crchgov profile ${profileId} not found`);
+  if (_crchgovCountPending(profileId) >= _crchgovMaxPending)
+    throw new Error(
+      `max pending crchgov transfers for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    transferId: transferId || "",
+    status: CRCHGOV_TRANSFER_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _crchgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function transferringCrchTransferV2(id) {
+  const j = _crchgovJsV2.get(id);
+  if (!j) throw new Error(`crchgov transfer ${id} not found`);
+  _crchgovCheckJ(j.status, CRCHGOV_TRANSFER_LIFECYCLE_V2.TRANSFERRING);
+  const now = Date.now();
+  j.status = CRCHGOV_TRANSFER_LIFECYCLE_V2.TRANSFERRING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeTransferCrchV2(id) {
+  const j = _crchgovJsV2.get(id);
+  if (!j) throw new Error(`crchgov transfer ${id} not found`);
+  _crchgovCheckJ(j.status, CRCHGOV_TRANSFER_LIFECYCLE_V2.TRANSFERRED);
+  const now = Date.now();
+  j.status = CRCHGOV_TRANSFER_LIFECYCLE_V2.TRANSFERRED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failCrchTransferV2(id, reason) {
+  const j = _crchgovJsV2.get(id);
+  if (!j) throw new Error(`crchgov transfer ${id} not found`);
+  _crchgovCheckJ(j.status, CRCHGOV_TRANSFER_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = CRCHGOV_TRANSFER_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelCrchTransferV2(id, reason) {
+  const j = _crchgovJsV2.get(id);
+  if (!j) throw new Error(`crchgov transfer ${id} not found`);
+  _crchgovCheckJ(j.status, CRCHGOV_TRANSFER_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = CRCHGOV_TRANSFER_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getCrchTransferV2(id) {
+  const j = _crchgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listCrchTransfersV2() {
+  return [..._crchgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleCrchProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _crchgovPsV2.values())
+    if (
+      p.status === CRCHGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _crchgovIdleMs
+    ) {
+      p.status = CRCHGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckCrchTransfersV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _crchgovJsV2.values())
+    if (
+      j.status === CRCHGOV_TRANSFER_LIFECYCLE_V2.TRANSFERRING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _crchgovStuckMs
+    ) {
+      j.status = CRCHGOV_TRANSFER_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getCrchgovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(CRCHGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _crchgovPsV2.values()) profilesByStatus[p.status]++;
+  const transfersByStatus = {};
+  for (const v of Object.values(CRCHGOV_TRANSFER_LIFECYCLE_V2))
+    transfersByStatus[v] = 0;
+  for (const j of _crchgovJsV2.values()) transfersByStatus[j.status]++;
+  return {
+    totalCrchProfilesV2: _crchgovPsV2.size,
+    totalCrchTransfersV2: _crchgovJsV2.size,
+    maxActiveCrchProfilesPerOwner: _crchgovMaxActive,
+    maxPendingCrchTransfersPerProfile: _crchgovMaxPending,
+    crchgovProfileIdleMs: _crchgovIdleMs,
+    crchgovTransferStuckMs: _crchgovStuckMs,
+    profilesByStatus,
+    transfersByStatus,
+  };
+}

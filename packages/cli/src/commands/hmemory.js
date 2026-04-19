@@ -923,3 +923,206 @@ function _registerHmemoryV2Commands(parent) {
       console.log(JSON.stringify(m.getHierarchicalMemoryGovStatsV2(), null, 2));
     });
 }
+
+// === Iter28 V2 governance overlay: Hmemgov ===
+export function registerHmemV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "hmemory");
+  if (!parent) return;
+  const L = async () => await import("../lib/hierarchical-memory.js");
+  parent
+    .command("hmemgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.HMEMGOV_PROFILE_MATURITY_V2,
+            recallLifecycle: m.HMEMGOV_RECALL_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("hmemgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveHmemProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingHmemRecallsPerProfileV2(),
+            idleMs: m.getHmemProfileIdleMsV2(),
+            stuckMs: m.getHmemRecallStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("hmemgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveHmemProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("hmemgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingHmemRecallsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("hmemgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setHmemProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("hmemgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setHmemRecallStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("hmemgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--tier <v>", "tier")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerHmemProfileV2({ id, owner, tier: o.tier }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("hmemgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateHmemProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hmemgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).staleHmemProfileV2(id), null, 2));
+    });
+  parent
+    .command("hmemgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveHmemProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hmemgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchHmemProfileV2(id), null, 2));
+    });
+  parent
+    .command("hmemgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getHmemProfileV2(id), null, 2));
+    });
+  parent
+    .command("hmemgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listHmemProfilesV2(), null, 2));
+    });
+  parent
+    .command("hmemgov-create-recall-v2 <id> <profileId>")
+    .description("Create recall")
+    .option("--queryId <v>", "queryId")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createHmemRecallV2({ id, profileId, queryId: o.queryId }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("hmemgov-recalling-recall-v2 <id>")
+    .description("Mark recall as recalling")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).recallingHmemRecallV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hmemgov-complete-recall-v2 <id>")
+    .description("Complete recall")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeRecallHmemV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hmemgov-fail-recall-v2 <id> [reason]")
+    .description("Fail recall")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failHmemRecallV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("hmemgov-cancel-recall-v2 <id> [reason]")
+    .description("Cancel recall")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelHmemRecallV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("hmemgov-get-recall-v2 <id>")
+    .description("Get recall")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getHmemRecallV2(id), null, 2));
+    });
+  parent
+    .command("hmemgov-list-recalls-v2")
+    .description("List recalls")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listHmemRecallsV2(), null, 2));
+    });
+  parent
+    .command("hmemgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleHmemProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("hmemgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck recalls")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckHmemRecallsV2(), null, 2),
+      );
+    });
+  parent
+    .command("hmemgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).getHmemgovStatsV2(), null, 2));
+    });
+}

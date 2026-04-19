@@ -833,3 +833,335 @@ export function getAutonomousAgentGovStatsV2() {
     runsByStatus,
   };
 }
+
+// === Iter28 V2 governance overlay: Autagov ===
+export const AUTAGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const AUTAGOV_RUN_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  FINISHED: "finished",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _autagovPTrans = new Map([
+  [
+    AUTAGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      AUTAGOV_PROFILE_MATURITY_V2.ACTIVE,
+      AUTAGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    AUTAGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      AUTAGOV_PROFILE_MATURITY_V2.PAUSED,
+      AUTAGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    AUTAGOV_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      AUTAGOV_PROFILE_MATURITY_V2.ACTIVE,
+      AUTAGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [AUTAGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _autagovPTerminal = new Set([AUTAGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _autagovJTrans = new Map([
+  [
+    AUTAGOV_RUN_LIFECYCLE_V2.QUEUED,
+    new Set([
+      AUTAGOV_RUN_LIFECYCLE_V2.RUNNING,
+      AUTAGOV_RUN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    AUTAGOV_RUN_LIFECYCLE_V2.RUNNING,
+    new Set([
+      AUTAGOV_RUN_LIFECYCLE_V2.FINISHED,
+      AUTAGOV_RUN_LIFECYCLE_V2.FAILED,
+      AUTAGOV_RUN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [AUTAGOV_RUN_LIFECYCLE_V2.FINISHED, new Set()],
+  [AUTAGOV_RUN_LIFECYCLE_V2.FAILED, new Set()],
+  [AUTAGOV_RUN_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _autagovPsV2 = new Map();
+const _autagovJsV2 = new Map();
+let _autagovMaxActive = 6,
+  _autagovMaxPending = 15,
+  _autagovIdleMs = 2592000000,
+  _autagovStuckMs = 60 * 1000;
+function _autagovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _autagovCheckP(from, to) {
+  const a = _autagovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid autagov profile transition ${from} → ${to}`);
+}
+function _autagovCheckJ(from, to) {
+  const a = _autagovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid autagov run transition ${from} → ${to}`);
+}
+function _autagovCountActive(owner) {
+  let c = 0;
+  for (const p of _autagovPsV2.values())
+    if (p.owner === owner && p.status === AUTAGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _autagovCountPending(profileId) {
+  let c = 0;
+  for (const j of _autagovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === AUTAGOV_RUN_LIFECYCLE_V2.QUEUED ||
+        j.status === AUTAGOV_RUN_LIFECYCLE_V2.RUNNING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveAutagProfilesPerOwnerV2(n) {
+  _autagovMaxActive = _autagovPos(n, "maxActiveAutagProfilesPerOwner");
+}
+export function getMaxActiveAutagProfilesPerOwnerV2() {
+  return _autagovMaxActive;
+}
+export function setMaxPendingAutagRunsPerProfileV2(n) {
+  _autagovMaxPending = _autagovPos(n, "maxPendingAutagRunsPerProfile");
+}
+export function getMaxPendingAutagRunsPerProfileV2() {
+  return _autagovMaxPending;
+}
+export function setAutagProfileIdleMsV2(n) {
+  _autagovIdleMs = _autagovPos(n, "autagovProfileIdleMs");
+}
+export function getAutagProfileIdleMsV2() {
+  return _autagovIdleMs;
+}
+export function setAutagRunStuckMsV2(n) {
+  _autagovStuckMs = _autagovPos(n, "autagovRunStuckMs");
+}
+export function getAutagRunStuckMsV2() {
+  return _autagovStuckMs;
+}
+export function _resetStateAutagovV2() {
+  _autagovPsV2.clear();
+  _autagovJsV2.clear();
+  _autagovMaxActive = 6;
+  _autagovMaxPending = 15;
+  _autagovIdleMs = 2592000000;
+  _autagovStuckMs = 60 * 1000;
+}
+export function registerAutagProfileV2({ id, owner, tier, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_autagovPsV2.has(id))
+    throw new Error(`autagov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    tier: tier || "assist",
+    status: AUTAGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _autagovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateAutagProfileV2(id) {
+  const p = _autagovPsV2.get(id);
+  if (!p) throw new Error(`autagov profile ${id} not found`);
+  const isInitial = p.status === AUTAGOV_PROFILE_MATURITY_V2.PENDING;
+  _autagovCheckP(p.status, AUTAGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _autagovCountActive(p.owner) >= _autagovMaxActive)
+    throw new Error(`max active autagov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = AUTAGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pausedAutagProfileV2(id) {
+  const p = _autagovPsV2.get(id);
+  if (!p) throw new Error(`autagov profile ${id} not found`);
+  _autagovCheckP(p.status, AUTAGOV_PROFILE_MATURITY_V2.PAUSED);
+  p.status = AUTAGOV_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveAutagProfileV2(id) {
+  const p = _autagovPsV2.get(id);
+  if (!p) throw new Error(`autagov profile ${id} not found`);
+  _autagovCheckP(p.status, AUTAGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = AUTAGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchAutagProfileV2(id) {
+  const p = _autagovPsV2.get(id);
+  if (!p) throw new Error(`autagov profile ${id} not found`);
+  if (_autagovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal autagov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getAutagProfileV2(id) {
+  const p = _autagovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listAutagProfilesV2() {
+  return [..._autagovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createAutagRunV2({ id, profileId, runId, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_autagovJsV2.has(id)) throw new Error(`autagov run ${id} already exists`);
+  if (!_autagovPsV2.has(profileId))
+    throw new Error(`autagov profile ${profileId} not found`);
+  if (_autagovCountPending(profileId) >= _autagovMaxPending)
+    throw new Error(
+      `max pending autagov runs for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    runId: runId || "",
+    status: AUTAGOV_RUN_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _autagovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function runningAutagRunV2(id) {
+  const j = _autagovJsV2.get(id);
+  if (!j) throw new Error(`autagov run ${id} not found`);
+  _autagovCheckJ(j.status, AUTAGOV_RUN_LIFECYCLE_V2.RUNNING);
+  const now = Date.now();
+  j.status = AUTAGOV_RUN_LIFECYCLE_V2.RUNNING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeRunAutagV2(id) {
+  const j = _autagovJsV2.get(id);
+  if (!j) throw new Error(`autagov run ${id} not found`);
+  _autagovCheckJ(j.status, AUTAGOV_RUN_LIFECYCLE_V2.FINISHED);
+  const now = Date.now();
+  j.status = AUTAGOV_RUN_LIFECYCLE_V2.FINISHED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failAutagRunV2(id, reason) {
+  const j = _autagovJsV2.get(id);
+  if (!j) throw new Error(`autagov run ${id} not found`);
+  _autagovCheckJ(j.status, AUTAGOV_RUN_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = AUTAGOV_RUN_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelAutagRunV2(id, reason) {
+  const j = _autagovJsV2.get(id);
+  if (!j) throw new Error(`autagov run ${id} not found`);
+  _autagovCheckJ(j.status, AUTAGOV_RUN_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = AUTAGOV_RUN_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getAutagRunV2(id) {
+  const j = _autagovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listAutagRunsV2() {
+  return [..._autagovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPausedIdleAutagProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _autagovPsV2.values())
+    if (
+      p.status === AUTAGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _autagovIdleMs
+    ) {
+      p.status = AUTAGOV_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckAutagRunsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _autagovJsV2.values())
+    if (
+      j.status === AUTAGOV_RUN_LIFECYCLE_V2.RUNNING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _autagovStuckMs
+    ) {
+      j.status = AUTAGOV_RUN_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getAutagovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(AUTAGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _autagovPsV2.values()) profilesByStatus[p.status]++;
+  const runsByStatus = {};
+  for (const v of Object.values(AUTAGOV_RUN_LIFECYCLE_V2)) runsByStatus[v] = 0;
+  for (const j of _autagovJsV2.values()) runsByStatus[j.status]++;
+  return {
+    totalAutagProfilesV2: _autagovPsV2.size,
+    totalAutagRunsV2: _autagovJsV2.size,
+    maxActiveAutagProfilesPerOwner: _autagovMaxActive,
+    maxPendingAutagRunsPerProfile: _autagovMaxPending,
+    autagovProfileIdleMs: _autagovIdleMs,
+    autagovRunStuckMs: _autagovStuckMs,
+    profilesByStatus,
+    runsByStatus,
+  };
+}

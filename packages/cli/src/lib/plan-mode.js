@@ -872,3 +872,339 @@ export function getPlanModeGovStatsV2() {
     stepsByStatus,
   };
 }
+
+// === Iter28 V2 governance overlay: Pmodegov ===
+export const PMODEGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const PMODEGOV_PLAN_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  PLANNING: "planning",
+  FINALIZED: "finalized",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _pmodegovPTrans = new Map([
+  [
+    PMODEGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      PMODEGOV_PROFILE_MATURITY_V2.ACTIVE,
+      PMODEGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    PMODEGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      PMODEGOV_PROFILE_MATURITY_V2.PAUSED,
+      PMODEGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    PMODEGOV_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      PMODEGOV_PROFILE_MATURITY_V2.ACTIVE,
+      PMODEGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [PMODEGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _pmodegovPTerminal = new Set([PMODEGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _pmodegovJTrans = new Map([
+  [
+    PMODEGOV_PLAN_LIFECYCLE_V2.QUEUED,
+    new Set([
+      PMODEGOV_PLAN_LIFECYCLE_V2.PLANNING,
+      PMODEGOV_PLAN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    PMODEGOV_PLAN_LIFECYCLE_V2.PLANNING,
+    new Set([
+      PMODEGOV_PLAN_LIFECYCLE_V2.FINALIZED,
+      PMODEGOV_PLAN_LIFECYCLE_V2.FAILED,
+      PMODEGOV_PLAN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [PMODEGOV_PLAN_LIFECYCLE_V2.FINALIZED, new Set()],
+  [PMODEGOV_PLAN_LIFECYCLE_V2.FAILED, new Set()],
+  [PMODEGOV_PLAN_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _pmodegovPsV2 = new Map();
+const _pmodegovJsV2 = new Map();
+let _pmodegovMaxActive = 6,
+  _pmodegovMaxPending = 15,
+  _pmodegovIdleMs = 2592000000,
+  _pmodegovStuckMs = 60 * 1000;
+function _pmodegovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _pmodegovCheckP(from, to) {
+  const a = _pmodegovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid pmodegov profile transition ${from} → ${to}`);
+}
+function _pmodegovCheckJ(from, to) {
+  const a = _pmodegovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid pmodegov plan transition ${from} → ${to}`);
+}
+function _pmodegovCountActive(owner) {
+  let c = 0;
+  for (const p of _pmodegovPsV2.values())
+    if (p.owner === owner && p.status === PMODEGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _pmodegovCountPending(profileId) {
+  let c = 0;
+  for (const j of _pmodegovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === PMODEGOV_PLAN_LIFECYCLE_V2.QUEUED ||
+        j.status === PMODEGOV_PLAN_LIFECYCLE_V2.PLANNING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActivePmodeProfilesPerOwnerV2(n) {
+  _pmodegovMaxActive = _pmodegovPos(n, "maxActivePmodeProfilesPerOwner");
+}
+export function getMaxActivePmodeProfilesPerOwnerV2() {
+  return _pmodegovMaxActive;
+}
+export function setMaxPendingPmodePlansPerProfileV2(n) {
+  _pmodegovMaxPending = _pmodegovPos(n, "maxPendingPmodePlansPerProfile");
+}
+export function getMaxPendingPmodePlansPerProfileV2() {
+  return _pmodegovMaxPending;
+}
+export function setPmodeProfileIdleMsV2(n) {
+  _pmodegovIdleMs = _pmodegovPos(n, "pmodegovProfileIdleMs");
+}
+export function getPmodeProfileIdleMsV2() {
+  return _pmodegovIdleMs;
+}
+export function setPmodePlanStuckMsV2(n) {
+  _pmodegovStuckMs = _pmodegovPos(n, "pmodegovPlanStuckMs");
+}
+export function getPmodePlanStuckMsV2() {
+  return _pmodegovStuckMs;
+}
+export function _resetStatePmodegovV2() {
+  _pmodegovPsV2.clear();
+  _pmodegovJsV2.clear();
+  _pmodegovMaxActive = 6;
+  _pmodegovMaxPending = 15;
+  _pmodegovIdleMs = 2592000000;
+  _pmodegovStuckMs = 60 * 1000;
+}
+export function registerPmodeProfileV2({ id, owner, template, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_pmodegovPsV2.has(id))
+    throw new Error(`pmodegov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    template: template || "default",
+    status: PMODEGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _pmodegovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activatePmodeProfileV2(id) {
+  const p = _pmodegovPsV2.get(id);
+  if (!p) throw new Error(`pmodegov profile ${id} not found`);
+  const isInitial = p.status === PMODEGOV_PROFILE_MATURITY_V2.PENDING;
+  _pmodegovCheckP(p.status, PMODEGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _pmodegovCountActive(p.owner) >= _pmodegovMaxActive)
+    throw new Error(
+      `max active pmodegov profiles for owner ${p.owner} reached`,
+    );
+  const now = Date.now();
+  p.status = PMODEGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pausedPmodeProfileV2(id) {
+  const p = _pmodegovPsV2.get(id);
+  if (!p) throw new Error(`pmodegov profile ${id} not found`);
+  _pmodegovCheckP(p.status, PMODEGOV_PROFILE_MATURITY_V2.PAUSED);
+  p.status = PMODEGOV_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archivePmodeProfileV2(id) {
+  const p = _pmodegovPsV2.get(id);
+  if (!p) throw new Error(`pmodegov profile ${id} not found`);
+  _pmodegovCheckP(p.status, PMODEGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = PMODEGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchPmodeProfileV2(id) {
+  const p = _pmodegovPsV2.get(id);
+  if (!p) throw new Error(`pmodegov profile ${id} not found`);
+  if (_pmodegovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal pmodegov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getPmodeProfileV2(id) {
+  const p = _pmodegovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listPmodeProfilesV2() {
+  return [..._pmodegovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createPmodePlanV2({ id, profileId, planId, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_pmodegovJsV2.has(id))
+    throw new Error(`pmodegov plan ${id} already exists`);
+  if (!_pmodegovPsV2.has(profileId))
+    throw new Error(`pmodegov profile ${profileId} not found`);
+  if (_pmodegovCountPending(profileId) >= _pmodegovMaxPending)
+    throw new Error(
+      `max pending pmodegov plans for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    planId: planId || "",
+    status: PMODEGOV_PLAN_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _pmodegovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function planningPmodePlanV2(id) {
+  const j = _pmodegovJsV2.get(id);
+  if (!j) throw new Error(`pmodegov plan ${id} not found`);
+  _pmodegovCheckJ(j.status, PMODEGOV_PLAN_LIFECYCLE_V2.PLANNING);
+  const now = Date.now();
+  j.status = PMODEGOV_PLAN_LIFECYCLE_V2.PLANNING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completePlanPmodeV2(id) {
+  const j = _pmodegovJsV2.get(id);
+  if (!j) throw new Error(`pmodegov plan ${id} not found`);
+  _pmodegovCheckJ(j.status, PMODEGOV_PLAN_LIFECYCLE_V2.FINALIZED);
+  const now = Date.now();
+  j.status = PMODEGOV_PLAN_LIFECYCLE_V2.FINALIZED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failPmodePlanV2(id, reason) {
+  const j = _pmodegovJsV2.get(id);
+  if (!j) throw new Error(`pmodegov plan ${id} not found`);
+  _pmodegovCheckJ(j.status, PMODEGOV_PLAN_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = PMODEGOV_PLAN_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelPmodePlanV2(id, reason) {
+  const j = _pmodegovJsV2.get(id);
+  if (!j) throw new Error(`pmodegov plan ${id} not found`);
+  _pmodegovCheckJ(j.status, PMODEGOV_PLAN_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = PMODEGOV_PLAN_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getPmodePlanV2(id) {
+  const j = _pmodegovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listPmodePlansV2() {
+  return [..._pmodegovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPausedIdlePmodeProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _pmodegovPsV2.values())
+    if (
+      p.status === PMODEGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _pmodegovIdleMs
+    ) {
+      p.status = PMODEGOV_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckPmodePlansV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _pmodegovJsV2.values())
+    if (
+      j.status === PMODEGOV_PLAN_LIFECYCLE_V2.PLANNING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _pmodegovStuckMs
+    ) {
+      j.status = PMODEGOV_PLAN_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getPmodegovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(PMODEGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _pmodegovPsV2.values()) profilesByStatus[p.status]++;
+  const plansByStatus = {};
+  for (const v of Object.values(PMODEGOV_PLAN_LIFECYCLE_V2))
+    plansByStatus[v] = 0;
+  for (const j of _pmodegovJsV2.values()) plansByStatus[j.status]++;
+  return {
+    totalPmodeProfilesV2: _pmodegovPsV2.size,
+    totalPmodePlansV2: _pmodegovJsV2.size,
+    maxActivePmodeProfilesPerOwner: _pmodegovMaxActive,
+    maxPendingPmodePlansPerProfile: _pmodegovMaxPending,
+    pmodegovProfileIdleMs: _pmodegovIdleMs,
+    pmodegovPlanStuckMs: _pmodegovStuckMs,
+    profilesByStatus,
+    plansByStatus,
+  };
+}

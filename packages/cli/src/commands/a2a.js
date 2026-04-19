@@ -982,3 +982,204 @@ export function registerA2aV2Command(a2a) {
       console.log(JSON.stringify(getA2aProtocolGovStatsV2(), null, 2));
     });
 }
+
+// === Iter28 V2 governance overlay: A2apgov ===
+export function registerA2apV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "a2a");
+  if (!parent) return;
+  const L = async () => await import("../lib/a2a-protocol.js");
+  parent
+    .command("a2apgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.A2APGOV_PROFILE_MATURITY_V2,
+            msgLifecycle: m.A2APGOV_MSG_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("a2apgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveA2apProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingA2apMsgsPerProfileV2(),
+            idleMs: m.getA2apProfileIdleMsV2(),
+            stuckMs: m.getA2apMsgStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("a2apgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveA2apProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("a2apgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingA2apMsgsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("a2apgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setA2apProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("a2apgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setA2apMsgStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("a2apgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--endpoint <v>", "endpoint")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerA2apProfileV2({ id, owner, endpoint: o.endpoint }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("a2apgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateA2apProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("a2apgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).staleA2apProfileV2(id), null, 2));
+    });
+  parent
+    .command("a2apgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveA2apProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("a2apgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchA2apProfileV2(id), null, 2));
+    });
+  parent
+    .command("a2apgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getA2apProfileV2(id), null, 2));
+    });
+  parent
+    .command("a2apgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listA2apProfilesV2(), null, 2));
+    });
+  parent
+    .command("a2apgov-create-msg-v2 <id> <profileId>")
+    .description("Create msg")
+    .option("--messageId <v>", "messageId")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createA2apMsgV2({ id, profileId, messageId: o.messageId }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("a2apgov-dispatching-msg-v2 <id>")
+    .description("Mark msg as dispatching")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).dispatchingA2apMsgV2(id), null, 2),
+      );
+    });
+  parent
+    .command("a2apgov-complete-msg-v2 <id>")
+    .description("Complete msg")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completeMsgA2apV2(id), null, 2));
+    });
+  parent
+    .command("a2apgov-fail-msg-v2 <id> [reason]")
+    .description("Fail msg")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failA2apMsgV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("a2apgov-cancel-msg-v2 <id> [reason]")
+    .description("Cancel msg")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelA2apMsgV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("a2apgov-get-msg-v2 <id>")
+    .description("Get msg")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getA2apMsgV2(id), null, 2));
+    });
+  parent
+    .command("a2apgov-list-msgs-v2")
+    .description("List msgs")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listA2apMsgsV2(), null, 2));
+    });
+  parent
+    .command("a2apgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleA2apProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("a2apgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck msgs")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckA2apMsgsV2(), null, 2),
+      );
+    });
+  parent
+    .command("a2apgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).getA2apgovStatsV2(), null, 2));
+    });
+}

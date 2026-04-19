@@ -912,3 +912,206 @@ export function registerMemgovV2Commands(program) {
       );
     });
 }
+
+// === Iter26 V2 governance overlay ===
+export function registerHlgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "memory");
+  if (!parent) return;
+  const L = async () => await import("../lib/hashline.js");
+  parent
+    .command("hlgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.HLGOV_PROFILE_MATURITY_V2,
+            digestLifecycle: m.HLGOV_DIGEST_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("hlgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveHlgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingHlgovDigestsPerProfileV2(),
+            idleMs: m.getHlgovProfileIdleMsV2(),
+            stuckMs: m.getHlgovDigestStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("hlgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveHlgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("hlgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingHlgovDigestsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("hlgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setHlgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("hlgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setHlgovDigestStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("hlgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--algorithm <v>", "algorithm")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerHlgovProfileV2({ id, owner, algorithm: o.algorithm }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("hlgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateHlgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hlgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).staleHlgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("hlgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveHlgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hlgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchHlgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("hlgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getHlgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("hlgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listHlgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("hlgov-create-digest-v2 <id> <profileId>")
+    .description("Create digest")
+    .option("--content <v>", "content")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createHlgovDigestV2({ id, profileId, content: o.content }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("hlgov-hashing-digest-v2 <id>")
+    .description("Mark digest as hashing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).hashingHlgovDigestV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hlgov-complete-digest-v2 <id>")
+    .description("Complete digest")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeDigestHlgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hlgov-fail-digest-v2 <id> [reason]")
+    .description("Fail digest")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failHlgovDigestV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("hlgov-cancel-digest-v2 <id> [reason]")
+    .description("Cancel digest")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelHlgovDigestV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("hlgov-get-digest-v2 <id>")
+    .description("Get digest")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getHlgovDigestV2(id), null, 2));
+    });
+  parent
+    .command("hlgov-list-digests-v2")
+    .description("List digests")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listHlgovDigestsV2(), null, 2));
+    });
+  parent
+    .command("hlgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleHlgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("hlgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck digests")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckHlgovDigestsV2(), null, 2),
+      );
+    });
+  parent
+    .command("hlgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).getHashlineGovStatsV2(), null, 2));
+    });
+}

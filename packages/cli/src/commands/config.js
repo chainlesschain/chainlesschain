@@ -214,3 +214,216 @@ function printConfig(obj, indent = "") {
     }
   }
 }
+
+// === Iter27 V2 governance overlay ===
+export function registerScsgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "config");
+  if (!parent) return;
+  const L = async () => await import("../lib/session-core-singletons.js");
+  parent
+    .command("scsgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.SCSGOV_PROFILE_MATURITY_V2,
+            accessLifecycle: m.SCSGOV_ACCESS_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("scsgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveScsgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingScsgovAccesssPerProfileV2(),
+            idleMs: m.getScsgovProfileIdleMsV2(),
+            stuckMs: m.getScsgovAccessStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("scsgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveScsgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("scsgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingScsgovAccesssPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("scsgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setScsgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("scsgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setScsgovAccessStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("scsgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--component <v>", "component")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerScsgovProfileV2({ id, owner, component: o.component }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("scsgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateScsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("scsgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleScsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("scsgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveScsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("scsgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchScsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("scsgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getScsgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("scsgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listScsgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("scsgov-create-access-v2 <id> <profileId>")
+    .description("Create access")
+    .option("--caller <v>", "caller")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createScsgovAccessV2({ id, profileId, caller: o.caller }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("scsgov-resolving-access-v2 <id>")
+    .description("Mark access as resolving")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).resolvingScsgovAccessV2(id), null, 2),
+      );
+    });
+  parent
+    .command("scsgov-complete-access-v2 <id>")
+    .description("Complete access")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeAccessScsgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("scsgov-fail-access-v2 <id> [reason]")
+    .description("Fail access")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failScsgovAccessV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("scsgov-cancel-access-v2 <id> [reason]")
+    .description("Cancel access")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelScsgovAccessV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("scsgov-get-access-v2 <id>")
+    .description("Get access")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getScsgovAccessV2(id), null, 2));
+    });
+  parent
+    .command("scsgov-list-accesss-v2")
+    .description("List accesss")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listScsgovAccesssV2(), null, 2));
+    });
+  parent
+    .command("scsgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleScsgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("scsgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck accesss")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckScsgovAccesssV2(), null, 2),
+      );
+    });
+  parent
+    .command("scsgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify(
+          (await L()).getSessionCoreSingletonsGovStatsV2(),
+          null,
+          2,
+        ),
+      );
+    });
+}

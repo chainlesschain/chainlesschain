@@ -377,3 +377,344 @@ export function listTools(db) {
     )
     .all();
 }
+
+// =====================================================================
+// cli-anything-bridge V2 governance overlay (iter25)
+// =====================================================================
+export const CLIBGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  DEGRADED: "degraded",
+  ARCHIVED: "archived",
+});
+export const CLIBGOV_BRIDGE_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  BRIDGING: "bridging",
+  BRIDGED: "bridged",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _clibgovPTrans = new Map([
+  [
+    CLIBGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      CLIBGOV_PROFILE_MATURITY_V2.ACTIVE,
+      CLIBGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CLIBGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      CLIBGOV_PROFILE_MATURITY_V2.DEGRADED,
+      CLIBGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CLIBGOV_PROFILE_MATURITY_V2.DEGRADED,
+    new Set([
+      CLIBGOV_PROFILE_MATURITY_V2.ACTIVE,
+      CLIBGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [CLIBGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _clibgovPTerminal = new Set([CLIBGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _clibgovJTrans = new Map([
+  [
+    CLIBGOV_BRIDGE_LIFECYCLE_V2.QUEUED,
+    new Set([
+      CLIBGOV_BRIDGE_LIFECYCLE_V2.BRIDGING,
+      CLIBGOV_BRIDGE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    CLIBGOV_BRIDGE_LIFECYCLE_V2.BRIDGING,
+    new Set([
+      CLIBGOV_BRIDGE_LIFECYCLE_V2.BRIDGED,
+      CLIBGOV_BRIDGE_LIFECYCLE_V2.FAILED,
+      CLIBGOV_BRIDGE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [CLIBGOV_BRIDGE_LIFECYCLE_V2.BRIDGED, new Set()],
+  [CLIBGOV_BRIDGE_LIFECYCLE_V2.FAILED, new Set()],
+  [CLIBGOV_BRIDGE_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _clibgovPsV2 = new Map();
+const _clibgovJsV2 = new Map();
+let _clibgovMaxActive = 8,
+  _clibgovMaxPending = 20,
+  _clibgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _clibgovStuckMs = 60 * 1000;
+function _clibgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _clibgovCheckP(from, to) {
+  const a = _clibgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid clibgov profile transition ${from} → ${to}`);
+}
+function _clibgovCheckJ(from, to) {
+  const a = _clibgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid clibgov bridge transition ${from} → ${to}`);
+}
+function _clibgovCountActive(owner) {
+  let c = 0;
+  for (const p of _clibgovPsV2.values())
+    if (p.owner === owner && p.status === CLIBGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _clibgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _clibgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === CLIBGOV_BRIDGE_LIFECYCLE_V2.QUEUED ||
+        j.status === CLIBGOV_BRIDGE_LIFECYCLE_V2.BRIDGING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveClibgovProfilesPerOwnerV2(n) {
+  _clibgovMaxActive = _clibgovPos(n, "maxActiveClibgovProfilesPerOwner");
+}
+export function getMaxActiveClibgovProfilesPerOwnerV2() {
+  return _clibgovMaxActive;
+}
+export function setMaxPendingClibgovBridgesPerProfileV2(n) {
+  _clibgovMaxPending = _clibgovPos(n, "maxPendingClibgovBridgesPerProfile");
+}
+export function getMaxPendingClibgovBridgesPerProfileV2() {
+  return _clibgovMaxPending;
+}
+export function setClibgovProfileIdleMsV2(n) {
+  _clibgovIdleMs = _clibgovPos(n, "clibgovProfileIdleMs");
+}
+export function getClibgovProfileIdleMsV2() {
+  return _clibgovIdleMs;
+}
+export function setClibgovBridgeStuckMsV2(n) {
+  _clibgovStuckMs = _clibgovPos(n, "clibgovBridgeStuckMs");
+}
+export function getClibgovBridgeStuckMsV2() {
+  return _clibgovStuckMs;
+}
+export function _resetStateCliAnythingBridgeGovV2() {
+  _clibgovPsV2.clear();
+  _clibgovJsV2.clear();
+  _clibgovMaxActive = 8;
+  _clibgovMaxPending = 20;
+  _clibgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _clibgovStuckMs = 60 * 1000;
+}
+export function registerClibgovProfileV2({ id, owner, tool, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_clibgovPsV2.has(id))
+    throw new Error(`clibgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    tool: tool || "generic",
+    status: CLIBGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _clibgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateClibgovProfileV2(id) {
+  const p = _clibgovPsV2.get(id);
+  if (!p) throw new Error(`clibgov profile ${id} not found`);
+  const isInitial = p.status === CLIBGOV_PROFILE_MATURITY_V2.PENDING;
+  _clibgovCheckP(p.status, CLIBGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _clibgovCountActive(p.owner) >= _clibgovMaxActive)
+    throw new Error(`max active clibgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = CLIBGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function degradeClibgovProfileV2(id) {
+  const p = _clibgovPsV2.get(id);
+  if (!p) throw new Error(`clibgov profile ${id} not found`);
+  _clibgovCheckP(p.status, CLIBGOV_PROFILE_MATURITY_V2.DEGRADED);
+  p.status = CLIBGOV_PROFILE_MATURITY_V2.DEGRADED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveClibgovProfileV2(id) {
+  const p = _clibgovPsV2.get(id);
+  if (!p) throw new Error(`clibgov profile ${id} not found`);
+  _clibgovCheckP(p.status, CLIBGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = CLIBGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchClibgovProfileV2(id) {
+  const p = _clibgovPsV2.get(id);
+  if (!p) throw new Error(`clibgov profile ${id} not found`);
+  if (_clibgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal clibgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getClibgovProfileV2(id) {
+  const p = _clibgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listClibgovProfilesV2() {
+  return [..._clibgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createClibgovBridgeV2({
+  id,
+  profileId,
+  command,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_clibgovJsV2.has(id))
+    throw new Error(`clibgov bridge ${id} already exists`);
+  if (!_clibgovPsV2.has(profileId))
+    throw new Error(`clibgov profile ${profileId} not found`);
+  if (_clibgovCountPending(profileId) >= _clibgovMaxPending)
+    throw new Error(
+      `max pending clibgov bridges for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    command: command || "",
+    status: CLIBGOV_BRIDGE_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _clibgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function bridgingClibgovBridgeV2(id) {
+  const j = _clibgovJsV2.get(id);
+  if (!j) throw new Error(`clibgov bridge ${id} not found`);
+  _clibgovCheckJ(j.status, CLIBGOV_BRIDGE_LIFECYCLE_V2.BRIDGING);
+  const now = Date.now();
+  j.status = CLIBGOV_BRIDGE_LIFECYCLE_V2.BRIDGING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeBridgeClibgovV2(id) {
+  const j = _clibgovJsV2.get(id);
+  if (!j) throw new Error(`clibgov bridge ${id} not found`);
+  _clibgovCheckJ(j.status, CLIBGOV_BRIDGE_LIFECYCLE_V2.BRIDGED);
+  const now = Date.now();
+  j.status = CLIBGOV_BRIDGE_LIFECYCLE_V2.BRIDGED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failClibgovBridgeV2(id, reason) {
+  const j = _clibgovJsV2.get(id);
+  if (!j) throw new Error(`clibgov bridge ${id} not found`);
+  _clibgovCheckJ(j.status, CLIBGOV_BRIDGE_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = CLIBGOV_BRIDGE_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelClibgovBridgeV2(id, reason) {
+  const j = _clibgovJsV2.get(id);
+  if (!j) throw new Error(`clibgov bridge ${id} not found`);
+  _clibgovCheckJ(j.status, CLIBGOV_BRIDGE_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = CLIBGOV_BRIDGE_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getClibgovBridgeV2(id) {
+  const j = _clibgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listClibgovBridgesV2() {
+  return [..._clibgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoDegradeIdleClibgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _clibgovPsV2.values())
+    if (
+      p.status === CLIBGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _clibgovIdleMs
+    ) {
+      p.status = CLIBGOV_PROFILE_MATURITY_V2.DEGRADED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckClibgovBridgesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _clibgovJsV2.values())
+    if (
+      j.status === CLIBGOV_BRIDGE_LIFECYCLE_V2.BRIDGING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _clibgovStuckMs
+    ) {
+      j.status = CLIBGOV_BRIDGE_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getCliAnythingBridgeGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(CLIBGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _clibgovPsV2.values()) profilesByStatus[p.status]++;
+  const bridgesByStatus = {};
+  for (const v of Object.values(CLIBGOV_BRIDGE_LIFECYCLE_V2))
+    bridgesByStatus[v] = 0;
+  for (const j of _clibgovJsV2.values()) bridgesByStatus[j.status]++;
+  return {
+    totalClibgovProfilesV2: _clibgovPsV2.size,
+    totalClibgovBridgesV2: _clibgovJsV2.size,
+    maxActiveClibgovProfilesPerOwner: _clibgovMaxActive,
+    maxPendingClibgovBridgesPerProfile: _clibgovMaxPending,
+    clibgovProfileIdleMs: _clibgovIdleMs,
+    clibgovBridgeStuckMs: _clibgovStuckMs,
+    profilesByStatus,
+    bridgesByStatus,
+  };
+}

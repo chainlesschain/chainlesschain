@@ -594,3 +594,337 @@ export function _resetStateCryptoManagerV2() {
   _keyIdleMsV2 = CRYPTO_DEFAULT_KEY_IDLE_MS;
   _jobStuckMsV2 = CRYPTO_DEFAULT_JOB_STUCK_MS;
 }
+
+// === Iter28 V2 governance overlay: Crygov ===
+export const CRYGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const CRYGOV_ENCRYPT_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  ENCRYPTING: "encrypting",
+  ENCRYPTED: "encrypted",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _crygovPTrans = new Map([
+  [
+    CRYGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      CRYGOV_PROFILE_MATURITY_V2.ACTIVE,
+      CRYGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CRYGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      CRYGOV_PROFILE_MATURITY_V2.STALE,
+      CRYGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CRYGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      CRYGOV_PROFILE_MATURITY_V2.ACTIVE,
+      CRYGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [CRYGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _crygovPTerminal = new Set([CRYGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _crygovJTrans = new Map([
+  [
+    CRYGOV_ENCRYPT_LIFECYCLE_V2.QUEUED,
+    new Set([
+      CRYGOV_ENCRYPT_LIFECYCLE_V2.ENCRYPTING,
+      CRYGOV_ENCRYPT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    CRYGOV_ENCRYPT_LIFECYCLE_V2.ENCRYPTING,
+    new Set([
+      CRYGOV_ENCRYPT_LIFECYCLE_V2.ENCRYPTED,
+      CRYGOV_ENCRYPT_LIFECYCLE_V2.FAILED,
+      CRYGOV_ENCRYPT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [CRYGOV_ENCRYPT_LIFECYCLE_V2.ENCRYPTED, new Set()],
+  [CRYGOV_ENCRYPT_LIFECYCLE_V2.FAILED, new Set()],
+  [CRYGOV_ENCRYPT_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _crygovPsV2 = new Map();
+const _crygovJsV2 = new Map();
+let _crygovMaxActive = 8,
+  _crygovMaxPending = 20,
+  _crygovIdleMs = 2592000000,
+  _crygovStuckMs = 60 * 1000;
+function _crygovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _crygovCheckP(from, to) {
+  const a = _crygovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid crygov profile transition ${from} → ${to}`);
+}
+function _crygovCheckJ(from, to) {
+  const a = _crygovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid crygov encrypt transition ${from} → ${to}`);
+}
+function _crygovCountActive(owner) {
+  let c = 0;
+  for (const p of _crygovPsV2.values())
+    if (p.owner === owner && p.status === CRYGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _crygovCountPending(profileId) {
+  let c = 0;
+  for (const j of _crygovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === CRYGOV_ENCRYPT_LIFECYCLE_V2.QUEUED ||
+        j.status === CRYGOV_ENCRYPT_LIFECYCLE_V2.ENCRYPTING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveCryProfilesPerOwnerV2(n) {
+  _crygovMaxActive = _crygovPos(n, "maxActiveCryProfilesPerOwner");
+}
+export function getMaxActiveCryProfilesPerOwnerV2() {
+  return _crygovMaxActive;
+}
+export function setMaxPendingCryEncryptsPerProfileV2(n) {
+  _crygovMaxPending = _crygovPos(n, "maxPendingCryEncryptsPerProfile");
+}
+export function getMaxPendingCryEncryptsPerProfileV2() {
+  return _crygovMaxPending;
+}
+export function setCryProfileIdleMsV2(n) {
+  _crygovIdleMs = _crygovPos(n, "crygovProfileIdleMs");
+}
+export function getCryProfileIdleMsV2() {
+  return _crygovIdleMs;
+}
+export function setCryEncryptStuckMsV2(n) {
+  _crygovStuckMs = _crygovPos(n, "crygovEncryptStuckMs");
+}
+export function getCryEncryptStuckMsV2() {
+  return _crygovStuckMs;
+}
+export function _resetStateCrygovV2() {
+  _crygovPsV2.clear();
+  _crygovJsV2.clear();
+  _crygovMaxActive = 8;
+  _crygovMaxPending = 20;
+  _crygovIdleMs = 2592000000;
+  _crygovStuckMs = 60 * 1000;
+}
+export function registerCryProfileV2({ id, owner, provider, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_crygovPsV2.has(id))
+    throw new Error(`crygov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    provider: provider || "default",
+    status: CRYGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _crygovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateCryProfileV2(id) {
+  const p = _crygovPsV2.get(id);
+  if (!p) throw new Error(`crygov profile ${id} not found`);
+  const isInitial = p.status === CRYGOV_PROFILE_MATURITY_V2.PENDING;
+  _crygovCheckP(p.status, CRYGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _crygovCountActive(p.owner) >= _crygovMaxActive)
+    throw new Error(`max active crygov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = CRYGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleCryProfileV2(id) {
+  const p = _crygovPsV2.get(id);
+  if (!p) throw new Error(`crygov profile ${id} not found`);
+  _crygovCheckP(p.status, CRYGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = CRYGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveCryProfileV2(id) {
+  const p = _crygovPsV2.get(id);
+  if (!p) throw new Error(`crygov profile ${id} not found`);
+  _crygovCheckP(p.status, CRYGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = CRYGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchCryProfileV2(id) {
+  const p = _crygovPsV2.get(id);
+  if (!p) throw new Error(`crygov profile ${id} not found`);
+  if (_crygovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal crygov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getCryProfileV2(id) {
+  const p = _crygovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listCryProfilesV2() {
+  return [..._crygovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createCryEncryptV2({ id, profileId, keyId, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_crygovJsV2.has(id))
+    throw new Error(`crygov encrypt ${id} already exists`);
+  if (!_crygovPsV2.has(profileId))
+    throw new Error(`crygov profile ${profileId} not found`);
+  if (_crygovCountPending(profileId) >= _crygovMaxPending)
+    throw new Error(
+      `max pending crygov encrypts for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    keyId: keyId || "",
+    status: CRYGOV_ENCRYPT_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _crygovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function encryptingCryEncryptV2(id) {
+  const j = _crygovJsV2.get(id);
+  if (!j) throw new Error(`crygov encrypt ${id} not found`);
+  _crygovCheckJ(j.status, CRYGOV_ENCRYPT_LIFECYCLE_V2.ENCRYPTING);
+  const now = Date.now();
+  j.status = CRYGOV_ENCRYPT_LIFECYCLE_V2.ENCRYPTING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeEncryptCryV2(id) {
+  const j = _crygovJsV2.get(id);
+  if (!j) throw new Error(`crygov encrypt ${id} not found`);
+  _crygovCheckJ(j.status, CRYGOV_ENCRYPT_LIFECYCLE_V2.ENCRYPTED);
+  const now = Date.now();
+  j.status = CRYGOV_ENCRYPT_LIFECYCLE_V2.ENCRYPTED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failCryEncryptV2(id, reason) {
+  const j = _crygovJsV2.get(id);
+  if (!j) throw new Error(`crygov encrypt ${id} not found`);
+  _crygovCheckJ(j.status, CRYGOV_ENCRYPT_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = CRYGOV_ENCRYPT_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelCryEncryptV2(id, reason) {
+  const j = _crygovJsV2.get(id);
+  if (!j) throw new Error(`crygov encrypt ${id} not found`);
+  _crygovCheckJ(j.status, CRYGOV_ENCRYPT_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = CRYGOV_ENCRYPT_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getCryEncryptV2(id) {
+  const j = _crygovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listCryEncryptsV2() {
+  return [..._crygovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleCryProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _crygovPsV2.values())
+    if (
+      p.status === CRYGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _crygovIdleMs
+    ) {
+      p.status = CRYGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckCryEncryptsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _crygovJsV2.values())
+    if (
+      j.status === CRYGOV_ENCRYPT_LIFECYCLE_V2.ENCRYPTING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _crygovStuckMs
+    ) {
+      j.status = CRYGOV_ENCRYPT_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getCrygovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(CRYGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _crygovPsV2.values()) profilesByStatus[p.status]++;
+  const encryptsByStatus = {};
+  for (const v of Object.values(CRYGOV_ENCRYPT_LIFECYCLE_V2))
+    encryptsByStatus[v] = 0;
+  for (const j of _crygovJsV2.values()) encryptsByStatus[j.status]++;
+  return {
+    totalCryProfilesV2: _crygovPsV2.size,
+    totalCryEncryptsV2: _crygovJsV2.size,
+    maxActiveCryProfilesPerOwner: _crygovMaxActive,
+    maxPendingCryEncryptsPerProfile: _crygovMaxPending,
+    crygovProfileIdleMs: _crygovIdleMs,
+    crygovEncryptStuckMs: _crygovStuckMs,
+    profilesByStatus,
+    encryptsByStatus,
+  };
+}

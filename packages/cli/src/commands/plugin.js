@@ -449,3 +449,212 @@ export function registerPluginCommand(program) {
       }
     });
 }
+
+// === Iter26 V2 governance overlay ===
+export function registerPadgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "plugin");
+  if (!parent) return;
+  const L = async () => await import("../lib/plugin-autodiscovery.js");
+  parent
+    .command("padgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.PADGOV_PROFILE_MATURITY_V2,
+            scanLifecycle: m.PADGOV_SCAN_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("padgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActivePadgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingPadgovScansPerProfileV2(),
+            idleMs: m.getPadgovProfileIdleMsV2(),
+            stuckMs: m.getPadgovScanStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("padgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActivePadgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("padgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingPadgovScansPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("padgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setPadgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("padgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setPadgovScanStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("padgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--root <v>", "root")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerPadgovProfileV2({ id, owner, root: o.root }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("padgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activatePadgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("padgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).stalePadgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("padgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archivePadgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("padgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchPadgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("padgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getPadgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("padgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listPadgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("padgov-create-scan-v2 <id> <profileId>")
+    .description("Create scan")
+    .option("--path <v>", "path")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createPadgovScanV2({ id, profileId, path: o.path }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("padgov-scanning-scan-v2 <id>")
+    .description("Mark scan as scanning")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).scanningPadgovScanV2(id), null, 2),
+      );
+    });
+  parent
+    .command("padgov-complete-scan-v2 <id>")
+    .description("Complete scan")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeScanPadgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("padgov-fail-scan-v2 <id> [reason]")
+    .description("Fail scan")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failPadgovScanV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("padgov-cancel-scan-v2 <id> [reason]")
+    .description("Cancel scan")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelPadgovScanV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("padgov-get-scan-v2 <id>")
+    .description("Get scan")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getPadgovScanV2(id), null, 2));
+    });
+  parent
+    .command("padgov-list-scans-v2")
+    .description("List scans")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listPadgovScansV2(), null, 2));
+    });
+  parent
+    .command("padgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdlePadgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("padgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck scans")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckPadgovScansV2(), null, 2),
+      );
+    });
+  parent
+    .command("padgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getPluginAutodiscoveryGovStatsV2(), null, 2),
+      );
+    });
+}

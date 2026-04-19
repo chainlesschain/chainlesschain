@@ -894,3 +894,409 @@ export function registerCcbgovV2Commands(program) {
       );
     });
 }
+
+// === Iter25 V2 governance overlay ===
+export function registerArgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "orchestrate");
+  if (!parent) return;
+  const L = async () => await import("../lib/agent-router.js");
+  parent
+    .command("argov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.ARGOV_PROFILE_MATURITY_V2,
+            routingLifecycle: m.ARGOV_ROUTING_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("argov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveArgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingArgovRoutingsPerProfileV2(),
+            idleMs: m.getArgovProfileIdleMsV2(),
+            stuckMs: m.getArgovRoutingStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("argov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveArgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("argov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingArgovRoutingsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("argov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setArgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("argov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setArgovRoutingStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("argov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--strategy <v>", "strategy")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerArgovProfileV2({ id, owner, strategy: o.strategy }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("argov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateArgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("argov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).staleArgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("argov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveArgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("argov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchArgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("argov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getArgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("argov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listArgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("argov-create-routing-v2 <id> <profileId>")
+    .description("Create routing")
+    .option("--target <v>", "target")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createArgovRoutingV2({ id, profileId, target: o.target }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("argov-running-routing-v2 <id>")
+    .description("Mark routing as running")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).runningArgovRoutingV2(id), null, 2),
+      );
+    });
+  parent
+    .command("argov-complete-routing-v2 <id>")
+    .description("Complete routing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeRoutingArgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("argov-fail-routing-v2 <id> [reason]")
+    .description("Fail routing")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failArgovRoutingV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("argov-cancel-routing-v2 <id> [reason]")
+    .description("Cancel routing")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelArgovRoutingV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("argov-get-routing-v2 <id>")
+    .description("Get routing")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getArgovRoutingV2(id), null, 2));
+    });
+  parent
+    .command("argov-list-routings-v2")
+    .description("List routings")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listArgovRoutingsV2(), null, 2));
+    });
+  parent
+    .command("argov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleArgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("argov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck routings")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckArgovRoutingsV2(), null, 2),
+      );
+    });
+  parent
+    .command("argov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getAgentRouterGovStatsV2(), null, 2),
+      );
+    });
+}
+
+// === Iter28 V2 governance overlay: Acrdgov ===
+export function registerAcrdV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "orchestrate");
+  if (!parent) return;
+  const L = async () => await import("../lib/agent-coordinator.js");
+  parent
+    .command("acrdgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.ACRDGOV_PROFILE_MATURITY_V2,
+            coordLifecycle: m.ACRDGOV_COORD_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("acrdgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveAcrdProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingAcrdCoordsPerProfileV2(),
+            idleMs: m.getAcrdProfileIdleMsV2(),
+            stuckMs: m.getAcrdCoordStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("acrdgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveAcrdProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("acrdgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingAcrdCoordsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("acrdgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setAcrdProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("acrdgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setAcrdCoordStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("acrdgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--role <v>", "role")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerAcrdProfileV2({ id, owner, role: o.role }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("acrdgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateAcrdProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("acrdgov-idle-v2 <id>")
+    .description("Idle profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).idleAcrdProfileV2(id), null, 2));
+    });
+  parent
+    .command("acrdgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveAcrdProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("acrdgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchAcrdProfileV2(id), null, 2));
+    });
+  parent
+    .command("acrdgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getAcrdProfileV2(id), null, 2));
+    });
+  parent
+    .command("acrdgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listAcrdProfilesV2(), null, 2));
+    });
+  parent
+    .command("acrdgov-create-coord-v2 <id> <profileId>")
+    .description("Create coord")
+    .option("--taskId <v>", "taskId")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createAcrdCoordV2({ id, profileId, taskId: o.taskId }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("acrdgov-coordinating-coord-v2 <id>")
+    .description("Mark coord as coordinating")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).coordinatingAcrdCoordV2(id), null, 2),
+      );
+    });
+  parent
+    .command("acrdgov-complete-coord-v2 <id>")
+    .description("Complete coord")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completeCoordAcrdV2(id), null, 2));
+    });
+  parent
+    .command("acrdgov-fail-coord-v2 <id> [reason]")
+    .description("Fail coord")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failAcrdCoordV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("acrdgov-cancel-coord-v2 <id> [reason]")
+    .description("Cancel coord")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelAcrdCoordV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("acrdgov-get-coord-v2 <id>")
+    .description("Get coord")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getAcrdCoordV2(id), null, 2));
+    });
+  parent
+    .command("acrdgov-list-coords-v2")
+    .description("List coords")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listAcrdCoordsV2(), null, 2));
+    });
+  parent
+    .command("acrdgov-auto-idle-idle-v2")
+    .description("Auto-idle idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoIdleIdleAcrdProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("acrdgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck coords")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckAcrdCoordsV2(), null, 2),
+      );
+    });
+  parent
+    .command("acrdgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).getAcrdgovStatsV2(), null, 2));
+    });
+}

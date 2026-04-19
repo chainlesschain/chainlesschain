@@ -996,3 +996,202 @@ function _registerEvolutionV2Commands(parent) {
       console.log(JSON.stringify(m.getEvolutionSystemGovStatsV2(), null, 2));
     });
 }
+
+// === Iter28 V2 governance overlay: Esysgov ===
+export function registerEsysV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "evolution");
+  if (!parent) return;
+  const L = async () => await import("../lib/evolution-system.js");
+  parent
+    .command("esysgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.ESYSGOV_PROFILE_MATURITY_V2,
+            cycleLifecycle: m.ESYSGOV_CYCLE_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("esysgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveEsysProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingEsysCyclesPerProfileV2(),
+            idleMs: m.getEsysProfileIdleMsV2(),
+            stuckMs: m.getEsysCycleStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("esysgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveEsysProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("esysgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingEsysCyclesPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("esysgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setEsysProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("esysgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setEsysCycleStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("esysgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--lane <v>", "lane")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerEsysProfileV2({ id, owner, lane: o.lane }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("esysgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateEsysProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("esysgov-paused-v2 <id>")
+    .description("Paused profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).pausedEsysProfileV2(id), null, 2));
+    });
+  parent
+    .command("esysgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveEsysProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("esysgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchEsysProfileV2(id), null, 2));
+    });
+  parent
+    .command("esysgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getEsysProfileV2(id), null, 2));
+    });
+  parent
+    .command("esysgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listEsysProfilesV2(), null, 2));
+    });
+  parent
+    .command("esysgov-create-cycle-v2 <id> <profileId>")
+    .description("Create cycle")
+    .option("--cycleId <v>", "cycleId")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createEsysCycleV2({ id, profileId, cycleId: o.cycleId }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("esysgov-evolving-cycle-v2 <id>")
+    .description("Mark cycle as evolving")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).evolvingEsysCycleV2(id), null, 2));
+    });
+  parent
+    .command("esysgov-complete-cycle-v2 <id>")
+    .description("Complete cycle")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completeCycleEsysV2(id), null, 2));
+    });
+  parent
+    .command("esysgov-fail-cycle-v2 <id> [reason]")
+    .description("Fail cycle")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failEsysCycleV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("esysgov-cancel-cycle-v2 <id> [reason]")
+    .description("Cancel cycle")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelEsysCycleV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("esysgov-get-cycle-v2 <id>")
+    .description("Get cycle")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getEsysCycleV2(id), null, 2));
+    });
+  parent
+    .command("esysgov-list-cycles-v2")
+    .description("List cycles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listEsysCyclesV2(), null, 2));
+    });
+  parent
+    .command("esysgov-auto-paused-idle-v2")
+    .description("Auto-paused idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoPausedIdleEsysProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("esysgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck cycles")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckEsysCyclesV2(), null, 2),
+      );
+    });
+  parent
+    .command("esysgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).getEsysgovStatsV2(), null, 2));
+    });
+}

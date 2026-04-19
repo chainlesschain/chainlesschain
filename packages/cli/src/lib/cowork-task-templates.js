@@ -651,7 +651,11 @@ export function getTemplatesForUI() {
   const userInstalled = Object.values(_userTemplates).map((tpl) => ({
     tpl,
     // User templates carry their own ui metadata inline
-    ui: { icon: tpl.icon, description: tpl.description, examples: tpl.examples },
+    ui: {
+      icon: tpl.icon,
+      description: tpl.description,
+      examples: tpl.examples,
+    },
     source: "user",
   }));
   return [...builtIn, ...userInstalled].map(({ tpl, ui, source }) => {
@@ -683,4 +687,341 @@ export function getTemplatesForUI() {
         : {}),
     };
   });
+}
+
+// =====================================================================
+// cowork-task-templates V2 governance overlay (iter25)
+// =====================================================================
+export const CTTGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const CTTGOV_USE_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  APPLYING: "applying",
+  APPLIED: "applied",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _cttgovPTrans = new Map([
+  [
+    CTTGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      CTTGOV_PROFILE_MATURITY_V2.ACTIVE,
+      CTTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CTTGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      CTTGOV_PROFILE_MATURITY_V2.STALE,
+      CTTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CTTGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      CTTGOV_PROFILE_MATURITY_V2.ACTIVE,
+      CTTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [CTTGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _cttgovPTerminal = new Set([CTTGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _cttgovJTrans = new Map([
+  [
+    CTTGOV_USE_LIFECYCLE_V2.QUEUED,
+    new Set([
+      CTTGOV_USE_LIFECYCLE_V2.APPLYING,
+      CTTGOV_USE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    CTTGOV_USE_LIFECYCLE_V2.APPLYING,
+    new Set([
+      CTTGOV_USE_LIFECYCLE_V2.APPLIED,
+      CTTGOV_USE_LIFECYCLE_V2.FAILED,
+      CTTGOV_USE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [CTTGOV_USE_LIFECYCLE_V2.APPLIED, new Set()],
+  [CTTGOV_USE_LIFECYCLE_V2.FAILED, new Set()],
+  [CTTGOV_USE_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _cttgovPsV2 = new Map();
+const _cttgovJsV2 = new Map();
+let _cttgovMaxActive = 8,
+  _cttgovMaxPending = 20,
+  _cttgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _cttgovStuckMs = 60 * 1000;
+function _cttgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _cttgovCheckP(from, to) {
+  const a = _cttgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid cttgov profile transition ${from} → ${to}`);
+}
+function _cttgovCheckJ(from, to) {
+  const a = _cttgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid cttgov use transition ${from} → ${to}`);
+}
+function _cttgovCountActive(owner) {
+  let c = 0;
+  for (const p of _cttgovPsV2.values())
+    if (p.owner === owner && p.status === CTTGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _cttgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _cttgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === CTTGOV_USE_LIFECYCLE_V2.QUEUED ||
+        j.status === CTTGOV_USE_LIFECYCLE_V2.APPLYING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveCttgovProfilesPerOwnerV2(n) {
+  _cttgovMaxActive = _cttgovPos(n, "maxActiveCttgovProfilesPerOwner");
+}
+export function getMaxActiveCttgovProfilesPerOwnerV2() {
+  return _cttgovMaxActive;
+}
+export function setMaxPendingCttgovUsesPerProfileV2(n) {
+  _cttgovMaxPending = _cttgovPos(n, "maxPendingCttgovUsesPerProfile");
+}
+export function getMaxPendingCttgovUsesPerProfileV2() {
+  return _cttgovMaxPending;
+}
+export function setCttgovProfileIdleMsV2(n) {
+  _cttgovIdleMs = _cttgovPos(n, "cttgovProfileIdleMs");
+}
+export function getCttgovProfileIdleMsV2() {
+  return _cttgovIdleMs;
+}
+export function setCttgovUseStuckMsV2(n) {
+  _cttgovStuckMs = _cttgovPos(n, "cttgovUseStuckMs");
+}
+export function getCttgovUseStuckMsV2() {
+  return _cttgovStuckMs;
+}
+export function _resetStateCoworkTaskTemplatesGovV2() {
+  _cttgovPsV2.clear();
+  _cttgovJsV2.clear();
+  _cttgovMaxActive = 8;
+  _cttgovMaxPending = 20;
+  _cttgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _cttgovStuckMs = 60 * 1000;
+}
+export function registerCttgovProfileV2({
+  id,
+  owner,
+  category,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_cttgovPsV2.has(id))
+    throw new Error(`cttgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    category: category || "general",
+    status: CTTGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _cttgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateCttgovProfileV2(id) {
+  const p = _cttgovPsV2.get(id);
+  if (!p) throw new Error(`cttgov profile ${id} not found`);
+  const isInitial = p.status === CTTGOV_PROFILE_MATURITY_V2.PENDING;
+  _cttgovCheckP(p.status, CTTGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _cttgovCountActive(p.owner) >= _cttgovMaxActive)
+    throw new Error(`max active cttgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = CTTGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleCttgovProfileV2(id) {
+  const p = _cttgovPsV2.get(id);
+  if (!p) throw new Error(`cttgov profile ${id} not found`);
+  _cttgovCheckP(p.status, CTTGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = CTTGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveCttgovProfileV2(id) {
+  const p = _cttgovPsV2.get(id);
+  if (!p) throw new Error(`cttgov profile ${id} not found`);
+  _cttgovCheckP(p.status, CTTGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = CTTGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchCttgovProfileV2(id) {
+  const p = _cttgovPsV2.get(id);
+  if (!p) throw new Error(`cttgov profile ${id} not found`);
+  if (_cttgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal cttgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getCttgovProfileV2(id) {
+  const p = _cttgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listCttgovProfilesV2() {
+  return [..._cttgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createCttgovUseV2({ id, profileId, context, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_cttgovJsV2.has(id)) throw new Error(`cttgov use ${id} already exists`);
+  if (!_cttgovPsV2.has(profileId))
+    throw new Error(`cttgov profile ${profileId} not found`);
+  if (_cttgovCountPending(profileId) >= _cttgovMaxPending)
+    throw new Error(`max pending cttgov uses for profile ${profileId} reached`);
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    context: context || "",
+    status: CTTGOV_USE_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _cttgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function applyingCttgovUseV2(id) {
+  const j = _cttgovJsV2.get(id);
+  if (!j) throw new Error(`cttgov use ${id} not found`);
+  _cttgovCheckJ(j.status, CTTGOV_USE_LIFECYCLE_V2.APPLYING);
+  const now = Date.now();
+  j.status = CTTGOV_USE_LIFECYCLE_V2.APPLYING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeUseCttgovV2(id) {
+  const j = _cttgovJsV2.get(id);
+  if (!j) throw new Error(`cttgov use ${id} not found`);
+  _cttgovCheckJ(j.status, CTTGOV_USE_LIFECYCLE_V2.APPLIED);
+  const now = Date.now();
+  j.status = CTTGOV_USE_LIFECYCLE_V2.APPLIED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failCttgovUseV2(id, reason) {
+  const j = _cttgovJsV2.get(id);
+  if (!j) throw new Error(`cttgov use ${id} not found`);
+  _cttgovCheckJ(j.status, CTTGOV_USE_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = CTTGOV_USE_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelCttgovUseV2(id, reason) {
+  const j = _cttgovJsV2.get(id);
+  if (!j) throw new Error(`cttgov use ${id} not found`);
+  _cttgovCheckJ(j.status, CTTGOV_USE_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = CTTGOV_USE_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getCttgovUseV2(id) {
+  const j = _cttgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listCttgovUsesV2() {
+  return [..._cttgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleCttgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _cttgovPsV2.values())
+    if (
+      p.status === CTTGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _cttgovIdleMs
+    ) {
+      p.status = CTTGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckCttgovUsesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _cttgovJsV2.values())
+    if (
+      j.status === CTTGOV_USE_LIFECYCLE_V2.APPLYING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _cttgovStuckMs
+    ) {
+      j.status = CTTGOV_USE_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getCoworkTaskTemplatesGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(CTTGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _cttgovPsV2.values()) profilesByStatus[p.status]++;
+  const usesByStatus = {};
+  for (const v of Object.values(CTTGOV_USE_LIFECYCLE_V2)) usesByStatus[v] = 0;
+  for (const j of _cttgovJsV2.values()) usesByStatus[j.status]++;
+  return {
+    totalCttgovProfilesV2: _cttgovPsV2.size,
+    totalCttgovUsesV2: _cttgovJsV2.size,
+    maxActiveCttgovProfilesPerOwner: _cttgovMaxActive,
+    maxPendingCttgovUsesPerProfile: _cttgovMaxPending,
+    cttgovProfileIdleMs: _cttgovIdleMs,
+    cttgovUseStuckMs: _cttgovStuckMs,
+    profilesByStatus,
+    usesByStatus,
+  };
 }

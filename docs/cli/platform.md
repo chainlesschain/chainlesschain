@@ -3917,3 +3917,275 @@ cc mcpscaf auto-stale-idle-v2 | auto-fail-stuck-v2
 - 字段默认：`entity` = "user"，生命周期字段 `behavior`
 - 聚合器：`uebgov-gov-stats-v2`
 - 测试：44 V2
+
+## CLI v0.153.0 — Iter25 V2 治理覆盖层（8 个模块）
+
+### Cowork Task Templates V2 治理（cttgov-*）
+- 命令：`cc cowork cttgov-...-v2`，覆盖 `packages/cli/src/lib/cowork-task-templates.js`。
+- 4 状态档案（pending/active/stale/archived；stale → active 恢复）。
+- 5 状态生命周期（queued/applying/applied/failed/cancelled；3 终态）。
+- 容量：每 owner 8 active / 每档案 20 pending。
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）。
+- 字段默认：`category` = "general"，生命周期字段 `context`。
+- 聚合器：`cttgov-gov-stats-v2`。
+- 测试：44 V2。
+
+### Cowork Template Marketplace V2 治理（ctmgov-*）
+- 命令：`cc cowork ctmgov-...-v2`，覆盖 `packages/cli/src/lib/cowork-template-marketplace.js`。
+- 4 状态档案（pending/active/suspended/archived；suspended → active 恢复）。
+- 5 状态生命周期（queued/fulfilling/fulfilled/failed/cancelled；3 终态）。
+- 容量：每 owner 6 active / 每档案 15 pending。
+- 自动翻转：auto-suspend-idle（30 天）+ auto-fail-stuck（60 秒）。
+- 字段默认：`vendor` = "default"，生命周期字段 `templateId`。
+- 聚合器：`ctmgov-gov-stats-v2`。
+- 测试：44 V2。
+
+### CLI Anything Bridge V2 治理（clibgov-*）
+- 命令：`cc cli-anything clibgov-...-v2`，覆盖 `packages/cli/src/lib/cli-anything-bridge.js`。
+- 4 状态档案（pending/active/degraded/archived；degraded → active 恢复）。
+- 5 状态生命周期（queued/bridging/bridged/failed/cancelled；3 终态）。
+- 容量：每 owner 8 active / 每档案 20 pending。
+- 自动翻转：auto-degrade-idle（30 天）+ auto-fail-stuck（60 秒）。
+- 字段默认：`tool` = "generic"，生命周期字段 `command`。
+- 聚合器：`clibgov-gov-stats-v2`。
+- 测试：44 V2。
+
+### Agent Router V2 治理（argov-*）
+- 命令：`cc orchestrate argov-...-v2`，覆盖 `packages/cli/src/lib/agent-router.js`。
+- 4 状态档案（pending/active/stale/archived；stale → active 恢复）。
+- 5 状态生命周期（queued/routing_run/routed/failed/cancelled；3 终态）。
+- 容量：每 owner 8 active / 每档案 20 pending。
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）。
+- 字段默认：`strategy` = "round-robin"，生命周期字段 `target`。
+- 聚合器：`argov-gov-stats-v2`，与既有 router-* V2 共存。
+- 测试：44 V2。
+
+### Sub-Agent Registry V2 治理（saregov-*）
+- 命令：`cc agent saregov-...-v2`，覆盖 `packages/cli/src/lib/sub-agent-registry.js`。
+- 4 状态档案（pending/active/suspended/archived；suspended → active 恢复）。
+- 5 状态生命周期（queued/spawning/spawned/failed/cancelled；3 终态）。
+- 容量：每 owner 10 active / 每档案 25 pending。
+- 自动翻转：auto-suspend-idle（30 天）+ auto-fail-stuck（60 秒）。
+- 字段默认：`kind` = "general"，生命周期字段 `task`。
+- 聚合器：`saregov-gov-stats-v2`。
+- 测试：44 V2。
+
+### Todo Manager V2 治理（todogov-*）
+- 命令：`cc agent todogov-...-v2`，覆盖 `packages/cli/src/lib/todo-manager.js`。
+- 4 状态档案（pending/active/paused/archived；paused → active 恢复）。
+- 5 状态生命周期（queued/doing/done/failed/cancelled；3 终态）。
+- 容量：每 owner 10 active / 每档案 30 pending。
+- 自动翻转：auto-pause-idle（30 天）+ auto-fail-stuck（60 秒）。
+- 字段默认：`list` = "default"，生命周期字段 `title`。
+- 聚合器：`todogov-gov-stats-v2`。
+- 测试：44 V2。
+
+### Execution Backend V2 治理（ebgov-*）
+- 命令：`cc agent ebgov-...-v2`，覆盖 `packages/cli/src/lib/execution-backend.js`。
+- 4 状态档案（pending/active/degraded/archived；degraded → active 恢复）。
+- 5 状态生命周期（queued/executing/succeeded/failed/cancelled；3 终态）。
+- 容量：每 owner 6 active / 每档案 15 pending。
+- 自动翻转：auto-degrade-idle（30 天）+ auto-fail-stuck（60 秒）。
+- 字段默认：`backend` = "local"，生命周期字段 `task`。
+- 聚合器：`ebgov-gov-stats-v2`。
+- 测试：44 V2。
+
+### Evomap Federation V2 治理（evfedgov-*）
+- 命令：`cc evomap evfedgov-...-v2`，覆盖 `packages/cli/src/lib/evomap-federation.js`。
+- 4 状态档案（pending/active/stale/archived；stale → active 恢复）。
+- 5 状态生命周期（queued/syncing/synced/failed/cancelled；3 终态）。
+- 容量：每 owner 6 active / 每档案 15 pending。
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）。
+- 字段默认：`hub` = "primary"，生命周期字段 `geneId`。
+- 聚合器：`evfedgov-gov-stats-v2`，与既有 evgov-*（iter20）共存。
+- 测试：44 V2。
+
+## CLI v0.154.0 — Iter26 V2 治理覆盖层（8 个全新模块）
+
+### Interactive Planner V2 治理（plannergov-*）
+- 命令：`cc planmode plannergov-...-v2`，覆盖 `packages/cli/src/lib/interactive-planner.js`。
+- 4 状态档案（pending/active/paused/archived；paused → active 恢复）。
+- 5 状态生命周期（queued/asking/answered/failed/cancelled；3 终态）。
+- 容量：每 owner 6 active / 每档案 15 pending。
+- 自动翻转：auto-pause-idle（30 天）+ auto-fail-stuck（60 秒）。
+- 字段默认：`persona` = "default"，生命周期字段 `question`。
+- 聚合器：`plannergov-gov-stats-v2`。
+- 测试：44 V2。
+
+### CLI Context Engineering V2 治理（ctxenggov-*）
+- 命令：`cc cli-anything ctxenggov-...-v2`，覆盖 `packages/cli/src/lib/cli-context-engineering.js`。
+- 4 状态档案（pending/active/stale/archived；stale → active 恢复）。
+- 5 状态生命周期（queued/building/built/failed/cancelled；3 终态）。
+- 容量：每 owner 8 active / 每档案 20 pending。
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）。
+- 字段默认：`scope` = "session"，生命周期字段 `prompt`。
+- 聚合器：`ctxenggov-gov-stats-v2`，与 iter25 clibgov-* 共存。
+- 测试：44 V2。
+
+### Sub-Agent Context V2 治理（sactxgov-*）
+- 命令：`cc agent sactxgov-...-v2`，覆盖 `packages/cli/src/lib/sub-agent-context.js`。
+- 4 状态档案（pending/active/stale/archived；stale → active 恢复）。
+- 5 状态生命周期（queued/transferring/transferred/failed/cancelled；3 终态）。
+- 容量：每 owner 8 active / 每档案 20 pending。
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）。
+- 字段默认：`scope` = "task"，生命周期字段 `subAgent`。
+- 聚合器：`sactxgov-gov-stats-v2`，与 iter25 saregov-*/todogov-*/ebgov- 共存。
+- 测试：44 V2。
+
+### Interaction Adapter V2 治理（iagov-*）
+- 命令：`cc chat iagov-...-v2`，覆盖 `packages/cli/src/lib/interaction-adapter.js`。
+- 4 状态档案（pending/active/idle/archived；idle → active 恢复）。
+- 5 状态生命周期（queued/responding/responded/failed/cancelled；3 终态）。
+- 容量：每 owner 6 active / 每档案 15 pending。
+- 自动翻转：auto-idle-idle（30 天）+ auto-fail-stuck（60 秒）。
+- 字段默认：`adapter` = "cli"，生命周期字段 `input`。
+- 聚合器：`iagov-gov-stats-v2`，与 iter17 chatgov-* 共存。
+- 测试：44 V2。
+
+### Workflow Expr V2 治理（wfexgov-*）
+- 命令：`cc workflow wfexgov-...-v2`，覆盖 `packages/cli/src/lib/workflow-expr.js`。
+- 4 状态档案（pending/active/paused/archived；paused → active 恢复）。
+- 5 状态生命周期（queued/evaluating/evaluated/failed/cancelled；3 终态）。
+- 容量：每 owner 8 active / 每档案 20 pending。
+- 自动翻转：auto-pause-idle（30 天）+ auto-fail-stuck（60 秒）。
+- 字段默认：`language` = "cel"，生命周期字段 `expression`。
+- 聚合器：`wfexgov-gov-stats-v2`，与 iter21 wfgov-* 共存。
+- 测试：44 V2。
+
+### Plugin Autodiscovery V2 治理（padgov-*）
+- 命令：`cc plugin padgov-...-v2`，覆盖 `packages/cli/src/lib/plugin-autodiscovery.js`。
+- 4 状态档案（pending/active/stale/archived；stale → active 恢复）。
+- 5 状态生命周期（queued/scanning/scanned/failed/cancelled；3 终态）。
+- 容量：每 owner 6 active / 每档案 15 pending。
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）。
+- 字段默认：`root` = ".chainlesschain"，生命周期字段 `path`。
+- 聚合器：`padgov-gov-stats-v2`。
+- 测试：44 V2。
+
+### Hashline V2 治理（hlgov-*）
+- 命令：`cc memory hlgov-...-v2`，覆盖 `packages/cli/src/lib/hashline.js`。
+- 4 状态档案（pending/active/stale/archived；stale → active 恢复）。
+- 5 状态生命周期（queued/hashing/hashed/failed/cancelled；3 终态）。
+- 容量：每 owner 8 active / 每档案 20 pending。
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）。
+- 字段默认：`algorithm` = "sha256"，生命周期字段 `content`。
+- 聚合器：`hlgov-gov-stats-v2`，与 iter21 memgov-* 共存。
+- 测试：44 V2。
+
+### Web UI Server V2 治理（webuigov-*）
+- 命令：`cc ui webuigov-...-v2`，覆盖 `packages/cli/src/lib/web-ui-server.js`。
+- 4 状态档案（pending/active/degraded/archived；degraded → active 恢复）。
+- 5 状态生命周期（queued/serving/served/failed/cancelled；3 终态）。
+- 容量：每 owner 10 active / 每档案 25 pending。
+- 自动翻转：auto-degrade-idle（30 天）+ auto-fail-stuck（60 秒）。
+- 字段默认：`endpoint` = "/"，生命周期字段 `method`。
+- 聚合器：`webuigov-gov-stats-v2`。
+- 测试：44 V2。
+
+## CLI v0.155.0 — Iter27 V2 治理覆盖层（16 模块一次性批量港）
+
+单轮港入全部 16 个中等体量（100–200 行）lib 模块，均为前所未有的治理覆盖层。
+
+### Downloader V2 治理（dlgov-*，cc setup）
+- `category="mirror"`（默认 "default"），生命周期 Download（queued/fetching/fetched/failed/cancelled）；caps 6/15；stale→active 恢复。
+
+### Skill MCP V2 治理（smcpgov-*，cc skill）
+- `server` 默认 "default"；生命周期 Call（queued/invoking/invoked/failed/cancelled）；caps 6/15；stale→active。
+
+### Cowork MCP Tools V2 治理（cmcpgov-*，cc cowork）
+- `toolset` 默认 "default"；生命周期 Exec（queued/running/completed/failed/cancelled）；caps 8/20；stale→active。
+
+### STIX Parser V2 治理（stixgov-*，cc compliance）
+- `stixVersion` 默认 "2.1"；生命周期 Parse（queued/parsing/parsed/failed/cancelled）；caps 6/15；stale→active。
+
+### Sub-Agent Profiles V2 治理（sapgov-*，cc agent）
+- `role` 默认 "general"；生命周期 Apply（queued/applying/applied/failed/cancelled）；caps 8/20；suspended→active。
+
+### Cowork Observe V2 治理（cobsgov-*，cc cowork）
+- `channel` 默认 "default"；生命周期 Event（queued/recording/recorded/failed/cancelled）；caps 10/25；muted→active。
+
+### Process Manager V2 治理（pmgrgov-*，cc start）
+- `kind` 默认 "service"；生命周期 Proc（queued/starting/running/failed/cancelled）；caps 8/20；stopped→active。
+
+### WS Chat Handler V2 治理（wscgov-*，cc chat）
+- `connection` 默认 "default"；生命周期 Msg（queued/handling/handled/failed/cancelled）；caps 10/25；idle→active。
+
+### Evomap Client V2 治理（evcligov-*，cc evomap）
+- `endpoint` 默认 "primary"；生命周期 Rpc（queued/calling/returned/failed/cancelled）；caps 6/15；stale→active。
+
+### Provider Options V2 治理（poptgov-*，cc llm）
+- `provider` 默认 "default"；生命周期 Resolve（queued/resolving/resolved/failed/cancelled）；caps 8/20；stale→active。
+
+### Session Core Singletons V2 治理（scsgov-*，cc config）
+- `component` 默认 "default"；生命周期 Access（queued/resolving/resolved/failed/cancelled）；caps 8/20；stale→active。
+
+### Service Manager V2 治理（smgrgov-*，cc services）
+- `service` 默认 "default"；生命周期 Op（queued/operating/operated/failed/cancelled）；caps 8/20；degraded→active。
+
+### Cowork Evomap Adapter V2 治理（ceadgov-*，cc cowork）
+- `direction` 默认 "bidirectional"；生命周期 Bind（queued/binding/bound/failed/cancelled）；caps 6/15；stale→active。
+
+### Provider Stream V2 治理（pstrmgov-*，cc stream）
+- `provider` 默认 "default"；生命周期 Chunk（queued/streaming/flushed/failed/cancelled）；caps 8/25；stale→active。
+
+### Cowork Observe HTML V2 治理（cohtgov-*，cc cowork）
+- `template` 默认 "default"；生命周期 Render（queued/rendering/rendered/failed/cancelled）；caps 6/15；stale→active。
+
+### Cowork Adapter V2 治理（cadpgov-*，cc cowork）
+- `target` 默认 "default"；生命周期 Adapt（queued/adapting/adapted/failed/cancelled）；caps 6/15；stale→active。
+
+**共计**：16 × 44 = 704 V2 测试，全部通过；16 × 23 = 368 个 V2 子命令；聚合器 `*-gov-stats-v2`。
+
+## CLI Iter28 — 16 模块一次性 V2 治理覆盖（v0.156.0）
+
+为尚未有 V2 治理层的 16 个中型 lib 增加 4-state 成熟度 + 5-state 生命周期治理，覆盖协议、编排、经济、自治代理、对话、合规、跨链、加密、DAO、进化、演化地图、分层记忆、推理网络、知识图谱、Plan Mode、Pipeline。命名用 prefix 前缀区分（A2apgov/Acrdgov/…），独立于旧有 `{Name}Gov` 表面，无冲突共存。
+
+### A2A Protocol V2 治理（a2apgov-*，cc a2a）
+- `endpoint` 默认 "default"；生命周期 Msg（queued/dispatching/delivered/failed/cancelled）；caps 8/20；stale→active。
+
+### Agent Coordinator V2 治理（acrdgov-*，cc orchestrate）
+- `role` 默认 "leader"；生命周期 Coord（queued/coordinating/coordinated/failed/cancelled）；caps 6/15；idle→active。
+
+### Agent Economy V2 治理（aecogov-*，cc economy）
+- `market` 默认 "default"；生命周期 Trade（queued/trading/settled/failed/cancelled）；caps 8/25；paused→active。
+
+### Autonomous Agent V2 治理（autagov-*，cc agent）
+- `tier` 默认 "assist"；生命周期 Run（queued/running/finished/failed/cancelled）；caps 6/15；paused→active。
+
+### Chat Core V2 治理（ccoregov-*，cc chat）
+- `channel` 默认 "default"；生命周期 Msg（queued/sending/sent/failed/cancelled）；caps 10/25；idle→active。
+
+### Compliance Manager V2 治理（cmpmgov-*，cc compliance）
+- `framework` 默认 "soc2"；生命周期 Report（queued/reporting/reported/failed/cancelled）；caps 6/15；stale→active。
+
+### Cross Chain V2 治理（crchgov-*，cc crosschain）
+- `bridge` 默认 "default"；生命周期 Transfer（queued/transferring/transferred/failed/cancelled）；caps 6/15；stale→active。
+
+### Crypto Manager V2 治理（crygov-*，cc encrypt）
+- `provider` 默认 "default"；生命周期 Encrypt（queued/encrypting/encrypted/failed/cancelled）；caps 8/20；stale→active。
+
+### DAO Governance V2 治理（daomgov-*，cc dao）
+- `realm` 默认 "default"；生命周期 Proposal（queued/voting/resolved/failed/cancelled）；caps 6/15；paused→active。
+
+### Evolution System V2 治理（esysgov-*，cc evolution）
+- `lane` 默认 "default"；生命周期 Cycle（queued/evolving/evolved/failed/cancelled）；caps 6/15；paused→active。
+
+### Evomap Manager V2 治理（emgrgov-*，cc evomap）
+- `map` 默认 "default"；生命周期 Op（queued/operating/operated/failed/cancelled）；caps 8/20；stale→active。
+
+### Hierarchical Memory V2 治理（hmemgov-*，cc hmemory）
+- `tier` 默认 "short-term"；生命周期 Recall（queued/recalling/recalled/failed/cancelled）；caps 10/30；stale→active。
+
+### Inference Network V2 治理（infnetgov-*，cc inference）
+- `node` 默认 "default"；生命周期 Request（queued/inferring/inferred/failed/cancelled）；caps 8/25；stale→active。
+
+### Knowledge Graph V2 治理（kggov-*，cc kg）
+- `kind` 默认 "default"；生命周期 Query（queued/querying/answered/failed/cancelled）；caps 8/20；stale→active。
+
+### Plan Mode V2 治理（pmodegov-*，cc planmode）
+- `template` 默认 "default"；生命周期 Plan（queued/planning/finalized/failed/cancelled）；caps 6/15；paused→active。
+
+### Pipeline Orchestrator V2 治理（pipogov-*，cc pipeline）
+- `pipeline` 默认 "default"；生命周期 Run（queued/running/finished/failed/cancelled）；caps 8/20；paused→active。
+
+**共计**：16 × 44 = 704 V2 测试，全部通过；16 × 23 = 368 个 V2 子命令；聚合器 `*-gov-stats-v2`；命名 scheme 用 prefix-大写化做聚合器，避免与旧 `{ModuleName}Gov*` 表面冲突。

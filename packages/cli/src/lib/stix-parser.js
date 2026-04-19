@@ -165,3 +165,349 @@ export function classifyObservable(value) {
   if (/^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$/i.test(v)) return "domain";
   return "unknown";
 }
+
+// =====================================================================
+// stix-parser V2 governance overlay (iter27)
+// =====================================================================
+export const STIXGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const STIXGOV_PARSE_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  PARSING: "parsing",
+  PARSED: "parsed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _stixgovPTrans = new Map([
+  [
+    STIXGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      STIXGOV_PROFILE_MATURITY_V2.ACTIVE,
+      STIXGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    STIXGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      STIXGOV_PROFILE_MATURITY_V2.STALE,
+      STIXGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    STIXGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      STIXGOV_PROFILE_MATURITY_V2.ACTIVE,
+      STIXGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [STIXGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _stixgovPTerminal = new Set([STIXGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _stixgovJTrans = new Map([
+  [
+    STIXGOV_PARSE_LIFECYCLE_V2.QUEUED,
+    new Set([
+      STIXGOV_PARSE_LIFECYCLE_V2.PARSING,
+      STIXGOV_PARSE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    STIXGOV_PARSE_LIFECYCLE_V2.PARSING,
+    new Set([
+      STIXGOV_PARSE_LIFECYCLE_V2.PARSED,
+      STIXGOV_PARSE_LIFECYCLE_V2.FAILED,
+      STIXGOV_PARSE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [STIXGOV_PARSE_LIFECYCLE_V2.PARSED, new Set()],
+  [STIXGOV_PARSE_LIFECYCLE_V2.FAILED, new Set()],
+  [STIXGOV_PARSE_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _stixgovPsV2 = new Map();
+const _stixgovJsV2 = new Map();
+let _stixgovMaxActive = 6,
+  _stixgovMaxPending = 15,
+  _stixgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _stixgovStuckMs = 60 * 1000;
+function _stixgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _stixgovCheckP(from, to) {
+  const a = _stixgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid stixgov profile transition ${from} → ${to}`);
+}
+function _stixgovCheckJ(from, to) {
+  const a = _stixgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid stixgov parse transition ${from} → ${to}`);
+}
+function _stixgovCountActive(owner) {
+  let c = 0;
+  for (const p of _stixgovPsV2.values())
+    if (p.owner === owner && p.status === STIXGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _stixgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _stixgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === STIXGOV_PARSE_LIFECYCLE_V2.QUEUED ||
+        j.status === STIXGOV_PARSE_LIFECYCLE_V2.PARSING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveStixgovProfilesPerOwnerV2(n) {
+  _stixgovMaxActive = _stixgovPos(n, "maxActiveStixgovProfilesPerOwner");
+}
+export function getMaxActiveStixgovProfilesPerOwnerV2() {
+  return _stixgovMaxActive;
+}
+export function setMaxPendingStixgovParsesPerProfileV2(n) {
+  _stixgovMaxPending = _stixgovPos(n, "maxPendingStixgovParsesPerProfile");
+}
+export function getMaxPendingStixgovParsesPerProfileV2() {
+  return _stixgovMaxPending;
+}
+export function setStixgovProfileIdleMsV2(n) {
+  _stixgovIdleMs = _stixgovPos(n, "stixgovProfileIdleMs");
+}
+export function getStixgovProfileIdleMsV2() {
+  return _stixgovIdleMs;
+}
+export function setStixgovParseStuckMsV2(n) {
+  _stixgovStuckMs = _stixgovPos(n, "stixgovParseStuckMs");
+}
+export function getStixgovParseStuckMsV2() {
+  return _stixgovStuckMs;
+}
+export function _resetStateStixParserGovV2() {
+  _stixgovPsV2.clear();
+  _stixgovJsV2.clear();
+  _stixgovMaxActive = 6;
+  _stixgovMaxPending = 15;
+  _stixgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _stixgovStuckMs = 60 * 1000;
+}
+export function registerStixgovProfileV2({
+  id,
+  owner,
+  stixVersion,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_stixgovPsV2.has(id))
+    throw new Error(`stixgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    stixVersion: stixVersion || "2.1",
+    status: STIXGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _stixgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateStixgovProfileV2(id) {
+  const p = _stixgovPsV2.get(id);
+  if (!p) throw new Error(`stixgov profile ${id} not found`);
+  const isInitial = p.status === STIXGOV_PROFILE_MATURITY_V2.PENDING;
+  _stixgovCheckP(p.status, STIXGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _stixgovCountActive(p.owner) >= _stixgovMaxActive)
+    throw new Error(`max active stixgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = STIXGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleStixgovProfileV2(id) {
+  const p = _stixgovPsV2.get(id);
+  if (!p) throw new Error(`stixgov profile ${id} not found`);
+  _stixgovCheckP(p.status, STIXGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = STIXGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveStixgovProfileV2(id) {
+  const p = _stixgovPsV2.get(id);
+  if (!p) throw new Error(`stixgov profile ${id} not found`);
+  _stixgovCheckP(p.status, STIXGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = STIXGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchStixgovProfileV2(id) {
+  const p = _stixgovPsV2.get(id);
+  if (!p) throw new Error(`stixgov profile ${id} not found`);
+  if (_stixgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal stixgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getStixgovProfileV2(id) {
+  const p = _stixgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listStixgovProfilesV2() {
+  return [..._stixgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createStixgovParseV2({
+  id,
+  profileId,
+  bundleId,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_stixgovJsV2.has(id))
+    throw new Error(`stixgov parse ${id} already exists`);
+  if (!_stixgovPsV2.has(profileId))
+    throw new Error(`stixgov profile ${profileId} not found`);
+  if (_stixgovCountPending(profileId) >= _stixgovMaxPending)
+    throw new Error(
+      `max pending stixgov parses for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    bundleId: bundleId || "",
+    status: STIXGOV_PARSE_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _stixgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function parsingStixgovParseV2(id) {
+  const j = _stixgovJsV2.get(id);
+  if (!j) throw new Error(`stixgov parse ${id} not found`);
+  _stixgovCheckJ(j.status, STIXGOV_PARSE_LIFECYCLE_V2.PARSING);
+  const now = Date.now();
+  j.status = STIXGOV_PARSE_LIFECYCLE_V2.PARSING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeParseStixgovV2(id) {
+  const j = _stixgovJsV2.get(id);
+  if (!j) throw new Error(`stixgov parse ${id} not found`);
+  _stixgovCheckJ(j.status, STIXGOV_PARSE_LIFECYCLE_V2.PARSED);
+  const now = Date.now();
+  j.status = STIXGOV_PARSE_LIFECYCLE_V2.PARSED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failStixgovParseV2(id, reason) {
+  const j = _stixgovJsV2.get(id);
+  if (!j) throw new Error(`stixgov parse ${id} not found`);
+  _stixgovCheckJ(j.status, STIXGOV_PARSE_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = STIXGOV_PARSE_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelStixgovParseV2(id, reason) {
+  const j = _stixgovJsV2.get(id);
+  if (!j) throw new Error(`stixgov parse ${id} not found`);
+  _stixgovCheckJ(j.status, STIXGOV_PARSE_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = STIXGOV_PARSE_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getStixgovParseV2(id) {
+  const j = _stixgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listStixgovParsesV2() {
+  return [..._stixgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleStixgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _stixgovPsV2.values())
+    if (
+      p.status === STIXGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _stixgovIdleMs
+    ) {
+      p.status = STIXGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckStixgovParsesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _stixgovJsV2.values())
+    if (
+      j.status === STIXGOV_PARSE_LIFECYCLE_V2.PARSING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _stixgovStuckMs
+    ) {
+      j.status = STIXGOV_PARSE_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getStixParserGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(STIXGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _stixgovPsV2.values()) profilesByStatus[p.status]++;
+  const parsesByStatus = {};
+  for (const v of Object.values(STIXGOV_PARSE_LIFECYCLE_V2))
+    parsesByStatus[v] = 0;
+  for (const j of _stixgovJsV2.values()) parsesByStatus[j.status]++;
+  return {
+    totalStixgovProfilesV2: _stixgovPsV2.size,
+    totalStixgovParsesV2: _stixgovJsV2.size,
+    maxActiveStixgovProfilesPerOwner: _stixgovMaxActive,
+    maxPendingStixgovParsesPerProfile: _stixgovMaxPending,
+    stixgovProfileIdleMs: _stixgovIdleMs,
+    stixgovParseStuckMs: _stixgovStuckMs,
+    profilesByStatus,
+    parsesByStatus,
+  };
+}

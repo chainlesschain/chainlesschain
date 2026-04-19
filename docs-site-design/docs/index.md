@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: v5.0.2.34 | 95+ 模块设计 | 139 技能 | CLI 109 命令/0.151.0 | 14000+ 总测试 | V2 规范层 156+ 治理表面（iter16-iter21） | 面向开发者的架构与实现文档
+  tagline: v5.0.2.34 | 95+ 模块设计 | 139 技能 | CLI 109 命令/0.156.0 | 14800+ 总测试 | V2 规范层 220+ 治理表面（iter16-iter28） | 面向开发者的架构与实现文档
   image:
     src: /logo.png
     alt: ChainlessChain Logo

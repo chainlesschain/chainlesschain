@@ -1295,3 +1295,337 @@ export function getEvolutionSystemGovStatsV2() {
     cyclesByStatus,
   };
 }
+
+// === Iter28 V2 governance overlay: Esysgov ===
+export const ESYSGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const ESYSGOV_CYCLE_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  EVOLVING: "evolving",
+  EVOLVED: "evolved",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _esysgovPTrans = new Map([
+  [
+    ESYSGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      ESYSGOV_PROFILE_MATURITY_V2.ACTIVE,
+      ESYSGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    ESYSGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      ESYSGOV_PROFILE_MATURITY_V2.PAUSED,
+      ESYSGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    ESYSGOV_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      ESYSGOV_PROFILE_MATURITY_V2.ACTIVE,
+      ESYSGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [ESYSGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _esysgovPTerminal = new Set([ESYSGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _esysgovJTrans = new Map([
+  [
+    ESYSGOV_CYCLE_LIFECYCLE_V2.QUEUED,
+    new Set([
+      ESYSGOV_CYCLE_LIFECYCLE_V2.EVOLVING,
+      ESYSGOV_CYCLE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    ESYSGOV_CYCLE_LIFECYCLE_V2.EVOLVING,
+    new Set([
+      ESYSGOV_CYCLE_LIFECYCLE_V2.EVOLVED,
+      ESYSGOV_CYCLE_LIFECYCLE_V2.FAILED,
+      ESYSGOV_CYCLE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [ESYSGOV_CYCLE_LIFECYCLE_V2.EVOLVED, new Set()],
+  [ESYSGOV_CYCLE_LIFECYCLE_V2.FAILED, new Set()],
+  [ESYSGOV_CYCLE_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _esysgovPsV2 = new Map();
+const _esysgovJsV2 = new Map();
+let _esysgovMaxActive = 6,
+  _esysgovMaxPending = 15,
+  _esysgovIdleMs = 2592000000,
+  _esysgovStuckMs = 60 * 1000;
+function _esysgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _esysgovCheckP(from, to) {
+  const a = _esysgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid esysgov profile transition ${from} → ${to}`);
+}
+function _esysgovCheckJ(from, to) {
+  const a = _esysgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid esysgov cycle transition ${from} → ${to}`);
+}
+function _esysgovCountActive(owner) {
+  let c = 0;
+  for (const p of _esysgovPsV2.values())
+    if (p.owner === owner && p.status === ESYSGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _esysgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _esysgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === ESYSGOV_CYCLE_LIFECYCLE_V2.QUEUED ||
+        j.status === ESYSGOV_CYCLE_LIFECYCLE_V2.EVOLVING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveEsysProfilesPerOwnerV2(n) {
+  _esysgovMaxActive = _esysgovPos(n, "maxActiveEsysProfilesPerOwner");
+}
+export function getMaxActiveEsysProfilesPerOwnerV2() {
+  return _esysgovMaxActive;
+}
+export function setMaxPendingEsysCyclesPerProfileV2(n) {
+  _esysgovMaxPending = _esysgovPos(n, "maxPendingEsysCyclesPerProfile");
+}
+export function getMaxPendingEsysCyclesPerProfileV2() {
+  return _esysgovMaxPending;
+}
+export function setEsysProfileIdleMsV2(n) {
+  _esysgovIdleMs = _esysgovPos(n, "esysgovProfileIdleMs");
+}
+export function getEsysProfileIdleMsV2() {
+  return _esysgovIdleMs;
+}
+export function setEsysCycleStuckMsV2(n) {
+  _esysgovStuckMs = _esysgovPos(n, "esysgovCycleStuckMs");
+}
+export function getEsysCycleStuckMsV2() {
+  return _esysgovStuckMs;
+}
+export function _resetStateEsysgovV2() {
+  _esysgovPsV2.clear();
+  _esysgovJsV2.clear();
+  _esysgovMaxActive = 6;
+  _esysgovMaxPending = 15;
+  _esysgovIdleMs = 2592000000;
+  _esysgovStuckMs = 60 * 1000;
+}
+export function registerEsysProfileV2({ id, owner, lane, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_esysgovPsV2.has(id))
+    throw new Error(`esysgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    lane: lane || "default",
+    status: ESYSGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _esysgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateEsysProfileV2(id) {
+  const p = _esysgovPsV2.get(id);
+  if (!p) throw new Error(`esysgov profile ${id} not found`);
+  const isInitial = p.status === ESYSGOV_PROFILE_MATURITY_V2.PENDING;
+  _esysgovCheckP(p.status, ESYSGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _esysgovCountActive(p.owner) >= _esysgovMaxActive)
+    throw new Error(`max active esysgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = ESYSGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pausedEsysProfileV2(id) {
+  const p = _esysgovPsV2.get(id);
+  if (!p) throw new Error(`esysgov profile ${id} not found`);
+  _esysgovCheckP(p.status, ESYSGOV_PROFILE_MATURITY_V2.PAUSED);
+  p.status = ESYSGOV_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveEsysProfileV2(id) {
+  const p = _esysgovPsV2.get(id);
+  if (!p) throw new Error(`esysgov profile ${id} not found`);
+  _esysgovCheckP(p.status, ESYSGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = ESYSGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchEsysProfileV2(id) {
+  const p = _esysgovPsV2.get(id);
+  if (!p) throw new Error(`esysgov profile ${id} not found`);
+  if (_esysgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal esysgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getEsysProfileV2(id) {
+  const p = _esysgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listEsysProfilesV2() {
+  return [..._esysgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createEsysCycleV2({ id, profileId, cycleId, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_esysgovJsV2.has(id))
+    throw new Error(`esysgov cycle ${id} already exists`);
+  if (!_esysgovPsV2.has(profileId))
+    throw new Error(`esysgov profile ${profileId} not found`);
+  if (_esysgovCountPending(profileId) >= _esysgovMaxPending)
+    throw new Error(
+      `max pending esysgov cycles for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    cycleId: cycleId || "",
+    status: ESYSGOV_CYCLE_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _esysgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function evolvingEsysCycleV2(id) {
+  const j = _esysgovJsV2.get(id);
+  if (!j) throw new Error(`esysgov cycle ${id} not found`);
+  _esysgovCheckJ(j.status, ESYSGOV_CYCLE_LIFECYCLE_V2.EVOLVING);
+  const now = Date.now();
+  j.status = ESYSGOV_CYCLE_LIFECYCLE_V2.EVOLVING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeCycleEsysV2(id) {
+  const j = _esysgovJsV2.get(id);
+  if (!j) throw new Error(`esysgov cycle ${id} not found`);
+  _esysgovCheckJ(j.status, ESYSGOV_CYCLE_LIFECYCLE_V2.EVOLVED);
+  const now = Date.now();
+  j.status = ESYSGOV_CYCLE_LIFECYCLE_V2.EVOLVED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failEsysCycleV2(id, reason) {
+  const j = _esysgovJsV2.get(id);
+  if (!j) throw new Error(`esysgov cycle ${id} not found`);
+  _esysgovCheckJ(j.status, ESYSGOV_CYCLE_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = ESYSGOV_CYCLE_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelEsysCycleV2(id, reason) {
+  const j = _esysgovJsV2.get(id);
+  if (!j) throw new Error(`esysgov cycle ${id} not found`);
+  _esysgovCheckJ(j.status, ESYSGOV_CYCLE_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = ESYSGOV_CYCLE_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getEsysCycleV2(id) {
+  const j = _esysgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listEsysCyclesV2() {
+  return [..._esysgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPausedIdleEsysProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _esysgovPsV2.values())
+    if (
+      p.status === ESYSGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _esysgovIdleMs
+    ) {
+      p.status = ESYSGOV_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckEsysCyclesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _esysgovJsV2.values())
+    if (
+      j.status === ESYSGOV_CYCLE_LIFECYCLE_V2.EVOLVING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _esysgovStuckMs
+    ) {
+      j.status = ESYSGOV_CYCLE_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getEsysgovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(ESYSGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _esysgovPsV2.values()) profilesByStatus[p.status]++;
+  const cyclesByStatus = {};
+  for (const v of Object.values(ESYSGOV_CYCLE_LIFECYCLE_V2))
+    cyclesByStatus[v] = 0;
+  for (const j of _esysgovJsV2.values()) cyclesByStatus[j.status]++;
+  return {
+    totalEsysProfilesV2: _esysgovPsV2.size,
+    totalEsysCyclesV2: _esysgovJsV2.size,
+    maxActiveEsysProfilesPerOwner: _esysgovMaxActive,
+    maxPendingEsysCyclesPerProfile: _esysgovMaxPending,
+    esysgovProfileIdleMs: _esysgovIdleMs,
+    esysgovCycleStuckMs: _esysgovStuckMs,
+    profilesByStatus,
+    cyclesByStatus,
+  };
+}

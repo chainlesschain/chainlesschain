@@ -1296,3 +1296,351 @@ export function createWebUIServer(opts) {
     res.end(html, "utf-8");
   });
 }
+
+// =====================================================================
+// web-ui-server V2 governance overlay (iter26)
+// =====================================================================
+export const WEBUIGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  DEGRADED: "degraded",
+  ARCHIVED: "archived",
+});
+export const WEBUIGOV_REQUEST_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  SERVING: "serving",
+  SERVED: "served",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _webuigovPTrans = new Map([
+  [
+    WEBUIGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      WEBUIGOV_PROFILE_MATURITY_V2.ACTIVE,
+      WEBUIGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    WEBUIGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      WEBUIGOV_PROFILE_MATURITY_V2.DEGRADED,
+      WEBUIGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    WEBUIGOV_PROFILE_MATURITY_V2.DEGRADED,
+    new Set([
+      WEBUIGOV_PROFILE_MATURITY_V2.ACTIVE,
+      WEBUIGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [WEBUIGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _webuigovPTerminal = new Set([WEBUIGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _webuigovJTrans = new Map([
+  [
+    WEBUIGOV_REQUEST_LIFECYCLE_V2.QUEUED,
+    new Set([
+      WEBUIGOV_REQUEST_LIFECYCLE_V2.SERVING,
+      WEBUIGOV_REQUEST_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    WEBUIGOV_REQUEST_LIFECYCLE_V2.SERVING,
+    new Set([
+      WEBUIGOV_REQUEST_LIFECYCLE_V2.SERVED,
+      WEBUIGOV_REQUEST_LIFECYCLE_V2.FAILED,
+      WEBUIGOV_REQUEST_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [WEBUIGOV_REQUEST_LIFECYCLE_V2.SERVED, new Set()],
+  [WEBUIGOV_REQUEST_LIFECYCLE_V2.FAILED, new Set()],
+  [WEBUIGOV_REQUEST_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _webuigovPsV2 = new Map();
+const _webuigovJsV2 = new Map();
+let _webuigovMaxActive = 10,
+  _webuigovMaxPending = 25,
+  _webuigovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _webuigovStuckMs = 60 * 1000;
+function _webuigovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _webuigovCheckP(from, to) {
+  const a = _webuigovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid webuigov profile transition ${from} → ${to}`);
+}
+function _webuigovCheckJ(from, to) {
+  const a = _webuigovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid webuigov request transition ${from} → ${to}`);
+}
+function _webuigovCountActive(owner) {
+  let c = 0;
+  for (const p of _webuigovPsV2.values())
+    if (p.owner === owner && p.status === WEBUIGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _webuigovCountPending(profileId) {
+  let c = 0;
+  for (const j of _webuigovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === WEBUIGOV_REQUEST_LIFECYCLE_V2.QUEUED ||
+        j.status === WEBUIGOV_REQUEST_LIFECYCLE_V2.SERVING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveWebuigovProfilesPerOwnerV2(n) {
+  _webuigovMaxActive = _webuigovPos(n, "maxActiveWebuigovProfilesPerOwner");
+}
+export function getMaxActiveWebuigovProfilesPerOwnerV2() {
+  return _webuigovMaxActive;
+}
+export function setMaxPendingWebuigovRequestsPerProfileV2(n) {
+  _webuigovMaxPending = _webuigovPos(n, "maxPendingWebuigovRequestsPerProfile");
+}
+export function getMaxPendingWebuigovRequestsPerProfileV2() {
+  return _webuigovMaxPending;
+}
+export function setWebuigovProfileIdleMsV2(n) {
+  _webuigovIdleMs = _webuigovPos(n, "webuigovProfileIdleMs");
+}
+export function getWebuigovProfileIdleMsV2() {
+  return _webuigovIdleMs;
+}
+export function setWebuigovRequestStuckMsV2(n) {
+  _webuigovStuckMs = _webuigovPos(n, "webuigovRequestStuckMs");
+}
+export function getWebuigovRequestStuckMsV2() {
+  return _webuigovStuckMs;
+}
+export function _resetStateWebUiServerGovV2() {
+  _webuigovPsV2.clear();
+  _webuigovJsV2.clear();
+  _webuigovMaxActive = 10;
+  _webuigovMaxPending = 25;
+  _webuigovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _webuigovStuckMs = 60 * 1000;
+}
+export function registerWebuigovProfileV2({
+  id,
+  owner,
+  endpoint,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_webuigovPsV2.has(id))
+    throw new Error(`webuigov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    endpoint: endpoint || "/",
+    status: WEBUIGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _webuigovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateWebuigovProfileV2(id) {
+  const p = _webuigovPsV2.get(id);
+  if (!p) throw new Error(`webuigov profile ${id} not found`);
+  const isInitial = p.status === WEBUIGOV_PROFILE_MATURITY_V2.PENDING;
+  _webuigovCheckP(p.status, WEBUIGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _webuigovCountActive(p.owner) >= _webuigovMaxActive)
+    throw new Error(
+      `max active webuigov profiles for owner ${p.owner} reached`,
+    );
+  const now = Date.now();
+  p.status = WEBUIGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function degradeWebuigovProfileV2(id) {
+  const p = _webuigovPsV2.get(id);
+  if (!p) throw new Error(`webuigov profile ${id} not found`);
+  _webuigovCheckP(p.status, WEBUIGOV_PROFILE_MATURITY_V2.DEGRADED);
+  p.status = WEBUIGOV_PROFILE_MATURITY_V2.DEGRADED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveWebuigovProfileV2(id) {
+  const p = _webuigovPsV2.get(id);
+  if (!p) throw new Error(`webuigov profile ${id} not found`);
+  _webuigovCheckP(p.status, WEBUIGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = WEBUIGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchWebuigovProfileV2(id) {
+  const p = _webuigovPsV2.get(id);
+  if (!p) throw new Error(`webuigov profile ${id} not found`);
+  if (_webuigovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal webuigov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getWebuigovProfileV2(id) {
+  const p = _webuigovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listWebuigovProfilesV2() {
+  return [..._webuigovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createWebuigovRequestV2({
+  id,
+  profileId,
+  method,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_webuigovJsV2.has(id))
+    throw new Error(`webuigov request ${id} already exists`);
+  if (!_webuigovPsV2.has(profileId))
+    throw new Error(`webuigov profile ${profileId} not found`);
+  if (_webuigovCountPending(profileId) >= _webuigovMaxPending)
+    throw new Error(
+      `max pending webuigov requests for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    method: method || "",
+    status: WEBUIGOV_REQUEST_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _webuigovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function servingWebuigovRequestV2(id) {
+  const j = _webuigovJsV2.get(id);
+  if (!j) throw new Error(`webuigov request ${id} not found`);
+  _webuigovCheckJ(j.status, WEBUIGOV_REQUEST_LIFECYCLE_V2.SERVING);
+  const now = Date.now();
+  j.status = WEBUIGOV_REQUEST_LIFECYCLE_V2.SERVING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeRequestWebuigovV2(id) {
+  const j = _webuigovJsV2.get(id);
+  if (!j) throw new Error(`webuigov request ${id} not found`);
+  _webuigovCheckJ(j.status, WEBUIGOV_REQUEST_LIFECYCLE_V2.SERVED);
+  const now = Date.now();
+  j.status = WEBUIGOV_REQUEST_LIFECYCLE_V2.SERVED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failWebuigovRequestV2(id, reason) {
+  const j = _webuigovJsV2.get(id);
+  if (!j) throw new Error(`webuigov request ${id} not found`);
+  _webuigovCheckJ(j.status, WEBUIGOV_REQUEST_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = WEBUIGOV_REQUEST_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelWebuigovRequestV2(id, reason) {
+  const j = _webuigovJsV2.get(id);
+  if (!j) throw new Error(`webuigov request ${id} not found`);
+  _webuigovCheckJ(j.status, WEBUIGOV_REQUEST_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = WEBUIGOV_REQUEST_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getWebuigovRequestV2(id) {
+  const j = _webuigovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listWebuigovRequestsV2() {
+  return [..._webuigovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoDegradeIdleWebuigovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _webuigovPsV2.values())
+    if (
+      p.status === WEBUIGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _webuigovIdleMs
+    ) {
+      p.status = WEBUIGOV_PROFILE_MATURITY_V2.DEGRADED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckWebuigovRequestsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _webuigovJsV2.values())
+    if (
+      j.status === WEBUIGOV_REQUEST_LIFECYCLE_V2.SERVING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _webuigovStuckMs
+    ) {
+      j.status = WEBUIGOV_REQUEST_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getWebUiServerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(WEBUIGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _webuigovPsV2.values()) profilesByStatus[p.status]++;
+  const requestsByStatus = {};
+  for (const v of Object.values(WEBUIGOV_REQUEST_LIFECYCLE_V2))
+    requestsByStatus[v] = 0;
+  for (const j of _webuigovJsV2.values()) requestsByStatus[j.status]++;
+  return {
+    totalWebuigovProfilesV2: _webuigovPsV2.size,
+    totalWebuigovRequestsV2: _webuigovJsV2.size,
+    maxActiveWebuigovProfilesPerOwner: _webuigovMaxActive,
+    maxPendingWebuigovRequestsPerProfile: _webuigovMaxPending,
+    webuigovProfileIdleMs: _webuigovIdleMs,
+    webuigovRequestStuckMs: _webuigovStuckMs,
+    profilesByStatus,
+    requestsByStatus,
+  };
+}

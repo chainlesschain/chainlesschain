@@ -316,3 +316,349 @@ export function evaluateRaw(src, ctx) {
   if (ast.kind === "truthy") ast = ast.expr;
   return evalAst(ast, ctx);
 }
+
+// =====================================================================
+// workflow-expr V2 governance overlay (iter26)
+// =====================================================================
+export const WFEXGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const WFEXGOV_EVAL_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  EVALUATING: "evaluating",
+  EVALUATED: "evaluated",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _wfexgovPTrans = new Map([
+  [
+    WFEXGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      WFEXGOV_PROFILE_MATURITY_V2.ACTIVE,
+      WFEXGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    WFEXGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      WFEXGOV_PROFILE_MATURITY_V2.PAUSED,
+      WFEXGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    WFEXGOV_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      WFEXGOV_PROFILE_MATURITY_V2.ACTIVE,
+      WFEXGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [WFEXGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _wfexgovPTerminal = new Set([WFEXGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _wfexgovJTrans = new Map([
+  [
+    WFEXGOV_EVAL_LIFECYCLE_V2.QUEUED,
+    new Set([
+      WFEXGOV_EVAL_LIFECYCLE_V2.EVALUATING,
+      WFEXGOV_EVAL_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    WFEXGOV_EVAL_LIFECYCLE_V2.EVALUATING,
+    new Set([
+      WFEXGOV_EVAL_LIFECYCLE_V2.EVALUATED,
+      WFEXGOV_EVAL_LIFECYCLE_V2.FAILED,
+      WFEXGOV_EVAL_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [WFEXGOV_EVAL_LIFECYCLE_V2.EVALUATED, new Set()],
+  [WFEXGOV_EVAL_LIFECYCLE_V2.FAILED, new Set()],
+  [WFEXGOV_EVAL_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _wfexgovPsV2 = new Map();
+const _wfexgovJsV2 = new Map();
+let _wfexgovMaxActive = 8,
+  _wfexgovMaxPending = 20,
+  _wfexgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _wfexgovStuckMs = 60 * 1000;
+function _wfexgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _wfexgovCheckP(from, to) {
+  const a = _wfexgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid wfexgov profile transition ${from} → ${to}`);
+}
+function _wfexgovCheckJ(from, to) {
+  const a = _wfexgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid wfexgov eval transition ${from} → ${to}`);
+}
+function _wfexgovCountActive(owner) {
+  let c = 0;
+  for (const p of _wfexgovPsV2.values())
+    if (p.owner === owner && p.status === WFEXGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _wfexgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _wfexgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === WFEXGOV_EVAL_LIFECYCLE_V2.QUEUED ||
+        j.status === WFEXGOV_EVAL_LIFECYCLE_V2.EVALUATING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveWfexgovProfilesPerOwnerV2(n) {
+  _wfexgovMaxActive = _wfexgovPos(n, "maxActiveWfexgovProfilesPerOwner");
+}
+export function getMaxActiveWfexgovProfilesPerOwnerV2() {
+  return _wfexgovMaxActive;
+}
+export function setMaxPendingWfexgovEvalsPerProfileV2(n) {
+  _wfexgovMaxPending = _wfexgovPos(n, "maxPendingWfexgovEvalsPerProfile");
+}
+export function getMaxPendingWfexgovEvalsPerProfileV2() {
+  return _wfexgovMaxPending;
+}
+export function setWfexgovProfileIdleMsV2(n) {
+  _wfexgovIdleMs = _wfexgovPos(n, "wfexgovProfileIdleMs");
+}
+export function getWfexgovProfileIdleMsV2() {
+  return _wfexgovIdleMs;
+}
+export function setWfexgovEvalStuckMsV2(n) {
+  _wfexgovStuckMs = _wfexgovPos(n, "wfexgovEvalStuckMs");
+}
+export function getWfexgovEvalStuckMsV2() {
+  return _wfexgovStuckMs;
+}
+export function _resetStateWorkflowExprGovV2() {
+  _wfexgovPsV2.clear();
+  _wfexgovJsV2.clear();
+  _wfexgovMaxActive = 8;
+  _wfexgovMaxPending = 20;
+  _wfexgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _wfexgovStuckMs = 60 * 1000;
+}
+export function registerWfexgovProfileV2({
+  id,
+  owner,
+  language,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_wfexgovPsV2.has(id))
+    throw new Error(`wfexgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    language: language || "cel",
+    status: WFEXGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _wfexgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateWfexgovProfileV2(id) {
+  const p = _wfexgovPsV2.get(id);
+  if (!p) throw new Error(`wfexgov profile ${id} not found`);
+  const isInitial = p.status === WFEXGOV_PROFILE_MATURITY_V2.PENDING;
+  _wfexgovCheckP(p.status, WFEXGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _wfexgovCountActive(p.owner) >= _wfexgovMaxActive)
+    throw new Error(`max active wfexgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = WFEXGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pauseWfexgovProfileV2(id) {
+  const p = _wfexgovPsV2.get(id);
+  if (!p) throw new Error(`wfexgov profile ${id} not found`);
+  _wfexgovCheckP(p.status, WFEXGOV_PROFILE_MATURITY_V2.PAUSED);
+  p.status = WFEXGOV_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveWfexgovProfileV2(id) {
+  const p = _wfexgovPsV2.get(id);
+  if (!p) throw new Error(`wfexgov profile ${id} not found`);
+  _wfexgovCheckP(p.status, WFEXGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = WFEXGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchWfexgovProfileV2(id) {
+  const p = _wfexgovPsV2.get(id);
+  if (!p) throw new Error(`wfexgov profile ${id} not found`);
+  if (_wfexgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal wfexgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getWfexgovProfileV2(id) {
+  const p = _wfexgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listWfexgovProfilesV2() {
+  return [..._wfexgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createWfexgovEvalV2({
+  id,
+  profileId,
+  expression,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_wfexgovJsV2.has(id))
+    throw new Error(`wfexgov eval ${id} already exists`);
+  if (!_wfexgovPsV2.has(profileId))
+    throw new Error(`wfexgov profile ${profileId} not found`);
+  if (_wfexgovCountPending(profileId) >= _wfexgovMaxPending)
+    throw new Error(
+      `max pending wfexgov evals for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    expression: expression || "",
+    status: WFEXGOV_EVAL_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _wfexgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function evaluatingWfexgovEvalV2(id) {
+  const j = _wfexgovJsV2.get(id);
+  if (!j) throw new Error(`wfexgov eval ${id} not found`);
+  _wfexgovCheckJ(j.status, WFEXGOV_EVAL_LIFECYCLE_V2.EVALUATING);
+  const now = Date.now();
+  j.status = WFEXGOV_EVAL_LIFECYCLE_V2.EVALUATING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeEvalWfexgovV2(id) {
+  const j = _wfexgovJsV2.get(id);
+  if (!j) throw new Error(`wfexgov eval ${id} not found`);
+  _wfexgovCheckJ(j.status, WFEXGOV_EVAL_LIFECYCLE_V2.EVALUATED);
+  const now = Date.now();
+  j.status = WFEXGOV_EVAL_LIFECYCLE_V2.EVALUATED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failWfexgovEvalV2(id, reason) {
+  const j = _wfexgovJsV2.get(id);
+  if (!j) throw new Error(`wfexgov eval ${id} not found`);
+  _wfexgovCheckJ(j.status, WFEXGOV_EVAL_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = WFEXGOV_EVAL_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelWfexgovEvalV2(id, reason) {
+  const j = _wfexgovJsV2.get(id);
+  if (!j) throw new Error(`wfexgov eval ${id} not found`);
+  _wfexgovCheckJ(j.status, WFEXGOV_EVAL_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = WFEXGOV_EVAL_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getWfexgovEvalV2(id) {
+  const j = _wfexgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listWfexgovEvalsV2() {
+  return [..._wfexgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPauseIdleWfexgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _wfexgovPsV2.values())
+    if (
+      p.status === WFEXGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _wfexgovIdleMs
+    ) {
+      p.status = WFEXGOV_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckWfexgovEvalsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _wfexgovJsV2.values())
+    if (
+      j.status === WFEXGOV_EVAL_LIFECYCLE_V2.EVALUATING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _wfexgovStuckMs
+    ) {
+      j.status = WFEXGOV_EVAL_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getWorkflowExprGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(WFEXGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _wfexgovPsV2.values()) profilesByStatus[p.status]++;
+  const evalsByStatus = {};
+  for (const v of Object.values(WFEXGOV_EVAL_LIFECYCLE_V2))
+    evalsByStatus[v] = 0;
+  for (const j of _wfexgovJsV2.values()) evalsByStatus[j.status]++;
+  return {
+    totalWfexgovProfilesV2: _wfexgovPsV2.size,
+    totalWfexgovEvalsV2: _wfexgovJsV2.size,
+    maxActiveWfexgovProfilesPerOwner: _wfexgovMaxActive,
+    maxPendingWfexgovEvalsPerProfile: _wfexgovMaxPending,
+    wfexgovProfileIdleMs: _wfexgovIdleMs,
+    wfexgovEvalStuckMs: _wfexgovStuckMs,
+    profilesByStatus,
+    evalsByStatus,
+  };
+}

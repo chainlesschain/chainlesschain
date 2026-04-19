@@ -468,3 +468,346 @@ export class SubAgentContext {
     };
   }
 }
+
+// =====================================================================
+// sub-agent-context V2 governance overlay (iter26)
+// =====================================================================
+export const SACTXGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const SACTXGOV_HANDOFF_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  TRANSFERRING: "transferring",
+  TRANSFERRED: "transferred",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _sactxgovPTrans = new Map([
+  [
+    SACTXGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      SACTXGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SACTXGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SACTXGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      SACTXGOV_PROFILE_MATURITY_V2.STALE,
+      SACTXGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SACTXGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      SACTXGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SACTXGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [SACTXGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _sactxgovPTerminal = new Set([SACTXGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _sactxgovJTrans = new Map([
+  [
+    SACTXGOV_HANDOFF_LIFECYCLE_V2.QUEUED,
+    new Set([
+      SACTXGOV_HANDOFF_LIFECYCLE_V2.TRANSFERRING,
+      SACTXGOV_HANDOFF_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    SACTXGOV_HANDOFF_LIFECYCLE_V2.TRANSFERRING,
+    new Set([
+      SACTXGOV_HANDOFF_LIFECYCLE_V2.TRANSFERRED,
+      SACTXGOV_HANDOFF_LIFECYCLE_V2.FAILED,
+      SACTXGOV_HANDOFF_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [SACTXGOV_HANDOFF_LIFECYCLE_V2.TRANSFERRED, new Set()],
+  [SACTXGOV_HANDOFF_LIFECYCLE_V2.FAILED, new Set()],
+  [SACTXGOV_HANDOFF_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _sactxgovPsV2 = new Map();
+const _sactxgovJsV2 = new Map();
+let _sactxgovMaxActive = 8,
+  _sactxgovMaxPending = 20,
+  _sactxgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _sactxgovStuckMs = 60 * 1000;
+function _sactxgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _sactxgovCheckP(from, to) {
+  const a = _sactxgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid sactxgov profile transition ${from} → ${to}`);
+}
+function _sactxgovCheckJ(from, to) {
+  const a = _sactxgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid sactxgov handoff transition ${from} → ${to}`);
+}
+function _sactxgovCountActive(owner) {
+  let c = 0;
+  for (const p of _sactxgovPsV2.values())
+    if (p.owner === owner && p.status === SACTXGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _sactxgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _sactxgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === SACTXGOV_HANDOFF_LIFECYCLE_V2.QUEUED ||
+        j.status === SACTXGOV_HANDOFF_LIFECYCLE_V2.TRANSFERRING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveSactxgovProfilesPerOwnerV2(n) {
+  _sactxgovMaxActive = _sactxgovPos(n, "maxActiveSactxgovProfilesPerOwner");
+}
+export function getMaxActiveSactxgovProfilesPerOwnerV2() {
+  return _sactxgovMaxActive;
+}
+export function setMaxPendingSactxgovHandoffsPerProfileV2(n) {
+  _sactxgovMaxPending = _sactxgovPos(n, "maxPendingSactxgovHandoffsPerProfile");
+}
+export function getMaxPendingSactxgovHandoffsPerProfileV2() {
+  return _sactxgovMaxPending;
+}
+export function setSactxgovProfileIdleMsV2(n) {
+  _sactxgovIdleMs = _sactxgovPos(n, "sactxgovProfileIdleMs");
+}
+export function getSactxgovProfileIdleMsV2() {
+  return _sactxgovIdleMs;
+}
+export function setSactxgovHandoffStuckMsV2(n) {
+  _sactxgovStuckMs = _sactxgovPos(n, "sactxgovHandoffStuckMs");
+}
+export function getSactxgovHandoffStuckMsV2() {
+  return _sactxgovStuckMs;
+}
+export function _resetStateSubAgentContextGovV2() {
+  _sactxgovPsV2.clear();
+  _sactxgovJsV2.clear();
+  _sactxgovMaxActive = 8;
+  _sactxgovMaxPending = 20;
+  _sactxgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _sactxgovStuckMs = 60 * 1000;
+}
+export function registerSactxgovProfileV2({ id, owner, scope, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_sactxgovPsV2.has(id))
+    throw new Error(`sactxgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    scope: scope || "task",
+    status: SACTXGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _sactxgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateSactxgovProfileV2(id) {
+  const p = _sactxgovPsV2.get(id);
+  if (!p) throw new Error(`sactxgov profile ${id} not found`);
+  const isInitial = p.status === SACTXGOV_PROFILE_MATURITY_V2.PENDING;
+  _sactxgovCheckP(p.status, SACTXGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _sactxgovCountActive(p.owner) >= _sactxgovMaxActive)
+    throw new Error(
+      `max active sactxgov profiles for owner ${p.owner} reached`,
+    );
+  const now = Date.now();
+  p.status = SACTXGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleSactxgovProfileV2(id) {
+  const p = _sactxgovPsV2.get(id);
+  if (!p) throw new Error(`sactxgov profile ${id} not found`);
+  _sactxgovCheckP(p.status, SACTXGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = SACTXGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveSactxgovProfileV2(id) {
+  const p = _sactxgovPsV2.get(id);
+  if (!p) throw new Error(`sactxgov profile ${id} not found`);
+  _sactxgovCheckP(p.status, SACTXGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = SACTXGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchSactxgovProfileV2(id) {
+  const p = _sactxgovPsV2.get(id);
+  if (!p) throw new Error(`sactxgov profile ${id} not found`);
+  if (_sactxgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal sactxgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getSactxgovProfileV2(id) {
+  const p = _sactxgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listSactxgovProfilesV2() {
+  return [..._sactxgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createSactxgovHandoffV2({
+  id,
+  profileId,
+  subAgent,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_sactxgovJsV2.has(id))
+    throw new Error(`sactxgov handoff ${id} already exists`);
+  if (!_sactxgovPsV2.has(profileId))
+    throw new Error(`sactxgov profile ${profileId} not found`);
+  if (_sactxgovCountPending(profileId) >= _sactxgovMaxPending)
+    throw new Error(
+      `max pending sactxgov handoffs for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    subAgent: subAgent || "",
+    status: SACTXGOV_HANDOFF_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _sactxgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function transferringSactxgovHandoffV2(id) {
+  const j = _sactxgovJsV2.get(id);
+  if (!j) throw new Error(`sactxgov handoff ${id} not found`);
+  _sactxgovCheckJ(j.status, SACTXGOV_HANDOFF_LIFECYCLE_V2.TRANSFERRING);
+  const now = Date.now();
+  j.status = SACTXGOV_HANDOFF_LIFECYCLE_V2.TRANSFERRING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeHandoffSactxgovV2(id) {
+  const j = _sactxgovJsV2.get(id);
+  if (!j) throw new Error(`sactxgov handoff ${id} not found`);
+  _sactxgovCheckJ(j.status, SACTXGOV_HANDOFF_LIFECYCLE_V2.TRANSFERRED);
+  const now = Date.now();
+  j.status = SACTXGOV_HANDOFF_LIFECYCLE_V2.TRANSFERRED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failSactxgovHandoffV2(id, reason) {
+  const j = _sactxgovJsV2.get(id);
+  if (!j) throw new Error(`sactxgov handoff ${id} not found`);
+  _sactxgovCheckJ(j.status, SACTXGOV_HANDOFF_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = SACTXGOV_HANDOFF_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelSactxgovHandoffV2(id, reason) {
+  const j = _sactxgovJsV2.get(id);
+  if (!j) throw new Error(`sactxgov handoff ${id} not found`);
+  _sactxgovCheckJ(j.status, SACTXGOV_HANDOFF_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = SACTXGOV_HANDOFF_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getSactxgovHandoffV2(id) {
+  const j = _sactxgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listSactxgovHandoffsV2() {
+  return [..._sactxgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleSactxgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _sactxgovPsV2.values())
+    if (
+      p.status === SACTXGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _sactxgovIdleMs
+    ) {
+      p.status = SACTXGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckSactxgovHandoffsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _sactxgovJsV2.values())
+    if (
+      j.status === SACTXGOV_HANDOFF_LIFECYCLE_V2.TRANSFERRING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _sactxgovStuckMs
+    ) {
+      j.status = SACTXGOV_HANDOFF_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getSubAgentContextGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(SACTXGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _sactxgovPsV2.values()) profilesByStatus[p.status]++;
+  const handoffsByStatus = {};
+  for (const v of Object.values(SACTXGOV_HANDOFF_LIFECYCLE_V2))
+    handoffsByStatus[v] = 0;
+  for (const j of _sactxgovJsV2.values()) handoffsByStatus[j.status]++;
+  return {
+    totalSactxgovProfilesV2: _sactxgovPsV2.size,
+    totalSactxgovHandoffsV2: _sactxgovJsV2.size,
+    maxActiveSactxgovProfilesPerOwner: _sactxgovMaxActive,
+    maxPendingSactxgovHandoffsPerProfile: _sactxgovMaxPending,
+    sactxgovProfileIdleMs: _sactxgovIdleMs,
+    sactxgovHandoffStuckMs: _sactxgovStuckMs,
+    profilesByStatus,
+    handoffsByStatus,
+  };
+}

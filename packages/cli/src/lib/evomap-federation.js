@@ -415,3 +415,341 @@ export function getFederationStatsV2() {
     byMutationType,
   };
 }
+
+// =====================================================================
+// evomap-federation V2 governance overlay (iter25)
+// =====================================================================
+export const EVFEDGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const EVFEDGOV_SYNC_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  SYNCING: "syncing",
+  SYNCED: "synced",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _evfedgovPTrans = new Map([
+  [
+    EVFEDGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      EVFEDGOV_PROFILE_MATURITY_V2.ACTIVE,
+      EVFEDGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    EVFEDGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      EVFEDGOV_PROFILE_MATURITY_V2.STALE,
+      EVFEDGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    EVFEDGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      EVFEDGOV_PROFILE_MATURITY_V2.ACTIVE,
+      EVFEDGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [EVFEDGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _evfedgovPTerminal = new Set([EVFEDGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _evfedgovJTrans = new Map([
+  [
+    EVFEDGOV_SYNC_LIFECYCLE_V2.QUEUED,
+    new Set([
+      EVFEDGOV_SYNC_LIFECYCLE_V2.SYNCING,
+      EVFEDGOV_SYNC_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    EVFEDGOV_SYNC_LIFECYCLE_V2.SYNCING,
+    new Set([
+      EVFEDGOV_SYNC_LIFECYCLE_V2.SYNCED,
+      EVFEDGOV_SYNC_LIFECYCLE_V2.FAILED,
+      EVFEDGOV_SYNC_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [EVFEDGOV_SYNC_LIFECYCLE_V2.SYNCED, new Set()],
+  [EVFEDGOV_SYNC_LIFECYCLE_V2.FAILED, new Set()],
+  [EVFEDGOV_SYNC_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _evfedgovPsV2 = new Map();
+const _evfedgovJsV2 = new Map();
+let _evfedgovMaxActive = 6,
+  _evfedgovMaxPending = 15,
+  _evfedgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _evfedgovStuckMs = 60 * 1000;
+function _evfedgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _evfedgovCheckP(from, to) {
+  const a = _evfedgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid evfedgov profile transition ${from} → ${to}`);
+}
+function _evfedgovCheckJ(from, to) {
+  const a = _evfedgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid evfedgov sync transition ${from} → ${to}`);
+}
+function _evfedgovCountActive(owner) {
+  let c = 0;
+  for (const p of _evfedgovPsV2.values())
+    if (p.owner === owner && p.status === EVFEDGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _evfedgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _evfedgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === EVFEDGOV_SYNC_LIFECYCLE_V2.QUEUED ||
+        j.status === EVFEDGOV_SYNC_LIFECYCLE_V2.SYNCING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveEvfedgovProfilesPerOwnerV2(n) {
+  _evfedgovMaxActive = _evfedgovPos(n, "maxActiveEvfedgovProfilesPerOwner");
+}
+export function getMaxActiveEvfedgovProfilesPerOwnerV2() {
+  return _evfedgovMaxActive;
+}
+export function setMaxPendingEvfedgovSyncsPerProfileV2(n) {
+  _evfedgovMaxPending = _evfedgovPos(n, "maxPendingEvfedgovSyncsPerProfile");
+}
+export function getMaxPendingEvfedgovSyncsPerProfileV2() {
+  return _evfedgovMaxPending;
+}
+export function setEvfedgovProfileIdleMsV2(n) {
+  _evfedgovIdleMs = _evfedgovPos(n, "evfedgovProfileIdleMs");
+}
+export function getEvfedgovProfileIdleMsV2() {
+  return _evfedgovIdleMs;
+}
+export function setEvfedgovSyncStuckMsV2(n) {
+  _evfedgovStuckMs = _evfedgovPos(n, "evfedgovSyncStuckMs");
+}
+export function getEvfedgovSyncStuckMsV2() {
+  return _evfedgovStuckMs;
+}
+export function _resetStateEvomapFederationGovV2() {
+  _evfedgovPsV2.clear();
+  _evfedgovJsV2.clear();
+  _evfedgovMaxActive = 6;
+  _evfedgovMaxPending = 15;
+  _evfedgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _evfedgovStuckMs = 60 * 1000;
+}
+export function registerEvfedgovProfileV2({ id, owner, hub, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_evfedgovPsV2.has(id))
+    throw new Error(`evfedgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    hub: hub || "primary",
+    status: EVFEDGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _evfedgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateEvfedgovProfileV2(id) {
+  const p = _evfedgovPsV2.get(id);
+  if (!p) throw new Error(`evfedgov profile ${id} not found`);
+  const isInitial = p.status === EVFEDGOV_PROFILE_MATURITY_V2.PENDING;
+  _evfedgovCheckP(p.status, EVFEDGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _evfedgovCountActive(p.owner) >= _evfedgovMaxActive)
+    throw new Error(
+      `max active evfedgov profiles for owner ${p.owner} reached`,
+    );
+  const now = Date.now();
+  p.status = EVFEDGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleEvfedgovProfileV2(id) {
+  const p = _evfedgovPsV2.get(id);
+  if (!p) throw new Error(`evfedgov profile ${id} not found`);
+  _evfedgovCheckP(p.status, EVFEDGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = EVFEDGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveEvfedgovProfileV2(id) {
+  const p = _evfedgovPsV2.get(id);
+  if (!p) throw new Error(`evfedgov profile ${id} not found`);
+  _evfedgovCheckP(p.status, EVFEDGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = EVFEDGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchEvfedgovProfileV2(id) {
+  const p = _evfedgovPsV2.get(id);
+  if (!p) throw new Error(`evfedgov profile ${id} not found`);
+  if (_evfedgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal evfedgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getEvfedgovProfileV2(id) {
+  const p = _evfedgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listEvfedgovProfilesV2() {
+  return [..._evfedgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createEvfedgovSyncV2({ id, profileId, geneId, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_evfedgovJsV2.has(id))
+    throw new Error(`evfedgov sync ${id} already exists`);
+  if (!_evfedgovPsV2.has(profileId))
+    throw new Error(`evfedgov profile ${profileId} not found`);
+  if (_evfedgovCountPending(profileId) >= _evfedgovMaxPending)
+    throw new Error(
+      `max pending evfedgov syncs for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    geneId: geneId || "",
+    status: EVFEDGOV_SYNC_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _evfedgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function syncingEvfedgovSyncV2(id) {
+  const j = _evfedgovJsV2.get(id);
+  if (!j) throw new Error(`evfedgov sync ${id} not found`);
+  _evfedgovCheckJ(j.status, EVFEDGOV_SYNC_LIFECYCLE_V2.SYNCING);
+  const now = Date.now();
+  j.status = EVFEDGOV_SYNC_LIFECYCLE_V2.SYNCING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeSyncEvfedgovV2(id) {
+  const j = _evfedgovJsV2.get(id);
+  if (!j) throw new Error(`evfedgov sync ${id} not found`);
+  _evfedgovCheckJ(j.status, EVFEDGOV_SYNC_LIFECYCLE_V2.SYNCED);
+  const now = Date.now();
+  j.status = EVFEDGOV_SYNC_LIFECYCLE_V2.SYNCED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failEvfedgovSyncV2(id, reason) {
+  const j = _evfedgovJsV2.get(id);
+  if (!j) throw new Error(`evfedgov sync ${id} not found`);
+  _evfedgovCheckJ(j.status, EVFEDGOV_SYNC_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = EVFEDGOV_SYNC_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelEvfedgovSyncV2(id, reason) {
+  const j = _evfedgovJsV2.get(id);
+  if (!j) throw new Error(`evfedgov sync ${id} not found`);
+  _evfedgovCheckJ(j.status, EVFEDGOV_SYNC_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = EVFEDGOV_SYNC_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getEvfedgovSyncV2(id) {
+  const j = _evfedgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listEvfedgovSyncsV2() {
+  return [..._evfedgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleEvfedgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _evfedgovPsV2.values())
+    if (
+      p.status === EVFEDGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _evfedgovIdleMs
+    ) {
+      p.status = EVFEDGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckEvfedgovSyncsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _evfedgovJsV2.values())
+    if (
+      j.status === EVFEDGOV_SYNC_LIFECYCLE_V2.SYNCING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _evfedgovStuckMs
+    ) {
+      j.status = EVFEDGOV_SYNC_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getEvomapFederationGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(EVFEDGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _evfedgovPsV2.values()) profilesByStatus[p.status]++;
+  const syncsByStatus = {};
+  for (const v of Object.values(EVFEDGOV_SYNC_LIFECYCLE_V2))
+    syncsByStatus[v] = 0;
+  for (const j of _evfedgovJsV2.values()) syncsByStatus[j.status]++;
+  return {
+    totalEvfedgovProfilesV2: _evfedgovPsV2.size,
+    totalEvfedgovSyncsV2: _evfedgovJsV2.size,
+    maxActiveEvfedgovProfilesPerOwner: _evfedgovMaxActive,
+    maxPendingEvfedgovSyncsPerProfile: _evfedgovMaxPending,
+    evfedgovProfileIdleMs: _evfedgovIdleMs,
+    evfedgovSyncStuckMs: _evfedgovStuckMs,
+    profilesByStatus,
+    syncsByStatus,
+  };
+}

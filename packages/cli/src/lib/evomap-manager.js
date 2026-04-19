@@ -564,3 +564,333 @@ export function getEvoMapManagerStatsV2() {
     evosByStatus,
   };
 }
+
+// === Iter28 V2 governance overlay: Emgrgov ===
+export const EMGRGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const EMGRGOV_OP_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  OPERATING: "operating",
+  OPERATED: "operated",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _emgrgovPTrans = new Map([
+  [
+    EMGRGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      EMGRGOV_PROFILE_MATURITY_V2.ACTIVE,
+      EMGRGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    EMGRGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      EMGRGOV_PROFILE_MATURITY_V2.STALE,
+      EMGRGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    EMGRGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      EMGRGOV_PROFILE_MATURITY_V2.ACTIVE,
+      EMGRGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [EMGRGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _emgrgovPTerminal = new Set([EMGRGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _emgrgovJTrans = new Map([
+  [
+    EMGRGOV_OP_LIFECYCLE_V2.QUEUED,
+    new Set([
+      EMGRGOV_OP_LIFECYCLE_V2.OPERATING,
+      EMGRGOV_OP_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    EMGRGOV_OP_LIFECYCLE_V2.OPERATING,
+    new Set([
+      EMGRGOV_OP_LIFECYCLE_V2.OPERATED,
+      EMGRGOV_OP_LIFECYCLE_V2.FAILED,
+      EMGRGOV_OP_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [EMGRGOV_OP_LIFECYCLE_V2.OPERATED, new Set()],
+  [EMGRGOV_OP_LIFECYCLE_V2.FAILED, new Set()],
+  [EMGRGOV_OP_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _emgrgovPsV2 = new Map();
+const _emgrgovJsV2 = new Map();
+let _emgrgovMaxActive = 8,
+  _emgrgovMaxPending = 20,
+  _emgrgovIdleMs = 2592000000,
+  _emgrgovStuckMs = 60 * 1000;
+function _emgrgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _emgrgovCheckP(from, to) {
+  const a = _emgrgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid emgrgov profile transition ${from} → ${to}`);
+}
+function _emgrgovCheckJ(from, to) {
+  const a = _emgrgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid emgrgov op transition ${from} → ${to}`);
+}
+function _emgrgovCountActive(owner) {
+  let c = 0;
+  for (const p of _emgrgovPsV2.values())
+    if (p.owner === owner && p.status === EMGRGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _emgrgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _emgrgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === EMGRGOV_OP_LIFECYCLE_V2.QUEUED ||
+        j.status === EMGRGOV_OP_LIFECYCLE_V2.OPERATING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveEmgrProfilesPerOwnerV2(n) {
+  _emgrgovMaxActive = _emgrgovPos(n, "maxActiveEmgrProfilesPerOwner");
+}
+export function getMaxActiveEmgrProfilesPerOwnerV2() {
+  return _emgrgovMaxActive;
+}
+export function setMaxPendingEmgrOpsPerProfileV2(n) {
+  _emgrgovMaxPending = _emgrgovPos(n, "maxPendingEmgrOpsPerProfile");
+}
+export function getMaxPendingEmgrOpsPerProfileV2() {
+  return _emgrgovMaxPending;
+}
+export function setEmgrProfileIdleMsV2(n) {
+  _emgrgovIdleMs = _emgrgovPos(n, "emgrgovProfileIdleMs");
+}
+export function getEmgrProfileIdleMsV2() {
+  return _emgrgovIdleMs;
+}
+export function setEmgrOpStuckMsV2(n) {
+  _emgrgovStuckMs = _emgrgovPos(n, "emgrgovOpStuckMs");
+}
+export function getEmgrOpStuckMsV2() {
+  return _emgrgovStuckMs;
+}
+export function _resetStateEmgrgovV2() {
+  _emgrgovPsV2.clear();
+  _emgrgovJsV2.clear();
+  _emgrgovMaxActive = 8;
+  _emgrgovMaxPending = 20;
+  _emgrgovIdleMs = 2592000000;
+  _emgrgovStuckMs = 60 * 1000;
+}
+export function registerEmgrProfileV2({ id, owner, map, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_emgrgovPsV2.has(id))
+    throw new Error(`emgrgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    map: map || "default",
+    status: EMGRGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _emgrgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateEmgrProfileV2(id) {
+  const p = _emgrgovPsV2.get(id);
+  if (!p) throw new Error(`emgrgov profile ${id} not found`);
+  const isInitial = p.status === EMGRGOV_PROFILE_MATURITY_V2.PENDING;
+  _emgrgovCheckP(p.status, EMGRGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _emgrgovCountActive(p.owner) >= _emgrgovMaxActive)
+    throw new Error(`max active emgrgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = EMGRGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleEmgrProfileV2(id) {
+  const p = _emgrgovPsV2.get(id);
+  if (!p) throw new Error(`emgrgov profile ${id} not found`);
+  _emgrgovCheckP(p.status, EMGRGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = EMGRGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveEmgrProfileV2(id) {
+  const p = _emgrgovPsV2.get(id);
+  if (!p) throw new Error(`emgrgov profile ${id} not found`);
+  _emgrgovCheckP(p.status, EMGRGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = EMGRGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchEmgrProfileV2(id) {
+  const p = _emgrgovPsV2.get(id);
+  if (!p) throw new Error(`emgrgov profile ${id} not found`);
+  if (_emgrgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal emgrgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getEmgrProfileV2(id) {
+  const p = _emgrgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listEmgrProfilesV2() {
+  return [..._emgrgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createEmgrOpV2({ id, profileId, opId, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_emgrgovJsV2.has(id)) throw new Error(`emgrgov op ${id} already exists`);
+  if (!_emgrgovPsV2.has(profileId))
+    throw new Error(`emgrgov profile ${profileId} not found`);
+  if (_emgrgovCountPending(profileId) >= _emgrgovMaxPending)
+    throw new Error(`max pending emgrgov ops for profile ${profileId} reached`);
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    opId: opId || "",
+    status: EMGRGOV_OP_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _emgrgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function operatingEmgrOpV2(id) {
+  const j = _emgrgovJsV2.get(id);
+  if (!j) throw new Error(`emgrgov op ${id} not found`);
+  _emgrgovCheckJ(j.status, EMGRGOV_OP_LIFECYCLE_V2.OPERATING);
+  const now = Date.now();
+  j.status = EMGRGOV_OP_LIFECYCLE_V2.OPERATING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeOpEmgrV2(id) {
+  const j = _emgrgovJsV2.get(id);
+  if (!j) throw new Error(`emgrgov op ${id} not found`);
+  _emgrgovCheckJ(j.status, EMGRGOV_OP_LIFECYCLE_V2.OPERATED);
+  const now = Date.now();
+  j.status = EMGRGOV_OP_LIFECYCLE_V2.OPERATED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failEmgrOpV2(id, reason) {
+  const j = _emgrgovJsV2.get(id);
+  if (!j) throw new Error(`emgrgov op ${id} not found`);
+  _emgrgovCheckJ(j.status, EMGRGOV_OP_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = EMGRGOV_OP_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelEmgrOpV2(id, reason) {
+  const j = _emgrgovJsV2.get(id);
+  if (!j) throw new Error(`emgrgov op ${id} not found`);
+  _emgrgovCheckJ(j.status, EMGRGOV_OP_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = EMGRGOV_OP_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getEmgrOpV2(id) {
+  const j = _emgrgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listEmgrOpsV2() {
+  return [..._emgrgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleEmgrProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _emgrgovPsV2.values())
+    if (
+      p.status === EMGRGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _emgrgovIdleMs
+    ) {
+      p.status = EMGRGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckEmgrOpsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _emgrgovJsV2.values())
+    if (
+      j.status === EMGRGOV_OP_LIFECYCLE_V2.OPERATING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _emgrgovStuckMs
+    ) {
+      j.status = EMGRGOV_OP_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getEmgrgovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(EMGRGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _emgrgovPsV2.values()) profilesByStatus[p.status]++;
+  const opsByStatus = {};
+  for (const v of Object.values(EMGRGOV_OP_LIFECYCLE_V2)) opsByStatus[v] = 0;
+  for (const j of _emgrgovJsV2.values()) opsByStatus[j.status]++;
+  return {
+    totalEmgrProfilesV2: _emgrgovPsV2.size,
+    totalEmgrOpsV2: _emgrgovJsV2.size,
+    maxActiveEmgrProfilesPerOwner: _emgrgovMaxActive,
+    maxPendingEmgrOpsPerProfile: _emgrgovMaxPending,
+    emgrgovProfileIdleMs: _emgrgovIdleMs,
+    emgrgovOpStuckMs: _emgrgovStuckMs,
+    profilesByStatus,
+    opsByStatus,
+  };
+}

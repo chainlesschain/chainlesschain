@@ -188,3 +188,339 @@ export async function unmountSkillMcpServers(mcpClient, mountedNames) {
 
   return { unmounted, errors };
 }
+
+// =====================================================================
+// skill-mcp V2 governance overlay (iter27)
+// =====================================================================
+export const SMCPGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const SMCPGOV_CALL_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  INVOKING: "invoking",
+  INVOKED: "invoked",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _smcpgovPTrans = new Map([
+  [
+    SMCPGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      SMCPGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SMCPGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SMCPGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      SMCPGOV_PROFILE_MATURITY_V2.STALE,
+      SMCPGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SMCPGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      SMCPGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SMCPGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [SMCPGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _smcpgovPTerminal = new Set([SMCPGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _smcpgovJTrans = new Map([
+  [
+    SMCPGOV_CALL_LIFECYCLE_V2.QUEUED,
+    new Set([
+      SMCPGOV_CALL_LIFECYCLE_V2.INVOKING,
+      SMCPGOV_CALL_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    SMCPGOV_CALL_LIFECYCLE_V2.INVOKING,
+    new Set([
+      SMCPGOV_CALL_LIFECYCLE_V2.INVOKED,
+      SMCPGOV_CALL_LIFECYCLE_V2.FAILED,
+      SMCPGOV_CALL_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [SMCPGOV_CALL_LIFECYCLE_V2.INVOKED, new Set()],
+  [SMCPGOV_CALL_LIFECYCLE_V2.FAILED, new Set()],
+  [SMCPGOV_CALL_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _smcpgovPsV2 = new Map();
+const _smcpgovJsV2 = new Map();
+let _smcpgovMaxActive = 6,
+  _smcpgovMaxPending = 15,
+  _smcpgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _smcpgovStuckMs = 60 * 1000;
+function _smcpgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _smcpgovCheckP(from, to) {
+  const a = _smcpgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid smcpgov profile transition ${from} → ${to}`);
+}
+function _smcpgovCheckJ(from, to) {
+  const a = _smcpgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid smcpgov call transition ${from} → ${to}`);
+}
+function _smcpgovCountActive(owner) {
+  let c = 0;
+  for (const p of _smcpgovPsV2.values())
+    if (p.owner === owner && p.status === SMCPGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _smcpgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _smcpgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === SMCPGOV_CALL_LIFECYCLE_V2.QUEUED ||
+        j.status === SMCPGOV_CALL_LIFECYCLE_V2.INVOKING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveSmcpgovProfilesPerOwnerV2(n) {
+  _smcpgovMaxActive = _smcpgovPos(n, "maxActiveSmcpgovProfilesPerOwner");
+}
+export function getMaxActiveSmcpgovProfilesPerOwnerV2() {
+  return _smcpgovMaxActive;
+}
+export function setMaxPendingSmcpgovCallsPerProfileV2(n) {
+  _smcpgovMaxPending = _smcpgovPos(n, "maxPendingSmcpgovCallsPerProfile");
+}
+export function getMaxPendingSmcpgovCallsPerProfileV2() {
+  return _smcpgovMaxPending;
+}
+export function setSmcpgovProfileIdleMsV2(n) {
+  _smcpgovIdleMs = _smcpgovPos(n, "smcpgovProfileIdleMs");
+}
+export function getSmcpgovProfileIdleMsV2() {
+  return _smcpgovIdleMs;
+}
+export function setSmcpgovCallStuckMsV2(n) {
+  _smcpgovStuckMs = _smcpgovPos(n, "smcpgovCallStuckMs");
+}
+export function getSmcpgovCallStuckMsV2() {
+  return _smcpgovStuckMs;
+}
+export function _resetStateSkillMcpGovV2() {
+  _smcpgovPsV2.clear();
+  _smcpgovJsV2.clear();
+  _smcpgovMaxActive = 6;
+  _smcpgovMaxPending = 15;
+  _smcpgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _smcpgovStuckMs = 60 * 1000;
+}
+export function registerSmcpgovProfileV2({ id, owner, server, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_smcpgovPsV2.has(id))
+    throw new Error(`smcpgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    server: server || "default",
+    status: SMCPGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _smcpgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateSmcpgovProfileV2(id) {
+  const p = _smcpgovPsV2.get(id);
+  if (!p) throw new Error(`smcpgov profile ${id} not found`);
+  const isInitial = p.status === SMCPGOV_PROFILE_MATURITY_V2.PENDING;
+  _smcpgovCheckP(p.status, SMCPGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _smcpgovCountActive(p.owner) >= _smcpgovMaxActive)
+    throw new Error(`max active smcpgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = SMCPGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleSmcpgovProfileV2(id) {
+  const p = _smcpgovPsV2.get(id);
+  if (!p) throw new Error(`smcpgov profile ${id} not found`);
+  _smcpgovCheckP(p.status, SMCPGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = SMCPGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveSmcpgovProfileV2(id) {
+  const p = _smcpgovPsV2.get(id);
+  if (!p) throw new Error(`smcpgov profile ${id} not found`);
+  _smcpgovCheckP(p.status, SMCPGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = SMCPGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchSmcpgovProfileV2(id) {
+  const p = _smcpgovPsV2.get(id);
+  if (!p) throw new Error(`smcpgov profile ${id} not found`);
+  if (_smcpgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal smcpgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getSmcpgovProfileV2(id) {
+  const p = _smcpgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listSmcpgovProfilesV2() {
+  return [..._smcpgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createSmcpgovCallV2({ id, profileId, tool, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_smcpgovJsV2.has(id))
+    throw new Error(`smcpgov call ${id} already exists`);
+  if (!_smcpgovPsV2.has(profileId))
+    throw new Error(`smcpgov profile ${profileId} not found`);
+  if (_smcpgovCountPending(profileId) >= _smcpgovMaxPending)
+    throw new Error(
+      `max pending smcpgov calls for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    tool: tool || "",
+    status: SMCPGOV_CALL_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _smcpgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function invokingSmcpgovCallV2(id) {
+  const j = _smcpgovJsV2.get(id);
+  if (!j) throw new Error(`smcpgov call ${id} not found`);
+  _smcpgovCheckJ(j.status, SMCPGOV_CALL_LIFECYCLE_V2.INVOKING);
+  const now = Date.now();
+  j.status = SMCPGOV_CALL_LIFECYCLE_V2.INVOKING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeCallSmcpgovV2(id) {
+  const j = _smcpgovJsV2.get(id);
+  if (!j) throw new Error(`smcpgov call ${id} not found`);
+  _smcpgovCheckJ(j.status, SMCPGOV_CALL_LIFECYCLE_V2.INVOKED);
+  const now = Date.now();
+  j.status = SMCPGOV_CALL_LIFECYCLE_V2.INVOKED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failSmcpgovCallV2(id, reason) {
+  const j = _smcpgovJsV2.get(id);
+  if (!j) throw new Error(`smcpgov call ${id} not found`);
+  _smcpgovCheckJ(j.status, SMCPGOV_CALL_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = SMCPGOV_CALL_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelSmcpgovCallV2(id, reason) {
+  const j = _smcpgovJsV2.get(id);
+  if (!j) throw new Error(`smcpgov call ${id} not found`);
+  _smcpgovCheckJ(j.status, SMCPGOV_CALL_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = SMCPGOV_CALL_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getSmcpgovCallV2(id) {
+  const j = _smcpgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listSmcpgovCallsV2() {
+  return [..._smcpgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleSmcpgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _smcpgovPsV2.values())
+    if (
+      p.status === SMCPGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _smcpgovIdleMs
+    ) {
+      p.status = SMCPGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckSmcpgovCallsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _smcpgovJsV2.values())
+    if (
+      j.status === SMCPGOV_CALL_LIFECYCLE_V2.INVOKING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _smcpgovStuckMs
+    ) {
+      j.status = SMCPGOV_CALL_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getSkillMcpGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(SMCPGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _smcpgovPsV2.values()) profilesByStatus[p.status]++;
+  const callsByStatus = {};
+  for (const v of Object.values(SMCPGOV_CALL_LIFECYCLE_V2))
+    callsByStatus[v] = 0;
+  for (const j of _smcpgovJsV2.values()) callsByStatus[j.status]++;
+  return {
+    totalSmcpgovProfilesV2: _smcpgovPsV2.size,
+    totalSmcpgovCallsV2: _smcpgovJsV2.size,
+    maxActiveSmcpgovProfilesPerOwner: _smcpgovMaxActive,
+    maxPendingSmcpgovCallsPerProfile: _smcpgovMaxPending,
+    smcpgovProfileIdleMs: _smcpgovIdleMs,
+    smcpgovCallStuckMs: _smcpgovStuckMs,
+    profilesByStatus,
+    callsByStatus,
+  };
+}

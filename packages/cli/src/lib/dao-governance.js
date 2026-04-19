@@ -1202,3 +1202,342 @@ export function getDaoGovernanceGovStatsV2() {
     proposalsByStatus,
   };
 }
+
+// === Iter28 V2 governance overlay: Daomgov ===
+export const DAOMGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const DAOMGOV_PROPOSAL_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  VOTING: "voting",
+  RESOLVED: "resolved",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _daomgovPTrans = new Map([
+  [
+    DAOMGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      DAOMGOV_PROFILE_MATURITY_V2.ACTIVE,
+      DAOMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    DAOMGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      DAOMGOV_PROFILE_MATURITY_V2.PAUSED,
+      DAOMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    DAOMGOV_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      DAOMGOV_PROFILE_MATURITY_V2.ACTIVE,
+      DAOMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [DAOMGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _daomgovPTerminal = new Set([DAOMGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _daomgovJTrans = new Map([
+  [
+    DAOMGOV_PROPOSAL_LIFECYCLE_V2.QUEUED,
+    new Set([
+      DAOMGOV_PROPOSAL_LIFECYCLE_V2.VOTING,
+      DAOMGOV_PROPOSAL_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    DAOMGOV_PROPOSAL_LIFECYCLE_V2.VOTING,
+    new Set([
+      DAOMGOV_PROPOSAL_LIFECYCLE_V2.RESOLVED,
+      DAOMGOV_PROPOSAL_LIFECYCLE_V2.FAILED,
+      DAOMGOV_PROPOSAL_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [DAOMGOV_PROPOSAL_LIFECYCLE_V2.RESOLVED, new Set()],
+  [DAOMGOV_PROPOSAL_LIFECYCLE_V2.FAILED, new Set()],
+  [DAOMGOV_PROPOSAL_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _daomgovPsV2 = new Map();
+const _daomgovJsV2 = new Map();
+let _daomgovMaxActive = 6,
+  _daomgovMaxPending = 15,
+  _daomgovIdleMs = 2592000000,
+  _daomgovStuckMs = 60 * 1000;
+function _daomgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _daomgovCheckP(from, to) {
+  const a = _daomgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid daomgov profile transition ${from} → ${to}`);
+}
+function _daomgovCheckJ(from, to) {
+  const a = _daomgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid daomgov proposal transition ${from} → ${to}`);
+}
+function _daomgovCountActive(owner) {
+  let c = 0;
+  for (const p of _daomgovPsV2.values())
+    if (p.owner === owner && p.status === DAOMGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _daomgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _daomgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === DAOMGOV_PROPOSAL_LIFECYCLE_V2.QUEUED ||
+        j.status === DAOMGOV_PROPOSAL_LIFECYCLE_V2.VOTING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveDaomProfilesPerOwnerV2(n) {
+  _daomgovMaxActive = _daomgovPos(n, "maxActiveDaomProfilesPerOwner");
+}
+export function getMaxActiveDaomProfilesPerOwnerV2() {
+  return _daomgovMaxActive;
+}
+export function setMaxPendingDaomProposalsPerProfileV2(n) {
+  _daomgovMaxPending = _daomgovPos(n, "maxPendingDaomProposalsPerProfile");
+}
+export function getMaxPendingDaomProposalsPerProfileV2() {
+  return _daomgovMaxPending;
+}
+export function setDaomProfileIdleMsV2(n) {
+  _daomgovIdleMs = _daomgovPos(n, "daomgovProfileIdleMs");
+}
+export function getDaomProfileIdleMsV2() {
+  return _daomgovIdleMs;
+}
+export function setDaomProposalStuckMsV2(n) {
+  _daomgovStuckMs = _daomgovPos(n, "daomgovProposalStuckMs");
+}
+export function getDaomProposalStuckMsV2() {
+  return _daomgovStuckMs;
+}
+export function _resetStateDaomgovV2() {
+  _daomgovPsV2.clear();
+  _daomgovJsV2.clear();
+  _daomgovMaxActive = 6;
+  _daomgovMaxPending = 15;
+  _daomgovIdleMs = 2592000000;
+  _daomgovStuckMs = 60 * 1000;
+}
+export function registerDaomProfileV2({ id, owner, realm, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_daomgovPsV2.has(id))
+    throw new Error(`daomgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    realm: realm || "default",
+    status: DAOMGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _daomgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateDaomProfileV2(id) {
+  const p = _daomgovPsV2.get(id);
+  if (!p) throw new Error(`daomgov profile ${id} not found`);
+  const isInitial = p.status === DAOMGOV_PROFILE_MATURITY_V2.PENDING;
+  _daomgovCheckP(p.status, DAOMGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _daomgovCountActive(p.owner) >= _daomgovMaxActive)
+    throw new Error(`max active daomgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = DAOMGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pausedDaomProfileV2(id) {
+  const p = _daomgovPsV2.get(id);
+  if (!p) throw new Error(`daomgov profile ${id} not found`);
+  _daomgovCheckP(p.status, DAOMGOV_PROFILE_MATURITY_V2.PAUSED);
+  p.status = DAOMGOV_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveDaomProfileV2(id) {
+  const p = _daomgovPsV2.get(id);
+  if (!p) throw new Error(`daomgov profile ${id} not found`);
+  _daomgovCheckP(p.status, DAOMGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = DAOMGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchDaomProfileV2(id) {
+  const p = _daomgovPsV2.get(id);
+  if (!p) throw new Error(`daomgov profile ${id} not found`);
+  if (_daomgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal daomgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getDaomProfileV2(id) {
+  const p = _daomgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listDaomProfilesV2() {
+  return [..._daomgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createDaomProposalV2({
+  id,
+  profileId,
+  proposalId,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_daomgovJsV2.has(id))
+    throw new Error(`daomgov proposal ${id} already exists`);
+  if (!_daomgovPsV2.has(profileId))
+    throw new Error(`daomgov profile ${profileId} not found`);
+  if (_daomgovCountPending(profileId) >= _daomgovMaxPending)
+    throw new Error(
+      `max pending daomgov proposals for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    proposalId: proposalId || "",
+    status: DAOMGOV_PROPOSAL_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _daomgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function votingDaomProposalV2(id) {
+  const j = _daomgovJsV2.get(id);
+  if (!j) throw new Error(`daomgov proposal ${id} not found`);
+  _daomgovCheckJ(j.status, DAOMGOV_PROPOSAL_LIFECYCLE_V2.VOTING);
+  const now = Date.now();
+  j.status = DAOMGOV_PROPOSAL_LIFECYCLE_V2.VOTING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeProposalDaomV2(id) {
+  const j = _daomgovJsV2.get(id);
+  if (!j) throw new Error(`daomgov proposal ${id} not found`);
+  _daomgovCheckJ(j.status, DAOMGOV_PROPOSAL_LIFECYCLE_V2.RESOLVED);
+  const now = Date.now();
+  j.status = DAOMGOV_PROPOSAL_LIFECYCLE_V2.RESOLVED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failDaomProposalV2(id, reason) {
+  const j = _daomgovJsV2.get(id);
+  if (!j) throw new Error(`daomgov proposal ${id} not found`);
+  _daomgovCheckJ(j.status, DAOMGOV_PROPOSAL_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = DAOMGOV_PROPOSAL_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelDaomProposalV2(id, reason) {
+  const j = _daomgovJsV2.get(id);
+  if (!j) throw new Error(`daomgov proposal ${id} not found`);
+  _daomgovCheckJ(j.status, DAOMGOV_PROPOSAL_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = DAOMGOV_PROPOSAL_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getDaomProposalV2(id) {
+  const j = _daomgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listDaomProposalsV2() {
+  return [..._daomgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPausedIdleDaomProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _daomgovPsV2.values())
+    if (
+      p.status === DAOMGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _daomgovIdleMs
+    ) {
+      p.status = DAOMGOV_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckDaomProposalsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _daomgovJsV2.values())
+    if (
+      j.status === DAOMGOV_PROPOSAL_LIFECYCLE_V2.VOTING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _daomgovStuckMs
+    ) {
+      j.status = DAOMGOV_PROPOSAL_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getDaomgovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(DAOMGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _daomgovPsV2.values()) profilesByStatus[p.status]++;
+  const proposalsByStatus = {};
+  for (const v of Object.values(DAOMGOV_PROPOSAL_LIFECYCLE_V2))
+    proposalsByStatus[v] = 0;
+  for (const j of _daomgovJsV2.values()) proposalsByStatus[j.status]++;
+  return {
+    totalDaomProfilesV2: _daomgovPsV2.size,
+    totalDaomProposalsV2: _daomgovJsV2.size,
+    maxActiveDaomProfilesPerOwner: _daomgovMaxActive,
+    maxPendingDaomProposalsPerProfile: _daomgovMaxPending,
+    daomgovProfileIdleMs: _daomgovIdleMs,
+    daomgovProposalStuckMs: _daomgovStuckMs,
+    profilesByStatus,
+    proposalsByStatus,
+  };
+}

@@ -1204,3 +1204,337 @@ export function getAgentEconomyGovStatsV2() {
     txsByStatus,
   };
 }
+
+// === Iter28 V2 governance overlay: Aecogov ===
+export const AECOGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const AECOGOV_TRADE_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  TRADING: "trading",
+  SETTLED: "settled",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _aecogovPTrans = new Map([
+  [
+    AECOGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      AECOGOV_PROFILE_MATURITY_V2.ACTIVE,
+      AECOGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    AECOGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      AECOGOV_PROFILE_MATURITY_V2.PAUSED,
+      AECOGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    AECOGOV_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      AECOGOV_PROFILE_MATURITY_V2.ACTIVE,
+      AECOGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [AECOGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _aecogovPTerminal = new Set([AECOGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _aecogovJTrans = new Map([
+  [
+    AECOGOV_TRADE_LIFECYCLE_V2.QUEUED,
+    new Set([
+      AECOGOV_TRADE_LIFECYCLE_V2.TRADING,
+      AECOGOV_TRADE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    AECOGOV_TRADE_LIFECYCLE_V2.TRADING,
+    new Set([
+      AECOGOV_TRADE_LIFECYCLE_V2.SETTLED,
+      AECOGOV_TRADE_LIFECYCLE_V2.FAILED,
+      AECOGOV_TRADE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [AECOGOV_TRADE_LIFECYCLE_V2.SETTLED, new Set()],
+  [AECOGOV_TRADE_LIFECYCLE_V2.FAILED, new Set()],
+  [AECOGOV_TRADE_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _aecogovPsV2 = new Map();
+const _aecogovJsV2 = new Map();
+let _aecogovMaxActive = 8,
+  _aecogovMaxPending = 25,
+  _aecogovIdleMs = 2592000000,
+  _aecogovStuckMs = 60 * 1000;
+function _aecogovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _aecogovCheckP(from, to) {
+  const a = _aecogovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid aecogov profile transition ${from} → ${to}`);
+}
+function _aecogovCheckJ(from, to) {
+  const a = _aecogovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid aecogov trade transition ${from} → ${to}`);
+}
+function _aecogovCountActive(owner) {
+  let c = 0;
+  for (const p of _aecogovPsV2.values())
+    if (p.owner === owner && p.status === AECOGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _aecogovCountPending(profileId) {
+  let c = 0;
+  for (const j of _aecogovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === AECOGOV_TRADE_LIFECYCLE_V2.QUEUED ||
+        j.status === AECOGOV_TRADE_LIFECYCLE_V2.TRADING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveAecoProfilesPerOwnerV2(n) {
+  _aecogovMaxActive = _aecogovPos(n, "maxActiveAecoProfilesPerOwner");
+}
+export function getMaxActiveAecoProfilesPerOwnerV2() {
+  return _aecogovMaxActive;
+}
+export function setMaxPendingAecoTradesPerProfileV2(n) {
+  _aecogovMaxPending = _aecogovPos(n, "maxPendingAecoTradesPerProfile");
+}
+export function getMaxPendingAecoTradesPerProfileV2() {
+  return _aecogovMaxPending;
+}
+export function setAecoProfileIdleMsV2(n) {
+  _aecogovIdleMs = _aecogovPos(n, "aecogovProfileIdleMs");
+}
+export function getAecoProfileIdleMsV2() {
+  return _aecogovIdleMs;
+}
+export function setAecoTradeStuckMsV2(n) {
+  _aecogovStuckMs = _aecogovPos(n, "aecogovTradeStuckMs");
+}
+export function getAecoTradeStuckMsV2() {
+  return _aecogovStuckMs;
+}
+export function _resetStateAecogovV2() {
+  _aecogovPsV2.clear();
+  _aecogovJsV2.clear();
+  _aecogovMaxActive = 8;
+  _aecogovMaxPending = 25;
+  _aecogovIdleMs = 2592000000;
+  _aecogovStuckMs = 60 * 1000;
+}
+export function registerAecoProfileV2({ id, owner, market, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_aecogovPsV2.has(id))
+    throw new Error(`aecogov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    market: market || "default",
+    status: AECOGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _aecogovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateAecoProfileV2(id) {
+  const p = _aecogovPsV2.get(id);
+  if (!p) throw new Error(`aecogov profile ${id} not found`);
+  const isInitial = p.status === AECOGOV_PROFILE_MATURITY_V2.PENDING;
+  _aecogovCheckP(p.status, AECOGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _aecogovCountActive(p.owner) >= _aecogovMaxActive)
+    throw new Error(`max active aecogov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = AECOGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pausedAecoProfileV2(id) {
+  const p = _aecogovPsV2.get(id);
+  if (!p) throw new Error(`aecogov profile ${id} not found`);
+  _aecogovCheckP(p.status, AECOGOV_PROFILE_MATURITY_V2.PAUSED);
+  p.status = AECOGOV_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveAecoProfileV2(id) {
+  const p = _aecogovPsV2.get(id);
+  if (!p) throw new Error(`aecogov profile ${id} not found`);
+  _aecogovCheckP(p.status, AECOGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = AECOGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchAecoProfileV2(id) {
+  const p = _aecogovPsV2.get(id);
+  if (!p) throw new Error(`aecogov profile ${id} not found`);
+  if (_aecogovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal aecogov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getAecoProfileV2(id) {
+  const p = _aecogovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listAecoProfilesV2() {
+  return [..._aecogovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createAecoTradeV2({ id, profileId, orderId, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_aecogovJsV2.has(id))
+    throw new Error(`aecogov trade ${id} already exists`);
+  if (!_aecogovPsV2.has(profileId))
+    throw new Error(`aecogov profile ${profileId} not found`);
+  if (_aecogovCountPending(profileId) >= _aecogovMaxPending)
+    throw new Error(
+      `max pending aecogov trades for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    orderId: orderId || "",
+    status: AECOGOV_TRADE_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _aecogovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function tradingAecoTradeV2(id) {
+  const j = _aecogovJsV2.get(id);
+  if (!j) throw new Error(`aecogov trade ${id} not found`);
+  _aecogovCheckJ(j.status, AECOGOV_TRADE_LIFECYCLE_V2.TRADING);
+  const now = Date.now();
+  j.status = AECOGOV_TRADE_LIFECYCLE_V2.TRADING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeTradeAecoV2(id) {
+  const j = _aecogovJsV2.get(id);
+  if (!j) throw new Error(`aecogov trade ${id} not found`);
+  _aecogovCheckJ(j.status, AECOGOV_TRADE_LIFECYCLE_V2.SETTLED);
+  const now = Date.now();
+  j.status = AECOGOV_TRADE_LIFECYCLE_V2.SETTLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failAecoTradeV2(id, reason) {
+  const j = _aecogovJsV2.get(id);
+  if (!j) throw new Error(`aecogov trade ${id} not found`);
+  _aecogovCheckJ(j.status, AECOGOV_TRADE_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = AECOGOV_TRADE_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelAecoTradeV2(id, reason) {
+  const j = _aecogovJsV2.get(id);
+  if (!j) throw new Error(`aecogov trade ${id} not found`);
+  _aecogovCheckJ(j.status, AECOGOV_TRADE_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = AECOGOV_TRADE_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getAecoTradeV2(id) {
+  const j = _aecogovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listAecoTradesV2() {
+  return [..._aecogovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPausedIdleAecoProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _aecogovPsV2.values())
+    if (
+      p.status === AECOGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _aecogovIdleMs
+    ) {
+      p.status = AECOGOV_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckAecoTradesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _aecogovJsV2.values())
+    if (
+      j.status === AECOGOV_TRADE_LIFECYCLE_V2.TRADING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _aecogovStuckMs
+    ) {
+      j.status = AECOGOV_TRADE_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getAecogovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(AECOGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _aecogovPsV2.values()) profilesByStatus[p.status]++;
+  const tradesByStatus = {};
+  for (const v of Object.values(AECOGOV_TRADE_LIFECYCLE_V2))
+    tradesByStatus[v] = 0;
+  for (const j of _aecogovJsV2.values()) tradesByStatus[j.status]++;
+  return {
+    totalAecoProfilesV2: _aecogovPsV2.size,
+    totalAecoTradesV2: _aecogovJsV2.size,
+    maxActiveAecoProfilesPerOwner: _aecogovMaxActive,
+    maxPendingAecoTradesPerProfile: _aecogovMaxPending,
+    aecogovProfileIdleMs: _aecogovIdleMs,
+    aecogovTradeStuckMs: _aecogovStuckMs,
+    profilesByStatus,
+    tradesByStatus,
+  };
+}

@@ -790,3 +790,336 @@ export function getAgentRouterStatsV2() {
     dispatchesByStatus,
   };
 }
+
+// =====================================================================
+// agent-router V2 governance overlay (iter25)
+// =====================================================================
+export const ARGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const ARGOV_ROUTING_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  ROUTING_RUN: "routing",
+  ROUTED: "routed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _argovPTrans = new Map([
+  [
+    ARGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      ARGOV_PROFILE_MATURITY_V2.ACTIVE,
+      ARGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    ARGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      ARGOV_PROFILE_MATURITY_V2.STALE,
+      ARGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    ARGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      ARGOV_PROFILE_MATURITY_V2.ACTIVE,
+      ARGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [ARGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _argovPTerminal = new Set([ARGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _argovJTrans = new Map([
+  [
+    ARGOV_ROUTING_LIFECYCLE_V2.QUEUED,
+    new Set([
+      ARGOV_ROUTING_LIFECYCLE_V2.ROUTING_RUN,
+      ARGOV_ROUTING_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    ARGOV_ROUTING_LIFECYCLE_V2.ROUTING_RUN,
+    new Set([
+      ARGOV_ROUTING_LIFECYCLE_V2.ROUTED,
+      ARGOV_ROUTING_LIFECYCLE_V2.FAILED,
+      ARGOV_ROUTING_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [ARGOV_ROUTING_LIFECYCLE_V2.ROUTED, new Set()],
+  [ARGOV_ROUTING_LIFECYCLE_V2.FAILED, new Set()],
+  [ARGOV_ROUTING_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _argovPsV2 = new Map();
+const _argovJsV2 = new Map();
+let _argovMaxActive = 8,
+  _argovMaxPending = 20,
+  _argovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _argovStuckMs = 60 * 1000;
+function _argovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _argovCheckP(from, to) {
+  const a = _argovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid argov profile transition ${from} → ${to}`);
+}
+function _argovCheckJ(from, to) {
+  const a = _argovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid argov routing transition ${from} → ${to}`);
+}
+function _argovCountActive(owner) {
+  let c = 0;
+  for (const p of _argovPsV2.values())
+    if (p.owner === owner && p.status === ARGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _argovCountPending(profileId) {
+  let c = 0;
+  for (const j of _argovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === ARGOV_ROUTING_LIFECYCLE_V2.QUEUED ||
+        j.status === ARGOV_ROUTING_LIFECYCLE_V2.ROUTING_RUN)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveArgovProfilesPerOwnerV2(n) {
+  _argovMaxActive = _argovPos(n, "maxActiveArgovProfilesPerOwner");
+}
+export function getMaxActiveArgovProfilesPerOwnerV2() {
+  return _argovMaxActive;
+}
+export function setMaxPendingArgovRoutingsPerProfileV2(n) {
+  _argovMaxPending = _argovPos(n, "maxPendingArgovRoutingsPerProfile");
+}
+export function getMaxPendingArgovRoutingsPerProfileV2() {
+  return _argovMaxPending;
+}
+export function setArgovProfileIdleMsV2(n) {
+  _argovIdleMs = _argovPos(n, "argovProfileIdleMs");
+}
+export function getArgovProfileIdleMsV2() {
+  return _argovIdleMs;
+}
+export function setArgovRoutingStuckMsV2(n) {
+  _argovStuckMs = _argovPos(n, "argovRoutingStuckMs");
+}
+export function getArgovRoutingStuckMsV2() {
+  return _argovStuckMs;
+}
+export function _resetStateAgentRouterGovV2() {
+  _argovPsV2.clear();
+  _argovJsV2.clear();
+  _argovMaxActive = 8;
+  _argovMaxPending = 20;
+  _argovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _argovStuckMs = 60 * 1000;
+}
+export function registerArgovProfileV2({ id, owner, strategy, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_argovPsV2.has(id)) throw new Error(`argov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    strategy: strategy || "round-robin",
+    status: ARGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _argovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateArgovProfileV2(id) {
+  const p = _argovPsV2.get(id);
+  if (!p) throw new Error(`argov profile ${id} not found`);
+  const isInitial = p.status === ARGOV_PROFILE_MATURITY_V2.PENDING;
+  _argovCheckP(p.status, ARGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _argovCountActive(p.owner) >= _argovMaxActive)
+    throw new Error(`max active argov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = ARGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleArgovProfileV2(id) {
+  const p = _argovPsV2.get(id);
+  if (!p) throw new Error(`argov profile ${id} not found`);
+  _argovCheckP(p.status, ARGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = ARGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveArgovProfileV2(id) {
+  const p = _argovPsV2.get(id);
+  if (!p) throw new Error(`argov profile ${id} not found`);
+  _argovCheckP(p.status, ARGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = ARGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchArgovProfileV2(id) {
+  const p = _argovPsV2.get(id);
+  if (!p) throw new Error(`argov profile ${id} not found`);
+  if (_argovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal argov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getArgovProfileV2(id) {
+  const p = _argovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listArgovProfilesV2() {
+  return [..._argovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createArgovRoutingV2({ id, profileId, target, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_argovJsV2.has(id)) throw new Error(`argov routing ${id} already exists`);
+  if (!_argovPsV2.has(profileId))
+    throw new Error(`argov profile ${profileId} not found`);
+  if (_argovCountPending(profileId) >= _argovMaxPending)
+    throw new Error(
+      `max pending argov routings for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    target: target || "",
+    status: ARGOV_ROUTING_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _argovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function runningArgovRoutingV2(id) {
+  const j = _argovJsV2.get(id);
+  if (!j) throw new Error(`argov routing ${id} not found`);
+  _argovCheckJ(j.status, ARGOV_ROUTING_LIFECYCLE_V2.ROUTING_RUN);
+  const now = Date.now();
+  j.status = ARGOV_ROUTING_LIFECYCLE_V2.ROUTING_RUN;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeRoutingArgovV2(id) {
+  const j = _argovJsV2.get(id);
+  if (!j) throw new Error(`argov routing ${id} not found`);
+  _argovCheckJ(j.status, ARGOV_ROUTING_LIFECYCLE_V2.ROUTED);
+  const now = Date.now();
+  j.status = ARGOV_ROUTING_LIFECYCLE_V2.ROUTED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failArgovRoutingV2(id, reason) {
+  const j = _argovJsV2.get(id);
+  if (!j) throw new Error(`argov routing ${id} not found`);
+  _argovCheckJ(j.status, ARGOV_ROUTING_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = ARGOV_ROUTING_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelArgovRoutingV2(id, reason) {
+  const j = _argovJsV2.get(id);
+  if (!j) throw new Error(`argov routing ${id} not found`);
+  _argovCheckJ(j.status, ARGOV_ROUTING_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = ARGOV_ROUTING_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getArgovRoutingV2(id) {
+  const j = _argovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listArgovRoutingsV2() {
+  return [..._argovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleArgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _argovPsV2.values())
+    if (
+      p.status === ARGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _argovIdleMs
+    ) {
+      p.status = ARGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckArgovRoutingsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _argovJsV2.values())
+    if (
+      j.status === ARGOV_ROUTING_LIFECYCLE_V2.ROUTING_RUN &&
+      j.startedAt != null &&
+      t - j.startedAt >= _argovStuckMs
+    ) {
+      j.status = ARGOV_ROUTING_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getAgentRouterGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(ARGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _argovPsV2.values()) profilesByStatus[p.status]++;
+  const routingsByStatus = {};
+  for (const v of Object.values(ARGOV_ROUTING_LIFECYCLE_V2))
+    routingsByStatus[v] = 0;
+  for (const j of _argovJsV2.values()) routingsByStatus[j.status]++;
+  return {
+    totalArgovProfilesV2: _argovPsV2.size,
+    totalArgovRoutingsV2: _argovJsV2.size,
+    maxActiveArgovProfilesPerOwner: _argovMaxActive,
+    maxPendingArgovRoutingsPerProfile: _argovMaxPending,
+    argovProfileIdleMs: _argovIdleMs,
+    argovRoutingStuckMs: _argovStuckMs,
+    profilesByStatus,
+    routingsByStatus,
+  };
+}

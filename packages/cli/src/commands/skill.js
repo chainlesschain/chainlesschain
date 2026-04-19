@@ -1169,3 +1169,210 @@ export function registerSklgovV2Commands(program) {
       );
     });
 }
+
+// === Iter27 V2 governance overlay ===
+export function registerSmcpgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "skill");
+  if (!parent) return;
+  const L = async () => await import("../lib/skill-mcp.js");
+  parent
+    .command("smcpgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.SMCPGOV_PROFILE_MATURITY_V2,
+            callLifecycle: m.SMCPGOV_CALL_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("smcpgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveSmcpgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingSmcpgovCallsPerProfileV2(),
+            idleMs: m.getSmcpgovProfileIdleMsV2(),
+            stuckMs: m.getSmcpgovCallStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("smcpgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveSmcpgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("smcpgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingSmcpgovCallsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("smcpgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setSmcpgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("smcpgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setSmcpgovCallStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("smcpgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--server <v>", "server")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerSmcpgovProfileV2({ id, owner, server: o.server }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("smcpgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateSmcpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("smcpgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleSmcpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("smcpgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveSmcpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("smcpgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchSmcpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("smcpgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getSmcpgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("smcpgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listSmcpgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("smcpgov-create-call-v2 <id> <profileId>")
+    .description("Create call")
+    .option("--tool <v>", "tool")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createSmcpgovCallV2({ id, profileId, tool: o.tool }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("smcpgov-invoking-call-v2 <id>")
+    .description("Mark call as invoking")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).invokingSmcpgovCallV2(id), null, 2),
+      );
+    });
+  parent
+    .command("smcpgov-complete-call-v2 <id>")
+    .description("Complete call")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeCallSmcpgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("smcpgov-fail-call-v2 <id> [reason]")
+    .description("Fail call")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failSmcpgovCallV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("smcpgov-cancel-call-v2 <id> [reason]")
+    .description("Cancel call")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelSmcpgovCallV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("smcpgov-get-call-v2 <id>")
+    .description("Get call")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getSmcpgovCallV2(id), null, 2));
+    });
+  parent
+    .command("smcpgov-list-calls-v2")
+    .description("List calls")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listSmcpgovCallsV2(), null, 2));
+    });
+  parent
+    .command("smcpgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleSmcpgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("smcpgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck calls")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckSmcpgovCallsV2(), null, 2),
+      );
+    });
+  parent
+    .command("smcpgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).getSkillMcpGovStatsV2(), null, 2));
+    });
+}

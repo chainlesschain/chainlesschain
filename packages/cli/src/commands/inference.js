@@ -798,3 +798,210 @@ function _registerInferenceGovV2(parent) {
       else console.log(s);
     });
 }
+
+// === Iter28 V2 governance overlay: Infnetgov ===
+export function registerInfnetV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "inference");
+  if (!parent) return;
+  const L = async () => await import("../lib/inference-network.js");
+  parent
+    .command("infnetgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.INFNETGOV_PROFILE_MATURITY_V2,
+            requestLifecycle: m.INFNETGOV_REQUEST_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("infnetgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveInfnetProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingInfnetRequestsPerProfileV2(),
+            idleMs: m.getInfnetProfileIdleMsV2(),
+            stuckMs: m.getInfnetRequestStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("infnetgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveInfnetProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("infnetgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingInfnetRequestsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("infnetgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setInfnetProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("infnetgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setInfnetRequestStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("infnetgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--node <v>", "node")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerInfnetProfileV2({ id, owner, node: o.node }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("infnetgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateInfnetProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("infnetgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleInfnetProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("infnetgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveInfnetProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("infnetgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchInfnetProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("infnetgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getInfnetProfileV2(id), null, 2));
+    });
+  parent
+    .command("infnetgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listInfnetProfilesV2(), null, 2));
+    });
+  parent
+    .command("infnetgov-create-request-v2 <id> <profileId>")
+    .description("Create request")
+    .option("--requestId <v>", "requestId")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createInfnetRequestV2({ id, profileId, requestId: o.requestId }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("infnetgov-inferring-request-v2 <id>")
+    .description("Mark request as inferring")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).inferringInfnetRequestV2(id), null, 2),
+      );
+    });
+  parent
+    .command("infnetgov-complete-request-v2 <id>")
+    .description("Complete request")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeRequestInfnetV2(id), null, 2),
+      );
+    });
+  parent
+    .command("infnetgov-fail-request-v2 <id> [reason]")
+    .description("Fail request")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failInfnetRequestV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("infnetgov-cancel-request-v2 <id> [reason]")
+    .description("Cancel request")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelInfnetRequestV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("infnetgov-get-request-v2 <id>")
+    .description("Get request")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getInfnetRequestV2(id), null, 2));
+    });
+  parent
+    .command("infnetgov-list-requests-v2")
+    .description("List requests")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listInfnetRequestsV2(), null, 2));
+    });
+  parent
+    .command("infnetgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleInfnetProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("infnetgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck requests")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckInfnetRequestsV2(), null, 2),
+      );
+    });
+  parent
+    .command("infnetgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).getInfnetgovStatsV2(), null, 2));
+    });
+}

@@ -1097,3 +1097,344 @@ export function getInferenceNetworkGovStatsV2() {
     jobsByStatus,
   };
 }
+
+// === Iter28 V2 governance overlay: Infnetgov ===
+export const INFNETGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const INFNETGOV_REQUEST_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  INFERRING: "inferring",
+  INFERRED: "inferred",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _infnetgovPTrans = new Map([
+  [
+    INFNETGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      INFNETGOV_PROFILE_MATURITY_V2.ACTIVE,
+      INFNETGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    INFNETGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      INFNETGOV_PROFILE_MATURITY_V2.STALE,
+      INFNETGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    INFNETGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      INFNETGOV_PROFILE_MATURITY_V2.ACTIVE,
+      INFNETGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [INFNETGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _infnetgovPTerminal = new Set([INFNETGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _infnetgovJTrans = new Map([
+  [
+    INFNETGOV_REQUEST_LIFECYCLE_V2.QUEUED,
+    new Set([
+      INFNETGOV_REQUEST_LIFECYCLE_V2.INFERRING,
+      INFNETGOV_REQUEST_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    INFNETGOV_REQUEST_LIFECYCLE_V2.INFERRING,
+    new Set([
+      INFNETGOV_REQUEST_LIFECYCLE_V2.INFERRED,
+      INFNETGOV_REQUEST_LIFECYCLE_V2.FAILED,
+      INFNETGOV_REQUEST_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [INFNETGOV_REQUEST_LIFECYCLE_V2.INFERRED, new Set()],
+  [INFNETGOV_REQUEST_LIFECYCLE_V2.FAILED, new Set()],
+  [INFNETGOV_REQUEST_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _infnetgovPsV2 = new Map();
+const _infnetgovJsV2 = new Map();
+let _infnetgovMaxActive = 8,
+  _infnetgovMaxPending = 25,
+  _infnetgovIdleMs = 2592000000,
+  _infnetgovStuckMs = 60 * 1000;
+function _infnetgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _infnetgovCheckP(from, to) {
+  const a = _infnetgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid infnetgov profile transition ${from} → ${to}`);
+}
+function _infnetgovCheckJ(from, to) {
+  const a = _infnetgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid infnetgov request transition ${from} → ${to}`);
+}
+function _infnetgovCountActive(owner) {
+  let c = 0;
+  for (const p of _infnetgovPsV2.values())
+    if (p.owner === owner && p.status === INFNETGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _infnetgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _infnetgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === INFNETGOV_REQUEST_LIFECYCLE_V2.QUEUED ||
+        j.status === INFNETGOV_REQUEST_LIFECYCLE_V2.INFERRING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveInfnetProfilesPerOwnerV2(n) {
+  _infnetgovMaxActive = _infnetgovPos(n, "maxActiveInfnetProfilesPerOwner");
+}
+export function getMaxActiveInfnetProfilesPerOwnerV2() {
+  return _infnetgovMaxActive;
+}
+export function setMaxPendingInfnetRequestsPerProfileV2(n) {
+  _infnetgovMaxPending = _infnetgovPos(n, "maxPendingInfnetRequestsPerProfile");
+}
+export function getMaxPendingInfnetRequestsPerProfileV2() {
+  return _infnetgovMaxPending;
+}
+export function setInfnetProfileIdleMsV2(n) {
+  _infnetgovIdleMs = _infnetgovPos(n, "infnetgovProfileIdleMs");
+}
+export function getInfnetProfileIdleMsV2() {
+  return _infnetgovIdleMs;
+}
+export function setInfnetRequestStuckMsV2(n) {
+  _infnetgovStuckMs = _infnetgovPos(n, "infnetgovRequestStuckMs");
+}
+export function getInfnetRequestStuckMsV2() {
+  return _infnetgovStuckMs;
+}
+export function _resetStateInfnetgovV2() {
+  _infnetgovPsV2.clear();
+  _infnetgovJsV2.clear();
+  _infnetgovMaxActive = 8;
+  _infnetgovMaxPending = 25;
+  _infnetgovIdleMs = 2592000000;
+  _infnetgovStuckMs = 60 * 1000;
+}
+export function registerInfnetProfileV2({ id, owner, node, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_infnetgovPsV2.has(id))
+    throw new Error(`infnetgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    node: node || "default",
+    status: INFNETGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _infnetgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateInfnetProfileV2(id) {
+  const p = _infnetgovPsV2.get(id);
+  if (!p) throw new Error(`infnetgov profile ${id} not found`);
+  const isInitial = p.status === INFNETGOV_PROFILE_MATURITY_V2.PENDING;
+  _infnetgovCheckP(p.status, INFNETGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _infnetgovCountActive(p.owner) >= _infnetgovMaxActive)
+    throw new Error(
+      `max active infnetgov profiles for owner ${p.owner} reached`,
+    );
+  const now = Date.now();
+  p.status = INFNETGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleInfnetProfileV2(id) {
+  const p = _infnetgovPsV2.get(id);
+  if (!p) throw new Error(`infnetgov profile ${id} not found`);
+  _infnetgovCheckP(p.status, INFNETGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = INFNETGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveInfnetProfileV2(id) {
+  const p = _infnetgovPsV2.get(id);
+  if (!p) throw new Error(`infnetgov profile ${id} not found`);
+  _infnetgovCheckP(p.status, INFNETGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = INFNETGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchInfnetProfileV2(id) {
+  const p = _infnetgovPsV2.get(id);
+  if (!p) throw new Error(`infnetgov profile ${id} not found`);
+  if (_infnetgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal infnetgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getInfnetProfileV2(id) {
+  const p = _infnetgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listInfnetProfilesV2() {
+  return [..._infnetgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createInfnetRequestV2({
+  id,
+  profileId,
+  requestId,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_infnetgovJsV2.has(id))
+    throw new Error(`infnetgov request ${id} already exists`);
+  if (!_infnetgovPsV2.has(profileId))
+    throw new Error(`infnetgov profile ${profileId} not found`);
+  if (_infnetgovCountPending(profileId) >= _infnetgovMaxPending)
+    throw new Error(
+      `max pending infnetgov requests for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    requestId: requestId || "",
+    status: INFNETGOV_REQUEST_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _infnetgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function inferringInfnetRequestV2(id) {
+  const j = _infnetgovJsV2.get(id);
+  if (!j) throw new Error(`infnetgov request ${id} not found`);
+  _infnetgovCheckJ(j.status, INFNETGOV_REQUEST_LIFECYCLE_V2.INFERRING);
+  const now = Date.now();
+  j.status = INFNETGOV_REQUEST_LIFECYCLE_V2.INFERRING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeRequestInfnetV2(id) {
+  const j = _infnetgovJsV2.get(id);
+  if (!j) throw new Error(`infnetgov request ${id} not found`);
+  _infnetgovCheckJ(j.status, INFNETGOV_REQUEST_LIFECYCLE_V2.INFERRED);
+  const now = Date.now();
+  j.status = INFNETGOV_REQUEST_LIFECYCLE_V2.INFERRED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failInfnetRequestV2(id, reason) {
+  const j = _infnetgovJsV2.get(id);
+  if (!j) throw new Error(`infnetgov request ${id} not found`);
+  _infnetgovCheckJ(j.status, INFNETGOV_REQUEST_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = INFNETGOV_REQUEST_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelInfnetRequestV2(id, reason) {
+  const j = _infnetgovJsV2.get(id);
+  if (!j) throw new Error(`infnetgov request ${id} not found`);
+  _infnetgovCheckJ(j.status, INFNETGOV_REQUEST_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = INFNETGOV_REQUEST_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getInfnetRequestV2(id) {
+  const j = _infnetgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listInfnetRequestsV2() {
+  return [..._infnetgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleInfnetProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _infnetgovPsV2.values())
+    if (
+      p.status === INFNETGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _infnetgovIdleMs
+    ) {
+      p.status = INFNETGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckInfnetRequestsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _infnetgovJsV2.values())
+    if (
+      j.status === INFNETGOV_REQUEST_LIFECYCLE_V2.INFERRING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _infnetgovStuckMs
+    ) {
+      j.status = INFNETGOV_REQUEST_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getInfnetgovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(INFNETGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _infnetgovPsV2.values()) profilesByStatus[p.status]++;
+  const requestsByStatus = {};
+  for (const v of Object.values(INFNETGOV_REQUEST_LIFECYCLE_V2))
+    requestsByStatus[v] = 0;
+  for (const j of _infnetgovJsV2.values()) requestsByStatus[j.status]++;
+  return {
+    totalInfnetProfilesV2: _infnetgovPsV2.size,
+    totalInfnetRequestsV2: _infnetgovJsV2.size,
+    maxActiveInfnetProfilesPerOwner: _infnetgovMaxActive,
+    maxPendingInfnetRequestsPerProfile: _infnetgovMaxPending,
+    infnetgovProfileIdleMs: _infnetgovIdleMs,
+    infnetgovRequestStuckMs: _infnetgovStuckMs,
+    profilesByStatus,
+    requestsByStatus,
+  };
+}

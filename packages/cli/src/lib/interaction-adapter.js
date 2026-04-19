@@ -323,3 +323,333 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     pending.resolve(payload);
   }
 }
+
+// =====================================================================
+// interaction-adapter V2 governance overlay (iter26)
+// =====================================================================
+export const IAGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  IDLE: "idle",
+  ARCHIVED: "archived",
+});
+export const IAGOV_TURN_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  RESPONDING: "responding",
+  RESPONDED: "responded",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _iagovPTrans = new Map([
+  [
+    IAGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      IAGOV_PROFILE_MATURITY_V2.ACTIVE,
+      IAGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    IAGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      IAGOV_PROFILE_MATURITY_V2.IDLE,
+      IAGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    IAGOV_PROFILE_MATURITY_V2.IDLE,
+    new Set([
+      IAGOV_PROFILE_MATURITY_V2.ACTIVE,
+      IAGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [IAGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _iagovPTerminal = new Set([IAGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _iagovJTrans = new Map([
+  [
+    IAGOV_TURN_LIFECYCLE_V2.QUEUED,
+    new Set([
+      IAGOV_TURN_LIFECYCLE_V2.RESPONDING,
+      IAGOV_TURN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    IAGOV_TURN_LIFECYCLE_V2.RESPONDING,
+    new Set([
+      IAGOV_TURN_LIFECYCLE_V2.RESPONDED,
+      IAGOV_TURN_LIFECYCLE_V2.FAILED,
+      IAGOV_TURN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [IAGOV_TURN_LIFECYCLE_V2.RESPONDED, new Set()],
+  [IAGOV_TURN_LIFECYCLE_V2.FAILED, new Set()],
+  [IAGOV_TURN_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _iagovPsV2 = new Map();
+const _iagovJsV2 = new Map();
+let _iagovMaxActive = 6,
+  _iagovMaxPending = 15,
+  _iagovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _iagovStuckMs = 60 * 1000;
+function _iagovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _iagovCheckP(from, to) {
+  const a = _iagovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid iagov profile transition ${from} → ${to}`);
+}
+function _iagovCheckJ(from, to) {
+  const a = _iagovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid iagov turn transition ${from} → ${to}`);
+}
+function _iagovCountActive(owner) {
+  let c = 0;
+  for (const p of _iagovPsV2.values())
+    if (p.owner === owner && p.status === IAGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _iagovCountPending(profileId) {
+  let c = 0;
+  for (const j of _iagovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === IAGOV_TURN_LIFECYCLE_V2.QUEUED ||
+        j.status === IAGOV_TURN_LIFECYCLE_V2.RESPONDING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveIagovProfilesPerOwnerV2(n) {
+  _iagovMaxActive = _iagovPos(n, "maxActiveIagovProfilesPerOwner");
+}
+export function getMaxActiveIagovProfilesPerOwnerV2() {
+  return _iagovMaxActive;
+}
+export function setMaxPendingIagovTurnsPerProfileV2(n) {
+  _iagovMaxPending = _iagovPos(n, "maxPendingIagovTurnsPerProfile");
+}
+export function getMaxPendingIagovTurnsPerProfileV2() {
+  return _iagovMaxPending;
+}
+export function setIagovProfileIdleMsV2(n) {
+  _iagovIdleMs = _iagovPos(n, "iagovProfileIdleMs");
+}
+export function getIagovProfileIdleMsV2() {
+  return _iagovIdleMs;
+}
+export function setIagovTurnStuckMsV2(n) {
+  _iagovStuckMs = _iagovPos(n, "iagovTurnStuckMs");
+}
+export function getIagovTurnStuckMsV2() {
+  return _iagovStuckMs;
+}
+export function _resetStateInteractionAdapterGovV2() {
+  _iagovPsV2.clear();
+  _iagovJsV2.clear();
+  _iagovMaxActive = 6;
+  _iagovMaxPending = 15;
+  _iagovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _iagovStuckMs = 60 * 1000;
+}
+export function registerIagovProfileV2({ id, owner, adapter, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_iagovPsV2.has(id)) throw new Error(`iagov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    adapter: adapter || "cli",
+    status: IAGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _iagovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateIagovProfileV2(id) {
+  const p = _iagovPsV2.get(id);
+  if (!p) throw new Error(`iagov profile ${id} not found`);
+  const isInitial = p.status === IAGOV_PROFILE_MATURITY_V2.PENDING;
+  _iagovCheckP(p.status, IAGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _iagovCountActive(p.owner) >= _iagovMaxActive)
+    throw new Error(`max active iagov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = IAGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function idleIagovProfileV2(id) {
+  const p = _iagovPsV2.get(id);
+  if (!p) throw new Error(`iagov profile ${id} not found`);
+  _iagovCheckP(p.status, IAGOV_PROFILE_MATURITY_V2.IDLE);
+  p.status = IAGOV_PROFILE_MATURITY_V2.IDLE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveIagovProfileV2(id) {
+  const p = _iagovPsV2.get(id);
+  if (!p) throw new Error(`iagov profile ${id} not found`);
+  _iagovCheckP(p.status, IAGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = IAGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchIagovProfileV2(id) {
+  const p = _iagovPsV2.get(id);
+  if (!p) throw new Error(`iagov profile ${id} not found`);
+  if (_iagovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal iagov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getIagovProfileV2(id) {
+  const p = _iagovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listIagovProfilesV2() {
+  return [..._iagovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createIagovTurnV2({ id, profileId, input, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_iagovJsV2.has(id)) throw new Error(`iagov turn ${id} already exists`);
+  if (!_iagovPsV2.has(profileId))
+    throw new Error(`iagov profile ${profileId} not found`);
+  if (_iagovCountPending(profileId) >= _iagovMaxPending)
+    throw new Error(`max pending iagov turns for profile ${profileId} reached`);
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    input: input || "",
+    status: IAGOV_TURN_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _iagovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function respondingIagovTurnV2(id) {
+  const j = _iagovJsV2.get(id);
+  if (!j) throw new Error(`iagov turn ${id} not found`);
+  _iagovCheckJ(j.status, IAGOV_TURN_LIFECYCLE_V2.RESPONDING);
+  const now = Date.now();
+  j.status = IAGOV_TURN_LIFECYCLE_V2.RESPONDING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeTurnIagovV2(id) {
+  const j = _iagovJsV2.get(id);
+  if (!j) throw new Error(`iagov turn ${id} not found`);
+  _iagovCheckJ(j.status, IAGOV_TURN_LIFECYCLE_V2.RESPONDED);
+  const now = Date.now();
+  j.status = IAGOV_TURN_LIFECYCLE_V2.RESPONDED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failIagovTurnV2(id, reason) {
+  const j = _iagovJsV2.get(id);
+  if (!j) throw new Error(`iagov turn ${id} not found`);
+  _iagovCheckJ(j.status, IAGOV_TURN_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = IAGOV_TURN_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelIagovTurnV2(id, reason) {
+  const j = _iagovJsV2.get(id);
+  if (!j) throw new Error(`iagov turn ${id} not found`);
+  _iagovCheckJ(j.status, IAGOV_TURN_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = IAGOV_TURN_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getIagovTurnV2(id) {
+  const j = _iagovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listIagovTurnsV2() {
+  return [..._iagovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoIdleIdleIagovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _iagovPsV2.values())
+    if (
+      p.status === IAGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _iagovIdleMs
+    ) {
+      p.status = IAGOV_PROFILE_MATURITY_V2.IDLE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckIagovTurnsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _iagovJsV2.values())
+    if (
+      j.status === IAGOV_TURN_LIFECYCLE_V2.RESPONDING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _iagovStuckMs
+    ) {
+      j.status = IAGOV_TURN_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getInteractionAdapterGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(IAGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _iagovPsV2.values()) profilesByStatus[p.status]++;
+  const turnsByStatus = {};
+  for (const v of Object.values(IAGOV_TURN_LIFECYCLE_V2)) turnsByStatus[v] = 0;
+  for (const j of _iagovJsV2.values()) turnsByStatus[j.status]++;
+  return {
+    totalIagovProfilesV2: _iagovPsV2.size,
+    totalIagovTurnsV2: _iagovJsV2.size,
+    maxActiveIagovProfilesPerOwner: _iagovMaxActive,
+    maxPendingIagovTurnsPerProfile: _iagovMaxPending,
+    iagovProfileIdleMs: _iagovIdleMs,
+    iagovTurnStuckMs: _iagovStuckMs,
+    profilesByStatus,
+    turnsByStatus,
+  };
+}

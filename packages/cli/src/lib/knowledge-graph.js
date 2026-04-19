@@ -1293,3 +1293,334 @@ export function getKnowledgeGraphGovStatsV2() {
     importsByStatus,
   };
 }
+
+// === Iter28 V2 governance overlay: Kggov ===
+export const KGGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const KGGOV_QUERY_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  QUERYING: "querying",
+  ANSWERED: "answered",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _kggovPTrans = new Map([
+  [
+    KGGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      KGGOV_PROFILE_MATURITY_V2.ACTIVE,
+      KGGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    KGGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      KGGOV_PROFILE_MATURITY_V2.STALE,
+      KGGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    KGGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      KGGOV_PROFILE_MATURITY_V2.ACTIVE,
+      KGGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [KGGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _kggovPTerminal = new Set([KGGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _kggovJTrans = new Map([
+  [
+    KGGOV_QUERY_LIFECYCLE_V2.QUEUED,
+    new Set([
+      KGGOV_QUERY_LIFECYCLE_V2.QUERYING,
+      KGGOV_QUERY_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    KGGOV_QUERY_LIFECYCLE_V2.QUERYING,
+    new Set([
+      KGGOV_QUERY_LIFECYCLE_V2.ANSWERED,
+      KGGOV_QUERY_LIFECYCLE_V2.FAILED,
+      KGGOV_QUERY_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [KGGOV_QUERY_LIFECYCLE_V2.ANSWERED, new Set()],
+  [KGGOV_QUERY_LIFECYCLE_V2.FAILED, new Set()],
+  [KGGOV_QUERY_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _kggovPsV2 = new Map();
+const _kggovJsV2 = new Map();
+let _kggovMaxActive = 8,
+  _kggovMaxPending = 20,
+  _kggovIdleMs = 2592000000,
+  _kggovStuckMs = 60 * 1000;
+function _kggovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _kggovCheckP(from, to) {
+  const a = _kggovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid kggov profile transition ${from} → ${to}`);
+}
+function _kggovCheckJ(from, to) {
+  const a = _kggovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid kggov query transition ${from} → ${to}`);
+}
+function _kggovCountActive(owner) {
+  let c = 0;
+  for (const p of _kggovPsV2.values())
+    if (p.owner === owner && p.status === KGGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _kggovCountPending(profileId) {
+  let c = 0;
+  for (const j of _kggovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === KGGOV_QUERY_LIFECYCLE_V2.QUEUED ||
+        j.status === KGGOV_QUERY_LIFECYCLE_V2.QUERYING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveKgProfilesPerOwnerV2(n) {
+  _kggovMaxActive = _kggovPos(n, "maxActiveKgProfilesPerOwner");
+}
+export function getMaxActiveKgProfilesPerOwnerV2() {
+  return _kggovMaxActive;
+}
+export function setMaxPendingKgQuerysPerProfileV2(n) {
+  _kggovMaxPending = _kggovPos(n, "maxPendingKgQuerysPerProfile");
+}
+export function getMaxPendingKgQuerysPerProfileV2() {
+  return _kggovMaxPending;
+}
+export function setKgProfileIdleMsV2(n) {
+  _kggovIdleMs = _kggovPos(n, "kggovProfileIdleMs");
+}
+export function getKgProfileIdleMsV2() {
+  return _kggovIdleMs;
+}
+export function setKgQueryStuckMsV2(n) {
+  _kggovStuckMs = _kggovPos(n, "kggovQueryStuckMs");
+}
+export function getKgQueryStuckMsV2() {
+  return _kggovStuckMs;
+}
+export function _resetStateKggovV2() {
+  _kggovPsV2.clear();
+  _kggovJsV2.clear();
+  _kggovMaxActive = 8;
+  _kggovMaxPending = 20;
+  _kggovIdleMs = 2592000000;
+  _kggovStuckMs = 60 * 1000;
+}
+export function registerKgProfileV2({ id, owner, kind, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_kggovPsV2.has(id)) throw new Error(`kggov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    kind: kind || "default",
+    status: KGGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _kggovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateKgProfileV2(id) {
+  const p = _kggovPsV2.get(id);
+  if (!p) throw new Error(`kggov profile ${id} not found`);
+  const isInitial = p.status === KGGOV_PROFILE_MATURITY_V2.PENDING;
+  _kggovCheckP(p.status, KGGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _kggovCountActive(p.owner) >= _kggovMaxActive)
+    throw new Error(`max active kggov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = KGGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleKgProfileV2(id) {
+  const p = _kggovPsV2.get(id);
+  if (!p) throw new Error(`kggov profile ${id} not found`);
+  _kggovCheckP(p.status, KGGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = KGGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveKgProfileV2(id) {
+  const p = _kggovPsV2.get(id);
+  if (!p) throw new Error(`kggov profile ${id} not found`);
+  _kggovCheckP(p.status, KGGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = KGGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchKgProfileV2(id) {
+  const p = _kggovPsV2.get(id);
+  if (!p) throw new Error(`kggov profile ${id} not found`);
+  if (_kggovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal kggov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getKgProfileV2(id) {
+  const p = _kggovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listKgProfilesV2() {
+  return [..._kggovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createKgQueryV2({ id, profileId, queryId, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_kggovJsV2.has(id)) throw new Error(`kggov query ${id} already exists`);
+  if (!_kggovPsV2.has(profileId))
+    throw new Error(`kggov profile ${profileId} not found`);
+  if (_kggovCountPending(profileId) >= _kggovMaxPending)
+    throw new Error(
+      `max pending kggov querys for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    queryId: queryId || "",
+    status: KGGOV_QUERY_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _kggovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function queryingKgQueryV2(id) {
+  const j = _kggovJsV2.get(id);
+  if (!j) throw new Error(`kggov query ${id} not found`);
+  _kggovCheckJ(j.status, KGGOV_QUERY_LIFECYCLE_V2.QUERYING);
+  const now = Date.now();
+  j.status = KGGOV_QUERY_LIFECYCLE_V2.QUERYING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeQueryKgV2(id) {
+  const j = _kggovJsV2.get(id);
+  if (!j) throw new Error(`kggov query ${id} not found`);
+  _kggovCheckJ(j.status, KGGOV_QUERY_LIFECYCLE_V2.ANSWERED);
+  const now = Date.now();
+  j.status = KGGOV_QUERY_LIFECYCLE_V2.ANSWERED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failKgQueryV2(id, reason) {
+  const j = _kggovJsV2.get(id);
+  if (!j) throw new Error(`kggov query ${id} not found`);
+  _kggovCheckJ(j.status, KGGOV_QUERY_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = KGGOV_QUERY_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelKgQueryV2(id, reason) {
+  const j = _kggovJsV2.get(id);
+  if (!j) throw new Error(`kggov query ${id} not found`);
+  _kggovCheckJ(j.status, KGGOV_QUERY_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = KGGOV_QUERY_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getKgQueryV2(id) {
+  const j = _kggovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listKgQuerysV2() {
+  return [..._kggovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleKgProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _kggovPsV2.values())
+    if (
+      p.status === KGGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _kggovIdleMs
+    ) {
+      p.status = KGGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckKgQuerysV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _kggovJsV2.values())
+    if (
+      j.status === KGGOV_QUERY_LIFECYCLE_V2.QUERYING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _kggovStuckMs
+    ) {
+      j.status = KGGOV_QUERY_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getKggovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(KGGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _kggovPsV2.values()) profilesByStatus[p.status]++;
+  const querysByStatus = {};
+  for (const v of Object.values(KGGOV_QUERY_LIFECYCLE_V2))
+    querysByStatus[v] = 0;
+  for (const j of _kggovJsV2.values()) querysByStatus[j.status]++;
+  return {
+    totalKgProfilesV2: _kggovPsV2.size,
+    totalKgQuerysV2: _kggovJsV2.size,
+    maxActiveKgProfilesPerOwner: _kggovMaxActive,
+    maxPendingKgQuerysPerProfile: _kggovMaxPending,
+    kggovProfileIdleMs: _kggovIdleMs,
+    kggovQueryStuckMs: _kggovStuckMs,
+    profilesByStatus,
+    querysByStatus,
+  };
+}

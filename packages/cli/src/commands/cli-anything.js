@@ -264,3 +264,429 @@ export function registerCliAnythingCommand(program) {
       }
     });
 }
+
+// === Iter25 V2 governance overlay ===
+export function registerClibgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "cli-anything");
+  if (!parent) return;
+  const L = async () => await import("../lib/cli-anything-bridge.js");
+  parent
+    .command("clibgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.CLIBGOV_PROFILE_MATURITY_V2,
+            bridgeLifecycle: m.CLIBGOV_BRIDGE_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("clibgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveClibgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingClibgovBridgesPerProfileV2(),
+            idleMs: m.getClibgovProfileIdleMsV2(),
+            stuckMs: m.getClibgovBridgeStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("clibgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveClibgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("clibgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingClibgovBridgesPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("clibgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setClibgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("clibgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setClibgovBridgeStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("clibgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--tool <v>", "tool")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerClibgovProfileV2({ id, owner, tool: o.tool }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("clibgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateClibgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("clibgov-degrade-v2 <id>")
+    .description("Degrade profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).degradeClibgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("clibgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveClibgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("clibgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchClibgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("clibgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getClibgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("clibgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listClibgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("clibgov-create-bridge-v2 <id> <profileId>")
+    .description("Create bridge")
+    .option("--command <v>", "command")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createClibgovBridgeV2({ id, profileId, command: o.command }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("clibgov-bridging-bridge-v2 <id>")
+    .description("Mark bridge as bridging")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).bridgingClibgovBridgeV2(id), null, 2),
+      );
+    });
+  parent
+    .command("clibgov-complete-bridge-v2 <id>")
+    .description("Complete bridge")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeBridgeClibgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("clibgov-fail-bridge-v2 <id> [reason]")
+    .description("Fail bridge")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failClibgovBridgeV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("clibgov-cancel-bridge-v2 <id> [reason]")
+    .description("Cancel bridge")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelClibgovBridgeV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("clibgov-get-bridge-v2 <id>")
+    .description("Get bridge")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getClibgovBridgeV2(id), null, 2));
+    });
+  parent
+    .command("clibgov-list-bridges-v2")
+    .description("List bridges")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listClibgovBridgesV2(), null, 2));
+    });
+  parent
+    .command("clibgov-auto-degrade-idle-v2")
+    .description("Auto-degrade idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoDegradeIdleClibgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("clibgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck bridges")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckClibgovBridgesV2(), null, 2),
+      );
+    });
+  parent
+    .command("clibgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getCliAnythingBridgeGovStatsV2(), null, 2),
+      );
+    });
+}
+
+// === Iter26 V2 governance overlay ===
+export function registerCtxenggovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "cli-anything");
+  if (!parent) return;
+  const L = async () => await import("../lib/cli-context-engineering.js");
+  parent
+    .command("ctxenggov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.CTXENGGOV_PROFILE_MATURITY_V2,
+            buildLifecycle: m.CTXENGGOV_BUILD_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ctxenggov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveCtxenggovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingCtxenggovBuildsPerProfileV2(),
+            idleMs: m.getCtxenggovProfileIdleMsV2(),
+            stuckMs: m.getCtxenggovBuildStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ctxenggov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveCtxenggovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ctxenggov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingCtxenggovBuildsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ctxenggov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setCtxenggovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ctxenggov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setCtxenggovBuildStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ctxenggov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--scope <v>", "scope")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerCtxenggovProfileV2({ id, owner, scope: o.scope }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ctxenggov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateCtxenggovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ctxenggov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleCtxenggovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ctxenggov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveCtxenggovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ctxenggov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchCtxenggovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ctxenggov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).getCtxenggovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ctxenggov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).listCtxenggovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("ctxenggov-create-build-v2 <id> <profileId>")
+    .description("Create build")
+    .option("--prompt <v>", "prompt")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createCtxenggovBuildV2({ id, profileId, prompt: o.prompt }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ctxenggov-building-build-v2 <id>")
+    .description("Mark build as building")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).buildingCtxenggovBuildV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ctxenggov-complete-build-v2 <id>")
+    .description("Complete build")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeBuildCtxenggovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ctxenggov-fail-build-v2 <id> [reason]")
+    .description("Fail build")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failCtxenggovBuildV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("ctxenggov-cancel-build-v2 <id> [reason]")
+    .description("Cancel build")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelCtxenggovBuildV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("ctxenggov-get-build-v2 <id>")
+    .description("Get build")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCtxenggovBuildV2(id), null, 2));
+    });
+  parent
+    .command("ctxenggov-list-builds-v2")
+    .description("List builds")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCtxenggovBuildsV2(), null, 2));
+    });
+  parent
+    .command("ctxenggov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleCtxenggovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("ctxenggov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck builds")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckCtxenggovBuildsV2(), null, 2),
+      );
+    });
+  parent
+    .command("ctxenggov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify(
+          (await L()).getCliContextEngineeringGovStatsV2(),
+          null,
+          2,
+        ),
+      );
+    });
+}

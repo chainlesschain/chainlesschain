@@ -192,3 +192,337 @@ function formatBytes(bytes) {
 }
 
 export { resolveAssetUrl, formatBytes };
+
+// =====================================================================
+// downloader V2 governance overlay (iter27)
+// =====================================================================
+export const DLGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const DLGOV_DOWNLOAD_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  FETCHING: "fetching",
+  FETCHED: "fetched",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _dlgovPTrans = new Map([
+  [
+    DLGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      DLGOV_PROFILE_MATURITY_V2.ACTIVE,
+      DLGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    DLGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      DLGOV_PROFILE_MATURITY_V2.STALE,
+      DLGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    DLGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      DLGOV_PROFILE_MATURITY_V2.ACTIVE,
+      DLGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [DLGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _dlgovPTerminal = new Set([DLGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _dlgovJTrans = new Map([
+  [
+    DLGOV_DOWNLOAD_LIFECYCLE_V2.QUEUED,
+    new Set([
+      DLGOV_DOWNLOAD_LIFECYCLE_V2.FETCHING,
+      DLGOV_DOWNLOAD_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    DLGOV_DOWNLOAD_LIFECYCLE_V2.FETCHING,
+    new Set([
+      DLGOV_DOWNLOAD_LIFECYCLE_V2.FETCHED,
+      DLGOV_DOWNLOAD_LIFECYCLE_V2.FAILED,
+      DLGOV_DOWNLOAD_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [DLGOV_DOWNLOAD_LIFECYCLE_V2.FETCHED, new Set()],
+  [DLGOV_DOWNLOAD_LIFECYCLE_V2.FAILED, new Set()],
+  [DLGOV_DOWNLOAD_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _dlgovPsV2 = new Map();
+const _dlgovJsV2 = new Map();
+let _dlgovMaxActive = 6,
+  _dlgovMaxPending = 15,
+  _dlgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _dlgovStuckMs = 60 * 1000;
+function _dlgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _dlgovCheckP(from, to) {
+  const a = _dlgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid dlgov profile transition ${from} → ${to}`);
+}
+function _dlgovCheckJ(from, to) {
+  const a = _dlgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid dlgov download transition ${from} → ${to}`);
+}
+function _dlgovCountActive(owner) {
+  let c = 0;
+  for (const p of _dlgovPsV2.values())
+    if (p.owner === owner && p.status === DLGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _dlgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _dlgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === DLGOV_DOWNLOAD_LIFECYCLE_V2.QUEUED ||
+        j.status === DLGOV_DOWNLOAD_LIFECYCLE_V2.FETCHING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveDlgovProfilesPerOwnerV2(n) {
+  _dlgovMaxActive = _dlgovPos(n, "maxActiveDlgovProfilesPerOwner");
+}
+export function getMaxActiveDlgovProfilesPerOwnerV2() {
+  return _dlgovMaxActive;
+}
+export function setMaxPendingDlgovDownloadsPerProfileV2(n) {
+  _dlgovMaxPending = _dlgovPos(n, "maxPendingDlgovDownloadsPerProfile");
+}
+export function getMaxPendingDlgovDownloadsPerProfileV2() {
+  return _dlgovMaxPending;
+}
+export function setDlgovProfileIdleMsV2(n) {
+  _dlgovIdleMs = _dlgovPos(n, "dlgovProfileIdleMs");
+}
+export function getDlgovProfileIdleMsV2() {
+  return _dlgovIdleMs;
+}
+export function setDlgovDownloadStuckMsV2(n) {
+  _dlgovStuckMs = _dlgovPos(n, "dlgovDownloadStuckMs");
+}
+export function getDlgovDownloadStuckMsV2() {
+  return _dlgovStuckMs;
+}
+export function _resetStateDownloaderGovV2() {
+  _dlgovPsV2.clear();
+  _dlgovJsV2.clear();
+  _dlgovMaxActive = 6;
+  _dlgovMaxPending = 15;
+  _dlgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _dlgovStuckMs = 60 * 1000;
+}
+export function registerDlgovProfileV2({ id, owner, mirror, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_dlgovPsV2.has(id)) throw new Error(`dlgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    mirror: mirror || "default",
+    status: DLGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _dlgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateDlgovProfileV2(id) {
+  const p = _dlgovPsV2.get(id);
+  if (!p) throw new Error(`dlgov profile ${id} not found`);
+  const isInitial = p.status === DLGOV_PROFILE_MATURITY_V2.PENDING;
+  _dlgovCheckP(p.status, DLGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _dlgovCountActive(p.owner) >= _dlgovMaxActive)
+    throw new Error(`max active dlgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = DLGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleDlgovProfileV2(id) {
+  const p = _dlgovPsV2.get(id);
+  if (!p) throw new Error(`dlgov profile ${id} not found`);
+  _dlgovCheckP(p.status, DLGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = DLGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveDlgovProfileV2(id) {
+  const p = _dlgovPsV2.get(id);
+  if (!p) throw new Error(`dlgov profile ${id} not found`);
+  _dlgovCheckP(p.status, DLGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = DLGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchDlgovProfileV2(id) {
+  const p = _dlgovPsV2.get(id);
+  if (!p) throw new Error(`dlgov profile ${id} not found`);
+  if (_dlgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal dlgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getDlgovProfileV2(id) {
+  const p = _dlgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listDlgovProfilesV2() {
+  return [..._dlgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createDlgovDownloadV2({ id, profileId, url, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_dlgovJsV2.has(id))
+    throw new Error(`dlgov download ${id} already exists`);
+  if (!_dlgovPsV2.has(profileId))
+    throw new Error(`dlgov profile ${profileId} not found`);
+  if (_dlgovCountPending(profileId) >= _dlgovMaxPending)
+    throw new Error(
+      `max pending dlgov downloads for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    url: url || "",
+    status: DLGOV_DOWNLOAD_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _dlgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function fetchingDlgovDownloadV2(id) {
+  const j = _dlgovJsV2.get(id);
+  if (!j) throw new Error(`dlgov download ${id} not found`);
+  _dlgovCheckJ(j.status, DLGOV_DOWNLOAD_LIFECYCLE_V2.FETCHING);
+  const now = Date.now();
+  j.status = DLGOV_DOWNLOAD_LIFECYCLE_V2.FETCHING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeDownloadDlgovV2(id) {
+  const j = _dlgovJsV2.get(id);
+  if (!j) throw new Error(`dlgov download ${id} not found`);
+  _dlgovCheckJ(j.status, DLGOV_DOWNLOAD_LIFECYCLE_V2.FETCHED);
+  const now = Date.now();
+  j.status = DLGOV_DOWNLOAD_LIFECYCLE_V2.FETCHED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failDlgovDownloadV2(id, reason) {
+  const j = _dlgovJsV2.get(id);
+  if (!j) throw new Error(`dlgov download ${id} not found`);
+  _dlgovCheckJ(j.status, DLGOV_DOWNLOAD_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = DLGOV_DOWNLOAD_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelDlgovDownloadV2(id, reason) {
+  const j = _dlgovJsV2.get(id);
+  if (!j) throw new Error(`dlgov download ${id} not found`);
+  _dlgovCheckJ(j.status, DLGOV_DOWNLOAD_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = DLGOV_DOWNLOAD_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getDlgovDownloadV2(id) {
+  const j = _dlgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listDlgovDownloadsV2() {
+  return [..._dlgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleDlgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _dlgovPsV2.values())
+    if (
+      p.status === DLGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _dlgovIdleMs
+    ) {
+      p.status = DLGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckDlgovDownloadsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _dlgovJsV2.values())
+    if (
+      j.status === DLGOV_DOWNLOAD_LIFECYCLE_V2.FETCHING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _dlgovStuckMs
+    ) {
+      j.status = DLGOV_DOWNLOAD_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getDownloaderGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(DLGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _dlgovPsV2.values()) profilesByStatus[p.status]++;
+  const downloadsByStatus = {};
+  for (const v of Object.values(DLGOV_DOWNLOAD_LIFECYCLE_V2))
+    downloadsByStatus[v] = 0;
+  for (const j of _dlgovJsV2.values()) downloadsByStatus[j.status]++;
+  return {
+    totalDlgovProfilesV2: _dlgovPsV2.size,
+    totalDlgovDownloadsV2: _dlgovJsV2.size,
+    maxActiveDlgovProfilesPerOwner: _dlgovMaxActive,
+    maxPendingDlgovDownloadsPerProfile: _dlgovMaxPending,
+    dlgovProfileIdleMs: _dlgovIdleMs,
+    dlgovDownloadStuckMs: _dlgovStuckMs,
+    profilesByStatus,
+    downloadsByStatus,
+  };
+}

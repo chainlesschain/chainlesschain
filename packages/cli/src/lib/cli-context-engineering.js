@@ -518,3 +518,354 @@ export class CLIContextEngineering {
     }
   }
 }
+
+// =====================================================================
+// cli-context-engineering V2 governance overlay (iter26)
+// =====================================================================
+export const CTXENGGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const CTXENGGOV_BUILD_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  BUILDING: "building",
+  BUILT: "built",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _ctxenggovPTrans = new Map([
+  [
+    CTXENGGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      CTXENGGOV_PROFILE_MATURITY_V2.ACTIVE,
+      CTXENGGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CTXENGGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      CTXENGGOV_PROFILE_MATURITY_V2.STALE,
+      CTXENGGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CTXENGGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      CTXENGGOV_PROFILE_MATURITY_V2.ACTIVE,
+      CTXENGGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [CTXENGGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _ctxenggovPTerminal = new Set([CTXENGGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _ctxenggovJTrans = new Map([
+  [
+    CTXENGGOV_BUILD_LIFECYCLE_V2.QUEUED,
+    new Set([
+      CTXENGGOV_BUILD_LIFECYCLE_V2.BUILDING,
+      CTXENGGOV_BUILD_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    CTXENGGOV_BUILD_LIFECYCLE_V2.BUILDING,
+    new Set([
+      CTXENGGOV_BUILD_LIFECYCLE_V2.BUILT,
+      CTXENGGOV_BUILD_LIFECYCLE_V2.FAILED,
+      CTXENGGOV_BUILD_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [CTXENGGOV_BUILD_LIFECYCLE_V2.BUILT, new Set()],
+  [CTXENGGOV_BUILD_LIFECYCLE_V2.FAILED, new Set()],
+  [CTXENGGOV_BUILD_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _ctxenggovPsV2 = new Map();
+const _ctxenggovJsV2 = new Map();
+let _ctxenggovMaxActive = 8,
+  _ctxenggovMaxPending = 20,
+  _ctxenggovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _ctxenggovStuckMs = 60 * 1000;
+function _ctxenggovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _ctxenggovCheckP(from, to) {
+  const a = _ctxenggovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid ctxenggov profile transition ${from} → ${to}`);
+}
+function _ctxenggovCheckJ(from, to) {
+  const a = _ctxenggovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid ctxenggov build transition ${from} → ${to}`);
+}
+function _ctxenggovCountActive(owner) {
+  let c = 0;
+  for (const p of _ctxenggovPsV2.values())
+    if (p.owner === owner && p.status === CTXENGGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _ctxenggovCountPending(profileId) {
+  let c = 0;
+  for (const j of _ctxenggovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === CTXENGGOV_BUILD_LIFECYCLE_V2.QUEUED ||
+        j.status === CTXENGGOV_BUILD_LIFECYCLE_V2.BUILDING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveCtxenggovProfilesPerOwnerV2(n) {
+  _ctxenggovMaxActive = _ctxenggovPos(n, "maxActiveCtxenggovProfilesPerOwner");
+}
+export function getMaxActiveCtxenggovProfilesPerOwnerV2() {
+  return _ctxenggovMaxActive;
+}
+export function setMaxPendingCtxenggovBuildsPerProfileV2(n) {
+  _ctxenggovMaxPending = _ctxenggovPos(
+    n,
+    "maxPendingCtxenggovBuildsPerProfile",
+  );
+}
+export function getMaxPendingCtxenggovBuildsPerProfileV2() {
+  return _ctxenggovMaxPending;
+}
+export function setCtxenggovProfileIdleMsV2(n) {
+  _ctxenggovIdleMs = _ctxenggovPos(n, "ctxenggovProfileIdleMs");
+}
+export function getCtxenggovProfileIdleMsV2() {
+  return _ctxenggovIdleMs;
+}
+export function setCtxenggovBuildStuckMsV2(n) {
+  _ctxenggovStuckMs = _ctxenggovPos(n, "ctxenggovBuildStuckMs");
+}
+export function getCtxenggovBuildStuckMsV2() {
+  return _ctxenggovStuckMs;
+}
+export function _resetStateCliContextEngineeringGovV2() {
+  _ctxenggovPsV2.clear();
+  _ctxenggovJsV2.clear();
+  _ctxenggovMaxActive = 8;
+  _ctxenggovMaxPending = 20;
+  _ctxenggovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _ctxenggovStuckMs = 60 * 1000;
+}
+export function registerCtxenggovProfileV2({
+  id,
+  owner,
+  scope,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_ctxenggovPsV2.has(id))
+    throw new Error(`ctxenggov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    scope: scope || "session",
+    status: CTXENGGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _ctxenggovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateCtxenggovProfileV2(id) {
+  const p = _ctxenggovPsV2.get(id);
+  if (!p) throw new Error(`ctxenggov profile ${id} not found`);
+  const isInitial = p.status === CTXENGGOV_PROFILE_MATURITY_V2.PENDING;
+  _ctxenggovCheckP(p.status, CTXENGGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _ctxenggovCountActive(p.owner) >= _ctxenggovMaxActive)
+    throw new Error(
+      `max active ctxenggov profiles for owner ${p.owner} reached`,
+    );
+  const now = Date.now();
+  p.status = CTXENGGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleCtxenggovProfileV2(id) {
+  const p = _ctxenggovPsV2.get(id);
+  if (!p) throw new Error(`ctxenggov profile ${id} not found`);
+  _ctxenggovCheckP(p.status, CTXENGGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = CTXENGGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveCtxenggovProfileV2(id) {
+  const p = _ctxenggovPsV2.get(id);
+  if (!p) throw new Error(`ctxenggov profile ${id} not found`);
+  _ctxenggovCheckP(p.status, CTXENGGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = CTXENGGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchCtxenggovProfileV2(id) {
+  const p = _ctxenggovPsV2.get(id);
+  if (!p) throw new Error(`ctxenggov profile ${id} not found`);
+  if (_ctxenggovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal ctxenggov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getCtxenggovProfileV2(id) {
+  const p = _ctxenggovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listCtxenggovProfilesV2() {
+  return [..._ctxenggovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createCtxenggovBuildV2({
+  id,
+  profileId,
+  prompt,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_ctxenggovJsV2.has(id))
+    throw new Error(`ctxenggov build ${id} already exists`);
+  if (!_ctxenggovPsV2.has(profileId))
+    throw new Error(`ctxenggov profile ${profileId} not found`);
+  if (_ctxenggovCountPending(profileId) >= _ctxenggovMaxPending)
+    throw new Error(
+      `max pending ctxenggov builds for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    prompt: prompt || "",
+    status: CTXENGGOV_BUILD_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _ctxenggovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function buildingCtxenggovBuildV2(id) {
+  const j = _ctxenggovJsV2.get(id);
+  if (!j) throw new Error(`ctxenggov build ${id} not found`);
+  _ctxenggovCheckJ(j.status, CTXENGGOV_BUILD_LIFECYCLE_V2.BUILDING);
+  const now = Date.now();
+  j.status = CTXENGGOV_BUILD_LIFECYCLE_V2.BUILDING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeBuildCtxenggovV2(id) {
+  const j = _ctxenggovJsV2.get(id);
+  if (!j) throw new Error(`ctxenggov build ${id} not found`);
+  _ctxenggovCheckJ(j.status, CTXENGGOV_BUILD_LIFECYCLE_V2.BUILT);
+  const now = Date.now();
+  j.status = CTXENGGOV_BUILD_LIFECYCLE_V2.BUILT;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failCtxenggovBuildV2(id, reason) {
+  const j = _ctxenggovJsV2.get(id);
+  if (!j) throw new Error(`ctxenggov build ${id} not found`);
+  _ctxenggovCheckJ(j.status, CTXENGGOV_BUILD_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = CTXENGGOV_BUILD_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelCtxenggovBuildV2(id, reason) {
+  const j = _ctxenggovJsV2.get(id);
+  if (!j) throw new Error(`ctxenggov build ${id} not found`);
+  _ctxenggovCheckJ(j.status, CTXENGGOV_BUILD_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = CTXENGGOV_BUILD_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getCtxenggovBuildV2(id) {
+  const j = _ctxenggovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listCtxenggovBuildsV2() {
+  return [..._ctxenggovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleCtxenggovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _ctxenggovPsV2.values())
+    if (
+      p.status === CTXENGGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _ctxenggovIdleMs
+    ) {
+      p.status = CTXENGGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckCtxenggovBuildsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _ctxenggovJsV2.values())
+    if (
+      j.status === CTXENGGOV_BUILD_LIFECYCLE_V2.BUILDING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _ctxenggovStuckMs
+    ) {
+      j.status = CTXENGGOV_BUILD_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getCliContextEngineeringGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(CTXENGGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _ctxenggovPsV2.values()) profilesByStatus[p.status]++;
+  const buildsByStatus = {};
+  for (const v of Object.values(CTXENGGOV_BUILD_LIFECYCLE_V2))
+    buildsByStatus[v] = 0;
+  for (const j of _ctxenggovJsV2.values()) buildsByStatus[j.status]++;
+  return {
+    totalCtxenggovProfilesV2: _ctxenggovPsV2.size,
+    totalCtxenggovBuildsV2: _ctxenggovJsV2.size,
+    maxActiveCtxenggovProfilesPerOwner: _ctxenggovMaxActive,
+    maxPendingCtxenggovBuildsPerProfile: _ctxenggovMaxPending,
+    ctxenggovProfileIdleMs: _ctxenggovIdleMs,
+    ctxenggovBuildStuckMs: _ctxenggovStuckMs,
+    profilesByStatus,
+    buildsByStatus,
+  };
+}

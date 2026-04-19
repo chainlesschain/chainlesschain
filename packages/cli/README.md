@@ -190,7 +190,7 @@ chainlesschain llm switch <name>        # Switch active provider
 
 ### `chainlesschain agent` (alias: `a`)
 
-Start an agentic AI session — the AI can read/write files, run shell commands, search the codebase, execute code (Python/Node.js/Bash with auto pip-install), and invoke 138 built-in skills.
+Start an agentic AI session — the AI can read/write files, run shell commands, search the codebase, execute code (Python/Node.js/Bash with auto pip-install), and invoke 139 built-in skills.
 
 ```bash
 chainlesschain agent                    # Default: Ollama qwen2.5:7b
@@ -206,7 +206,7 @@ Agent slash commands: `/plan` (plan mode), `/plan interactive <request>` (LLM-dr
 
 ### `chainlesschain skill <action>`
 
-Manage and run 138 built-in AI skills across a 4-layer system: bundled < marketplace < managed (global) < workspace (project).
+Manage and run 139 built-in AI skills across a 4-layer system: bundled < marketplace < managed (global) < workspace (project).
 
 ```bash
 chainlesschain skill list               # List all skills grouped by category
@@ -1169,6 +1169,55 @@ chainlesschain orchestrate --webhook --webhook-port 18820
 
 ---
 
+## CLI V2 Governance Wave (iter16–iter28, 2026-04-19)
+
+Thirteen iterations (iter16 → iter28) ported **136 Governance V2 surfaces** onto the CLI, one per underlying library module. Each surface adds a pair of state-machine-governed lifecycles on top of an existing module and ships behind `-v2`-suffixed subcommands — existing non-v2 behavior is untouched.
+
+### Shape of a Gov V2 surface
+
+Every surface follows the same dual-layer FSM pattern:
+
+- **Profile lifecycle (4 states)** — one of `{paused, suspended, stale, degraded, deprecated, dormant, muted, disabled, frozen, breached, drifted}` depending on the domain, with recovery back to `active` and an `archived` terminal.
+- **Action lifecycle (5 states)** — `pending → running → {completed | failed | cancelled}`, three terminals.
+- **Caps** — per-surface profile/action caps (ranging 5/10 on small surfaces up to 15/30 on high-volume ones like feature-flags).
+- **Auto-hooks** — `auto-<degraded>-idle` moves idle profiles into the non-active branch; `auto-fail-stuck` fails actions stuck in `running` past a TTL (30s / 60s depending on surface).
+- **`*gov-gov-stats-v2`** aggregate command per surface.
+- **44 V2 tests** per surface (profile FSM, action FSM, caps, hooks, stats), plus a shared `preAction` hook that prevents accidental nesting of `-v2` subcommands.
+
+### Surface inventory by iteration
+
+| Iter   | Gov prefix → parent command                                                                                                                                                                                    | Surfaces                                                                                                                                                                                                                                                                                                                                      |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| iter16 | `aud-gov-` / `kgov-` / `sbox-gov-` / `slagov-` / `strgov-` / `tfgov-` / `repgov-` / `mktgov-`                                                                                                                  | `audit`, `kg`, `sandbox`, `sla`, `stress`, `terraform`, `reputation`, `marketplace`                                                                                                                                                                                                                                                           |
+| iter17 | `chatgov-` / `ccbgov-` / `cmgr-` / `learn-` / `cwwf-` / `pcgov-` / `incgov-` / `hardgov-`                                                                                                                      | `chat`, `orchestrate` (claude-code-bridge), `compliance`, `cowork` (learning + workflow), `privacy`, `incentive`, `hardening`                                                                                                                                                                                                                 |
+| iter18 | `aiopsgov-` / `mmgov-` / `instgov-` / `tnsgov-` / `qntgov-` / `trustgov-` / `nlpgov-` / `percgov-`                                                                                                             | `ops`, `multimodal`, `instinct`, `tenant`, `quantize`, `trust`, `nlprog`, `perception`                                                                                                                                                                                                                                                        |
+| iter19 | `cdagov-` / `cogov-` / `commgov-` / `didgov-` / `ssogov-` / `orggov-` / `scimgov-` / `syncgov-`                                                                                                                | `codegen`, `collab`, `governance`, `did`, `sso`, `org`, `scim`, `sync`                                                                                                                                                                                                                                                                        |
+| iter20 | `anetgov-` / `bagov-` / `dlpgov-` / `evgov-` / `fedgov-` / `ipfsgov-` / `p2pgov-` / `walgov-`                                                                                                                  | `agent-network`, `browse`, `dlp`, `evomap`, `federation`, `ipfs`, `p2p`, `wallet`                                                                                                                                                                                                                                                             |
+| iter21 | `apgov-` / `matgov-` / `nosgov-` / `bigov-` / `memgov-` / `sesgov-` / `hookgov-` / `wfgov-`                                                                                                                    | `activitypub`, `matrix`, `nostr`, `bi`, `memory`, `session`, `hook`, `workflow`                                                                                                                                                                                                                                                               |
+| iter22 | `augov-` / `shgov-` / `dv2gov-` / `kexpgov-` / `kimpgov-` / `llmgov-` / `pqcgov-` / `smgov-`                                                                                                                   | `automation`, `cowork` (share), `did-v2`, `export`, `import`, `llm`, `pqc`, `social`                                                                                                                                                                                                                                                          |
+| iter23 | `rcgov-` / `techgov-` / `rtgov-` / `ntgov-` / `pmgov-` / `pfgov-` / `dbevogov-` / `digov-`                                                                                                                     | `rcache`, `tech`, `runtime`, `note` (versioning), `permmem`, `fusion`, `dbevo`, `infra`                                                                                                                                                                                                                                                       |
+| iter24 | `rcmdgov-` / `mcpgov-` / `ecogov-` / `sklgov-` / `toktgov-` / `devgov-` / `tigov-` / `uebgov-`                                                                                                                 | `recommend`, `mcp`, `ecosystem`, `skill`, `tokens`, `dev`, `compliance` (threat-intel + ueba)                                                                                                                                                                                                                                                 |
+| iter25 | `cttgov-` / `ctmgov-` / `clibgov-` / `argov-` / `saregov-` / `todogov-` / `ebgov-` / `evfedgov-`                                                                                                               | `cowork` (task-templates + template-marketplace), `cli-anything`, `orchestrate` (agent-router), `agent` (registry + todo + exec-backend), `evomap` (federation)                                                                                                                                                                               |
+| iter26 | `plannergov-` / `ctxenggov-` / `sactxgov-` / `iagov-` / `wfexgov-` / `padgov-` / `hlgov-` / `webuigov-`                                                                                                        | `planmode`, `cli-anything`, `agent` (sub-agent-context), `chat` (interaction-adapter), `workflow` (expr), `plugin` (autodiscovery), `memory` (hashline), `ui` (web-ui-server)                                                                                                                                                                 |
+| iter27 | `dlgov-` / `smcpgov-` / `cmcpgov-` / `stixgov-` / `sapgov-` / `cobsgov-` / `pmgrgov-` / `wscgov-` / `evcligov-` / `poptgov-` / `scsgov-` / `smgrgov-` / `ceadgov-` / `pstrmgov-` / `cohtgov-` / `cadpgov-`     | `setup`, `skill`, `cowork` (mcp-tools / observe / observe-html / evomap-adapter / adapter), `compliance` (stix), `agent` (sub-agent-profiles), `start` (process-manager), `chat` (ws-chat-handler), `evomap` (client), `llm` (provider-options), `config` (session-core-singletons), `services` (service-manager), `stream` (provider-stream) |
+| iter28 | `a2apgov-` / `acrdgov-` / `aecogov-` / `autagov-` / `ccoregov-` / `cmpmgov-` / `crchgov-` / `crygov-` / `daomgov-` / `esysgov-` / `emgrgov-` / `hmemgov-` / `infnetgov-` / `kggov-` / `pipogov-` / `pmodegov-` | `a2a`, `orchestrate` (agent-coordinator), `economy`, `agent` (autonomous-agent), `chat` (chat-core), `compliance` (compliance-manager), `crosschain`, `encrypt` (crypto-manager), `dao`, `evolution`, `evomap` (evomap-manager), `hmemory`, `inference`, `kg`, `pipeline`, `planmode` (plan-mode)                                             |
+
+**Totals**: 136 surfaces × ~44 V2 tests ≈ **~5,984 additional CLI V2 tests** introduced in this wave.
+
+### Typical usage
+
+```bash
+cc audit aud-gov-register-v2 --profile secops --level warn
+cc audit aud-gov-activate-v2 --profile secops
+cc audit aud-gov-write-start-v2 --profile secops --payload '{"evt":"login"}'
+cc audit aud-gov-write-complete-v2 --action-id <id>
+cc audit aud-gov-gov-stats-v2 --json
+```
+
+Every surface follows this shape — replace `aud-gov-` with the prefix from the table and `audit` with the parent command.
+
+---
+
 ## Global Options
 
 ```bash
@@ -1244,7 +1293,7 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 ```bash
 cd packages/cli
 npm install
-npm test                # Run all tests (5400+ tests across 201+ files)
+npm test                # Run all tests (7600+ tests across 280+ files, incl. ~2,800 V2 governance tests from iter16–iter23)
 npm run test:unit       # Unit tests only
 npm run test:integration # Integration tests
 npm run test:e2e        # End-to-end tests

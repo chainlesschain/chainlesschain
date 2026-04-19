@@ -1162,3 +1162,202 @@ function _registerEconomyV2Commands(parent) {
       console.log(JSON.stringify(m.getAgentEconomyGovStatsV2(), null, 2));
     });
 }
+
+// === Iter28 V2 governance overlay: Aecogov ===
+export function registerAecoV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "economy");
+  if (!parent) return;
+  const L = async () => await import("../lib/agent-economy.js");
+  parent
+    .command("aecogov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.AECOGOV_PROFILE_MATURITY_V2,
+            tradeLifecycle: m.AECOGOV_TRADE_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("aecogov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveAecoProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingAecoTradesPerProfileV2(),
+            idleMs: m.getAecoProfileIdleMsV2(),
+            stuckMs: m.getAecoTradeStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("aecogov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveAecoProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("aecogov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingAecoTradesPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("aecogov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setAecoProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("aecogov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setAecoTradeStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("aecogov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--market <v>", "market")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerAecoProfileV2({ id, owner, market: o.market }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("aecogov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateAecoProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("aecogov-paused-v2 <id>")
+    .description("Paused profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).pausedAecoProfileV2(id), null, 2));
+    });
+  parent
+    .command("aecogov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveAecoProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("aecogov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchAecoProfileV2(id), null, 2));
+    });
+  parent
+    .command("aecogov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getAecoProfileV2(id), null, 2));
+    });
+  parent
+    .command("aecogov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listAecoProfilesV2(), null, 2));
+    });
+  parent
+    .command("aecogov-create-trade-v2 <id> <profileId>")
+    .description("Create trade")
+    .option("--orderId <v>", "orderId")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createAecoTradeV2({ id, profileId, orderId: o.orderId }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("aecogov-trading-trade-v2 <id>")
+    .description("Mark trade as trading")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).tradingAecoTradeV2(id), null, 2));
+    });
+  parent
+    .command("aecogov-complete-trade-v2 <id>")
+    .description("Complete trade")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completeTradeAecoV2(id), null, 2));
+    });
+  parent
+    .command("aecogov-fail-trade-v2 <id> [reason]")
+    .description("Fail trade")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failAecoTradeV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("aecogov-cancel-trade-v2 <id> [reason]")
+    .description("Cancel trade")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelAecoTradeV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("aecogov-get-trade-v2 <id>")
+    .description("Get trade")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getAecoTradeV2(id), null, 2));
+    });
+  parent
+    .command("aecogov-list-trades-v2")
+    .description("List trades")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listAecoTradesV2(), null, 2));
+    });
+  parent
+    .command("aecogov-auto-paused-idle-v2")
+    .description("Auto-paused idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoPausedIdleAecoProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("aecogov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck trades")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckAecoTradesV2(), null, 2),
+      );
+    });
+  parent
+    .command("aecogov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).getAecogovStatsV2(), null, 2));
+    });
+}

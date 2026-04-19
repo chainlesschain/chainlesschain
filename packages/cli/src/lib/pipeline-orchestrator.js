@@ -1271,3 +1271,335 @@ export function getPipelineOrchestratorGovStatsV2() {
     runsByStatus,
   };
 }
+
+// === Iter28 V2 governance overlay: Pipogov ===
+export const PIPOGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const PIPOGOV_RUN_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  FINISHED: "finished",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _pipogovPTrans = new Map([
+  [
+    PIPOGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      PIPOGOV_PROFILE_MATURITY_V2.ACTIVE,
+      PIPOGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    PIPOGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      PIPOGOV_PROFILE_MATURITY_V2.PAUSED,
+      PIPOGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    PIPOGOV_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      PIPOGOV_PROFILE_MATURITY_V2.ACTIVE,
+      PIPOGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [PIPOGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _pipogovPTerminal = new Set([PIPOGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _pipogovJTrans = new Map([
+  [
+    PIPOGOV_RUN_LIFECYCLE_V2.QUEUED,
+    new Set([
+      PIPOGOV_RUN_LIFECYCLE_V2.RUNNING,
+      PIPOGOV_RUN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    PIPOGOV_RUN_LIFECYCLE_V2.RUNNING,
+    new Set([
+      PIPOGOV_RUN_LIFECYCLE_V2.FINISHED,
+      PIPOGOV_RUN_LIFECYCLE_V2.FAILED,
+      PIPOGOV_RUN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [PIPOGOV_RUN_LIFECYCLE_V2.FINISHED, new Set()],
+  [PIPOGOV_RUN_LIFECYCLE_V2.FAILED, new Set()],
+  [PIPOGOV_RUN_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _pipogovPsV2 = new Map();
+const _pipogovJsV2 = new Map();
+let _pipogovMaxActive = 8,
+  _pipogovMaxPending = 20,
+  _pipogovIdleMs = 2592000000,
+  _pipogovStuckMs = 60 * 1000;
+function _pipogovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _pipogovCheckP(from, to) {
+  const a = _pipogovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid pipogov profile transition ${from} → ${to}`);
+}
+function _pipogovCheckJ(from, to) {
+  const a = _pipogovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid pipogov run transition ${from} → ${to}`);
+}
+function _pipogovCountActive(owner) {
+  let c = 0;
+  for (const p of _pipogovPsV2.values())
+    if (p.owner === owner && p.status === PIPOGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _pipogovCountPending(profileId) {
+  let c = 0;
+  for (const j of _pipogovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === PIPOGOV_RUN_LIFECYCLE_V2.QUEUED ||
+        j.status === PIPOGOV_RUN_LIFECYCLE_V2.RUNNING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActivePipoProfilesPerOwnerV2(n) {
+  _pipogovMaxActive = _pipogovPos(n, "maxActivePipoProfilesPerOwner");
+}
+export function getMaxActivePipoProfilesPerOwnerV2() {
+  return _pipogovMaxActive;
+}
+export function setMaxPendingPipoRunsPerProfileV2(n) {
+  _pipogovMaxPending = _pipogovPos(n, "maxPendingPipoRunsPerProfile");
+}
+export function getMaxPendingPipoRunsPerProfileV2() {
+  return _pipogovMaxPending;
+}
+export function setPipoProfileIdleMsV2(n) {
+  _pipogovIdleMs = _pipogovPos(n, "pipogovProfileIdleMs");
+}
+export function getPipoProfileIdleMsV2() {
+  return _pipogovIdleMs;
+}
+export function setPipoRunStuckMsV2(n) {
+  _pipogovStuckMs = _pipogovPos(n, "pipogovRunStuckMs");
+}
+export function getPipoRunStuckMsV2() {
+  return _pipogovStuckMs;
+}
+export function _resetStatePipogovV2() {
+  _pipogovPsV2.clear();
+  _pipogovJsV2.clear();
+  _pipogovMaxActive = 8;
+  _pipogovMaxPending = 20;
+  _pipogovIdleMs = 2592000000;
+  _pipogovStuckMs = 60 * 1000;
+}
+export function registerPipoProfileV2({ id, owner, pipeline, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_pipogovPsV2.has(id))
+    throw new Error(`pipogov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    pipeline: pipeline || "default",
+    status: PIPOGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _pipogovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activatePipoProfileV2(id) {
+  const p = _pipogovPsV2.get(id);
+  if (!p) throw new Error(`pipogov profile ${id} not found`);
+  const isInitial = p.status === PIPOGOV_PROFILE_MATURITY_V2.PENDING;
+  _pipogovCheckP(p.status, PIPOGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _pipogovCountActive(p.owner) >= _pipogovMaxActive)
+    throw new Error(`max active pipogov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = PIPOGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pausedPipoProfileV2(id) {
+  const p = _pipogovPsV2.get(id);
+  if (!p) throw new Error(`pipogov profile ${id} not found`);
+  _pipogovCheckP(p.status, PIPOGOV_PROFILE_MATURITY_V2.PAUSED);
+  p.status = PIPOGOV_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archivePipoProfileV2(id) {
+  const p = _pipogovPsV2.get(id);
+  if (!p) throw new Error(`pipogov profile ${id} not found`);
+  _pipogovCheckP(p.status, PIPOGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = PIPOGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchPipoProfileV2(id) {
+  const p = _pipogovPsV2.get(id);
+  if (!p) throw new Error(`pipogov profile ${id} not found`);
+  if (_pipogovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal pipogov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getPipoProfileV2(id) {
+  const p = _pipogovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listPipoProfilesV2() {
+  return [..._pipogovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createPipoRunV2({ id, profileId, runId, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_pipogovJsV2.has(id)) throw new Error(`pipogov run ${id} already exists`);
+  if (!_pipogovPsV2.has(profileId))
+    throw new Error(`pipogov profile ${profileId} not found`);
+  if (_pipogovCountPending(profileId) >= _pipogovMaxPending)
+    throw new Error(
+      `max pending pipogov runs for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    runId: runId || "",
+    status: PIPOGOV_RUN_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _pipogovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function runningPipoRunV2(id) {
+  const j = _pipogovJsV2.get(id);
+  if (!j) throw new Error(`pipogov run ${id} not found`);
+  _pipogovCheckJ(j.status, PIPOGOV_RUN_LIFECYCLE_V2.RUNNING);
+  const now = Date.now();
+  j.status = PIPOGOV_RUN_LIFECYCLE_V2.RUNNING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeRunPipoV2(id) {
+  const j = _pipogovJsV2.get(id);
+  if (!j) throw new Error(`pipogov run ${id} not found`);
+  _pipogovCheckJ(j.status, PIPOGOV_RUN_LIFECYCLE_V2.FINISHED);
+  const now = Date.now();
+  j.status = PIPOGOV_RUN_LIFECYCLE_V2.FINISHED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failPipoRunV2(id, reason) {
+  const j = _pipogovJsV2.get(id);
+  if (!j) throw new Error(`pipogov run ${id} not found`);
+  _pipogovCheckJ(j.status, PIPOGOV_RUN_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = PIPOGOV_RUN_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelPipoRunV2(id, reason) {
+  const j = _pipogovJsV2.get(id);
+  if (!j) throw new Error(`pipogov run ${id} not found`);
+  _pipogovCheckJ(j.status, PIPOGOV_RUN_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = PIPOGOV_RUN_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getPipoRunV2(id) {
+  const j = _pipogovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listPipoRunsV2() {
+  return [..._pipogovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPausedIdlePipoProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _pipogovPsV2.values())
+    if (
+      p.status === PIPOGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _pipogovIdleMs
+    ) {
+      p.status = PIPOGOV_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckPipoRunsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _pipogovJsV2.values())
+    if (
+      j.status === PIPOGOV_RUN_LIFECYCLE_V2.RUNNING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _pipogovStuckMs
+    ) {
+      j.status = PIPOGOV_RUN_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getPipogovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(PIPOGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _pipogovPsV2.values()) profilesByStatus[p.status]++;
+  const runsByStatus = {};
+  for (const v of Object.values(PIPOGOV_RUN_LIFECYCLE_V2)) runsByStatus[v] = 0;
+  for (const j of _pipogovJsV2.values()) runsByStatus[j.status]++;
+  return {
+    totalPipoProfilesV2: _pipogovPsV2.size,
+    totalPipoRunsV2: _pipogovJsV2.size,
+    maxActivePipoProfilesPerOwner: _pipogovMaxActive,
+    maxPendingPipoRunsPerProfile: _pipogovMaxPending,
+    pipogovProfileIdleMs: _pipogovIdleMs,
+    pipogovRunStuckMs: _pipogovStuckMs,
+    profilesByStatus,
+    runsByStatus,
+  };
+}

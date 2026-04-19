@@ -1052,3 +1052,337 @@ export function getComplianceManagerGovStatsV2() {
     auditsByStatus,
   };
 }
+
+// === Iter28 V2 governance overlay: Cmpmgov ===
+export const CMPMGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const CMPMGOV_REPORT_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  REPORTING: "reporting",
+  REPORTED: "reported",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _cmpmgovPTrans = new Map([
+  [
+    CMPMGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      CMPMGOV_PROFILE_MATURITY_V2.ACTIVE,
+      CMPMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CMPMGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      CMPMGOV_PROFILE_MATURITY_V2.STALE,
+      CMPMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CMPMGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      CMPMGOV_PROFILE_MATURITY_V2.ACTIVE,
+      CMPMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [CMPMGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _cmpmgovPTerminal = new Set([CMPMGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _cmpmgovJTrans = new Map([
+  [
+    CMPMGOV_REPORT_LIFECYCLE_V2.QUEUED,
+    new Set([
+      CMPMGOV_REPORT_LIFECYCLE_V2.REPORTING,
+      CMPMGOV_REPORT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    CMPMGOV_REPORT_LIFECYCLE_V2.REPORTING,
+    new Set([
+      CMPMGOV_REPORT_LIFECYCLE_V2.REPORTED,
+      CMPMGOV_REPORT_LIFECYCLE_V2.FAILED,
+      CMPMGOV_REPORT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [CMPMGOV_REPORT_LIFECYCLE_V2.REPORTED, new Set()],
+  [CMPMGOV_REPORT_LIFECYCLE_V2.FAILED, new Set()],
+  [CMPMGOV_REPORT_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _cmpmgovPsV2 = new Map();
+const _cmpmgovJsV2 = new Map();
+let _cmpmgovMaxActive = 6,
+  _cmpmgovMaxPending = 15,
+  _cmpmgovIdleMs = 2592000000,
+  _cmpmgovStuckMs = 60 * 1000;
+function _cmpmgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _cmpmgovCheckP(from, to) {
+  const a = _cmpmgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid cmpmgov profile transition ${from} → ${to}`);
+}
+function _cmpmgovCheckJ(from, to) {
+  const a = _cmpmgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid cmpmgov report transition ${from} → ${to}`);
+}
+function _cmpmgovCountActive(owner) {
+  let c = 0;
+  for (const p of _cmpmgovPsV2.values())
+    if (p.owner === owner && p.status === CMPMGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _cmpmgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _cmpmgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === CMPMGOV_REPORT_LIFECYCLE_V2.QUEUED ||
+        j.status === CMPMGOV_REPORT_LIFECYCLE_V2.REPORTING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveCmpmProfilesPerOwnerV2(n) {
+  _cmpmgovMaxActive = _cmpmgovPos(n, "maxActiveCmpmProfilesPerOwner");
+}
+export function getMaxActiveCmpmProfilesPerOwnerV2() {
+  return _cmpmgovMaxActive;
+}
+export function setMaxPendingCmpmReportsPerProfileV2(n) {
+  _cmpmgovMaxPending = _cmpmgovPos(n, "maxPendingCmpmReportsPerProfile");
+}
+export function getMaxPendingCmpmReportsPerProfileV2() {
+  return _cmpmgovMaxPending;
+}
+export function setCmpmProfileIdleMsV2(n) {
+  _cmpmgovIdleMs = _cmpmgovPos(n, "cmpmgovProfileIdleMs");
+}
+export function getCmpmProfileIdleMsV2() {
+  return _cmpmgovIdleMs;
+}
+export function setCmpmReportStuckMsV2(n) {
+  _cmpmgovStuckMs = _cmpmgovPos(n, "cmpmgovReportStuckMs");
+}
+export function getCmpmReportStuckMsV2() {
+  return _cmpmgovStuckMs;
+}
+export function _resetStateCmpmgovV2() {
+  _cmpmgovPsV2.clear();
+  _cmpmgovJsV2.clear();
+  _cmpmgovMaxActive = 6;
+  _cmpmgovMaxPending = 15;
+  _cmpmgovIdleMs = 2592000000;
+  _cmpmgovStuckMs = 60 * 1000;
+}
+export function registerCmpmProfileV2({ id, owner, framework, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_cmpmgovPsV2.has(id))
+    throw new Error(`cmpmgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    framework: framework || "soc2",
+    status: CMPMGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _cmpmgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateCmpmProfileV2(id) {
+  const p = _cmpmgovPsV2.get(id);
+  if (!p) throw new Error(`cmpmgov profile ${id} not found`);
+  const isInitial = p.status === CMPMGOV_PROFILE_MATURITY_V2.PENDING;
+  _cmpmgovCheckP(p.status, CMPMGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _cmpmgovCountActive(p.owner) >= _cmpmgovMaxActive)
+    throw new Error(`max active cmpmgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = CMPMGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleCmpmProfileV2(id) {
+  const p = _cmpmgovPsV2.get(id);
+  if (!p) throw new Error(`cmpmgov profile ${id} not found`);
+  _cmpmgovCheckP(p.status, CMPMGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = CMPMGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveCmpmProfileV2(id) {
+  const p = _cmpmgovPsV2.get(id);
+  if (!p) throw new Error(`cmpmgov profile ${id} not found`);
+  _cmpmgovCheckP(p.status, CMPMGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = CMPMGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchCmpmProfileV2(id) {
+  const p = _cmpmgovPsV2.get(id);
+  if (!p) throw new Error(`cmpmgov profile ${id} not found`);
+  if (_cmpmgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal cmpmgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getCmpmProfileV2(id) {
+  const p = _cmpmgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listCmpmProfilesV2() {
+  return [..._cmpmgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createCmpmReportV2({ id, profileId, reportId, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_cmpmgovJsV2.has(id))
+    throw new Error(`cmpmgov report ${id} already exists`);
+  if (!_cmpmgovPsV2.has(profileId))
+    throw new Error(`cmpmgov profile ${profileId} not found`);
+  if (_cmpmgovCountPending(profileId) >= _cmpmgovMaxPending)
+    throw new Error(
+      `max pending cmpmgov reports for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    reportId: reportId || "",
+    status: CMPMGOV_REPORT_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _cmpmgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function reportingCmpmReportV2(id) {
+  const j = _cmpmgovJsV2.get(id);
+  if (!j) throw new Error(`cmpmgov report ${id} not found`);
+  _cmpmgovCheckJ(j.status, CMPMGOV_REPORT_LIFECYCLE_V2.REPORTING);
+  const now = Date.now();
+  j.status = CMPMGOV_REPORT_LIFECYCLE_V2.REPORTING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeReportCmpmV2(id) {
+  const j = _cmpmgovJsV2.get(id);
+  if (!j) throw new Error(`cmpmgov report ${id} not found`);
+  _cmpmgovCheckJ(j.status, CMPMGOV_REPORT_LIFECYCLE_V2.REPORTED);
+  const now = Date.now();
+  j.status = CMPMGOV_REPORT_LIFECYCLE_V2.REPORTED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failCmpmReportV2(id, reason) {
+  const j = _cmpmgovJsV2.get(id);
+  if (!j) throw new Error(`cmpmgov report ${id} not found`);
+  _cmpmgovCheckJ(j.status, CMPMGOV_REPORT_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = CMPMGOV_REPORT_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelCmpmReportV2(id, reason) {
+  const j = _cmpmgovJsV2.get(id);
+  if (!j) throw new Error(`cmpmgov report ${id} not found`);
+  _cmpmgovCheckJ(j.status, CMPMGOV_REPORT_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = CMPMGOV_REPORT_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getCmpmReportV2(id) {
+  const j = _cmpmgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listCmpmReportsV2() {
+  return [..._cmpmgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleCmpmProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _cmpmgovPsV2.values())
+    if (
+      p.status === CMPMGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _cmpmgovIdleMs
+    ) {
+      p.status = CMPMGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckCmpmReportsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _cmpmgovJsV2.values())
+    if (
+      j.status === CMPMGOV_REPORT_LIFECYCLE_V2.REPORTING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _cmpmgovStuckMs
+    ) {
+      j.status = CMPMGOV_REPORT_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getCmpmgovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(CMPMGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _cmpmgovPsV2.values()) profilesByStatus[p.status]++;
+  const reportsByStatus = {};
+  for (const v of Object.values(CMPMGOV_REPORT_LIFECYCLE_V2))
+    reportsByStatus[v] = 0;
+  for (const j of _cmpmgovJsV2.values()) reportsByStatus[j.status]++;
+  return {
+    totalCmpmProfilesV2: _cmpmgovPsV2.size,
+    totalCmpmReportsV2: _cmpmgovJsV2.size,
+    maxActiveCmpmProfilesPerOwner: _cmpmgovMaxActive,
+    maxPendingCmpmReportsPerProfile: _cmpmgovMaxPending,
+    cmpmgovProfileIdleMs: _cmpmgovIdleMs,
+    cmpmgovReportStuckMs: _cmpmgovStuckMs,
+    profilesByStatus,
+    reportsByStatus,
+  };
+}

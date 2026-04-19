@@ -1,5 +1,36 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-19 Update — CLI 0.156.0 · V2 iter22-iter28 · 72 more lib-level governance surfaces
+
+On top of the 64 surfaces from iter16-iter21, seven more iterations (iter22 → iter28) ported **72 additional lib-level governance surfaces** and bumped the CLI to `0.156.0`. iter22-iter26 add 8 surfaces each; iter27 and iter28 add 16 each. All surfaces follow the same 4-state profile maturity × 5-state record lifecycle skeleton (auto-stale/suspend/pause/degrade/mute-idle + auto-fail-stuck), **zero coupling with legacy paths**, and coexist with prior `*-v2` prefixes via a shared `preAction` hook that blocks `-v2` subcommand nesting.
+
+| Iter | Libraries covered | New V2 tests | Command prefixes |
+| ---- | ----------------- | ------------ | ---------------- |
+| iter22 | automation-engine / cowork-share / did-v2-manager / knowledge-exporter / knowledge-importer / llm-providers / pqc-manager / social-manager | 8×44=**352** | `cc automation augov-*-v2` `cc cowork shgov-*-v2` `cc did-v2 dv2gov-*-v2` `cc export kexpgov-*-v2` `cc import kimpgov-*-v2` `cc llm llmgov-*-v2` `cc pqc pqcgov-*-v2` `cc social smgov-*-v2` |
+| iter23 | response-cache / tech-learning-engine / universal-runtime / note-versioning / permanent-memory / protocol-fusion / dbevo / decentral-infra | 8×44=**352** | `cc rcache rcgov-*-v2` `cc tech techgov-*-v2` `cc runtime rtgov-*-v2` `cc note ntgov-*-v2` `cc permmem pmgov-*-v2` `cc fusion pfgov-*-v2` `cc dbevo dbevogov-*-v2` `cc infra digov-*-v2` |
+| iter24 | content-recommendation / mcp-registry / plugin-ecosystem / skill-loader / token-tracker / autonomous-developer / threat-intel / ueba | 8×44=**352** | `cc recommend rcmdgov-*-v2` `cc mcp mcpgov-*-v2` `cc ecosystem ecogov-*-v2` `cc skill sklgov-*-v2` `cc tokens toktgov-*-v2` `cc dev devgov-*-v2` `cc compliance tigov-*-v2` `cc compliance uebgov-*-v2` |
+| iter25 | cowork-task-templates / cowork-template-marketplace / cli-anything-bridge / agent-router / sub-agent-registry / todo-manager / execution-backend / evomap-federation | 8×44=**352** | `cc cowork cttgov-*-v2` `cc cowork ctmgov-*-v2` `cc cli-anything clibgov-*-v2` `cc orchestrate argov-*-v2` `cc agent saregov-*-v2` `cc agent todogov-*-v2` `cc agent ebgov-*-v2` `cc evomap evfedgov-*-v2` |
+| iter26 | interactive-planner / cli-context-engineering / sub-agent-context / interaction-adapter / workflow-expr / plugin-autodiscovery / hashline / web-ui-server | 8×44=**352** | `cc planmode plannergov-*-v2` `cc cli-anything ctxenggov-*-v2` `cc agent sactxgov-*-v2` `cc chat iagov-*-v2` `cc workflow wfexgov-*-v2` `cc plugin padgov-*-v2` `cc memory hlgov-*-v2` `cc ui webuigov-*-v2` |
+| iter27 | downloader / skill-mcp / cowork-mcp-tools / stix-parser / sub-agent-profiles / cowork-observe / process-manager / ws-chat-handler / evomap-client / provider-options / session-core-singletons / service-manager / cowork-evomap-adapter / provider-stream / cowork-observe-html / cowork-adapter | 16×44=**704** | `cc setup dlgov-*-v2` `cc skill smcpgov-*-v2` `cc cowork cmcpgov-*-v2` `cc compliance stixgov-*-v2` `cc agent sapgov-*-v2` `cc cowork cobsgov-*-v2` `cc start pmgrgov-*-v2` `cc chat wscgov-*-v2` `cc evomap evcligov-*-v2` `cc llm poptgov-*-v2` `cc config scsgov-*-v2` `cc services smgrgov-*-v2` `cc cowork ceadgov-*-v2` `cc stream pstrmgov-*-v2` `cc cowork cohtgov-*-v2` `cc cowork cadpgov-*-v2` |
+| iter28 | a2a-protocol / agent-coordinator / agent-economy / autonomous-agent / chat-core / compliance-manager / cross-chain / crypto-manager / dao-governance / evolution-system / evomap-manager / hierarchical-memory / inference-network / knowledge-graph / pipeline-orchestrator / plan-mode | 16×44=**704** | `cc a2a a2apgov-*-v2` `cc orchestrate acrdgov-*-v2` `cc economy aecogov-*-v2` `cc agent autagov-*-v2` `cc chat ccoregov-*-v2` `cc compliance cmpmgov-*-v2` `cc crosschain crchgov-*-v2` `cc encrypt crygov-*-v2` `cc dao daomgov-*-v2` `cc evolution esysgov-*-v2` `cc evomap emgrgov-*-v2` `cc hmemory hmemgov-*-v2` `cc inference infnetgov-*-v2` `cc kg kggov-*-v2` `cc pipeline pipogov-*-v2` `cc planmode pmodegov-*-v2` |
+
+**iter22-iter28 cumulative**: 5 × 8 + 2 × 16 = **72 lib-level governance surfaces**, 72 × 44 = **3,168 new V2 unit tests**. Combined with iter16-iter21, the V2 governance layer now totals **136 surfaces / ~5,984 V2 unit tests**, and full-stack V2 governance surfaces grow from 156+ → **228+**.
+
+### Regression tests (2026-04-19, post iter28)
+
+| Layer | Files | Tests | Notes |
+| --- | --- | --- | --- |
+| CLI unit (iter28 new) | 16 | **704 / 704** | a2a-protocol / agent-coordinator + 14 other new V2 surfaces |
+| CLI integration | 40 | **696 / 696** | unchanged from 0.151.0 |
+| CLI e2e | 38 | **565 / 565** | unchanged from 0.151.0 |
+| **Total (new + regression)** | **94** | **1,965 / 1,965** | **zero regressions** |
+
+**npm**: `npm i -g chainlesschain@0.156.0` (aliases `cc` / `clc` / `clchain`)
+
+See [`docs/design/modules/96_V2规范层governance.md`](./docs/design/modules/96_V2规范层governance.md) §iter22-iter28 for details.
+
+---
+
 ## 2026-04-19 Update — CLI 0.151.0 · V2 iter16-iter21 · 64 lib-level governance surfaces
 
 After 0.142.0 (batches 9 + 10), the V2 canonical surface continued through six more iterations (iter16-iter21), pushing **64 additional lib-level governance surfaces** and bumping the CLI to `0.151.0` (tag `v5.0.2.34`). Every surface follows the same 4-state profile maturity × 5-state record lifecycle skeleton, with per-owner active caps, per-entity pending caps, auto-suspend-idle, and auto-fail-stuck — **zero coupling with legacy paths**.

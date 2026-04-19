@@ -572,3 +572,204 @@ export function registerEncryptCommand(program) {
       console.log(JSON.stringify(getCryptoManagerStatsV2(), null, 2)),
     );
 }
+
+// === Iter28 V2 governance overlay: Crygov ===
+export function registerCryV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "encrypt");
+  if (!parent) return;
+  const L = async () => await import("../lib/crypto-manager.js");
+  parent
+    .command("crygov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.CRYGOV_PROFILE_MATURITY_V2,
+            encryptLifecycle: m.CRYGOV_ENCRYPT_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("crygov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveCryProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingCryEncryptsPerProfileV2(),
+            idleMs: m.getCryProfileIdleMsV2(),
+            stuckMs: m.getCryEncryptStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("crygov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveCryProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("crygov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingCryEncryptsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("crygov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setCryProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("crygov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setCryEncryptStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("crygov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--provider <v>", "provider")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerCryProfileV2({ id, owner, provider: o.provider }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("crygov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateCryProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("crygov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).staleCryProfileV2(id), null, 2));
+    });
+  parent
+    .command("crygov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).archiveCryProfileV2(id), null, 2));
+    });
+  parent
+    .command("crygov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchCryProfileV2(id), null, 2));
+    });
+  parent
+    .command("crygov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCryProfileV2(id), null, 2));
+    });
+  parent
+    .command("crygov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCryProfilesV2(), null, 2));
+    });
+  parent
+    .command("crygov-create-encrypt-v2 <id> <profileId>")
+    .description("Create encrypt")
+    .option("--keyId <v>", "keyId")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createCryEncryptV2({ id, profileId, keyId: o.keyId }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("crygov-encrypting-encrypt-v2 <id>")
+    .description("Mark encrypt as encrypting")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).encryptingCryEncryptV2(id), null, 2),
+      );
+    });
+  parent
+    .command("crygov-complete-encrypt-v2 <id>")
+    .description("Complete encrypt")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeEncryptCryV2(id), null, 2),
+      );
+    });
+  parent
+    .command("crygov-fail-encrypt-v2 <id> [reason]")
+    .description("Fail encrypt")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failCryEncryptV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("crygov-cancel-encrypt-v2 <id> [reason]")
+    .description("Cancel encrypt")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelCryEncryptV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("crygov-get-encrypt-v2 <id>")
+    .description("Get encrypt")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCryEncryptV2(id), null, 2));
+    });
+  parent
+    .command("crygov-list-encrypts-v2")
+    .description("List encrypts")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCryEncryptsV2(), null, 2));
+    });
+  parent
+    .command("crygov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleCryProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("crygov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck encrypts")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckCryEncryptsV2(), null, 2),
+      );
+    });
+  parent
+    .command("crygov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).getCrygovStatsV2(), null, 2));
+    });
+}

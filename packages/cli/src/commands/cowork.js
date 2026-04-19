@@ -2194,3 +2194,1466 @@ export function registerShgovV2Commands(program) {
       );
     });
 }
+
+// === Iter25 V2 governance overlay ===
+export function registerCttgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "cowork");
+  if (!parent) return;
+  const L = async () => await import("../lib/cowork-task-templates.js");
+  parent
+    .command("cttgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.CTTGOV_PROFILE_MATURITY_V2,
+            useLifecycle: m.CTTGOV_USE_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cttgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveCttgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingCttgovUsesPerProfileV2(),
+            idleMs: m.getCttgovProfileIdleMsV2(),
+            stuckMs: m.getCttgovUseStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cttgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveCttgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cttgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingCttgovUsesPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cttgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setCttgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cttgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setCttgovUseStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cttgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--category <v>", "category")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerCttgovProfileV2({ id, owner, category: o.category }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cttgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateCttgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cttgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleCttgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cttgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveCttgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cttgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchCttgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cttgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCttgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("cttgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCttgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("cttgov-create-use-v2 <id> <profileId>")
+    .description("Create use")
+    .option("--context <v>", "context")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createCttgovUseV2({ id, profileId, context: o.context }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cttgov-applying-use-v2 <id>")
+    .description("Mark use as applying")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).applyingCttgovUseV2(id), null, 2));
+    });
+  parent
+    .command("cttgov-complete-use-v2 <id>")
+    .description("Complete use")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completeUseCttgovV2(id), null, 2));
+    });
+  parent
+    .command("cttgov-fail-use-v2 <id> [reason]")
+    .description("Fail use")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failCttgovUseV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cttgov-cancel-use-v2 <id> [reason]")
+    .description("Cancel use")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelCttgovUseV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cttgov-get-use-v2 <id>")
+    .description("Get use")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCttgovUseV2(id), null, 2));
+    });
+  parent
+    .command("cttgov-list-uses-v2")
+    .description("List uses")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCttgovUsesV2(), null, 2));
+    });
+  parent
+    .command("cttgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleCttgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("cttgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck uses")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckCttgovUsesV2(), null, 2),
+      );
+    });
+  parent
+    .command("cttgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getCoworkTaskTemplatesGovStatsV2(), null, 2),
+      );
+    });
+}
+
+// === Iter25 V2 governance overlay ===
+export function registerCtmgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "cowork");
+  if (!parent) return;
+  const L = async () => await import("../lib/cowork-template-marketplace.js");
+  parent
+    .command("ctmgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.CTMGOV_PROFILE_MATURITY_V2,
+            orderLifecycle: m.CTMGOV_ORDER_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ctmgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveCtmgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingCtmgovOrdersPerProfileV2(),
+            idleMs: m.getCtmgovProfileIdleMsV2(),
+            stuckMs: m.getCtmgovOrderStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ctmgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveCtmgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ctmgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingCtmgovOrdersPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ctmgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setCtmgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ctmgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setCtmgovOrderStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ctmgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--vendor <v>", "vendor")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerCtmgovProfileV2({ id, owner, vendor: o.vendor }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ctmgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateCtmgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ctmgov-suspend-v2 <id>")
+    .description("Suspend profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).suspendCtmgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ctmgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveCtmgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ctmgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchCtmgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ctmgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCtmgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("ctmgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCtmgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("ctmgov-create-order-v2 <id> <profileId>")
+    .description("Create order")
+    .option("--templateId <v>", "templateId")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createCtmgovOrderV2({ id, profileId, templateId: o.templateId }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ctmgov-fulfilling-order-v2 <id>")
+    .description("Mark order as fulfilling")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).fulfillingCtmgovOrderV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ctmgov-complete-order-v2 <id>")
+    .description("Complete order")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeOrderCtmgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ctmgov-fail-order-v2 <id> [reason]")
+    .description("Fail order")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failCtmgovOrderV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("ctmgov-cancel-order-v2 <id> [reason]")
+    .description("Cancel order")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelCtmgovOrderV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("ctmgov-get-order-v2 <id>")
+    .description("Get order")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCtmgovOrderV2(id), null, 2));
+    });
+  parent
+    .command("ctmgov-list-orders-v2")
+    .description("List orders")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCtmgovOrdersV2(), null, 2));
+    });
+  parent
+    .command("ctmgov-auto-suspend-idle-v2")
+    .description("Auto-suspend idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoSuspendIdleCtmgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("ctmgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck orders")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckCtmgovOrdersV2(), null, 2),
+      );
+    });
+  parent
+    .command("ctmgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify(
+          (await L()).getCoworkTemplateMarketplaceGovStatsV2(),
+          null,
+          2,
+        ),
+      );
+    });
+}
+
+// === Iter27 V2 governance overlay ===
+export function registerCmcpgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "cowork");
+  if (!parent) return;
+  const L = async () => await import("../lib/cowork-mcp-tools.js");
+  parent
+    .command("cmcpgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.CMCPGOV_PROFILE_MATURITY_V2,
+            execLifecycle: m.CMCPGOV_EXEC_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cmcpgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveCmcpgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingCmcpgovExecsPerProfileV2(),
+            idleMs: m.getCmcpgovProfileIdleMsV2(),
+            stuckMs: m.getCmcpgovExecStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cmcpgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveCmcpgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cmcpgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingCmcpgovExecsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cmcpgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setCmcpgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cmcpgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setCmcpgovExecStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cmcpgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--toolset <v>", "toolset")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerCmcpgovProfileV2({ id, owner, toolset: o.toolset }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cmcpgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateCmcpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cmcpgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleCmcpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cmcpgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveCmcpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cmcpgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchCmcpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cmcpgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCmcpgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("cmcpgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCmcpgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("cmcpgov-create-exec-v2 <id> <profileId>")
+    .description("Create exec")
+    .option("--tool <v>", "tool")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createCmcpgovExecV2({ id, profileId, tool: o.tool }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cmcpgov-running-exec-v2 <id>")
+    .description("Mark exec as running")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).runningCmcpgovExecV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cmcpgov-complete-exec-v2 <id>")
+    .description("Complete exec")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeExecCmcpgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cmcpgov-fail-exec-v2 <id> [reason]")
+    .description("Fail exec")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failCmcpgovExecV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cmcpgov-cancel-exec-v2 <id> [reason]")
+    .description("Cancel exec")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelCmcpgovExecV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cmcpgov-get-exec-v2 <id>")
+    .description("Get exec")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCmcpgovExecV2(id), null, 2));
+    });
+  parent
+    .command("cmcpgov-list-execs-v2")
+    .description("List execs")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCmcpgovExecsV2(), null, 2));
+    });
+  parent
+    .command("cmcpgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleCmcpgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("cmcpgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck execs")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckCmcpgovExecsV2(), null, 2),
+      );
+    });
+  parent
+    .command("cmcpgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getCoworkMcpToolsGovStatsV2(), null, 2),
+      );
+    });
+}
+
+// === Iter27 V2 governance overlay ===
+export function registerCobsgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "cowork");
+  if (!parent) return;
+  const L = async () => await import("../lib/cowork-observe.js");
+  parent
+    .command("cobsgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.COBSGOV_PROFILE_MATURITY_V2,
+            eventLifecycle: m.COBSGOV_EVENT_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cobsgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveCobsgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingCobsgovEventsPerProfileV2(),
+            idleMs: m.getCobsgovProfileIdleMsV2(),
+            stuckMs: m.getCobsgovEventStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cobsgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveCobsgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cobsgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingCobsgovEventsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cobsgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setCobsgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cobsgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setCobsgovEventStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cobsgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--channel <v>", "channel")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerCobsgovProfileV2({ id, owner, channel: o.channel }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cobsgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateCobsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cobsgov-mute-v2 <id>")
+    .description("Mute profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).muteCobsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cobsgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveCobsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cobsgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchCobsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cobsgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCobsgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("cobsgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCobsgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("cobsgov-create-event-v2 <id> <profileId>")
+    .description("Create event")
+    .option("--kind <v>", "kind")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createCobsgovEventV2({ id, profileId, kind: o.kind }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cobsgov-recording-event-v2 <id>")
+    .description("Mark event as recording")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).recordingCobsgovEventV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cobsgov-complete-event-v2 <id>")
+    .description("Complete event")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeEventCobsgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cobsgov-fail-event-v2 <id> [reason]")
+    .description("Fail event")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failCobsgovEventV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cobsgov-cancel-event-v2 <id> [reason]")
+    .description("Cancel event")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelCobsgovEventV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cobsgov-get-event-v2 <id>")
+    .description("Get event")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCobsgovEventV2(id), null, 2));
+    });
+  parent
+    .command("cobsgov-list-events-v2")
+    .description("List events")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCobsgovEventsV2(), null, 2));
+    });
+  parent
+    .command("cobsgov-auto-mute-idle-v2")
+    .description("Auto-mute idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoMuteIdleCobsgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("cobsgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck events")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckCobsgovEventsV2(), null, 2),
+      );
+    });
+  parent
+    .command("cobsgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getCoworkObserveGovStatsV2(), null, 2),
+      );
+    });
+}
+
+// === Iter27 V2 governance overlay ===
+export function registerCeadgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "cowork");
+  if (!parent) return;
+  const L = async () => await import("../lib/cowork-evomap-adapter.js");
+  parent
+    .command("ceadgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.CEADGOV_PROFILE_MATURITY_V2,
+            bindLifecycle: m.CEADGOV_BIND_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ceadgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveCeadgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingCeadgovBindsPerProfileV2(),
+            idleMs: m.getCeadgovProfileIdleMsV2(),
+            stuckMs: m.getCeadgovBindStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ceadgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveCeadgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ceadgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingCeadgovBindsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ceadgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setCeadgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ceadgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setCeadgovBindStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ceadgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--direction <v>", "direction")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerCeadgovProfileV2({ id, owner, direction: o.direction }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ceadgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateCeadgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ceadgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleCeadgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ceadgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveCeadgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ceadgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchCeadgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ceadgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCeadgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("ceadgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCeadgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("ceadgov-create-bind-v2 <id> <profileId>")
+    .description("Create bind")
+    .option("--geneId <v>", "geneId")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createCeadgovBindV2({ id, profileId, geneId: o.geneId }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ceadgov-binding-bind-v2 <id>")
+    .description("Mark bind as binding")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).bindingCeadgovBindV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ceadgov-complete-bind-v2 <id>")
+    .description("Complete bind")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeBindCeadgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ceadgov-fail-bind-v2 <id> [reason]")
+    .description("Fail bind")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failCeadgovBindV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("ceadgov-cancel-bind-v2 <id> [reason]")
+    .description("Cancel bind")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelCeadgovBindV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("ceadgov-get-bind-v2 <id>")
+    .description("Get bind")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCeadgovBindV2(id), null, 2));
+    });
+  parent
+    .command("ceadgov-list-binds-v2")
+    .description("List binds")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCeadgovBindsV2(), null, 2));
+    });
+  parent
+    .command("ceadgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleCeadgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("ceadgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck binds")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckCeadgovBindsV2(), null, 2),
+      );
+    });
+  parent
+    .command("ceadgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getCoworkEvomapAdapterGovStatsV2(), null, 2),
+      );
+    });
+}
+
+// === Iter27 V2 governance overlay ===
+export function registerCohtgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "cowork");
+  if (!parent) return;
+  const L = async () => await import("../lib/cowork-observe-html.js");
+  parent
+    .command("cohtgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.COHTGOV_PROFILE_MATURITY_V2,
+            renderLifecycle: m.COHTGOV_RENDER_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cohtgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveCohtgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingCohtgovRendersPerProfileV2(),
+            idleMs: m.getCohtgovProfileIdleMsV2(),
+            stuckMs: m.getCohtgovRenderStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cohtgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveCohtgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cohtgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingCohtgovRendersPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cohtgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setCohtgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cohtgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setCohtgovRenderStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cohtgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--template <v>", "template")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerCohtgovProfileV2({ id, owner, template: o.template }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cohtgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateCohtgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cohtgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleCohtgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cohtgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveCohtgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cohtgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchCohtgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cohtgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCohtgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("cohtgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCohtgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("cohtgov-create-render-v2 <id> <profileId>")
+    .description("Create render")
+    .option("--page <v>", "page")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createCohtgovRenderV2({ id, profileId, page: o.page }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cohtgov-rendering-render-v2 <id>")
+    .description("Mark render as rendering")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).renderingCohtgovRenderV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cohtgov-complete-render-v2 <id>")
+    .description("Complete render")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeRenderCohtgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cohtgov-fail-render-v2 <id> [reason]")
+    .description("Fail render")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failCohtgovRenderV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cohtgov-cancel-render-v2 <id> [reason]")
+    .description("Cancel render")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelCohtgovRenderV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cohtgov-get-render-v2 <id>")
+    .description("Get render")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCohtgovRenderV2(id), null, 2));
+    });
+  parent
+    .command("cohtgov-list-renders-v2")
+    .description("List renders")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCohtgovRendersV2(), null, 2));
+    });
+  parent
+    .command("cohtgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleCohtgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("cohtgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck renders")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckCohtgovRendersV2(), null, 2),
+      );
+    });
+  parent
+    .command("cohtgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getCoworkObserveHtmlGovStatsV2(), null, 2),
+      );
+    });
+}
+
+// === Iter27 V2 governance overlay ===
+export function registerCadpgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "cowork");
+  if (!parent) return;
+  const L = async () => await import("../lib/cowork-adapter.js");
+  parent
+    .command("cadpgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.CADPGOV_PROFILE_MATURITY_V2,
+            adaptLifecycle: m.CADPGOV_ADAPT_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cadpgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveCadpgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingCadpgovAdaptsPerProfileV2(),
+            idleMs: m.getCadpgovProfileIdleMsV2(),
+            stuckMs: m.getCadpgovAdaptStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cadpgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveCadpgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cadpgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingCadpgovAdaptsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cadpgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setCadpgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cadpgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setCadpgovAdaptStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cadpgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--target <v>", "target")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerCadpgovProfileV2({ id, owner, target: o.target }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cadpgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateCadpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cadpgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleCadpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cadpgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveCadpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cadpgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchCadpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cadpgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCadpgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("cadpgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCadpgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("cadpgov-create-adapt-v2 <id> <profileId>")
+    .description("Create adapt")
+    .option("--source <v>", "source")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createCadpgovAdaptV2({ id, profileId, source: o.source }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cadpgov-adapting-adapt-v2 <id>")
+    .description("Mark adapt as adapting")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).adaptingCadpgovAdaptV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cadpgov-complete-adapt-v2 <id>")
+    .description("Complete adapt")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeAdaptCadpgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cadpgov-fail-adapt-v2 <id> [reason]")
+    .description("Fail adapt")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failCadpgovAdaptV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cadpgov-cancel-adapt-v2 <id> [reason]")
+    .description("Cancel adapt")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelCadpgovAdaptV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cadpgov-get-adapt-v2 <id>")
+    .description("Get adapt")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCadpgovAdaptV2(id), null, 2));
+    });
+  parent
+    .command("cadpgov-list-adapts-v2")
+    .description("List adapts")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCadpgovAdaptsV2(), null, 2));
+    });
+  parent
+    .command("cadpgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleCadpgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("cadpgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck adapts")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckCadpgovAdaptsV2(), null, 2),
+      );
+    });
+  parent
+    .command("cadpgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getCoworkAdapterGovStatsV2(), null, 2),
+      );
+    });
+}

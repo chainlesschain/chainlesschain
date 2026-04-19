@@ -1051,3 +1051,212 @@ export function registerWfgovV2Commands(program) {
       );
     });
 }
+
+// === Iter26 V2 governance overlay ===
+export function registerWfexgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "workflow");
+  if (!parent) return;
+  const L = async () => await import("../lib/workflow-expr.js");
+  parent
+    .command("wfexgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.WFEXGOV_PROFILE_MATURITY_V2,
+            evalLifecycle: m.WFEXGOV_EVAL_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("wfexgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveWfexgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingWfexgovEvalsPerProfileV2(),
+            idleMs: m.getWfexgovProfileIdleMsV2(),
+            stuckMs: m.getWfexgovEvalStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("wfexgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveWfexgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("wfexgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingWfexgovEvalsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("wfexgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setWfexgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("wfexgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setWfexgovEvalStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("wfexgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--language <v>", "language")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerWfexgovProfileV2({ id, owner, language: o.language }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("wfexgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateWfexgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("wfexgov-pause-v2 <id>")
+    .description("Pause profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).pauseWfexgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("wfexgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveWfexgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("wfexgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchWfexgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("wfexgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getWfexgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("wfexgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listWfexgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("wfexgov-create-eval-v2 <id> <profileId>")
+    .description("Create eval")
+    .option("--expression <v>", "expression")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createWfexgovEvalV2({ id, profileId, expression: o.expression }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("wfexgov-evaluating-eval-v2 <id>")
+    .description("Mark eval as evaluating")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).evaluatingWfexgovEvalV2(id), null, 2),
+      );
+    });
+  parent
+    .command("wfexgov-complete-eval-v2 <id>")
+    .description("Complete eval")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeEvalWfexgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("wfexgov-fail-eval-v2 <id> [reason]")
+    .description("Fail eval")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failWfexgovEvalV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("wfexgov-cancel-eval-v2 <id> [reason]")
+    .description("Cancel eval")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelWfexgovEvalV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("wfexgov-get-eval-v2 <id>")
+    .description("Get eval")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getWfexgovEvalV2(id), null, 2));
+    });
+  parent
+    .command("wfexgov-list-evals-v2")
+    .description("List evals")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listWfexgovEvalsV2(), null, 2));
+    });
+  parent
+    .command("wfexgov-auto-pause-idle-v2")
+    .description("Auto-pause idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoPauseIdleWfexgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("wfexgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck evals")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckWfexgovEvalsV2(), null, 2),
+      );
+    });
+  parent
+    .command("wfexgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getWorkflowExprGovStatsV2(), null, 2),
+      );
+    });
+}

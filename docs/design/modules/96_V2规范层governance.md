@@ -1,10 +1,10 @@
 # 96. V2 规范层（Governance Layer）设计说明
 
-> 本文档记录 CLI 侧 V2 规范层的统一设计模式与第 1-10 批 + iter11-iter21 累计 156+ 个治理表面的分类概览。
+> 本文档记录 CLI 侧 V2 规范层的统一设计模式与第 1-10 批 + iter11-iter28 累计 228+ 个治理表面的分类概览。
 >
 > **定位**：在遗留运行态（SQLite 表 / 文件态 / 内存单例 / 传输层）之上引入纯内存 governance 层，严格增量，与 legacy 路径零冲突，便于灰度与回滚。
 >
-> **最近更新**（2026-04-19）：iter16-iter21 在已有 92+ 表面之上再叠加 64+ lib 级治理表面，覆盖审计 / 知识图谱 / 沙箱 / SLA / 压测 / Terraform / 信誉 / 市场 / 聊天 / Claude Code 桥 / 合规 / 协作学习 / 协作工作流 / 隐私计算 / 代币激励 / 加固 / AIOps / 多模态 / 直觉 / 租户 / 量化 / 信任 / NL 编程 / 感知 / 代码 Agent / 协作治理 / 社区治理 / DID / SSO / 组织 / SCIM / 同步 / Agent 网络 / 浏览自动化 / DLP / EvoMap / 联邦加固 / IPFS / P2P / 钱包 / ActivityPub / Matrix / Nostr / BI / 记忆 / 会话 / Hook / Workflow。每个 lib 表面 44 个 V2 单测，统一遵循 4-state profile maturity + 5-state record lifecycle + auto-suspend-idle + auto-fail-stuck 模式。
+> **最近更新**（2026-04-19）：iter22-iter28 在 iter16-iter21 的 64 lib 表面之上再叠加 72 lib 级治理表面（iter22-iter26 各 8 个 + iter27/iter28 各 16 个），覆盖 automation / cowork-share / did-v2 / knowledge-export-import / llm / pqc / social（iter22）、response-cache / tech / universal-runtime / note-versioning / permanent-memory / protocol-fusion / dbevo / decentral-infra（iter23）、recommendation / mcp-registry / plugin-ecosystem / skill-loader / token-tracker / autonomous-developer / threat-intel / ueba（iter24）、cowork-templates / cowork-marketplace / cli-anything-bridge / agent-router / sub-agent-registry / todo-manager / execution-backend / evomap-federation（iter25）、interactive-planner / cli-context-engineering / sub-agent-context / interaction-adapter / workflow-expr / plugin-autodiscovery / hashline / web-ui-server（iter26）、downloader / skill-mcp / cowork-mcp-tools / stix-parser / sub-agent-profiles / cowork-observe / process-manager / ws-chat-handler / evomap-client / provider-options / session-core-singletons / service-manager / cowork-evomap-adapter / provider-stream / cowork-observe-html / cowork-adapter（iter27, 16 个）、a2a-protocol / agent-coordinator / agent-economy / autonomous-agent / chat-core / compliance-manager / cross-chain / crypto-manager / dao-governance / evolution-system / evomap-manager / hierarchical-memory / inference-network / knowledge-graph / pipeline-orchestrator / plan-mode（iter28, 16 个）。每个 lib 表面 44 个 V2 单测，全部遵循 4-state profile maturity + 5-state record lifecycle + auto-{stale,suspend,pause,degrade,mute,dormant,disable}-idle + auto-fail-stuck 模式；与 legacy + 既有 V2 前缀通过 `preAction` 钩子避让嵌套。累计 iter16-iter28：136 lib 表面、~5,984 V2 单测。
 
 ---
 
@@ -194,6 +194,38 @@ SSO Manager V2、Workflow Engine V2、Crypto Manager V2。
 `activitypub-bridge`（`cc activitypub apgov-*-v2`）、`matrix-bridge`（`cc matrix matgov-*-v2`）、`nostr-bridge`（`cc nostr nosgov-*-v2`）、`bi-engine`（`cc bi bigov-*-v2`）、`memory-manager`（`cc memory memgov-*-v2`）、`session-manager`（`cc session sesgov-*-v2`）、`hook-manager`（`cc hook hookgov-*-v2`）、`workflow-engine`（`cc workflow wfgov-*-v2`）。每表面 44 V2 单测；所有命令均挂到对应的现有顶层命令下，前缀按"避免与同模块既有 *-v2 命令冲突"原则选择。
 
 **iter16-iter21 累计**：64 个 lib 级治理表面 × 44 V2 单测 = 2,816 新增 V2 单测。叠加 iter15 之前的 92+ 表面，全栈 156+ V2 治理表面。
+
+### iter22（自动化 / 社交桥 / DID-v2 / 知识导入导出 / LLM / PQC / 社交治理 lib · 8 个）
+
+`automation-engine`（`cc automation augov-*-v2`）、`cowork-share`（`cc cowork shgov-*-v2`）、`did-v2-manager`（`cc did-v2 dv2gov-*-v2`）、`knowledge-exporter`（`cc export kexpgov-*-v2`）、`knowledge-importer`（`cc import kimpgov-*-v2`）、`llm-providers`（`cc llm llmgov-*-v2`）、`pqc-manager`（`cc pqc pqcgov-*-v2`）、`social-manager`（`cc social smgov-*-v2`）。每表面 44 V2 单测；caps 由 6/12（pqc）至 12/30（hook-event 式 pattern）按业务负载配置。
+
+### iter23（运行时缓存 / 学习 / 运行时 / 笔记 / 永久记忆 / 协议融合 / 数据库演进 / 去中心化基础设施 lib · 8 个）
+
+`response-cache`（`cc rcache rcgov-*-v2`）、`tech-learning-engine`（`cc tech techgov-*-v2`）、`universal-runtime`（`cc runtime rtgov-*-v2`）、`note-versioning`（`cc note ntgov-*-v2`）、`permanent-memory`（`cc permmem pmgov-*-v2`）、`protocol-fusion`（`cc fusion pfgov-*-v2`）、`dbevo`（`cc dbevo dbevogov-*-v2`）、`decentral-infra`（`cc infra digov-*-v2`）。每表面 44 V2 单测；与既有 ResponseCache / UniversalRuntime / NoteVersioning / PermanentMemory / dbevo / decentral-infra V2 表面共存。
+
+### iter24（推荐 / MCP / 插件生态 / 技能加载 / 代币追踪 / 自主开发 / 威胁情报 / UEBA lib · 8 个）
+
+`content-recommendation`（`cc recommend rcmdgov-*-v2`）、`mcp-registry`（`cc mcp mcpgov-*-v2`）、`plugin-ecosystem`（`cc ecosystem ecogov-*-v2`）、`skill-loader`（`cc skill sklgov-*-v2`）、`token-tracker`（`cc tokens toktgov-*-v2`）、`autonomous-developer`（`cc dev devgov-*-v2`）、`threat-intel`（`cc compliance tigov-*-v2`）、`ueba`（`cc compliance uebgov-*-v2`）。每表面 44 V2 单测；`compliance` 顶层命令下 tigov / uebgov 与 iter17 cmgr 共存。
+
+### iter25（协作模板 / 协作市场 / cli-anything 桥 / Agent 路由 / 子 Agent 注册 / todo / 执行后端 / Evomap 联邦 lib · 8 个）
+
+`cowork-task-templates`（`cc cowork cttgov-*-v2`）、`cowork-template-marketplace`（`cc cowork ctmgov-*-v2`）、`cli-anything-bridge`（`cc cli-anything clibgov-*-v2`）、`agent-router`（`cc orchestrate argov-*-v2`）、`sub-agent-registry`（`cc agent saregov-*-v2`）、`todo-manager`（`cc agent todogov-*-v2`）、`execution-backend`（`cc agent ebgov-*-v2`）、`evomap-federation`（`cc evomap evfedgov-*-v2`）。每表面 44 V2 单测；`agent` 顶层命令下 saregov / todogov / ebgov 与既有 SUBAGENT / TODO / EXECBE V2 共存。
+
+### iter26（交互规划 / 上下文工程 / 子 Agent 上下文 / 交互适配 / 表达式 / 插件自发现 / Hashline / Web UI lib · 8 个）
+
+`interactive-planner`（`cc planmode plannergov-*-v2`）、`cli-context-engineering`（`cc cli-anything ctxenggov-*-v2`）、`sub-agent-context`（`cc agent sactxgov-*-v2`）、`interaction-adapter`（`cc chat iagov-*-v2`）、`workflow-expr`（`cc workflow wfexgov-*-v2`）、`plugin-autodiscovery`（`cc plugin padgov-*-v2`）、`hashline`（`cc memory hlgov-*-v2`）、`web-ui-server`（`cc ui webuigov-*-v2`）。每表面 44 V2 单测；`cli-anything` 顶层下 ctxenggov 与 iter25 clibgov 共存；`agent` 顶层下 sactxgov 与 saregov/todogov/ebgov 共存。
+
+### iter27（下载器 / 技能 MCP / 协作 MCP 工具 / STIX / 子 Agent 配置 / 协作观察 / 进程管理 / WS 聊天 / Evomap 客户端 / LLM 参数 / 会话核心单例 / 服务管理 / 协作 Evomap 适配 / 流式提供者 / 协作 HTML / 协作适配器 lib · 16 个）
+
+`downloader`（`cc setup dlgov-*-v2`）、`skill-mcp`（`cc skill smcpgov-*-v2`）、`cowork-mcp-tools`（`cc cowork cmcpgov-*-v2`）、`stix-parser`（`cc compliance stixgov-*-v2`）、`sub-agent-profiles`（`cc agent sapgov-*-v2`）、`cowork-observe`（`cc cowork cobsgov-*-v2`）、`process-manager`（`cc start pmgrgov-*-v2`）、`ws-chat-handler`（`cc chat wscgov-*-v2`）、`evomap-client`（`cc evomap evcligov-*-v2`）、`provider-options`（`cc llm poptgov-*-v2`）、`session-core-singletons`（`cc config scsgov-*-v2`）、`service-manager`（`cc services smgrgov-*-v2`）、`cowork-evomap-adapter`（`cc cowork ceadgov-*-v2`）、`provider-stream`（`cc stream pstrmgov-*-v2`）、`cowork-observe-html`（`cc cowork cohtgov-*-v2`）、`cowork-adapter`（`cc cowork cadpgov-*-v2`）。每表面 44 V2 单测，共 16 × 44 = 704 新单测；`cowork` 顶层下 cmcpgov / cobsgov / ceadgov / cohtgov / cadpgov 与 iter17/22/25 前缀共存。
+
+### iter28（A2A 协议 / Agent 协调 / Agent 经济 / 自主 Agent / 聊天核心 / 合规管理 / 跨链 / 加密管理 / DAO 治理 / 进化系统 / Evomap 管理 / 分层记忆 / 推理网络 / 知识图谱 / 流水线编排 / Plan Mode lib · 16 个）
+
+`a2a-protocol`（`cc a2a a2apgov-*-v2`）、`agent-coordinator`（`cc orchestrate acrdgov-*-v2`）、`agent-economy`（`cc economy aecogov-*-v2`）、`autonomous-agent`（`cc agent autagov-*-v2`）、`chat-core`（`cc chat ccoregov-*-v2`）、`compliance-manager`（`cc compliance cmpmgov-*-v2`）、`cross-chain`（`cc crosschain crchgov-*-v2`）、`crypto-manager`（`cc encrypt crygov-*-v2`）、`dao-governance`（`cc dao daomgov-*-v2`）、`evolution-system`（`cc evolution esysgov-*-v2`）、`evomap-manager`（`cc evomap emgrgov-*-v2`）、`hierarchical-memory`（`cc hmemory hmemgov-*-v2`）、`inference-network`（`cc inference infnetgov-*-v2`）、`knowledge-graph`（`cc kg kggov-*-v2`）、`pipeline-orchestrator`（`cc pipeline pipogov-*-v2`）、`plan-mode`（`cc planmode pmodegov-*-v2`）。每表面 44 V2 单测，共 16 × 44 = 704 新单测。与既有同模块前缀（如 `chat chatgov-*-v2` (iter17) / `iagov-*-v2` (iter26) / `wscgov-*-v2` (iter27)，`compliance cmgr-*-v2` (iter17) / `stixgov-*-v2` (iter27) / `tigov-*-v2` / `uebgov-*-v2` (iter24)，`orchestrate ccbgov-*-v2` (iter17) / `argov-*-v2` (iter25)，`planmode plannergov-*-v2` (iter26)，`kg kgov-*-v2` (iter16) 等）全部共存，不覆盖、不回归。
+
+**iter22-iter28 累计**：5 × 8 + 2 × 16 = **72 lib 级治理表面** × 44 V2 单测 = **3,168 新增 V2 单测**。叠加 iter16-iter21 的 64 表面 / 2,816 V2 单测，iter16-iter28 合计 **136 lib 级治理表面 / ~5,984 V2 单测**，全栈 V2 治理表面从 156+ → **228+**。
+
+**2026-04-19 post-iter28 回归**：CLI 单元 iter28 新增 16 文件 704 / 704 通过；CLI 集成 40 文件 696 / 696 通过；CLI E2E 38 文件 565 / 565 通过；**合计 94 文件 1,965 / 1,965 零回归**。
 
 ---
 
