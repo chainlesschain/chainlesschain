@@ -3,6 +3,141 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.2.34 / CLI 0.140-0.142] - 2026-04-19 (V2 第十批 · 16 个编排/自治/经济/进化 lib 级治理表面)
+
+### Added — 16 个 V2 lib 级治理表面（严格增量 · 内存 governance · 与运行态 / 传输层 / 协议层完全独立）
+
+- **`orchestrator` V2**（`cc orchgov`）— 编排 profile 4-state（retired 终态、paused→active 恢复）+ task 5-state（3 终态），per-owner active cap 6、per-profile pending cap 12，`autoPauseIdle` + `autoFailStuck`；45 V2 单测（gov-stats-v2 独立，避开已有 `cc orchestrate router *-v2`）。
+- **`perf-tuning` V2**（追加到现有 `cc perf`）— tuning profile 4-state（decommissioned 终态、stale→active 恢复）+ bench 5-state（3 终态），per-owner 6、per-profile 10，`autoStaleIdle` + `autoFailStuck`；45 V2 单测（Phase 22 SQLite 不动）。
+- **`topic-classifier` V2**（`cc topiccls`）— classifier profile 4-state（archived 终态、stale→active 恢复）+ job 5-state（3 终态），per-owner 8、per-profile 20，`autoStaleIdle` + `autoFailStuck`；45 V2 单测。
+- **`iteration-budget` V2**（`cc itbudget`）— budget profile 4-state（exhausted 终态、paused→active 恢复）+ run 5-state（3 终态），per-owner 4、per-profile 8，`autoPauseIdle` + `autoFailStuck`；45 V2 单测。
+- **`git-integration` V2**（`cc git`）— repo profile 4-state（decommissioned 终态、archived→active 恢复）+ commit 5-state（3 终态），per-owner 10、per-profile 20，`autoArchiveIdle` + `autoFailStuck`；45 V2 单测。
+- **`cowork-task-runner` V2**（`cc cowork runner-*-v2`）— runner profile 4-state（retired 终态、paused→active 恢复）+ exec 5-state（3 终态），per-owner 8、per-profile 15，`autoPauseIdle` + `autoFailStuck`；45 V2 单测（`runner-*` 前缀避开 Agent Coordinator V2 冲突）。
+- **`inference-network` V2**（`cc inference`）— node profile 4-state（decommissioned 终态、degraded→active 恢复）+ job 5-state（3 终态），per-owner 12、per-profile 25，`autoDegradeIdle` + `autoFailStuck`；45 V2 单测（与已有 task-scheduling V2 共存于同文件）。
+- **`content-recommender` V2**（`cc recommend cr-*-v2`）— recommender profile 4-state（archived 终态、stale→active 恢复）+ job 5-state（3 终态），per-owner 8、per-profile 10，`autoStaleIdle` + `autoFailStuck`；45 V2 单测（`cr-*` 前缀避开 content-recommendation.js V2）。
+- **`app-builder` V2**（`cc lowcode`）— app profile 4-state（archived 终态、paused→active 恢复）+ build 5-state（3 终态），per-owner 10、per-profile 20，`autoPauseIdle` + `autoFailStuck`；45 V2 单测。
+- **`siem-exporter` V2**（`cc siem`）— SIEM target 4-state（retired 终态、degraded→active 恢复）+ export 5-state（3 终态），per-owner 8、per-profile 50，`autoDegradeIdle` + `autoFailStuck`；45 V2 单测。
+- **`autonomous-agent` V2**（`cc autoagent`）— autonomous agent profile 4-state（archived 终态、paused→active 恢复）+ run 5-state（3 终态），per-owner 5、per-profile 10，`autoPauseIdle` + `autoFailStuck`；45 V2 单测（与交互式 `cc agent` 分离）。
+- **`compliance-framework-reporter` V2**（`cc compliance fwrep-*-v2`）— framework profile 4-state（archived 终态、deprecated→active 恢复）+ report 5-state（3 终态），per-owner 8、per-profile 15，`autoDeprecateIdle` + `autoFailStuck`；45 V2 单测（`fwrep-*` 前缀避开已有 compliance V2）。
+- **`agent-economy` V2**（`cc economy`）— account profile 4-state（closed 终态、frozen→active 恢复）+ tx 5-state（3 终态），per-owner 20、per-profile 30，`autoFreezeIdle` + `autoFailStuck`；41 V2 单测（默认 currency=CLC）。
+- **`pipeline-orchestrator` V2**（`cc pipeline`）— pipeline profile 4-state（archived 终态、paused→active 恢复）+ run 5-state（3 终态），per-owner 10、per-profile 20，`autoPauseIdle` + `autoFailStuck`；41 V2 单测。
+- **`evolution-system` V2**（`cc evolution`）— evo goal profile 4-state（archived 终态、paused→active 恢复）+ cycle 5-state（3 终态），per-owner 6、per-profile 12，`autoPauseIdle` + `autoFailStuck`；41 V2 单测。
+- **`hierarchical-memory` V2**（`cc hmemory`）— tier profile 4-state（retired 终态、dormant→active 恢复）+ promotion 5-state（3 终态），per-owner 12、per-profile 30，`autoDormantIdle` + `autoFailStuck`；41 V2 单测（默认 level=short-term）。
+
+### Changed
+
+- **CLI 包版本**：`chainlesschain@0.137.0 → 0.142.0`（V2 第十批分多次推进，每次落 2 ~ 4 个 lib 级 surface）
+- **design doc 96**：新增"第十批（编排 / 自治 / 经济 / 进化治理层 · 16 个）"章节，版本演进累计更新为 92+ V2 表面
+
+### Tests
+
+本批相较 0.139.0 累计新增 **704 个 V2 单元测试**（12 × 45 + 4 × 41），零回归。
+
+| 层级 | 文件 | 测试 | 状态 |
+| --- | --- | --- | --- |
+| CLI 单元 | 274 | **11718 / 11718** | 全通过（125s）|
+| CLI 集成 | 40 | **696 / 696** | 全通过（40s）|
+| CLI E2E | 38 | **565 / 565** | 全通过（360s）|
+| **合计** | **352** | **12979 / 12979** | **零回归** |
+
+---
+
+## [5.0.2.34 / CLI 0.137-0.139] - 2026-04-19 (V2 第九批 · 14 个 session/context/permission/social lib 级治理表面)
+
+### Added — 14 个 V2 lib 级治理表面（严格增量 · 内存 governance · 与 session.db / 角色表 / DI 容器 / 社交边零耦合）
+
+- **`slot-filler` V2**（`cc slotfill`）— template profile 4-state（archived 终态、stale→active 恢复）+ fill 5-state（3 终态），per-owner 10、per-profile 20，`autoStaleIdle` + `autoFailStuck`；37 V2 单测。
+- **`web-fetch` V2**（`cc webfetch`）— target profile 4-state（retired 终态、degraded→active 恢复）+ job 5-state（3 终态），per-owner 12、per-profile 30，`autoDegradeIdle`（7d）+ `autoFailStuck`（60s）；37 V2 单测。
+- **`memory-injection` V2**（`cc meminj`）— rule profile 4-state（archived 终态、paused→active 恢复）+ injection 5-state（3 终态），per-owner 10、per-profile 25，`autoPauseIdle` + `autoFailStuck`；37 V2 单测。
+- **`session-search` V2**（`cc seshsearch`）— search profile 4-state（archived 终态、stale→active 恢复）+ query 5-state（3 终态），per-owner 8、per-profile 20，`autoStaleIdle` + `autoFailStuck`；37 V2 单测。
+- **`session-tail` V2**（`cc seshtail`）— tail subscription 4-state（closed 终态、paused→active 恢复）+ event 5-state（3 终态），per-owner 10、per-sub 30，`autoPauseIdle`（24h）+ `autoFailStuck`（60s）；37 V2 单测。
+- **`session-usage` V2**（`cc seshu`）— usage budget 4-state（archived 终态、exhausted→active 恢复）+ record 5-state（recorded/rejected/cancelled 3 终态），per-owner 5、per-budget 50，`autoExhaustIdle` + `autoRejectStuck`；37 V2 单测。
+- **`session-hooks` V2**（`cc seshhook`，避开 SQLite 支持的 `cc hook`）— hook profile 4-state（retired 终态、disabled→active 恢复）+ invocation 5-state（3 终态），per-owner 12、per-profile 25，`autoDisableIdle` + `autoFailStuck`；37 V2 单测。
+- **`mcp-scaffold` V2**（`cc mcpscaf`，避开 `cc mcp`）— scaffold profile 4-state（archived 终态、stale→active 恢复）+ generation 5-state（failed 仅从 generating，queued 不可失败；3 终态），per-owner 6、per-profile 15，`autoStaleIdle` + `autoFailStuck`（60s）；37 V2 单测。
+- **`plan-mode` V2**（`cc planmode`）— plan profile 4-state（archived 终态、paused→active 恢复）+ step 5-state（3 终态），per-owner 6、per-profile 15，`autoPauseIdle` + `autoFailStuck`；39 V2 单测。
+- **`permission-engine` V2**（`cc perm`）— perm rule 4-state（retired 终态、disabled→active 恢复）+ check 5-state（allowed/denied/cancelled），per-owner 10、per-rule 30，`autoDisableIdle` + `autoDenyStuck`；38 V2 单测。
+- **`user-profile` V2**（`cc uprof`）— user profile 4-state（archived 终态、dormant→active 恢复）+ pref 5-state（proposed/applied/rejected/superseded/cancelled，applied 非终态），per-owner 5、per-profile 20，`autoDormantIdle` + `autoCancelStale`；37 V2 单测。
+- **`social-graph` V2**（`cc social sg-*-v2`，`sg-*` 前缀避开 social-manager V2）— sg node 4-state（removed 终态、inactive→active 恢复）+ edge 5-state（proposed/established/severed/expired/cancelled，established 非终态），per-owner 50、per-node 100，`sg-autoDeactivateIdle` + `sg-autoExpireStale`；37 V2 单测。
+- **`service-container` V2**（`cc svccont`）— svc container 4-state（decommissioned 终态、degraded→active 恢复）+ resolution 5-state（3 终态），per-owner 8、per-profile 25，`autoDegradeIdle` + `autoFailStuck`；37 V2 单测。
+- **`task-model-selector` V2**（`cc tms`）— selector profile 4-state（decommissioned 终态、stale→active 恢复）+ selection 5-state（3 终态），per-owner 8、per-profile 16，`autoStaleIdle` + `autoFailStuck`；37 V2 单测。
+
+### Changed
+
+- **CLI 包版本**：`chainlesschain@0.131.0 → 0.137.0 → 0.139.0`（V2 第九批分批推进）
+- **命令层**：14 个全新 top-level 分派，避免与已有 top-level（`cc session`、`cc mcp`、`cc hook`、`cc social`）冲突
+
+### Tests
+
+本批相较 0.136.0 累计新增 **521 个 V2 单元测试**（10×37 + 39 + 38 + 2×37），零回归。
+
+---
+
+## [5.0.2.34 / CLI 0.131-0.136] - 2026-04-18 晚 (V2 第八批 · 12 个 lib 级治理表面)
+
+### Added — 12 个 V2 lib 级治理表面（严格增量 · 内存 governance · 与 SQLite / 传输层 / 协议层完全独立）
+
+- **`a2a-protocol` V2** — `A2A_AGENT_MATURITY_V2` 4-state（retired 终态）+ `A2A_MESSAGE_LIFECYCLE_V2` 5-state（3 终态），per-owner active-agent cap（pending→active 仅）、per-agent pending-message cap（queued+dispatching）在 `createA2aMessageV2` 强制，`autoRetireIdleA2aAgentsV2` + `autoFailStuckA2aMessagesV2`；40 V2 单测，独立于 Phase 81 A2A schema / typed subscription 实现。
+- **`activitypub-bridge` V2** — `AP_ACTOR_MATURITY_V2` 4-state + `AP_ACTIVITY_LIFECYCLE_V2` 5-state（3 终态），per-owner active-actor cap、per-actor pending-activity cap 在 `createApActivityV2` 强制，`autoRetireIdleApActorsV2` + `autoFailStuckApActivitiesV2`；39 V2 单测，独立于现有 ActivityPub outbox 语义。
+- **`bi-engine` V2** — `BI_DATASET_MATURITY_V2` 4-state + `BI_QUERY_LIFECYCLE_V2` 5-state（3 终态），per-owner active-dataset cap、per-dataset pending-query cap 在 `createBiQueryV2` 强制，`autoArchiveIdleBiDatasetsV2` + `autoFailStuckBiQueriesV2`；39 V2 单测，独立于 Phase 95 NL→SQL / IQR 异常 / 线性预测。
+- **`browser-automation` V2** — `BROWSE_SESSION_MATURITY_V2` 4-state + `BROWSE_STEP_LIFECYCLE_V2` 5-state（3 终态），per-owner active-session cap、per-session pending-step cap 在 `createBrowseStepV2` 强制，`autoArchiveIdleBrowseSessionsV2` + `autoFailStuckBrowseStepsV2`；37 V2 单测，独立于现有 Playwright / MCP computer-use 集成。
+- **`cross-chain` V2** — `CC_BRIDGE_MATURITY_V2` 4-state + `CC_TRANSFER_LIFECYCLE_V2` 5-state（3 终态），per-owner active-bridge cap、per-bridge pending-transfer cap 在 `createCrossChainTransferV2` 强制，`autoDegradeIdleCcBridgesV2` + `autoFailStuckCcTransfersV2`；40 V2 单测，独立于 Phase 89 bridge/swap/message HTLC 流。
+- **`dao-governance` V2** — `DAO_REALM_MATURITY_V2` 4-state + `DAO_PROPOSAL_LIFECYCLE_V2` 5-state（3 终态），per-owner active-realm cap、per-realm open-proposal cap 在 `createDaoProposalV2` 强制，`autoArchiveIdleDaoRealmsV2` + `autoFailStuckDaoProposalsV2`；41 V2 单测，独立于 Phase 92 二次方投票 / 循环安全委托。
+- **`dlp-engine` V2** — `DLP_POLICY_MATURITY_V2` 4-state + `DLP_INCIDENT_LIFECYCLE_V2` 5-state（3 终态），per-owner active-policy cap、per-policy open-incident cap 在 `createDlpIncidentV2` 强制，`autoDeprecateIdleDlpPoliciesV2` + `autoCloseStaleDlpIncidentsV2`；40 V2 单测，独立于 Phase 50 channel-scoped 策略 / UTF-8 byte-gate。
+- **`evomap-manager` V2** — `EVOMAP_HUB_MATURITY_V2` 4-state + `EVOMAP_SUBMISSION_LIFECYCLE_V2` 5-state（3 终态），per-owner active-hub cap、per-hub pending-submission cap 在 `createEvoSubmissionV2` 强制，`autoArchiveIdleEvoHubsV2` + `autoFailStuckEvoSubmissionsV2`；39 V2 单测，独立于 Phase 42 federation / 加权投票实现。
+- **`matrix-bridge` V2** — `MX_ROOM_MATURITY_V2` 4-state + `MX_EVENT_LIFECYCLE_V2` 5-state（3 终态），per-owner active-room cap、per-room pending-event cap 在 `createMxEventV2` 强制，`autoArchiveIdleMxRoomsV2` + `autoFailStuckMxEventsV2`；37 V2 单测。
+- **`nostr-bridge` V2** — `NOSTR_RELAY_MATURITY_V2` 4-state + `NOSTR_EVENT_LIFECYCLE_V2` 5-state（3 终态），per-owner active-relay cap、per-relay pending-event cap 在 `createNostrEventV2` 强制，`autoDegradeIdleNostrRelaysV2` + `autoFailStuckNostrEventsV2`；39 V2 单测。
+- **`session-consolidator` V2** — `CONSOL_PROFILE_MATURITY_V2` 4-state + `CONSOL_JOB_LIFECYCLE_V2` 5-state（3 终态），per-owner active-profile cap、per-profile pending-job cap 在 `createConsolJobV2` 强制，`autoArchiveIdleConsolProfilesV2` + `autoFailStuckConsolJobsV2`；38 V2 单测，独立于现有 session-consolidator 聚合流。
+- **`zkp-engine` V2** — `ZKP_CIRCUIT_MATURITY_V2` 4-state + `ZKP_PROOF_LIFECYCLE_V2` 5-state（3 终态），per-owner active-circuit cap、per-circuit pending-proof cap 在 `createZkpProofV2` 强制，`autoArchiveIdleZkpCircuitsV2` + `autoFailStuckZkpProofsV2`；41 V2 单测，独立于 Phase 88 scheme-parametric（Groth16/PLONK/Bulletproofs）实现。
+
+### Changed
+
+- **CLI 包版本**：`chainlesschain@0.131.0 → 0.136.0`（V2 第八批分多次推进，每次落 2 ~ 3 个 lib 级 surface）
+- **docs-site**：首页 hero tagline 同步到 v5.0.2.34 · CLI 0.136.0 · V2 规范层第八批 · 11700+ 测试
+
+### Tests
+
+本批相较 0.130.0 累计新增 **470 个 V2 单元测试**（40+39+39+37+40+41+40+39+37+39+38+41），零回归。
+
+| 层级 | 文件 | 测试 | 状态 |
+| --- | --- | --- | --- |
+| CLI 单元 | 244 | **10493 / 10493** | 全通过 |
+| CLI 集成 | 40 | **696 / 696** | 全通过 |
+| CLI E2E | 38 | **565 / 565** | 全通过 |
+| **合计** | **322** | **11754 / 11754** | **零回归** |
+
+---
+
+## [5.0.2.34 / CLI 0.124-0.130] - 2026-04-18 (V2 第七批 · 9 个治理表面)
+
+### Added — 9 个 V2 治理表面（严格增量，纯内存 governance，与 SQLite / 传输层独立）
+
+- **`cc sso` V2** (CLI 0.124.0) — Provider 4-state 成熟度（`pending/active/deprecated/retired`，`deprecated→active` 恢复）+ 5-state 登录生命周期（`initiated/authenticating/completed/failed/cancelled`，3 终态），per-owner active-provider cap（`pending→active` 仅）、per-provider pending-login cap（`initiated+authenticating`）在 `createLoginV2` 时强制，`autoDeprecateIdleProvidersV2` + `autoFailStuckLoginsV2`；35 V2 单测，基于现有 SSO SQLite 表。
+- **`cc workflow` V2** (CLI 0.125.0) — Workflow 4-state 成熟度（`draft/active/paused/retired`，`paused→active` 恢复）+ 5-state Run 生命周期（`queued/running/succeeded/failed/cancelled`，3 终态），per-owner active-workflow cap（`draft→active` 仅）、per-workflow pending-run cap（`queued+running`）在 `createRunV2` 时强制，`autoPauseIdleWorkflowsV2` + `autoFailStuckRunsV2`；44 V2 单测，独立于旧 DAG 执行器。
+- **`cc router` V2** (CLI 0.127.0) — Router Profile 4-state 成熟度 + 5-state dispatch 生命周期（3 终态），per-owner active-profile cap（`pending→active` 仅）、per-profile pending-dispatch cap（`queued+dispatching`）在 `createDispatchV2` 时强制，`autoDegradeIdleProfilesV2` + `autoFailStuckDispatchesV2`；37 V2 单测（共 43），新顶层 `router` 命令，独立于旧 AgentRouter 类。
+- **`cc hook` V2** (CLI 0.128.0) — Hook Profile 4-state 成熟度（`retired` 终态、`disabled→active` 恢复）+ 5-state exec 生命周期（3 终态），per-owner active-hook cap（`pending→active` 仅）、per-hook pending-exec cap（`queued+running`）在 `createHookExecV2` 时强制，`autoDisableIdleHooksV2` + `autoFailStuckExecsV2`；42 V2 单测（共 76），独立于 SQLite `registerHook` / `executeHooks` 路径。
+- **`cc mcp` V2** (CLI 0.129.0) — MCP Server Profile 4-state 成熟度（`retired` 终态、`degraded→active` 恢复）+ 5-state invocation 生命周期（3 终态），per-owner active-server cap（`pending→active` 仅）、per-server pending-invocation cap（`queued+dispatching`）在 `createInvocationV2` 时强制，`autoDegradeIdleServersV2` + `autoFailStuckInvocationsV2`；33 V2 单测（共 65），独立于 MCPClient 传输层。
+- **`cc cowork coord-*-v2`** (CLI 0.130.0) — Coord Agent 4-state 成熟度（`retired` 终态、`idle→active` 恢复）+ 5-state assignment 生命周期（3 终态），per-owner active-agent cap（`pending→active` 仅）、per-agent pending-assignment cap（`queued+dispatched`）在 `createAssignmentV2` 时强制，`autoIdleCoordAgentsV2` + `autoFailStuckAssignmentsV2`；32 V2 单测（共 74），函数名以 `Coord` 中缀避免与旧 team/template/result 流冲突。
+- **`cc subagent` V2** — Sub-Agent Profile 4-state 成熟度（`retired` 终态、`paused→active` 恢复）+ 5-state task 生命周期（3 终态），per-owner active cap、per-profile pending cap，`autoPauseIdle` + `autoFailStuck`；37 V2 单测（共 43），独立于旧 RingBuffer-backed 单例注册中心。新顶层 `subagent` 命令。
+- **`cc execbe` V2** — Execution Backend Profile 4-state 成熟度（`retired` 终态、`degraded→active` 恢复）+ 5-state exec-job 生命周期（`succeeded` 终态 + 3 终态），per-owner active cap、per-backend pending cap，`autoDegradeIdle` + `autoFailStuck`；46 V2 单测（共 68），独立于 Local/Docker/SSH Backend 实现。新顶层 `execbe` 命令。
+- **`cc todo` V2** — Todo List 4-state 成熟度（`archived` 终态、`paused→active` 恢复）+ 5-state item 生命周期（`in_progress` 中间态 + 3 终态），per-owner active cap、per-list pending cap，`autoPauseIdle` + `autoFailStuck`；39 V2 单测（共 41），独立于 per-session `writeTodos`/`getTodos` API。新顶层 `todo` 命令。
+
+### Changed
+
+- **CLI 包版本**：`chainlesschain@0.123.0 → 0.124.0 → 0.125.0 → 0.127.0 → 0.128.0 → 0.129.0 → 0.130.0`（V2 第七批分多次推进 + 0.126.0 修复 bump；subagent/execbe/todo 三个表面为本批后续增量）
+- **docs-site**：首页 hero tagline 同步到 v5.0.2.34 · CLI 0.130.0 · 109 命令
+- **docs-site-design**：首页 badges 同步到 v5.0.2.34 · 95+ 模块 · 139 技能 · 7600+ 总测试
+- **docs-website-v2**：`index.astro` evolution 条目增加 9 张 v5.0.2.34 卡片（ember 高亮），架构演进计数 49 → 58；CLI 数 76 → 109、测试数 5517+ → 7600+；`cli.astro` 标题与正文从 90 命令升至 109 命令
+
+### Tests
+
+本批相较 0.123.0 累计新增 **345 个 V2 单元测试**（35 + 44 + 37 + 42 + 33 + 32 + 37 + 46 + 39），零回归。所有 V2 表面均以 `-v2` 后缀分派，preAction bypass 自动识别。
+
+- CLI 单元：新增 6 文件 / **+223 pass**
+- CLI 集成：无新增，既有 40 文件 / 696 pass 绿
+- CLI E2E：无新增，既有 38 文件 / 565 pass 绿
+
+---
+
 ## [5.0.2.10 / CLI 0.130.0] - 2026-04-18 晚 (V2 第六批 · 13 个运行时管家)
 
 ### Added — 13 个 V2 规范表面（严格增量，全部基于内存 governance 层，与遗留 SQLite/ 文件态独立）

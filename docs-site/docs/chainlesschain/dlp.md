@@ -398,7 +398,7 @@ await window.electronAPI.invoke("dlp:create-policy", {
 
 ---
 
-## 测试覆盖
+## 测试覆盖率
 
 | 测试文件 | 覆盖范围 | 用例数 |
 | --- | --- | --- |

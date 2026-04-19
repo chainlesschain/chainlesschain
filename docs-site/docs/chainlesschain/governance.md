@@ -428,7 +428,7 @@ chainlesschain governance conflict-detail --proposal-id <id>
 
 ---
 
-## 测试覆盖
+## 测试覆盖率
 
 ### 单元测试
 

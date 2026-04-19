@@ -399,4 +399,44 @@ export function registerSiemCommand(program) {
         process.exit(1);
       }
     });
+
+  _registerSiemExporterV2Commands(siem);
+}
+
+function _registerSiemExporterV2Commands(parent) {
+  const L = async () => await import("../lib/siem-exporter.js");
+  parent.command("enums-v2").description("Show V2 enums (target maturity + export lifecycle)")
+    .action(async () => { const m = await L(); console.log(JSON.stringify({ targetMaturity: m.SIEM_TARGET_MATURITY_V2, exportLifecycle: m.SIEM_EXPORT_LIFECYCLE_V2 }, null, 2)); });
+  parent.command("config-v2").description("Show V2 config thresholds")
+    .action(async () => { const m = await L(); console.log(JSON.stringify({ maxActiveSiemTargetsPerOperator: m.getMaxActiveSiemTargetsPerOperatorV2(), maxPendingSiemExportsPerTarget: m.getMaxPendingSiemExportsPerTargetV2(), siemTargetIdleMs: m.getSiemTargetIdleMsV2(), siemExportStuckMs: m.getSiemExportStuckMsV2() }, null, 2)); });
+  parent.command("set-max-active-targets-v2 <n>").description("Set max active targets per operator")
+    .action(async (n) => { const m = await L(); m.setMaxActiveSiemTargetsPerOperatorV2(Number(n)); console.log("ok"); });
+  parent.command("set-max-pending-exports-v2 <n>").description("Set max pending exports per target")
+    .action(async (n) => { const m = await L(); m.setMaxPendingSiemExportsPerTargetV2(Number(n)); console.log("ok"); });
+  parent.command("set-target-idle-ms-v2 <n>").description("Set target idle threshold (ms)")
+    .action(async (n) => { const m = await L(); m.setSiemTargetIdleMsV2(Number(n)); console.log("ok"); });
+  parent.command("set-export-stuck-ms-v2 <n>").description("Set export stuck threshold (ms)")
+    .action(async (n) => { const m = await L(); m.setSiemExportStuckMsV2(Number(n)); console.log("ok"); });
+  parent.command("register-target-v2 <id> <operator>").description("Register V2 SIEM target")
+    .option("--kind <k>", "Target kind").action(async (id, operator, o) => { const m = await L(); console.log(JSON.stringify(m.registerSiemTargetV2({ id, operator, kind: o.kind }), null, 2)); });
+  parent.command("activate-target-v2 <id>").description("Activate target").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.activateSiemTargetV2(id), null, 2)); });
+  parent.command("degrade-target-v2 <id>").description("Degrade target").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.degradeSiemTargetV2(id), null, 2)); });
+  parent.command("retire-target-v2 <id>").description("Retire target (terminal)").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.retireSiemTargetV2(id), null, 2)); });
+  parent.command("touch-target-v2 <id>").description("Touch target lastTouchedAt").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.touchSiemTargetV2(id), null, 2)); });
+  parent.command("get-target-v2 <id>").description("Get V2 target").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.getSiemTargetV2(id), null, 2)); });
+  parent.command("list-targets-v2").description("List V2 targets").action(async () => { const m = await L(); console.log(JSON.stringify(m.listSiemTargetsV2(), null, 2)); });
+  parent.command("create-export-v2 <id> <targetId>").description("Create V2 export (queued)")
+    .option("--format <f>", "Format", "json").action(async (id, targetId, o) => { const m = await L(); console.log(JSON.stringify(m.createSiemExportV2({ id, targetId, format: o.format }), null, 2)); });
+  parent.command("start-export-v2 <id>").description("Start export").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.startSiemExportV2(id), null, 2)); });
+  parent.command("deliver-export-v2 <id>").description("Deliver export").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.deliverSiemExportV2(id), null, 2)); });
+  parent.command("fail-export-v2 <id> [reason]").description("Fail export").action(async (id, reason) => { const m = await L(); console.log(JSON.stringify(m.failSiemExportV2(id, reason), null, 2)); });
+  parent.command("cancel-export-v2 <id> [reason]").description("Cancel export").action(async (id, reason) => { const m = await L(); console.log(JSON.stringify(m.cancelSiemExportV2(id, reason), null, 2)); });
+  parent.command("get-export-v2 <id>").description("Get V2 export").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.getSiemExportV2(id), null, 2)); });
+  parent.command("list-exports-v2").description("List V2 exports").action(async () => { const m = await L(); console.log(JSON.stringify(m.listSiemExportsV2(), null, 2)); });
+  parent.command("auto-degrade-idle-v2").description("Auto-degrade idle targets")
+    .action(async () => { const m = await L(); console.log(JSON.stringify(m.autoDegradeIdleSiemTargetsV2(), null, 2)); });
+  parent.command("auto-fail-stuck-v2").description("Auto-fail stuck sending exports")
+    .action(async () => { const m = await L(); console.log(JSON.stringify(m.autoFailStuckSiemExportsV2(), null, 2)); });
+  parent.command("gov-stats-v2").description("V2 governance aggregate stats")
+    .action(async () => { const m = await L(); console.log(JSON.stringify(m.getSiemExporterGovStatsV2(), null, 2)); });
 }

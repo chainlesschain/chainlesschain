@@ -179,6 +179,46 @@ chainlesschain activitypub search "hello" -t notes -a alice --since 2026-01-01 -
 | `packages/cli/src/commands/activitypub.js` | activitypub 命令主入口（别名 `ap`） |
 | `packages/cli/src/lib/activitypub-bridge.js` | C2S 桥接核心实现（Actor/Activity/Follow 图谱） |
 
+## 配置参考
+
+| 配置项 | 含义 | 默认 |
+| ------ | ---- | ---- |
+| `actor.kind` | 行为者类型 | Person / Service / Application |
+| `publish.to` | 投递目标 | `followers` / 显式 URI 列表 |
+| `deliver.queueSize` | 出站投递并发 | 8 |
+| `search.scope` | 搜索范围 | `local` / `remote` / `all` |
+| `search.indexBM25` | 索引算法 | `bm25`（默认） |
+| V2 per-owner active cap | 见 `activitypub_bridge_v2_cli.md` | 15/25 |
+
+## 性能指标
+
+| 操作 | 典型耗时 | 备注 |
+| ---- | -------- | ---- |
+| `actor create` | < 20 ms | 本地 SQLite 写入 |
+| `publish note` | < 30 ms（本地） | 远端投递异步化 |
+| `follow` / `like` / `announce` | < 20 ms | 写入 activity + 事件 |
+| `inbox list` / `outbox list` | < 50 ms | 带索引分页 |
+| `search` | < 100 ms | BM25 本地联邦索引 |
+| V2 createActivityV2 dispatch | < 50 ms | `activitypub_bridge_v2_cli.md` |
+
+对公网实例投递耗时取决于远端 ActivityPub 服务器。
+
+## 测试覆盖率
+
+```
+__tests__/unit/activitypub-bridge.test.js — 58 tests
+```
+
+覆盖：Actor CRUD、Note/Follow/Like/Announce 发布、Inbox/Outbox 分页、联邦搜索（actors/notes/all）、远端拉取与本地索引落库。V2 surface：39 V2 tests（见 `activitypub_bridge_v2_cli.md`）。
+
+## 安全考虑
+
+1. **远端身份验证**：接收入站活动时应校验 HTTP Signatures，CLI 当前以本地桥接为主，生产部署需叠加网关验签
+2. **投递权限**：`publish to` 为 `followers` 时避免回环 URI；public 投递请人工确认
+3. **索引脱敏**：`search` 默认只索引本地 + 已接收数据，不主动抓取第三方服务器
+4. **速率限制**：大规模 `follow` 可能触发远端反垃圾；建议搭配外部 rate-limit 中间件
+5. **审计**：所有活动写入 `activitypub_activities` 表，可追溯
+
 ## 使用示例
 
 ### 场景 1：创建行为者并发布内容

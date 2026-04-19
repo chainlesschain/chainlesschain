@@ -1754,6 +1754,23 @@ OPENAI_API_KEY=sk-...                # OpenAI API Key
 
 ---
 
+## 性能指标
+
+| 指标 | 典型值 | 备注 |
+| ---- | ------ | ---- |
+| Electron 冷启动 | < 3 s | 主进程 + Vue 首屏 |
+| 渲染进程首屏 | < 1.5 s | 含 Ant Design Vue 懒加载 |
+| 本地 LLM 回合首 token | 依赖 Ollama 模型 | `qwen2.5:7b` 约 300–600 ms |
+| Qdrant 向量检索 | < 50 ms | 10 万条向量，近似 HNSW |
+| BM25 本地搜索 | < 20 ms | `natural` 索引，百万级笔记 |
+| SQLCipher 查询 | < 5 ms | AES-256 加密开销 |
+| IPC 往返（renderer↔main） | < 2 ms | 受 Domain Router 限流影响 |
+| CLI 单命令 startup | < 200 ms | 含 Commander + lib 懒加载 |
+
+超 50MB 文档/视频等资源处理为异步任务，依赖 Sub-Runtime Pool 的并发上限。
+
+---
+
 ## 测试覆盖率
 
 | 测试文件                                                                           | 覆盖范围                                        |

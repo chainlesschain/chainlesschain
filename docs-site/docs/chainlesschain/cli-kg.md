@@ -172,3 +172,55 @@ chainlesschain kg import graph.json --json
 |------|------|
 | `packages/cli/src/commands/kg.js` | kg 命令主入口 (Phase 94) |
 | `packages/cli/src/lib/knowledge-graph.js` | 实体/关系 CRUD、BFS 推理、统计、导入导出核心实现 |
+
+## 测试覆盖率
+
+```
+__tests__/unit/knowledge-graph.test.js          — 113 tests
+__tests__/unit/code-knowledge-graph-cli.test.js — 补充代码图谱测试
+```
+
+覆盖：实体/关系 CRUD、标签/属性过滤、BFS 推理（3 方向 × 深度）、权重传播、JSON/CSV 导入导出、统计聚合。
+
+## 安全考虑
+
+1. **属性 JSON 解析**：严格 JSON parse，拒绝 prototype 污染
+2. **导入校验**：`import` 限制实体/关系总数，防止超量 OOM（默认 10 万）
+3. **推理深度**：`reason --max-depth` 建议 ≤ 5，深层指数膨胀
+4. **循环保护**：BFS 自带 visited 集合，环不会重复展开
+5. **导出脱敏**：`export` 支持 `--exclude-properties` 剔除敏感字段
+
+## 故障排查
+
+| 症状 | 可能原因 | 解决方案 |
+|------|---------|---------|
+| `add-relation` 失败 | 源/目标实体不存在 | 先 `kg add` 对应实体 |
+| `reason` 结果过多 | max-depth 过大 | 缩小深度或加 `--relation-type` |
+| `export` 文件空 | 过滤条件过严 | 先 `stats` 查看实体数 |
+| `import` 冲突 | ID 重复 | 使用 `--merge` 合并模式 |
+
+## 使用示例
+
+```bash
+# 1. 构建一个小型知识图谱
+cc kg add Alice person -g dev,team-a
+cc kg add Project chainlesschain -g active
+cc kg add-relation alice-id project-id owns -w 1.0
+
+# 2. 推理：从 Alice 出发找相关实体（3 跳、仅 owns）
+cc kg reason alice-id -d 3 --direction out -r owns --include-start
+
+# 3. 导出图谱
+cc kg export graph.json
+cc kg stats --json
+
+# 4. 从代码知识图谱构建
+cc kg import src-graph.json --merge
+```
+
+## 相关文档
+
+- [Code Knowledge Graph CLI](/chainlesschain/cli-a2a)
+- [Memory Manager](./cli-memory)
+- [Hierarchical Memory (cli-hmemory)](./cli-hmemory)
+- 设计文档：`docs/design/modules/70_知识图谱系统.md`

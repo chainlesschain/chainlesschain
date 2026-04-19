@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: v5.0.2.2 | 73个模块设计 | 102 Phase | 138技能 | CLI 63命令/2503测试 | 5130+总测试 | 面向开发者的架构与实现文档
+  tagline: v5.0.2.34 | 95+ 模块设计 | 139 技能 | CLI 109 命令/0.142.0 | 12979 总测试 | 面向开发者的架构与实现文档
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -72,6 +72,8 @@ features:
 | **v5.0.1**    | 101-102 | CLI分发系统 + 6维Context Engineering + Autonomous Agent + EvoMap + 10 LLM Providers + 3 Proxy Relays + Task Model Selector + 2009测试 |
 | **v5.0.2**    | —      | CLI技能包系统(9包) + AI音视频创作模板 + AI文档创作模板 + 5030+测试 |
 | **v5.0.2.2**  | —      | Web管理界面(chainlesschain ui) + 浏览器端项目/全局AI对话 + 5130+测试 |
+| **v5.0.2.10** | —      | Coding Agent Phase 5 + 去中心化社交协议矩阵 + PQC SLH-DSA + MCP HTTP/SSE + CutClaw 视频剪辑 Agent |
+| **v5.0.2.34** | —      | V2 规范层第 1-8 批（SSO / Workflow / Router / Hook / MCP / Coord / A2A / DAO / ZKP / DLP / BI / EvoMap / AP / Matrix / Nostr / Browse / CrossChain / Consol 等 62+ 管家治理表面） + CLI 0.136.0 + 109 命令 + 11700+ 测试 |
 
 ---
 

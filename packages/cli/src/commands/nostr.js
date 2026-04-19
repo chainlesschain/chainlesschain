@@ -371,4 +371,66 @@ export function registerNostrCommand(program) {
         process.exit(1);
       }
     });
+
+  registerNostrV2Command(nostr);
+}
+
+
+import {
+  NOSTR_RELAY_MATURITY_V2,
+  NOSTR_EVENT_LIFECYCLE_V2,
+  registerNostrRelayV2,
+  activateNostrRelayV2,
+  offlineNostrRelayV2,
+  retireNostrRelayV2,
+  touchNostrRelayV2,
+  getNostrRelayV2,
+  listNostrRelaysV2,
+  createNostrEventV2,
+  startNostrEventV2,
+  publishNostrEventV2,
+  failNostrEventV2,
+  cancelNostrEventV2,
+  getNostrEventV2,
+  listNostrEventsV2,
+  setMaxActiveNostrRelaysPerOwnerV2,
+  getMaxActiveNostrRelaysPerOwnerV2,
+  setMaxPendingNostrEventsPerRelayV2,
+  getMaxPendingNostrEventsPerRelayV2,
+  setNostrRelayIdleMsV2,
+  getNostrRelayIdleMsV2,
+  setNostrEventStuckMsV2,
+  getNostrEventStuckMsV2,
+  autoOfflineIdleNostrRelaysV2,
+  autoFailStuckNostrEventsV2,
+  getNostrBridgeStatsV2,
+} from "../lib/nostr-bridge.js";
+
+export function registerNostrV2Command(nostr) {
+  nostr.command("enums-v2").description("Show V2 enums").action(() => { console.log(JSON.stringify({ NOSTR_RELAY_MATURITY_V2, NOSTR_EVENT_LIFECYCLE_V2 }, null, 2)); });
+  nostr.command("register-relay-v2").description("Register a nostr relay profile (pending)")
+    .requiredOption("--id <id>").requiredOption("--owner <owner>").option("--url <url>")
+    .action((o) => { console.log(JSON.stringify(registerNostrRelayV2(o), null, 2)); });
+  nostr.command("activate-relay-v2 <id>").description("Activate relay").action((id) => { console.log(JSON.stringify(activateNostrRelayV2(id), null, 2)); });
+  nostr.command("offline-relay-v2 <id>").description("Mark relay offline").action((id) => { console.log(JSON.stringify(offlineNostrRelayV2(id), null, 2)); });
+  nostr.command("retire-relay-v2 <id>").description("Retire relay (terminal)").action((id) => { console.log(JSON.stringify(retireNostrRelayV2(id), null, 2)); });
+  nostr.command("touch-relay-v2 <id>").description("Refresh lastTouchedAt").action((id) => { console.log(JSON.stringify(touchNostrRelayV2(id), null, 2)); });
+  nostr.command("get-relay-v2 <id>").description("Get a relay").action((id) => { console.log(JSON.stringify(getNostrRelayV2(id), null, 2)); });
+  nostr.command("list-relays-v2").description("List relays").action(() => { console.log(JSON.stringify(listNostrRelaysV2(), null, 2)); });
+  nostr.command("create-event-v2").description("Create a nostr event (queued)")
+    .requiredOption("--id <id>").requiredOption("--relay-id <relayId>").option("--kind <kind>", "event kind", (v) => Number(v))
+    .action((o) => { console.log(JSON.stringify(createNostrEventV2({ id: o.id, relayId: o.relayId, kind: o.kind }), null, 2)); });
+  nostr.command("start-event-v2 <id>").description("Transition event to publishing").action((id) => { console.log(JSON.stringify(startNostrEventV2(id), null, 2)); });
+  nostr.command("publish-event-v2 <id>").description("Transition event to published").action((id) => { console.log(JSON.stringify(publishNostrEventV2(id), null, 2)); });
+  nostr.command("fail-event-v2 <id>").description("Fail event").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(failNostrEventV2(id, o.reason), null, 2)); });
+  nostr.command("cancel-event-v2 <id>").description("Cancel event").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(cancelNostrEventV2(id, o.reason), null, 2)); });
+  nostr.command("get-event-v2 <id>").description("Get event").action((id) => { console.log(JSON.stringify(getNostrEventV2(id), null, 2)); });
+  nostr.command("list-events-v2").description("List events").action(() => { console.log(JSON.stringify(listNostrEventsV2(), null, 2)); });
+  nostr.command("set-max-active-relays-v2 <n>").description("Set per-owner active cap").action((n) => { setMaxActiveNostrRelaysPerOwnerV2(Number(n)); console.log(JSON.stringify({ maxActiveNostrRelaysPerOwner: getMaxActiveNostrRelaysPerOwnerV2() }, null, 2)); });
+  nostr.command("set-max-pending-events-v2 <n>").description("Set per-relay pending cap").action((n) => { setMaxPendingNostrEventsPerRelayV2(Number(n)); console.log(JSON.stringify({ maxPendingNostrEventsPerRelay: getMaxPendingNostrEventsPerRelayV2() }, null, 2)); });
+  nostr.command("set-relay-idle-ms-v2 <n>").description("Set idle threshold").action((n) => { setNostrRelayIdleMsV2(Number(n)); console.log(JSON.stringify({ nostrRelayIdleMs: getNostrRelayIdleMsV2() }, null, 2)); });
+  nostr.command("set-event-stuck-ms-v2 <n>").description("Set stuck threshold").action((n) => { setNostrEventStuckMsV2(Number(n)); console.log(JSON.stringify({ nostrEventStuckMs: getNostrEventStuckMsV2() }, null, 2)); });
+  nostr.command("auto-offline-idle-relays-v2").description("Auto-offline idle relays").action(() => { console.log(JSON.stringify(autoOfflineIdleNostrRelaysV2(), null, 2)); });
+  nostr.command("auto-fail-stuck-events-v2").description("Auto-fail stuck publishing events").action(() => { console.log(JSON.stringify(autoFailStuckNostrEventsV2(), null, 2)); });
+  nostr.command("stats-v2").description("V2 aggregate stats").action(() => { console.log(JSON.stringify(getNostrBridgeStatsV2(), null, 2)); });
 }

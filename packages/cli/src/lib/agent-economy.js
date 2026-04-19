@@ -846,3 +846,108 @@ export function _resetV2State() {
   _v2TaskContributions.clear();
   _v2Distributions.length = 0;
 }
+
+
+// ===== V2 Surface: Agent Economy governance overlay (CLI v0.137.0) =====
+export const ECONOMY_ACCOUNT_MATURITY_V2 = Object.freeze({
+  PENDING: "pending", ACTIVE: "active", FROZEN: "frozen", CLOSED: "closed",
+});
+export const ECONOMY_TX_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued", PROCESSING: "processing", SETTLED: "settled", FAILED: "failed", CANCELLED: "cancelled",
+});
+
+const _econAcctTrans = new Map([
+  [ECONOMY_ACCOUNT_MATURITY_V2.PENDING, new Set([ECONOMY_ACCOUNT_MATURITY_V2.ACTIVE, ECONOMY_ACCOUNT_MATURITY_V2.CLOSED])],
+  [ECONOMY_ACCOUNT_MATURITY_V2.ACTIVE, new Set([ECONOMY_ACCOUNT_MATURITY_V2.FROZEN, ECONOMY_ACCOUNT_MATURITY_V2.CLOSED])],
+  [ECONOMY_ACCOUNT_MATURITY_V2.FROZEN, new Set([ECONOMY_ACCOUNT_MATURITY_V2.ACTIVE, ECONOMY_ACCOUNT_MATURITY_V2.CLOSED])],
+  [ECONOMY_ACCOUNT_MATURITY_V2.CLOSED, new Set()],
+]);
+const _econAcctTerminal = new Set([ECONOMY_ACCOUNT_MATURITY_V2.CLOSED]);
+const _econTxTrans = new Map([
+  [ECONOMY_TX_LIFECYCLE_V2.QUEUED, new Set([ECONOMY_TX_LIFECYCLE_V2.PROCESSING, ECONOMY_TX_LIFECYCLE_V2.CANCELLED])],
+  [ECONOMY_TX_LIFECYCLE_V2.PROCESSING, new Set([ECONOMY_TX_LIFECYCLE_V2.SETTLED, ECONOMY_TX_LIFECYCLE_V2.FAILED, ECONOMY_TX_LIFECYCLE_V2.CANCELLED])],
+  [ECONOMY_TX_LIFECYCLE_V2.SETTLED, new Set()],
+  [ECONOMY_TX_LIFECYCLE_V2.FAILED, new Set()],
+  [ECONOMY_TX_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+
+const _econAccts = new Map();
+const _econTxs = new Map();
+let _econMaxActivePerHolder = 20;
+let _econMaxPendingPerAcct = 30;
+let _econAcctIdleMs = 7 * 24 * 60 * 60 * 1000;
+let _econTxStuckMs = 5 * 60 * 1000;
+
+function _econPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+
+export function setMaxActiveEconomyAccountsPerHolderV2(n) { _econMaxActivePerHolder = _econPos(n, "maxActiveEconomyAccountsPerHolder"); }
+export function getMaxActiveEconomyAccountsPerHolderV2() { return _econMaxActivePerHolder; }
+export function setMaxPendingEconomyTxsPerAccountV2(n) { _econMaxPendingPerAcct = _econPos(n, "maxPendingEconomyTxsPerAccount"); }
+export function getMaxPendingEconomyTxsPerAccountV2() { return _econMaxPendingPerAcct; }
+export function setEconomyAccountIdleMsV2(n) { _econAcctIdleMs = _econPos(n, "economyAccountIdleMs"); }
+export function getEconomyAccountIdleMsV2() { return _econAcctIdleMs; }
+export function setEconomyTxStuckMsV2(n) { _econTxStuckMs = _econPos(n, "economyTxStuckMs"); }
+export function getEconomyTxStuckMsV2() { return _econTxStuckMs; }
+
+export function _resetStateAgentEconomyV2() {
+  _econAccts.clear(); _econTxs.clear();
+  _econMaxActivePerHolder = 20; _econMaxPendingPerAcct = 30;
+  _econAcctIdleMs = 7 * 24 * 60 * 60 * 1000; _econTxStuckMs = 5 * 60 * 1000;
+}
+
+export function registerEconomyAccountV2({ id, holder, currency, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!holder || typeof holder !== "string") throw new Error("holder is required");
+  if (_econAccts.has(id)) throw new Error(`economy account ${id} already registered`);
+  const now = Date.now();
+  const a = { id, holder, currency: currency || "CLC", status: ECONOMY_ACCOUNT_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, closedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  _econAccts.set(id, a);
+  return { ...a, metadata: { ...a.metadata } };
+}
+function _econCheckA(from, to) { const a = _econAcctTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid economy account transition ${from} → ${to}`); }
+function _econCountActive(holder) { let n = 0; for (const a of _econAccts.values()) if (a.holder === holder && a.status === ECONOMY_ACCOUNT_MATURITY_V2.ACTIVE) n++; return n; }
+
+export function activateEconomyAccountV2(id) {
+  const a = _econAccts.get(id); if (!a) throw new Error(`economy account ${id} not found`);
+  _econCheckA(a.status, ECONOMY_ACCOUNT_MATURITY_V2.ACTIVE);
+  const recovery = a.status === ECONOMY_ACCOUNT_MATURITY_V2.FROZEN;
+  if (!recovery) { const c = _econCountActive(a.holder); if (c >= _econMaxActivePerHolder) throw new Error(`max active economy accounts per holder (${_econMaxActivePerHolder}) reached for ${a.holder}`); }
+  const now = Date.now(); a.status = ECONOMY_ACCOUNT_MATURITY_V2.ACTIVE; a.updatedAt = now; a.lastTouchedAt = now; if (!a.activatedAt) a.activatedAt = now;
+  return { ...a, metadata: { ...a.metadata } };
+}
+export function freezeEconomyAccountV2(id) { const a = _econAccts.get(id); if (!a) throw new Error(`economy account ${id} not found`); _econCheckA(a.status, ECONOMY_ACCOUNT_MATURITY_V2.FROZEN); a.status = ECONOMY_ACCOUNT_MATURITY_V2.FROZEN; a.updatedAt = Date.now(); return { ...a, metadata: { ...a.metadata } }; }
+export function closeEconomyAccountV2(id) { const a = _econAccts.get(id); if (!a) throw new Error(`economy account ${id} not found`); _econCheckA(a.status, ECONOMY_ACCOUNT_MATURITY_V2.CLOSED); const now = Date.now(); a.status = ECONOMY_ACCOUNT_MATURITY_V2.CLOSED; a.updatedAt = now; if (!a.closedAt) a.closedAt = now; return { ...a, metadata: { ...a.metadata } }; }
+export function touchEconomyAccountV2(id) { const a = _econAccts.get(id); if (!a) throw new Error(`economy account ${id} not found`); if (_econAcctTerminal.has(a.status)) throw new Error(`cannot touch terminal economy account ${id}`); const now = Date.now(); a.lastTouchedAt = now; a.updatedAt = now; return { ...a, metadata: { ...a.metadata } }; }
+export function getEconomyAccountV2(id) { const a = _econAccts.get(id); if (!a) return null; return { ...a, metadata: { ...a.metadata } }; }
+export function listEconomyAccountsV2() { return [..._econAccts.values()].map((a) => ({ ...a, metadata: { ...a.metadata } })); }
+
+function _econCountPending(aid) { let n = 0; for (const t of _econTxs.values()) if (t.accountId === aid && (t.status === ECONOMY_TX_LIFECYCLE_V2.QUEUED || t.status === ECONOMY_TX_LIFECYCLE_V2.PROCESSING)) n++; return n; }
+
+export function createEconomyTxV2({ id, accountId, amount, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!accountId || typeof accountId !== "string") throw new Error("accountId is required");
+  if (_econTxs.has(id)) throw new Error(`economy tx ${id} already exists`);
+  if (!_econAccts.has(accountId)) throw new Error(`economy account ${accountId} not found`);
+  const pending = _econCountPending(accountId);
+  if (pending >= _econMaxPendingPerAcct) throw new Error(`max pending economy txs per account (${_econMaxPendingPerAcct}) reached for ${accountId}`);
+  const now = Date.now();
+  const t = { id, accountId, amount: amount || "0", status: ECONOMY_TX_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  _econTxs.set(id, t);
+  return { ...t, metadata: { ...t.metadata } };
+}
+function _econCheckT(from, to) { const a = _econTxTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid economy tx transition ${from} → ${to}`); }
+export function startEconomyTxV2(id) { const t = _econTxs.get(id); if (!t) throw new Error(`economy tx ${id} not found`); _econCheckT(t.status, ECONOMY_TX_LIFECYCLE_V2.PROCESSING); const now = Date.now(); t.status = ECONOMY_TX_LIFECYCLE_V2.PROCESSING; t.updatedAt = now; if (!t.startedAt) t.startedAt = now; return { ...t, metadata: { ...t.metadata } }; }
+export function settleEconomyTxV2(id) { const t = _econTxs.get(id); if (!t) throw new Error(`economy tx ${id} not found`); _econCheckT(t.status, ECONOMY_TX_LIFECYCLE_V2.SETTLED); const now = Date.now(); t.status = ECONOMY_TX_LIFECYCLE_V2.SETTLED; t.updatedAt = now; if (!t.settledAt) t.settledAt = now; return { ...t, metadata: { ...t.metadata } }; }
+export function failEconomyTxV2(id, reason) { const t = _econTxs.get(id); if (!t) throw new Error(`economy tx ${id} not found`); _econCheckT(t.status, ECONOMY_TX_LIFECYCLE_V2.FAILED); const now = Date.now(); t.status = ECONOMY_TX_LIFECYCLE_V2.FAILED; t.updatedAt = now; if (!t.settledAt) t.settledAt = now; if (reason) t.metadata.failReason = String(reason); return { ...t, metadata: { ...t.metadata } }; }
+export function cancelEconomyTxV2(id, reason) { const t = _econTxs.get(id); if (!t) throw new Error(`economy tx ${id} not found`); _econCheckT(t.status, ECONOMY_TX_LIFECYCLE_V2.CANCELLED); const now = Date.now(); t.status = ECONOMY_TX_LIFECYCLE_V2.CANCELLED; t.updatedAt = now; if (!t.settledAt) t.settledAt = now; if (reason) t.metadata.cancelReason = String(reason); return { ...t, metadata: { ...t.metadata } }; }
+export function getEconomyTxV2(id) { const t = _econTxs.get(id); if (!t) return null; return { ...t, metadata: { ...t.metadata } }; }
+export function listEconomyTxsV2() { return [..._econTxs.values()].map((t) => ({ ...t, metadata: { ...t.metadata } })); }
+
+export function autoFreezeIdleEconomyAccountsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const a of _econAccts.values()) if (a.status === ECONOMY_ACCOUNT_MATURITY_V2.ACTIVE && (t - a.lastTouchedAt) >= _econAcctIdleMs) { a.status = ECONOMY_ACCOUNT_MATURITY_V2.FROZEN; a.updatedAt = t; flipped.push(a.id); } return { flipped, count: flipped.length }; }
+export function autoFailStuckEconomyTxsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const tx of _econTxs.values()) if (tx.status === ECONOMY_TX_LIFECYCLE_V2.PROCESSING && tx.startedAt != null && (t - tx.startedAt) >= _econTxStuckMs) { tx.status = ECONOMY_TX_LIFECYCLE_V2.FAILED; tx.updatedAt = t; if (!tx.settledAt) tx.settledAt = t; tx.metadata.failReason = "auto-fail-stuck"; flipped.push(tx.id); } return { flipped, count: flipped.length }; }
+
+export function getAgentEconomyGovStatsV2() {
+  const accountsByStatus = {}; for (const s of Object.values(ECONOMY_ACCOUNT_MATURITY_V2)) accountsByStatus[s] = 0; for (const a of _econAccts.values()) accountsByStatus[a.status]++;
+  const txsByStatus = {}; for (const s of Object.values(ECONOMY_TX_LIFECYCLE_V2)) txsByStatus[s] = 0; for (const t of _econTxs.values()) txsByStatus[t.status]++;
+  return { totalAccountsV2: _econAccts.size, totalTxsV2: _econTxs.size, maxActiveEconomyAccountsPerHolder: _econMaxActivePerHolder, maxPendingEconomyTxsPerAccount: _econMaxPendingPerAcct, economyAccountIdleMs: _econAcctIdleMs, economyTxStuckMs: _econTxStuckMs, accountsByStatus, txsByStatus };
+}

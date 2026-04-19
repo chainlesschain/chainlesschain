@@ -448,7 +448,7 @@ const sig = await window.electronAPI.invoke("ukey:threshold-sign", {
 
 ---
 
-## 测试覆盖
+## 测试覆盖率
 
 ### 测试文件
 
@@ -523,6 +523,39 @@ it('rejects sign when verification window expires', async () => {
 | 门限签名延迟 | <200ms  | ~150ms |
 | 密钥恢复延迟 | <150ms  | ~100ms |
 | 生物特征验证 | <1000ms | ~800ms |
+
+---
+
+## 使用示例
+
+```javascript
+// 1. Shamir 密钥分割（3/5 门限）
+const { shares } = await window.electronAPI.invoke('threshold:split', {
+  secret: '<master-private-key>', threshold: 3, total: 5
+})
+// → 将 shares 分发给 5 名持有人，任意 3 人即可恢复
+
+// 2. 门限签名（不恢复原始私钥的前提下产出签名）
+const sig = await window.electronAPI.invoke('threshold:sign', {
+  shares: [share1, share2, share3],  // 任意 3 份
+  message: '0x<tx-hash>'
+})
+
+// 3. 密钥恢复（恢复原始私钥到本地 TEE）
+const ok = await window.electronAPI.invoke('threshold:recover', {
+  shares: [share1, share2, share3],
+  targetKeyRef: 'corp-root'
+})
+
+// 4. 生物特征绑定（指纹/面部 → TEE 解锁 share）
+await window.electronAPI.invoke('bio:enroll', { kind: 'fingerprint', tpl: '<template-id>' })
+const myShare = await window.electronAPI.invoke('bio:unlock-share', {
+  kind: 'fingerprint', shareId: '<id>'
+})
+
+// 5. 审计
+await window.electronAPI.invoke('threshold:audit:list', { limit: 100 })
+```
 
 ---
 

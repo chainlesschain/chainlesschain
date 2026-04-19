@@ -247,3 +247,63 @@ describe("sub-agent-registry", () => {
     });
   });
 });
+
+
+// ===== V2 Tests: Sub-Agent Registry governance overlay =====
+import {
+  SUBAGENT_PROFILE_MATURITY_V2, SUBAGENT_TASK_LIFECYCLE_V2,
+  registerSubagentProfileV2, activateSubagentProfileV2, pauseSubagentProfileV2, retireSubagentProfileV2, touchSubagentProfileV2,
+  getSubagentProfileV2, listSubagentProfilesV2,
+  createSubagentTaskV2, startSubagentTaskV2, completeSubagentTaskV2, failSubagentTaskV2, cancelSubagentTaskV2,
+  getSubagentTaskV2, listSubagentTasksV2,
+  autoPauseIdleSubagentsV2, autoFailStuckSubagentTasksV2,
+  getSubAgentRegistryStatsV2, _resetStateSubAgentRegistryV2,
+  setMaxActiveSubagentsPerOwnerV2, getMaxActiveSubagentsPerOwnerV2,
+  setMaxPendingTasksPerSubagentV2, getMaxPendingTasksPerSubagentV2,
+  setSubagentIdleMsV2, getSubagentIdleMsV2, setSubagentTaskStuckMsV2, getSubagentTaskStuckMsV2,
+} from "../../src/lib/sub-agent-registry.js";
+
+describe("Sub-Agent Registry V2 governance overlay", () => {
+  beforeEach(() => { _resetStateSubAgentRegistryV2(); });
+  describe("enums", () => {
+    it("profile maturity 4 states", () => { expect(Object.keys(SUBAGENT_PROFILE_MATURITY_V2).sort()).toEqual(["ACTIVE", "PAUSED", "PENDING", "RETIRED"]); expect(Object.isFrozen(SUBAGENT_PROFILE_MATURITY_V2)).toBe(true); });
+    it("task lifecycle 5 states", () => { expect(Object.keys(SUBAGENT_TASK_LIFECYCLE_V2).sort()).toEqual(["CANCELLED", "COMPLETED", "FAILED", "QUEUED", "RUNNING"]); });
+  });
+  describe("profile lifecycle", () => {
+    it("pending register → activate stamps activatedAt", () => { registerSubagentProfileV2({ id: "a", owner: "u" }); const p = activateSubagentProfileV2("a"); expect(p.status).toBe("active"); expect(p.activatedAt).not.toBeNull(); });
+    it("dup rejected", () => { registerSubagentProfileV2({ id: "a", owner: "u" }); expect(() => registerSubagentProfileV2({ id: "a", owner: "u" })).toThrow(/already/); });
+    it("paused → active preserves activatedAt", () => { registerSubagentProfileV2({ id: "a", owner: "u" }); activateSubagentProfileV2("a"); const t1 = getSubagentProfileV2("a").activatedAt; pauseSubagentProfileV2("a"); expect(activateSubagentProfileV2("a").activatedAt).toBe(t1); });
+    it("retire stamps retiredAt", () => { registerSubagentProfileV2({ id: "a", owner: "u" }); const p = retireSubagentProfileV2("a"); expect(p.retiredAt).not.toBeNull(); expect(() => activateSubagentProfileV2("a")).toThrow(/invalid/); });
+    it("touch terminal throws", () => { registerSubagentProfileV2({ id: "a", owner: "u" }); retireSubagentProfileV2("a"); expect(() => touchSubagentProfileV2("a")).toThrow(/terminal/); });
+  });
+  describe("active cap", () => {
+    it("recovery exempt", () => { setMaxActiveSubagentsPerOwnerV2(1); registerSubagentProfileV2({ id: "a", owner: "u" }); activateSubagentProfileV2("a"); pauseSubagentProfileV2("a"); registerSubagentProfileV2({ id: "b", owner: "u" }); activateSubagentProfileV2("b"); expect(activateSubagentProfileV2("a").status).toBe("active"); });
+    it("initial enforces cap", () => { setMaxActiveSubagentsPerOwnerV2(1); registerSubagentProfileV2({ id: "a", owner: "u" }); activateSubagentProfileV2("a"); registerSubagentProfileV2({ id: "b", owner: "u" }); expect(() => activateSubagentProfileV2("b")).toThrow(/max active/); });
+  });
+  describe("task lifecycle", () => {
+    beforeEach(() => { registerSubagentProfileV2({ id: "p", owner: "u" }); });
+    it("create queued", () => { expect(createSubagentTaskV2({ id: "t", profileId: "p" }).status).toBe("queued"); });
+    it("missing profile throws", () => { expect(() => createSubagentTaskV2({ id: "t", profileId: "nope" })).toThrow(/not found/); });
+    it("start stamps", () => { createSubagentTaskV2({ id: "t", profileId: "p" }); const x = startSubagentTaskV2("t"); expect(x.status).toBe("running"); expect(x.startedAt).not.toBeNull(); });
+    it("complete stamps settledAt", () => { createSubagentTaskV2({ id: "t", profileId: "p" }); startSubagentTaskV2("t"); expect(completeSubagentTaskV2("t").settledAt).not.toBeNull(); });
+    it("fail reason", () => { createSubagentTaskV2({ id: "t", profileId: "p" }); startSubagentTaskV2("t"); expect(failSubagentTaskV2("t", "x").metadata.failReason).toBe("x"); });
+    it("cancel from queued", () => { createSubagentTaskV2({ id: "t", profileId: "p" }); expect(cancelSubagentTaskV2("t").status).toBe("cancelled"); });
+    it("invalid transition throws", () => { createSubagentTaskV2({ id: "t", profileId: "p" }); expect(() => completeSubagentTaskV2("t")).toThrow(/invalid/); });
+  });
+  describe("pending cap", () => {
+    it("enforced", () => { setMaxPendingTasksPerSubagentV2(2); registerSubagentProfileV2({ id: "p", owner: "u" }); createSubagentTaskV2({ id: "a", profileId: "p" }); createSubagentTaskV2({ id: "b", profileId: "p" }); expect(() => createSubagentTaskV2({ id: "c", profileId: "p" })).toThrow(/max pending/); });
+  });
+  describe("auto flip", () => {
+    it("auto-pause idle", () => { setSubagentIdleMsV2(1000); registerSubagentProfileV2({ id: "p", owner: "u" }); activateSubagentProfileV2("p"); const base = getSubagentProfileV2("p").lastTouchedAt; expect(autoPauseIdleSubagentsV2({ now: base + 5000 }).count).toBe(1); expect(getSubagentProfileV2("p").status).toBe("paused"); });
+    it("auto-fail stuck", () => { setSubagentTaskStuckMsV2(500); registerSubagentProfileV2({ id: "p", owner: "u" }); createSubagentTaskV2({ id: "t", profileId: "p" }); startSubagentTaskV2("t"); const base = getSubagentTaskV2("t").startedAt; expect(autoFailStuckSubagentTasksV2({ now: base + 5000 }).count).toBe(1); expect(getSubagentTaskV2("t").status).toBe("failed"); });
+  });
+  describe("config & stats", () => {
+    it("rejects invalid", () => { expect(() => setMaxActiveSubagentsPerOwnerV2(0)).toThrow(); expect(() => setMaxActiveSubagentsPerOwnerV2(NaN)).toThrow(); });
+    it("floors", () => { setMaxPendingTasksPerSubagentV2(15.9); expect(getMaxPendingTasksPerSubagentV2()).toBe(15); });
+    it("round-trip", () => { setSubagentIdleMsV2(10); setSubagentTaskStuckMsV2(20); expect(getSubagentIdleMsV2()).toBe(10); expect(getSubagentTaskStuckMsV2()).toBe(20); });
+    it("stats zero-init", () => { const s = getSubAgentRegistryStatsV2(); for (const v of Object.values(SUBAGENT_PROFILE_MATURITY_V2)) expect(s.profilesByStatus[v]).toBe(0); for (const v of Object.values(SUBAGENT_TASK_LIFECYCLE_V2)) expect(s.tasksByStatus[v]).toBe(0); });
+    it("reset", () => { setMaxActiveSubagentsPerOwnerV2(99); registerSubagentProfileV2({ id: "p", owner: "u" }); _resetStateSubAgentRegistryV2(); expect(getSubAgentRegistryStatsV2().totalProfilesV2).toBe(0); expect(getMaxActiveSubagentsPerOwnerV2()).toBe(12); });
+    it("defensive copy", () => { registerSubagentProfileV2({ id: "p", owner: "u", metadata: { k: "v" } }); const x = getSubagentProfileV2("p"); x.metadata.k = "bad"; expect(getSubagentProfileV2("p").metadata.k).toBe("v"); });
+    it("lists", () => { registerSubagentProfileV2({ id: "a", owner: "u" }); registerSubagentProfileV2({ id: "b", owner: "u" }); expect(listSubagentProfilesV2().length).toBe(2); createSubagentTaskV2({ id: "t", profileId: "a" }); expect(listSubagentTasksV2().length).toBe(1); });
+  });
+});

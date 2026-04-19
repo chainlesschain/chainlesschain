@@ -181,3 +181,58 @@ chainlesschain dev adrs -s <session-id> -S accepted --limit 20 --json
 |------|------|
 | `packages/cli/src/commands/dev.js` | dev 命令主入口 (Phase 63) |
 | `packages/cli/src/lib/autonomous-developer.js` | 会话管理、阶段推进、ADR、代码审查核心实现 |
+
+## 测试覆盖率
+
+```
+__tests__/unit/autonomous-developer.test.js — 85 tests
+```
+
+覆盖会话 start/list/show、阶段 plan → implement → review → retrospect 推进、ADR CRUD 与 Markdown 渲染、review 的文件遍历与建议生成。V2 surface：39 V2 tests（见 `autonomous_developer_v2_cli.md`）。
+
+## 安全考虑
+
+1. **文件访问**：`review` 仅读取被显式授权的路径，禁止路径遍历
+2. **ADR 内容**：以明文存 SQLite；如含敏感决策建议叠加 `encrypt` 能力
+3. **会话隔离**：每个开发会话独立记录 trajectory，不跨会话污染
+4. **V2 pending cap**：`gov-stats-v2` 查看 per-developer running session 数
+5. **审计**：所有 phase 切换自带事件，便于后续追责
+
+## 故障排查
+
+| 症状 | 可能原因 | 解决方案 |
+|------|---------|---------|
+| `phase` 不前进 | 当前阶段未 mark 完成 | `phase complete` 后再 `phase next` |
+| `review` 报错 | 路径不存在或无权限 | 检查传入路径 + 权限 |
+| `adr --render` 空 | 未记录 consequences | 补全 `-q` 参数 |
+| V2 createSessionV2 cap | per-developer running 已满 | `gov-stats-v2` 查看，fail 现有会话 |
+
+## 使用示例
+
+```bash
+# 1. 启动开发会话
+sid=$(cc dev start "实现 LRU 缓存模块" --json | jq -r .id)
+
+# 2. 推进阶段
+cc dev phase $sid plan
+cc dev phase $sid implement
+cc dev review $sid src/cache.js
+cc dev phase $sid retrospect
+
+# 3. 记录 ADR
+cc dev adr $sid "使用 WeakMap 存条目" \
+  "引用不易被 GC 误回收" \
+  -q "禁用序列化" \
+  -a "Map,LRU-Cache package"
+
+# 4. V2 治理
+cc dev start-v2 --author alice -t "实现 LRU"
+cc dev gov-stats-v2
+```
+
+## 相关文档
+
+- [Coding Agent](./coding-agent)
+- [Code Gen Agent V2](./code_agent_v2_phase86_cli)
+- [V2 设计文档](/chainlesschain/autonomous_developer_v2_cli)
+- 设计文档：`docs/design/modules/75_自主开发者引擎.md`

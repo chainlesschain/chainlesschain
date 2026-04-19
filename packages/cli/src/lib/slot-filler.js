@@ -596,3 +596,84 @@ Keep values concise (single words or short strings).`;
     return Object.keys(REQUIRED_SLOTS);
   }
 }
+
+// ===== V2 Surface: Slot Filler governance overlay (CLI v0.142.0) =====
+export const SLOTF_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending", ACTIVE: "active", STALE: "stale", ARCHIVED: "archived",
+});
+export const SLOTF_FILL_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued", FILLING: "filling", FILLED: "filled", FAILED: "failed", CANCELLED: "cancelled",
+});
+const _slotfPTrans = new Map([
+  [SLOTF_PROFILE_MATURITY_V2.PENDING, new Set([SLOTF_PROFILE_MATURITY_V2.ACTIVE, SLOTF_PROFILE_MATURITY_V2.ARCHIVED])],
+  [SLOTF_PROFILE_MATURITY_V2.ACTIVE, new Set([SLOTF_PROFILE_MATURITY_V2.STALE, SLOTF_PROFILE_MATURITY_V2.ARCHIVED])],
+  [SLOTF_PROFILE_MATURITY_V2.STALE, new Set([SLOTF_PROFILE_MATURITY_V2.ACTIVE, SLOTF_PROFILE_MATURITY_V2.ARCHIVED])],
+  [SLOTF_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _slotfPTerminal = new Set([SLOTF_PROFILE_MATURITY_V2.ARCHIVED]);
+const _slotfFTrans = new Map([
+  [SLOTF_FILL_LIFECYCLE_V2.QUEUED, new Set([SLOTF_FILL_LIFECYCLE_V2.FILLING, SLOTF_FILL_LIFECYCLE_V2.CANCELLED])],
+  [SLOTF_FILL_LIFECYCLE_V2.FILLING, new Set([SLOTF_FILL_LIFECYCLE_V2.FILLED, SLOTF_FILL_LIFECYCLE_V2.FAILED, SLOTF_FILL_LIFECYCLE_V2.CANCELLED])],
+  [SLOTF_FILL_LIFECYCLE_V2.FILLED, new Set()],
+  [SLOTF_FILL_LIFECYCLE_V2.FAILED, new Set()],
+  [SLOTF_FILL_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _slotfPsV2 = new Map();
+const _slotfFsV2 = new Map();
+let _slotfMaxActive = 10, _slotfMaxPending = 20, _slotfIdleMs = 30 * 24 * 60 * 60 * 1000, _slotfStuckMs = 30 * 1000;
+function _slotfPos(n, label) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${label} must be positive integer`); return v; }
+function _slotfCheckP(from, to) { const a = _slotfPTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid slotf profile transition ${from} → ${to}`); }
+function _slotfCheckF(from, to) { const a = _slotfFTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid slotf fill transition ${from} → ${to}`); }
+export function setMaxActiveSlotfTemplatesPerOwnerV2(n) { _slotfMaxActive = _slotfPos(n, "maxActiveSlotfTemplatesPerOwner"); }
+export function getMaxActiveSlotfTemplatesPerOwnerV2() { return _slotfMaxActive; }
+export function setMaxPendingSlotfFillsPerTemplateV2(n) { _slotfMaxPending = _slotfPos(n, "maxPendingSlotfFillsPerTemplate"); }
+export function getMaxPendingSlotfFillsPerTemplateV2() { return _slotfMaxPending; }
+export function setSlotfTemplateIdleMsV2(n) { _slotfIdleMs = _slotfPos(n, "slotfTemplateIdleMs"); }
+export function getSlotfTemplateIdleMsV2() { return _slotfIdleMs; }
+export function setSlotfFillStuckMsV2(n) { _slotfStuckMs = _slotfPos(n, "slotfFillStuckMs"); }
+export function getSlotfFillStuckMsV2() { return _slotfStuckMs; }
+export function _resetStateSlotFillerV2() { _slotfPsV2.clear(); _slotfFsV2.clear(); _slotfMaxActive = 10; _slotfMaxPending = 20; _slotfIdleMs = 30 * 24 * 60 * 60 * 1000; _slotfStuckMs = 30 * 1000; }
+export function registerSlotfTemplateV2({ id, owner, schema, metadata } = {}) {
+  if (!id) throw new Error("slotf template id required"); if (!owner) throw new Error("slotf template owner required");
+  if (_slotfPsV2.has(id)) throw new Error(`slotf template ${id} already registered`);
+  const now = Date.now();
+  const p = { id, owner, schema: schema || "{}", status: SLOTF_PROFILE_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, archivedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  _slotfPsV2.set(id, p); return { ...p, metadata: { ...p.metadata } };
+}
+function _slotfCountActive(owner) { let n = 0; for (const p of _slotfPsV2.values()) if (p.owner === owner && p.status === SLOTF_PROFILE_MATURITY_V2.ACTIVE) n++; return n; }
+export function activateSlotfTemplateV2(id) {
+  const p = _slotfPsV2.get(id); if (!p) throw new Error(`slotf template ${id} not found`);
+  _slotfCheckP(p.status, SLOTF_PROFILE_MATURITY_V2.ACTIVE);
+  const recovery = p.status === SLOTF_PROFILE_MATURITY_V2.STALE;
+  if (!recovery && _slotfCountActive(p.owner) >= _slotfMaxActive) throw new Error(`max active slotf templates for owner ${p.owner} reached`);
+  const now = Date.now(); p.status = SLOTF_PROFILE_MATURITY_V2.ACTIVE; p.updatedAt = now; p.lastTouchedAt = now; if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleSlotfTemplateV2(id) { const p = _slotfPsV2.get(id); if (!p) throw new Error(`slotf template ${id} not found`); _slotfCheckP(p.status, SLOTF_PROFILE_MATURITY_V2.STALE); p.status = SLOTF_PROFILE_MATURITY_V2.STALE; p.updatedAt = Date.now(); return { ...p, metadata: { ...p.metadata } }; }
+export function archiveSlotfTemplateV2(id) { const p = _slotfPsV2.get(id); if (!p) throw new Error(`slotf template ${id} not found`); _slotfCheckP(p.status, SLOTF_PROFILE_MATURITY_V2.ARCHIVED); const now = Date.now(); p.status = SLOTF_PROFILE_MATURITY_V2.ARCHIVED; p.updatedAt = now; if (!p.archivedAt) p.archivedAt = now; return { ...p, metadata: { ...p.metadata } }; }
+export function touchSlotfTemplateV2(id) { const p = _slotfPsV2.get(id); if (!p) throw new Error(`slotf template ${id} not found`); if (_slotfPTerminal.has(p.status)) throw new Error(`cannot touch terminal slotf template ${id}`); const now = Date.now(); p.lastTouchedAt = now; p.updatedAt = now; return { ...p, metadata: { ...p.metadata } }; }
+export function getSlotfTemplateV2(id) { const p = _slotfPsV2.get(id); if (!p) return null; return { ...p, metadata: { ...p.metadata } }; }
+export function listSlotfTemplatesV2() { return [..._slotfPsV2.values()].map((p) => ({ ...p, metadata: { ...p.metadata } })); }
+function _slotfCountPending(templateId) { let n = 0; for (const f of _slotfFsV2.values()) if (f.templateId === templateId && (f.status === SLOTF_FILL_LIFECYCLE_V2.QUEUED || f.status === SLOTF_FILL_LIFECYCLE_V2.FILLING)) n++; return n; }
+export function createSlotfFillV2({ id, templateId, input, metadata } = {}) {
+  if (!id) throw new Error("slotf fill id required"); if (!templateId) throw new Error("slotf fill templateId required");
+  if (_slotfFsV2.has(id)) throw new Error(`slotf fill ${id} already exists`);
+  if (!_slotfPsV2.has(templateId)) throw new Error(`slotf template ${templateId} not found`);
+  if (_slotfCountPending(templateId) >= _slotfMaxPending) throw new Error(`max pending slotf fills for template ${templateId} reached`);
+  const now = Date.now();
+  const f = { id, templateId, input: input || "", status: SLOTF_FILL_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  _slotfFsV2.set(id, f); return { ...f, metadata: { ...f.metadata } };
+}
+export function fillingSlotfFillV2(id) { const f = _slotfFsV2.get(id); if (!f) throw new Error(`slotf fill ${id} not found`); _slotfCheckF(f.status, SLOTF_FILL_LIFECYCLE_V2.FILLING); const now = Date.now(); f.status = SLOTF_FILL_LIFECYCLE_V2.FILLING; f.updatedAt = now; if (!f.startedAt) f.startedAt = now; return { ...f, metadata: { ...f.metadata } }; }
+export function fillSlotfFillV2(id) { const f = _slotfFsV2.get(id); if (!f) throw new Error(`slotf fill ${id} not found`); _slotfCheckF(f.status, SLOTF_FILL_LIFECYCLE_V2.FILLED); const now = Date.now(); f.status = SLOTF_FILL_LIFECYCLE_V2.FILLED; f.updatedAt = now; if (!f.settledAt) f.settledAt = now; return { ...f, metadata: { ...f.metadata } }; }
+export function failSlotfFillV2(id, reason) { const f = _slotfFsV2.get(id); if (!f) throw new Error(`slotf fill ${id} not found`); _slotfCheckF(f.status, SLOTF_FILL_LIFECYCLE_V2.FAILED); const now = Date.now(); f.status = SLOTF_FILL_LIFECYCLE_V2.FAILED; f.updatedAt = now; if (!f.settledAt) f.settledAt = now; if (reason) f.metadata.failReason = String(reason); return { ...f, metadata: { ...f.metadata } }; }
+export function cancelSlotfFillV2(id, reason) { const f = _slotfFsV2.get(id); if (!f) throw new Error(`slotf fill ${id} not found`); _slotfCheckF(f.status, SLOTF_FILL_LIFECYCLE_V2.CANCELLED); const now = Date.now(); f.status = SLOTF_FILL_LIFECYCLE_V2.CANCELLED; f.updatedAt = now; if (!f.settledAt) f.settledAt = now; if (reason) f.metadata.cancelReason = String(reason); return { ...f, metadata: { ...f.metadata } }; }
+export function getSlotfFillV2(id) { const f = _slotfFsV2.get(id); if (!f) return null; return { ...f, metadata: { ...f.metadata } }; }
+export function listSlotfFillsV2() { return [..._slotfFsV2.values()].map((f) => ({ ...f, metadata: { ...f.metadata } })); }
+export function autoStaleIdleSlotfTemplatesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const p of _slotfPsV2.values()) if (p.status === SLOTF_PROFILE_MATURITY_V2.ACTIVE && (t - p.lastTouchedAt) >= _slotfIdleMs) { p.status = SLOTF_PROFILE_MATURITY_V2.STALE; p.updatedAt = t; flipped.push(p.id); } return { flipped, count: flipped.length }; }
+export function autoFailStuckSlotfFillsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const f of _slotfFsV2.values()) if (f.status === SLOTF_FILL_LIFECYCLE_V2.FILLING && f.startedAt != null && (t - f.startedAt) >= _slotfStuckMs) { f.status = SLOTF_FILL_LIFECYCLE_V2.FAILED; f.updatedAt = t; if (!f.settledAt) f.settledAt = t; f.metadata.failReason = "auto-fail-stuck"; flipped.push(f.id); } return { flipped, count: flipped.length }; }
+export function getSlotFillerGovStatsV2() {
+  const templatesByStatus = {}; for (const v of Object.values(SLOTF_PROFILE_MATURITY_V2)) templatesByStatus[v] = 0; for (const p of _slotfPsV2.values()) templatesByStatus[p.status]++;
+  const fillsByStatus = {}; for (const v of Object.values(SLOTF_FILL_LIFECYCLE_V2)) fillsByStatus[v] = 0; for (const f of _slotfFsV2.values()) fillsByStatus[f.status]++;
+  return { totalSlotfTemplatesV2: _slotfPsV2.size, totalSlotfFillsV2: _slotfFsV2.size, maxActiveSlotfTemplatesPerOwner: _slotfMaxActive, maxPendingSlotfFillsPerTemplate: _slotfMaxPending, slotfTemplateIdleMs: _slotfIdleMs, slotfFillStuckMs: _slotfStuckMs, templatesByStatus, fillsByStatus };
+}

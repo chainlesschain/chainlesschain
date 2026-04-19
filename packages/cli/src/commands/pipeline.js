@@ -445,5 +445,61 @@ export function registerPipelineCommand(program) {
       _json(getStats(db));
     });
 
-  program.addCommand(pipeline);
+  
+  _registerPipelineV2Commands(pipeline);
+program.addCommand(pipeline);
+}
+function _registerPipelineV2Commands(parent) {
+  const L = async () => await import("../lib/pipeline-orchestrator.js");
+
+  parent.command("enums-v2").description("Show V2 enums (pipeline maturity + run lifecycle)")
+    .action(async () => { const m = await L(); console.log(JSON.stringify({ pipelineMaturity: m.PIPELINE_MATURITY_V2, runLifecycle: m.PIPELINE_RUN_LIFECYCLE_V2 }, null, 2)); });
+  parent.command("config-v2").description("Show V2 config thresholds")
+    .action(async () => { const m = await L(); console.log(JSON.stringify({ maxActivePipelinesPerOwner: m.getMaxActivePipelinesPerOwnerV2(), maxPendingPipelineRunsPerPipeline: m.getMaxPendingPipelineRunsPerPipelineV2(), pipelineIdleMs: m.getPipelineIdleMsV2(), pipelineRunStuckMs: m.getPipelineRunStuckMsV2() }, null, 2)); });
+  parent.command("set-max-active-pipelines-v2 <n>").description("Set max active pipelines per owner")
+    .action(async (n) => { const m = await L(); m.setMaxActivePipelinesPerOwnerV2(Number(n)); console.log("ok"); });
+  parent.command("set-max-pending-runs-v2 <n>").description("Set max pending runs per pipeline")
+    .action(async (n) => { const m = await L(); m.setMaxPendingPipelineRunsPerPipelineV2(Number(n)); console.log("ok"); });
+  parent.command("set-pipeline-idle-ms-v2 <n>").description("Set pipeline idle threshold (ms)")
+    .action(async (n) => { const m = await L(); m.setPipelineIdleMsV2(Number(n)); console.log("ok"); });
+  parent.command("set-run-stuck-ms-v2 <n>").description("Set run stuck threshold (ms)")
+    .action(async (n) => { const m = await L(); m.setPipelineRunStuckMsV2(Number(n)); console.log("ok"); });
+
+  parent.command("register-pipeline-v2 <id> <owner>").description("Register V2 pipeline")
+    .option("--name <n>", "Pipeline name").action(async (id, owner, o) => { const m = await L(); console.log(JSON.stringify(m.registerPipelineV2({ id, owner, name: o.name }), null, 2)); });
+  parent.command("activate-pipeline-v2 <id>").description("Activate pipeline")
+    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.activatePipelineV2(id), null, 2)); });
+  parent.command("pause-pipeline-v2 <id>").description("Pause pipeline")
+    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.pausePipelineV2(id), null, 2)); });
+  parent.command("archive-pipeline-v2 <id>").description("Archive pipeline (terminal)")
+    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.archivePipelineV2(id), null, 2)); });
+  parent.command("touch-pipeline-v2 <id>").description("Touch pipeline lastTouchedAt")
+    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.touchPipelineV2(id), null, 2)); });
+  parent.command("get-pipeline-v2 <id>").description("Get V2 pipeline")
+    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.getPipelineV2(id), null, 2)); });
+  parent.command("list-pipelines-v2").description("List all V2 pipelines")
+    .action(async () => { const m = await L(); console.log(JSON.stringify(m.listPipelinesV2(), null, 2)); });
+
+  parent.command("create-run-v2 <id> <pipelineId>").description("Create V2 pipeline run (queued)")
+    .option("--trigger <t>", "Trigger", "manual").action(async (id, pipelineId, o) => { const m = await L(); console.log(JSON.stringify(m.createPipelineRunV2({ id, pipelineId, trigger: o.trigger }), null, 2)); });
+  parent.command("start-run-v2 <id>").description("Start run (queued→running)")
+    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.startPipelineRunV2(id), null, 2)); });
+  parent.command("complete-run-v2 <id>").description("Complete run (running→completed)")
+    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.completePipelineRunV2(id), null, 2)); });
+  parent.command("fail-run-v2 <id> [reason]").description("Fail run")
+    .action(async (id, reason) => { const m = await L(); console.log(JSON.stringify(m.failPipelineRunV2(id, reason), null, 2)); });
+  parent.command("cancel-run-v2 <id> [reason]").description("Cancel run")
+    .action(async (id, reason) => { const m = await L(); console.log(JSON.stringify(m.cancelPipelineRunV2(id, reason), null, 2)); });
+  parent.command("get-run-v2 <id>").description("Get V2 run")
+    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.getPipelineRunV2(id), null, 2)); });
+  parent.command("list-runs-v2").description("List all V2 runs")
+    .action(async () => { const m = await L(); console.log(JSON.stringify(m.listPipelineRunsV2(), null, 2)); });
+
+  parent.command("auto-pause-idle-v2").description("Auto-pause idle active pipelines")
+    .action(async () => { const m = await L(); console.log(JSON.stringify(m.autoPauseIdlePipelinesV2(), null, 2)); });
+  parent.command("auto-fail-stuck-v2").description("Auto-fail stuck running runs")
+    .action(async () => { const m = await L(); console.log(JSON.stringify(m.autoFailStuckPipelineRunsV2(), null, 2)); });
+
+  parent.command("gov-stats-v2").description("V2 governance aggregate stats")
+    .action(async () => { const m = await L(); console.log(JSON.stringify(m.getPipelineOrchestratorGovStatsV2(), null, 2)); });
 }

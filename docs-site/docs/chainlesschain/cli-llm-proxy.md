@@ -538,7 +538,7 @@ chainlesschain ask "写一篇技术文章" --provider volcengine --no-stream
 
 ---
 
-## 测试覆盖
+## 测试覆盖率
 
 LLM 中转与自定义接入功能通过以下测试模块保证正确性：
 

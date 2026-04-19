@@ -598,3 +598,108 @@ export function generateFrameworkReport(frameworkId, opts = {}) {
 export function _resetState() {
   _customTemplates.clear();
 }
+
+
+// ===== V2 Surface: Compliance Framework Reporter governance overlay (CLI v0.138.0) =====
+export const COMPLIANCE_FW_MATURITY_V2 = Object.freeze({
+  PENDING: "pending", ACTIVE: "active", DEPRECATED: "deprecated", ARCHIVED: "archived",
+});
+export const COMPLIANCE_FW_REPORT_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued", GENERATING: "generating", COMPLETED: "completed", FAILED: "failed", CANCELLED: "cancelled",
+});
+
+const _cfwTrans = new Map([
+  [COMPLIANCE_FW_MATURITY_V2.PENDING, new Set([COMPLIANCE_FW_MATURITY_V2.ACTIVE, COMPLIANCE_FW_MATURITY_V2.ARCHIVED])],
+  [COMPLIANCE_FW_MATURITY_V2.ACTIVE, new Set([COMPLIANCE_FW_MATURITY_V2.DEPRECATED, COMPLIANCE_FW_MATURITY_V2.ARCHIVED])],
+  [COMPLIANCE_FW_MATURITY_V2.DEPRECATED, new Set([COMPLIANCE_FW_MATURITY_V2.ACTIVE, COMPLIANCE_FW_MATURITY_V2.ARCHIVED])],
+  [COMPLIANCE_FW_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _cfwTerminal = new Set([COMPLIANCE_FW_MATURITY_V2.ARCHIVED]);
+const _cfwRepTrans = new Map([
+  [COMPLIANCE_FW_REPORT_LIFECYCLE_V2.QUEUED, new Set([COMPLIANCE_FW_REPORT_LIFECYCLE_V2.GENERATING, COMPLIANCE_FW_REPORT_LIFECYCLE_V2.CANCELLED])],
+  [COMPLIANCE_FW_REPORT_LIFECYCLE_V2.GENERATING, new Set([COMPLIANCE_FW_REPORT_LIFECYCLE_V2.COMPLETED, COMPLIANCE_FW_REPORT_LIFECYCLE_V2.FAILED, COMPLIANCE_FW_REPORT_LIFECYCLE_V2.CANCELLED])],
+  [COMPLIANCE_FW_REPORT_LIFECYCLE_V2.COMPLETED, new Set()],
+  [COMPLIANCE_FW_REPORT_LIFECYCLE_V2.FAILED, new Set()],
+  [COMPLIANCE_FW_REPORT_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+
+const _cfwsV2 = new Map();
+const _cfwReports = new Map();
+let _cfwMaxActivePerOwner = 8;
+let _cfwMaxPendingReportsPerFw = 15;
+let _cfwIdleMs = 90 * 24 * 60 * 60 * 1000;
+let _cfwReportStuckMs = 10 * 60 * 1000;
+
+function _cfwPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+
+export function setMaxActiveComplianceFwsPerOwnerV2(n) { _cfwMaxActivePerOwner = _cfwPos(n, "maxActiveComplianceFwsPerOwner"); }
+export function getMaxActiveComplianceFwsPerOwnerV2() { return _cfwMaxActivePerOwner; }
+export function setMaxPendingComplianceFwReportsPerFwV2(n) { _cfwMaxPendingReportsPerFw = _cfwPos(n, "maxPendingComplianceFwReportsPerFw"); }
+export function getMaxPendingComplianceFwReportsPerFwV2() { return _cfwMaxPendingReportsPerFw; }
+export function setComplianceFwIdleMsV2(n) { _cfwIdleMs = _cfwPos(n, "complianceFwIdleMs"); }
+export function getComplianceFwIdleMsV2() { return _cfwIdleMs; }
+export function setComplianceFwReportStuckMsV2(n) { _cfwReportStuckMs = _cfwPos(n, "complianceFwReportStuckMs"); }
+export function getComplianceFwReportStuckMsV2() { return _cfwReportStuckMs; }
+
+export function _resetStateComplianceFwReporterV2() {
+  _cfwsV2.clear(); _cfwReports.clear();
+  _cfwMaxActivePerOwner = 8; _cfwMaxPendingReportsPerFw = 15;
+  _cfwIdleMs = 90 * 24 * 60 * 60 * 1000; _cfwReportStuckMs = 10 * 60 * 1000;
+}
+
+export function registerComplianceFwV2({ id, owner, name, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!owner || typeof owner !== "string") throw new Error("owner is required");
+  if (_cfwsV2.has(id)) throw new Error(`compliance framework ${id} already registered`);
+  const now = Date.now();
+  const f = { id, owner, name: name || id, status: COMPLIANCE_FW_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, archivedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  _cfwsV2.set(id, f);
+  return { ...f, metadata: { ...f.metadata } };
+}
+function _cfwCheckF(from, to) { const a = _cfwTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid compliance framework transition ${from} → ${to}`); }
+function _cfwCountActive(owner) { let n = 0; for (const f of _cfwsV2.values()) if (f.owner === owner && f.status === COMPLIANCE_FW_MATURITY_V2.ACTIVE) n++; return n; }
+
+export function activateComplianceFwV2(id) {
+  const f = _cfwsV2.get(id); if (!f) throw new Error(`compliance framework ${id} not found`);
+  _cfwCheckF(f.status, COMPLIANCE_FW_MATURITY_V2.ACTIVE);
+  const recovery = f.status === COMPLIANCE_FW_MATURITY_V2.DEPRECATED;
+  if (!recovery) { const c = _cfwCountActive(f.owner); if (c >= _cfwMaxActivePerOwner) throw new Error(`max active compliance frameworks per owner (${_cfwMaxActivePerOwner}) reached for ${f.owner}`); }
+  const now = Date.now(); f.status = COMPLIANCE_FW_MATURITY_V2.ACTIVE; f.updatedAt = now; f.lastTouchedAt = now; if (!f.activatedAt) f.activatedAt = now;
+  return { ...f, metadata: { ...f.metadata } };
+}
+export function deprecateComplianceFwV2(id) { const f = _cfwsV2.get(id); if (!f) throw new Error(`compliance framework ${id} not found`); _cfwCheckF(f.status, COMPLIANCE_FW_MATURITY_V2.DEPRECATED); f.status = COMPLIANCE_FW_MATURITY_V2.DEPRECATED; f.updatedAt = Date.now(); return { ...f, metadata: { ...f.metadata } }; }
+export function archiveComplianceFwV2(id) { const f = _cfwsV2.get(id); if (!f) throw new Error(`compliance framework ${id} not found`); _cfwCheckF(f.status, COMPLIANCE_FW_MATURITY_V2.ARCHIVED); const now = Date.now(); f.status = COMPLIANCE_FW_MATURITY_V2.ARCHIVED; f.updatedAt = now; if (!f.archivedAt) f.archivedAt = now; return { ...f, metadata: { ...f.metadata } }; }
+export function touchComplianceFwV2(id) { const f = _cfwsV2.get(id); if (!f) throw new Error(`compliance framework ${id} not found`); if (_cfwTerminal.has(f.status)) throw new Error(`cannot touch terminal compliance framework ${id}`); const now = Date.now(); f.lastTouchedAt = now; f.updatedAt = now; return { ...f, metadata: { ...f.metadata } }; }
+export function getComplianceFwV2(id) { const f = _cfwsV2.get(id); if (!f) return null; return { ...f, metadata: { ...f.metadata } }; }
+export function listComplianceFwsV2() { return [..._cfwsV2.values()].map((f) => ({ ...f, metadata: { ...f.metadata } })); }
+
+function _cfwCountPendingReports(frameworkId) { let n = 0; for (const r of _cfwReports.values()) if (r.frameworkId === frameworkId && (r.status === COMPLIANCE_FW_REPORT_LIFECYCLE_V2.QUEUED || r.status === COMPLIANCE_FW_REPORT_LIFECYCLE_V2.GENERATING)) n++; return n; }
+
+export function createComplianceFwReportV2({ id, frameworkId, format, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!frameworkId || typeof frameworkId !== "string") throw new Error("frameworkId is required");
+  if (_cfwReports.has(id)) throw new Error(`compliance framework report ${id} already exists`);
+  if (!_cfwsV2.has(frameworkId)) throw new Error(`compliance framework ${frameworkId} not found`);
+  const pending = _cfwCountPendingReports(frameworkId);
+  if (pending >= _cfwMaxPendingReportsPerFw) throw new Error(`max pending compliance framework reports per framework (${_cfwMaxPendingReportsPerFw}) reached for ${frameworkId}`);
+  const now = Date.now();
+  const r = { id, frameworkId, format: format || "markdown", status: COMPLIANCE_FW_REPORT_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  _cfwReports.set(id, r);
+  return { ...r, metadata: { ...r.metadata } };
+}
+function _cfwCheckR(from, to) { const a = _cfwRepTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid compliance framework report transition ${from} → ${to}`); }
+export function startComplianceFwReportV2(id) { const r = _cfwReports.get(id); if (!r) throw new Error(`compliance framework report ${id} not found`); _cfwCheckR(r.status, COMPLIANCE_FW_REPORT_LIFECYCLE_V2.GENERATING); const now = Date.now(); r.status = COMPLIANCE_FW_REPORT_LIFECYCLE_V2.GENERATING; r.updatedAt = now; if (!r.startedAt) r.startedAt = now; return { ...r, metadata: { ...r.metadata } }; }
+export function completeComplianceFwReportV2(id) { const r = _cfwReports.get(id); if (!r) throw new Error(`compliance framework report ${id} not found`); _cfwCheckR(r.status, COMPLIANCE_FW_REPORT_LIFECYCLE_V2.COMPLETED); const now = Date.now(); r.status = COMPLIANCE_FW_REPORT_LIFECYCLE_V2.COMPLETED; r.updatedAt = now; if (!r.settledAt) r.settledAt = now; return { ...r, metadata: { ...r.metadata } }; }
+export function failComplianceFwReportV2(id, reason) { const r = _cfwReports.get(id); if (!r) throw new Error(`compliance framework report ${id} not found`); _cfwCheckR(r.status, COMPLIANCE_FW_REPORT_LIFECYCLE_V2.FAILED); const now = Date.now(); r.status = COMPLIANCE_FW_REPORT_LIFECYCLE_V2.FAILED; r.updatedAt = now; if (!r.settledAt) r.settledAt = now; if (reason) r.metadata.failReason = String(reason); return { ...r, metadata: { ...r.metadata } }; }
+export function cancelComplianceFwReportV2(id, reason) { const r = _cfwReports.get(id); if (!r) throw new Error(`compliance framework report ${id} not found`); _cfwCheckR(r.status, COMPLIANCE_FW_REPORT_LIFECYCLE_V2.CANCELLED); const now = Date.now(); r.status = COMPLIANCE_FW_REPORT_LIFECYCLE_V2.CANCELLED; r.updatedAt = now; if (!r.settledAt) r.settledAt = now; if (reason) r.metadata.cancelReason = String(reason); return { ...r, metadata: { ...r.metadata } }; }
+export function getComplianceFwReportV2(id) { const r = _cfwReports.get(id); if (!r) return null; return { ...r, metadata: { ...r.metadata } }; }
+export function listComplianceFwReportsV2() { return [..._cfwReports.values()].map((r) => ({ ...r, metadata: { ...r.metadata } })); }
+
+export function autoDeprecateIdleComplianceFwsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const f of _cfwsV2.values()) if (f.status === COMPLIANCE_FW_MATURITY_V2.ACTIVE && (t - f.lastTouchedAt) >= _cfwIdleMs) { f.status = COMPLIANCE_FW_MATURITY_V2.DEPRECATED; f.updatedAt = t; flipped.push(f.id); } return { flipped, count: flipped.length }; }
+export function autoFailStuckComplianceFwReportsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const r of _cfwReports.values()) if (r.status === COMPLIANCE_FW_REPORT_LIFECYCLE_V2.GENERATING && r.startedAt != null && (t - r.startedAt) >= _cfwReportStuckMs) { r.status = COMPLIANCE_FW_REPORT_LIFECYCLE_V2.FAILED; r.updatedAt = t; if (!r.settledAt) r.settledAt = t; r.metadata.failReason = "auto-fail-stuck"; flipped.push(r.id); } return { flipped, count: flipped.length }; }
+
+export function getComplianceFwReporterGovStatsV2() {
+  const fwsByStatus = {}; for (const s of Object.values(COMPLIANCE_FW_MATURITY_V2)) fwsByStatus[s] = 0; for (const f of _cfwsV2.values()) fwsByStatus[f.status]++;
+  const reportsByStatus = {}; for (const s of Object.values(COMPLIANCE_FW_REPORT_LIFECYCLE_V2)) reportsByStatus[s] = 0; for (const r of _cfwReports.values()) reportsByStatus[r.status]++;
+  return { totalComplianceFwsV2: _cfwsV2.size, totalComplianceFwReportsV2: _cfwReports.size, maxActiveComplianceFwsPerOwner: _cfwMaxActivePerOwner, maxPendingComplianceFwReportsPerFw: _cfwMaxPendingReportsPerFw, complianceFwIdleMs: _cfwIdleMs, complianceFwReportStuckMs: _cfwReportStuckMs, fwsByStatus, reportsByStatus };
+}

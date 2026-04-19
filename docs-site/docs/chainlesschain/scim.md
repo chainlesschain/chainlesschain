@@ -470,6 +470,36 @@ const logs = await window.electronAPI.invoke('scim:get-sync-log', {
 
 ---
 
+## 使用示例
+
+```bash
+# 1. 启动 SCIM 2.0 服务（桌面端 IPC 触发）
+# renderer 侧：
+await window.electronAPI.invoke('scim:server:start', { port: 7643, bearerToken: '<token>' })
+
+# 2. 配置 IdP → 让 Azure AD / Okta 将用户/组同步过来
+# IdP 端配置：
+#   Tenant URL: https://<host>:7643/scim/v2
+#   Secret Token: <token>
+
+# 3. 手动双向同步
+await window.electronAPI.invoke('scim:sync:run', { direction: 'pull' })
+await window.electronAPI.invoke('scim:sync:run', { direction: 'push' })
+
+# 4. 冲突解决策略
+await window.electronAPI.invoke('scim:conflict:list')                  # 列出冲突
+await window.electronAPI.invoke('scim:conflict:resolve', {
+  id: '<conflict-id>', strategy: 'prefer-idp'  // or 'prefer-local' / 'merge'
+})
+
+# 5. 查看同步审计
+await window.electronAPI.invoke('scim:audit:list', { limit: 50 })
+```
+
+对应 CLI：`chainlesschain scim status-v2` / `chainlesschain scim gov-stats-v2` 查看 V2 治理层。
+
+---
+
 ## 相关文档
 
 - [企业合规](/chainlesschain/compliance)

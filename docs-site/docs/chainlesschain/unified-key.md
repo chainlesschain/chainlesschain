@@ -472,7 +472,7 @@ const key2 = await window.electronAPI.invoke('ukey:rotate-key', {
 
 ---
 
-## 测试覆盖
+## 测试覆盖率
 
 ### 测试文件
 
@@ -548,6 +548,41 @@ it('parses APDU error status words correctly', async () => {
 | FIDO2 MakeCredential | <500ms | ~400ms |
 | FIDO2 GetAssertion | <300ms | ~250ms |
 | USB APDU 往返 | <100ms | ~80ms |
+
+---
+
+## 使用示例
+
+```javascript
+// 1. BIP-32 派生子密钥（hardened）
+const child = await window.electronAPI.invoke('ukey:bip32:derive', {
+  rootRef: 'master', path: "m/44'/60'/0'/0/0"
+})
+
+// 2. FIDO2 MakeCredential（注册硬件密钥）
+const cred = await window.electronAPI.invoke('ukey:fido2:make-credential', {
+  rp: { id: 'chainlesschain.local', name: 'ChainlessChain' },
+  user: { id: '<uid>', name: 'alice' }, pinProtected: true
+})
+
+// 3. FIDO2 GetAssertion（登录）
+const asrt = await window.electronAPI.invoke('ukey:fido2:get-assertion', {
+  rpId: 'chainlesschain.local', challenge: '<nonce>'
+})
+
+// 4. 跨平台 USB APDU 通信
+await window.electronAPI.invoke('ukey:usb:connect', {
+  vendorId: 0x1050, productId: 0x0407
+})
+const resp = await window.electronAPI.invoke('ukey:usb:send-apdu', {
+  cla: 0x00, ins: 0xA4, p1: 0x04, p2: 0x00, data: '<aid>'
+})
+
+// 5. 驱动注册（第三方 U 盾接入）
+await window.electronAPI.invoke('ukey:driver:register', {
+  name: 'MyVendorDriver', module: '/path/to/driver.js'
+})
+```
 
 ---
 

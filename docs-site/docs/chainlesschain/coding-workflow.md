@@ -911,6 +911,31 @@ mkdir -p .chainlesschain/sessions
 | `desktop-app-vue/builtin-skills/ralph.md` | $ralph 技能定义 |
 | `desktop-app-vue/builtin-skills/team.md` | $team 技能定义 |
 
+## 使用示例
+
+```bash
+# 1. 深度需求澄清（Deep Interview）— AI 主导的多轮问答
+# 输入框输入： $deep-interview 我想做一个跨平台的笔记同步工具
+# → AI 会按 Goal / Clarifications / Non-Goals / Steps / Tradeoffs 五步推进
+
+# 2. 规范化 RALPlan（结构化规划输出）
+# 输入： $ralplan 将现有 markdown 笔记迁移到 SQLCipher 加密存储
+# → 产出按模块拆分的落地计划，含风险点、回滚策略
+
+# 3. Ralph（多角色评审 + 修订循环）
+# 输入： $ralph 对上述 RALPlan 进行 3 轮多视角评审并输出定稿
+
+# 4. Team（轻量多 Agent 编排）
+# 输入： $team "用 TypeScript 实现一个 LRU cache + 单元测试"
+# → 子 runtime 并发分别产出实现、测试、代码审查，汇总到主会话
+
+# 5. CLI 只读巡查
+chainlesschain session workflow list                    # 查看最近的工作流会话
+chainlesschain session workflow show <session-id>       # 查看某次 RALPlan 的完整轨迹
+```
+
+所有工作流技能均走 SKILL.md 契约，可通过 `builtin-skills/*.md` 直接查看/扩展。
+
 ## 相关文档
 
 - 设计文档:`docs/design/modules/80_规范工作流系统.md`

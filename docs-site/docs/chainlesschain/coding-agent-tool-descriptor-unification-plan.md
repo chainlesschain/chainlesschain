@@ -378,7 +378,7 @@ grep -rn "parameters:" desktop-app-vue/src/main/ai-engine/
 - `desktop-app-vue/tests/unit/mcp/mcp-ipc.test.js`
 - `desktop-app-vue/tests/unit/components/MCPSettings.test.js`
 
-## 测试覆盖
+## 测试覆盖率
 
 ### CLI 层
 

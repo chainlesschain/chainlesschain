@@ -446,3 +446,108 @@ export function _resetState() {
     e2eeEnabled: true,
   };
 }
+
+
+// ===== V2 Surface: Matrix Bridge governance overlay (CLI v0.134.0) =====
+export const MX_ROOM_MATURITY_V2 = Object.freeze({
+  PENDING: "pending", ACTIVE: "active", MUTED: "muted", ARCHIVED: "archived",
+});
+export const MX_MESSAGE_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued", SENDING: "sending", DELIVERED: "delivered", FAILED: "failed", CANCELLED: "cancelled",
+});
+
+const _mxRoomTrans = new Map([
+  [MX_ROOM_MATURITY_V2.PENDING, new Set([MX_ROOM_MATURITY_V2.ACTIVE, MX_ROOM_MATURITY_V2.ARCHIVED])],
+  [MX_ROOM_MATURITY_V2.ACTIVE, new Set([MX_ROOM_MATURITY_V2.MUTED, MX_ROOM_MATURITY_V2.ARCHIVED])],
+  [MX_ROOM_MATURITY_V2.MUTED, new Set([MX_ROOM_MATURITY_V2.ACTIVE, MX_ROOM_MATURITY_V2.ARCHIVED])],
+  [MX_ROOM_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _mxRoomTerminal = new Set([MX_ROOM_MATURITY_V2.ARCHIVED]);
+const _mxMsgTrans = new Map([
+  [MX_MESSAGE_LIFECYCLE_V2.QUEUED, new Set([MX_MESSAGE_LIFECYCLE_V2.SENDING, MX_MESSAGE_LIFECYCLE_V2.CANCELLED])],
+  [MX_MESSAGE_LIFECYCLE_V2.SENDING, new Set([MX_MESSAGE_LIFECYCLE_V2.DELIVERED, MX_MESSAGE_LIFECYCLE_V2.FAILED, MX_MESSAGE_LIFECYCLE_V2.CANCELLED])],
+  [MX_MESSAGE_LIFECYCLE_V2.DELIVERED, new Set()],
+  [MX_MESSAGE_LIFECYCLE_V2.FAILED, new Set()],
+  [MX_MESSAGE_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+
+const _mxRooms = new Map();
+const _mxMsgs = new Map();
+let _mxMaxActivePerOwner = 20;
+let _mxMaxPendingPerRoom = 40;
+let _mxRoomIdleMs = 24 * 60 * 60 * 1000;
+let _mxMsgStuckMs = 3 * 60 * 1000;
+
+function _mxPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+
+export function setMaxActiveMatrixRoomsPerOwnerV2(n) { _mxMaxActivePerOwner = _mxPos(n, "maxActiveMatrixRoomsPerOwner"); }
+export function getMaxActiveMatrixRoomsPerOwnerV2() { return _mxMaxActivePerOwner; }
+export function setMaxPendingMatrixMessagesPerRoomV2(n) { _mxMaxPendingPerRoom = _mxPos(n, "maxPendingMatrixMessagesPerRoom"); }
+export function getMaxPendingMatrixMessagesPerRoomV2() { return _mxMaxPendingPerRoom; }
+export function setMatrixRoomIdleMsV2(n) { _mxRoomIdleMs = _mxPos(n, "matrixRoomIdleMs"); }
+export function getMatrixRoomIdleMsV2() { return _mxRoomIdleMs; }
+export function setMatrixMessageStuckMsV2(n) { _mxMsgStuckMs = _mxPos(n, "matrixMessageStuckMs"); }
+export function getMatrixMessageStuckMsV2() { return _mxMsgStuckMs; }
+
+export function _resetStateMatrixBridgeV2() {
+  _mxRooms.clear(); _mxMsgs.clear();
+  _mxMaxActivePerOwner = 20; _mxMaxPendingPerRoom = 40;
+  _mxRoomIdleMs = 24 * 60 * 60 * 1000; _mxMsgStuckMs = 3 * 60 * 1000;
+}
+
+export function registerMatrixRoomV2({ id, owner, alias, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!owner || typeof owner !== "string") throw new Error("owner is required");
+  if (_mxRooms.has(id)) throw new Error(`matrix room ${id} already registered`);
+  const now = Date.now();
+  const r = { id, owner, alias: alias || id, status: MX_ROOM_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, archivedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  _mxRooms.set(id, r);
+  return { ...r, metadata: { ...r.metadata } };
+}
+function _mxCheckR(from, to) { const a = _mxRoomTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid matrix room transition ${from} → ${to}`); }
+function _mxCountActive(owner) { let n = 0; for (const r of _mxRooms.values()) if (r.owner === owner && r.status === MX_ROOM_MATURITY_V2.ACTIVE) n++; return n; }
+
+export function activateMatrixRoomV2(id) {
+  const r = _mxRooms.get(id); if (!r) throw new Error(`matrix room ${id} not found`);
+  _mxCheckR(r.status, MX_ROOM_MATURITY_V2.ACTIVE);
+  const recovery = r.status === MX_ROOM_MATURITY_V2.MUTED;
+  if (!recovery) { const a = _mxCountActive(r.owner); if (a >= _mxMaxActivePerOwner) throw new Error(`max active matrix rooms per owner (${_mxMaxActivePerOwner}) reached for ${r.owner}`); }
+  const now = Date.now(); r.status = MX_ROOM_MATURITY_V2.ACTIVE; r.updatedAt = now; r.lastTouchedAt = now; if (!r.activatedAt) r.activatedAt = now;
+  return { ...r, metadata: { ...r.metadata } };
+}
+export function muteMatrixRoomV2(id) { const r = _mxRooms.get(id); if (!r) throw new Error(`matrix room ${id} not found`); _mxCheckR(r.status, MX_ROOM_MATURITY_V2.MUTED); r.status = MX_ROOM_MATURITY_V2.MUTED; r.updatedAt = Date.now(); return { ...r, metadata: { ...r.metadata } }; }
+export function archiveMatrixRoomV2(id) { const r = _mxRooms.get(id); if (!r) throw new Error(`matrix room ${id} not found`); _mxCheckR(r.status, MX_ROOM_MATURITY_V2.ARCHIVED); const now = Date.now(); r.status = MX_ROOM_MATURITY_V2.ARCHIVED; r.updatedAt = now; if (!r.archivedAt) r.archivedAt = now; return { ...r, metadata: { ...r.metadata } }; }
+export function touchMatrixRoomV2(id) { const r = _mxRooms.get(id); if (!r) throw new Error(`matrix room ${id} not found`); if (_mxRoomTerminal.has(r.status)) throw new Error(`cannot touch terminal matrix room ${id}`); const now = Date.now(); r.lastTouchedAt = now; r.updatedAt = now; return { ...r, metadata: { ...r.metadata } }; }
+export function getMatrixRoomV2(id) { const r = _mxRooms.get(id); if (!r) return null; return { ...r, metadata: { ...r.metadata } }; }
+export function listMatrixRoomsV2() { return [..._mxRooms.values()].map((r) => ({ ...r, metadata: { ...r.metadata } })); }
+
+function _mxCountPending(rid) { let n = 0; for (const m of _mxMsgs.values()) if (m.roomId === rid && (m.status === MX_MESSAGE_LIFECYCLE_V2.QUEUED || m.status === MX_MESSAGE_LIFECYCLE_V2.SENDING)) n++; return n; }
+
+export function createMatrixMessageV2({ id, roomId, body, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!roomId || typeof roomId !== "string") throw new Error("roomId is required");
+  if (_mxMsgs.has(id)) throw new Error(`matrix message ${id} already exists`);
+  if (!_mxRooms.has(roomId)) throw new Error(`matrix room ${roomId} not found`);
+  const pending = _mxCountPending(roomId);
+  if (pending >= _mxMaxPendingPerRoom) throw new Error(`max pending matrix messages per room (${_mxMaxPendingPerRoom}) reached for ${roomId}`);
+  const now = Date.now();
+  const m = { id, roomId, body: body || "", status: MX_MESSAGE_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  _mxMsgs.set(id, m);
+  return { ...m, metadata: { ...m.metadata } };
+}
+function _mxCheckM(from, to) { const a = _mxMsgTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid matrix message transition ${from} → ${to}`); }
+export function startMatrixMessageV2(id) { const m = _mxMsgs.get(id); if (!m) throw new Error(`matrix message ${id} not found`); _mxCheckM(m.status, MX_MESSAGE_LIFECYCLE_V2.SENDING); const now = Date.now(); m.status = MX_MESSAGE_LIFECYCLE_V2.SENDING; m.updatedAt = now; if (!m.startedAt) m.startedAt = now; return { ...m, metadata: { ...m.metadata } }; }
+export function deliverMatrixMessageV2(id) { const m = _mxMsgs.get(id); if (!m) throw new Error(`matrix message ${id} not found`); _mxCheckM(m.status, MX_MESSAGE_LIFECYCLE_V2.DELIVERED); const now = Date.now(); m.status = MX_MESSAGE_LIFECYCLE_V2.DELIVERED; m.updatedAt = now; if (!m.settledAt) m.settledAt = now; return { ...m, metadata: { ...m.metadata } }; }
+export function failMatrixMessageV2(id, reason) { const m = _mxMsgs.get(id); if (!m) throw new Error(`matrix message ${id} not found`); _mxCheckM(m.status, MX_MESSAGE_LIFECYCLE_V2.FAILED); const now = Date.now(); m.status = MX_MESSAGE_LIFECYCLE_V2.FAILED; m.updatedAt = now; if (!m.settledAt) m.settledAt = now; if (reason) m.metadata.failReason = String(reason); return { ...m, metadata: { ...m.metadata } }; }
+export function cancelMatrixMessageV2(id, reason) { const m = _mxMsgs.get(id); if (!m) throw new Error(`matrix message ${id} not found`); _mxCheckM(m.status, MX_MESSAGE_LIFECYCLE_V2.CANCELLED); const now = Date.now(); m.status = MX_MESSAGE_LIFECYCLE_V2.CANCELLED; m.updatedAt = now; if (!m.settledAt) m.settledAt = now; if (reason) m.metadata.cancelReason = String(reason); return { ...m, metadata: { ...m.metadata } }; }
+export function getMatrixMessageV2(id) { const m = _mxMsgs.get(id); if (!m) return null; return { ...m, metadata: { ...m.metadata } }; }
+export function listMatrixMessagesV2() { return [..._mxMsgs.values()].map((m) => ({ ...m, metadata: { ...m.metadata } })); }
+
+export function autoMuteIdleMatrixRoomsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const r of _mxRooms.values()) if (r.status === MX_ROOM_MATURITY_V2.ACTIVE && (t - r.lastTouchedAt) >= _mxRoomIdleMs) { r.status = MX_ROOM_MATURITY_V2.MUTED; r.updatedAt = t; flipped.push(r.id); } return { flipped, count: flipped.length }; }
+export function autoFailStuckMatrixMessagesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const m of _mxMsgs.values()) if (m.status === MX_MESSAGE_LIFECYCLE_V2.SENDING && m.startedAt != null && (t - m.startedAt) >= _mxMsgStuckMs) { m.status = MX_MESSAGE_LIFECYCLE_V2.FAILED; m.updatedAt = t; if (!m.settledAt) m.settledAt = t; m.metadata.failReason = "auto-fail-stuck"; flipped.push(m.id); } return { flipped, count: flipped.length }; }
+
+export function getMatrixBridgeStatsV2() {
+  const roomsByStatus = {}; for (const s of Object.values(MX_ROOM_MATURITY_V2)) roomsByStatus[s] = 0; for (const r of _mxRooms.values()) roomsByStatus[r.status]++;
+  const msgsByStatus = {}; for (const s of Object.values(MX_MESSAGE_LIFECYCLE_V2)) msgsByStatus[s] = 0; for (const m of _mxMsgs.values()) msgsByStatus[m.status]++;
+  return { totalRoomsV2: _mxRooms.size, totalMessagesV2: _mxMsgs.size, maxActiveMatrixRoomsPerOwner: _mxMaxActivePerOwner, maxPendingMatrixMessagesPerRoom: _mxMaxPendingPerRoom, matrixRoomIdleMs: _mxRoomIdleMs, matrixMessageStuckMs: _mxMsgStuckMs, roomsByStatus, msgsByStatus };
+}

@@ -7,12 +7,12 @@ PASS = "WWW@chain"
 DEPLOYS = [
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.2.10-20260418-1020.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.2.34-20260419-0950.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.2.10-20260418-1020.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.2.34-20260419-0925.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
 ]
@@ -51,6 +51,8 @@ for d in DEPLOYS:
     run(f"rm -rf {staging}")
     run(f"mkdir -p {staging}")
     run(f"tar -xzf {tar_remote} -C {staging}")
+    # flatten if tar wrapped contents in a single dist/ dir
+    run(f"if [ -d {staging}/dist ] && [ $(ls {staging} | wc -l) -eq 1 ]; then shopt -s dotglob; mv {staging}/dist/* {staging}/ && rmdir {staging}/dist; fi")
     # atomic swap
     run(f"if [ -d {remote_dir} ]; then mv {remote_dir} {backup}; fi")
     run(f"mv {staging} {remote_dir}")

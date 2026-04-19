@@ -117,6 +117,43 @@ chainlesschain stream "分析代码" --base-url http://localhost:8080/v1
 | `packages/cli/src/lib/session-core-singletons.js` | StreamRouter 单例工厂 |
 | `packages/cli/src/lib/config-manager.js` | 配置加载 |
 
+## 配置参考
+
+| 配置项 | 含义 | 默认 |
+| ------ | ---- | ---- |
+| `--provider` | LLM 提供商 | `ollama` |
+| `--model` | 模型名 | 由 provider 决定 |
+| `--base-url` | 自定义网关 | 依赖 `.env` |
+| `--text` | 仅输出文本（关闭 NDJSON） | false |
+| `--max-tokens` | 最大生成 token | 2048 |
+| `--temperature` | 采样温度 | 0.7 |
+
+事件流格式：每行一个 JSON（`{"delta": "..."}` / `{"done": true, "usage": {...}}`）。
+
+## 性能指标
+
+| 指标 | 典型值 | 备注 |
+| ---- | ------ | ---- |
+| 首 token 延迟 | 依赖 provider | Ollama 本地 300–600 ms |
+| token 吞吐 | 依赖模型 | 7B 量化 ~30–80 tok/s |
+| CLI 解析开销 | < 10 ms | Commander + singleton 工厂 |
+| 管道背压 | 原生 stdout | NDJSON 行对齐便于 `jq -c` |
+
+## 测试覆盖率
+
+```
+__tests__/unit/stream-command.test.js — 3 tests
+```
+
+主要覆盖命令注册与 `--text` / NDJSON 两种输出路径；provider 行为由 `provider-options.test.js` / mock-provider 覆盖。
+
+## 安全考虑
+
+1. **Prompt 注入**：流式输出不对上游内容做过滤，CLI 仅负责透传；敏感场景请包裹 `session policy` 审批
+2. **凭据隔离**：`--base-url` 指向的自建网关 API Key 走环境变量（`PROVIDER_API_KEY`），勿硬编码
+3. **长任务 Ctrl-C**：CLI 会向 provider 发送 cancel；若网关不支持可能产生后台计费，需网关侧兜底
+4. **日志**：默认不回写 stream 明文到 SQLite（避免敏感泄漏）；需审计请显式使用 `cc session record`
+
 ## 使用示例
 
 ### 场景 1：本地 Ollama 流式输出

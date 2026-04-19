@@ -206,3 +206,57 @@ chainlesschain governance stats --json
 |------|------|
 | `packages/cli/src/commands/governance.js` | governance 命令主入口 (Phase 54) |
 | `packages/cli/src/lib/community-governance.js` | 提案 CRUD、投票计票、影响分析、预测、统计核心实现 |
+
+## 测试覆盖率
+
+```
+__tests__/unit/community-governance.test.js — 117 tests
+```
+
+覆盖：4 种提案类型、activate/close/expire 生命周期、vote/tally 法定人数与通过阈值、influence analyze、trend predict、统计面板。
+
+## 安全考虑
+
+1. **提案者身份**：`-p <did>` 建议绑定 DID，上游验签；CLI 层只存不验
+2. **投票一人一票**：以 DID 去重；同 DID 重复 `vote` 视为更新而非追加
+3. **法定人数**：`--quorum`/`--threshold` 默认保守（0.5/0.67），业务侧可调
+4. **过期保护**：`activate` 后超期自动转 `expired`，避免悬挂
+5. **分析/预测为启发式**：`analyze` / `predict` 结果仅供参考，关键决策需人工复核
+
+## 故障排查
+
+| 症状 | 可能原因 | 解决方案 |
+|------|---------|---------|
+| `activate` 失败 | 提案非 draft | `proposal show <id>` 查看状态 |
+| `vote` 被拒 | 提案非 active | 先 `activate` |
+| `tally` 未通过 | quorum/threshold 不达标 | 检查参数或延长投票期 |
+| `predict` 数据不足 | 历史提案 < 10 | 等累计更多数据 |
+
+## 使用示例
+
+```bash
+# 1. 创建并激活提案
+pid=$(cc governance create "调高区块 gas 上限" -t parameter_change \
+  -p did:key:z6Mk... --json | jq -r .id)
+cc governance activate $pid -d 604800000   # 7 天
+
+# 2. 投票
+cc governance vote $pid did:key:A approve
+cc governance vote $pid did:key:B reject
+cc governance votes $pid
+
+# 3. 计票与分析
+cc governance tally $pid -q 0.5 -t 0.67 -n 100
+cc governance analyze $pid
+cc governance predict $pid
+
+# 4. 统计面板
+cc governance stats --json
+```
+
+## 相关文档
+
+- [DAO Governance](./cli-dao)
+- [Collaboration Governance](./cli-collab)
+- [合规管理](./cli-compliance)
+- 设计文档：`docs/design/modules/73_社区治理系统.md`

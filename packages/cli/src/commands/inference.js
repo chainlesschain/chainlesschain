@@ -619,4 +619,46 @@ export function registerInferenceCommand(program) {
     });
 
   program.addCommand(inf);
+
+  _registerInferenceGovV2(inf);
+}
+
+
+import {
+  INFERENCE_NODE_MATURITY_V2, INFERENCE_JOB_LIFECYCLE_V2,
+  setMaxActiveInferenceNodesPerOperatorV2, setMaxPendingInferenceJobsPerNodeV2, setInferenceNodeIdleMsV2, setInferenceJobStuckMsV2,
+  registerInferenceNodeV2, activateInferenceNodeV2, degradeInferenceNodeV2, decommissionInferenceNodeV2, touchInferenceNodeV2, getInferenceNodeV2, listInferenceNodesV2,
+  createInferenceJobV2, startInferenceJobV2, completeInferenceJobV2, failInferenceJobV2, cancelInferenceJobV2, getInferenceJobV2, listInferenceJobsV2,
+  autoDegradeIdleInferenceNodesV2, autoFailStuckInferenceJobsV2, getInferenceNetworkGovStatsV2,
+} from "../lib/inference-network.js";
+
+function _registerInferenceGovV2(parent) {
+  parent.command("enums-v2").description("List Inference Network V2 enums").option("--json", "JSON").action((opts) => {
+    const out = { nodeMaturity: INFERENCE_NODE_MATURITY_V2, jobLifecycle: INFERENCE_JOB_LIFECYCLE_V2 };
+    if (opts.json) console.log(JSON.stringify(out, null, 2)); else console.log(out);
+  });
+  parent.command("config-set-v2").description("Set Inference V2 caps/thresholds").option("--max-active <n>", "max active nodes per operator").option("--max-pending <n>", "max pending jobs per node").option("--idle-ms <n>", "node idle ms").option("--stuck-ms <n>", "job stuck ms").action((opts) => {
+    if (opts.maxActive) setMaxActiveInferenceNodesPerOperatorV2(parseInt(opts.maxActive, 10));
+    if (opts.maxPending) setMaxPendingInferenceJobsPerNodeV2(parseInt(opts.maxPending, 10));
+    if (opts.idleMs) setInferenceNodeIdleMsV2(parseInt(opts.idleMs, 10));
+    if (opts.stuckMs) setInferenceJobStuckMsV2(parseInt(opts.stuckMs, 10));
+    console.log("ok");
+  });
+  parent.command("register-node-v2 <id>").description("Register Inference V2 node").requiredOption("--operator <op>", "operator").option("--model <m>", "model").action((id, opts) => { console.log(registerInferenceNodeV2({ id, operator: opts.operator, model: opts.model })); });
+  parent.command("activate-node-v2 <id>").description("Activate Inference V2 node").action((id) => { console.log(activateInferenceNodeV2(id)); });
+  parent.command("degrade-node-v2 <id>").description("Degrade Inference V2 node").action((id) => { console.log(degradeInferenceNodeV2(id)); });
+  parent.command("decommission-node-v2 <id>").description("Decommission Inference V2 node").action((id) => { console.log(decommissionInferenceNodeV2(id)); });
+  parent.command("touch-node-v2 <id>").description("Touch Inference V2 node").action((id) => { console.log(touchInferenceNodeV2(id)); });
+  parent.command("get-node-v2 <id>").description("Get Inference V2 node").action((id) => { console.log(getInferenceNodeV2(id)); });
+  parent.command("list-nodes-v2").description("List Inference V2 nodes").action(() => { console.log(listInferenceNodesV2()); });
+  parent.command("create-job-v2 <id>").description("Create Inference V2 job").requiredOption("--node-id <nid>", "node id").option("--prompt <p>", "prompt").action((id, opts) => { console.log(createInferenceJobV2({ id, nodeId: opts.nodeId, prompt: opts.prompt })); });
+  parent.command("start-job-v2 <id>").description("Start Inference V2 job").action((id) => { console.log(startInferenceJobV2(id)); });
+  parent.command("complete-job-v2 <id>").description("Complete Inference V2 job").action((id) => { console.log(completeInferenceJobV2(id)); });
+  parent.command("fail-job-v2 <id>").description("Fail Inference V2 job").option("--reason <r>", "reason").action((id, opts) => { console.log(failInferenceJobV2(id, opts.reason)); });
+  parent.command("cancel-job-v2 <id>").description("Cancel Inference V2 job").option("--reason <r>", "reason").action((id, opts) => { console.log(cancelInferenceJobV2(id, opts.reason)); });
+  parent.command("get-job-v2 <id>").description("Get Inference V2 job").action((id) => { console.log(getInferenceJobV2(id)); });
+  parent.command("list-jobs-v2").description("List Inference V2 jobs").action(() => { console.log(listInferenceJobsV2()); });
+  parent.command("auto-degrade-nodes-v2").description("Auto-degrade idle Inference V2 nodes").action(() => { console.log(autoDegradeIdleInferenceNodesV2()); });
+  parent.command("auto-fail-jobs-v2").description("Auto-fail stuck Inference V2 jobs").action(() => { console.log(autoFailStuckInferenceJobsV2()); });
+  parent.command("gov-stats-v2").description("Inference V2 governance stats").option("--json", "JSON").action((opts) => { const s = getInferenceNetworkGovStatsV2(); if (opts.json) console.log(JSON.stringify(s, null, 2)); else console.log(s); });
 }

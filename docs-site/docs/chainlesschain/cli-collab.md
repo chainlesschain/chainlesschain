@@ -253,3 +253,56 @@ cc collab stats-v2                            # 全枚举零初始化统计
 
 测试：`__tests__/unit/collaboration-governance.test.js` 98 用例全部通过。
 
+## 测试覆盖率
+
+```
+__tests__/unit/collaboration-governance.test.js — 98 tests
+```
+
+覆盖：Agent 注册/技能清单、自治等级 (0–4) 提升与降级、propose → vote → tally 全路径、基于 DID 权重的计票、task 优化器、审批流。
+V2 surface：37 V2 tests（见 `collaboration_governance_v2_cli.md`）。
+
+## 安全考虑
+
+1. **DID 签名**：`vote` / `propose` 建议叠加 DID 签名（CLI 层仅记录，gateway 层验签）
+2. **Sybil 防护**：`max-active-agents-per-realm` + 自治等级准入可缓解刷票
+3. **投票窗口**：`voting` 状态超过 `proposal-stuck-ms` 自动 `withdraw`，避免悬挂
+4. **权限最小化**：自治等级默认 `L1`，升级到 `L3/L4` 需 `set-level` 并记录原因
+5. **V2 pending cap**：`stats-v2` 查看 per-proposer voting 计数，避免单人并发过多
+
+## 故障排查
+
+| 症状 | 可能原因 | 解决方案 |
+|------|---------|---------|
+| `vote` 被拒 | proposal 非 voting 状态 | `proposal-v2 <id>` 看当前状态 |
+| `tally` 结果异常 | 投票权重未生效 | 核对 agent maturity，`suspended` 不计权重 |
+| `optimize` 无分配 | 技能匹配过严 | 放宽技能约束或降低阈值 |
+| V2 createProposalV2 cap | per-proposer voting 已满 | 先 `approve/reject/withdraw` 现有提案 |
+
+## 使用示例
+
+```bash
+# 1. 注册 Agent 并升级自治等级
+cc collab register-agent a1 -r realm1 --role reviewer
+cc collab set-level a1 3 -r "完成 50 次合规审阅"
+
+# 2. 提案 → 投票 → 计票
+pid=$(cc collab propose "允许自动合并热修复" -p a1 -t policy --json | jq -r .id)
+cc collab start-voting $pid
+cc collab vote $pid a1 approve
+cc collab vote $pid a2 approve
+cc collab tally $pid
+
+# 3. V2 治理
+cc collab register-agent-cg-v2 a1 -r realm1 --role reviewer
+cc collab create-proposal-v2 $pid -p a1 -t policy
+cc collab stats-v2
+```
+
+## 相关文档
+
+- [DAO Governance (cli-dao)](./cli-dao)
+- [合规与 UEBA (cli-compliance)](./cli-compliance)
+- [V2 设计文档](/chainlesschain/collaboration_governance_v2_cli)
+- 设计文档：`docs/design/modules/76_协作治理系统.md`
+

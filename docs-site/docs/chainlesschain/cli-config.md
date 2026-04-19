@@ -305,7 +305,7 @@ chainlesschain config reset
 - `packages/session-core/lib/beta-flags.js`
 - `packages/session-core/lib/file-adapters.js`
 
-## 测试覆盖
+## 测试覆盖率
 
 本轮已补齐并通过：
 

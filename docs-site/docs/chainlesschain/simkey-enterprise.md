@@ -1155,6 +1155,38 @@ module.exports = {
 8. **ZKP 证明不可伪造**: 零知识证明与 SIMKey 硬件签名绑定，任何人无法替他人生成证明
 9. **合规审计**: 所有企业级操作保留 7 年审计日志，满足金融监管要求
 
+## 使用示例
+
+```javascript
+// 1. eSIM OTA 远程密钥下发
+await window.electronAPI.invoke('simkey:esim:provision', {
+  carrier: 'china-mobile', profileUrl: 'lpa://...' })
+
+// 2. TEE 签名（私钥不出安全区）
+const sig = await window.electronAPI.invoke('simkey:tee:sign', {
+  keyRef: 'corp-root', hash: '0x...' })
+
+// 3. 跨运营商漫游
+await window.electronAPI.invoke('simkey:roaming:enable', {
+  allowedCarriers: ['china-mobile', 'china-unicom'],
+  signatureLimitPerHour: 10
+})
+
+// 4. SIMKey ZKP 年龄证明（不泄漏生日）
+const proof = await window.electronAPI.invoke('simkey:zkp:prove', {
+  statement: 'age>=18', privateInputs: { birthday: '1990-01-01' } })
+
+// 5. HSM 多人审批大额签名
+await window.electronAPI.invoke('simkey:hsm:request-sign', {
+  amount: 1_000_000, requiredApprovers: 3, approverGroups: ['finance', 'risk'] })
+
+// 6. 卫星链路（天通一号）
+await window.electronAPI.invoke('simkey:satellite:send', {
+  kind: 'beidou-short-msg', text: 'emergency-ack' })
+```
+
+企业部署请先在 `admin` 后台配置 HSM Cluster、审批人组与漫游白名单，再通过 IPC 调用。
+
 ## 相关文档
 
 - [SIMKey 基础指南](/chainlesschain/simkey) — 初次设置、日常使用、备份恢复

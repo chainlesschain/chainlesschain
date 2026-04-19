@@ -212,4 +212,49 @@ export function registerGitCommand(program) {
         process.exit(1);
       }
     });
+
+  _registerGitV2(git);
+}
+
+
+import {
+  GIT_REPO_MATURITY_V2, GIT_COMMIT_LIFECYCLE_V2,
+  setMaxActiveGitReposPerOwnerV2, setMaxPendingGitCommitsPerRepoV2, setGitRepoIdleMsV2, setGitCommitStuckMsV2,
+  registerGitRepoV2, activateGitRepoV2, archiveGitRepoV2, decommissionGitRepoV2, touchGitRepoV2, getGitRepoV2, listGitReposV2,
+  createGitCommitV2, startGitCommitV2, commitGitCommitV2, failGitCommitV2, cancelGitCommitV2, getGitCommitV2, listGitCommitsV2,
+  autoArchiveIdleGitReposV2, autoFailStuckGitCommitsV2, getGitIntegrationGovStatsV2,
+} from "../lib/git-integration.js";
+
+function _registerGitV2(parent) {
+  parent.command("enums-v2").description("List Git V2 enums").option("--json", "JSON").action((opts) => {
+    const out = { repoMaturity: GIT_REPO_MATURITY_V2, commitLifecycle: GIT_COMMIT_LIFECYCLE_V2 };
+    if (opts.json) console.log(JSON.stringify(out, null, 2)); else console.log(out);
+  });
+  parent.command("config-set-v2").description("Set Git V2 caps/thresholds").option("--max-active <n>", "max active repos per owner").option("--max-pending <n>", "max pending commits per repo").option("--idle-ms <n>", "repo idle ms").option("--stuck-ms <n>", "commit stuck ms").action((opts) => {
+    if (opts.maxActive) setMaxActiveGitReposPerOwnerV2(parseInt(opts.maxActive, 10));
+    if (opts.maxPending) setMaxPendingGitCommitsPerRepoV2(parseInt(opts.maxPending, 10));
+    if (opts.idleMs) setGitRepoIdleMsV2(parseInt(opts.idleMs, 10));
+    if (opts.stuckMs) setGitCommitStuckMsV2(parseInt(opts.stuckMs, 10));
+    console.log("ok");
+  });
+  parent.command("register-repo-v2 <id>").description("Register Git V2 repo").requiredOption("--owner <owner>", "owner").option("--branch <branch>", "branch").option("--json", "JSON").action((id, opts) => {
+    const r = registerGitRepoV2({ id, owner: opts.owner, branch: opts.branch });
+    if (opts.json) console.log(JSON.stringify(r, null, 2)); else console.log(r);
+  });
+  parent.command("activate-repo-v2 <id>").description("Activate Git V2 repo").action((id) => { console.log(activateGitRepoV2(id)); });
+  parent.command("archive-repo-v2 <id>").description("Archive Git V2 repo").action((id) => { console.log(archiveGitRepoV2(id)); });
+  parent.command("decommission-repo-v2 <id>").description("Decommission Git V2 repo").action((id) => { console.log(decommissionGitRepoV2(id)); });
+  parent.command("touch-repo-v2 <id>").description("Touch Git V2 repo").action((id) => { console.log(touchGitRepoV2(id)); });
+  parent.command("get-repo-v2 <id>").description("Get Git V2 repo").option("--json", "JSON").action((id, opts) => { const r = getGitRepoV2(id); if (opts.json) console.log(JSON.stringify(r, null, 2)); else console.log(r); });
+  parent.command("list-repos-v2").description("List Git V2 repos").option("--json", "JSON").action((opts) => { const r = listGitReposV2(); if (opts.json) console.log(JSON.stringify(r, null, 2)); else console.log(r); });
+  parent.command("create-commit-v2 <id>").description("Create Git V2 commit").requiredOption("--repo-id <repoId>", "repo id").option("--message <msg>", "commit message").action((id, opts) => { console.log(createGitCommitV2({ id, repoId: opts.repoId, message: opts.message })); });
+  parent.command("start-commit-v2 <id>").description("Start Git V2 commit").action((id) => { console.log(startGitCommitV2(id)); });
+  parent.command("commit-commit-v2 <id>").description("Commit Git V2 commit").action((id) => { console.log(commitGitCommitV2(id)); });
+  parent.command("fail-commit-v2 <id>").description("Fail Git V2 commit").option("--reason <r>", "reason").action((id, opts) => { console.log(failGitCommitV2(id, opts.reason)); });
+  parent.command("cancel-commit-v2 <id>").description("Cancel Git V2 commit").option("--reason <r>", "reason").action((id, opts) => { console.log(cancelGitCommitV2(id, opts.reason)); });
+  parent.command("get-commit-v2 <id>").description("Get Git V2 commit").action((id) => { console.log(getGitCommitV2(id)); });
+  parent.command("list-commits-v2").description("List Git V2 commits").action(() => { console.log(listGitCommitsV2()); });
+  parent.command("auto-archive-repos-v2").description("Auto-archive idle Git V2 repos").action(() => { console.log(autoArchiveIdleGitReposV2()); });
+  parent.command("auto-fail-commits-v2").description("Auto-fail stuck Git V2 commits").action(() => { console.log(autoFailStuckGitCommitsV2()); });
+  parent.command("gov-stats-v2").description("Git V2 governance stats").option("--json", "JSON").action((opts) => { const s = getGitIntegrationGovStatsV2(); if (opts.json) console.log(JSON.stringify(s, null, 2)); else console.log(s); });
 }

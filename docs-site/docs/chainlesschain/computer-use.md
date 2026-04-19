@@ -1188,6 +1188,40 @@ cd desktop-app-vue && npx vitest run tests/unit/browser/vision-action.test.js
 7. **网络隔离**: 桌面操作可能触及敏感应用，建议在独立用户会话中执行自动化任务
 8. **权限最小化**: 为不同自动化任务配置最小必要的操作权限集合
 
+## 使用示例
+
+```javascript
+// 1. 坐标操作：点击屏幕 (500, 300)
+await window.electronAPI.invoke('computer-use:coord:click', { x: 500, y: 300 })
+
+// 2. 视觉查找目标按钮（OCR + 图像匹配）后点击
+const match = await window.electronAPI.invoke('computer-use:vision:find', {
+  template: 'submit-button.png',
+  threshold: 0.9
+})
+if (match) {
+  await window.electronAPI.invoke('computer-use:coord:click', match.center)
+}
+
+// 3. 桌面级：打开记事本并录入文字
+await window.electronAPI.invoke('computer-use:desktop:launch', { app: 'notepad.exe' })
+await window.electronAPI.invoke('computer-use:desktop:type', { text: 'Hello from AI' })
+
+// 4. 工作流：录制动作并回放
+const rec = await window.electronAPI.invoke('computer-use:recorder:start')
+// ... 用户手工演示 ...
+await window.electronAPI.invoke('computer-use:recorder:stop', { id: rec.id })
+await window.electronAPI.invoke('computer-use:replay:run', { id: rec.id })
+
+// 5. SafeMode：为敏感操作加入确认
+await window.electronAPI.invoke('computer-use:safemode:enable', {
+  blockedRegions: [{ x: 0, y: 0, w: 1920, h: 40 }], // 任务栏
+  confirmRequired: ['desktop:launch', 'desktop:type']
+})
+```
+
+所有操作自动写入审计日志，可在 `AuditLogger` 面板逐条回放。
+
 ## 相关文档
 
 - [浏览器自动化](/chainlesschain/browser-automation) - Puppeteer 引擎网页自动化

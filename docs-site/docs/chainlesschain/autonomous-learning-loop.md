@@ -503,7 +503,7 @@ chainlesschain learning trajectories --session sess_20260416_001
 
 > 所有文件路径相对于 `packages/cli/`
 
-## 测试覆盖
+## 测试覆盖率
 
 | 文件 | 类型 | 测试数 |
 | --- | --- | --- |

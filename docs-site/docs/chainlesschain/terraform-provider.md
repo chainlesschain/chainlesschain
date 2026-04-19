@@ -447,7 +447,7 @@ runs.forEach(r => console.log(`[${r.runType}] ${r.status} - ${r.message}`));
 
 ---
 
-## 测试覆盖
+## 测试覆盖率
 
 ### 测试文件
 

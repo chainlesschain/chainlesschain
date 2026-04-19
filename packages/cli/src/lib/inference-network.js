@@ -735,3 +735,108 @@ export function getInferenceStatsV2() {
     avgDurationMs: durCount > 0 ? Math.round(durSum / durCount) : 0,
   };
 }
+
+
+// ===== V2 Surface: Inference Network governance overlay (CLI v0.139.0) =====
+export const INFERENCE_NODE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending", ACTIVE: "active", DEGRADED: "degraded", DECOMMISSIONED: "decommissioned",
+});
+export const INFERENCE_JOB_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued", RUNNING: "running", COMPLETED: "completed", FAILED: "failed", CANCELLED: "cancelled",
+});
+
+const _inTrans = new Map([
+  [INFERENCE_NODE_MATURITY_V2.PENDING, new Set([INFERENCE_NODE_MATURITY_V2.ACTIVE, INFERENCE_NODE_MATURITY_V2.DECOMMISSIONED])],
+  [INFERENCE_NODE_MATURITY_V2.ACTIVE, new Set([INFERENCE_NODE_MATURITY_V2.DEGRADED, INFERENCE_NODE_MATURITY_V2.DECOMMISSIONED])],
+  [INFERENCE_NODE_MATURITY_V2.DEGRADED, new Set([INFERENCE_NODE_MATURITY_V2.ACTIVE, INFERENCE_NODE_MATURITY_V2.DECOMMISSIONED])],
+  [INFERENCE_NODE_MATURITY_V2.DECOMMISSIONED, new Set()],
+]);
+const _inTerminal = new Set([INFERENCE_NODE_MATURITY_V2.DECOMMISSIONED]);
+const _ijTrans = new Map([
+  [INFERENCE_JOB_LIFECYCLE_V2.QUEUED, new Set([INFERENCE_JOB_LIFECYCLE_V2.RUNNING, INFERENCE_JOB_LIFECYCLE_V2.CANCELLED])],
+  [INFERENCE_JOB_LIFECYCLE_V2.RUNNING, new Set([INFERENCE_JOB_LIFECYCLE_V2.COMPLETED, INFERENCE_JOB_LIFECYCLE_V2.FAILED, INFERENCE_JOB_LIFECYCLE_V2.CANCELLED])],
+  [INFERENCE_JOB_LIFECYCLE_V2.COMPLETED, new Set()],
+  [INFERENCE_JOB_LIFECYCLE_V2.FAILED, new Set()],
+  [INFERENCE_JOB_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+
+const _innV2 = new Map();
+const _ijsV2 = new Map();
+let _inMaxActivePerOperator = 12;
+let _inMaxPendingJobsPerNode = 25;
+let _inIdleMs = 24 * 60 * 60 * 1000;
+let _ijStuckMs = 10 * 60 * 1000;
+
+function _inPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+
+export function setMaxActiveInferenceNodesPerOperatorV2(n) { _inMaxActivePerOperator = _inPos(n, "maxActiveInferenceNodesPerOperator"); }
+export function getMaxActiveInferenceNodesPerOperatorV2() { return _inMaxActivePerOperator; }
+export function setMaxPendingInferenceJobsPerNodeV2(n) { _inMaxPendingJobsPerNode = _inPos(n, "maxPendingInferenceJobsPerNode"); }
+export function getMaxPendingInferenceJobsPerNodeV2() { return _inMaxPendingJobsPerNode; }
+export function setInferenceNodeIdleMsV2(n) { _inIdleMs = _inPos(n, "inferenceNodeIdleMs"); }
+export function getInferenceNodeIdleMsV2() { return _inIdleMs; }
+export function setInferenceJobStuckMsV2(n) { _ijStuckMs = _inPos(n, "inferenceJobStuckMs"); }
+export function getInferenceJobStuckMsV2() { return _ijStuckMs; }
+
+export function _resetStateInferenceNetworkV2() {
+  _innV2.clear(); _ijsV2.clear();
+  _inMaxActivePerOperator = 12; _inMaxPendingJobsPerNode = 25;
+  _inIdleMs = 24 * 60 * 60 * 1000; _ijStuckMs = 10 * 60 * 1000;
+}
+
+export function registerInferenceNodeV2({ id, operator, model, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!operator || typeof operator !== "string") throw new Error("operator is required");
+  if (_innV2.has(id)) throw new Error(`inference node ${id} already registered`);
+  const now = Date.now();
+  const n = { id, operator, model: model || "default", status: INFERENCE_NODE_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, decommissionedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  _innV2.set(id, n);
+  return { ...n, metadata: { ...n.metadata } };
+}
+function _inCheckN(from, to) { const a = _inTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid inference node transition ${from} → ${to}`); }
+function _inCountActive(operator) { let n = 0; for (const x of _innV2.values()) if (x.operator === operator && x.status === INFERENCE_NODE_MATURITY_V2.ACTIVE) n++; return n; }
+
+export function activateInferenceNodeV2(id) {
+  const n = _innV2.get(id); if (!n) throw new Error(`inference node ${id} not found`);
+  _inCheckN(n.status, INFERENCE_NODE_MATURITY_V2.ACTIVE);
+  const recovery = n.status === INFERENCE_NODE_MATURITY_V2.DEGRADED;
+  if (!recovery) { const c = _inCountActive(n.operator); if (c >= _inMaxActivePerOperator) throw new Error(`max active inference nodes per operator (${_inMaxActivePerOperator}) reached for ${n.operator}`); }
+  const now = Date.now(); n.status = INFERENCE_NODE_MATURITY_V2.ACTIVE; n.updatedAt = now; n.lastTouchedAt = now; if (!n.activatedAt) n.activatedAt = now;
+  return { ...n, metadata: { ...n.metadata } };
+}
+export function degradeInferenceNodeV2(id) { const n = _innV2.get(id); if (!n) throw new Error(`inference node ${id} not found`); _inCheckN(n.status, INFERENCE_NODE_MATURITY_V2.DEGRADED); n.status = INFERENCE_NODE_MATURITY_V2.DEGRADED; n.updatedAt = Date.now(); return { ...n, metadata: { ...n.metadata } }; }
+export function decommissionInferenceNodeV2(id) { const n = _innV2.get(id); if (!n) throw new Error(`inference node ${id} not found`); _inCheckN(n.status, INFERENCE_NODE_MATURITY_V2.DECOMMISSIONED); const now = Date.now(); n.status = INFERENCE_NODE_MATURITY_V2.DECOMMISSIONED; n.updatedAt = now; if (!n.decommissionedAt) n.decommissionedAt = now; return { ...n, metadata: { ...n.metadata } }; }
+export function touchInferenceNodeV2(id) { const n = _innV2.get(id); if (!n) throw new Error(`inference node ${id} not found`); if (_inTerminal.has(n.status)) throw new Error(`cannot touch terminal inference node ${id}`); const now = Date.now(); n.lastTouchedAt = now; n.updatedAt = now; return { ...n, metadata: { ...n.metadata } }; }
+export function getInferenceNodeV2(id) { const n = _innV2.get(id); if (!n) return null; return { ...n, metadata: { ...n.metadata } }; }
+export function listInferenceNodesV2() { return [..._innV2.values()].map((n) => ({ ...n, metadata: { ...n.metadata } })); }
+
+function _ijCountPending(nodeId) { let n = 0; for (const j of _ijsV2.values()) if (j.nodeId === nodeId && (j.status === INFERENCE_JOB_LIFECYCLE_V2.QUEUED || j.status === INFERENCE_JOB_LIFECYCLE_V2.RUNNING)) n++; return n; }
+
+export function createInferenceJobV2({ id, nodeId, prompt, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!nodeId || typeof nodeId !== "string") throw new Error("nodeId is required");
+  if (_ijsV2.has(id)) throw new Error(`inference job ${id} already exists`);
+  if (!_innV2.has(nodeId)) throw new Error(`inference node ${nodeId} not found`);
+  const pending = _ijCountPending(nodeId);
+  if (pending >= _inMaxPendingJobsPerNode) throw new Error(`max pending inference jobs per node (${_inMaxPendingJobsPerNode}) reached for ${nodeId}`);
+  const now = Date.now();
+  const j = { id, nodeId, prompt: prompt || "", status: INFERENCE_JOB_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  _ijsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+function _ijCheckJ(from, to) { const a = _ijTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid inference job transition ${from} → ${to}`); }
+export function startInferenceJobV2(id) { const j = _ijsV2.get(id); if (!j) throw new Error(`inference job ${id} not found`); _ijCheckJ(j.status, INFERENCE_JOB_LIFECYCLE_V2.RUNNING); const now = Date.now(); j.status = INFERENCE_JOB_LIFECYCLE_V2.RUNNING; j.updatedAt = now; if (!j.startedAt) j.startedAt = now; return { ...j, metadata: { ...j.metadata } }; }
+export function completeInferenceJobV2(id) { const j = _ijsV2.get(id); if (!j) throw new Error(`inference job ${id} not found`); _ijCheckJ(j.status, INFERENCE_JOB_LIFECYCLE_V2.COMPLETED); const now = Date.now(); j.status = INFERENCE_JOB_LIFECYCLE_V2.COMPLETED; j.updatedAt = now; if (!j.settledAt) j.settledAt = now; return { ...j, metadata: { ...j.metadata } }; }
+export function failInferenceJobV2(id, reason) { const j = _ijsV2.get(id); if (!j) throw new Error(`inference job ${id} not found`); _ijCheckJ(j.status, INFERENCE_JOB_LIFECYCLE_V2.FAILED); const now = Date.now(); j.status = INFERENCE_JOB_LIFECYCLE_V2.FAILED; j.updatedAt = now; if (!j.settledAt) j.settledAt = now; if (reason) j.metadata.failReason = String(reason); return { ...j, metadata: { ...j.metadata } }; }
+export function cancelInferenceJobV2(id, reason) { const j = _ijsV2.get(id); if (!j) throw new Error(`inference job ${id} not found`); _ijCheckJ(j.status, INFERENCE_JOB_LIFECYCLE_V2.CANCELLED); const now = Date.now(); j.status = INFERENCE_JOB_LIFECYCLE_V2.CANCELLED; j.updatedAt = now; if (!j.settledAt) j.settledAt = now; if (reason) j.metadata.cancelReason = String(reason); return { ...j, metadata: { ...j.metadata } }; }
+export function getInferenceJobV2(id) { const j = _ijsV2.get(id); if (!j) return null; return { ...j, metadata: { ...j.metadata } }; }
+export function listInferenceJobsV2() { return [..._ijsV2.values()].map((j) => ({ ...j, metadata: { ...j.metadata } })); }
+
+export function autoDegradeIdleInferenceNodesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const n of _innV2.values()) if (n.status === INFERENCE_NODE_MATURITY_V2.ACTIVE && (t - n.lastTouchedAt) >= _inIdleMs) { n.status = INFERENCE_NODE_MATURITY_V2.DEGRADED; n.updatedAt = t; flipped.push(n.id); } return { flipped, count: flipped.length }; }
+export function autoFailStuckInferenceJobsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const j of _ijsV2.values()) if (j.status === INFERENCE_JOB_LIFECYCLE_V2.RUNNING && j.startedAt != null && (t - j.startedAt) >= _ijStuckMs) { j.status = INFERENCE_JOB_LIFECYCLE_V2.FAILED; j.updatedAt = t; if (!j.settledAt) j.settledAt = t; j.metadata.failReason = "auto-fail-stuck"; flipped.push(j.id); } return { flipped, count: flipped.length }; }
+
+export function getInferenceNetworkGovStatsV2() {
+  const nodesByStatus = {}; for (const s of Object.values(INFERENCE_NODE_MATURITY_V2)) nodesByStatus[s] = 0; for (const n of _innV2.values()) nodesByStatus[n.status]++;
+  const jobsByStatus = {}; for (const s of Object.values(INFERENCE_JOB_LIFECYCLE_V2)) jobsByStatus[s] = 0; for (const j of _ijsV2.values()) jobsByStatus[j.status]++;
+  return { totalInferenceNodesV2: _innV2.size, totalInferenceJobsV2: _ijsV2.size, maxActiveInferenceNodesPerOperator: _inMaxActivePerOperator, maxPendingInferenceJobsPerNode: _inMaxPendingJobsPerNode, inferenceNodeIdleMs: _inIdleMs, inferenceJobStuckMs: _ijStuckMs, nodesByStatus, jobsByStatus };
+}

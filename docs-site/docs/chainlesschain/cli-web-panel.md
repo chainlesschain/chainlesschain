@@ -409,7 +409,7 @@ return { output: output || stderr, exitCode: result.exitCode ?? 0 }
 | Desktop 功能迁移 | — | — | ✅ DID/P2P/Git/Projects | ✅ 企业+扩展 8 页 |
 | 侧边栏分组 | 1 组 | 3 组 | 4 组 | **7 组** |
 
-## 测试覆盖
+## 测试覆盖率
 
 | 文件 | 类型 | 测试数 |
 |------|------|--------|

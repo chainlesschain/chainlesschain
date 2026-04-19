@@ -181,7 +181,7 @@ const reputationOptimizerConfig = {
 
 ---
 
-## 测试覆盖
+## 测试覆盖率
 
 ✅ `reputation-optimizer.test.js` — 贝叶斯优化收敛、参数范围验证、改进幅度计算（18 个用例）
 

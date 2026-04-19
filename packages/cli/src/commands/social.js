@@ -63,6 +63,14 @@ import {
   loadFromDb as graphLoadFromDb,
   subscribe as graphSubscribe,
   EDGE_TYPES,
+  SG_NODE_MATURITY_V2, SG_EDGE_LIFECYCLE_V2,
+  setMaxActiveSgNodesPerOwnerV2, getMaxActiveSgNodesPerOwnerV2,
+  setMaxPendingSgEdgesPerNodeV2, getMaxPendingSgEdgesPerNodeV2,
+  setSgNodeIdleMsV2, getSgNodeIdleMsV2,
+  setSgEdgeStuckMsV2, getSgEdgeStuckMsV2,
+  registerSgNodeV2, activateSgNodeV2, deactivateSgNodeV2, removeSgNodeV2, touchSgNodeV2, getSgNodeV2, listSgNodesV2,
+  createSgEdgeV2, establishSgEdgeV2, severSgEdgeV2, expireSgEdgeV2, cancelSgEdgeV2, getSgEdgeV2, listSgEdgesV2,
+  autoDeactivateIdleSgNodesV2, autoExpireStaleSgEdgesV2, getSocialGraphGovStatsV2, _resetStateSocialGraphV2,
 } from "../lib/social-graph.js";
 import {
   METRICS as ANALYTICS_METRICS,
@@ -1309,4 +1317,30 @@ export function registerSocialCommand(program) {
       const flipped = autoAbandonStuckThreadsV2();
       console.log(JSON.stringify(flipped, null, 2));
     });
+
+  // ===== Social Graph V2 governance overlay (sg-*-v2 prefix) =====
+  social.command("sg-enums-v2").action(() => console.log(JSON.stringify({ nodeMaturity: SG_NODE_MATURITY_V2, edgeLifecycle: SG_EDGE_LIFECYCLE_V2 }, null, 2)));
+  social.command("sg-config-v2").action(() => console.log(JSON.stringify({ maxActiveSgNodesPerOwner: getMaxActiveSgNodesPerOwnerV2(), maxPendingSgEdgesPerNode: getMaxPendingSgEdgesPerNodeV2(), sgNodeIdleMs: getSgNodeIdleMsV2(), sgEdgeStuckMs: getSgEdgeStuckMsV2() }, null, 2)));
+  social.command("sg-set-max-active-v2 <n>").action((n) => { setMaxActiveSgNodesPerOwnerV2(Number(n)); console.log("ok"); });
+  social.command("sg-set-max-pending-v2 <n>").action((n) => { setMaxPendingSgEdgesPerNodeV2(Number(n)); console.log("ok"); });
+  social.command("sg-set-idle-ms-v2 <n>").action((n) => { setSgNodeIdleMsV2(Number(n)); console.log("ok"); });
+  social.command("sg-set-stuck-ms-v2 <n>").action((n) => { setSgEdgeStuckMsV2(Number(n)); console.log("ok"); });
+  social.command("sg-register-node-v2 <id> <owner>").option("--handle <h>", "handle").action((id, owner, o) => console.log(JSON.stringify(registerSgNodeV2({ id, owner, handle: o.handle }), null, 2)));
+  social.command("sg-activate-node-v2 <id>").action((id) => console.log(JSON.stringify(activateSgNodeV2(id), null, 2)));
+  social.command("sg-deactivate-node-v2 <id>").action((id) => console.log(JSON.stringify(deactivateSgNodeV2(id), null, 2)));
+  social.command("sg-remove-node-v2 <id>").action((id) => console.log(JSON.stringify(removeSgNodeV2(id), null, 2)));
+  social.command("sg-touch-node-v2 <id>").action((id) => console.log(JSON.stringify(touchSgNodeV2(id), null, 2)));
+  social.command("sg-get-node-v2 <id>").action((id) => console.log(JSON.stringify(getSgNodeV2(id), null, 2)));
+  social.command("sg-list-nodes-v2").action(() => console.log(JSON.stringify(listSgNodesV2(), null, 2)));
+  social.command("sg-create-edge-v2 <id> <nodeId>").option("--target <t>", "targetId").action((id, nodeId, o) => console.log(JSON.stringify(createSgEdgeV2({ id, nodeId, targetId: o.target }), null, 2)));
+  social.command("sg-establish-edge-v2 <id>").action((id) => console.log(JSON.stringify(establishSgEdgeV2(id), null, 2)));
+  social.command("sg-sever-edge-v2 <id> [reason]").action((id, reason) => console.log(JSON.stringify(severSgEdgeV2(id, reason), null, 2)));
+  social.command("sg-expire-edge-v2 <id>").action((id) => console.log(JSON.stringify(expireSgEdgeV2(id), null, 2)));
+  social.command("sg-cancel-edge-v2 <id> [reason]").action((id, reason) => console.log(JSON.stringify(cancelSgEdgeV2(id, reason), null, 2)));
+  social.command("sg-get-edge-v2 <id>").action((id) => console.log(JSON.stringify(getSgEdgeV2(id), null, 2)));
+  social.command("sg-list-edges-v2").action(() => console.log(JSON.stringify(listSgEdgesV2(), null, 2)));
+  social.command("sg-auto-deactivate-idle-v2").action(() => console.log(JSON.stringify(autoDeactivateIdleSgNodesV2(), null, 2)));
+  social.command("sg-auto-expire-stale-v2").action(() => console.log(JSON.stringify(autoExpireStaleSgEdgesV2(), null, 2)));
+  social.command("sg-gov-stats-v2").action(() => console.log(JSON.stringify(getSocialGraphGovStatsV2(), null, 2)));
+  social.command("sg-reset-state-v2").action(() => { _resetStateSocialGraphV2(); console.log(JSON.stringify({ ok: true }, null, 2)); });
 }

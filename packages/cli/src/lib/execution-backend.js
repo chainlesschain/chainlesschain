@@ -237,3 +237,108 @@ export function createBackend(config = {}) {
       return new LocalBackend(config.options || {});
   }
 }
+
+
+// ===== V2 Surface: Execution Backend governance overlay (CLI v0.133.0) =====
+export const EXECBE_BACKEND_MATURITY_V2 = Object.freeze({
+  PENDING: "pending", ACTIVE: "active", DEGRADED: "degraded", RETIRED: "retired",
+});
+export const EXECBE_JOB_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued", RUNNING: "running", SUCCEEDED: "succeeded", FAILED: "failed", CANCELLED: "cancelled",
+});
+
+const _ebBackendTrans = new Map([
+  [EXECBE_BACKEND_MATURITY_V2.PENDING, new Set([EXECBE_BACKEND_MATURITY_V2.ACTIVE, EXECBE_BACKEND_MATURITY_V2.RETIRED])],
+  [EXECBE_BACKEND_MATURITY_V2.ACTIVE, new Set([EXECBE_BACKEND_MATURITY_V2.DEGRADED, EXECBE_BACKEND_MATURITY_V2.RETIRED])],
+  [EXECBE_BACKEND_MATURITY_V2.DEGRADED, new Set([EXECBE_BACKEND_MATURITY_V2.ACTIVE, EXECBE_BACKEND_MATURITY_V2.RETIRED])],
+  [EXECBE_BACKEND_MATURITY_V2.RETIRED, new Set()],
+]);
+const _ebBackendTerminal = new Set([EXECBE_BACKEND_MATURITY_V2.RETIRED]);
+const _ebJobTrans = new Map([
+  [EXECBE_JOB_LIFECYCLE_V2.QUEUED, new Set([EXECBE_JOB_LIFECYCLE_V2.RUNNING, EXECBE_JOB_LIFECYCLE_V2.CANCELLED])],
+  [EXECBE_JOB_LIFECYCLE_V2.RUNNING, new Set([EXECBE_JOB_LIFECYCLE_V2.SUCCEEDED, EXECBE_JOB_LIFECYCLE_V2.FAILED, EXECBE_JOB_LIFECYCLE_V2.CANCELLED])],
+  [EXECBE_JOB_LIFECYCLE_V2.SUCCEEDED, new Set()],
+  [EXECBE_JOB_LIFECYCLE_V2.FAILED, new Set()],
+  [EXECBE_JOB_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+
+const _ebBackends = new Map();
+const _ebJobs = new Map();
+let _ebMaxActivePerOwner = 6;
+let _ebMaxPendingPerBackend = 20;
+let _ebBackendIdleMs = 12 * 60 * 60 * 1000;
+let _ebJobStuckMs = 10 * 60 * 1000;
+
+function _ebPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+
+export function setMaxActiveBackendsPerOwnerV2(n) { _ebMaxActivePerOwner = _ebPos(n, "maxActiveBackendsPerOwner"); }
+export function getMaxActiveBackendsPerOwnerV2() { return _ebMaxActivePerOwner; }
+export function setMaxPendingJobsPerBackendV2(n) { _ebMaxPendingPerBackend = _ebPos(n, "maxPendingJobsPerBackend"); }
+export function getMaxPendingJobsPerBackendV2() { return _ebMaxPendingPerBackend; }
+export function setBackendIdleMsV2(n) { _ebBackendIdleMs = _ebPos(n, "backendIdleMs"); }
+export function getBackendIdleMsV2() { return _ebBackendIdleMs; }
+export function setExecJobStuckMsV2(n) { _ebJobStuckMs = _ebPos(n, "execJobStuckMs"); }
+export function getExecJobStuckMsV2() { return _ebJobStuckMs; }
+
+export function _resetStateExecutionBackendV2() {
+  _ebBackends.clear(); _ebJobs.clear();
+  _ebMaxActivePerOwner = 6; _ebMaxPendingPerBackend = 20;
+  _ebBackendIdleMs = 12 * 60 * 60 * 1000; _ebJobStuckMs = 10 * 60 * 1000;
+}
+
+export function registerBackendV2({ id, owner, kind, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!owner || typeof owner !== "string") throw new Error("owner is required");
+  if (_ebBackends.has(id)) throw new Error(`backend ${id} already registered`);
+  const now = Date.now();
+  const b = { id, owner, kind: kind || "local", status: EXECBE_BACKEND_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, retiredAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  _ebBackends.set(id, b);
+  return { ...b, metadata: { ...b.metadata } };
+}
+function _ebCheckB(from, to) { const allowed = _ebBackendTrans.get(from); if (!allowed || !allowed.has(to)) throw new Error(`invalid backend transition ${from} → ${to}`); }
+function _ebCountActive(owner) { let n = 0; for (const b of _ebBackends.values()) if (b.owner === owner && b.status === EXECBE_BACKEND_MATURITY_V2.ACTIVE) n++; return n; }
+
+export function activateBackendV2(id) {
+  const b = _ebBackends.get(id); if (!b) throw new Error(`backend ${id} not found`);
+  _ebCheckB(b.status, EXECBE_BACKEND_MATURITY_V2.ACTIVE);
+  const recovery = b.status === EXECBE_BACKEND_MATURITY_V2.DEGRADED;
+  if (!recovery) { const a = _ebCountActive(b.owner); if (a >= _ebMaxActivePerOwner) throw new Error(`max active backends per owner (${_ebMaxActivePerOwner}) reached for ${b.owner}`); }
+  const now = Date.now(); b.status = EXECBE_BACKEND_MATURITY_V2.ACTIVE; b.updatedAt = now; b.lastTouchedAt = now; if (!b.activatedAt) b.activatedAt = now;
+  return { ...b, metadata: { ...b.metadata } };
+}
+export function degradeBackendV2(id) { const b = _ebBackends.get(id); if (!b) throw new Error(`backend ${id} not found`); _ebCheckB(b.status, EXECBE_BACKEND_MATURITY_V2.DEGRADED); b.status = EXECBE_BACKEND_MATURITY_V2.DEGRADED; b.updatedAt = Date.now(); return { ...b, metadata: { ...b.metadata } }; }
+export function retireBackendV2(id) { const b = _ebBackends.get(id); if (!b) throw new Error(`backend ${id} not found`); _ebCheckB(b.status, EXECBE_BACKEND_MATURITY_V2.RETIRED); const now = Date.now(); b.status = EXECBE_BACKEND_MATURITY_V2.RETIRED; b.updatedAt = now; if (!b.retiredAt) b.retiredAt = now; return { ...b, metadata: { ...b.metadata } }; }
+export function touchBackendV2(id) { const b = _ebBackends.get(id); if (!b) throw new Error(`backend ${id} not found`); if (_ebBackendTerminal.has(b.status)) throw new Error(`cannot touch terminal backend ${id}`); const now = Date.now(); b.lastTouchedAt = now; b.updatedAt = now; return { ...b, metadata: { ...b.metadata } }; }
+export function getBackendV2(id) { const b = _ebBackends.get(id); if (!b) return null; return { ...b, metadata: { ...b.metadata } }; }
+export function listBackendsV2() { return [..._ebBackends.values()].map((b) => ({ ...b, metadata: { ...b.metadata } })); }
+
+function _ebCountPending(bid) { let n = 0; for (const j of _ebJobs.values()) if (j.backendId === bid && (j.status === EXECBE_JOB_LIFECYCLE_V2.QUEUED || j.status === EXECBE_JOB_LIFECYCLE_V2.RUNNING)) n++; return n; }
+
+export function createExecJobV2({ id, backendId, command, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!backendId || typeof backendId !== "string") throw new Error("backendId is required");
+  if (_ebJobs.has(id)) throw new Error(`exec job ${id} already exists`);
+  if (!_ebBackends.has(backendId)) throw new Error(`backend ${backendId} not found`);
+  const pending = _ebCountPending(backendId);
+  if (pending >= _ebMaxPendingPerBackend) throw new Error(`max pending jobs per backend (${_ebMaxPendingPerBackend}) reached for ${backendId}`);
+  const now = Date.now();
+  const j = { id, backendId, command: command || "", status: EXECBE_JOB_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  _ebJobs.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+function _ebCheckJ(from, to) { const allowed = _ebJobTrans.get(from); if (!allowed || !allowed.has(to)) throw new Error(`invalid exec job transition ${from} → ${to}`); }
+export function startExecJobV2(id) { const j = _ebJobs.get(id); if (!j) throw new Error(`exec job ${id} not found`); _ebCheckJ(j.status, EXECBE_JOB_LIFECYCLE_V2.RUNNING); const now = Date.now(); j.status = EXECBE_JOB_LIFECYCLE_V2.RUNNING; j.updatedAt = now; if (!j.startedAt) j.startedAt = now; return { ...j, metadata: { ...j.metadata } }; }
+export function succeedExecJobV2(id) { const j = _ebJobs.get(id); if (!j) throw new Error(`exec job ${id} not found`); _ebCheckJ(j.status, EXECBE_JOB_LIFECYCLE_V2.SUCCEEDED); const now = Date.now(); j.status = EXECBE_JOB_LIFECYCLE_V2.SUCCEEDED; j.updatedAt = now; if (!j.settledAt) j.settledAt = now; return { ...j, metadata: { ...j.metadata } }; }
+export function failExecJobV2(id, reason) { const j = _ebJobs.get(id); if (!j) throw new Error(`exec job ${id} not found`); _ebCheckJ(j.status, EXECBE_JOB_LIFECYCLE_V2.FAILED); const now = Date.now(); j.status = EXECBE_JOB_LIFECYCLE_V2.FAILED; j.updatedAt = now; if (!j.settledAt) j.settledAt = now; if (reason) j.metadata.failReason = String(reason); return { ...j, metadata: { ...j.metadata } }; }
+export function cancelExecJobV2(id, reason) { const j = _ebJobs.get(id); if (!j) throw new Error(`exec job ${id} not found`); _ebCheckJ(j.status, EXECBE_JOB_LIFECYCLE_V2.CANCELLED); const now = Date.now(); j.status = EXECBE_JOB_LIFECYCLE_V2.CANCELLED; j.updatedAt = now; if (!j.settledAt) j.settledAt = now; if (reason) j.metadata.cancelReason = String(reason); return { ...j, metadata: { ...j.metadata } }; }
+export function getExecJobV2(id) { const j = _ebJobs.get(id); if (!j) return null; return { ...j, metadata: { ...j.metadata } }; }
+export function listExecJobsV2() { return [..._ebJobs.values()].map((j) => ({ ...j, metadata: { ...j.metadata } })); }
+
+export function autoDegradeIdleBackendsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const b of _ebBackends.values()) if (b.status === EXECBE_BACKEND_MATURITY_V2.ACTIVE && (t - b.lastTouchedAt) >= _ebBackendIdleMs) { b.status = EXECBE_BACKEND_MATURITY_V2.DEGRADED; b.updatedAt = t; flipped.push(b.id); } return { flipped, count: flipped.length }; }
+export function autoFailStuckExecJobsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const j of _ebJobs.values()) if (j.status === EXECBE_JOB_LIFECYCLE_V2.RUNNING && j.startedAt != null && (t - j.startedAt) >= _ebJobStuckMs) { j.status = EXECBE_JOB_LIFECYCLE_V2.FAILED; j.updatedAt = t; if (!j.settledAt) j.settledAt = t; j.metadata.failReason = "auto-fail-stuck"; flipped.push(j.id); } return { flipped, count: flipped.length }; }
+
+export function getExecutionBackendStatsV2() {
+  const backendsByStatus = {}; for (const s of Object.values(EXECBE_BACKEND_MATURITY_V2)) backendsByStatus[s] = 0; for (const b of _ebBackends.values()) backendsByStatus[b.status]++;
+  const jobsByStatus = {}; for (const s of Object.values(EXECBE_JOB_LIFECYCLE_V2)) jobsByStatus[s] = 0; for (const j of _ebJobs.values()) jobsByStatus[j.status]++;
+  return { totalBackendsV2: _ebBackends.size, totalJobsV2: _ebJobs.size, maxActiveBackendsPerOwner: _ebMaxActivePerOwner, maxPendingJobsPerBackend: _ebMaxPendingPerBackend, backendIdleMs: _ebBackendIdleMs, execJobStuckMs: _ebJobStuckMs, backendsByStatus, jobsByStatus };
+}

@@ -223,3 +223,53 @@ chainlesschain tenant import tenant-backup.json
 |------|------|
 | `packages/cli/src/commands/tenant.js` | tenant 命令主入口 (Phase 97) |
 | `packages/cli/src/lib/tenant-saas.js` | 租户 CRUD、订阅管理、用量计量、配额检查、统计核心实现 |
+
+## 测试覆盖率
+
+```
+__tests__/unit/tenant-saas.test.js — 135 tests
+```
+
+覆盖：多租户 CRUD、订阅计划与续费、用量计量写入、配额检查（周期 / 硬上限 / 软上限）、统计聚合、导入导出。
+
+## 安全考虑
+
+1. **数据隔离**：所有表带 `tenant_id` 索引，查询必须带 tenant 过滤
+2. **API 密钥隔离**：租户密钥独立派生，不共享主密钥
+3. **配额硬限**：`check-quota` 支持 `strict` 模式，超限直接拒写
+4. **订阅续费**：过期未续费自动转 `suspended`，避免超售
+5. **审计**：订阅/用量事件全量进 `tenant_audit`，便于对账
+
+## 故障排查
+
+| 症状 | 可能原因 | 解决方案 |
+|------|---------|---------|
+| `create` 重名 | slug 冲突 | 改 slug 或 `--force` |
+| `subscribe` 拒 | tenant 未 active | `tenant activate` |
+| `check-quota` 越界 | period 参数错 | 使用 `YYYY-MM` 格式 |
+| `export` 空 | tenant 无数据 | `stats` 先验证 |
+
+## 使用示例
+
+```bash
+# 1. 创建租户
+tid=$(cc tenant create acme -o did:key:owner --slug acme --json | jq -r .id)
+
+# 2. 订阅 Pro 计划（30 天）
+cc tenant subscribe $tid -p pro -a 99.0 -d 2592000000
+
+# 3. 记录用量 & 配额检查
+cc tenant record $tid llm_tokens 120000 -P 2026-04
+cc tenant check-quota $tid llm_tokens -P 2026-04
+
+# 4. 统计 & 导出
+cc tenant stats --json
+cc tenant export tenants.json
+```
+
+## 相关文档
+
+- [Org Manager](./cli-org)
+- [SLA 管理 (cli-sla)](./cli-sla)
+- [Audit / Compliance](./cli-compliance)
+- 设计文档：`docs/design/modules/79_多租户SaaS.md`

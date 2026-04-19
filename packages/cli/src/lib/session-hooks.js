@@ -229,3 +229,84 @@ function withTimeout(promise, ms, label) {
   });
   return Promise.race([promise, timeout]).finally(() => clearTimeout(t));
 }
+
+// ===== V2 Surface: Session Hooks governance overlay (CLI v0.142.0) =====
+export const SHOK_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending", ACTIVE: "active", DISABLED: "disabled", RETIRED: "retired",
+});
+export const SHOK_INVOCATION_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued", RUNNING: "running", COMPLETED: "completed", FAILED: "failed", CANCELLED: "cancelled",
+});
+const _shokPTrans = new Map([
+  [SHOK_PROFILE_MATURITY_V2.PENDING, new Set([SHOK_PROFILE_MATURITY_V2.ACTIVE, SHOK_PROFILE_MATURITY_V2.RETIRED])],
+  [SHOK_PROFILE_MATURITY_V2.ACTIVE, new Set([SHOK_PROFILE_MATURITY_V2.DISABLED, SHOK_PROFILE_MATURITY_V2.RETIRED])],
+  [SHOK_PROFILE_MATURITY_V2.DISABLED, new Set([SHOK_PROFILE_MATURITY_V2.ACTIVE, SHOK_PROFILE_MATURITY_V2.RETIRED])],
+  [SHOK_PROFILE_MATURITY_V2.RETIRED, new Set()],
+]);
+const _shokPTerminal = new Set([SHOK_PROFILE_MATURITY_V2.RETIRED]);
+const _shokITrans = new Map([
+  [SHOK_INVOCATION_LIFECYCLE_V2.QUEUED, new Set([SHOK_INVOCATION_LIFECYCLE_V2.RUNNING, SHOK_INVOCATION_LIFECYCLE_V2.CANCELLED])],
+  [SHOK_INVOCATION_LIFECYCLE_V2.RUNNING, new Set([SHOK_INVOCATION_LIFECYCLE_V2.COMPLETED, SHOK_INVOCATION_LIFECYCLE_V2.FAILED, SHOK_INVOCATION_LIFECYCLE_V2.CANCELLED])],
+  [SHOK_INVOCATION_LIFECYCLE_V2.COMPLETED, new Set()],
+  [SHOK_INVOCATION_LIFECYCLE_V2.FAILED, new Set()],
+  [SHOK_INVOCATION_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _shokPsV2 = new Map();
+const _shokIsV2 = new Map();
+let _shokMaxActive = 12, _shokMaxPending = 25, _shokIdleMs = 30 * 24 * 60 * 60 * 1000, _shokStuckMs = 30 * 1000;
+function _shokPos(n, label) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${label} must be positive integer`); return v; }
+function _shokCheckP(from, to) { const a = _shokPTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid shok profile transition ${from} → ${to}`); }
+function _shokCheckI(from, to) { const a = _shokITrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid shok invocation transition ${from} → ${to}`); }
+export function setMaxActiveShokProfilesPerOwnerV2(n) { _shokMaxActive = _shokPos(n, "maxActiveShokProfilesPerOwner"); }
+export function getMaxActiveShokProfilesPerOwnerV2() { return _shokMaxActive; }
+export function setMaxPendingShokInvocationsPerProfileV2(n) { _shokMaxPending = _shokPos(n, "maxPendingShokInvocationsPerProfile"); }
+export function getMaxPendingShokInvocationsPerProfileV2() { return _shokMaxPending; }
+export function setShokProfileIdleMsV2(n) { _shokIdleMs = _shokPos(n, "shokProfileIdleMs"); }
+export function getShokProfileIdleMsV2() { return _shokIdleMs; }
+export function setShokInvocationStuckMsV2(n) { _shokStuckMs = _shokPos(n, "shokInvocationStuckMs"); }
+export function getShokInvocationStuckMsV2() { return _shokStuckMs; }
+export function _resetStateSessionHooksV2() { _shokPsV2.clear(); _shokIsV2.clear(); _shokMaxActive = 12; _shokMaxPending = 25; _shokIdleMs = 30 * 24 * 60 * 60 * 1000; _shokStuckMs = 30 * 1000; }
+export function registerShokProfileV2({ id, owner, event, metadata } = {}) {
+  if (!id) throw new Error("shok profile id required"); if (!owner) throw new Error("shok profile owner required");
+  if (_shokPsV2.has(id)) throw new Error(`shok profile ${id} already registered`);
+  const now = Date.now();
+  const p = { id, owner, event: event || "preTurn", status: SHOK_PROFILE_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, retiredAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  _shokPsV2.set(id, p); return { ...p, metadata: { ...p.metadata } };
+}
+function _shokCountActive(owner) { let n = 0; for (const p of _shokPsV2.values()) if (p.owner === owner && p.status === SHOK_PROFILE_MATURITY_V2.ACTIVE) n++; return n; }
+export function activateShokProfileV2(id) {
+  const p = _shokPsV2.get(id); if (!p) throw new Error(`shok profile ${id} not found`);
+  _shokCheckP(p.status, SHOK_PROFILE_MATURITY_V2.ACTIVE);
+  const recovery = p.status === SHOK_PROFILE_MATURITY_V2.DISABLED;
+  if (!recovery && _shokCountActive(p.owner) >= _shokMaxActive) throw new Error(`max active shok profiles for owner ${p.owner} reached`);
+  const now = Date.now(); p.status = SHOK_PROFILE_MATURITY_V2.ACTIVE; p.updatedAt = now; p.lastTouchedAt = now; if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function disableShokProfileV2(id) { const p = _shokPsV2.get(id); if (!p) throw new Error(`shok profile ${id} not found`); _shokCheckP(p.status, SHOK_PROFILE_MATURITY_V2.DISABLED); p.status = SHOK_PROFILE_MATURITY_V2.DISABLED; p.updatedAt = Date.now(); return { ...p, metadata: { ...p.metadata } }; }
+export function retireShokProfileV2(id) { const p = _shokPsV2.get(id); if (!p) throw new Error(`shok profile ${id} not found`); _shokCheckP(p.status, SHOK_PROFILE_MATURITY_V2.RETIRED); const now = Date.now(); p.status = SHOK_PROFILE_MATURITY_V2.RETIRED; p.updatedAt = now; if (!p.retiredAt) p.retiredAt = now; return { ...p, metadata: { ...p.metadata } }; }
+export function touchShokProfileV2(id) { const p = _shokPsV2.get(id); if (!p) throw new Error(`shok profile ${id} not found`); if (_shokPTerminal.has(p.status)) throw new Error(`cannot touch terminal shok profile ${id}`); const now = Date.now(); p.lastTouchedAt = now; p.updatedAt = now; return { ...p, metadata: { ...p.metadata } }; }
+export function getShokProfileV2(id) { const p = _shokPsV2.get(id); if (!p) return null; return { ...p, metadata: { ...p.metadata } }; }
+export function listShokProfilesV2() { return [..._shokPsV2.values()].map((p) => ({ ...p, metadata: { ...p.metadata } })); }
+function _shokCountPending(profileId) { let n = 0; for (const i of _shokIsV2.values()) if (i.profileId === profileId && (i.status === SHOK_INVOCATION_LIFECYCLE_V2.QUEUED || i.status === SHOK_INVOCATION_LIFECYCLE_V2.RUNNING)) n++; return n; }
+export function createShokInvocationV2({ id, profileId, payload, metadata } = {}) {
+  if (!id) throw new Error("shok invocation id required"); if (!profileId) throw new Error("shok invocation profileId required");
+  if (_shokIsV2.has(id)) throw new Error(`shok invocation ${id} already exists`);
+  if (!_shokPsV2.has(profileId)) throw new Error(`shok profile ${profileId} not found`);
+  if (_shokCountPending(profileId) >= _shokMaxPending) throw new Error(`max pending shok invocations for profile ${profileId} reached`);
+  const now = Date.now();
+  const i = { id, profileId, payload: payload || "", status: SHOK_INVOCATION_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  _shokIsV2.set(id, i); return { ...i, metadata: { ...i.metadata } };
+}
+export function runningShokInvocationV2(id) { const i = _shokIsV2.get(id); if (!i) throw new Error(`shok invocation ${id} not found`); _shokCheckI(i.status, SHOK_INVOCATION_LIFECYCLE_V2.RUNNING); const now = Date.now(); i.status = SHOK_INVOCATION_LIFECYCLE_V2.RUNNING; i.updatedAt = now; if (!i.startedAt) i.startedAt = now; return { ...i, metadata: { ...i.metadata } }; }
+export function completeShokInvocationV2(id) { const i = _shokIsV2.get(id); if (!i) throw new Error(`shok invocation ${id} not found`); _shokCheckI(i.status, SHOK_INVOCATION_LIFECYCLE_V2.COMPLETED); const now = Date.now(); i.status = SHOK_INVOCATION_LIFECYCLE_V2.COMPLETED; i.updatedAt = now; if (!i.settledAt) i.settledAt = now; return { ...i, metadata: { ...i.metadata } }; }
+export function failShokInvocationV2(id, reason) { const i = _shokIsV2.get(id); if (!i) throw new Error(`shok invocation ${id} not found`); _shokCheckI(i.status, SHOK_INVOCATION_LIFECYCLE_V2.FAILED); const now = Date.now(); i.status = SHOK_INVOCATION_LIFECYCLE_V2.FAILED; i.updatedAt = now; if (!i.settledAt) i.settledAt = now; if (reason) i.metadata.failReason = String(reason); return { ...i, metadata: { ...i.metadata } }; }
+export function cancelShokInvocationV2(id, reason) { const i = _shokIsV2.get(id); if (!i) throw new Error(`shok invocation ${id} not found`); _shokCheckI(i.status, SHOK_INVOCATION_LIFECYCLE_V2.CANCELLED); const now = Date.now(); i.status = SHOK_INVOCATION_LIFECYCLE_V2.CANCELLED; i.updatedAt = now; if (!i.settledAt) i.settledAt = now; if (reason) i.metadata.cancelReason = String(reason); return { ...i, metadata: { ...i.metadata } }; }
+export function getShokInvocationV2(id) { const i = _shokIsV2.get(id); if (!i) return null; return { ...i, metadata: { ...i.metadata } }; }
+export function listShokInvocationsV2() { return [..._shokIsV2.values()].map((i) => ({ ...i, metadata: { ...i.metadata } })); }
+export function autoDisableIdleShokProfilesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const p of _shokPsV2.values()) if (p.status === SHOK_PROFILE_MATURITY_V2.ACTIVE && (t - p.lastTouchedAt) >= _shokIdleMs) { p.status = SHOK_PROFILE_MATURITY_V2.DISABLED; p.updatedAt = t; flipped.push(p.id); } return { flipped, count: flipped.length }; }
+export function autoFailStuckShokInvocationsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const i of _shokIsV2.values()) if (i.status === SHOK_INVOCATION_LIFECYCLE_V2.RUNNING && i.startedAt != null && (t - i.startedAt) >= _shokStuckMs) { i.status = SHOK_INVOCATION_LIFECYCLE_V2.FAILED; i.updatedAt = t; if (!i.settledAt) i.settledAt = t; i.metadata.failReason = "auto-fail-stuck"; flipped.push(i.id); } return { flipped, count: flipped.length }; }
+export function getSessionHooksGovStatsV2() {
+  const profilesByStatus = {}; for (const v of Object.values(SHOK_PROFILE_MATURITY_V2)) profilesByStatus[v] = 0; for (const p of _shokPsV2.values()) profilesByStatus[p.status]++;
+  const invocationsByStatus = {}; for (const v of Object.values(SHOK_INVOCATION_LIFECYCLE_V2)) invocationsByStatus[v] = 0; for (const i of _shokIsV2.values()) invocationsByStatus[i.status]++;
+  return { totalShokProfilesV2: _shokPsV2.size, totalShokInvocationsV2: _shokIsV2.size, maxActiveShokProfilesPerOwner: _shokMaxActive, maxPendingShokInvocationsPerProfile: _shokMaxPending, shokProfileIdleMs: _shokIdleMs, shokInvocationStuckMs: _shokStuckMs, profilesByStatus, invocationsByStatus };
+}

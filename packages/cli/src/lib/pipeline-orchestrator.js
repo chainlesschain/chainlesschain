@@ -926,3 +926,108 @@ export function getStats(db) {
     deploysByStrategy: deployByStrategy,
   };
 }
+
+
+// ===== V2 Surface: Pipeline Orchestrator governance overlay (CLI v0.137.0) =====
+export const PIPELINE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending", ACTIVE: "active", PAUSED: "paused", ARCHIVED: "archived",
+});
+export const PIPELINE_RUN_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued", RUNNING: "running", COMPLETED: "completed", FAILED: "failed", CANCELLED: "cancelled",
+});
+
+const _pipTrans = new Map([
+  [PIPELINE_MATURITY_V2.PENDING, new Set([PIPELINE_MATURITY_V2.ACTIVE, PIPELINE_MATURITY_V2.ARCHIVED])],
+  [PIPELINE_MATURITY_V2.ACTIVE, new Set([PIPELINE_MATURITY_V2.PAUSED, PIPELINE_MATURITY_V2.ARCHIVED])],
+  [PIPELINE_MATURITY_V2.PAUSED, new Set([PIPELINE_MATURITY_V2.ACTIVE, PIPELINE_MATURITY_V2.ARCHIVED])],
+  [PIPELINE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _pipTerminal = new Set([PIPELINE_MATURITY_V2.ARCHIVED]);
+const _pipRunTrans = new Map([
+  [PIPELINE_RUN_LIFECYCLE_V2.QUEUED, new Set([PIPELINE_RUN_LIFECYCLE_V2.RUNNING, PIPELINE_RUN_LIFECYCLE_V2.CANCELLED])],
+  [PIPELINE_RUN_LIFECYCLE_V2.RUNNING, new Set([PIPELINE_RUN_LIFECYCLE_V2.COMPLETED, PIPELINE_RUN_LIFECYCLE_V2.FAILED, PIPELINE_RUN_LIFECYCLE_V2.CANCELLED])],
+  [PIPELINE_RUN_LIFECYCLE_V2.COMPLETED, new Set()],
+  [PIPELINE_RUN_LIFECYCLE_V2.FAILED, new Set()],
+  [PIPELINE_RUN_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+
+const _pips = new Map();
+const _pipRuns = new Map();
+let _pipMaxActivePerOwner = 10;
+let _pipMaxPendingPerPip = 20;
+let _pipIdleMs = 3 * 24 * 60 * 60 * 1000;
+let _pipRunStuckMs = 10 * 60 * 1000;
+
+function _pipPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+
+export function setMaxActivePipelinesPerOwnerV2(n) { _pipMaxActivePerOwner = _pipPos(n, "maxActivePipelinesPerOwner"); }
+export function getMaxActivePipelinesPerOwnerV2() { return _pipMaxActivePerOwner; }
+export function setMaxPendingPipelineRunsPerPipelineV2(n) { _pipMaxPendingPerPip = _pipPos(n, "maxPendingPipelineRunsPerPipeline"); }
+export function getMaxPendingPipelineRunsPerPipelineV2() { return _pipMaxPendingPerPip; }
+export function setPipelineIdleMsV2(n) { _pipIdleMs = _pipPos(n, "pipelineIdleMs"); }
+export function getPipelineIdleMsV2() { return _pipIdleMs; }
+export function setPipelineRunStuckMsV2(n) { _pipRunStuckMs = _pipPos(n, "pipelineRunStuckMs"); }
+export function getPipelineRunStuckMsV2() { return _pipRunStuckMs; }
+
+export function _resetStatePipelineOrchestratorV2() {
+  _pips.clear(); _pipRuns.clear();
+  _pipMaxActivePerOwner = 10; _pipMaxPendingPerPip = 20;
+  _pipIdleMs = 3 * 24 * 60 * 60 * 1000; _pipRunStuckMs = 10 * 60 * 1000;
+}
+
+export function registerPipelineV2({ id, owner, name, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!owner || typeof owner !== "string") throw new Error("owner is required");
+  if (_pips.has(id)) throw new Error(`pipeline ${id} already registered`);
+  const now = Date.now();
+  const p = { id, owner, name: name || id, status: PIPELINE_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, archivedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  _pips.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+function _pipCheckP(from, to) { const a = _pipTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid pipeline transition ${from} → ${to}`); }
+function _pipCountActive(owner) { let n = 0; for (const p of _pips.values()) if (p.owner === owner && p.status === PIPELINE_MATURITY_V2.ACTIVE) n++; return n; }
+
+export function activatePipelineV2(id) {
+  const p = _pips.get(id); if (!p) throw new Error(`pipeline ${id} not found`);
+  _pipCheckP(p.status, PIPELINE_MATURITY_V2.ACTIVE);
+  const recovery = p.status === PIPELINE_MATURITY_V2.PAUSED;
+  if (!recovery) { const c = _pipCountActive(p.owner); if (c >= _pipMaxActivePerOwner) throw new Error(`max active pipelines per owner (${_pipMaxActivePerOwner}) reached for ${p.owner}`); }
+  const now = Date.now(); p.status = PIPELINE_MATURITY_V2.ACTIVE; p.updatedAt = now; p.lastTouchedAt = now; if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pausePipelineV2(id) { const p = _pips.get(id); if (!p) throw new Error(`pipeline ${id} not found`); _pipCheckP(p.status, PIPELINE_MATURITY_V2.PAUSED); p.status = PIPELINE_MATURITY_V2.PAUSED; p.updatedAt = Date.now(); return { ...p, metadata: { ...p.metadata } }; }
+export function archivePipelineV2(id) { const p = _pips.get(id); if (!p) throw new Error(`pipeline ${id} not found`); _pipCheckP(p.status, PIPELINE_MATURITY_V2.ARCHIVED); const now = Date.now(); p.status = PIPELINE_MATURITY_V2.ARCHIVED; p.updatedAt = now; if (!p.archivedAt) p.archivedAt = now; return { ...p, metadata: { ...p.metadata } }; }
+export function touchPipelineV2(id) { const p = _pips.get(id); if (!p) throw new Error(`pipeline ${id} not found`); if (_pipTerminal.has(p.status)) throw new Error(`cannot touch terminal pipeline ${id}`); const now = Date.now(); p.lastTouchedAt = now; p.updatedAt = now; return { ...p, metadata: { ...p.metadata } }; }
+export function getPipelineV2(id) { const p = _pips.get(id); if (!p) return null; return { ...p, metadata: { ...p.metadata } }; }
+export function listPipelinesV2() { return [..._pips.values()].map((p) => ({ ...p, metadata: { ...p.metadata } })); }
+
+function _pipCountPendingRuns(pid) { let n = 0; for (const r of _pipRuns.values()) if (r.pipelineId === pid && (r.status === PIPELINE_RUN_LIFECYCLE_V2.QUEUED || r.status === PIPELINE_RUN_LIFECYCLE_V2.RUNNING)) n++; return n; }
+
+export function createPipelineRunV2({ id, pipelineId, trigger, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!pipelineId || typeof pipelineId !== "string") throw new Error("pipelineId is required");
+  if (_pipRuns.has(id)) throw new Error(`pipeline run ${id} already exists`);
+  if (!_pips.has(pipelineId)) throw new Error(`pipeline ${pipelineId} not found`);
+  const pending = _pipCountPendingRuns(pipelineId);
+  if (pending >= _pipMaxPendingPerPip) throw new Error(`max pending pipeline runs per pipeline (${_pipMaxPendingPerPip}) reached for ${pipelineId}`);
+  const now = Date.now();
+  const r = { id, pipelineId, trigger: trigger || "manual", status: PIPELINE_RUN_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  _pipRuns.set(id, r);
+  return { ...r, metadata: { ...r.metadata } };
+}
+function _pipCheckR(from, to) { const a = _pipRunTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid pipeline run transition ${from} → ${to}`); }
+export function startPipelineRunV2(id) { const r = _pipRuns.get(id); if (!r) throw new Error(`pipeline run ${id} not found`); _pipCheckR(r.status, PIPELINE_RUN_LIFECYCLE_V2.RUNNING); const now = Date.now(); r.status = PIPELINE_RUN_LIFECYCLE_V2.RUNNING; r.updatedAt = now; if (!r.startedAt) r.startedAt = now; return { ...r, metadata: { ...r.metadata } }; }
+export function completePipelineRunV2(id) { const r = _pipRuns.get(id); if (!r) throw new Error(`pipeline run ${id} not found`); _pipCheckR(r.status, PIPELINE_RUN_LIFECYCLE_V2.COMPLETED); const now = Date.now(); r.status = PIPELINE_RUN_LIFECYCLE_V2.COMPLETED; r.updatedAt = now; if (!r.settledAt) r.settledAt = now; return { ...r, metadata: { ...r.metadata } }; }
+export function failPipelineRunV2(id, reason) { const r = _pipRuns.get(id); if (!r) throw new Error(`pipeline run ${id} not found`); _pipCheckR(r.status, PIPELINE_RUN_LIFECYCLE_V2.FAILED); const now = Date.now(); r.status = PIPELINE_RUN_LIFECYCLE_V2.FAILED; r.updatedAt = now; if (!r.settledAt) r.settledAt = now; if (reason) r.metadata.failReason = String(reason); return { ...r, metadata: { ...r.metadata } }; }
+export function cancelPipelineRunV2(id, reason) { const r = _pipRuns.get(id); if (!r) throw new Error(`pipeline run ${id} not found`); _pipCheckR(r.status, PIPELINE_RUN_LIFECYCLE_V2.CANCELLED); const now = Date.now(); r.status = PIPELINE_RUN_LIFECYCLE_V2.CANCELLED; r.updatedAt = now; if (!r.settledAt) r.settledAt = now; if (reason) r.metadata.cancelReason = String(reason); return { ...r, metadata: { ...r.metadata } }; }
+export function getPipelineRunV2(id) { const r = _pipRuns.get(id); if (!r) return null; return { ...r, metadata: { ...r.metadata } }; }
+export function listPipelineRunsV2() { return [..._pipRuns.values()].map((r) => ({ ...r, metadata: { ...r.metadata } })); }
+
+export function autoPauseIdlePipelinesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const p of _pips.values()) if (p.status === PIPELINE_MATURITY_V2.ACTIVE && (t - p.lastTouchedAt) >= _pipIdleMs) { p.status = PIPELINE_MATURITY_V2.PAUSED; p.updatedAt = t; flipped.push(p.id); } return { flipped, count: flipped.length }; }
+export function autoFailStuckPipelineRunsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const r of _pipRuns.values()) if (r.status === PIPELINE_RUN_LIFECYCLE_V2.RUNNING && r.startedAt != null && (t - r.startedAt) >= _pipRunStuckMs) { r.status = PIPELINE_RUN_LIFECYCLE_V2.FAILED; r.updatedAt = t; if (!r.settledAt) r.settledAt = t; r.metadata.failReason = "auto-fail-stuck"; flipped.push(r.id); } return { flipped, count: flipped.length }; }
+
+export function getPipelineOrchestratorGovStatsV2() {
+  const pipelinesByStatus = {}; for (const s of Object.values(PIPELINE_MATURITY_V2)) pipelinesByStatus[s] = 0; for (const p of _pips.values()) pipelinesByStatus[p.status]++;
+  const runsByStatus = {}; for (const s of Object.values(PIPELINE_RUN_LIFECYCLE_V2)) runsByStatus[s] = 0; for (const r of _pipRuns.values()) runsByStatus[r.status]++;
+  return { totalPipelinesV2: _pips.size, totalRunsV2: _pipRuns.size, maxActivePipelinesPerOwner: _pipMaxActivePerOwner, maxPendingPipelineRunsPerPipeline: _pipMaxPendingPerPip, pipelineIdleMs: _pipIdleMs, pipelineRunStuckMs: _pipRunStuckMs, pipelinesByStatus, runsByStatus };
+}

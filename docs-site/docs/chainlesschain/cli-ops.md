@@ -186,8 +186,126 @@ chainlesschain ops stats --json
 
 所有数据持久化到 SQLite (`ops_incidents` / `ops_playbooks` / `ops_baselines` 三张表)，首次执行子命令时自动建表。
 
+## 系统架构
+
+```
+┌───────────────────────────────────────────────────────┐
+│            chainlesschain ops (Phase 25)               │
+├───────────────────────────────────────────────────────┤
+│  Baseline Mgr      │  Detectors                       │
+│  mean/std/Q1/Q3    │  z_score / iqr                   │
+│  per-metric        │  → anomaly → auto-incident       │
+├───────────────────────────────────────────────────────┤
+│  Incident Lifecycle                                    │
+│  open → acknowledged → resolved → closed               │
+│  severities: P0 / P1 / P2 / P3                         │
+├───────────────────────────────────────────────────────┤
+│  Playbooks         │  Postmortem                      │
+│  trigger + steps   │  TTA / TTR / impact / root-cause │
+│  enable/disable    │                                  │
+├───────────────────────────────────────────────────────┤
+│  SQLite: ops_incidents / ops_playbooks / ops_baselines │
+└───────────────────────────────────────────────────────┘
+```
+
+数据流：`baseline-update` 训练基线 → `detect` 触发异常 → 自动创建 incident（严重性由
+Z-score 幅度决定）→ `incident-ack/resolve/close` → `postmortem` 生成复盘。
+
+## 配置参考
+
+| 配置项                    | 含义                    | 默认        |
+| ------------------------- | ----------------------- | ----------- |
+| `z_score_threshold`       | Z-score 异常阈值        | 3.0         |
+| `iqr_multiplier`          | IQR 倍数                | 1.5         |
+| severities                | P0 / P1 / P2 / P3       |             |
+| statuses                  | open/acknowledged/resolved/closed |  |
+| algorithms                | z_score / iqr           |             |
+| rollback-types            | git/docker/config/service/custom |   |
+
+查看：`chainlesschain ops severities`、`ops algorithms`、`ops rollback-types`。
+
+## 性能指标
+
+| 操作                        | 典型耗时         |
+| --------------------------- | ---------------- |
+| baseline-update（100 点）   | < 10 ms          |
+| detect（单次判定）          | < 5 ms           |
+| incident 创建               | < 15 ms          |
+| playbook record             | < 5 ms           |
+| postmortem（含聚合）        | < 30 ms          |
+| stats 聚合                  | < 20 ms          |
+
+## 测试覆盖率
+
+```
+__tests__/unit/aiops.test.js — 107 tests (1271 lines)
+```
+
+覆盖：baseline 统计计算、z_score / iqr 两种算法边界值、incident 状态机全路径、
+playbook CRUD + record、postmortem 生成、TTA/TTR 计算、severities P0-P3 分级、
+非法状态转换拒绝。
+
+## 安全考虑
+
+1. **基线污染保护** — `baseline-update` 应来自可信指标源，异常样本可能拉偏均值；可用中位数基线作为备选
+2. **playbook 步骤审计** — 步骤以 JSON 存储，执行方式由上层决定，CLI 侧仅记录
+3. **事件不可直接 close** — 状态机强制 open → ack → resolve → close 顺序
+4. **postmortem 仅对已解决事件** — 防止对未处理事件误生成报告
+5. **severity 分级审计** — 严重性由算法自动给出，手动 `incident-create` 需显式指定
+
+## 故障排查
+
+**Q: `detect` 总判定为正常，但实际有异常?**
+
+1. 检查 `baseline-show <metric>` 的 mean/std——样本不足时 std 偏小，Z-score 不敏感
+2. 切换算法 `-a iqr`（对少量样本更稳健）
+3. 减少 `z_score_threshold`（如 2.5）使更敏感
+
+**Q: incident 无法 ack?**
+
+状态机强制：必须处于 `open` 才能 ack；`resolved` 不能再 ack。用 `incident-show` 确认当前状态。
+
+**Q: `postmortem` 报 incident not resolved?**
+
+复盘要求事件已 resolved 或 closed；未解决事件先运行 `incident-resolve <id>`。
+
+## 关键文件
+
+- `packages/cli/src/commands/ops.js` — Commander 子命令（~762 行）
+- `packages/cli/src/lib/aiops.js` — 异常检测 + 事件 + playbook + postmortem
+- `packages/cli/__tests__/unit/aiops.test.js` — 单测（107 tests）
+- 数据表：`ops_incidents` / `ops_playbooks` / `ops_baselines`
+- 设计文档：`docs/design/modules/25_自治运维系统.md`
+
+## 使用示例
+
+```bash
+# 1. 训练基线 + 检测异常
+chainlesschain ops baseline-update cpu_usage -v "45,52,48,50,47,53,49,51"
+chainlesschain ops detect cpu_usage 95     # 自动创建 incident
+
+# 2. 事件推进
+iid=$(chainlesschain ops incidents --json | jq -r '.[0].id')
+chainlesschain ops incident-ack $iid
+chainlesschain ops incident-resolve $iid
+
+# 3. 生成复盘
+chainlesschain ops postmortem $iid
+
+# 4. 修复 playbook
+chainlesschain ops playbook-create -n "磁盘清理" \
+  -t '{"metric":"disk_usage","threshold":90}' \
+  -s '["df -h","docker system prune"]'
+chainlesschain ops playbook-record <pid> success
+
+# 5. 全局统计
+chainlesschain ops stats --json
+```
+
 ## 相关文档
 
 - 设计文档: `docs/design/modules/25_自治运维系统.md`
 - 管理器: `packages/cli/src/lib/aiops.js`
 - 命令: `packages/cli/src/commands/ops.js`
+- [Perf Tuning →](/chainlesschain/cli-perf)
+- [Federation Hardening →](/chainlesschain/cli-federation)

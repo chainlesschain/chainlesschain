@@ -604,7 +604,7 @@ chainlesschain team prune-inactive --days 90
 
 ---
 
-## 测试覆盖
+## 测试覆盖率
 
 ### 测试文件
 

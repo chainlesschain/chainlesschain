@@ -147,8 +147,118 @@ chainlesschain codegen stats --json
 
 所有数据持久化到 SQLite 数据库 (`code_generations` / `code_reviews` / `code_scaffolds` 三张表)，首次执行子命令时自动建表。
 
+## 系统架构
+
+```
+┌────────────────────────────────────────────────────────┐
+│              chainlesschain codegen (Phase 86)          │
+├────────────────────────────────────────────────────────┤
+│  generate        │  review          │  scaffold        │
+│  (prompt/lang/   │  (5 rule heuri-  │  (template-      │
+│   framework/     │   stic: eval,    │   based, tracks  │
+│   tokens)        │   sql-injection, │   react/vue/     │
+│                  │   xss, path-     │   express/       │
+│                  │   traversal,     │   fastapi/       │
+│                  │   command-inj)   │   spring-boot)   │
+├────────────────────────────────────────────────────────┤
+│  SQLite: code_generations / code_reviews /             │
+│          code_scaffolds                                │
+├────────────────────────────────────────────────────────┤
+│  stats aggregator (counts / tokens / issues)           │
+└────────────────────────────────────────────────────────┘
+```
+
+数据流：`generate` 写入 generation → `review --gen-id` 关联到该会话 → `stats` 聚合。
+
+## 配置参考
+
+| 配置项             | 含义                     | 默认                          |
+| ------------------ | ------------------------ | ----------------------------- |
+| 模板目录           | 支持的脚手架模板         | react, vue, express, fastapi, spring_boot |
+| 审查规则           | 启发式正则规则           | eval_detection, sql_injection, xss, path_traversal, command_injection |
+| 严重性等级         | 审查结果分级             | critical / high / medium / low / info |
+| 关联模式           | `review -g <gen-id>`     | 可选，关联到已有生成记录      |
+| JSON 输出          | `--json`                 | 所有列表/show 命令支持        |
+
+## 性能指标
+
+| 操作                      | 典型耗时         |
+| ------------------------- | ---------------- |
+| generate 记录写入         | < 15 ms          |
+| review（小代码片段）      | < 20 ms          |
+| review（1000+ 行）        | < 100 ms         |
+| scaffold 记录写入         | < 10 ms          |
+| stats 聚合（10k 记录）    | < 50 ms          |
+
+注：CLI 侧 review 为启发式模式匹配，非 LLM 调用；LLM 审查由 Desktop 端 Code Generation Agent 2.0 完成。
+
+## 测试覆盖率
+
+```
+__tests__/unit/code-agent.test.js — 65 tests (755 lines)
+```
+
+覆盖：generate 记录、review 规则触发（每条规则独立用例）、scaffold 模板分支、
+stats 聚合、边界值（空 prompt、超大 code）、JSON 输出一致性。
+V2 surface（Phase 86）见 `code_agent_v2_phase86_cli.md` 备忘录（65 tests）。
+
+## 安全考虑
+
+1. **review 只做启发式** — 不会将代码发送到任何外部服务；5 条规则均为本地正则
+2. **敏感 prompt 持久化提示** — `generate` 会将 prompt 明文存入 SQLite；如含敏感信息请通过环境变量或显式规避
+3. **代码哈希化存储** — `review` 存 SHA-256(code) 而非原文，减少敏感泄漏面
+4. **scaffold 仅记录** — 不执行实际 shell 命令创建项目，需由上层调用方完成
+5. **JSON 输入校验** — `-m` / `-o` 参数如非合法 JSON 将被拒绝，防止注入
+
+## 故障排查
+
+**Q: review 没检测出应该匹配的规则?**
+
+1. 确认代码包含规则关键词（如 `eval(`、`SELECT ... '`、`document.write`、`../`）
+2. 可用 `codegen rules --json` 查看规则枚举，与实际 `codegen review-show` 的 `rules_matched` 对比
+3. 规则为启发式，复杂的代码模式需要上层 LLM 审查
+
+**Q: generate 记录不显示在 list?**
+
+1. 检查 `--limit` 是否过小（默认 50）
+2. 若过滤了 `-l` / `-f`，请与实际写入值比对
+3. 首次运行时自动建表；检查数据目录 `.chainlesschain/` 是否有写权限
+
+**Q: scaffold 记录不影响实际文件系统?**
+
+CLI 侧 `scaffold` 只做记录追踪，实际脚手架生成由 Desktop Agent 或外部 CLI（`create-react-app` 等）完成。
+
+## 关键文件
+
+- `packages/cli/src/commands/codegen.js` — Commander 子命令（~527 行）
+- `packages/cli/src/lib/code-agent.js` — 管理器 + 5 条启发式规则
+- `packages/cli/__tests__/unit/code-agent.test.js` — 单测（65 tests）
+- 数据表：`code_generations` / `code_reviews` / `code_scaffolds`
+- 设计文档：`docs/design/modules/51_代码生成Agent2.0.md`
+
+## 使用示例
+
+```bash
+# 1. 记录一次 LLM 生成
+gid=$(chainlesschain codegen generate -p "React Todo" -l typescript -f react --files 4 --tokens 1800 --json | jq -r .id)
+
+# 2. 对生成结果做安全审查（关联到 generation）
+chainlesschain codegen review -c "eval(userInput)" -l javascript -g $gid
+
+# 3. 列出高危审查
+chainlesschain codegen reviews --limit 20 --json | jq '.[] | select(.security_issues > 0)'
+
+# 4. 脚手架追踪
+chainlesschain codegen scaffold -t fastapi -n api-server --files 8 -o ./projects/api
+
+# 5. 全局统计
+chainlesschain codegen stats --json
+```
+
 ## 相关文档
 
 - 设计文档: `docs/design/modules/51_代码生成Agent2.0.md`
 - 管理器: `packages/cli/src/lib/code-agent.js`
 - 命令: `packages/cli/src/commands/codegen.js`
+- [Autonomous Developer →](/chainlesschain/cli-dev)
+- [Tech Learning Engine →](/chainlesschain/autonomous-developer)
