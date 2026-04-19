@@ -137,6 +137,33 @@ chainlesschain stress stop <test-id>
 | `packages/cli/src/commands/stress.js` | stress 命令主入口 |
 | `packages/cli/src/lib/stress-tester.js` | 合成指标生成、瓶颈启发式、容量规划核心实现 |
 
+## 性能指标
+
+| 操作 | 典型耗时 | 备注 |
+| ---- | -------- | ---- |
+| `stress levels` | < 20 ms | 纯内存枚举 |
+| `stress run`（合成指标） | 与 `-d` 一致 | 真实占用低，主要阻塞等待 |
+| `stress list` / `show` | < 50 ms | SQLite 索引查询 |
+| `stress analyze` | < 100 ms | 启发式瓶颈检测 |
+| `stress plan` | < 50 ms | 线性外推 |
+
+注意：`stress run` 当前产出的是合成指标（用于容量规划/回归），非真实打流；若需真实打流请配合外部负载工具。
+
+## 测试覆盖率
+
+```
+__tests__/unit/stress-tester.test.js — 66 tests
+```
+
+覆盖四级负载预设、run/list/show/analyze/plan 全路径、瓶颈启发式（CPU/IO/网络/队列）、容量规划倍数与裕度计算、stop 转为 stopped 状态机。
+
+## 安全考虑
+
+1. **合成打流**：默认模式不会对外发起真实请求，CI 中运行安全
+2. **资源上限**：`-c` / `-r` / `-d` 组合过大会放大 CPU/内存占用，建议在容器中运行
+3. **结果脱敏**：`stress_tests` 表不保存业务载荷，仅保存参数与统计指标
+4. **历史清理**：长时间运行会累积 SQLite 记录，建议定期 VACUUM
+
 ## 测试
 
 ```bash

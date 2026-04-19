@@ -751,4 +751,66 @@ export function registerA2aCommand(program) {
         logger.log(`  Subs (typed):    ${s.subscriptions.typed}`);
       }
     });
+  registerA2aV2Command(a2a);
 }
+
+
+import {
+  A2A_AGENT_MATURITY_V2,
+  A2A_MESSAGE_LIFECYCLE_V2,
+  registerA2aAgentV2,
+  activateA2aAgentV2,
+  suspendA2aAgentV2,
+  retireA2aAgentV2,
+  touchA2aAgentV2,
+  getA2aAgentV2,
+  listA2aAgentsV2,
+  createA2aMessageV2,
+  startA2aMessageV2,
+  deliverA2aMessageV2,
+  failA2aMessageV2,
+  cancelA2aMessageV2,
+  getA2aMessageV2,
+  listA2aMessagesV2,
+  setMaxActiveA2aAgentsPerOwnerV2,
+  getMaxActiveA2aAgentsPerOwnerV2,
+  setMaxPendingA2aMessagesPerAgentV2,
+  getMaxPendingA2aMessagesPerAgentV2,
+  setA2aAgentIdleMsV2,
+  getA2aAgentIdleMsV2,
+  setA2aMessageStuckMsV2,
+  getA2aMessageStuckMsV2,
+  autoSuspendIdleA2aAgentsV2,
+  autoFailStuckA2aMessagesV2,
+  getA2aProtocolGovStatsV2,
+} from "../lib/a2a-protocol.js";
+
+export function registerA2aV2Command(a2a) {
+  a2a.command("enums-v2").description("Show V2 governance enums").action(() => { console.log(JSON.stringify({ A2A_AGENT_MATURITY_V2, A2A_MESSAGE_LIFECYCLE_V2 }, null, 2)); });
+  a2a.command("register-agent-v2").description("Register an a2a agent profile (pending)")
+    .requiredOption("--id <id>").requiredOption("--owner <owner>").option("--capabilities <csv>")
+    .action((o) => { const caps = o.capabilities ? o.capabilities.split(",").map(s=>s.trim()).filter(Boolean) : []; console.log(JSON.stringify(registerA2aAgentV2({ id: o.id, owner: o.owner, capabilities: caps }), null, 2)); });
+  a2a.command("activate-agent-v2 <id>").description("Activate agent").action((id) => { console.log(JSON.stringify(activateA2aAgentV2(id), null, 2)); });
+  a2a.command("suspend-agent-v2 <id>").description("Suspend agent").action((id) => { console.log(JSON.stringify(suspendA2aAgentV2(id), null, 2)); });
+  a2a.command("retire-agent-v2 <id>").description("Retire agent (terminal)").action((id) => { console.log(JSON.stringify(retireA2aAgentV2(id), null, 2)); });
+  a2a.command("touch-agent-v2 <id>").description("Refresh lastTouchedAt").action((id) => { console.log(JSON.stringify(touchA2aAgentV2(id), null, 2)); });
+  a2a.command("get-agent-v2 <id>").description("Get agent").action((id) => { console.log(JSON.stringify(getA2aAgentV2(id), null, 2)); });
+  a2a.command("list-agents-v2").description("List agents").action(() => { console.log(JSON.stringify(listA2aAgentsV2(), null, 2)); });
+  a2a.command("create-message-v2").description("Create an a2a message (queued)")
+    .requiredOption("--id <id>").requiredOption("--agent-id <agentId>").option("--peer-id <peerId>").option("--payload <payload>")
+    .action((o) => { console.log(JSON.stringify(createA2aMessageV2({ id: o.id, agentId: o.agentId, peerId: o.peerId, payload: o.payload }), null, 2)); });
+  a2a.command("start-message-v2 <id>").description("Transition message to sending").action((id) => { console.log(JSON.stringify(startA2aMessageV2(id), null, 2)); });
+  a2a.command("deliver-message-v2 <id>").description("Transition message to delivered").action((id) => { console.log(JSON.stringify(deliverA2aMessageV2(id), null, 2)); });
+  a2a.command("fail-message-v2 <id>").description("Fail message").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(failA2aMessageV2(id, o.reason), null, 2)); });
+  a2a.command("cancel-message-v2 <id>").description("Cancel message").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(cancelA2aMessageV2(id, o.reason), null, 2)); });
+  a2a.command("get-message-v2 <id>").description("Get message").action((id) => { console.log(JSON.stringify(getA2aMessageV2(id), null, 2)); });
+  a2a.command("list-messages-v2").description("List messages").action(() => { console.log(JSON.stringify(listA2aMessagesV2(), null, 2)); });
+  a2a.command("set-max-active-agents-v2 <n>").description("Set per-owner active cap").action((n) => { setMaxActiveA2aAgentsPerOwnerV2(Number(n)); console.log(JSON.stringify({ maxActiveA2aAgentsPerOwner: getMaxActiveA2aAgentsPerOwnerV2() }, null, 2)); });
+  a2a.command("set-max-pending-messages-v2 <n>").description("Set per-agent pending cap").action((n) => { setMaxPendingA2aMessagesPerAgentV2(Number(n)); console.log(JSON.stringify({ maxPendingA2aMessagesPerAgent: getMaxPendingA2aMessagesPerAgentV2() }, null, 2)); });
+  a2a.command("set-agent-idle-ms-v2 <n>").description("Set idle threshold").action((n) => { setA2aAgentIdleMsV2(Number(n)); console.log(JSON.stringify({ a2aAgentIdleMs: getA2aAgentIdleMsV2() }, null, 2)); });
+  a2a.command("set-message-stuck-ms-v2 <n>").description("Set stuck threshold").action((n) => { setA2aMessageStuckMsV2(Number(n)); console.log(JSON.stringify({ a2aMessageStuckMs: getA2aMessageStuckMsV2() }, null, 2)); });
+  a2a.command("auto-suspend-idle-agents-v2").description("Auto-suspend idle agents").action(() => { console.log(JSON.stringify(autoSuspendIdleA2aAgentsV2(), null, 2)); });
+  a2a.command("auto-fail-stuck-messages-v2").description("Auto-fail stuck sending messages").action(() => { console.log(JSON.stringify(autoFailStuckA2aMessagesV2(), null, 2)); });
+  a2a.command("gov-stats-v2").description("V2 governance aggregate stats").action(() => { console.log(JSON.stringify(getA2aProtocolGovStatsV2(), null, 2)); });
+}
+

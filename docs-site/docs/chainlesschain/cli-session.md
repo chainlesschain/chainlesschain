@@ -420,7 +420,7 @@ chainlesschain session list --json \
 - `packages/session-core/lib/approval-gate.js`
 - `packages/session-core/lib/file-adapters.js`
 
-## 测试覆盖
+## 测试覆盖率
 
 本轮已补齐并通过：
 

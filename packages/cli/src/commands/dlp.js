@@ -616,4 +616,65 @@ export function registerDlpCommand(program) {
         process.exit(1);
       }
     });
+  registerDlpV2Command(dlp);
+}
+
+
+import {
+  DLP_POLICY_MATURITY_V2,
+  DLP_SCAN_LIFECYCLE_V2,
+  registerDlpPolicyV2,
+  activateDlpPolicyV2,
+  suspendDlpPolicyV2,
+  retireDlpPolicyV2,
+  touchDlpPolicyV2,
+  getDlpPolicyV2,
+  listDlpPoliciesV2,
+  createDlpScanV2,
+  startDlpScanV2,
+  completeDlpScanV2,
+  failDlpScanV2,
+  cancelDlpScanV2,
+  getDlpScanV2,
+  listDlpScansV2,
+  setMaxActiveDlpPoliciesPerOwnerV2,
+  getMaxActiveDlpPoliciesPerOwnerV2,
+  setMaxPendingDlpScansPerPolicyV2,
+  getMaxPendingDlpScansPerPolicyV2,
+  setDlpPolicyIdleMsV2,
+  getDlpPolicyIdleMsV2,
+  setDlpScanStuckMsV2,
+  getDlpScanStuckMsV2,
+  autoSuspendIdleDlpPoliciesV2,
+  autoFailStuckDlpScansV2,
+  getDlpEngineStatsV2,
+} from "../lib/dlp-engine.js";
+
+export function registerDlpV2Command(dlp) {
+  dlp.command("enums-v2").description("Show V2 governance enums").action(() => { console.log(JSON.stringify({ DLP_POLICY_MATURITY_V2, DLP_SCAN_LIFECYCLE_V2 }, null, 2)); });
+  dlp.command("register-policy-v2").description("Register a DLP policy profile (pending)")
+    .requiredOption("--id <id>").requiredOption("--owner <owner>").option("--classification <c>")
+    .action((o) => { console.log(JSON.stringify(registerDlpPolicyV2(o), null, 2)); });
+  dlp.command("activate-policy-v2 <id>").description("Activate policy").action((id) => { console.log(JSON.stringify(activateDlpPolicyV2(id), null, 2)); });
+  dlp.command("suspend-policy-v2 <id>").description("Suspend policy").action((id) => { console.log(JSON.stringify(suspendDlpPolicyV2(id), null, 2)); });
+  dlp.command("retire-policy-v2 <id>").description("Retire policy (terminal)").action((id) => { console.log(JSON.stringify(retireDlpPolicyV2(id), null, 2)); });
+  dlp.command("touch-policy-v2 <id>").description("Refresh lastTouchedAt").action((id) => { console.log(JSON.stringify(touchDlpPolicyV2(id), null, 2)); });
+  dlp.command("get-policy-v2 <id>").description("Get policy").action((id) => { console.log(JSON.stringify(getDlpPolicyV2(id), null, 2)); });
+  dlp.command("list-policies-v2").description("List policies").action(() => { console.log(JSON.stringify(listDlpPoliciesV2(), null, 2)); });
+  dlp.command("create-scan-v2").description("Create a DLP scan (queued)")
+    .requiredOption("--id <id>").requiredOption("--policy-id <policyId>").option("--target <target>")
+    .action((o) => { console.log(JSON.stringify(createDlpScanV2({ id: o.id, policyId: o.policyId, target: o.target }), null, 2)); });
+  dlp.command("start-scan-v2 <id>").description("Transition scan to scanning").action((id) => { console.log(JSON.stringify(startDlpScanV2(id), null, 2)); });
+  dlp.command("complete-scan-v2 <id>").description("Transition scan to completed").action((id) => { console.log(JSON.stringify(completeDlpScanV2(id), null, 2)); });
+  dlp.command("fail-scan-v2 <id>").description("Fail scan").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(failDlpScanV2(id, o.reason), null, 2)); });
+  dlp.command("cancel-scan-v2 <id>").description("Cancel scan").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(cancelDlpScanV2(id, o.reason), null, 2)); });
+  dlp.command("get-scan-v2 <id>").description("Get scan").action((id) => { console.log(JSON.stringify(getDlpScanV2(id), null, 2)); });
+  dlp.command("list-scans-v2").description("List scans").action(() => { console.log(JSON.stringify(listDlpScansV2(), null, 2)); });
+  dlp.command("set-max-active-policies-v2 <n>").description("Set per-owner active cap").action((n) => { setMaxActiveDlpPoliciesPerOwnerV2(Number(n)); console.log(JSON.stringify({ maxActiveDlpPoliciesPerOwner: getMaxActiveDlpPoliciesPerOwnerV2() }, null, 2)); });
+  dlp.command("set-max-pending-scans-v2 <n>").description("Set per-policy pending cap").action((n) => { setMaxPendingDlpScansPerPolicyV2(Number(n)); console.log(JSON.stringify({ maxPendingDlpScansPerPolicy: getMaxPendingDlpScansPerPolicyV2() }, null, 2)); });
+  dlp.command("set-policy-idle-ms-v2 <n>").description("Set idle threshold").action((n) => { setDlpPolicyIdleMsV2(Number(n)); console.log(JSON.stringify({ dlpPolicyIdleMs: getDlpPolicyIdleMsV2() }, null, 2)); });
+  dlp.command("set-scan-stuck-ms-v2 <n>").description("Set stuck threshold").action((n) => { setDlpScanStuckMsV2(Number(n)); console.log(JSON.stringify({ dlpScanStuckMs: getDlpScanStuckMsV2() }, null, 2)); });
+  dlp.command("auto-suspend-idle-policies-v2").description("Auto-suspend idle policies").action(() => { console.log(JSON.stringify(autoSuspendIdleDlpPoliciesV2(), null, 2)); });
+  dlp.command("auto-fail-stuck-scans-v2").description("Auto-fail stuck scanning scans").action(() => { console.log(JSON.stringify(autoFailStuckDlpScansV2(), null, 2)); });
+  dlp.command("gov-stats-v2").description("V2 governance aggregate stats").action(() => { console.log(JSON.stringify(getDlpEngineStatsV2(), null, 2)); });
 }

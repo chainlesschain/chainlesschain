@@ -104,6 +104,40 @@ TrajectoryStore ReflectionEngine SkillSynthesizer
 | `packages/cli/src/lib/learning/reflection-engine.js` | 反思引擎核心实现 |
 | `packages/cli/src/lib/learning/skill-synthesizer.js` | 技能合成器核心实现 |
 
+## 配置参考
+
+| 配置项 | 含义 | 默认 |
+| ------ | ---- | ---- |
+| `trajectory.retentionDays` | 轨迹保留期（天） | 90 |
+| `trajectory.minScoreToKeep` | 最低评分过滤 | 0.0（全部保留） |
+| `reflect.sampleSize` | 反思采样条数 | 200 |
+| `reflect.trendWindow` | 趋势窗口（天） | 14 |
+| `synthesize.minScore` | 合成最低评分门槛 | 0.8 |
+| `synthesize.minSupport` | 模式最小支持度（命中次数） | 5 |
+| `cleanup.days` | `cleanup` 默认天数 | 90 |
+
+可通过环境变量覆盖，例如 `CC_LEARNING_RETENTION_DAYS=60`。
+
+## 性能指标
+
+| 操作 | 典型耗时 | 备注 |
+| ---- | -------- | ---- |
+| `learning stats` | < 100 ms | 索引化聚合 |
+| `learning trajectories` | < 50 ms | SQLite LIMIT 查询 |
+| `learning reflect` | 典型 300–800 ms | 取决于样本量 |
+| `learning synthesize` | 典型 500 ms–2 s | 模式挖掘 + SKILL.md 生成 |
+| `learning cleanup` | 依赖轨迹规模 | 批量 DELETE + VACUUM |
+
+## 测试覆盖率
+
+```
+__tests__/unit/trajectory-store.test.js
+__tests__/unit/reflection-engine.test.js
+__tests__/unit/skill-synthesizer.test.js
+```
+
+单元测试集成在 `packages/cli/__tests__/` 下，覆盖轨迹 CRUD、评分聚合、反思趋势计算、技能合成模板输出与清理策略。
+
 ## 使用示例
 
 ### 场景 1：查看学习进展

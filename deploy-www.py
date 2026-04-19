@@ -5,7 +5,7 @@ USER = "root"
 PASS = "***REDACTED***"
 
 name = "www.chainlesschain.com"
-tar_local = r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.2.10-20260418-1020.tar.gz"
+tar_local = r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.2.34-20260419-0733.tar.gz"
 remote_dir = "/www/wwwroot/www.chainlesschain.com"
 tar_remote = f"/tmp/{name}.tar.gz"
 staging = f"{remote_dir}.new"

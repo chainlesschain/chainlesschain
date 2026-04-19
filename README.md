@@ -1,5 +1,81 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-19 增量更新（CLI 0.142.0 · V2 第九 + 第十批 · 30 个 lib 级治理表面）
+
+在第八批 12 个 lib surface 基础上再推两批 V2 规范层：第九批收敛 **session / 上下文 / 权限 / DI / 社交图谱** 子系统（14 个 lib），第十批收敛 **编排 / 自治 / 经济 / 进化 / 合规框架 / SIEM / 推理网络 / 低代码** 子系统（16 个 lib）。CLI 包从 `0.136.0 → 0.142.0`（Tag `v5.0.2.34`）。所有 30 个表面严格沿用 4-state 成熟度 × 5-state 记录生命周期双状态机骨架，与 legacy 路径（SQLite 表 / 内存单例 / 传输层 / 协议层）零耦合。
+
+**30 个 V2 规范表面** — 第九批 14 个（全新 top-level 分派避让已有命令），第十批 16 个（多数 top-level，少数挂到现有命令加前缀）：
+
+| 批次 | 覆盖子系统（lib） | 新 V2 测试 | 代表命令 |
+| ---- | ------------------ | ----------- | -------- |
+| 第九批 | slot-filler / web-fetch / memory-injection / session-search / session-tail / session-usage / session-hooks / mcp-scaffold / plan-mode / permission-engine / user-profile / social-graph / service-container / task-model-selector | **521**（10×37 + 39 + 38 + 2×37）| `cc slotfill` `cc webfetch` `cc meminj` `cc seshsearch` `cc seshtail` `cc seshu` `cc seshhook` `cc mcpscaf` `cc planmode` `cc perm` `cc uprof` `cc social sg-*-v2` `cc svccont` `cc tms` |
+| 第十批 | orchestrator / perf-tuning / topic-classifier / iteration-budget / git-integration / cowork-task-runner / inference-network / content-recommender / app-builder / siem-exporter / autonomous-agent / compliance-framework-reporter / agent-economy / pipeline-orchestrator / evolution-system / hierarchical-memory | **704**（12×45 + 4×41）| `cc orchgov` `cc perf *-v2` `cc topiccls` `cc itbudget` `cc git` `cc cowork runner-*-v2` `cc inference` `cc recommend cr-*-v2` `cc lowcode` `cc siem` `cc autoagent` `cc compliance fwrep-*-v2` `cc economy` `cc pipeline` `cc evolution` `cc hmemory` |
+
+每个表面均遵循 V2 统一骨架：双状态机 + per-owner active cap（`pending→active` 仅）+ per-entity pending cap（创建记录时强制）+ stamp-once `activatedAt` / `startedAt` + `auto*V2` 批处理 + `_resetState*V2`（测试隔离）。所有 V2 action 以 `-v2` 后缀分派，preAction hook 通过 `actionCommand.name().endsWith("-v2")` bypass legacy 引导。多个 top-level 以重名规避前缀（`cc seshhook` vs `cc hook`、`cc mcpscaf` vs `cc mcp`、`cc autoagent` vs `cc agent`、`cc runner-*-v2` vs Agent Coordinator、`cc cr-*-v2` vs content-recommendation、`cc sg-*-v2` vs social-manager、`cc fwrep-*-v2` vs compliance V2）。
+
+### 回归测试（2026-04-19）
+
+| 层 | 文件数 | 用例数 | 耗时 |
+| --- | --- | --- | --- |
+| CLI 单元 | 274 | **11718 / 11718** | 125s |
+| CLI 集成 | 40 | **696 / 696** | 40s |
+| CLI E2E | 38 | **565 / 565** | 360s |
+| **合计** | **352** | **12979 / 12979** | **零回归** |
+
+第九 + 第十批相较 0.136.0 累计新增 **1225 个 V2 单元测试**（521 + 704），总计 V2 治理表面从 62+ → **92+**。
+
+**npm**：`npm i -g chainlesschain@0.142.0`（别名 `cc` / `clc` / `clchain`）
+
+详情见 [`docs/design/modules/96_V2规范层governance.md`](./docs/design/modules/96_V2规范层governance.md) 与 [更新日志](./docs-site/docs/changelog.md)。
+
+---
+
+## 2026-04-18 增量更新（CLI 0.136.0 · V2 第八批 · 12 个 lib 级治理表面）
+
+第八批在 V2 governance 收口向 lib 模块（a2a-protocol / activitypub-bridge / bi-engine / browser-automation / cross-chain / dao-governance / dlp-engine / evomap-manager / matrix-bridge / nostr-bridge / session-consolidator / zkp-engine），同样沿用 4-state 成熟度 × 5-state 记录生命周期的双状态机骨架，独立于 Phase 88 / Phase 92 / Phase 95 等既有协议实现。CLI 包从 `0.130.0 → 0.136.0`（Tag `v5.0.2.34`）。
+
+**12 个 V2 规范表面**（严格增量、纯内存 governance、与协议层零冲突）：
+
+| lib 模块 | Maturity / Record enum | per-owner cap | per-entity cap | 自动批处理 | V2 测试 |
+| --- | --- | --- | --- | --- | --- |
+| `a2a-protocol` | `A2A_AGENT_MATURITY_V2` + `A2A_MESSAGE_LIFECYCLE_V2` | agent | pending message | autoRetireIdle + autoFailStuck | 40 |
+| `activitypub-bridge` | `AP_ACTOR_MATURITY_V2` + `AP_ACTIVITY_LIFECYCLE_V2` | actor | pending activity | autoRetireIdle + autoFailStuck | 39 |
+| `bi-engine` | `BI_DATASET_MATURITY_V2` + `BI_QUERY_LIFECYCLE_V2` | dataset | pending query | autoArchiveIdle + autoFailStuck | 39 |
+| `browser-automation` | `BROWSE_SESSION_MATURITY_V2` + `BROWSE_STEP_LIFECYCLE_V2` | session | pending step | autoArchiveIdle + autoFailStuck | 37 |
+| `cross-chain` | `CC_BRIDGE_MATURITY_V2` + `CC_TRANSFER_LIFECYCLE_V2` | bridge | pending transfer | autoDegradeIdle + autoFailStuck | 40 |
+| `dao-governance` | `DAO_REALM_MATURITY_V2` + `DAO_PROPOSAL_LIFECYCLE_V2` | realm | open proposal | autoArchiveIdle + autoFailStuck | 41 |
+| `dlp-engine` | `DLP_POLICY_MATURITY_V2` + `DLP_INCIDENT_LIFECYCLE_V2` | policy | open incident | autoDeprecateIdle + autoCloseStale | 40 |
+| `evomap-manager` | `EVOMAP_HUB_MATURITY_V2` + `EVOMAP_SUBMISSION_LIFECYCLE_V2` | hub | pending submission | autoArchiveIdle + autoFailStuck | 39 |
+| `matrix-bridge` | `MX_ROOM_MATURITY_V2` + `MX_EVENT_LIFECYCLE_V2` | room | pending event | autoArchiveIdle + autoFailStuck | 37 |
+| `nostr-bridge` | `NOSTR_RELAY_MATURITY_V2` + `NOSTR_EVENT_LIFECYCLE_V2` | relay | pending event | autoDegradeIdle + autoFailStuck | 39 |
+| `session-consolidator` | `CONSOL_PROFILE_MATURITY_V2` + `CONSOL_JOB_LIFECYCLE_V2` | profile | pending job | autoArchiveIdle + autoFailStuck | 38 |
+| `zkp-engine` | `ZKP_CIRCUIT_MATURITY_V2` + `ZKP_PROOF_LIFECYCLE_V2` | circuit | pending proof | autoArchiveIdle + autoFailStuck | 41 |
+
+每个表面均遵循 V2 统一骨架：双状态机 + per-owner active cap（`pending→active` 仅）+ per-entity pending cap（创建记录时强制）+ stamp-once `activatedAt` / `startedAt` + `auto*V2` 批处理 + `_resetState*V2`（测试隔离）。所有 V2 action 以 `-v2` 后缀分派，preAction hook 通过 `actionCommand.name().endsWith("-v2")` bypass legacy 数据库引导。
+
+### 回归测试（2026-04-18 晚）
+
+| 层 | 文件数 | 用例数 | 耗时 |
+| --- | --- | --- | --- |
+| CLI 单元 | 244 | **10493 / 10493** | 124s |
+| CLI 集成 | 40 | **696 / 696** | 40s |
+| CLI E2E | 38 | **565 / 565** | 352s |
+| **合计** | **322** | **11754 / 11754** | **零回归** |
+
+本批相较 0.130.0 累计新增 **470 个 V2 单元测试**（12 个 lib 模块之和）。
+
+**npm**：`npm i -g chainlesschain@0.136.0`（别名 `cc` / `clc` / `clchain`）
+
+详情见 [`docs/design/modules/96_V2规范层governance.md`](./docs/design/modules/96_V2规范层governance.md) 与 [更新日志](./docs-site/docs/changelog.md#5-0-2-34-cli-0-131-0-136-2026-04-18)。
+
+---
+
+## 2026-04-18 增量更新（CLI 0.130.0 · V2 第七批 · 9 个编排管家）
+
+在第六批 13 个运行时管家的基础上，把 V2 规范层推进到 **9 个编排层模块**：SSO / Workflow / Router / Hook / MCP / Coord / Sub-Agent / ExecBE / Todo。CLI 包从 `0.123.0 → 0.130.0`（Tag `v5.0.2.34`）。每个表面严格独立于 legacy SQLite / 传输层，保持 preAction bypass、双状态机、per-owner + per-entity caps 三层骨架。累计新增 **345 个 V2 单元测试**。
+
+---
+
 ## 2026-04-18 增量更新（CLI 0.130.0 · V2 第六批 · 13 个运行时管家）
 
 第五批（0.106.0，collab + UEBA + threat-intel）当天晚些时候再推一轮，把 **13 个运行时管家模块**全部拉通 V2 规范表面。CLI 包从 `0.106.0 → 0.130.0`（Tag `v5.0.2.10`）。
@@ -418,13 +494,13 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.10-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.34-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-5880%2B-brightgreen.svg)
-![Skills](https://img.shields.io/badge/skills-138-blue.svg)
+![Tests](https://img.shields.io/badge/tests-12900%2B-brightgreen.svg)
+![Skills](https://img.shields.io/badge/skills-139-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
@@ -438,7 +514,7 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 ---
 
-## ⭐ 当前版本: v5.0.2.10 Evolution Edition (2026-04-06)
+## ⭐ 当前版本: v5.0.2.34 Evolution Edition (2026-04-19 · CLI 0.142.0 · V2 规范层第九 + 第十批)
 
 ### 最新更新 - 合规与威胁情报补齐 (STIX 2.1 · UEBA · Framework Reporter, 2026-04-16) 🆕
 

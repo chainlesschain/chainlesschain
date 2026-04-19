@@ -1402,4 +1402,46 @@ export function registerCoworkCommand(program) {
       m._resetStateAgentCoordinatorV2();
       console.log(JSON.stringify({ ok: true }, null, 2));
     });
+
+  _registerCoworkRunnerV2(cowork);
+}
+
+
+import {
+  RUNNER_PROFILE_MATURITY_V2, RUNNER_EXEC_LIFECYCLE_V2,
+  setMaxActiveRunnerProfilesPerOwnerV2, setMaxPendingRunnerExecsPerProfileV2, setRunnerProfileIdleMsV2, setRunnerExecStuckMsV2,
+  registerRunnerProfileV2, activateRunnerProfileV2, pauseRunnerProfileV2, retireRunnerProfileV2, touchRunnerProfileV2, getRunnerProfileV2, listRunnerProfilesV2,
+  createRunnerExecV2, startRunnerExecV2, succeedRunnerExecV2, failRunnerExecV2, cancelRunnerExecV2, getRunnerExecV2, listRunnerExecsV2,
+  autoPauseIdleRunnerProfilesV2, autoFailStuckRunnerExecsV2, getRunnerGovStatsV2,
+} from "../lib/cowork-task-runner.js";
+
+function _registerCoworkRunnerV2(parent) {
+  parent.command("runner-enums-v2").description("List Runner V2 enums").option("--json", "JSON").action((opts) => {
+    const out = { profileMaturity: RUNNER_PROFILE_MATURITY_V2, execLifecycle: RUNNER_EXEC_LIFECYCLE_V2 };
+    if (opts.json) console.log(JSON.stringify(out, null, 2)); else console.log(out);
+  });
+  parent.command("runner-config-set-v2").description("Set Runner V2 caps/thresholds").option("--max-active <n>", "max active per owner").option("--max-pending <n>", "max pending per profile").option("--idle-ms <n>", "profile idle ms").option("--stuck-ms <n>", "exec stuck ms").action((opts) => {
+    if (opts.maxActive) setMaxActiveRunnerProfilesPerOwnerV2(parseInt(opts.maxActive, 10));
+    if (opts.maxPending) setMaxPendingRunnerExecsPerProfileV2(parseInt(opts.maxPending, 10));
+    if (opts.idleMs) setRunnerProfileIdleMsV2(parseInt(opts.idleMs, 10));
+    if (opts.stuckMs) setRunnerExecStuckMsV2(parseInt(opts.stuckMs, 10));
+    console.log("ok");
+  });
+  parent.command("runner-register-profile-v2 <id>").description("Register Runner V2 profile").requiredOption("--owner <owner>", "owner").option("--template <t>", "template").action((id, opts) => { console.log(registerRunnerProfileV2({ id, owner: opts.owner, template: opts.template })); });
+  parent.command("runner-activate-profile-v2 <id>").description("Activate Runner V2 profile").action((id) => { console.log(activateRunnerProfileV2(id)); });
+  parent.command("runner-pause-profile-v2 <id>").description("Pause Runner V2 profile").action((id) => { console.log(pauseRunnerProfileV2(id)); });
+  parent.command("runner-retire-profile-v2 <id>").description("Retire Runner V2 profile").action((id) => { console.log(retireRunnerProfileV2(id)); });
+  parent.command("runner-touch-profile-v2 <id>").description("Touch Runner V2 profile").action((id) => { console.log(touchRunnerProfileV2(id)); });
+  parent.command("runner-get-profile-v2 <id>").description("Get Runner V2 profile").action((id) => { console.log(getRunnerProfileV2(id)); });
+  parent.command("runner-list-profiles-v2").description("List Runner V2 profiles").action(() => { console.log(listRunnerProfilesV2()); });
+  parent.command("runner-create-exec-v2 <id>").description("Create Runner V2 exec").requiredOption("--profile-id <pid>", "profile id").option("--task-input <t>", "task input").action((id, opts) => { console.log(createRunnerExecV2({ id, profileId: opts.profileId, taskInput: opts.taskInput })); });
+  parent.command("runner-start-exec-v2 <id>").description("Start Runner V2 exec").action((id) => { console.log(startRunnerExecV2(id)); });
+  parent.command("runner-succeed-exec-v2 <id>").description("Succeed Runner V2 exec").action((id) => { console.log(succeedRunnerExecV2(id)); });
+  parent.command("runner-fail-exec-v2 <id>").description("Fail Runner V2 exec").option("--reason <r>", "reason").action((id, opts) => { console.log(failRunnerExecV2(id, opts.reason)); });
+  parent.command("runner-cancel-exec-v2 <id>").description("Cancel Runner V2 exec").option("--reason <r>", "reason").action((id, opts) => { console.log(cancelRunnerExecV2(id, opts.reason)); });
+  parent.command("runner-get-exec-v2 <id>").description("Get Runner V2 exec").action((id) => { console.log(getRunnerExecV2(id)); });
+  parent.command("runner-list-execs-v2").description("List Runner V2 execs").action(() => { console.log(listRunnerExecsV2()); });
+  parent.command("runner-auto-pause-profiles-v2").description("Auto-pause idle Runner V2 profiles").action(() => { console.log(autoPauseIdleRunnerProfilesV2()); });
+  parent.command("runner-auto-fail-execs-v2").description("Auto-fail stuck Runner V2 execs").action(() => { console.log(autoFailStuckRunnerExecsV2()); });
+  parent.command("runner-gov-stats-v2").description("Runner V2 governance stats").option("--json", "JSON").action((opts) => { const s = getRunnerGovStatsV2(); if (opts.json) console.log(JSON.stringify(s, null, 2)); else console.log(s); });
 }

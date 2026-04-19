@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: v5.0.2.10 | CLI Agent Runtime | Web Panel | Headless CLI
+  tagline: v5.0.2.34 | CLI 0.142.0 · 109 命令 · V2 规范层（第九 + 第十批 · 92+ 治理表面）· 12979 测试
   image:
     src: /logo.png
     alt: ChainlessChain Logo

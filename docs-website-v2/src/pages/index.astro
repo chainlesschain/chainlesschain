@@ -83,6 +83,17 @@ const evolution = [
   { tag: 'v5.0.2.10', title: 'V2 增强套件（第四批）', sub: '15 模块 V2 升级', desc: '代码生成/数据库演进/自主开发/协议融合/治理/基础设施/IPFS/多模态/NL编程/感知/量化/推荐/运行时/学习/信任 — 全部 90 命令 V2 规范化完成。' },
   { tag: 'v5.0.2.10', title: 'V2 增强套件（第五批）', sub: '协作治理 + 合规 UEBA + 威胁情报', desc: 'cc collab / cc compliance ueba / cc compliance threat-intel — Agent 成熟度 + 提案/调查/Feed 生命周期、双维度上限、批量 auto-flip，全部覆盖 167+ 新单元测试。' },
   { tag: 'v5.0.2.10', title: 'V2 增强套件（第六批）', sub: '13 个运行时管家 V2 升级', desc: 'automation / instinct / memory / note / org / permmem / rcache / scim / session / social / sync / tokens / wallet — 全部 4-state 成熟度 + 5-state 生命周期、双维度上限、autoPauseIdle / autoFailStuck / autoExpireStale 批量 auto-flip，560 新 V2 单元测试零回归。' },
+
+  // ── v5.0.2.34 / CLI 0.124-0.130 Evolution (2026-04-18 Gateway V2 Batch) ──
+  { tag: 'v5.0.2.34', title: 'SSO Manager V2', sub: 'cc sso V2 · 企业身份治理', desc: 'SAML/OAuth2/OIDC Provider 4-state 成熟度（retired 终态、deprecated→active 恢复）+ 5-state 登录生命周期（3 终态），per-owner active-provider cap + per-provider pending-login cap，autoDeprecateIdle + autoFailStuck；35 V2 单测。' },
+  { tag: 'v5.0.2.34', title: 'Workflow Engine V2', sub: 'cc workflow V2 · DAG 运行治理', desc: '工作流 4-state 成熟度（retired 终态、paused→active 恢复）+ 5-state 运行生命周期（3 终态），per-owner active-workflow cap（draft→active）+ per-workflow pending-run cap（queued+running），autoPauseIdle + autoFailStuck；44 V2 单测。' },
+  { tag: 'v5.0.2.34', title: 'Agent Router V2', sub: 'cc router V2 · 路由分发治理', desc: 'Router Profile 4-state 成熟度 + 5-state dispatch 生命周期（3 终态），per-owner active-profile cap（pending→active 仅）+ per-profile pending-dispatch cap，autoDegradeIdle + autoFailStuck；37 V2 单测独立于旧 AgentRouter 类。' },
+  { tag: 'v5.0.2.34', title: 'Hook Manager V2', sub: 'cc hook V2 · 钩子执行治理', desc: 'Hook Profile 4-state 成熟度 + 5-state exec 生命周期（3 终态），per-owner active-hook cap + per-hook pending-exec cap（queued+running），autoDisableIdle + autoFailStuck；42 V2 单测独立于 SQLite registerHook 路径。' },
+  { tag: 'v5.0.2.34', title: 'MCP Registry V2', sub: 'cc mcp V2 · MCP 服务器治理', desc: 'MCP Server Profile 4-state 成熟度 + 5-state invocation 生命周期（3 终态），per-owner active-server cap + per-server pending-invocation cap，autoDegradeIdle + autoFailStuck；33 V2 单测独立于 MCPClient 传输层。' },
+  { tag: 'v5.0.2.34', title: 'Agent Coordinator V2', sub: 'cc cowork coord V2 · 协调器治理', desc: 'Coord Agent 4-state 成熟度 + 5-state assignment 生命周期（3 终态），per-owner active-agent cap + per-agent pending-assignment cap，autoIdle + autoFailStuck；32 V2 单测（独立于旧 team/template 流）。' },
+  { tag: 'v5.0.2.34', title: 'Sub-Agent Registry V2', sub: 'cc subagent V2 · 子 Agent 治理', desc: '子 Agent Profile 4-state 成熟度（retired 终态、paused→active 恢复）+ 5-state task 生命周期（3 终态），per-owner active cap + per-profile pending cap，autoPauseIdle + autoFailStuck；37 V2 单测（共 43），独立于旧 RingBuffer 单例注册中心。新顶层 `subagent` 命令。' },
+  { tag: 'v5.0.2.34', title: 'Execution Backend V2', sub: 'cc execbe V2 · 执行后端治理', desc: 'Backend Profile 4-state 成熟度 + 5-state exec-job 生命周期（succeeded 终态、3 终态），per-owner active cap + per-backend pending cap，autoDegradeIdle + autoFailStuck；46 V2 单测（共 68），独立于 Local/Docker/SSH Backend 实现。新顶层 `execbe` 命令。' },
+  { tag: 'v5.0.2.34', title: 'Todo Manager V2', sub: 'cc todo V2 · Todo 治理', desc: 'Todo List 4-state 成熟度 + 5-state item 生命周期（in_progress 中间态、3 终态），per-owner active cap + per-list pending cap，autoPauseIdle + autoFailStuck；39 V2 单测（共 41），独立于 per-session writeTodos/getTodos API。新顶层 `todo` 命令。' },
 ];
 
 const badges = [
@@ -101,8 +112,9 @@ const badges = [
     <div class="container-wide relative pt-20 pb-24 md:pt-28 md:pb-32">
       <div class="max-w-4xl">
         <div class="animate-fade-in flex items-center gap-3 mb-8">
-          <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> v5.0.2.10 · Evolution Edition</span>
+          <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> v5.0.2.34 · Evolution Edition</span>
           <span class="chip">CLI v0.130.0</span>
+          <span class="chip">109 命令</span>
         </div>
 
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02] tracking-tight">
@@ -157,7 +169,7 @@ const badges = [
         </p>
         <div class="grid grid-cols-3 gap-6 mb-8">
           <div>
-            <div class="font-display text-4xl text-ember">76</div>
+            <div class="font-display text-4xl text-ember">109</div>
             <div class="text-sm text-muted mt-1">CLI 命令</div>
           </div>
           <div>
@@ -165,7 +177,7 @@ const badges = [
             <div class="text-sm text-muted mt-1">内置 Skills</div>
           </div>
           <div>
-            <div class="font-display text-4xl text-ember">5517+</div>
+            <div class="font-display text-4xl text-ember">7600+</div>
             <div class="text-sm text-muted mt-1">测试用例</div>
           </div>
         </div>
@@ -332,7 +344,7 @@ const badges = [
   <section class="py-24 md:py-32 bg-cream/50 border-y border-line">
     <div class="container-wide">
       <div class="max-w-3xl mb-14">
-        <div class="chip mb-6">架构演进 · 49 项（v5.0.2.10 新增 40 项）</div>
+        <div class="chip mb-6">架构演进 · 58 项（v5.0.2.34 新增 9 项 V2 治理表面）</div>
         <h2 class="text-display-md md:text-5xl leading-tight">
           把多智能体做成<br/>
           <span class="italic">工程可复制的模式</span>。
@@ -348,7 +360,7 @@ const badges = [
             <div class="flex items-center justify-between mb-4">
               <div class="font-mono text-[10px] text-muted uppercase tracking-widest">{(i + 1).toString().padStart(2, '0')} · Pattern</div>
               {e.tag && (
-                <span class={`font-mono text-[10px] px-2 py-0.5 rounded-full ${e.tag === 'v5.0.2.10' ? 'bg-ember/15 text-ember' : 'bg-muted/10 text-muted'}`}>{e.tag}</span>
+                <span class={`font-mono text-[10px] px-2 py-0.5 rounded-full ${e.tag === 'v5.0.2.34' ? 'bg-ember text-cream' : e.tag === 'v5.0.2.10' ? 'bg-ember/15 text-ember' : 'bg-muted/10 text-muted'}`}>{e.tag}</span>
               )}
             </div>
             <h3 class="font-display text-2xl mb-1 group-hover:text-ember transition-colors">{e.title}</h3>
@@ -389,7 +401,7 @@ const badges = [
             <li>· CLI Agent · Claude Code 风格</li>
             <li>· Cowork 多 Agent 并行审查</li>
             <li>· MCP 工具生态 + 9 Skill Packs</li>
-            <li>· 90 命令 · 8500+ 测试</li>
+            <li>· 109 命令 · 7600+ 测试</li>
           </ul>
           <button class="btn-primary bg-ember text-ink hover:bg-ember-dark" data-copy="npm i -g chainlesschain">
             <span>$ npm i -g chainlesschain</span>

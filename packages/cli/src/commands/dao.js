@@ -874,4 +874,66 @@ export function registerDaoCommand(program) {
         }
       }
     });
+  registerDaoV2Command(dao);
 }
+
+
+import {
+  DAO_ORG_MATURITY_V2,
+  DAO_PROPOSAL_LIFECYCLE_V2,
+  registerDaoOrgV2,
+  activateDaoOrgV2,
+  pauseDaoOrgV2,
+  dissolveDaoOrgV2,
+  touchDaoOrgV2,
+  getDaoOrgV2,
+  listDaoOrgsV2,
+  createDaoProposalV2,
+  startDaoProposalV2,
+  passDaoProposalV2,
+  failDaoProposalV2,
+  cancelDaoProposalV2,
+  getDaoProposalV2,
+  listDaoProposalsV2,
+  setMaxActiveDaoOrgsPerOwnerV2,
+  getMaxActiveDaoOrgsPerOwnerV2,
+  setMaxPendingDaoProposalsPerOrgV2,
+  getMaxPendingDaoProposalsPerOrgV2,
+  setDaoOrgIdleMsV2,
+  getDaoOrgIdleMsV2,
+  setDaoProposalStuckMsV2,
+  getDaoProposalStuckMsV2,
+  autoPauseIdleDaoOrgsV2,
+  autoFailStuckDaoProposalsV2,
+  getDaoGovernanceGovStatsV2,
+} from "../lib/dao-governance.js";
+
+export function registerDaoV2Command(dao) {
+  dao.command("enums-v2").description("Show V2 governance enums").action(() => { console.log(JSON.stringify({ DAO_ORG_MATURITY_V2, DAO_PROPOSAL_LIFECYCLE_V2 }, null, 2)); });
+  dao.command("register-org-v2").description("Register a dao org profile (pending)")
+    .requiredOption("--id <id>").requiredOption("--owner <owner>").option("--name <name>")
+    .action((o) => { console.log(JSON.stringify(registerDaoOrgV2({ id: o.id, owner: o.owner, name: o.name }), null, 2)); });
+  dao.command("activate-org-v2 <id>").description("Activate org").action((id) => { console.log(JSON.stringify(activateDaoOrgV2(id), null, 2)); });
+  dao.command("pause-org-v2 <id>").description("Pause org").action((id) => { console.log(JSON.stringify(pauseDaoOrgV2(id), null, 2)); });
+  dao.command("dissolve-org-v2 <id>").description("Dissolve org (terminal)").action((id) => { console.log(JSON.stringify(dissolveDaoOrgV2(id), null, 2)); });
+  dao.command("touch-org-v2 <id>").description("Refresh lastTouchedAt").action((id) => { console.log(JSON.stringify(touchDaoOrgV2(id), null, 2)); });
+  dao.command("get-org-v2 <id>").description("Get org").action((id) => { console.log(JSON.stringify(getDaoOrgV2(id), null, 2)); });
+  dao.command("list-orgs-v2").description("List orgs").action(() => { console.log(JSON.stringify(listDaoOrgsV2(), null, 2)); });
+  dao.command("create-proposal-v2").description("Create a dao proposal (queued)")
+    .requiredOption("--id <id>").requiredOption("--org-id <orgId>").option("--title <title>")
+    .action((o) => { console.log(JSON.stringify(createDaoProposalV2({ id: o.id, orgId: o.orgId, title: o.title }), null, 2)); });
+  dao.command("start-proposal-v2 <id>").description("Transition proposal to voting").action((id) => { console.log(JSON.stringify(startDaoProposalV2(id), null, 2)); });
+  dao.command("pass-proposal-v2 <id>").description("Transition proposal to passed").action((id) => { console.log(JSON.stringify(passDaoProposalV2(id), null, 2)); });
+  dao.command("fail-proposal-v2 <id>").description("Fail proposal").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(failDaoProposalV2(id, o.reason), null, 2)); });
+  dao.command("cancel-proposal-v2 <id>").description("Cancel proposal").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(cancelDaoProposalV2(id, o.reason), null, 2)); });
+  dao.command("get-proposal-v2 <id>").description("Get proposal").action((id) => { console.log(JSON.stringify(getDaoProposalV2(id), null, 2)); });
+  dao.command("list-proposals-v2").description("List proposals").action(() => { console.log(JSON.stringify(listDaoProposalsV2(), null, 2)); });
+  dao.command("set-max-active-orgs-v2 <n>").description("Set per-owner active cap").action((n) => { setMaxActiveDaoOrgsPerOwnerV2(Number(n)); console.log(JSON.stringify({ maxActiveDaoOrgsPerOwner: getMaxActiveDaoOrgsPerOwnerV2() }, null, 2)); });
+  dao.command("set-max-pending-proposals-v2 <n>").description("Set per-org pending cap").action((n) => { setMaxPendingDaoProposalsPerOrgV2(Number(n)); console.log(JSON.stringify({ maxPendingDaoProposalsPerOrg: getMaxPendingDaoProposalsPerOrgV2() }, null, 2)); });
+  dao.command("set-org-idle-ms-v2 <n>").description("Set idle threshold").action((n) => { setDaoOrgIdleMsV2(Number(n)); console.log(JSON.stringify({ daoOrgIdleMs: getDaoOrgIdleMsV2() }, null, 2)); });
+  dao.command("set-proposal-stuck-ms-v2 <n>").description("Set stuck threshold").action((n) => { setDaoProposalStuckMsV2(Number(n)); console.log(JSON.stringify({ daoProposalStuckMs: getDaoProposalStuckMsV2() }, null, 2)); });
+  dao.command("auto-pause-idle-orgs-v2").description("Auto-pause idle orgs").action(() => { console.log(JSON.stringify(autoPauseIdleDaoOrgsV2(), null, 2)); });
+  dao.command("auto-fail-stuck-proposals-v2").description("Auto-fail stuck voting proposals").action(() => { console.log(JSON.stringify(autoFailStuckDaoProposalsV2(), null, 2)); });
+  dao.command("gov-stats-v2").description("V2 governance aggregate stats").action(() => { console.log(JSON.stringify(getDaoGovernanceGovStatsV2(), null, 2)); });
+}
+

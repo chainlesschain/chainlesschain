@@ -1104,6 +1104,31 @@ network.waitForIdle { timeout: 5000 }
 - [远程控制系统](/chainlesschain/remote-control) - 完整远程控制文档
 - [AI 模型配置](/chainlesschain/ai-models) - 配置 AI 调用插件功能
 
+## 使用示例
+
+```javascript
+// 1. 打开目标页面并抓取标题
+await window.chainlesschain.ext.tabs.create({ url: 'https://example.com', active: true })
+const title = await window.chainlesschain.ext.dom.evaluate('document.title')
+
+// 2. 等待元素加载后点击
+await window.chainlesschain.ext.dom.waitFor('button.submit', { timeout: 5000 })
+await window.chainlesschain.ext.dom.click('button.submit')
+
+// 3. 数据提取：读取表格为 JSON
+const rows = await window.chainlesschain.ext.dom.extractTable('table.data')
+
+// 4. 网络拦截：Mock /api/user 响应
+await window.chainlesschain.ext.network.mock('*/api/user', { json: { id: 1, name: 'mock' } })
+
+// 5. 截图对比（用于回归测试）
+const before = await window.chainlesschain.ext.screenshot.capture('#hero')
+// ...交互...
+const diff = await window.chainlesschain.ext.screenshot.diff(before)
+```
+
+连接流程：用户在 Chrome/Edge 安装扩展后点击「连接到 Desktop」→ Desktop 端 `remote-control-server.js` 弹出授权 → 通过后 215 个命令可用。
+
 ## 关键文件
 
 | 文件 | 说明 |

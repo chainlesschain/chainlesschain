@@ -320,3 +320,84 @@ export class BM25Search {
     };
   }
 }
+
+
+// =====================================================================
+// BM25 Search V2 governance overlay
+// =====================================================================
+export const BM25_PROFILE_MATURITY_V2 = Object.freeze({ PENDING: "pending", ACTIVE: "active", STALE: "stale", ARCHIVED: "archived" });
+export const BM25_QUERY_LIFECYCLE_V2 = Object.freeze({ QUEUED: "queued", SEARCHING: "searching", COMPLETED: "completed", FAILED: "failed", CANCELLED: "cancelled" });
+const _bm25PTrans = new Map([
+  [BM25_PROFILE_MATURITY_V2.PENDING, new Set([BM25_PROFILE_MATURITY_V2.ACTIVE, BM25_PROFILE_MATURITY_V2.ARCHIVED])],
+  [BM25_PROFILE_MATURITY_V2.ACTIVE, new Set([BM25_PROFILE_MATURITY_V2.STALE, BM25_PROFILE_MATURITY_V2.ARCHIVED])],
+  [BM25_PROFILE_MATURITY_V2.STALE, new Set([BM25_PROFILE_MATURITY_V2.ACTIVE, BM25_PROFILE_MATURITY_V2.ARCHIVED])],
+  [BM25_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _bm25PTerminal = new Set([BM25_PROFILE_MATURITY_V2.ARCHIVED]);
+const _bm25JTrans = new Map([
+  [BM25_QUERY_LIFECYCLE_V2.QUEUED, new Set([BM25_QUERY_LIFECYCLE_V2.SEARCHING, BM25_QUERY_LIFECYCLE_V2.CANCELLED])],
+  [BM25_QUERY_LIFECYCLE_V2.SEARCHING, new Set([BM25_QUERY_LIFECYCLE_V2.COMPLETED, BM25_QUERY_LIFECYCLE_V2.FAILED, BM25_QUERY_LIFECYCLE_V2.CANCELLED])],
+  [BM25_QUERY_LIFECYCLE_V2.COMPLETED, new Set()],
+  [BM25_QUERY_LIFECYCLE_V2.FAILED, new Set()],
+  [BM25_QUERY_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _bm25PsV2 = new Map();
+const _bm25JsV2 = new Map();
+let _bm25MaxActive = 8, _bm25MaxPending = 20, _bm25IdleMs = 30 * 24 * 60 * 60 * 1000, _bm25StuckMs = 30 * 1000;
+function _bm25Pos(n, label) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${label} must be positive integer`); return v; }
+function _bm25CheckP(from, to) { const a = _bm25PTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid bm25 profile transition ${from} → ${to}`); }
+function _bm25CheckJ(from, to) { const a = _bm25JTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid bm25 query transition ${from} → ${to}`); }
+function _bm25CountActive(owner) { let c = 0; for (const p of _bm25PsV2.values()) if (p.owner === owner && p.status === BM25_PROFILE_MATURITY_V2.ACTIVE) c++; return c; }
+function _bm25CountPending(profileId) { let c = 0; for (const j of _bm25JsV2.values()) if (j.profileId === profileId && (j.status === BM25_QUERY_LIFECYCLE_V2.QUEUED || j.status === BM25_QUERY_LIFECYCLE_V2.SEARCHING)) c++; return c; }
+export function setMaxActiveBm25ProfilesPerOwnerV2(n) { _bm25MaxActive = _bm25Pos(n, "maxActiveBm25ProfilesPerOwner"); }
+export function getMaxActiveBm25ProfilesPerOwnerV2() { return _bm25MaxActive; }
+export function setMaxPendingBm25QueriesPerProfileV2(n) { _bm25MaxPending = _bm25Pos(n, "maxPendingBm25QueriesPerProfile"); }
+export function getMaxPendingBm25QueriesPerProfileV2() { return _bm25MaxPending; }
+export function setBm25ProfileIdleMsV2(n) { _bm25IdleMs = _bm25Pos(n, "bm25ProfileIdleMs"); }
+export function getBm25ProfileIdleMsV2() { return _bm25IdleMs; }
+export function setBm25QueryStuckMsV2(n) { _bm25StuckMs = _bm25Pos(n, "bm25QueryStuckMs"); }
+export function getBm25QueryStuckMsV2() { return _bm25StuckMs; }
+export function _resetStateBm25SearchV2() { _bm25PsV2.clear(); _bm25JsV2.clear(); _bm25MaxActive = 8; _bm25MaxPending = 20; _bm25IdleMs = 30 * 24 * 60 * 60 * 1000; _bm25StuckMs = 30 * 1000; }
+export function registerBm25ProfileV2({ id, owner, field, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_bm25PsV2.has(id)) throw new Error(`bm25 profile ${id} already exists`);
+  const now = Date.now();
+  const p = { id, owner, field: field || "content", status: BM25_PROFILE_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, lastTouchedAt: now, activatedAt: null, archivedAt: null, metadata: { ...(metadata || {}) } };
+  _bm25PsV2.set(id, p); return { ...p, metadata: { ...p.metadata } };
+}
+export function activateBm25ProfileV2(id) {
+  const p = _bm25PsV2.get(id); if (!p) throw new Error(`bm25 profile ${id} not found`);
+  const isInitial = p.status === BM25_PROFILE_MATURITY_V2.PENDING;
+  _bm25CheckP(p.status, BM25_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _bm25CountActive(p.owner) >= _bm25MaxActive) throw new Error(`max active bm25 profiles for owner ${p.owner} reached`);
+  const now = Date.now(); p.status = BM25_PROFILE_MATURITY_V2.ACTIVE; p.updatedAt = now; p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleBm25ProfileV2(id) { const p = _bm25PsV2.get(id); if (!p) throw new Error(`bm25 profile ${id} not found`); _bm25CheckP(p.status, BM25_PROFILE_MATURITY_V2.STALE); p.status = BM25_PROFILE_MATURITY_V2.STALE; p.updatedAt = Date.now(); return { ...p, metadata: { ...p.metadata } }; }
+export function archiveBm25ProfileV2(id) { const p = _bm25PsV2.get(id); if (!p) throw new Error(`bm25 profile ${id} not found`); _bm25CheckP(p.status, BM25_PROFILE_MATURITY_V2.ARCHIVED); const now = Date.now(); p.status = BM25_PROFILE_MATURITY_V2.ARCHIVED; p.updatedAt = now; if (!p.archivedAt) p.archivedAt = now; return { ...p, metadata: { ...p.metadata } }; }
+export function touchBm25ProfileV2(id) { const p = _bm25PsV2.get(id); if (!p) throw new Error(`bm25 profile ${id} not found`); if (_bm25PTerminal.has(p.status)) throw new Error(`cannot touch terminal bm25 profile ${id}`); const now = Date.now(); p.lastTouchedAt = now; p.updatedAt = now; return { ...p, metadata: { ...p.metadata } }; }
+export function getBm25ProfileV2(id) { const p = _bm25PsV2.get(id); if (!p) return null; return { ...p, metadata: { ...p.metadata } }; }
+export function listBm25ProfilesV2() { return [..._bm25PsV2.values()].map((p) => ({ ...p, metadata: { ...p.metadata } })); }
+export function createBm25QueryV2({ id, profileId, q, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_bm25JsV2.has(id)) throw new Error(`bm25 query ${id} already exists`);
+  if (!_bm25PsV2.has(profileId)) throw new Error(`bm25 profile ${profileId} not found`);
+  if (_bm25CountPending(profileId) >= _bm25MaxPending) throw new Error(`max pending bm25 queries for profile ${profileId} reached`);
+  const now = Date.now();
+  const j = { id, profileId, q: q || "", status: BM25_QUERY_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  _bm25JsV2.set(id, j); return { ...j, metadata: { ...j.metadata } };
+}
+export function searchingBm25QueryV2(id) { const j = _bm25JsV2.get(id); if (!j) throw new Error(`bm25 query ${id} not found`); _bm25CheckJ(j.status, BM25_QUERY_LIFECYCLE_V2.SEARCHING); const now = Date.now(); j.status = BM25_QUERY_LIFECYCLE_V2.SEARCHING; j.updatedAt = now; if (!j.startedAt) j.startedAt = now; return { ...j, metadata: { ...j.metadata } }; }
+export function completeBm25QueryV2(id) { const j = _bm25JsV2.get(id); if (!j) throw new Error(`bm25 query ${id} not found`); _bm25CheckJ(j.status, BM25_QUERY_LIFECYCLE_V2.COMPLETED); const now = Date.now(); j.status = BM25_QUERY_LIFECYCLE_V2.COMPLETED; j.updatedAt = now; if (!j.settledAt) j.settledAt = now; return { ...j, metadata: { ...j.metadata } }; }
+export function failBm25QueryV2(id, reason) { const j = _bm25JsV2.get(id); if (!j) throw new Error(`bm25 query ${id} not found`); _bm25CheckJ(j.status, BM25_QUERY_LIFECYCLE_V2.FAILED); const now = Date.now(); j.status = BM25_QUERY_LIFECYCLE_V2.FAILED; j.updatedAt = now; if (!j.settledAt) j.settledAt = now; if (reason) j.metadata.failReason = String(reason); return { ...j, metadata: { ...j.metadata } }; }
+export function cancelBm25QueryV2(id, reason) { const j = _bm25JsV2.get(id); if (!j) throw new Error(`bm25 query ${id} not found`); _bm25CheckJ(j.status, BM25_QUERY_LIFECYCLE_V2.CANCELLED); const now = Date.now(); j.status = BM25_QUERY_LIFECYCLE_V2.CANCELLED; j.updatedAt = now; if (!j.settledAt) j.settledAt = now; if (reason) j.metadata.cancelReason = String(reason); return { ...j, metadata: { ...j.metadata } }; }
+export function getBm25QueryV2(id) { const j = _bm25JsV2.get(id); if (!j) return null; return { ...j, metadata: { ...j.metadata } }; }
+export function listBm25QueriesV2() { return [..._bm25JsV2.values()].map((j) => ({ ...j, metadata: { ...j.metadata } })); }
+export function autoStaleIdleBm25ProfilesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const p of _bm25PsV2.values()) if (p.status === BM25_PROFILE_MATURITY_V2.ACTIVE && (t - p.lastTouchedAt) >= _bm25IdleMs) { p.status = BM25_PROFILE_MATURITY_V2.STALE; p.updatedAt = t; flipped.push(p.id); } return { flipped, count: flipped.length }; }
+export function autoFailStuckBm25QueriesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const j of _bm25JsV2.values()) if (j.status === BM25_QUERY_LIFECYCLE_V2.SEARCHING && j.startedAt != null && (t - j.startedAt) >= _bm25StuckMs) { j.status = BM25_QUERY_LIFECYCLE_V2.FAILED; j.updatedAt = t; if (!j.settledAt) j.settledAt = t; j.metadata.failReason = "auto-fail-stuck"; flipped.push(j.id); } return { flipped, count: flipped.length }; }
+export function getBm25SearchGovStatsV2() {
+  const profilesByStatus = {}; for (const v of Object.values(BM25_PROFILE_MATURITY_V2)) profilesByStatus[v] = 0; for (const p of _bm25PsV2.values()) profilesByStatus[p.status]++;
+  const queriesByStatus = {}; for (const v of Object.values(BM25_QUERY_LIFECYCLE_V2)) queriesByStatus[v] = 0; for (const j of _bm25JsV2.values()) queriesByStatus[j.status]++;
+  return { totalBm25ProfilesV2: _bm25PsV2.size, totalBm25QueriesV2: _bm25JsV2.size, maxActiveBm25ProfilesPerOwner: _bm25MaxActive, maxPendingBm25QueriesPerProfile: _bm25MaxPending, bm25ProfileIdleMs: _bm25IdleMs, bm25QueryStuckMs: _bm25StuckMs, profilesByStatus, queriesByStatus };
+}

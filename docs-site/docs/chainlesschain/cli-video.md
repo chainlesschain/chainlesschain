@@ -150,6 +150,51 @@ chainlesschain video assets prune --older-than 7
 | `packages/cli/src/commands/video.js` | video 命令主入口 |
 | `packages/cli/src/skills/video-editing/pipeline.js` | VideoPipeline 核心管线（deconstruct/plan/assemble/render） |
 
+## 配置参考
+
+| 配置项 | 含义 | 默认 |
+| ------ | ---- | ---- |
+| `render.encoder` | 视频编码器 | `libx264` |
+| `render.crf` | 质量 CRF（越小越清晰） | 20 |
+| `render.fps` | 输出帧率 | 30 |
+| `audio.sampleRate` | 音频采样率 | 48000 |
+| `ducking.threshold` | ducking 触发阈值 (dB) | -20 |
+| `beat.useMadmom` | madmom 精确节拍 | false |
+| `parallel.workers` | 并行合成 worker 数 | 4 |
+
+依赖 `ffmpeg` 在 `PATH` 中可用；madmom 走 Python venv（见 `video-editing/pipeline.js`）。
+
+## 性能指标
+
+| 操作 | 典型耗时 | 备注 |
+| ---- | -------- | ---- |
+| `video deconstruct` | 依赖素材时长 | 主要为 ffprobe + 关键帧检测 |
+| `video plan` | < 500 ms | shot plan 生成 |
+| `video snap-beats` | < 1 s | madmom 模式 ~2–5 s |
+| `video assemble` | 依赖素材 | 主要为 ffmpeg 拼接 |
+| `video render` | 依赖分辨率/时长 | 依赖外部 ffmpeg |
+| 并行 orchestrator 加速比 | ~2–3× | 4-worker，CPU 绑定 |
+
+## 测试覆盖率
+
+```
+__tests__/unit/video-editing-tools.test.js        — 22 tests
+__tests__/unit/video-editing-pipeline.test.js     — 8 tests
+__tests__/unit/video-audio-precision.test.js      — 31 tests
+__tests__/unit/video-parallel-orchestrator.test.js — 28 tests
+__tests__/unit/video-protocol.test.js             — 15 tests
+```
+
+覆盖 deconstruct/plan/assemble/render 全链路、节拍吸附与 ducking、并行编排与失败重试、video 协议消息。
+
+## 安全考虑
+
+1. **外部依赖**：ffmpeg / madmom 为系统级进程；CLI 会校验可执行文件路径，避免 PATH 劫持
+2. **输入校验**：素材路径禁止路径遍历（`../`），输出目录限制在 `~/.chainlesschain/video-editing/`
+3. **资源控制**：`--parallel` 不应超过 CPU 核数；过载会导致 ffmpeg 内部竞争
+4. **元数据脱敏**：`deconstruct` 输出的 probe 结果可能含 GPS / 作者；发布前建议 `ffmpeg -map_metadata -1`
+5. **临时文件**：中间产物在任务完成后自动清理，可用 `--keep-temp` 调试
+
 ## 缓存位置
 
 | 平台 | 路径 |

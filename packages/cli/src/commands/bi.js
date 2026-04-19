@@ -585,4 +585,65 @@ export function registerBiCommand(program) {
         process.exit(1);
       }
     });
+  registerBiV2Command(bi);
+}
+
+
+import {
+  BI_DATASET_MATURITY_V2,
+  BI_QUERY_LIFECYCLE_V2,
+  registerBiDatasetV2,
+  activateBiDatasetV2,
+  staleBiDatasetV2,
+  archiveBiDatasetV2,
+  touchBiDatasetV2,
+  getBiDatasetV2,
+  listBiDatasetsV2,
+  createBiQueryV2,
+  startBiQueryV2,
+  completeBiQueryV2,
+  failBiQueryV2,
+  cancelBiQueryV2,
+  getBiQueryV2,
+  listBiQueriesV2,
+  setMaxActiveBiDatasetsPerOwnerV2,
+  getMaxActiveBiDatasetsPerOwnerV2,
+  setMaxPendingBiQueriesPerDatasetV2,
+  getMaxPendingBiQueriesPerDatasetV2,
+  setBiDatasetIdleMsV2,
+  getBiDatasetIdleMsV2,
+  setBiQueryStuckMsV2,
+  getBiQueryStuckMsV2,
+  autoStaleIdleBiDatasetsV2,
+  autoFailStuckBiQueriesV2,
+  getBiEngineStatsV2,
+} from "../lib/bi-engine.js";
+
+export function registerBiV2Command(bi) {
+  bi.command("enums-v2").description("Show V2 enums").action(() => { console.log(JSON.stringify({ BI_DATASET_MATURITY_V2, BI_QUERY_LIFECYCLE_V2 }, null, 2)); });
+  bi.command("register-dataset-v2").description("Register a BI dataset profile (pending)")
+    .requiredOption("--id <id>").requiredOption("--owner <owner>").option("--source <source>")
+    .action((o) => { console.log(JSON.stringify(registerBiDatasetV2(o), null, 2)); });
+  bi.command("activate-dataset-v2 <id>").description("Activate dataset").action((id) => { console.log(JSON.stringify(activateBiDatasetV2(id), null, 2)); });
+  bi.command("stale-dataset-v2 <id>").description("Mark dataset stale").action((id) => { console.log(JSON.stringify(staleBiDatasetV2(id), null, 2)); });
+  bi.command("archive-dataset-v2 <id>").description("Archive dataset (terminal)").action((id) => { console.log(JSON.stringify(archiveBiDatasetV2(id), null, 2)); });
+  bi.command("touch-dataset-v2 <id>").description("Refresh lastTouchedAt").action((id) => { console.log(JSON.stringify(touchBiDatasetV2(id), null, 2)); });
+  bi.command("get-dataset-v2 <id>").description("Get dataset").action((id) => { console.log(JSON.stringify(getBiDatasetV2(id), null, 2)); });
+  bi.command("list-datasets-v2").description("List datasets").action(() => { console.log(JSON.stringify(listBiDatasetsV2(), null, 2)); });
+  bi.command("create-query-v2").description("Create a BI query (queued)")
+    .requiredOption("--id <id>").requiredOption("--dataset-id <datasetId>").option("--sql <sql>")
+    .action((o) => { console.log(JSON.stringify(createBiQueryV2({ id: o.id, datasetId: o.datasetId, sql: o.sql }), null, 2)); });
+  bi.command("start-query-v2 <id>").description("Transition query to running").action((id) => { console.log(JSON.stringify(startBiQueryV2(id), null, 2)); });
+  bi.command("complete-query-v2 <id>").description("Transition query to completed").action((id) => { console.log(JSON.stringify(completeBiQueryV2(id), null, 2)); });
+  bi.command("fail-query-v2 <id>").description("Fail query").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(failBiQueryV2(id, o.reason), null, 2)); });
+  bi.command("cancel-query-v2 <id>").description("Cancel query").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(cancelBiQueryV2(id, o.reason), null, 2)); });
+  bi.command("get-query-v2 <id>").description("Get query").action((id) => { console.log(JSON.stringify(getBiQueryV2(id), null, 2)); });
+  bi.command("list-queries-v2").description("List queries").action(() => { console.log(JSON.stringify(listBiQueriesV2(), null, 2)); });
+  bi.command("set-max-active-datasets-v2 <n>").description("Set per-owner active cap").action((n) => { setMaxActiveBiDatasetsPerOwnerV2(Number(n)); console.log(JSON.stringify({ maxActiveBiDatasetsPerOwner: getMaxActiveBiDatasetsPerOwnerV2() }, null, 2)); });
+  bi.command("set-max-pending-queries-v2 <n>").description("Set per-dataset pending cap").action((n) => { setMaxPendingBiQueriesPerDatasetV2(Number(n)); console.log(JSON.stringify({ maxPendingBiQueriesPerDataset: getMaxPendingBiQueriesPerDatasetV2() }, null, 2)); });
+  bi.command("set-dataset-idle-ms-v2 <n>").description("Set idle threshold").action((n) => { setBiDatasetIdleMsV2(Number(n)); console.log(JSON.stringify({ biDatasetIdleMs: getBiDatasetIdleMsV2() }, null, 2)); });
+  bi.command("set-query-stuck-ms-v2 <n>").description("Set stuck threshold").action((n) => { setBiQueryStuckMsV2(Number(n)); console.log(JSON.stringify({ biQueryStuckMs: getBiQueryStuckMsV2() }, null, 2)); });
+  bi.command("auto-stale-idle-datasets-v2").description("Auto-stale idle datasets").action(() => { console.log(JSON.stringify(autoStaleIdleBiDatasetsV2(), null, 2)); });
+  bi.command("auto-fail-stuck-queries-v2").description("Auto-fail stuck running queries").action(() => { console.log(JSON.stringify(autoFailStuckBiQueriesV2(), null, 2)); });
+  bi.command("gov-stats-v2").description("V2 governance aggregate stats").action(() => { console.log(JSON.stringify(getBiEngineStatsV2(), null, 2)); });
 }

@@ -65,21 +65,36 @@ function startUiServer({ httpPort, wsPort, cwd } = {}) {
     });
 
     let output = "";
+    let fallbackTimer = null;
+    const done = (value) => {
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
+      resolve(value);
+    };
     const onData = (data) => {
       output += data.toString("utf8");
       // Server prints "UI:" with the URL once ready
       if (output.includes(`http://127.0.0.1:${httpPort}`)) {
-        resolve({ proc, port: httpPort, output });
+        done({ proc, port: httpPort, output });
       }
     };
 
     proc.stdout.on("data", onData);
     proc.stderr.on("data", onData);
 
-    proc.on("error", reject);
+    proc.on("error", (err) => {
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
+      reject(err);
+    });
 
-    // Fallback timeout
-    setTimeout(() => {
+    // Fallback timeout — cleared once the server signals readiness
+    fallbackTimer = setTimeout(() => {
+      fallbackTimer = null;
       if (!proc.killed) {
         resolve({ proc, port: httpPort, output });
       }
@@ -111,9 +126,18 @@ function killProc(proc) {
       resolve();
       return;
     }
-    proc.once("close", resolve);
+    let killTimer = null;
+    const done = () => {
+      if (killTimer) {
+        clearTimeout(killTimer);
+        killTimer = null;
+      }
+      resolve();
+    };
+    proc.once("close", done);
     proc.kill("SIGTERM");
-    setTimeout(() => {
+    killTimer = setTimeout(() => {
+      killTimer = null;
       try {
         proc.kill("SIGKILL");
       } catch {
@@ -371,13 +395,24 @@ describe("chainlesschain ui – --token option", () => {
     // Wait for server to be ready
     await new Promise((resolve) => {
       let buf = "";
+      let fallbackTimer = null;
+      const done = () => {
+        if (fallbackTimer) {
+          clearTimeout(fallbackTimer);
+          fallbackTimer = null;
+        }
+        resolve();
+      };
       const onData = (d) => {
         buf += d.toString("utf8");
-        if (buf.includes(`http://127.0.0.1:${HTTP_PORT}`)) resolve();
+        if (buf.includes(`http://127.0.0.1:${HTTP_PORT}`)) done();
       };
       proc.stdout.on("data", onData);
       proc.stderr.on("data", onData);
-      setTimeout(resolve, 8000);
+      fallbackTimer = setTimeout(() => {
+        fallbackTimer = null;
+        resolve();
+      }, 8000);
     });
 
     const res = await httpGet(HTTP_PORT, "/");
@@ -451,16 +486,33 @@ describe("chainlesschain ui – --web-panel-dir (Vue3 SPA mode)", () => {
       });
 
       let output = "";
+      let fallbackTimer = null;
+      const done = (value) => {
+        if (fallbackTimer) {
+          clearTimeout(fallbackTimer);
+          fallbackTimer = null;
+        }
+        resolve(value);
+      };
       const onData = (data) => {
         output += data.toString("utf8");
         if (output.includes(`http://127.0.0.1:${HTTP_PORT}`)) {
-          resolve(p);
+          done(p);
         }
       };
       p.stdout.on("data", onData);
       p.stderr.on("data", onData);
-      p.on("error", reject);
-      setTimeout(() => resolve(p), 8000);
+      p.on("error", (err) => {
+        if (fallbackTimer) {
+          clearTimeout(fallbackTimer);
+          fallbackTimer = null;
+        }
+        reject(err);
+      });
+      fallbackTimer = setTimeout(() => {
+        fallbackTimer = null;
+        resolve(p);
+      }, 8000);
     });
   });
 

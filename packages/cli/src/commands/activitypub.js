@@ -530,4 +530,65 @@ export function registerActivityPubCommand(program) {
         process.exit(1);
       }
     });
+  registerActivityPubV2Command(ap);
+}
+
+
+import {
+  AP_ACTOR_MATURITY_V2,
+  AP_ACTIVITY_LIFECYCLE_V2,
+  registerApActorV2,
+  activateApActorV2,
+  suspendApActorV2,
+  deactivateApActorV2,
+  touchApActorV2,
+  getApActorV2,
+  listApActorsV2,
+  createApActivityV2,
+  startApActivityV2,
+  deliverApActivityV2,
+  failApActivityV2,
+  cancelApActivityV2,
+  getApActivityV2,
+  listApActivitiesV2,
+  setMaxActiveApActorsPerOwnerV2,
+  getMaxActiveApActorsPerOwnerV2,
+  setMaxPendingApActivitiesPerActorV2,
+  getMaxPendingApActivitiesPerActorV2,
+  setApActorIdleMsV2,
+  getApActorIdleMsV2,
+  setApActivityStuckMsV2,
+  getApActivityStuckMsV2,
+  autoSuspendIdleApActorsV2,
+  autoFailStuckApActivitiesV2,
+  getActivityPubBridgeStatsV2,
+} from "../lib/activitypub-bridge.js";
+
+export function registerActivityPubV2Command(ap) {
+  ap.command("enums-v2").description("Show V2 enums").action(() => { console.log(JSON.stringify({ AP_ACTOR_MATURITY_V2, AP_ACTIVITY_LIFECYCLE_V2 }, null, 2)); });
+  ap.command("register-actor-v2").description("Register an AP actor profile (pending)")
+    .requiredOption("--id <id>").requiredOption("--owner <owner>").option("--handle <handle>")
+    .action((o) => { console.log(JSON.stringify(registerApActorV2(o), null, 2)); });
+  ap.command("activate-actor-v2 <id>").description("Activate actor").action((id) => { console.log(JSON.stringify(activateApActorV2(id), null, 2)); });
+  ap.command("suspend-actor-v2 <id>").description("Suspend actor").action((id) => { console.log(JSON.stringify(suspendApActorV2(id), null, 2)); });
+  ap.command("deactivate-actor-v2 <id>").description("Deactivate actor (terminal)").action((id) => { console.log(JSON.stringify(deactivateApActorV2(id), null, 2)); });
+  ap.command("touch-actor-v2 <id>").description("Refresh lastTouchedAt").action((id) => { console.log(JSON.stringify(touchApActorV2(id), null, 2)); });
+  ap.command("get-actor-v2 <id>").description("Get actor").action((id) => { console.log(JSON.stringify(getApActorV2(id), null, 2)); });
+  ap.command("list-actors-v2").description("List actors").action(() => { console.log(JSON.stringify(listApActorsV2(), null, 2)); });
+  ap.command("create-activity-v2").description("Create an AP activity (queued)")
+    .requiredOption("--id <id>").requiredOption("--actor-id <actorId>").option("--kind <kind>")
+    .action((o) => { console.log(JSON.stringify(createApActivityV2({ id: o.id, actorId: o.actorId, kind: o.kind }), null, 2)); });
+  ap.command("start-activity-v2 <id>").description("Transition activity to delivering").action((id) => { console.log(JSON.stringify(startApActivityV2(id), null, 2)); });
+  ap.command("deliver-activity-v2 <id>").description("Transition activity to delivered").action((id) => { console.log(JSON.stringify(deliverApActivityV2(id), null, 2)); });
+  ap.command("fail-activity-v2 <id>").description("Fail activity").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(failApActivityV2(id, o.reason), null, 2)); });
+  ap.command("cancel-activity-v2 <id>").description("Cancel activity").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(cancelApActivityV2(id, o.reason), null, 2)); });
+  ap.command("get-activity-v2 <id>").description("Get activity").action((id) => { console.log(JSON.stringify(getApActivityV2(id), null, 2)); });
+  ap.command("list-activities-v2").description("List activities").action(() => { console.log(JSON.stringify(listApActivitiesV2(), null, 2)); });
+  ap.command("set-max-active-actors-v2 <n>").description("Set per-owner active cap").action((n) => { setMaxActiveApActorsPerOwnerV2(Number(n)); console.log(JSON.stringify({ maxActiveApActorsPerOwner: getMaxActiveApActorsPerOwnerV2() }, null, 2)); });
+  ap.command("set-max-pending-activities-v2 <n>").description("Set per-actor pending cap").action((n) => { setMaxPendingApActivitiesPerActorV2(Number(n)); console.log(JSON.stringify({ maxPendingApActivitiesPerActor: getMaxPendingApActivitiesPerActorV2() }, null, 2)); });
+  ap.command("set-actor-idle-ms-v2 <n>").description("Set idle threshold").action((n) => { setApActorIdleMsV2(Number(n)); console.log(JSON.stringify({ apActorIdleMs: getApActorIdleMsV2() }, null, 2)); });
+  ap.command("set-activity-stuck-ms-v2 <n>").description("Set stuck threshold").action((n) => { setApActivityStuckMsV2(Number(n)); console.log(JSON.stringify({ apActivityStuckMs: getApActivityStuckMsV2() }, null, 2)); });
+  ap.command("auto-suspend-idle-actors-v2").description("Auto-suspend idle actors").action(() => { console.log(JSON.stringify(autoSuspendIdleApActorsV2(), null, 2)); });
+  ap.command("auto-fail-stuck-activities-v2").description("Auto-fail stuck delivering activities").action(() => { console.log(JSON.stringify(autoFailStuckApActivitiesV2(), null, 2)); });
+  ap.command("gov-stats-v2").description("V2 governance aggregate stats").action(() => { console.log(JSON.stringify(getActivityPubBridgeStatsV2(), null, 2)); });
 }

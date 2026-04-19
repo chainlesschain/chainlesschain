@@ -13,7 +13,37 @@ import { registerNoteCommand } from "./commands/note.js";
 import { registerChatCommand } from "./commands/chat.js";
 import { registerAskCommand } from "./commands/ask.js";
 import { registerLlmCommand } from "./commands/llm.js";
-import { registerAgentCommand } from "./commands/agent.js";
+import {
+  registerAgentCommand,
+  registerSubAgentV2Command,
+  registerExecBackendV2Command,
+  registerTodoV2Command,
+  registerAutoAgentV2Command,
+} from "./commands/agent.js";
+import { registerOrchGovCommand } from "./commands/orchgov.js";
+import { registerTopicClsCommand } from "./commands/topiccls.js";
+import { registerItBudgetCommand } from "./commands/itbudget.js";
+import { registerPlanModeCommand } from "./commands/planmode.js";
+import { registerPermCommand } from "./commands/perm.js";
+import { registerUprofCommand } from "./commands/uprof.js";
+import { registerSvcContCommand } from "./commands/svccont.js";
+import { registerTmsCommand } from "./commands/tms.js";
+import { registerSlotfillCommand } from "./commands/slotfill.js";
+import { registerWebfetchCommand } from "./commands/webfetch.js";
+import { registerMeminjCommand } from "./commands/meminj.js";
+import { registerSeshsearchCommand } from "./commands/seshsearch.js";
+import { registerSeshtailCommand } from "./commands/seshtail.js";
+import { registerSeshuCommand } from "./commands/seshu.js";
+import { registerSeshhookCommand } from "./commands/seshhook.js";
+import { registerMcpscafCommand } from "./commands/mcpscaf.js";
+import { registerFflagCommand } from "./commands/fflag.js";
+import { registerPromcompCommand } from "./commands/promcomp.js";
+import { registerCcronCommand } from "./commands/ccron.js";
+import { registerVcheckCommand } from "./commands/vcheck.js";
+import { registerPdfpCommand } from "./commands/pdfp.js";
+import { registerBm25Command } from "./commands/bm25.js";
+import { registerComptCommand } from "./commands/compt.js";
+import { registerSganalCommand } from "./commands/sganal.js";
 import { registerStreamCommand } from "./commands/stream.js";
 import { registerSkillCommand } from "./commands/skill.js";
 import { registerSearchCommand } from "./commands/search.js";
@@ -22,6 +52,7 @@ import { registerMemoryCommand } from "./commands/memory.js";
 import { registerPermMemCommand } from "./commands/permmem.js";
 import { registerRCacheCommand } from "./commands/rcache.js";
 import { registerSessionCommand } from "./commands/session.js";
+import { registerConsolCommand } from "./commands/consol.js";
 import { registerImportCommand } from "./commands/import.js";
 import { registerExportCommand } from "./commands/export.js";
 import { registerGitCommand } from "./commands/git.js";
@@ -211,6 +242,34 @@ export function createProgram() {
   registerAskCommand(program);
   registerLlmCommand(program);
   registerAgentCommand(program);
+  registerSubAgentV2Command(program);
+  registerExecBackendV2Command(program);
+  registerTodoV2Command(program);
+  registerAutoAgentV2Command(program);
+  registerOrchGovCommand(program);
+  registerTopicClsCommand(program);
+  registerItBudgetCommand(program);
+  registerPlanModeCommand(program);
+  registerPermCommand(program);
+  registerUprofCommand(program);
+  registerSvcContCommand(program);
+  registerTmsCommand(program);
+  registerSlotfillCommand(program);
+  registerWebfetchCommand(program);
+  registerMeminjCommand(program);
+  registerSeshsearchCommand(program);
+  registerSeshtailCommand(program);
+  registerSeshuCommand(program);
+  registerSeshhookCommand(program);
+  registerMcpscafCommand(program);
+  registerFflagCommand(program);
+  registerPromcompCommand(program);
+  registerCcronCommand(program);
+  registerVcheckCommand(program);
+  registerPdfpCommand(program);
+  registerBm25Command(program);
+  registerComptCommand(program);
+  registerSganalCommand(program);
   registerStreamCommand(program);
   registerSkillCommand(program);
 
@@ -221,6 +280,7 @@ export function createProgram() {
   registerPermMemCommand(program);
   registerRCacheCommand(program);
   registerSessionCommand(program);
+  registerConsolCommand(program);
 
   // Phase 2: Knowledge & content management
   registerImportCommand(program);

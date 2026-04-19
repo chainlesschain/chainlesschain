@@ -152,6 +152,7 @@ const MODULE_FILE_MAP = {
   "93_CutClaw借鉴_视频剪辑Agent.md": "m93-cutclaw-video-editing-agent.md",
   "94_QualityGate通用质量门控.md": "m94-quality-gate.md",
   "95_社交协议生态补齐方案.md": "m95-social-protocol-parity.md",
+  "96_V2规范层governance.md": "m96-v2-governance.md",
 };
 
 /**

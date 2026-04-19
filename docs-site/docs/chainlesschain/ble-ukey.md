@@ -405,7 +405,7 @@ watch(() => ble.connectionStatus, (status) => {
 | `transport.default` | `auto` | 默认传输：`auto` \| `usb` \| `ble` |
 | `transport.fallbackOrder` | `["usb","ble"]` | `auto` 模式下的传输优先级顺序 |
 
-## 测试覆盖
+## 测试覆盖率
 
 ```
 ✅ ble-transport.test.js          - BLE 连接/断开/自动重连/MTU 协商测试

@@ -396,3 +396,220 @@ describe("ExecutionBackend.describe()", () => {
     expect(base.describe()).toBe("base backend");
   });
 });
+
+// ===== V2 Tests: Execution Backend governance overlay =====
+import {
+  EXECBE_BACKEND_MATURITY_V2,
+  EXECBE_JOB_LIFECYCLE_V2,
+  registerBackendV2,
+  activateBackendV2,
+  degradeBackendV2,
+  retireBackendV2,
+  touchBackendV2,
+  getBackendV2,
+  listBackendsV2,
+  createExecJobV2,
+  startExecJobV2,
+  succeedExecJobV2,
+  failExecJobV2,
+  cancelExecJobV2,
+  getExecJobV2,
+  listExecJobsV2,
+  autoDegradeIdleBackendsV2,
+  autoFailStuckExecJobsV2,
+  getExecutionBackendStatsV2,
+  _resetStateExecutionBackendV2,
+  setMaxActiveBackendsPerOwnerV2,
+  getMaxActiveBackendsPerOwnerV2,
+  setMaxPendingJobsPerBackendV2,
+  getMaxPendingJobsPerBackendV2,
+  setBackendIdleMsV2,
+  getBackendIdleMsV2,
+  setExecJobStuckMsV2,
+  getExecJobStuckMsV2,
+} from "../../src/lib/execution-backend.js";
+
+describe("Execution Backend V2 governance overlay", () => {
+  beforeEach(() => {
+    _resetStateExecutionBackendV2();
+  });
+  describe("enums", () => {
+    it("backend 4 states", () => {
+      expect(Object.keys(EXECBE_BACKEND_MATURITY_V2).sort()).toEqual([
+        "ACTIVE",
+        "DEGRADED",
+        "PENDING",
+        "RETIRED",
+      ]);
+      expect(Object.isFrozen(EXECBE_BACKEND_MATURITY_V2)).toBe(true);
+    });
+    it("job 5 states", () => {
+      expect(Object.keys(EXECBE_JOB_LIFECYCLE_V2).sort()).toEqual([
+        "CANCELLED",
+        "FAILED",
+        "QUEUED",
+        "RUNNING",
+        "SUCCEEDED",
+      ]);
+    });
+  });
+  describe("backend lifecycle", () => {
+    it("register → activate", () => {
+      registerBackendV2({ id: "b", owner: "u" });
+      const x = activateBackendV2("b");
+      expect(x.status).toBe("active");
+      expect(x.activatedAt).not.toBeNull();
+    });
+    it("dup rejected", () => {
+      registerBackendV2({ id: "b", owner: "u" });
+      expect(() => registerBackendV2({ id: "b", owner: "u" })).toThrow(
+        /already/,
+      );
+    });
+    it("degraded → active preserves activatedAt", () => {
+      registerBackendV2({ id: "b", owner: "u" });
+      activateBackendV2("b");
+      const t1 = getBackendV2("b").activatedAt;
+      degradeBackendV2("b");
+      expect(activateBackendV2("b").activatedAt).toBe(t1);
+    });
+    it("retire stamps", () => {
+      registerBackendV2({ id: "b", owner: "u" });
+      expect(retireBackendV2("b").retiredAt).not.toBeNull();
+    });
+    it("touch terminal throws", () => {
+      registerBackendV2({ id: "b", owner: "u" });
+      retireBackendV2("b");
+      expect(() => touchBackendV2("b")).toThrow(/terminal/);
+    });
+  });
+  describe("active cap", () => {
+    it("recovery exempt", () => {
+      setMaxActiveBackendsPerOwnerV2(1);
+      registerBackendV2({ id: "a", owner: "u" });
+      activateBackendV2("a");
+      degradeBackendV2("a");
+      registerBackendV2({ id: "b", owner: "u" });
+      activateBackendV2("b");
+      expect(activateBackendV2("a").status).toBe("active");
+    });
+    it("initial enforced", () => {
+      setMaxActiveBackendsPerOwnerV2(1);
+      registerBackendV2({ id: "a", owner: "u" });
+      activateBackendV2("a");
+      registerBackendV2({ id: "b", owner: "u" });
+      expect(() => activateBackendV2("b")).toThrow(/max active/);
+    });
+  });
+  describe("job lifecycle", () => {
+    beforeEach(() => {
+      registerBackendV2({ id: "b", owner: "u" });
+    });
+    it("create queued", () => {
+      expect(
+        createExecJobV2({ id: "j", backendId: "b", command: "echo" }).status,
+      ).toBe("queued");
+    });
+    it("missing backend throws", () => {
+      expect(() => createExecJobV2({ id: "j", backendId: "nope" })).toThrow(
+        /not found/,
+      );
+    });
+    it("start stamps startedAt", () => {
+      createExecJobV2({ id: "j", backendId: "b" });
+      const x = startExecJobV2("j");
+      expect(x.status).toBe("running");
+      expect(x.startedAt).not.toBeNull();
+    });
+    it("succeed stamps settledAt", () => {
+      createExecJobV2({ id: "j", backendId: "b" });
+      startExecJobV2("j");
+      expect(succeedExecJobV2("j").settledAt).not.toBeNull();
+    });
+    it("fail reason", () => {
+      createExecJobV2({ id: "j", backendId: "b" });
+      startExecJobV2("j");
+      expect(failExecJobV2("j", "oops").metadata.failReason).toBe("oops");
+    });
+    it("cancel queued", () => {
+      createExecJobV2({ id: "j", backendId: "b" });
+      expect(cancelExecJobV2("j").status).toBe("cancelled");
+    });
+    it("invalid transition throws", () => {
+      createExecJobV2({ id: "j", backendId: "b" });
+      expect(() => succeedExecJobV2("j")).toThrow(/invalid/);
+    });
+  });
+  describe("pending cap", () => {
+    it("enforced", () => {
+      setMaxPendingJobsPerBackendV2(2);
+      registerBackendV2({ id: "b", owner: "u" });
+      createExecJobV2({ id: "a", backendId: "b" });
+      createExecJobV2({ id: "b2", backendId: "b" });
+      expect(() => createExecJobV2({ id: "c", backendId: "b" })).toThrow(
+        /max pending/,
+      );
+    });
+  });
+  describe("auto flip", () => {
+    it("auto-degrade idle", () => {
+      setBackendIdleMsV2(1000);
+      registerBackendV2({ id: "b", owner: "u" });
+      activateBackendV2("b");
+      const base = getBackendV2("b").lastTouchedAt;
+      expect(autoDegradeIdleBackendsV2({ now: base + 5000 }).count).toBe(1);
+      expect(getBackendV2("b").status).toBe("degraded");
+    });
+    it("auto-fail stuck", () => {
+      setExecJobStuckMsV2(500);
+      registerBackendV2({ id: "b", owner: "u" });
+      createExecJobV2({ id: "j", backendId: "b" });
+      startExecJobV2("j");
+      const base = getExecJobV2("j").startedAt;
+      expect(autoFailStuckExecJobsV2({ now: base + 5000 }).count).toBe(1);
+      expect(getExecJobV2("j").status).toBe("failed");
+    });
+  });
+  describe("config & stats", () => {
+    it("rejects invalid", () => {
+      expect(() => setMaxActiveBackendsPerOwnerV2(0)).toThrow();
+    });
+    it("floors", () => {
+      setMaxPendingJobsPerBackendV2(19.5);
+      expect(getMaxPendingJobsPerBackendV2()).toBe(19);
+    });
+    it("round-trip", () => {
+      setBackendIdleMsV2(10);
+      setExecJobStuckMsV2(20);
+      expect(getBackendIdleMsV2()).toBe(10);
+      expect(getExecJobStuckMsV2()).toBe(20);
+    });
+    it("stats zero-init", () => {
+      const s = getExecutionBackendStatsV2();
+      for (const v of Object.values(EXECBE_BACKEND_MATURITY_V2))
+        expect(s.backendsByStatus[v]).toBe(0);
+      for (const v of Object.values(EXECBE_JOB_LIFECYCLE_V2))
+        expect(s.jobsByStatus[v]).toBe(0);
+    });
+    it("reset", () => {
+      setMaxActiveBackendsPerOwnerV2(99);
+      registerBackendV2({ id: "b", owner: "u" });
+      _resetStateExecutionBackendV2();
+      expect(getExecutionBackendStatsV2().totalBackendsV2).toBe(0);
+      expect(getMaxActiveBackendsPerOwnerV2()).toBe(6);
+    });
+    it("defensive copy", () => {
+      registerBackendV2({ id: "b", owner: "u", metadata: { k: "v" } });
+      const x = getBackendV2("b");
+      x.metadata.k = "bad";
+      expect(getBackendV2("b").metadata.k).toBe("v");
+    });
+    it("lists", () => {
+      registerBackendV2({ id: "a", owner: "u" });
+      registerBackendV2({ id: "b", owner: "u" });
+      expect(listBackendsV2().length).toBe(2);
+      createExecJobV2({ id: "j", backendId: "a" });
+      expect(listExecJobsV2().length).toBe(1);
+    });
+  });
+});

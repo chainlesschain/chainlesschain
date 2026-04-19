@@ -198,6 +198,51 @@ chainlesschain recommend suggest <user-id> --json
 | `packages/cli/src/commands/recommend.js` | recommend 命令主入口 |
 | `packages/cli/src/lib/content-recommendation.js` | 画像管理、评分、推荐生成核心实现 |
 
+## 性能指标
+
+| 操作 | 典型耗时 | 备注 |
+| ---- | -------- | ---- |
+| `create-profile` | < 20 ms | 本地 SQLite |
+| `generate`（候选池 < 1000） | < 100 ms | 画像点乘 + 排序 |
+| `feedback` | < 10 ms | UPDATE 单行 |
+| `stats` | < 50 ms | 聚合查询 |
+| `suggest` | < 100 ms | 简单启发式 |
+| V2 cr-* dispatch | < 50 ms | `content_recommender_v2_cli.md` |
+
+候选池超过 10K 建议先外部预过滤。
+
+## 测试覆盖率
+
+```
+__tests__/unit/content-recommendation.test.js — 78 tests
+__tests__/unit/content-recommender.test.js    — 19 tests
+```
+
+覆盖画像 CRUD、topics 权重归一、tfidf/bm25/hybrid 三种策略、反馈闭环、统计与建议。V2 surface：45 V2 tests（见 `content_recommender_v2_cli.md`）。
+
+## 安全考虑
+
+1. **画像隐私**：用户画像存本地 SQLite，不出网；与 DID/SSO 绑定时需额外签名
+2. **内容来源**：`generate --pool` 接受任意 JSON，不做内容合规过滤；敏感内容请前置 DLP
+3. **反馈投毒**：大规模 `feedback` 可能扭曲画像；建议对 `negative` 反馈设置速率限制
+4. **V2 pending cap**：`cr-gov-stats-v2` 查看 per-profile pending-job 数，防止单画像堆积
+
+## 故障排查
+
+**Q: `generate` 返回空?**
+
+1. 候选池 topics 与画像权重无交集 → 调整 topics 或降低相似度阈值
+2. `pending` 队列已满（V2 cap）→ 先消费现有推荐或 `feedback` 清队列
+
+**Q: 推荐结果单调?**
+
+1. 策略选为 `tfidf`（默认）偏稀疏 → 试 `--strategy hybrid`
+2. 画像过拟合最近反馈 → `stats` 看方差，必要时 `create-profile` 重置
+
+**Q: V2 createJobV2 cap exceeded?**
+
+`cr-gov-stats-v2` 查看 per-profile 数；等待现有 job 完成或 fail。
+
 ## 使用示例
 
 ### 场景：完整推荐流程

@@ -950,4 +950,60 @@ export function registerEconomyCommand(program) {
         process.exit(1);
       }
     });
+
+  _registerEconomyV2Commands(economy);
+}
+function _registerEconomyV2Commands(parent) {
+  const L = async () => await import("../lib/agent-economy.js");
+
+  parent.command("enums-v2").description("Show V2 enums (account maturity + tx lifecycle)")
+    .action(async () => { const m = await L(); console.log(JSON.stringify({ accountMaturity: m.ECONOMY_ACCOUNT_MATURITY_V2, txLifecycle: m.ECONOMY_TX_LIFECYCLE_V2 }, null, 2)); });
+  parent.command("config-v2").description("Show V2 config thresholds")
+    .action(async () => { const m = await L(); console.log(JSON.stringify({ maxActiveEconomyAccountsPerHolder: m.getMaxActiveEconomyAccountsPerHolderV2(), maxPendingEconomyTxsPerAccount: m.getMaxPendingEconomyTxsPerAccountV2(), economyAccountIdleMs: m.getEconomyAccountIdleMsV2(), economyTxStuckMs: m.getEconomyTxStuckMsV2() }, null, 2)); });
+  parent.command("set-max-active-accounts-v2 <n>").description("Set max active accounts per holder")
+    .action(async (n) => { const m = await L(); m.setMaxActiveEconomyAccountsPerHolderV2(Number(n)); console.log("ok"); });
+  parent.command("set-max-pending-txs-v2 <n>").description("Set max pending txs per account")
+    .action(async (n) => { const m = await L(); m.setMaxPendingEconomyTxsPerAccountV2(Number(n)); console.log("ok"); });
+  parent.command("set-account-idle-ms-v2 <n>").description("Set account idle threshold (ms)")
+    .action(async (n) => { const m = await L(); m.setEconomyAccountIdleMsV2(Number(n)); console.log("ok"); });
+  parent.command("set-tx-stuck-ms-v2 <n>").description("Set tx stuck threshold (ms)")
+    .action(async (n) => { const m = await L(); m.setEconomyTxStuckMsV2(Number(n)); console.log("ok"); });
+
+  parent.command("register-account-v2 <id> <holder>").description("Register V2 economy account")
+    .option("--currency <c>", "Currency", "CLC").action(async (id, holder, o) => { const m = await L(); console.log(JSON.stringify(m.registerEconomyAccountV2({ id, holder, currency: o.currency }), null, 2)); });
+  parent.command("activate-account-v2 <id>").description("Activate account (pending→active or frozen→active)")
+    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.activateEconomyAccountV2(id), null, 2)); });
+  parent.command("freeze-account-v2 <id>").description("Freeze account")
+    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.freezeEconomyAccountV2(id), null, 2)); });
+  parent.command("close-account-v2 <id>").description("Close account (terminal)")
+    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.closeEconomyAccountV2(id), null, 2)); });
+  parent.command("touch-account-v2 <id>").description("Touch account lastTouchedAt")
+    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.touchEconomyAccountV2(id), null, 2)); });
+  parent.command("get-account-v2 <id>").description("Get V2 account")
+    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.getEconomyAccountV2(id), null, 2)); });
+  parent.command("list-accounts-v2").description("List all V2 accounts")
+    .action(async () => { const m = await L(); console.log(JSON.stringify(m.listEconomyAccountsV2(), null, 2)); });
+
+  parent.command("create-tx-v2 <id> <accountId>").description("Create V2 tx (queued)")
+    .option("--amount <a>", "Amount", "0").action(async (id, accountId, o) => { const m = await L(); console.log(JSON.stringify(m.createEconomyTxV2({ id, accountId, amount: o.amount }), null, 2)); });
+  parent.command("start-tx-v2 <id>").description("Start tx (queued→processing)")
+    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.startEconomyTxV2(id), null, 2)); });
+  parent.command("settle-tx-v2 <id>").description("Settle tx (processing→settled)")
+    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.settleEconomyTxV2(id), null, 2)); });
+  parent.command("fail-tx-v2 <id> [reason]").description("Fail tx")
+    .action(async (id, reason) => { const m = await L(); console.log(JSON.stringify(m.failEconomyTxV2(id, reason), null, 2)); });
+  parent.command("cancel-tx-v2 <id> [reason]").description("Cancel tx")
+    .action(async (id, reason) => { const m = await L(); console.log(JSON.stringify(m.cancelEconomyTxV2(id, reason), null, 2)); });
+  parent.command("get-tx-v2 <id>").description("Get V2 tx")
+    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.getEconomyTxV2(id), null, 2)); });
+  parent.command("list-txs-v2").description("List all V2 txs")
+    .action(async () => { const m = await L(); console.log(JSON.stringify(m.listEconomyTxsV2(), null, 2)); });
+
+  parent.command("auto-freeze-idle-v2").description("Auto-freeze idle active accounts")
+    .action(async () => { const m = await L(); console.log(JSON.stringify(m.autoFreezeIdleEconomyAccountsV2(), null, 2)); });
+  parent.command("auto-fail-stuck-v2").description("Auto-fail stuck processing txs")
+    .action(async () => { const m = await L(); console.log(JSON.stringify(m.autoFailStuckEconomyTxsV2(), null, 2)); });
+
+  parent.command("gov-stats-v2").description("V2 governance aggregate stats")
+    .action(async () => { const m = await L(); console.log(JSON.stringify(m.getAgentEconomyGovStatsV2(), null, 2)); });
 }

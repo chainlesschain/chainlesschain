@@ -455,7 +455,7 @@ teamManager.getParentTeam(teamId);
 
 ---
 
-## 测试覆盖
+## 测试覆盖率
 
 ### 测试矩阵
 

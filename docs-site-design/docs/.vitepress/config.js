@@ -672,6 +672,10 @@ export default defineConfig({
               text: "95 社交协议生态补齐方案 ⭐NEW",
               link: "/modules/m95-social-protocol-parity",
             },
+            {
+              text: "96 V2 规范层 Governance ⭐NEW",
+              link: "/modules/m96-v2-governance",
+            },
           ],
         },
         {

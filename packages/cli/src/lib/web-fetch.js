@@ -222,3 +222,84 @@ export async function webFetch(url, options = {}) {
 }
 
 export const _deps = { http, https };
+
+// ===== V2 Surface: Web Fetch governance overlay (CLI v0.142.0) =====
+export const WFET_TARGET_MATURITY_V2 = Object.freeze({
+  PENDING: "pending", ACTIVE: "active", DEGRADED: "degraded", RETIRED: "retired",
+});
+export const WFET_JOB_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued", FETCHING: "fetching", SUCCEEDED: "succeeded", FAILED: "failed", CANCELLED: "cancelled",
+});
+const _wfetTTrans = new Map([
+  [WFET_TARGET_MATURITY_V2.PENDING, new Set([WFET_TARGET_MATURITY_V2.ACTIVE, WFET_TARGET_MATURITY_V2.RETIRED])],
+  [WFET_TARGET_MATURITY_V2.ACTIVE, new Set([WFET_TARGET_MATURITY_V2.DEGRADED, WFET_TARGET_MATURITY_V2.RETIRED])],
+  [WFET_TARGET_MATURITY_V2.DEGRADED, new Set([WFET_TARGET_MATURITY_V2.ACTIVE, WFET_TARGET_MATURITY_V2.RETIRED])],
+  [WFET_TARGET_MATURITY_V2.RETIRED, new Set()],
+]);
+const _wfetTTerminal = new Set([WFET_TARGET_MATURITY_V2.RETIRED]);
+const _wfetJTrans = new Map([
+  [WFET_JOB_LIFECYCLE_V2.QUEUED, new Set([WFET_JOB_LIFECYCLE_V2.FETCHING, WFET_JOB_LIFECYCLE_V2.CANCELLED])],
+  [WFET_JOB_LIFECYCLE_V2.FETCHING, new Set([WFET_JOB_LIFECYCLE_V2.SUCCEEDED, WFET_JOB_LIFECYCLE_V2.FAILED, WFET_JOB_LIFECYCLE_V2.CANCELLED])],
+  [WFET_JOB_LIFECYCLE_V2.SUCCEEDED, new Set()],
+  [WFET_JOB_LIFECYCLE_V2.FAILED, new Set()],
+  [WFET_JOB_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _wfetTsV2 = new Map();
+const _wfetJsV2 = new Map();
+let _wfetMaxActive = 12, _wfetMaxPending = 30, _wfetIdleMs = 7 * 24 * 60 * 60 * 1000, _wfetStuckMs = 60 * 1000;
+function _wfetPos(n, label) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${label} must be positive integer`); return v; }
+function _wfetCheckT(from, to) { const a = _wfetTTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid wfet target transition ${from} → ${to}`); }
+function _wfetCheckJ(from, to) { const a = _wfetJTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid wfet job transition ${from} → ${to}`); }
+export function setMaxActiveWfetTargetsPerOwnerV2(n) { _wfetMaxActive = _wfetPos(n, "maxActiveWfetTargetsPerOwner"); }
+export function getMaxActiveWfetTargetsPerOwnerV2() { return _wfetMaxActive; }
+export function setMaxPendingWfetJobsPerTargetV2(n) { _wfetMaxPending = _wfetPos(n, "maxPendingWfetJobsPerTarget"); }
+export function getMaxPendingWfetJobsPerTargetV2() { return _wfetMaxPending; }
+export function setWfetTargetIdleMsV2(n) { _wfetIdleMs = _wfetPos(n, "wfetTargetIdleMs"); }
+export function getWfetTargetIdleMsV2() { return _wfetIdleMs; }
+export function setWfetJobStuckMsV2(n) { _wfetStuckMs = _wfetPos(n, "wfetJobStuckMs"); }
+export function getWfetJobStuckMsV2() { return _wfetStuckMs; }
+export function _resetStateWebFetchV2() { _wfetTsV2.clear(); _wfetJsV2.clear(); _wfetMaxActive = 12; _wfetMaxPending = 30; _wfetIdleMs = 7 * 24 * 60 * 60 * 1000; _wfetStuckMs = 60 * 1000; }
+export function registerWfetTargetV2({ id, owner, baseUrl, metadata } = {}) {
+  if (!id) throw new Error("wfet target id required"); if (!owner) throw new Error("wfet target owner required");
+  if (_wfetTsV2.has(id)) throw new Error(`wfet target ${id} already registered`);
+  const now = Date.now();
+  const t = { id, owner, baseUrl: baseUrl || "", status: WFET_TARGET_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, retiredAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  _wfetTsV2.set(id, t); return { ...t, metadata: { ...t.metadata } };
+}
+function _wfetCountActive(owner) { let n = 0; for (const t of _wfetTsV2.values()) if (t.owner === owner && t.status === WFET_TARGET_MATURITY_V2.ACTIVE) n++; return n; }
+export function activateWfetTargetV2(id) {
+  const t = _wfetTsV2.get(id); if (!t) throw new Error(`wfet target ${id} not found`);
+  _wfetCheckT(t.status, WFET_TARGET_MATURITY_V2.ACTIVE);
+  const recovery = t.status === WFET_TARGET_MATURITY_V2.DEGRADED;
+  if (!recovery && _wfetCountActive(t.owner) >= _wfetMaxActive) throw new Error(`max active wfet targets for owner ${t.owner} reached`);
+  const now = Date.now(); t.status = WFET_TARGET_MATURITY_V2.ACTIVE; t.updatedAt = now; t.lastTouchedAt = now; if (!t.activatedAt) t.activatedAt = now;
+  return { ...t, metadata: { ...t.metadata } };
+}
+export function degradeWfetTargetV2(id) { const t = _wfetTsV2.get(id); if (!t) throw new Error(`wfet target ${id} not found`); _wfetCheckT(t.status, WFET_TARGET_MATURITY_V2.DEGRADED); t.status = WFET_TARGET_MATURITY_V2.DEGRADED; t.updatedAt = Date.now(); return { ...t, metadata: { ...t.metadata } }; }
+export function retireWfetTargetV2(id) { const t = _wfetTsV2.get(id); if (!t) throw new Error(`wfet target ${id} not found`); _wfetCheckT(t.status, WFET_TARGET_MATURITY_V2.RETIRED); const now = Date.now(); t.status = WFET_TARGET_MATURITY_V2.RETIRED; t.updatedAt = now; if (!t.retiredAt) t.retiredAt = now; return { ...t, metadata: { ...t.metadata } }; }
+export function touchWfetTargetV2(id) { const t = _wfetTsV2.get(id); if (!t) throw new Error(`wfet target ${id} not found`); if (_wfetTTerminal.has(t.status)) throw new Error(`cannot touch terminal wfet target ${id}`); const now = Date.now(); t.lastTouchedAt = now; t.updatedAt = now; return { ...t, metadata: { ...t.metadata } }; }
+export function getWfetTargetV2(id) { const t = _wfetTsV2.get(id); if (!t) return null; return { ...t, metadata: { ...t.metadata } }; }
+export function listWfetTargetsV2() { return [..._wfetTsV2.values()].map((t) => ({ ...t, metadata: { ...t.metadata } })); }
+function _wfetCountPending(targetId) { let n = 0; for (const j of _wfetJsV2.values()) if (j.targetId === targetId && (j.status === WFET_JOB_LIFECYCLE_V2.QUEUED || j.status === WFET_JOB_LIFECYCLE_V2.FETCHING)) n++; return n; }
+export function createWfetJobV2({ id, targetId, kind, metadata } = {}) {
+  if (!id) throw new Error("wfet job id required"); if (!targetId) throw new Error("wfet job targetId required");
+  if (_wfetJsV2.has(id)) throw new Error(`wfet job ${id} already exists`);
+  if (!_wfetTsV2.has(targetId)) throw new Error(`wfet target ${targetId} not found`);
+  if (_wfetCountPending(targetId) >= _wfetMaxPending) throw new Error(`max pending wfet jobs for target ${targetId} reached`);
+  const now = Date.now();
+  const j = { id, targetId, kind: kind || "GET", status: WFET_JOB_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  _wfetJsV2.set(id, j); return { ...j, metadata: { ...j.metadata } };
+}
+export function fetchingWfetJobV2(id) { const j = _wfetJsV2.get(id); if (!j) throw new Error(`wfet job ${id} not found`); _wfetCheckJ(j.status, WFET_JOB_LIFECYCLE_V2.FETCHING); const now = Date.now(); j.status = WFET_JOB_LIFECYCLE_V2.FETCHING; j.updatedAt = now; if (!j.startedAt) j.startedAt = now; return { ...j, metadata: { ...j.metadata } }; }
+export function succeedWfetJobV2(id) { const j = _wfetJsV2.get(id); if (!j) throw new Error(`wfet job ${id} not found`); _wfetCheckJ(j.status, WFET_JOB_LIFECYCLE_V2.SUCCEEDED); const now = Date.now(); j.status = WFET_JOB_LIFECYCLE_V2.SUCCEEDED; j.updatedAt = now; if (!j.settledAt) j.settledAt = now; return { ...j, metadata: { ...j.metadata } }; }
+export function failWfetJobV2(id, reason) { const j = _wfetJsV2.get(id); if (!j) throw new Error(`wfet job ${id} not found`); _wfetCheckJ(j.status, WFET_JOB_LIFECYCLE_V2.FAILED); const now = Date.now(); j.status = WFET_JOB_LIFECYCLE_V2.FAILED; j.updatedAt = now; if (!j.settledAt) j.settledAt = now; if (reason) j.metadata.failReason = String(reason); return { ...j, metadata: { ...j.metadata } }; }
+export function cancelWfetJobV2(id, reason) { const j = _wfetJsV2.get(id); if (!j) throw new Error(`wfet job ${id} not found`); _wfetCheckJ(j.status, WFET_JOB_LIFECYCLE_V2.CANCELLED); const now = Date.now(); j.status = WFET_JOB_LIFECYCLE_V2.CANCELLED; j.updatedAt = now; if (!j.settledAt) j.settledAt = now; if (reason) j.metadata.cancelReason = String(reason); return { ...j, metadata: { ...j.metadata } }; }
+export function getWfetJobV2(id) { const j = _wfetJsV2.get(id); if (!j) return null; return { ...j, metadata: { ...j.metadata } }; }
+export function listWfetJobsV2() { return [..._wfetJsV2.values()].map((j) => ({ ...j, metadata: { ...j.metadata } })); }
+export function autoDegradeIdleWfetTargetsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const x of _wfetTsV2.values()) if (x.status === WFET_TARGET_MATURITY_V2.ACTIVE && (t - x.lastTouchedAt) >= _wfetIdleMs) { x.status = WFET_TARGET_MATURITY_V2.DEGRADED; x.updatedAt = t; flipped.push(x.id); } return { flipped, count: flipped.length }; }
+export function autoFailStuckWfetJobsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const j of _wfetJsV2.values()) if (j.status === WFET_JOB_LIFECYCLE_V2.FETCHING && j.startedAt != null && (t - j.startedAt) >= _wfetStuckMs) { j.status = WFET_JOB_LIFECYCLE_V2.FAILED; j.updatedAt = t; if (!j.settledAt) j.settledAt = t; j.metadata.failReason = "auto-fail-stuck"; flipped.push(j.id); } return { flipped, count: flipped.length }; }
+export function getWebFetchGovStatsV2() {
+  const targetsByStatus = {}; for (const v of Object.values(WFET_TARGET_MATURITY_V2)) targetsByStatus[v] = 0; for (const t of _wfetTsV2.values()) targetsByStatus[t.status]++;
+  const jobsByStatus = {}; for (const v of Object.values(WFET_JOB_LIFECYCLE_V2)) jobsByStatus[v] = 0; for (const j of _wfetJsV2.values()) jobsByStatus[j.status]++;
+  return { totalWfetTargetsV2: _wfetTsV2.size, totalWfetJobsV2: _wfetJsV2.size, maxActiveWfetTargetsPerOwner: _wfetMaxActive, maxPendingWfetJobsPerTarget: _wfetMaxPending, wfetTargetIdleMs: _wfetIdleMs, wfetJobStuckMs: _wfetStuckMs, targetsByStatus, jobsByStatus };
+}

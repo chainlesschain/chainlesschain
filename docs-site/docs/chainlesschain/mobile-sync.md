@@ -728,7 +728,7 @@ chainlesschain p2p pair --manual --code <pairing-code>
 
 ---
 
-## 测试覆盖
+## 测试覆盖率
 
 ### 测试文件
 

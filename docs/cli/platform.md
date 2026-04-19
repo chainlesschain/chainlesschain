@@ -1804,3 +1804,1239 @@ cc hook set-hook-idle-ms-v2 <n> | set-hook-exec-stuck-ms-v2 <n>
 ```
 
 > **未移植**: HookEvents 枚举全集与 V2 profile event 字段的自动匹配;PreToolUse/PostToolUse/IPCError 全链路命令/脚本执行与 V2 exec lifecycle 联动。CLI V2 仅覆盖冻结枚举面、两条平行状态机(profile 4-state w/ disabled→active 恢复 + exec 5-state w/ 3 terminals)、双维度上限(`maxActiveHooksPerOwner=20`,`maxPendingExecsPerHook=32`)、throwing API、stamp-once、`touchHookProfileV2` + 2 批量 auto-flip(`hookIdleMs=24hr`,`hookExecStuckMs=1min`)、全枚举零初始化 stats。42 V2 tests / 76 file total。
+
+## Sub-Agent Registry V2 (`cc subagent ...-v2`) — Phase added 2026-04-18
+
+V2 治理覆盖层以新顶层 `cc subagent` 命名空间引入。状态机:profile 4-state(retired 终态,paused→active 恢复)+ task 5-state(3 terminals)。
+
+```bash
+cc subagent maturities-v2 | task-lifecycle-v2 | stats-v2 | config-v2 | reset-state-v2
+cc subagent register-profile-v2 <id> <owner> [role]
+cc subagent activate/pause/retire/touch-profile-v2 <id>
+cc subagent get-profile-v2 <id> | list-profiles-v2
+cc subagent create-task-v2 <id> <profileId> [desc]
+cc subagent start/complete/fail/cancel-task-v2 <id>
+cc subagent get-task-v2 <id> | list-tasks-v2
+cc subagent auto-pause-idle-v2 | auto-fail-stuck-v2
+cc subagent set-max-active-v2 <n> | set-max-pending-v2 <n> | set-idle-ms-v2 <n> | set-stuck-ms-v2 <n>
+```
+
+> **未移植**: RingBuffer 历史、singleton 全进程 hook、Claude Code sub-agent 协作链路与 V2 task lifecycle 联动。CLI V2 仅覆盖冻结枚举面、两条平行状态机、双维度上限(`maxActiveSubagentsPerOwner=12`,`maxPendingTasksPerSubagent=24`)、throwing API、stamp-once、`touchSubagentProfileV2` + 2 批量 auto-flip(`subagentIdleMs=2hr`,`subagentTaskStuckMs=5min`)、全枚举零初始化 stats。37 V2 tests / 43 file total。
+
+## Execution Backend V2 (`cc execbe ...-v2`) — Phase added 2026-04-18
+
+V2 治理覆盖层以新顶层 `cc execbe` 命名空间引入。状态机:backend 4-state(retired 终态,degraded→active 恢复)+ job 5-state w/ `succeeded` 终态(3 terminals)。
+
+```bash
+cc execbe maturities-v2 | job-lifecycle-v2 | stats-v2 | config-v2 | reset-state-v2
+cc execbe register-backend-v2 <id> <owner> [kind]
+cc execbe activate/degrade/retire/touch-backend-v2 <id>
+cc execbe get-backend-v2 <id> | list-backends-v2
+cc execbe create-job-v2 <id> <backendId> [cmd]
+cc execbe start/succeed/fail/cancel-job-v2 <id>
+cc execbe get-job-v2 <id> | list-jobs-v2
+cc execbe auto-degrade-idle-v2 | auto-fail-stuck-v2
+cc execbe set-max-active-v2 <n> | set-max-pending-v2 <n> | set-idle-ms-v2 <n> | set-stuck-ms-v2 <n>
+```
+
+> **未移植**: LocalBackend/DockerBackend/SSHBackend 的真实 execSync 调度,`agent.executionBackend` 配置键与 V2 backend lifecycle 联动。CLI V2 仅覆盖冻结枚举面、两条平行状态机、双维度上限(`maxActiveBackendsPerOwner=6`,`maxPendingJobsPerBackend=20`)、throwing API、stamp-once、`touchBackendV2` + 2 批量 auto-flip(`backendIdleMs=12hr`,`execJobStuckMs=10min`)、全枚举零初始化 stats。46 V2 tests / 68 file total。
+
+## Todo Manager V2 (`cc todo ...-v2`) — Phase added 2026-04-18
+
+V2 治理覆盖层以新顶层 `cc todo` 命名空间引入。状态机:list 4-state(archived 终态,paused→active 恢复)+ item 5-state w/ `in_progress` 中间态(3 terminals)。
+
+```bash
+cc todo maturities-v2 | item-lifecycle-v2 | stats-v2 | config-v2 | reset-state-v2
+cc todo register-list-v2 <id> <owner> [title]
+cc todo activate/pause/archive/touch-list-v2 <id>
+cc todo get-list-v2 <id> | list-lists-v2
+cc todo create-item-v2 <id> <listId> [desc]
+cc todo start/complete/fail/cancel-item-v2 <id>
+cc todo get-item-v2 <id> | list-items-v2
+cc todo auto-pause-idle-v2 | auto-fail-stuck-v2
+cc todo set-max-active-v2 <n> | set-max-pending-v2 <n> | set-idle-ms-v2 <n> | set-stuck-ms-v2 <n>
+```
+
+> **未移植**: 单 `in_progress` 全局验证、per-session `writeTodos`/`getTodos` 回灌 V2 lifecycle、open-agents todo_write 工具 I/O。CLI V2 仅覆盖冻结枚举面、两条平行状态机、双维度上限(`maxActiveTodoListsPerOwner=10`,`maxPendingItemsPerTodoList=40`)、throwing API、stamp-once、`touchTodoListV2` + 2 批量 auto-flip(`todoListIdleMs=7d`,`todoItemStuckMs=24hr`)、全枚举零初始化 stats。39 V2 tests / 41 file total。
+
+## Session Consolidator V2 (`cc consol ...-v2`, CLI v0.134.0)
+
+V2 治理层附加到 `packages/cli/src/lib/session-consolidator.js`，新建顶层 `cc consol` 命令，与既有 `cc session` V2 互不影响。
+
+- `CONSOL_PROFILE_MATURITY_V2`: pending → active → paused → archived (paused → active 为 recovery，免 cap)。Terminal: archived。
+- `CONSOL_JOB_LIFECYCLE_V2`: queued → running → completed | failed | cancelled。三终态。
+- Caps: `maxActiveConsolProfilesPerOwner=8`, `maxPendingConsolJobsPerProfile=12`, `consolProfileIdleMs=7d`, `consolJobStuckMs=10min`。
+- Auto: `autoPauseIdleConsolProfilesV2`, `autoFailStuckConsolJobsV2`。
+
+```
+cc consol enums-v2 | stats-v2
+cc consol register-profile-v2 --id <id> --owner <owner> [--scope <scope>]
+cc consol activate-profile-v2 <id> | pause-profile-v2 <id> | archive-profile-v2 <id> | touch-profile-v2 <id>
+cc consol get-profile-v2 <id> | list-profiles-v2
+cc consol create-job-v2 --id <id> --profile-id <pid> [--session-id <sid>]
+cc consol start-job-v2 <id> | complete-job-v2 <id> | fail-job-v2 <id> [--reason <r>] | cancel-job-v2 <id> [--reason <r>]
+cc consol get-job-v2 <id> | list-jobs-v2
+cc consol set-max-active-profiles-v2 <n> | set-max-pending-jobs-v2 <n> | set-profile-idle-ms-v2 <n> | set-job-stuck-ms-v2 <n>
+cc consol auto-pause-idle-profiles-v2 | auto-fail-stuck-jobs-v2
+```
+
+> **未移植**: 实际 JSONL session 读取、MemoryStore/MemoryConsolidator 挂接。CLI V2 仅覆盖冻结枚举面、两条平行状态机、双维度上限、throwing API、stamp-once(`activatedAt`,`archivedAt`,`startedAt`,`settledAt`)、`touchConsolProfileV2` + 2 批量 auto-flip、全枚举零初始化 stats。38 V2 tests (38 file)。
+
+## Browser Automation V2 (`cc browse ...-v2`, CLI v0.134.0)
+
+V2 治理层附加到 `packages/cli/src/lib/browser-automation.js`，作为 `cc browse` 的 V2 子命令注入，与既有 fetch/scrape/screenshot 辅助函数互不影响。
+
+- `BROWSE_TARGET_MATURITY_V2`: pending → active → degraded → retired (degraded → active 为 recovery，免 cap)。Terminal: retired。
+- `BROWSE_ACTION_LIFECYCLE_V2`: queued → running → completed | failed | cancelled。三终态。
+- Caps: `maxActiveBrowseTargetsPerOwner=8`, `maxPendingBrowseActionsPerTarget=20`, `browseTargetIdleMs=12hr`, `browseActionStuckMs=3min`。
+- Auto: `autoDegradeIdleBrowseTargetsV2`, `autoFailStuckBrowseActionsV2`。
+
+```
+cc browse enums-v2 | stats-v2
+cc browse register-target-v2 --id <id> --owner <owner> [--url <url>]
+cc browse activate-target-v2 <id> | degrade-target-v2 <id> | retire-target-v2 <id> | touch-target-v2 <id>
+cc browse get-target-v2 <id> | list-targets-v2
+cc browse create-action-v2 --id <id> --target-id <tid> [--kind <k>]
+cc browse start-action-v2 <id> | complete-action-v2 <id> | fail-action-v2 <id> [--reason <r>] | cancel-action-v2 <id>
+cc browse get-action-v2 <id> | list-actions-v2
+cc browse set-max-active-targets-v2 <n> | set-max-pending-actions-v2 <n> | set-target-idle-ms-v2 <n> | set-action-stuck-ms-v2 <n>
+cc browse auto-degrade-idle-targets-v2 | auto-fail-stuck-actions-v2
+```
+
+> **未移植**: 实际 HTTP 获取、playwright 截图、HTML 选择器。CLI V2 仅覆盖冻结枚举面、两条平行状态机、双维度上限、throwing API、stamp-once、`touchBrowseTargetV2` + 2 批量 auto-flip、全枚举零初始化 stats。37 V2 tests (62 file total: 25 legacy + 37 V2)。
+
+## Matrix Bridge V2 (`cc matrix ...-v2`, CLI v0.134.0)
+
+V2 治理层附加到 `packages/cli/src/lib/matrix-bridge.js`，作为 `cc matrix` 的 V2 子命令注入，与既有 login/E2EE/SQLite tables 互不影响。
+
+- `MX_ROOM_MATURITY_V2`: pending → active → muted → archived (muted → active 为 recovery，免 cap)。Terminal: archived。
+- `MX_MESSAGE_LIFECYCLE_V2`: queued → sending → delivered | failed | cancelled。三终态。
+- Caps: `maxActiveMatrixRoomsPerOwner=20`, `maxPendingMatrixMessagesPerRoom=40`, `matrixRoomIdleMs=24hr`, `matrixMessageStuckMs=3min`。
+- Auto: `autoMuteIdleMatrixRoomsV2`, `autoFailStuckMatrixMessagesV2`。
+
+```
+cc matrix enums-v2 | stats-v2
+cc matrix register-room-v2 --id <id> --owner <owner> [--alias <a>]
+cc matrix activate-room-v2 <id> | mute-room-v2 <id> | archive-room-v2 <id> | touch-room-v2 <id>
+cc matrix get-room-v2 <id> | list-rooms-v2
+cc matrix create-msg-v2 --id <id> --room-id <rid> [--body <b>]
+cc matrix start-msg-v2 <id> | deliver-msg-v2 <id> | fail-msg-v2 <id> [--reason <r>] | cancel-msg-v2 <id>
+cc matrix get-msg-v2 <id> | list-msgs-v2
+cc matrix set-max-active-rooms-v2 <n> | set-max-pending-msgs-v2 <n> | set-room-idle-ms-v2 <n> | set-msg-stuck-ms-v2 <n>
+cc matrix auto-mute-idle-rooms-v2 | auto-fail-stuck-msgs-v2
+```
+
+> **未移植**: 实际 homeserver login、E2EE、spaces、SQLite matrix_rooms/matrix_events。CLI V2 仅覆盖冻结枚举面、两条平行状态机、双维度上限、throwing API、stamp-once、`touchMatrixRoomV2` + 2 批量 auto-flip、全枚举零初始化 stats。37 V2 tests (86 file total: 49 legacy + 37 V2)。
+
+## Nostr Bridge V2 (`cc nostr ...-v2`, CLI v0.134.0)
+
+V2 治理层附加到 `packages/cli/src/lib/nostr-bridge.js`，作为 `cc nostr` 的 V2 子命令注入，与既有 relay/keypair/event-publishing/DID-mapping helpers 互不影响。
+
+- `NOSTR_RELAY_MATURITY_V2`: pending → active → offline → retired (offline → active 为 recovery，免 cap)。Terminal: retired。
+- `NOSTR_EVENT_LIFECYCLE_V2`: queued → publishing → published | failed | cancelled。三终态。
+- Caps: `maxActiveNostrRelaysPerOwner=10`, `maxPendingNostrEventsPerRelay=30`, `nostrRelayIdleMs=1hr`, `nostrEventStuckMs=2min`。
+- Auto: `autoOfflineIdleNostrRelaysV2`, `autoFailStuckNostrEventsV2`。
+
+```
+cc nostr enums-v2 | stats-v2
+cc nostr register-relay-v2 --id <id> --owner <owner> [--url <u>]
+cc nostr activate-relay-v2 <id> | offline-relay-v2 <id> | retire-relay-v2 <id> | touch-relay-v2 <id>
+cc nostr get-relay-v2 <id> | list-relays-v2
+cc nostr create-event-v2 --id <id> --relay-id <rid> [--kind <k>]
+cc nostr start-event-v2 <id> | publish-event-v2 <id> | fail-event-v2 <id> [--reason <r>] | cancel-event-v2 <id>
+cc nostr get-event-v2 <id> | list-events-v2
+cc nostr set-max-active-relays-v2 <n> | set-max-pending-events-v2 <n> | set-relay-idle-ms-v2 <n> | set-event-stuck-ms-v2 <n>
+cc nostr auto-offline-idle-relays-v2 | auto-fail-stuck-events-v2
+```
+
+> **未移植**: 实际 WebSocket 连接、nostr-crypto 签名、DID 映射、SQLite nostr_relays/nostr_events。CLI V2 仅覆盖冻结枚举面、两条平行状态机、双维度上限、throwing API、stamp-once、`touchNostrRelayV2` + 2 批量 auto-flip、全枚举零初始化 stats。39 V2 tests (80 file total: 41 legacy + 39 V2)。
+
+## ActivityPub Bridge V2 (`cc activitypub ...-v2`, CLI v0.135.0)
+
+V2 治理层附加到 `packages/cli/src/lib/activitypub-bridge.js`，作为 `cc activitypub` 的 V2 子命令注入，与既有 actor/outbox/inbox/delivery helpers 互不影响。
+
+- `AP_ACTOR_MATURITY_V2`: pending → active → suspended → deactivated (suspended → active 为 recovery，免 cap)。Terminal: deactivated。
+- `AP_ACTIVITY_LIFECYCLE_V2`: queued → delivering → delivered | failed | cancelled。三终态。
+- Caps: `maxActiveApActorsPerOwner=15`, `maxPendingApActivitiesPerActor=25`, `apActorIdleMs=24hr`, `apActivityStuckMs=3min`。
+- Auto: `autoSuspendIdleApActorsV2`, `autoFailStuckApActivitiesV2`。
+
+```
+cc activitypub enums-v2 | gov-stats-v2
+cc activitypub register-actor-v2 --id <id> --owner <o> [--handle <h>]
+cc activitypub activate-actor-v2 <id> | suspend-actor-v2 <id> | deactivate-actor-v2 <id> | touch-actor-v2 <id>
+cc activitypub get-actor-v2 <id> | list-actors-v2
+cc activitypub create-activity-v2 --id <id> --actor-id <aid> [--kind <k>]
+cc activitypub start-activity-v2 <id> | deliver-activity-v2 <id> | fail-activity-v2 <id> [--reason <r>] | cancel-activity-v2 <id>
+cc activitypub get-activity-v2 <id> | list-activities-v2
+cc activitypub set-max-active-actors-v2 <n> | set-max-pending-activities-v2 <n> | set-actor-idle-ms-v2 <n> | set-activity-stuck-ms-v2 <n>
+cc activitypub auto-suspend-idle-actors-v2 | auto-fail-stuck-activities-v2
+```
+
+> **未移植**: 实际 HTTP signatures、federation delivery、SQLite ap_* 表、WebFinger。CLI V2 仅覆盖冻结枚举面、两条平行状态机、双维度上限、throwing API、stamp-once、`touchApActorV2` + 2 批量 auto-flip、全枚举零初始化 stats。39 V2 tests。
+
+## BI Engine V2 (`cc bi ...-v2`, CLI v0.135.0)
+
+V2 治理层附加到 `packages/cli/src/lib/bi-engine.js`，与既有 query/dashboard/report/anomaly/predict 命令并存（既有 `stats-v2` 保留，治理层改用 `gov-stats-v2` 消歧）。
+
+- `BI_DATASET_MATURITY_V2`: pending → active → stale → archived (stale → active 为 recovery，免 cap)。Terminal: archived。
+- `BI_QUERY_LIFECYCLE_V2`: queued → running → completed | failed | cancelled。三终态。
+- Caps: `maxActiveBiDatasetsPerOwner=8`, `maxPendingBiQueriesPerDataset=10`, `biDatasetIdleMs=7d`, `biQueryStuckMs=5min`。
+- Auto: `autoStaleIdleBiDatasetsV2`, `autoFailStuckBiQueriesV2`。
+
+```
+cc bi enums-v2 | gov-stats-v2
+cc bi register-dataset-v2 --id <id> --owner <o> [--source <s>]
+cc bi activate-dataset-v2 <id> | stale-dataset-v2 <id> | archive-dataset-v2 <id> | touch-dataset-v2 <id>
+cc bi get-dataset-v2 <id> | list-datasets-v2
+cc bi create-query-v2 --id <id> --dataset-id <did> [--sql <s>]
+cc bi start-query-v2 <id> | complete-query-v2 <id> | fail-query-v2 <id> [--reason <r>] | cancel-query-v2 <id>
+cc bi get-query-v2 <id> | list-queries-v2
+cc bi set-max-active-datasets-v2 <n> | set-max-pending-queries-v2 <n> | set-dataset-idle-ms-v2 <n> | set-query-stuck-ms-v2 <n>
+cc bi auto-stale-idle-datasets-v2 | auto-fail-stuck-queries-v2
+```
+
+> **未移植**: 真实 SQL 执行、图表渲染、异常检测、预测模型、SQLite datasets/reports 表。CLI V2 仅覆盖冻结枚举面、两条平行状态机、双维度上限、throwing API、stamp-once、`touchBiDatasetV2` + 2 批量 auto-flip、全枚举零初始化 stats。39 V2 tests。
+
+## DLP Engine V2 (`cc dlp ...-v2`, CLI v0.135.0)
+
+V2 治理层附加到 `packages/cli/src/lib/dlp-engine.js`，与既有 scan/incident/policy 命令并存（既有 `dlp stats-v2` 保留，治理层改用 `gov-stats-v2` 消歧）。
+
+- `DLP_POLICY_MATURITY_V2`: pending → active → suspended → retired (suspended → active 为 recovery，免 cap)。Terminal: retired。
+- `DLP_SCAN_LIFECYCLE_V2`: queued → scanning → completed | failed | cancelled。三终态。
+- Caps: `maxActiveDlpPoliciesPerOwner=16`, `maxPendingDlpScansPerPolicy=20`, `dlpPolicyIdleMs=12hr`, `dlpScanStuckMs=5min`。
+- Auto: `autoSuspendIdleDlpPoliciesV2`, `autoFailStuckDlpScansV2`。
+
+```
+cc dlp enums-v2 | gov-stats-v2
+cc dlp register-policy-v2 --id <id> --owner <o> [--classification <c>]
+cc dlp activate-policy-v2 <id> | suspend-policy-v2 <id> | retire-policy-v2 <id> | touch-policy-v2 <id>
+cc dlp get-policy-v2 <id> | list-policies-v2
+cc dlp create-scan-v2 --id <id> --policy-id <pid> [--target <t>]
+cc dlp start-scan-v2 <id> | complete-scan-v2 <id> | fail-scan-v2 <id> [--reason <r>] | cancel-scan-v2 <id>
+cc dlp get-scan-v2 <id> | list-scans-v2
+cc dlp set-max-active-policies-v2 <n> | set-max-pending-scans-v2 <n> | set-policy-idle-ms-v2 <n> | set-scan-stuck-ms-v2 <n>
+cc dlp auto-suspend-idle-policies-v2 | auto-fail-stuck-scans-v2
+```
+
+> **未移植**: 真实 pattern matching、incident 存储、渠道集成、SQLite dlp_policies/dlp_incidents 表。CLI V2 仅覆盖冻结枚举面、两条平行状态机、双维度上限、throwing API、stamp-once、`touchDlpPolicyV2` + 2 批量 auto-flip、全枚举零初始化 stats。40 V2 tests。
+
+## EvoMap Manager V2 (`cc evomap ...-v2`, CLI v0.135.0)
+
+V2 治理层附加到 `packages/cli/src/lib/evomap-manager.js`，与既有 federation/gov 嵌套子命令并存。
+
+- `EVOMAP_MAP_MATURITY_V2`: pending → active → stale → archived (stale → active 为 recovery，免 cap)。Terminal: archived。
+- `EVOMAP_EVOLUTION_LIFECYCLE_V2`: queued → running → completed | failed | cancelled。三终态。
+- Caps: `maxActiveEvoMapsPerOwner=10`, `maxPendingEvoEvolutionsPerMap=15`, `evoMapIdleMs=7d`, `evoEvolutionStuckMs=5min`。
+- Auto: `autoStaleIdleEvoMapsV2`, `autoFailStuckEvoEvolutionsV2`。
+
+```
+cc evomap enums-v2 | gov-stats-v2
+cc evomap register-map-v2 --id <id> --owner <o> [--name <n>]
+cc evomap activate-map-v2 <id> | stale-map-v2 <id> | archive-map-v2 <id> | touch-map-v2 <id>
+cc evomap get-map-v2 <id> | list-maps-v2
+cc evomap create-evolution-v2 --id <id> --map-id <mid> [--strategy <s>]
+cc evomap start-evolution-v2 <id> | complete-evolution-v2 <id> | fail-evolution-v2 <id> [--reason <r>] | cancel-evolution-v2 <id>
+cc evomap get-evolution-v2 <id> | list-evolutions-v2
+cc evomap set-max-active-maps-v2 <n> | set-max-pending-evolutions-v2 <n> | set-map-idle-ms-v2 <n> | set-evolution-stuck-ms-v2 <n>
+cc evomap auto-stale-idle-maps-v2 | auto-fail-stuck-evolutions-v2
+```
+
+> **未移植**: 真实 genetic/evolutionary 算法、federation consensus、gov voting、SQLite evomap_* 表。CLI V2 仅覆盖冻结枚举面、两条平行状态机、双维度上限、throwing API、stamp-once、`touchEvoMapV2` + 2 批量 auto-flip、全枚举零初始化 stats。39 V2 tests。
+
+### A2A 协议 V2 治理层 (v0.136.0)
+
+V2 治理层附加到 `packages/cli/src/lib/a2a-protocol.js`，与既有 A2A task/card/subscription 流程并存。
+
+- `A2A_AGENT_MATURITY_V2`: pending → active → suspended → active (recovery 免 cap) | retired (terminal)。
+- `A2A_MESSAGE_LIFECYCLE_V2`: queued → sending → delivered | failed | cancelled。三终态。
+- Caps: `maxActiveA2aAgentsPerOwner=12`, `maxPendingA2aMessagesPerAgent=20`, `a2aAgentIdleMs=6h`, `a2aMessageStuckMs=3min`。
+- Auto: `autoSuspendIdleA2aAgentsV2`, `autoFailStuckA2aMessagesV2`。
+
+```
+cc a2a enums-v2 | gov-stats-v2
+cc a2a register-agent-v2 --id <id> --owner <o> [--capabilities csv]
+cc a2a activate-agent-v2 <id> | suspend-agent-v2 <id> | retire-agent-v2 <id> | touch-agent-v2 <id>
+cc a2a get-agent-v2 <id> | list-agents-v2
+cc a2a create-message-v2 --id <id> --agent-id <aid> [--peer-id <p>] [--payload <p>]
+cc a2a start-message-v2 <id> | deliver-message-v2 <id> | fail-message-v2 <id> [--reason <r>] | cancel-message-v2 <id>
+cc a2a get-message-v2 <id> | list-messages-v2
+cc a2a set-max-active-agents-v2 <n> | set-max-pending-messages-v2 <n> | set-agent-idle-ms-v2 <n> | set-message-stuck-ms-v2 <n>
+cc a2a auto-suspend-idle-agents-v2 | auto-fail-stuck-messages-v2
+```
+
+> **未移植**: 真实 agent-card discovery、task dispatch、typed subscription pub/sub。CLI V2 仅覆盖冻结枚举面、双状态机、双维度上限、capabilities 数组深拷贝、throwing API、stamp-once、`touchA2aAgentV2` + 2 批量 auto-flip、全枚举零初始化 stats。40 V2 tests。
+
+### ZKP 引擎 V2 治理层 (v0.136.0)
+
+V2 治理层附加到 `packages/cli/src/lib/zkp-engine.js`，与既有电路编译 / 证明生成 helper 并存。
+
+- `ZKP_CIRCUIT_MATURITY_V2`: pending → active → deprecated → active (recovery 免 cap) | archived (terminal)。
+- `ZKP_PROOF_LIFECYCLE_V2`: queued → proving → verified | failed | cancelled。三终态。
+- Caps: `maxActiveZkpCircuitsPerOwner=10`, `maxPendingZkpProofsPerCircuit=15`, `zkpCircuitIdleMs=30d`, `zkpProofStuckMs=10min`。
+- Auto: `autoDeprecateIdleZkpCircuitsV2`, `autoFailStuckZkpProofsV2`。
+
+```
+cc zkp enums-v2 | gov-stats-v2
+cc zkp register-circuit-v2 --id <id> --owner <o> [--scheme groth16]
+cc zkp activate-circuit-v2 <id> | deprecate-circuit-v2 <id> | archive-circuit-v2 <id> | touch-circuit-v2 <id>
+cc zkp get-circuit-v2 <id> | list-circuits-v2
+cc zkp create-proof-v2 --id <id> --circuit-id <cid> [--inputs <i>]
+cc zkp start-proof-v2 <id> | verify-proof-v2 <id> | fail-proof-v2 <id> [--reason <r>] | cancel-proof-v2 <id>
+cc zkp get-proof-v2 <id> | list-proofs-v2
+cc zkp set-max-active-circuits-v2 <n> | set-max-pending-proofs-v2 <n> | set-circuit-idle-ms-v2 <n> | set-proof-stuck-ms-v2 <n>
+cc zkp auto-deprecate-idle-circuits-v2 | auto-fail-stuck-proofs-v2
+```
+
+> **未移植**: 真实 groth16/plonk/stark 证明生成、witness 编译、pairing verify。CLI V2 仅覆盖冻结枚举面、双状态机、双维度上限、scheme 默认 groth16、throwing API、stamp-once、`touchZkpCircuitV2` + 2 批量 auto-flip、全枚举零初始化 stats。41 V2 tests。
+
+### Cross-Chain V2 治理层 (v0.136.0)
+
+V2 治理层附加到 `packages/cli/src/lib/cross-chain.js`，与 Phase-89 SQLite bridge 表 + SUPPORTED_CHAINS catalog 并存。
+
+- `XCHAIN_CHANNEL_MATURITY_V2`: pending → active → paused → active (recovery 免 cap) | decommissioned (terminal)。
+- `XCHAIN_TRANSFER_LIFECYCLE_V2`: queued → relaying → confirmed | failed | cancelled。三终态。
+- Caps: `maxActiveXchainChannelsPerOwner=10`, `maxPendingXchainTransfersPerChannel=20`, `xchainChannelIdleMs=24h`, `xchainTransferStuckMs=15min`。
+- Auto: `autoPauseIdleXchainChannelsV2`, `autoFailStuckXchainTransfersV2`。
+
+```
+cc crosschain enums-v2 | gov-stats-v2
+cc crosschain register-channel-v2 --id <id> --owner <o> [--from-chain <f>] [--to-chain <t>]
+cc crosschain activate-channel-v2 <id> | pause-channel-v2 <id> | decommission-channel-v2 <id> | touch-channel-v2 <id>
+cc crosschain get-channel-v2 <id> | list-channels-v2
+cc crosschain create-transfer-v2 --id <id> --channel-id <cid> [--amount <a>]
+cc crosschain start-transfer-v2 <id> | confirm-transfer-v2 <id> | fail-transfer-v2 <id> [--reason <r>] | cancel-transfer-v2 <id>
+cc crosschain get-transfer-v2 <id> | list-transfers-v2
+cc crosschain set-max-active-channels-v2 <n> | set-max-pending-transfers-v2 <n> | set-channel-idle-ms-v2 <n> | set-transfer-stuck-ms-v2 <n>
+cc crosschain auto-pause-idle-channels-v2 | auto-fail-stuck-transfers-v2
+```
+
+> **未移植**: 真实 bridge relayer、chain RPC、transfer proof verification、SQLite bridge/swap 表。CLI V2 仅覆盖冻结枚举面、双状态机、双维度上限、fromChain/toChain 字段保留、throwing API、stamp-once、`touchXchainChannelV2` + 2 批量 auto-flip、全枚举零初始化 stats。40 V2 tests。
+
+### DAO 治理 V2 治理层 (v0.136.0)
+
+V2 治理层附加到 `packages/cli/src/lib/dao-governance.js`，与既有 treasury/member/vote 流程并存。
+
+- `DAO_ORG_MATURITY_V2`: pending → active → paused → active (recovery 免 cap) | dissolved (terminal)。
+- `DAO_PROPOSAL_LIFECYCLE_V2`: queued → voting → passed | failed | cancelled。三终态。
+- Caps: `maxActiveDaoOrgsPerOwner=8`, `maxPendingDaoProposalsPerOrg=50`, `daoOrgIdleMs=7d`, `daoProposalStuckMs=2min`。
+- Auto: `autoPauseIdleDaoOrgsV2`, `autoFailStuckDaoProposalsV2`。
+
+```
+cc dao enums-v2 | gov-stats-v2
+cc dao register-org-v2 --id <id> --owner <o> [--name <n>]
+cc dao activate-org-v2 <id> | pause-org-v2 <id> | dissolve-org-v2 <id> | touch-org-v2 <id>
+cc dao get-org-v2 <id> | list-orgs-v2
+cc dao create-proposal-v2 --id <id> --org-id <oid> [--title <t>]
+cc dao start-proposal-v2 <id> | pass-proposal-v2 <id> | fail-proposal-v2 <id> [--reason <r>] | cancel-proposal-v2 <id>
+cc dao get-proposal-v2 <id> | list-proposals-v2
+cc dao set-max-active-orgs-v2 <n> | set-max-pending-proposals-v2 <n> | set-org-idle-ms-v2 <n> | set-proposal-stuck-ms-v2 <n>
+cc dao auto-pause-idle-orgs-v2 | auto-fail-stuck-proposals-v2
+```
+
+> **未移植**: 真实 on-chain vote tally、treasury 转账、member 权重计算、SQLite dao_* 表。CLI V2 仅覆盖冻结枚举面、双状态机、双维度上限、throwing API、stamp-once、`touchDaoOrgV2` + 2 批量 auto-flip、全枚举零初始化 stats。41 V2 tests。
+
+---
+
+## `cc economy` V2 Governance Surface (v0.137.0)
+
+在 `agent-economy.js` 上叠加 in-memory V2 治理层,独立于现有支付/市场/NFT 流程。
+
+- 账户 maturity（4 态）: `pending → active → frozen → active`(恢复), 终态 `closed`。
+- Tx lifecycle（5 态,3 终态）: `queued → processing → {settled|failed|cancelled}`。
+- 上限: `maxActiveEconomyAccountsPerHolder=20`（仅 pending→active 检查,恢复豁免）, `maxPendingEconomyTxsPerAccount=30`（createEconomyTxV2 时按 queued+processing 计数）。
+- 阈值: `economyAccountIdleMs=7d`, `economyTxStuckMs=5min`。
+- Stamp-once: `activatedAt`、`closedAt`、`startedAt`、`settledAt`。
+- Auto: `autoFreezeIdleEconomyAccountsV2`, `autoFailStuckEconomyTxsV2`（均可传 `{ now }` 覆盖）。
+
+```
+cc economy enums-v2 | config-v2 | gov-stats-v2
+cc economy register-account-v2 <id> <holder> [--currency <c>]
+cc economy activate-account-v2 <id> | freeze-account-v2 <id> | close-account-v2 <id> | touch-account-v2 <id>
+cc economy get-account-v2 <id> | list-accounts-v2
+cc economy create-tx-v2 <id> <accountId> [--amount <a>]
+cc economy start-tx-v2 <id> | settle-tx-v2 <id> | fail-tx-v2 <id> [reason] | cancel-tx-v2 <id> [reason]
+cc economy get-tx-v2 <id> | list-txs-v2
+cc economy set-max-active-accounts-v2 <n> | set-max-pending-txs-v2 <n> | set-account-idle-ms-v2 <n> | set-tx-stuck-ms-v2 <n>
+cc economy auto-freeze-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**: price/pay/channel/market/nft/revenue 等现有命令、SQLite economy_* 表、真实清算/链上结算。CLI V2 仅覆盖冻结枚举面、双状态机、双维度上限、throwing API、stamp-once、`touchEconomyAccountV2` + 2 批量 auto-flip、全枚举零初始化 stats（使用 `gov-stats-v2` 避免与现有 `stats-v2` 冲突）。41 V2 tests。
+
+---
+
+## `cc pipeline` V2 Governance Surface (v0.137.0)
+
+在 `pipeline-orchestrator.js`(Phase 26)上叠加 in-memory V2 治理层,独立于 7-stage dev pipeline + gate + deploy 流程。
+
+- Pipeline maturity（4 态）: `pending → active → paused → active`(恢复), 终态 `archived`。
+- Run lifecycle（5 态,3 终态）: `queued → running → {completed|failed|cancelled}`。
+- 上限: `maxActivePipelinesPerOwner=10`（仅 pending→active 检查,恢复豁免）, `maxPendingPipelineRunsPerPipeline=20`（createPipelineRunV2 时按 queued+running 计数）。
+- 阈值: `pipelineIdleMs=3d`, `pipelineRunStuckMs=10min`。
+- Stamp-once: `activatedAt`、`archivedAt`、`startedAt`、`settledAt`。
+- Auto: `autoPauseIdlePipelinesV2`, `autoFailStuckPipelineRunsV2`。
+
+```
+cc pipeline enums-v2 | config-v2 | gov-stats-v2
+cc pipeline register-pipeline-v2 <id> <owner> [--name <n>]
+cc pipeline activate-pipeline-v2 <id> | pause-pipeline-v2 <id> | archive-pipeline-v2 <id> | touch-pipeline-v2 <id>
+cc pipeline get-pipeline-v2 <id> | list-pipelines-v2
+cc pipeline create-run-v2 <id> <pipelineId> [--trigger <t>]
+cc pipeline start-run-v2 <id> | complete-run-v2 <id> | fail-run-v2 <id> [reason] | cancel-run-v2 <id> [reason]
+cc pipeline get-run-v2 <id> | list-runs-v2
+cc pipeline set-max-active-pipelines-v2 <n> | set-max-pending-runs-v2 <n> | set-pipeline-idle-ms-v2 <n> | set-run-stuck-ms-v2 <n>
+cc pipeline auto-pause-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**: 7-stage dev pipeline DAG 执行、gate/deploy/artifact 真实调度、SQLite pipeline_* 表。CLI V2 仅覆盖冻结枚举面、双状态机、双维度上限、throwing API、stamp-once、`touchPipelineV2` + 2 批量 auto-flip、全枚举零初始化 stats。41 V2 tests。
+
+---
+
+## `cc evolution` V2 Governance Surface (v0.137.0)
+
+在 `evolution-system.js` 上叠加 in-memory V2 治理层,独立于现有 capability assess/learn/diagnose 流程。
+
+- Goal maturity（4 态）: `pending → active → paused → active`(恢复), 终态 `archived`。
+- Cycle lifecycle（5 态,3 终态）: `queued → running → {completed|failed|cancelled}`。
+- 上限: `maxActiveEvoGoalsPerOwner=6`（仅 pending→active 检查,恢复豁免）, `maxPendingEvoCyclesPerGoal=12`（createEvoCycleV2 时按 queued+running 计数）。
+- 阈值: `evoGoalIdleMs=14d`, `evoCycleStuckMs=10min`。
+- Stamp-once: `activatedAt`、`archivedAt`、`startedAt`、`settledAt`。
+- Auto: `autoPauseIdleEvoGoalsV2`, `autoFailStuckEvoCyclesV2`。
+
+```
+cc evolution enums-v2 | config-v2 | gov-stats-v2
+cc evolution register-goal-v2 <id> <owner> [--objective <o>]
+cc evolution activate-goal-v2 <id> | pause-goal-v2 <id> | archive-goal-v2 <id> | touch-goal-v2 <id>
+cc evolution get-goal-v2 <id> | list-goals-v2
+cc evolution create-cycle-v2 <id> <goalId> [--generation <n>]
+cc evolution start-cycle-v2 <id> | complete-cycle-v2 <id> | fail-cycle-v2 <id> [reason] | cancel-cycle-v2 <id> [reason]
+cc evolution get-cycle-v2 <id> | list-cycles-v2
+cc evolution set-max-active-goals-v2 <n> | set-max-pending-cycles-v2 <n> | set-goal-idle-ms-v2 <n> | set-cycle-stuck-ms-v2 <n>
+cc evolution auto-pause-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**: capability score 计算、learning 真实训练、diagnose 推理、SQLite evolution_* 表。CLI V2 仅覆盖冻结枚举面、双状态机、双维度上限、throwing API、stamp-once、`touchEvoGoalV2` + 2 批量 auto-flip、全枚举零初始化 stats（使用 `gov-stats-v2` 避免与现有 `stats-v2` 冲突）。41 V2 tests。
+
+---
+
+## `cc hmemory` V2 Governance Surface (v0.137.0)
+
+在 `hierarchical-memory.js` 上叠加 in-memory V2 治理层,独立于现有四层存储/检索流程。
+
+- Tier maturity（4 态）: `pending → active → dormant → active`(恢复), 终态 `retired`。
+- Promotion lifecycle（5 态,3 终态）: `queued → promoting → {promoted|failed|cancelled}`。
+- 上限: `maxActiveHmemTiersPerOwner=12`（仅 pending→active 检查,恢复豁免）, `maxPendingHmemPromotionsPerTier=30`（createHmemPromotionV2 时按 queued+promoting 计数）。
+- 阈值: `hmemTierIdleMs=30d`, `hmemPromotionStuckMs=5min`。
+- Stamp-once: `activatedAt`、`retiredAt`、`startedAt`、`settledAt`。
+- Auto: `autoDormantIdleHmemTiersV2`, `autoFailStuckHmemPromotionsV2`。
+
+```
+cc hmemory enums-v2 | config-v2 | gov-stats-v2
+cc hmemory register-tier-v2 <id> <owner> [--level <l>]
+cc hmemory activate-tier-v2 <id> | dormant-tier-v2 <id> | retire-tier-v2 <id> | touch-tier-v2 <id>
+cc hmemory get-tier-v2 <id> | list-tiers-v2
+cc hmemory create-promotion-v2 <id> <tierId> [--item-key <k>]
+cc hmemory start-promotion-v2 <id> | complete-promotion-v2 <id> | fail-promotion-v2 <id> [reason] | cancel-promotion-v2 <id> [reason]
+cc hmemory get-promotion-v2 <id> | list-promotions-v2
+cc hmemory set-max-active-tiers-v2 <n> | set-max-pending-promotions-v2 <n> | set-tier-idle-ms-v2 <n> | set-promotion-stuck-ms-v2 <n>
+cc hmemory auto-dormant-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**: 真实四层 RAG 查询/检索、importance-based 层级分发、embeddings、SQLite hmem_* 表。CLI V2 仅覆盖冻结枚举面、双状态机、双维度上限、throwing API、stamp-once、`touchHmemTierV2` + 2 批量 auto-flip、全枚举零初始化 stats（使用 `gov-stats-v2` 避免与现有 `stats-v2` 冲突）。41 V2 tests。
+
+### App Builder V2 治理面（v0.138.0）
+
+CLI 子命令 `cc lowcode ...-v2` 在 app-builder.js 之上新增内存内 V2 治理层，与原有 create/deploy/generate 流程相互独立。
+
+- App maturity（4 态）: `pending → active → paused → active`(恢复), 终态 `archived`。
+- Build lifecycle（5 态,3 终态）: `queued → building → {succeeded|failed|cancelled}`。
+- 上限: `maxActiveAppsPerOwner=10`（仅 pending→active 检查,恢复豁免）, `maxPendingAppBuildsPerApp=20`（createAppBuildV2 时按 queued+building 计数）。
+- 阈值: `appIdleMs=30d`, `appBuildStuckMs=10min`。
+- Stamp-once: `activatedAt`、`archivedAt`、`startedAt`、`settledAt`。
+- Auto: `autoPauseIdleAppsV2`, `autoFailStuckAppBuildsV2`。
+
+```
+cc lowcode enums-v2 | config-v2 | gov-stats-v2
+cc lowcode register-app-v2 <id> <owner> [--name <n>]
+cc lowcode activate-app-v2 <id> | pause-app-v2 <id> | archive-app-v2 <id> | touch-app-v2 <id>
+cc lowcode get-app-v2 <id> | list-apps-v2
+cc lowcode create-build-v2 <id> <appId> [--target <t>]
+cc lowcode start-build-v2 <id> | succeed-build-v2 <id> | fail-build-v2 <id> [reason] | cancel-build-v2 <id> [reason]
+cc lowcode get-build-v2 <id> | list-builds-v2
+cc lowcode set-max-active-apps-v2 <n> | set-max-pending-builds-v2 <n> | set-app-idle-ms-v2 <n> | set-build-stuck-ms-v2 <n>
+cc lowcode auto-pause-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**: 真实低代码 schema/build pipeline/部署目标。CLI V2 仅覆盖冻结枚举面、双状态机、双维度上限、throwing API、stamp-once、`touchAppV2` + 2 批量 auto-flip、全枚举零初始化 stats。45 V2 tests。
+
+### SIEM Exporter V2 治理面（v0.138.0）
+
+CLI 子命令 `cc siem ...-v2` 在 siem-exporter.js 之上新增内存内 V2 治理层，与原有 SQLite 目标/导出流程相互独立。
+
+- Target maturity（4 态）: `pending → active → degraded → active`(恢复), 终态 `retired`。
+- Export lifecycle（5 态,3 终态）: `queued → sending → {delivered|failed|cancelled}`。
+- 上限: `maxActiveSiemTargetsPerOperator=8`（仅 pending→active 检查,恢复豁免）, `maxPendingSiemExportsPerTarget=50`（createSiemExportV2 时按 queued+sending 计数）。
+- 阈值: `siemTargetIdleMs=24h`, `siemExportStuckMs=5min`。
+- Stamp-once: `activatedAt`、`retiredAt`、`startedAt`、`settledAt`。
+- Auto: `autoDegradeIdleSiemTargetsV2`, `autoFailStuckSiemExportsV2`。
+
+```
+cc siem enums-v2 | config-v2 | gov-stats-v2
+cc siem register-target-v2 <id> <operator> [--kind <k>]
+cc siem activate-target-v2 <id> | degrade-target-v2 <id> | retire-target-v2 <id> | touch-target-v2 <id>
+cc siem get-target-v2 <id> | list-targets-v2
+cc siem create-export-v2 <id> <targetId> [--format <f>]
+cc siem start-export-v2 <id> | deliver-export-v2 <id> | fail-export-v2 <id> [reason] | cancel-export-v2 <id> [reason]
+cc siem get-export-v2 <id> | list-exports-v2
+cc siem set-max-active-targets-v2 <n> | set-max-pending-exports-v2 <n> | set-target-idle-ms-v2 <n> | set-export-stuck-ms-v2 <n>
+cc siem auto-degrade-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**: 真实 Splunk HEC/Elastic/Syslog 协议适配、批量推送队列、SIEM 模板。CLI V2 仅覆盖冻结枚举面、双状态机、双维度上限、throwing API、stamp-once、`touchSiemTargetV2` + 2 批量 auto-flip、全枚举零初始化 stats。45 V2 tests。
+
+### Autonomous Agent V2 治理面（v0.138.0）
+
+新增顶层命令 `cc autoagent ...-v2`，在 autonomous-agent.js 之上提供内存内 V2 治理层。与交互式 `cc agent`（启动 agent session,无子命令）相互独立。
+
+- Agent maturity（4 态）: `pending → active → paused → active`(恢复), 终态 `archived`。
+- Run lifecycle（5 态,3 终态）: `queued → running → {completed|failed|cancelled}`。
+- 上限: `maxActiveAutoAgentsPerOwner=5`（仅 pending→active 检查,恢复豁免）, `maxPendingAutoAgentRunsPerAgent=10`（createAutoAgentRunV2 时按 queued+running 计数）。
+- 阈值: `autoAgentIdleMs=7d`, `autoAgentRunStuckMs=30min`。
+- Stamp-once: `activatedAt`、`archivedAt`、`startedAt`、`settledAt`。
+- Auto: `autoPauseIdleAutoAgentsV2`, `autoFailStuckAutoAgentRunsV2`。
+
+```
+cc autoagent enums-v2 | config-v2 | gov-stats-v2
+cc autoagent register-agent-v2 <id> <owner> [--goal <g>]
+cc autoagent activate-agent-v2 <id> | pause-agent-v2 <id> | archive-agent-v2 <id> | touch-agent-v2 <id>
+cc autoagent get-agent-v2 <id> | list-agents-v2
+cc autoagent create-run-v2 <id> <agentId> [--prompt <p>]
+cc autoagent start-run-v2 <id> | complete-run-v2 <id> | fail-run-v2 <id> [reason] | cancel-run-v2 <id> [reason]
+cc autoagent get-run-v2 <id> | list-runs-v2
+cc autoagent set-max-active-v2 <n> | set-max-pending-v2 <n> | set-idle-ms-v2 <n> | set-stuck-ms-v2 <n>
+cc autoagent auto-pause-idle-v2 | auto-fail-stuck-v2 | reset-state-v2
+```
+
+> **未移植**: 真实 ReAct/思维链执行循环、tool-use、planner/critic 协作。CLI V2 仅覆盖冻结枚举面、双状态机、双维度上限、throwing API、stamp-once、`touchAutoAgentV2` + 2 批量 auto-flip、全枚举零初始化 stats。45 V2 tests。
+
+### Compliance Framework Reporter V2 治理面（v0.138.0）
+
+`cc compliance fwrep-...-v2` 子命令在 compliance-framework-reporter.js 之上新增内存内 V2 治理层。`fwrep-*` 前缀避免与已有 compliance V2（`frameworks-v2`、`evidence-statuses-v2`、`stats-v2`）冲突。
+
+- Framework maturity（4 态）: `pending → active → deprecated → active`(恢复), 终态 `archived`。
+- Report lifecycle（5 态,3 终态）: `queued → generating → {completed|failed|cancelled}`。
+- 上限: `maxActiveComplianceFwsPerOwner=8`（仅 pending→active 检查,恢复豁免）, `maxPendingComplianceFwReportsPerFw=15`（createComplianceFwReportV2 时按 queued+generating 计数）。
+- 阈值: `complianceFwIdleMs=90d`, `complianceFwReportStuckMs=10min`。
+- Stamp-once: `activatedAt`、`archivedAt`、`startedAt`、`settledAt`。
+- Auto: `autoDeprecateIdleComplianceFwsV2`, `autoFailStuckComplianceFwReportsV2`。
+
+```
+cc compliance fwrep-enums-v2 | fwrep-config-v2 | fwrep-gov-stats-v2
+cc compliance fwrep-register-v2 <id> <owner> [--name <n>]
+cc compliance fwrep-activate-v2 <id> | fwrep-deprecate-v2 <id> | fwrep-archive-v2 <id> | fwrep-touch-v2 <id>
+cc compliance fwrep-get-v2 <id> | fwrep-list-v2
+cc compliance fwrep-create-report-v2 <id> <frameworkId> [--format <f>]
+cc compliance fwrep-start-report-v2 <id> | fwrep-complete-report-v2 <id> | fwrep-fail-report-v2 <id> [reason] | fwrep-cancel-report-v2 <id> [reason]
+cc compliance fwrep-get-report-v2 <id> | fwrep-list-reports-v2
+cc compliance fwrep-set-max-active-v2 <n> | fwrep-set-max-pending-v2 <n> | fwrep-set-fw-idle-ms-v2 <n> | fwrep-set-report-stuck-ms-v2 <n>
+cc compliance fwrep-auto-deprecate-idle-v2 | fwrep-auto-fail-stuck-v2
+```
+
+> **未移植**: 真实 GDPR/SOC2/HIPAA/ISO27001 evidence 收集、控制项 → 报告聚合渲染。CLI V2 仅覆盖冻结枚举面、双状态机、双维度上限、throwing API、stamp-once、`touchComplianceFwV2` + 2 批量 auto-flip、全枚举零初始化 stats（使用 `fwrep-gov-stats-v2` 避免与现有 `stats-v2` 冲突）。45 V2 tests。
+
+---
+
+## Phase Iter11-A: Git Integration V2 治理面（CLI v0.139.0）
+
+`cc git ...-v2` —— 将治理覆盖层追加到 `packages/cli/src/lib/git-integration.js`，原 `gitStatus / gitAutoCommit / gitLog / gitHistoryAnalyze / gitInit / isGitRepo` helpers 不变。
+
+### 设计要点
+- 4 态仓库成熟度：`pending → active → archived → decommissioned`（`decommissioned` 终态；`archived → active` 恢复豁免 active 上限）
+- 5 态提交生命周期：`queued → committing → {committed, failed, cancelled}`（3 终态）
+- 上限：`maxActiveGitReposPerOwner=10`、`maxPendingGitCommitsPerRepo=20`
+- 阈值：`gitRepoIdleMs=30 天`、`gitCommitStuckMs=5 分钟`
+- 自动翻转：`autoArchiveIdleGitReposV2`、`autoFailStuckGitCommitsV2`（均支持 `{ now }` 注入）
+- Stamp-once：`activatedAt`、`decommissionedAt`、`startedAt`、`settledAt`
+- 仓库字段：`branch`（默认 `"main"`）、`owner` 必填
+- 提交字段：`message`、`repoId` 必填
+
+### 命令
+```
+cc git enums-v2 | gov-stats-v2
+cc git config-set-v2 --max-active <n> --max-pending <n> --idle-ms <n> --stuck-ms <n>
+cc git register-repo-v2 <id> --owner <owner> [--branch <b>]
+cc git activate-repo-v2 <id> | archive-repo-v2 <id> | decommission-repo-v2 <id> | touch-repo-v2 <id>
+cc git get-repo-v2 <id> | list-repos-v2
+cc git create-commit-v2 <id> --repo-id <rid> [--message <m>]
+cc git start-commit-v2 <id> | commit-commit-v2 <id> | fail-commit-v2 <id> | cancel-commit-v2 <id>
+cc git get-commit-v2 <id> | list-commits-v2
+cc git auto-archive-repos-v2 | auto-fail-commits-v2
+```
+
+> **未移植**：真实 git 仓库状态读取、auto-commit 推送、history 分析。CLI V2 仅覆盖冻结枚举面、双状态机、双维度上限、throwing API、stamp-once、`touchGitRepoV2` + 2 批量 auto-flip、全枚举零初始化 stats。45 V2 tests。
+
+---
+
+## Phase Iter11-B: Cowork Task Runner V2 治理面（CLI v0.139.0）
+
+`cc cowork runner-...-v2` —— 将治理覆盖层追加到 `packages/cli/src/lib/cowork-task-runner.js`，原 `CoworkTaskRunner` 类不变。使用 `runner-*` 前缀避免与现有 `coord-*-v2`（Agent Coordinator V2）命令冲突。
+
+### 设计要点
+- 4 态 Runner Profile 成熟度：`pending → active → paused → retired`（`retired` 终态；`paused → active` 恢复豁免 active 上限）
+- 5 态 Runner Exec 生命周期：`queued → running → {succeeded, failed, cancelled}`（3 终态）
+- 上限：`maxActiveRunnerProfilesPerOwner=8`、`maxPendingRunnerExecsPerProfile=15`
+- 阈值：`runnerProfileIdleMs=14 天`、`runnerExecStuckMs=20 分钟`
+- 自动翻转：`autoPauseIdleRunnerProfilesV2`、`autoFailStuckRunnerExecsV2`
+- Stamp-once：`activatedAt`、`retiredAt`、`startedAt`、`settledAt`
+- Profile 字段：`template`（默认 `"default"`）、`owner` 必填
+- Exec 字段：`taskInput`、`profileId` 必填
+
+### 命令
+```
+cc cowork runner-enums-v2 | runner-gov-stats-v2
+cc cowork runner-config-set-v2 --max-active <n> --max-pending <n> --idle-ms <n> --stuck-ms <n>
+cc cowork runner-register-profile-v2 <id> --owner <owner> [--template <t>]
+cc cowork runner-activate-profile-v2 <id> | runner-pause-profile-v2 <id> | runner-retire-profile-v2 <id> | runner-touch-profile-v2 <id>
+cc cowork runner-get-profile-v2 <id> | runner-list-profiles-v2
+cc cowork runner-create-exec-v2 <id> --profile-id <pid> [--task-input <t>]
+cc cowork runner-start-exec-v2 <id> | runner-succeed-exec-v2 <id> | runner-fail-exec-v2 <id> | runner-cancel-exec-v2 <id>
+cc cowork runner-get-exec-v2 <id> | runner-list-execs-v2
+cc cowork runner-auto-pause-profiles-v2 | runner-auto-fail-execs-v2
+```
+
+> **未移植**：真实 Runner 子进程编排、模板装配、结果归集。CLI V2 仅覆盖冻结枚举面、双状态机、双维度上限、throwing API、stamp-once、`touchRunnerProfileV2` + 2 批量 auto-flip、全枚举零初始化 stats（使用 `runner-gov-stats-v2` 避免与 `coord-gov-stats-v2` 重名）。45 V2 tests。
+
+---
+
+## Phase Iter11-C: Inference Network V2 治理面（CLI v0.139.0）
+
+`cc inference ...-v2`（治理覆盖层）—— 追加到 `packages/cli/src/lib/inference-network.js`，与文件中预存在的 task-scheduling V2 面（`submit-v2 / dispatch-v2 / complete-v2 / fail-v2 / node-statuses-v2 / task-statuses-v2 / privacy-modes-v2 / stats-v2`）共存：本治理面引入 operator 维度的节点生命周期与按节点的 job 生命周期。
+
+### 设计要点
+- 4 态 Inference Node 成熟度：`pending → active → degraded → decommissioned`（`decommissioned` 终态；`degraded → active` 恢复豁免 active 上限）
+- 5 态 Inference Job 生命周期：`queued → running → {completed, failed, cancelled}`（3 终态）
+- 上限：`maxActiveInferenceNodesPerOperator=12`、`maxPendingInferenceJobsPerNode=25`
+- 阈值：`inferenceNodeIdleMs=24 小时`、`inferenceJobStuckMs=10 分钟`
+- 自动翻转：`autoDegradeIdleInferenceNodesV2`、`autoFailStuckInferenceJobsV2`
+- Stamp-once：`activatedAt`、`decommissionedAt`、`startedAt`、`settledAt`
+- Node 字段：`model`（默认 `"default"`）、`operator` 必填
+- Job 字段：`prompt`、`nodeId` 必填
+
+### 命令
+```
+cc inference enums-v2 | gov-stats-v2
+cc inference config-set-v2 --max-active <n> --max-pending <n> --idle-ms <n> --stuck-ms <n>
+cc inference register-node-v2 <id> --operator <op> [--model <m>]
+cc inference activate-node-v2 <id> | degrade-node-v2 <id> | decommission-node-v2 <id> | touch-node-v2 <id>
+cc inference get-node-v2 <id> | list-nodes-v2
+cc inference create-job-v2 <id> --node-id <nid> [--prompt <p>]
+cc inference start-job-v2 <id> | complete-job-v2 <id> | fail-job-v2 <id> | cancel-job-v2 <id>
+cc inference get-job-v2 <id> | list-jobs-v2
+cc inference auto-degrade-nodes-v2 | auto-fail-jobs-v2
+```
+
+> **未移植**：真实分布式推理调度、模型路由、隐私模式枚举执行（已存在于其他 V2 面）。CLI V2 治理面仅覆盖冻结枚举面、双状态机、双维度上限、throwing API、stamp-once、`touchInferenceNodeV2` + 2 批量 auto-flip、全枚举零初始化 stats（使用 `gov-stats-v2` 避免与 `stats-v2` 冲突）。45 V2 tests。
+
+---
+
+## Phase Iter11-D: Content Recommender V2 治理面（CLI v0.139.0）
+
+`cc recommend cr-...-v2` —— 将治理覆盖层追加到 `packages/cli/src/lib/content-recommender.js`，使用 `cr-*` 前缀避免与 `content-recommendation.js` 既有 `register-profile-v2 / register-feed-v2 / stats-v2` 命令冲突。
+
+### 设计要点
+- 4 态 Recommender Profile 成熟度：`pending → active → stale → archived`（`archived` 终态；`stale → active` 恢复豁免 active 上限）
+- 5 态 Recommendation Job 生命周期：`queued → running → {completed, failed, cancelled}`（3 终态）
+- 上限：`maxActiveRecommenderProfilesPerOwner=8`、`maxPendingRecommendationJobsPerProfile=10`
+- 阈值：`recommenderProfileIdleMs=7 天`、`recommendationJobStuckMs=5 分钟`
+- 自动翻转：`autoStaleIdleRecommenderProfilesV2`、`autoFailStuckRecommendationJobsV2`
+- Stamp-once：`activatedAt`、`archivedAt`、`startedAt`、`settledAt`
+- Profile 字段：`strategy`（默认 `"tfidf"`）、`owner` 必填
+- Job 字段：`query`、`profileId` 必填
+
+### 命令
+```
+cc recommend cr-enums-v2 | cr-gov-stats-v2
+cc recommend cr-config-set-v2 --max-active <n> --max-pending <n> --idle-ms <n> --stuck-ms <n>
+cc recommend cr-register-profile-v2 <id> --owner <owner> [--strategy <s>]
+cc recommend cr-activate-profile-v2 <id> | cr-stale-profile-v2 <id> | cr-archive-profile-v2 <id> | cr-touch-profile-v2 <id>
+cc recommend cr-get-profile-v2 <id> | cr-list-profiles-v2
+cc recommend cr-create-job-v2 <id> --profile-id <pid> [--query <q>]
+cc recommend cr-start-job-v2 <id> | cr-complete-job-v2 <id> | cr-fail-job-v2 <id> | cr-cancel-job-v2 <id>
+cc recommend cr-get-job-v2 <id> | cr-list-jobs-v2
+cc recommend cr-auto-stale-profiles-v2 | cr-auto-fail-jobs-v2
+```
+
+> **未移植**：真实 TF-IDF / BM25 / 协同过滤排序、向量召回、点击反馈循环。CLI V2 仅覆盖冻结枚举面、双状态机、双维度上限、throwing API、stamp-once、`touchRecommenderProfileV2` + 2 批量 auto-flip、全枚举零初始化 stats（使用 `cr-*` 前缀 + `cr-gov-stats-v2` 避免与现有面冲突）。45 V2 tests。
+
+## Phase Iter12-A — Orchestrator V2 治理面（CLI v0.140.0）
+
+新增 `cc orchgov` 顶级命令，独立于已存在的 `cc orchestrate router *-v2`（Agent Router V2），治理 orchestrator profile + task lifecycle。
+
+### 设计要点
+- 4 态 Orch Profile 成熟度：`pending → active → paused → retired`（`retired` 终态；`paused → active` 恢复豁免 active 上限）
+- 5 态 Orch Task 生命周期：`queued → dispatching → {completed, failed, cancelled}`（3 终态）
+- 上限：`maxActiveOrchProfilesPerOwner=6`、`maxPendingOrchTasksPerProfile=12`
+- 阈值：`orchProfileIdleMs=14 天`、`orchTaskStuckMs=15 分钟`
+- 自动翻转：`autoPauseIdleOrchProfilesV2`、`autoFailStuckOrchTasksV2`
+- Stamp-once：`activatedAt`、`retiredAt`、`startedAt`、`settledAt`
+- Profile 字段：`source`（默认 `"cli"`）、`owner` 必填
+- Task 字段：`prompt`、`profileId` 必填
+
+### 命令
+```
+cc orchgov enums-v2 | gov-stats-v2 | config-v2
+cc orchgov set-max-active-v2 <n> | set-max-pending-v2 <n> | set-idle-ms-v2 <n> | set-stuck-ms-v2 <n>
+cc orchgov register-profile-v2 <id> <owner> [--source <s>]
+cc orchgov activate-profile-v2 <id> | pause-profile-v2 <id> | retire-profile-v2 <id> | touch-profile-v2 <id>
+cc orchgov get-profile-v2 <id> | list-profiles-v2
+cc orchgov create-task-v2 <id> <profileId> [--prompt <p>]
+cc orchgov dispatch-task-v2 <id> | complete-task-v2 <id> | fail-task-v2 <id> [reason] | cancel-task-v2 <id> [reason]
+cc orchgov get-task-v2 <id> | list-tasks-v2
+cc orchgov auto-pause-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**：真实 LLM 调度、Cowork agent 协作、流式输出。CLI V2 仅覆盖冻结枚举面、双状态机、双维度上限、throwing API、stamp-once、`touchOrchProfileV2` + 2 批量 auto-flip、全枚举零初始化 stats（新顶级 `orchgov` 避免与已存在 `cc orchestrate router *-v2` 冲突）。45 V2 tests。
+
+## Phase Iter12-B — Perf Tuning V2 治理面（CLI v0.140.0）
+
+在已存在的 `cc perf` 顶级命令下追加 V2 governance overlay，治理 perf tuning profile + bench lifecycle，独立于 Phase 22 的 SQLite 采样器。
+
+### 设计要点
+- 4 态 Perf Tuning Profile 成熟度：`pending → active → stale → decommissioned`（`decommissioned` 终态；`stale → active` 恢复豁免 active 上限）
+- 5 态 Perf Bench 生命周期：`queued → running → {completed, failed, cancelled}`（3 终态）
+- 上限：`maxActivePerfTuningProfilesPerOwner=6`、`maxPendingPerfBenchesPerProfile=10`
+- 阈值：`perfTuningProfileIdleMs=7 天`、`perfBenchStuckMs=30 分钟`
+- 自动翻转：`autoStaleIdlePerfTuningProfilesV2`、`autoFailStuckPerfBenchesV2`
+- Stamp-once：`activatedAt`、`decommissionedAt`、`startedAt`、`settledAt`
+- Profile 字段：`target`（默认 `"default"`）、`owner` 必填
+- Bench 字段：`scenario`、`profileId` 必填
+
+### 命令
+```
+cc perf enums-v2 | gov-stats-v2 | config-v2
+cc perf set-max-active-v2 <n> | set-max-pending-v2 <n> | set-idle-ms-v2 <n> | set-stuck-ms-v2 <n>
+cc perf register-profile-v2 <id> <owner> [--target <t>]
+cc perf activate-profile-v2 <id> | stale-profile-v2 <id> | decommission-profile-v2 <id> | touch-profile-v2 <id>
+cc perf get-profile-v2 <id> | list-profiles-v2
+cc perf create-bench-v2 <id> <profileId> [--scenario <s>]
+cc perf start-bench-v2 <id> | complete-bench-v2 <id> | fail-bench-v2 <id> [reason] | cancel-bench-v2 <id> [reason]
+cc perf get-bench-v2 <id> | list-benches-v2
+cc perf auto-stale-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**：os.cpus 实采、SQLite 环形缓冲、5 内置规则评估。CLI V2 仅覆盖冻结枚举面、双状态机、双维度上限、throwing API、stamp-once、`touchPerfTuningProfileV2` + 2 批量 auto-flip、全枚举零初始化 stats（V2 命令以 `*-v2` 后缀注入 perf 顶级，与 Phase 22 SQLite 命令不冲突）。45 V2 tests。
+
+## Phase Iter12-C — Topic Classifier V2 治理面（CLI v0.140.0）
+
+新增 `cc topiccls` 顶级命令，治理 topic classifier profile + classification job lifecycle。
+
+### 设计要点
+- 4 态 Topic Cls Profile 成熟度：`pending → active → stale → archived`（`archived` 终态；`stale → active` 恢复豁免 active 上限）
+- 5 态 Topic Cls Job 生命周期：`queued → running → {completed, failed, cancelled}`（3 终态）
+- 上限：`maxActiveTopicClsProfilesPerOwner=8`、`maxPendingTopicClsJobsPerProfile=20`
+- 阈值：`topicClsProfileIdleMs=14 天`、`topicClsJobStuckMs=5 分钟`
+- 自动翻转：`autoStaleIdleTopicClsProfilesV2`、`autoFailStuckTopicClsJobsV2`
+- Stamp-once：`activatedAt`、`archivedAt`、`startedAt`、`settledAt`
+- Profile 字段：`model`（默认 `"default"`）、`owner` 必填
+- Job 字段：`text`、`profileId` 必填
+
+### 命令
+```
+cc topiccls enums-v2 | gov-stats-v2 | config-v2
+cc topiccls set-max-active-v2 <n> | set-max-pending-v2 <n> | set-idle-ms-v2 <n> | set-stuck-ms-v2 <n>
+cc topiccls register-profile-v2 <id> <owner> [--model <m>]
+cc topiccls activate-profile-v2 <id> | stale-profile-v2 <id> | archive-profile-v2 <id> | touch-profile-v2 <id>
+cc topiccls get-profile-v2 <id> | list-profiles-v2
+cc topiccls create-job-v2 <id> <profileId> [--text <t>]
+cc topiccls start-job-v2 <id> | complete-job-v2 <id> | fail-job-v2 <id> [reason] | cancel-job-v2 <id> [reason]
+cc topiccls get-job-v2 <id> | list-jobs-v2
+cc topiccls auto-stale-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**：真实 BM25/TF-IDF 主题归类、模型推断、置信度评分。CLI V2 仅覆盖冻结枚举面、双状态机、双维度上限、throwing API、stamp-once、`touchTopicClsProfileV2` + 2 批量 auto-flip、全枚举零初始化 stats（新顶级 `topiccls` 命名空间）。45 V2 tests。
+
+## Phase Iter12-D — Iteration Budget V2 治理面（CLI v0.140.0）
+
+新增 `cc itbudget` 顶级命令，治理 iteration budget profile + run lifecycle。终态 `exhausted` 在语义上区别于 `retired/archived/decommissioned`，标识预算耗尽。
+
+### 设计要点
+- 4 态 Iter Budget Profile 成熟度：`pending → active → paused → exhausted`（`exhausted` 终态；`paused → active` 恢复豁免 active 上限）
+- 5 态 Iter Run 生命周期：`queued → running → {completed, failed, cancelled}`（3 终态）
+- 上限：`maxActiveIterBudgetProfilesPerOwner=4`、`maxPendingIterRunsPerProfile=8`
+- 阈值：`iterBudgetProfileIdleMs=24 小时`、`iterRunStuckMs=60 分钟`
+- 自动翻转：`autoPauseIdleIterBudgetProfilesV2`、`autoFailStuckIterRunsV2`
+- Stamp-once：`activatedAt`、`exhaustedAt`、`startedAt`、`settledAt`
+- Profile 字段：`budget`（默认 `50`）、`owner` 必填
+- Run 字段：`goal`、`profileId` 必填
+
+### 命令
+```
+cc itbudget enums-v2 | gov-stats-v2 | config-v2
+cc itbudget set-max-active-v2 <n> | set-max-pending-v2 <n> | set-idle-ms-v2 <n> | set-stuck-ms-v2 <n>
+cc itbudget register-profile-v2 <id> <owner> [--budget <n>]
+cc itbudget activate-profile-v2 <id> | pause-profile-v2 <id> | exhaust-profile-v2 <id> | touch-profile-v2 <id>
+cc itbudget get-profile-v2 <id> | list-profiles-v2
+cc itbudget create-run-v2 <id> <profileId> [--goal <g>]
+cc itbudget start-run-v2 <id> | complete-run-v2 <id> | fail-run-v2 <id> [reason] | cancel-run-v2 <id> [reason]
+cc itbudget get-run-v2 <id> | list-runs-v2
+cc itbudget auto-pause-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**：真实 token 计费、预算扣减、agent loop budget enforcement。CLI V2 仅覆盖冻结枚举面、双状态机、双维度上限、throwing API、stamp-once、`touchIterBudgetProfileV2` + 2 批量 auto-flip、全枚举零初始化 stats（新顶级 `itbudget` 命名空间，`exhausted` 终态语义独特）。45 V2 tests。
+
+## Phase Iter13-A — Plan Mode V2 治理覆盖层（CLI 0.141.0）
+
+**已移植**：`cc planmode ...-v2` 独立顶级命令树，覆盖在 `lib/plan-mode.js` 之上。
+
+- 4 态 profile maturity：pending / active / paused / archived（终态）。恢复路径：paused→active 豁免 active cap。
+- 5 态 step 生命周期：queued / running / completed / failed / cancelled（3 终态）。
+- 容量：`maxActivePlanProfilesPerOwner=6`、`maxPendingPlanStepsPerProfile=15`（统计 queued+running）。
+- 阈值：`planProfileIdleMs=7d`、`planStepStuckMs=30min`。
+- Profile 字段：`goal`（默认 ""）。Step 字段：`action`。
+- Auto-flip：`auto-pause-idle-v2`（active idle→paused）、`auto-fail-stuck-v2`（running stuck→failed，reason `auto-fail-stuck`）。
+- Stamp-once 时间戳：activatedAt / archivedAt / startedAt / settledAt 跨恢复保持。
+
+```
+cc planmode enums-v2 | config-v2 | gov-stats-v2 | reset-state-v2
+cc planmode set-max-active-v2 <n> | set-max-pending-v2 <n> | set-idle-ms-v2 <n> | set-stuck-ms-v2 <n>
+cc planmode register-profile-v2 <id> <owner> [--goal <g>]
+cc planmode activate-profile-v2 <id> | pause-profile-v2 <id> | archive-profile-v2 <id> | touch-profile-v2 <id>
+cc planmode get-profile-v2 <id> | list-profiles-v2
+cc planmode create-step-v2 <id> <profileId> [--action <a>]
+cc planmode start-step-v2 <id> | complete-step-v2 <id> | fail-step-v2 <id> [reason] | cancel-step-v2 <id> [reason]
+cc planmode get-step-v2 <id> | list-steps-v2
+cc planmode auto-pause-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**：真实 plan execution、step dependency DAG、interactive plan REPL。CLI V2 仅覆盖治理面（双状态机 + 双维度上限 + 自动流转）。新顶级 `planmode`（避免与任何 plan 调用流冲突）。39 V2 tests；遗留 `__tests__/unit/plan-mode.test.js`（71 tests）零改动。
+
+## Phase Iter13-B — Permission Engine V2 治理覆盖层（CLI 0.141.0）
+
+**已移植**：`cc perm ...-v2` 独立顶级命令树，覆盖在 `lib/permission-engine.js` 之上。
+
+- 4 态 rule maturity：pending / active / disabled / retired（终态）。恢复路径：disabled→active 豁免 active cap。
+- 5 态 check 生命周期：queued / evaluating / allowed / denied / cancelled（3 终态：allowed/denied/cancelled）。
+- 容量：`maxActivePermRulesPerOwner=10`、`maxPendingPermChecksPerRule=30`（统计 queued+evaluating）。
+- 阈值：`permRuleIdleMs=30d`、`permCheckStuckMs=60s`。
+- Rule 字段：`scope`（默认 "*"）。Check 字段：`subject`。
+- Auto-flip：`auto-disable-idle-v2`（active idle→disabled）、`auto-deny-stuck-v2`（evaluating stuck→denied，reason `auto-deny-stuck`，注意 deny 是终态语义）。
+- Stamp-once 时间戳：activatedAt / retiredAt / startedAt / settledAt 跨恢复保持。
+
+```
+cc perm enums-v2 | config-v2 | gov-stats-v2 | reset-state-v2
+cc perm set-max-active-v2 <n> | set-max-pending-v2 <n> | set-idle-ms-v2 <n> | set-stuck-ms-v2 <n>
+cc perm register-rule-v2 <id> <owner> [--scope <s>]
+cc perm activate-rule-v2 <id> | disable-rule-v2 <id> | retire-rule-v2 <id> | touch-rule-v2 <id>
+cc perm get-rule-v2 <id> | list-rules-v2
+cc perm create-check-v2 <id> <ruleId> [--subject <s>]
+cc perm evaluate-check-v2 <id> | allow-check-v2 <id> | deny-check-v2 <id> [reason] | cancel-check-v2 <id> [reason]
+cc perm get-check-v2 <id> | list-checks-v2
+cc perm auto-disable-idle-v2 | auto-deny-stuck-v2
+```
+
+> **未移植**：真实 ABAC/RBAC 评估、policy 编译、capability 推导。CLI V2 仅覆盖治理面（双状态机 + 双维度上限 + 自动流转）。新顶级 `perm`。38 V2 tests；遗留 `__tests__/unit/permission-engine.test.js`（36 tests）零改动。
+
+## Phase Iter13-C — User Profile V2 治理覆盖层（CLI 0.141.0）
+
+**已移植**：`cc uprof ...-v2` 独立顶级命令树，覆盖在 `lib/user-profile.js` 之上。
+
+- 4 态 profile maturity：pending / active / dormant / archived（终态）。恢复路径：dormant→active 豁免 active cap。
+- 5 态 pref 生命周期：proposed / applied / rejected / superseded / cancelled（3 终态：rejected/superseded/cancelled）。注意：APPLIED 非终态，可继续 → SUPERSEDED。
+- 容量：`maxActiveUserProfilesPerOwner=5`、`maxPendingUserPrefsPerProfile=20`（仅统计 PROPOSED）。
+- 阈值：`userProfileIdleMs=90d`、`userPrefStuckMs=7d`。
+- Profile 字段：`handle`（默认 = id）。Pref 字段：`key`。
+- Auto-flip：`auto-dormant-idle-v2`（active idle→dormant）、`auto-cancel-stale-v2`（proposed stuck→cancelled，reason `auto-cancel-stale`）。
+- Stamp-once 时间戳：activatedAt / archivedAt / settledAt 跨恢复保持；createUserPrefV2 即时设置 startedAt。
+
+```
+cc uprof enums-v2 | config-v2 | gov-stats-v2 | reset-state-v2
+cc uprof set-max-active-v2 <n> | set-max-pending-v2 <n> | set-idle-ms-v2 <n> | set-stuck-ms-v2 <n>
+cc uprof register-profile-v2 <id> <owner> [--handle <h>]
+cc uprof activate-profile-v2 <id> | dormant-profile-v2 <id> | archive-profile-v2 <id> | touch-profile-v2 <id>
+cc uprof get-profile-v2 <id> | list-profiles-v2
+cc uprof create-pref-v2 <id> <profileId> [--key <k>]
+cc uprof apply-pref-v2 <id> | reject-pref-v2 <id> [reason] | supersede-pref-v2 <id> | cancel-pref-v2 <id> [reason]
+cc uprof get-pref-v2 <id> | list-prefs-v2
+cc uprof auto-dormant-idle-v2 | auto-cancel-stale-v2
+```
+
+> **未移植**：真实 SQLite/file profile storage、preference resolution chain、cross-device sync。CLI V2 仅覆盖治理面（双状态机 + 双维度上限 + supersede 转移）。新顶级 `uprof`。37 V2 tests；遗留 `__tests__/unit/user-profile.test.js`（27 tests）零改动。
+
+## Phase Iter13-D — Social Graph V2 治理覆盖层（CLI 0.141.0）
+
+**已移植**：`cc social sg-...-v2` 子命令组，覆盖在 `lib/social-graph.js` 之上，注入到现有 `cc social`（Phase 84+ social-manager V2 零改动）。`sg-*` 前缀避免与 social-manager V2 冲突。
+
+- 4 态 node maturity：pending / active / inactive / removed（终态）。恢复路径：inactive→active 豁免 active cap。
+- 5 态 edge 生命周期：proposed / established / severed / expired / cancelled（3 终态：severed/expired/cancelled）。注意：ESTABLISHED 非终态，可继续 → SEVERED 或 EXPIRED。
+- 容量：`maxActiveSgNodesPerOwner=50`、`maxPendingSgEdgesPerNode=100`（仅统计 PROPOSED）。
+- 阈值：`sgNodeIdleMs=60d`、`sgEdgeStuckMs=14d`。
+- Node 字段：`handle`（默认 = id）。Edge 字段：`targetId`。
+- Auto-flip：`sg-auto-deactivate-idle-v2`（active idle→inactive）、`sg-auto-expire-stale-v2`（proposed stuck→cancelled，reason `auto-cancel-stale`）。
+- Stamp-once 时间戳：activatedAt / removedAt / settledAt 跨恢复保持；createSgEdgeV2 即时设置 startedAt；established 设置 settledAt，severed/expired 不再覆盖。
+
+```
+cc social sg-enums-v2 | sg-config-v2 | sg-gov-stats-v2 | sg-reset-state-v2
+cc social sg-set-max-active-v2 <n> | sg-set-max-pending-v2 <n> | sg-set-idle-ms-v2 <n> | sg-set-stuck-ms-v2 <n>
+cc social sg-register-node-v2 <id> <owner> [--handle <h>]
+cc social sg-activate-node-v2 <id> | sg-deactivate-node-v2 <id> | sg-remove-node-v2 <id> | sg-touch-node-v2 <id>
+cc social sg-get-node-v2 <id> | sg-list-nodes-v2
+cc social sg-create-edge-v2 <id> <nodeId> [--target <t>]
+cc social sg-establish-edge-v2 <id> | sg-sever-edge-v2 <id> [reason] | sg-expire-edge-v2 <id> | sg-cancel-edge-v2 <id> [reason]
+cc social sg-get-edge-v2 <id> | sg-list-edges-v2
+cc social sg-auto-deactivate-idle-v2 | sg-auto-expire-stale-v2
+```
+
+> **未移植**：真实 SQLite social_graph_edges 表、邻居/中心性/最短路径/社区检测算法（lib/social-graph-analytics.js 零改动）。CLI V2 仅覆盖治理面（双状态机 + 双维度上限 + established 中间态分支）。`sg-*` 前缀注入 `cc social`，避免与 social-manager V2 冲突。37 V2 tests；遗留 `__tests__/unit/social-graph.test.js`（36 tests）零改动。
+
+## Phase Iter13-E — Service Container V2 治理覆盖层（CLI 0.141.0）
+
+**已移植**：`cc svccont ...-v2` 独立顶级命令树，覆盖在 `lib/service-container.js` 之上。
+
+- 4 态 container maturity：pending / active / degraded / decommissioned（终态）。恢复路径：degraded→active 豁免 active cap。
+- 5 态 resolution 生命周期：queued / resolving / resolved / failed / cancelled（3 终态）。
+- 容量：`maxActiveSvcContainersPerOwner=8`、`maxPendingSvcResolutionsPerContainer=25`（统计 queued+resolving）。
+- 阈值：`svcContainerIdleMs=60min`、`svcResolutionStuckMs=30s`。
+- Container 字段：`scope`（默认 "default"）。Resolution 字段：`token`。
+- Auto-flip：`auto-degrade-idle-v2`（active idle→degraded）、`auto-fail-stuck-v2`（resolving stuck→failed，reason `auto-fail-stuck`）。
+- Stamp-once 时间戳：activatedAt / decommissionedAt / startedAt / settledAt 跨恢复保持。
+
+```
+cc svccont enums-v2 | config-v2 | gov-stats-v2 | reset-state-v2
+cc svccont set-max-active-v2 <n> | set-max-pending-v2 <n> | set-idle-ms-v2 <n> | set-stuck-ms-v2 <n>
+cc svccont register-container-v2 <id> <owner> [--scope <s>]
+cc svccont activate-container-v2 <id> | degrade-container-v2 <id> | decommission-container-v2 <id> | touch-container-v2 <id>
+cc svccont get-container-v2 <id> | list-containers-v2
+cc svccont create-resolution-v2 <id> <containerId> [--token <t>]
+cc svccont resolving-resolution-v2 <id> | resolve-resolution-v2 <id> | fail-resolution-v2 <id> [reason] | cancel-resolution-v2 <id> [reason]
+cc svccont get-resolution-v2 <id> | list-resolutions-v2
+cc svccont auto-degrade-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**：真实 DI container 实例化、binding/scope chain、circular dependency detection。CLI V2 仅覆盖治理面（双状态机 + 双维度上限 + 自动流转）。新顶级 `svccont`。37 V2 tests；遗留 `__tests__/unit/service-container.test.js`（26 tests）零改动。
+
+## Phase Iter13-F — Task Model Selector V2 治理覆盖层（CLI 0.141.0）
+
+**已移植**：`cc tms ...-v2` 独立顶级命令树,覆盖在 `lib/task-model-selector.js` 之上。
+
+- 4 态 profile maturity：pending / active / stale / decommissioned（终态）。恢复路径：stale→active 豁免 active cap。
+- 5 态 selection 生命周期：queued / scoring / completed / failed / cancelled（3 终态）。
+- 容量：`maxActiveTmsProfilesPerOwner=8`、`maxPendingTmsSelectionsPerProfile=16`（统计 queued+scoring）。
+- 阈值：`tmsProfileIdleMs=14d`、`tmsSelectionStuckMs=2min`。
+- Profile 字段：`strategy`（默认 "default"）。Selection 字段：`task`。
+- Auto-flip：`auto-stale-idle-v2`（active idle→stale）、`auto-fail-stuck-v2`（scoring stuck→failed，reason `auto-fail-stuck`）。
+- Stamp-once 时间戳：activatedAt / decommissionedAt / startedAt / settledAt 跨恢复保持。
+
+```
+cc tms enums-v2 | config-v2 | gov-stats-v2 | reset-state-v2
+cc tms set-max-active-v2 <n> | set-max-pending-v2 <n> | set-idle-ms-v2 <n> | set-stuck-ms-v2 <n>
+cc tms register-profile-v2 <id> <owner> [--strategy <s>]
+cc tms activate-profile-v2 <id> | stale-profile-v2 <id> | decommission-profile-v2 <id> | touch-profile-v2 <id>
+cc tms get-profile-v2 <id> | list-profiles-v2
+cc tms create-selection-v2 <id> <profileId> [--task <t>]
+cc tms score-selection-v2 <id> | complete-selection-v2 <id> | fail-selection-v2 <id> [reason] | cancel-selection-v2 <id> [reason]
+cc tms get-selection-v2 <id> | list-selections-v2
+cc tms auto-stale-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**：真实 model scoring heuristic、capability matching、cost/latency budget。CLI V2 仅覆盖治理面（双状态机 + 双维度上限 + 自动流转）。新顶级 `tms`。37 V2 tests；遗留 `__tests__/unit/task-model-selector.test.js`（32 tests）零改动。
+
+## Phase Iter14-A: Slot Filler V2 治理面 (`cc slotfill ...-v2`)
+
+**目标**: 在 `lib/slot-filler.js` 之上叠加 in-memory 治理层，覆盖 slot 模板成熟度 + 填充作业生命周期，遗留 slot-filler 解析逻辑保持零改动。
+
+**双状态机**:
+- `SLOTF_PROFILE_MATURITY_V2` (4 态): pending → active ↔ stale → archived（终态）。stale → active 恢复豁免活跃上限。
+- `SLOTF_FILL_LIFECYCLE_V2` (5 态): queued → filling → filled / failed / cancelled（3 终态）。
+
+**双维度上限**: 每 owner 活跃模板上限 10；每模板挂起填充上限 20。
+
+**自动流转**: `autoStaleIdleSlotfTemplatesV2`（默认 30 天）+ `autoFailStuckSlotfFillsV2`（默认 30 秒）。
+
+**命令面**:
+```bash
+cc slotfill enums-v2 | config-v2 | gov-stats-v2 | reset-state-v2
+cc slotfill set-max-active-v2 <n> | set-max-pending-v2 <n> | set-idle-ms-v2 <n> | set-stuck-ms-v2 <n>
+cc slotfill register-template-v2 <id> <owner> [--schema <s>]
+cc slotfill activate-template-v2 <id> | stale-template-v2 <id> | archive-template-v2 <id> | touch-template-v2 <id>
+cc slotfill get-template-v2 <id> | list-templates-v2
+cc slotfill create-fill-v2 <id> <templateId> [--input <s>]
+cc slotfill filling-fill-v2 <id> | fill-fill-v2 <id> | fail-fill-v2 <id> [reason] | cancel-fill-v2 <id> [reason]
+cc slotfill get-fill-v2 <id> | list-fills-v2
+cc slotfill auto-stale-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**：真实 schema 校验、token-level diff、grammar inference。CLI V2 仅覆盖治理面。新顶级 `slotfill`。37 V2 tests。
+
+## Phase Iter14-B: Web Fetch V2 治理面 (`cc webfetch ...-v2`)
+
+**目标**: 在 `lib/web-fetch.js` 之上叠加 in-memory 治理层，覆盖 fetch target 成熟度 + 作业生命周期，遗留 fetch helper 保持零改动。
+
+**双状态机**:
+- `WFET_TARGET_MATURITY_V2` (4 态): pending → active ↔ degraded → retired（终态）。degraded → active 恢复豁免活跃上限。
+- `WFET_JOB_LIFECYCLE_V2` (5 态): queued → fetching → succeeded / failed / cancelled（3 终态）。
+
+**双维度上限**: 每 owner 活跃 target 上限 12；每 target 挂起作业上限 30。
+
+**自动流转**: `autoDegradeIdleWfetTargetsV2`（默认 7 天，比其他模块更短）+ `autoFailStuckWfetJobsV2`（默认 60 秒）。
+
+**命令面**:
+```bash
+cc webfetch enums-v2 | config-v2 | gov-stats-v2 | reset-state-v2
+cc webfetch set-max-active-v2 <n> | set-max-pending-v2 <n> | set-idle-ms-v2 <n> | set-stuck-ms-v2 <n>
+cc webfetch register-target-v2 <id> <owner> [--baseUrl <u>]
+cc webfetch activate-target-v2 <id> | degrade-target-v2 <id> | retire-target-v2 <id> | touch-target-v2 <id>
+cc webfetch get-target-v2 <id> | list-targets-v2
+cc webfetch create-job-v2 <id> <targetId> [--kind <k>]
+cc webfetch fetching-job-v2 <id> | succeed-job-v2 <id> | fail-job-v2 <id> [reason] | cancel-job-v2 <id> [reason]
+cc webfetch get-job-v2 <id> | list-jobs-v2
+cc webfetch auto-degrade-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**：真实 HTTP 抓取、HTML→Markdown 转换、机器人识别。CLI V2 仅覆盖治理面。新顶级 `webfetch`。37 V2 tests。
+
+## Phase Iter14-C: Memory Injection V2 治理面 (`cc meminj ...-v2`)
+
+**目标**: 在 `lib/memory-injection.js` 之上叠加 in-memory 治理层，覆盖注入规则成熟度 + 注入作业生命周期。
+
+**双状态机**:
+- `MINJ_RULE_MATURITY_V2` (4 态): pending → active ↔ paused → archived（终态）。
+- `MINJ_INJECTION_LIFECYCLE_V2` (5 态): queued → injecting → applied / failed / cancelled（3 终态）。
+
+**双维度上限**: 每 owner 活跃规则上限 10；每规则挂起注入上限 25。
+
+**自动流转**: `autoPauseIdleMinjRulesV2`（默认 30 天）+ `autoFailStuckMinjInjectionsV2`（默认 30 秒）。
+
+**命令面**:
+```bash
+cc meminj enums-v2 | config-v2 | gov-stats-v2 | reset-state-v2
+cc meminj register-rule-v2 <id> <owner> [--scope <s>]
+cc meminj activate-rule-v2 <id> | pause-rule-v2 <id> | archive-rule-v2 <id> | touch-rule-v2 <id>
+cc meminj create-injection-v2 <id> <ruleId> [--payload <p>]
+cc meminj injecting-injection-v2 <id> | apply-injection-v2 <id> | fail-injection-v2 <id> [reason] | cancel-injection-v2 <id> [reason]
+cc meminj auto-pause-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**：真实 prompt template 渲染、scope matcher、context window budget。CLI V2 仅覆盖治理面。新顶级 `meminj`。37 V2 tests。
+
+## Phase Iter14-D: Session Search V2 治理面 (`cc seshsearch ...-v2`)
+
+**目标**: 在 `lib/session-search.js` 之上叠加 in-memory 治理层，覆盖搜索 profile 成熟度 + 查询作业生命周期。
+
+**双状态机**:
+- `SSCH_PROFILE_MATURITY_V2` (4 态): pending → active ↔ stale → archived（终态）。
+- `SSCH_QUERY_LIFECYCLE_V2` (5 态): queued → searching → completed / failed / cancelled（3 终态）。
+
+**双维度上限**: 每 owner 活跃 profile 上限 8；每 profile 挂起查询上限 20。
+
+**自动流转**: `autoStaleIdleSschProfilesV2`（30 天）+ `autoFailStuckSschQueriesV2`（30 秒）。
+
+**命令面**:
+```bash
+cc seshsearch enums-v2 | config-v2 | gov-stats-v2 | reset-state-v2
+cc seshsearch register-profile-v2 <id> <owner> [--scope <s>]
+cc seshsearch activate-profile-v2 <id> | stale-profile-v2 <id> | archive-profile-v2 <id> | touch-profile-v2 <id>
+cc seshsearch create-query-v2 <id> <profileId> [--q <q>]
+cc seshsearch searching-query-v2 <id> | complete-query-v2 <id> | fail-query-v2 <id> [reason] | cancel-query-v2 <id> [reason]
+cc seshsearch auto-stale-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**：真实 BM25/向量混合搜索、faceted filter、relevance ranker。CLI V2 仅覆盖治理面。新顶级 `seshsearch`。37 V2 tests。
+
+## Phase Iter14-E: Session Tail V2 治理面 (`cc seshtail ...-v2`)
+
+**目标**: 在 `lib/session-tail.js` 之上叠加 in-memory 治理层，覆盖 tail 订阅成熟度 + 事件生命周期。
+
+**双状态机**:
+- `STAIL_SUB_MATURITY_V2` (4 态): pending → active ↔ paused → closed（终态）。
+- `STAIL_EVENT_LIFECYCLE_V2` (5 态): queued → tailing → completed / failed / cancelled（3 终态）。
+
+**双维度上限**: 每 owner 活跃订阅上限 10；每订阅挂起事件上限 30。
+
+**自动流转**: `autoPauseIdleStailSubsV2`（默认 24 小时，比其他模块更短，因 tail 是交互场景）+ `autoFailStuckStailEventsV2`（60 秒）。
+
+**命令面**:
+```bash
+cc seshtail enums-v2 | config-v2 | gov-stats-v2 | reset-state-v2
+cc seshtail register-sub-v2 <id> <owner> [--sessionId <s>]
+cc seshtail activate-sub-v2 <id> | pause-sub-v2 <id> | close-sub-v2 <id> | touch-sub-v2 <id>
+cc seshtail create-event-v2 <id> <subId> [--cursor <c>]
+cc seshtail tailing-event-v2 <id> | complete-event-v2 <id> | fail-event-v2 <id> [reason] | cancel-event-v2 <id> [reason]
+cc seshtail auto-pause-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**：真实 SSE/WebSocket 推送、cursor 持久化、back-pressure。CLI V2 仅覆盖治理面。新顶级 `seshtail`。37 V2 tests。
+
+## Phase Iter14-F: Session Usage V2 治理面 (`cc seshu ...-v2`)
+
+**目标**: 在 `lib/session-usage.js` 之上叠加 in-memory 治理层，覆盖 usage budget 成熟度 + 用量记录生命周期。
+
+**双状态机**:
+- `SUSE_BUDGET_MATURITY_V2` (4 态): pending → active ↔ exhausted → archived（终态）。
+- `SUSE_RECORD_LIFECYCLE_V2` (5 态): queued → recording → recorded / rejected / cancelled（3 终态）。
+
+**双维度上限**: 每 owner 活跃 budget 上限 5；每 budget 挂起记录上限 50。
+
+**自动流转**: `autoExhaustIdleSuseBudgetsV2`（30 天）+ `autoRejectStuckSuseRecordsV2`（30 秒，写入 `rejectReason="auto-reject-stuck"`）。
+
+**命令面**:
+```bash
+cc seshu enums-v2 | config-v2 | gov-stats-v2 | reset-state-v2
+cc seshu register-budget-v2 <id> <owner> [--limit <n>]
+cc seshu activate-budget-v2 <id> | exhaust-budget-v2 <id> | archive-budget-v2 <id> | touch-budget-v2 <id>
+cc seshu create-record-v2 <id> <budgetId> [--amount <n>]
+cc seshu recording-record-v2 <id> | record-record-v2 <id> | reject-record-v2 <id> [reason] | cancel-record-v2 <id> [reason]
+cc seshu auto-exhaust-idle-v2 | auto-reject-stuck-v2
+```
+
+> **未移植**：真实 token 计量、模型计价、quota 联动。CLI V2 仅覆盖治理面。注意 stuck record 走 reject（非 fail），与计费语义对齐。新顶级 `seshu`。37 V2 tests。
+
+## Phase Iter14-G: Session Hooks V2 治理面 (`cc seshhook ...-v2`)
+
+**目标**: 在 `lib/session-hooks.js` 之上叠加 in-memory 治理层，覆盖 hook profile 成熟度 + 调用生命周期，与 SQLite 后端的 `cc hook` 注册表互不影响。
+
+**双状态机**:
+- `SHOK_PROFILE_MATURITY_V2` (4 态): pending → active ↔ disabled → retired（终态）。
+- `SHOK_INVOCATION_LIFECYCLE_V2` (5 态): queued → running → completed / failed / cancelled（3 终态）。
+
+**双维度上限**: 每 owner 活跃 profile 上限 12；每 profile 挂起调用上限 25。
+
+**自动流转**: `autoDisableIdleShokProfilesV2`（30 天）+ `autoFailStuckShokInvocationsV2`（30 秒）。
+
+**命令面**:
+```bash
+cc seshhook enums-v2 | config-v2 | gov-stats-v2 | reset-state-v2
+cc seshhook register-profile-v2 <id> <owner> [--event <e>]
+cc seshhook activate-profile-v2 <id> | disable-profile-v2 <id> | retire-profile-v2 <id> | touch-profile-v2 <id>
+cc seshhook create-invocation-v2 <id> <profileId> [--payload <p>]
+cc seshhook running-invocation-v2 <id> | complete-invocation-v2 <id> | fail-invocation-v2 <id> [reason] | cancel-invocation-v2 <id> [reason]
+cc seshhook auto-disable-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**：真实 hook handler 执行、event matcher、shell-out 隔离。CLI V2 仅覆盖治理面。新顶级 `seshhook`，避免与 SQLite-backed `cc hook` 命名冲突。37 V2 tests。
+
+## Phase Iter14-H: MCP Scaffold V2 治理面 (`cc mcpscaf ...-v2`)
+
+**目标**: 在 `lib/mcp-scaffold.js` 之上叠加 in-memory 治理层，覆盖 scaffold profile 成熟度 + 生成作业生命周期，与 `cc mcp` MCP 注册表互不影响。
+
+**双状态机**:
+- `MSCAF_PROFILE_MATURITY_V2` (4 态): pending → active ↔ stale → archived（终态）。
+- `MSCAF_GENERATION_LIFECYCLE_V2` (5 态): queued → generating → generated / failed / cancelled（3 终态）。注意 failed 仅可由 generating 进入，不能直接由 queued 进入。
+
+**双维度上限**: 每 owner 活跃 profile 上限 6；每 profile 挂起生成上限 15。
+
+**自动流转**: `autoStaleIdleMscafProfilesV2`（30 天）+ `autoFailStuckMscafGenerationsV2`（60 秒）。
+
+**命令面**:
+```bash
+cc mcpscaf enums-v2 | config-v2 | gov-stats-v2 | reset-state-v2
+cc mcpscaf register-profile-v2 <id> <owner> [--transport <t>]
+cc mcpscaf activate-profile-v2 <id> | stale-profile-v2 <id> | archive-profile-v2 <id> | touch-profile-v2 <id>
+cc mcpscaf create-generation-v2 <id> <profileId> [--target <t>]
+cc mcpscaf generating-generation-v2 <id> | generate-generation-v2 <id> | fail-generation-v2 <id> [reason] | cancel-generation-v2 <id> [reason]
+cc mcpscaf auto-stale-idle-v2 | auto-fail-stuck-v2
+```
+
+> **未移植**：真实 MCP server 模板渲染、transport bootstrap、tool schema introspection。CLI V2 仅覆盖治理面。新顶级 `mcpscaf`，避免与 `cc mcp` 命名冲突。37 V2 tests。
+
+
+### Phase Iter15-A: Feature Flags V2 (CLI v0.143.0)
+
+**模块**: `packages/cli/src/lib/feature-flags.js`
+**命令**: `cc fflag ...-v2`
+
+新顶层命名空间，附加在 `feature-flags.js` 之上的内存治理覆盖层（独立于任何已有的 flag 切换辅助函数）。
+
+- **Profile 4 态**：`pending → active → paused → archived`（`archived` 为终态；`paused → active` 为恢复路径）
+- **Eval 5 态**：`queued → evaluating → evaluated | failed | cancelled`（3 个终态；`evaluated` 仅可由 `evaluating` 进入）
+- **容量上限**：每个 owner 最多 15 个 active profile；每个 profile 最多 30 个 pending eval（queued + evaluating）
+- **自动翻转**：`auto-pause-idle`（30 天空闲）；`auto-fail-stuck`（30 秒卡顿）
+- **profile 字段**：`scope`（默认 `"*"`）；**eval 字段**：`key`
+- **聚合函数**：`getFeatureFlagsGovStatsV2()` → `cc fflag gov-stats-v2`
+- **测试**：38 个 V2 测试
+
+### Phase Iter15-B: Prompt Compressor V2 (CLI v0.143.0)
+
+**模块**: `packages/cli/src/lib/prompt-compressor.js`
+**命令**: `cc promcomp ...-v2`
+
+新顶层命令（避免与内部 `pcomp` 短令牌冲突）。
+
+- **Profile 4 态**：`pending → active → stale → archived`（`stale → active` 恢复）
+- **Run 5 态**：`queued → compressing → compressed | failed | cancelled`
+- **容量**：8 active / 20 pending；`auto-stale-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`variant`（默认 `"default"`）；**run 字段**：`input`
+- **聚合**：`getPromptCompressorGovStatsV2()` → `cc promcomp gov-stats-v2`
+- **测试**：38 个 V2 测试
+
+### Phase Iter15-C: Cowork Cron V2 (CLI v0.143.0)
+
+**模块**: `packages/cli/src/lib/cowork-cron.js`
+**命令**: `cc ccron ...-v2`
+
+- **Profile 4 态**：`pending → active → paused → archived`（`paused → active` 恢复）
+- **Tick 5 态**：`queued → running → completed | failed | cancelled`
+- **容量**：6 active / 15 pending；`auto-pause-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`expr`（默认 `"0 0 * * *"`）；**tick 字段**：`tickAt`
+- **聚合**：`getCoworkCronGovStatsV2()` → `cc ccron gov-stats-v2`
+- **测试**：38 个 V2 测试
+
+### Phase Iter15-D: Version Checker V2 (CLI v0.143.0)
+
+**模块**: `packages/cli/src/lib/version-checker.js`
+**命令**: `cc vcheck ...-v2`
+
+- **Profile 4 态**：`pending → active → stale → archived`（`stale → active` 恢复）
+- **Check 5 态**：`queued → checking → completed | failed | cancelled`
+- **容量**：5 active / 10 pending；`auto-stale-idle`(30d) + `auto-fail-stuck`(30s)
+- **profile 字段**：`channel`（默认 `"stable"`）；**check 字段**：`currentVersion`
+- **聚合**：`getVersionCheckerGovStatsV2()` → `cc vcheck gov-stats-v2`
+- **测试**：38 个 V2 测试
+
+### Phase Iter15-E: PDF Parser V2 (CLI v0.143.0)
+
+**模块**: `packages/cli/src/lib/pdf-parser.js`
+**命令**: `cc pdfp ...-v2`
+
+- **Profile 4 态**：`pending → active → stale → archived`（`stale → active` 恢复）
+- **Parse 5 态**：`queued → parsing → parsed | failed | cancelled`
+- **容量**：6 active / 12 pending；`auto-stale-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`encoding`（默认 `"utf-8"`）；**parse 字段**：`path`
+- **聚合**：`getPdfParserGovStatsV2()` → `cc pdfp gov-stats-v2`
+- **测试**：38 个 V2 测试
+
+### Phase Iter15-F: BM25 Search V2 (CLI v0.143.0)
+
+**模块**: `packages/cli/src/lib/bm25-search.js`
+**命令**: `cc bm25 ...-v2`
+
+- **Profile 4 态**：`pending → active → stale → archived`（`stale → active` 恢复）
+- **Query 5 态**：`queued → searching → completed | failed | cancelled`
+- **容量**：8 active / 20 pending；`auto-stale-idle`(30d) + `auto-fail-stuck`(30s)
+- **profile 字段**：`field`（默认 `"content"`）；**query 字段**：`q`
+- **聚合**：`getBm25SearchGovStatsV2()` → `cc bm25 gov-stats-v2`
+- **测试**：38 个 V2 测试
+
+### Phase Iter15-G: Compression Telemetry V2 (CLI v0.143.0)
+
+**模块**: `packages/cli/src/lib/compression-telemetry.js`
+**命令**: `cc compt ...-v2`
+
+- **Profile 4 态**：`pending → active → stale → archived`（`stale → active` 恢复）
+- **Sample 5 态**：`queued → recording → recorded | failed | cancelled`
+- **容量**：10 active / 30 pending；`auto-stale-idle`(30d) + `auto-fail-stuck`(30s)
+- **profile 字段**：`kind`（默认 `"default"`）；**sample 字段**：`metric`
+- **聚合**：`getCompressionTelemetryGovStatsV2()` → `cc compt gov-stats-v2`
+- **测试**：38 个 V2 测试
+
+### Phase Iter15-H: Social Graph Analytics V2 (CLI v0.143.0)
+
+**模块**: `packages/cli/src/lib/social-graph-analytics.js`
+**命令**: `cc sganal ...-v2`
+
+新顶层命名空间，避免与已有的 `cc social sg-...-v2`（社交图谱命令）冲突。
+
+- **Profile 4 态**：`pending → active → stale → archived`（`stale → active` 恢复）
+- **Run 5 态**：`queued → running → completed | failed | cancelled`
+- **容量**：6 active / 12 pending；`auto-stale-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`algorithm`（默认 `"centrality"`）；**run 字段**：`snapshotId`
+- **聚合**：`getSocialGraphAnalyticsGovStatsV2()` → `cc sganal gov-stats-v2`
+- **测试**：38 个 V2 测试

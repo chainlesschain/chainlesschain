@@ -161,6 +161,55 @@ chainlesschain sla report sla-001 --start 1700000000000 --end 1710000000000 --js
 | `packages/cli/src/commands/sla.js` | sla 命令主入口 |
 | `packages/cli/src/lib/sla-manager.js` | 等级目录、合约管理、指标聚合、违约检测、赔偿计算核心实现 |
 
+## 配置参考
+
+| 配置项 | 含义 | 默认 |
+| ------ | ---- | ---- |
+| `tiers` | SLA 等级 | bronze / silver / gold / platinum |
+| `tier.gold.availability` | 可用性阈值 | 0.999 |
+| `tier.gold.responseTimeMs` | P95 响应阈值 | 100 |
+| `tier.gold.throughputRps` | 吞吐阈值 | 500 |
+| `compensation.currency` | 赔偿币种 | `CLC` |
+| `compensation.multiplier` | 违约倍率 | 1.0 |
+| `report.defaultWindowMs` | 默认报告窗口 | 30 天 |
+
+## 性能指标
+
+| 操作 | 典型耗时 | 备注 |
+| ---- | -------- | ---- |
+| `tiers` | < 20 ms | 内置枚举 |
+| `create` | < 30 ms | 单行 INSERT |
+| `record` | < 15 ms | 指标写入 |
+| `check` | < 100 ms | 聚合 + 违约写入 |
+| `violations` | < 50 ms | 带索引分页 |
+| `compensate` | < 50 ms | 赔偿计算 |
+| `report` | < 200 ms | 时间窗聚合 |
+
+## 测试覆盖率
+
+```
+__tests__/unit/sla-manager.test.js — 83 tests
+```
+
+覆盖：四级 tier 目录、合约 CRUD、指标 record 与聚合（availability/p95/throughput）、违约检测的阈值边界、赔偿倍率计算、report 时间窗过滤。
+
+## 安全考虑
+
+1. **指标真实性**：`record` 来自业务侧推送，CLI 不做真实性校验；生产环境建议叠加签名
+2. **阈值防篡改**：合约创建后阈值写入 SQLite，`update` 需要审计
+3. **赔偿上限**：`compensate` 按违约事件线性累加，业务侧应设置单月硬上限
+4. **报告脱敏**：`report` 默认仅输出聚合值，敏感分布走 `--json` + 权限控制
+5. **过期合约**：到期合约 `list` 默认排除，避免误续费
+
+## 故障排查
+
+| 症状 | 可能原因 | 解决方案 |
+|------|---------|---------|
+| `check` 无违约 | 阈值过宽或样本不足 | 查看 `record` 数量 |
+| `compensate` 报错 | 违约已赔偿 | `violations` 确认 status |
+| `report` 空 | 时间窗外 | 放宽 `--start/--end` |
+| 吞吐统计异常 | metric 单位错 | 确认写入为 RPS |
+
 ## 测试
 
 ```bash

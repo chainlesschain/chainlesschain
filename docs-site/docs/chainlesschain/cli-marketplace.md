@@ -158,3 +158,52 @@ chainlesschain marketplace stats -s <service-id> --json
 |------|------|
 | `packages/cli/src/commands/marketplace.js` | marketplace 命令主入口 (Phase 65) |
 | `packages/cli/src/lib/skill-marketplace.js` | 服务发布、调用记录、统计聚合核心实现 |
+
+## 测试覆盖率
+
+```
+__tests__/unit/skill-marketplace.test.js — 73 tests
+```
+
+覆盖服务 publish/list/show/delete、invocation 记录与状态、按 provider/tag 聚合统计、搜索、分页。
+
+## 安全考虑
+
+1. **服务鉴权**：`publish` 仅记录元数据，真实调用走上游 gateway；密钥不落 SQLite 明文
+2. **价格/配额**：CLI 不强制，业务层应通过策略/SLA 校验
+3. **调用幂等**：`record` 带 `requestId` 去重
+4. **审计**：所有发布/调用事件进 `marketplace_audit`
+5. **恶意服务**：建议叠加 allowlist / signed manifest（生产环境）
+
+## 故障排查
+
+| 症状 | 可能原因 | 解决方案 |
+|------|---------|---------|
+| `publish` 拒 | name 冲突 / tag 非法 | `list` 检查或改名 |
+| `record` 丢失 | provider 未注册 | 先 `publish` |
+| `stats` 空 | 时间窗太窄 | `--since` 放宽 |
+| 搜索无结果 | 索引未更新 | 重启 CLI 或 `rebuild-index` |
+
+## 使用示例
+
+```bash
+# 1. 发布服务
+sid=$(cc marketplace publish "image-ocr" --provider did:key:z6... \
+  --version 1.0.0 --tags ocr,vision --json | jq -r .id)
+
+# 2. 记录调用
+cc marketplace record $sid --caller did:key:alice --status ok --latency-ms 120
+
+# 3. 查看
+cc marketplace list --tag ocr
+cc marketplace show $sid
+cc marketplace stats $sid
+cc marketplace invocations $sid --limit 50
+```
+
+## 相关文档
+
+- [Skill Loader](./cli-skill)
+- [Agent Economy](./cli-economy)
+- [V2 设计文档](/chainlesschain/skill_marketplace_v2)（如可用）
+- 设计文档：`docs/design/modules/77_技能市场.md`

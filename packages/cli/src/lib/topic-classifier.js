@@ -398,3 +398,108 @@ export function classifyTopic(text, opts = {}) {
 export function _resetState() {
   _customLexicons.clear();
 }
+
+
+// ===== V2 Surface: Topic Classifier governance overlay (CLI v0.140.0) =====
+export const TOPIC_CLS_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending", ACTIVE: "active", STALE: "stale", ARCHIVED: "archived",
+});
+export const TOPIC_CLS_JOB_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued", RUNNING: "running", COMPLETED: "completed", FAILED: "failed", CANCELLED: "cancelled",
+});
+
+const _tcpTrans = new Map([
+  [TOPIC_CLS_PROFILE_MATURITY_V2.PENDING, new Set([TOPIC_CLS_PROFILE_MATURITY_V2.ACTIVE, TOPIC_CLS_PROFILE_MATURITY_V2.ARCHIVED])],
+  [TOPIC_CLS_PROFILE_MATURITY_V2.ACTIVE, new Set([TOPIC_CLS_PROFILE_MATURITY_V2.STALE, TOPIC_CLS_PROFILE_MATURITY_V2.ARCHIVED])],
+  [TOPIC_CLS_PROFILE_MATURITY_V2.STALE, new Set([TOPIC_CLS_PROFILE_MATURITY_V2.ACTIVE, TOPIC_CLS_PROFILE_MATURITY_V2.ARCHIVED])],
+  [TOPIC_CLS_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _tcpTerminal = new Set([TOPIC_CLS_PROFILE_MATURITY_V2.ARCHIVED]);
+const _tcjTrans = new Map([
+  [TOPIC_CLS_JOB_LIFECYCLE_V2.QUEUED, new Set([TOPIC_CLS_JOB_LIFECYCLE_V2.RUNNING, TOPIC_CLS_JOB_LIFECYCLE_V2.CANCELLED])],
+  [TOPIC_CLS_JOB_LIFECYCLE_V2.RUNNING, new Set([TOPIC_CLS_JOB_LIFECYCLE_V2.COMPLETED, TOPIC_CLS_JOB_LIFECYCLE_V2.FAILED, TOPIC_CLS_JOB_LIFECYCLE_V2.CANCELLED])],
+  [TOPIC_CLS_JOB_LIFECYCLE_V2.COMPLETED, new Set()],
+  [TOPIC_CLS_JOB_LIFECYCLE_V2.FAILED, new Set()],
+  [TOPIC_CLS_JOB_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+
+const _tcpsV2 = new Map();
+const _tcjsV2 = new Map();
+let _tcpMaxActivePerOwner = 8;
+let _tcpMaxPendingJobsPerProfile = 20;
+let _tcpIdleMs = 14 * 24 * 60 * 60 * 1000;
+let _tcjStuckMs = 5 * 60 * 1000;
+
+function _tcpPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+
+export function setMaxActiveTopicClsProfilesPerOwnerV2(n) { _tcpMaxActivePerOwner = _tcpPos(n, "maxActiveTopicClsProfilesPerOwner"); }
+export function getMaxActiveTopicClsProfilesPerOwnerV2() { return _tcpMaxActivePerOwner; }
+export function setMaxPendingTopicClsJobsPerProfileV2(n) { _tcpMaxPendingJobsPerProfile = _tcpPos(n, "maxPendingTopicClsJobsPerProfile"); }
+export function getMaxPendingTopicClsJobsPerProfileV2() { return _tcpMaxPendingJobsPerProfile; }
+export function setTopicClsProfileIdleMsV2(n) { _tcpIdleMs = _tcpPos(n, "topicClsProfileIdleMs"); }
+export function getTopicClsProfileIdleMsV2() { return _tcpIdleMs; }
+export function setTopicClsJobStuckMsV2(n) { _tcjStuckMs = _tcpPos(n, "topicClsJobStuckMs"); }
+export function getTopicClsJobStuckMsV2() { return _tcjStuckMs; }
+
+export function _resetStateTopicClsV2() {
+  _tcpsV2.clear(); _tcjsV2.clear();
+  _tcpMaxActivePerOwner = 8; _tcpMaxPendingJobsPerProfile = 20;
+  _tcpIdleMs = 14 * 24 * 60 * 60 * 1000; _tcjStuckMs = 5 * 60 * 1000;
+}
+
+export function registerTopicClsProfileV2({ id, owner, model, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!owner || typeof owner !== "string") throw new Error("owner is required");
+  if (_tcpsV2.has(id)) throw new Error(`topic cls profile ${id} already registered`);
+  const now = Date.now();
+  const p = { id, owner, model: model || "default", status: TOPIC_CLS_PROFILE_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, archivedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  _tcpsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+function _tcpCheckP(from, to) { const a = _tcpTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid topic cls profile transition ${from} → ${to}`); }
+function _tcpCountActive(owner) { let n = 0; for (const p of _tcpsV2.values()) if (p.owner === owner && p.status === TOPIC_CLS_PROFILE_MATURITY_V2.ACTIVE) n++; return n; }
+
+export function activateTopicClsProfileV2(id) {
+  const p = _tcpsV2.get(id); if (!p) throw new Error(`topic cls profile ${id} not found`);
+  _tcpCheckP(p.status, TOPIC_CLS_PROFILE_MATURITY_V2.ACTIVE);
+  const recovery = p.status === TOPIC_CLS_PROFILE_MATURITY_V2.STALE;
+  if (!recovery) { const c = _tcpCountActive(p.owner); if (c >= _tcpMaxActivePerOwner) throw new Error(`max active topic cls profiles per owner (${_tcpMaxActivePerOwner}) reached for ${p.owner}`); }
+  const now = Date.now(); p.status = TOPIC_CLS_PROFILE_MATURITY_V2.ACTIVE; p.updatedAt = now; p.lastTouchedAt = now; if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleTopicClsProfileV2(id) { const p = _tcpsV2.get(id); if (!p) throw new Error(`topic cls profile ${id} not found`); _tcpCheckP(p.status, TOPIC_CLS_PROFILE_MATURITY_V2.STALE); p.status = TOPIC_CLS_PROFILE_MATURITY_V2.STALE; p.updatedAt = Date.now(); return { ...p, metadata: { ...p.metadata } }; }
+export function archiveTopicClsProfileV2(id) { const p = _tcpsV2.get(id); if (!p) throw new Error(`topic cls profile ${id} not found`); _tcpCheckP(p.status, TOPIC_CLS_PROFILE_MATURITY_V2.ARCHIVED); const now = Date.now(); p.status = TOPIC_CLS_PROFILE_MATURITY_V2.ARCHIVED; p.updatedAt = now; if (!p.archivedAt) p.archivedAt = now; return { ...p, metadata: { ...p.metadata } }; }
+export function touchTopicClsProfileV2(id) { const p = _tcpsV2.get(id); if (!p) throw new Error(`topic cls profile ${id} not found`); if (_tcpTerminal.has(p.status)) throw new Error(`cannot touch terminal topic cls profile ${id}`); const now = Date.now(); p.lastTouchedAt = now; p.updatedAt = now; return { ...p, metadata: { ...p.metadata } }; }
+export function getTopicClsProfileV2(id) { const p = _tcpsV2.get(id); if (!p) return null; return { ...p, metadata: { ...p.metadata } }; }
+export function listTopicClsProfilesV2() { return [..._tcpsV2.values()].map((p) => ({ ...p, metadata: { ...p.metadata } })); }
+
+function _tcjCountPending(profileId) { let n = 0; for (const j of _tcjsV2.values()) if (j.profileId === profileId && (j.status === TOPIC_CLS_JOB_LIFECYCLE_V2.QUEUED || j.status === TOPIC_CLS_JOB_LIFECYCLE_V2.RUNNING)) n++; return n; }
+
+export function createTopicClsJobV2({ id, profileId, text, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!profileId || typeof profileId !== "string") throw new Error("profileId is required");
+  if (_tcjsV2.has(id)) throw new Error(`topic cls job ${id} already exists`);
+  if (!_tcpsV2.has(profileId)) throw new Error(`topic cls profile ${profileId} not found`);
+  const pending = _tcjCountPending(profileId);
+  if (pending >= _tcpMaxPendingJobsPerProfile) throw new Error(`max pending topic cls jobs per profile (${_tcpMaxPendingJobsPerProfile}) reached for ${profileId}`);
+  const now = Date.now();
+  const j = { id, profileId, text: text || "", status: TOPIC_CLS_JOB_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  _tcjsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+function _tcjCheckJ(from, to) { const a = _tcjTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid topic cls job transition ${from} → ${to}`); }
+export function startTopicClsJobV2(id) { const j = _tcjsV2.get(id); if (!j) throw new Error(`topic cls job ${id} not found`); _tcjCheckJ(j.status, TOPIC_CLS_JOB_LIFECYCLE_V2.RUNNING); const now = Date.now(); j.status = TOPIC_CLS_JOB_LIFECYCLE_V2.RUNNING; j.updatedAt = now; if (!j.startedAt) j.startedAt = now; return { ...j, metadata: { ...j.metadata } }; }
+export function completeTopicClsJobV2(id) { const j = _tcjsV2.get(id); if (!j) throw new Error(`topic cls job ${id} not found`); _tcjCheckJ(j.status, TOPIC_CLS_JOB_LIFECYCLE_V2.COMPLETED); const now = Date.now(); j.status = TOPIC_CLS_JOB_LIFECYCLE_V2.COMPLETED; j.updatedAt = now; if (!j.settledAt) j.settledAt = now; return { ...j, metadata: { ...j.metadata } }; }
+export function failTopicClsJobV2(id, reason) { const j = _tcjsV2.get(id); if (!j) throw new Error(`topic cls job ${id} not found`); _tcjCheckJ(j.status, TOPIC_CLS_JOB_LIFECYCLE_V2.FAILED); const now = Date.now(); j.status = TOPIC_CLS_JOB_LIFECYCLE_V2.FAILED; j.updatedAt = now; if (!j.settledAt) j.settledAt = now; if (reason) j.metadata.failReason = String(reason); return { ...j, metadata: { ...j.metadata } }; }
+export function cancelTopicClsJobV2(id, reason) { const j = _tcjsV2.get(id); if (!j) throw new Error(`topic cls job ${id} not found`); _tcjCheckJ(j.status, TOPIC_CLS_JOB_LIFECYCLE_V2.CANCELLED); const now = Date.now(); j.status = TOPIC_CLS_JOB_LIFECYCLE_V2.CANCELLED; j.updatedAt = now; if (!j.settledAt) j.settledAt = now; if (reason) j.metadata.cancelReason = String(reason); return { ...j, metadata: { ...j.metadata } }; }
+export function getTopicClsJobV2(id) { const j = _tcjsV2.get(id); if (!j) return null; return { ...j, metadata: { ...j.metadata } }; }
+export function listTopicClsJobsV2() { return [..._tcjsV2.values()].map((j) => ({ ...j, metadata: { ...j.metadata } })); }
+
+export function autoStaleIdleTopicClsProfilesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const p of _tcpsV2.values()) if (p.status === TOPIC_CLS_PROFILE_MATURITY_V2.ACTIVE && (t - p.lastTouchedAt) >= _tcpIdleMs) { p.status = TOPIC_CLS_PROFILE_MATURITY_V2.STALE; p.updatedAt = t; flipped.push(p.id); } return { flipped, count: flipped.length }; }
+export function autoFailStuckTopicClsJobsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const j of _tcjsV2.values()) if (j.status === TOPIC_CLS_JOB_LIFECYCLE_V2.RUNNING && j.startedAt != null && (t - j.startedAt) >= _tcjStuckMs) { j.status = TOPIC_CLS_JOB_LIFECYCLE_V2.FAILED; j.updatedAt = t; if (!j.settledAt) j.settledAt = t; j.metadata.failReason = "auto-fail-stuck"; flipped.push(j.id); } return { flipped, count: flipped.length }; }
+
+export function getTopicClassifierGovStatsV2() {
+  const profilesByStatus = {}; for (const s of Object.values(TOPIC_CLS_PROFILE_MATURITY_V2)) profilesByStatus[s] = 0; for (const p of _tcpsV2.values()) profilesByStatus[p.status]++;
+  const jobsByStatus = {}; for (const s of Object.values(TOPIC_CLS_JOB_LIFECYCLE_V2)) jobsByStatus[s] = 0; for (const j of _tcjsV2.values()) jobsByStatus[j.status]++;
+  return { totalTopicClsProfilesV2: _tcpsV2.size, totalTopicClsJobsV2: _tcjsV2.size, maxActiveTopicClsProfilesPerOwner: _tcpMaxActivePerOwner, maxPendingTopicClsJobsPerProfile: _tcpMaxPendingJobsPerProfile, topicClsProfileIdleMs: _tcpIdleMs, topicClsJobStuckMs: _tcjStuckMs, profilesByStatus, jobsByStatus };
+}

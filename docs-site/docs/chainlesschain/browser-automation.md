@@ -418,7 +418,7 @@ async function scrapeProducts(page) {
 
 ---
 
-## 测试覆盖
+## 测试覆盖率
 
 浏览器自动化系统通过五大测试模块保证核心功能稳定性：
 
@@ -477,6 +477,40 @@ it("does not report change when diff is below threshold", async () => {
 6. **脚本审计**: 录制导出的脚本在执行前应人工审查，确认不包含敏感操作
 7. **数据脱敏**: 截图和录制内容可能包含敏感信息，存储前进行脱敏处理
 8. **沙箱运行**: 建议在隔离环境中运行自动化任务，防止恶意网页影响主系统
+
+## 使用示例
+
+```javascript
+// 1. 启动浏览器并打开页面
+const id = await window.electronAPI.invoke('browser:engine:launch', { headless: true })
+await window.electronAPI.invoke('browser:engine:goto', { id, url: 'https://example.com' })
+
+// 2. 智能元素定位（文本/语义/CSS 多策略组合）
+const el = await window.electronAPI.invoke('browser:locator:find', {
+  id, hints: { text: '登录', role: 'button' }
+})
+await window.electronAPI.invoke('browser:engine:click', { id, selector: el.selector })
+
+// 3. 截图对比回归
+const before = await window.electronAPI.invoke('browser:snapshot:capture', { id })
+// ... 交互 ...
+const diff = await window.electronAPI.invoke('browser:snapshot:diff', {
+  id, baseline: before.path, threshold: 0.02
+})
+
+// 4. 录制 → 导出可复用脚本
+const rec = await window.electronAPI.invoke('browser:recorder:start', { id })
+// ... 用户手工演示 ...
+await window.electronAPI.invoke('browser:recorder:stop', { id: rec.id })
+const script = await window.electronAPI.invoke('browser:recorder:export', { id: rec.id })
+
+// 5. AI 诊断失败用例
+const diag = await window.electronAPI.invoke('browser:diagnostics:analyze', {
+  error: 'TimeoutError', html: '<html>...</html>', screenshot: '/tmp/x.png'
+})
+```
+
+搭配 Cowork 多 Agent 可做端到端 UI 回归编排。
 
 ## 相关文档
 

@@ -223,7 +223,7 @@ const techLearningConfig = {
 
 ---
 
-## 测试覆盖
+## 测试覆盖率
 
 ✅ `tech-learning-engine.test.js` — 引擎初始化、端到端检测流程、多语言项目处理（20 个用例）
 

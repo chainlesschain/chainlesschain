@@ -175,3 +175,54 @@ chainlesschain incentive leaderboard --limit 20 --json
 |------|------|
 | `packages/cli/src/commands/incentive.js` | incentive 命令主入口 (Phase 66) |
 | `packages/cli/src/lib/token-incentive.js` | 账本、贡献、奖励、排行榜核心实现 |
+
+## 测试覆盖率
+
+```
+__tests__/unit/token-incentive.test.js — 103 tests
+```
+
+覆盖 mint/burn/transfer、贡献记录与自动奖励、倍率、排行榜、历史分页、余额一致性、并发安全。
+
+## 安全考虑
+
+1. **幂等**：`contribute` 以 `(user, type, nonce)` 去重，防止重复计酬
+2. **负余额保护**：`transfer` / `burn` 校验余额，拒绝负值
+3. **倍率上限**：`--multiplier` 建议封顶（默认无硬限制，业务侧需约束）
+4. **审计**：所有交易写入 `incentive_ledger`，支持全量回放
+5. **签名**：生产环境建议叠加 DID 签名（CLI 不强制）
+
+## 故障排查
+
+| 症状 | 可能原因 | 解决方案 |
+|------|---------|---------|
+| `transfer` 报余额不足 | balance < amount | `balance <user>` 核对 |
+| `contribute --auto-reward` 未奖励 | 策略未命中 | `policy show` 检查规则 |
+| `leaderboard` 为空 | 时间窗过窄 | `--since` 放宽或改 `all` |
+| 倍率异常 | `--multiplier` 越界 | 显式限制业务侧上限 |
+
+## 使用示例
+
+```bash
+# 1. 初始化账户并铸造
+cc incentive mint alice 1000 -r "早期贡献者空投"
+cc incentive balance alice
+
+# 2. 贡献即奖励
+cc incentive contribute bob pull_request 1 --auto-reward -M 2.0
+
+# 3. 手工奖励某次贡献
+cid=$(cc incentive contribute carol review --json | jq -r .id)
+cc incentive reward $cid -M 1.5
+
+# 4. 排行榜 & 历史
+cc incentive leaderboard --limit 10
+cc incentive history alice --limit 50
+```
+
+## 相关文档
+
+- [Agent Economy (cli-economy)](./cli-economy)
+- [Wallet Manager](./cli-wallet)
+- [DAO Governance](./cli-dao)
+- 设计文档：`docs/design/modules/78_代币激励系统.md`

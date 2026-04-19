@@ -812,6 +812,10 @@ export default defineConfig({
               text: "AI 音视频创作模板",
               link: "/chainlesschain/ai-media-creator",
             },
+            {
+              text: "AI 视频生成 (Volcengine Seedance) ⭐NEW",
+              link: "/chainlesschain/ai-video-generation",
+            },
           ],
         },
         {
@@ -886,6 +890,14 @@ export default defineConfig({
             {
               text: "CLI Agent Runtime 重构计划",
               link: "/chainlesschain/cli-agent-runtime-plan",
+            },
+            {
+              text: "CLI Runtime 收口路线图 ⭐NEW",
+              link: "/chainlesschain/cli-runtime-convergence-roadmap",
+            },
+            {
+              text: "Coding Agent 工具描述统一 ⭐NEW",
+              link: "/chainlesschain/coding-agent-tool-descriptor-unification-plan",
             },
           ],
         },

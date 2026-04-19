@@ -282,7 +282,7 @@ const registryConfig = {
 - **系统提示词引导**: `getBaseSystemPrompt()` 包含 Sub-Agent Isolation 使用指南
 - **Desktop 集成**: `agent-pool.js` 支持 `inheritedContext`/`tokenBudget`，`autonomous-agent-runner.js` 支持子代理追踪
 
-## 测试覆盖
+## 测试覆盖率
 
 - **单元测试**: sub-agent-context (38), sub-agent-registry (12), scoped-context-engineering (8), namespaced-memory (9)
 - **集成测试**: sub-agent-isolation (33) — spawn_sub_agent + 命名空间隔离 + token预算

@@ -688,6 +688,33 @@ npx vitest run __tests__/integration/hermes-parity-workflow.test.js
 npx vitest run __tests__/e2e/hermes-parity-commands.test.js
 ```
 
+## 使用示例
+
+```bash
+# 1. Phase 1 — 共享迭代预算
+chainlesschain session budget set --shared --limit 100000
+chainlesschain session budget status               # 查看当前预算消耗
+
+# 2. Phase 2 — 跨会话 FTS 搜索
+chainlesschain session search "AES-256-GCM 实现"    # BM25 检索历史对话
+chainlesschain session search "缓存策略" --top 10
+
+# 3. Phase 3 — USER.md 画像注入
+chainlesschain config user-md edit                 # 编辑用户画像
+chainlesschain config user-md freeze               # 冻结当前 system prompt 防止漂移
+
+# 4. Phase 4 — 插件自动加载
+chainlesschain skill scan --auto-load              # 零摩擦扫描 & 加载
+chainlesschain skill list --scope auto
+
+# 5. Phase 5 — Docker/SSH 执行后端
+chainlesschain execbe create --kind docker --image python:3.11
+chainlesschain execbe create --kind ssh --host dev.example.com --user ai
+
+# 6. Phase 6 — 消息平台网关
+chainlesschain a2a send --platform matrix --room !xyz:matrix.org --text "deploy done"
+```
+
 ## 相关文档
 
 - **设计文档 (中文)**: [docs/design/modules/85_Hermes_Agent对标实施方案.md](../../design/modules/85_Hermes_Agent对标实施方案.md)

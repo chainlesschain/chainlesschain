@@ -349,7 +349,7 @@ chainlesschain memory recall "prod" --tags danger --limit 5 --json
 - `packages/session-core/lib/memory-store.js`
 - `packages/session-core/lib/file-adapters.js`
 
-## 测试覆盖
+## 测试覆盖率
 
 本轮已补齐并通过：
 

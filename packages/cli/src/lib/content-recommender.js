@@ -203,3 +203,108 @@ export class CLIContentRecommender {
     return matrix;
   }
 }
+
+
+// ===== V2 Surface: Content Recommender governance overlay (CLI v0.139.0) =====
+export const RECOMMENDER_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending", ACTIVE: "active", STALE: "stale", ARCHIVED: "archived",
+});
+export const RECOMMENDATION_JOB_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued", RUNNING: "running", COMPLETED: "completed", FAILED: "failed", CANCELLED: "cancelled",
+});
+
+const _crpTrans = new Map([
+  [RECOMMENDER_PROFILE_MATURITY_V2.PENDING, new Set([RECOMMENDER_PROFILE_MATURITY_V2.ACTIVE, RECOMMENDER_PROFILE_MATURITY_V2.ARCHIVED])],
+  [RECOMMENDER_PROFILE_MATURITY_V2.ACTIVE, new Set([RECOMMENDER_PROFILE_MATURITY_V2.STALE, RECOMMENDER_PROFILE_MATURITY_V2.ARCHIVED])],
+  [RECOMMENDER_PROFILE_MATURITY_V2.STALE, new Set([RECOMMENDER_PROFILE_MATURITY_V2.ACTIVE, RECOMMENDER_PROFILE_MATURITY_V2.ARCHIVED])],
+  [RECOMMENDER_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _crpTerminal = new Set([RECOMMENDER_PROFILE_MATURITY_V2.ARCHIVED]);
+const _crjTrans = new Map([
+  [RECOMMENDATION_JOB_LIFECYCLE_V2.QUEUED, new Set([RECOMMENDATION_JOB_LIFECYCLE_V2.RUNNING, RECOMMENDATION_JOB_LIFECYCLE_V2.CANCELLED])],
+  [RECOMMENDATION_JOB_LIFECYCLE_V2.RUNNING, new Set([RECOMMENDATION_JOB_LIFECYCLE_V2.COMPLETED, RECOMMENDATION_JOB_LIFECYCLE_V2.FAILED, RECOMMENDATION_JOB_LIFECYCLE_V2.CANCELLED])],
+  [RECOMMENDATION_JOB_LIFECYCLE_V2.COMPLETED, new Set()],
+  [RECOMMENDATION_JOB_LIFECYCLE_V2.FAILED, new Set()],
+  [RECOMMENDATION_JOB_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+
+const _crpsV2 = new Map();
+const _crjsV2 = new Map();
+let _crpMaxActivePerOwner = 8;
+let _crpMaxPendingJobsPerProfile = 10;
+let _crpIdleMs = 7 * 24 * 60 * 60 * 1000;
+let _crjStuckMs = 5 * 60 * 1000;
+
+function _crpPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+
+export function setMaxActiveRecommenderProfilesPerOwnerV2(n) { _crpMaxActivePerOwner = _crpPos(n, "maxActiveRecommenderProfilesPerOwner"); }
+export function getMaxActiveRecommenderProfilesPerOwnerV2() { return _crpMaxActivePerOwner; }
+export function setMaxPendingRecommendationJobsPerProfileV2(n) { _crpMaxPendingJobsPerProfile = _crpPos(n, "maxPendingRecommendationJobsPerProfile"); }
+export function getMaxPendingRecommendationJobsPerProfileV2() { return _crpMaxPendingJobsPerProfile; }
+export function setRecommenderProfileIdleMsV2(n) { _crpIdleMs = _crpPos(n, "recommenderProfileIdleMs"); }
+export function getRecommenderProfileIdleMsV2() { return _crpIdleMs; }
+export function setRecommendationJobStuckMsV2(n) { _crjStuckMs = _crpPos(n, "recommendationJobStuckMs"); }
+export function getRecommendationJobStuckMsV2() { return _crjStuckMs; }
+
+export function _resetStateContentRecommenderV2() {
+  _crpsV2.clear(); _crjsV2.clear();
+  _crpMaxActivePerOwner = 8; _crpMaxPendingJobsPerProfile = 10;
+  _crpIdleMs = 7 * 24 * 60 * 60 * 1000; _crjStuckMs = 5 * 60 * 1000;
+}
+
+export function registerRecommenderProfileV2({ id, owner, strategy, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!owner || typeof owner !== "string") throw new Error("owner is required");
+  if (_crpsV2.has(id)) throw new Error(`recommender profile ${id} already registered`);
+  const now = Date.now();
+  const p = { id, owner, strategy: strategy || "tfidf", status: RECOMMENDER_PROFILE_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, archivedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  _crpsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+function _crpCheckP(from, to) { const a = _crpTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid recommender profile transition ${from} → ${to}`); }
+function _crpCountActive(owner) { let n = 0; for (const p of _crpsV2.values()) if (p.owner === owner && p.status === RECOMMENDER_PROFILE_MATURITY_V2.ACTIVE) n++; return n; }
+
+export function activateRecommenderProfileV2(id) {
+  const p = _crpsV2.get(id); if (!p) throw new Error(`recommender profile ${id} not found`);
+  _crpCheckP(p.status, RECOMMENDER_PROFILE_MATURITY_V2.ACTIVE);
+  const recovery = p.status === RECOMMENDER_PROFILE_MATURITY_V2.STALE;
+  if (!recovery) { const c = _crpCountActive(p.owner); if (c >= _crpMaxActivePerOwner) throw new Error(`max active recommender profiles per owner (${_crpMaxActivePerOwner}) reached for ${p.owner}`); }
+  const now = Date.now(); p.status = RECOMMENDER_PROFILE_MATURITY_V2.ACTIVE; p.updatedAt = now; p.lastTouchedAt = now; if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleRecommenderProfileV2(id) { const p = _crpsV2.get(id); if (!p) throw new Error(`recommender profile ${id} not found`); _crpCheckP(p.status, RECOMMENDER_PROFILE_MATURITY_V2.STALE); p.status = RECOMMENDER_PROFILE_MATURITY_V2.STALE; p.updatedAt = Date.now(); return { ...p, metadata: { ...p.metadata } }; }
+export function archiveRecommenderProfileV2(id) { const p = _crpsV2.get(id); if (!p) throw new Error(`recommender profile ${id} not found`); _crpCheckP(p.status, RECOMMENDER_PROFILE_MATURITY_V2.ARCHIVED); const now = Date.now(); p.status = RECOMMENDER_PROFILE_MATURITY_V2.ARCHIVED; p.updatedAt = now; if (!p.archivedAt) p.archivedAt = now; return { ...p, metadata: { ...p.metadata } }; }
+export function touchRecommenderProfileV2(id) { const p = _crpsV2.get(id); if (!p) throw new Error(`recommender profile ${id} not found`); if (_crpTerminal.has(p.status)) throw new Error(`cannot touch terminal recommender profile ${id}`); const now = Date.now(); p.lastTouchedAt = now; p.updatedAt = now; return { ...p, metadata: { ...p.metadata } }; }
+export function getRecommenderProfileV2(id) { const p = _crpsV2.get(id); if (!p) return null; return { ...p, metadata: { ...p.metadata } }; }
+export function listRecommenderProfilesV2() { return [..._crpsV2.values()].map((p) => ({ ...p, metadata: { ...p.metadata } })); }
+
+function _crjCountPending(profileId) { let n = 0; for (const j of _crjsV2.values()) if (j.profileId === profileId && (j.status === RECOMMENDATION_JOB_LIFECYCLE_V2.QUEUED || j.status === RECOMMENDATION_JOB_LIFECYCLE_V2.RUNNING)) n++; return n; }
+
+export function createRecommendationJobV2({ id, profileId, query, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!profileId || typeof profileId !== "string") throw new Error("profileId is required");
+  if (_crjsV2.has(id)) throw new Error(`recommendation job ${id} already exists`);
+  if (!_crpsV2.has(profileId)) throw new Error(`recommender profile ${profileId} not found`);
+  const pending = _crjCountPending(profileId);
+  if (pending >= _crpMaxPendingJobsPerProfile) throw new Error(`max pending recommendation jobs per profile (${_crpMaxPendingJobsPerProfile}) reached for ${profileId}`);
+  const now = Date.now();
+  const j = { id, profileId, query: query || "", status: RECOMMENDATION_JOB_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  _crjsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+function _crjCheckJ(from, to) { const a = _crjTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid recommendation job transition ${from} → ${to}`); }
+export function startRecommendationJobV2(id) { const j = _crjsV2.get(id); if (!j) throw new Error(`recommendation job ${id} not found`); _crjCheckJ(j.status, RECOMMENDATION_JOB_LIFECYCLE_V2.RUNNING); const now = Date.now(); j.status = RECOMMENDATION_JOB_LIFECYCLE_V2.RUNNING; j.updatedAt = now; if (!j.startedAt) j.startedAt = now; return { ...j, metadata: { ...j.metadata } }; }
+export function completeRecommendationJobV2(id) { const j = _crjsV2.get(id); if (!j) throw new Error(`recommendation job ${id} not found`); _crjCheckJ(j.status, RECOMMENDATION_JOB_LIFECYCLE_V2.COMPLETED); const now = Date.now(); j.status = RECOMMENDATION_JOB_LIFECYCLE_V2.COMPLETED; j.updatedAt = now; if (!j.settledAt) j.settledAt = now; return { ...j, metadata: { ...j.metadata } }; }
+export function failRecommendationJobV2(id, reason) { const j = _crjsV2.get(id); if (!j) throw new Error(`recommendation job ${id} not found`); _crjCheckJ(j.status, RECOMMENDATION_JOB_LIFECYCLE_V2.FAILED); const now = Date.now(); j.status = RECOMMENDATION_JOB_LIFECYCLE_V2.FAILED; j.updatedAt = now; if (!j.settledAt) j.settledAt = now; if (reason) j.metadata.failReason = String(reason); return { ...j, metadata: { ...j.metadata } }; }
+export function cancelRecommendationJobV2(id, reason) { const j = _crjsV2.get(id); if (!j) throw new Error(`recommendation job ${id} not found`); _crjCheckJ(j.status, RECOMMENDATION_JOB_LIFECYCLE_V2.CANCELLED); const now = Date.now(); j.status = RECOMMENDATION_JOB_LIFECYCLE_V2.CANCELLED; j.updatedAt = now; if (!j.settledAt) j.settledAt = now; if (reason) j.metadata.cancelReason = String(reason); return { ...j, metadata: { ...j.metadata } }; }
+export function getRecommendationJobV2(id) { const j = _crjsV2.get(id); if (!j) return null; return { ...j, metadata: { ...j.metadata } }; }
+export function listRecommendationJobsV2() { return [..._crjsV2.values()].map((j) => ({ ...j, metadata: { ...j.metadata } })); }
+
+export function autoStaleIdleRecommenderProfilesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const p of _crpsV2.values()) if (p.status === RECOMMENDER_PROFILE_MATURITY_V2.ACTIVE && (t - p.lastTouchedAt) >= _crpIdleMs) { p.status = RECOMMENDER_PROFILE_MATURITY_V2.STALE; p.updatedAt = t; flipped.push(p.id); } return { flipped, count: flipped.length }; }
+export function autoFailStuckRecommendationJobsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const j of _crjsV2.values()) if (j.status === RECOMMENDATION_JOB_LIFECYCLE_V2.RUNNING && j.startedAt != null && (t - j.startedAt) >= _crjStuckMs) { j.status = RECOMMENDATION_JOB_LIFECYCLE_V2.FAILED; j.updatedAt = t; if (!j.settledAt) j.settledAt = t; j.metadata.failReason = "auto-fail-stuck"; flipped.push(j.id); } return { flipped, count: flipped.length }; }
+
+export function getContentRecommenderGovStatsV2() {
+  const profilesByStatus = {}; for (const s of Object.values(RECOMMENDER_PROFILE_MATURITY_V2)) profilesByStatus[s] = 0; for (const p of _crpsV2.values()) profilesByStatus[p.status]++;
+  const jobsByStatus = {}; for (const s of Object.values(RECOMMENDATION_JOB_LIFECYCLE_V2)) jobsByStatus[s] = 0; for (const j of _crjsV2.values()) jobsByStatus[j.status]++;
+  return { totalRecommenderProfilesV2: _crpsV2.size, totalRecommendationJobsV2: _crjsV2.size, maxActiveRecommenderProfilesPerOwner: _crpMaxActivePerOwner, maxPendingRecommendationJobsPerProfile: _crpMaxPendingJobsPerProfile, recommenderProfileIdleMs: _crpIdleMs, recommendationJobStuckMs: _crjStuckMs, profilesByStatus, jobsByStatus };
+}

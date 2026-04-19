@@ -173,6 +173,41 @@ chainlesschain rep objectives --json
 | `packages/cli/src/commands/reputation.js` | reputation 命令主入口（含 `rep` 别名） |
 | `packages/cli/src/lib/reputation-optimizer.js` | 观测存储、衰减计算、异常检测、贝叶斯优化核心实现 |
 
+## 性能指标
+
+| 操作 | 典型耗时 | 备注 |
+| ---- | -------- | ---- |
+| `observe` | < 15 ms | 单行 INSERT |
+| `score` | < 30 ms | 聚合 + 衰减计算 |
+| `list` | < 50 ms | 带索引 LIMIT |
+| `anomalies` (z_score/iqr) | < 100 ms | 基于最近窗口 |
+| `optimize` 50 iter | 典型 1–3 s | 简化贝叶斯，全程在 JS 侧 |
+
+## 测试覆盖率
+
+```
+__tests__/unit/reputation-optimizer.test.js — 79 tests
+```
+
+覆盖 observe 写入、none/exponential/linear/step 四种衰减、z_score/iqr 异常检测、accuracy/fairness/resilience/convergence_speed 四种目标下的 optimize 循环、参数 clipping、JSON 输出形状。
+
+## 安全考虑
+
+1. **观测来源**：`observe` 不做签名验证；生产部署建议封装为 signed event 后入库
+2. **DID 去重**：相同 DID 的多次 observe 按 `ts` 聚合，防止双花刷分
+3. **异常阈值**：`z_score` 默认 3σ；过于宽松会漏报，过严会误报
+4. **优化发散**：`optimize` 设置 `iterations` 上限（默认 50）+ 容忍度提前终止，避免无限循环
+5. **隐私**：`score/list` 不输出原始观测时间戳明文，仅聚合值；需调试请 `--json` 显式请求
+
+## 故障排查
+
+| 症状 | 可能原因 | 解决方案 |
+|------|---------|---------|
+| `score` 始终为 0 | `observe` 未落库（未指定 `-k`） | 检查 `list` 是否有数据 |
+| 异常检测误报 | 样本量不足 / 分布偏斜 | 增大窗口或切换 `iqr` |
+| `optimize` 不收敛 | 目标冲突 / `iterations` 过小 | 放宽目标或升高 iter |
+| `observe` 拒绝 | score 越界 (非 0–1) | 在调用前做 clamp |
+
 ## 测试
 
 ```bash

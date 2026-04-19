@@ -1012,3 +1012,108 @@ export function getCrossChainStatsV2() {
     configuredChains: _chainConfigs.size,
   };
 }
+
+
+// ===== V2 Surface: Cross-Chain governance overlay (CLI v0.136.0) =====
+export const XCHAIN_CHANNEL_MATURITY_V2 = Object.freeze({
+  PENDING: "pending", ACTIVE: "active", PAUSED: "paused", DECOMMISSIONED: "decommissioned",
+});
+export const XCHAIN_TRANSFER_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued", RELAYING: "relaying", CONFIRMED: "confirmed", FAILED: "failed", CANCELLED: "cancelled",
+});
+
+const _xcChanTrans = new Map([
+  [XCHAIN_CHANNEL_MATURITY_V2.PENDING, new Set([XCHAIN_CHANNEL_MATURITY_V2.ACTIVE, XCHAIN_CHANNEL_MATURITY_V2.DECOMMISSIONED])],
+  [XCHAIN_CHANNEL_MATURITY_V2.ACTIVE, new Set([XCHAIN_CHANNEL_MATURITY_V2.PAUSED, XCHAIN_CHANNEL_MATURITY_V2.DECOMMISSIONED])],
+  [XCHAIN_CHANNEL_MATURITY_V2.PAUSED, new Set([XCHAIN_CHANNEL_MATURITY_V2.ACTIVE, XCHAIN_CHANNEL_MATURITY_V2.DECOMMISSIONED])],
+  [XCHAIN_CHANNEL_MATURITY_V2.DECOMMISSIONED, new Set()],
+]);
+const _xcChanTerminal = new Set([XCHAIN_CHANNEL_MATURITY_V2.DECOMMISSIONED]);
+const _xcTxTrans = new Map([
+  [XCHAIN_TRANSFER_LIFECYCLE_V2.QUEUED, new Set([XCHAIN_TRANSFER_LIFECYCLE_V2.RELAYING, XCHAIN_TRANSFER_LIFECYCLE_V2.CANCELLED])],
+  [XCHAIN_TRANSFER_LIFECYCLE_V2.RELAYING, new Set([XCHAIN_TRANSFER_LIFECYCLE_V2.CONFIRMED, XCHAIN_TRANSFER_LIFECYCLE_V2.FAILED, XCHAIN_TRANSFER_LIFECYCLE_V2.CANCELLED])],
+  [XCHAIN_TRANSFER_LIFECYCLE_V2.CONFIRMED, new Set()],
+  [XCHAIN_TRANSFER_LIFECYCLE_V2.FAILED, new Set()],
+  [XCHAIN_TRANSFER_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+
+const _xcChans = new Map();
+const _xcTxs = new Map();
+let _xcMaxActivePerOwner = 10;
+let _xcMaxPendingPerChan = 20;
+let _xcChanIdleMs = 24 * 60 * 60 * 1000;
+let _xcTxStuckMs = 15 * 60 * 1000;
+
+function _xcPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+
+export function setMaxActiveXchainChannelsPerOwnerV2(n) { _xcMaxActivePerOwner = _xcPos(n, "maxActiveXchainChannelsPerOwner"); }
+export function getMaxActiveXchainChannelsPerOwnerV2() { return _xcMaxActivePerOwner; }
+export function setMaxPendingXchainTransfersPerChannelV2(n) { _xcMaxPendingPerChan = _xcPos(n, "maxPendingXchainTransfersPerChannel"); }
+export function getMaxPendingXchainTransfersPerChannelV2() { return _xcMaxPendingPerChan; }
+export function setXchainChannelIdleMsV2(n) { _xcChanIdleMs = _xcPos(n, "xchainChannelIdleMs"); }
+export function getXchainChannelIdleMsV2() { return _xcChanIdleMs; }
+export function setXchainTransferStuckMsV2(n) { _xcTxStuckMs = _xcPos(n, "xchainTransferStuckMs"); }
+export function getXchainTransferStuckMsV2() { return _xcTxStuckMs; }
+
+export function _resetStateCrossChainV2() {
+  _xcChans.clear(); _xcTxs.clear();
+  _xcMaxActivePerOwner = 10; _xcMaxPendingPerChan = 20;
+  _xcChanIdleMs = 24 * 60 * 60 * 1000; _xcTxStuckMs = 15 * 60 * 1000;
+}
+
+export function registerXchainChannelV2({ id, owner, fromChain, toChain, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!owner || typeof owner !== "string") throw new Error("owner is required");
+  if (_xcChans.has(id)) throw new Error(`xchain channel ${id} already registered`);
+  const now = Date.now();
+  const c = { id, owner, fromChain: fromChain || "", toChain: toChain || "", status: XCHAIN_CHANNEL_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, decommissionedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  _xcChans.set(id, c);
+  return { ...c, metadata: { ...c.metadata } };
+}
+function _xcCheckC(from, to) { const a = _xcChanTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid xchain channel transition ${from} → ${to}`); }
+function _xcCountActive(owner) { let n = 0; for (const c of _xcChans.values()) if (c.owner === owner && c.status === XCHAIN_CHANNEL_MATURITY_V2.ACTIVE) n++; return n; }
+
+export function activateXchainChannelV2(id) {
+  const c = _xcChans.get(id); if (!c) throw new Error(`xchain channel ${id} not found`);
+  _xcCheckC(c.status, XCHAIN_CHANNEL_MATURITY_V2.ACTIVE);
+  const recovery = c.status === XCHAIN_CHANNEL_MATURITY_V2.PAUSED;
+  if (!recovery) { const a = _xcCountActive(c.owner); if (a >= _xcMaxActivePerOwner) throw new Error(`max active xchain channels per owner (${_xcMaxActivePerOwner}) reached for ${c.owner}`); }
+  const now = Date.now(); c.status = XCHAIN_CHANNEL_MATURITY_V2.ACTIVE; c.updatedAt = now; c.lastTouchedAt = now; if (!c.activatedAt) c.activatedAt = now;
+  return { ...c, metadata: { ...c.metadata } };
+}
+export function pauseXchainChannelV2(id) { const c = _xcChans.get(id); if (!c) throw new Error(`xchain channel ${id} not found`); _xcCheckC(c.status, XCHAIN_CHANNEL_MATURITY_V2.PAUSED); c.status = XCHAIN_CHANNEL_MATURITY_V2.PAUSED; c.updatedAt = Date.now(); return { ...c, metadata: { ...c.metadata } }; }
+export function decommissionXchainChannelV2(id) { const c = _xcChans.get(id); if (!c) throw new Error(`xchain channel ${id} not found`); _xcCheckC(c.status, XCHAIN_CHANNEL_MATURITY_V2.DECOMMISSIONED); const now = Date.now(); c.status = XCHAIN_CHANNEL_MATURITY_V2.DECOMMISSIONED; c.updatedAt = now; if (!c.decommissionedAt) c.decommissionedAt = now; return { ...c, metadata: { ...c.metadata } }; }
+export function touchXchainChannelV2(id) { const c = _xcChans.get(id); if (!c) throw new Error(`xchain channel ${id} not found`); if (_xcChanTerminal.has(c.status)) throw new Error(`cannot touch terminal xchain channel ${id}`); const now = Date.now(); c.lastTouchedAt = now; c.updatedAt = now; return { ...c, metadata: { ...c.metadata } }; }
+export function getXchainChannelV2(id) { const c = _xcChans.get(id); if (!c) return null; return { ...c, metadata: { ...c.metadata } }; }
+export function listXchainChannelsV2() { return [..._xcChans.values()].map((c) => ({ ...c, metadata: { ...c.metadata } })); }
+
+function _xcCountPending(cid) { let n = 0; for (const t of _xcTxs.values()) if (t.channelId === cid && (t.status === XCHAIN_TRANSFER_LIFECYCLE_V2.QUEUED || t.status === XCHAIN_TRANSFER_LIFECYCLE_V2.RELAYING)) n++; return n; }
+
+export function createXchainTransferV2({ id, channelId, amount, metadata } = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!channelId || typeof channelId !== "string") throw new Error("channelId is required");
+  if (_xcTxs.has(id)) throw new Error(`xchain transfer ${id} already exists`);
+  if (!_xcChans.has(channelId)) throw new Error(`xchain channel ${channelId} not found`);
+  const pending = _xcCountPending(channelId);
+  if (pending >= _xcMaxPendingPerChan) throw new Error(`max pending xchain transfers per channel (${_xcMaxPendingPerChan}) reached for ${channelId}`);
+  const now = Date.now();
+  const t = { id, channelId, amount: amount || "0", status: XCHAIN_TRANSFER_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  _xcTxs.set(id, t);
+  return { ...t, metadata: { ...t.metadata } };
+}
+function _xcCheckT(from, to) { const a = _xcTxTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid xchain transfer transition ${from} → ${to}`); }
+export function startXchainTransferV2(id) { const t = _xcTxs.get(id); if (!t) throw new Error(`xchain transfer ${id} not found`); _xcCheckT(t.status, XCHAIN_TRANSFER_LIFECYCLE_V2.RELAYING); const now = Date.now(); t.status = XCHAIN_TRANSFER_LIFECYCLE_V2.RELAYING; t.updatedAt = now; if (!t.startedAt) t.startedAt = now; return { ...t, metadata: { ...t.metadata } }; }
+export function confirmXchainTransferV2(id) { const t = _xcTxs.get(id); if (!t) throw new Error(`xchain transfer ${id} not found`); _xcCheckT(t.status, XCHAIN_TRANSFER_LIFECYCLE_V2.CONFIRMED); const now = Date.now(); t.status = XCHAIN_TRANSFER_LIFECYCLE_V2.CONFIRMED; t.updatedAt = now; if (!t.settledAt) t.settledAt = now; return { ...t, metadata: { ...t.metadata } }; }
+export function failXchainTransferV2(id, reason) { const t = _xcTxs.get(id); if (!t) throw new Error(`xchain transfer ${id} not found`); _xcCheckT(t.status, XCHAIN_TRANSFER_LIFECYCLE_V2.FAILED); const now = Date.now(); t.status = XCHAIN_TRANSFER_LIFECYCLE_V2.FAILED; t.updatedAt = now; if (!t.settledAt) t.settledAt = now; if (reason) t.metadata.failReason = String(reason); return { ...t, metadata: { ...t.metadata } }; }
+export function cancelXchainTransferV2(id, reason) { const t = _xcTxs.get(id); if (!t) throw new Error(`xchain transfer ${id} not found`); _xcCheckT(t.status, XCHAIN_TRANSFER_LIFECYCLE_V2.CANCELLED); const now = Date.now(); t.status = XCHAIN_TRANSFER_LIFECYCLE_V2.CANCELLED; t.updatedAt = now; if (!t.settledAt) t.settledAt = now; if (reason) t.metadata.cancelReason = String(reason); return { ...t, metadata: { ...t.metadata } }; }
+export function getXchainTransferV2(id) { const t = _xcTxs.get(id); if (!t) return null; return { ...t, metadata: { ...t.metadata } }; }
+export function listXchainTransfersV2() { return [..._xcTxs.values()].map((t) => ({ ...t, metadata: { ...t.metadata } })); }
+
+export function autoPauseIdleXchainChannelsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const c of _xcChans.values()) if (c.status === XCHAIN_CHANNEL_MATURITY_V2.ACTIVE && (t - c.lastTouchedAt) >= _xcChanIdleMs) { c.status = XCHAIN_CHANNEL_MATURITY_V2.PAUSED; c.updatedAt = t; flipped.push(c.id); } return { flipped, count: flipped.length }; }
+export function autoFailStuckXchainTransfersV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const tx of _xcTxs.values()) if (tx.status === XCHAIN_TRANSFER_LIFECYCLE_V2.RELAYING && tx.startedAt != null && (t - tx.startedAt) >= _xcTxStuckMs) { tx.status = XCHAIN_TRANSFER_LIFECYCLE_V2.FAILED; tx.updatedAt = t; if (!tx.settledAt) tx.settledAt = t; tx.metadata.failReason = "auto-fail-stuck"; flipped.push(tx.id); } return { flipped, count: flipped.length }; }
+
+export function getCrossChainGovStatsV2() {
+  const channelsByStatus = {}; for (const s of Object.values(XCHAIN_CHANNEL_MATURITY_V2)) channelsByStatus[s] = 0; for (const c of _xcChans.values()) channelsByStatus[c.status]++;
+  const transfersByStatus = {}; for (const s of Object.values(XCHAIN_TRANSFER_LIFECYCLE_V2)) transfersByStatus[s] = 0; for (const t of _xcTxs.values()) transfersByStatus[t.status]++;
+  return { totalChannelsV2: _xcChans.size, totalTransfersV2: _xcTxs.size, maxActiveXchainChannelsPerOwner: _xcMaxActivePerOwner, maxPendingXchainTransfersPerChannel: _xcMaxPendingPerChan, xchainChannelIdleMs: _xcChanIdleMs, xchainTransferStuckMs: _xcTxStuckMs, channelsByStatus, transfersByStatus };
+}

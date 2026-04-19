@@ -156,6 +156,42 @@ chainlesschain tech recommend --limit 10 --json
 | `packages/cli/src/commands/tech.js` | tech 命令主入口 |
 | `packages/cli/src/lib/tech-learning-engine.js` | 清单解析、反模式启发式、实践存储、推荐匹配核心实现 |
 
+## 性能指标
+
+| 操作 | 典型耗时 | 备注 |
+| ---- | -------- | ---- |
+| `tech analyze <dir>` | 典型 500 ms–2 s | 取决于文件数与 manifest 类型 |
+| `tech profile` | < 50 ms | 聚合查询 |
+| `tech detect <file>` | < 200 ms | 启发式扫描 |
+| `tech practices` | < 50 ms | 列表查询 |
+| `tech recommend` | < 100 ms | 画像相似度 |
+| V2 learning-run dispatch | < 50 ms | `tech_learning_engine_v2_cli.md` |
+
+## 测试覆盖率
+
+```
+__tests__/unit/tech-learning-engine.test.js — 95 tests
+```
+
+覆盖 npm/pip/cargo/go 等清单解析、版本/许可证聚合、反模式启发式（10+ 种）、实践 CRUD、基于技术栈的推荐评分。V2 surface：52 V2 tests（见 `tech_learning_engine_v2_cli.md`）。
+
+## 安全考虑
+
+1. **路径白名单**：`analyze` 禁止路径遍历（`../`）；仅分析被授权目录
+2. **manifest 解析**：解析 `package.json`/`requirements.txt` 等文件使用纯 JS 实现，不执行任意脚本
+3. **反模式误报**：`detect` 为启发式，应人工复核；可通过 `--ignore-rule` 屏蔽误报规则
+4. **实践来源**：`practices` 为本地存储，跨设备共享需经 `export` + 签名
+5. **V2 pending cap**：`gov-stats-v2` 查看 per-profile 状态，避免学习运行堆积
+
+## 故障排查
+
+| 症状 | 可能原因 | 解决方案 |
+|------|---------|---------|
+| `analyze` 输出空 | manifest 未识别 | `--manifest package.json,requirements.txt` 显式指定 |
+| `detect` 误报过多 | 启发式规则过宽 | `--ignore-rule <id>` 或降低 sensitivity |
+| `recommend` 无结果 | profile 为空 | 先 `analyze` 建立画像 |
+| V2 createRunV2 cap exceeded | per-learner running cap 满 | `gov-stats-v2` 查看，fail 现有 run |
+
 ## 测试
 
 ```bash

@@ -178,6 +178,47 @@ chainlesschain privacy report --json
 | `packages/cli/src/commands/privacy.js` | privacy 命令主入口 |
 | `packages/cli/src/lib/privacy-computing.js` | 联邦学习、MPC、差分隐私、同态加密核心实现 |
 
+## 配置参考
+
+| 配置项 | 含义 | 默认 |
+| ------ | ---- | ---- |
+| `fl.rounds` | 联邦训练轮数 | 5 |
+| `fl.participants` | 默认参与方 | 3 |
+| `fl.aggregation` | 聚合方式 | `fedavg` |
+| `dp.epsilon` | 差分隐私 ε | 1.0 |
+| `dp.delta` | 差分隐私 δ | 1e-5 |
+| `mpc.protocol` | MPC 协议 | `shamir` |
+| `he.scheme` | 同态加密方案 | `paillier` |
+
+## 性能指标
+
+| 操作 | 典型耗时 | 备注 |
+| ---- | -------- | ---- |
+| `create-model` | < 50 ms | 本地注册 |
+| `train` 单轮 | 依赖数据规模 | 合成路径用于冒烟/回归 |
+| `aggregate` | < 100 ms | FedAvg 合并 |
+| `mpc compute` | < 200 ms | Shamir 3-方 |
+| `dp-noise` | < 20 ms | 一次加噪 |
+| `he encrypt/decrypt` | < 100 ms | Paillier 2048-bit |
+
+合成指标仅供管线搭建回归，真实性能取决于底层数值库。
+
+## 测试覆盖率
+
+```
+__tests__/unit/privacy-computing.test.js — 90 tests
+```
+
+覆盖：FL create-model / train / aggregate、MPC Shamir split/combine/compute、差分隐私拉普拉斯 / 高斯加噪、Paillier 加解密与同态加法、隐私预算管理。
+
+## 安全考虑
+
+1. **ε/δ 预算**：差分隐私一旦耗尽预算应拒绝发布；CLI 会在 `dp-status` 提示剩余预算
+2. **密钥管理**：MPC 份额与 HE 密钥使用 AES-256-GCM 加密存于 SQLite，派生自环境 secret
+3. **参与方验证**：联邦学习默认信任本地参与方列表；跨组织场景需叠加 DID/签名
+4. **恶意输入防护**：`aggregate` 自带异常值裁剪（clipping）防止投毒
+5. **算法选择**：Paillier 仅支持加法同态，乘法请切换 CKKS/BFV（当前为 roadmap）
+
 ## 使用示例
 
 ### 场景 1：联邦学习

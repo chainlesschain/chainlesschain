@@ -188,6 +188,46 @@ EvoMapManager federation.js governance.js
 | `packages/cli/src/lib/evomap-federation.js` | 联邦 Hub 管理、基因同步、演化压力 |
 | `packages/cli/src/lib/evomap-governance.js` | 治理系统（所有权/提案/投票） |
 
+## 配置参考
+
+| 配置项 | 含义 | 默认 |
+| ------ | ---- | ---- |
+| `hub.url` | 默认 EvoMap Hub | 内置公共 Hub |
+| `federation.syncInterval` | 联邦同步周期 | 3600 s |
+| `federation.maxHubs` | 最大 Hub 数 | 16 |
+| `governance.quorum` | 提案法定人数 | 3 |
+| `governance.voteWindow` | 投票窗口 | 7 天 |
+| V2 map cap / evolution cap | 见 `evomap_manager_v2_cli.md` | 10 / 15 |
+
+## 性能指标
+
+| 操作 | 典型耗时 | 备注 |
+| ---- | -------- | ---- |
+| `search` / `list` | < 100 ms | 本地索引 + 增量 Hub 拉取 |
+| `install <gene>` | 典型 300 ms–2 s | 取决于基因包大小 |
+| `publish` | 依赖网络 | Hub API 上传 |
+| `fed sync` | 依赖 Hub 数 / 网络 | 每 Hub ~100–500 ms |
+| `gov propose` / `vote` | < 50 ms | 本地 SQLite |
+| V2 evolution dispatch | < 50 ms | `evomap_manager_v2_cli.md` |
+
+## 测试覆盖率
+
+```
+__tests__/unit/evomap-client.test.js       — 23 tests
+__tests__/unit/evomap-federation.test.js   — 46 tests
+__tests__/unit/evomap-governance.test.js   — 49 tests
+```
+
+覆盖 Hub 搜索/下载/发布、本地安装/打包、联邦同步与演化压力、治理提案/投票/所有权转移。V2 surface：39 V2 tests（见 `evomap_manager_v2_cli.md`）。
+
+## 安全考虑
+
+1. **基因验签**：下载的基因包应验证签名/哈希，防篡改（Hub 侧提供，CLI 层存储哈希）
+2. **Hub 白名单**：`federation` 默认不向任意 Hub 拉取；加入前 `fed add` 显式授权
+3. **治理防 Sybil**：`gov vote` 基于 DID，Quorum 需联邦级共识策略保护
+4. **本地隔离**：基因安装到 `.chainlesschain/evomap/` 下，隔离于系统其他命名空间
+5. **V2 pending cap**：`gov-stats-v2` 查看 per-map pending-evolution 数
+
 ## 使用示例
 
 ### 场景 1：搜索并安装基因

@@ -1,5 +1,81 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-19 Update — CLI 0.142.0 · V2 Batch 9 + Batch 10 · 30 lib-level governance surfaces
+
+Two more V2 canonical-surface batches landed on top of batch 8: **batch 9** covers the **session / context / permission / DI / social-graph** subsystems (14 libs); **batch 10** covers the **orchestration / autonomous / economy / evolution / compliance-framework / SIEM / inference-network / low-code** subsystems (16 libs). CLI bumps `0.136.0 → 0.142.0` (tag `v5.0.2.34`). All 30 surfaces reuse the 4-state maturity × 5-state record-lifecycle dual state machine skeleton, zero coupling with legacy paths (SQLite tables / in-memory singletons / transports / protocol layers).
+
+**30 V2 canonical surfaces** — batch 9 takes 14 brand-new top-levels (to avoid collision with existing commands), batch 10 takes 16 (most top-level, a few appended to existing commands via prefixes):
+
+| Batch | Subsystems (lib) | New V2 tests | Representative commands |
+| ----- | ----------------- | ------------- | ----------------------- |
+| Batch 9 | slot-filler / web-fetch / memory-injection / session-search / session-tail / session-usage / session-hooks / mcp-scaffold / plan-mode / permission-engine / user-profile / social-graph / service-container / task-model-selector | **521** (10×37 + 39 + 38 + 2×37) | `cc slotfill` `cc webfetch` `cc meminj` `cc seshsearch` `cc seshtail` `cc seshu` `cc seshhook` `cc mcpscaf` `cc planmode` `cc perm` `cc uprof` `cc social sg-*-v2` `cc svccont` `cc tms` |
+| Batch 10 | orchestrator / perf-tuning / topic-classifier / iteration-budget / git-integration / cowork-task-runner / inference-network / content-recommender / app-builder / siem-exporter / autonomous-agent / compliance-framework-reporter / agent-economy / pipeline-orchestrator / evolution-system / hierarchical-memory | **704** (12×45 + 4×41) | `cc orchgov` `cc perf *-v2` `cc topiccls` `cc itbudget` `cc git` `cc cowork runner-*-v2` `cc inference` `cc recommend cr-*-v2` `cc lowcode` `cc siem` `cc autoagent` `cc compliance fwrep-*-v2` `cc economy` `cc pipeline` `cc evolution` `cc hmemory` |
+
+Every surface shares the V2 skeleton: dual state machines + per-owner active cap (enforced only on `pending→active`) + per-entity pending cap (enforced at record creation) + stamp-once `activatedAt` / `startedAt` + `auto*V2` batchers + `_resetState*V2` for test isolation. All V2 actions are dispatched via `-v2` suffix; preAction hook bypasses legacy bootstrap via `actionCommand.name().endsWith("-v2")`. Multiple top-levels avoid collisions via prefixes (`cc seshhook` vs `cc hook`, `cc mcpscaf` vs `cc mcp`, `cc autoagent` vs `cc agent`, `runner-*-v2` vs Agent Coordinator, `cr-*-v2` vs content-recommendation, `sg-*-v2` vs social-manager, `fwrep-*-v2` vs compliance V2).
+
+### Regression tests (2026-04-19)
+
+| Tier | Files | Tests | Duration |
+| --- | --- | --- | --- |
+| CLI Unit | 274 | **11718 / 11718** | 125s |
+| CLI Integration | 40 | **696 / 696** | 40s |
+| CLI E2E | 38 | **565 / 565** | 360s |
+| **Total** | **352** | **12979 / 12979** | **zero regressions** |
+
+Batches 9 + 10 add **1225 new V2 unit tests** over 0.136.0 (521 + 704), bringing total V2 governance surfaces from 62+ → **92+**.
+
+**npm**: `npm i -g chainlesschain@0.142.0` (aliases `cc` / `clc` / `clchain`)
+
+Details: [`docs/design/modules/96_V2规范层governance.md`](./docs/design/modules/96_V2规范层governance.md) · [Changelog](./docs-site/docs/changelog.md).
+
+---
+
+## 2026-04-18 Update — CLI 0.136.0 · V2 Batch 8 · 12 lib-level governance surfaces
+
+Batch 8 pushes the V2 canonical surface down into **12 lib modules** (a2a-protocol / activitypub-bridge / bi-engine / browser-automation / cross-chain / dao-governance / dlp-engine / evomap-manager / matrix-bridge / nostr-bridge / session-consolidator / zkp-engine). Each reuses the same 4-state maturity × 5-state record-lifecycle skeleton, independent of the existing Phase 88 / 92 / 95 protocol implementations. CLI bumps `0.130.0 → 0.136.0` (tag `v5.0.2.34`).
+
+**12 V2 canonical surfaces** (strictly additive, pure in-memory governance, zero coupling with protocol layer):
+
+| lib module | Maturity / record enums | per-owner cap | per-entity cap | Auto batchers | V2 tests |
+| --- | --- | --- | --- | --- | --- |
+| `a2a-protocol` | `A2A_AGENT_MATURITY_V2` + `A2A_MESSAGE_LIFECYCLE_V2` | agent | pending message | autoRetireIdle + autoFailStuck | 40 |
+| `activitypub-bridge` | `AP_ACTOR_MATURITY_V2` + `AP_ACTIVITY_LIFECYCLE_V2` | actor | pending activity | autoRetireIdle + autoFailStuck | 39 |
+| `bi-engine` | `BI_DATASET_MATURITY_V2` + `BI_QUERY_LIFECYCLE_V2` | dataset | pending query | autoArchiveIdle + autoFailStuck | 39 |
+| `browser-automation` | `BROWSE_SESSION_MATURITY_V2` + `BROWSE_STEP_LIFECYCLE_V2` | session | pending step | autoArchiveIdle + autoFailStuck | 37 |
+| `cross-chain` | `CC_BRIDGE_MATURITY_V2` + `CC_TRANSFER_LIFECYCLE_V2` | bridge | pending transfer | autoDegradeIdle + autoFailStuck | 40 |
+| `dao-governance` | `DAO_REALM_MATURITY_V2` + `DAO_PROPOSAL_LIFECYCLE_V2` | realm | open proposal | autoArchiveIdle + autoFailStuck | 41 |
+| `dlp-engine` | `DLP_POLICY_MATURITY_V2` + `DLP_INCIDENT_LIFECYCLE_V2` | policy | open incident | autoDeprecateIdle + autoCloseStale | 40 |
+| `evomap-manager` | `EVOMAP_HUB_MATURITY_V2` + `EVOMAP_SUBMISSION_LIFECYCLE_V2` | hub | pending submission | autoArchiveIdle + autoFailStuck | 39 |
+| `matrix-bridge` | `MX_ROOM_MATURITY_V2` + `MX_EVENT_LIFECYCLE_V2` | room | pending event | autoArchiveIdle + autoFailStuck | 37 |
+| `nostr-bridge` | `NOSTR_RELAY_MATURITY_V2` + `NOSTR_EVENT_LIFECYCLE_V2` | relay | pending event | autoDegradeIdle + autoFailStuck | 39 |
+| `session-consolidator` | `CONSOL_PROFILE_MATURITY_V2` + `CONSOL_JOB_LIFECYCLE_V2` | profile | pending job | autoArchiveIdle + autoFailStuck | 38 |
+| `zkp-engine` | `ZKP_CIRCUIT_MATURITY_V2` + `ZKP_PROOF_LIFECYCLE_V2` | circuit | pending proof | autoArchiveIdle + autoFailStuck | 41 |
+
+Every surface shares the V2 skeleton: dual state machines + per-owner active cap (enforced only on `pending→active`) + per-entity pending cap (enforced at record creation) + stamp-once `activatedAt` / `startedAt` + `auto*V2` batchers + `_resetState*V2` for test isolation. All V2 actions are dispatched via `-v2` suffix; preAction hook bypasses legacy DB bootstrap via `actionCommand.name().endsWith("-v2")`.
+
+### Regression tests (2026-04-18 evening)
+
+| Tier | Files | Tests | Duration |
+| --- | --- | --- | --- |
+| CLI Unit | 244 | **10493 / 10493** | 124s |
+| CLI Integration | 40 | **696 / 696** | 40s |
+| CLI E2E | 38 | **565 / 565** | 352s |
+| **Total** | **322** | **11754 / 11754** | **zero regressions** |
+
+This batch adds **470 new V2 unit tests** over 0.130.0 (sum across the 12 lib modules).
+
+**npm**: `npm i -g chainlesschain@0.136.0` (aliases `cc` / `clc` / `clchain`)
+
+Details: [`docs/design/modules/96_V2规范层governance.md`](./docs/design/modules/96_V2规范层governance.md) · [Changelog](./docs-site/docs/changelog.md#5-0-2-34-cli-0-131-0-136-2026-04-18).
+
+---
+
+## 2026-04-18 Update — CLI 0.130.0 · V2 Batch 7 · 9 orchestration managers
+
+Building on batch 6's 13 runtime managers, batch 7 extends V2 canonical surfaces to **9 orchestration-layer modules**: SSO / Workflow / Router / Hook / MCP / Coord / Sub-Agent / ExecBE / Todo. CLI bumps `0.123.0 → 0.130.0` (tag `v5.0.2.34`). Each surface stays strictly independent of legacy SQLite / transport layers, preserving the preAction bypass, dual state machines, and per-owner + per-entity caps skeleton. **+345 new V2 unit tests**.
+
+---
+
 ## 2026-04-18 Update — CLI 0.130.0 · V2 Batch 6 · 13 Runtime Managers
 
 Later the same day that 0.106.0 (V2 batch 5) shipped, we pushed one more round: **all 13 runtime-manager modules** now carry the V2 canonical surface. CLI bumps `0.106.0 → 0.130.0` (tag `v5.0.2.10`).
@@ -273,12 +349,12 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.9-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.34-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-5850%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-12900%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
@@ -293,7 +369,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.2.9 Evolution Edition (2026-04-04)
+## ⭐ Current Version: v5.0.2.34 Evolution Edition (2026-04-19 · CLI 0.142.0 · V2 Canonical Layer Batch 9 + 10)
 
 ### Latest Update - Managed Agents Parity · CLI Persistence (2026-04-16) 🆕
 

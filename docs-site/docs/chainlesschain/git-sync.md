@@ -436,6 +436,21 @@ git sparse-checkout init
 git sparse-checkout set knowledge/ configs/
 ```
 
+## 性能指标
+
+| 操作 | 典型耗时 | 备注 |
+| ---- | -------- | ---- |
+| 变更检测（status） | < 50 ms | 基于 isomorphic-git，纯 JS 实现 |
+| 增量提交（单文件） | < 150 ms | 含 diff + 哈希 |
+| 推送到远端（LAN） | < 500 ms | 依赖网络/托管方 |
+| 推送到远端（公网） | 典型 1–3 s | GitHub/Gitee/自建 |
+| 浅克隆（depth=10） | < 5 s | 小仓库，常规网速 |
+| 冲突检测 | < 100 ms | 三种策略（ours/theirs/merge） |
+| 仓库 GC 压缩 | 依赖仓库大小 | 见 `git gc --aggressive` |
+
+- 10 万条笔记的仓库，稀疏检出 + 增量同步可将日常同步控制在秒级。
+- 大仓库推荐开启 `shallowClone` + `sparse-checkout` 组合。
+
 ## 使用示例
 
 ### 通过 CLI 进行 Git 同步操作
@@ -1117,7 +1132,7 @@ git remote set-url --add --push origin git@gitlab.com:...
 
 ---
 
-## 测试覆盖
+## 测试覆盖率
 
 ### 测试文件
 

@@ -383,3 +383,84 @@ function renderGitignore() {
 !.env.example
 `;
 }
+
+// ===== V2 Surface: MCP Scaffold governance overlay (CLI v0.142.0) =====
+export const MSCAF_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending", ACTIVE: "active", STALE: "stale", ARCHIVED: "archived",
+});
+export const MSCAF_GENERATION_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued", GENERATING: "generating", GENERATED: "generated", FAILED: "failed", CANCELLED: "cancelled",
+});
+const _mscafPTrans = new Map([
+  [MSCAF_PROFILE_MATURITY_V2.PENDING, new Set([MSCAF_PROFILE_MATURITY_V2.ACTIVE, MSCAF_PROFILE_MATURITY_V2.ARCHIVED])],
+  [MSCAF_PROFILE_MATURITY_V2.ACTIVE, new Set([MSCAF_PROFILE_MATURITY_V2.STALE, MSCAF_PROFILE_MATURITY_V2.ARCHIVED])],
+  [MSCAF_PROFILE_MATURITY_V2.STALE, new Set([MSCAF_PROFILE_MATURITY_V2.ACTIVE, MSCAF_PROFILE_MATURITY_V2.ARCHIVED])],
+  [MSCAF_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _mscafPTerminal = new Set([MSCAF_PROFILE_MATURITY_V2.ARCHIVED]);
+const _mscafGTrans = new Map([
+  [MSCAF_GENERATION_LIFECYCLE_V2.QUEUED, new Set([MSCAF_GENERATION_LIFECYCLE_V2.GENERATING, MSCAF_GENERATION_LIFECYCLE_V2.CANCELLED])],
+  [MSCAF_GENERATION_LIFECYCLE_V2.GENERATING, new Set([MSCAF_GENERATION_LIFECYCLE_V2.GENERATED, MSCAF_GENERATION_LIFECYCLE_V2.FAILED, MSCAF_GENERATION_LIFECYCLE_V2.CANCELLED])],
+  [MSCAF_GENERATION_LIFECYCLE_V2.GENERATED, new Set()],
+  [MSCAF_GENERATION_LIFECYCLE_V2.FAILED, new Set()],
+  [MSCAF_GENERATION_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _mscafPsV2 = new Map();
+const _mscafGsV2 = new Map();
+let _mscafMaxActive = 6, _mscafMaxPending = 15, _mscafIdleMs = 30 * 24 * 60 * 60 * 1000, _mscafStuckMs = 60 * 1000;
+function _mscafPos(n, label) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${label} must be positive integer`); return v; }
+function _mscafCheckP(from, to) { const a = _mscafPTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid mscaf profile transition ${from} → ${to}`); }
+function _mscafCheckG(from, to) { const a = _mscafGTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid mscaf generation transition ${from} → ${to}`); }
+export function setMaxActiveMscafProfilesPerOwnerV2(n) { _mscafMaxActive = _mscafPos(n, "maxActiveMscafProfilesPerOwner"); }
+export function getMaxActiveMscafProfilesPerOwnerV2() { return _mscafMaxActive; }
+export function setMaxPendingMscafGenerationsPerProfileV2(n) { _mscafMaxPending = _mscafPos(n, "maxPendingMscafGenerationsPerProfile"); }
+export function getMaxPendingMscafGenerationsPerProfileV2() { return _mscafMaxPending; }
+export function setMscafProfileIdleMsV2(n) { _mscafIdleMs = _mscafPos(n, "mscafProfileIdleMs"); }
+export function getMscafProfileIdleMsV2() { return _mscafIdleMs; }
+export function setMscafGenerationStuckMsV2(n) { _mscafStuckMs = _mscafPos(n, "mscafGenerationStuckMs"); }
+export function getMscafGenerationStuckMsV2() { return _mscafStuckMs; }
+export function _resetStateMcpScaffoldV2() { _mscafPsV2.clear(); _mscafGsV2.clear(); _mscafMaxActive = 6; _mscafMaxPending = 15; _mscafIdleMs = 30 * 24 * 60 * 60 * 1000; _mscafStuckMs = 60 * 1000; }
+export function registerMscafProfileV2({ id, owner, transport, metadata } = {}) {
+  if (!id) throw new Error("mscaf profile id required"); if (!owner) throw new Error("mscaf profile owner required");
+  if (_mscafPsV2.has(id)) throw new Error(`mscaf profile ${id} already registered`);
+  const now = Date.now();
+  const p = { id, owner, transport: transport || "stdio", status: MSCAF_PROFILE_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, archivedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  _mscafPsV2.set(id, p); return { ...p, metadata: { ...p.metadata } };
+}
+function _mscafCountActive(owner) { let n = 0; for (const p of _mscafPsV2.values()) if (p.owner === owner && p.status === MSCAF_PROFILE_MATURITY_V2.ACTIVE) n++; return n; }
+export function activateMscafProfileV2(id) {
+  const p = _mscafPsV2.get(id); if (!p) throw new Error(`mscaf profile ${id} not found`);
+  _mscafCheckP(p.status, MSCAF_PROFILE_MATURITY_V2.ACTIVE);
+  const recovery = p.status === MSCAF_PROFILE_MATURITY_V2.STALE;
+  if (!recovery && _mscafCountActive(p.owner) >= _mscafMaxActive) throw new Error(`max active mscaf profiles for owner ${p.owner} reached`);
+  const now = Date.now(); p.status = MSCAF_PROFILE_MATURITY_V2.ACTIVE; p.updatedAt = now; p.lastTouchedAt = now; if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleMscafProfileV2(id) { const p = _mscafPsV2.get(id); if (!p) throw new Error(`mscaf profile ${id} not found`); _mscafCheckP(p.status, MSCAF_PROFILE_MATURITY_V2.STALE); p.status = MSCAF_PROFILE_MATURITY_V2.STALE; p.updatedAt = Date.now(); return { ...p, metadata: { ...p.metadata } }; }
+export function archiveMscafProfileV2(id) { const p = _mscafPsV2.get(id); if (!p) throw new Error(`mscaf profile ${id} not found`); _mscafCheckP(p.status, MSCAF_PROFILE_MATURITY_V2.ARCHIVED); const now = Date.now(); p.status = MSCAF_PROFILE_MATURITY_V2.ARCHIVED; p.updatedAt = now; if (!p.archivedAt) p.archivedAt = now; return { ...p, metadata: { ...p.metadata } }; }
+export function touchMscafProfileV2(id) { const p = _mscafPsV2.get(id); if (!p) throw new Error(`mscaf profile ${id} not found`); if (_mscafPTerminal.has(p.status)) throw new Error(`cannot touch terminal mscaf profile ${id}`); const now = Date.now(); p.lastTouchedAt = now; p.updatedAt = now; return { ...p, metadata: { ...p.metadata } }; }
+export function getMscafProfileV2(id) { const p = _mscafPsV2.get(id); if (!p) return null; return { ...p, metadata: { ...p.metadata } }; }
+export function listMscafProfilesV2() { return [..._mscafPsV2.values()].map((p) => ({ ...p, metadata: { ...p.metadata } })); }
+function _mscafCountPending(profileId) { let n = 0; for (const g of _mscafGsV2.values()) if (g.profileId === profileId && (g.status === MSCAF_GENERATION_LIFECYCLE_V2.QUEUED || g.status === MSCAF_GENERATION_LIFECYCLE_V2.GENERATING)) n++; return n; }
+export function createMscafGenerationV2({ id, profileId, target, metadata } = {}) {
+  if (!id) throw new Error("mscaf generation id required"); if (!profileId) throw new Error("mscaf generation profileId required");
+  if (_mscafGsV2.has(id)) throw new Error(`mscaf generation ${id} already exists`);
+  if (!_mscafPsV2.has(profileId)) throw new Error(`mscaf profile ${profileId} not found`);
+  if (_mscafCountPending(profileId) >= _mscafMaxPending) throw new Error(`max pending mscaf generations for profile ${profileId} reached`);
+  const now = Date.now();
+  const g = { id, profileId, target: target || "", status: MSCAF_GENERATION_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  _mscafGsV2.set(id, g); return { ...g, metadata: { ...g.metadata } };
+}
+export function generatingMscafGenerationV2(id) { const g = _mscafGsV2.get(id); if (!g) throw new Error(`mscaf generation ${id} not found`); _mscafCheckG(g.status, MSCAF_GENERATION_LIFECYCLE_V2.GENERATING); const now = Date.now(); g.status = MSCAF_GENERATION_LIFECYCLE_V2.GENERATING; g.updatedAt = now; if (!g.startedAt) g.startedAt = now; return { ...g, metadata: { ...g.metadata } }; }
+export function generateMscafGenerationV2(id) { const g = _mscafGsV2.get(id); if (!g) throw new Error(`mscaf generation ${id} not found`); _mscafCheckG(g.status, MSCAF_GENERATION_LIFECYCLE_V2.GENERATED); const now = Date.now(); g.status = MSCAF_GENERATION_LIFECYCLE_V2.GENERATED; g.updatedAt = now; if (!g.settledAt) g.settledAt = now; return { ...g, metadata: { ...g.metadata } }; }
+export function failMscafGenerationV2(id, reason) { const g = _mscafGsV2.get(id); if (!g) throw new Error(`mscaf generation ${id} not found`); _mscafCheckG(g.status, MSCAF_GENERATION_LIFECYCLE_V2.FAILED); const now = Date.now(); g.status = MSCAF_GENERATION_LIFECYCLE_V2.FAILED; g.updatedAt = now; if (!g.settledAt) g.settledAt = now; if (reason) g.metadata.failReason = String(reason); return { ...g, metadata: { ...g.metadata } }; }
+export function cancelMscafGenerationV2(id, reason) { const g = _mscafGsV2.get(id); if (!g) throw new Error(`mscaf generation ${id} not found`); _mscafCheckG(g.status, MSCAF_GENERATION_LIFECYCLE_V2.CANCELLED); const now = Date.now(); g.status = MSCAF_GENERATION_LIFECYCLE_V2.CANCELLED; g.updatedAt = now; if (!g.settledAt) g.settledAt = now; if (reason) g.metadata.cancelReason = String(reason); return { ...g, metadata: { ...g.metadata } }; }
+export function getMscafGenerationV2(id) { const g = _mscafGsV2.get(id); if (!g) return null; return { ...g, metadata: { ...g.metadata } }; }
+export function listMscafGenerationsV2() { return [..._mscafGsV2.values()].map((g) => ({ ...g, metadata: { ...g.metadata } })); }
+export function autoStaleIdleMscafProfilesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const p of _mscafPsV2.values()) if (p.status === MSCAF_PROFILE_MATURITY_V2.ACTIVE && (t - p.lastTouchedAt) >= _mscafIdleMs) { p.status = MSCAF_PROFILE_MATURITY_V2.STALE; p.updatedAt = t; flipped.push(p.id); } return { flipped, count: flipped.length }; }
+export function autoFailStuckMscafGenerationsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const g of _mscafGsV2.values()) if (g.status === MSCAF_GENERATION_LIFECYCLE_V2.GENERATING && g.startedAt != null && (t - g.startedAt) >= _mscafStuckMs) { g.status = MSCAF_GENERATION_LIFECYCLE_V2.FAILED; g.updatedAt = t; if (!g.settledAt) g.settledAt = t; g.metadata.failReason = "auto-fail-stuck"; flipped.push(g.id); } return { flipped, count: flipped.length }; }
+export function getMcpScaffoldGovStatsV2() {
+  const profilesByStatus = {}; for (const v of Object.values(MSCAF_PROFILE_MATURITY_V2)) profilesByStatus[v] = 0; for (const p of _mscafPsV2.values()) profilesByStatus[p.status]++;
+  const generationsByStatus = {}; for (const v of Object.values(MSCAF_GENERATION_LIFECYCLE_V2)) generationsByStatus[v] = 0; for (const g of _mscafGsV2.values()) generationsByStatus[g.status]++;
+  return { totalMscafProfilesV2: _mscafPsV2.size, totalMscafGenerationsV2: _mscafGsV2.size, maxActiveMscafProfilesPerOwner: _mscafMaxActive, maxPendingMscafGenerationsPerProfile: _mscafMaxPending, mscafProfileIdleMs: _mscafIdleMs, mscafGenerationStuckMs: _mscafStuckMs, profilesByStatus, generationsByStatus };
+}

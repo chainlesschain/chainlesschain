@@ -194,6 +194,45 @@ chainlesschain crosschain stats --json
 | `packages/cli/src/commands/crosschain.js` | crosschain 命令主入口 |
 | `packages/cli/src/lib/cross-chain.js` | 跨链桥接、原子交换、消息传递核心实现 |
 
+## 配置参考
+
+| 配置项 | 含义 | 默认 |
+| ------ | ---- | ---- |
+| `chains` | 支持的链列表 | ethereum / bsc / polygon / arbitrum / clc |
+| `bridge.confirmations` | 确认数 | 依链而定（以太坊 12） |
+| `swap.timelock` | 原子交换时间锁（秒） | 3600 |
+| `swap.hashAlgo` | HTLC 哈希算法 | `sha256` |
+| `message.maxSize` | 跨链消息最大字节 | 8192 |
+| V2 channel cap / transfer cap | 见 `cross_chain_v2_cli.md` | 10 / 20 |
+
+## 性能指标
+
+| 操作 | 典型耗时 | 备注 |
+| ---- | -------- | ---- |
+| `chains` / `tokens` | < 20 ms | 内置枚举 |
+| `bridge` 发起 | < 50 ms（本地） | 真实确认依赖目标链 |
+| `bridge-status` | < 30 ms | 本地索引查询 |
+| `swap` 创建 | < 50 ms | HTLC 写入 SQLite |
+| `claim` / `refund` | < 50 ms（本地） | 实际上链由外部执行 |
+| `send` 跨链消息 | < 50 ms | 异步投递 |
+| V2 transfer dispatch | < 50 ms | `cross_chain_v2_cli.md` |
+
+## 测试覆盖率
+
+```
+__tests__/unit/cross-chain.test.js — 83 tests
+```
+
+覆盖：链/代币枚举、bridge 全路径、HTLC 原子交换（lock/claim/refund + 超时）、跨链消息 send/status、错误码、幂等。V2 surface：40 V2 tests（见 `cross_chain_v2_cli.md`）。
+
+## 安全考虑
+
+1. **HTLC 时间锁**：`timelock` 必须足够大以覆盖目标链确认时间；过短会被 refund
+2. **哈希原像保护**：`swap` 的 preimage 只在 `claim` 前短暂暴露，CLI 端不持久化明文
+3. **重放防护**：消息带有 `nonce` + 源链 chainId，避免跨链重放
+4. **资产桥接风险**：CLI 仅完成本地状态与意图记录，真实上链由外部 signer/relayer 执行，需配置白名单
+5. **V2 pending cap**：`gov-stats-v2` 查看 per-channel pending-transfer 数，防止单通道堆积
+
 ## 使用示例
 
 ### 场景 1：资产桥接

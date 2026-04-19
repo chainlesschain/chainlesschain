@@ -265,7 +265,7 @@ chainlesschain cli-anything scan               # 扫描 PATH 中可用工具
 | ElevenLabs | 100 字 | 2–5s | 需联网 + API Key |
 | OpenAI TTS | 100 字 | 2–4s | 需联网 + API Key |
 
-## 测试覆盖
+## 测试覆盖率
 
 | 测试层级 | 文件 | 测试数 | 覆盖场景 |
 |----------|------|--------|----------|

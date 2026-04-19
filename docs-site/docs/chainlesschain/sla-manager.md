@@ -212,7 +212,7 @@ const slaDefaultConfig = {
 
 ---
 
-## 测试覆盖
+## 测试覆盖率
 
 ✅ `sla-manager.test.js` — 合约 CRUD、生命周期状态机（DRAFT→ACTIVE→VIOLATED→TERMINATED）、双方确认流程（22 个用例）
 
