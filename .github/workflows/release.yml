@@ -100,8 +100,9 @@ jobs:
       - name: Install dependencies
         run: |
           npm ci
-          # macos-latest runner is arm64 regardless of target arch — vite needs the runner's rollup binary
-          npm install @rollup/rollup-darwin-arm64 @rollup/rollup-darwin-x64 --no-save || true
+          # macos-latest runner is arm64 regardless of target arch — vite needs the runner's rollup binary.
+          # Install separately: combining both fails atomically with EBADPLATFORM on arm64 runner.
+          npm install @rollup/rollup-darwin-arm64 --no-save || true
 
       - name: Build main process
         working-directory: desktop-app-vue
