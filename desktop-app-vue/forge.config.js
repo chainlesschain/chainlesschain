@@ -317,15 +317,22 @@ module.exports = {
       name: "@electron-forge/maker-zip",
       platforms: ["win32", "darwin", "linux"],
     },
-    {
-      name: "@electron-forge/maker-dmg",
-      config: {
-        name: "ChainlessChain",
-        icon: path.join(__dirname, "assets", "icon.icns"),
-        format: "ULFO",
-        overwrite: true,
-      },
-    },
+    // DMG maker depends on `appdmg` → native `fs-xattr` whose old binding.gyp
+    // fails to compile on macOS 15 runners (clang: unknown option '-o').
+    // CI sets DISABLE_DMG=1 and ships macOS as ZIP instead.
+    ...(process.env.DISABLE_DMG === "1"
+      ? []
+      : [
+          {
+            name: "@electron-forge/maker-dmg",
+            config: {
+              name: "ChainlessChain",
+              icon: path.join(__dirname, "assets", "icon.icns"),
+              format: "ULFO",
+              overwrite: true,
+            },
+          },
+        ]),
     // Squirrel installer - temporarily disabled due to path issues
     // Re-enable after investigating the nuspec generation error
     /*

@@ -103,8 +103,9 @@ jobs:
           # macos-latest runner is arm64 regardless of target arch — vite needs the runner's rollup binary.
           # Install separately: combining both fails atomically with EBADPLATFORM on arm64 runner.
           npm install @rollup/rollup-darwin-arm64 --no-save || true
-          # appdmg is optionalDependencies of electron-installer-dmg; npm ci may skip it
-          npm install appdmg --no-save || true
+          # NOTE: appdmg (dep of maker-dmg) pulls native fs-xattr which fails to
+          # compile on macOS 15 runners (clang: unknown option '-o'). CI disables
+          # DMG via DISABLE_DMG=1 in forge.config.js and ships ZIP instead.
 
       - name: Build main process
         working-directory: desktop-app-vue
@@ -130,6 +131,7 @@ jobs:
         env:
           CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
           SKIP_BACKEND_CHECK: "true"
+          DISABLE_DMG: "1"
           NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Upload macOS artifacts
@@ -512,8 +514,8 @@ jobs:
           - \`ChainlessChain-win32-x64-${VERSION#v}.zip\` - Portable version (extract and run)
 
           #### macOS
-          - \`ChainlessChain-darwin-x64-${VERSION#v}.dmg\` - Intel Mac installer
-          - \`ChainlessChain-darwin-arm64-${VERSION#v}.dmg\` - Apple Silicon installer
+          - \`ChainlessChain-darwin-x64-${VERSION#v}.zip\` - Intel Mac (unzip and move to /Applications)
+          - \`ChainlessChain-darwin-arm64-${VERSION#v}.zip\` - Apple Silicon (unzip and move to /Applications)
 
           #### Linux
           - \`ChainlessChain-${VERSION#v}.AppImage\` - Universal Linux package
