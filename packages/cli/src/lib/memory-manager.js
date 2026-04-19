@@ -539,3 +539,339 @@ export function _resetStateMemoryManagerV2() {
   _entryIdleMsV2 = MEMORY_DEFAULT_ENTRY_IDLE_MS;
   _jobStuckMsV2 = MEMORY_DEFAULT_JOB_STUCK_MS;
 }
+
+// =====================================================================
+// memory-manager V2 governance overlay (iter21)
+// =====================================================================
+export const MEMGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const MEMGOV_RECALL_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  RECALLING: "recalling",
+  RECALLED: "recalled",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _memgovPTrans = new Map([
+  [
+    MEMGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      MEMGOV_PROFILE_MATURITY_V2.ACTIVE,
+      MEMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    MEMGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      MEMGOV_PROFILE_MATURITY_V2.STALE,
+      MEMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    MEMGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      MEMGOV_PROFILE_MATURITY_V2.ACTIVE,
+      MEMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [MEMGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _memgovPTerminal = new Set([MEMGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _memgovJTrans = new Map([
+  [
+    MEMGOV_RECALL_LIFECYCLE_V2.QUEUED,
+    new Set([
+      MEMGOV_RECALL_LIFECYCLE_V2.RECALLING,
+      MEMGOV_RECALL_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    MEMGOV_RECALL_LIFECYCLE_V2.RECALLING,
+    new Set([
+      MEMGOV_RECALL_LIFECYCLE_V2.RECALLED,
+      MEMGOV_RECALL_LIFECYCLE_V2.FAILED,
+      MEMGOV_RECALL_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [MEMGOV_RECALL_LIFECYCLE_V2.RECALLED, new Set()],
+  [MEMGOV_RECALL_LIFECYCLE_V2.FAILED, new Set()],
+  [MEMGOV_RECALL_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _memgovPsV2 = new Map();
+const _memgovJsV2 = new Map();
+let _memgovMaxActive = 10,
+  _memgovMaxPending = 30,
+  _memgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _memgovStuckMs = 60 * 1000;
+function _memgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _memgovCheckP(from, to) {
+  const a = _memgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid memgov profile transition ${from} → ${to}`);
+}
+function _memgovCheckJ(from, to) {
+  const a = _memgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid memgov recall transition ${from} → ${to}`);
+}
+function _memgovCountActive(owner) {
+  let c = 0;
+  for (const p of _memgovPsV2.values())
+    if (p.owner === owner && p.status === MEMGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _memgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _memgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === MEMGOV_RECALL_LIFECYCLE_V2.QUEUED ||
+        j.status === MEMGOV_RECALL_LIFECYCLE_V2.RECALLING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveMemgovProfilesPerOwnerV2(n) {
+  _memgovMaxActive = _memgovPos(n, "maxActiveMemgovProfilesPerOwner");
+}
+export function getMaxActiveMemgovProfilesPerOwnerV2() {
+  return _memgovMaxActive;
+}
+export function setMaxPendingMemgovRecallsPerProfileV2(n) {
+  _memgovMaxPending = _memgovPos(n, "maxPendingMemgovRecallsPerProfile");
+}
+export function getMaxPendingMemgovRecallsPerProfileV2() {
+  return _memgovMaxPending;
+}
+export function setMemgovProfileIdleMsV2(n) {
+  _memgovIdleMs = _memgovPos(n, "memgovProfileIdleMs");
+}
+export function getMemgovProfileIdleMsV2() {
+  return _memgovIdleMs;
+}
+export function setMemgovRecallStuckMsV2(n) {
+  _memgovStuckMs = _memgovPos(n, "memgovRecallStuckMs");
+}
+export function getMemgovRecallStuckMsV2() {
+  return _memgovStuckMs;
+}
+export function _resetStateMemoryManagerGovV2() {
+  _memgovPsV2.clear();
+  _memgovJsV2.clear();
+  _memgovMaxActive = 10;
+  _memgovMaxPending = 30;
+  _memgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _memgovStuckMs = 60 * 1000;
+}
+export function registerMemgovProfileV2({ id, owner, scope, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_memgovPsV2.has(id))
+    throw new Error(`memgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    scope: scope || "user",
+    status: MEMGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _memgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateMemgovProfileV2(id) {
+  const p = _memgovPsV2.get(id);
+  if (!p) throw new Error(`memgov profile ${id} not found`);
+  const isInitial = p.status === MEMGOV_PROFILE_MATURITY_V2.PENDING;
+  _memgovCheckP(p.status, MEMGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _memgovCountActive(p.owner) >= _memgovMaxActive)
+    throw new Error(`max active memgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = MEMGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleMemgovProfileV2(id) {
+  const p = _memgovPsV2.get(id);
+  if (!p) throw new Error(`memgov profile ${id} not found`);
+  _memgovCheckP(p.status, MEMGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = MEMGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveMemgovProfileV2(id) {
+  const p = _memgovPsV2.get(id);
+  if (!p) throw new Error(`memgov profile ${id} not found`);
+  _memgovCheckP(p.status, MEMGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = MEMGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchMemgovProfileV2(id) {
+  const p = _memgovPsV2.get(id);
+  if (!p) throw new Error(`memgov profile ${id} not found`);
+  if (_memgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal memgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getMemgovProfileV2(id) {
+  const p = _memgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listMemgovProfilesV2() {
+  return [..._memgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createMemgovRecallV2({ id, profileId, key, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_memgovJsV2.has(id))
+    throw new Error(`memgov recall ${id} already exists`);
+  if (!_memgovPsV2.has(profileId))
+    throw new Error(`memgov profile ${profileId} not found`);
+  if (_memgovCountPending(profileId) >= _memgovMaxPending)
+    throw new Error(
+      `max pending memgov recalls for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    key: key || "",
+    status: MEMGOV_RECALL_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _memgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function recallingMemgovRecallV2(id) {
+  const j = _memgovJsV2.get(id);
+  if (!j) throw new Error(`memgov recall ${id} not found`);
+  _memgovCheckJ(j.status, MEMGOV_RECALL_LIFECYCLE_V2.RECALLING);
+  const now = Date.now();
+  j.status = MEMGOV_RECALL_LIFECYCLE_V2.RECALLING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeRecallMemgovV2(id) {
+  const j = _memgovJsV2.get(id);
+  if (!j) throw new Error(`memgov recall ${id} not found`);
+  _memgovCheckJ(j.status, MEMGOV_RECALL_LIFECYCLE_V2.RECALLED);
+  const now = Date.now();
+  j.status = MEMGOV_RECALL_LIFECYCLE_V2.RECALLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failMemgovRecallV2(id, reason) {
+  const j = _memgovJsV2.get(id);
+  if (!j) throw new Error(`memgov recall ${id} not found`);
+  _memgovCheckJ(j.status, MEMGOV_RECALL_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = MEMGOV_RECALL_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelMemgovRecallV2(id, reason) {
+  const j = _memgovJsV2.get(id);
+  if (!j) throw new Error(`memgov recall ${id} not found`);
+  _memgovCheckJ(j.status, MEMGOV_RECALL_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = MEMGOV_RECALL_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getMemgovRecallV2(id) {
+  const j = _memgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listMemgovRecallsV2() {
+  return [..._memgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleMemgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _memgovPsV2.values())
+    if (
+      p.status === MEMGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _memgovIdleMs
+    ) {
+      p.status = MEMGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckMemgovRecallsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _memgovJsV2.values())
+    if (
+      j.status === MEMGOV_RECALL_LIFECYCLE_V2.RECALLING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _memgovStuckMs
+    ) {
+      j.status = MEMGOV_RECALL_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getMemoryManagerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(MEMGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _memgovPsV2.values()) profilesByStatus[p.status]++;
+  const recallsByStatus = {};
+  for (const v of Object.values(MEMGOV_RECALL_LIFECYCLE_V2))
+    recallsByStatus[v] = 0;
+  for (const j of _memgovJsV2.values()) recallsByStatus[j.status]++;
+  return {
+    totalMemgovProfilesV2: _memgovPsV2.size,
+    totalMemgovRecallsV2: _memgovJsV2.size,
+    maxActiveMemgovProfilesPerOwner: _memgovMaxActive,
+    maxPendingMemgovRecallsPerProfile: _memgovMaxPending,
+    memgovProfileIdleMs: _memgovIdleMs,
+    memgovRecallStuckMs: _memgovStuckMs,
+    profilesByStatus,
+    recallsByStatus,
+  };
+}

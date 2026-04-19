@@ -694,3 +694,349 @@ export function _resetStatePqcManagerV2() {
   _keyIdleMsV2 = PQC_DEFAULT_KEY_IDLE_MS;
   _migrationStuckMsV2 = PQC_DEFAULT_MIGRATION_STUCK_MS;
 }
+
+// =====================================================================
+// pqc-manager V2 governance overlay (iter22)
+// =====================================================================
+export const PQCGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  DEPRECATED: "deprecated",
+  ARCHIVED: "archived",
+});
+export const PQCGOV_KEYGEN_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  GENERATING: "generating",
+  GENERATED: "generated",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _pqcgovPTrans = new Map([
+  [
+    PQCGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      PQCGOV_PROFILE_MATURITY_V2.ACTIVE,
+      PQCGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    PQCGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      PQCGOV_PROFILE_MATURITY_V2.DEPRECATED,
+      PQCGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    PQCGOV_PROFILE_MATURITY_V2.DEPRECATED,
+    new Set([
+      PQCGOV_PROFILE_MATURITY_V2.ACTIVE,
+      PQCGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [PQCGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _pqcgovPTerminal = new Set([PQCGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _pqcgovJTrans = new Map([
+  [
+    PQCGOV_KEYGEN_LIFECYCLE_V2.QUEUED,
+    new Set([
+      PQCGOV_KEYGEN_LIFECYCLE_V2.GENERATING,
+      PQCGOV_KEYGEN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    PQCGOV_KEYGEN_LIFECYCLE_V2.GENERATING,
+    new Set([
+      PQCGOV_KEYGEN_LIFECYCLE_V2.GENERATED,
+      PQCGOV_KEYGEN_LIFECYCLE_V2.FAILED,
+      PQCGOV_KEYGEN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [PQCGOV_KEYGEN_LIFECYCLE_V2.GENERATED, new Set()],
+  [PQCGOV_KEYGEN_LIFECYCLE_V2.FAILED, new Set()],
+  [PQCGOV_KEYGEN_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _pqcgovPsV2 = new Map();
+const _pqcgovJsV2 = new Map();
+let _pqcgovMaxActive = 6,
+  _pqcgovMaxPending = 12,
+  _pqcgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _pqcgovStuckMs = 60 * 1000;
+function _pqcgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _pqcgovCheckP(from, to) {
+  const a = _pqcgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid pqcgov profile transition ${from} → ${to}`);
+}
+function _pqcgovCheckJ(from, to) {
+  const a = _pqcgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid pqcgov keygen transition ${from} → ${to}`);
+}
+function _pqcgovCountActive(owner) {
+  let c = 0;
+  for (const p of _pqcgovPsV2.values())
+    if (p.owner === owner && p.status === PQCGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _pqcgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _pqcgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === PQCGOV_KEYGEN_LIFECYCLE_V2.QUEUED ||
+        j.status === PQCGOV_KEYGEN_LIFECYCLE_V2.GENERATING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActivePqcgovProfilesPerOwnerV2(n) {
+  _pqcgovMaxActive = _pqcgovPos(n, "maxActivePqcgovProfilesPerOwner");
+}
+export function getMaxActivePqcgovProfilesPerOwnerV2() {
+  return _pqcgovMaxActive;
+}
+export function setMaxPendingPqcgovKeygensPerProfileV2(n) {
+  _pqcgovMaxPending = _pqcgovPos(n, "maxPendingPqcgovKeygensPerProfile");
+}
+export function getMaxPendingPqcgovKeygensPerProfileV2() {
+  return _pqcgovMaxPending;
+}
+export function setPqcgovProfileIdleMsV2(n) {
+  _pqcgovIdleMs = _pqcgovPos(n, "pqcgovProfileIdleMs");
+}
+export function getPqcgovProfileIdleMsV2() {
+  return _pqcgovIdleMs;
+}
+export function setPqcgovKeygenStuckMsV2(n) {
+  _pqcgovStuckMs = _pqcgovPos(n, "pqcgovKeygenStuckMs");
+}
+export function getPqcgovKeygenStuckMsV2() {
+  return _pqcgovStuckMs;
+}
+export function _resetStatePqcManagerGovV2() {
+  _pqcgovPsV2.clear();
+  _pqcgovJsV2.clear();
+  _pqcgovMaxActive = 6;
+  _pqcgovMaxPending = 12;
+  _pqcgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _pqcgovStuckMs = 60 * 1000;
+}
+export function registerPqcgovProfileV2({
+  id,
+  owner,
+  algorithm,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_pqcgovPsV2.has(id))
+    throw new Error(`pqcgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    algorithm: algorithm || "kyber",
+    status: PQCGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _pqcgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activatePqcgovProfileV2(id) {
+  const p = _pqcgovPsV2.get(id);
+  if (!p) throw new Error(`pqcgov profile ${id} not found`);
+  const isInitial = p.status === PQCGOV_PROFILE_MATURITY_V2.PENDING;
+  _pqcgovCheckP(p.status, PQCGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _pqcgovCountActive(p.owner) >= _pqcgovMaxActive)
+    throw new Error(`max active pqcgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = PQCGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function deprecatePqcgovProfileV2(id) {
+  const p = _pqcgovPsV2.get(id);
+  if (!p) throw new Error(`pqcgov profile ${id} not found`);
+  _pqcgovCheckP(p.status, PQCGOV_PROFILE_MATURITY_V2.DEPRECATED);
+  p.status = PQCGOV_PROFILE_MATURITY_V2.DEPRECATED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archivePqcgovProfileV2(id) {
+  const p = _pqcgovPsV2.get(id);
+  if (!p) throw new Error(`pqcgov profile ${id} not found`);
+  _pqcgovCheckP(p.status, PQCGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = PQCGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchPqcgovProfileV2(id) {
+  const p = _pqcgovPsV2.get(id);
+  if (!p) throw new Error(`pqcgov profile ${id} not found`);
+  if (_pqcgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal pqcgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getPqcgovProfileV2(id) {
+  const p = _pqcgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listPqcgovProfilesV2() {
+  return [..._pqcgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createPqcgovKeygenV2({
+  id,
+  profileId,
+  purpose,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_pqcgovJsV2.has(id))
+    throw new Error(`pqcgov keygen ${id} already exists`);
+  if (!_pqcgovPsV2.has(profileId))
+    throw new Error(`pqcgov profile ${profileId} not found`);
+  if (_pqcgovCountPending(profileId) >= _pqcgovMaxPending)
+    throw new Error(
+      `max pending pqcgov keygens for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    purpose: purpose || "",
+    status: PQCGOV_KEYGEN_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _pqcgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function generatingPqcgovKeygenV2(id) {
+  const j = _pqcgovJsV2.get(id);
+  if (!j) throw new Error(`pqcgov keygen ${id} not found`);
+  _pqcgovCheckJ(j.status, PQCGOV_KEYGEN_LIFECYCLE_V2.GENERATING);
+  const now = Date.now();
+  j.status = PQCGOV_KEYGEN_LIFECYCLE_V2.GENERATING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeKeygenPqcgovV2(id) {
+  const j = _pqcgovJsV2.get(id);
+  if (!j) throw new Error(`pqcgov keygen ${id} not found`);
+  _pqcgovCheckJ(j.status, PQCGOV_KEYGEN_LIFECYCLE_V2.GENERATED);
+  const now = Date.now();
+  j.status = PQCGOV_KEYGEN_LIFECYCLE_V2.GENERATED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failPqcgovKeygenV2(id, reason) {
+  const j = _pqcgovJsV2.get(id);
+  if (!j) throw new Error(`pqcgov keygen ${id} not found`);
+  _pqcgovCheckJ(j.status, PQCGOV_KEYGEN_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = PQCGOV_KEYGEN_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelPqcgovKeygenV2(id, reason) {
+  const j = _pqcgovJsV2.get(id);
+  if (!j) throw new Error(`pqcgov keygen ${id} not found`);
+  _pqcgovCheckJ(j.status, PQCGOV_KEYGEN_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = PQCGOV_KEYGEN_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getPqcgovKeygenV2(id) {
+  const j = _pqcgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listPqcgovKeygensV2() {
+  return [..._pqcgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoDeprecateIdlePqcgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _pqcgovPsV2.values())
+    if (
+      p.status === PQCGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _pqcgovIdleMs
+    ) {
+      p.status = PQCGOV_PROFILE_MATURITY_V2.DEPRECATED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckPqcgovKeygensV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _pqcgovJsV2.values())
+    if (
+      j.status === PQCGOV_KEYGEN_LIFECYCLE_V2.GENERATING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _pqcgovStuckMs
+    ) {
+      j.status = PQCGOV_KEYGEN_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getPqcManagerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(PQCGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _pqcgovPsV2.values()) profilesByStatus[p.status]++;
+  const keygensByStatus = {};
+  for (const v of Object.values(PQCGOV_KEYGEN_LIFECYCLE_V2))
+    keygensByStatus[v] = 0;
+  for (const j of _pqcgovJsV2.values()) keygensByStatus[j.status]++;
+  return {
+    totalPqcgovProfilesV2: _pqcgovPsV2.size,
+    totalPqcgovKeygensV2: _pqcgovJsV2.size,
+    maxActivePqcgovProfilesPerOwner: _pqcgovMaxActive,
+    maxPendingPqcgovKeygensPerProfile: _pqcgovMaxPending,
+    pqcgovProfileIdleMs: _pqcgovIdleMs,
+    pqcgovKeygenStuckMs: _pqcgovStuckMs,
+    profilesByStatus,
+    keygensByStatus,
+  };
+}

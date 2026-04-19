@@ -613,3 +613,220 @@ export function registerTrustCommand(program) {
 
   program.addCommand(tr);
 }
+
+// === Iter18 V2 governance overlay ===
+export function registerTrustgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "trust");
+  if (!parent) return;
+  const L = async () => await import("../lib/trust-security.js");
+  parent
+    .command("trustgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.TRUSTGOV_PROFILE_MATURITY_V2,
+            checkLifecycle: m.TRUSTGOV_CHECK_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("trustgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveTrustgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingTrustgovChecksPerProfileV2(),
+            idleMs: m.getTrustgovProfileIdleMsV2(),
+            stuckMs: m.getTrustgovCheckStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("trustgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveTrustgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("trustgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingTrustgovChecksPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("trustgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setTrustgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("trustgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setTrustgovCheckStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("trustgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--level <v>", "level")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerTrustgovProfileV2({ id, owner, level: o.level }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("trustgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateTrustgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("trustgov-suspend-v2 <id>")
+    .description("Suspend profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).suspendTrustgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("trustgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveTrustgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("trustgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchTrustgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("trustgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).getTrustgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("trustgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).listTrustgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("trustgov-create-check-v2 <id> <profileId>")
+    .description("Create check")
+    .option("--subject <v>", "subject")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createTrustgovCheckV2({ id, profileId, subject: o.subject }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("trustgov-verifying-check-v2 <id>")
+    .description("Mark check as verifying")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).verifyingTrustgovCheckV2(id), null, 2),
+      );
+    });
+  parent
+    .command("trustgov-complete-check-v2 <id>")
+    .description("Complete check")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeCheckTrustgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("trustgov-fail-check-v2 <id> [reason]")
+    .description("Fail check")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failTrustgovCheckV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("trustgov-cancel-check-v2 <id> [reason]")
+    .description("Cancel check")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelTrustgovCheckV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("trustgov-get-check-v2 <id>")
+    .description("Get check")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getTrustgovCheckV2(id), null, 2));
+    });
+  parent
+    .command("trustgov-list-checks-v2")
+    .description("List checks")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listTrustgovChecksV2(), null, 2));
+    });
+  parent
+    .command("trustgov-auto-suspend-idle-v2")
+    .description("Auto-suspend idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify(
+          (await L()).autoSuspendIdleTrustgovProfilesV2(),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("trustgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck checks")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckTrustgovChecksV2(), null, 2),
+      );
+    });
+  parent
+    .command("trustgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getTrustSecurityGovStatsV2(), null, 2),
+      );
+    });
+}

@@ -1276,3 +1276,338 @@ export function _resetStateAutomationEngineV2() {
   _automationIdleMsV2 = AUTOMATION_DEFAULT_AUTOMATION_IDLE_MS;
   _executionStuckMsV2 = AUTOMATION_DEFAULT_EXECUTION_STUCK_MS;
 }
+
+// =====================================================================
+// automation-engine V2 governance overlay (iter22)
+// =====================================================================
+export const AUGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const AUGOV_FLOW_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _augovPTrans = new Map([
+  [
+    AUGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      AUGOV_PROFILE_MATURITY_V2.ACTIVE,
+      AUGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    AUGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      AUGOV_PROFILE_MATURITY_V2.PAUSED,
+      AUGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    AUGOV_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      AUGOV_PROFILE_MATURITY_V2.ACTIVE,
+      AUGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [AUGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _augovPTerminal = new Set([AUGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _augovJTrans = new Map([
+  [
+    AUGOV_FLOW_LIFECYCLE_V2.QUEUED,
+    new Set([
+      AUGOV_FLOW_LIFECYCLE_V2.RUNNING,
+      AUGOV_FLOW_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    AUGOV_FLOW_LIFECYCLE_V2.RUNNING,
+    new Set([
+      AUGOV_FLOW_LIFECYCLE_V2.COMPLETED,
+      AUGOV_FLOW_LIFECYCLE_V2.FAILED,
+      AUGOV_FLOW_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [AUGOV_FLOW_LIFECYCLE_V2.COMPLETED, new Set()],
+  [AUGOV_FLOW_LIFECYCLE_V2.FAILED, new Set()],
+  [AUGOV_FLOW_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _augovPsV2 = new Map();
+const _augovJsV2 = new Map();
+let _augovMaxActive = 10,
+  _augovMaxPending = 25,
+  _augovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _augovStuckMs = 60 * 1000;
+function _augovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _augovCheckP(from, to) {
+  const a = _augovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid augov profile transition ${from} → ${to}`);
+}
+function _augovCheckJ(from, to) {
+  const a = _augovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid augov flow transition ${from} → ${to}`);
+}
+function _augovCountActive(owner) {
+  let c = 0;
+  for (const p of _augovPsV2.values())
+    if (p.owner === owner && p.status === AUGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _augovCountPending(profileId) {
+  let c = 0;
+  for (const j of _augovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === AUGOV_FLOW_LIFECYCLE_V2.QUEUED ||
+        j.status === AUGOV_FLOW_LIFECYCLE_V2.RUNNING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveAugovProfilesPerOwnerV2(n) {
+  _augovMaxActive = _augovPos(n, "maxActiveAugovProfilesPerOwner");
+}
+export function getMaxActiveAugovProfilesPerOwnerV2() {
+  return _augovMaxActive;
+}
+export function setMaxPendingAugovFlowsPerProfileV2(n) {
+  _augovMaxPending = _augovPos(n, "maxPendingAugovFlowsPerProfile");
+}
+export function getMaxPendingAugovFlowsPerProfileV2() {
+  return _augovMaxPending;
+}
+export function setAugovProfileIdleMsV2(n) {
+  _augovIdleMs = _augovPos(n, "augovProfileIdleMs");
+}
+export function getAugovProfileIdleMsV2() {
+  return _augovIdleMs;
+}
+export function setAugovFlowStuckMsV2(n) {
+  _augovStuckMs = _augovPos(n, "augovFlowStuckMs");
+}
+export function getAugovFlowStuckMsV2() {
+  return _augovStuckMs;
+}
+export function _resetStateAutomationEngineGovV2() {
+  _augovPsV2.clear();
+  _augovJsV2.clear();
+  _augovMaxActive = 10;
+  _augovMaxPending = 25;
+  _augovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _augovStuckMs = 60 * 1000;
+}
+export function registerAugovProfileV2({
+  id,
+  owner,
+  connector,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_augovPsV2.has(id)) throw new Error(`augov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    connector: connector || "webhook",
+    status: AUGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _augovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateAugovProfileV2(id) {
+  const p = _augovPsV2.get(id);
+  if (!p) throw new Error(`augov profile ${id} not found`);
+  const isInitial = p.status === AUGOV_PROFILE_MATURITY_V2.PENDING;
+  _augovCheckP(p.status, AUGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _augovCountActive(p.owner) >= _augovMaxActive)
+    throw new Error(`max active augov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = AUGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pauseAugovProfileV2(id) {
+  const p = _augovPsV2.get(id);
+  if (!p) throw new Error(`augov profile ${id} not found`);
+  _augovCheckP(p.status, AUGOV_PROFILE_MATURITY_V2.PAUSED);
+  p.status = AUGOV_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveAugovProfileV2(id) {
+  const p = _augovPsV2.get(id);
+  if (!p) throw new Error(`augov profile ${id} not found`);
+  _augovCheckP(p.status, AUGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = AUGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchAugovProfileV2(id) {
+  const p = _augovPsV2.get(id);
+  if (!p) throw new Error(`augov profile ${id} not found`);
+  if (_augovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal augov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getAugovProfileV2(id) {
+  const p = _augovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listAugovProfilesV2() {
+  return [..._augovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createAugovFlowV2({ id, profileId, trigger, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_augovJsV2.has(id)) throw new Error(`augov flow ${id} already exists`);
+  if (!_augovPsV2.has(profileId))
+    throw new Error(`augov profile ${profileId} not found`);
+  if (_augovCountPending(profileId) >= _augovMaxPending)
+    throw new Error(`max pending augov flows for profile ${profileId} reached`);
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    trigger: trigger || "",
+    status: AUGOV_FLOW_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _augovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function runningAugovFlowV2(id) {
+  const j = _augovJsV2.get(id);
+  if (!j) throw new Error(`augov flow ${id} not found`);
+  _augovCheckJ(j.status, AUGOV_FLOW_LIFECYCLE_V2.RUNNING);
+  const now = Date.now();
+  j.status = AUGOV_FLOW_LIFECYCLE_V2.RUNNING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeFlowAugovV2(id) {
+  const j = _augovJsV2.get(id);
+  if (!j) throw new Error(`augov flow ${id} not found`);
+  _augovCheckJ(j.status, AUGOV_FLOW_LIFECYCLE_V2.COMPLETED);
+  const now = Date.now();
+  j.status = AUGOV_FLOW_LIFECYCLE_V2.COMPLETED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failAugovFlowV2(id, reason) {
+  const j = _augovJsV2.get(id);
+  if (!j) throw new Error(`augov flow ${id} not found`);
+  _augovCheckJ(j.status, AUGOV_FLOW_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = AUGOV_FLOW_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelAugovFlowV2(id, reason) {
+  const j = _augovJsV2.get(id);
+  if (!j) throw new Error(`augov flow ${id} not found`);
+  _augovCheckJ(j.status, AUGOV_FLOW_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = AUGOV_FLOW_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getAugovFlowV2(id) {
+  const j = _augovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listAugovFlowsV2() {
+  return [..._augovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPauseIdleAugovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _augovPsV2.values())
+    if (
+      p.status === AUGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _augovIdleMs
+    ) {
+      p.status = AUGOV_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckAugovFlowsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _augovJsV2.values())
+    if (
+      j.status === AUGOV_FLOW_LIFECYCLE_V2.RUNNING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _augovStuckMs
+    ) {
+      j.status = AUGOV_FLOW_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getAutomationEngineGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(AUGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _augovPsV2.values()) profilesByStatus[p.status]++;
+  const flowsByStatus = {};
+  for (const v of Object.values(AUGOV_FLOW_LIFECYCLE_V2)) flowsByStatus[v] = 0;
+  for (const j of _augovJsV2.values()) flowsByStatus[j.status]++;
+  return {
+    totalAugovProfilesV2: _augovPsV2.size,
+    totalAugovFlowsV2: _augovJsV2.size,
+    maxActiveAugovProfilesPerOwner: _augovMaxActive,
+    maxPendingAugovFlowsPerProfile: _augovMaxPending,
+    augovProfileIdleMs: _augovIdleMs,
+    augovFlowStuckMs: _augovStuckMs,
+    profilesByStatus,
+    flowsByStatus,
+  };
+}

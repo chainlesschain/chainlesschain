@@ -229,6 +229,76 @@ import { registerPcgovV2Commands } from "./commands/privacy.js";
 import { registerIncgovV2Commands } from "./commands/incentive.js";
 import { registerHardgovV2Commands } from "./commands/hardening.js";
 
+// Iter18 V2 governance overlays
+import { registerAiopsgovV2Commands } from "./commands/ops.js";
+import { registerMmgovV2Commands } from "./commands/multimodal.js";
+import { registerInstgovV2Commands } from "./commands/instinct.js";
+import { registerTnsgovV2Commands } from "./commands/tenant.js";
+import { registerQntgovV2Commands } from "./commands/quantization.js";
+import { registerTrustgovV2Commands } from "./commands/trust.js";
+import { registerNlpgovV2Commands } from "./commands/nlprog.js";
+import { registerPercgovV2Commands } from "./commands/perception.js";
+
+// Iter19 V2 governance overlays
+import { registerCdagovV2Commands } from "./commands/codegen.js";
+import { registerCogovV2Commands } from "./commands/collab.js";
+import { registerCommgovV2Commands } from "./commands/governance.js";
+import { registerDidgovV2Commands } from "./commands/did.js";
+import { registerSsogovV2Commands } from "./commands/sso.js";
+import { registerOrggovV2Commands } from "./commands/org.js";
+import { registerScimgovV2Commands } from "./commands/scim.js";
+import { registerSyncgovV2Commands } from "./commands/sync.js";
+
+// Iter20 V2 governance overlays
+import { registerAnetgovV2Commands } from "./commands/agent-network.js";
+import { registerBagovV2Commands } from "./commands/browse.js";
+import { registerDlpgovV2Commands } from "./commands/dlp.js";
+import { registerEvgovV2Commands } from "./commands/evomap.js";
+import { registerFedgovV2Commands } from "./commands/federation.js";
+import { registerIpfsgovV2Commands } from "./commands/ipfs.js";
+import { registerP2pgovV2Commands } from "./commands/p2p.js";
+import { registerWalgovV2Commands } from "./commands/wallet.js";
+
+// Iter21 V2 governance overlays
+import { registerApgovV2Commands } from "./commands/activitypub.js";
+import { registerMatgovV2Commands } from "./commands/matrix.js";
+import { registerNosgovV2Commands } from "./commands/nostr.js";
+import { registerBigovV2Commands } from "./commands/bi.js";
+import { registerMemgovV2Commands } from "./commands/memory.js";
+import { registerSesgovV2Commands } from "./commands/session.js";
+import { registerHookgovV2Commands } from "./commands/hook.js";
+import { registerWfgovV2Commands } from "./commands/workflow.js";
+
+// Iter22 V2 governance overlays
+import { registerAugovV2Commands } from "./commands/automation.js";
+import { registerShgovV2Commands } from "./commands/cowork.js";
+import { registerDv2govV2Commands } from "./commands/did-v2.js";
+import { registerKexpgovV2Commands } from "./commands/export.js";
+import { registerKimpgovV2Commands } from "./commands/import.js";
+import { registerLlmgovV2Commands } from "./commands/llm.js";
+import { registerPqcgovV2Commands } from "./commands/pqc.js";
+import { registerSmgovV2Commands } from "./commands/social.js";
+
+// Iter23 V2 governance overlays
+import { registerRcgovV2Commands } from "./commands/rcache.js";
+import { registerTechgovV2Commands } from "./commands/tech.js";
+import { registerRtgovV2Commands } from "./commands/runtime.js";
+import { registerNtgovV2Commands } from "./commands/note.js";
+import { registerPmgovV2Commands } from "./commands/permmem.js";
+import { registerPfgovV2Commands } from "./commands/fusion.js";
+import { registerDbevogovV2Commands } from "./commands/dbevo.js";
+import { registerDigovV2Commands } from "./commands/infra.js";
+
+// Iter24 V2 governance overlays
+import { registerRcmdgovV2Commands } from "./commands/recommend.js";
+import { registerMcpgovV2Commands } from "./commands/mcp.js";
+import { registerEcogovV2Commands } from "./commands/plugin-ecosystem.js";
+import { registerSklgovV2Commands } from "./commands/skill.js";
+import { registerToktgovV2Commands } from "./commands/tokens.js";
+import { registerDevgovV2Commands } from "./commands/dev.js";
+import { registerTigovV2Commands } from "./commands/compliance.js";
+import { registerUebgovV2Commands } from "./commands/compliance.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -467,6 +537,76 @@ export function createProgram() {
   registerPcgovV2Commands(program);
   registerIncgovV2Commands(program);
   registerHardgovV2Commands(program);
+
+  // Iter18 V2 governance overlays
+  registerAiopsgovV2Commands(program);
+  registerMmgovV2Commands(program);
+  registerInstgovV2Commands(program);
+  registerTnsgovV2Commands(program);
+  registerQntgovV2Commands(program);
+  registerTrustgovV2Commands(program);
+  registerNlpgovV2Commands(program);
+  registerPercgovV2Commands(program);
+
+  // Iter19 V2 governance overlays
+  registerCdagovV2Commands(program);
+  registerCogovV2Commands(program);
+  registerCommgovV2Commands(program);
+  registerDidgovV2Commands(program);
+  registerSsogovV2Commands(program);
+  registerOrggovV2Commands(program);
+  registerScimgovV2Commands(program);
+  registerSyncgovV2Commands(program);
+
+  // Iter20 V2 governance overlays
+  registerAnetgovV2Commands(program);
+  registerBagovV2Commands(program);
+  registerDlpgovV2Commands(program);
+  registerEvgovV2Commands(program);
+  registerFedgovV2Commands(program);
+  registerIpfsgovV2Commands(program);
+  registerP2pgovV2Commands(program);
+  registerWalgovV2Commands(program);
+
+  // Iter21 V2 governance overlays
+  registerApgovV2Commands(program);
+  registerMatgovV2Commands(program);
+  registerNosgovV2Commands(program);
+  registerBigovV2Commands(program);
+  registerMemgovV2Commands(program);
+  registerSesgovV2Commands(program);
+  registerHookgovV2Commands(program);
+  registerWfgovV2Commands(program);
+
+  // Iter22 V2 governance overlays
+  registerAugovV2Commands(program);
+  registerShgovV2Commands(program);
+  registerDv2govV2Commands(program);
+  registerKexpgovV2Commands(program);
+  registerKimpgovV2Commands(program);
+  registerLlmgovV2Commands(program);
+  registerPqcgovV2Commands(program);
+  registerSmgovV2Commands(program);
+
+  // Iter23 V2 governance overlays
+  registerRcgovV2Commands(program);
+  registerTechgovV2Commands(program);
+  registerRtgovV2Commands(program);
+  registerNtgovV2Commands(program);
+  registerPmgovV2Commands(program);
+  registerPfgovV2Commands(program);
+  registerDbevogovV2Commands(program);
+  registerDigovV2Commands(program);
+
+  // Iter24 V2 governance overlays
+  registerRcmdgovV2Commands(program);
+  registerMcpgovV2Commands(program);
+  registerEcogovV2Commands(program);
+  registerSklgovV2Commands(program);
+  registerToktgovV2Commands(program);
+  registerDevgovV2Commands(program);
+  registerTigovV2Commands(program);
+  registerUebgovV2Commands(program);
 
   return program;
 }

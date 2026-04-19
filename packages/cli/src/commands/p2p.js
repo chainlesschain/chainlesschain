@@ -662,3 +662,212 @@ export function registerP2pCommand(program) {
       else logger.log(JSON.stringify(s, null, 2));
     });
 }
+
+// === Iter20 V2 governance overlay ===
+export function registerP2pgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "p2p");
+  if (!parent) return;
+  const L = async () => await import("../lib/p2p-manager.js");
+  parent
+    .command("p2pgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.P2PGOV_PROFILE_MATURITY_V2,
+            gossipLifecycle: m.P2PGOV_GOSSIP_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("p2pgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveP2pgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingP2pgovGossipsPerProfileV2(),
+            idleMs: m.getP2pgovProfileIdleMsV2(),
+            stuckMs: m.getP2pgovGossipStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("p2pgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveP2pgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("p2pgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingP2pgovGossipsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("p2pgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setP2pgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("p2pgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setP2pgovGossipStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("p2pgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--transport <v>", "transport")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerP2pgovProfileV2({ id, owner, transport: o.transport }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("p2pgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateP2pgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("p2pgov-suspend-v2 <id>")
+    .description("Suspend profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).suspendP2pgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("p2pgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveP2pgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("p2pgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchP2pgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("p2pgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getP2pgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("p2pgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listP2pgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("p2pgov-create-gossip-v2 <id> <profileId>")
+    .description("Create gossip")
+    .option("--topic <v>", "topic")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createP2pgovGossipV2({ id, profileId, topic: o.topic }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("p2pgov-broadcasting-gossip-v2 <id>")
+    .description("Mark gossip as broadcasting")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).broadcastingP2pgovGossipV2(id), null, 2),
+      );
+    });
+  parent
+    .command("p2pgov-complete-gossip-v2 <id>")
+    .description("Complete gossip")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeGossipP2pgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("p2pgov-fail-gossip-v2 <id> [reason]")
+    .description("Fail gossip")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failP2pgovGossipV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("p2pgov-cancel-gossip-v2 <id> [reason]")
+    .description("Cancel gossip")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelP2pgovGossipV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("p2pgov-get-gossip-v2 <id>")
+    .description("Get gossip")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getP2pgovGossipV2(id), null, 2));
+    });
+  parent
+    .command("p2pgov-list-gossips-v2")
+    .description("List gossips")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listP2pgovGossipsV2(), null, 2));
+    });
+  parent
+    .command("p2pgov-auto-suspend-idle-v2")
+    .description("Auto-suspend idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoSuspendIdleP2pgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("p2pgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck gossips")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckP2pgovGossipsV2(), null, 2),
+      );
+    });
+  parent
+    .command("p2pgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getP2pManagerGovStatsV2(), null, 2),
+      );
+    });
+}

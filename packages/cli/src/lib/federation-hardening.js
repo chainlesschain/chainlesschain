@@ -844,3 +844,343 @@ export function getFederationHardeningStatsV2(db) {
     healthByMetric,
   };
 }
+
+// =====================================================================
+// federation-hardening V2 governance overlay (iter20)
+// =====================================================================
+export const FEDGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  DEGRADED: "degraded",
+  ARCHIVED: "archived",
+});
+export const FEDGOV_PROBE_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  PROBING: "probing",
+  PROBED: "probed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _fedgovPTrans = new Map([
+  [
+    FEDGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      FEDGOV_PROFILE_MATURITY_V2.ACTIVE,
+      FEDGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    FEDGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      FEDGOV_PROFILE_MATURITY_V2.DEGRADED,
+      FEDGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    FEDGOV_PROFILE_MATURITY_V2.DEGRADED,
+    new Set([
+      FEDGOV_PROFILE_MATURITY_V2.ACTIVE,
+      FEDGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [FEDGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _fedgovPTerminal = new Set([FEDGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _fedgovJTrans = new Map([
+  [
+    FEDGOV_PROBE_LIFECYCLE_V2.QUEUED,
+    new Set([
+      FEDGOV_PROBE_LIFECYCLE_V2.PROBING,
+      FEDGOV_PROBE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    FEDGOV_PROBE_LIFECYCLE_V2.PROBING,
+    new Set([
+      FEDGOV_PROBE_LIFECYCLE_V2.PROBED,
+      FEDGOV_PROBE_LIFECYCLE_V2.FAILED,
+      FEDGOV_PROBE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [FEDGOV_PROBE_LIFECYCLE_V2.PROBED, new Set()],
+  [FEDGOV_PROBE_LIFECYCLE_V2.FAILED, new Set()],
+  [FEDGOV_PROBE_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _fedgovPsV2 = new Map();
+const _fedgovJsV2 = new Map();
+let _fedgovMaxActive = 8,
+  _fedgovMaxPending = 20,
+  _fedgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _fedgovStuckMs = 60 * 1000;
+function _fedgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _fedgovCheckP(from, to) {
+  const a = _fedgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid fedgov profile transition ${from} → ${to}`);
+}
+function _fedgovCheckJ(from, to) {
+  const a = _fedgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid fedgov probe transition ${from} → ${to}`);
+}
+function _fedgovCountActive(owner) {
+  let c = 0;
+  for (const p of _fedgovPsV2.values())
+    if (p.owner === owner && p.status === FEDGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _fedgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _fedgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === FEDGOV_PROBE_LIFECYCLE_V2.QUEUED ||
+        j.status === FEDGOV_PROBE_LIFECYCLE_V2.PROBING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveFedgovProfilesPerOwnerV2(n) {
+  _fedgovMaxActive = _fedgovPos(n, "maxActiveFedgovProfilesPerOwner");
+}
+export function getMaxActiveFedgovProfilesPerOwnerV2() {
+  return _fedgovMaxActive;
+}
+export function setMaxPendingFedgovProbesPerProfileV2(n) {
+  _fedgovMaxPending = _fedgovPos(n, "maxPendingFedgovProbesPerProfile");
+}
+export function getMaxPendingFedgovProbesPerProfileV2() {
+  return _fedgovMaxPending;
+}
+export function setFedgovProfileIdleMsV2(n) {
+  _fedgovIdleMs = _fedgovPos(n, "fedgovProfileIdleMs");
+}
+export function getFedgovProfileIdleMsV2() {
+  return _fedgovIdleMs;
+}
+export function setFedgovProbeStuckMsV2(n) {
+  _fedgovStuckMs = _fedgovPos(n, "fedgovProbeStuckMs");
+}
+export function getFedgovProbeStuckMsV2() {
+  return _fedgovStuckMs;
+}
+export function _resetStateFederationHardeningGovV2() {
+  _fedgovPsV2.clear();
+  _fedgovJsV2.clear();
+  _fedgovMaxActive = 8;
+  _fedgovMaxPending = 20;
+  _fedgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _fedgovStuckMs = 60 * 1000;
+}
+export function registerFedgovProfileV2({ id, owner, region, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_fedgovPsV2.has(id))
+    throw new Error(`fedgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    region: region || "default",
+    status: FEDGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _fedgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateFedgovProfileV2(id) {
+  const p = _fedgovPsV2.get(id);
+  if (!p) throw new Error(`fedgov profile ${id} not found`);
+  const isInitial = p.status === FEDGOV_PROFILE_MATURITY_V2.PENDING;
+  _fedgovCheckP(p.status, FEDGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _fedgovCountActive(p.owner) >= _fedgovMaxActive)
+    throw new Error(`max active fedgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = FEDGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function degradeFedgovProfileV2(id) {
+  const p = _fedgovPsV2.get(id);
+  if (!p) throw new Error(`fedgov profile ${id} not found`);
+  _fedgovCheckP(p.status, FEDGOV_PROFILE_MATURITY_V2.DEGRADED);
+  p.status = FEDGOV_PROFILE_MATURITY_V2.DEGRADED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveFedgovProfileV2(id) {
+  const p = _fedgovPsV2.get(id);
+  if (!p) throw new Error(`fedgov profile ${id} not found`);
+  _fedgovCheckP(p.status, FEDGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = FEDGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchFedgovProfileV2(id) {
+  const p = _fedgovPsV2.get(id);
+  if (!p) throw new Error(`fedgov profile ${id} not found`);
+  if (_fedgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal fedgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getFedgovProfileV2(id) {
+  const p = _fedgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listFedgovProfilesV2() {
+  return [..._fedgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createFedgovProbeV2({
+  id,
+  profileId,
+  endpoint,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_fedgovJsV2.has(id)) throw new Error(`fedgov probe ${id} already exists`);
+  if (!_fedgovPsV2.has(profileId))
+    throw new Error(`fedgov profile ${profileId} not found`);
+  if (_fedgovCountPending(profileId) >= _fedgovMaxPending)
+    throw new Error(
+      `max pending fedgov probes for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    endpoint: endpoint || "",
+    status: FEDGOV_PROBE_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _fedgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function probingFedgovProbeV2(id) {
+  const j = _fedgovJsV2.get(id);
+  if (!j) throw new Error(`fedgov probe ${id} not found`);
+  _fedgovCheckJ(j.status, FEDGOV_PROBE_LIFECYCLE_V2.PROBING);
+  const now = Date.now();
+  j.status = FEDGOV_PROBE_LIFECYCLE_V2.PROBING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeProbeFedgovV2(id) {
+  const j = _fedgovJsV2.get(id);
+  if (!j) throw new Error(`fedgov probe ${id} not found`);
+  _fedgovCheckJ(j.status, FEDGOV_PROBE_LIFECYCLE_V2.PROBED);
+  const now = Date.now();
+  j.status = FEDGOV_PROBE_LIFECYCLE_V2.PROBED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failFedgovProbeV2(id, reason) {
+  const j = _fedgovJsV2.get(id);
+  if (!j) throw new Error(`fedgov probe ${id} not found`);
+  _fedgovCheckJ(j.status, FEDGOV_PROBE_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = FEDGOV_PROBE_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelFedgovProbeV2(id, reason) {
+  const j = _fedgovJsV2.get(id);
+  if (!j) throw new Error(`fedgov probe ${id} not found`);
+  _fedgovCheckJ(j.status, FEDGOV_PROBE_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = FEDGOV_PROBE_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getFedgovProbeV2(id) {
+  const j = _fedgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listFedgovProbesV2() {
+  return [..._fedgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoDegradeIdleFedgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _fedgovPsV2.values())
+    if (
+      p.status === FEDGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _fedgovIdleMs
+    ) {
+      p.status = FEDGOV_PROFILE_MATURITY_V2.DEGRADED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckFedgovProbesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _fedgovJsV2.values())
+    if (
+      j.status === FEDGOV_PROBE_LIFECYCLE_V2.PROBING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _fedgovStuckMs
+    ) {
+      j.status = FEDGOV_PROBE_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getFederationHardeningGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(FEDGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _fedgovPsV2.values()) profilesByStatus[p.status]++;
+  const probesByStatus = {};
+  for (const v of Object.values(FEDGOV_PROBE_LIFECYCLE_V2))
+    probesByStatus[v] = 0;
+  for (const j of _fedgovJsV2.values()) probesByStatus[j.status]++;
+  return {
+    totalFedgovProfilesV2: _fedgovPsV2.size,
+    totalFedgovProbesV2: _fedgovJsV2.size,
+    maxActiveFedgovProfilesPerOwner: _fedgovMaxActive,
+    maxPendingFedgovProbesPerProfile: _fedgovMaxPending,
+    fedgovProfileIdleMs: _fedgovIdleMs,
+    fedgovProbeStuckMs: _fedgovStuckMs,
+    profilesByStatus,
+    probesByStatus,
+  };
+}

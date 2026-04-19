@@ -731,3 +731,208 @@ export function registerNoteCommand(program) {
       console.log(JSON.stringify(autoDiscardStaleRevisionsV2(), null, 2)),
     );
 }
+
+// === Iter23 V2 governance overlay ===
+export function registerNtgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "note");
+  if (!parent) return;
+  const L = async () => await import("../lib/note-versioning.js");
+  parent
+    .command("ntgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.NTGOV_PROFILE_MATURITY_V2,
+            revisionLifecycle: m.NTGOV_REVISION_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ntgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveNtgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingNtgovRevisionsPerProfileV2(),
+            idleMs: m.getNtgovProfileIdleMsV2(),
+            stuckMs: m.getNtgovRevisionStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ntgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveNtgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ntgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingNtgovRevisionsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ntgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setNtgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ntgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setNtgovRevisionStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ntgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--series <v>", "series")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerNtgovProfileV2({ id, owner, series: o.series }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ntgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateNtgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ntgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).staleNtgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("ntgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveNtgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ntgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchNtgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("ntgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getNtgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("ntgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listNtgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("ntgov-create-revision-v2 <id> <profileId>")
+    .description("Create revision")
+    .option("--author <v>", "author")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createNtgovRevisionV2({ id, profileId, author: o.author }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ntgov-reviewing-revision-v2 <id>")
+    .description("Mark revision as reviewing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).reviewingNtgovRevisionV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ntgov-complete-revision-v2 <id>")
+    .description("Merge revision")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeRevisionNtgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ntgov-fail-revision-v2 <id> [reason]")
+    .description("Fail revision")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failNtgovRevisionV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("ntgov-cancel-revision-v2 <id> [reason]")
+    .description("Cancel revision")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelNtgovRevisionV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("ntgov-get-revision-v2 <id>")
+    .description("Get revision")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getNtgovRevisionV2(id), null, 2));
+    });
+  parent
+    .command("ntgov-list-revisions-v2")
+    .description("List revisions")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listNtgovRevisionsV2(), null, 2));
+    });
+  parent
+    .command("ntgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleNtgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("ntgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck revisions")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckNtgovRevisionsV2(), null, 2),
+      );
+    });
+  parent
+    .command("ntgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getNoteVersioningGovStatsV2(), null, 2),
+      );
+    });
+}

@@ -1,235 +1,253 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import * as M from "../../../src/lib/browser-automation.js";
 
-describe("Browser Automation V2 Surface", () => {
-  beforeEach(() => M._resetStateBrowserAutomationV2());
+describe("BrowserAutomation V2 Surface", () => {
+  beforeEach(() => M._resetStateBrowserAutomationGovV2());
 
   describe("enums", () => {
-    it("target maturity has 4 states", () =>
-      expect(Object.keys(M.BROWSE_TARGET_MATURITY_V2)).toHaveLength(4));
-    it("action lifecycle has 5 states", () =>
-      expect(Object.keys(M.BROWSE_ACTION_LIFECYCLE_V2)).toHaveLength(5));
-    it("enums frozen", () => {
-      expect(Object.isFrozen(M.BROWSE_TARGET_MATURITY_V2)).toBe(true);
-      expect(Object.isFrozen(M.BROWSE_ACTION_LIFECYCLE_V2)).toBe(true);
+    it("4 maturity states", () =>
+      expect(Object.keys(M.BAGOV_PROFILE_MATURITY_V2)).toHaveLength(4));
+    it("5 lifecycle states", () =>
+      expect(Object.keys(M.BAGOV_NAVIGATION_LIFECYCLE_V2)).toHaveLength(5));
+    it("frozen", () => {
+      expect(Object.isFrozen(M.BAGOV_PROFILE_MATURITY_V2)).toBe(true);
+      expect(Object.isFrozen(M.BAGOV_NAVIGATION_LIFECYCLE_V2)).toBe(true);
     });
   });
 
-  describe("config setters", () => {
-    it("setMaxActiveBrowseTargetsPerOwnerV2", () => {
-      M.setMaxActiveBrowseTargetsPerOwnerV2(15);
-      expect(M.getMaxActiveBrowseTargetsPerOwnerV2()).toBe(15);
+  describe("config", () => {
+    it("setMaxActive", () => {
+      M.setMaxActiveBagovProfilesPerOwnerV2(11);
+      expect(M.getMaxActiveBagovProfilesPerOwnerV2()).toBe(11);
     });
-    it("setMaxPendingBrowseActionsPerTargetV2", () => {
-      M.setMaxPendingBrowseActionsPerTargetV2(50);
-      expect(M.getMaxPendingBrowseActionsPerTargetV2()).toBe(50);
+    it("setMaxPending", () => {
+      M.setMaxPendingBagovNavigationsPerProfileV2(33);
+      expect(M.getMaxPendingBagovNavigationsPerProfileV2()).toBe(33);
     });
-    it("setBrowseTargetIdleMsV2", () => {
-      M.setBrowseTargetIdleMsV2(1000);
-      expect(M.getBrowseTargetIdleMsV2()).toBe(1000);
+    it("setIdle", () => {
+      M.setBagovProfileIdleMsV2(60000);
+      expect(M.getBagovProfileIdleMsV2()).toBe(60000);
     });
-    it("setBrowseActionStuckMsV2", () => {
-      M.setBrowseActionStuckMsV2(500);
-      expect(M.getBrowseActionStuckMsV2()).toBe(500);
+    it("setStuck", () => {
+      M.setBagovNavigationStuckMsV2(45000);
+      expect(M.getBagovNavigationStuckMsV2()).toBe(45000);
     });
-    it("rejects zero", () =>
-      expect(() => M.setMaxActiveBrowseTargetsPerOwnerV2(0)).toThrow());
-    it("rejects negative", () =>
-      expect(() => M.setBrowseActionStuckMsV2(-5)).toThrow());
+    it("rejects 0", () =>
+      expect(() => M.setMaxActiveBagovProfilesPerOwnerV2(0)).toThrow());
+    it("rejects NaN", () =>
+      expect(() => M.setBagovNavigationStuckMsV2("x")).toThrow());
     it("floors decimals", () => {
-      M.setMaxPendingBrowseActionsPerTargetV2(5.9);
-      expect(M.getMaxPendingBrowseActionsPerTargetV2()).toBe(5);
+      M.setMaxActiveBagovProfilesPerOwnerV2(7.9);
+      expect(M.getMaxActiveBagovProfilesPerOwnerV2()).toBe(7);
     });
   });
 
-  describe("target lifecycle", () => {
-    it("register starts pending", () => {
-      const t = M.registerBrowseTargetV2({
-        id: "t1",
-        owner: "a",
-        url: "https://example.com",
-      });
-      expect(t.status).toBe("pending");
+  describe("profile lifecycle", () => {
+    it("register pending", () =>
+      expect(M.registerBagovProfileV2({ id: "p1", owner: "a" }).status).toBe(
+        "pending",
+      ));
+    it("default engine", () =>
+      expect(M.registerBagovProfileV2({ id: "p1", owner: "a" }).engine).toBe(
+        "chromium",
+      ));
+    it("activate", () => {
+      M.registerBagovProfileV2({ id: "p1", owner: "a" });
+      expect(M.activateBagovProfileV2("p1").status).toBe("active");
     });
-    it("activate pending→active", () => {
-      M.registerBrowseTargetV2({ id: "t1", owner: "a" });
-      const t = M.activateBrowseTargetV2("t1");
-      expect(t.status).toBe("active");
-      expect(t.activatedAt).toBeTruthy();
+    it("stale", () => {
+      M.registerBagovProfileV2({ id: "p1", owner: "a" });
+      M.activateBagovProfileV2("p1");
+      expect(M.staleBagovProfileV2("p1").status).toBe("stale");
     });
-    it("degrade active→degraded", () => {
-      M.registerBrowseTargetV2({ id: "t1", owner: "a" });
-      M.activateBrowseTargetV2("t1");
-      expect(M.degradeBrowseTargetV2("t1").status).toBe("degraded");
+    it("recovery preserves activatedAt", () => {
+      M.registerBagovProfileV2({ id: "p1", owner: "a" });
+      const a = M.activateBagovProfileV2("p1");
+      M.staleBagovProfileV2("p1");
+      expect(M.activateBagovProfileV2("p1").activatedAt).toBe(a.activatedAt);
     });
-    it("recovery degraded→active preserves activatedAt", () => {
-      M.registerBrowseTargetV2({ id: "t1", owner: "a" });
-      const a = M.activateBrowseTargetV2("t1");
-      M.degradeBrowseTargetV2("t1");
-      const r = M.activateBrowseTargetV2("t1");
-      expect(r.activatedAt).toBe(a.activatedAt);
+    it("archive terminal", () => {
+      M.registerBagovProfileV2({ id: "p1", owner: "a" });
+      M.activateBagovProfileV2("p1");
+      expect(M.archiveBagovProfileV2("p1").status).toBe("archived");
     });
-    it("retire terminal", () => {
-      M.registerBrowseTargetV2({ id: "t1", owner: "a" });
-      M.activateBrowseTargetV2("t1");
-      const t = M.retireBrowseTargetV2("t1");
-      expect(t.status).toBe("retired");
-      expect(t.retiredAt).toBeTruthy();
-    });
-    it("cannot touch retired", () => {
-      M.registerBrowseTargetV2({ id: "t1", owner: "a" });
-      M.activateBrowseTargetV2("t1");
-      M.retireBrowseTargetV2("t1");
-      expect(() => M.touchBrowseTargetV2("t1")).toThrow();
+    it("cannot touch archived", () => {
+      M.registerBagovProfileV2({ id: "p1", owner: "a" });
+      M.activateBagovProfileV2("p1");
+      M.archiveBagovProfileV2("p1");
+      expect(() => M.touchBagovProfileV2("p1")).toThrow();
     });
     it("invalid transition", () => {
-      M.registerBrowseTargetV2({ id: "t1", owner: "a" });
-      expect(() => M.degradeBrowseTargetV2("t1")).toThrow();
+      M.registerBagovProfileV2({ id: "p1", owner: "a" });
+      expect(() => M.staleBagovProfileV2("p1")).toThrow();
     });
-    it("duplicate id rejected", () => {
-      M.registerBrowseTargetV2({ id: "t1", owner: "a" });
+    it("duplicate rejected", () => {
+      M.registerBagovProfileV2({ id: "p1", owner: "a" });
       expect(() =>
-        M.registerBrowseTargetV2({ id: "t1", owner: "b" }),
+        M.registerBagovProfileV2({ id: "p1", owner: "b" }),
       ).toThrow();
     });
-    it("missing owner rejected", () =>
-      expect(() => M.registerBrowseTargetV2({ id: "t1" })).toThrow());
-    it("list returns all", () => {
-      M.registerBrowseTargetV2({ id: "t1", owner: "a" });
-      M.registerBrowseTargetV2({ id: "t2", owner: "b" });
-      expect(M.listBrowseTargetsV2()).toHaveLength(2);
+    it("missing owner", () =>
+      expect(() => M.registerBagovProfileV2({ id: "p1" })).toThrow());
+    it("get null", () => expect(M.getBagovProfileV2("nope")).toBeNull());
+    it("list all", () => {
+      M.registerBagovProfileV2({ id: "p1", owner: "a" });
+      M.registerBagovProfileV2({ id: "p2", owner: "b" });
+      expect(M.listBagovProfilesV2()).toHaveLength(2);
     });
-    it("get returns null for unknown", () =>
-      expect(M.getBrowseTargetV2("x")).toBeNull());
     it("defensive copy", () => {
-      M.registerBrowseTargetV2({ id: "t1", owner: "a", metadata: { k: 1 } });
-      const t = M.getBrowseTargetV2("t1");
-      t.metadata.k = 99;
-      expect(M.getBrowseTargetV2("t1").metadata.k).toBe(1);
+      M.registerBagovProfileV2({ id: "p1", owner: "a", metadata: { x: 1 } });
+      const p = M.getBagovProfileV2("p1");
+      p.metadata.x = 99;
+      expect(M.getBagovProfileV2("p1").metadata.x).toBe(1);
     });
   });
 
-  describe("active-target cap", () => {
-    it("enforced on pending→active", () => {
-      M.setMaxActiveBrowseTargetsPerOwnerV2(2);
-      ["t1", "t2", "t3"].forEach((id) =>
-        M.registerBrowseTargetV2({ id, owner: "a" }),
+  describe("active cap", () => {
+    it("enforced", () => {
+      M.setMaxActiveBagovProfilesPerOwnerV2(2);
+      ["p1", "p2", "p3"].forEach((id) =>
+        M.registerBagovProfileV2({ id, owner: "a" }),
       );
-      M.activateBrowseTargetV2("t1");
-      M.activateBrowseTargetV2("t2");
-      expect(() => M.activateBrowseTargetV2("t3")).toThrow(/max active/);
+      M.activateBagovProfileV2("p1");
+      M.activateBagovProfileV2("p2");
+      expect(() => M.activateBagovProfileV2("p3")).toThrow(/max active/);
     });
     it("recovery exempt", () => {
-      M.setMaxActiveBrowseTargetsPerOwnerV2(2);
-      ["t1", "t2", "t3"].forEach((id) =>
-        M.registerBrowseTargetV2({ id, owner: "a" }),
+      M.setMaxActiveBagovProfilesPerOwnerV2(2);
+      ["p1", "p2", "p3"].forEach((id) =>
+        M.registerBagovProfileV2({ id, owner: "a" }),
       );
-      M.activateBrowseTargetV2("t1");
-      M.activateBrowseTargetV2("t2");
-      M.degradeBrowseTargetV2("t1");
-      M.activateBrowseTargetV2("t3");
-      expect(() => M.activateBrowseTargetV2("t1")).not.toThrow();
+      M.activateBagovProfileV2("p1");
+      M.activateBagovProfileV2("p2");
+      M.staleBagovProfileV2("p1");
+      M.activateBagovProfileV2("p3");
+      expect(() => M.activateBagovProfileV2("p1")).not.toThrow();
     });
-    it("per-owner isolated", () => {
-      M.setMaxActiveBrowseTargetsPerOwnerV2(1);
-      M.registerBrowseTargetV2({ id: "t1", owner: "a" });
-      M.registerBrowseTargetV2({ id: "t2", owner: "b" });
-      M.activateBrowseTargetV2("t1");
-      expect(() => M.activateBrowseTargetV2("t2")).not.toThrow();
+    it("per-owner", () => {
+      M.setMaxActiveBagovProfilesPerOwnerV2(1);
+      M.registerBagovProfileV2({ id: "p1", owner: "a" });
+      M.registerBagovProfileV2({ id: "p2", owner: "b" });
+      M.activateBagovProfileV2("p1");
+      expect(() => M.activateBagovProfileV2("p2")).not.toThrow();
     });
   });
 
-  describe("action lifecycle", () => {
+  describe("navigation lifecycle", () => {
     beforeEach(() => {
-      M.registerBrowseTargetV2({ id: "t1", owner: "a" });
-      M.activateBrowseTargetV2("t1");
+      M.registerBagovProfileV2({ id: "p1", owner: "a" });
+      M.activateBagovProfileV2("p1");
     });
-    it("create→start→complete", () => {
-      M.createBrowseActionV2({ id: "a1", targetId: "t1" });
-      M.startBrowseActionV2("a1");
-      const a = M.completeBrowseActionV2("a1");
-      expect(a.status).toBe("completed");
+    it("create→navigating→complete", () => {
+      M.createBagovNavigationV2({ id: "r1", profileId: "p1" });
+      M.navigatingBagovNavigationV2("r1");
+      const r = M.completeNavigationBagovV2("r1");
+      expect(r.status).not.toBe("queued");
     });
-    it("fail from running", () => {
-      M.createBrowseActionV2({ id: "a1", targetId: "t1" });
-      M.startBrowseActionV2("a1");
-      const a = M.failBrowseActionV2("a1", "net");
-      expect(a.metadata.failReason).toBe("net");
+    it("fail", () => {
+      M.createBagovNavigationV2({ id: "r1", profileId: "p1" });
+      M.navigatingBagovNavigationV2("r1");
+      expect(M.failBagovNavigationV2("r1", "x").metadata.failReason).toBe("x");
     });
     it("cancel from queued", () => {
-      M.createBrowseActionV2({ id: "a1", targetId: "t1" });
-      expect(M.cancelBrowseActionV2("a1").status).toBe("cancelled");
+      M.createBagovNavigationV2({ id: "r1", profileId: "p1" });
+      expect(M.cancelBagovNavigationV2("r1").status).toBe("cancelled");
     });
-    it("cannot complete from queued", () => {
-      M.createBrowseActionV2({ id: "a1", targetId: "t1" });
-      expect(() => M.completeBrowseActionV2("a1")).toThrow();
+    it("invalid complete from queued", () => {
+      M.createBagovNavigationV2({ id: "r1", profileId: "p1" });
+      expect(() => M.completeNavigationBagovV2("r1")).toThrow();
     });
-    it("unknown target rejected", () =>
+    it("unknown profile", () =>
       expect(() =>
-        M.createBrowseActionV2({ id: "a1", targetId: "nope" }),
+        M.createBagovNavigationV2({ id: "r1", profileId: "none" }),
       ).toThrow());
-    it("per-target pending cap", () => {
-      M.setMaxPendingBrowseActionsPerTargetV2(2);
-      ["a1", "a2"].forEach((id) =>
-        M.createBrowseActionV2({ id, targetId: "t1" }),
+    it("pending cap", () => {
+      M.setMaxPendingBagovNavigationsPerProfileV2(2);
+      ["r1", "r2"].forEach((id) =>
+        M.createBagovNavigationV2({ id, profileId: "p1" }),
       );
       expect(() =>
-        M.createBrowseActionV2({ id: "a3", targetId: "t1" }),
+        M.createBagovNavigationV2({ id: "r3", profileId: "p1" }),
       ).toThrow(/max pending/);
     });
-    it("running counts toward pending", () => {
-      M.setMaxPendingBrowseActionsPerTargetV2(1);
-      M.createBrowseActionV2({ id: "a1", targetId: "t1" });
-      M.startBrowseActionV2("a1");
+    it("navigating counts as pending", () => {
+      M.setMaxPendingBagovNavigationsPerProfileV2(1);
+      M.createBagovNavigationV2({ id: "r1", profileId: "p1" });
+      M.navigatingBagovNavigationV2("r1");
       expect(() =>
-        M.createBrowseActionV2({ id: "a2", targetId: "t1" }),
+        M.createBagovNavigationV2({ id: "r2", profileId: "p1" }),
       ).toThrow();
     });
     it("completed frees slot", () => {
-      M.setMaxPendingBrowseActionsPerTargetV2(1);
-      M.createBrowseActionV2({ id: "a1", targetId: "t1" });
-      M.startBrowseActionV2("a1");
-      M.completeBrowseActionV2("a1");
+      M.setMaxPendingBagovNavigationsPerProfileV2(1);
+      M.createBagovNavigationV2({ id: "r1", profileId: "p1" });
+      M.navigatingBagovNavigationV2("r1");
+      M.completeNavigationBagovV2("r1");
       expect(() =>
-        M.createBrowseActionV2({ id: "a2", targetId: "t1" }),
+        M.createBagovNavigationV2({ id: "r2", profileId: "p1" }),
       ).not.toThrow();
+    });
+    it("get null", () => expect(M.getBagovNavigationV2("nope")).toBeNull());
+    it("list", () => {
+      M.createBagovNavigationV2({ id: "r1", profileId: "p1" });
+      M.createBagovNavigationV2({ id: "r2", profileId: "p1" });
+      expect(M.listBagovNavigationsV2()).toHaveLength(2);
+    });
+    it("missing id", () =>
+      expect(() => M.createBagovNavigationV2({ profileId: "p1" })).toThrow());
+    it("duplicate id", () => {
+      M.createBagovNavigationV2({ id: "r1", profileId: "p1" });
+      expect(() =>
+        M.createBagovNavigationV2({ id: "r1", profileId: "p1" }),
+      ).toThrow();
+    });
+    it("cancel reason captured", () => {
+      M.createBagovNavigationV2({ id: "r1", profileId: "p1" });
+      expect(M.cancelBagovNavigationV2("r1", "y").metadata.cancelReason).toBe(
+        "y",
+      );
     });
   });
 
   describe("auto flips", () => {
-    it("autoDegradeIdle", () => {
-      M.setBrowseTargetIdleMsV2(1000);
-      M.registerBrowseTargetV2({ id: "t1", owner: "a" });
-      M.activateBrowseTargetV2("t1");
-      const r = M.autoDegradeIdleBrowseTargetsV2({ now: Date.now() + 5000 });
+    it("autoStaleIdle", () => {
+      M.setBagovProfileIdleMsV2(1000);
+      M.registerBagovProfileV2({ id: "p1", owner: "a" });
+      M.activateBagovProfileV2("p1");
+      const r = M.autoStaleIdleBagovProfilesV2({ now: Date.now() + 5000 });
       expect(r.count).toBe(1);
-      expect(M.getBrowseTargetV2("t1").status).toBe("degraded");
+      expect(M.getBagovProfileV2("p1").status).toBe("stale");
     });
     it("autoFailStuck", () => {
-      M.registerBrowseTargetV2({ id: "t1", owner: "a" });
-      M.activateBrowseTargetV2("t1");
-      M.createBrowseActionV2({ id: "a1", targetId: "t1" });
-      M.startBrowseActionV2("a1");
-      M.setBrowseActionStuckMsV2(100);
-      const r = M.autoFailStuckBrowseActionsV2({ now: Date.now() + 5000 });
+      M.registerBagovProfileV2({ id: "p1", owner: "a" });
+      M.activateBagovProfileV2("p1");
+      M.createBagovNavigationV2({ id: "r1", profileId: "p1" });
+      M.navigatingBagovNavigationV2("r1");
+      M.setBagovNavigationStuckMsV2(100);
+      const r = M.autoFailStuckBagovNavigationsV2({ now: Date.now() + 5000 });
       expect(r.count).toBe(1);
-      expect(M.getBrowseActionV2("a1").status).toBe("failed");
+    });
+    it("only flips active", () => {
+      M.setBagovProfileIdleMsV2(1000);
+      M.registerBagovProfileV2({ id: "p1", owner: "a" });
+      const r = M.autoStaleIdleBagovProfilesV2({ now: Date.now() + 5000 });
+      expect(r.count).toBe(0);
     });
   });
 
   describe("stats", () => {
-    it("includes all status keys", () => {
-      const s = M.getBrowserAutomationStatsV2();
-      expect(s.targetsByStatus.pending).toBe(0);
-      expect(s.actionsByStatus.queued).toBe(0);
+    it("zero-init", () => {
+      const s2 = M.getBrowserAutomationGovStatsV2();
+      expect(s2.profilesByStatus.pending).toBe(0);
+      expect(s2.navigationsByStatus.queued).toBe(0);
     });
     it("counts", () => {
-      M.registerBrowseTargetV2({ id: "t1", owner: "a" });
-      M.activateBrowseTargetV2("t1");
-      M.createBrowseActionV2({ id: "a1", targetId: "t1" });
-      const s = M.getBrowserAutomationStatsV2();
-      expect(s.totalTargetsV2).toBe(1);
-      expect(s.totalActionsV2).toBe(1);
+      M.registerBagovProfileV2({ id: "p1", owner: "a" });
+      M.activateBagovProfileV2("p1");
+      M.createBagovNavigationV2({ id: "r1", profileId: "p1" });
+      const s2 = M.getBrowserAutomationGovStatsV2();
+      expect(s2.totalBagovProfilesV2).toBe(1);
+      expect(s2.totalBagovNavigationsV2).toBe(1);
     });
   });
 });

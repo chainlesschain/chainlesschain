@@ -1125,3 +1125,344 @@ export function getConfig() {
     vpDefaultTTLMs: VP_DEFAULT_TTL_MS,
   };
 }
+
+// =====================================================================
+// did-v2-manager V2 governance overlay (iter22)
+// =====================================================================
+export const DV2GOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  ARCHIVED: "archived",
+});
+export const DV2GOV_CREDENTIAL_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  ISSUING: "issuing",
+  ISSUED: "issued",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _dv2govPTrans = new Map([
+  [
+    DV2GOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      DV2GOV_PROFILE_MATURITY_V2.ACTIVE,
+      DV2GOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    DV2GOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      DV2GOV_PROFILE_MATURITY_V2.SUSPENDED,
+      DV2GOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    DV2GOV_PROFILE_MATURITY_V2.SUSPENDED,
+    new Set([
+      DV2GOV_PROFILE_MATURITY_V2.ACTIVE,
+      DV2GOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [DV2GOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _dv2govPTerminal = new Set([DV2GOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _dv2govJTrans = new Map([
+  [
+    DV2GOV_CREDENTIAL_LIFECYCLE_V2.QUEUED,
+    new Set([
+      DV2GOV_CREDENTIAL_LIFECYCLE_V2.ISSUING,
+      DV2GOV_CREDENTIAL_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    DV2GOV_CREDENTIAL_LIFECYCLE_V2.ISSUING,
+    new Set([
+      DV2GOV_CREDENTIAL_LIFECYCLE_V2.ISSUED,
+      DV2GOV_CREDENTIAL_LIFECYCLE_V2.FAILED,
+      DV2GOV_CREDENTIAL_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [DV2GOV_CREDENTIAL_LIFECYCLE_V2.ISSUED, new Set()],
+  [DV2GOV_CREDENTIAL_LIFECYCLE_V2.FAILED, new Set()],
+  [DV2GOV_CREDENTIAL_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _dv2govPsV2 = new Map();
+const _dv2govJsV2 = new Map();
+let _dv2govMaxActive = 8,
+  _dv2govMaxPending = 20,
+  _dv2govIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _dv2govStuckMs = 60 * 1000;
+function _dv2govPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _dv2govCheckP(from, to) {
+  const a = _dv2govPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid dv2gov profile transition ${from} → ${to}`);
+}
+function _dv2govCheckJ(from, to) {
+  const a = _dv2govJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid dv2gov credential transition ${from} → ${to}`);
+}
+function _dv2govCountActive(owner) {
+  let c = 0;
+  for (const p of _dv2govPsV2.values())
+    if (p.owner === owner && p.status === DV2GOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _dv2govCountPending(profileId) {
+  let c = 0;
+  for (const j of _dv2govJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === DV2GOV_CREDENTIAL_LIFECYCLE_V2.QUEUED ||
+        j.status === DV2GOV_CREDENTIAL_LIFECYCLE_V2.ISSUING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveDv2govProfilesPerOwnerV2(n) {
+  _dv2govMaxActive = _dv2govPos(n, "maxActiveDv2govProfilesPerOwner");
+}
+export function getMaxActiveDv2govProfilesPerOwnerV2() {
+  return _dv2govMaxActive;
+}
+export function setMaxPendingDv2govCredentialsPerProfileV2(n) {
+  _dv2govMaxPending = _dv2govPos(n, "maxPendingDv2govCredentialsPerProfile");
+}
+export function getMaxPendingDv2govCredentialsPerProfileV2() {
+  return _dv2govMaxPending;
+}
+export function setDv2govProfileIdleMsV2(n) {
+  _dv2govIdleMs = _dv2govPos(n, "dv2govProfileIdleMs");
+}
+export function getDv2govProfileIdleMsV2() {
+  return _dv2govIdleMs;
+}
+export function setDv2govCredentialStuckMsV2(n) {
+  _dv2govStuckMs = _dv2govPos(n, "dv2govCredentialStuckMs");
+}
+export function getDv2govCredentialStuckMsV2() {
+  return _dv2govStuckMs;
+}
+export function _resetStateDidV2ManagerGovV2() {
+  _dv2govPsV2.clear();
+  _dv2govJsV2.clear();
+  _dv2govMaxActive = 8;
+  _dv2govMaxPending = 20;
+  _dv2govIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _dv2govStuckMs = 60 * 1000;
+}
+export function registerDv2govProfileV2({ id, owner, method, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_dv2govPsV2.has(id))
+    throw new Error(`dv2gov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    method: method || "web",
+    status: DV2GOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _dv2govPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateDv2govProfileV2(id) {
+  const p = _dv2govPsV2.get(id);
+  if (!p) throw new Error(`dv2gov profile ${id} not found`);
+  const isInitial = p.status === DV2GOV_PROFILE_MATURITY_V2.PENDING;
+  _dv2govCheckP(p.status, DV2GOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _dv2govCountActive(p.owner) >= _dv2govMaxActive)
+    throw new Error(`max active dv2gov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = DV2GOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function suspendDv2govProfileV2(id) {
+  const p = _dv2govPsV2.get(id);
+  if (!p) throw new Error(`dv2gov profile ${id} not found`);
+  _dv2govCheckP(p.status, DV2GOV_PROFILE_MATURITY_V2.SUSPENDED);
+  p.status = DV2GOV_PROFILE_MATURITY_V2.SUSPENDED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveDv2govProfileV2(id) {
+  const p = _dv2govPsV2.get(id);
+  if (!p) throw new Error(`dv2gov profile ${id} not found`);
+  _dv2govCheckP(p.status, DV2GOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = DV2GOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchDv2govProfileV2(id) {
+  const p = _dv2govPsV2.get(id);
+  if (!p) throw new Error(`dv2gov profile ${id} not found`);
+  if (_dv2govPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal dv2gov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getDv2govProfileV2(id) {
+  const p = _dv2govPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listDv2govProfilesV2() {
+  return [..._dv2govPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createDv2govCredentialV2({
+  id,
+  profileId,
+  subject,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_dv2govJsV2.has(id))
+    throw new Error(`dv2gov credential ${id} already exists`);
+  if (!_dv2govPsV2.has(profileId))
+    throw new Error(`dv2gov profile ${profileId} not found`);
+  if (_dv2govCountPending(profileId) >= _dv2govMaxPending)
+    throw new Error(
+      `max pending dv2gov credentials for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    subject: subject || "",
+    status: DV2GOV_CREDENTIAL_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _dv2govJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function issuingDv2govCredentialV2(id) {
+  const j = _dv2govJsV2.get(id);
+  if (!j) throw new Error(`dv2gov credential ${id} not found`);
+  _dv2govCheckJ(j.status, DV2GOV_CREDENTIAL_LIFECYCLE_V2.ISSUING);
+  const now = Date.now();
+  j.status = DV2GOV_CREDENTIAL_LIFECYCLE_V2.ISSUING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeCredentialDv2govV2(id) {
+  const j = _dv2govJsV2.get(id);
+  if (!j) throw new Error(`dv2gov credential ${id} not found`);
+  _dv2govCheckJ(j.status, DV2GOV_CREDENTIAL_LIFECYCLE_V2.ISSUED);
+  const now = Date.now();
+  j.status = DV2GOV_CREDENTIAL_LIFECYCLE_V2.ISSUED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failDv2govCredentialV2(id, reason) {
+  const j = _dv2govJsV2.get(id);
+  if (!j) throw new Error(`dv2gov credential ${id} not found`);
+  _dv2govCheckJ(j.status, DV2GOV_CREDENTIAL_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = DV2GOV_CREDENTIAL_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelDv2govCredentialV2(id, reason) {
+  const j = _dv2govJsV2.get(id);
+  if (!j) throw new Error(`dv2gov credential ${id} not found`);
+  _dv2govCheckJ(j.status, DV2GOV_CREDENTIAL_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = DV2GOV_CREDENTIAL_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getDv2govCredentialV2(id) {
+  const j = _dv2govJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listDv2govCredentialsV2() {
+  return [..._dv2govJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoSuspendIdleDv2govProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _dv2govPsV2.values())
+    if (
+      p.status === DV2GOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _dv2govIdleMs
+    ) {
+      p.status = DV2GOV_PROFILE_MATURITY_V2.SUSPENDED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckDv2govCredentialsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _dv2govJsV2.values())
+    if (
+      j.status === DV2GOV_CREDENTIAL_LIFECYCLE_V2.ISSUING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _dv2govStuckMs
+    ) {
+      j.status = DV2GOV_CREDENTIAL_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getDidV2ManagerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(DV2GOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _dv2govPsV2.values()) profilesByStatus[p.status]++;
+  const credentialsByStatus = {};
+  for (const v of Object.values(DV2GOV_CREDENTIAL_LIFECYCLE_V2))
+    credentialsByStatus[v] = 0;
+  for (const j of _dv2govJsV2.values()) credentialsByStatus[j.status]++;
+  return {
+    totalDv2govProfilesV2: _dv2govPsV2.size,
+    totalDv2govCredentialsV2: _dv2govJsV2.size,
+    maxActiveDv2govProfilesPerOwner: _dv2govMaxActive,
+    maxPendingDv2govCredentialsPerProfile: _dv2govMaxPending,
+    dv2govProfileIdleMs: _dv2govIdleMs,
+    dv2govCredentialStuckMs: _dv2govStuckMs,
+    profilesByStatus,
+    credentialsByStatus,
+  };
+}

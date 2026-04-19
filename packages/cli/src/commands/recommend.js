@@ -859,3 +859,236 @@ function _registerRecommendCrV2(parent) {
       else console.log(s);
     });
 }
+
+// === Iter24 V2 governance overlay ===
+export function registerRcmdgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "recommend");
+  if (!parent) return;
+  const L = async () => await import("../lib/content-recommendation.js");
+  parent
+    .command("rcmdgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.RCMDGOV_PROFILE_MATURITY_V2,
+            recommendationLifecycle: m.RCMDGOV_RECOMMENDATION_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("rcmdgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveRcmdgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingRcmdgovRecommendationsPerProfileV2(),
+            idleMs: m.getRcmdgovProfileIdleMsV2(),
+            stuckMs: m.getRcmdgovRecommendationStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("rcmdgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveRcmdgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("rcmdgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingRcmdgovRecommendationsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("rcmdgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setRcmdgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("rcmdgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setRcmdgovRecommendationStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("rcmdgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--channel <v>", "channel")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerRcmdgovProfileV2({ id, owner, channel: o.channel }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("rcmdgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateRcmdgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("rcmdgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleRcmdgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("rcmdgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveRcmdgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("rcmdgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchRcmdgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("rcmdgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getRcmdgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("rcmdgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listRcmdgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("rcmdgov-create-recommendation-v2 <id> <profileId>")
+    .description("Create recommendation")
+    .option("--user <v>", "user")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createRcmdgovRecommendationV2({ id, profileId, user: o.user }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("rcmdgov-scoring-recommendation-v2 <id>")
+    .description("Mark recommendation as scoring")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).scoringRcmdgovRecommendationV2(id), null, 2),
+      );
+    });
+  parent
+    .command("rcmdgov-complete-recommendation-v2 <id>")
+    .description("Complete recommendation")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify(
+          (await L()).completeRecommendationRcmdgovV2(id),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("rcmdgov-fail-recommendation-v2 <id> [reason]")
+    .description("Fail recommendation")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify(
+          (await L()).failRcmdgovRecommendationV2(id, reason),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("rcmdgov-cancel-recommendation-v2 <id> [reason]")
+    .description("Cancel recommendation")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify(
+          (await L()).cancelRcmdgovRecommendationV2(id, reason),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("rcmdgov-get-recommendation-v2 <id>")
+    .description("Get recommendation")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).getRcmdgovRecommendationV2(id), null, 2),
+      );
+    });
+  parent
+    .command("rcmdgov-list-recommendations-v2")
+    .description("List recommendations")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).listRcmdgovRecommendationsV2(), null, 2),
+      );
+    });
+  parent
+    .command("rcmdgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleRcmdgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("rcmdgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck recommendations")
+    .action(async () => {
+      console.log(
+        JSON.stringify(
+          (await L()).autoFailStuckRcmdgovRecommendationsV2(),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("rcmdgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify(
+          (await L()).getContentRecommendationGovStatsV2(),
+          null,
+          2,
+        ),
+      );
+    });
+}

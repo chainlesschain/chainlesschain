@@ -767,3 +767,344 @@ export function getHookManagerStatsV2() {
     execsByStatus,
   };
 }
+
+// =====================================================================
+// hook-manager V2 governance overlay (iter21)
+// =====================================================================
+export const HOOKGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  DISABLED: "disabled",
+  ARCHIVED: "archived",
+});
+export const HOOKGOV_TRIGGER_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  FIRING: "firing",
+  FIRED: "fired",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _hookgovPTrans = new Map([
+  [
+    HOOKGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      HOOKGOV_PROFILE_MATURITY_V2.ACTIVE,
+      HOOKGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    HOOKGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      HOOKGOV_PROFILE_MATURITY_V2.DISABLED,
+      HOOKGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    HOOKGOV_PROFILE_MATURITY_V2.DISABLED,
+    new Set([
+      HOOKGOV_PROFILE_MATURITY_V2.ACTIVE,
+      HOOKGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [HOOKGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _hookgovPTerminal = new Set([HOOKGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _hookgovJTrans = new Map([
+  [
+    HOOKGOV_TRIGGER_LIFECYCLE_V2.QUEUED,
+    new Set([
+      HOOKGOV_TRIGGER_LIFECYCLE_V2.FIRING,
+      HOOKGOV_TRIGGER_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    HOOKGOV_TRIGGER_LIFECYCLE_V2.FIRING,
+    new Set([
+      HOOKGOV_TRIGGER_LIFECYCLE_V2.FIRED,
+      HOOKGOV_TRIGGER_LIFECYCLE_V2.FAILED,
+      HOOKGOV_TRIGGER_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [HOOKGOV_TRIGGER_LIFECYCLE_V2.FIRED, new Set()],
+  [HOOKGOV_TRIGGER_LIFECYCLE_V2.FAILED, new Set()],
+  [HOOKGOV_TRIGGER_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _hookgovPsV2 = new Map();
+const _hookgovJsV2 = new Map();
+let _hookgovMaxActive = 12,
+  _hookgovMaxPending = 25,
+  _hookgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _hookgovStuckMs = 60 * 1000;
+function _hookgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _hookgovCheckP(from, to) {
+  const a = _hookgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid hookgov profile transition ${from} → ${to}`);
+}
+function _hookgovCheckJ(from, to) {
+  const a = _hookgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid hookgov trigger transition ${from} → ${to}`);
+}
+function _hookgovCountActive(owner) {
+  let c = 0;
+  for (const p of _hookgovPsV2.values())
+    if (p.owner === owner && p.status === HOOKGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _hookgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _hookgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === HOOKGOV_TRIGGER_LIFECYCLE_V2.QUEUED ||
+        j.status === HOOKGOV_TRIGGER_LIFECYCLE_V2.FIRING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveHookgovProfilesPerOwnerV2(n) {
+  _hookgovMaxActive = _hookgovPos(n, "maxActiveHookgovProfilesPerOwner");
+}
+export function getMaxActiveHookgovProfilesPerOwnerV2() {
+  return _hookgovMaxActive;
+}
+export function setMaxPendingHookgovTriggersPerProfileV2(n) {
+  _hookgovMaxPending = _hookgovPos(n, "maxPendingHookgovTriggersPerProfile");
+}
+export function getMaxPendingHookgovTriggersPerProfileV2() {
+  return _hookgovMaxPending;
+}
+export function setHookgovProfileIdleMsV2(n) {
+  _hookgovIdleMs = _hookgovPos(n, "hookgovProfileIdleMs");
+}
+export function getHookgovProfileIdleMsV2() {
+  return _hookgovIdleMs;
+}
+export function setHookgovTriggerStuckMsV2(n) {
+  _hookgovStuckMs = _hookgovPos(n, "hookgovTriggerStuckMs");
+}
+export function getHookgovTriggerStuckMsV2() {
+  return _hookgovStuckMs;
+}
+export function _resetStateHookManagerGovV2() {
+  _hookgovPsV2.clear();
+  _hookgovJsV2.clear();
+  _hookgovMaxActive = 12;
+  _hookgovMaxPending = 25;
+  _hookgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _hookgovStuckMs = 60 * 1000;
+}
+export function registerHookgovProfileV2({ id, owner, event, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_hookgovPsV2.has(id))
+    throw new Error(`hookgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    event: event || "preTurn",
+    status: HOOKGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _hookgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateHookgovProfileV2(id) {
+  const p = _hookgovPsV2.get(id);
+  if (!p) throw new Error(`hookgov profile ${id} not found`);
+  const isInitial = p.status === HOOKGOV_PROFILE_MATURITY_V2.PENDING;
+  _hookgovCheckP(p.status, HOOKGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _hookgovCountActive(p.owner) >= _hookgovMaxActive)
+    throw new Error(`max active hookgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = HOOKGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function disableHookgovProfileV2(id) {
+  const p = _hookgovPsV2.get(id);
+  if (!p) throw new Error(`hookgov profile ${id} not found`);
+  _hookgovCheckP(p.status, HOOKGOV_PROFILE_MATURITY_V2.DISABLED);
+  p.status = HOOKGOV_PROFILE_MATURITY_V2.DISABLED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveHookgovProfileV2(id) {
+  const p = _hookgovPsV2.get(id);
+  if (!p) throw new Error(`hookgov profile ${id} not found`);
+  _hookgovCheckP(p.status, HOOKGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = HOOKGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchHookgovProfileV2(id) {
+  const p = _hookgovPsV2.get(id);
+  if (!p) throw new Error(`hookgov profile ${id} not found`);
+  if (_hookgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal hookgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getHookgovProfileV2(id) {
+  const p = _hookgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listHookgovProfilesV2() {
+  return [..._hookgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createHookgovTriggerV2({
+  id,
+  profileId,
+  payload,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_hookgovJsV2.has(id))
+    throw new Error(`hookgov trigger ${id} already exists`);
+  if (!_hookgovPsV2.has(profileId))
+    throw new Error(`hookgov profile ${profileId} not found`);
+  if (_hookgovCountPending(profileId) >= _hookgovMaxPending)
+    throw new Error(
+      `max pending hookgov triggers for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    payload: payload || "",
+    status: HOOKGOV_TRIGGER_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _hookgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function firingHookgovTriggerV2(id) {
+  const j = _hookgovJsV2.get(id);
+  if (!j) throw new Error(`hookgov trigger ${id} not found`);
+  _hookgovCheckJ(j.status, HOOKGOV_TRIGGER_LIFECYCLE_V2.FIRING);
+  const now = Date.now();
+  j.status = HOOKGOV_TRIGGER_LIFECYCLE_V2.FIRING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeTriggerHookgovV2(id) {
+  const j = _hookgovJsV2.get(id);
+  if (!j) throw new Error(`hookgov trigger ${id} not found`);
+  _hookgovCheckJ(j.status, HOOKGOV_TRIGGER_LIFECYCLE_V2.FIRED);
+  const now = Date.now();
+  j.status = HOOKGOV_TRIGGER_LIFECYCLE_V2.FIRED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failHookgovTriggerV2(id, reason) {
+  const j = _hookgovJsV2.get(id);
+  if (!j) throw new Error(`hookgov trigger ${id} not found`);
+  _hookgovCheckJ(j.status, HOOKGOV_TRIGGER_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = HOOKGOV_TRIGGER_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelHookgovTriggerV2(id, reason) {
+  const j = _hookgovJsV2.get(id);
+  if (!j) throw new Error(`hookgov trigger ${id} not found`);
+  _hookgovCheckJ(j.status, HOOKGOV_TRIGGER_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = HOOKGOV_TRIGGER_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getHookgovTriggerV2(id) {
+  const j = _hookgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listHookgovTriggersV2() {
+  return [..._hookgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoDisableIdleHookgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _hookgovPsV2.values())
+    if (
+      p.status === HOOKGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _hookgovIdleMs
+    ) {
+      p.status = HOOKGOV_PROFILE_MATURITY_V2.DISABLED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckHookgovTriggersV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _hookgovJsV2.values())
+    if (
+      j.status === HOOKGOV_TRIGGER_LIFECYCLE_V2.FIRING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _hookgovStuckMs
+    ) {
+      j.status = HOOKGOV_TRIGGER_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getHookManagerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(HOOKGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _hookgovPsV2.values()) profilesByStatus[p.status]++;
+  const triggersByStatus = {};
+  for (const v of Object.values(HOOKGOV_TRIGGER_LIFECYCLE_V2))
+    triggersByStatus[v] = 0;
+  for (const j of _hookgovJsV2.values()) triggersByStatus[j.status]++;
+  return {
+    totalHookgovProfilesV2: _hookgovPsV2.size,
+    totalHookgovTriggersV2: _hookgovJsV2.size,
+    maxActiveHookgovProfilesPerOwner: _hookgovMaxActive,
+    maxPendingHookgovTriggersPerProfile: _hookgovMaxPending,
+    hookgovProfileIdleMs: _hookgovIdleMs,
+    hookgovTriggerStuckMs: _hookgovStuckMs,
+    profilesByStatus,
+    triggersByStatus,
+  };
+}

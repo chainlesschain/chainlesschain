@@ -1026,3 +1026,220 @@ export function registerMcpCommand(program) {
       console.log(JSON.stringify({ ok: true }, null, 2));
     });
 }
+
+// === Iter24 V2 governance overlay ===
+export function registerMcpgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "mcp");
+  if (!parent) return;
+  const L = async () => await import("../lib/mcp-registry.js");
+  parent
+    .command("mcpgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.MCPGOV_PROFILE_MATURITY_V2,
+            invocationLifecycle: m.MCPGOV_INVOCATION_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("mcpgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveMcpgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingMcpgovInvocationsPerProfileV2(),
+            idleMs: m.getMcpgovProfileIdleMsV2(),
+            stuckMs: m.getMcpgovInvocationStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("mcpgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveMcpgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("mcpgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingMcpgovInvocationsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("mcpgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setMcpgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("mcpgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setMcpgovInvocationStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("mcpgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--transport <v>", "transport")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerMcpgovProfileV2({ id, owner, transport: o.transport }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("mcpgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateMcpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("mcpgov-suspend-v2 <id>")
+    .description("Suspend profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).suspendMcpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("mcpgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveMcpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("mcpgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchMcpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("mcpgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getMcpgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("mcpgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listMcpgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("mcpgov-create-invocation-v2 <id> <profileId>")
+    .description("Create invocation")
+    .option("--tool <v>", "tool")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createMcpgovInvocationV2({ id, profileId, tool: o.tool }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("mcpgov-invoking-invocation-v2 <id>")
+    .description("Mark invocation as invoking")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).invokingMcpgovInvocationV2(id), null, 2),
+      );
+    });
+  parent
+    .command("mcpgov-complete-invocation-v2 <id>")
+    .description("Complete invocation")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeInvocationMcpgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("mcpgov-fail-invocation-v2 <id> [reason]")
+    .description("Fail invocation")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failMcpgovInvocationV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("mcpgov-cancel-invocation-v2 <id> [reason]")
+    .description("Cancel invocation")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify(
+          (await L()).cancelMcpgovInvocationV2(id, reason),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("mcpgov-get-invocation-v2 <id>")
+    .description("Get invocation")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).getMcpgovInvocationV2(id), null, 2),
+      );
+    });
+  parent
+    .command("mcpgov-list-invocations-v2")
+    .description("List invocations")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).listMcpgovInvocationsV2(), null, 2),
+      );
+    });
+  parent
+    .command("mcpgov-auto-suspend-idle-v2")
+    .description("Auto-suspend idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoSuspendIdleMcpgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("mcpgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck invocations")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckMcpgovInvocationsV2(), null, 2),
+      );
+    });
+  parent
+    .command("mcpgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getMcpRegistryGovStatsV2(), null, 2),
+      );
+    });
+}

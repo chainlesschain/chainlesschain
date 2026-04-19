@@ -772,3 +772,206 @@ export function registerBiV2Command(bi) {
       console.log(JSON.stringify(getBiEngineStatsV2(), null, 2));
     });
 }
+
+// === Iter21 V2 governance overlay ===
+export function registerBigovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "bi");
+  if (!parent) return;
+  const L = async () => await import("../lib/bi-engine.js");
+  parent
+    .command("bigov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.BIGOV_PROFILE_MATURITY_V2,
+            queryLifecycle: m.BIGOV_QUERY_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("bigov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveBigovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingBigovQuerysPerProfileV2(),
+            idleMs: m.getBigovProfileIdleMsV2(),
+            stuckMs: m.getBigovQueryStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("bigov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveBigovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("bigov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingBigovQuerysPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("bigov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setBigovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("bigov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setBigovQueryStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("bigov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--dataset <v>", "dataset")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerBigovProfileV2({ id, owner, dataset: o.dataset }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("bigov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateBigovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("bigov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).staleBigovProfileV2(id), null, 2));
+    });
+  parent
+    .command("bigov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveBigovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("bigov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchBigovProfileV2(id), null, 2));
+    });
+  parent
+    .command("bigov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getBigovProfileV2(id), null, 2));
+    });
+  parent
+    .command("bigov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listBigovProfilesV2(), null, 2));
+    });
+  parent
+    .command("bigov-create-query-v2 <id> <profileId>")
+    .description("Create query")
+    .option("--kpi <v>", "kpi")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createBigovQueryV2({ id, profileId, kpi: o.kpi }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("bigov-querying-query-v2 <id>")
+    .description("Mark query as querying")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).queryingBigovQueryV2(id), null, 2),
+      );
+    });
+  parent
+    .command("bigov-complete-query-v2 <id>")
+    .description("Complete query")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeQueryBigovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("bigov-fail-query-v2 <id> [reason]")
+    .description("Fail query")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failBigovQueryV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("bigov-cancel-query-v2 <id> [reason]")
+    .description("Cancel query")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelBigovQueryV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("bigov-get-query-v2 <id>")
+    .description("Get query")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getBigovQueryV2(id), null, 2));
+    });
+  parent
+    .command("bigov-list-querys-v2")
+    .description("List querys")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listBigovQuerysV2(), null, 2));
+    });
+  parent
+    .command("bigov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleBigovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("bigov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck querys")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckBigovQuerysV2(), null, 2),
+      );
+    });
+  parent
+    .command("bigov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).getBiEngineGovStatsV2(), null, 2));
+    });
+}

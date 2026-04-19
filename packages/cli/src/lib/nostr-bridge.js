@@ -711,3 +711,339 @@ export function getNostrBridgeStatsV2() {
     eventsByStatus,
   };
 }
+
+// =====================================================================
+// nostr-bridge V2 governance overlay (iter21)
+// =====================================================================
+export const NOSGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  ARCHIVED: "archived",
+});
+export const NOSGOV_PUBLISH_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  PUBLISHING: "publishing",
+  PUBLISHED: "published",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _nosgovPTrans = new Map([
+  [
+    NOSGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      NOSGOV_PROFILE_MATURITY_V2.ACTIVE,
+      NOSGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    NOSGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      NOSGOV_PROFILE_MATURITY_V2.SUSPENDED,
+      NOSGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    NOSGOV_PROFILE_MATURITY_V2.SUSPENDED,
+    new Set([
+      NOSGOV_PROFILE_MATURITY_V2.ACTIVE,
+      NOSGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [NOSGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _nosgovPTerminal = new Set([NOSGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _nosgovJTrans = new Map([
+  [
+    NOSGOV_PUBLISH_LIFECYCLE_V2.QUEUED,
+    new Set([
+      NOSGOV_PUBLISH_LIFECYCLE_V2.PUBLISHING,
+      NOSGOV_PUBLISH_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    NOSGOV_PUBLISH_LIFECYCLE_V2.PUBLISHING,
+    new Set([
+      NOSGOV_PUBLISH_LIFECYCLE_V2.PUBLISHED,
+      NOSGOV_PUBLISH_LIFECYCLE_V2.FAILED,
+      NOSGOV_PUBLISH_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [NOSGOV_PUBLISH_LIFECYCLE_V2.PUBLISHED, new Set()],
+  [NOSGOV_PUBLISH_LIFECYCLE_V2.FAILED, new Set()],
+  [NOSGOV_PUBLISH_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _nosgovPsV2 = new Map();
+const _nosgovJsV2 = new Map();
+let _nosgovMaxActive = 8,
+  _nosgovMaxPending = 25,
+  _nosgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _nosgovStuckMs = 60 * 1000;
+function _nosgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _nosgovCheckP(from, to) {
+  const a = _nosgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid nosgov profile transition ${from} → ${to}`);
+}
+function _nosgovCheckJ(from, to) {
+  const a = _nosgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid nosgov publish transition ${from} → ${to}`);
+}
+function _nosgovCountActive(owner) {
+  let c = 0;
+  for (const p of _nosgovPsV2.values())
+    if (p.owner === owner && p.status === NOSGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _nosgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _nosgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === NOSGOV_PUBLISH_LIFECYCLE_V2.QUEUED ||
+        j.status === NOSGOV_PUBLISH_LIFECYCLE_V2.PUBLISHING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveNosgovProfilesPerOwnerV2(n) {
+  _nosgovMaxActive = _nosgovPos(n, "maxActiveNosgovProfilesPerOwner");
+}
+export function getMaxActiveNosgovProfilesPerOwnerV2() {
+  return _nosgovMaxActive;
+}
+export function setMaxPendingNosgovPublishsPerProfileV2(n) {
+  _nosgovMaxPending = _nosgovPos(n, "maxPendingNosgovPublishsPerProfile");
+}
+export function getMaxPendingNosgovPublishsPerProfileV2() {
+  return _nosgovMaxPending;
+}
+export function setNosgovProfileIdleMsV2(n) {
+  _nosgovIdleMs = _nosgovPos(n, "nosgovProfileIdleMs");
+}
+export function getNosgovProfileIdleMsV2() {
+  return _nosgovIdleMs;
+}
+export function setNosgovPublishStuckMsV2(n) {
+  _nosgovStuckMs = _nosgovPos(n, "nosgovPublishStuckMs");
+}
+export function getNosgovPublishStuckMsV2() {
+  return _nosgovStuckMs;
+}
+export function _resetStateNostrBridgeGovV2() {
+  _nosgovPsV2.clear();
+  _nosgovJsV2.clear();
+  _nosgovMaxActive = 8;
+  _nosgovMaxPending = 25;
+  _nosgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _nosgovStuckMs = 60 * 1000;
+}
+export function registerNosgovProfileV2({ id, owner, relay, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_nosgovPsV2.has(id))
+    throw new Error(`nosgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    relay: relay || "wss://relay.local",
+    status: NOSGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _nosgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateNosgovProfileV2(id) {
+  const p = _nosgovPsV2.get(id);
+  if (!p) throw new Error(`nosgov profile ${id} not found`);
+  const isInitial = p.status === NOSGOV_PROFILE_MATURITY_V2.PENDING;
+  _nosgovCheckP(p.status, NOSGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _nosgovCountActive(p.owner) >= _nosgovMaxActive)
+    throw new Error(`max active nosgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = NOSGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function suspendNosgovProfileV2(id) {
+  const p = _nosgovPsV2.get(id);
+  if (!p) throw new Error(`nosgov profile ${id} not found`);
+  _nosgovCheckP(p.status, NOSGOV_PROFILE_MATURITY_V2.SUSPENDED);
+  p.status = NOSGOV_PROFILE_MATURITY_V2.SUSPENDED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveNosgovProfileV2(id) {
+  const p = _nosgovPsV2.get(id);
+  if (!p) throw new Error(`nosgov profile ${id} not found`);
+  _nosgovCheckP(p.status, NOSGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = NOSGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchNosgovProfileV2(id) {
+  const p = _nosgovPsV2.get(id);
+  if (!p) throw new Error(`nosgov profile ${id} not found`);
+  if (_nosgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal nosgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getNosgovProfileV2(id) {
+  const p = _nosgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listNosgovProfilesV2() {
+  return [..._nosgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createNosgovPublishV2({ id, profileId, kind, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_nosgovJsV2.has(id))
+    throw new Error(`nosgov publish ${id} already exists`);
+  if (!_nosgovPsV2.has(profileId))
+    throw new Error(`nosgov profile ${profileId} not found`);
+  if (_nosgovCountPending(profileId) >= _nosgovMaxPending)
+    throw new Error(
+      `max pending nosgov publishs for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    kind: kind || "",
+    status: NOSGOV_PUBLISH_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _nosgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function publishingNosgovPublishV2(id) {
+  const j = _nosgovJsV2.get(id);
+  if (!j) throw new Error(`nosgov publish ${id} not found`);
+  _nosgovCheckJ(j.status, NOSGOV_PUBLISH_LIFECYCLE_V2.PUBLISHING);
+  const now = Date.now();
+  j.status = NOSGOV_PUBLISH_LIFECYCLE_V2.PUBLISHING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completePublishNosgovV2(id) {
+  const j = _nosgovJsV2.get(id);
+  if (!j) throw new Error(`nosgov publish ${id} not found`);
+  _nosgovCheckJ(j.status, NOSGOV_PUBLISH_LIFECYCLE_V2.PUBLISHED);
+  const now = Date.now();
+  j.status = NOSGOV_PUBLISH_LIFECYCLE_V2.PUBLISHED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failNosgovPublishV2(id, reason) {
+  const j = _nosgovJsV2.get(id);
+  if (!j) throw new Error(`nosgov publish ${id} not found`);
+  _nosgovCheckJ(j.status, NOSGOV_PUBLISH_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = NOSGOV_PUBLISH_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelNosgovPublishV2(id, reason) {
+  const j = _nosgovJsV2.get(id);
+  if (!j) throw new Error(`nosgov publish ${id} not found`);
+  _nosgovCheckJ(j.status, NOSGOV_PUBLISH_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = NOSGOV_PUBLISH_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getNosgovPublishV2(id) {
+  const j = _nosgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listNosgovPublishsV2() {
+  return [..._nosgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoSuspendIdleNosgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _nosgovPsV2.values())
+    if (
+      p.status === NOSGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _nosgovIdleMs
+    ) {
+      p.status = NOSGOV_PROFILE_MATURITY_V2.SUSPENDED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckNosgovPublishsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _nosgovJsV2.values())
+    if (
+      j.status === NOSGOV_PUBLISH_LIFECYCLE_V2.PUBLISHING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _nosgovStuckMs
+    ) {
+      j.status = NOSGOV_PUBLISH_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getNostrBridgeGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(NOSGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _nosgovPsV2.values()) profilesByStatus[p.status]++;
+  const publishsByStatus = {};
+  for (const v of Object.values(NOSGOV_PUBLISH_LIFECYCLE_V2))
+    publishsByStatus[v] = 0;
+  for (const j of _nosgovJsV2.values()) publishsByStatus[j.status]++;
+  return {
+    totalNosgovProfilesV2: _nosgovPsV2.size,
+    totalNosgovPublishsV2: _nosgovJsV2.size,
+    maxActiveNosgovProfilesPerOwner: _nosgovMaxActive,
+    maxPendingNosgovPublishsPerProfile: _nosgovMaxPending,
+    nosgovProfileIdleMs: _nosgovIdleMs,
+    nosgovPublishStuckMs: _nosgovStuckMs,
+    profilesByStatus,
+    publishsByStatus,
+  };
+}

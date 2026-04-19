@@ -745,3 +745,339 @@ export function _resetStateOrgManagerV2() {
   _orgIdleMsV2 = ORG_DEFAULT_ORG_IDLE_MS;
   _inviteStaleMsV2 = ORG_DEFAULT_INVITE_STALE_MS;
 }
+
+// =====================================================================
+// org-manager V2 governance overlay (iter19)
+// =====================================================================
+export const ORGGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const ORGGOV_INVITE_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  INVITING: "inviting",
+  INVITED: "invited",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _orggovPTrans = new Map([
+  [
+    ORGGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      ORGGOV_PROFILE_MATURITY_V2.ACTIVE,
+      ORGGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    ORGGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      ORGGOV_PROFILE_MATURITY_V2.PAUSED,
+      ORGGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    ORGGOV_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      ORGGOV_PROFILE_MATURITY_V2.ACTIVE,
+      ORGGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [ORGGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _orggovPTerminal = new Set([ORGGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _orggovJTrans = new Map([
+  [
+    ORGGOV_INVITE_LIFECYCLE_V2.QUEUED,
+    new Set([
+      ORGGOV_INVITE_LIFECYCLE_V2.INVITING,
+      ORGGOV_INVITE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    ORGGOV_INVITE_LIFECYCLE_V2.INVITING,
+    new Set([
+      ORGGOV_INVITE_LIFECYCLE_V2.INVITED,
+      ORGGOV_INVITE_LIFECYCLE_V2.FAILED,
+      ORGGOV_INVITE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [ORGGOV_INVITE_LIFECYCLE_V2.INVITED, new Set()],
+  [ORGGOV_INVITE_LIFECYCLE_V2.FAILED, new Set()],
+  [ORGGOV_INVITE_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _orggovPsV2 = new Map();
+const _orggovJsV2 = new Map();
+let _orggovMaxActive = 6,
+  _orggovMaxPending = 30,
+  _orggovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _orggovStuckMs = 60 * 1000;
+function _orggovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _orggovCheckP(from, to) {
+  const a = _orggovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid orggov profile transition ${from} → ${to}`);
+}
+function _orggovCheckJ(from, to) {
+  const a = _orggovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid orggov invite transition ${from} → ${to}`);
+}
+function _orggovCountActive(owner) {
+  let c = 0;
+  for (const p of _orggovPsV2.values())
+    if (p.owner === owner && p.status === ORGGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _orggovCountPending(profileId) {
+  let c = 0;
+  for (const j of _orggovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === ORGGOV_INVITE_LIFECYCLE_V2.QUEUED ||
+        j.status === ORGGOV_INVITE_LIFECYCLE_V2.INVITING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveOrggovProfilesPerOwnerV2(n) {
+  _orggovMaxActive = _orggovPos(n, "maxActiveOrggovProfilesPerOwner");
+}
+export function getMaxActiveOrggovProfilesPerOwnerV2() {
+  return _orggovMaxActive;
+}
+export function setMaxPendingOrggovInvitesPerProfileV2(n) {
+  _orggovMaxPending = _orggovPos(n, "maxPendingOrggovInvitesPerProfile");
+}
+export function getMaxPendingOrggovInvitesPerProfileV2() {
+  return _orggovMaxPending;
+}
+export function setOrggovProfileIdleMsV2(n) {
+  _orggovIdleMs = _orggovPos(n, "orggovProfileIdleMs");
+}
+export function getOrggovProfileIdleMsV2() {
+  return _orggovIdleMs;
+}
+export function setOrggovInviteStuckMsV2(n) {
+  _orggovStuckMs = _orggovPos(n, "orggovInviteStuckMs");
+}
+export function getOrggovInviteStuckMsV2() {
+  return _orggovStuckMs;
+}
+export function _resetStateOrgManagerGovV2() {
+  _orggovPsV2.clear();
+  _orggovJsV2.clear();
+  _orggovMaxActive = 6;
+  _orggovMaxPending = 30;
+  _orggovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _orggovStuckMs = 60 * 1000;
+}
+export function registerOrggovProfileV2({ id, owner, tier, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_orggovPsV2.has(id))
+    throw new Error(`orggov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    tier: tier || "standard",
+    status: ORGGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _orggovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateOrggovProfileV2(id) {
+  const p = _orggovPsV2.get(id);
+  if (!p) throw new Error(`orggov profile ${id} not found`);
+  const isInitial = p.status === ORGGOV_PROFILE_MATURITY_V2.PENDING;
+  _orggovCheckP(p.status, ORGGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _orggovCountActive(p.owner) >= _orggovMaxActive)
+    throw new Error(`max active orggov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = ORGGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pauseOrggovProfileV2(id) {
+  const p = _orggovPsV2.get(id);
+  if (!p) throw new Error(`orggov profile ${id} not found`);
+  _orggovCheckP(p.status, ORGGOV_PROFILE_MATURITY_V2.PAUSED);
+  p.status = ORGGOV_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveOrggovProfileV2(id) {
+  const p = _orggovPsV2.get(id);
+  if (!p) throw new Error(`orggov profile ${id} not found`);
+  _orggovCheckP(p.status, ORGGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = ORGGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchOrggovProfileV2(id) {
+  const p = _orggovPsV2.get(id);
+  if (!p) throw new Error(`orggov profile ${id} not found`);
+  if (_orggovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal orggov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getOrggovProfileV2(id) {
+  const p = _orggovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listOrggovProfilesV2() {
+  return [..._orggovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createOrggovInviteV2({ id, profileId, email, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_orggovJsV2.has(id))
+    throw new Error(`orggov invite ${id} already exists`);
+  if (!_orggovPsV2.has(profileId))
+    throw new Error(`orggov profile ${profileId} not found`);
+  if (_orggovCountPending(profileId) >= _orggovMaxPending)
+    throw new Error(
+      `max pending orggov invites for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    email: email || "",
+    status: ORGGOV_INVITE_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _orggovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function invitingOrggovInviteV2(id) {
+  const j = _orggovJsV2.get(id);
+  if (!j) throw new Error(`orggov invite ${id} not found`);
+  _orggovCheckJ(j.status, ORGGOV_INVITE_LIFECYCLE_V2.INVITING);
+  const now = Date.now();
+  j.status = ORGGOV_INVITE_LIFECYCLE_V2.INVITING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeInviteOrggovV2(id) {
+  const j = _orggovJsV2.get(id);
+  if (!j) throw new Error(`orggov invite ${id} not found`);
+  _orggovCheckJ(j.status, ORGGOV_INVITE_LIFECYCLE_V2.INVITED);
+  const now = Date.now();
+  j.status = ORGGOV_INVITE_LIFECYCLE_V2.INVITED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failOrggovInviteV2(id, reason) {
+  const j = _orggovJsV2.get(id);
+  if (!j) throw new Error(`orggov invite ${id} not found`);
+  _orggovCheckJ(j.status, ORGGOV_INVITE_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = ORGGOV_INVITE_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelOrggovInviteV2(id, reason) {
+  const j = _orggovJsV2.get(id);
+  if (!j) throw new Error(`orggov invite ${id} not found`);
+  _orggovCheckJ(j.status, ORGGOV_INVITE_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = ORGGOV_INVITE_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getOrggovInviteV2(id) {
+  const j = _orggovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listOrggovInvitesV2() {
+  return [..._orggovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPauseIdleOrggovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _orggovPsV2.values())
+    if (
+      p.status === ORGGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _orggovIdleMs
+    ) {
+      p.status = ORGGOV_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckOrggovInvitesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _orggovJsV2.values())
+    if (
+      j.status === ORGGOV_INVITE_LIFECYCLE_V2.INVITING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _orggovStuckMs
+    ) {
+      j.status = ORGGOV_INVITE_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getOrgManagerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(ORGGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _orggovPsV2.values()) profilesByStatus[p.status]++;
+  const invitesByStatus = {};
+  for (const v of Object.values(ORGGOV_INVITE_LIFECYCLE_V2))
+    invitesByStatus[v] = 0;
+  for (const j of _orggovJsV2.values()) invitesByStatus[j.status]++;
+  return {
+    totalOrggovProfilesV2: _orggovPsV2.size,
+    totalOrggovInvitesV2: _orggovJsV2.size,
+    maxActiveOrggovProfilesPerOwner: _orggovMaxActive,
+    maxPendingOrggovInvitesPerProfile: _orggovMaxPending,
+    orggovProfileIdleMs: _orggovIdleMs,
+    orggovInviteStuckMs: _orggovStuckMs,
+    profilesByStatus,
+    invitesByStatus,
+  };
+}

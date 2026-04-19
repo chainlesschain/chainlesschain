@@ -585,3 +585,212 @@ export function registerNostrV2Command(nostr) {
       console.log(JSON.stringify(getNostrBridgeStatsV2(), null, 2));
     });
 }
+
+// === Iter21 V2 governance overlay ===
+export function registerNosgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "nostr");
+  if (!parent) return;
+  const L = async () => await import("../lib/nostr-bridge.js");
+  parent
+    .command("nosgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.NOSGOV_PROFILE_MATURITY_V2,
+            publishLifecycle: m.NOSGOV_PUBLISH_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("nosgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveNosgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingNosgovPublishsPerProfileV2(),
+            idleMs: m.getNosgovProfileIdleMsV2(),
+            stuckMs: m.getNosgovPublishStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("nosgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveNosgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("nosgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingNosgovPublishsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("nosgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setNosgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("nosgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setNosgovPublishStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("nosgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--relay <v>", "relay")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerNosgovProfileV2({ id, owner, relay: o.relay }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("nosgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateNosgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("nosgov-suspend-v2 <id>")
+    .description("Suspend profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).suspendNosgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("nosgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveNosgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("nosgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchNosgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("nosgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getNosgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("nosgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listNosgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("nosgov-create-publish-v2 <id> <profileId>")
+    .description("Create publish")
+    .option("--kind <v>", "kind")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createNosgovPublishV2({ id, profileId, kind: o.kind }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("nosgov-publishing-publish-v2 <id>")
+    .description("Mark publish as publishing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).publishingNosgovPublishV2(id), null, 2),
+      );
+    });
+  parent
+    .command("nosgov-complete-publish-v2 <id>")
+    .description("Complete publish")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completePublishNosgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("nosgov-fail-publish-v2 <id> [reason]")
+    .description("Fail publish")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failNosgovPublishV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("nosgov-cancel-publish-v2 <id> [reason]")
+    .description("Cancel publish")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelNosgovPublishV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("nosgov-get-publish-v2 <id>")
+    .description("Get publish")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getNosgovPublishV2(id), null, 2));
+    });
+  parent
+    .command("nosgov-list-publishs-v2")
+    .description("List publishs")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listNosgovPublishsV2(), null, 2));
+    });
+  parent
+    .command("nosgov-auto-suspend-idle-v2")
+    .description("Auto-suspend idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoSuspendIdleNosgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("nosgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck publishs")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckNosgovPublishsV2(), null, 2),
+      );
+    });
+  parent
+    .command("nosgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getNostrBridgeGovStatsV2(), null, 2),
+      );
+    });
+}

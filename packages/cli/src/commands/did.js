@@ -732,3 +732,224 @@ export function registerDidCommand(program) {
     .option("--json")
     .action(() => console.log(JSON.stringify(getDidManagerStatsV2(), null, 2)));
 }
+
+// === Iter19 V2 governance overlay ===
+export function registerDidgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "did");
+  if (!parent) return;
+  const L = async () => await import("../lib/did-manager.js");
+  parent
+    .command("didgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.DIDGOV_PROFILE_MATURITY_V2,
+            resolutionLifecycle: m.DIDGOV_RESOLUTION_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("didgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveDidgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingDidgovResolutionsPerProfileV2(),
+            idleMs: m.getDidgovProfileIdleMsV2(),
+            stuckMs: m.getDidgovResolutionStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("didgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveDidgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("didgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingDidgovResolutionsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("didgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setDidgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("didgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setDidgovResolutionStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("didgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--method <v>", "method")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerDidgovProfileV2({ id, owner, method: o.method }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("didgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateDidgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("didgov-suspend-v2 <id>")
+    .description("Suspend profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).suspendDidgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("didgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveDidgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("didgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchDidgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("didgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getDidgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("didgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listDidgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("didgov-create-resolution-v2 <id> <profileId>")
+    .description("Create resolution")
+    .option("--identifier <v>", "identifier")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createDidgovResolutionV2({
+            id,
+            profileId,
+            identifier: o.identifier,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("didgov-resolving-resolution-v2 <id>")
+    .description("Mark resolution as resolving")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).resolvingDidgovResolutionV2(id), null, 2),
+      );
+    });
+  parent
+    .command("didgov-complete-resolution-v2 <id>")
+    .description("Complete resolution")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeResolutionDidgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("didgov-fail-resolution-v2 <id> [reason]")
+    .description("Fail resolution")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failDidgovResolutionV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("didgov-cancel-resolution-v2 <id> [reason]")
+    .description("Cancel resolution")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify(
+          (await L()).cancelDidgovResolutionV2(id, reason),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("didgov-get-resolution-v2 <id>")
+    .description("Get resolution")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).getDidgovResolutionV2(id), null, 2),
+      );
+    });
+  parent
+    .command("didgov-list-resolutions-v2")
+    .description("List resolutions")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).listDidgovResolutionsV2(), null, 2),
+      );
+    });
+  parent
+    .command("didgov-auto-suspend-idle-v2")
+    .description("Auto-suspend idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoSuspendIdleDidgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("didgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck resolutions")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckDidgovResolutionsV2(), null, 2),
+      );
+    });
+  parent
+    .command("didgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getDidManagerGovStatsV2(), null, 2),
+      );
+    });
+}

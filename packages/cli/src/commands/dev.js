@@ -661,3 +661,210 @@ export function registerDevCommand(program) {
       console.log(JSON.stringify(getAutonomousDeveloperStatsV2(), null, 2)),
     );
 }
+
+// === Iter24 V2 governance overlay ===
+export function registerDevgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "dev");
+  if (!parent) return;
+  const L = async () => await import("../lib/autonomous-developer.js");
+  parent
+    .command("devgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.DEVGOV_PROFILE_MATURITY_V2,
+            runLifecycle: m.DEVGOV_RUN_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("devgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveDevgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingDevgovRunsPerProfileV2(),
+            idleMs: m.getDevgovProfileIdleMsV2(),
+            stuckMs: m.getDevgovRunStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("devgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveDevgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("devgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingDevgovRunsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("devgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setDevgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("devgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setDevgovRunStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("devgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--level <v>", "level")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerDevgovProfileV2({ id, owner, level: o.level }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("devgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateDevgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("devgov-pause-v2 <id>")
+    .description("Pause profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).pauseDevgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("devgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveDevgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("devgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchDevgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("devgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getDevgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("devgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listDevgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("devgov-create-run-v2 <id> <profileId>")
+    .description("Create run")
+    .option("--goal <v>", "goal")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createDevgovRunV2({ id, profileId, goal: o.goal }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("devgov-developing-run-v2 <id>")
+    .description("Mark run as developing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).developingDevgovRunV2(id), null, 2),
+      );
+    });
+  parent
+    .command("devgov-complete-run-v2 <id>")
+    .description("Complete run")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completeRunDevgovV2(id), null, 2));
+    });
+  parent
+    .command("devgov-fail-run-v2 <id> [reason]")
+    .description("Fail run")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failDevgovRunV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("devgov-cancel-run-v2 <id> [reason]")
+    .description("Cancel run")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelDevgovRunV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("devgov-get-run-v2 <id>")
+    .description("Get run")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getDevgovRunV2(id), null, 2));
+    });
+  parent
+    .command("devgov-list-runs-v2")
+    .description("List runs")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listDevgovRunsV2(), null, 2));
+    });
+  parent
+    .command("devgov-auto-pause-idle-v2")
+    .description("Auto-pause idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoPauseIdleDevgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("devgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck runs")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckDevgovRunsV2(), null, 2),
+      );
+    });
+  parent
+    .command("devgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getAutonomousDeveloperGovStatsV2(), null, 2),
+      );
+    });
+}

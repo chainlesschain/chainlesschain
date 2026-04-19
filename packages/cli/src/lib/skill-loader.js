@@ -733,3 +733,337 @@ export function _resetStateSkillLoaderV2() {
   _stateV2.skillIdleMs = SKILL_DEFAULT_SKILL_IDLE_MS;
   _stateV2.execStuckMs = SKILL_DEFAULT_EXEC_STUCK_MS;
 }
+
+// =====================================================================
+// skill-loader V2 governance overlay (iter24)
+// =====================================================================
+export const SKLGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const SKLGOV_LOAD_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  LOADING: "loading",
+  LOADED: "loaded",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _sklgovPTrans = new Map([
+  [
+    SKLGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      SKLGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SKLGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SKLGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      SKLGOV_PROFILE_MATURITY_V2.STALE,
+      SKLGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SKLGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      SKLGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SKLGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [SKLGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _sklgovPTerminal = new Set([SKLGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _sklgovJTrans = new Map([
+  [
+    SKLGOV_LOAD_LIFECYCLE_V2.QUEUED,
+    new Set([
+      SKLGOV_LOAD_LIFECYCLE_V2.LOADING,
+      SKLGOV_LOAD_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    SKLGOV_LOAD_LIFECYCLE_V2.LOADING,
+    new Set([
+      SKLGOV_LOAD_LIFECYCLE_V2.LOADED,
+      SKLGOV_LOAD_LIFECYCLE_V2.FAILED,
+      SKLGOV_LOAD_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [SKLGOV_LOAD_LIFECYCLE_V2.LOADED, new Set()],
+  [SKLGOV_LOAD_LIFECYCLE_V2.FAILED, new Set()],
+  [SKLGOV_LOAD_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _sklgovPsV2 = new Map();
+const _sklgovJsV2 = new Map();
+let _sklgovMaxActive = 10,
+  _sklgovMaxPending = 25,
+  _sklgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _sklgovStuckMs = 60 * 1000;
+function _sklgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _sklgovCheckP(from, to) {
+  const a = _sklgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid sklgov profile transition ${from} → ${to}`);
+}
+function _sklgovCheckJ(from, to) {
+  const a = _sklgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid sklgov load transition ${from} → ${to}`);
+}
+function _sklgovCountActive(owner) {
+  let c = 0;
+  for (const p of _sklgovPsV2.values())
+    if (p.owner === owner && p.status === SKLGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _sklgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _sklgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === SKLGOV_LOAD_LIFECYCLE_V2.QUEUED ||
+        j.status === SKLGOV_LOAD_LIFECYCLE_V2.LOADING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveSklgovProfilesPerOwnerV2(n) {
+  _sklgovMaxActive = _sklgovPos(n, "maxActiveSklgovProfilesPerOwner");
+}
+export function getMaxActiveSklgovProfilesPerOwnerV2() {
+  return _sklgovMaxActive;
+}
+export function setMaxPendingSklgovLoadsPerProfileV2(n) {
+  _sklgovMaxPending = _sklgovPos(n, "maxPendingSklgovLoadsPerProfile");
+}
+export function getMaxPendingSklgovLoadsPerProfileV2() {
+  return _sklgovMaxPending;
+}
+export function setSklgovProfileIdleMsV2(n) {
+  _sklgovIdleMs = _sklgovPos(n, "sklgovProfileIdleMs");
+}
+export function getSklgovProfileIdleMsV2() {
+  return _sklgovIdleMs;
+}
+export function setSklgovLoadStuckMsV2(n) {
+  _sklgovStuckMs = _sklgovPos(n, "sklgovLoadStuckMs");
+}
+export function getSklgovLoadStuckMsV2() {
+  return _sklgovStuckMs;
+}
+export function _resetStateSkillLoaderGovV2() {
+  _sklgovPsV2.clear();
+  _sklgovJsV2.clear();
+  _sklgovMaxActive = 10;
+  _sklgovMaxPending = 25;
+  _sklgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _sklgovStuckMs = 60 * 1000;
+}
+export function registerSklgovProfileV2({ id, owner, source, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_sklgovPsV2.has(id))
+    throw new Error(`sklgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    source: source || "local",
+    status: SKLGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _sklgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateSklgovProfileV2(id) {
+  const p = _sklgovPsV2.get(id);
+  if (!p) throw new Error(`sklgov profile ${id} not found`);
+  const isInitial = p.status === SKLGOV_PROFILE_MATURITY_V2.PENDING;
+  _sklgovCheckP(p.status, SKLGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _sklgovCountActive(p.owner) >= _sklgovMaxActive)
+    throw new Error(`max active sklgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = SKLGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleSklgovProfileV2(id) {
+  const p = _sklgovPsV2.get(id);
+  if (!p) throw new Error(`sklgov profile ${id} not found`);
+  _sklgovCheckP(p.status, SKLGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = SKLGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveSklgovProfileV2(id) {
+  const p = _sklgovPsV2.get(id);
+  if (!p) throw new Error(`sklgov profile ${id} not found`);
+  _sklgovCheckP(p.status, SKLGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = SKLGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchSklgovProfileV2(id) {
+  const p = _sklgovPsV2.get(id);
+  if (!p) throw new Error(`sklgov profile ${id} not found`);
+  if (_sklgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal sklgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getSklgovProfileV2(id) {
+  const p = _sklgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listSklgovProfilesV2() {
+  return [..._sklgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createSklgovLoadV2({ id, profileId, skillId, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_sklgovJsV2.has(id)) throw new Error(`sklgov load ${id} already exists`);
+  if (!_sklgovPsV2.has(profileId))
+    throw new Error(`sklgov profile ${profileId} not found`);
+  if (_sklgovCountPending(profileId) >= _sklgovMaxPending)
+    throw new Error(
+      `max pending sklgov loads for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    skillId: skillId || "",
+    status: SKLGOV_LOAD_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _sklgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function loadingSklgovLoadV2(id) {
+  const j = _sklgovJsV2.get(id);
+  if (!j) throw new Error(`sklgov load ${id} not found`);
+  _sklgovCheckJ(j.status, SKLGOV_LOAD_LIFECYCLE_V2.LOADING);
+  const now = Date.now();
+  j.status = SKLGOV_LOAD_LIFECYCLE_V2.LOADING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeLoadSklgovV2(id) {
+  const j = _sklgovJsV2.get(id);
+  if (!j) throw new Error(`sklgov load ${id} not found`);
+  _sklgovCheckJ(j.status, SKLGOV_LOAD_LIFECYCLE_V2.LOADED);
+  const now = Date.now();
+  j.status = SKLGOV_LOAD_LIFECYCLE_V2.LOADED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failSklgovLoadV2(id, reason) {
+  const j = _sklgovJsV2.get(id);
+  if (!j) throw new Error(`sklgov load ${id} not found`);
+  _sklgovCheckJ(j.status, SKLGOV_LOAD_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = SKLGOV_LOAD_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelSklgovLoadV2(id, reason) {
+  const j = _sklgovJsV2.get(id);
+  if (!j) throw new Error(`sklgov load ${id} not found`);
+  _sklgovCheckJ(j.status, SKLGOV_LOAD_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = SKLGOV_LOAD_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getSklgovLoadV2(id) {
+  const j = _sklgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listSklgovLoadsV2() {
+  return [..._sklgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleSklgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _sklgovPsV2.values())
+    if (
+      p.status === SKLGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _sklgovIdleMs
+    ) {
+      p.status = SKLGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckSklgovLoadsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _sklgovJsV2.values())
+    if (
+      j.status === SKLGOV_LOAD_LIFECYCLE_V2.LOADING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _sklgovStuckMs
+    ) {
+      j.status = SKLGOV_LOAD_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getSkillLoaderGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(SKLGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _sklgovPsV2.values()) profilesByStatus[p.status]++;
+  const loadsByStatus = {};
+  for (const v of Object.values(SKLGOV_LOAD_LIFECYCLE_V2)) loadsByStatus[v] = 0;
+  for (const j of _sklgovJsV2.values()) loadsByStatus[j.status]++;
+  return {
+    totalSklgovProfilesV2: _sklgovPsV2.size,
+    totalSklgovLoadsV2: _sklgovJsV2.size,
+    maxActiveSklgovProfilesPerOwner: _sklgovMaxActive,
+    maxPendingSklgovLoadsPerProfile: _sklgovMaxPending,
+    sklgovProfileIdleMs: _sklgovIdleMs,
+    sklgovLoadStuckMs: _sklgovStuckMs,
+    profilesByStatus,
+    loadsByStatus,
+  };
+}

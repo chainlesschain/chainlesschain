@@ -525,3 +525,210 @@ export function registerCodegenCommand(program) {
 
   program.addCommand(cg);
 }
+
+// === Iter19 V2 governance overlay ===
+export function registerCdagovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "codegen");
+  if (!parent) return;
+  const L = async () => await import("../lib/code-agent.js");
+  parent
+    .command("cdagov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.CDAGOV_PROFILE_MATURITY_V2,
+            editLifecycle: m.CDAGOV_EDIT_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cdagov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveCdagovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingCdagovEditsPerProfileV2(),
+            idleMs: m.getCdagovProfileIdleMsV2(),
+            stuckMs: m.getCdagovEditStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cdagov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveCdagovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cdagov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingCdagovEditsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cdagov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setCdagovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cdagov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setCdagovEditStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cdagov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--language <v>", "language")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerCdagovProfileV2({ id, owner, language: o.language }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cdagov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateCdagovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cdagov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleCdagovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cdagov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveCdagovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cdagov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchCdagovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cdagov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCdagovProfileV2(id), null, 2));
+    });
+  parent
+    .command("cdagov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCdagovProfilesV2(), null, 2));
+    });
+  parent
+    .command("cdagov-create-edit-v2 <id> <profileId>")
+    .description("Create edit")
+    .option("--target <v>", "target")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createCdagovEditV2({ id, profileId, target: o.target }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cdagov-editing-edit-v2 <id>")
+    .description("Mark edit as editing")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).editingCdagovEditV2(id), null, 2));
+    });
+  parent
+    .command("cdagov-complete-edit-v2 <id>")
+    .description("Complete edit")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeEditCdagovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cdagov-fail-edit-v2 <id> [reason]")
+    .description("Fail edit")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failCdagovEditV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cdagov-cancel-edit-v2 <id> [reason]")
+    .description("Cancel edit")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelCdagovEditV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cdagov-get-edit-v2 <id>")
+    .description("Get edit")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCdagovEditV2(id), null, 2));
+    });
+  parent
+    .command("cdagov-list-edits-v2")
+    .description("List edits")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCdagovEditsV2(), null, 2));
+    });
+  parent
+    .command("cdagov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleCdagovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("cdagov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck edits")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckCdagovEditsV2(), null, 2),
+      );
+    });
+  parent
+    .command("cdagov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getCodeAgentGovStatsV2(), null, 2),
+      );
+    });
+}

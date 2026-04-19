@@ -844,3 +844,349 @@ export function _resetStateV2() {
   _sensorsV2.clear();
   _capturesV2.clear();
 }
+
+// =====================================================================
+// perception V2 governance overlay (iter18)
+// =====================================================================
+export const PERCGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const PERCGOV_SIGNAL_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  ANALYZING: "analyzing",
+  ANALYZED: "analyzed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _percgovPTrans = new Map([
+  [
+    PERCGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      PERCGOV_PROFILE_MATURITY_V2.ACTIVE,
+      PERCGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    PERCGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      PERCGOV_PROFILE_MATURITY_V2.STALE,
+      PERCGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    PERCGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      PERCGOV_PROFILE_MATURITY_V2.ACTIVE,
+      PERCGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [PERCGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _percgovPTerminal = new Set([PERCGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _percgovJTrans = new Map([
+  [
+    PERCGOV_SIGNAL_LIFECYCLE_V2.QUEUED,
+    new Set([
+      PERCGOV_SIGNAL_LIFECYCLE_V2.ANALYZING,
+      PERCGOV_SIGNAL_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    PERCGOV_SIGNAL_LIFECYCLE_V2.ANALYZING,
+    new Set([
+      PERCGOV_SIGNAL_LIFECYCLE_V2.ANALYZED,
+      PERCGOV_SIGNAL_LIFECYCLE_V2.FAILED,
+      PERCGOV_SIGNAL_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [PERCGOV_SIGNAL_LIFECYCLE_V2.ANALYZED, new Set()],
+  [PERCGOV_SIGNAL_LIFECYCLE_V2.FAILED, new Set()],
+  [PERCGOV_SIGNAL_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _percgovPsV2 = new Map();
+const _percgovJsV2 = new Map();
+let _percgovMaxActive = 6,
+  _percgovMaxPending = 12,
+  _percgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _percgovStuckMs = 60 * 1000;
+function _percgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _percgovCheckP(from, to) {
+  const a = _percgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid percgov profile transition ${from} → ${to}`);
+}
+function _percgovCheckJ(from, to) {
+  const a = _percgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid percgov signal transition ${from} → ${to}`);
+}
+function _percgovCountActive(owner) {
+  let c = 0;
+  for (const p of _percgovPsV2.values())
+    if (p.owner === owner && p.status === PERCGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _percgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _percgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === PERCGOV_SIGNAL_LIFECYCLE_V2.QUEUED ||
+        j.status === PERCGOV_SIGNAL_LIFECYCLE_V2.ANALYZING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActivePercgovProfilesPerOwnerV2(n) {
+  _percgovMaxActive = _percgovPos(n, "maxActivePercgovProfilesPerOwner");
+}
+export function getMaxActivePercgovProfilesPerOwnerV2() {
+  return _percgovMaxActive;
+}
+export function setMaxPendingPercgovSignalsPerProfileV2(n) {
+  _percgovMaxPending = _percgovPos(n, "maxPendingPercgovSignalsPerProfile");
+}
+export function getMaxPendingPercgovSignalsPerProfileV2() {
+  return _percgovMaxPending;
+}
+export function setPercgovProfileIdleMsV2(n) {
+  _percgovIdleMs = _percgovPos(n, "percgovProfileIdleMs");
+}
+export function getPercgovProfileIdleMsV2() {
+  return _percgovIdleMs;
+}
+export function setPercgovSignalStuckMsV2(n) {
+  _percgovStuckMs = _percgovPos(n, "percgovSignalStuckMs");
+}
+export function getPercgovSignalStuckMsV2() {
+  return _percgovStuckMs;
+}
+export function _resetStatePerceptionGovV2() {
+  _percgovPsV2.clear();
+  _percgovJsV2.clear();
+  _percgovMaxActive = 6;
+  _percgovMaxPending = 12;
+  _percgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _percgovStuckMs = 60 * 1000;
+}
+export function registerPercgovProfileV2({
+  id,
+  owner,
+  modality,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_percgovPsV2.has(id))
+    throw new Error(`percgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    modality: modality || "vision",
+    status: PERCGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _percgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activatePercgovProfileV2(id) {
+  const p = _percgovPsV2.get(id);
+  if (!p) throw new Error(`percgov profile ${id} not found`);
+  const isInitial = p.status === PERCGOV_PROFILE_MATURITY_V2.PENDING;
+  _percgovCheckP(p.status, PERCGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _percgovCountActive(p.owner) >= _percgovMaxActive)
+    throw new Error(`max active percgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = PERCGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function stalePercgovProfileV2(id) {
+  const p = _percgovPsV2.get(id);
+  if (!p) throw new Error(`percgov profile ${id} not found`);
+  _percgovCheckP(p.status, PERCGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = PERCGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archivePercgovProfileV2(id) {
+  const p = _percgovPsV2.get(id);
+  if (!p) throw new Error(`percgov profile ${id} not found`);
+  _percgovCheckP(p.status, PERCGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = PERCGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchPercgovProfileV2(id) {
+  const p = _percgovPsV2.get(id);
+  if (!p) throw new Error(`percgov profile ${id} not found`);
+  if (_percgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal percgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getPercgovProfileV2(id) {
+  const p = _percgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listPercgovProfilesV2() {
+  return [..._percgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createPercgovSignalV2({
+  id,
+  profileId,
+  source,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_percgovJsV2.has(id))
+    throw new Error(`percgov signal ${id} already exists`);
+  if (!_percgovPsV2.has(profileId))
+    throw new Error(`percgov profile ${profileId} not found`);
+  if (_percgovCountPending(profileId) >= _percgovMaxPending)
+    throw new Error(
+      `max pending percgov signals for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    source: source || "",
+    status: PERCGOV_SIGNAL_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _percgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function analyzingPercgovSignalV2(id) {
+  const j = _percgovJsV2.get(id);
+  if (!j) throw new Error(`percgov signal ${id} not found`);
+  _percgovCheckJ(j.status, PERCGOV_SIGNAL_LIFECYCLE_V2.ANALYZING);
+  const now = Date.now();
+  j.status = PERCGOV_SIGNAL_LIFECYCLE_V2.ANALYZING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeSignalPercgovV2(id) {
+  const j = _percgovJsV2.get(id);
+  if (!j) throw new Error(`percgov signal ${id} not found`);
+  _percgovCheckJ(j.status, PERCGOV_SIGNAL_LIFECYCLE_V2.ANALYZED);
+  const now = Date.now();
+  j.status = PERCGOV_SIGNAL_LIFECYCLE_V2.ANALYZED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failPercgovSignalV2(id, reason) {
+  const j = _percgovJsV2.get(id);
+  if (!j) throw new Error(`percgov signal ${id} not found`);
+  _percgovCheckJ(j.status, PERCGOV_SIGNAL_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = PERCGOV_SIGNAL_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelPercgovSignalV2(id, reason) {
+  const j = _percgovJsV2.get(id);
+  if (!j) throw new Error(`percgov signal ${id} not found`);
+  _percgovCheckJ(j.status, PERCGOV_SIGNAL_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = PERCGOV_SIGNAL_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getPercgovSignalV2(id) {
+  const j = _percgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listPercgovSignalsV2() {
+  return [..._percgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdlePercgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _percgovPsV2.values())
+    if (
+      p.status === PERCGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _percgovIdleMs
+    ) {
+      p.status = PERCGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckPercgovSignalsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _percgovJsV2.values())
+    if (
+      j.status === PERCGOV_SIGNAL_LIFECYCLE_V2.ANALYZING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _percgovStuckMs
+    ) {
+      j.status = PERCGOV_SIGNAL_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getPerceptionGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(PERCGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _percgovPsV2.values()) profilesByStatus[p.status]++;
+  const signalsByStatus = {};
+  for (const v of Object.values(PERCGOV_SIGNAL_LIFECYCLE_V2))
+    signalsByStatus[v] = 0;
+  for (const j of _percgovJsV2.values()) signalsByStatus[j.status]++;
+  return {
+    totalPercgovProfilesV2: _percgovPsV2.size,
+    totalPercgovSignalsV2: _percgovJsV2.size,
+    maxActivePercgovProfilesPerOwner: _percgovMaxActive,
+    maxPendingPercgovSignalsPerProfile: _percgovMaxPending,
+    percgovProfileIdleMs: _percgovIdleMs,
+    percgovSignalStuckMs: _percgovStuckMs,
+    profilesByStatus,
+    signalsByStatus,
+  };
+}

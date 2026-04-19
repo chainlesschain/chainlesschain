@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: v5.0.2.34 | 95+ 模块设计 | 139 技能 | CLI 109 命令/0.143.0 | 13000+ 总测试 | 面向开发者的架构与实现文档
+  tagline: v5.0.2.34 | 95+ 模块设计 | 139 技能 | CLI 109 命令/0.151.0 | 14000+ 总测试 | V2 规范层 156+ 治理表面（iter16-iter21） | 面向开发者的架构与实现文档
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -74,6 +74,7 @@ features:
 | **v5.0.2.2**  | —      | Web管理界面(chainlesschain ui) + 浏览器端项目/全局AI对话 + 5130+测试 |
 | **v5.0.2.10** | —      | Coding Agent Phase 5 + 去中心化社交协议矩阵 + PQC SLH-DSA + MCP HTTP/SSE + CutClaw 视频剪辑 Agent |
 | **v5.0.2.34** | —      | V2 规范层第 1-8 批（SSO / Workflow / Router / Hook / MCP / Coord / A2A / DAO / ZKP / DLP / BI / EvoMap / AP / Matrix / Nostr / Browse / CrossChain / Consol 等 62+ 管家治理表面） + CLI 0.136.0 + 109 命令 + 11700+ 测试 |
+| **v5.0.2.34 (iter16-21)** | — | CLI V2 规范层 iter16-iter21：156+ 治理表面，覆盖 audit / kg / sandbox / sla / stress / terraform / reputation / marketplace / chat / claude-code-bridge / compliance / cowork-learning / cowork-workflow / privacy / token-incentive / hardening / aiops / multimodal / instinct / tenant / quantization / trust / nl-programming / perception / code-agent / collaboration / community / did / sso / org / scim / sync / agent-network / browser / dlp / evomap / federation / ipfs / p2p / wallet / activitypub / matrix / nostr / bi / memory / session / hook / workflow，统一 4-state profile + 5-state lifecycle + auto-suspend-idle + auto-fail-stuck，CLI 0.151.0 + 14255+ 单元 / 696 集成 / 565 e2e |
 
 ---
 

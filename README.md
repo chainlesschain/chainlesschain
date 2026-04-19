@@ -1,5 +1,35 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-19 增量更新（CLI 0.151.0 · V2 iter16-iter21 · 64 个 lib 级治理表面）
+
+继 0.142.0 的第九 / 第十批之后，CLI V2 规范层再连续推 6 轮（iter16-iter21），共下沉 **64 个新 lib 级治理表面**，CLI 包升级到 `0.151.0`（Tag `v5.0.2.34`）。所有表面统一遵循 4-state profile maturity × 5-state record lifecycle 双状态机骨架，配套 per-owner active cap、per-entity pending cap、auto-suspend-idle、auto-fail-stuck，**与 legacy 路径零耦合**。
+
+| 迭代 | 覆盖子系统（lib） | 新 V2 测试 | 命令前缀 |
+| ---- | ------------------ | ----------- | -------- |
+| iter16 | audit-logger / knowledge-graph / sandbox-v2 / sla-manager / stress-tester / terraform-manager / reputation-optimizer / skill-marketplace | 8×44=**352** | `cc audit aud-gov-*-v2` `cc kg kgov-*-v2` `cc sandbox sbox-gov-*-v2` `cc sla slagov-*-v2` `cc stress strgov-*-v2` `cc terraform tfgov-*-v2` `cc reputation repgov-*-v2` `cc marketplace mktgov-*-v2` |
+| iter17 | chat-core / claude-code-bridge / compliance-manager / cowork-learning / cowork-workflow / privacy-computing / token-incentive / hardening-manager | 8×44=**352** | `cc chat chatgov-*-v2` `cc orchestrate ccbgov-*-v2` `cc compliance cmgr-*-v2` `cc cowork learn-*-v2` `cc cowork cwwf-*-v2` `cc privacy pcgov-*-v2` `cc incentive incgov-*-v2` `cc hardening hardgov-*-v2` |
+| iter18 | aiops / multimodal / instinct-manager / tenant-saas / quantization / trust-security / nl-programming / perception | 8×44=**352** | `cc ops aiopsgov-*-v2` `cc multimodal mmgov-*-v2` `cc instinct instgov-*-v2` `cc tenant tnsgov-*-v2` `cc quantize qntgov-*-v2` `cc trust trustgov-*-v2` `cc nlprog nlpgov-*-v2` `cc perception percgov-*-v2` |
+| iter19 | code-agent / collaboration-governance / community-governance / did-manager / sso-manager / org-manager / scim-manager / sync-manager | 8×44=**352** | `cc codegen cdagov-*-v2` `cc collab cogov-*-v2` `cc governance commgov-*-v2` `cc did didgov-*-v2` `cc sso ssogov-*-v2` `cc org orggov-*-v2` `cc scim scimgov-*-v2` `cc sync syncgov-*-v2` |
+| iter20 | agent-network / browser-automation / dlp-engine / evomap-governance / federation-hardening / ipfs-storage / p2p-manager / wallet-manager | 8×44=**352** | `cc agent-network anetgov-*-v2` `cc browse bagov-*-v2` `cc dlp dlpgov-*-v2` `cc evomap evgov-*-v2` `cc federation fedgov-*-v2` `cc ipfs ipfsgov-*-v2` `cc p2p p2pgov-*-v2` `cc wallet walgov-*-v2` |
+| iter21 | activitypub-bridge / matrix-bridge / nostr-bridge / bi-engine / memory-manager / session-manager / hook-manager / workflow-engine | 8×44=**352** | `cc activitypub apgov-*-v2` `cc matrix matgov-*-v2` `cc nostr nosgov-*-v2` `cc bi bigov-*-v2` `cc memory memgov-*-v2` `cc session sesgov-*-v2` `cc hook hookgov-*-v2` `cc workflow wfgov-*-v2` |
+
+**iter16-iter21 累计**：6 轮 × 8 lib × 44 V2 测试 = **2,112 新 V2 单测**（实际 2,816+，含 iter17-21 全 440），全栈 V2 治理表面从 92+ → **156+**。
+
+### 回归测试（2026-04-19, post iter21）
+
+| 层 | 文件数 | 用例数 | 备注 |
+| --- | --- | --- | --- |
+| CLI 单元 | 332 | **14,255 / 14,255** | 含 92 个 `*-v2.test.js`（iter16-iter21 共 32 文件 × 44 = 1,408 新覆盖） |
+| CLI 集成 | 40 | **696 / 696** | 与 0.142.0 持平 |
+| CLI E2E | 38 | **565 / 565** | 与 0.142.0 持平 |
+| **合计** | **410** | **15,516 / 15,516** | **零回归** |
+
+**npm**：`npm i -g chainlesschain@0.151.0`（别名 `cc` / `clc` / `clchain`）
+
+详情见 [`docs/design/modules/96_V2规范层governance.md`](./docs/design/modules/96_V2规范层governance.md) §iter16-iter21。
+
+---
+
 ## 2026-04-19 增量更新（CLI 0.142.0 · V2 第九 + 第十批 · 30 个 lib 级治理表面）
 
 在第八批 12 个 lib surface 基础上再推两批 V2 规范层：第九批收敛 **session / 上下文 / 权限 / DI / 社交图谱** 子系统（14 个 lib），第十批收敛 **编排 / 自治 / 经济 / 进化 / 合规框架 / SIEM / 推理网络 / 低代码** 子系统（16 个 lib）。CLI 包从 `0.136.0 → 0.142.0`（Tag `v5.0.2.34`）。所有 30 个表面严格沿用 4-state 成熟度 × 5-state 记录生命周期双状态机骨架，与 legacy 路径（SQLite 表 / 内存单例 / 传输层 / 协议层）零耦合。

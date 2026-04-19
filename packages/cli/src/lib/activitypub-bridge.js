@@ -964,3 +964,337 @@ export function getActivityPubBridgeStatsV2() {
     activitiesByStatus,
   };
 }
+
+// =====================================================================
+// activitypub-bridge V2 governance overlay (iter21)
+// =====================================================================
+export const APGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  ARCHIVED: "archived",
+});
+export const APGOV_DELIVERY_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  DELIVERING: "delivering",
+  DELIVERED: "delivered",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _apgovPTrans = new Map([
+  [
+    APGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      APGOV_PROFILE_MATURITY_V2.ACTIVE,
+      APGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    APGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      APGOV_PROFILE_MATURITY_V2.SUSPENDED,
+      APGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    APGOV_PROFILE_MATURITY_V2.SUSPENDED,
+    new Set([
+      APGOV_PROFILE_MATURITY_V2.ACTIVE,
+      APGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [APGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _apgovPTerminal = new Set([APGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _apgovJTrans = new Map([
+  [
+    APGOV_DELIVERY_LIFECYCLE_V2.QUEUED,
+    new Set([
+      APGOV_DELIVERY_LIFECYCLE_V2.DELIVERING,
+      APGOV_DELIVERY_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    APGOV_DELIVERY_LIFECYCLE_V2.DELIVERING,
+    new Set([
+      APGOV_DELIVERY_LIFECYCLE_V2.DELIVERED,
+      APGOV_DELIVERY_LIFECYCLE_V2.FAILED,
+      APGOV_DELIVERY_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [APGOV_DELIVERY_LIFECYCLE_V2.DELIVERED, new Set()],
+  [APGOV_DELIVERY_LIFECYCLE_V2.FAILED, new Set()],
+  [APGOV_DELIVERY_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _apgovPsV2 = new Map();
+const _apgovJsV2 = new Map();
+let _apgovMaxActive = 8,
+  _apgovMaxPending = 25,
+  _apgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _apgovStuckMs = 60 * 1000;
+function _apgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _apgovCheckP(from, to) {
+  const a = _apgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid apgov profile transition ${from} → ${to}`);
+}
+function _apgovCheckJ(from, to) {
+  const a = _apgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid apgov delivery transition ${from} → ${to}`);
+}
+function _apgovCountActive(owner) {
+  let c = 0;
+  for (const p of _apgovPsV2.values())
+    if (p.owner === owner && p.status === APGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _apgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _apgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === APGOV_DELIVERY_LIFECYCLE_V2.QUEUED ||
+        j.status === APGOV_DELIVERY_LIFECYCLE_V2.DELIVERING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveApgovProfilesPerOwnerV2(n) {
+  _apgovMaxActive = _apgovPos(n, "maxActiveApgovProfilesPerOwner");
+}
+export function getMaxActiveApgovProfilesPerOwnerV2() {
+  return _apgovMaxActive;
+}
+export function setMaxPendingApgovDeliverysPerProfileV2(n) {
+  _apgovMaxPending = _apgovPos(n, "maxPendingApgovDeliverysPerProfile");
+}
+export function getMaxPendingApgovDeliverysPerProfileV2() {
+  return _apgovMaxPending;
+}
+export function setApgovProfileIdleMsV2(n) {
+  _apgovIdleMs = _apgovPos(n, "apgovProfileIdleMs");
+}
+export function getApgovProfileIdleMsV2() {
+  return _apgovIdleMs;
+}
+export function setApgovDeliveryStuckMsV2(n) {
+  _apgovStuckMs = _apgovPos(n, "apgovDeliveryStuckMs");
+}
+export function getApgovDeliveryStuckMsV2() {
+  return _apgovStuckMs;
+}
+export function _resetStateActivityPubBridgeGovV2() {
+  _apgovPsV2.clear();
+  _apgovJsV2.clear();
+  _apgovMaxActive = 8;
+  _apgovMaxPending = 25;
+  _apgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _apgovStuckMs = 60 * 1000;
+}
+export function registerApgovProfileV2({ id, owner, actor, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_apgovPsV2.has(id)) throw new Error(`apgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    actor: actor || "person",
+    status: APGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _apgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateApgovProfileV2(id) {
+  const p = _apgovPsV2.get(id);
+  if (!p) throw new Error(`apgov profile ${id} not found`);
+  const isInitial = p.status === APGOV_PROFILE_MATURITY_V2.PENDING;
+  _apgovCheckP(p.status, APGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _apgovCountActive(p.owner) >= _apgovMaxActive)
+    throw new Error(`max active apgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = APGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function suspendApgovProfileV2(id) {
+  const p = _apgovPsV2.get(id);
+  if (!p) throw new Error(`apgov profile ${id} not found`);
+  _apgovCheckP(p.status, APGOV_PROFILE_MATURITY_V2.SUSPENDED);
+  p.status = APGOV_PROFILE_MATURITY_V2.SUSPENDED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveApgovProfileV2(id) {
+  const p = _apgovPsV2.get(id);
+  if (!p) throw new Error(`apgov profile ${id} not found`);
+  _apgovCheckP(p.status, APGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = APGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchApgovProfileV2(id) {
+  const p = _apgovPsV2.get(id);
+  if (!p) throw new Error(`apgov profile ${id} not found`);
+  if (_apgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal apgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getApgovProfileV2(id) {
+  const p = _apgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listApgovProfilesV2() {
+  return [..._apgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createApgovDeliveryV2({ id, profileId, inbox, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_apgovJsV2.has(id))
+    throw new Error(`apgov delivery ${id} already exists`);
+  if (!_apgovPsV2.has(profileId))
+    throw new Error(`apgov profile ${profileId} not found`);
+  if (_apgovCountPending(profileId) >= _apgovMaxPending)
+    throw new Error(
+      `max pending apgov deliverys for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    inbox: inbox || "",
+    status: APGOV_DELIVERY_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _apgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function deliveringApgovDeliveryV2(id) {
+  const j = _apgovJsV2.get(id);
+  if (!j) throw new Error(`apgov delivery ${id} not found`);
+  _apgovCheckJ(j.status, APGOV_DELIVERY_LIFECYCLE_V2.DELIVERING);
+  const now = Date.now();
+  j.status = APGOV_DELIVERY_LIFECYCLE_V2.DELIVERING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeDeliveryApgovV2(id) {
+  const j = _apgovJsV2.get(id);
+  if (!j) throw new Error(`apgov delivery ${id} not found`);
+  _apgovCheckJ(j.status, APGOV_DELIVERY_LIFECYCLE_V2.DELIVERED);
+  const now = Date.now();
+  j.status = APGOV_DELIVERY_LIFECYCLE_V2.DELIVERED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failApgovDeliveryV2(id, reason) {
+  const j = _apgovJsV2.get(id);
+  if (!j) throw new Error(`apgov delivery ${id} not found`);
+  _apgovCheckJ(j.status, APGOV_DELIVERY_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = APGOV_DELIVERY_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelApgovDeliveryV2(id, reason) {
+  const j = _apgovJsV2.get(id);
+  if (!j) throw new Error(`apgov delivery ${id} not found`);
+  _apgovCheckJ(j.status, APGOV_DELIVERY_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = APGOV_DELIVERY_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getApgovDeliveryV2(id) {
+  const j = _apgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listApgovDeliverysV2() {
+  return [..._apgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoSuspendIdleApgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _apgovPsV2.values())
+    if (
+      p.status === APGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _apgovIdleMs
+    ) {
+      p.status = APGOV_PROFILE_MATURITY_V2.SUSPENDED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckApgovDeliverysV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _apgovJsV2.values())
+    if (
+      j.status === APGOV_DELIVERY_LIFECYCLE_V2.DELIVERING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _apgovStuckMs
+    ) {
+      j.status = APGOV_DELIVERY_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getActivityPubBridgeGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(APGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _apgovPsV2.values()) profilesByStatus[p.status]++;
+  const deliverysByStatus = {};
+  for (const v of Object.values(APGOV_DELIVERY_LIFECYCLE_V2))
+    deliverysByStatus[v] = 0;
+  for (const j of _apgovJsV2.values()) deliverysByStatus[j.status]++;
+  return {
+    totalApgovProfilesV2: _apgovPsV2.size,
+    totalApgovDeliverysV2: _apgovJsV2.size,
+    maxActiveApgovProfilesPerOwner: _apgovMaxActive,
+    maxPendingApgovDeliverysPerProfile: _apgovMaxPending,
+    apgovProfileIdleMs: _apgovIdleMs,
+    apgovDeliveryStuckMs: _apgovStuckMs,
+    profilesByStatus,
+    deliverysByStatus,
+  };
+}

@@ -269,3 +269,208 @@ export function registerRCacheCommand(program) {
     .description("Auto-fail stuck V2 refresh jobs")
     .action(() => out(autoFailStuckRefreshJobsV2()));
 }
+
+// === Iter23 V2 governance overlay ===
+export function registerRcgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "rcache");
+  if (!parent) return;
+  const L = async () => await import("../lib/response-cache.js");
+  parent
+    .command("rcgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.RCGOV_PROFILE_MATURITY_V2,
+            refreshLifecycle: m.RCGOV_REFRESH_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("rcgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveRcgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingRcgovRefreshsPerProfileV2(),
+            idleMs: m.getRcgovProfileIdleMsV2(),
+            stuckMs: m.getRcgovRefreshStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("rcgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveRcgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("rcgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingRcgovRefreshsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("rcgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setRcgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("rcgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setRcgovRefreshStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("rcgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--lane <v>", "lane")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerRcgovProfileV2({ id, owner, lane: o.lane }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("rcgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateRcgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("rcgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).staleRcgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("rcgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveRcgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("rcgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchRcgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("rcgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getRcgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("rcgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listRcgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("rcgov-create-refresh-v2 <id> <profileId>")
+    .description("Create refresh")
+    .option("--source <v>", "source")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createRcgovRefreshV2({ id, profileId, source: o.source }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("rcgov-refreshing-refresh-v2 <id>")
+    .description("Mark refresh as refreshing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).refreshingRcgovRefreshV2(id), null, 2),
+      );
+    });
+  parent
+    .command("rcgov-complete-refresh-v2 <id>")
+    .description("Complete refresh")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeRefreshRcgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("rcgov-fail-refresh-v2 <id> [reason]")
+    .description("Fail refresh")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failRcgovRefreshV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("rcgov-cancel-refresh-v2 <id> [reason]")
+    .description("Cancel refresh")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelRcgovRefreshV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("rcgov-get-refresh-v2 <id>")
+    .description("Get refresh")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getRcgovRefreshV2(id), null, 2));
+    });
+  parent
+    .command("rcgov-list-refreshs-v2")
+    .description("List refreshs")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listRcgovRefreshsV2(), null, 2));
+    });
+  parent
+    .command("rcgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleRcgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("rcgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck refreshs")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckRcgovRefreshsV2(), null, 2),
+      );
+    });
+  parent
+    .command("rcgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getResponseCacheGovStatsV2(), null, 2),
+      );
+    });
+}

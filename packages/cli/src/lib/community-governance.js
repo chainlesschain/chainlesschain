@@ -1083,3 +1083,349 @@ export function _resetStateV2() {
   _proposerIdleMsV2 = GOV_DEFAULT_PROPOSER_IDLE_MS;
   _pendingDelegationMsV2 = GOV_DEFAULT_PENDING_DELEGATION_MS;
 }
+
+// =====================================================================
+// community-governance V2 governance overlay (iter19)
+// =====================================================================
+export const COMMGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const COMMGOV_MOTION_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  VOTING: "voting",
+  VOTED: "voted",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _commgovPTrans = new Map([
+  [
+    COMMGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      COMMGOV_PROFILE_MATURITY_V2.ACTIVE,
+      COMMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    COMMGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      COMMGOV_PROFILE_MATURITY_V2.PAUSED,
+      COMMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    COMMGOV_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      COMMGOV_PROFILE_MATURITY_V2.ACTIVE,
+      COMMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [COMMGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _commgovPTerminal = new Set([COMMGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _commgovJTrans = new Map([
+  [
+    COMMGOV_MOTION_LIFECYCLE_V2.QUEUED,
+    new Set([
+      COMMGOV_MOTION_LIFECYCLE_V2.VOTING,
+      COMMGOV_MOTION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    COMMGOV_MOTION_LIFECYCLE_V2.VOTING,
+    new Set([
+      COMMGOV_MOTION_LIFECYCLE_V2.VOTED,
+      COMMGOV_MOTION_LIFECYCLE_V2.FAILED,
+      COMMGOV_MOTION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [COMMGOV_MOTION_LIFECYCLE_V2.VOTED, new Set()],
+  [COMMGOV_MOTION_LIFECYCLE_V2.FAILED, new Set()],
+  [COMMGOV_MOTION_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _commgovPsV2 = new Map();
+const _commgovJsV2 = new Map();
+let _commgovMaxActive = 8,
+  _commgovMaxPending = 25,
+  _commgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _commgovStuckMs = 60 * 1000;
+function _commgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _commgovCheckP(from, to) {
+  const a = _commgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid commgov profile transition ${from} → ${to}`);
+}
+function _commgovCheckJ(from, to) {
+  const a = _commgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid commgov motion transition ${from} → ${to}`);
+}
+function _commgovCountActive(owner) {
+  let c = 0;
+  for (const p of _commgovPsV2.values())
+    if (p.owner === owner && p.status === COMMGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _commgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _commgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === COMMGOV_MOTION_LIFECYCLE_V2.QUEUED ||
+        j.status === COMMGOV_MOTION_LIFECYCLE_V2.VOTING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveCommgovProfilesPerOwnerV2(n) {
+  _commgovMaxActive = _commgovPos(n, "maxActiveCommgovProfilesPerOwner");
+}
+export function getMaxActiveCommgovProfilesPerOwnerV2() {
+  return _commgovMaxActive;
+}
+export function setMaxPendingCommgovMotionsPerProfileV2(n) {
+  _commgovMaxPending = _commgovPos(n, "maxPendingCommgovMotionsPerProfile");
+}
+export function getMaxPendingCommgovMotionsPerProfileV2() {
+  return _commgovMaxPending;
+}
+export function setCommgovProfileIdleMsV2(n) {
+  _commgovIdleMs = _commgovPos(n, "commgovProfileIdleMs");
+}
+export function getCommgovProfileIdleMsV2() {
+  return _commgovIdleMs;
+}
+export function setCommgovMotionStuckMsV2(n) {
+  _commgovStuckMs = _commgovPos(n, "commgovMotionStuckMs");
+}
+export function getCommgovMotionStuckMsV2() {
+  return _commgovStuckMs;
+}
+export function _resetStateCommunityGovernanceGovV2() {
+  _commgovPsV2.clear();
+  _commgovJsV2.clear();
+  _commgovMaxActive = 8;
+  _commgovMaxPending = 25;
+  _commgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _commgovStuckMs = 60 * 1000;
+}
+export function registerCommgovProfileV2({
+  id,
+  owner,
+  chamber,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_commgovPsV2.has(id))
+    throw new Error(`commgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    chamber: chamber || "general",
+    status: COMMGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _commgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateCommgovProfileV2(id) {
+  const p = _commgovPsV2.get(id);
+  if (!p) throw new Error(`commgov profile ${id} not found`);
+  const isInitial = p.status === COMMGOV_PROFILE_MATURITY_V2.PENDING;
+  _commgovCheckP(p.status, COMMGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _commgovCountActive(p.owner) >= _commgovMaxActive)
+    throw new Error(`max active commgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = COMMGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pauseCommgovProfileV2(id) {
+  const p = _commgovPsV2.get(id);
+  if (!p) throw new Error(`commgov profile ${id} not found`);
+  _commgovCheckP(p.status, COMMGOV_PROFILE_MATURITY_V2.PAUSED);
+  p.status = COMMGOV_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveCommgovProfileV2(id) {
+  const p = _commgovPsV2.get(id);
+  if (!p) throw new Error(`commgov profile ${id} not found`);
+  _commgovCheckP(p.status, COMMGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = COMMGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchCommgovProfileV2(id) {
+  const p = _commgovPsV2.get(id);
+  if (!p) throw new Error(`commgov profile ${id} not found`);
+  if (_commgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal commgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getCommgovProfileV2(id) {
+  const p = _commgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listCommgovProfilesV2() {
+  return [..._commgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createCommgovMotionV2({
+  id,
+  profileId,
+  subject,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_commgovJsV2.has(id))
+    throw new Error(`commgov motion ${id} already exists`);
+  if (!_commgovPsV2.has(profileId))
+    throw new Error(`commgov profile ${profileId} not found`);
+  if (_commgovCountPending(profileId) >= _commgovMaxPending)
+    throw new Error(
+      `max pending commgov motions for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    subject: subject || "",
+    status: COMMGOV_MOTION_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _commgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function votingCommgovMotionV2(id) {
+  const j = _commgovJsV2.get(id);
+  if (!j) throw new Error(`commgov motion ${id} not found`);
+  _commgovCheckJ(j.status, COMMGOV_MOTION_LIFECYCLE_V2.VOTING);
+  const now = Date.now();
+  j.status = COMMGOV_MOTION_LIFECYCLE_V2.VOTING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeMotionCommgovV2(id) {
+  const j = _commgovJsV2.get(id);
+  if (!j) throw new Error(`commgov motion ${id} not found`);
+  _commgovCheckJ(j.status, COMMGOV_MOTION_LIFECYCLE_V2.VOTED);
+  const now = Date.now();
+  j.status = COMMGOV_MOTION_LIFECYCLE_V2.VOTED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failCommgovMotionV2(id, reason) {
+  const j = _commgovJsV2.get(id);
+  if (!j) throw new Error(`commgov motion ${id} not found`);
+  _commgovCheckJ(j.status, COMMGOV_MOTION_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = COMMGOV_MOTION_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelCommgovMotionV2(id, reason) {
+  const j = _commgovJsV2.get(id);
+  if (!j) throw new Error(`commgov motion ${id} not found`);
+  _commgovCheckJ(j.status, COMMGOV_MOTION_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = COMMGOV_MOTION_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getCommgovMotionV2(id) {
+  const j = _commgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listCommgovMotionsV2() {
+  return [..._commgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPauseIdleCommgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _commgovPsV2.values())
+    if (
+      p.status === COMMGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _commgovIdleMs
+    ) {
+      p.status = COMMGOV_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckCommgovMotionsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _commgovJsV2.values())
+    if (
+      j.status === COMMGOV_MOTION_LIFECYCLE_V2.VOTING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _commgovStuckMs
+    ) {
+      j.status = COMMGOV_MOTION_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getCommunityGovernanceGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(COMMGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _commgovPsV2.values()) profilesByStatus[p.status]++;
+  const motionsByStatus = {};
+  for (const v of Object.values(COMMGOV_MOTION_LIFECYCLE_V2))
+    motionsByStatus[v] = 0;
+  for (const j of _commgovJsV2.values()) motionsByStatus[j.status]++;
+  return {
+    totalCommgovProfilesV2: _commgovPsV2.size,
+    totalCommgovMotionsV2: _commgovJsV2.size,
+    maxActiveCommgovProfilesPerOwner: _commgovMaxActive,
+    maxPendingCommgovMotionsPerProfile: _commgovMaxPending,
+    commgovProfileIdleMs: _commgovIdleMs,
+    commgovMotionStuckMs: _commgovStuckMs,
+    profilesByStatus,
+    motionsByStatus,
+  };
+}

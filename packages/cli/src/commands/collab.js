@@ -821,3 +821,214 @@ export function registerCollabCommand(program) {
       console.log(JSON.stringify(autoWithdrawStuckProposalsV2(), null, 2));
     });
 }
+
+// === Iter19 V2 governance overlay ===
+export function registerCogovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "collab");
+  if (!parent) return;
+  const L = async () => await import("../lib/collaboration-governance.js");
+  parent
+    .command("cogov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.COGOV_PROFILE_MATURITY_V2,
+            decisionLifecycle: m.COGOV_DECISION_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cogov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveCogovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingCogovDecisionsPerProfileV2(),
+            idleMs: m.getCogovProfileIdleMsV2(),
+            stuckMs: m.getCogovDecisionStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cogov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveCogovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cogov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingCogovDecisionsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cogov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setCogovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cogov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setCogovDecisionStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cogov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--scope <v>", "scope")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerCogovProfileV2({ id, owner, scope: o.scope }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cogov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateCogovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cogov-suspend-v2 <id>")
+    .description("Suspend profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).suspendCogovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cogov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveCogovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cogov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchCogovProfileV2(id), null, 2));
+    });
+  parent
+    .command("cogov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCogovProfileV2(id), null, 2));
+    });
+  parent
+    .command("cogov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCogovProfilesV2(), null, 2));
+    });
+  parent
+    .command("cogov-create-decision-v2 <id> <profileId>")
+    .description("Create decision")
+    .option("--topic <v>", "topic")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createCogovDecisionV2({ id, profileId, topic: o.topic }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cogov-deliberating-decision-v2 <id>")
+    .description("Mark decision as deliberating")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).deliberatingCogovDecisionV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cogov-complete-decision-v2 <id>")
+    .description("Complete decision")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeDecisionCogovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cogov-fail-decision-v2 <id> [reason]")
+    .description("Fail decision")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failCogovDecisionV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cogov-cancel-decision-v2 <id> [reason]")
+    .description("Cancel decision")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelCogovDecisionV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cogov-get-decision-v2 <id>")
+    .description("Get decision")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCogovDecisionV2(id), null, 2));
+    });
+  parent
+    .command("cogov-list-decisions-v2")
+    .description("List decisions")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCogovDecisionsV2(), null, 2));
+    });
+  parent
+    .command("cogov-auto-suspend-idle-v2")
+    .description("Auto-suspend idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoSuspendIdleCogovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("cogov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck decisions")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckCogovDecisionsV2(), null, 2),
+      );
+    });
+  parent
+    .command("cogov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify(
+          (await L()).getCollaborationGovernanceGovStatsV2(),
+          null,
+          2,
+        ),
+      );
+    });
+}

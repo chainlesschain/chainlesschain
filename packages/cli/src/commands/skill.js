@@ -962,3 +962,210 @@ export function registerSkillCommand(program) {
     .description("Auto-fail stuck V2 executions")
     .action(() => out(autoFailStuckExecutionsV2()));
 }
+
+// === Iter24 V2 governance overlay ===
+export function registerSklgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "skill");
+  if (!parent) return;
+  const L = async () => await import("../lib/skill-loader.js");
+  parent
+    .command("sklgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.SKLGOV_PROFILE_MATURITY_V2,
+            loadLifecycle: m.SKLGOV_LOAD_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("sklgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveSklgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingSklgovLoadsPerProfileV2(),
+            idleMs: m.getSklgovProfileIdleMsV2(),
+            stuckMs: m.getSklgovLoadStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("sklgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveSklgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("sklgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingSklgovLoadsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("sklgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setSklgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("sklgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setSklgovLoadStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("sklgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--source <v>", "source")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerSklgovProfileV2({ id, owner, source: o.source }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("sklgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateSklgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("sklgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleSklgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("sklgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveSklgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("sklgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchSklgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("sklgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getSklgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("sklgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listSklgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("sklgov-create-load-v2 <id> <profileId>")
+    .description("Create load")
+    .option("--skillId <v>", "skillId")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createSklgovLoadV2({ id, profileId, skillId: o.skillId }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("sklgov-loading-load-v2 <id>")
+    .description("Mark load as loading")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).loadingSklgovLoadV2(id), null, 2));
+    });
+  parent
+    .command("sklgov-complete-load-v2 <id>")
+    .description("Complete load")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeLoadSklgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("sklgov-fail-load-v2 <id> [reason]")
+    .description("Fail load")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failSklgovLoadV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("sklgov-cancel-load-v2 <id> [reason]")
+    .description("Cancel load")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelSklgovLoadV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("sklgov-get-load-v2 <id>")
+    .description("Get load")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getSklgovLoadV2(id), null, 2));
+    });
+  parent
+    .command("sklgov-list-loads-v2")
+    .description("List loads")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listSklgovLoadsV2(), null, 2));
+    });
+  parent
+    .command("sklgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleSklgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("sklgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck loads")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckSklgovLoadsV2(), null, 2),
+      );
+    });
+  parent
+    .command("sklgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getSkillLoaderGovStatsV2(), null, 2),
+      );
+    });
+}

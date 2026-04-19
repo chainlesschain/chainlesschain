@@ -670,3 +670,230 @@ export function registerDbEvoCommand(program) {
 
   program.addCommand(dbevo);
 }
+
+// === Iter23 V2 governance overlay ===
+export function registerDbevogovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "dbevo");
+  if (!parent) return;
+  const L = async () => await import("../lib/dbevo.js");
+  parent
+    .command("dbevogov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.DBEVOGOV_PROFILE_MATURITY_V2,
+            migrationLifecycle: m.DBEVOGOV_MIGRATION_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dbevogov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveDbevogovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingDbevogovMigrationsPerProfileV2(),
+            idleMs: m.getDbevogovProfileIdleMsV2(),
+            stuckMs: m.getDbevogovMigrationStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dbevogov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveDbevogovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("dbevogov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingDbevogovMigrationsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("dbevogov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setDbevogovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("dbevogov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setDbevogovMigrationStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("dbevogov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--schema <v>", "schema")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerDbevogovProfileV2({ id, owner, schema: o.schema }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dbevogov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateDbevogovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dbevogov-pause-v2 <id>")
+    .description("Pause profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).pauseDbevogovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dbevogov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveDbevogovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dbevogov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchDbevogovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dbevogov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).getDbevogovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dbevogov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).listDbevogovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("dbevogov-create-migration-v2 <id> <profileId>")
+    .description("Create migration")
+    .option("--version <v>", "version")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createDbevogovMigrationV2({ id, profileId, version: o.version }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dbevogov-applying-migration-v2 <id>")
+    .description("Mark migration as applying")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).applyingDbevogovMigrationV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dbevogov-complete-migration-v2 <id>")
+    .description("Complete migration")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeMigrationDbevogovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dbevogov-fail-migration-v2 <id> [reason]")
+    .description("Fail migration")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify(
+          (await L()).failDbevogovMigrationV2(id, reason),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dbevogov-cancel-migration-v2 <id> [reason]")
+    .description("Cancel migration")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify(
+          (await L()).cancelDbevogovMigrationV2(id, reason),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dbevogov-get-migration-v2 <id>")
+    .description("Get migration")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).getDbevogovMigrationV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dbevogov-list-migrations-v2")
+    .description("List migrations")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).listDbevogovMigrationsV2(), null, 2),
+      );
+    });
+  parent
+    .command("dbevogov-auto-pause-idle-v2")
+    .description("Auto-pause idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoPauseIdleDbevogovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("dbevogov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck migrations")
+    .action(async () => {
+      console.log(
+        JSON.stringify(
+          (await L()).autoFailStuckDbevogovMigrationsV2(),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dbevogov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).getDbevoGovStatsV2(), null, 2));
+    });
+}

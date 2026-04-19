@@ -708,3 +708,212 @@ export function registerFederationCommand(program) {
 
   program.addCommand(fed);
 }
+
+// === Iter20 V2 governance overlay ===
+export function registerFedgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "federation");
+  if (!parent) return;
+  const L = async () => await import("../lib/federation-hardening.js");
+  parent
+    .command("fedgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.FEDGOV_PROFILE_MATURITY_V2,
+            probeLifecycle: m.FEDGOV_PROBE_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("fedgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveFedgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingFedgovProbesPerProfileV2(),
+            idleMs: m.getFedgovProfileIdleMsV2(),
+            stuckMs: m.getFedgovProbeStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("fedgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveFedgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("fedgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingFedgovProbesPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("fedgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setFedgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("fedgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setFedgovProbeStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("fedgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--region <v>", "region")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerFedgovProfileV2({ id, owner, region: o.region }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("fedgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateFedgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("fedgov-degrade-v2 <id>")
+    .description("Degrade profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).degradeFedgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("fedgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveFedgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("fedgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchFedgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("fedgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getFedgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("fedgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listFedgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("fedgov-create-probe-v2 <id> <profileId>")
+    .description("Create probe")
+    .option("--endpoint <v>", "endpoint")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createFedgovProbeV2({ id, profileId, endpoint: o.endpoint }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("fedgov-probing-probe-v2 <id>")
+    .description("Mark probe as probing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).probingFedgovProbeV2(id), null, 2),
+      );
+    });
+  parent
+    .command("fedgov-complete-probe-v2 <id>")
+    .description("Complete probe")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeProbeFedgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("fedgov-fail-probe-v2 <id> [reason]")
+    .description("Fail probe")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failFedgovProbeV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("fedgov-cancel-probe-v2 <id> [reason]")
+    .description("Cancel probe")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelFedgovProbeV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("fedgov-get-probe-v2 <id>")
+    .description("Get probe")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getFedgovProbeV2(id), null, 2));
+    });
+  parent
+    .command("fedgov-list-probes-v2")
+    .description("List probes")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listFedgovProbesV2(), null, 2));
+    });
+  parent
+    .command("fedgov-auto-degrade-idle-v2")
+    .description("Auto-degrade idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoDegradeIdleFedgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("fedgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck probes")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckFedgovProbesV2(), null, 2),
+      );
+    });
+  parent
+    .command("fedgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getFederationHardeningGovStatsV2(), null, 2),
+      );
+    });
+}

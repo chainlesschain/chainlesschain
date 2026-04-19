@@ -722,3 +722,210 @@ export function registerActivityPubV2Command(ap) {
       console.log(JSON.stringify(getActivityPubBridgeStatsV2(), null, 2));
     });
 }
+
+// === Iter21 V2 governance overlay ===
+export function registerApgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "activitypub");
+  if (!parent) return;
+  const L = async () => await import("../lib/activitypub-bridge.js");
+  parent
+    .command("apgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.APGOV_PROFILE_MATURITY_V2,
+            deliveryLifecycle: m.APGOV_DELIVERY_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("apgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveApgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingApgovDeliverysPerProfileV2(),
+            idleMs: m.getApgovProfileIdleMsV2(),
+            stuckMs: m.getApgovDeliveryStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("apgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveApgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("apgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingApgovDeliverysPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("apgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setApgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("apgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setApgovDeliveryStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("apgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--actor <v>", "actor")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerApgovProfileV2({ id, owner, actor: o.actor }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("apgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateApgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("apgov-suspend-v2 <id>")
+    .description("Suspend profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).suspendApgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("apgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveApgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("apgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchApgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("apgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getApgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("apgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listApgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("apgov-create-delivery-v2 <id> <profileId>")
+    .description("Create delivery")
+    .option("--inbox <v>", "inbox")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createApgovDeliveryV2({ id, profileId, inbox: o.inbox }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("apgov-delivering-delivery-v2 <id>")
+    .description("Mark delivery as delivering")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).deliveringApgovDeliveryV2(id), null, 2),
+      );
+    });
+  parent
+    .command("apgov-complete-delivery-v2 <id>")
+    .description("Complete delivery")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeDeliveryApgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("apgov-fail-delivery-v2 <id> [reason]")
+    .description("Fail delivery")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failApgovDeliveryV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("apgov-cancel-delivery-v2 <id> [reason]")
+    .description("Cancel delivery")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelApgovDeliveryV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("apgov-get-delivery-v2 <id>")
+    .description("Get delivery")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getApgovDeliveryV2(id), null, 2));
+    });
+  parent
+    .command("apgov-list-deliverys-v2")
+    .description("List deliverys")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listApgovDeliverysV2(), null, 2));
+    });
+  parent
+    .command("apgov-auto-suspend-idle-v2")
+    .description("Auto-suspend idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoSuspendIdleApgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("apgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck deliverys")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckApgovDeliverysV2(), null, 2),
+      );
+    });
+  parent
+    .command("apgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getActivityPubBridgeGovStatsV2(), null, 2),
+      );
+    });
+}

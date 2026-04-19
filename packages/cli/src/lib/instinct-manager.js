@@ -520,3 +520,349 @@ export function _resetStateInstinctManagerV2() {
   _profileIdleMsV2 = INSTINCT_DEFAULT_PROFILE_IDLE_MS;
   _obsStuckMsV2 = INSTINCT_DEFAULT_OBS_STUCK_MS;
 }
+
+// =====================================================================
+// instinct-manager V2 governance overlay (iter18)
+// =====================================================================
+export const INSTGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  DORMANT: "dormant",
+  ARCHIVED: "archived",
+});
+export const INSTGOV_TRIGGER_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  FIRING: "firing",
+  FIRED: "fired",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _instgovPTrans = new Map([
+  [
+    INSTGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      INSTGOV_PROFILE_MATURITY_V2.ACTIVE,
+      INSTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    INSTGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      INSTGOV_PROFILE_MATURITY_V2.DORMANT,
+      INSTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    INSTGOV_PROFILE_MATURITY_V2.DORMANT,
+    new Set([
+      INSTGOV_PROFILE_MATURITY_V2.ACTIVE,
+      INSTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [INSTGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _instgovPTerminal = new Set([INSTGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _instgovJTrans = new Map([
+  [
+    INSTGOV_TRIGGER_LIFECYCLE_V2.QUEUED,
+    new Set([
+      INSTGOV_TRIGGER_LIFECYCLE_V2.FIRING,
+      INSTGOV_TRIGGER_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    INSTGOV_TRIGGER_LIFECYCLE_V2.FIRING,
+    new Set([
+      INSTGOV_TRIGGER_LIFECYCLE_V2.FIRED,
+      INSTGOV_TRIGGER_LIFECYCLE_V2.FAILED,
+      INSTGOV_TRIGGER_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [INSTGOV_TRIGGER_LIFECYCLE_V2.FIRED, new Set()],
+  [INSTGOV_TRIGGER_LIFECYCLE_V2.FAILED, new Set()],
+  [INSTGOV_TRIGGER_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _instgovPsV2 = new Map();
+const _instgovJsV2 = new Map();
+let _instgovMaxActive = 8,
+  _instgovMaxPending = 20,
+  _instgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _instgovStuckMs = 60 * 1000;
+function _instgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _instgovCheckP(from, to) {
+  const a = _instgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid instgov profile transition ${from} → ${to}`);
+}
+function _instgovCheckJ(from, to) {
+  const a = _instgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid instgov trigger transition ${from} → ${to}`);
+}
+function _instgovCountActive(owner) {
+  let c = 0;
+  for (const p of _instgovPsV2.values())
+    if (p.owner === owner && p.status === INSTGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _instgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _instgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === INSTGOV_TRIGGER_LIFECYCLE_V2.QUEUED ||
+        j.status === INSTGOV_TRIGGER_LIFECYCLE_V2.FIRING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveInstgovProfilesPerOwnerV2(n) {
+  _instgovMaxActive = _instgovPos(n, "maxActiveInstgovProfilesPerOwner");
+}
+export function getMaxActiveInstgovProfilesPerOwnerV2() {
+  return _instgovMaxActive;
+}
+export function setMaxPendingInstgovTriggersPerProfileV2(n) {
+  _instgovMaxPending = _instgovPos(n, "maxPendingInstgovTriggersPerProfile");
+}
+export function getMaxPendingInstgovTriggersPerProfileV2() {
+  return _instgovMaxPending;
+}
+export function setInstgovProfileIdleMsV2(n) {
+  _instgovIdleMs = _instgovPos(n, "instgovProfileIdleMs");
+}
+export function getInstgovProfileIdleMsV2() {
+  return _instgovIdleMs;
+}
+export function setInstgovTriggerStuckMsV2(n) {
+  _instgovStuckMs = _instgovPos(n, "instgovTriggerStuckMs");
+}
+export function getInstgovTriggerStuckMsV2() {
+  return _instgovStuckMs;
+}
+export function _resetStateInstinctManagerGovV2() {
+  _instgovPsV2.clear();
+  _instgovJsV2.clear();
+  _instgovMaxActive = 8;
+  _instgovMaxPending = 20;
+  _instgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _instgovStuckMs = 60 * 1000;
+}
+export function registerInstgovProfileV2({
+  id,
+  owner,
+  priority,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_instgovPsV2.has(id))
+    throw new Error(`instgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    priority: priority || "normal",
+    status: INSTGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _instgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateInstgovProfileV2(id) {
+  const p = _instgovPsV2.get(id);
+  if (!p) throw new Error(`instgov profile ${id} not found`);
+  const isInitial = p.status === INSTGOV_PROFILE_MATURITY_V2.PENDING;
+  _instgovCheckP(p.status, INSTGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _instgovCountActive(p.owner) >= _instgovMaxActive)
+    throw new Error(`max active instgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = INSTGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function dormantInstgovProfileV2(id) {
+  const p = _instgovPsV2.get(id);
+  if (!p) throw new Error(`instgov profile ${id} not found`);
+  _instgovCheckP(p.status, INSTGOV_PROFILE_MATURITY_V2.DORMANT);
+  p.status = INSTGOV_PROFILE_MATURITY_V2.DORMANT;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveInstgovProfileV2(id) {
+  const p = _instgovPsV2.get(id);
+  if (!p) throw new Error(`instgov profile ${id} not found`);
+  _instgovCheckP(p.status, INSTGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = INSTGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchInstgovProfileV2(id) {
+  const p = _instgovPsV2.get(id);
+  if (!p) throw new Error(`instgov profile ${id} not found`);
+  if (_instgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal instgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getInstgovProfileV2(id) {
+  const p = _instgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listInstgovProfilesV2() {
+  return [..._instgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createInstgovTriggerV2({
+  id,
+  profileId,
+  pattern,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_instgovJsV2.has(id))
+    throw new Error(`instgov trigger ${id} already exists`);
+  if (!_instgovPsV2.has(profileId))
+    throw new Error(`instgov profile ${profileId} not found`);
+  if (_instgovCountPending(profileId) >= _instgovMaxPending)
+    throw new Error(
+      `max pending instgov triggers for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    pattern: pattern || "",
+    status: INSTGOV_TRIGGER_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _instgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function firingInstgovTriggerV2(id) {
+  const j = _instgovJsV2.get(id);
+  if (!j) throw new Error(`instgov trigger ${id} not found`);
+  _instgovCheckJ(j.status, INSTGOV_TRIGGER_LIFECYCLE_V2.FIRING);
+  const now = Date.now();
+  j.status = INSTGOV_TRIGGER_LIFECYCLE_V2.FIRING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeTriggerInstgovV2(id) {
+  const j = _instgovJsV2.get(id);
+  if (!j) throw new Error(`instgov trigger ${id} not found`);
+  _instgovCheckJ(j.status, INSTGOV_TRIGGER_LIFECYCLE_V2.FIRED);
+  const now = Date.now();
+  j.status = INSTGOV_TRIGGER_LIFECYCLE_V2.FIRED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failInstgovTriggerV2(id, reason) {
+  const j = _instgovJsV2.get(id);
+  if (!j) throw new Error(`instgov trigger ${id} not found`);
+  _instgovCheckJ(j.status, INSTGOV_TRIGGER_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = INSTGOV_TRIGGER_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelInstgovTriggerV2(id, reason) {
+  const j = _instgovJsV2.get(id);
+  if (!j) throw new Error(`instgov trigger ${id} not found`);
+  _instgovCheckJ(j.status, INSTGOV_TRIGGER_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = INSTGOV_TRIGGER_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getInstgovTriggerV2(id) {
+  const j = _instgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listInstgovTriggersV2() {
+  return [..._instgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoDormantIdleInstgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _instgovPsV2.values())
+    if (
+      p.status === INSTGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _instgovIdleMs
+    ) {
+      p.status = INSTGOV_PROFILE_MATURITY_V2.DORMANT;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckInstgovTriggersV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _instgovJsV2.values())
+    if (
+      j.status === INSTGOV_TRIGGER_LIFECYCLE_V2.FIRING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _instgovStuckMs
+    ) {
+      j.status = INSTGOV_TRIGGER_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getInstinctManagerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(INSTGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _instgovPsV2.values()) profilesByStatus[p.status]++;
+  const triggersByStatus = {};
+  for (const v of Object.values(INSTGOV_TRIGGER_LIFECYCLE_V2))
+    triggersByStatus[v] = 0;
+  for (const j of _instgovJsV2.values()) triggersByStatus[j.status]++;
+  return {
+    totalInstgovProfilesV2: _instgovPsV2.size,
+    totalInstgovTriggersV2: _instgovJsV2.size,
+    maxActiveInstgovProfilesPerOwner: _instgovMaxActive,
+    maxPendingInstgovTriggersPerProfile: _instgovMaxPending,
+    instgovProfileIdleMs: _instgovIdleMs,
+    instgovTriggerStuckMs: _instgovStuckMs,
+    profilesByStatus,
+    triggersByStatus,
+  };
+}

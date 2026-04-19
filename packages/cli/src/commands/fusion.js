@@ -588,3 +588,208 @@ export function registerFusionCommand(program) {
 
   program.addCommand(fu);
 }
+
+// === Iter23 V2 governance overlay ===
+export function registerPfgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "fusion");
+  if (!parent) return;
+  const L = async () => await import("../lib/protocol-fusion.js");
+  parent
+    .command("pfgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.PFGOV_PROFILE_MATURITY_V2,
+            routeLifecycle: m.PFGOV_ROUTE_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pfgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActivePfgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingPfgovRoutesPerProfileV2(),
+            idleMs: m.getPfgovProfileIdleMsV2(),
+            stuckMs: m.getPfgovRouteStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pfgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActivePfgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pfgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingPfgovRoutesPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pfgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setPfgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pfgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setPfgovRouteStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pfgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--protocol <v>", "protocol")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerPfgovProfileV2({ id, owner, protocol: o.protocol }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pfgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activatePfgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("pfgov-degrade-v2 <id>")
+    .description("Degrade profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).degradePfgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("pfgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archivePfgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("pfgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchPfgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("pfgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getPfgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("pfgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listPfgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("pfgov-create-route-v2 <id> <profileId>")
+    .description("Create route")
+    .option("--destination <v>", "destination")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createPfgovRouteV2({ id, profileId, destination: o.destination }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pfgov-routing-route-v2 <id>")
+    .description("Mark route as routing")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).routingPfgovRouteV2(id), null, 2));
+    });
+  parent
+    .command("pfgov-complete-route-v2 <id>")
+    .description("Complete route")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeRoutePfgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("pfgov-fail-route-v2 <id> [reason]")
+    .description("Fail route")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failPfgovRouteV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("pfgov-cancel-route-v2 <id> [reason]")
+    .description("Cancel route")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelPfgovRouteV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("pfgov-get-route-v2 <id>")
+    .description("Get route")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getPfgovRouteV2(id), null, 2));
+    });
+  parent
+    .command("pfgov-list-routes-v2")
+    .description("List routes")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listPfgovRoutesV2(), null, 2));
+    });
+  parent
+    .command("pfgov-auto-degrade-idle-v2")
+    .description("Auto-degrade idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoDegradeIdlePfgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("pfgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck routes")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckPfgovRoutesV2(), null, 2),
+      );
+    });
+  parent
+    .command("pfgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getProtocolFusionGovStatsV2(), null, 2),
+      );
+    });
+}

@@ -2260,3 +2260,413 @@ export function registerCmgrV2Commands(program) {
       );
     });
 }
+
+// === Iter24 V2 governance overlay ===
+export function registerTigovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "compliance");
+  if (!parent) return;
+  const L = async () => await import("../lib/threat-intel.js");
+  parent
+    .command("tigov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.TIGOV_PROFILE_MATURITY_V2,
+            feedLifecycle: m.TIGOV_FEED_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("tigov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveTigovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingTigovFeedsPerProfileV2(),
+            idleMs: m.getTigovProfileIdleMsV2(),
+            stuckMs: m.getTigovFeedStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("tigov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveTigovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("tigov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingTigovFeedsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("tigov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setTigovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("tigov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setTigovFeedStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("tigov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--source <v>", "source")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerTigovProfileV2({ id, owner, source: o.source }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("tigov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateTigovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("tigov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).staleTigovProfileV2(id), null, 2));
+    });
+  parent
+    .command("tigov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveTigovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("tigov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchTigovProfileV2(id), null, 2));
+    });
+  parent
+    .command("tigov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getTigovProfileV2(id), null, 2));
+    });
+  parent
+    .command("tigov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listTigovProfilesV2(), null, 2));
+    });
+  parent
+    .command("tigov-create-feed-v2 <id> <profileId>")
+    .description("Create feed")
+    .option("--indicator <v>", "indicator")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createTigovFeedV2({ id, profileId, indicator: o.indicator }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("tigov-ingesting-feed-v2 <id>")
+    .description("Mark feed as ingesting")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).ingestingTigovFeedV2(id), null, 2),
+      );
+    });
+  parent
+    .command("tigov-complete-feed-v2 <id>")
+    .description("Complete feed")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completeFeedTigovV2(id), null, 2));
+    });
+  parent
+    .command("tigov-fail-feed-v2 <id> [reason]")
+    .description("Fail feed")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failTigovFeedV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("tigov-cancel-feed-v2 <id> [reason]")
+    .description("Cancel feed")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelTigovFeedV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("tigov-get-feed-v2 <id>")
+    .description("Get feed")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getTigovFeedV2(id), null, 2));
+    });
+  parent
+    .command("tigov-list-feeds-v2")
+    .description("List feeds")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listTigovFeedsV2(), null, 2));
+    });
+  parent
+    .command("tigov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleTigovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("tigov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck feeds")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckTigovFeedsV2(), null, 2),
+      );
+    });
+  parent
+    .command("tigov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getThreatIntelGovStatsV2(), null, 2),
+      );
+    });
+}
+
+// === Iter24 V2 governance overlay ===
+export function registerUebgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "compliance");
+  if (!parent) return;
+  const L = async () => await import("../lib/ueba.js");
+  parent
+    .command("uebgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.UEBGOV_PROFILE_MATURITY_V2,
+            alertLifecycle: m.UEBGOV_ALERT_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("uebgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveUebgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingUebgovAlertsPerProfileV2(),
+            idleMs: m.getUebgovProfileIdleMsV2(),
+            stuckMs: m.getUebgovAlertStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("uebgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveUebgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("uebgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingUebgovAlertsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("uebgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setUebgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("uebgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setUebgovAlertStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("uebgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--entity <v>", "entity")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerUebgovProfileV2({ id, owner, entity: o.entity }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("uebgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateUebgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("uebgov-suppress-v2 <id>")
+    .description("Suppress profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).suppressUebgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("uebgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveUebgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("uebgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchUebgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("uebgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getUebgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("uebgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listUebgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("uebgov-create-alert-v2 <id> <profileId>")
+    .description("Create alert")
+    .option("--behavior <v>", "behavior")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createUebgovAlertV2({ id, profileId, behavior: o.behavior }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("uebgov-analyzing-alert-v2 <id>")
+    .description("Mark alert as analyzing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).analyzingUebgovAlertV2(id), null, 2),
+      );
+    });
+  parent
+    .command("uebgov-complete-alert-v2 <id>")
+    .description("Complete alert")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeAlertUebgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("uebgov-fail-alert-v2 <id> [reason]")
+    .description("Fail alert")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failUebgovAlertV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("uebgov-cancel-alert-v2 <id> [reason]")
+    .description("Cancel alert")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelUebgovAlertV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("uebgov-get-alert-v2 <id>")
+    .description("Get alert")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getUebgovAlertV2(id), null, 2));
+    });
+  parent
+    .command("uebgov-list-alerts-v2")
+    .description("List alerts")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listUebgovAlertsV2(), null, 2));
+    });
+  parent
+    .command("uebgov-auto-suppress-idle-v2")
+    .description("Auto-suppress idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoSuppressIdleUebgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("uebgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck alerts")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckUebgovAlertsV2(), null, 2),
+      );
+    });
+  parent
+    .command("uebgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).getUebaGovStatsV2(), null, 2));
+    });
+}

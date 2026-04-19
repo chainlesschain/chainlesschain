@@ -981,3 +981,212 @@ export function registerSsoCommand(program) {
     .description("V2 auto-fail stuck")
     .action(() => _v2json(autoFailStuckLoginsV2()));
 }
+
+// === Iter19 V2 governance overlay ===
+export function registerSsogovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "sso");
+  if (!parent) return;
+  const L = async () => await import("../lib/sso-manager.js");
+  parent
+    .command("ssogov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.SSOGOV_PROFILE_MATURITY_V2,
+            loginLifecycle: m.SSOGOV_LOGIN_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ssogov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveSsogovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingSsogovLoginsPerProfileV2(),
+            idleMs: m.getSsogovProfileIdleMsV2(),
+            stuckMs: m.getSsogovLoginStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ssogov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveSsogovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ssogov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingSsogovLoginsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ssogov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setSsogovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ssogov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setSsogovLoginStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ssogov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--protocol <v>", "protocol")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerSsogovProfileV2({ id, owner, protocol: o.protocol }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ssogov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateSsogovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ssogov-suspend-v2 <id>")
+    .description("Suspend profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).suspendSsogovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ssogov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveSsogovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ssogov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchSsogovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ssogov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getSsogovProfileV2(id), null, 2));
+    });
+  parent
+    .command("ssogov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listSsogovProfilesV2(), null, 2));
+    });
+  parent
+    .command("ssogov-create-login-v2 <id> <profileId>")
+    .description("Create login")
+    .option("--subject <v>", "subject")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createSsogovLoginV2({ id, profileId, subject: o.subject }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ssogov-authenticating-login-v2 <id>")
+    .description("Mark login as authenticating")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).authenticatingSsogovLoginV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ssogov-complete-login-v2 <id>")
+    .description("Complete login")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeLoginSsogovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ssogov-fail-login-v2 <id> [reason]")
+    .description("Fail login")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failSsogovLoginV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("ssogov-cancel-login-v2 <id> [reason]")
+    .description("Cancel login")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelSsogovLoginV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("ssogov-get-login-v2 <id>")
+    .description("Get login")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getSsogovLoginV2(id), null, 2));
+    });
+  parent
+    .command("ssogov-list-logins-v2")
+    .description("List logins")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listSsogovLoginsV2(), null, 2));
+    });
+  parent
+    .command("ssogov-auto-suspend-idle-v2")
+    .description("Auto-suspend idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoSuspendIdleSsogovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("ssogov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck logins")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckSsogovLoginsV2(), null, 2),
+      );
+    });
+  parent
+    .command("ssogov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getSsoManagerGovStatsV2(), null, 2),
+      );
+    });
+}

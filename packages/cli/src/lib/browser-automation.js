@@ -566,3 +566,337 @@ export function getBrowserAutomationStatsV2() {
     actionsByStatus,
   };
 }
+
+// =====================================================================
+// browser-automation V2 governance overlay (iter20)
+// =====================================================================
+export const BAGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const BAGOV_NAVIGATION_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  NAVIGATING: "navigating",
+  NAVIGATED: "navigated",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _bagovPTrans = new Map([
+  [
+    BAGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      BAGOV_PROFILE_MATURITY_V2.ACTIVE,
+      BAGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    BAGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      BAGOV_PROFILE_MATURITY_V2.STALE,
+      BAGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    BAGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      BAGOV_PROFILE_MATURITY_V2.ACTIVE,
+      BAGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [BAGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _bagovPTerminal = new Set([BAGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _bagovJTrans = new Map([
+  [
+    BAGOV_NAVIGATION_LIFECYCLE_V2.QUEUED,
+    new Set([
+      BAGOV_NAVIGATION_LIFECYCLE_V2.NAVIGATING,
+      BAGOV_NAVIGATION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    BAGOV_NAVIGATION_LIFECYCLE_V2.NAVIGATING,
+    new Set([
+      BAGOV_NAVIGATION_LIFECYCLE_V2.NAVIGATED,
+      BAGOV_NAVIGATION_LIFECYCLE_V2.FAILED,
+      BAGOV_NAVIGATION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [BAGOV_NAVIGATION_LIFECYCLE_V2.NAVIGATED, new Set()],
+  [BAGOV_NAVIGATION_LIFECYCLE_V2.FAILED, new Set()],
+  [BAGOV_NAVIGATION_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _bagovPsV2 = new Map();
+const _bagovJsV2 = new Map();
+let _bagovMaxActive = 6,
+  _bagovMaxPending = 15,
+  _bagovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _bagovStuckMs = 60 * 1000;
+function _bagovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _bagovCheckP(from, to) {
+  const a = _bagovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid bagov profile transition ${from} → ${to}`);
+}
+function _bagovCheckJ(from, to) {
+  const a = _bagovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid bagov navigation transition ${from} → ${to}`);
+}
+function _bagovCountActive(owner) {
+  let c = 0;
+  for (const p of _bagovPsV2.values())
+    if (p.owner === owner && p.status === BAGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _bagovCountPending(profileId) {
+  let c = 0;
+  for (const j of _bagovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === BAGOV_NAVIGATION_LIFECYCLE_V2.QUEUED ||
+        j.status === BAGOV_NAVIGATION_LIFECYCLE_V2.NAVIGATING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveBagovProfilesPerOwnerV2(n) {
+  _bagovMaxActive = _bagovPos(n, "maxActiveBagovProfilesPerOwner");
+}
+export function getMaxActiveBagovProfilesPerOwnerV2() {
+  return _bagovMaxActive;
+}
+export function setMaxPendingBagovNavigationsPerProfileV2(n) {
+  _bagovMaxPending = _bagovPos(n, "maxPendingBagovNavigationsPerProfile");
+}
+export function getMaxPendingBagovNavigationsPerProfileV2() {
+  return _bagovMaxPending;
+}
+export function setBagovProfileIdleMsV2(n) {
+  _bagovIdleMs = _bagovPos(n, "bagovProfileIdleMs");
+}
+export function getBagovProfileIdleMsV2() {
+  return _bagovIdleMs;
+}
+export function setBagovNavigationStuckMsV2(n) {
+  _bagovStuckMs = _bagovPos(n, "bagovNavigationStuckMs");
+}
+export function getBagovNavigationStuckMsV2() {
+  return _bagovStuckMs;
+}
+export function _resetStateBrowserAutomationGovV2() {
+  _bagovPsV2.clear();
+  _bagovJsV2.clear();
+  _bagovMaxActive = 6;
+  _bagovMaxPending = 15;
+  _bagovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _bagovStuckMs = 60 * 1000;
+}
+export function registerBagovProfileV2({ id, owner, engine, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_bagovPsV2.has(id)) throw new Error(`bagov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    engine: engine || "chromium",
+    status: BAGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _bagovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateBagovProfileV2(id) {
+  const p = _bagovPsV2.get(id);
+  if (!p) throw new Error(`bagov profile ${id} not found`);
+  const isInitial = p.status === BAGOV_PROFILE_MATURITY_V2.PENDING;
+  _bagovCheckP(p.status, BAGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _bagovCountActive(p.owner) >= _bagovMaxActive)
+    throw new Error(`max active bagov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = BAGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleBagovProfileV2(id) {
+  const p = _bagovPsV2.get(id);
+  if (!p) throw new Error(`bagov profile ${id} not found`);
+  _bagovCheckP(p.status, BAGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = BAGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveBagovProfileV2(id) {
+  const p = _bagovPsV2.get(id);
+  if (!p) throw new Error(`bagov profile ${id} not found`);
+  _bagovCheckP(p.status, BAGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = BAGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchBagovProfileV2(id) {
+  const p = _bagovPsV2.get(id);
+  if (!p) throw new Error(`bagov profile ${id} not found`);
+  if (_bagovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal bagov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getBagovProfileV2(id) {
+  const p = _bagovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listBagovProfilesV2() {
+  return [..._bagovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createBagovNavigationV2({ id, profileId, url, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_bagovJsV2.has(id))
+    throw new Error(`bagov navigation ${id} already exists`);
+  if (!_bagovPsV2.has(profileId))
+    throw new Error(`bagov profile ${profileId} not found`);
+  if (_bagovCountPending(profileId) >= _bagovMaxPending)
+    throw new Error(
+      `max pending bagov navigations for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    url: url || "",
+    status: BAGOV_NAVIGATION_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _bagovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function navigatingBagovNavigationV2(id) {
+  const j = _bagovJsV2.get(id);
+  if (!j) throw new Error(`bagov navigation ${id} not found`);
+  _bagovCheckJ(j.status, BAGOV_NAVIGATION_LIFECYCLE_V2.NAVIGATING);
+  const now = Date.now();
+  j.status = BAGOV_NAVIGATION_LIFECYCLE_V2.NAVIGATING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeNavigationBagovV2(id) {
+  const j = _bagovJsV2.get(id);
+  if (!j) throw new Error(`bagov navigation ${id} not found`);
+  _bagovCheckJ(j.status, BAGOV_NAVIGATION_LIFECYCLE_V2.NAVIGATED);
+  const now = Date.now();
+  j.status = BAGOV_NAVIGATION_LIFECYCLE_V2.NAVIGATED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failBagovNavigationV2(id, reason) {
+  const j = _bagovJsV2.get(id);
+  if (!j) throw new Error(`bagov navigation ${id} not found`);
+  _bagovCheckJ(j.status, BAGOV_NAVIGATION_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = BAGOV_NAVIGATION_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelBagovNavigationV2(id, reason) {
+  const j = _bagovJsV2.get(id);
+  if (!j) throw new Error(`bagov navigation ${id} not found`);
+  _bagovCheckJ(j.status, BAGOV_NAVIGATION_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = BAGOV_NAVIGATION_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getBagovNavigationV2(id) {
+  const j = _bagovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listBagovNavigationsV2() {
+  return [..._bagovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleBagovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _bagovPsV2.values())
+    if (
+      p.status === BAGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _bagovIdleMs
+    ) {
+      p.status = BAGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckBagovNavigationsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _bagovJsV2.values())
+    if (
+      j.status === BAGOV_NAVIGATION_LIFECYCLE_V2.NAVIGATING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _bagovStuckMs
+    ) {
+      j.status = BAGOV_NAVIGATION_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getBrowserAutomationGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(BAGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _bagovPsV2.values()) profilesByStatus[p.status]++;
+  const navigationsByStatus = {};
+  for (const v of Object.values(BAGOV_NAVIGATION_LIFECYCLE_V2))
+    navigationsByStatus[v] = 0;
+  for (const j of _bagovJsV2.values()) navigationsByStatus[j.status]++;
+  return {
+    totalBagovProfilesV2: _bagovPsV2.size,
+    totalBagovNavigationsV2: _bagovJsV2.size,
+    maxActiveBagovProfilesPerOwner: _bagovMaxActive,
+    maxPendingBagovNavigationsPerProfile: _bagovMaxPending,
+    bagovProfileIdleMs: _bagovIdleMs,
+    bagovNavigationStuckMs: _bagovStuckMs,
+    profilesByStatus,
+    navigationsByStatus,
+  };
+}

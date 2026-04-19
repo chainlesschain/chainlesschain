@@ -481,3 +481,336 @@ export function _resetStateResponseCacheV2() {
   _profileIdleMsV2 = CACHE_DEFAULT_PROFILE_IDLE_MS;
   _refreshStuckMsV2 = CACHE_DEFAULT_REFRESH_STUCK_MS;
 }
+
+// =====================================================================
+// response-cache V2 governance overlay (iter23)
+// =====================================================================
+export const RCGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const RCGOV_REFRESH_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  REFRESHING: "refreshing",
+  REFRESHED: "refreshed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _rcgovPTrans = new Map([
+  [
+    RCGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      RCGOV_PROFILE_MATURITY_V2.ACTIVE,
+      RCGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    RCGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      RCGOV_PROFILE_MATURITY_V2.STALE,
+      RCGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    RCGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      RCGOV_PROFILE_MATURITY_V2.ACTIVE,
+      RCGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [RCGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _rcgovPTerminal = new Set([RCGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _rcgovJTrans = new Map([
+  [
+    RCGOV_REFRESH_LIFECYCLE_V2.QUEUED,
+    new Set([
+      RCGOV_REFRESH_LIFECYCLE_V2.REFRESHING,
+      RCGOV_REFRESH_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    RCGOV_REFRESH_LIFECYCLE_V2.REFRESHING,
+    new Set([
+      RCGOV_REFRESH_LIFECYCLE_V2.REFRESHED,
+      RCGOV_REFRESH_LIFECYCLE_V2.FAILED,
+      RCGOV_REFRESH_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [RCGOV_REFRESH_LIFECYCLE_V2.REFRESHED, new Set()],
+  [RCGOV_REFRESH_LIFECYCLE_V2.FAILED, new Set()],
+  [RCGOV_REFRESH_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _rcgovPsV2 = new Map();
+const _rcgovJsV2 = new Map();
+let _rcgovMaxActive = 8,
+  _rcgovMaxPending = 15,
+  _rcgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _rcgovStuckMs = 60 * 1000;
+function _rcgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _rcgovCheckP(from, to) {
+  const a = _rcgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid rcgov profile transition ${from} → ${to}`);
+}
+function _rcgovCheckJ(from, to) {
+  const a = _rcgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid rcgov refresh transition ${from} → ${to}`);
+}
+function _rcgovCountActive(owner) {
+  let c = 0;
+  for (const p of _rcgovPsV2.values())
+    if (p.owner === owner && p.status === RCGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _rcgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _rcgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === RCGOV_REFRESH_LIFECYCLE_V2.QUEUED ||
+        j.status === RCGOV_REFRESH_LIFECYCLE_V2.REFRESHING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveRcgovProfilesPerOwnerV2(n) {
+  _rcgovMaxActive = _rcgovPos(n, "maxActiveRcgovProfilesPerOwner");
+}
+export function getMaxActiveRcgovProfilesPerOwnerV2() {
+  return _rcgovMaxActive;
+}
+export function setMaxPendingRcgovRefreshsPerProfileV2(n) {
+  _rcgovMaxPending = _rcgovPos(n, "maxPendingRcgovRefreshsPerProfile");
+}
+export function getMaxPendingRcgovRefreshsPerProfileV2() {
+  return _rcgovMaxPending;
+}
+export function setRcgovProfileIdleMsV2(n) {
+  _rcgovIdleMs = _rcgovPos(n, "rcgovProfileIdleMs");
+}
+export function getRcgovProfileIdleMsV2() {
+  return _rcgovIdleMs;
+}
+export function setRcgovRefreshStuckMsV2(n) {
+  _rcgovStuckMs = _rcgovPos(n, "rcgovRefreshStuckMs");
+}
+export function getRcgovRefreshStuckMsV2() {
+  return _rcgovStuckMs;
+}
+export function _resetStateResponseCacheGovV2() {
+  _rcgovPsV2.clear();
+  _rcgovJsV2.clear();
+  _rcgovMaxActive = 8;
+  _rcgovMaxPending = 15;
+  _rcgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _rcgovStuckMs = 60 * 1000;
+}
+export function registerRcgovProfileV2({ id, owner, lane, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_rcgovPsV2.has(id)) throw new Error(`rcgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    lane: lane || "default",
+    status: RCGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _rcgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateRcgovProfileV2(id) {
+  const p = _rcgovPsV2.get(id);
+  if (!p) throw new Error(`rcgov profile ${id} not found`);
+  const isInitial = p.status === RCGOV_PROFILE_MATURITY_V2.PENDING;
+  _rcgovCheckP(p.status, RCGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _rcgovCountActive(p.owner) >= _rcgovMaxActive)
+    throw new Error(`max active rcgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = RCGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleRcgovProfileV2(id) {
+  const p = _rcgovPsV2.get(id);
+  if (!p) throw new Error(`rcgov profile ${id} not found`);
+  _rcgovCheckP(p.status, RCGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = RCGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveRcgovProfileV2(id) {
+  const p = _rcgovPsV2.get(id);
+  if (!p) throw new Error(`rcgov profile ${id} not found`);
+  _rcgovCheckP(p.status, RCGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = RCGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchRcgovProfileV2(id) {
+  const p = _rcgovPsV2.get(id);
+  if (!p) throw new Error(`rcgov profile ${id} not found`);
+  if (_rcgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal rcgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getRcgovProfileV2(id) {
+  const p = _rcgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listRcgovProfilesV2() {
+  return [..._rcgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createRcgovRefreshV2({ id, profileId, source, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_rcgovJsV2.has(id)) throw new Error(`rcgov refresh ${id} already exists`);
+  if (!_rcgovPsV2.has(profileId))
+    throw new Error(`rcgov profile ${profileId} not found`);
+  if (_rcgovCountPending(profileId) >= _rcgovMaxPending)
+    throw new Error(
+      `max pending rcgov refreshs for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    source: source || "",
+    status: RCGOV_REFRESH_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _rcgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function refreshingRcgovRefreshV2(id) {
+  const j = _rcgovJsV2.get(id);
+  if (!j) throw new Error(`rcgov refresh ${id} not found`);
+  _rcgovCheckJ(j.status, RCGOV_REFRESH_LIFECYCLE_V2.REFRESHING);
+  const now = Date.now();
+  j.status = RCGOV_REFRESH_LIFECYCLE_V2.REFRESHING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeRefreshRcgovV2(id) {
+  const j = _rcgovJsV2.get(id);
+  if (!j) throw new Error(`rcgov refresh ${id} not found`);
+  _rcgovCheckJ(j.status, RCGOV_REFRESH_LIFECYCLE_V2.REFRESHED);
+  const now = Date.now();
+  j.status = RCGOV_REFRESH_LIFECYCLE_V2.REFRESHED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failRcgovRefreshV2(id, reason) {
+  const j = _rcgovJsV2.get(id);
+  if (!j) throw new Error(`rcgov refresh ${id} not found`);
+  _rcgovCheckJ(j.status, RCGOV_REFRESH_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = RCGOV_REFRESH_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelRcgovRefreshV2(id, reason) {
+  const j = _rcgovJsV2.get(id);
+  if (!j) throw new Error(`rcgov refresh ${id} not found`);
+  _rcgovCheckJ(j.status, RCGOV_REFRESH_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = RCGOV_REFRESH_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getRcgovRefreshV2(id) {
+  const j = _rcgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listRcgovRefreshsV2() {
+  return [..._rcgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleRcgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _rcgovPsV2.values())
+    if (
+      p.status === RCGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _rcgovIdleMs
+    ) {
+      p.status = RCGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckRcgovRefreshsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _rcgovJsV2.values())
+    if (
+      j.status === RCGOV_REFRESH_LIFECYCLE_V2.REFRESHING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _rcgovStuckMs
+    ) {
+      j.status = RCGOV_REFRESH_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getResponseCacheGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(RCGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _rcgovPsV2.values()) profilesByStatus[p.status]++;
+  const refreshsByStatus = {};
+  for (const v of Object.values(RCGOV_REFRESH_LIFECYCLE_V2))
+    refreshsByStatus[v] = 0;
+  for (const j of _rcgovJsV2.values()) refreshsByStatus[j.status]++;
+  return {
+    totalRcgovProfilesV2: _rcgovPsV2.size,
+    totalRcgovRefreshsV2: _rcgovJsV2.size,
+    maxActiveRcgovProfilesPerOwner: _rcgovMaxActive,
+    maxPendingRcgovRefreshsPerProfile: _rcgovMaxPending,
+    rcgovProfileIdleMs: _rcgovIdleMs,
+    rcgovRefreshStuckMs: _rcgovStuckMs,
+    profilesByStatus,
+    refreshsByStatus,
+  };
+}

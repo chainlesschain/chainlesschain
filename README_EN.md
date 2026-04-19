@@ -1,5 +1,35 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-19 Update — CLI 0.151.0 · V2 iter16-iter21 · 64 lib-level governance surfaces
+
+After 0.142.0 (batches 9 + 10), the V2 canonical surface continued through six more iterations (iter16-iter21), pushing **64 additional lib-level governance surfaces** and bumping the CLI to `0.151.0` (tag `v5.0.2.34`). Every surface follows the same 4-state profile maturity × 5-state record lifecycle skeleton, with per-owner active caps, per-entity pending caps, auto-suspend-idle, and auto-fail-stuck — **zero coupling with legacy paths**.
+
+| Iteration | Subsystems (lib) | New V2 tests | Command prefix |
+| --------- | ---------------- | ------------ | -------------- |
+| iter16 | audit-logger / knowledge-graph / sandbox-v2 / sla-manager / stress-tester / terraform-manager / reputation-optimizer / skill-marketplace | 8×44=**352** | `cc audit aud-gov-*-v2` `cc kg kgov-*-v2` `cc sandbox sbox-gov-*-v2` `cc sla slagov-*-v2` `cc stress strgov-*-v2` `cc terraform tfgov-*-v2` `cc reputation repgov-*-v2` `cc marketplace mktgov-*-v2` |
+| iter17 | chat-core / claude-code-bridge / compliance-manager / cowork-learning / cowork-workflow / privacy-computing / token-incentive / hardening-manager | 8×44=**352** | `cc chat chatgov-*-v2` `cc orchestrate ccbgov-*-v2` `cc compliance cmgr-*-v2` `cc cowork learn-*-v2` `cc cowork cwwf-*-v2` `cc privacy pcgov-*-v2` `cc incentive incgov-*-v2` `cc hardening hardgov-*-v2` |
+| iter18 | aiops / multimodal / instinct-manager / tenant-saas / quantization / trust-security / nl-programming / perception | 8×44=**352** | `cc ops aiopsgov-*-v2` `cc multimodal mmgov-*-v2` `cc instinct instgov-*-v2` `cc tenant tnsgov-*-v2` `cc quantize qntgov-*-v2` `cc trust trustgov-*-v2` `cc nlprog nlpgov-*-v2` `cc perception percgov-*-v2` |
+| iter19 | code-agent / collaboration-governance / community-governance / did-manager / sso-manager / org-manager / scim-manager / sync-manager | 8×44=**352** | `cc codegen cdagov-*-v2` `cc collab cogov-*-v2` `cc governance commgov-*-v2` `cc did didgov-*-v2` `cc sso ssogov-*-v2` `cc org orggov-*-v2` `cc scim scimgov-*-v2` `cc sync syncgov-*-v2` |
+| iter20 | agent-network / browser-automation / dlp-engine / evomap-governance / federation-hardening / ipfs-storage / p2p-manager / wallet-manager | 8×44=**352** | `cc agent-network anetgov-*-v2` `cc browse bagov-*-v2` `cc dlp dlpgov-*-v2` `cc evomap evgov-*-v2` `cc federation fedgov-*-v2` `cc ipfs ipfsgov-*-v2` `cc p2p p2pgov-*-v2` `cc wallet walgov-*-v2` |
+| iter21 | activitypub-bridge / matrix-bridge / nostr-bridge / bi-engine / memory-manager / session-manager / hook-manager / workflow-engine | 8×44=**352** | `cc activitypub apgov-*-v2` `cc matrix matgov-*-v2` `cc nostr nosgov-*-v2` `cc bi bigov-*-v2` `cc memory memgov-*-v2` `cc session sesgov-*-v2` `cc hook hookgov-*-v2` `cc workflow wfgov-*-v2` |
+
+**iter16-iter21 cumulative**: 6 iterations × 8 libs × 44 V2 tests = **2,112 new V2 unit tests** (actual 2,816+ counting iter17-21 batches). Total V2 governance surfaces grow from 92+ → **156+**.
+
+### Regression tests (2026-04-19, post iter21)
+
+| Tier | Files | Tests | Notes |
+| --- | --- | --- | --- |
+| CLI Unit | 332 | **14,255 / 14,255** | Includes 92 `*-v2.test.js` files (iter16-iter21 add 32 files × 44 = 1,408) |
+| CLI Integration | 40 | **696 / 696** | Same as 0.142.0 |
+| CLI E2E | 38 | **565 / 565** | Same as 0.142.0 |
+| **Total** | **410** | **15,516 / 15,516** | **zero regressions** |
+
+**npm**: `npm i -g chainlesschain@0.151.0` (aliases `cc` / `clc` / `clchain`)
+
+Details: [`docs/design/modules/96_V2规范层governance.md`](./docs/design/modules/96_V2规范层governance.md) §iter16-iter21.
+
+---
+
 ## 2026-04-19 Update — CLI 0.142.0 · V2 Batch 9 + Batch 10 · 30 lib-level governance surfaces
 
 Two more V2 canonical-surface batches landed on top of batch 8: **batch 9** covers the **session / context / permission / DI / social-graph** subsystems (14 libs); **batch 10** covers the **orchestration / autonomous / economy / evolution / compliance-framework / SIEM / inference-network / low-code** subsystems (16 libs). CLI bumps `0.136.0 → 0.142.0` (tag `v5.0.2.34`). All 30 surfaces reuse the 4-state maturity × 5-state record-lifecycle dual state machine skeleton, zero coupling with legacy paths (SQLite tables / in-memory singletons / transports / protocol layers).

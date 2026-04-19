@@ -780,3 +780,212 @@ export function registerOrgCommand(program) {
       console.log(JSON.stringify(autoRevokeStaleInvitesV2(), null, 2));
     });
 }
+
+// === Iter19 V2 governance overlay ===
+export function registerOrggovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "org");
+  if (!parent) return;
+  const L = async () => await import("../lib/org-manager.js");
+  parent
+    .command("orggov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.ORGGOV_PROFILE_MATURITY_V2,
+            inviteLifecycle: m.ORGGOV_INVITE_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("orggov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveOrggovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingOrggovInvitesPerProfileV2(),
+            idleMs: m.getOrggovProfileIdleMsV2(),
+            stuckMs: m.getOrggovInviteStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("orggov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveOrggovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("orggov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingOrggovInvitesPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("orggov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setOrggovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("orggov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setOrggovInviteStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("orggov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--tier <v>", "tier")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerOrggovProfileV2({ id, owner, tier: o.tier }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("orggov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateOrggovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("orggov-pause-v2 <id>")
+    .description("Pause profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).pauseOrggovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("orggov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveOrggovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("orggov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchOrggovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("orggov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getOrggovProfileV2(id), null, 2));
+    });
+  parent
+    .command("orggov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listOrggovProfilesV2(), null, 2));
+    });
+  parent
+    .command("orggov-create-invite-v2 <id> <profileId>")
+    .description("Create invite")
+    .option("--email <v>", "email")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createOrggovInviteV2({ id, profileId, email: o.email }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("orggov-inviting-invite-v2 <id>")
+    .description("Mark invite as inviting")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).invitingOrggovInviteV2(id), null, 2),
+      );
+    });
+  parent
+    .command("orggov-complete-invite-v2 <id>")
+    .description("Complete invite")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeInviteOrggovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("orggov-fail-invite-v2 <id> [reason]")
+    .description("Fail invite")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failOrggovInviteV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("orggov-cancel-invite-v2 <id> [reason]")
+    .description("Cancel invite")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelOrggovInviteV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("orggov-get-invite-v2 <id>")
+    .description("Get invite")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getOrggovInviteV2(id), null, 2));
+    });
+  parent
+    .command("orggov-list-invites-v2")
+    .description("List invites")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listOrggovInvitesV2(), null, 2));
+    });
+  parent
+    .command("orggov-auto-pause-idle-v2")
+    .description("Auto-pause idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoPauseIdleOrggovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("orggov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck invites")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckOrggovInvitesV2(), null, 2),
+      );
+    });
+  parent
+    .command("orggov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getOrgManagerGovStatsV2(), null, 2),
+      );
+    });
+}

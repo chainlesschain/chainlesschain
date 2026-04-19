@@ -591,3 +591,337 @@ export function _resetStateSessionManagerV2() {
   _convIdleMsV2 = SESSION_DEFAULT_CONV_IDLE_MS;
   _turnStuckMsV2 = SESSION_DEFAULT_TURN_STUCK_MS;
 }
+
+// =====================================================================
+// session-manager V2 governance overlay (iter21)
+// =====================================================================
+export const SESGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const SESGOV_TURN_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  ADVANCING: "advancing",
+  ADVANCED: "advanced",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _sesgovPTrans = new Map([
+  [
+    SESGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      SESGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SESGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SESGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      SESGOV_PROFILE_MATURITY_V2.PAUSED,
+      SESGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SESGOV_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      SESGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SESGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [SESGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _sesgovPTerminal = new Set([SESGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _sesgovJTrans = new Map([
+  [
+    SESGOV_TURN_LIFECYCLE_V2.QUEUED,
+    new Set([
+      SESGOV_TURN_LIFECYCLE_V2.ADVANCING,
+      SESGOV_TURN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    SESGOV_TURN_LIFECYCLE_V2.ADVANCING,
+    new Set([
+      SESGOV_TURN_LIFECYCLE_V2.ADVANCED,
+      SESGOV_TURN_LIFECYCLE_V2.FAILED,
+      SESGOV_TURN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [SESGOV_TURN_LIFECYCLE_V2.ADVANCED, new Set()],
+  [SESGOV_TURN_LIFECYCLE_V2.FAILED, new Set()],
+  [SESGOV_TURN_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _sesgovPsV2 = new Map();
+const _sesgovJsV2 = new Map();
+let _sesgovMaxActive = 8,
+  _sesgovMaxPending = 20,
+  _sesgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _sesgovStuckMs = 60 * 1000;
+function _sesgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _sesgovCheckP(from, to) {
+  const a = _sesgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid sesgov profile transition ${from} → ${to}`);
+}
+function _sesgovCheckJ(from, to) {
+  const a = _sesgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid sesgov turn transition ${from} → ${to}`);
+}
+function _sesgovCountActive(owner) {
+  let c = 0;
+  for (const p of _sesgovPsV2.values())
+    if (p.owner === owner && p.status === SESGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _sesgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _sesgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === SESGOV_TURN_LIFECYCLE_V2.QUEUED ||
+        j.status === SESGOV_TURN_LIFECYCLE_V2.ADVANCING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveSesgovProfilesPerOwnerV2(n) {
+  _sesgovMaxActive = _sesgovPos(n, "maxActiveSesgovProfilesPerOwner");
+}
+export function getMaxActiveSesgovProfilesPerOwnerV2() {
+  return _sesgovMaxActive;
+}
+export function setMaxPendingSesgovTurnsPerProfileV2(n) {
+  _sesgovMaxPending = _sesgovPos(n, "maxPendingSesgovTurnsPerProfile");
+}
+export function getMaxPendingSesgovTurnsPerProfileV2() {
+  return _sesgovMaxPending;
+}
+export function setSesgovProfileIdleMsV2(n) {
+  _sesgovIdleMs = _sesgovPos(n, "sesgovProfileIdleMs");
+}
+export function getSesgovProfileIdleMsV2() {
+  return _sesgovIdleMs;
+}
+export function setSesgovTurnStuckMsV2(n) {
+  _sesgovStuckMs = _sesgovPos(n, "sesgovTurnStuckMs");
+}
+export function getSesgovTurnStuckMsV2() {
+  return _sesgovStuckMs;
+}
+export function _resetStateSessionManagerGovV2() {
+  _sesgovPsV2.clear();
+  _sesgovJsV2.clear();
+  _sesgovMaxActive = 8;
+  _sesgovMaxPending = 20;
+  _sesgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _sesgovStuckMs = 60 * 1000;
+}
+export function registerSesgovProfileV2({ id, owner, channel, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_sesgovPsV2.has(id))
+    throw new Error(`sesgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    channel: channel || "default",
+    status: SESGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _sesgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateSesgovProfileV2(id) {
+  const p = _sesgovPsV2.get(id);
+  if (!p) throw new Error(`sesgov profile ${id} not found`);
+  const isInitial = p.status === SESGOV_PROFILE_MATURITY_V2.PENDING;
+  _sesgovCheckP(p.status, SESGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _sesgovCountActive(p.owner) >= _sesgovMaxActive)
+    throw new Error(`max active sesgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = SESGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pauseSesgovProfileV2(id) {
+  const p = _sesgovPsV2.get(id);
+  if (!p) throw new Error(`sesgov profile ${id} not found`);
+  _sesgovCheckP(p.status, SESGOV_PROFILE_MATURITY_V2.PAUSED);
+  p.status = SESGOV_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveSesgovProfileV2(id) {
+  const p = _sesgovPsV2.get(id);
+  if (!p) throw new Error(`sesgov profile ${id} not found`);
+  _sesgovCheckP(p.status, SESGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = SESGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchSesgovProfileV2(id) {
+  const p = _sesgovPsV2.get(id);
+  if (!p) throw new Error(`sesgov profile ${id} not found`);
+  if (_sesgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal sesgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getSesgovProfileV2(id) {
+  const p = _sesgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listSesgovProfilesV2() {
+  return [..._sesgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createSesgovTurnV2({ id, profileId, topic, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_sesgovJsV2.has(id)) throw new Error(`sesgov turn ${id} already exists`);
+  if (!_sesgovPsV2.has(profileId))
+    throw new Error(`sesgov profile ${profileId} not found`);
+  if (_sesgovCountPending(profileId) >= _sesgovMaxPending)
+    throw new Error(
+      `max pending sesgov turns for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    topic: topic || "",
+    status: SESGOV_TURN_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _sesgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function advancingSesgovTurnV2(id) {
+  const j = _sesgovJsV2.get(id);
+  if (!j) throw new Error(`sesgov turn ${id} not found`);
+  _sesgovCheckJ(j.status, SESGOV_TURN_LIFECYCLE_V2.ADVANCING);
+  const now = Date.now();
+  j.status = SESGOV_TURN_LIFECYCLE_V2.ADVANCING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeTurnSesgovV2(id) {
+  const j = _sesgovJsV2.get(id);
+  if (!j) throw new Error(`sesgov turn ${id} not found`);
+  _sesgovCheckJ(j.status, SESGOV_TURN_LIFECYCLE_V2.ADVANCED);
+  const now = Date.now();
+  j.status = SESGOV_TURN_LIFECYCLE_V2.ADVANCED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failSesgovTurnV2(id, reason) {
+  const j = _sesgovJsV2.get(id);
+  if (!j) throw new Error(`sesgov turn ${id} not found`);
+  _sesgovCheckJ(j.status, SESGOV_TURN_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = SESGOV_TURN_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelSesgovTurnV2(id, reason) {
+  const j = _sesgovJsV2.get(id);
+  if (!j) throw new Error(`sesgov turn ${id} not found`);
+  _sesgovCheckJ(j.status, SESGOV_TURN_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = SESGOV_TURN_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getSesgovTurnV2(id) {
+  const j = _sesgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listSesgovTurnsV2() {
+  return [..._sesgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPauseIdleSesgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _sesgovPsV2.values())
+    if (
+      p.status === SESGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _sesgovIdleMs
+    ) {
+      p.status = SESGOV_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckSesgovTurnsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _sesgovJsV2.values())
+    if (
+      j.status === SESGOV_TURN_LIFECYCLE_V2.ADVANCING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _sesgovStuckMs
+    ) {
+      j.status = SESGOV_TURN_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getSessionManagerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(SESGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _sesgovPsV2.values()) profilesByStatus[p.status]++;
+  const turnsByStatus = {};
+  for (const v of Object.values(SESGOV_TURN_LIFECYCLE_V2)) turnsByStatus[v] = 0;
+  for (const j of _sesgovJsV2.values()) turnsByStatus[j.status]++;
+  return {
+    totalSesgovProfilesV2: _sesgovPsV2.size,
+    totalSesgovTurnsV2: _sesgovJsV2.size,
+    maxActiveSesgovProfilesPerOwner: _sesgovMaxActive,
+    maxPendingSesgovTurnsPerProfile: _sesgovMaxPending,
+    sesgovProfileIdleMs: _sesgovIdleMs,
+    sesgovTurnStuckMs: _sesgovStuckMs,
+    profilesByStatus,
+    turnsByStatus,
+  };
+}

@@ -673,3 +673,212 @@ export function registerPerceptionCommand(program) {
 
   program.addCommand(perc);
 }
+
+// === Iter18 V2 governance overlay ===
+export function registerPercgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "perception");
+  if (!parent) return;
+  const L = async () => await import("../lib/perception.js");
+  parent
+    .command("percgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.PERCGOV_PROFILE_MATURITY_V2,
+            signalLifecycle: m.PERCGOV_SIGNAL_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("percgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActivePercgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingPercgovSignalsPerProfileV2(),
+            idleMs: m.getPercgovProfileIdleMsV2(),
+            stuckMs: m.getPercgovSignalStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("percgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActivePercgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("percgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingPercgovSignalsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("percgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setPercgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("percgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setPercgovSignalStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("percgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--modality <v>", "modality")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerPercgovProfileV2({ id, owner, modality: o.modality }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("percgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activatePercgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("percgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).stalePercgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("percgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archivePercgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("percgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchPercgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("percgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getPercgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("percgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listPercgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("percgov-create-signal-v2 <id> <profileId>")
+    .description("Create signal")
+    .option("--source <v>", "source")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createPercgovSignalV2({ id, profileId, source: o.source }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("percgov-analyzing-signal-v2 <id>")
+    .description("Mark signal as analyzing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).analyzingPercgovSignalV2(id), null, 2),
+      );
+    });
+  parent
+    .command("percgov-complete-signal-v2 <id>")
+    .description("Complete signal")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeSignalPercgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("percgov-fail-signal-v2 <id> [reason]")
+    .description("Fail signal")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failPercgovSignalV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("percgov-cancel-signal-v2 <id> [reason]")
+    .description("Cancel signal")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelPercgovSignalV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("percgov-get-signal-v2 <id>")
+    .description("Get signal")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getPercgovSignalV2(id), null, 2));
+    });
+  parent
+    .command("percgov-list-signals-v2")
+    .description("List signals")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listPercgovSignalsV2(), null, 2));
+    });
+  parent
+    .command("percgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdlePercgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("percgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck signals")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckPercgovSignalsV2(), null, 2),
+      );
+    });
+  parent
+    .command("percgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getPerceptionGovStatsV2(), null, 2),
+      );
+    });
+}

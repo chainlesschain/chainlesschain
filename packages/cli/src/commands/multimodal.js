@@ -698,3 +698,206 @@ export function registerMultimodalCommand(program) {
 
   program.addCommand(mm);
 }
+
+// === Iter18 V2 governance overlay ===
+export function registerMmgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "multimodal");
+  if (!parent) return;
+  const L = async () => await import("../lib/multimodal.js");
+  parent
+    .command("mmgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.MMGOV_PROFILE_MATURITY_V2,
+            jobLifecycle: m.MMGOV_JOB_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("mmgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveMmgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingMmgovJobsPerProfileV2(),
+            idleMs: m.getMmgovProfileIdleMsV2(),
+            stuckMs: m.getMmgovJobStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("mmgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveMmgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("mmgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingMmgovJobsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("mmgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setMmgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("mmgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setMmgovJobStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("mmgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--kind <v>", "kind")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerMmgovProfileV2({ id, owner, kind: o.kind }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("mmgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateMmgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("mmgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).staleMmgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("mmgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveMmgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("mmgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchMmgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("mmgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getMmgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("mmgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listMmgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("mmgov-create-job-v2 <id> <profileId>")
+    .description("Create job")
+    .option("--input <v>", "input")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createMmgovJobV2({ id, profileId, input: o.input }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("mmgov-processing-job-v2 <id>")
+    .description("Mark job as processing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).processingMmgovJobV2(id), null, 2),
+      );
+    });
+  parent
+    .command("mmgov-complete-job-v2 <id>")
+    .description("Complete job")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completeJobMmgovV2(id), null, 2));
+    });
+  parent
+    .command("mmgov-fail-job-v2 <id> [reason]")
+    .description("Fail job")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failMmgovJobV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("mmgov-cancel-job-v2 <id> [reason]")
+    .description("Cancel job")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelMmgovJobV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("mmgov-get-job-v2 <id>")
+    .description("Get job")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getMmgovJobV2(id), null, 2));
+    });
+  parent
+    .command("mmgov-list-jobs-v2")
+    .description("List jobs")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listMmgovJobsV2(), null, 2));
+    });
+  parent
+    .command("mmgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleMmgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("mmgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck jobs")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckMmgovJobsV2(), null, 2),
+      );
+    });
+  parent
+    .command("mmgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getMultimodalGovStatsV2(), null, 2),
+      );
+    });
+}

@@ -569,3 +569,342 @@ export function _resetStateNoteVersioningV2() {
   _noteIdleMsV2 = NOTE_DEFAULT_NOTE_IDLE_MS;
   _revStuckMsV2 = NOTE_DEFAULT_REV_STUCK_MS;
 }
+
+// =====================================================================
+// note-versioning V2 governance overlay (iter23)
+// =====================================================================
+export const NTGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const NTGOV_REVISION_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  REVIEWING: "reviewing",
+  MERGED: "merged",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _ntgovPTrans = new Map([
+  [
+    NTGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      NTGOV_PROFILE_MATURITY_V2.ACTIVE,
+      NTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    NTGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      NTGOV_PROFILE_MATURITY_V2.STALE,
+      NTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    NTGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      NTGOV_PROFILE_MATURITY_V2.ACTIVE,
+      NTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [NTGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _ntgovPTerminal = new Set([NTGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _ntgovJTrans = new Map([
+  [
+    NTGOV_REVISION_LIFECYCLE_V2.QUEUED,
+    new Set([
+      NTGOV_REVISION_LIFECYCLE_V2.REVIEWING,
+      NTGOV_REVISION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    NTGOV_REVISION_LIFECYCLE_V2.REVIEWING,
+    new Set([
+      NTGOV_REVISION_LIFECYCLE_V2.MERGED,
+      NTGOV_REVISION_LIFECYCLE_V2.FAILED,
+      NTGOV_REVISION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [NTGOV_REVISION_LIFECYCLE_V2.MERGED, new Set()],
+  [NTGOV_REVISION_LIFECYCLE_V2.FAILED, new Set()],
+  [NTGOV_REVISION_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _ntgovPsV2 = new Map();
+const _ntgovJsV2 = new Map();
+let _ntgovMaxActive = 10,
+  _ntgovMaxPending = 30,
+  _ntgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _ntgovStuckMs = 60 * 1000;
+function _ntgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _ntgovCheckP(from, to) {
+  const a = _ntgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid ntgov profile transition ${from} → ${to}`);
+}
+function _ntgovCheckJ(from, to) {
+  const a = _ntgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid ntgov revision transition ${from} → ${to}`);
+}
+function _ntgovCountActive(owner) {
+  let c = 0;
+  for (const p of _ntgovPsV2.values())
+    if (p.owner === owner && p.status === NTGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _ntgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _ntgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === NTGOV_REVISION_LIFECYCLE_V2.QUEUED ||
+        j.status === NTGOV_REVISION_LIFECYCLE_V2.REVIEWING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveNtgovProfilesPerOwnerV2(n) {
+  _ntgovMaxActive = _ntgovPos(n, "maxActiveNtgovProfilesPerOwner");
+}
+export function getMaxActiveNtgovProfilesPerOwnerV2() {
+  return _ntgovMaxActive;
+}
+export function setMaxPendingNtgovRevisionsPerProfileV2(n) {
+  _ntgovMaxPending = _ntgovPos(n, "maxPendingNtgovRevisionsPerProfile");
+}
+export function getMaxPendingNtgovRevisionsPerProfileV2() {
+  return _ntgovMaxPending;
+}
+export function setNtgovProfileIdleMsV2(n) {
+  _ntgovIdleMs = _ntgovPos(n, "ntgovProfileIdleMs");
+}
+export function getNtgovProfileIdleMsV2() {
+  return _ntgovIdleMs;
+}
+export function setNtgovRevisionStuckMsV2(n) {
+  _ntgovStuckMs = _ntgovPos(n, "ntgovRevisionStuckMs");
+}
+export function getNtgovRevisionStuckMsV2() {
+  return _ntgovStuckMs;
+}
+export function _resetStateNoteVersioningGovV2() {
+  _ntgovPsV2.clear();
+  _ntgovJsV2.clear();
+  _ntgovMaxActive = 10;
+  _ntgovMaxPending = 30;
+  _ntgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _ntgovStuckMs = 60 * 1000;
+}
+export function registerNtgovProfileV2({ id, owner, series, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_ntgovPsV2.has(id)) throw new Error(`ntgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    series: series || "default",
+    status: NTGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _ntgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateNtgovProfileV2(id) {
+  const p = _ntgovPsV2.get(id);
+  if (!p) throw new Error(`ntgov profile ${id} not found`);
+  const isInitial = p.status === NTGOV_PROFILE_MATURITY_V2.PENDING;
+  _ntgovCheckP(p.status, NTGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _ntgovCountActive(p.owner) >= _ntgovMaxActive)
+    throw new Error(`max active ntgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = NTGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleNtgovProfileV2(id) {
+  const p = _ntgovPsV2.get(id);
+  if (!p) throw new Error(`ntgov profile ${id} not found`);
+  _ntgovCheckP(p.status, NTGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = NTGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveNtgovProfileV2(id) {
+  const p = _ntgovPsV2.get(id);
+  if (!p) throw new Error(`ntgov profile ${id} not found`);
+  _ntgovCheckP(p.status, NTGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = NTGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchNtgovProfileV2(id) {
+  const p = _ntgovPsV2.get(id);
+  if (!p) throw new Error(`ntgov profile ${id} not found`);
+  if (_ntgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal ntgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getNtgovProfileV2(id) {
+  const p = _ntgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listNtgovProfilesV2() {
+  return [..._ntgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createNtgovRevisionV2({
+  id,
+  profileId,
+  author,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_ntgovJsV2.has(id))
+    throw new Error(`ntgov revision ${id} already exists`);
+  if (!_ntgovPsV2.has(profileId))
+    throw new Error(`ntgov profile ${profileId} not found`);
+  if (_ntgovCountPending(profileId) >= _ntgovMaxPending)
+    throw new Error(
+      `max pending ntgov revisions for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    author: author || "",
+    status: NTGOV_REVISION_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _ntgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function reviewingNtgovRevisionV2(id) {
+  const j = _ntgovJsV2.get(id);
+  if (!j) throw new Error(`ntgov revision ${id} not found`);
+  _ntgovCheckJ(j.status, NTGOV_REVISION_LIFECYCLE_V2.REVIEWING);
+  const now = Date.now();
+  j.status = NTGOV_REVISION_LIFECYCLE_V2.REVIEWING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeRevisionNtgovV2(id) {
+  const j = _ntgovJsV2.get(id);
+  if (!j) throw new Error(`ntgov revision ${id} not found`);
+  _ntgovCheckJ(j.status, NTGOV_REVISION_LIFECYCLE_V2.MERGED);
+  const now = Date.now();
+  j.status = NTGOV_REVISION_LIFECYCLE_V2.MERGED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failNtgovRevisionV2(id, reason) {
+  const j = _ntgovJsV2.get(id);
+  if (!j) throw new Error(`ntgov revision ${id} not found`);
+  _ntgovCheckJ(j.status, NTGOV_REVISION_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = NTGOV_REVISION_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelNtgovRevisionV2(id, reason) {
+  const j = _ntgovJsV2.get(id);
+  if (!j) throw new Error(`ntgov revision ${id} not found`);
+  _ntgovCheckJ(j.status, NTGOV_REVISION_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = NTGOV_REVISION_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getNtgovRevisionV2(id) {
+  const j = _ntgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listNtgovRevisionsV2() {
+  return [..._ntgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleNtgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _ntgovPsV2.values())
+    if (
+      p.status === NTGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _ntgovIdleMs
+    ) {
+      p.status = NTGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckNtgovRevisionsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _ntgovJsV2.values())
+    if (
+      j.status === NTGOV_REVISION_LIFECYCLE_V2.REVIEWING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _ntgovStuckMs
+    ) {
+      j.status = NTGOV_REVISION_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getNoteVersioningGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(NTGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _ntgovPsV2.values()) profilesByStatus[p.status]++;
+  const revisionsByStatus = {};
+  for (const v of Object.values(NTGOV_REVISION_LIFECYCLE_V2))
+    revisionsByStatus[v] = 0;
+  for (const j of _ntgovJsV2.values()) revisionsByStatus[j.status]++;
+  return {
+    totalNtgovProfilesV2: _ntgovPsV2.size,
+    totalNtgovRevisionsV2: _ntgovJsV2.size,
+    maxActiveNtgovProfilesPerOwner: _ntgovMaxActive,
+    maxPendingNtgovRevisionsPerProfile: _ntgovMaxPending,
+    ntgovProfileIdleMs: _ntgovIdleMs,
+    ntgovRevisionStuckMs: _ntgovStuckMs,
+    profilesByStatus,
+    revisionsByStatus,
+  };
+}

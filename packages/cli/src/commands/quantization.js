@@ -629,3 +629,210 @@ export function registerQuantizationCommand(program) {
 
   program.addCommand(quant);
 }
+
+// === Iter18 V2 governance overlay ===
+export function registerQntgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "quantize");
+  if (!parent) return;
+  const L = async () => await import("../lib/quantization.js");
+  parent
+    .command("qntgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.QNTGOV_PROFILE_MATURITY_V2,
+            jobLifecycle: m.QNTGOV_JOB_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("qntgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveQntgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingQntgovJobsPerProfileV2(),
+            idleMs: m.getQntgovProfileIdleMsV2(),
+            stuckMs: m.getQntgovJobStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("qntgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveQntgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("qntgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingQntgovJobsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("qntgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setQntgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("qntgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setQntgovJobStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("qntgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--precision <v>", "precision")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerQntgovProfileV2({ id, owner, precision: o.precision }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("qntgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateQntgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("qntgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleQntgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("qntgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveQntgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("qntgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchQntgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("qntgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getQntgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("qntgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listQntgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("qntgov-create-job-v2 <id> <profileId>")
+    .description("Create job")
+    .option("--model <v>", "model")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createQntgovJobV2({ id, profileId, model: o.model }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("qntgov-quantizing-job-v2 <id>")
+    .description("Mark job as quantizing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).quantizingQntgovJobV2(id), null, 2),
+      );
+    });
+  parent
+    .command("qntgov-complete-job-v2 <id>")
+    .description("Complete job")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completeJobQntgovV2(id), null, 2));
+    });
+  parent
+    .command("qntgov-fail-job-v2 <id> [reason]")
+    .description("Fail job")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failQntgovJobV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("qntgov-cancel-job-v2 <id> [reason]")
+    .description("Cancel job")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelQntgovJobV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("qntgov-get-job-v2 <id>")
+    .description("Get job")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getQntgovJobV2(id), null, 2));
+    });
+  parent
+    .command("qntgov-list-jobs-v2")
+    .description("List jobs")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listQntgovJobsV2(), null, 2));
+    });
+  parent
+    .command("qntgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleQntgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("qntgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck jobs")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckQntgovJobsV2(), null, 2),
+      );
+    });
+  parent
+    .command("qntgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getQuantizationGovStatsV2(), null, 2),
+      );
+    });
+}

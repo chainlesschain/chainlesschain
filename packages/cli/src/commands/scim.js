@@ -478,3 +478,212 @@ export function registerScimCommand(program) {
       console.log(JSON.stringify(flipped, null, 2));
     });
 }
+
+// === Iter19 V2 governance overlay ===
+export function registerScimgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "scim");
+  if (!parent) return;
+  const L = async () => await import("../lib/scim-manager.js");
+  parent
+    .command("scimgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.SCIMGOV_PROFILE_MATURITY_V2,
+            syncLifecycle: m.SCIMGOV_SYNC_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("scimgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveScimgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingScimgovSyncsPerProfileV2(),
+            idleMs: m.getScimgovProfileIdleMsV2(),
+            stuckMs: m.getScimgovSyncStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("scimgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveScimgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("scimgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingScimgovSyncsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("scimgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setScimgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("scimgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setScimgovSyncStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("scimgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--resource <v>", "resource")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerScimgovProfileV2({ id, owner, resource: o.resource }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("scimgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateScimgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("scimgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleScimgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("scimgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveScimgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("scimgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchScimgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("scimgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getScimgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("scimgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listScimgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("scimgov-create-sync-v2 <id> <profileId>")
+    .description("Create sync")
+    .option("--endpoint <v>", "endpoint")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createScimgovSyncV2({ id, profileId, endpoint: o.endpoint }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("scimgov-syncing-sync-v2 <id>")
+    .description("Mark sync as syncing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).syncingScimgovSyncV2(id), null, 2),
+      );
+    });
+  parent
+    .command("scimgov-complete-sync-v2 <id>")
+    .description("Complete sync")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeSyncScimgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("scimgov-fail-sync-v2 <id> [reason]")
+    .description("Fail sync")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failScimgovSyncV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("scimgov-cancel-sync-v2 <id> [reason]")
+    .description("Cancel sync")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelScimgovSyncV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("scimgov-get-sync-v2 <id>")
+    .description("Get sync")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getScimgovSyncV2(id), null, 2));
+    });
+  parent
+    .command("scimgov-list-syncs-v2")
+    .description("List syncs")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listScimgovSyncsV2(), null, 2));
+    });
+  parent
+    .command("scimgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleScimgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("scimgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck syncs")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckScimgovSyncsV2(), null, 2),
+      );
+    });
+  parent
+    .command("scimgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getScimManagerGovStatsV2(), null, 2),
+      );
+    });
+}

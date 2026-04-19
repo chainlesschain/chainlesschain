@@ -672,3 +672,339 @@ export function _resetStateWalletManagerV2() {
   _walletIdleMsV2 = WALLET_DEFAULT_WALLET_IDLE_MS;
   _txStuckMsV2 = WALLET_DEFAULT_TX_STUCK_MS;
 }
+
+// =====================================================================
+// wallet-manager V2 governance overlay (iter20)
+// =====================================================================
+export const WALGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  FROZEN: "frozen",
+  ARCHIVED: "archived",
+});
+export const WALGOV_TRANSFER_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  SIGNING: "signing",
+  SIGNED: "signed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _walgovPTrans = new Map([
+  [
+    WALGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      WALGOV_PROFILE_MATURITY_V2.ACTIVE,
+      WALGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    WALGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      WALGOV_PROFILE_MATURITY_V2.FROZEN,
+      WALGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    WALGOV_PROFILE_MATURITY_V2.FROZEN,
+    new Set([
+      WALGOV_PROFILE_MATURITY_V2.ACTIVE,
+      WALGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [WALGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _walgovPTerminal = new Set([WALGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _walgovJTrans = new Map([
+  [
+    WALGOV_TRANSFER_LIFECYCLE_V2.QUEUED,
+    new Set([
+      WALGOV_TRANSFER_LIFECYCLE_V2.SIGNING,
+      WALGOV_TRANSFER_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    WALGOV_TRANSFER_LIFECYCLE_V2.SIGNING,
+    new Set([
+      WALGOV_TRANSFER_LIFECYCLE_V2.SIGNED,
+      WALGOV_TRANSFER_LIFECYCLE_V2.FAILED,
+      WALGOV_TRANSFER_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [WALGOV_TRANSFER_LIFECYCLE_V2.SIGNED, new Set()],
+  [WALGOV_TRANSFER_LIFECYCLE_V2.FAILED, new Set()],
+  [WALGOV_TRANSFER_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _walgovPsV2 = new Map();
+const _walgovJsV2 = new Map();
+let _walgovMaxActive = 6,
+  _walgovMaxPending = 15,
+  _walgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _walgovStuckMs = 60 * 1000;
+function _walgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _walgovCheckP(from, to) {
+  const a = _walgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid walgov profile transition ${from} → ${to}`);
+}
+function _walgovCheckJ(from, to) {
+  const a = _walgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid walgov transfer transition ${from} → ${to}`);
+}
+function _walgovCountActive(owner) {
+  let c = 0;
+  for (const p of _walgovPsV2.values())
+    if (p.owner === owner && p.status === WALGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _walgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _walgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === WALGOV_TRANSFER_LIFECYCLE_V2.QUEUED ||
+        j.status === WALGOV_TRANSFER_LIFECYCLE_V2.SIGNING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveWalgovProfilesPerOwnerV2(n) {
+  _walgovMaxActive = _walgovPos(n, "maxActiveWalgovProfilesPerOwner");
+}
+export function getMaxActiveWalgovProfilesPerOwnerV2() {
+  return _walgovMaxActive;
+}
+export function setMaxPendingWalgovTransfersPerProfileV2(n) {
+  _walgovMaxPending = _walgovPos(n, "maxPendingWalgovTransfersPerProfile");
+}
+export function getMaxPendingWalgovTransfersPerProfileV2() {
+  return _walgovMaxPending;
+}
+export function setWalgovProfileIdleMsV2(n) {
+  _walgovIdleMs = _walgovPos(n, "walgovProfileIdleMs");
+}
+export function getWalgovProfileIdleMsV2() {
+  return _walgovIdleMs;
+}
+export function setWalgovTransferStuckMsV2(n) {
+  _walgovStuckMs = _walgovPos(n, "walgovTransferStuckMs");
+}
+export function getWalgovTransferStuckMsV2() {
+  return _walgovStuckMs;
+}
+export function _resetStateWalletManagerGovV2() {
+  _walgovPsV2.clear();
+  _walgovJsV2.clear();
+  _walgovMaxActive = 6;
+  _walgovMaxPending = 15;
+  _walgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _walgovStuckMs = 60 * 1000;
+}
+export function registerWalgovProfileV2({ id, owner, chain, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_walgovPsV2.has(id))
+    throw new Error(`walgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    chain: chain || "mainnet",
+    status: WALGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _walgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateWalgovProfileV2(id) {
+  const p = _walgovPsV2.get(id);
+  if (!p) throw new Error(`walgov profile ${id} not found`);
+  const isInitial = p.status === WALGOV_PROFILE_MATURITY_V2.PENDING;
+  _walgovCheckP(p.status, WALGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _walgovCountActive(p.owner) >= _walgovMaxActive)
+    throw new Error(`max active walgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = WALGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function freezeWalgovProfileV2(id) {
+  const p = _walgovPsV2.get(id);
+  if (!p) throw new Error(`walgov profile ${id} not found`);
+  _walgovCheckP(p.status, WALGOV_PROFILE_MATURITY_V2.FROZEN);
+  p.status = WALGOV_PROFILE_MATURITY_V2.FROZEN;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveWalgovProfileV2(id) {
+  const p = _walgovPsV2.get(id);
+  if (!p) throw new Error(`walgov profile ${id} not found`);
+  _walgovCheckP(p.status, WALGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = WALGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchWalgovProfileV2(id) {
+  const p = _walgovPsV2.get(id);
+  if (!p) throw new Error(`walgov profile ${id} not found`);
+  if (_walgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal walgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getWalgovProfileV2(id) {
+  const p = _walgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listWalgovProfilesV2() {
+  return [..._walgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createWalgovTransferV2({ id, profileId, to, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_walgovJsV2.has(id))
+    throw new Error(`walgov transfer ${id} already exists`);
+  if (!_walgovPsV2.has(profileId))
+    throw new Error(`walgov profile ${profileId} not found`);
+  if (_walgovCountPending(profileId) >= _walgovMaxPending)
+    throw new Error(
+      `max pending walgov transfers for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    to: to || "",
+    status: WALGOV_TRANSFER_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _walgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function signingWalgovTransferV2(id) {
+  const j = _walgovJsV2.get(id);
+  if (!j) throw new Error(`walgov transfer ${id} not found`);
+  _walgovCheckJ(j.status, WALGOV_TRANSFER_LIFECYCLE_V2.SIGNING);
+  const now = Date.now();
+  j.status = WALGOV_TRANSFER_LIFECYCLE_V2.SIGNING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeTransferWalgovV2(id) {
+  const j = _walgovJsV2.get(id);
+  if (!j) throw new Error(`walgov transfer ${id} not found`);
+  _walgovCheckJ(j.status, WALGOV_TRANSFER_LIFECYCLE_V2.SIGNED);
+  const now = Date.now();
+  j.status = WALGOV_TRANSFER_LIFECYCLE_V2.SIGNED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failWalgovTransferV2(id, reason) {
+  const j = _walgovJsV2.get(id);
+  if (!j) throw new Error(`walgov transfer ${id} not found`);
+  _walgovCheckJ(j.status, WALGOV_TRANSFER_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = WALGOV_TRANSFER_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelWalgovTransferV2(id, reason) {
+  const j = _walgovJsV2.get(id);
+  if (!j) throw new Error(`walgov transfer ${id} not found`);
+  _walgovCheckJ(j.status, WALGOV_TRANSFER_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = WALGOV_TRANSFER_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getWalgovTransferV2(id) {
+  const j = _walgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listWalgovTransfersV2() {
+  return [..._walgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoFreezeIdleWalgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _walgovPsV2.values())
+    if (
+      p.status === WALGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _walgovIdleMs
+    ) {
+      p.status = WALGOV_PROFILE_MATURITY_V2.FROZEN;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckWalgovTransfersV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _walgovJsV2.values())
+    if (
+      j.status === WALGOV_TRANSFER_LIFECYCLE_V2.SIGNING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _walgovStuckMs
+    ) {
+      j.status = WALGOV_TRANSFER_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getWalletManagerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(WALGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _walgovPsV2.values()) profilesByStatus[p.status]++;
+  const transfersByStatus = {};
+  for (const v of Object.values(WALGOV_TRANSFER_LIFECYCLE_V2))
+    transfersByStatus[v] = 0;
+  for (const j of _walgovJsV2.values()) transfersByStatus[j.status]++;
+  return {
+    totalWalgovProfilesV2: _walgovPsV2.size,
+    totalWalgovTransfersV2: _walgovJsV2.size,
+    maxActiveWalgovProfilesPerOwner: _walgovMaxActive,
+    maxPendingWalgovTransfersPerProfile: _walgovMaxPending,
+    walgovProfileIdleMs: _walgovIdleMs,
+    walgovTransferStuckMs: _walgovStuckMs,
+    profilesByStatus,
+    transfersByStatus,
+  };
+}

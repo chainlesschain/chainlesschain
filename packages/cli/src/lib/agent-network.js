@@ -1506,3 +1506,344 @@ export function _resetStateAgentNetworkV2() {
   _stateAnetV2.agentIdleMs = AGENT_DEFAULT_AGENT_IDLE_MS;
   _stateAnetV2.taskStuckMs = AGENT_DEFAULT_TASK_STUCK_MS;
 }
+
+// =====================================================================
+// agent-network V2 governance overlay (iter20)
+// =====================================================================
+export const ANETGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  ARCHIVED: "archived",
+});
+export const ANETGOV_DISPATCH_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  DISPATCHING: "dispatching",
+  DISPATCHED: "dispatched",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _anetgovPTrans = new Map([
+  [
+    ANETGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      ANETGOV_PROFILE_MATURITY_V2.ACTIVE,
+      ANETGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    ANETGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      ANETGOV_PROFILE_MATURITY_V2.SUSPENDED,
+      ANETGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    ANETGOV_PROFILE_MATURITY_V2.SUSPENDED,
+    new Set([
+      ANETGOV_PROFILE_MATURITY_V2.ACTIVE,
+      ANETGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [ANETGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _anetgovPTerminal = new Set([ANETGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _anetgovJTrans = new Map([
+  [
+    ANETGOV_DISPATCH_LIFECYCLE_V2.QUEUED,
+    new Set([
+      ANETGOV_DISPATCH_LIFECYCLE_V2.DISPATCHING,
+      ANETGOV_DISPATCH_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    ANETGOV_DISPATCH_LIFECYCLE_V2.DISPATCHING,
+    new Set([
+      ANETGOV_DISPATCH_LIFECYCLE_V2.DISPATCHED,
+      ANETGOV_DISPATCH_LIFECYCLE_V2.FAILED,
+      ANETGOV_DISPATCH_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [ANETGOV_DISPATCH_LIFECYCLE_V2.DISPATCHED, new Set()],
+  [ANETGOV_DISPATCH_LIFECYCLE_V2.FAILED, new Set()],
+  [ANETGOV_DISPATCH_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _anetgovPsV2 = new Map();
+const _anetgovJsV2 = new Map();
+let _anetgovMaxActive = 10,
+  _anetgovMaxPending = 25,
+  _anetgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _anetgovStuckMs = 60 * 1000;
+function _anetgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _anetgovCheckP(from, to) {
+  const a = _anetgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid anetgov profile transition ${from} → ${to}`);
+}
+function _anetgovCheckJ(from, to) {
+  const a = _anetgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid anetgov dispatch transition ${from} → ${to}`);
+}
+function _anetgovCountActive(owner) {
+  let c = 0;
+  for (const p of _anetgovPsV2.values())
+    if (p.owner === owner && p.status === ANETGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _anetgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _anetgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === ANETGOV_DISPATCH_LIFECYCLE_V2.QUEUED ||
+        j.status === ANETGOV_DISPATCH_LIFECYCLE_V2.DISPATCHING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveAnetgovProfilesPerOwnerV2(n) {
+  _anetgovMaxActive = _anetgovPos(n, "maxActiveAnetgovProfilesPerOwner");
+}
+export function getMaxActiveAnetgovProfilesPerOwnerV2() {
+  return _anetgovMaxActive;
+}
+export function setMaxPendingAnetgovDispatchsPerProfileV2(n) {
+  _anetgovMaxPending = _anetgovPos(n, "maxPendingAnetgovDispatchsPerProfile");
+}
+export function getMaxPendingAnetgovDispatchsPerProfileV2() {
+  return _anetgovMaxPending;
+}
+export function setAnetgovProfileIdleMsV2(n) {
+  _anetgovIdleMs = _anetgovPos(n, "anetgovProfileIdleMs");
+}
+export function getAnetgovProfileIdleMsV2() {
+  return _anetgovIdleMs;
+}
+export function setAnetgovDispatchStuckMsV2(n) {
+  _anetgovStuckMs = _anetgovPos(n, "anetgovDispatchStuckMs");
+}
+export function getAnetgovDispatchStuckMsV2() {
+  return _anetgovStuckMs;
+}
+export function _resetStateAgentNetworkGovV2() {
+  _anetgovPsV2.clear();
+  _anetgovJsV2.clear();
+  _anetgovMaxActive = 10;
+  _anetgovMaxPending = 25;
+  _anetgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _anetgovStuckMs = 60 * 1000;
+}
+export function registerAnetgovProfileV2({ id, owner, role, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_anetgovPsV2.has(id))
+    throw new Error(`anetgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    role: role || "worker",
+    status: ANETGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _anetgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateAnetgovProfileV2(id) {
+  const p = _anetgovPsV2.get(id);
+  if (!p) throw new Error(`anetgov profile ${id} not found`);
+  const isInitial = p.status === ANETGOV_PROFILE_MATURITY_V2.PENDING;
+  _anetgovCheckP(p.status, ANETGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _anetgovCountActive(p.owner) >= _anetgovMaxActive)
+    throw new Error(`max active anetgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = ANETGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function suspendAnetgovProfileV2(id) {
+  const p = _anetgovPsV2.get(id);
+  if (!p) throw new Error(`anetgov profile ${id} not found`);
+  _anetgovCheckP(p.status, ANETGOV_PROFILE_MATURITY_V2.SUSPENDED);
+  p.status = ANETGOV_PROFILE_MATURITY_V2.SUSPENDED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveAnetgovProfileV2(id) {
+  const p = _anetgovPsV2.get(id);
+  if (!p) throw new Error(`anetgov profile ${id} not found`);
+  _anetgovCheckP(p.status, ANETGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = ANETGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchAnetgovProfileV2(id) {
+  const p = _anetgovPsV2.get(id);
+  if (!p) throw new Error(`anetgov profile ${id} not found`);
+  if (_anetgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal anetgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getAnetgovProfileV2(id) {
+  const p = _anetgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listAnetgovProfilesV2() {
+  return [..._anetgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createAnetgovDispatchV2({
+  id,
+  profileId,
+  target,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_anetgovJsV2.has(id))
+    throw new Error(`anetgov dispatch ${id} already exists`);
+  if (!_anetgovPsV2.has(profileId))
+    throw new Error(`anetgov profile ${profileId} not found`);
+  if (_anetgovCountPending(profileId) >= _anetgovMaxPending)
+    throw new Error(
+      `max pending anetgov dispatchs for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    target: target || "",
+    status: ANETGOV_DISPATCH_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _anetgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function dispatchingAnetgovDispatchV2(id) {
+  const j = _anetgovJsV2.get(id);
+  if (!j) throw new Error(`anetgov dispatch ${id} not found`);
+  _anetgovCheckJ(j.status, ANETGOV_DISPATCH_LIFECYCLE_V2.DISPATCHING);
+  const now = Date.now();
+  j.status = ANETGOV_DISPATCH_LIFECYCLE_V2.DISPATCHING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeDispatchAnetgovV2(id) {
+  const j = _anetgovJsV2.get(id);
+  if (!j) throw new Error(`anetgov dispatch ${id} not found`);
+  _anetgovCheckJ(j.status, ANETGOV_DISPATCH_LIFECYCLE_V2.DISPATCHED);
+  const now = Date.now();
+  j.status = ANETGOV_DISPATCH_LIFECYCLE_V2.DISPATCHED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failAnetgovDispatchV2(id, reason) {
+  const j = _anetgovJsV2.get(id);
+  if (!j) throw new Error(`anetgov dispatch ${id} not found`);
+  _anetgovCheckJ(j.status, ANETGOV_DISPATCH_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = ANETGOV_DISPATCH_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelAnetgovDispatchV2(id, reason) {
+  const j = _anetgovJsV2.get(id);
+  if (!j) throw new Error(`anetgov dispatch ${id} not found`);
+  _anetgovCheckJ(j.status, ANETGOV_DISPATCH_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = ANETGOV_DISPATCH_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getAnetgovDispatchV2(id) {
+  const j = _anetgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listAnetgovDispatchsV2() {
+  return [..._anetgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoSuspendIdleAnetgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _anetgovPsV2.values())
+    if (
+      p.status === ANETGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _anetgovIdleMs
+    ) {
+      p.status = ANETGOV_PROFILE_MATURITY_V2.SUSPENDED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckAnetgovDispatchsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _anetgovJsV2.values())
+    if (
+      j.status === ANETGOV_DISPATCH_LIFECYCLE_V2.DISPATCHING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _anetgovStuckMs
+    ) {
+      j.status = ANETGOV_DISPATCH_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getAgentNetworkGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(ANETGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _anetgovPsV2.values()) profilesByStatus[p.status]++;
+  const dispatchsByStatus = {};
+  for (const v of Object.values(ANETGOV_DISPATCH_LIFECYCLE_V2))
+    dispatchsByStatus[v] = 0;
+  for (const j of _anetgovJsV2.values()) dispatchsByStatus[j.status]++;
+  return {
+    totalAnetgovProfilesV2: _anetgovPsV2.size,
+    totalAnetgovDispatchsV2: _anetgovJsV2.size,
+    maxActiveAnetgovProfilesPerOwner: _anetgovMaxActive,
+    maxPendingAnetgovDispatchsPerProfile: _anetgovMaxPending,
+    anetgovProfileIdleMs: _anetgovIdleMs,
+    anetgovDispatchStuckMs: _anetgovStuckMs,
+    profilesByStatus,
+    dispatchsByStatus,
+  };
+}

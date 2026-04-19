@@ -587,3 +587,216 @@ export function registerPqcCommand(program) {
       else logger.log(JSON.stringify(s, null, 2));
     });
 }
+
+// === Iter22 V2 governance overlay ===
+export function registerPqcgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "pqc");
+  if (!parent) return;
+  const L = async () => await import("../lib/pqc-manager.js");
+  parent
+    .command("pqcgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.PQCGOV_PROFILE_MATURITY_V2,
+            keygenLifecycle: m.PQCGOV_KEYGEN_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pqcgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActivePqcgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingPqcgovKeygensPerProfileV2(),
+            idleMs: m.getPqcgovProfileIdleMsV2(),
+            stuckMs: m.getPqcgovKeygenStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pqcgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActivePqcgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pqcgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingPqcgovKeygensPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pqcgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setPqcgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pqcgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setPqcgovKeygenStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pqcgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--algorithm <v>", "algorithm")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerPqcgovProfileV2({ id, owner, algorithm: o.algorithm }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pqcgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activatePqcgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("pqcgov-deprecate-v2 <id>")
+    .description("Deprecate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).deprecatePqcgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("pqcgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archivePqcgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("pqcgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchPqcgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("pqcgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getPqcgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("pqcgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listPqcgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("pqcgov-create-keygen-v2 <id> <profileId>")
+    .description("Create keygen")
+    .option("--purpose <v>", "purpose")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createPqcgovKeygenV2({ id, profileId, purpose: o.purpose }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pqcgov-generating-keygen-v2 <id>")
+    .description("Mark keygen as generating")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).generatingPqcgovKeygenV2(id), null, 2),
+      );
+    });
+  parent
+    .command("pqcgov-complete-keygen-v2 <id>")
+    .description("Complete keygen")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeKeygenPqcgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("pqcgov-fail-keygen-v2 <id> [reason]")
+    .description("Fail keygen")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failPqcgovKeygenV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("pqcgov-cancel-keygen-v2 <id> [reason]")
+    .description("Cancel keygen")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelPqcgovKeygenV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("pqcgov-get-keygen-v2 <id>")
+    .description("Get keygen")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getPqcgovKeygenV2(id), null, 2));
+    });
+  parent
+    .command("pqcgov-list-keygens-v2")
+    .description("List keygens")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listPqcgovKeygensV2(), null, 2));
+    });
+  parent
+    .command("pqcgov-auto-deprecate-idle-v2")
+    .description("Auto-deprecate idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify(
+          (await L()).autoDeprecateIdlePqcgovProfilesV2(),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pqcgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck keygens")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckPqcgovKeygensV2(), null, 2),
+      );
+    });
+  parent
+    .command("pqcgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getPqcManagerGovStatsV2(), null, 2),
+      );
+    });
+}

@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: v5.0.2.34 | CLI 0.143.0 · 109 命令 · V2 规范层（第九-第十一批 · 100+ 治理表面）· 13000+ 测试
+  tagline: v5.0.2.34 | CLI 0.151.0 · 109 命令 · V2 规范层（iter16-iter21 · 156+ 治理表面，iter17-iter21 新增 40 lib surface）· 14000+ 测试
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -35,9 +35,14 @@ features:
 ---
 
 > 2026-04-08 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测、会话迁移，以及 **Coding Agent Phase 5 最小 Harness + 真实 interrupt**。
+>
+> 2026-04-19 更新：CLI V2 规范层 iter17–iter21 累计新增 40 个 lib 治理表面（chat-core / claude-code-bridge / compliance-manager / cowork-learning / cowork-workflow / privacy-computing / token-incentive / hardening-manager / aiops / multimodal / instinct-manager / tenant-saas / quantization / trust-security / nl-programming / perception / code-agent / collaboration-governance / community-governance / did-manager / sso-manager / org-manager / scim-manager / sync-manager / agent-network / browser-automation / dlp-engine / evomap-governance / federation-hardening / ipfs-storage / p2p-manager / wallet-manager / activitypub-bridge / matrix-bridge / nostr-bridge / bi-engine / memory-manager / session-manager / hook-manager / workflow-engine），统一遵循 4 状态 profile maturity + 5 状态 lifecycle 模型；CLI 版本升级到 `0.151.0`。
 
 ## 当前验证结果
 
+- CLI 单元（`__tests__/unit`，含全部 V2 治理表面）：`14255/14255` (332 文件)
+- CLI 集成（`__tests__/integration`）：`696/696` (40 文件)
+- CLI E2E（`__tests__/e2e`）：`565/565` (38 文件)
 - CLI 定向单元（含 `agent-core` / `ws-agent-handler` / `interaction-adapter` / `abort-utils` 真实 interrupt 主线）：`175/175`
 - CLI `ws-session-workflow` 集成：`20/20`
 - CLI `coding-agent-envelope-roundtrip` E2E：`7/7`

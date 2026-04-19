@@ -320,3 +320,341 @@ export function importResultPacket(cwd, packet) {
   _deps.writeFileSync(file, JSON.stringify(packet, null, 2), "utf-8");
   return { file, taskId: packet.payload.taskId };
 }
+
+// =====================================================================
+// cowork-share V2 governance overlay (iter22)
+// =====================================================================
+export const SHGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const SHGOV_SHARE_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  SHARING: "sharing",
+  SHARED: "shared",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _shgovPTrans = new Map([
+  [
+    SHGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      SHGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SHGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SHGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      SHGOV_PROFILE_MATURITY_V2.PAUSED,
+      SHGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SHGOV_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      SHGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SHGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [SHGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _shgovPTerminal = new Set([SHGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _shgovJTrans = new Map([
+  [
+    SHGOV_SHARE_LIFECYCLE_V2.QUEUED,
+    new Set([
+      SHGOV_SHARE_LIFECYCLE_V2.SHARING,
+      SHGOV_SHARE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    SHGOV_SHARE_LIFECYCLE_V2.SHARING,
+    new Set([
+      SHGOV_SHARE_LIFECYCLE_V2.SHARED,
+      SHGOV_SHARE_LIFECYCLE_V2.FAILED,
+      SHGOV_SHARE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [SHGOV_SHARE_LIFECYCLE_V2.SHARED, new Set()],
+  [SHGOV_SHARE_LIFECYCLE_V2.FAILED, new Set()],
+  [SHGOV_SHARE_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _shgovPsV2 = new Map();
+const _shgovJsV2 = new Map();
+let _shgovMaxActive = 8,
+  _shgovMaxPending = 20,
+  _shgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _shgovStuckMs = 60 * 1000;
+function _shgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _shgovCheckP(from, to) {
+  const a = _shgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid shgov profile transition ${from} → ${to}`);
+}
+function _shgovCheckJ(from, to) {
+  const a = _shgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid shgov share transition ${from} → ${to}`);
+}
+function _shgovCountActive(owner) {
+  let c = 0;
+  for (const p of _shgovPsV2.values())
+    if (p.owner === owner && p.status === SHGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _shgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _shgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === SHGOV_SHARE_LIFECYCLE_V2.QUEUED ||
+        j.status === SHGOV_SHARE_LIFECYCLE_V2.SHARING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveShgovProfilesPerOwnerV2(n) {
+  _shgovMaxActive = _shgovPos(n, "maxActiveShgovProfilesPerOwner");
+}
+export function getMaxActiveShgovProfilesPerOwnerV2() {
+  return _shgovMaxActive;
+}
+export function setMaxPendingShgovSharesPerProfileV2(n) {
+  _shgovMaxPending = _shgovPos(n, "maxPendingShgovSharesPerProfile");
+}
+export function getMaxPendingShgovSharesPerProfileV2() {
+  return _shgovMaxPending;
+}
+export function setShgovProfileIdleMsV2(n) {
+  _shgovIdleMs = _shgovPos(n, "shgovProfileIdleMs");
+}
+export function getShgovProfileIdleMsV2() {
+  return _shgovIdleMs;
+}
+export function setShgovShareStuckMsV2(n) {
+  _shgovStuckMs = _shgovPos(n, "shgovShareStuckMs");
+}
+export function getShgovShareStuckMsV2() {
+  return _shgovStuckMs;
+}
+export function _resetStateCoworkShareGovV2() {
+  _shgovPsV2.clear();
+  _shgovJsV2.clear();
+  _shgovMaxActive = 8;
+  _shgovMaxPending = 20;
+  _shgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _shgovStuckMs = 60 * 1000;
+}
+export function registerShgovProfileV2({
+  id,
+  owner,
+  visibility,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_shgovPsV2.has(id)) throw new Error(`shgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    visibility: visibility || "private",
+    status: SHGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _shgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateShgovProfileV2(id) {
+  const p = _shgovPsV2.get(id);
+  if (!p) throw new Error(`shgov profile ${id} not found`);
+  const isInitial = p.status === SHGOV_PROFILE_MATURITY_V2.PENDING;
+  _shgovCheckP(p.status, SHGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _shgovCountActive(p.owner) >= _shgovMaxActive)
+    throw new Error(`max active shgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = SHGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pauseShgovProfileV2(id) {
+  const p = _shgovPsV2.get(id);
+  if (!p) throw new Error(`shgov profile ${id} not found`);
+  _shgovCheckP(p.status, SHGOV_PROFILE_MATURITY_V2.PAUSED);
+  p.status = SHGOV_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveShgovProfileV2(id) {
+  const p = _shgovPsV2.get(id);
+  if (!p) throw new Error(`shgov profile ${id} not found`);
+  _shgovCheckP(p.status, SHGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = SHGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchShgovProfileV2(id) {
+  const p = _shgovPsV2.get(id);
+  if (!p) throw new Error(`shgov profile ${id} not found`);
+  if (_shgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal shgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getShgovProfileV2(id) {
+  const p = _shgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listShgovProfilesV2() {
+  return [..._shgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createShgovShareV2({ id, profileId, target, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_shgovJsV2.has(id)) throw new Error(`shgov share ${id} already exists`);
+  if (!_shgovPsV2.has(profileId))
+    throw new Error(`shgov profile ${profileId} not found`);
+  if (_shgovCountPending(profileId) >= _shgovMaxPending)
+    throw new Error(
+      `max pending shgov shares for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    target: target || "",
+    status: SHGOV_SHARE_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _shgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function sharingShgovShareV2(id) {
+  const j = _shgovJsV2.get(id);
+  if (!j) throw new Error(`shgov share ${id} not found`);
+  _shgovCheckJ(j.status, SHGOV_SHARE_LIFECYCLE_V2.SHARING);
+  const now = Date.now();
+  j.status = SHGOV_SHARE_LIFECYCLE_V2.SHARING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeShareShgovV2(id) {
+  const j = _shgovJsV2.get(id);
+  if (!j) throw new Error(`shgov share ${id} not found`);
+  _shgovCheckJ(j.status, SHGOV_SHARE_LIFECYCLE_V2.SHARED);
+  const now = Date.now();
+  j.status = SHGOV_SHARE_LIFECYCLE_V2.SHARED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failShgovShareV2(id, reason) {
+  const j = _shgovJsV2.get(id);
+  if (!j) throw new Error(`shgov share ${id} not found`);
+  _shgovCheckJ(j.status, SHGOV_SHARE_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = SHGOV_SHARE_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelShgovShareV2(id, reason) {
+  const j = _shgovJsV2.get(id);
+  if (!j) throw new Error(`shgov share ${id} not found`);
+  _shgovCheckJ(j.status, SHGOV_SHARE_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = SHGOV_SHARE_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getShgovShareV2(id) {
+  const j = _shgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listShgovSharesV2() {
+  return [..._shgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPauseIdleShgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _shgovPsV2.values())
+    if (
+      p.status === SHGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _shgovIdleMs
+    ) {
+      p.status = SHGOV_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckShgovSharesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _shgovJsV2.values())
+    if (
+      j.status === SHGOV_SHARE_LIFECYCLE_V2.SHARING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _shgovStuckMs
+    ) {
+      j.status = SHGOV_SHARE_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getCoworkShareGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(SHGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _shgovPsV2.values()) profilesByStatus[p.status]++;
+  const sharesByStatus = {};
+  for (const v of Object.values(SHGOV_SHARE_LIFECYCLE_V2))
+    sharesByStatus[v] = 0;
+  for (const j of _shgovJsV2.values()) sharesByStatus[j.status]++;
+  return {
+    totalShgovProfilesV2: _shgovPsV2.size,
+    totalShgovSharesV2: _shgovJsV2.size,
+    maxActiveShgovProfilesPerOwner: _shgovMaxActive,
+    maxPendingShgovSharesPerProfile: _shgovMaxPending,
+    shgovProfileIdleMs: _shgovIdleMs,
+    shgovShareStuckMs: _shgovStuckMs,
+    profilesByStatus,
+    sharesByStatus,
+  };
+}

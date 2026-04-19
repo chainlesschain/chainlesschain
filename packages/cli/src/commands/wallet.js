@@ -691,3 +691,212 @@ export function registerWalletCommand(program) {
       console.log(JSON.stringify(autoFailStuckTxV2(), null, 2));
     });
 }
+
+// === Iter20 V2 governance overlay ===
+export function registerWalgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "wallet");
+  if (!parent) return;
+  const L = async () => await import("../lib/wallet-manager.js");
+  parent
+    .command("walgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.WALGOV_PROFILE_MATURITY_V2,
+            transferLifecycle: m.WALGOV_TRANSFER_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("walgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveWalgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingWalgovTransfersPerProfileV2(),
+            idleMs: m.getWalgovProfileIdleMsV2(),
+            stuckMs: m.getWalgovTransferStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("walgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveWalgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("walgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingWalgovTransfersPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("walgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setWalgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("walgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setWalgovTransferStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("walgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--chain <v>", "chain")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerWalgovProfileV2({ id, owner, chain: o.chain }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("walgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateWalgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("walgov-freeze-v2 <id>")
+    .description("Freeze profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).freezeWalgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("walgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveWalgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("walgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchWalgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("walgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getWalgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("walgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listWalgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("walgov-create-transfer-v2 <id> <profileId>")
+    .description("Create transfer")
+    .option("--to <v>", "to")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createWalgovTransferV2({ id, profileId, to: o.to }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("walgov-signing-transfer-v2 <id>")
+    .description("Mark transfer as signing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).signingWalgovTransferV2(id), null, 2),
+      );
+    });
+  parent
+    .command("walgov-complete-transfer-v2 <id>")
+    .description("Complete transfer")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeTransferWalgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("walgov-fail-transfer-v2 <id> [reason]")
+    .description("Fail transfer")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failWalgovTransferV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("walgov-cancel-transfer-v2 <id> [reason]")
+    .description("Cancel transfer")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelWalgovTransferV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("walgov-get-transfer-v2 <id>")
+    .description("Get transfer")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getWalgovTransferV2(id), null, 2));
+    });
+  parent
+    .command("walgov-list-transfers-v2")
+    .description("List transfers")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listWalgovTransfersV2(), null, 2));
+    });
+  parent
+    .command("walgov-auto-freeze-idle-v2")
+    .description("Auto-freeze idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFreezeIdleWalgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("walgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck transfers")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckWalgovTransfersV2(), null, 2),
+      );
+    });
+  parent
+    .command("walgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getWalletManagerGovStatsV2(), null, 2),
+      );
+    });
+}

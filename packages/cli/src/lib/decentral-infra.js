@@ -783,3 +783,333 @@ export function _resetStateV2() {
   _providersV2.clear();
   _dealsV2.clear();
 }
+
+// =====================================================================
+// decentral-infra V2 governance overlay (iter23)
+// =====================================================================
+export const DIGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const DIGOV_DEAL_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  NEGOTIATING: "negotiating",
+  SETTLED: "settled",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _digovPTrans = new Map([
+  [
+    DIGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      DIGOV_PROFILE_MATURITY_V2.ACTIVE,
+      DIGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    DIGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      DIGOV_PROFILE_MATURITY_V2.STALE,
+      DIGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    DIGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      DIGOV_PROFILE_MATURITY_V2.ACTIVE,
+      DIGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [DIGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _digovPTerminal = new Set([DIGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _digovJTrans = new Map([
+  [
+    DIGOV_DEAL_LIFECYCLE_V2.QUEUED,
+    new Set([
+      DIGOV_DEAL_LIFECYCLE_V2.NEGOTIATING,
+      DIGOV_DEAL_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    DIGOV_DEAL_LIFECYCLE_V2.NEGOTIATING,
+    new Set([
+      DIGOV_DEAL_LIFECYCLE_V2.SETTLED,
+      DIGOV_DEAL_LIFECYCLE_V2.FAILED,
+      DIGOV_DEAL_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [DIGOV_DEAL_LIFECYCLE_V2.SETTLED, new Set()],
+  [DIGOV_DEAL_LIFECYCLE_V2.FAILED, new Set()],
+  [DIGOV_DEAL_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _digovPsV2 = new Map();
+const _digovJsV2 = new Map();
+let _digovMaxActive = 6,
+  _digovMaxPending = 15,
+  _digovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _digovStuckMs = 60 * 1000;
+function _digovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _digovCheckP(from, to) {
+  const a = _digovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid digov profile transition ${from} → ${to}`);
+}
+function _digovCheckJ(from, to) {
+  const a = _digovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid digov deal transition ${from} → ${to}`);
+}
+function _digovCountActive(owner) {
+  let c = 0;
+  for (const p of _digovPsV2.values())
+    if (p.owner === owner && p.status === DIGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _digovCountPending(profileId) {
+  let c = 0;
+  for (const j of _digovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === DIGOV_DEAL_LIFECYCLE_V2.QUEUED ||
+        j.status === DIGOV_DEAL_LIFECYCLE_V2.NEGOTIATING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveDigovProfilesPerOwnerV2(n) {
+  _digovMaxActive = _digovPos(n, "maxActiveDigovProfilesPerOwner");
+}
+export function getMaxActiveDigovProfilesPerOwnerV2() {
+  return _digovMaxActive;
+}
+export function setMaxPendingDigovDealsPerProfileV2(n) {
+  _digovMaxPending = _digovPos(n, "maxPendingDigovDealsPerProfile");
+}
+export function getMaxPendingDigovDealsPerProfileV2() {
+  return _digovMaxPending;
+}
+export function setDigovProfileIdleMsV2(n) {
+  _digovIdleMs = _digovPos(n, "digovProfileIdleMs");
+}
+export function getDigovProfileIdleMsV2() {
+  return _digovIdleMs;
+}
+export function setDigovDealStuckMsV2(n) {
+  _digovStuckMs = _digovPos(n, "digovDealStuckMs");
+}
+export function getDigovDealStuckMsV2() {
+  return _digovStuckMs;
+}
+export function _resetStateDecentralInfraGovV2() {
+  _digovPsV2.clear();
+  _digovJsV2.clear();
+  _digovMaxActive = 6;
+  _digovMaxPending = 15;
+  _digovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _digovStuckMs = 60 * 1000;
+}
+export function registerDigovProfileV2({ id, owner, region, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_digovPsV2.has(id)) throw new Error(`digov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    region: region || "us-east",
+    status: DIGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _digovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateDigovProfileV2(id) {
+  const p = _digovPsV2.get(id);
+  if (!p) throw new Error(`digov profile ${id} not found`);
+  const isInitial = p.status === DIGOV_PROFILE_MATURITY_V2.PENDING;
+  _digovCheckP(p.status, DIGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _digovCountActive(p.owner) >= _digovMaxActive)
+    throw new Error(`max active digov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = DIGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleDigovProfileV2(id) {
+  const p = _digovPsV2.get(id);
+  if (!p) throw new Error(`digov profile ${id} not found`);
+  _digovCheckP(p.status, DIGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = DIGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveDigovProfileV2(id) {
+  const p = _digovPsV2.get(id);
+  if (!p) throw new Error(`digov profile ${id} not found`);
+  _digovCheckP(p.status, DIGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = DIGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchDigovProfileV2(id) {
+  const p = _digovPsV2.get(id);
+  if (!p) throw new Error(`digov profile ${id} not found`);
+  if (_digovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal digov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getDigovProfileV2(id) {
+  const p = _digovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listDigovProfilesV2() {
+  return [..._digovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createDigovDealV2({ id, profileId, provider, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_digovJsV2.has(id)) throw new Error(`digov deal ${id} already exists`);
+  if (!_digovPsV2.has(profileId))
+    throw new Error(`digov profile ${profileId} not found`);
+  if (_digovCountPending(profileId) >= _digovMaxPending)
+    throw new Error(`max pending digov deals for profile ${profileId} reached`);
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    provider: provider || "",
+    status: DIGOV_DEAL_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _digovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function negotiatingDigovDealV2(id) {
+  const j = _digovJsV2.get(id);
+  if (!j) throw new Error(`digov deal ${id} not found`);
+  _digovCheckJ(j.status, DIGOV_DEAL_LIFECYCLE_V2.NEGOTIATING);
+  const now = Date.now();
+  j.status = DIGOV_DEAL_LIFECYCLE_V2.NEGOTIATING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeDealDigovV2(id) {
+  const j = _digovJsV2.get(id);
+  if (!j) throw new Error(`digov deal ${id} not found`);
+  _digovCheckJ(j.status, DIGOV_DEAL_LIFECYCLE_V2.SETTLED);
+  const now = Date.now();
+  j.status = DIGOV_DEAL_LIFECYCLE_V2.SETTLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failDigovDealV2(id, reason) {
+  const j = _digovJsV2.get(id);
+  if (!j) throw new Error(`digov deal ${id} not found`);
+  _digovCheckJ(j.status, DIGOV_DEAL_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = DIGOV_DEAL_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelDigovDealV2(id, reason) {
+  const j = _digovJsV2.get(id);
+  if (!j) throw new Error(`digov deal ${id} not found`);
+  _digovCheckJ(j.status, DIGOV_DEAL_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = DIGOV_DEAL_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getDigovDealV2(id) {
+  const j = _digovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listDigovDealsV2() {
+  return [..._digovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleDigovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _digovPsV2.values())
+    if (
+      p.status === DIGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _digovIdleMs
+    ) {
+      p.status = DIGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckDigovDealsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _digovJsV2.values())
+    if (
+      j.status === DIGOV_DEAL_LIFECYCLE_V2.NEGOTIATING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _digovStuckMs
+    ) {
+      j.status = DIGOV_DEAL_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getDecentralInfraGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(DIGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _digovPsV2.values()) profilesByStatus[p.status]++;
+  const dealsByStatus = {};
+  for (const v of Object.values(DIGOV_DEAL_LIFECYCLE_V2)) dealsByStatus[v] = 0;
+  for (const j of _digovJsV2.values()) dealsByStatus[j.status]++;
+  return {
+    totalDigovProfilesV2: _digovPsV2.size,
+    totalDigovDealsV2: _digovJsV2.size,
+    maxActiveDigovProfilesPerOwner: _digovMaxActive,
+    maxPendingDigovDealsPerProfile: _digovMaxPending,
+    digovProfileIdleMs: _digovIdleMs,
+    digovDealStuckMs: _digovStuckMs,
+    profilesByStatus,
+    dealsByStatus,
+  };
+}

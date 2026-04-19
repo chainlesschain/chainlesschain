@@ -763,3 +763,342 @@ export function _resetStateV2() {
   _agentsV2.clear();
   _jobsV2.clear();
 }
+
+// =====================================================================
+// code-agent V2 governance overlay (iter19)
+// =====================================================================
+export const CDAGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const CDAGOV_EDIT_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  EDITING: "editing",
+  EDITED: "edited",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _cdagovPTrans = new Map([
+  [
+    CDAGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      CDAGOV_PROFILE_MATURITY_V2.ACTIVE,
+      CDAGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CDAGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      CDAGOV_PROFILE_MATURITY_V2.STALE,
+      CDAGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CDAGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      CDAGOV_PROFILE_MATURITY_V2.ACTIVE,
+      CDAGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [CDAGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _cdagovPTerminal = new Set([CDAGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _cdagovJTrans = new Map([
+  [
+    CDAGOV_EDIT_LIFECYCLE_V2.QUEUED,
+    new Set([
+      CDAGOV_EDIT_LIFECYCLE_V2.EDITING,
+      CDAGOV_EDIT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    CDAGOV_EDIT_LIFECYCLE_V2.EDITING,
+    new Set([
+      CDAGOV_EDIT_LIFECYCLE_V2.EDITED,
+      CDAGOV_EDIT_LIFECYCLE_V2.FAILED,
+      CDAGOV_EDIT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [CDAGOV_EDIT_LIFECYCLE_V2.EDITED, new Set()],
+  [CDAGOV_EDIT_LIFECYCLE_V2.FAILED, new Set()],
+  [CDAGOV_EDIT_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _cdagovPsV2 = new Map();
+const _cdagovJsV2 = new Map();
+let _cdagovMaxActive = 6,
+  _cdagovMaxPending = 15,
+  _cdagovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _cdagovStuckMs = 60 * 1000;
+function _cdagovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _cdagovCheckP(from, to) {
+  const a = _cdagovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid cdagov profile transition ${from} → ${to}`);
+}
+function _cdagovCheckJ(from, to) {
+  const a = _cdagovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid cdagov edit transition ${from} → ${to}`);
+}
+function _cdagovCountActive(owner) {
+  let c = 0;
+  for (const p of _cdagovPsV2.values())
+    if (p.owner === owner && p.status === CDAGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _cdagovCountPending(profileId) {
+  let c = 0;
+  for (const j of _cdagovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === CDAGOV_EDIT_LIFECYCLE_V2.QUEUED ||
+        j.status === CDAGOV_EDIT_LIFECYCLE_V2.EDITING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveCdagovProfilesPerOwnerV2(n) {
+  _cdagovMaxActive = _cdagovPos(n, "maxActiveCdagovProfilesPerOwner");
+}
+export function getMaxActiveCdagovProfilesPerOwnerV2() {
+  return _cdagovMaxActive;
+}
+export function setMaxPendingCdagovEditsPerProfileV2(n) {
+  _cdagovMaxPending = _cdagovPos(n, "maxPendingCdagovEditsPerProfile");
+}
+export function getMaxPendingCdagovEditsPerProfileV2() {
+  return _cdagovMaxPending;
+}
+export function setCdagovProfileIdleMsV2(n) {
+  _cdagovIdleMs = _cdagovPos(n, "cdagovProfileIdleMs");
+}
+export function getCdagovProfileIdleMsV2() {
+  return _cdagovIdleMs;
+}
+export function setCdagovEditStuckMsV2(n) {
+  _cdagovStuckMs = _cdagovPos(n, "cdagovEditStuckMs");
+}
+export function getCdagovEditStuckMsV2() {
+  return _cdagovStuckMs;
+}
+export function _resetStateCodeAgentGovV2() {
+  _cdagovPsV2.clear();
+  _cdagovJsV2.clear();
+  _cdagovMaxActive = 6;
+  _cdagovMaxPending = 15;
+  _cdagovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _cdagovStuckMs = 60 * 1000;
+}
+export function registerCdagovProfileV2({
+  id,
+  owner,
+  language,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_cdagovPsV2.has(id))
+    throw new Error(`cdagov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    language: language || "javascript",
+    status: CDAGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _cdagovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateCdagovProfileV2(id) {
+  const p = _cdagovPsV2.get(id);
+  if (!p) throw new Error(`cdagov profile ${id} not found`);
+  const isInitial = p.status === CDAGOV_PROFILE_MATURITY_V2.PENDING;
+  _cdagovCheckP(p.status, CDAGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _cdagovCountActive(p.owner) >= _cdagovMaxActive)
+    throw new Error(`max active cdagov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = CDAGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleCdagovProfileV2(id) {
+  const p = _cdagovPsV2.get(id);
+  if (!p) throw new Error(`cdagov profile ${id} not found`);
+  _cdagovCheckP(p.status, CDAGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = CDAGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveCdagovProfileV2(id) {
+  const p = _cdagovPsV2.get(id);
+  if (!p) throw new Error(`cdagov profile ${id} not found`);
+  _cdagovCheckP(p.status, CDAGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = CDAGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchCdagovProfileV2(id) {
+  const p = _cdagovPsV2.get(id);
+  if (!p) throw new Error(`cdagov profile ${id} not found`);
+  if (_cdagovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal cdagov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getCdagovProfileV2(id) {
+  const p = _cdagovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listCdagovProfilesV2() {
+  return [..._cdagovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createCdagovEditV2({ id, profileId, target, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_cdagovJsV2.has(id)) throw new Error(`cdagov edit ${id} already exists`);
+  if (!_cdagovPsV2.has(profileId))
+    throw new Error(`cdagov profile ${profileId} not found`);
+  if (_cdagovCountPending(profileId) >= _cdagovMaxPending)
+    throw new Error(
+      `max pending cdagov edits for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    target: target || "",
+    status: CDAGOV_EDIT_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _cdagovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function editingCdagovEditV2(id) {
+  const j = _cdagovJsV2.get(id);
+  if (!j) throw new Error(`cdagov edit ${id} not found`);
+  _cdagovCheckJ(j.status, CDAGOV_EDIT_LIFECYCLE_V2.EDITING);
+  const now = Date.now();
+  j.status = CDAGOV_EDIT_LIFECYCLE_V2.EDITING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeEditCdagovV2(id) {
+  const j = _cdagovJsV2.get(id);
+  if (!j) throw new Error(`cdagov edit ${id} not found`);
+  _cdagovCheckJ(j.status, CDAGOV_EDIT_LIFECYCLE_V2.EDITED);
+  const now = Date.now();
+  j.status = CDAGOV_EDIT_LIFECYCLE_V2.EDITED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failCdagovEditV2(id, reason) {
+  const j = _cdagovJsV2.get(id);
+  if (!j) throw new Error(`cdagov edit ${id} not found`);
+  _cdagovCheckJ(j.status, CDAGOV_EDIT_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = CDAGOV_EDIT_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelCdagovEditV2(id, reason) {
+  const j = _cdagovJsV2.get(id);
+  if (!j) throw new Error(`cdagov edit ${id} not found`);
+  _cdagovCheckJ(j.status, CDAGOV_EDIT_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = CDAGOV_EDIT_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getCdagovEditV2(id) {
+  const j = _cdagovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listCdagovEditsV2() {
+  return [..._cdagovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleCdagovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _cdagovPsV2.values())
+    if (
+      p.status === CDAGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _cdagovIdleMs
+    ) {
+      p.status = CDAGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckCdagovEditsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _cdagovJsV2.values())
+    if (
+      j.status === CDAGOV_EDIT_LIFECYCLE_V2.EDITING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _cdagovStuckMs
+    ) {
+      j.status = CDAGOV_EDIT_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getCodeAgentGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(CDAGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _cdagovPsV2.values()) profilesByStatus[p.status]++;
+  const editsByStatus = {};
+  for (const v of Object.values(CDAGOV_EDIT_LIFECYCLE_V2)) editsByStatus[v] = 0;
+  for (const j of _cdagovJsV2.values()) editsByStatus[j.status]++;
+  return {
+    totalCdagovProfilesV2: _cdagovPsV2.size,
+    totalCdagovEditsV2: _cdagovJsV2.size,
+    maxActiveCdagovProfilesPerOwner: _cdagovMaxActive,
+    maxPendingCdagovEditsPerProfile: _cdagovMaxPending,
+    cdagovProfileIdleMs: _cdagovIdleMs,
+    cdagovEditStuckMs: _cdagovStuckMs,
+    profilesByStatus,
+    editsByStatus,
+  };
+}

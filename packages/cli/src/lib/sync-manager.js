@@ -671,3 +671,339 @@ export function _resetStateSyncManagerV2() {
   _resourceIdleMsV2 = SYNC_DEFAULT_RESOURCE_IDLE_MS;
   _runStuckMsV2 = SYNC_DEFAULT_RUN_STUCK_MS;
 }
+
+// =====================================================================
+// sync-manager V2 governance overlay (iter19)
+// =====================================================================
+export const SYNCGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const SYNCGOV_BATCH_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  REPLICATING: "replicating",
+  REPLICATED: "replicated",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _syncgovPTrans = new Map([
+  [
+    SYNCGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      SYNCGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SYNCGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SYNCGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      SYNCGOV_PROFILE_MATURITY_V2.STALE,
+      SYNCGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SYNCGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      SYNCGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SYNCGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [SYNCGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _syncgovPTerminal = new Set([SYNCGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _syncgovJTrans = new Map([
+  [
+    SYNCGOV_BATCH_LIFECYCLE_V2.QUEUED,
+    new Set([
+      SYNCGOV_BATCH_LIFECYCLE_V2.REPLICATING,
+      SYNCGOV_BATCH_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    SYNCGOV_BATCH_LIFECYCLE_V2.REPLICATING,
+    new Set([
+      SYNCGOV_BATCH_LIFECYCLE_V2.REPLICATED,
+      SYNCGOV_BATCH_LIFECYCLE_V2.FAILED,
+      SYNCGOV_BATCH_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [SYNCGOV_BATCH_LIFECYCLE_V2.REPLICATED, new Set()],
+  [SYNCGOV_BATCH_LIFECYCLE_V2.FAILED, new Set()],
+  [SYNCGOV_BATCH_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _syncgovPsV2 = new Map();
+const _syncgovJsV2 = new Map();
+let _syncgovMaxActive = 8,
+  _syncgovMaxPending = 20,
+  _syncgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _syncgovStuckMs = 60 * 1000;
+function _syncgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _syncgovCheckP(from, to) {
+  const a = _syncgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid syncgov profile transition ${from} → ${to}`);
+}
+function _syncgovCheckJ(from, to) {
+  const a = _syncgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid syncgov batch transition ${from} → ${to}`);
+}
+function _syncgovCountActive(owner) {
+  let c = 0;
+  for (const p of _syncgovPsV2.values())
+    if (p.owner === owner && p.status === SYNCGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _syncgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _syncgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === SYNCGOV_BATCH_LIFECYCLE_V2.QUEUED ||
+        j.status === SYNCGOV_BATCH_LIFECYCLE_V2.REPLICATING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveSyncgovProfilesPerOwnerV2(n) {
+  _syncgovMaxActive = _syncgovPos(n, "maxActiveSyncgovProfilesPerOwner");
+}
+export function getMaxActiveSyncgovProfilesPerOwnerV2() {
+  return _syncgovMaxActive;
+}
+export function setMaxPendingSyncgovBatchsPerProfileV2(n) {
+  _syncgovMaxPending = _syncgovPos(n, "maxPendingSyncgovBatchsPerProfile");
+}
+export function getMaxPendingSyncgovBatchsPerProfileV2() {
+  return _syncgovMaxPending;
+}
+export function setSyncgovProfileIdleMsV2(n) {
+  _syncgovIdleMs = _syncgovPos(n, "syncgovProfileIdleMs");
+}
+export function getSyncgovProfileIdleMsV2() {
+  return _syncgovIdleMs;
+}
+export function setSyncgovBatchStuckMsV2(n) {
+  _syncgovStuckMs = _syncgovPos(n, "syncgovBatchStuckMs");
+}
+export function getSyncgovBatchStuckMsV2() {
+  return _syncgovStuckMs;
+}
+export function _resetStateSyncManagerGovV2() {
+  _syncgovPsV2.clear();
+  _syncgovJsV2.clear();
+  _syncgovMaxActive = 8;
+  _syncgovMaxPending = 20;
+  _syncgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _syncgovStuckMs = 60 * 1000;
+}
+export function registerSyncgovProfileV2({ id, owner, target, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_syncgovPsV2.has(id))
+    throw new Error(`syncgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    target: target || "primary",
+    status: SYNCGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _syncgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateSyncgovProfileV2(id) {
+  const p = _syncgovPsV2.get(id);
+  if (!p) throw new Error(`syncgov profile ${id} not found`);
+  const isInitial = p.status === SYNCGOV_PROFILE_MATURITY_V2.PENDING;
+  _syncgovCheckP(p.status, SYNCGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _syncgovCountActive(p.owner) >= _syncgovMaxActive)
+    throw new Error(`max active syncgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = SYNCGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleSyncgovProfileV2(id) {
+  const p = _syncgovPsV2.get(id);
+  if (!p) throw new Error(`syncgov profile ${id} not found`);
+  _syncgovCheckP(p.status, SYNCGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = SYNCGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveSyncgovProfileV2(id) {
+  const p = _syncgovPsV2.get(id);
+  if (!p) throw new Error(`syncgov profile ${id} not found`);
+  _syncgovCheckP(p.status, SYNCGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = SYNCGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchSyncgovProfileV2(id) {
+  const p = _syncgovPsV2.get(id);
+  if (!p) throw new Error(`syncgov profile ${id} not found`);
+  if (_syncgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal syncgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getSyncgovProfileV2(id) {
+  const p = _syncgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listSyncgovProfilesV2() {
+  return [..._syncgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createSyncgovBatchV2({ id, profileId, scope, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_syncgovJsV2.has(id))
+    throw new Error(`syncgov batch ${id} already exists`);
+  if (!_syncgovPsV2.has(profileId))
+    throw new Error(`syncgov profile ${profileId} not found`);
+  if (_syncgovCountPending(profileId) >= _syncgovMaxPending)
+    throw new Error(
+      `max pending syncgov batchs for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    scope: scope || "",
+    status: SYNCGOV_BATCH_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _syncgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function replicatingSyncgovBatchV2(id) {
+  const j = _syncgovJsV2.get(id);
+  if (!j) throw new Error(`syncgov batch ${id} not found`);
+  _syncgovCheckJ(j.status, SYNCGOV_BATCH_LIFECYCLE_V2.REPLICATING);
+  const now = Date.now();
+  j.status = SYNCGOV_BATCH_LIFECYCLE_V2.REPLICATING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeBatchSyncgovV2(id) {
+  const j = _syncgovJsV2.get(id);
+  if (!j) throw new Error(`syncgov batch ${id} not found`);
+  _syncgovCheckJ(j.status, SYNCGOV_BATCH_LIFECYCLE_V2.REPLICATED);
+  const now = Date.now();
+  j.status = SYNCGOV_BATCH_LIFECYCLE_V2.REPLICATED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failSyncgovBatchV2(id, reason) {
+  const j = _syncgovJsV2.get(id);
+  if (!j) throw new Error(`syncgov batch ${id} not found`);
+  _syncgovCheckJ(j.status, SYNCGOV_BATCH_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = SYNCGOV_BATCH_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelSyncgovBatchV2(id, reason) {
+  const j = _syncgovJsV2.get(id);
+  if (!j) throw new Error(`syncgov batch ${id} not found`);
+  _syncgovCheckJ(j.status, SYNCGOV_BATCH_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = SYNCGOV_BATCH_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getSyncgovBatchV2(id) {
+  const j = _syncgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listSyncgovBatchsV2() {
+  return [..._syncgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleSyncgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _syncgovPsV2.values())
+    if (
+      p.status === SYNCGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _syncgovIdleMs
+    ) {
+      p.status = SYNCGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckSyncgovBatchsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _syncgovJsV2.values())
+    if (
+      j.status === SYNCGOV_BATCH_LIFECYCLE_V2.REPLICATING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _syncgovStuckMs
+    ) {
+      j.status = SYNCGOV_BATCH_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getSyncManagerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(SYNCGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _syncgovPsV2.values()) profilesByStatus[p.status]++;
+  const batchsByStatus = {};
+  for (const v of Object.values(SYNCGOV_BATCH_LIFECYCLE_V2))
+    batchsByStatus[v] = 0;
+  for (const j of _syncgovJsV2.values()) batchsByStatus[j.status]++;
+  return {
+    totalSyncgovProfilesV2: _syncgovPsV2.size,
+    totalSyncgovBatchsV2: _syncgovJsV2.size,
+    maxActiveSyncgovProfilesPerOwner: _syncgovMaxActive,
+    maxPendingSyncgovBatchsPerProfile: _syncgovMaxPending,
+    syncgovProfileIdleMs: _syncgovIdleMs,
+    syncgovBatchStuckMs: _syncgovStuckMs,
+    profilesByStatus,
+    batchsByStatus,
+  };
+}

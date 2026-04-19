@@ -1005,3 +1005,354 @@ export function _resetStateV2() {
   _baselinesV2.clear();
   _runsV2.clear();
 }
+
+// =====================================================================
+// dbevo V2 governance overlay (iter23)
+// =====================================================================
+export const DBEVOGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const DBEVOGOV_MIGRATION_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  APPLYING: "applying",
+  APPLIED: "applied",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _dbevogovPTrans = new Map([
+  [
+    DBEVOGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      DBEVOGOV_PROFILE_MATURITY_V2.ACTIVE,
+      DBEVOGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    DBEVOGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      DBEVOGOV_PROFILE_MATURITY_V2.PAUSED,
+      DBEVOGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    DBEVOGOV_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      DBEVOGOV_PROFILE_MATURITY_V2.ACTIVE,
+      DBEVOGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [DBEVOGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _dbevogovPTerminal = new Set([DBEVOGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _dbevogovJTrans = new Map([
+  [
+    DBEVOGOV_MIGRATION_LIFECYCLE_V2.QUEUED,
+    new Set([
+      DBEVOGOV_MIGRATION_LIFECYCLE_V2.APPLYING,
+      DBEVOGOV_MIGRATION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    DBEVOGOV_MIGRATION_LIFECYCLE_V2.APPLYING,
+    new Set([
+      DBEVOGOV_MIGRATION_LIFECYCLE_V2.APPLIED,
+      DBEVOGOV_MIGRATION_LIFECYCLE_V2.FAILED,
+      DBEVOGOV_MIGRATION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [DBEVOGOV_MIGRATION_LIFECYCLE_V2.APPLIED, new Set()],
+  [DBEVOGOV_MIGRATION_LIFECYCLE_V2.FAILED, new Set()],
+  [DBEVOGOV_MIGRATION_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _dbevogovPsV2 = new Map();
+const _dbevogovJsV2 = new Map();
+let _dbevogovMaxActive = 8,
+  _dbevogovMaxPending = 20,
+  _dbevogovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _dbevogovStuckMs = 60 * 1000;
+function _dbevogovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _dbevogovCheckP(from, to) {
+  const a = _dbevogovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid dbevogov profile transition ${from} → ${to}`);
+}
+function _dbevogovCheckJ(from, to) {
+  const a = _dbevogovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid dbevogov migration transition ${from} → ${to}`);
+}
+function _dbevogovCountActive(owner) {
+  let c = 0;
+  for (const p of _dbevogovPsV2.values())
+    if (p.owner === owner && p.status === DBEVOGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _dbevogovCountPending(profileId) {
+  let c = 0;
+  for (const j of _dbevogovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === DBEVOGOV_MIGRATION_LIFECYCLE_V2.QUEUED ||
+        j.status === DBEVOGOV_MIGRATION_LIFECYCLE_V2.APPLYING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveDbevogovProfilesPerOwnerV2(n) {
+  _dbevogovMaxActive = _dbevogovPos(n, "maxActiveDbevogovProfilesPerOwner");
+}
+export function getMaxActiveDbevogovProfilesPerOwnerV2() {
+  return _dbevogovMaxActive;
+}
+export function setMaxPendingDbevogovMigrationsPerProfileV2(n) {
+  _dbevogovMaxPending = _dbevogovPos(
+    n,
+    "maxPendingDbevogovMigrationsPerProfile",
+  );
+}
+export function getMaxPendingDbevogovMigrationsPerProfileV2() {
+  return _dbevogovMaxPending;
+}
+export function setDbevogovProfileIdleMsV2(n) {
+  _dbevogovIdleMs = _dbevogovPos(n, "dbevogovProfileIdleMs");
+}
+export function getDbevogovProfileIdleMsV2() {
+  return _dbevogovIdleMs;
+}
+export function setDbevogovMigrationStuckMsV2(n) {
+  _dbevogovStuckMs = _dbevogovPos(n, "dbevogovMigrationStuckMs");
+}
+export function getDbevogovMigrationStuckMsV2() {
+  return _dbevogovStuckMs;
+}
+export function _resetStateDbevoGovV2() {
+  _dbevogovPsV2.clear();
+  _dbevogovJsV2.clear();
+  _dbevogovMaxActive = 8;
+  _dbevogovMaxPending = 20;
+  _dbevogovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _dbevogovStuckMs = 60 * 1000;
+}
+export function registerDbevogovProfileV2({
+  id,
+  owner,
+  schema,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_dbevogovPsV2.has(id))
+    throw new Error(`dbevogov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    schema: schema || "default",
+    status: DBEVOGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _dbevogovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateDbevogovProfileV2(id) {
+  const p = _dbevogovPsV2.get(id);
+  if (!p) throw new Error(`dbevogov profile ${id} not found`);
+  const isInitial = p.status === DBEVOGOV_PROFILE_MATURITY_V2.PENDING;
+  _dbevogovCheckP(p.status, DBEVOGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _dbevogovCountActive(p.owner) >= _dbevogovMaxActive)
+    throw new Error(
+      `max active dbevogov profiles for owner ${p.owner} reached`,
+    );
+  const now = Date.now();
+  p.status = DBEVOGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pauseDbevogovProfileV2(id) {
+  const p = _dbevogovPsV2.get(id);
+  if (!p) throw new Error(`dbevogov profile ${id} not found`);
+  _dbevogovCheckP(p.status, DBEVOGOV_PROFILE_MATURITY_V2.PAUSED);
+  p.status = DBEVOGOV_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveDbevogovProfileV2(id) {
+  const p = _dbevogovPsV2.get(id);
+  if (!p) throw new Error(`dbevogov profile ${id} not found`);
+  _dbevogovCheckP(p.status, DBEVOGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = DBEVOGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchDbevogovProfileV2(id) {
+  const p = _dbevogovPsV2.get(id);
+  if (!p) throw new Error(`dbevogov profile ${id} not found`);
+  if (_dbevogovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal dbevogov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getDbevogovProfileV2(id) {
+  const p = _dbevogovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listDbevogovProfilesV2() {
+  return [..._dbevogovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createDbevogovMigrationV2({
+  id,
+  profileId,
+  version,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_dbevogovJsV2.has(id))
+    throw new Error(`dbevogov migration ${id} already exists`);
+  if (!_dbevogovPsV2.has(profileId))
+    throw new Error(`dbevogov profile ${profileId} not found`);
+  if (_dbevogovCountPending(profileId) >= _dbevogovMaxPending)
+    throw new Error(
+      `max pending dbevogov migrations for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    version: version || "",
+    status: DBEVOGOV_MIGRATION_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _dbevogovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function applyingDbevogovMigrationV2(id) {
+  const j = _dbevogovJsV2.get(id);
+  if (!j) throw new Error(`dbevogov migration ${id} not found`);
+  _dbevogovCheckJ(j.status, DBEVOGOV_MIGRATION_LIFECYCLE_V2.APPLYING);
+  const now = Date.now();
+  j.status = DBEVOGOV_MIGRATION_LIFECYCLE_V2.APPLYING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeMigrationDbevogovV2(id) {
+  const j = _dbevogovJsV2.get(id);
+  if (!j) throw new Error(`dbevogov migration ${id} not found`);
+  _dbevogovCheckJ(j.status, DBEVOGOV_MIGRATION_LIFECYCLE_V2.APPLIED);
+  const now = Date.now();
+  j.status = DBEVOGOV_MIGRATION_LIFECYCLE_V2.APPLIED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failDbevogovMigrationV2(id, reason) {
+  const j = _dbevogovJsV2.get(id);
+  if (!j) throw new Error(`dbevogov migration ${id} not found`);
+  _dbevogovCheckJ(j.status, DBEVOGOV_MIGRATION_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = DBEVOGOV_MIGRATION_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelDbevogovMigrationV2(id, reason) {
+  const j = _dbevogovJsV2.get(id);
+  if (!j) throw new Error(`dbevogov migration ${id} not found`);
+  _dbevogovCheckJ(j.status, DBEVOGOV_MIGRATION_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = DBEVOGOV_MIGRATION_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getDbevogovMigrationV2(id) {
+  const j = _dbevogovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listDbevogovMigrationsV2() {
+  return [..._dbevogovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPauseIdleDbevogovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _dbevogovPsV2.values())
+    if (
+      p.status === DBEVOGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _dbevogovIdleMs
+    ) {
+      p.status = DBEVOGOV_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckDbevogovMigrationsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _dbevogovJsV2.values())
+    if (
+      j.status === DBEVOGOV_MIGRATION_LIFECYCLE_V2.APPLYING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _dbevogovStuckMs
+    ) {
+      j.status = DBEVOGOV_MIGRATION_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getDbevoGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(DBEVOGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _dbevogovPsV2.values()) profilesByStatus[p.status]++;
+  const migrationsByStatus = {};
+  for (const v of Object.values(DBEVOGOV_MIGRATION_LIFECYCLE_V2))
+    migrationsByStatus[v] = 0;
+  for (const j of _dbevogovJsV2.values()) migrationsByStatus[j.status]++;
+  return {
+    totalDbevogovProfilesV2: _dbevogovPsV2.size,
+    totalDbevogovMigrationsV2: _dbevogovJsV2.size,
+    maxActiveDbevogovProfilesPerOwner: _dbevogovMaxActive,
+    maxPendingDbevogovMigrationsPerProfile: _dbevogovMaxPending,
+    dbevogovProfileIdleMs: _dbevogovIdleMs,
+    dbevogovMigrationStuckMs: _dbevogovStuckMs,
+    profilesByStatus,
+    migrationsByStatus,
+  };
+}

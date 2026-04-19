@@ -1036,3 +1036,220 @@ export function registerAgentNetworkCommand(program) {
   program.addCommand(anet);
   return anet;
 }
+
+// === Iter20 V2 governance overlay ===
+export function registerAnetgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "agent-network");
+  if (!parent) return;
+  const L = async () => await import("../lib/agent-network.js");
+  parent
+    .command("anetgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.ANETGOV_PROFILE_MATURITY_V2,
+            dispatchLifecycle: m.ANETGOV_DISPATCH_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("anetgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveAnetgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingAnetgovDispatchsPerProfileV2(),
+            idleMs: m.getAnetgovProfileIdleMsV2(),
+            stuckMs: m.getAnetgovDispatchStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("anetgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveAnetgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("anetgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingAnetgovDispatchsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("anetgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setAnetgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("anetgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setAnetgovDispatchStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("anetgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--role <v>", "role")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerAnetgovProfileV2({ id, owner, role: o.role }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("anetgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateAnetgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("anetgov-suspend-v2 <id>")
+    .description("Suspend profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).suspendAnetgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("anetgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveAnetgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("anetgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchAnetgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("anetgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getAnetgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("anetgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listAnetgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("anetgov-create-dispatch-v2 <id> <profileId>")
+    .description("Create dispatch")
+    .option("--target <v>", "target")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createAnetgovDispatchV2({ id, profileId, target: o.target }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("anetgov-dispatching-dispatch-v2 <id>")
+    .description("Mark dispatch as dispatching")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).dispatchingAnetgovDispatchV2(id), null, 2),
+      );
+    });
+  parent
+    .command("anetgov-complete-dispatch-v2 <id>")
+    .description("Complete dispatch")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeDispatchAnetgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("anetgov-fail-dispatch-v2 <id> [reason]")
+    .description("Fail dispatch")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failAnetgovDispatchV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("anetgov-cancel-dispatch-v2 <id> [reason]")
+    .description("Cancel dispatch")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify(
+          (await L()).cancelAnetgovDispatchV2(id, reason),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("anetgov-get-dispatch-v2 <id>")
+    .description("Get dispatch")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).getAnetgovDispatchV2(id), null, 2),
+      );
+    });
+  parent
+    .command("anetgov-list-dispatchs-v2")
+    .description("List dispatchs")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).listAnetgovDispatchsV2(), null, 2),
+      );
+    });
+  parent
+    .command("anetgov-auto-suspend-idle-v2")
+    .description("Auto-suspend idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoSuspendIdleAnetgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("anetgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck dispatchs")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckAnetgovDispatchsV2(), null, 2),
+      );
+    });
+  parent
+    .command("anetgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getAgentNetworkGovStatsV2(), null, 2),
+      );
+    });
+}

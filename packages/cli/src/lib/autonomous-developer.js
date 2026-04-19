@@ -872,3 +872,335 @@ export function _resetStateV2() {
   _adAdrStaleMs = AD_DEFAULT_ADR_STALE_MS;
   _adSessionStuckMs = AD_DEFAULT_SESSION_STUCK_MS;
 }
+
+// =====================================================================
+// autonomous-developer V2 governance overlay (iter24)
+// =====================================================================
+export const DEVGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const DEVGOV_RUN_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  DEVELOPING: "developing",
+  SHIPPED: "shipped",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _devgovPTrans = new Map([
+  [
+    DEVGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      DEVGOV_PROFILE_MATURITY_V2.ACTIVE,
+      DEVGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    DEVGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      DEVGOV_PROFILE_MATURITY_V2.PAUSED,
+      DEVGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    DEVGOV_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      DEVGOV_PROFILE_MATURITY_V2.ACTIVE,
+      DEVGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [DEVGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _devgovPTerminal = new Set([DEVGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _devgovJTrans = new Map([
+  [
+    DEVGOV_RUN_LIFECYCLE_V2.QUEUED,
+    new Set([
+      DEVGOV_RUN_LIFECYCLE_V2.DEVELOPING,
+      DEVGOV_RUN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    DEVGOV_RUN_LIFECYCLE_V2.DEVELOPING,
+    new Set([
+      DEVGOV_RUN_LIFECYCLE_V2.SHIPPED,
+      DEVGOV_RUN_LIFECYCLE_V2.FAILED,
+      DEVGOV_RUN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [DEVGOV_RUN_LIFECYCLE_V2.SHIPPED, new Set()],
+  [DEVGOV_RUN_LIFECYCLE_V2.FAILED, new Set()],
+  [DEVGOV_RUN_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _devgovPsV2 = new Map();
+const _devgovJsV2 = new Map();
+let _devgovMaxActive = 6,
+  _devgovMaxPending = 15,
+  _devgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _devgovStuckMs = 60 * 1000;
+function _devgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _devgovCheckP(from, to) {
+  const a = _devgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid devgov profile transition ${from} → ${to}`);
+}
+function _devgovCheckJ(from, to) {
+  const a = _devgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid devgov run transition ${from} → ${to}`);
+}
+function _devgovCountActive(owner) {
+  let c = 0;
+  for (const p of _devgovPsV2.values())
+    if (p.owner === owner && p.status === DEVGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _devgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _devgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === DEVGOV_RUN_LIFECYCLE_V2.QUEUED ||
+        j.status === DEVGOV_RUN_LIFECYCLE_V2.DEVELOPING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveDevgovProfilesPerOwnerV2(n) {
+  _devgovMaxActive = _devgovPos(n, "maxActiveDevgovProfilesPerOwner");
+}
+export function getMaxActiveDevgovProfilesPerOwnerV2() {
+  return _devgovMaxActive;
+}
+export function setMaxPendingDevgovRunsPerProfileV2(n) {
+  _devgovMaxPending = _devgovPos(n, "maxPendingDevgovRunsPerProfile");
+}
+export function getMaxPendingDevgovRunsPerProfileV2() {
+  return _devgovMaxPending;
+}
+export function setDevgovProfileIdleMsV2(n) {
+  _devgovIdleMs = _devgovPos(n, "devgovProfileIdleMs");
+}
+export function getDevgovProfileIdleMsV2() {
+  return _devgovIdleMs;
+}
+export function setDevgovRunStuckMsV2(n) {
+  _devgovStuckMs = _devgovPos(n, "devgovRunStuckMs");
+}
+export function getDevgovRunStuckMsV2() {
+  return _devgovStuckMs;
+}
+export function _resetStateAutonomousDeveloperGovV2() {
+  _devgovPsV2.clear();
+  _devgovJsV2.clear();
+  _devgovMaxActive = 6;
+  _devgovMaxPending = 15;
+  _devgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _devgovStuckMs = 60 * 1000;
+}
+export function registerDevgovProfileV2({ id, owner, level, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_devgovPsV2.has(id))
+    throw new Error(`devgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    level: level || "assist",
+    status: DEVGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _devgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateDevgovProfileV2(id) {
+  const p = _devgovPsV2.get(id);
+  if (!p) throw new Error(`devgov profile ${id} not found`);
+  const isInitial = p.status === DEVGOV_PROFILE_MATURITY_V2.PENDING;
+  _devgovCheckP(p.status, DEVGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _devgovCountActive(p.owner) >= _devgovMaxActive)
+    throw new Error(`max active devgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = DEVGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pauseDevgovProfileV2(id) {
+  const p = _devgovPsV2.get(id);
+  if (!p) throw new Error(`devgov profile ${id} not found`);
+  _devgovCheckP(p.status, DEVGOV_PROFILE_MATURITY_V2.PAUSED);
+  p.status = DEVGOV_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveDevgovProfileV2(id) {
+  const p = _devgovPsV2.get(id);
+  if (!p) throw new Error(`devgov profile ${id} not found`);
+  _devgovCheckP(p.status, DEVGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = DEVGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchDevgovProfileV2(id) {
+  const p = _devgovPsV2.get(id);
+  if (!p) throw new Error(`devgov profile ${id} not found`);
+  if (_devgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal devgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getDevgovProfileV2(id) {
+  const p = _devgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listDevgovProfilesV2() {
+  return [..._devgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createDevgovRunV2({ id, profileId, goal, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_devgovJsV2.has(id)) throw new Error(`devgov run ${id} already exists`);
+  if (!_devgovPsV2.has(profileId))
+    throw new Error(`devgov profile ${profileId} not found`);
+  if (_devgovCountPending(profileId) >= _devgovMaxPending)
+    throw new Error(`max pending devgov runs for profile ${profileId} reached`);
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    goal: goal || "",
+    status: DEVGOV_RUN_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _devgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function developingDevgovRunV2(id) {
+  const j = _devgovJsV2.get(id);
+  if (!j) throw new Error(`devgov run ${id} not found`);
+  _devgovCheckJ(j.status, DEVGOV_RUN_LIFECYCLE_V2.DEVELOPING);
+  const now = Date.now();
+  j.status = DEVGOV_RUN_LIFECYCLE_V2.DEVELOPING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeRunDevgovV2(id) {
+  const j = _devgovJsV2.get(id);
+  if (!j) throw new Error(`devgov run ${id} not found`);
+  _devgovCheckJ(j.status, DEVGOV_RUN_LIFECYCLE_V2.SHIPPED);
+  const now = Date.now();
+  j.status = DEVGOV_RUN_LIFECYCLE_V2.SHIPPED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failDevgovRunV2(id, reason) {
+  const j = _devgovJsV2.get(id);
+  if (!j) throw new Error(`devgov run ${id} not found`);
+  _devgovCheckJ(j.status, DEVGOV_RUN_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = DEVGOV_RUN_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelDevgovRunV2(id, reason) {
+  const j = _devgovJsV2.get(id);
+  if (!j) throw new Error(`devgov run ${id} not found`);
+  _devgovCheckJ(j.status, DEVGOV_RUN_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = DEVGOV_RUN_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getDevgovRunV2(id) {
+  const j = _devgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listDevgovRunsV2() {
+  return [..._devgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPauseIdleDevgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _devgovPsV2.values())
+    if (
+      p.status === DEVGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _devgovIdleMs
+    ) {
+      p.status = DEVGOV_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckDevgovRunsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _devgovJsV2.values())
+    if (
+      j.status === DEVGOV_RUN_LIFECYCLE_V2.DEVELOPING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _devgovStuckMs
+    ) {
+      j.status = DEVGOV_RUN_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getAutonomousDeveloperGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(DEVGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _devgovPsV2.values()) profilesByStatus[p.status]++;
+  const runsByStatus = {};
+  for (const v of Object.values(DEVGOV_RUN_LIFECYCLE_V2)) runsByStatus[v] = 0;
+  for (const j of _devgovJsV2.values()) runsByStatus[j.status]++;
+  return {
+    totalDevgovProfilesV2: _devgovPsV2.size,
+    totalDevgovRunsV2: _devgovJsV2.size,
+    maxActiveDevgovProfilesPerOwner: _devgovMaxActive,
+    maxPendingDevgovRunsPerProfile: _devgovMaxPending,
+    devgovProfileIdleMs: _devgovIdleMs,
+    devgovRunStuckMs: _devgovStuckMs,
+    profilesByStatus,
+    runsByStatus,
+  };
+}

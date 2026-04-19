@@ -907,3 +907,337 @@ export function _resetStateV2() {
   _gatewaysV2.clear();
   _pinsV2.clear();
 }
+
+// =====================================================================
+// ipfs-storage V2 governance overlay (iter20)
+// =====================================================================
+export const IPFSGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const IPFSGOV_PIN_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  PINNING: "pinning",
+  PINNED: "pinned",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _ipfsgovPTrans = new Map([
+  [
+    IPFSGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      IPFSGOV_PROFILE_MATURITY_V2.ACTIVE,
+      IPFSGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    IPFSGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      IPFSGOV_PROFILE_MATURITY_V2.STALE,
+      IPFSGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    IPFSGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      IPFSGOV_PROFILE_MATURITY_V2.ACTIVE,
+      IPFSGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [IPFSGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _ipfsgovPTerminal = new Set([IPFSGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _ipfsgovJTrans = new Map([
+  [
+    IPFSGOV_PIN_LIFECYCLE_V2.QUEUED,
+    new Set([
+      IPFSGOV_PIN_LIFECYCLE_V2.PINNING,
+      IPFSGOV_PIN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    IPFSGOV_PIN_LIFECYCLE_V2.PINNING,
+    new Set([
+      IPFSGOV_PIN_LIFECYCLE_V2.PINNED,
+      IPFSGOV_PIN_LIFECYCLE_V2.FAILED,
+      IPFSGOV_PIN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [IPFSGOV_PIN_LIFECYCLE_V2.PINNED, new Set()],
+  [IPFSGOV_PIN_LIFECYCLE_V2.FAILED, new Set()],
+  [IPFSGOV_PIN_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _ipfsgovPsV2 = new Map();
+const _ipfsgovJsV2 = new Map();
+let _ipfsgovMaxActive = 8,
+  _ipfsgovMaxPending = 20,
+  _ipfsgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _ipfsgovStuckMs = 60 * 1000;
+function _ipfsgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _ipfsgovCheckP(from, to) {
+  const a = _ipfsgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid ipfsgov profile transition ${from} → ${to}`);
+}
+function _ipfsgovCheckJ(from, to) {
+  const a = _ipfsgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid ipfsgov pin transition ${from} → ${to}`);
+}
+function _ipfsgovCountActive(owner) {
+  let c = 0;
+  for (const p of _ipfsgovPsV2.values())
+    if (p.owner === owner && p.status === IPFSGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _ipfsgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _ipfsgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === IPFSGOV_PIN_LIFECYCLE_V2.QUEUED ||
+        j.status === IPFSGOV_PIN_LIFECYCLE_V2.PINNING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveIpfsgovProfilesPerOwnerV2(n) {
+  _ipfsgovMaxActive = _ipfsgovPos(n, "maxActiveIpfsgovProfilesPerOwner");
+}
+export function getMaxActiveIpfsgovProfilesPerOwnerV2() {
+  return _ipfsgovMaxActive;
+}
+export function setMaxPendingIpfsgovPinsPerProfileV2(n) {
+  _ipfsgovMaxPending = _ipfsgovPos(n, "maxPendingIpfsgovPinsPerProfile");
+}
+export function getMaxPendingIpfsgovPinsPerProfileV2() {
+  return _ipfsgovMaxPending;
+}
+export function setIpfsgovProfileIdleMsV2(n) {
+  _ipfsgovIdleMs = _ipfsgovPos(n, "ipfsgovProfileIdleMs");
+}
+export function getIpfsgovProfileIdleMsV2() {
+  return _ipfsgovIdleMs;
+}
+export function setIpfsgovPinStuckMsV2(n) {
+  _ipfsgovStuckMs = _ipfsgovPos(n, "ipfsgovPinStuckMs");
+}
+export function getIpfsgovPinStuckMsV2() {
+  return _ipfsgovStuckMs;
+}
+export function _resetStateIpfsStorageGovV2() {
+  _ipfsgovPsV2.clear();
+  _ipfsgovJsV2.clear();
+  _ipfsgovMaxActive = 8;
+  _ipfsgovMaxPending = 20;
+  _ipfsgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _ipfsgovStuckMs = 60 * 1000;
+}
+export function registerIpfsgovProfileV2({ id, owner, mode, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_ipfsgovPsV2.has(id))
+    throw new Error(`ipfsgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    mode: mode || "local",
+    status: IPFSGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _ipfsgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateIpfsgovProfileV2(id) {
+  const p = _ipfsgovPsV2.get(id);
+  if (!p) throw new Error(`ipfsgov profile ${id} not found`);
+  const isInitial = p.status === IPFSGOV_PROFILE_MATURITY_V2.PENDING;
+  _ipfsgovCheckP(p.status, IPFSGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _ipfsgovCountActive(p.owner) >= _ipfsgovMaxActive)
+    throw new Error(`max active ipfsgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = IPFSGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleIpfsgovProfileV2(id) {
+  const p = _ipfsgovPsV2.get(id);
+  if (!p) throw new Error(`ipfsgov profile ${id} not found`);
+  _ipfsgovCheckP(p.status, IPFSGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = IPFSGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveIpfsgovProfileV2(id) {
+  const p = _ipfsgovPsV2.get(id);
+  if (!p) throw new Error(`ipfsgov profile ${id} not found`);
+  _ipfsgovCheckP(p.status, IPFSGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = IPFSGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchIpfsgovProfileV2(id) {
+  const p = _ipfsgovPsV2.get(id);
+  if (!p) throw new Error(`ipfsgov profile ${id} not found`);
+  if (_ipfsgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal ipfsgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getIpfsgovProfileV2(id) {
+  const p = _ipfsgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listIpfsgovProfilesV2() {
+  return [..._ipfsgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createIpfsgovPinV2({ id, profileId, cid, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_ipfsgovJsV2.has(id)) throw new Error(`ipfsgov pin ${id} already exists`);
+  if (!_ipfsgovPsV2.has(profileId))
+    throw new Error(`ipfsgov profile ${profileId} not found`);
+  if (_ipfsgovCountPending(profileId) >= _ipfsgovMaxPending)
+    throw new Error(
+      `max pending ipfsgov pins for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    cid: cid || "",
+    status: IPFSGOV_PIN_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _ipfsgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function pinningIpfsgovPinV2(id) {
+  const j = _ipfsgovJsV2.get(id);
+  if (!j) throw new Error(`ipfsgov pin ${id} not found`);
+  _ipfsgovCheckJ(j.status, IPFSGOV_PIN_LIFECYCLE_V2.PINNING);
+  const now = Date.now();
+  j.status = IPFSGOV_PIN_LIFECYCLE_V2.PINNING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completePinIpfsgovV2(id) {
+  const j = _ipfsgovJsV2.get(id);
+  if (!j) throw new Error(`ipfsgov pin ${id} not found`);
+  _ipfsgovCheckJ(j.status, IPFSGOV_PIN_LIFECYCLE_V2.PINNED);
+  const now = Date.now();
+  j.status = IPFSGOV_PIN_LIFECYCLE_V2.PINNED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failIpfsgovPinV2(id, reason) {
+  const j = _ipfsgovJsV2.get(id);
+  if (!j) throw new Error(`ipfsgov pin ${id} not found`);
+  _ipfsgovCheckJ(j.status, IPFSGOV_PIN_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = IPFSGOV_PIN_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelIpfsgovPinV2(id, reason) {
+  const j = _ipfsgovJsV2.get(id);
+  if (!j) throw new Error(`ipfsgov pin ${id} not found`);
+  _ipfsgovCheckJ(j.status, IPFSGOV_PIN_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = IPFSGOV_PIN_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getIpfsgovPinV2(id) {
+  const j = _ipfsgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listIpfsgovPinsV2() {
+  return [..._ipfsgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleIpfsgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _ipfsgovPsV2.values())
+    if (
+      p.status === IPFSGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _ipfsgovIdleMs
+    ) {
+      p.status = IPFSGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckIpfsgovPinsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _ipfsgovJsV2.values())
+    if (
+      j.status === IPFSGOV_PIN_LIFECYCLE_V2.PINNING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _ipfsgovStuckMs
+    ) {
+      j.status = IPFSGOV_PIN_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getIpfsStorageGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(IPFSGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _ipfsgovPsV2.values()) profilesByStatus[p.status]++;
+  const pinsByStatus = {};
+  for (const v of Object.values(IPFSGOV_PIN_LIFECYCLE_V2)) pinsByStatus[v] = 0;
+  for (const j of _ipfsgovJsV2.values()) pinsByStatus[j.status]++;
+  return {
+    totalIpfsgovProfilesV2: _ipfsgovPsV2.size,
+    totalIpfsgovPinsV2: _ipfsgovJsV2.size,
+    maxActiveIpfsgovProfilesPerOwner: _ipfsgovMaxActive,
+    maxPendingIpfsgovPinsPerProfile: _ipfsgovMaxPending,
+    ipfsgovProfileIdleMs: _ipfsgovIdleMs,
+    ipfsgovPinStuckMs: _ipfsgovStuckMs,
+    profilesByStatus,
+    pinsByStatus,
+  };
+}

@@ -1171,3 +1171,343 @@ export function getSsoManagerStatsV2() {
     loginsByStatus,
   };
 }
+
+// =====================================================================
+// sso-manager V2 governance overlay (iter19)
+// =====================================================================
+export const SSOGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  ARCHIVED: "archived",
+});
+export const SSOGOV_LOGIN_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  AUTHENTICATING: "authenticating",
+  AUTHENTICATED: "authenticated",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _ssogovPTrans = new Map([
+  [
+    SSOGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      SSOGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SSOGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SSOGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      SSOGOV_PROFILE_MATURITY_V2.SUSPENDED,
+      SSOGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SSOGOV_PROFILE_MATURITY_V2.SUSPENDED,
+    new Set([
+      SSOGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SSOGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [SSOGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _ssogovPTerminal = new Set([SSOGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _ssogovJTrans = new Map([
+  [
+    SSOGOV_LOGIN_LIFECYCLE_V2.QUEUED,
+    new Set([
+      SSOGOV_LOGIN_LIFECYCLE_V2.AUTHENTICATING,
+      SSOGOV_LOGIN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    SSOGOV_LOGIN_LIFECYCLE_V2.AUTHENTICATING,
+    new Set([
+      SSOGOV_LOGIN_LIFECYCLE_V2.AUTHENTICATED,
+      SSOGOV_LOGIN_LIFECYCLE_V2.FAILED,
+      SSOGOV_LOGIN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [SSOGOV_LOGIN_LIFECYCLE_V2.AUTHENTICATED, new Set()],
+  [SSOGOV_LOGIN_LIFECYCLE_V2.FAILED, new Set()],
+  [SSOGOV_LOGIN_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _ssogovPsV2 = new Map();
+const _ssogovJsV2 = new Map();
+let _ssogovMaxActive = 8,
+  _ssogovMaxPending = 30,
+  _ssogovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _ssogovStuckMs = 60 * 1000;
+function _ssogovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _ssogovCheckP(from, to) {
+  const a = _ssogovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid ssogov profile transition ${from} → ${to}`);
+}
+function _ssogovCheckJ(from, to) {
+  const a = _ssogovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid ssogov login transition ${from} → ${to}`);
+}
+function _ssogovCountActive(owner) {
+  let c = 0;
+  for (const p of _ssogovPsV2.values())
+    if (p.owner === owner && p.status === SSOGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _ssogovCountPending(profileId) {
+  let c = 0;
+  for (const j of _ssogovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === SSOGOV_LOGIN_LIFECYCLE_V2.QUEUED ||
+        j.status === SSOGOV_LOGIN_LIFECYCLE_V2.AUTHENTICATING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveSsogovProfilesPerOwnerV2(n) {
+  _ssogovMaxActive = _ssogovPos(n, "maxActiveSsogovProfilesPerOwner");
+}
+export function getMaxActiveSsogovProfilesPerOwnerV2() {
+  return _ssogovMaxActive;
+}
+export function setMaxPendingSsogovLoginsPerProfileV2(n) {
+  _ssogovMaxPending = _ssogovPos(n, "maxPendingSsogovLoginsPerProfile");
+}
+export function getMaxPendingSsogovLoginsPerProfileV2() {
+  return _ssogovMaxPending;
+}
+export function setSsogovProfileIdleMsV2(n) {
+  _ssogovIdleMs = _ssogovPos(n, "ssogovProfileIdleMs");
+}
+export function getSsogovProfileIdleMsV2() {
+  return _ssogovIdleMs;
+}
+export function setSsogovLoginStuckMsV2(n) {
+  _ssogovStuckMs = _ssogovPos(n, "ssogovLoginStuckMs");
+}
+export function getSsogovLoginStuckMsV2() {
+  return _ssogovStuckMs;
+}
+export function _resetStateSsoManagerGovV2() {
+  _ssogovPsV2.clear();
+  _ssogovJsV2.clear();
+  _ssogovMaxActive = 8;
+  _ssogovMaxPending = 30;
+  _ssogovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _ssogovStuckMs = 60 * 1000;
+}
+export function registerSsogovProfileV2({
+  id,
+  owner,
+  protocol,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_ssogovPsV2.has(id))
+    throw new Error(`ssogov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    protocol: protocol || "oidc",
+    status: SSOGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _ssogovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateSsogovProfileV2(id) {
+  const p = _ssogovPsV2.get(id);
+  if (!p) throw new Error(`ssogov profile ${id} not found`);
+  const isInitial = p.status === SSOGOV_PROFILE_MATURITY_V2.PENDING;
+  _ssogovCheckP(p.status, SSOGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _ssogovCountActive(p.owner) >= _ssogovMaxActive)
+    throw new Error(`max active ssogov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = SSOGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function suspendSsogovProfileV2(id) {
+  const p = _ssogovPsV2.get(id);
+  if (!p) throw new Error(`ssogov profile ${id} not found`);
+  _ssogovCheckP(p.status, SSOGOV_PROFILE_MATURITY_V2.SUSPENDED);
+  p.status = SSOGOV_PROFILE_MATURITY_V2.SUSPENDED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveSsogovProfileV2(id) {
+  const p = _ssogovPsV2.get(id);
+  if (!p) throw new Error(`ssogov profile ${id} not found`);
+  _ssogovCheckP(p.status, SSOGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = SSOGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchSsogovProfileV2(id) {
+  const p = _ssogovPsV2.get(id);
+  if (!p) throw new Error(`ssogov profile ${id} not found`);
+  if (_ssogovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal ssogov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getSsogovProfileV2(id) {
+  const p = _ssogovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listSsogovProfilesV2() {
+  return [..._ssogovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createSsogovLoginV2({ id, profileId, subject, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_ssogovJsV2.has(id)) throw new Error(`ssogov login ${id} already exists`);
+  if (!_ssogovPsV2.has(profileId))
+    throw new Error(`ssogov profile ${profileId} not found`);
+  if (_ssogovCountPending(profileId) >= _ssogovMaxPending)
+    throw new Error(
+      `max pending ssogov logins for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    subject: subject || "",
+    status: SSOGOV_LOGIN_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _ssogovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function authenticatingSsogovLoginV2(id) {
+  const j = _ssogovJsV2.get(id);
+  if (!j) throw new Error(`ssogov login ${id} not found`);
+  _ssogovCheckJ(j.status, SSOGOV_LOGIN_LIFECYCLE_V2.AUTHENTICATING);
+  const now = Date.now();
+  j.status = SSOGOV_LOGIN_LIFECYCLE_V2.AUTHENTICATING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeLoginSsogovV2(id) {
+  const j = _ssogovJsV2.get(id);
+  if (!j) throw new Error(`ssogov login ${id} not found`);
+  _ssogovCheckJ(j.status, SSOGOV_LOGIN_LIFECYCLE_V2.AUTHENTICATED);
+  const now = Date.now();
+  j.status = SSOGOV_LOGIN_LIFECYCLE_V2.AUTHENTICATED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failSsogovLoginV2(id, reason) {
+  const j = _ssogovJsV2.get(id);
+  if (!j) throw new Error(`ssogov login ${id} not found`);
+  _ssogovCheckJ(j.status, SSOGOV_LOGIN_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = SSOGOV_LOGIN_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelSsogovLoginV2(id, reason) {
+  const j = _ssogovJsV2.get(id);
+  if (!j) throw new Error(`ssogov login ${id} not found`);
+  _ssogovCheckJ(j.status, SSOGOV_LOGIN_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = SSOGOV_LOGIN_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getSsogovLoginV2(id) {
+  const j = _ssogovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listSsogovLoginsV2() {
+  return [..._ssogovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoSuspendIdleSsogovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _ssogovPsV2.values())
+    if (
+      p.status === SSOGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _ssogovIdleMs
+    ) {
+      p.status = SSOGOV_PROFILE_MATURITY_V2.SUSPENDED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckSsogovLoginsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _ssogovJsV2.values())
+    if (
+      j.status === SSOGOV_LOGIN_LIFECYCLE_V2.AUTHENTICATING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _ssogovStuckMs
+    ) {
+      j.status = SSOGOV_LOGIN_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getSsoManagerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(SSOGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _ssogovPsV2.values()) profilesByStatus[p.status]++;
+  const loginsByStatus = {};
+  for (const v of Object.values(SSOGOV_LOGIN_LIFECYCLE_V2))
+    loginsByStatus[v] = 0;
+  for (const j of _ssogovJsV2.values()) loginsByStatus[j.status]++;
+  return {
+    totalSsogovProfilesV2: _ssogovPsV2.size,
+    totalSsogovLoginsV2: _ssogovJsV2.size,
+    maxActiveSsogovProfilesPerOwner: _ssogovMaxActive,
+    maxPendingSsogovLoginsPerProfile: _ssogovMaxPending,
+    ssogovProfileIdleMs: _ssogovIdleMs,
+    ssogovLoginStuckMs: _ssogovStuckMs,
+    profilesByStatus,
+    loginsByStatus,
+  };
+}

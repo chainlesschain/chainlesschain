@@ -1044,3 +1044,212 @@ export function registerSessionCommand(program) {
       console.log(JSON.stringify(flipped, null, 2));
     });
 }
+
+// === Iter21 V2 governance overlay ===
+export function registerSesgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "session");
+  if (!parent) return;
+  const L = async () => await import("../lib/session-manager.js");
+  parent
+    .command("sesgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.SESGOV_PROFILE_MATURITY_V2,
+            turnLifecycle: m.SESGOV_TURN_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("sesgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveSesgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingSesgovTurnsPerProfileV2(),
+            idleMs: m.getSesgovProfileIdleMsV2(),
+            stuckMs: m.getSesgovTurnStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("sesgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveSesgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("sesgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingSesgovTurnsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("sesgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setSesgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("sesgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setSesgovTurnStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("sesgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--channel <v>", "channel")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerSesgovProfileV2({ id, owner, channel: o.channel }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("sesgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateSesgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("sesgov-pause-v2 <id>")
+    .description("Pause profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).pauseSesgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("sesgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveSesgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("sesgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchSesgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("sesgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getSesgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("sesgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listSesgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("sesgov-create-turn-v2 <id> <profileId>")
+    .description("Create turn")
+    .option("--topic <v>", "topic")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createSesgovTurnV2({ id, profileId, topic: o.topic }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("sesgov-advancing-turn-v2 <id>")
+    .description("Mark turn as advancing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).advancingSesgovTurnV2(id), null, 2),
+      );
+    });
+  parent
+    .command("sesgov-complete-turn-v2 <id>")
+    .description("Complete turn")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeTurnSesgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("sesgov-fail-turn-v2 <id> [reason]")
+    .description("Fail turn")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failSesgovTurnV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("sesgov-cancel-turn-v2 <id> [reason]")
+    .description("Cancel turn")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelSesgovTurnV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("sesgov-get-turn-v2 <id>")
+    .description("Get turn")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getSesgovTurnV2(id), null, 2));
+    });
+  parent
+    .command("sesgov-list-turns-v2")
+    .description("List turns")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listSesgovTurnsV2(), null, 2));
+    });
+  parent
+    .command("sesgov-auto-pause-idle-v2")
+    .description("Auto-pause idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoPauseIdleSesgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("sesgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck turns")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckSesgovTurnsV2(), null, 2),
+      );
+    });
+  parent
+    .command("sesgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getSessionManagerGovStatsV2(), null, 2),
+      );
+    });
+}

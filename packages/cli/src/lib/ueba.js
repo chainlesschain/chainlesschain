@@ -790,3 +790,343 @@ export function _resetStateUebaV2() {
   _uebaBaselineStaleMs = UEBA_DEFAULT_BASELINE_STALE_MS;
   _uebaInvestigationStuckMs = UEBA_DEFAULT_INVESTIGATION_STUCK_MS;
 }
+
+// =====================================================================
+// ueba V2 governance overlay (iter24)
+// =====================================================================
+export const UEBGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUPPRESSED: "suppressed",
+  ARCHIVED: "archived",
+});
+export const UEBGOV_ALERT_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  ANALYZING: "analyzing",
+  TRIAGED: "triaged",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _uebgovPTrans = new Map([
+  [
+    UEBGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      UEBGOV_PROFILE_MATURITY_V2.ACTIVE,
+      UEBGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    UEBGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      UEBGOV_PROFILE_MATURITY_V2.SUPPRESSED,
+      UEBGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    UEBGOV_PROFILE_MATURITY_V2.SUPPRESSED,
+    new Set([
+      UEBGOV_PROFILE_MATURITY_V2.ACTIVE,
+      UEBGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [UEBGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _uebgovPTerminal = new Set([UEBGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _uebgovJTrans = new Map([
+  [
+    UEBGOV_ALERT_LIFECYCLE_V2.QUEUED,
+    new Set([
+      UEBGOV_ALERT_LIFECYCLE_V2.ANALYZING,
+      UEBGOV_ALERT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    UEBGOV_ALERT_LIFECYCLE_V2.ANALYZING,
+    new Set([
+      UEBGOV_ALERT_LIFECYCLE_V2.TRIAGED,
+      UEBGOV_ALERT_LIFECYCLE_V2.FAILED,
+      UEBGOV_ALERT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [UEBGOV_ALERT_LIFECYCLE_V2.TRIAGED, new Set()],
+  [UEBGOV_ALERT_LIFECYCLE_V2.FAILED, new Set()],
+  [UEBGOV_ALERT_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _uebgovPsV2 = new Map();
+const _uebgovJsV2 = new Map();
+let _uebgovMaxActive = 8,
+  _uebgovMaxPending = 20,
+  _uebgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _uebgovStuckMs = 60 * 1000;
+function _uebgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _uebgovCheckP(from, to) {
+  const a = _uebgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid uebgov profile transition ${from} → ${to}`);
+}
+function _uebgovCheckJ(from, to) {
+  const a = _uebgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid uebgov alert transition ${from} → ${to}`);
+}
+function _uebgovCountActive(owner) {
+  let c = 0;
+  for (const p of _uebgovPsV2.values())
+    if (p.owner === owner && p.status === UEBGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _uebgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _uebgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === UEBGOV_ALERT_LIFECYCLE_V2.QUEUED ||
+        j.status === UEBGOV_ALERT_LIFECYCLE_V2.ANALYZING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveUebgovProfilesPerOwnerV2(n) {
+  _uebgovMaxActive = _uebgovPos(n, "maxActiveUebgovProfilesPerOwner");
+}
+export function getMaxActiveUebgovProfilesPerOwnerV2() {
+  return _uebgovMaxActive;
+}
+export function setMaxPendingUebgovAlertsPerProfileV2(n) {
+  _uebgovMaxPending = _uebgovPos(n, "maxPendingUebgovAlertsPerProfile");
+}
+export function getMaxPendingUebgovAlertsPerProfileV2() {
+  return _uebgovMaxPending;
+}
+export function setUebgovProfileIdleMsV2(n) {
+  _uebgovIdleMs = _uebgovPos(n, "uebgovProfileIdleMs");
+}
+export function getUebgovProfileIdleMsV2() {
+  return _uebgovIdleMs;
+}
+export function setUebgovAlertStuckMsV2(n) {
+  _uebgovStuckMs = _uebgovPos(n, "uebgovAlertStuckMs");
+}
+export function getUebgovAlertStuckMsV2() {
+  return _uebgovStuckMs;
+}
+export function _resetStateUebaGovV2() {
+  _uebgovPsV2.clear();
+  _uebgovJsV2.clear();
+  _uebgovMaxActive = 8;
+  _uebgovMaxPending = 20;
+  _uebgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _uebgovStuckMs = 60 * 1000;
+}
+export function registerUebgovProfileV2({ id, owner, entity, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_uebgovPsV2.has(id))
+    throw new Error(`uebgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    entity: entity || "user",
+    status: UEBGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _uebgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateUebgovProfileV2(id) {
+  const p = _uebgovPsV2.get(id);
+  if (!p) throw new Error(`uebgov profile ${id} not found`);
+  const isInitial = p.status === UEBGOV_PROFILE_MATURITY_V2.PENDING;
+  _uebgovCheckP(p.status, UEBGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _uebgovCountActive(p.owner) >= _uebgovMaxActive)
+    throw new Error(`max active uebgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = UEBGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function suppressUebgovProfileV2(id) {
+  const p = _uebgovPsV2.get(id);
+  if (!p) throw new Error(`uebgov profile ${id} not found`);
+  _uebgovCheckP(p.status, UEBGOV_PROFILE_MATURITY_V2.SUPPRESSED);
+  p.status = UEBGOV_PROFILE_MATURITY_V2.SUPPRESSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveUebgovProfileV2(id) {
+  const p = _uebgovPsV2.get(id);
+  if (!p) throw new Error(`uebgov profile ${id} not found`);
+  _uebgovCheckP(p.status, UEBGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = UEBGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchUebgovProfileV2(id) {
+  const p = _uebgovPsV2.get(id);
+  if (!p) throw new Error(`uebgov profile ${id} not found`);
+  if (_uebgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal uebgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getUebgovProfileV2(id) {
+  const p = _uebgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listUebgovProfilesV2() {
+  return [..._uebgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createUebgovAlertV2({
+  id,
+  profileId,
+  behavior,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_uebgovJsV2.has(id)) throw new Error(`uebgov alert ${id} already exists`);
+  if (!_uebgovPsV2.has(profileId))
+    throw new Error(`uebgov profile ${profileId} not found`);
+  if (_uebgovCountPending(profileId) >= _uebgovMaxPending)
+    throw new Error(
+      `max pending uebgov alerts for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    behavior: behavior || "",
+    status: UEBGOV_ALERT_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _uebgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function analyzingUebgovAlertV2(id) {
+  const j = _uebgovJsV2.get(id);
+  if (!j) throw new Error(`uebgov alert ${id} not found`);
+  _uebgovCheckJ(j.status, UEBGOV_ALERT_LIFECYCLE_V2.ANALYZING);
+  const now = Date.now();
+  j.status = UEBGOV_ALERT_LIFECYCLE_V2.ANALYZING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeAlertUebgovV2(id) {
+  const j = _uebgovJsV2.get(id);
+  if (!j) throw new Error(`uebgov alert ${id} not found`);
+  _uebgovCheckJ(j.status, UEBGOV_ALERT_LIFECYCLE_V2.TRIAGED);
+  const now = Date.now();
+  j.status = UEBGOV_ALERT_LIFECYCLE_V2.TRIAGED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failUebgovAlertV2(id, reason) {
+  const j = _uebgovJsV2.get(id);
+  if (!j) throw new Error(`uebgov alert ${id} not found`);
+  _uebgovCheckJ(j.status, UEBGOV_ALERT_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = UEBGOV_ALERT_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelUebgovAlertV2(id, reason) {
+  const j = _uebgovJsV2.get(id);
+  if (!j) throw new Error(`uebgov alert ${id} not found`);
+  _uebgovCheckJ(j.status, UEBGOV_ALERT_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = UEBGOV_ALERT_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getUebgovAlertV2(id) {
+  const j = _uebgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listUebgovAlertsV2() {
+  return [..._uebgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoSuppressIdleUebgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _uebgovPsV2.values())
+    if (
+      p.status === UEBGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _uebgovIdleMs
+    ) {
+      p.status = UEBGOV_PROFILE_MATURITY_V2.SUPPRESSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckUebgovAlertsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _uebgovJsV2.values())
+    if (
+      j.status === UEBGOV_ALERT_LIFECYCLE_V2.ANALYZING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _uebgovStuckMs
+    ) {
+      j.status = UEBGOV_ALERT_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getUebaGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(UEBGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _uebgovPsV2.values()) profilesByStatus[p.status]++;
+  const alertsByStatus = {};
+  for (const v of Object.values(UEBGOV_ALERT_LIFECYCLE_V2))
+    alertsByStatus[v] = 0;
+  for (const j of _uebgovJsV2.values()) alertsByStatus[j.status]++;
+  return {
+    totalUebgovProfilesV2: _uebgovPsV2.size,
+    totalUebgovAlertsV2: _uebgovJsV2.size,
+    maxActiveUebgovProfilesPerOwner: _uebgovMaxActive,
+    maxPendingUebgovAlertsPerProfile: _uebgovMaxPending,
+    uebgovProfileIdleMs: _uebgovIdleMs,
+    uebgovAlertStuckMs: _uebgovStuckMs,
+    profilesByStatus,
+    alertsByStatus,
+  };
+}
