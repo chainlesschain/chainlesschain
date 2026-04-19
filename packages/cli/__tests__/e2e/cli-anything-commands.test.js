@@ -22,7 +22,8 @@ function run(args, options = {}) {
   return execSync(`node ${bin} ${args}`, {
     encoding: "utf-8",
     timeout: 15000,
-    stdio: "pipe",
+    maxBuffer: 20 * 1024 * 1024,
+    stdio: ["ignore", "pipe", "ignore"],
     ...options,
   });
 }
