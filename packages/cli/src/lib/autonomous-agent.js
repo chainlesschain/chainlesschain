@@ -493,25 +493,53 @@ Reply with a JSON object: { "action": "retry|add_step|skip", "newParams": {...},
   }
 }
 
-
 // ===== V2 Surface: Autonomous Agent governance overlay (CLI v0.138.0) =====
 export const AUTOAGENT_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", PAUSED: "paused", ARCHIVED: "archived",
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
 });
 export const AUTOAGENT_RUN_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", RUNNING: "running", COMPLETED: "completed", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 
 const _aaTrans = new Map([
-  [AUTOAGENT_MATURITY_V2.PENDING, new Set([AUTOAGENT_MATURITY_V2.ACTIVE, AUTOAGENT_MATURITY_V2.ARCHIVED])],
-  [AUTOAGENT_MATURITY_V2.ACTIVE, new Set([AUTOAGENT_MATURITY_V2.PAUSED, AUTOAGENT_MATURITY_V2.ARCHIVED])],
-  [AUTOAGENT_MATURITY_V2.PAUSED, new Set([AUTOAGENT_MATURITY_V2.ACTIVE, AUTOAGENT_MATURITY_V2.ARCHIVED])],
+  [
+    AUTOAGENT_MATURITY_V2.PENDING,
+    new Set([AUTOAGENT_MATURITY_V2.ACTIVE, AUTOAGENT_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    AUTOAGENT_MATURITY_V2.ACTIVE,
+    new Set([AUTOAGENT_MATURITY_V2.PAUSED, AUTOAGENT_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    AUTOAGENT_MATURITY_V2.PAUSED,
+    new Set([AUTOAGENT_MATURITY_V2.ACTIVE, AUTOAGENT_MATURITY_V2.ARCHIVED]),
+  ],
   [AUTOAGENT_MATURITY_V2.ARCHIVED, new Set()],
 ]);
 const _aaTerminal = new Set([AUTOAGENT_MATURITY_V2.ARCHIVED]);
 const _aaRunTrans = new Map([
-  [AUTOAGENT_RUN_LIFECYCLE_V2.QUEUED, new Set([AUTOAGENT_RUN_LIFECYCLE_V2.RUNNING, AUTOAGENT_RUN_LIFECYCLE_V2.CANCELLED])],
-  [AUTOAGENT_RUN_LIFECYCLE_V2.RUNNING, new Set([AUTOAGENT_RUN_LIFECYCLE_V2.COMPLETED, AUTOAGENT_RUN_LIFECYCLE_V2.FAILED, AUTOAGENT_RUN_LIFECYCLE_V2.CANCELLED])],
+  [
+    AUTOAGENT_RUN_LIFECYCLE_V2.QUEUED,
+    new Set([
+      AUTOAGENT_RUN_LIFECYCLE_V2.RUNNING,
+      AUTOAGENT_RUN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    AUTOAGENT_RUN_LIFECYCLE_V2.RUNNING,
+    new Set([
+      AUTOAGENT_RUN_LIFECYCLE_V2.COMPLETED,
+      AUTOAGENT_RUN_LIFECYCLE_V2.FAILED,
+      AUTOAGENT_RUN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [AUTOAGENT_RUN_LIFECYCLE_V2.COMPLETED, new Set()],
   [AUTOAGENT_RUN_LIFECYCLE_V2.FAILED, new Set()],
   [AUTOAGENT_RUN_LIFECYCLE_V2.CANCELLED, new Set()],
@@ -524,21 +552,45 @@ let _aaMaxPendingRunsPerAgent = 10;
 let _aaAgentIdleMs = 7 * 24 * 60 * 60 * 1000;
 let _aaRunStuckMs = 30 * 60 * 1000;
 
-function _aaPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+function _aaPos(n, lbl) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${lbl} must be positive integer`);
+  return v;
+}
 
-export function setMaxActiveAutoAgentsPerOwnerV2(n) { _aaMaxActivePerOwner = _aaPos(n, "maxActiveAutoAgentsPerOwner"); }
-export function getMaxActiveAutoAgentsPerOwnerV2() { return _aaMaxActivePerOwner; }
-export function setMaxPendingAutoAgentRunsPerAgentV2(n) { _aaMaxPendingRunsPerAgent = _aaPos(n, "maxPendingAutoAgentRunsPerAgent"); }
-export function getMaxPendingAutoAgentRunsPerAgentV2() { return _aaMaxPendingRunsPerAgent; }
-export function setAutoAgentIdleMsV2(n) { _aaAgentIdleMs = _aaPos(n, "autoAgentIdleMs"); }
-export function getAutoAgentIdleMsV2() { return _aaAgentIdleMs; }
-export function setAutoAgentRunStuckMsV2(n) { _aaRunStuckMs = _aaPos(n, "autoAgentRunStuckMs"); }
-export function getAutoAgentRunStuckMsV2() { return _aaRunStuckMs; }
+export function setMaxActiveAutoAgentsPerOwnerV2(n) {
+  _aaMaxActivePerOwner = _aaPos(n, "maxActiveAutoAgentsPerOwner");
+}
+export function getMaxActiveAutoAgentsPerOwnerV2() {
+  return _aaMaxActivePerOwner;
+}
+export function setMaxPendingAutoAgentRunsPerAgentV2(n) {
+  _aaMaxPendingRunsPerAgent = _aaPos(n, "maxPendingAutoAgentRunsPerAgent");
+}
+export function getMaxPendingAutoAgentRunsPerAgentV2() {
+  return _aaMaxPendingRunsPerAgent;
+}
+export function setAutoAgentIdleMsV2(n) {
+  _aaAgentIdleMs = _aaPos(n, "autoAgentIdleMs");
+}
+export function getAutoAgentIdleMsV2() {
+  return _aaAgentIdleMs;
+}
+export function setAutoAgentRunStuckMsV2(n) {
+  _aaRunStuckMs = _aaPos(n, "autoAgentRunStuckMs");
+}
+export function getAutoAgentRunStuckMsV2() {
+  return _aaRunStuckMs;
+}
 
 export function _resetStateAutonomousAgentV2() {
-  _aaAgents.clear(); _aaRuns.clear();
-  _aaMaxActivePerOwner = 5; _aaMaxPendingRunsPerAgent = 10;
-  _aaAgentIdleMs = 7 * 24 * 60 * 60 * 1000; _aaRunStuckMs = 30 * 60 * 1000;
+  _aaAgents.clear();
+  _aaRuns.clear();
+  _aaMaxActivePerOwner = 5;
+  _aaMaxPendingRunsPerAgent = 10;
+  _aaAgentIdleMs = 7 * 24 * 60 * 60 * 1000;
+  _aaRunStuckMs = 30 * 60 * 1000;
 }
 
 export function registerAutoAgentV2({ id, owner, goal, metadata } = {}) {
@@ -546,54 +598,238 @@ export function registerAutoAgentV2({ id, owner, goal, metadata } = {}) {
   if (!owner || typeof owner !== "string") throw new Error("owner is required");
   if (_aaAgents.has(id)) throw new Error(`auto-agent ${id} already registered`);
   const now = Date.now();
-  const a = { id, owner, goal: goal || "", status: AUTOAGENT_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, archivedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  const a = {
+    id,
+    owner,
+    goal: goal || "",
+    status: AUTOAGENT_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
   _aaAgents.set(id, a);
   return { ...a, metadata: { ...a.metadata } };
 }
-function _aaCheckA(from, to) { const a = _aaTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid auto-agent transition ${from} → ${to}`); }
-function _aaCountActive(owner) { let n = 0; for (const a of _aaAgents.values()) if (a.owner === owner && a.status === AUTOAGENT_MATURITY_V2.ACTIVE) n++; return n; }
+function _aaCheckA(from, to) {
+  const a = _aaTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid auto-agent transition ${from} → ${to}`);
+}
+function _aaCountActive(owner) {
+  let n = 0;
+  for (const a of _aaAgents.values())
+    if (a.owner === owner && a.status === AUTOAGENT_MATURITY_V2.ACTIVE) n++;
+  return n;
+}
 
 export function activateAutoAgentV2(id) {
-  const a = _aaAgents.get(id); if (!a) throw new Error(`auto-agent ${id} not found`);
+  const a = _aaAgents.get(id);
+  if (!a) throw new Error(`auto-agent ${id} not found`);
   _aaCheckA(a.status, AUTOAGENT_MATURITY_V2.ACTIVE);
   const recovery = a.status === AUTOAGENT_MATURITY_V2.PAUSED;
-  if (!recovery) { const c = _aaCountActive(a.owner); if (c >= _aaMaxActivePerOwner) throw new Error(`max active auto-agents per owner (${_aaMaxActivePerOwner}) reached for ${a.owner}`); }
-  const now = Date.now(); a.status = AUTOAGENT_MATURITY_V2.ACTIVE; a.updatedAt = now; a.lastTouchedAt = now; if (!a.activatedAt) a.activatedAt = now;
+  if (!recovery) {
+    const c = _aaCountActive(a.owner);
+    if (c >= _aaMaxActivePerOwner)
+      throw new Error(
+        `max active auto-agents per owner (${_aaMaxActivePerOwner}) reached for ${a.owner}`,
+      );
+  }
+  const now = Date.now();
+  a.status = AUTOAGENT_MATURITY_V2.ACTIVE;
+  a.updatedAt = now;
+  a.lastTouchedAt = now;
+  if (!a.activatedAt) a.activatedAt = now;
   return { ...a, metadata: { ...a.metadata } };
 }
-export function pauseAutoAgentV2(id) { const a = _aaAgents.get(id); if (!a) throw new Error(`auto-agent ${id} not found`); _aaCheckA(a.status, AUTOAGENT_MATURITY_V2.PAUSED); a.status = AUTOAGENT_MATURITY_V2.PAUSED; a.updatedAt = Date.now(); return { ...a, metadata: { ...a.metadata } }; }
-export function archiveAutoAgentV2(id) { const a = _aaAgents.get(id); if (!a) throw new Error(`auto-agent ${id} not found`); _aaCheckA(a.status, AUTOAGENT_MATURITY_V2.ARCHIVED); const now = Date.now(); a.status = AUTOAGENT_MATURITY_V2.ARCHIVED; a.updatedAt = now; if (!a.archivedAt) a.archivedAt = now; return { ...a, metadata: { ...a.metadata } }; }
-export function touchAutoAgentV2(id) { const a = _aaAgents.get(id); if (!a) throw new Error(`auto-agent ${id} not found`); if (_aaTerminal.has(a.status)) throw new Error(`cannot touch terminal auto-agent ${id}`); const now = Date.now(); a.lastTouchedAt = now; a.updatedAt = now; return { ...a, metadata: { ...a.metadata } }; }
-export function getAutoAgentV2(id) { const a = _aaAgents.get(id); if (!a) return null; return { ...a, metadata: { ...a.metadata } }; }
-export function listAutoAgentsV2() { return [..._aaAgents.values()].map((a) => ({ ...a, metadata: { ...a.metadata } })); }
+export function pauseAutoAgentV2(id) {
+  const a = _aaAgents.get(id);
+  if (!a) throw new Error(`auto-agent ${id} not found`);
+  _aaCheckA(a.status, AUTOAGENT_MATURITY_V2.PAUSED);
+  a.status = AUTOAGENT_MATURITY_V2.PAUSED;
+  a.updatedAt = Date.now();
+  return { ...a, metadata: { ...a.metadata } };
+}
+export function archiveAutoAgentV2(id) {
+  const a = _aaAgents.get(id);
+  if (!a) throw new Error(`auto-agent ${id} not found`);
+  _aaCheckA(a.status, AUTOAGENT_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  a.status = AUTOAGENT_MATURITY_V2.ARCHIVED;
+  a.updatedAt = now;
+  if (!a.archivedAt) a.archivedAt = now;
+  return { ...a, metadata: { ...a.metadata } };
+}
+export function touchAutoAgentV2(id) {
+  const a = _aaAgents.get(id);
+  if (!a) throw new Error(`auto-agent ${id} not found`);
+  if (_aaTerminal.has(a.status))
+    throw new Error(`cannot touch terminal auto-agent ${id}`);
+  const now = Date.now();
+  a.lastTouchedAt = now;
+  a.updatedAt = now;
+  return { ...a, metadata: { ...a.metadata } };
+}
+export function getAutoAgentV2(id) {
+  const a = _aaAgents.get(id);
+  if (!a) return null;
+  return { ...a, metadata: { ...a.metadata } };
+}
+export function listAutoAgentsV2() {
+  return [..._aaAgents.values()].map((a) => ({
+    ...a,
+    metadata: { ...a.metadata },
+  }));
+}
 
-function _aaCountPendingRuns(aid) { let n = 0; for (const r of _aaRuns.values()) if (r.agentId === aid && (r.status === AUTOAGENT_RUN_LIFECYCLE_V2.QUEUED || r.status === AUTOAGENT_RUN_LIFECYCLE_V2.RUNNING)) n++; return n; }
+function _aaCountPendingRuns(aid) {
+  let n = 0;
+  for (const r of _aaRuns.values())
+    if (
+      r.agentId === aid &&
+      (r.status === AUTOAGENT_RUN_LIFECYCLE_V2.QUEUED ||
+        r.status === AUTOAGENT_RUN_LIFECYCLE_V2.RUNNING)
+    )
+      n++;
+  return n;
+}
 
 export function createAutoAgentRunV2({ id, agentId, prompt, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
-  if (!agentId || typeof agentId !== "string") throw new Error("agentId is required");
+  if (!agentId || typeof agentId !== "string")
+    throw new Error("agentId is required");
   if (_aaRuns.has(id)) throw new Error(`auto-agent run ${id} already exists`);
-  if (!_aaAgents.has(agentId)) throw new Error(`auto-agent ${agentId} not found`);
+  if (!_aaAgents.has(agentId))
+    throw new Error(`auto-agent ${agentId} not found`);
   const pending = _aaCountPendingRuns(agentId);
-  if (pending >= _aaMaxPendingRunsPerAgent) throw new Error(`max pending auto-agent runs per agent (${_aaMaxPendingRunsPerAgent}) reached for ${agentId}`);
+  if (pending >= _aaMaxPendingRunsPerAgent)
+    throw new Error(
+      `max pending auto-agent runs per agent (${_aaMaxPendingRunsPerAgent}) reached for ${agentId}`,
+    );
   const now = Date.now();
-  const r = { id, agentId, prompt: prompt || "", status: AUTOAGENT_RUN_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  const r = {
+    id,
+    agentId,
+    prompt: prompt || "",
+    status: AUTOAGENT_RUN_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
   _aaRuns.set(id, r);
   return { ...r, metadata: { ...r.metadata } };
 }
-function _aaCheckR(from, to) { const a = _aaRunTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid auto-agent run transition ${from} → ${to}`); }
-export function startAutoAgentRunV2(id) { const r = _aaRuns.get(id); if (!r) throw new Error(`auto-agent run ${id} not found`); _aaCheckR(r.status, AUTOAGENT_RUN_LIFECYCLE_V2.RUNNING); const now = Date.now(); r.status = AUTOAGENT_RUN_LIFECYCLE_V2.RUNNING; r.updatedAt = now; if (!r.startedAt) r.startedAt = now; return { ...r, metadata: { ...r.metadata } }; }
-export function completeAutoAgentRunV2(id) { const r = _aaRuns.get(id); if (!r) throw new Error(`auto-agent run ${id} not found`); _aaCheckR(r.status, AUTOAGENT_RUN_LIFECYCLE_V2.COMPLETED); const now = Date.now(); r.status = AUTOAGENT_RUN_LIFECYCLE_V2.COMPLETED; r.updatedAt = now; if (!r.settledAt) r.settledAt = now; return { ...r, metadata: { ...r.metadata } }; }
-export function failAutoAgentRunV2(id, reason) { const r = _aaRuns.get(id); if (!r) throw new Error(`auto-agent run ${id} not found`); _aaCheckR(r.status, AUTOAGENT_RUN_LIFECYCLE_V2.FAILED); const now = Date.now(); r.status = AUTOAGENT_RUN_LIFECYCLE_V2.FAILED; r.updatedAt = now; if (!r.settledAt) r.settledAt = now; if (reason) r.metadata.failReason = String(reason); return { ...r, metadata: { ...r.metadata } }; }
-export function cancelAutoAgentRunV2(id, reason) { const r = _aaRuns.get(id); if (!r) throw new Error(`auto-agent run ${id} not found`); _aaCheckR(r.status, AUTOAGENT_RUN_LIFECYCLE_V2.CANCELLED); const now = Date.now(); r.status = AUTOAGENT_RUN_LIFECYCLE_V2.CANCELLED; r.updatedAt = now; if (!r.settledAt) r.settledAt = now; if (reason) r.metadata.cancelReason = String(reason); return { ...r, metadata: { ...r.metadata } }; }
-export function getAutoAgentRunV2(id) { const r = _aaRuns.get(id); if (!r) return null; return { ...r, metadata: { ...r.metadata } }; }
-export function listAutoAgentRunsV2() { return [..._aaRuns.values()].map((r) => ({ ...r, metadata: { ...r.metadata } })); }
+function _aaCheckR(from, to) {
+  const a = _aaRunTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid auto-agent run transition ${from} → ${to}`);
+}
+export function startAutoAgentRunV2(id) {
+  const r = _aaRuns.get(id);
+  if (!r) throw new Error(`auto-agent run ${id} not found`);
+  _aaCheckR(r.status, AUTOAGENT_RUN_LIFECYCLE_V2.RUNNING);
+  const now = Date.now();
+  r.status = AUTOAGENT_RUN_LIFECYCLE_V2.RUNNING;
+  r.updatedAt = now;
+  if (!r.startedAt) r.startedAt = now;
+  return { ...r, metadata: { ...r.metadata } };
+}
+export function completeAutoAgentRunV2(id) {
+  const r = _aaRuns.get(id);
+  if (!r) throw new Error(`auto-agent run ${id} not found`);
+  _aaCheckR(r.status, AUTOAGENT_RUN_LIFECYCLE_V2.COMPLETED);
+  const now = Date.now();
+  r.status = AUTOAGENT_RUN_LIFECYCLE_V2.COMPLETED;
+  r.updatedAt = now;
+  if (!r.settledAt) r.settledAt = now;
+  return { ...r, metadata: { ...r.metadata } };
+}
+export function failAutoAgentRunV2(id, reason) {
+  const r = _aaRuns.get(id);
+  if (!r) throw new Error(`auto-agent run ${id} not found`);
+  _aaCheckR(r.status, AUTOAGENT_RUN_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  r.status = AUTOAGENT_RUN_LIFECYCLE_V2.FAILED;
+  r.updatedAt = now;
+  if (!r.settledAt) r.settledAt = now;
+  if (reason) r.metadata.failReason = String(reason);
+  return { ...r, metadata: { ...r.metadata } };
+}
+export function cancelAutoAgentRunV2(id, reason) {
+  const r = _aaRuns.get(id);
+  if (!r) throw new Error(`auto-agent run ${id} not found`);
+  _aaCheckR(r.status, AUTOAGENT_RUN_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  r.status = AUTOAGENT_RUN_LIFECYCLE_V2.CANCELLED;
+  r.updatedAt = now;
+  if (!r.settledAt) r.settledAt = now;
+  if (reason) r.metadata.cancelReason = String(reason);
+  return { ...r, metadata: { ...r.metadata } };
+}
+export function getAutoAgentRunV2(id) {
+  const r = _aaRuns.get(id);
+  if (!r) return null;
+  return { ...r, metadata: { ...r.metadata } };
+}
+export function listAutoAgentRunsV2() {
+  return [..._aaRuns.values()].map((r) => ({
+    ...r,
+    metadata: { ...r.metadata },
+  }));
+}
 
-export function autoPauseIdleAutoAgentsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const a of _aaAgents.values()) if (a.status === AUTOAGENT_MATURITY_V2.ACTIVE && (t - a.lastTouchedAt) >= _aaAgentIdleMs) { a.status = AUTOAGENT_MATURITY_V2.PAUSED; a.updatedAt = t; flipped.push(a.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckAutoAgentRunsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const r of _aaRuns.values()) if (r.status === AUTOAGENT_RUN_LIFECYCLE_V2.RUNNING && r.startedAt != null && (t - r.startedAt) >= _aaRunStuckMs) { r.status = AUTOAGENT_RUN_LIFECYCLE_V2.FAILED; r.updatedAt = t; if (!r.settledAt) r.settledAt = t; r.metadata.failReason = "auto-fail-stuck"; flipped.push(r.id); } return { flipped, count: flipped.length }; }
+export function autoPauseIdleAutoAgentsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const a of _aaAgents.values())
+    if (
+      a.status === AUTOAGENT_MATURITY_V2.ACTIVE &&
+      t - a.lastTouchedAt >= _aaAgentIdleMs
+    ) {
+      a.status = AUTOAGENT_MATURITY_V2.PAUSED;
+      a.updatedAt = t;
+      flipped.push(a.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckAutoAgentRunsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const r of _aaRuns.values())
+    if (
+      r.status === AUTOAGENT_RUN_LIFECYCLE_V2.RUNNING &&
+      r.startedAt != null &&
+      t - r.startedAt >= _aaRunStuckMs
+    ) {
+      r.status = AUTOAGENT_RUN_LIFECYCLE_V2.FAILED;
+      r.updatedAt = t;
+      if (!r.settledAt) r.settledAt = t;
+      r.metadata.failReason = "auto-fail-stuck";
+      flipped.push(r.id);
+    }
+  return { flipped, count: flipped.length };
+}
 
 export function getAutonomousAgentGovStatsV2() {
-  const agentsByStatus = {}; for (const s of Object.values(AUTOAGENT_MATURITY_V2)) agentsByStatus[s] = 0; for (const a of _aaAgents.values()) agentsByStatus[a.status]++;
-  const runsByStatus = {}; for (const s of Object.values(AUTOAGENT_RUN_LIFECYCLE_V2)) runsByStatus[s] = 0; for (const r of _aaRuns.values()) runsByStatus[r.status]++;
-  return { totalAutoAgentsV2: _aaAgents.size, totalAutoAgentRunsV2: _aaRuns.size, maxActiveAutoAgentsPerOwner: _aaMaxActivePerOwner, maxPendingAutoAgentRunsPerAgent: _aaMaxPendingRunsPerAgent, autoAgentIdleMs: _aaAgentIdleMs, autoAgentRunStuckMs: _aaRunStuckMs, agentsByStatus, runsByStatus };
+  const agentsByStatus = {};
+  for (const s of Object.values(AUTOAGENT_MATURITY_V2)) agentsByStatus[s] = 0;
+  for (const a of _aaAgents.values()) agentsByStatus[a.status]++;
+  const runsByStatus = {};
+  for (const s of Object.values(AUTOAGENT_RUN_LIFECYCLE_V2))
+    runsByStatus[s] = 0;
+  for (const r of _aaRuns.values()) runsByStatus[r.status]++;
+  return {
+    totalAutoAgentsV2: _aaAgents.size,
+    totalAutoAgentRunsV2: _aaRuns.size,
+    maxActiveAutoAgentsPerOwner: _aaMaxActivePerOwner,
+    maxPendingAutoAgentRunsPerAgent: _aaMaxPendingRunsPerAgent,
+    autoAgentIdleMs: _aaAgentIdleMs,
+    autoAgentRunStuckMs: _aaRunStuckMs,
+    agentsByStatus,
+    runsByStatus,
+  };
 }

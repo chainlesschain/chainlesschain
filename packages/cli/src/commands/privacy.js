@@ -664,3 +664,206 @@ export function registerPrivacyCommand(program) {
 
   program.addCommand(pc);
 }
+
+// === Iter17 V2 governance overlay ===
+export function registerPcgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "privacy");
+  if (!parent) return;
+  const L = async () => await import("../lib/privacy-computing.js");
+  parent
+    .command("pcgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.PCGOV_PROFILE_MATURITY_V2,
+            jobLifecycle: m.PCGOV_JOB_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pcgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActivePcgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingPcgovJobsPerProfileV2(),
+            idleMs: m.getPcgovProfileIdleMsV2(),
+            stuckMs: m.getPcgovJobStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pcgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActivePcgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pcgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingPcgovJobsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pcgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setPcgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pcgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setPcgovJobStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pcgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--technique <v>", "technique")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerPcgovProfileV2({ id, owner, technique: o.technique }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pcgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activatePcgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("pcgov-suspend-v2 <id>")
+    .description("Suspend profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).suspendPcgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("pcgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archivePcgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("pcgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchPcgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("pcgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getPcgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("pcgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listPcgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("pcgov-create-job-v2 <id> <profileId>")
+    .description("Create job")
+    .option("--dataset <v>", "dataset")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createPcgovJobV2({ id, profileId, dataset: o.dataset }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pcgov-computing-job-v2 <id>")
+    .description("Mark job as computing")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).computingPcgovJobV2(id), null, 2));
+    });
+  parent
+    .command("pcgov-complete-job-v2 <id>")
+    .description("Complete job")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completeJobPcgovV2(id), null, 2));
+    });
+  parent
+    .command("pcgov-fail-job-v2 <id> [reason]")
+    .description("Fail job")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failPcgovJobV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("pcgov-cancel-job-v2 <id> [reason]")
+    .description("Cancel job")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelPcgovJobV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("pcgov-get-job-v2 <id>")
+    .description("Get job")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getPcgovJobV2(id), null, 2));
+    });
+  parent
+    .command("pcgov-list-jobs-v2")
+    .description("List jobs")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listPcgovJobsV2(), null, 2));
+    });
+  parent
+    .command("pcgov-auto-suspend-idle-v2")
+    .description("Auto-suspend idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoSuspendIdlePcgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("pcgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck jobs")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckPcgovJobsV2(), null, 2),
+      );
+    });
+  parent
+    .command("pcgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getPrivacyComputingGovStatsV2(), null, 2),
+      );
+    });
+}

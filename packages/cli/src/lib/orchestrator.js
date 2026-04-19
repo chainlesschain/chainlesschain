@@ -437,25 +437,62 @@ function _extractChangedFiles(output) {
   return matches.map((m) => m.split(/:\s+/)[1]).filter(Boolean);
 }
 
-
 // ===== V2 Surface: Orchestrator governance overlay (CLI v0.140.0) =====
 export const ORCH_PROFILE_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", PAUSED: "paused", RETIRED: "retired",
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  RETIRED: "retired",
 });
 export const ORCH_TASK_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", DISPATCHING: "dispatching", COMPLETED: "completed", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  DISPATCHING: "dispatching",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 
 const _opTrans = new Map([
-  [ORCH_PROFILE_MATURITY_V2.PENDING, new Set([ORCH_PROFILE_MATURITY_V2.ACTIVE, ORCH_PROFILE_MATURITY_V2.RETIRED])],
-  [ORCH_PROFILE_MATURITY_V2.ACTIVE, new Set([ORCH_PROFILE_MATURITY_V2.PAUSED, ORCH_PROFILE_MATURITY_V2.RETIRED])],
-  [ORCH_PROFILE_MATURITY_V2.PAUSED, new Set([ORCH_PROFILE_MATURITY_V2.ACTIVE, ORCH_PROFILE_MATURITY_V2.RETIRED])],
+  [
+    ORCH_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      ORCH_PROFILE_MATURITY_V2.ACTIVE,
+      ORCH_PROFILE_MATURITY_V2.RETIRED,
+    ]),
+  ],
+  [
+    ORCH_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      ORCH_PROFILE_MATURITY_V2.PAUSED,
+      ORCH_PROFILE_MATURITY_V2.RETIRED,
+    ]),
+  ],
+  [
+    ORCH_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      ORCH_PROFILE_MATURITY_V2.ACTIVE,
+      ORCH_PROFILE_MATURITY_V2.RETIRED,
+    ]),
+  ],
   [ORCH_PROFILE_MATURITY_V2.RETIRED, new Set()],
 ]);
 const _opTerminal = new Set([ORCH_PROFILE_MATURITY_V2.RETIRED]);
 const _otTrans = new Map([
-  [ORCH_TASK_LIFECYCLE_V2.QUEUED, new Set([ORCH_TASK_LIFECYCLE_V2.DISPATCHING, ORCH_TASK_LIFECYCLE_V2.CANCELLED])],
-  [ORCH_TASK_LIFECYCLE_V2.DISPATCHING, new Set([ORCH_TASK_LIFECYCLE_V2.COMPLETED, ORCH_TASK_LIFECYCLE_V2.FAILED, ORCH_TASK_LIFECYCLE_V2.CANCELLED])],
+  [
+    ORCH_TASK_LIFECYCLE_V2.QUEUED,
+    new Set([
+      ORCH_TASK_LIFECYCLE_V2.DISPATCHING,
+      ORCH_TASK_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    ORCH_TASK_LIFECYCLE_V2.DISPATCHING,
+    new Set([
+      ORCH_TASK_LIFECYCLE_V2.COMPLETED,
+      ORCH_TASK_LIFECYCLE_V2.FAILED,
+      ORCH_TASK_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [ORCH_TASK_LIFECYCLE_V2.COMPLETED, new Set()],
   [ORCH_TASK_LIFECYCLE_V2.FAILED, new Set()],
   [ORCH_TASK_LIFECYCLE_V2.CANCELLED, new Set()],
@@ -468,21 +505,45 @@ let _opMaxPendingTasksPerProfile = 12;
 let _opIdleMs = 14 * 24 * 60 * 60 * 1000;
 let _otStuckMs = 15 * 60 * 1000;
 
-function _opPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+function _opPos(n, lbl) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${lbl} must be positive integer`);
+  return v;
+}
 
-export function setMaxActiveOrchProfilesPerOwnerV2(n) { _opMaxActivePerOwner = _opPos(n, "maxActiveOrchProfilesPerOwner"); }
-export function getMaxActiveOrchProfilesPerOwnerV2() { return _opMaxActivePerOwner; }
-export function setMaxPendingOrchTasksPerProfileV2(n) { _opMaxPendingTasksPerProfile = _opPos(n, "maxPendingOrchTasksPerProfile"); }
-export function getMaxPendingOrchTasksPerProfileV2() { return _opMaxPendingTasksPerProfile; }
-export function setOrchProfileIdleMsV2(n) { _opIdleMs = _opPos(n, "orchProfileIdleMs"); }
-export function getOrchProfileIdleMsV2() { return _opIdleMs; }
-export function setOrchTaskStuckMsV2(n) { _otStuckMs = _opPos(n, "orchTaskStuckMs"); }
-export function getOrchTaskStuckMsV2() { return _otStuckMs; }
+export function setMaxActiveOrchProfilesPerOwnerV2(n) {
+  _opMaxActivePerOwner = _opPos(n, "maxActiveOrchProfilesPerOwner");
+}
+export function getMaxActiveOrchProfilesPerOwnerV2() {
+  return _opMaxActivePerOwner;
+}
+export function setMaxPendingOrchTasksPerProfileV2(n) {
+  _opMaxPendingTasksPerProfile = _opPos(n, "maxPendingOrchTasksPerProfile");
+}
+export function getMaxPendingOrchTasksPerProfileV2() {
+  return _opMaxPendingTasksPerProfile;
+}
+export function setOrchProfileIdleMsV2(n) {
+  _opIdleMs = _opPos(n, "orchProfileIdleMs");
+}
+export function getOrchProfileIdleMsV2() {
+  return _opIdleMs;
+}
+export function setOrchTaskStuckMsV2(n) {
+  _otStuckMs = _opPos(n, "orchTaskStuckMs");
+}
+export function getOrchTaskStuckMsV2() {
+  return _otStuckMs;
+}
 
 export function _resetStateOrchestratorV2() {
-  _opsV2.clear(); _otsV2.clear();
-  _opMaxActivePerOwner = 6; _opMaxPendingTasksPerProfile = 12;
-  _opIdleMs = 14 * 24 * 60 * 60 * 1000; _otStuckMs = 15 * 60 * 1000;
+  _opsV2.clear();
+  _otsV2.clear();
+  _opMaxActivePerOwner = 6;
+  _opMaxPendingTasksPerProfile = 12;
+  _opIdleMs = 14 * 24 * 60 * 60 * 1000;
+  _otStuckMs = 15 * 60 * 1000;
 }
 
 export function registerOrchProfileV2({ id, owner, source, metadata } = {}) {
@@ -490,54 +551,238 @@ export function registerOrchProfileV2({ id, owner, source, metadata } = {}) {
   if (!owner || typeof owner !== "string") throw new Error("owner is required");
   if (_opsV2.has(id)) throw new Error(`orch profile ${id} already registered`);
   const now = Date.now();
-  const p = { id, owner, source: source || "cli", status: ORCH_PROFILE_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, retiredAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  const p = {
+    id,
+    owner,
+    source: source || "cli",
+    status: ORCH_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    retiredAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
   _opsV2.set(id, p);
   return { ...p, metadata: { ...p.metadata } };
 }
-function _opCheckP(from, to) { const a = _opTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid orch profile transition ${from} → ${to}`); }
-function _opCountActive(owner) { let n = 0; for (const p of _opsV2.values()) if (p.owner === owner && p.status === ORCH_PROFILE_MATURITY_V2.ACTIVE) n++; return n; }
+function _opCheckP(from, to) {
+  const a = _opTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid orch profile transition ${from} → ${to}`);
+}
+function _opCountActive(owner) {
+  let n = 0;
+  for (const p of _opsV2.values())
+    if (p.owner === owner && p.status === ORCH_PROFILE_MATURITY_V2.ACTIVE) n++;
+  return n;
+}
 
 export function activateOrchProfileV2(id) {
-  const p = _opsV2.get(id); if (!p) throw new Error(`orch profile ${id} not found`);
+  const p = _opsV2.get(id);
+  if (!p) throw new Error(`orch profile ${id} not found`);
   _opCheckP(p.status, ORCH_PROFILE_MATURITY_V2.ACTIVE);
   const recovery = p.status === ORCH_PROFILE_MATURITY_V2.PAUSED;
-  if (!recovery) { const c = _opCountActive(p.owner); if (c >= _opMaxActivePerOwner) throw new Error(`max active orch profiles per owner (${_opMaxActivePerOwner}) reached for ${p.owner}`); }
-  const now = Date.now(); p.status = ORCH_PROFILE_MATURITY_V2.ACTIVE; p.updatedAt = now; p.lastTouchedAt = now; if (!p.activatedAt) p.activatedAt = now;
+  if (!recovery) {
+    const c = _opCountActive(p.owner);
+    if (c >= _opMaxActivePerOwner)
+      throw new Error(
+        `max active orch profiles per owner (${_opMaxActivePerOwner}) reached for ${p.owner}`,
+      );
+  }
+  const now = Date.now();
+  p.status = ORCH_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
   return { ...p, metadata: { ...p.metadata } };
 }
-export function pauseOrchProfileV2(id) { const p = _opsV2.get(id); if (!p) throw new Error(`orch profile ${id} not found`); _opCheckP(p.status, ORCH_PROFILE_MATURITY_V2.PAUSED); p.status = ORCH_PROFILE_MATURITY_V2.PAUSED; p.updatedAt = Date.now(); return { ...p, metadata: { ...p.metadata } }; }
-export function retireOrchProfileV2(id) { const p = _opsV2.get(id); if (!p) throw new Error(`orch profile ${id} not found`); _opCheckP(p.status, ORCH_PROFILE_MATURITY_V2.RETIRED); const now = Date.now(); p.status = ORCH_PROFILE_MATURITY_V2.RETIRED; p.updatedAt = now; if (!p.retiredAt) p.retiredAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function touchOrchProfileV2(id) { const p = _opsV2.get(id); if (!p) throw new Error(`orch profile ${id} not found`); if (_opTerminal.has(p.status)) throw new Error(`cannot touch terminal orch profile ${id}`); const now = Date.now(); p.lastTouchedAt = now; p.updatedAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function getOrchProfileV2(id) { const p = _opsV2.get(id); if (!p) return null; return { ...p, metadata: { ...p.metadata } }; }
-export function listOrchProfilesV2() { return [..._opsV2.values()].map((p) => ({ ...p, metadata: { ...p.metadata } })); }
+export function pauseOrchProfileV2(id) {
+  const p = _opsV2.get(id);
+  if (!p) throw new Error(`orch profile ${id} not found`);
+  _opCheckP(p.status, ORCH_PROFILE_MATURITY_V2.PAUSED);
+  p.status = ORCH_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function retireOrchProfileV2(id) {
+  const p = _opsV2.get(id);
+  if (!p) throw new Error(`orch profile ${id} not found`);
+  _opCheckP(p.status, ORCH_PROFILE_MATURITY_V2.RETIRED);
+  const now = Date.now();
+  p.status = ORCH_PROFILE_MATURITY_V2.RETIRED;
+  p.updatedAt = now;
+  if (!p.retiredAt) p.retiredAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchOrchProfileV2(id) {
+  const p = _opsV2.get(id);
+  if (!p) throw new Error(`orch profile ${id} not found`);
+  if (_opTerminal.has(p.status))
+    throw new Error(`cannot touch terminal orch profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getOrchProfileV2(id) {
+  const p = _opsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listOrchProfilesV2() {
+  return [..._opsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
 
-function _otCountPending(profileId) { let n = 0; for (const t of _otsV2.values()) if (t.profileId === profileId && (t.status === ORCH_TASK_LIFECYCLE_V2.QUEUED || t.status === ORCH_TASK_LIFECYCLE_V2.DISPATCHING)) n++; return n; }
+function _otCountPending(profileId) {
+  let n = 0;
+  for (const t of _otsV2.values())
+    if (
+      t.profileId === profileId &&
+      (t.status === ORCH_TASK_LIFECYCLE_V2.QUEUED ||
+        t.status === ORCH_TASK_LIFECYCLE_V2.DISPATCHING)
+    )
+      n++;
+  return n;
+}
 
 export function createOrchTaskV2({ id, profileId, prompt, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
-  if (!profileId || typeof profileId !== "string") throw new Error("profileId is required");
+  if (!profileId || typeof profileId !== "string")
+    throw new Error("profileId is required");
   if (_otsV2.has(id)) throw new Error(`orch task ${id} already exists`);
-  if (!_opsV2.has(profileId)) throw new Error(`orch profile ${profileId} not found`);
+  if (!_opsV2.has(profileId))
+    throw new Error(`orch profile ${profileId} not found`);
   const pending = _otCountPending(profileId);
-  if (pending >= _opMaxPendingTasksPerProfile) throw new Error(`max pending orch tasks per profile (${_opMaxPendingTasksPerProfile}) reached for ${profileId}`);
+  if (pending >= _opMaxPendingTasksPerProfile)
+    throw new Error(
+      `max pending orch tasks per profile (${_opMaxPendingTasksPerProfile}) reached for ${profileId}`,
+    );
   const now = Date.now();
-  const t = { id, profileId, prompt: prompt || "", status: ORCH_TASK_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  const t = {
+    id,
+    profileId,
+    prompt: prompt || "",
+    status: ORCH_TASK_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
   _otsV2.set(id, t);
   return { ...t, metadata: { ...t.metadata } };
 }
-function _otCheckT(from, to) { const a = _otTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid orch task transition ${from} → ${to}`); }
-export function dispatchOrchTaskV2(id) { const t = _otsV2.get(id); if (!t) throw new Error(`orch task ${id} not found`); _otCheckT(t.status, ORCH_TASK_LIFECYCLE_V2.DISPATCHING); const now = Date.now(); t.status = ORCH_TASK_LIFECYCLE_V2.DISPATCHING; t.updatedAt = now; if (!t.startedAt) t.startedAt = now; return { ...t, metadata: { ...t.metadata } }; }
-export function completeOrchTaskV2(id) { const t = _otsV2.get(id); if (!t) throw new Error(`orch task ${id} not found`); _otCheckT(t.status, ORCH_TASK_LIFECYCLE_V2.COMPLETED); const now = Date.now(); t.status = ORCH_TASK_LIFECYCLE_V2.COMPLETED; t.updatedAt = now; if (!t.settledAt) t.settledAt = now; return { ...t, metadata: { ...t.metadata } }; }
-export function failOrchTaskV2(id, reason) { const t = _otsV2.get(id); if (!t) throw new Error(`orch task ${id} not found`); _otCheckT(t.status, ORCH_TASK_LIFECYCLE_V2.FAILED); const now = Date.now(); t.status = ORCH_TASK_LIFECYCLE_V2.FAILED; t.updatedAt = now; if (!t.settledAt) t.settledAt = now; if (reason) t.metadata.failReason = String(reason); return { ...t, metadata: { ...t.metadata } }; }
-export function cancelOrchTaskV2(id, reason) { const t = _otsV2.get(id); if (!t) throw new Error(`orch task ${id} not found`); _otCheckT(t.status, ORCH_TASK_LIFECYCLE_V2.CANCELLED); const now = Date.now(); t.status = ORCH_TASK_LIFECYCLE_V2.CANCELLED; t.updatedAt = now; if (!t.settledAt) t.settledAt = now; if (reason) t.metadata.cancelReason = String(reason); return { ...t, metadata: { ...t.metadata } }; }
-export function getOrchTaskV2(id) { const t = _otsV2.get(id); if (!t) return null; return { ...t, metadata: { ...t.metadata } }; }
-export function listOrchTasksV2() { return [..._otsV2.values()].map((t) => ({ ...t, metadata: { ...t.metadata } })); }
+function _otCheckT(from, to) {
+  const a = _otTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid orch task transition ${from} → ${to}`);
+}
+export function dispatchOrchTaskV2(id) {
+  const t = _otsV2.get(id);
+  if (!t) throw new Error(`orch task ${id} not found`);
+  _otCheckT(t.status, ORCH_TASK_LIFECYCLE_V2.DISPATCHING);
+  const now = Date.now();
+  t.status = ORCH_TASK_LIFECYCLE_V2.DISPATCHING;
+  t.updatedAt = now;
+  if (!t.startedAt) t.startedAt = now;
+  return { ...t, metadata: { ...t.metadata } };
+}
+export function completeOrchTaskV2(id) {
+  const t = _otsV2.get(id);
+  if (!t) throw new Error(`orch task ${id} not found`);
+  _otCheckT(t.status, ORCH_TASK_LIFECYCLE_V2.COMPLETED);
+  const now = Date.now();
+  t.status = ORCH_TASK_LIFECYCLE_V2.COMPLETED;
+  t.updatedAt = now;
+  if (!t.settledAt) t.settledAt = now;
+  return { ...t, metadata: { ...t.metadata } };
+}
+export function failOrchTaskV2(id, reason) {
+  const t = _otsV2.get(id);
+  if (!t) throw new Error(`orch task ${id} not found`);
+  _otCheckT(t.status, ORCH_TASK_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  t.status = ORCH_TASK_LIFECYCLE_V2.FAILED;
+  t.updatedAt = now;
+  if (!t.settledAt) t.settledAt = now;
+  if (reason) t.metadata.failReason = String(reason);
+  return { ...t, metadata: { ...t.metadata } };
+}
+export function cancelOrchTaskV2(id, reason) {
+  const t = _otsV2.get(id);
+  if (!t) throw new Error(`orch task ${id} not found`);
+  _otCheckT(t.status, ORCH_TASK_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  t.status = ORCH_TASK_LIFECYCLE_V2.CANCELLED;
+  t.updatedAt = now;
+  if (!t.settledAt) t.settledAt = now;
+  if (reason) t.metadata.cancelReason = String(reason);
+  return { ...t, metadata: { ...t.metadata } };
+}
+export function getOrchTaskV2(id) {
+  const t = _otsV2.get(id);
+  if (!t) return null;
+  return { ...t, metadata: { ...t.metadata } };
+}
+export function listOrchTasksV2() {
+  return [..._otsV2.values()].map((t) => ({
+    ...t,
+    metadata: { ...t.metadata },
+  }));
+}
 
-export function autoPauseIdleOrchProfilesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const p of _opsV2.values()) if (p.status === ORCH_PROFILE_MATURITY_V2.ACTIVE && (t - p.lastTouchedAt) >= _opIdleMs) { p.status = ORCH_PROFILE_MATURITY_V2.PAUSED; p.updatedAt = t; flipped.push(p.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckOrchTasksV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const x of _otsV2.values()) if (x.status === ORCH_TASK_LIFECYCLE_V2.DISPATCHING && x.startedAt != null && (t - x.startedAt) >= _otStuckMs) { x.status = ORCH_TASK_LIFECYCLE_V2.FAILED; x.updatedAt = t; if (!x.settledAt) x.settledAt = t; x.metadata.failReason = "auto-fail-stuck"; flipped.push(x.id); } return { flipped, count: flipped.length }; }
+export function autoPauseIdleOrchProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _opsV2.values())
+    if (
+      p.status === ORCH_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _opIdleMs
+    ) {
+      p.status = ORCH_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckOrchTasksV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const x of _otsV2.values())
+    if (
+      x.status === ORCH_TASK_LIFECYCLE_V2.DISPATCHING &&
+      x.startedAt != null &&
+      t - x.startedAt >= _otStuckMs
+    ) {
+      x.status = ORCH_TASK_LIFECYCLE_V2.FAILED;
+      x.updatedAt = t;
+      if (!x.settledAt) x.settledAt = t;
+      x.metadata.failReason = "auto-fail-stuck";
+      flipped.push(x.id);
+    }
+  return { flipped, count: flipped.length };
+}
 
 export function getOrchestratorGovStatsV2() {
-  const profilesByStatus = {}; for (const s of Object.values(ORCH_PROFILE_MATURITY_V2)) profilesByStatus[s] = 0; for (const p of _opsV2.values()) profilesByStatus[p.status]++;
-  const tasksByStatus = {}; for (const s of Object.values(ORCH_TASK_LIFECYCLE_V2)) tasksByStatus[s] = 0; for (const t of _otsV2.values()) tasksByStatus[t.status]++;
-  return { totalOrchProfilesV2: _opsV2.size, totalOrchTasksV2: _otsV2.size, maxActiveOrchProfilesPerOwner: _opMaxActivePerOwner, maxPendingOrchTasksPerProfile: _opMaxPendingTasksPerProfile, orchProfileIdleMs: _opIdleMs, orchTaskStuckMs: _otStuckMs, profilesByStatus, tasksByStatus };
+  const profilesByStatus = {};
+  for (const s of Object.values(ORCH_PROFILE_MATURITY_V2))
+    profilesByStatus[s] = 0;
+  for (const p of _opsV2.values()) profilesByStatus[p.status]++;
+  const tasksByStatus = {};
+  for (const s of Object.values(ORCH_TASK_LIFECYCLE_V2)) tasksByStatus[s] = 0;
+  for (const t of _otsV2.values()) tasksByStatus[t.status]++;
+  return {
+    totalOrchProfilesV2: _opsV2.size,
+    totalOrchTasksV2: _otsV2.size,
+    maxActiveOrchProfilesPerOwner: _opMaxActivePerOwner,
+    maxPendingOrchTasksPerProfile: _opMaxPendingTasksPerProfile,
+    orchProfileIdleMs: _opIdleMs,
+    orchTaskStuckMs: _otStuckMs,
+    profilesByStatus,
+    tasksByStatus,
+  };
 }

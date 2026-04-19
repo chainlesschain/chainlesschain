@@ -743,25 +743,53 @@ export function getZKPStatsV2() {
   };
 }
 
-
 // ===== V2 Surface: ZKP Engine governance overlay (CLI v0.136.0) =====
 export const ZKP_CIRCUIT_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", DEPRECATED: "deprecated", ARCHIVED: "archived",
+  PENDING: "pending",
+  ACTIVE: "active",
+  DEPRECATED: "deprecated",
+  ARCHIVED: "archived",
 });
 export const ZKP_PROOF_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", PROVING: "proving", VERIFIED: "verified", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  PROVING: "proving",
+  VERIFIED: "verified",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 
 const _zkpCircTrans = new Map([
-  [ZKP_CIRCUIT_MATURITY_V2.PENDING, new Set([ZKP_CIRCUIT_MATURITY_V2.ACTIVE, ZKP_CIRCUIT_MATURITY_V2.ARCHIVED])],
-  [ZKP_CIRCUIT_MATURITY_V2.ACTIVE, new Set([ZKP_CIRCUIT_MATURITY_V2.DEPRECATED, ZKP_CIRCUIT_MATURITY_V2.ARCHIVED])],
-  [ZKP_CIRCUIT_MATURITY_V2.DEPRECATED, new Set([ZKP_CIRCUIT_MATURITY_V2.ACTIVE, ZKP_CIRCUIT_MATURITY_V2.ARCHIVED])],
+  [
+    ZKP_CIRCUIT_MATURITY_V2.PENDING,
+    new Set([ZKP_CIRCUIT_MATURITY_V2.ACTIVE, ZKP_CIRCUIT_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    ZKP_CIRCUIT_MATURITY_V2.ACTIVE,
+    new Set([
+      ZKP_CIRCUIT_MATURITY_V2.DEPRECATED,
+      ZKP_CIRCUIT_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    ZKP_CIRCUIT_MATURITY_V2.DEPRECATED,
+    new Set([ZKP_CIRCUIT_MATURITY_V2.ACTIVE, ZKP_CIRCUIT_MATURITY_V2.ARCHIVED]),
+  ],
   [ZKP_CIRCUIT_MATURITY_V2.ARCHIVED, new Set()],
 ]);
 const _zkpCircTerminal = new Set([ZKP_CIRCUIT_MATURITY_V2.ARCHIVED]);
 const _zkpProofTrans = new Map([
-  [ZKP_PROOF_LIFECYCLE_V2.QUEUED, new Set([ZKP_PROOF_LIFECYCLE_V2.PROVING, ZKP_PROOF_LIFECYCLE_V2.CANCELLED])],
-  [ZKP_PROOF_LIFECYCLE_V2.PROVING, new Set([ZKP_PROOF_LIFECYCLE_V2.VERIFIED, ZKP_PROOF_LIFECYCLE_V2.FAILED, ZKP_PROOF_LIFECYCLE_V2.CANCELLED])],
+  [
+    ZKP_PROOF_LIFECYCLE_V2.QUEUED,
+    new Set([ZKP_PROOF_LIFECYCLE_V2.PROVING, ZKP_PROOF_LIFECYCLE_V2.CANCELLED]),
+  ],
+  [
+    ZKP_PROOF_LIFECYCLE_V2.PROVING,
+    new Set([
+      ZKP_PROOF_LIFECYCLE_V2.VERIFIED,
+      ZKP_PROOF_LIFECYCLE_V2.FAILED,
+      ZKP_PROOF_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [ZKP_PROOF_LIFECYCLE_V2.VERIFIED, new Set()],
   [ZKP_PROOF_LIFECYCLE_V2.FAILED, new Set()],
   [ZKP_PROOF_LIFECYCLE_V2.CANCELLED, new Set()],
@@ -774,76 +802,285 @@ let _zkpMaxPendingPerCircuit = 15;
 let _zkpCircuitIdleMs = 30 * 24 * 60 * 60 * 1000;
 let _zkpProofStuckMs = 10 * 60 * 1000;
 
-function _zkpPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+function _zkpPos(n, lbl) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${lbl} must be positive integer`);
+  return v;
+}
 
-export function setMaxActiveZkpCircuitsPerOwnerV2(n) { _zkpMaxActivePerOwner = _zkpPos(n, "maxActiveZkpCircuitsPerOwner"); }
-export function getMaxActiveZkpCircuitsPerOwnerV2() { return _zkpMaxActivePerOwner; }
-export function setMaxPendingZkpProofsPerCircuitV2(n) { _zkpMaxPendingPerCircuit = _zkpPos(n, "maxPendingZkpProofsPerCircuit"); }
-export function getMaxPendingZkpProofsPerCircuitV2() { return _zkpMaxPendingPerCircuit; }
-export function setZkpCircuitIdleMsV2(n) { _zkpCircuitIdleMs = _zkpPos(n, "zkpCircuitIdleMs"); }
-export function getZkpCircuitIdleMsV2() { return _zkpCircuitIdleMs; }
-export function setZkpProofStuckMsV2(n) { _zkpProofStuckMs = _zkpPos(n, "zkpProofStuckMs"); }
-export function getZkpProofStuckMsV2() { return _zkpProofStuckMs; }
+export function setMaxActiveZkpCircuitsPerOwnerV2(n) {
+  _zkpMaxActivePerOwner = _zkpPos(n, "maxActiveZkpCircuitsPerOwner");
+}
+export function getMaxActiveZkpCircuitsPerOwnerV2() {
+  return _zkpMaxActivePerOwner;
+}
+export function setMaxPendingZkpProofsPerCircuitV2(n) {
+  _zkpMaxPendingPerCircuit = _zkpPos(n, "maxPendingZkpProofsPerCircuit");
+}
+export function getMaxPendingZkpProofsPerCircuitV2() {
+  return _zkpMaxPendingPerCircuit;
+}
+export function setZkpCircuitIdleMsV2(n) {
+  _zkpCircuitIdleMs = _zkpPos(n, "zkpCircuitIdleMs");
+}
+export function getZkpCircuitIdleMsV2() {
+  return _zkpCircuitIdleMs;
+}
+export function setZkpProofStuckMsV2(n) {
+  _zkpProofStuckMs = _zkpPos(n, "zkpProofStuckMs");
+}
+export function getZkpProofStuckMsV2() {
+  return _zkpProofStuckMs;
+}
 
 export function _resetStateZkpEngineV2() {
-  _zkpCircs.clear(); _zkpProofs.clear();
-  _zkpMaxActivePerOwner = 10; _zkpMaxPendingPerCircuit = 15;
-  _zkpCircuitIdleMs = 30 * 24 * 60 * 60 * 1000; _zkpProofStuckMs = 10 * 60 * 1000;
+  _zkpCircs.clear();
+  _zkpProofs.clear();
+  _zkpMaxActivePerOwner = 10;
+  _zkpMaxPendingPerCircuit = 15;
+  _zkpCircuitIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _zkpProofStuckMs = 10 * 60 * 1000;
 }
 
 export function registerZkpCircuitV2({ id, owner, scheme, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
   if (!owner || typeof owner !== "string") throw new Error("owner is required");
-  if (_zkpCircs.has(id)) throw new Error(`zkp circuit ${id} already registered`);
+  if (_zkpCircs.has(id))
+    throw new Error(`zkp circuit ${id} already registered`);
   const now = Date.now();
-  const c = { id, owner, scheme: scheme || "groth16", status: ZKP_CIRCUIT_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, archivedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  const c = {
+    id,
+    owner,
+    scheme: scheme || "groth16",
+    status: ZKP_CIRCUIT_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
   _zkpCircs.set(id, c);
   return { ...c, metadata: { ...c.metadata } };
 }
-function _zkpCheckC(from, to) { const a = _zkpCircTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid zkp circuit transition ${from} → ${to}`); }
-function _zkpCountActive(owner) { let n = 0; for (const c of _zkpCircs.values()) if (c.owner === owner && c.status === ZKP_CIRCUIT_MATURITY_V2.ACTIVE) n++; return n; }
+function _zkpCheckC(from, to) {
+  const a = _zkpCircTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid zkp circuit transition ${from} → ${to}`);
+}
+function _zkpCountActive(owner) {
+  let n = 0;
+  for (const c of _zkpCircs.values())
+    if (c.owner === owner && c.status === ZKP_CIRCUIT_MATURITY_V2.ACTIVE) n++;
+  return n;
+}
 
 export function activateZkpCircuitV2(id) {
-  const c = _zkpCircs.get(id); if (!c) throw new Error(`zkp circuit ${id} not found`);
+  const c = _zkpCircs.get(id);
+  if (!c) throw new Error(`zkp circuit ${id} not found`);
   _zkpCheckC(c.status, ZKP_CIRCUIT_MATURITY_V2.ACTIVE);
   const recovery = c.status === ZKP_CIRCUIT_MATURITY_V2.DEPRECATED;
-  if (!recovery) { const a = _zkpCountActive(c.owner); if (a >= _zkpMaxActivePerOwner) throw new Error(`max active zkp circuits per owner (${_zkpMaxActivePerOwner}) reached for ${c.owner}`); }
-  const now = Date.now(); c.status = ZKP_CIRCUIT_MATURITY_V2.ACTIVE; c.updatedAt = now; c.lastTouchedAt = now; if (!c.activatedAt) c.activatedAt = now;
+  if (!recovery) {
+    const a = _zkpCountActive(c.owner);
+    if (a >= _zkpMaxActivePerOwner)
+      throw new Error(
+        `max active zkp circuits per owner (${_zkpMaxActivePerOwner}) reached for ${c.owner}`,
+      );
+  }
+  const now = Date.now();
+  c.status = ZKP_CIRCUIT_MATURITY_V2.ACTIVE;
+  c.updatedAt = now;
+  c.lastTouchedAt = now;
+  if (!c.activatedAt) c.activatedAt = now;
   return { ...c, metadata: { ...c.metadata } };
 }
-export function deprecateZkpCircuitV2(id) { const c = _zkpCircs.get(id); if (!c) throw new Error(`zkp circuit ${id} not found`); _zkpCheckC(c.status, ZKP_CIRCUIT_MATURITY_V2.DEPRECATED); c.status = ZKP_CIRCUIT_MATURITY_V2.DEPRECATED; c.updatedAt = Date.now(); return { ...c, metadata: { ...c.metadata } }; }
-export function archiveZkpCircuitV2(id) { const c = _zkpCircs.get(id); if (!c) throw new Error(`zkp circuit ${id} not found`); _zkpCheckC(c.status, ZKP_CIRCUIT_MATURITY_V2.ARCHIVED); const now = Date.now(); c.status = ZKP_CIRCUIT_MATURITY_V2.ARCHIVED; c.updatedAt = now; if (!c.archivedAt) c.archivedAt = now; return { ...c, metadata: { ...c.metadata } }; }
-export function touchZkpCircuitV2(id) { const c = _zkpCircs.get(id); if (!c) throw new Error(`zkp circuit ${id} not found`); if (_zkpCircTerminal.has(c.status)) throw new Error(`cannot touch terminal zkp circuit ${id}`); const now = Date.now(); c.lastTouchedAt = now; c.updatedAt = now; return { ...c, metadata: { ...c.metadata } }; }
-export function getZkpCircuitV2(id) { const c = _zkpCircs.get(id); if (!c) return null; return { ...c, metadata: { ...c.metadata } }; }
-export function listZkpCircuitsV2() { return [..._zkpCircs.values()].map((c) => ({ ...c, metadata: { ...c.metadata } })); }
+export function deprecateZkpCircuitV2(id) {
+  const c = _zkpCircs.get(id);
+  if (!c) throw new Error(`zkp circuit ${id} not found`);
+  _zkpCheckC(c.status, ZKP_CIRCUIT_MATURITY_V2.DEPRECATED);
+  c.status = ZKP_CIRCUIT_MATURITY_V2.DEPRECATED;
+  c.updatedAt = Date.now();
+  return { ...c, metadata: { ...c.metadata } };
+}
+export function archiveZkpCircuitV2(id) {
+  const c = _zkpCircs.get(id);
+  if (!c) throw new Error(`zkp circuit ${id} not found`);
+  _zkpCheckC(c.status, ZKP_CIRCUIT_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  c.status = ZKP_CIRCUIT_MATURITY_V2.ARCHIVED;
+  c.updatedAt = now;
+  if (!c.archivedAt) c.archivedAt = now;
+  return { ...c, metadata: { ...c.metadata } };
+}
+export function touchZkpCircuitV2(id) {
+  const c = _zkpCircs.get(id);
+  if (!c) throw new Error(`zkp circuit ${id} not found`);
+  if (_zkpCircTerminal.has(c.status))
+    throw new Error(`cannot touch terminal zkp circuit ${id}`);
+  const now = Date.now();
+  c.lastTouchedAt = now;
+  c.updatedAt = now;
+  return { ...c, metadata: { ...c.metadata } };
+}
+export function getZkpCircuitV2(id) {
+  const c = _zkpCircs.get(id);
+  if (!c) return null;
+  return { ...c, metadata: { ...c.metadata } };
+}
+export function listZkpCircuitsV2() {
+  return [..._zkpCircs.values()].map((c) => ({
+    ...c,
+    metadata: { ...c.metadata },
+  }));
+}
 
-function _zkpCountPending(cid) { let n = 0; for (const p of _zkpProofs.values()) if (p.circuitId === cid && (p.status === ZKP_PROOF_LIFECYCLE_V2.QUEUED || p.status === ZKP_PROOF_LIFECYCLE_V2.PROVING)) n++; return n; }
+function _zkpCountPending(cid) {
+  let n = 0;
+  for (const p of _zkpProofs.values())
+    if (
+      p.circuitId === cid &&
+      (p.status === ZKP_PROOF_LIFECYCLE_V2.QUEUED ||
+        p.status === ZKP_PROOF_LIFECYCLE_V2.PROVING)
+    )
+      n++;
+  return n;
+}
 
 export function createZkpProofV2({ id, circuitId, inputs, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
-  if (!circuitId || typeof circuitId !== "string") throw new Error("circuitId is required");
+  if (!circuitId || typeof circuitId !== "string")
+    throw new Error("circuitId is required");
   if (_zkpProofs.has(id)) throw new Error(`zkp proof ${id} already exists`);
-  if (!_zkpCircs.has(circuitId)) throw new Error(`zkp circuit ${circuitId} not found`);
+  if (!_zkpCircs.has(circuitId))
+    throw new Error(`zkp circuit ${circuitId} not found`);
   const pending = _zkpCountPending(circuitId);
-  if (pending >= _zkpMaxPendingPerCircuit) throw new Error(`max pending zkp proofs per circuit (${_zkpMaxPendingPerCircuit}) reached for ${circuitId}`);
+  if (pending >= _zkpMaxPendingPerCircuit)
+    throw new Error(
+      `max pending zkp proofs per circuit (${_zkpMaxPendingPerCircuit}) reached for ${circuitId}`,
+    );
   const now = Date.now();
-  const p = { id, circuitId, inputs: inputs || "", status: ZKP_PROOF_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  const p = {
+    id,
+    circuitId,
+    inputs: inputs || "",
+    status: ZKP_PROOF_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
   _zkpProofs.set(id, p);
   return { ...p, metadata: { ...p.metadata } };
 }
-function _zkpCheckP(from, to) { const a = _zkpProofTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid zkp proof transition ${from} → ${to}`); }
-export function startZkpProofV2(id) { const p = _zkpProofs.get(id); if (!p) throw new Error(`zkp proof ${id} not found`); _zkpCheckP(p.status, ZKP_PROOF_LIFECYCLE_V2.PROVING); const now = Date.now(); p.status = ZKP_PROOF_LIFECYCLE_V2.PROVING; p.updatedAt = now; if (!p.startedAt) p.startedAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function verifyZkpProofV2(id) { const p = _zkpProofs.get(id); if (!p) throw new Error(`zkp proof ${id} not found`); _zkpCheckP(p.status, ZKP_PROOF_LIFECYCLE_V2.VERIFIED); const now = Date.now(); p.status = ZKP_PROOF_LIFECYCLE_V2.VERIFIED; p.updatedAt = now; if (!p.settledAt) p.settledAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function failZkpProofV2(id, reason) { const p = _zkpProofs.get(id); if (!p) throw new Error(`zkp proof ${id} not found`); _zkpCheckP(p.status, ZKP_PROOF_LIFECYCLE_V2.FAILED); const now = Date.now(); p.status = ZKP_PROOF_LIFECYCLE_V2.FAILED; p.updatedAt = now; if (!p.settledAt) p.settledAt = now; if (reason) p.metadata.failReason = String(reason); return { ...p, metadata: { ...p.metadata } }; }
-export function cancelZkpProofV2(id, reason) { const p = _zkpProofs.get(id); if (!p) throw new Error(`zkp proof ${id} not found`); _zkpCheckP(p.status, ZKP_PROOF_LIFECYCLE_V2.CANCELLED); const now = Date.now(); p.status = ZKP_PROOF_LIFECYCLE_V2.CANCELLED; p.updatedAt = now; if (!p.settledAt) p.settledAt = now; if (reason) p.metadata.cancelReason = String(reason); return { ...p, metadata: { ...p.metadata } }; }
-export function getZkpProofV2(id) { const p = _zkpProofs.get(id); if (!p) return null; return { ...p, metadata: { ...p.metadata } }; }
-export function listZkpProofsV2() { return [..._zkpProofs.values()].map((p) => ({ ...p, metadata: { ...p.metadata } })); }
+function _zkpCheckP(from, to) {
+  const a = _zkpProofTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid zkp proof transition ${from} → ${to}`);
+}
+export function startZkpProofV2(id) {
+  const p = _zkpProofs.get(id);
+  if (!p) throw new Error(`zkp proof ${id} not found`);
+  _zkpCheckP(p.status, ZKP_PROOF_LIFECYCLE_V2.PROVING);
+  const now = Date.now();
+  p.status = ZKP_PROOF_LIFECYCLE_V2.PROVING;
+  p.updatedAt = now;
+  if (!p.startedAt) p.startedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function verifyZkpProofV2(id) {
+  const p = _zkpProofs.get(id);
+  if (!p) throw new Error(`zkp proof ${id} not found`);
+  _zkpCheckP(p.status, ZKP_PROOF_LIFECYCLE_V2.VERIFIED);
+  const now = Date.now();
+  p.status = ZKP_PROOF_LIFECYCLE_V2.VERIFIED;
+  p.updatedAt = now;
+  if (!p.settledAt) p.settledAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function failZkpProofV2(id, reason) {
+  const p = _zkpProofs.get(id);
+  if (!p) throw new Error(`zkp proof ${id} not found`);
+  _zkpCheckP(p.status, ZKP_PROOF_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  p.status = ZKP_PROOF_LIFECYCLE_V2.FAILED;
+  p.updatedAt = now;
+  if (!p.settledAt) p.settledAt = now;
+  if (reason) p.metadata.failReason = String(reason);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function cancelZkpProofV2(id, reason) {
+  const p = _zkpProofs.get(id);
+  if (!p) throw new Error(`zkp proof ${id} not found`);
+  _zkpCheckP(p.status, ZKP_PROOF_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  p.status = ZKP_PROOF_LIFECYCLE_V2.CANCELLED;
+  p.updatedAt = now;
+  if (!p.settledAt) p.settledAt = now;
+  if (reason) p.metadata.cancelReason = String(reason);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getZkpProofV2(id) {
+  const p = _zkpProofs.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listZkpProofsV2() {
+  return [..._zkpProofs.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
 
-export function autoDeprecateIdleZkpCircuitsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const c of _zkpCircs.values()) if (c.status === ZKP_CIRCUIT_MATURITY_V2.ACTIVE && (t - c.lastTouchedAt) >= _zkpCircuitIdleMs) { c.status = ZKP_CIRCUIT_MATURITY_V2.DEPRECATED; c.updatedAt = t; flipped.push(c.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckZkpProofsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const p of _zkpProofs.values()) if (p.status === ZKP_PROOF_LIFECYCLE_V2.PROVING && p.startedAt != null && (t - p.startedAt) >= _zkpProofStuckMs) { p.status = ZKP_PROOF_LIFECYCLE_V2.FAILED; p.updatedAt = t; if (!p.settledAt) p.settledAt = t; p.metadata.failReason = "auto-fail-stuck"; flipped.push(p.id); } return { flipped, count: flipped.length }; }
+export function autoDeprecateIdleZkpCircuitsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const c of _zkpCircs.values())
+    if (
+      c.status === ZKP_CIRCUIT_MATURITY_V2.ACTIVE &&
+      t - c.lastTouchedAt >= _zkpCircuitIdleMs
+    ) {
+      c.status = ZKP_CIRCUIT_MATURITY_V2.DEPRECATED;
+      c.updatedAt = t;
+      flipped.push(c.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckZkpProofsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _zkpProofs.values())
+    if (
+      p.status === ZKP_PROOF_LIFECYCLE_V2.PROVING &&
+      p.startedAt != null &&
+      t - p.startedAt >= _zkpProofStuckMs
+    ) {
+      p.status = ZKP_PROOF_LIFECYCLE_V2.FAILED;
+      p.updatedAt = t;
+      if (!p.settledAt) p.settledAt = t;
+      p.metadata.failReason = "auto-fail-stuck";
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
 
 export function getZkpEngineGovStatsV2() {
-  const circuitsByStatus = {}; for (const s of Object.values(ZKP_CIRCUIT_MATURITY_V2)) circuitsByStatus[s] = 0; for (const c of _zkpCircs.values()) circuitsByStatus[c.status]++;
-  const proofsByStatus = {}; for (const s of Object.values(ZKP_PROOF_LIFECYCLE_V2)) proofsByStatus[s] = 0; for (const p of _zkpProofs.values()) proofsByStatus[p.status]++;
-  return { totalCircuitsV2: _zkpCircs.size, totalProofsV2: _zkpProofs.size, maxActiveZkpCircuitsPerOwner: _zkpMaxActivePerOwner, maxPendingZkpProofsPerCircuit: _zkpMaxPendingPerCircuit, zkpCircuitIdleMs: _zkpCircuitIdleMs, zkpProofStuckMs: _zkpProofStuckMs, circuitsByStatus, proofsByStatus };
+  const circuitsByStatus = {};
+  for (const s of Object.values(ZKP_CIRCUIT_MATURITY_V2))
+    circuitsByStatus[s] = 0;
+  for (const c of _zkpCircs.values()) circuitsByStatus[c.status]++;
+  const proofsByStatus = {};
+  for (const s of Object.values(ZKP_PROOF_LIFECYCLE_V2)) proofsByStatus[s] = 0;
+  for (const p of _zkpProofs.values()) proofsByStatus[p.status]++;
+  return {
+    totalCircuitsV2: _zkpCircs.size,
+    totalProofsV2: _zkpProofs.size,
+    maxActiveZkpCircuitsPerOwner: _zkpMaxActivePerOwner,
+    maxPendingZkpProofsPerCircuit: _zkpMaxPendingPerCircuit,
+    zkpCircuitIdleMs: _zkpCircuitIdleMs,
+    zkpProofStuckMs: _zkpProofStuckMs,
+    circuitsByStatus,
+    proofsByStatus,
+  };
 }

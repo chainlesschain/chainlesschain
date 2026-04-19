@@ -245,81 +245,333 @@ export function getTaskTypes() {
 
 // ===== V2 Surface: Task Model Selector governance overlay (CLI v0.141.0) =====
 export const TMS_PROFILE_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", STALE: "stale", DECOMMISSIONED: "decommissioned",
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  DECOMMISSIONED: "decommissioned",
 });
 export const TMS_SELECTION_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", SCORING: "scoring", COMPLETED: "completed", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  SCORING: "scoring",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 const _tmsPTrans = new Map([
-  [TMS_PROFILE_MATURITY_V2.PENDING, new Set([TMS_PROFILE_MATURITY_V2.ACTIVE, TMS_PROFILE_MATURITY_V2.DECOMMISSIONED])],
-  [TMS_PROFILE_MATURITY_V2.ACTIVE, new Set([TMS_PROFILE_MATURITY_V2.STALE, TMS_PROFILE_MATURITY_V2.DECOMMISSIONED])],
-  [TMS_PROFILE_MATURITY_V2.STALE, new Set([TMS_PROFILE_MATURITY_V2.ACTIVE, TMS_PROFILE_MATURITY_V2.DECOMMISSIONED])],
+  [
+    TMS_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      TMS_PROFILE_MATURITY_V2.ACTIVE,
+      TMS_PROFILE_MATURITY_V2.DECOMMISSIONED,
+    ]),
+  ],
+  [
+    TMS_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      TMS_PROFILE_MATURITY_V2.STALE,
+      TMS_PROFILE_MATURITY_V2.DECOMMISSIONED,
+    ]),
+  ],
+  [
+    TMS_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      TMS_PROFILE_MATURITY_V2.ACTIVE,
+      TMS_PROFILE_MATURITY_V2.DECOMMISSIONED,
+    ]),
+  ],
   [TMS_PROFILE_MATURITY_V2.DECOMMISSIONED, new Set()],
 ]);
 const _tmsPTerminal = new Set([TMS_PROFILE_MATURITY_V2.DECOMMISSIONED]);
 const _tmsSTrans = new Map([
-  [TMS_SELECTION_LIFECYCLE_V2.QUEUED, new Set([TMS_SELECTION_LIFECYCLE_V2.SCORING, TMS_SELECTION_LIFECYCLE_V2.CANCELLED])],
-  [TMS_SELECTION_LIFECYCLE_V2.SCORING, new Set([TMS_SELECTION_LIFECYCLE_V2.COMPLETED, TMS_SELECTION_LIFECYCLE_V2.FAILED, TMS_SELECTION_LIFECYCLE_V2.CANCELLED])],
+  [
+    TMS_SELECTION_LIFECYCLE_V2.QUEUED,
+    new Set([
+      TMS_SELECTION_LIFECYCLE_V2.SCORING,
+      TMS_SELECTION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    TMS_SELECTION_LIFECYCLE_V2.SCORING,
+    new Set([
+      TMS_SELECTION_LIFECYCLE_V2.COMPLETED,
+      TMS_SELECTION_LIFECYCLE_V2.FAILED,
+      TMS_SELECTION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [TMS_SELECTION_LIFECYCLE_V2.COMPLETED, new Set()],
   [TMS_SELECTION_LIFECYCLE_V2.FAILED, new Set()],
   [TMS_SELECTION_LIFECYCLE_V2.CANCELLED, new Set()],
 ]);
 const _tmsPsV2 = new Map();
 const _tmsSsV2 = new Map();
-let _tmsMaxActivePerOwner = 8, _tmsMaxPendingSelPerProfile = 16, _tmsIdleMs = 14 * 24 * 60 * 60 * 1000, _tmsStuckMs = 2 * 60 * 1000;
-function _tmsPos(n, label) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${label} must be positive integer`); return v; }
-function _tmsCheckP(from, to) { const a = _tmsPTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid tms profile transition ${from} → ${to}`); }
-function _tmsCheckS(from, to) { const a = _tmsSTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid tms selection transition ${from} → ${to}`); }
-export function setMaxActiveTmsProfilesPerOwnerV2(n) { _tmsMaxActivePerOwner = _tmsPos(n, "maxActiveTmsProfilesPerOwner"); }
-export function getMaxActiveTmsProfilesPerOwnerV2() { return _tmsMaxActivePerOwner; }
-export function setMaxPendingTmsSelectionsPerProfileV2(n) { _tmsMaxPendingSelPerProfile = _tmsPos(n, "maxPendingTmsSelectionsPerProfile"); }
-export function getMaxPendingTmsSelectionsPerProfileV2() { return _tmsMaxPendingSelPerProfile; }
-export function setTmsProfileIdleMsV2(n) { _tmsIdleMs = _tmsPos(n, "tmsProfileIdleMs"); }
-export function getTmsProfileIdleMsV2() { return _tmsIdleMs; }
-export function setTmsSelectionStuckMsV2(n) { _tmsStuckMs = _tmsPos(n, "tmsSelectionStuckMs"); }
-export function getTmsSelectionStuckMsV2() { return _tmsStuckMs; }
-export function _resetStateTaskModelSelectorV2() { _tmsPsV2.clear(); _tmsSsV2.clear(); _tmsMaxActivePerOwner = 8; _tmsMaxPendingSelPerProfile = 16; _tmsIdleMs = 14 * 24 * 60 * 60 * 1000; _tmsStuckMs = 2 * 60 * 1000; }
+let _tmsMaxActivePerOwner = 8,
+  _tmsMaxPendingSelPerProfile = 16,
+  _tmsIdleMs = 14 * 24 * 60 * 60 * 1000,
+  _tmsStuckMs = 2 * 60 * 1000;
+function _tmsPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _tmsCheckP(from, to) {
+  const a = _tmsPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid tms profile transition ${from} → ${to}`);
+}
+function _tmsCheckS(from, to) {
+  const a = _tmsSTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid tms selection transition ${from} → ${to}`);
+}
+export function setMaxActiveTmsProfilesPerOwnerV2(n) {
+  _tmsMaxActivePerOwner = _tmsPos(n, "maxActiveTmsProfilesPerOwner");
+}
+export function getMaxActiveTmsProfilesPerOwnerV2() {
+  return _tmsMaxActivePerOwner;
+}
+export function setMaxPendingTmsSelectionsPerProfileV2(n) {
+  _tmsMaxPendingSelPerProfile = _tmsPos(n, "maxPendingTmsSelectionsPerProfile");
+}
+export function getMaxPendingTmsSelectionsPerProfileV2() {
+  return _tmsMaxPendingSelPerProfile;
+}
+export function setTmsProfileIdleMsV2(n) {
+  _tmsIdleMs = _tmsPos(n, "tmsProfileIdleMs");
+}
+export function getTmsProfileIdleMsV2() {
+  return _tmsIdleMs;
+}
+export function setTmsSelectionStuckMsV2(n) {
+  _tmsStuckMs = _tmsPos(n, "tmsSelectionStuckMs");
+}
+export function getTmsSelectionStuckMsV2() {
+  return _tmsStuckMs;
+}
+export function _resetStateTaskModelSelectorV2() {
+  _tmsPsV2.clear();
+  _tmsSsV2.clear();
+  _tmsMaxActivePerOwner = 8;
+  _tmsMaxPendingSelPerProfile = 16;
+  _tmsIdleMs = 14 * 24 * 60 * 60 * 1000;
+  _tmsStuckMs = 2 * 60 * 1000;
+}
 export function registerTmsProfileV2({ id, owner, strategy, metadata } = {}) {
-  if (!id) throw new Error("tms profile id required"); if (!owner) throw new Error("tms profile owner required");
+  if (!id) throw new Error("tms profile id required");
+  if (!owner) throw new Error("tms profile owner required");
   if (_tmsPsV2.has(id)) throw new Error(`tms profile ${id} already registered`);
   const now = Date.now();
-  const p = { id, owner, strategy: strategy || "default", status: TMS_PROFILE_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, decommissionedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
-  _tmsPsV2.set(id, p); return { ...p, metadata: { ...p.metadata } };
-}
-function _tmsCountActive(owner) { let n = 0; for (const p of _tmsPsV2.values()) if (p.owner === owner && p.status === TMS_PROFILE_MATURITY_V2.ACTIVE) n++; return n; }
-export function activateTmsProfileV2(id) {
-  const p = _tmsPsV2.get(id); if (!p) throw new Error(`tms profile ${id} not found`);
-  _tmsCheckP(p.status, TMS_PROFILE_MATURITY_V2.ACTIVE);
-  const recovery = p.status === TMS_PROFILE_MATURITY_V2.STALE;
-  if (!recovery && _tmsCountActive(p.owner) >= _tmsMaxActivePerOwner) throw new Error(`max active tms profiles for owner ${p.owner} reached`);
-  const now = Date.now(); p.status = TMS_PROFILE_MATURITY_V2.ACTIVE; p.updatedAt = now; p.lastTouchedAt = now; if (!p.activatedAt) p.activatedAt = now;
+  const p = {
+    id,
+    owner,
+    strategy: strategy || "default",
+    status: TMS_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    decommissionedAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
+  _tmsPsV2.set(id, p);
   return { ...p, metadata: { ...p.metadata } };
 }
-export function staleTmsProfileV2(id) { const p = _tmsPsV2.get(id); if (!p) throw new Error(`tms profile ${id} not found`); _tmsCheckP(p.status, TMS_PROFILE_MATURITY_V2.STALE); p.status = TMS_PROFILE_MATURITY_V2.STALE; p.updatedAt = Date.now(); return { ...p, metadata: { ...p.metadata } }; }
-export function decommissionTmsProfileV2(id) { const p = _tmsPsV2.get(id); if (!p) throw new Error(`tms profile ${id} not found`); _tmsCheckP(p.status, TMS_PROFILE_MATURITY_V2.DECOMMISSIONED); const now = Date.now(); p.status = TMS_PROFILE_MATURITY_V2.DECOMMISSIONED; p.updatedAt = now; if (!p.decommissionedAt) p.decommissionedAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function touchTmsProfileV2(id) { const p = _tmsPsV2.get(id); if (!p) throw new Error(`tms profile ${id} not found`); if (_tmsPTerminal.has(p.status)) throw new Error(`cannot touch terminal tms profile ${id}`); const now = Date.now(); p.lastTouchedAt = now; p.updatedAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function getTmsProfileV2(id) { const p = _tmsPsV2.get(id); if (!p) return null; return { ...p, metadata: { ...p.metadata } }; }
-export function listTmsProfilesV2() { return [..._tmsPsV2.values()].map((p) => ({ ...p, metadata: { ...p.metadata } })); }
-function _tmsCountPending(profileId) { let n = 0; for (const s of _tmsSsV2.values()) if (s.profileId === profileId && (s.status === TMS_SELECTION_LIFECYCLE_V2.QUEUED || s.status === TMS_SELECTION_LIFECYCLE_V2.SCORING)) n++; return n; }
-export function createTmsSelectionV2({ id, profileId, task, metadata } = {}) {
-  if (!id) throw new Error("tms selection id required"); if (!profileId) throw new Error("tms selection profileId required");
-  if (_tmsSsV2.has(id)) throw new Error(`tms selection ${id} already exists`);
-  if (!_tmsPsV2.has(profileId)) throw new Error(`tms profile ${profileId} not found`);
-  if (_tmsCountPending(profileId) >= _tmsMaxPendingSelPerProfile) throw new Error(`max pending tms selections for profile ${profileId} reached`);
-  const now = Date.now();
-  const s = { id, profileId, task: task || "", status: TMS_SELECTION_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
-  _tmsSsV2.set(id, s); return { ...s, metadata: { ...s.metadata } };
+function _tmsCountActive(owner) {
+  let n = 0;
+  for (const p of _tmsPsV2.values())
+    if (p.owner === owner && p.status === TMS_PROFILE_MATURITY_V2.ACTIVE) n++;
+  return n;
 }
-export function scoreTmsSelectionV2(id) { const s = _tmsSsV2.get(id); if (!s) throw new Error(`tms selection ${id} not found`); _tmsCheckS(s.status, TMS_SELECTION_LIFECYCLE_V2.SCORING); const now = Date.now(); s.status = TMS_SELECTION_LIFECYCLE_V2.SCORING; s.updatedAt = now; if (!s.startedAt) s.startedAt = now; return { ...s, metadata: { ...s.metadata } }; }
-export function completeTmsSelectionV2(id) { const s = _tmsSsV2.get(id); if (!s) throw new Error(`tms selection ${id} not found`); _tmsCheckS(s.status, TMS_SELECTION_LIFECYCLE_V2.COMPLETED); const now = Date.now(); s.status = TMS_SELECTION_LIFECYCLE_V2.COMPLETED; s.updatedAt = now; if (!s.settledAt) s.settledAt = now; return { ...s, metadata: { ...s.metadata } }; }
-export function failTmsSelectionV2(id, reason) { const s = _tmsSsV2.get(id); if (!s) throw new Error(`tms selection ${id} not found`); _tmsCheckS(s.status, TMS_SELECTION_LIFECYCLE_V2.FAILED); const now = Date.now(); s.status = TMS_SELECTION_LIFECYCLE_V2.FAILED; s.updatedAt = now; if (!s.settledAt) s.settledAt = now; if (reason) s.metadata.failReason = String(reason); return { ...s, metadata: { ...s.metadata } }; }
-export function cancelTmsSelectionV2(id, reason) { const s = _tmsSsV2.get(id); if (!s) throw new Error(`tms selection ${id} not found`); _tmsCheckS(s.status, TMS_SELECTION_LIFECYCLE_V2.CANCELLED); const now = Date.now(); s.status = TMS_SELECTION_LIFECYCLE_V2.CANCELLED; s.updatedAt = now; if (!s.settledAt) s.settledAt = now; if (reason) s.metadata.cancelReason = String(reason); return { ...s, metadata: { ...s.metadata } }; }
-export function getTmsSelectionV2(id) { const s = _tmsSsV2.get(id); if (!s) return null; return { ...s, metadata: { ...s.metadata } }; }
-export function listTmsSelectionsV2() { return [..._tmsSsV2.values()].map((s) => ({ ...s, metadata: { ...s.metadata } })); }
-export function autoStaleIdleTmsProfilesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const p of _tmsPsV2.values()) if (p.status === TMS_PROFILE_MATURITY_V2.ACTIVE && (t - p.lastTouchedAt) >= _tmsIdleMs) { p.status = TMS_PROFILE_MATURITY_V2.STALE; p.updatedAt = t; flipped.push(p.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckTmsSelectionsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const s of _tmsSsV2.values()) if (s.status === TMS_SELECTION_LIFECYCLE_V2.SCORING && s.startedAt != null && (t - s.startedAt) >= _tmsStuckMs) { s.status = TMS_SELECTION_LIFECYCLE_V2.FAILED; s.updatedAt = t; if (!s.settledAt) s.settledAt = t; s.metadata.failReason = "auto-fail-stuck"; flipped.push(s.id); } return { flipped, count: flipped.length }; }
+export function activateTmsProfileV2(id) {
+  const p = _tmsPsV2.get(id);
+  if (!p) throw new Error(`tms profile ${id} not found`);
+  _tmsCheckP(p.status, TMS_PROFILE_MATURITY_V2.ACTIVE);
+  const recovery = p.status === TMS_PROFILE_MATURITY_V2.STALE;
+  if (!recovery && _tmsCountActive(p.owner) >= _tmsMaxActivePerOwner)
+    throw new Error(`max active tms profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = TMS_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleTmsProfileV2(id) {
+  const p = _tmsPsV2.get(id);
+  if (!p) throw new Error(`tms profile ${id} not found`);
+  _tmsCheckP(p.status, TMS_PROFILE_MATURITY_V2.STALE);
+  p.status = TMS_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function decommissionTmsProfileV2(id) {
+  const p = _tmsPsV2.get(id);
+  if (!p) throw new Error(`tms profile ${id} not found`);
+  _tmsCheckP(p.status, TMS_PROFILE_MATURITY_V2.DECOMMISSIONED);
+  const now = Date.now();
+  p.status = TMS_PROFILE_MATURITY_V2.DECOMMISSIONED;
+  p.updatedAt = now;
+  if (!p.decommissionedAt) p.decommissionedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchTmsProfileV2(id) {
+  const p = _tmsPsV2.get(id);
+  if (!p) throw new Error(`tms profile ${id} not found`);
+  if (_tmsPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal tms profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getTmsProfileV2(id) {
+  const p = _tmsPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listTmsProfilesV2() {
+  return [..._tmsPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+function _tmsCountPending(profileId) {
+  let n = 0;
+  for (const s of _tmsSsV2.values())
+    if (
+      s.profileId === profileId &&
+      (s.status === TMS_SELECTION_LIFECYCLE_V2.QUEUED ||
+        s.status === TMS_SELECTION_LIFECYCLE_V2.SCORING)
+    )
+      n++;
+  return n;
+}
+export function createTmsSelectionV2({ id, profileId, task, metadata } = {}) {
+  if (!id) throw new Error("tms selection id required");
+  if (!profileId) throw new Error("tms selection profileId required");
+  if (_tmsSsV2.has(id)) throw new Error(`tms selection ${id} already exists`);
+  if (!_tmsPsV2.has(profileId))
+    throw new Error(`tms profile ${profileId} not found`);
+  if (_tmsCountPending(profileId) >= _tmsMaxPendingSelPerProfile)
+    throw new Error(
+      `max pending tms selections for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const s = {
+    id,
+    profileId,
+    task: task || "",
+    status: TMS_SELECTION_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _tmsSsV2.set(id, s);
+  return { ...s, metadata: { ...s.metadata } };
+}
+export function scoreTmsSelectionV2(id) {
+  const s = _tmsSsV2.get(id);
+  if (!s) throw new Error(`tms selection ${id} not found`);
+  _tmsCheckS(s.status, TMS_SELECTION_LIFECYCLE_V2.SCORING);
+  const now = Date.now();
+  s.status = TMS_SELECTION_LIFECYCLE_V2.SCORING;
+  s.updatedAt = now;
+  if (!s.startedAt) s.startedAt = now;
+  return { ...s, metadata: { ...s.metadata } };
+}
+export function completeTmsSelectionV2(id) {
+  const s = _tmsSsV2.get(id);
+  if (!s) throw new Error(`tms selection ${id} not found`);
+  _tmsCheckS(s.status, TMS_SELECTION_LIFECYCLE_V2.COMPLETED);
+  const now = Date.now();
+  s.status = TMS_SELECTION_LIFECYCLE_V2.COMPLETED;
+  s.updatedAt = now;
+  if (!s.settledAt) s.settledAt = now;
+  return { ...s, metadata: { ...s.metadata } };
+}
+export function failTmsSelectionV2(id, reason) {
+  const s = _tmsSsV2.get(id);
+  if (!s) throw new Error(`tms selection ${id} not found`);
+  _tmsCheckS(s.status, TMS_SELECTION_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  s.status = TMS_SELECTION_LIFECYCLE_V2.FAILED;
+  s.updatedAt = now;
+  if (!s.settledAt) s.settledAt = now;
+  if (reason) s.metadata.failReason = String(reason);
+  return { ...s, metadata: { ...s.metadata } };
+}
+export function cancelTmsSelectionV2(id, reason) {
+  const s = _tmsSsV2.get(id);
+  if (!s) throw new Error(`tms selection ${id} not found`);
+  _tmsCheckS(s.status, TMS_SELECTION_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  s.status = TMS_SELECTION_LIFECYCLE_V2.CANCELLED;
+  s.updatedAt = now;
+  if (!s.settledAt) s.settledAt = now;
+  if (reason) s.metadata.cancelReason = String(reason);
+  return { ...s, metadata: { ...s.metadata } };
+}
+export function getTmsSelectionV2(id) {
+  const s = _tmsSsV2.get(id);
+  if (!s) return null;
+  return { ...s, metadata: { ...s.metadata } };
+}
+export function listTmsSelectionsV2() {
+  return [..._tmsSsV2.values()].map((s) => ({
+    ...s,
+    metadata: { ...s.metadata },
+  }));
+}
+export function autoStaleIdleTmsProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _tmsPsV2.values())
+    if (
+      p.status === TMS_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _tmsIdleMs
+    ) {
+      p.status = TMS_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckTmsSelectionsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const s of _tmsSsV2.values())
+    if (
+      s.status === TMS_SELECTION_LIFECYCLE_V2.SCORING &&
+      s.startedAt != null &&
+      t - s.startedAt >= _tmsStuckMs
+    ) {
+      s.status = TMS_SELECTION_LIFECYCLE_V2.FAILED;
+      s.updatedAt = t;
+      if (!s.settledAt) s.settledAt = t;
+      s.metadata.failReason = "auto-fail-stuck";
+      flipped.push(s.id);
+    }
+  return { flipped, count: flipped.length };
+}
 export function getTaskModelSelectorGovStatsV2() {
-  const profilesByStatus = {}; for (const v of Object.values(TMS_PROFILE_MATURITY_V2)) profilesByStatus[v] = 0; for (const p of _tmsPsV2.values()) profilesByStatus[p.status]++;
-  const selectionsByStatus = {}; for (const v of Object.values(TMS_SELECTION_LIFECYCLE_V2)) selectionsByStatus[v] = 0; for (const s of _tmsSsV2.values()) selectionsByStatus[s.status]++;
-  return { totalTmsProfilesV2: _tmsPsV2.size, totalTmsSelectionsV2: _tmsSsV2.size, maxActiveTmsProfilesPerOwner: _tmsMaxActivePerOwner, maxPendingTmsSelectionsPerProfile: _tmsMaxPendingSelPerProfile, tmsProfileIdleMs: _tmsIdleMs, tmsSelectionStuckMs: _tmsStuckMs, profilesByStatus, selectionsByStatus };
+  const profilesByStatus = {};
+  for (const v of Object.values(TMS_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _tmsPsV2.values()) profilesByStatus[p.status]++;
+  const selectionsByStatus = {};
+  for (const v of Object.values(TMS_SELECTION_LIFECYCLE_V2))
+    selectionsByStatus[v] = 0;
+  for (const s of _tmsSsV2.values()) selectionsByStatus[s.status]++;
+  return {
+    totalTmsProfilesV2: _tmsPsV2.size,
+    totalTmsSelectionsV2: _tmsSsV2.size,
+    maxActiveTmsProfilesPerOwner: _tmsMaxActivePerOwner,
+    maxPendingTmsSelectionsPerProfile: _tmsMaxPendingSelPerProfile,
+    tmsProfileIdleMs: _tmsIdleMs,
+    tmsSelectionStuckMs: _tmsStuckMs,
+    profilesByStatus,
+    selectionsByStatus,
+  };
 }

@@ -469,25 +469,56 @@ export function listTargetsByStatus(status) {
 
 export { _severityCEF, _allowedTargetTransitions };
 
-
 // ===== V2 Surface: SIEM Exporter governance overlay (CLI v0.138.0) =====
 export const SIEM_TARGET_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", DEGRADED: "degraded", RETIRED: "retired",
+  PENDING: "pending",
+  ACTIVE: "active",
+  DEGRADED: "degraded",
+  RETIRED: "retired",
 });
 export const SIEM_EXPORT_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", SENDING: "sending", DELIVERED: "delivered", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  SENDING: "sending",
+  DELIVERED: "delivered",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 
 const _siemTargetTrans = new Map([
-  [SIEM_TARGET_MATURITY_V2.PENDING, new Set([SIEM_TARGET_MATURITY_V2.ACTIVE, SIEM_TARGET_MATURITY_V2.RETIRED])],
-  [SIEM_TARGET_MATURITY_V2.ACTIVE, new Set([SIEM_TARGET_MATURITY_V2.DEGRADED, SIEM_TARGET_MATURITY_V2.RETIRED])],
-  [SIEM_TARGET_MATURITY_V2.DEGRADED, new Set([SIEM_TARGET_MATURITY_V2.ACTIVE, SIEM_TARGET_MATURITY_V2.RETIRED])],
+  [
+    SIEM_TARGET_MATURITY_V2.PENDING,
+    new Set([SIEM_TARGET_MATURITY_V2.ACTIVE, SIEM_TARGET_MATURITY_V2.RETIRED]),
+  ],
+  [
+    SIEM_TARGET_MATURITY_V2.ACTIVE,
+    new Set([
+      SIEM_TARGET_MATURITY_V2.DEGRADED,
+      SIEM_TARGET_MATURITY_V2.RETIRED,
+    ]),
+  ],
+  [
+    SIEM_TARGET_MATURITY_V2.DEGRADED,
+    new Set([SIEM_TARGET_MATURITY_V2.ACTIVE, SIEM_TARGET_MATURITY_V2.RETIRED]),
+  ],
   [SIEM_TARGET_MATURITY_V2.RETIRED, new Set()],
 ]);
 const _siemTargetTerminal = new Set([SIEM_TARGET_MATURITY_V2.RETIRED]);
 const _siemExportTrans = new Map([
-  [SIEM_EXPORT_LIFECYCLE_V2.QUEUED, new Set([SIEM_EXPORT_LIFECYCLE_V2.SENDING, SIEM_EXPORT_LIFECYCLE_V2.CANCELLED])],
-  [SIEM_EXPORT_LIFECYCLE_V2.SENDING, new Set([SIEM_EXPORT_LIFECYCLE_V2.DELIVERED, SIEM_EXPORT_LIFECYCLE_V2.FAILED, SIEM_EXPORT_LIFECYCLE_V2.CANCELLED])],
+  [
+    SIEM_EXPORT_LIFECYCLE_V2.QUEUED,
+    new Set([
+      SIEM_EXPORT_LIFECYCLE_V2.SENDING,
+      SIEM_EXPORT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    SIEM_EXPORT_LIFECYCLE_V2.SENDING,
+    new Set([
+      SIEM_EXPORT_LIFECYCLE_V2.DELIVERED,
+      SIEM_EXPORT_LIFECYCLE_V2.FAILED,
+      SIEM_EXPORT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [SIEM_EXPORT_LIFECYCLE_V2.DELIVERED, new Set()],
   [SIEM_EXPORT_LIFECYCLE_V2.FAILED, new Set()],
   [SIEM_EXPORT_LIFECYCLE_V2.CANCELLED, new Set()],
@@ -500,76 +531,292 @@ let _siemMaxPendingExportsPerTarget = 50;
 let _siemTargetIdleMs = 24 * 60 * 60 * 1000;
 let _siemExportStuckMs = 5 * 60 * 1000;
 
-function _siemPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+function _siemPos(n, lbl) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${lbl} must be positive integer`);
+  return v;
+}
 
-export function setMaxActiveSiemTargetsPerOperatorV2(n) { _siemMaxActivePerOperator = _siemPos(n, "maxActiveSiemTargetsPerOperator"); }
-export function getMaxActiveSiemTargetsPerOperatorV2() { return _siemMaxActivePerOperator; }
-export function setMaxPendingSiemExportsPerTargetV2(n) { _siemMaxPendingExportsPerTarget = _siemPos(n, "maxPendingSiemExportsPerTarget"); }
-export function getMaxPendingSiemExportsPerTargetV2() { return _siemMaxPendingExportsPerTarget; }
-export function setSiemTargetIdleMsV2(n) { _siemTargetIdleMs = _siemPos(n, "siemTargetIdleMs"); }
-export function getSiemTargetIdleMsV2() { return _siemTargetIdleMs; }
-export function setSiemExportStuckMsV2(n) { _siemExportStuckMs = _siemPos(n, "siemExportStuckMs"); }
-export function getSiemExportStuckMsV2() { return _siemExportStuckMs; }
+export function setMaxActiveSiemTargetsPerOperatorV2(n) {
+  _siemMaxActivePerOperator = _siemPos(n, "maxActiveSiemTargetsPerOperator");
+}
+export function getMaxActiveSiemTargetsPerOperatorV2() {
+  return _siemMaxActivePerOperator;
+}
+export function setMaxPendingSiemExportsPerTargetV2(n) {
+  _siemMaxPendingExportsPerTarget = _siemPos(
+    n,
+    "maxPendingSiemExportsPerTarget",
+  );
+}
+export function getMaxPendingSiemExportsPerTargetV2() {
+  return _siemMaxPendingExportsPerTarget;
+}
+export function setSiemTargetIdleMsV2(n) {
+  _siemTargetIdleMs = _siemPos(n, "siemTargetIdleMs");
+}
+export function getSiemTargetIdleMsV2() {
+  return _siemTargetIdleMs;
+}
+export function setSiemExportStuckMsV2(n) {
+  _siemExportStuckMs = _siemPos(n, "siemExportStuckMs");
+}
+export function getSiemExportStuckMsV2() {
+  return _siemExportStuckMs;
+}
 
 export function _resetStateSiemExporterV2() {
-  _siemTargets.clear(); _siemExportJobs.clear();
-  _siemMaxActivePerOperator = 8; _siemMaxPendingExportsPerTarget = 50;
-  _siemTargetIdleMs = 24 * 60 * 60 * 1000; _siemExportStuckMs = 5 * 60 * 1000;
+  _siemTargets.clear();
+  _siemExportJobs.clear();
+  _siemMaxActivePerOperator = 8;
+  _siemMaxPendingExportsPerTarget = 50;
+  _siemTargetIdleMs = 24 * 60 * 60 * 1000;
+  _siemExportStuckMs = 5 * 60 * 1000;
 }
 
 export function registerSiemTargetV2({ id, operator, kind, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
-  if (!operator || typeof operator !== "string") throw new Error("operator is required");
-  if (_siemTargets.has(id)) throw new Error(`siem target ${id} already registered`);
+  if (!operator || typeof operator !== "string")
+    throw new Error("operator is required");
+  if (_siemTargets.has(id))
+    throw new Error(`siem target ${id} already registered`);
   const now = Date.now();
-  const t = { id, operator, kind: kind || "splunk_hec", status: SIEM_TARGET_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, retiredAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  const t = {
+    id,
+    operator,
+    kind: kind || "splunk_hec",
+    status: SIEM_TARGET_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    retiredAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
   _siemTargets.set(id, t);
   return { ...t, metadata: { ...t.metadata } };
 }
-function _siemCheckT(from, to) { const a = _siemTargetTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid siem target transition ${from} → ${to}`); }
-function _siemCountActive(operator) { let n = 0; for (const t of _siemTargets.values()) if (t.operator === operator && t.status === SIEM_TARGET_MATURITY_V2.ACTIVE) n++; return n; }
+function _siemCheckT(from, to) {
+  const a = _siemTargetTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid siem target transition ${from} → ${to}`);
+}
+function _siemCountActive(operator) {
+  let n = 0;
+  for (const t of _siemTargets.values())
+    if (t.operator === operator && t.status === SIEM_TARGET_MATURITY_V2.ACTIVE)
+      n++;
+  return n;
+}
 
 export function activateSiemTargetV2(id) {
-  const t = _siemTargets.get(id); if (!t) throw new Error(`siem target ${id} not found`);
+  const t = _siemTargets.get(id);
+  if (!t) throw new Error(`siem target ${id} not found`);
   _siemCheckT(t.status, SIEM_TARGET_MATURITY_V2.ACTIVE);
   const recovery = t.status === SIEM_TARGET_MATURITY_V2.DEGRADED;
-  if (!recovery) { const c = _siemCountActive(t.operator); if (c >= _siemMaxActivePerOperator) throw new Error(`max active siem targets per operator (${_siemMaxActivePerOperator}) reached for ${t.operator}`); }
-  const now = Date.now(); t.status = SIEM_TARGET_MATURITY_V2.ACTIVE; t.updatedAt = now; t.lastTouchedAt = now; if (!t.activatedAt) t.activatedAt = now;
+  if (!recovery) {
+    const c = _siemCountActive(t.operator);
+    if (c >= _siemMaxActivePerOperator)
+      throw new Error(
+        `max active siem targets per operator (${_siemMaxActivePerOperator}) reached for ${t.operator}`,
+      );
+  }
+  const now = Date.now();
+  t.status = SIEM_TARGET_MATURITY_V2.ACTIVE;
+  t.updatedAt = now;
+  t.lastTouchedAt = now;
+  if (!t.activatedAt) t.activatedAt = now;
   return { ...t, metadata: { ...t.metadata } };
 }
-export function degradeSiemTargetV2(id) { const t = _siemTargets.get(id); if (!t) throw new Error(`siem target ${id} not found`); _siemCheckT(t.status, SIEM_TARGET_MATURITY_V2.DEGRADED); t.status = SIEM_TARGET_MATURITY_V2.DEGRADED; t.updatedAt = Date.now(); return { ...t, metadata: { ...t.metadata } }; }
-export function retireSiemTargetV2(id) { const t = _siemTargets.get(id); if (!t) throw new Error(`siem target ${id} not found`); _siemCheckT(t.status, SIEM_TARGET_MATURITY_V2.RETIRED); const now = Date.now(); t.status = SIEM_TARGET_MATURITY_V2.RETIRED; t.updatedAt = now; if (!t.retiredAt) t.retiredAt = now; return { ...t, metadata: { ...t.metadata } }; }
-export function touchSiemTargetV2(id) { const t = _siemTargets.get(id); if (!t) throw new Error(`siem target ${id} not found`); if (_siemTargetTerminal.has(t.status)) throw new Error(`cannot touch terminal siem target ${id}`); const now = Date.now(); t.lastTouchedAt = now; t.updatedAt = now; return { ...t, metadata: { ...t.metadata } }; }
-export function getSiemTargetV2(id) { const t = _siemTargets.get(id); if (!t) return null; return { ...t, metadata: { ...t.metadata } }; }
-export function listSiemTargetsV2() { return [..._siemTargets.values()].map((t) => ({ ...t, metadata: { ...t.metadata } })); }
+export function degradeSiemTargetV2(id) {
+  const t = _siemTargets.get(id);
+  if (!t) throw new Error(`siem target ${id} not found`);
+  _siemCheckT(t.status, SIEM_TARGET_MATURITY_V2.DEGRADED);
+  t.status = SIEM_TARGET_MATURITY_V2.DEGRADED;
+  t.updatedAt = Date.now();
+  return { ...t, metadata: { ...t.metadata } };
+}
+export function retireSiemTargetV2(id) {
+  const t = _siemTargets.get(id);
+  if (!t) throw new Error(`siem target ${id} not found`);
+  _siemCheckT(t.status, SIEM_TARGET_MATURITY_V2.RETIRED);
+  const now = Date.now();
+  t.status = SIEM_TARGET_MATURITY_V2.RETIRED;
+  t.updatedAt = now;
+  if (!t.retiredAt) t.retiredAt = now;
+  return { ...t, metadata: { ...t.metadata } };
+}
+export function touchSiemTargetV2(id) {
+  const t = _siemTargets.get(id);
+  if (!t) throw new Error(`siem target ${id} not found`);
+  if (_siemTargetTerminal.has(t.status))
+    throw new Error(`cannot touch terminal siem target ${id}`);
+  const now = Date.now();
+  t.lastTouchedAt = now;
+  t.updatedAt = now;
+  return { ...t, metadata: { ...t.metadata } };
+}
+export function getSiemTargetV2(id) {
+  const t = _siemTargets.get(id);
+  if (!t) return null;
+  return { ...t, metadata: { ...t.metadata } };
+}
+export function listSiemTargetsV2() {
+  return [..._siemTargets.values()].map((t) => ({
+    ...t,
+    metadata: { ...t.metadata },
+  }));
+}
 
-function _siemCountPendingExports(tid) { let n = 0; for (const e of _siemExportJobs.values()) if (e.targetId === tid && (e.status === SIEM_EXPORT_LIFECYCLE_V2.QUEUED || e.status === SIEM_EXPORT_LIFECYCLE_V2.SENDING)) n++; return n; }
+function _siemCountPendingExports(tid) {
+  let n = 0;
+  for (const e of _siemExportJobs.values())
+    if (
+      e.targetId === tid &&
+      (e.status === SIEM_EXPORT_LIFECYCLE_V2.QUEUED ||
+        e.status === SIEM_EXPORT_LIFECYCLE_V2.SENDING)
+    )
+      n++;
+  return n;
+}
 
 export function createSiemExportV2({ id, targetId, format, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
-  if (!targetId || typeof targetId !== "string") throw new Error("targetId is required");
-  if (_siemExportJobs.has(id)) throw new Error(`siem export ${id} already exists`);
-  if (!_siemTargets.has(targetId)) throw new Error(`siem target ${targetId} not found`);
+  if (!targetId || typeof targetId !== "string")
+    throw new Error("targetId is required");
+  if (_siemExportJobs.has(id))
+    throw new Error(`siem export ${id} already exists`);
+  if (!_siemTargets.has(targetId))
+    throw new Error(`siem target ${targetId} not found`);
   const pending = _siemCountPendingExports(targetId);
-  if (pending >= _siemMaxPendingExportsPerTarget) throw new Error(`max pending siem exports per target (${_siemMaxPendingExportsPerTarget}) reached for ${targetId}`);
+  if (pending >= _siemMaxPendingExportsPerTarget)
+    throw new Error(
+      `max pending siem exports per target (${_siemMaxPendingExportsPerTarget}) reached for ${targetId}`,
+    );
   const now = Date.now();
-  const e = { id, targetId, format: format || "json", status: SIEM_EXPORT_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  const e = {
+    id,
+    targetId,
+    format: format || "json",
+    status: SIEM_EXPORT_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
   _siemExportJobs.set(id, e);
   return { ...e, metadata: { ...e.metadata } };
 }
-function _siemCheckE(from, to) { const a = _siemExportTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid siem export transition ${from} → ${to}`); }
-export function startSiemExportV2(id) { const e = _siemExportJobs.get(id); if (!e) throw new Error(`siem export ${id} not found`); _siemCheckE(e.status, SIEM_EXPORT_LIFECYCLE_V2.SENDING); const now = Date.now(); e.status = SIEM_EXPORT_LIFECYCLE_V2.SENDING; e.updatedAt = now; if (!e.startedAt) e.startedAt = now; return { ...e, metadata: { ...e.metadata } }; }
-export function deliverSiemExportV2(id) { const e = _siemExportJobs.get(id); if (!e) throw new Error(`siem export ${id} not found`); _siemCheckE(e.status, SIEM_EXPORT_LIFECYCLE_V2.DELIVERED); const now = Date.now(); e.status = SIEM_EXPORT_LIFECYCLE_V2.DELIVERED; e.updatedAt = now; if (!e.settledAt) e.settledAt = now; return { ...e, metadata: { ...e.metadata } }; }
-export function failSiemExportV2(id, reason) { const e = _siemExportJobs.get(id); if (!e) throw new Error(`siem export ${id} not found`); _siemCheckE(e.status, SIEM_EXPORT_LIFECYCLE_V2.FAILED); const now = Date.now(); e.status = SIEM_EXPORT_LIFECYCLE_V2.FAILED; e.updatedAt = now; if (!e.settledAt) e.settledAt = now; if (reason) e.metadata.failReason = String(reason); return { ...e, metadata: { ...e.metadata } }; }
-export function cancelSiemExportV2(id, reason) { const e = _siemExportJobs.get(id); if (!e) throw new Error(`siem export ${id} not found`); _siemCheckE(e.status, SIEM_EXPORT_LIFECYCLE_V2.CANCELLED); const now = Date.now(); e.status = SIEM_EXPORT_LIFECYCLE_V2.CANCELLED; e.updatedAt = now; if (!e.settledAt) e.settledAt = now; if (reason) e.metadata.cancelReason = String(reason); return { ...e, metadata: { ...e.metadata } }; }
-export function getSiemExportV2(id) { const e = _siemExportJobs.get(id); if (!e) return null; return { ...e, metadata: { ...e.metadata } }; }
-export function listSiemExportsV2() { return [..._siemExportJobs.values()].map((e) => ({ ...e, metadata: { ...e.metadata } })); }
+function _siemCheckE(from, to) {
+  const a = _siemExportTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid siem export transition ${from} → ${to}`);
+}
+export function startSiemExportV2(id) {
+  const e = _siemExportJobs.get(id);
+  if (!e) throw new Error(`siem export ${id} not found`);
+  _siemCheckE(e.status, SIEM_EXPORT_LIFECYCLE_V2.SENDING);
+  const now = Date.now();
+  e.status = SIEM_EXPORT_LIFECYCLE_V2.SENDING;
+  e.updatedAt = now;
+  if (!e.startedAt) e.startedAt = now;
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function deliverSiemExportV2(id) {
+  const e = _siemExportJobs.get(id);
+  if (!e) throw new Error(`siem export ${id} not found`);
+  _siemCheckE(e.status, SIEM_EXPORT_LIFECYCLE_V2.DELIVERED);
+  const now = Date.now();
+  e.status = SIEM_EXPORT_LIFECYCLE_V2.DELIVERED;
+  e.updatedAt = now;
+  if (!e.settledAt) e.settledAt = now;
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function failSiemExportV2(id, reason) {
+  const e = _siemExportJobs.get(id);
+  if (!e) throw new Error(`siem export ${id} not found`);
+  _siemCheckE(e.status, SIEM_EXPORT_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  e.status = SIEM_EXPORT_LIFECYCLE_V2.FAILED;
+  e.updatedAt = now;
+  if (!e.settledAt) e.settledAt = now;
+  if (reason) e.metadata.failReason = String(reason);
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function cancelSiemExportV2(id, reason) {
+  const e = _siemExportJobs.get(id);
+  if (!e) throw new Error(`siem export ${id} not found`);
+  _siemCheckE(e.status, SIEM_EXPORT_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  e.status = SIEM_EXPORT_LIFECYCLE_V2.CANCELLED;
+  e.updatedAt = now;
+  if (!e.settledAt) e.settledAt = now;
+  if (reason) e.metadata.cancelReason = String(reason);
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function getSiemExportV2(id) {
+  const e = _siemExportJobs.get(id);
+  if (!e) return null;
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function listSiemExportsV2() {
+  return [..._siemExportJobs.values()].map((e) => ({
+    ...e,
+    metadata: { ...e.metadata },
+  }));
+}
 
-export function autoDegradeIdleSiemTargetsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const tgt of _siemTargets.values()) if (tgt.status === SIEM_TARGET_MATURITY_V2.ACTIVE && (t - tgt.lastTouchedAt) >= _siemTargetIdleMs) { tgt.status = SIEM_TARGET_MATURITY_V2.DEGRADED; tgt.updatedAt = t; flipped.push(tgt.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckSiemExportsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const e of _siemExportJobs.values()) if (e.status === SIEM_EXPORT_LIFECYCLE_V2.SENDING && e.startedAt != null && (t - e.startedAt) >= _siemExportStuckMs) { e.status = SIEM_EXPORT_LIFECYCLE_V2.FAILED; e.updatedAt = t; if (!e.settledAt) e.settledAt = t; e.metadata.failReason = "auto-fail-stuck"; flipped.push(e.id); } return { flipped, count: flipped.length }; }
+export function autoDegradeIdleSiemTargetsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const tgt of _siemTargets.values())
+    if (
+      tgt.status === SIEM_TARGET_MATURITY_V2.ACTIVE &&
+      t - tgt.lastTouchedAt >= _siemTargetIdleMs
+    ) {
+      tgt.status = SIEM_TARGET_MATURITY_V2.DEGRADED;
+      tgt.updatedAt = t;
+      flipped.push(tgt.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckSiemExportsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const e of _siemExportJobs.values())
+    if (
+      e.status === SIEM_EXPORT_LIFECYCLE_V2.SENDING &&
+      e.startedAt != null &&
+      t - e.startedAt >= _siemExportStuckMs
+    ) {
+      e.status = SIEM_EXPORT_LIFECYCLE_V2.FAILED;
+      e.updatedAt = t;
+      if (!e.settledAt) e.settledAt = t;
+      e.metadata.failReason = "auto-fail-stuck";
+      flipped.push(e.id);
+    }
+  return { flipped, count: flipped.length };
+}
 
 export function getSiemExporterGovStatsV2() {
-  const targetsByStatus = {}; for (const s of Object.values(SIEM_TARGET_MATURITY_V2)) targetsByStatus[s] = 0; for (const t of _siemTargets.values()) targetsByStatus[t.status]++;
-  const exportsByStatus = {}; for (const s of Object.values(SIEM_EXPORT_LIFECYCLE_V2)) exportsByStatus[s] = 0; for (const e of _siemExportJobs.values()) exportsByStatus[e.status]++;
-  return { totalSiemTargetsV2: _siemTargets.size, totalSiemExportsV2: _siemExportJobs.size, maxActiveSiemTargetsPerOperator: _siemMaxActivePerOperator, maxPendingSiemExportsPerTarget: _siemMaxPendingExportsPerTarget, siemTargetIdleMs: _siemTargetIdleMs, siemExportStuckMs: _siemExportStuckMs, targetsByStatus, exportsByStatus };
+  const targetsByStatus = {};
+  for (const s of Object.values(SIEM_TARGET_MATURITY_V2))
+    targetsByStatus[s] = 0;
+  for (const t of _siemTargets.values()) targetsByStatus[t.status]++;
+  const exportsByStatus = {};
+  for (const s of Object.values(SIEM_EXPORT_LIFECYCLE_V2))
+    exportsByStatus[s] = 0;
+  for (const e of _siemExportJobs.values()) exportsByStatus[e.status]++;
+  return {
+    totalSiemTargetsV2: _siemTargets.size,
+    totalSiemExportsV2: _siemExportJobs.size,
+    maxActiveSiemTargetsPerOperator: _siemMaxActivePerOperator,
+    maxPendingSiemExportsPerTarget: _siemMaxPendingExportsPerTarget,
+    siemTargetIdleMs: _siemTargetIdleMs,
+    siemExportStuckMs: _siemExportStuckMs,
+    targetsByStatus,
+    exportsByStatus,
+  };
 }

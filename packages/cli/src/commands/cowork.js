@@ -1406,42 +1406,588 @@ export function registerCoworkCommand(program) {
   _registerCoworkRunnerV2(cowork);
 }
 
-
 import {
-  RUNNER_PROFILE_MATURITY_V2, RUNNER_EXEC_LIFECYCLE_V2,
-  setMaxActiveRunnerProfilesPerOwnerV2, setMaxPendingRunnerExecsPerProfileV2, setRunnerProfileIdleMsV2, setRunnerExecStuckMsV2,
-  registerRunnerProfileV2, activateRunnerProfileV2, pauseRunnerProfileV2, retireRunnerProfileV2, touchRunnerProfileV2, getRunnerProfileV2, listRunnerProfilesV2,
-  createRunnerExecV2, startRunnerExecV2, succeedRunnerExecV2, failRunnerExecV2, cancelRunnerExecV2, getRunnerExecV2, listRunnerExecsV2,
-  autoPauseIdleRunnerProfilesV2, autoFailStuckRunnerExecsV2, getRunnerGovStatsV2,
+  RUNNER_PROFILE_MATURITY_V2,
+  RUNNER_EXEC_LIFECYCLE_V2,
+  setMaxActiveRunnerProfilesPerOwnerV2,
+  setMaxPendingRunnerExecsPerProfileV2,
+  setRunnerProfileIdleMsV2,
+  setRunnerExecStuckMsV2,
+  registerRunnerProfileV2,
+  activateRunnerProfileV2,
+  pauseRunnerProfileV2,
+  retireRunnerProfileV2,
+  touchRunnerProfileV2,
+  getRunnerProfileV2,
+  listRunnerProfilesV2,
+  createRunnerExecV2,
+  startRunnerExecV2,
+  succeedRunnerExecV2,
+  failRunnerExecV2,
+  cancelRunnerExecV2,
+  getRunnerExecV2,
+  listRunnerExecsV2,
+  autoPauseIdleRunnerProfilesV2,
+  autoFailStuckRunnerExecsV2,
+  getRunnerGovStatsV2,
 } from "../lib/cowork-task-runner.js";
 
 function _registerCoworkRunnerV2(parent) {
-  parent.command("runner-enums-v2").description("List Runner V2 enums").option("--json", "JSON").action((opts) => {
-    const out = { profileMaturity: RUNNER_PROFILE_MATURITY_V2, execLifecycle: RUNNER_EXEC_LIFECYCLE_V2 };
-    if (opts.json) console.log(JSON.stringify(out, null, 2)); else console.log(out);
-  });
-  parent.command("runner-config-set-v2").description("Set Runner V2 caps/thresholds").option("--max-active <n>", "max active per owner").option("--max-pending <n>", "max pending per profile").option("--idle-ms <n>", "profile idle ms").option("--stuck-ms <n>", "exec stuck ms").action((opts) => {
-    if (opts.maxActive) setMaxActiveRunnerProfilesPerOwnerV2(parseInt(opts.maxActive, 10));
-    if (opts.maxPending) setMaxPendingRunnerExecsPerProfileV2(parseInt(opts.maxPending, 10));
-    if (opts.idleMs) setRunnerProfileIdleMsV2(parseInt(opts.idleMs, 10));
-    if (opts.stuckMs) setRunnerExecStuckMsV2(parseInt(opts.stuckMs, 10));
-    console.log("ok");
-  });
-  parent.command("runner-register-profile-v2 <id>").description("Register Runner V2 profile").requiredOption("--owner <owner>", "owner").option("--template <t>", "template").action((id, opts) => { console.log(registerRunnerProfileV2({ id, owner: opts.owner, template: opts.template })); });
-  parent.command("runner-activate-profile-v2 <id>").description("Activate Runner V2 profile").action((id) => { console.log(activateRunnerProfileV2(id)); });
-  parent.command("runner-pause-profile-v2 <id>").description("Pause Runner V2 profile").action((id) => { console.log(pauseRunnerProfileV2(id)); });
-  parent.command("runner-retire-profile-v2 <id>").description("Retire Runner V2 profile").action((id) => { console.log(retireRunnerProfileV2(id)); });
-  parent.command("runner-touch-profile-v2 <id>").description("Touch Runner V2 profile").action((id) => { console.log(touchRunnerProfileV2(id)); });
-  parent.command("runner-get-profile-v2 <id>").description("Get Runner V2 profile").action((id) => { console.log(getRunnerProfileV2(id)); });
-  parent.command("runner-list-profiles-v2").description("List Runner V2 profiles").action(() => { console.log(listRunnerProfilesV2()); });
-  parent.command("runner-create-exec-v2 <id>").description("Create Runner V2 exec").requiredOption("--profile-id <pid>", "profile id").option("--task-input <t>", "task input").action((id, opts) => { console.log(createRunnerExecV2({ id, profileId: opts.profileId, taskInput: opts.taskInput })); });
-  parent.command("runner-start-exec-v2 <id>").description("Start Runner V2 exec").action((id) => { console.log(startRunnerExecV2(id)); });
-  parent.command("runner-succeed-exec-v2 <id>").description("Succeed Runner V2 exec").action((id) => { console.log(succeedRunnerExecV2(id)); });
-  parent.command("runner-fail-exec-v2 <id>").description("Fail Runner V2 exec").option("--reason <r>", "reason").action((id, opts) => { console.log(failRunnerExecV2(id, opts.reason)); });
-  parent.command("runner-cancel-exec-v2 <id>").description("Cancel Runner V2 exec").option("--reason <r>", "reason").action((id, opts) => { console.log(cancelRunnerExecV2(id, opts.reason)); });
-  parent.command("runner-get-exec-v2 <id>").description("Get Runner V2 exec").action((id) => { console.log(getRunnerExecV2(id)); });
-  parent.command("runner-list-execs-v2").description("List Runner V2 execs").action(() => { console.log(listRunnerExecsV2()); });
-  parent.command("runner-auto-pause-profiles-v2").description("Auto-pause idle Runner V2 profiles").action(() => { console.log(autoPauseIdleRunnerProfilesV2()); });
-  parent.command("runner-auto-fail-execs-v2").description("Auto-fail stuck Runner V2 execs").action(() => { console.log(autoFailStuckRunnerExecsV2()); });
-  parent.command("runner-gov-stats-v2").description("Runner V2 governance stats").option("--json", "JSON").action((opts) => { const s = getRunnerGovStatsV2(); if (opts.json) console.log(JSON.stringify(s, null, 2)); else console.log(s); });
+  parent
+    .command("runner-enums-v2")
+    .description("List Runner V2 enums")
+    .option("--json", "JSON")
+    .action((opts) => {
+      const out = {
+        profileMaturity: RUNNER_PROFILE_MATURITY_V2,
+        execLifecycle: RUNNER_EXEC_LIFECYCLE_V2,
+      };
+      if (opts.json) console.log(JSON.stringify(out, null, 2));
+      else console.log(out);
+    });
+  parent
+    .command("runner-config-set-v2")
+    .description("Set Runner V2 caps/thresholds")
+    .option("--max-active <n>", "max active per owner")
+    .option("--max-pending <n>", "max pending per profile")
+    .option("--idle-ms <n>", "profile idle ms")
+    .option("--stuck-ms <n>", "exec stuck ms")
+    .action((opts) => {
+      if (opts.maxActive)
+        setMaxActiveRunnerProfilesPerOwnerV2(parseInt(opts.maxActive, 10));
+      if (opts.maxPending)
+        setMaxPendingRunnerExecsPerProfileV2(parseInt(opts.maxPending, 10));
+      if (opts.idleMs) setRunnerProfileIdleMsV2(parseInt(opts.idleMs, 10));
+      if (opts.stuckMs) setRunnerExecStuckMsV2(parseInt(opts.stuckMs, 10));
+      console.log("ok");
+    });
+  parent
+    .command("runner-register-profile-v2 <id>")
+    .description("Register Runner V2 profile")
+    .requiredOption("--owner <owner>", "owner")
+    .option("--template <t>", "template")
+    .action((id, opts) => {
+      console.log(
+        registerRunnerProfileV2({
+          id,
+          owner: opts.owner,
+          template: opts.template,
+        }),
+      );
+    });
+  parent
+    .command("runner-activate-profile-v2 <id>")
+    .description("Activate Runner V2 profile")
+    .action((id) => {
+      console.log(activateRunnerProfileV2(id));
+    });
+  parent
+    .command("runner-pause-profile-v2 <id>")
+    .description("Pause Runner V2 profile")
+    .action((id) => {
+      console.log(pauseRunnerProfileV2(id));
+    });
+  parent
+    .command("runner-retire-profile-v2 <id>")
+    .description("Retire Runner V2 profile")
+    .action((id) => {
+      console.log(retireRunnerProfileV2(id));
+    });
+  parent
+    .command("runner-touch-profile-v2 <id>")
+    .description("Touch Runner V2 profile")
+    .action((id) => {
+      console.log(touchRunnerProfileV2(id));
+    });
+  parent
+    .command("runner-get-profile-v2 <id>")
+    .description("Get Runner V2 profile")
+    .action((id) => {
+      console.log(getRunnerProfileV2(id));
+    });
+  parent
+    .command("runner-list-profiles-v2")
+    .description("List Runner V2 profiles")
+    .action(() => {
+      console.log(listRunnerProfilesV2());
+    });
+  parent
+    .command("runner-create-exec-v2 <id>")
+    .description("Create Runner V2 exec")
+    .requiredOption("--profile-id <pid>", "profile id")
+    .option("--task-input <t>", "task input")
+    .action((id, opts) => {
+      console.log(
+        createRunnerExecV2({
+          id,
+          profileId: opts.profileId,
+          taskInput: opts.taskInput,
+        }),
+      );
+    });
+  parent
+    .command("runner-start-exec-v2 <id>")
+    .description("Start Runner V2 exec")
+    .action((id) => {
+      console.log(startRunnerExecV2(id));
+    });
+  parent
+    .command("runner-succeed-exec-v2 <id>")
+    .description("Succeed Runner V2 exec")
+    .action((id) => {
+      console.log(succeedRunnerExecV2(id));
+    });
+  parent
+    .command("runner-fail-exec-v2 <id>")
+    .description("Fail Runner V2 exec")
+    .option("--reason <r>", "reason")
+    .action((id, opts) => {
+      console.log(failRunnerExecV2(id, opts.reason));
+    });
+  parent
+    .command("runner-cancel-exec-v2 <id>")
+    .description("Cancel Runner V2 exec")
+    .option("--reason <r>", "reason")
+    .action((id, opts) => {
+      console.log(cancelRunnerExecV2(id, opts.reason));
+    });
+  parent
+    .command("runner-get-exec-v2 <id>")
+    .description("Get Runner V2 exec")
+    .action((id) => {
+      console.log(getRunnerExecV2(id));
+    });
+  parent
+    .command("runner-list-execs-v2")
+    .description("List Runner V2 execs")
+    .action(() => {
+      console.log(listRunnerExecsV2());
+    });
+  parent
+    .command("runner-auto-pause-profiles-v2")
+    .description("Auto-pause idle Runner V2 profiles")
+    .action(() => {
+      console.log(autoPauseIdleRunnerProfilesV2());
+    });
+  parent
+    .command("runner-auto-fail-execs-v2")
+    .description("Auto-fail stuck Runner V2 execs")
+    .action(() => {
+      console.log(autoFailStuckRunnerExecsV2());
+    });
+  parent
+    .command("runner-gov-stats-v2")
+    .description("Runner V2 governance stats")
+    .option("--json", "JSON")
+    .action((opts) => {
+      const s = getRunnerGovStatsV2();
+      if (opts.json) console.log(JSON.stringify(s, null, 2));
+      else console.log(s);
+    });
+}
+
+// === Iter17 V2 governance overlay ===
+export function registerCwLearnV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "cowork");
+  if (!parent) return;
+  const L = async () => await import("../lib/cowork-learning.js");
+  parent
+    .command("learn-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.LEARN_PROFILE_MATURITY_V2,
+            sampleLifecycle: m.LEARN_SAMPLE_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("learn-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveLearnProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingLearnSamplesPerProfileV2(),
+            idleMs: m.getLearnProfileIdleMsV2(),
+            stuckMs: m.getLearnSampleStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("learn-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveLearnProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("learn-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingLearnSamplesPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("learn-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setLearnProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("learn-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setLearnSampleStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("learn-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--topic <v>", "topic")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerLearnProfileV2({ id, owner, topic: o.topic }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("learn-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateLearnProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("learn-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).staleLearnProfileV2(id), null, 2));
+    });
+  parent
+    .command("learn-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveLearnProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("learn-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchLearnProfileV2(id), null, 2));
+    });
+  parent
+    .command("learn-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getLearnProfileV2(id), null, 2));
+    });
+  parent
+    .command("learn-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listLearnProfilesV2(), null, 2));
+    });
+  parent
+    .command("learn-create-sample-v2 <id> <profileId>")
+    .description("Create sample")
+    .option("--signal <v>", "signal")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createLearnSampleV2({ id, profileId, signal: o.signal }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("learn-training-sample-v2 <id>")
+    .description("Mark sample as training")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).trainingLearnSampleV2(id), null, 2),
+      );
+    });
+  parent
+    .command("learn-complete-sample-v2 <id>")
+    .description("Complete sample")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeSampleLearnV2(id), null, 2),
+      );
+    });
+  parent
+    .command("learn-fail-sample-v2 <id> [reason]")
+    .description("Fail sample")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failLearnSampleV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("learn-cancel-sample-v2 <id> [reason]")
+    .description("Cancel sample")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelLearnSampleV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("learn-get-sample-v2 <id>")
+    .description("Get sample")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getLearnSampleV2(id), null, 2));
+    });
+  parent
+    .command("learn-list-samples-v2")
+    .description("List samples")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listLearnSamplesV2(), null, 2));
+    });
+  parent
+    .command("learn-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleLearnProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("learn-auto-fail-stuck-v2")
+    .description("Auto-fail stuck samples")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckLearnSamplesV2(), null, 2),
+      );
+    });
+  parent
+    .command("learn-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getCoworkLearningGovStatsV2(), null, 2),
+      );
+    });
+}
+
+// === Iter17 V2 governance overlay ===
+export function registerCwwfV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "cowork");
+  if (!parent) return;
+  const L = async () => await import("../lib/cowork-workflow.js");
+  parent
+    .command("cwwf-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.CWWF_PROFILE_MATURITY_V2,
+            stepLifecycle: m.CWWF_STEP_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cwwf-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveCwwfProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingCwwfStepsPerProfileV2(),
+            idleMs: m.getCwwfProfileIdleMsV2(),
+            stuckMs: m.getCwwfStepStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cwwf-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveCwwfProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cwwf-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingCwwfStepsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cwwf-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setCwwfProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cwwf-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setCwwfStepStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cwwf-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--mode <v>", "mode")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerCwwfProfileV2({ id, owner, mode: o.mode }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cwwf-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateCwwfProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cwwf-pause-v2 <id>")
+    .description("Pause profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).pauseCwwfProfileV2(id), null, 2));
+    });
+  parent
+    .command("cwwf-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveCwwfProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cwwf-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchCwwfProfileV2(id), null, 2));
+    });
+  parent
+    .command("cwwf-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCwwfProfileV2(id), null, 2));
+    });
+  parent
+    .command("cwwf-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCwwfProfilesV2(), null, 2));
+    });
+  parent
+    .command("cwwf-create-step-v2 <id> <profileId>")
+    .description("Create step")
+    .option("--task <v>", "task")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createCwwfStepV2({ id, profileId, task: o.task }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cwwf-running-step-v2 <id>")
+    .description("Mark step as running")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).runningCwwfStepV2(id), null, 2));
+    });
+  parent
+    .command("cwwf-complete-step-v2 <id>")
+    .description("Complete step")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completeStepCwwfV2(id), null, 2));
+    });
+  parent
+    .command("cwwf-fail-step-v2 <id> [reason]")
+    .description("Fail step")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failCwwfStepV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cwwf-cancel-step-v2 <id> [reason]")
+    .description("Cancel step")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelCwwfStepV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cwwf-get-step-v2 <id>")
+    .description("Get step")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCwwfStepV2(id), null, 2));
+    });
+  parent
+    .command("cwwf-list-steps-v2")
+    .description("List steps")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCwwfStepsV2(), null, 2));
+    });
+  parent
+    .command("cwwf-auto-pause-idle-v2")
+    .description("Auto-pause idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoPauseIdleCwwfProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("cwwf-auto-fail-stuck-v2")
+    .description("Auto-fail stuck steps")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckCwwfStepsV2(), null, 2),
+      );
+    });
+  parent
+    .command("cwwf-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getCoworkWorkflowGovStatsV2(), null, 2),
+      );
+    });
 }

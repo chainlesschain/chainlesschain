@@ -743,25 +743,53 @@ export function _resetV2State() {
   _v2StatusHistory.clear();
 }
 
-
 // ===== V2 Surface: App Builder governance overlay (CLI v0.138.0) =====
 export const APP_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", PAUSED: "paused", ARCHIVED: "archived",
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
 });
 export const APP_BUILD_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", BUILDING: "building", SUCCEEDED: "succeeded", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  BUILDING: "building",
+  SUCCEEDED: "succeeded",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 
 const _appTrans = new Map([
-  [APP_MATURITY_V2.PENDING, new Set([APP_MATURITY_V2.ACTIVE, APP_MATURITY_V2.ARCHIVED])],
-  [APP_MATURITY_V2.ACTIVE, new Set([APP_MATURITY_V2.PAUSED, APP_MATURITY_V2.ARCHIVED])],
-  [APP_MATURITY_V2.PAUSED, new Set([APP_MATURITY_V2.ACTIVE, APP_MATURITY_V2.ARCHIVED])],
+  [
+    APP_MATURITY_V2.PENDING,
+    new Set([APP_MATURITY_V2.ACTIVE, APP_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    APP_MATURITY_V2.ACTIVE,
+    new Set([APP_MATURITY_V2.PAUSED, APP_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    APP_MATURITY_V2.PAUSED,
+    new Set([APP_MATURITY_V2.ACTIVE, APP_MATURITY_V2.ARCHIVED]),
+  ],
   [APP_MATURITY_V2.ARCHIVED, new Set()],
 ]);
 const _appTerminal = new Set([APP_MATURITY_V2.ARCHIVED]);
 const _appBuildTrans = new Map([
-  [APP_BUILD_LIFECYCLE_V2.QUEUED, new Set([APP_BUILD_LIFECYCLE_V2.BUILDING, APP_BUILD_LIFECYCLE_V2.CANCELLED])],
-  [APP_BUILD_LIFECYCLE_V2.BUILDING, new Set([APP_BUILD_LIFECYCLE_V2.SUCCEEDED, APP_BUILD_LIFECYCLE_V2.FAILED, APP_BUILD_LIFECYCLE_V2.CANCELLED])],
+  [
+    APP_BUILD_LIFECYCLE_V2.QUEUED,
+    new Set([
+      APP_BUILD_LIFECYCLE_V2.BUILDING,
+      APP_BUILD_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    APP_BUILD_LIFECYCLE_V2.BUILDING,
+    new Set([
+      APP_BUILD_LIFECYCLE_V2.SUCCEEDED,
+      APP_BUILD_LIFECYCLE_V2.FAILED,
+      APP_BUILD_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [APP_BUILD_LIFECYCLE_V2.SUCCEEDED, new Set()],
   [APP_BUILD_LIFECYCLE_V2.FAILED, new Set()],
   [APP_BUILD_LIFECYCLE_V2.CANCELLED, new Set()],
@@ -774,21 +802,45 @@ let _appMaxPendingBuildsPerApp = 20;
 let _appIdleMs = 30 * 24 * 60 * 60 * 1000;
 let _appBuildStuckMs = 10 * 60 * 1000;
 
-function _appPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+function _appPos(n, lbl) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${lbl} must be positive integer`);
+  return v;
+}
 
-export function setMaxActiveAppsPerOwnerV2(n) { _appMaxActivePerOwner = _appPos(n, "maxActiveAppsPerOwner"); }
-export function getMaxActiveAppsPerOwnerV2() { return _appMaxActivePerOwner; }
-export function setMaxPendingAppBuildsPerAppV2(n) { _appMaxPendingBuildsPerApp = _appPos(n, "maxPendingAppBuildsPerApp"); }
-export function getMaxPendingAppBuildsPerAppV2() { return _appMaxPendingBuildsPerApp; }
-export function setAppIdleMsV2(n) { _appIdleMs = _appPos(n, "appIdleMs"); }
-export function getAppIdleMsV2() { return _appIdleMs; }
-export function setAppBuildStuckMsV2(n) { _appBuildStuckMs = _appPos(n, "appBuildStuckMs"); }
-export function getAppBuildStuckMsV2() { return _appBuildStuckMs; }
+export function setMaxActiveAppsPerOwnerV2(n) {
+  _appMaxActivePerOwner = _appPos(n, "maxActiveAppsPerOwner");
+}
+export function getMaxActiveAppsPerOwnerV2() {
+  return _appMaxActivePerOwner;
+}
+export function setMaxPendingAppBuildsPerAppV2(n) {
+  _appMaxPendingBuildsPerApp = _appPos(n, "maxPendingAppBuildsPerApp");
+}
+export function getMaxPendingAppBuildsPerAppV2() {
+  return _appMaxPendingBuildsPerApp;
+}
+export function setAppIdleMsV2(n) {
+  _appIdleMs = _appPos(n, "appIdleMs");
+}
+export function getAppIdleMsV2() {
+  return _appIdleMs;
+}
+export function setAppBuildStuckMsV2(n) {
+  _appBuildStuckMs = _appPos(n, "appBuildStuckMs");
+}
+export function getAppBuildStuckMsV2() {
+  return _appBuildStuckMs;
+}
 
 export function _resetStateAppBuilderV2() {
-  _appsV2.clear(); _appBuilds.clear();
-  _appMaxActivePerOwner = 10; _appMaxPendingBuildsPerApp = 20;
-  _appIdleMs = 30 * 24 * 60 * 60 * 1000; _appBuildStuckMs = 10 * 60 * 1000;
+  _appsV2.clear();
+  _appBuilds.clear();
+  _appMaxActivePerOwner = 10;
+  _appMaxPendingBuildsPerApp = 20;
+  _appIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _appBuildStuckMs = 10 * 60 * 1000;
 }
 
 export function registerAppV2({ id, owner, name, metadata } = {}) {
@@ -796,28 +848,103 @@ export function registerAppV2({ id, owner, name, metadata } = {}) {
   if (!owner || typeof owner !== "string") throw new Error("owner is required");
   if (_appsV2.has(id)) throw new Error(`app ${id} already registered`);
   const now = Date.now();
-  const a = { id, owner, name: name || id, status: APP_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, archivedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  const a = {
+    id,
+    owner,
+    name: name || id,
+    status: APP_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
   _appsV2.set(id, a);
   return { ...a, metadata: { ...a.metadata } };
 }
-function _appCheckA(from, to) { const a = _appTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid app transition ${from} → ${to}`); }
-function _appCountActive(owner) { let n = 0; for (const a of _appsV2.values()) if (a.owner === owner && a.status === APP_MATURITY_V2.ACTIVE) n++; return n; }
+function _appCheckA(from, to) {
+  const a = _appTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid app transition ${from} → ${to}`);
+}
+function _appCountActive(owner) {
+  let n = 0;
+  for (const a of _appsV2.values())
+    if (a.owner === owner && a.status === APP_MATURITY_V2.ACTIVE) n++;
+  return n;
+}
 
 export function activateAppV2(id) {
-  const a = _appsV2.get(id); if (!a) throw new Error(`app ${id} not found`);
+  const a = _appsV2.get(id);
+  if (!a) throw new Error(`app ${id} not found`);
   _appCheckA(a.status, APP_MATURITY_V2.ACTIVE);
   const recovery = a.status === APP_MATURITY_V2.PAUSED;
-  if (!recovery) { const c = _appCountActive(a.owner); if (c >= _appMaxActivePerOwner) throw new Error(`max active apps per owner (${_appMaxActivePerOwner}) reached for ${a.owner}`); }
-  const now = Date.now(); a.status = APP_MATURITY_V2.ACTIVE; a.updatedAt = now; a.lastTouchedAt = now; if (!a.activatedAt) a.activatedAt = now;
+  if (!recovery) {
+    const c = _appCountActive(a.owner);
+    if (c >= _appMaxActivePerOwner)
+      throw new Error(
+        `max active apps per owner (${_appMaxActivePerOwner}) reached for ${a.owner}`,
+      );
+  }
+  const now = Date.now();
+  a.status = APP_MATURITY_V2.ACTIVE;
+  a.updatedAt = now;
+  a.lastTouchedAt = now;
+  if (!a.activatedAt) a.activatedAt = now;
   return { ...a, metadata: { ...a.metadata } };
 }
-export function pauseAppV2(id) { const a = _appsV2.get(id); if (!a) throw new Error(`app ${id} not found`); _appCheckA(a.status, APP_MATURITY_V2.PAUSED); a.status = APP_MATURITY_V2.PAUSED; a.updatedAt = Date.now(); return { ...a, metadata: { ...a.metadata } }; }
-export function archiveAppV2(id) { const a = _appsV2.get(id); if (!a) throw new Error(`app ${id} not found`); _appCheckA(a.status, APP_MATURITY_V2.ARCHIVED); const now = Date.now(); a.status = APP_MATURITY_V2.ARCHIVED; a.updatedAt = now; if (!a.archivedAt) a.archivedAt = now; return { ...a, metadata: { ...a.metadata } }; }
-export function touchAppV2(id) { const a = _appsV2.get(id); if (!a) throw new Error(`app ${id} not found`); if (_appTerminal.has(a.status)) throw new Error(`cannot touch terminal app ${id}`); const now = Date.now(); a.lastTouchedAt = now; a.updatedAt = now; return { ...a, metadata: { ...a.metadata } }; }
-export function getAppV2(id) { const a = _appsV2.get(id); if (!a) return null; return { ...a, metadata: { ...a.metadata } }; }
-export function listAppsV2() { return [..._appsV2.values()].map((a) => ({ ...a, metadata: { ...a.metadata } })); }
+export function pauseAppV2(id) {
+  const a = _appsV2.get(id);
+  if (!a) throw new Error(`app ${id} not found`);
+  _appCheckA(a.status, APP_MATURITY_V2.PAUSED);
+  a.status = APP_MATURITY_V2.PAUSED;
+  a.updatedAt = Date.now();
+  return { ...a, metadata: { ...a.metadata } };
+}
+export function archiveAppV2(id) {
+  const a = _appsV2.get(id);
+  if (!a) throw new Error(`app ${id} not found`);
+  _appCheckA(a.status, APP_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  a.status = APP_MATURITY_V2.ARCHIVED;
+  a.updatedAt = now;
+  if (!a.archivedAt) a.archivedAt = now;
+  return { ...a, metadata: { ...a.metadata } };
+}
+export function touchAppV2(id) {
+  const a = _appsV2.get(id);
+  if (!a) throw new Error(`app ${id} not found`);
+  if (_appTerminal.has(a.status))
+    throw new Error(`cannot touch terminal app ${id}`);
+  const now = Date.now();
+  a.lastTouchedAt = now;
+  a.updatedAt = now;
+  return { ...a, metadata: { ...a.metadata } };
+}
+export function getAppV2(id) {
+  const a = _appsV2.get(id);
+  if (!a) return null;
+  return { ...a, metadata: { ...a.metadata } };
+}
+export function listAppsV2() {
+  return [..._appsV2.values()].map((a) => ({
+    ...a,
+    metadata: { ...a.metadata },
+  }));
+}
 
-function _appCountPendingBuilds(appId) { let n = 0; for (const b of _appBuilds.values()) if (b.appId === appId && (b.status === APP_BUILD_LIFECYCLE_V2.QUEUED || b.status === APP_BUILD_LIFECYCLE_V2.BUILDING)) n++; return n; }
+function _appCountPendingBuilds(appId) {
+  let n = 0;
+  for (const b of _appBuilds.values())
+    if (
+      b.appId === appId &&
+      (b.status === APP_BUILD_LIFECYCLE_V2.QUEUED ||
+        b.status === APP_BUILD_LIFECYCLE_V2.BUILDING)
+    )
+      n++;
+  return n;
+}
 
 export function createAppBuildV2({ id, appId, target, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
@@ -825,25 +952,131 @@ export function createAppBuildV2({ id, appId, target, metadata } = {}) {
   if (_appBuilds.has(id)) throw new Error(`app build ${id} already exists`);
   if (!_appsV2.has(appId)) throw new Error(`app ${appId} not found`);
   const pending = _appCountPendingBuilds(appId);
-  if (pending >= _appMaxPendingBuildsPerApp) throw new Error(`max pending app builds per app (${_appMaxPendingBuildsPerApp}) reached for ${appId}`);
+  if (pending >= _appMaxPendingBuildsPerApp)
+    throw new Error(
+      `max pending app builds per app (${_appMaxPendingBuildsPerApp}) reached for ${appId}`,
+    );
   const now = Date.now();
-  const b = { id, appId, target: target || "web", status: APP_BUILD_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  const b = {
+    id,
+    appId,
+    target: target || "web",
+    status: APP_BUILD_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
   _appBuilds.set(id, b);
   return { ...b, metadata: { ...b.metadata } };
 }
-function _appCheckB(from, to) { const a = _appBuildTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid app build transition ${from} → ${to}`); }
-export function startAppBuildV2(id) { const b = _appBuilds.get(id); if (!b) throw new Error(`app build ${id} not found`); _appCheckB(b.status, APP_BUILD_LIFECYCLE_V2.BUILDING); const now = Date.now(); b.status = APP_BUILD_LIFECYCLE_V2.BUILDING; b.updatedAt = now; if (!b.startedAt) b.startedAt = now; return { ...b, metadata: { ...b.metadata } }; }
-export function succeedAppBuildV2(id) { const b = _appBuilds.get(id); if (!b) throw new Error(`app build ${id} not found`); _appCheckB(b.status, APP_BUILD_LIFECYCLE_V2.SUCCEEDED); const now = Date.now(); b.status = APP_BUILD_LIFECYCLE_V2.SUCCEEDED; b.updatedAt = now; if (!b.settledAt) b.settledAt = now; return { ...b, metadata: { ...b.metadata } }; }
-export function failAppBuildV2(id, reason) { const b = _appBuilds.get(id); if (!b) throw new Error(`app build ${id} not found`); _appCheckB(b.status, APP_BUILD_LIFECYCLE_V2.FAILED); const now = Date.now(); b.status = APP_BUILD_LIFECYCLE_V2.FAILED; b.updatedAt = now; if (!b.settledAt) b.settledAt = now; if (reason) b.metadata.failReason = String(reason); return { ...b, metadata: { ...b.metadata } }; }
-export function cancelAppBuildV2(id, reason) { const b = _appBuilds.get(id); if (!b) throw new Error(`app build ${id} not found`); _appCheckB(b.status, APP_BUILD_LIFECYCLE_V2.CANCELLED); const now = Date.now(); b.status = APP_BUILD_LIFECYCLE_V2.CANCELLED; b.updatedAt = now; if (!b.settledAt) b.settledAt = now; if (reason) b.metadata.cancelReason = String(reason); return { ...b, metadata: { ...b.metadata } }; }
-export function getAppBuildV2(id) { const b = _appBuilds.get(id); if (!b) return null; return { ...b, metadata: { ...b.metadata } }; }
-export function listAppBuildsV2() { return [..._appBuilds.values()].map((b) => ({ ...b, metadata: { ...b.metadata } })); }
+function _appCheckB(from, to) {
+  const a = _appBuildTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid app build transition ${from} → ${to}`);
+}
+export function startAppBuildV2(id) {
+  const b = _appBuilds.get(id);
+  if (!b) throw new Error(`app build ${id} not found`);
+  _appCheckB(b.status, APP_BUILD_LIFECYCLE_V2.BUILDING);
+  const now = Date.now();
+  b.status = APP_BUILD_LIFECYCLE_V2.BUILDING;
+  b.updatedAt = now;
+  if (!b.startedAt) b.startedAt = now;
+  return { ...b, metadata: { ...b.metadata } };
+}
+export function succeedAppBuildV2(id) {
+  const b = _appBuilds.get(id);
+  if (!b) throw new Error(`app build ${id} not found`);
+  _appCheckB(b.status, APP_BUILD_LIFECYCLE_V2.SUCCEEDED);
+  const now = Date.now();
+  b.status = APP_BUILD_LIFECYCLE_V2.SUCCEEDED;
+  b.updatedAt = now;
+  if (!b.settledAt) b.settledAt = now;
+  return { ...b, metadata: { ...b.metadata } };
+}
+export function failAppBuildV2(id, reason) {
+  const b = _appBuilds.get(id);
+  if (!b) throw new Error(`app build ${id} not found`);
+  _appCheckB(b.status, APP_BUILD_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  b.status = APP_BUILD_LIFECYCLE_V2.FAILED;
+  b.updatedAt = now;
+  if (!b.settledAt) b.settledAt = now;
+  if (reason) b.metadata.failReason = String(reason);
+  return { ...b, metadata: { ...b.metadata } };
+}
+export function cancelAppBuildV2(id, reason) {
+  const b = _appBuilds.get(id);
+  if (!b) throw new Error(`app build ${id} not found`);
+  _appCheckB(b.status, APP_BUILD_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  b.status = APP_BUILD_LIFECYCLE_V2.CANCELLED;
+  b.updatedAt = now;
+  if (!b.settledAt) b.settledAt = now;
+  if (reason) b.metadata.cancelReason = String(reason);
+  return { ...b, metadata: { ...b.metadata } };
+}
+export function getAppBuildV2(id) {
+  const b = _appBuilds.get(id);
+  if (!b) return null;
+  return { ...b, metadata: { ...b.metadata } };
+}
+export function listAppBuildsV2() {
+  return [..._appBuilds.values()].map((b) => ({
+    ...b,
+    metadata: { ...b.metadata },
+  }));
+}
 
-export function autoPauseIdleAppsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const a of _appsV2.values()) if (a.status === APP_MATURITY_V2.ACTIVE && (t - a.lastTouchedAt) >= _appIdleMs) { a.status = APP_MATURITY_V2.PAUSED; a.updatedAt = t; flipped.push(a.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckAppBuildsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const b of _appBuilds.values()) if (b.status === APP_BUILD_LIFECYCLE_V2.BUILDING && b.startedAt != null && (t - b.startedAt) >= _appBuildStuckMs) { b.status = APP_BUILD_LIFECYCLE_V2.FAILED; b.updatedAt = t; if (!b.settledAt) b.settledAt = t; b.metadata.failReason = "auto-fail-stuck"; flipped.push(b.id); } return { flipped, count: flipped.length }; }
+export function autoPauseIdleAppsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const a of _appsV2.values())
+    if (
+      a.status === APP_MATURITY_V2.ACTIVE &&
+      t - a.lastTouchedAt >= _appIdleMs
+    ) {
+      a.status = APP_MATURITY_V2.PAUSED;
+      a.updatedAt = t;
+      flipped.push(a.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckAppBuildsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const b of _appBuilds.values())
+    if (
+      b.status === APP_BUILD_LIFECYCLE_V2.BUILDING &&
+      b.startedAt != null &&
+      t - b.startedAt >= _appBuildStuckMs
+    ) {
+      b.status = APP_BUILD_LIFECYCLE_V2.FAILED;
+      b.updatedAt = t;
+      if (!b.settledAt) b.settledAt = t;
+      b.metadata.failReason = "auto-fail-stuck";
+      flipped.push(b.id);
+    }
+  return { flipped, count: flipped.length };
+}
 
 export function getAppBuilderGovStatsV2() {
-  const appsByStatus = {}; for (const s of Object.values(APP_MATURITY_V2)) appsByStatus[s] = 0; for (const a of _appsV2.values()) appsByStatus[a.status]++;
-  const buildsByStatus = {}; for (const s of Object.values(APP_BUILD_LIFECYCLE_V2)) buildsByStatus[s] = 0; for (const b of _appBuilds.values()) buildsByStatus[b.status]++;
-  return { totalAppsV2: _appsV2.size, totalAppBuildsV2: _appBuilds.size, maxActiveAppsPerOwner: _appMaxActivePerOwner, maxPendingAppBuildsPerApp: _appMaxPendingBuildsPerApp, appIdleMs: _appIdleMs, appBuildStuckMs: _appBuildStuckMs, appsByStatus, buildsByStatus };
+  const appsByStatus = {};
+  for (const s of Object.values(APP_MATURITY_V2)) appsByStatus[s] = 0;
+  for (const a of _appsV2.values()) appsByStatus[a.status]++;
+  const buildsByStatus = {};
+  for (const s of Object.values(APP_BUILD_LIFECYCLE_V2)) buildsByStatus[s] = 0;
+  for (const b of _appBuilds.values()) buildsByStatus[b.status]++;
+  return {
+    totalAppsV2: _appsV2.size,
+    totalAppBuildsV2: _appBuilds.size,
+    maxActiveAppsPerOwner: _appMaxActivePerOwner,
+    maxPendingAppBuildsPerApp: _appMaxPendingBuildsPerApp,
+    appIdleMs: _appIdleMs,
+    appBuildStuckMs: _appBuildStuckMs,
+    appsByStatus,
+    buildsByStatus,
+  };
 }

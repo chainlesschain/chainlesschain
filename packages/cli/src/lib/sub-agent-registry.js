@@ -219,25 +219,62 @@ export class SubAgentRegistry {
   }
 }
 
-
 // ===== V2 Surface: Sub-Agent Registry governance overlay (CLI v0.133.0) =====
 export const SUBAGENT_PROFILE_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", PAUSED: "paused", RETIRED: "retired",
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  RETIRED: "retired",
 });
 export const SUBAGENT_TASK_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", RUNNING: "running", COMPLETED: "completed", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 
 const _saProfileTrans = new Map([
-  [SUBAGENT_PROFILE_MATURITY_V2.PENDING, new Set([SUBAGENT_PROFILE_MATURITY_V2.ACTIVE, SUBAGENT_PROFILE_MATURITY_V2.RETIRED])],
-  [SUBAGENT_PROFILE_MATURITY_V2.ACTIVE, new Set([SUBAGENT_PROFILE_MATURITY_V2.PAUSED, SUBAGENT_PROFILE_MATURITY_V2.RETIRED])],
-  [SUBAGENT_PROFILE_MATURITY_V2.PAUSED, new Set([SUBAGENT_PROFILE_MATURITY_V2.ACTIVE, SUBAGENT_PROFILE_MATURITY_V2.RETIRED])],
+  [
+    SUBAGENT_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      SUBAGENT_PROFILE_MATURITY_V2.ACTIVE,
+      SUBAGENT_PROFILE_MATURITY_V2.RETIRED,
+    ]),
+  ],
+  [
+    SUBAGENT_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      SUBAGENT_PROFILE_MATURITY_V2.PAUSED,
+      SUBAGENT_PROFILE_MATURITY_V2.RETIRED,
+    ]),
+  ],
+  [
+    SUBAGENT_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      SUBAGENT_PROFILE_MATURITY_V2.ACTIVE,
+      SUBAGENT_PROFILE_MATURITY_V2.RETIRED,
+    ]),
+  ],
   [SUBAGENT_PROFILE_MATURITY_V2.RETIRED, new Set()],
 ]);
 const _saProfileTerminal = new Set([SUBAGENT_PROFILE_MATURITY_V2.RETIRED]);
 const _saTaskTrans = new Map([
-  [SUBAGENT_TASK_LIFECYCLE_V2.QUEUED, new Set([SUBAGENT_TASK_LIFECYCLE_V2.RUNNING, SUBAGENT_TASK_LIFECYCLE_V2.CANCELLED])],
-  [SUBAGENT_TASK_LIFECYCLE_V2.RUNNING, new Set([SUBAGENT_TASK_LIFECYCLE_V2.COMPLETED, SUBAGENT_TASK_LIFECYCLE_V2.FAILED, SUBAGENT_TASK_LIFECYCLE_V2.CANCELLED])],
+  [
+    SUBAGENT_TASK_LIFECYCLE_V2.QUEUED,
+    new Set([
+      SUBAGENT_TASK_LIFECYCLE_V2.RUNNING,
+      SUBAGENT_TASK_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    SUBAGENT_TASK_LIFECYCLE_V2.RUNNING,
+    new Set([
+      SUBAGENT_TASK_LIFECYCLE_V2.COMPLETED,
+      SUBAGENT_TASK_LIFECYCLE_V2.FAILED,
+      SUBAGENT_TASK_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [SUBAGENT_TASK_LIFECYCLE_V2.COMPLETED, new Set()],
   [SUBAGENT_TASK_LIFECYCLE_V2.FAILED, new Set()],
   [SUBAGENT_TASK_LIFECYCLE_V2.CANCELLED, new Set()],
@@ -250,81 +287,293 @@ let _saMaxPendingPerProfile = 24;
 let _saProfileIdleMs = 2 * 60 * 60 * 1000;
 let _saTaskStuckMs = 5 * 60 * 1000;
 
-function _saPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+function _saPos(n, lbl) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${lbl} must be positive integer`);
+  return v;
+}
 
-export function setMaxActiveSubagentsPerOwnerV2(n) { _saMaxActivePerOwner = _saPos(n, "maxActiveSubagentsPerOwner"); }
-export function getMaxActiveSubagentsPerOwnerV2() { return _saMaxActivePerOwner; }
-export function setMaxPendingTasksPerSubagentV2(n) { _saMaxPendingPerProfile = _saPos(n, "maxPendingTasksPerSubagent"); }
-export function getMaxPendingTasksPerSubagentV2() { return _saMaxPendingPerProfile; }
-export function setSubagentIdleMsV2(n) { _saProfileIdleMs = _saPos(n, "subagentIdleMs"); }
-export function getSubagentIdleMsV2() { return _saProfileIdleMs; }
-export function setSubagentTaskStuckMsV2(n) { _saTaskStuckMs = _saPos(n, "subagentTaskStuckMs"); }
-export function getSubagentTaskStuckMsV2() { return _saTaskStuckMs; }
+export function setMaxActiveSubagentsPerOwnerV2(n) {
+  _saMaxActivePerOwner = _saPos(n, "maxActiveSubagentsPerOwner");
+}
+export function getMaxActiveSubagentsPerOwnerV2() {
+  return _saMaxActivePerOwner;
+}
+export function setMaxPendingTasksPerSubagentV2(n) {
+  _saMaxPendingPerProfile = _saPos(n, "maxPendingTasksPerSubagent");
+}
+export function getMaxPendingTasksPerSubagentV2() {
+  return _saMaxPendingPerProfile;
+}
+export function setSubagentIdleMsV2(n) {
+  _saProfileIdleMs = _saPos(n, "subagentIdleMs");
+}
+export function getSubagentIdleMsV2() {
+  return _saProfileIdleMs;
+}
+export function setSubagentTaskStuckMsV2(n) {
+  _saTaskStuckMs = _saPos(n, "subagentTaskStuckMs");
+}
+export function getSubagentTaskStuckMsV2() {
+  return _saTaskStuckMs;
+}
 
 export function _resetStateSubAgentRegistryV2() {
-  _saProfiles.clear(); _saTasks.clear();
-  _saMaxActivePerOwner = 12; _saMaxPendingPerProfile = 24;
-  _saProfileIdleMs = 2 * 60 * 60 * 1000; _saTaskStuckMs = 5 * 60 * 1000;
+  _saProfiles.clear();
+  _saTasks.clear();
+  _saMaxActivePerOwner = 12;
+  _saMaxPendingPerProfile = 24;
+  _saProfileIdleMs = 2 * 60 * 60 * 1000;
+  _saTaskStuckMs = 5 * 60 * 1000;
 }
 
 export function registerSubagentProfileV2({ id, owner, role, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
   if (!owner || typeof owner !== "string") throw new Error("owner is required");
-  if (_saProfiles.has(id)) throw new Error(`subagent profile ${id} already registered`);
+  if (_saProfiles.has(id))
+    throw new Error(`subagent profile ${id} already registered`);
   const now = Date.now();
-  const p = { id, owner, role: role || "generic", status: SUBAGENT_PROFILE_MATURITY_V2.PENDING,
-    createdAt: now, updatedAt: now, activatedAt: null, retiredAt: null, lastTouchedAt: now,
-    metadata: { ...(metadata || {}) } };
+  const p = {
+    id,
+    owner,
+    role: role || "generic",
+    status: SUBAGENT_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    retiredAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
   _saProfiles.set(id, p);
   return { ...p, metadata: { ...p.metadata } };
 }
 
-function _saCheckP(from, to) { const allowed = _saProfileTrans.get(from); if (!allowed || !allowed.has(to)) throw new Error(`invalid subagent profile transition ${from} → ${to}`); }
-function _saCountActiveByOwner(owner) { let n = 0; for (const p of _saProfiles.values()) if (p.owner === owner && p.status === SUBAGENT_PROFILE_MATURITY_V2.ACTIVE) n++; return n; }
+function _saCheckP(from, to) {
+  const allowed = _saProfileTrans.get(from);
+  if (!allowed || !allowed.has(to))
+    throw new Error(`invalid subagent profile transition ${from} → ${to}`);
+}
+function _saCountActiveByOwner(owner) {
+  let n = 0;
+  for (const p of _saProfiles.values())
+    if (p.owner === owner && p.status === SUBAGENT_PROFILE_MATURITY_V2.ACTIVE)
+      n++;
+  return n;
+}
 
 export function activateSubagentProfileV2(id) {
-  const p = _saProfiles.get(id); if (!p) throw new Error(`subagent profile ${id} not found`);
+  const p = _saProfiles.get(id);
+  if (!p) throw new Error(`subagent profile ${id} not found`);
   _saCheckP(p.status, SUBAGENT_PROFILE_MATURITY_V2.ACTIVE);
   const recovery = p.status === SUBAGENT_PROFILE_MATURITY_V2.PAUSED;
-  if (!recovery) { const a = _saCountActiveByOwner(p.owner); if (a >= _saMaxActivePerOwner) throw new Error(`max active subagents per owner (${_saMaxActivePerOwner}) reached for ${p.owner}`); }
-  const now = Date.now(); p.status = SUBAGENT_PROFILE_MATURITY_V2.ACTIVE; p.updatedAt = now; p.lastTouchedAt = now;
+  if (!recovery) {
+    const a = _saCountActiveByOwner(p.owner);
+    if (a >= _saMaxActivePerOwner)
+      throw new Error(
+        `max active subagents per owner (${_saMaxActivePerOwner}) reached for ${p.owner}`,
+      );
+  }
+  const now = Date.now();
+  p.status = SUBAGENT_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
   if (!p.activatedAt) p.activatedAt = now;
   return { ...p, metadata: { ...p.metadata } };
 }
-export function pauseSubagentProfileV2(id) { const p = _saProfiles.get(id); if (!p) throw new Error(`subagent profile ${id} not found`); _saCheckP(p.status, SUBAGENT_PROFILE_MATURITY_V2.PAUSED); p.status = SUBAGENT_PROFILE_MATURITY_V2.PAUSED; p.updatedAt = Date.now(); return { ...p, metadata: { ...p.metadata } }; }
-export function retireSubagentProfileV2(id) { const p = _saProfiles.get(id); if (!p) throw new Error(`subagent profile ${id} not found`); _saCheckP(p.status, SUBAGENT_PROFILE_MATURITY_V2.RETIRED); const now = Date.now(); p.status = SUBAGENT_PROFILE_MATURITY_V2.RETIRED; p.updatedAt = now; if (!p.retiredAt) p.retiredAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function touchSubagentProfileV2(id) { const p = _saProfiles.get(id); if (!p) throw new Error(`subagent profile ${id} not found`); if (_saProfileTerminal.has(p.status)) throw new Error(`cannot touch terminal subagent profile ${id}`); const now = Date.now(); p.lastTouchedAt = now; p.updatedAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function getSubagentProfileV2(id) { const p = _saProfiles.get(id); if (!p) return null; return { ...p, metadata: { ...p.metadata } }; }
-export function listSubagentProfilesV2() { return [..._saProfiles.values()].map((p) => ({ ...p, metadata: { ...p.metadata } })); }
-
-function _saCountPendingByProfile(pid) { let n = 0; for (const t of _saTasks.values()) if (t.profileId === pid && (t.status === SUBAGENT_TASK_LIFECYCLE_V2.QUEUED || t.status === SUBAGENT_TASK_LIFECYCLE_V2.RUNNING)) n++; return n; }
-
-export function createSubagentTaskV2({ id, profileId, description, metadata } = {}) {
-  if (!id || typeof id !== "string") throw new Error("id is required");
-  if (!profileId || typeof profileId !== "string") throw new Error("profileId is required");
-  if (_saTasks.has(id)) throw new Error(`subagent task ${id} already exists`);
-  if (!_saProfiles.has(profileId)) throw new Error(`subagent profile ${profileId} not found`);
-  const pending = _saCountPendingByProfile(profileId);
-  if (pending >= _saMaxPendingPerProfile) throw new Error(`max pending tasks per subagent (${_saMaxPendingPerProfile}) reached for ${profileId}`);
+export function pauseSubagentProfileV2(id) {
+  const p = _saProfiles.get(id);
+  if (!p) throw new Error(`subagent profile ${id} not found`);
+  _saCheckP(p.status, SUBAGENT_PROFILE_MATURITY_V2.PAUSED);
+  p.status = SUBAGENT_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function retireSubagentProfileV2(id) {
+  const p = _saProfiles.get(id);
+  if (!p) throw new Error(`subagent profile ${id} not found`);
+  _saCheckP(p.status, SUBAGENT_PROFILE_MATURITY_V2.RETIRED);
   const now = Date.now();
-  const t = { id, profileId, description: description || "", status: SUBAGENT_TASK_LIFECYCLE_V2.QUEUED,
-    createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  p.status = SUBAGENT_PROFILE_MATURITY_V2.RETIRED;
+  p.updatedAt = now;
+  if (!p.retiredAt) p.retiredAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchSubagentProfileV2(id) {
+  const p = _saProfiles.get(id);
+  if (!p) throw new Error(`subagent profile ${id} not found`);
+  if (_saProfileTerminal.has(p.status))
+    throw new Error(`cannot touch terminal subagent profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getSubagentProfileV2(id) {
+  const p = _saProfiles.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listSubagentProfilesV2() {
+  return [..._saProfiles.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+
+function _saCountPendingByProfile(pid) {
+  let n = 0;
+  for (const t of _saTasks.values())
+    if (
+      t.profileId === pid &&
+      (t.status === SUBAGENT_TASK_LIFECYCLE_V2.QUEUED ||
+        t.status === SUBAGENT_TASK_LIFECYCLE_V2.RUNNING)
+    )
+      n++;
+  return n;
+}
+
+export function createSubagentTaskV2({
+  id,
+  profileId,
+  description,
+  metadata,
+} = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!profileId || typeof profileId !== "string")
+    throw new Error("profileId is required");
+  if (_saTasks.has(id)) throw new Error(`subagent task ${id} already exists`);
+  if (!_saProfiles.has(profileId))
+    throw new Error(`subagent profile ${profileId} not found`);
+  const pending = _saCountPendingByProfile(profileId);
+  if (pending >= _saMaxPendingPerProfile)
+    throw new Error(
+      `max pending tasks per subagent (${_saMaxPendingPerProfile}) reached for ${profileId}`,
+    );
+  const now = Date.now();
+  const t = {
+    id,
+    profileId,
+    description: description || "",
+    status: SUBAGENT_TASK_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
   _saTasks.set(id, t);
   return { ...t, metadata: { ...t.metadata } };
 }
-function _saCheckT(from, to) { const allowed = _saTaskTrans.get(from); if (!allowed || !allowed.has(to)) throw new Error(`invalid subagent task transition ${from} → ${to}`); }
-export function startSubagentTaskV2(id) { const t = _saTasks.get(id); if (!t) throw new Error(`subagent task ${id} not found`); _saCheckT(t.status, SUBAGENT_TASK_LIFECYCLE_V2.RUNNING); const now = Date.now(); t.status = SUBAGENT_TASK_LIFECYCLE_V2.RUNNING; t.updatedAt = now; if (!t.startedAt) t.startedAt = now; return { ...t, metadata: { ...t.metadata } }; }
-export function completeSubagentTaskV2(id) { const t = _saTasks.get(id); if (!t) throw new Error(`subagent task ${id} not found`); _saCheckT(t.status, SUBAGENT_TASK_LIFECYCLE_V2.COMPLETED); const now = Date.now(); t.status = SUBAGENT_TASK_LIFECYCLE_V2.COMPLETED; t.updatedAt = now; if (!t.settledAt) t.settledAt = now; return { ...t, metadata: { ...t.metadata } }; }
-export function failSubagentTaskV2(id, reason) { const t = _saTasks.get(id); if (!t) throw new Error(`subagent task ${id} not found`); _saCheckT(t.status, SUBAGENT_TASK_LIFECYCLE_V2.FAILED); const now = Date.now(); t.status = SUBAGENT_TASK_LIFECYCLE_V2.FAILED; t.updatedAt = now; if (!t.settledAt) t.settledAt = now; if (reason) t.metadata.failReason = String(reason); return { ...t, metadata: { ...t.metadata } }; }
-export function cancelSubagentTaskV2(id, reason) { const t = _saTasks.get(id); if (!t) throw new Error(`subagent task ${id} not found`); _saCheckT(t.status, SUBAGENT_TASK_LIFECYCLE_V2.CANCELLED); const now = Date.now(); t.status = SUBAGENT_TASK_LIFECYCLE_V2.CANCELLED; t.updatedAt = now; if (!t.settledAt) t.settledAt = now; if (reason) t.metadata.cancelReason = String(reason); return { ...t, metadata: { ...t.metadata } }; }
-export function getSubagentTaskV2(id) { const t = _saTasks.get(id); if (!t) return null; return { ...t, metadata: { ...t.metadata } }; }
-export function listSubagentTasksV2() { return [..._saTasks.values()].map((t) => ({ ...t, metadata: { ...t.metadata } })); }
+function _saCheckT(from, to) {
+  const allowed = _saTaskTrans.get(from);
+  if (!allowed || !allowed.has(to))
+    throw new Error(`invalid subagent task transition ${from} → ${to}`);
+}
+export function startSubagentTaskV2(id) {
+  const t = _saTasks.get(id);
+  if (!t) throw new Error(`subagent task ${id} not found`);
+  _saCheckT(t.status, SUBAGENT_TASK_LIFECYCLE_V2.RUNNING);
+  const now = Date.now();
+  t.status = SUBAGENT_TASK_LIFECYCLE_V2.RUNNING;
+  t.updatedAt = now;
+  if (!t.startedAt) t.startedAt = now;
+  return { ...t, metadata: { ...t.metadata } };
+}
+export function completeSubagentTaskV2(id) {
+  const t = _saTasks.get(id);
+  if (!t) throw new Error(`subagent task ${id} not found`);
+  _saCheckT(t.status, SUBAGENT_TASK_LIFECYCLE_V2.COMPLETED);
+  const now = Date.now();
+  t.status = SUBAGENT_TASK_LIFECYCLE_V2.COMPLETED;
+  t.updatedAt = now;
+  if (!t.settledAt) t.settledAt = now;
+  return { ...t, metadata: { ...t.metadata } };
+}
+export function failSubagentTaskV2(id, reason) {
+  const t = _saTasks.get(id);
+  if (!t) throw new Error(`subagent task ${id} not found`);
+  _saCheckT(t.status, SUBAGENT_TASK_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  t.status = SUBAGENT_TASK_LIFECYCLE_V2.FAILED;
+  t.updatedAt = now;
+  if (!t.settledAt) t.settledAt = now;
+  if (reason) t.metadata.failReason = String(reason);
+  return { ...t, metadata: { ...t.metadata } };
+}
+export function cancelSubagentTaskV2(id, reason) {
+  const t = _saTasks.get(id);
+  if (!t) throw new Error(`subagent task ${id} not found`);
+  _saCheckT(t.status, SUBAGENT_TASK_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  t.status = SUBAGENT_TASK_LIFECYCLE_V2.CANCELLED;
+  t.updatedAt = now;
+  if (!t.settledAt) t.settledAt = now;
+  if (reason) t.metadata.cancelReason = String(reason);
+  return { ...t, metadata: { ...t.metadata } };
+}
+export function getSubagentTaskV2(id) {
+  const t = _saTasks.get(id);
+  if (!t) return null;
+  return { ...t, metadata: { ...t.metadata } };
+}
+export function listSubagentTasksV2() {
+  return [..._saTasks.values()].map((t) => ({
+    ...t,
+    metadata: { ...t.metadata },
+  }));
+}
 
-export function autoPauseIdleSubagentsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const p of _saProfiles.values()) if (p.status === SUBAGENT_PROFILE_MATURITY_V2.ACTIVE && (t - p.lastTouchedAt) >= _saProfileIdleMs) { p.status = SUBAGENT_PROFILE_MATURITY_V2.PAUSED; p.updatedAt = t; flipped.push(p.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckSubagentTasksV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const k of _saTasks.values()) if (k.status === SUBAGENT_TASK_LIFECYCLE_V2.RUNNING && k.startedAt != null && (t - k.startedAt) >= _saTaskStuckMs) { k.status = SUBAGENT_TASK_LIFECYCLE_V2.FAILED; k.updatedAt = t; if (!k.settledAt) k.settledAt = t; k.metadata.failReason = "auto-fail-stuck"; flipped.push(k.id); } return { flipped, count: flipped.length }; }
+export function autoPauseIdleSubagentsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _saProfiles.values())
+    if (
+      p.status === SUBAGENT_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _saProfileIdleMs
+    ) {
+      p.status = SUBAGENT_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckSubagentTasksV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const k of _saTasks.values())
+    if (
+      k.status === SUBAGENT_TASK_LIFECYCLE_V2.RUNNING &&
+      k.startedAt != null &&
+      t - k.startedAt >= _saTaskStuckMs
+    ) {
+      k.status = SUBAGENT_TASK_LIFECYCLE_V2.FAILED;
+      k.updatedAt = t;
+      if (!k.settledAt) k.settledAt = t;
+      k.metadata.failReason = "auto-fail-stuck";
+      flipped.push(k.id);
+    }
+  return { flipped, count: flipped.length };
+}
 
 export function getSubAgentRegistryStatsV2() {
-  const profilesByStatus = {}; for (const s of Object.values(SUBAGENT_PROFILE_MATURITY_V2)) profilesByStatus[s] = 0; for (const p of _saProfiles.values()) profilesByStatus[p.status]++;
-  const tasksByStatus = {}; for (const s of Object.values(SUBAGENT_TASK_LIFECYCLE_V2)) tasksByStatus[s] = 0; for (const t of _saTasks.values()) tasksByStatus[t.status]++;
-  return { totalProfilesV2: _saProfiles.size, totalTasksV2: _saTasks.size, maxActiveSubagentsPerOwner: _saMaxActivePerOwner, maxPendingTasksPerSubagent: _saMaxPendingPerProfile, subagentIdleMs: _saProfileIdleMs, subagentTaskStuckMs: _saTaskStuckMs, profilesByStatus, tasksByStatus };
+  const profilesByStatus = {};
+  for (const s of Object.values(SUBAGENT_PROFILE_MATURITY_V2))
+    profilesByStatus[s] = 0;
+  for (const p of _saProfiles.values()) profilesByStatus[p.status]++;
+  const tasksByStatus = {};
+  for (const s of Object.values(SUBAGENT_TASK_LIFECYCLE_V2))
+    tasksByStatus[s] = 0;
+  for (const t of _saTasks.values()) tasksByStatus[t.status]++;
+  return {
+    totalProfilesV2: _saProfiles.size,
+    totalTasksV2: _saTasks.size,
+    maxActiveSubagentsPerOwner: _saMaxActivePerOwner,
+    maxPendingTasksPerSubagent: _saMaxPendingPerProfile,
+    subagentIdleMs: _saProfileIdleMs,
+    subagentTaskStuckMs: _saTaskStuckMs,
+    profilesByStatus,
+    tasksByStatus,
+  };
 }

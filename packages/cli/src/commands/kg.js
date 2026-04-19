@@ -756,3 +756,209 @@ export function registerKgCommand(program) {
       }
     });
 }
+
+// === Iter16 V2 governance overlay ===
+export function registerKgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "kg");
+  if (!parent) return;
+  const L = async () => await import("../lib/knowledge-graph.js");
+  parent
+    .command("kgov-enums-v2")
+    .description("Show V2 enums (kgov maturity + import lifecycle)")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.KGOV_PROFILE_MATURITY_V2,
+            importLifecycle: m.KGOV_IMPORT_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("kgov-config-v2")
+    .description("Show V2 config thresholds")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveKgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingKgovImportsPerProfileV2(),
+            idleMs: m.getKgovProfileIdleMsV2(),
+            stuckMs: m.getKgovImportStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("kgov-set-max-active-v2 <n>")
+    .description("Set max active profiles per owner")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxActiveKgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("kgov-set-max-pending-v2 <n>")
+    .description("Set max pending imports per profile")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxPendingKgovImportsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("kgov-set-idle-ms-v2 <n>")
+    .description("Set profile idle threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setKgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("kgov-set-stuck-ms-v2 <n>")
+    .description("Set import stuck threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setKgovImportStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("kgov-register-v2 <id> <owner>")
+    .description("Register V2 kgov profile")
+    .option("--namespace <v>", "namespace")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerKgovProfileV2({ id, owner, namespace: o.namespace }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("kgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.activateKgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("kgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.staleKgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("kgov-archive-v2 <id>")
+    .description("Archive profile (terminal)")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.archiveKgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("kgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.touchKgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("kgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getKgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("kgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listKgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("kgov-create-import-v2 <id> <profileId>")
+    .description("Create import (queued)")
+    .option("--source <v>", "source")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createKgovImportV2({ id, profileId, source: o.source }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("kgov-importing-import-v2 <id>")
+    .description("Mark import as importing")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.importingKgovImportV2(id), null, 2));
+    });
+  parent
+    .command("kgov-complete-import-v2 <id>")
+    .description("Complete import")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.completeImportKgovV2(id), null, 2));
+    });
+  parent
+    .command("kgov-fail-import-v2 <id> [reason]")
+    .description("Fail import")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.failKgovImportV2(id, reason), null, 2));
+    });
+  parent
+    .command("kgov-cancel-import-v2 <id> [reason]")
+    .description("Cancel import")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.cancelKgovImportV2(id, reason), null, 2));
+    });
+  parent
+    .command("kgov-get-import-v2 <id>")
+    .description("Get import")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getKgovImportV2(id), null, 2));
+    });
+  parent
+    .command("kgov-list-imports-v2")
+    .description("List imports")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listKgovImportsV2(), null, 2));
+    });
+  parent
+    .command("kgov-auto-stale-idle-v2")
+    .description("Auto-stale idle profiles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoStaleIdleKgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("kgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck imports")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoFailStuckKgovImportsV2(), null, 2));
+    });
+  parent
+    .command("kgov-gov-stats-v2")
+    .description("V2 gov aggregate stats")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.getKnowledgeGraphGovStatsV2(), null, 2));
+    });
+}

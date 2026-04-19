@@ -692,25 +692,50 @@ export function getHighestUnresolvedSeverity() {
 
 export { _v2PolicyMeta, _v2IncidentMeta, _builtinPolicyTemplates };
 
-
 // ===== V2 Surface: DLP Engine governance overlay (CLI v0.135.0) =====
 export const DLP_POLICY_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", SUSPENDED: "suspended", RETIRED: "retired",
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  RETIRED: "retired",
 });
 export const DLP_SCAN_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", SCANNING: "scanning", COMPLETED: "completed", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  SCANNING: "scanning",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 
 const _dlpPolTrans = new Map([
-  [DLP_POLICY_MATURITY_V2.PENDING, new Set([DLP_POLICY_MATURITY_V2.ACTIVE, DLP_POLICY_MATURITY_V2.RETIRED])],
-  [DLP_POLICY_MATURITY_V2.ACTIVE, new Set([DLP_POLICY_MATURITY_V2.SUSPENDED, DLP_POLICY_MATURITY_V2.RETIRED])],
-  [DLP_POLICY_MATURITY_V2.SUSPENDED, new Set([DLP_POLICY_MATURITY_V2.ACTIVE, DLP_POLICY_MATURITY_V2.RETIRED])],
+  [
+    DLP_POLICY_MATURITY_V2.PENDING,
+    new Set([DLP_POLICY_MATURITY_V2.ACTIVE, DLP_POLICY_MATURITY_V2.RETIRED]),
+  ],
+  [
+    DLP_POLICY_MATURITY_V2.ACTIVE,
+    new Set([DLP_POLICY_MATURITY_V2.SUSPENDED, DLP_POLICY_MATURITY_V2.RETIRED]),
+  ],
+  [
+    DLP_POLICY_MATURITY_V2.SUSPENDED,
+    new Set([DLP_POLICY_MATURITY_V2.ACTIVE, DLP_POLICY_MATURITY_V2.RETIRED]),
+  ],
   [DLP_POLICY_MATURITY_V2.RETIRED, new Set()],
 ]);
 const _dlpPolTerminal = new Set([DLP_POLICY_MATURITY_V2.RETIRED]);
 const _dlpScanTrans = new Map([
-  [DLP_SCAN_LIFECYCLE_V2.QUEUED, new Set([DLP_SCAN_LIFECYCLE_V2.SCANNING, DLP_SCAN_LIFECYCLE_V2.CANCELLED])],
-  [DLP_SCAN_LIFECYCLE_V2.SCANNING, new Set([DLP_SCAN_LIFECYCLE_V2.COMPLETED, DLP_SCAN_LIFECYCLE_V2.FAILED, DLP_SCAN_LIFECYCLE_V2.CANCELLED])],
+  [
+    DLP_SCAN_LIFECYCLE_V2.QUEUED,
+    new Set([DLP_SCAN_LIFECYCLE_V2.SCANNING, DLP_SCAN_LIFECYCLE_V2.CANCELLED]),
+  ],
+  [
+    DLP_SCAN_LIFECYCLE_V2.SCANNING,
+    new Set([
+      DLP_SCAN_LIFECYCLE_V2.COMPLETED,
+      DLP_SCAN_LIFECYCLE_V2.FAILED,
+      DLP_SCAN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [DLP_SCAN_LIFECYCLE_V2.COMPLETED, new Set()],
   [DLP_SCAN_LIFECYCLE_V2.FAILED, new Set()],
   [DLP_SCAN_LIFECYCLE_V2.CANCELLED, new Set()],
@@ -723,76 +748,289 @@ let _dlpMaxPendingPerPol = 20;
 let _dlpPolIdleMs = 12 * 60 * 60 * 1000;
 let _dlpScanStuckMs = 5 * 60 * 1000;
 
-function _dlpPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
-
-export function setMaxActiveDlpPoliciesPerOwnerV2(n) { _dlpMaxActivePerOwner = _dlpPos(n, "maxActiveDlpPoliciesPerOwner"); }
-export function getMaxActiveDlpPoliciesPerOwnerV2() { return _dlpMaxActivePerOwner; }
-export function setMaxPendingDlpScansPerPolicyV2(n) { _dlpMaxPendingPerPol = _dlpPos(n, "maxPendingDlpScansPerPolicy"); }
-export function getMaxPendingDlpScansPerPolicyV2() { return _dlpMaxPendingPerPol; }
-export function setDlpPolicyIdleMsV2(n) { _dlpPolIdleMs = _dlpPos(n, "dlpPolicyIdleMs"); }
-export function getDlpPolicyIdleMsV2() { return _dlpPolIdleMs; }
-export function setDlpScanStuckMsV2(n) { _dlpScanStuckMs = _dlpPos(n, "dlpScanStuckMs"); }
-export function getDlpScanStuckMsV2() { return _dlpScanStuckMs; }
-
-export function _resetStateDlpEngineV2() {
-  _dlpPols.clear(); _dlpScans.clear();
-  _dlpMaxActivePerOwner = 16; _dlpMaxPendingPerPol = 20;
-  _dlpPolIdleMs = 12 * 60 * 60 * 1000; _dlpScanStuckMs = 5 * 60 * 1000;
+function _dlpPos(n, lbl) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${lbl} must be positive integer`);
+  return v;
 }
 
-export function registerDlpPolicyV2({ id, owner, classification, metadata } = {}) {
+export function setMaxActiveDlpPoliciesPerOwnerV2(n) {
+  _dlpMaxActivePerOwner = _dlpPos(n, "maxActiveDlpPoliciesPerOwner");
+}
+export function getMaxActiveDlpPoliciesPerOwnerV2() {
+  return _dlpMaxActivePerOwner;
+}
+export function setMaxPendingDlpScansPerPolicyV2(n) {
+  _dlpMaxPendingPerPol = _dlpPos(n, "maxPendingDlpScansPerPolicy");
+}
+export function getMaxPendingDlpScansPerPolicyV2() {
+  return _dlpMaxPendingPerPol;
+}
+export function setDlpPolicyIdleMsV2(n) {
+  _dlpPolIdleMs = _dlpPos(n, "dlpPolicyIdleMs");
+}
+export function getDlpPolicyIdleMsV2() {
+  return _dlpPolIdleMs;
+}
+export function setDlpScanStuckMsV2(n) {
+  _dlpScanStuckMs = _dlpPos(n, "dlpScanStuckMs");
+}
+export function getDlpScanStuckMsV2() {
+  return _dlpScanStuckMs;
+}
+
+export function _resetStateDlpEngineV2() {
+  _dlpPols.clear();
+  _dlpScans.clear();
+  _dlpMaxActivePerOwner = 16;
+  _dlpMaxPendingPerPol = 20;
+  _dlpPolIdleMs = 12 * 60 * 60 * 1000;
+  _dlpScanStuckMs = 5 * 60 * 1000;
+}
+
+export function registerDlpPolicyV2({
+  id,
+  owner,
+  classification,
+  metadata,
+} = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
   if (!owner || typeof owner !== "string") throw new Error("owner is required");
   if (_dlpPols.has(id)) throw new Error(`dlp policy ${id} already registered`);
   const now = Date.now();
-  const p = { id, owner, classification: classification || "internal", status: DLP_POLICY_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, retiredAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  const p = {
+    id,
+    owner,
+    classification: classification || "internal",
+    status: DLP_POLICY_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    retiredAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
   _dlpPols.set(id, p);
   return { ...p, metadata: { ...p.metadata } };
 }
-function _dlpCheckP(from, to) { const a = _dlpPolTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid dlp policy transition ${from} → ${to}`); }
-function _dlpCountActive(owner) { let n = 0; for (const p of _dlpPols.values()) if (p.owner === owner && p.status === DLP_POLICY_MATURITY_V2.ACTIVE) n++; return n; }
+function _dlpCheckP(from, to) {
+  const a = _dlpPolTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid dlp policy transition ${from} → ${to}`);
+}
+function _dlpCountActive(owner) {
+  let n = 0;
+  for (const p of _dlpPols.values())
+    if (p.owner === owner && p.status === DLP_POLICY_MATURITY_V2.ACTIVE) n++;
+  return n;
+}
 
 export function activateDlpPolicyV2(id) {
-  const p = _dlpPols.get(id); if (!p) throw new Error(`dlp policy ${id} not found`);
+  const p = _dlpPols.get(id);
+  if (!p) throw new Error(`dlp policy ${id} not found`);
   _dlpCheckP(p.status, DLP_POLICY_MATURITY_V2.ACTIVE);
   const recovery = p.status === DLP_POLICY_MATURITY_V2.SUSPENDED;
-  if (!recovery) { const a = _dlpCountActive(p.owner); if (a >= _dlpMaxActivePerOwner) throw new Error(`max active dlp policies per owner (${_dlpMaxActivePerOwner}) reached for ${p.owner}`); }
-  const now = Date.now(); p.status = DLP_POLICY_MATURITY_V2.ACTIVE; p.updatedAt = now; p.lastTouchedAt = now; if (!p.activatedAt) p.activatedAt = now;
+  if (!recovery) {
+    const a = _dlpCountActive(p.owner);
+    if (a >= _dlpMaxActivePerOwner)
+      throw new Error(
+        `max active dlp policies per owner (${_dlpMaxActivePerOwner}) reached for ${p.owner}`,
+      );
+  }
+  const now = Date.now();
+  p.status = DLP_POLICY_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
   return { ...p, metadata: { ...p.metadata } };
 }
-export function suspendDlpPolicyV2(id) { const p = _dlpPols.get(id); if (!p) throw new Error(`dlp policy ${id} not found`); _dlpCheckP(p.status, DLP_POLICY_MATURITY_V2.SUSPENDED); p.status = DLP_POLICY_MATURITY_V2.SUSPENDED; p.updatedAt = Date.now(); return { ...p, metadata: { ...p.metadata } }; }
-export function retireDlpPolicyV2(id) { const p = _dlpPols.get(id); if (!p) throw new Error(`dlp policy ${id} not found`); _dlpCheckP(p.status, DLP_POLICY_MATURITY_V2.RETIRED); const now = Date.now(); p.status = DLP_POLICY_MATURITY_V2.RETIRED; p.updatedAt = now; if (!p.retiredAt) p.retiredAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function touchDlpPolicyV2(id) { const p = _dlpPols.get(id); if (!p) throw new Error(`dlp policy ${id} not found`); if (_dlpPolTerminal.has(p.status)) throw new Error(`cannot touch terminal dlp policy ${id}`); const now = Date.now(); p.lastTouchedAt = now; p.updatedAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function getDlpPolicyV2(id) { const p = _dlpPols.get(id); if (!p) return null; return { ...p, metadata: { ...p.metadata } }; }
-export function listDlpPoliciesV2() { return [..._dlpPols.values()].map((p) => ({ ...p, metadata: { ...p.metadata } })); }
+export function suspendDlpPolicyV2(id) {
+  const p = _dlpPols.get(id);
+  if (!p) throw new Error(`dlp policy ${id} not found`);
+  _dlpCheckP(p.status, DLP_POLICY_MATURITY_V2.SUSPENDED);
+  p.status = DLP_POLICY_MATURITY_V2.SUSPENDED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function retireDlpPolicyV2(id) {
+  const p = _dlpPols.get(id);
+  if (!p) throw new Error(`dlp policy ${id} not found`);
+  _dlpCheckP(p.status, DLP_POLICY_MATURITY_V2.RETIRED);
+  const now = Date.now();
+  p.status = DLP_POLICY_MATURITY_V2.RETIRED;
+  p.updatedAt = now;
+  if (!p.retiredAt) p.retiredAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchDlpPolicyV2(id) {
+  const p = _dlpPols.get(id);
+  if (!p) throw new Error(`dlp policy ${id} not found`);
+  if (_dlpPolTerminal.has(p.status))
+    throw new Error(`cannot touch terminal dlp policy ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getDlpPolicyV2(id) {
+  const p = _dlpPols.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listDlpPoliciesV2() {
+  return [..._dlpPols.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
 
-function _dlpCountPending(pid) { let n = 0; for (const s of _dlpScans.values()) if (s.policyId === pid && (s.status === DLP_SCAN_LIFECYCLE_V2.QUEUED || s.status === DLP_SCAN_LIFECYCLE_V2.SCANNING)) n++; return n; }
+function _dlpCountPending(pid) {
+  let n = 0;
+  for (const s of _dlpScans.values())
+    if (
+      s.policyId === pid &&
+      (s.status === DLP_SCAN_LIFECYCLE_V2.QUEUED ||
+        s.status === DLP_SCAN_LIFECYCLE_V2.SCANNING)
+    )
+      n++;
+  return n;
+}
 
 export function createDlpScanV2({ id, policyId, target, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
-  if (!policyId || typeof policyId !== "string") throw new Error("policyId is required");
+  if (!policyId || typeof policyId !== "string")
+    throw new Error("policyId is required");
   if (_dlpScans.has(id)) throw new Error(`dlp scan ${id} already exists`);
-  if (!_dlpPols.has(policyId)) throw new Error(`dlp policy ${policyId} not found`);
+  if (!_dlpPols.has(policyId))
+    throw new Error(`dlp policy ${policyId} not found`);
   const pending = _dlpCountPending(policyId);
-  if (pending >= _dlpMaxPendingPerPol) throw new Error(`max pending dlp scans per policy (${_dlpMaxPendingPerPol}) reached for ${policyId}`);
+  if (pending >= _dlpMaxPendingPerPol)
+    throw new Error(
+      `max pending dlp scans per policy (${_dlpMaxPendingPerPol}) reached for ${policyId}`,
+    );
   const now = Date.now();
-  const s = { id, policyId, target: target || "", status: DLP_SCAN_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  const s = {
+    id,
+    policyId,
+    target: target || "",
+    status: DLP_SCAN_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
   _dlpScans.set(id, s);
   return { ...s, metadata: { ...s.metadata } };
 }
-function _dlpCheckS(from, to) { const a = _dlpScanTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid dlp scan transition ${from} → ${to}`); }
-export function startDlpScanV2(id) { const s = _dlpScans.get(id); if (!s) throw new Error(`dlp scan ${id} not found`); _dlpCheckS(s.status, DLP_SCAN_LIFECYCLE_V2.SCANNING); const now = Date.now(); s.status = DLP_SCAN_LIFECYCLE_V2.SCANNING; s.updatedAt = now; if (!s.startedAt) s.startedAt = now; return { ...s, metadata: { ...s.metadata } }; }
-export function completeDlpScanV2(id) { const s = _dlpScans.get(id); if (!s) throw new Error(`dlp scan ${id} not found`); _dlpCheckS(s.status, DLP_SCAN_LIFECYCLE_V2.COMPLETED); const now = Date.now(); s.status = DLP_SCAN_LIFECYCLE_V2.COMPLETED; s.updatedAt = now; if (!s.settledAt) s.settledAt = now; return { ...s, metadata: { ...s.metadata } }; }
-export function failDlpScanV2(id, reason) { const s = _dlpScans.get(id); if (!s) throw new Error(`dlp scan ${id} not found`); _dlpCheckS(s.status, DLP_SCAN_LIFECYCLE_V2.FAILED); const now = Date.now(); s.status = DLP_SCAN_LIFECYCLE_V2.FAILED; s.updatedAt = now; if (!s.settledAt) s.settledAt = now; if (reason) s.metadata.failReason = String(reason); return { ...s, metadata: { ...s.metadata } }; }
-export function cancelDlpScanV2(id, reason) { const s = _dlpScans.get(id); if (!s) throw new Error(`dlp scan ${id} not found`); _dlpCheckS(s.status, DLP_SCAN_LIFECYCLE_V2.CANCELLED); const now = Date.now(); s.status = DLP_SCAN_LIFECYCLE_V2.CANCELLED; s.updatedAt = now; if (!s.settledAt) s.settledAt = now; if (reason) s.metadata.cancelReason = String(reason); return { ...s, metadata: { ...s.metadata } }; }
-export function getDlpScanV2(id) { const s = _dlpScans.get(id); if (!s) return null; return { ...s, metadata: { ...s.metadata } }; }
-export function listDlpScansV2() { return [..._dlpScans.values()].map((s) => ({ ...s, metadata: { ...s.metadata } })); }
+function _dlpCheckS(from, to) {
+  const a = _dlpScanTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid dlp scan transition ${from} → ${to}`);
+}
+export function startDlpScanV2(id) {
+  const s = _dlpScans.get(id);
+  if (!s) throw new Error(`dlp scan ${id} not found`);
+  _dlpCheckS(s.status, DLP_SCAN_LIFECYCLE_V2.SCANNING);
+  const now = Date.now();
+  s.status = DLP_SCAN_LIFECYCLE_V2.SCANNING;
+  s.updatedAt = now;
+  if (!s.startedAt) s.startedAt = now;
+  return { ...s, metadata: { ...s.metadata } };
+}
+export function completeDlpScanV2(id) {
+  const s = _dlpScans.get(id);
+  if (!s) throw new Error(`dlp scan ${id} not found`);
+  _dlpCheckS(s.status, DLP_SCAN_LIFECYCLE_V2.COMPLETED);
+  const now = Date.now();
+  s.status = DLP_SCAN_LIFECYCLE_V2.COMPLETED;
+  s.updatedAt = now;
+  if (!s.settledAt) s.settledAt = now;
+  return { ...s, metadata: { ...s.metadata } };
+}
+export function failDlpScanV2(id, reason) {
+  const s = _dlpScans.get(id);
+  if (!s) throw new Error(`dlp scan ${id} not found`);
+  _dlpCheckS(s.status, DLP_SCAN_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  s.status = DLP_SCAN_LIFECYCLE_V2.FAILED;
+  s.updatedAt = now;
+  if (!s.settledAt) s.settledAt = now;
+  if (reason) s.metadata.failReason = String(reason);
+  return { ...s, metadata: { ...s.metadata } };
+}
+export function cancelDlpScanV2(id, reason) {
+  const s = _dlpScans.get(id);
+  if (!s) throw new Error(`dlp scan ${id} not found`);
+  _dlpCheckS(s.status, DLP_SCAN_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  s.status = DLP_SCAN_LIFECYCLE_V2.CANCELLED;
+  s.updatedAt = now;
+  if (!s.settledAt) s.settledAt = now;
+  if (reason) s.metadata.cancelReason = String(reason);
+  return { ...s, metadata: { ...s.metadata } };
+}
+export function getDlpScanV2(id) {
+  const s = _dlpScans.get(id);
+  if (!s) return null;
+  return { ...s, metadata: { ...s.metadata } };
+}
+export function listDlpScansV2() {
+  return [..._dlpScans.values()].map((s) => ({
+    ...s,
+    metadata: { ...s.metadata },
+  }));
+}
 
-export function autoSuspendIdleDlpPoliciesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const p of _dlpPols.values()) if (p.status === DLP_POLICY_MATURITY_V2.ACTIVE && (t - p.lastTouchedAt) >= _dlpPolIdleMs) { p.status = DLP_POLICY_MATURITY_V2.SUSPENDED; p.updatedAt = t; flipped.push(p.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckDlpScansV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const s of _dlpScans.values()) if (s.status === DLP_SCAN_LIFECYCLE_V2.SCANNING && s.startedAt != null && (t - s.startedAt) >= _dlpScanStuckMs) { s.status = DLP_SCAN_LIFECYCLE_V2.FAILED; s.updatedAt = t; if (!s.settledAt) s.settledAt = t; s.metadata.failReason = "auto-fail-stuck"; flipped.push(s.id); } return { flipped, count: flipped.length }; }
+export function autoSuspendIdleDlpPoliciesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _dlpPols.values())
+    if (
+      p.status === DLP_POLICY_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _dlpPolIdleMs
+    ) {
+      p.status = DLP_POLICY_MATURITY_V2.SUSPENDED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckDlpScansV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const s of _dlpScans.values())
+    if (
+      s.status === DLP_SCAN_LIFECYCLE_V2.SCANNING &&
+      s.startedAt != null &&
+      t - s.startedAt >= _dlpScanStuckMs
+    ) {
+      s.status = DLP_SCAN_LIFECYCLE_V2.FAILED;
+      s.updatedAt = t;
+      if (!s.settledAt) s.settledAt = t;
+      s.metadata.failReason = "auto-fail-stuck";
+      flipped.push(s.id);
+    }
+  return { flipped, count: flipped.length };
+}
 
 export function getDlpEngineStatsV2() {
-  const policiesByStatus = {}; for (const s of Object.values(DLP_POLICY_MATURITY_V2)) policiesByStatus[s] = 0; for (const p of _dlpPols.values()) policiesByStatus[p.status]++;
-  const scansByStatus = {}; for (const s of Object.values(DLP_SCAN_LIFECYCLE_V2)) scansByStatus[s] = 0; for (const sc of _dlpScans.values()) scansByStatus[sc.status]++;
-  return { totalPoliciesV2: _dlpPols.size, totalScansV2: _dlpScans.size, maxActiveDlpPoliciesPerOwner: _dlpMaxActivePerOwner, maxPendingDlpScansPerPolicy: _dlpMaxPendingPerPol, dlpPolicyIdleMs: _dlpPolIdleMs, dlpScanStuckMs: _dlpScanStuckMs, policiesByStatus, scansByStatus };
+  const policiesByStatus = {};
+  for (const s of Object.values(DLP_POLICY_MATURITY_V2))
+    policiesByStatus[s] = 0;
+  for (const p of _dlpPols.values()) policiesByStatus[p.status]++;
+  const scansByStatus = {};
+  for (const s of Object.values(DLP_SCAN_LIFECYCLE_V2)) scansByStatus[s] = 0;
+  for (const sc of _dlpScans.values()) scansByStatus[sc.status]++;
+  return {
+    totalPoliciesV2: _dlpPols.size,
+    totalScansV2: _dlpScans.size,
+    maxActiveDlpPoliciesPerOwner: _dlpMaxActivePerOwner,
+    maxPendingDlpScansPerPolicy: _dlpMaxPendingPerPol,
+    dlpPolicyIdleMs: _dlpPolIdleMs,
+    dlpScanStuckMs: _dlpScanStuckMs,
+    policiesByStatus,
+    scansByStatus,
+  };
 }

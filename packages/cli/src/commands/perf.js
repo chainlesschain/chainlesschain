@@ -434,39 +434,176 @@ export function registerPerfCommand(program) {
 }
 
 import {
-  PERF_TUNING_PROFILE_MATURITY_V2, PERF_BENCH_LIFECYCLE_V2,
-  setMaxActivePerfTuningProfilesPerOwnerV2, getMaxActivePerfTuningProfilesPerOwnerV2,
-  setMaxPendingPerfBenchesPerProfileV2, getMaxPendingPerfBenchesPerProfileV2,
-  setPerfTuningProfileIdleMsV2, getPerfTuningProfileIdleMsV2,
-  setPerfBenchStuckMsV2, getPerfBenchStuckMsV2,
-  registerPerfTuningProfileV2, activatePerfTuningProfileV2, stalePerfTuningProfileV2, decommissionPerfTuningProfileV2, touchPerfTuningProfileV2, getPerfTuningProfileV2, listPerfTuningProfilesV2,
-  createPerfBenchV2, startPerfBenchV2, completePerfBenchV2, failPerfBenchV2, cancelPerfBenchV2, getPerfBenchV2, listPerfBenchesV2,
-  autoStaleIdlePerfTuningProfilesV2, autoFailStuckPerfBenchesV2, getPerfTuningGovStatsV2, _resetStatePerfTuningV2,
+  PERF_TUNING_PROFILE_MATURITY_V2,
+  PERF_BENCH_LIFECYCLE_V2,
+  setMaxActivePerfTuningProfilesPerOwnerV2,
+  getMaxActivePerfTuningProfilesPerOwnerV2,
+  setMaxPendingPerfBenchesPerProfileV2,
+  getMaxPendingPerfBenchesPerProfileV2,
+  setPerfTuningProfileIdleMsV2,
+  getPerfTuningProfileIdleMsV2,
+  setPerfBenchStuckMsV2,
+  getPerfBenchStuckMsV2,
+  registerPerfTuningProfileV2,
+  activatePerfTuningProfileV2,
+  stalePerfTuningProfileV2,
+  decommissionPerfTuningProfileV2,
+  touchPerfTuningProfileV2,
+  getPerfTuningProfileV2,
+  listPerfTuningProfilesV2,
+  createPerfBenchV2,
+  startPerfBenchV2,
+  completePerfBenchV2,
+  failPerfBenchV2,
+  cancelPerfBenchV2,
+  getPerfBenchV2,
+  listPerfBenchesV2,
+  autoStaleIdlePerfTuningProfilesV2,
+  autoFailStuckPerfBenchesV2,
+  getPerfTuningGovStatsV2,
+  _resetStatePerfTuningV2,
 } from "../lib/perf-tuning.js";
 
 function _registerPerfV2(parent) {
-  parent.command("enums-v2").action(() => console.log(JSON.stringify({ profileMaturity: PERF_TUNING_PROFILE_MATURITY_V2, benchLifecycle: PERF_BENCH_LIFECYCLE_V2 }, null, 2)));
-  parent.command("config-v2").action(() => console.log(JSON.stringify({ maxActivePerfTuningProfilesPerOwner: getMaxActivePerfTuningProfilesPerOwnerV2(), maxPendingPerfBenchesPerProfile: getMaxPendingPerfBenchesPerProfileV2(), perfTuningProfileIdleMs: getPerfTuningProfileIdleMsV2(), perfBenchStuckMs: getPerfBenchStuckMsV2() }, null, 2)));
-  parent.command("set-max-active-v2 <n>").action((n) => { setMaxActivePerfTuningProfilesPerOwnerV2(Number(n)); console.log("ok"); });
-  parent.command("set-max-pending-v2 <n>").action((n) => { setMaxPendingPerfBenchesPerProfileV2(Number(n)); console.log("ok"); });
-  parent.command("set-idle-ms-v2 <n>").action((n) => { setPerfTuningProfileIdleMsV2(Number(n)); console.log("ok"); });
-  parent.command("set-stuck-ms-v2 <n>").action((n) => { setPerfBenchStuckMsV2(Number(n)); console.log("ok"); });
-  parent.command("register-profile-v2 <id> <owner>").option("--target <t>", "target").action((id, owner, o) => console.log(JSON.stringify(registerPerfTuningProfileV2({ id, owner, target: o.target }), null, 2)));
-  parent.command("activate-profile-v2 <id>").action((id) => console.log(JSON.stringify(activatePerfTuningProfileV2(id), null, 2)));
-  parent.command("stale-profile-v2 <id>").action((id) => console.log(JSON.stringify(stalePerfTuningProfileV2(id), null, 2)));
-  parent.command("decommission-profile-v2 <id>").action((id) => console.log(JSON.stringify(decommissionPerfTuningProfileV2(id), null, 2)));
-  parent.command("touch-profile-v2 <id>").action((id) => console.log(JSON.stringify(touchPerfTuningProfileV2(id), null, 2)));
-  parent.command("get-profile-v2 <id>").action((id) => console.log(JSON.stringify(getPerfTuningProfileV2(id), null, 2)));
-  parent.command("list-profiles-v2").action(() => console.log(JSON.stringify(listPerfTuningProfilesV2(), null, 2)));
-  parent.command("create-bench-v2 <id> <profileId>").option("--scenario <s>", "scenario").action((id, profileId, o) => console.log(JSON.stringify(createPerfBenchV2({ id, profileId, scenario: o.scenario }), null, 2)));
-  parent.command("start-bench-v2 <id>").action((id) => console.log(JSON.stringify(startPerfBenchV2(id), null, 2)));
-  parent.command("complete-bench-v2 <id>").action((id) => console.log(JSON.stringify(completePerfBenchV2(id), null, 2)));
-  parent.command("fail-bench-v2 <id> [reason]").action((id, reason) => console.log(JSON.stringify(failPerfBenchV2(id, reason), null, 2)));
-  parent.command("cancel-bench-v2 <id> [reason]").action((id, reason) => console.log(JSON.stringify(cancelPerfBenchV2(id, reason), null, 2)));
-  parent.command("get-bench-v2 <id>").action((id) => console.log(JSON.stringify(getPerfBenchV2(id), null, 2)));
-  parent.command("list-benches-v2").action(() => console.log(JSON.stringify(listPerfBenchesV2(), null, 2)));
-  parent.command("auto-stale-idle-v2").action(() => console.log(JSON.stringify(autoStaleIdlePerfTuningProfilesV2(), null, 2)));
-  parent.command("auto-fail-stuck-v2").action(() => console.log(JSON.stringify(autoFailStuckPerfBenchesV2(), null, 2)));
-  parent.command("gov-stats-v2").action(() => console.log(JSON.stringify(getPerfTuningGovStatsV2(), null, 2)));
-  parent.command("reset-state-v2").action(() => { _resetStatePerfTuningV2(); console.log(JSON.stringify({ ok: true }, null, 2)); });
+  parent.command("enums-v2").action(() =>
+    console.log(
+      JSON.stringify(
+        {
+          profileMaturity: PERF_TUNING_PROFILE_MATURITY_V2,
+          benchLifecycle: PERF_BENCH_LIFECYCLE_V2,
+        },
+        null,
+        2,
+      ),
+    ),
+  );
+  parent.command("config-v2").action(() =>
+    console.log(
+      JSON.stringify(
+        {
+          maxActivePerfTuningProfilesPerOwner:
+            getMaxActivePerfTuningProfilesPerOwnerV2(),
+          maxPendingPerfBenchesPerProfile:
+            getMaxPendingPerfBenchesPerProfileV2(),
+          perfTuningProfileIdleMs: getPerfTuningProfileIdleMsV2(),
+          perfBenchStuckMs: getPerfBenchStuckMsV2(),
+        },
+        null,
+        2,
+      ),
+    ),
+  );
+  parent.command("set-max-active-v2 <n>").action((n) => {
+    setMaxActivePerfTuningProfilesPerOwnerV2(Number(n));
+    console.log("ok");
+  });
+  parent.command("set-max-pending-v2 <n>").action((n) => {
+    setMaxPendingPerfBenchesPerProfileV2(Number(n));
+    console.log("ok");
+  });
+  parent.command("set-idle-ms-v2 <n>").action((n) => {
+    setPerfTuningProfileIdleMsV2(Number(n));
+    console.log("ok");
+  });
+  parent.command("set-stuck-ms-v2 <n>").action((n) => {
+    setPerfBenchStuckMsV2(Number(n));
+    console.log("ok");
+  });
+  parent
+    .command("register-profile-v2 <id> <owner>")
+    .option("--target <t>", "target")
+    .action((id, owner, o) =>
+      console.log(
+        JSON.stringify(
+          registerPerfTuningProfileV2({ id, owner, target: o.target }),
+          null,
+          2,
+        ),
+      ),
+    );
+  parent
+    .command("activate-profile-v2 <id>")
+    .action((id) =>
+      console.log(JSON.stringify(activatePerfTuningProfileV2(id), null, 2)),
+    );
+  parent
+    .command("stale-profile-v2 <id>")
+    .action((id) =>
+      console.log(JSON.stringify(stalePerfTuningProfileV2(id), null, 2)),
+    );
+  parent
+    .command("decommission-profile-v2 <id>")
+    .action((id) =>
+      console.log(JSON.stringify(decommissionPerfTuningProfileV2(id), null, 2)),
+    );
+  parent
+    .command("touch-profile-v2 <id>")
+    .action((id) =>
+      console.log(JSON.stringify(touchPerfTuningProfileV2(id), null, 2)),
+    );
+  parent
+    .command("get-profile-v2 <id>")
+    .action((id) =>
+      console.log(JSON.stringify(getPerfTuningProfileV2(id), null, 2)),
+    );
+  parent
+    .command("list-profiles-v2")
+    .action(() =>
+      console.log(JSON.stringify(listPerfTuningProfilesV2(), null, 2)),
+    );
+  parent
+    .command("create-bench-v2 <id> <profileId>")
+    .option("--scenario <s>", "scenario")
+    .action((id, profileId, o) =>
+      console.log(
+        JSON.stringify(
+          createPerfBenchV2({ id, profileId, scenario: o.scenario }),
+          null,
+          2,
+        ),
+      ),
+    );
+  parent
+    .command("start-bench-v2 <id>")
+    .action((id) => console.log(JSON.stringify(startPerfBenchV2(id), null, 2)));
+  parent
+    .command("complete-bench-v2 <id>")
+    .action((id) =>
+      console.log(JSON.stringify(completePerfBenchV2(id), null, 2)),
+    );
+  parent
+    .command("fail-bench-v2 <id> [reason]")
+    .action((id, reason) =>
+      console.log(JSON.stringify(failPerfBenchV2(id, reason), null, 2)),
+    );
+  parent
+    .command("cancel-bench-v2 <id> [reason]")
+    .action((id, reason) =>
+      console.log(JSON.stringify(cancelPerfBenchV2(id, reason), null, 2)),
+    );
+  parent
+    .command("get-bench-v2 <id>")
+    .action((id) => console.log(JSON.stringify(getPerfBenchV2(id), null, 2)));
+  parent
+    .command("list-benches-v2")
+    .action(() => console.log(JSON.stringify(listPerfBenchesV2(), null, 2)));
+  parent
+    .command("auto-stale-idle-v2")
+    .action(() =>
+      console.log(JSON.stringify(autoStaleIdlePerfTuningProfilesV2(), null, 2)),
+    );
+  parent
+    .command("auto-fail-stuck-v2")
+    .action(() =>
+      console.log(JSON.stringify(autoFailStuckPerfBenchesV2(), null, 2)),
+    );
+  parent
+    .command("gov-stats-v2")
+    .action(() =>
+      console.log(JSON.stringify(getPerfTuningGovStatsV2(), null, 2)),
+    );
+  parent.command("reset-state-v2").action(() => {
+    _resetStatePerfTuningV2();
+    console.log(JSON.stringify({ ok: true }, null, 2));
+  });
 }

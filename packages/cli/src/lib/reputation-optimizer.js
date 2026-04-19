@@ -806,3 +806,343 @@ export function getReputationStatsV2() {
     bestScoreEver: bestScore,
   };
 }
+
+// =====================================================================
+// reputation-optimizer V2 governance overlay (iter16)
+// =====================================================================
+export const REPGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const REPGOV_CYCLE_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _repgovPTrans = new Map([
+  [
+    REPGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      REPGOV_PROFILE_MATURITY_V2.ACTIVE,
+      REPGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    REPGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      REPGOV_PROFILE_MATURITY_V2.STALE,
+      REPGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    REPGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      REPGOV_PROFILE_MATURITY_V2.ACTIVE,
+      REPGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [REPGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _repgovPTerminal = new Set([REPGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _repgovJTrans = new Map([
+  [
+    REPGOV_CYCLE_LIFECYCLE_V2.QUEUED,
+    new Set([
+      REPGOV_CYCLE_LIFECYCLE_V2.RUNNING,
+      REPGOV_CYCLE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    REPGOV_CYCLE_LIFECYCLE_V2.RUNNING,
+    new Set([
+      REPGOV_CYCLE_LIFECYCLE_V2.COMPLETED,
+      REPGOV_CYCLE_LIFECYCLE_V2.FAILED,
+      REPGOV_CYCLE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [REPGOV_CYCLE_LIFECYCLE_V2.COMPLETED, new Set()],
+  [REPGOV_CYCLE_LIFECYCLE_V2.FAILED, new Set()],
+  [REPGOV_CYCLE_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _repgovPsV2 = new Map();
+const _repgovJsV2 = new Map();
+let _repgovMaxActive = 8,
+  _repgovMaxPending = 20,
+  _repgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _repgovStuckMs = 60 * 1000;
+function _repgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _repgovCheckP(from, to) {
+  const a = _repgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid repgov profile transition ${from} → ${to}`);
+}
+function _repgovCheckJ(from, to) {
+  const a = _repgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid repgov cycle transition ${from} → ${to}`);
+}
+function _repgovCountActive(owner) {
+  let c = 0;
+  for (const p of _repgovPsV2.values())
+    if (p.owner === owner && p.status === REPGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _repgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _repgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === REPGOV_CYCLE_LIFECYCLE_V2.QUEUED ||
+        j.status === REPGOV_CYCLE_LIFECYCLE_V2.RUNNING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveRepgovProfilesPerOwnerV2(n) {
+  _repgovMaxActive = _repgovPos(n, "maxActiveRepgovProfilesPerOwner");
+}
+export function getMaxActiveRepgovProfilesPerOwnerV2() {
+  return _repgovMaxActive;
+}
+export function setMaxPendingRepgovCyclesPerProfileV2(n) {
+  _repgovMaxPending = _repgovPos(n, "maxPendingRepgovCyclesPerProfile");
+}
+export function getMaxPendingRepgovCyclesPerProfileV2() {
+  return _repgovMaxPending;
+}
+export function setRepgovProfileIdleMsV2(n) {
+  _repgovIdleMs = _repgovPos(n, "repgovProfileIdleMs");
+}
+export function getRepgovProfileIdleMsV2() {
+  return _repgovIdleMs;
+}
+export function setRepgovCycleStuckMsV2(n) {
+  _repgovStuckMs = _repgovPos(n, "repgovCycleStuckMs");
+}
+export function getRepgovCycleStuckMsV2() {
+  return _repgovStuckMs;
+}
+export function _resetStateReputationOptimizerV2() {
+  _repgovPsV2.clear();
+  _repgovJsV2.clear();
+  _repgovMaxActive = 8;
+  _repgovMaxPending = 20;
+  _repgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _repgovStuckMs = 60 * 1000;
+}
+export function registerRepgovProfileV2({
+  id,
+  owner,
+  objective,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_repgovPsV2.has(id))
+    throw new Error(`repgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    objective: objective || "quality",
+    status: REPGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _repgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateRepgovProfileV2(id) {
+  const p = _repgovPsV2.get(id);
+  if (!p) throw new Error(`repgov profile ${id} not found`);
+  const isInitial = p.status === REPGOV_PROFILE_MATURITY_V2.PENDING;
+  _repgovCheckP(p.status, REPGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _repgovCountActive(p.owner) >= _repgovMaxActive)
+    throw new Error(`max active repgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = REPGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleRepgovProfileV2(id) {
+  const p = _repgovPsV2.get(id);
+  if (!p) throw new Error(`repgov profile ${id} not found`);
+  _repgovCheckP(p.status, REPGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = REPGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveRepgovProfileV2(id) {
+  const p = _repgovPsV2.get(id);
+  if (!p) throw new Error(`repgov profile ${id} not found`);
+  _repgovCheckP(p.status, REPGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = REPGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchRepgovProfileV2(id) {
+  const p = _repgovPsV2.get(id);
+  if (!p) throw new Error(`repgov profile ${id} not found`);
+  if (_repgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal repgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getRepgovProfileV2(id) {
+  const p = _repgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listRepgovProfilesV2() {
+  return [..._repgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createRepgovCycleV2({ id, profileId, subject, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_repgovJsV2.has(id)) throw new Error(`repgov cycle ${id} already exists`);
+  if (!_repgovPsV2.has(profileId))
+    throw new Error(`repgov profile ${profileId} not found`);
+  if (_repgovCountPending(profileId) >= _repgovMaxPending)
+    throw new Error(
+      `max pending repgov cycles for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    subject: subject || "",
+    status: REPGOV_CYCLE_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _repgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function runningRepgovCycleV2(id) {
+  const j = _repgovJsV2.get(id);
+  if (!j) throw new Error(`repgov cycle ${id} not found`);
+  _repgovCheckJ(j.status, REPGOV_CYCLE_LIFECYCLE_V2.RUNNING);
+  const now = Date.now();
+  j.status = REPGOV_CYCLE_LIFECYCLE_V2.RUNNING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeCycleRepgovV2(id) {
+  const j = _repgovJsV2.get(id);
+  if (!j) throw new Error(`repgov cycle ${id} not found`);
+  _repgovCheckJ(j.status, REPGOV_CYCLE_LIFECYCLE_V2.COMPLETED);
+  const now = Date.now();
+  j.status = REPGOV_CYCLE_LIFECYCLE_V2.COMPLETED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failRepgovCycleV2(id, reason) {
+  const j = _repgovJsV2.get(id);
+  if (!j) throw new Error(`repgov cycle ${id} not found`);
+  _repgovCheckJ(j.status, REPGOV_CYCLE_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = REPGOV_CYCLE_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelRepgovCycleV2(id, reason) {
+  const j = _repgovJsV2.get(id);
+  if (!j) throw new Error(`repgov cycle ${id} not found`);
+  _repgovCheckJ(j.status, REPGOV_CYCLE_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = REPGOV_CYCLE_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getRepgovCycleV2(id) {
+  const j = _repgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listRepgovCyclesV2() {
+  return [..._repgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleRepgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _repgovPsV2.values())
+    if (
+      p.status === REPGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _repgovIdleMs
+    ) {
+      p.status = REPGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckRepgovCyclesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _repgovJsV2.values())
+    if (
+      j.status === REPGOV_CYCLE_LIFECYCLE_V2.RUNNING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _repgovStuckMs
+    ) {
+      j.status = REPGOV_CYCLE_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getReputationOptimizerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(REPGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _repgovPsV2.values()) profilesByStatus[p.status]++;
+  const cyclesByStatus = {};
+  for (const v of Object.values(REPGOV_CYCLE_LIFECYCLE_V2))
+    cyclesByStatus[v] = 0;
+  for (const j of _repgovJsV2.values()) cyclesByStatus[j.status]++;
+  return {
+    totalRepgovProfilesV2: _repgovPsV2.size,
+    totalRepgovCyclesV2: _repgovJsV2.size,
+    maxActiveRepgovProfilesPerOwner: _repgovMaxActive,
+    maxPendingRepgovCyclesPerProfile: _repgovMaxPending,
+    repgovProfileIdleMs: _repgovIdleMs,
+    repgovCycleStuckMs: _repgovStuckMs,
+    profilesByStatus,
+    cyclesByStatus,
+  };
+}

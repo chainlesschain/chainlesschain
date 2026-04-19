@@ -694,42 +694,199 @@ export function registerLowcodeCommand(program) {
 
 function _registerAppBuilderV2Commands(parent) {
   const L = async () => await import("../lib/app-builder.js");
-  parent.command("enums-v2").description("Show V2 enums (app maturity + build lifecycle)")
-    .action(async () => { const m = await L(); console.log(JSON.stringify({ appMaturity: m.APP_MATURITY_V2, buildLifecycle: m.APP_BUILD_LIFECYCLE_V2 }, null, 2)); });
-  parent.command("config-v2").description("Show V2 config thresholds")
-    .action(async () => { const m = await L(); console.log(JSON.stringify({ maxActiveAppsPerOwner: m.getMaxActiveAppsPerOwnerV2(), maxPendingAppBuildsPerApp: m.getMaxPendingAppBuildsPerAppV2(), appIdleMs: m.getAppIdleMsV2(), appBuildStuckMs: m.getAppBuildStuckMsV2() }, null, 2)); });
-  parent.command("set-max-active-apps-v2 <n>").description("Set max active apps per owner")
-    .action(async (n) => { const m = await L(); m.setMaxActiveAppsPerOwnerV2(Number(n)); console.log("ok"); });
-  parent.command("set-max-pending-builds-v2 <n>").description("Set max pending builds per app")
-    .action(async (n) => { const m = await L(); m.setMaxPendingAppBuildsPerAppV2(Number(n)); console.log("ok"); });
-  parent.command("set-app-idle-ms-v2 <n>").description("Set app idle threshold (ms)")
-    .action(async (n) => { const m = await L(); m.setAppIdleMsV2(Number(n)); console.log("ok"); });
-  parent.command("set-build-stuck-ms-v2 <n>").description("Set build stuck threshold (ms)")
-    .action(async (n) => { const m = await L(); m.setAppBuildStuckMsV2(Number(n)); console.log("ok"); });
-  parent.command("register-app-v2 <id> <owner>").description("Register V2 app")
-    .option("--name <n>", "App name").action(async (id, owner, o) => { const m = await L(); console.log(JSON.stringify(m.registerAppV2({ id, owner, name: o.name }), null, 2)); });
-  parent.command("activate-app-v2 <id>").description("Activate app")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.activateAppV2(id), null, 2)); });
-  parent.command("pause-app-v2 <id>").description("Pause app")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.pauseAppV2(id), null, 2)); });
-  parent.command("archive-app-v2 <id>").description("Archive app (terminal)")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.archiveAppV2(id), null, 2)); });
-  parent.command("touch-app-v2 <id>").description("Touch app lastTouchedAt")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.touchAppV2(id), null, 2)); });
-  parent.command("get-app-v2 <id>").description("Get V2 app").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.getAppV2(id), null, 2)); });
-  parent.command("list-apps-v2").description("List V2 apps").action(async () => { const m = await L(); console.log(JSON.stringify(m.listAppsV2(), null, 2)); });
-  parent.command("create-build-v2 <id> <appId>").description("Create V2 app build (queued)")
-    .option("--target <t>", "Target", "web").action(async (id, appId, o) => { const m = await L(); console.log(JSON.stringify(m.createAppBuildV2({ id, appId, target: o.target }), null, 2)); });
-  parent.command("start-build-v2 <id>").description("Start build").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.startAppBuildV2(id), null, 2)); });
-  parent.command("succeed-build-v2 <id>").description("Succeed build").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.succeedAppBuildV2(id), null, 2)); });
-  parent.command("fail-build-v2 <id> [reason]").description("Fail build").action(async (id, reason) => { const m = await L(); console.log(JSON.stringify(m.failAppBuildV2(id, reason), null, 2)); });
-  parent.command("cancel-build-v2 <id> [reason]").description("Cancel build").action(async (id, reason) => { const m = await L(); console.log(JSON.stringify(m.cancelAppBuildV2(id, reason), null, 2)); });
-  parent.command("get-build-v2 <id>").description("Get V2 build").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.getAppBuildV2(id), null, 2)); });
-  parent.command("list-builds-v2").description("List V2 builds").action(async () => { const m = await L(); console.log(JSON.stringify(m.listAppBuildsV2(), null, 2)); });
-  parent.command("auto-pause-idle-v2").description("Auto-pause idle active apps")
-    .action(async () => { const m = await L(); console.log(JSON.stringify(m.autoPauseIdleAppsV2(), null, 2)); });
-  parent.command("auto-fail-stuck-v2").description("Auto-fail stuck building builds")
-    .action(async () => { const m = await L(); console.log(JSON.stringify(m.autoFailStuckAppBuildsV2(), null, 2)); });
-  parent.command("gov-stats-v2").description("V2 governance aggregate stats")
-    .action(async () => { const m = await L(); console.log(JSON.stringify(m.getAppBuilderGovStatsV2(), null, 2)); });
+  parent
+    .command("enums-v2")
+    .description("Show V2 enums (app maturity + build lifecycle)")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            appMaturity: m.APP_MATURITY_V2,
+            buildLifecycle: m.APP_BUILD_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("config-v2")
+    .description("Show V2 config thresholds")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActiveAppsPerOwner: m.getMaxActiveAppsPerOwnerV2(),
+            maxPendingAppBuildsPerApp: m.getMaxPendingAppBuildsPerAppV2(),
+            appIdleMs: m.getAppIdleMsV2(),
+            appBuildStuckMs: m.getAppBuildStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("set-max-active-apps-v2 <n>")
+    .description("Set max active apps per owner")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxActiveAppsPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("set-max-pending-builds-v2 <n>")
+    .description("Set max pending builds per app")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxPendingAppBuildsPerAppV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("set-app-idle-ms-v2 <n>")
+    .description("Set app idle threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setAppIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("set-build-stuck-ms-v2 <n>")
+    .description("Set build stuck threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setAppBuildStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("register-app-v2 <id> <owner>")
+    .description("Register V2 app")
+    .option("--name <n>", "App name")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(m.registerAppV2({ id, owner, name: o.name }), null, 2),
+      );
+    });
+  parent
+    .command("activate-app-v2 <id>")
+    .description("Activate app")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.activateAppV2(id), null, 2));
+    });
+  parent
+    .command("pause-app-v2 <id>")
+    .description("Pause app")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.pauseAppV2(id), null, 2));
+    });
+  parent
+    .command("archive-app-v2 <id>")
+    .description("Archive app (terminal)")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.archiveAppV2(id), null, 2));
+    });
+  parent
+    .command("touch-app-v2 <id>")
+    .description("Touch app lastTouchedAt")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.touchAppV2(id), null, 2));
+    });
+  parent
+    .command("get-app-v2 <id>")
+    .description("Get V2 app")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getAppV2(id), null, 2));
+    });
+  parent
+    .command("list-apps-v2")
+    .description("List V2 apps")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listAppsV2(), null, 2));
+    });
+  parent
+    .command("create-build-v2 <id> <appId>")
+    .description("Create V2 app build (queued)")
+    .option("--target <t>", "Target", "web")
+    .action(async (id, appId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createAppBuildV2({ id, appId, target: o.target }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("start-build-v2 <id>")
+    .description("Start build")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.startAppBuildV2(id), null, 2));
+    });
+  parent
+    .command("succeed-build-v2 <id>")
+    .description("Succeed build")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.succeedAppBuildV2(id), null, 2));
+    });
+  parent
+    .command("fail-build-v2 <id> [reason]")
+    .description("Fail build")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.failAppBuildV2(id, reason), null, 2));
+    });
+  parent
+    .command("cancel-build-v2 <id> [reason]")
+    .description("Cancel build")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.cancelAppBuildV2(id, reason), null, 2));
+    });
+  parent
+    .command("get-build-v2 <id>")
+    .description("Get V2 build")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getAppBuildV2(id), null, 2));
+    });
+  parent
+    .command("list-builds-v2")
+    .description("List V2 builds")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listAppBuildsV2(), null, 2));
+    });
+  parent
+    .command("auto-pause-idle-v2")
+    .description("Auto-pause idle active apps")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoPauseIdleAppsV2(), null, 2));
+    });
+  parent
+    .command("auto-fail-stuck-v2")
+    .description("Auto-fail stuck building builds")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoFailStuckAppBuildsV2(), null, 2));
+    });
+  parent
+    .command("gov-stats-v2")
+    .description("V2 governance aggregate stats")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.getAppBuilderGovStatsV2(), null, 2));
+    });
 }

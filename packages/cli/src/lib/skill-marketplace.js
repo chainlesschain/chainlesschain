@@ -720,3 +720,348 @@ export function getMarketplaceStatsV2() {
     successRate,
   };
 }
+
+// =====================================================================
+// skill-marketplace V2 governance overlay (iter16)
+// =====================================================================
+export const MKTGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  ARCHIVED: "archived",
+});
+export const MKTGOV_ORDER_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  PROCESSING: "processing",
+  PROCESSED: "processed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _mktgovPTrans = new Map([
+  [
+    MKTGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      MKTGOV_PROFILE_MATURITY_V2.ACTIVE,
+      MKTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    MKTGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      MKTGOV_PROFILE_MATURITY_V2.SUSPENDED,
+      MKTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    MKTGOV_PROFILE_MATURITY_V2.SUSPENDED,
+    new Set([
+      MKTGOV_PROFILE_MATURITY_V2.ACTIVE,
+      MKTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [MKTGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _mktgovPTerminal = new Set([MKTGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _mktgovJTrans = new Map([
+  [
+    MKTGOV_ORDER_LIFECYCLE_V2.QUEUED,
+    new Set([
+      MKTGOV_ORDER_LIFECYCLE_V2.PROCESSING,
+      MKTGOV_ORDER_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    MKTGOV_ORDER_LIFECYCLE_V2.PROCESSING,
+    new Set([
+      MKTGOV_ORDER_LIFECYCLE_V2.PROCESSED,
+      MKTGOV_ORDER_LIFECYCLE_V2.FAILED,
+      MKTGOV_ORDER_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [MKTGOV_ORDER_LIFECYCLE_V2.PROCESSED, new Set()],
+  [MKTGOV_ORDER_LIFECYCLE_V2.FAILED, new Set()],
+  [MKTGOV_ORDER_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _mktgovPsV2 = new Map();
+const _mktgovJsV2 = new Map();
+let _mktgovMaxActive = 10,
+  _mktgovMaxPending = 25,
+  _mktgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _mktgovStuckMs = 60 * 1000;
+function _mktgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _mktgovCheckP(from, to) {
+  const a = _mktgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid mktgov profile transition ${from} → ${to}`);
+}
+function _mktgovCheckJ(from, to) {
+  const a = _mktgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid mktgov order transition ${from} → ${to}`);
+}
+function _mktgovCountActive(owner) {
+  let c = 0;
+  for (const p of _mktgovPsV2.values())
+    if (p.owner === owner && p.status === MKTGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _mktgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _mktgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === MKTGOV_ORDER_LIFECYCLE_V2.QUEUED ||
+        j.status === MKTGOV_ORDER_LIFECYCLE_V2.PROCESSING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveMktgovProfilesPerOwnerV2(n) {
+  _mktgovMaxActive = _mktgovPos(n, "maxActiveMktgovProfilesPerOwner");
+}
+export function getMaxActiveMktgovProfilesPerOwnerV2() {
+  return _mktgovMaxActive;
+}
+export function setMaxPendingMktgovOrdersPerProfileV2(n) {
+  _mktgovMaxPending = _mktgovPos(n, "maxPendingMktgovOrdersPerProfile");
+}
+export function getMaxPendingMktgovOrdersPerProfileV2() {
+  return _mktgovMaxPending;
+}
+export function setMktgovProfileIdleMsV2(n) {
+  _mktgovIdleMs = _mktgovPos(n, "mktgovProfileIdleMs");
+}
+export function getMktgovProfileIdleMsV2() {
+  return _mktgovIdleMs;
+}
+export function setMktgovOrderStuckMsV2(n) {
+  _mktgovStuckMs = _mktgovPos(n, "mktgovOrderStuckMs");
+}
+export function getMktgovOrderStuckMsV2() {
+  return _mktgovStuckMs;
+}
+export function _resetStateSkillMarketplaceV2() {
+  _mktgovPsV2.clear();
+  _mktgovJsV2.clear();
+  _mktgovMaxActive = 10;
+  _mktgovMaxPending = 25;
+  _mktgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _mktgovStuckMs = 60 * 1000;
+}
+export function registerMktgovProfileV2({
+  id,
+  owner,
+  category,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_mktgovPsV2.has(id))
+    throw new Error(`mktgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    category: category || "general",
+    status: MKTGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _mktgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateMktgovProfileV2(id) {
+  const p = _mktgovPsV2.get(id);
+  if (!p) throw new Error(`mktgov profile ${id} not found`);
+  const isInitial = p.status === MKTGOV_PROFILE_MATURITY_V2.PENDING;
+  _mktgovCheckP(p.status, MKTGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _mktgovCountActive(p.owner) >= _mktgovMaxActive)
+    throw new Error(`max active mktgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = MKTGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function suspendMktgovProfileV2(id) {
+  const p = _mktgovPsV2.get(id);
+  if (!p) throw new Error(`mktgov profile ${id} not found`);
+  _mktgovCheckP(p.status, MKTGOV_PROFILE_MATURITY_V2.SUSPENDED);
+  p.status = MKTGOV_PROFILE_MATURITY_V2.SUSPENDED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveMktgovProfileV2(id) {
+  const p = _mktgovPsV2.get(id);
+  if (!p) throw new Error(`mktgov profile ${id} not found`);
+  _mktgovCheckP(p.status, MKTGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = MKTGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchMktgovProfileV2(id) {
+  const p = _mktgovPsV2.get(id);
+  if (!p) throw new Error(`mktgov profile ${id} not found`);
+  if (_mktgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal mktgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getMktgovProfileV2(id) {
+  const p = _mktgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listMktgovProfilesV2() {
+  return [..._mktgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createMktgovOrderV2({
+  id,
+  profileId,
+  listingId,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_mktgovJsV2.has(id)) throw new Error(`mktgov order ${id} already exists`);
+  if (!_mktgovPsV2.has(profileId))
+    throw new Error(`mktgov profile ${profileId} not found`);
+  if (_mktgovCountPending(profileId) >= _mktgovMaxPending)
+    throw new Error(
+      `max pending mktgov orders for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    listingId: listingId || "",
+    status: MKTGOV_ORDER_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _mktgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function processingMktgovOrderV2(id) {
+  const j = _mktgovJsV2.get(id);
+  if (!j) throw new Error(`mktgov order ${id} not found`);
+  _mktgovCheckJ(j.status, MKTGOV_ORDER_LIFECYCLE_V2.PROCESSING);
+  const now = Date.now();
+  j.status = MKTGOV_ORDER_LIFECYCLE_V2.PROCESSING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeOrderMktgovV2(id) {
+  const j = _mktgovJsV2.get(id);
+  if (!j) throw new Error(`mktgov order ${id} not found`);
+  _mktgovCheckJ(j.status, MKTGOV_ORDER_LIFECYCLE_V2.PROCESSED);
+  const now = Date.now();
+  j.status = MKTGOV_ORDER_LIFECYCLE_V2.PROCESSED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failMktgovOrderV2(id, reason) {
+  const j = _mktgovJsV2.get(id);
+  if (!j) throw new Error(`mktgov order ${id} not found`);
+  _mktgovCheckJ(j.status, MKTGOV_ORDER_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = MKTGOV_ORDER_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelMktgovOrderV2(id, reason) {
+  const j = _mktgovJsV2.get(id);
+  if (!j) throw new Error(`mktgov order ${id} not found`);
+  _mktgovCheckJ(j.status, MKTGOV_ORDER_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = MKTGOV_ORDER_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getMktgovOrderV2(id) {
+  const j = _mktgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listMktgovOrdersV2() {
+  return [..._mktgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoSuspendIdleMktgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _mktgovPsV2.values())
+    if (
+      p.status === MKTGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _mktgovIdleMs
+    ) {
+      p.status = MKTGOV_PROFILE_MATURITY_V2.SUSPENDED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckMktgovOrdersV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _mktgovJsV2.values())
+    if (
+      j.status === MKTGOV_ORDER_LIFECYCLE_V2.PROCESSING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _mktgovStuckMs
+    ) {
+      j.status = MKTGOV_ORDER_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getSkillMarketplaceGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(MKTGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _mktgovPsV2.values()) profilesByStatus[p.status]++;
+  const ordersByStatus = {};
+  for (const v of Object.values(MKTGOV_ORDER_LIFECYCLE_V2))
+    ordersByStatus[v] = 0;
+  for (const j of _mktgovJsV2.values()) ordersByStatus[j.status]++;
+  return {
+    totalMktgovProfilesV2: _mktgovPsV2.size,
+    totalMktgovOrdersV2: _mktgovJsV2.size,
+    maxActiveMktgovProfilesPerOwner: _mktgovMaxActive,
+    maxPendingMktgovOrdersPerProfile: _mktgovMaxPending,
+    mktgovProfileIdleMs: _mktgovIdleMs,
+    mktgovOrderStuckMs: _mktgovStuckMs,
+    profilesByStatus,
+    ordersByStatus,
+  };
+}

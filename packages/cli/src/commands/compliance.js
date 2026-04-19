@@ -1845,38 +1845,418 @@ export function registerComplianceCommand(program) {
 
 function _registerComplianceFwReporterV2Commands(parent) {
   const L = async () => await import("../lib/compliance-framework-reporter.js");
-  parent.command("fwrep-enums-v2").description("Show V2 enums (fw maturity + report lifecycle)")
-    .action(async () => { const m = await L(); console.log(JSON.stringify({ fwMaturity: m.COMPLIANCE_FW_MATURITY_V2, reportLifecycle: m.COMPLIANCE_FW_REPORT_LIFECYCLE_V2 }, null, 2)); });
-  parent.command("fwrep-config-v2").description("Show V2 config thresholds")
-    .action(async () => { const m = await L(); console.log(JSON.stringify({ maxActiveComplianceFwsPerOwner: m.getMaxActiveComplianceFwsPerOwnerV2(), maxPendingComplianceFwReportsPerFw: m.getMaxPendingComplianceFwReportsPerFwV2(), complianceFwIdleMs: m.getComplianceFwIdleMsV2(), complianceFwReportStuckMs: m.getComplianceFwReportStuckMsV2() }, null, 2)); });
-  parent.command("fwrep-set-max-active-v2 <n>").description("Set max active fws per owner")
-    .action(async (n) => { const m = await L(); m.setMaxActiveComplianceFwsPerOwnerV2(Number(n)); console.log("ok"); });
-  parent.command("fwrep-set-max-pending-v2 <n>").description("Set max pending reports per fw")
-    .action(async (n) => { const m = await L(); m.setMaxPendingComplianceFwReportsPerFwV2(Number(n)); console.log("ok"); });
-  parent.command("fwrep-set-fw-idle-ms-v2 <n>").description("Set fw idle threshold (ms)")
-    .action(async (n) => { const m = await L(); m.setComplianceFwIdleMsV2(Number(n)); console.log("ok"); });
-  parent.command("fwrep-set-report-stuck-ms-v2 <n>").description("Set report stuck threshold (ms)")
-    .action(async (n) => { const m = await L(); m.setComplianceFwReportStuckMsV2(Number(n)); console.log("ok"); });
-  parent.command("fwrep-register-v2 <id> <owner>").description("Register V2 compliance framework")
-    .option("--name <n>", "Framework name").action(async (id, owner, o) => { const m = await L(); console.log(JSON.stringify(m.registerComplianceFwV2({ id, owner, name: o.name }), null, 2)); });
-  parent.command("fwrep-activate-v2 <id>").description("Activate framework").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.activateComplianceFwV2(id), null, 2)); });
-  parent.command("fwrep-deprecate-v2 <id>").description("Deprecate framework").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.deprecateComplianceFwV2(id), null, 2)); });
-  parent.command("fwrep-archive-v2 <id>").description("Archive framework (terminal)").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.archiveComplianceFwV2(id), null, 2)); });
-  parent.command("fwrep-touch-v2 <id>").description("Touch framework").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.touchComplianceFwV2(id), null, 2)); });
-  parent.command("fwrep-get-v2 <id>").description("Get V2 framework").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.getComplianceFwV2(id), null, 2)); });
-  parent.command("fwrep-list-v2").description("List V2 frameworks").action(async () => { const m = await L(); console.log(JSON.stringify(m.listComplianceFwsV2(), null, 2)); });
-  parent.command("fwrep-create-report-v2 <id> <frameworkId>").description("Create V2 report (queued)")
-    .option("--format <f>", "Format", "markdown").action(async (id, frameworkId, o) => { const m = await L(); console.log(JSON.stringify(m.createComplianceFwReportV2({ id, frameworkId, format: o.format }), null, 2)); });
-  parent.command("fwrep-start-report-v2 <id>").description("Start report").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.startComplianceFwReportV2(id), null, 2)); });
-  parent.command("fwrep-complete-report-v2 <id>").description("Complete report").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.completeComplianceFwReportV2(id), null, 2)); });
-  parent.command("fwrep-fail-report-v2 <id> [reason]").description("Fail report").action(async (id, reason) => { const m = await L(); console.log(JSON.stringify(m.failComplianceFwReportV2(id, reason), null, 2)); });
-  parent.command("fwrep-cancel-report-v2 <id> [reason]").description("Cancel report").action(async (id, reason) => { const m = await L(); console.log(JSON.stringify(m.cancelComplianceFwReportV2(id, reason), null, 2)); });
-  parent.command("fwrep-get-report-v2 <id>").description("Get V2 report").action(async (id) => { const m = await L(); console.log(JSON.stringify(m.getComplianceFwReportV2(id), null, 2)); });
-  parent.command("fwrep-list-reports-v2").description("List V2 reports").action(async () => { const m = await L(); console.log(JSON.stringify(m.listComplianceFwReportsV2(), null, 2)); });
-  parent.command("fwrep-auto-deprecate-idle-v2").description("Auto-deprecate idle fws")
-    .action(async () => { const m = await L(); console.log(JSON.stringify(m.autoDeprecateIdleComplianceFwsV2(), null, 2)); });
-  parent.command("fwrep-auto-fail-stuck-v2").description("Auto-fail stuck generating reports")
-    .action(async () => { const m = await L(); console.log(JSON.stringify(m.autoFailStuckComplianceFwReportsV2(), null, 2)); });
-  parent.command("fwrep-gov-stats-v2").description("V2 gov aggregate stats (fw reporter)")
-    .action(async () => { const m = await L(); console.log(JSON.stringify(m.getComplianceFwReporterGovStatsV2(), null, 2)); });
+  parent
+    .command("fwrep-enums-v2")
+    .description("Show V2 enums (fw maturity + report lifecycle)")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            fwMaturity: m.COMPLIANCE_FW_MATURITY_V2,
+            reportLifecycle: m.COMPLIANCE_FW_REPORT_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("fwrep-config-v2")
+    .description("Show V2 config thresholds")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActiveComplianceFwsPerOwner:
+              m.getMaxActiveComplianceFwsPerOwnerV2(),
+            maxPendingComplianceFwReportsPerFw:
+              m.getMaxPendingComplianceFwReportsPerFwV2(),
+            complianceFwIdleMs: m.getComplianceFwIdleMsV2(),
+            complianceFwReportStuckMs: m.getComplianceFwReportStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("fwrep-set-max-active-v2 <n>")
+    .description("Set max active fws per owner")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxActiveComplianceFwsPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("fwrep-set-max-pending-v2 <n>")
+    .description("Set max pending reports per fw")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxPendingComplianceFwReportsPerFwV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("fwrep-set-fw-idle-ms-v2 <n>")
+    .description("Set fw idle threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setComplianceFwIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("fwrep-set-report-stuck-ms-v2 <n>")
+    .description("Set report stuck threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setComplianceFwReportStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("fwrep-register-v2 <id> <owner>")
+    .description("Register V2 compliance framework")
+    .option("--name <n>", "Framework name")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerComplianceFwV2({ id, owner, name: o.name }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("fwrep-activate-v2 <id>")
+    .description("Activate framework")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.activateComplianceFwV2(id), null, 2));
+    });
+  parent
+    .command("fwrep-deprecate-v2 <id>")
+    .description("Deprecate framework")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.deprecateComplianceFwV2(id), null, 2));
+    });
+  parent
+    .command("fwrep-archive-v2 <id>")
+    .description("Archive framework (terminal)")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.archiveComplianceFwV2(id), null, 2));
+    });
+  parent
+    .command("fwrep-touch-v2 <id>")
+    .description("Touch framework")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.touchComplianceFwV2(id), null, 2));
+    });
+  parent
+    .command("fwrep-get-v2 <id>")
+    .description("Get V2 framework")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getComplianceFwV2(id), null, 2));
+    });
+  parent
+    .command("fwrep-list-v2")
+    .description("List V2 frameworks")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listComplianceFwsV2(), null, 2));
+    });
+  parent
+    .command("fwrep-create-report-v2 <id> <frameworkId>")
+    .description("Create V2 report (queued)")
+    .option("--format <f>", "Format", "markdown")
+    .action(async (id, frameworkId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createComplianceFwReportV2({ id, frameworkId, format: o.format }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("fwrep-start-report-v2 <id>")
+    .description("Start report")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.startComplianceFwReportV2(id), null, 2));
+    });
+  parent
+    .command("fwrep-complete-report-v2 <id>")
+    .description("Complete report")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.completeComplianceFwReportV2(id), null, 2));
+    });
+  parent
+    .command("fwrep-fail-report-v2 <id> [reason]")
+    .description("Fail report")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(m.failComplianceFwReportV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("fwrep-cancel-report-v2 <id> [reason]")
+    .description("Cancel report")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(m.cancelComplianceFwReportV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("fwrep-get-report-v2 <id>")
+    .description("Get V2 report")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getComplianceFwReportV2(id), null, 2));
+    });
+  parent
+    .command("fwrep-list-reports-v2")
+    .description("List V2 reports")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listComplianceFwReportsV2(), null, 2));
+    });
+  parent
+    .command("fwrep-auto-deprecate-idle-v2")
+    .description("Auto-deprecate idle fws")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(m.autoDeprecateIdleComplianceFwsV2(), null, 2),
+      );
+    });
+  parent
+    .command("fwrep-auto-fail-stuck-v2")
+    .description("Auto-fail stuck generating reports")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(m.autoFailStuckComplianceFwReportsV2(), null, 2),
+      );
+    });
+  parent
+    .command("fwrep-gov-stats-v2")
+    .description("V2 gov aggregate stats (fw reporter)")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(m.getComplianceFwReporterGovStatsV2(), null, 2),
+      );
+    });
+}
+
+// === Iter17 V2 governance overlay ===
+export function registerCmgrV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "compliance");
+  if (!parent) return;
+  const L = async () => await import("../lib/compliance-manager.js");
+  parent
+    .command("cmgr-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.CMGR_PROFILE_MATURITY_V2,
+            auditLifecycle: m.CMGR_AUDIT_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cmgr-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveCmgrProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingCmgrAuditsPerProfileV2(),
+            idleMs: m.getCmgrProfileIdleMsV2(),
+            stuckMs: m.getCmgrAuditStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cmgr-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveCmgrProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cmgr-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingCmgrAuditsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cmgr-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setCmgrProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cmgr-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setCmgrAuditStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("cmgr-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--framework <v>", "framework")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerCmgrProfileV2({ id, owner, framework: o.framework }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cmgr-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateCmgrProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cmgr-deprecate-v2 <id>")
+    .description("Deprecate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).deprecateCmgrProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cmgr-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveCmgrProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("cmgr-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchCmgrProfileV2(id), null, 2));
+    });
+  parent
+    .command("cmgr-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCmgrProfileV2(id), null, 2));
+    });
+  parent
+    .command("cmgr-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCmgrProfilesV2(), null, 2));
+    });
+  parent
+    .command("cmgr-create-audit-v2 <id> <profileId>")
+    .description("Create audit")
+    .option("--control <v>", "control")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createCmgrAuditV2({ id, profileId, control: o.control }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("cmgr-auditing-audit-v2 <id>")
+    .description("Mark audit as auditing")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).auditingCmgrAuditV2(id), null, 2));
+    });
+  parent
+    .command("cmgr-complete-audit-v2 <id>")
+    .description("Complete audit")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completeAuditCmgrV2(id), null, 2));
+    });
+  parent
+    .command("cmgr-fail-audit-v2 <id> [reason]")
+    .description("Fail audit")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failCmgrAuditV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cmgr-cancel-audit-v2 <id> [reason]")
+    .description("Cancel audit")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelCmgrAuditV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("cmgr-get-audit-v2 <id>")
+    .description("Get audit")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCmgrAuditV2(id), null, 2));
+    });
+  parent
+    .command("cmgr-list-audits-v2")
+    .description("List audits")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCmgrAuditsV2(), null, 2));
+    });
+  parent
+    .command("cmgr-auto-deprecate-idle-v2")
+    .description("Auto-deprecate idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoDeprecateIdleCmgrProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("cmgr-auto-fail-stuck-v2")
+    .description("Auto-fail stuck audits")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckCmgrAuditsV2(), null, 2),
+      );
+    });
+  parent
+    .command("cmgr-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getComplianceManagerGovStatsV2(), null, 2),
+      );
+    });
 }

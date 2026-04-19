@@ -370,25 +370,53 @@ export function _resetState() {
   _didMappings.clear();
 }
 
-
 // ===== V2 Surface: Nostr Bridge governance overlay (CLI v0.134.0) =====
 export const NOSTR_RELAY_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", OFFLINE: "offline", RETIRED: "retired",
+  PENDING: "pending",
+  ACTIVE: "active",
+  OFFLINE: "offline",
+  RETIRED: "retired",
 });
 export const NOSTR_EVENT_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", PUBLISHING: "publishing", PUBLISHED: "published", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  PUBLISHING: "publishing",
+  PUBLISHED: "published",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 
 const _nsRelayTrans = new Map([
-  [NOSTR_RELAY_MATURITY_V2.PENDING, new Set([NOSTR_RELAY_MATURITY_V2.ACTIVE, NOSTR_RELAY_MATURITY_V2.RETIRED])],
-  [NOSTR_RELAY_MATURITY_V2.ACTIVE, new Set([NOSTR_RELAY_MATURITY_V2.OFFLINE, NOSTR_RELAY_MATURITY_V2.RETIRED])],
-  [NOSTR_RELAY_MATURITY_V2.OFFLINE, new Set([NOSTR_RELAY_MATURITY_V2.ACTIVE, NOSTR_RELAY_MATURITY_V2.RETIRED])],
+  [
+    NOSTR_RELAY_MATURITY_V2.PENDING,
+    new Set([NOSTR_RELAY_MATURITY_V2.ACTIVE, NOSTR_RELAY_MATURITY_V2.RETIRED]),
+  ],
+  [
+    NOSTR_RELAY_MATURITY_V2.ACTIVE,
+    new Set([NOSTR_RELAY_MATURITY_V2.OFFLINE, NOSTR_RELAY_MATURITY_V2.RETIRED]),
+  ],
+  [
+    NOSTR_RELAY_MATURITY_V2.OFFLINE,
+    new Set([NOSTR_RELAY_MATURITY_V2.ACTIVE, NOSTR_RELAY_MATURITY_V2.RETIRED]),
+  ],
   [NOSTR_RELAY_MATURITY_V2.RETIRED, new Set()],
 ]);
 const _nsRelayTerminal = new Set([NOSTR_RELAY_MATURITY_V2.RETIRED]);
 const _nsEventTrans = new Map([
-  [NOSTR_EVENT_LIFECYCLE_V2.QUEUED, new Set([NOSTR_EVENT_LIFECYCLE_V2.PUBLISHING, NOSTR_EVENT_LIFECYCLE_V2.CANCELLED])],
-  [NOSTR_EVENT_LIFECYCLE_V2.PUBLISHING, new Set([NOSTR_EVENT_LIFECYCLE_V2.PUBLISHED, NOSTR_EVENT_LIFECYCLE_V2.FAILED, NOSTR_EVENT_LIFECYCLE_V2.CANCELLED])],
+  [
+    NOSTR_EVENT_LIFECYCLE_V2.QUEUED,
+    new Set([
+      NOSTR_EVENT_LIFECYCLE_V2.PUBLISHING,
+      NOSTR_EVENT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    NOSTR_EVENT_LIFECYCLE_V2.PUBLISHING,
+    new Set([
+      NOSTR_EVENT_LIFECYCLE_V2.PUBLISHED,
+      NOSTR_EVENT_LIFECYCLE_V2.FAILED,
+      NOSTR_EVENT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [NOSTR_EVENT_LIFECYCLE_V2.PUBLISHED, new Set()],
   [NOSTR_EVENT_LIFECYCLE_V2.FAILED, new Set()],
   [NOSTR_EVENT_LIFECYCLE_V2.CANCELLED, new Set()],
@@ -401,76 +429,285 @@ let _nsMaxPendingPerRelay = 30;
 let _nsRelayIdleMs = 60 * 60 * 1000;
 let _nsEventStuckMs = 2 * 60 * 1000;
 
-function _nsPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+function _nsPos(n, lbl) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${lbl} must be positive integer`);
+  return v;
+}
 
-export function setMaxActiveNostrRelaysPerOwnerV2(n) { _nsMaxActivePerOwner = _nsPos(n, "maxActiveNostrRelaysPerOwner"); }
-export function getMaxActiveNostrRelaysPerOwnerV2() { return _nsMaxActivePerOwner; }
-export function setMaxPendingNostrEventsPerRelayV2(n) { _nsMaxPendingPerRelay = _nsPos(n, "maxPendingNostrEventsPerRelay"); }
-export function getMaxPendingNostrEventsPerRelayV2() { return _nsMaxPendingPerRelay; }
-export function setNostrRelayIdleMsV2(n) { _nsRelayIdleMs = _nsPos(n, "nostrRelayIdleMs"); }
-export function getNostrRelayIdleMsV2() { return _nsRelayIdleMs; }
-export function setNostrEventStuckMsV2(n) { _nsEventStuckMs = _nsPos(n, "nostrEventStuckMs"); }
-export function getNostrEventStuckMsV2() { return _nsEventStuckMs; }
+export function setMaxActiveNostrRelaysPerOwnerV2(n) {
+  _nsMaxActivePerOwner = _nsPos(n, "maxActiveNostrRelaysPerOwner");
+}
+export function getMaxActiveNostrRelaysPerOwnerV2() {
+  return _nsMaxActivePerOwner;
+}
+export function setMaxPendingNostrEventsPerRelayV2(n) {
+  _nsMaxPendingPerRelay = _nsPos(n, "maxPendingNostrEventsPerRelay");
+}
+export function getMaxPendingNostrEventsPerRelayV2() {
+  return _nsMaxPendingPerRelay;
+}
+export function setNostrRelayIdleMsV2(n) {
+  _nsRelayIdleMs = _nsPos(n, "nostrRelayIdleMs");
+}
+export function getNostrRelayIdleMsV2() {
+  return _nsRelayIdleMs;
+}
+export function setNostrEventStuckMsV2(n) {
+  _nsEventStuckMs = _nsPos(n, "nostrEventStuckMs");
+}
+export function getNostrEventStuckMsV2() {
+  return _nsEventStuckMs;
+}
 
 export function _resetStateNostrBridgeV2() {
-  _nsRelays.clear(); _nsEvents.clear();
-  _nsMaxActivePerOwner = 10; _nsMaxPendingPerRelay = 30;
-  _nsRelayIdleMs = 60 * 60 * 1000; _nsEventStuckMs = 2 * 60 * 1000;
+  _nsRelays.clear();
+  _nsEvents.clear();
+  _nsMaxActivePerOwner = 10;
+  _nsMaxPendingPerRelay = 30;
+  _nsRelayIdleMs = 60 * 60 * 1000;
+  _nsEventStuckMs = 2 * 60 * 1000;
 }
 
 export function registerNostrRelayV2({ id, owner, url, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
   if (!owner || typeof owner !== "string") throw new Error("owner is required");
-  if (_nsRelays.has(id)) throw new Error(`nostr relay ${id} already registered`);
+  if (_nsRelays.has(id))
+    throw new Error(`nostr relay ${id} already registered`);
   const now = Date.now();
-  const r = { id, owner, url: url || "", status: NOSTR_RELAY_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, retiredAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  const r = {
+    id,
+    owner,
+    url: url || "",
+    status: NOSTR_RELAY_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    retiredAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
   _nsRelays.set(id, r);
   return { ...r, metadata: { ...r.metadata } };
 }
-function _nsCheckR(from, to) { const a = _nsRelayTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid nostr relay transition ${from} → ${to}`); }
-function _nsCountActive(owner) { let n = 0; for (const r of _nsRelays.values()) if (r.owner === owner && r.status === NOSTR_RELAY_MATURITY_V2.ACTIVE) n++; return n; }
+function _nsCheckR(from, to) {
+  const a = _nsRelayTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid nostr relay transition ${from} → ${to}`);
+}
+function _nsCountActive(owner) {
+  let n = 0;
+  for (const r of _nsRelays.values())
+    if (r.owner === owner && r.status === NOSTR_RELAY_MATURITY_V2.ACTIVE) n++;
+  return n;
+}
 
 export function activateNostrRelayV2(id) {
-  const r = _nsRelays.get(id); if (!r) throw new Error(`nostr relay ${id} not found`);
+  const r = _nsRelays.get(id);
+  if (!r) throw new Error(`nostr relay ${id} not found`);
   _nsCheckR(r.status, NOSTR_RELAY_MATURITY_V2.ACTIVE);
   const recovery = r.status === NOSTR_RELAY_MATURITY_V2.OFFLINE;
-  if (!recovery) { const a = _nsCountActive(r.owner); if (a >= _nsMaxActivePerOwner) throw new Error(`max active nostr relays per owner (${_nsMaxActivePerOwner}) reached for ${r.owner}`); }
-  const now = Date.now(); r.status = NOSTR_RELAY_MATURITY_V2.ACTIVE; r.updatedAt = now; r.lastTouchedAt = now; if (!r.activatedAt) r.activatedAt = now;
+  if (!recovery) {
+    const a = _nsCountActive(r.owner);
+    if (a >= _nsMaxActivePerOwner)
+      throw new Error(
+        `max active nostr relays per owner (${_nsMaxActivePerOwner}) reached for ${r.owner}`,
+      );
+  }
+  const now = Date.now();
+  r.status = NOSTR_RELAY_MATURITY_V2.ACTIVE;
+  r.updatedAt = now;
+  r.lastTouchedAt = now;
+  if (!r.activatedAt) r.activatedAt = now;
   return { ...r, metadata: { ...r.metadata } };
 }
-export function offlineNostrRelayV2(id) { const r = _nsRelays.get(id); if (!r) throw new Error(`nostr relay ${id} not found`); _nsCheckR(r.status, NOSTR_RELAY_MATURITY_V2.OFFLINE); r.status = NOSTR_RELAY_MATURITY_V2.OFFLINE; r.updatedAt = Date.now(); return { ...r, metadata: { ...r.metadata } }; }
-export function retireNostrRelayV2(id) { const r = _nsRelays.get(id); if (!r) throw new Error(`nostr relay ${id} not found`); _nsCheckR(r.status, NOSTR_RELAY_MATURITY_V2.RETIRED); const now = Date.now(); r.status = NOSTR_RELAY_MATURITY_V2.RETIRED; r.updatedAt = now; if (!r.retiredAt) r.retiredAt = now; return { ...r, metadata: { ...r.metadata } }; }
-export function touchNostrRelayV2(id) { const r = _nsRelays.get(id); if (!r) throw new Error(`nostr relay ${id} not found`); if (_nsRelayTerminal.has(r.status)) throw new Error(`cannot touch terminal nostr relay ${id}`); const now = Date.now(); r.lastTouchedAt = now; r.updatedAt = now; return { ...r, metadata: { ...r.metadata } }; }
-export function getNostrRelayV2(id) { const r = _nsRelays.get(id); if (!r) return null; return { ...r, metadata: { ...r.metadata } }; }
-export function listNostrRelaysV2() { return [..._nsRelays.values()].map((r) => ({ ...r, metadata: { ...r.metadata } })); }
+export function offlineNostrRelayV2(id) {
+  const r = _nsRelays.get(id);
+  if (!r) throw new Error(`nostr relay ${id} not found`);
+  _nsCheckR(r.status, NOSTR_RELAY_MATURITY_V2.OFFLINE);
+  r.status = NOSTR_RELAY_MATURITY_V2.OFFLINE;
+  r.updatedAt = Date.now();
+  return { ...r, metadata: { ...r.metadata } };
+}
+export function retireNostrRelayV2(id) {
+  const r = _nsRelays.get(id);
+  if (!r) throw new Error(`nostr relay ${id} not found`);
+  _nsCheckR(r.status, NOSTR_RELAY_MATURITY_V2.RETIRED);
+  const now = Date.now();
+  r.status = NOSTR_RELAY_MATURITY_V2.RETIRED;
+  r.updatedAt = now;
+  if (!r.retiredAt) r.retiredAt = now;
+  return { ...r, metadata: { ...r.metadata } };
+}
+export function touchNostrRelayV2(id) {
+  const r = _nsRelays.get(id);
+  if (!r) throw new Error(`nostr relay ${id} not found`);
+  if (_nsRelayTerminal.has(r.status))
+    throw new Error(`cannot touch terminal nostr relay ${id}`);
+  const now = Date.now();
+  r.lastTouchedAt = now;
+  r.updatedAt = now;
+  return { ...r, metadata: { ...r.metadata } };
+}
+export function getNostrRelayV2(id) {
+  const r = _nsRelays.get(id);
+  if (!r) return null;
+  return { ...r, metadata: { ...r.metadata } };
+}
+export function listNostrRelaysV2() {
+  return [..._nsRelays.values()].map((r) => ({
+    ...r,
+    metadata: { ...r.metadata },
+  }));
+}
 
-function _nsCountPending(rid) { let n = 0; for (const e of _nsEvents.values()) if (e.relayId === rid && (e.status === NOSTR_EVENT_LIFECYCLE_V2.QUEUED || e.status === NOSTR_EVENT_LIFECYCLE_V2.PUBLISHING)) n++; return n; }
+function _nsCountPending(rid) {
+  let n = 0;
+  for (const e of _nsEvents.values())
+    if (
+      e.relayId === rid &&
+      (e.status === NOSTR_EVENT_LIFECYCLE_V2.QUEUED ||
+        e.status === NOSTR_EVENT_LIFECYCLE_V2.PUBLISHING)
+    )
+      n++;
+  return n;
+}
 
 export function createNostrEventV2({ id, relayId, kind, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
-  if (!relayId || typeof relayId !== "string") throw new Error("relayId is required");
+  if (!relayId || typeof relayId !== "string")
+    throw new Error("relayId is required");
   if (_nsEvents.has(id)) throw new Error(`nostr event ${id} already exists`);
-  if (!_nsRelays.has(relayId)) throw new Error(`nostr relay ${relayId} not found`);
+  if (!_nsRelays.has(relayId))
+    throw new Error(`nostr relay ${relayId} not found`);
   const pending = _nsCountPending(relayId);
-  if (pending >= _nsMaxPendingPerRelay) throw new Error(`max pending nostr events per relay (${_nsMaxPendingPerRelay}) reached for ${relayId}`);
+  if (pending >= _nsMaxPendingPerRelay)
+    throw new Error(
+      `max pending nostr events per relay (${_nsMaxPendingPerRelay}) reached for ${relayId}`,
+    );
   const now = Date.now();
-  const e = { id, relayId, kind: typeof kind === "number" ? kind : 1, status: NOSTR_EVENT_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  const e = {
+    id,
+    relayId,
+    kind: typeof kind === "number" ? kind : 1,
+    status: NOSTR_EVENT_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
   _nsEvents.set(id, e);
   return { ...e, metadata: { ...e.metadata } };
 }
-function _nsCheckE(from, to) { const a = _nsEventTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid nostr event transition ${from} → ${to}`); }
-export function startNostrEventV2(id) { const e = _nsEvents.get(id); if (!e) throw new Error(`nostr event ${id} not found`); _nsCheckE(e.status, NOSTR_EVENT_LIFECYCLE_V2.PUBLISHING); const now = Date.now(); e.status = NOSTR_EVENT_LIFECYCLE_V2.PUBLISHING; e.updatedAt = now; if (!e.startedAt) e.startedAt = now; return { ...e, metadata: { ...e.metadata } }; }
-export function publishNostrEventV2(id) { const e = _nsEvents.get(id); if (!e) throw new Error(`nostr event ${id} not found`); _nsCheckE(e.status, NOSTR_EVENT_LIFECYCLE_V2.PUBLISHED); const now = Date.now(); e.status = NOSTR_EVENT_LIFECYCLE_V2.PUBLISHED; e.updatedAt = now; if (!e.settledAt) e.settledAt = now; return { ...e, metadata: { ...e.metadata } }; }
-export function failNostrEventV2(id, reason) { const e = _nsEvents.get(id); if (!e) throw new Error(`nostr event ${id} not found`); _nsCheckE(e.status, NOSTR_EVENT_LIFECYCLE_V2.FAILED); const now = Date.now(); e.status = NOSTR_EVENT_LIFECYCLE_V2.FAILED; e.updatedAt = now; if (!e.settledAt) e.settledAt = now; if (reason) e.metadata.failReason = String(reason); return { ...e, metadata: { ...e.metadata } }; }
-export function cancelNostrEventV2(id, reason) { const e = _nsEvents.get(id); if (!e) throw new Error(`nostr event ${id} not found`); _nsCheckE(e.status, NOSTR_EVENT_LIFECYCLE_V2.CANCELLED); const now = Date.now(); e.status = NOSTR_EVENT_LIFECYCLE_V2.CANCELLED; e.updatedAt = now; if (!e.settledAt) e.settledAt = now; if (reason) e.metadata.cancelReason = String(reason); return { ...e, metadata: { ...e.metadata } }; }
-export function getNostrEventV2(id) { const e = _nsEvents.get(id); if (!e) return null; return { ...e, metadata: { ...e.metadata } }; }
-export function listNostrEventsV2() { return [..._nsEvents.values()].map((e) => ({ ...e, metadata: { ...e.metadata } })); }
+function _nsCheckE(from, to) {
+  const a = _nsEventTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid nostr event transition ${from} → ${to}`);
+}
+export function startNostrEventV2(id) {
+  const e = _nsEvents.get(id);
+  if (!e) throw new Error(`nostr event ${id} not found`);
+  _nsCheckE(e.status, NOSTR_EVENT_LIFECYCLE_V2.PUBLISHING);
+  const now = Date.now();
+  e.status = NOSTR_EVENT_LIFECYCLE_V2.PUBLISHING;
+  e.updatedAt = now;
+  if (!e.startedAt) e.startedAt = now;
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function publishNostrEventV2(id) {
+  const e = _nsEvents.get(id);
+  if (!e) throw new Error(`nostr event ${id} not found`);
+  _nsCheckE(e.status, NOSTR_EVENT_LIFECYCLE_V2.PUBLISHED);
+  const now = Date.now();
+  e.status = NOSTR_EVENT_LIFECYCLE_V2.PUBLISHED;
+  e.updatedAt = now;
+  if (!e.settledAt) e.settledAt = now;
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function failNostrEventV2(id, reason) {
+  const e = _nsEvents.get(id);
+  if (!e) throw new Error(`nostr event ${id} not found`);
+  _nsCheckE(e.status, NOSTR_EVENT_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  e.status = NOSTR_EVENT_LIFECYCLE_V2.FAILED;
+  e.updatedAt = now;
+  if (!e.settledAt) e.settledAt = now;
+  if (reason) e.metadata.failReason = String(reason);
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function cancelNostrEventV2(id, reason) {
+  const e = _nsEvents.get(id);
+  if (!e) throw new Error(`nostr event ${id} not found`);
+  _nsCheckE(e.status, NOSTR_EVENT_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  e.status = NOSTR_EVENT_LIFECYCLE_V2.CANCELLED;
+  e.updatedAt = now;
+  if (!e.settledAt) e.settledAt = now;
+  if (reason) e.metadata.cancelReason = String(reason);
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function getNostrEventV2(id) {
+  const e = _nsEvents.get(id);
+  if (!e) return null;
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function listNostrEventsV2() {
+  return [..._nsEvents.values()].map((e) => ({
+    ...e,
+    metadata: { ...e.metadata },
+  }));
+}
 
-export function autoOfflineIdleNostrRelaysV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const r of _nsRelays.values()) if (r.status === NOSTR_RELAY_MATURITY_V2.ACTIVE && (t - r.lastTouchedAt) >= _nsRelayIdleMs) { r.status = NOSTR_RELAY_MATURITY_V2.OFFLINE; r.updatedAt = t; flipped.push(r.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckNostrEventsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const e of _nsEvents.values()) if (e.status === NOSTR_EVENT_LIFECYCLE_V2.PUBLISHING && e.startedAt != null && (t - e.startedAt) >= _nsEventStuckMs) { e.status = NOSTR_EVENT_LIFECYCLE_V2.FAILED; e.updatedAt = t; if (!e.settledAt) e.settledAt = t; e.metadata.failReason = "auto-fail-stuck"; flipped.push(e.id); } return { flipped, count: flipped.length }; }
+export function autoOfflineIdleNostrRelaysV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const r of _nsRelays.values())
+    if (
+      r.status === NOSTR_RELAY_MATURITY_V2.ACTIVE &&
+      t - r.lastTouchedAt >= _nsRelayIdleMs
+    ) {
+      r.status = NOSTR_RELAY_MATURITY_V2.OFFLINE;
+      r.updatedAt = t;
+      flipped.push(r.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckNostrEventsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const e of _nsEvents.values())
+    if (
+      e.status === NOSTR_EVENT_LIFECYCLE_V2.PUBLISHING &&
+      e.startedAt != null &&
+      t - e.startedAt >= _nsEventStuckMs
+    ) {
+      e.status = NOSTR_EVENT_LIFECYCLE_V2.FAILED;
+      e.updatedAt = t;
+      if (!e.settledAt) e.settledAt = t;
+      e.metadata.failReason = "auto-fail-stuck";
+      flipped.push(e.id);
+    }
+  return { flipped, count: flipped.length };
+}
 
 export function getNostrBridgeStatsV2() {
-  const relaysByStatus = {}; for (const s of Object.values(NOSTR_RELAY_MATURITY_V2)) relaysByStatus[s] = 0; for (const r of _nsRelays.values()) relaysByStatus[r.status]++;
-  const eventsByStatus = {}; for (const s of Object.values(NOSTR_EVENT_LIFECYCLE_V2)) eventsByStatus[s] = 0; for (const e of _nsEvents.values()) eventsByStatus[e.status]++;
-  return { totalRelaysV2: _nsRelays.size, totalEventsV2: _nsEvents.size, maxActiveNostrRelaysPerOwner: _nsMaxActivePerOwner, maxPendingNostrEventsPerRelay: _nsMaxPendingPerRelay, nostrRelayIdleMs: _nsRelayIdleMs, nostrEventStuckMs: _nsEventStuckMs, relaysByStatus, eventsByStatus };
+  const relaysByStatus = {};
+  for (const s of Object.values(NOSTR_RELAY_MATURITY_V2)) relaysByStatus[s] = 0;
+  for (const r of _nsRelays.values()) relaysByStatus[r.status]++;
+  const eventsByStatus = {};
+  for (const s of Object.values(NOSTR_EVENT_LIFECYCLE_V2))
+    eventsByStatus[s] = 0;
+  for (const e of _nsEvents.values()) eventsByStatus[e.status]++;
+  return {
+    totalRelaysV2: _nsRelays.size,
+    totalEventsV2: _nsEvents.size,
+    maxActiveNostrRelaysPerOwner: _nsMaxActivePerOwner,
+    maxPendingNostrEventsPerRelay: _nsMaxPendingPerRelay,
+    nostrRelayIdleMs: _nsRelayIdleMs,
+    nostrEventStuckMs: _nsEventStuckMs,
+    relaysByStatus,
+    eventsByStatus,
+  };
 }

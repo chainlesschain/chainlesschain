@@ -174,25 +174,59 @@ export const DEFAULT_ITERATION_BUDGET = DEFAULT_BUDGET;
 export const BUDGET_WARNING_THRESHOLD = WARNING_THRESHOLD;
 export const BUDGET_WRAPPING_UP_THRESHOLD = WRAPPING_UP_THRESHOLD;
 
-
 // ===== V2 Surface: Iteration Budget governance overlay (CLI v0.140.0) =====
 export const ITER_BUDGET_PROFILE_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", PAUSED: "paused", EXHAUSTED: "exhausted",
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  EXHAUSTED: "exhausted",
 });
 export const ITER_RUN_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", RUNNING: "running", COMPLETED: "completed", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 
 const _ibpTrans = new Map([
-  [ITER_BUDGET_PROFILE_MATURITY_V2.PENDING, new Set([ITER_BUDGET_PROFILE_MATURITY_V2.ACTIVE, ITER_BUDGET_PROFILE_MATURITY_V2.EXHAUSTED])],
-  [ITER_BUDGET_PROFILE_MATURITY_V2.ACTIVE, new Set([ITER_BUDGET_PROFILE_MATURITY_V2.PAUSED, ITER_BUDGET_PROFILE_MATURITY_V2.EXHAUSTED])],
-  [ITER_BUDGET_PROFILE_MATURITY_V2.PAUSED, new Set([ITER_BUDGET_PROFILE_MATURITY_V2.ACTIVE, ITER_BUDGET_PROFILE_MATURITY_V2.EXHAUSTED])],
+  [
+    ITER_BUDGET_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      ITER_BUDGET_PROFILE_MATURITY_V2.ACTIVE,
+      ITER_BUDGET_PROFILE_MATURITY_V2.EXHAUSTED,
+    ]),
+  ],
+  [
+    ITER_BUDGET_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      ITER_BUDGET_PROFILE_MATURITY_V2.PAUSED,
+      ITER_BUDGET_PROFILE_MATURITY_V2.EXHAUSTED,
+    ]),
+  ],
+  [
+    ITER_BUDGET_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      ITER_BUDGET_PROFILE_MATURITY_V2.ACTIVE,
+      ITER_BUDGET_PROFILE_MATURITY_V2.EXHAUSTED,
+    ]),
+  ],
   [ITER_BUDGET_PROFILE_MATURITY_V2.EXHAUSTED, new Set()],
 ]);
 const _ibpTerminal = new Set([ITER_BUDGET_PROFILE_MATURITY_V2.EXHAUSTED]);
 const _irTrans = new Map([
-  [ITER_RUN_LIFECYCLE_V2.QUEUED, new Set([ITER_RUN_LIFECYCLE_V2.RUNNING, ITER_RUN_LIFECYCLE_V2.CANCELLED])],
-  [ITER_RUN_LIFECYCLE_V2.RUNNING, new Set([ITER_RUN_LIFECYCLE_V2.COMPLETED, ITER_RUN_LIFECYCLE_V2.FAILED, ITER_RUN_LIFECYCLE_V2.CANCELLED])],
+  [
+    ITER_RUN_LIFECYCLE_V2.QUEUED,
+    new Set([ITER_RUN_LIFECYCLE_V2.RUNNING, ITER_RUN_LIFECYCLE_V2.CANCELLED]),
+  ],
+  [
+    ITER_RUN_LIFECYCLE_V2.RUNNING,
+    new Set([
+      ITER_RUN_LIFECYCLE_V2.COMPLETED,
+      ITER_RUN_LIFECYCLE_V2.FAILED,
+      ITER_RUN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [ITER_RUN_LIFECYCLE_V2.COMPLETED, new Set()],
   [ITER_RUN_LIFECYCLE_V2.FAILED, new Set()],
   [ITER_RUN_LIFECYCLE_V2.CANCELLED, new Set()],
@@ -205,76 +239,294 @@ let _ibpMaxPendingRunsPerProfile = 8;
 let _ibpIdleMs = 24 * 60 * 60 * 1000;
 let _irStuckMs = 60 * 60 * 1000;
 
-function _ibpPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
-
-export function setMaxActiveIterBudgetProfilesPerOwnerV2(n) { _ibpMaxActivePerOwner = _ibpPos(n, "maxActiveIterBudgetProfilesPerOwner"); }
-export function getMaxActiveIterBudgetProfilesPerOwnerV2() { return _ibpMaxActivePerOwner; }
-export function setMaxPendingIterRunsPerProfileV2(n) { _ibpMaxPendingRunsPerProfile = _ibpPos(n, "maxPendingIterRunsPerProfile"); }
-export function getMaxPendingIterRunsPerProfileV2() { return _ibpMaxPendingRunsPerProfile; }
-export function setIterBudgetProfileIdleMsV2(n) { _ibpIdleMs = _ibpPos(n, "iterBudgetProfileIdleMs"); }
-export function getIterBudgetProfileIdleMsV2() { return _ibpIdleMs; }
-export function setIterRunStuckMsV2(n) { _irStuckMs = _ibpPos(n, "iterRunStuckMs"); }
-export function getIterRunStuckMsV2() { return _irStuckMs; }
-
-export function _resetStateIterationBudgetV2() {
-  _ibpsV2.clear(); _irsV2.clear();
-  _ibpMaxActivePerOwner = 4; _ibpMaxPendingRunsPerProfile = 8;
-  _ibpIdleMs = 24 * 60 * 60 * 1000; _irStuckMs = 60 * 60 * 1000;
+function _ibpPos(n, lbl) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${lbl} must be positive integer`);
+  return v;
 }
 
-export function registerIterBudgetProfileV2({ id, owner, budget, metadata } = {}) {
+export function setMaxActiveIterBudgetProfilesPerOwnerV2(n) {
+  _ibpMaxActivePerOwner = _ibpPos(n, "maxActiveIterBudgetProfilesPerOwner");
+}
+export function getMaxActiveIterBudgetProfilesPerOwnerV2() {
+  return _ibpMaxActivePerOwner;
+}
+export function setMaxPendingIterRunsPerProfileV2(n) {
+  _ibpMaxPendingRunsPerProfile = _ibpPos(n, "maxPendingIterRunsPerProfile");
+}
+export function getMaxPendingIterRunsPerProfileV2() {
+  return _ibpMaxPendingRunsPerProfile;
+}
+export function setIterBudgetProfileIdleMsV2(n) {
+  _ibpIdleMs = _ibpPos(n, "iterBudgetProfileIdleMs");
+}
+export function getIterBudgetProfileIdleMsV2() {
+  return _ibpIdleMs;
+}
+export function setIterRunStuckMsV2(n) {
+  _irStuckMs = _ibpPos(n, "iterRunStuckMs");
+}
+export function getIterRunStuckMsV2() {
+  return _irStuckMs;
+}
+
+export function _resetStateIterationBudgetV2() {
+  _ibpsV2.clear();
+  _irsV2.clear();
+  _ibpMaxActivePerOwner = 4;
+  _ibpMaxPendingRunsPerProfile = 8;
+  _ibpIdleMs = 24 * 60 * 60 * 1000;
+  _irStuckMs = 60 * 60 * 1000;
+}
+
+export function registerIterBudgetProfileV2({
+  id,
+  owner,
+  budget,
+  metadata,
+} = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
   if (!owner || typeof owner !== "string") throw new Error("owner is required");
-  if (_ibpsV2.has(id)) throw new Error(`iter budget profile ${id} already registered`);
+  if (_ibpsV2.has(id))
+    throw new Error(`iter budget profile ${id} already registered`);
   const now = Date.now();
-  const p = { id, owner, budget: budget || 50, status: ITER_BUDGET_PROFILE_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, exhaustedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  const p = {
+    id,
+    owner,
+    budget: budget || 50,
+    status: ITER_BUDGET_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    exhaustedAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
   _ibpsV2.set(id, p);
   return { ...p, metadata: { ...p.metadata } };
 }
-function _ibpCheckP(from, to) { const a = _ibpTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid iter budget profile transition ${from} → ${to}`); }
-function _ibpCountActive(owner) { let n = 0; for (const p of _ibpsV2.values()) if (p.owner === owner && p.status === ITER_BUDGET_PROFILE_MATURITY_V2.ACTIVE) n++; return n; }
+function _ibpCheckP(from, to) {
+  const a = _ibpTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid iter budget profile transition ${from} → ${to}`);
+}
+function _ibpCountActive(owner) {
+  let n = 0;
+  for (const p of _ibpsV2.values())
+    if (
+      p.owner === owner &&
+      p.status === ITER_BUDGET_PROFILE_MATURITY_V2.ACTIVE
+    )
+      n++;
+  return n;
+}
 
 export function activateIterBudgetProfileV2(id) {
-  const p = _ibpsV2.get(id); if (!p) throw new Error(`iter budget profile ${id} not found`);
+  const p = _ibpsV2.get(id);
+  if (!p) throw new Error(`iter budget profile ${id} not found`);
   _ibpCheckP(p.status, ITER_BUDGET_PROFILE_MATURITY_V2.ACTIVE);
   const recovery = p.status === ITER_BUDGET_PROFILE_MATURITY_V2.PAUSED;
-  if (!recovery) { const c = _ibpCountActive(p.owner); if (c >= _ibpMaxActivePerOwner) throw new Error(`max active iter budget profiles per owner (${_ibpMaxActivePerOwner}) reached for ${p.owner}`); }
-  const now = Date.now(); p.status = ITER_BUDGET_PROFILE_MATURITY_V2.ACTIVE; p.updatedAt = now; p.lastTouchedAt = now; if (!p.activatedAt) p.activatedAt = now;
+  if (!recovery) {
+    const c = _ibpCountActive(p.owner);
+    if (c >= _ibpMaxActivePerOwner)
+      throw new Error(
+        `max active iter budget profiles per owner (${_ibpMaxActivePerOwner}) reached for ${p.owner}`,
+      );
+  }
+  const now = Date.now();
+  p.status = ITER_BUDGET_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
   return { ...p, metadata: { ...p.metadata } };
 }
-export function pauseIterBudgetProfileV2(id) { const p = _ibpsV2.get(id); if (!p) throw new Error(`iter budget profile ${id} not found`); _ibpCheckP(p.status, ITER_BUDGET_PROFILE_MATURITY_V2.PAUSED); p.status = ITER_BUDGET_PROFILE_MATURITY_V2.PAUSED; p.updatedAt = Date.now(); return { ...p, metadata: { ...p.metadata } }; }
-export function exhaustIterBudgetProfileV2(id) { const p = _ibpsV2.get(id); if (!p) throw new Error(`iter budget profile ${id} not found`); _ibpCheckP(p.status, ITER_BUDGET_PROFILE_MATURITY_V2.EXHAUSTED); const now = Date.now(); p.status = ITER_BUDGET_PROFILE_MATURITY_V2.EXHAUSTED; p.updatedAt = now; if (!p.exhaustedAt) p.exhaustedAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function touchIterBudgetProfileV2(id) { const p = _ibpsV2.get(id); if (!p) throw new Error(`iter budget profile ${id} not found`); if (_ibpTerminal.has(p.status)) throw new Error(`cannot touch terminal iter budget profile ${id}`); const now = Date.now(); p.lastTouchedAt = now; p.updatedAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function getIterBudgetProfileV2(id) { const p = _ibpsV2.get(id); if (!p) return null; return { ...p, metadata: { ...p.metadata } }; }
-export function listIterBudgetProfilesV2() { return [..._ibpsV2.values()].map((p) => ({ ...p, metadata: { ...p.metadata } })); }
+export function pauseIterBudgetProfileV2(id) {
+  const p = _ibpsV2.get(id);
+  if (!p) throw new Error(`iter budget profile ${id} not found`);
+  _ibpCheckP(p.status, ITER_BUDGET_PROFILE_MATURITY_V2.PAUSED);
+  p.status = ITER_BUDGET_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function exhaustIterBudgetProfileV2(id) {
+  const p = _ibpsV2.get(id);
+  if (!p) throw new Error(`iter budget profile ${id} not found`);
+  _ibpCheckP(p.status, ITER_BUDGET_PROFILE_MATURITY_V2.EXHAUSTED);
+  const now = Date.now();
+  p.status = ITER_BUDGET_PROFILE_MATURITY_V2.EXHAUSTED;
+  p.updatedAt = now;
+  if (!p.exhaustedAt) p.exhaustedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchIterBudgetProfileV2(id) {
+  const p = _ibpsV2.get(id);
+  if (!p) throw new Error(`iter budget profile ${id} not found`);
+  if (_ibpTerminal.has(p.status))
+    throw new Error(`cannot touch terminal iter budget profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getIterBudgetProfileV2(id) {
+  const p = _ibpsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listIterBudgetProfilesV2() {
+  return [..._ibpsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
 
-function _irCountPending(profileId) { let n = 0; for (const r of _irsV2.values()) if (r.profileId === profileId && (r.status === ITER_RUN_LIFECYCLE_V2.QUEUED || r.status === ITER_RUN_LIFECYCLE_V2.RUNNING)) n++; return n; }
+function _irCountPending(profileId) {
+  let n = 0;
+  for (const r of _irsV2.values())
+    if (
+      r.profileId === profileId &&
+      (r.status === ITER_RUN_LIFECYCLE_V2.QUEUED ||
+        r.status === ITER_RUN_LIFECYCLE_V2.RUNNING)
+    )
+      n++;
+  return n;
+}
 
 export function createIterRunV2({ id, profileId, goal, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
-  if (!profileId || typeof profileId !== "string") throw new Error("profileId is required");
+  if (!profileId || typeof profileId !== "string")
+    throw new Error("profileId is required");
   if (_irsV2.has(id)) throw new Error(`iter run ${id} already exists`);
-  if (!_ibpsV2.has(profileId)) throw new Error(`iter budget profile ${profileId} not found`);
+  if (!_ibpsV2.has(profileId))
+    throw new Error(`iter budget profile ${profileId} not found`);
   const pending = _irCountPending(profileId);
-  if (pending >= _ibpMaxPendingRunsPerProfile) throw new Error(`max pending iter runs per profile (${_ibpMaxPendingRunsPerProfile}) reached for ${profileId}`);
+  if (pending >= _ibpMaxPendingRunsPerProfile)
+    throw new Error(
+      `max pending iter runs per profile (${_ibpMaxPendingRunsPerProfile}) reached for ${profileId}`,
+    );
   const now = Date.now();
-  const r = { id, profileId, goal: goal || "", status: ITER_RUN_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  const r = {
+    id,
+    profileId,
+    goal: goal || "",
+    status: ITER_RUN_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
   _irsV2.set(id, r);
   return { ...r, metadata: { ...r.metadata } };
 }
-function _irCheckR(from, to) { const a = _irTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid iter run transition ${from} → ${to}`); }
-export function startIterRunV2(id) { const r = _irsV2.get(id); if (!r) throw new Error(`iter run ${id} not found`); _irCheckR(r.status, ITER_RUN_LIFECYCLE_V2.RUNNING); const now = Date.now(); r.status = ITER_RUN_LIFECYCLE_V2.RUNNING; r.updatedAt = now; if (!r.startedAt) r.startedAt = now; return { ...r, metadata: { ...r.metadata } }; }
-export function completeIterRunV2(id) { const r = _irsV2.get(id); if (!r) throw new Error(`iter run ${id} not found`); _irCheckR(r.status, ITER_RUN_LIFECYCLE_V2.COMPLETED); const now = Date.now(); r.status = ITER_RUN_LIFECYCLE_V2.COMPLETED; r.updatedAt = now; if (!r.settledAt) r.settledAt = now; return { ...r, metadata: { ...r.metadata } }; }
-export function failIterRunV2(id, reason) { const r = _irsV2.get(id); if (!r) throw new Error(`iter run ${id} not found`); _irCheckR(r.status, ITER_RUN_LIFECYCLE_V2.FAILED); const now = Date.now(); r.status = ITER_RUN_LIFECYCLE_V2.FAILED; r.updatedAt = now; if (!r.settledAt) r.settledAt = now; if (reason) r.metadata.failReason = String(reason); return { ...r, metadata: { ...r.metadata } }; }
-export function cancelIterRunV2(id, reason) { const r = _irsV2.get(id); if (!r) throw new Error(`iter run ${id} not found`); _irCheckR(r.status, ITER_RUN_LIFECYCLE_V2.CANCELLED); const now = Date.now(); r.status = ITER_RUN_LIFECYCLE_V2.CANCELLED; r.updatedAt = now; if (!r.settledAt) r.settledAt = now; if (reason) r.metadata.cancelReason = String(reason); return { ...r, metadata: { ...r.metadata } }; }
-export function getIterRunV2(id) { const r = _irsV2.get(id); if (!r) return null; return { ...r, metadata: { ...r.metadata } }; }
-export function listIterRunsV2() { return [..._irsV2.values()].map((r) => ({ ...r, metadata: { ...r.metadata } })); }
+function _irCheckR(from, to) {
+  const a = _irTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid iter run transition ${from} → ${to}`);
+}
+export function startIterRunV2(id) {
+  const r = _irsV2.get(id);
+  if (!r) throw new Error(`iter run ${id} not found`);
+  _irCheckR(r.status, ITER_RUN_LIFECYCLE_V2.RUNNING);
+  const now = Date.now();
+  r.status = ITER_RUN_LIFECYCLE_V2.RUNNING;
+  r.updatedAt = now;
+  if (!r.startedAt) r.startedAt = now;
+  return { ...r, metadata: { ...r.metadata } };
+}
+export function completeIterRunV2(id) {
+  const r = _irsV2.get(id);
+  if (!r) throw new Error(`iter run ${id} not found`);
+  _irCheckR(r.status, ITER_RUN_LIFECYCLE_V2.COMPLETED);
+  const now = Date.now();
+  r.status = ITER_RUN_LIFECYCLE_V2.COMPLETED;
+  r.updatedAt = now;
+  if (!r.settledAt) r.settledAt = now;
+  return { ...r, metadata: { ...r.metadata } };
+}
+export function failIterRunV2(id, reason) {
+  const r = _irsV2.get(id);
+  if (!r) throw new Error(`iter run ${id} not found`);
+  _irCheckR(r.status, ITER_RUN_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  r.status = ITER_RUN_LIFECYCLE_V2.FAILED;
+  r.updatedAt = now;
+  if (!r.settledAt) r.settledAt = now;
+  if (reason) r.metadata.failReason = String(reason);
+  return { ...r, metadata: { ...r.metadata } };
+}
+export function cancelIterRunV2(id, reason) {
+  const r = _irsV2.get(id);
+  if (!r) throw new Error(`iter run ${id} not found`);
+  _irCheckR(r.status, ITER_RUN_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  r.status = ITER_RUN_LIFECYCLE_V2.CANCELLED;
+  r.updatedAt = now;
+  if (!r.settledAt) r.settledAt = now;
+  if (reason) r.metadata.cancelReason = String(reason);
+  return { ...r, metadata: { ...r.metadata } };
+}
+export function getIterRunV2(id) {
+  const r = _irsV2.get(id);
+  if (!r) return null;
+  return { ...r, metadata: { ...r.metadata } };
+}
+export function listIterRunsV2() {
+  return [..._irsV2.values()].map((r) => ({
+    ...r,
+    metadata: { ...r.metadata },
+  }));
+}
 
-export function autoPauseIdleIterBudgetProfilesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const p of _ibpsV2.values()) if (p.status === ITER_BUDGET_PROFILE_MATURITY_V2.ACTIVE && (t - p.lastTouchedAt) >= _ibpIdleMs) { p.status = ITER_BUDGET_PROFILE_MATURITY_V2.PAUSED; p.updatedAt = t; flipped.push(p.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckIterRunsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const r of _irsV2.values()) if (r.status === ITER_RUN_LIFECYCLE_V2.RUNNING && r.startedAt != null && (t - r.startedAt) >= _irStuckMs) { r.status = ITER_RUN_LIFECYCLE_V2.FAILED; r.updatedAt = t; if (!r.settledAt) r.settledAt = t; r.metadata.failReason = "auto-fail-stuck"; flipped.push(r.id); } return { flipped, count: flipped.length }; }
+export function autoPauseIdleIterBudgetProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _ibpsV2.values())
+    if (
+      p.status === ITER_BUDGET_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _ibpIdleMs
+    ) {
+      p.status = ITER_BUDGET_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckIterRunsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const r of _irsV2.values())
+    if (
+      r.status === ITER_RUN_LIFECYCLE_V2.RUNNING &&
+      r.startedAt != null &&
+      t - r.startedAt >= _irStuckMs
+    ) {
+      r.status = ITER_RUN_LIFECYCLE_V2.FAILED;
+      r.updatedAt = t;
+      if (!r.settledAt) r.settledAt = t;
+      r.metadata.failReason = "auto-fail-stuck";
+      flipped.push(r.id);
+    }
+  return { flipped, count: flipped.length };
+}
 
 export function getIterationBudgetGovStatsV2() {
-  const profilesByStatus = {}; for (const s of Object.values(ITER_BUDGET_PROFILE_MATURITY_V2)) profilesByStatus[s] = 0; for (const p of _ibpsV2.values()) profilesByStatus[p.status]++;
-  const runsByStatus = {}; for (const s of Object.values(ITER_RUN_LIFECYCLE_V2)) runsByStatus[s] = 0; for (const r of _irsV2.values()) runsByStatus[r.status]++;
-  return { totalIterBudgetProfilesV2: _ibpsV2.size, totalIterRunsV2: _irsV2.size, maxActiveIterBudgetProfilesPerOwner: _ibpMaxActivePerOwner, maxPendingIterRunsPerProfile: _ibpMaxPendingRunsPerProfile, iterBudgetProfileIdleMs: _ibpIdleMs, iterRunStuckMs: _irStuckMs, profilesByStatus, runsByStatus };
+  const profilesByStatus = {};
+  for (const s of Object.values(ITER_BUDGET_PROFILE_MATURITY_V2))
+    profilesByStatus[s] = 0;
+  for (const p of _ibpsV2.values()) profilesByStatus[p.status]++;
+  const runsByStatus = {};
+  for (const s of Object.values(ITER_RUN_LIFECYCLE_V2)) runsByStatus[s] = 0;
+  for (const r of _irsV2.values()) runsByStatus[r.status]++;
+  return {
+    totalIterBudgetProfilesV2: _ibpsV2.size,
+    totalIterRunsV2: _irsV2.size,
+    maxActiveIterBudgetProfilesPerOwner: _ibpMaxActivePerOwner,
+    maxPendingIterRunsPerProfile: _ibpMaxPendingRunsPerProfile,
+    iterBudgetProfileIdleMs: _ibpIdleMs,
+    iterRunStuckMs: _irStuckMs,
+    profilesByStatus,
+    runsByStatus,
+  };
 }

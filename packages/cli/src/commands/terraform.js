@@ -391,3 +391,209 @@ export function registerTerraformCommand(program) {
       });
     });
 }
+
+// === Iter16 V2 governance overlay ===
+export function registerTfgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "terraform");
+  if (!parent) return;
+  const L = async () => await import("../lib/terraform-manager.js");
+  parent
+    .command("tfgov-enums-v2")
+    .description("Show V2 enums (tfgov maturity + apply lifecycle)")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.TFGOV_PROFILE_MATURITY_V2,
+            applyLifecycle: m.TFGOV_APPLY_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("tfgov-config-v2")
+    .description("Show V2 config thresholds")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveTfgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingTfgovApplysPerProfileV2(),
+            idleMs: m.getTfgovProfileIdleMsV2(),
+            stuckMs: m.getTfgovApplyStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("tfgov-set-max-active-v2 <n>")
+    .description("Set max active profiles per owner")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxActiveTfgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("tfgov-set-max-pending-v2 <n>")
+    .description("Set max pending applys per profile")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxPendingTfgovApplysPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("tfgov-set-idle-ms-v2 <n>")
+    .description("Set profile idle threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setTfgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("tfgov-set-stuck-ms-v2 <n>")
+    .description("Set apply stuck threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setTfgovApplyStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("tfgov-register-v2 <id> <owner>")
+    .description("Register V2 tfgov profile")
+    .option("--provider <v>", "provider")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerTfgovProfileV2({ id, owner, provider: o.provider }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("tfgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.activateTfgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("tfgov-drift-v2 <id>")
+    .description("Drift profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.driftTfgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("tfgov-archive-v2 <id>")
+    .description("Archive profile (terminal)")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.archiveTfgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("tfgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.touchTfgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("tfgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getTfgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("tfgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listTfgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("tfgov-create-apply-v2 <id> <profileId>")
+    .description("Create apply (queued)")
+    .option("--resource <v>", "resource")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createTfgovApplyV2({ id, profileId, resource: o.resource }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("tfgov-applying-apply-v2 <id>")
+    .description("Mark apply as applying")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.applyingTfgovApplyV2(id), null, 2));
+    });
+  parent
+    .command("tfgov-complete-apply-v2 <id>")
+    .description("Complete apply")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.completeApplyTfgovV2(id), null, 2));
+    });
+  parent
+    .command("tfgov-fail-apply-v2 <id> [reason]")
+    .description("Fail apply")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.failTfgovApplyV2(id, reason), null, 2));
+    });
+  parent
+    .command("tfgov-cancel-apply-v2 <id> [reason]")
+    .description("Cancel apply")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.cancelTfgovApplyV2(id, reason), null, 2));
+    });
+  parent
+    .command("tfgov-get-apply-v2 <id>")
+    .description("Get apply")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getTfgovApplyV2(id), null, 2));
+    });
+  parent
+    .command("tfgov-list-applys-v2")
+    .description("List applys")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listTfgovApplysV2(), null, 2));
+    });
+  parent
+    .command("tfgov-auto-drift-idle-v2")
+    .description("Auto-drift idle profiles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoDriftIdleTfgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("tfgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck applys")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoFailStuckTfgovApplysV2(), null, 2));
+    });
+  parent
+    .command("tfgov-gov-stats-v2")
+    .description("V2 gov aggregate stats")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.getTerraformManagerGovStatsV2(), null, 2));
+    });
+}

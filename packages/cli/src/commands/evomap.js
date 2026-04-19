@@ -952,7 +952,6 @@ export function registerEvoMapCommand(program) {
   registerEvoMapV2Command(evomap);
 }
 
-
 import {
   EVOMAP_MAP_MATURITY_V2,
   EVOMAP_EVOLUTION_LIFECYCLE_V2,
@@ -984,30 +983,186 @@ import {
 } from "../lib/evomap-manager.js";
 
 export function registerEvoMapV2Command(evomap) {
-  evomap.command("enums-v2").description("Show V2 governance enums").action(() => { console.log(JSON.stringify({ EVOMAP_MAP_MATURITY_V2, EVOMAP_EVOLUTION_LIFECYCLE_V2 }, null, 2)); });
-  evomap.command("register-map-v2").description("Register an evomap profile (pending)")
-    .requiredOption("--id <id>").requiredOption("--owner <owner>").option("--name <name>")
-    .action((o) => { console.log(JSON.stringify(registerEvoMapV2(o), null, 2)); });
-  evomap.command("activate-map-v2 <id>").description("Activate map").action((id) => { console.log(JSON.stringify(activateEvoMapV2(id), null, 2)); });
-  evomap.command("stale-map-v2 <id>").description("Mark map stale").action((id) => { console.log(JSON.stringify(staleEvoMapV2(id), null, 2)); });
-  evomap.command("archive-map-v2 <id>").description("Archive map (terminal)").action((id) => { console.log(JSON.stringify(archiveEvoMapV2(id), null, 2)); });
-  evomap.command("touch-map-v2 <id>").description("Refresh lastTouchedAt").action((id) => { console.log(JSON.stringify(touchEvoMapV2(id), null, 2)); });
-  evomap.command("get-map-v2 <id>").description("Get map").action((id) => { console.log(JSON.stringify(getEvoMapV2(id), null, 2)); });
-  evomap.command("list-maps-v2").description("List maps").action(() => { console.log(JSON.stringify(listEvoMapsV2(), null, 2)); });
-  evomap.command("create-evolution-v2").description("Create an evolution (queued)")
-    .requiredOption("--id <id>").requiredOption("--map-id <mapId>").option("--strategy <strategy>")
-    .action((o) => { console.log(JSON.stringify(createEvoEvolutionV2({ id: o.id, mapId: o.mapId, strategy: o.strategy }), null, 2)); });
-  evomap.command("start-evolution-v2 <id>").description("Transition evolution to running").action((id) => { console.log(JSON.stringify(startEvoEvolutionV2(id), null, 2)); });
-  evomap.command("complete-evolution-v2 <id>").description("Transition evolution to completed").action((id) => { console.log(JSON.stringify(completeEvoEvolutionV2(id), null, 2)); });
-  evomap.command("fail-evolution-v2 <id>").description("Fail evolution").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(failEvoEvolutionV2(id, o.reason), null, 2)); });
-  evomap.command("cancel-evolution-v2 <id>").description("Cancel evolution").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(cancelEvoEvolutionV2(id, o.reason), null, 2)); });
-  evomap.command("get-evolution-v2 <id>").description("Get evolution").action((id) => { console.log(JSON.stringify(getEvoEvolutionV2(id), null, 2)); });
-  evomap.command("list-evolutions-v2").description("List evolutions").action(() => { console.log(JSON.stringify(listEvoEvolutionsV2(), null, 2)); });
-  evomap.command("set-max-active-maps-v2 <n>").description("Set per-owner active cap").action((n) => { setMaxActiveEvoMapsPerOwnerV2(Number(n)); console.log(JSON.stringify({ maxActiveEvoMapsPerOwner: getMaxActiveEvoMapsPerOwnerV2() }, null, 2)); });
-  evomap.command("set-max-pending-evolutions-v2 <n>").description("Set per-map pending cap").action((n) => { setMaxPendingEvoEvolutionsPerMapV2(Number(n)); console.log(JSON.stringify({ maxPendingEvoEvolutionsPerMap: getMaxPendingEvoEvolutionsPerMapV2() }, null, 2)); });
-  evomap.command("set-map-idle-ms-v2 <n>").description("Set idle threshold").action((n) => { setEvoMapIdleMsV2(Number(n)); console.log(JSON.stringify({ evoMapIdleMs: getEvoMapIdleMsV2() }, null, 2)); });
-  evomap.command("set-evolution-stuck-ms-v2 <n>").description("Set stuck threshold").action((n) => { setEvoEvolutionStuckMsV2(Number(n)); console.log(JSON.stringify({ evoEvolutionStuckMs: getEvoEvolutionStuckMsV2() }, null, 2)); });
-  evomap.command("auto-stale-idle-maps-v2").description("Auto-stale idle maps").action(() => { console.log(JSON.stringify(autoStaleIdleEvoMapsV2(), null, 2)); });
-  evomap.command("auto-fail-stuck-evolutions-v2").description("Auto-fail stuck running evolutions").action(() => { console.log(JSON.stringify(autoFailStuckEvoEvolutionsV2(), null, 2)); });
-  evomap.command("gov-stats-v2").description("V2 governance aggregate stats").action(() => { console.log(JSON.stringify(getEvoMapManagerStatsV2(), null, 2)); });
+  evomap
+    .command("enums-v2")
+    .description("Show V2 governance enums")
+    .action(() => {
+      console.log(
+        JSON.stringify(
+          { EVOMAP_MAP_MATURITY_V2, EVOMAP_EVOLUTION_LIFECYCLE_V2 },
+          null,
+          2,
+        ),
+      );
+    });
+  evomap
+    .command("register-map-v2")
+    .description("Register an evomap profile (pending)")
+    .requiredOption("--id <id>")
+    .requiredOption("--owner <owner>")
+    .option("--name <name>")
+    .action((o) => {
+      console.log(JSON.stringify(registerEvoMapV2(o), null, 2));
+    });
+  evomap
+    .command("activate-map-v2 <id>")
+    .description("Activate map")
+    .action((id) => {
+      console.log(JSON.stringify(activateEvoMapV2(id), null, 2));
+    });
+  evomap
+    .command("stale-map-v2 <id>")
+    .description("Mark map stale")
+    .action((id) => {
+      console.log(JSON.stringify(staleEvoMapV2(id), null, 2));
+    });
+  evomap
+    .command("archive-map-v2 <id>")
+    .description("Archive map (terminal)")
+    .action((id) => {
+      console.log(JSON.stringify(archiveEvoMapV2(id), null, 2));
+    });
+  evomap
+    .command("touch-map-v2 <id>")
+    .description("Refresh lastTouchedAt")
+    .action((id) => {
+      console.log(JSON.stringify(touchEvoMapV2(id), null, 2));
+    });
+  evomap
+    .command("get-map-v2 <id>")
+    .description("Get map")
+    .action((id) => {
+      console.log(JSON.stringify(getEvoMapV2(id), null, 2));
+    });
+  evomap
+    .command("list-maps-v2")
+    .description("List maps")
+    .action(() => {
+      console.log(JSON.stringify(listEvoMapsV2(), null, 2));
+    });
+  evomap
+    .command("create-evolution-v2")
+    .description("Create an evolution (queued)")
+    .requiredOption("--id <id>")
+    .requiredOption("--map-id <mapId>")
+    .option("--strategy <strategy>")
+    .action((o) => {
+      console.log(
+        JSON.stringify(
+          createEvoEvolutionV2({
+            id: o.id,
+            mapId: o.mapId,
+            strategy: o.strategy,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+  evomap
+    .command("start-evolution-v2 <id>")
+    .description("Transition evolution to running")
+    .action((id) => {
+      console.log(JSON.stringify(startEvoEvolutionV2(id), null, 2));
+    });
+  evomap
+    .command("complete-evolution-v2 <id>")
+    .description("Transition evolution to completed")
+    .action((id) => {
+      console.log(JSON.stringify(completeEvoEvolutionV2(id), null, 2));
+    });
+  evomap
+    .command("fail-evolution-v2 <id>")
+    .description("Fail evolution")
+    .option("--reason <r>")
+    .action((id, o) => {
+      console.log(JSON.stringify(failEvoEvolutionV2(id, o.reason), null, 2));
+    });
+  evomap
+    .command("cancel-evolution-v2 <id>")
+    .description("Cancel evolution")
+    .option("--reason <r>")
+    .action((id, o) => {
+      console.log(JSON.stringify(cancelEvoEvolutionV2(id, o.reason), null, 2));
+    });
+  evomap
+    .command("get-evolution-v2 <id>")
+    .description("Get evolution")
+    .action((id) => {
+      console.log(JSON.stringify(getEvoEvolutionV2(id), null, 2));
+    });
+  evomap
+    .command("list-evolutions-v2")
+    .description("List evolutions")
+    .action(() => {
+      console.log(JSON.stringify(listEvoEvolutionsV2(), null, 2));
+    });
+  evomap
+    .command("set-max-active-maps-v2 <n>")
+    .description("Set per-owner active cap")
+    .action((n) => {
+      setMaxActiveEvoMapsPerOwnerV2(Number(n));
+      console.log(
+        JSON.stringify(
+          { maxActiveEvoMapsPerOwner: getMaxActiveEvoMapsPerOwnerV2() },
+          null,
+          2,
+        ),
+      );
+    });
+  evomap
+    .command("set-max-pending-evolutions-v2 <n>")
+    .description("Set per-map pending cap")
+    .action((n) => {
+      setMaxPendingEvoEvolutionsPerMapV2(Number(n));
+      console.log(
+        JSON.stringify(
+          {
+            maxPendingEvoEvolutionsPerMap: getMaxPendingEvoEvolutionsPerMapV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  evomap
+    .command("set-map-idle-ms-v2 <n>")
+    .description("Set idle threshold")
+    .action((n) => {
+      setEvoMapIdleMsV2(Number(n));
+      console.log(
+        JSON.stringify({ evoMapIdleMs: getEvoMapIdleMsV2() }, null, 2),
+      );
+    });
+  evomap
+    .command("set-evolution-stuck-ms-v2 <n>")
+    .description("Set stuck threshold")
+    .action((n) => {
+      setEvoEvolutionStuckMsV2(Number(n));
+      console.log(
+        JSON.stringify(
+          { evoEvolutionStuckMs: getEvoEvolutionStuckMsV2() },
+          null,
+          2,
+        ),
+      );
+    });
+  evomap
+    .command("auto-stale-idle-maps-v2")
+    .description("Auto-stale idle maps")
+    .action(() => {
+      console.log(JSON.stringify(autoStaleIdleEvoMapsV2(), null, 2));
+    });
+  evomap
+    .command("auto-fail-stuck-evolutions-v2")
+    .description("Auto-fail stuck running evolutions")
+    .action(() => {
+      console.log(JSON.stringify(autoFailStuckEvoEvolutionsV2(), null, 2));
+    });
+  evomap
+    .command("gov-stats-v2")
+    .description("V2 governance aggregate stats")
+    .action(() => {
+      console.log(JSON.stringify(getEvoMapManagerStatsV2(), null, 2));
+    });
 }

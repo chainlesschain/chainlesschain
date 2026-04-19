@@ -792,54 +792,207 @@ export function registerEvolutionCommand(program) {
 function _registerEvolutionV2Commands(parent) {
   const L = async () => await import("../lib/evolution-system.js");
 
-  parent.command("enums-v2").description("Show V2 enums (goal maturity + cycle lifecycle)")
-    .action(async () => { const m = await L(); console.log(JSON.stringify({ goalMaturity: m.EVO_GOAL_MATURITY_V2, cycleLifecycle: m.EVO_CYCLE_LIFECYCLE_V2 }, null, 2)); });
-  parent.command("config-v2").description("Show V2 config thresholds")
-    .action(async () => { const m = await L(); console.log(JSON.stringify({ maxActiveEvoGoalsPerOwner: m.getMaxActiveEvoGoalsPerOwnerV2(), maxPendingEvoCyclesPerGoal: m.getMaxPendingEvoCyclesPerGoalV2(), evoGoalIdleMs: m.getEvoGoalIdleMsV2(), evoCycleStuckMs: m.getEvoCycleStuckMsV2() }, null, 2)); });
-  parent.command("set-max-active-goals-v2 <n>").description("Set max active goals per owner")
-    .action(async (n) => { const m = await L(); m.setMaxActiveEvoGoalsPerOwnerV2(Number(n)); console.log("ok"); });
-  parent.command("set-max-pending-cycles-v2 <n>").description("Set max pending cycles per goal")
-    .action(async (n) => { const m = await L(); m.setMaxPendingEvoCyclesPerGoalV2(Number(n)); console.log("ok"); });
-  parent.command("set-goal-idle-ms-v2 <n>").description("Set goal idle threshold (ms)")
-    .action(async (n) => { const m = await L(); m.setEvoGoalIdleMsV2(Number(n)); console.log("ok"); });
-  parent.command("set-cycle-stuck-ms-v2 <n>").description("Set cycle stuck threshold (ms)")
-    .action(async (n) => { const m = await L(); m.setEvoCycleStuckMsV2(Number(n)); console.log("ok"); });
+  parent
+    .command("enums-v2")
+    .description("Show V2 enums (goal maturity + cycle lifecycle)")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            goalMaturity: m.EVO_GOAL_MATURITY_V2,
+            cycleLifecycle: m.EVO_CYCLE_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("config-v2")
+    .description("Show V2 config thresholds")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActiveEvoGoalsPerOwner: m.getMaxActiveEvoGoalsPerOwnerV2(),
+            maxPendingEvoCyclesPerGoal: m.getMaxPendingEvoCyclesPerGoalV2(),
+            evoGoalIdleMs: m.getEvoGoalIdleMsV2(),
+            evoCycleStuckMs: m.getEvoCycleStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("set-max-active-goals-v2 <n>")
+    .description("Set max active goals per owner")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxActiveEvoGoalsPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("set-max-pending-cycles-v2 <n>")
+    .description("Set max pending cycles per goal")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxPendingEvoCyclesPerGoalV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("set-goal-idle-ms-v2 <n>")
+    .description("Set goal idle threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setEvoGoalIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("set-cycle-stuck-ms-v2 <n>")
+    .description("Set cycle stuck threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setEvoCycleStuckMsV2(Number(n));
+      console.log("ok");
+    });
 
-  parent.command("register-goal-v2 <id> <owner>").description("Register V2 evo goal")
-    .option("--objective <o>", "Objective description").action(async (id, owner, o) => { const m = await L(); console.log(JSON.stringify(m.registerEvoGoalV2({ id, owner, objective: o.objective }), null, 2)); });
-  parent.command("activate-goal-v2 <id>").description("Activate evo goal")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.activateEvoGoalV2(id), null, 2)); });
-  parent.command("pause-goal-v2 <id>").description("Pause evo goal")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.pauseEvoGoalV2(id), null, 2)); });
-  parent.command("archive-goal-v2 <id>").description("Archive goal (terminal)")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.archiveEvoGoalV2(id), null, 2)); });
-  parent.command("touch-goal-v2 <id>").description("Touch goal lastTouchedAt")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.touchEvoGoalV2(id), null, 2)); });
-  parent.command("get-goal-v2 <id>").description("Get V2 goal")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.getEvoGoalV2(id), null, 2)); });
-  parent.command("list-goals-v2").description("List all V2 goals")
-    .action(async () => { const m = await L(); console.log(JSON.stringify(m.listEvoGoalsV2(), null, 2)); });
+  parent
+    .command("register-goal-v2 <id> <owner>")
+    .description("Register V2 evo goal")
+    .option("--objective <o>", "Objective description")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerEvoGoalV2({ id, owner, objective: o.objective }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("activate-goal-v2 <id>")
+    .description("Activate evo goal")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.activateEvoGoalV2(id), null, 2));
+    });
+  parent
+    .command("pause-goal-v2 <id>")
+    .description("Pause evo goal")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.pauseEvoGoalV2(id), null, 2));
+    });
+  parent
+    .command("archive-goal-v2 <id>")
+    .description("Archive goal (terminal)")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.archiveEvoGoalV2(id), null, 2));
+    });
+  parent
+    .command("touch-goal-v2 <id>")
+    .description("Touch goal lastTouchedAt")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.touchEvoGoalV2(id), null, 2));
+    });
+  parent
+    .command("get-goal-v2 <id>")
+    .description("Get V2 goal")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getEvoGoalV2(id), null, 2));
+    });
+  parent
+    .command("list-goals-v2")
+    .description("List all V2 goals")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listEvoGoalsV2(), null, 2));
+    });
 
-  parent.command("create-cycle-v2 <id> <goalId>").description("Create V2 cycle (queued)")
-    .option("--generation <n>", "Generation", "0").action(async (id, goalId, o) => { const m = await L(); console.log(JSON.stringify(m.createEvoCycleV2({ id, goalId, generation: Number(o.generation) }), null, 2)); });
-  parent.command("start-cycle-v2 <id>").description("Start cycle (queued→running)")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.startEvoCycleV2(id), null, 2)); });
-  parent.command("complete-cycle-v2 <id>").description("Complete cycle (running→completed)")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.completeEvoCycleV2(id), null, 2)); });
-  parent.command("fail-cycle-v2 <id> [reason]").description("Fail cycle")
-    .action(async (id, reason) => { const m = await L(); console.log(JSON.stringify(m.failEvoCycleV2(id, reason), null, 2)); });
-  parent.command("cancel-cycle-v2 <id> [reason]").description("Cancel cycle")
-    .action(async (id, reason) => { const m = await L(); console.log(JSON.stringify(m.cancelEvoCycleV2(id, reason), null, 2)); });
-  parent.command("get-cycle-v2 <id>").description("Get V2 cycle")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.getEvoCycleV2(id), null, 2)); });
-  parent.command("list-cycles-v2").description("List all V2 cycles")
-    .action(async () => { const m = await L(); console.log(JSON.stringify(m.listEvoCyclesV2(), null, 2)); });
+  parent
+    .command("create-cycle-v2 <id> <goalId>")
+    .description("Create V2 cycle (queued)")
+    .option("--generation <n>", "Generation", "0")
+    .action(async (id, goalId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createEvoCycleV2({ id, goalId, generation: Number(o.generation) }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("start-cycle-v2 <id>")
+    .description("Start cycle (queued→running)")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.startEvoCycleV2(id), null, 2));
+    });
+  parent
+    .command("complete-cycle-v2 <id>")
+    .description("Complete cycle (running→completed)")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.completeEvoCycleV2(id), null, 2));
+    });
+  parent
+    .command("fail-cycle-v2 <id> [reason]")
+    .description("Fail cycle")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.failEvoCycleV2(id, reason), null, 2));
+    });
+  parent
+    .command("cancel-cycle-v2 <id> [reason]")
+    .description("Cancel cycle")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.cancelEvoCycleV2(id, reason), null, 2));
+    });
+  parent
+    .command("get-cycle-v2 <id>")
+    .description("Get V2 cycle")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getEvoCycleV2(id), null, 2));
+    });
+  parent
+    .command("list-cycles-v2")
+    .description("List all V2 cycles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listEvoCyclesV2(), null, 2));
+    });
 
-  parent.command("auto-pause-idle-v2").description("Auto-pause idle active goals")
-    .action(async () => { const m = await L(); console.log(JSON.stringify(m.autoPauseIdleEvoGoalsV2(), null, 2)); });
-  parent.command("auto-fail-stuck-v2").description("Auto-fail stuck running cycles")
-    .action(async () => { const m = await L(); console.log(JSON.stringify(m.autoFailStuckEvoCyclesV2(), null, 2)); });
+  parent
+    .command("auto-pause-idle-v2")
+    .description("Auto-pause idle active goals")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoPauseIdleEvoGoalsV2(), null, 2));
+    });
+  parent
+    .command("auto-fail-stuck-v2")
+    .description("Auto-fail stuck running cycles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoFailStuckEvoCyclesV2(), null, 2));
+    });
 
-  parent.command("gov-stats-v2").description("V2 governance aggregate stats")
-    .action(async () => { const m = await L(); console.log(JSON.stringify(m.getEvolutionSystemGovStatsV2(), null, 2)); });
+  parent
+    .command("gov-stats-v2")
+    .description("V2 governance aggregate stats")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.getEvolutionSystemGovStatsV2(), null, 2));
+    });
 }

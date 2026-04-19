@@ -864,25 +864,53 @@ export function _resetState() {
   };
 }
 
-
 // ===== V2 Surface: DAO Governance overlay (CLI v0.136.0) =====
 export const DAO_ORG_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", PAUSED: "paused", DISSOLVED: "dissolved",
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  DISSOLVED: "dissolved",
 });
 export const DAO_PROPOSAL_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", VOTING: "voting", PASSED: "passed", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  VOTING: "voting",
+  PASSED: "passed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 
 const _daoOrgTrans = new Map([
-  [DAO_ORG_MATURITY_V2.PENDING, new Set([DAO_ORG_MATURITY_V2.ACTIVE, DAO_ORG_MATURITY_V2.DISSOLVED])],
-  [DAO_ORG_MATURITY_V2.ACTIVE, new Set([DAO_ORG_MATURITY_V2.PAUSED, DAO_ORG_MATURITY_V2.DISSOLVED])],
-  [DAO_ORG_MATURITY_V2.PAUSED, new Set([DAO_ORG_MATURITY_V2.ACTIVE, DAO_ORG_MATURITY_V2.DISSOLVED])],
+  [
+    DAO_ORG_MATURITY_V2.PENDING,
+    new Set([DAO_ORG_MATURITY_V2.ACTIVE, DAO_ORG_MATURITY_V2.DISSOLVED]),
+  ],
+  [
+    DAO_ORG_MATURITY_V2.ACTIVE,
+    new Set([DAO_ORG_MATURITY_V2.PAUSED, DAO_ORG_MATURITY_V2.DISSOLVED]),
+  ],
+  [
+    DAO_ORG_MATURITY_V2.PAUSED,
+    new Set([DAO_ORG_MATURITY_V2.ACTIVE, DAO_ORG_MATURITY_V2.DISSOLVED]),
+  ],
   [DAO_ORG_MATURITY_V2.DISSOLVED, new Set()],
 ]);
 const _daoOrgTerminal = new Set([DAO_ORG_MATURITY_V2.DISSOLVED]);
 const _daoPropTrans = new Map([
-  [DAO_PROPOSAL_LIFECYCLE_V2.QUEUED, new Set([DAO_PROPOSAL_LIFECYCLE_V2.VOTING, DAO_PROPOSAL_LIFECYCLE_V2.CANCELLED])],
-  [DAO_PROPOSAL_LIFECYCLE_V2.VOTING, new Set([DAO_PROPOSAL_LIFECYCLE_V2.PASSED, DAO_PROPOSAL_LIFECYCLE_V2.FAILED, DAO_PROPOSAL_LIFECYCLE_V2.CANCELLED])],
+  [
+    DAO_PROPOSAL_LIFECYCLE_V2.QUEUED,
+    new Set([
+      DAO_PROPOSAL_LIFECYCLE_V2.VOTING,
+      DAO_PROPOSAL_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    DAO_PROPOSAL_LIFECYCLE_V2.VOTING,
+    new Set([
+      DAO_PROPOSAL_LIFECYCLE_V2.PASSED,
+      DAO_PROPOSAL_LIFECYCLE_V2.FAILED,
+      DAO_PROPOSAL_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [DAO_PROPOSAL_LIFECYCLE_V2.PASSED, new Set()],
   [DAO_PROPOSAL_LIFECYCLE_V2.FAILED, new Set()],
   [DAO_PROPOSAL_LIFECYCLE_V2.CANCELLED, new Set()],
@@ -895,21 +923,45 @@ let _daoMaxPendingPerOrg = 50;
 let _daoOrgIdleMs = 7 * 24 * 60 * 60 * 1000;
 let _daoPropStuckMs = 2 * 60 * 1000;
 
-function _daoPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+function _daoPos(n, lbl) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${lbl} must be positive integer`);
+  return v;
+}
 
-export function setMaxActiveDaoOrgsPerOwnerV2(n) { _daoMaxActivePerOwner = _daoPos(n, "maxActiveDaoOrgsPerOwner"); }
-export function getMaxActiveDaoOrgsPerOwnerV2() { return _daoMaxActivePerOwner; }
-export function setMaxPendingDaoProposalsPerOrgV2(n) { _daoMaxPendingPerOrg = _daoPos(n, "maxPendingDaoProposalsPerOrg"); }
-export function getMaxPendingDaoProposalsPerOrgV2() { return _daoMaxPendingPerOrg; }
-export function setDaoOrgIdleMsV2(n) { _daoOrgIdleMs = _daoPos(n, "daoOrgIdleMs"); }
-export function getDaoOrgIdleMsV2() { return _daoOrgIdleMs; }
-export function setDaoProposalStuckMsV2(n) { _daoPropStuckMs = _daoPos(n, "daoProposalStuckMs"); }
-export function getDaoProposalStuckMsV2() { return _daoPropStuckMs; }
+export function setMaxActiveDaoOrgsPerOwnerV2(n) {
+  _daoMaxActivePerOwner = _daoPos(n, "maxActiveDaoOrgsPerOwner");
+}
+export function getMaxActiveDaoOrgsPerOwnerV2() {
+  return _daoMaxActivePerOwner;
+}
+export function setMaxPendingDaoProposalsPerOrgV2(n) {
+  _daoMaxPendingPerOrg = _daoPos(n, "maxPendingDaoProposalsPerOrg");
+}
+export function getMaxPendingDaoProposalsPerOrgV2() {
+  return _daoMaxPendingPerOrg;
+}
+export function setDaoOrgIdleMsV2(n) {
+  _daoOrgIdleMs = _daoPos(n, "daoOrgIdleMs");
+}
+export function getDaoOrgIdleMsV2() {
+  return _daoOrgIdleMs;
+}
+export function setDaoProposalStuckMsV2(n) {
+  _daoPropStuckMs = _daoPos(n, "daoProposalStuckMs");
+}
+export function getDaoProposalStuckMsV2() {
+  return _daoPropStuckMs;
+}
 
 export function _resetStateDaoGovernanceV2() {
-  _daoOrgs.clear(); _daoProps.clear();
-  _daoMaxActivePerOwner = 8; _daoMaxPendingPerOrg = 50;
-  _daoOrgIdleMs = 7 * 24 * 60 * 60 * 1000; _daoPropStuckMs = 2 * 60 * 1000;
+  _daoOrgs.clear();
+  _daoProps.clear();
+  _daoMaxActivePerOwner = 8;
+  _daoMaxPendingPerOrg = 50;
+  _daoOrgIdleMs = 7 * 24 * 60 * 60 * 1000;
+  _daoPropStuckMs = 2 * 60 * 1000;
 }
 
 export function registerDaoOrgV2({ id, owner, name, metadata } = {}) {
@@ -917,28 +969,103 @@ export function registerDaoOrgV2({ id, owner, name, metadata } = {}) {
   if (!owner || typeof owner !== "string") throw new Error("owner is required");
   if (_daoOrgs.has(id)) throw new Error(`dao org ${id} already registered`);
   const now = Date.now();
-  const o = { id, owner, name: name || id, status: DAO_ORG_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, dissolvedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  const o = {
+    id,
+    owner,
+    name: name || id,
+    status: DAO_ORG_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    dissolvedAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
   _daoOrgs.set(id, o);
   return { ...o, metadata: { ...o.metadata } };
 }
-function _daoCheckO(from, to) { const a = _daoOrgTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid dao org transition ${from} → ${to}`); }
-function _daoCountActive(owner) { let n = 0; for (const o of _daoOrgs.values()) if (o.owner === owner && o.status === DAO_ORG_MATURITY_V2.ACTIVE) n++; return n; }
+function _daoCheckO(from, to) {
+  const a = _daoOrgTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid dao org transition ${from} → ${to}`);
+}
+function _daoCountActive(owner) {
+  let n = 0;
+  for (const o of _daoOrgs.values())
+    if (o.owner === owner && o.status === DAO_ORG_MATURITY_V2.ACTIVE) n++;
+  return n;
+}
 
 export function activateDaoOrgV2(id) {
-  const o = _daoOrgs.get(id); if (!o) throw new Error(`dao org ${id} not found`);
+  const o = _daoOrgs.get(id);
+  if (!o) throw new Error(`dao org ${id} not found`);
   _daoCheckO(o.status, DAO_ORG_MATURITY_V2.ACTIVE);
   const recovery = o.status === DAO_ORG_MATURITY_V2.PAUSED;
-  if (!recovery) { const a = _daoCountActive(o.owner); if (a >= _daoMaxActivePerOwner) throw new Error(`max active dao orgs per owner (${_daoMaxActivePerOwner}) reached for ${o.owner}`); }
-  const now = Date.now(); o.status = DAO_ORG_MATURITY_V2.ACTIVE; o.updatedAt = now; o.lastTouchedAt = now; if (!o.activatedAt) o.activatedAt = now;
+  if (!recovery) {
+    const a = _daoCountActive(o.owner);
+    if (a >= _daoMaxActivePerOwner)
+      throw new Error(
+        `max active dao orgs per owner (${_daoMaxActivePerOwner}) reached for ${o.owner}`,
+      );
+  }
+  const now = Date.now();
+  o.status = DAO_ORG_MATURITY_V2.ACTIVE;
+  o.updatedAt = now;
+  o.lastTouchedAt = now;
+  if (!o.activatedAt) o.activatedAt = now;
   return { ...o, metadata: { ...o.metadata } };
 }
-export function pauseDaoOrgV2(id) { const o = _daoOrgs.get(id); if (!o) throw new Error(`dao org ${id} not found`); _daoCheckO(o.status, DAO_ORG_MATURITY_V2.PAUSED); o.status = DAO_ORG_MATURITY_V2.PAUSED; o.updatedAt = Date.now(); return { ...o, metadata: { ...o.metadata } }; }
-export function dissolveDaoOrgV2(id) { const o = _daoOrgs.get(id); if (!o) throw new Error(`dao org ${id} not found`); _daoCheckO(o.status, DAO_ORG_MATURITY_V2.DISSOLVED); const now = Date.now(); o.status = DAO_ORG_MATURITY_V2.DISSOLVED; o.updatedAt = now; if (!o.dissolvedAt) o.dissolvedAt = now; return { ...o, metadata: { ...o.metadata } }; }
-export function touchDaoOrgV2(id) { const o = _daoOrgs.get(id); if (!o) throw new Error(`dao org ${id} not found`); if (_daoOrgTerminal.has(o.status)) throw new Error(`cannot touch terminal dao org ${id}`); const now = Date.now(); o.lastTouchedAt = now; o.updatedAt = now; return { ...o, metadata: { ...o.metadata } }; }
-export function getDaoOrgV2(id) { const o = _daoOrgs.get(id); if (!o) return null; return { ...o, metadata: { ...o.metadata } }; }
-export function listDaoOrgsV2() { return [..._daoOrgs.values()].map((o) => ({ ...o, metadata: { ...o.metadata } })); }
+export function pauseDaoOrgV2(id) {
+  const o = _daoOrgs.get(id);
+  if (!o) throw new Error(`dao org ${id} not found`);
+  _daoCheckO(o.status, DAO_ORG_MATURITY_V2.PAUSED);
+  o.status = DAO_ORG_MATURITY_V2.PAUSED;
+  o.updatedAt = Date.now();
+  return { ...o, metadata: { ...o.metadata } };
+}
+export function dissolveDaoOrgV2(id) {
+  const o = _daoOrgs.get(id);
+  if (!o) throw new Error(`dao org ${id} not found`);
+  _daoCheckO(o.status, DAO_ORG_MATURITY_V2.DISSOLVED);
+  const now = Date.now();
+  o.status = DAO_ORG_MATURITY_V2.DISSOLVED;
+  o.updatedAt = now;
+  if (!o.dissolvedAt) o.dissolvedAt = now;
+  return { ...o, metadata: { ...o.metadata } };
+}
+export function touchDaoOrgV2(id) {
+  const o = _daoOrgs.get(id);
+  if (!o) throw new Error(`dao org ${id} not found`);
+  if (_daoOrgTerminal.has(o.status))
+    throw new Error(`cannot touch terminal dao org ${id}`);
+  const now = Date.now();
+  o.lastTouchedAt = now;
+  o.updatedAt = now;
+  return { ...o, metadata: { ...o.metadata } };
+}
+export function getDaoOrgV2(id) {
+  const o = _daoOrgs.get(id);
+  if (!o) return null;
+  return { ...o, metadata: { ...o.metadata } };
+}
+export function listDaoOrgsV2() {
+  return [..._daoOrgs.values()].map((o) => ({
+    ...o,
+    metadata: { ...o.metadata },
+  }));
+}
 
-function _daoCountPending(oid) { let n = 0; for (const p of _daoProps.values()) if (p.orgId === oid && (p.status === DAO_PROPOSAL_LIFECYCLE_V2.QUEUED || p.status === DAO_PROPOSAL_LIFECYCLE_V2.VOTING)) n++; return n; }
+function _daoCountPending(oid) {
+  let n = 0;
+  for (const p of _daoProps.values())
+    if (
+      p.orgId === oid &&
+      (p.status === DAO_PROPOSAL_LIFECYCLE_V2.QUEUED ||
+        p.status === DAO_PROPOSAL_LIFECYCLE_V2.VOTING)
+    )
+      n++;
+  return n;
+}
 
 export function createDaoProposalV2({ id, orgId, title, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
@@ -946,25 +1073,132 @@ export function createDaoProposalV2({ id, orgId, title, metadata } = {}) {
   if (_daoProps.has(id)) throw new Error(`dao proposal ${id} already exists`);
   if (!_daoOrgs.has(orgId)) throw new Error(`dao org ${orgId} not found`);
   const pending = _daoCountPending(orgId);
-  if (pending >= _daoMaxPendingPerOrg) throw new Error(`max pending dao proposals per org (${_daoMaxPendingPerOrg}) reached for ${orgId}`);
+  if (pending >= _daoMaxPendingPerOrg)
+    throw new Error(
+      `max pending dao proposals per org (${_daoMaxPendingPerOrg}) reached for ${orgId}`,
+    );
   const now = Date.now();
-  const p = { id, orgId, title: title || id, status: DAO_PROPOSAL_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  const p = {
+    id,
+    orgId,
+    title: title || id,
+    status: DAO_PROPOSAL_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
   _daoProps.set(id, p);
   return { ...p, metadata: { ...p.metadata } };
 }
-function _daoCheckP(from, to) { const a = _daoPropTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid dao proposal transition ${from} → ${to}`); }
-export function startDaoProposalV2(id) { const p = _daoProps.get(id); if (!p) throw new Error(`dao proposal ${id} not found`); _daoCheckP(p.status, DAO_PROPOSAL_LIFECYCLE_V2.VOTING); const now = Date.now(); p.status = DAO_PROPOSAL_LIFECYCLE_V2.VOTING; p.updatedAt = now; if (!p.startedAt) p.startedAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function passDaoProposalV2(id) { const p = _daoProps.get(id); if (!p) throw new Error(`dao proposal ${id} not found`); _daoCheckP(p.status, DAO_PROPOSAL_LIFECYCLE_V2.PASSED); const now = Date.now(); p.status = DAO_PROPOSAL_LIFECYCLE_V2.PASSED; p.updatedAt = now; if (!p.settledAt) p.settledAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function failDaoProposalV2(id, reason) { const p = _daoProps.get(id); if (!p) throw new Error(`dao proposal ${id} not found`); _daoCheckP(p.status, DAO_PROPOSAL_LIFECYCLE_V2.FAILED); const now = Date.now(); p.status = DAO_PROPOSAL_LIFECYCLE_V2.FAILED; p.updatedAt = now; if (!p.settledAt) p.settledAt = now; if (reason) p.metadata.failReason = String(reason); return { ...p, metadata: { ...p.metadata } }; }
-export function cancelDaoProposalV2(id, reason) { const p = _daoProps.get(id); if (!p) throw new Error(`dao proposal ${id} not found`); _daoCheckP(p.status, DAO_PROPOSAL_LIFECYCLE_V2.CANCELLED); const now = Date.now(); p.status = DAO_PROPOSAL_LIFECYCLE_V2.CANCELLED; p.updatedAt = now; if (!p.settledAt) p.settledAt = now; if (reason) p.metadata.cancelReason = String(reason); return { ...p, metadata: { ...p.metadata } }; }
-export function getDaoProposalV2(id) { const p = _daoProps.get(id); if (!p) return null; return { ...p, metadata: { ...p.metadata } }; }
-export function listDaoProposalsV2() { return [..._daoProps.values()].map((p) => ({ ...p, metadata: { ...p.metadata } })); }
+function _daoCheckP(from, to) {
+  const a = _daoPropTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid dao proposal transition ${from} → ${to}`);
+}
+export function startDaoProposalV2(id) {
+  const p = _daoProps.get(id);
+  if (!p) throw new Error(`dao proposal ${id} not found`);
+  _daoCheckP(p.status, DAO_PROPOSAL_LIFECYCLE_V2.VOTING);
+  const now = Date.now();
+  p.status = DAO_PROPOSAL_LIFECYCLE_V2.VOTING;
+  p.updatedAt = now;
+  if (!p.startedAt) p.startedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function passDaoProposalV2(id) {
+  const p = _daoProps.get(id);
+  if (!p) throw new Error(`dao proposal ${id} not found`);
+  _daoCheckP(p.status, DAO_PROPOSAL_LIFECYCLE_V2.PASSED);
+  const now = Date.now();
+  p.status = DAO_PROPOSAL_LIFECYCLE_V2.PASSED;
+  p.updatedAt = now;
+  if (!p.settledAt) p.settledAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function failDaoProposalV2(id, reason) {
+  const p = _daoProps.get(id);
+  if (!p) throw new Error(`dao proposal ${id} not found`);
+  _daoCheckP(p.status, DAO_PROPOSAL_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  p.status = DAO_PROPOSAL_LIFECYCLE_V2.FAILED;
+  p.updatedAt = now;
+  if (!p.settledAt) p.settledAt = now;
+  if (reason) p.metadata.failReason = String(reason);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function cancelDaoProposalV2(id, reason) {
+  const p = _daoProps.get(id);
+  if (!p) throw new Error(`dao proposal ${id} not found`);
+  _daoCheckP(p.status, DAO_PROPOSAL_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  p.status = DAO_PROPOSAL_LIFECYCLE_V2.CANCELLED;
+  p.updatedAt = now;
+  if (!p.settledAt) p.settledAt = now;
+  if (reason) p.metadata.cancelReason = String(reason);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getDaoProposalV2(id) {
+  const p = _daoProps.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listDaoProposalsV2() {
+  return [..._daoProps.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
 
-export function autoPauseIdleDaoOrgsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const o of _daoOrgs.values()) if (o.status === DAO_ORG_MATURITY_V2.ACTIVE && (t - o.lastTouchedAt) >= _daoOrgIdleMs) { o.status = DAO_ORG_MATURITY_V2.PAUSED; o.updatedAt = t; flipped.push(o.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckDaoProposalsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const p of _daoProps.values()) if (p.status === DAO_PROPOSAL_LIFECYCLE_V2.VOTING && p.startedAt != null && (t - p.startedAt) >= _daoPropStuckMs) { p.status = DAO_PROPOSAL_LIFECYCLE_V2.FAILED; p.updatedAt = t; if (!p.settledAt) p.settledAt = t; p.metadata.failReason = "auto-fail-stuck"; flipped.push(p.id); } return { flipped, count: flipped.length }; }
+export function autoPauseIdleDaoOrgsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const o of _daoOrgs.values())
+    if (
+      o.status === DAO_ORG_MATURITY_V2.ACTIVE &&
+      t - o.lastTouchedAt >= _daoOrgIdleMs
+    ) {
+      o.status = DAO_ORG_MATURITY_V2.PAUSED;
+      o.updatedAt = t;
+      flipped.push(o.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckDaoProposalsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _daoProps.values())
+    if (
+      p.status === DAO_PROPOSAL_LIFECYCLE_V2.VOTING &&
+      p.startedAt != null &&
+      t - p.startedAt >= _daoPropStuckMs
+    ) {
+      p.status = DAO_PROPOSAL_LIFECYCLE_V2.FAILED;
+      p.updatedAt = t;
+      if (!p.settledAt) p.settledAt = t;
+      p.metadata.failReason = "auto-fail-stuck";
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
 
 export function getDaoGovernanceGovStatsV2() {
-  const orgsByStatus = {}; for (const s of Object.values(DAO_ORG_MATURITY_V2)) orgsByStatus[s] = 0; for (const o of _daoOrgs.values()) orgsByStatus[o.status]++;
-  const proposalsByStatus = {}; for (const s of Object.values(DAO_PROPOSAL_LIFECYCLE_V2)) proposalsByStatus[s] = 0; for (const p of _daoProps.values()) proposalsByStatus[p.status]++;
-  return { totalOrgsV2: _daoOrgs.size, totalProposalsV2: _daoProps.size, maxActiveDaoOrgsPerOwner: _daoMaxActivePerOwner, maxPendingDaoProposalsPerOrg: _daoMaxPendingPerOrg, daoOrgIdleMs: _daoOrgIdleMs, daoProposalStuckMs: _daoPropStuckMs, orgsByStatus, proposalsByStatus };
+  const orgsByStatus = {};
+  for (const s of Object.values(DAO_ORG_MATURITY_V2)) orgsByStatus[s] = 0;
+  for (const o of _daoOrgs.values()) orgsByStatus[o.status]++;
+  const proposalsByStatus = {};
+  for (const s of Object.values(DAO_PROPOSAL_LIFECYCLE_V2))
+    proposalsByStatus[s] = 0;
+  for (const p of _daoProps.values()) proposalsByStatus[p.status]++;
+  return {
+    totalOrgsV2: _daoOrgs.size,
+    totalProposalsV2: _daoProps.size,
+    maxActiveDaoOrgsPerOwner: _daoMaxActivePerOwner,
+    maxPendingDaoProposalsPerOrg: _daoMaxPendingPerOrg,
+    daoOrgIdleMs: _daoOrgIdleMs,
+    daoProposalStuckMs: _daoPropStuckMs,
+    orgsByStatus,
+    proposalsByStatus,
+  };
 }

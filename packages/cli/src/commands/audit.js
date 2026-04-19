@@ -586,3 +586,209 @@ export function registerAuditCommand(program) {
       logger.log(JSON.stringify(getAuditStatsV2(), null, 2));
     });
 }
+
+// === Iter16 V2 governance overlay ===
+export function registerAuditGovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "audit");
+  if (!parent) return;
+  const L = async () => await import("../lib/audit-logger.js");
+  parent
+    .command("aud-gov-enums-v2")
+    .description("Show V2 enums (aud maturity + write lifecycle)")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.AUD_PROFILE_MATURITY_V2,
+            writeLifecycle: m.AUD_WRITE_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("aud-gov-config-v2")
+    .description("Show V2 config thresholds")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveAudProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingAudWritesPerProfileV2(),
+            idleMs: m.getAudProfileIdleMsV2(),
+            stuckMs: m.getAudWriteStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("aud-gov-set-max-active-v2 <n>")
+    .description("Set max active profiles per owner")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxActiveAudProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("aud-gov-set-max-pending-v2 <n>")
+    .description("Set max pending writes per profile")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxPendingAudWritesPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("aud-gov-set-idle-ms-v2 <n>")
+    .description("Set profile idle threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setAudProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("aud-gov-set-stuck-ms-v2 <n>")
+    .description("Set write stuck threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setAudWriteStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("aud-gov-register-v2 <id> <owner>")
+    .description("Register V2 aud profile")
+    .option("--level <v>", "level")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerAudProfileV2({ id, owner, level: o.level }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("aud-gov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.activateAudProfileV2(id), null, 2));
+    });
+  parent
+    .command("aud-gov-suspend-v2 <id>")
+    .description("Suspend profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.suspendAudProfileV2(id), null, 2));
+    });
+  parent
+    .command("aud-gov-archive-v2 <id>")
+    .description("Archive profile (terminal)")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.archiveAudProfileV2(id), null, 2));
+    });
+  parent
+    .command("aud-gov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.touchAudProfileV2(id), null, 2));
+    });
+  parent
+    .command("aud-gov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getAudProfileV2(id), null, 2));
+    });
+  parent
+    .command("aud-gov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listAudProfilesV2(), null, 2));
+    });
+  parent
+    .command("aud-gov-create-write-v2 <id> <profileId>")
+    .description("Create write (queued)")
+    .option("--key <v>", "key")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createAudWriteV2({ id, profileId, key: o.key }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("aud-gov-writing-write-v2 <id>")
+    .description("Mark write as writing")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.writingAudWriteV2(id), null, 2));
+    });
+  parent
+    .command("aud-gov-complete-write-v2 <id>")
+    .description("Write OK")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.writeOkAudV2(id), null, 2));
+    });
+  parent
+    .command("aud-gov-fail-write-v2 <id> [reason]")
+    .description("Fail write")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.failAudWriteV2(id, reason), null, 2));
+    });
+  parent
+    .command("aud-gov-cancel-write-v2 <id> [reason]")
+    .description("Cancel write")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.cancelAudWriteV2(id, reason), null, 2));
+    });
+  parent
+    .command("aud-gov-get-write-v2 <id>")
+    .description("Get write")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getAudWriteV2(id), null, 2));
+    });
+  parent
+    .command("aud-gov-list-writes-v2")
+    .description("List writes")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listAudWritesV2(), null, 2));
+    });
+  parent
+    .command("aud-gov-auto-suspend-idle-v2")
+    .description("Auto-suspend idle profiles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoSuspendIdleAudProfilesV2(), null, 2));
+    });
+  parent
+    .command("aud-gov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck writes")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoFailStuckAudWritesV2(), null, 2));
+    });
+  parent
+    .command("aud-gov-gov-stats-v2")
+    .description("V2 gov aggregate stats")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.getAuditLoggerGovStatsV2(), null, 2));
+    });
+}

@@ -722,3 +722,333 @@ export function _resetState() {
   _evidenceRetentionMs = COMPLIANCE_DEFAULT_EVIDENCE_RETENTION_MS;
   _reportRetentionMs = COMPLIANCE_DEFAULT_REPORT_RETENTION_MS;
 }
+
+// =====================================================================
+// compliance-manager V2 governance overlay (iter17)
+// =====================================================================
+export const CMGR_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  DEPRECATED: "deprecated",
+  ARCHIVED: "archived",
+});
+export const CMGR_AUDIT_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  AUDITING: "auditing",
+  AUDITED: "audited",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _cmgrPTrans = new Map([
+  [
+    CMGR_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      CMGR_PROFILE_MATURITY_V2.ACTIVE,
+      CMGR_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CMGR_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      CMGR_PROFILE_MATURITY_V2.DEPRECATED,
+      CMGR_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CMGR_PROFILE_MATURITY_V2.DEPRECATED,
+    new Set([
+      CMGR_PROFILE_MATURITY_V2.ACTIVE,
+      CMGR_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [CMGR_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _cmgrPTerminal = new Set([CMGR_PROFILE_MATURITY_V2.ARCHIVED]);
+const _cmgrJTrans = new Map([
+  [
+    CMGR_AUDIT_LIFECYCLE_V2.QUEUED,
+    new Set([
+      CMGR_AUDIT_LIFECYCLE_V2.AUDITING,
+      CMGR_AUDIT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    CMGR_AUDIT_LIFECYCLE_V2.AUDITING,
+    new Set([
+      CMGR_AUDIT_LIFECYCLE_V2.AUDITED,
+      CMGR_AUDIT_LIFECYCLE_V2.FAILED,
+      CMGR_AUDIT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [CMGR_AUDIT_LIFECYCLE_V2.AUDITED, new Set()],
+  [CMGR_AUDIT_LIFECYCLE_V2.FAILED, new Set()],
+  [CMGR_AUDIT_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _cmgrPsV2 = new Map();
+const _cmgrJsV2 = new Map();
+let _cmgrMaxActive = 8,
+  _cmgrMaxPending = 20,
+  _cmgrIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _cmgrStuckMs = 60 * 1000;
+function _cmgrPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _cmgrCheckP(from, to) {
+  const a = _cmgrPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid cmgr profile transition ${from} → ${to}`);
+}
+function _cmgrCheckJ(from, to) {
+  const a = _cmgrJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid cmgr audit transition ${from} → ${to}`);
+}
+function _cmgrCountActive(owner) {
+  let c = 0;
+  for (const p of _cmgrPsV2.values())
+    if (p.owner === owner && p.status === CMGR_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _cmgrCountPending(profileId) {
+  let c = 0;
+  for (const j of _cmgrJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === CMGR_AUDIT_LIFECYCLE_V2.QUEUED ||
+        j.status === CMGR_AUDIT_LIFECYCLE_V2.AUDITING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveCmgrProfilesPerOwnerV2(n) {
+  _cmgrMaxActive = _cmgrPos(n, "maxActiveCmgrProfilesPerOwner");
+}
+export function getMaxActiveCmgrProfilesPerOwnerV2() {
+  return _cmgrMaxActive;
+}
+export function setMaxPendingCmgrAuditsPerProfileV2(n) {
+  _cmgrMaxPending = _cmgrPos(n, "maxPendingCmgrAuditsPerProfile");
+}
+export function getMaxPendingCmgrAuditsPerProfileV2() {
+  return _cmgrMaxPending;
+}
+export function setCmgrProfileIdleMsV2(n) {
+  _cmgrIdleMs = _cmgrPos(n, "cmgrProfileIdleMs");
+}
+export function getCmgrProfileIdleMsV2() {
+  return _cmgrIdleMs;
+}
+export function setCmgrAuditStuckMsV2(n) {
+  _cmgrStuckMs = _cmgrPos(n, "cmgrAuditStuckMs");
+}
+export function getCmgrAuditStuckMsV2() {
+  return _cmgrStuckMs;
+}
+export function _resetStateComplianceManagerV2() {
+  _cmgrPsV2.clear();
+  _cmgrJsV2.clear();
+  _cmgrMaxActive = 8;
+  _cmgrMaxPending = 20;
+  _cmgrIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _cmgrStuckMs = 60 * 1000;
+}
+export function registerCmgrProfileV2({ id, owner, framework, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_cmgrPsV2.has(id)) throw new Error(`cmgr profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    framework: framework || "soc2",
+    status: CMGR_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _cmgrPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateCmgrProfileV2(id) {
+  const p = _cmgrPsV2.get(id);
+  if (!p) throw new Error(`cmgr profile ${id} not found`);
+  const isInitial = p.status === CMGR_PROFILE_MATURITY_V2.PENDING;
+  _cmgrCheckP(p.status, CMGR_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _cmgrCountActive(p.owner) >= _cmgrMaxActive)
+    throw new Error(`max active cmgr profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = CMGR_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function deprecateCmgrProfileV2(id) {
+  const p = _cmgrPsV2.get(id);
+  if (!p) throw new Error(`cmgr profile ${id} not found`);
+  _cmgrCheckP(p.status, CMGR_PROFILE_MATURITY_V2.DEPRECATED);
+  p.status = CMGR_PROFILE_MATURITY_V2.DEPRECATED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveCmgrProfileV2(id) {
+  const p = _cmgrPsV2.get(id);
+  if (!p) throw new Error(`cmgr profile ${id} not found`);
+  _cmgrCheckP(p.status, CMGR_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = CMGR_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchCmgrProfileV2(id) {
+  const p = _cmgrPsV2.get(id);
+  if (!p) throw new Error(`cmgr profile ${id} not found`);
+  if (_cmgrPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal cmgr profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getCmgrProfileV2(id) {
+  const p = _cmgrPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listCmgrProfilesV2() {
+  return [..._cmgrPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createCmgrAuditV2({ id, profileId, control, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_cmgrJsV2.has(id)) throw new Error(`cmgr audit ${id} already exists`);
+  if (!_cmgrPsV2.has(profileId))
+    throw new Error(`cmgr profile ${profileId} not found`);
+  if (_cmgrCountPending(profileId) >= _cmgrMaxPending)
+    throw new Error(`max pending cmgr audits for profile ${profileId} reached`);
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    control: control || "",
+    status: CMGR_AUDIT_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _cmgrJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function auditingCmgrAuditV2(id) {
+  const j = _cmgrJsV2.get(id);
+  if (!j) throw new Error(`cmgr audit ${id} not found`);
+  _cmgrCheckJ(j.status, CMGR_AUDIT_LIFECYCLE_V2.AUDITING);
+  const now = Date.now();
+  j.status = CMGR_AUDIT_LIFECYCLE_V2.AUDITING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeAuditCmgrV2(id) {
+  const j = _cmgrJsV2.get(id);
+  if (!j) throw new Error(`cmgr audit ${id} not found`);
+  _cmgrCheckJ(j.status, CMGR_AUDIT_LIFECYCLE_V2.AUDITED);
+  const now = Date.now();
+  j.status = CMGR_AUDIT_LIFECYCLE_V2.AUDITED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failCmgrAuditV2(id, reason) {
+  const j = _cmgrJsV2.get(id);
+  if (!j) throw new Error(`cmgr audit ${id} not found`);
+  _cmgrCheckJ(j.status, CMGR_AUDIT_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = CMGR_AUDIT_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelCmgrAuditV2(id, reason) {
+  const j = _cmgrJsV2.get(id);
+  if (!j) throw new Error(`cmgr audit ${id} not found`);
+  _cmgrCheckJ(j.status, CMGR_AUDIT_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = CMGR_AUDIT_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getCmgrAuditV2(id) {
+  const j = _cmgrJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listCmgrAuditsV2() {
+  return [..._cmgrJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoDeprecateIdleCmgrProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _cmgrPsV2.values())
+    if (
+      p.status === CMGR_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _cmgrIdleMs
+    ) {
+      p.status = CMGR_PROFILE_MATURITY_V2.DEPRECATED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckCmgrAuditsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _cmgrJsV2.values())
+    if (
+      j.status === CMGR_AUDIT_LIFECYCLE_V2.AUDITING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _cmgrStuckMs
+    ) {
+      j.status = CMGR_AUDIT_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getComplianceManagerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(CMGR_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _cmgrPsV2.values()) profilesByStatus[p.status]++;
+  const auditsByStatus = {};
+  for (const v of Object.values(CMGR_AUDIT_LIFECYCLE_V2)) auditsByStatus[v] = 0;
+  for (const j of _cmgrJsV2.values()) auditsByStatus[j.status]++;
+  return {
+    totalCmgrProfilesV2: _cmgrPsV2.size,
+    totalCmgrAuditsV2: _cmgrJsV2.size,
+    maxActiveCmgrProfilesPerOwner: _cmgrMaxActive,
+    maxPendingCmgrAuditsPerProfile: _cmgrMaxPending,
+    cmgrProfileIdleMs: _cmgrIdleMs,
+    cmgrAuditStuckMs: _cmgrStuckMs,
+    profilesByStatus,
+    auditsByStatus,
+  };
+}

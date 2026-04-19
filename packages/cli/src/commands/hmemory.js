@@ -718,54 +718,208 @@ export function registerHmemoryCommand(program) {
 function _registerHmemoryV2Commands(parent) {
   const L = async () => await import("../lib/hierarchical-memory.js");
 
-  parent.command("enums-v2").description("Show V2 enums (tier maturity + promotion lifecycle)")
-    .action(async () => { const m = await L(); console.log(JSON.stringify({ tierMaturity: m.HMEM_TIER_MATURITY_V2, promotionLifecycle: m.HMEM_PROMOTION_LIFECYCLE_V2 }, null, 2)); });
-  parent.command("config-v2").description("Show V2 config thresholds")
-    .action(async () => { const m = await L(); console.log(JSON.stringify({ maxActiveHmemTiersPerOwner: m.getMaxActiveHmemTiersPerOwnerV2(), maxPendingHmemPromotionsPerTier: m.getMaxPendingHmemPromotionsPerTierV2(), hmemTierIdleMs: m.getHmemTierIdleMsV2(), hmemPromotionStuckMs: m.getHmemPromotionStuckMsV2() }, null, 2)); });
-  parent.command("set-max-active-tiers-v2 <n>").description("Set max active tiers per owner")
-    .action(async (n) => { const m = await L(); m.setMaxActiveHmemTiersPerOwnerV2(Number(n)); console.log("ok"); });
-  parent.command("set-max-pending-promotions-v2 <n>").description("Set max pending promotions per tier")
-    .action(async (n) => { const m = await L(); m.setMaxPendingHmemPromotionsPerTierV2(Number(n)); console.log("ok"); });
-  parent.command("set-tier-idle-ms-v2 <n>").description("Set tier idle threshold (ms)")
-    .action(async (n) => { const m = await L(); m.setHmemTierIdleMsV2(Number(n)); console.log("ok"); });
-  parent.command("set-promotion-stuck-ms-v2 <n>").description("Set promotion stuck threshold (ms)")
-    .action(async (n) => { const m = await L(); m.setHmemPromotionStuckMsV2(Number(n)); console.log("ok"); });
+  parent
+    .command("enums-v2")
+    .description("Show V2 enums (tier maturity + promotion lifecycle)")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            tierMaturity: m.HMEM_TIER_MATURITY_V2,
+            promotionLifecycle: m.HMEM_PROMOTION_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("config-v2")
+    .description("Show V2 config thresholds")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActiveHmemTiersPerOwner: m.getMaxActiveHmemTiersPerOwnerV2(),
+            maxPendingHmemPromotionsPerTier:
+              m.getMaxPendingHmemPromotionsPerTierV2(),
+            hmemTierIdleMs: m.getHmemTierIdleMsV2(),
+            hmemPromotionStuckMs: m.getHmemPromotionStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("set-max-active-tiers-v2 <n>")
+    .description("Set max active tiers per owner")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxActiveHmemTiersPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("set-max-pending-promotions-v2 <n>")
+    .description("Set max pending promotions per tier")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxPendingHmemPromotionsPerTierV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("set-tier-idle-ms-v2 <n>")
+    .description("Set tier idle threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setHmemTierIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("set-promotion-stuck-ms-v2 <n>")
+    .description("Set promotion stuck threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setHmemPromotionStuckMsV2(Number(n));
+      console.log("ok");
+    });
 
-  parent.command("register-tier-v2 <id> <owner>").description("Register V2 memory tier")
-    .option("--level <l>", "Tier level", "short-term").action(async (id, owner, o) => { const m = await L(); console.log(JSON.stringify(m.registerHmemTierV2({ id, owner, level: o.level }), null, 2)); });
-  parent.command("activate-tier-v2 <id>").description("Activate tier")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.activateHmemTierV2(id), null, 2)); });
-  parent.command("dormant-tier-v2 <id>").description("Mark tier dormant")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.dormantHmemTierV2(id), null, 2)); });
-  parent.command("retire-tier-v2 <id>").description("Retire tier (terminal)")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.retireHmemTierV2(id), null, 2)); });
-  parent.command("touch-tier-v2 <id>").description("Touch tier lastTouchedAt")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.touchHmemTierV2(id), null, 2)); });
-  parent.command("get-tier-v2 <id>").description("Get V2 tier")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.getHmemTierV2(id), null, 2)); });
-  parent.command("list-tiers-v2").description("List all V2 tiers")
-    .action(async () => { const m = await L(); console.log(JSON.stringify(m.listHmemTiersV2(), null, 2)); });
+  parent
+    .command("register-tier-v2 <id> <owner>")
+    .description("Register V2 memory tier")
+    .option("--level <l>", "Tier level", "short-term")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerHmemTierV2({ id, owner, level: o.level }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("activate-tier-v2 <id>")
+    .description("Activate tier")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.activateHmemTierV2(id), null, 2));
+    });
+  parent
+    .command("dormant-tier-v2 <id>")
+    .description("Mark tier dormant")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.dormantHmemTierV2(id), null, 2));
+    });
+  parent
+    .command("retire-tier-v2 <id>")
+    .description("Retire tier (terminal)")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.retireHmemTierV2(id), null, 2));
+    });
+  parent
+    .command("touch-tier-v2 <id>")
+    .description("Touch tier lastTouchedAt")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.touchHmemTierV2(id), null, 2));
+    });
+  parent
+    .command("get-tier-v2 <id>")
+    .description("Get V2 tier")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getHmemTierV2(id), null, 2));
+    });
+  parent
+    .command("list-tiers-v2")
+    .description("List all V2 tiers")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listHmemTiersV2(), null, 2));
+    });
 
-  parent.command("create-promotion-v2 <id> <tierId>").description("Create V2 promotion (queued)")
-    .option("--item-key <k>", "Item key", "").action(async (id, tierId, o) => { const m = await L(); console.log(JSON.stringify(m.createHmemPromotionV2({ id, tierId, itemKey: o.itemKey }), null, 2)); });
-  parent.command("start-promotion-v2 <id>").description("Start promotion (queued→promoting)")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.startHmemPromotionV2(id), null, 2)); });
-  parent.command("complete-promotion-v2 <id>").description("Complete promotion (promoting→promoted)")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.completeHmemPromotionV2(id), null, 2)); });
-  parent.command("fail-promotion-v2 <id> [reason]").description("Fail promotion")
-    .action(async (id, reason) => { const m = await L(); console.log(JSON.stringify(m.failHmemPromotionV2(id, reason), null, 2)); });
-  parent.command("cancel-promotion-v2 <id> [reason]").description("Cancel promotion")
-    .action(async (id, reason) => { const m = await L(); console.log(JSON.stringify(m.cancelHmemPromotionV2(id, reason), null, 2)); });
-  parent.command("get-promotion-v2 <id>").description("Get V2 promotion")
-    .action(async (id) => { const m = await L(); console.log(JSON.stringify(m.getHmemPromotionV2(id), null, 2)); });
-  parent.command("list-promotions-v2").description("List all V2 promotions")
-    .action(async () => { const m = await L(); console.log(JSON.stringify(m.listHmemPromotionsV2(), null, 2)); });
+  parent
+    .command("create-promotion-v2 <id> <tierId>")
+    .description("Create V2 promotion (queued)")
+    .option("--item-key <k>", "Item key", "")
+    .action(async (id, tierId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createHmemPromotionV2({ id, tierId, itemKey: o.itemKey }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("start-promotion-v2 <id>")
+    .description("Start promotion (queued→promoting)")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.startHmemPromotionV2(id), null, 2));
+    });
+  parent
+    .command("complete-promotion-v2 <id>")
+    .description("Complete promotion (promoting→promoted)")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.completeHmemPromotionV2(id), null, 2));
+    });
+  parent
+    .command("fail-promotion-v2 <id> [reason]")
+    .description("Fail promotion")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.failHmemPromotionV2(id, reason), null, 2));
+    });
+  parent
+    .command("cancel-promotion-v2 <id> [reason]")
+    .description("Cancel promotion")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.cancelHmemPromotionV2(id, reason), null, 2));
+    });
+  parent
+    .command("get-promotion-v2 <id>")
+    .description("Get V2 promotion")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getHmemPromotionV2(id), null, 2));
+    });
+  parent
+    .command("list-promotions-v2")
+    .description("List all V2 promotions")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listHmemPromotionsV2(), null, 2));
+    });
 
-  parent.command("auto-dormant-idle-v2").description("Auto-dormant idle active tiers")
-    .action(async () => { const m = await L(); console.log(JSON.stringify(m.autoDormantIdleHmemTiersV2(), null, 2)); });
-  parent.command("auto-fail-stuck-v2").description("Auto-fail stuck promoting promotions")
-    .action(async () => { const m = await L(); console.log(JSON.stringify(m.autoFailStuckHmemPromotionsV2(), null, 2)); });
+  parent
+    .command("auto-dormant-idle-v2")
+    .description("Auto-dormant idle active tiers")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoDormantIdleHmemTiersV2(), null, 2));
+    });
+  parent
+    .command("auto-fail-stuck-v2")
+    .description("Auto-fail stuck promoting promotions")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoFailStuckHmemPromotionsV2(), null, 2));
+    });
 
-  parent.command("gov-stats-v2").description("V2 governance aggregate stats")
-    .action(async () => { const m = await L(); console.log(JSON.stringify(m.getHierarchicalMemoryGovStatsV2(), null, 2)); });
+  parent
+    .command("gov-stats-v2")
+    .description("V2 governance aggregate stats")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.getHierarchicalMemoryGovStatsV2(), null, 2));
+    });
 }

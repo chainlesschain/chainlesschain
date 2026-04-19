@@ -480,3 +480,209 @@ export function registerStressCommand(program) {
       console.log(JSON.stringify(getStressStatsV2(), null, 2));
     });
 }
+
+// === Iter16 V2 governance overlay ===
+export function registerStrgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "stress");
+  if (!parent) return;
+  const L = async () => await import("../lib/stress-tester.js");
+  parent
+    .command("strgov-enums-v2")
+    .description("Show V2 enums (strgov maturity + run lifecycle)")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.STRGOV_PROFILE_MATURITY_V2,
+            runLifecycle: m.STRGOV_RUN_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("strgov-config-v2")
+    .description("Show V2 config thresholds")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveStrgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingStrgovRunsPerProfileV2(),
+            idleMs: m.getStrgovProfileIdleMsV2(),
+            stuckMs: m.getStrgovRunStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("strgov-set-max-active-v2 <n>")
+    .description("Set max active profiles per owner")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxActiveStrgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("strgov-set-max-pending-v2 <n>")
+    .description("Set max pending runs per profile")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxPendingStrgovRunsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("strgov-set-idle-ms-v2 <n>")
+    .description("Set profile idle threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setStrgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("strgov-set-stuck-ms-v2 <n>")
+    .description("Set run stuck threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setStrgovRunStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("strgov-register-v2 <id> <owner>")
+    .description("Register V2 strgov profile")
+    .option("--scenario <v>", "scenario")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerStrgovProfileV2({ id, owner, scenario: o.scenario }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("strgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.activateStrgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("strgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.staleStrgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("strgov-archive-v2 <id>")
+    .description("Archive profile (terminal)")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.archiveStrgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("strgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.touchStrgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("strgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getStrgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("strgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listStrgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("strgov-create-run-v2 <id> <profileId>")
+    .description("Create run (queued)")
+    .option("--profileRef <v>", "profileRef")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createStrgovRunV2({ id, profileId, profileRef: o.profileRef }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("strgov-running-run-v2 <id>")
+    .description("Mark run as running")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.runningStrgovRunV2(id), null, 2));
+    });
+  parent
+    .command("strgov-complete-run-v2 <id>")
+    .description("Complete run")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.completeRunStrgovV2(id), null, 2));
+    });
+  parent
+    .command("strgov-fail-run-v2 <id> [reason]")
+    .description("Fail run")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.failStrgovRunV2(id, reason), null, 2));
+    });
+  parent
+    .command("strgov-cancel-run-v2 <id> [reason]")
+    .description("Cancel run")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.cancelStrgovRunV2(id, reason), null, 2));
+    });
+  parent
+    .command("strgov-get-run-v2 <id>")
+    .description("Get run")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getStrgovRunV2(id), null, 2));
+    });
+  parent
+    .command("strgov-list-runs-v2")
+    .description("List runs")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listStrgovRunsV2(), null, 2));
+    });
+  parent
+    .command("strgov-auto-stale-idle-v2")
+    .description("Auto-stale idle profiles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoStaleIdleStrgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("strgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck runs")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoFailStuckStrgovRunsV2(), null, 2));
+    });
+  parent
+    .command("strgov-gov-stats-v2")
+    .description("V2 gov aggregate stats")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.getStressTesterGovStatsV2(), null, 2));
+    });
+}

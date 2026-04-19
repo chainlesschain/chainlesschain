@@ -3040,3 +3040,211 @@ cc mcpscaf auto-stale-idle-v2 | auto-fail-stuck-v2
 - **profile 字段**：`algorithm`（默认 `"centrality"`）；**run 字段**：`snapshotId`
 - **聚合**：`getSocialGraphAnalyticsGovStatsV2()` → `cc sganal gov-stats-v2`
 - **测试**：38 个 V2 测试
+
+
+### Phase Iter16-A: Audit Logger V2 (CLI v0.144.0)
+
+**模块**: `packages/cli/src/lib/audit-logger.js`
+**命令**: `cc audit aud-gov-...-v2`
+
+附加在 `audit-logger.js` 之上的内存治理覆盖层（独立于已有 LOG_STATUS_V2 等审计枚举）。
+
+- **Profile 4 态**：`pending → active → suspended → archived`（`suspended → active` 恢复）
+- **Write 5 态**：`queued → writing → written | failed | cancelled`
+- **容量**：8 active / 30 pending；`auto-suspend-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`level`（默认 `"info"`）；**write 字段**：`key`
+- **聚合**：`getAuditLoggerGovStatsV2()` → `cc audit aud-gov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter16-B: Knowledge Graph V2 (CLI v0.144.0)
+
+**模块**: `packages/cli/src/lib/knowledge-graph.js`
+**命令**: `cc kg kgov-...-v2`
+
+新前缀 `kgov-` 以避免与已有的 ENTITY_STATUS_V2 / RELATION_STATUS_V2 冲突。
+
+- **Profile 4 态**：`pending → active → stale → archived`（`stale → active` 恢复）
+- **Import 5 态**：`queued → importing → imported | failed | cancelled`
+- **容量**：6 active / 20 pending；`auto-stale-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`namespace`（默认 `"default"`）；**import 字段**：`source`
+- **聚合**：`getKnowledgeGraphGovStatsV2()` → `cc kg kgov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter16-C: Sandbox Governance V2 (CLI v0.144.0)
+
+**模块**: `packages/cli/src/lib/sandbox-v2.js`
+**命令**: `cc sandbox sbox-gov-...-v2`
+
+新前缀 `sbox-gov-` 与 Phase 87 的 `pauseSandboxV2` 等实例操作并存（两套独立）。
+
+- **Profile 4 态**：`pending → active → paused → archived`（`paused → active` 恢复）
+- **Exec 5 态**：`queued → running → completed | failed | cancelled`
+- **容量**：6 active / 12 pending；`auto-pause-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`template`（默认 `"default"`）；**exec 字段**：`command`
+- **聚合**：`getSandboxGovStatsV2()` → `cc sandbox sbox-gov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter16-D: SLA Manager V2 (CLI v0.144.0)
+
+**模块**: `packages/cli/src/lib/sla-manager.js`
+**命令**: `cc sla slagov-...-v2`
+
+- **Profile 4 态**：`pending → active → breached → archived`（`breached → active` 恢复）
+- **Measurement 5 态**：`queued → measuring → measured | failed | cancelled`
+- **容量**：8 active / 20 pending；`auto-breach-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`tier`（默认 `"standard"`）；**measurement 字段**：`metric`
+- **聚合**：`getSlaManagerGovStatsV2()` → `cc sla slagov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter16-E: Stress Tester V2 (CLI v0.144.0)
+
+**模块**: `packages/cli/src/lib/stress-tester.js`
+**命令**: `cc stress strgov-...-v2`
+
+- **Profile 4 态**：`pending → active → stale → archived`（`stale → active` 恢复）
+- **Run 5 态**：`queued → running → completed | failed | cancelled`
+- **容量**：5 active / 10 pending；`auto-stale-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`scenario`（默认 `"ramp"`）；**run 字段**：`profileRef`
+- **聚合**：`getStressTesterGovStatsV2()` → `cc stress strgov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter16-F: Terraform Manager V2 (CLI v0.144.0)
+
+**模块**: `packages/cli/src/lib/terraform-manager.js`
+**命令**: `cc terraform tfgov-...-v2`
+
+- **Profile 4 态**：`pending → active → drifted → archived`（`drifted → active` 恢复）
+- **Apply 5 态**：`queued → applying → applied | failed | cancelled`
+- **容量**：6 active / 12 pending；`auto-drift-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`provider`（默认 `"aws"`）；**apply 字段**：`resource`
+- **聚合**：`getTerraformManagerGovStatsV2()` → `cc terraform tfgov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter16-G: Reputation Optimizer V2 (CLI v0.144.0)
+
+**模块**: `packages/cli/src/lib/reputation-optimizer.js`
+**命令**: `cc reputation repgov-...-v2`
+
+- **Profile 4 态**：`pending → active → stale → archived`（`stale → active` 恢复）
+- **Cycle 5 态**：`queued → running → completed | failed | cancelled`
+- **容量**：8 active / 20 pending；`auto-stale-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`objective`（默认 `"quality"`）；**cycle 字段**：`subject`
+- **聚合**：`getReputationOptimizerGovStatsV2()` → `cc reputation repgov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter16-H: Skill Marketplace V2 (CLI v0.144.0)
+
+**模块**: `packages/cli/src/lib/skill-marketplace.js`
+**命令**: `cc marketplace mktgov-...-v2`
+
+新前缀 `mktgov-` 以避免与 Phase 65 的 SERVICE_STATUS_V2 等市场枚举冲突。
+
+- **Profile 4 态**：`pending → active → suspended → archived`（`suspended → active` 恢复）
+- **Order 5 态**：`queued → processing → processed | failed | cancelled`
+- **容量**：10 active / 25 pending；`auto-suspend-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`category`（默认 `"general"`）；**order 字段**：`listingId`
+- **聚合**：`getSkillMarketplaceGovStatsV2()` → `cc marketplace mktgov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+
+### Phase Iter17-A: Chat Core V2 (CLI v0.145.0)
+
+**模块**: `packages/cli/src/lib/chat-core.js`
+**命令**: `cc chat chatgov-...-v2`
+
+附加在 `chat-core.js` 之上的内存治理覆盖层。
+
+- **Profile 4 态**：`pending → active → stale → archived`（`stale → active` 恢复）
+- **Message 5 态**：`queued → sending → sent | failed | cancelled`
+- **容量**：8 active / 30 pending；`auto-stale-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`mode`（默认 `"interactive"`）；**message 字段**：`role`
+- **聚合**：`getChatCoreGovStatsV2()` → `cc chat chatgov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter17-B: Claude Code Bridge V2 (CLI v0.145.0)
+
+**模块**: `packages/cli/src/lib/claude-code-bridge.js`
+**命令**: `cc orchestrate ccbgov-...-v2`
+
+附加在 `claude-code-bridge.js` 之上，挂载到 `cc orchestrate`（与现有 router/v2 并存）。
+
+- **Profile 4 态**：`pending → active → degraded → archived`（`degraded → active` 恢复）
+- **Invocation 5 态**：`queued → running → completed | failed | cancelled`
+- **容量**：6 active / 15 pending；`auto-degrade-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`channel`（默认 `"stdio"`）；**invocation 字段**：`command`
+- **聚合**：`getClaudeCodeBridgeGovStatsV2()` → `cc orchestrate ccbgov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter17-C: Compliance Manager V2 (CLI v0.145.0)
+
+**模块**: `packages/cli/src/lib/compliance-manager.js`
+**命令**: `cc compliance cmgr-...-v2`
+
+新前缀 `cmgr-` 以避免与已有的 `cc compliance fwrep-...-v2`（framework reporter V2）冲突。
+
+- **Profile 4 态**：`pending → active → deprecated → archived`（`deprecated → active` 恢复）
+- **Audit 5 态**：`queued → auditing → audited | failed | cancelled`
+- **容量**：8 active / 20 pending；`auto-deprecate-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`framework`（默认 `"soc2"`）；**audit 字段**：`control`
+- **聚合**：`getComplianceManagerGovStatsV2()` → `cc compliance cmgr-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter17-D: Cowork Learning V2 (CLI v0.145.0)
+
+**模块**: `packages/cli/src/lib/cowork-learning.js`
+**命令**: `cc cowork learn-...-v2`
+
+- **Profile 4 态**：`pending → active → stale → archived`（`stale → active` 恢复）
+- **Sample 5 态**：`queued → training → trained | failed | cancelled`
+- **容量**：6 active / 20 pending；`auto-stale-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`topic`（默认 `"general"`）；**sample 字段**：`signal`
+- **聚合**：`getCoworkLearningGovStatsV2()` → `cc cowork learn-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter17-E: Cowork Workflow V2 (CLI v0.145.0)
+
+**模块**: `packages/cli/src/lib/cowork-workflow.js`
+**命令**: `cc cowork cwwf-...-v2`
+
+- **Profile 4 态**：`pending → active → paused → archived`（`paused → active` 恢复）
+- **Step 5 态**：`queued → running → completed | failed | cancelled`
+- **容量**：8 active / 20 pending；`auto-pause-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`mode`（默认 `"sequential"`）；**step 字段**：`task`
+- **聚合**：`getCoworkWorkflowGovStatsV2()` → `cc cowork cwwf-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter17-F: Privacy Computing V2 (CLI v0.145.0)
+
+**模块**: `packages/cli/src/lib/privacy-computing.js`
+**命令**: `cc privacy pcgov-...-v2`
+
+- **Profile 4 态**：`pending → active → suspended → archived`（`suspended → active` 恢复）
+- **Job 5 态**：`queued → computing → computed | failed | cancelled`
+- **容量**：6 active / 15 pending；`auto-suspend-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`technique`（默认 `"mpc"`）；**job 字段**：`dataset`
+- **聚合**：`getPrivacyComputingGovStatsV2()` → `cc privacy pcgov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter17-G: Token Incentive V2 (CLI v0.145.0)
+
+**模块**: `packages/cli/src/lib/token-incentive.js`
+**命令**: `cc incentive incgov-...-v2`
+
+- **Profile 4 态**：`pending → active → paused → archived`（`paused → active` 恢复）
+- **Payout 5 态**：`queued → processing → paid | failed | cancelled`
+- **容量**：10 active / 30 pending；`auto-pause-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`token`（默认 `"CLC"`）；**payout 字段**：`recipient`
+- **聚合**：`getTokenIncentiveGovStatsV2()` → `cc incentive incgov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter17-H: Hardening Manager V2 (CLI v0.145.0)
+
+**模块**: `packages/cli/src/lib/hardening-manager.js`
+**命令**: `cc hardening hardgov-...-v2`
+
+- **Profile 4 态**：`pending → active → disabled → archived`（`disabled → active` 恢复）
+- **Scan 5 态**：`queued → scanning → scanned | failed | cancelled`
+- **容量**：8 active / 20 pending；`auto-disable-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`category`（默认 `"system"`）；**scan 字段**：`target`
+- **聚合**：`getHardeningManagerGovStatsV2()` → `cc hardening hardgov-gov-stats-v2`
+- **测试**：44 个 V2 测试

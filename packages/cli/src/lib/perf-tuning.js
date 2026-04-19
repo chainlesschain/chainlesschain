@@ -736,25 +736,62 @@ export function _resetState() {
   /* CLI is stateless; helper exists for parity with other libs */
 }
 
-
 // ===== V2 Surface: Perf Tuning governance overlay (CLI v0.140.0) =====
 export const PERF_TUNING_PROFILE_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", STALE: "stale", DECOMMISSIONED: "decommissioned",
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  DECOMMISSIONED: "decommissioned",
 });
 export const PERF_BENCH_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", RUNNING: "running", COMPLETED: "completed", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 
 const _ptpTrans = new Map([
-  [PERF_TUNING_PROFILE_MATURITY_V2.PENDING, new Set([PERF_TUNING_PROFILE_MATURITY_V2.ACTIVE, PERF_TUNING_PROFILE_MATURITY_V2.DECOMMISSIONED])],
-  [PERF_TUNING_PROFILE_MATURITY_V2.ACTIVE, new Set([PERF_TUNING_PROFILE_MATURITY_V2.STALE, PERF_TUNING_PROFILE_MATURITY_V2.DECOMMISSIONED])],
-  [PERF_TUNING_PROFILE_MATURITY_V2.STALE, new Set([PERF_TUNING_PROFILE_MATURITY_V2.ACTIVE, PERF_TUNING_PROFILE_MATURITY_V2.DECOMMISSIONED])],
+  [
+    PERF_TUNING_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      PERF_TUNING_PROFILE_MATURITY_V2.ACTIVE,
+      PERF_TUNING_PROFILE_MATURITY_V2.DECOMMISSIONED,
+    ]),
+  ],
+  [
+    PERF_TUNING_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      PERF_TUNING_PROFILE_MATURITY_V2.STALE,
+      PERF_TUNING_PROFILE_MATURITY_V2.DECOMMISSIONED,
+    ]),
+  ],
+  [
+    PERF_TUNING_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      PERF_TUNING_PROFILE_MATURITY_V2.ACTIVE,
+      PERF_TUNING_PROFILE_MATURITY_V2.DECOMMISSIONED,
+    ]),
+  ],
   [PERF_TUNING_PROFILE_MATURITY_V2.DECOMMISSIONED, new Set()],
 ]);
 const _ptpTerminal = new Set([PERF_TUNING_PROFILE_MATURITY_V2.DECOMMISSIONED]);
 const _pbTrans = new Map([
-  [PERF_BENCH_LIFECYCLE_V2.QUEUED, new Set([PERF_BENCH_LIFECYCLE_V2.RUNNING, PERF_BENCH_LIFECYCLE_V2.CANCELLED])],
-  [PERF_BENCH_LIFECYCLE_V2.RUNNING, new Set([PERF_BENCH_LIFECYCLE_V2.COMPLETED, PERF_BENCH_LIFECYCLE_V2.FAILED, PERF_BENCH_LIFECYCLE_V2.CANCELLED])],
+  [
+    PERF_BENCH_LIFECYCLE_V2.QUEUED,
+    new Set([
+      PERF_BENCH_LIFECYCLE_V2.RUNNING,
+      PERF_BENCH_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    PERF_BENCH_LIFECYCLE_V2.RUNNING,
+    new Set([
+      PERF_BENCH_LIFECYCLE_V2.COMPLETED,
+      PERF_BENCH_LIFECYCLE_V2.FAILED,
+      PERF_BENCH_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [PERF_BENCH_LIFECYCLE_V2.COMPLETED, new Set()],
   [PERF_BENCH_LIFECYCLE_V2.FAILED, new Set()],
   [PERF_BENCH_LIFECYCLE_V2.CANCELLED, new Set()],
@@ -767,76 +804,298 @@ let _ptpMaxPendingBenchesPerProfile = 10;
 let _ptpIdleMs = 7 * 24 * 60 * 60 * 1000;
 let _pbStuckMs = 30 * 60 * 1000;
 
-function _ptpPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
-
-export function setMaxActivePerfTuningProfilesPerOwnerV2(n) { _ptpMaxActivePerOwner = _ptpPos(n, "maxActivePerfTuningProfilesPerOwner"); }
-export function getMaxActivePerfTuningProfilesPerOwnerV2() { return _ptpMaxActivePerOwner; }
-export function setMaxPendingPerfBenchesPerProfileV2(n) { _ptpMaxPendingBenchesPerProfile = _ptpPos(n, "maxPendingPerfBenchesPerProfile"); }
-export function getMaxPendingPerfBenchesPerProfileV2() { return _ptpMaxPendingBenchesPerProfile; }
-export function setPerfTuningProfileIdleMsV2(n) { _ptpIdleMs = _ptpPos(n, "perfTuningProfileIdleMs"); }
-export function getPerfTuningProfileIdleMsV2() { return _ptpIdleMs; }
-export function setPerfBenchStuckMsV2(n) { _pbStuckMs = _ptpPos(n, "perfBenchStuckMs"); }
-export function getPerfBenchStuckMsV2() { return _pbStuckMs; }
-
-export function _resetStatePerfTuningV2() {
-  _ptpsV2.clear(); _pbsV2.clear();
-  _ptpMaxActivePerOwner = 6; _ptpMaxPendingBenchesPerProfile = 10;
-  _ptpIdleMs = 7 * 24 * 60 * 60 * 1000; _pbStuckMs = 30 * 60 * 1000;
+function _ptpPos(n, lbl) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${lbl} must be positive integer`);
+  return v;
 }
 
-export function registerPerfTuningProfileV2({ id, owner, target, metadata } = {}) {
+export function setMaxActivePerfTuningProfilesPerOwnerV2(n) {
+  _ptpMaxActivePerOwner = _ptpPos(n, "maxActivePerfTuningProfilesPerOwner");
+}
+export function getMaxActivePerfTuningProfilesPerOwnerV2() {
+  return _ptpMaxActivePerOwner;
+}
+export function setMaxPendingPerfBenchesPerProfileV2(n) {
+  _ptpMaxPendingBenchesPerProfile = _ptpPos(
+    n,
+    "maxPendingPerfBenchesPerProfile",
+  );
+}
+export function getMaxPendingPerfBenchesPerProfileV2() {
+  return _ptpMaxPendingBenchesPerProfile;
+}
+export function setPerfTuningProfileIdleMsV2(n) {
+  _ptpIdleMs = _ptpPos(n, "perfTuningProfileIdleMs");
+}
+export function getPerfTuningProfileIdleMsV2() {
+  return _ptpIdleMs;
+}
+export function setPerfBenchStuckMsV2(n) {
+  _pbStuckMs = _ptpPos(n, "perfBenchStuckMs");
+}
+export function getPerfBenchStuckMsV2() {
+  return _pbStuckMs;
+}
+
+export function _resetStatePerfTuningV2() {
+  _ptpsV2.clear();
+  _pbsV2.clear();
+  _ptpMaxActivePerOwner = 6;
+  _ptpMaxPendingBenchesPerProfile = 10;
+  _ptpIdleMs = 7 * 24 * 60 * 60 * 1000;
+  _pbStuckMs = 30 * 60 * 1000;
+}
+
+export function registerPerfTuningProfileV2({
+  id,
+  owner,
+  target,
+  metadata,
+} = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
   if (!owner || typeof owner !== "string") throw new Error("owner is required");
-  if (_ptpsV2.has(id)) throw new Error(`perf tuning profile ${id} already registered`);
+  if (_ptpsV2.has(id))
+    throw new Error(`perf tuning profile ${id} already registered`);
   const now = Date.now();
-  const p = { id, owner, target: target || "default", status: PERF_TUNING_PROFILE_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, decommissionedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  const p = {
+    id,
+    owner,
+    target: target || "default",
+    status: PERF_TUNING_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    decommissionedAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
   _ptpsV2.set(id, p);
   return { ...p, metadata: { ...p.metadata } };
 }
-function _ptpCheckP(from, to) { const a = _ptpTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid perf tuning profile transition ${from} → ${to}`); }
-function _ptpCountActive(owner) { let n = 0; for (const p of _ptpsV2.values()) if (p.owner === owner && p.status === PERF_TUNING_PROFILE_MATURITY_V2.ACTIVE) n++; return n; }
+function _ptpCheckP(from, to) {
+  const a = _ptpTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid perf tuning profile transition ${from} → ${to}`);
+}
+function _ptpCountActive(owner) {
+  let n = 0;
+  for (const p of _ptpsV2.values())
+    if (
+      p.owner === owner &&
+      p.status === PERF_TUNING_PROFILE_MATURITY_V2.ACTIVE
+    )
+      n++;
+  return n;
+}
 
 export function activatePerfTuningProfileV2(id) {
-  const p = _ptpsV2.get(id); if (!p) throw new Error(`perf tuning profile ${id} not found`);
+  const p = _ptpsV2.get(id);
+  if (!p) throw new Error(`perf tuning profile ${id} not found`);
   _ptpCheckP(p.status, PERF_TUNING_PROFILE_MATURITY_V2.ACTIVE);
   const recovery = p.status === PERF_TUNING_PROFILE_MATURITY_V2.STALE;
-  if (!recovery) { const c = _ptpCountActive(p.owner); if (c >= _ptpMaxActivePerOwner) throw new Error(`max active perf tuning profiles per owner (${_ptpMaxActivePerOwner}) reached for ${p.owner}`); }
-  const now = Date.now(); p.status = PERF_TUNING_PROFILE_MATURITY_V2.ACTIVE; p.updatedAt = now; p.lastTouchedAt = now; if (!p.activatedAt) p.activatedAt = now;
+  if (!recovery) {
+    const c = _ptpCountActive(p.owner);
+    if (c >= _ptpMaxActivePerOwner)
+      throw new Error(
+        `max active perf tuning profiles per owner (${_ptpMaxActivePerOwner}) reached for ${p.owner}`,
+      );
+  }
+  const now = Date.now();
+  p.status = PERF_TUNING_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
   return { ...p, metadata: { ...p.metadata } };
 }
-export function stalePerfTuningProfileV2(id) { const p = _ptpsV2.get(id); if (!p) throw new Error(`perf tuning profile ${id} not found`); _ptpCheckP(p.status, PERF_TUNING_PROFILE_MATURITY_V2.STALE); p.status = PERF_TUNING_PROFILE_MATURITY_V2.STALE; p.updatedAt = Date.now(); return { ...p, metadata: { ...p.metadata } }; }
-export function decommissionPerfTuningProfileV2(id) { const p = _ptpsV2.get(id); if (!p) throw new Error(`perf tuning profile ${id} not found`); _ptpCheckP(p.status, PERF_TUNING_PROFILE_MATURITY_V2.DECOMMISSIONED); const now = Date.now(); p.status = PERF_TUNING_PROFILE_MATURITY_V2.DECOMMISSIONED; p.updatedAt = now; if (!p.decommissionedAt) p.decommissionedAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function touchPerfTuningProfileV2(id) { const p = _ptpsV2.get(id); if (!p) throw new Error(`perf tuning profile ${id} not found`); if (_ptpTerminal.has(p.status)) throw new Error(`cannot touch terminal perf tuning profile ${id}`); const now = Date.now(); p.lastTouchedAt = now; p.updatedAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function getPerfTuningProfileV2(id) { const p = _ptpsV2.get(id); if (!p) return null; return { ...p, metadata: { ...p.metadata } }; }
-export function listPerfTuningProfilesV2() { return [..._ptpsV2.values()].map((p) => ({ ...p, metadata: { ...p.metadata } })); }
+export function stalePerfTuningProfileV2(id) {
+  const p = _ptpsV2.get(id);
+  if (!p) throw new Error(`perf tuning profile ${id} not found`);
+  _ptpCheckP(p.status, PERF_TUNING_PROFILE_MATURITY_V2.STALE);
+  p.status = PERF_TUNING_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function decommissionPerfTuningProfileV2(id) {
+  const p = _ptpsV2.get(id);
+  if (!p) throw new Error(`perf tuning profile ${id} not found`);
+  _ptpCheckP(p.status, PERF_TUNING_PROFILE_MATURITY_V2.DECOMMISSIONED);
+  const now = Date.now();
+  p.status = PERF_TUNING_PROFILE_MATURITY_V2.DECOMMISSIONED;
+  p.updatedAt = now;
+  if (!p.decommissionedAt) p.decommissionedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchPerfTuningProfileV2(id) {
+  const p = _ptpsV2.get(id);
+  if (!p) throw new Error(`perf tuning profile ${id} not found`);
+  if (_ptpTerminal.has(p.status))
+    throw new Error(`cannot touch terminal perf tuning profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getPerfTuningProfileV2(id) {
+  const p = _ptpsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listPerfTuningProfilesV2() {
+  return [..._ptpsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
 
-function _pbCountPending(profileId) { let n = 0; for (const b of _pbsV2.values()) if (b.profileId === profileId && (b.status === PERF_BENCH_LIFECYCLE_V2.QUEUED || b.status === PERF_BENCH_LIFECYCLE_V2.RUNNING)) n++; return n; }
+function _pbCountPending(profileId) {
+  let n = 0;
+  for (const b of _pbsV2.values())
+    if (
+      b.profileId === profileId &&
+      (b.status === PERF_BENCH_LIFECYCLE_V2.QUEUED ||
+        b.status === PERF_BENCH_LIFECYCLE_V2.RUNNING)
+    )
+      n++;
+  return n;
+}
 
 export function createPerfBenchV2({ id, profileId, scenario, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
-  if (!profileId || typeof profileId !== "string") throw new Error("profileId is required");
+  if (!profileId || typeof profileId !== "string")
+    throw new Error("profileId is required");
   if (_pbsV2.has(id)) throw new Error(`perf bench ${id} already exists`);
-  if (!_ptpsV2.has(profileId)) throw new Error(`perf tuning profile ${profileId} not found`);
+  if (!_ptpsV2.has(profileId))
+    throw new Error(`perf tuning profile ${profileId} not found`);
   const pending = _pbCountPending(profileId);
-  if (pending >= _ptpMaxPendingBenchesPerProfile) throw new Error(`max pending perf benches per profile (${_ptpMaxPendingBenchesPerProfile}) reached for ${profileId}`);
+  if (pending >= _ptpMaxPendingBenchesPerProfile)
+    throw new Error(
+      `max pending perf benches per profile (${_ptpMaxPendingBenchesPerProfile}) reached for ${profileId}`,
+    );
   const now = Date.now();
-  const b = { id, profileId, scenario: scenario || "", status: PERF_BENCH_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  const b = {
+    id,
+    profileId,
+    scenario: scenario || "",
+    status: PERF_BENCH_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
   _pbsV2.set(id, b);
   return { ...b, metadata: { ...b.metadata } };
 }
-function _pbCheckB(from, to) { const a = _pbTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid perf bench transition ${from} → ${to}`); }
-export function startPerfBenchV2(id) { const b = _pbsV2.get(id); if (!b) throw new Error(`perf bench ${id} not found`); _pbCheckB(b.status, PERF_BENCH_LIFECYCLE_V2.RUNNING); const now = Date.now(); b.status = PERF_BENCH_LIFECYCLE_V2.RUNNING; b.updatedAt = now; if (!b.startedAt) b.startedAt = now; return { ...b, metadata: { ...b.metadata } }; }
-export function completePerfBenchV2(id) { const b = _pbsV2.get(id); if (!b) throw new Error(`perf bench ${id} not found`); _pbCheckB(b.status, PERF_BENCH_LIFECYCLE_V2.COMPLETED); const now = Date.now(); b.status = PERF_BENCH_LIFECYCLE_V2.COMPLETED; b.updatedAt = now; if (!b.settledAt) b.settledAt = now; return { ...b, metadata: { ...b.metadata } }; }
-export function failPerfBenchV2(id, reason) { const b = _pbsV2.get(id); if (!b) throw new Error(`perf bench ${id} not found`); _pbCheckB(b.status, PERF_BENCH_LIFECYCLE_V2.FAILED); const now = Date.now(); b.status = PERF_BENCH_LIFECYCLE_V2.FAILED; b.updatedAt = now; if (!b.settledAt) b.settledAt = now; if (reason) b.metadata.failReason = String(reason); return { ...b, metadata: { ...b.metadata } }; }
-export function cancelPerfBenchV2(id, reason) { const b = _pbsV2.get(id); if (!b) throw new Error(`perf bench ${id} not found`); _pbCheckB(b.status, PERF_BENCH_LIFECYCLE_V2.CANCELLED); const now = Date.now(); b.status = PERF_BENCH_LIFECYCLE_V2.CANCELLED; b.updatedAt = now; if (!b.settledAt) b.settledAt = now; if (reason) b.metadata.cancelReason = String(reason); return { ...b, metadata: { ...b.metadata } }; }
-export function getPerfBenchV2(id) { const b = _pbsV2.get(id); if (!b) return null; return { ...b, metadata: { ...b.metadata } }; }
-export function listPerfBenchesV2() { return [..._pbsV2.values()].map((b) => ({ ...b, metadata: { ...b.metadata } })); }
+function _pbCheckB(from, to) {
+  const a = _pbTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid perf bench transition ${from} → ${to}`);
+}
+export function startPerfBenchV2(id) {
+  const b = _pbsV2.get(id);
+  if (!b) throw new Error(`perf bench ${id} not found`);
+  _pbCheckB(b.status, PERF_BENCH_LIFECYCLE_V2.RUNNING);
+  const now = Date.now();
+  b.status = PERF_BENCH_LIFECYCLE_V2.RUNNING;
+  b.updatedAt = now;
+  if (!b.startedAt) b.startedAt = now;
+  return { ...b, metadata: { ...b.metadata } };
+}
+export function completePerfBenchV2(id) {
+  const b = _pbsV2.get(id);
+  if (!b) throw new Error(`perf bench ${id} not found`);
+  _pbCheckB(b.status, PERF_BENCH_LIFECYCLE_V2.COMPLETED);
+  const now = Date.now();
+  b.status = PERF_BENCH_LIFECYCLE_V2.COMPLETED;
+  b.updatedAt = now;
+  if (!b.settledAt) b.settledAt = now;
+  return { ...b, metadata: { ...b.metadata } };
+}
+export function failPerfBenchV2(id, reason) {
+  const b = _pbsV2.get(id);
+  if (!b) throw new Error(`perf bench ${id} not found`);
+  _pbCheckB(b.status, PERF_BENCH_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  b.status = PERF_BENCH_LIFECYCLE_V2.FAILED;
+  b.updatedAt = now;
+  if (!b.settledAt) b.settledAt = now;
+  if (reason) b.metadata.failReason = String(reason);
+  return { ...b, metadata: { ...b.metadata } };
+}
+export function cancelPerfBenchV2(id, reason) {
+  const b = _pbsV2.get(id);
+  if (!b) throw new Error(`perf bench ${id} not found`);
+  _pbCheckB(b.status, PERF_BENCH_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  b.status = PERF_BENCH_LIFECYCLE_V2.CANCELLED;
+  b.updatedAt = now;
+  if (!b.settledAt) b.settledAt = now;
+  if (reason) b.metadata.cancelReason = String(reason);
+  return { ...b, metadata: { ...b.metadata } };
+}
+export function getPerfBenchV2(id) {
+  const b = _pbsV2.get(id);
+  if (!b) return null;
+  return { ...b, metadata: { ...b.metadata } };
+}
+export function listPerfBenchesV2() {
+  return [..._pbsV2.values()].map((b) => ({
+    ...b,
+    metadata: { ...b.metadata },
+  }));
+}
 
-export function autoStaleIdlePerfTuningProfilesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const p of _ptpsV2.values()) if (p.status === PERF_TUNING_PROFILE_MATURITY_V2.ACTIVE && (t - p.lastTouchedAt) >= _ptpIdleMs) { p.status = PERF_TUNING_PROFILE_MATURITY_V2.STALE; p.updatedAt = t; flipped.push(p.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckPerfBenchesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const b of _pbsV2.values()) if (b.status === PERF_BENCH_LIFECYCLE_V2.RUNNING && b.startedAt != null && (t - b.startedAt) >= _pbStuckMs) { b.status = PERF_BENCH_LIFECYCLE_V2.FAILED; b.updatedAt = t; if (!b.settledAt) b.settledAt = t; b.metadata.failReason = "auto-fail-stuck"; flipped.push(b.id); } return { flipped, count: flipped.length }; }
+export function autoStaleIdlePerfTuningProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _ptpsV2.values())
+    if (
+      p.status === PERF_TUNING_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _ptpIdleMs
+    ) {
+      p.status = PERF_TUNING_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckPerfBenchesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const b of _pbsV2.values())
+    if (
+      b.status === PERF_BENCH_LIFECYCLE_V2.RUNNING &&
+      b.startedAt != null &&
+      t - b.startedAt >= _pbStuckMs
+    ) {
+      b.status = PERF_BENCH_LIFECYCLE_V2.FAILED;
+      b.updatedAt = t;
+      if (!b.settledAt) b.settledAt = t;
+      b.metadata.failReason = "auto-fail-stuck";
+      flipped.push(b.id);
+    }
+  return { flipped, count: flipped.length };
+}
 
 export function getPerfTuningGovStatsV2() {
-  const profilesByStatus = {}; for (const s of Object.values(PERF_TUNING_PROFILE_MATURITY_V2)) profilesByStatus[s] = 0; for (const p of _ptpsV2.values()) profilesByStatus[p.status]++;
-  const benchesByStatus = {}; for (const s of Object.values(PERF_BENCH_LIFECYCLE_V2)) benchesByStatus[s] = 0; for (const b of _pbsV2.values()) benchesByStatus[b.status]++;
-  return { totalPerfTuningProfilesV2: _ptpsV2.size, totalPerfBenchesV2: _pbsV2.size, maxActivePerfTuningProfilesPerOwner: _ptpMaxActivePerOwner, maxPendingPerfBenchesPerProfile: _ptpMaxPendingBenchesPerProfile, perfTuningProfileIdleMs: _ptpIdleMs, perfBenchStuckMs: _pbStuckMs, profilesByStatus, benchesByStatus };
+  const profilesByStatus = {};
+  for (const s of Object.values(PERF_TUNING_PROFILE_MATURITY_V2))
+    profilesByStatus[s] = 0;
+  for (const p of _ptpsV2.values()) profilesByStatus[p.status]++;
+  const benchesByStatus = {};
+  for (const s of Object.values(PERF_BENCH_LIFECYCLE_V2))
+    benchesByStatus[s] = 0;
+  for (const b of _pbsV2.values()) benchesByStatus[b.status]++;
+  return {
+    totalPerfTuningProfilesV2: _ptpsV2.size,
+    totalPerfBenchesV2: _pbsV2.size,
+    maxActivePerfTuningProfilesPerOwner: _ptpMaxActivePerOwner,
+    maxPendingPerfBenchesPerProfile: _ptpMaxPendingBenchesPerProfile,
+    perfTuningProfileIdleMs: _ptpIdleMs,
+    perfBenchStuckMs: _pbStuckMs,
+    profilesByStatus,
+    benchesByStatus,
+  };
 }

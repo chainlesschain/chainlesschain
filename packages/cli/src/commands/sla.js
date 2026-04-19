@@ -609,3 +609,215 @@ export function registerSlaCommand(program) {
       console.log(JSON.stringify(getSLAStatsV2(), null, 2));
     });
 }
+
+// === Iter16 V2 governance overlay ===
+export function registerSlagovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "sla");
+  if (!parent) return;
+  const L = async () => await import("../lib/sla-manager.js");
+  parent
+    .command("slagov-enums-v2")
+    .description("Show V2 enums (slagov maturity + measurement lifecycle)")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.SLAGOV_PROFILE_MATURITY_V2,
+            measurementLifecycle: m.SLAGOV_MEASUREMENT_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("slagov-config-v2")
+    .description("Show V2 config thresholds")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveSlagovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingSlagovMeasurementsPerProfileV2(),
+            idleMs: m.getSlagovProfileIdleMsV2(),
+            stuckMs: m.getSlagovMeasurementStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("slagov-set-max-active-v2 <n>")
+    .description("Set max active profiles per owner")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxActiveSlagovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("slagov-set-max-pending-v2 <n>")
+    .description("Set max pending measurements per profile")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxPendingSlagovMeasurementsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("slagov-set-idle-ms-v2 <n>")
+    .description("Set profile idle threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setSlagovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("slagov-set-stuck-ms-v2 <n>")
+    .description("Set measurement stuck threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setSlagovMeasurementStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("slagov-register-v2 <id> <owner>")
+    .description("Register V2 slagov profile")
+    .option("--tier <v>", "tier")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerSlagovProfileV2({ id, owner, tier: o.tier }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("slagov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.activateSlagovProfileV2(id), null, 2));
+    });
+  parent
+    .command("slagov-breach-v2 <id>")
+    .description("Breach profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.breachSlagovProfileV2(id), null, 2));
+    });
+  parent
+    .command("slagov-archive-v2 <id>")
+    .description("Archive profile (terminal)")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.archiveSlagovProfileV2(id), null, 2));
+    });
+  parent
+    .command("slagov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.touchSlagovProfileV2(id), null, 2));
+    });
+  parent
+    .command("slagov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getSlagovProfileV2(id), null, 2));
+    });
+  parent
+    .command("slagov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listSlagovProfilesV2(), null, 2));
+    });
+  parent
+    .command("slagov-create-measurement-v2 <id> <profileId>")
+    .description("Create measurement (queued)")
+    .option("--metric <v>", "metric")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createSlagovMeasurementV2({ id, profileId, metric: o.metric }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("slagov-measuring-measurement-v2 <id>")
+    .description("Mark measurement as measuring")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.measuringSlagovMeasurementV2(id), null, 2));
+    });
+  parent
+    .command("slagov-complete-measurement-v2 <id>")
+    .description("Complete measurement")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.completeMeasurementSlagovV2(id), null, 2));
+    });
+  parent
+    .command("slagov-fail-measurement-v2 <id> [reason]")
+    .description("Fail measurement")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(m.failSlagovMeasurementV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("slagov-cancel-measurement-v2 <id> [reason]")
+    .description("Cancel measurement")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(m.cancelSlagovMeasurementV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("slagov-get-measurement-v2 <id>")
+    .description("Get measurement")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getSlagovMeasurementV2(id), null, 2));
+    });
+  parent
+    .command("slagov-list-measurements-v2")
+    .description("List measurements")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listSlagovMeasurementsV2(), null, 2));
+    });
+  parent
+    .command("slagov-auto-breach-idle-v2")
+    .description("Auto-breach idle profiles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoBreachIdleSlagovProfilesV2(), null, 2));
+    });
+  parent
+    .command("slagov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck measurements")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(m.autoFailStuckSlagovMeasurementsV2(), null, 2),
+      );
+    });
+  parent
+    .command("slagov-gov-stats-v2")
+    .description("V2 gov aggregate stats")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.getSlaManagerGovStatsV2(), null, 2));
+    });
+}

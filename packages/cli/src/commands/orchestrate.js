@@ -677,3 +677,220 @@ function _statusColor(status) {
   };
   return (colors[status] || chalk.white)(status);
 }
+
+// === Iter17 V2 governance overlay ===
+export function registerCcbgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "orchestrate");
+  if (!parent) return;
+  const L = async () => await import("../lib/claude-code-bridge.js");
+  parent
+    .command("ccbgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.CCBGOV_PROFILE_MATURITY_V2,
+            invocationLifecycle: m.CCBGOV_INVOCATION_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ccbgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveCcbgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingCcbgovInvocationsPerProfileV2(),
+            idleMs: m.getCcbgovProfileIdleMsV2(),
+            stuckMs: m.getCcbgovInvocationStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ccbgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveCcbgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ccbgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingCcbgovInvocationsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ccbgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setCcbgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ccbgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setCcbgovInvocationStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ccbgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--channel <v>", "channel")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerCcbgovProfileV2({ id, owner, channel: o.channel }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ccbgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateCcbgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ccbgov-degrade-v2 <id>")
+    .description("Degrade profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).degradeCcbgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ccbgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveCcbgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ccbgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchCcbgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ccbgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCcbgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("ccbgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCcbgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("ccbgov-create-invocation-v2 <id> <profileId>")
+    .description("Create invocation")
+    .option("--command <v>", "command")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createCcbgovInvocationV2({ id, profileId, command: o.command }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ccbgov-running-invocation-v2 <id>")
+    .description("Mark invocation as running")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).runningCcbgovInvocationV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ccbgov-complete-invocation-v2 <id>")
+    .description("Complete invocation")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeInvocationCcbgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ccbgov-fail-invocation-v2 <id> [reason]")
+    .description("Fail invocation")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failCcbgovInvocationV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("ccbgov-cancel-invocation-v2 <id> [reason]")
+    .description("Cancel invocation")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify(
+          (await L()).cancelCcbgovInvocationV2(id, reason),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ccbgov-get-invocation-v2 <id>")
+    .description("Get invocation")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).getCcbgovInvocationV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ccbgov-list-invocations-v2")
+    .description("List invocations")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).listCcbgovInvocationsV2(), null, 2),
+      );
+    });
+  parent
+    .command("ccbgov-auto-degrade-idle-v2")
+    .description("Auto-degrade idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoDegradeIdleCcbgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("ccbgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck invocations")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckCcbgovInvocationsV2(), null, 2),
+      );
+    });
+  parent
+    .command("ccbgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getClaudeCodeBridgeGovStatsV2(), null, 2),
+      );
+    });
+}
