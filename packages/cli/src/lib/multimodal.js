@@ -1069,3 +1069,333 @@ export function _resetStateV2() {
   _sessionsV2.clear();
   _artifactsV2.clear();
 }
+
+// =====================================================================
+// multimodal V2 governance overlay (iter18)
+// =====================================================================
+export const MMGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const MMGOV_JOB_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  PROCESSING: "processing",
+  PROCESSED: "processed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _mmgovPTrans = new Map([
+  [
+    MMGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      MMGOV_PROFILE_MATURITY_V2.ACTIVE,
+      MMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    MMGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      MMGOV_PROFILE_MATURITY_V2.STALE,
+      MMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    MMGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      MMGOV_PROFILE_MATURITY_V2.ACTIVE,
+      MMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [MMGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _mmgovPTerminal = new Set([MMGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _mmgovJTrans = new Map([
+  [
+    MMGOV_JOB_LIFECYCLE_V2.QUEUED,
+    new Set([
+      MMGOV_JOB_LIFECYCLE_V2.PROCESSING,
+      MMGOV_JOB_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    MMGOV_JOB_LIFECYCLE_V2.PROCESSING,
+    new Set([
+      MMGOV_JOB_LIFECYCLE_V2.PROCESSED,
+      MMGOV_JOB_LIFECYCLE_V2.FAILED,
+      MMGOV_JOB_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [MMGOV_JOB_LIFECYCLE_V2.PROCESSED, new Set()],
+  [MMGOV_JOB_LIFECYCLE_V2.FAILED, new Set()],
+  [MMGOV_JOB_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _mmgovPsV2 = new Map();
+const _mmgovJsV2 = new Map();
+let _mmgovMaxActive = 6,
+  _mmgovMaxPending = 15,
+  _mmgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _mmgovStuckMs = 60 * 1000;
+function _mmgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _mmgovCheckP(from, to) {
+  const a = _mmgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid mmgov profile transition ${from} → ${to}`);
+}
+function _mmgovCheckJ(from, to) {
+  const a = _mmgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid mmgov job transition ${from} → ${to}`);
+}
+function _mmgovCountActive(owner) {
+  let c = 0;
+  for (const p of _mmgovPsV2.values())
+    if (p.owner === owner && p.status === MMGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _mmgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _mmgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === MMGOV_JOB_LIFECYCLE_V2.QUEUED ||
+        j.status === MMGOV_JOB_LIFECYCLE_V2.PROCESSING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveMmgovProfilesPerOwnerV2(n) {
+  _mmgovMaxActive = _mmgovPos(n, "maxActiveMmgovProfilesPerOwner");
+}
+export function getMaxActiveMmgovProfilesPerOwnerV2() {
+  return _mmgovMaxActive;
+}
+export function setMaxPendingMmgovJobsPerProfileV2(n) {
+  _mmgovMaxPending = _mmgovPos(n, "maxPendingMmgovJobsPerProfile");
+}
+export function getMaxPendingMmgovJobsPerProfileV2() {
+  return _mmgovMaxPending;
+}
+export function setMmgovProfileIdleMsV2(n) {
+  _mmgovIdleMs = _mmgovPos(n, "mmgovProfileIdleMs");
+}
+export function getMmgovProfileIdleMsV2() {
+  return _mmgovIdleMs;
+}
+export function setMmgovJobStuckMsV2(n) {
+  _mmgovStuckMs = _mmgovPos(n, "mmgovJobStuckMs");
+}
+export function getMmgovJobStuckMsV2() {
+  return _mmgovStuckMs;
+}
+export function _resetStateMultimodalGovV2() {
+  _mmgovPsV2.clear();
+  _mmgovJsV2.clear();
+  _mmgovMaxActive = 6;
+  _mmgovMaxPending = 15;
+  _mmgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _mmgovStuckMs = 60 * 1000;
+}
+export function registerMmgovProfileV2({ id, owner, kind, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_mmgovPsV2.has(id)) throw new Error(`mmgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    kind: kind || "text",
+    status: MMGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _mmgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateMmgovProfileV2(id) {
+  const p = _mmgovPsV2.get(id);
+  if (!p) throw new Error(`mmgov profile ${id} not found`);
+  const isInitial = p.status === MMGOV_PROFILE_MATURITY_V2.PENDING;
+  _mmgovCheckP(p.status, MMGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _mmgovCountActive(p.owner) >= _mmgovMaxActive)
+    throw new Error(`max active mmgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = MMGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleMmgovProfileV2(id) {
+  const p = _mmgovPsV2.get(id);
+  if (!p) throw new Error(`mmgov profile ${id} not found`);
+  _mmgovCheckP(p.status, MMGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = MMGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveMmgovProfileV2(id) {
+  const p = _mmgovPsV2.get(id);
+  if (!p) throw new Error(`mmgov profile ${id} not found`);
+  _mmgovCheckP(p.status, MMGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = MMGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchMmgovProfileV2(id) {
+  const p = _mmgovPsV2.get(id);
+  if (!p) throw new Error(`mmgov profile ${id} not found`);
+  if (_mmgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal mmgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getMmgovProfileV2(id) {
+  const p = _mmgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listMmgovProfilesV2() {
+  return [..._mmgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createMmgovJobV2({ id, profileId, input, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_mmgovJsV2.has(id)) throw new Error(`mmgov job ${id} already exists`);
+  if (!_mmgovPsV2.has(profileId))
+    throw new Error(`mmgov profile ${profileId} not found`);
+  if (_mmgovCountPending(profileId) >= _mmgovMaxPending)
+    throw new Error(`max pending mmgov jobs for profile ${profileId} reached`);
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    input: input || "",
+    status: MMGOV_JOB_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _mmgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function processingMmgovJobV2(id) {
+  const j = _mmgovJsV2.get(id);
+  if (!j) throw new Error(`mmgov job ${id} not found`);
+  _mmgovCheckJ(j.status, MMGOV_JOB_LIFECYCLE_V2.PROCESSING);
+  const now = Date.now();
+  j.status = MMGOV_JOB_LIFECYCLE_V2.PROCESSING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeJobMmgovV2(id) {
+  const j = _mmgovJsV2.get(id);
+  if (!j) throw new Error(`mmgov job ${id} not found`);
+  _mmgovCheckJ(j.status, MMGOV_JOB_LIFECYCLE_V2.PROCESSED);
+  const now = Date.now();
+  j.status = MMGOV_JOB_LIFECYCLE_V2.PROCESSED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failMmgovJobV2(id, reason) {
+  const j = _mmgovJsV2.get(id);
+  if (!j) throw new Error(`mmgov job ${id} not found`);
+  _mmgovCheckJ(j.status, MMGOV_JOB_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = MMGOV_JOB_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelMmgovJobV2(id, reason) {
+  const j = _mmgovJsV2.get(id);
+  if (!j) throw new Error(`mmgov job ${id} not found`);
+  _mmgovCheckJ(j.status, MMGOV_JOB_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = MMGOV_JOB_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getMmgovJobV2(id) {
+  const j = _mmgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listMmgovJobsV2() {
+  return [..._mmgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleMmgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _mmgovPsV2.values())
+    if (
+      p.status === MMGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _mmgovIdleMs
+    ) {
+      p.status = MMGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckMmgovJobsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _mmgovJsV2.values())
+    if (
+      j.status === MMGOV_JOB_LIFECYCLE_V2.PROCESSING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _mmgovStuckMs
+    ) {
+      j.status = MMGOV_JOB_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getMultimodalGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(MMGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _mmgovPsV2.values()) profilesByStatus[p.status]++;
+  const jobsByStatus = {};
+  for (const v of Object.values(MMGOV_JOB_LIFECYCLE_V2)) jobsByStatus[v] = 0;
+  for (const j of _mmgovJsV2.values()) jobsByStatus[j.status]++;
+  return {
+    totalMmgovProfilesV2: _mmgovPsV2.size,
+    totalMmgovJobsV2: _mmgovJsV2.size,
+    maxActiveMmgovProfilesPerOwner: _mmgovMaxActive,
+    maxPendingMmgovJobsPerProfile: _mmgovMaxPending,
+    mmgovProfileIdleMs: _mmgovIdleMs,
+    mmgovJobStuckMs: _mmgovStuckMs,
+    profilesByStatus,
+    jobsByStatus,
+  };
+}

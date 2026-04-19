@@ -1276,3 +1276,333 @@ export function getWorkflowEngineStatsV2() {
     runsByStatus,
   };
 }
+
+// =====================================================================
+// workflow-engine V2 governance overlay (iter21)
+// =====================================================================
+export const WFGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const WFGOV_STEP_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  EXECUTING: "executing",
+  EXECUTED: "executed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _wfgovPTrans = new Map([
+  [
+    WFGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      WFGOV_PROFILE_MATURITY_V2.ACTIVE,
+      WFGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    WFGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      WFGOV_PROFILE_MATURITY_V2.PAUSED,
+      WFGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    WFGOV_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      WFGOV_PROFILE_MATURITY_V2.ACTIVE,
+      WFGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [WFGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _wfgovPTerminal = new Set([WFGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _wfgovJTrans = new Map([
+  [
+    WFGOV_STEP_LIFECYCLE_V2.QUEUED,
+    new Set([
+      WFGOV_STEP_LIFECYCLE_V2.EXECUTING,
+      WFGOV_STEP_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    WFGOV_STEP_LIFECYCLE_V2.EXECUTING,
+    new Set([
+      WFGOV_STEP_LIFECYCLE_V2.EXECUTED,
+      WFGOV_STEP_LIFECYCLE_V2.FAILED,
+      WFGOV_STEP_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [WFGOV_STEP_LIFECYCLE_V2.EXECUTED, new Set()],
+  [WFGOV_STEP_LIFECYCLE_V2.FAILED, new Set()],
+  [WFGOV_STEP_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _wfgovPsV2 = new Map();
+const _wfgovJsV2 = new Map();
+let _wfgovMaxActive = 8,
+  _wfgovMaxPending = 20,
+  _wfgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _wfgovStuckMs = 60 * 1000;
+function _wfgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _wfgovCheckP(from, to) {
+  const a = _wfgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid wfgov profile transition ${from} → ${to}`);
+}
+function _wfgovCheckJ(from, to) {
+  const a = _wfgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid wfgov step transition ${from} → ${to}`);
+}
+function _wfgovCountActive(owner) {
+  let c = 0;
+  for (const p of _wfgovPsV2.values())
+    if (p.owner === owner && p.status === WFGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _wfgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _wfgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === WFGOV_STEP_LIFECYCLE_V2.QUEUED ||
+        j.status === WFGOV_STEP_LIFECYCLE_V2.EXECUTING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveWfgovProfilesPerOwnerV2(n) {
+  _wfgovMaxActive = _wfgovPos(n, "maxActiveWfgovProfilesPerOwner");
+}
+export function getMaxActiveWfgovProfilesPerOwnerV2() {
+  return _wfgovMaxActive;
+}
+export function setMaxPendingWfgovStepsPerProfileV2(n) {
+  _wfgovMaxPending = _wfgovPos(n, "maxPendingWfgovStepsPerProfile");
+}
+export function getMaxPendingWfgovStepsPerProfileV2() {
+  return _wfgovMaxPending;
+}
+export function setWfgovProfileIdleMsV2(n) {
+  _wfgovIdleMs = _wfgovPos(n, "wfgovProfileIdleMs");
+}
+export function getWfgovProfileIdleMsV2() {
+  return _wfgovIdleMs;
+}
+export function setWfgovStepStuckMsV2(n) {
+  _wfgovStuckMs = _wfgovPos(n, "wfgovStepStuckMs");
+}
+export function getWfgovStepStuckMsV2() {
+  return _wfgovStuckMs;
+}
+export function _resetStateWorkflowEngineGovV2() {
+  _wfgovPsV2.clear();
+  _wfgovJsV2.clear();
+  _wfgovMaxActive = 8;
+  _wfgovMaxPending = 20;
+  _wfgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _wfgovStuckMs = 60 * 1000;
+}
+export function registerWfgovProfileV2({ id, owner, kind, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_wfgovPsV2.has(id)) throw new Error(`wfgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    kind: kind || "sequential",
+    status: WFGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _wfgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateWfgovProfileV2(id) {
+  const p = _wfgovPsV2.get(id);
+  if (!p) throw new Error(`wfgov profile ${id} not found`);
+  const isInitial = p.status === WFGOV_PROFILE_MATURITY_V2.PENDING;
+  _wfgovCheckP(p.status, WFGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _wfgovCountActive(p.owner) >= _wfgovMaxActive)
+    throw new Error(`max active wfgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = WFGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pauseWfgovProfileV2(id) {
+  const p = _wfgovPsV2.get(id);
+  if (!p) throw new Error(`wfgov profile ${id} not found`);
+  _wfgovCheckP(p.status, WFGOV_PROFILE_MATURITY_V2.PAUSED);
+  p.status = WFGOV_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveWfgovProfileV2(id) {
+  const p = _wfgovPsV2.get(id);
+  if (!p) throw new Error(`wfgov profile ${id} not found`);
+  _wfgovCheckP(p.status, WFGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = WFGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchWfgovProfileV2(id) {
+  const p = _wfgovPsV2.get(id);
+  if (!p) throw new Error(`wfgov profile ${id} not found`);
+  if (_wfgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal wfgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getWfgovProfileV2(id) {
+  const p = _wfgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listWfgovProfilesV2() {
+  return [..._wfgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createWfgovStepV2({ id, profileId, stepName, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_wfgovJsV2.has(id)) throw new Error(`wfgov step ${id} already exists`);
+  if (!_wfgovPsV2.has(profileId))
+    throw new Error(`wfgov profile ${profileId} not found`);
+  if (_wfgovCountPending(profileId) >= _wfgovMaxPending)
+    throw new Error(`max pending wfgov steps for profile ${profileId} reached`);
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    stepName: stepName || "",
+    status: WFGOV_STEP_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _wfgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function executingWfgovStepV2(id) {
+  const j = _wfgovJsV2.get(id);
+  if (!j) throw new Error(`wfgov step ${id} not found`);
+  _wfgovCheckJ(j.status, WFGOV_STEP_LIFECYCLE_V2.EXECUTING);
+  const now = Date.now();
+  j.status = WFGOV_STEP_LIFECYCLE_V2.EXECUTING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeStepWfgovV2(id) {
+  const j = _wfgovJsV2.get(id);
+  if (!j) throw new Error(`wfgov step ${id} not found`);
+  _wfgovCheckJ(j.status, WFGOV_STEP_LIFECYCLE_V2.EXECUTED);
+  const now = Date.now();
+  j.status = WFGOV_STEP_LIFECYCLE_V2.EXECUTED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failWfgovStepV2(id, reason) {
+  const j = _wfgovJsV2.get(id);
+  if (!j) throw new Error(`wfgov step ${id} not found`);
+  _wfgovCheckJ(j.status, WFGOV_STEP_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = WFGOV_STEP_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelWfgovStepV2(id, reason) {
+  const j = _wfgovJsV2.get(id);
+  if (!j) throw new Error(`wfgov step ${id} not found`);
+  _wfgovCheckJ(j.status, WFGOV_STEP_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = WFGOV_STEP_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getWfgovStepV2(id) {
+  const j = _wfgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listWfgovStepsV2() {
+  return [..._wfgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPauseIdleWfgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _wfgovPsV2.values())
+    if (
+      p.status === WFGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _wfgovIdleMs
+    ) {
+      p.status = WFGOV_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckWfgovStepsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _wfgovJsV2.values())
+    if (
+      j.status === WFGOV_STEP_LIFECYCLE_V2.EXECUTING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _wfgovStuckMs
+    ) {
+      j.status = WFGOV_STEP_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getWorkflowEngineGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(WFGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _wfgovPsV2.values()) profilesByStatus[p.status]++;
+  const stepsByStatus = {};
+  for (const v of Object.values(WFGOV_STEP_LIFECYCLE_V2)) stepsByStatus[v] = 0;
+  for (const j of _wfgovJsV2.values()) stepsByStatus[j.status]++;
+  return {
+    totalWfgovProfilesV2: _wfgovPsV2.size,
+    totalWfgovStepsV2: _wfgovJsV2.size,
+    maxActiveWfgovProfilesPerOwner: _wfgovMaxActive,
+    maxPendingWfgovStepsPerProfile: _wfgovMaxPending,
+    wfgovProfileIdleMs: _wfgovIdleMs,
+    wfgovStepStuckMs: _wfgovStuckMs,
+    profilesByStatus,
+    stepsByStatus,
+  };
+}

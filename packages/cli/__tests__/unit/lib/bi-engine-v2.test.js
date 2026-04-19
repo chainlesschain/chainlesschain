@@ -1,232 +1,251 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import * as M from "../../../src/lib/bi-engine.js";
 
-describe("BI Engine V2 Surface", () => {
-  beforeEach(() => M._resetStateBiEngineV2());
+describe("BiEngine V2 Surface", () => {
+  beforeEach(() => M._resetStateBiEngineGovV2());
 
   describe("enums", () => {
-    it("dataset maturity has 4 states", () =>
-      expect(Object.keys(M.BI_DATASET_MATURITY_V2)).toHaveLength(4));
-    it("query lifecycle has 5 states", () =>
-      expect(Object.keys(M.BI_QUERY_LIFECYCLE_V2)).toHaveLength(5));
-    it("enums frozen", () => {
-      expect(Object.isFrozen(M.BI_DATASET_MATURITY_V2)).toBe(true);
-      expect(Object.isFrozen(M.BI_QUERY_LIFECYCLE_V2)).toBe(true);
+    it("4 maturity states", () =>
+      expect(Object.keys(M.BIGOV_PROFILE_MATURITY_V2)).toHaveLength(4));
+    it("5 lifecycle states", () =>
+      expect(Object.keys(M.BIGOV_QUERY_LIFECYCLE_V2)).toHaveLength(5));
+    it("frozen", () => {
+      expect(Object.isFrozen(M.BIGOV_PROFILE_MATURITY_V2)).toBe(true);
+      expect(Object.isFrozen(M.BIGOV_QUERY_LIFECYCLE_V2)).toBe(true);
     });
   });
 
   describe("config", () => {
-    it("setMaxActiveBiDatasetsPerOwnerV2", () => {
-      M.setMaxActiveBiDatasetsPerOwnerV2(20);
-      expect(M.getMaxActiveBiDatasetsPerOwnerV2()).toBe(20);
+    it("setMaxActive", () => {
+      M.setMaxActiveBigovProfilesPerOwnerV2(11);
+      expect(M.getMaxActiveBigovProfilesPerOwnerV2()).toBe(11);
     });
-    it("setMaxPendingBiQueriesPerDatasetV2", () => {
-      M.setMaxPendingBiQueriesPerDatasetV2(50);
-      expect(M.getMaxPendingBiQueriesPerDatasetV2()).toBe(50);
+    it("setMaxPending", () => {
+      M.setMaxPendingBigovQuerysPerProfileV2(33);
+      expect(M.getMaxPendingBigovQuerysPerProfileV2()).toBe(33);
     });
-    it("setBiDatasetIdleMsV2", () => {
-      M.setBiDatasetIdleMsV2(1800000);
-      expect(M.getBiDatasetIdleMsV2()).toBe(1800000);
+    it("setIdle", () => {
+      M.setBigovProfileIdleMsV2(60000);
+      expect(M.getBigovProfileIdleMsV2()).toBe(60000);
     });
-    it("setBiQueryStuckMsV2", () => {
-      M.setBiQueryStuckMsV2(30000);
-      expect(M.getBiQueryStuckMsV2()).toBe(30000);
+    it("setStuck", () => {
+      M.setBigovQueryStuckMsV2(45000);
+      expect(M.getBigovQueryStuckMsV2()).toBe(45000);
     });
-    it("rejects zero", () =>
-      expect(() => M.setMaxActiveBiDatasetsPerOwnerV2(0)).toThrow());
-    it("rejects negative", () =>
-      expect(() => M.setBiQueryStuckMsV2(-1)).toThrow());
+    it("rejects 0", () =>
+      expect(() => M.setMaxActiveBigovProfilesPerOwnerV2(0)).toThrow());
+    it("rejects NaN", () =>
+      expect(() => M.setBigovQueryStuckMsV2("x")).toThrow());
     it("floors decimals", () => {
-      M.setMaxPendingBiQueriesPerDatasetV2(6.9);
-      expect(M.getMaxPendingBiQueriesPerDatasetV2()).toBe(6);
+      M.setMaxActiveBigovProfilesPerOwnerV2(7.9);
+      expect(M.getMaxActiveBigovProfilesPerOwnerV2()).toBe(7);
     });
   });
 
-  describe("dataset lifecycle", () => {
-    it("register", () => {
-      const d = M.registerBiDatasetV2({ id: "d1", owner: "alice" });
-      expect(d.status).toBe("pending");
+  describe("profile lifecycle", () => {
+    it("register pending", () =>
+      expect(M.registerBigovProfileV2({ id: "p1", owner: "a" }).status).toBe(
+        "pending",
+      ));
+    it("default dataset", () =>
+      expect(M.registerBigovProfileV2({ id: "p1", owner: "a" }).dataset).toBe(
+        "default",
+      ));
+    it("activate", () => {
+      M.registerBigovProfileV2({ id: "p1", owner: "a" });
+      expect(M.activateBigovProfileV2("p1").status).toBe("active");
     });
-    it("activate stamps activatedAt", () => {
-      M.registerBiDatasetV2({ id: "d1", owner: "alice" });
-      const d = M.activateBiDatasetV2("d1");
-      expect(d.status).toBe("active");
-      expect(d.activatedAt).toBeTruthy();
+    it("stale", () => {
+      M.registerBigovProfileV2({ id: "p1", owner: "a" });
+      M.activateBigovProfileV2("p1");
+      expect(M.staleBigovProfileV2("p1").status).toBe("stale");
     });
-    it("stale active→stale", () => {
-      M.registerBiDatasetV2({ id: "d1", owner: "alice" });
-      M.activateBiDatasetV2("d1");
-      expect(M.staleBiDatasetV2("d1").status).toBe("stale");
+    it("recovery preserves activatedAt", () => {
+      M.registerBigovProfileV2({ id: "p1", owner: "a" });
+      const a = M.activateBigovProfileV2("p1");
+      M.staleBigovProfileV2("p1");
+      expect(M.activateBigovProfileV2("p1").activatedAt).toBe(a.activatedAt);
     });
-    it("recovery stale→active preserves activatedAt", () => {
-      M.registerBiDatasetV2({ id: "d1", owner: "alice" });
-      const d = M.activateBiDatasetV2("d1");
-      M.staleBiDatasetV2("d1");
-      const re = M.activateBiDatasetV2("d1");
-      expect(re.activatedAt).toBe(d.activatedAt);
-    });
-    it("archive terminal stamps archivedAt", () => {
-      M.registerBiDatasetV2({ id: "d1", owner: "alice" });
-      M.activateBiDatasetV2("d1");
-      const d = M.archiveBiDatasetV2("d1");
-      expect(d.status).toBe("archived");
-      expect(d.archivedAt).toBeTruthy();
+    it("archive terminal", () => {
+      M.registerBigovProfileV2({ id: "p1", owner: "a" });
+      M.activateBigovProfileV2("p1");
+      expect(M.archiveBigovProfileV2("p1").status).toBe("archived");
     });
     it("cannot touch archived", () => {
-      M.registerBiDatasetV2({ id: "d1", owner: "alice" });
-      M.activateBiDatasetV2("d1");
-      M.archiveBiDatasetV2("d1");
-      expect(() => M.touchBiDatasetV2("d1")).toThrow();
+      M.registerBigovProfileV2({ id: "p1", owner: "a" });
+      M.activateBigovProfileV2("p1");
+      M.archiveBigovProfileV2("p1");
+      expect(() => M.touchBigovProfileV2("p1")).toThrow();
     });
-    it("invalid transition rejected", () => {
-      M.registerBiDatasetV2({ id: "d1", owner: "alice" });
-      expect(() => M.staleBiDatasetV2("d1")).toThrow();
+    it("invalid transition", () => {
+      M.registerBigovProfileV2({ id: "p1", owner: "a" });
+      expect(() => M.staleBigovProfileV2("p1")).toThrow();
     });
     it("duplicate rejected", () => {
-      M.registerBiDatasetV2({ id: "d1", owner: "alice" });
-      expect(() => M.registerBiDatasetV2({ id: "d1", owner: "b" })).toThrow();
+      M.registerBigovProfileV2({ id: "p1", owner: "a" });
+      expect(() =>
+        M.registerBigovProfileV2({ id: "p1", owner: "b" }),
+      ).toThrow();
     });
-    it("missing owner rejected", () =>
-      expect(() => M.registerBiDatasetV2({ id: "d1" })).toThrow());
+    it("missing owner", () =>
+      expect(() => M.registerBigovProfileV2({ id: "p1" })).toThrow());
+    it("get null", () => expect(M.getBigovProfileV2("nope")).toBeNull());
     it("list all", () => {
-      M.registerBiDatasetV2({ id: "d1", owner: "a" });
-      M.registerBiDatasetV2({ id: "d2", owner: "b" });
-      expect(M.listBiDatasetsV2()).toHaveLength(2);
+      M.registerBigovProfileV2({ id: "p1", owner: "a" });
+      M.registerBigovProfileV2({ id: "p2", owner: "b" });
+      expect(M.listBigovProfilesV2()).toHaveLength(2);
     });
-    it("get null unknown", () => expect(M.getBiDatasetV2("none")).toBeNull());
     it("defensive copy", () => {
-      M.registerBiDatasetV2({ id: "d1", owner: "a", metadata: { k: 5 } });
-      const d = M.getBiDatasetV2("d1");
-      d.metadata.k = 99;
-      expect(M.getBiDatasetV2("d1").metadata.k).toBe(5);
+      M.registerBigovProfileV2({ id: "p1", owner: "a", metadata: { x: 1 } });
+      const p = M.getBigovProfileV2("p1");
+      p.metadata.x = 99;
+      expect(M.getBigovProfileV2("p1").metadata.x).toBe(1);
     });
   });
 
-  describe("active-dataset cap", () => {
-    it("enforced on pending→active", () => {
-      M.setMaxActiveBiDatasetsPerOwnerV2(2);
-      ["d1", "d2", "d3"].forEach((id) =>
-        M.registerBiDatasetV2({ id, owner: "o" }),
+  describe("active cap", () => {
+    it("enforced", () => {
+      M.setMaxActiveBigovProfilesPerOwnerV2(2);
+      ["p1", "p2", "p3"].forEach((id) =>
+        M.registerBigovProfileV2({ id, owner: "a" }),
       );
-      M.activateBiDatasetV2("d1");
-      M.activateBiDatasetV2("d2");
-      expect(() => M.activateBiDatasetV2("d3")).toThrow(/max active/);
+      M.activateBigovProfileV2("p1");
+      M.activateBigovProfileV2("p2");
+      expect(() => M.activateBigovProfileV2("p3")).toThrow(/max active/);
     });
     it("recovery exempt", () => {
-      M.setMaxActiveBiDatasetsPerOwnerV2(2);
-      ["d1", "d2", "d3"].forEach((id) =>
-        M.registerBiDatasetV2({ id, owner: "o" }),
+      M.setMaxActiveBigovProfilesPerOwnerV2(2);
+      ["p1", "p2", "p3"].forEach((id) =>
+        M.registerBigovProfileV2({ id, owner: "a" }),
       );
-      M.activateBiDatasetV2("d1");
-      M.activateBiDatasetV2("d2");
-      M.staleBiDatasetV2("d1");
-      M.activateBiDatasetV2("d3");
-      expect(() => M.activateBiDatasetV2("d1")).not.toThrow();
+      M.activateBigovProfileV2("p1");
+      M.activateBigovProfileV2("p2");
+      M.staleBigovProfileV2("p1");
+      M.activateBigovProfileV2("p3");
+      expect(() => M.activateBigovProfileV2("p1")).not.toThrow();
     });
-    it("per-owner isolated", () => {
-      M.setMaxActiveBiDatasetsPerOwnerV2(1);
-      M.registerBiDatasetV2({ id: "d1", owner: "o1" });
-      M.registerBiDatasetV2({ id: "d2", owner: "o2" });
-      M.activateBiDatasetV2("d1");
-      expect(() => M.activateBiDatasetV2("d2")).not.toThrow();
+    it("per-owner", () => {
+      M.setMaxActiveBigovProfilesPerOwnerV2(1);
+      M.registerBigovProfileV2({ id: "p1", owner: "a" });
+      M.registerBigovProfileV2({ id: "p2", owner: "b" });
+      M.activateBigovProfileV2("p1");
+      expect(() => M.activateBigovProfileV2("p2")).not.toThrow();
     });
   });
 
   describe("query lifecycle", () => {
     beforeEach(() => {
-      M.registerBiDatasetV2({ id: "d1", owner: "o" });
-      M.activateBiDatasetV2("d1");
+      M.registerBigovProfileV2({ id: "p1", owner: "a" });
+      M.activateBigovProfileV2("p1");
     });
-    it("create→start→complete", () => {
-      M.createBiQueryV2({ id: "q1", datasetId: "d1" });
-      M.startBiQueryV2("q1");
-      const q = M.completeBiQueryV2("q1");
-      expect(q.status).toBe("completed");
+    it("create→querying→complete", () => {
+      M.createBigovQueryV2({ id: "r1", profileId: "p1" });
+      M.queryingBigovQueryV2("r1");
+      const r = M.completeQueryBigovV2("r1");
+      expect(r.status).not.toBe("queued");
     });
-    it("fail stores reason", () => {
-      M.createBiQueryV2({ id: "q1", datasetId: "d1" });
-      M.startBiQueryV2("q1");
-      const q = M.failBiQueryV2("q1", "oom");
-      expect(q.metadata.failReason).toBe("oom");
+    it("fail", () => {
+      M.createBigovQueryV2({ id: "r1", profileId: "p1" });
+      M.queryingBigovQueryV2("r1");
+      expect(M.failBigovQueryV2("r1", "x").metadata.failReason).toBe("x");
     });
-    it("cancel queued", () => {
-      M.createBiQueryV2({ id: "q1", datasetId: "d1" });
-      expect(M.cancelBiQueryV2("q1").status).toBe("cancelled");
+    it("cancel from queued", () => {
+      M.createBigovQueryV2({ id: "r1", profileId: "p1" });
+      expect(M.cancelBigovQueryV2("r1").status).toBe("cancelled");
     });
-    it("cannot complete from queued", () => {
-      M.createBiQueryV2({ id: "q1", datasetId: "d1" });
-      expect(() => M.completeBiQueryV2("q1")).toThrow();
+    it("invalid complete from queued", () => {
+      M.createBigovQueryV2({ id: "r1", profileId: "p1" });
+      expect(() => M.completeQueryBigovV2("r1")).toThrow();
     });
-    it("unknown dataset rejected", () =>
+    it("unknown profile", () =>
       expect(() =>
-        M.createBiQueryV2({ id: "q1", datasetId: "none" }),
+        M.createBigovQueryV2({ id: "r1", profileId: "none" }),
       ).toThrow());
-    it("per-dataset pending cap", () => {
-      M.setMaxPendingBiQueriesPerDatasetV2(2);
-      ["q1", "q2"].forEach((id) => M.createBiQueryV2({ id, datasetId: "d1" }));
-      expect(() => M.createBiQueryV2({ id: "q3", datasetId: "d1" })).toThrow(
+    it("pending cap", () => {
+      M.setMaxPendingBigovQuerysPerProfileV2(2);
+      ["r1", "r2"].forEach((id) =>
+        M.createBigovQueryV2({ id, profileId: "p1" }),
+      );
+      expect(() => M.createBigovQueryV2({ id: "r3", profileId: "p1" })).toThrow(
         /max pending/,
       );
     });
-    it("running counts as pending", () => {
-      M.setMaxPendingBiQueriesPerDatasetV2(1);
-      M.createBiQueryV2({ id: "q1", datasetId: "d1" });
-      M.startBiQueryV2("q1");
-      expect(() => M.createBiQueryV2({ id: "q2", datasetId: "d1" })).toThrow();
+    it("querying counts as pending", () => {
+      M.setMaxPendingBigovQuerysPerProfileV2(1);
+      M.createBigovQueryV2({ id: "r1", profileId: "p1" });
+      M.queryingBigovQueryV2("r1");
+      expect(() =>
+        M.createBigovQueryV2({ id: "r2", profileId: "p1" }),
+      ).toThrow();
     });
     it("completed frees slot", () => {
-      M.setMaxPendingBiQueriesPerDatasetV2(1);
-      M.createBiQueryV2({ id: "q1", datasetId: "d1" });
-      M.startBiQueryV2("q1");
-      M.completeBiQueryV2("q1");
+      M.setMaxPendingBigovQuerysPerProfileV2(1);
+      M.createBigovQueryV2({ id: "r1", profileId: "p1" });
+      M.queryingBigovQueryV2("r1");
+      M.completeQueryBigovV2("r1");
       expect(() =>
-        M.createBiQueryV2({ id: "q2", datasetId: "d1" }),
+        M.createBigovQueryV2({ id: "r2", profileId: "p1" }),
       ).not.toThrow();
     });
-    it("default sql empty", () => {
-      M.createBiQueryV2({ id: "q1", datasetId: "d1" });
-      expect(M.getBiQueryV2("q1").sql).toBe("");
+    it("get null", () => expect(M.getBigovQueryV2("nope")).toBeNull());
+    it("list", () => {
+      M.createBigovQueryV2({ id: "r1", profileId: "p1" });
+      M.createBigovQueryV2({ id: "r2", profileId: "p1" });
+      expect(M.listBigovQuerysV2()).toHaveLength(2);
     });
-    it("sql preserved", () => {
-      M.createBiQueryV2({ id: "q1", datasetId: "d1", sql: "SELECT 1" });
-      expect(M.getBiQueryV2("q1").sql).toBe("SELECT 1");
+    it("missing id", () =>
+      expect(() => M.createBigovQueryV2({ profileId: "p1" })).toThrow());
+    it("duplicate id", () => {
+      M.createBigovQueryV2({ id: "r1", profileId: "p1" });
+      expect(() =>
+        M.createBigovQueryV2({ id: "r1", profileId: "p1" }),
+      ).toThrow();
+    });
+    it("cancel reason captured", () => {
+      M.createBigovQueryV2({ id: "r1", profileId: "p1" });
+      expect(M.cancelBigovQueryV2("r1", "y").metadata.cancelReason).toBe("y");
     });
   });
 
   describe("auto flips", () => {
     it("autoStaleIdle", () => {
-      M.setBiDatasetIdleMsV2(1000);
-      M.registerBiDatasetV2({ id: "d1", owner: "o" });
-      M.activateBiDatasetV2("d1");
-      const r = M.autoStaleIdleBiDatasetsV2({ now: Date.now() + 5000 });
+      M.setBigovProfileIdleMsV2(1000);
+      M.registerBigovProfileV2({ id: "p1", owner: "a" });
+      M.activateBigovProfileV2("p1");
+      const r = M.autoStaleIdleBigovProfilesV2({ now: Date.now() + 5000 });
       expect(r.count).toBe(1);
-      expect(M.getBiDatasetV2("d1").status).toBe("stale");
+      expect(M.getBigovProfileV2("p1").status).toBe("stale");
     });
     it("autoFailStuck", () => {
-      M.registerBiDatasetV2({ id: "d1", owner: "o" });
-      M.activateBiDatasetV2("d1");
-      M.createBiQueryV2({ id: "q1", datasetId: "d1" });
-      M.startBiQueryV2("q1");
-      M.setBiQueryStuckMsV2(100);
-      const r = M.autoFailStuckBiQueriesV2({ now: Date.now() + 5000 });
+      M.registerBigovProfileV2({ id: "p1", owner: "a" });
+      M.activateBigovProfileV2("p1");
+      M.createBigovQueryV2({ id: "r1", profileId: "p1" });
+      M.queryingBigovQueryV2("r1");
+      M.setBigovQueryStuckMsV2(100);
+      const r = M.autoFailStuckBigovQuerysV2({ now: Date.now() + 5000 });
       expect(r.count).toBe(1);
-      expect(M.getBiQueryV2("q1").status).toBe("failed");
+    });
+    it("only flips active", () => {
+      M.setBigovProfileIdleMsV2(1000);
+      M.registerBigovProfileV2({ id: "p1", owner: "a" });
+      const r = M.autoStaleIdleBigovProfilesV2({ now: Date.now() + 5000 });
+      expect(r.count).toBe(0);
     });
   });
 
   describe("stats", () => {
-    it("all enum keys initialised", () => {
-      const s = M.getBiEngineStatsV2();
-      expect(s.datasetsByStatus.pending).toBe(0);
-      expect(s.queriesByStatus.queued).toBe(0);
+    it("zero-init", () => {
+      const s2 = M.getBiEngineGovStatsV2();
+      expect(s2.profilesByStatus.pending).toBe(0);
+      expect(s2.querysByStatus.queued).toBe(0);
     });
     it("counts", () => {
-      M.registerBiDatasetV2({ id: "d1", owner: "o" });
-      M.activateBiDatasetV2("d1");
-      M.createBiQueryV2({ id: "q1", datasetId: "d1" });
-      const s = M.getBiEngineStatsV2();
-      expect(s.totalDatasetsV2).toBe(1);
-      expect(s.totalQueriesV2).toBe(1);
+      M.registerBigovProfileV2({ id: "p1", owner: "a" });
+      M.activateBigovProfileV2("p1");
+      M.createBigovQueryV2({ id: "r1", profileId: "p1" });
+      const s2 = M.getBiEngineGovStatsV2();
+      expect(s2.totalBigovProfilesV2).toBe(1);
+      expect(s2.totalBigovQuerysV2).toBe(1);
     });
   });
 });

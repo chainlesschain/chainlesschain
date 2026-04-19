@@ -663,3 +663,210 @@ export function registerMatrixV2Command(matrix) {
       console.log(JSON.stringify(getMatrixBridgeStatsV2(), null, 2));
     });
 }
+
+// === Iter21 V2 governance overlay ===
+export function registerMatgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "matrix");
+  if (!parent) return;
+  const L = async () => await import("../lib/matrix-bridge.js");
+  parent
+    .command("matgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.MATGOV_PROFILE_MATURITY_V2,
+            sendLifecycle: m.MATGOV_SEND_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("matgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveMatgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingMatgovSendsPerProfileV2(),
+            idleMs: m.getMatgovProfileIdleMsV2(),
+            stuckMs: m.getMatgovSendStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("matgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveMatgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("matgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingMatgovSendsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("matgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setMatgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("matgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setMatgovSendStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("matgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--homeserver <v>", "homeserver")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerMatgovProfileV2({ id, owner, homeserver: o.homeserver }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("matgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateMatgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("matgov-suspend-v2 <id>")
+    .description("Suspend profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).suspendMatgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("matgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveMatgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("matgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchMatgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("matgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getMatgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("matgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listMatgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("matgov-create-send-v2 <id> <profileId>")
+    .description("Create send")
+    .option("--room <v>", "room")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createMatgovSendV2({ id, profileId, room: o.room }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("matgov-sending-send-v2 <id>")
+    .description("Mark send as sending")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).sendingMatgovSendV2(id), null, 2));
+    });
+  parent
+    .command("matgov-complete-send-v2 <id>")
+    .description("Complete send")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeSendMatgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("matgov-fail-send-v2 <id> [reason]")
+    .description("Fail send")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failMatgovSendV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("matgov-cancel-send-v2 <id> [reason]")
+    .description("Cancel send")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelMatgovSendV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("matgov-get-send-v2 <id>")
+    .description("Get send")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getMatgovSendV2(id), null, 2));
+    });
+  parent
+    .command("matgov-list-sends-v2")
+    .description("List sends")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listMatgovSendsV2(), null, 2));
+    });
+  parent
+    .command("matgov-auto-suspend-idle-v2")
+    .description("Auto-suspend idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoSuspendIdleMatgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("matgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck sends")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckMatgovSendsV2(), null, 2),
+      );
+    });
+  parent
+    .command("matgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getMatrixBridgeGovStatsV2(), null, 2),
+      );
+    });
+}

@@ -936,3 +936,344 @@ export function _resetStateV2() {
   _specsV2.clear();
   _turnsV2.clear();
 }
+
+// =====================================================================
+// nl-programming V2 governance overlay (iter18)
+// =====================================================================
+export const NLPGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const NLPGOV_TRANSLATION_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  TRANSLATING: "translating",
+  TRANSLATED: "translated",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _nlpgovPTrans = new Map([
+  [
+    NLPGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      NLPGOV_PROFILE_MATURITY_V2.ACTIVE,
+      NLPGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    NLPGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      NLPGOV_PROFILE_MATURITY_V2.STALE,
+      NLPGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    NLPGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      NLPGOV_PROFILE_MATURITY_V2.ACTIVE,
+      NLPGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [NLPGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _nlpgovPTerminal = new Set([NLPGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _nlpgovJTrans = new Map([
+  [
+    NLPGOV_TRANSLATION_LIFECYCLE_V2.QUEUED,
+    new Set([
+      NLPGOV_TRANSLATION_LIFECYCLE_V2.TRANSLATING,
+      NLPGOV_TRANSLATION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    NLPGOV_TRANSLATION_LIFECYCLE_V2.TRANSLATING,
+    new Set([
+      NLPGOV_TRANSLATION_LIFECYCLE_V2.TRANSLATED,
+      NLPGOV_TRANSLATION_LIFECYCLE_V2.FAILED,
+      NLPGOV_TRANSLATION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [NLPGOV_TRANSLATION_LIFECYCLE_V2.TRANSLATED, new Set()],
+  [NLPGOV_TRANSLATION_LIFECYCLE_V2.FAILED, new Set()],
+  [NLPGOV_TRANSLATION_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _nlpgovPsV2 = new Map();
+const _nlpgovJsV2 = new Map();
+let _nlpgovMaxActive = 8,
+  _nlpgovMaxPending = 20,
+  _nlpgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _nlpgovStuckMs = 60 * 1000;
+function _nlpgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _nlpgovCheckP(from, to) {
+  const a = _nlpgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid nlpgov profile transition ${from} → ${to}`);
+}
+function _nlpgovCheckJ(from, to) {
+  const a = _nlpgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid nlpgov translation transition ${from} → ${to}`);
+}
+function _nlpgovCountActive(owner) {
+  let c = 0;
+  for (const p of _nlpgovPsV2.values())
+    if (p.owner === owner && p.status === NLPGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _nlpgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _nlpgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === NLPGOV_TRANSLATION_LIFECYCLE_V2.QUEUED ||
+        j.status === NLPGOV_TRANSLATION_LIFECYCLE_V2.TRANSLATING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveNlpgovProfilesPerOwnerV2(n) {
+  _nlpgovMaxActive = _nlpgovPos(n, "maxActiveNlpgovProfilesPerOwner");
+}
+export function getMaxActiveNlpgovProfilesPerOwnerV2() {
+  return _nlpgovMaxActive;
+}
+export function setMaxPendingNlpgovTranslationsPerProfileV2(n) {
+  _nlpgovMaxPending = _nlpgovPos(n, "maxPendingNlpgovTranslationsPerProfile");
+}
+export function getMaxPendingNlpgovTranslationsPerProfileV2() {
+  return _nlpgovMaxPending;
+}
+export function setNlpgovProfileIdleMsV2(n) {
+  _nlpgovIdleMs = _nlpgovPos(n, "nlpgovProfileIdleMs");
+}
+export function getNlpgovProfileIdleMsV2() {
+  return _nlpgovIdleMs;
+}
+export function setNlpgovTranslationStuckMsV2(n) {
+  _nlpgovStuckMs = _nlpgovPos(n, "nlpgovTranslationStuckMs");
+}
+export function getNlpgovTranslationStuckMsV2() {
+  return _nlpgovStuckMs;
+}
+export function _resetStateNlProgrammingGovV2() {
+  _nlpgovPsV2.clear();
+  _nlpgovJsV2.clear();
+  _nlpgovMaxActive = 8;
+  _nlpgovMaxPending = 20;
+  _nlpgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _nlpgovStuckMs = 60 * 1000;
+}
+export function registerNlpgovProfileV2({ id, owner, style, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_nlpgovPsV2.has(id))
+    throw new Error(`nlpgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    style: style || "natural",
+    status: NLPGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _nlpgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateNlpgovProfileV2(id) {
+  const p = _nlpgovPsV2.get(id);
+  if (!p) throw new Error(`nlpgov profile ${id} not found`);
+  const isInitial = p.status === NLPGOV_PROFILE_MATURITY_V2.PENDING;
+  _nlpgovCheckP(p.status, NLPGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _nlpgovCountActive(p.owner) >= _nlpgovMaxActive)
+    throw new Error(`max active nlpgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = NLPGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleNlpgovProfileV2(id) {
+  const p = _nlpgovPsV2.get(id);
+  if (!p) throw new Error(`nlpgov profile ${id} not found`);
+  _nlpgovCheckP(p.status, NLPGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = NLPGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveNlpgovProfileV2(id) {
+  const p = _nlpgovPsV2.get(id);
+  if (!p) throw new Error(`nlpgov profile ${id} not found`);
+  _nlpgovCheckP(p.status, NLPGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = NLPGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchNlpgovProfileV2(id) {
+  const p = _nlpgovPsV2.get(id);
+  if (!p) throw new Error(`nlpgov profile ${id} not found`);
+  if (_nlpgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal nlpgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getNlpgovProfileV2(id) {
+  const p = _nlpgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listNlpgovProfilesV2() {
+  return [..._nlpgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createNlpgovTranslationV2({
+  id,
+  profileId,
+  intent,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_nlpgovJsV2.has(id))
+    throw new Error(`nlpgov translation ${id} already exists`);
+  if (!_nlpgovPsV2.has(profileId))
+    throw new Error(`nlpgov profile ${profileId} not found`);
+  if (_nlpgovCountPending(profileId) >= _nlpgovMaxPending)
+    throw new Error(
+      `max pending nlpgov translations for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    intent: intent || "",
+    status: NLPGOV_TRANSLATION_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _nlpgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function translatingNlpgovTranslationV2(id) {
+  const j = _nlpgovJsV2.get(id);
+  if (!j) throw new Error(`nlpgov translation ${id} not found`);
+  _nlpgovCheckJ(j.status, NLPGOV_TRANSLATION_LIFECYCLE_V2.TRANSLATING);
+  const now = Date.now();
+  j.status = NLPGOV_TRANSLATION_LIFECYCLE_V2.TRANSLATING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeTranslationNlpgovV2(id) {
+  const j = _nlpgovJsV2.get(id);
+  if (!j) throw new Error(`nlpgov translation ${id} not found`);
+  _nlpgovCheckJ(j.status, NLPGOV_TRANSLATION_LIFECYCLE_V2.TRANSLATED);
+  const now = Date.now();
+  j.status = NLPGOV_TRANSLATION_LIFECYCLE_V2.TRANSLATED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failNlpgovTranslationV2(id, reason) {
+  const j = _nlpgovJsV2.get(id);
+  if (!j) throw new Error(`nlpgov translation ${id} not found`);
+  _nlpgovCheckJ(j.status, NLPGOV_TRANSLATION_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = NLPGOV_TRANSLATION_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelNlpgovTranslationV2(id, reason) {
+  const j = _nlpgovJsV2.get(id);
+  if (!j) throw new Error(`nlpgov translation ${id} not found`);
+  _nlpgovCheckJ(j.status, NLPGOV_TRANSLATION_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = NLPGOV_TRANSLATION_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getNlpgovTranslationV2(id) {
+  const j = _nlpgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listNlpgovTranslationsV2() {
+  return [..._nlpgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleNlpgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _nlpgovPsV2.values())
+    if (
+      p.status === NLPGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _nlpgovIdleMs
+    ) {
+      p.status = NLPGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckNlpgovTranslationsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _nlpgovJsV2.values())
+    if (
+      j.status === NLPGOV_TRANSLATION_LIFECYCLE_V2.TRANSLATING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _nlpgovStuckMs
+    ) {
+      j.status = NLPGOV_TRANSLATION_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getNlProgrammingGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(NLPGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _nlpgovPsV2.values()) profilesByStatus[p.status]++;
+  const translationsByStatus = {};
+  for (const v of Object.values(NLPGOV_TRANSLATION_LIFECYCLE_V2))
+    translationsByStatus[v] = 0;
+  for (const j of _nlpgovJsV2.values()) translationsByStatus[j.status]++;
+  return {
+    totalNlpgovProfilesV2: _nlpgovPsV2.size,
+    totalNlpgovTranslationsV2: _nlpgovJsV2.size,
+    maxActiveNlpgovProfilesPerOwner: _nlpgovMaxActive,
+    maxPendingNlpgovTranslationsPerProfile: _nlpgovMaxPending,
+    nlpgovProfileIdleMs: _nlpgovIdleMs,
+    nlpgovTranslationStuckMs: _nlpgovStuckMs,
+    profilesByStatus,
+    translationsByStatus,
+  };
+}

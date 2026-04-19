@@ -685,3 +685,340 @@ export function _resetStateV2() {
   _modelsV2.clear();
   _jobTicketsV2.clear();
 }
+
+// =====================================================================
+// quantization V2 governance overlay (iter18)
+// =====================================================================
+export const QNTGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const QNTGOV_JOB_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  QUANTIZING: "quantizing",
+  QUANTIZED: "quantized",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _qntgovPTrans = new Map([
+  [
+    QNTGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      QNTGOV_PROFILE_MATURITY_V2.ACTIVE,
+      QNTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    QNTGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      QNTGOV_PROFILE_MATURITY_V2.STALE,
+      QNTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    QNTGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      QNTGOV_PROFILE_MATURITY_V2.ACTIVE,
+      QNTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [QNTGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _qntgovPTerminal = new Set([QNTGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _qntgovJTrans = new Map([
+  [
+    QNTGOV_JOB_LIFECYCLE_V2.QUEUED,
+    new Set([
+      QNTGOV_JOB_LIFECYCLE_V2.QUANTIZING,
+      QNTGOV_JOB_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    QNTGOV_JOB_LIFECYCLE_V2.QUANTIZING,
+    new Set([
+      QNTGOV_JOB_LIFECYCLE_V2.QUANTIZED,
+      QNTGOV_JOB_LIFECYCLE_V2.FAILED,
+      QNTGOV_JOB_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [QNTGOV_JOB_LIFECYCLE_V2.QUANTIZED, new Set()],
+  [QNTGOV_JOB_LIFECYCLE_V2.FAILED, new Set()],
+  [QNTGOV_JOB_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _qntgovPsV2 = new Map();
+const _qntgovJsV2 = new Map();
+let _qntgovMaxActive = 6,
+  _qntgovMaxPending = 12,
+  _qntgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _qntgovStuckMs = 60 * 1000;
+function _qntgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _qntgovCheckP(from, to) {
+  const a = _qntgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid qntgov profile transition ${from} → ${to}`);
+}
+function _qntgovCheckJ(from, to) {
+  const a = _qntgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid qntgov job transition ${from} → ${to}`);
+}
+function _qntgovCountActive(owner) {
+  let c = 0;
+  for (const p of _qntgovPsV2.values())
+    if (p.owner === owner && p.status === QNTGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _qntgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _qntgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === QNTGOV_JOB_LIFECYCLE_V2.QUEUED ||
+        j.status === QNTGOV_JOB_LIFECYCLE_V2.QUANTIZING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveQntgovProfilesPerOwnerV2(n) {
+  _qntgovMaxActive = _qntgovPos(n, "maxActiveQntgovProfilesPerOwner");
+}
+export function getMaxActiveQntgovProfilesPerOwnerV2() {
+  return _qntgovMaxActive;
+}
+export function setMaxPendingQntgovJobsPerProfileV2(n) {
+  _qntgovMaxPending = _qntgovPos(n, "maxPendingQntgovJobsPerProfile");
+}
+export function getMaxPendingQntgovJobsPerProfileV2() {
+  return _qntgovMaxPending;
+}
+export function setQntgovProfileIdleMsV2(n) {
+  _qntgovIdleMs = _qntgovPos(n, "qntgovProfileIdleMs");
+}
+export function getQntgovProfileIdleMsV2() {
+  return _qntgovIdleMs;
+}
+export function setQntgovJobStuckMsV2(n) {
+  _qntgovStuckMs = _qntgovPos(n, "qntgovJobStuckMs");
+}
+export function getQntgovJobStuckMsV2() {
+  return _qntgovStuckMs;
+}
+export function _resetStateQuantizationGovV2() {
+  _qntgovPsV2.clear();
+  _qntgovJsV2.clear();
+  _qntgovMaxActive = 6;
+  _qntgovMaxPending = 12;
+  _qntgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _qntgovStuckMs = 60 * 1000;
+}
+export function registerQntgovProfileV2({
+  id,
+  owner,
+  precision,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_qntgovPsV2.has(id))
+    throw new Error(`qntgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    precision: precision || "int8",
+    status: QNTGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _qntgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateQntgovProfileV2(id) {
+  const p = _qntgovPsV2.get(id);
+  if (!p) throw new Error(`qntgov profile ${id} not found`);
+  const isInitial = p.status === QNTGOV_PROFILE_MATURITY_V2.PENDING;
+  _qntgovCheckP(p.status, QNTGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _qntgovCountActive(p.owner) >= _qntgovMaxActive)
+    throw new Error(`max active qntgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = QNTGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleQntgovProfileV2(id) {
+  const p = _qntgovPsV2.get(id);
+  if (!p) throw new Error(`qntgov profile ${id} not found`);
+  _qntgovCheckP(p.status, QNTGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = QNTGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveQntgovProfileV2(id) {
+  const p = _qntgovPsV2.get(id);
+  if (!p) throw new Error(`qntgov profile ${id} not found`);
+  _qntgovCheckP(p.status, QNTGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = QNTGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchQntgovProfileV2(id) {
+  const p = _qntgovPsV2.get(id);
+  if (!p) throw new Error(`qntgov profile ${id} not found`);
+  if (_qntgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal qntgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getQntgovProfileV2(id) {
+  const p = _qntgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listQntgovProfilesV2() {
+  return [..._qntgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createQntgovJobV2({ id, profileId, model, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_qntgovJsV2.has(id)) throw new Error(`qntgov job ${id} already exists`);
+  if (!_qntgovPsV2.has(profileId))
+    throw new Error(`qntgov profile ${profileId} not found`);
+  if (_qntgovCountPending(profileId) >= _qntgovMaxPending)
+    throw new Error(`max pending qntgov jobs for profile ${profileId} reached`);
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    model: model || "",
+    status: QNTGOV_JOB_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _qntgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function quantizingQntgovJobV2(id) {
+  const j = _qntgovJsV2.get(id);
+  if (!j) throw new Error(`qntgov job ${id} not found`);
+  _qntgovCheckJ(j.status, QNTGOV_JOB_LIFECYCLE_V2.QUANTIZING);
+  const now = Date.now();
+  j.status = QNTGOV_JOB_LIFECYCLE_V2.QUANTIZING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeJobQntgovV2(id) {
+  const j = _qntgovJsV2.get(id);
+  if (!j) throw new Error(`qntgov job ${id} not found`);
+  _qntgovCheckJ(j.status, QNTGOV_JOB_LIFECYCLE_V2.QUANTIZED);
+  const now = Date.now();
+  j.status = QNTGOV_JOB_LIFECYCLE_V2.QUANTIZED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failQntgovJobV2(id, reason) {
+  const j = _qntgovJsV2.get(id);
+  if (!j) throw new Error(`qntgov job ${id} not found`);
+  _qntgovCheckJ(j.status, QNTGOV_JOB_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = QNTGOV_JOB_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelQntgovJobV2(id, reason) {
+  const j = _qntgovJsV2.get(id);
+  if (!j) throw new Error(`qntgov job ${id} not found`);
+  _qntgovCheckJ(j.status, QNTGOV_JOB_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = QNTGOV_JOB_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getQntgovJobV2(id) {
+  const j = _qntgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listQntgovJobsV2() {
+  return [..._qntgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleQntgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _qntgovPsV2.values())
+    if (
+      p.status === QNTGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _qntgovIdleMs
+    ) {
+      p.status = QNTGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckQntgovJobsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _qntgovJsV2.values())
+    if (
+      j.status === QNTGOV_JOB_LIFECYCLE_V2.QUANTIZING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _qntgovStuckMs
+    ) {
+      j.status = QNTGOV_JOB_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getQuantizationGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(QNTGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _qntgovPsV2.values()) profilesByStatus[p.status]++;
+  const jobsByStatus = {};
+  for (const v of Object.values(QNTGOV_JOB_LIFECYCLE_V2)) jobsByStatus[v] = 0;
+  for (const j of _qntgovJsV2.values()) jobsByStatus[j.status]++;
+  return {
+    totalQntgovProfilesV2: _qntgovPsV2.size,
+    totalQntgovJobsV2: _qntgovJsV2.size,
+    maxActiveQntgovProfilesPerOwner: _qntgovMaxActive,
+    maxPendingQntgovJobsPerProfile: _qntgovMaxPending,
+    qntgovProfileIdleMs: _qntgovIdleMs,
+    qntgovJobStuckMs: _qntgovStuckMs,
+    profilesByStatus,
+    jobsByStatus,
+  };
+}

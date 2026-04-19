@@ -788,3 +788,212 @@ export function registerPluginEcosystemCommand(program) {
   program.addCommand(eco);
   return eco;
 }
+
+// === Iter24 V2 governance overlay ===
+export function registerEcogovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "ecosystem");
+  if (!parent) return;
+  const L = async () => await import("../lib/plugin-ecosystem.js");
+  parent
+    .command("ecogov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.ECOGOV_PROFILE_MATURITY_V2,
+            installLifecycle: m.ECOGOV_INSTALL_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ecogov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveEcogovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingEcogovInstallsPerProfileV2(),
+            idleMs: m.getEcogovProfileIdleMsV2(),
+            stuckMs: m.getEcogovInstallStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ecogov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveEcogovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ecogov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingEcogovInstallsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ecogov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setEcogovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ecogov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setEcogovInstallStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ecogov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--category <v>", "category")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerEcogovProfileV2({ id, owner, category: o.category }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ecogov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateEcogovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ecogov-disable-v2 <id>")
+    .description("Disable profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).disableEcogovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ecogov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveEcogovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ecogov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchEcogovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ecogov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getEcogovProfileV2(id), null, 2));
+    });
+  parent
+    .command("ecogov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listEcogovProfilesV2(), null, 2));
+    });
+  parent
+    .command("ecogov-create-install-v2 <id> <profileId>")
+    .description("Create install")
+    .option("--version <v>", "version")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createEcogovInstallV2({ id, profileId, version: o.version }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ecogov-installing-install-v2 <id>")
+    .description("Mark install as installing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).installingEcogovInstallV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ecogov-complete-install-v2 <id>")
+    .description("Complete install")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeInstallEcogovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ecogov-fail-install-v2 <id> [reason]")
+    .description("Fail install")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failEcogovInstallV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("ecogov-cancel-install-v2 <id> [reason]")
+    .description("Cancel install")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelEcogovInstallV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("ecogov-get-install-v2 <id>")
+    .description("Get install")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getEcogovInstallV2(id), null, 2));
+    });
+  parent
+    .command("ecogov-list-installs-v2")
+    .description("List installs")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listEcogovInstallsV2(), null, 2));
+    });
+  parent
+    .command("ecogov-auto-disable-idle-v2")
+    .description("Auto-disable idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoDisableIdleEcogovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("ecogov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck installs")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckEcogovInstallsV2(), null, 2),
+      );
+    });
+  parent
+    .command("ecogov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getPluginEcosystemGovStatsV2(), null, 2),
+      );
+    });
+}

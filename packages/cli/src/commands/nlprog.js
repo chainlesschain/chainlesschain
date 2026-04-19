@@ -683,3 +683,228 @@ export function registerNlProgCommand(program) {
 
   program.addCommand(nlp);
 }
+
+// === Iter18 V2 governance overlay ===
+export function registerNlpgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "nlprog");
+  if (!parent) return;
+  const L = async () => await import("../lib/nl-programming.js");
+  parent
+    .command("nlpgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.NLPGOV_PROFILE_MATURITY_V2,
+            translationLifecycle: m.NLPGOV_TRANSLATION_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("nlpgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveNlpgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingNlpgovTranslationsPerProfileV2(),
+            idleMs: m.getNlpgovProfileIdleMsV2(),
+            stuckMs: m.getNlpgovTranslationStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("nlpgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveNlpgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("nlpgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingNlpgovTranslationsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("nlpgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setNlpgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("nlpgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setNlpgovTranslationStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("nlpgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--style <v>", "style")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerNlpgovProfileV2({ id, owner, style: o.style }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("nlpgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateNlpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("nlpgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleNlpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("nlpgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveNlpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("nlpgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchNlpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("nlpgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getNlpgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("nlpgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listNlpgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("nlpgov-create-translation-v2 <id> <profileId>")
+    .description("Create translation")
+    .option("--intent <v>", "intent")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createNlpgovTranslationV2({ id, profileId, intent: o.intent }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("nlpgov-translating-translation-v2 <id>")
+    .description("Mark translation as translating")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).translatingNlpgovTranslationV2(id), null, 2),
+      );
+    });
+  parent
+    .command("nlpgov-complete-translation-v2 <id>")
+    .description("Complete translation")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeTranslationNlpgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("nlpgov-fail-translation-v2 <id> [reason]")
+    .description("Fail translation")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify(
+          (await L()).failNlpgovTranslationV2(id, reason),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("nlpgov-cancel-translation-v2 <id> [reason]")
+    .description("Cancel translation")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify(
+          (await L()).cancelNlpgovTranslationV2(id, reason),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("nlpgov-get-translation-v2 <id>")
+    .description("Get translation")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).getNlpgovTranslationV2(id), null, 2),
+      );
+    });
+  parent
+    .command("nlpgov-list-translations-v2")
+    .description("List translations")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).listNlpgovTranslationsV2(), null, 2),
+      );
+    });
+  parent
+    .command("nlpgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleNlpgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("nlpgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck translations")
+    .action(async () => {
+      console.log(
+        JSON.stringify(
+          (await L()).autoFailStuckNlpgovTranslationsV2(),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("nlpgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getNlProgrammingGovStatsV2(), null, 2),
+      );
+    });
+}

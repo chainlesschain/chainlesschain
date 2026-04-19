@@ -918,3 +918,337 @@ export function _resetStateCgV2() {
   _cgAgentIdleMs = CG_DEFAULT_AGENT_IDLE_MS;
   _cgProposalStuckMs = CG_DEFAULT_PROPOSAL_STUCK_MS;
 }
+
+// =====================================================================
+// collaboration-governance V2 governance overlay (iter19)
+// =====================================================================
+export const COGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  ARCHIVED: "archived",
+});
+export const COGOV_DECISION_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  DELIBERATING: "deliberating",
+  DECIDED: "decided",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _cogovPTrans = new Map([
+  [
+    COGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      COGOV_PROFILE_MATURITY_V2.ACTIVE,
+      COGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    COGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      COGOV_PROFILE_MATURITY_V2.SUSPENDED,
+      COGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    COGOV_PROFILE_MATURITY_V2.SUSPENDED,
+    new Set([
+      COGOV_PROFILE_MATURITY_V2.ACTIVE,
+      COGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [COGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _cogovPTerminal = new Set([COGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _cogovJTrans = new Map([
+  [
+    COGOV_DECISION_LIFECYCLE_V2.QUEUED,
+    new Set([
+      COGOV_DECISION_LIFECYCLE_V2.DELIBERATING,
+      COGOV_DECISION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    COGOV_DECISION_LIFECYCLE_V2.DELIBERATING,
+    new Set([
+      COGOV_DECISION_LIFECYCLE_V2.DECIDED,
+      COGOV_DECISION_LIFECYCLE_V2.FAILED,
+      COGOV_DECISION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [COGOV_DECISION_LIFECYCLE_V2.DECIDED, new Set()],
+  [COGOV_DECISION_LIFECYCLE_V2.FAILED, new Set()],
+  [COGOV_DECISION_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _cogovPsV2 = new Map();
+const _cogovJsV2 = new Map();
+let _cogovMaxActive = 8,
+  _cogovMaxPending = 20,
+  _cogovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _cogovStuckMs = 60 * 1000;
+function _cogovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _cogovCheckP(from, to) {
+  const a = _cogovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid cogov profile transition ${from} → ${to}`);
+}
+function _cogovCheckJ(from, to) {
+  const a = _cogovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid cogov decision transition ${from} → ${to}`);
+}
+function _cogovCountActive(owner) {
+  let c = 0;
+  for (const p of _cogovPsV2.values())
+    if (p.owner === owner && p.status === COGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _cogovCountPending(profileId) {
+  let c = 0;
+  for (const j of _cogovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === COGOV_DECISION_LIFECYCLE_V2.QUEUED ||
+        j.status === COGOV_DECISION_LIFECYCLE_V2.DELIBERATING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveCogovProfilesPerOwnerV2(n) {
+  _cogovMaxActive = _cogovPos(n, "maxActiveCogovProfilesPerOwner");
+}
+export function getMaxActiveCogovProfilesPerOwnerV2() {
+  return _cogovMaxActive;
+}
+export function setMaxPendingCogovDecisionsPerProfileV2(n) {
+  _cogovMaxPending = _cogovPos(n, "maxPendingCogovDecisionsPerProfile");
+}
+export function getMaxPendingCogovDecisionsPerProfileV2() {
+  return _cogovMaxPending;
+}
+export function setCogovProfileIdleMsV2(n) {
+  _cogovIdleMs = _cogovPos(n, "cogovProfileIdleMs");
+}
+export function getCogovProfileIdleMsV2() {
+  return _cogovIdleMs;
+}
+export function setCogovDecisionStuckMsV2(n) {
+  _cogovStuckMs = _cogovPos(n, "cogovDecisionStuckMs");
+}
+export function getCogovDecisionStuckMsV2() {
+  return _cogovStuckMs;
+}
+export function _resetStateCollaborationGovernanceGovV2() {
+  _cogovPsV2.clear();
+  _cogovJsV2.clear();
+  _cogovMaxActive = 8;
+  _cogovMaxPending = 20;
+  _cogovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _cogovStuckMs = 60 * 1000;
+}
+export function registerCogovProfileV2({ id, owner, scope, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_cogovPsV2.has(id)) throw new Error(`cogov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    scope: scope || "team",
+    status: COGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _cogovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateCogovProfileV2(id) {
+  const p = _cogovPsV2.get(id);
+  if (!p) throw new Error(`cogov profile ${id} not found`);
+  const isInitial = p.status === COGOV_PROFILE_MATURITY_V2.PENDING;
+  _cogovCheckP(p.status, COGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _cogovCountActive(p.owner) >= _cogovMaxActive)
+    throw new Error(`max active cogov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = COGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function suspendCogovProfileV2(id) {
+  const p = _cogovPsV2.get(id);
+  if (!p) throw new Error(`cogov profile ${id} not found`);
+  _cogovCheckP(p.status, COGOV_PROFILE_MATURITY_V2.SUSPENDED);
+  p.status = COGOV_PROFILE_MATURITY_V2.SUSPENDED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveCogovProfileV2(id) {
+  const p = _cogovPsV2.get(id);
+  if (!p) throw new Error(`cogov profile ${id} not found`);
+  _cogovCheckP(p.status, COGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = COGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchCogovProfileV2(id) {
+  const p = _cogovPsV2.get(id);
+  if (!p) throw new Error(`cogov profile ${id} not found`);
+  if (_cogovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal cogov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getCogovProfileV2(id) {
+  const p = _cogovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listCogovProfilesV2() {
+  return [..._cogovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createCogovDecisionV2({ id, profileId, topic, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_cogovJsV2.has(id))
+    throw new Error(`cogov decision ${id} already exists`);
+  if (!_cogovPsV2.has(profileId))
+    throw new Error(`cogov profile ${profileId} not found`);
+  if (_cogovCountPending(profileId) >= _cogovMaxPending)
+    throw new Error(
+      `max pending cogov decisions for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    topic: topic || "",
+    status: COGOV_DECISION_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _cogovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function deliberatingCogovDecisionV2(id) {
+  const j = _cogovJsV2.get(id);
+  if (!j) throw new Error(`cogov decision ${id} not found`);
+  _cogovCheckJ(j.status, COGOV_DECISION_LIFECYCLE_V2.DELIBERATING);
+  const now = Date.now();
+  j.status = COGOV_DECISION_LIFECYCLE_V2.DELIBERATING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeDecisionCogovV2(id) {
+  const j = _cogovJsV2.get(id);
+  if (!j) throw new Error(`cogov decision ${id} not found`);
+  _cogovCheckJ(j.status, COGOV_DECISION_LIFECYCLE_V2.DECIDED);
+  const now = Date.now();
+  j.status = COGOV_DECISION_LIFECYCLE_V2.DECIDED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failCogovDecisionV2(id, reason) {
+  const j = _cogovJsV2.get(id);
+  if (!j) throw new Error(`cogov decision ${id} not found`);
+  _cogovCheckJ(j.status, COGOV_DECISION_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = COGOV_DECISION_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelCogovDecisionV2(id, reason) {
+  const j = _cogovJsV2.get(id);
+  if (!j) throw new Error(`cogov decision ${id} not found`);
+  _cogovCheckJ(j.status, COGOV_DECISION_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = COGOV_DECISION_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getCogovDecisionV2(id) {
+  const j = _cogovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listCogovDecisionsV2() {
+  return [..._cogovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoSuspendIdleCogovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _cogovPsV2.values())
+    if (
+      p.status === COGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _cogovIdleMs
+    ) {
+      p.status = COGOV_PROFILE_MATURITY_V2.SUSPENDED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckCogovDecisionsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _cogovJsV2.values())
+    if (
+      j.status === COGOV_DECISION_LIFECYCLE_V2.DELIBERATING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _cogovStuckMs
+    ) {
+      j.status = COGOV_DECISION_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getCollaborationGovernanceGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(COGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _cogovPsV2.values()) profilesByStatus[p.status]++;
+  const decisionsByStatus = {};
+  for (const v of Object.values(COGOV_DECISION_LIFECYCLE_V2))
+    decisionsByStatus[v] = 0;
+  for (const j of _cogovJsV2.values()) decisionsByStatus[j.status]++;
+  return {
+    totalCogovProfilesV2: _cogovPsV2.size,
+    totalCogovDecisionsV2: _cogovJsV2.size,
+    maxActiveCogovProfilesPerOwner: _cogovMaxActive,
+    maxPendingCogovDecisionsPerProfile: _cogovMaxPending,
+    cogovProfileIdleMs: _cogovIdleMs,
+    cogovDecisionStuckMs: _cogovStuckMs,
+    profilesByStatus,
+    decisionsByStatus,
+  };
+}

@@ -483,3 +483,212 @@ export function registerHookCommand(program) {
     console.log(JSON.stringify({ ok: true }, null, 2));
   });
 }
+
+// === Iter21 V2 governance overlay ===
+export function registerHookgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "hook");
+  if (!parent) return;
+  const L = async () => await import("../lib/hook-manager.js");
+  parent
+    .command("hookgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.HOOKGOV_PROFILE_MATURITY_V2,
+            triggerLifecycle: m.HOOKGOV_TRIGGER_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("hookgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveHookgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingHookgovTriggersPerProfileV2(),
+            idleMs: m.getHookgovProfileIdleMsV2(),
+            stuckMs: m.getHookgovTriggerStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("hookgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveHookgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("hookgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingHookgovTriggersPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("hookgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setHookgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("hookgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setHookgovTriggerStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("hookgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--event <v>", "event")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerHookgovProfileV2({ id, owner, event: o.event }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("hookgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateHookgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hookgov-disable-v2 <id>")
+    .description("Disable profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).disableHookgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hookgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveHookgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hookgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchHookgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hookgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getHookgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("hookgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listHookgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("hookgov-create-trigger-v2 <id> <profileId>")
+    .description("Create trigger")
+    .option("--payload <v>", "payload")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createHookgovTriggerV2({ id, profileId, payload: o.payload }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("hookgov-firing-trigger-v2 <id>")
+    .description("Mark trigger as firing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).firingHookgovTriggerV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hookgov-complete-trigger-v2 <id>")
+    .description("Complete trigger")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeTriggerHookgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hookgov-fail-trigger-v2 <id> [reason]")
+    .description("Fail trigger")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failHookgovTriggerV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("hookgov-cancel-trigger-v2 <id> [reason]")
+    .description("Cancel trigger")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelHookgovTriggerV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("hookgov-get-trigger-v2 <id>")
+    .description("Get trigger")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getHookgovTriggerV2(id), null, 2));
+    });
+  parent
+    .command("hookgov-list-triggers-v2")
+    .description("List triggers")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listHookgovTriggersV2(), null, 2));
+    });
+  parent
+    .command("hookgov-auto-disable-idle-v2")
+    .description("Auto-disable idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoDisableIdleHookgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("hookgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck triggers")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckHookgovTriggersV2(), null, 2),
+      );
+    });
+  parent
+    .command("hookgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getHookManagerGovStatsV2(), null, 2),
+      );
+    });
+}

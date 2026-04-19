@@ -1469,3 +1469,204 @@ export function registerSocialCommand(program) {
     console.log(JSON.stringify({ ok: true }, null, 2));
   });
 }
+
+// === Iter22 V2 governance overlay ===
+export function registerSmgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "social");
+  if (!parent) return;
+  const L = async () => await import("../lib/social-manager.js");
+  parent
+    .command("smgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.SMGOV_PROFILE_MATURITY_V2,
+            postLifecycle: m.SMGOV_POST_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("smgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveSmgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingSmgovPostsPerProfileV2(),
+            idleMs: m.getSmgovProfileIdleMsV2(),
+            stuckMs: m.getSmgovPostStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("smgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveSmgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("smgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingSmgovPostsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("smgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setSmgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("smgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setSmgovPostStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("smgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--channel <v>", "channel")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerSmgovProfileV2({ id, owner, channel: o.channel }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("smgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateSmgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("smgov-mute-v2 <id>")
+    .description("Mute profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).muteSmgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("smgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveSmgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("smgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchSmgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("smgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getSmgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("smgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listSmgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("smgov-create-post-v2 <id> <profileId>")
+    .description("Create post")
+    .option("--author <v>", "author")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createSmgovPostV2({ id, profileId, author: o.author }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("smgov-posting-post-v2 <id>")
+    .description("Mark post as posting")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).postingSmgovPostV2(id), null, 2));
+    });
+  parent
+    .command("smgov-complete-post-v2 <id>")
+    .description("Complete post")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completePostSmgovV2(id), null, 2));
+    });
+  parent
+    .command("smgov-fail-post-v2 <id> [reason]")
+    .description("Fail post")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failSmgovPostV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("smgov-cancel-post-v2 <id> [reason]")
+    .description("Cancel post")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelSmgovPostV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("smgov-get-post-v2 <id>")
+    .description("Get post")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getSmgovPostV2(id), null, 2));
+    });
+  parent
+    .command("smgov-list-posts-v2")
+    .description("List posts")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listSmgovPostsV2(), null, 2));
+    });
+  parent
+    .command("smgov-auto-mute-idle-v2")
+    .description("Auto-mute idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoMuteIdleSmgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("smgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck posts")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckSmgovPostsV2(), null, 2),
+      );
+    });
+  parent
+    .command("smgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getSocialManagerGovStatsV2(), null, 2),
+      );
+    });
+}

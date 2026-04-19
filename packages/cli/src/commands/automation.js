@@ -922,3 +922,204 @@ function _wire(root) {
     .description("Auto-fail stuck V2 executions")
     .action(() => outV2(autoFailStuckExecutionsV2()));
 }
+
+// === Iter22 V2 governance overlay ===
+export function registerAugovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "automation");
+  if (!parent) return;
+  const L = async () => await import("../lib/automation-engine.js");
+  parent
+    .command("augov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.AUGOV_PROFILE_MATURITY_V2,
+            flowLifecycle: m.AUGOV_FLOW_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("augov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveAugovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingAugovFlowsPerProfileV2(),
+            idleMs: m.getAugovProfileIdleMsV2(),
+            stuckMs: m.getAugovFlowStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("augov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveAugovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("augov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingAugovFlowsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("augov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setAugovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("augov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setAugovFlowStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("augov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--connector <v>", "connector")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerAugovProfileV2({ id, owner, connector: o.connector }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("augov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateAugovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("augov-pause-v2 <id>")
+    .description("Pause profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).pauseAugovProfileV2(id), null, 2));
+    });
+  parent
+    .command("augov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveAugovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("augov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchAugovProfileV2(id), null, 2));
+    });
+  parent
+    .command("augov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getAugovProfileV2(id), null, 2));
+    });
+  parent
+    .command("augov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listAugovProfilesV2(), null, 2));
+    });
+  parent
+    .command("augov-create-flow-v2 <id> <profileId>")
+    .description("Create flow")
+    .option("--trigger <v>", "trigger")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createAugovFlowV2({ id, profileId, trigger: o.trigger }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("augov-running-flow-v2 <id>")
+    .description("Mark flow as running")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).runningAugovFlowV2(id), null, 2));
+    });
+  parent
+    .command("augov-complete-flow-v2 <id>")
+    .description("Complete flow")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completeFlowAugovV2(id), null, 2));
+    });
+  parent
+    .command("augov-fail-flow-v2 <id> [reason]")
+    .description("Fail flow")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failAugovFlowV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("augov-cancel-flow-v2 <id> [reason]")
+    .description("Cancel flow")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelAugovFlowV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("augov-get-flow-v2 <id>")
+    .description("Get flow")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getAugovFlowV2(id), null, 2));
+    });
+  parent
+    .command("augov-list-flows-v2")
+    .description("List flows")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listAugovFlowsV2(), null, 2));
+    });
+  parent
+    .command("augov-auto-pause-idle-v2")
+    .description("Auto-pause idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoPauseIdleAugovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("augov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck flows")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckAugovFlowsV2(), null, 2),
+      );
+    });
+  parent
+    .command("augov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getAutomationEngineGovStatsV2(), null, 2),
+      );
+    });
+}

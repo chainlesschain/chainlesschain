@@ -785,3 +785,342 @@ export function getMatrixBridgeStatsV2() {
     msgsByStatus,
   };
 }
+
+// =====================================================================
+// matrix-bridge V2 governance overlay (iter21)
+// =====================================================================
+export const MATGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  ARCHIVED: "archived",
+});
+export const MATGOV_SEND_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  SENDING: "sending",
+  SENT: "sent",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _matgovPTrans = new Map([
+  [
+    MATGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      MATGOV_PROFILE_MATURITY_V2.ACTIVE,
+      MATGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    MATGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      MATGOV_PROFILE_MATURITY_V2.SUSPENDED,
+      MATGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    MATGOV_PROFILE_MATURITY_V2.SUSPENDED,
+    new Set([
+      MATGOV_PROFILE_MATURITY_V2.ACTIVE,
+      MATGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [MATGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _matgovPTerminal = new Set([MATGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _matgovJTrans = new Map([
+  [
+    MATGOV_SEND_LIFECYCLE_V2.QUEUED,
+    new Set([
+      MATGOV_SEND_LIFECYCLE_V2.SENDING,
+      MATGOV_SEND_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    MATGOV_SEND_LIFECYCLE_V2.SENDING,
+    new Set([
+      MATGOV_SEND_LIFECYCLE_V2.SENT,
+      MATGOV_SEND_LIFECYCLE_V2.FAILED,
+      MATGOV_SEND_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [MATGOV_SEND_LIFECYCLE_V2.SENT, new Set()],
+  [MATGOV_SEND_LIFECYCLE_V2.FAILED, new Set()],
+  [MATGOV_SEND_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _matgovPsV2 = new Map();
+const _matgovJsV2 = new Map();
+let _matgovMaxActive = 6,
+  _matgovMaxPending = 20,
+  _matgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _matgovStuckMs = 60 * 1000;
+function _matgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _matgovCheckP(from, to) {
+  const a = _matgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid matgov profile transition ${from} → ${to}`);
+}
+function _matgovCheckJ(from, to) {
+  const a = _matgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid matgov send transition ${from} → ${to}`);
+}
+function _matgovCountActive(owner) {
+  let c = 0;
+  for (const p of _matgovPsV2.values())
+    if (p.owner === owner && p.status === MATGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _matgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _matgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === MATGOV_SEND_LIFECYCLE_V2.QUEUED ||
+        j.status === MATGOV_SEND_LIFECYCLE_V2.SENDING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveMatgovProfilesPerOwnerV2(n) {
+  _matgovMaxActive = _matgovPos(n, "maxActiveMatgovProfilesPerOwner");
+}
+export function getMaxActiveMatgovProfilesPerOwnerV2() {
+  return _matgovMaxActive;
+}
+export function setMaxPendingMatgovSendsPerProfileV2(n) {
+  _matgovMaxPending = _matgovPos(n, "maxPendingMatgovSendsPerProfile");
+}
+export function getMaxPendingMatgovSendsPerProfileV2() {
+  return _matgovMaxPending;
+}
+export function setMatgovProfileIdleMsV2(n) {
+  _matgovIdleMs = _matgovPos(n, "matgovProfileIdleMs");
+}
+export function getMatgovProfileIdleMsV2() {
+  return _matgovIdleMs;
+}
+export function setMatgovSendStuckMsV2(n) {
+  _matgovStuckMs = _matgovPos(n, "matgovSendStuckMs");
+}
+export function getMatgovSendStuckMsV2() {
+  return _matgovStuckMs;
+}
+export function _resetStateMatrixBridgeGovV2() {
+  _matgovPsV2.clear();
+  _matgovJsV2.clear();
+  _matgovMaxActive = 6;
+  _matgovMaxPending = 20;
+  _matgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _matgovStuckMs = 60 * 1000;
+}
+export function registerMatgovProfileV2({
+  id,
+  owner,
+  homeserver,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_matgovPsV2.has(id))
+    throw new Error(`matgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    homeserver: homeserver || "matrix.org",
+    status: MATGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _matgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateMatgovProfileV2(id) {
+  const p = _matgovPsV2.get(id);
+  if (!p) throw new Error(`matgov profile ${id} not found`);
+  const isInitial = p.status === MATGOV_PROFILE_MATURITY_V2.PENDING;
+  _matgovCheckP(p.status, MATGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _matgovCountActive(p.owner) >= _matgovMaxActive)
+    throw new Error(`max active matgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = MATGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function suspendMatgovProfileV2(id) {
+  const p = _matgovPsV2.get(id);
+  if (!p) throw new Error(`matgov profile ${id} not found`);
+  _matgovCheckP(p.status, MATGOV_PROFILE_MATURITY_V2.SUSPENDED);
+  p.status = MATGOV_PROFILE_MATURITY_V2.SUSPENDED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveMatgovProfileV2(id) {
+  const p = _matgovPsV2.get(id);
+  if (!p) throw new Error(`matgov profile ${id} not found`);
+  _matgovCheckP(p.status, MATGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = MATGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchMatgovProfileV2(id) {
+  const p = _matgovPsV2.get(id);
+  if (!p) throw new Error(`matgov profile ${id} not found`);
+  if (_matgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal matgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getMatgovProfileV2(id) {
+  const p = _matgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listMatgovProfilesV2() {
+  return [..._matgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createMatgovSendV2({ id, profileId, room, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_matgovJsV2.has(id)) throw new Error(`matgov send ${id} already exists`);
+  if (!_matgovPsV2.has(profileId))
+    throw new Error(`matgov profile ${profileId} not found`);
+  if (_matgovCountPending(profileId) >= _matgovMaxPending)
+    throw new Error(
+      `max pending matgov sends for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    room: room || "",
+    status: MATGOV_SEND_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _matgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function sendingMatgovSendV2(id) {
+  const j = _matgovJsV2.get(id);
+  if (!j) throw new Error(`matgov send ${id} not found`);
+  _matgovCheckJ(j.status, MATGOV_SEND_LIFECYCLE_V2.SENDING);
+  const now = Date.now();
+  j.status = MATGOV_SEND_LIFECYCLE_V2.SENDING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeSendMatgovV2(id) {
+  const j = _matgovJsV2.get(id);
+  if (!j) throw new Error(`matgov send ${id} not found`);
+  _matgovCheckJ(j.status, MATGOV_SEND_LIFECYCLE_V2.SENT);
+  const now = Date.now();
+  j.status = MATGOV_SEND_LIFECYCLE_V2.SENT;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failMatgovSendV2(id, reason) {
+  const j = _matgovJsV2.get(id);
+  if (!j) throw new Error(`matgov send ${id} not found`);
+  _matgovCheckJ(j.status, MATGOV_SEND_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = MATGOV_SEND_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelMatgovSendV2(id, reason) {
+  const j = _matgovJsV2.get(id);
+  if (!j) throw new Error(`matgov send ${id} not found`);
+  _matgovCheckJ(j.status, MATGOV_SEND_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = MATGOV_SEND_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getMatgovSendV2(id) {
+  const j = _matgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listMatgovSendsV2() {
+  return [..._matgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoSuspendIdleMatgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _matgovPsV2.values())
+    if (
+      p.status === MATGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _matgovIdleMs
+    ) {
+      p.status = MATGOV_PROFILE_MATURITY_V2.SUSPENDED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckMatgovSendsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _matgovJsV2.values())
+    if (
+      j.status === MATGOV_SEND_LIFECYCLE_V2.SENDING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _matgovStuckMs
+    ) {
+      j.status = MATGOV_SEND_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getMatrixBridgeGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(MATGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _matgovPsV2.values()) profilesByStatus[p.status]++;
+  const sendsByStatus = {};
+  for (const v of Object.values(MATGOV_SEND_LIFECYCLE_V2)) sendsByStatus[v] = 0;
+  for (const j of _matgovJsV2.values()) sendsByStatus[j.status]++;
+  return {
+    totalMatgovProfilesV2: _matgovPsV2.size,
+    totalMatgovSendsV2: _matgovJsV2.size,
+    maxActiveMatgovProfilesPerOwner: _matgovMaxActive,
+    maxPendingMatgovSendsPerProfile: _matgovMaxPending,
+    matgovProfileIdleMs: _matgovIdleMs,
+    matgovSendStuckMs: _matgovStuckMs,
+    profilesByStatus,
+    sendsByStatus,
+  };
+}

@@ -828,3 +828,212 @@ export function registerGovernanceCommand(program) {
       console.log(JSON.stringify(getGovernanceStatsV2(), null, 2));
     });
 }
+
+// === Iter19 V2 governance overlay ===
+export function registerCommgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "governance");
+  if (!parent) return;
+  const L = async () => await import("../lib/community-governance.js");
+  parent
+    .command("commgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.COMMGOV_PROFILE_MATURITY_V2,
+            motionLifecycle: m.COMMGOV_MOTION_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("commgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveCommgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingCommgovMotionsPerProfileV2(),
+            idleMs: m.getCommgovProfileIdleMsV2(),
+            stuckMs: m.getCommgovMotionStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("commgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveCommgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("commgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingCommgovMotionsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("commgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setCommgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("commgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setCommgovMotionStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("commgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--chamber <v>", "chamber")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerCommgovProfileV2({ id, owner, chamber: o.chamber }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("commgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateCommgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("commgov-pause-v2 <id>")
+    .description("Pause profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).pauseCommgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("commgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveCommgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("commgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchCommgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("commgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCommgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("commgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCommgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("commgov-create-motion-v2 <id> <profileId>")
+    .description("Create motion")
+    .option("--subject <v>", "subject")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createCommgovMotionV2({ id, profileId, subject: o.subject }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("commgov-voting-motion-v2 <id>")
+    .description("Mark motion as voting")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).votingCommgovMotionV2(id), null, 2),
+      );
+    });
+  parent
+    .command("commgov-complete-motion-v2 <id>")
+    .description("Complete motion")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeMotionCommgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("commgov-fail-motion-v2 <id> [reason]")
+    .description("Fail motion")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failCommgovMotionV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("commgov-cancel-motion-v2 <id> [reason]")
+    .description("Cancel motion")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelCommgovMotionV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("commgov-get-motion-v2 <id>")
+    .description("Get motion")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getCommgovMotionV2(id), null, 2));
+    });
+  parent
+    .command("commgov-list-motions-v2")
+    .description("List motions")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listCommgovMotionsV2(), null, 2));
+    });
+  parent
+    .command("commgov-auto-pause-idle-v2")
+    .description("Auto-pause idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoPauseIdleCommgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("commgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck motions")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckCommgovMotionsV2(), null, 2),
+      );
+    });
+  parent
+    .command("commgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getCommunityGovernanceGovStatsV2(), null, 2),
+      );
+    });
+}

@@ -950,3 +950,341 @@ export function _resetStateV2() {
   _pfBridgeIdleMs = PF_DEFAULT_BRIDGE_IDLE_MS;
   _pfTranslationStuckMs = PF_DEFAULT_TRANSLATION_STUCK_MS;
 }
+
+// =====================================================================
+// protocol-fusion V2 governance overlay (iter23)
+// =====================================================================
+export const PFGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  DEGRADED: "degraded",
+  ARCHIVED: "archived",
+});
+export const PFGOV_ROUTE_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  ROUTING: "routing",
+  ROUTED: "routed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _pfgovPTrans = new Map([
+  [
+    PFGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      PFGOV_PROFILE_MATURITY_V2.ACTIVE,
+      PFGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    PFGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      PFGOV_PROFILE_MATURITY_V2.DEGRADED,
+      PFGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    PFGOV_PROFILE_MATURITY_V2.DEGRADED,
+    new Set([
+      PFGOV_PROFILE_MATURITY_V2.ACTIVE,
+      PFGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [PFGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _pfgovPTerminal = new Set([PFGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _pfgovJTrans = new Map([
+  [
+    PFGOV_ROUTE_LIFECYCLE_V2.QUEUED,
+    new Set([
+      PFGOV_ROUTE_LIFECYCLE_V2.ROUTING,
+      PFGOV_ROUTE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    PFGOV_ROUTE_LIFECYCLE_V2.ROUTING,
+    new Set([
+      PFGOV_ROUTE_LIFECYCLE_V2.ROUTED,
+      PFGOV_ROUTE_LIFECYCLE_V2.FAILED,
+      PFGOV_ROUTE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [PFGOV_ROUTE_LIFECYCLE_V2.ROUTED, new Set()],
+  [PFGOV_ROUTE_LIFECYCLE_V2.FAILED, new Set()],
+  [PFGOV_ROUTE_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _pfgovPsV2 = new Map();
+const _pfgovJsV2 = new Map();
+let _pfgovMaxActive = 6,
+  _pfgovMaxPending = 15,
+  _pfgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _pfgovStuckMs = 60 * 1000;
+function _pfgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _pfgovCheckP(from, to) {
+  const a = _pfgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid pfgov profile transition ${from} → ${to}`);
+}
+function _pfgovCheckJ(from, to) {
+  const a = _pfgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid pfgov route transition ${from} → ${to}`);
+}
+function _pfgovCountActive(owner) {
+  let c = 0;
+  for (const p of _pfgovPsV2.values())
+    if (p.owner === owner && p.status === PFGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _pfgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _pfgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === PFGOV_ROUTE_LIFECYCLE_V2.QUEUED ||
+        j.status === PFGOV_ROUTE_LIFECYCLE_V2.ROUTING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActivePfgovProfilesPerOwnerV2(n) {
+  _pfgovMaxActive = _pfgovPos(n, "maxActivePfgovProfilesPerOwner");
+}
+export function getMaxActivePfgovProfilesPerOwnerV2() {
+  return _pfgovMaxActive;
+}
+export function setMaxPendingPfgovRoutesPerProfileV2(n) {
+  _pfgovMaxPending = _pfgovPos(n, "maxPendingPfgovRoutesPerProfile");
+}
+export function getMaxPendingPfgovRoutesPerProfileV2() {
+  return _pfgovMaxPending;
+}
+export function setPfgovProfileIdleMsV2(n) {
+  _pfgovIdleMs = _pfgovPos(n, "pfgovProfileIdleMs");
+}
+export function getPfgovProfileIdleMsV2() {
+  return _pfgovIdleMs;
+}
+export function setPfgovRouteStuckMsV2(n) {
+  _pfgovStuckMs = _pfgovPos(n, "pfgovRouteStuckMs");
+}
+export function getPfgovRouteStuckMsV2() {
+  return _pfgovStuckMs;
+}
+export function _resetStateProtocolFusionGovV2() {
+  _pfgovPsV2.clear();
+  _pfgovJsV2.clear();
+  _pfgovMaxActive = 6;
+  _pfgovMaxPending = 15;
+  _pfgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _pfgovStuckMs = 60 * 1000;
+}
+export function registerPfgovProfileV2({ id, owner, protocol, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_pfgovPsV2.has(id)) throw new Error(`pfgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    protocol: protocol || "hybrid",
+    status: PFGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _pfgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activatePfgovProfileV2(id) {
+  const p = _pfgovPsV2.get(id);
+  if (!p) throw new Error(`pfgov profile ${id} not found`);
+  const isInitial = p.status === PFGOV_PROFILE_MATURITY_V2.PENDING;
+  _pfgovCheckP(p.status, PFGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _pfgovCountActive(p.owner) >= _pfgovMaxActive)
+    throw new Error(`max active pfgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = PFGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function degradePfgovProfileV2(id) {
+  const p = _pfgovPsV2.get(id);
+  if (!p) throw new Error(`pfgov profile ${id} not found`);
+  _pfgovCheckP(p.status, PFGOV_PROFILE_MATURITY_V2.DEGRADED);
+  p.status = PFGOV_PROFILE_MATURITY_V2.DEGRADED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archivePfgovProfileV2(id) {
+  const p = _pfgovPsV2.get(id);
+  if (!p) throw new Error(`pfgov profile ${id} not found`);
+  _pfgovCheckP(p.status, PFGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = PFGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchPfgovProfileV2(id) {
+  const p = _pfgovPsV2.get(id);
+  if (!p) throw new Error(`pfgov profile ${id} not found`);
+  if (_pfgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal pfgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getPfgovProfileV2(id) {
+  const p = _pfgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listPfgovProfilesV2() {
+  return [..._pfgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createPfgovRouteV2({
+  id,
+  profileId,
+  destination,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_pfgovJsV2.has(id)) throw new Error(`pfgov route ${id} already exists`);
+  if (!_pfgovPsV2.has(profileId))
+    throw new Error(`pfgov profile ${profileId} not found`);
+  if (_pfgovCountPending(profileId) >= _pfgovMaxPending)
+    throw new Error(
+      `max pending pfgov routes for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    destination: destination || "",
+    status: PFGOV_ROUTE_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _pfgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function routingPfgovRouteV2(id) {
+  const j = _pfgovJsV2.get(id);
+  if (!j) throw new Error(`pfgov route ${id} not found`);
+  _pfgovCheckJ(j.status, PFGOV_ROUTE_LIFECYCLE_V2.ROUTING);
+  const now = Date.now();
+  j.status = PFGOV_ROUTE_LIFECYCLE_V2.ROUTING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeRoutePfgovV2(id) {
+  const j = _pfgovJsV2.get(id);
+  if (!j) throw new Error(`pfgov route ${id} not found`);
+  _pfgovCheckJ(j.status, PFGOV_ROUTE_LIFECYCLE_V2.ROUTED);
+  const now = Date.now();
+  j.status = PFGOV_ROUTE_LIFECYCLE_V2.ROUTED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failPfgovRouteV2(id, reason) {
+  const j = _pfgovJsV2.get(id);
+  if (!j) throw new Error(`pfgov route ${id} not found`);
+  _pfgovCheckJ(j.status, PFGOV_ROUTE_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = PFGOV_ROUTE_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelPfgovRouteV2(id, reason) {
+  const j = _pfgovJsV2.get(id);
+  if (!j) throw new Error(`pfgov route ${id} not found`);
+  _pfgovCheckJ(j.status, PFGOV_ROUTE_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = PFGOV_ROUTE_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getPfgovRouteV2(id) {
+  const j = _pfgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listPfgovRoutesV2() {
+  return [..._pfgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoDegradeIdlePfgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _pfgovPsV2.values())
+    if (
+      p.status === PFGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _pfgovIdleMs
+    ) {
+      p.status = PFGOV_PROFILE_MATURITY_V2.DEGRADED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckPfgovRoutesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _pfgovJsV2.values())
+    if (
+      j.status === PFGOV_ROUTE_LIFECYCLE_V2.ROUTING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _pfgovStuckMs
+    ) {
+      j.status = PFGOV_ROUTE_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getProtocolFusionGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(PFGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _pfgovPsV2.values()) profilesByStatus[p.status]++;
+  const routesByStatus = {};
+  for (const v of Object.values(PFGOV_ROUTE_LIFECYCLE_V2))
+    routesByStatus[v] = 0;
+  for (const j of _pfgovJsV2.values()) routesByStatus[j.status]++;
+  return {
+    totalPfgovProfilesV2: _pfgovPsV2.size,
+    totalPfgovRoutesV2: _pfgovJsV2.size,
+    maxActivePfgovProfilesPerOwner: _pfgovMaxActive,
+    maxPendingPfgovRoutesPerProfile: _pfgovMaxPending,
+    pfgovProfileIdleMs: _pfgovIdleMs,
+    pfgovRouteStuckMs: _pfgovStuckMs,
+    profilesByStatus,
+    routesByStatus,
+  };
+}

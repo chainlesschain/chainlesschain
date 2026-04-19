@@ -1,8 +1,10 @@
 # 96. V2 规范层（Governance Layer）设计说明
 
-> 本文档记录 CLI 侧 V2 规范层的统一设计模式与第 1-10 批累计 92+ 个治理表面的分类概览。
+> 本文档记录 CLI 侧 V2 规范层的统一设计模式与第 1-10 批 + iter11-iter21 累计 156+ 个治理表面的分类概览。
 >
 > **定位**：在遗留运行态（SQLite 表 / 文件态 / 内存单例 / 传输层）之上引入纯内存 governance 层，严格增量，与 legacy 路径零冲突，便于灰度与回滚。
+>
+> **最近更新**（2026-04-19）：iter16-iter21 在已有 92+ 表面之上再叠加 64+ lib 级治理表面，覆盖审计 / 知识图谱 / 沙箱 / SLA / 压测 / Terraform / 信誉 / 市场 / 聊天 / Claude Code 桥 / 合规 / 协作学习 / 协作工作流 / 隐私计算 / 代币激励 / 加固 / AIOps / 多模态 / 直觉 / 租户 / 量化 / 信任 / NL 编程 / 感知 / 代码 Agent / 协作治理 / 社区治理 / DID / SSO / 组织 / SCIM / 同步 / Agent 网络 / 浏览自动化 / DLP / EvoMap / 联邦加固 / IPFS / P2P / 钱包 / ActivityPub / Matrix / Nostr / BI / 记忆 / 会话 / Hook / Workflow。每个 lib 表面 44 个 V2 单测，统一遵循 4-state profile maturity + 5-state record lifecycle + auto-suspend-idle + auto-fail-stuck 模式。
 
 ---
 
@@ -167,6 +169,32 @@ SSO Manager V2、Workflow Engine V2、Crypto Manager V2。
 
 **第十批累计新增**: 704 V2 单元测试。命令层多数新增 top-level（`cc orchgov`、`cc itbudget`、`cc topiccls`、`cc hmemory`、`cc autoagent`、`cc pipeline`、`cc evolution`、`cc economy`、`cc inference`、`cc lowcode`、`cc siem`、`cc git`），少数挂到现有命令（`cc perf *-v2` appended、`cc recommend cr-*-v2`、`cc compliance fwrep-*-v2`、`cc cowork runner-*-v2`）以避免冲突。
 
+### iter16（基础设施治理 lib · 8 个）
+
+`audit-logger`（`cc audit aud-gov-*-v2`）、`knowledge-graph`（`cc kg kgov-*-v2`）、`sandbox-v2`（`cc sandbox sbox-gov-*-v2`）、`sla-manager`（`cc sla slagov-*-v2`）、`stress-tester`（`cc stress strgov-*-v2`）、`terraform-manager`（`cc terraform tfgov-*-v2`）、`reputation-optimizer`（`cc reputation repgov-*-v2`）、`skill-marketplace`（`cc marketplace mktgov-*-v2`）。统一 4-state profile（archived 终态、衰减→active 恢复）+ 5-state lifecycle（3 终态）；每个表面 44 V2 单测；caps 8/30 / 6/20 / 6/12 等按场景配置。
+
+### iter17（chat / 桥接 / 合规 / 学习 / 隐私治理 lib · 8 个）
+
+`chat-core`（`cc chat chatgov-*-v2`）、`claude-code-bridge`（`cc orchestrate ccbgov-*-v2`）、`compliance-manager`（`cc compliance cmgr-*-v2`）、`cowork-learning`（`cc cowork learn-*-v2`）、`cowork-workflow`（`cc cowork cwwf-*-v2`）、`privacy-computing`（`cc privacy pcgov-*-v2`）、`token-incentive`（`cc incentive incgov-*-v2`）、`hardening-manager`（`cc hardening hardgov-*-v2`）。每表面 44 V2 单测，与 legacy 路径完全零交集，命令前缀按避免与 iter15 之前已存在的 `*-v2` 命令冲突原则选择。
+
+### iter18（运维 / 多模态 / 直觉 / 租户 / 量化 / 信任治理 lib · 8 个）
+
+`aiops`（`cc ops aiopsgov-*-v2`）、`multimodal`（`cc multimodal mmgov-*-v2`）、`instinct-manager`（`cc instinct instgov-*-v2`）、`tenant-saas`（`cc tenant tnsgov-*-v2`）、`quantization`（`cc quantize qntgov-*-v2`）、`trust-security`（`cc trust trustgov-*-v2`）、`nl-programming`（`cc nlprog nlpgov-*-v2`）、`perception`（`cc perception percgov-*-v2`）。每表面 44 V2 单测；多数与已有 V2 surface 共存（如 Playbook / Remediation / Session / Artifact / Sensor 等）。
+
+### iter19（身份 / SSO / 组织 / SCIM / 同步 / 代码 Agent / 协作治理 lib · 8 个）
+
+`code-agent`（`cc codegen cdagov-*-v2`）、`collaboration-governance`（`cc collab cogov-*-v2`）、`community-governance`（`cc governance commgov-*-v2`）、`did-manager`（`cc did didgov-*-v2`）、`sso-manager`（`cc sso ssogov-*-v2`）、`org-manager`（`cc org orggov-*-v2`）、`scim-manager`（`cc scim scimgov-*-v2`）、`sync-manager`（`cc sync syncgov-*-v2`）。每表面 44 V2 单测。
+
+### iter20（Agent 网络 / 浏览 / DLP / EvoMap / 联邦 / IPFS / P2P / 钱包 lib · 8 个）
+
+`agent-network`（`cc agent-network anetgov-*-v2`）、`browser-automation`（`cc browse bagov-*-v2`）、`dlp-engine`（`cc dlp dlpgov-*-v2`）、`evomap-governance`（`cc evomap evgov-*-v2`）、`federation-hardening`（`cc federation fedgov-*-v2`）、`ipfs-storage`（`cc ipfs ipfsgov-*-v2`）、`p2p-manager`（`cc p2p p2pgov-*-v2`）、`wallet-manager`（`cc wallet walgov-*-v2`）。每表面 44 V2 单测。
+
+### iter21（社交桥 / BI / 记忆 / 会话 / Hook / Workflow lib · 8 个）
+
+`activitypub-bridge`（`cc activitypub apgov-*-v2`）、`matrix-bridge`（`cc matrix matgov-*-v2`）、`nostr-bridge`（`cc nostr nosgov-*-v2`）、`bi-engine`（`cc bi bigov-*-v2`）、`memory-manager`（`cc memory memgov-*-v2`）、`session-manager`（`cc session sesgov-*-v2`）、`hook-manager`（`cc hook hookgov-*-v2`）、`workflow-engine`（`cc workflow wfgov-*-v2`）。每表面 44 V2 单测；所有命令均挂到对应的现有顶层命令下，前缀按"避免与同模块既有 *-v2 命令冲突"原则选择。
+
+**iter16-iter21 累计**：64 个 lib 级治理表面 × 44 V2 单测 = 2,816 新增 V2 单测。叠加 iter15 之前的 92+ 表面，全栈 156+ V2 治理表面。
+
 ---
 
 ## 三、与 legacy 的交互边界
@@ -194,7 +222,9 @@ SSO Manager V2、Workflow Engine V2、Crypto Manager V2。
 - CLI 0.131 → 0.136：第八批 12 个 lib 级治理表面
 - CLI 0.137 → 0.139：第九批 14 个 session/context/permission/social lib 级治理表面（+521 V2 单测）
 - CLI 0.140 → 0.142：第十批 16 个 orchestration/infra/economy/evolution lib 级治理表面（+704 V2 单测）
-- 当前累计：**92+ V2 治理表面，1225 新 V2 单元测试（第九批 + 第十批），12979 总测试全绿**（unit 11718 + integration 696 + e2e 565）
+- CLI 0.143 → 0.145：iter16 8 个基础设施 lib 级治理表面（+352 V2 单测）
+- CLI 0.146 → 0.151：iter17-iter21 共 56 个 lib 级治理表面（+2,464 V2 单测）
+- 当前累计：**156+ V2 治理表面，14,255 单元 + 696 集成 + 565 e2e = 15,516 总测试全绿**（CLI 0.151.0）
 
 ---
 

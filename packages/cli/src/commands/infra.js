@@ -603,3 +603,206 @@ export function registerInfraCommand(program) {
 
   program.addCommand(inf);
 }
+
+// === Iter23 V2 governance overlay ===
+export function registerDigovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "infra");
+  if (!parent) return;
+  const L = async () => await import("../lib/decentral-infra.js");
+  parent
+    .command("digov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.DIGOV_PROFILE_MATURITY_V2,
+            dealLifecycle: m.DIGOV_DEAL_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("digov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveDigovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingDigovDealsPerProfileV2(),
+            idleMs: m.getDigovProfileIdleMsV2(),
+            stuckMs: m.getDigovDealStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("digov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveDigovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("digov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingDigovDealsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("digov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setDigovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("digov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setDigovDealStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("digov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--region <v>", "region")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerDigovProfileV2({ id, owner, region: o.region }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("digov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateDigovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("digov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).staleDigovProfileV2(id), null, 2));
+    });
+  parent
+    .command("digov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveDigovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("digov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchDigovProfileV2(id), null, 2));
+    });
+  parent
+    .command("digov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getDigovProfileV2(id), null, 2));
+    });
+  parent
+    .command("digov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listDigovProfilesV2(), null, 2));
+    });
+  parent
+    .command("digov-create-deal-v2 <id> <profileId>")
+    .description("Create deal")
+    .option("--provider <v>", "provider")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createDigovDealV2({ id, profileId, provider: o.provider }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("digov-negotiating-deal-v2 <id>")
+    .description("Mark deal as negotiating")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).negotiatingDigovDealV2(id), null, 2),
+      );
+    });
+  parent
+    .command("digov-complete-deal-v2 <id>")
+    .description("Complete deal")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completeDealDigovV2(id), null, 2));
+    });
+  parent
+    .command("digov-fail-deal-v2 <id> [reason]")
+    .description("Fail deal")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failDigovDealV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("digov-cancel-deal-v2 <id> [reason]")
+    .description("Cancel deal")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelDigovDealV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("digov-get-deal-v2 <id>")
+    .description("Get deal")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getDigovDealV2(id), null, 2));
+    });
+  parent
+    .command("digov-list-deals-v2")
+    .description("List deals")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listDigovDealsV2(), null, 2));
+    });
+  parent
+    .command("digov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleDigovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("digov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck deals")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckDigovDealsV2(), null, 2),
+      );
+    });
+  parent
+    .command("digov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getDecentralInfraGovStatsV2(), null, 2),
+      );
+    });
+}

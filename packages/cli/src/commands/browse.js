@@ -407,3 +407,216 @@ export function registerBrowseV2Command(browse) {
       console.log(JSON.stringify(getBrowserAutomationStatsV2(), null, 2));
     });
 }
+
+// === Iter20 V2 governance overlay ===
+export function registerBagovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "browse");
+  if (!parent) return;
+  const L = async () => await import("../lib/browser-automation.js");
+  parent
+    .command("bagov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.BAGOV_PROFILE_MATURITY_V2,
+            navigationLifecycle: m.BAGOV_NAVIGATION_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("bagov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveBagovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingBagovNavigationsPerProfileV2(),
+            idleMs: m.getBagovProfileIdleMsV2(),
+            stuckMs: m.getBagovNavigationStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("bagov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveBagovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("bagov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingBagovNavigationsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("bagov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setBagovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("bagov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setBagovNavigationStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("bagov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--engine <v>", "engine")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerBagovProfileV2({ id, owner, engine: o.engine }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("bagov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateBagovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("bagov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).staleBagovProfileV2(id), null, 2));
+    });
+  parent
+    .command("bagov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveBagovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("bagov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchBagovProfileV2(id), null, 2));
+    });
+  parent
+    .command("bagov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getBagovProfileV2(id), null, 2));
+    });
+  parent
+    .command("bagov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listBagovProfilesV2(), null, 2));
+    });
+  parent
+    .command("bagov-create-navigation-v2 <id> <profileId>")
+    .description("Create navigation")
+    .option("--url <v>", "url")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createBagovNavigationV2({ id, profileId, url: o.url }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("bagov-navigating-navigation-v2 <id>")
+    .description("Mark navigation as navigating")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).navigatingBagovNavigationV2(id), null, 2),
+      );
+    });
+  parent
+    .command("bagov-complete-navigation-v2 <id>")
+    .description("Complete navigation")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeNavigationBagovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("bagov-fail-navigation-v2 <id> [reason]")
+    .description("Fail navigation")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failBagovNavigationV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("bagov-cancel-navigation-v2 <id> [reason]")
+    .description("Cancel navigation")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify(
+          (await L()).cancelBagovNavigationV2(id, reason),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("bagov-get-navigation-v2 <id>")
+    .description("Get navigation")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).getBagovNavigationV2(id), null, 2),
+      );
+    });
+  parent
+    .command("bagov-list-navigations-v2")
+    .description("List navigations")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).listBagovNavigationsV2(), null, 2),
+      );
+    });
+  parent
+    .command("bagov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleBagovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("bagov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck navigations")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckBagovNavigationsV2(), null, 2),
+      );
+    });
+  parent
+    .command("bagov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getBrowserAutomationGovStatsV2(), null, 2),
+      );
+    });
+}

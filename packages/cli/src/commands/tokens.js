@@ -481,3 +481,212 @@ export function registerTokensCommand(program) {
     .description("Auto-reject stale V2 records")
     .action(() => out(true, autoRejectStaleRecordsV2()));
 }
+
+// === Iter24 V2 governance overlay ===
+export function registerToktgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "tokens");
+  if (!parent) return;
+  const L = async () => await import("../lib/token-tracker.js");
+  parent
+    .command("toktgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.TOKTGOV_PROFILE_MATURITY_V2,
+            usageLifecycle: m.TOKTGOV_USAGE_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("toktgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveToktgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingToktgovUsagesPerProfileV2(),
+            idleMs: m.getToktgovProfileIdleMsV2(),
+            stuckMs: m.getToktgovUsageStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("toktgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveToktgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("toktgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingToktgovUsagesPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("toktgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setToktgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("toktgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setToktgovUsageStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("toktgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--budget <v>", "budget")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerToktgovProfileV2({ id, owner, budget: o.budget }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("toktgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateToktgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("toktgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleToktgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("toktgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveToktgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("toktgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchToktgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("toktgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getToktgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("toktgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listToktgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("toktgov-create-usage-v2 <id> <profileId>")
+    .description("Create usage")
+    .option("--model <v>", "model")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createToktgovUsageV2({ id, profileId, model: o.model }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("toktgov-recording-usage-v2 <id>")
+    .description("Mark usage as recording")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).recordingToktgovUsageV2(id), null, 2),
+      );
+    });
+  parent
+    .command("toktgov-complete-usage-v2 <id>")
+    .description("Complete usage")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeUsageToktgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("toktgov-fail-usage-v2 <id> [reason]")
+    .description("Fail usage")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failToktgovUsageV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("toktgov-cancel-usage-v2 <id> [reason]")
+    .description("Cancel usage")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelToktgovUsageV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("toktgov-get-usage-v2 <id>")
+    .description("Get usage")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getToktgovUsageV2(id), null, 2));
+    });
+  parent
+    .command("toktgov-list-usages-v2")
+    .description("List usages")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listToktgovUsagesV2(), null, 2));
+    });
+  parent
+    .command("toktgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleToktgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("toktgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck usages")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckToktgovUsagesV2(), null, 2),
+      );
+    });
+  parent
+    .command("toktgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getTokenTrackerGovStatsV2(), null, 2),
+      );
+    });
+}

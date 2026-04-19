@@ -524,3 +524,337 @@ export function getGovernanceStatsV2() {
     byType,
   };
 }
+
+// =====================================================================
+// evomap-governance V2 governance overlay (iter20)
+// =====================================================================
+export const EVGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const EVGOV_PROPOSAL_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  REVIEWING: "reviewing",
+  REVIEWED: "reviewed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _evgovPTrans = new Map([
+  [
+    EVGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      EVGOV_PROFILE_MATURITY_V2.ACTIVE,
+      EVGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    EVGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      EVGOV_PROFILE_MATURITY_V2.PAUSED,
+      EVGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    EVGOV_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      EVGOV_PROFILE_MATURITY_V2.ACTIVE,
+      EVGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [EVGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _evgovPTerminal = new Set([EVGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _evgovJTrans = new Map([
+  [
+    EVGOV_PROPOSAL_LIFECYCLE_V2.QUEUED,
+    new Set([
+      EVGOV_PROPOSAL_LIFECYCLE_V2.REVIEWING,
+      EVGOV_PROPOSAL_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    EVGOV_PROPOSAL_LIFECYCLE_V2.REVIEWING,
+    new Set([
+      EVGOV_PROPOSAL_LIFECYCLE_V2.REVIEWED,
+      EVGOV_PROPOSAL_LIFECYCLE_V2.FAILED,
+      EVGOV_PROPOSAL_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [EVGOV_PROPOSAL_LIFECYCLE_V2.REVIEWED, new Set()],
+  [EVGOV_PROPOSAL_LIFECYCLE_V2.FAILED, new Set()],
+  [EVGOV_PROPOSAL_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _evgovPsV2 = new Map();
+const _evgovJsV2 = new Map();
+let _evgovMaxActive = 6,
+  _evgovMaxPending = 15,
+  _evgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _evgovStuckMs = 60 * 1000;
+function _evgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _evgovCheckP(from, to) {
+  const a = _evgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid evgov profile transition ${from} → ${to}`);
+}
+function _evgovCheckJ(from, to) {
+  const a = _evgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid evgov proposal transition ${from} → ${to}`);
+}
+function _evgovCountActive(owner) {
+  let c = 0;
+  for (const p of _evgovPsV2.values())
+    if (p.owner === owner && p.status === EVGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _evgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _evgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === EVGOV_PROPOSAL_LIFECYCLE_V2.QUEUED ||
+        j.status === EVGOV_PROPOSAL_LIFECYCLE_V2.REVIEWING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveEvgovProfilesPerOwnerV2(n) {
+  _evgovMaxActive = _evgovPos(n, "maxActiveEvgovProfilesPerOwner");
+}
+export function getMaxActiveEvgovProfilesPerOwnerV2() {
+  return _evgovMaxActive;
+}
+export function setMaxPendingEvgovProposalsPerProfileV2(n) {
+  _evgovMaxPending = _evgovPos(n, "maxPendingEvgovProposalsPerProfile");
+}
+export function getMaxPendingEvgovProposalsPerProfileV2() {
+  return _evgovMaxPending;
+}
+export function setEvgovProfileIdleMsV2(n) {
+  _evgovIdleMs = _evgovPos(n, "evgovProfileIdleMs");
+}
+export function getEvgovProfileIdleMsV2() {
+  return _evgovIdleMs;
+}
+export function setEvgovProposalStuckMsV2(n) {
+  _evgovStuckMs = _evgovPos(n, "evgovProposalStuckMs");
+}
+export function getEvgovProposalStuckMsV2() {
+  return _evgovStuckMs;
+}
+export function _resetStateEvomapGovernanceGovV2() {
+  _evgovPsV2.clear();
+  _evgovJsV2.clear();
+  _evgovMaxActive = 6;
+  _evgovMaxPending = 15;
+  _evgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _evgovStuckMs = 60 * 1000;
+}
+export function registerEvgovProfileV2({ id, owner, lane, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_evgovPsV2.has(id)) throw new Error(`evgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    lane: lane || "core",
+    status: EVGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _evgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateEvgovProfileV2(id) {
+  const p = _evgovPsV2.get(id);
+  if (!p) throw new Error(`evgov profile ${id} not found`);
+  const isInitial = p.status === EVGOV_PROFILE_MATURITY_V2.PENDING;
+  _evgovCheckP(p.status, EVGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _evgovCountActive(p.owner) >= _evgovMaxActive)
+    throw new Error(`max active evgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = EVGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pauseEvgovProfileV2(id) {
+  const p = _evgovPsV2.get(id);
+  if (!p) throw new Error(`evgov profile ${id} not found`);
+  _evgovCheckP(p.status, EVGOV_PROFILE_MATURITY_V2.PAUSED);
+  p.status = EVGOV_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveEvgovProfileV2(id) {
+  const p = _evgovPsV2.get(id);
+  if (!p) throw new Error(`evgov profile ${id} not found`);
+  _evgovCheckP(p.status, EVGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = EVGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchEvgovProfileV2(id) {
+  const p = _evgovPsV2.get(id);
+  if (!p) throw new Error(`evgov profile ${id} not found`);
+  if (_evgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal evgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getEvgovProfileV2(id) {
+  const p = _evgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listEvgovProfilesV2() {
+  return [..._evgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createEvgovProposalV2({ id, profileId, topic, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_evgovJsV2.has(id))
+    throw new Error(`evgov proposal ${id} already exists`);
+  if (!_evgovPsV2.has(profileId))
+    throw new Error(`evgov profile ${profileId} not found`);
+  if (_evgovCountPending(profileId) >= _evgovMaxPending)
+    throw new Error(
+      `max pending evgov proposals for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    topic: topic || "",
+    status: EVGOV_PROPOSAL_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _evgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function reviewingEvgovProposalV2(id) {
+  const j = _evgovJsV2.get(id);
+  if (!j) throw new Error(`evgov proposal ${id} not found`);
+  _evgovCheckJ(j.status, EVGOV_PROPOSAL_LIFECYCLE_V2.REVIEWING);
+  const now = Date.now();
+  j.status = EVGOV_PROPOSAL_LIFECYCLE_V2.REVIEWING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeProposalEvgovV2(id) {
+  const j = _evgovJsV2.get(id);
+  if (!j) throw new Error(`evgov proposal ${id} not found`);
+  _evgovCheckJ(j.status, EVGOV_PROPOSAL_LIFECYCLE_V2.REVIEWED);
+  const now = Date.now();
+  j.status = EVGOV_PROPOSAL_LIFECYCLE_V2.REVIEWED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failEvgovProposalV2(id, reason) {
+  const j = _evgovJsV2.get(id);
+  if (!j) throw new Error(`evgov proposal ${id} not found`);
+  _evgovCheckJ(j.status, EVGOV_PROPOSAL_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = EVGOV_PROPOSAL_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelEvgovProposalV2(id, reason) {
+  const j = _evgovJsV2.get(id);
+  if (!j) throw new Error(`evgov proposal ${id} not found`);
+  _evgovCheckJ(j.status, EVGOV_PROPOSAL_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = EVGOV_PROPOSAL_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getEvgovProposalV2(id) {
+  const j = _evgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listEvgovProposalsV2() {
+  return [..._evgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPauseIdleEvgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _evgovPsV2.values())
+    if (
+      p.status === EVGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _evgovIdleMs
+    ) {
+      p.status = EVGOV_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckEvgovProposalsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _evgovJsV2.values())
+    if (
+      j.status === EVGOV_PROPOSAL_LIFECYCLE_V2.REVIEWING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _evgovStuckMs
+    ) {
+      j.status = EVGOV_PROPOSAL_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getEvomapGovernanceGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(EVGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _evgovPsV2.values()) profilesByStatus[p.status]++;
+  const proposalsByStatus = {};
+  for (const v of Object.values(EVGOV_PROPOSAL_LIFECYCLE_V2))
+    proposalsByStatus[v] = 0;
+  for (const j of _evgovJsV2.values()) proposalsByStatus[j.status]++;
+  return {
+    totalEvgovProfilesV2: _evgovPsV2.size,
+    totalEvgovProposalsV2: _evgovJsV2.size,
+    maxActiveEvgovProfilesPerOwner: _evgovMaxActive,
+    maxPendingEvgovProposalsPerProfile: _evgovMaxPending,
+    evgovProfileIdleMs: _evgovIdleMs,
+    evgovProposalStuckMs: _evgovStuckMs,
+    profilesByStatus,
+    proposalsByStatus,
+  };
+}

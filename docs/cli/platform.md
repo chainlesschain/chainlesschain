@@ -3248,3 +3248,672 @@ cc mcpscaf auto-stale-idle-v2 | auto-fail-stuck-v2
 - **profile 字段**：`category`（默认 `"system"`）；**scan 字段**：`target`
 - **聚合**：`getHardeningManagerGovStatsV2()` → `cc hardening hardgov-gov-stats-v2`
 - **测试**：44 个 V2 测试
+
+
+### Phase Iter18-A: AIOps V2 (CLI v0.146.0)
+
+**模块**: `packages/cli/src/lib/aiops.js`
+**命令**: `cc ops aiopsgov-...-v2`
+
+附加在 `aiops.js` 之上的内存治理覆盖层，与 Phase Playbook/Remediation V2 并存。
+
+- **Profile 4 态**：`pending → active → stale → archived`（`stale → active` 恢复）
+- **Incident 5 态**：`queued → triaging → triaged | failed | cancelled`
+- **容量**：6 active / 15 pending；`auto-stale-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`mode`（默认 `"monitor"`）；**incident 字段**：`summary`
+- **聚合**：`getAiopsGovStatsV2()` → `cc ops aiopsgov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter18-B: Multimodal V2 (CLI v0.146.0)
+
+**模块**: `packages/cli/src/lib/multimodal.js`
+**命令**: `cc multimodal mmgov-...-v2`
+
+附加在 `multimodal.js` 之上，与 Session/Artifact V2 并存。
+
+- **Profile 4 态**：`pending → active → stale → archived`（`stale → active` 恢复）
+- **Job 5 态**：`queued → processing → processed | failed | cancelled`
+- **容量**：6 active / 15 pending；`auto-stale-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`kind`（默认 `"text"`）；**job 字段**：`input`
+- **聚合**：`getMultimodalGovStatsV2()` → `cc multimodal mmgov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter18-C: Instinct Manager V2 (CLI v0.146.0)
+
+**模块**: `packages/cli/src/lib/instinct-manager.js`
+**命令**: `cc instinct instgov-...-v2`
+
+附加在 `instinct-manager.js` 之上，与 Profile/Observation V2 并存。
+
+- **Profile 4 态**：`pending → active → dormant → archived`（`dormant → active` 恢复）
+- **Trigger 5 态**：`queued → firing → fired | failed | cancelled`
+- **容量**：8 active / 20 pending；`auto-dormant-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`priority`（默认 `"normal"`）；**trigger 字段**：`pattern`
+- **聚合**：`getInstinctManagerGovStatsV2()` → `cc instinct instgov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter18-D: Tenant SaaS V2 (CLI v0.146.0)
+
+**模块**: `packages/cli/src/lib/tenant-saas.js`
+**命令**: `cc tenant tnsgov-...-v2`
+
+附加在 `tenant-saas.js` 之上，与 Tenant/Subscription V2 并存（allocation 子模型避免与 Subscription 冲突）。
+
+- **Profile 4 态**：`pending → active → suspended → archived`（`suspended → active` 恢复）
+- **Allocation 5 态**：`queued → provisioning → provisioned | failed | cancelled`
+- **容量**：10 active / 25 pending；`auto-suspend-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`plan`（默认 `"free"`）；**allocation 字段**：`resource`
+- **聚合**：`getTenantSaasGovStatsV2()` → `cc tenant tnsgov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter18-E: Quantization V2 (CLI v0.146.0)
+
+**模块**: `packages/cli/src/lib/quantization.js`
+**命令**: `cc quantize qntgov-...-v2`
+
+附加在 `quantization.js` 之上，与 Phase 20 Model V2 并存。
+
+- **Profile 4 态**：`pending → active → stale → archived`（`stale → active` 恢复）
+- **Job 5 态**：`queued → quantizing → quantized | failed | cancelled`
+- **容量**：6 active / 12 pending；`auto-stale-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`precision`（默认 `"int8"`）；**job 字段**：`model`
+- **聚合**：`getQuantizationGovStatsV2()` → `cc quantize qntgov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter18-F: Trust Security V2 (CLI v0.146.0)
+
+**模块**: `packages/cli/src/lib/trust-security.js`
+**命令**: `cc trust trustgov-...-v2`
+
+附加在 `trust-security.js` 之上，与 Device V2 并存。
+
+- **Profile 4 态**：`pending → active → suspended → archived`（`suspended → active` 恢复）
+- **Check 5 态**：`queued → verifying → verified | failed | cancelled`
+- **容量**：8 active / 20 pending；`auto-suspend-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`level`（默认 `"medium"`）；**check 字段**：`subject`
+- **聚合**：`getTrustSecurityGovStatsV2()` → `cc trust trustgov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter18-G: NL Programming V2 (CLI v0.146.0)
+
+**模块**: `packages/cli/src/lib/nl-programming.js`
+**命令**: `cc nlprog nlpgov-...-v2`
+
+附加在 `nl-programming.js` 之上，与 Spec/Turn V2 并存。
+
+- **Profile 4 态**：`pending → active → stale → archived`（`stale → active` 恢复）
+- **Translation 5 态**：`queued → translating → translated | failed | cancelled`
+- **容量**：8 active / 20 pending；`auto-stale-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`style`（默认 `"natural"`）；**translation 字段**：`intent`
+- **聚合**：`getNlProgrammingGovStatsV2()` → `cc nlprog nlpgov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter18-H: Perception V2 (CLI v0.146.0)
+
+**模块**: `packages/cli/src/lib/perception.js`
+**命令**: `cc perception percgov-...-v2`
+
+附加在 `perception.js` 之上，与 Sensor/Capture V2 并存。
+
+- **Profile 4 态**：`pending → active → stale → archived`（`stale → active` 恢复）
+- **Signal 5 态**：`queued → analyzing → analyzed | failed | cancelled`
+- **容量**：6 active / 12 pending；`auto-stale-idle`(30d) + `auto-fail-stuck`(60s)
+- **profile 字段**：`modality`（默认 `"vision"`）；**signal 字段**：`source`
+- **聚合**：`getPerceptionGovStatsV2()` → `cc perception percgov-gov-stats-v2`
+- **测试**：44 个 V2 测试
+
+### Phase Iter19-A: Code Agent Governance V2（cdagov-*-v2 / `cc codegen`）
+
+在 `cc codegen` 下追加 V2 治理覆盖层，复用 `code-agent.js` 内存状态。
+
+- 4 态档案：pending / active / stale / archived（archived 终结，stale → active 恢复）
+- 5 态编辑生命周期：queued / editing / edited / failed / cancelled（3 终结）
+- 容量：每 owner 6 active / 每档案 15 pending
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`language` = "javascript"，生命周期字段 `target`
+- 聚合器：`cdagov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter19-B: Collaboration Governance V2（cogov-*-v2 / `cc collab`）
+
+在 `cc collab` 下追加 V2 治理覆盖层，复用 `collaboration-governance.js` 内存状态。
+
+- 4 态档案：pending / active / suspended / archived（suspended → active 恢复）
+- 5 态决议生命周期：queued / deliberating / decided / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 20 pending
+- 自动翻转：auto-suspend-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`scope` = "team"，生命周期字段 `topic`
+- 聚合器：`cogov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter19-C: Community Governance V2（commgov-*-v2 / `cc governance`）
+
+在 `cc governance` 下追加 V2 治理覆盖层，复用 `community-governance.js` 内存状态。
+
+- 4 态档案：pending / active / paused / archived（paused → active 恢复）
+- 5 态议案生命周期：queued / voting / voted / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 25 pending
+- 自动翻转：auto-pause-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`chamber` = "general"，生命周期字段 `subject`
+- 聚合器：`commgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter19-D: DID Manager Governance V2（didgov-*-v2 / `cc did`）
+
+在 `cc did` 下追加 V2 治理覆盖层，复用 `did-manager.js` 内存状态。
+
+- 4 态档案：pending / active / suspended / archived（suspended → active 恢复）
+- 5 态解析生命周期：queued / resolving / resolved / failed / cancelled（3 终结）
+- 容量：每 owner 10 active / 每档案 25 pending
+- 自动翻转：auto-suspend-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`method` = "key"，生命周期字段 `identifier`
+- 聚合器：`didgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter19-E: SSO Manager Governance V2（ssogov-*-v2 / `cc sso`）
+
+在 `cc sso` 下追加 V2 治理覆盖层，复用 `sso-manager.js` 内存状态。
+
+- 4 态档案：pending / active / suspended / archived（suspended → active 恢复）
+- 5 态登录生命周期：queued / authenticating / authenticated / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 30 pending
+- 自动翻转：auto-suspend-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`protocol` = "oidc"，生命周期字段 `subject`
+- 聚合器：`ssogov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter19-F: Org Manager Governance V2（orggov-*-v2 / `cc org`）
+
+在 `cc org` 下追加 V2 治理覆盖层，复用 `org-manager.js` 内存状态。
+
+- 4 态档案：pending / active / paused / archived（paused → active 恢复）
+- 5 态邀请生命周期：queued / inviting / invited / failed / cancelled（3 终结）
+- 容量：每 owner 6 active / 每档案 30 pending
+- 自动翻转：auto-pause-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`tier` = "standard"，生命周期字段 `email`
+- 聚合器：`orggov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter19-G: SCIM Manager Governance V2（scimgov-*-v2 / `cc scim`）
+
+在 `cc scim` 下追加 V2 治理覆盖层，复用 `scim-manager.js` 内存状态。
+
+- 4 态档案：pending / active / stale / archived（stale → active 恢复）
+- 5 态同步生命周期：queued / syncing / synced / failed / cancelled（3 终结）
+- 容量：每 owner 6 active / 每档案 15 pending
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`resource` = "users"，生命周期字段 `endpoint`
+- 聚合器：`scimgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter19-H: Sync Manager Governance V2（syncgov-*-v2 / `cc sync`）
+
+在 `cc sync` 下追加 V2 治理覆盖层，复用 `sync-manager.js` 内存状态。
+
+- 4 态档案：pending / active / stale / archived（stale → active 恢复）
+- 5 态批次生命周期：queued / replicating / replicated / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 20 pending
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`target` = "primary"，生命周期字段 `scope`
+- 聚合器：`syncgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter20-A: Agent Network Governance V2（anetgov-*-v2 / `cc agent-network`）
+
+在 `cc agent-network` 下追加 V2 治理覆盖层，复用 `agent-network.js` 内存状态。
+
+- 4 态档案：pending / active / suspended / archived（suspended → active 恢复）
+- 5 态调度生命周期：queued / dispatching / dispatched / failed / cancelled（3 终结）
+- 容量：每 owner 10 active / 每档案 25 pending
+- 自动翻转：auto-suspend-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`role` = "worker"，生命周期字段 `target`
+- 聚合器：`anetgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter20-B: Browser Automation Governance V2（bagov-*-v2 / `cc browse`）
+
+在 `cc browse` 下追加 V2 治理覆盖层，复用 `browser-automation.js` 内存状态。
+
+- 4 态档案：pending / active / stale / archived（stale → active 恢复）
+- 5 态导航生命周期：queued / navigating / navigated / failed / cancelled（3 终结）
+- 容量：每 owner 6 active / 每档案 15 pending
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`engine` = "chromium"，生命周期字段 `url`
+- 聚合器：`bagov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter20-C: DLP Engine Governance V2（dlpgov-*-v2 / `cc dlp`）
+
+在 `cc dlp` 下追加 V2 治理覆盖层，复用 `dlp-engine.js` 内存状态。
+
+- 4 态档案：pending / active / suspended / archived（suspended → active 恢复）
+- 5 态扫描生命周期：queued / scanning / scanned / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 20 pending
+- 自动翻转：auto-suspend-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`classification` = "internal"，生命周期字段 `resource`
+- 聚合器：`dlpgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter20-D: Evomap Governance V2（evgov-*-v2 / `cc evomap`）
+
+在 `cc evomap` 下追加 V2 治理覆盖层，复用 `evomap-governance.js` 内存状态。
+
+- 4 态档案：pending / active / paused / archived（paused → active 恢复）
+- 5 态议案生命周期：queued / reviewing / reviewed / failed / cancelled（3 终结）
+- 容量：每 owner 6 active / 每档案 15 pending
+- 自动翻转：auto-pause-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`lane` = "core"，生命周期字段 `topic`
+- 聚合器：`evgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter20-E: Federation Hardening Governance V2（fedgov-*-v2 / `cc federation`）
+
+在 `cc federation` 下追加 V2 治理覆盖层，复用 `federation-hardening.js` 内存状态。
+
+- 4 态档案：pending / active / degraded / archived（degraded → active 恢复）
+- 5 态探针生命周期：queued / probing / probed / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 20 pending
+- 自动翻转：auto-degrade-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`region` = "default"，生命周期字段 `endpoint`
+- 聚合器：`fedgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter20-F: IPFS Storage Governance V2（ipfsgov-*-v2 / `cc ipfs`）
+
+在 `cc ipfs` 下追加 V2 治理覆盖层，复用 `ipfs-storage.js` 内存状态。
+
+- 4 态档案：pending / active / stale / archived（stale → active 恢复）
+- 5 态固定生命周期：queued / pinning / pinned / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 20 pending
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`mode` = "local"，生命周期字段 `cid`
+- 聚合器：`ipfsgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter20-G: P2P Manager Governance V2（p2pgov-*-v2 / `cc p2p`）
+
+在 `cc p2p` 下追加 V2 治理覆盖层，复用 `p2p-manager.js` 内存状态。
+
+- 4 态档案：pending / active / suspended / archived（suspended → active 恢复）
+- 5 态广播生命周期：queued / broadcasting / broadcast / failed / cancelled（3 终结）
+- 容量：每 owner 12 active / 每档案 30 pending
+- 自动翻转：auto-suspend-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`transport` = "tcp"，生命周期字段 `topic`
+- 聚合器：`p2pgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter20-H: Wallet Manager Governance V2（walgov-*-v2 / `cc wallet`）
+
+在 `cc wallet` 下追加 V2 治理覆盖层，复用 `wallet-manager.js` 内存状态。
+
+- 4 态档案：pending / active / frozen / archived（frozen → active 恢复）
+- 5 态转账生命周期：queued / signing / signed / failed / cancelled（3 终结）
+- 容量：每 owner 6 active / 每档案 15 pending
+- 自动翻转：auto-freeze-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`chain` = "mainnet"，生命周期字段 `to`
+- 聚合器：`walgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter21-A: ActivityPub Bridge Governance V2（apgov-*-v2 / `cc activitypub`）
+
+在 `cc activitypub` 下追加 V2 治理覆盖层，复用 `activitypub-bridge.js` 内存状态。
+
+- 4 态档案：pending / active / suspended / archived（suspended → active 恢复）
+- 5 态投递生命周期：queued / delivering / delivered / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 25 pending
+- 自动翻转：auto-suspend-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`actor` = "person"，生命周期字段 `inbox`
+- 聚合器：`apgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter21-B: Matrix Bridge Governance V2（matgov-*-v2 / `cc matrix`）
+
+在 `cc matrix` 下追加 V2 治理覆盖层，复用 `matrix-bridge.js` 内存状态。
+
+- 4 态档案：pending / active / suspended / archived（suspended → active 恢复）
+- 5 态发送生命周期：queued / sending / sent / failed / cancelled（3 终结）
+- 容量：每 owner 6 active / 每档案 20 pending
+- 自动翻转：auto-suspend-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`homeserver` = "matrix.org"，生命周期字段 `room`
+- 聚合器：`matgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter21-C: Nostr Bridge Governance V2（nosgov-*-v2 / `cc nostr`）
+
+在 `cc nostr` 下追加 V2 治理覆盖层，复用 `nostr-bridge.js` 内存状态。
+
+- 4 态档案：pending / active / suspended / archived（suspended → active 恢复）
+- 5 态发布生命周期：queued / publishing / published / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 25 pending
+- 自动翻转：auto-suspend-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`relay` = "wss://relay.local"，生命周期字段 `kind`
+- 聚合器：`nosgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter21-D: BI Engine Governance V2（bigov-*-v2 / `cc bi`）
+
+在 `cc bi` 下追加 V2 治理覆盖层，复用 `bi-engine.js` 内存状态。
+
+- 4 态档案：pending / active / stale / archived（stale → active 恢复）
+- 5 态查询生命周期：queued / querying / queried / failed / cancelled（3 终结）
+- 容量：每 owner 6 active / 每档案 15 pending
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`dataset` = "default"，生命周期字段 `kpi`
+- 聚合器：`bigov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter21-E: Memory Manager Governance V2（memgov-*-v2 / `cc memory`）
+
+在 `cc memory` 下追加 V2 治理覆盖层，复用 `memory-manager.js` 内存状态。
+
+- 4 态档案：pending / active / stale / archived（stale → active 恢复）
+- 5 态召回生命周期：queued / recalling / recalled / failed / cancelled（3 终结）
+- 容量：每 owner 10 active / 每档案 30 pending
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`scope` = "user"，生命周期字段 `key`
+- 聚合器：`memgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter21-F: Session Manager Governance V2（sesgov-*-v2 / `cc session`）
+
+在 `cc session` 下追加 V2 治理覆盖层,复用 `session-manager.js` 内存状态。
+
+- 4 态档案：pending / active / paused / archived（paused → active 恢复）
+- 5 态轮次生命周期：queued / advancing / advanced / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 20 pending
+- 自动翻转：auto-pause-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`channel` = "default"，生命周期字段 `topic`
+- 聚合器：`sesgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter21-G: Hook Manager Governance V2（hookgov-*-v2 / `cc hook`）
+
+在 `cc hook` 下追加 V2 治理覆盖层，复用 `hook-manager.js` 内存状态。
+
+- 4 态档案：pending / active / disabled / archived（disabled → active 恢复）
+- 5 态触发生命周期：queued / firing / fired / failed / cancelled（3 终结）
+- 容量：每 owner 12 active / 每档案 25 pending
+- 自动翻转：auto-disable-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`event` = "preTurn"，生命周期字段 `payload`
+- 聚合器：`hookgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter21-H: Workflow Engine Governance V2（wfgov-*-v2 / `cc workflow`）
+
+在 `cc workflow` 下追加 V2 治理覆盖层，复用 `workflow-engine.js` 内存状态。
+
+- 4 态档案：pending / active / paused / archived（paused → active 恢复）
+- 5 态步骤生命周期：queued / executing / executed / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 20 pending
+- 自动翻转：auto-pause-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`kind` = "sequential"，生命周期字段 `stepName`
+- 聚合器：`wfgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter22-A: Automation Engine Governance V2（augov-*-v2 / `cc automation`）
+
+在 `cc automation` 下追加 V2 治理覆盖层，复用 `automation-engine.js` 内存状态。
+
+- 4 态档案：pending / active / paused / archived（paused → active 恢复）
+- 5 态流生命周期：queued / running / completed / failed / cancelled（3 终结）
+- 容量：每 owner 10 active / 每档案 25 pending
+- 自动翻转：auto-pause-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`connector` = "webhook"，生命周期字段 `trigger`
+- 聚合器：`augov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter22-B: Cowork Share Governance V2（shgov-*-v2 / `cc cowork`）
+
+在 `cc cowork` 下追加 V2 治理覆盖层，复用 `cowork-share.js` 内存状态。
+
+- 4 态档案：pending / active / paused / archived（paused → active 恢复）
+- 5 态共享生命周期：queued / sharing / shared / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 20 pending
+- 自动翻转：auto-pause-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`visibility` = "private"，生命周期字段 `target`
+- 聚合器：`shgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter22-C: DID V2 Manager Governance V2（dv2gov-*-v2 / `cc did-v2`）
+
+在 `cc did-v2` 下追加 V2 治理覆盖层，复用 `did-v2-manager.js` 内存状态。
+
+- 4 态档案：pending / active / suspended / archived（suspended → active 恢复）
+- 5 态凭证生命周期：queued / issuing / issued / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 20 pending
+- 自动翻转：auto-suspend-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`method` = "web"，生命周期字段 `subject`
+- 聚合器：`dv2gov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter22-D: Knowledge Exporter Governance V2（kexpgov-*-v2 / `cc export`）
+
+在 `cc export` 下追加 V2 治理覆盖层，复用 `knowledge-exporter.js` 内存状态。
+
+- 4 态档案：pending / active / stale / archived（stale → active 恢复）
+- 5 态导出生命周期：queued / exporting / exported / failed / cancelled（3 终结）
+- 容量：每 owner 6 active / 每档案 15 pending
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`format` = "json"，生命周期字段 `destination`
+- 聚合器：`kexpgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter22-E: Knowledge Importer Governance V2（kimpgov-*-v2 / `cc import`）
+
+在 `cc import` 下追加 V2 治理覆盖层，复用 `knowledge-importer.js` 内存状态。
+
+- 4 态档案：pending / active / stale / archived（stale → active 恢复）
+- 5 态导入生命周期：queued / importing / imported / failed / cancelled（3 终结）
+- 容量：每 owner 6 active / 每档案 15 pending
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`format` = "json"，生命周期字段 `source`
+- 聚合器：`kimpgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter22-F: LLM Providers Governance V2（llmgov-*-v2 / `cc llm`）
+
+在 `cc llm` 下追加 V2 治理覆盖层，复用 `llm-providers.js` 内存状态。
+
+- 4 态档案：pending / active / degraded / archived（degraded → active 恢复）
+- 5 态补全生命周期：queued / inferring / inferred / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 25 pending
+- 自动翻转：auto-degrade-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`provider` = "ollama"，生命周期字段 `model`
+- 聚合器：`llmgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter22-G: PQC Manager Governance V2（pqcgov-*-v2 / `cc pqc`）
+
+在 `cc pqc` 下追加 V2 治理覆盖层，复用 `pqc-manager.js` 内存状态。
+
+- 4 态档案：pending / active / deprecated / archived（deprecated → active 恢复）
+- 5 态密钥生成生命周期：queued / generating / generated / failed / cancelled（3 终结）
+- 容量：每 owner 6 active / 每档案 12 pending
+- 自动翻转：auto-deprecate-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`algorithm` = "kyber"，生命周期字段 `purpose`
+- 聚合器：`pqcgov-gov-stats-v2`
+- 测试：44 V2
+
+### Phase Iter22-H: Social Manager Governance V2（smgov-*-v2 / `cc social`）
+
+在 `cc social` 下追加 V2 治理覆盖层，复用 `social-manager.js` 内存状态。
+
+- 4 态档案：pending / active / muted / archived（muted → active 恢复）
+- 5 态发布生命周期：queued / posting / posted / failed / cancelled（3 终结）
+- 容量：每 owner 10 active / 每档案 30 pending
+- 自动翻转：auto-mute-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`channel` = "timeline"，生命周期字段 `author`
+- 聚合器：`smgov-gov-stats-v2`
+- 测试：44 V2
+
+---
+
+## CLI Iter23 V2 治理覆盖（v0.151.0）
+
+8 个 lib 模块新增 V2 治理覆盖（4 态档案 + 5 态生命周期 + 容量 + 自动翻转），共 352 V2 测试通过。
+
+### `cc rcache rcgov-...-v2` — Response Cache Gov V2
+
+- 4 态档案：pending / active / stale / archived（stale → active 恢复）
+- 5 态刷新生命周期：queued / refreshing / refreshed / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 15 pending
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`lane` = "default"，生命周期字段 `source`
+- 聚合器：`rcgov-gov-stats-v2`
+- 测试：44 V2
+
+### `cc tech techgov-...-v2` — Tech Learning Engine Gov V2
+
+- 4 态档案：pending / active / stale / archived（stale → active 恢复）
+- 5 态课业生命周期：queued / studying / studied / failed / cancelled（3 终结）
+- 容量：每 owner 6 active / 每档案 12 pending
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`topic` = "general"，生命周期字段 `source`
+- 聚合器：`techgov-gov-stats-v2`
+- 测试：44 V2
+
+### `cc runtime rtgov-...-v2` — Universal Runtime Gov V2
+
+- 4 态档案：pending / active / degraded / archived（degraded → active 恢复）
+- 5 态任务生命周期：queued / executing / executed / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 20 pending
+- 自动翻转：auto-degrade-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`runtime` = "node"，生命周期字段 `kind`
+- 聚合器：`rtgov-gov-stats-v2`
+- 测试：44 V2
+
+### `cc note ntgov-...-v2` — Note Versioning Gov V2
+
+- 4 态档案：pending / active / stale / archived（stale → active 恢复）
+- 5 态修订生命周期：queued / reviewing / merged / failed / cancelled（3 终结）
+- 容量：每 owner 10 active / 每档案 30 pending
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`series` = "default"，生命周期字段 `author`
+- 聚合器：`ntgov-gov-stats-v2`
+- 测试：44 V2
+
+### `cc permmem pmgov-...-v2` — Permanent Memory Gov V2
+
+- 4 态档案：pending / active / dormant / archived（dormant → active 恢复）
+- 5 态固化生命周期：queued / pinning / pinned / failed / cancelled（3 终结）
+- 容量：每 owner 10 active / 每档案 30 pending
+- 自动翻转：auto-dormant-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`bucket` = "default"，生命周期字段 `key`
+- 聚合器：`pmgov-gov-stats-v2`
+- 测试：44 V2
+
+### `cc fusion pfgov-...-v2` — Protocol Fusion Gov V2
+
+- 4 态档案：pending / active / degraded / archived（degraded → active 恢复）
+- 5 态路由生命周期：queued / routing / routed / failed / cancelled（3 终结）
+- 容量：每 owner 6 active / 每档案 15 pending
+- 自动翻转：auto-degrade-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`protocol` = "hybrid"，生命周期字段 `destination`
+- 聚合器：`pfgov-gov-stats-v2`
+- 测试：44 V2
+
+### `cc dbevo dbevogov-...-v2` — Database Evolution Gov V2
+
+- 4 态档案：pending / active / paused / archived（paused → active 恢复）
+- 5 态迁移生命周期：queued / applying / applied / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 20 pending
+- 自动翻转：auto-pause-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`schema` = "default"，生命周期字段 `version`
+- 聚合器：`dbevogov-gov-stats-v2`
+- 测试：44 V2
+
+### `cc infra digov-...-v2` — Decentral Infra Gov V2
+
+- 4 态档案：pending / active / stale / archived（stale → active 恢复）
+- 5 态交易生命周期：queued / negotiating / settled / failed / cancelled（3 终结）
+- 容量：每 owner 6 active / 每档案 15 pending
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`region` = "us-east"，生命周期字段 `provider`
+- 聚合器：`digov-gov-stats-v2`
+- 测试：44 V2
+
+---
+
+## CLI Iter24 V2 治理覆盖（v0.152.0）
+
+8 个 lib 模块新增 V2 治理覆盖（4 态档案 + 5 态生命周期 + 容量 + 自动翻转），共 352 V2 测试通过。
+
+### `cc recommend rcmdgov-...-v2` — Content Recommendation Gov V2
+
+- 4 态档案：pending / active / stale / archived（stale → active 恢复）
+- 5 态推荐生命周期：queued / scoring / recommended / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 20 pending
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`channel` = "default"，生命周期字段 `user`
+- 聚合器：`rcmdgov-gov-stats-v2`
+- 测试：44 V2
+
+### `cc mcp mcpgov-...-v2` — MCP Registry Gov V2
+
+- 4 态档案：pending / active / suspended / archived（suspended → active 恢复）
+- 5 态调用生命周期：queued / invoking / invoked / failed / cancelled（3 终结）
+- 容量：每 owner 10 active / 每档案 25 pending
+- 自动翻转：auto-suspend-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`transport` = "stdio"，生命周期字段 `tool`
+- 聚合器：`mcpgov-gov-stats-v2`
+- 测试：44 V2
+
+### `cc ecosystem ecogov-...-v2` — Plugin Ecosystem Gov V2
+
+- 4 态档案：pending / active / disabled / archived（disabled → active 恢复）
+- 5 态安装生命周期：queued / installing / installed / failed / cancelled（3 终结）
+- 容量：每 owner 12 active / 每档案 30 pending
+- 自动翻转：auto-disable-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`category` = "general"，生命周期字段 `version`
+- 聚合器：`ecogov-gov-stats-v2`
+- 测试：44 V2
+
+### `cc skill sklgov-...-v2` — Skill Loader Gov V2
+
+- 4 态档案：pending / active / stale / archived（stale → active 恢复）
+- 5 态加载生命周期：queued / loading / loaded / failed / cancelled（3 终结）
+- 容量：每 owner 10 active / 每档案 25 pending
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`source` = "local"，生命周期字段 `skillId`
+- 聚合器：`sklgov-gov-stats-v2`
+- 测试：44 V2
+
+### `cc tokens toktgov-...-v2` — Token Tracker Gov V2
+
+- 4 态档案：pending / active / stale / archived（stale → active 恢复）
+- 5 态用量生命周期：queued / recording / recorded / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 20 pending
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`budget` = "default"，生命周期字段 `model`
+- 聚合器：`toktgov-gov-stats-v2`
+- 测试：44 V2
+
+### `cc dev devgov-...-v2` — Autonomous Developer Gov V2
+
+- 4 态档案：pending / active / paused / archived（paused → active 恢复）
+- 5 态运行生命周期：queued / developing / shipped / failed / cancelled（3 终结）
+- 容量：每 owner 6 active / 每档案 15 pending
+- 自动翻转：auto-pause-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`level` = "assist"，生命周期字段 `goal`
+- 聚合器：`devgov-gov-stats-v2`
+- 测试：44 V2
+
+### `cc compliance tigov-...-v2` — Threat Intel Gov V2
+
+- 4 态档案：pending / active / stale / archived（stale → active 恢复）
+- 5 态情报源生命周期：queued / ingesting / ingested / failed / cancelled（3 终结）
+- 容量：每 owner 6 active / 每档案 15 pending
+- 自动翻转：auto-stale-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`source` = "otx"，生命周期字段 `indicator`
+- 聚合器：`tigov-gov-stats-v2`
+- 测试：44 V2
+
+### `cc compliance uebgov-...-v2` — UEBA Gov V2
+
+- 4 态档案：pending / active / suppressed / archived（suppressed → active 恢复）
+- 5 态告警生命周期：queued / analyzing / triaged / failed / cancelled（3 终结）
+- 容量：每 owner 8 active / 每档案 20 pending
+- 自动翻转：auto-suppress-idle（30 天）+ auto-fail-stuck（60 秒）
+- 字段默认：`entity` = "user"，生命周期字段 `behavior`
+- 聚合器：`uebgov-gov-stats-v2`
+- 测试：44 V2

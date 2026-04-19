@@ -460,3 +460,212 @@ export function registerInstinctCommand(program) {
       console.log(JSON.stringify(autoDiscardStaleObservationsV2(), null, 2)),
     );
 }
+
+// === Iter18 V2 governance overlay ===
+export function registerInstgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "instinct");
+  if (!parent) return;
+  const L = async () => await import("../lib/instinct-manager.js");
+  parent
+    .command("instgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.INSTGOV_PROFILE_MATURITY_V2,
+            triggerLifecycle: m.INSTGOV_TRIGGER_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("instgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveInstgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingInstgovTriggersPerProfileV2(),
+            idleMs: m.getInstgovProfileIdleMsV2(),
+            stuckMs: m.getInstgovTriggerStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("instgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveInstgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("instgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingInstgovTriggersPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("instgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setInstgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("instgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setInstgovTriggerStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("instgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--priority <v>", "priority")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerInstgovProfileV2({ id, owner, priority: o.priority }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("instgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateInstgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("instgov-dormant-v2 <id>")
+    .description("Dormant profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).dormantInstgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("instgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveInstgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("instgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchInstgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("instgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getInstgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("instgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listInstgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("instgov-create-trigger-v2 <id> <profileId>")
+    .description("Create trigger")
+    .option("--pattern <v>", "pattern")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createInstgovTriggerV2({ id, profileId, pattern: o.pattern }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("instgov-firing-trigger-v2 <id>")
+    .description("Mark trigger as firing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).firingInstgovTriggerV2(id), null, 2),
+      );
+    });
+  parent
+    .command("instgov-complete-trigger-v2 <id>")
+    .description("Complete trigger")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeTriggerInstgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("instgov-fail-trigger-v2 <id> [reason]")
+    .description("Fail trigger")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failInstgovTriggerV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("instgov-cancel-trigger-v2 <id> [reason]")
+    .description("Cancel trigger")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelInstgovTriggerV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("instgov-get-trigger-v2 <id>")
+    .description("Get trigger")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getInstgovTriggerV2(id), null, 2));
+    });
+  parent
+    .command("instgov-list-triggers-v2")
+    .description("List triggers")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listInstgovTriggersV2(), null, 2));
+    });
+  parent
+    .command("instgov-auto-dormant-idle-v2")
+    .description("Auto-dormant idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoDormantIdleInstgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("instgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck triggers")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckInstgovTriggersV2(), null, 2),
+      );
+    });
+  parent
+    .command("instgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getInstinctManagerGovStatsV2(), null, 2),
+      );
+    });
+}

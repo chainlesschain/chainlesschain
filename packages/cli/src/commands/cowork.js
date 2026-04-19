@@ -1991,3 +1991,206 @@ export function registerCwwfV2Commands(program) {
       );
     });
 }
+
+// === Iter22 V2 governance overlay ===
+export function registerShgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "cowork");
+  if (!parent) return;
+  const L = async () => await import("../lib/cowork-share.js");
+  parent
+    .command("shgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.SHGOV_PROFILE_MATURITY_V2,
+            shareLifecycle: m.SHGOV_SHARE_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("shgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveShgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingShgovSharesPerProfileV2(),
+            idleMs: m.getShgovProfileIdleMsV2(),
+            stuckMs: m.getShgovShareStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("shgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveShgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("shgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingShgovSharesPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("shgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setShgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("shgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setShgovShareStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("shgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--visibility <v>", "visibility")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerShgovProfileV2({ id, owner, visibility: o.visibility }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("shgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateShgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("shgov-pause-v2 <id>")
+    .description("Pause profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).pauseShgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("shgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveShgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("shgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchShgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("shgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getShgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("shgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listShgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("shgov-create-share-v2 <id> <profileId>")
+    .description("Create share")
+    .option("--target <v>", "target")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createShgovShareV2({ id, profileId, target: o.target }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("shgov-sharing-share-v2 <id>")
+    .description("Mark share as sharing")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).sharingShgovShareV2(id), null, 2));
+    });
+  parent
+    .command("shgov-complete-share-v2 <id>")
+    .description("Complete share")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeShareShgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("shgov-fail-share-v2 <id> [reason]")
+    .description("Fail share")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failShgovShareV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("shgov-cancel-share-v2 <id> [reason]")
+    .description("Cancel share")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelShgovShareV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("shgov-get-share-v2 <id>")
+    .description("Get share")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getShgovShareV2(id), null, 2));
+    });
+  parent
+    .command("shgov-list-shares-v2")
+    .description("List shares")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listShgovSharesV2(), null, 2));
+    });
+  parent
+    .command("shgov-auto-pause-idle-v2")
+    .description("Auto-pause idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoPauseIdleShgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("shgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck shares")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckShgovSharesV2(), null, 2),
+      );
+    });
+  parent
+    .command("shgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getCoworkShareGovStatsV2(), null, 2),
+      );
+    });
+}

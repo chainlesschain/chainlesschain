@@ -503,3 +503,212 @@ export function registerSyncCommand(program) {
       console.log(JSON.stringify(flipped, null, 2));
     });
 }
+
+// === Iter19 V2 governance overlay ===
+export function registerSyncgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "sync");
+  if (!parent) return;
+  const L = async () => await import("../lib/sync-manager.js");
+  parent
+    .command("syncgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.SYNCGOV_PROFILE_MATURITY_V2,
+            batchLifecycle: m.SYNCGOV_BATCH_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("syncgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveSyncgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingSyncgovBatchsPerProfileV2(),
+            idleMs: m.getSyncgovProfileIdleMsV2(),
+            stuckMs: m.getSyncgovBatchStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("syncgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveSyncgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("syncgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingSyncgovBatchsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("syncgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setSyncgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("syncgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setSyncgovBatchStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("syncgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--target <v>", "target")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerSyncgovProfileV2({ id, owner, target: o.target }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("syncgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateSyncgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("syncgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleSyncgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("syncgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveSyncgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("syncgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchSyncgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("syncgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getSyncgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("syncgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listSyncgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("syncgov-create-batch-v2 <id> <profileId>")
+    .description("Create batch")
+    .option("--scope <v>", "scope")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createSyncgovBatchV2({ id, profileId, scope: o.scope }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("syncgov-replicating-batch-v2 <id>")
+    .description("Mark batch as replicating")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).replicatingSyncgovBatchV2(id), null, 2),
+      );
+    });
+  parent
+    .command("syncgov-complete-batch-v2 <id>")
+    .description("Complete batch")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeBatchSyncgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("syncgov-fail-batch-v2 <id> [reason]")
+    .description("Fail batch")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failSyncgovBatchV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("syncgov-cancel-batch-v2 <id> [reason]")
+    .description("Cancel batch")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelSyncgovBatchV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("syncgov-get-batch-v2 <id>")
+    .description("Get batch")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getSyncgovBatchV2(id), null, 2));
+    });
+  parent
+    .command("syncgov-list-batchs-v2")
+    .description("List batchs")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listSyncgovBatchsV2(), null, 2));
+    });
+  parent
+    .command("syncgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleSyncgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("syncgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck batchs")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckSyncgovBatchsV2(), null, 2),
+      );
+    });
+  parent
+    .command("syncgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getSyncManagerGovStatsV2(), null, 2),
+      );
+    });
+}

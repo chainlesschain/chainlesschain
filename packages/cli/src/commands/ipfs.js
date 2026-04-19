@@ -708,3 +708,210 @@ export function registerIpfsCommand(program) {
 
   program.addCommand(ipfs);
 }
+
+// === Iter20 V2 governance overlay ===
+export function registerIpfsgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "ipfs");
+  if (!parent) return;
+  const L = async () => await import("../lib/ipfs-storage.js");
+  parent
+    .command("ipfsgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.IPFSGOV_PROFILE_MATURITY_V2,
+            pinLifecycle: m.IPFSGOV_PIN_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ipfsgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveIpfsgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingIpfsgovPinsPerProfileV2(),
+            idleMs: m.getIpfsgovProfileIdleMsV2(),
+            stuckMs: m.getIpfsgovPinStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ipfsgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveIpfsgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ipfsgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingIpfsgovPinsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ipfsgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setIpfsgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ipfsgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setIpfsgovPinStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("ipfsgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--mode <v>", "mode")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerIpfsgovProfileV2({ id, owner, mode: o.mode }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ipfsgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateIpfsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ipfsgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleIpfsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ipfsgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveIpfsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ipfsgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchIpfsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ipfsgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getIpfsgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("ipfsgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listIpfsgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("ipfsgov-create-pin-v2 <id> <profileId>")
+    .description("Create pin")
+    .option("--cid <v>", "cid")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createIpfsgovPinV2({ id, profileId, cid: o.cid }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("ipfsgov-pinning-pin-v2 <id>")
+    .description("Mark pin as pinning")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).pinningIpfsgovPinV2(id), null, 2));
+    });
+  parent
+    .command("ipfsgov-complete-pin-v2 <id>")
+    .description("Complete pin")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completePinIpfsgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("ipfsgov-fail-pin-v2 <id> [reason]")
+    .description("Fail pin")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failIpfsgovPinV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("ipfsgov-cancel-pin-v2 <id> [reason]")
+    .description("Cancel pin")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelIpfsgovPinV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("ipfsgov-get-pin-v2 <id>")
+    .description("Get pin")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getIpfsgovPinV2(id), null, 2));
+    });
+  parent
+    .command("ipfsgov-list-pins-v2")
+    .description("List pins")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listIpfsgovPinsV2(), null, 2));
+    });
+  parent
+    .command("ipfsgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleIpfsgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("ipfsgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck pins")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckIpfsgovPinsV2(), null, 2),
+      );
+    });
+  parent
+    .command("ipfsgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getIpfsStorageGovStatsV2(), null, 2),
+      );
+    });
+}

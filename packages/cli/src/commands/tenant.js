@@ -925,3 +925,220 @@ export function registerTenantCommand(program) {
       else console.log(JSON.stringify(s, null, 2));
     });
 }
+
+// === Iter18 V2 governance overlay ===
+export function registerTnsgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "tenant");
+  if (!parent) return;
+  const L = async () => await import("../lib/tenant-saas.js");
+  parent
+    .command("tnsgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.TNSGOV_PROFILE_MATURITY_V2,
+            allocationLifecycle: m.TNSGOV_ALLOCATION_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("tnsgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveTnsgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingTnsgovAllocationsPerProfileV2(),
+            idleMs: m.getTnsgovProfileIdleMsV2(),
+            stuckMs: m.getTnsgovAllocationStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("tnsgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveTnsgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("tnsgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingTnsgovAllocationsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("tnsgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setTnsgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("tnsgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setTnsgovAllocationStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("tnsgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--plan <v>", "plan")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerTnsgovProfileV2({ id, owner, plan: o.plan }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("tnsgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateTnsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("tnsgov-suspend-v2 <id>")
+    .description("Suspend profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).suspendTnsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("tnsgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveTnsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("tnsgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchTnsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("tnsgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getTnsgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("tnsgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listTnsgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("tnsgov-create-allocation-v2 <id> <profileId>")
+    .description("Create allocation")
+    .option("--resource <v>", "resource")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createTnsgovAllocationV2({ id, profileId, resource: o.resource }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("tnsgov-provisioning-allocation-v2 <id>")
+    .description("Mark allocation as provisioning")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).provisioningTnsgovAllocationV2(id), null, 2),
+      );
+    });
+  parent
+    .command("tnsgov-complete-allocation-v2 <id>")
+    .description("Complete allocation")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeAllocationTnsgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("tnsgov-fail-allocation-v2 <id> [reason]")
+    .description("Fail allocation")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failTnsgovAllocationV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("tnsgov-cancel-allocation-v2 <id> [reason]")
+    .description("Cancel allocation")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify(
+          (await L()).cancelTnsgovAllocationV2(id, reason),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("tnsgov-get-allocation-v2 <id>")
+    .description("Get allocation")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).getTnsgovAllocationV2(id), null, 2),
+      );
+    });
+  parent
+    .command("tnsgov-list-allocations-v2")
+    .description("List allocations")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).listTnsgovAllocationsV2(), null, 2),
+      );
+    });
+  parent
+    .command("tnsgov-auto-suspend-idle-v2")
+    .description("Auto-suspend idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoSuspendIdleTnsgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("tnsgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck allocations")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckTnsgovAllocationsV2(), null, 2),
+      );
+    });
+  parent
+    .command("tnsgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getTenantSaasGovStatsV2(), null, 2),
+      );
+    });
+}

@@ -1094,3 +1094,333 @@ export function _resetStateV2() {
   _pluginsV2.clear();
   _runtimeTasksV2.clear();
 }
+
+// =====================================================================
+// universal-runtime V2 governance overlay (iter23)
+// =====================================================================
+export const RTGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  DEGRADED: "degraded",
+  ARCHIVED: "archived",
+});
+export const RTGOV_TASK_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  EXECUTING: "executing",
+  EXECUTED: "executed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _rtgovPTrans = new Map([
+  [
+    RTGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      RTGOV_PROFILE_MATURITY_V2.ACTIVE,
+      RTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    RTGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      RTGOV_PROFILE_MATURITY_V2.DEGRADED,
+      RTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    RTGOV_PROFILE_MATURITY_V2.DEGRADED,
+    new Set([
+      RTGOV_PROFILE_MATURITY_V2.ACTIVE,
+      RTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [RTGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _rtgovPTerminal = new Set([RTGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _rtgovJTrans = new Map([
+  [
+    RTGOV_TASK_LIFECYCLE_V2.QUEUED,
+    new Set([
+      RTGOV_TASK_LIFECYCLE_V2.EXECUTING,
+      RTGOV_TASK_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    RTGOV_TASK_LIFECYCLE_V2.EXECUTING,
+    new Set([
+      RTGOV_TASK_LIFECYCLE_V2.EXECUTED,
+      RTGOV_TASK_LIFECYCLE_V2.FAILED,
+      RTGOV_TASK_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [RTGOV_TASK_LIFECYCLE_V2.EXECUTED, new Set()],
+  [RTGOV_TASK_LIFECYCLE_V2.FAILED, new Set()],
+  [RTGOV_TASK_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _rtgovPsV2 = new Map();
+const _rtgovJsV2 = new Map();
+let _rtgovMaxActive = 8,
+  _rtgovMaxPending = 20,
+  _rtgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _rtgovStuckMs = 60 * 1000;
+function _rtgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _rtgovCheckP(from, to) {
+  const a = _rtgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid rtgov profile transition ${from} → ${to}`);
+}
+function _rtgovCheckJ(from, to) {
+  const a = _rtgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid rtgov task transition ${from} → ${to}`);
+}
+function _rtgovCountActive(owner) {
+  let c = 0;
+  for (const p of _rtgovPsV2.values())
+    if (p.owner === owner && p.status === RTGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _rtgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _rtgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === RTGOV_TASK_LIFECYCLE_V2.QUEUED ||
+        j.status === RTGOV_TASK_LIFECYCLE_V2.EXECUTING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveRtgovProfilesPerOwnerV2(n) {
+  _rtgovMaxActive = _rtgovPos(n, "maxActiveRtgovProfilesPerOwner");
+}
+export function getMaxActiveRtgovProfilesPerOwnerV2() {
+  return _rtgovMaxActive;
+}
+export function setMaxPendingRtgovTasksPerProfileV2(n) {
+  _rtgovMaxPending = _rtgovPos(n, "maxPendingRtgovTasksPerProfile");
+}
+export function getMaxPendingRtgovTasksPerProfileV2() {
+  return _rtgovMaxPending;
+}
+export function setRtgovProfileIdleMsV2(n) {
+  _rtgovIdleMs = _rtgovPos(n, "rtgovProfileIdleMs");
+}
+export function getRtgovProfileIdleMsV2() {
+  return _rtgovIdleMs;
+}
+export function setRtgovTaskStuckMsV2(n) {
+  _rtgovStuckMs = _rtgovPos(n, "rtgovTaskStuckMs");
+}
+export function getRtgovTaskStuckMsV2() {
+  return _rtgovStuckMs;
+}
+export function _resetStateUniversalRuntimeGovV2() {
+  _rtgovPsV2.clear();
+  _rtgovJsV2.clear();
+  _rtgovMaxActive = 8;
+  _rtgovMaxPending = 20;
+  _rtgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _rtgovStuckMs = 60 * 1000;
+}
+export function registerRtgovProfileV2({ id, owner, runtime, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_rtgovPsV2.has(id)) throw new Error(`rtgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    runtime: runtime || "node",
+    status: RTGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _rtgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateRtgovProfileV2(id) {
+  const p = _rtgovPsV2.get(id);
+  if (!p) throw new Error(`rtgov profile ${id} not found`);
+  const isInitial = p.status === RTGOV_PROFILE_MATURITY_V2.PENDING;
+  _rtgovCheckP(p.status, RTGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _rtgovCountActive(p.owner) >= _rtgovMaxActive)
+    throw new Error(`max active rtgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = RTGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function degradeRtgovProfileV2(id) {
+  const p = _rtgovPsV2.get(id);
+  if (!p) throw new Error(`rtgov profile ${id} not found`);
+  _rtgovCheckP(p.status, RTGOV_PROFILE_MATURITY_V2.DEGRADED);
+  p.status = RTGOV_PROFILE_MATURITY_V2.DEGRADED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveRtgovProfileV2(id) {
+  const p = _rtgovPsV2.get(id);
+  if (!p) throw new Error(`rtgov profile ${id} not found`);
+  _rtgovCheckP(p.status, RTGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = RTGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchRtgovProfileV2(id) {
+  const p = _rtgovPsV2.get(id);
+  if (!p) throw new Error(`rtgov profile ${id} not found`);
+  if (_rtgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal rtgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getRtgovProfileV2(id) {
+  const p = _rtgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listRtgovProfilesV2() {
+  return [..._rtgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createRtgovTaskV2({ id, profileId, kind, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_rtgovJsV2.has(id)) throw new Error(`rtgov task ${id} already exists`);
+  if (!_rtgovPsV2.has(profileId))
+    throw new Error(`rtgov profile ${profileId} not found`);
+  if (_rtgovCountPending(profileId) >= _rtgovMaxPending)
+    throw new Error(`max pending rtgov tasks for profile ${profileId} reached`);
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    kind: kind || "",
+    status: RTGOV_TASK_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _rtgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function executingRtgovTaskV2(id) {
+  const j = _rtgovJsV2.get(id);
+  if (!j) throw new Error(`rtgov task ${id} not found`);
+  _rtgovCheckJ(j.status, RTGOV_TASK_LIFECYCLE_V2.EXECUTING);
+  const now = Date.now();
+  j.status = RTGOV_TASK_LIFECYCLE_V2.EXECUTING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeTaskRtgovV2(id) {
+  const j = _rtgovJsV2.get(id);
+  if (!j) throw new Error(`rtgov task ${id} not found`);
+  _rtgovCheckJ(j.status, RTGOV_TASK_LIFECYCLE_V2.EXECUTED);
+  const now = Date.now();
+  j.status = RTGOV_TASK_LIFECYCLE_V2.EXECUTED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failRtgovTaskV2(id, reason) {
+  const j = _rtgovJsV2.get(id);
+  if (!j) throw new Error(`rtgov task ${id} not found`);
+  _rtgovCheckJ(j.status, RTGOV_TASK_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = RTGOV_TASK_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelRtgovTaskV2(id, reason) {
+  const j = _rtgovJsV2.get(id);
+  if (!j) throw new Error(`rtgov task ${id} not found`);
+  _rtgovCheckJ(j.status, RTGOV_TASK_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = RTGOV_TASK_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getRtgovTaskV2(id) {
+  const j = _rtgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listRtgovTasksV2() {
+  return [..._rtgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoDegradeIdleRtgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _rtgovPsV2.values())
+    if (
+      p.status === RTGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _rtgovIdleMs
+    ) {
+      p.status = RTGOV_PROFILE_MATURITY_V2.DEGRADED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckRtgovTasksV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _rtgovJsV2.values())
+    if (
+      j.status === RTGOV_TASK_LIFECYCLE_V2.EXECUTING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _rtgovStuckMs
+    ) {
+      j.status = RTGOV_TASK_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getUniversalRuntimeGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(RTGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _rtgovPsV2.values()) profilesByStatus[p.status]++;
+  const tasksByStatus = {};
+  for (const v of Object.values(RTGOV_TASK_LIFECYCLE_V2)) tasksByStatus[v] = 0;
+  for (const j of _rtgovJsV2.values()) tasksByStatus[j.status]++;
+  return {
+    totalRtgovProfilesV2: _rtgovPsV2.size,
+    totalRtgovTasksV2: _rtgovJsV2.size,
+    maxActiveRtgovProfilesPerOwner: _rtgovMaxActive,
+    maxPendingRtgovTasksPerProfile: _rtgovMaxPending,
+    rtgovProfileIdleMs: _rtgovIdleMs,
+    rtgovTaskStuckMs: _rtgovStuckMs,
+    profilesByStatus,
+    tasksByStatus,
+  };
+}

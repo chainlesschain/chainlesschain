@@ -618,3 +618,220 @@ export function registerDIDv2Command(program) {
 
   program.addCommand(didv2);
 }
+
+// === Iter22 V2 governance overlay ===
+export function registerDv2govV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "did-v2");
+  if (!parent) return;
+  const L = async () => await import("../lib/did-v2-manager.js");
+  parent
+    .command("dv2gov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.DV2GOV_PROFILE_MATURITY_V2,
+            credentialLifecycle: m.DV2GOV_CREDENTIAL_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dv2gov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveDv2govProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingDv2govCredentialsPerProfileV2(),
+            idleMs: m.getDv2govProfileIdleMsV2(),
+            stuckMs: m.getDv2govCredentialStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dv2gov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveDv2govProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("dv2gov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingDv2govCredentialsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("dv2gov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setDv2govProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("dv2gov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setDv2govCredentialStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("dv2gov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--method <v>", "method")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerDv2govProfileV2({ id, owner, method: o.method }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dv2gov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateDv2govProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dv2gov-suspend-v2 <id>")
+    .description("Suspend profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).suspendDv2govProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dv2gov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveDv2govProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dv2gov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchDv2govProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dv2gov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getDv2govProfileV2(id), null, 2));
+    });
+  parent
+    .command("dv2gov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listDv2govProfilesV2(), null, 2));
+    });
+  parent
+    .command("dv2gov-create-credential-v2 <id> <profileId>")
+    .description("Create credential")
+    .option("--subject <v>", "subject")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createDv2govCredentialV2({ id, profileId, subject: o.subject }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dv2gov-issuing-credential-v2 <id>")
+    .description("Mark credential as issuing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).issuingDv2govCredentialV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dv2gov-complete-credential-v2 <id>")
+    .description("Complete credential")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeCredentialDv2govV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dv2gov-fail-credential-v2 <id> [reason]")
+    .description("Fail credential")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failDv2govCredentialV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("dv2gov-cancel-credential-v2 <id> [reason]")
+    .description("Cancel credential")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify(
+          (await L()).cancelDv2govCredentialV2(id, reason),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dv2gov-get-credential-v2 <id>")
+    .description("Get credential")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).getDv2govCredentialV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dv2gov-list-credentials-v2")
+    .description("List credentials")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).listDv2govCredentialsV2(), null, 2),
+      );
+    });
+  parent
+    .command("dv2gov-auto-suspend-idle-v2")
+    .description("Auto-suspend idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoSuspendIdleDv2govProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("dv2gov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck credentials")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckDv2govCredentialsV2(), null, 2),
+      );
+    });
+  parent
+    .command("dv2gov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getDidV2ManagerGovStatsV2(), null, 2),
+      );
+    });
+}

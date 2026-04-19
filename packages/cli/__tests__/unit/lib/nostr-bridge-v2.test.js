@@ -1,234 +1,253 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import * as M from "../../../src/lib/nostr-bridge.js";
 
-describe("Nostr Bridge V2 Surface", () => {
-  beforeEach(() => M._resetStateNostrBridgeV2());
+describe("NostrBridge V2 Surface", () => {
+  beforeEach(() => M._resetStateNostrBridgeGovV2());
 
   describe("enums", () => {
-    it("relay maturity has 4 states", () =>
-      expect(Object.keys(M.NOSTR_RELAY_MATURITY_V2)).toHaveLength(4));
-    it("event lifecycle has 5 states", () =>
-      expect(Object.keys(M.NOSTR_EVENT_LIFECYCLE_V2)).toHaveLength(5));
-    it("enums frozen", () => {
-      expect(Object.isFrozen(M.NOSTR_RELAY_MATURITY_V2)).toBe(true);
-      expect(Object.isFrozen(M.NOSTR_EVENT_LIFECYCLE_V2)).toBe(true);
+    it("4 maturity states", () =>
+      expect(Object.keys(M.NOSGOV_PROFILE_MATURITY_V2)).toHaveLength(4));
+    it("5 lifecycle states", () =>
+      expect(Object.keys(M.NOSGOV_PUBLISH_LIFECYCLE_V2)).toHaveLength(5));
+    it("frozen", () => {
+      expect(Object.isFrozen(M.NOSGOV_PROFILE_MATURITY_V2)).toBe(true);
+      expect(Object.isFrozen(M.NOSGOV_PUBLISH_LIFECYCLE_V2)).toBe(true);
     });
   });
 
   describe("config", () => {
-    it("setMaxActiveNostrRelaysPerOwnerV2", () => {
-      M.setMaxActiveNostrRelaysPerOwnerV2(20);
-      expect(M.getMaxActiveNostrRelaysPerOwnerV2()).toBe(20);
+    it("setMaxActive", () => {
+      M.setMaxActiveNosgovProfilesPerOwnerV2(11);
+      expect(M.getMaxActiveNosgovProfilesPerOwnerV2()).toBe(11);
     });
-    it("setMaxPendingNostrEventsPerRelayV2", () => {
-      M.setMaxPendingNostrEventsPerRelayV2(50);
-      expect(M.getMaxPendingNostrEventsPerRelayV2()).toBe(50);
+    it("setMaxPending", () => {
+      M.setMaxPendingNosgovPublishsPerProfileV2(33);
+      expect(M.getMaxPendingNosgovPublishsPerProfileV2()).toBe(33);
     });
-    it("setNostrRelayIdleMsV2", () => {
-      M.setNostrRelayIdleMsV2(1800000);
-      expect(M.getNostrRelayIdleMsV2()).toBe(1800000);
+    it("setIdle", () => {
+      M.setNosgovProfileIdleMsV2(60000);
+      expect(M.getNosgovProfileIdleMsV2()).toBe(60000);
     });
-    it("setNostrEventStuckMsV2", () => {
-      M.setNostrEventStuckMsV2(30000);
-      expect(M.getNostrEventStuckMsV2()).toBe(30000);
+    it("setStuck", () => {
+      M.setNosgovPublishStuckMsV2(45000);
+      expect(M.getNosgovPublishStuckMsV2()).toBe(45000);
     });
-    it("rejects zero", () =>
-      expect(() => M.setMaxActiveNostrRelaysPerOwnerV2(0)).toThrow());
-    it("rejects negative", () =>
-      expect(() => M.setNostrEventStuckMsV2(-1)).toThrow());
+    it("rejects 0", () =>
+      expect(() => M.setMaxActiveNosgovProfilesPerOwnerV2(0)).toThrow());
+    it("rejects NaN", () =>
+      expect(() => M.setNosgovPublishStuckMsV2("x")).toThrow());
     it("floors decimals", () => {
-      M.setMaxPendingNostrEventsPerRelayV2(7.3);
-      expect(M.getMaxPendingNostrEventsPerRelayV2()).toBe(7);
+      M.setMaxActiveNosgovProfilesPerOwnerV2(7.9);
+      expect(M.getMaxActiveNosgovProfilesPerOwnerV2()).toBe(7);
     });
   });
 
-  describe("relay lifecycle", () => {
-    it("register", () => {
-      const r = M.registerNostrRelayV2({ id: "rel1", owner: "alice" });
-      expect(r.status).toBe("pending");
-    });
+  describe("profile lifecycle", () => {
+    it("register pending", () =>
+      expect(M.registerNosgovProfileV2({ id: "p1", owner: "a" }).status).toBe(
+        "pending",
+      ));
+    it("default relay", () =>
+      expect(M.registerNosgovProfileV2({ id: "p1", owner: "a" }).relay).toBe(
+        "wss://relay.local",
+      ));
     it("activate", () => {
-      M.registerNostrRelayV2({ id: "rel1", owner: "alice" });
-      const r = M.activateNostrRelayV2("rel1");
-      expect(r.status).toBe("active");
-      expect(r.activatedAt).toBeTruthy();
+      M.registerNosgovProfileV2({ id: "p1", owner: "a" });
+      expect(M.activateNosgovProfileV2("p1").status).toBe("active");
     });
-    it("offline active→offline", () => {
-      M.registerNostrRelayV2({ id: "rel1", owner: "alice" });
-      M.activateNostrRelayV2("rel1");
-      expect(M.offlineNostrRelayV2("rel1").status).toBe("offline");
+    it("suspend", () => {
+      M.registerNosgovProfileV2({ id: "p1", owner: "a" });
+      M.activateNosgovProfileV2("p1");
+      expect(M.suspendNosgovProfileV2("p1").status).toBe("suspended");
     });
-    it("recovery offline→active preserves activatedAt", () => {
-      M.registerNostrRelayV2({ id: "rel1", owner: "alice" });
-      const a = M.activateNostrRelayV2("rel1");
-      M.offlineNostrRelayV2("rel1");
-      const re = M.activateNostrRelayV2("rel1");
-      expect(re.activatedAt).toBe(a.activatedAt);
+    it("recovery preserves activatedAt", () => {
+      M.registerNosgovProfileV2({ id: "p1", owner: "a" });
+      const a = M.activateNosgovProfileV2("p1");
+      M.suspendNosgovProfileV2("p1");
+      expect(M.activateNosgovProfileV2("p1").activatedAt).toBe(a.activatedAt);
     });
-    it("retire terminal", () => {
-      M.registerNostrRelayV2({ id: "rel1", owner: "alice" });
-      M.activateNostrRelayV2("rel1");
-      const r = M.retireNostrRelayV2("rel1");
-      expect(r.status).toBe("retired");
-      expect(r.retiredAt).toBeTruthy();
+    it("archive terminal", () => {
+      M.registerNosgovProfileV2({ id: "p1", owner: "a" });
+      M.activateNosgovProfileV2("p1");
+      expect(M.archiveNosgovProfileV2("p1").status).toBe("archived");
     });
-    it("cannot touch retired", () => {
-      M.registerNostrRelayV2({ id: "rel1", owner: "alice" });
-      M.activateNostrRelayV2("rel1");
-      M.retireNostrRelayV2("rel1");
-      expect(() => M.touchNostrRelayV2("rel1")).toThrow();
+    it("cannot touch archived", () => {
+      M.registerNosgovProfileV2({ id: "p1", owner: "a" });
+      M.activateNosgovProfileV2("p1");
+      M.archiveNosgovProfileV2("p1");
+      expect(() => M.touchNosgovProfileV2("p1")).toThrow();
     });
     it("invalid transition", () => {
-      M.registerNostrRelayV2({ id: "rel1", owner: "alice" });
-      expect(() => M.offlineNostrRelayV2("rel1")).toThrow();
+      M.registerNosgovProfileV2({ id: "p1", owner: "a" });
+      expect(() => M.suspendNosgovProfileV2("p1")).toThrow();
     });
     it("duplicate rejected", () => {
-      M.registerNostrRelayV2({ id: "rel1", owner: "alice" });
+      M.registerNosgovProfileV2({ id: "p1", owner: "a" });
       expect(() =>
-        M.registerNostrRelayV2({ id: "rel1", owner: "b" }),
+        M.registerNosgovProfileV2({ id: "p1", owner: "b" }),
       ).toThrow();
     });
     it("missing owner", () =>
-      expect(() => M.registerNostrRelayV2({ id: "rel1" })).toThrow());
+      expect(() => M.registerNosgovProfileV2({ id: "p1" })).toThrow());
+    it("get null", () => expect(M.getNosgovProfileV2("nope")).toBeNull());
     it("list all", () => {
-      M.registerNostrRelayV2({ id: "rel1", owner: "a" });
-      M.registerNostrRelayV2({ id: "rel2", owner: "b" });
-      expect(M.listNostrRelaysV2()).toHaveLength(2);
+      M.registerNosgovProfileV2({ id: "p1", owner: "a" });
+      M.registerNosgovProfileV2({ id: "p2", owner: "b" });
+      expect(M.listNosgovProfilesV2()).toHaveLength(2);
     });
-    it("get null unknown", () => expect(M.getNostrRelayV2("none")).toBeNull());
     it("defensive copy", () => {
-      M.registerNostrRelayV2({ id: "rel1", owner: "a", metadata: { k: 5 } });
-      const r = M.getNostrRelayV2("rel1");
-      r.metadata.k = 99;
-      expect(M.getNostrRelayV2("rel1").metadata.k).toBe(5);
+      M.registerNosgovProfileV2({ id: "p1", owner: "a", metadata: { x: 1 } });
+      const p = M.getNosgovProfileV2("p1");
+      p.metadata.x = 99;
+      expect(M.getNosgovProfileV2("p1").metadata.x).toBe(1);
     });
   });
 
-  describe("active-relay cap", () => {
+  describe("active cap", () => {
     it("enforced", () => {
-      M.setMaxActiveNostrRelaysPerOwnerV2(2);
-      ["r1", "r2", "r3"].forEach((id) =>
-        M.registerNostrRelayV2({ id, owner: "a" }),
+      M.setMaxActiveNosgovProfilesPerOwnerV2(2);
+      ["p1", "p2", "p3"].forEach((id) =>
+        M.registerNosgovProfileV2({ id, owner: "a" }),
       );
-      M.activateNostrRelayV2("r1");
-      M.activateNostrRelayV2("r2");
-      expect(() => M.activateNostrRelayV2("r3")).toThrow(/max active/);
+      M.activateNosgovProfileV2("p1");
+      M.activateNosgovProfileV2("p2");
+      expect(() => M.activateNosgovProfileV2("p3")).toThrow(/max active/);
     });
     it("recovery exempt", () => {
-      M.setMaxActiveNostrRelaysPerOwnerV2(2);
-      ["r1", "r2", "r3"].forEach((id) =>
-        M.registerNostrRelayV2({ id, owner: "a" }),
+      M.setMaxActiveNosgovProfilesPerOwnerV2(2);
+      ["p1", "p2", "p3"].forEach((id) =>
+        M.registerNosgovProfileV2({ id, owner: "a" }),
       );
-      M.activateNostrRelayV2("r1");
-      M.activateNostrRelayV2("r2");
-      M.offlineNostrRelayV2("r1");
-      M.activateNostrRelayV2("r3");
-      expect(() => M.activateNostrRelayV2("r1")).not.toThrow();
+      M.activateNosgovProfileV2("p1");
+      M.activateNosgovProfileV2("p2");
+      M.suspendNosgovProfileV2("p1");
+      M.activateNosgovProfileV2("p3");
+      expect(() => M.activateNosgovProfileV2("p1")).not.toThrow();
     });
-    it("per-owner isolated", () => {
-      M.setMaxActiveNostrRelaysPerOwnerV2(1);
-      M.registerNostrRelayV2({ id: "r1", owner: "a" });
-      M.registerNostrRelayV2({ id: "r2", owner: "b" });
-      M.activateNostrRelayV2("r1");
-      expect(() => M.activateNostrRelayV2("r2")).not.toThrow();
+    it("per-owner", () => {
+      M.setMaxActiveNosgovProfilesPerOwnerV2(1);
+      M.registerNosgovProfileV2({ id: "p1", owner: "a" });
+      M.registerNosgovProfileV2({ id: "p2", owner: "b" });
+      M.activateNosgovProfileV2("p1");
+      expect(() => M.activateNosgovProfileV2("p2")).not.toThrow();
     });
   });
 
-  describe("event lifecycle", () => {
+  describe("publish lifecycle", () => {
     beforeEach(() => {
-      M.registerNostrRelayV2({ id: "r1", owner: "a" });
-      M.activateNostrRelayV2("r1");
+      M.registerNosgovProfileV2({ id: "p1", owner: "a" });
+      M.activateNosgovProfileV2("p1");
     });
-    it("create→start→publish", () => {
-      M.createNostrEventV2({ id: "e1", relayId: "r1" });
-      M.startNostrEventV2("e1");
-      const e = M.publishNostrEventV2("e1");
-      expect(e.status).toBe("published");
+    it("create→publishing→complete", () => {
+      M.createNosgovPublishV2({ id: "r1", profileId: "p1" });
+      M.publishingNosgovPublishV2("r1");
+      const r = M.completePublishNosgovV2("r1");
+      expect(r.status).not.toBe("queued");
     });
     it("fail", () => {
-      M.createNostrEventV2({ id: "e1", relayId: "r1" });
-      M.startNostrEventV2("e1");
-      const e = M.failNostrEventV2("e1", "rejected");
-      expect(e.metadata.failReason).toBe("rejected");
+      M.createNosgovPublishV2({ id: "r1", profileId: "p1" });
+      M.publishingNosgovPublishV2("r1");
+      expect(M.failNosgovPublishV2("r1", "x").metadata.failReason).toBe("x");
     });
-    it("cancel queued", () => {
-      M.createNostrEventV2({ id: "e1", relayId: "r1" });
-      expect(M.cancelNostrEventV2("e1").status).toBe("cancelled");
+    it("cancel from queued", () => {
+      M.createNosgovPublishV2({ id: "r1", profileId: "p1" });
+      expect(M.cancelNosgovPublishV2("r1").status).toBe("cancelled");
     });
-    it("cannot publish from queued", () => {
-      M.createNostrEventV2({ id: "e1", relayId: "r1" });
-      expect(() => M.publishNostrEventV2("e1")).toThrow();
+    it("invalid complete from queued", () => {
+      M.createNosgovPublishV2({ id: "r1", profileId: "p1" });
+      expect(() => M.completePublishNosgovV2("r1")).toThrow();
     });
-    it("unknown relay rejected", () =>
+    it("unknown profile", () =>
       expect(() =>
-        M.createNostrEventV2({ id: "e1", relayId: "none" }),
+        M.createNosgovPublishV2({ id: "r1", profileId: "none" }),
       ).toThrow());
-    it("per-relay pending cap", () => {
-      M.setMaxPendingNostrEventsPerRelayV2(2);
-      ["e1", "e2"].forEach((id) => M.createNostrEventV2({ id, relayId: "r1" }));
-      expect(() => M.createNostrEventV2({ id: "e3", relayId: "r1" })).toThrow(
-        /max pending/,
+    it("pending cap", () => {
+      M.setMaxPendingNosgovPublishsPerProfileV2(2);
+      ["r1", "r2"].forEach((id) =>
+        M.createNosgovPublishV2({ id, profileId: "p1" }),
       );
-    });
-    it("publishing counts toward pending", () => {
-      M.setMaxPendingNostrEventsPerRelayV2(1);
-      M.createNostrEventV2({ id: "e1", relayId: "r1" });
-      M.startNostrEventV2("e1");
-      expect(() => M.createNostrEventV2({ id: "e2", relayId: "r1" })).toThrow();
-    });
-    it("published frees slot", () => {
-      M.setMaxPendingNostrEventsPerRelayV2(1);
-      M.createNostrEventV2({ id: "e1", relayId: "r1" });
-      M.startNostrEventV2("e1");
-      M.publishNostrEventV2("e1");
       expect(() =>
-        M.createNostrEventV2({ id: "e2", relayId: "r1" }),
+        M.createNosgovPublishV2({ id: "r3", profileId: "p1" }),
+      ).toThrow(/max pending/);
+    });
+    it("publishing counts as pending", () => {
+      M.setMaxPendingNosgovPublishsPerProfileV2(1);
+      M.createNosgovPublishV2({ id: "r1", profileId: "p1" });
+      M.publishingNosgovPublishV2("r1");
+      expect(() =>
+        M.createNosgovPublishV2({ id: "r2", profileId: "p1" }),
+      ).toThrow();
+    });
+    it("completed frees slot", () => {
+      M.setMaxPendingNosgovPublishsPerProfileV2(1);
+      M.createNosgovPublishV2({ id: "r1", profileId: "p1" });
+      M.publishingNosgovPublishV2("r1");
+      M.completePublishNosgovV2("r1");
+      expect(() =>
+        M.createNosgovPublishV2({ id: "r2", profileId: "p1" }),
       ).not.toThrow();
     });
-    it("default kind is 1", () => {
-      M.createNostrEventV2({ id: "e1", relayId: "r1" });
-      expect(M.getNostrEventV2("e1").kind).toBe(1);
+    it("get null", () => expect(M.getNosgovPublishV2("nope")).toBeNull());
+    it("list", () => {
+      M.createNosgovPublishV2({ id: "r1", profileId: "p1" });
+      M.createNosgovPublishV2({ id: "r2", profileId: "p1" });
+      expect(M.listNosgovPublishsV2()).toHaveLength(2);
     });
-    it("custom kind preserved", () => {
-      M.createNostrEventV2({ id: "e1", relayId: "r1", kind: 4 });
-      expect(M.getNostrEventV2("e1").kind).toBe(4);
+    it("missing id", () =>
+      expect(() => M.createNosgovPublishV2({ profileId: "p1" })).toThrow());
+    it("duplicate id", () => {
+      M.createNosgovPublishV2({ id: "r1", profileId: "p1" });
+      expect(() =>
+        M.createNosgovPublishV2({ id: "r1", profileId: "p1" }),
+      ).toThrow();
+    });
+    it("cancel reason captured", () => {
+      M.createNosgovPublishV2({ id: "r1", profileId: "p1" });
+      expect(M.cancelNosgovPublishV2("r1", "y").metadata.cancelReason).toBe(
+        "y",
+      );
     });
   });
 
   describe("auto flips", () => {
-    it("autoOfflineIdle", () => {
-      M.setNostrRelayIdleMsV2(1000);
-      M.registerNostrRelayV2({ id: "r1", owner: "a" });
-      M.activateNostrRelayV2("r1");
-      const r = M.autoOfflineIdleNostrRelaysV2({ now: Date.now() + 5000 });
+    it("autoSuspendIdle", () => {
+      M.setNosgovProfileIdleMsV2(1000);
+      M.registerNosgovProfileV2({ id: "p1", owner: "a" });
+      M.activateNosgovProfileV2("p1");
+      const r = M.autoSuspendIdleNosgovProfilesV2({ now: Date.now() + 5000 });
       expect(r.count).toBe(1);
-      expect(M.getNostrRelayV2("r1").status).toBe("offline");
+      expect(M.getNosgovProfileV2("p1").status).toBe("suspended");
     });
     it("autoFailStuck", () => {
-      M.registerNostrRelayV2({ id: "r1", owner: "a" });
-      M.activateNostrRelayV2("r1");
-      M.createNostrEventV2({ id: "e1", relayId: "r1" });
-      M.startNostrEventV2("e1");
-      M.setNostrEventStuckMsV2(100);
-      const r = M.autoFailStuckNostrEventsV2({ now: Date.now() + 5000 });
+      M.registerNosgovProfileV2({ id: "p1", owner: "a" });
+      M.activateNosgovProfileV2("p1");
+      M.createNosgovPublishV2({ id: "r1", profileId: "p1" });
+      M.publishingNosgovPublishV2("r1");
+      M.setNosgovPublishStuckMsV2(100);
+      const r = M.autoFailStuckNosgovPublishsV2({ now: Date.now() + 5000 });
       expect(r.count).toBe(1);
-      expect(M.getNostrEventV2("e1").status).toBe("failed");
+    });
+    it("only flips active", () => {
+      M.setNosgovProfileIdleMsV2(1000);
+      M.registerNosgovProfileV2({ id: "p1", owner: "a" });
+      const r = M.autoSuspendIdleNosgovProfilesV2({ now: Date.now() + 5000 });
+      expect(r.count).toBe(0);
     });
   });
 
   describe("stats", () => {
-    it("all keys", () => {
-      const s = M.getNostrBridgeStatsV2();
-      expect(s.relaysByStatus.pending).toBe(0);
-      expect(s.eventsByStatus.queued).toBe(0);
+    it("zero-init", () => {
+      const s2 = M.getNostrBridgeGovStatsV2();
+      expect(s2.profilesByStatus.pending).toBe(0);
+      expect(s2.publishsByStatus.queued).toBe(0);
     });
     it("counts", () => {
-      M.registerNostrRelayV2({ id: "r1", owner: "a" });
-      M.activateNostrRelayV2("r1");
-      M.createNostrEventV2({ id: "e1", relayId: "r1" });
-      const s = M.getNostrBridgeStatsV2();
-      expect(s.totalRelaysV2).toBe(1);
-      expect(s.totalEventsV2).toBe(1);
+      M.registerNosgovProfileV2({ id: "p1", owner: "a" });
+      M.activateNosgovProfileV2("p1");
+      M.createNosgovPublishV2({ id: "r1", profileId: "p1" });
+      const s2 = M.getNostrBridgeGovStatsV2();
+      expect(s2.totalNosgovProfilesV2).toBe(1);
+      expect(s2.totalNosgovPublishsV2).toBe(1);
     });
   });
 });

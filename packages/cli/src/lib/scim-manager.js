@@ -539,3 +539,349 @@ export function _resetStateScimManagerV2() {
   _identityIdleMsV2 = SCIM_DEFAULT_IDENTITY_IDLE_MS;
   _syncStuckMsV2 = SCIM_DEFAULT_SYNC_STUCK_MS;
 }
+
+// =====================================================================
+// scim-manager V2 governance overlay (iter19)
+// =====================================================================
+export const SCIMGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const SCIMGOV_SYNC_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  SYNCING: "syncing",
+  SYNCED: "synced",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _scimgovPTrans = new Map([
+  [
+    SCIMGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      SCIMGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SCIMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SCIMGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      SCIMGOV_PROFILE_MATURITY_V2.STALE,
+      SCIMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SCIMGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      SCIMGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SCIMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [SCIMGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _scimgovPTerminal = new Set([SCIMGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _scimgovJTrans = new Map([
+  [
+    SCIMGOV_SYNC_LIFECYCLE_V2.QUEUED,
+    new Set([
+      SCIMGOV_SYNC_LIFECYCLE_V2.SYNCING,
+      SCIMGOV_SYNC_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    SCIMGOV_SYNC_LIFECYCLE_V2.SYNCING,
+    new Set([
+      SCIMGOV_SYNC_LIFECYCLE_V2.SYNCED,
+      SCIMGOV_SYNC_LIFECYCLE_V2.FAILED,
+      SCIMGOV_SYNC_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [SCIMGOV_SYNC_LIFECYCLE_V2.SYNCED, new Set()],
+  [SCIMGOV_SYNC_LIFECYCLE_V2.FAILED, new Set()],
+  [SCIMGOV_SYNC_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _scimgovPsV2 = new Map();
+const _scimgovJsV2 = new Map();
+let _scimgovMaxActive = 6,
+  _scimgovMaxPending = 15,
+  _scimgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _scimgovStuckMs = 60 * 1000;
+function _scimgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _scimgovCheckP(from, to) {
+  const a = _scimgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid scimgov profile transition ${from} → ${to}`);
+}
+function _scimgovCheckJ(from, to) {
+  const a = _scimgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid scimgov sync transition ${from} → ${to}`);
+}
+function _scimgovCountActive(owner) {
+  let c = 0;
+  for (const p of _scimgovPsV2.values())
+    if (p.owner === owner && p.status === SCIMGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _scimgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _scimgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === SCIMGOV_SYNC_LIFECYCLE_V2.QUEUED ||
+        j.status === SCIMGOV_SYNC_LIFECYCLE_V2.SYNCING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveScimgovProfilesPerOwnerV2(n) {
+  _scimgovMaxActive = _scimgovPos(n, "maxActiveScimgovProfilesPerOwner");
+}
+export function getMaxActiveScimgovProfilesPerOwnerV2() {
+  return _scimgovMaxActive;
+}
+export function setMaxPendingScimgovSyncsPerProfileV2(n) {
+  _scimgovMaxPending = _scimgovPos(n, "maxPendingScimgovSyncsPerProfile");
+}
+export function getMaxPendingScimgovSyncsPerProfileV2() {
+  return _scimgovMaxPending;
+}
+export function setScimgovProfileIdleMsV2(n) {
+  _scimgovIdleMs = _scimgovPos(n, "scimgovProfileIdleMs");
+}
+export function getScimgovProfileIdleMsV2() {
+  return _scimgovIdleMs;
+}
+export function setScimgovSyncStuckMsV2(n) {
+  _scimgovStuckMs = _scimgovPos(n, "scimgovSyncStuckMs");
+}
+export function getScimgovSyncStuckMsV2() {
+  return _scimgovStuckMs;
+}
+export function _resetStateScimManagerGovV2() {
+  _scimgovPsV2.clear();
+  _scimgovJsV2.clear();
+  _scimgovMaxActive = 6;
+  _scimgovMaxPending = 15;
+  _scimgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _scimgovStuckMs = 60 * 1000;
+}
+export function registerScimgovProfileV2({
+  id,
+  owner,
+  resource,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_scimgovPsV2.has(id))
+    throw new Error(`scimgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    resource: resource || "users",
+    status: SCIMGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _scimgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateScimgovProfileV2(id) {
+  const p = _scimgovPsV2.get(id);
+  if (!p) throw new Error(`scimgov profile ${id} not found`);
+  const isInitial = p.status === SCIMGOV_PROFILE_MATURITY_V2.PENDING;
+  _scimgovCheckP(p.status, SCIMGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _scimgovCountActive(p.owner) >= _scimgovMaxActive)
+    throw new Error(`max active scimgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = SCIMGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleScimgovProfileV2(id) {
+  const p = _scimgovPsV2.get(id);
+  if (!p) throw new Error(`scimgov profile ${id} not found`);
+  _scimgovCheckP(p.status, SCIMGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = SCIMGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveScimgovProfileV2(id) {
+  const p = _scimgovPsV2.get(id);
+  if (!p) throw new Error(`scimgov profile ${id} not found`);
+  _scimgovCheckP(p.status, SCIMGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = SCIMGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchScimgovProfileV2(id) {
+  const p = _scimgovPsV2.get(id);
+  if (!p) throw new Error(`scimgov profile ${id} not found`);
+  if (_scimgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal scimgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getScimgovProfileV2(id) {
+  const p = _scimgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listScimgovProfilesV2() {
+  return [..._scimgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createScimgovSyncV2({
+  id,
+  profileId,
+  endpoint,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_scimgovJsV2.has(id))
+    throw new Error(`scimgov sync ${id} already exists`);
+  if (!_scimgovPsV2.has(profileId))
+    throw new Error(`scimgov profile ${profileId} not found`);
+  if (_scimgovCountPending(profileId) >= _scimgovMaxPending)
+    throw new Error(
+      `max pending scimgov syncs for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    endpoint: endpoint || "",
+    status: SCIMGOV_SYNC_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _scimgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function syncingScimgovSyncV2(id) {
+  const j = _scimgovJsV2.get(id);
+  if (!j) throw new Error(`scimgov sync ${id} not found`);
+  _scimgovCheckJ(j.status, SCIMGOV_SYNC_LIFECYCLE_V2.SYNCING);
+  const now = Date.now();
+  j.status = SCIMGOV_SYNC_LIFECYCLE_V2.SYNCING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeSyncScimgovV2(id) {
+  const j = _scimgovJsV2.get(id);
+  if (!j) throw new Error(`scimgov sync ${id} not found`);
+  _scimgovCheckJ(j.status, SCIMGOV_SYNC_LIFECYCLE_V2.SYNCED);
+  const now = Date.now();
+  j.status = SCIMGOV_SYNC_LIFECYCLE_V2.SYNCED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failScimgovSyncV2(id, reason) {
+  const j = _scimgovJsV2.get(id);
+  if (!j) throw new Error(`scimgov sync ${id} not found`);
+  _scimgovCheckJ(j.status, SCIMGOV_SYNC_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = SCIMGOV_SYNC_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelScimgovSyncV2(id, reason) {
+  const j = _scimgovJsV2.get(id);
+  if (!j) throw new Error(`scimgov sync ${id} not found`);
+  _scimgovCheckJ(j.status, SCIMGOV_SYNC_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = SCIMGOV_SYNC_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getScimgovSyncV2(id) {
+  const j = _scimgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listScimgovSyncsV2() {
+  return [..._scimgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleScimgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _scimgovPsV2.values())
+    if (
+      p.status === SCIMGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _scimgovIdleMs
+    ) {
+      p.status = SCIMGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckScimgovSyncsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _scimgovJsV2.values())
+    if (
+      j.status === SCIMGOV_SYNC_LIFECYCLE_V2.SYNCING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _scimgovStuckMs
+    ) {
+      j.status = SCIMGOV_SYNC_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getScimManagerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(SCIMGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _scimgovPsV2.values()) profilesByStatus[p.status]++;
+  const syncsByStatus = {};
+  for (const v of Object.values(SCIMGOV_SYNC_LIFECYCLE_V2))
+    syncsByStatus[v] = 0;
+  for (const j of _scimgovJsV2.values()) syncsByStatus[j.status]++;
+  return {
+    totalScimgovProfilesV2: _scimgovPsV2.size,
+    totalScimgovSyncsV2: _scimgovJsV2.size,
+    maxActiveScimgovProfilesPerOwner: _scimgovMaxActive,
+    maxPendingScimgovSyncsPerProfile: _scimgovMaxPending,
+    scimgovProfileIdleMs: _scimgovIdleMs,
+    scimgovSyncStuckMs: _scimgovStuckMs,
+    profilesByStatus,
+    syncsByStatus,
+  };
+}

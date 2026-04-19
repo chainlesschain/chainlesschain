@@ -527,3 +527,339 @@ export function _resetStateTokenTrackerV2() {
   _budgetIdleMsV2 = TOKEN_DEFAULT_BUDGET_IDLE_MS;
   _recordStuckMsV2 = TOKEN_DEFAULT_RECORD_STUCK_MS;
 }
+
+// =====================================================================
+// token-tracker V2 governance overlay (iter24)
+// =====================================================================
+export const TOKTGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const TOKTGOV_USAGE_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  RECORDING: "recording",
+  RECORDED: "recorded",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _toktgovPTrans = new Map([
+  [
+    TOKTGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      TOKTGOV_PROFILE_MATURITY_V2.ACTIVE,
+      TOKTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    TOKTGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      TOKTGOV_PROFILE_MATURITY_V2.STALE,
+      TOKTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    TOKTGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      TOKTGOV_PROFILE_MATURITY_V2.ACTIVE,
+      TOKTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [TOKTGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _toktgovPTerminal = new Set([TOKTGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _toktgovJTrans = new Map([
+  [
+    TOKTGOV_USAGE_LIFECYCLE_V2.QUEUED,
+    new Set([
+      TOKTGOV_USAGE_LIFECYCLE_V2.RECORDING,
+      TOKTGOV_USAGE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    TOKTGOV_USAGE_LIFECYCLE_V2.RECORDING,
+    new Set([
+      TOKTGOV_USAGE_LIFECYCLE_V2.RECORDED,
+      TOKTGOV_USAGE_LIFECYCLE_V2.FAILED,
+      TOKTGOV_USAGE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [TOKTGOV_USAGE_LIFECYCLE_V2.RECORDED, new Set()],
+  [TOKTGOV_USAGE_LIFECYCLE_V2.FAILED, new Set()],
+  [TOKTGOV_USAGE_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _toktgovPsV2 = new Map();
+const _toktgovJsV2 = new Map();
+let _toktgovMaxActive = 8,
+  _toktgovMaxPending = 20,
+  _toktgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _toktgovStuckMs = 60 * 1000;
+function _toktgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _toktgovCheckP(from, to) {
+  const a = _toktgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid toktgov profile transition ${from} → ${to}`);
+}
+function _toktgovCheckJ(from, to) {
+  const a = _toktgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid toktgov usage transition ${from} → ${to}`);
+}
+function _toktgovCountActive(owner) {
+  let c = 0;
+  for (const p of _toktgovPsV2.values())
+    if (p.owner === owner && p.status === TOKTGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _toktgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _toktgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === TOKTGOV_USAGE_LIFECYCLE_V2.QUEUED ||
+        j.status === TOKTGOV_USAGE_LIFECYCLE_V2.RECORDING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveToktgovProfilesPerOwnerV2(n) {
+  _toktgovMaxActive = _toktgovPos(n, "maxActiveToktgovProfilesPerOwner");
+}
+export function getMaxActiveToktgovProfilesPerOwnerV2() {
+  return _toktgovMaxActive;
+}
+export function setMaxPendingToktgovUsagesPerProfileV2(n) {
+  _toktgovMaxPending = _toktgovPos(n, "maxPendingToktgovUsagesPerProfile");
+}
+export function getMaxPendingToktgovUsagesPerProfileV2() {
+  return _toktgovMaxPending;
+}
+export function setToktgovProfileIdleMsV2(n) {
+  _toktgovIdleMs = _toktgovPos(n, "toktgovProfileIdleMs");
+}
+export function getToktgovProfileIdleMsV2() {
+  return _toktgovIdleMs;
+}
+export function setToktgovUsageStuckMsV2(n) {
+  _toktgovStuckMs = _toktgovPos(n, "toktgovUsageStuckMs");
+}
+export function getToktgovUsageStuckMsV2() {
+  return _toktgovStuckMs;
+}
+export function _resetStateTokenTrackerGovV2() {
+  _toktgovPsV2.clear();
+  _toktgovJsV2.clear();
+  _toktgovMaxActive = 8;
+  _toktgovMaxPending = 20;
+  _toktgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _toktgovStuckMs = 60 * 1000;
+}
+export function registerToktgovProfileV2({ id, owner, budget, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_toktgovPsV2.has(id))
+    throw new Error(`toktgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    budget: budget || "default",
+    status: TOKTGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _toktgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateToktgovProfileV2(id) {
+  const p = _toktgovPsV2.get(id);
+  if (!p) throw new Error(`toktgov profile ${id} not found`);
+  const isInitial = p.status === TOKTGOV_PROFILE_MATURITY_V2.PENDING;
+  _toktgovCheckP(p.status, TOKTGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _toktgovCountActive(p.owner) >= _toktgovMaxActive)
+    throw new Error(`max active toktgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = TOKTGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleToktgovProfileV2(id) {
+  const p = _toktgovPsV2.get(id);
+  if (!p) throw new Error(`toktgov profile ${id} not found`);
+  _toktgovCheckP(p.status, TOKTGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = TOKTGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveToktgovProfileV2(id) {
+  const p = _toktgovPsV2.get(id);
+  if (!p) throw new Error(`toktgov profile ${id} not found`);
+  _toktgovCheckP(p.status, TOKTGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = TOKTGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchToktgovProfileV2(id) {
+  const p = _toktgovPsV2.get(id);
+  if (!p) throw new Error(`toktgov profile ${id} not found`);
+  if (_toktgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal toktgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getToktgovProfileV2(id) {
+  const p = _toktgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listToktgovProfilesV2() {
+  return [..._toktgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createToktgovUsageV2({ id, profileId, model, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_toktgovJsV2.has(id))
+    throw new Error(`toktgov usage ${id} already exists`);
+  if (!_toktgovPsV2.has(profileId))
+    throw new Error(`toktgov profile ${profileId} not found`);
+  if (_toktgovCountPending(profileId) >= _toktgovMaxPending)
+    throw new Error(
+      `max pending toktgov usages for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    model: model || "",
+    status: TOKTGOV_USAGE_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _toktgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function recordingToktgovUsageV2(id) {
+  const j = _toktgovJsV2.get(id);
+  if (!j) throw new Error(`toktgov usage ${id} not found`);
+  _toktgovCheckJ(j.status, TOKTGOV_USAGE_LIFECYCLE_V2.RECORDING);
+  const now = Date.now();
+  j.status = TOKTGOV_USAGE_LIFECYCLE_V2.RECORDING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeUsageToktgovV2(id) {
+  const j = _toktgovJsV2.get(id);
+  if (!j) throw new Error(`toktgov usage ${id} not found`);
+  _toktgovCheckJ(j.status, TOKTGOV_USAGE_LIFECYCLE_V2.RECORDED);
+  const now = Date.now();
+  j.status = TOKTGOV_USAGE_LIFECYCLE_V2.RECORDED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failToktgovUsageV2(id, reason) {
+  const j = _toktgovJsV2.get(id);
+  if (!j) throw new Error(`toktgov usage ${id} not found`);
+  _toktgovCheckJ(j.status, TOKTGOV_USAGE_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = TOKTGOV_USAGE_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelToktgovUsageV2(id, reason) {
+  const j = _toktgovJsV2.get(id);
+  if (!j) throw new Error(`toktgov usage ${id} not found`);
+  _toktgovCheckJ(j.status, TOKTGOV_USAGE_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = TOKTGOV_USAGE_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getToktgovUsageV2(id) {
+  const j = _toktgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listToktgovUsagesV2() {
+  return [..._toktgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleToktgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _toktgovPsV2.values())
+    if (
+      p.status === TOKTGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _toktgovIdleMs
+    ) {
+      p.status = TOKTGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckToktgovUsagesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _toktgovJsV2.values())
+    if (
+      j.status === TOKTGOV_USAGE_LIFECYCLE_V2.RECORDING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _toktgovStuckMs
+    ) {
+      j.status = TOKTGOV_USAGE_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getTokenTrackerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(TOKTGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _toktgovPsV2.values()) profilesByStatus[p.status]++;
+  const usagesByStatus = {};
+  for (const v of Object.values(TOKTGOV_USAGE_LIFECYCLE_V2))
+    usagesByStatus[v] = 0;
+  for (const j of _toktgovJsV2.values()) usagesByStatus[j.status]++;
+  return {
+    totalToktgovProfilesV2: _toktgovPsV2.size,
+    totalToktgovUsagesV2: _toktgovJsV2.size,
+    maxActiveToktgovProfilesPerOwner: _toktgovMaxActive,
+    maxPendingToktgovUsagesPerProfile: _toktgovMaxPending,
+    toktgovProfileIdleMs: _toktgovIdleMs,
+    toktgovUsageStuckMs: _toktgovStuckMs,
+    profilesByStatus,
+    usagesByStatus,
+  };
+}

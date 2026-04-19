@@ -760,3 +760,222 @@ export function registerOpsCommand(program) {
 
   program.addCommand(ops);
 }
+
+// === Iter18 V2 governance overlay ===
+export function registerAiopsgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "ops");
+  if (!parent) return;
+  const L = async () => await import("../lib/aiops.js");
+  parent
+    .command("aiopsgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.AIOPSGOV_PROFILE_MATURITY_V2,
+            incidentLifecycle: m.AIOPSGOV_INCIDENT_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("aiopsgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveAiopsgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingAiopsgovIncidentsPerProfileV2(),
+            idleMs: m.getAiopsgovProfileIdleMsV2(),
+            stuckMs: m.getAiopsgovIncidentStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("aiopsgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveAiopsgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("aiopsgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingAiopsgovIncidentsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("aiopsgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setAiopsgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("aiopsgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setAiopsgovIncidentStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("aiopsgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--mode <v>", "mode")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerAiopsgovProfileV2({ id, owner, mode: o.mode }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("aiopsgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateAiopsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("aiopsgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleAiopsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("aiopsgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveAiopsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("aiopsgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchAiopsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("aiopsgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).getAiopsgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("aiopsgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).listAiopsgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("aiopsgov-create-incident-v2 <id> <profileId>")
+    .description("Create incident")
+    .option("--summary <v>", "summary")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createAiopsgovIncidentV2({ id, profileId, summary: o.summary }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("aiopsgov-triaging-incident-v2 <id>")
+    .description("Mark incident as triaging")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).triagingAiopsgovIncidentV2(id), null, 2),
+      );
+    });
+  parent
+    .command("aiopsgov-complete-incident-v2 <id>")
+    .description("Complete incident")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeIncidentAiopsgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("aiopsgov-fail-incident-v2 <id> [reason]")
+    .description("Fail incident")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failAiopsgovIncidentV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("aiopsgov-cancel-incident-v2 <id> [reason]")
+    .description("Cancel incident")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify(
+          (await L()).cancelAiopsgovIncidentV2(id, reason),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("aiopsgov-get-incident-v2 <id>")
+    .description("Get incident")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).getAiopsgovIncidentV2(id), null, 2),
+      );
+    });
+  parent
+    .command("aiopsgov-list-incidents-v2")
+    .description("List incidents")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).listAiopsgovIncidentsV2(), null, 2),
+      );
+    });
+  parent
+    .command("aiopsgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleAiopsgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("aiopsgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck incidents")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckAiopsgovIncidentsV2(), null, 2),
+      );
+    });
+  parent
+    .command("aiopsgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).getAiopsGovStatsV2(), null, 2));
+    });
+}

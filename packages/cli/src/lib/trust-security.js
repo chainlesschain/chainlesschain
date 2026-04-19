@@ -861,3 +861,346 @@ export function _resetStateV2() {
   _tsDeviceIdleMs = TS_DEFAULT_DEVICE_IDLE_MS;
   _tsTransmissionStuckMs = TS_DEFAULT_TRANSMISSION_STUCK_MS;
 }
+
+// =====================================================================
+// trust-security V2 governance overlay (iter18)
+// =====================================================================
+export const TRUSTGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  ARCHIVED: "archived",
+});
+export const TRUSTGOV_CHECK_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  VERIFYING: "verifying",
+  VERIFIED: "verified",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _trustgovPTrans = new Map([
+  [
+    TRUSTGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      TRUSTGOV_PROFILE_MATURITY_V2.ACTIVE,
+      TRUSTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    TRUSTGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      TRUSTGOV_PROFILE_MATURITY_V2.SUSPENDED,
+      TRUSTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    TRUSTGOV_PROFILE_MATURITY_V2.SUSPENDED,
+    new Set([
+      TRUSTGOV_PROFILE_MATURITY_V2.ACTIVE,
+      TRUSTGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [TRUSTGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _trustgovPTerminal = new Set([TRUSTGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _trustgovJTrans = new Map([
+  [
+    TRUSTGOV_CHECK_LIFECYCLE_V2.QUEUED,
+    new Set([
+      TRUSTGOV_CHECK_LIFECYCLE_V2.VERIFYING,
+      TRUSTGOV_CHECK_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    TRUSTGOV_CHECK_LIFECYCLE_V2.VERIFYING,
+    new Set([
+      TRUSTGOV_CHECK_LIFECYCLE_V2.VERIFIED,
+      TRUSTGOV_CHECK_LIFECYCLE_V2.FAILED,
+      TRUSTGOV_CHECK_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [TRUSTGOV_CHECK_LIFECYCLE_V2.VERIFIED, new Set()],
+  [TRUSTGOV_CHECK_LIFECYCLE_V2.FAILED, new Set()],
+  [TRUSTGOV_CHECK_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _trustgovPsV2 = new Map();
+const _trustgovJsV2 = new Map();
+let _trustgovMaxActive = 8,
+  _trustgovMaxPending = 20,
+  _trustgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _trustgovStuckMs = 60 * 1000;
+function _trustgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _trustgovCheckP(from, to) {
+  const a = _trustgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid trustgov profile transition ${from} → ${to}`);
+}
+function _trustgovCheckJ(from, to) {
+  const a = _trustgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid trustgov check transition ${from} → ${to}`);
+}
+function _trustgovCountActive(owner) {
+  let c = 0;
+  for (const p of _trustgovPsV2.values())
+    if (p.owner === owner && p.status === TRUSTGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _trustgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _trustgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === TRUSTGOV_CHECK_LIFECYCLE_V2.QUEUED ||
+        j.status === TRUSTGOV_CHECK_LIFECYCLE_V2.VERIFYING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveTrustgovProfilesPerOwnerV2(n) {
+  _trustgovMaxActive = _trustgovPos(n, "maxActiveTrustgovProfilesPerOwner");
+}
+export function getMaxActiveTrustgovProfilesPerOwnerV2() {
+  return _trustgovMaxActive;
+}
+export function setMaxPendingTrustgovChecksPerProfileV2(n) {
+  _trustgovMaxPending = _trustgovPos(n, "maxPendingTrustgovChecksPerProfile");
+}
+export function getMaxPendingTrustgovChecksPerProfileV2() {
+  return _trustgovMaxPending;
+}
+export function setTrustgovProfileIdleMsV2(n) {
+  _trustgovIdleMs = _trustgovPos(n, "trustgovProfileIdleMs");
+}
+export function getTrustgovProfileIdleMsV2() {
+  return _trustgovIdleMs;
+}
+export function setTrustgovCheckStuckMsV2(n) {
+  _trustgovStuckMs = _trustgovPos(n, "trustgovCheckStuckMs");
+}
+export function getTrustgovCheckStuckMsV2() {
+  return _trustgovStuckMs;
+}
+export function _resetStateTrustSecurityGovV2() {
+  _trustgovPsV2.clear();
+  _trustgovJsV2.clear();
+  _trustgovMaxActive = 8;
+  _trustgovMaxPending = 20;
+  _trustgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _trustgovStuckMs = 60 * 1000;
+}
+export function registerTrustgovProfileV2({ id, owner, level, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_trustgovPsV2.has(id))
+    throw new Error(`trustgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    level: level || "medium",
+    status: TRUSTGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _trustgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateTrustgovProfileV2(id) {
+  const p = _trustgovPsV2.get(id);
+  if (!p) throw new Error(`trustgov profile ${id} not found`);
+  const isInitial = p.status === TRUSTGOV_PROFILE_MATURITY_V2.PENDING;
+  _trustgovCheckP(p.status, TRUSTGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _trustgovCountActive(p.owner) >= _trustgovMaxActive)
+    throw new Error(
+      `max active trustgov profiles for owner ${p.owner} reached`,
+    );
+  const now = Date.now();
+  p.status = TRUSTGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function suspendTrustgovProfileV2(id) {
+  const p = _trustgovPsV2.get(id);
+  if (!p) throw new Error(`trustgov profile ${id} not found`);
+  _trustgovCheckP(p.status, TRUSTGOV_PROFILE_MATURITY_V2.SUSPENDED);
+  p.status = TRUSTGOV_PROFILE_MATURITY_V2.SUSPENDED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveTrustgovProfileV2(id) {
+  const p = _trustgovPsV2.get(id);
+  if (!p) throw new Error(`trustgov profile ${id} not found`);
+  _trustgovCheckP(p.status, TRUSTGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = TRUSTGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchTrustgovProfileV2(id) {
+  const p = _trustgovPsV2.get(id);
+  if (!p) throw new Error(`trustgov profile ${id} not found`);
+  if (_trustgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal trustgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getTrustgovProfileV2(id) {
+  const p = _trustgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listTrustgovProfilesV2() {
+  return [..._trustgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createTrustgovCheckV2({
+  id,
+  profileId,
+  subject,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_trustgovJsV2.has(id))
+    throw new Error(`trustgov check ${id} already exists`);
+  if (!_trustgovPsV2.has(profileId))
+    throw new Error(`trustgov profile ${profileId} not found`);
+  if (_trustgovCountPending(profileId) >= _trustgovMaxPending)
+    throw new Error(
+      `max pending trustgov checks for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    subject: subject || "",
+    status: TRUSTGOV_CHECK_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _trustgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function verifyingTrustgovCheckV2(id) {
+  const j = _trustgovJsV2.get(id);
+  if (!j) throw new Error(`trustgov check ${id} not found`);
+  _trustgovCheckJ(j.status, TRUSTGOV_CHECK_LIFECYCLE_V2.VERIFYING);
+  const now = Date.now();
+  j.status = TRUSTGOV_CHECK_LIFECYCLE_V2.VERIFYING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeCheckTrustgovV2(id) {
+  const j = _trustgovJsV2.get(id);
+  if (!j) throw new Error(`trustgov check ${id} not found`);
+  _trustgovCheckJ(j.status, TRUSTGOV_CHECK_LIFECYCLE_V2.VERIFIED);
+  const now = Date.now();
+  j.status = TRUSTGOV_CHECK_LIFECYCLE_V2.VERIFIED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failTrustgovCheckV2(id, reason) {
+  const j = _trustgovJsV2.get(id);
+  if (!j) throw new Error(`trustgov check ${id} not found`);
+  _trustgovCheckJ(j.status, TRUSTGOV_CHECK_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = TRUSTGOV_CHECK_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelTrustgovCheckV2(id, reason) {
+  const j = _trustgovJsV2.get(id);
+  if (!j) throw new Error(`trustgov check ${id} not found`);
+  _trustgovCheckJ(j.status, TRUSTGOV_CHECK_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = TRUSTGOV_CHECK_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getTrustgovCheckV2(id) {
+  const j = _trustgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listTrustgovChecksV2() {
+  return [..._trustgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoSuspendIdleTrustgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _trustgovPsV2.values())
+    if (
+      p.status === TRUSTGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _trustgovIdleMs
+    ) {
+      p.status = TRUSTGOV_PROFILE_MATURITY_V2.SUSPENDED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckTrustgovChecksV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _trustgovJsV2.values())
+    if (
+      j.status === TRUSTGOV_CHECK_LIFECYCLE_V2.VERIFYING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _trustgovStuckMs
+    ) {
+      j.status = TRUSTGOV_CHECK_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getTrustSecurityGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(TRUSTGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _trustgovPsV2.values()) profilesByStatus[p.status]++;
+  const checksByStatus = {};
+  for (const v of Object.values(TRUSTGOV_CHECK_LIFECYCLE_V2))
+    checksByStatus[v] = 0;
+  for (const j of _trustgovJsV2.values()) checksByStatus[j.status]++;
+  return {
+    totalTrustgovProfilesV2: _trustgovPsV2.size,
+    totalTrustgovChecksV2: _trustgovJsV2.size,
+    maxActiveTrustgovProfilesPerOwner: _trustgovMaxActive,
+    maxPendingTrustgovChecksPerProfile: _trustgovMaxPending,
+    trustgovProfileIdleMs: _trustgovIdleMs,
+    trustgovCheckStuckMs: _trustgovStuckMs,
+    profilesByStatus,
+    checksByStatus,
+  };
+}

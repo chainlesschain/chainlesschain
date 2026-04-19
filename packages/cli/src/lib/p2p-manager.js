@@ -702,3 +702,344 @@ export function _resetStateP2pManagerV2() {
   _stateP2pV2.peerIdleMs = PEER_DEFAULT_PEER_IDLE_MS;
   _stateP2pV2.messageStuckMs = PEER_DEFAULT_MESSAGE_STUCK_MS;
 }
+
+// =====================================================================
+// p2p-manager V2 governance overlay (iter20)
+// =====================================================================
+export const P2PGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  ARCHIVED: "archived",
+});
+export const P2PGOV_GOSSIP_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  BROADCASTING: "broadcasting",
+  BROADCAST: "broadcast",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _p2pgovPTrans = new Map([
+  [
+    P2PGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      P2PGOV_PROFILE_MATURITY_V2.ACTIVE,
+      P2PGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    P2PGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      P2PGOV_PROFILE_MATURITY_V2.SUSPENDED,
+      P2PGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    P2PGOV_PROFILE_MATURITY_V2.SUSPENDED,
+    new Set([
+      P2PGOV_PROFILE_MATURITY_V2.ACTIVE,
+      P2PGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [P2PGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _p2pgovPTerminal = new Set([P2PGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _p2pgovJTrans = new Map([
+  [
+    P2PGOV_GOSSIP_LIFECYCLE_V2.QUEUED,
+    new Set([
+      P2PGOV_GOSSIP_LIFECYCLE_V2.BROADCASTING,
+      P2PGOV_GOSSIP_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    P2PGOV_GOSSIP_LIFECYCLE_V2.BROADCASTING,
+    new Set([
+      P2PGOV_GOSSIP_LIFECYCLE_V2.BROADCAST,
+      P2PGOV_GOSSIP_LIFECYCLE_V2.FAILED,
+      P2PGOV_GOSSIP_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [P2PGOV_GOSSIP_LIFECYCLE_V2.BROADCAST, new Set()],
+  [P2PGOV_GOSSIP_LIFECYCLE_V2.FAILED, new Set()],
+  [P2PGOV_GOSSIP_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _p2pgovPsV2 = new Map();
+const _p2pgovJsV2 = new Map();
+let _p2pgovMaxActive = 12,
+  _p2pgovMaxPending = 30,
+  _p2pgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _p2pgovStuckMs = 60 * 1000;
+function _p2pgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _p2pgovCheckP(from, to) {
+  const a = _p2pgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid p2pgov profile transition ${from} → ${to}`);
+}
+function _p2pgovCheckJ(from, to) {
+  const a = _p2pgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid p2pgov gossip transition ${from} → ${to}`);
+}
+function _p2pgovCountActive(owner) {
+  let c = 0;
+  for (const p of _p2pgovPsV2.values())
+    if (p.owner === owner && p.status === P2PGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _p2pgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _p2pgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === P2PGOV_GOSSIP_LIFECYCLE_V2.QUEUED ||
+        j.status === P2PGOV_GOSSIP_LIFECYCLE_V2.BROADCASTING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveP2pgovProfilesPerOwnerV2(n) {
+  _p2pgovMaxActive = _p2pgovPos(n, "maxActiveP2pgovProfilesPerOwner");
+}
+export function getMaxActiveP2pgovProfilesPerOwnerV2() {
+  return _p2pgovMaxActive;
+}
+export function setMaxPendingP2pgovGossipsPerProfileV2(n) {
+  _p2pgovMaxPending = _p2pgovPos(n, "maxPendingP2pgovGossipsPerProfile");
+}
+export function getMaxPendingP2pgovGossipsPerProfileV2() {
+  return _p2pgovMaxPending;
+}
+export function setP2pgovProfileIdleMsV2(n) {
+  _p2pgovIdleMs = _p2pgovPos(n, "p2pgovProfileIdleMs");
+}
+export function getP2pgovProfileIdleMsV2() {
+  return _p2pgovIdleMs;
+}
+export function setP2pgovGossipStuckMsV2(n) {
+  _p2pgovStuckMs = _p2pgovPos(n, "p2pgovGossipStuckMs");
+}
+export function getP2pgovGossipStuckMsV2() {
+  return _p2pgovStuckMs;
+}
+export function _resetStateP2pManagerGovV2() {
+  _p2pgovPsV2.clear();
+  _p2pgovJsV2.clear();
+  _p2pgovMaxActive = 12;
+  _p2pgovMaxPending = 30;
+  _p2pgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _p2pgovStuckMs = 60 * 1000;
+}
+export function registerP2pgovProfileV2({
+  id,
+  owner,
+  transport,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_p2pgovPsV2.has(id))
+    throw new Error(`p2pgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    transport: transport || "tcp",
+    status: P2PGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _p2pgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateP2pgovProfileV2(id) {
+  const p = _p2pgovPsV2.get(id);
+  if (!p) throw new Error(`p2pgov profile ${id} not found`);
+  const isInitial = p.status === P2PGOV_PROFILE_MATURITY_V2.PENDING;
+  _p2pgovCheckP(p.status, P2PGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _p2pgovCountActive(p.owner) >= _p2pgovMaxActive)
+    throw new Error(`max active p2pgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = P2PGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function suspendP2pgovProfileV2(id) {
+  const p = _p2pgovPsV2.get(id);
+  if (!p) throw new Error(`p2pgov profile ${id} not found`);
+  _p2pgovCheckP(p.status, P2PGOV_PROFILE_MATURITY_V2.SUSPENDED);
+  p.status = P2PGOV_PROFILE_MATURITY_V2.SUSPENDED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveP2pgovProfileV2(id) {
+  const p = _p2pgovPsV2.get(id);
+  if (!p) throw new Error(`p2pgov profile ${id} not found`);
+  _p2pgovCheckP(p.status, P2PGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = P2PGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchP2pgovProfileV2(id) {
+  const p = _p2pgovPsV2.get(id);
+  if (!p) throw new Error(`p2pgov profile ${id} not found`);
+  if (_p2pgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal p2pgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getP2pgovProfileV2(id) {
+  const p = _p2pgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listP2pgovProfilesV2() {
+  return [..._p2pgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createP2pgovGossipV2({ id, profileId, topic, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_p2pgovJsV2.has(id))
+    throw new Error(`p2pgov gossip ${id} already exists`);
+  if (!_p2pgovPsV2.has(profileId))
+    throw new Error(`p2pgov profile ${profileId} not found`);
+  if (_p2pgovCountPending(profileId) >= _p2pgovMaxPending)
+    throw new Error(
+      `max pending p2pgov gossips for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    topic: topic || "",
+    status: P2PGOV_GOSSIP_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _p2pgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function broadcastingP2pgovGossipV2(id) {
+  const j = _p2pgovJsV2.get(id);
+  if (!j) throw new Error(`p2pgov gossip ${id} not found`);
+  _p2pgovCheckJ(j.status, P2PGOV_GOSSIP_LIFECYCLE_V2.BROADCASTING);
+  const now = Date.now();
+  j.status = P2PGOV_GOSSIP_LIFECYCLE_V2.BROADCASTING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeGossipP2pgovV2(id) {
+  const j = _p2pgovJsV2.get(id);
+  if (!j) throw new Error(`p2pgov gossip ${id} not found`);
+  _p2pgovCheckJ(j.status, P2PGOV_GOSSIP_LIFECYCLE_V2.BROADCAST);
+  const now = Date.now();
+  j.status = P2PGOV_GOSSIP_LIFECYCLE_V2.BROADCAST;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failP2pgovGossipV2(id, reason) {
+  const j = _p2pgovJsV2.get(id);
+  if (!j) throw new Error(`p2pgov gossip ${id} not found`);
+  _p2pgovCheckJ(j.status, P2PGOV_GOSSIP_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = P2PGOV_GOSSIP_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelP2pgovGossipV2(id, reason) {
+  const j = _p2pgovJsV2.get(id);
+  if (!j) throw new Error(`p2pgov gossip ${id} not found`);
+  _p2pgovCheckJ(j.status, P2PGOV_GOSSIP_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = P2PGOV_GOSSIP_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getP2pgovGossipV2(id) {
+  const j = _p2pgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listP2pgovGossipsV2() {
+  return [..._p2pgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoSuspendIdleP2pgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _p2pgovPsV2.values())
+    if (
+      p.status === P2PGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _p2pgovIdleMs
+    ) {
+      p.status = P2PGOV_PROFILE_MATURITY_V2.SUSPENDED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckP2pgovGossipsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _p2pgovJsV2.values())
+    if (
+      j.status === P2PGOV_GOSSIP_LIFECYCLE_V2.BROADCASTING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _p2pgovStuckMs
+    ) {
+      j.status = P2PGOV_GOSSIP_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getP2pManagerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(P2PGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _p2pgovPsV2.values()) profilesByStatus[p.status]++;
+  const gossipsByStatus = {};
+  for (const v of Object.values(P2PGOV_GOSSIP_LIFECYCLE_V2))
+    gossipsByStatus[v] = 0;
+  for (const j of _p2pgovJsV2.values()) gossipsByStatus[j.status]++;
+  return {
+    totalP2pgovProfilesV2: _p2pgovPsV2.size,
+    totalP2pgovGossipsV2: _p2pgovJsV2.size,
+    maxActiveP2pgovProfilesPerOwner: _p2pgovMaxActive,
+    maxPendingP2pgovGossipsPerProfile: _p2pgovMaxPending,
+    p2pgovProfileIdleMs: _p2pgovIdleMs,
+    p2pgovGossipStuckMs: _p2pgovStuckMs,
+    profilesByStatus,
+    gossipsByStatus,
+  };
+}

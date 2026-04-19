@@ -848,3 +848,206 @@ export function registerWorkflowCommand(program) {
     .description("V2 auto-fail stuck")
     .action(() => _v2json(autoFailStuckRunsV2()));
 }
+
+// === Iter21 V2 governance overlay ===
+export function registerWfgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "workflow");
+  if (!parent) return;
+  const L = async () => await import("../lib/workflow-engine.js");
+  parent
+    .command("wfgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.WFGOV_PROFILE_MATURITY_V2,
+            stepLifecycle: m.WFGOV_STEP_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("wfgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveWfgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingWfgovStepsPerProfileV2(),
+            idleMs: m.getWfgovProfileIdleMsV2(),
+            stuckMs: m.getWfgovStepStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("wfgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveWfgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("wfgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingWfgovStepsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("wfgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setWfgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("wfgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setWfgovStepStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("wfgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--kind <v>", "kind")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerWfgovProfileV2({ id, owner, kind: o.kind }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("wfgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateWfgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("wfgov-pause-v2 <id>")
+    .description("Pause profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).pauseWfgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("wfgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveWfgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("wfgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchWfgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("wfgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getWfgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("wfgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listWfgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("wfgov-create-step-v2 <id> <profileId>")
+    .description("Create step")
+    .option("--stepName <v>", "stepName")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createWfgovStepV2({ id, profileId, stepName: o.stepName }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("wfgov-executing-step-v2 <id>")
+    .description("Mark step as executing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).executingWfgovStepV2(id), null, 2),
+      );
+    });
+  parent
+    .command("wfgov-complete-step-v2 <id>")
+    .description("Complete step")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completeStepWfgovV2(id), null, 2));
+    });
+  parent
+    .command("wfgov-fail-step-v2 <id> [reason]")
+    .description("Fail step")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failWfgovStepV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("wfgov-cancel-step-v2 <id> [reason]")
+    .description("Cancel step")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelWfgovStepV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("wfgov-get-step-v2 <id>")
+    .description("Get step")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getWfgovStepV2(id), null, 2));
+    });
+  parent
+    .command("wfgov-list-steps-v2")
+    .description("List steps")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listWfgovStepsV2(), null, 2));
+    });
+  parent
+    .command("wfgov-auto-pause-idle-v2")
+    .description("Auto-pause idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoPauseIdleWfgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("wfgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck steps")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckWfgovStepsV2(), null, 2),
+      );
+    });
+  parent
+    .command("wfgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getWorkflowEngineGovStatsV2(), null, 2),
+      );
+    });
+}

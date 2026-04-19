@@ -604,3 +604,212 @@ export function registerTechCommand(program) {
       console.log(JSON.stringify(autoFailStuckRunsV2(), null, 2));
     });
 }
+
+// === Iter23 V2 governance overlay ===
+export function registerTechgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "tech");
+  if (!parent) return;
+  const L = async () => await import("../lib/tech-learning-engine.js");
+  parent
+    .command("techgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.TECHGOV_PROFILE_MATURITY_V2,
+            lessonLifecycle: m.TECHGOV_LESSON_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("techgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveTechgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingTechgovLessonsPerProfileV2(),
+            idleMs: m.getTechgovProfileIdleMsV2(),
+            stuckMs: m.getTechgovLessonStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("techgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveTechgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("techgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingTechgovLessonsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("techgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setTechgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("techgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setTechgovLessonStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("techgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--topic <v>", "topic")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerTechgovProfileV2({ id, owner, topic: o.topic }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("techgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateTechgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("techgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleTechgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("techgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveTechgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("techgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchTechgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("techgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getTechgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("techgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listTechgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("techgov-create-lesson-v2 <id> <profileId>")
+    .description("Create lesson")
+    .option("--source <v>", "source")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createTechgovLessonV2({ id, profileId, source: o.source }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("techgov-studying-lesson-v2 <id>")
+    .description("Mark lesson as studying")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).studyingTechgovLessonV2(id), null, 2),
+      );
+    });
+  parent
+    .command("techgov-complete-lesson-v2 <id>")
+    .description("Complete lesson")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeLessonTechgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("techgov-fail-lesson-v2 <id> [reason]")
+    .description("Fail lesson")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failTechgovLessonV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("techgov-cancel-lesson-v2 <id> [reason]")
+    .description("Cancel lesson")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelTechgovLessonV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("techgov-get-lesson-v2 <id>")
+    .description("Get lesson")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getTechgovLessonV2(id), null, 2));
+    });
+  parent
+    .command("techgov-list-lessons-v2")
+    .description("List lessons")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listTechgovLessonsV2(), null, 2));
+    });
+  parent
+    .command("techgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleTechgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("techgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck lessons")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckTechgovLessonsV2(), null, 2),
+      );
+    });
+  parent
+    .command("techgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getTechLearningEngineGovStatsV2(), null, 2),
+      );
+    });
+}

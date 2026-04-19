@@ -823,3 +823,216 @@ export function registerDlpV2Command(dlp) {
       console.log(JSON.stringify(getDlpEngineStatsV2(), null, 2));
     });
 }
+
+// === Iter20 V2 governance overlay ===
+export function registerDlpgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "dlp");
+  if (!parent) return;
+  const L = async () => await import("../lib/dlp-engine.js");
+  parent
+    .command("dlpgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.DLPGOV_PROFILE_MATURITY_V2,
+            scanLifecycle: m.DLPGOV_SCAN_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dlpgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveDlpgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingDlpgovScansPerProfileV2(),
+            idleMs: m.getDlpgovProfileIdleMsV2(),
+            stuckMs: m.getDlpgovScanStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dlpgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveDlpgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("dlpgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingDlpgovScansPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("dlpgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setDlpgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("dlpgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setDlpgovScanStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("dlpgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--classification <v>", "classification")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerDlpgovProfileV2({
+            id,
+            owner,
+            classification: o.classification,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dlpgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateDlpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dlpgov-suspend-v2 <id>")
+    .description("Suspend profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).suspendDlpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dlpgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveDlpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dlpgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchDlpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dlpgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getDlpgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("dlpgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listDlpgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("dlpgov-create-scan-v2 <id> <profileId>")
+    .description("Create scan")
+    .option("--resource <v>", "resource")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createDlpgovScanV2({ id, profileId, resource: o.resource }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("dlpgov-scanning-scan-v2 <id>")
+    .description("Mark scan as scanning")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).scanningDlpgovScanV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dlpgov-complete-scan-v2 <id>")
+    .description("Complete scan")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeScanDlpgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("dlpgov-fail-scan-v2 <id> [reason]")
+    .description("Fail scan")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failDlpgovScanV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("dlpgov-cancel-scan-v2 <id> [reason]")
+    .description("Cancel scan")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelDlpgovScanV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("dlpgov-get-scan-v2 <id>")
+    .description("Get scan")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getDlpgovScanV2(id), null, 2));
+    });
+  parent
+    .command("dlpgov-list-scans-v2")
+    .description("List scans")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listDlpgovScansV2(), null, 2));
+    });
+  parent
+    .command("dlpgov-auto-suspend-idle-v2")
+    .description("Auto-suspend idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoSuspendIdleDlpgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("dlpgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck scans")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckDlpgovScansV2(), null, 2),
+      );
+    });
+  parent
+    .command("dlpgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getDlpEngineGovStatsV2(), null, 2),
+      );
+    });
+}

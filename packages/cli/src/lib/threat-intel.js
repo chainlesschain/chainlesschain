@@ -601,3 +601,333 @@ export function _resetStateThreatIntelV2() {
   _feedIdleMsV2 = TI_DEFAULT_FEED_IDLE_MS;
   _indicatorStaleMsV2 = TI_DEFAULT_INDICATOR_STALE_MS;
 }
+
+// =====================================================================
+// threat-intel V2 governance overlay (iter24)
+// =====================================================================
+export const TIGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const TIGOV_FEED_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  INGESTING: "ingesting",
+  INGESTED: "ingested",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _tigovPTrans = new Map([
+  [
+    TIGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      TIGOV_PROFILE_MATURITY_V2.ACTIVE,
+      TIGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    TIGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      TIGOV_PROFILE_MATURITY_V2.STALE,
+      TIGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    TIGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      TIGOV_PROFILE_MATURITY_V2.ACTIVE,
+      TIGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [TIGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _tigovPTerminal = new Set([TIGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _tigovJTrans = new Map([
+  [
+    TIGOV_FEED_LIFECYCLE_V2.QUEUED,
+    new Set([
+      TIGOV_FEED_LIFECYCLE_V2.INGESTING,
+      TIGOV_FEED_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    TIGOV_FEED_LIFECYCLE_V2.INGESTING,
+    new Set([
+      TIGOV_FEED_LIFECYCLE_V2.INGESTED,
+      TIGOV_FEED_LIFECYCLE_V2.FAILED,
+      TIGOV_FEED_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [TIGOV_FEED_LIFECYCLE_V2.INGESTED, new Set()],
+  [TIGOV_FEED_LIFECYCLE_V2.FAILED, new Set()],
+  [TIGOV_FEED_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _tigovPsV2 = new Map();
+const _tigovJsV2 = new Map();
+let _tigovMaxActive = 6,
+  _tigovMaxPending = 15,
+  _tigovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _tigovStuckMs = 60 * 1000;
+function _tigovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _tigovCheckP(from, to) {
+  const a = _tigovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid tigov profile transition ${from} → ${to}`);
+}
+function _tigovCheckJ(from, to) {
+  const a = _tigovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid tigov feed transition ${from} → ${to}`);
+}
+function _tigovCountActive(owner) {
+  let c = 0;
+  for (const p of _tigovPsV2.values())
+    if (p.owner === owner && p.status === TIGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _tigovCountPending(profileId) {
+  let c = 0;
+  for (const j of _tigovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === TIGOV_FEED_LIFECYCLE_V2.QUEUED ||
+        j.status === TIGOV_FEED_LIFECYCLE_V2.INGESTING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveTigovProfilesPerOwnerV2(n) {
+  _tigovMaxActive = _tigovPos(n, "maxActiveTigovProfilesPerOwner");
+}
+export function getMaxActiveTigovProfilesPerOwnerV2() {
+  return _tigovMaxActive;
+}
+export function setMaxPendingTigovFeedsPerProfileV2(n) {
+  _tigovMaxPending = _tigovPos(n, "maxPendingTigovFeedsPerProfile");
+}
+export function getMaxPendingTigovFeedsPerProfileV2() {
+  return _tigovMaxPending;
+}
+export function setTigovProfileIdleMsV2(n) {
+  _tigovIdleMs = _tigovPos(n, "tigovProfileIdleMs");
+}
+export function getTigovProfileIdleMsV2() {
+  return _tigovIdleMs;
+}
+export function setTigovFeedStuckMsV2(n) {
+  _tigovStuckMs = _tigovPos(n, "tigovFeedStuckMs");
+}
+export function getTigovFeedStuckMsV2() {
+  return _tigovStuckMs;
+}
+export function _resetStateThreatIntelGovV2() {
+  _tigovPsV2.clear();
+  _tigovJsV2.clear();
+  _tigovMaxActive = 6;
+  _tigovMaxPending = 15;
+  _tigovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _tigovStuckMs = 60 * 1000;
+}
+export function registerTigovProfileV2({ id, owner, source, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_tigovPsV2.has(id)) throw new Error(`tigov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    source: source || "otx",
+    status: TIGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _tigovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateTigovProfileV2(id) {
+  const p = _tigovPsV2.get(id);
+  if (!p) throw new Error(`tigov profile ${id} not found`);
+  const isInitial = p.status === TIGOV_PROFILE_MATURITY_V2.PENDING;
+  _tigovCheckP(p.status, TIGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _tigovCountActive(p.owner) >= _tigovMaxActive)
+    throw new Error(`max active tigov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = TIGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleTigovProfileV2(id) {
+  const p = _tigovPsV2.get(id);
+  if (!p) throw new Error(`tigov profile ${id} not found`);
+  _tigovCheckP(p.status, TIGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = TIGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveTigovProfileV2(id) {
+  const p = _tigovPsV2.get(id);
+  if (!p) throw new Error(`tigov profile ${id} not found`);
+  _tigovCheckP(p.status, TIGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = TIGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchTigovProfileV2(id) {
+  const p = _tigovPsV2.get(id);
+  if (!p) throw new Error(`tigov profile ${id} not found`);
+  if (_tigovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal tigov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getTigovProfileV2(id) {
+  const p = _tigovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listTigovProfilesV2() {
+  return [..._tigovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createTigovFeedV2({ id, profileId, indicator, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_tigovJsV2.has(id)) throw new Error(`tigov feed ${id} already exists`);
+  if (!_tigovPsV2.has(profileId))
+    throw new Error(`tigov profile ${profileId} not found`);
+  if (_tigovCountPending(profileId) >= _tigovMaxPending)
+    throw new Error(`max pending tigov feeds for profile ${profileId} reached`);
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    indicator: indicator || "",
+    status: TIGOV_FEED_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _tigovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function ingestingTigovFeedV2(id) {
+  const j = _tigovJsV2.get(id);
+  if (!j) throw new Error(`tigov feed ${id} not found`);
+  _tigovCheckJ(j.status, TIGOV_FEED_LIFECYCLE_V2.INGESTING);
+  const now = Date.now();
+  j.status = TIGOV_FEED_LIFECYCLE_V2.INGESTING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeFeedTigovV2(id) {
+  const j = _tigovJsV2.get(id);
+  if (!j) throw new Error(`tigov feed ${id} not found`);
+  _tigovCheckJ(j.status, TIGOV_FEED_LIFECYCLE_V2.INGESTED);
+  const now = Date.now();
+  j.status = TIGOV_FEED_LIFECYCLE_V2.INGESTED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failTigovFeedV2(id, reason) {
+  const j = _tigovJsV2.get(id);
+  if (!j) throw new Error(`tigov feed ${id} not found`);
+  _tigovCheckJ(j.status, TIGOV_FEED_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = TIGOV_FEED_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelTigovFeedV2(id, reason) {
+  const j = _tigovJsV2.get(id);
+  if (!j) throw new Error(`tigov feed ${id} not found`);
+  _tigovCheckJ(j.status, TIGOV_FEED_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = TIGOV_FEED_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getTigovFeedV2(id) {
+  const j = _tigovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listTigovFeedsV2() {
+  return [..._tigovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleTigovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _tigovPsV2.values())
+    if (
+      p.status === TIGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _tigovIdleMs
+    ) {
+      p.status = TIGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckTigovFeedsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _tigovJsV2.values())
+    if (
+      j.status === TIGOV_FEED_LIFECYCLE_V2.INGESTING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _tigovStuckMs
+    ) {
+      j.status = TIGOV_FEED_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getThreatIntelGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(TIGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _tigovPsV2.values()) profilesByStatus[p.status]++;
+  const feedsByStatus = {};
+  for (const v of Object.values(TIGOV_FEED_LIFECYCLE_V2)) feedsByStatus[v] = 0;
+  for (const j of _tigovJsV2.values()) feedsByStatus[j.status]++;
+  return {
+    totalTigovProfilesV2: _tigovPsV2.size,
+    totalTigovFeedsV2: _tigovJsV2.size,
+    maxActiveTigovProfilesPerOwner: _tigovMaxActive,
+    maxPendingTigovFeedsPerProfile: _tigovMaxPending,
+    tigovProfileIdleMs: _tigovIdleMs,
+    tigovFeedStuckMs: _tigovStuckMs,
+    profilesByStatus,
+    feedsByStatus,
+  };
+}

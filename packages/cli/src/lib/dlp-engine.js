@@ -1034,3 +1034,342 @@ export function getDlpEngineStatsV2() {
     scansByStatus,
   };
 }
+
+// =====================================================================
+// dlp-engine V2 governance overlay (iter20)
+// =====================================================================
+export const DLPGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  ARCHIVED: "archived",
+});
+export const DLPGOV_SCAN_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  SCANNING: "scanning",
+  SCANNED: "scanned",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _dlpgovPTrans = new Map([
+  [
+    DLPGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      DLPGOV_PROFILE_MATURITY_V2.ACTIVE,
+      DLPGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    DLPGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      DLPGOV_PROFILE_MATURITY_V2.SUSPENDED,
+      DLPGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    DLPGOV_PROFILE_MATURITY_V2.SUSPENDED,
+    new Set([
+      DLPGOV_PROFILE_MATURITY_V2.ACTIVE,
+      DLPGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [DLPGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _dlpgovPTerminal = new Set([DLPGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _dlpgovJTrans = new Map([
+  [
+    DLPGOV_SCAN_LIFECYCLE_V2.QUEUED,
+    new Set([
+      DLPGOV_SCAN_LIFECYCLE_V2.SCANNING,
+      DLPGOV_SCAN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    DLPGOV_SCAN_LIFECYCLE_V2.SCANNING,
+    new Set([
+      DLPGOV_SCAN_LIFECYCLE_V2.SCANNED,
+      DLPGOV_SCAN_LIFECYCLE_V2.FAILED,
+      DLPGOV_SCAN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [DLPGOV_SCAN_LIFECYCLE_V2.SCANNED, new Set()],
+  [DLPGOV_SCAN_LIFECYCLE_V2.FAILED, new Set()],
+  [DLPGOV_SCAN_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _dlpgovPsV2 = new Map();
+const _dlpgovJsV2 = new Map();
+let _dlpgovMaxActive = 8,
+  _dlpgovMaxPending = 20,
+  _dlpgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _dlpgovStuckMs = 60 * 1000;
+function _dlpgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _dlpgovCheckP(from, to) {
+  const a = _dlpgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid dlpgov profile transition ${from} → ${to}`);
+}
+function _dlpgovCheckJ(from, to) {
+  const a = _dlpgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid dlpgov scan transition ${from} → ${to}`);
+}
+function _dlpgovCountActive(owner) {
+  let c = 0;
+  for (const p of _dlpgovPsV2.values())
+    if (p.owner === owner && p.status === DLPGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _dlpgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _dlpgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === DLPGOV_SCAN_LIFECYCLE_V2.QUEUED ||
+        j.status === DLPGOV_SCAN_LIFECYCLE_V2.SCANNING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveDlpgovProfilesPerOwnerV2(n) {
+  _dlpgovMaxActive = _dlpgovPos(n, "maxActiveDlpgovProfilesPerOwner");
+}
+export function getMaxActiveDlpgovProfilesPerOwnerV2() {
+  return _dlpgovMaxActive;
+}
+export function setMaxPendingDlpgovScansPerProfileV2(n) {
+  _dlpgovMaxPending = _dlpgovPos(n, "maxPendingDlpgovScansPerProfile");
+}
+export function getMaxPendingDlpgovScansPerProfileV2() {
+  return _dlpgovMaxPending;
+}
+export function setDlpgovProfileIdleMsV2(n) {
+  _dlpgovIdleMs = _dlpgovPos(n, "dlpgovProfileIdleMs");
+}
+export function getDlpgovProfileIdleMsV2() {
+  return _dlpgovIdleMs;
+}
+export function setDlpgovScanStuckMsV2(n) {
+  _dlpgovStuckMs = _dlpgovPos(n, "dlpgovScanStuckMs");
+}
+export function getDlpgovScanStuckMsV2() {
+  return _dlpgovStuckMs;
+}
+export function _resetStateDlpEngineGovV2() {
+  _dlpgovPsV2.clear();
+  _dlpgovJsV2.clear();
+  _dlpgovMaxActive = 8;
+  _dlpgovMaxPending = 20;
+  _dlpgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _dlpgovStuckMs = 60 * 1000;
+}
+export function registerDlpgovProfileV2({
+  id,
+  owner,
+  classification,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_dlpgovPsV2.has(id))
+    throw new Error(`dlpgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    classification: classification || "internal",
+    status: DLPGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _dlpgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateDlpgovProfileV2(id) {
+  const p = _dlpgovPsV2.get(id);
+  if (!p) throw new Error(`dlpgov profile ${id} not found`);
+  const isInitial = p.status === DLPGOV_PROFILE_MATURITY_V2.PENDING;
+  _dlpgovCheckP(p.status, DLPGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _dlpgovCountActive(p.owner) >= _dlpgovMaxActive)
+    throw new Error(`max active dlpgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = DLPGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function suspendDlpgovProfileV2(id) {
+  const p = _dlpgovPsV2.get(id);
+  if (!p) throw new Error(`dlpgov profile ${id} not found`);
+  _dlpgovCheckP(p.status, DLPGOV_PROFILE_MATURITY_V2.SUSPENDED);
+  p.status = DLPGOV_PROFILE_MATURITY_V2.SUSPENDED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveDlpgovProfileV2(id) {
+  const p = _dlpgovPsV2.get(id);
+  if (!p) throw new Error(`dlpgov profile ${id} not found`);
+  _dlpgovCheckP(p.status, DLPGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = DLPGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchDlpgovProfileV2(id) {
+  const p = _dlpgovPsV2.get(id);
+  if (!p) throw new Error(`dlpgov profile ${id} not found`);
+  if (_dlpgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal dlpgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getDlpgovProfileV2(id) {
+  const p = _dlpgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listDlpgovProfilesV2() {
+  return [..._dlpgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createDlpgovScanV2({ id, profileId, resource, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_dlpgovJsV2.has(id)) throw new Error(`dlpgov scan ${id} already exists`);
+  if (!_dlpgovPsV2.has(profileId))
+    throw new Error(`dlpgov profile ${profileId} not found`);
+  if (_dlpgovCountPending(profileId) >= _dlpgovMaxPending)
+    throw new Error(
+      `max pending dlpgov scans for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    resource: resource || "",
+    status: DLPGOV_SCAN_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _dlpgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function scanningDlpgovScanV2(id) {
+  const j = _dlpgovJsV2.get(id);
+  if (!j) throw new Error(`dlpgov scan ${id} not found`);
+  _dlpgovCheckJ(j.status, DLPGOV_SCAN_LIFECYCLE_V2.SCANNING);
+  const now = Date.now();
+  j.status = DLPGOV_SCAN_LIFECYCLE_V2.SCANNING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeScanDlpgovV2(id) {
+  const j = _dlpgovJsV2.get(id);
+  if (!j) throw new Error(`dlpgov scan ${id} not found`);
+  _dlpgovCheckJ(j.status, DLPGOV_SCAN_LIFECYCLE_V2.SCANNED);
+  const now = Date.now();
+  j.status = DLPGOV_SCAN_LIFECYCLE_V2.SCANNED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failDlpgovScanV2(id, reason) {
+  const j = _dlpgovJsV2.get(id);
+  if (!j) throw new Error(`dlpgov scan ${id} not found`);
+  _dlpgovCheckJ(j.status, DLPGOV_SCAN_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = DLPGOV_SCAN_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelDlpgovScanV2(id, reason) {
+  const j = _dlpgovJsV2.get(id);
+  if (!j) throw new Error(`dlpgov scan ${id} not found`);
+  _dlpgovCheckJ(j.status, DLPGOV_SCAN_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = DLPGOV_SCAN_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getDlpgovScanV2(id) {
+  const j = _dlpgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listDlpgovScansV2() {
+  return [..._dlpgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoSuspendIdleDlpgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _dlpgovPsV2.values())
+    if (
+      p.status === DLPGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _dlpgovIdleMs
+    ) {
+      p.status = DLPGOV_PROFILE_MATURITY_V2.SUSPENDED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckDlpgovScansV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _dlpgovJsV2.values())
+    if (
+      j.status === DLPGOV_SCAN_LIFECYCLE_V2.SCANNING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _dlpgovStuckMs
+    ) {
+      j.status = DLPGOV_SCAN_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getDlpEngineGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(DLPGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _dlpgovPsV2.values()) profilesByStatus[p.status]++;
+  const scansByStatus = {};
+  for (const v of Object.values(DLPGOV_SCAN_LIFECYCLE_V2)) scansByStatus[v] = 0;
+  for (const j of _dlpgovJsV2.values()) scansByStatus[j.status]++;
+  return {
+    totalDlpgovProfilesV2: _dlpgovPsV2.size,
+    totalDlpgovScansV2: _dlpgovJsV2.size,
+    maxActiveDlpgovProfilesPerOwner: _dlpgovMaxActive,
+    maxPendingDlpgovScansPerProfile: _dlpgovMaxPending,
+    dlpgovProfileIdleMs: _dlpgovIdleMs,
+    dlpgovScanStuckMs: _dlpgovStuckMs,
+    profilesByStatus,
+    scansByStatus,
+  };
+}

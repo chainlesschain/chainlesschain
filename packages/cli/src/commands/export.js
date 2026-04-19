@@ -378,3 +378,216 @@ export function registerExportCommand(program) {
     .description("Auto-fail stuck V2 export jobs")
     .action(() => out(autoFailStuckExportJobsV2()));
 }
+
+// === Iter22 V2 governance overlay ===
+export function registerKexpgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "export");
+  if (!parent) return;
+  const L = async () => await import("../lib/knowledge-exporter.js");
+  parent
+    .command("kexpgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.KEXPGOV_PROFILE_MATURITY_V2,
+            exportLifecycle: m.KEXPGOV_EXPORT_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("kexpgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveKexpgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingKexpgovExportsPerProfileV2(),
+            idleMs: m.getKexpgovProfileIdleMsV2(),
+            stuckMs: m.getKexpgovExportStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("kexpgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveKexpgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("kexpgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingKexpgovExportsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("kexpgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setKexpgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("kexpgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setKexpgovExportStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("kexpgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--format <v>", "format")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerKexpgovProfileV2({ id, owner, format: o.format }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("kexpgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateKexpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("kexpgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleKexpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("kexpgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveKexpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("kexpgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchKexpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("kexpgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getKexpgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("kexpgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listKexpgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("kexpgov-create-export-v2 <id> <profileId>")
+    .description("Create export")
+    .option("--destination <v>", "destination")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createKexpgovExportV2({
+            id,
+            profileId,
+            destination: o.destination,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("kexpgov-exporting-export-v2 <id>")
+    .description("Mark export as exporting")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).exportingKexpgovExportV2(id), null, 2),
+      );
+    });
+  parent
+    .command("kexpgov-complete-export-v2 <id>")
+    .description("Complete export")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeExportKexpgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("kexpgov-fail-export-v2 <id> [reason]")
+    .description("Fail export")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failKexpgovExportV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("kexpgov-cancel-export-v2 <id> [reason]")
+    .description("Cancel export")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelKexpgovExportV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("kexpgov-get-export-v2 <id>")
+    .description("Get export")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getKexpgovExportV2(id), null, 2));
+    });
+  parent
+    .command("kexpgov-list-exports-v2")
+    .description("List exports")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listKexpgovExportsV2(), null, 2));
+    });
+  parent
+    .command("kexpgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleKexpgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("kexpgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck exports")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckKexpgovExportsV2(), null, 2),
+      );
+    });
+  parent
+    .command("kexpgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getKnowledgeExporterGovStatsV2(), null, 2),
+      );
+    });
+}

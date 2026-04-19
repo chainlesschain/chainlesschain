@@ -1018,3 +1018,344 @@ export function _resetStateV2() {
   _tleProfileStaleMs = TLE_DEFAULT_PROFILE_STALE_MS;
   _tleRunStuckMs = TLE_DEFAULT_RUN_STUCK_MS;
 }
+
+// =====================================================================
+// tech-learning-engine V2 governance overlay (iter23)
+// =====================================================================
+export const TECHGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const TECHGOV_LESSON_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  STUDYING: "studying",
+  STUDIED: "studied",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _techgovPTrans = new Map([
+  [
+    TECHGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      TECHGOV_PROFILE_MATURITY_V2.ACTIVE,
+      TECHGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    TECHGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      TECHGOV_PROFILE_MATURITY_V2.STALE,
+      TECHGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    TECHGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      TECHGOV_PROFILE_MATURITY_V2.ACTIVE,
+      TECHGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [TECHGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _techgovPTerminal = new Set([TECHGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _techgovJTrans = new Map([
+  [
+    TECHGOV_LESSON_LIFECYCLE_V2.QUEUED,
+    new Set([
+      TECHGOV_LESSON_LIFECYCLE_V2.STUDYING,
+      TECHGOV_LESSON_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    TECHGOV_LESSON_LIFECYCLE_V2.STUDYING,
+    new Set([
+      TECHGOV_LESSON_LIFECYCLE_V2.STUDIED,
+      TECHGOV_LESSON_LIFECYCLE_V2.FAILED,
+      TECHGOV_LESSON_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [TECHGOV_LESSON_LIFECYCLE_V2.STUDIED, new Set()],
+  [TECHGOV_LESSON_LIFECYCLE_V2.FAILED, new Set()],
+  [TECHGOV_LESSON_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _techgovPsV2 = new Map();
+const _techgovJsV2 = new Map();
+let _techgovMaxActive = 6,
+  _techgovMaxPending = 12,
+  _techgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _techgovStuckMs = 60 * 1000;
+function _techgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _techgovCheckP(from, to) {
+  const a = _techgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid techgov profile transition ${from} → ${to}`);
+}
+function _techgovCheckJ(from, to) {
+  const a = _techgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid techgov lesson transition ${from} → ${to}`);
+}
+function _techgovCountActive(owner) {
+  let c = 0;
+  for (const p of _techgovPsV2.values())
+    if (p.owner === owner && p.status === TECHGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _techgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _techgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === TECHGOV_LESSON_LIFECYCLE_V2.QUEUED ||
+        j.status === TECHGOV_LESSON_LIFECYCLE_V2.STUDYING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveTechgovProfilesPerOwnerV2(n) {
+  _techgovMaxActive = _techgovPos(n, "maxActiveTechgovProfilesPerOwner");
+}
+export function getMaxActiveTechgovProfilesPerOwnerV2() {
+  return _techgovMaxActive;
+}
+export function setMaxPendingTechgovLessonsPerProfileV2(n) {
+  _techgovMaxPending = _techgovPos(n, "maxPendingTechgovLessonsPerProfile");
+}
+export function getMaxPendingTechgovLessonsPerProfileV2() {
+  return _techgovMaxPending;
+}
+export function setTechgovProfileIdleMsV2(n) {
+  _techgovIdleMs = _techgovPos(n, "techgovProfileIdleMs");
+}
+export function getTechgovProfileIdleMsV2() {
+  return _techgovIdleMs;
+}
+export function setTechgovLessonStuckMsV2(n) {
+  _techgovStuckMs = _techgovPos(n, "techgovLessonStuckMs");
+}
+export function getTechgovLessonStuckMsV2() {
+  return _techgovStuckMs;
+}
+export function _resetStateTechLearningEngineGovV2() {
+  _techgovPsV2.clear();
+  _techgovJsV2.clear();
+  _techgovMaxActive = 6;
+  _techgovMaxPending = 12;
+  _techgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _techgovStuckMs = 60 * 1000;
+}
+export function registerTechgovProfileV2({ id, owner, topic, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_techgovPsV2.has(id))
+    throw new Error(`techgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    topic: topic || "general",
+    status: TECHGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _techgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateTechgovProfileV2(id) {
+  const p = _techgovPsV2.get(id);
+  if (!p) throw new Error(`techgov profile ${id} not found`);
+  const isInitial = p.status === TECHGOV_PROFILE_MATURITY_V2.PENDING;
+  _techgovCheckP(p.status, TECHGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _techgovCountActive(p.owner) >= _techgovMaxActive)
+    throw new Error(`max active techgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = TECHGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleTechgovProfileV2(id) {
+  const p = _techgovPsV2.get(id);
+  if (!p) throw new Error(`techgov profile ${id} not found`);
+  _techgovCheckP(p.status, TECHGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = TECHGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveTechgovProfileV2(id) {
+  const p = _techgovPsV2.get(id);
+  if (!p) throw new Error(`techgov profile ${id} not found`);
+  _techgovCheckP(p.status, TECHGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = TECHGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchTechgovProfileV2(id) {
+  const p = _techgovPsV2.get(id);
+  if (!p) throw new Error(`techgov profile ${id} not found`);
+  if (_techgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal techgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getTechgovProfileV2(id) {
+  const p = _techgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listTechgovProfilesV2() {
+  return [..._techgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createTechgovLessonV2({
+  id,
+  profileId,
+  source,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_techgovJsV2.has(id))
+    throw new Error(`techgov lesson ${id} already exists`);
+  if (!_techgovPsV2.has(profileId))
+    throw new Error(`techgov profile ${profileId} not found`);
+  if (_techgovCountPending(profileId) >= _techgovMaxPending)
+    throw new Error(
+      `max pending techgov lessons for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    source: source || "",
+    status: TECHGOV_LESSON_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _techgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function studyingTechgovLessonV2(id) {
+  const j = _techgovJsV2.get(id);
+  if (!j) throw new Error(`techgov lesson ${id} not found`);
+  _techgovCheckJ(j.status, TECHGOV_LESSON_LIFECYCLE_V2.STUDYING);
+  const now = Date.now();
+  j.status = TECHGOV_LESSON_LIFECYCLE_V2.STUDYING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeLessonTechgovV2(id) {
+  const j = _techgovJsV2.get(id);
+  if (!j) throw new Error(`techgov lesson ${id} not found`);
+  _techgovCheckJ(j.status, TECHGOV_LESSON_LIFECYCLE_V2.STUDIED);
+  const now = Date.now();
+  j.status = TECHGOV_LESSON_LIFECYCLE_V2.STUDIED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failTechgovLessonV2(id, reason) {
+  const j = _techgovJsV2.get(id);
+  if (!j) throw new Error(`techgov lesson ${id} not found`);
+  _techgovCheckJ(j.status, TECHGOV_LESSON_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = TECHGOV_LESSON_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelTechgovLessonV2(id, reason) {
+  const j = _techgovJsV2.get(id);
+  if (!j) throw new Error(`techgov lesson ${id} not found`);
+  _techgovCheckJ(j.status, TECHGOV_LESSON_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = TECHGOV_LESSON_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getTechgovLessonV2(id) {
+  const j = _techgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listTechgovLessonsV2() {
+  return [..._techgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleTechgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _techgovPsV2.values())
+    if (
+      p.status === TECHGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _techgovIdleMs
+    ) {
+      p.status = TECHGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckTechgovLessonsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _techgovJsV2.values())
+    if (
+      j.status === TECHGOV_LESSON_LIFECYCLE_V2.STUDYING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _techgovStuckMs
+    ) {
+      j.status = TECHGOV_LESSON_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getTechLearningEngineGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(TECHGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _techgovPsV2.values()) profilesByStatus[p.status]++;
+  const lessonsByStatus = {};
+  for (const v of Object.values(TECHGOV_LESSON_LIFECYCLE_V2))
+    lessonsByStatus[v] = 0;
+  for (const j of _techgovJsV2.values()) lessonsByStatus[j.status]++;
+  return {
+    totalTechgovProfilesV2: _techgovPsV2.size,
+    totalTechgovLessonsV2: _techgovJsV2.size,
+    maxActiveTechgovProfilesPerOwner: _techgovMaxActive,
+    maxPendingTechgovLessonsPerProfile: _techgovMaxPending,
+    techgovProfileIdleMs: _techgovIdleMs,
+    techgovLessonStuckMs: _techgovStuckMs,
+    profilesByStatus,
+    lessonsByStatus,
+  };
+}

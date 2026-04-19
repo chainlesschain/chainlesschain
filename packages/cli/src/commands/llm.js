@@ -549,3 +549,220 @@ export function registerLlmCommand(program) {
     .description("Auto-fail stuck V2 requests")
     .action(() => out(autoFailStuckRequestsV2()));
 }
+
+// === Iter22 V2 governance overlay ===
+export function registerLlmgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "llm");
+  if (!parent) return;
+  const L = async () => await import("../lib/llm-providers.js");
+  parent
+    .command("llmgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.LLMGOV_PROFILE_MATURITY_V2,
+            completionLifecycle: m.LLMGOV_COMPLETION_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("llmgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveLlmgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingLlmgovCompletionsPerProfileV2(),
+            idleMs: m.getLlmgovProfileIdleMsV2(),
+            stuckMs: m.getLlmgovCompletionStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("llmgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveLlmgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("llmgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingLlmgovCompletionsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("llmgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setLlmgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("llmgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setLlmgovCompletionStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("llmgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--provider <v>", "provider")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerLlmgovProfileV2({ id, owner, provider: o.provider }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("llmgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateLlmgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("llmgov-degrade-v2 <id>")
+    .description("Degrade profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).degradeLlmgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("llmgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveLlmgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("llmgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchLlmgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("llmgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getLlmgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("llmgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listLlmgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("llmgov-create-completion-v2 <id> <profileId>")
+    .description("Create completion")
+    .option("--model <v>", "model")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createLlmgovCompletionV2({ id, profileId, model: o.model }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("llmgov-inferring-completion-v2 <id>")
+    .description("Mark completion as inferring")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).inferringLlmgovCompletionV2(id), null, 2),
+      );
+    });
+  parent
+    .command("llmgov-complete-completion-v2 <id>")
+    .description("Complete completion")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeCompletionLlmgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("llmgov-fail-completion-v2 <id> [reason]")
+    .description("Fail completion")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failLlmgovCompletionV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("llmgov-cancel-completion-v2 <id> [reason]")
+    .description("Cancel completion")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify(
+          (await L()).cancelLlmgovCompletionV2(id, reason),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("llmgov-get-completion-v2 <id>")
+    .description("Get completion")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).getLlmgovCompletionV2(id), null, 2),
+      );
+    });
+  parent
+    .command("llmgov-list-completions-v2")
+    .description("List completions")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).listLlmgovCompletionsV2(), null, 2),
+      );
+    });
+  parent
+    .command("llmgov-auto-degrade-idle-v2")
+    .description("Auto-degrade idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoDegradeIdleLlmgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("llmgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck completions")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckLlmgovCompletionsV2(), null, 2),
+      );
+    });
+  parent
+    .command("llmgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getLlmProvidersGovStatsV2(), null, 2),
+      );
+    });
+}

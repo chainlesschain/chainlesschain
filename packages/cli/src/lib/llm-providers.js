@@ -756,3 +756,349 @@ export function _resetStateLlmProvidersV2() {
   _stateLlmV2.profileIdleMs = PROVIDER_DEFAULT_PROFILE_IDLE_MS;
   _stateLlmV2.requestStuckMs = PROVIDER_DEFAULT_REQUEST_STUCK_MS;
 }
+
+// =====================================================================
+// llm-providers V2 governance overlay (iter22)
+// =====================================================================
+export const LLMGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  DEGRADED: "degraded",
+  ARCHIVED: "archived",
+});
+export const LLMGOV_COMPLETION_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  INFERRING: "inferring",
+  INFERRED: "inferred",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _llmgovPTrans = new Map([
+  [
+    LLMGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      LLMGOV_PROFILE_MATURITY_V2.ACTIVE,
+      LLMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    LLMGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      LLMGOV_PROFILE_MATURITY_V2.DEGRADED,
+      LLMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    LLMGOV_PROFILE_MATURITY_V2.DEGRADED,
+    new Set([
+      LLMGOV_PROFILE_MATURITY_V2.ACTIVE,
+      LLMGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [LLMGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _llmgovPTerminal = new Set([LLMGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _llmgovJTrans = new Map([
+  [
+    LLMGOV_COMPLETION_LIFECYCLE_V2.QUEUED,
+    new Set([
+      LLMGOV_COMPLETION_LIFECYCLE_V2.INFERRING,
+      LLMGOV_COMPLETION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    LLMGOV_COMPLETION_LIFECYCLE_V2.INFERRING,
+    new Set([
+      LLMGOV_COMPLETION_LIFECYCLE_V2.INFERRED,
+      LLMGOV_COMPLETION_LIFECYCLE_V2.FAILED,
+      LLMGOV_COMPLETION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [LLMGOV_COMPLETION_LIFECYCLE_V2.INFERRED, new Set()],
+  [LLMGOV_COMPLETION_LIFECYCLE_V2.FAILED, new Set()],
+  [LLMGOV_COMPLETION_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _llmgovPsV2 = new Map();
+const _llmgovJsV2 = new Map();
+let _llmgovMaxActive = 8,
+  _llmgovMaxPending = 25,
+  _llmgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _llmgovStuckMs = 60 * 1000;
+function _llmgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _llmgovCheckP(from, to) {
+  const a = _llmgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid llmgov profile transition ${from} → ${to}`);
+}
+function _llmgovCheckJ(from, to) {
+  const a = _llmgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid llmgov completion transition ${from} → ${to}`);
+}
+function _llmgovCountActive(owner) {
+  let c = 0;
+  for (const p of _llmgovPsV2.values())
+    if (p.owner === owner && p.status === LLMGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _llmgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _llmgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === LLMGOV_COMPLETION_LIFECYCLE_V2.QUEUED ||
+        j.status === LLMGOV_COMPLETION_LIFECYCLE_V2.INFERRING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveLlmgovProfilesPerOwnerV2(n) {
+  _llmgovMaxActive = _llmgovPos(n, "maxActiveLlmgovProfilesPerOwner");
+}
+export function getMaxActiveLlmgovProfilesPerOwnerV2() {
+  return _llmgovMaxActive;
+}
+export function setMaxPendingLlmgovCompletionsPerProfileV2(n) {
+  _llmgovMaxPending = _llmgovPos(n, "maxPendingLlmgovCompletionsPerProfile");
+}
+export function getMaxPendingLlmgovCompletionsPerProfileV2() {
+  return _llmgovMaxPending;
+}
+export function setLlmgovProfileIdleMsV2(n) {
+  _llmgovIdleMs = _llmgovPos(n, "llmgovProfileIdleMs");
+}
+export function getLlmgovProfileIdleMsV2() {
+  return _llmgovIdleMs;
+}
+export function setLlmgovCompletionStuckMsV2(n) {
+  _llmgovStuckMs = _llmgovPos(n, "llmgovCompletionStuckMs");
+}
+export function getLlmgovCompletionStuckMsV2() {
+  return _llmgovStuckMs;
+}
+export function _resetStateLlmProvidersGovV2() {
+  _llmgovPsV2.clear();
+  _llmgovJsV2.clear();
+  _llmgovMaxActive = 8;
+  _llmgovMaxPending = 25;
+  _llmgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _llmgovStuckMs = 60 * 1000;
+}
+export function registerLlmgovProfileV2({
+  id,
+  owner,
+  provider,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_llmgovPsV2.has(id))
+    throw new Error(`llmgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    provider: provider || "ollama",
+    status: LLMGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _llmgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateLlmgovProfileV2(id) {
+  const p = _llmgovPsV2.get(id);
+  if (!p) throw new Error(`llmgov profile ${id} not found`);
+  const isInitial = p.status === LLMGOV_PROFILE_MATURITY_V2.PENDING;
+  _llmgovCheckP(p.status, LLMGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _llmgovCountActive(p.owner) >= _llmgovMaxActive)
+    throw new Error(`max active llmgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = LLMGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function degradeLlmgovProfileV2(id) {
+  const p = _llmgovPsV2.get(id);
+  if (!p) throw new Error(`llmgov profile ${id} not found`);
+  _llmgovCheckP(p.status, LLMGOV_PROFILE_MATURITY_V2.DEGRADED);
+  p.status = LLMGOV_PROFILE_MATURITY_V2.DEGRADED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveLlmgovProfileV2(id) {
+  const p = _llmgovPsV2.get(id);
+  if (!p) throw new Error(`llmgov profile ${id} not found`);
+  _llmgovCheckP(p.status, LLMGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = LLMGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchLlmgovProfileV2(id) {
+  const p = _llmgovPsV2.get(id);
+  if (!p) throw new Error(`llmgov profile ${id} not found`);
+  if (_llmgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal llmgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getLlmgovProfileV2(id) {
+  const p = _llmgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listLlmgovProfilesV2() {
+  return [..._llmgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createLlmgovCompletionV2({
+  id,
+  profileId,
+  model,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_llmgovJsV2.has(id))
+    throw new Error(`llmgov completion ${id} already exists`);
+  if (!_llmgovPsV2.has(profileId))
+    throw new Error(`llmgov profile ${profileId} not found`);
+  if (_llmgovCountPending(profileId) >= _llmgovMaxPending)
+    throw new Error(
+      `max pending llmgov completions for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    model: model || "",
+    status: LLMGOV_COMPLETION_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _llmgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function inferringLlmgovCompletionV2(id) {
+  const j = _llmgovJsV2.get(id);
+  if (!j) throw new Error(`llmgov completion ${id} not found`);
+  _llmgovCheckJ(j.status, LLMGOV_COMPLETION_LIFECYCLE_V2.INFERRING);
+  const now = Date.now();
+  j.status = LLMGOV_COMPLETION_LIFECYCLE_V2.INFERRING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeCompletionLlmgovV2(id) {
+  const j = _llmgovJsV2.get(id);
+  if (!j) throw new Error(`llmgov completion ${id} not found`);
+  _llmgovCheckJ(j.status, LLMGOV_COMPLETION_LIFECYCLE_V2.INFERRED);
+  const now = Date.now();
+  j.status = LLMGOV_COMPLETION_LIFECYCLE_V2.INFERRED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failLlmgovCompletionV2(id, reason) {
+  const j = _llmgovJsV2.get(id);
+  if (!j) throw new Error(`llmgov completion ${id} not found`);
+  _llmgovCheckJ(j.status, LLMGOV_COMPLETION_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = LLMGOV_COMPLETION_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelLlmgovCompletionV2(id, reason) {
+  const j = _llmgovJsV2.get(id);
+  if (!j) throw new Error(`llmgov completion ${id} not found`);
+  _llmgovCheckJ(j.status, LLMGOV_COMPLETION_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = LLMGOV_COMPLETION_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getLlmgovCompletionV2(id) {
+  const j = _llmgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listLlmgovCompletionsV2() {
+  return [..._llmgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoDegradeIdleLlmgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _llmgovPsV2.values())
+    if (
+      p.status === LLMGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _llmgovIdleMs
+    ) {
+      p.status = LLMGOV_PROFILE_MATURITY_V2.DEGRADED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckLlmgovCompletionsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _llmgovJsV2.values())
+    if (
+      j.status === LLMGOV_COMPLETION_LIFECYCLE_V2.INFERRING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _llmgovStuckMs
+    ) {
+      j.status = LLMGOV_COMPLETION_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getLlmProvidersGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(LLMGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _llmgovPsV2.values()) profilesByStatus[p.status]++;
+  const completionsByStatus = {};
+  for (const v of Object.values(LLMGOV_COMPLETION_LIFECYCLE_V2))
+    completionsByStatus[v] = 0;
+  for (const j of _llmgovJsV2.values()) completionsByStatus[j.status]++;
+  return {
+    totalLlmgovProfilesV2: _llmgovPsV2.size,
+    totalLlmgovCompletionsV2: _llmgovJsV2.size,
+    maxActiveLlmgovProfilesPerOwner: _llmgovMaxActive,
+    maxPendingLlmgovCompletionsPerProfile: _llmgovMaxPending,
+    llmgovProfileIdleMs: _llmgovIdleMs,
+    llmgovCompletionStuckMs: _llmgovStuckMs,
+    profilesByStatus,
+    completionsByStatus,
+  };
+}

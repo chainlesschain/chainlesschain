@@ -1166,3 +1166,208 @@ export function registerEvoMapV2Command(evomap) {
       console.log(JSON.stringify(getEvoMapManagerStatsV2(), null, 2));
     });
 }
+
+// === Iter20 V2 governance overlay ===
+export function registerEvgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "evomap");
+  if (!parent) return;
+  const L = async () => await import("../lib/evomap-governance.js");
+  parent
+    .command("evgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.EVGOV_PROFILE_MATURITY_V2,
+            proposalLifecycle: m.EVGOV_PROPOSAL_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("evgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveEvgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingEvgovProposalsPerProfileV2(),
+            idleMs: m.getEvgovProfileIdleMsV2(),
+            stuckMs: m.getEvgovProposalStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("evgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveEvgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("evgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingEvgovProposalsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("evgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setEvgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("evgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setEvgovProposalStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("evgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--lane <v>", "lane")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerEvgovProfileV2({ id, owner, lane: o.lane }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("evgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateEvgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("evgov-pause-v2 <id>")
+    .description("Pause profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).pauseEvgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("evgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveEvgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("evgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchEvgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("evgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getEvgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("evgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listEvgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("evgov-create-proposal-v2 <id> <profileId>")
+    .description("Create proposal")
+    .option("--topic <v>", "topic")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createEvgovProposalV2({ id, profileId, topic: o.topic }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("evgov-reviewing-proposal-v2 <id>")
+    .description("Mark proposal as reviewing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).reviewingEvgovProposalV2(id), null, 2),
+      );
+    });
+  parent
+    .command("evgov-complete-proposal-v2 <id>")
+    .description("Complete proposal")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeProposalEvgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("evgov-fail-proposal-v2 <id> [reason]")
+    .description("Fail proposal")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failEvgovProposalV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("evgov-cancel-proposal-v2 <id> [reason]")
+    .description("Cancel proposal")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelEvgovProposalV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("evgov-get-proposal-v2 <id>")
+    .description("Get proposal")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getEvgovProposalV2(id), null, 2));
+    });
+  parent
+    .command("evgov-list-proposals-v2")
+    .description("List proposals")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listEvgovProposalsV2(), null, 2));
+    });
+  parent
+    .command("evgov-auto-pause-idle-v2")
+    .description("Auto-pause idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoPauseIdleEvgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("evgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck proposals")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckEvgovProposalsV2(), null, 2),
+      );
+    });
+  parent
+    .command("evgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getEvomapGovernanceGovStatsV2(), null, 2),
+      );
+    });
+}

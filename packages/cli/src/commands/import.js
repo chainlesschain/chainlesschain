@@ -509,3 +509,212 @@ export function registerImportCommand(program) {
     .description("Auto-fail stuck V2 import jobs")
     .action(() => out(autoFailStuckImportJobsV2()));
 }
+
+// === Iter22 V2 governance overlay ===
+export function registerKimpgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "import");
+  if (!parent) return;
+  const L = async () => await import("../lib/knowledge-importer.js");
+  parent
+    .command("kimpgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.KIMPGOV_PROFILE_MATURITY_V2,
+            importLifecycle: m.KIMPGOV_IMPORT_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("kimpgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveKimpgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingKimpgovImportsPerProfileV2(),
+            idleMs: m.getKimpgovProfileIdleMsV2(),
+            stuckMs: m.getKimpgovImportStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("kimpgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveKimpgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("kimpgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingKimpgovImportsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("kimpgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setKimpgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("kimpgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setKimpgovImportStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("kimpgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--format <v>", "format")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerKimpgovProfileV2({ id, owner, format: o.format }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("kimpgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateKimpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("kimpgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleKimpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("kimpgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveKimpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("kimpgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchKimpgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("kimpgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getKimpgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("kimpgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listKimpgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("kimpgov-create-import-v2 <id> <profileId>")
+    .description("Create import")
+    .option("--source <v>", "source")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createKimpgovImportV2({ id, profileId, source: o.source }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("kimpgov-importing-import-v2 <id>")
+    .description("Mark import as importing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).importingKimpgovImportV2(id), null, 2),
+      );
+    });
+  parent
+    .command("kimpgov-complete-import-v2 <id>")
+    .description("Complete import")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeImportKimpgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("kimpgov-fail-import-v2 <id> [reason]")
+    .description("Fail import")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failKimpgovImportV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("kimpgov-cancel-import-v2 <id> [reason]")
+    .description("Cancel import")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelKimpgovImportV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("kimpgov-get-import-v2 <id>")
+    .description("Get import")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getKimpgovImportV2(id), null, 2));
+    });
+  parent
+    .command("kimpgov-list-imports-v2")
+    .description("List imports")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listKimpgovImportsV2(), null, 2));
+    });
+  parent
+    .command("kimpgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleKimpgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("kimpgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck imports")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckKimpgovImportsV2(), null, 2),
+      );
+    });
+  parent
+    .command("kimpgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getKnowledgeImporterGovStatsV2(), null, 2),
+      );
+    });
+}

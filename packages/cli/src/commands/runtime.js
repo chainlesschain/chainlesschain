@@ -805,3 +805,208 @@ export function registerRuntimeCommand(program) {
 
   program.addCommand(runtime);
 }
+
+// === Iter23 V2 governance overlay ===
+export function registerRtgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "runtime");
+  if (!parent) return;
+  const L = async () => await import("../lib/universal-runtime.js");
+  parent
+    .command("rtgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.RTGOV_PROFILE_MATURITY_V2,
+            taskLifecycle: m.RTGOV_TASK_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("rtgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveRtgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingRtgovTasksPerProfileV2(),
+            idleMs: m.getRtgovProfileIdleMsV2(),
+            stuckMs: m.getRtgovTaskStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("rtgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveRtgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("rtgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingRtgovTasksPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("rtgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setRtgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("rtgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setRtgovTaskStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("rtgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--runtime <v>", "runtime")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerRtgovProfileV2({ id, owner, runtime: o.runtime }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("rtgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateRtgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("rtgov-degrade-v2 <id>")
+    .description("Degrade profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).degradeRtgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("rtgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveRtgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("rtgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchRtgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("rtgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getRtgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("rtgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listRtgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("rtgov-create-task-v2 <id> <profileId>")
+    .description("Create task")
+    .option("--kind <v>", "kind")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createRtgovTaskV2({ id, profileId, kind: o.kind }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("rtgov-executing-task-v2 <id>")
+    .description("Mark task as executing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).executingRtgovTaskV2(id), null, 2),
+      );
+    });
+  parent
+    .command("rtgov-complete-task-v2 <id>")
+    .description("Complete task")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completeTaskRtgovV2(id), null, 2));
+    });
+  parent
+    .command("rtgov-fail-task-v2 <id> [reason]")
+    .description("Fail task")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failRtgovTaskV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("rtgov-cancel-task-v2 <id> [reason]")
+    .description("Cancel task")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelRtgovTaskV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("rtgov-get-task-v2 <id>")
+    .description("Get task")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getRtgovTaskV2(id), null, 2));
+    });
+  parent
+    .command("rtgov-list-tasks-v2")
+    .description("List tasks")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listRtgovTasksV2(), null, 2));
+    });
+  parent
+    .command("rtgov-auto-degrade-idle-v2")
+    .description("Auto-degrade idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoDegradeIdleRtgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("rtgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck tasks")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckRtgovTasksV2(), null, 2),
+      );
+    });
+  parent
+    .command("rtgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getUniversalRuntimeGovStatsV2(), null, 2),
+      );
+    });
+}

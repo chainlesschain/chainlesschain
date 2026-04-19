@@ -974,3 +974,336 @@ export function getBiEngineStatsV2() {
     queriesByStatus,
   };
 }
+
+// =====================================================================
+// bi-engine V2 governance overlay (iter21)
+// =====================================================================
+export const BIGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const BIGOV_QUERY_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  QUERYING: "querying",
+  QUERIED: "queried",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _bigovPTrans = new Map([
+  [
+    BIGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      BIGOV_PROFILE_MATURITY_V2.ACTIVE,
+      BIGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    BIGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      BIGOV_PROFILE_MATURITY_V2.STALE,
+      BIGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    BIGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      BIGOV_PROFILE_MATURITY_V2.ACTIVE,
+      BIGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [BIGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _bigovPTerminal = new Set([BIGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _bigovJTrans = new Map([
+  [
+    BIGOV_QUERY_LIFECYCLE_V2.QUEUED,
+    new Set([
+      BIGOV_QUERY_LIFECYCLE_V2.QUERYING,
+      BIGOV_QUERY_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    BIGOV_QUERY_LIFECYCLE_V2.QUERYING,
+    new Set([
+      BIGOV_QUERY_LIFECYCLE_V2.QUERIED,
+      BIGOV_QUERY_LIFECYCLE_V2.FAILED,
+      BIGOV_QUERY_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [BIGOV_QUERY_LIFECYCLE_V2.QUERIED, new Set()],
+  [BIGOV_QUERY_LIFECYCLE_V2.FAILED, new Set()],
+  [BIGOV_QUERY_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _bigovPsV2 = new Map();
+const _bigovJsV2 = new Map();
+let _bigovMaxActive = 6,
+  _bigovMaxPending = 15,
+  _bigovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _bigovStuckMs = 60 * 1000;
+function _bigovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _bigovCheckP(from, to) {
+  const a = _bigovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid bigov profile transition ${from} → ${to}`);
+}
+function _bigovCheckJ(from, to) {
+  const a = _bigovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid bigov query transition ${from} → ${to}`);
+}
+function _bigovCountActive(owner) {
+  let c = 0;
+  for (const p of _bigovPsV2.values())
+    if (p.owner === owner && p.status === BIGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _bigovCountPending(profileId) {
+  let c = 0;
+  for (const j of _bigovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === BIGOV_QUERY_LIFECYCLE_V2.QUEUED ||
+        j.status === BIGOV_QUERY_LIFECYCLE_V2.QUERYING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveBigovProfilesPerOwnerV2(n) {
+  _bigovMaxActive = _bigovPos(n, "maxActiveBigovProfilesPerOwner");
+}
+export function getMaxActiveBigovProfilesPerOwnerV2() {
+  return _bigovMaxActive;
+}
+export function setMaxPendingBigovQuerysPerProfileV2(n) {
+  _bigovMaxPending = _bigovPos(n, "maxPendingBigovQuerysPerProfile");
+}
+export function getMaxPendingBigovQuerysPerProfileV2() {
+  return _bigovMaxPending;
+}
+export function setBigovProfileIdleMsV2(n) {
+  _bigovIdleMs = _bigovPos(n, "bigovProfileIdleMs");
+}
+export function getBigovProfileIdleMsV2() {
+  return _bigovIdleMs;
+}
+export function setBigovQueryStuckMsV2(n) {
+  _bigovStuckMs = _bigovPos(n, "bigovQueryStuckMs");
+}
+export function getBigovQueryStuckMsV2() {
+  return _bigovStuckMs;
+}
+export function _resetStateBiEngineGovV2() {
+  _bigovPsV2.clear();
+  _bigovJsV2.clear();
+  _bigovMaxActive = 6;
+  _bigovMaxPending = 15;
+  _bigovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _bigovStuckMs = 60 * 1000;
+}
+export function registerBigovProfileV2({ id, owner, dataset, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_bigovPsV2.has(id)) throw new Error(`bigov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    dataset: dataset || "default",
+    status: BIGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _bigovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateBigovProfileV2(id) {
+  const p = _bigovPsV2.get(id);
+  if (!p) throw new Error(`bigov profile ${id} not found`);
+  const isInitial = p.status === BIGOV_PROFILE_MATURITY_V2.PENDING;
+  _bigovCheckP(p.status, BIGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _bigovCountActive(p.owner) >= _bigovMaxActive)
+    throw new Error(`max active bigov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = BIGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleBigovProfileV2(id) {
+  const p = _bigovPsV2.get(id);
+  if (!p) throw new Error(`bigov profile ${id} not found`);
+  _bigovCheckP(p.status, BIGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = BIGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveBigovProfileV2(id) {
+  const p = _bigovPsV2.get(id);
+  if (!p) throw new Error(`bigov profile ${id} not found`);
+  _bigovCheckP(p.status, BIGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = BIGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchBigovProfileV2(id) {
+  const p = _bigovPsV2.get(id);
+  if (!p) throw new Error(`bigov profile ${id} not found`);
+  if (_bigovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal bigov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getBigovProfileV2(id) {
+  const p = _bigovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listBigovProfilesV2() {
+  return [..._bigovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createBigovQueryV2({ id, profileId, kpi, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_bigovJsV2.has(id)) throw new Error(`bigov query ${id} already exists`);
+  if (!_bigovPsV2.has(profileId))
+    throw new Error(`bigov profile ${profileId} not found`);
+  if (_bigovCountPending(profileId) >= _bigovMaxPending)
+    throw new Error(
+      `max pending bigov querys for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    kpi: kpi || "",
+    status: BIGOV_QUERY_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _bigovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function queryingBigovQueryV2(id) {
+  const j = _bigovJsV2.get(id);
+  if (!j) throw new Error(`bigov query ${id} not found`);
+  _bigovCheckJ(j.status, BIGOV_QUERY_LIFECYCLE_V2.QUERYING);
+  const now = Date.now();
+  j.status = BIGOV_QUERY_LIFECYCLE_V2.QUERYING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeQueryBigovV2(id) {
+  const j = _bigovJsV2.get(id);
+  if (!j) throw new Error(`bigov query ${id} not found`);
+  _bigovCheckJ(j.status, BIGOV_QUERY_LIFECYCLE_V2.QUERIED);
+  const now = Date.now();
+  j.status = BIGOV_QUERY_LIFECYCLE_V2.QUERIED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failBigovQueryV2(id, reason) {
+  const j = _bigovJsV2.get(id);
+  if (!j) throw new Error(`bigov query ${id} not found`);
+  _bigovCheckJ(j.status, BIGOV_QUERY_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = BIGOV_QUERY_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelBigovQueryV2(id, reason) {
+  const j = _bigovJsV2.get(id);
+  if (!j) throw new Error(`bigov query ${id} not found`);
+  _bigovCheckJ(j.status, BIGOV_QUERY_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = BIGOV_QUERY_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getBigovQueryV2(id) {
+  const j = _bigovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listBigovQuerysV2() {
+  return [..._bigovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleBigovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _bigovPsV2.values())
+    if (
+      p.status === BIGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _bigovIdleMs
+    ) {
+      p.status = BIGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckBigovQuerysV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _bigovJsV2.values())
+    if (
+      j.status === BIGOV_QUERY_LIFECYCLE_V2.QUERYING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _bigovStuckMs
+    ) {
+      j.status = BIGOV_QUERY_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getBiEngineGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(BIGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _bigovPsV2.values()) profilesByStatus[p.status]++;
+  const querysByStatus = {};
+  for (const v of Object.values(BIGOV_QUERY_LIFECYCLE_V2))
+    querysByStatus[v] = 0;
+  for (const j of _bigovJsV2.values()) querysByStatus[j.status]++;
+  return {
+    totalBigovProfilesV2: _bigovPsV2.size,
+    totalBigovQuerysV2: _bigovJsV2.size,
+    maxActiveBigovProfilesPerOwner: _bigovMaxActive,
+    maxPendingBigovQuerysPerProfile: _bigovMaxPending,
+    bigovProfileIdleMs: _bigovIdleMs,
+    bigovQueryStuckMs: _bigovStuckMs,
+    profilesByStatus,
+    querysByStatus,
+  };
+}

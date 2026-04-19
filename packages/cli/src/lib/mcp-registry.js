@@ -678,3 +678,349 @@ export function getMcpRegistryStatsV2() {
     invocationsByStatus,
   };
 }
+
+// =====================================================================
+// mcp-registry V2 governance overlay (iter24)
+// =====================================================================
+export const MCPGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  ARCHIVED: "archived",
+});
+export const MCPGOV_INVOCATION_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  INVOKING: "invoking",
+  INVOKED: "invoked",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _mcpgovPTrans = new Map([
+  [
+    MCPGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      MCPGOV_PROFILE_MATURITY_V2.ACTIVE,
+      MCPGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    MCPGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      MCPGOV_PROFILE_MATURITY_V2.SUSPENDED,
+      MCPGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    MCPGOV_PROFILE_MATURITY_V2.SUSPENDED,
+    new Set([
+      MCPGOV_PROFILE_MATURITY_V2.ACTIVE,
+      MCPGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [MCPGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _mcpgovPTerminal = new Set([MCPGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _mcpgovJTrans = new Map([
+  [
+    MCPGOV_INVOCATION_LIFECYCLE_V2.QUEUED,
+    new Set([
+      MCPGOV_INVOCATION_LIFECYCLE_V2.INVOKING,
+      MCPGOV_INVOCATION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    MCPGOV_INVOCATION_LIFECYCLE_V2.INVOKING,
+    new Set([
+      MCPGOV_INVOCATION_LIFECYCLE_V2.INVOKED,
+      MCPGOV_INVOCATION_LIFECYCLE_V2.FAILED,
+      MCPGOV_INVOCATION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [MCPGOV_INVOCATION_LIFECYCLE_V2.INVOKED, new Set()],
+  [MCPGOV_INVOCATION_LIFECYCLE_V2.FAILED, new Set()],
+  [MCPGOV_INVOCATION_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _mcpgovPsV2 = new Map();
+const _mcpgovJsV2 = new Map();
+let _mcpgovMaxActive = 10,
+  _mcpgovMaxPending = 25,
+  _mcpgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _mcpgovStuckMs = 60 * 1000;
+function _mcpgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _mcpgovCheckP(from, to) {
+  const a = _mcpgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid mcpgov profile transition ${from} → ${to}`);
+}
+function _mcpgovCheckJ(from, to) {
+  const a = _mcpgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid mcpgov invocation transition ${from} → ${to}`);
+}
+function _mcpgovCountActive(owner) {
+  let c = 0;
+  for (const p of _mcpgovPsV2.values())
+    if (p.owner === owner && p.status === MCPGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _mcpgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _mcpgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === MCPGOV_INVOCATION_LIFECYCLE_V2.QUEUED ||
+        j.status === MCPGOV_INVOCATION_LIFECYCLE_V2.INVOKING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveMcpgovProfilesPerOwnerV2(n) {
+  _mcpgovMaxActive = _mcpgovPos(n, "maxActiveMcpgovProfilesPerOwner");
+}
+export function getMaxActiveMcpgovProfilesPerOwnerV2() {
+  return _mcpgovMaxActive;
+}
+export function setMaxPendingMcpgovInvocationsPerProfileV2(n) {
+  _mcpgovMaxPending = _mcpgovPos(n, "maxPendingMcpgovInvocationsPerProfile");
+}
+export function getMaxPendingMcpgovInvocationsPerProfileV2() {
+  return _mcpgovMaxPending;
+}
+export function setMcpgovProfileIdleMsV2(n) {
+  _mcpgovIdleMs = _mcpgovPos(n, "mcpgovProfileIdleMs");
+}
+export function getMcpgovProfileIdleMsV2() {
+  return _mcpgovIdleMs;
+}
+export function setMcpgovInvocationStuckMsV2(n) {
+  _mcpgovStuckMs = _mcpgovPos(n, "mcpgovInvocationStuckMs");
+}
+export function getMcpgovInvocationStuckMsV2() {
+  return _mcpgovStuckMs;
+}
+export function _resetStateMcpRegistryGovV2() {
+  _mcpgovPsV2.clear();
+  _mcpgovJsV2.clear();
+  _mcpgovMaxActive = 10;
+  _mcpgovMaxPending = 25;
+  _mcpgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _mcpgovStuckMs = 60 * 1000;
+}
+export function registerMcpgovProfileV2({
+  id,
+  owner,
+  transport,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_mcpgovPsV2.has(id))
+    throw new Error(`mcpgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    transport: transport || "stdio",
+    status: MCPGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _mcpgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateMcpgovProfileV2(id) {
+  const p = _mcpgovPsV2.get(id);
+  if (!p) throw new Error(`mcpgov profile ${id} not found`);
+  const isInitial = p.status === MCPGOV_PROFILE_MATURITY_V2.PENDING;
+  _mcpgovCheckP(p.status, MCPGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _mcpgovCountActive(p.owner) >= _mcpgovMaxActive)
+    throw new Error(`max active mcpgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = MCPGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function suspendMcpgovProfileV2(id) {
+  const p = _mcpgovPsV2.get(id);
+  if (!p) throw new Error(`mcpgov profile ${id} not found`);
+  _mcpgovCheckP(p.status, MCPGOV_PROFILE_MATURITY_V2.SUSPENDED);
+  p.status = MCPGOV_PROFILE_MATURITY_V2.SUSPENDED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveMcpgovProfileV2(id) {
+  const p = _mcpgovPsV2.get(id);
+  if (!p) throw new Error(`mcpgov profile ${id} not found`);
+  _mcpgovCheckP(p.status, MCPGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = MCPGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchMcpgovProfileV2(id) {
+  const p = _mcpgovPsV2.get(id);
+  if (!p) throw new Error(`mcpgov profile ${id} not found`);
+  if (_mcpgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal mcpgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getMcpgovProfileV2(id) {
+  const p = _mcpgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listMcpgovProfilesV2() {
+  return [..._mcpgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createMcpgovInvocationV2({
+  id,
+  profileId,
+  tool,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_mcpgovJsV2.has(id))
+    throw new Error(`mcpgov invocation ${id} already exists`);
+  if (!_mcpgovPsV2.has(profileId))
+    throw new Error(`mcpgov profile ${profileId} not found`);
+  if (_mcpgovCountPending(profileId) >= _mcpgovMaxPending)
+    throw new Error(
+      `max pending mcpgov invocations for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    tool: tool || "",
+    status: MCPGOV_INVOCATION_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _mcpgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function invokingMcpgovInvocationV2(id) {
+  const j = _mcpgovJsV2.get(id);
+  if (!j) throw new Error(`mcpgov invocation ${id} not found`);
+  _mcpgovCheckJ(j.status, MCPGOV_INVOCATION_LIFECYCLE_V2.INVOKING);
+  const now = Date.now();
+  j.status = MCPGOV_INVOCATION_LIFECYCLE_V2.INVOKING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeInvocationMcpgovV2(id) {
+  const j = _mcpgovJsV2.get(id);
+  if (!j) throw new Error(`mcpgov invocation ${id} not found`);
+  _mcpgovCheckJ(j.status, MCPGOV_INVOCATION_LIFECYCLE_V2.INVOKED);
+  const now = Date.now();
+  j.status = MCPGOV_INVOCATION_LIFECYCLE_V2.INVOKED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failMcpgovInvocationV2(id, reason) {
+  const j = _mcpgovJsV2.get(id);
+  if (!j) throw new Error(`mcpgov invocation ${id} not found`);
+  _mcpgovCheckJ(j.status, MCPGOV_INVOCATION_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = MCPGOV_INVOCATION_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelMcpgovInvocationV2(id, reason) {
+  const j = _mcpgovJsV2.get(id);
+  if (!j) throw new Error(`mcpgov invocation ${id} not found`);
+  _mcpgovCheckJ(j.status, MCPGOV_INVOCATION_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = MCPGOV_INVOCATION_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getMcpgovInvocationV2(id) {
+  const j = _mcpgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listMcpgovInvocationsV2() {
+  return [..._mcpgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoSuspendIdleMcpgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _mcpgovPsV2.values())
+    if (
+      p.status === MCPGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _mcpgovIdleMs
+    ) {
+      p.status = MCPGOV_PROFILE_MATURITY_V2.SUSPENDED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckMcpgovInvocationsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _mcpgovJsV2.values())
+    if (
+      j.status === MCPGOV_INVOCATION_LIFECYCLE_V2.INVOKING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _mcpgovStuckMs
+    ) {
+      j.status = MCPGOV_INVOCATION_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getMcpRegistryGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(MCPGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _mcpgovPsV2.values()) profilesByStatus[p.status]++;
+  const invocationsByStatus = {};
+  for (const v of Object.values(MCPGOV_INVOCATION_LIFECYCLE_V2))
+    invocationsByStatus[v] = 0;
+  for (const j of _mcpgovJsV2.values()) invocationsByStatus[j.status]++;
+  return {
+    totalMcpgovProfilesV2: _mcpgovPsV2.size,
+    totalMcpgovInvocationsV2: _mcpgovJsV2.size,
+    maxActiveMcpgovProfilesPerOwner: _mcpgovMaxActive,
+    maxPendingMcpgovInvocationsPerProfile: _mcpgovMaxPending,
+    mcpgovProfileIdleMs: _mcpgovIdleMs,
+    mcpgovInvocationStuckMs: _mcpgovStuckMs,
+    profilesByStatus,
+    invocationsByStatus,
+  };
+}

@@ -703,3 +703,212 @@ export function registerMemoryCommand(program) {
     .description("Flip stuck running jobs → failed")
     .action(() => console.log(JSON.stringify(autoFailStuckJobsV2(), null, 2)));
 }
+
+// === Iter21 V2 governance overlay ===
+export function registerMemgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "memory");
+  if (!parent) return;
+  const L = async () => await import("../lib/memory-manager.js");
+  parent
+    .command("memgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.MEMGOV_PROFILE_MATURITY_V2,
+            recallLifecycle: m.MEMGOV_RECALL_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("memgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveMemgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingMemgovRecallsPerProfileV2(),
+            idleMs: m.getMemgovProfileIdleMsV2(),
+            stuckMs: m.getMemgovRecallStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("memgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveMemgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("memgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingMemgovRecallsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("memgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setMemgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("memgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setMemgovRecallStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("memgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--scope <v>", "scope")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerMemgovProfileV2({ id, owner, scope: o.scope }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("memgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateMemgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("memgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).staleMemgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("memgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveMemgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("memgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchMemgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("memgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getMemgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("memgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listMemgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("memgov-create-recall-v2 <id> <profileId>")
+    .description("Create recall")
+    .option("--key <v>", "key")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createMemgovRecallV2({ id, profileId, key: o.key }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("memgov-recalling-recall-v2 <id>")
+    .description("Mark recall as recalling")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).recallingMemgovRecallV2(id), null, 2),
+      );
+    });
+  parent
+    .command("memgov-complete-recall-v2 <id>")
+    .description("Complete recall")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeRecallMemgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("memgov-fail-recall-v2 <id> [reason]")
+    .description("Fail recall")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failMemgovRecallV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("memgov-cancel-recall-v2 <id> [reason]")
+    .description("Cancel recall")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelMemgovRecallV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("memgov-get-recall-v2 <id>")
+    .description("Get recall")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getMemgovRecallV2(id), null, 2));
+    });
+  parent
+    .command("memgov-list-recalls-v2")
+    .description("List recalls")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listMemgovRecallsV2(), null, 2));
+    });
+  parent
+    .command("memgov-auto-stale-idle-v2")
+    .description("Auto-stale idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoStaleIdleMemgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("memgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck recalls")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckMemgovRecallsV2(), null, 2),
+      );
+    });
+  parent
+    .command("memgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getMemoryManagerGovStatsV2(), null, 2),
+      );
+    });
+}

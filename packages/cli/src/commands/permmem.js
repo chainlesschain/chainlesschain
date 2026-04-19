@@ -249,3 +249,206 @@ export function registerPermMemCommand(program) {
     .description("Auto-fail stuck V2 retention jobs")
     .action(() => out(autoFailStuckJobsV2()));
 }
+
+// === Iter23 V2 governance overlay ===
+export function registerPmgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "permmem");
+  if (!parent) return;
+  const L = async () => await import("../lib/permanent-memory.js");
+  parent
+    .command("pmgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.PMGOV_PROFILE_MATURITY_V2,
+            pinLifecycle: m.PMGOV_PIN_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pmgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActivePmgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingPmgovPinsPerProfileV2(),
+            idleMs: m.getPmgovProfileIdleMsV2(),
+            stuckMs: m.getPmgovPinStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pmgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActivePmgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pmgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingPmgovPinsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pmgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setPmgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pmgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setPmgovPinStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("pmgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--bucket <v>", "bucket")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerPmgovProfileV2({ id, owner, bucket: o.bucket }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pmgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activatePmgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("pmgov-dormant-v2 <id>")
+    .description("Dormant profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).dormantPmgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("pmgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archivePmgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("pmgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).touchPmgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("pmgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getPmgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("pmgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listPmgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("pmgov-create-pin-v2 <id> <profileId>")
+    .description("Create pin")
+    .option("--key <v>", "key")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createPmgovPinV2({ id, profileId, key: o.key }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("pmgov-pinning-pin-v2 <id>")
+    .description("Mark pin as pinning")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).pinningPmgovPinV2(id), null, 2));
+    });
+  parent
+    .command("pmgov-complete-pin-v2 <id>")
+    .description("Complete pin")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).completePinPmgovV2(id), null, 2));
+    });
+  parent
+    .command("pmgov-fail-pin-v2 <id> [reason]")
+    .description("Fail pin")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failPmgovPinV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("pmgov-cancel-pin-v2 <id> [reason]")
+    .description("Cancel pin")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelPmgovPinV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("pmgov-get-pin-v2 <id>")
+    .description("Get pin")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getPmgovPinV2(id), null, 2));
+    });
+  parent
+    .command("pmgov-list-pins-v2")
+    .description("List pins")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listPmgovPinsV2(), null, 2));
+    });
+  parent
+    .command("pmgov-auto-dormant-idle-v2")
+    .description("Auto-dormant idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoDormantIdlePmgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("pmgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck pins")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckPmgovPinsV2(), null, 2),
+      );
+    });
+  parent
+    .command("pmgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getPermanentMemoryGovStatsV2(), null, 2),
+      );
+    });
+}

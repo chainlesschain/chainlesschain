@@ -635,3 +635,344 @@ export function _resetStateDidManagerV2() {
   _identityIdleMsV2 = DID_DEFAULT_IDENTITY_IDLE_MS;
   _issuanceStuckMsV2 = DID_DEFAULT_ISSUANCE_STUCK_MS;
 }
+
+// =====================================================================
+// did-manager V2 governance overlay (iter19)
+// =====================================================================
+export const DIDGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  ARCHIVED: "archived",
+});
+export const DIDGOV_RESOLUTION_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  RESOLVING: "resolving",
+  RESOLVED: "resolved",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _didgovPTrans = new Map([
+  [
+    DIDGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      DIDGOV_PROFILE_MATURITY_V2.ACTIVE,
+      DIDGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    DIDGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      DIDGOV_PROFILE_MATURITY_V2.SUSPENDED,
+      DIDGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    DIDGOV_PROFILE_MATURITY_V2.SUSPENDED,
+    new Set([
+      DIDGOV_PROFILE_MATURITY_V2.ACTIVE,
+      DIDGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [DIDGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _didgovPTerminal = new Set([DIDGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _didgovJTrans = new Map([
+  [
+    DIDGOV_RESOLUTION_LIFECYCLE_V2.QUEUED,
+    new Set([
+      DIDGOV_RESOLUTION_LIFECYCLE_V2.RESOLVING,
+      DIDGOV_RESOLUTION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    DIDGOV_RESOLUTION_LIFECYCLE_V2.RESOLVING,
+    new Set([
+      DIDGOV_RESOLUTION_LIFECYCLE_V2.RESOLVED,
+      DIDGOV_RESOLUTION_LIFECYCLE_V2.FAILED,
+      DIDGOV_RESOLUTION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [DIDGOV_RESOLUTION_LIFECYCLE_V2.RESOLVED, new Set()],
+  [DIDGOV_RESOLUTION_LIFECYCLE_V2.FAILED, new Set()],
+  [DIDGOV_RESOLUTION_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _didgovPsV2 = new Map();
+const _didgovJsV2 = new Map();
+let _didgovMaxActive = 10,
+  _didgovMaxPending = 25,
+  _didgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _didgovStuckMs = 60 * 1000;
+function _didgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _didgovCheckP(from, to) {
+  const a = _didgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid didgov profile transition ${from} → ${to}`);
+}
+function _didgovCheckJ(from, to) {
+  const a = _didgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid didgov resolution transition ${from} → ${to}`);
+}
+function _didgovCountActive(owner) {
+  let c = 0;
+  for (const p of _didgovPsV2.values())
+    if (p.owner === owner && p.status === DIDGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _didgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _didgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === DIDGOV_RESOLUTION_LIFECYCLE_V2.QUEUED ||
+        j.status === DIDGOV_RESOLUTION_LIFECYCLE_V2.RESOLVING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveDidgovProfilesPerOwnerV2(n) {
+  _didgovMaxActive = _didgovPos(n, "maxActiveDidgovProfilesPerOwner");
+}
+export function getMaxActiveDidgovProfilesPerOwnerV2() {
+  return _didgovMaxActive;
+}
+export function setMaxPendingDidgovResolutionsPerProfileV2(n) {
+  _didgovMaxPending = _didgovPos(n, "maxPendingDidgovResolutionsPerProfile");
+}
+export function getMaxPendingDidgovResolutionsPerProfileV2() {
+  return _didgovMaxPending;
+}
+export function setDidgovProfileIdleMsV2(n) {
+  _didgovIdleMs = _didgovPos(n, "didgovProfileIdleMs");
+}
+export function getDidgovProfileIdleMsV2() {
+  return _didgovIdleMs;
+}
+export function setDidgovResolutionStuckMsV2(n) {
+  _didgovStuckMs = _didgovPos(n, "didgovResolutionStuckMs");
+}
+export function getDidgovResolutionStuckMsV2() {
+  return _didgovStuckMs;
+}
+export function _resetStateDidManagerGovV2() {
+  _didgovPsV2.clear();
+  _didgovJsV2.clear();
+  _didgovMaxActive = 10;
+  _didgovMaxPending = 25;
+  _didgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _didgovStuckMs = 60 * 1000;
+}
+export function registerDidgovProfileV2({ id, owner, method, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_didgovPsV2.has(id))
+    throw new Error(`didgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    method: method || "key",
+    status: DIDGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _didgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateDidgovProfileV2(id) {
+  const p = _didgovPsV2.get(id);
+  if (!p) throw new Error(`didgov profile ${id} not found`);
+  const isInitial = p.status === DIDGOV_PROFILE_MATURITY_V2.PENDING;
+  _didgovCheckP(p.status, DIDGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _didgovCountActive(p.owner) >= _didgovMaxActive)
+    throw new Error(`max active didgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = DIDGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function suspendDidgovProfileV2(id) {
+  const p = _didgovPsV2.get(id);
+  if (!p) throw new Error(`didgov profile ${id} not found`);
+  _didgovCheckP(p.status, DIDGOV_PROFILE_MATURITY_V2.SUSPENDED);
+  p.status = DIDGOV_PROFILE_MATURITY_V2.SUSPENDED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveDidgovProfileV2(id) {
+  const p = _didgovPsV2.get(id);
+  if (!p) throw new Error(`didgov profile ${id} not found`);
+  _didgovCheckP(p.status, DIDGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = DIDGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchDidgovProfileV2(id) {
+  const p = _didgovPsV2.get(id);
+  if (!p) throw new Error(`didgov profile ${id} not found`);
+  if (_didgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal didgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getDidgovProfileV2(id) {
+  const p = _didgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listDidgovProfilesV2() {
+  return [..._didgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createDidgovResolutionV2({
+  id,
+  profileId,
+  identifier,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_didgovJsV2.has(id))
+    throw new Error(`didgov resolution ${id} already exists`);
+  if (!_didgovPsV2.has(profileId))
+    throw new Error(`didgov profile ${profileId} not found`);
+  if (_didgovCountPending(profileId) >= _didgovMaxPending)
+    throw new Error(
+      `max pending didgov resolutions for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    identifier: identifier || "",
+    status: DIDGOV_RESOLUTION_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _didgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function resolvingDidgovResolutionV2(id) {
+  const j = _didgovJsV2.get(id);
+  if (!j) throw new Error(`didgov resolution ${id} not found`);
+  _didgovCheckJ(j.status, DIDGOV_RESOLUTION_LIFECYCLE_V2.RESOLVING);
+  const now = Date.now();
+  j.status = DIDGOV_RESOLUTION_LIFECYCLE_V2.RESOLVING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeResolutionDidgovV2(id) {
+  const j = _didgovJsV2.get(id);
+  if (!j) throw new Error(`didgov resolution ${id} not found`);
+  _didgovCheckJ(j.status, DIDGOV_RESOLUTION_LIFECYCLE_V2.RESOLVED);
+  const now = Date.now();
+  j.status = DIDGOV_RESOLUTION_LIFECYCLE_V2.RESOLVED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failDidgovResolutionV2(id, reason) {
+  const j = _didgovJsV2.get(id);
+  if (!j) throw new Error(`didgov resolution ${id} not found`);
+  _didgovCheckJ(j.status, DIDGOV_RESOLUTION_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = DIDGOV_RESOLUTION_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelDidgovResolutionV2(id, reason) {
+  const j = _didgovJsV2.get(id);
+  if (!j) throw new Error(`didgov resolution ${id} not found`);
+  _didgovCheckJ(j.status, DIDGOV_RESOLUTION_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = DIDGOV_RESOLUTION_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getDidgovResolutionV2(id) {
+  const j = _didgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listDidgovResolutionsV2() {
+  return [..._didgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoSuspendIdleDidgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _didgovPsV2.values())
+    if (
+      p.status === DIDGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _didgovIdleMs
+    ) {
+      p.status = DIDGOV_PROFILE_MATURITY_V2.SUSPENDED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckDidgovResolutionsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _didgovJsV2.values())
+    if (
+      j.status === DIDGOV_RESOLUTION_LIFECYCLE_V2.RESOLVING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _didgovStuckMs
+    ) {
+      j.status = DIDGOV_RESOLUTION_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getDidManagerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(DIDGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _didgovPsV2.values()) profilesByStatus[p.status]++;
+  const resolutionsByStatus = {};
+  for (const v of Object.values(DIDGOV_RESOLUTION_LIFECYCLE_V2))
+    resolutionsByStatus[v] = 0;
+  for (const j of _didgovJsV2.values()) resolutionsByStatus[j.status]++;
+  return {
+    totalDidgovProfilesV2: _didgovPsV2.size,
+    totalDidgovResolutionsV2: _didgovJsV2.size,
+    maxActiveDidgovProfilesPerOwner: _didgovMaxActive,
+    maxPendingDidgovResolutionsPerProfile: _didgovMaxPending,
+    didgovProfileIdleMs: _didgovIdleMs,
+    didgovResolutionStuckMs: _didgovStuckMs,
+    profilesByStatus,
+    resolutionsByStatus,
+  };
+}
