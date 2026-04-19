@@ -1002,3 +1002,330 @@ export function getSandboxStatsV2() {
     },
   };
 }
+
+// =====================================================================
+// sandbox-v2 V2 governance overlay (iter16)
+// =====================================================================
+export const SBOX_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const SBOX_EXEC_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _sboxPTrans = new Map([
+  [
+    SBOX_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      SBOX_PROFILE_MATURITY_V2.ACTIVE,
+      SBOX_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SBOX_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      SBOX_PROFILE_MATURITY_V2.PAUSED,
+      SBOX_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SBOX_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      SBOX_PROFILE_MATURITY_V2.ACTIVE,
+      SBOX_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [SBOX_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _sboxPTerminal = new Set([SBOX_PROFILE_MATURITY_V2.ARCHIVED]);
+const _sboxJTrans = new Map([
+  [
+    SBOX_EXEC_LIFECYCLE_V2.QUEUED,
+    new Set([SBOX_EXEC_LIFECYCLE_V2.RUNNING, SBOX_EXEC_LIFECYCLE_V2.CANCELLED]),
+  ],
+  [
+    SBOX_EXEC_LIFECYCLE_V2.RUNNING,
+    new Set([
+      SBOX_EXEC_LIFECYCLE_V2.COMPLETED,
+      SBOX_EXEC_LIFECYCLE_V2.FAILED,
+      SBOX_EXEC_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [SBOX_EXEC_LIFECYCLE_V2.COMPLETED, new Set()],
+  [SBOX_EXEC_LIFECYCLE_V2.FAILED, new Set()],
+  [SBOX_EXEC_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _sboxPsV2 = new Map();
+const _sboxJsV2 = new Map();
+let _sboxMaxActive = 6,
+  _sboxMaxPending = 12,
+  _sboxIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _sboxStuckMs = 60 * 1000;
+function _sboxPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _sboxCheckP(from, to) {
+  const a = _sboxPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid sbox profile transition ${from} → ${to}`);
+}
+function _sboxCheckJ(from, to) {
+  const a = _sboxJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid sbox exec transition ${from} → ${to}`);
+}
+function _sboxCountActive(owner) {
+  let c = 0;
+  for (const p of _sboxPsV2.values())
+    if (p.owner === owner && p.status === SBOX_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _sboxCountPending(profileId) {
+  let c = 0;
+  for (const j of _sboxJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === SBOX_EXEC_LIFECYCLE_V2.QUEUED ||
+        j.status === SBOX_EXEC_LIFECYCLE_V2.RUNNING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveSboxProfilesPerOwnerV2(n) {
+  _sboxMaxActive = _sboxPos(n, "maxActiveSboxProfilesPerOwner");
+}
+export function getMaxActiveSboxProfilesPerOwnerV2() {
+  return _sboxMaxActive;
+}
+export function setMaxPendingSboxExecsPerProfileV2(n) {
+  _sboxMaxPending = _sboxPos(n, "maxPendingSboxExecsPerProfile");
+}
+export function getMaxPendingSboxExecsPerProfileV2() {
+  return _sboxMaxPending;
+}
+export function setSboxProfileIdleMsV2(n) {
+  _sboxIdleMs = _sboxPos(n, "sboxProfileIdleMs");
+}
+export function getSboxProfileIdleMsV2() {
+  return _sboxIdleMs;
+}
+export function setSboxExecStuckMsV2(n) {
+  _sboxStuckMs = _sboxPos(n, "sboxExecStuckMs");
+}
+export function getSboxExecStuckMsV2() {
+  return _sboxStuckMs;
+}
+export function _resetStateSandboxV2() {
+  _sboxPsV2.clear();
+  _sboxJsV2.clear();
+  _sboxMaxActive = 6;
+  _sboxMaxPending = 12;
+  _sboxIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _sboxStuckMs = 60 * 1000;
+}
+export function registerSboxProfileV2({ id, owner, template, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_sboxPsV2.has(id)) throw new Error(`sbox profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    template: template || "default",
+    status: SBOX_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _sboxPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateSboxProfileV2(id) {
+  const p = _sboxPsV2.get(id);
+  if (!p) throw new Error(`sbox profile ${id} not found`);
+  const isInitial = p.status === SBOX_PROFILE_MATURITY_V2.PENDING;
+  _sboxCheckP(p.status, SBOX_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _sboxCountActive(p.owner) >= _sboxMaxActive)
+    throw new Error(`max active sbox profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = SBOX_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pauseSboxProfileV2(id) {
+  const p = _sboxPsV2.get(id);
+  if (!p) throw new Error(`sbox profile ${id} not found`);
+  _sboxCheckP(p.status, SBOX_PROFILE_MATURITY_V2.PAUSED);
+  p.status = SBOX_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveSboxProfileV2(id) {
+  const p = _sboxPsV2.get(id);
+  if (!p) throw new Error(`sbox profile ${id} not found`);
+  _sboxCheckP(p.status, SBOX_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = SBOX_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchSboxProfileV2(id) {
+  const p = _sboxPsV2.get(id);
+  if (!p) throw new Error(`sbox profile ${id} not found`);
+  if (_sboxPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal sbox profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getSboxProfileV2(id) {
+  const p = _sboxPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listSboxProfilesV2() {
+  return [..._sboxPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createSboxExecV2({ id, profileId, command, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_sboxJsV2.has(id)) throw new Error(`sbox exec ${id} already exists`);
+  if (!_sboxPsV2.has(profileId))
+    throw new Error(`sbox profile ${profileId} not found`);
+  if (_sboxCountPending(profileId) >= _sboxMaxPending)
+    throw new Error(`max pending sbox execs for profile ${profileId} reached`);
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    command: command || "",
+    status: SBOX_EXEC_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _sboxJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function runningSboxExecV2(id) {
+  const j = _sboxJsV2.get(id);
+  if (!j) throw new Error(`sbox exec ${id} not found`);
+  _sboxCheckJ(j.status, SBOX_EXEC_LIFECYCLE_V2.RUNNING);
+  const now = Date.now();
+  j.status = SBOX_EXEC_LIFECYCLE_V2.RUNNING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeExecSboxV2(id) {
+  const j = _sboxJsV2.get(id);
+  if (!j) throw new Error(`sbox exec ${id} not found`);
+  _sboxCheckJ(j.status, SBOX_EXEC_LIFECYCLE_V2.COMPLETED);
+  const now = Date.now();
+  j.status = SBOX_EXEC_LIFECYCLE_V2.COMPLETED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failSboxExecV2(id, reason) {
+  const j = _sboxJsV2.get(id);
+  if (!j) throw new Error(`sbox exec ${id} not found`);
+  _sboxCheckJ(j.status, SBOX_EXEC_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = SBOX_EXEC_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelSboxExecV2(id, reason) {
+  const j = _sboxJsV2.get(id);
+  if (!j) throw new Error(`sbox exec ${id} not found`);
+  _sboxCheckJ(j.status, SBOX_EXEC_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = SBOX_EXEC_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getSboxExecV2(id) {
+  const j = _sboxJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listSboxExecsV2() {
+  return [..._sboxJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPauseIdleSboxProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _sboxPsV2.values())
+    if (
+      p.status === SBOX_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _sboxIdleMs
+    ) {
+      p.status = SBOX_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckSboxExecsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _sboxJsV2.values())
+    if (
+      j.status === SBOX_EXEC_LIFECYCLE_V2.RUNNING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _sboxStuckMs
+    ) {
+      j.status = SBOX_EXEC_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getSandboxGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(SBOX_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _sboxPsV2.values()) profilesByStatus[p.status]++;
+  const execsByStatus = {};
+  for (const v of Object.values(SBOX_EXEC_LIFECYCLE_V2)) execsByStatus[v] = 0;
+  for (const j of _sboxJsV2.values()) execsByStatus[j.status]++;
+  return {
+    totalSboxProfilesV2: _sboxPsV2.size,
+    totalSboxExecsV2: _sboxJsV2.size,
+    maxActiveSboxProfilesPerOwner: _sboxMaxActive,
+    maxPendingSboxExecsPerProfile: _sboxMaxPending,
+    sboxProfileIdleMs: _sboxIdleMs,
+    sboxExecStuckMs: _sboxStuckMs,
+    profilesByStatus,
+    execsByStatus,
+  };
+}

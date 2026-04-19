@@ -749,3 +749,212 @@ export function registerHardeningCommand(program) {
       );
     });
 }
+
+// === Iter17 V2 governance overlay ===
+export function registerHardgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "hardening");
+  if (!parent) return;
+  const L = async () => await import("../lib/hardening-manager.js");
+  parent
+    .command("hardgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.HARDGOV_PROFILE_MATURITY_V2,
+            scanLifecycle: m.HARDGOV_SCAN_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("hardgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveHardgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingHardgovScansPerProfileV2(),
+            idleMs: m.getHardgovProfileIdleMsV2(),
+            stuckMs: m.getHardgovScanStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("hardgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveHardgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("hardgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingHardgovScansPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("hardgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setHardgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("hardgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setHardgovScanStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("hardgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--category <v>", "category")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerHardgovProfileV2({ id, owner, category: o.category }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("hardgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateHardgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hardgov-disable-v2 <id>")
+    .description("Disable profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).disableHardgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hardgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveHardgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hardgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchHardgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hardgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getHardgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("hardgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listHardgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("hardgov-create-scan-v2 <id> <profileId>")
+    .description("Create scan")
+    .option("--target <v>", "target")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createHardgovScanV2({ id, profileId, target: o.target }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("hardgov-scanning-scan-v2 <id>")
+    .description("Mark scan as scanning")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).scanningHardgovScanV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hardgov-complete-scan-v2 <id>")
+    .description("Complete scan")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completeScanHardgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("hardgov-fail-scan-v2 <id> [reason]")
+    .description("Fail scan")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failHardgovScanV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("hardgov-cancel-scan-v2 <id> [reason]")
+    .description("Cancel scan")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelHardgovScanV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("hardgov-get-scan-v2 <id>")
+    .description("Get scan")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getHardgovScanV2(id), null, 2));
+    });
+  parent
+    .command("hardgov-list-scans-v2")
+    .description("List scans")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listHardgovScansV2(), null, 2));
+    });
+  parent
+    .command("hardgov-auto-disable-idle-v2")
+    .description("Auto-disable idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoDisableIdleHardgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("hardgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck scans")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckHardgovScansV2(), null, 2),
+      );
+    });
+  parent
+    .command("hardgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getHardeningManagerGovStatsV2(), null, 2),
+      );
+    });
+}

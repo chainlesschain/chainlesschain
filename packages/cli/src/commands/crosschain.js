@@ -600,7 +600,6 @@ export function registerCrossChainCommand(program) {
   registerCrossChainV2Command(cc);
 }
 
-
 import {
   XCHAIN_CHANNEL_MATURITY_V2,
   XCHAIN_TRANSFER_LIFECYCLE_V2,
@@ -632,31 +631,186 @@ import {
 } from "../lib/cross-chain.js";
 
 export function registerCrossChainV2Command(cc) {
-  cc.command("enums-v2").description("Show V2 governance enums").action(() => { console.log(JSON.stringify({ XCHAIN_CHANNEL_MATURITY_V2, XCHAIN_TRANSFER_LIFECYCLE_V2 }, null, 2)); });
-  cc.command("register-channel-v2").description("Register an xchain channel profile (pending)")
-    .requiredOption("--id <id>").requiredOption("--owner <owner>").option("--from-chain <fromChain>").option("--to-chain <toChain>")
-    .action((o) => { console.log(JSON.stringify(registerXchainChannelV2({ id: o.id, owner: o.owner, fromChain: o.fromChain, toChain: o.toChain }), null, 2)); });
-  cc.command("activate-channel-v2 <id>").description("Activate channel").action((id) => { console.log(JSON.stringify(activateXchainChannelV2(id), null, 2)); });
-  cc.command("pause-channel-v2 <id>").description("Pause channel").action((id) => { console.log(JSON.stringify(pauseXchainChannelV2(id), null, 2)); });
-  cc.command("decommission-channel-v2 <id>").description("Decommission channel (terminal)").action((id) => { console.log(JSON.stringify(decommissionXchainChannelV2(id), null, 2)); });
-  cc.command("touch-channel-v2 <id>").description("Refresh lastTouchedAt").action((id) => { console.log(JSON.stringify(touchXchainChannelV2(id), null, 2)); });
-  cc.command("get-channel-v2 <id>").description("Get channel").action((id) => { console.log(JSON.stringify(getXchainChannelV2(id), null, 2)); });
-  cc.command("list-channels-v2").description("List channels").action(() => { console.log(JSON.stringify(listXchainChannelsV2(), null, 2)); });
-  cc.command("create-transfer-v2").description("Create an xchain transfer (queued)")
-    .requiredOption("--id <id>").requiredOption("--channel-id <channelId>").option("--amount <amount>")
-    .action((o) => { console.log(JSON.stringify(createXchainTransferV2({ id: o.id, channelId: o.channelId, amount: o.amount }), null, 2)); });
-  cc.command("start-transfer-v2 <id>").description("Transition transfer to relaying").action((id) => { console.log(JSON.stringify(startXchainTransferV2(id), null, 2)); });
-  cc.command("confirm-transfer-v2 <id>").description("Transition transfer to confirmed").action((id) => { console.log(JSON.stringify(confirmXchainTransferV2(id), null, 2)); });
-  cc.command("fail-transfer-v2 <id>").description("Fail transfer").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(failXchainTransferV2(id, o.reason), null, 2)); });
-  cc.command("cancel-transfer-v2 <id>").description("Cancel transfer").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(cancelXchainTransferV2(id, o.reason), null, 2)); });
-  cc.command("get-transfer-v2 <id>").description("Get transfer").action((id) => { console.log(JSON.stringify(getXchainTransferV2(id), null, 2)); });
-  cc.command("list-transfers-v2").description("List transfers").action(() => { console.log(JSON.stringify(listXchainTransfersV2(), null, 2)); });
-  cc.command("set-max-active-channels-v2 <n>").description("Set per-owner active cap").action((n) => { setMaxActiveXchainChannelsPerOwnerV2(Number(n)); console.log(JSON.stringify({ maxActiveXchainChannelsPerOwner: getMaxActiveXchainChannelsPerOwnerV2() }, null, 2)); });
-  cc.command("set-max-pending-transfers-v2 <n>").description("Set per-channel pending cap").action((n) => { setMaxPendingXchainTransfersPerChannelV2(Number(n)); console.log(JSON.stringify({ maxPendingXchainTransfersPerChannel: getMaxPendingXchainTransfersPerChannelV2() }, null, 2)); });
-  cc.command("set-channel-idle-ms-v2 <n>").description("Set idle threshold").action((n) => { setXchainChannelIdleMsV2(Number(n)); console.log(JSON.stringify({ xchainChannelIdleMs: getXchainChannelIdleMsV2() }, null, 2)); });
-  cc.command("set-transfer-stuck-ms-v2 <n>").description("Set stuck threshold").action((n) => { setXchainTransferStuckMsV2(Number(n)); console.log(JSON.stringify({ xchainTransferStuckMs: getXchainTransferStuckMsV2() }, null, 2)); });
-  cc.command("auto-pause-idle-channels-v2").description("Auto-pause idle channels").action(() => { console.log(JSON.stringify(autoPauseIdleXchainChannelsV2(), null, 2)); });
-  cc.command("auto-fail-stuck-transfers-v2").description("Auto-fail stuck relaying transfers").action(() => { console.log(JSON.stringify(autoFailStuckXchainTransfersV2(), null, 2)); });
-  cc.command("gov-stats-v2").description("V2 governance aggregate stats").action(() => { console.log(JSON.stringify(getCrossChainGovStatsV2(), null, 2)); });
+  cc.command("enums-v2")
+    .description("Show V2 governance enums")
+    .action(() => {
+      console.log(
+        JSON.stringify(
+          { XCHAIN_CHANNEL_MATURITY_V2, XCHAIN_TRANSFER_LIFECYCLE_V2 },
+          null,
+          2,
+        ),
+      );
+    });
+  cc.command("register-channel-v2")
+    .description("Register an xchain channel profile (pending)")
+    .requiredOption("--id <id>")
+    .requiredOption("--owner <owner>")
+    .option("--from-chain <fromChain>")
+    .option("--to-chain <toChain>")
+    .action((o) => {
+      console.log(
+        JSON.stringify(
+          registerXchainChannelV2({
+            id: o.id,
+            owner: o.owner,
+            fromChain: o.fromChain,
+            toChain: o.toChain,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+  cc.command("activate-channel-v2 <id>")
+    .description("Activate channel")
+    .action((id) => {
+      console.log(JSON.stringify(activateXchainChannelV2(id), null, 2));
+    });
+  cc.command("pause-channel-v2 <id>")
+    .description("Pause channel")
+    .action((id) => {
+      console.log(JSON.stringify(pauseXchainChannelV2(id), null, 2));
+    });
+  cc.command("decommission-channel-v2 <id>")
+    .description("Decommission channel (terminal)")
+    .action((id) => {
+      console.log(JSON.stringify(decommissionXchainChannelV2(id), null, 2));
+    });
+  cc.command("touch-channel-v2 <id>")
+    .description("Refresh lastTouchedAt")
+    .action((id) => {
+      console.log(JSON.stringify(touchXchainChannelV2(id), null, 2));
+    });
+  cc.command("get-channel-v2 <id>")
+    .description("Get channel")
+    .action((id) => {
+      console.log(JSON.stringify(getXchainChannelV2(id), null, 2));
+    });
+  cc.command("list-channels-v2")
+    .description("List channels")
+    .action(() => {
+      console.log(JSON.stringify(listXchainChannelsV2(), null, 2));
+    });
+  cc.command("create-transfer-v2")
+    .description("Create an xchain transfer (queued)")
+    .requiredOption("--id <id>")
+    .requiredOption("--channel-id <channelId>")
+    .option("--amount <amount>")
+    .action((o) => {
+      console.log(
+        JSON.stringify(
+          createXchainTransferV2({
+            id: o.id,
+            channelId: o.channelId,
+            amount: o.amount,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+  cc.command("start-transfer-v2 <id>")
+    .description("Transition transfer to relaying")
+    .action((id) => {
+      console.log(JSON.stringify(startXchainTransferV2(id), null, 2));
+    });
+  cc.command("confirm-transfer-v2 <id>")
+    .description("Transition transfer to confirmed")
+    .action((id) => {
+      console.log(JSON.stringify(confirmXchainTransferV2(id), null, 2));
+    });
+  cc.command("fail-transfer-v2 <id>")
+    .description("Fail transfer")
+    .option("--reason <r>")
+    .action((id, o) => {
+      console.log(JSON.stringify(failXchainTransferV2(id, o.reason), null, 2));
+    });
+  cc.command("cancel-transfer-v2 <id>")
+    .description("Cancel transfer")
+    .option("--reason <r>")
+    .action((id, o) => {
+      console.log(
+        JSON.stringify(cancelXchainTransferV2(id, o.reason), null, 2),
+      );
+    });
+  cc.command("get-transfer-v2 <id>")
+    .description("Get transfer")
+    .action((id) => {
+      console.log(JSON.stringify(getXchainTransferV2(id), null, 2));
+    });
+  cc.command("list-transfers-v2")
+    .description("List transfers")
+    .action(() => {
+      console.log(JSON.stringify(listXchainTransfersV2(), null, 2));
+    });
+  cc.command("set-max-active-channels-v2 <n>")
+    .description("Set per-owner active cap")
+    .action((n) => {
+      setMaxActiveXchainChannelsPerOwnerV2(Number(n));
+      console.log(
+        JSON.stringify(
+          {
+            maxActiveXchainChannelsPerOwner:
+              getMaxActiveXchainChannelsPerOwnerV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  cc.command("set-max-pending-transfers-v2 <n>")
+    .description("Set per-channel pending cap")
+    .action((n) => {
+      setMaxPendingXchainTransfersPerChannelV2(Number(n));
+      console.log(
+        JSON.stringify(
+          {
+            maxPendingXchainTransfersPerChannel:
+              getMaxPendingXchainTransfersPerChannelV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  cc.command("set-channel-idle-ms-v2 <n>")
+    .description("Set idle threshold")
+    .action((n) => {
+      setXchainChannelIdleMsV2(Number(n));
+      console.log(
+        JSON.stringify(
+          { xchainChannelIdleMs: getXchainChannelIdleMsV2() },
+          null,
+          2,
+        ),
+      );
+    });
+  cc.command("set-transfer-stuck-ms-v2 <n>")
+    .description("Set stuck threshold")
+    .action((n) => {
+      setXchainTransferStuckMsV2(Number(n));
+      console.log(
+        JSON.stringify(
+          { xchainTransferStuckMs: getXchainTransferStuckMsV2() },
+          null,
+          2,
+        ),
+      );
+    });
+  cc.command("auto-pause-idle-channels-v2")
+    .description("Auto-pause idle channels")
+    .action(() => {
+      console.log(JSON.stringify(autoPauseIdleXchainChannelsV2(), null, 2));
+    });
+  cc.command("auto-fail-stuck-transfers-v2")
+    .description("Auto-fail stuck relaying transfers")
+    .action(() => {
+      console.log(JSON.stringify(autoFailStuckXchainTransfersV2(), null, 2));
+    });
+  cc.command("gov-stats-v2")
+    .description("V2 governance aggregate stats")
+    .action(() => {
+      console.log(JSON.stringify(getCrossChainGovStatsV2(), null, 2));
+    });
 }
-

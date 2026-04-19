@@ -677,42 +677,185 @@ export function registerRecommendCommand(program) {
   _registerRecommendCrV2(rec);
 }
 
-
 import {
-  RECOMMENDER_PROFILE_MATURITY_V2, RECOMMENDATION_JOB_LIFECYCLE_V2,
-  setMaxActiveRecommenderProfilesPerOwnerV2, setMaxPendingRecommendationJobsPerProfileV2, setRecommenderProfileIdleMsV2, setRecommendationJobStuckMsV2,
-  registerRecommenderProfileV2, activateRecommenderProfileV2, staleRecommenderProfileV2, archiveRecommenderProfileV2, touchRecommenderProfileV2, getRecommenderProfileV2, listRecommenderProfilesV2,
-  createRecommendationJobV2, startRecommendationJobV2, completeRecommendationJobV2, failRecommendationJobV2, cancelRecommendationJobV2, getRecommendationJobV2, listRecommendationJobsV2,
-  autoStaleIdleRecommenderProfilesV2, autoFailStuckRecommendationJobsV2, getContentRecommenderGovStatsV2,
+  RECOMMENDER_PROFILE_MATURITY_V2,
+  RECOMMENDATION_JOB_LIFECYCLE_V2,
+  setMaxActiveRecommenderProfilesPerOwnerV2,
+  setMaxPendingRecommendationJobsPerProfileV2,
+  setRecommenderProfileIdleMsV2,
+  setRecommendationJobStuckMsV2,
+  registerRecommenderProfileV2,
+  activateRecommenderProfileV2,
+  staleRecommenderProfileV2,
+  archiveRecommenderProfileV2,
+  touchRecommenderProfileV2,
+  getRecommenderProfileV2,
+  listRecommenderProfilesV2,
+  createRecommendationJobV2,
+  startRecommendationJobV2,
+  completeRecommendationJobV2,
+  failRecommendationJobV2,
+  cancelRecommendationJobV2,
+  getRecommendationJobV2,
+  listRecommendationJobsV2,
+  autoStaleIdleRecommenderProfilesV2,
+  autoFailStuckRecommendationJobsV2,
+  getContentRecommenderGovStatsV2,
 } from "../lib/content-recommender.js";
 
 function _registerRecommendCrV2(parent) {
-  parent.command("cr-enums-v2").description("List Content Recommender V2 enums").option("--json", "JSON").action((opts) => {
-    const out = { profileMaturity: RECOMMENDER_PROFILE_MATURITY_V2, jobLifecycle: RECOMMENDATION_JOB_LIFECYCLE_V2 };
-    if (opts.json) console.log(JSON.stringify(out, null, 2)); else console.log(out);
-  });
-  parent.command("cr-config-set-v2").description("Set Content Recommender V2 caps/thresholds").option("--max-active <n>", "max active per owner").option("--max-pending <n>", "max pending per profile").option("--idle-ms <n>", "profile idle ms").option("--stuck-ms <n>", "job stuck ms").action((opts) => {
-    if (opts.maxActive) setMaxActiveRecommenderProfilesPerOwnerV2(parseInt(opts.maxActive, 10));
-    if (opts.maxPending) setMaxPendingRecommendationJobsPerProfileV2(parseInt(opts.maxPending, 10));
-    if (opts.idleMs) setRecommenderProfileIdleMsV2(parseInt(opts.idleMs, 10));
-    if (opts.stuckMs) setRecommendationJobStuckMsV2(parseInt(opts.stuckMs, 10));
-    console.log("ok");
-  });
-  parent.command("cr-register-profile-v2 <id>").description("Register Recommender V2 profile").requiredOption("--owner <owner>", "owner").option("--strategy <s>", "strategy").action((id, opts) => { console.log(registerRecommenderProfileV2({ id, owner: opts.owner, strategy: opts.strategy })); });
-  parent.command("cr-activate-profile-v2 <id>").description("Activate Recommender V2 profile").action((id) => { console.log(activateRecommenderProfileV2(id)); });
-  parent.command("cr-stale-profile-v2 <id>").description("Mark Recommender V2 profile stale").action((id) => { console.log(staleRecommenderProfileV2(id)); });
-  parent.command("cr-archive-profile-v2 <id>").description("Archive Recommender V2 profile").action((id) => { console.log(archiveRecommenderProfileV2(id)); });
-  parent.command("cr-touch-profile-v2 <id>").description("Touch Recommender V2 profile").action((id) => { console.log(touchRecommenderProfileV2(id)); });
-  parent.command("cr-get-profile-v2 <id>").description("Get Recommender V2 profile").action((id) => { console.log(getRecommenderProfileV2(id)); });
-  parent.command("cr-list-profiles-v2").description("List Recommender V2 profiles").action(() => { console.log(listRecommenderProfilesV2()); });
-  parent.command("cr-create-job-v2 <id>").description("Create Recommendation V2 job").requiredOption("--profile-id <pid>", "profile id").option("--query <q>", "query").action((id, opts) => { console.log(createRecommendationJobV2({ id, profileId: opts.profileId, query: opts.query })); });
-  parent.command("cr-start-job-v2 <id>").description("Start Recommendation V2 job").action((id) => { console.log(startRecommendationJobV2(id)); });
-  parent.command("cr-complete-job-v2 <id>").description("Complete Recommendation V2 job").action((id) => { console.log(completeRecommendationJobV2(id)); });
-  parent.command("cr-fail-job-v2 <id>").description("Fail Recommendation V2 job").option("--reason <r>", "reason").action((id, opts) => { console.log(failRecommendationJobV2(id, opts.reason)); });
-  parent.command("cr-cancel-job-v2 <id>").description("Cancel Recommendation V2 job").option("--reason <r>", "reason").action((id, opts) => { console.log(cancelRecommendationJobV2(id, opts.reason)); });
-  parent.command("cr-get-job-v2 <id>").description("Get Recommendation V2 job").action((id) => { console.log(getRecommendationJobV2(id)); });
-  parent.command("cr-list-jobs-v2").description("List Recommendation V2 jobs").action(() => { console.log(listRecommendationJobsV2()); });
-  parent.command("cr-auto-stale-profiles-v2").description("Auto-stale idle Recommender V2 profiles").action(() => { console.log(autoStaleIdleRecommenderProfilesV2()); });
-  parent.command("cr-auto-fail-jobs-v2").description("Auto-fail stuck Recommendation V2 jobs").action(() => { console.log(autoFailStuckRecommendationJobsV2()); });
-  parent.command("cr-gov-stats-v2").description("Content Recommender V2 governance stats").option("--json", "JSON").action((opts) => { const s = getContentRecommenderGovStatsV2(); if (opts.json) console.log(JSON.stringify(s, null, 2)); else console.log(s); });
+  parent
+    .command("cr-enums-v2")
+    .description("List Content Recommender V2 enums")
+    .option("--json", "JSON")
+    .action((opts) => {
+      const out = {
+        profileMaturity: RECOMMENDER_PROFILE_MATURITY_V2,
+        jobLifecycle: RECOMMENDATION_JOB_LIFECYCLE_V2,
+      };
+      if (opts.json) console.log(JSON.stringify(out, null, 2));
+      else console.log(out);
+    });
+  parent
+    .command("cr-config-set-v2")
+    .description("Set Content Recommender V2 caps/thresholds")
+    .option("--max-active <n>", "max active per owner")
+    .option("--max-pending <n>", "max pending per profile")
+    .option("--idle-ms <n>", "profile idle ms")
+    .option("--stuck-ms <n>", "job stuck ms")
+    .action((opts) => {
+      if (opts.maxActive)
+        setMaxActiveRecommenderProfilesPerOwnerV2(parseInt(opts.maxActive, 10));
+      if (opts.maxPending)
+        setMaxPendingRecommendationJobsPerProfileV2(
+          parseInt(opts.maxPending, 10),
+        );
+      if (opts.idleMs) setRecommenderProfileIdleMsV2(parseInt(opts.idleMs, 10));
+      if (opts.stuckMs)
+        setRecommendationJobStuckMsV2(parseInt(opts.stuckMs, 10));
+      console.log("ok");
+    });
+  parent
+    .command("cr-register-profile-v2 <id>")
+    .description("Register Recommender V2 profile")
+    .requiredOption("--owner <owner>", "owner")
+    .option("--strategy <s>", "strategy")
+    .action((id, opts) => {
+      console.log(
+        registerRecommenderProfileV2({
+          id,
+          owner: opts.owner,
+          strategy: opts.strategy,
+        }),
+      );
+    });
+  parent
+    .command("cr-activate-profile-v2 <id>")
+    .description("Activate Recommender V2 profile")
+    .action((id) => {
+      console.log(activateRecommenderProfileV2(id));
+    });
+  parent
+    .command("cr-stale-profile-v2 <id>")
+    .description("Mark Recommender V2 profile stale")
+    .action((id) => {
+      console.log(staleRecommenderProfileV2(id));
+    });
+  parent
+    .command("cr-archive-profile-v2 <id>")
+    .description("Archive Recommender V2 profile")
+    .action((id) => {
+      console.log(archiveRecommenderProfileV2(id));
+    });
+  parent
+    .command("cr-touch-profile-v2 <id>")
+    .description("Touch Recommender V2 profile")
+    .action((id) => {
+      console.log(touchRecommenderProfileV2(id));
+    });
+  parent
+    .command("cr-get-profile-v2 <id>")
+    .description("Get Recommender V2 profile")
+    .action((id) => {
+      console.log(getRecommenderProfileV2(id));
+    });
+  parent
+    .command("cr-list-profiles-v2")
+    .description("List Recommender V2 profiles")
+    .action(() => {
+      console.log(listRecommenderProfilesV2());
+    });
+  parent
+    .command("cr-create-job-v2 <id>")
+    .description("Create Recommendation V2 job")
+    .requiredOption("--profile-id <pid>", "profile id")
+    .option("--query <q>", "query")
+    .action((id, opts) => {
+      console.log(
+        createRecommendationJobV2({
+          id,
+          profileId: opts.profileId,
+          query: opts.query,
+        }),
+      );
+    });
+  parent
+    .command("cr-start-job-v2 <id>")
+    .description("Start Recommendation V2 job")
+    .action((id) => {
+      console.log(startRecommendationJobV2(id));
+    });
+  parent
+    .command("cr-complete-job-v2 <id>")
+    .description("Complete Recommendation V2 job")
+    .action((id) => {
+      console.log(completeRecommendationJobV2(id));
+    });
+  parent
+    .command("cr-fail-job-v2 <id>")
+    .description("Fail Recommendation V2 job")
+    .option("--reason <r>", "reason")
+    .action((id, opts) => {
+      console.log(failRecommendationJobV2(id, opts.reason));
+    });
+  parent
+    .command("cr-cancel-job-v2 <id>")
+    .description("Cancel Recommendation V2 job")
+    .option("--reason <r>", "reason")
+    .action((id, opts) => {
+      console.log(cancelRecommendationJobV2(id, opts.reason));
+    });
+  parent
+    .command("cr-get-job-v2 <id>")
+    .description("Get Recommendation V2 job")
+    .action((id) => {
+      console.log(getRecommendationJobV2(id));
+    });
+  parent
+    .command("cr-list-jobs-v2")
+    .description("List Recommendation V2 jobs")
+    .action(() => {
+      console.log(listRecommendationJobsV2());
+    });
+  parent
+    .command("cr-auto-stale-profiles-v2")
+    .description("Auto-stale idle Recommender V2 profiles")
+    .action(() => {
+      console.log(autoStaleIdleRecommenderProfilesV2());
+    });
+  parent
+    .command("cr-auto-fail-jobs-v2")
+    .description("Auto-fail stuck Recommendation V2 jobs")
+    .action(() => {
+      console.log(autoFailStuckRecommendationJobsV2());
+    });
+  parent
+    .command("cr-gov-stats-v2")
+    .description("Content Recommender V2 governance stats")
+    .option("--json", "JSON")
+    .action((opts) => {
+      const s = getContentRecommenderGovStatsV2();
+      if (opts.json) console.log(JSON.stringify(s, null, 2));
+      else console.log(s);
+    });
 }

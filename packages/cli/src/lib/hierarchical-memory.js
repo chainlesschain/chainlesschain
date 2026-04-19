@@ -1069,25 +1069,53 @@ export function _resetV2State() {
   }
 }
 
-
 // ===== V2 Surface: Hierarchical Memory governance overlay (CLI v0.137.0) =====
 export const HMEM_TIER_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", DORMANT: "dormant", RETIRED: "retired",
+  PENDING: "pending",
+  ACTIVE: "active",
+  DORMANT: "dormant",
+  RETIRED: "retired",
 });
 export const HMEM_PROMOTION_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", PROMOTING: "promoting", PROMOTED: "promoted", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  PROMOTING: "promoting",
+  PROMOTED: "promoted",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 
 const _hmemTierTrans = new Map([
-  [HMEM_TIER_MATURITY_V2.PENDING, new Set([HMEM_TIER_MATURITY_V2.ACTIVE, HMEM_TIER_MATURITY_V2.RETIRED])],
-  [HMEM_TIER_MATURITY_V2.ACTIVE, new Set([HMEM_TIER_MATURITY_V2.DORMANT, HMEM_TIER_MATURITY_V2.RETIRED])],
-  [HMEM_TIER_MATURITY_V2.DORMANT, new Set([HMEM_TIER_MATURITY_V2.ACTIVE, HMEM_TIER_MATURITY_V2.RETIRED])],
+  [
+    HMEM_TIER_MATURITY_V2.PENDING,
+    new Set([HMEM_TIER_MATURITY_V2.ACTIVE, HMEM_TIER_MATURITY_V2.RETIRED]),
+  ],
+  [
+    HMEM_TIER_MATURITY_V2.ACTIVE,
+    new Set([HMEM_TIER_MATURITY_V2.DORMANT, HMEM_TIER_MATURITY_V2.RETIRED]),
+  ],
+  [
+    HMEM_TIER_MATURITY_V2.DORMANT,
+    new Set([HMEM_TIER_MATURITY_V2.ACTIVE, HMEM_TIER_MATURITY_V2.RETIRED]),
+  ],
   [HMEM_TIER_MATURITY_V2.RETIRED, new Set()],
 ]);
 const _hmemTierTerminal = new Set([HMEM_TIER_MATURITY_V2.RETIRED]);
 const _hmemPromoTrans = new Map([
-  [HMEM_PROMOTION_LIFECYCLE_V2.QUEUED, new Set([HMEM_PROMOTION_LIFECYCLE_V2.PROMOTING, HMEM_PROMOTION_LIFECYCLE_V2.CANCELLED])],
-  [HMEM_PROMOTION_LIFECYCLE_V2.PROMOTING, new Set([HMEM_PROMOTION_LIFECYCLE_V2.PROMOTED, HMEM_PROMOTION_LIFECYCLE_V2.FAILED, HMEM_PROMOTION_LIFECYCLE_V2.CANCELLED])],
+  [
+    HMEM_PROMOTION_LIFECYCLE_V2.QUEUED,
+    new Set([
+      HMEM_PROMOTION_LIFECYCLE_V2.PROMOTING,
+      HMEM_PROMOTION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    HMEM_PROMOTION_LIFECYCLE_V2.PROMOTING,
+    new Set([
+      HMEM_PROMOTION_LIFECYCLE_V2.PROMOTED,
+      HMEM_PROMOTION_LIFECYCLE_V2.FAILED,
+      HMEM_PROMOTION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [HMEM_PROMOTION_LIFECYCLE_V2.PROMOTED, new Set()],
   [HMEM_PROMOTION_LIFECYCLE_V2.FAILED, new Set()],
   [HMEM_PROMOTION_LIFECYCLE_V2.CANCELLED, new Set()],
@@ -1100,21 +1128,45 @@ let _hmemMaxPendingPerTier = 30;
 let _hmemTierIdleMs = 30 * 24 * 60 * 60 * 1000;
 let _hmemPromoStuckMs = 5 * 60 * 1000;
 
-function _hmemPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+function _hmemPos(n, lbl) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${lbl} must be positive integer`);
+  return v;
+}
 
-export function setMaxActiveHmemTiersPerOwnerV2(n) { _hmemMaxActivePerOwner = _hmemPos(n, "maxActiveHmemTiersPerOwner"); }
-export function getMaxActiveHmemTiersPerOwnerV2() { return _hmemMaxActivePerOwner; }
-export function setMaxPendingHmemPromotionsPerTierV2(n) { _hmemMaxPendingPerTier = _hmemPos(n, "maxPendingHmemPromotionsPerTier"); }
-export function getMaxPendingHmemPromotionsPerTierV2() { return _hmemMaxPendingPerTier; }
-export function setHmemTierIdleMsV2(n) { _hmemTierIdleMs = _hmemPos(n, "hmemTierIdleMs"); }
-export function getHmemTierIdleMsV2() { return _hmemTierIdleMs; }
-export function setHmemPromotionStuckMsV2(n) { _hmemPromoStuckMs = _hmemPos(n, "hmemPromotionStuckMs"); }
-export function getHmemPromotionStuckMsV2() { return _hmemPromoStuckMs; }
+export function setMaxActiveHmemTiersPerOwnerV2(n) {
+  _hmemMaxActivePerOwner = _hmemPos(n, "maxActiveHmemTiersPerOwner");
+}
+export function getMaxActiveHmemTiersPerOwnerV2() {
+  return _hmemMaxActivePerOwner;
+}
+export function setMaxPendingHmemPromotionsPerTierV2(n) {
+  _hmemMaxPendingPerTier = _hmemPos(n, "maxPendingHmemPromotionsPerTier");
+}
+export function getMaxPendingHmemPromotionsPerTierV2() {
+  return _hmemMaxPendingPerTier;
+}
+export function setHmemTierIdleMsV2(n) {
+  _hmemTierIdleMs = _hmemPos(n, "hmemTierIdleMs");
+}
+export function getHmemTierIdleMsV2() {
+  return _hmemTierIdleMs;
+}
+export function setHmemPromotionStuckMsV2(n) {
+  _hmemPromoStuckMs = _hmemPos(n, "hmemPromotionStuckMs");
+}
+export function getHmemPromotionStuckMsV2() {
+  return _hmemPromoStuckMs;
+}
 
 export function _resetStateHierarchicalMemoryV2() {
-  _hmemTiers.clear(); _hmemPromos.clear();
-  _hmemMaxActivePerOwner = 12; _hmemMaxPendingPerTier = 30;
-  _hmemTierIdleMs = 30 * 24 * 60 * 60 * 1000; _hmemPromoStuckMs = 5 * 60 * 1000;
+  _hmemTiers.clear();
+  _hmemPromos.clear();
+  _hmemMaxActivePerOwner = 12;
+  _hmemMaxPendingPerTier = 30;
+  _hmemTierIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _hmemPromoStuckMs = 5 * 60 * 1000;
 }
 
 export function registerHmemTierV2({ id, owner, level, metadata } = {}) {
@@ -1122,54 +1174,238 @@ export function registerHmemTierV2({ id, owner, level, metadata } = {}) {
   if (!owner || typeof owner !== "string") throw new Error("owner is required");
   if (_hmemTiers.has(id)) throw new Error(`hmem tier ${id} already registered`);
   const now = Date.now();
-  const t = { id, owner, level: level || "short-term", status: HMEM_TIER_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, retiredAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  const t = {
+    id,
+    owner,
+    level: level || "short-term",
+    status: HMEM_TIER_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    retiredAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
   _hmemTiers.set(id, t);
   return { ...t, metadata: { ...t.metadata } };
 }
-function _hmemCheckT(from, to) { const a = _hmemTierTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid hmem tier transition ${from} → ${to}`); }
-function _hmemCountActive(owner) { let n = 0; for (const t of _hmemTiers.values()) if (t.owner === owner && t.status === HMEM_TIER_MATURITY_V2.ACTIVE) n++; return n; }
+function _hmemCheckT(from, to) {
+  const a = _hmemTierTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid hmem tier transition ${from} → ${to}`);
+}
+function _hmemCountActive(owner) {
+  let n = 0;
+  for (const t of _hmemTiers.values())
+    if (t.owner === owner && t.status === HMEM_TIER_MATURITY_V2.ACTIVE) n++;
+  return n;
+}
 
 export function activateHmemTierV2(id) {
-  const t = _hmemTiers.get(id); if (!t) throw new Error(`hmem tier ${id} not found`);
+  const t = _hmemTiers.get(id);
+  if (!t) throw new Error(`hmem tier ${id} not found`);
   _hmemCheckT(t.status, HMEM_TIER_MATURITY_V2.ACTIVE);
   const recovery = t.status === HMEM_TIER_MATURITY_V2.DORMANT;
-  if (!recovery) { const c = _hmemCountActive(t.owner); if (c >= _hmemMaxActivePerOwner) throw new Error(`max active hmem tiers per owner (${_hmemMaxActivePerOwner}) reached for ${t.owner}`); }
-  const now = Date.now(); t.status = HMEM_TIER_MATURITY_V2.ACTIVE; t.updatedAt = now; t.lastTouchedAt = now; if (!t.activatedAt) t.activatedAt = now;
+  if (!recovery) {
+    const c = _hmemCountActive(t.owner);
+    if (c >= _hmemMaxActivePerOwner)
+      throw new Error(
+        `max active hmem tiers per owner (${_hmemMaxActivePerOwner}) reached for ${t.owner}`,
+      );
+  }
+  const now = Date.now();
+  t.status = HMEM_TIER_MATURITY_V2.ACTIVE;
+  t.updatedAt = now;
+  t.lastTouchedAt = now;
+  if (!t.activatedAt) t.activatedAt = now;
   return { ...t, metadata: { ...t.metadata } };
 }
-export function dormantHmemTierV2(id) { const t = _hmemTiers.get(id); if (!t) throw new Error(`hmem tier ${id} not found`); _hmemCheckT(t.status, HMEM_TIER_MATURITY_V2.DORMANT); t.status = HMEM_TIER_MATURITY_V2.DORMANT; t.updatedAt = Date.now(); return { ...t, metadata: { ...t.metadata } }; }
-export function retireHmemTierV2(id) { const t = _hmemTiers.get(id); if (!t) throw new Error(`hmem tier ${id} not found`); _hmemCheckT(t.status, HMEM_TIER_MATURITY_V2.RETIRED); const now = Date.now(); t.status = HMEM_TIER_MATURITY_V2.RETIRED; t.updatedAt = now; if (!t.retiredAt) t.retiredAt = now; return { ...t, metadata: { ...t.metadata } }; }
-export function touchHmemTierV2(id) { const t = _hmemTiers.get(id); if (!t) throw new Error(`hmem tier ${id} not found`); if (_hmemTierTerminal.has(t.status)) throw new Error(`cannot touch terminal hmem tier ${id}`); const now = Date.now(); t.lastTouchedAt = now; t.updatedAt = now; return { ...t, metadata: { ...t.metadata } }; }
-export function getHmemTierV2(id) { const t = _hmemTiers.get(id); if (!t) return null; return { ...t, metadata: { ...t.metadata } }; }
-export function listHmemTiersV2() { return [..._hmemTiers.values()].map((t) => ({ ...t, metadata: { ...t.metadata } })); }
+export function dormantHmemTierV2(id) {
+  const t = _hmemTiers.get(id);
+  if (!t) throw new Error(`hmem tier ${id} not found`);
+  _hmemCheckT(t.status, HMEM_TIER_MATURITY_V2.DORMANT);
+  t.status = HMEM_TIER_MATURITY_V2.DORMANT;
+  t.updatedAt = Date.now();
+  return { ...t, metadata: { ...t.metadata } };
+}
+export function retireHmemTierV2(id) {
+  const t = _hmemTiers.get(id);
+  if (!t) throw new Error(`hmem tier ${id} not found`);
+  _hmemCheckT(t.status, HMEM_TIER_MATURITY_V2.RETIRED);
+  const now = Date.now();
+  t.status = HMEM_TIER_MATURITY_V2.RETIRED;
+  t.updatedAt = now;
+  if (!t.retiredAt) t.retiredAt = now;
+  return { ...t, metadata: { ...t.metadata } };
+}
+export function touchHmemTierV2(id) {
+  const t = _hmemTiers.get(id);
+  if (!t) throw new Error(`hmem tier ${id} not found`);
+  if (_hmemTierTerminal.has(t.status))
+    throw new Error(`cannot touch terminal hmem tier ${id}`);
+  const now = Date.now();
+  t.lastTouchedAt = now;
+  t.updatedAt = now;
+  return { ...t, metadata: { ...t.metadata } };
+}
+export function getHmemTierV2(id) {
+  const t = _hmemTiers.get(id);
+  if (!t) return null;
+  return { ...t, metadata: { ...t.metadata } };
+}
+export function listHmemTiersV2() {
+  return [..._hmemTiers.values()].map((t) => ({
+    ...t,
+    metadata: { ...t.metadata },
+  }));
+}
 
-function _hmemCountPending(tid) { let n = 0; for (const p of _hmemPromos.values()) if (p.tierId === tid && (p.status === HMEM_PROMOTION_LIFECYCLE_V2.QUEUED || p.status === HMEM_PROMOTION_LIFECYCLE_V2.PROMOTING)) n++; return n; }
+function _hmemCountPending(tid) {
+  let n = 0;
+  for (const p of _hmemPromos.values())
+    if (
+      p.tierId === tid &&
+      (p.status === HMEM_PROMOTION_LIFECYCLE_V2.QUEUED ||
+        p.status === HMEM_PROMOTION_LIFECYCLE_V2.PROMOTING)
+    )
+      n++;
+  return n;
+}
 
 export function createHmemPromotionV2({ id, tierId, itemKey, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
-  if (!tierId || typeof tierId !== "string") throw new Error("tierId is required");
-  if (_hmemPromos.has(id)) throw new Error(`hmem promotion ${id} already exists`);
+  if (!tierId || typeof tierId !== "string")
+    throw new Error("tierId is required");
+  if (_hmemPromos.has(id))
+    throw new Error(`hmem promotion ${id} already exists`);
   if (!_hmemTiers.has(tierId)) throw new Error(`hmem tier ${tierId} not found`);
   const pending = _hmemCountPending(tierId);
-  if (pending >= _hmemMaxPendingPerTier) throw new Error(`max pending hmem promotions per tier (${_hmemMaxPendingPerTier}) reached for ${tierId}`);
+  if (pending >= _hmemMaxPendingPerTier)
+    throw new Error(
+      `max pending hmem promotions per tier (${_hmemMaxPendingPerTier}) reached for ${tierId}`,
+    );
   const now = Date.now();
-  const p = { id, tierId, itemKey: itemKey || "", status: HMEM_PROMOTION_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  const p = {
+    id,
+    tierId,
+    itemKey: itemKey || "",
+    status: HMEM_PROMOTION_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
   _hmemPromos.set(id, p);
   return { ...p, metadata: { ...p.metadata } };
 }
-function _hmemCheckP(from, to) { const a = _hmemPromoTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid hmem promotion transition ${from} → ${to}`); }
-export function startHmemPromotionV2(id) { const p = _hmemPromos.get(id); if (!p) throw new Error(`hmem promotion ${id} not found`); _hmemCheckP(p.status, HMEM_PROMOTION_LIFECYCLE_V2.PROMOTING); const now = Date.now(); p.status = HMEM_PROMOTION_LIFECYCLE_V2.PROMOTING; p.updatedAt = now; if (!p.startedAt) p.startedAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function completeHmemPromotionV2(id) { const p = _hmemPromos.get(id); if (!p) throw new Error(`hmem promotion ${id} not found`); _hmemCheckP(p.status, HMEM_PROMOTION_LIFECYCLE_V2.PROMOTED); const now = Date.now(); p.status = HMEM_PROMOTION_LIFECYCLE_V2.PROMOTED; p.updatedAt = now; if (!p.settledAt) p.settledAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function failHmemPromotionV2(id, reason) { const p = _hmemPromos.get(id); if (!p) throw new Error(`hmem promotion ${id} not found`); _hmemCheckP(p.status, HMEM_PROMOTION_LIFECYCLE_V2.FAILED); const now = Date.now(); p.status = HMEM_PROMOTION_LIFECYCLE_V2.FAILED; p.updatedAt = now; if (!p.settledAt) p.settledAt = now; if (reason) p.metadata.failReason = String(reason); return { ...p, metadata: { ...p.metadata } }; }
-export function cancelHmemPromotionV2(id, reason) { const p = _hmemPromos.get(id); if (!p) throw new Error(`hmem promotion ${id} not found`); _hmemCheckP(p.status, HMEM_PROMOTION_LIFECYCLE_V2.CANCELLED); const now = Date.now(); p.status = HMEM_PROMOTION_LIFECYCLE_V2.CANCELLED; p.updatedAt = now; if (!p.settledAt) p.settledAt = now; if (reason) p.metadata.cancelReason = String(reason); return { ...p, metadata: { ...p.metadata } }; }
-export function getHmemPromotionV2(id) { const p = _hmemPromos.get(id); if (!p) return null; return { ...p, metadata: { ...p.metadata } }; }
-export function listHmemPromotionsV2() { return [..._hmemPromos.values()].map((p) => ({ ...p, metadata: { ...p.metadata } })); }
+function _hmemCheckP(from, to) {
+  const a = _hmemPromoTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid hmem promotion transition ${from} → ${to}`);
+}
+export function startHmemPromotionV2(id) {
+  const p = _hmemPromos.get(id);
+  if (!p) throw new Error(`hmem promotion ${id} not found`);
+  _hmemCheckP(p.status, HMEM_PROMOTION_LIFECYCLE_V2.PROMOTING);
+  const now = Date.now();
+  p.status = HMEM_PROMOTION_LIFECYCLE_V2.PROMOTING;
+  p.updatedAt = now;
+  if (!p.startedAt) p.startedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function completeHmemPromotionV2(id) {
+  const p = _hmemPromos.get(id);
+  if (!p) throw new Error(`hmem promotion ${id} not found`);
+  _hmemCheckP(p.status, HMEM_PROMOTION_LIFECYCLE_V2.PROMOTED);
+  const now = Date.now();
+  p.status = HMEM_PROMOTION_LIFECYCLE_V2.PROMOTED;
+  p.updatedAt = now;
+  if (!p.settledAt) p.settledAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function failHmemPromotionV2(id, reason) {
+  const p = _hmemPromos.get(id);
+  if (!p) throw new Error(`hmem promotion ${id} not found`);
+  _hmemCheckP(p.status, HMEM_PROMOTION_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  p.status = HMEM_PROMOTION_LIFECYCLE_V2.FAILED;
+  p.updatedAt = now;
+  if (!p.settledAt) p.settledAt = now;
+  if (reason) p.metadata.failReason = String(reason);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function cancelHmemPromotionV2(id, reason) {
+  const p = _hmemPromos.get(id);
+  if (!p) throw new Error(`hmem promotion ${id} not found`);
+  _hmemCheckP(p.status, HMEM_PROMOTION_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  p.status = HMEM_PROMOTION_LIFECYCLE_V2.CANCELLED;
+  p.updatedAt = now;
+  if (!p.settledAt) p.settledAt = now;
+  if (reason) p.metadata.cancelReason = String(reason);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getHmemPromotionV2(id) {
+  const p = _hmemPromos.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listHmemPromotionsV2() {
+  return [..._hmemPromos.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
 
-export function autoDormantIdleHmemTiersV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const tier of _hmemTiers.values()) if (tier.status === HMEM_TIER_MATURITY_V2.ACTIVE && (t - tier.lastTouchedAt) >= _hmemTierIdleMs) { tier.status = HMEM_TIER_MATURITY_V2.DORMANT; tier.updatedAt = t; flipped.push(tier.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckHmemPromotionsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const p of _hmemPromos.values()) if (p.status === HMEM_PROMOTION_LIFECYCLE_V2.PROMOTING && p.startedAt != null && (t - p.startedAt) >= _hmemPromoStuckMs) { p.status = HMEM_PROMOTION_LIFECYCLE_V2.FAILED; p.updatedAt = t; if (!p.settledAt) p.settledAt = t; p.metadata.failReason = "auto-fail-stuck"; flipped.push(p.id); } return { flipped, count: flipped.length }; }
+export function autoDormantIdleHmemTiersV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const tier of _hmemTiers.values())
+    if (
+      tier.status === HMEM_TIER_MATURITY_V2.ACTIVE &&
+      t - tier.lastTouchedAt >= _hmemTierIdleMs
+    ) {
+      tier.status = HMEM_TIER_MATURITY_V2.DORMANT;
+      tier.updatedAt = t;
+      flipped.push(tier.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckHmemPromotionsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _hmemPromos.values())
+    if (
+      p.status === HMEM_PROMOTION_LIFECYCLE_V2.PROMOTING &&
+      p.startedAt != null &&
+      t - p.startedAt >= _hmemPromoStuckMs
+    ) {
+      p.status = HMEM_PROMOTION_LIFECYCLE_V2.FAILED;
+      p.updatedAt = t;
+      if (!p.settledAt) p.settledAt = t;
+      p.metadata.failReason = "auto-fail-stuck";
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
 
 export function getHierarchicalMemoryGovStatsV2() {
-  const tiersByStatus = {}; for (const s of Object.values(HMEM_TIER_MATURITY_V2)) tiersByStatus[s] = 0; for (const t of _hmemTiers.values()) tiersByStatus[t.status]++;
-  const promotionsByStatus = {}; for (const s of Object.values(HMEM_PROMOTION_LIFECYCLE_V2)) promotionsByStatus[s] = 0; for (const p of _hmemPromos.values()) promotionsByStatus[p.status]++;
-  return { totalTiersV2: _hmemTiers.size, totalPromotionsV2: _hmemPromos.size, maxActiveHmemTiersPerOwner: _hmemMaxActivePerOwner, maxPendingHmemPromotionsPerTier: _hmemMaxPendingPerTier, hmemTierIdleMs: _hmemTierIdleMs, hmemPromotionStuckMs: _hmemPromoStuckMs, tiersByStatus, promotionsByStatus };
+  const tiersByStatus = {};
+  for (const s of Object.values(HMEM_TIER_MATURITY_V2)) tiersByStatus[s] = 0;
+  for (const t of _hmemTiers.values()) tiersByStatus[t.status]++;
+  const promotionsByStatus = {};
+  for (const s of Object.values(HMEM_PROMOTION_LIFECYCLE_V2))
+    promotionsByStatus[s] = 0;
+  for (const p of _hmemPromos.values()) promotionsByStatus[p.status]++;
+  return {
+    totalTiersV2: _hmemTiers.size,
+    totalPromotionsV2: _hmemPromos.size,
+    maxActiveHmemTiersPerOwner: _hmemMaxActivePerOwner,
+    maxPendingHmemPromotionsPerTier: _hmemMaxPendingPerTier,
+    hmemTierIdleMs: _hmemTierIdleMs,
+    hmemPromotionStuckMs: _hmemPromoStuckMs,
+    tiersByStatus,
+    promotionsByStatus,
+  };
 }

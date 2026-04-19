@@ -209,6 +209,26 @@ import { registerAutomationCommand } from "./commands/automation.js";
 // Phase 14: SSO Enterprise Authentication (SAML / OAuth2 / OIDC + session lifecycle + DID bridge)
 import { registerSsoCommand } from "./commands/sso.js";
 
+// Iter16 V2 governance overlays (appended to existing parent commands)
+import { registerAuditGovV2Commands } from "./commands/audit.js";
+import { registerKgovV2Commands } from "./commands/kg.js";
+import { registerSboxGovV2Commands } from "./commands/sandbox.js";
+import { registerSlagovV2Commands } from "./commands/sla.js";
+import { registerStrgovV2Commands } from "./commands/stress.js";
+import { registerTfgovV2Commands } from "./commands/terraform.js";
+import { registerRepgovV2Commands } from "./commands/reputation.js";
+import { registerMktgovV2Commands } from "./commands/marketplace.js";
+
+// Iter17 V2 governance overlays
+import { registerChatgovV2Commands } from "./commands/chat.js";
+import { registerCcbgovV2Commands } from "./commands/orchestrate.js";
+import { registerCmgrV2Commands } from "./commands/compliance.js";
+import { registerCwLearnV2Commands } from "./commands/cowork.js";
+import { registerCwwfV2Commands } from "./commands/cowork.js";
+import { registerPcgovV2Commands } from "./commands/privacy.js";
+import { registerIncgovV2Commands } from "./commands/incentive.js";
+import { registerHardgovV2Commands } from "./commands/hardening.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -427,6 +447,26 @@ export function createProgram() {
   registerPluginEcosystemCommand(program);
   registerAutomationCommand(program);
   registerSsoCommand(program);
+
+  // Iter16 V2 governance overlays (must run after parent commands above)
+  registerAuditGovV2Commands(program);
+  registerKgovV2Commands(program);
+  registerSboxGovV2Commands(program);
+  registerSlagovV2Commands(program);
+  registerStrgovV2Commands(program);
+  registerTfgovV2Commands(program);
+  registerRepgovV2Commands(program);
+  registerMktgovV2Commands(program);
+
+  // Iter17 V2 governance overlays
+  registerChatgovV2Commands(program);
+  registerCcbgovV2Commands(program);
+  registerCmgrV2Commands(program);
+  registerCwLearnV2Commands(program);
+  registerCwwfV2Commands(program);
+  registerPcgovV2Commands(program);
+  registerIncgovV2Commands(program);
+  registerHardgovV2Commands(program);
 
   return program;
 }

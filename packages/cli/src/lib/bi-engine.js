@@ -636,25 +636,50 @@ export function _resetV2State() {
   _statusHistoryV2.clear();
 }
 
-
 // ===== V2 Surface: BI Engine governance overlay (CLI v0.135.0) =====
 export const BI_DATASET_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", STALE: "stale", ARCHIVED: "archived",
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
 });
 export const BI_QUERY_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", RUNNING: "running", COMPLETED: "completed", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 
 const _biDsTrans = new Map([
-  [BI_DATASET_MATURITY_V2.PENDING, new Set([BI_DATASET_MATURITY_V2.ACTIVE, BI_DATASET_MATURITY_V2.ARCHIVED])],
-  [BI_DATASET_MATURITY_V2.ACTIVE, new Set([BI_DATASET_MATURITY_V2.STALE, BI_DATASET_MATURITY_V2.ARCHIVED])],
-  [BI_DATASET_MATURITY_V2.STALE, new Set([BI_DATASET_MATURITY_V2.ACTIVE, BI_DATASET_MATURITY_V2.ARCHIVED])],
+  [
+    BI_DATASET_MATURITY_V2.PENDING,
+    new Set([BI_DATASET_MATURITY_V2.ACTIVE, BI_DATASET_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    BI_DATASET_MATURITY_V2.ACTIVE,
+    new Set([BI_DATASET_MATURITY_V2.STALE, BI_DATASET_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    BI_DATASET_MATURITY_V2.STALE,
+    new Set([BI_DATASET_MATURITY_V2.ACTIVE, BI_DATASET_MATURITY_V2.ARCHIVED]),
+  ],
   [BI_DATASET_MATURITY_V2.ARCHIVED, new Set()],
 ]);
 const _biDsTerminal = new Set([BI_DATASET_MATURITY_V2.ARCHIVED]);
 const _biQTrans = new Map([
-  [BI_QUERY_LIFECYCLE_V2.QUEUED, new Set([BI_QUERY_LIFECYCLE_V2.RUNNING, BI_QUERY_LIFECYCLE_V2.CANCELLED])],
-  [BI_QUERY_LIFECYCLE_V2.RUNNING, new Set([BI_QUERY_LIFECYCLE_V2.COMPLETED, BI_QUERY_LIFECYCLE_V2.FAILED, BI_QUERY_LIFECYCLE_V2.CANCELLED])],
+  [
+    BI_QUERY_LIFECYCLE_V2.QUEUED,
+    new Set([BI_QUERY_LIFECYCLE_V2.RUNNING, BI_QUERY_LIFECYCLE_V2.CANCELLED]),
+  ],
+  [
+    BI_QUERY_LIFECYCLE_V2.RUNNING,
+    new Set([
+      BI_QUERY_LIFECYCLE_V2.COMPLETED,
+      BI_QUERY_LIFECYCLE_V2.FAILED,
+      BI_QUERY_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [BI_QUERY_LIFECYCLE_V2.COMPLETED, new Set()],
   [BI_QUERY_LIFECYCLE_V2.FAILED, new Set()],
   [BI_QUERY_LIFECYCLE_V2.CANCELLED, new Set()],
@@ -667,76 +692,285 @@ let _biMaxPendingPerDs = 10;
 let _biDsIdleMs = 7 * 24 * 60 * 60 * 1000;
 let _biQStuckMs = 5 * 60 * 1000;
 
-function _biPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+function _biPos(n, lbl) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${lbl} must be positive integer`);
+  return v;
+}
 
-export function setMaxActiveBiDatasetsPerOwnerV2(n) { _biMaxActivePerOwner = _biPos(n, "maxActiveBiDatasetsPerOwner"); }
-export function getMaxActiveBiDatasetsPerOwnerV2() { return _biMaxActivePerOwner; }
-export function setMaxPendingBiQueriesPerDatasetV2(n) { _biMaxPendingPerDs = _biPos(n, "maxPendingBiQueriesPerDataset"); }
-export function getMaxPendingBiQueriesPerDatasetV2() { return _biMaxPendingPerDs; }
-export function setBiDatasetIdleMsV2(n) { _biDsIdleMs = _biPos(n, "biDatasetIdleMs"); }
-export function getBiDatasetIdleMsV2() { return _biDsIdleMs; }
-export function setBiQueryStuckMsV2(n) { _biQStuckMs = _biPos(n, "biQueryStuckMs"); }
-export function getBiQueryStuckMsV2() { return _biQStuckMs; }
+export function setMaxActiveBiDatasetsPerOwnerV2(n) {
+  _biMaxActivePerOwner = _biPos(n, "maxActiveBiDatasetsPerOwner");
+}
+export function getMaxActiveBiDatasetsPerOwnerV2() {
+  return _biMaxActivePerOwner;
+}
+export function setMaxPendingBiQueriesPerDatasetV2(n) {
+  _biMaxPendingPerDs = _biPos(n, "maxPendingBiQueriesPerDataset");
+}
+export function getMaxPendingBiQueriesPerDatasetV2() {
+  return _biMaxPendingPerDs;
+}
+export function setBiDatasetIdleMsV2(n) {
+  _biDsIdleMs = _biPos(n, "biDatasetIdleMs");
+}
+export function getBiDatasetIdleMsV2() {
+  return _biDsIdleMs;
+}
+export function setBiQueryStuckMsV2(n) {
+  _biQStuckMs = _biPos(n, "biQueryStuckMs");
+}
+export function getBiQueryStuckMsV2() {
+  return _biQStuckMs;
+}
 
 export function _resetStateBiEngineV2() {
-  _biDatasets.clear(); _biQueries.clear();
-  _biMaxActivePerOwner = 8; _biMaxPendingPerDs = 10;
-  _biDsIdleMs = 7 * 24 * 60 * 60 * 1000; _biQStuckMs = 5 * 60 * 1000;
+  _biDatasets.clear();
+  _biQueries.clear();
+  _biMaxActivePerOwner = 8;
+  _biMaxPendingPerDs = 10;
+  _biDsIdleMs = 7 * 24 * 60 * 60 * 1000;
+  _biQStuckMs = 5 * 60 * 1000;
 }
 
 export function registerBiDatasetV2({ id, owner, source, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
   if (!owner || typeof owner !== "string") throw new Error("owner is required");
-  if (_biDatasets.has(id)) throw new Error(`bi dataset ${id} already registered`);
+  if (_biDatasets.has(id))
+    throw new Error(`bi dataset ${id} already registered`);
   const now = Date.now();
-  const d = { id, owner, source: source || "", status: BI_DATASET_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, archivedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  const d = {
+    id,
+    owner,
+    source: source || "",
+    status: BI_DATASET_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
   _biDatasets.set(id, d);
   return { ...d, metadata: { ...d.metadata } };
 }
-function _biCheckD(from, to) { const a = _biDsTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid bi dataset transition ${from} → ${to}`); }
-function _biCountActive(owner) { let n = 0; for (const d of _biDatasets.values()) if (d.owner === owner && d.status === BI_DATASET_MATURITY_V2.ACTIVE) n++; return n; }
+function _biCheckD(from, to) {
+  const a = _biDsTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid bi dataset transition ${from} → ${to}`);
+}
+function _biCountActive(owner) {
+  let n = 0;
+  for (const d of _biDatasets.values())
+    if (d.owner === owner && d.status === BI_DATASET_MATURITY_V2.ACTIVE) n++;
+  return n;
+}
 
 export function activateBiDatasetV2(id) {
-  const d = _biDatasets.get(id); if (!d) throw new Error(`bi dataset ${id} not found`);
+  const d = _biDatasets.get(id);
+  if (!d) throw new Error(`bi dataset ${id} not found`);
   _biCheckD(d.status, BI_DATASET_MATURITY_V2.ACTIVE);
   const recovery = d.status === BI_DATASET_MATURITY_V2.STALE;
-  if (!recovery) { const a = _biCountActive(d.owner); if (a >= _biMaxActivePerOwner) throw new Error(`max active bi datasets per owner (${_biMaxActivePerOwner}) reached for ${d.owner}`); }
-  const now = Date.now(); d.status = BI_DATASET_MATURITY_V2.ACTIVE; d.updatedAt = now; d.lastTouchedAt = now; if (!d.activatedAt) d.activatedAt = now;
+  if (!recovery) {
+    const a = _biCountActive(d.owner);
+    if (a >= _biMaxActivePerOwner)
+      throw new Error(
+        `max active bi datasets per owner (${_biMaxActivePerOwner}) reached for ${d.owner}`,
+      );
+  }
+  const now = Date.now();
+  d.status = BI_DATASET_MATURITY_V2.ACTIVE;
+  d.updatedAt = now;
+  d.lastTouchedAt = now;
+  if (!d.activatedAt) d.activatedAt = now;
   return { ...d, metadata: { ...d.metadata } };
 }
-export function staleBiDatasetV2(id) { const d = _biDatasets.get(id); if (!d) throw new Error(`bi dataset ${id} not found`); _biCheckD(d.status, BI_DATASET_MATURITY_V2.STALE); d.status = BI_DATASET_MATURITY_V2.STALE; d.updatedAt = Date.now(); return { ...d, metadata: { ...d.metadata } }; }
-export function archiveBiDatasetV2(id) { const d = _biDatasets.get(id); if (!d) throw new Error(`bi dataset ${id} not found`); _biCheckD(d.status, BI_DATASET_MATURITY_V2.ARCHIVED); const now = Date.now(); d.status = BI_DATASET_MATURITY_V2.ARCHIVED; d.updatedAt = now; if (!d.archivedAt) d.archivedAt = now; return { ...d, metadata: { ...d.metadata } }; }
-export function touchBiDatasetV2(id) { const d = _biDatasets.get(id); if (!d) throw new Error(`bi dataset ${id} not found`); if (_biDsTerminal.has(d.status)) throw new Error(`cannot touch terminal bi dataset ${id}`); const now = Date.now(); d.lastTouchedAt = now; d.updatedAt = now; return { ...d, metadata: { ...d.metadata } }; }
-export function getBiDatasetV2(id) { const d = _biDatasets.get(id); if (!d) return null; return { ...d, metadata: { ...d.metadata } }; }
-export function listBiDatasetsV2() { return [..._biDatasets.values()].map((d) => ({ ...d, metadata: { ...d.metadata } })); }
+export function staleBiDatasetV2(id) {
+  const d = _biDatasets.get(id);
+  if (!d) throw new Error(`bi dataset ${id} not found`);
+  _biCheckD(d.status, BI_DATASET_MATURITY_V2.STALE);
+  d.status = BI_DATASET_MATURITY_V2.STALE;
+  d.updatedAt = Date.now();
+  return { ...d, metadata: { ...d.metadata } };
+}
+export function archiveBiDatasetV2(id) {
+  const d = _biDatasets.get(id);
+  if (!d) throw new Error(`bi dataset ${id} not found`);
+  _biCheckD(d.status, BI_DATASET_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  d.status = BI_DATASET_MATURITY_V2.ARCHIVED;
+  d.updatedAt = now;
+  if (!d.archivedAt) d.archivedAt = now;
+  return { ...d, metadata: { ...d.metadata } };
+}
+export function touchBiDatasetV2(id) {
+  const d = _biDatasets.get(id);
+  if (!d) throw new Error(`bi dataset ${id} not found`);
+  if (_biDsTerminal.has(d.status))
+    throw new Error(`cannot touch terminal bi dataset ${id}`);
+  const now = Date.now();
+  d.lastTouchedAt = now;
+  d.updatedAt = now;
+  return { ...d, metadata: { ...d.metadata } };
+}
+export function getBiDatasetV2(id) {
+  const d = _biDatasets.get(id);
+  if (!d) return null;
+  return { ...d, metadata: { ...d.metadata } };
+}
+export function listBiDatasetsV2() {
+  return [..._biDatasets.values()].map((d) => ({
+    ...d,
+    metadata: { ...d.metadata },
+  }));
+}
 
-function _biCountPending(did) { let n = 0; for (const q of _biQueries.values()) if (q.datasetId === did && (q.status === BI_QUERY_LIFECYCLE_V2.QUEUED || q.status === BI_QUERY_LIFECYCLE_V2.RUNNING)) n++; return n; }
+function _biCountPending(did) {
+  let n = 0;
+  for (const q of _biQueries.values())
+    if (
+      q.datasetId === did &&
+      (q.status === BI_QUERY_LIFECYCLE_V2.QUEUED ||
+        q.status === BI_QUERY_LIFECYCLE_V2.RUNNING)
+    )
+      n++;
+  return n;
+}
 
 export function createBiQueryV2({ id, datasetId, sql, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
-  if (!datasetId || typeof datasetId !== "string") throw new Error("datasetId is required");
+  if (!datasetId || typeof datasetId !== "string")
+    throw new Error("datasetId is required");
   if (_biQueries.has(id)) throw new Error(`bi query ${id} already exists`);
-  if (!_biDatasets.has(datasetId)) throw new Error(`bi dataset ${datasetId} not found`);
+  if (!_biDatasets.has(datasetId))
+    throw new Error(`bi dataset ${datasetId} not found`);
   const pending = _biCountPending(datasetId);
-  if (pending >= _biMaxPendingPerDs) throw new Error(`max pending bi queries per dataset (${_biMaxPendingPerDs}) reached for ${datasetId}`);
+  if (pending >= _biMaxPendingPerDs)
+    throw new Error(
+      `max pending bi queries per dataset (${_biMaxPendingPerDs}) reached for ${datasetId}`,
+    );
   const now = Date.now();
-  const q = { id, datasetId, sql: sql || "", status: BI_QUERY_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  const q = {
+    id,
+    datasetId,
+    sql: sql || "",
+    status: BI_QUERY_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
   _biQueries.set(id, q);
   return { ...q, metadata: { ...q.metadata } };
 }
-function _biCheckQ(from, to) { const a = _biQTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid bi query transition ${from} → ${to}`); }
-export function startBiQueryV2(id) { const q = _biQueries.get(id); if (!q) throw new Error(`bi query ${id} not found`); _biCheckQ(q.status, BI_QUERY_LIFECYCLE_V2.RUNNING); const now = Date.now(); q.status = BI_QUERY_LIFECYCLE_V2.RUNNING; q.updatedAt = now; if (!q.startedAt) q.startedAt = now; return { ...q, metadata: { ...q.metadata } }; }
-export function completeBiQueryV2(id) { const q = _biQueries.get(id); if (!q) throw new Error(`bi query ${id} not found`); _biCheckQ(q.status, BI_QUERY_LIFECYCLE_V2.COMPLETED); const now = Date.now(); q.status = BI_QUERY_LIFECYCLE_V2.COMPLETED; q.updatedAt = now; if (!q.settledAt) q.settledAt = now; return { ...q, metadata: { ...q.metadata } }; }
-export function failBiQueryV2(id, reason) { const q = _biQueries.get(id); if (!q) throw new Error(`bi query ${id} not found`); _biCheckQ(q.status, BI_QUERY_LIFECYCLE_V2.FAILED); const now = Date.now(); q.status = BI_QUERY_LIFECYCLE_V2.FAILED; q.updatedAt = now; if (!q.settledAt) q.settledAt = now; if (reason) q.metadata.failReason = String(reason); return { ...q, metadata: { ...q.metadata } }; }
-export function cancelBiQueryV2(id, reason) { const q = _biQueries.get(id); if (!q) throw new Error(`bi query ${id} not found`); _biCheckQ(q.status, BI_QUERY_LIFECYCLE_V2.CANCELLED); const now = Date.now(); q.status = BI_QUERY_LIFECYCLE_V2.CANCELLED; q.updatedAt = now; if (!q.settledAt) q.settledAt = now; if (reason) q.metadata.cancelReason = String(reason); return { ...q, metadata: { ...q.metadata } }; }
-export function getBiQueryV2(id) { const q = _biQueries.get(id); if (!q) return null; return { ...q, metadata: { ...q.metadata } }; }
-export function listBiQueriesV2() { return [..._biQueries.values()].map((q) => ({ ...q, metadata: { ...q.metadata } })); }
+function _biCheckQ(from, to) {
+  const a = _biQTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid bi query transition ${from} → ${to}`);
+}
+export function startBiQueryV2(id) {
+  const q = _biQueries.get(id);
+  if (!q) throw new Error(`bi query ${id} not found`);
+  _biCheckQ(q.status, BI_QUERY_LIFECYCLE_V2.RUNNING);
+  const now = Date.now();
+  q.status = BI_QUERY_LIFECYCLE_V2.RUNNING;
+  q.updatedAt = now;
+  if (!q.startedAt) q.startedAt = now;
+  return { ...q, metadata: { ...q.metadata } };
+}
+export function completeBiQueryV2(id) {
+  const q = _biQueries.get(id);
+  if (!q) throw new Error(`bi query ${id} not found`);
+  _biCheckQ(q.status, BI_QUERY_LIFECYCLE_V2.COMPLETED);
+  const now = Date.now();
+  q.status = BI_QUERY_LIFECYCLE_V2.COMPLETED;
+  q.updatedAt = now;
+  if (!q.settledAt) q.settledAt = now;
+  return { ...q, metadata: { ...q.metadata } };
+}
+export function failBiQueryV2(id, reason) {
+  const q = _biQueries.get(id);
+  if (!q) throw new Error(`bi query ${id} not found`);
+  _biCheckQ(q.status, BI_QUERY_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  q.status = BI_QUERY_LIFECYCLE_V2.FAILED;
+  q.updatedAt = now;
+  if (!q.settledAt) q.settledAt = now;
+  if (reason) q.metadata.failReason = String(reason);
+  return { ...q, metadata: { ...q.metadata } };
+}
+export function cancelBiQueryV2(id, reason) {
+  const q = _biQueries.get(id);
+  if (!q) throw new Error(`bi query ${id} not found`);
+  _biCheckQ(q.status, BI_QUERY_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  q.status = BI_QUERY_LIFECYCLE_V2.CANCELLED;
+  q.updatedAt = now;
+  if (!q.settledAt) q.settledAt = now;
+  if (reason) q.metadata.cancelReason = String(reason);
+  return { ...q, metadata: { ...q.metadata } };
+}
+export function getBiQueryV2(id) {
+  const q = _biQueries.get(id);
+  if (!q) return null;
+  return { ...q, metadata: { ...q.metadata } };
+}
+export function listBiQueriesV2() {
+  return [..._biQueries.values()].map((q) => ({
+    ...q,
+    metadata: { ...q.metadata },
+  }));
+}
 
-export function autoStaleIdleBiDatasetsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const d of _biDatasets.values()) if (d.status === BI_DATASET_MATURITY_V2.ACTIVE && (t - d.lastTouchedAt) >= _biDsIdleMs) { d.status = BI_DATASET_MATURITY_V2.STALE; d.updatedAt = t; flipped.push(d.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckBiQueriesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const q of _biQueries.values()) if (q.status === BI_QUERY_LIFECYCLE_V2.RUNNING && q.startedAt != null && (t - q.startedAt) >= _biQStuckMs) { q.status = BI_QUERY_LIFECYCLE_V2.FAILED; q.updatedAt = t; if (!q.settledAt) q.settledAt = t; q.metadata.failReason = "auto-fail-stuck"; flipped.push(q.id); } return { flipped, count: flipped.length }; }
+export function autoStaleIdleBiDatasetsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const d of _biDatasets.values())
+    if (
+      d.status === BI_DATASET_MATURITY_V2.ACTIVE &&
+      t - d.lastTouchedAt >= _biDsIdleMs
+    ) {
+      d.status = BI_DATASET_MATURITY_V2.STALE;
+      d.updatedAt = t;
+      flipped.push(d.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckBiQueriesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const q of _biQueries.values())
+    if (
+      q.status === BI_QUERY_LIFECYCLE_V2.RUNNING &&
+      q.startedAt != null &&
+      t - q.startedAt >= _biQStuckMs
+    ) {
+      q.status = BI_QUERY_LIFECYCLE_V2.FAILED;
+      q.updatedAt = t;
+      if (!q.settledAt) q.settledAt = t;
+      q.metadata.failReason = "auto-fail-stuck";
+      flipped.push(q.id);
+    }
+  return { flipped, count: flipped.length };
+}
 
 export function getBiEngineStatsV2() {
-  const datasetsByStatus = {}; for (const s of Object.values(BI_DATASET_MATURITY_V2)) datasetsByStatus[s] = 0; for (const d of _biDatasets.values()) datasetsByStatus[d.status]++;
-  const queriesByStatus = {}; for (const s of Object.values(BI_QUERY_LIFECYCLE_V2)) queriesByStatus[s] = 0; for (const q of _biQueries.values()) queriesByStatus[q.status]++;
-  return { totalDatasetsV2: _biDatasets.size, totalQueriesV2: _biQueries.size, maxActiveBiDatasetsPerOwner: _biMaxActivePerOwner, maxPendingBiQueriesPerDataset: _biMaxPendingPerDs, biDatasetIdleMs: _biDsIdleMs, biQueryStuckMs: _biQStuckMs, datasetsByStatus, queriesByStatus };
+  const datasetsByStatus = {};
+  for (const s of Object.values(BI_DATASET_MATURITY_V2))
+    datasetsByStatus[s] = 0;
+  for (const d of _biDatasets.values()) datasetsByStatus[d.status]++;
+  const queriesByStatus = {};
+  for (const s of Object.values(BI_QUERY_LIFECYCLE_V2)) queriesByStatus[s] = 0;
+  for (const q of _biQueries.values()) queriesByStatus[q.status]++;
+  return {
+    totalDatasetsV2: _biDatasets.size,
+    totalQueriesV2: _biQueries.size,
+    maxActiveBiDatasetsPerOwner: _biMaxActivePerOwner,
+    maxPendingBiQueriesPerDataset: _biMaxPendingPerDs,
+    biDatasetIdleMs: _biDsIdleMs,
+    biQueryStuckMs: _biQStuckMs,
+    datasetsByStatus,
+    queriesByStatus,
+  };
 }

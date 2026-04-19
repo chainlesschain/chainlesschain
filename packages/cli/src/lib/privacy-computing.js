@@ -1000,3 +1000,338 @@ export function getPrivacyStatsV2() {
     avgComputationTimeMs: timeCount > 0 ? Math.round(timeSum / timeCount) : 0,
   };
 }
+
+// =====================================================================
+// privacy-computing V2 governance overlay (iter17)
+// =====================================================================
+export const PCGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  ARCHIVED: "archived",
+});
+export const PCGOV_JOB_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  COMPUTING: "computing",
+  COMPUTED: "computed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _pcgovPTrans = new Map([
+  [
+    PCGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      PCGOV_PROFILE_MATURITY_V2.ACTIVE,
+      PCGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    PCGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      PCGOV_PROFILE_MATURITY_V2.SUSPENDED,
+      PCGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    PCGOV_PROFILE_MATURITY_V2.SUSPENDED,
+    new Set([
+      PCGOV_PROFILE_MATURITY_V2.ACTIVE,
+      PCGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [PCGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _pcgovPTerminal = new Set([PCGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _pcgovJTrans = new Map([
+  [
+    PCGOV_JOB_LIFECYCLE_V2.QUEUED,
+    new Set([
+      PCGOV_JOB_LIFECYCLE_V2.COMPUTING,
+      PCGOV_JOB_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    PCGOV_JOB_LIFECYCLE_V2.COMPUTING,
+    new Set([
+      PCGOV_JOB_LIFECYCLE_V2.COMPUTED,
+      PCGOV_JOB_LIFECYCLE_V2.FAILED,
+      PCGOV_JOB_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [PCGOV_JOB_LIFECYCLE_V2.COMPUTED, new Set()],
+  [PCGOV_JOB_LIFECYCLE_V2.FAILED, new Set()],
+  [PCGOV_JOB_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _pcgovPsV2 = new Map();
+const _pcgovJsV2 = new Map();
+let _pcgovMaxActive = 6,
+  _pcgovMaxPending = 15,
+  _pcgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _pcgovStuckMs = 60 * 1000;
+function _pcgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _pcgovCheckP(from, to) {
+  const a = _pcgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid pcgov profile transition ${from} → ${to}`);
+}
+function _pcgovCheckJ(from, to) {
+  const a = _pcgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid pcgov job transition ${from} → ${to}`);
+}
+function _pcgovCountActive(owner) {
+  let c = 0;
+  for (const p of _pcgovPsV2.values())
+    if (p.owner === owner && p.status === PCGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _pcgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _pcgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === PCGOV_JOB_LIFECYCLE_V2.QUEUED ||
+        j.status === PCGOV_JOB_LIFECYCLE_V2.COMPUTING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActivePcgovProfilesPerOwnerV2(n) {
+  _pcgovMaxActive = _pcgovPos(n, "maxActivePcgovProfilesPerOwner");
+}
+export function getMaxActivePcgovProfilesPerOwnerV2() {
+  return _pcgovMaxActive;
+}
+export function setMaxPendingPcgovJobsPerProfileV2(n) {
+  _pcgovMaxPending = _pcgovPos(n, "maxPendingPcgovJobsPerProfile");
+}
+export function getMaxPendingPcgovJobsPerProfileV2() {
+  return _pcgovMaxPending;
+}
+export function setPcgovProfileIdleMsV2(n) {
+  _pcgovIdleMs = _pcgovPos(n, "pcgovProfileIdleMs");
+}
+export function getPcgovProfileIdleMsV2() {
+  return _pcgovIdleMs;
+}
+export function setPcgovJobStuckMsV2(n) {
+  _pcgovStuckMs = _pcgovPos(n, "pcgovJobStuckMs");
+}
+export function getPcgovJobStuckMsV2() {
+  return _pcgovStuckMs;
+}
+export function _resetStatePrivacyComputingV2() {
+  _pcgovPsV2.clear();
+  _pcgovJsV2.clear();
+  _pcgovMaxActive = 6;
+  _pcgovMaxPending = 15;
+  _pcgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _pcgovStuckMs = 60 * 1000;
+}
+export function registerPcgovProfileV2({
+  id,
+  owner,
+  technique,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_pcgovPsV2.has(id)) throw new Error(`pcgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    technique: technique || "mpc",
+    status: PCGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _pcgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activatePcgovProfileV2(id) {
+  const p = _pcgovPsV2.get(id);
+  if (!p) throw new Error(`pcgov profile ${id} not found`);
+  const isInitial = p.status === PCGOV_PROFILE_MATURITY_V2.PENDING;
+  _pcgovCheckP(p.status, PCGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _pcgovCountActive(p.owner) >= _pcgovMaxActive)
+    throw new Error(`max active pcgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = PCGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function suspendPcgovProfileV2(id) {
+  const p = _pcgovPsV2.get(id);
+  if (!p) throw new Error(`pcgov profile ${id} not found`);
+  _pcgovCheckP(p.status, PCGOV_PROFILE_MATURITY_V2.SUSPENDED);
+  p.status = PCGOV_PROFILE_MATURITY_V2.SUSPENDED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archivePcgovProfileV2(id) {
+  const p = _pcgovPsV2.get(id);
+  if (!p) throw new Error(`pcgov profile ${id} not found`);
+  _pcgovCheckP(p.status, PCGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = PCGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchPcgovProfileV2(id) {
+  const p = _pcgovPsV2.get(id);
+  if (!p) throw new Error(`pcgov profile ${id} not found`);
+  if (_pcgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal pcgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getPcgovProfileV2(id) {
+  const p = _pcgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listPcgovProfilesV2() {
+  return [..._pcgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createPcgovJobV2({ id, profileId, dataset, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_pcgovJsV2.has(id)) throw new Error(`pcgov job ${id} already exists`);
+  if (!_pcgovPsV2.has(profileId))
+    throw new Error(`pcgov profile ${profileId} not found`);
+  if (_pcgovCountPending(profileId) >= _pcgovMaxPending)
+    throw new Error(`max pending pcgov jobs for profile ${profileId} reached`);
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    dataset: dataset || "",
+    status: PCGOV_JOB_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _pcgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function computingPcgovJobV2(id) {
+  const j = _pcgovJsV2.get(id);
+  if (!j) throw new Error(`pcgov job ${id} not found`);
+  _pcgovCheckJ(j.status, PCGOV_JOB_LIFECYCLE_V2.COMPUTING);
+  const now = Date.now();
+  j.status = PCGOV_JOB_LIFECYCLE_V2.COMPUTING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeJobPcgovV2(id) {
+  const j = _pcgovJsV2.get(id);
+  if (!j) throw new Error(`pcgov job ${id} not found`);
+  _pcgovCheckJ(j.status, PCGOV_JOB_LIFECYCLE_V2.COMPUTED);
+  const now = Date.now();
+  j.status = PCGOV_JOB_LIFECYCLE_V2.COMPUTED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failPcgovJobV2(id, reason) {
+  const j = _pcgovJsV2.get(id);
+  if (!j) throw new Error(`pcgov job ${id} not found`);
+  _pcgovCheckJ(j.status, PCGOV_JOB_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = PCGOV_JOB_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelPcgovJobV2(id, reason) {
+  const j = _pcgovJsV2.get(id);
+  if (!j) throw new Error(`pcgov job ${id} not found`);
+  _pcgovCheckJ(j.status, PCGOV_JOB_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = PCGOV_JOB_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getPcgovJobV2(id) {
+  const j = _pcgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listPcgovJobsV2() {
+  return [..._pcgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoSuspendIdlePcgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _pcgovPsV2.values())
+    if (
+      p.status === PCGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _pcgovIdleMs
+    ) {
+      p.status = PCGOV_PROFILE_MATURITY_V2.SUSPENDED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckPcgovJobsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _pcgovJsV2.values())
+    if (
+      j.status === PCGOV_JOB_LIFECYCLE_V2.COMPUTING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _pcgovStuckMs
+    ) {
+      j.status = PCGOV_JOB_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getPrivacyComputingGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(PCGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _pcgovPsV2.values()) profilesByStatus[p.status]++;
+  const jobsByStatus = {};
+  for (const v of Object.values(PCGOV_JOB_LIFECYCLE_V2)) jobsByStatus[v] = 0;
+  for (const j of _pcgovJsV2.values()) jobsByStatus[j.status]++;
+  return {
+    totalPcgovProfilesV2: _pcgovPsV2.size,
+    totalPcgovJobsV2: _pcgovJsV2.size,
+    maxActivePcgovProfilesPerOwner: _pcgovMaxActive,
+    maxPendingPcgovJobsPerProfile: _pcgovMaxPending,
+    pcgovProfileIdleMs: _pcgovIdleMs,
+    pcgovJobStuckMs: _pcgovStuckMs,
+    profilesByStatus,
+    jobsByStatus,
+  };
+}

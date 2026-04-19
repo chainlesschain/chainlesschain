@@ -352,3 +352,339 @@ export async function chatWithStreaming(messages, options, onEvent) {
   }
   return fullContent;
 }
+
+// =====================================================================
+// chat-core V2 governance overlay (iter17)
+// =====================================================================
+export const CHATGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const CHATGOV_MESSAGE_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  SENDING: "sending",
+  SENT: "sent",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _chatgovPTrans = new Map([
+  [
+    CHATGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      CHATGOV_PROFILE_MATURITY_V2.ACTIVE,
+      CHATGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CHATGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      CHATGOV_PROFILE_MATURITY_V2.STALE,
+      CHATGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CHATGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      CHATGOV_PROFILE_MATURITY_V2.ACTIVE,
+      CHATGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [CHATGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _chatgovPTerminal = new Set([CHATGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _chatgovJTrans = new Map([
+  [
+    CHATGOV_MESSAGE_LIFECYCLE_V2.QUEUED,
+    new Set([
+      CHATGOV_MESSAGE_LIFECYCLE_V2.SENDING,
+      CHATGOV_MESSAGE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    CHATGOV_MESSAGE_LIFECYCLE_V2.SENDING,
+    new Set([
+      CHATGOV_MESSAGE_LIFECYCLE_V2.SENT,
+      CHATGOV_MESSAGE_LIFECYCLE_V2.FAILED,
+      CHATGOV_MESSAGE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [CHATGOV_MESSAGE_LIFECYCLE_V2.SENT, new Set()],
+  [CHATGOV_MESSAGE_LIFECYCLE_V2.FAILED, new Set()],
+  [CHATGOV_MESSAGE_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _chatgovPsV2 = new Map();
+const _chatgovJsV2 = new Map();
+let _chatgovMaxActive = 8,
+  _chatgovMaxPending = 30,
+  _chatgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _chatgovStuckMs = 60 * 1000;
+function _chatgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _chatgovCheckP(from, to) {
+  const a = _chatgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid chatgov profile transition ${from} → ${to}`);
+}
+function _chatgovCheckJ(from, to) {
+  const a = _chatgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid chatgov message transition ${from} → ${to}`);
+}
+function _chatgovCountActive(owner) {
+  let c = 0;
+  for (const p of _chatgovPsV2.values())
+    if (p.owner === owner && p.status === CHATGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _chatgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _chatgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === CHATGOV_MESSAGE_LIFECYCLE_V2.QUEUED ||
+        j.status === CHATGOV_MESSAGE_LIFECYCLE_V2.SENDING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveChatgovProfilesPerOwnerV2(n) {
+  _chatgovMaxActive = _chatgovPos(n, "maxActiveChatgovProfilesPerOwner");
+}
+export function getMaxActiveChatgovProfilesPerOwnerV2() {
+  return _chatgovMaxActive;
+}
+export function setMaxPendingChatgovMessagesPerProfileV2(n) {
+  _chatgovMaxPending = _chatgovPos(n, "maxPendingChatgovMessagesPerProfile");
+}
+export function getMaxPendingChatgovMessagesPerProfileV2() {
+  return _chatgovMaxPending;
+}
+export function setChatgovProfileIdleMsV2(n) {
+  _chatgovIdleMs = _chatgovPos(n, "chatgovProfileIdleMs");
+}
+export function getChatgovProfileIdleMsV2() {
+  return _chatgovIdleMs;
+}
+export function setChatgovMessageStuckMsV2(n) {
+  _chatgovStuckMs = _chatgovPos(n, "chatgovMessageStuckMs");
+}
+export function getChatgovMessageStuckMsV2() {
+  return _chatgovStuckMs;
+}
+export function _resetStateChatCoreV2() {
+  _chatgovPsV2.clear();
+  _chatgovJsV2.clear();
+  _chatgovMaxActive = 8;
+  _chatgovMaxPending = 30;
+  _chatgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _chatgovStuckMs = 60 * 1000;
+}
+export function registerChatgovProfileV2({ id, owner, mode, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_chatgovPsV2.has(id))
+    throw new Error(`chatgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    mode: mode || "interactive",
+    status: CHATGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _chatgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateChatgovProfileV2(id) {
+  const p = _chatgovPsV2.get(id);
+  if (!p) throw new Error(`chatgov profile ${id} not found`);
+  const isInitial = p.status === CHATGOV_PROFILE_MATURITY_V2.PENDING;
+  _chatgovCheckP(p.status, CHATGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _chatgovCountActive(p.owner) >= _chatgovMaxActive)
+    throw new Error(`max active chatgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = CHATGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleChatgovProfileV2(id) {
+  const p = _chatgovPsV2.get(id);
+  if (!p) throw new Error(`chatgov profile ${id} not found`);
+  _chatgovCheckP(p.status, CHATGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = CHATGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveChatgovProfileV2(id) {
+  const p = _chatgovPsV2.get(id);
+  if (!p) throw new Error(`chatgov profile ${id} not found`);
+  _chatgovCheckP(p.status, CHATGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = CHATGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchChatgovProfileV2(id) {
+  const p = _chatgovPsV2.get(id);
+  if (!p) throw new Error(`chatgov profile ${id} not found`);
+  if (_chatgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal chatgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getChatgovProfileV2(id) {
+  const p = _chatgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listChatgovProfilesV2() {
+  return [..._chatgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createChatgovMessageV2({ id, profileId, role, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_chatgovJsV2.has(id))
+    throw new Error(`chatgov message ${id} already exists`);
+  if (!_chatgovPsV2.has(profileId))
+    throw new Error(`chatgov profile ${profileId} not found`);
+  if (_chatgovCountPending(profileId) >= _chatgovMaxPending)
+    throw new Error(
+      `max pending chatgov messages for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    role: role || "",
+    status: CHATGOV_MESSAGE_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _chatgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function sendingChatgovMessageV2(id) {
+  const j = _chatgovJsV2.get(id);
+  if (!j) throw new Error(`chatgov message ${id} not found`);
+  _chatgovCheckJ(j.status, CHATGOV_MESSAGE_LIFECYCLE_V2.SENDING);
+  const now = Date.now();
+  j.status = CHATGOV_MESSAGE_LIFECYCLE_V2.SENDING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeMessageChatgovV2(id) {
+  const j = _chatgovJsV2.get(id);
+  if (!j) throw new Error(`chatgov message ${id} not found`);
+  _chatgovCheckJ(j.status, CHATGOV_MESSAGE_LIFECYCLE_V2.SENT);
+  const now = Date.now();
+  j.status = CHATGOV_MESSAGE_LIFECYCLE_V2.SENT;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failChatgovMessageV2(id, reason) {
+  const j = _chatgovJsV2.get(id);
+  if (!j) throw new Error(`chatgov message ${id} not found`);
+  _chatgovCheckJ(j.status, CHATGOV_MESSAGE_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = CHATGOV_MESSAGE_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelChatgovMessageV2(id, reason) {
+  const j = _chatgovJsV2.get(id);
+  if (!j) throw new Error(`chatgov message ${id} not found`);
+  _chatgovCheckJ(j.status, CHATGOV_MESSAGE_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = CHATGOV_MESSAGE_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getChatgovMessageV2(id) {
+  const j = _chatgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listChatgovMessagesV2() {
+  return [..._chatgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleChatgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _chatgovPsV2.values())
+    if (
+      p.status === CHATGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _chatgovIdleMs
+    ) {
+      p.status = CHATGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckChatgovMessagesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _chatgovJsV2.values())
+    if (
+      j.status === CHATGOV_MESSAGE_LIFECYCLE_V2.SENDING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _chatgovStuckMs
+    ) {
+      j.status = CHATGOV_MESSAGE_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getChatCoreGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(CHATGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _chatgovPsV2.values()) profilesByStatus[p.status]++;
+  const messagesByStatus = {};
+  for (const v of Object.values(CHATGOV_MESSAGE_LIFECYCLE_V2))
+    messagesByStatus[v] = 0;
+  for (const j of _chatgovJsV2.values()) messagesByStatus[j.status]++;
+  return {
+    totalChatgovProfilesV2: _chatgovPsV2.size,
+    totalChatgovMessagesV2: _chatgovJsV2.size,
+    maxActiveChatgovProfilesPerOwner: _chatgovMaxActive,
+    maxPendingChatgovMessagesPerProfile: _chatgovMaxPending,
+    chatgovProfileIdleMs: _chatgovIdleMs,
+    chatgovMessageStuckMs: _chatgovStuckMs,
+    profilesByStatus,
+    messagesByStatus,
+  };
+}

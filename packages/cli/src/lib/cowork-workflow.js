@@ -569,3 +569,330 @@ function _appendHistory(cwd, record) {
     // best-effort
   }
 }
+
+// =====================================================================
+// cowork-workflow V2 governance overlay (iter17)
+// =====================================================================
+export const CWWF_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const CWWF_STEP_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _cwwfPTrans = new Map([
+  [
+    CWWF_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      CWWF_PROFILE_MATURITY_V2.ACTIVE,
+      CWWF_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CWWF_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      CWWF_PROFILE_MATURITY_V2.PAUSED,
+      CWWF_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    CWWF_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      CWWF_PROFILE_MATURITY_V2.ACTIVE,
+      CWWF_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [CWWF_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _cwwfPTerminal = new Set([CWWF_PROFILE_MATURITY_V2.ARCHIVED]);
+const _cwwfJTrans = new Map([
+  [
+    CWWF_STEP_LIFECYCLE_V2.QUEUED,
+    new Set([CWWF_STEP_LIFECYCLE_V2.RUNNING, CWWF_STEP_LIFECYCLE_V2.CANCELLED]),
+  ],
+  [
+    CWWF_STEP_LIFECYCLE_V2.RUNNING,
+    new Set([
+      CWWF_STEP_LIFECYCLE_V2.COMPLETED,
+      CWWF_STEP_LIFECYCLE_V2.FAILED,
+      CWWF_STEP_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [CWWF_STEP_LIFECYCLE_V2.COMPLETED, new Set()],
+  [CWWF_STEP_LIFECYCLE_V2.FAILED, new Set()],
+  [CWWF_STEP_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _cwwfPsV2 = new Map();
+const _cwwfJsV2 = new Map();
+let _cwwfMaxActive = 8,
+  _cwwfMaxPending = 20,
+  _cwwfIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _cwwfStuckMs = 60 * 1000;
+function _cwwfPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _cwwfCheckP(from, to) {
+  const a = _cwwfPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid cwwf profile transition ${from} → ${to}`);
+}
+function _cwwfCheckJ(from, to) {
+  const a = _cwwfJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid cwwf step transition ${from} → ${to}`);
+}
+function _cwwfCountActive(owner) {
+  let c = 0;
+  for (const p of _cwwfPsV2.values())
+    if (p.owner === owner && p.status === CWWF_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _cwwfCountPending(profileId) {
+  let c = 0;
+  for (const j of _cwwfJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === CWWF_STEP_LIFECYCLE_V2.QUEUED ||
+        j.status === CWWF_STEP_LIFECYCLE_V2.RUNNING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveCwwfProfilesPerOwnerV2(n) {
+  _cwwfMaxActive = _cwwfPos(n, "maxActiveCwwfProfilesPerOwner");
+}
+export function getMaxActiveCwwfProfilesPerOwnerV2() {
+  return _cwwfMaxActive;
+}
+export function setMaxPendingCwwfStepsPerProfileV2(n) {
+  _cwwfMaxPending = _cwwfPos(n, "maxPendingCwwfStepsPerProfile");
+}
+export function getMaxPendingCwwfStepsPerProfileV2() {
+  return _cwwfMaxPending;
+}
+export function setCwwfProfileIdleMsV2(n) {
+  _cwwfIdleMs = _cwwfPos(n, "cwwfProfileIdleMs");
+}
+export function getCwwfProfileIdleMsV2() {
+  return _cwwfIdleMs;
+}
+export function setCwwfStepStuckMsV2(n) {
+  _cwwfStuckMs = _cwwfPos(n, "cwwfStepStuckMs");
+}
+export function getCwwfStepStuckMsV2() {
+  return _cwwfStuckMs;
+}
+export function _resetStateCoworkWorkflowV2() {
+  _cwwfPsV2.clear();
+  _cwwfJsV2.clear();
+  _cwwfMaxActive = 8;
+  _cwwfMaxPending = 20;
+  _cwwfIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _cwwfStuckMs = 60 * 1000;
+}
+export function registerCwwfProfileV2({ id, owner, mode, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_cwwfPsV2.has(id)) throw new Error(`cwwf profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    mode: mode || "sequential",
+    status: CWWF_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _cwwfPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateCwwfProfileV2(id) {
+  const p = _cwwfPsV2.get(id);
+  if (!p) throw new Error(`cwwf profile ${id} not found`);
+  const isInitial = p.status === CWWF_PROFILE_MATURITY_V2.PENDING;
+  _cwwfCheckP(p.status, CWWF_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _cwwfCountActive(p.owner) >= _cwwfMaxActive)
+    throw new Error(`max active cwwf profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = CWWF_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pauseCwwfProfileV2(id) {
+  const p = _cwwfPsV2.get(id);
+  if (!p) throw new Error(`cwwf profile ${id} not found`);
+  _cwwfCheckP(p.status, CWWF_PROFILE_MATURITY_V2.PAUSED);
+  p.status = CWWF_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveCwwfProfileV2(id) {
+  const p = _cwwfPsV2.get(id);
+  if (!p) throw new Error(`cwwf profile ${id} not found`);
+  _cwwfCheckP(p.status, CWWF_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = CWWF_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchCwwfProfileV2(id) {
+  const p = _cwwfPsV2.get(id);
+  if (!p) throw new Error(`cwwf profile ${id} not found`);
+  if (_cwwfPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal cwwf profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getCwwfProfileV2(id) {
+  const p = _cwwfPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listCwwfProfilesV2() {
+  return [..._cwwfPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createCwwfStepV2({ id, profileId, task, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_cwwfJsV2.has(id)) throw new Error(`cwwf step ${id} already exists`);
+  if (!_cwwfPsV2.has(profileId))
+    throw new Error(`cwwf profile ${profileId} not found`);
+  if (_cwwfCountPending(profileId) >= _cwwfMaxPending)
+    throw new Error(`max pending cwwf steps for profile ${profileId} reached`);
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    task: task || "",
+    status: CWWF_STEP_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _cwwfJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function runningCwwfStepV2(id) {
+  const j = _cwwfJsV2.get(id);
+  if (!j) throw new Error(`cwwf step ${id} not found`);
+  _cwwfCheckJ(j.status, CWWF_STEP_LIFECYCLE_V2.RUNNING);
+  const now = Date.now();
+  j.status = CWWF_STEP_LIFECYCLE_V2.RUNNING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeStepCwwfV2(id) {
+  const j = _cwwfJsV2.get(id);
+  if (!j) throw new Error(`cwwf step ${id} not found`);
+  _cwwfCheckJ(j.status, CWWF_STEP_LIFECYCLE_V2.COMPLETED);
+  const now = Date.now();
+  j.status = CWWF_STEP_LIFECYCLE_V2.COMPLETED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failCwwfStepV2(id, reason) {
+  const j = _cwwfJsV2.get(id);
+  if (!j) throw new Error(`cwwf step ${id} not found`);
+  _cwwfCheckJ(j.status, CWWF_STEP_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = CWWF_STEP_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelCwwfStepV2(id, reason) {
+  const j = _cwwfJsV2.get(id);
+  if (!j) throw new Error(`cwwf step ${id} not found`);
+  _cwwfCheckJ(j.status, CWWF_STEP_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = CWWF_STEP_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getCwwfStepV2(id) {
+  const j = _cwwfJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listCwwfStepsV2() {
+  return [..._cwwfJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPauseIdleCwwfProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _cwwfPsV2.values())
+    if (
+      p.status === CWWF_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _cwwfIdleMs
+    ) {
+      p.status = CWWF_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckCwwfStepsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _cwwfJsV2.values())
+    if (
+      j.status === CWWF_STEP_LIFECYCLE_V2.RUNNING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _cwwfStuckMs
+    ) {
+      j.status = CWWF_STEP_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getCoworkWorkflowGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(CWWF_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _cwwfPsV2.values()) profilesByStatus[p.status]++;
+  const stepsByStatus = {};
+  for (const v of Object.values(CWWF_STEP_LIFECYCLE_V2)) stepsByStatus[v] = 0;
+  for (const j of _cwwfJsV2.values()) stepsByStatus[j.status]++;
+  return {
+    totalCwwfProfilesV2: _cwwfPsV2.size,
+    totalCwwfStepsV2: _cwwfJsV2.size,
+    maxActiveCwwfProfilesPerOwner: _cwwfMaxActive,
+    maxPendingCwwfStepsPerProfile: _cwwfMaxPending,
+    cwwfProfileIdleMs: _cwwfIdleMs,
+    cwwfStepStuckMs: _cwwfStuckMs,
+    profilesByStatus,
+    stepsByStatus,
+  };
+}

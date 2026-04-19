@@ -622,25 +622,53 @@ export function _resetState() {
 
 export const _constants = { PUBLIC_AUDIENCE, CONTEXT, DEFAULT_ORIGIN };
 
-
 // ===== V2 Surface: ActivityPub Bridge governance overlay (CLI v0.135.0) =====
 export const AP_ACTOR_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", SUSPENDED: "suspended", DEACTIVATED: "deactivated",
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  DEACTIVATED: "deactivated",
 });
 export const AP_ACTIVITY_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", DELIVERING: "delivering", DELIVERED: "delivered", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  DELIVERING: "delivering",
+  DELIVERED: "delivered",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 
 const _apActorTrans = new Map([
-  [AP_ACTOR_MATURITY_V2.PENDING, new Set([AP_ACTOR_MATURITY_V2.ACTIVE, AP_ACTOR_MATURITY_V2.DEACTIVATED])],
-  [AP_ACTOR_MATURITY_V2.ACTIVE, new Set([AP_ACTOR_MATURITY_V2.SUSPENDED, AP_ACTOR_MATURITY_V2.DEACTIVATED])],
-  [AP_ACTOR_MATURITY_V2.SUSPENDED, new Set([AP_ACTOR_MATURITY_V2.ACTIVE, AP_ACTOR_MATURITY_V2.DEACTIVATED])],
+  [
+    AP_ACTOR_MATURITY_V2.PENDING,
+    new Set([AP_ACTOR_MATURITY_V2.ACTIVE, AP_ACTOR_MATURITY_V2.DEACTIVATED]),
+  ],
+  [
+    AP_ACTOR_MATURITY_V2.ACTIVE,
+    new Set([AP_ACTOR_MATURITY_V2.SUSPENDED, AP_ACTOR_MATURITY_V2.DEACTIVATED]),
+  ],
+  [
+    AP_ACTOR_MATURITY_V2.SUSPENDED,
+    new Set([AP_ACTOR_MATURITY_V2.ACTIVE, AP_ACTOR_MATURITY_V2.DEACTIVATED]),
+  ],
   [AP_ACTOR_MATURITY_V2.DEACTIVATED, new Set()],
 ]);
 const _apActorTerminal = new Set([AP_ACTOR_MATURITY_V2.DEACTIVATED]);
 const _apActTrans = new Map([
-  [AP_ACTIVITY_LIFECYCLE_V2.QUEUED, new Set([AP_ACTIVITY_LIFECYCLE_V2.DELIVERING, AP_ACTIVITY_LIFECYCLE_V2.CANCELLED])],
-  [AP_ACTIVITY_LIFECYCLE_V2.DELIVERING, new Set([AP_ACTIVITY_LIFECYCLE_V2.DELIVERED, AP_ACTIVITY_LIFECYCLE_V2.FAILED, AP_ACTIVITY_LIFECYCLE_V2.CANCELLED])],
+  [
+    AP_ACTIVITY_LIFECYCLE_V2.QUEUED,
+    new Set([
+      AP_ACTIVITY_LIFECYCLE_V2.DELIVERING,
+      AP_ACTIVITY_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    AP_ACTIVITY_LIFECYCLE_V2.DELIVERING,
+    new Set([
+      AP_ACTIVITY_LIFECYCLE_V2.DELIVERED,
+      AP_ACTIVITY_LIFECYCLE_V2.FAILED,
+      AP_ACTIVITY_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [AP_ACTIVITY_LIFECYCLE_V2.DELIVERED, new Set()],
   [AP_ACTIVITY_LIFECYCLE_V2.FAILED, new Set()],
   [AP_ACTIVITY_LIFECYCLE_V2.CANCELLED, new Set()],
@@ -653,76 +681,286 @@ let _apMaxPendingPerActor = 25;
 let _apActorIdleMs = 24 * 60 * 60 * 1000;
 let _apActStuckMs = 3 * 60 * 1000;
 
-function _apPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+function _apPos(n, lbl) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${lbl} must be positive integer`);
+  return v;
+}
 
-export function setMaxActiveApActorsPerOwnerV2(n) { _apMaxActivePerOwner = _apPos(n, "maxActiveApActorsPerOwner"); }
-export function getMaxActiveApActorsPerOwnerV2() { return _apMaxActivePerOwner; }
-export function setMaxPendingApActivitiesPerActorV2(n) { _apMaxPendingPerActor = _apPos(n, "maxPendingApActivitiesPerActor"); }
-export function getMaxPendingApActivitiesPerActorV2() { return _apMaxPendingPerActor; }
-export function setApActorIdleMsV2(n) { _apActorIdleMs = _apPos(n, "apActorIdleMs"); }
-export function getApActorIdleMsV2() { return _apActorIdleMs; }
-export function setApActivityStuckMsV2(n) { _apActStuckMs = _apPos(n, "apActivityStuckMs"); }
-export function getApActivityStuckMsV2() { return _apActStuckMs; }
+export function setMaxActiveApActorsPerOwnerV2(n) {
+  _apMaxActivePerOwner = _apPos(n, "maxActiveApActorsPerOwner");
+}
+export function getMaxActiveApActorsPerOwnerV2() {
+  return _apMaxActivePerOwner;
+}
+export function setMaxPendingApActivitiesPerActorV2(n) {
+  _apMaxPendingPerActor = _apPos(n, "maxPendingApActivitiesPerActor");
+}
+export function getMaxPendingApActivitiesPerActorV2() {
+  return _apMaxPendingPerActor;
+}
+export function setApActorIdleMsV2(n) {
+  _apActorIdleMs = _apPos(n, "apActorIdleMs");
+}
+export function getApActorIdleMsV2() {
+  return _apActorIdleMs;
+}
+export function setApActivityStuckMsV2(n) {
+  _apActStuckMs = _apPos(n, "apActivityStuckMs");
+}
+export function getApActivityStuckMsV2() {
+  return _apActStuckMs;
+}
 
 export function _resetStateActivityPubBridgeV2() {
-  _apActors.clear(); _apActs.clear();
-  _apMaxActivePerOwner = 15; _apMaxPendingPerActor = 25;
-  _apActorIdleMs = 24 * 60 * 60 * 1000; _apActStuckMs = 3 * 60 * 1000;
+  _apActors.clear();
+  _apActs.clear();
+  _apMaxActivePerOwner = 15;
+  _apMaxPendingPerActor = 25;
+  _apActorIdleMs = 24 * 60 * 60 * 1000;
+  _apActStuckMs = 3 * 60 * 1000;
 }
 
 export function registerApActorV2({ id, owner, handle, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
   if (!owner || typeof owner !== "string") throw new Error("owner is required");
-  if (_apActors.has(id)) throw new Error(`activitypub actor ${id} already registered`);
+  if (_apActors.has(id))
+    throw new Error(`activitypub actor ${id} already registered`);
   const now = Date.now();
-  const a = { id, owner, handle: handle || id, status: AP_ACTOR_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, deactivatedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  const a = {
+    id,
+    owner,
+    handle: handle || id,
+    status: AP_ACTOR_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    deactivatedAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
   _apActors.set(id, a);
   return { ...a, metadata: { ...a.metadata } };
 }
-function _apCheckA(from, to) { const al = _apActorTrans.get(from); if (!al || !al.has(to)) throw new Error(`invalid activitypub actor transition ${from} → ${to}`); }
-function _apCountActive(owner) { let n = 0; for (const a of _apActors.values()) if (a.owner === owner && a.status === AP_ACTOR_MATURITY_V2.ACTIVE) n++; return n; }
+function _apCheckA(from, to) {
+  const al = _apActorTrans.get(from);
+  if (!al || !al.has(to))
+    throw new Error(`invalid activitypub actor transition ${from} → ${to}`);
+}
+function _apCountActive(owner) {
+  let n = 0;
+  for (const a of _apActors.values())
+    if (a.owner === owner && a.status === AP_ACTOR_MATURITY_V2.ACTIVE) n++;
+  return n;
+}
 
 export function activateApActorV2(id) {
-  const a = _apActors.get(id); if (!a) throw new Error(`activitypub actor ${id} not found`);
+  const a = _apActors.get(id);
+  if (!a) throw new Error(`activitypub actor ${id} not found`);
   _apCheckA(a.status, AP_ACTOR_MATURITY_V2.ACTIVE);
   const recovery = a.status === AP_ACTOR_MATURITY_V2.SUSPENDED;
-  if (!recovery) { const c = _apCountActive(a.owner); if (c >= _apMaxActivePerOwner) throw new Error(`max active activitypub actors per owner (${_apMaxActivePerOwner}) reached for ${a.owner}`); }
-  const now = Date.now(); a.status = AP_ACTOR_MATURITY_V2.ACTIVE; a.updatedAt = now; a.lastTouchedAt = now; if (!a.activatedAt) a.activatedAt = now;
+  if (!recovery) {
+    const c = _apCountActive(a.owner);
+    if (c >= _apMaxActivePerOwner)
+      throw new Error(
+        `max active activitypub actors per owner (${_apMaxActivePerOwner}) reached for ${a.owner}`,
+      );
+  }
+  const now = Date.now();
+  a.status = AP_ACTOR_MATURITY_V2.ACTIVE;
+  a.updatedAt = now;
+  a.lastTouchedAt = now;
+  if (!a.activatedAt) a.activatedAt = now;
   return { ...a, metadata: { ...a.metadata } };
 }
-export function suspendApActorV2(id) { const a = _apActors.get(id); if (!a) throw new Error(`activitypub actor ${id} not found`); _apCheckA(a.status, AP_ACTOR_MATURITY_V2.SUSPENDED); a.status = AP_ACTOR_MATURITY_V2.SUSPENDED; a.updatedAt = Date.now(); return { ...a, metadata: { ...a.metadata } }; }
-export function deactivateApActorV2(id) { const a = _apActors.get(id); if (!a) throw new Error(`activitypub actor ${id} not found`); _apCheckA(a.status, AP_ACTOR_MATURITY_V2.DEACTIVATED); const now = Date.now(); a.status = AP_ACTOR_MATURITY_V2.DEACTIVATED; a.updatedAt = now; if (!a.deactivatedAt) a.deactivatedAt = now; return { ...a, metadata: { ...a.metadata } }; }
-export function touchApActorV2(id) { const a = _apActors.get(id); if (!a) throw new Error(`activitypub actor ${id} not found`); if (_apActorTerminal.has(a.status)) throw new Error(`cannot touch terminal activitypub actor ${id}`); const now = Date.now(); a.lastTouchedAt = now; a.updatedAt = now; return { ...a, metadata: { ...a.metadata } }; }
-export function getApActorV2(id) { const a = _apActors.get(id); if (!a) return null; return { ...a, metadata: { ...a.metadata } }; }
-export function listApActorsV2() { return [..._apActors.values()].map((a) => ({ ...a, metadata: { ...a.metadata } })); }
+export function suspendApActorV2(id) {
+  const a = _apActors.get(id);
+  if (!a) throw new Error(`activitypub actor ${id} not found`);
+  _apCheckA(a.status, AP_ACTOR_MATURITY_V2.SUSPENDED);
+  a.status = AP_ACTOR_MATURITY_V2.SUSPENDED;
+  a.updatedAt = Date.now();
+  return { ...a, metadata: { ...a.metadata } };
+}
+export function deactivateApActorV2(id) {
+  const a = _apActors.get(id);
+  if (!a) throw new Error(`activitypub actor ${id} not found`);
+  _apCheckA(a.status, AP_ACTOR_MATURITY_V2.DEACTIVATED);
+  const now = Date.now();
+  a.status = AP_ACTOR_MATURITY_V2.DEACTIVATED;
+  a.updatedAt = now;
+  if (!a.deactivatedAt) a.deactivatedAt = now;
+  return { ...a, metadata: { ...a.metadata } };
+}
+export function touchApActorV2(id) {
+  const a = _apActors.get(id);
+  if (!a) throw new Error(`activitypub actor ${id} not found`);
+  if (_apActorTerminal.has(a.status))
+    throw new Error(`cannot touch terminal activitypub actor ${id}`);
+  const now = Date.now();
+  a.lastTouchedAt = now;
+  a.updatedAt = now;
+  return { ...a, metadata: { ...a.metadata } };
+}
+export function getApActorV2(id) {
+  const a = _apActors.get(id);
+  if (!a) return null;
+  return { ...a, metadata: { ...a.metadata } };
+}
+export function listApActorsV2() {
+  return [..._apActors.values()].map((a) => ({
+    ...a,
+    metadata: { ...a.metadata },
+  }));
+}
 
-function _apCountPending(aid) { let n = 0; for (const ac of _apActs.values()) if (ac.actorId === aid && (ac.status === AP_ACTIVITY_LIFECYCLE_V2.QUEUED || ac.status === AP_ACTIVITY_LIFECYCLE_V2.DELIVERING)) n++; return n; }
+function _apCountPending(aid) {
+  let n = 0;
+  for (const ac of _apActs.values())
+    if (
+      ac.actorId === aid &&
+      (ac.status === AP_ACTIVITY_LIFECYCLE_V2.QUEUED ||
+        ac.status === AP_ACTIVITY_LIFECYCLE_V2.DELIVERING)
+    )
+      n++;
+  return n;
+}
 
 export function createApActivityV2({ id, actorId, kind, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
-  if (!actorId || typeof actorId !== "string") throw new Error("actorId is required");
-  if (_apActs.has(id)) throw new Error(`activitypub activity ${id} already exists`);
-  if (!_apActors.has(actorId)) throw new Error(`activitypub actor ${actorId} not found`);
+  if (!actorId || typeof actorId !== "string")
+    throw new Error("actorId is required");
+  if (_apActs.has(id))
+    throw new Error(`activitypub activity ${id} already exists`);
+  if (!_apActors.has(actorId))
+    throw new Error(`activitypub actor ${actorId} not found`);
   const pending = _apCountPending(actorId);
-  if (pending >= _apMaxPendingPerActor) throw new Error(`max pending activitypub activities per actor (${_apMaxPendingPerActor}) reached for ${actorId}`);
+  if (pending >= _apMaxPendingPerActor)
+    throw new Error(
+      `max pending activitypub activities per actor (${_apMaxPendingPerActor}) reached for ${actorId}`,
+    );
   const now = Date.now();
-  const ac = { id, actorId, kind: kind || "Note", status: AP_ACTIVITY_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  const ac = {
+    id,
+    actorId,
+    kind: kind || "Note",
+    status: AP_ACTIVITY_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
   _apActs.set(id, ac);
   return { ...ac, metadata: { ...ac.metadata } };
 }
-function _apCheckAct(from, to) { const al = _apActTrans.get(from); if (!al || !al.has(to)) throw new Error(`invalid activitypub activity transition ${from} → ${to}`); }
-export function startApActivityV2(id) { const ac = _apActs.get(id); if (!ac) throw new Error(`activitypub activity ${id} not found`); _apCheckAct(ac.status, AP_ACTIVITY_LIFECYCLE_V2.DELIVERING); const now = Date.now(); ac.status = AP_ACTIVITY_LIFECYCLE_V2.DELIVERING; ac.updatedAt = now; if (!ac.startedAt) ac.startedAt = now; return { ...ac, metadata: { ...ac.metadata } }; }
-export function deliverApActivityV2(id) { const ac = _apActs.get(id); if (!ac) throw new Error(`activitypub activity ${id} not found`); _apCheckAct(ac.status, AP_ACTIVITY_LIFECYCLE_V2.DELIVERED); const now = Date.now(); ac.status = AP_ACTIVITY_LIFECYCLE_V2.DELIVERED; ac.updatedAt = now; if (!ac.settledAt) ac.settledAt = now; return { ...ac, metadata: { ...ac.metadata } }; }
-export function failApActivityV2(id, reason) { const ac = _apActs.get(id); if (!ac) throw new Error(`activitypub activity ${id} not found`); _apCheckAct(ac.status, AP_ACTIVITY_LIFECYCLE_V2.FAILED); const now = Date.now(); ac.status = AP_ACTIVITY_LIFECYCLE_V2.FAILED; ac.updatedAt = now; if (!ac.settledAt) ac.settledAt = now; if (reason) ac.metadata.failReason = String(reason); return { ...ac, metadata: { ...ac.metadata } }; }
-export function cancelApActivityV2(id, reason) { const ac = _apActs.get(id); if (!ac) throw new Error(`activitypub activity ${id} not found`); _apCheckAct(ac.status, AP_ACTIVITY_LIFECYCLE_V2.CANCELLED); const now = Date.now(); ac.status = AP_ACTIVITY_LIFECYCLE_V2.CANCELLED; ac.updatedAt = now; if (!ac.settledAt) ac.settledAt = now; if (reason) ac.metadata.cancelReason = String(reason); return { ...ac, metadata: { ...ac.metadata } }; }
-export function getApActivityV2(id) { const ac = _apActs.get(id); if (!ac) return null; return { ...ac, metadata: { ...ac.metadata } }; }
-export function listApActivitiesV2() { return [..._apActs.values()].map((ac) => ({ ...ac, metadata: { ...ac.metadata } })); }
+function _apCheckAct(from, to) {
+  const al = _apActTrans.get(from);
+  if (!al || !al.has(to))
+    throw new Error(`invalid activitypub activity transition ${from} → ${to}`);
+}
+export function startApActivityV2(id) {
+  const ac = _apActs.get(id);
+  if (!ac) throw new Error(`activitypub activity ${id} not found`);
+  _apCheckAct(ac.status, AP_ACTIVITY_LIFECYCLE_V2.DELIVERING);
+  const now = Date.now();
+  ac.status = AP_ACTIVITY_LIFECYCLE_V2.DELIVERING;
+  ac.updatedAt = now;
+  if (!ac.startedAt) ac.startedAt = now;
+  return { ...ac, metadata: { ...ac.metadata } };
+}
+export function deliverApActivityV2(id) {
+  const ac = _apActs.get(id);
+  if (!ac) throw new Error(`activitypub activity ${id} not found`);
+  _apCheckAct(ac.status, AP_ACTIVITY_LIFECYCLE_V2.DELIVERED);
+  const now = Date.now();
+  ac.status = AP_ACTIVITY_LIFECYCLE_V2.DELIVERED;
+  ac.updatedAt = now;
+  if (!ac.settledAt) ac.settledAt = now;
+  return { ...ac, metadata: { ...ac.metadata } };
+}
+export function failApActivityV2(id, reason) {
+  const ac = _apActs.get(id);
+  if (!ac) throw new Error(`activitypub activity ${id} not found`);
+  _apCheckAct(ac.status, AP_ACTIVITY_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  ac.status = AP_ACTIVITY_LIFECYCLE_V2.FAILED;
+  ac.updatedAt = now;
+  if (!ac.settledAt) ac.settledAt = now;
+  if (reason) ac.metadata.failReason = String(reason);
+  return { ...ac, metadata: { ...ac.metadata } };
+}
+export function cancelApActivityV2(id, reason) {
+  const ac = _apActs.get(id);
+  if (!ac) throw new Error(`activitypub activity ${id} not found`);
+  _apCheckAct(ac.status, AP_ACTIVITY_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  ac.status = AP_ACTIVITY_LIFECYCLE_V2.CANCELLED;
+  ac.updatedAt = now;
+  if (!ac.settledAt) ac.settledAt = now;
+  if (reason) ac.metadata.cancelReason = String(reason);
+  return { ...ac, metadata: { ...ac.metadata } };
+}
+export function getApActivityV2(id) {
+  const ac = _apActs.get(id);
+  if (!ac) return null;
+  return { ...ac, metadata: { ...ac.metadata } };
+}
+export function listApActivitiesV2() {
+  return [..._apActs.values()].map((ac) => ({
+    ...ac,
+    metadata: { ...ac.metadata },
+  }));
+}
 
-export function autoSuspendIdleApActorsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const a of _apActors.values()) if (a.status === AP_ACTOR_MATURITY_V2.ACTIVE && (t - a.lastTouchedAt) >= _apActorIdleMs) { a.status = AP_ACTOR_MATURITY_V2.SUSPENDED; a.updatedAt = t; flipped.push(a.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckApActivitiesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const ac of _apActs.values()) if (ac.status === AP_ACTIVITY_LIFECYCLE_V2.DELIVERING && ac.startedAt != null && (t - ac.startedAt) >= _apActStuckMs) { ac.status = AP_ACTIVITY_LIFECYCLE_V2.FAILED; ac.updatedAt = t; if (!ac.settledAt) ac.settledAt = t; ac.metadata.failReason = "auto-fail-stuck"; flipped.push(ac.id); } return { flipped, count: flipped.length }; }
+export function autoSuspendIdleApActorsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const a of _apActors.values())
+    if (
+      a.status === AP_ACTOR_MATURITY_V2.ACTIVE &&
+      t - a.lastTouchedAt >= _apActorIdleMs
+    ) {
+      a.status = AP_ACTOR_MATURITY_V2.SUSPENDED;
+      a.updatedAt = t;
+      flipped.push(a.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckApActivitiesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const ac of _apActs.values())
+    if (
+      ac.status === AP_ACTIVITY_LIFECYCLE_V2.DELIVERING &&
+      ac.startedAt != null &&
+      t - ac.startedAt >= _apActStuckMs
+    ) {
+      ac.status = AP_ACTIVITY_LIFECYCLE_V2.FAILED;
+      ac.updatedAt = t;
+      if (!ac.settledAt) ac.settledAt = t;
+      ac.metadata.failReason = "auto-fail-stuck";
+      flipped.push(ac.id);
+    }
+  return { flipped, count: flipped.length };
+}
 
 export function getActivityPubBridgeStatsV2() {
-  const actorsByStatus = {}; for (const s of Object.values(AP_ACTOR_MATURITY_V2)) actorsByStatus[s] = 0; for (const a of _apActors.values()) actorsByStatus[a.status]++;
-  const activitiesByStatus = {}; for (const s of Object.values(AP_ACTIVITY_LIFECYCLE_V2)) activitiesByStatus[s] = 0; for (const ac of _apActs.values()) activitiesByStatus[ac.status]++;
-  return { totalActorsV2: _apActors.size, totalActivitiesV2: _apActs.size, maxActiveApActorsPerOwner: _apMaxActivePerOwner, maxPendingApActivitiesPerActor: _apMaxPendingPerActor, apActorIdleMs: _apActorIdleMs, apActivityStuckMs: _apActStuckMs, actorsByStatus, activitiesByStatus };
+  const actorsByStatus = {};
+  for (const s of Object.values(AP_ACTOR_MATURITY_V2)) actorsByStatus[s] = 0;
+  for (const a of _apActors.values()) actorsByStatus[a.status]++;
+  const activitiesByStatus = {};
+  for (const s of Object.values(AP_ACTIVITY_LIFECYCLE_V2))
+    activitiesByStatus[s] = 0;
+  for (const ac of _apActs.values()) activitiesByStatus[ac.status]++;
+  return {
+    totalActorsV2: _apActors.size,
+    totalActivitiesV2: _apActs.size,
+    maxActiveApActorsPerOwner: _apMaxActivePerOwner,
+    maxPendingApActivitiesPerActor: _apMaxPendingPerActor,
+    apActorIdleMs: _apActorIdleMs,
+    apActivityStuckMs: _apActStuckMs,
+    actorsByStatus,
+    activitiesByStatus,
+  };
 }

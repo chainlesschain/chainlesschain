@@ -169,7 +169,10 @@ export function registerConsolCommand(program) {
       setMaxActiveConsolProfilesPerOwnerV2(Number(n));
       console.log(
         JSON.stringify(
-          { maxActiveConsolProfilesPerOwner: getMaxActiveConsolProfilesPerOwnerV2() },
+          {
+            maxActiveConsolProfilesPerOwner:
+              getMaxActiveConsolProfilesPerOwnerV2(),
+          },
           null,
           2,
         ),
@@ -182,7 +185,10 @@ export function registerConsolCommand(program) {
       setMaxPendingConsolJobsPerProfileV2(Number(n));
       console.log(
         JSON.stringify(
-          { maxPendingConsolJobsPerProfile: getMaxPendingConsolJobsPerProfileV2() },
+          {
+            maxPendingConsolJobsPerProfile:
+              getMaxPendingConsolJobsPerProfileV2(),
+          },
           null,
           2,
         ),

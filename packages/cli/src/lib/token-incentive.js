@@ -804,3 +804,344 @@ export function _resetStateV2() {
   _claimExpiryMs = TOKEN_DEFAULT_CLAIM_EXPIRY_MS;
   _maxClaimAmount = TOKEN_DEFAULT_MAX_CLAIM_AMOUNT;
 }
+
+// =====================================================================
+// token-incentive V2 governance overlay (iter17)
+// =====================================================================
+export const INCGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
+});
+export const INCGOV_PAYOUT_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  PROCESSING: "processing",
+  PAID: "paid",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _incgovPTrans = new Map([
+  [
+    INCGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      INCGOV_PROFILE_MATURITY_V2.ACTIVE,
+      INCGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    INCGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      INCGOV_PROFILE_MATURITY_V2.PAUSED,
+      INCGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    INCGOV_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      INCGOV_PROFILE_MATURITY_V2.ACTIVE,
+      INCGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [INCGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _incgovPTerminal = new Set([INCGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _incgovJTrans = new Map([
+  [
+    INCGOV_PAYOUT_LIFECYCLE_V2.QUEUED,
+    new Set([
+      INCGOV_PAYOUT_LIFECYCLE_V2.PROCESSING,
+      INCGOV_PAYOUT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    INCGOV_PAYOUT_LIFECYCLE_V2.PROCESSING,
+    new Set([
+      INCGOV_PAYOUT_LIFECYCLE_V2.PAID,
+      INCGOV_PAYOUT_LIFECYCLE_V2.FAILED,
+      INCGOV_PAYOUT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [INCGOV_PAYOUT_LIFECYCLE_V2.PAID, new Set()],
+  [INCGOV_PAYOUT_LIFECYCLE_V2.FAILED, new Set()],
+  [INCGOV_PAYOUT_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _incgovPsV2 = new Map();
+const _incgovJsV2 = new Map();
+let _incgovMaxActive = 10,
+  _incgovMaxPending = 30,
+  _incgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _incgovStuckMs = 60 * 1000;
+function _incgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _incgovCheckP(from, to) {
+  const a = _incgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid incgov profile transition ${from} → ${to}`);
+}
+function _incgovCheckJ(from, to) {
+  const a = _incgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid incgov payout transition ${from} → ${to}`);
+}
+function _incgovCountActive(owner) {
+  let c = 0;
+  for (const p of _incgovPsV2.values())
+    if (p.owner === owner && p.status === INCGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _incgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _incgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === INCGOV_PAYOUT_LIFECYCLE_V2.QUEUED ||
+        j.status === INCGOV_PAYOUT_LIFECYCLE_V2.PROCESSING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveIncgovProfilesPerOwnerV2(n) {
+  _incgovMaxActive = _incgovPos(n, "maxActiveIncgovProfilesPerOwner");
+}
+export function getMaxActiveIncgovProfilesPerOwnerV2() {
+  return _incgovMaxActive;
+}
+export function setMaxPendingIncgovPayoutsPerProfileV2(n) {
+  _incgovMaxPending = _incgovPos(n, "maxPendingIncgovPayoutsPerProfile");
+}
+export function getMaxPendingIncgovPayoutsPerProfileV2() {
+  return _incgovMaxPending;
+}
+export function setIncgovProfileIdleMsV2(n) {
+  _incgovIdleMs = _incgovPos(n, "incgovProfileIdleMs");
+}
+export function getIncgovProfileIdleMsV2() {
+  return _incgovIdleMs;
+}
+export function setIncgovPayoutStuckMsV2(n) {
+  _incgovStuckMs = _incgovPos(n, "incgovPayoutStuckMs");
+}
+export function getIncgovPayoutStuckMsV2() {
+  return _incgovStuckMs;
+}
+export function _resetStateTokenIncentiveV2() {
+  _incgovPsV2.clear();
+  _incgovJsV2.clear();
+  _incgovMaxActive = 10;
+  _incgovMaxPending = 30;
+  _incgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _incgovStuckMs = 60 * 1000;
+}
+export function registerIncgovProfileV2({ id, owner, token, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_incgovPsV2.has(id))
+    throw new Error(`incgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    token: token || "CLC",
+    status: INCGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _incgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateIncgovProfileV2(id) {
+  const p = _incgovPsV2.get(id);
+  if (!p) throw new Error(`incgov profile ${id} not found`);
+  const isInitial = p.status === INCGOV_PROFILE_MATURITY_V2.PENDING;
+  _incgovCheckP(p.status, INCGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _incgovCountActive(p.owner) >= _incgovMaxActive)
+    throw new Error(`max active incgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = INCGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pauseIncgovProfileV2(id) {
+  const p = _incgovPsV2.get(id);
+  if (!p) throw new Error(`incgov profile ${id} not found`);
+  _incgovCheckP(p.status, INCGOV_PROFILE_MATURITY_V2.PAUSED);
+  p.status = INCGOV_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveIncgovProfileV2(id) {
+  const p = _incgovPsV2.get(id);
+  if (!p) throw new Error(`incgov profile ${id} not found`);
+  _incgovCheckP(p.status, INCGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = INCGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchIncgovProfileV2(id) {
+  const p = _incgovPsV2.get(id);
+  if (!p) throw new Error(`incgov profile ${id} not found`);
+  if (_incgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal incgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getIncgovProfileV2(id) {
+  const p = _incgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listIncgovProfilesV2() {
+  return [..._incgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createIncgovPayoutV2({
+  id,
+  profileId,
+  recipient,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_incgovJsV2.has(id))
+    throw new Error(`incgov payout ${id} already exists`);
+  if (!_incgovPsV2.has(profileId))
+    throw new Error(`incgov profile ${profileId} not found`);
+  if (_incgovCountPending(profileId) >= _incgovMaxPending)
+    throw new Error(
+      `max pending incgov payouts for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    recipient: recipient || "",
+    status: INCGOV_PAYOUT_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _incgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function processingIncgovPayoutV2(id) {
+  const j = _incgovJsV2.get(id);
+  if (!j) throw new Error(`incgov payout ${id} not found`);
+  _incgovCheckJ(j.status, INCGOV_PAYOUT_LIFECYCLE_V2.PROCESSING);
+  const now = Date.now();
+  j.status = INCGOV_PAYOUT_LIFECYCLE_V2.PROCESSING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completePayoutIncgovV2(id) {
+  const j = _incgovJsV2.get(id);
+  if (!j) throw new Error(`incgov payout ${id} not found`);
+  _incgovCheckJ(j.status, INCGOV_PAYOUT_LIFECYCLE_V2.PAID);
+  const now = Date.now();
+  j.status = INCGOV_PAYOUT_LIFECYCLE_V2.PAID;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failIncgovPayoutV2(id, reason) {
+  const j = _incgovJsV2.get(id);
+  if (!j) throw new Error(`incgov payout ${id} not found`);
+  _incgovCheckJ(j.status, INCGOV_PAYOUT_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = INCGOV_PAYOUT_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelIncgovPayoutV2(id, reason) {
+  const j = _incgovJsV2.get(id);
+  if (!j) throw new Error(`incgov payout ${id} not found`);
+  _incgovCheckJ(j.status, INCGOV_PAYOUT_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = INCGOV_PAYOUT_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getIncgovPayoutV2(id) {
+  const j = _incgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listIncgovPayoutsV2() {
+  return [..._incgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoPauseIdleIncgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _incgovPsV2.values())
+    if (
+      p.status === INCGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _incgovIdleMs
+    ) {
+      p.status = INCGOV_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckIncgovPayoutsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _incgovJsV2.values())
+    if (
+      j.status === INCGOV_PAYOUT_LIFECYCLE_V2.PROCESSING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _incgovStuckMs
+    ) {
+      j.status = INCGOV_PAYOUT_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getTokenIncentiveGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(INCGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _incgovPsV2.values()) profilesByStatus[p.status]++;
+  const payoutsByStatus = {};
+  for (const v of Object.values(INCGOV_PAYOUT_LIFECYCLE_V2))
+    payoutsByStatus[v] = 0;
+  for (const j of _incgovJsV2.values()) payoutsByStatus[j.status]++;
+  return {
+    totalIncgovProfilesV2: _incgovPsV2.size,
+    totalIncgovPayoutsV2: _incgovJsV2.size,
+    maxActiveIncgovProfilesPerOwner: _incgovMaxActive,
+    maxPendingIncgovPayoutsPerProfile: _incgovMaxPending,
+    incgovProfileIdleMs: _incgovIdleMs,
+    incgovPayoutStuckMs: _incgovStuckMs,
+    profilesByStatus,
+    payoutsByStatus,
+  };
+}

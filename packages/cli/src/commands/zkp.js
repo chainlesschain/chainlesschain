@@ -838,7 +838,6 @@ export function registerZkpCommand(program) {
   registerZkpV2Command(zkp);
 }
 
-
 import {
   ZKP_CIRCUIT_MATURITY_V2,
   ZKP_PROOF_LIFECYCLE_V2,
@@ -870,31 +869,188 @@ import {
 } from "../lib/zkp-engine.js";
 
 export function registerZkpV2Command(zkp) {
-  zkp.command("enums-v2").description("Show V2 governance enums").action(() => { console.log(JSON.stringify({ ZKP_CIRCUIT_MATURITY_V2, ZKP_PROOF_LIFECYCLE_V2 }, null, 2)); });
-  zkp.command("register-circuit-v2").description("Register a zkp circuit profile (pending)")
-    .requiredOption("--id <id>").requiredOption("--owner <owner>").option("--scheme <scheme>")
-    .action((o) => { console.log(JSON.stringify(registerZkpCircuitV2({ id: o.id, owner: o.owner, scheme: o.scheme }), null, 2)); });
-  zkp.command("activate-circuit-v2 <id>").description("Activate circuit").action((id) => { console.log(JSON.stringify(activateZkpCircuitV2(id), null, 2)); });
-  zkp.command("deprecate-circuit-v2 <id>").description("Deprecate circuit").action((id) => { console.log(JSON.stringify(deprecateZkpCircuitV2(id), null, 2)); });
-  zkp.command("archive-circuit-v2 <id>").description("Archive circuit (terminal)").action((id) => { console.log(JSON.stringify(archiveZkpCircuitV2(id), null, 2)); });
-  zkp.command("touch-circuit-v2 <id>").description("Refresh lastTouchedAt").action((id) => { console.log(JSON.stringify(touchZkpCircuitV2(id), null, 2)); });
-  zkp.command("get-circuit-v2 <id>").description("Get circuit").action((id) => { console.log(JSON.stringify(getZkpCircuitV2(id), null, 2)); });
-  zkp.command("list-circuits-v2").description("List circuits").action(() => { console.log(JSON.stringify(listZkpCircuitsV2(), null, 2)); });
-  zkp.command("create-proof-v2").description("Create a zkp proof (queued)")
-    .requiredOption("--id <id>").requiredOption("--circuit-id <circuitId>").option("--inputs <inputs>")
-    .action((o) => { console.log(JSON.stringify(createZkpProofV2({ id: o.id, circuitId: o.circuitId, inputs: o.inputs }), null, 2)); });
-  zkp.command("start-proof-v2 <id>").description("Transition proof to proving").action((id) => { console.log(JSON.stringify(startZkpProofV2(id), null, 2)); });
-  zkp.command("verify-proof-v2 <id>").description("Transition proof to verified").action((id) => { console.log(JSON.stringify(verifyZkpProofV2(id), null, 2)); });
-  zkp.command("fail-proof-v2 <id>").description("Fail proof").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(failZkpProofV2(id, o.reason), null, 2)); });
-  zkp.command("cancel-proof-v2 <id>").description("Cancel proof").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(cancelZkpProofV2(id, o.reason), null, 2)); });
-  zkp.command("get-proof-v2 <id>").description("Get proof").action((id) => { console.log(JSON.stringify(getZkpProofV2(id), null, 2)); });
-  zkp.command("list-proofs-v2").description("List proofs").action(() => { console.log(JSON.stringify(listZkpProofsV2(), null, 2)); });
-  zkp.command("set-max-active-circuits-v2 <n>").description("Set per-owner active cap").action((n) => { setMaxActiveZkpCircuitsPerOwnerV2(Number(n)); console.log(JSON.stringify({ maxActiveZkpCircuitsPerOwner: getMaxActiveZkpCircuitsPerOwnerV2() }, null, 2)); });
-  zkp.command("set-max-pending-proofs-v2 <n>").description("Set per-circuit pending cap").action((n) => { setMaxPendingZkpProofsPerCircuitV2(Number(n)); console.log(JSON.stringify({ maxPendingZkpProofsPerCircuit: getMaxPendingZkpProofsPerCircuitV2() }, null, 2)); });
-  zkp.command("set-circuit-idle-ms-v2 <n>").description("Set idle threshold").action((n) => { setZkpCircuitIdleMsV2(Number(n)); console.log(JSON.stringify({ zkpCircuitIdleMs: getZkpCircuitIdleMsV2() }, null, 2)); });
-  zkp.command("set-proof-stuck-ms-v2 <n>").description("Set stuck threshold").action((n) => { setZkpProofStuckMsV2(Number(n)); console.log(JSON.stringify({ zkpProofStuckMs: getZkpProofStuckMsV2() }, null, 2)); });
-  zkp.command("auto-deprecate-idle-circuits-v2").description("Auto-deprecate idle circuits").action(() => { console.log(JSON.stringify(autoDeprecateIdleZkpCircuitsV2(), null, 2)); });
-  zkp.command("auto-fail-stuck-proofs-v2").description("Auto-fail stuck proving proofs").action(() => { console.log(JSON.stringify(autoFailStuckZkpProofsV2(), null, 2)); });
-  zkp.command("gov-stats-v2").description("V2 governance aggregate stats").action(() => { console.log(JSON.stringify(getZkpEngineGovStatsV2(), null, 2)); });
+  zkp
+    .command("enums-v2")
+    .description("Show V2 governance enums")
+    .action(() => {
+      console.log(
+        JSON.stringify(
+          { ZKP_CIRCUIT_MATURITY_V2, ZKP_PROOF_LIFECYCLE_V2 },
+          null,
+          2,
+        ),
+      );
+    });
+  zkp
+    .command("register-circuit-v2")
+    .description("Register a zkp circuit profile (pending)")
+    .requiredOption("--id <id>")
+    .requiredOption("--owner <owner>")
+    .option("--scheme <scheme>")
+    .action((o) => {
+      console.log(
+        JSON.stringify(
+          registerZkpCircuitV2({ id: o.id, owner: o.owner, scheme: o.scheme }),
+          null,
+          2,
+        ),
+      );
+    });
+  zkp
+    .command("activate-circuit-v2 <id>")
+    .description("Activate circuit")
+    .action((id) => {
+      console.log(JSON.stringify(activateZkpCircuitV2(id), null, 2));
+    });
+  zkp
+    .command("deprecate-circuit-v2 <id>")
+    .description("Deprecate circuit")
+    .action((id) => {
+      console.log(JSON.stringify(deprecateZkpCircuitV2(id), null, 2));
+    });
+  zkp
+    .command("archive-circuit-v2 <id>")
+    .description("Archive circuit (terminal)")
+    .action((id) => {
+      console.log(JSON.stringify(archiveZkpCircuitV2(id), null, 2));
+    });
+  zkp
+    .command("touch-circuit-v2 <id>")
+    .description("Refresh lastTouchedAt")
+    .action((id) => {
+      console.log(JSON.stringify(touchZkpCircuitV2(id), null, 2));
+    });
+  zkp
+    .command("get-circuit-v2 <id>")
+    .description("Get circuit")
+    .action((id) => {
+      console.log(JSON.stringify(getZkpCircuitV2(id), null, 2));
+    });
+  zkp
+    .command("list-circuits-v2")
+    .description("List circuits")
+    .action(() => {
+      console.log(JSON.stringify(listZkpCircuitsV2(), null, 2));
+    });
+  zkp
+    .command("create-proof-v2")
+    .description("Create a zkp proof (queued)")
+    .requiredOption("--id <id>")
+    .requiredOption("--circuit-id <circuitId>")
+    .option("--inputs <inputs>")
+    .action((o) => {
+      console.log(
+        JSON.stringify(
+          createZkpProofV2({
+            id: o.id,
+            circuitId: o.circuitId,
+            inputs: o.inputs,
+          }),
+          null,
+          2,
+        ),
+      );
+    });
+  zkp
+    .command("start-proof-v2 <id>")
+    .description("Transition proof to proving")
+    .action((id) => {
+      console.log(JSON.stringify(startZkpProofV2(id), null, 2));
+    });
+  zkp
+    .command("verify-proof-v2 <id>")
+    .description("Transition proof to verified")
+    .action((id) => {
+      console.log(JSON.stringify(verifyZkpProofV2(id), null, 2));
+    });
+  zkp
+    .command("fail-proof-v2 <id>")
+    .description("Fail proof")
+    .option("--reason <r>")
+    .action((id, o) => {
+      console.log(JSON.stringify(failZkpProofV2(id, o.reason), null, 2));
+    });
+  zkp
+    .command("cancel-proof-v2 <id>")
+    .description("Cancel proof")
+    .option("--reason <r>")
+    .action((id, o) => {
+      console.log(JSON.stringify(cancelZkpProofV2(id, o.reason), null, 2));
+    });
+  zkp
+    .command("get-proof-v2 <id>")
+    .description("Get proof")
+    .action((id) => {
+      console.log(JSON.stringify(getZkpProofV2(id), null, 2));
+    });
+  zkp
+    .command("list-proofs-v2")
+    .description("List proofs")
+    .action(() => {
+      console.log(JSON.stringify(listZkpProofsV2(), null, 2));
+    });
+  zkp
+    .command("set-max-active-circuits-v2 <n>")
+    .description("Set per-owner active cap")
+    .action((n) => {
+      setMaxActiveZkpCircuitsPerOwnerV2(Number(n));
+      console.log(
+        JSON.stringify(
+          { maxActiveZkpCircuitsPerOwner: getMaxActiveZkpCircuitsPerOwnerV2() },
+          null,
+          2,
+        ),
+      );
+    });
+  zkp
+    .command("set-max-pending-proofs-v2 <n>")
+    .description("Set per-circuit pending cap")
+    .action((n) => {
+      setMaxPendingZkpProofsPerCircuitV2(Number(n));
+      console.log(
+        JSON.stringify(
+          {
+            maxPendingZkpProofsPerCircuit: getMaxPendingZkpProofsPerCircuitV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  zkp
+    .command("set-circuit-idle-ms-v2 <n>")
+    .description("Set idle threshold")
+    .action((n) => {
+      setZkpCircuitIdleMsV2(Number(n));
+      console.log(
+        JSON.stringify({ zkpCircuitIdleMs: getZkpCircuitIdleMsV2() }, null, 2),
+      );
+    });
+  zkp
+    .command("set-proof-stuck-ms-v2 <n>")
+    .description("Set stuck threshold")
+    .action((n) => {
+      setZkpProofStuckMsV2(Number(n));
+      console.log(
+        JSON.stringify({ zkpProofStuckMs: getZkpProofStuckMsV2() }, null, 2),
+      );
+    });
+  zkp
+    .command("auto-deprecate-idle-circuits-v2")
+    .description("Auto-deprecate idle circuits")
+    .action(() => {
+      console.log(JSON.stringify(autoDeprecateIdleZkpCircuitsV2(), null, 2));
+    });
+  zkp
+    .command("auto-fail-stuck-proofs-v2")
+    .description("Auto-fail stuck proving proofs")
+    .action(() => {
+      console.log(JSON.stringify(autoFailStuckZkpProofsV2(), null, 2));
+    });
+  zkp
+    .command("gov-stats-v2")
+    .description("V2 governance aggregate stats")
+    .action(() => {
+      console.log(JSON.stringify(getZkpEngineGovStatsV2(), null, 2));
+    });
 }
-

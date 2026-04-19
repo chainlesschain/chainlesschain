@@ -436,3 +436,336 @@ export function applyPromptPatch(cwd, patch) {
     systemPromptExtension: extended,
   };
 }
+
+// =====================================================================
+// cowork-learning V2 governance overlay (iter17)
+// =====================================================================
+export const LEARN_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const LEARN_SAMPLE_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  TRAINING: "training",
+  TRAINED: "trained",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _learnPTrans = new Map([
+  [
+    LEARN_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      LEARN_PROFILE_MATURITY_V2.ACTIVE,
+      LEARN_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    LEARN_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      LEARN_PROFILE_MATURITY_V2.STALE,
+      LEARN_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    LEARN_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      LEARN_PROFILE_MATURITY_V2.ACTIVE,
+      LEARN_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [LEARN_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _learnPTerminal = new Set([LEARN_PROFILE_MATURITY_V2.ARCHIVED]);
+const _learnJTrans = new Map([
+  [
+    LEARN_SAMPLE_LIFECYCLE_V2.QUEUED,
+    new Set([
+      LEARN_SAMPLE_LIFECYCLE_V2.TRAINING,
+      LEARN_SAMPLE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    LEARN_SAMPLE_LIFECYCLE_V2.TRAINING,
+    new Set([
+      LEARN_SAMPLE_LIFECYCLE_V2.TRAINED,
+      LEARN_SAMPLE_LIFECYCLE_V2.FAILED,
+      LEARN_SAMPLE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [LEARN_SAMPLE_LIFECYCLE_V2.TRAINED, new Set()],
+  [LEARN_SAMPLE_LIFECYCLE_V2.FAILED, new Set()],
+  [LEARN_SAMPLE_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _learnPsV2 = new Map();
+const _learnJsV2 = new Map();
+let _learnMaxActive = 6,
+  _learnMaxPending = 20,
+  _learnIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _learnStuckMs = 60 * 1000;
+function _learnPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _learnCheckP(from, to) {
+  const a = _learnPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid learn profile transition ${from} → ${to}`);
+}
+function _learnCheckJ(from, to) {
+  const a = _learnJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid learn sample transition ${from} → ${to}`);
+}
+function _learnCountActive(owner) {
+  let c = 0;
+  for (const p of _learnPsV2.values())
+    if (p.owner === owner && p.status === LEARN_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _learnCountPending(profileId) {
+  let c = 0;
+  for (const j of _learnJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === LEARN_SAMPLE_LIFECYCLE_V2.QUEUED ||
+        j.status === LEARN_SAMPLE_LIFECYCLE_V2.TRAINING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveLearnProfilesPerOwnerV2(n) {
+  _learnMaxActive = _learnPos(n, "maxActiveLearnProfilesPerOwner");
+}
+export function getMaxActiveLearnProfilesPerOwnerV2() {
+  return _learnMaxActive;
+}
+export function setMaxPendingLearnSamplesPerProfileV2(n) {
+  _learnMaxPending = _learnPos(n, "maxPendingLearnSamplesPerProfile");
+}
+export function getMaxPendingLearnSamplesPerProfileV2() {
+  return _learnMaxPending;
+}
+export function setLearnProfileIdleMsV2(n) {
+  _learnIdleMs = _learnPos(n, "learnProfileIdleMs");
+}
+export function getLearnProfileIdleMsV2() {
+  return _learnIdleMs;
+}
+export function setLearnSampleStuckMsV2(n) {
+  _learnStuckMs = _learnPos(n, "learnSampleStuckMs");
+}
+export function getLearnSampleStuckMsV2() {
+  return _learnStuckMs;
+}
+export function _resetStateCoworkLearningV2() {
+  _learnPsV2.clear();
+  _learnJsV2.clear();
+  _learnMaxActive = 6;
+  _learnMaxPending = 20;
+  _learnIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _learnStuckMs = 60 * 1000;
+}
+export function registerLearnProfileV2({ id, owner, topic, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_learnPsV2.has(id)) throw new Error(`learn profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    topic: topic || "general",
+    status: LEARN_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _learnPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateLearnProfileV2(id) {
+  const p = _learnPsV2.get(id);
+  if (!p) throw new Error(`learn profile ${id} not found`);
+  const isInitial = p.status === LEARN_PROFILE_MATURITY_V2.PENDING;
+  _learnCheckP(p.status, LEARN_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _learnCountActive(p.owner) >= _learnMaxActive)
+    throw new Error(`max active learn profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = LEARN_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleLearnProfileV2(id) {
+  const p = _learnPsV2.get(id);
+  if (!p) throw new Error(`learn profile ${id} not found`);
+  _learnCheckP(p.status, LEARN_PROFILE_MATURITY_V2.STALE);
+  p.status = LEARN_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveLearnProfileV2(id) {
+  const p = _learnPsV2.get(id);
+  if (!p) throw new Error(`learn profile ${id} not found`);
+  _learnCheckP(p.status, LEARN_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = LEARN_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchLearnProfileV2(id) {
+  const p = _learnPsV2.get(id);
+  if (!p) throw new Error(`learn profile ${id} not found`);
+  if (_learnPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal learn profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getLearnProfileV2(id) {
+  const p = _learnPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listLearnProfilesV2() {
+  return [..._learnPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createLearnSampleV2({ id, profileId, signal, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_learnJsV2.has(id)) throw new Error(`learn sample ${id} already exists`);
+  if (!_learnPsV2.has(profileId))
+    throw new Error(`learn profile ${profileId} not found`);
+  if (_learnCountPending(profileId) >= _learnMaxPending)
+    throw new Error(
+      `max pending learn samples for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    signal: signal || "",
+    status: LEARN_SAMPLE_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _learnJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function trainingLearnSampleV2(id) {
+  const j = _learnJsV2.get(id);
+  if (!j) throw new Error(`learn sample ${id} not found`);
+  _learnCheckJ(j.status, LEARN_SAMPLE_LIFECYCLE_V2.TRAINING);
+  const now = Date.now();
+  j.status = LEARN_SAMPLE_LIFECYCLE_V2.TRAINING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeSampleLearnV2(id) {
+  const j = _learnJsV2.get(id);
+  if (!j) throw new Error(`learn sample ${id} not found`);
+  _learnCheckJ(j.status, LEARN_SAMPLE_LIFECYCLE_V2.TRAINED);
+  const now = Date.now();
+  j.status = LEARN_SAMPLE_LIFECYCLE_V2.TRAINED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failLearnSampleV2(id, reason) {
+  const j = _learnJsV2.get(id);
+  if (!j) throw new Error(`learn sample ${id} not found`);
+  _learnCheckJ(j.status, LEARN_SAMPLE_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = LEARN_SAMPLE_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelLearnSampleV2(id, reason) {
+  const j = _learnJsV2.get(id);
+  if (!j) throw new Error(`learn sample ${id} not found`);
+  _learnCheckJ(j.status, LEARN_SAMPLE_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = LEARN_SAMPLE_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getLearnSampleV2(id) {
+  const j = _learnJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listLearnSamplesV2() {
+  return [..._learnJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleLearnProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _learnPsV2.values())
+    if (
+      p.status === LEARN_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _learnIdleMs
+    ) {
+      p.status = LEARN_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckLearnSamplesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _learnJsV2.values())
+    if (
+      j.status === LEARN_SAMPLE_LIFECYCLE_V2.TRAINING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _learnStuckMs
+    ) {
+      j.status = LEARN_SAMPLE_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getCoworkLearningGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(LEARN_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _learnPsV2.values()) profilesByStatus[p.status]++;
+  const samplesByStatus = {};
+  for (const v of Object.values(LEARN_SAMPLE_LIFECYCLE_V2))
+    samplesByStatus[v] = 0;
+  for (const j of _learnJsV2.values()) samplesByStatus[j.status]++;
+  return {
+    totalLearnProfilesV2: _learnPsV2.size,
+    totalLearnSamplesV2: _learnJsV2.size,
+    maxActiveLearnProfilesPerOwner: _learnMaxActive,
+    maxPendingLearnSamplesPerProfile: _learnMaxPending,
+    learnProfileIdleMs: _learnIdleMs,
+    learnSampleStuckMs: _learnStuckMs,
+    profilesByStatus,
+    samplesByStatus,
+  };
+}

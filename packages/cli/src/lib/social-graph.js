@@ -409,81 +409,304 @@ export function _resetState() {
 
 // ===== V2 Surface: Social Graph governance overlay (CLI v0.141.0) =====
 export const SG_NODE_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", INACTIVE: "inactive", REMOVED: "removed",
+  PENDING: "pending",
+  ACTIVE: "active",
+  INACTIVE: "inactive",
+  REMOVED: "removed",
 });
 export const SG_EDGE_LIFECYCLE_V2 = Object.freeze({
-  PROPOSED: "proposed", ESTABLISHED: "established", SEVERED: "severed", EXPIRED: "expired", CANCELLED: "cancelled",
+  PROPOSED: "proposed",
+  ESTABLISHED: "established",
+  SEVERED: "severed",
+  EXPIRED: "expired",
+  CANCELLED: "cancelled",
 });
 const _sgNTrans = new Map([
-  [SG_NODE_MATURITY_V2.PENDING, new Set([SG_NODE_MATURITY_V2.ACTIVE, SG_NODE_MATURITY_V2.REMOVED])],
-  [SG_NODE_MATURITY_V2.ACTIVE, new Set([SG_NODE_MATURITY_V2.INACTIVE, SG_NODE_MATURITY_V2.REMOVED])],
-  [SG_NODE_MATURITY_V2.INACTIVE, new Set([SG_NODE_MATURITY_V2.ACTIVE, SG_NODE_MATURITY_V2.REMOVED])],
+  [
+    SG_NODE_MATURITY_V2.PENDING,
+    new Set([SG_NODE_MATURITY_V2.ACTIVE, SG_NODE_MATURITY_V2.REMOVED]),
+  ],
+  [
+    SG_NODE_MATURITY_V2.ACTIVE,
+    new Set([SG_NODE_MATURITY_V2.INACTIVE, SG_NODE_MATURITY_V2.REMOVED]),
+  ],
+  [
+    SG_NODE_MATURITY_V2.INACTIVE,
+    new Set([SG_NODE_MATURITY_V2.ACTIVE, SG_NODE_MATURITY_V2.REMOVED]),
+  ],
   [SG_NODE_MATURITY_V2.REMOVED, new Set()],
 ]);
 const _sgNTerminal = new Set([SG_NODE_MATURITY_V2.REMOVED]);
 const _sgETrans = new Map([
-  [SG_EDGE_LIFECYCLE_V2.PROPOSED, new Set([SG_EDGE_LIFECYCLE_V2.ESTABLISHED, SG_EDGE_LIFECYCLE_V2.CANCELLED])],
-  [SG_EDGE_LIFECYCLE_V2.ESTABLISHED, new Set([SG_EDGE_LIFECYCLE_V2.SEVERED, SG_EDGE_LIFECYCLE_V2.EXPIRED])],
+  [
+    SG_EDGE_LIFECYCLE_V2.PROPOSED,
+    new Set([SG_EDGE_LIFECYCLE_V2.ESTABLISHED, SG_EDGE_LIFECYCLE_V2.CANCELLED]),
+  ],
+  [
+    SG_EDGE_LIFECYCLE_V2.ESTABLISHED,
+    new Set([SG_EDGE_LIFECYCLE_V2.SEVERED, SG_EDGE_LIFECYCLE_V2.EXPIRED]),
+  ],
   [SG_EDGE_LIFECYCLE_V2.SEVERED, new Set()],
   [SG_EDGE_LIFECYCLE_V2.EXPIRED, new Set()],
   [SG_EDGE_LIFECYCLE_V2.CANCELLED, new Set()],
 ]);
 const _sgNsV2 = new Map();
 const _sgEsV2 = new Map();
-let _sgMaxActivePerOwner = 50, _sgMaxPendingEdgesPerNode = 100, _sgIdleMs = 60 * 24 * 60 * 60 * 1000, _sgStuckMs = 14 * 24 * 60 * 60 * 1000;
-function _sgPos(n, label) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${label} must be positive integer`); return v; }
-function _sgCheckN(from, to) { const a = _sgNTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid sg node transition ${from} → ${to}`); }
-function _sgCheckE(from, to) { const a = _sgETrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid sg edge transition ${from} → ${to}`); }
-export function setMaxActiveSgNodesPerOwnerV2(n) { _sgMaxActivePerOwner = _sgPos(n, "maxActiveSgNodesPerOwner"); }
-export function getMaxActiveSgNodesPerOwnerV2() { return _sgMaxActivePerOwner; }
-export function setMaxPendingSgEdgesPerNodeV2(n) { _sgMaxPendingEdgesPerNode = _sgPos(n, "maxPendingSgEdgesPerNode"); }
-export function getMaxPendingSgEdgesPerNodeV2() { return _sgMaxPendingEdgesPerNode; }
-export function setSgNodeIdleMsV2(n) { _sgIdleMs = _sgPos(n, "sgNodeIdleMs"); }
-export function getSgNodeIdleMsV2() { return _sgIdleMs; }
-export function setSgEdgeStuckMsV2(n) { _sgStuckMs = _sgPos(n, "sgEdgeStuckMs"); }
-export function getSgEdgeStuckMsV2() { return _sgStuckMs; }
-export function _resetStateSocialGraphV2() { _sgNsV2.clear(); _sgEsV2.clear(); _sgMaxActivePerOwner = 50; _sgMaxPendingEdgesPerNode = 100; _sgIdleMs = 60 * 24 * 60 * 60 * 1000; _sgStuckMs = 14 * 24 * 60 * 60 * 1000; }
+let _sgMaxActivePerOwner = 50,
+  _sgMaxPendingEdgesPerNode = 100,
+  _sgIdleMs = 60 * 24 * 60 * 60 * 1000,
+  _sgStuckMs = 14 * 24 * 60 * 60 * 1000;
+function _sgPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _sgCheckN(from, to) {
+  const a = _sgNTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid sg node transition ${from} → ${to}`);
+}
+function _sgCheckE(from, to) {
+  const a = _sgETrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid sg edge transition ${from} → ${to}`);
+}
+export function setMaxActiveSgNodesPerOwnerV2(n) {
+  _sgMaxActivePerOwner = _sgPos(n, "maxActiveSgNodesPerOwner");
+}
+export function getMaxActiveSgNodesPerOwnerV2() {
+  return _sgMaxActivePerOwner;
+}
+export function setMaxPendingSgEdgesPerNodeV2(n) {
+  _sgMaxPendingEdgesPerNode = _sgPos(n, "maxPendingSgEdgesPerNode");
+}
+export function getMaxPendingSgEdgesPerNodeV2() {
+  return _sgMaxPendingEdgesPerNode;
+}
+export function setSgNodeIdleMsV2(n) {
+  _sgIdleMs = _sgPos(n, "sgNodeIdleMs");
+}
+export function getSgNodeIdleMsV2() {
+  return _sgIdleMs;
+}
+export function setSgEdgeStuckMsV2(n) {
+  _sgStuckMs = _sgPos(n, "sgEdgeStuckMs");
+}
+export function getSgEdgeStuckMsV2() {
+  return _sgStuckMs;
+}
+export function _resetStateSocialGraphV2() {
+  _sgNsV2.clear();
+  _sgEsV2.clear();
+  _sgMaxActivePerOwner = 50;
+  _sgMaxPendingEdgesPerNode = 100;
+  _sgIdleMs = 60 * 24 * 60 * 60 * 1000;
+  _sgStuckMs = 14 * 24 * 60 * 60 * 1000;
+}
 export function registerSgNodeV2({ id, owner, handle, metadata } = {}) {
-  if (!id) throw new Error("sg node id required"); if (!owner) throw new Error("sg node owner required");
+  if (!id) throw new Error("sg node id required");
+  if (!owner) throw new Error("sg node owner required");
   if (_sgNsV2.has(id)) throw new Error(`sg node ${id} already registered`);
   const now = Date.now();
-  const n = { id, owner, handle: handle || id, status: SG_NODE_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, removedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
-  _sgNsV2.set(id, n); return { ...n, metadata: { ...n.metadata } };
-}
-function _sgCountActive(owner) { let n = 0; for (const v of _sgNsV2.values()) if (v.owner === owner && v.status === SG_NODE_MATURITY_V2.ACTIVE) n++; return n; }
-export function activateSgNodeV2(id) {
-  const n = _sgNsV2.get(id); if (!n) throw new Error(`sg node ${id} not found`);
-  _sgCheckN(n.status, SG_NODE_MATURITY_V2.ACTIVE);
-  const recovery = n.status === SG_NODE_MATURITY_V2.INACTIVE;
-  if (!recovery && _sgCountActive(n.owner) >= _sgMaxActivePerOwner) throw new Error(`max active sg nodes for owner ${n.owner} reached`);
-  const now = Date.now(); n.status = SG_NODE_MATURITY_V2.ACTIVE; n.updatedAt = now; n.lastTouchedAt = now; if (!n.activatedAt) n.activatedAt = now;
+  const n = {
+    id,
+    owner,
+    handle: handle || id,
+    status: SG_NODE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    removedAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
+  _sgNsV2.set(id, n);
   return { ...n, metadata: { ...n.metadata } };
 }
-export function deactivateSgNodeV2(id) { const n = _sgNsV2.get(id); if (!n) throw new Error(`sg node ${id} not found`); _sgCheckN(n.status, SG_NODE_MATURITY_V2.INACTIVE); n.status = SG_NODE_MATURITY_V2.INACTIVE; n.updatedAt = Date.now(); return { ...n, metadata: { ...n.metadata } }; }
-export function removeSgNodeV2(id) { const n = _sgNsV2.get(id); if (!n) throw new Error(`sg node ${id} not found`); _sgCheckN(n.status, SG_NODE_MATURITY_V2.REMOVED); const now = Date.now(); n.status = SG_NODE_MATURITY_V2.REMOVED; n.updatedAt = now; if (!n.removedAt) n.removedAt = now; return { ...n, metadata: { ...n.metadata } }; }
-export function touchSgNodeV2(id) { const n = _sgNsV2.get(id); if (!n) throw new Error(`sg node ${id} not found`); if (_sgNTerminal.has(n.status)) throw new Error(`cannot touch terminal sg node ${id}`); const now = Date.now(); n.lastTouchedAt = now; n.updatedAt = now; return { ...n, metadata: { ...n.metadata } }; }
-export function getSgNodeV2(id) { const n = _sgNsV2.get(id); if (!n) return null; return { ...n, metadata: { ...n.metadata } }; }
-export function listSgNodesV2() { return [..._sgNsV2.values()].map((n) => ({ ...n, metadata: { ...n.metadata } })); }
-function _sgCountPending(nodeId) { let n = 0; for (const e of _sgEsV2.values()) if (e.nodeId === nodeId && e.status === SG_EDGE_LIFECYCLE_V2.PROPOSED) n++; return n; }
+function _sgCountActive(owner) {
+  let n = 0;
+  for (const v of _sgNsV2.values())
+    if (v.owner === owner && v.status === SG_NODE_MATURITY_V2.ACTIVE) n++;
+  return n;
+}
+export function activateSgNodeV2(id) {
+  const n = _sgNsV2.get(id);
+  if (!n) throw new Error(`sg node ${id} not found`);
+  _sgCheckN(n.status, SG_NODE_MATURITY_V2.ACTIVE);
+  const recovery = n.status === SG_NODE_MATURITY_V2.INACTIVE;
+  if (!recovery && _sgCountActive(n.owner) >= _sgMaxActivePerOwner)
+    throw new Error(`max active sg nodes for owner ${n.owner} reached`);
+  const now = Date.now();
+  n.status = SG_NODE_MATURITY_V2.ACTIVE;
+  n.updatedAt = now;
+  n.lastTouchedAt = now;
+  if (!n.activatedAt) n.activatedAt = now;
+  return { ...n, metadata: { ...n.metadata } };
+}
+export function deactivateSgNodeV2(id) {
+  const n = _sgNsV2.get(id);
+  if (!n) throw new Error(`sg node ${id} not found`);
+  _sgCheckN(n.status, SG_NODE_MATURITY_V2.INACTIVE);
+  n.status = SG_NODE_MATURITY_V2.INACTIVE;
+  n.updatedAt = Date.now();
+  return { ...n, metadata: { ...n.metadata } };
+}
+export function removeSgNodeV2(id) {
+  const n = _sgNsV2.get(id);
+  if (!n) throw new Error(`sg node ${id} not found`);
+  _sgCheckN(n.status, SG_NODE_MATURITY_V2.REMOVED);
+  const now = Date.now();
+  n.status = SG_NODE_MATURITY_V2.REMOVED;
+  n.updatedAt = now;
+  if (!n.removedAt) n.removedAt = now;
+  return { ...n, metadata: { ...n.metadata } };
+}
+export function touchSgNodeV2(id) {
+  const n = _sgNsV2.get(id);
+  if (!n) throw new Error(`sg node ${id} not found`);
+  if (_sgNTerminal.has(n.status))
+    throw new Error(`cannot touch terminal sg node ${id}`);
+  const now = Date.now();
+  n.lastTouchedAt = now;
+  n.updatedAt = now;
+  return { ...n, metadata: { ...n.metadata } };
+}
+export function getSgNodeV2(id) {
+  const n = _sgNsV2.get(id);
+  if (!n) return null;
+  return { ...n, metadata: { ...n.metadata } };
+}
+export function listSgNodesV2() {
+  return [..._sgNsV2.values()].map((n) => ({
+    ...n,
+    metadata: { ...n.metadata },
+  }));
+}
+function _sgCountPending(nodeId) {
+  let n = 0;
+  for (const e of _sgEsV2.values())
+    if (e.nodeId === nodeId && e.status === SG_EDGE_LIFECYCLE_V2.PROPOSED) n++;
+  return n;
+}
 export function createSgEdgeV2({ id, nodeId, targetId, metadata } = {}) {
-  if (!id) throw new Error("sg edge id required"); if (!nodeId) throw new Error("sg edge nodeId required");
+  if (!id) throw new Error("sg edge id required");
+  if (!nodeId) throw new Error("sg edge nodeId required");
   if (_sgEsV2.has(id)) throw new Error(`sg edge ${id} already exists`);
   if (!_sgNsV2.has(nodeId)) throw new Error(`sg node ${nodeId} not found`);
-  if (_sgCountPending(nodeId) >= _sgMaxPendingEdgesPerNode) throw new Error(`max pending sg edges for node ${nodeId} reached`);
+  if (_sgCountPending(nodeId) >= _sgMaxPendingEdgesPerNode)
+    throw new Error(`max pending sg edges for node ${nodeId} reached`);
   const now = Date.now();
-  const e = { id, nodeId, targetId: targetId || "", status: SG_EDGE_LIFECYCLE_V2.PROPOSED, createdAt: now, updatedAt: now, startedAt: now, settledAt: null, metadata: { ...(metadata || {}) } };
-  _sgEsV2.set(id, e); return { ...e, metadata: { ...e.metadata } };
+  const e = {
+    id,
+    nodeId,
+    targetId: targetId || "",
+    status: SG_EDGE_LIFECYCLE_V2.PROPOSED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: now,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _sgEsV2.set(id, e);
+  return { ...e, metadata: { ...e.metadata } };
 }
-export function establishSgEdgeV2(id) { const e = _sgEsV2.get(id); if (!e) throw new Error(`sg edge ${id} not found`); _sgCheckE(e.status, SG_EDGE_LIFECYCLE_V2.ESTABLISHED); const now = Date.now(); e.status = SG_EDGE_LIFECYCLE_V2.ESTABLISHED; e.updatedAt = now; if (!e.settledAt) e.settledAt = now; return { ...e, metadata: { ...e.metadata } }; }
-export function severSgEdgeV2(id, reason) { const e = _sgEsV2.get(id); if (!e) throw new Error(`sg edge ${id} not found`); _sgCheckE(e.status, SG_EDGE_LIFECYCLE_V2.SEVERED); const now = Date.now(); e.status = SG_EDGE_LIFECYCLE_V2.SEVERED; e.updatedAt = now; if (reason) e.metadata.severReason = String(reason); return { ...e, metadata: { ...e.metadata } }; }
-export function expireSgEdgeV2(id) { const e = _sgEsV2.get(id); if (!e) throw new Error(`sg edge ${id} not found`); _sgCheckE(e.status, SG_EDGE_LIFECYCLE_V2.EXPIRED); const now = Date.now(); e.status = SG_EDGE_LIFECYCLE_V2.EXPIRED; e.updatedAt = now; return { ...e, metadata: { ...e.metadata } }; }
-export function cancelSgEdgeV2(id, reason) { const e = _sgEsV2.get(id); if (!e) throw new Error(`sg edge ${id} not found`); _sgCheckE(e.status, SG_EDGE_LIFECYCLE_V2.CANCELLED); const now = Date.now(); e.status = SG_EDGE_LIFECYCLE_V2.CANCELLED; e.updatedAt = now; if (!e.settledAt) e.settledAt = now; if (reason) e.metadata.cancelReason = String(reason); return { ...e, metadata: { ...e.metadata } }; }
-export function getSgEdgeV2(id) { const e = _sgEsV2.get(id); if (!e) return null; return { ...e, metadata: { ...e.metadata } }; }
-export function listSgEdgesV2() { return [..._sgEsV2.values()].map((e) => ({ ...e, metadata: { ...e.metadata } })); }
-export function autoDeactivateIdleSgNodesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const n of _sgNsV2.values()) if (n.status === SG_NODE_MATURITY_V2.ACTIVE && (t - n.lastTouchedAt) >= _sgIdleMs) { n.status = SG_NODE_MATURITY_V2.INACTIVE; n.updatedAt = t; flipped.push(n.id); } return { flipped, count: flipped.length }; }
-export function autoExpireStaleSgEdgesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const e of _sgEsV2.values()) if (e.status === SG_EDGE_LIFECYCLE_V2.PROPOSED && (t - e.startedAt) >= _sgStuckMs) { e.status = SG_EDGE_LIFECYCLE_V2.CANCELLED; e.updatedAt = t; if (!e.settledAt) e.settledAt = t; e.metadata.cancelReason = "auto-cancel-stale"; flipped.push(e.id); } return { flipped, count: flipped.length }; }
+export function establishSgEdgeV2(id) {
+  const e = _sgEsV2.get(id);
+  if (!e) throw new Error(`sg edge ${id} not found`);
+  _sgCheckE(e.status, SG_EDGE_LIFECYCLE_V2.ESTABLISHED);
+  const now = Date.now();
+  e.status = SG_EDGE_LIFECYCLE_V2.ESTABLISHED;
+  e.updatedAt = now;
+  if (!e.settledAt) e.settledAt = now;
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function severSgEdgeV2(id, reason) {
+  const e = _sgEsV2.get(id);
+  if (!e) throw new Error(`sg edge ${id} not found`);
+  _sgCheckE(e.status, SG_EDGE_LIFECYCLE_V2.SEVERED);
+  const now = Date.now();
+  e.status = SG_EDGE_LIFECYCLE_V2.SEVERED;
+  e.updatedAt = now;
+  if (reason) e.metadata.severReason = String(reason);
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function expireSgEdgeV2(id) {
+  const e = _sgEsV2.get(id);
+  if (!e) throw new Error(`sg edge ${id} not found`);
+  _sgCheckE(e.status, SG_EDGE_LIFECYCLE_V2.EXPIRED);
+  const now = Date.now();
+  e.status = SG_EDGE_LIFECYCLE_V2.EXPIRED;
+  e.updatedAt = now;
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function cancelSgEdgeV2(id, reason) {
+  const e = _sgEsV2.get(id);
+  if (!e) throw new Error(`sg edge ${id} not found`);
+  _sgCheckE(e.status, SG_EDGE_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  e.status = SG_EDGE_LIFECYCLE_V2.CANCELLED;
+  e.updatedAt = now;
+  if (!e.settledAt) e.settledAt = now;
+  if (reason) e.metadata.cancelReason = String(reason);
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function getSgEdgeV2(id) {
+  const e = _sgEsV2.get(id);
+  if (!e) return null;
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function listSgEdgesV2() {
+  return [..._sgEsV2.values()].map((e) => ({
+    ...e,
+    metadata: { ...e.metadata },
+  }));
+}
+export function autoDeactivateIdleSgNodesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const n of _sgNsV2.values())
+    if (
+      n.status === SG_NODE_MATURITY_V2.ACTIVE &&
+      t - n.lastTouchedAt >= _sgIdleMs
+    ) {
+      n.status = SG_NODE_MATURITY_V2.INACTIVE;
+      n.updatedAt = t;
+      flipped.push(n.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoExpireStaleSgEdgesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const e of _sgEsV2.values())
+    if (
+      e.status === SG_EDGE_LIFECYCLE_V2.PROPOSED &&
+      t - e.startedAt >= _sgStuckMs
+    ) {
+      e.status = SG_EDGE_LIFECYCLE_V2.CANCELLED;
+      e.updatedAt = t;
+      if (!e.settledAt) e.settledAt = t;
+      e.metadata.cancelReason = "auto-cancel-stale";
+      flipped.push(e.id);
+    }
+  return { flipped, count: flipped.length };
+}
 export function getSocialGraphGovStatsV2() {
-  const nodesByStatus = {}; for (const v of Object.values(SG_NODE_MATURITY_V2)) nodesByStatus[v] = 0; for (const n of _sgNsV2.values()) nodesByStatus[n.status]++;
-  const edgesByStatus = {}; for (const v of Object.values(SG_EDGE_LIFECYCLE_V2)) edgesByStatus[v] = 0; for (const e of _sgEsV2.values()) edgesByStatus[e.status]++;
-  return { totalSgNodesV2: _sgNsV2.size, totalSgEdgesV2: _sgEsV2.size, maxActiveSgNodesPerOwner: _sgMaxActivePerOwner, maxPendingSgEdgesPerNode: _sgMaxPendingEdgesPerNode, sgNodeIdleMs: _sgIdleMs, sgEdgeStuckMs: _sgStuckMs, nodesByStatus, edgesByStatus };
+  const nodesByStatus = {};
+  for (const v of Object.values(SG_NODE_MATURITY_V2)) nodesByStatus[v] = 0;
+  for (const n of _sgNsV2.values()) nodesByStatus[n.status]++;
+  const edgesByStatus = {};
+  for (const v of Object.values(SG_EDGE_LIFECYCLE_V2)) edgesByStatus[v] = 0;
+  for (const e of _sgEsV2.values()) edgesByStatus[e.status]++;
+  return {
+    totalSgNodesV2: _sgNsV2.size,
+    totalSgEdgesV2: _sgEsV2.size,
+    maxActiveSgNodesPerOwner: _sgMaxActivePerOwner,
+    maxPendingSgEdgesPerNode: _sgMaxPendingEdgesPerNode,
+    sgNodeIdleMs: _sgIdleMs,
+    sgEdgeStuckMs: _sgStuckMs,
+    nodesByStatus,
+    edgesByStatus,
+  };
 }

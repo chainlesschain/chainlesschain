@@ -757,3 +757,344 @@ export function getSLAStatsV2() {
     },
   };
 }
+
+// =====================================================================
+// sla-manager V2 governance overlay (iter16)
+// =====================================================================
+export const SLAGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  BREACHED: "breached",
+  ARCHIVED: "archived",
+});
+export const SLAGOV_MEASUREMENT_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  MEASURING: "measuring",
+  MEASURED: "measured",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _slagovPTrans = new Map([
+  [
+    SLAGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      SLAGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SLAGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SLAGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      SLAGOV_PROFILE_MATURITY_V2.BREACHED,
+      SLAGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    SLAGOV_PROFILE_MATURITY_V2.BREACHED,
+    new Set([
+      SLAGOV_PROFILE_MATURITY_V2.ACTIVE,
+      SLAGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [SLAGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _slagovPTerminal = new Set([SLAGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _slagovJTrans = new Map([
+  [
+    SLAGOV_MEASUREMENT_LIFECYCLE_V2.QUEUED,
+    new Set([
+      SLAGOV_MEASUREMENT_LIFECYCLE_V2.MEASURING,
+      SLAGOV_MEASUREMENT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    SLAGOV_MEASUREMENT_LIFECYCLE_V2.MEASURING,
+    new Set([
+      SLAGOV_MEASUREMENT_LIFECYCLE_V2.MEASURED,
+      SLAGOV_MEASUREMENT_LIFECYCLE_V2.FAILED,
+      SLAGOV_MEASUREMENT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [SLAGOV_MEASUREMENT_LIFECYCLE_V2.MEASURED, new Set()],
+  [SLAGOV_MEASUREMENT_LIFECYCLE_V2.FAILED, new Set()],
+  [SLAGOV_MEASUREMENT_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _slagovPsV2 = new Map();
+const _slagovJsV2 = new Map();
+let _slagovMaxActive = 8,
+  _slagovMaxPending = 20,
+  _slagovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _slagovStuckMs = 60 * 1000;
+function _slagovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _slagovCheckP(from, to) {
+  const a = _slagovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid slagov profile transition ${from} → ${to}`);
+}
+function _slagovCheckJ(from, to) {
+  const a = _slagovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid slagov measurement transition ${from} → ${to}`);
+}
+function _slagovCountActive(owner) {
+  let c = 0;
+  for (const p of _slagovPsV2.values())
+    if (p.owner === owner && p.status === SLAGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _slagovCountPending(profileId) {
+  let c = 0;
+  for (const j of _slagovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === SLAGOV_MEASUREMENT_LIFECYCLE_V2.QUEUED ||
+        j.status === SLAGOV_MEASUREMENT_LIFECYCLE_V2.MEASURING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveSlagovProfilesPerOwnerV2(n) {
+  _slagovMaxActive = _slagovPos(n, "maxActiveSlagovProfilesPerOwner");
+}
+export function getMaxActiveSlagovProfilesPerOwnerV2() {
+  return _slagovMaxActive;
+}
+export function setMaxPendingSlagovMeasurementsPerProfileV2(n) {
+  _slagovMaxPending = _slagovPos(n, "maxPendingSlagovMeasurementsPerProfile");
+}
+export function getMaxPendingSlagovMeasurementsPerProfileV2() {
+  return _slagovMaxPending;
+}
+export function setSlagovProfileIdleMsV2(n) {
+  _slagovIdleMs = _slagovPos(n, "slagovProfileIdleMs");
+}
+export function getSlagovProfileIdleMsV2() {
+  return _slagovIdleMs;
+}
+export function setSlagovMeasurementStuckMsV2(n) {
+  _slagovStuckMs = _slagovPos(n, "slagovMeasurementStuckMs");
+}
+export function getSlagovMeasurementStuckMsV2() {
+  return _slagovStuckMs;
+}
+export function _resetStateSlaManagerV2() {
+  _slagovPsV2.clear();
+  _slagovJsV2.clear();
+  _slagovMaxActive = 8;
+  _slagovMaxPending = 20;
+  _slagovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _slagovStuckMs = 60 * 1000;
+}
+export function registerSlagovProfileV2({ id, owner, tier, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_slagovPsV2.has(id))
+    throw new Error(`slagov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    tier: tier || "standard",
+    status: SLAGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _slagovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateSlagovProfileV2(id) {
+  const p = _slagovPsV2.get(id);
+  if (!p) throw new Error(`slagov profile ${id} not found`);
+  const isInitial = p.status === SLAGOV_PROFILE_MATURITY_V2.PENDING;
+  _slagovCheckP(p.status, SLAGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _slagovCountActive(p.owner) >= _slagovMaxActive)
+    throw new Error(`max active slagov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = SLAGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function breachSlagovProfileV2(id) {
+  const p = _slagovPsV2.get(id);
+  if (!p) throw new Error(`slagov profile ${id} not found`);
+  _slagovCheckP(p.status, SLAGOV_PROFILE_MATURITY_V2.BREACHED);
+  p.status = SLAGOV_PROFILE_MATURITY_V2.BREACHED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveSlagovProfileV2(id) {
+  const p = _slagovPsV2.get(id);
+  if (!p) throw new Error(`slagov profile ${id} not found`);
+  _slagovCheckP(p.status, SLAGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = SLAGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchSlagovProfileV2(id) {
+  const p = _slagovPsV2.get(id);
+  if (!p) throw new Error(`slagov profile ${id} not found`);
+  if (_slagovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal slagov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getSlagovProfileV2(id) {
+  const p = _slagovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listSlagovProfilesV2() {
+  return [..._slagovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createSlagovMeasurementV2({
+  id,
+  profileId,
+  metric,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_slagovJsV2.has(id))
+    throw new Error(`slagov measurement ${id} already exists`);
+  if (!_slagovPsV2.has(profileId))
+    throw new Error(`slagov profile ${profileId} not found`);
+  if (_slagovCountPending(profileId) >= _slagovMaxPending)
+    throw new Error(
+      `max pending slagov measurements for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    metric: metric || "",
+    status: SLAGOV_MEASUREMENT_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _slagovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function measuringSlagovMeasurementV2(id) {
+  const j = _slagovJsV2.get(id);
+  if (!j) throw new Error(`slagov measurement ${id} not found`);
+  _slagovCheckJ(j.status, SLAGOV_MEASUREMENT_LIFECYCLE_V2.MEASURING);
+  const now = Date.now();
+  j.status = SLAGOV_MEASUREMENT_LIFECYCLE_V2.MEASURING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeMeasurementSlagovV2(id) {
+  const j = _slagovJsV2.get(id);
+  if (!j) throw new Error(`slagov measurement ${id} not found`);
+  _slagovCheckJ(j.status, SLAGOV_MEASUREMENT_LIFECYCLE_V2.MEASURED);
+  const now = Date.now();
+  j.status = SLAGOV_MEASUREMENT_LIFECYCLE_V2.MEASURED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failSlagovMeasurementV2(id, reason) {
+  const j = _slagovJsV2.get(id);
+  if (!j) throw new Error(`slagov measurement ${id} not found`);
+  _slagovCheckJ(j.status, SLAGOV_MEASUREMENT_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = SLAGOV_MEASUREMENT_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelSlagovMeasurementV2(id, reason) {
+  const j = _slagovJsV2.get(id);
+  if (!j) throw new Error(`slagov measurement ${id} not found`);
+  _slagovCheckJ(j.status, SLAGOV_MEASUREMENT_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = SLAGOV_MEASUREMENT_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getSlagovMeasurementV2(id) {
+  const j = _slagovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listSlagovMeasurementsV2() {
+  return [..._slagovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoBreachIdleSlagovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _slagovPsV2.values())
+    if (
+      p.status === SLAGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _slagovIdleMs
+    ) {
+      p.status = SLAGOV_PROFILE_MATURITY_V2.BREACHED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckSlagovMeasurementsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _slagovJsV2.values())
+    if (
+      j.status === SLAGOV_MEASUREMENT_LIFECYCLE_V2.MEASURING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _slagovStuckMs
+    ) {
+      j.status = SLAGOV_MEASUREMENT_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getSlaManagerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(SLAGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _slagovPsV2.values()) profilesByStatus[p.status]++;
+  const measurementsByStatus = {};
+  for (const v of Object.values(SLAGOV_MEASUREMENT_LIFECYCLE_V2))
+    measurementsByStatus[v] = 0;
+  for (const j of _slagovJsV2.values()) measurementsByStatus[j.status]++;
+  return {
+    totalSlagovProfilesV2: _slagovPsV2.size,
+    totalSlagovMeasurementsV2: _slagovJsV2.size,
+    maxActiveSlagovProfilesPerOwner: _slagovMaxActive,
+    maxPendingSlagovMeasurementsPerProfile: _slagovMaxPending,
+    slagovProfileIdleMs: _slagovIdleMs,
+    slagovMeasurementStuckMs: _slagovStuckMs,
+    profilesByStatus,
+    measurementsByStatus,
+  };
+}

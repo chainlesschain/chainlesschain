@@ -693,3 +693,212 @@ export function registerIncentiveCommand(program) {
       logger.log(JSON.stringify(getTokenStatsV2(), null, 2));
     });
 }
+
+// === Iter17 V2 governance overlay ===
+export function registerIncgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "incentive");
+  if (!parent) return;
+  const L = async () => await import("../lib/token-incentive.js");
+  parent
+    .command("incgov-enums-v2")
+    .description("Show V2 enums")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.INCGOV_PROFILE_MATURITY_V2,
+            payoutLifecycle: m.INCGOV_PAYOUT_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("incgov-config-v2")
+    .description("Show V2 config")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveIncgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingIncgovPayoutsPerProfileV2(),
+            idleMs: m.getIncgovProfileIdleMsV2(),
+            stuckMs: m.getIncgovPayoutStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("incgov-set-max-active-v2 <n>")
+    .description("Set max active")
+    .action(async (n) => {
+      (await L()).setMaxActiveIncgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("incgov-set-max-pending-v2 <n>")
+    .description("Set max pending")
+    .action(async (n) => {
+      (await L()).setMaxPendingIncgovPayoutsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("incgov-set-idle-ms-v2 <n>")
+    .description("Set idle threshold ms")
+    .action(async (n) => {
+      (await L()).setIncgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("incgov-set-stuck-ms-v2 <n>")
+    .description("Set stuck threshold ms")
+    .action(async (n) => {
+      (await L()).setIncgovPayoutStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("incgov-register-v2 <id> <owner>")
+    .description("Register V2 profile")
+    .option("--token <v>", "token")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerIncgovProfileV2({ id, owner, token: o.token }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("incgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).activateIncgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("incgov-pause-v2 <id>")
+    .description("Pause profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).pauseIncgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("incgov-archive-v2 <id>")
+    .description("Archive profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).archiveIncgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("incgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).touchIncgovProfileV2(id), null, 2),
+      );
+    });
+  parent
+    .command("incgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getIncgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("incgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listIncgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("incgov-create-payout-v2 <id> <profileId>")
+    .description("Create payout")
+    .option("--recipient <v>", "recipient")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createIncgovPayoutV2({ id, profileId, recipient: o.recipient }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("incgov-processing-payout-v2 <id>")
+    .description("Mark payout as processing")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).processingIncgovPayoutV2(id), null, 2),
+      );
+    });
+  parent
+    .command("incgov-complete-payout-v2 <id>")
+    .description("Complete payout")
+    .action(async (id) => {
+      console.log(
+        JSON.stringify((await L()).completePayoutIncgovV2(id), null, 2),
+      );
+    });
+  parent
+    .command("incgov-fail-payout-v2 <id> [reason]")
+    .description("Fail payout")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).failIncgovPayoutV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("incgov-cancel-payout-v2 <id> [reason]")
+    .description("Cancel payout")
+    .action(async (id, reason) => {
+      console.log(
+        JSON.stringify((await L()).cancelIncgovPayoutV2(id, reason), null, 2),
+      );
+    });
+  parent
+    .command("incgov-get-payout-v2 <id>")
+    .description("Get payout")
+    .action(async (id) => {
+      console.log(JSON.stringify((await L()).getIncgovPayoutV2(id), null, 2));
+    });
+  parent
+    .command("incgov-list-payouts-v2")
+    .description("List payouts")
+    .action(async () => {
+      console.log(JSON.stringify((await L()).listIncgovPayoutsV2(), null, 2));
+    });
+  parent
+    .command("incgov-auto-pause-idle-v2")
+    .description("Auto-pause idle")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoPauseIdleIncgovProfilesV2(), null, 2),
+      );
+    });
+  parent
+    .command("incgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck payouts")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).autoFailStuckIncgovPayoutsV2(), null, 2),
+      );
+    });
+  parent
+    .command("incgov-gov-stats-v2")
+    .description("V2 gov stats")
+    .action(async () => {
+      console.log(
+        JSON.stringify((await L()).getTokenIncentiveGovStatsV2(), null, 2),
+      );
+    });
+}

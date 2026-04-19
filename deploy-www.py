@@ -5,7 +5,7 @@ USER = "root"
 PASS = "***REDACTED***"
 
 name = "www.chainlesschain.com"
-tar_local = r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.2.34-20260419-0733.tar.gz"
+tar_local = r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.2.34-20260419-1055.tar.gz"
 remote_dir = "/www/wwwroot/www.chainlesschain.com"
 tar_remote = f"/tmp/{name}.tar.gz"
 staging = f"{remote_dir}.new"
@@ -34,6 +34,8 @@ sftp.put(tar_local, tar_remote)
 run(f"rm -rf {staging}")
 run(f"mkdir -p {staging}")
 run(f"tar -xzf {tar_remote} -C {staging}")
+# flatten if tar wrapped contents in a single dist/ dir
+run(f"if [ -d {staging}/dist ] && [ $(ls {staging} | wc -l) -eq 1 ]; then shopt -s dotglob; mv {staging}/dist/* {staging}/ && rmdir {staging}/dist; fi")
 run(f"if [ -d {remote_dir} ]; then mv {remote_dir} {backup}; fi")
 run(f"mv {staging} {remote_dir}")
 run(f"chown -R www:www {remote_dir} 2>/dev/null || chown -R nginx:nginx {remote_dir} 2>/dev/null || true")

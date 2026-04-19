@@ -960,3 +960,336 @@ export function _resetStateV2() {
   _entityStaleMsV2 = KG_DEFAULT_ENTITY_STALE_MS;
   _relationStaleMsV2 = KG_DEFAULT_RELATION_STALE_MS;
 }
+
+// =====================================================================
+// knowledge-graph V2 governance overlay (iter16)
+// =====================================================================
+export const KGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const KGOV_IMPORT_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  IMPORTING: "importing",
+  IMPORTED: "imported",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _kgovPTrans = new Map([
+  [
+    KGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      KGOV_PROFILE_MATURITY_V2.ACTIVE,
+      KGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    KGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      KGOV_PROFILE_MATURITY_V2.STALE,
+      KGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    KGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      KGOV_PROFILE_MATURITY_V2.ACTIVE,
+      KGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [KGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _kgovPTerminal = new Set([KGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _kgovJTrans = new Map([
+  [
+    KGOV_IMPORT_LIFECYCLE_V2.QUEUED,
+    new Set([
+      KGOV_IMPORT_LIFECYCLE_V2.IMPORTING,
+      KGOV_IMPORT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    KGOV_IMPORT_LIFECYCLE_V2.IMPORTING,
+    new Set([
+      KGOV_IMPORT_LIFECYCLE_V2.IMPORTED,
+      KGOV_IMPORT_LIFECYCLE_V2.FAILED,
+      KGOV_IMPORT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [KGOV_IMPORT_LIFECYCLE_V2.IMPORTED, new Set()],
+  [KGOV_IMPORT_LIFECYCLE_V2.FAILED, new Set()],
+  [KGOV_IMPORT_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _kgovPsV2 = new Map();
+const _kgovJsV2 = new Map();
+let _kgovMaxActive = 6,
+  _kgovMaxPending = 20,
+  _kgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _kgovStuckMs = 60 * 1000;
+function _kgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _kgovCheckP(from, to) {
+  const a = _kgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid kgov profile transition ${from} → ${to}`);
+}
+function _kgovCheckJ(from, to) {
+  const a = _kgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid kgov import transition ${from} → ${to}`);
+}
+function _kgovCountActive(owner) {
+  let c = 0;
+  for (const p of _kgovPsV2.values())
+    if (p.owner === owner && p.status === KGOV_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _kgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _kgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === KGOV_IMPORT_LIFECYCLE_V2.QUEUED ||
+        j.status === KGOV_IMPORT_LIFECYCLE_V2.IMPORTING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveKgovProfilesPerOwnerV2(n) {
+  _kgovMaxActive = _kgovPos(n, "maxActiveKgovProfilesPerOwner");
+}
+export function getMaxActiveKgovProfilesPerOwnerV2() {
+  return _kgovMaxActive;
+}
+export function setMaxPendingKgovImportsPerProfileV2(n) {
+  _kgovMaxPending = _kgovPos(n, "maxPendingKgovImportsPerProfile");
+}
+export function getMaxPendingKgovImportsPerProfileV2() {
+  return _kgovMaxPending;
+}
+export function setKgovProfileIdleMsV2(n) {
+  _kgovIdleMs = _kgovPos(n, "kgovProfileIdleMs");
+}
+export function getKgovProfileIdleMsV2() {
+  return _kgovIdleMs;
+}
+export function setKgovImportStuckMsV2(n) {
+  _kgovStuckMs = _kgovPos(n, "kgovImportStuckMs");
+}
+export function getKgovImportStuckMsV2() {
+  return _kgovStuckMs;
+}
+export function _resetStateKnowledgeGraphV2() {
+  _kgovPsV2.clear();
+  _kgovJsV2.clear();
+  _kgovMaxActive = 6;
+  _kgovMaxPending = 20;
+  _kgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _kgovStuckMs = 60 * 1000;
+}
+export function registerKgovProfileV2({ id, owner, namespace, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_kgovPsV2.has(id)) throw new Error(`kgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    namespace: namespace || "default",
+    status: KGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _kgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateKgovProfileV2(id) {
+  const p = _kgovPsV2.get(id);
+  if (!p) throw new Error(`kgov profile ${id} not found`);
+  const isInitial = p.status === KGOV_PROFILE_MATURITY_V2.PENDING;
+  _kgovCheckP(p.status, KGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _kgovCountActive(p.owner) >= _kgovMaxActive)
+    throw new Error(`max active kgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = KGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleKgovProfileV2(id) {
+  const p = _kgovPsV2.get(id);
+  if (!p) throw new Error(`kgov profile ${id} not found`);
+  _kgovCheckP(p.status, KGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = KGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveKgovProfileV2(id) {
+  const p = _kgovPsV2.get(id);
+  if (!p) throw new Error(`kgov profile ${id} not found`);
+  _kgovCheckP(p.status, KGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = KGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchKgovProfileV2(id) {
+  const p = _kgovPsV2.get(id);
+  if (!p) throw new Error(`kgov profile ${id} not found`);
+  if (_kgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal kgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getKgovProfileV2(id) {
+  const p = _kgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listKgovProfilesV2() {
+  return [..._kgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createKgovImportV2({ id, profileId, source, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_kgovJsV2.has(id)) throw new Error(`kgov import ${id} already exists`);
+  if (!_kgovPsV2.has(profileId))
+    throw new Error(`kgov profile ${profileId} not found`);
+  if (_kgovCountPending(profileId) >= _kgovMaxPending)
+    throw new Error(
+      `max pending kgov imports for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    source: source || "",
+    status: KGOV_IMPORT_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _kgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function importingKgovImportV2(id) {
+  const j = _kgovJsV2.get(id);
+  if (!j) throw new Error(`kgov import ${id} not found`);
+  _kgovCheckJ(j.status, KGOV_IMPORT_LIFECYCLE_V2.IMPORTING);
+  const now = Date.now();
+  j.status = KGOV_IMPORT_LIFECYCLE_V2.IMPORTING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeImportKgovV2(id) {
+  const j = _kgovJsV2.get(id);
+  if (!j) throw new Error(`kgov import ${id} not found`);
+  _kgovCheckJ(j.status, KGOV_IMPORT_LIFECYCLE_V2.IMPORTED);
+  const now = Date.now();
+  j.status = KGOV_IMPORT_LIFECYCLE_V2.IMPORTED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failKgovImportV2(id, reason) {
+  const j = _kgovJsV2.get(id);
+  if (!j) throw new Error(`kgov import ${id} not found`);
+  _kgovCheckJ(j.status, KGOV_IMPORT_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = KGOV_IMPORT_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelKgovImportV2(id, reason) {
+  const j = _kgovJsV2.get(id);
+  if (!j) throw new Error(`kgov import ${id} not found`);
+  _kgovCheckJ(j.status, KGOV_IMPORT_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = KGOV_IMPORT_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getKgovImportV2(id) {
+  const j = _kgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listKgovImportsV2() {
+  return [..._kgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleKgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _kgovPsV2.values())
+    if (
+      p.status === KGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _kgovIdleMs
+    ) {
+      p.status = KGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckKgovImportsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _kgovJsV2.values())
+    if (
+      j.status === KGOV_IMPORT_LIFECYCLE_V2.IMPORTING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _kgovStuckMs
+    ) {
+      j.status = KGOV_IMPORT_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getKnowledgeGraphGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(KGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _kgovPsV2.values()) profilesByStatus[p.status]++;
+  const importsByStatus = {};
+  for (const v of Object.values(KGOV_IMPORT_LIFECYCLE_V2))
+    importsByStatus[v] = 0;
+  for (const j of _kgovJsV2.values()) importsByStatus[j.status]++;
+  return {
+    totalKgovProfilesV2: _kgovPsV2.size,
+    totalKgovImportsV2: _kgovJsV2.size,
+    maxActiveKgovProfilesPerOwner: _kgovMaxActive,
+    maxPendingKgovImportsPerProfile: _kgovMaxPending,
+    kgovProfileIdleMs: _kgovIdleMs,
+    kgovImportStuckMs: _kgovStuckMs,
+    profilesByStatus,
+    importsByStatus,
+  };
+}

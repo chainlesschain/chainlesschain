@@ -580,3 +580,209 @@ export function registerMarketplaceCommand(program) {
       }
     });
 }
+
+// === Iter16 V2 governance overlay ===
+export function registerMktgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "marketplace");
+  if (!parent) return;
+  const L = async () => await import("../lib/skill-marketplace.js");
+  parent
+    .command("mktgov-enums-v2")
+    .description("Show V2 enums (mktgov maturity + order lifecycle)")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.MKTGOV_PROFILE_MATURITY_V2,
+            orderLifecycle: m.MKTGOV_ORDER_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("mktgov-config-v2")
+    .description("Show V2 config thresholds")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveMktgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingMktgovOrdersPerProfileV2(),
+            idleMs: m.getMktgovProfileIdleMsV2(),
+            stuckMs: m.getMktgovOrderStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("mktgov-set-max-active-v2 <n>")
+    .description("Set max active profiles per owner")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxActiveMktgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("mktgov-set-max-pending-v2 <n>")
+    .description("Set max pending orders per profile")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxPendingMktgovOrdersPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("mktgov-set-idle-ms-v2 <n>")
+    .description("Set profile idle threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setMktgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("mktgov-set-stuck-ms-v2 <n>")
+    .description("Set order stuck threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setMktgovOrderStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("mktgov-register-v2 <id> <owner>")
+    .description("Register V2 mktgov profile")
+    .option("--category <v>", "category")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerMktgovProfileV2({ id, owner, category: o.category }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("mktgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.activateMktgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("mktgov-suspend-v2 <id>")
+    .description("Suspend profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.suspendMktgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("mktgov-archive-v2 <id>")
+    .description("Archive profile (terminal)")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.archiveMktgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("mktgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.touchMktgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("mktgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getMktgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("mktgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listMktgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("mktgov-create-order-v2 <id> <profileId>")
+    .description("Create order (queued)")
+    .option("--listingId <v>", "listingId")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createMktgovOrderV2({ id, profileId, listingId: o.listingId }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("mktgov-processing-order-v2 <id>")
+    .description("Mark order as processing")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.processingMktgovOrderV2(id), null, 2));
+    });
+  parent
+    .command("mktgov-complete-order-v2 <id>")
+    .description("Complete order")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.completeOrderMktgovV2(id), null, 2));
+    });
+  parent
+    .command("mktgov-fail-order-v2 <id> [reason]")
+    .description("Fail order")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.failMktgovOrderV2(id, reason), null, 2));
+    });
+  parent
+    .command("mktgov-cancel-order-v2 <id> [reason]")
+    .description("Cancel order")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.cancelMktgovOrderV2(id, reason), null, 2));
+    });
+  parent
+    .command("mktgov-get-order-v2 <id>")
+    .description("Get order")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getMktgovOrderV2(id), null, 2));
+    });
+  parent
+    .command("mktgov-list-orders-v2")
+    .description("List orders")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listMktgovOrdersV2(), null, 2));
+    });
+  parent
+    .command("mktgov-auto-suspend-idle-v2")
+    .description("Auto-suspend idle profiles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoSuspendIdleMktgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("mktgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck orders")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoFailStuckMktgovOrdersV2(), null, 2));
+    });
+  parent
+    .command("mktgov-gov-stats-v2")
+    .description("V2 gov aggregate stats")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.getSkillMarketplaceGovStatsV2(), null, 2));
+    });
+}

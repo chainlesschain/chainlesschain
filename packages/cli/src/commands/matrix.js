@@ -452,7 +452,6 @@ export function registerMatrixCommand(program) {
   registerMatrixV2Command(matrix);
 }
 
-
 import {
   MX_ROOM_MATURITY_V2,
   MX_MESSAGE_LIFECYCLE_V2,
@@ -484,30 +483,183 @@ import {
 } from "../lib/matrix-bridge.js";
 
 export function registerMatrixV2Command(matrix) {
-  matrix.command("enums-v2").description("Show V2 enums").action(() => { console.log(JSON.stringify({ MX_ROOM_MATURITY_V2, MX_MESSAGE_LIFECYCLE_V2 }, null, 2)); });
-  matrix.command("register-room-v2").description("Register a matrix room profile (pending)")
-    .requiredOption("--id <id>").requiredOption("--owner <owner>").option("--alias <alias>")
-    .action((o) => { console.log(JSON.stringify(registerMatrixRoomV2(o), null, 2)); });
-  matrix.command("activate-room-v2 <id>").description("Activate room").action((id) => { console.log(JSON.stringify(activateMatrixRoomV2(id), null, 2)); });
-  matrix.command("mute-room-v2 <id>").description("Mute room").action((id) => { console.log(JSON.stringify(muteMatrixRoomV2(id), null, 2)); });
-  matrix.command("archive-room-v2 <id>").description("Archive room (terminal)").action((id) => { console.log(JSON.stringify(archiveMatrixRoomV2(id), null, 2)); });
-  matrix.command("touch-room-v2 <id>").description("Refresh lastTouchedAt").action((id) => { console.log(JSON.stringify(touchMatrixRoomV2(id), null, 2)); });
-  matrix.command("get-room-v2 <id>").description("Get a room").action((id) => { console.log(JSON.stringify(getMatrixRoomV2(id), null, 2)); });
-  matrix.command("list-rooms-v2").description("List rooms").action(() => { console.log(JSON.stringify(listMatrixRoomsV2(), null, 2)); });
-  matrix.command("create-msg-v2").description("Create a matrix message (queued)")
-    .requiredOption("--id <id>").requiredOption("--room-id <roomId>").option("--body <body>")
-    .action((o) => { console.log(JSON.stringify(createMatrixMessageV2({ id: o.id, roomId: o.roomId, body: o.body }), null, 2)); });
-  matrix.command("start-msg-v2 <id>").description("Transition msg to sending").action((id) => { console.log(JSON.stringify(startMatrixMessageV2(id), null, 2)); });
-  matrix.command("deliver-msg-v2 <id>").description("Transition msg to delivered").action((id) => { console.log(JSON.stringify(deliverMatrixMessageV2(id), null, 2)); });
-  matrix.command("fail-msg-v2 <id>").description("Fail msg").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(failMatrixMessageV2(id, o.reason), null, 2)); });
-  matrix.command("cancel-msg-v2 <id>").description("Cancel msg").option("--reason <r>").action((id, o) => { console.log(JSON.stringify(cancelMatrixMessageV2(id, o.reason), null, 2)); });
-  matrix.command("get-msg-v2 <id>").description("Get msg").action((id) => { console.log(JSON.stringify(getMatrixMessageV2(id), null, 2)); });
-  matrix.command("list-msgs-v2").description("List msgs").action(() => { console.log(JSON.stringify(listMatrixMessagesV2(), null, 2)); });
-  matrix.command("set-max-active-rooms-v2 <n>").description("Set per-owner active cap").action((n) => { setMaxActiveMatrixRoomsPerOwnerV2(Number(n)); console.log(JSON.stringify({ maxActiveMatrixRoomsPerOwner: getMaxActiveMatrixRoomsPerOwnerV2() }, null, 2)); });
-  matrix.command("set-max-pending-msgs-v2 <n>").description("Set per-room pending cap").action((n) => { setMaxPendingMatrixMessagesPerRoomV2(Number(n)); console.log(JSON.stringify({ maxPendingMatrixMessagesPerRoom: getMaxPendingMatrixMessagesPerRoomV2() }, null, 2)); });
-  matrix.command("set-room-idle-ms-v2 <n>").description("Set idle threshold").action((n) => { setMatrixRoomIdleMsV2(Number(n)); console.log(JSON.stringify({ matrixRoomIdleMs: getMatrixRoomIdleMsV2() }, null, 2)); });
-  matrix.command("set-msg-stuck-ms-v2 <n>").description("Set stuck threshold").action((n) => { setMatrixMessageStuckMsV2(Number(n)); console.log(JSON.stringify({ matrixMessageStuckMs: getMatrixMessageStuckMsV2() }, null, 2)); });
-  matrix.command("auto-mute-idle-rooms-v2").description("Auto-mute idle rooms").action(() => { console.log(JSON.stringify(autoMuteIdleMatrixRoomsV2(), null, 2)); });
-  matrix.command("auto-fail-stuck-msgs-v2").description("Auto-fail stuck sending msgs").action(() => { console.log(JSON.stringify(autoFailStuckMatrixMessagesV2(), null, 2)); });
-  matrix.command("stats-v2").description("V2 aggregate stats").action(() => { console.log(JSON.stringify(getMatrixBridgeStatsV2(), null, 2)); });
+  matrix
+    .command("enums-v2")
+    .description("Show V2 enums")
+    .action(() => {
+      console.log(
+        JSON.stringify(
+          { MX_ROOM_MATURITY_V2, MX_MESSAGE_LIFECYCLE_V2 },
+          null,
+          2,
+        ),
+      );
+    });
+  matrix
+    .command("register-room-v2")
+    .description("Register a matrix room profile (pending)")
+    .requiredOption("--id <id>")
+    .requiredOption("--owner <owner>")
+    .option("--alias <alias>")
+    .action((o) => {
+      console.log(JSON.stringify(registerMatrixRoomV2(o), null, 2));
+    });
+  matrix
+    .command("activate-room-v2 <id>")
+    .description("Activate room")
+    .action((id) => {
+      console.log(JSON.stringify(activateMatrixRoomV2(id), null, 2));
+    });
+  matrix
+    .command("mute-room-v2 <id>")
+    .description("Mute room")
+    .action((id) => {
+      console.log(JSON.stringify(muteMatrixRoomV2(id), null, 2));
+    });
+  matrix
+    .command("archive-room-v2 <id>")
+    .description("Archive room (terminal)")
+    .action((id) => {
+      console.log(JSON.stringify(archiveMatrixRoomV2(id), null, 2));
+    });
+  matrix
+    .command("touch-room-v2 <id>")
+    .description("Refresh lastTouchedAt")
+    .action((id) => {
+      console.log(JSON.stringify(touchMatrixRoomV2(id), null, 2));
+    });
+  matrix
+    .command("get-room-v2 <id>")
+    .description("Get a room")
+    .action((id) => {
+      console.log(JSON.stringify(getMatrixRoomV2(id), null, 2));
+    });
+  matrix
+    .command("list-rooms-v2")
+    .description("List rooms")
+    .action(() => {
+      console.log(JSON.stringify(listMatrixRoomsV2(), null, 2));
+    });
+  matrix
+    .command("create-msg-v2")
+    .description("Create a matrix message (queued)")
+    .requiredOption("--id <id>")
+    .requiredOption("--room-id <roomId>")
+    .option("--body <body>")
+    .action((o) => {
+      console.log(
+        JSON.stringify(
+          createMatrixMessageV2({ id: o.id, roomId: o.roomId, body: o.body }),
+          null,
+          2,
+        ),
+      );
+    });
+  matrix
+    .command("start-msg-v2 <id>")
+    .description("Transition msg to sending")
+    .action((id) => {
+      console.log(JSON.stringify(startMatrixMessageV2(id), null, 2));
+    });
+  matrix
+    .command("deliver-msg-v2 <id>")
+    .description("Transition msg to delivered")
+    .action((id) => {
+      console.log(JSON.stringify(deliverMatrixMessageV2(id), null, 2));
+    });
+  matrix
+    .command("fail-msg-v2 <id>")
+    .description("Fail msg")
+    .option("--reason <r>")
+    .action((id, o) => {
+      console.log(JSON.stringify(failMatrixMessageV2(id, o.reason), null, 2));
+    });
+  matrix
+    .command("cancel-msg-v2 <id>")
+    .description("Cancel msg")
+    .option("--reason <r>")
+    .action((id, o) => {
+      console.log(JSON.stringify(cancelMatrixMessageV2(id, o.reason), null, 2));
+    });
+  matrix
+    .command("get-msg-v2 <id>")
+    .description("Get msg")
+    .action((id) => {
+      console.log(JSON.stringify(getMatrixMessageV2(id), null, 2));
+    });
+  matrix
+    .command("list-msgs-v2")
+    .description("List msgs")
+    .action(() => {
+      console.log(JSON.stringify(listMatrixMessagesV2(), null, 2));
+    });
+  matrix
+    .command("set-max-active-rooms-v2 <n>")
+    .description("Set per-owner active cap")
+    .action((n) => {
+      setMaxActiveMatrixRoomsPerOwnerV2(Number(n));
+      console.log(
+        JSON.stringify(
+          { maxActiveMatrixRoomsPerOwner: getMaxActiveMatrixRoomsPerOwnerV2() },
+          null,
+          2,
+        ),
+      );
+    });
+  matrix
+    .command("set-max-pending-msgs-v2 <n>")
+    .description("Set per-room pending cap")
+    .action((n) => {
+      setMaxPendingMatrixMessagesPerRoomV2(Number(n));
+      console.log(
+        JSON.stringify(
+          {
+            maxPendingMatrixMessagesPerRoom:
+              getMaxPendingMatrixMessagesPerRoomV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  matrix
+    .command("set-room-idle-ms-v2 <n>")
+    .description("Set idle threshold")
+    .action((n) => {
+      setMatrixRoomIdleMsV2(Number(n));
+      console.log(
+        JSON.stringify({ matrixRoomIdleMs: getMatrixRoomIdleMsV2() }, null, 2),
+      );
+    });
+  matrix
+    .command("set-msg-stuck-ms-v2 <n>")
+    .description("Set stuck threshold")
+    .action((n) => {
+      setMatrixMessageStuckMsV2(Number(n));
+      console.log(
+        JSON.stringify(
+          { matrixMessageStuckMs: getMatrixMessageStuckMsV2() },
+          null,
+          2,
+        ),
+      );
+    });
+  matrix
+    .command("auto-mute-idle-rooms-v2")
+    .description("Auto-mute idle rooms")
+    .action(() => {
+      console.log(JSON.stringify(autoMuteIdleMatrixRoomsV2(), null, 2));
+    });
+  matrix
+    .command("auto-fail-stuck-msgs-v2")
+    .description("Auto-fail stuck sending msgs")
+    .action(() => {
+      console.log(JSON.stringify(autoFailStuckMatrixMessagesV2(), null, 2));
+    });
+  matrix
+    .command("stats-v2")
+    .description("V2 aggregate stats")
+    .action(() => {
+      console.log(JSON.stringify(getMatrixBridgeStatsV2(), null, 2));
+    });
 }

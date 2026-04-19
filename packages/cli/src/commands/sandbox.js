@@ -839,3 +839,209 @@ export function registerSandboxCommand(program) {
       }
     });
 }
+
+// === Iter16 V2 governance overlay ===
+export function registerSboxGovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "sandbox");
+  if (!parent) return;
+  const L = async () => await import("../lib/sandbox-v2.js");
+  parent
+    .command("sbox-gov-enums-v2")
+    .description("Show V2 enums (sbox maturity + exec lifecycle)")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.SBOX_PROFILE_MATURITY_V2,
+            execLifecycle: m.SBOX_EXEC_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("sbox-gov-config-v2")
+    .description("Show V2 config thresholds")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveSboxProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingSboxExecsPerProfileV2(),
+            idleMs: m.getSboxProfileIdleMsV2(),
+            stuckMs: m.getSboxExecStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("sbox-gov-set-max-active-v2 <n>")
+    .description("Set max active profiles per owner")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxActiveSboxProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("sbox-gov-set-max-pending-v2 <n>")
+    .description("Set max pending execs per profile")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxPendingSboxExecsPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("sbox-gov-set-idle-ms-v2 <n>")
+    .description("Set profile idle threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setSboxProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("sbox-gov-set-stuck-ms-v2 <n>")
+    .description("Set exec stuck threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setSboxExecStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("sbox-gov-register-v2 <id> <owner>")
+    .description("Register V2 sbox profile")
+    .option("--template <v>", "template")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerSboxProfileV2({ id, owner, template: o.template }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("sbox-gov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.activateSboxProfileV2(id), null, 2));
+    });
+  parent
+    .command("sbox-gov-pause-v2 <id>")
+    .description("Pause profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.pauseSboxProfileV2(id), null, 2));
+    });
+  parent
+    .command("sbox-gov-archive-v2 <id>")
+    .description("Archive profile (terminal)")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.archiveSboxProfileV2(id), null, 2));
+    });
+  parent
+    .command("sbox-gov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.touchSboxProfileV2(id), null, 2));
+    });
+  parent
+    .command("sbox-gov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getSboxProfileV2(id), null, 2));
+    });
+  parent
+    .command("sbox-gov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listSboxProfilesV2(), null, 2));
+    });
+  parent
+    .command("sbox-gov-create-exec-v2 <id> <profileId>")
+    .description("Create exec (queued)")
+    .option("--command <v>", "command")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createSboxExecV2({ id, profileId, command: o.command }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("sbox-gov-running-exec-v2 <id>")
+    .description("Mark exec as running")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.runningSboxExecV2(id), null, 2));
+    });
+  parent
+    .command("sbox-gov-complete-exec-v2 <id>")
+    .description("Complete exec")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.completeExecSboxV2(id), null, 2));
+    });
+  parent
+    .command("sbox-gov-fail-exec-v2 <id> [reason]")
+    .description("Fail exec")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.failSboxExecV2(id, reason), null, 2));
+    });
+  parent
+    .command("sbox-gov-cancel-exec-v2 <id> [reason]")
+    .description("Cancel exec")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.cancelSboxExecV2(id, reason), null, 2));
+    });
+  parent
+    .command("sbox-gov-get-exec-v2 <id>")
+    .description("Get exec")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getSboxExecV2(id), null, 2));
+    });
+  parent
+    .command("sbox-gov-list-execs-v2")
+    .description("List execs")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listSboxExecsV2(), null, 2));
+    });
+  parent
+    .command("sbox-gov-auto-pause-idle-v2")
+    .description("Auto-pause idle profiles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoPauseIdleSboxProfilesV2(), null, 2));
+    });
+  parent
+    .command("sbox-gov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck execs")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoFailStuckSboxExecsV2(), null, 2));
+    });
+  parent
+    .command("sbox-gov-gov-stats-v2")
+    .description("V2 gov aggregate stats")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.getSandboxGovStatsV2(), null, 2));
+    });
+}

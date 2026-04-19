@@ -821,25 +821,53 @@ export function _resetV2State() {
 
 export { _v2Tasks, _v2Cards, _v2TypedSubs };
 
-
 // ===== V2 Surface: A2A Protocol governance overlay (CLI v0.136.0) =====
 export const A2A_AGENT_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", SUSPENDED: "suspended", RETIRED: "retired",
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  RETIRED: "retired",
 });
 export const A2A_MESSAGE_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", SENDING: "sending", DELIVERED: "delivered", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  SENDING: "sending",
+  DELIVERED: "delivered",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 
 const _a2aAgentTrans = new Map([
-  [A2A_AGENT_MATURITY_V2.PENDING, new Set([A2A_AGENT_MATURITY_V2.ACTIVE, A2A_AGENT_MATURITY_V2.RETIRED])],
-  [A2A_AGENT_MATURITY_V2.ACTIVE, new Set([A2A_AGENT_MATURITY_V2.SUSPENDED, A2A_AGENT_MATURITY_V2.RETIRED])],
-  [A2A_AGENT_MATURITY_V2.SUSPENDED, new Set([A2A_AGENT_MATURITY_V2.ACTIVE, A2A_AGENT_MATURITY_V2.RETIRED])],
+  [
+    A2A_AGENT_MATURITY_V2.PENDING,
+    new Set([A2A_AGENT_MATURITY_V2.ACTIVE, A2A_AGENT_MATURITY_V2.RETIRED]),
+  ],
+  [
+    A2A_AGENT_MATURITY_V2.ACTIVE,
+    new Set([A2A_AGENT_MATURITY_V2.SUSPENDED, A2A_AGENT_MATURITY_V2.RETIRED]),
+  ],
+  [
+    A2A_AGENT_MATURITY_V2.SUSPENDED,
+    new Set([A2A_AGENT_MATURITY_V2.ACTIVE, A2A_AGENT_MATURITY_V2.RETIRED]),
+  ],
   [A2A_AGENT_MATURITY_V2.RETIRED, new Set()],
 ]);
 const _a2aAgentTerminal = new Set([A2A_AGENT_MATURITY_V2.RETIRED]);
 const _a2aMsgTrans = new Map([
-  [A2A_MESSAGE_LIFECYCLE_V2.QUEUED, new Set([A2A_MESSAGE_LIFECYCLE_V2.SENDING, A2A_MESSAGE_LIFECYCLE_V2.CANCELLED])],
-  [A2A_MESSAGE_LIFECYCLE_V2.SENDING, new Set([A2A_MESSAGE_LIFECYCLE_V2.DELIVERED, A2A_MESSAGE_LIFECYCLE_V2.FAILED, A2A_MESSAGE_LIFECYCLE_V2.CANCELLED])],
+  [
+    A2A_MESSAGE_LIFECYCLE_V2.QUEUED,
+    new Set([
+      A2A_MESSAGE_LIFECYCLE_V2.SENDING,
+      A2A_MESSAGE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    A2A_MESSAGE_LIFECYCLE_V2.SENDING,
+    new Set([
+      A2A_MESSAGE_LIFECYCLE_V2.DELIVERED,
+      A2A_MESSAGE_LIFECYCLE_V2.FAILED,
+      A2A_MESSAGE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [A2A_MESSAGE_LIFECYCLE_V2.DELIVERED, new Set()],
   [A2A_MESSAGE_LIFECYCLE_V2.FAILED, new Set()],
   [A2A_MESSAGE_LIFECYCLE_V2.CANCELLED, new Set()],
@@ -852,21 +880,45 @@ let _a2aMaxPendingPerAgent = 20;
 let _a2aAgentIdleMs = 6 * 60 * 60 * 1000;
 let _a2aMsgStuckMs = 3 * 60 * 1000;
 
-function _a2aPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+function _a2aPos(n, lbl) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${lbl} must be positive integer`);
+  return v;
+}
 
-export function setMaxActiveA2aAgentsPerOwnerV2(n) { _a2aMaxActivePerOwner = _a2aPos(n, "maxActiveA2aAgentsPerOwner"); }
-export function getMaxActiveA2aAgentsPerOwnerV2() { return _a2aMaxActivePerOwner; }
-export function setMaxPendingA2aMessagesPerAgentV2(n) { _a2aMaxPendingPerAgent = _a2aPos(n, "maxPendingA2aMessagesPerAgent"); }
-export function getMaxPendingA2aMessagesPerAgentV2() { return _a2aMaxPendingPerAgent; }
-export function setA2aAgentIdleMsV2(n) { _a2aAgentIdleMs = _a2aPos(n, "a2aAgentIdleMs"); }
-export function getA2aAgentIdleMsV2() { return _a2aAgentIdleMs; }
-export function setA2aMessageStuckMsV2(n) { _a2aMsgStuckMs = _a2aPos(n, "a2aMessageStuckMs"); }
-export function getA2aMessageStuckMsV2() { return _a2aMsgStuckMs; }
+export function setMaxActiveA2aAgentsPerOwnerV2(n) {
+  _a2aMaxActivePerOwner = _a2aPos(n, "maxActiveA2aAgentsPerOwner");
+}
+export function getMaxActiveA2aAgentsPerOwnerV2() {
+  return _a2aMaxActivePerOwner;
+}
+export function setMaxPendingA2aMessagesPerAgentV2(n) {
+  _a2aMaxPendingPerAgent = _a2aPos(n, "maxPendingA2aMessagesPerAgent");
+}
+export function getMaxPendingA2aMessagesPerAgentV2() {
+  return _a2aMaxPendingPerAgent;
+}
+export function setA2aAgentIdleMsV2(n) {
+  _a2aAgentIdleMs = _a2aPos(n, "a2aAgentIdleMs");
+}
+export function getA2aAgentIdleMsV2() {
+  return _a2aAgentIdleMs;
+}
+export function setA2aMessageStuckMsV2(n) {
+  _a2aMsgStuckMs = _a2aPos(n, "a2aMessageStuckMs");
+}
+export function getA2aMessageStuckMsV2() {
+  return _a2aMsgStuckMs;
+}
 
 export function _resetStateA2aProtocolV2() {
-  _a2aAgents.clear(); _a2aMsgs.clear();
-  _a2aMaxActivePerOwner = 12; _a2aMaxPendingPerAgent = 20;
-  _a2aAgentIdleMs = 6 * 60 * 60 * 1000; _a2aMsgStuckMs = 3 * 60 * 1000;
+  _a2aAgents.clear();
+  _a2aMsgs.clear();
+  _a2aMaxActivePerOwner = 12;
+  _a2aMaxPendingPerAgent = 20;
+  _a2aAgentIdleMs = 6 * 60 * 60 * 1000;
+  _a2aMsgStuckMs = 3 * 60 * 1000;
 }
 
 export function registerA2aAgentV2({ id, owner, capabilities, metadata } = {}) {
@@ -874,54 +926,270 @@ export function registerA2aAgentV2({ id, owner, capabilities, metadata } = {}) {
   if (!owner || typeof owner !== "string") throw new Error("owner is required");
   if (_a2aAgents.has(id)) throw new Error(`a2a agent ${id} already registered`);
   const now = Date.now();
-  const a = { id, owner, capabilities: Array.isArray(capabilities) ? [...capabilities] : [], status: A2A_AGENT_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, retiredAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  const a = {
+    id,
+    owner,
+    capabilities: Array.isArray(capabilities) ? [...capabilities] : [],
+    status: A2A_AGENT_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    retiredAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
   _a2aAgents.set(id, a);
-  return { ...a, capabilities: [...a.capabilities], metadata: { ...a.metadata } };
+  return {
+    ...a,
+    capabilities: [...a.capabilities],
+    metadata: { ...a.metadata },
+  };
 }
-function _a2aCheckA(from, to) { const al = _a2aAgentTrans.get(from); if (!al || !al.has(to)) throw new Error(`invalid a2a agent transition ${from} → ${to}`); }
-function _a2aCountActive(owner) { let n = 0; for (const a of _a2aAgents.values()) if (a.owner === owner && a.status === A2A_AGENT_MATURITY_V2.ACTIVE) n++; return n; }
+function _a2aCheckA(from, to) {
+  const al = _a2aAgentTrans.get(from);
+  if (!al || !al.has(to))
+    throw new Error(`invalid a2a agent transition ${from} → ${to}`);
+}
+function _a2aCountActive(owner) {
+  let n = 0;
+  for (const a of _a2aAgents.values())
+    if (a.owner === owner && a.status === A2A_AGENT_MATURITY_V2.ACTIVE) n++;
+  return n;
+}
 
 export function activateA2aAgentV2(id) {
-  const a = _a2aAgents.get(id); if (!a) throw new Error(`a2a agent ${id} not found`);
+  const a = _a2aAgents.get(id);
+  if (!a) throw new Error(`a2a agent ${id} not found`);
   _a2aCheckA(a.status, A2A_AGENT_MATURITY_V2.ACTIVE);
   const recovery = a.status === A2A_AGENT_MATURITY_V2.SUSPENDED;
-  if (!recovery) { const c = _a2aCountActive(a.owner); if (c >= _a2aMaxActivePerOwner) throw new Error(`max active a2a agents per owner (${_a2aMaxActivePerOwner}) reached for ${a.owner}`); }
-  const now = Date.now(); a.status = A2A_AGENT_MATURITY_V2.ACTIVE; a.updatedAt = now; a.lastTouchedAt = now; if (!a.activatedAt) a.activatedAt = now;
-  return { ...a, capabilities: [...a.capabilities], metadata: { ...a.metadata } };
-}
-export function suspendA2aAgentV2(id) { const a = _a2aAgents.get(id); if (!a) throw new Error(`a2a agent ${id} not found`); _a2aCheckA(a.status, A2A_AGENT_MATURITY_V2.SUSPENDED); a.status = A2A_AGENT_MATURITY_V2.SUSPENDED; a.updatedAt = Date.now(); return { ...a, capabilities: [...a.capabilities], metadata: { ...a.metadata } }; }
-export function retireA2aAgentV2(id) { const a = _a2aAgents.get(id); if (!a) throw new Error(`a2a agent ${id} not found`); _a2aCheckA(a.status, A2A_AGENT_MATURITY_V2.RETIRED); const now = Date.now(); a.status = A2A_AGENT_MATURITY_V2.RETIRED; a.updatedAt = now; if (!a.retiredAt) a.retiredAt = now; return { ...a, capabilities: [...a.capabilities], metadata: { ...a.metadata } }; }
-export function touchA2aAgentV2(id) { const a = _a2aAgents.get(id); if (!a) throw new Error(`a2a agent ${id} not found`); if (_a2aAgentTerminal.has(a.status)) throw new Error(`cannot touch terminal a2a agent ${id}`); const now = Date.now(); a.lastTouchedAt = now; a.updatedAt = now; return { ...a, capabilities: [...a.capabilities], metadata: { ...a.metadata } }; }
-export function getA2aAgentV2(id) { const a = _a2aAgents.get(id); if (!a) return null; return { ...a, capabilities: [...a.capabilities], metadata: { ...a.metadata } }; }
-export function listA2aAgentsV2() { return [..._a2aAgents.values()].map((a) => ({ ...a, capabilities: [...a.capabilities], metadata: { ...a.metadata } })); }
-
-function _a2aCountPending(aid) { let n = 0; for (const m of _a2aMsgs.values()) if (m.agentId === aid && (m.status === A2A_MESSAGE_LIFECYCLE_V2.QUEUED || m.status === A2A_MESSAGE_LIFECYCLE_V2.SENDING)) n++; return n; }
-
-export function createA2aMessageV2({ id, agentId, peerId, payload, metadata } = {}) {
-  if (!id || typeof id !== "string") throw new Error("id is required");
-  if (!agentId || typeof agentId !== "string") throw new Error("agentId is required");
-  if (_a2aMsgs.has(id)) throw new Error(`a2a message ${id} already exists`);
-  if (!_a2aAgents.has(agentId)) throw new Error(`a2a agent ${agentId} not found`);
-  const pending = _a2aCountPending(agentId);
-  if (pending >= _a2aMaxPendingPerAgent) throw new Error(`max pending a2a messages per agent (${_a2aMaxPendingPerAgent}) reached for ${agentId}`);
+  if (!recovery) {
+    const c = _a2aCountActive(a.owner);
+    if (c >= _a2aMaxActivePerOwner)
+      throw new Error(
+        `max active a2a agents per owner (${_a2aMaxActivePerOwner}) reached for ${a.owner}`,
+      );
+  }
   const now = Date.now();
-  const m = { id, agentId, peerId: peerId || "", payload: payload || "", status: A2A_MESSAGE_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  a.status = A2A_AGENT_MATURITY_V2.ACTIVE;
+  a.updatedAt = now;
+  a.lastTouchedAt = now;
+  if (!a.activatedAt) a.activatedAt = now;
+  return {
+    ...a,
+    capabilities: [...a.capabilities],
+    metadata: { ...a.metadata },
+  };
+}
+export function suspendA2aAgentV2(id) {
+  const a = _a2aAgents.get(id);
+  if (!a) throw new Error(`a2a agent ${id} not found`);
+  _a2aCheckA(a.status, A2A_AGENT_MATURITY_V2.SUSPENDED);
+  a.status = A2A_AGENT_MATURITY_V2.SUSPENDED;
+  a.updatedAt = Date.now();
+  return {
+    ...a,
+    capabilities: [...a.capabilities],
+    metadata: { ...a.metadata },
+  };
+}
+export function retireA2aAgentV2(id) {
+  const a = _a2aAgents.get(id);
+  if (!a) throw new Error(`a2a agent ${id} not found`);
+  _a2aCheckA(a.status, A2A_AGENT_MATURITY_V2.RETIRED);
+  const now = Date.now();
+  a.status = A2A_AGENT_MATURITY_V2.RETIRED;
+  a.updatedAt = now;
+  if (!a.retiredAt) a.retiredAt = now;
+  return {
+    ...a,
+    capabilities: [...a.capabilities],
+    metadata: { ...a.metadata },
+  };
+}
+export function touchA2aAgentV2(id) {
+  const a = _a2aAgents.get(id);
+  if (!a) throw new Error(`a2a agent ${id} not found`);
+  if (_a2aAgentTerminal.has(a.status))
+    throw new Error(`cannot touch terminal a2a agent ${id}`);
+  const now = Date.now();
+  a.lastTouchedAt = now;
+  a.updatedAt = now;
+  return {
+    ...a,
+    capabilities: [...a.capabilities],
+    metadata: { ...a.metadata },
+  };
+}
+export function getA2aAgentV2(id) {
+  const a = _a2aAgents.get(id);
+  if (!a) return null;
+  return {
+    ...a,
+    capabilities: [...a.capabilities],
+    metadata: { ...a.metadata },
+  };
+}
+export function listA2aAgentsV2() {
+  return [..._a2aAgents.values()].map((a) => ({
+    ...a,
+    capabilities: [...a.capabilities],
+    metadata: { ...a.metadata },
+  }));
+}
+
+function _a2aCountPending(aid) {
+  let n = 0;
+  for (const m of _a2aMsgs.values())
+    if (
+      m.agentId === aid &&
+      (m.status === A2A_MESSAGE_LIFECYCLE_V2.QUEUED ||
+        m.status === A2A_MESSAGE_LIFECYCLE_V2.SENDING)
+    )
+      n++;
+  return n;
+}
+
+export function createA2aMessageV2({
+  id,
+  agentId,
+  peerId,
+  payload,
+  metadata,
+} = {}) {
+  if (!id || typeof id !== "string") throw new Error("id is required");
+  if (!agentId || typeof agentId !== "string")
+    throw new Error("agentId is required");
+  if (_a2aMsgs.has(id)) throw new Error(`a2a message ${id} already exists`);
+  if (!_a2aAgents.has(agentId))
+    throw new Error(`a2a agent ${agentId} not found`);
+  const pending = _a2aCountPending(agentId);
+  if (pending >= _a2aMaxPendingPerAgent)
+    throw new Error(
+      `max pending a2a messages per agent (${_a2aMaxPendingPerAgent}) reached for ${agentId}`,
+    );
+  const now = Date.now();
+  const m = {
+    id,
+    agentId,
+    peerId: peerId || "",
+    payload: payload || "",
+    status: A2A_MESSAGE_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
   _a2aMsgs.set(id, m);
   return { ...m, metadata: { ...m.metadata } };
 }
-function _a2aCheckM(from, to) { const al = _a2aMsgTrans.get(from); if (!al || !al.has(to)) throw new Error(`invalid a2a message transition ${from} → ${to}`); }
-export function startA2aMessageV2(id) { const m = _a2aMsgs.get(id); if (!m) throw new Error(`a2a message ${id} not found`); _a2aCheckM(m.status, A2A_MESSAGE_LIFECYCLE_V2.SENDING); const now = Date.now(); m.status = A2A_MESSAGE_LIFECYCLE_V2.SENDING; m.updatedAt = now; if (!m.startedAt) m.startedAt = now; return { ...m, metadata: { ...m.metadata } }; }
-export function deliverA2aMessageV2(id) { const m = _a2aMsgs.get(id); if (!m) throw new Error(`a2a message ${id} not found`); _a2aCheckM(m.status, A2A_MESSAGE_LIFECYCLE_V2.DELIVERED); const now = Date.now(); m.status = A2A_MESSAGE_LIFECYCLE_V2.DELIVERED; m.updatedAt = now; if (!m.settledAt) m.settledAt = now; return { ...m, metadata: { ...m.metadata } }; }
-export function failA2aMessageV2(id, reason) { const m = _a2aMsgs.get(id); if (!m) throw new Error(`a2a message ${id} not found`); _a2aCheckM(m.status, A2A_MESSAGE_LIFECYCLE_V2.FAILED); const now = Date.now(); m.status = A2A_MESSAGE_LIFECYCLE_V2.FAILED; m.updatedAt = now; if (!m.settledAt) m.settledAt = now; if (reason) m.metadata.failReason = String(reason); return { ...m, metadata: { ...m.metadata } }; }
-export function cancelA2aMessageV2(id, reason) { const m = _a2aMsgs.get(id); if (!m) throw new Error(`a2a message ${id} not found`); _a2aCheckM(m.status, A2A_MESSAGE_LIFECYCLE_V2.CANCELLED); const now = Date.now(); m.status = A2A_MESSAGE_LIFECYCLE_V2.CANCELLED; m.updatedAt = now; if (!m.settledAt) m.settledAt = now; if (reason) m.metadata.cancelReason = String(reason); return { ...m, metadata: { ...m.metadata } }; }
-export function getA2aMessageV2(id) { const m = _a2aMsgs.get(id); if (!m) return null; return { ...m, metadata: { ...m.metadata } }; }
-export function listA2aMessagesV2() { return [..._a2aMsgs.values()].map((m) => ({ ...m, metadata: { ...m.metadata } })); }
+function _a2aCheckM(from, to) {
+  const al = _a2aMsgTrans.get(from);
+  if (!al || !al.has(to))
+    throw new Error(`invalid a2a message transition ${from} → ${to}`);
+}
+export function startA2aMessageV2(id) {
+  const m = _a2aMsgs.get(id);
+  if (!m) throw new Error(`a2a message ${id} not found`);
+  _a2aCheckM(m.status, A2A_MESSAGE_LIFECYCLE_V2.SENDING);
+  const now = Date.now();
+  m.status = A2A_MESSAGE_LIFECYCLE_V2.SENDING;
+  m.updatedAt = now;
+  if (!m.startedAt) m.startedAt = now;
+  return { ...m, metadata: { ...m.metadata } };
+}
+export function deliverA2aMessageV2(id) {
+  const m = _a2aMsgs.get(id);
+  if (!m) throw new Error(`a2a message ${id} not found`);
+  _a2aCheckM(m.status, A2A_MESSAGE_LIFECYCLE_V2.DELIVERED);
+  const now = Date.now();
+  m.status = A2A_MESSAGE_LIFECYCLE_V2.DELIVERED;
+  m.updatedAt = now;
+  if (!m.settledAt) m.settledAt = now;
+  return { ...m, metadata: { ...m.metadata } };
+}
+export function failA2aMessageV2(id, reason) {
+  const m = _a2aMsgs.get(id);
+  if (!m) throw new Error(`a2a message ${id} not found`);
+  _a2aCheckM(m.status, A2A_MESSAGE_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  m.status = A2A_MESSAGE_LIFECYCLE_V2.FAILED;
+  m.updatedAt = now;
+  if (!m.settledAt) m.settledAt = now;
+  if (reason) m.metadata.failReason = String(reason);
+  return { ...m, metadata: { ...m.metadata } };
+}
+export function cancelA2aMessageV2(id, reason) {
+  const m = _a2aMsgs.get(id);
+  if (!m) throw new Error(`a2a message ${id} not found`);
+  _a2aCheckM(m.status, A2A_MESSAGE_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  m.status = A2A_MESSAGE_LIFECYCLE_V2.CANCELLED;
+  m.updatedAt = now;
+  if (!m.settledAt) m.settledAt = now;
+  if (reason) m.metadata.cancelReason = String(reason);
+  return { ...m, metadata: { ...m.metadata } };
+}
+export function getA2aMessageV2(id) {
+  const m = _a2aMsgs.get(id);
+  if (!m) return null;
+  return { ...m, metadata: { ...m.metadata } };
+}
+export function listA2aMessagesV2() {
+  return [..._a2aMsgs.values()].map((m) => ({
+    ...m,
+    metadata: { ...m.metadata },
+  }));
+}
 
-export function autoSuspendIdleA2aAgentsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const a of _a2aAgents.values()) if (a.status === A2A_AGENT_MATURITY_V2.ACTIVE && (t - a.lastTouchedAt) >= _a2aAgentIdleMs) { a.status = A2A_AGENT_MATURITY_V2.SUSPENDED; a.updatedAt = t; flipped.push(a.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckA2aMessagesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const m of _a2aMsgs.values()) if (m.status === A2A_MESSAGE_LIFECYCLE_V2.SENDING && m.startedAt != null && (t - m.startedAt) >= _a2aMsgStuckMs) { m.status = A2A_MESSAGE_LIFECYCLE_V2.FAILED; m.updatedAt = t; if (!m.settledAt) m.settledAt = t; m.metadata.failReason = "auto-fail-stuck"; flipped.push(m.id); } return { flipped, count: flipped.length }; }
+export function autoSuspendIdleA2aAgentsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const a of _a2aAgents.values())
+    if (
+      a.status === A2A_AGENT_MATURITY_V2.ACTIVE &&
+      t - a.lastTouchedAt >= _a2aAgentIdleMs
+    ) {
+      a.status = A2A_AGENT_MATURITY_V2.SUSPENDED;
+      a.updatedAt = t;
+      flipped.push(a.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckA2aMessagesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const m of _a2aMsgs.values())
+    if (
+      m.status === A2A_MESSAGE_LIFECYCLE_V2.SENDING &&
+      m.startedAt != null &&
+      t - m.startedAt >= _a2aMsgStuckMs
+    ) {
+      m.status = A2A_MESSAGE_LIFECYCLE_V2.FAILED;
+      m.updatedAt = t;
+      if (!m.settledAt) m.settledAt = t;
+      m.metadata.failReason = "auto-fail-stuck";
+      flipped.push(m.id);
+    }
+  return { flipped, count: flipped.length };
+}
 
 export function getA2aProtocolGovStatsV2() {
-  const agentsByStatus = {}; for (const s of Object.values(A2A_AGENT_MATURITY_V2)) agentsByStatus[s] = 0; for (const a of _a2aAgents.values()) agentsByStatus[a.status]++;
-  const messagesByStatus = {}; for (const s of Object.values(A2A_MESSAGE_LIFECYCLE_V2)) messagesByStatus[s] = 0; for (const m of _a2aMsgs.values()) messagesByStatus[m.status]++;
-  return { totalAgentsV2: _a2aAgents.size, totalMessagesV2: _a2aMsgs.size, maxActiveA2aAgentsPerOwner: _a2aMaxActivePerOwner, maxPendingA2aMessagesPerAgent: _a2aMaxPendingPerAgent, a2aAgentIdleMs: _a2aAgentIdleMs, a2aMessageStuckMs: _a2aMsgStuckMs, agentsByStatus, messagesByStatus };
+  const agentsByStatus = {};
+  for (const s of Object.values(A2A_AGENT_MATURITY_V2)) agentsByStatus[s] = 0;
+  for (const a of _a2aAgents.values()) agentsByStatus[a.status]++;
+  const messagesByStatus = {};
+  for (const s of Object.values(A2A_MESSAGE_LIFECYCLE_V2))
+    messagesByStatus[s] = 0;
+  for (const m of _a2aMsgs.values()) messagesByStatus[m.status]++;
+  return {
+    totalAgentsV2: _a2aAgents.size,
+    totalMessagesV2: _a2aMsgs.size,
+    maxActiveA2aAgentsPerOwner: _a2aMaxActivePerOwner,
+    maxPendingA2aMessagesPerAgent: _a2aMaxPendingPerAgent,
+    a2aAgentIdleMs: _a2aAgentIdleMs,
+    a2aMessageStuckMs: _a2aMsgStuckMs,
+    agentsByStatus,
+    messagesByStatus,
+  };
 }

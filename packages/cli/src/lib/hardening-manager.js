@@ -1030,3 +1030,344 @@ export function getHardeningStatsV2() {
     baselinesByStatus,
   };
 }
+
+// =====================================================================
+// hardening-manager V2 governance overlay (iter17)
+// =====================================================================
+export const HARDGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  DISABLED: "disabled",
+  ARCHIVED: "archived",
+});
+export const HARDGOV_SCAN_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  SCANNING: "scanning",
+  SCANNED: "scanned",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _hardgovPTrans = new Map([
+  [
+    HARDGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      HARDGOV_PROFILE_MATURITY_V2.ACTIVE,
+      HARDGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    HARDGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      HARDGOV_PROFILE_MATURITY_V2.DISABLED,
+      HARDGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    HARDGOV_PROFILE_MATURITY_V2.DISABLED,
+    new Set([
+      HARDGOV_PROFILE_MATURITY_V2.ACTIVE,
+      HARDGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [HARDGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _hardgovPTerminal = new Set([HARDGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _hardgovJTrans = new Map([
+  [
+    HARDGOV_SCAN_LIFECYCLE_V2.QUEUED,
+    new Set([
+      HARDGOV_SCAN_LIFECYCLE_V2.SCANNING,
+      HARDGOV_SCAN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    HARDGOV_SCAN_LIFECYCLE_V2.SCANNING,
+    new Set([
+      HARDGOV_SCAN_LIFECYCLE_V2.SCANNED,
+      HARDGOV_SCAN_LIFECYCLE_V2.FAILED,
+      HARDGOV_SCAN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [HARDGOV_SCAN_LIFECYCLE_V2.SCANNED, new Set()],
+  [HARDGOV_SCAN_LIFECYCLE_V2.FAILED, new Set()],
+  [HARDGOV_SCAN_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _hardgovPsV2 = new Map();
+const _hardgovJsV2 = new Map();
+let _hardgovMaxActive = 8,
+  _hardgovMaxPending = 20,
+  _hardgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _hardgovStuckMs = 60 * 1000;
+function _hardgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _hardgovCheckP(from, to) {
+  const a = _hardgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid hardgov profile transition ${from} → ${to}`);
+}
+function _hardgovCheckJ(from, to) {
+  const a = _hardgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid hardgov scan transition ${from} → ${to}`);
+}
+function _hardgovCountActive(owner) {
+  let c = 0;
+  for (const p of _hardgovPsV2.values())
+    if (p.owner === owner && p.status === HARDGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _hardgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _hardgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === HARDGOV_SCAN_LIFECYCLE_V2.QUEUED ||
+        j.status === HARDGOV_SCAN_LIFECYCLE_V2.SCANNING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveHardgovProfilesPerOwnerV2(n) {
+  _hardgovMaxActive = _hardgovPos(n, "maxActiveHardgovProfilesPerOwner");
+}
+export function getMaxActiveHardgovProfilesPerOwnerV2() {
+  return _hardgovMaxActive;
+}
+export function setMaxPendingHardgovScansPerProfileV2(n) {
+  _hardgovMaxPending = _hardgovPos(n, "maxPendingHardgovScansPerProfile");
+}
+export function getMaxPendingHardgovScansPerProfileV2() {
+  return _hardgovMaxPending;
+}
+export function setHardgovProfileIdleMsV2(n) {
+  _hardgovIdleMs = _hardgovPos(n, "hardgovProfileIdleMs");
+}
+export function getHardgovProfileIdleMsV2() {
+  return _hardgovIdleMs;
+}
+export function setHardgovScanStuckMsV2(n) {
+  _hardgovStuckMs = _hardgovPos(n, "hardgovScanStuckMs");
+}
+export function getHardgovScanStuckMsV2() {
+  return _hardgovStuckMs;
+}
+export function _resetStateHardeningManagerV2() {
+  _hardgovPsV2.clear();
+  _hardgovJsV2.clear();
+  _hardgovMaxActive = 8;
+  _hardgovMaxPending = 20;
+  _hardgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _hardgovStuckMs = 60 * 1000;
+}
+export function registerHardgovProfileV2({
+  id,
+  owner,
+  category,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_hardgovPsV2.has(id))
+    throw new Error(`hardgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    category: category || "system",
+    status: HARDGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _hardgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateHardgovProfileV2(id) {
+  const p = _hardgovPsV2.get(id);
+  if (!p) throw new Error(`hardgov profile ${id} not found`);
+  const isInitial = p.status === HARDGOV_PROFILE_MATURITY_V2.PENDING;
+  _hardgovCheckP(p.status, HARDGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _hardgovCountActive(p.owner) >= _hardgovMaxActive)
+    throw new Error(`max active hardgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = HARDGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function disableHardgovProfileV2(id) {
+  const p = _hardgovPsV2.get(id);
+  if (!p) throw new Error(`hardgov profile ${id} not found`);
+  _hardgovCheckP(p.status, HARDGOV_PROFILE_MATURITY_V2.DISABLED);
+  p.status = HARDGOV_PROFILE_MATURITY_V2.DISABLED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveHardgovProfileV2(id) {
+  const p = _hardgovPsV2.get(id);
+  if (!p) throw new Error(`hardgov profile ${id} not found`);
+  _hardgovCheckP(p.status, HARDGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = HARDGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchHardgovProfileV2(id) {
+  const p = _hardgovPsV2.get(id);
+  if (!p) throw new Error(`hardgov profile ${id} not found`);
+  if (_hardgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal hardgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getHardgovProfileV2(id) {
+  const p = _hardgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listHardgovProfilesV2() {
+  return [..._hardgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createHardgovScanV2({ id, profileId, target, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_hardgovJsV2.has(id))
+    throw new Error(`hardgov scan ${id} already exists`);
+  if (!_hardgovPsV2.has(profileId))
+    throw new Error(`hardgov profile ${profileId} not found`);
+  if (_hardgovCountPending(profileId) >= _hardgovMaxPending)
+    throw new Error(
+      `max pending hardgov scans for profile ${profileId} reached`,
+    );
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    target: target || "",
+    status: HARDGOV_SCAN_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _hardgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function scanningHardgovScanV2(id) {
+  const j = _hardgovJsV2.get(id);
+  if (!j) throw new Error(`hardgov scan ${id} not found`);
+  _hardgovCheckJ(j.status, HARDGOV_SCAN_LIFECYCLE_V2.SCANNING);
+  const now = Date.now();
+  j.status = HARDGOV_SCAN_LIFECYCLE_V2.SCANNING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeScanHardgovV2(id) {
+  const j = _hardgovJsV2.get(id);
+  if (!j) throw new Error(`hardgov scan ${id} not found`);
+  _hardgovCheckJ(j.status, HARDGOV_SCAN_LIFECYCLE_V2.SCANNED);
+  const now = Date.now();
+  j.status = HARDGOV_SCAN_LIFECYCLE_V2.SCANNED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failHardgovScanV2(id, reason) {
+  const j = _hardgovJsV2.get(id);
+  if (!j) throw new Error(`hardgov scan ${id} not found`);
+  _hardgovCheckJ(j.status, HARDGOV_SCAN_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = HARDGOV_SCAN_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelHardgovScanV2(id, reason) {
+  const j = _hardgovJsV2.get(id);
+  if (!j) throw new Error(`hardgov scan ${id} not found`);
+  _hardgovCheckJ(j.status, HARDGOV_SCAN_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = HARDGOV_SCAN_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getHardgovScanV2(id) {
+  const j = _hardgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listHardgovScansV2() {
+  return [..._hardgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoDisableIdleHardgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _hardgovPsV2.values())
+    if (
+      p.status === HARDGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _hardgovIdleMs
+    ) {
+      p.status = HARDGOV_PROFILE_MATURITY_V2.DISABLED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckHardgovScansV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _hardgovJsV2.values())
+    if (
+      j.status === HARDGOV_SCAN_LIFECYCLE_V2.SCANNING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _hardgovStuckMs
+    ) {
+      j.status = HARDGOV_SCAN_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getHardeningManagerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(HARDGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _hardgovPsV2.values()) profilesByStatus[p.status]++;
+  const scansByStatus = {};
+  for (const v of Object.values(HARDGOV_SCAN_LIFECYCLE_V2))
+    scansByStatus[v] = 0;
+  for (const j of _hardgovJsV2.values()) scansByStatus[j.status]++;
+  return {
+    totalHardgovProfilesV2: _hardgovPsV2.size,
+    totalHardgovScansV2: _hardgovJsV2.size,
+    maxActiveHardgovProfilesPerOwner: _hardgovMaxActive,
+    maxPendingHardgovScansPerProfile: _hardgovMaxPending,
+    hardgovProfileIdleMs: _hardgovIdleMs,
+    hardgovScanStuckMs: _hardgovStuckMs,
+    profilesByStatus,
+    scansByStatus,
+  };
+}

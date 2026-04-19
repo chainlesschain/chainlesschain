@@ -226,25 +226,53 @@ export class EvoMapManager {
   }
 }
 
-
 // ===== V2 Surface: EvoMap Manager governance overlay (CLI v0.135.0) =====
 export const EVOMAP_MAP_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", STALE: "stale", ARCHIVED: "archived",
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
 });
 export const EVOMAP_EVOLUTION_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", RUNNING: "running", COMPLETED: "completed", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 
 const _emMapTrans = new Map([
-  [EVOMAP_MAP_MATURITY_V2.PENDING, new Set([EVOMAP_MAP_MATURITY_V2.ACTIVE, EVOMAP_MAP_MATURITY_V2.ARCHIVED])],
-  [EVOMAP_MAP_MATURITY_V2.ACTIVE, new Set([EVOMAP_MAP_MATURITY_V2.STALE, EVOMAP_MAP_MATURITY_V2.ARCHIVED])],
-  [EVOMAP_MAP_MATURITY_V2.STALE, new Set([EVOMAP_MAP_MATURITY_V2.ACTIVE, EVOMAP_MAP_MATURITY_V2.ARCHIVED])],
+  [
+    EVOMAP_MAP_MATURITY_V2.PENDING,
+    new Set([EVOMAP_MAP_MATURITY_V2.ACTIVE, EVOMAP_MAP_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    EVOMAP_MAP_MATURITY_V2.ACTIVE,
+    new Set([EVOMAP_MAP_MATURITY_V2.STALE, EVOMAP_MAP_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    EVOMAP_MAP_MATURITY_V2.STALE,
+    new Set([EVOMAP_MAP_MATURITY_V2.ACTIVE, EVOMAP_MAP_MATURITY_V2.ARCHIVED]),
+  ],
   [EVOMAP_MAP_MATURITY_V2.ARCHIVED, new Set()],
 ]);
 const _emMapTerminal = new Set([EVOMAP_MAP_MATURITY_V2.ARCHIVED]);
 const _emEvoTrans = new Map([
-  [EVOMAP_EVOLUTION_LIFECYCLE_V2.QUEUED, new Set([EVOMAP_EVOLUTION_LIFECYCLE_V2.RUNNING, EVOMAP_EVOLUTION_LIFECYCLE_V2.CANCELLED])],
-  [EVOMAP_EVOLUTION_LIFECYCLE_V2.RUNNING, new Set([EVOMAP_EVOLUTION_LIFECYCLE_V2.COMPLETED, EVOMAP_EVOLUTION_LIFECYCLE_V2.FAILED, EVOMAP_EVOLUTION_LIFECYCLE_V2.CANCELLED])],
+  [
+    EVOMAP_EVOLUTION_LIFECYCLE_V2.QUEUED,
+    new Set([
+      EVOMAP_EVOLUTION_LIFECYCLE_V2.RUNNING,
+      EVOMAP_EVOLUTION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    EVOMAP_EVOLUTION_LIFECYCLE_V2.RUNNING,
+    new Set([
+      EVOMAP_EVOLUTION_LIFECYCLE_V2.COMPLETED,
+      EVOMAP_EVOLUTION_LIFECYCLE_V2.FAILED,
+      EVOMAP_EVOLUTION_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [EVOMAP_EVOLUTION_LIFECYCLE_V2.COMPLETED, new Set()],
   [EVOMAP_EVOLUTION_LIFECYCLE_V2.FAILED, new Set()],
   [EVOMAP_EVOLUTION_LIFECYCLE_V2.CANCELLED, new Set()],
@@ -257,21 +285,45 @@ let _emMaxPendingPerMap = 15;
 let _emMapIdleMs = 7 * 24 * 60 * 60 * 1000;
 let _emEvoStuckMs = 5 * 60 * 1000;
 
-function _emPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+function _emPos(n, lbl) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${lbl} must be positive integer`);
+  return v;
+}
 
-export function setMaxActiveEvoMapsPerOwnerV2(n) { _emMaxActivePerOwner = _emPos(n, "maxActiveEvoMapsPerOwner"); }
-export function getMaxActiveEvoMapsPerOwnerV2() { return _emMaxActivePerOwner; }
-export function setMaxPendingEvoEvolutionsPerMapV2(n) { _emMaxPendingPerMap = _emPos(n, "maxPendingEvoEvolutionsPerMap"); }
-export function getMaxPendingEvoEvolutionsPerMapV2() { return _emMaxPendingPerMap; }
-export function setEvoMapIdleMsV2(n) { _emMapIdleMs = _emPos(n, "evoMapIdleMs"); }
-export function getEvoMapIdleMsV2() { return _emMapIdleMs; }
-export function setEvoEvolutionStuckMsV2(n) { _emEvoStuckMs = _emPos(n, "evoEvolutionStuckMs"); }
-export function getEvoEvolutionStuckMsV2() { return _emEvoStuckMs; }
+export function setMaxActiveEvoMapsPerOwnerV2(n) {
+  _emMaxActivePerOwner = _emPos(n, "maxActiveEvoMapsPerOwner");
+}
+export function getMaxActiveEvoMapsPerOwnerV2() {
+  return _emMaxActivePerOwner;
+}
+export function setMaxPendingEvoEvolutionsPerMapV2(n) {
+  _emMaxPendingPerMap = _emPos(n, "maxPendingEvoEvolutionsPerMap");
+}
+export function getMaxPendingEvoEvolutionsPerMapV2() {
+  return _emMaxPendingPerMap;
+}
+export function setEvoMapIdleMsV2(n) {
+  _emMapIdleMs = _emPos(n, "evoMapIdleMs");
+}
+export function getEvoMapIdleMsV2() {
+  return _emMapIdleMs;
+}
+export function setEvoEvolutionStuckMsV2(n) {
+  _emEvoStuckMs = _emPos(n, "evoEvolutionStuckMs");
+}
+export function getEvoEvolutionStuckMsV2() {
+  return _emEvoStuckMs;
+}
 
 export function _resetStateEvoMapManagerV2() {
-  _emMaps.clear(); _emEvos.clear();
-  _emMaxActivePerOwner = 10; _emMaxPendingPerMap = 15;
-  _emMapIdleMs = 7 * 24 * 60 * 60 * 1000; _emEvoStuckMs = 5 * 60 * 1000;
+  _emMaps.clear();
+  _emEvos.clear();
+  _emMaxActivePerOwner = 10;
+  _emMaxPendingPerMap = 15;
+  _emMapIdleMs = 7 * 24 * 60 * 60 * 1000;
+  _emEvoStuckMs = 5 * 60 * 1000;
 }
 
 export function registerEvoMapV2({ id, owner, name, metadata } = {}) {
@@ -279,28 +331,103 @@ export function registerEvoMapV2({ id, owner, name, metadata } = {}) {
   if (!owner || typeof owner !== "string") throw new Error("owner is required");
   if (_emMaps.has(id)) throw new Error(`evomap ${id} already registered`);
   const now = Date.now();
-  const m = { id, owner, name: name || id, status: EVOMAP_MAP_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, archivedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  const m = {
+    id,
+    owner,
+    name: name || id,
+    status: EVOMAP_MAP_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
   _emMaps.set(id, m);
   return { ...m, metadata: { ...m.metadata } };
 }
-function _emCheckM(from, to) { const a = _emMapTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid evomap transition ${from} → ${to}`); }
-function _emCountActive(owner) { let n = 0; for (const m of _emMaps.values()) if (m.owner === owner && m.status === EVOMAP_MAP_MATURITY_V2.ACTIVE) n++; return n; }
+function _emCheckM(from, to) {
+  const a = _emMapTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid evomap transition ${from} → ${to}`);
+}
+function _emCountActive(owner) {
+  let n = 0;
+  for (const m of _emMaps.values())
+    if (m.owner === owner && m.status === EVOMAP_MAP_MATURITY_V2.ACTIVE) n++;
+  return n;
+}
 
 export function activateEvoMapV2(id) {
-  const m = _emMaps.get(id); if (!m) throw new Error(`evomap ${id} not found`);
+  const m = _emMaps.get(id);
+  if (!m) throw new Error(`evomap ${id} not found`);
   _emCheckM(m.status, EVOMAP_MAP_MATURITY_V2.ACTIVE);
   const recovery = m.status === EVOMAP_MAP_MATURITY_V2.STALE;
-  if (!recovery) { const a = _emCountActive(m.owner); if (a >= _emMaxActivePerOwner) throw new Error(`max active evomaps per owner (${_emMaxActivePerOwner}) reached for ${m.owner}`); }
-  const now = Date.now(); m.status = EVOMAP_MAP_MATURITY_V2.ACTIVE; m.updatedAt = now; m.lastTouchedAt = now; if (!m.activatedAt) m.activatedAt = now;
+  if (!recovery) {
+    const a = _emCountActive(m.owner);
+    if (a >= _emMaxActivePerOwner)
+      throw new Error(
+        `max active evomaps per owner (${_emMaxActivePerOwner}) reached for ${m.owner}`,
+      );
+  }
+  const now = Date.now();
+  m.status = EVOMAP_MAP_MATURITY_V2.ACTIVE;
+  m.updatedAt = now;
+  m.lastTouchedAt = now;
+  if (!m.activatedAt) m.activatedAt = now;
   return { ...m, metadata: { ...m.metadata } };
 }
-export function staleEvoMapV2(id) { const m = _emMaps.get(id); if (!m) throw new Error(`evomap ${id} not found`); _emCheckM(m.status, EVOMAP_MAP_MATURITY_V2.STALE); m.status = EVOMAP_MAP_MATURITY_V2.STALE; m.updatedAt = Date.now(); return { ...m, metadata: { ...m.metadata } }; }
-export function archiveEvoMapV2(id) { const m = _emMaps.get(id); if (!m) throw new Error(`evomap ${id} not found`); _emCheckM(m.status, EVOMAP_MAP_MATURITY_V2.ARCHIVED); const now = Date.now(); m.status = EVOMAP_MAP_MATURITY_V2.ARCHIVED; m.updatedAt = now; if (!m.archivedAt) m.archivedAt = now; return { ...m, metadata: { ...m.metadata } }; }
-export function touchEvoMapV2(id) { const m = _emMaps.get(id); if (!m) throw new Error(`evomap ${id} not found`); if (_emMapTerminal.has(m.status)) throw new Error(`cannot touch terminal evomap ${id}`); const now = Date.now(); m.lastTouchedAt = now; m.updatedAt = now; return { ...m, metadata: { ...m.metadata } }; }
-export function getEvoMapV2(id) { const m = _emMaps.get(id); if (!m) return null; return { ...m, metadata: { ...m.metadata } }; }
-export function listEvoMapsV2() { return [..._emMaps.values()].map((m) => ({ ...m, metadata: { ...m.metadata } })); }
+export function staleEvoMapV2(id) {
+  const m = _emMaps.get(id);
+  if (!m) throw new Error(`evomap ${id} not found`);
+  _emCheckM(m.status, EVOMAP_MAP_MATURITY_V2.STALE);
+  m.status = EVOMAP_MAP_MATURITY_V2.STALE;
+  m.updatedAt = Date.now();
+  return { ...m, metadata: { ...m.metadata } };
+}
+export function archiveEvoMapV2(id) {
+  const m = _emMaps.get(id);
+  if (!m) throw new Error(`evomap ${id} not found`);
+  _emCheckM(m.status, EVOMAP_MAP_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  m.status = EVOMAP_MAP_MATURITY_V2.ARCHIVED;
+  m.updatedAt = now;
+  if (!m.archivedAt) m.archivedAt = now;
+  return { ...m, metadata: { ...m.metadata } };
+}
+export function touchEvoMapV2(id) {
+  const m = _emMaps.get(id);
+  if (!m) throw new Error(`evomap ${id} not found`);
+  if (_emMapTerminal.has(m.status))
+    throw new Error(`cannot touch terminal evomap ${id}`);
+  const now = Date.now();
+  m.lastTouchedAt = now;
+  m.updatedAt = now;
+  return { ...m, metadata: { ...m.metadata } };
+}
+export function getEvoMapV2(id) {
+  const m = _emMaps.get(id);
+  if (!m) return null;
+  return { ...m, metadata: { ...m.metadata } };
+}
+export function listEvoMapsV2() {
+  return [..._emMaps.values()].map((m) => ({
+    ...m,
+    metadata: { ...m.metadata },
+  }));
+}
 
-function _emCountPending(mid) { let n = 0; for (const e of _emEvos.values()) if (e.mapId === mid && (e.status === EVOMAP_EVOLUTION_LIFECYCLE_V2.QUEUED || e.status === EVOMAP_EVOLUTION_LIFECYCLE_V2.RUNNING)) n++; return n; }
+function _emCountPending(mid) {
+  let n = 0;
+  for (const e of _emEvos.values())
+    if (
+      e.mapId === mid &&
+      (e.status === EVOMAP_EVOLUTION_LIFECYCLE_V2.QUEUED ||
+        e.status === EVOMAP_EVOLUTION_LIFECYCLE_V2.RUNNING)
+    )
+      n++;
+  return n;
+}
 
 export function createEvoEvolutionV2({ id, mapId, strategy, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
@@ -308,25 +435,132 @@ export function createEvoEvolutionV2({ id, mapId, strategy, metadata } = {}) {
   if (_emEvos.has(id)) throw new Error(`evo evolution ${id} already exists`);
   if (!_emMaps.has(mapId)) throw new Error(`evomap ${mapId} not found`);
   const pending = _emCountPending(mapId);
-  if (pending >= _emMaxPendingPerMap) throw new Error(`max pending evo evolutions per map (${_emMaxPendingPerMap}) reached for ${mapId}`);
+  if (pending >= _emMaxPendingPerMap)
+    throw new Error(
+      `max pending evo evolutions per map (${_emMaxPendingPerMap}) reached for ${mapId}`,
+    );
   const now = Date.now();
-  const e = { id, mapId, strategy: strategy || "default", status: EVOMAP_EVOLUTION_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  const e = {
+    id,
+    mapId,
+    strategy: strategy || "default",
+    status: EVOMAP_EVOLUTION_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
   _emEvos.set(id, e);
   return { ...e, metadata: { ...e.metadata } };
 }
-function _emCheckE(from, to) { const a = _emEvoTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid evo evolution transition ${from} → ${to}`); }
-export function startEvoEvolutionV2(id) { const e = _emEvos.get(id); if (!e) throw new Error(`evo evolution ${id} not found`); _emCheckE(e.status, EVOMAP_EVOLUTION_LIFECYCLE_V2.RUNNING); const now = Date.now(); e.status = EVOMAP_EVOLUTION_LIFECYCLE_V2.RUNNING; e.updatedAt = now; if (!e.startedAt) e.startedAt = now; return { ...e, metadata: { ...e.metadata } }; }
-export function completeEvoEvolutionV2(id) { const e = _emEvos.get(id); if (!e) throw new Error(`evo evolution ${id} not found`); _emCheckE(e.status, EVOMAP_EVOLUTION_LIFECYCLE_V2.COMPLETED); const now = Date.now(); e.status = EVOMAP_EVOLUTION_LIFECYCLE_V2.COMPLETED; e.updatedAt = now; if (!e.settledAt) e.settledAt = now; return { ...e, metadata: { ...e.metadata } }; }
-export function failEvoEvolutionV2(id, reason) { const e = _emEvos.get(id); if (!e) throw new Error(`evo evolution ${id} not found`); _emCheckE(e.status, EVOMAP_EVOLUTION_LIFECYCLE_V2.FAILED); const now = Date.now(); e.status = EVOMAP_EVOLUTION_LIFECYCLE_V2.FAILED; e.updatedAt = now; if (!e.settledAt) e.settledAt = now; if (reason) e.metadata.failReason = String(reason); return { ...e, metadata: { ...e.metadata } }; }
-export function cancelEvoEvolutionV2(id, reason) { const e = _emEvos.get(id); if (!e) throw new Error(`evo evolution ${id} not found`); _emCheckE(e.status, EVOMAP_EVOLUTION_LIFECYCLE_V2.CANCELLED); const now = Date.now(); e.status = EVOMAP_EVOLUTION_LIFECYCLE_V2.CANCELLED; e.updatedAt = now; if (!e.settledAt) e.settledAt = now; if (reason) e.metadata.cancelReason = String(reason); return { ...e, metadata: { ...e.metadata } }; }
-export function getEvoEvolutionV2(id) { const e = _emEvos.get(id); if (!e) return null; return { ...e, metadata: { ...e.metadata } }; }
-export function listEvoEvolutionsV2() { return [..._emEvos.values()].map((e) => ({ ...e, metadata: { ...e.metadata } })); }
+function _emCheckE(from, to) {
+  const a = _emEvoTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid evo evolution transition ${from} → ${to}`);
+}
+export function startEvoEvolutionV2(id) {
+  const e = _emEvos.get(id);
+  if (!e) throw new Error(`evo evolution ${id} not found`);
+  _emCheckE(e.status, EVOMAP_EVOLUTION_LIFECYCLE_V2.RUNNING);
+  const now = Date.now();
+  e.status = EVOMAP_EVOLUTION_LIFECYCLE_V2.RUNNING;
+  e.updatedAt = now;
+  if (!e.startedAt) e.startedAt = now;
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function completeEvoEvolutionV2(id) {
+  const e = _emEvos.get(id);
+  if (!e) throw new Error(`evo evolution ${id} not found`);
+  _emCheckE(e.status, EVOMAP_EVOLUTION_LIFECYCLE_V2.COMPLETED);
+  const now = Date.now();
+  e.status = EVOMAP_EVOLUTION_LIFECYCLE_V2.COMPLETED;
+  e.updatedAt = now;
+  if (!e.settledAt) e.settledAt = now;
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function failEvoEvolutionV2(id, reason) {
+  const e = _emEvos.get(id);
+  if (!e) throw new Error(`evo evolution ${id} not found`);
+  _emCheckE(e.status, EVOMAP_EVOLUTION_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  e.status = EVOMAP_EVOLUTION_LIFECYCLE_V2.FAILED;
+  e.updatedAt = now;
+  if (!e.settledAt) e.settledAt = now;
+  if (reason) e.metadata.failReason = String(reason);
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function cancelEvoEvolutionV2(id, reason) {
+  const e = _emEvos.get(id);
+  if (!e) throw new Error(`evo evolution ${id} not found`);
+  _emCheckE(e.status, EVOMAP_EVOLUTION_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  e.status = EVOMAP_EVOLUTION_LIFECYCLE_V2.CANCELLED;
+  e.updatedAt = now;
+  if (!e.settledAt) e.settledAt = now;
+  if (reason) e.metadata.cancelReason = String(reason);
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function getEvoEvolutionV2(id) {
+  const e = _emEvos.get(id);
+  if (!e) return null;
+  return { ...e, metadata: { ...e.metadata } };
+}
+export function listEvoEvolutionsV2() {
+  return [..._emEvos.values()].map((e) => ({
+    ...e,
+    metadata: { ...e.metadata },
+  }));
+}
 
-export function autoStaleIdleEvoMapsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const m of _emMaps.values()) if (m.status === EVOMAP_MAP_MATURITY_V2.ACTIVE && (t - m.lastTouchedAt) >= _emMapIdleMs) { m.status = EVOMAP_MAP_MATURITY_V2.STALE; m.updatedAt = t; flipped.push(m.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckEvoEvolutionsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const e of _emEvos.values()) if (e.status === EVOMAP_EVOLUTION_LIFECYCLE_V2.RUNNING && e.startedAt != null && (t - e.startedAt) >= _emEvoStuckMs) { e.status = EVOMAP_EVOLUTION_LIFECYCLE_V2.FAILED; e.updatedAt = t; if (!e.settledAt) e.settledAt = t; e.metadata.failReason = "auto-fail-stuck"; flipped.push(e.id); } return { flipped, count: flipped.length }; }
+export function autoStaleIdleEvoMapsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const m of _emMaps.values())
+    if (
+      m.status === EVOMAP_MAP_MATURITY_V2.ACTIVE &&
+      t - m.lastTouchedAt >= _emMapIdleMs
+    ) {
+      m.status = EVOMAP_MAP_MATURITY_V2.STALE;
+      m.updatedAt = t;
+      flipped.push(m.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckEvoEvolutionsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const e of _emEvos.values())
+    if (
+      e.status === EVOMAP_EVOLUTION_LIFECYCLE_V2.RUNNING &&
+      e.startedAt != null &&
+      t - e.startedAt >= _emEvoStuckMs
+    ) {
+      e.status = EVOMAP_EVOLUTION_LIFECYCLE_V2.FAILED;
+      e.updatedAt = t;
+      if (!e.settledAt) e.settledAt = t;
+      e.metadata.failReason = "auto-fail-stuck";
+      flipped.push(e.id);
+    }
+  return { flipped, count: flipped.length };
+}
 
 export function getEvoMapManagerStatsV2() {
-  const mapsByStatus = {}; for (const s of Object.values(EVOMAP_MAP_MATURITY_V2)) mapsByStatus[s] = 0; for (const m of _emMaps.values()) mapsByStatus[m.status]++;
-  const evosByStatus = {}; for (const s of Object.values(EVOMAP_EVOLUTION_LIFECYCLE_V2)) evosByStatus[s] = 0; for (const e of _emEvos.values()) evosByStatus[e.status]++;
-  return { totalMapsV2: _emMaps.size, totalEvolutionsV2: _emEvos.size, maxActiveEvoMapsPerOwner: _emMaxActivePerOwner, maxPendingEvoEvolutionsPerMap: _emMaxPendingPerMap, evoMapIdleMs: _emMapIdleMs, evoEvolutionStuckMs: _emEvoStuckMs, mapsByStatus, evosByStatus };
+  const mapsByStatus = {};
+  for (const s of Object.values(EVOMAP_MAP_MATURITY_V2)) mapsByStatus[s] = 0;
+  for (const m of _emMaps.values()) mapsByStatus[m.status]++;
+  const evosByStatus = {};
+  for (const s of Object.values(EVOMAP_EVOLUTION_LIFECYCLE_V2))
+    evosByStatus[s] = 0;
+  for (const e of _emEvos.values()) evosByStatus[e.status]++;
+  return {
+    totalMapsV2: _emMaps.size,
+    totalEvolutionsV2: _emEvos.size,
+    maxActiveEvoMapsPerOwner: _emMaxActivePerOwner,
+    maxPendingEvoEvolutionsPerMap: _emMaxPendingPerMap,
+    evoMapIdleMs: _emMapIdleMs,
+    evoEvolutionStuckMs: _emEvoStuckMs,
+    mapsByStatus,
+    evosByStatus,
+  };
 }

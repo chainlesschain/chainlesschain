@@ -960,25 +960,50 @@ export function _resetV2State() {
   _v2Config.growthLogRetentionDays = 365;
 }
 
-
 // ===== V2 Surface: Evolution System governance overlay (CLI v0.137.0) =====
 export const EVO_GOAL_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", PAUSED: "paused", ARCHIVED: "archived",
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
 });
 export const EVO_CYCLE_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", RUNNING: "running", COMPLETED: "completed", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 
 const _evoGoalTrans = new Map([
-  [EVO_GOAL_MATURITY_V2.PENDING, new Set([EVO_GOAL_MATURITY_V2.ACTIVE, EVO_GOAL_MATURITY_V2.ARCHIVED])],
-  [EVO_GOAL_MATURITY_V2.ACTIVE, new Set([EVO_GOAL_MATURITY_V2.PAUSED, EVO_GOAL_MATURITY_V2.ARCHIVED])],
-  [EVO_GOAL_MATURITY_V2.PAUSED, new Set([EVO_GOAL_MATURITY_V2.ACTIVE, EVO_GOAL_MATURITY_V2.ARCHIVED])],
+  [
+    EVO_GOAL_MATURITY_V2.PENDING,
+    new Set([EVO_GOAL_MATURITY_V2.ACTIVE, EVO_GOAL_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    EVO_GOAL_MATURITY_V2.ACTIVE,
+    new Set([EVO_GOAL_MATURITY_V2.PAUSED, EVO_GOAL_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    EVO_GOAL_MATURITY_V2.PAUSED,
+    new Set([EVO_GOAL_MATURITY_V2.ACTIVE, EVO_GOAL_MATURITY_V2.ARCHIVED]),
+  ],
   [EVO_GOAL_MATURITY_V2.ARCHIVED, new Set()],
 ]);
 const _evoGoalTerminal = new Set([EVO_GOAL_MATURITY_V2.ARCHIVED]);
 const _evoCycleTrans = new Map([
-  [EVO_CYCLE_LIFECYCLE_V2.QUEUED, new Set([EVO_CYCLE_LIFECYCLE_V2.RUNNING, EVO_CYCLE_LIFECYCLE_V2.CANCELLED])],
-  [EVO_CYCLE_LIFECYCLE_V2.RUNNING, new Set([EVO_CYCLE_LIFECYCLE_V2.COMPLETED, EVO_CYCLE_LIFECYCLE_V2.FAILED, EVO_CYCLE_LIFECYCLE_V2.CANCELLED])],
+  [
+    EVO_CYCLE_LIFECYCLE_V2.QUEUED,
+    new Set([EVO_CYCLE_LIFECYCLE_V2.RUNNING, EVO_CYCLE_LIFECYCLE_V2.CANCELLED]),
+  ],
+  [
+    EVO_CYCLE_LIFECYCLE_V2.RUNNING,
+    new Set([
+      EVO_CYCLE_LIFECYCLE_V2.COMPLETED,
+      EVO_CYCLE_LIFECYCLE_V2.FAILED,
+      EVO_CYCLE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [EVO_CYCLE_LIFECYCLE_V2.COMPLETED, new Set()],
   [EVO_CYCLE_LIFECYCLE_V2.FAILED, new Set()],
   [EVO_CYCLE_LIFECYCLE_V2.CANCELLED, new Set()],
@@ -991,21 +1016,45 @@ let _evoMaxPendingPerGoal = 12;
 let _evoGoalIdleMs = 14 * 24 * 60 * 60 * 1000;
 let _evoCycleStuckMs = 10 * 60 * 1000;
 
-function _evoPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+function _evoPos(n, lbl) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${lbl} must be positive integer`);
+  return v;
+}
 
-export function setMaxActiveEvoGoalsPerOwnerV2(n) { _evoMaxActivePerOwner = _evoPos(n, "maxActiveEvoGoalsPerOwner"); }
-export function getMaxActiveEvoGoalsPerOwnerV2() { return _evoMaxActivePerOwner; }
-export function setMaxPendingEvoCyclesPerGoalV2(n) { _evoMaxPendingPerGoal = _evoPos(n, "maxPendingEvoCyclesPerGoal"); }
-export function getMaxPendingEvoCyclesPerGoalV2() { return _evoMaxPendingPerGoal; }
-export function setEvoGoalIdleMsV2(n) { _evoGoalIdleMs = _evoPos(n, "evoGoalIdleMs"); }
-export function getEvoGoalIdleMsV2() { return _evoGoalIdleMs; }
-export function setEvoCycleStuckMsV2(n) { _evoCycleStuckMs = _evoPos(n, "evoCycleStuckMs"); }
-export function getEvoCycleStuckMsV2() { return _evoCycleStuckMs; }
+export function setMaxActiveEvoGoalsPerOwnerV2(n) {
+  _evoMaxActivePerOwner = _evoPos(n, "maxActiveEvoGoalsPerOwner");
+}
+export function getMaxActiveEvoGoalsPerOwnerV2() {
+  return _evoMaxActivePerOwner;
+}
+export function setMaxPendingEvoCyclesPerGoalV2(n) {
+  _evoMaxPendingPerGoal = _evoPos(n, "maxPendingEvoCyclesPerGoal");
+}
+export function getMaxPendingEvoCyclesPerGoalV2() {
+  return _evoMaxPendingPerGoal;
+}
+export function setEvoGoalIdleMsV2(n) {
+  _evoGoalIdleMs = _evoPos(n, "evoGoalIdleMs");
+}
+export function getEvoGoalIdleMsV2() {
+  return _evoGoalIdleMs;
+}
+export function setEvoCycleStuckMsV2(n) {
+  _evoCycleStuckMs = _evoPos(n, "evoCycleStuckMs");
+}
+export function getEvoCycleStuckMsV2() {
+  return _evoCycleStuckMs;
+}
 
 export function _resetStateEvolutionSystemV2() {
-  _evoGoals.clear(); _evoCycles.clear();
-  _evoMaxActivePerOwner = 6; _evoMaxPendingPerGoal = 12;
-  _evoGoalIdleMs = 14 * 24 * 60 * 60 * 1000; _evoCycleStuckMs = 10 * 60 * 1000;
+  _evoGoals.clear();
+  _evoCycles.clear();
+  _evoMaxActivePerOwner = 6;
+  _evoMaxPendingPerGoal = 12;
+  _evoGoalIdleMs = 14 * 24 * 60 * 60 * 1000;
+  _evoCycleStuckMs = 10 * 60 * 1000;
 }
 
 export function registerEvoGoalV2({ id, owner, objective, metadata } = {}) {
@@ -1013,54 +1062,236 @@ export function registerEvoGoalV2({ id, owner, objective, metadata } = {}) {
   if (!owner || typeof owner !== "string") throw new Error("owner is required");
   if (_evoGoals.has(id)) throw new Error(`evo goal ${id} already registered`);
   const now = Date.now();
-  const g = { id, owner, objective: objective || "", status: EVO_GOAL_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, archivedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  const g = {
+    id,
+    owner,
+    objective: objective || "",
+    status: EVO_GOAL_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
   _evoGoals.set(id, g);
   return { ...g, metadata: { ...g.metadata } };
 }
-function _evoCheckG(from, to) { const a = _evoGoalTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid evo goal transition ${from} → ${to}`); }
-function _evoCountActive(owner) { let n = 0; for (const g of _evoGoals.values()) if (g.owner === owner && g.status === EVO_GOAL_MATURITY_V2.ACTIVE) n++; return n; }
+function _evoCheckG(from, to) {
+  const a = _evoGoalTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid evo goal transition ${from} → ${to}`);
+}
+function _evoCountActive(owner) {
+  let n = 0;
+  for (const g of _evoGoals.values())
+    if (g.owner === owner && g.status === EVO_GOAL_MATURITY_V2.ACTIVE) n++;
+  return n;
+}
 
 export function activateEvoGoalV2(id) {
-  const g = _evoGoals.get(id); if (!g) throw new Error(`evo goal ${id} not found`);
+  const g = _evoGoals.get(id);
+  if (!g) throw new Error(`evo goal ${id} not found`);
   _evoCheckG(g.status, EVO_GOAL_MATURITY_V2.ACTIVE);
   const recovery = g.status === EVO_GOAL_MATURITY_V2.PAUSED;
-  if (!recovery) { const a = _evoCountActive(g.owner); if (a >= _evoMaxActivePerOwner) throw new Error(`max active evo goals per owner (${_evoMaxActivePerOwner}) reached for ${g.owner}`); }
-  const now = Date.now(); g.status = EVO_GOAL_MATURITY_V2.ACTIVE; g.updatedAt = now; g.lastTouchedAt = now; if (!g.activatedAt) g.activatedAt = now;
+  if (!recovery) {
+    const a = _evoCountActive(g.owner);
+    if (a >= _evoMaxActivePerOwner)
+      throw new Error(
+        `max active evo goals per owner (${_evoMaxActivePerOwner}) reached for ${g.owner}`,
+      );
+  }
+  const now = Date.now();
+  g.status = EVO_GOAL_MATURITY_V2.ACTIVE;
+  g.updatedAt = now;
+  g.lastTouchedAt = now;
+  if (!g.activatedAt) g.activatedAt = now;
   return { ...g, metadata: { ...g.metadata } };
 }
-export function pauseEvoGoalV2(id) { const g = _evoGoals.get(id); if (!g) throw new Error(`evo goal ${id} not found`); _evoCheckG(g.status, EVO_GOAL_MATURITY_V2.PAUSED); g.status = EVO_GOAL_MATURITY_V2.PAUSED; g.updatedAt = Date.now(); return { ...g, metadata: { ...g.metadata } }; }
-export function archiveEvoGoalV2(id) { const g = _evoGoals.get(id); if (!g) throw new Error(`evo goal ${id} not found`); _evoCheckG(g.status, EVO_GOAL_MATURITY_V2.ARCHIVED); const now = Date.now(); g.status = EVO_GOAL_MATURITY_V2.ARCHIVED; g.updatedAt = now; if (!g.archivedAt) g.archivedAt = now; return { ...g, metadata: { ...g.metadata } }; }
-export function touchEvoGoalV2(id) { const g = _evoGoals.get(id); if (!g) throw new Error(`evo goal ${id} not found`); if (_evoGoalTerminal.has(g.status)) throw new Error(`cannot touch terminal evo goal ${id}`); const now = Date.now(); g.lastTouchedAt = now; g.updatedAt = now; return { ...g, metadata: { ...g.metadata } }; }
-export function getEvoGoalV2(id) { const g = _evoGoals.get(id); if (!g) return null; return { ...g, metadata: { ...g.metadata } }; }
-export function listEvoGoalsV2() { return [..._evoGoals.values()].map((g) => ({ ...g, metadata: { ...g.metadata } })); }
+export function pauseEvoGoalV2(id) {
+  const g = _evoGoals.get(id);
+  if (!g) throw new Error(`evo goal ${id} not found`);
+  _evoCheckG(g.status, EVO_GOAL_MATURITY_V2.PAUSED);
+  g.status = EVO_GOAL_MATURITY_V2.PAUSED;
+  g.updatedAt = Date.now();
+  return { ...g, metadata: { ...g.metadata } };
+}
+export function archiveEvoGoalV2(id) {
+  const g = _evoGoals.get(id);
+  if (!g) throw new Error(`evo goal ${id} not found`);
+  _evoCheckG(g.status, EVO_GOAL_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  g.status = EVO_GOAL_MATURITY_V2.ARCHIVED;
+  g.updatedAt = now;
+  if (!g.archivedAt) g.archivedAt = now;
+  return { ...g, metadata: { ...g.metadata } };
+}
+export function touchEvoGoalV2(id) {
+  const g = _evoGoals.get(id);
+  if (!g) throw new Error(`evo goal ${id} not found`);
+  if (_evoGoalTerminal.has(g.status))
+    throw new Error(`cannot touch terminal evo goal ${id}`);
+  const now = Date.now();
+  g.lastTouchedAt = now;
+  g.updatedAt = now;
+  return { ...g, metadata: { ...g.metadata } };
+}
+export function getEvoGoalV2(id) {
+  const g = _evoGoals.get(id);
+  if (!g) return null;
+  return { ...g, metadata: { ...g.metadata } };
+}
+export function listEvoGoalsV2() {
+  return [..._evoGoals.values()].map((g) => ({
+    ...g,
+    metadata: { ...g.metadata },
+  }));
+}
 
-function _evoCountPending(gid) { let n = 0; for (const c of _evoCycles.values()) if (c.goalId === gid && (c.status === EVO_CYCLE_LIFECYCLE_V2.QUEUED || c.status === EVO_CYCLE_LIFECYCLE_V2.RUNNING)) n++; return n; }
+function _evoCountPending(gid) {
+  let n = 0;
+  for (const c of _evoCycles.values())
+    if (
+      c.goalId === gid &&
+      (c.status === EVO_CYCLE_LIFECYCLE_V2.QUEUED ||
+        c.status === EVO_CYCLE_LIFECYCLE_V2.RUNNING)
+    )
+      n++;
+  return n;
+}
 
 export function createEvoCycleV2({ id, goalId, generation, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
-  if (!goalId || typeof goalId !== "string") throw new Error("goalId is required");
+  if (!goalId || typeof goalId !== "string")
+    throw new Error("goalId is required");
   if (_evoCycles.has(id)) throw new Error(`evo cycle ${id} already exists`);
   if (!_evoGoals.has(goalId)) throw new Error(`evo goal ${goalId} not found`);
   const pending = _evoCountPending(goalId);
-  if (pending >= _evoMaxPendingPerGoal) throw new Error(`max pending evo cycles per goal (${_evoMaxPendingPerGoal}) reached for ${goalId}`);
+  if (pending >= _evoMaxPendingPerGoal)
+    throw new Error(
+      `max pending evo cycles per goal (${_evoMaxPendingPerGoal}) reached for ${goalId}`,
+    );
   const now = Date.now();
-  const c = { id, goalId, generation: generation ?? 0, status: EVO_CYCLE_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  const c = {
+    id,
+    goalId,
+    generation: generation ?? 0,
+    status: EVO_CYCLE_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
   _evoCycles.set(id, c);
   return { ...c, metadata: { ...c.metadata } };
 }
-function _evoCheckC(from, to) { const a = _evoCycleTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid evo cycle transition ${from} → ${to}`); }
-export function startEvoCycleV2(id) { const c = _evoCycles.get(id); if (!c) throw new Error(`evo cycle ${id} not found`); _evoCheckC(c.status, EVO_CYCLE_LIFECYCLE_V2.RUNNING); const now = Date.now(); c.status = EVO_CYCLE_LIFECYCLE_V2.RUNNING; c.updatedAt = now; if (!c.startedAt) c.startedAt = now; return { ...c, metadata: { ...c.metadata } }; }
-export function completeEvoCycleV2(id) { const c = _evoCycles.get(id); if (!c) throw new Error(`evo cycle ${id} not found`); _evoCheckC(c.status, EVO_CYCLE_LIFECYCLE_V2.COMPLETED); const now = Date.now(); c.status = EVO_CYCLE_LIFECYCLE_V2.COMPLETED; c.updatedAt = now; if (!c.settledAt) c.settledAt = now; return { ...c, metadata: { ...c.metadata } }; }
-export function failEvoCycleV2(id, reason) { const c = _evoCycles.get(id); if (!c) throw new Error(`evo cycle ${id} not found`); _evoCheckC(c.status, EVO_CYCLE_LIFECYCLE_V2.FAILED); const now = Date.now(); c.status = EVO_CYCLE_LIFECYCLE_V2.FAILED; c.updatedAt = now; if (!c.settledAt) c.settledAt = now; if (reason) c.metadata.failReason = String(reason); return { ...c, metadata: { ...c.metadata } }; }
-export function cancelEvoCycleV2(id, reason) { const c = _evoCycles.get(id); if (!c) throw new Error(`evo cycle ${id} not found`); _evoCheckC(c.status, EVO_CYCLE_LIFECYCLE_V2.CANCELLED); const now = Date.now(); c.status = EVO_CYCLE_LIFECYCLE_V2.CANCELLED; c.updatedAt = now; if (!c.settledAt) c.settledAt = now; if (reason) c.metadata.cancelReason = String(reason); return { ...c, metadata: { ...c.metadata } }; }
-export function getEvoCycleV2(id) { const c = _evoCycles.get(id); if (!c) return null; return { ...c, metadata: { ...c.metadata } }; }
-export function listEvoCyclesV2() { return [..._evoCycles.values()].map((c) => ({ ...c, metadata: { ...c.metadata } })); }
+function _evoCheckC(from, to) {
+  const a = _evoCycleTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid evo cycle transition ${from} → ${to}`);
+}
+export function startEvoCycleV2(id) {
+  const c = _evoCycles.get(id);
+  if (!c) throw new Error(`evo cycle ${id} not found`);
+  _evoCheckC(c.status, EVO_CYCLE_LIFECYCLE_V2.RUNNING);
+  const now = Date.now();
+  c.status = EVO_CYCLE_LIFECYCLE_V2.RUNNING;
+  c.updatedAt = now;
+  if (!c.startedAt) c.startedAt = now;
+  return { ...c, metadata: { ...c.metadata } };
+}
+export function completeEvoCycleV2(id) {
+  const c = _evoCycles.get(id);
+  if (!c) throw new Error(`evo cycle ${id} not found`);
+  _evoCheckC(c.status, EVO_CYCLE_LIFECYCLE_V2.COMPLETED);
+  const now = Date.now();
+  c.status = EVO_CYCLE_LIFECYCLE_V2.COMPLETED;
+  c.updatedAt = now;
+  if (!c.settledAt) c.settledAt = now;
+  return { ...c, metadata: { ...c.metadata } };
+}
+export function failEvoCycleV2(id, reason) {
+  const c = _evoCycles.get(id);
+  if (!c) throw new Error(`evo cycle ${id} not found`);
+  _evoCheckC(c.status, EVO_CYCLE_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  c.status = EVO_CYCLE_LIFECYCLE_V2.FAILED;
+  c.updatedAt = now;
+  if (!c.settledAt) c.settledAt = now;
+  if (reason) c.metadata.failReason = String(reason);
+  return { ...c, metadata: { ...c.metadata } };
+}
+export function cancelEvoCycleV2(id, reason) {
+  const c = _evoCycles.get(id);
+  if (!c) throw new Error(`evo cycle ${id} not found`);
+  _evoCheckC(c.status, EVO_CYCLE_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  c.status = EVO_CYCLE_LIFECYCLE_V2.CANCELLED;
+  c.updatedAt = now;
+  if (!c.settledAt) c.settledAt = now;
+  if (reason) c.metadata.cancelReason = String(reason);
+  return { ...c, metadata: { ...c.metadata } };
+}
+export function getEvoCycleV2(id) {
+  const c = _evoCycles.get(id);
+  if (!c) return null;
+  return { ...c, metadata: { ...c.metadata } };
+}
+export function listEvoCyclesV2() {
+  return [..._evoCycles.values()].map((c) => ({
+    ...c,
+    metadata: { ...c.metadata },
+  }));
+}
 
-export function autoPauseIdleEvoGoalsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const g of _evoGoals.values()) if (g.status === EVO_GOAL_MATURITY_V2.ACTIVE && (t - g.lastTouchedAt) >= _evoGoalIdleMs) { g.status = EVO_GOAL_MATURITY_V2.PAUSED; g.updatedAt = t; flipped.push(g.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckEvoCyclesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const c of _evoCycles.values()) if (c.status === EVO_CYCLE_LIFECYCLE_V2.RUNNING && c.startedAt != null && (t - c.startedAt) >= _evoCycleStuckMs) { c.status = EVO_CYCLE_LIFECYCLE_V2.FAILED; c.updatedAt = t; if (!c.settledAt) c.settledAt = t; c.metadata.failReason = "auto-fail-stuck"; flipped.push(c.id); } return { flipped, count: flipped.length }; }
+export function autoPauseIdleEvoGoalsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const g of _evoGoals.values())
+    if (
+      g.status === EVO_GOAL_MATURITY_V2.ACTIVE &&
+      t - g.lastTouchedAt >= _evoGoalIdleMs
+    ) {
+      g.status = EVO_GOAL_MATURITY_V2.PAUSED;
+      g.updatedAt = t;
+      flipped.push(g.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckEvoCyclesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const c of _evoCycles.values())
+    if (
+      c.status === EVO_CYCLE_LIFECYCLE_V2.RUNNING &&
+      c.startedAt != null &&
+      t - c.startedAt >= _evoCycleStuckMs
+    ) {
+      c.status = EVO_CYCLE_LIFECYCLE_V2.FAILED;
+      c.updatedAt = t;
+      if (!c.settledAt) c.settledAt = t;
+      c.metadata.failReason = "auto-fail-stuck";
+      flipped.push(c.id);
+    }
+  return { flipped, count: flipped.length };
+}
 
 export function getEvolutionSystemGovStatsV2() {
-  const goalsByStatus = {}; for (const s of Object.values(EVO_GOAL_MATURITY_V2)) goalsByStatus[s] = 0; for (const g of _evoGoals.values()) goalsByStatus[g.status]++;
-  const cyclesByStatus = {}; for (const s of Object.values(EVO_CYCLE_LIFECYCLE_V2)) cyclesByStatus[s] = 0; for (const c of _evoCycles.values()) cyclesByStatus[c.status]++;
-  return { totalGoalsV2: _evoGoals.size, totalCyclesV2: _evoCycles.size, maxActiveEvoGoalsPerOwner: _evoMaxActivePerOwner, maxPendingEvoCyclesPerGoal: _evoMaxPendingPerGoal, evoGoalIdleMs: _evoGoalIdleMs, evoCycleStuckMs: _evoCycleStuckMs, goalsByStatus, cyclesByStatus };
+  const goalsByStatus = {};
+  for (const s of Object.values(EVO_GOAL_MATURITY_V2)) goalsByStatus[s] = 0;
+  for (const g of _evoGoals.values()) goalsByStatus[g.status]++;
+  const cyclesByStatus = {};
+  for (const s of Object.values(EVO_CYCLE_LIFECYCLE_V2)) cyclesByStatus[s] = 0;
+  for (const c of _evoCycles.values()) cyclesByStatus[c.status]++;
+  return {
+    totalGoalsV2: _evoGoals.size,
+    totalCyclesV2: _evoCycles.size,
+    maxActiveEvoGoalsPerOwner: _evoMaxActivePerOwner,
+    maxPendingEvoCyclesPerGoal: _evoMaxPendingPerGoal,
+    evoGoalIdleMs: _evoGoalIdleMs,
+    evoCycleStuckMs: _evoCycleStuckMs,
+    goalsByStatus,
+    cyclesByStatus,
+  };
 }

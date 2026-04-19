@@ -711,3 +711,345 @@ export function getStressStatsV2() {
     },
   };
 }
+
+// =====================================================================
+// stress-tester V2 governance overlay (iter16)
+// =====================================================================
+export const STRGOV_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  STALE: "stale",
+  ARCHIVED: "archived",
+});
+export const STRGOV_RUN_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _strgovPTrans = new Map([
+  [
+    STRGOV_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      STRGOV_PROFILE_MATURITY_V2.ACTIVE,
+      STRGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    STRGOV_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      STRGOV_PROFILE_MATURITY_V2.STALE,
+      STRGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    STRGOV_PROFILE_MATURITY_V2.STALE,
+    new Set([
+      STRGOV_PROFILE_MATURITY_V2.ACTIVE,
+      STRGOV_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [STRGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _strgovPTerminal = new Set([STRGOV_PROFILE_MATURITY_V2.ARCHIVED]);
+const _strgovJTrans = new Map([
+  [
+    STRGOV_RUN_LIFECYCLE_V2.QUEUED,
+    new Set([
+      STRGOV_RUN_LIFECYCLE_V2.RUNNING,
+      STRGOV_RUN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    STRGOV_RUN_LIFECYCLE_V2.RUNNING,
+    new Set([
+      STRGOV_RUN_LIFECYCLE_V2.COMPLETED,
+      STRGOV_RUN_LIFECYCLE_V2.FAILED,
+      STRGOV_RUN_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [STRGOV_RUN_LIFECYCLE_V2.COMPLETED, new Set()],
+  [STRGOV_RUN_LIFECYCLE_V2.FAILED, new Set()],
+  [STRGOV_RUN_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _strgovPsV2 = new Map();
+const _strgovJsV2 = new Map();
+let _strgovMaxActive = 5,
+  _strgovMaxPending = 10,
+  _strgovIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _strgovStuckMs = 60 * 1000;
+function _strgovPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _strgovCheckP(from, to) {
+  const a = _strgovPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid strgov profile transition ${from} → ${to}`);
+}
+function _strgovCheckJ(from, to) {
+  const a = _strgovJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid strgov run transition ${from} → ${to}`);
+}
+function _strgovCountActive(owner) {
+  let c = 0;
+  for (const p of _strgovPsV2.values())
+    if (p.owner === owner && p.status === STRGOV_PROFILE_MATURITY_V2.ACTIVE)
+      c++;
+  return c;
+}
+function _strgovCountPending(profileId) {
+  let c = 0;
+  for (const j of _strgovJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === STRGOV_RUN_LIFECYCLE_V2.QUEUED ||
+        j.status === STRGOV_RUN_LIFECYCLE_V2.RUNNING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveStrgovProfilesPerOwnerV2(n) {
+  _strgovMaxActive = _strgovPos(n, "maxActiveStrgovProfilesPerOwner");
+}
+export function getMaxActiveStrgovProfilesPerOwnerV2() {
+  return _strgovMaxActive;
+}
+export function setMaxPendingStrgovRunsPerProfileV2(n) {
+  _strgovMaxPending = _strgovPos(n, "maxPendingStrgovRunsPerProfile");
+}
+export function getMaxPendingStrgovRunsPerProfileV2() {
+  return _strgovMaxPending;
+}
+export function setStrgovProfileIdleMsV2(n) {
+  _strgovIdleMs = _strgovPos(n, "strgovProfileIdleMs");
+}
+export function getStrgovProfileIdleMsV2() {
+  return _strgovIdleMs;
+}
+export function setStrgovRunStuckMsV2(n) {
+  _strgovStuckMs = _strgovPos(n, "strgovRunStuckMs");
+}
+export function getStrgovRunStuckMsV2() {
+  return _strgovStuckMs;
+}
+export function _resetStateStressTesterV2() {
+  _strgovPsV2.clear();
+  _strgovJsV2.clear();
+  _strgovMaxActive = 5;
+  _strgovMaxPending = 10;
+  _strgovIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _strgovStuckMs = 60 * 1000;
+}
+export function registerStrgovProfileV2({
+  id,
+  owner,
+  scenario,
+  metadata,
+} = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_strgovPsV2.has(id))
+    throw new Error(`strgov profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    scenario: scenario || "ramp",
+    status: STRGOV_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _strgovPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateStrgovProfileV2(id) {
+  const p = _strgovPsV2.get(id);
+  if (!p) throw new Error(`strgov profile ${id} not found`);
+  const isInitial = p.status === STRGOV_PROFILE_MATURITY_V2.PENDING;
+  _strgovCheckP(p.status, STRGOV_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _strgovCountActive(p.owner) >= _strgovMaxActive)
+    throw new Error(`max active strgov profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = STRGOV_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function staleStrgovProfileV2(id) {
+  const p = _strgovPsV2.get(id);
+  if (!p) throw new Error(`strgov profile ${id} not found`);
+  _strgovCheckP(p.status, STRGOV_PROFILE_MATURITY_V2.STALE);
+  p.status = STRGOV_PROFILE_MATURITY_V2.STALE;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveStrgovProfileV2(id) {
+  const p = _strgovPsV2.get(id);
+  if (!p) throw new Error(`strgov profile ${id} not found`);
+  _strgovCheckP(p.status, STRGOV_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = STRGOV_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchStrgovProfileV2(id) {
+  const p = _strgovPsV2.get(id);
+  if (!p) throw new Error(`strgov profile ${id} not found`);
+  if (_strgovPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal strgov profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getStrgovProfileV2(id) {
+  const p = _strgovPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listStrgovProfilesV2() {
+  return [..._strgovPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createStrgovRunV2({
+  id,
+  profileId,
+  profileRef,
+  metadata,
+} = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_strgovJsV2.has(id)) throw new Error(`strgov run ${id} already exists`);
+  if (!_strgovPsV2.has(profileId))
+    throw new Error(`strgov profile ${profileId} not found`);
+  if (_strgovCountPending(profileId) >= _strgovMaxPending)
+    throw new Error(`max pending strgov runs for profile ${profileId} reached`);
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    profileRef: profileRef || "",
+    status: STRGOV_RUN_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _strgovJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function runningStrgovRunV2(id) {
+  const j = _strgovJsV2.get(id);
+  if (!j) throw new Error(`strgov run ${id} not found`);
+  _strgovCheckJ(j.status, STRGOV_RUN_LIFECYCLE_V2.RUNNING);
+  const now = Date.now();
+  j.status = STRGOV_RUN_LIFECYCLE_V2.RUNNING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function completeRunStrgovV2(id) {
+  const j = _strgovJsV2.get(id);
+  if (!j) throw new Error(`strgov run ${id} not found`);
+  _strgovCheckJ(j.status, STRGOV_RUN_LIFECYCLE_V2.COMPLETED);
+  const now = Date.now();
+  j.status = STRGOV_RUN_LIFECYCLE_V2.COMPLETED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failStrgovRunV2(id, reason) {
+  const j = _strgovJsV2.get(id);
+  if (!j) throw new Error(`strgov run ${id} not found`);
+  _strgovCheckJ(j.status, STRGOV_RUN_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = STRGOV_RUN_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelStrgovRunV2(id, reason) {
+  const j = _strgovJsV2.get(id);
+  if (!j) throw new Error(`strgov run ${id} not found`);
+  _strgovCheckJ(j.status, STRGOV_RUN_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = STRGOV_RUN_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getStrgovRunV2(id) {
+  const j = _strgovJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listStrgovRunsV2() {
+  return [..._strgovJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoStaleIdleStrgovProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _strgovPsV2.values())
+    if (
+      p.status === STRGOV_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _strgovIdleMs
+    ) {
+      p.status = STRGOV_PROFILE_MATURITY_V2.STALE;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckStrgovRunsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _strgovJsV2.values())
+    if (
+      j.status === STRGOV_RUN_LIFECYCLE_V2.RUNNING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _strgovStuckMs
+    ) {
+      j.status = STRGOV_RUN_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getStressTesterGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(STRGOV_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _strgovPsV2.values()) profilesByStatus[p.status]++;
+  const runsByStatus = {};
+  for (const v of Object.values(STRGOV_RUN_LIFECYCLE_V2)) runsByStatus[v] = 0;
+  for (const j of _strgovJsV2.values()) runsByStatus[j.status]++;
+  return {
+    totalStrgovProfilesV2: _strgovPsV2.size,
+    totalStrgovRunsV2: _strgovJsV2.size,
+    maxActiveStrgovProfilesPerOwner: _strgovMaxActive,
+    maxPendingStrgovRunsPerProfile: _strgovMaxPending,
+    strgovProfileIdleMs: _strgovIdleMs,
+    strgovRunStuckMs: _strgovStuckMs,
+    profilesByStatus,
+    runsByStatus,
+  };
+}

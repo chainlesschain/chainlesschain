@@ -608,3 +608,211 @@ export function registerReputationCommand(program) {
       }
     });
 }
+
+// === Iter16 V2 governance overlay ===
+export function registerRepgovV2Commands(program) {
+  const parent = program.commands.find((c) => c.name() === "reputation");
+  if (!parent) return;
+  const L = async () => await import("../lib/reputation-optimizer.js");
+  parent
+    .command("repgov-enums-v2")
+    .description("Show V2 enums (repgov maturity + cycle lifecycle)")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            profileMaturity: m.REPGOV_PROFILE_MATURITY_V2,
+            cycleLifecycle: m.REPGOV_CYCLE_LIFECYCLE_V2,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("repgov-config-v2")
+    .description("Show V2 config thresholds")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          {
+            maxActive: m.getMaxActiveRepgovProfilesPerOwnerV2(),
+            maxPending: m.getMaxPendingRepgovCyclesPerProfileV2(),
+            idleMs: m.getRepgovProfileIdleMsV2(),
+            stuckMs: m.getRepgovCycleStuckMsV2(),
+          },
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("repgov-set-max-active-v2 <n>")
+    .description("Set max active profiles per owner")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxActiveRepgovProfilesPerOwnerV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("repgov-set-max-pending-v2 <n>")
+    .description("Set max pending cycles per profile")
+    .action(async (n) => {
+      const m = await L();
+      m.setMaxPendingRepgovCyclesPerProfileV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("repgov-set-idle-ms-v2 <n>")
+    .description("Set profile idle threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setRepgovProfileIdleMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("repgov-set-stuck-ms-v2 <n>")
+    .description("Set cycle stuck threshold (ms)")
+    .action(async (n) => {
+      const m = await L();
+      m.setRepgovCycleStuckMsV2(Number(n));
+      console.log("ok");
+    });
+  parent
+    .command("repgov-register-v2 <id> <owner>")
+    .description("Register V2 repgov profile")
+    .option("--objective <v>", "objective")
+    .action(async (id, owner, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.registerRepgovProfileV2({ id, owner, objective: o.objective }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("repgov-activate-v2 <id>")
+    .description("Activate profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.activateRepgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("repgov-stale-v2 <id>")
+    .description("Stale profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.staleRepgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("repgov-archive-v2 <id>")
+    .description("Archive profile (terminal)")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.archiveRepgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("repgov-touch-v2 <id>")
+    .description("Touch profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.touchRepgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("repgov-get-v2 <id>")
+    .description("Get profile")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getRepgovProfileV2(id), null, 2));
+    });
+  parent
+    .command("repgov-list-v2")
+    .description("List profiles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listRepgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("repgov-create-cycle-v2 <id> <profileId>")
+    .description("Create cycle (queued)")
+    .option("--subject <v>", "subject")
+    .action(async (id, profileId, o) => {
+      const m = await L();
+      console.log(
+        JSON.stringify(
+          m.createRepgovCycleV2({ id, profileId, subject: o.subject }),
+          null,
+          2,
+        ),
+      );
+    });
+  parent
+    .command("repgov-running-cycle-v2 <id>")
+    .description("Mark cycle as running")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.runningRepgovCycleV2(id), null, 2));
+    });
+  parent
+    .command("repgov-complete-cycle-v2 <id>")
+    .description("Complete cycle")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.completeCycleRepgovV2(id), null, 2));
+    });
+  parent
+    .command("repgov-fail-cycle-v2 <id> [reason]")
+    .description("Fail cycle")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.failRepgovCycleV2(id, reason), null, 2));
+    });
+  parent
+    .command("repgov-cancel-cycle-v2 <id> [reason]")
+    .description("Cancel cycle")
+    .action(async (id, reason) => {
+      const m = await L();
+      console.log(JSON.stringify(m.cancelRepgovCycleV2(id, reason), null, 2));
+    });
+  parent
+    .command("repgov-get-cycle-v2 <id>")
+    .description("Get cycle")
+    .action(async (id) => {
+      const m = await L();
+      console.log(JSON.stringify(m.getRepgovCycleV2(id), null, 2));
+    });
+  parent
+    .command("repgov-list-cycles-v2")
+    .description("List cycles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.listRepgovCyclesV2(), null, 2));
+    });
+  parent
+    .command("repgov-auto-stale-idle-v2")
+    .description("Auto-stale idle profiles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoStaleIdleRepgovProfilesV2(), null, 2));
+    });
+  parent
+    .command("repgov-auto-fail-stuck-v2")
+    .description("Auto-fail stuck cycles")
+    .action(async () => {
+      const m = await L();
+      console.log(JSON.stringify(m.autoFailStuckRepgovCyclesV2(), null, 2));
+    });
+  parent
+    .command("repgov-gov-stats-v2")
+    .description("V2 gov aggregate stats")
+    .action(async () => {
+      const m = await L();
+      console.log(
+        JSON.stringify(m.getReputationOptimizerGovStatsV2(), null, 2),
+      );
+    });
+}

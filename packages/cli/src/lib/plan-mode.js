@@ -547,81 +547,328 @@ export function destroyPlanModeManager() {
 
 // ===== V2 Surface: Plan Mode governance overlay (CLI v0.141.0) =====
 export const PLAN_PROFILE_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", PAUSED: "paused", ARCHIVED: "archived",
+  PENDING: "pending",
+  ACTIVE: "active",
+  PAUSED: "paused",
+  ARCHIVED: "archived",
 });
 export const PLAN_STEP_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", RUNNING: "running", COMPLETED: "completed", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 const _planPTrans = new Map([
-  [PLAN_PROFILE_MATURITY_V2.PENDING, new Set([PLAN_PROFILE_MATURITY_V2.ACTIVE, PLAN_PROFILE_MATURITY_V2.ARCHIVED])],
-  [PLAN_PROFILE_MATURITY_V2.ACTIVE, new Set([PLAN_PROFILE_MATURITY_V2.PAUSED, PLAN_PROFILE_MATURITY_V2.ARCHIVED])],
-  [PLAN_PROFILE_MATURITY_V2.PAUSED, new Set([PLAN_PROFILE_MATURITY_V2.ACTIVE, PLAN_PROFILE_MATURITY_V2.ARCHIVED])],
+  [
+    PLAN_PROFILE_MATURITY_V2.PENDING,
+    new Set([
+      PLAN_PROFILE_MATURITY_V2.ACTIVE,
+      PLAN_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    PLAN_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      PLAN_PROFILE_MATURITY_V2.PAUSED,
+      PLAN_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    PLAN_PROFILE_MATURITY_V2.PAUSED,
+    new Set([
+      PLAN_PROFILE_MATURITY_V2.ACTIVE,
+      PLAN_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
   [PLAN_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
 ]);
 const _planPTerminal = new Set([PLAN_PROFILE_MATURITY_V2.ARCHIVED]);
 const _planSTrans = new Map([
-  [PLAN_STEP_LIFECYCLE_V2.QUEUED, new Set([PLAN_STEP_LIFECYCLE_V2.RUNNING, PLAN_STEP_LIFECYCLE_V2.CANCELLED])],
-  [PLAN_STEP_LIFECYCLE_V2.RUNNING, new Set([PLAN_STEP_LIFECYCLE_V2.COMPLETED, PLAN_STEP_LIFECYCLE_V2.FAILED, PLAN_STEP_LIFECYCLE_V2.CANCELLED])],
+  [
+    PLAN_STEP_LIFECYCLE_V2.QUEUED,
+    new Set([PLAN_STEP_LIFECYCLE_V2.RUNNING, PLAN_STEP_LIFECYCLE_V2.CANCELLED]),
+  ],
+  [
+    PLAN_STEP_LIFECYCLE_V2.RUNNING,
+    new Set([
+      PLAN_STEP_LIFECYCLE_V2.COMPLETED,
+      PLAN_STEP_LIFECYCLE_V2.FAILED,
+      PLAN_STEP_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [PLAN_STEP_LIFECYCLE_V2.COMPLETED, new Set()],
   [PLAN_STEP_LIFECYCLE_V2.FAILED, new Set()],
   [PLAN_STEP_LIFECYCLE_V2.CANCELLED, new Set()],
 ]);
 const _planPsV2 = new Map();
 const _planSsV2 = new Map();
-let _planMaxActivePerOwner = 6, _planMaxPendingStepsPerProfile = 15, _planIdleMs = 7 * 24 * 60 * 60 * 1000, _planStuckMs = 30 * 60 * 1000;
-function _planPos(n, label) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${label} must be positive integer`); return v; }
-function _planCheckP(from, to) { const a = _planPTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid plan profile transition ${from} → ${to}`); }
-function _planCheckS(from, to) { const a = _planSTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid plan step transition ${from} → ${to}`); }
-export function setMaxActivePlanProfilesPerOwnerV2(n) { _planMaxActivePerOwner = _planPos(n, "maxActivePlanProfilesPerOwner"); }
-export function getMaxActivePlanProfilesPerOwnerV2() { return _planMaxActivePerOwner; }
-export function setMaxPendingPlanStepsPerProfileV2(n) { _planMaxPendingStepsPerProfile = _planPos(n, "maxPendingPlanStepsPerProfile"); }
-export function getMaxPendingPlanStepsPerProfileV2() { return _planMaxPendingStepsPerProfile; }
-export function setPlanProfileIdleMsV2(n) { _planIdleMs = _planPos(n, "planProfileIdleMs"); }
-export function getPlanProfileIdleMsV2() { return _planIdleMs; }
-export function setPlanStepStuckMsV2(n) { _planStuckMs = _planPos(n, "planStepStuckMs"); }
-export function getPlanStepStuckMsV2() { return _planStuckMs; }
-export function _resetStatePlanModeV2() { _planPsV2.clear(); _planSsV2.clear(); _planMaxActivePerOwner = 6; _planMaxPendingStepsPerProfile = 15; _planIdleMs = 7 * 24 * 60 * 60 * 1000; _planStuckMs = 30 * 60 * 1000; }
-export function registerPlanProfileV2({ id, owner, goal, metadata } = {}) {
-  if (!id) throw new Error("plan profile id required"); if (!owner) throw new Error("plan profile owner required");
-  if (_planPsV2.has(id)) throw new Error(`plan profile ${id} already registered`);
-  const now = Date.now();
-  const p = { id, owner, goal: goal || "", status: PLAN_PROFILE_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, archivedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
-  _planPsV2.set(id, p); return { ...p, metadata: { ...p.metadata } };
+let _planMaxActivePerOwner = 6,
+  _planMaxPendingStepsPerProfile = 15,
+  _planIdleMs = 7 * 24 * 60 * 60 * 1000,
+  _planStuckMs = 30 * 60 * 1000;
+function _planPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
 }
-function _planCountActive(owner) { let n = 0; for (const p of _planPsV2.values()) if (p.owner === owner && p.status === PLAN_PROFILE_MATURITY_V2.ACTIVE) n++; return n; }
-export function activatePlanProfileV2(id) {
-  const p = _planPsV2.get(id); if (!p) throw new Error(`plan profile ${id} not found`);
-  _planCheckP(p.status, PLAN_PROFILE_MATURITY_V2.ACTIVE);
-  const recovery = p.status === PLAN_PROFILE_MATURITY_V2.PAUSED;
-  if (!recovery && _planCountActive(p.owner) >= _planMaxActivePerOwner) throw new Error(`max active plan profiles for owner ${p.owner} reached`);
-  const now = Date.now(); p.status = PLAN_PROFILE_MATURITY_V2.ACTIVE; p.updatedAt = now; p.lastTouchedAt = now; if (!p.activatedAt) p.activatedAt = now;
+function _planCheckP(from, to) {
+  const a = _planPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid plan profile transition ${from} → ${to}`);
+}
+function _planCheckS(from, to) {
+  const a = _planSTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid plan step transition ${from} → ${to}`);
+}
+export function setMaxActivePlanProfilesPerOwnerV2(n) {
+  _planMaxActivePerOwner = _planPos(n, "maxActivePlanProfilesPerOwner");
+}
+export function getMaxActivePlanProfilesPerOwnerV2() {
+  return _planMaxActivePerOwner;
+}
+export function setMaxPendingPlanStepsPerProfileV2(n) {
+  _planMaxPendingStepsPerProfile = _planPos(n, "maxPendingPlanStepsPerProfile");
+}
+export function getMaxPendingPlanStepsPerProfileV2() {
+  return _planMaxPendingStepsPerProfile;
+}
+export function setPlanProfileIdleMsV2(n) {
+  _planIdleMs = _planPos(n, "planProfileIdleMs");
+}
+export function getPlanProfileIdleMsV2() {
+  return _planIdleMs;
+}
+export function setPlanStepStuckMsV2(n) {
+  _planStuckMs = _planPos(n, "planStepStuckMs");
+}
+export function getPlanStepStuckMsV2() {
+  return _planStuckMs;
+}
+export function _resetStatePlanModeV2() {
+  _planPsV2.clear();
+  _planSsV2.clear();
+  _planMaxActivePerOwner = 6;
+  _planMaxPendingStepsPerProfile = 15;
+  _planIdleMs = 7 * 24 * 60 * 60 * 1000;
+  _planStuckMs = 30 * 60 * 1000;
+}
+export function registerPlanProfileV2({ id, owner, goal, metadata } = {}) {
+  if (!id) throw new Error("plan profile id required");
+  if (!owner) throw new Error("plan profile owner required");
+  if (_planPsV2.has(id))
+    throw new Error(`plan profile ${id} already registered`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    goal: goal || "",
+    status: PLAN_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
+  _planPsV2.set(id, p);
   return { ...p, metadata: { ...p.metadata } };
 }
-export function pausePlanProfileV2(id) { const p = _planPsV2.get(id); if (!p) throw new Error(`plan profile ${id} not found`); _planCheckP(p.status, PLAN_PROFILE_MATURITY_V2.PAUSED); p.status = PLAN_PROFILE_MATURITY_V2.PAUSED; p.updatedAt = Date.now(); return { ...p, metadata: { ...p.metadata } }; }
-export function archivePlanProfileV2(id) { const p = _planPsV2.get(id); if (!p) throw new Error(`plan profile ${id} not found`); _planCheckP(p.status, PLAN_PROFILE_MATURITY_V2.ARCHIVED); const now = Date.now(); p.status = PLAN_PROFILE_MATURITY_V2.ARCHIVED; p.updatedAt = now; if (!p.archivedAt) p.archivedAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function touchPlanProfileV2(id) { const p = _planPsV2.get(id); if (!p) throw new Error(`plan profile ${id} not found`); if (_planPTerminal.has(p.status)) throw new Error(`cannot touch terminal plan profile ${id}`); const now = Date.now(); p.lastTouchedAt = now; p.updatedAt = now; return { ...p, metadata: { ...p.metadata } }; }
-export function getPlanProfileV2(id) { const p = _planPsV2.get(id); if (!p) return null; return { ...p, metadata: { ...p.metadata } }; }
-export function listPlanProfilesV2() { return [..._planPsV2.values()].map((p) => ({ ...p, metadata: { ...p.metadata } })); }
-function _planCountPending(profileId) { let n = 0; for (const s of _planSsV2.values()) if (s.profileId === profileId && (s.status === PLAN_STEP_LIFECYCLE_V2.QUEUED || s.status === PLAN_STEP_LIFECYCLE_V2.RUNNING)) n++; return n; }
-export function createPlanStepV2({ id, profileId, action, metadata } = {}) {
-  if (!id) throw new Error("plan step id required"); if (!profileId) throw new Error("plan step profileId required");
-  if (_planSsV2.has(id)) throw new Error(`plan step ${id} already exists`);
-  if (!_planPsV2.has(profileId)) throw new Error(`plan profile ${profileId} not found`);
-  if (_planCountPending(profileId) >= _planMaxPendingStepsPerProfile) throw new Error(`max pending plan steps for profile ${profileId} reached`);
-  const now = Date.now();
-  const s = { id, profileId, action: action || "", status: PLAN_STEP_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
-  _planSsV2.set(id, s); return { ...s, metadata: { ...s.metadata } };
+function _planCountActive(owner) {
+  let n = 0;
+  for (const p of _planPsV2.values())
+    if (p.owner === owner && p.status === PLAN_PROFILE_MATURITY_V2.ACTIVE) n++;
+  return n;
 }
-export function startPlanStepV2(id) { const s = _planSsV2.get(id); if (!s) throw new Error(`plan step ${id} not found`); _planCheckS(s.status, PLAN_STEP_LIFECYCLE_V2.RUNNING); const now = Date.now(); s.status = PLAN_STEP_LIFECYCLE_V2.RUNNING; s.updatedAt = now; if (!s.startedAt) s.startedAt = now; return { ...s, metadata: { ...s.metadata } }; }
-export function completePlanStepV2(id) { const s = _planSsV2.get(id); if (!s) throw new Error(`plan step ${id} not found`); _planCheckS(s.status, PLAN_STEP_LIFECYCLE_V2.COMPLETED); const now = Date.now(); s.status = PLAN_STEP_LIFECYCLE_V2.COMPLETED; s.updatedAt = now; if (!s.settledAt) s.settledAt = now; return { ...s, metadata: { ...s.metadata } }; }
-export function failPlanStepV2(id, reason) { const s = _planSsV2.get(id); if (!s) throw new Error(`plan step ${id} not found`); _planCheckS(s.status, PLAN_STEP_LIFECYCLE_V2.FAILED); const now = Date.now(); s.status = PLAN_STEP_LIFECYCLE_V2.FAILED; s.updatedAt = now; if (!s.settledAt) s.settledAt = now; if (reason) s.metadata.failReason = String(reason); return { ...s, metadata: { ...s.metadata } }; }
-export function cancelPlanStepV2(id, reason) { const s = _planSsV2.get(id); if (!s) throw new Error(`plan step ${id} not found`); _planCheckS(s.status, PLAN_STEP_LIFECYCLE_V2.CANCELLED); const now = Date.now(); s.status = PLAN_STEP_LIFECYCLE_V2.CANCELLED; s.updatedAt = now; if (!s.settledAt) s.settledAt = now; if (reason) s.metadata.cancelReason = String(reason); return { ...s, metadata: { ...s.metadata } }; }
-export function getPlanStepV2(id) { const s = _planSsV2.get(id); if (!s) return null; return { ...s, metadata: { ...s.metadata } }; }
-export function listPlanStepsV2() { return [..._planSsV2.values()].map((s) => ({ ...s, metadata: { ...s.metadata } })); }
-export function autoPauseIdlePlanProfilesV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const p of _planPsV2.values()) if (p.status === PLAN_PROFILE_MATURITY_V2.ACTIVE && (t - p.lastTouchedAt) >= _planIdleMs) { p.status = PLAN_PROFILE_MATURITY_V2.PAUSED; p.updatedAt = t; flipped.push(p.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckPlanStepsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const s of _planSsV2.values()) if (s.status === PLAN_STEP_LIFECYCLE_V2.RUNNING && s.startedAt != null && (t - s.startedAt) >= _planStuckMs) { s.status = PLAN_STEP_LIFECYCLE_V2.FAILED; s.updatedAt = t; if (!s.settledAt) s.settledAt = t; s.metadata.failReason = "auto-fail-stuck"; flipped.push(s.id); } return { flipped, count: flipped.length }; }
+export function activatePlanProfileV2(id) {
+  const p = _planPsV2.get(id);
+  if (!p) throw new Error(`plan profile ${id} not found`);
+  _planCheckP(p.status, PLAN_PROFILE_MATURITY_V2.ACTIVE);
+  const recovery = p.status === PLAN_PROFILE_MATURITY_V2.PAUSED;
+  if (!recovery && _planCountActive(p.owner) >= _planMaxActivePerOwner)
+    throw new Error(`max active plan profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = PLAN_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function pausePlanProfileV2(id) {
+  const p = _planPsV2.get(id);
+  if (!p) throw new Error(`plan profile ${id} not found`);
+  _planCheckP(p.status, PLAN_PROFILE_MATURITY_V2.PAUSED);
+  p.status = PLAN_PROFILE_MATURITY_V2.PAUSED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archivePlanProfileV2(id) {
+  const p = _planPsV2.get(id);
+  if (!p) throw new Error(`plan profile ${id} not found`);
+  _planCheckP(p.status, PLAN_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = PLAN_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchPlanProfileV2(id) {
+  const p = _planPsV2.get(id);
+  if (!p) throw new Error(`plan profile ${id} not found`);
+  if (_planPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal plan profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getPlanProfileV2(id) {
+  const p = _planPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listPlanProfilesV2() {
+  return [..._planPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+function _planCountPending(profileId) {
+  let n = 0;
+  for (const s of _planSsV2.values())
+    if (
+      s.profileId === profileId &&
+      (s.status === PLAN_STEP_LIFECYCLE_V2.QUEUED ||
+        s.status === PLAN_STEP_LIFECYCLE_V2.RUNNING)
+    )
+      n++;
+  return n;
+}
+export function createPlanStepV2({ id, profileId, action, metadata } = {}) {
+  if (!id) throw new Error("plan step id required");
+  if (!profileId) throw new Error("plan step profileId required");
+  if (_planSsV2.has(id)) throw new Error(`plan step ${id} already exists`);
+  if (!_planPsV2.has(profileId))
+    throw new Error(`plan profile ${profileId} not found`);
+  if (_planCountPending(profileId) >= _planMaxPendingStepsPerProfile)
+    throw new Error(`max pending plan steps for profile ${profileId} reached`);
+  const now = Date.now();
+  const s = {
+    id,
+    profileId,
+    action: action || "",
+    status: PLAN_STEP_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _planSsV2.set(id, s);
+  return { ...s, metadata: { ...s.metadata } };
+}
+export function startPlanStepV2(id) {
+  const s = _planSsV2.get(id);
+  if (!s) throw new Error(`plan step ${id} not found`);
+  _planCheckS(s.status, PLAN_STEP_LIFECYCLE_V2.RUNNING);
+  const now = Date.now();
+  s.status = PLAN_STEP_LIFECYCLE_V2.RUNNING;
+  s.updatedAt = now;
+  if (!s.startedAt) s.startedAt = now;
+  return { ...s, metadata: { ...s.metadata } };
+}
+export function completePlanStepV2(id) {
+  const s = _planSsV2.get(id);
+  if (!s) throw new Error(`plan step ${id} not found`);
+  _planCheckS(s.status, PLAN_STEP_LIFECYCLE_V2.COMPLETED);
+  const now = Date.now();
+  s.status = PLAN_STEP_LIFECYCLE_V2.COMPLETED;
+  s.updatedAt = now;
+  if (!s.settledAt) s.settledAt = now;
+  return { ...s, metadata: { ...s.metadata } };
+}
+export function failPlanStepV2(id, reason) {
+  const s = _planSsV2.get(id);
+  if (!s) throw new Error(`plan step ${id} not found`);
+  _planCheckS(s.status, PLAN_STEP_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  s.status = PLAN_STEP_LIFECYCLE_V2.FAILED;
+  s.updatedAt = now;
+  if (!s.settledAt) s.settledAt = now;
+  if (reason) s.metadata.failReason = String(reason);
+  return { ...s, metadata: { ...s.metadata } };
+}
+export function cancelPlanStepV2(id, reason) {
+  const s = _planSsV2.get(id);
+  if (!s) throw new Error(`plan step ${id} not found`);
+  _planCheckS(s.status, PLAN_STEP_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  s.status = PLAN_STEP_LIFECYCLE_V2.CANCELLED;
+  s.updatedAt = now;
+  if (!s.settledAt) s.settledAt = now;
+  if (reason) s.metadata.cancelReason = String(reason);
+  return { ...s, metadata: { ...s.metadata } };
+}
+export function getPlanStepV2(id) {
+  const s = _planSsV2.get(id);
+  if (!s) return null;
+  return { ...s, metadata: { ...s.metadata } };
+}
+export function listPlanStepsV2() {
+  return [..._planSsV2.values()].map((s) => ({
+    ...s,
+    metadata: { ...s.metadata },
+  }));
+}
+export function autoPauseIdlePlanProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _planPsV2.values())
+    if (
+      p.status === PLAN_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _planIdleMs
+    ) {
+      p.status = PLAN_PROFILE_MATURITY_V2.PAUSED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckPlanStepsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const s of _planSsV2.values())
+    if (
+      s.status === PLAN_STEP_LIFECYCLE_V2.RUNNING &&
+      s.startedAt != null &&
+      t - s.startedAt >= _planStuckMs
+    ) {
+      s.status = PLAN_STEP_LIFECYCLE_V2.FAILED;
+      s.updatedAt = t;
+      if (!s.settledAt) s.settledAt = t;
+      s.metadata.failReason = "auto-fail-stuck";
+      flipped.push(s.id);
+    }
+  return { flipped, count: flipped.length };
+}
 export function getPlanModeGovStatsV2() {
-  const profilesByStatus = {}; for (const v of Object.values(PLAN_PROFILE_MATURITY_V2)) profilesByStatus[v] = 0; for (const p of _planPsV2.values()) profilesByStatus[p.status]++;
-  const stepsByStatus = {}; for (const v of Object.values(PLAN_STEP_LIFECYCLE_V2)) stepsByStatus[v] = 0; for (const s of _planSsV2.values()) stepsByStatus[s.status]++;
-  return { totalPlanProfilesV2: _planPsV2.size, totalPlanStepsV2: _planSsV2.size, maxActivePlanProfilesPerOwner: _planMaxActivePerOwner, maxPendingPlanStepsPerProfile: _planMaxPendingStepsPerProfile, planProfileIdleMs: _planIdleMs, planStepStuckMs: _planStuckMs, profilesByStatus, stepsByStatus };
+  const profilesByStatus = {};
+  for (const v of Object.values(PLAN_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _planPsV2.values()) profilesByStatus[p.status]++;
+  const stepsByStatus = {};
+  for (const v of Object.values(PLAN_STEP_LIFECYCLE_V2)) stepsByStatus[v] = 0;
+  for (const s of _planSsV2.values()) stepsByStatus[s.status]++;
+  return {
+    totalPlanProfilesV2: _planPsV2.size,
+    totalPlanStepsV2: _planSsV2.size,
+    maxActivePlanProfilesPerOwner: _planMaxActivePerOwner,
+    maxPendingPlanStepsPerProfile: _planMaxPendingStepsPerProfile,
+    planProfileIdleMs: _planIdleMs,
+    planStepStuckMs: _planStuckMs,
+    profilesByStatus,
+    stepsByStatus,
+  };
 }

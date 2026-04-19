@@ -219,25 +219,56 @@ echo "ChainlessChain: pre-commit hook running"
   return { installed: true, hook: "pre-commit", path: hookPath };
 }
 
-
 // ===== V2 Surface: Git Integration governance overlay (CLI v0.139.0) =====
 export const GIT_REPO_MATURITY_V2 = Object.freeze({
-  PENDING: "pending", ACTIVE: "active", ARCHIVED: "archived", DECOMMISSIONED: "decommissioned",
+  PENDING: "pending",
+  ACTIVE: "active",
+  ARCHIVED: "archived",
+  DECOMMISSIONED: "decommissioned",
 });
 export const GIT_COMMIT_LIFECYCLE_V2 = Object.freeze({
-  QUEUED: "queued", COMMITTING: "committing", COMMITTED: "committed", FAILED: "failed", CANCELLED: "cancelled",
+  QUEUED: "queued",
+  COMMITTING: "committing",
+  COMMITTED: "committed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 });
 
 const _grTrans = new Map([
-  [GIT_REPO_MATURITY_V2.PENDING, new Set([GIT_REPO_MATURITY_V2.ACTIVE, GIT_REPO_MATURITY_V2.DECOMMISSIONED])],
-  [GIT_REPO_MATURITY_V2.ACTIVE, new Set([GIT_REPO_MATURITY_V2.ARCHIVED, GIT_REPO_MATURITY_V2.DECOMMISSIONED])],
-  [GIT_REPO_MATURITY_V2.ARCHIVED, new Set([GIT_REPO_MATURITY_V2.ACTIVE, GIT_REPO_MATURITY_V2.DECOMMISSIONED])],
+  [
+    GIT_REPO_MATURITY_V2.PENDING,
+    new Set([GIT_REPO_MATURITY_V2.ACTIVE, GIT_REPO_MATURITY_V2.DECOMMISSIONED]),
+  ],
+  [
+    GIT_REPO_MATURITY_V2.ACTIVE,
+    new Set([
+      GIT_REPO_MATURITY_V2.ARCHIVED,
+      GIT_REPO_MATURITY_V2.DECOMMISSIONED,
+    ]),
+  ],
+  [
+    GIT_REPO_MATURITY_V2.ARCHIVED,
+    new Set([GIT_REPO_MATURITY_V2.ACTIVE, GIT_REPO_MATURITY_V2.DECOMMISSIONED]),
+  ],
   [GIT_REPO_MATURITY_V2.DECOMMISSIONED, new Set()],
 ]);
 const _grTerminal = new Set([GIT_REPO_MATURITY_V2.DECOMMISSIONED]);
 const _gcTrans = new Map([
-  [GIT_COMMIT_LIFECYCLE_V2.QUEUED, new Set([GIT_COMMIT_LIFECYCLE_V2.COMMITTING, GIT_COMMIT_LIFECYCLE_V2.CANCELLED])],
-  [GIT_COMMIT_LIFECYCLE_V2.COMMITTING, new Set([GIT_COMMIT_LIFECYCLE_V2.COMMITTED, GIT_COMMIT_LIFECYCLE_V2.FAILED, GIT_COMMIT_LIFECYCLE_V2.CANCELLED])],
+  [
+    GIT_COMMIT_LIFECYCLE_V2.QUEUED,
+    new Set([
+      GIT_COMMIT_LIFECYCLE_V2.COMMITTING,
+      GIT_COMMIT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [
+    GIT_COMMIT_LIFECYCLE_V2.COMMITTING,
+    new Set([
+      GIT_COMMIT_LIFECYCLE_V2.COMMITTED,
+      GIT_COMMIT_LIFECYCLE_V2.FAILED,
+      GIT_COMMIT_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
   [GIT_COMMIT_LIFECYCLE_V2.COMMITTED, new Set()],
   [GIT_COMMIT_LIFECYCLE_V2.FAILED, new Set()],
   [GIT_COMMIT_LIFECYCLE_V2.CANCELLED, new Set()],
@@ -250,21 +281,45 @@ let _grMaxPendingCommitsPerRepo = 20;
 let _grIdleMs = 30 * 24 * 60 * 60 * 1000;
 let _gcStuckMs = 5 * 60 * 1000;
 
-function _grPos(n, lbl) { const v = Math.floor(Number(n)); if (!Number.isFinite(v) || v <= 0) throw new Error(`${lbl} must be positive integer`); return v; }
+function _grPos(n, lbl) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${lbl} must be positive integer`);
+  return v;
+}
 
-export function setMaxActiveGitReposPerOwnerV2(n) { _grMaxActivePerOwner = _grPos(n, "maxActiveGitReposPerOwner"); }
-export function getMaxActiveGitReposPerOwnerV2() { return _grMaxActivePerOwner; }
-export function setMaxPendingGitCommitsPerRepoV2(n) { _grMaxPendingCommitsPerRepo = _grPos(n, "maxPendingGitCommitsPerRepo"); }
-export function getMaxPendingGitCommitsPerRepoV2() { return _grMaxPendingCommitsPerRepo; }
-export function setGitRepoIdleMsV2(n) { _grIdleMs = _grPos(n, "gitRepoIdleMs"); }
-export function getGitRepoIdleMsV2() { return _grIdleMs; }
-export function setGitCommitStuckMsV2(n) { _gcStuckMs = _grPos(n, "gitCommitStuckMs"); }
-export function getGitCommitStuckMsV2() { return _gcStuckMs; }
+export function setMaxActiveGitReposPerOwnerV2(n) {
+  _grMaxActivePerOwner = _grPos(n, "maxActiveGitReposPerOwner");
+}
+export function getMaxActiveGitReposPerOwnerV2() {
+  return _grMaxActivePerOwner;
+}
+export function setMaxPendingGitCommitsPerRepoV2(n) {
+  _grMaxPendingCommitsPerRepo = _grPos(n, "maxPendingGitCommitsPerRepo");
+}
+export function getMaxPendingGitCommitsPerRepoV2() {
+  return _grMaxPendingCommitsPerRepo;
+}
+export function setGitRepoIdleMsV2(n) {
+  _grIdleMs = _grPos(n, "gitRepoIdleMs");
+}
+export function getGitRepoIdleMsV2() {
+  return _grIdleMs;
+}
+export function setGitCommitStuckMsV2(n) {
+  _gcStuckMs = _grPos(n, "gitCommitStuckMs");
+}
+export function getGitCommitStuckMsV2() {
+  return _gcStuckMs;
+}
 
 export function _resetStateGitIntegrationV2() {
-  _grsV2.clear(); _gcsV2.clear();
-  _grMaxActivePerOwner = 10; _grMaxPendingCommitsPerRepo = 20;
-  _grIdleMs = 30 * 24 * 60 * 60 * 1000; _gcStuckMs = 5 * 60 * 1000;
+  _grsV2.clear();
+  _gcsV2.clear();
+  _grMaxActivePerOwner = 10;
+  _grMaxPendingCommitsPerRepo = 20;
+  _grIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _gcStuckMs = 5 * 60 * 1000;
 }
 
 export function registerGitRepoV2({ id, owner, branch, metadata } = {}) {
@@ -272,54 +327,237 @@ export function registerGitRepoV2({ id, owner, branch, metadata } = {}) {
   if (!owner || typeof owner !== "string") throw new Error("owner is required");
   if (_grsV2.has(id)) throw new Error(`git repo ${id} already registered`);
   const now = Date.now();
-  const r = { id, owner, branch: branch || "main", status: GIT_REPO_MATURITY_V2.PENDING, createdAt: now, updatedAt: now, activatedAt: null, decommissionedAt: null, lastTouchedAt: now, metadata: { ...(metadata || {}) } };
+  const r = {
+    id,
+    owner,
+    branch: branch || "main",
+    status: GIT_REPO_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: null,
+    decommissionedAt: null,
+    lastTouchedAt: now,
+    metadata: { ...(metadata || {}) },
+  };
   _grsV2.set(id, r);
   return { ...r, metadata: { ...r.metadata } };
 }
-function _grCheckR(from, to) { const a = _grTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid git repo transition ${from} → ${to}`); }
-function _grCountActive(owner) { let n = 0; for (const r of _grsV2.values()) if (r.owner === owner && r.status === GIT_REPO_MATURITY_V2.ACTIVE) n++; return n; }
+function _grCheckR(from, to) {
+  const a = _grTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid git repo transition ${from} → ${to}`);
+}
+function _grCountActive(owner) {
+  let n = 0;
+  for (const r of _grsV2.values())
+    if (r.owner === owner && r.status === GIT_REPO_MATURITY_V2.ACTIVE) n++;
+  return n;
+}
 
 export function activateGitRepoV2(id) {
-  const r = _grsV2.get(id); if (!r) throw new Error(`git repo ${id} not found`);
+  const r = _grsV2.get(id);
+  if (!r) throw new Error(`git repo ${id} not found`);
   _grCheckR(r.status, GIT_REPO_MATURITY_V2.ACTIVE);
   const recovery = r.status === GIT_REPO_MATURITY_V2.ARCHIVED;
-  if (!recovery) { const c = _grCountActive(r.owner); if (c >= _grMaxActivePerOwner) throw new Error(`max active git repos per owner (${_grMaxActivePerOwner}) reached for ${r.owner}`); }
-  const now = Date.now(); r.status = GIT_REPO_MATURITY_V2.ACTIVE; r.updatedAt = now; r.lastTouchedAt = now; if (!r.activatedAt) r.activatedAt = now;
+  if (!recovery) {
+    const c = _grCountActive(r.owner);
+    if (c >= _grMaxActivePerOwner)
+      throw new Error(
+        `max active git repos per owner (${_grMaxActivePerOwner}) reached for ${r.owner}`,
+      );
+  }
+  const now = Date.now();
+  r.status = GIT_REPO_MATURITY_V2.ACTIVE;
+  r.updatedAt = now;
+  r.lastTouchedAt = now;
+  if (!r.activatedAt) r.activatedAt = now;
   return { ...r, metadata: { ...r.metadata } };
 }
-export function archiveGitRepoV2(id) { const r = _grsV2.get(id); if (!r) throw new Error(`git repo ${id} not found`); _grCheckR(r.status, GIT_REPO_MATURITY_V2.ARCHIVED); r.status = GIT_REPO_MATURITY_V2.ARCHIVED; r.updatedAt = Date.now(); return { ...r, metadata: { ...r.metadata } }; }
-export function decommissionGitRepoV2(id) { const r = _grsV2.get(id); if (!r) throw new Error(`git repo ${id} not found`); _grCheckR(r.status, GIT_REPO_MATURITY_V2.DECOMMISSIONED); const now = Date.now(); r.status = GIT_REPO_MATURITY_V2.DECOMMISSIONED; r.updatedAt = now; if (!r.decommissionedAt) r.decommissionedAt = now; return { ...r, metadata: { ...r.metadata } }; }
-export function touchGitRepoV2(id) { const r = _grsV2.get(id); if (!r) throw new Error(`git repo ${id} not found`); if (_grTerminal.has(r.status)) throw new Error(`cannot touch terminal git repo ${id}`); const now = Date.now(); r.lastTouchedAt = now; r.updatedAt = now; return { ...r, metadata: { ...r.metadata } }; }
-export function getGitRepoV2(id) { const r = _grsV2.get(id); if (!r) return null; return { ...r, metadata: { ...r.metadata } }; }
-export function listGitReposV2() { return [..._grsV2.values()].map((r) => ({ ...r, metadata: { ...r.metadata } })); }
+export function archiveGitRepoV2(id) {
+  const r = _grsV2.get(id);
+  if (!r) throw new Error(`git repo ${id} not found`);
+  _grCheckR(r.status, GIT_REPO_MATURITY_V2.ARCHIVED);
+  r.status = GIT_REPO_MATURITY_V2.ARCHIVED;
+  r.updatedAt = Date.now();
+  return { ...r, metadata: { ...r.metadata } };
+}
+export function decommissionGitRepoV2(id) {
+  const r = _grsV2.get(id);
+  if (!r) throw new Error(`git repo ${id} not found`);
+  _grCheckR(r.status, GIT_REPO_MATURITY_V2.DECOMMISSIONED);
+  const now = Date.now();
+  r.status = GIT_REPO_MATURITY_V2.DECOMMISSIONED;
+  r.updatedAt = now;
+  if (!r.decommissionedAt) r.decommissionedAt = now;
+  return { ...r, metadata: { ...r.metadata } };
+}
+export function touchGitRepoV2(id) {
+  const r = _grsV2.get(id);
+  if (!r) throw new Error(`git repo ${id} not found`);
+  if (_grTerminal.has(r.status))
+    throw new Error(`cannot touch terminal git repo ${id}`);
+  const now = Date.now();
+  r.lastTouchedAt = now;
+  r.updatedAt = now;
+  return { ...r, metadata: { ...r.metadata } };
+}
+export function getGitRepoV2(id) {
+  const r = _grsV2.get(id);
+  if (!r) return null;
+  return { ...r, metadata: { ...r.metadata } };
+}
+export function listGitReposV2() {
+  return [..._grsV2.values()].map((r) => ({
+    ...r,
+    metadata: { ...r.metadata },
+  }));
+}
 
-function _gcCountPending(repoId) { let n = 0; for (const c of _gcsV2.values()) if (c.repoId === repoId && (c.status === GIT_COMMIT_LIFECYCLE_V2.QUEUED || c.status === GIT_COMMIT_LIFECYCLE_V2.COMMITTING)) n++; return n; }
+function _gcCountPending(repoId) {
+  let n = 0;
+  for (const c of _gcsV2.values())
+    if (
+      c.repoId === repoId &&
+      (c.status === GIT_COMMIT_LIFECYCLE_V2.QUEUED ||
+        c.status === GIT_COMMIT_LIFECYCLE_V2.COMMITTING)
+    )
+      n++;
+  return n;
+}
 
 export function createGitCommitV2({ id, repoId, message, metadata } = {}) {
   if (!id || typeof id !== "string") throw new Error("id is required");
-  if (!repoId || typeof repoId !== "string") throw new Error("repoId is required");
+  if (!repoId || typeof repoId !== "string")
+    throw new Error("repoId is required");
   if (_gcsV2.has(id)) throw new Error(`git commit ${id} already exists`);
   if (!_grsV2.has(repoId)) throw new Error(`git repo ${repoId} not found`);
   const pending = _gcCountPending(repoId);
-  if (pending >= _grMaxPendingCommitsPerRepo) throw new Error(`max pending git commits per repo (${_grMaxPendingCommitsPerRepo}) reached for ${repoId}`);
+  if (pending >= _grMaxPendingCommitsPerRepo)
+    throw new Error(
+      `max pending git commits per repo (${_grMaxPendingCommitsPerRepo}) reached for ${repoId}`,
+    );
   const now = Date.now();
-  const c = { id, repoId, message: message || "", status: GIT_COMMIT_LIFECYCLE_V2.QUEUED, createdAt: now, updatedAt: now, startedAt: null, settledAt: null, metadata: { ...(metadata || {}) } };
+  const c = {
+    id,
+    repoId,
+    message: message || "",
+    status: GIT_COMMIT_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
   _gcsV2.set(id, c);
   return { ...c, metadata: { ...c.metadata } };
 }
-function _gcCheckC(from, to) { const a = _gcTrans.get(from); if (!a || !a.has(to)) throw new Error(`invalid git commit transition ${from} → ${to}`); }
-export function startGitCommitV2(id) { const c = _gcsV2.get(id); if (!c) throw new Error(`git commit ${id} not found`); _gcCheckC(c.status, GIT_COMMIT_LIFECYCLE_V2.COMMITTING); const now = Date.now(); c.status = GIT_COMMIT_LIFECYCLE_V2.COMMITTING; c.updatedAt = now; if (!c.startedAt) c.startedAt = now; return { ...c, metadata: { ...c.metadata } }; }
-export function commitGitCommitV2(id) { const c = _gcsV2.get(id); if (!c) throw new Error(`git commit ${id} not found`); _gcCheckC(c.status, GIT_COMMIT_LIFECYCLE_V2.COMMITTED); const now = Date.now(); c.status = GIT_COMMIT_LIFECYCLE_V2.COMMITTED; c.updatedAt = now; if (!c.settledAt) c.settledAt = now; return { ...c, metadata: { ...c.metadata } }; }
-export function failGitCommitV2(id, reason) { const c = _gcsV2.get(id); if (!c) throw new Error(`git commit ${id} not found`); _gcCheckC(c.status, GIT_COMMIT_LIFECYCLE_V2.FAILED); const now = Date.now(); c.status = GIT_COMMIT_LIFECYCLE_V2.FAILED; c.updatedAt = now; if (!c.settledAt) c.settledAt = now; if (reason) c.metadata.failReason = String(reason); return { ...c, metadata: { ...c.metadata } }; }
-export function cancelGitCommitV2(id, reason) { const c = _gcsV2.get(id); if (!c) throw new Error(`git commit ${id} not found`); _gcCheckC(c.status, GIT_COMMIT_LIFECYCLE_V2.CANCELLED); const now = Date.now(); c.status = GIT_COMMIT_LIFECYCLE_V2.CANCELLED; c.updatedAt = now; if (!c.settledAt) c.settledAt = now; if (reason) c.metadata.cancelReason = String(reason); return { ...c, metadata: { ...c.metadata } }; }
-export function getGitCommitV2(id) { const c = _gcsV2.get(id); if (!c) return null; return { ...c, metadata: { ...c.metadata } }; }
-export function listGitCommitsV2() { return [..._gcsV2.values()].map((c) => ({ ...c, metadata: { ...c.metadata } })); }
+function _gcCheckC(from, to) {
+  const a = _gcTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid git commit transition ${from} → ${to}`);
+}
+export function startGitCommitV2(id) {
+  const c = _gcsV2.get(id);
+  if (!c) throw new Error(`git commit ${id} not found`);
+  _gcCheckC(c.status, GIT_COMMIT_LIFECYCLE_V2.COMMITTING);
+  const now = Date.now();
+  c.status = GIT_COMMIT_LIFECYCLE_V2.COMMITTING;
+  c.updatedAt = now;
+  if (!c.startedAt) c.startedAt = now;
+  return { ...c, metadata: { ...c.metadata } };
+}
+export function commitGitCommitV2(id) {
+  const c = _gcsV2.get(id);
+  if (!c) throw new Error(`git commit ${id} not found`);
+  _gcCheckC(c.status, GIT_COMMIT_LIFECYCLE_V2.COMMITTED);
+  const now = Date.now();
+  c.status = GIT_COMMIT_LIFECYCLE_V2.COMMITTED;
+  c.updatedAt = now;
+  if (!c.settledAt) c.settledAt = now;
+  return { ...c, metadata: { ...c.metadata } };
+}
+export function failGitCommitV2(id, reason) {
+  const c = _gcsV2.get(id);
+  if (!c) throw new Error(`git commit ${id} not found`);
+  _gcCheckC(c.status, GIT_COMMIT_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  c.status = GIT_COMMIT_LIFECYCLE_V2.FAILED;
+  c.updatedAt = now;
+  if (!c.settledAt) c.settledAt = now;
+  if (reason) c.metadata.failReason = String(reason);
+  return { ...c, metadata: { ...c.metadata } };
+}
+export function cancelGitCommitV2(id, reason) {
+  const c = _gcsV2.get(id);
+  if (!c) throw new Error(`git commit ${id} not found`);
+  _gcCheckC(c.status, GIT_COMMIT_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  c.status = GIT_COMMIT_LIFECYCLE_V2.CANCELLED;
+  c.updatedAt = now;
+  if (!c.settledAt) c.settledAt = now;
+  if (reason) c.metadata.cancelReason = String(reason);
+  return { ...c, metadata: { ...c.metadata } };
+}
+export function getGitCommitV2(id) {
+  const c = _gcsV2.get(id);
+  if (!c) return null;
+  return { ...c, metadata: { ...c.metadata } };
+}
+export function listGitCommitsV2() {
+  return [..._gcsV2.values()].map((c) => ({
+    ...c,
+    metadata: { ...c.metadata },
+  }));
+}
 
-export function autoArchiveIdleGitReposV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const r of _grsV2.values()) if (r.status === GIT_REPO_MATURITY_V2.ACTIVE && (t - r.lastTouchedAt) >= _grIdleMs) { r.status = GIT_REPO_MATURITY_V2.ARCHIVED; r.updatedAt = t; flipped.push(r.id); } return { flipped, count: flipped.length }; }
-export function autoFailStuckGitCommitsV2({ now } = {}) { const t = now ?? Date.now(); const flipped = []; for (const c of _gcsV2.values()) if (c.status === GIT_COMMIT_LIFECYCLE_V2.COMMITTING && c.startedAt != null && (t - c.startedAt) >= _gcStuckMs) { c.status = GIT_COMMIT_LIFECYCLE_V2.FAILED; c.updatedAt = t; if (!c.settledAt) c.settledAt = t; c.metadata.failReason = "auto-fail-stuck"; flipped.push(c.id); } return { flipped, count: flipped.length }; }
+export function autoArchiveIdleGitReposV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const r of _grsV2.values())
+    if (
+      r.status === GIT_REPO_MATURITY_V2.ACTIVE &&
+      t - r.lastTouchedAt >= _grIdleMs
+    ) {
+      r.status = GIT_REPO_MATURITY_V2.ARCHIVED;
+      r.updatedAt = t;
+      flipped.push(r.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckGitCommitsV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const c of _gcsV2.values())
+    if (
+      c.status === GIT_COMMIT_LIFECYCLE_V2.COMMITTING &&
+      c.startedAt != null &&
+      t - c.startedAt >= _gcStuckMs
+    ) {
+      c.status = GIT_COMMIT_LIFECYCLE_V2.FAILED;
+      c.updatedAt = t;
+      if (!c.settledAt) c.settledAt = t;
+      c.metadata.failReason = "auto-fail-stuck";
+      flipped.push(c.id);
+    }
+  return { flipped, count: flipped.length };
+}
 
 export function getGitIntegrationGovStatsV2() {
-  const reposByStatus = {}; for (const s of Object.values(GIT_REPO_MATURITY_V2)) reposByStatus[s] = 0; for (const r of _grsV2.values()) reposByStatus[r.status]++;
-  const commitsByStatus = {}; for (const s of Object.values(GIT_COMMIT_LIFECYCLE_V2)) commitsByStatus[s] = 0; for (const c of _gcsV2.values()) commitsByStatus[c.status]++;
-  return { totalGitReposV2: _grsV2.size, totalGitCommitsV2: _gcsV2.size, maxActiveGitReposPerOwner: _grMaxActivePerOwner, maxPendingGitCommitsPerRepo: _grMaxPendingCommitsPerRepo, gitRepoIdleMs: _grIdleMs, gitCommitStuckMs: _gcStuckMs, reposByStatus, commitsByStatus };
+  const reposByStatus = {};
+  for (const s of Object.values(GIT_REPO_MATURITY_V2)) reposByStatus[s] = 0;
+  for (const r of _grsV2.values()) reposByStatus[r.status]++;
+  const commitsByStatus = {};
+  for (const s of Object.values(GIT_COMMIT_LIFECYCLE_V2))
+    commitsByStatus[s] = 0;
+  for (const c of _gcsV2.values()) commitsByStatus[c.status]++;
+  return {
+    totalGitReposV2: _grsV2.size,
+    totalGitCommitsV2: _gcsV2.size,
+    maxActiveGitReposPerOwner: _grMaxActivePerOwner,
+    maxPendingGitCommitsPerRepo: _grMaxPendingCommitsPerRepo,
+    gitRepoIdleMs: _grIdleMs,
+    gitCommitStuckMs: _gcStuckMs,
+    reposByStatus,
+    commitsByStatus,
+  };
 }

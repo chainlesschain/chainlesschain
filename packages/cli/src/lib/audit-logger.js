@@ -741,3 +741,324 @@ export function _resetStateV2() {
   _archiveRetentionMs = AUDIT_DEFAULT_ARCHIVE_RETENTION_MS;
   _purgeRetentionMs = AUDIT_DEFAULT_PURGE_RETENTION_MS;
 }
+
+// =====================================================================
+// audit-logger V2 governance overlay (iter16)
+// =====================================================================
+export const AUD_PROFILE_MATURITY_V2 = Object.freeze({
+  PENDING: "pending",
+  ACTIVE: "active",
+  SUSPENDED: "suspended",
+  ARCHIVED: "archived",
+});
+export const AUD_WRITE_LIFECYCLE_V2 = Object.freeze({
+  QUEUED: "queued",
+  WRITING: "writing",
+  WRITTEN: "written",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+});
+const _audPTrans = new Map([
+  [
+    AUD_PROFILE_MATURITY_V2.PENDING,
+    new Set([AUD_PROFILE_MATURITY_V2.ACTIVE, AUD_PROFILE_MATURITY_V2.ARCHIVED]),
+  ],
+  [
+    AUD_PROFILE_MATURITY_V2.ACTIVE,
+    new Set([
+      AUD_PROFILE_MATURITY_V2.SUSPENDED,
+      AUD_PROFILE_MATURITY_V2.ARCHIVED,
+    ]),
+  ],
+  [
+    AUD_PROFILE_MATURITY_V2.SUSPENDED,
+    new Set([AUD_PROFILE_MATURITY_V2.ACTIVE, AUD_PROFILE_MATURITY_V2.ARCHIVED]),
+  ],
+  [AUD_PROFILE_MATURITY_V2.ARCHIVED, new Set()],
+]);
+const _audPTerminal = new Set([AUD_PROFILE_MATURITY_V2.ARCHIVED]);
+const _audJTrans = new Map([
+  [
+    AUD_WRITE_LIFECYCLE_V2.QUEUED,
+    new Set([AUD_WRITE_LIFECYCLE_V2.WRITING, AUD_WRITE_LIFECYCLE_V2.CANCELLED]),
+  ],
+  [
+    AUD_WRITE_LIFECYCLE_V2.WRITING,
+    new Set([
+      AUD_WRITE_LIFECYCLE_V2.WRITTEN,
+      AUD_WRITE_LIFECYCLE_V2.FAILED,
+      AUD_WRITE_LIFECYCLE_V2.CANCELLED,
+    ]),
+  ],
+  [AUD_WRITE_LIFECYCLE_V2.WRITTEN, new Set()],
+  [AUD_WRITE_LIFECYCLE_V2.FAILED, new Set()],
+  [AUD_WRITE_LIFECYCLE_V2.CANCELLED, new Set()],
+]);
+const _audPsV2 = new Map();
+const _audJsV2 = new Map();
+let _audMaxActive = 8,
+  _audMaxPending = 30,
+  _audIdleMs = 30 * 24 * 60 * 60 * 1000,
+  _audStuckMs = 60 * 1000;
+function _audPos(n, label) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v <= 0)
+    throw new Error(`${label} must be positive integer`);
+  return v;
+}
+function _audCheckP(from, to) {
+  const a = _audPTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid aud profile transition ${from} → ${to}`);
+}
+function _audCheckJ(from, to) {
+  const a = _audJTrans.get(from);
+  if (!a || !a.has(to))
+    throw new Error(`invalid aud write transition ${from} → ${to}`);
+}
+function _audCountActive(owner) {
+  let c = 0;
+  for (const p of _audPsV2.values())
+    if (p.owner === owner && p.status === AUD_PROFILE_MATURITY_V2.ACTIVE) c++;
+  return c;
+}
+function _audCountPending(profileId) {
+  let c = 0;
+  for (const j of _audJsV2.values())
+    if (
+      j.profileId === profileId &&
+      (j.status === AUD_WRITE_LIFECYCLE_V2.QUEUED ||
+        j.status === AUD_WRITE_LIFECYCLE_V2.WRITING)
+    )
+      c++;
+  return c;
+}
+export function setMaxActiveAudProfilesPerOwnerV2(n) {
+  _audMaxActive = _audPos(n, "maxActiveAudProfilesPerOwner");
+}
+export function getMaxActiveAudProfilesPerOwnerV2() {
+  return _audMaxActive;
+}
+export function setMaxPendingAudWritesPerProfileV2(n) {
+  _audMaxPending = _audPos(n, "maxPendingAudWritesPerProfile");
+}
+export function getMaxPendingAudWritesPerProfileV2() {
+  return _audMaxPending;
+}
+export function setAudProfileIdleMsV2(n) {
+  _audIdleMs = _audPos(n, "audProfileIdleMs");
+}
+export function getAudProfileIdleMsV2() {
+  return _audIdleMs;
+}
+export function setAudWriteStuckMsV2(n) {
+  _audStuckMs = _audPos(n, "audWriteStuckMs");
+}
+export function getAudWriteStuckMsV2() {
+  return _audStuckMs;
+}
+export function _resetStateAuditLoggerV2() {
+  _audPsV2.clear();
+  _audJsV2.clear();
+  _audMaxActive = 8;
+  _audMaxPending = 30;
+  _audIdleMs = 30 * 24 * 60 * 60 * 1000;
+  _audStuckMs = 60 * 1000;
+}
+export function registerAudProfileV2({ id, owner, level, metadata } = {}) {
+  if (!id || !owner) throw new Error("id and owner required");
+  if (_audPsV2.has(id)) throw new Error(`aud profile ${id} already exists`);
+  const now = Date.now();
+  const p = {
+    id,
+    owner,
+    level: level || "info",
+    status: AUD_PROFILE_MATURITY_V2.PENDING,
+    createdAt: now,
+    updatedAt: now,
+    lastTouchedAt: now,
+    activatedAt: null,
+    archivedAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _audPsV2.set(id, p);
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function activateAudProfileV2(id) {
+  const p = _audPsV2.get(id);
+  if (!p) throw new Error(`aud profile ${id} not found`);
+  const isInitial = p.status === AUD_PROFILE_MATURITY_V2.PENDING;
+  _audCheckP(p.status, AUD_PROFILE_MATURITY_V2.ACTIVE);
+  if (isInitial && _audCountActive(p.owner) >= _audMaxActive)
+    throw new Error(`max active aud profiles for owner ${p.owner} reached`);
+  const now = Date.now();
+  p.status = AUD_PROFILE_MATURITY_V2.ACTIVE;
+  p.updatedAt = now;
+  p.lastTouchedAt = now;
+  if (!p.activatedAt) p.activatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function suspendAudProfileV2(id) {
+  const p = _audPsV2.get(id);
+  if (!p) throw new Error(`aud profile ${id} not found`);
+  _audCheckP(p.status, AUD_PROFILE_MATURITY_V2.SUSPENDED);
+  p.status = AUD_PROFILE_MATURITY_V2.SUSPENDED;
+  p.updatedAt = Date.now();
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function archiveAudProfileV2(id) {
+  const p = _audPsV2.get(id);
+  if (!p) throw new Error(`aud profile ${id} not found`);
+  _audCheckP(p.status, AUD_PROFILE_MATURITY_V2.ARCHIVED);
+  const now = Date.now();
+  p.status = AUD_PROFILE_MATURITY_V2.ARCHIVED;
+  p.updatedAt = now;
+  if (!p.archivedAt) p.archivedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function touchAudProfileV2(id) {
+  const p = _audPsV2.get(id);
+  if (!p) throw new Error(`aud profile ${id} not found`);
+  if (_audPTerminal.has(p.status))
+    throw new Error(`cannot touch terminal aud profile ${id}`);
+  const now = Date.now();
+  p.lastTouchedAt = now;
+  p.updatedAt = now;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function getAudProfileV2(id) {
+  const p = _audPsV2.get(id);
+  if (!p) return null;
+  return { ...p, metadata: { ...p.metadata } };
+}
+export function listAudProfilesV2() {
+  return [..._audPsV2.values()].map((p) => ({
+    ...p,
+    metadata: { ...p.metadata },
+  }));
+}
+export function createAudWriteV2({ id, profileId, key, metadata } = {}) {
+  if (!id || !profileId) throw new Error("id and profileId required");
+  if (_audJsV2.has(id)) throw new Error(`aud write ${id} already exists`);
+  if (!_audPsV2.has(profileId))
+    throw new Error(`aud profile ${profileId} not found`);
+  if (_audCountPending(profileId) >= _audMaxPending)
+    throw new Error(`max pending aud writes for profile ${profileId} reached`);
+  const now = Date.now();
+  const j = {
+    id,
+    profileId,
+    key: key || "",
+    status: AUD_WRITE_LIFECYCLE_V2.QUEUED,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    settledAt: null,
+    metadata: { ...(metadata || {}) },
+  };
+  _audJsV2.set(id, j);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function writingAudWriteV2(id) {
+  const j = _audJsV2.get(id);
+  if (!j) throw new Error(`aud write ${id} not found`);
+  _audCheckJ(j.status, AUD_WRITE_LIFECYCLE_V2.WRITING);
+  const now = Date.now();
+  j.status = AUD_WRITE_LIFECYCLE_V2.WRITING;
+  j.updatedAt = now;
+  if (!j.startedAt) j.startedAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function writeOkAudV2(id) {
+  const j = _audJsV2.get(id);
+  if (!j) throw new Error(`aud write ${id} not found`);
+  _audCheckJ(j.status, AUD_WRITE_LIFECYCLE_V2.WRITTEN);
+  const now = Date.now();
+  j.status = AUD_WRITE_LIFECYCLE_V2.WRITTEN;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function failAudWriteV2(id, reason) {
+  const j = _audJsV2.get(id);
+  if (!j) throw new Error(`aud write ${id} not found`);
+  _audCheckJ(j.status, AUD_WRITE_LIFECYCLE_V2.FAILED);
+  const now = Date.now();
+  j.status = AUD_WRITE_LIFECYCLE_V2.FAILED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.failReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function cancelAudWriteV2(id, reason) {
+  const j = _audJsV2.get(id);
+  if (!j) throw new Error(`aud write ${id} not found`);
+  _audCheckJ(j.status, AUD_WRITE_LIFECYCLE_V2.CANCELLED);
+  const now = Date.now();
+  j.status = AUD_WRITE_LIFECYCLE_V2.CANCELLED;
+  j.updatedAt = now;
+  if (!j.settledAt) j.settledAt = now;
+  if (reason) j.metadata.cancelReason = String(reason);
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function getAudWriteV2(id) {
+  const j = _audJsV2.get(id);
+  if (!j) return null;
+  return { ...j, metadata: { ...j.metadata } };
+}
+export function listAudWritesV2() {
+  return [..._audJsV2.values()].map((j) => ({
+    ...j,
+    metadata: { ...j.metadata },
+  }));
+}
+export function autoSuspendIdleAudProfilesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const p of _audPsV2.values())
+    if (
+      p.status === AUD_PROFILE_MATURITY_V2.ACTIVE &&
+      t - p.lastTouchedAt >= _audIdleMs
+    ) {
+      p.status = AUD_PROFILE_MATURITY_V2.SUSPENDED;
+      p.updatedAt = t;
+      flipped.push(p.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function autoFailStuckAudWritesV2({ now } = {}) {
+  const t = now ?? Date.now();
+  const flipped = [];
+  for (const j of _audJsV2.values())
+    if (
+      j.status === AUD_WRITE_LIFECYCLE_V2.WRITING &&
+      j.startedAt != null &&
+      t - j.startedAt >= _audStuckMs
+    ) {
+      j.status = AUD_WRITE_LIFECYCLE_V2.FAILED;
+      j.updatedAt = t;
+      if (!j.settledAt) j.settledAt = t;
+      j.metadata.failReason = "auto-fail-stuck";
+      flipped.push(j.id);
+    }
+  return { flipped, count: flipped.length };
+}
+export function getAuditLoggerGovStatsV2() {
+  const profilesByStatus = {};
+  for (const v of Object.values(AUD_PROFILE_MATURITY_V2))
+    profilesByStatus[v] = 0;
+  for (const p of _audPsV2.values()) profilesByStatus[p.status]++;
+  const writesByStatus = {};
+  for (const v of Object.values(AUD_WRITE_LIFECYCLE_V2)) writesByStatus[v] = 0;
+  for (const j of _audJsV2.values()) writesByStatus[j.status]++;
+  return {
+    totalAudProfilesV2: _audPsV2.size,
+    totalAudWritesV2: _audJsV2.size,
+    maxActiveAudProfilesPerOwner: _audMaxActive,
+    maxPendingAudWritesPerProfile: _audMaxPending,
+    audProfileIdleMs: _audIdleMs,
+    audWriteStuckMs: _audStuckMs,
+    profilesByStatus,
+    writesByStatus,
+  };
+}
