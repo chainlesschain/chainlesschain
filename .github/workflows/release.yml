@@ -33,11 +33,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22.12.0"
-          cache: "npm"
-          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm install --legacy-peer-deps
+          npm install @rollup/rollup-win32-x64-msvc --no-save --legacy-peer-deps || true
+        shell: bash
 
       - name: Build main process
         working-directory: desktop-app-vue
@@ -95,11 +96,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22.12.0"
-          cache: "npm"
-          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm install --legacy-peer-deps
+          npm install @rollup/rollup-darwin-${{ matrix.arch }} --no-save --legacy-peer-deps || true
 
       - name: Build main process
         working-directory: desktop-app-vue
@@ -147,8 +148,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22.12.0"
-          cache: "npm"
-          cache-dependency-path: package-lock.json
 
       - name: Install system dependencies
         run: |
@@ -160,7 +159,9 @@ jobs:
             libarchive-tools
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm install --legacy-peer-deps
+          npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
 
       - name: Build main process
         working-directory: desktop-app-vue
@@ -621,7 +622,9 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies (workspaces)
-        run: npm ci
+        run: |
+          npm install --legacy-peer-deps
+          npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
 
       - name: Run CLI tests
         working-directory: packages/cli
