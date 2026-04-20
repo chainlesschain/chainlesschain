@@ -1,5 +1,36 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-20 增量更新（桌面版 V6 · P7 Claude-Desktop 风格外观预览）
+
+在 P0–P6 基础上新增 **`/v6-preview` 预览路由**（与 `/v2` 并存，不替换），把桌面版外观向 Claude Desktop 对齐，并固化 4 颗差异化入口：
+
+- **4 主题** — `src/renderer/shell-preview/themes.css` 提供 dark / light / blue / green（从 web-panel theme.js 移植），通过 `[data-theme-preview]` 切换 + localStorage 持久化；store：`src/renderer/stores/theme-preview.ts`。
+- **4 颗去中心化入口（左栏底部固化）** — P2P 协作 / 去中心化交易 / 去中心化社交 / U-Key 安全，绑定到 P6 `slash-dispatch` 的 4 个 `builtin:open*` handler。
+- **三区骨架** — 左栏 `ConversationList` 会话历史 + `DecentralEntries` + 主题切换；中区留白气泡 + 极简 composer（Ctrl/Cmd+Enter 发送）；右侧 `ArtifactDrawer` 从右滑入。
+- **测试**：`stores/__tests__/theme-preview.test.ts`（11 例）+ `shell/__tests__/slash-dispatch.test.ts`（8 例），共 19 例全部通过。
+- **P8 接入（同日晚）**：4 颗入口点击不再是占位 toast，而是在右抽屉中挂载 `shell-preview/widgets/{P2p,Trade,Social,UKey}PreviewWidget.vue` 轻量预览卡，每卡含概览 + 2–3 按钮 `router.push` 到既有 `/main/*` 完整页（P2P 去 `P2PMessaging` / Trade 去 `TradingHub` / Social 去 `Chat` / UKey 去 `ThresholdSecurity`）。`widget-registry.test.ts` 新增 5 例。
+- **P9a 持久化（同日晚）**：新增 `stores/conversation-preview.ts` Pinia store，把会话列表 + 消息 + 活跃 id 持久化到 localStorage（key `cc.preview.conversations`，带 `version: 1` schema + 损坏/版本不匹配自动 re-seed）；`AppShellPreview.vue` 完全由 store 驱动，重启壳自动恢复上次对话。13 条 store 单测全部通过，合计 **37 例全绿**。
+- **详细计划**：[`docs/design/modules/97_桌面版UI_ClaudeDesktop重构计划.md`](./docs/design/modules/97_桌面版UI_ClaudeDesktop重构计划.md)。
+
+---
+
+## 2026-04-20 增量更新（桌面版 V6 Chat-First Shell · P0–P6 完成）
+
+Electron 桌面端 `/v2` 路由上线**对话优先 + 插件化平台**新壳，完整取代旧 dashboard，阶段 P0–P6 全部落地：
+
+- **三区布局** — 左 `ShellSidebar`（空间切换）/ 中 `ConversationStream + ShellComposer`（`/` 命令 + `@` 引用）/ 右 `ArtifactPanel` + 底 `ShellStatusBar`。
+- **扩展点 7 类 + 企业能力 5 类** — `plugin.json` 的 `contributes.ui.*` / `contributes.provider.*` 贡献，通过 `ExtensionPointRegistry` 按 priority 降序选出胜出者。
+- **P6 分发器**（本轮核心）— `slash-dispatch.ts` + `widget-registry.ts` 把 plugin 声明的 `handler` / `component` 字符串接上运行时行为，内置 `builtin:openAdminConsole` + `builtin:AdminShortcut`。
+- **AdminConsole** — `Ctrl+Shift+A` / `/admin` / 状态栏齿轮三路径都能打开（4 标签页：概览 / UI 扩展点 / 企业能力 / 调试），仅 `admin` 权限账户可见。
+- **企业定制三路径** — 私有 Registry（`trustedPublicKeys` 验签）/ `.ccprofile`（ed25519 + per-plugin sha256 签名包，一键换肤换能力）/ MDM 推送（启动时校验解包，高 priority 胜出）。
+- **13 个内置 first-party 插件** — `chat-core` / `notes` / `spaces-personal` / `cowork-runner` / `brand-default` / `ai-ollama-default` / `auth-local` / `data-sqlite-default` / `crypto-ukey-default` / `compliance-default` / `admin-console` / `chain-gateway` / `did-core`。
+
+**测试**：22 例单元+集成全部通过（slash-dispatch 7 / widget-registry 5 / AdminShortcut 2 / plugin-extension-points 5 / AppShell interaction 3）；3 例 Playwright E2E 以 `describe.skip` 等 admin 权限 helper。渲染器 build 4m 52s 绿。
+
+**文档**：[`docs-site/docs/guide/desktop-v6-shell.md`](./docs-site/docs/guide/desktop-v6-shell.md)（用户指南） · [`docs/design/桌面版UI重构_设计文档.md`](./docs/design/桌面版UI重构_设计文档.md)（设计 v0.3 P0–P6 完成）
+
+---
+
 ## 2026-04-19 增量更新（CLI 0.156.0 · V2 iter22-iter28 · 再推 72 个 lib 级治理表面）
 
 在 iter16-iter21 的 64 个 lib 表面基础上再连续推 7 轮（iter22 → iter28），**再下沉 72 个 lib 级治理表面**，CLI 包升级到 `0.156.0`。iter22-iter26 各 8 个表面、iter27 与 iter28 各 16 个表面；全部严格沿用 4-state profile maturity × 5-state record lifecycle 双状态机骨架（auto-stale/suspend/pause/degrade/mute-idle + auto-fail-stuck），**与 legacy 路径零耦合**，并与既有 `*-v2` 前缀通过 `preAction` 钩子避让嵌套。

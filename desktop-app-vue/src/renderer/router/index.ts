@@ -414,6 +414,24 @@ const routes: RouteRecordRaw[] = [
     component: projectPages.share,
     meta: { requiresAuth: false },
   },
+  // v6 新 Shell（P0 预览，旧路由保持不变）
+  {
+    path: "/v2",
+    name: "ShellV2",
+    component: () =>
+      import(/* webpackChunkName: "shell-v2" */ "../shell/AppShell.vue"),
+    meta: { requiresAuth: true, title: "新壳 (预览)" },
+  },
+  // v6 P7 Claude-Desktop 风格外观预览（与 /v2 并行，不替换）
+  {
+    path: "/v6-preview",
+    name: "ShellV6Preview",
+    component: () =>
+      import(
+        /* webpackChunkName: "shell-v6-preview" */ "../shell-preview/AppShellPreview.vue"
+      ),
+    meta: { requiresAuth: true, title: "桌面壳 V6 预览" },
+  },
   {
     path: "/",
     name: "Main",

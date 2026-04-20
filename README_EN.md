@@ -1,5 +1,36 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-20 Update — Desktop V6 · P7 Claude-Desktop-style appearance preview
+
+Building on P0–P6, ChainlessChain adds a new `/v6-preview` route (coexists with `/v2`, replaces nothing). The appearance aligns with Claude Desktop and pins 4 decentralized entries at the bottom of the sidebar:
+
+- **4 themes** — `src/renderer/shell-preview/themes.css` provides dark / light / blue / green (ported from web-panel `theme.js`), switched via `[data-theme-preview]` attribute + localStorage; store: `src/renderer/stores/theme-preview.ts`.
+- **4 pinned decentralized entries** (bottom of left sidebar) — P2P collaboration / decentralized trade / decentralized social / U-Key security, wired to 4 `builtin:open*` handlers via the P6 `slash-dispatch`.
+- **Three-zone skeleton** — Left: `ConversationList` + `DecentralEntries` + theme switcher; Center: minimal bubble stream + Ctrl/Cmd+Enter composer; Right: `ArtifactDrawer` slides in from the right.
+- **Tests**: `stores/__tests__/theme-preview.test.ts` (11 cases) + `shell/__tests__/slash-dispatch.test.ts` (8 cases), 19 total all green.
+- **P8 wiring (same day)**: Clicking any of the 4 entries no longer fires a placeholder toast — it now mounts `shell-preview/widgets/{P2p,Trade,Social,UKey}PreviewWidget.vue` inside the artifact drawer. Each widget shows an overview card + 2–3 buttons that `router.push` to the existing `/main/*` full pages (P2P → `P2PMessaging`, Trade → `TradingHub`, Social → `Chat`, UKey → `ThresholdSecurity`). `widget-registry.test.ts` adds 5 cases.
+- **P9a persistence (same day)**: New `stores/conversation-preview.ts` Pinia store persists conversations + messages + active id to localStorage (key `cc.preview.conversations`, `version: 1` schema with auto re-seed on corruption / version mismatch); `AppShellPreview.vue` is now fully store-driven and survives reload. 13 store tests pass — **37 total green**.
+- **Plan**: [`docs/design/modules/97_桌面版UI_ClaudeDesktop重构计划.md`](./docs/design/modules/97_桌面版UI_ClaudeDesktop重构计划.md).
+
+---
+
+## 2026-04-20 Update — Desktop V6 Chat-First Shell · P0–P6 complete
+
+The Electron desktop `/v2` route ships a **chat-first + pluggable platform** shell that replaces the legacy dashboard. Phases P0–P6 are all landed:
+
+- **Three-region layout** — left `ShellSidebar` (space switcher) / center `ConversationStream + ShellComposer` (`/` commands + `@` mentions) / right `ArtifactPanel` + bottom `ShellStatusBar`.
+- **7 UI extension points + 5 enterprise capabilities** — `plugin.json` `contributes.ui.*` / `contributes.provider.*`, winner selected by `ExtensionPointRegistry` in descending priority order.
+- **P6 dispatcher** (this cut's core) — `slash-dispatch.ts` + `widget-registry.ts` wire plugin-declared `handler` / `component` strings to actual runtime behavior, with built-in `builtin:openAdminConsole` + `builtin:AdminShortcut`.
+- **AdminConsole** — `Ctrl+Shift+A` / `/admin` / status-bar gear button all open the same modal (4 tabs: Overview / UI Extension Points / Enterprise Providers / Debug), gated on the `admin` permission.
+- **Three enterprise-customization paths** — private Registry (`trustedPublicKeys` verification) / `.ccprofile` (ed25519 + per-plugin sha256 signed bundle, one-shot brand/capability swap) / MDM push (startup verify & unpack to overlay dir; higher priority wins).
+- **13 built-in first-party plugins** — `chat-core` / `notes` / `spaces-personal` / `cowork-runner` / `brand-default` / `ai-ollama-default` / `auth-local` / `data-sqlite-default` / `crypto-ukey-default` / `compliance-default` / `admin-console` / `chain-gateway` / `did-core`.
+
+**Tests**: 22 unit+integration passing (slash-dispatch 7 / widget-registry 5 / AdminShortcut 2 / plugin-extension-points 5 / AppShell interaction 3); 3 Playwright E2E `describe.skip` pending an admin-permission login helper. Renderer build green at 4m 52s.
+
+**Docs**: [`docs-site/docs/guide/desktop-v6-shell.md`](./docs-site/docs/guide/desktop-v6-shell.md) (user guide) · [`docs/design/桌面版UI重构_设计文档.md`](./docs/design/桌面版UI重构_设计文档.md) (design v0.3 P0–P6 complete).
+
+---
+
 ## 2026-04-19 Update — CLI 0.156.0 · V2 iter22-iter28 · 72 more lib-level governance surfaces
 
 On top of the 64 surfaces from iter16-iter21, seven more iterations (iter22 → iter28) ported **72 additional lib-level governance surfaces** and bumped the CLI to `0.156.0`. iter22-iter26 add 8 surfaces each; iter27 and iter28 add 16 each. All surfaces follow the same 4-state profile maturity × 5-state record lifecycle skeleton (auto-stale/suspend/pause/degrade/mute-idle + auto-fail-stuck), **zero coupling with legacy paths**, and coexist with prior `*-v2` prefixes via a shared `preAction` hook that blocks `-v2` subcommand nesting.

@@ -1,0 +1,78 @@
+/**
+ * themes.css — v6 preview shell theme tokens.
+ * Ported from packages/web-panel/src/stores/theme.js.
+ * Applied via [data-theme-preview="dark|light|blue|green"] on <html>.
+ * All tokens are prefixed with --cc-preview-* to avoid collision with /v2 shell.
+ */
+
+:root[data-theme-preview="dark"] {
+  --cc-preview-bg-base: #141414;
+  --cc-preview-bg-sidebar: #1c1c1c;
+  --cc-preview-bg-elevated: #1f1f1f;
+  --cc-preview-bg-hover: #262626;
+  --cc-preview-border-subtle: #1e1e1e;
+  --cc-preview-border-color: #252525;
+  --cc-preview-text-primary: #e0e0e0;
+  --cc-preview-text-secondary: #888;
+  --cc-preview-text-muted: #444;
+  --cc-preview-accent: #1677ff;
+  --cc-preview-bubble-user-bg: #1677ff;
+  --cc-preview-bubble-user-text: #ffffff;
+  --cc-preview-bubble-assistant-bg: #1f1f1f;
+  --cc-preview-bubble-assistant-text: #e0e0e0;
+  --cc-preview-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme-preview="light"] {
+  --cc-preview-bg-base: #f4f6fb;
+  --cc-preview-bg-sidebar: #ffffff;
+  --cc-preview-bg-elevated: #ffffff;
+  --cc-preview-bg-hover: #f0f4ff;
+  --cc-preview-border-subtle: #f0f0f0;
+  --cc-preview-border-color: #e8edf5;
+  --cc-preview-text-primary: #1a1a2e;
+  --cc-preview-text-secondary: #5a6474;
+  --cc-preview-text-muted: #b0b8c8;
+  --cc-preview-accent: #1677ff;
+  --cc-preview-bubble-user-bg: #1677ff;
+  --cc-preview-bubble-user-text: #ffffff;
+  --cc-preview-bubble-assistant-bg: #ffffff;
+  --cc-preview-bubble-assistant-text: #1a1a2e;
+  --cc-preview-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+}
+
+:root[data-theme-preview="blue"] {
+  --cc-preview-bg-base: #0d1117;
+  --cc-preview-bg-sidebar: #0f1923;
+  --cc-preview-bg-elevated: #161b22;
+  --cc-preview-bg-hover: #1c2230;
+  --cc-preview-border-subtle: #182030;
+  --cc-preview-border-color: #21303f;
+  --cc-preview-text-primary: #c9d8ef;
+  --cc-preview-text-secondary: #6e8caa;
+  --cc-preview-text-muted: #2d4060;
+  --cc-preview-accent: #2f80ed;
+  --cc-preview-bubble-user-bg: #2f80ed;
+  --cc-preview-bubble-user-text: #ffffff;
+  --cc-preview-bubble-assistant-bg: #161b22;
+  --cc-preview-bubble-assistant-text: #c9d8ef;
+  --cc-preview-shadow: 0 2px 8px rgba(0, 40, 80, 0.5);
+}
+
+:root[data-theme-preview="green"] {
+  --cc-preview-bg-base: #0a1a12;
+  --cc-preview-bg-sidebar: #0c1e14;
+  --cc-preview-bg-elevated: #0f2318;
+  --cc-preview-bg-hover: #152e20;
+  --cc-preview-border-subtle: #122a1c;
+  --cc-preview-border-color: #1a3828;
+  --cc-preview-text-primary: #c0e8c8;
+  --cc-preview-text-secondary: #5a9a6a;
+  --cc-preview-text-muted: #1e4028;
+  --cc-preview-accent: #29a270;
+  --cc-preview-bubble-user-bg: #29a270;
+  --cc-preview-bubble-user-text: #ffffff;
+  --cc-preview-bubble-assistant-bg: #0f2318;
+  --cc-preview-bubble-assistant-text: #c0e8c8;
+  --cc-preview-shadow: 0 2px 8px rgba(0, 40, 20, 0.5);
+}
