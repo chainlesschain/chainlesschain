@@ -1,0 +1,64 @@
+{
+  "id": "chain-gateway",
+  "name": "链网关",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "交易 Artifact + P2P 线程 Artifact + 链相关斜杠命令",
+  "extensionPoints": [
+    {
+      "point": "ui.artifact",
+      "config": {
+        "type": "tx",
+        "renderer": "builtin:TxArtifact",
+        "icon": "SwapOutlined",
+        "label": "交易",
+        "actions": [
+          { "id": "sign", "label": "签名" },
+          { "id": "broadcast", "label": "广播" },
+          { "id": "inspect", "label": "查看" }
+        ]
+      }
+    },
+    {
+      "point": "ui.artifact",
+      "config": {
+        "type": "p2p",
+        "renderer": "builtin:P2PArtifact",
+        "icon": "MessageOutlined",
+        "label": "P2P 消息",
+        "actions": [
+          { "id": "reply", "label": "回复" },
+          { "id": "archive", "label": "归档" }
+        ]
+      }
+    },
+    {
+      "point": "ui.slash",
+      "config": {
+        "id": "send",
+        "trigger": "send",
+        "description": "发起链上交易",
+        "icon": "SendOutlined"
+      }
+    },
+    {
+      "point": "ui.slash",
+      "config": {
+        "id": "p2p-new",
+        "trigger": "p2p",
+        "description": "发起 P2P 加密会话",
+        "icon": "MessageOutlined"
+      }
+    },
+    {
+      "point": "ui.status-bar",
+      "config": {
+        "id": "p2p-peers",
+        "component": "builtin:P2PIndicator",
+        "position": "left",
+        "order": 10,
+        "tooltip": "P2P 节点数 / 链高度"
+      }
+    }
+  ]
+}

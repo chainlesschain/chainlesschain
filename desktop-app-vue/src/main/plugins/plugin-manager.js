@@ -41,6 +41,23 @@ class PluginManager extends EventEmitter {
       pages: new Map(), // routePath -> { pluginId, component, title, icon, ... }
       menus: new Map(), // menuId -> { pluginId, label, icon, action, position, ... }
       components: new Map(), // componentId -> { pluginId, component, slots, props, ... }
+      // v6 shell 扩展点（桌面版 UI 重构）
+      spaces: new Map(), // spaceId -> { pluginId, template, name, icon, ragPreset, ... }
+      artifacts: new Map(), // artifactType -> { pluginId, renderer, actions, icon, ... }
+      slashCommands: new Map(), // trigger -> { pluginId, handler, description, icon, ... }
+      mentionSources: new Map(), // prefix -> { pluginId, source, label, ... }
+      statusBarWidgets: new Map(), // widgetId -> { pluginId, component, position, order, ... }
+      homeWidgets: new Map(), // widgetId -> { pluginId, component, size, order, ... }
+      composerSlots: new Map(), // slotId -> { pluginId, component, position, order, ... }
+      // P3 企业定制扩展点
+      brandThemes: new Map(), // themeId -> { pluginId, tokens, mode, priority }
+      brandIdentities: new Map(), // identityId -> { pluginId, productName, logo, splash, eula, links, priority }
+      // P4 企业能力扩展点
+      llmProviders: new Map(), // providerId -> { pluginId, name, models, endpoints, priority, capabilities }
+      authProviders: new Map(), // providerId -> { pluginId, name, kind, priority, endpoints, scopes }
+      dataStorages: new Map(), // storageId -> { pluginId, name, kind, priority, capabilities }
+      dataCryptos: new Map(), // cryptoId -> { pluginId, name, algs, priority, capabilities }
+      complianceAudits: new Map(), // auditId -> { pluginId, name, kind, priority, sinks }
     };
 
     // 系统服务上下文（传递给插件API）
@@ -74,7 +91,10 @@ class PluginManager extends EventEmitter {
       // 2. 注册内置扩展点
       this.registerBuiltInExtensionPoints();
 
-      // 3. 加载已安装且启用的插件
+      // 3. 加载 first-party 内置插件（跳过 DB / 沙箱 / 权限检查）
+      await this.loadFirstPartyPlugins();
+
+      // 4. 加载已安装且启用的插件
       const installedPlugins = this.registry.getInstalledPlugins({
         enabled: true,
       });
@@ -149,7 +169,147 @@ class PluginManager extends EventEmitter {
       this.handleLifecycleHookExtension.bind(this),
     );
 
+    // v6 shell 扩展点
+    this.registerExtensionPoint(
+      "ui.space",
+      this.handleUISpaceExtension.bind(this),
+    );
+    this.registerExtensionPoint(
+      "ui.artifact",
+      this.handleUIArtifactExtension.bind(this),
+    );
+    this.registerExtensionPoint(
+      "ui.slash",
+      this.handleUISlashExtension.bind(this),
+    );
+    this.registerExtensionPoint(
+      "ui.mention",
+      this.handleUIMentionExtension.bind(this),
+    );
+    this.registerExtensionPoint(
+      "ui.status-bar",
+      this.handleUIStatusBarExtension.bind(this),
+    );
+    this.registerExtensionPoint(
+      "ui.home-widget",
+      this.handleUIHomeWidgetExtension.bind(this),
+    );
+    this.registerExtensionPoint(
+      "ui.composer-slot",
+      this.handleUIComposerSlotExtension.bind(this),
+    );
+
+    // P3 企业定制扩展点
+    this.registerExtensionPoint(
+      "brand.theme",
+      this.handleBrandThemeExtension.bind(this),
+    );
+    this.registerExtensionPoint(
+      "brand.identity",
+      this.handleBrandIdentityExtension.bind(this),
+    );
+
+    // P4 企业能力扩展点
+    this.registerExtensionPoint(
+      "auth.provider",
+      this.handleAuthProviderExtension.bind(this),
+    );
+    this.registerExtensionPoint(
+      "data.storage",
+      this.handleDataStorageExtension.bind(this),
+    );
+    this.registerExtensionPoint(
+      "data.crypto",
+      this.handleDataCryptoExtension.bind(this),
+    );
+    this.registerExtensionPoint(
+      "compliance.audit",
+      this.handleComplianceAuditExtension.bind(this),
+    );
+
     logger.info("[PluginManager] 内置扩展点已注册");
+  }
+
+  /**
+   * 加载 first-party 内置插件
+   *
+   * 扫描多个目录，顺序：
+   *   1. src/main/plugins-builtin/       — 应用内置默认（最低优先级）
+   *   2. 注入的 mdmExtractDir（可选）     — MDM Profile 解包目录（最高优先级）
+   *
+   * 同 id 的插件后注册者胜出；但贡献本身由 priority 决定最终生效项，
+   * 因此 Profile 里的高 priority 贡献会自动覆盖默认值。
+   *
+   * first-party 插件是受信代码，不走 DB / sandbox / permission 流程。
+   */
+  async loadFirstPartyPlugins() {
+    const dirs = [path.resolve(__dirname, "..", "plugins-builtin")];
+    if (this.mdmExtractDir && fs.existsSync(this.mdmExtractDir)) {
+      dirs.push(this.mdmExtractDir);
+    }
+
+    for (const baseDir of dirs) {
+      if (!fs.existsSync(baseDir)) {
+        continue;
+      }
+      const entries = fs
+        .readdirSync(baseDir, { withFileTypes: true })
+        .filter((e) => e.isDirectory());
+      logger.info(
+        `[PluginManager] 扫描 ${entries.length} 个 first-party 插件（${baseDir}）`,
+      );
+
+      for (const entry of entries) {
+        const manifestPath = path.join(baseDir, entry.name, "plugin.json");
+        if (!fs.existsSync(manifestPath)) {
+          logger.warn(
+            `[PluginManager] first-party 插件 ${entry.name} 无 plugin.json，跳过`,
+          );
+          continue;
+        }
+
+        try {
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+          const pluginId = manifest.id || entry.name;
+
+          if (this.plugins.has(pluginId)) {
+            logger.info(
+              `[PluginManager] first-party 插件 ${pluginId} 已加载，跳过`,
+            );
+            continue;
+          }
+
+          this.plugins.set(pluginId, {
+            id: pluginId,
+            manifest,
+            state: "enabled",
+            firstParty: true,
+            sandbox: null,
+            api: null,
+            instance: null,
+          });
+
+          await this.registerPluginExtensions(pluginId);
+
+          this.emit("plugin:first-party-loaded", { pluginId, baseDir });
+          logger.info(
+            `[PluginManager] ✓ first-party 插件已加载: ${pluginId} (${baseDir})`,
+          );
+        } catch (error) {
+          logger.error(
+            `[PluginManager] 加载 first-party 插件失败: ${entry.name}`,
+            error,
+          );
+        }
+      }
+    }
+  }
+
+  /**
+   * 设置 MDM profile 解包目录；在 initialize() 之前调用才生效
+   */
+  setMDMExtractDir(dir) {
+    this.mdmExtractDir = dir;
   }
 
   /**
@@ -803,6 +963,244 @@ class PluginManager extends EventEmitter {
   }
 
   // ============================================
+  // v6 Shell 扩展点 handlers
+  // ============================================
+
+  /**
+   * 处理 Space 扩展：注册个人空间模板
+   * config: { id, name, icon, description, ragPreset, systemPrompt, contactsGroup, permissions }
+   */
+  async handleUISpaceExtension(context) {
+    const { pluginId, config } = context;
+    if (!config.id) {
+      throw new Error("Space id 是必需的");
+    }
+    const spaceId = `${pluginId}:${config.id}`;
+    this.uiRegistry.spaces.set(spaceId, {
+      id: spaceId,
+      pluginId,
+      name: config.name || config.id,
+      icon: config.icon || "AppstoreOutlined",
+      description: config.description || "",
+      ragPreset: config.ragPreset || null,
+      systemPrompt: config.systemPrompt || "",
+      contactsGroup: config.contactsGroup || null,
+      permissions: config.permissions || [],
+      order: config.order || 100,
+      registeredAt: Date.now(),
+    });
+    logger.info(`[PluginManager] ✓ Space 已注册: ${spaceId}`);
+    this.emit("ui:space:registered", { pluginId, spaceId });
+    return { success: true, spaceId };
+  }
+
+  /**
+   * 处理 Artifact 扩展：注册 Artifact 类型与渲染器
+   * config: { type, renderer, rendererPath, actions, icon, label }
+   */
+  async handleUIArtifactExtension(context) {
+    const { pluginId, config } = context;
+    if (!config.type) {
+      throw new Error("Artifact type 是必需的");
+    }
+    const artifactKey = `${pluginId}:${config.type}`;
+    this.uiRegistry.artifacts.set(artifactKey, {
+      id: artifactKey,
+      pluginId,
+      type: config.type,
+      renderer: config.renderer || null,
+      rendererPath: config.rendererPath || null,
+      actions: config.actions || [],
+      icon: config.icon || "FileOutlined",
+      label: config.label || config.type,
+      registeredAt: Date.now(),
+    });
+    logger.info(`[PluginManager] ✓ Artifact 已注册: ${artifactKey}`);
+    this.emit("ui:artifact:registered", {
+      pluginId,
+      artifactType: config.type,
+    });
+    return { success: true, artifactKey };
+  }
+
+  /**
+   * 处理 Slash 命令扩展：注册 / 命令
+   * config: { trigger, handler, description, icon, requirePermissions }
+   */
+  async handleUISlashExtension(context) {
+    const { pluginId, config } = context;
+    if (!config.trigger) {
+      throw new Error("Slash trigger 是必需的");
+    }
+    const key = `${pluginId}:${config.trigger}`;
+    this.uiRegistry.slashCommands.set(key, {
+      id: key,
+      pluginId,
+      trigger: config.trigger,
+      handler: config.handler || null,
+      description: config.description || "",
+      icon: config.icon || "ThunderboltOutlined",
+      requirePermissions: config.requirePermissions || [],
+      registeredAt: Date.now(),
+    });
+    logger.info(`[PluginManager] ✓ Slash 命令已注册: ${key}`);
+    this.emit("ui:slash:registered", { pluginId, trigger: config.trigger });
+    return { success: true, key };
+  }
+
+  /**
+   * 处理 Mention 源扩展：注册 @ 自动补全源
+   * config: { prefix, source, label, icon }
+   */
+  async handleUIMentionExtension(context) {
+    const { pluginId, config } = context;
+    if (!config.prefix) {
+      throw new Error("Mention prefix 是必需的");
+    }
+    const key = `${pluginId}:${config.prefix}`;
+    this.uiRegistry.mentionSources.set(key, {
+      id: key,
+      pluginId,
+      prefix: config.prefix,
+      source: config.source || null,
+      label: config.label || config.prefix,
+      icon: config.icon || "UserOutlined",
+      registeredAt: Date.now(),
+    });
+    logger.info(`[PluginManager] ✓ Mention 源已注册: ${key}`);
+    this.emit("ui:mention:registered", { pluginId, prefix: config.prefix });
+    return { success: true, key };
+  }
+
+  /**
+   * 处理 StatusBar 小组件扩展
+   * config: { id, component, componentPath, position, order, tooltip }
+   */
+  async handleUIStatusBarExtension(context) {
+    const { pluginId, config } = context;
+    if (!config.id) {
+      throw new Error("StatusBar widget id 是必需的");
+    }
+    const key = `${pluginId}:${config.id}`;
+    this.uiRegistry.statusBarWidgets.set(key, {
+      id: key,
+      pluginId,
+      component: config.component || null,
+      componentPath: config.componentPath || null,
+      position: config.position || "right",
+      order: config.order || 100,
+      tooltip: config.tooltip || "",
+      registeredAt: Date.now(),
+    });
+    logger.info(`[PluginManager] ✓ StatusBar 小组件已注册: ${key}`);
+    this.emit("ui:status-bar:registered", { pluginId, widgetId: key });
+    return { success: true, key };
+  }
+
+  /**
+   * 处理 HomeWidget 扩展：Today 页卡片
+   * config: { id, component, componentPath, size, order, title }
+   */
+  async handleUIHomeWidgetExtension(context) {
+    const { pluginId, config } = context;
+    if (!config.id) {
+      throw new Error("Home widget id 是必需的");
+    }
+    const key = `${pluginId}:${config.id}`;
+    this.uiRegistry.homeWidgets.set(key, {
+      id: key,
+      pluginId,
+      component: config.component || null,
+      componentPath: config.componentPath || null,
+      size: config.size || "medium",
+      order: config.order || 100,
+      title: config.title || "",
+      registeredAt: Date.now(),
+    });
+    logger.info(`[PluginManager] ✓ Home 卡片已注册: ${key}`);
+    this.emit("ui:home-widget:registered", { pluginId, widgetId: key });
+    return { success: true, key };
+  }
+
+  /**
+   * 处理 ComposerSlot 扩展：输入框行内槽
+   * config: { id, component, componentPath, position, order }
+   */
+  async handleUIComposerSlotExtension(context) {
+    const { pluginId, config } = context;
+    if (!config.id) {
+      throw new Error("Composer slot id 是必需的");
+    }
+    const key = `${pluginId}:${config.id}`;
+    this.uiRegistry.composerSlots.set(key, {
+      id: key,
+      pluginId,
+      component: config.component || null,
+      componentPath: config.componentPath || null,
+      position: config.position || "left",
+      order: config.order || 100,
+      registeredAt: Date.now(),
+    });
+    logger.info(`[PluginManager] ✓ Composer 槽已注册: ${key}`);
+    this.emit("ui:composer-slot:registered", { pluginId, slotId: key });
+    return { success: true, key };
+  }
+
+  /**
+   * 处理 brand.theme 扩展：企业主题
+   * config: { id, name, mode: "light"|"dark"|"auto", tokens: { ... }, priority }
+   */
+  async handleBrandThemeExtension(context) {
+    const { pluginId, config } = context;
+    if (!config.id) {
+      throw new Error("brand.theme id 是必需的");
+    }
+    const key = `${pluginId}:${config.id}`;
+    this.uiRegistry.brandThemes.set(key, {
+      id: key,
+      pluginId,
+      themeId: config.id,
+      name: config.name || config.id,
+      mode: config.mode || "light",
+      tokens: config.tokens || {},
+      priority: config.priority || 100,
+      registeredAt: Date.now(),
+    });
+    logger.info(`[PluginManager] ✓ Brand theme 已注册: ${key}`);
+    this.emit("brand:theme:registered", { pluginId, themeId: key });
+    return { success: true, key };
+  }
+
+  /**
+   * 处理 brand.identity 扩展：企业品牌标识
+   * config: { id, productName, logo, splash, eula, links, priority }
+   */
+  async handleBrandIdentityExtension(context) {
+    const { pluginId, config } = context;
+    if (!config.id) {
+      throw new Error("brand.identity id 是必需的");
+    }
+    const key = `${pluginId}:${config.id}`;
+    this.uiRegistry.brandIdentities.set(key, {
+      id: key,
+      pluginId,
+      identityId: config.id,
+      productName: config.productName || null,
+      tagline: config.tagline || null,
+      logo: config.logo || null,
+      splash: config.splash || null,
+      favicon: config.favicon || null,
+      eula: config.eula || null,
+      links: config.links || {},
+      priority: config.priority || 100,
+      registeredAt: Date.now(),
+    });
+    logger.info(`[PluginManager] ✓ Brand identity 已注册: ${key}`);
+    this.emit("brand:identity:registered", { pluginId, identityId: key });
+    return { success: true, key };
+  }
+
+  // ============================================
   // UI 注册表查询方法
   // ============================================
 
@@ -857,6 +1255,187 @@ class PluginManager extends EventEmitter {
     return components.sort((a, b) => a.order - b.order);
   }
 
+  // ============================================
+  // v6 Shell 查询方法
+  // ============================================
+
+  getRegisteredSpaces(pluginId = null) {
+    let items = Array.from(this.uiRegistry.spaces.values());
+    if (pluginId) {
+      items = items.filter((x) => x.pluginId === pluginId);
+    }
+    return items.sort((a, b) => a.order - b.order);
+  }
+
+  getRegisteredArtifacts(pluginId = null) {
+    let items = Array.from(this.uiRegistry.artifacts.values());
+    if (pluginId) {
+      items = items.filter((x) => x.pluginId === pluginId);
+    }
+    return items;
+  }
+
+  getArtifactRenderer(type) {
+    for (const item of this.uiRegistry.artifacts.values()) {
+      if (item.type === type) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  getRegisteredSlashCommands(pluginId = null) {
+    let items = Array.from(this.uiRegistry.slashCommands.values());
+    if (pluginId) {
+      items = items.filter((x) => x.pluginId === pluginId);
+    }
+    return items;
+  }
+
+  getRegisteredMentionSources(pluginId = null) {
+    let items = Array.from(this.uiRegistry.mentionSources.values());
+    if (pluginId) {
+      items = items.filter((x) => x.pluginId === pluginId);
+    }
+    return items;
+  }
+
+  getRegisteredStatusBarWidgets(position = null, pluginId = null) {
+    let items = Array.from(this.uiRegistry.statusBarWidgets.values());
+    if (position) {
+      items = items.filter((x) => x.position === position);
+    }
+    if (pluginId) {
+      items = items.filter((x) => x.pluginId === pluginId);
+    }
+    return items.sort((a, b) => a.order - b.order);
+  }
+
+  getRegisteredHomeWidgets(pluginId = null) {
+    let items = Array.from(this.uiRegistry.homeWidgets.values());
+    if (pluginId) {
+      items = items.filter((x) => x.pluginId === pluginId);
+    }
+    return items.sort((a, b) => a.order - b.order);
+  }
+
+  getRegisteredComposerSlots(position = null, pluginId = null) {
+    let items = Array.from(this.uiRegistry.composerSlots.values());
+    if (position) {
+      items = items.filter((x) => x.position === position);
+    }
+    if (pluginId) {
+      items = items.filter((x) => x.pluginId === pluginId);
+    }
+    return items.sort((a, b) => a.order - b.order);
+  }
+
+  /**
+   * 获取全部已注册的 brand.theme 贡献（按 priority 降序）
+   */
+  getRegisteredBrandThemes(pluginId = null) {
+    let items = Array.from(this.uiRegistry.brandThemes.values());
+    if (pluginId) {
+      items = items.filter((x) => x.pluginId === pluginId);
+    }
+    return items.sort((a, b) => b.priority - a.priority);
+  }
+
+  /**
+   * 获取当前激活的 brand.theme（最高 priority；后续 Profile 会显式 pin）
+   */
+  getActiveBrandTheme() {
+    const themes = this.getRegisteredBrandThemes();
+    return themes.length > 0 ? themes[0] : null;
+  }
+
+  /**
+   * 获取全部已注册的 brand.identity 贡献（按 priority 降序）
+   */
+  getRegisteredBrandIdentities(pluginId = null) {
+    let items = Array.from(this.uiRegistry.brandIdentities.values());
+    if (pluginId) {
+      items = items.filter((x) => x.pluginId === pluginId);
+    }
+    return items.sort((a, b) => b.priority - a.priority);
+  }
+
+  /**
+   * 获取当前激活的 brand.identity（最高 priority）
+   */
+  getActiveBrandIdentity() {
+    const ids = this.getRegisteredBrandIdentities();
+    return ids.length > 0 ? ids[0] : null;
+  }
+
+  /**
+   * P4 能力点 getters：按 priority 降序；空列表返回 null 的 active-getter
+   */
+  getRegisteredLLMProviders(pluginId = null) {
+    let items = Array.from(this.uiRegistry.llmProviders.values());
+    if (pluginId) {
+      items = items.filter((x) => x.pluginId === pluginId);
+    }
+    return items.sort((a, b) => b.priority - a.priority);
+  }
+
+  getActiveLLMProvider() {
+    const items = this.getRegisteredLLMProviders();
+    return items.length > 0 ? items[0] : null;
+  }
+
+  getRegisteredAuthProviders(pluginId = null) {
+    let items = Array.from(this.uiRegistry.authProviders.values());
+    if (pluginId) {
+      items = items.filter((x) => x.pluginId === pluginId);
+    }
+    return items.sort((a, b) => b.priority - a.priority);
+  }
+
+  getActiveAuthProvider() {
+    const items = this.getRegisteredAuthProviders();
+    return items.length > 0 ? items[0] : null;
+  }
+
+  getRegisteredDataStorages(pluginId = null) {
+    let items = Array.from(this.uiRegistry.dataStorages.values());
+    if (pluginId) {
+      items = items.filter((x) => x.pluginId === pluginId);
+    }
+    return items.sort((a, b) => b.priority - a.priority);
+  }
+
+  getActiveDataStorage() {
+    const items = this.getRegisteredDataStorages();
+    return items.length > 0 ? items[0] : null;
+  }
+
+  getRegisteredDataCryptos(pluginId = null) {
+    let items = Array.from(this.uiRegistry.dataCryptos.values());
+    if (pluginId) {
+      items = items.filter((x) => x.pluginId === pluginId);
+    }
+    return items.sort((a, b) => b.priority - a.priority);
+  }
+
+  getActiveDataCrypto() {
+    const items = this.getRegisteredDataCryptos();
+    return items.length > 0 ? items[0] : null;
+  }
+
+  getRegisteredComplianceAudits(pluginId = null) {
+    let items = Array.from(this.uiRegistry.complianceAudits.values());
+    if (pluginId) {
+      items = items.filter((x) => x.pluginId === pluginId);
+    }
+    return items.sort((a, b) => b.priority - a.priority);
+  }
+
+  getActiveComplianceAudit() {
+    const items = this.getRegisteredComplianceAudits();
+    return items.length > 0 ? items[0] : null;
+  }
+
   /**
    * 注销插件的所有UI扩展
    * @param {string} pluginId - 插件ID
@@ -886,6 +1465,33 @@ class PluginManager extends EventEmitter {
       }
     }
 
+    // v6 shell 扩展 + P3 企业定制扩展
+    const v6Maps = [
+      ["spaces", "ui:space:unregistered"],
+      ["artifacts", "ui:artifact:unregistered"],
+      ["slashCommands", "ui:slash:unregistered"],
+      ["mentionSources", "ui:mention:unregistered"],
+      ["statusBarWidgets", "ui:status-bar:unregistered"],
+      ["homeWidgets", "ui:home-widget:unregistered"],
+      ["composerSlots", "ui:composer-slot:unregistered"],
+      ["brandThemes", "brand:theme:unregistered"],
+      ["brandIdentities", "brand:identity:unregistered"],
+      ["llmProviders", "ai:llm-provider:unregistered"],
+      ["authProviders", "auth:provider:unregistered"],
+      ["dataStorages", "data:storage:unregistered"],
+      ["dataCryptos", "data:crypto:unregistered"],
+      ["complianceAudits", "compliance:audit:unregistered"],
+    ];
+    for (const [mapKey, eventName] of v6Maps) {
+      const map = this.uiRegistry[mapKey];
+      for (const [id, item] of map) {
+        if (item.pluginId === pluginId) {
+          map.delete(id);
+          this.emit(eventName, { pluginId, id });
+        }
+      }
+    }
+
     logger.info(`[PluginManager] 已注销插件 ${pluginId} 的所有UI扩展`);
   }
 
@@ -899,9 +1505,131 @@ class PluginManager extends EventEmitter {
     // Phase 4 实现
   }
 
+  /**
+   * 处理 ai.llm-provider 扩展：LLM 推理后端
+   * config: { id, name, models, endpoint, priority, capabilities }
+   */
   async handleAILLMProviderExtension(context) {
-    logger.info("[PluginManager] 处理AI LLM提供商扩展:", context);
-    // Phase 4 实现
+    const { pluginId, config } = context;
+    if (!config.id) {
+      throw new Error("ai.llm-provider id 是必需的");
+    }
+    const key = `${pluginId}:${config.id}`;
+    this.uiRegistry.llmProviders.set(key, {
+      id: key,
+      pluginId,
+      providerId: config.id,
+      name: config.name || config.id,
+      models: Array.isArray(config.models) ? config.models : [],
+      endpoint: config.endpoint || null,
+      priority: config.priority || 100,
+      capabilities: config.capabilities || {},
+      registeredAt: Date.now(),
+    });
+    logger.info(`[PluginManager] ✓ LLM provider 已注册: ${key}`);
+    this.emit("ai:llm-provider:registered", { pluginId, providerId: key });
+    return { success: true, key };
+  }
+
+  /**
+   * 处理 auth.provider 扩展：认证/单点登录提供方
+   * config: { id, name, kind: "local"|"oidc"|"saml"|"ldap"|"did", endpoints, scopes, priority }
+   */
+  async handleAuthProviderExtension(context) {
+    const { pluginId, config } = context;
+    if (!config.id) {
+      throw new Error("auth.provider id 是必需的");
+    }
+    const key = `${pluginId}:${config.id}`;
+    this.uiRegistry.authProviders.set(key, {
+      id: key,
+      pluginId,
+      providerId: config.id,
+      name: config.name || config.id,
+      kind: config.kind || "local",
+      endpoints: config.endpoints || {},
+      scopes: Array.isArray(config.scopes) ? config.scopes : [],
+      priority: config.priority || 100,
+      registeredAt: Date.now(),
+    });
+    logger.info(`[PluginManager] ✓ Auth provider 已注册: ${key}`);
+    this.emit("auth:provider:registered", { pluginId, providerId: key });
+    return { success: true, key };
+  }
+
+  /**
+   * 处理 data.storage 扩展：数据存储后端
+   * config: { id, name, kind: "sqlite"|"postgres"|"ipfs"|"s3"|"custom", capabilities, priority }
+   */
+  async handleDataStorageExtension(context) {
+    const { pluginId, config } = context;
+    if (!config.id) {
+      throw new Error("data.storage id 是必需的");
+    }
+    const key = `${pluginId}:${config.id}`;
+    this.uiRegistry.dataStorages.set(key, {
+      id: key,
+      pluginId,
+      storageId: config.id,
+      name: config.name || config.id,
+      kind: config.kind || "custom",
+      capabilities: config.capabilities || {},
+      priority: config.priority || 100,
+      registeredAt: Date.now(),
+    });
+    logger.info(`[PluginManager] ✓ Data storage 已注册: ${key}`);
+    this.emit("data:storage:registered", { pluginId, storageId: key });
+    return { success: true, key };
+  }
+
+  /**
+   * 处理 data.crypto 扩展：加密服务提供方
+   * config: { id, name, algs, capabilities: { sign, encrypt, hash, pqc }, priority }
+   */
+  async handleDataCryptoExtension(context) {
+    const { pluginId, config } = context;
+    if (!config.id) {
+      throw new Error("data.crypto id 是必需的");
+    }
+    const key = `${pluginId}:${config.id}`;
+    this.uiRegistry.dataCryptos.set(key, {
+      id: key,
+      pluginId,
+      cryptoId: config.id,
+      name: config.name || config.id,
+      algs: Array.isArray(config.algs) ? config.algs : [],
+      capabilities: config.capabilities || {},
+      priority: config.priority || 100,
+      registeredAt: Date.now(),
+    });
+    logger.info(`[PluginManager] ✓ Data crypto 已注册: ${key}`);
+    this.emit("data:crypto:registered", { pluginId, cryptoId: key });
+    return { success: true, key };
+  }
+
+  /**
+   * 处理 compliance.audit 扩展：审计/合规输出端
+   * config: { id, name, kind: "syslog"|"file"|"splunk"|"siem"|"custom", sinks, priority }
+   */
+  async handleComplianceAuditExtension(context) {
+    const { pluginId, config } = context;
+    if (!config.id) {
+      throw new Error("compliance.audit id 是必需的");
+    }
+    const key = `${pluginId}:${config.id}`;
+    this.uiRegistry.complianceAudits.set(key, {
+      id: key,
+      pluginId,
+      auditId: config.id,
+      name: config.name || config.id,
+      kind: config.kind || "custom",
+      sinks: Array.isArray(config.sinks) ? config.sinks : [],
+      priority: config.priority || 100,
+      registeredAt: Date.now(),
+    });
+    logger.info(`[PluginManager] ✓ Compliance audit 已注册: ${key}`);
+    this.emit("compliance:audit:registered", { pluginId, auditId: key });
+    return { success: true, key };
   }
 
   async handleAIFunctionToolExtension(context) {
@@ -1044,18 +1772,22 @@ class PluginManager extends EventEmitter {
     }
 
     const { extensionPoints = [] } = plugin.manifest;
+    const isFirstParty = plugin.firstParty === true;
 
     for (const ext of extensionPoints) {
       try {
         const { point, config, priority = 100 } = ext;
 
-        // 注册到数据库
-        await this.registry.registerExtension(
-          pluginId,
-          point,
-          config,
-          priority,
-        );
+        if (!isFirstParty) {
+          await this.registry.registerExtension(
+            pluginId,
+            point,
+            config,
+            priority,
+          );
+        }
+
+        await this.applyExtension(pluginId, point, config, priority);
 
         logger.info(`[PluginManager] 注册扩展点: ${pluginId} -> ${point}`);
       } catch (error) {
@@ -1065,12 +1797,53 @@ class PluginManager extends EventEmitter {
   }
 
   /**
+   * 应用单个扩展：调用扩展点 handler 并将其记入 extensions 数组，
+   * 以便 uiRegistry 同步更新，triggerExtensionPoint 可遍历执行。
+   * @param {string} pluginId
+   * @param {string} point - 扩展点名
+   * @param {Object} config - 扩展配置
+   * @param {number} priority
+   */
+  async applyExtension(pluginId, point, config, priority = 100) {
+    const extensionPoint = this.extensionPoints.get(point);
+    if (!extensionPoint) {
+      logger.warn(`[PluginManager] 未知扩展点: ${point}`);
+      return null;
+    }
+
+    const context = { pluginId, config, priority };
+    const result = await extensionPoint.handler(context);
+
+    extensionPoint.extensions.push({
+      id: `${pluginId}:${point}:${config?.id || config?.trigger || config?.type || config?.prefix || extensionPoint.extensions.length}`,
+      pluginId,
+      config,
+      priority,
+      handler: extensionPoint.handler,
+      result,
+    });
+
+    return result;
+  }
+
+  /**
    * 注销插件的扩展点
    * @param {string} pluginId - 插件ID
    */
   async unregisterPluginExtensions(pluginId) {
     try {
-      await this.registry.unregisterExtensions(pluginId);
+      const plugin = this.plugins.get(pluginId);
+      const isFirstParty = plugin?.firstParty === true;
+
+      if (!isFirstParty) {
+        await this.registry.unregisterExtensions(pluginId);
+      }
+
+      for (const ep of this.extensionPoints.values()) {
+        ep.extensions = ep.extensions.filter((e) => e.pluginId !== pluginId);
+      }
+      this.unregisterPluginUI(pluginId);
+
       logger.info(`[PluginManager] 注销扩展点: ${pluginId}`);
     } catch (error) {
       logger.error(`[PluginManager] 注销扩展点失败:`, error);

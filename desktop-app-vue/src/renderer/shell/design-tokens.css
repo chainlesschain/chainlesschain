@@ -1,0 +1,50 @@
+/*
+ * Design Tokens — v6 Shell
+ *
+ * 所有 shell 层可被企业 Profile 覆盖的视觉变量都集中在这里。
+ * brand.theme 贡献会把同名 token 注册到 document.documentElement 上
+ * （通过 theme-applier.ts，统一加 --cc- 前缀、kebab-case）。
+ *
+ * 下面的 :root 声明是默认值；插件/Profile 提供的同名变量会覆盖它们。
+ * 组件内的 CSS 必须使用 --cc-* 前缀（不要使用 --shell-*）。
+ */
+
+:root {
+  /* 语义色 */
+  --cc-primary: #1677ff;
+  --cc-primary-hover: #4096ff;
+  --cc-success: #52c41a;
+  --cc-warning: #faad14;
+  --cc-danger: #f5222d;
+
+  /* Shell 基础背景 / 边框 */
+  --cc-shell-bg: #ffffff;
+  --cc-shell-sider-bg: #fafafa;
+  --cc-shell-artifact-bg: #fcfcfc;
+  --cc-shell-footer-bg: #f5f5f5;
+  --cc-shell-border: #e8e8e8;
+  --cc-shell-muted: #888888;
+
+  /* 圆角与字体 */
+  --cc-shell-radius: 6px;
+  --cc-shell-font:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+
+  /* 向后兼容别名（P5 之前的组件使用 --shell-*；保留以避免破坏旧代码） */
+  --shell-bg: var(--cc-shell-bg);
+  --shell-sider-bg: var(--cc-shell-sider-bg);
+  --shell-artifact-bg: var(--cc-shell-artifact-bg);
+  --shell-footer-bg: var(--cc-shell-footer-bg);
+  --shell-border: var(--cc-shell-border);
+  --shell-muted: var(--cc-shell-muted);
+}
+
+[data-brand-mode="dark"] {
+  --cc-shell-bg: #1f1f1f;
+  --cc-shell-sider-bg: #141414;
+  --cc-shell-artifact-bg: #1a1a1a;
+  --cc-shell-footer-bg: #262626;
+  --cc-shell-border: #303030;
+  --cc-shell-muted: #a6a6a6;
+}

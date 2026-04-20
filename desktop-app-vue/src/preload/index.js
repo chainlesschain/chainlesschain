@@ -1835,6 +1835,56 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getSlotExtensions: (slotName) =>
       ipcRenderer.invoke("plugin:get-slot-extensions", slotName),
 
+    // v6 Shell 扩展点
+    getRegisteredSpaces: (pluginId = null) =>
+      ipcRenderer.invoke("plugin:get-registered-spaces", pluginId),
+    getRegisteredArtifacts: (pluginId = null) =>
+      ipcRenderer.invoke("plugin:get-registered-artifacts", pluginId),
+    getArtifactRenderer: (type) =>
+      ipcRenderer.invoke("plugin:get-artifact-renderer", type),
+    getSlashCommands: (pluginId = null) =>
+      ipcRenderer.invoke("plugin:get-slash-commands", pluginId),
+    getMentionSources: (pluginId = null) =>
+      ipcRenderer.invoke("plugin:get-mention-sources", pluginId),
+    getStatusBarWidgets: (options = {}) =>
+      ipcRenderer.invoke("plugin:get-status-bar-widgets", options),
+    getHomeWidgets: (pluginId = null) =>
+      ipcRenderer.invoke("plugin:get-home-widgets", pluginId),
+    getComposerSlots: (options = {}) =>
+      ipcRenderer.invoke("plugin:get-composer-slots", options),
+
+    // P3 企业品牌
+    getActiveBrandTheme: () =>
+      ipcRenderer.invoke("plugin:get-active-brand-theme"),
+    getBrandThemes: (pluginId = null) =>
+      ipcRenderer.invoke("plugin:get-brand-themes", pluginId),
+    getActiveBrandIdentity: () =>
+      ipcRenderer.invoke("plugin:get-active-brand-identity"),
+    getBrandIdentities: (pluginId = null) =>
+      ipcRenderer.invoke("plugin:get-brand-identities", pluginId),
+
+    // P4 企业能力扩展
+    getActiveLLMProvider: () =>
+      ipcRenderer.invoke("plugin:get-active-llm-provider"),
+    getLLMProviders: (pluginId = null) =>
+      ipcRenderer.invoke("plugin:get-llm-providers", pluginId),
+    getActiveAuthProvider: () =>
+      ipcRenderer.invoke("plugin:get-active-auth-provider"),
+    getAuthProviders: (pluginId = null) =>
+      ipcRenderer.invoke("plugin:get-auth-providers", pluginId),
+    getActiveDataStorage: () =>
+      ipcRenderer.invoke("plugin:get-active-data-storage"),
+    getDataStorages: (pluginId = null) =>
+      ipcRenderer.invoke("plugin:get-data-storages", pluginId),
+    getActiveDataCrypto: () =>
+      ipcRenderer.invoke("plugin:get-active-data-crypto"),
+    getDataCryptos: (pluginId = null) =>
+      ipcRenderer.invoke("plugin:get-data-cryptos", pluginId),
+    getActiveComplianceAudit: () =>
+      ipcRenderer.invoke("plugin:get-active-compliance-audit"),
+    getComplianceAudits: (pluginId = null) =>
+      ipcRenderer.invoke("plugin:get-compliance-audits", pluginId),
+
     // 插件设置
     getSettingsDefinitions: (pluginId) =>
       ipcRenderer.invoke("plugin:get-settings-definitions", pluginId),

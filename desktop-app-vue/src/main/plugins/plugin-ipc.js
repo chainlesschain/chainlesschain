@@ -294,7 +294,237 @@ function registerPluginIPC({
           pages: pluginManager.getRegisteredPages(pluginId),
           menus: pluginManager.getRegisteredMenus(null, pluginId),
           components: pluginManager.getRegisteredComponents(null, pluginId),
+          spaces: pluginManager.getRegisteredSpaces(pluginId),
+          artifacts: pluginManager.getRegisteredArtifacts(pluginId),
+          slashCommands: pluginManager.getRegisteredSlashCommands(pluginId),
+          mentionSources: pluginManager.getRegisteredMentionSources(pluginId),
+          statusBarWidgets: pluginManager.getRegisteredStatusBarWidgets(
+            null,
+            pluginId,
+          ),
+          homeWidgets: pluginManager.getRegisteredHomeWidgets(pluginId),
+          composerSlots: pluginManager.getRegisteredComposerSlots(
+            null,
+            pluginId,
+          ),
         },
+      };
+    }),
+  );
+
+  // ============================================
+  // v6 Shell 扩展点 IPC
+  // ============================================
+
+  ipcMain.handle("plugin:get-registered-spaces", (_event, pluginId = null) =>
+    safeInvoke(() => {
+      ensureManager();
+      return {
+        success: true,
+        spaces: pluginManager.getRegisteredSpaces(pluginId),
+      };
+    }),
+  );
+
+  ipcMain.handle("plugin:get-registered-artifacts", (_event, pluginId = null) =>
+    safeInvoke(() => {
+      ensureManager();
+      return {
+        success: true,
+        artifacts: pluginManager.getRegisteredArtifacts(pluginId),
+      };
+    }),
+  );
+
+  ipcMain.handle("plugin:get-artifact-renderer", (_event, type) =>
+    safeInvoke(() => {
+      ensureManager();
+      const renderer = pluginManager.getArtifactRenderer(type);
+      return { success: true, renderer };
+    }),
+  );
+
+  ipcMain.handle("plugin:get-slash-commands", (_event, pluginId = null) =>
+    safeInvoke(() => {
+      ensureManager();
+      return {
+        success: true,
+        commands: pluginManager.getRegisteredSlashCommands(pluginId),
+      };
+    }),
+  );
+
+  ipcMain.handle("plugin:get-mention-sources", (_event, pluginId = null) =>
+    safeInvoke(() => {
+      ensureManager();
+      return {
+        success: true,
+        sources: pluginManager.getRegisteredMentionSources(pluginId),
+      };
+    }),
+  );
+
+  ipcMain.handle("plugin:get-status-bar-widgets", (_event, options = {}) =>
+    safeInvoke(() => {
+      ensureManager();
+      const { position = null, pluginId = null } = options;
+      return {
+        success: true,
+        widgets: pluginManager.getRegisteredStatusBarWidgets(
+          position,
+          pluginId,
+        ),
+      };
+    }),
+  );
+
+  ipcMain.handle("plugin:get-home-widgets", (_event, pluginId = null) =>
+    safeInvoke(() => {
+      ensureManager();
+      return {
+        success: true,
+        widgets: pluginManager.getRegisteredHomeWidgets(pluginId),
+      };
+    }),
+  );
+
+  ipcMain.handle("plugin:get-composer-slots", (_event, options = {}) =>
+    safeInvoke(() => {
+      ensureManager();
+      const { position = null, pluginId = null } = options;
+      return {
+        success: true,
+        slots: pluginManager.getRegisteredComposerSlots(position, pluginId),
+      };
+    }),
+  );
+
+  // ============================================
+  // P3 企业品牌扩展
+  // ============================================
+
+  ipcMain.handle("plugin:get-active-brand-theme", () =>
+    safeInvoke(() => {
+      ensureManager();
+      return { success: true, theme: pluginManager.getActiveBrandTheme() };
+    }),
+  );
+
+  ipcMain.handle("plugin:get-brand-themes", (_event, pluginId = null) =>
+    safeInvoke(() => {
+      ensureManager();
+      return {
+        success: true,
+        themes: pluginManager.getRegisteredBrandThemes(pluginId),
+      };
+    }),
+  );
+
+  ipcMain.handle("plugin:get-active-brand-identity", () =>
+    safeInvoke(() => {
+      ensureManager();
+      return {
+        success: true,
+        identity: pluginManager.getActiveBrandIdentity(),
+      };
+    }),
+  );
+
+  ipcMain.handle("plugin:get-brand-identities", (_event, pluginId = null) =>
+    safeInvoke(() => {
+      ensureManager();
+      return {
+        success: true,
+        identities: pluginManager.getRegisteredBrandIdentities(pluginId),
+      };
+    }),
+  );
+
+  // ============================================
+  // P4 企业能力扩展（LLM / Auth / Storage / Crypto / Compliance）
+  // ============================================
+
+  ipcMain.handle("plugin:get-active-llm-provider", () =>
+    safeInvoke(() => {
+      ensureManager();
+      return { success: true, provider: pluginManager.getActiveLLMProvider() };
+    }),
+  );
+
+  ipcMain.handle("plugin:get-llm-providers", (_event, pluginId = null) =>
+    safeInvoke(() => {
+      ensureManager();
+      return {
+        success: true,
+        providers: pluginManager.getRegisteredLLMProviders(pluginId),
+      };
+    }),
+  );
+
+  ipcMain.handle("plugin:get-active-auth-provider", () =>
+    safeInvoke(() => {
+      ensureManager();
+      return { success: true, provider: pluginManager.getActiveAuthProvider() };
+    }),
+  );
+
+  ipcMain.handle("plugin:get-auth-providers", (_event, pluginId = null) =>
+    safeInvoke(() => {
+      ensureManager();
+      return {
+        success: true,
+        providers: pluginManager.getRegisteredAuthProviders(pluginId),
+      };
+    }),
+  );
+
+  ipcMain.handle("plugin:get-active-data-storage", () =>
+    safeInvoke(() => {
+      ensureManager();
+      return { success: true, storage: pluginManager.getActiveDataStorage() };
+    }),
+  );
+
+  ipcMain.handle("plugin:get-data-storages", (_event, pluginId = null) =>
+    safeInvoke(() => {
+      ensureManager();
+      return {
+        success: true,
+        storages: pluginManager.getRegisteredDataStorages(pluginId),
+      };
+    }),
+  );
+
+  ipcMain.handle("plugin:get-active-data-crypto", () =>
+    safeInvoke(() => {
+      ensureManager();
+      return { success: true, crypto: pluginManager.getActiveDataCrypto() };
+    }),
+  );
+
+  ipcMain.handle("plugin:get-data-cryptos", (_event, pluginId = null) =>
+    safeInvoke(() => {
+      ensureManager();
+      return {
+        success: true,
+        cryptos: pluginManager.getRegisteredDataCryptos(pluginId),
+      };
+    }),
+  );
+
+  ipcMain.handle("plugin:get-active-compliance-audit", () =>
+    safeInvoke(() => {
+      ensureManager();
+      return { success: true, audit: pluginManager.getActiveComplianceAudit() };
+    }),
+  );
+
+  ipcMain.handle("plugin:get-compliance-audits", (_event, pluginId = null) =>
+    safeInvoke(() => {
+      ensureManager();
+      return {
+        success: true,
+        audits: pluginManager.getRegisteredComplianceAudits(pluginId),
       };
     }),
   );
