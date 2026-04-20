@@ -1,11 +1,26 @@
-import paramiko, os, time
+import paramiko, os, sys, time
+from pathlib import Path
 
-HOST = "47.111.5.128"
-USER = "root"
-PASS = "***REDACTED***"
+def _load_dotenv(path):
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, _, v = line.partition("=")
+        os.environ.setdefault(k.strip(), v.strip())
+
+_load_dotenv(Path(__file__).resolve().parent / ".env")
+
+HOST = os.environ.get("DEPLOY_HOST")
+USER = os.environ.get("DEPLOY_USER")
+PASS = os.environ.get("DEPLOY_PASS")
+if not (HOST and USER and PASS):
+    sys.exit("ERROR: set DEPLOY_HOST / DEPLOY_USER / DEPLOY_PASS in .env or environment")
 
 name = "www.chainlesschain.com"
-tar_local = r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.2.34-20260419-2100.tar.gz"
+tar_local = r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.2.34-20260419-2235.tar.gz"
 remote_dir = "/www/wwwroot/www.chainlesschain.com"
 tar_remote = f"/tmp/{name}.tar.gz"
 staging = f"{remote_dir}.new"

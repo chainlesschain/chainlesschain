@@ -1,18 +1,33 @@
 import paramiko, os, sys, time
+from pathlib import Path
 
-HOST = "47.111.5.128"
-USER = "root"
-PASS = "***REDACTED***"
+def _load_dotenv(path):
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, _, v = line.partition("=")
+        os.environ.setdefault(k.strip(), v.strip())
+
+_load_dotenv(Path(__file__).resolve().parent / ".env")
+
+HOST = os.environ.get("DEPLOY_HOST")
+USER = os.environ.get("DEPLOY_USER")
+PASS = os.environ.get("DEPLOY_PASS")
+if not (HOST and USER and PASS):
+    sys.exit("ERROR: set DEPLOY_HOST / DEPLOY_USER / DEPLOY_PASS in .env or environment")
 
 DEPLOYS = [
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.2.34-20260419-2100.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.2.34-20260419-2235.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.2.34-20260419-2100.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.2.34-20260419-2235.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
 ]
