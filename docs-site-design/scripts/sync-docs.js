@@ -37,6 +37,7 @@ const ROOT_FILE_MAP = {
   "HOOKS_SYSTEM_DESIGN.md": "HOOKS_SYSTEM_DESIGN.md",
   "BROWSER_EXTENSION_PLAN.md": "BROWSER_EXTENSION_PLAN.md",
   "README.md": "README.md",
+  "桌面版UI重构_设计文档.md": "desktop-ui-refactor.md",
 };
 
 // modules/ 文件：提取编号前缀作为 ASCII 名
@@ -153,6 +154,7 @@ const MODULE_FILE_MAP = {
   "94_QualityGate通用质量门控.md": "m94-quality-gate.md",
   "95_社交协议生态补齐方案.md": "m95-social-protocol-parity.md",
   "96_V2规范层governance.md": "m96-v2-governance.md",
+  "97_桌面版UI_ClaudeDesktop重构计划.md": "m97-claude-desktop-refactor.md",
 };
 
 /**

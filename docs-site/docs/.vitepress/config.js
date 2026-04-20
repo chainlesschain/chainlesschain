@@ -61,6 +61,19 @@ export default defineConfig({
           ],
         },
         {
+          text: "桌面版 V6 对话壳 ⭐NEW",
+          items: [
+            {
+              text: "Chat-First Shell (v6 预览 /v2)",
+              link: "/guide/desktop-v6-shell",
+            },
+            {
+              text: "桌面版 UI 重构用户指南 (v6.0+)",
+              link: "/guide/desktop-ui-refactor-user-guide",
+            },
+          ],
+        },
+        {
           text: "专题指南 (v5.0.2.10)",
           items: [
             {
@@ -1324,7 +1337,18 @@ export default defineConfig({
             { text: "93 CutClaw 视频剪辑 Agent ⭐NEW", link: "/design/modules/93-cutclaw-video-editing-agent" },
             { text: "94 QualityGate 通用质量门控 ⭐NEW", link: "/design/modules/94-quality-gate" },
             { text: "95 社交协议生态补齐 ⭐NEW", link: "/design/modules/95-social-protocols-landing" },
+            { text: "96 V2 规范层 Governance ⭐NEW", link: "/design/modules/96-v2-governance" },
+            { text: "97 桌面版 UI · Claude-Desktop 重构 ⭐NEW", link: "/design/modules/97-claude-desktop-refactor" },
             { text: "60b CLI指令技能包 ⭐", link: "/design/modules/60b-cli-skill-packs" },
+          ],
+        },
+        {
+          text: "桌面壳重构 ⭐NEW",
+          items: [
+            {
+              text: "桌面版 UI 重构 (v6 Shell P0–P6)",
+              link: "/design/desktop-ui-refactor",
+            },
           ],
         },
       ],

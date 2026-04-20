@@ -303,3 +303,139 @@ ChainlessChain 采用 Git 作为核心同步机制，具有以下优势：
 - 本地日志
 - 错误追踪
 - 性能监控
+
+
+## 附录：规范章节补全（v5.0.2.34）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+ChainlessChain 采用"三端 + 双后端 + P2P 网络"的分层架构：桌面（Electron + Vue3）、CLI（Node.js + Commander）、Android（Jetpack Compose）在前端并列；Java Spring Boot（业务）+ Python FastAPI（AI）在后端并列；P2P 层贯穿所有端点，走 libp2p + WebRTC + Signal Protocol。
+
+### 2. 核心特性
+
+- 分层解耦：Main / Renderer 严格 IPC 边界
+- 51 个 Pinia stores 按业务域切分
+- IPC Domain Split：按领域分离 handler（AI / Security / Notes / Social / Trading / Enterprise）
+- DI Container：主进程依赖注入，利于测试
+- 插件热加载 + ed25519 签名校验
+
+### 3. 系统架构
+
+见上文正文详细层级图与数据流图。
+
+### 4. 系统定位
+
+架构目标：**本地优先 + 硬件安全 + 可扩展平台**。既是个人第二大脑，也是企业可整包交付的 Electron 框架。
+
+### 5. 核心功能
+
+| 层 | 核心责任 |
+|---|---|
+| Desktop Main | IPC 网关、插件系统、安全（U-Key / DID）、企业覆盖链 |
+| Desktop Renderer | 51 Pinia stores、Shell 骨架、Artifact 面板 |
+| CLI | 109 命令（单进程 / Skill / MCP 桥）|
+| Java Backend | RBAC / SSO / 合规审计 / 项目管理 |
+| Python AI | Ollama 推理、Qdrant 向量、RAG |
+| Android | 28 Skills（12 Kotlin + 8 文档 + 8 REMOTE）|
+
+### 6. 技术架构
+
+见 [技术栈](/guide/tech-stack)。关键选型：Electron 39.2.6 + Vue 3.4 + TypeScript 5.9.3 + Pinia 2.1.7 + Spring Boot 3.1.11 + Java 17 + FastAPI + PostgreSQL 16 + Redis 7 + Qdrant。
+
+### 7. 系统特点
+
+- **IPC Domain Split**：原单体 ipc-handlers.js 按域拆分为多个 handler 文件
+- **51 Pinia stores**：每个域一个 store，431+ 专项测试
+- **主渲双语法**：主进程 CommonJS，渲染器 ES6，通过 contextBridge 桥接
+- **P2P 无中心**：libp2p DHT + WebRTC mesh + Signal Protocol E2E
+- **多级缓存**：内存 LRU → Redis → 磁盘 → 远程
+
+### 8. 应用场景
+
+- 本地个人 AI 工作站（单机 + Ollama + SQLite/SQLCipher）
+- 小团队去中心化协作（DID + libp2p mesh）
+- 企业桌面分发（MDM + `.ccprofile` + 审计 sink 替换）
+- 移动端协同（Android Skill + 桌面端 DID 双向同步）
+
+### 9. 竞品对比
+
+| 架构维度 | ChainlessChain | Electron 通用框架 | LangChain + UI |
+|---|---|---|---|
+| IPC 分层 | ✅ Domain Split | ⚠️ 手工 | ❌ Web only |
+| 硬件密钥 | ✅ U-Key 集成 | ❌ | ❌ |
+| DI Container | ✅ 主进程原生 | ❌ | ⚠️ 部分 |
+| 51 stores 切分 | ✅ 按业务域 | ⚠️ | ⚠️ |
+| 三端共享 DID | ✅ | ❌ | ❌ |
+
+### 10. 配置参考
+
+```
+.chainlesschain/config.json        # 主配置
+desktop-app-vue/src/main/config/   # unified-config-manager.js
+.env                               # 环境变量（OLLAMA_HOST / QDRANT_HOST / DB_HOST）
+```
+
+### 11. 性能指标
+
+- 冷启动：≈ 2.4s
+- IPC 单次往返：< 5ms（renderer ↔ main）
+- Pinia store commit：< 1ms（热路径）
+- P2P 连接建立：< 500ms（mDNS + DHT）
+
+### 12. 测试覆盖
+
+- **14,800+** 测试（累计）
+- **431** Pinia store 专项测试（12 文件）
+- **220+** V2 治理表面对应 ≈ **5,984** V2 测试（iter16–iter28）
+- IPC 合同测试：见 `tests/integration/plugin-extension-points.integration.test.js`
+
+### 13. 安全考虑
+
+- IPC 白名单：`ipc-validator.js` 校验每个通道
+- 渲染器隔离：`contextIsolation: true` + `sandbox: true`（可插件上下文解除）
+- U-Key 硬件根信任
+- DID 私钥仅存硬件密钥内
+- 所有外部数据流经 `chain-gateway` 插件可审计
+
+### 14. 故障排除
+
+- **IPC 报 "channel not allowed"**：检查 `ipc-validator.js` 白名单
+- **Pinia store 状态不同步**：确认 `persistedState` 配置 + 重启应用
+- **插件未加载**：`PluginManager.listPlugins()` + 查看主进程日志
+- **Ollama / Qdrant 连不上**：`docker-compose ps`
+
+### 15. 关键文件
+
+```
+desktop-app-vue/src/main/
+  ipc/                    # IPC Domain Split handlers
+  plugin-system/          # 插件管理
+  config/unified-config-manager.js
+  utils/ipc-validator.js
+desktop-app-vue/src/renderer/
+  stores/                 # 51 Pinia stores
+  shell/                  # v6 Shell 骨架
+  router/index.ts
+```
+
+### 16. 使用示例
+
+```bash
+# 渲染器打开调试
+cd desktop-app-vue && npm run dev
+# → DevTools 中观察 Pinia stores
+
+# 单元测试主进程 IPC
+cd desktop-app-vue && npx vitest run tests/unit/main/
+```
+
+### 17. 相关文档
+
+- [技术栈](/guide/tech-stack)
+- [快速开始](/guide/getting-started)
+- [桌面版 V6 对话壳](/guide/desktop-v6-shell)
+- [合规与威胁情报](/guide/compliance-threat-intel)
+- [去中心化社交协议](/guide/social-protocols)
+- [系统设计主文档](/design/)

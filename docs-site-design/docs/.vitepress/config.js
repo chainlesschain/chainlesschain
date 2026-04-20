@@ -130,6 +130,10 @@ export default defineConfig({
               text: "Minimal Coding Agent 实施计划 ⭐NEW",
               link: "/MINIMAL_CODING_AGENT_PLAN",
             },
+            {
+              text: "桌面版 UI 重构 (v6 Shell P0–P6) ⭐NEW",
+              link: "/desktop-ui-refactor",
+            },
           ],
         },
         {
@@ -675,6 +679,10 @@ export default defineConfig({
             {
               text: "96 V2 规范层 Governance ⭐NEW",
               link: "/modules/m96-v2-governance",
+            },
+            {
+              text: "97 桌面版 UI · Claude-Desktop 重构 ⭐NEW",
+              link: "/modules/m97-claude-desktop-refactor",
             },
           ],
         },

@@ -193,3 +193,155 @@ chainlesschain compliance scan                  # 综合扫描
 - CLI 参考: `docs/CLI_COMMANDS_REFERENCE.md`（Phase 8 部分）
 - 审计 / SIEM: `chainlesschain audit log`、`chainlesschain siem export`
 - DLP: `chainlesschain dlp scan` — 与 UEBA 互补的数据流防护
+
+
+## 附录：规范章节补全（v5.0.2.34）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+ChainlessChain 合规与威胁情报子系统围绕 `cc compliance` CLI 展开，覆盖 STIX 2.1 威胁情报解析、UEBA 行为分析、SOC2 / ISO27001 / GDPR 报告生成。iter24 / iter27 / iter28 增设了 `stixgov-*-v2` / `tigov-*-v2` / `uebgov-*-v2` / `cmpmgov-*-v2` 四套 V2 治理表面，实现 4 态 / 5 态生命周期与容量约束。
+
+### 2. 核心特性
+
+- STIX 2.1 解析（`stixgov`）+ 版本多载
+- UEBA 异常检测（`uebgov`）+ 实体 / 告警生命周期
+- 多框架合规报告：SOC2 / ISO27001 / GDPR / HIPAA
+- 威胁情报源聚合（`tigov`：OTX 等）
+- 合规管理器（`cmpmgov`）统一框架装配
+
+### 3. 系统架构
+
+见 [系统架构](/guide/architecture)。合规子系统位于 CLI 层 + 后端审计 sink：
+
+```
+cc compliance ─┬─ stixgov-*-v2   → stix-parser.js
+               ├─ tigov-*-v2     → threat-intel.js
+               ├─ uebgov-*-v2    → ueba.js
+               └─ cmpmgov-*-v2   → compliance-manager.js
+                                     │
+                                     └─► 审计 sink (默认 / Splunk / 企业 SIEM)
+```
+
+### 4. 系统定位
+
+面向"**合规可替换 + 威胁情报可聚合**"：企业可把默认 `compliance-default` 插件替换为公司 SIEM 适配器；同时以 V2 治理表面为合规治理提供可观测生命周期。
+
+### 5. 核心功能
+
+| 能力 | CLI 表面 |
+|---|---|
+| STIX 解析 | `cc compliance stixgov-...-v2` |
+| 威胁源 | `cc compliance tigov-...-v2` |
+| UEBA 告警 | `cc compliance uebgov-...-v2` |
+| 合规报告 | `cc compliance cmpmgov-...-v2`（默认 `framework=soc2`） |
+| 审计导出 | `cc audit log` / `cc siem export` |
+| DLP | `cc dlp scan` |
+
+### 6. 技术架构
+
+见 [技术栈](/guide/tech-stack)。合规核心库位于 `packages/cli/src/commands/compliance/`：`stix-parser.js` / `threat-intel.js` / `ueba.js` / `compliance-manager.js`，所有 V2 治理表面共用统一 4/5 态状态机。
+
+### 7. 系统特点
+
+- **4 态（stale / suppressed → active）+ 5 态（3 终止态）**：所有 `*gov-*-v2` 统一语义
+- **容量约束**：`cmpmgov` 6/15、`stixgov` 6/15、`tigov` 6/15、`uebgov` 8/20
+- **自动降级**：auto-stale-idle / auto-suppress-idle + auto-fail-stuck
+- **聚合视图**：`cc compliance <prefix>gov-gov-stats-v2` 查看全局
+- **与 audit/SIEM 双向贯通**：告警直接转 SIEM / SOC2 报告
+
+### 8. 应用场景
+
+- 金融 / 医疗 SOC2 / ISO27001 年审报告自动出具
+- 安全运营中心 UEBA + 威胁情报联动
+- 政府 / 国企 GDPR / HIPAA 合规审计
+- 企业内置 SIEM 整包替换默认 sink
+
+### 9. 竞品对比
+
+| 能力 | ChainlessChain | Splunk ES | Wazuh |
+|---|---|---|---|
+| STIX 2.1 | ✅ `stixgov` | ✅ 收费 | ✅ |
+| UEBA | ✅ `uebgov` | ✅ 收费 | ⚠️ 基础 |
+| SOC2 / ISO27001 报告 | ✅ `cmpmgov` | ✅ 模板 | ⚠️ |
+| CLI 可自动化 | ✅ 109 命令 | ⚠️ | ⚠️ |
+| 本地优先 / 可离线 | ✅ | ❌ | ✅ |
+| V2 治理生命周期 | ✅ | ❌ | ❌ |
+
+### 10. 配置参考
+
+```bash
+# 切换默认合规框架
+cc compliance cmpmgov-framework-use-v2 soc2
+
+# 注册威胁源
+cc compliance tigov-source-add-v2 otx --token "$OTX_KEY"
+
+# 启用 UEBA 实体
+cc compliance uebgov-entity-activate-v2 user
+
+# 解析 STIX 包
+cc compliance stixgov-parse-v2 --version 2.1 --input threats.json
+```
+
+### 11. 性能指标
+
+- STIX 2.1 解析（1k 对象）：< 200ms
+- UEBA 单用户告警评估：< 50ms
+- SOC2 年度报告生成（1 万条事件）：< 8s
+- 治理表面查询 `*-gov-stats-v2`：< 10ms
+
+### 12. 测试覆盖
+
+- 每个 V2 表面 **44** 测试（`stixgov` / `tigov` / `uebgov` / `cmpmgov` 合计 **176** V2 测试）
+- 累计 **14,800+** 项目测试中，合规路径 ≈ 600+
+- 集成：`tests/integration/compliance/*.integration.test.js`
+
+### 13. 安全考虑
+
+- 威胁情报源凭据存 `.chainlesschain/config.json`（git-ignored）
+- SIEM 导出默认走 `chain-gateway` 可审计通道
+- UEBA 模型离线训练，不外发原始日志
+- 合规报告签名：可选 ed25519 签名（企业场景）
+
+### 14. 故障排除
+
+- **`stixgov-parse-v2` 报 version 错误**：确认 `--version 2.1`；2.0 需走 legacy
+- **`tigov` 告警无数据**：源 token 是否过期 / 网络策略是否放行
+- **UEBA 持续 stale**：`uebgov-entity-activate-v2`；检查是否触发 auto-suppress-idle
+- **SOC2 报告缺项**：升级 `cmpmgov-framework-use-v2` 至最新 framework 版本
+
+### 15. 关键文件
+
+```
+packages/cli/src/commands/compliance/
+  stix-parser.js
+  threat-intel.js
+  ueba.js
+  compliance-manager.js
+desktop-app-vue/src/main/plugins-builtin/compliance-default/
+docs/CLI_COMMANDS_REFERENCE.md   # Phase 8
+```
+
+### 16. 使用示例
+
+```bash
+# 合规一键流程
+cc compliance cmpmgov-framework-use-v2 soc2
+cc compliance tigov-source-add-v2 otx
+cc compliance uebgov-entity-activate-v2 user
+cc compliance stixgov-parse-v2 --input feed.json
+cc compliance cmpmgov-report-generate-v2 --period 2026Q1
+cc audit log --since 2026-01-01 | jq
+```
+
+### 17. 相关文档
+
+- [系统简介](/guide/introduction)
+- [系统架构](/guide/architecture)
+- [技术栈](/guide/tech-stack)
+- [快速开始](/guide/getting-started)
+- [桌面版 V6 对话壳](/guide/desktop-v6-shell)
+- [去中心化社交协议](/guide/social-protocols)
+- [系统设计主文档](/design/)

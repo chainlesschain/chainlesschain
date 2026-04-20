@@ -11,7 +11,7 @@
 | 文档类型 | 设计文档（Design Document） |
 | 模块 | desktop-app-vue（Electron + Vue 3） |
 | 适用版本 | v5.0.2.x → v6.0 |
-| 状态 | P0–P6 实现完成（Implementation Complete） |
+| 状态 | P0–P9b 实现完成 + 回归全绿（Implementation Complete · Regression Green） |
 | 最近更新 | 2026-04-20 |
 | 关联文档 | `docs/design/系统设计_主文档.md`、`docs/guides/桌面版UI重构_用户指南.md` |
 
@@ -22,6 +22,8 @@
 | v0.1 | 2026-04-20 | ChainlessChain 团队 | 初稿：三区对话壳 + 插件化平台 + 企业 Profile |
 | v0.2 | 2026-04-20 | ChainlessChain 团队 | P0–P5 实现完成：7 UI + 2 Brand + 5 能力扩展点全部落地，Profile/MDM 端到端联调通过 |
 | v0.3 | 2026-04-20 | ChainlessChain 团队 | P6：Slash 命令分发器 + 状态栏 Widget 注册表 + 内置 AdminShortcut；插件声明的 `handler`/`component` 现在会真正生效 |
+| v0.4 | 2026-04-20 | ChainlessChain 团队 | P7–P9b：`/v6-preview` 预览壳 + 4 主题 + 4 颗去中心化入口 + 会话 localStorage 持久化 + `llm-preview-bridge` 桥接 `window.electronAPI.llm.chat` |
+| v0.5 | 2026-04-20 | ChainlessChain 团队 | 发布前测试回归闭环：92 单测 + 5 集成测 + `vue-tsc --noEmit` + `vite build` 全绿；E2E 跟随既有 `describe.skip` 约定；本轮回归无 bug 溢出 |
 
 ---
 

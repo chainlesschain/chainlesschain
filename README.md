@@ -1,5 +1,21 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-20 增量更新（桌面版 V6 · 发布前测试回归闭环）
+
+在 P0–P9b 实现全部落地后，对 V6 Shell + `/v6-preview` 预览壳做了一轮完整回归，均在 Windows + Node 环境：
+
+| 环节 | 命令 | 结果 |
+|---|---|---|
+| **单元测试**（Shell + Preview + Stores） | `npx vitest run tests/unit/renderer/shell src/renderer/shell/__tests__ src/renderer/shell-preview/**/__tests__ src/renderer/stores/__tests__/theme-preview.test.ts src/renderer/stores/__tests__/conversation-preview.test.ts` | **92 / 92 全绿** · 9 个文件 · 25.97s |
+| **集成测试**（扩展点 × MDM 覆盖） | `npx vitest run tests/integration/plugin-extension-points.integration.test.js` | **5 / 5 全绿** · 104ms |
+| **类型检查** | `npx vue-tsc --noEmit` | **0 错误** |
+| **渲染进程构建** | `npx vite build` | **成功** · `dist/renderer/index.html` 已产出 |
+| **E2E**（`tests/e2e/v6-shell/admin-console.e2e.test.ts`） | — | 跟随既有 `describe.skip` 约定（等 `login()` helper 预置 admin 权限后再开启） |
+
+🟢 单测、集成、类型、构建四关无 bug 溢出；本轮回归未触发任何代码修复。详见 [用户文档 §18.7](./docs-site/docs/guide/desktop-v6-shell.md#187-v50234-测试回归2026-04-20) 与 [设计文档 v0.5](./docs/design/桌面版UI重构_设计文档.md)。
+
+---
+
 ## 2026-04-20 增量更新（桌面版 V6 · P7 Claude-Desktop 风格外观预览）
 
 在 P0–P6 基础上新增 **`/v6-preview` 预览路由**（与 `/v2` 并存，不替换），把桌面版外观向 Claude Desktop 对齐，并固化 4 颗差异化入口：

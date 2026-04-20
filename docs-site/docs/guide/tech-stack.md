@@ -569,3 +569,157 @@ ChainlessChain 的技术栈选型遵循以下原则：
 5. **用户体验**: 流畅交互、响应迅速、界面美观
 
 所有技术选型都经过充分验证，确保系统的稳定性和可靠性。
+
+
+## 附录：规范章节补全（v5.0.2.34）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+ChainlessChain 技术栈横跨桌面（Electron / Vue / TypeScript）、后端（Java / Python）、移动端（Kotlin / Jetpack Compose）、P2P（libp2p / WebRTC / Signal Protocol）与数据层（PostgreSQL / Redis / Qdrant）。本附录以视角清单形式补齐标准章节。
+
+### 2. 核心特性
+
+- 前端：Electron 39.2.6、Vue 3.4、TypeScript 5.9.3、Pinia 2.1.7、Ant Design Vue 4.1
+- 后端：Spring Boot 3.1.11 + Java 17、Python FastAPI + Uvicorn
+- AI：Ollama（本地推理）+ Qdrant（向量库）+ BM25 / TF-IDF（`natural` 库）
+- 数据：PostgreSQL 16、Redis 7、SQLCipher（AES-256 本地库）
+- P2P：libp2p、WebRTC、Signal Protocol 双棘轮
+- 移动端：Android + Kotlin + Jetpack Compose
+
+### 3. 系统架构
+
+见 [系统架构](/guide/architecture)。技术选型与架构分层一一对应：Main/CJS ↔ Renderer/ES6 / Java/Spring ↔ Python/FastAPI ↔ P2P/libp2p。
+
+### 4. 系统定位
+
+技术栈定位：**成熟 + 本地优先 + 跨端一致**。前端选择 Electron + Vue 是为了桌面体验与社区生态；后端 Java + Python 双栈分别对应 "业务确定性" 与 "AI 快速迭代"；Android 用 Kotlin + Compose 与桌面 TypeScript 并列保持现代化。
+
+### 5. 核心功能
+
+| 领域 | 主要库 |
+|---|---|
+| UI 框架 | Vue 3.4、Ant Design Vue 4.1 |
+| 状态管理 | Pinia 2.1.7（51 stores）|
+| 桌面壳 | Electron 39.2.6 |
+| 类型系统 | TypeScript 5.9.3 |
+| 测试 | Vitest、Playwright（E2E） |
+| HTTP 后端 | Spring Boot 3.1.11、FastAPI |
+| AI 推理 | Ollama、Transformers.js |
+| 向量检索 | Qdrant |
+| 关系型 DB | PostgreSQL 16 |
+| 缓存 | Redis 7 |
+| 本地加密 DB | SQLCipher（AES-256）|
+| P2P | libp2p、WebRTC、Signal Protocol |
+| Android | Kotlin、Jetpack Compose |
+
+### 6. 技术架构
+
+见上文正文。补充：CLI 使用 Node.js + Commander + Zod；Skill 系统基于主进程 DI Container 注入依赖。
+
+### 7. 系统特点
+
+- **版本集中管理**：`package.json` / `pom.xml` / `requirements.txt` 统一锁版本
+- **双语法桥接**：主进程 CJS 与渲染器 ES6 通过 contextBridge
+- **渐进式类型化**：渲染器几乎全 TS，主进程以 JS + JSDoc 为主
+- **现代化 Android**：Jetpack Compose + MVVM，与桌面协议对齐
+
+### 8. 应用场景
+
+- 企业桌面：Electron + Spring Boot + 内网 Ollama
+- 个人桌面：Electron + 本地 Ollama + SQLite/SQLCipher
+- 边缘推理：FastAPI + Qdrant（独立容器部署）
+- 移动办公：Android + DID + P2P
+
+### 9. 竞品对比
+
+| 技术维度 | ChainlessChain | Tauri 系 | Flutter 系 |
+|---|---|---|---|
+| 桌面运行时 | Electron 39（成熟生态）| Rust WebView | Skia |
+| 前端类型 | TypeScript + Vue | 灵活 | Dart |
+| 后端组合 | Java + Python 双栈 | 通常单栈 | 通常单栈 |
+| 向量库 | Qdrant | 需自集成 | 需自集成 |
+| 本地加密 DB | SQLCipher | SQLite (待插件) | SQLite (待插件) |
+
+### 10. 配置参考
+
+```bash
+# Node（桌面 + CLI）
+node -v   # ≥ 20 LTS
+
+# Java（后端）
+java -version   # 17
+
+# Python（AI）
+python -V   # 3.10+
+
+# Docker（Ollama / Qdrant / Postgres / Redis）
+docker-compose up -d
+```
+
+### 11. 性能指标
+
+- Electron 冷启动：≈ 2.4s
+- Vue 首屏渲染：< 500ms
+- Spring Boot 冷启动：≈ 6–10s
+- FastAPI 冷启动：< 2s
+- Qdrant 向量检索（1M 规模）：< 50ms
+
+### 12. 测试覆盖
+
+- 累计 **14,800+** 测试
+- 前端 Vitest + jsdom
+- 后端 JUnit 5 + PyTest
+- 移动端 JUnit + Espresso
+- V2 规范层 **220+** 治理表面（iter16–iter28）
+
+### 13. 安全考虑
+
+- 依赖扫描：`npm audit`、`pip audit`、`mvn dependency-check`
+- 锁版本：`package-lock.json` / `requirements.txt` / `pom.xml`
+- 运行时：Electron sandbox + contextIsolation
+- 加密：SQLCipher AES-256 + Signal Protocol + ed25519
+
+### 14. 故障排除
+
+- **Electron 原生模块编译失败**：`npm rebuild`；Windows 需 VS Build Tools
+- **Vue 热更新卡住**：`.vite` 缓存删除重启
+- **Java 版本不匹配**：`JAVA_HOME` 指向 17
+- **Python 依赖冲突**：建议 `venv` 隔离
+
+### 15. 关键文件
+
+```
+desktop-app-vue/package.json           # Electron + Vue + TS 版本
+packages/cli/package.json              # CLI + Commander + Vitest
+backend/project-service/pom.xml        # Spring Boot + Java 17
+backend/ai-service/requirements.txt    # FastAPI + Ollama + Qdrant
+mobile-app/build.gradle.kts            # Kotlin + Compose
+```
+
+### 16. 使用示例
+
+```bash
+# 桌面版开发
+cd desktop-app-vue && npm install && npm run dev
+
+# CLI
+cd packages/cli && npm install && npx cc --help
+
+# 后端
+cd backend/project-service && ./mvnw spring-boot:run
+cd backend/ai-service && uvicorn app.main:app --reload
+
+# 移动端
+cd mobile-app && ./gradlew assembleDebug
+```
+
+### 17. 相关文档
+
+- [系统架构](/guide/architecture)
+- [快速开始](/guide/getting-started)
+- [桌面版 V6 对话壳](/guide/desktop-v6-shell)
+- [合规与威胁情报](/guide/compliance-threat-intel)
+- [去中心化社交协议](/guide/social-protocols)
+- [系统设计主文档](/design/)

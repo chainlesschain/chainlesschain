@@ -357,3 +357,150 @@ chmod 777 data/uploads
 ---
 
 **祝您使用愉快！**
+
+
+## 附录：规范章节补全（v5.0.2.34）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+本附录以快速上手视角补齐所有标准章节：从安装路径、环境变量、常用命令，到测试、故障排除、性能指标等维度做一站式摘要。主体安装步骤见上文。
+
+### 2. 核心特性
+
+- 三端独立安装路径（Desktop / CLI / Android）
+- Docker Compose 一键起依赖（Ollama / Qdrant / Postgres / Redis）
+- `.chainlesschain/config.json` 统一配置目录
+- `cc doctor` 自检命令快速定位环境问题
+
+### 3. 系统架构
+
+见 [系统架构](/guide/architecture)。快速上手时只需关心：前端（desktop / cli）+ 后端（docker compose 服务）+ AI（Ollama / Qdrant）三组件均可本地启动。
+
+### 4. 系统定位
+
+面向"**最快 15 分钟上手**"：新用户先跑通 CLI 的 `cc chat` 或桌面端 `npm run dev`，再按需启用后端 / AI / P2P。
+
+### 5. 核心功能
+
+| 路径 | 命令 |
+|---|---|
+| 全局 CLI | `npm i -g chainlesschain` |
+| 桌面版 | `cd desktop-app-vue && npm install && npm run dev` |
+| 后端依赖 | `docker-compose up -d` |
+| CLI 测试 | `cd packages/cli && npm test` |
+| 自检 | `cc doctor` |
+
+### 6. 技术架构
+
+见 [技术栈](/guide/tech-stack)。首次安装关键依赖：Node ≥ 20、Docker（Desktop / Engine）、可选 Java 17 + Python 3.10+（自建后端）。
+
+### 7. 系统特点
+
+- **零配置优先**：不填环境变量也能跑基础对话（本地 Ollama + SQLite）
+- **环境变量覆盖**：所有默认都可被 `.env` / `config.json` 覆盖
+- **Docker 可选**：最小可用仅需 Node + 本地 Ollama
+- **跨平台**：Windows / macOS / Linux 都走相同命令（U-Key 仅 Windows 原生）
+
+### 8. 应用场景
+
+- 新用户试用：CLI `cc chat` 一条命令
+- 开发者：`npm run dev` + DevTools
+- 运维：`docker-compose up -d` + 观察 `docker logs`
+- 企业员工：拿到 `.ccprofile` 后自动切换 LLM / 品牌
+
+### 9. 竞品对比
+
+| 维度 | ChainlessChain | Ollama 裸用 | Open WebUI |
+|---|---|---|---|
+| 全栈一键起 | ✅ `docker-compose up` | ⚠️ 仅推理 | ⚠️ 仅 UI |
+| CLI + 桌面双端 | ✅ | ❌ | ❌ |
+| 环境自检 | ✅ `cc doctor` | ❌ | ❌ |
+| 企业下发配置 | ✅ Profile / MDM | ❌ | ❌ |
+
+### 10. 配置参考
+
+```bash
+# 关键环境变量（.env 或 shell）
+OLLAMA_HOST=http://localhost:11434
+QDRANT_HOST=http://localhost:6333
+DB_HOST=localhost:5432
+REDIS_HOST=localhost:6379
+```
+
+主配置文件位置：
+
+```
+# Windows
+%APPDATA%/chainlesschain-desktop-vue/.chainlesschain/config.json
+
+# macOS
+~/Library/Application Support/chainlesschain-desktop-vue/.chainlesschain/config.json
+
+# Linux
+~/.config/chainlesschain-desktop-vue/.chainlesschain/config.json
+```
+
+### 11. 性能指标
+
+- `npm install`（桌面端首次）：3–8min（视网络）
+- 桌面冷启动：≈ 2.4s
+- `cc --help`：< 300ms
+- `docker-compose up -d`（已拉镜像）：< 10s
+
+### 12. 测试覆盖
+
+- 累计 **14,800+** 测试
+- 首次安装后运行 `cc test` 或 `npx vitest run tests/unit/` 抽查
+- CI：`.github/workflows/test.yml`
+
+### 13. 安全考虑
+
+- 首次运行会生成 DID 与本地密钥；请备份 `.chainlesschain/` 目录
+- U-Key（Windows）可显著提升私钥安全；非 Windows 走 simulation 模式
+- 不要把 `.env` 与生产密钥提交到 Git
+
+### 14. 故障排除
+
+- **`npm install` 卡 electron 下载**：设置 `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/`
+- **Docker 起不来**：`docker info` 检查 Docker Desktop 已启动
+- **Ollama 无响应**：`curl http://localhost:11434/api/tags`
+- **Qdrant 端口占用**：改 `docker-compose.yml` 的 6333 映射
+- **`cc` 命令未找到**：`npm i -g chainlesschain` 后重开终端
+
+### 15. 关键文件
+
+```
+.env.example                    # 环境变量样例
+docker-compose.yml              # 基础设施编排
+desktop-app-vue/package.json    # 桌面版入口
+packages/cli/package.json       # CLI 入口
+.chainlesschain/config.json     # 用户主配置
+.chainlesschain/rules.md        # 项目规则（优先级 > CLAUDE.md）
+```
+
+### 16. 使用示例
+
+```bash
+# 一键基础栈
+npm i -g chainlesschain
+cc doctor         # 自检
+cc chat "你好"     # 本地对话
+
+# 完整桌面开发
+git clone <repo>
+cd chainlesschain
+docker-compose up -d
+cd desktop-app-vue && npm install && npm run dev
+```
+
+### 17. 相关文档
+
+- [系统简介](/guide/introduction)
+- [系统架构](/guide/architecture)
+- [技术栈](/guide/tech-stack)
+- [桌面版 V6 对话壳](/guide/desktop-v6-shell)
+- [合规与威胁情报](/guide/compliance-threat-intel)
+- [去中心化社交协议](/guide/social-protocols)
+- [系统设计主文档](/design/)

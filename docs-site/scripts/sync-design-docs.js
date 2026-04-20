@@ -38,6 +38,7 @@ const ROOT_FILE_MAP = {
   "HOOKS_SYSTEM_DESIGN.md": "HOOKS_SYSTEM_DESIGN.md",
   "BROWSER_EXTENSION_PLAN.md": "BROWSER_EXTENSION_PLAN.md",
   "README.md": "README.md",
+  "桌面版UI重构_设计文档.md": "desktop-ui-refactor.md",
 };
 
 // modules/ 文件：01-xxx 格式（无 m 前缀，与 config.js sidebar 一致）
@@ -152,6 +153,8 @@ const MODULE_FILE_MAP = {
   "93_CutClaw借鉴_视频剪辑Agent.md": "93-cutclaw-video-editing-agent.md",
   "94_QualityGate通用质量门控.md": "94-quality-gate.md",
   "95_社交协议生态补齐方案.md": "95-social-protocols-landing.md",
+  "96_V2规范层governance.md": "96-v2-governance.md",
+  "97_桌面版UI_ClaudeDesktop重构计划.md": "97-claude-desktop-refactor.md",
 };
 
 // 构建反向映射（用于 rewriteInternalLinks）

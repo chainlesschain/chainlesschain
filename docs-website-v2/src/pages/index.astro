@@ -84,6 +84,11 @@ const evolution = [
   { tag: 'v5.0.2.10', title: 'V2 增强套件（第五批）', sub: '协作治理 + 合规 UEBA + 威胁情报', desc: 'cc collab / cc compliance ueba / cc compliance threat-intel — Agent 成熟度 + 提案/调查/Feed 生命周期、双维度上限、批量 auto-flip，全部覆盖 167+ 新单元测试。' },
   { tag: 'v5.0.2.10', title: 'V2 增强套件（第六批）', sub: '13 个运行时管家 V2 升级', desc: 'automation / instinct / memory / note / org / permmem / rcache / scim / session / social / sync / tokens / wallet — 全部 4-state 成熟度 + 5-state 生命周期、双维度上限、autoPauseIdle / autoFailStuck / autoExpireStale 批量 auto-flip，560 新 V2 单元测试零回归。' },
 
+  // ── v5.0.2.34 桌面版 V6 Chat-First Shell (2026-04-20 P0–P9b 全量) ──
+  { tag: 'v5.0.2.34', title: '桌面版 V6 Chat-First Shell', sub: '对话优先 + 插件化平台 (P0–P6 完成)', desc: 'Electron 桌面端 /v2 路由：三区布局（ShellSidebar + ConversationStream + ArtifactPanel + ShellStatusBar）+ 7 类 UI 扩展点 + 5 类企业 Provider + P6 分发器与 Widget 注册表 + `Ctrl+Shift+A` / `/admin` 管理控制台 + 13 个内置 first-party 插件 + `.ccprofile` + MDM 推送三路径企业定制。' },
+  { tag: 'v5.0.2.34', title: 'V6 Preview Shell (P7–P9b)', sub: 'Claude-Desktop 风格预览 · `/v6-preview`', desc: '与 /v2 并存的新壳（不替换现网入口）：P7 · 4 主题（dark/light/blue/green）+ ConversationList + 4 颗去中心化入口（P2P / Trade / Social / U-Key）；P8 · 4 Preview Widget 打开右侧 ArtifactDrawer 并跳转 `/main/*` 完整页；P9a · 会话持久化到 localStorage（schema v1 + 损坏容错 re-seed）；P9b · 真 LLM 桥 `window.electronAPI.llm.chat` + typing 动画 + 三种返回形状兼容。58 新单测全绿（~15s，5 文件）。' },
+  { tag: 'v5.0.2.34', title: 'CLI V2 Canonical Surface iter16–iter28', sub: 'CLI 0.156.0 · 136 新治理表面', desc: 'iter16–iter28 共新增 136 个 lib-level V2 治理表面（4-state 成熟度 + 5-state 生命周期 + 双维度上限 + auto-flip），约 5,984 V2 测试；a2apgov / acrdgov / aecogov / autagov / ccoregov / cmpmgov / crchgov / crygov / daomgov / esysgov / emgrgov / hmemgov / infnetgov / kggov / pipogov / pmodegov 等。' },
+
   // ── v5.0.2.34 / CLI 0.124-0.130 Evolution (2026-04-18 Gateway V2 Batch) ──
   { tag: 'v5.0.2.34', title: 'SSO Manager V2', sub: 'cc sso V2 · 企业身份治理', desc: 'SAML/OAuth2/OIDC Provider 4-state 成熟度（retired 终态、deprecated→active 恢复）+ 5-state 登录生命周期（3 终态），per-owner active-provider cap + per-provider pending-login cap，autoDeprecateIdle + autoFailStuck；35 V2 单测。' },
   { tag: 'v5.0.2.34', title: 'Workflow Engine V2', sub: 'cc workflow V2 · DAG 运行治理', desc: '工作流 4-state 成熟度（retired 终态、paused→active 恢复）+ 5-state 运行生命周期（3 终态），per-owner active-workflow cap（draft→active）+ per-workflow pending-run cap（queued+running），autoPauseIdle + autoFailStuck；44 V2 单测。' },
@@ -113,8 +118,9 @@ const badges = [
       <div class="max-w-4xl">
         <div class="animate-fade-in flex items-center gap-3 mb-8">
           <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> v5.0.2.34 · Evolution Edition</span>
-          <span class="chip">CLI v0.130.0</span>
+          <span class="chip">CLI v0.156.0</span>
           <span class="chip">109 命令</span>
+          <span class="chip">V6 Chat-First Shell</span>
         </div>
 
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02] tracking-tight">

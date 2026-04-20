@@ -154,3 +154,142 @@ ChainlessChain 采用开源协议，欢迎社区贡献：
 ---
 
 **用技术捍卫隐私，用AI赋能个人**
+
+
+## 附录：规范章节补全（v5.0.2.34）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+ChainlessChain 是面向个人的去中心化 AI 管理系统，由桌面版（Electron + Vue3）、CLI（`chainlesschain` / `cc`）、移动端（Android Jetpack Compose）三端构成。以硬件级安全（U-Key / SIMKey）、P2P 加密协议、DID 身份为基础，内置 139 个 Desktop Skills + 28 Android Skills + 109 CLI 命令，累计 14,800+ 测试。
+
+### 2. 核心特性
+
+- **Chat-First 入口**：桌面 v6 壳统一把笔记 / 社交 / 交易 / LLM 调用合为一条对话流
+- **硬件安全**：U-Key（Windows 原生）+ SQLCipher AES-256 + DID 身份
+- **插件化平台**：13 内置插件 + 社区 Registry + 企业 `.ccprofile` + MDM 三路径
+- **RAG 知识库**：BM25 / TF-IDF + Qdrant 向量检索
+- **多端协同**：桌面、CLI、Android 共享同一 DID 与加密同步层
+
+### 3. 系统架构
+
+见 [系统架构](/guide/architecture)。简述：三端（Desktop / CLI / Android）共用 Java + Python 双后端；P2P 走 libp2p + WebRTC + Signal Protocol；数据层 PostgreSQL 16 + Redis 7 + SQLCipher；AI 层 Ollama + Qdrant。
+
+### 4. 系统定位
+
+- **个人**：一体化 "第二大脑 + 社交 + 资产" 工作站
+- **团队**：DID + 端到端加密的协作空间
+- **企业**：无需 fork 源代码即可通过 Profile / MDM 换品牌 + 换 LLM + 换审计链路
+
+### 5. 核心功能
+
+| 模块 | 说明 |
+|---|---|
+| 知识库 | 笔记、RAG 搜索、版本化 |
+| 社交 | Nostr / Matrix / ActivityPub 三协议桥 |
+| 交易 | 资产管理、市场、智能合约 |
+| AI Engine | Cowork 多 Agent、Plan Mode、Skill 系统 |
+| 企业 | RBAC、SSO、合规审计 |
+
+### 6. 技术架构
+
+见 [技术栈](/guide/tech-stack)。核心栈：Electron 39 + Vue 3.4 + TypeScript 5.9 + Pinia 2.1 + Ant Design Vue 4.1 + Spring Boot 3.1.11 + Java 17 + FastAPI。
+
+### 7. 系统特点
+
+- 本地优先：默认所有数据存于本地加密磁盘
+- 可插拔 LLM：Ollama / OpenAI-兼容网关 / 企业内网推理全部可热切
+- V2 规范层：220+ 治理表面（`*gov-*-v2` 系列）覆盖绝大多数 CLI 子系统
+- 测试驱动：14,800+ 测试（单元 + 集成 + E2E）
+
+### 8. 应用场景
+
+- 个人 Second Brain + 本地 AI 助手
+- 研发团队 DID 协作 + 合规审计
+- 金融 / 医疗桌面硬件级签名工作站
+- 教育 / 培训 Skill 包分发
+- 政府 / 国企 MDM 强制下发
+
+### 9. 竞品对比
+
+| 能力 | ChainlessChain | ChatGPT 桌面 | Obsidian | VSCode |
+|---|---|---|---|---|
+| 硬件级密钥 | ✅ U-Key | ❌ | ❌ | ❌ |
+| DID / P2P | ✅ | ❌ | ❌ | ❌ |
+| 企业整包定制 | ✅ Profile / MDM | ❌ | ⚠️ | ⚠️ |
+| 本地 LLM | ✅ Ollama | ❌ | ⚠️ 插件 | ⚠️ 扩展 |
+| Skill 系统 | ✅ 139+ | ❌ | ⚠️ | ⚠️ |
+
+### 10. 配置参考
+
+主配置目录：`%APPDATA%/chainlesschain-desktop-vue/.chainlesschain/`。关键文件：
+
+```
+.chainlesschain/
+  config.json        # 主配置
+  rules.md           # 项目规则（优先级 > CLAUDE.md）
+```
+
+优先级：环境变量 > `config.json` > 默认值。
+
+### 11. 性能指标
+
+- 冷启动到可交互：≈ 2.4s（参考机型）
+- 13 个内置插件载入：≈ 38ms
+- CLI 命令启动：≈ 200ms
+
+### 12. 测试覆盖
+
+- 累计测试：**14,800+**
+- V2 治理表面：**220+**（iter16–iter28 合计 ≈ 5,984 V2 测试）
+- 单元 + 集成 + E2E 三层覆盖
+
+### 13. 安全考虑
+
+- 本地数据：SQLCipher AES-256
+- 硬件签名：U-Key（Windows 原生 / 其他平台 simulation）
+- 身份：DID + ed25519
+- 插件：ed25519 签名 + sha256 校验 + `trustedPublicKeys` 白名单
+- P2P：Signal Protocol 双棘轮
+
+### 14. 故障排除
+
+- **Ollama 无响应**：`curl http://localhost:11434/api/tags` 检查
+- **Qdrant 不可达**：确认 `docker-compose up -d` 启动
+- **U-Key 不识别**：仅 Windows 原生；其他平台默认 simulation 模式
+- 其他：见 [快速开始](/guide/getting-started) 的 FAQ
+
+### 15. 关键文件
+
+```
+desktop-app-vue/src/main/        # Electron 主进程
+desktop-app-vue/src/renderer/    # Vue3 渲染器（51 Pinia stores）
+packages/cli/                    # CLI（109 命令）
+backend/project-service/         # Java 后端
+backend/ai-service/              # Python AI 后端
+mobile-app/                      # Android
+```
+
+### 16. 使用示例
+
+```bash
+# 安装 CLI
+npm i -g chainlesschain
+
+# 启动桌面版
+cd desktop-app-vue && npm install && npm run dev
+
+# 基础对话
+cc chat "帮我整理今天的会议笔记"
+```
+
+### 17. 相关文档
+
+- [系统架构](/guide/architecture)
+- [技术栈](/guide/tech-stack)
+- [快速开始](/guide/getting-started)
+- [桌面版 V6 对话壳](/guide/desktop-v6-shell)
+- [合规与威胁情报](/guide/compliance-threat-intel)
+- [去中心化社交协议](/guide/social-protocols)
+- [系统设计主文档](/design/)
