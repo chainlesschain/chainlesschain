@@ -2,7 +2,7 @@
 
 **Source**: `src/main/file/retry-manager.js`
 
-**Generated**: 2026-04-20T01:53:52.296Z
+**Generated**: 2026-04-20T10:46:39.792Z
 
 ---
 

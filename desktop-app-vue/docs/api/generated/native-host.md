@@ -2,7 +2,7 @@
 
 **Source**: `src/main/native-messaging/native-host.js`
 
-**Generated**: 2026-04-20T01:53:52.265Z
+**Generated**: 2026-04-20T10:46:39.761Z
 
 ---
 

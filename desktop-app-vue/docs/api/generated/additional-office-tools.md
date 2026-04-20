@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/additional-office-tools.js`
 
-**Generated**: 2026-04-20T01:53:52.241Z
+**Generated**: 2026-04-20T10:46:39.734Z
 
 ---
 
@@ -12,10 +12,10 @@
 const officeTools = [
 ```
 
-- Office文档相关工具补充定义
-- 补充Word、Excel、PPT生成和操作工具
--
-- 使用方法：将这些工具定义合并到 builtin-tools.js 的 module.exports 数组中
+* Office文档相关工具补充定义
+ * 补充Word、Excel、PPT生成和操作工具
+ *
+ * 使用方法：将这些工具定义合并到 builtin-tools.js 的 module.exports 数组中
 
 ---
 
@@ -25,8 +25,8 @@ const officeTools = [
 id: 'tool_word_generator',
 ```
 
-- Word文档生成器
-  - 生成标准格式的Word文档（.docx）
+* Word文档生成器
+   * 生成标准格式的Word文档（.docx）
 
 ---
 
@@ -36,8 +36,8 @@ id: 'tool_word_generator',
 id: 'tool_word_table_creator',
 ```
 
-- Word表格创建器
-  - 在Word文档中创建格式化表格
+* Word表格创建器
+   * 在Word文档中创建格式化表格
 
 ---
 
@@ -47,8 +47,8 @@ id: 'tool_word_table_creator',
 id: 'tool_excel_generator',
 ```
 
-- Excel电子表格生成器
-  - 生成多工作表Excel文件
+* Excel电子表格生成器
+   * 生成多工作表Excel文件
 
 ---
 
@@ -58,8 +58,8 @@ id: 'tool_excel_generator',
 id: 'tool_excel_formula_builder',
 ```
 
-- Excel公式构建器
-  - 辅助生成Excel公式
+* Excel公式构建器
+   * 辅助生成Excel公式
 
 ---
 
@@ -69,8 +69,8 @@ id: 'tool_excel_formula_builder',
 id: 'tool_excel_chart_creator',
 ```
 
-- Excel图表创建器
-  - 在Excel中创建各类图表
+* Excel图表创建器
+   * 在Excel中创建各类图表
 
 ---
 
@@ -80,8 +80,8 @@ id: 'tool_excel_chart_creator',
 id: 'tool_ppt_generator',
 ```
 
-- PPT演示文稿生成器
-  - 生成PowerPoint演示文稿
+* PPT演示文稿生成器
+   * 生成PowerPoint演示文稿
 
 ---
 
@@ -91,8 +91,8 @@ id: 'tool_ppt_generator',
 id: 'tool_ppt_slide_creator',
 ```
 
-- PPT幻灯片创建器
-  - 向现有PPT添加幻灯片
+* PPT幻灯片创建器
+   * 向现有PPT添加幻灯片
 
 ---
 
@@ -102,7 +102,8 @@ id: 'tool_ppt_slide_creator',
 id: 'tool_ppt_theme_applicator',
 ```
 
-- PPT主题应用器
-  - 应用或修改PPT主题
+* PPT主题应用器
+   * 应用或修改PPT主题
 
 ---
+

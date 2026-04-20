@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/llm-config.js`
 
-**Generated**: 2026-04-20T01:53:52.279Z
+**Generated**: 2026-04-20T10:46:39.774Z
 
 ---
 

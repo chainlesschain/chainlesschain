@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/ai-engine-ipc.js`
 
-**Generated**: 2026-04-20T01:53:52.344Z
+**Generated**: 2026-04-20T10:46:39.841Z
 
 ---
 
@@ -12,28 +12,29 @@
 const
 ```
 
-- AI引擎 IPC Handlers
-- 处理前端与AI引擎之间的通信
+* AI引擎 IPC Handlers
+ * 处理前端与AI引擎之间的通信
 
 ---
 
 ## registerHandlers(mainWindow)
 
 ```javascript
-registerHandlers(mainWindow);
+registerHandlers(mainWindow)
 ```
 
-- 注册所有IPC handlers
-  - @param {BrowserWindow} mainWindow - 主窗口实例
+* 注册所有IPC handlers
+   * @param {BrowserWindow} mainWindow - 主窗口实例
 
 ---
 
 ## unregisterHandlers()
 
 ```javascript
-unregisterHandlers();
+unregisterHandlers()
 ```
 
-- 注销所有IPC handlers
+* 注销所有IPC handlers
 
 ---
+

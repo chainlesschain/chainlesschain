@@ -2,7 +2,7 @@
 
 **Source**: `src/main/database/database-migration.js`
 
-**Generated**: 2026-04-20T01:53:52.307Z
+**Generated**: 2026-04-20T10:46:39.803Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/ai-engine-manager.js`
 
-**Generated**: 2026-04-20T01:53:52.344Z
+**Generated**: 2026-04-20T10:46:39.840Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-- AI引擎主管理器
-- 负责协调意图识别、任务规划和Function Calling
+* AI引擎主管理器
+ * 负责协调意图识别、任务规划和Function Calling
 
 ---
 
@@ -23,8 +23,8 @@ const
 async initialize()
 ```
 
-- 初始化AI引擎管理器
-  - 注入依赖项并初始化增强版任务规划器
+* 初始化AI引擎管理器
+   * 注入依赖项并初始化增强版任务规划器
 
 ---
 
@@ -34,41 +34,41 @@ async initialize()
 async initializeWorkflowOptimizations()
 ```
 
-- 初始化工作流优化模块
-  - @private
+* 初始化工作流优化模块
+   * @private
 
 ---
 
-## async \_loadWorkflowConfigAsync()
+## async _loadWorkflowConfigAsync()
 
 ```javascript
 async _loadWorkflowConfigAsync()
 ```
 
-- 异步加载工作流配置 (M2: 启动期 IO 异步化)
-  - @private
+* 异步加载工作流配置 (M2: 启动期 IO 异步化)
+   * @private
 
 ---
 
 ## getTaskPlanner()
 
 ```javascript
-getTaskPlanner();
+getTaskPlanner()
 ```
 
-- 获取增强版任务规划器
-  - @returns {TaskPlannerEnhanced}
+* 获取增强版任务规划器
+   * @returns {TaskPlannerEnhanced}
 
 ---
 
 ## getWorkflowStats()
 
 ```javascript
-getWorkflowStats();
+getWorkflowStats()
 ```
 
-- 获取工作流优化统计
-  - @returns {Object}
+* 获取工作流优化统计
+   * @returns {Object}
 
 ---
 
@@ -78,68 +78,68 @@ getWorkflowStats();
 async processUserInput(userInput, context =
 ```
 
-- 处理用户输入的核心方法
-  - @param {string} userInput - 用户输入的文本
-  - @param {Object} context - 上下文信息（当前项目、文件等）
-  - @param {Function} onStepUpdate - 步骤更新回调函数
-  - @returns {Promise<Object>} 执行结果
+* 处理用户输入的核心方法
+   * @param {string} userInput - 用户输入的文本
+   * @param {Object} context - 上下文信息（当前项目、文件等）
+   * @param {Function} onStepUpdate - 步骤更新回调函数
+   * @returns {Promise<Object>} 执行结果
 
 ---
 
 ## getExecutionHistory(limit = 10)
 
 ```javascript
-getExecutionHistory((limit = 10));
+getExecutionHistory(limit = 10)
 ```
 
-- 获取执行历史
-  - @param {number} limit - 返回的最大记录数
-  - @returns {Array} 执行历史记录
+* 获取执行历史
+   * @param {number} limit - 返回的最大记录数
+   * @returns {Array} 执行历史记录
 
 ---
 
 ## clearHistory()
 
 ```javascript
-clearHistory();
+clearHistory()
 ```
 
-- 清除执行历史
+* 清除执行历史
 
 ---
 
 ## registerTool(name, handler, schema)
 
 ```javascript
-registerTool(name, handler, schema);
+registerTool(name, handler, schema)
 ```
 
-- 注册自定义工具
-  - @param {string} name - 工具名称
-  - @param {Function} handler - 工具处理函数
-  - @param {Object} schema - 工具参数schema
+* 注册自定义工具
+   * @param {string} name - 工具名称
+   * @param {Function} handler - 工具处理函数
+   * @param {Object} schema - 工具参数schema
 
 ---
 
 ## unregisterTool(name)
 
 ```javascript
-unregisterTool(name);
+unregisterTool(name)
 ```
 
-- 注销工具
-  - @param {string} name - 工具名称
+* 注销工具
+   * @param {string} name - 工具名称
 
 ---
 
 ## getAvailableTools()
 
 ```javascript
-getAvailableTools();
+getAvailableTools()
 ```
 
-- 获取所有可用工具
-  - @returns {Array} 工具列表
+* 获取所有可用工具
+   * @returns {Array} 工具列表
 
 ---
 
@@ -149,7 +149,8 @@ getAvailableTools();
 function getAIEngineManager()
 ```
 
-- 获取AI引擎管理器单例
-- @returns {AIEngineManager}
+* 获取AI引擎管理器单例
+ * @returns {AIEngineManager}
 
 ---
+

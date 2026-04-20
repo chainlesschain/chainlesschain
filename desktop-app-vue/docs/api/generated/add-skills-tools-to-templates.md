@@ -2,7 +2,7 @@
 
 **Source**: `src/main/templates/add-skills-tools-to-templates.js`
 
-**Generated**: 2026-04-20T01:53:52.217Z
+**Generated**: 2026-04-20T10:46:39.713Z
 
 ---
 
@@ -12,10 +12,10 @@
 const
 ```
 
-- 为现有模板添加技能和工具关联
--
-- 使用方法：
-- node add-skills-tools-to-templates.js
+* 为现有模板添加技能和工具关联
+ *
+ * 使用方法：
+ * node add-skills-tools-to-templates.js
 
 ---
 
@@ -25,7 +25,7 @@ const
 async function addSkillsAndTools(templatePath, category, subcategory = null)
 ```
 
-- 为模板添加技能和工具
+* 为模板添加技能和工具
 
 ---
 
@@ -35,7 +35,7 @@ async function addSkillsAndTools(templatePath, category, subcategory = null)
 async function updateAllTemplates()
 ```
 
-- 扫描并更新所有模板
+* 扫描并更新所有模板
 
 ---
 
@@ -45,6 +45,7 @@ async function updateAllTemplates()
 async function generateMappingReport()
 ```
 
-- 生成映射报告
+* 生成映射报告
 
 ---
+
