@@ -13,25 +13,12 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import path from "path";
 import os from "os";
+import fs from "fs";
 
-// Mock fs module properly with importOriginal
-const mockReadFile = vi.fn();
-const mockWriteFile = vi.fn();
-const mockMkdir = vi.fn();
+// fs.promises mocking via vi.mock does not reliably intercept in this project's
+// Vitest setup (CJS require("fs").promises is captured at load time). Tests
+// that need to exercise file I/O operate on a real tmpdir instead.
 
-vi.mock("fs", async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
-    promises: {
-      readFile: mockReadFile,
-      writeFile: mockWriteFile,
-      mkdir: mockMkdir,
-    },
-  };
-});
-
-// Import after mocking
 const FunctionCaller = (
   await import("../../../src/main/ai-engine/function-caller.js")
 ).default;
@@ -69,11 +56,23 @@ describe("FunctionCaller", () => {
       recordToolUsage: vi.fn().mockResolvedValue(undefined),
     };
 
-    // Setup test directory
-    testDir = path.join(os.tmpdir(), `function-caller-test-${Date.now()}`);
+    // Setup test directory (real filesystem)
+    testDir = path.join(
+      os.tmpdir(),
+      `function-caller-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
+    fs.mkdirSync(testDir, { recursive: true });
 
     // Reset mocks
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    try {
+      fs.rmSync(testDir, { recursive: true, force: true });
+    } catch {
+      // best-effort cleanup
+    }
   });
 
   // ==================== 基础功能测试 ====================
@@ -163,9 +162,8 @@ describe("FunctionCaller", () => {
       }).not.toThrow();
     });
 
-    // Skip: Logger mocking doesn't work well with the actual implementation
-    it.skip("should log when unregistering tool", () => {
-      const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    it("should log when unregistering tool", () => {
+      const consoleSpy = vi.spyOn(console, "info").mockImplementation(() => {});
 
       caller.registerTool("temp", vi.fn(), {});
       caller.unregisterTool("temp");
@@ -333,30 +331,29 @@ describe("FunctionCaller", () => {
   // ==================== 内置工具测试 ====================
   describe("内置工具功能", () => {
     describe("file_reader", () => {
-      it.skip("should read file with provided path", async () => {
-        // SKIP: 真实fs.promises无法被mock完全拦截
-        mockReadFile.mockResolvedValue("file content");
+      it("should read file with provided path", async () => {
+        const filePath = path.join(testDir, "file.txt");
+        fs.writeFileSync(filePath, "file content", "utf-8");
 
-        const result = await caller.call("file_reader", {
-          filePath: "/test/file.txt",
-        });
+        const result = await caller.call("file_reader", { filePath });
 
         expect(result.success).toBe(true);
         expect(result.content).toBe("file content");
-        expect(result.filePath).toBe("/test/file.txt");
+        expect(result.filePath).toBe(filePath);
       });
 
-      it.skip("should use context.currentFile if no path provided", async () => {
-        // SKIP: 真实fs.promises无法被mock完全拦截
-        mockReadFile.mockResolvedValue("content");
+      it("should use context.currentFile if no path provided", async () => {
+        const filePath = path.join(testDir, "context-file.txt");
+        fs.writeFileSync(filePath, "content", "utf-8");
 
         const context = {
-          currentFile: { file_path: "/context/file.txt" },
+          currentFile: { file_path: filePath },
         };
 
         const result = await caller.call("file_reader", {}, context);
 
-        expect(mockReadFile).toHaveBeenCalled();
+        expect(result.success).toBe(true);
+        expect(result.content).toBe("content");
       });
 
       it("should throw error if no file path provided", async () => {
@@ -365,48 +362,45 @@ describe("FunctionCaller", () => {
         );
       });
 
-      it.skip("should handle read errors", async () => {
-        // SKIP: 真实fs.promises无法被mock完全拦截
-        mockReadFile.mockRejectedValue(new Error("ENOENT"));
-
+      it("should handle read errors", async () => {
+        const missing = path.join(testDir, "does-not-exist.txt");
         await expect(
-          caller.call("file_reader", { filePath: "/nonexistent.txt" }),
+          caller.call("file_reader", { filePath: missing }),
         ).rejects.toThrow("读取文件失败");
       });
     });
 
     describe("file_writer", () => {
-      it.skip("should write file with content", async () => {
-        // SKIP: 真实fs.promises无法被mock完全拦截
-        // 核心功能（file_writer工具注册和调用）已通过其他测试验证
-        mockMkdir.mockResolvedValue(undefined);
-        mockWriteFile.mockResolvedValue(undefined);
+      it("should write file with content", async () => {
+        const filePath = path.join(testDir, "output.txt");
 
         const result = await caller.call("file_writer", {
-          filePath: "/test/output.txt",
+          filePath,
           content: "Hello World",
         });
 
         expect(result.success).toBe(true);
         expect(result.size).toBe(11);
+        expect(fs.readFileSync(filePath, "utf-8")).toBe("Hello World");
       });
 
-      it.skip("should create directory if not exists", async () => {
-        // SKIP: 真实fs.promises无法被mock完全拦截
-        mockMkdir.mockResolvedValue(undefined);
-        mockWriteFile.mockResolvedValue(undefined);
+      it("should create directory if not exists", async () => {
+        const filePath = path.join(testDir, "subdir", "file.txt");
 
         const result = await caller.call("file_writer", {
-          filePath: "/test/subdir/file.txt",
+          filePath,
           content: "test",
         });
 
         expect(result.success).toBe(true);
+        expect(fs.existsSync(filePath)).toBe(true);
       });
 
       it("should throw error if no content provided", async () => {
         await expect(
-          caller.call("file_writer", { filePath: "/test.txt" }),
+          caller.call("file_writer", {
+            filePath: path.join(testDir, "x.txt"),
+          }),
         ).rejects.toThrow("未指定文件内容");
       });
 
@@ -416,14 +410,15 @@ describe("FunctionCaller", () => {
         ).rejects.toThrow("未指定文件路径");
       });
 
-      it.skip("should handle write errors", async () => {
-        // SKIP: 真实fs.promises无法被mock完全拦截
-        mockMkdir.mockResolvedValue(undefined);
-        mockWriteFile.mockRejectedValue(new Error("EACCES"));
+      it("should handle write errors", async () => {
+        // Create a file at the path we will try to write into as a directory
+        // (mkdir(file-path, {recursive: true}) → ENOTDIR / EEXIST).
+        const blocker = path.join(testDir, "blocker");
+        fs.writeFileSync(blocker, "x", "utf-8");
 
         await expect(
           caller.call("file_writer", {
-            filePath: "/test.txt",
+            filePath: path.join(blocker, "child.txt"),
             content: "test",
           }),
         ).rejects.toThrow("写入文件失败");
@@ -569,26 +564,30 @@ describe("FunctionCaller", () => {
         expect(result.structure.directories).toContain("scripts");
       });
 
-      it.skip("should create README.md", async () => {
-        // SKIP: 真实fs.promises无法被mock完全拦截
-        mockMkdir.mockResolvedValue(undefined);
-        mockWriteFile.mockResolvedValue(undefined);
+      it("should create README.md", async () => {
+        const projectPath = path.join(testDir, "readme-project");
 
         const result = await caller.call("create_project_structure", {
-          projectPath: "/test/project",
+          projectPath,
           projectName: "TestProject",
         });
 
         expect(result.success).toBe(true);
+        const readme = fs.readFileSync(
+          path.join(projectPath, "README.md"),
+          "utf-8",
+        );
+        expect(readme).toContain("TestProject");
       });
 
-      it.skip("should handle creation errors", async () => {
-        // SKIP: Mock rejection不会阻止for循环继续，导致最终返回成功
-        // 源代码在创建目录失败时会抛出错误，但测试中mock的方式可能导致行为不同
-        mockMkdir.mockRejectedValue(new Error("Permission denied"));
+      it("should handle creation errors", async () => {
+        // Create a file with the project's expected path so mkdir-recursive
+        // under it fails with ENOTDIR.
+        const blocker = path.join(testDir, "blocker-file");
+        fs.writeFileSync(blocker, "x", "utf-8");
 
         await expect(
-          caller.call("create_project_structure", { projectPath: "/test" }),
+          caller.call("create_project_structure", { projectPath: blocker }),
         ).rejects.toThrow("创建项目结构失败");
       });
     });
@@ -685,12 +684,7 @@ describe("FunctionCaller", () => {
       expect(result).toBeUndefined();
     });
 
-    it.skip("should handle tool with no schema", async () => {
-      // SKIP: 源代码问题 - getAvailableTools中没有处理schema为undefined的情况
-      // 会导致 Cannot read properties of undefined (reading 'description')
-      //
-      // 修复建议: function-caller.js line 588-592
-      // 在访问schema.description前检查schema是否存在
+    it("should handle tool with no schema", async () => {
       const handler = vi.fn().mockResolvedValue({ ok: true });
       caller.registerTool("no_schema", handler, undefined);
 

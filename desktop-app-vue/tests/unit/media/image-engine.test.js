@@ -2,8 +2,17 @@
  * 图片引擎测试
  * 测试 AI文生图、图片处理、批量操作等功能
  *
- * NOTE: This test uses dynamic mocks that are configured in beforeEach.
- * The mocks are reset and modules are re-imported for each test.
+ * 当前状态: 8 个基础测试通过（实例创建、format/size 常量、方法存在性）。
+ * 12 个 describe.skip 块（38 个测试）被跳过，原因如下：
+ *
+ *   vi.mock("sharp") / vi.mock("axios") 在本项目的 Vitest 配置下
+ *   无法拦截源码里的 CJS `require("sharp")` / `require("axios")`。
+ *   执行时会调用真实 sharp，因读不到 /img1.jpg、写不出 /out.png 等路径而失败。
+ *
+ * 要解锁这些 skip 有两条路：
+ *   1. 源码走依赖注入（_deps），让测试可替换 sharp/axios（见 .claude/rules/cli-dev.md）。
+ *   2. 改写为使用真实 tmpdir + 合法 1x1 PNG buffer + 真实 sharp 的集成测试；
+ *      此时等同于测试 sharp 本身，价值较低，且不宜留在 unit 套件。
  */
 
 import {
