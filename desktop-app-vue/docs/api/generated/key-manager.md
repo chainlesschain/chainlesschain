@@ -2,7 +2,7 @@
 
 **Source**: `src/main/database/key-manager.js`
 
-**Generated**: 2026-04-18T05:46:29.964Z
+**Generated**: 2026-04-20T01:53:52.306Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/api/backend-service-manager.js`
 
-**Generated**: 2026-04-18T05:46:29.990Z
+**Generated**: 2026-04-20T01:53:52.334Z
 
 ---
 
@@ -12,19 +12,19 @@
 const
 ```
 
-* Backend Service Manager
- * 管理桌面应用的后端服务（PostgreSQL, Redis, Qdrant, Project Service）
- * 仅在生产环境（打包后）自动启动和管理这些服务
+- Backend Service Manager
+- 管理桌面应用的后端服务（PostgreSQL, Redis, Qdrant, Project Service）
+- 仅在生产环境（打包后）自动启动和管理这些服务
 
 ---
 
 ## ensureDirectories()
 
 ```javascript
-ensureDirectories()
+ensureDirectories();
 ```
 
-* 确保必要的目录存在
+- 确保必要的目录存在
 
 ---
 
@@ -34,7 +34,7 @@ ensureDirectories()
 async isPortInUse(port)
 ```
 
-* 检查端口是否被占用
+- 检查端口是否被占用
 
 ---
 
@@ -44,7 +44,7 @@ async isPortInUse(port)
 async checkService(name, port)
 ```
 
-* 检查服务是否正在运行
+- 检查服务是否正在运行
 
 ---
 
@@ -54,7 +54,7 @@ async checkService(name, port)
 async startServices()
 ```
 
-* 启动所有后端服务
+- 启动所有后端服务
 
 ---
 
@@ -64,7 +64,7 @@ async startServices()
 async startIndividualServices()
 ```
 
-* 单独启动各个服务（备用方案）
+- 单独启动各个服务（备用方案）
 
 ---
 
@@ -74,7 +74,7 @@ async startIndividualServices()
 async waitForServices()
 ```
 
-* 等待服务启动完成
+- 等待服务启动完成
 
 ---
 
@@ -84,7 +84,7 @@ async waitForServices()
 async stopServices()
 ```
 
-* 停止所有后端服务
+- 停止所有后端服务
 
 ---
 
@@ -94,7 +94,7 @@ async stopServices()
 async killServiceProcesses()
 ```
 
-* 强制终止服务进程
+- 强制终止服务进程
 
 ---
 
@@ -104,7 +104,7 @@ async killServiceProcesses()
 async getServicesStatus()
 ```
 
-* 获取服务状态
+- 获取服务状态
 
 ---
 
@@ -114,7 +114,6 @@ async getServicesStatus()
 async restartServices()
 ```
 
-* 重启服务
+- 重启服务
 
 ---
-

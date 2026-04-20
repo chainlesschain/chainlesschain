@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/audio-processor.js`
 
-**Generated**: 2026-04-18T05:46:29.884Z
+**Generated**: 2026-04-20T01:53:52.224Z
 
 ---
 
@@ -12,10 +12,10 @@
 const
 ```
 
-* 音频处理器
- *
- * 负责音频格式转换、预处理、元数据提取等
- * 使用 FFmpeg 进行音频处理
+- 音频处理器
+-
+- 负责音频格式转换、预处理、元数据提取等
+- 使用 FFmpeg 进行音频处理
 
 ---
 
@@ -25,7 +25,7 @@ const
 const DEFAULT_CONFIG =
 ```
 
-* 音频处理配置
+- 音频处理配置
 
 ---
 
@@ -35,7 +35,7 @@ const DEFAULT_CONFIG =
 class AudioProcessor extends EventEmitter
 ```
 
-* 音频处理器类
+- 音频处理器类
 
 ---
 
@@ -45,7 +45,7 @@ class AudioProcessor extends EventEmitter
 async checkFFmpeg()
 ```
 
-* 检查 FFmpeg 是否可用
+- 检查 FFmpeg 是否可用
 
 ---
 
@@ -55,9 +55,9 @@ async checkFFmpeg()
 async getMetadata(audioPath)
 ```
 
-* 获取音频元数据
-   * @param {string} audioPath - 音频文件路径
-   * @returns {Promise<Object>} 元数据
+- 获取音频元数据
+  - @param {string} audioPath - 音频文件路径
+  - @returns {Promise<Object>} 元数据
 
 ---
 
@@ -67,10 +67,10 @@ async getMetadata(audioPath)
 async convertToWhisperFormat(inputPath, outputPath = null)
 ```
 
-* 转换为 Whisper 最佳格式
-   * @param {string} inputPath - 输入文件路径
-   * @param {string} outputPath - 输出文件路径（可选）
-   * @returns {Promise<Object>} 处理结果
+- 转换为 Whisper 最佳格式
+  - @param {string} inputPath - 输入文件路径
+  - @param {string} outputPath - 输出文件路径（可选）
+  - @returns {Promise<Object>} 处理结果
 
 ---
 
@@ -80,10 +80,10 @@ async convertToWhisperFormat(inputPath, outputPath = null)
 async normalizeVolume(inputPath, outputPath)
 ```
 
-* 音量归一化
-   * @param {string} inputPath - 输入文件路径
-   * @param {string} outputPath - 输出文件路径
-   * @returns {Promise<Object>}
+- 音量归一化
+  - @param {string} inputPath - 输入文件路径
+  - @param {string} outputPath - 输出文件路径
+  - @returns {Promise<Object>}
 
 ---
 
@@ -93,11 +93,11 @@ async normalizeVolume(inputPath, outputPath)
 async trimSilence(inputPath, outputPath, options =
 ```
 
-* 去除静音
-   * @param {string} inputPath - 输入文件路径
-   * @param {string} outputPath - 输出文件路径
-   * @param {Object} options - 选项
-   * @returns {Promise<Object>}
+- 去除静音
+  - @param {string} inputPath - 输入文件路径
+  - @param {string} outputPath - 输出文件路径
+  - @param {Object} options - 选项
+  - @returns {Promise<Object>}
 
 ---
 
@@ -107,11 +107,11 @@ async trimSilence(inputPath, outputPath, options =
 async denoiseAudio(inputPath, outputPath, options =
 ```
 
-* 音频降噪（使用 FFmpeg afftdn 滤镜）
-   * @param {string} inputPath - 输入文件路径
-   * @param {string} outputPath - 输出文件路径
-   * @param {Object} options - 降噪选项
-   * @returns {Promise<Object>}
+- 音频降噪（使用 FFmpeg afftdn 滤镜）
+  - @param {string} inputPath - 输入文件路径
+  - @param {string} outputPath - 输出文件路径
+  - @param {Object} options - 降噪选项
+  - @returns {Promise<Object>}
 
 ---
 
@@ -121,11 +121,11 @@ async denoiseAudio(inputPath, outputPath, options =
 async enhanceAudio(inputPath, outputPath, options =
 ```
 
-* 高级音频增强（综合处理）
-   * @param {string} inputPath - 输入文件路径
-   * @param {string} outputPath - 输出文件路径
-   * @param {Object} options - 增强选项
-   * @returns {Promise<Object>}
+- 高级音频增强（综合处理）
+  - @param {string} inputPath - 输入文件路径
+  - @param {string} outputPath - 输出文件路径
+  - @param {Object} options - 增强选项
+  - @returns {Promise<Object>}
 
 ---
 
@@ -135,10 +135,10 @@ async enhanceAudio(inputPath, outputPath, options =
 async enhanceForSpeechRecognition(inputPath, outputPath)
 ```
 
-* 语音增强预设（专门针对语音识别优化）
-   * @param {string} inputPath - 输入文件路径
-   * @param {string} outputPath - 输出文件路径
-   * @returns {Promise<Object>}
+- 语音增强预设（专门针对语音识别优化）
+  - @param {string} inputPath - 输入文件路径
+  - @param {string} outputPath - 输出文件路径
+  - @returns {Promise<Object>}
 
 ---
 
@@ -148,10 +148,10 @@ async enhanceForSpeechRecognition(inputPath, outputPath)
 async extractAudio(videoPath, outputPath)
 ```
 
-* 提取音频（从视频文件）
-   * @param {string} videoPath - 视频文件路径
-   * @param {string} outputPath - 输出音频路径
-   * @returns {Promise<Object>}
+- 提取音频（从视频文件）
+  - @param {string} videoPath - 视频文件路径
+  - @param {string} outputPath - 输出音频路径
+  - @returns {Promise<Object>}
 
 ---
 
@@ -161,11 +161,11 @@ async extractAudio(videoPath, outputPath)
 async segmentAudio(inputPath, segmentDuration = 300, outputDir = null)
 ```
 
-* 音频分段
-   * @param {string} inputPath - 输入文件路径
-   * @param {number} segmentDuration - 段长度（秒）
-   * @param {string} outputDir - 输出目录
-   * @returns {Promise<Array>} 分段文件列表
+- 音频分段
+  - @param {string} inputPath - 输入文件路径
+  - @param {number} segmentDuration - 段长度（秒）
+  - @param {string} outputDir - 输出目录
+  - @returns {Promise<Array>} 分段文件列表
 
 ---
 
@@ -175,12 +175,12 @@ async segmentAudio(inputPath, segmentDuration = 300, outputDir = null)
 async extractSegment(inputPath, outputPath, startTime, duration)
 ```
 
-* 提取音频片段
-   * @param {string} inputPath - 输入文件路径
-   * @param {string} outputPath - 输出文件路径
-   * @param {number} startTime - 开始时间（秒）
-   * @param {number} duration - 持续时间（秒）
-   * @returns {Promise<Object>}
+- 提取音频片段
+  - @param {string} inputPath - 输入文件路径
+  - @param {string} outputPath - 输出文件路径
+  - @param {number} startTime - 开始时间（秒）
+  - @param {number} duration - 持续时间（秒）
+  - @returns {Promise<Object>}
 
 ---
 
@@ -190,9 +190,9 @@ async extractSegment(inputPath, outputPath, startTime, duration)
 async detectSpeech(audioPath)
 ```
 
-* 检测是否包含语音
-   * @param {string} audioPath - 音频文件路径
-   * @returns {Promise<Object>} 检测结果
+- 检测是否包含语音
+  - @param {string} audioPath - 音频文件路径
+  - @returns {Promise<Object>} 检测结果
 
 ---
 
@@ -202,45 +202,45 @@ async detectSpeech(audioPath)
 async batchProcess(audioPaths, operation = "convert", options =
 ```
 
-* 批量处理音频
-   * @param {Array} audioPaths - 音频文件路径列表
-   * @param {string} operation - 操作类型
-   * @param {Object} options - 操作选项
-   * @returns {Promise<Array>} 处理结果列表
+- 批量处理音频
+  - @param {Array} audioPaths - 音频文件路径列表
+  - @param {string} operation - 操作类型
+  - @param {Object} options - 操作选项
+  - @returns {Promise<Array>} 处理结果列表
 
 ---
 
 ## isSupportedFormat(filePath)
 
 ```javascript
-isSupportedFormat(filePath)
+isSupportedFormat(filePath);
 ```
 
-* 检查文件是否为支持的音频格式
-   * @param {string} filePath - 文件路径
-   * @returns {boolean}
+- 检查文件是否为支持的音频格式
+  - @param {string} filePath - 文件路径
+  - @returns {boolean}
 
 ---
 
 ## getSupportedFormats()
 
 ```javascript
-getSupportedFormats()
+getSupportedFormats();
 ```
 
-* 获取支持的格式列表
-   * @returns {Array}
+- 获取支持的格式列表
+  - @returns {Array}
 
 ---
 
 ## updateConfig(newConfig)
 
 ```javascript
-updateConfig(newConfig)
+updateConfig(newConfig);
 ```
 
-* 更新配置
-   * @param {Object} newConfig
+- 更新配置
+  - @param {Object} newConfig
 
 ---
 
@@ -250,8 +250,7 @@ updateConfig(newConfig)
 async cleanupTempFiles(filePaths)
 ```
 
-* 清理临时文件
-   * @param {Array} filePaths - 文件路径列表
+- 清理临时文件
+  - @param {Array} filePaths - 文件路径列表
 
 ---
-

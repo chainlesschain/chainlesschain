@@ -2,7 +2,7 @@
 
 **Source**: `src/main/system/auto-updater.js`
 
-**Generated**: 2026-04-18T05:46:29.879Z
+**Generated**: 2026-04-20T01:53:52.219Z
 
 ---
 
@@ -12,29 +12,29 @@
 const
 ```
 
-* ChainlessChain 自动更新模块
- * 基于 electron-updater 实现自动更新功能
+- ChainlessChain 自动更新模块
+- 基于 electron-updater 实现自动更新功能
 
 ---
 
 ## init(mainWindow)
 
 ```javascript
-init(mainWindow)
+init(mainWindow);
 ```
 
-* 初始化自动更新器
-   * @param {BrowserWindow} mainWindow - 主窗口实例
+- 初始化自动更新器
+  - @param {BrowserWindow} mainWindow - 主窗口实例
 
 ---
 
 ## setupAutoUpdater()
 
 ```javascript
-setupAutoUpdater()
+setupAutoUpdater();
 ```
 
-* 配置 autoUpdater 事件处理
+- 配置 autoUpdater 事件处理
 
 ---
 
@@ -44,78 +44,77 @@ setupAutoUpdater()
 async checkForUpdates()
 ```
 
-* 手动检查更新
+- 手动检查更新
 
 ---
 
 ## setupPeriodicCheck()
 
 ```javascript
-setupPeriodicCheck()
+setupPeriodicCheck();
 ```
 
-* 设置定期检查
+- 设置定期检查
 
 ---
 
 ## sendStatusToWindow(status, data = null)
 
 ```javascript
-sendStatusToWindow(status, data = null)
+sendStatusToWindow(status, (data = null));
 ```
 
-* 发送状态到渲染进程
+- 发送状态到渲染进程
 
 ---
 
 ## showUpdateAvailableDialog(info)
 
 ```javascript
-showUpdateAvailableDialog(info)
+showUpdateAvailableDialog(info);
 ```
 
-* 显示"发现新版本"对话框
+- 显示"发现新版本"对话框
 
 ---
 
 ## showUpdateReadyDialog(info)
 
 ```javascript
-showUpdateReadyDialog(info)
+showUpdateReadyDialog(info);
 ```
 
-* 显示"更新就绪"对话框
+- 显示"更新就绪"对话框
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup()
+cleanup();
 ```
 
-* 清理资源
+- 清理资源
 
 ---
 
 ## getConfig()
 
 ```javascript
-getConfig()
+getConfig();
 ```
 
-* 获取当前配置
+- 获取当前配置
 
 ---
 
 ## setFeedURL(url)
 
 ```javascript
-setFeedURL(url)
+setFeedURL(url);
 ```
 
-* 设置更新服务器 URL
-   * @param {string} url - 更新服务器 URL
+- 设置更新服务器 URL
+  - @param {string} url - 更新服务器 URL
 
 ---
-

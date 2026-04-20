@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/additional-skills-v4.js`
 
-**Generated**: 2026-04-18T05:46:29.898Z
+**Generated**: 2026-04-20T01:53:52.241Z
 
 ---
 
@@ -12,9 +12,8 @@
 const additionalSkillsV4 = [
 ```
 
-* 额外技能定义 V4
- * 专门为未被引用的工具创建的技能
- * 目标：将工具覆盖率从81.3%提升到100%
+- 额外技能定义 V4
+- 专门为未被引用的工具创建的技能
+- 目标：将工具覆盖率从81.3%提升到100%
 
 ---
-

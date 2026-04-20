@@ -2,7 +2,7 @@
 
 **Source**: `src/main/monitoring/analytics-manager.js`
 
-**Generated**: 2026-04-18T05:46:29.927Z
+**Generated**: 2026-04-20T01:53:52.266Z
 
 ---
 
@@ -12,48 +12,48 @@
 const
 ```
 
-* 应用统计分析器
- * 收集和分析应用使用数据
+- 应用统计分析器
+- 收集和分析应用使用数据
 
 ---
 
 ## startSession()
 
 ```javascript
-startSession()
+startSession();
 ```
 
-* 开始会话
+- 开始会话
 
 ---
 
 ## endSession()
 
 ```javascript
-endSession()
+endSession();
 ```
 
-* 结束会话
+- 结束会话
 
 ---
 
 ## trackEvent(category, action, label = "", value = 0)
 
 ```javascript
-trackEvent(category, action, label = "", value = 0)
+trackEvent(category, action, (label = ""), (value = 0));
 ```
 
-* 跟踪事件
+- 跟踪事件
 
 ---
 
 ## trackFeature(featureName)
 
 ```javascript
-trackFeature(featureName)
+trackFeature(featureName);
 ```
 
-* 跟踪功能使用
+- 跟踪功能使用
 
 ---
 
@@ -63,97 +63,96 @@ trackFeature(featureName)
 trackError(error, context =
 ```
 
-* 跟踪错误
+- 跟踪错误
 
 ---
 
 ## trackPerformance(metric, value, unit = "ms")
 
 ```javascript
-trackPerformance(metric, value, unit = "ms")
+trackPerformance(metric, value, (unit = "ms"));
 ```
 
-* 跟踪性能指标
+- 跟踪性能指标
 
 ---
 
 ## getStatistics()
 
 ```javascript
-getStatistics()
+getStatistics();
 ```
 
-* 获取统计数据
+- 获取统计数据
 
 ---
 
 ## getSessions(limit = 10)
 
 ```javascript
-getSessions(limit = 10)
+getSessions((limit = 10));
 ```
 
-* 获取会话列表
+- 获取会话列表
 
 ---
 
 ## getErrors(limit = 10)
 
 ```javascript
-getErrors(limit = 10)
+getErrors((limit = 10));
 ```
 
-* 获取错误列表
+- 获取错误列表
 
 ---
 
 ## getFeatureUsage()
 
 ```javascript
-getFeatureUsage()
+getFeatureUsage();
 ```
 
-* 获取功能使用情况
+- 获取功能使用情况
 
 ---
 
 ## loadData()
 
 ```javascript
-loadData()
+loadData();
 ```
 
-* 加载数据
+- 加载数据
 
 ---
 
 ## saveData()
 
 ```javascript
-saveData()
+saveData();
 ```
 
-* 保存数据
+- 保存数据
 
 ---
 
 ## clearData()
 
 ```javascript
-clearData()
+clearData();
 ```
 
-* 清空数据
+- 清空数据
 
 ---
 
 ## exportData(outputPath)
 
 ```javascript
-exportData(outputPath)
+exportData(outputPath);
 ```
 
-* 导出数据
+- 导出数据
 
 ---
-

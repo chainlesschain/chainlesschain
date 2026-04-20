@@ -2,7 +2,7 @@
 
 **Source**: `src/main/git/ai-commit-message.js`
 
-**Generated**: 2026-04-18T05:46:29.953Z
+**Generated**: 2026-04-20T01:53:52.293Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-* AI Git提交信息生成器
- * 使用LLM分析git diff并生成符合Conventional Commits规范的提交信息
+- AI Git提交信息生成器
+- 使用LLM分析git diff并生成符合Conventional Commits规范的提交信息
 
 ---
 
@@ -23,17 +23,17 @@ const
 async generateCommitMessage(projectPath)
 ```
 
-* 生成提交信息
+- 生成提交信息
 
 ---
 
 ## getGitDiff(projectPath)
 
 ```javascript
-getGitDiff(projectPath)
+getGitDiff(projectPath);
 ```
 
-* 获取git diff
+- 获取git diff
 
 ---
 
@@ -43,37 +43,36 @@ getGitDiff(projectPath)
 async callLLM(diff)
 ```
 
-* 调用LLM生成提交信息
+- 调用LLM生成提交信息
 
 ---
 
 ## generateFallbackMessage(diff)
 
 ```javascript
-generateFallbackMessage(diff)
+generateFallbackMessage(diff);
 ```
 
-* 生成降级提交信息（当LLM不可用时）
+- 生成降级提交信息（当LLM不可用时）
 
 ---
 
 ## validateCommitMessage(message)
 
 ```javascript
-validateCommitMessage(message)
+validateCommitMessage(message);
 ```
 
-* 验证提交信息格式
+- 验证提交信息格式
 
 ---
 
 ## getChangeStats(projectPath)
 
 ```javascript
-getChangeStats(projectPath)
+getChangeStats(projectPath);
 ```
 
-* 分析文件变更统计
+- 分析文件变更统计
 
 ---
-

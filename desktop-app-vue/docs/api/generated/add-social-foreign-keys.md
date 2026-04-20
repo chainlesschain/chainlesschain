@@ -2,7 +2,7 @@
 
 **Source**: `src/main/migrations/add-social-foreign-keys.js`
 
-**Generated**: 2026-04-18T05:46:29.927Z
+**Generated**: 2026-04-20T01:53:52.267Z
 
 ---
 
@@ -12,14 +12,14 @@
 async function up(db)
 ```
 
-* 数据库迁移：为社交功能表添加外键约束
- *
- * Migration ID: 001_add_social_foreign_keys
- * Date: 2026-01-04
- * Description:
- *   - 为 post_likes 表添加外键约束（posts.id）
- *   - 为 post_comments 表添加外键约束（posts.id 和 parent_id）
- *   - 使用重建表的方式（SQLite不支持直接添加外键）
+- 数据库迁移：为社交功能表添加外键约束
+-
+- Migration ID: 001_add_social_foreign_keys
+- Date: 2026-01-04
+- Description:
+- - 为 post_likes 表添加外键约束（posts.id）
+- - 为 post_comments 表添加外键约束（posts.id 和 parent_id）
+- - 使用重建表的方式（SQLite不支持直接添加外键）
 
 ---
 
@@ -29,8 +29,8 @@ async function up(db)
 async function up(db)
 ```
 
-* 执行迁移
- * @param {Object} db - 数据库实例
+- 执行迁移
+- @param {Object} db - 数据库实例
 
 ---
 
@@ -40,8 +40,7 @@ async function up(db)
 async function down(db)
 ```
 
-* 回滚迁移
- * @param {Object} db - 数据库实例
+- 回滚迁移
+- @param {Object} db - 数据库实例
 
 ---
-

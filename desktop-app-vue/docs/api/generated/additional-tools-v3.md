@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/additional-tools-v3.js`
 
-**Generated**: 2026-04-18T05:46:29.898Z
+**Generated**: 2026-04-20T01:53:52.240Z
 
 ---
 
@@ -12,9 +12,8 @@
 const additionalToolsV3 = [
 ```
 
-* 额外工具定义 V3 - 专业领域工具
- * 支持区块链、房地产、客户成功、变革管理、审计等专业场景
- * 注意：name字段必须是英文标识符，display_name是显示名称
+- 额外工具定义 V3 - 专业领域工具
+- 支持区块链、房地产、客户成功、变革管理、审计等专业场景
+- 注意：name字段必须是英文标识符，display_name是显示名称
 
 ---
-

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/api-doc-generator.js`
 
-**Generated**: 2026-04-18T05:46:29.897Z
+**Generated**: 2026-04-20T01:53:52.240Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-* API文档生成器
- * 从JSDoc注释自动生成Markdown格式的API文档
+- API文档生成器
+- 从JSDoc注释自动生成Markdown格式的API文档
 
 ---
 
@@ -23,7 +23,7 @@ const
 async generateAll()
 ```
 
-* 生成所有模块的API文档
+- 生成所有模块的API文档
 
 ---
 
@@ -33,7 +33,7 @@ async generateAll()
 async generateIndex()
 ```
 
-* 生成索引文件
+- 生成索引文件
 
 ---
 
@@ -43,79 +43,79 @@ async generateIndex()
 async generateModuleDoc(module)
 ```
 
-* 生成模块文档
+- 生成模块文档
 
 ---
 
 ## extractMethods(sourceCode)
 
 ```javascript
-extractMethods(sourceCode)
+extractMethods(sourceCode);
 ```
 
-* 提取方法
+- 提取方法
 
 ---
 
 ## extractProperties(sourceCode)
 
 ```javascript
-extractProperties(sourceCode)
+extractProperties(sourceCode);
 ```
 
-* 提取属性
+- 提取属性
 
 ---
 
 ## extractEvents(sourceCode)
 
 ```javascript
-extractEvents(sourceCode)
+extractEvents(sourceCode);
 ```
 
-* 提取事件
+- 提取事件
 
 ---
 
 ## formatMethodDoc(method)
 
 ```javascript
-formatMethodDoc(method)
+formatMethodDoc(method);
 ```
 
-* 格式化方法文档
+- 格式化方法文档
 
 ---
 
 ## generateUsageExamples(className, publicMethods)
 
 ```javascript
-generateUsageExamples(className, publicMethods)
+generateUsageExamples(className, publicMethods);
 ```
 
-* 生成使用示例代码
+- 生成使用示例代码
 
 ---
 
-## _normalizeDocContent(content)
+## \_normalizeDocContent(content)
 
 ```javascript
-_normalizeDocContent(content)
+_normalizeDocContent(content);
 ```
 
-* 规范化文档内容用于比较（忽略格式差异）
-   * @private
+- 规范化文档内容用于比较（忽略格式差异）
+  - @private
 
 ---
 
-## async _shouldUpdateDoc(filePath, newContent)
+## async \_shouldUpdateDoc(filePath, newContent)
 
 ```javascript
 async _shouldUpdateDoc(filePath, newContent)
 ```
 
-* 比较文档内容是否需要更新（忽略格式差异）
-   * @private
+- 比较文档内容是否需要更新（忽略格式差异）
+  - @private
 
 ---
 
@@ -125,7 +125,6 @@ async _shouldUpdateDoc(filePath, newContent)
 async generateSingleModule(moduleName)
 ```
 
-* 手动生成单个模块文档
+- 手动生成单个模块文档
 
 ---
-

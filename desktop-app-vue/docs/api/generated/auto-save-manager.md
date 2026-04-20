@@ -2,7 +2,7 @@
 
 **Source**: `src/main/system/auto-save-manager.js`
 
-**Generated**: 2026-04-18T05:46:29.879Z
+**Generated**: 2026-04-20T01:53:52.220Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-* 自动保存管理器
- * 管理文档和数据的自动保存
+- 自动保存管理器
+- 管理文档和数据的自动保存
 
 ---
 
@@ -23,57 +23,57 @@ const
 register(documentId, saveHandler, options =
 ```
 
-* 注册文档
+- 注册文档
 
 ---
 
 ## unregister(documentId)
 
 ```javascript
-unregister(documentId)
+unregister(documentId);
 ```
 
-* 注销文档
+- 注销文档
 
 ---
 
 ## markDirty(documentId)
 
 ```javascript
-markDirty(documentId)
+markDirty(documentId);
 ```
 
-* 标记文档为已修改
+- 标记文档为已修改
 
 ---
 
 ## debounceSave(documentId)
 
 ```javascript
-debounceSave(documentId)
+debounceSave(documentId);
 ```
 
-* 防抖保存
+- 防抖保存
 
 ---
 
 ## startAutoSave(documentId)
 
 ```javascript
-startAutoSave(documentId)
+startAutoSave(documentId);
 ```
 
-* 启动自动保存
+- 启动自动保存
 
 ---
 
 ## stopAutoSave(documentId)
 
 ```javascript
-stopAutoSave(documentId)
+stopAutoSave(documentId);
 ```
 
-* 停止自动保存
+- 停止自动保存
 
 ---
 
@@ -83,7 +83,7 @@ stopAutoSave(documentId)
 async save(documentId, force = false)
 ```
 
-* 保存文档
+- 保存文档
 
 ---
 
@@ -93,7 +93,7 @@ async save(documentId, force = false)
 async processQueue()
 ```
 
-* 处理保存队列
+- 处理保存队列
 
 ---
 
@@ -103,67 +103,66 @@ async processQueue()
 async saveAll()
 ```
 
-* 保存所有文档
+- 保存所有文档
 
 ---
 
 ## enable()
 
 ```javascript
-enable()
+enable();
 ```
 
-* 启用自动保存
+- 启用自动保存
 
 ---
 
 ## disable()
 
 ```javascript
-disable()
+disable();
 ```
 
-* 禁用自动保存
+- 禁用自动保存
 
 ---
 
 ## getStatus(documentId)
 
 ```javascript
-getStatus(documentId)
+getStatus(documentId);
 ```
 
-* 获取文档状态
+- 获取文档状态
 
 ---
 
 ## getAllStatus()
 
 ```javascript
-getAllStatus()
+getAllStatus();
 ```
 
-* 获取所有文档状态
+- 获取所有文档状态
 
 ---
 
 ## getStatistics()
 
 ```javascript
-getStatistics()
+getStatistics();
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
 
 ## destroy()
 
 ```javascript
-destroy()
+destroy();
 ```
 
-* 销毁管理器
+- 销毁管理器
 
 ---
-

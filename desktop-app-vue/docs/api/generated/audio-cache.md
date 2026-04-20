@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/audio-cache.js`
 
-**Generated**: 2026-04-18T05:46:29.884Z
+**Generated**: 2026-04-20T01:53:52.224Z
 
 ---
 
@@ -12,10 +12,10 @@
 const
 ```
 
-* 音频转录缓存管理器
- *
- * 避免重复转录相同的音频文件
- * 使用MD5哈希作为缓存键
+- 音频转录缓存管理器
+-
+- 避免重复转录相同的音频文件
+- 使用MD5哈希作为缓存键
 
 ---
 
@@ -25,7 +25,7 @@ const
 async initialize()
 ```
 
-* 初始化缓存目录
+- 初始化缓存目录
 
 ---
 
@@ -35,9 +35,9 @@ async initialize()
 async calculateHash(input)
 ```
 
-* 计算文件MD5哈希（流式处理，降低内存占用）
-   * @param {string|Buffer} input - 文件路径或Buffer
-   * @returns {Promise<string>} MD5哈希
+- 计算文件MD5哈希（流式处理，降低内存占用）
+  - @param {string|Buffer} input - 文件路径或Buffer
+  - @returns {Promise<string>} MD5哈希
 
 ---
 
@@ -47,14 +47,14 @@ async calculateHash(input)
 async generateCacheKey(input, params =
 ```
 
-* 生成增强缓存键（包含转录参数）
-   * 修复：相同文件不同引擎/语言会误命中
-   * @param {string|Buffer} input - 文件路径或Buffer
-   * @param {Object} params - 转录参数
-   * @param {string} params.engine - 转录引擎 (whisper, azure, etc.)
-   * @param {string} params.language - 语言代码
-   * @param {string} params.model - 模型名称
-   * @returns {Promise<string>} 增强缓存键
+- 生成增强缓存键（包含转录参数）
+  - 修复：相同文件不同引擎/语言会误命中
+  - @param {string|Buffer} input - 文件路径或Buffer
+  - @param {Object} params - 转录参数
+  - @param {string} params.engine - 转录引擎 (whisper, azure, etc.)
+  - @param {string} params.language - 语言代码
+  - @param {string} params.model - 模型名称
+  - @returns {Promise<string>} 增强缓存键
 
 ---
 
@@ -64,9 +64,9 @@ async generateCacheKey(input, params =
 async has(hash)
 ```
 
-* 检查缓存是否存在
-   * @param {string} hash - 文件哈希
-   * @returns {Promise<boolean>}
+- 检查缓存是否存在
+  - @param {string} hash - 文件哈希
+  - @returns {Promise<boolean>}
 
 ---
 
@@ -76,10 +76,10 @@ async has(hash)
 async get(hash, params = null)
 ```
 
-* 获取缓存（支持新缓存键格式，向后兼容旧格式）
-   * @param {string} hash - 文件哈希或缓存键
-   * @param {Object} params - 转录参数（可选，用于生成新格式缓存键）
-   * @returns {Promise<Object|null>} 缓存的转录结果
+- 获取缓存（支持新缓存键格式，向后兼容旧格式）
+  - @param {string} hash - 文件哈希或缓存键
+  - @param {Object} params - 转录参数（可选，用于生成新格式缓存键）
+  - @returns {Promise<Object|null>} 缓存的转录结果
 
 ---
 
@@ -89,11 +89,11 @@ async get(hash, params = null)
 async set(hash, result, params = null)
 ```
 
-* 保存缓存（使用异步写入队列）
-   * @param {string} hash - 文件哈希或文件路径
-   * @param {Object} result - 转录结果
-   * @param {Object} params - 转录参数（可选，用于生成新格式缓存键）
-   * @returns {Promise<void>}
+- 保存缓存（使用异步写入队列）
+  - @param {string} hash - 文件哈希或文件路径
+  - @param {Object} result - 转录结果
+  - @param {Object} params - 转录参数（可选，用于生成新格式缓存键）
+  - @returns {Promise<void>}
 
 ---
 
@@ -103,9 +103,9 @@ async set(hash, result, params = null)
 async delete(hash)
 ```
 
-* 删除缓存
-   * @param {string} hash - 文件哈希
-   * @returns {Promise<void>}
+- 删除缓存
+  - @param {string} hash - 文件哈希
+  - @returns {Promise<void>}
 
 ---
 
@@ -115,29 +115,29 @@ async delete(hash)
 async cleanup()
 ```
 
-* 清理过期缓存
-   * @returns {Promise<number>} 清理的文件数
+- 清理过期缓存
+  - @returns {Promise<number>} 清理的文件数
 
 ---
 
 ## evictMemoryCache()
 
 ```javascript
-evictMemoryCache()
+evictMemoryCache();
 ```
 
-* 内存缓存驱逐策略 (LRU - 按条目数限制)
+- 内存缓存驱逐策略 (LRU - 按条目数限制)
 
 ---
 
 ## evictMemoryCacheBySize()
 
 ```javascript
-evictMemoryCacheBySize()
+evictMemoryCacheBySize();
 ```
 
-* 按大小驱逐内存缓存（LRU策略）
-   * 当总内存使用量超过限制时触发
+- 按大小驱逐内存缓存（LRU策略）
+  - 当总内存使用量超过限制时触发
 
 ---
 
@@ -147,20 +147,20 @@ evictMemoryCacheBySize()
 async processWriteQueue()
 ```
 
-* 异步处理写入队列
-   * 批量写入缓存到磁盘，避免同步阻塞
+- 异步处理写入队列
+  - 批量写入缓存到磁盘，避免同步阻塞
 
 ---
 
 ## getCachePath(hash)
 
 ```javascript
-getCachePath(hash)
+getCachePath(hash);
 ```
 
-* 获取缓存文件路径
-   * @param {string} hash - 文件哈希
-   * @returns {string}
+- 获取缓存文件路径
+  - @param {string} hash - 文件哈希
+  - @returns {string}
 
 ---
 
@@ -170,8 +170,8 @@ getCachePath(hash)
 async getStats()
 ```
 
-* 获取缓存统计
-   * @returns {Promise<Object>}
+- 获取缓存统计
+  - @returns {Promise<Object>}
 
 ---
 
@@ -181,8 +181,7 @@ async getStats()
 async clear()
 ```
 
-* 清空所有缓存
-   * @returns {Promise<void>}
+- 清空所有缓存
+  - @returns {Promise<void>}
 
 ---
-

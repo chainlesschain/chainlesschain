@@ -2,7 +2,7 @@
 
 **Source**: `src/main/system/app-lock-manager.js`
 
-**Generated**: 2026-04-18T05:46:29.879Z
+**Generated**: 2026-04-20T01:53:52.220Z
 
 ---
 
@@ -12,188 +12,187 @@
 const
 ```
 
-* 应用锁定管理器
- * 提供应用锁定和解锁功能，保护隐私
+- 应用锁定管理器
+- 提供应用锁定和解锁功能，保护隐私
 
 ---
 
 ## loadConfig()
 
 ```javascript
-loadConfig()
+loadConfig();
 ```
 
-* 加载配置
+- 加载配置
 
 ---
 
 ## saveConfig()
 
 ```javascript
-saveConfig()
+saveConfig();
 ```
 
-* 保存配置
+- 保存配置
 
 ---
 
 ## setPassword(password)
 
 ```javascript
-setPassword(password)
+setPassword(password);
 ```
 
-* 设置密码
+- 设置密码
 
 ---
 
 ## verifyPassword(password)
 
 ```javascript
-verifyPassword(password)
+verifyPassword(password);
 ```
 
-* 验证密码
+- 验证密码
 
 ---
 
 ## hashPassword(password)
 
 ```javascript
-hashPassword(password)
+hashPassword(password);
 ```
 
-* 哈希密码
+- 哈希密码
 
 ---
 
 ## lock()
 
 ```javascript
-lock()
+lock();
 ```
 
-* 锁定应用
+- 锁定应用
 
 ---
 
 ## unlock(password)
 
 ```javascript
-unlock(password)
+unlock(password);
 ```
 
-* 解锁应用
+- 解锁应用
 
 ---
 
 ## isAppLocked()
 
 ```javascript
-isAppLocked()
+isAppLocked();
 ```
 
-* 检查是否已锁定
+- 检查是否已锁定
 
 ---
 
 ## hasPassword()
 
 ```javascript
-hasPassword()
+hasPassword();
 ```
 
-* 检查是否设置了密码
+- 检查是否设置了密码
 
 ---
 
 ## changePassword(oldPassword, newPassword)
 
 ```javascript
-changePassword(oldPassword, newPassword)
+changePassword(oldPassword, newPassword);
 ```
 
-* 更改密码
+- 更改密码
 
 ---
 
 ## removePassword(password)
 
 ```javascript
-removePassword(password)
+removePassword(password);
 ```
 
-* 移除密码
+- 移除密码
 
 ---
 
 ## setLockTimeout(timeout)
 
 ```javascript
-setLockTimeout(timeout)
+setLockTimeout(timeout);
 ```
 
-* 设置自动锁定超时
+- 设置自动锁定超时
 
 ---
 
 ## setAutoLock(enabled)
 
 ```javascript
-setAutoLock(enabled)
+setAutoLock(enabled);
 ```
 
-* 启用/禁用自动锁定
+- 启用/禁用自动锁定
 
 ---
 
 ## startActivityMonitor()
 
 ```javascript
-startActivityMonitor()
+startActivityMonitor();
 ```
 
-* 启动活动监控
+- 启动活动监控
 
 ---
 
 ## stopActivityMonitor()
 
 ```javascript
-stopActivityMonitor()
+stopActivityMonitor();
 ```
 
-* 停止活动监控
+- 停止活动监控
 
 ---
 
 ## recordActivity()
 
 ```javascript
-recordActivity()
+recordActivity();
 ```
 
-* 记录用户活动
+- 记录用户活动
 
 ---
 
 ## getStatus()
 
 ```javascript
-getStatus()
+getStatus();
 ```
 
-* 获取状态
+- 获取状态
 
 ---
 
 ## destroy()
 
 ```javascript
-destroy()
+destroy();
 ```
 
-* 销毁管理器
+- 销毁管理器
 
 ---
-

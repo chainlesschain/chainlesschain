@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/ai-engine-manager-optimized.js`
 
-**Generated**: 2026-04-18T05:46:30.000Z
+**Generated**: 2026-04-20T01:53:52.344Z
 
 ---
 
@@ -12,13 +12,13 @@
 const
 ```
 
-* AI引擎主管理器 (优化版)
- * 集成了槽位填充、工具沙箱、性能监控三大优化模块
- *
- * 核心改进:
- * 1. 意图识别后自动进行槽位填充
- * 2. 所有工具调用都通过沙箱执行
- * 3. 全流程性能监控和瓶颈分析
+- AI引擎主管理器 (优化版)
+- 集成了槽位填充、工具沙箱、性能监控三大优化模块
+-
+- 核心改进:
+- 1.  意图识别后自动进行槽位填充
+- 2.  所有工具调用都通过沙箱执行
+- 3.  全流程性能监控和瓶颈分析
 
 ---
 
@@ -28,8 +28,8 @@ const
 async initialize(options =
 ```
 
-* 初始化AI引擎管理器
-   * 注入依赖项并初始化所有模块
+- 初始化AI引擎管理器
+  - 注入依赖项并初始化所有模块
 
 ---
 
@@ -39,24 +39,24 @@ async initialize(options =
 async processUserInput(
 ```
 
-* 处理用户输入的核心方法（优化版）
-   * @param {string} userInput - 用户输入的文本
-   * @param {Object} context - 上下文信息（当前项目、文件等）
-   * @param {Function} onStepUpdate - 步骤更新回调函数
-   * @param {Function} askUserCallback - 询问用户回调函数 (question, options) => Promise<answer>
-   * @returns {Promise<Object>} 执行结果
+- 处理用户输入的核心方法（优化版）
+  - @param {string} userInput - 用户输入的文本
+  - @param {Object} context - 上下文信息（当前项目、文件等）
+  - @param {Function} onStepUpdate - 步骤更新回调函数
+  - @param {Function} askUserCallback - 询问用户回调函数 (question, options) => Promise<answer>
+  - @returns {Promise<Object>} 执行结果
 
 ---
 
-## async getPerformanceReport(timeRange = 7 * 24 * 60 * 60 * 1000)
+## async getPerformanceReport(timeRange = 7 _ 24 _ 60 _ 60 _ 1000)
 
 ```javascript
 async getPerformanceReport(timeRange = 7 * 24 * 60 * 60 * 1000)
 ```
 
-* 获取性能报告
-   * @param {number} timeRange - 时间范围（毫秒）
-   * @returns {Promise<Object>} 性能报告
+- 获取性能报告
+  - @param {number} timeRange - 时间范围（毫秒）
+  - @returns {Promise<Object>} 性能报告
 
 ---
 
@@ -66,20 +66,20 @@ async getPerformanceReport(timeRange = 7 * 24 * 60 * 60 * 1000)
 async getSessionPerformance(sessionId = null)
 ```
 
-* 获取会话性能详情
-   * @param {string} sessionId - 会话ID（可选，默认当前会话）
-   * @returns {Promise<Object>} 会话性能数据
+- 获取会话性能详情
+  - @param {string} sessionId - 会话ID（可选，默认当前会话）
+  - @returns {Promise<Object>} 会话性能数据
 
 ---
 
 ## setUserId(userId)
 
 ```javascript
-setUserId(userId)
+setUserId(userId);
 ```
 
-* 设置用户ID
-   * @param {string} userId - 用户ID
+- 设置用户ID
+  - @param {string} userId - 用户ID
 
 ---
 
@@ -89,19 +89,19 @@ setUserId(userId)
 async cleanOldPerformanceData(keepDays = 30)
 ```
 
-* 清理旧的性能数据
-   * @param {number} keepDays - 保留天数
+- 清理旧的性能数据
+  - @param {number} keepDays - 保留天数
 
 ---
 
 ## getTaskPlanner()
 
 ```javascript
-getTaskPlanner()
+getTaskPlanner();
 ```
 
-* 获取增强版任务规划器
-   * @returns {TaskPlannerEnhanced}
+- 获取增强版任务规划器
+  - @returns {TaskPlannerEnhanced}
 
 ---
 
@@ -111,32 +111,32 @@ getTaskPlanner()
 registerTool(name, implementation, schema =
 ```
 
-* 注册自定义工具
-   * @param {string} name - 工具名称
-   * @param {Function} implementation - 工具实现函数
-   * @param {Object} schema - 工具参数schema
+- 注册自定义工具
+  - @param {string} name - 工具名称
+  - @param {Function} implementation - 工具实现函数
+  - @param {Object} schema - 工具参数schema
 
 ---
 
 ## unregisterTool(name)
 
 ```javascript
-unregisterTool(name)
+unregisterTool(name);
 ```
 
-* 注销工具
-   * @param {string} name - 工具名称
+- 注销工具
+  - @param {string} name - 工具名称
 
 ---
 
 ## getAvailableTools()
 
 ```javascript
-getAvailableTools()
+getAvailableTools();
 ```
 
-* 获取所有可用工具
-   * @returns {Array} 工具列表
+- 获取所有可用工具
+  - @returns {Array} 工具列表
 
 ---
 
@@ -146,8 +146,7 @@ getAvailableTools()
 function getAIEngineManagerOptimized()
 ```
 
-* 获取AI引擎管理器优化版单例
- * @returns {AIEngineManagerOptimized}
+- 获取AI引擎管理器优化版单例
+- @returns {AIEngineManagerOptimized}
 
 ---
-

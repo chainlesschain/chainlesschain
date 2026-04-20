@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/ai-engine-config.js`
 
-**Generated**: 2026-04-18T05:46:30.000Z
+**Generated**: 2026-04-20T01:53:52.344Z
 
 ---
 
@@ -12,11 +12,11 @@
 const DEFAULT_CONFIG =
 ```
 
-* AI引擎优化配置
- * 集中管理槽位填充、工具沙箱、性能监控等优化模块的配置
- *
- * 版本: v0.18.0 (P2优化)
- * 更新: 2026-01-01
+- AI引擎优化配置
+- 集中管理槽位填充、工具沙箱、性能监控等优化模块的配置
+-
+- 版本: v0.18.0 (P2优化)
+- 更新: 2026-01-01
 
 ---
 
@@ -26,7 +26,7 @@ const DEFAULT_CONFIG =
 const DEFAULT_CONFIG =
 ```
 
-* 默认配置
+- 默认配置
 
 ---
 
@@ -36,7 +36,7 @@ const DEFAULT_CONFIG =
 const PRODUCTION_CONFIG =
 ```
 
-* 生产环境配置（更保守）
+- 生产环境配置（更保守）
 
 ---
 
@@ -46,7 +46,7 @@ const PRODUCTION_CONFIG =
 const DEVELOPMENT_CONFIG =
 ```
 
-* 开发环境配置（更激进，快速失败）
+- 开发环境配置（更激进，快速失败）
 
 ---
 
@@ -56,7 +56,7 @@ const DEVELOPMENT_CONFIG =
 const TEST_CONFIG =
 ```
 
-* 测试环境配置（性能监控关闭，避免干扰测试）
+- 测试环境配置（性能监控关闭，避免干扰测试）
 
 ---
 
@@ -66,7 +66,7 @@ const TEST_CONFIG =
 function getAIEngineConfig()
 ```
 
-* 获取当前环境配置
+- 获取当前环境配置
 
 ---
 
@@ -76,9 +76,8 @@ function getAIEngineConfig()
 function mergeConfig(userConfig =
 ```
 
-* 合并用户自定义配置
- * @param {Object} userConfig - 用户自定义配置
- * @returns {Object} 合并后的配置
+- 合并用户自定义配置
+- @param {Object} userConfig - 用户自定义配置
+- @returns {Object} 合并后的配置
 
 ---
-

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/remote/logging/statistics-collector.js`
 
-**Generated**: 2026-04-18T05:46:29.903Z
+**Generated**: 2026-04-20T01:53:52.245Z
 
 ---
 

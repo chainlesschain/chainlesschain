@@ -2,7 +2,7 @@
 
 **Source**: `src/main/system/backup-manager.js`
 
-**Generated**: 2026-04-18T05:46:29.879Z
+**Generated**: 2026-04-20T01:53:52.219Z
 
 ---
 
@@ -12,18 +12,18 @@
 const
 ```
 
-* 数据备份恢复管理器
- * 提供数据库和配置文件的备份与恢复功能
+- 数据备份恢复管理器
+- 提供数据库和配置文件的备份与恢复功能
 
 ---
 
 ## ensureBackupDir()
 
 ```javascript
-ensureBackupDir()
+ensureBackupDir();
 ```
 
-* 确保备份目录存在
+- 确保备份目录存在
 
 ---
 
@@ -33,17 +33,17 @@ ensureBackupDir()
 async createBackup(options =
 ```
 
-* 创建备份
+- 创建备份
 
 ---
 
 ## createZipArchive(outputPath, items)
 
 ```javascript
-createZipArchive(outputPath, items)
+createZipArchive(outputPath, items);
 ```
 
-* 创建ZIP压缩包
+- 创建ZIP压缩包
 
 ---
 
@@ -53,37 +53,37 @@ createZipArchive(outputPath, items)
 async restoreBackup(backupPath, options =
 ```
 
-* 恢复备份
+- 恢复备份
 
 ---
 
 ## copyDir(src, dest)
 
 ```javascript
-copyDir(src, dest)
+copyDir(src, dest);
 ```
 
-* 复制目录
+- 复制目录
 
 ---
 
 ## getBackupList()
 
 ```javascript
-getBackupList()
+getBackupList();
 ```
 
-* 获取备份列表
+- 获取备份列表
 
 ---
 
 ## deleteBackup(backupPath)
 
 ```javascript
-deleteBackup(backupPath)
+deleteBackup(backupPath);
 ```
 
-* 删除备份
+- 删除备份
 
 ---
 
@@ -93,7 +93,7 @@ deleteBackup(backupPath)
 async cleanOldBackups()
 ```
 
-* 清理旧备份
+- 清理旧备份
 
 ---
 
@@ -103,7 +103,7 @@ async cleanOldBackups()
 async exportBackup(backupPath, targetPath)
 ```
 
-* 导出备份到指定位置
+- 导出备份到指定位置
 
 ---
 
@@ -113,7 +113,7 @@ async exportBackup(backupPath, targetPath)
 async importBackup(sourcePath)
 ```
 
-* 导入备份
+- 导入备份
 
 ---
 
@@ -123,27 +123,26 @@ async importBackup(sourcePath)
 async autoBackup()
 ```
 
-* 自动备份
+- 自动备份
 
 ---
 
-## startAutoBackup(interval = 24 * 60 * 60 * 1000)
+## startAutoBackup(interval = 24 _ 60 _ 60 \* 1000)
 
 ```javascript
-startAutoBackup(interval = 24 * 60 * 60 * 1000)
+startAutoBackup((interval = 24 * 60 * 60 * 1000));
 ```
 
-* 启动自动备份
+- 启动自动备份
 
 ---
 
 ## stopAutoBackup()
 
 ```javascript
-stopAutoBackup()
+stopAutoBackup();
 ```
 
-* 停止自动备份
+- 停止自动备份
 
 ---
-

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/plugins/update-manager.js`
 
-**Generated**: 2026-04-18T05:46:29.914Z
+**Generated**: 2026-04-20T01:53:52.254Z
 
 ---
 

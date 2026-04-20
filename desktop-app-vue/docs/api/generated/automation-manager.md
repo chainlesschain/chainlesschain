@@ -2,7 +2,7 @@
 
 **Source**: `src/main/project/automation-manager.js`
 
-**Generated**: 2026-04-18T05:46:29.914Z
+**Generated**: 2026-04-20T01:53:52.254Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-* 项目自动化管理器
- * 提供定时任务、文件监听、事件触发等自动化功能
+- 项目自动化管理器
+- 提供定时任务、文件监听、事件触发等自动化功能
 
 ---
 
@@ -23,7 +23,7 @@ const
 async initialize()
 ```
 
-* 初始化自动化管理器
+- 初始化自动化管理器
 
 ---
 
@@ -33,7 +33,7 @@ async initialize()
 async createTables()
 ```
 
-* 创建数据库表
+- 创建数据库表
 
 ---
 
@@ -43,9 +43,9 @@ async createTables()
 async loadProjectRules(projectId)
 ```
 
-* 加载项目的自动化规则
-   * @param {string} projectId - 项目ID
-   * @returns {Promise<Array>} 规则列表
+- 加载项目的自动化规则
+  - @param {string} projectId - 项目ID
+  - @returns {Promise<Array>} 规则列表
 
 ---
 
@@ -55,9 +55,9 @@ async loadProjectRules(projectId)
 async createRule(ruleData)
 ```
 
-* 创建自动化规则
-   * @param {Object} ruleData - 规则数据
-   * @returns {Promise<Object>} 创建的规则
+- 创建自动化规则
+  - @param {Object} ruleData - 规则数据
+  - @returns {Promise<Object>} 创建的规则
 
 ---
 
@@ -67,8 +67,8 @@ async createRule(ruleData)
 async registerRule(rule)
 ```
 
-* 注册自动化规则
-   * @param {Object} rule - 规则对象
+- 注册自动化规则
+  - @param {Object} rule - 规则对象
 
 ---
 
@@ -78,11 +78,11 @@ async registerRule(rule)
 async registerScheduledTask(ruleId, triggerConfig, actionType, actionConfig)
 ```
 
-* 注册定时任务
-   * @param {string} ruleId - 规则ID
-   * @param {Object} triggerConfig - 触发配置
-   * @param {string} actionType - 动作类型
-   * @param {Object} actionConfig - 动作配置
+- 注册定时任务
+  - @param {string} ruleId - 规则ID
+  - @param {Object} triggerConfig - 触发配置
+  - @param {string} actionType - 动作类型
+  - @param {Object} actionConfig - 动作配置
 
 ---
 
@@ -92,11 +92,11 @@ async registerScheduledTask(ruleId, triggerConfig, actionType, actionConfig)
 async registerFileWatcher(ruleId, triggerConfig, actionType, actionConfig)
 ```
 
-* 注册文件监听
-   * @param {string} ruleId - 规则ID
-   * @param {Object} triggerConfig - 触发配置
-   * @param {string} actionType - 动作类型
-   * @param {Object} actionConfig - 动作配置
+- 注册文件监听
+  - @param {string} ruleId - 规则ID
+  - @param {Object} triggerConfig - 触发配置
+  - @param {string} actionType - 动作类型
+  - @param {Object} actionConfig - 动作配置
 
 ---
 
@@ -106,9 +106,9 @@ async registerFileWatcher(ruleId, triggerConfig, actionType, actionConfig)
 async executeAction(actionType, actionConfig)
 ```
 
-* 执行动作
-   * @param {string} actionType - 动作类型
-   * @param {Object} actionConfig - 动作配置
+- 执行动作
+  - @param {string} actionType - 动作类型
+  - @param {Object} actionConfig - 动作配置
 
 ---
 
@@ -118,7 +118,7 @@ async executeAction(actionType, actionConfig)
 async runTask(config)
 ```
 
-* 执行任务
+- 执行任务
 
 ---
 
@@ -128,7 +128,7 @@ async runTask(config)
 async generateReport(config)
 ```
 
-* 生成报告
+- 生成报告
 
 ---
 
@@ -138,7 +138,7 @@ async generateReport(config)
 async sendNotification(config)
 ```
 
-* 发送通知
+- 发送通知
 
 ---
 
@@ -148,7 +148,7 @@ async sendNotification(config)
 async gitCommit(config)
 ```
 
-* Git提交
+- Git提交
 
 ---
 
@@ -158,7 +158,7 @@ async gitCommit(config)
 async exportFile(config)
 ```
 
-* 导出文件
+- 导出文件
 
 ---
 
@@ -168,7 +168,7 @@ async exportFile(config)
 async runScript(config)
 ```
 
-* 运行脚本
+- 运行脚本
 
 ---
 
@@ -178,56 +178,56 @@ async runScript(config)
 async updateLastRun(ruleId)
 ```
 
-* 更新最后执行时间
+- 更新最后执行时间
 
 ---
 
 ## matchesCondition(data, condition)
 
 ```javascript
-matchesCondition(data, condition)
+matchesCondition(data, condition);
 ```
 
-* 条件匹配
-   * @param {Object} data - 要匹配的数据
-   * @param {Object} condition - 条件配置
-   * @returns {boolean} 是否匹配
+- 条件匹配
+  - @param {Object} data - 要匹配的数据
+  - @param {Object} condition - 条件配置
+  - @returns {boolean} 是否匹配
 
 ---
 
 ## calculateNextRun(ruleId)
 
 ```javascript
-calculateNextRun(ruleId)
+calculateNextRun(ruleId);
 ```
 
-* 计算下次执行时间
-   * @param {string} ruleId - 规则ID
-   * @returns {number|null} 下次执行的时间戳（毫秒）
+- 计算下次执行时间
+  - @param {string} ruleId - 规则ID
+  - @returns {number|null} 下次执行的时间戳（毫秒）
 
 ---
 
 ## getNextCronTime(cronExpression)
 
 ```javascript
-getNextCronTime(cronExpression)
+getNextCronTime(cronExpression);
 ```
 
-* 解析 cron 表达式并计算下次执行时间
-   * 支持标准 5 字段 cron: 分 时 日 月 周
-   * @param {string} cronExpression - cron 表达式
-   * @returns {number} 下次执行的时间戳
+- 解析 cron 表达式并计算下次执行时间
+  - 支持标准 5 字段 cron: 分 时 日 月 周
+  - @param {string} cronExpression - cron 表达式
+  - @returns {number} 下次执行的时间戳
 
 ---
 
 ## stopRule(ruleId)
 
 ```javascript
-stopRule(ruleId)
+stopRule(ruleId);
 ```
 
-* 停止规则
-   * @param {string} ruleId - 规则ID
+- 停止规则
+  - @param {string} ruleId - 规则ID
 
 ---
 
@@ -237,9 +237,9 @@ stopRule(ruleId)
 async updateRule(ruleId, updates)
 ```
 
-* 更新规则
-   * @param {string} ruleId - 规则ID
-   * @param {Object} updates - 更新数据
+- 更新规则
+  - @param {string} ruleId - 规则ID
+  - @param {Object} updates - 更新数据
 
 ---
 
@@ -249,32 +249,32 @@ async updateRule(ruleId, updates)
 async deleteRule(ruleId)
 ```
 
-* 删除规则
-   * @param {string} ruleId - 规则ID
+- 删除规则
+  - @param {string} ruleId - 规则ID
 
 ---
 
 ## getRules(projectId)
 
 ```javascript
-getRules(projectId)
+getRules(projectId);
 ```
 
-* 获取规则列表
-   * @param {string} projectId - 项目ID
-   * @returns {Array} 规则列表
+- 获取规则列表
+  - @param {string} projectId - 项目ID
+  - @returns {Array} 规则列表
 
 ---
 
 ## getRule(ruleId)
 
 ```javascript
-getRule(ruleId)
+getRule(ruleId);
 ```
 
-* 获取规则详情
-   * @param {string} ruleId - 规则ID
-   * @returns {Object} 规则详情
+- 获取规则详情
+  - @param {string} ruleId - 规则ID
+  - @returns {Object} 规则详情
 
 ---
 
@@ -284,18 +284,18 @@ getRule(ruleId)
 async manualTrigger(ruleId)
 ```
 
-* 手动触发规则
-   * @param {string} ruleId - 规则ID
+- 手动触发规则
+  - @param {string} ruleId - 规则ID
 
 ---
 
 ## getStatistics()
 
 ```javascript
-getStatistics()
+getStatistics();
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
 
@@ -305,8 +305,7 @@ getStatistics()
 function getAutomationManager()
 ```
 
-* 获取自动化管理器实例
- * @returns {AutomationManager}
+- 获取自动化管理器实例
+- @returns {AutomationManager}
 
 ---
-

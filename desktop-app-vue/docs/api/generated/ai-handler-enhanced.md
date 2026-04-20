@@ -2,7 +2,7 @@
 
 **Source**: `src/main/remote/handlers/ai-handler-enhanced.js`
 
-**Generated**: 2026-04-18T05:46:29.907Z
+**Generated**: 2026-04-20T01:53:52.248Z
 
 ---
 
@@ -12,18 +12,18 @@
 const
 ```
 
-* AI 命令处理器（增强版）
- *
- * 完整实现 AI 相关命令，集成现有的 LLMManager、RAGManager 和数据库
- *
- * 命令列表：
- * - ai.chat: AI 对话（支持流式响应）
- * - ai.getConversations: 查询对话历史
- * - ai.ragSearch: RAG 知识库搜索
- * - ai.controlAgent: 控制 AI Agent
- * - ai.getModels: 获取可用模型列表
- *
- * @module remote/handlers/ai-handler-enhanced
+- AI 命令处理器（增强版）
+-
+- 完整实现 AI 相关命令，集成现有的 LLMManager、RAGManager 和数据库
+-
+- 命令列表：
+- - ai.chat: AI 对话（支持流式响应）
+- - ai.getConversations: 查询对话历史
+- - ai.ragSearch: RAG 知识库搜索
+- - ai.controlAgent: 控制 AI Agent
+- - ai.getModels: 获取可用模型列表
+-
+- @module remote/handlers/ai-handler-enhanced
 
 ---
 
@@ -33,7 +33,7 @@ const
 class AICommandHandlerEnhanced extends EventEmitter
 ```
 
-* AI 命令处理器类
+- AI 命令处理器类
 
 ---
 
@@ -43,7 +43,7 @@ class AICommandHandlerEnhanced extends EventEmitter
 async handle(action, params, context)
 ```
 
-* 处理命令（统一入口）
+- 处理命令（统一入口）
 
 ---
 
@@ -53,9 +53,9 @@ async handle(action, params, context)
 async chat(params, context)
 ```
 
-* AI 对话
-   *
-   * 集成 LLMManager，支持多轮对话、流式响应、上下文管理
+- AI 对话
+  -
+  - 集成 LLMManager，支持多轮对话、流式响应、上下文管理
 
 ---
 
@@ -65,9 +65,9 @@ async chat(params, context)
 async getConversations(params, context)
 ```
 
-* 查询对话历史
-   *
-   * 支持分页、搜索、排序
+- 查询对话历史
+  -
+  - 支持分页、搜索、排序
 
 ---
 
@@ -77,9 +77,9 @@ async getConversations(params, context)
 async ragSearch(params, context)
 ```
 
-* RAG 知识库搜索
-   *
-   * 集成 RAGManager，支持向量检索、重排序、混合搜索
+- RAG 知识库搜索
+  -
+  - 集成 RAGManager，支持向量检索、重排序、混合搜索
 
 ---
 
@@ -89,9 +89,9 @@ async ragSearch(params, context)
 async controlAgent(params, context)
 ```
 
-* 控制 AI Agent
-   *
-   * 支持启动、停止、查询状态、任务分配
+- 控制 AI Agent
+  -
+  - 支持启动、停止、查询状态、任务分配
 
 ---
 
@@ -101,9 +101,9 @@ async controlAgent(params, context)
 async getModels(params, context)
 ```
 
-* 获取可用模型列表
-   *
-   * 支持本地模型（Ollama）和云端模型（OpenAI、Anthropic 等）
+- 获取可用模型列表
+  -
+  - 支持本地模型（Ollama）和云端模型（OpenAI、Anthropic 等）
 
 ---
 
@@ -113,17 +113,17 @@ async getModels(params, context)
 async getOllamaModels(includeStatus = true)
 ```
 
-* 获取 Ollama 模型列表
+- 获取 Ollama 模型列表
 
 ---
 
 ## getCloudModels(provider)
 
 ```javascript
-getCloudModels(provider)
+getCloudModels(provider);
 ```
 
-* 获取云端模型配置
+- 获取云端模型配置
 
 ---
 
@@ -133,7 +133,7 @@ getCloudModels(provider)
 async startAgent(agentId, taskConfig)
 ```
 
-* 启动 Agent
+- 启动 Agent
 
 ---
 
@@ -143,7 +143,7 @@ async startAgent(agentId, taskConfig)
 async stopAgent(agentId)
 ```
 
-* 停止 Agent
+- 停止 Agent
 
 ---
 
@@ -153,7 +153,7 @@ async stopAgent(agentId)
 async getAgentStatus(agentId)
 ```
 
-* 获取 Agent 状态
+- 获取 Agent 状态
 
 ---
 
@@ -163,37 +163,36 @@ async getAgentStatus(agentId)
 async listAgents()
 ```
 
-* 列出所有 Agent
+- 列出所有 Agent
 
 ---
 
 ## getMockAgentResponse(action, agentId, taskConfig)
 
 ```javascript
-getMockAgentResponse(action, agentId, taskConfig)
+getMockAgentResponse(action, agentId, taskConfig);
 ```
 
-* 获取模拟 Agent 响应（当 AI Engine Manager 不可用时）
+- 获取模拟 Agent 响应（当 AI Engine Manager 不可用时）
 
 ---
 
 ## updateAvgResponseTime(responseTime)
 
 ```javascript
-updateAvgResponseTime(responseTime)
+updateAvgResponseTime(responseTime);
 ```
 
-* 更新平均响应时间
+- 更新平均响应时间
 
 ---
 
 ## getMetrics()
 
 ```javascript
-getMetrics()
+getMetrics();
 ```
 
-* 获取性能指标
+- 获取性能指标
 
 ---
-
