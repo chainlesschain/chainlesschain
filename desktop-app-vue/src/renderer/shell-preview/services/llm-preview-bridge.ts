@@ -9,6 +9,14 @@ export type BridgeResult =
   | { ok: true; reply: string }
   | { ok: false; reason: string };
 
+export interface StreamChunkPayload {
+  chunk?: string;
+  fullText?: string;
+  conversationId?: string | null;
+}
+
+type StreamListener = (payload: StreamChunkPayload) => void;
+
 interface LlmApi {
   checkStatus: () => Promise<{ available?: boolean; error?: string } | boolean>;
   chat: (params: {
@@ -21,6 +29,12 @@ interface LlmApi {
     enableMultiAgent?: boolean;
     enableErrorPrecheck?: boolean;
   }) => Promise<unknown>;
+  queryStream?: (
+    prompt: string,
+    options?: Record<string, unknown>,
+  ) => Promise<unknown>;
+  on?: (event: string, listener: StreamListener) => void;
+  off?: (event: string, listener: StreamListener) => void;
 }
 
 function getLlmApi(): LlmApi | null {
@@ -97,4 +111,71 @@ export async function sendChat(
   }
 }
 
-export const __testing = { extractReply, getLlmApi };
+export function streamAvailable(): boolean {
+  const llm = getLlmApi();
+  return (
+    !!llm &&
+    typeof llm.queryStream === "function" &&
+    typeof llm.on === "function"
+  );
+}
+
+const STREAM_CHUNK_EVENT = "llm:stream-chunk";
+
+export async function sendChatStream(
+  prompt: string,
+  onChunk: (fullText: string) => void,
+): Promise<BridgeResult> {
+  const llm = getLlmApi();
+  if (
+    !llm ||
+    typeof llm.queryStream !== "function" ||
+    typeof llm.on !== "function"
+  ) {
+    return {
+      ok: false,
+      reason: "流式不可用：electronAPI 未暴露 queryStream/on",
+    };
+  }
+  const text = prompt.trim();
+  if (!text) {
+    return { ok: false, reason: "prompt 为空" };
+  }
+
+  let accumulated = "";
+  const listener: StreamListener = (payload) => {
+    if (!payload) return;
+    if (typeof payload.fullText === "string") {
+      accumulated = payload.fullText;
+      onChunk(accumulated);
+      return;
+    }
+    if (typeof payload.chunk === "string") {
+      accumulated += payload.chunk;
+      onChunk(accumulated);
+    }
+  };
+
+  llm.on(STREAM_CHUNK_EVENT, listener);
+  try {
+    const raw = await llm.queryStream(text);
+    const final = extractReply(raw) || accumulated;
+    if (!final) {
+      return { ok: false, reason: "LLM 流式返回为空" };
+    }
+    return { ok: true, reply: final };
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    return { ok: false, reason };
+  } finally {
+    if (typeof llm.off === "function") {
+      llm.off(STREAM_CHUNK_EVENT, listener);
+    }
+  }
+}
+
+export const __testing = {
+  extractReply,
+  getLlmApi,
+  STREAM_CHUNK_EVENT,
+};

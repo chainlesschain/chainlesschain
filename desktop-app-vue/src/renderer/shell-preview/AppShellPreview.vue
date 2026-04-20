@@ -64,7 +64,7 @@
             </div>
           </div>
           <div
-            v-if="isGenerating"
+            v-if="showTypingIndicator"
             class="cc-preview-bubble cc-preview-bubble--assistant"
             data-testid="cc-preview-typing"
           >
@@ -121,6 +121,8 @@ import { getPreviewWidget, type DecentralEntryId } from "./widgets";
 import {
   isAvailable as isLlmAvailable,
   sendChat as sendLlmChat,
+  sendChatStream as sendLlmChatStream,
+  streamAvailable as isStreamAvailable,
   toBridgeMessages,
 } from "./services/llm-preview-bridge";
 import "./themes.css";
@@ -148,6 +150,13 @@ const drawerTitle = computed(() =>
 );
 const draft = ref("");
 const isGenerating = computed(() => conversationStore.isGenerating);
+const showTypingIndicator = computed(() => {
+  if (!isGenerating.value) {
+    return false;
+  }
+  const last = activeConversation.value?.messages.at(-1);
+  return !(last && last.role === "assistant" && last.content.length > 0);
+});
 
 function selectConversation(id: string) {
   conversationStore.select(id);
@@ -183,6 +192,21 @@ async function sendDraft() {
       );
       return;
     }
+
+    if (isStreamAvailable()) {
+      const streamId = conversationStore.beginStreamingAssistant();
+      if (streamId) {
+        const result = await sendLlmChatStream(text, (liveText) => {
+          conversationStore.updateAssistantContent(streamId, liveText);
+        });
+        if (result.ok === true) {
+          conversationStore.finalizeStreamingAssistant(streamId, result.reply);
+          return;
+        }
+        conversationStore.removeMessage(streamId);
+      }
+    }
+
     const result = await sendLlmChat(payload);
     if (result.ok === true) {
       conversationStore.appendAssistantMessage(result.reply);

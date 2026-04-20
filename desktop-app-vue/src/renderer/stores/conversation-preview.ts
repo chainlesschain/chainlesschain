@@ -201,6 +201,46 @@ export const useConversationPreviewStore = defineStore("conversation-preview", {
       this.isGenerating = flag;
     },
 
+    beginStreamingAssistant(): string | null {
+      if (!this.active) this.createBlank();
+      const conv = this.active!;
+      const ts = now();
+      const id = makeId("m");
+      conv.messages.push({
+        id,
+        role: "assistant",
+        content: "",
+        createdAt: ts,
+      });
+      conv.updatedAt = ts;
+      this._persist();
+      return id;
+    },
+
+    updateAssistantContent(messageId: string, content: string) {
+      const conv = this.active;
+      if (!conv) return;
+      const msg = conv.messages.find((m) => m.id === messageId);
+      if (!msg || msg.role !== "assistant") return;
+      msg.content = content;
+      conv.preview = content.slice(0, MAX_PREVIEW_CHARS);
+      conv.updatedAt = now();
+    },
+
+    finalizeStreamingAssistant(messageId: string, content: string) {
+      this.updateAssistantContent(messageId, content);
+      this._persist();
+    },
+
+    removeMessage(messageId: string) {
+      const conv = this.active;
+      if (!conv) return;
+      const idx = conv.messages.findIndex((m) => m.id === messageId);
+      if (idx < 0) return;
+      conv.messages.splice(idx, 1);
+      this._persist();
+    },
+
     remove(id: string) {
       const idx = this.conversations.findIndex((c) => c.id === id);
       if (idx < 0) return;

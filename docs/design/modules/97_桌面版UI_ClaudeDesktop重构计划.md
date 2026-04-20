@@ -25,6 +25,7 @@
 - ✅ P8 已落地：4 颗去中心化入口点击后在右抽屉嵌入轻量 preview widget（`shell-preview/widgets/{P2p,Trade,Social,UKey}PreviewWidget.vue`），每颗 widget 含概览卡 + 2–3 个 `router.push` 按钮跳转到既有 `/main/*` 完整页；widget 注册表 `shell-preview/widgets/index.ts` 单测 5 例全过
 - ✅ P9a 已落地：新增 `src/renderer/stores/conversation-preview.ts`，会话 + 消息持久化到 `localStorage`（key `cc.preview.conversations`，带 `version: 1` schema 标识）；重启壳自动 `restore()` 恢复上次会话列表与选中项；`AppShellPreview.vue` 所有会话读写均走 store；13 条 store 单测全部通过
 - ✅ P9b 已落地：新增 `src/renderer/shell-preview/services/llm-preview-bridge.ts`，`sendDraft()` 把会话历史 + 当前用户输入通过 `window.electronAPI.llm.chat({ messages, enableRAG:false, enableCache:false, ... })` 调真 LLM（火山引擎 / Ollama），返回后追加 assistant 气泡；`isAvailable()` 先查 `llm:check-status`，不可用时走友好兜底文案；store 新增 `isGenerating` 标志 → 发送按钮 loading + 气泡列表渲染三点打字指示器；19 条 bridge 单测 + 2 条 store 新测用例全过（58 条 preview 壳测试）
+- ✅ P9c 已落地：bridge 增 `sendChatStream(prompt, onChunk)` 调 `electronAPI.llm.queryStream` + 监听 `llm:stream-chunk`；`sendDraft()` 改双路径 — 流式优先（`beginStreamingAssistant` 占位气泡 → 每 chunk `updateAssistantContent` → 成功 `finalizeStreamingAssistant` 落盘）、失败 `removeMessage` 撤回再回落非流式 `sendChat`；打字指示器收敛为仅"生成中 + 最后一条非已填充 assistant"才显示；流式仅支持单轮 prompt（无历史）— 历史感知流式需要新建 main-process handler，留给后续迭代；P9c 新增 12 条 bridge 单测 + 5 条 store 用例（75 条 preview 壳测试）
 
 ## 1. 背景与目标
 

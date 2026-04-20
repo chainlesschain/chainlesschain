@@ -189,4 +189,75 @@ describe("useConversationPreviewStore", () => {
     store.setGenerating(false);
     expect(store.isGenerating).toBe(false);
   });
+
+  it("beginStreamingAssistant() seeds an empty assistant bubble and returns its id", () => {
+    const store = useConversationPreviewStore();
+    store.restore();
+    store.createBlank();
+    const before = store.active!.messages.length;
+    const id = store.beginStreamingAssistant();
+    expect(id).toBeTruthy();
+    const conv = store.active!;
+    expect(conv.messages.length).toBe(before + 1);
+    const last = conv.messages.at(-1)!;
+    expect(last.id).toBe(id);
+    expect(last.role).toBe("assistant");
+    expect(last.content).toBe("");
+  });
+
+  it("updateAssistantContent() updates the target bubble without persisting on every tick", () => {
+    const store = useConversationPreviewStore();
+    store.restore();
+    store.createBlank();
+    const id = store.beginStreamingAssistant()!;
+    store.updateAssistantContent(id, "partial");
+    expect(store.active!.messages.find((m) => m.id === id)?.content).toBe(
+      "partial",
+    );
+    expect(store.active!.preview).toBe("partial");
+  });
+
+  it("updateAssistantContent() is a no-op for unknown id / non-assistant role", () => {
+    const store = useConversationPreviewStore();
+    store.restore();
+    store.createBlank();
+    store.appendMessage("user", "hello");
+    const userMsgId = store.active!.messages.at(-1)!.id;
+    store.updateAssistantContent(userMsgId, "hijacked");
+    expect(
+      store.active!.messages.find((m) => m.id === userMsgId)?.content,
+    ).toBe("hello");
+    store.updateAssistantContent("nope", "also hijacked");
+    expect(
+      store.active!.messages.some((m) => m.content === "also hijacked"),
+    ).toBe(false);
+  });
+
+  it("finalizeStreamingAssistant() sets final content and persists", () => {
+    const store = useConversationPreviewStore();
+    store.restore();
+    store.createBlank();
+    const id = store.beginStreamingAssistant()!;
+    store.finalizeStreamingAssistant(id, "Hello world");
+    expect(store.active!.messages.find((m) => m.id === id)?.content).toBe(
+      "Hello world",
+    );
+    const persisted = JSON.parse(rawState()!);
+    const conv = persisted.conversations.find(
+      (c: { id: string }) => c.id === store.activeId,
+    );
+    expect(conv.messages.at(-1).content).toBe("Hello world");
+  });
+
+  it("removeMessage() drops a specific message by id", () => {
+    const store = useConversationPreviewStore();
+    store.restore();
+    store.createBlank();
+    store.appendMessage("user", "one");
+    const userId = store.active!.messages.at(-1)!.id;
+    const streamId = store.beginStreamingAssistant()!;
+    store.removeMessage(streamId);
+    expect(store.active!.messages.some((m) => m.id === streamId)).toBe(false);
+    expect(store.active!.messages.some((m) => m.id === userId)).toBe(true);
+  });
 });

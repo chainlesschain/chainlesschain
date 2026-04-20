@@ -2,9 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   isAvailable,
   sendChat,
+  sendChatStream,
+  streamAvailable,
   toBridgeMessages,
   __testing,
   type BridgeResult,
+  type StreamChunkPayload,
 } from "../llm-preview-bridge";
 
 function expectFailure(
@@ -16,12 +19,18 @@ function expectFailure(
 interface MockLlm {
   checkStatus: ReturnType<typeof vi.fn>;
   chat: ReturnType<typeof vi.fn>;
+  queryStream?: ReturnType<typeof vi.fn>;
+  on?: ReturnType<typeof vi.fn>;
+  off?: ReturnType<typeof vi.fn>;
 }
 
 function installMockLlm(mock: Partial<MockLlm>): MockLlm {
   const full: MockLlm = {
     checkStatus: mock.checkStatus ?? vi.fn(),
     chat: mock.chat ?? vi.fn(),
+    ...(mock.queryStream ? { queryStream: mock.queryStream } : {}),
+    ...(mock.on ? { on: mock.on } : {}),
+    ...(mock.off ? { off: mock.off } : {}),
   };
   (window as unknown as { electronAPI: { llm: MockLlm } }).electronAPI = {
     llm: full,
@@ -188,6 +197,141 @@ describe("llm-preview-bridge", () => {
 
     it("passes through plain string", () => {
       expect(extractReply("raw")).toBe("raw");
+    });
+  });
+
+  describe("streamAvailable()", () => {
+    it("false when no electronAPI", () => {
+      expect(streamAvailable()).toBe(false);
+    });
+
+    it("false when queryStream missing", () => {
+      installMockLlm({});
+      expect(streamAvailable()).toBe(false);
+    });
+
+    it("true when queryStream + on both exposed", () => {
+      installMockLlm({
+        queryStream: vi.fn(),
+        on: vi.fn(),
+      });
+      expect(streamAvailable()).toBe(true);
+    });
+
+    it("false when only queryStream exposed (no on)", () => {
+      installMockLlm({ queryStream: vi.fn() });
+      expect(streamAvailable()).toBe(false);
+    });
+  });
+
+  describe("sendChatStream()", () => {
+    function captureListener(): {
+      on: ReturnType<typeof vi.fn>;
+      off: ReturnType<typeof vi.fn>;
+      emit: (payload: StreamChunkPayload) => void;
+      listener: () => void;
+    } {
+      let saved: ((p: StreamChunkPayload) => void) | null = null;
+      const on = vi.fn((_evt: string, l: (p: StreamChunkPayload) => void) => {
+        saved = l;
+      });
+      const off = vi.fn();
+      return {
+        on,
+        off,
+        emit: (payload) => {
+          if (saved) saved(payload);
+        },
+        listener: () => saved as unknown as () => void,
+      };
+    }
+
+    it("returns unavailable when electronAPI is missing", async () => {
+      const r = await sendChatStream("hi", () => {});
+      expectFailure(r);
+      expect(r.reason).toMatch(/queryStream/);
+    });
+
+    it("returns unavailable when queryStream is missing", async () => {
+      installMockLlm({ on: vi.fn(), off: vi.fn() });
+      const r = await sendChatStream("hi", () => {});
+      expect(r.ok).toBe(false);
+    });
+
+    it("returns error on empty prompt", async () => {
+      installMockLlm({ queryStream: vi.fn(), on: vi.fn(), off: vi.fn() });
+      const r = await sendChatStream("   ", () => {});
+      expectFailure(r);
+      expect(r.reason).toMatch(/空/);
+    });
+
+    it("accumulates chunks and resolves with fullText", async () => {
+      const cap = captureListener();
+      const queryStream = vi.fn(async () => {
+        cap.emit({ chunk: "Hel" });
+        cap.emit({ chunk: "lo " });
+        cap.emit({ chunk: "world" });
+        return { content: "Hello world" };
+      });
+      installMockLlm({ queryStream, on: cap.on, off: cap.off });
+      const seen: string[] = [];
+      const r = await sendChatStream("hi", (s) => seen.push(s));
+      expect(r).toEqual({ ok: true, reply: "Hello world" });
+      expect(seen).toEqual(["Hel", "Hello ", "Hello world"]);
+      expect(cap.on).toHaveBeenCalledWith(
+        "llm:stream-chunk",
+        expect.any(Function),
+      );
+      expect(cap.off).toHaveBeenCalledWith(
+        "llm:stream-chunk",
+        expect.any(Function),
+      );
+    });
+
+    it("prefers fullText field when present in payload", async () => {
+      const cap = captureListener();
+      const queryStream = vi.fn(async () => {
+        cap.emit({ chunk: "Hel", fullText: "Hel" });
+        cap.emit({ chunk: "lo", fullText: "Hello" });
+        return {};
+      });
+      installMockLlm({ queryStream, on: cap.on, off: cap.off });
+      const seen: string[] = [];
+      const r = await sendChatStream("hi", (s) => seen.push(s));
+      expect(seen).toEqual(["Hel", "Hello"]);
+      expect(r).toEqual({ ok: true, reply: "Hello" });
+    });
+
+    it("falls back to accumulated chunks when queryStream returns empty", async () => {
+      const cap = captureListener();
+      const queryStream = vi.fn(async () => {
+        cap.emit({ chunk: "accu" });
+        cap.emit({ chunk: "mulated" });
+        return null;
+      });
+      installMockLlm({ queryStream, on: cap.on, off: cap.off });
+      const r = await sendChatStream("hi", () => {});
+      expect(r).toEqual({ ok: true, reply: "accumulated" });
+    });
+
+    it("returns error when nothing was streamed and return is empty", async () => {
+      const cap = captureListener();
+      const queryStream = vi.fn(async () => null);
+      installMockLlm({ queryStream, on: cap.on, off: cap.off });
+      const r = await sendChatStream("hi", () => {});
+      expectFailure(r);
+      expect(r.reason).toMatch(/空/);
+    });
+
+    it("catches thrown errors and still cleans up listener", async () => {
+      const cap = captureListener();
+      const queryStream = vi.fn(async () => {
+        throw new Error("upstream down");
+      });
+      installMockLlm({ queryStream, on: cap.on, off: cap.off });
+      const r = await sendChatStream("hi", () => {});
+      expect(r).toEqual({ ok: false, reason: "upstream down" });
+      expect(cap.off).toHaveBeenCalledTimes(1);
     });
   });
 });
