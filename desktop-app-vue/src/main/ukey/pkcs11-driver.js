@@ -27,6 +27,17 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
+// Dependency injection for tests. Production uses real modules.
+// Tests override fields on this object to inject mocks (see _deps injection
+// pattern in .claude/rules/cli-dev.md and testing.md).
+const _deps = {
+  os,
+  fs,
+  execAsync,
+  // pkcs11js is lazy-loaded; tests replace this to inject a mock module
+  loadPkcs11js: () => require("pkcs11js"),
+};
+
 // ============================================
 // PKCS#11 Constants (Cryptoki)
 // ============================================
@@ -114,7 +125,7 @@ class PKCS11Driver extends BaseUKeyDriver {
 
     this.driverName = "PKCS11";
     this.driverVersion = "2.0.0";
-    this.platform = os.platform();
+    this.platform = _deps.os.platform();
 
     // PKCS#11 library path
     this.libraryPath = config.libraryPath || this.findPKCS11Library();
@@ -181,7 +192,7 @@ class PKCS11Driver extends BaseUKeyDriver {
     const paths = searchPaths[this.platform] || [];
 
     for (const libPath of paths) {
-      if (fs.existsSync(libPath)) {
+      if (_deps.fs.existsSync(libPath)) {
         logger.info(`[PKCS11Driver] Found library: ${libPath}`);
         return libPath;
       }
@@ -204,7 +215,7 @@ class PKCS11Driver extends BaseUKeyDriver {
           "[PKCS11Driver] No PKCS#11 library configured, using CLI fallback",
         );
         this.useCLIFallback = true;
-      } else if (!fs.existsSync(this.libraryPath)) {
+      } else if (!_deps.fs.existsSync(this.libraryPath)) {
         logger.warn(
           `[PKCS11Driver] Library not found: ${this.libraryPath}, using CLI fallback`,
         );
@@ -214,7 +225,7 @@ class PKCS11Driver extends BaseUKeyDriver {
       // Try to load pkcs11-js module
       if (!this.useCLIFallback) {
         try {
-          const pkcs11js = require("pkcs11js");
+          const pkcs11js = _deps.loadPkcs11js();
           this.pkcs11 = new pkcs11js.PKCS11();
           this.pkcs11.load(this.libraryPath);
           this.pkcs11.C_Initialize();
@@ -352,7 +363,7 @@ class PKCS11Driver extends BaseUKeyDriver {
    */
   async detectWithCLI() {
     try {
-      const { stdout, stderr } = await execAsync(
+      const { stdout, stderr } = await _deps.execAsync(
         "pkcs11-tool --list-slots 2>&1",
         {
           timeout: 10000,
@@ -536,7 +547,7 @@ class PKCS11Driver extends BaseUKeyDriver {
   async verifyPINWithCLI(pin) {
     try {
       // Use --test-login to verify PIN without performing operations
-      const { stdout, stderr } = await execAsync(
+      const { stdout, stderr } = await _deps.execAsync(
         `pkcs11-tool --login --pin "${pin}" --list-objects --type privkey 2>&1`,
         { timeout: 15000 },
       );
@@ -782,16 +793,19 @@ class PKCS11Driver extends BaseUKeyDriver {
    * Get public key using CLI
    */
   async getPublicKeyWithCLI() {
-    const tempFile = path.join(os.tmpdir(), `pkcs11-pubkey-${Date.now()}.pem`);
+    const tempFile = path.join(
+      _deps.os.tmpdir(),
+      `pkcs11-pubkey-${Date.now()}.pem`,
+    );
 
     try {
-      await execAsync(
+      await _deps.execAsync(
         `pkcs11-tool --login --pin "${this.currentPin}" --read-object --type pubkey -o "${tempFile}" 2>&1`,
         { timeout: 15000 },
       );
 
-      if (fs.existsSync(tempFile)) {
-        const keyData = fs.readFileSync(tempFile, "utf8");
+      if (_deps.fs.existsSync(tempFile)) {
+        const keyData = _deps.fs.readFileSync(tempFile, "utf8");
         this.publicKeyPEM = keyData;
         return keyData;
       }
@@ -940,7 +954,7 @@ class PKCS11Driver extends BaseUKeyDriver {
    * Sign using CLI
    */
   async signWithCLI(data) {
-    const tempDir = os.tmpdir();
+    const tempDir = _deps.os.tmpdir();
     const dataFile = path.join(tempDir, `pkcs11-sign-data-${Date.now()}.bin`);
     const sigFile = path.join(tempDir, `pkcs11-sign-sig-${Date.now()}.bin`);
 
@@ -950,19 +964,19 @@ class PKCS11Driver extends BaseUKeyDriver {
         ? data
         : Buffer.from(data, "utf8");
       const hash = crypto.createHash("sha256").update(dataBuffer).digest();
-      fs.writeFileSync(dataFile, hash);
+      _deps.fs.writeFileSync(dataFile, hash);
 
       // Sign using pkcs11-tool
-      await execAsync(
+      await _deps.execAsync(
         `pkcs11-tool --login --pin "${this.currentPin}" --sign --mechanism RSA-PKCS --input-file "${dataFile}" --output-file "${sigFile}" 2>&1`,
         { timeout: 30000 },
       );
 
-      if (!fs.existsSync(sigFile)) {
+      if (!_deps.fs.existsSync(sigFile)) {
         throw new Error("Signature file not created");
       }
 
-      const signature = fs.readFileSync(sigFile);
+      const signature = _deps.fs.readFileSync(sigFile);
       logger.info("[PKCS11Driver] CLI signature created");
       return signature.toString("base64");
     } finally {
@@ -1097,7 +1111,7 @@ class PKCS11Driver extends BaseUKeyDriver {
    * Encrypt using CLI tools (fallback)
    */
   async encryptWithCLI(data) {
-    const tempDir = os.tmpdir();
+    const tempDir = _deps.os.tmpdir();
     const pubKeyFile = path.join(tempDir, `pkcs11-pubkey-${Date.now()}.pem`);
     const dataFile = path.join(tempDir, `pkcs11-data-${Date.now()}.txt`);
     const encFile = path.join(tempDir, `pkcs11-enc-${Date.now()}.bin`);
@@ -1105,12 +1119,12 @@ class PKCS11Driver extends BaseUKeyDriver {
     try {
       // Step 1: Export public key from token
       logger.info("[PKCS11Driver] Exporting public key from token...");
-      await execAsync(
+      await _deps.execAsync(
         `pkcs11-tool --login --pin "${this.currentPin}" --read-object --type pubkey -o "${pubKeyFile}" 2>&1`,
         { timeout: 15000 },
       );
 
-      if (!fs.existsSync(pubKeyFile)) {
+      if (!_deps.fs.existsSync(pubKeyFile)) {
         throw new Error("Failed to export public key from token");
       }
 
@@ -1118,20 +1132,20 @@ class PKCS11Driver extends BaseUKeyDriver {
       const dataBuffer = Buffer.isBuffer(data)
         ? data
         : Buffer.from(data, "utf8");
-      fs.writeFileSync(dataFile, dataBuffer);
+      _deps.fs.writeFileSync(dataFile, dataBuffer);
 
       // Step 3: Encrypt using OpenSSL with RSA public key
       logger.info("[PKCS11Driver] Encrypting with OpenSSL...");
-      await execAsync(
+      await _deps.execAsync(
         `openssl pkeyutl -encrypt -pubin -inkey "${pubKeyFile}" -in "${dataFile}" -out "${encFile}" 2>&1`,
         { timeout: 15000 },
       );
 
-      if (!fs.existsSync(encFile)) {
+      if (!_deps.fs.existsSync(encFile)) {
         throw new Error("Encryption failed - no output file");
       }
 
-      const encryptedData = fs.readFileSync(encFile);
+      const encryptedData = _deps.fs.readFileSync(encFile);
       logger.info("[PKCS11Driver] CLI encryption successful");
       return encryptedData.toString("base64");
     } finally {
@@ -1190,27 +1204,27 @@ class PKCS11Driver extends BaseUKeyDriver {
    * Decrypt using CLI tools (fallback)
    */
   async decryptWithCLI(encryptedData) {
-    const tempDir = os.tmpdir();
+    const tempDir = _deps.os.tmpdir();
     const encFile = path.join(tempDir, `pkcs11-enc-${Date.now()}.bin`);
     const decFile = path.join(tempDir, `pkcs11-dec-${Date.now()}.txt`);
 
     try {
       // Step 1: Write encrypted data to temp file
       const encryptedBuffer = Buffer.from(encryptedData, "base64");
-      fs.writeFileSync(encFile, encryptedBuffer);
+      _deps.fs.writeFileSync(encFile, encryptedBuffer);
 
       // Step 2: Decrypt using pkcs11-tool with private key on token
       logger.info("[PKCS11Driver] Decrypting with pkcs11-tool...");
-      await execAsync(
+      await _deps.execAsync(
         `pkcs11-tool --login --pin "${this.currentPin}" --decrypt --mechanism RSA-PKCS --input-file "${encFile}" --output-file "${decFile}" 2>&1`,
         { timeout: 30000 },
       );
 
-      if (!fs.existsSync(decFile)) {
+      if (!_deps.fs.existsSync(decFile)) {
         throw new Error("Decryption failed - no output file");
       }
 
-      const decryptedData = fs.readFileSync(decFile, "utf8");
+      const decryptedData = _deps.fs.readFileSync(decFile, "utf8");
       logger.info("[PKCS11Driver] CLI decryption successful");
       return decryptedData;
     } finally {
@@ -1246,7 +1260,7 @@ class PKCS11Driver extends BaseUKeyDriver {
         return { success: true };
       } else {
         // CLI fallback
-        await execAsync(
+        await _deps.execAsync(
           `pkcs11-tool --change-pin --pin "${oldPin}" --new-pin "${newPin}" 2>&1`,
           { timeout: 15000 },
         );
@@ -1324,11 +1338,11 @@ class PKCS11Driver extends BaseUKeyDriver {
    */
   cleanupTempFile(filePath) {
     try {
-      if (fs.existsSync(filePath)) {
+      if (_deps.fs.existsSync(filePath)) {
         // Overwrite with zeros before deletion for security
-        const stats = fs.statSync(filePath);
-        fs.writeFileSync(filePath, Buffer.alloc(stats.size, 0));
-        fs.unlinkSync(filePath);
+        const stats = _deps.fs.statSync(filePath);
+        _deps.fs.writeFileSync(filePath, Buffer.alloc(stats.size, 0));
+        _deps.fs.unlinkSync(filePath);
       }
     } catch (e) {
       logger.warn(`[PKCS11Driver] Failed to cleanup ${filePath}:`, e.message);
@@ -1351,3 +1365,4 @@ class PKCS11Driver extends BaseUKeyDriver {
 }
 
 module.exports = PKCS11Driver;
+module.exports._deps = _deps;
