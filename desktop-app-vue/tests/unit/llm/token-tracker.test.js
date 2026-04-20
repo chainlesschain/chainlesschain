@@ -2,28 +2,6 @@
  * TokenTracker 单元测试
  * 测试目标: src/main/llm/token-tracker.js
  * 覆盖场景: Token追踪、成本计算、预算管理、使用统计
- *
- * ⚠️ LIMITATION: 部分测试跳过 - 数据库依赖限制
- *
- * 主要问题：
- * 1. Database方法(updateConversationStats, recordUsage等)依赖db.prepare()和stmt.run()
- * 2. 需要真实SQLite数据库连接才能测试
- * 3. fs模块用于导出报告，也是CommonJS
- *
- * 跳过的测试类别：
- * - updateConversationStats (依赖db.prepare()和stmt.run())
- * - recordUsage (依赖数据库INSERT)
- * - getUsageStats/getTimeSeriesData/getCostBreakdown (依赖数据库SELECT)
- * - getBudgetConfig/saveBudgetConfig (依赖数据库)
- * - exportCostReport (依赖fs.writeFileSync)
- *
- * ✅ 当前覆盖：
- * - PRICING_DATA常量 (6 tests)
- * - 构造函数 (5 tests)
- * - calculateCost纯函数 (10 tests)
- * - 边界情况 (3 tests)
- *
- * 测试结果: 23 passing, 10 skipped, 0 failing
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
@@ -77,11 +55,18 @@ describe("TokenTracker", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    // Mock database
+    // Mock database — better-sqlite3 style: db.prepare(...) returns stmt with run/get/all
+    const mockStmt = {
+      run: vi.fn(() => ({ changes: 1, lastInsertRowid: 1 })),
+      get: vi.fn(() => null),
+      all: vi.fn(() => []),
+    };
     mockDatabase = {
+      prepare: vi.fn(() => mockStmt),
       run: vi.fn(async () => ({ lastID: 1 })),
       get: vi.fn(async () => null),
       all: vi.fn(async () => []),
+      _stmt: mockStmt,
     };
 
     // Dynamic import
@@ -283,30 +268,40 @@ describe("TokenTracker", () => {
     });
   });
 
-  describe.skip("updateConversationStats", () => {
-    // TODO: Skipped - Database method that calls db.prepare() and stmt.run()
-    // Requires real SQLite database connection
-
+  describe("updateConversationStats", () => {
     beforeEach(() => {
       tokenTracker = new TokenTracker(mockDatabase);
     });
 
-    it("应该更新会话统计", () => {
+    it("应该通过 prepare/stmt.run 更新会话统计", () => {
       tokenTracker.updateConversationStats("conv1", 100, 50, 0.01, 0.072);
 
       expect(mockDatabase.prepare).toHaveBeenCalled();
+      expect(mockDatabase._stmt.run).toHaveBeenCalledWith(
+        100,
+        50,
+        0.01,
+        0.072,
+        "conv1",
+      );
+    });
+
+    it("捕获 DB 异常，不向外抛", () => {
+      mockDatabase.prepare.mockImplementationOnce(() => {
+        throw new Error("boom");
+      });
+      expect(() =>
+        tokenTracker.updateConversationStats("conv1", 1, 1, 0, 0),
+      ).not.toThrow();
     });
   });
 
-  describe.skip("recordUsage", () => {
-    // TODO: Skipped - Depends on database.run() which requires real DB connection
-    // Also depends on uuid generation and timestamp
-
+  describe("recordUsage", () => {
     beforeEach(() => {
       tokenTracker = new TokenTracker(mockDatabase);
     });
 
-    it("应该记录使用数据", async () => {
+    it("应该计算成本并通过 stmt.run 写入使用日志", async () => {
       await tokenTracker.recordUsage({
         provider: "openai",
         model: "gpt-4o",
@@ -315,56 +310,19 @@ describe("TokenTracker", () => {
         conversationId: "conv1",
       });
 
-      expect(mockDatabase.run).toHaveBeenCalled();
+      expect(mockDatabase.prepare).toHaveBeenCalled();
+      expect(mockDatabase._stmt.run).toHaveBeenCalled();
+      const args = mockDatabase._stmt.run.mock.calls[0];
+      expect(args).toContain("conv1");
+      expect(args).toContain("openai");
+      expect(args).toContain("gpt-4o");
     });
-  });
 
-  describe.skip("updateBudgetSpend", () => {
-    // TODO: Skipped - Depends on database operations
-
-    it("应该更新预算支出", async () => {});
-  });
-
-  describe.skip("checkBudgetAlerts", () => {
-    // TODO: Skipped - Depends on database getBudgetConfig
-
-    it("应该检查预算告警", async () => {});
-  });
-
-  describe.skip("getBudgetConfig", () => {
-    // TODO: Skipped - Depends on database.get()
-
-    it("应该获取预算配置", async () => {});
-  });
-
-  describe.skip("saveBudgetConfig", () => {
-    // TODO: Skipped - Depends on database.run()
-
-    it("应该保存预算配置", async () => {});
-  });
-
-  describe.skip("getUsageStats", () => {
-    // TODO: Skipped - Depends on database.get() with complex SQL
-
-    it("应该获取使用统计", async () => {});
-  });
-
-  describe.skip("getTimeSeriesData", () => {
-    // TODO: Skipped - Depends on database.all() with GROUP BY
-
-    it("应该获取时序数据", async () => {});
-  });
-
-  describe.skip("getCostBreakdown", () => {
-    // TODO: Skipped - Depends on database.all() with aggregations
-
-    it("应该获取成本分解", async () => {});
-  });
-
-  describe.skip("exportCostReport", () => {
-    // TODO: Skipped - Depends on fs.writeFileSync()
-
-    it("应该导出成本报告", async () => {});
+    it("缺少 provider 或 model 时应提前返回不写入 DB", async () => {
+      await tokenTracker.recordUsage({ inputTokens: 10, outputTokens: 5 });
+      expect(mockDatabase.prepare).not.toHaveBeenCalled();
+      expect(mockDatabase._stmt.run).not.toHaveBeenCalled();
+    });
   });
 
   describe("边界情况", () => {

@@ -226,9 +226,7 @@ describe("TextSplitter", () => {
     });
   });
 
-  describe.skip("_splitTextWithSeparator", () => {
-    // NOTE: Skipped to avoid OOM (Out Of Memory) issues when testing private methods with large text
-    // These tests would require generating large amounts of test data which can cause memory exhaustion
+  describe("_splitTextWithSeparator", () => {
     beforeEach(() => {
       splitter = new RecursiveCharacterTextSplitter();
     });
@@ -273,8 +271,7 @@ describe("TextSplitter", () => {
     });
   });
 
-  describe.skip("_mergeSplits", () => {
-    // NOTE: Skipped to avoid OOM (Out Of Memory) when testing with large datasets - private method tests
+  describe("_mergeSplits", () => {
     beforeEach(() => {
       splitter = new RecursiveCharacterTextSplitter({
         chunkSize: 20,
@@ -309,8 +306,7 @@ describe("TextSplitter", () => {
     });
   });
 
-  describe.skip("_forceSplit", () => {
-    // NOTE: Skipped to avoid OOM (Out Of Memory) when testing with large datasets - private method tests
+  describe("_forceSplit", () => {
     beforeEach(() => {
       splitter = new RecursiveCharacterTextSplitter({
         chunkSize: 10,
@@ -356,8 +352,7 @@ describe("TextSplitter", () => {
     });
   });
 
-  describe.skip("splitDocuments", () => {
-    // NOTE: Skipped to avoid OOM (Out Of Memory) when testing with large datasets
+  describe("splitDocuments", () => {
     beforeEach(() => {
       splitter = new RecursiveCharacterTextSplitter({
         chunkSize: 50,
@@ -404,8 +399,7 @@ describe("TextSplitter", () => {
     });
   });
 
-  describe.skip("createChunksWithOverlap", () => {
-    // NOTE: Skipped to avoid OOM (Out Of Memory) when testing with large datasets
+  describe("createChunksWithOverlap", () => {
     beforeEach(() => {
       splitter = new RecursiveCharacterTextSplitter({
         chunkSize: 50,
@@ -459,8 +453,7 @@ describe("TextSplitter", () => {
     });
   });
 
-  describe.skip("getChunkStats", () => {
-    // NOTE: Skipped to avoid OOM (Out Of Memory) when testing with large datasets
+  describe("getChunkStats", () => {
     beforeEach(() => {
       splitter = new RecursiveCharacterTextSplitter({
         chunkSize: 50,
@@ -545,8 +538,7 @@ describe("TextSplitter", () => {
     });
   });
 
-  describe.skip("错误处理和边界情况", () => {
-    // NOTE: Skipped to avoid OOM (Out Of Memory) when testing with large datasets
+  describe("错误处理和边界情况", () => {
     beforeEach(() => {
       splitter = new RecursiveCharacterTextSplitter();
     });
@@ -577,7 +569,7 @@ describe("TextSplitter", () => {
     });
 
     it("应该处理超长文本", () => {
-      const text = "a".repeat(2000); // Reduced from 10000 to avoid OOM
+      const text = "a".repeat(2000);
       const chunks = splitter.splitText(text);
 
       expect(chunks.length).toBeGreaterThan(1);
@@ -740,7 +732,7 @@ Content for section 2.`;
     });
   });
 
-  describe.skip("CodeTextSplitter - 分割代码", () => {
+  describe("CodeTextSplitter - 分割代码", () => {
     it("应该正确分割JavaScript代码", () => {
       const codeSplitter = new CodeTextSplitter("javascript", {
         chunkSize: 200,
@@ -797,13 +789,13 @@ def greet(name):
     });
   });
 
-  describe.skip("性能和优化", () => {
+  describe("性能和优化", () => {
     it("应该高效处理大文本", () => {
       splitter = new RecursiveCharacterTextSplitter({
         chunkSize: 500,
       });
 
-      const text = "Lorem ipsum ".repeat(100); // ~1.2KB - reduced to avoid OOM
+      const text = "Lorem ipsum ".repeat(100);
       const startTime = Date.now();
 
       const chunks = splitter.splitText(text);

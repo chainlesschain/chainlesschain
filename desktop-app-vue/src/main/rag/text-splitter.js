@@ -43,6 +43,15 @@ class RecursiveCharacterTextSplitter extends EventEmitter {
     if (!this.config.lengthFunction) {
       this.config.lengthFunction = (text) => text.length;
     }
+
+    // chunkOverlap >= chunkSize 会让 _forceSplit / 滑窗循环不推进，导致无限循环
+    if (this.config.chunkOverlap >= this.config.chunkSize) {
+      const clamped = Math.max(0, this.config.chunkSize - 1);
+      logger.warn(
+        `[TextSplitter] chunkOverlap (${this.config.chunkOverlap}) >= chunkSize (${this.config.chunkSize}); clamping to ${clamped}`,
+      );
+      this.config.chunkOverlap = clamped;
+    }
   }
 
   /**
@@ -203,7 +212,8 @@ class RecursiveCharacterTextSplitter extends EventEmitter {
         break;
       }
 
-      start = end - overlap;
+      // 保证每次循环 start 至少推进 1，防止 overlap 配置异常导致死循环
+      start = Math.max(end - overlap, start + 1);
     }
 
     return chunks;
@@ -263,7 +273,7 @@ class RecursiveCharacterTextSplitter extends EventEmitter {
           break;
         }
 
-        start = end - overlap;
+        start = Math.max(end - overlap, start + 1);
         index++;
       }
 
@@ -301,6 +311,9 @@ class RecursiveCharacterTextSplitter extends EventEmitter {
    */
   updateConfig(newConfig) {
     this.config = { ...this.config, ...newConfig };
+    if (this.config.chunkOverlap >= this.config.chunkSize) {
+      this.config.chunkOverlap = Math.max(0, this.config.chunkSize - 1);
+    }
     logger.info("[TextSplitter] 配置已更新:", this.config);
   }
 
