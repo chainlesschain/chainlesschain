@@ -1,0 +1,44 @@
+name: "Setup Node deps + platform rollup binary"
+description: "Install npm deps and the platform-correct @rollup/rollup-* native binary (fixes npm/cli#4828 on CI)"
+inputs:
+  working-directory:
+    description: "Directory to run npm install in"
+    required: false
+    default: "."
+  install-command:
+    description: "Primary install command (e.g. 'npm install --legacy-peer-deps' or 'npm ci')"
+    required: false
+    default: "npm install --legacy-peer-deps"
+  extra-packages:
+    description: "Space-separated extra npm packages to install alongside the rollup binary (e.g. 'electron-installer-debian')"
+    required: false
+    default: ""
+runs:
+  using: "composite"
+  steps:
+    - name: Install npm dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: ${{ inputs.install-command }}
+    - name: Install platform rollup binary + extras
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        EXTRA_PACKAGES: ${{ inputs.extra-packages }}
+      run: |
+        # Pick the rollup native binary for this runner.
+        # Workaround for https://github.com/npm/cli/issues/4828 — npm sometimes
+        # skips optional platform deps, leaving vite/vitest unable to resolve rollup.
+        case "${RUNNER_OS}-${RUNNER_ARCH}" in
+          Linux-X64)   pkg="@rollup/rollup-linux-x64-gnu" ;;
+          Windows-X64) pkg="@rollup/rollup-win32-x64-msvc" ;;
+          macOS-ARM64) pkg="@rollup/rollup-darwin-arm64" ;;
+          macOS-X64)   pkg="@rollup/rollup-darwin-x64" ;;
+          *)           pkg="" ;;
+        esac
+        packages="$pkg $EXTRA_PACKAGES"
+        packages=$(echo "$packages" | xargs) # trim
+        if [ -n "$packages" ]; then
+          echo "Installing: $packages"
+          npm install $packages --no-save --legacy-peer-deps || true
+        fi

@@ -38,19 +38,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies (workspace-aware)
-        shell: bash
-        run: |
-          npm install --legacy-peer-deps
-          # Workaround https://github.com/npm/cli/issues/4828 — force-install the
-          # platform-specific rollup binary so vite/vitest can resolve it on CI.
-          if [ "${{ runner.os }}" = "Linux" ]; then
-            npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
-          elif [ "${{ runner.os }}" = "Windows" ]; then
-            npm install @rollup/rollup-win32-x64-msvc --no-save --legacy-peer-deps || true
-          elif [ "${{ runner.os }}" = "macOS" ]; then
-            npm install @rollup/rollup-darwin-arm64 --no-save --legacy-peer-deps || true
-          fi
+      - name: Install dependencies
+        uses: ./.github/actions/setup-node-deps
 
       - name: Run TypeScript type check
         working-directory: ./desktop-app-vue
@@ -146,19 +135,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies (workspace-aware)
-        shell: bash
-        run: |
-          npm install --legacy-peer-deps
-          # Workaround https://github.com/npm/cli/issues/4828 — force-install the
-          # platform-specific rollup binary so vite/vitest can resolve it on CI.
-          if [ "${{ runner.os }}" = "Linux" ]; then
-            npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
-          elif [ "${{ runner.os }}" = "Windows" ]; then
-            npm install @rollup/rollup-win32-x64-msvc --no-save --legacy-peer-deps || true
-          elif [ "${{ runner.os }}" = "macOS" ]; then
-            npm install @rollup/rollup-darwin-arm64 --no-save --legacy-peer-deps || true
-          fi
+      - name: Install dependencies
+        uses: ./.github/actions/setup-node-deps
 
       - name: Run ESLint
         working-directory: ./desktop-app-vue
@@ -199,19 +177,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies (workspace-aware)
-        shell: bash
-        run: |
-          npm install --legacy-peer-deps
-          # Workaround https://github.com/npm/cli/issues/4828 — force-install the
-          # platform-specific rollup binary so vite/vitest can resolve it on CI.
-          if [ "${{ runner.os }}" = "Linux" ]; then
-            npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
-          elif [ "${{ runner.os }}" = "Windows" ]; then
-            npm install @rollup/rollup-win32-x64-msvc --no-save --legacy-peer-deps || true
-          elif [ "${{ runner.os }}" = "macOS" ]; then
-            npm install @rollup/rollup-darwin-arm64 --no-save --legacy-peer-deps || true
-          fi
+      - name: Install dependencies
+        uses: ./.github/actions/setup-node-deps
 
       - name: Build main process
         working-directory: ./desktop-app-vue
@@ -254,19 +221,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies (workspace-aware)
-        shell: bash
-        run: |
-          npm install --legacy-peer-deps
-          # Workaround https://github.com/npm/cli/issues/4828 — force-install the
-          # platform-specific rollup binary so vite/vitest can resolve it on CI.
-          if [ "${{ runner.os }}" = "Linux" ]; then
-            npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
-          elif [ "${{ runner.os }}" = "Windows" ]; then
-            npm install @rollup/rollup-win32-x64-msvc --no-save --legacy-peer-deps || true
-          elif [ "${{ runner.os }}" = "macOS" ]; then
-            npm install @rollup/rollup-darwin-arm64 --no-save --legacy-peer-deps || true
-          fi
+      - name: Install dependencies
+        uses: ./.github/actions/setup-node-deps
 
       - name: Run database tests
         working-directory: ./desktop-app-vue
@@ -298,19 +254,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies (workspace-aware)
-        shell: bash
-        run: |
-          npm install --legacy-peer-deps
-          # Workaround https://github.com/npm/cli/issues/4828 — force-install the
-          # platform-specific rollup binary so vite/vitest can resolve it on CI.
-          if [ "${{ runner.os }}" = "Linux" ]; then
-            npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
-          elif [ "${{ runner.os }}" = "Windows" ]; then
-            npm install @rollup/rollup-win32-x64-msvc --no-save --legacy-peer-deps || true
-          elif [ "${{ runner.os }}" = "macOS" ]; then
-            npm install @rollup/rollup-darwin-arm64 --no-save --legacy-peer-deps || true
-          fi
+      - name: Install dependencies
+        uses: ./.github/actions/setup-node-deps
 
       - name: Run all unit tests
         working-directory: ./desktop-app-vue

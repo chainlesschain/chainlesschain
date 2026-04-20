@@ -32,17 +32,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies (workspace-aware)
-        shell: bash
-        run: |
-          npm install --legacy-peer-deps
-          if [ "${{ runner.os }}" = "Linux" ]; then
-            npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
-          elif [ "${{ runner.os }}" = "macOS" ]; then
-            # macos-latest runner is arm64 — install only the matching binary (darwin-x64 fails EBADPLATFORM)
-            npm install @rollup/rollup-darwin-arm64 --no-save --legacy-peer-deps || true
-          elif [ "${{ runner.os }}" = "Windows" ]; then
-            npm install @rollup/rollup-win32-x64-msvc --no-save --legacy-peer-deps || true
-          fi
+        uses: ./.github/actions/setup-node-deps
 
       - name: Run unit tests
         working-directory: packages/cli
@@ -79,9 +69,7 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies (workspace-aware)
-        run: |
-          npm install --legacy-peer-deps
-          npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
+        uses: ./.github/actions/setup-node-deps
 
       - name: Dry-run publish
         working-directory: packages/cli
