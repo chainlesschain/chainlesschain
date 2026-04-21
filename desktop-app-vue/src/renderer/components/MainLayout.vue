@@ -986,46 +986,7 @@
     />
 
     <!-- 右键菜单 -->
-    <a-dropdown
-      v-model:open="contextMenuVisible"
-      :trigger="['contextmenu']"
-      :get-popup-container="() => document?.body ?? document?.documentElement"
-    >
-      <div
-        :style="{
-          position: 'fixed',
-          left: contextMenuPosition.x + 'px',
-          top: contextMenuPosition.y + 'px',
-          width: '1px',
-          height: '1px',
-        }"
-      />
-      <template #overlay>
-        <a-menu @click="contextMenuVisible = false">
-          <a-menu-item @click="toggleFavorite">
-            <StarFilled
-              v-if="
-                currentMenuItem && store.isFavoriteMenu(currentMenuItem.key)
-              "
-            />
-            <StarOutlined v-else />
-            {{
-              currentMenuItem && store.isFavoriteMenu(currentMenuItem.key)
-                ? "取消收藏"
-                : "添加收藏"
-            }}
-          </a-menu-item>
-          <a-menu-item @click="pinToTop">
-            <PushpinOutlined />
-            {{
-              currentMenuItem && store.isPinnedMenu(currentMenuItem.key)
-                ? "取消置顶"
-                : "置顶"
-            }}
-          </a-menu-item>
-        </a-menu>
-      </template>
-    </a-dropdown>
+    <SidebarContextMenu ref="contextMenuRef" />
   </a-layout>
 </template>
 
@@ -1086,7 +1047,6 @@ import {
   MailOutlined,
   BankOutlined,
   StarFilled,
-  PushpinOutlined,
   AndroidOutlined,
   LinkOutlined,
   MobileOutlined,
@@ -1110,6 +1070,7 @@ import LanguageSwitcher from "./LanguageSwitcher.vue";
 import NotificationCenter from "./social/NotificationCenter.vue";
 import DatabaseEncryptionStatus from "./DatabaseEncryptionStatus.vue";
 import VoiceCommandHandler from "./layout/VoiceCommandHandler.vue";
+import SidebarContextMenu from "./layout/SidebarContextMenu.vue";
 import CommandPalette from "./common/CommandPalette.vue";
 import DIDInvitationNotifier from "./DIDInvitationNotifier.vue";
 import { registerMenuCommands } from "../utils/keyboard-shortcuts";
@@ -1134,10 +1095,8 @@ const commandPaletteRef = ref(null);
 // 收藏管理对话框
 const showFavoriteManager = ref(false);
 
-// 右键菜单
-const contextMenuVisible = ref(false);
-const contextMenuPosition = ref({ x: 0, y: 0 });
-const currentMenuItem = ref(null);
+// 右键菜单引用
+const contextMenuRef = ref(null);
 
 const sidebarCollapsed = computed({
   get: () => store.sidebarCollapsed,
@@ -1620,68 +1579,19 @@ const handleQuickAccessClick = (item) => {
  * 显示右键菜单
  */
 const showContextMenu = (event, key) => {
-  event.preventDefault();
-  event.stopPropagation();
-
   const config = menuConfig[key];
   if (!config) {
     return;
   }
-
-  currentMenuItem.value = {
+  contextMenuRef.value?.show(event, {
     key,
     title: config.title,
     path: config.path,
     icon: getMenuIcon(key),
     query: config.query,
-  };
-
-  contextMenuPosition.value = {
-    x: event.clientX,
-    y: event.clientY,
-  };
-
-  contextMenuVisible.value = true;
+  });
 };
 
-/**
- * 切换收藏状态
- */
-const toggleFavorite = () => {
-  if (!currentMenuItem.value) {
-    return;
-  }
-
-  store.toggleFavoriteMenu(currentMenuItem.value);
-  contextMenuVisible.value = false;
-
-  message.success(
-    store.isFavoriteMenu(currentMenuItem.value.key)
-      ? "已添加到收藏"
-      : "已取消收藏",
-  );
-};
-
-/**
- * 置顶菜单
- */
-const pinToTop = () => {
-  if (!currentMenuItem.value) {
-    return;
-  }
-
-  if (store.isPinnedMenu(currentMenuItem.value.key)) {
-    store.unpinMenu(currentMenuItem.value.key);
-    message.success("已取消置顶");
-  } else {
-    store.pinMenu(currentMenuItem.value.key);
-    message.success("已置顶");
-  }
-
-  contextMenuVisible.value = false;
-};
-
-// 监听同步事件
 onMounted(async () => {
   // 初始化菜单数据
   store.initMenuData();
