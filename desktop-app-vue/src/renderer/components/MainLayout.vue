@@ -851,25 +851,7 @@
             </a-tooltip>
 
             <!-- 同步状态 -->
-            <a-tooltip :title="syncTooltip">
-              <a-button
-                type="text"
-                :loading="isSyncing"
-                @click="handleSyncClick"
-              >
-                <template v-if="!isSyncing">
-                  <SyncOutlined
-                    v-if="syncStatus === 'synced'"
-                    :style="{ color: '#52c41a' }"
-                  />
-                  <ExclamationCircleOutlined
-                    v-else-if="syncStatus === 'error'"
-                    :style="{ color: '#ff4d4f' }"
-                  />
-                  <CloudSyncOutlined v-else :style="{ color: '#1890ff' }" />
-                </template>
-              </a-button>
-            </a-tooltip>
+            <SyncStatusButton />
 
             <!-- 数据库加密状态 -->
             <DatabaseEncryptionStatus />
@@ -1092,7 +1074,6 @@ import {
   InboxOutlined,
   RobotOutlined,
   ExclamationCircleOutlined,
-  CloudSyncOutlined,
   ArrowLeftOutlined,
   AppstoreOutlined,
   NodeIndexOutlined,
@@ -1144,6 +1125,7 @@ import { usePluginMenus } from "../composables/usePluginExtensions";
 import PluginSlot from "./plugins/PluginSlot.vue";
 import FavoriteManagerModal from "./layout/FavoriteManagerModal.vue";
 import HeaderBreadcrumbs from "./layout/HeaderBreadcrumbs.vue";
+import SyncStatusButton from "./layout/SyncStatusButton.vue";
 
 const router = useRouter();
 const route = useRoute();
@@ -2053,25 +2035,6 @@ const handleVoiceCommand = (command) => {
   executeVoiceCommand(command);
 };
 
-// ==================== 同步状态管理 ====================
-
-const isSyncing = ref(false);
-const syncStatus = ref("synced"); // synced, error, pending
-const syncError = ref(null);
-
-const syncTooltip = computed(() => {
-  if (isSyncing.value) {
-    return "正在同步...";
-  }
-  if (syncStatus.value === "error") {
-    return "同步失败：" + (syncError.value || "未知错误");
-  }
-  if (syncStatus.value === "synced") {
-    return "已同步";
-  }
-  return "等待同步";
-});
-
 // ==================== 命令面板 ====================
 
 /**
@@ -2316,56 +2279,12 @@ onMounted(async () => {
 
   // 添加快捷键监听
   window.addEventListener("keydown", handleKeyboardShortcut);
-
-  if (window.electronAPI && window.electronAPI.sync) {
-    window.electronAPI.sync.onSyncStarted(() => {
-      isSyncing.value = true;
-      syncStatus.value = "pending";
-      syncError.value = null;
-    });
-
-    window.electronAPI.sync.onSyncCompleted(() => {
-      isSyncing.value = false;
-      syncStatus.value = "synced";
-      syncError.value = null;
-    });
-
-    window.electronAPI.sync.onSyncError((data) => {
-      isSyncing.value = false;
-      syncStatus.value = "error";
-      syncError.value = data.error || "同步失败";
-    });
-  }
 });
 
 onUnmounted(() => {
   // 移除快捷键监听
   window.removeEventListener("keydown", handleKeyboardShortcut);
 });
-
-// 手动触发同步
-const handleSyncClick = async () => {
-  if (isSyncing.value) {
-    return;
-  }
-
-  try {
-    isSyncing.value = true;
-    syncStatus.value = "pending";
-
-    await window.electronAPI.sync.incremental();
-
-    syncStatus.value = "synced";
-    message.success("同步完成");
-  } catch (error) {
-    logger.error("[MainLayout] 手动同步失败:", error);
-    syncStatus.value = "error";
-    syncError.value = error.message;
-    message.error("同步失败：" + error.message);
-  } finally {
-    isSyncing.value = false;
-  }
-};
 </script>
 
 <style scoped>
