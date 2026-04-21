@@ -120,13 +120,15 @@ jobs:
           # npm workspace leaves non-hoistable deps (e.g. handlebars) ONLY under
           # desktop-app-vue/node_modules/. Destroying that dir and symlinking to root
           # loses them — packaged app then fails with "Cannot find module 'handlebars'".
-          # cp -Rn = recursive + no-clobber: merge root hoisted into nested WITHOUT
-          # overwriting existing files (preserves conflict-resolution versions).
+          # rsync --ignore-existing = merge root hoisted into nested WITHOUT overwriting
+          # existing files (preserves conflict-resolution versions). Using rsync instead
+          # of cp -Rn because BSD cp -n (macOS) exits 1 when skipping existing files,
+          # aborting under bash -e. rsync --ignore-existing returns 0 consistently.
           # Remove workspace self-referencing symlink to prevent ELOOP during packaging.
           rm -f node_modules/chainlesschain-desktop-vue
           mkdir -p desktop-app-vue/node_modules
-          cp -Rn node_modules/. desktop-app-vue/node_modules/
-          # Rewrite @chainlesschain/* workspace symlinks: cp -Rn preserves their
+          rsync -a --ignore-existing node_modules/ desktop-app-vue/node_modules/
+          # Rewrite @chainlesschain/* workspace symlinks: rsync preserves their
           # RELATIVE targets (../../packages/*), which break when resolved from
           # desktop-app-vue/node_modules/. Replace with absolute paths.
           if [ -d desktop-app-vue/node_modules/@chainlesschain ]; then
@@ -204,13 +206,15 @@ jobs:
           # npm workspace leaves non-hoistable deps (e.g. handlebars) ONLY under
           # desktop-app-vue/node_modules/. Destroying that dir and symlinking to root
           # loses them — packaged app then fails with "Cannot find module 'handlebars'".
-          # cp -Rn = recursive + no-clobber: merge root hoisted into nested WITHOUT
-          # overwriting existing files (preserves conflict-resolution versions).
+          # rsync --ignore-existing = merge root hoisted into nested WITHOUT overwriting
+          # existing files (preserves conflict-resolution versions). Using rsync instead
+          # of cp -Rn because BSD cp -n (macOS) exits 1 when skipping existing files,
+          # aborting under bash -e. rsync --ignore-existing returns 0 consistently.
           # Remove workspace self-referencing symlink to prevent ELOOP during packaging.
           rm -f node_modules/chainlesschain-desktop-vue
           mkdir -p desktop-app-vue/node_modules
-          cp -Rn node_modules/. desktop-app-vue/node_modules/
-          # Rewrite @chainlesschain/* workspace symlinks: cp -Rn preserves their
+          rsync -a --ignore-existing node_modules/ desktop-app-vue/node_modules/
+          # Rewrite @chainlesschain/* workspace symlinks: rsync preserves their
           # RELATIVE targets (../../packages/*), which break when resolved from
           # desktop-app-vue/node_modules/. Replace with absolute paths.
           if [ -d desktop-app-vue/node_modules/@chainlesschain ]; then
