@@ -1,6 +1,9 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Terminal from '../components/Terminal.astro';
+import rootPkg from '../../../package.json';
+
+const PRODUCT_VERSION = rootPkg.productVersion;
 
 const templates = [
   { id: 'doc-convert', name: '文档格式转换', tools: 'pandoc · LibreOffice' },
@@ -122,7 +125,7 @@ const badges = [
     <div class="container-wide relative pt-20 pb-24 md:pt-28 md:pb-32">
       <div class="max-w-4xl">
         <div class="animate-fade-in flex items-center gap-3 mb-8">
-          <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> v5.0.2.43 · Evolution Edition</span>
+          <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> {PRODUCT_VERSION} · Evolution Edition</span>
           <span class="chip">CLI v0.156.2</span>
           <span class="chip">109 命令</span>
           <span class="chip">V6 Chat-First Shell</span>
@@ -556,7 +559,7 @@ const badges = [
     <div class="container-wide">
       <div class="max-w-3xl mb-14">
         <div class="chip mb-6">下载</div>
-        <h2 class="text-display-md md:text-5xl leading-tight">三端同源 · v5.0.2.43</h2>
+        <h2 class="text-display-md md:text-5xl leading-tight">三端同源 · {PRODUCT_VERSION}</h2>
       </div>
       <div class="grid md:grid-cols-3 gap-6">
         <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
@@ -566,7 +569,7 @@ const badges = [
           <p class="text-sm text-muted">支持 npm / yarn / pnpm / bun · 约 2MB</p>
         </div>
         <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
-          <div class="font-mono text-xs text-muted mb-3">DESKTOP · v5.0.2.43</div>
+          <div class="font-mono text-xs text-muted mb-3">DESKTOP · {PRODUCT_VERSION}</div>
           <h3 class="font-display text-2xl mb-3">桌面应用</h3>
           <div class="flex flex-wrap gap-2 mb-4">
             <a href="https://github.com/chainlesschain/chainlesschain/releases/latest" target="_blank" rel="noopener" class="chip hover:bg-ember hover:text-cream transition-colors">Windows</a>
@@ -576,7 +579,7 @@ const badges = [
           <p class="text-sm text-muted">Electron 39 · Vue 3.4 · 139 Skills</p>
         </div>
         <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
-          <div class="font-mono text-xs text-muted mb-3">MOBILE · v5.0.2.43</div>
+          <div class="font-mono text-xs text-muted mb-3">MOBILE · {PRODUCT_VERSION}</div>
           <h3 class="font-display text-2xl mb-3">Android</h3>
           <div class="flex flex-wrap gap-2 mb-4">
             <a href="https://github.com/chainlesschain/chainlesschain/releases/latest" target="_blank" rel="noopener" class="chip hover:bg-ember hover:text-cream transition-colors">APK</a>

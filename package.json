@@ -1,6 +1,7 @@
 {
   "name": "chainlesschain",
   "version": "0.37.8",
+  "productVersion": "v5.0.2.43",
   "description": "基于U盾和SIMKey的个人移动AI管理系统",
   "private": true,
   "workspaces": [

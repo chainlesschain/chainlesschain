@@ -360,7 +360,7 @@
           </a-tag>
         </a-descriptions-item>
         <a-descriptions-item label="版本">
-          <span style="color: var(--text-muted);">v5.0.2.43</span>
+          <span style="color: var(--text-muted);">{{ PRODUCT_VERSION }}</span>
         </a-descriptions-item>
       </a-descriptions>
     </a-card>
@@ -385,6 +385,7 @@ const chatStore = useChatStore()
 const dashboardStore = useDashboardStore()
 const cfg = window.__CC_CONFIG__ || {}
 const isProject = computed(() => cfg.mode === 'project')
+const PRODUCT_VERSION = typeof __PRODUCT_VERSION__ !== 'undefined' ? __PRODUCT_VERSION__ : 'vDev'
 const wsStatus = computed(() => ws.status)
 const loading = computed(() => dashboardStore.loading)
 const statusLog = computed(() => dashboardStore.statusLog)

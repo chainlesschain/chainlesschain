@@ -16,6 +16,17 @@ import { getInlineSource as getEnvelopeInlineSource } from "./web-ui-envelope.js
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// 产品版本标签统一从根 package.json 读取，避免多点漂移
+const PRODUCT_VERSION = (() => {
+  try {
+    const pkgPath = path.resolve(__dirname, "../../../../package.json");
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+    return pkg.productVersion || "vDev";
+  } catch {
+    return "vDev";
+  }
+})();
+
 // MIME type map for static file serving
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -483,7 +494,7 @@ function buildHtml({
         <div id="conn-dot"></div>
         <span id="conn-label">未连接</span>
       </div>
-      <span id="version-label">v5.0.2.43</span>
+      <span id="version-label">${PRODUCT_VERSION}</span>
     </div>
   </nav>
 

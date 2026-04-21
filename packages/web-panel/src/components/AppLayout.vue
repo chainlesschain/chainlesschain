@@ -158,7 +158,7 @@
             </a-tooltip>
           </div>
 
-          <span class="version-tag">v5.0.2.43</span>
+          <span class="version-tag">{{ PRODUCT_VERSION }}</span>
           <a-tag
             :color="wsStatus === 'connected' ? 'green' : wsStatus === 'connecting' ? 'orange' : 'red'"
             class="ws-tag"
@@ -199,6 +199,7 @@ const themeStore = useThemeStore()
 const collapsed = ref(false)
 const cfg = window.__CC_CONFIG__ || {}
 const isProject = computed(() => cfg.mode === 'project')
+const PRODUCT_VERSION = typeof __PRODUCT_VERSION__ !== 'undefined' ? __PRODUCT_VERSION__ : 'vDev'
 
 const currentTheme = computed(() => themeStore.current)
 const menuTheme    = computed(() => themeStore.config.vars['--menu-mode'])
