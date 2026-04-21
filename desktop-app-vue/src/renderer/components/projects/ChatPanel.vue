@@ -241,6 +241,7 @@ import {
   resolveProjectOutput,
   cleanForIPC,
 } from "./chatPanelUtils";
+import { useMemoryLeakGuard } from "@/composables/useMemoryLeakGuard";
 
 // 配置 marked 选项
 marked.setOptions({
@@ -322,59 +323,9 @@ const contextInfo = computed(() => {
 });
 
 // ============ 内存泄漏防护 ============
-// 🔥 跟踪所有需要清理的资源
-const activeTimers = ref([]); // 存储所有setTimeout/setInterval的ID
-const activeListeners = ref([]); // 存储所有事件监听器的清理函数
 // AI对话取消通过 project:cancelAiChat IPC 在主进程中实现
-
-/**
- * 安全的setTimeout包装器 - 自动跟踪并在组件卸载时清理
- * @param {Function} callback - 回调函数
- * @param {number} delay - 延迟时间（毫秒）
- * @returns {number} 定时器ID
- */
-const safeSetTimeout = (callback, delay) => {
-  const timerId = setTimeout(() => {
-    // 执行回调前，从跟踪列表中移除
-    const index = activeTimers.value.indexOf(timerId);
-    if (index > -1) {
-      activeTimers.value.splice(index, 1);
-    }
-    callback();
-  }, delay);
-
-  activeTimers.value.push(timerId);
-  return timerId;
-};
-
-/**
- * 安全的事件监听器注册 - 自动跟踪并在组件卸载时清理
- * @param {string} eventName - 事件名称
- * @param {Function} handler - 事件处理函数
- * @returns {Function} 清理函数
- */
-const safeRegisterListener = (eventName, handler) => {
-  window.electronAPI.project.on(eventName, handler);
-
-  const cleanup = () => {
-    window.electronAPI.project.off(eventName, handler);
-  };
-
-  activeListeners.value.push(cleanup);
-  return cleanup;
-};
-
-/**
- * 手动清理单个定时器
- * @param {number} timerId - 定时器ID
- */
-const clearSafeTimeout = (timerId) => {
-  clearTimeout(timerId);
-  const index = activeTimers.value.indexOf(timerId);
-  if (index > -1) {
-    activeTimers.value.splice(index, 1);
-  }
-};
+const { safeSetTimeout, safeRegisterListener, clearSafeTimeout } =
+  useMemoryLeakGuard("ChatPanel");
 
 // ============ 空状态相关函数 ============
 
@@ -3518,44 +3469,17 @@ onMounted(() => {
 });
 
 // 🔥 组件卸载时清理所有资源 - 防止内存泄漏
+// 定时器/监听器由 useMemoryLeakGuard 自动清理
 onUnmounted(() => {
   logger.info("[ChatPanel] 组件卸载，开始清理资源...");
 
-  // 0. 取消所有进行中的API调用
   if (window.electronAPI?.project?.cancelAiChat) {
     logger.info("[ChatPanel] 取消进行中的API请求");
     window.electronAPI.project.cancelAiChat().catch(() => {});
   }
 
-  // 1. 清理所有定时器
-  if (activeTimers.value.length > 0) {
-    logger.info(`[ChatPanel] 清理 ${activeTimers.value.length} 个定时器`);
-    activeTimers.value.forEach((timerId) => {
-      clearTimeout(timerId);
-    });
-    activeTimers.value = [];
-  }
-
-  // 2. 清理所有事件监听器
-  if (activeListeners.value.length > 0) {
-    logger.info(
-      `[ChatPanel] 清理 ${activeListeners.value.length} 个事件监听器`,
-    );
-    activeListeners.value.forEach((cleanup) => {
-      try {
-        cleanup();
-      } catch (error) {
-        logger.error("[ChatPanel] 清理监听器失败:", error);
-      }
-    });
-    activeListeners.value = [];
-  }
-
-  // 3. 清理思考状态
   thinkingState.show = false;
   thinkingState.streamingContent = "";
-
-  // 4. 清理消息引用
   messages.value = [];
 
   logger.info("[ChatPanel] 资源清理完成");
