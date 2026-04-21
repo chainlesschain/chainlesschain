@@ -33,6 +33,31 @@
       v-model:open="promptsPanelOpen"
       :prefill-text="promptsPrefill"
     />
+    <GitHooksPanel
+      v-model:open="gitHooksPanelOpen"
+      :prefill-text="gitHooksPrefill"
+    />
+    <KnowledgeGraphPanel
+      v-model:open="knowledgeGraphPanelOpen"
+      :prefill-text="knowledgeGraphPrefill"
+    />
+    <WorkflowDesignerPanel
+      v-model:open="workflowDesignerPanelOpen"
+      :prefill-text="workflowDesignerPrefill"
+    />
+    <EnterpriseDashboardPanel
+      v-model:open="enterpriseDashboardPanelOpen"
+      :prefill-text="enterpriseDashboardPrefill"
+    />
+    <CrossChainBridgePanel
+      v-model:open="crossChainBridgePanelOpen"
+      :prefill-text="crossChainBridgePrefill"
+    />
+    <WalletPanel v-model:open="walletPanelOpen" :prefill-text="walletPrefill" />
+    <AnalyticsDashboardPanel
+      v-model:open="analyticsDashboardPanelOpen"
+      :prefill-text="analyticsDashboardPrefill"
+    />
   </a-layout>
 </template>
 
@@ -42,7 +67,6 @@ import { useExtensionRegistryStore } from "../stores/extensionRegistry";
 import { useArtifactStore } from "../stores/artifacts";
 import { applyBrandTheme, clearBrandTheme } from "./theme-applier";
 import { registerSlashHandler } from "./slash-dispatch";
-import { message as antMessage } from "ant-design-vue";
 import "./widgets";
 import ShellSidebar from "./ShellSidebar.vue";
 import ConversationStream from "./ConversationStream.vue";
@@ -52,6 +76,13 @@ import ShellStatusBar from "./ShellStatusBar.vue";
 import CommandPalette from "./CommandPalette.vue";
 import AdminConsole from "./AdminConsole.vue";
 import PromptsPanel from "./PromptsPanel.vue";
+import GitHooksPanel from "./GitHooksPanel.vue";
+import KnowledgeGraphPanel from "./KnowledgeGraphPanel.vue";
+import WorkflowDesignerPanel from "./WorkflowDesignerPanel.vue";
+import EnterpriseDashboardPanel from "./EnterpriseDashboardPanel.vue";
+import CrossChainBridgePanel from "./CrossChainBridgePanel.vue";
+import WalletPanel from "./WalletPanel.vue";
+import AnalyticsDashboardPanel from "./AnalyticsDashboardPanel.vue";
 
 const sidebarCollapsed = ref(false);
 const artifactOpen = ref(false);
@@ -59,6 +90,20 @@ const paletteOpen = ref(false);
 const adminOpen = ref(false);
 const promptsPanelOpen = ref(false);
 const promptsPrefill = ref("");
+const gitHooksPanelOpen = ref(false);
+const gitHooksPrefill = ref("");
+const knowledgeGraphPanelOpen = ref(false);
+const knowledgeGraphPrefill = ref("");
+const workflowDesignerPanelOpen = ref(false);
+const workflowDesignerPrefill = ref("");
+const enterpriseDashboardPanelOpen = ref(false);
+const enterpriseDashboardPrefill = ref("");
+const crossChainBridgePanelOpen = ref(false);
+const crossChainBridgePrefill = ref("");
+const walletPanelOpen = ref(false);
+const walletPrefill = ref("");
+const analyticsDashboardPanelOpen = ref(false);
+const analyticsDashboardPrefill = ref("");
 
 const registry = useExtensionRegistryStore();
 const artifactStore = useArtifactStore();
@@ -114,71 +159,50 @@ onMounted(async () => {
   unregisterGitHooksHandler = registerSlashHandler(
     "builtin:openGitHooksPanel",
     ({ args }) => {
-      if (args) {
-        antMessage.info(`Git Hooks：${args}（完整面板将在后续迭代接入）`);
-      } else {
-        antMessage.info("Git Hooks 管理面板（完整面板将在后续迭代接入）");
-      }
+      gitHooksPrefill.value = args ?? "";
+      gitHooksPanelOpen.value = true;
     },
   );
   unregisterKnowledgeGraphHandler = registerSlashHandler(
     "builtin:openKnowledgeGraphPanel",
     ({ args }) => {
-      if (args) {
-        antMessage.info(`知识图谱：${args}（完整面板将在后续迭代接入）`);
-      } else {
-        antMessage.info("知识图谱面板（完整面板将在后续迭代接入）");
-      }
+      knowledgeGraphPrefill.value = args ?? "";
+      knowledgeGraphPanelOpen.value = true;
     },
   );
   unregisterWorkflowDesignerHandler = registerSlashHandler(
     "builtin:openWorkflowDesignerPanel",
     ({ args }) => {
-      if (args) {
-        antMessage.info(`工作流：${args}（完整设计器将在后续迭代接入）`);
-      } else {
-        antMessage.info("工作流设计器（完整设计器将在后续迭代接入）");
-      }
+      workflowDesignerPrefill.value = args ?? "";
+      workflowDesignerPanelOpen.value = true;
     },
   );
   unregisterEnterpriseDashboardHandler = registerSlashHandler(
     "builtin:openEnterpriseDashboardPanel",
     ({ args }) => {
-      if (args) {
-        antMessage.info(`企业仪表盘：${args}（完整面板将在后续迭代接入）`);
-      } else {
-        antMessage.info("企业仪表盘（完整面板将在后续迭代接入）");
-      }
+      enterpriseDashboardPrefill.value = args ?? "";
+      enterpriseDashboardPanelOpen.value = true;
     },
   );
   unregisterCrossChainBridgeHandler = registerSlashHandler(
     "builtin:openCrossChainBridgePanel",
     ({ args }) => {
-      if (args) {
-        antMessage.info(`跨链桥：${args}（完整面板将在后续迭代接入）`);
-      } else {
-        antMessage.info("跨链桥面板（完整面板将在后续迭代接入）");
-      }
+      crossChainBridgePrefill.value = args ?? "";
+      crossChainBridgePanelOpen.value = true;
     },
   );
   unregisterWalletHandler = registerSlashHandler(
     "builtin:openWalletPanel",
     ({ args }) => {
-      if (args) {
-        antMessage.info(`钱包：${args}（完整面板将在后续迭代接入）`);
-      } else {
-        antMessage.info("钱包面板（完整面板将在后续迭代接入）");
-      }
+      walletPrefill.value = args ?? "";
+      walletPanelOpen.value = true;
     },
   );
   unregisterAnalyticsDashboardHandler = registerSlashHandler(
     "builtin:openAnalyticsDashboardPanel",
     ({ args }) => {
-      if (args) {
-        antMessage.info(`高级分析：${args}（完整面板将在后续迭代接入）`);
-      } else {
-        antMessage.info("高级分析仪表盘（完整面板将在后续迭代接入）");
-      }
+      analyticsDashboardPrefill.value = args ?? "";
+      analyticsDashboardPanelOpen.value = true;
     },
   );
   await registry.refreshAll();
