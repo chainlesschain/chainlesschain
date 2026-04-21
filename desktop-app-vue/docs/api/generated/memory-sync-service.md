@@ -12,20 +12,20 @@
 const
 ```
 
-* MemorySyncService - 内存数据文件系统同步服务
- *
- * 负责将数据库中的数据同步到 .chainlesschain/ 文件系统目录，
- * 确保数据同时存在于数据库和文件系统中。
- *
- * 功能：
- * - 初始化时自动同步所有数据
- * - 定期后台同步
- * - 按类别同步（preferences, patterns, sessions, reports 等）
- * - 增量同步和全量同步
- *
- * @module memory-sync-service
- * @version 1.0.0
- * @since 2026-01-18
+- MemorySyncService - 内存数据文件系统同步服务
+-
+- 负责将数据库中的数据同步到 .chainlesschain/ 文件系统目录，
+- 确保数据同时存在于数据库和文件系统中。
+-
+- 功能：
+- - 初始化时自动同步所有数据
+- - 定期后台同步
+- - 按类别同步（preferences, patterns, sessions, reports 等）
+- - 增量同步和全量同步
+-
+- @module memory-sync-service
+- @version 1.0.0
+- @since 2026-01-18
 
 ---
 
@@ -35,7 +35,7 @@ const
 class MemorySyncService extends EventEmitter
 ```
 
-* MemorySyncService 类
+- MemorySyncService 类
 
 ---
 
@@ -45,18 +45,18 @@ class MemorySyncService extends EventEmitter
 constructor(options =
 ```
 
-* 创建同步服务实例
-   * @param {Object} options - 配置选项
-   * @param {Object} options.configManager - UnifiedConfigManager 实例
-   * @param {Object} [options.preferenceManager] - PreferenceManager 实例
-   * @param {Object} [options.learnedPatternManager] - LearnedPatternManager 实例
-   * @param {Object} [options.sessionManager] - SessionManager 实例
-   * @param {Object} [options.autoBackupManager] - AutoBackupManager 实例
-   * @param {Object} [options.usageReportGenerator] - UsageReportGenerator 实例
-   * @param {Object} [options.behaviorTracker] - BehaviorTracker 实例
-   * @param {Object} [options.contextAssociator] - ContextAssociator 实例
-   * @param {number} [options.syncInterval=300000] - 同步间隔（毫秒，默认5分钟）
-   * @param {boolean} [options.enablePeriodicSync=true] - 启用定期同步
+- 创建同步服务实例
+  - @param {Object} options - 配置选项
+  - @param {Object} options.configManager - UnifiedConfigManager 实例
+  - @param {Object} [options.preferenceManager] - PreferenceManager 实例
+  - @param {Object} [options.learnedPatternManager] - LearnedPatternManager 实例
+  - @param {Object} [options.sessionManager] - SessionManager 实例
+  - @param {Object} [options.autoBackupManager] - AutoBackupManager 实例
+  - @param {Object} [options.usageReportGenerator] - UsageReportGenerator 实例
+  - @param {Object} [options.behaviorTracker] - BehaviorTracker 实例
+  - @param {Object} [options.contextAssociator] - ContextAssociator 实例
+  - @param {number} [options.syncInterval=300000] - 同步间隔（毫秒，默认5分钟）
+  - @param {boolean} [options.enablePeriodicSync=true] - 启用定期同步
 
 ---
 
@@ -66,7 +66,7 @@ constructor(options =
 async initialize()
 ```
 
-* 初始化并执行首次同步
+- 初始化并执行首次同步
 
 ---
 
@@ -76,7 +76,7 @@ async initialize()
 async ensureDirectories()
 ```
 
-* 确保所有目录存在
+- 确保所有目录存在
 
 ---
 
@@ -86,8 +86,8 @@ async ensureDirectories()
 async syncAll()
 ```
 
-* 同步所有数据到文件系统
-   * @returns {Promise<Object>} 同步结果
+- 同步所有数据到文件系统
+  - @returns {Promise<Object>} 同步结果
 
 ---
 
@@ -97,7 +97,7 @@ async syncAll()
 async syncPreferences()
 ```
 
-* 同步偏好设置到文件系统
+- 同步偏好设置到文件系统
 
 ---
 
@@ -107,7 +107,7 @@ async syncPreferences()
 async syncPatterns()
 ```
 
-* 同步学习模式到文件系统
+- 同步学习模式到文件系统
 
 ---
 
@@ -117,7 +117,7 @@ async syncPatterns()
 async syncSessions()
 ```
 
-* 同步会话到文件系统
+- 同步会话到文件系统
 
 ---
 
@@ -127,7 +127,7 @@ async syncSessions()
 async syncBehaviors()
 ```
 
-* 同步行为数据到文件系统
+- 同步行为数据到文件系统
 
 ---
 
@@ -137,7 +137,7 @@ async syncBehaviors()
 async syncContexts()
 ```
 
-* 同步上下文关联到文件系统
+- 同步上下文关联到文件系统
 
 ---
 
@@ -147,27 +147,27 @@ async syncContexts()
 async generateSyncReport()
 ```
 
-* 生成同步报告
+- 生成同步报告
 
 ---
 
 ## startPeriodicSync()
 
 ```javascript
-startPeriodicSync()
+startPeriodicSync();
 ```
 
-* 启动定期同步
+- 启动定期同步
 
 ---
 
 ## stopPeriodicSync()
 
 ```javascript
-stopPeriodicSync()
+stopPeriodicSync();
 ```
 
-* 停止定期同步
+- 停止定期同步
 
 ---
 
@@ -177,41 +177,40 @@ stopPeriodicSync()
 async syncCategory(category)
 ```
 
-* 按类别同步
-   * @param {string} category - 类别名称
-   * @returns {Promise<Object>} 同步结果
+- 按类别同步
+  - @param {string} category - 类别名称
+  - @returns {Promise<Object>} 同步结果
 
 ---
 
 ## getStatus()
 
 ```javascript
-getStatus()
+getStatus();
 ```
 
-* 获取同步状态
-   * @returns {Object} 同步状态
+- 获取同步状态
+  - @returns {Object} 同步状态
 
 ---
 
 ## updateManagers(managers)
 
 ```javascript
-updateManagers(managers)
+updateManagers(managers);
 ```
 
-* 更新 Manager 引用
-   * @param {Object} managers - 新的 manager 引用
+- 更新 Manager 引用
+  - @param {Object} managers - 新的 manager 引用
 
 ---
 
 ## stop()
 
 ```javascript
-stop()
+stop();
 ```
 
-* 停止服务
+- 停止服务
 
 ---
-

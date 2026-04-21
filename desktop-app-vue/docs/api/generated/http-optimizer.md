@@ -12,48 +12,48 @@
 const
 ```
 
-* HTTP服务器性能优化模块
- * 优化请求处理、连接管理和响应速度
+- HTTP服务器性能优化模块
+- 优化请求处理、连接管理和响应速度
 
 ---
 
 ## checkRateLimit(clientId)
 
 ```javascript
-checkRateLimit(clientId)
+checkRateLimit(clientId);
 ```
 
-* 请求限流检查
+- 请求限流检查
 
 ---
 
 ## getCachedResponse(cacheKey)
 
 ```javascript
-getCachedResponse(cacheKey)
+getCachedResponse(cacheKey);
 ```
 
-* 响应缓存
+- 响应缓存
 
 ---
 
 ## cacheResponse(cacheKey, response)
 
 ```javascript
-cacheResponse(cacheKey, response)
+cacheResponse(cacheKey, response);
 ```
 
-* 保存响应到缓存
+- 保存响应到缓存
 
 ---
 
 ## generateCacheKey(method, path, body)
 
 ```javascript
-generateCacheKey(method, path, body)
+generateCacheKey(method, path, body);
 ```
 
-* 生成缓存键
+- 生成缓存键
 
 ---
 
@@ -63,17 +63,17 @@ generateCacheKey(method, path, body)
 async compressResponse(data)
 ```
 
-* 响应压缩
+- 响应压缩
 
 ---
 
 ## addToBatch(request)
 
 ```javascript
-addToBatch(request)
+addToBatch(request);
 ```
 
-* 批处理请求
+- 批处理请求
 
 ---
 
@@ -83,7 +83,7 @@ addToBatch(request)
 async processBatch()
 ```
 
-* 处理批处理队列
+- 处理批处理队列
 
 ---
 
@@ -93,77 +93,76 @@ async processBatch()
 async processRequest(request)
 ```
 
-* 处理单个请求（示例）
+- 处理单个请求（示例）
 
 ---
 
 ## acquireConnection(clientId)
 
 ```javascript
-acquireConnection(clientId)
+acquireConnection(clientId);
 ```
 
-* 连接池管理
+- 连接池管理
 
 ---
 
 ## releaseConnection(clientId)
 
 ```javascript
-releaseConnection(clientId)
+releaseConnection(clientId);
 ```
 
-* 释放连接
+- 释放连接
 
 ---
 
 ## cleanupIdleConnections()
 
 ```javascript
-cleanupIdleConnections()
+cleanupIdleConnections();
 ```
 
-* 清理空闲连接
+- 清理空闲连接
 
 ---
 
 ## recordRequestTime(time, success = true)
 
 ```javascript
-recordRequestTime(time, success = true)
+recordRequestTime(time, (success = true));
 ```
 
-* 记录请求时间
+- 记录请求时间
 
 ---
 
 ## getMetrics()
 
 ```javascript
-getMetrics()
+getMetrics();
 ```
 
-* 获取性能指标
+- 获取性能指标
 
 ---
 
 ## clearCache()
 
 ```javascript
-clearCache()
+clearCache();
 ```
 
-* 清理缓存
+- 清理缓存
 
 ---
 
 ## resetMetrics()
 
 ```javascript
-resetMetrics()
+resetMetrics();
 ```
 
-* 重置指标
+- 重置指标
 
 ---
-

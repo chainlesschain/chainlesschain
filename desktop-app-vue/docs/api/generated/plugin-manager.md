@@ -12,24 +12,24 @@
 const
 ```
 
-* PluginManager - 插件管理器（核心协调器）
- *
- * 职责：
- * - 插件生命周期管理（安装、加载、启用、禁用、卸载）
- * - 扩展点管理
- * - 插件间依赖解析
- * - 事件协调
+- PluginManager - 插件管理器（核心协调器）
+-
+- 职责：
+- - 插件生命周期管理（安装、加载、启用、禁用、卸载）
+- - 扩展点管理
+- - 插件间依赖解析
+- - 事件协调
 
 ---
 
 ## setSystemContext(context)
 
 ```javascript
-setSystemContext(context)
+setSystemContext(context);
 ```
 
-* 设置系统上下文（在initialize之前调用）
-   * @param {Object} context - 系统服务上下文
+- 设置系统上下文（在initialize之前调用）
+  - @param {Object} context - 系统服务上下文
 
 ---
 
@@ -39,29 +39,29 @@ setSystemContext(context)
 async initialize()
 ```
 
-* 初始化插件管理器
+- 初始化插件管理器
 
 ---
 
 ## registerBuiltInExtensionPoints()
 
 ```javascript
-registerBuiltInExtensionPoints()
+registerBuiltInExtensionPoints();
 ```
 
-* 注册内置扩展点
+- 注册内置扩展点
 
 ---
 
 ## registerExtensionPoint(name, handler)
 
 ```javascript
-registerExtensionPoint(name, handler)
+registerExtensionPoint(name, handler);
 ```
 
-* 注册扩展点
-   * @param {string} name - 扩展点名称
-   * @param {Function} handler - 处理函数
+- 注册扩展点
+  - @param {string} name - 扩展点名称
+  - @param {Function} handler - 处理函数
 
 ---
 
@@ -71,32 +71,32 @@ registerExtensionPoint(name, handler)
 async installPlugin(source, options =
 ```
 
-* 安装插件
-   * @param {string} source - 插件来源
-   * @param {Object} options - 选项
-   * @returns {Promise<Object>} 安装结果
+- 安装插件
+  - @param {string} source - 插件来源
+  - @param {Object} options - 选项
+  - @returns {Promise<Object>} 安装结果
 
 ---
 
 ## checkCompatibility(manifest)
 
 ```javascript
-checkCompatibility(manifest)
+checkCompatibility(manifest);
 ```
 
-* 检查兼容性
-   * @param {Object} manifest - 插件manifest
+- 检查兼容性
+  - @param {Object} manifest - 插件manifest
 
 ---
 
-## _getCurrentVersion()
+## \_getCurrentVersion()
 
 ```javascript
-_getCurrentVersion()
+_getCurrentVersion();
 ```
 
-* 获取当前应用版本
-   * @private
+- 获取当前应用版本
+  - @private
 
 ---
 
@@ -106,8 +106,8 @@ _getCurrentVersion()
 async resolveDependencies(manifest)
 ```
 
-* 解析依赖
-   * @param {Object} manifest - 插件manifest
+- 解析依赖
+  - @param {Object} manifest - 插件manifest
 
 ---
 
@@ -117,9 +117,9 @@ async resolveDependencies(manifest)
 async requestPermissions(manifest)
 ```
 
-* 请求权限授权
-   * @param {Object} manifest - 插件manifest
-   * @returns {Promise<boolean>} 是否授予
+- 请求权限授权
+  - @param {Object} manifest - 插件manifest
+  - @returns {Promise<boolean>} 是否授予
 
 ---
 
@@ -129,8 +129,8 @@ async requestPermissions(manifest)
 async loadPlugin(pluginId)
 ```
 
-* 加载插件（Phase 2实现 - 使用沙箱）
-   * @param {string} pluginId - 插件ID
+- 加载插件（Phase 2实现 - 使用沙箱）
+  - @param {string} pluginId - 插件ID
 
 ---
 
@@ -140,8 +140,8 @@ async loadPlugin(pluginId)
 async enablePlugin(pluginId)
 ```
 
-* 启用插件
-   * @param {string} pluginId - 插件ID
+- 启用插件
+  - @param {string} pluginId - 插件ID
 
 ---
 
@@ -151,8 +151,8 @@ async enablePlugin(pluginId)
 async disablePlugin(pluginId)
 ```
 
-* 禁用插件
-   * @param {string} pluginId - 插件ID
+- 禁用插件
+  - @param {string} pluginId - 插件ID
 
 ---
 
@@ -162,8 +162,8 @@ async disablePlugin(pluginId)
 async uninstallPlugin(pluginId)
 ```
 
-* 卸载插件
-   * @param {string} pluginId - 插件ID
+- 卸载插件
+  - @param {string} pluginId - 插件ID
 
 ---
 
@@ -173,21 +173,21 @@ async uninstallPlugin(pluginId)
 getPlugins(filters =
 ```
 
-* 获取所有插件
-   * @param {Object} filters - 过滤条件
-   * @returns {Array} 插件列表
+- 获取所有插件
+  - @param {Object} filters - 过滤条件
+  - @returns {Array} 插件列表
 
 ---
 
 ## getPlugin(pluginId)
 
 ```javascript
-getPlugin(pluginId)
+getPlugin(pluginId);
 ```
 
-* 获取单个插件信息
-   * @param {string} pluginId - 插件ID
-   * @returns {Object|null} 插件信息
+- 获取单个插件信息
+  - @param {string} pluginId - 插件ID
+  - @returns {Object|null} 插件信息
 
 ---
 
@@ -197,10 +197,10 @@ getPlugin(pluginId)
 async triggerExtensionPoint(name, context =
 ```
 
-* 触发扩展点
-   * @param {string} name - 扩展点名称
-   * @param {Object} context - 上下文
-   * @returns {Promise<Array>} 扩展点执行结果
+- 触发扩展点
+  - @param {string} name - 扩展点名称
+  - @param {Object} context - 上下文
+  - @returns {Promise<Array>} 扩展点执行结果
 
 ---
 
@@ -210,10 +210,10 @@ async triggerExtensionPoint(name, context =
 async handleUIPageExtension(context)
 ```
 
-* 处理UI页面扩展
-   * @param {Object} context - 扩展上下文
-   * @param {string} context.pluginId - 插件ID
-   * @param {Object} context.config - 页面配置
+- 处理UI页面扩展
+  - @param {Object} context - 扩展上下文
+  - @param {string} context.pluginId - 插件ID
+  - @param {Object} context.config - 页面配置
 
 ---
 
@@ -223,10 +223,10 @@ async handleUIPageExtension(context)
 async handleUIMenuExtension(context)
 ```
 
-* 处理UI菜单扩展
-   * @param {Object} context - 扩展上下文
-   * @param {string} context.pluginId - 插件ID
-   * @param {Object} context.config - 菜单配置
+- 处理UI菜单扩展
+  - @param {Object} context - 扩展上下文
+  - @param {string} context.pluginId - 插件ID
+  - @param {Object} context.config - 菜单配置
 
 ---
 
@@ -236,59 +236,59 @@ async handleUIMenuExtension(context)
 async handleUIComponentExtension(context)
 ```
 
-* 处理UI组件扩展
-   * @param {Object} context - 扩展上下文
-   * @param {string} context.pluginId - 插件ID
-   * @param {Object} context.config - 组件配置
+- 处理UI组件扩展
+  - @param {Object} context - 扩展上下文
+  - @param {string} context.pluginId - 插件ID
+  - @param {Object} context.config - 组件配置
 
 ---
 
 ## getRegisteredPages(pluginId = null)
 
 ```javascript
-getRegisteredPages(pluginId = null)
+getRegisteredPages((pluginId = null));
 ```
 
-* 获取所有注册的页面
-   * @param {string} pluginId - 可选，按插件ID过滤
-   * @returns {Array} 页面列表
+- 获取所有注册的页面
+  - @param {string} pluginId - 可选，按插件ID过滤
+  - @returns {Array} 页面列表
 
 ---
 
 ## getRegisteredMenus(position = null, pluginId = null)
 
 ```javascript
-getRegisteredMenus(position = null, pluginId = null)
+getRegisteredMenus((position = null), (pluginId = null));
 ```
 
-* 获取所有注册的菜单
-   * @param {string} position - 可选，按位置过滤 (sidebar/header/context)
-   * @param {string} pluginId - 可选，按插件ID过滤
-   * @returns {Array} 菜单列表
+- 获取所有注册的菜单
+  - @param {string} position - 可选，按位置过滤 (sidebar/header/context)
+  - @param {string} pluginId - 可选，按插件ID过滤
+  - @returns {Array} 菜单列表
 
 ---
 
 ## getRegisteredComponents(slot = null, pluginId = null)
 
 ```javascript
-getRegisteredComponents(slot = null, pluginId = null)
+getRegisteredComponents((slot = null), (pluginId = null));
 ```
 
-* 获取所有注册的组件
-   * @param {string} slot - 可选，按插槽过滤
-   * @param {string} pluginId - 可选，按插件ID过滤
-   * @returns {Array} 组件列表
+- 获取所有注册的组件
+  - @param {string} slot - 可选，按插槽过滤
+  - @param {string} pluginId - 可选，按插件ID过滤
+  - @returns {Array} 组件列表
 
 ---
 
 ## unregisterPluginUI(pluginId)
 
 ```javascript
-unregisterPluginUI(pluginId)
+unregisterPluginUI(pluginId);
 ```
 
-* 注销插件的所有UI扩展
-   * @param {string} pluginId - 插件ID
+- 注销插件的所有UI扩展
+  - @param {string} pluginId - 插件ID
 
 ---
 
@@ -298,8 +298,8 @@ unregisterPluginUI(pluginId)
 async registerPluginExtensions(pluginId)
 ```
 
-* 注册插件的扩展点
-   * @param {string} pluginId - 插件ID
+- 注册插件的扩展点
+  - @param {string} pluginId - 插件ID
 
 ---
 
@@ -309,20 +309,20 @@ async registerPluginExtensions(pluginId)
 async unregisterPluginExtensions(pluginId)
 ```
 
-* 注销插件的扩展点
-   * @param {string} pluginId - 插件ID
+- 注销插件的扩展点
+  - @param {string} pluginId - 插件ID
 
 ---
 
 ## getPluginPermissions(pluginId)
 
 ```javascript
-getPluginPermissions(pluginId)
+getPluginPermissions(pluginId);
 ```
 
-* 获取插件已授予的权限
-   * @param {string} pluginId
-   * @returns {Array}
+- 获取插件已授予的权限
+  - @param {string} pluginId
+  - @returns {Array}
 
 ---
 
@@ -332,21 +332,21 @@ getPluginPermissions(pluginId)
 async updatePluginPermission(pluginId, permission, granted)
 ```
 
-* 更新插件权限
-   * @param {string} pluginId
-   * @param {string} permission
-   * @param {boolean} granted
+- 更新插件权限
+  - @param {string} pluginId
+  - @param {string} permission
+  - @param {boolean} granted
 
 ---
 
 ## getPluginsDirectory()
 
 ```javascript
-getPluginsDirectory()
+getPluginsDirectory();
 ```
 
-* 获取插件目录
-   * @returns {string}
+- 获取插件目录
+  - @returns {string}
 
 ---
 
@@ -356,10 +356,10 @@ getPluginsDirectory()
 function getPluginManager(database, config)
 ```
 
-* 获取PluginManager单例
- * @param {Object} database - 数据库实例
- * @param {Object} config - 配置
- * @returns {PluginManager}
+- 获取PluginManager单例
+- @param {Object} database - 数据库实例
+- @param {Object} config - 配置
+- @returns {PluginManager}
 
 ---
 
@@ -369,8 +369,7 @@ function getPluginManager(database, config)
 function setPluginManager(manager)
 ```
 
-* 设置PluginManager单例
- * @param {PluginManager} manager - PluginManager实例
+- 设置PluginManager单例
+- @param {PluginManager} manager - PluginManager实例
 
 ---
-

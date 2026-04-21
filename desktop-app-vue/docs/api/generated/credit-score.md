@@ -12,38 +12,38 @@
 class CreditScoreManager extends EventEmitter
 ```
 
-* 信用评分管理器
- * 负责计算和管理用户信用评分
+- 信用评分管理器
+- 负责计算和管理用户信用评分
 
 ---
 
 ## initDatabase()
 
 ```javascript
-initDatabase()
+initDatabase();
 ```
 
-* 初始化数据库表
+- 初始化数据库表
 
 ---
 
 ## initUserCredit(userDid)
 
 ```javascript
-initUserCredit(userDid)
+initUserCredit(userDid);
 ```
 
-* 初始化用户信用记录
+- 初始化用户信用记录
 
 ---
 
 ## getUserCredit(userDid)
 
 ```javascript
-getUserCredit(userDid)
+getUserCredit(userDid);
 ```
 
-* 获取用户信用信息
+- 获取用户信用信息
 
 ---
 
@@ -53,17 +53,17 @@ getUserCredit(userDid)
 async calculateCreditScore(userDid)
 ```
 
-* 计算信用评分
+- 计算信用评分
 
 ---
 
 ## getCreditLevel(score)
 
 ```javascript
-getCreditLevel(score)
+getCreditLevel(score);
 ```
 
-* 根据分数获取信用等级
+- 根据分数获取信用等级
 
 ---
 
@@ -73,7 +73,7 @@ getCreditLevel(score)
 async onTransactionCompleted(userDid, transactionId, amount)
 ```
 
-* 更新信用记录（交易完成）
+- 更新信用记录（交易完成）
 
 ---
 
@@ -83,7 +83,7 @@ async onTransactionCompleted(userDid, transactionId, amount)
 async onTransactionCancelled(userDid, transactionId)
 ```
 
-* 更新信用记录（交易取消）
+- 更新信用记录（交易取消）
 
 ---
 
@@ -93,7 +93,7 @@ async onTransactionCancelled(userDid, transactionId)
 async onPositiveReview(userDid, reviewId, rating)
 ```
 
-* 更新信用记录（收到好评）
+- 更新信用记录（收到好评）
 
 ---
 
@@ -103,7 +103,7 @@ async onPositiveReview(userDid, reviewId, rating)
 async onNegativeReview(userDid, reviewId, rating)
 ```
 
-* 更新信用记录（收到差评）
+- 更新信用记录（收到差评）
 
 ---
 
@@ -113,7 +113,7 @@ async onNegativeReview(userDid, reviewId, rating)
 async onDisputeInitiated(userDid, disputeId)
 ```
 
-* 更新信用记录（发生纠纷）
+- 更新信用记录（发生纠纷）
 
 ---
 
@@ -123,7 +123,7 @@ async onDisputeInitiated(userDid, disputeId)
 async onDisputeResolved(userDid, disputeId, resolution)
 ```
 
-* 更新信用记录（纠纷解决）
+- 更新信用记录（纠纷解决）
 
 ---
 
@@ -133,7 +133,7 @@ async onDisputeResolved(userDid, disputeId, resolution)
 async onRefund(userDid, refundId)
 ```
 
-* 更新信用记录（退款）
+- 更新信用记录（退款）
 
 ---
 
@@ -143,7 +143,7 @@ async onRefund(userDid, refundId)
 async updateResponseTime(userDid, responseTime)
 ```
 
-* 更新响应时间
+- 更新响应时间
 
 ---
 
@@ -153,67 +153,67 @@ async updateResponseTime(userDid, responseTime)
 async addCreditRecord(userDid, eventType, eventId, scoreChange, reason)
 ```
 
-* 添加信用记录
+- 添加信用记录
 
 ---
 
 ## getCreditRecords(userDid, limit = 50)
 
 ```javascript
-getCreditRecords(userDid, limit = 50)
+getCreditRecords(userDid, (limit = 50));
 ```
 
-* 获取信用记录
+- 获取信用记录
 
 ---
 
 ## getCreditReport(userDid)
 
 ```javascript
-getCreditReport(userDid)
+getCreditReport(userDid);
 ```
 
-* 获取信用报告
+- 获取信用报告
 
 ---
 
 ## verifyCreditLevel(userDid, requiredLevel)
 
 ```javascript
-verifyCreditLevel(userDid, requiredLevel)
+verifyCreditLevel(userDid, requiredLevel);
 ```
 
-* 验证信用等级
+- 验证信用等级
 
 ---
 
 ## getLeaderboard(limit = 50)
 
 ```javascript
-getLeaderboard(limit = 50)
+getLeaderboard((limit = 50));
 ```
 
-* 获取信用排行榜
+- 获取信用排行榜
 
 ---
 
 ## createSnapshot(userDid)
 
 ```javascript
-createSnapshot(userDid)
+createSnapshot(userDid);
 ```
 
-* 创建信用快照
+- 创建信用快照
 
 ---
 
 ## getCreditTrend(userDid, days = 30)
 
 ```javascript
-getCreditTrend(userDid, days = 30)
+getCreditTrend(userDid, (days = 30));
 ```
 
-* 获取信用历史趋势
+- 获取信用历史趋势
 
 ---
 
@@ -223,7 +223,6 @@ getCreditTrend(userDid, days = 30)
 async recalculateAllScores()
 ```
 
-* 批量计算信用评分（定时任务）
+- 批量计算信用评分（定时任务）
 
 ---
-

@@ -12,8 +12,8 @@
 const fs = require("fs");
 ```
 
-* ChainlessChain Native Messaging Host
- * 浏览器扩展通过 Native Messaging 与桌面应用通信的桥梁
+- ChainlessChain Native Messaging Host
+- 浏览器扩展通过 Native Messaging 与桌面应用通信的桥梁
 
 ---
 
@@ -23,7 +23,7 @@ const fs = require("fs");
 function log(message)
 ```
 
-* 写日志
+- 写日志
 
 ---
 
@@ -33,10 +33,10 @@ function log(message)
 function readMessage()
 ```
 
-* 读取消息
- * Chrome Native Messaging 使用特殊的消息格式：
- * - 前 4 字节：消息长度（32位小端整数）
- * - 后续字节：JSON 消息内容
+- 读取消息
+- Chrome Native Messaging 使用特殊的消息格式：
+- - 前 4 字节：消息长度（32位小端整数）
+- - 后续字节：JSON 消息内容
 
 ---
 
@@ -46,7 +46,7 @@ function readMessage()
 function sendMessage(message)
 ```
 
-* 发送消息
+- 发送消息
 
 ---
 
@@ -56,7 +56,7 @@ function sendMessage(message)
 async function handleMessage(message)
 ```
 
-* 处理消息
+- 处理消息
 
 ---
 
@@ -66,8 +66,8 @@ async function handleMessage(message)
 async function clipPageToApp(data)
 ```
 
-* 剪藏页面到桌面应用
- * 通过 HTTP 请求或 IPC Socket 与主进程通信
+- 剪藏页面到桌面应用
+- 通过 HTTP 请求或 IPC Socket 与主进程通信
 
 ---
 
@@ -77,7 +77,6 @@ async function clipPageToApp(data)
 async function main()
 ```
 
-* 主函数
+- 主函数
 
 ---
-

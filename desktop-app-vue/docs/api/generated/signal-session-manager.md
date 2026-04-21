@@ -12,17 +12,17 @@
 const
 ```
 
-* Signal 协议会话管理器
- *
- * 实现端到端加密的消息通信
- * 基于 Signal 协议 (X3DH + Double Ratchet)
- *
- * 核心功能：
- * - 身份密钥管理
- * - 预密钥生成和管理
- * - 会话建立 (X3DH 密钥协商)
- * - 消息加密/解密 (Double Ratchet)
- * - 会话持久化
+- Signal 协议会话管理器
+-
+- 实现端到端加密的消息通信
+- 基于 Signal 协议 (X3DH + Double Ratchet)
+-
+- 核心功能：
+- - 身份密钥管理
+- - 预密钥生成和管理
+- - 会话建立 (X3DH 密钥协商)
+- - 消息加密/解密 (Double Ratchet)
+- - 会话持久化
 
 ---
 
@@ -32,7 +32,7 @@ const
 class SignalSessionManager extends EventEmitter
 ```
 
-* Signal 会话管理器类
+- Signal 会话管理器类
 
 ---
 
@@ -42,7 +42,7 @@ class SignalSessionManager extends EventEmitter
 async initialize()
 ```
 
-* 初始化 Signal 会话管理器
+- 初始化 Signal 会话管理器
 
 ---
 
@@ -52,7 +52,7 @@ async initialize()
 async loadSignalLibrary()
 ```
 
-* 加载 Signal 协议库
+- 加载 Signal 协议库
 
 ---
 
@@ -62,7 +62,7 @@ async loadSignalLibrary()
 async loadOrGenerateIdentity()
 ```
 
-* 加载或生成身份
+- 加载或生成身份
 
 ---
 
@@ -72,7 +72,7 @@ async loadOrGenerateIdentity()
 async generateIdentity()
 ```
 
-* 生成新身份
+- 生成新身份
 
 ---
 
@@ -82,7 +82,7 @@ async generateIdentity()
 async generatePreKeys()
 ```
 
-* 生成预密钥
+- 生成预密钥
 
 ---
 
@@ -92,8 +92,8 @@ async generatePreKeys()
 async getPreKeyBundle()
 ```
 
-* 获取预密钥包 (Pre Key Bundle)
-   * 用于建立新会话
+- 获取预密钥包 (Pre Key Bundle)
+  - 用于建立新会话
 
 ---
 
@@ -103,22 +103,22 @@ async getPreKeyBundle()
 async processPreKeyBundle(recipientId, deviceId, preKeyBundle)
 ```
 
-* 处理预密钥包并建立会话
-   * @param {string} recipientId - 接收者 ID
-   * @param {number} deviceId - 设备 ID
-   * @param {Object} preKeyBundle - 预密钥包
+- 处理预密钥包并建立会话
+  - @param {string} recipientId - 接收者 ID
+  - @param {number} deviceId - 设备 ID
+  - @param {Object} preKeyBundle - 预密钥包
 
 ---
 
 ## ensureArrayBuffer(data)
 
 ```javascript
-ensureArrayBuffer(data)
+ensureArrayBuffer(data);
 ```
 
-* 确保数据是 ArrayBuffer 格式
-   * @param {*} data - 输入数据
-   * @returns {ArrayBuffer} ArrayBuffer
+- 确保数据是 ArrayBuffer 格式
+  - @param {\*} data - 输入数据
+  - @returns {ArrayBuffer} ArrayBuffer
 
 ---
 
@@ -128,10 +128,10 @@ ensureArrayBuffer(data)
 async encryptMessage(recipientId, deviceId, plaintext)
 ```
 
-* 加密消息
-   * @param {string} recipientId - 接收者 ID
-   * @param {number} deviceId - 设备 ID
-   * @param {string|Buffer|ArrayBuffer} plaintext - 明文消息
+- 加密消息
+  - @param {string} recipientId - 接收者 ID
+  - @param {number} deviceId - 设备 ID
+  - @param {string|Buffer|ArrayBuffer} plaintext - 明文消息
 
 ---
 
@@ -141,10 +141,10 @@ async encryptMessage(recipientId, deviceId, plaintext)
 async decryptMessage(senderId, deviceId, ciphertext)
 ```
 
-* 解密消息
-   * @param {string} senderId - 发送者 ID
-   * @param {number} deviceId - 设备 ID
-   * @param {Object} ciphertext - 密文消息
+- 解密消息
+  - @param {string} senderId - 发送者 ID
+  - @param {number} deviceId - 设备 ID
+  - @param {Object} ciphertext - 密文消息
 
 ---
 
@@ -154,9 +154,9 @@ async decryptMessage(senderId, deviceId, ciphertext)
 async hasSession(recipientId, deviceId)
 ```
 
-* 检查是否存在会话
-   * @param {string} recipientId - 接收者 ID
-   * @param {number} deviceId - 设备 ID
+- 检查是否存在会话
+  - @param {string} recipientId - 接收者 ID
+  - @param {number} deviceId - 设备 ID
 
 ---
 
@@ -166,9 +166,9 @@ async hasSession(recipientId, deviceId)
 async deleteSession(recipientId, deviceId)
 ```
 
-* 删除会话
-   * @param {string} recipientId - 接收者 ID
-   * @param {number} deviceId - 设备 ID
+- 删除会话
+  - @param {string} recipientId - 接收者 ID
+  - @param {number} deviceId - 设备 ID
 
 ---
 
@@ -178,31 +178,31 @@ async deleteSession(recipientId, deviceId)
 async getSessions()
 ```
 
-* 获取所有会话列表
+- 获取所有会话列表
 
 ---
 
 ## arrayBufferFromObject(obj)
 
 ```javascript
-arrayBufferFromObject(obj)
+arrayBufferFromObject(obj);
 ```
 
-* 从 JSON 对象重建 ArrayBuffer
-   * @param {Object} obj - JSON 对象 (可能是 { type: 'Buffer', data: [...] } 或数组)
-   * @returns {ArrayBuffer} ArrayBuffer
+- 从 JSON 对象重建 ArrayBuffer
+  - @param {Object} obj - JSON 对象 (可能是 { type: 'Buffer', data: [...] } 或数组)
+  - @returns {ArrayBuffer} ArrayBuffer
 
 ---
 
 ## toUint8Array(data)
 
 ```javascript
-toUint8Array(data)
+toUint8Array(data);
 ```
 
-* 将 ArrayBuffer 转换为 Uint8Array（Signal library 期望的格式）
-   * @param {ArrayBuffer|Uint8Array|Buffer} data - 输入数据
-   * @returns {Uint8Array} Uint8Array
+- 将 ArrayBuffer 转换为 Uint8Array（Signal library 期望的格式）
+  - @param {ArrayBuffer|Uint8Array|Buffer} data - 输入数据
+  - @returns {Uint8Array} Uint8Array
 
 ---
 
@@ -212,7 +212,7 @@ toUint8Array(data)
 async close()
 ```
 
-* 关闭会话管理器
+- 关闭会话管理器
 
 ---
 
@@ -222,8 +222,7 @@ async close()
 class LocalSignalProtocolStore
 ```
 
-* Signal Protocol Store 实现
- * 存储会话、身份密钥、预密钥等
+- Signal Protocol Store 实现
+- 存储会话、身份密钥、预密钥等
 
 ---
-

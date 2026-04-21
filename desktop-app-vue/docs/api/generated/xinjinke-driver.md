@@ -12,31 +12,31 @@
 class XinJinKeDriver extends BaseUKeyDriver
 ```
 
-* 芯劲科U盾加密狗驱动
- *
- * 基于芯劲科开发文档实现
- * 支持以下功能：
- * - 密码验证（MD5加密）
- * - 读写扇区/簇数据（AES 256加密）
- * - 获取唯一序列号
- * - 获取可用空间
- *
- * 技术规格：
- * - 密码：增强型MD5 + AES 256位加密
- * - 数据：AES 256位加密存储
- * - 扇区：512字节
- * - 簇：4096字节（8个扇区）
- * - 存储空间：1-6MB
+- 芯劲科U盾加密狗驱动
+-
+- 基于芯劲科开发文档实现
+- 支持以下功能：
+- - 密码验证（MD5加密）
+- - 读写扇区/簇数据（AES 256加密）
+- - 获取唯一序列号
+- - 获取可用空间
+-
+- 技术规格：
+- - 密码：增强型MD5 + AES 256位加密
+- - 数据：AES 256位加密存储
+- - 扇区：512字节
+- - 簇：4096字节（8个扇区）
+- - 存储空间：1-6MB
 
 ---
 
 ## findDllPath()
 
 ```javascript
-findDllPath()
+findDllPath();
 ```
 
-* 查找DLL路径
+- 查找DLL路径
 
 ---
 
@@ -46,7 +46,7 @@ findDllPath()
 async initialize()
 ```
 
-* 初始化驱动
+- 初始化驱动
 
 ---
 
@@ -56,7 +56,7 @@ async initialize()
 async detect()
 ```
 
-* 检测U盾设备
+- 检测U盾设备
 
 ---
 
@@ -66,7 +66,7 @@ async detect()
 async findRemovableDrives()
 ```
 
-* 查找可移动磁盘
+- 查找可移动磁盘
 
 ---
 
@@ -76,12 +76,11 @@ async findRemovableDrives()
 async verifyPIN(pin)
 ```
 
-* 验证PIN码
-   *
-   * 根据文档：
-   * - 使用增强型MD5加密
-   * - 存储时增加AES 256位加密
-   * - 默认密码：888888
+- ## 验证PIN码
+  - 根据文档：
+  - - 使用增强型MD5加密
+  - - 存储时增加AES 256位加密
+  - - 默认密码：888888
 
 ---
 
@@ -91,7 +90,7 @@ async verifyPIN(pin)
 async callNativeFunction(funcName, ...args)
 ```
 
-* 调用原生DLL函数（带模拟fallback）
+- 调用原生DLL函数（带模拟fallback）
 
 ---
 
@@ -101,9 +100,8 @@ async callNativeFunction(funcName, ...args)
 async sign(data)
 ```
 
-* 数字签名
-   *
-   * 使用U盾存储的密钥进行签名
+- ## 数字签名
+  - 使用U盾存储的密钥进行签名
 
 ---
 
@@ -113,7 +111,7 @@ async sign(data)
 async verifySignature(data, signature)
 ```
 
-* 验证签名
+- 验证签名
 
 ---
 
@@ -123,7 +121,7 @@ async verifySignature(data, signature)
 async encrypt(data)
 ```
 
-* 加密数据
+- 加密数据
 
 ---
 
@@ -133,7 +131,7 @@ async encrypt(data)
 async decrypt(encryptedData)
 ```
 
-* 解密数据
+- 解密数据
 
 ---
 
@@ -143,12 +141,11 @@ async decrypt(encryptedData)
 async readSector(sectorNumber)
 ```
 
-* 读取扇区
-   *
-   * 根据文档：
-   * - 每个扇区512字节
-   * - 扇区从0开始编号
-   * - 函数：xjkReadSector
+- ## 读取扇区
+  - 根据文档：
+  - - 每个扇区512字节
+  - - 扇区从0开始编号
+  - - 函数：xjkReadSector
 
 ---
 
@@ -158,11 +155,10 @@ async readSector(sectorNumber)
 async writeSector(sectorNumber, data)
 ```
 
-* 写入扇区
-   *
-   * 根据文档：
-   * - 每个扇区512字节
-   * - 函数：xjkWriteSector
+- ## 写入扇区
+  - 根据文档：
+  - - 每个扇区512字节
+  - - 函数：xjkWriteSector
 
 ---
 
@@ -172,11 +168,10 @@ async writeSector(sectorNumber, data)
 async readCluster(clusterNumber)
 ```
 
-* 读取簇
-   *
-   * 根据文档：
-   * - 每个簇4096字节（8个扇区）
-   * - 函数：xjkReadCluster
+- ## 读取簇
+  - 根据文档：
+  - - 每个簇4096字节（8个扇区）
+  - - 函数：xjkReadCluster
 
 ---
 
@@ -186,7 +181,7 @@ async readCluster(clusterNumber)
 async writeCluster(clusterNumber, data)
 ```
 
-* 写入簇
+- 写入簇
 
 ---
 
@@ -196,12 +191,11 @@ async writeCluster(clusterNumber, data)
 async changePassword(oldPassword, newPassword)
 ```
 
-* 更改密码
-   *
-   * 根据文档：
-   * - 函数：xjkChangePwd
-   * - 新密码长度<=200
-   * - 密码忘记后无法恢复！
+- ## 更改密码
+  - 根据文档：
+  - - 函数：xjkChangePwd
+  - - 新密码长度<=200
+  - - 密码忘记后无法恢复！
 
 ---
 
@@ -211,7 +205,7 @@ async changePassword(oldPassword, newPassword)
 async getPublicKey()
 ```
 
-* 获取公钥（生成用于外部验证）
+- 获取公钥（生成用于外部验证）
 
 ---
 
@@ -221,7 +215,7 @@ async getPublicKey()
 async getDeviceInfo()
 ```
 
-* 获取设备信息
+- 获取设备信息
 
 ---
 
@@ -231,17 +225,16 @@ async getDeviceInfo()
 async close()
 ```
 
-* 关闭驱动
+- 关闭驱动
 
 ---
 
 ## getDriverName()
 
 ```javascript
-getDriverName()
+getDriverName();
 ```
 
-* 获取驱动名称
+- 获取驱动名称
 
 ---
-

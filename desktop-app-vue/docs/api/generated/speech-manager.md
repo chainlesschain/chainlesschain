@@ -12,10 +12,10 @@
 const
 ```
 
-* 语音识别管理器
- *
- * 统一管理所有语音识别相关功能
- * 协调各子模块：配置、音频处理、识别引擎、存储
+- 语音识别管理器
+-
+- 统一管理所有语音识别相关功能
+- 协调各子模块：配置、音频处理、识别引擎、存储
 
 ---
 
@@ -25,9 +25,9 @@ const
 class SpeechManager extends EventEmitter
 ```
 
-* 语音识别管理器类
- *
- * 支持依赖注入以提高可测试性
+- 语音识别管理器类
+-
+- 支持依赖注入以提高可测试性
 
 ---
 
@@ -37,29 +37,28 @@ class SpeechManager extends EventEmitter
 async initialize()
 ```
 
-* 初始化管理器
-   *
-   * 使用依赖注入的类来创建实例，提高可测试性
+- ## 初始化管理器
+  - 使用依赖注入的类来创建实例，提高可测试性
 
 ---
 
 ## setupProcessorEvents()
 
 ```javascript
-setupProcessorEvents()
+setupProcessorEvents();
 ```
 
-* 设置音频处理器事件转发
+- 设置音频处理器事件转发
 
 ---
 
 ## setupRealtimeEvents()
 
 ```javascript
-setupRealtimeEvents()
+setupRealtimeEvents();
 ```
 
-* 设置实时语音输入事件转发
+- 设置实时语音输入事件转发
 
 ---
 
@@ -69,10 +68,10 @@ setupRealtimeEvents()
 async transcribeFile(filePath, options =
 ```
 
-* 转录单个音频文件
-   * @param {string} filePath - 音频文件路径
-   * @param {Object} options - 转录选项
-   * @returns {Promise<Object>}
+- 转录单个音频文件
+  - @param {string} filePath - 音频文件路径
+  - @param {Object} options - 转录选项
+  - @returns {Promise<Object>}
 
 ---
 
@@ -82,10 +81,10 @@ async transcribeFile(filePath, options =
 async transcribeBatch(filePaths, options =
 ```
 
-* 批量转录音频文件
-   * @param {Array} filePaths - 音频文件路径列表
-   * @param {Object} options - 转录选项
-   * @returns {Promise<Array>}
+- 批量转录音频文件
+  - @param {Array} filePaths - 音频文件路径列表
+  - @param {Object} options - 转录选项
+  - @returns {Promise<Array>}
 
 ---
 
@@ -95,7 +94,7 @@ async transcribeBatch(filePaths, options =
 async getConfig()
 ```
 
-* 获取配置
+- 获取配置
 
 ---
 
@@ -105,7 +104,7 @@ async getConfig()
 async updateConfig(newConfig)
 ```
 
-* 更新配置
+- 更新配置
 
 ---
 
@@ -115,7 +114,7 @@ async updateConfig(newConfig)
 async setEngine(engineType)
 ```
 
-* 设置识别引擎
+- 设置识别引擎
 
 ---
 
@@ -125,7 +124,7 @@ async setEngine(engineType)
 async getAvailableEngines()
 ```
 
-* 获取可用引擎列表
+- 获取可用引擎列表
 
 ---
 
@@ -135,7 +134,7 @@ async getAvailableEngines()
 async getHistory(limit = 100, offset = 0)
 ```
 
-* 获取转录历史
+- 获取转录历史
 
 ---
 
@@ -145,7 +144,7 @@ async getHistory(limit = 100, offset = 0)
 async searchHistory(query, options =
 ```
 
-* 搜索转录历史
+- 搜索转录历史
 
 ---
 
@@ -155,7 +154,7 @@ async searchHistory(query, options =
 async deleteHistory(id)
 ```
 
-* 删除转录历史
+- 删除转录历史
 
 ---
 
@@ -165,7 +164,7 @@ async deleteHistory(id)
 async getAudioFile(id)
 ```
 
-* 获取音频文件
+- 获取音频文件
 
 ---
 
@@ -175,7 +174,7 @@ async getAudioFile(id)
 async listAudioFiles(options =
 ```
 
-* 列出所有音频文件
+- 列出所有音频文件
 
 ---
 
@@ -185,7 +184,7 @@ async listAudioFiles(options =
 async searchAudioFiles(query, options =
 ```
 
-* 搜索音频文件
+- 搜索音频文件
 
 ---
 
@@ -195,7 +194,7 @@ async searchAudioFiles(query, options =
 async deleteAudioFile(id)
 ```
 
-* 删除音频文件
+- 删除音频文件
 
 ---
 
@@ -205,7 +204,7 @@ async deleteAudioFile(id)
 async getStats(userId = "local-user")
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
 
@@ -215,11 +214,11 @@ async getStats(userId = "local-user")
 async denoiseAudio(inputPath, outputPath, options =
 ```
 
-* 音频降噪
-   * @param {string} inputPath - 输入音频路径
-   * @param {string} outputPath - 输出音频路径
-   * @param {Object} options - 降噪选项
-   * @returns {Promise<Object>}
+- 音频降噪
+  - @param {string} inputPath - 输入音频路径
+  - @param {string} outputPath - 输出音频路径
+  - @param {Object} options - 降噪选项
+  - @returns {Promise<Object>}
 
 ---
 
@@ -229,11 +228,11 @@ async denoiseAudio(inputPath, outputPath, options =
 async enhanceAudio(inputPath, outputPath, options =
 ```
 
-* 音频增强（综合处理：降噪+归一化+均衡）
-   * @param {string} inputPath - 输入音频路径
-   * @param {string} outputPath - 输出音频路径
-   * @param {Object} options - 增强选项
-   * @returns {Promise<Object>}
+- 音频增强（综合处理：降噪+归一化+均衡）
+  - @param {string} inputPath - 输入音频路径
+  - @param {string} outputPath - 输出音频路径
+  - @param {Object} options - 增强选项
+  - @returns {Promise<Object>}
 
 ---
 
@@ -243,10 +242,10 @@ async enhanceAudio(inputPath, outputPath, options =
 async enhanceForSpeechRecognition(inputPath, outputPath)
 ```
 
-* 语音增强（专门针对语音识别优化）
-   * @param {string} inputPath - 输入音频路径
-   * @param {string} outputPath - 输出音频路径
-   * @returns {Promise<Object>}
+- 语音增强（专门针对语音识别优化）
+  - @param {string} inputPath - 输入音频路径
+  - @param {string} outputPath - 输出音频路径
+  - @returns {Promise<Object>}
 
 ---
 
@@ -256,9 +255,9 @@ async enhanceForSpeechRecognition(inputPath, outputPath)
 async detectLanguage(audioPath)
 ```
 
-* 自动检测音频语言
-   * @param {string} audioPath - 音频文件路径
-   * @returns {Promise<Object>}
+- 自动检测音频语言
+  - @param {string} audioPath - 音频文件路径
+  - @returns {Promise<Object>}
 
 ---
 
@@ -268,9 +267,9 @@ async detectLanguage(audioPath)
 async detectLanguages(audioPaths)
 ```
 
-* 批量检测语言
-   * @param {Array} audioPaths - 音频文件路径列表
-   * @returns {Promise<Array>}
+- 批量检测语言
+  - @param {Array} audioPaths - 音频文件路径列表
+  - @returns {Promise<Array>}
 
 ---
 
@@ -280,11 +279,11 @@ async detectLanguages(audioPaths)
 async generateSubtitle(audioId, outputPath, format = "srt")
 ```
 
-* 生成字幕文件
-   * @param {string} audioId - 音频文件ID
-   * @param {string} outputPath - 输出路径
-   * @param {string} format - 格式 (srt|vtt)
-   * @returns {Promise<Object>}
+- 生成字幕文件
+  - @param {string} audioId - 音频文件ID
+  - @param {string} outputPath - 输出路径
+  - @param {string} format - 格式 (srt|vtt)
+  - @returns {Promise<Object>}
 
 ---
 
@@ -294,11 +293,11 @@ async generateSubtitle(audioId, outputPath, format = "srt")
 async transcribeAndGenerateSubtitle(audioPath, subtitlePath, options =
 ```
 
-* 转录并生成字幕（一步完成）
-   * @param {string} audioPath - 音频文件路径
-   * @param {string} subtitlePath - 字幕输出路径
-   * @param {Object} options - 选项
-   * @returns {Promise<Object>}
+- 转录并生成字幕（一步完成）
+  - @param {string} audioPath - 音频文件路径
+  - @param {string} subtitlePath - 字幕输出路径
+  - @param {Object} options - 选项
+  - @returns {Promise<Object>}
 
 ---
 
@@ -308,11 +307,11 @@ async transcribeAndGenerateSubtitle(audioPath, subtitlePath, options =
 async batchGenerateSubtitles(audioIds, outputDir, format = "srt")
 ```
 
-* 批量生成字幕
-   * @param {Array} audioIds - 音频ID列表
-   * @param {string} outputDir - 输出目录
-   * @param {string} format - 格式
-   * @returns {Promise<Array>}
+- 批量生成字幕
+  - @param {Array} audioIds - 音频ID列表
+  - @param {string} outputDir - 输出目录
+  - @param {string} format - 格式
+  - @returns {Promise<Array>}
 
 ---
 
@@ -322,40 +321,40 @@ async batchGenerateSubtitles(audioIds, outputDir, format = "srt")
 async startRealtimeRecording(options =
 ```
 
-* 开始实时录音
-   * @param {Object} options - 录音选项
-   * @returns {Promise<void>}
+- 开始实时录音
+  - @param {Object} options - 录音选项
+  - @returns {Promise<void>}
 
 ---
 
 ## addRealtimeAudioData(audioData)
 
 ```javascript
-addRealtimeAudioData(audioData)
+addRealtimeAudioData(audioData);
 ```
 
-* 添加音频数据（来自浏览器端）
-   * @param {Buffer} audioData - PCM音频数据
+- 添加音频数据（来自浏览器端）
+  - @param {Buffer} audioData - PCM音频数据
 
 ---
 
 ## pauseRealtimeRecording()
 
 ```javascript
-pauseRealtimeRecording()
+pauseRealtimeRecording();
 ```
 
-* 暂停实时录音
+- 暂停实时录音
 
 ---
 
 ## resumeRealtimeRecording()
 
 ```javascript
-resumeRealtimeRecording()
+resumeRealtimeRecording();
 ```
 
-* 恢复实时录音
+- 恢复实时录音
 
 ---
 
@@ -365,29 +364,29 @@ resumeRealtimeRecording()
 async stopRealtimeRecording()
 ```
 
-* 停止实时录音
-   * @returns {Promise<Object>} 转录结果
+- 停止实时录音
+  - @returns {Promise<Object>} 转录结果
 
 ---
 
 ## cancelRealtimeRecording()
 
 ```javascript
-cancelRealtimeRecording()
+cancelRealtimeRecording();
 ```
 
-* 取消实时录音
+- 取消实时录音
 
 ---
 
 ## getRealtimeStatus()
 
 ```javascript
-getRealtimeStatus()
+getRealtimeStatus();
 ```
 
-* 获取实时录音状态
-   * @returns {Object}
+- 获取实时录音状态
+  - @returns {Object}
 
 ---
 
@@ -397,32 +396,32 @@ getRealtimeStatus()
 recognizeCommand(text, context =
 ```
 
-* 识别语音命令
-   * @param {string} text - 语音文本
-   * @param {Object} context - 上下文信息
-   * @returns {Object|null} 识别结果
+- 识别语音命令
+  - @param {string} text - 语音文本
+  - @param {Object} context - 上下文信息
+  - @returns {Object|null} 识别结果
 
 ---
 
 ## registerCommand(command)
 
 ```javascript
-registerCommand(command)
+registerCommand(command);
 ```
 
-* 注册自定义命令
-   * @param {Object} command - 命令配置
+- 注册自定义命令
+  - @param {Object} command - 命令配置
 
 ---
 
 ## getAllCommands()
 
 ```javascript
-getAllCommands()
+getAllCommands();
 ```
 
-* 获取所有注册的命令
-   * @returns {Array}
+- 获取所有注册的命令
+  - @returns {Array}
 
 ---
 
@@ -432,8 +431,8 @@ getAllCommands()
 async getCacheStats()
 ```
 
-* 获取缓存统计信息
-   * @returns {Promise<Object>}
+- 获取缓存统计信息
+  - @returns {Promise<Object>}
 
 ---
 
@@ -443,18 +442,18 @@ async getCacheStats()
 async clearCache()
 ```
 
-* 清空音频缓存
-   * @returns {Promise<void>}
+- 清空音频缓存
+  - @returns {Promise<void>}
 
 ---
 
 ## ensureInitialized()
 
 ```javascript
-ensureInitialized()
+ensureInitialized();
 ```
 
-* 确保已初始化
+- 确保已初始化
 
 ---
 
@@ -464,7 +463,6 @@ ensureInitialized()
 async terminate()
 ```
 
-* 终止服务
+- 终止服务
 
 ---
-

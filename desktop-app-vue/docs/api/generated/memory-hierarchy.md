@@ -12,15 +12,15 @@
 const EventEmitter = require("events");
 ```
 
-* Memory Hierarchy System (MemGPT-style)
- *
- * Implements a three-tier memory hierarchy:
- * - Working Memory: Current context, limited tokens
- * - Recall Memory: Recent memories, fast retrieval
- * - Archival Memory: Long-term storage, vector search
- *
- * @module memory-hierarchy
- * @version 1.0.0
+- Memory Hierarchy System (MemGPT-style)
+-
+- Implements a three-tier memory hierarchy:
+- - Working Memory: Current context, limited tokens
+- - Recall Memory: Recent memories, fast retrieval
+- - Archival Memory: Long-term storage, vector search
+-
+- @module memory-hierarchy
+- @version 1.0.0
 
 ---
 
@@ -30,7 +30,7 @@ const EventEmitter = require("events");
 const MemoryImportance =
 ```
 
-* Memory importance levels
+- Memory importance levels
 
 ---
 
@@ -40,7 +40,7 @@ const MemoryImportance =
 const MemoryType =
 ```
 
-* Memory types
+- Memory types
 
 ---
 
@@ -50,106 +50,106 @@ const MemoryType =
 class WorkingMemory
 ```
 
-* Working Memory - Limited context window
+- Working Memory - Limited context window
 
 ---
 
 ## add(memory)
 
 ```javascript
-add(memory)
+add(memory);
 ```
 
-* Add memory to working context
-   * @param {Object} memory - Memory to add
-   * @returns {boolean} Whether addition was successful
+- Add memory to working context
+  - @param {Object} memory - Memory to add
+  - @returns {boolean} Whether addition was successful
 
 ---
 
 ## evictOldest()
 
 ```javascript
-evictOldest()
+evictOldest();
 ```
 
-* Remove oldest memory to make room
-   * @returns {Object|null} Removed memory
+- Remove oldest memory to make room
+  - @returns {Object|null} Removed memory
 
 ---
 
 ## getAll()
 
 ```javascript
-getAll()
+getAll();
 ```
 
-* Get all working memories
-   * @returns {Array} Current memories
+- Get all working memories
+  - @returns {Array} Current memories
 
 ---
 
 ## getContext()
 
 ```javascript
-getContext()
+getContext();
 ```
 
-* Get context for LLM
-   * @returns {string} Formatted context
+- Get context for LLM
+  - @returns {string} Formatted context
 
 ---
 
 ## clear()
 
 ```javascript
-clear()
+clear();
 ```
 
-* Clear working memory
+- Clear working memory
 
 ---
 
 ## setSystemMessage(message)
 
 ```javascript
-setSystemMessage(message)
+setSystemMessage(message);
 ```
 
-* Set system message
-   * @param {string} message - System message
+- Set system message
+  - @param {string} message - System message
 
 ---
 
 ## setUserPersona(persona)
 
 ```javascript
-setUserPersona(persona)
+setUserPersona(persona);
 ```
 
-* Set user persona
-   * @param {string} persona - User persona description
+- Set user persona
+  - @param {string} persona - User persona description
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* Get usage stats
-   * @returns {Object} Usage statistics
+- Get usage stats
+  - @returns {Object} Usage statistics
 
 ---
 
-## _estimateTokens(text)
+## \_estimateTokens(text)
 
 ```javascript
-_estimateTokens(text)
+_estimateTokens(text);
 ```
 
-* Estimate token count
-   * @private
+- Estimate token count
+  - @private
 
 ---
 
@@ -159,111 +159,111 @@ _estimateTokens(text)
 class RecallMemory
 ```
 
-* Recall Memory - Recent memories with fast access
+- Recall Memory - Recent memories with fast access
 
 ---
 
 ## store(id, memory)
 
 ```javascript
-store(id, memory)
+store(id, memory);
 ```
 
-* Store memory
-   * @param {string} id - Memory ID
-   * @param {Object} memory - Memory object
+- Store memory
+  - @param {string} id - Memory ID
+  - @param {Object} memory - Memory object
 
 ---
 
 ## get(id)
 
 ```javascript
-get(id)
+get(id);
 ```
 
-* Retrieve memory
-   * @param {string} id - Memory ID
-   * @returns {Object|null} Memory or null
+- Retrieve memory
+  - @param {string} id - Memory ID
+  - @returns {Object|null} Memory or null
 
 ---
 
 ## search(query, limit = 10)
 
 ```javascript
-search(query, limit = 10)
+search(query, (limit = 10));
 ```
 
-* Search by query
-   * @param {string} query - Search query
-   * @param {number} limit - Max results
-   * @returns {Array} Matching memories
+- Search by query
+  - @param {string} query - Search query
+  - @param {number} limit - Max results
+  - @returns {Array} Matching memories
 
 ---
 
 ## getRecent(limit = 20)
 
 ```javascript
-getRecent(limit = 20)
+getRecent((limit = 20));
 ```
 
-* Get recent memories
-   * @param {number} limit - Max results
-   * @returns {Array} Recent memories
+- Get recent memories
+  - @param {number} limit - Max results
+  - @returns {Array} Recent memories
 
 ---
 
 ## getAll()
 
 ```javascript
-getAll()
+getAll();
 ```
 
-* Get all memories
-   * @returns {Array} All memories
+- Get all memories
+  - @returns {Array} All memories
 
 ---
 
 ## remove(id)
 
 ```javascript
-remove(id)
+remove(id);
 ```
 
-* Remove memory
-   * @param {string} id - Memory ID
-   * @returns {boolean} Whether removal was successful
+- Remove memory
+  - @param {string} id - Memory ID
+  - @returns {boolean} Whether removal was successful
 
 ---
 
 ## clear()
 
 ```javascript
-clear()
+clear();
 ```
 
-* Clear all memories
+- Clear all memories
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* Get stats
-   * @returns {Object} Statistics
+- Get stats
+  - @returns {Object} Statistics
 
 ---
 
-## _evictLRU()
+## \_evictLRU()
 
 ```javascript
-_evictLRU()
+_evictLRU();
 ```
 
-* Evict least recently used
-   * @private
+- Evict least recently used
+  - @private
 
 ---
 
@@ -273,29 +273,29 @@ _evictLRU()
 class ArchivalMemory extends EventEmitter
 ```
 
-* Archival Memory - Long-term storage with vector search
+- Archival Memory - Long-term storage with vector search
 
 ---
 
 ## setDatabase(db)
 
 ```javascript
-setDatabase(db)
+setDatabase(db);
 ```
 
-* Set database instance
-   * @param {Object} db - Database instance
+- Set database instance
+  - @param {Object} db - Database instance
 
 ---
 
 ## setRagManager(ragManager)
 
 ```javascript
-setRagManager(ragManager)
+setRagManager(ragManager);
 ```
 
-* Set RAG manager for vector search
-   * @param {Object} ragManager - RAG manager instance
+- Set RAG manager for vector search
+  - @param {Object} ragManager - RAG manager instance
 
 ---
 
@@ -305,9 +305,9 @@ setRagManager(ragManager)
 async store(memory)
 ```
 
-* Store memory in archive
-   * @param {Object} memory - Memory to store
-   * @returns {Promise<string>} Memory ID
+- Store memory in archive
+  - @param {Object} memory - Memory to store
+  - @returns {Promise<string>} Memory ID
 
 ---
 
@@ -317,9 +317,9 @@ async store(memory)
 async get(id)
 ```
 
-* Retrieve memory by ID
-   * @param {string} id - Memory ID
-   * @returns {Promise<Object|null>} Memory or null
+- Retrieve memory by ID
+  - @param {string} id - Memory ID
+  - @returns {Promise<Object|null>} Memory or null
 
 ---
 
@@ -329,10 +329,10 @@ async get(id)
 async search(query, options =
 ```
 
-* Search memories
-   * @param {string} query - Search query
-   * @param {Object} options - Search options
-   * @returns {Promise<Array>} Search results
+- Search memories
+  - @param {string} query - Search query
+  - @param {Object} options - Search options
+  - @returns {Promise<Array>} Search results
 
 ---
 
@@ -342,10 +342,10 @@ async search(query, options =
 async getByType(type, limit = 50)
 ```
 
-* Get memories by type
-   * @param {string} type - Memory type
-   * @param {number} limit - Max results
-   * @returns {Promise<Array>} Memories
+- Get memories by type
+  - @param {string} type - Memory type
+  - @param {number} limit - Max results
+  - @returns {Promise<Array>} Memories
 
 ---
 
@@ -355,9 +355,9 @@ async getByType(type, limit = 50)
 async getMostImportant(limit = 20)
 ```
 
-* Get most important memories
-   * @param {number} limit - Max results
-   * @returns {Promise<Array>} Important memories
+- Get most important memories
+  - @param {number} limit - Max results
+  - @returns {Promise<Array>} Important memories
 
 ---
 
@@ -367,9 +367,9 @@ async getMostImportant(limit = 20)
 async updateImportance(id, importance)
 ```
 
-* Update memory importance
-   * @param {string} id - Memory ID
-   * @param {number} importance - New importance
+- Update memory importance
+  - @param {string} id - Memory ID
+  - @param {number} importance - New importance
 
 ---
 
@@ -379,9 +379,9 @@ async updateImportance(id, importance)
 async delete(id)
 ```
 
-* Delete memory
-   * @param {string} id - Memory ID
-   * @returns {Promise<boolean>} Success
+- Delete memory
+  - @param {string} id - Memory ID
+  - @returns {Promise<boolean>} Success
 
 ---
 
@@ -391,30 +391,30 @@ async delete(id)
 async getStats()
 ```
 
-* Get statistics
-   * @returns {Promise<Object>} Statistics
+- Get statistics
+  - @returns {Promise<Object>} Statistics
 
 ---
 
-## _parseRow(row)
+## \_parseRow(row)
 
 ```javascript
-_parseRow(row)
+_parseRow(row);
 ```
 
-* Parse database row
-   * @private
+- Parse database row
+  - @private
 
 ---
 
-## _generateId()
+## \_generateId()
 
 ```javascript
-_generateId()
+_generateId();
 ```
 
-* Generate unique ID
-   * @private
+- Generate unique ID
+  - @private
 
 ---
 
@@ -424,29 +424,29 @@ _generateId()
 class MemoryHierarchy extends EventEmitter
 ```
 
-* Memory Hierarchy Manager - Coordinates all memory layers
+- Memory Hierarchy Manager - Coordinates all memory layers
 
 ---
 
 ## setDatabase(db)
 
 ```javascript
-setDatabase(db)
+setDatabase(db);
 ```
 
-* Set database instance
-   * @param {Object} db - Database instance
+- Set database instance
+  - @param {Object} db - Database instance
 
 ---
 
 ## setRagManager(ragManager)
 
 ```javascript
-setRagManager(ragManager)
+setRagManager(ragManager);
 ```
 
-* Set RAG manager
-   * @param {Object} ragManager - RAG manager instance
+- Set RAG manager
+  - @param {Object} ragManager - RAG manager instance
 
 ---
 
@@ -456,22 +456,22 @@ setRagManager(ragManager)
 async addMemory(memory, layer = "recall")
 ```
 
-* Add memory to appropriate layer
-   * @param {Object} memory - Memory to add
-   * @param {string} layer - Target layer ('working', 'recall', 'archival')
-   * @returns {Promise<string|boolean>} Result
+- Add memory to appropriate layer
+  - @param {Object} memory - Memory to add
+  - @param {string} layer - Target layer ('working', 'recall', 'archival')
+  - @returns {Promise<string|boolean>} Result
 
 ---
 
 ## promoteToWorking(id)
 
 ```javascript
-promoteToWorking(id)
+promoteToWorking(id);
 ```
 
-* Promote memory from recall to working
-   * @param {string} id - Memory ID
-   * @returns {boolean} Success
+- Promote memory from recall to working
+  - @param {string} id - Memory ID
+  - @returns {boolean} Success
 
 ---
 
@@ -481,9 +481,9 @@ promoteToWorking(id)
 async archiveFromRecall(id)
 ```
 
-* Archive memory from recall to archival
-   * @param {string} id - Memory ID
-   * @returns {Promise<string|null>} Archived memory ID
+- Archive memory from recall to archival
+  - @param {string} id - Memory ID
+  - @returns {Promise<string|null>} Archived memory ID
 
 ---
 
@@ -493,10 +493,10 @@ async archiveFromRecall(id)
 async search(query, options =
 ```
 
-* Search across all memory layers
-   * @param {string} query - Search query
-   * @param {Object} options - Search options
-   * @returns {Promise<Object>} Results by layer
+- Search across all memory layers
+  - @param {string} query - Search query
+  - @param {Object} options - Search options
+  - @returns {Promise<Object>} Results by layer
 
 ---
 
@@ -506,7 +506,7 @@ async search(query, options =
 async autoManage()
 ```
 
-* Auto-manage memory - evict from recall to archival when threshold reached
+- Auto-manage memory - evict from recall to archival when threshold reached
 
 ---
 
@@ -516,8 +516,8 @@ async autoManage()
 async getStats()
 ```
 
-* Get statistics from all layers
-   * @returns {Promise<Object>} Combined statistics
+- Get statistics from all layers
+  - @returns {Promise<Object>} Combined statistics
 
 ---
 
@@ -527,19 +527,18 @@ async getStats()
 async clear(layers = ["working", "recall"])
 ```
 
-* Clear all memories
-   * @param {Array} layers - Layers to clear (default: all)
+- Clear all memories
+  - @param {Array} layers - Layers to clear (default: all)
 
 ---
 
-## _setupEventHandlers()
+## \_setupEventHandlers()
 
 ```javascript
-_setupEventHandlers()
+_setupEventHandlers();
 ```
 
-* Setup event handlers
-   * @private
+- Setup event handlers
+  - @private
 
 ---
-

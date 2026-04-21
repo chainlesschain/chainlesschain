@@ -12,8 +12,8 @@
 let electronModule = null;
 ```
 
-* 交互式任务规划 IPC 接口
- * 供前端调用交互式任务规划器
+- 交互式任务规划 IPC 接口
+- 供前端调用交互式任务规划器
 
 ---
 
@@ -23,10 +23,10 @@ let electronModule = null;
 constructor(interactiveTaskPlanner, options =
 ```
 
-* @param {Object} interactiveTaskPlanner - 交互式任务规划器实例
-   * @param {Object} options - 可选配置，用于测试时注入依赖
-   * @param {Object} options.ipcMain - IPC 主进程模块（用于测试注入）
-   * @param {Object} options.BrowserWindow - BrowserWindow 模块（用于测试注入）
+- @param {Object} interactiveTaskPlanner - 交互式任务规划器实例
+  - @param {Object} options - 可选配置，用于测试时注入依赖
+  - @param {Object} options.ipcMain - IPC 主进程模块（用于测试注入）
+  - @param {Object} options.BrowserWindow - BrowserWindow 模块（用于测试注入）
 
 ---
 
@@ -36,7 +36,7 @@ constructor(interactiveTaskPlanner, options =
 this.ipcMain.handle(
 ```
 
-* 开始Plan模式对话
+- 开始Plan模式对话
 
 ---
 
@@ -46,7 +46,7 @@ this.ipcMain.handle(
 this.ipcMain.handle(
 ```
 
-* 用户确认或调整Plan
+- 用户确认或调整Plan
 
 ---
 
@@ -56,7 +56,7 @@ this.ipcMain.handle(
 this.ipcMain.handle(
 ```
 
-* 提交用户反馈
+- 提交用户反馈
 
 ---
 
@@ -66,7 +66,7 @@ this.ipcMain.handle(
 this.ipcMain.handle(
 ```
 
-* 获取会话信息
+- 获取会话信息
 
 ---
 
@@ -76,27 +76,26 @@ this.ipcMain.handle(
 this.ipcMain.handle(
 ```
 
-* 清理过期会话
+- 清理过期会话
 
 ---
 
 ## setupEventForwarding()
 
 ```javascript
-setupEventForwarding()
+setupEventForwarding();
 ```
 
-* 设置事件转发到渲染进程
+- 设置事件转发到渲染进程
 
 ---
 
 ## broadcastToAll(channel, data)
 
 ```javascript
-broadcastToAll(channel, data)
+broadcastToAll(channel, data);
 ```
 
-* 广播事件到所有窗口
+- 广播事件到所有窗口
 
 ---
-

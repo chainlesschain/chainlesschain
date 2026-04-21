@@ -12,8 +12,8 @@
 const
 ```
 
-* 增强版Handler使用示例
- * 演示如何使用ToolLogger和ErrorHandler包装工具Handler
+- 增强版Handler使用示例
+- 演示如何使用ToolLogger和ErrorHandler包装工具Handler
 
 ---
 
@@ -23,8 +23,8 @@ const
 function createEnhancedHandler(options =
 ```
 
-* 创建增强版Handler
- * 自动添加日志记录和错误处理
+- 创建增强版Handler
+- 自动添加日志记录和错误处理
 
 ---
 
@@ -34,7 +34,6 @@ function createEnhancedHandler(options =
 async function exampleUsage()
 ```
 
-* 使用示例
+- 使用示例
 
 ---
-

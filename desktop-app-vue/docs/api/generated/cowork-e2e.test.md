@@ -12,13 +12,12 @@
 const path = require("path");
 ```
 
-* End-to-End Integration Tests for Cowork System
- *
- * Tests the complete workflow from team creation to task completion,
- * including IPC communication, skill execution, and result handling.
- *
- * @category Integration Tests
- * @module CoworkE2E
+- End-to-End Integration Tests for Cowork System
+-
+- Tests the complete workflow from team creation to task completion,
+- including IPC communication, skill execution, and result handling.
+-
+- @category Integration Tests
+- @module CoworkE2E
 
 ---
-

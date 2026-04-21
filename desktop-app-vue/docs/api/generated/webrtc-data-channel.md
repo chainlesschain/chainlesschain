@@ -12,12 +12,12 @@
 const
 ```
 
-* WebRTC 数据通道管理器
- *
- * 基于 wrtc (node-webrtc) 实现 PC 端的 WebRTC 数据通道
- * 用于与 Android 客户端建立点对点连接
- *
- * @module p2p/webrtc-data-channel
+- WebRTC 数据通道管理器
+-
+- 基于 wrtc (node-webrtc) 实现 PC 端的 WebRTC 数据通道
+- 用于与 Android 客户端建立点对点连接
+-
+- @module p2p/webrtc-data-channel
 
 ---
 
@@ -27,7 +27,7 @@ const
 class WebRTCDataChannelManager extends EventEmitter
 ```
 
-* WebRTC 数据通道管理器
+- WebRTC 数据通道管理器
 
 ---
 
@@ -37,27 +37,27 @@ class WebRTCDataChannelManager extends EventEmitter
 async initialize()
 ```
 
-* 初始化管理器
+- 初始化管理器
 
 ---
 
 ## setupSignalingHandlers()
 
 ```javascript
-setupSignalingHandlers()
+setupSignalingHandlers();
 ```
 
-* 设置信令处理器
+- 设置信令处理器
 
 ---
 
 ## createPeerConnection(peerId)
 
 ```javascript
-createPeerConnection(peerId)
+createPeerConnection(peerId);
 ```
 
-* 创建对等连接
+- 创建对等连接
 
 ---
 
@@ -67,7 +67,7 @@ createPeerConnection(peerId)
 async handleOffer(data)
 ```
 
-* 处理 Offer（来自 Android）
+- 处理 Offer（来自 Android）
 
 ---
 
@@ -77,97 +77,97 @@ async handleOffer(data)
 async handleIceCandidate(data)
 ```
 
-* 处理 ICE Candidate
+- 处理 ICE Candidate
 
 ---
 
 ## setupDataChannel(peerId, channel)
 
 ```javascript
-setupDataChannel(peerId, channel)
+setupDataChannel(peerId, channel);
 ```
 
-* 设置数据通道
+- 设置数据通道
 
 ---
 
 ## sendMessage(peerId, message)
 
 ```javascript
-sendMessage(peerId, message)
+sendMessage(peerId, message);
 ```
 
-* 发送消息
+- 发送消息
 
 ---
 
 ## sendAnswer(peerId, answer)
 
 ```javascript
-sendAnswer(peerId, answer)
+sendAnswer(peerId, answer);
 ```
 
-* 发送 Answer
+- 发送 Answer
 
 ---
 
 ## sendIceCandidate(peerId, candidate)
 
 ```javascript
-sendIceCandidate(peerId, candidate)
+sendIceCandidate(peerId, candidate);
 ```
 
-* 发送 ICE Candidate
+- 发送 ICE Candidate
 
 ---
 
 ## handleConnectionFailure(peerId)
 
 ```javascript
-handleConnectionFailure(peerId)
+handleConnectionFailure(peerId);
 ```
 
-* 处理连接失败
+- 处理连接失败
 
 ---
 
 ## disconnect(peerId)
 
 ```javascript
-disconnect(peerId)
+disconnect(peerId);
 ```
 
-* 断开连接
+- 断开连接
 
 ---
 
 ## getConnectionState(peerId)
 
 ```javascript
-getConnectionState(peerId)
+getConnectionState(peerId);
 ```
 
-* 获取连接状态
+- 获取连接状态
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
 
 ## createMockConnection(peerId)
 
 ```javascript
-createMockConnection(peerId)
+createMockConnection(peerId);
 ```
 
-* 创建模拟连接（开发模式）
+- 创建模拟连接（开发模式）
 
 ---
 
@@ -177,7 +177,6 @@ createMockConnection(peerId)
 async cleanup()
 ```
 
-* 清理资源
+- 清理资源
 
 ---
-

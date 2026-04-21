@@ -12,15 +12,15 @@
 const
 ```
 
-* LLM (Large Language Model) Integration for Cowork
- *
- * Provides AI-powered decision-making for Cowork agents using Ollama LLM:
- * - Task analysis and decomposition
- * - Agent assignment recommendations
- * - Conflict resolution
- * - Strategy selection
- *
- * @module CoworkLLMIntegration
+- LLM (Large Language Model) Integration for Cowork
+-
+- Provides AI-powered decision-making for Cowork agents using Ollama LLM:
+- - Task analysis and decomposition
+- - Agent assignment recommendations
+- - Conflict resolution
+- - Strategy selection
+-
+- @module CoworkLLMIntegration
 
 ---
 
@@ -30,10 +30,9 @@ const
 async analyzeTask(task)
 ```
 
-* Analyze task complexity and recommend agent configuration
-   *
-   * @param {Object} task - Task to analyze
-   * @returns {Promise<Object>} Analysis and recommendations
+- ## Analyze task complexity and recommend agent configuration
+  - @param {Object} task - Task to analyze
+  - @returns {Promise<Object>} Analysis and recommendations
 
 ---
 
@@ -43,12 +42,11 @@ async analyzeTask(task)
 async recommendAgent(params)
 ```
 
-* Recommend best agent for a task
-   *
-   * @param {Object} params - Recommendation parameters
-   * @param {Object} params.task - Task to assign
-   * @param {Array} params.availableAgents - Available agents
-   * @returns {Promise<Object>} Agent recommendation
+- ## Recommend best agent for a task
+  - @param {Object} params - Recommendation parameters
+  - @param {Object} params.task - Task to assign
+  - @param {Array} params.availableAgents - Available agents
+  - @returns {Promise<Object>} Agent recommendation
 
 ---
 
@@ -58,10 +56,9 @@ async recommendAgent(params)
 async decomposeTask(task)
 ```
 
-* Decompose complex task into subtasks
-   *
-   * @param {Object} task - Complex task to decompose
-   * @returns {Promise<Array>} Subtasks
+- ## Decompose complex task into subtasks
+  - @param {Object} task - Complex task to decompose
+  - @returns {Promise<Array>} Subtasks
 
 ---
 
@@ -71,12 +68,11 @@ async decomposeTask(task)
 async resolveConflict(params)
 ```
 
-* Resolve conflict between agents
-   *
-   * @param {Object} params - Conflict parameters
-   * @param {Array} params.conflictingOpinions - Different agent opinions
-   * @param {Object} params.context - Conflict context
-   * @returns {Promise<Object>} Conflict resolution
+- ## Resolve conflict between agents
+  - @param {Object} params - Conflict parameters
+  - @param {Array} params.conflictingOpinions - Different agent opinions
+  - @param {Object} params.context - Conflict context
+  - @returns {Promise<Object>} Conflict resolution
 
 ---
 
@@ -86,191 +82,174 @@ async resolveConflict(params)
 async generateStrategy(task, resources)
 ```
 
-* Generate task execution strategy
-   *
-   * @param {Object} task - Task to execute
-   * @param {Object} resources - Available resources
-   * @returns {Promise<Object>} Execution strategy
+- ## Generate task execution strategy
+  - @param {Object} task - Task to execute
+  - @param {Object} resources - Available resources
+  - @returns {Promise<Object>} Execution strategy
 
 ---
 
-## _buildTaskAnalysisPrompt(task)
+## \_buildTaskAnalysisPrompt(task)
 
 ```javascript
-_buildTaskAnalysisPrompt(task)
+_buildTaskAnalysisPrompt(task);
 ```
 
-* Build task analysis prompt
-   *
-   * @private
+- ## Build task analysis prompt
+  - @private
 
 ---
 
-## _buildAgentRecommendationPrompt(task, availableAgents)
+## \_buildAgentRecommendationPrompt(task, availableAgents)
 
 ```javascript
-_buildAgentRecommendationPrompt(task, availableAgents)
+_buildAgentRecommendationPrompt(task, availableAgents);
 ```
 
-* Build agent recommendation prompt
-   *
-   * @private
+- ## Build agent recommendation prompt
+  - @private
 
 ---
 
-## _buildTaskDecompositionPrompt(task)
+## \_buildTaskDecompositionPrompt(task)
 
 ```javascript
-_buildTaskDecompositionPrompt(task)
+_buildTaskDecompositionPrompt(task);
 ```
 
-* Build task decomposition prompt
-   *
-   * @private
+- ## Build task decomposition prompt
+  - @private
 
 ---
 
-## _buildConflictResolutionPrompt(opinions, context)
+## \_buildConflictResolutionPrompt(opinions, context)
 
 ```javascript
-_buildConflictResolutionPrompt(opinions, context)
+_buildConflictResolutionPrompt(opinions, context);
 ```
 
-* Build conflict resolution prompt
-   *
-   * @private
+- ## Build conflict resolution prompt
+  - @private
 
 ---
 
-## _buildStrategyPrompt(task, resources)
+## \_buildStrategyPrompt(task, resources)
 
 ```javascript
-_buildStrategyPrompt(task, resources)
+_buildStrategyPrompt(task, resources);
 ```
 
-* Build strategy generation prompt
-   *
-   * @private
+- ## Build strategy generation prompt
+  - @private
 
 ---
 
-## _parseTaskAnalysis(responseText)
+## \_parseTaskAnalysis(responseText)
 
 ```javascript
-_parseTaskAnalysis(responseText)
+_parseTaskAnalysis(responseText);
 ```
 
-* Parse task analysis response
-   *
-   * @private
+- ## Parse task analysis response
+  - @private
 
 ---
 
-## _parseAgentRecommendation(responseText, availableAgents)
+## \_parseAgentRecommendation(responseText, availableAgents)
 
 ```javascript
-_parseAgentRecommendation(responseText, availableAgents)
+_parseAgentRecommendation(responseText, availableAgents);
 ```
 
-* Parse agent recommendation response
-   *
-   * @private
+- ## Parse agent recommendation response
+  - @private
 
 ---
 
-## _parseSubtasks(responseText, parentTask)
+## \_parseSubtasks(responseText, parentTask)
 
 ```javascript
-_parseSubtasks(responseText, parentTask)
+_parseSubtasks(responseText, parentTask);
 ```
 
-* Parse subtasks from response
-   *
-   * @private
+- ## Parse subtasks from response
+  - @private
 
 ---
 
-## _parseConflictResolution(responseText)
+## \_parseConflictResolution(responseText)
 
 ```javascript
-_parseConflictResolution(responseText)
+_parseConflictResolution(responseText);
 ```
 
-* Parse conflict resolution response
-   *
-   * @private
+- ## Parse conflict resolution response
+  - @private
 
 ---
 
-## _parseStrategy(responseText)
+## \_parseStrategy(responseText)
 
 ```javascript
-_parseStrategy(responseText)
+_parseStrategy(responseText);
 ```
 
-* Parse strategy response
-   *
-   * @private
+- ## Parse strategy response
+  - @private
 
 ---
 
-## _fallbackTaskAnalysis(task =
+## \_fallbackTaskAnalysis(task =
 
 ```javascript
 _fallbackTaskAnalysis(task =
 ```
 
-* Fallback task analysis using heuristics
-   *
-   * @private
+- ## Fallback task analysis using heuristics
+  - @private
 
 ---
 
-## _fallbackAgentRecommendation(task, availableAgents)
+## \_fallbackAgentRecommendation(task, availableAgents)
 
 ```javascript
-_fallbackAgentRecommendation(task, availableAgents)
+_fallbackAgentRecommendation(task, availableAgents);
 ```
 
-* Fallback agent recommendation
-   *
-   * @private
+- ## Fallback agent recommendation
+  - @private
 
 ---
 
-## _fallbackConflictResolution(opinions)
+## \_fallbackConflictResolution(opinions)
 
 ```javascript
-_fallbackConflictResolution(opinions)
+_fallbackConflictResolution(opinions);
 ```
 
-* Fallback conflict resolution using majority vote
-   *
-   * @private
+- ## Fallback conflict resolution using majority vote
+  - @private
 
 ---
 
 ## setModel(model)
 
 ```javascript
-setModel(model)
+setModel(model);
 ```
 
-* Set LLM model
-   *
-   * @param {string} model - Model name (e.g., 'qwen2:7b', 'llama2', 'mistral')
+- ## Set LLM model
+  - @param {string} model - Model name (e.g., 'qwen2:7b', 'llama2', 'mistral')
 
 ---
 
 ## setTemperature(temperature)
 
 ```javascript
-setTemperature(temperature)
+setTemperature(temperature);
 ```
 
-* Set temperature
-   *
-   * @param {number} temperature - Temperature (0.0-1.0)
+- ## Set temperature
+  - @param {number} temperature - Temperature (0.0-1.0)
 
 ---
-

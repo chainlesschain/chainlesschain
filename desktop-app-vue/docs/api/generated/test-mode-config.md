@@ -12,58 +12,57 @@
 const
 ```
 
-* 测试模式配置
- * 根据环境变量启用不同的Mock服务
+- 测试模式配置
+- 根据环境变量启用不同的Mock服务
 
 ---
 
 ## shouldSkipInit(initName)
 
 ```javascript
-shouldSkipInit(initName)
+shouldSkipInit(initName);
 ```
 
-* 是否应该跳过某个初始化步骤
+- 是否应该跳过某个初始化步骤
 
 ---
 
 ## getMockLLMService()
 
 ```javascript
-getMockLLMService()
+getMockLLMService();
 ```
 
-* 获取Mock LLM服务
+- 获取Mock LLM服务
 
 ---
 
 ## getMockDatabase()
 
 ```javascript
-getMockDatabase()
+getMockDatabase();
 ```
 
-* 获取Mock数据库
+- 获取Mock数据库
 
 ---
 
 ## getMockUKeyManager()
 
 ```javascript
-getMockUKeyManager()
+getMockUKeyManager();
 ```
 
-* 获取Mock U-Key Manager
+- 获取Mock U-Key Manager
 
 ---
 
 ## printConfig()
 
 ```javascript
-printConfig()
+printConfig();
 ```
 
-* 打印测试模式配置
+- 打印测试模式配置
 
 ---
-

@@ -12,28 +12,28 @@
 class ProjectConfig
 ```
 
-* 项目配置管理器
- * 管理项目存储根路径等配置
+- 项目配置管理器
+- 管理项目存储根路径等配置
 
 ---
 
 ## initialize()
 
 ```javascript
-initialize()
+initialize();
 ```
 
-* 初始化配置
+- 初始化配置
 
 ---
 
 ## loadConfig()
 
 ```javascript
-loadConfig()
+loadConfig();
 ```
 
-* 加载配置文件
+- 加载配置文件
 
 ---
 
@@ -43,7 +43,7 @@ loadConfig()
 async initializeAsync()
 ```
 
-* 异步初始化配置 (M2: 启动期 IO 异步化)
+- 异步初始化配置 (M2: 启动期 IO 异步化)
 
 ---
 
@@ -53,7 +53,7 @@ async initializeAsync()
 async loadConfigAsync()
 ```
 
-* 异步加载配置文件 (M2)
+- 异步加载配置文件 (M2)
 
 ---
 
@@ -63,89 +63,89 @@ async loadConfigAsync()
 async saveConfigAsync()
 ```
 
-* 异步保存配置文件 (M2)
+- 异步保存配置文件 (M2)
 
 ---
 
 ## getDefaultConfig()
 
 ```javascript
-getDefaultConfig()
+getDefaultConfig();
 ```
 
-* 获取默认配置
+- 获取默认配置
 
 ---
 
 ## saveConfig()
 
 ```javascript
-saveConfig()
+saveConfig();
 ```
 
-* 保存配置文件
+- 保存配置文件
 
 ---
 
 ## getProjectsRootPath()
 
 ```javascript
-getProjectsRootPath()
+getProjectsRootPath();
 ```
 
-* 获取项目根路径
+- 获取项目根路径
 
 ---
 
 ## setProjectsRootPath(newPath)
 
 ```javascript
-setProjectsRootPath(newPath)
+setProjectsRootPath(newPath);
 ```
 
-* 设置项目根路径
+- 设置项目根路径
 
 ---
 
 ## resolveProjectPath(relativePath)
 
 ```javascript
-resolveProjectPath(relativePath)
+resolveProjectPath(relativePath);
 ```
 
-* 将相对路径转换为绝对路径
-   * @param {string} relativePath - 相对路径（如 /data/projects/xxx）
-   * @returns {string} 绝对路径
+- 将相对路径转换为绝对路径
+  - @param {string} relativePath - 相对路径（如 /data/projects/xxx）
+  - @returns {string} 绝对路径
 
 ---
 
 ## isLocalPath(filePath)
 
 ```javascript
-isLocalPath(filePath)
+isLocalPath(filePath);
 ```
 
-* 检查路径是否为本地路径（而非远程服务器路径）
+- 检查路径是否为本地路径（而非远程服务器路径）
 
 ---
 
 ## getAllConfig()
 
 ```javascript
-getAllConfig()
+getAllConfig();
 ```
 
-* 获取所有配置
+- 获取所有配置
 
 ---
 
 ## updateConfig(updates)
 
 ```javascript
-updateConfig(updates)
+updateConfig(updates);
 ```
 
-* 更新配置
+- 更新配置
 
 ---
 
@@ -155,8 +155,7 @@ updateConfig(updates)
 async function getProjectConfigAsync()
 ```
 
-* 异步获取/初始化单例 (M2: 启动期 IO 异步化)
- * 启动路径调用此函数，避免阻塞事件循环。
+- 异步获取/初始化单例 (M2: 启动期 IO 异步化)
+- 启动路径调用此函数，避免阻塞事件循环。
 
 ---
-

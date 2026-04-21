@@ -12,8 +12,8 @@
 const
 ```
 
-* Office文档工具的handler实现
- * 提供Word、Excel、PPT的生成和操作功能
+- Office文档工具的handler实现
+- 提供Word、Excel、PPT的生成和操作功能
 
 ---
 
@@ -23,8 +23,8 @@ const
 async tool_word_generator(params)
 ```
 
-* Word文档生成器
-   * 生成标准格式的Word文档（.docx）
+- Word文档生成器
+  - 生成标准格式的Word文档（.docx）
 
 ---
 
@@ -34,7 +34,7 @@ async tool_word_generator(params)
 parseMarkdownToWordParagraphs(markdown, options =
 ```
 
-* 解析Markdown为Word段落
+- 解析Markdown为Word段落
 
 ---
 
@@ -44,8 +44,8 @@ parseMarkdownToWordParagraphs(markdown, options =
 async tool_word_table_creator(params)
 ```
 
-* Word表格创建器
-   * 在Word文档中创建和格式化表格
+- Word表格创建器
+  - 在Word文档中创建和格式化表格
 
 ---
 
@@ -55,8 +55,8 @@ async tool_word_table_creator(params)
 async tool_excel_generator(params)
 ```
 
-* Excel电子表格生成器
-   * 生成多工作表Excel文件
+- Excel电子表格生成器
+  - 生成多工作表Excel文件
 
 ---
 
@@ -66,8 +66,8 @@ async tool_excel_generator(params)
 async tool_excel_formula_builder(params)
 ```
 
-* Excel公式构建器
-   * 生成和验证Excel公式
+- Excel公式构建器
+  - 生成和验证Excel公式
 
 ---
 
@@ -77,8 +77,8 @@ async tool_excel_formula_builder(params)
 async tool_excel_chart_creator(params)
 ```
 
-* Excel图表创建器
-   * 在Excel工作表中创建图表
+- Excel图表创建器
+  - 在Excel工作表中创建图表
 
 ---
 
@@ -88,18 +88,17 @@ async tool_excel_chart_creator(params)
 async tool_ppt_generator(params)
 ```
 
-* PPT演示文稿生成器
-   * 生成PowerPoint演示文稿
+- PPT演示文稿生成器
+  - 生成PowerPoint演示文稿
 
 ---
 
 ## register(functionCaller)
 
 ```javascript
-register(functionCaller)
+register(functionCaller);
 ```
 
-* 注册所有工具到FunctionCaller
+- 注册所有工具到FunctionCaller
 
 ---
-

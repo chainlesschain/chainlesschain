@@ -12,22 +12,22 @@
 const
 ```
 
-* Permission Manager
- *
- * Manages role-based permissions for organization knowledge folders and items.
- *
- * Permission Levels:
- * - owner: Full control (create, edit, delete, share, manage permissions)
- * - admin: Manage content (create, edit, delete, share)
- * - editor: Edit content (create, edit)
- * - member/viewer: View only
- *
- * Permission Types:
- * - view: Can view content
- * - edit: Can modify content
- * - delete: Can delete content
- * - share: Can share with others
- * - manage: Can manage permissions
+- Permission Manager
+-
+- Manages role-based permissions for organization knowledge folders and items.
+-
+- Permission Levels:
+- - owner: Full control (create, edit, delete, share, manage permissions)
+- - admin: Manage content (create, edit, delete, share)
+- - editor: Edit content (create, edit)
+- - member/viewer: View only
+-
+- Permission Types:
+- - view: Can view content
+- - edit: Can modify content
+- - delete: Can delete content
+- - share: Can share with others
+- - manage: Can manage permissions
 
 ---
 
@@ -37,7 +37,7 @@ const
 async checkPermission(orgId, userDID, resourceType, resourceId, action)
 ```
 
-* Check if user has permission for an action
+- Check if user has permission for an action
 
 ---
 
@@ -47,7 +47,7 @@ async checkPermission(orgId, userDID, resourceType, resourceId, action)
 async getUserRole(orgId, userDID)
 ```
 
-* Get user's role in organization
+- Get user's role in organization
 
 ---
 
@@ -57,7 +57,7 @@ async getUserRole(orgId, userDID)
 async getFolderPermissions(folderId)
 ```
 
-* Get folder permissions
+- Get folder permissions
 
 ---
 
@@ -67,7 +67,7 @@ async getFolderPermissions(folderId)
 async getKnowledgePermissions(knowledgeId)
 ```
 
-* Get knowledge item permissions
+- Get knowledge item permissions
 
 ---
 
@@ -77,7 +77,7 @@ async getKnowledgePermissions(knowledgeId)
 async updateFolderPermissions(orgId, folderId, userDID, newPermissions)
 ```
 
-* Update folder permissions
+- Update folder permissions
 
 ---
 
@@ -87,17 +87,17 @@ async updateFolderPermissions(orgId, folderId, userDID, newPermissions)
 async updateKnowledgePermissions(
 ```
 
-* Update knowledge item permissions
+- Update knowledge item permissions
 
 ---
 
 ## validatePermissions(permissions)
 
 ```javascript
-validatePermissions(permissions)
+validatePermissions(permissions);
 ```
 
-* Validate permissions structure
+- Validate permissions structure
 
 ---
 
@@ -107,7 +107,7 @@ validatePermissions(permissions)
 async getEffectivePermissions(orgId, userDID, resourceType, resourceId)
 ```
 
-* Get effective permissions for user on a resource
+- Get effective permissions for user on a resource
 
 ---
 
@@ -117,7 +117,7 @@ async getEffectivePermissions(orgId, userDID, resourceType, resourceId)
 async canAccessFolder(orgId, userDID, folderId)
 ```
 
-* Check if user can access folder
+- Check if user can access folder
 
 ---
 
@@ -127,7 +127,7 @@ async canAccessFolder(orgId, userDID, folderId)
 async canAccessKnowledge(orgId, userDID, knowledgeId)
 ```
 
-* Check if user can access knowledge item
+- Check if user can access knowledge item
 
 ---
 
@@ -137,7 +137,7 @@ async canAccessKnowledge(orgId, userDID, knowledgeId)
 async getAccessibleFolders(orgId, userDID)
 ```
 
-* Get all accessible folders for user
+- Get all accessible folders for user
 
 ---
 
@@ -147,17 +147,17 @@ async getAccessibleFolders(orgId, userDID)
 async getAccessibleKnowledge(orgId, userDID, options =
 ```
 
-* Get all accessible knowledge items for user
+- Get all accessible knowledge items for user
 
 ---
 
 ## getPermissionPreset(presetName)
 
 ```javascript
-getPermissionPreset(presetName)
+getPermissionPreset(presetName);
 ```
 
-* Create permission preset
+- Create permission preset
 
 ---
 
@@ -167,7 +167,7 @@ getPermissionPreset(presetName)
 async bulkUpdatePermissions(orgId, userDID, updates)
 ```
 
-* Bulk update permissions for multiple resources
+- Bulk update permissions for multiple resources
 
 ---
 
@@ -177,7 +177,7 @@ async bulkUpdatePermissions(orgId, userDID, updates)
 async inheritFolderPermissions(childFolderId, parentFolderId)
 ```
 
-* Inherit permissions from parent folder
+- Inherit permissions from parent folder
 
 ---
 
@@ -187,27 +187,26 @@ async inheritFolderPermissions(childFolderId, parentFolderId)
 async getPermissionSummary(orgId)
 ```
 
-* Get permission summary for organization
+- Get permission summary for organization
 
 ---
 
-## _analyzePermissionDistribution(folders, knowledge)
+## \_analyzePermissionDistribution(folders, knowledge)
 
 ```javascript
-_analyzePermissionDistribution(folders, knowledge)
+_analyzePermissionDistribution(folders, knowledge);
 ```
 
-* Analyze permission distribution
+- Analyze permission distribution
 
 ---
 
 ## destroy()
 
 ```javascript
-destroy()
+destroy();
 ```
 
-* Clean up resources
+- Clean up resources
 
 ---
-

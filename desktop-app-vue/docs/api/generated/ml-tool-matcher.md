@@ -12,38 +12,38 @@
 const
 ```
 
-* MLToolMatcher - ML工具匹配器
- * P2智能层Phase 3 - 智能工具推荐
- *
- * 功能:
- * - 基于特征的工具推荐
- * - 多因子评分机制
- * - Top-K推荐
- * - 置信度计算
- * - 推荐解释生成
- *
- * Version: v0.23.0
- * Date: 2026-01-02
+- MLToolMatcher - ML工具匹配器
+- P2智能层Phase 3 - 智能工具推荐
+-
+- 功能:
+- - 基于特征的工具推荐
+- - 多因子评分机制
+- - Top-K推荐
+- - 置信度计算
+- - 推荐解释生成
+-
+- Version: v0.23.0
+- Date: 2026-01-02
 
 ---
 
 ## setDatabase(db)
 
 ```javascript
-setDatabase(db)
+setDatabase(db);
 ```
 
-* 设置数据库连接
+- 设置数据库连接
 
 ---
 
 ## setToolRegistry(toolRegistry)
 
 ```javascript
-setToolRegistry(toolRegistry)
+setToolRegistry(toolRegistry);
 ```
 
-* 设置工具注册表
+- 设置工具注册表
 
 ---
 
@@ -53,20 +53,20 @@ setToolRegistry(toolRegistry)
 async recommendTools(task, userId)
 ```
 
-* 推荐工具
-   * @param {Object} task - 任务对象
-   * @param {string} userId - 用户ID
-   * @returns {Array} 推荐工具列表
+- 推荐工具
+  - @param {Object} task - 任务对象
+  - @param {string} userId - 用户ID
+  - @returns {Array} 推荐工具列表
 
 ---
 
 ## getCandidateTools(features)
 
 ```javascript
-getCandidateTools(features)
+getCandidateTools(features);
 ```
 
-* 获取候选工具
+- 获取候选工具
 
 ---
 
@@ -76,7 +76,7 @@ getCandidateTools(features)
 async scoreTools(candidates, features, userId)
 ```
 
-* 为工具评分
+- 为工具评分
 
 ---
 
@@ -86,27 +86,27 @@ async scoreTools(candidates, features, userId)
 async calculateToolScore(tool, features, userId)
 ```
 
-* 计算工具评分
+- 计算工具评分
 
 ---
 
 ## calculateTextMatchScore(tool, textFeatures)
 
 ```javascript
-calculateTextMatchScore(tool, textFeatures)
+calculateTextMatchScore(tool, textFeatures);
 ```
 
-* 文本匹配评分
+- 文本匹配评分
 
 ---
 
 ## calculatePreferenceScore(tool, userFeatures)
 
 ```javascript
-calculatePreferenceScore(tool, userFeatures)
+calculatePreferenceScore(tool, userFeatures);
 ```
 
-* 用户偏好评分
+- 用户偏好评分
 
 ---
 
@@ -116,37 +116,37 @@ calculatePreferenceScore(tool, userFeatures)
 async calculateHistoricalSuccessScore(toolName, userId, features)
 ```
 
-* 历史成功率评分
+- 历史成功率评分
 
 ---
 
 ## calculateRecencyScore(tool, userFeatures)
 
 ```javascript
-calculateRecencyScore(tool, userFeatures)
+calculateRecencyScore(tool, userFeatures);
 ```
 
-* 最近使用评分
+- 最近使用评分
 
 ---
 
 ## scoreToConfidence(score)
 
 ```javascript
-scoreToConfidence(score)
+scoreToConfidence(score);
 ```
 
-* 评分转置信度
+- 评分转置信度
 
 ---
 
 ## generateExplanation(recommendation, features)
 
 ```javascript
-generateExplanation(recommendation, features)
+generateExplanation(recommendation, features);
 ```
 
-* 生成推荐解释
+- 生成推荐解释
 
 ---
 
@@ -156,7 +156,7 @@ generateExplanation(recommendation, features)
 async logRecommendation(userId, task, recommendations)
 ```
 
-* 记录推荐
+- 记录推荐
 
 ---
 
@@ -166,17 +166,17 @@ async logRecommendation(userId, task, recommendations)
 async feedbackRecommendation(recommendationId, feedback)
 ```
 
-* 反馈推荐结果
+- 反馈推荐结果
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
 
@@ -186,7 +186,6 @@ getStats()
 async recommendBatch(tasks, userId)
 ```
 
-* 批量推荐
+- 批量推荐
 
 ---
-

@@ -12,10 +12,10 @@
 const
 ```
 
-* 数据库适配器
- *
- * 提供统一的接口，自动选择 sql.js 或 SQLCipher
- * 支持平滑迁移和fallback
+- 数据库适配器
+-
+- 提供统一的接口，自动选择 sql.js 或 SQLCipher
+- 支持平滑迁移和fallback
 
 ---
 
@@ -25,7 +25,7 @@ const
 const DatabaseEngine =
 ```
 
-* 数据库引擎类型
+- 数据库引擎类型
 
 ---
 
@@ -35,39 +35,39 @@ const DatabaseEngine =
 class DatabaseAdapter
 ```
 
-* 数据库适配器类
+- 数据库适配器类
 
 ---
 
 ## isDevelopmentMode()
 
 ```javascript
-isDevelopmentMode()
+isDevelopmentMode();
 ```
 
-* 检查是否为开发模式
+- 检查是否为开发模式
 
 ---
 
 ## getDevDefaultPassword()
 
 ```javascript
-getDevDefaultPassword()
+getDevDefaultPassword();
 ```
 
-* 获取开发模式默认密码
+- 获取开发模式默认密码
 
 ---
 
-## async _pathExists(p)
+## async \_pathExists(p)
 
 ```javascript
 async _pathExists(p)
 ```
 
-* 异步路径存在性检查 (M2)
-   * @param {string} p
-   * @returns {Promise<boolean>}
+- 异步路径存在性检查 (M2)
+  - @param {string} p
+  - @returns {Promise<boolean>}
 
 ---
 
@@ -77,19 +77,19 @@ async _pathExists(p)
 async detectEngine()
 ```
 
-* 检测应该使用哪个引擎 (M2: 异步)
-   * @returns {Promise<string>} 引擎类型
+- 检测应该使用哪个引擎 (M2: 异步)
+  - @returns {Promise<string>} 引擎类型
 
 ---
 
 ## getEncryptedDbPath()
 
 ```javascript
-getEncryptedDbPath()
+getEncryptedDbPath();
 ```
 
-* 获取加密数据库路径
-   * @returns {string}
+- 获取加密数据库路径
+  - @returns {string}
 
 ---
 
@@ -99,7 +99,7 @@ getEncryptedDbPath()
 async initialize()
 ```
 
-* 初始化适配器
+- 初始化适配器
 
 ---
 
@@ -109,7 +109,7 @@ async initialize()
 async initializeEncryption()
 ```
 
-* 初始化加密功能
+- 初始化加密功能
 
 ---
 
@@ -119,8 +119,8 @@ async initializeEncryption()
 async shouldMigrate()
 ```
 
-* 检查是否需要迁移 (M2: 异步)
-   * @returns {Promise<boolean>}
+- 检查是否需要迁移 (M2: 异步)
+  - @returns {Promise<boolean>}
 
 ---
 
@@ -130,7 +130,7 @@ async shouldMigrate()
 async performMigration()
 ```
 
-* 执行数据库迁移
+- 执行数据库迁移
 
 ---
 
@@ -140,8 +140,8 @@ async performMigration()
 async getEncryptionKey()
 ```
 
-* 获取加密密钥
-   * @returns {Promise<Object>}
+- 获取加密密钥
+  - @returns {Promise<Object>}
 
 ---
 
@@ -151,8 +151,8 @@ async getEncryptionKey()
 async createDatabase()
 ```
 
-* 创建数据库实例
-   * @returns {Object} 数据库实例（sql.js 或 SQLCipher）
+- 创建数据库实例
+  - @returns {Object} 数据库实例（sql.js 或 SQLCipher）
 
 ---
 
@@ -162,7 +162,7 @@ async createDatabase()
 async createSQLCipherDatabase()
 ```
 
-* 创建 SQLCipher 数据库
+- 创建 SQLCipher 数据库
 
 ---
 
@@ -172,18 +172,18 @@ async createSQLCipherDatabase()
 async createSqlJsDatabase()
 ```
 
-* 创建 sql.js 数据库
+- 创建 sql.js 数据库
 
 ---
 
 ## saveDatabase(db)
 
 ```javascript
-saveDatabase(db)
+saveDatabase(db);
 ```
 
-* 保存数据库（sql.js 专用）
-   * @param {Object} db - 数据库实例
+- 保存数据库（sql.js 专用）
+  - @param {Object} db - 数据库实例
 
 ---
 
@@ -193,27 +193,27 @@ saveDatabase(db)
 async close()
 ```
 
-* 关闭数据库适配器
+- 关闭数据库适配器
 
 ---
 
 ## getEngine()
 
 ```javascript
-getEngine()
+getEngine();
 ```
 
-* 获取当前引擎类型
+- 获取当前引擎类型
 
 ---
 
 ## isEncrypted()
 
 ```javascript
-isEncrypted()
+isEncrypted();
 ```
 
-* 是否使用加密
+- 是否使用加密
 
 ---
 
@@ -223,11 +223,11 @@ isEncrypted()
 async changePassword(oldPassword, newPassword, db)
 ```
 
-* 修改数据库加密密码
-   * @param {string} oldPassword - 旧密码
-   * @param {string} newPassword - 新密码
-   * @param {Object} db - 数据库实例
-   * @returns {Promise<Object>} 修改结果
+- 修改数据库加密密码
+  - @param {string} oldPassword - 旧密码
+  - @param {string} newPassword - 新密码
+  - @param {Object} db - 数据库实例
+  - @returns {Promise<Object>} 修改结果
 
 ---
 
@@ -237,9 +237,8 @@ async changePassword(oldPassword, newPassword, db)
 async function createDatabaseAdapter(options)
 ```
 
-* 创建数据库适配器实例
- * @param {Object} options - 选项
- * @returns {Promise<DatabaseAdapter>}
+- 创建数据库适配器实例
+- @param {Object} options - 选项
+- @returns {Promise<DatabaseAdapter>}
 
 ---
-

@@ -12,11 +12,11 @@
 const
 ```
 
-* SkillRegistry - 技能注册表
- *
- * 管理所有可用的技能，提供技能注册、查找和执行功能。
- *
- * @module ai-engine/cowork/skills/skill-registry
+- SkillRegistry - 技能注册表
+-
+- 管理所有可用的技能，提供技能注册、查找和执行功能。
+-
+- @module ai-engine/cowork/skills/skill-registry
 
 ---
 
@@ -26,77 +26,77 @@ const
 class SkillRegistry extends EventEmitter
 ```
 
-* SkillRegistry 类
+- SkillRegistry 类
 
 ---
 
 ## register(skill)
 
 ```javascript
-register(skill)
+register(skill);
 ```
 
-* 注册技能
-   * @param {BaseSkill} skill - 技能实例
+- 注册技能
+  - @param {BaseSkill} skill - 技能实例
 
 ---
 
 ## registerMultiple(skills)
 
 ```javascript
-registerMultiple(skills)
+registerMultiple(skills);
 ```
 
-* 批量注册技能
-   * @param {Array<BaseSkill>} skills - 技能数组
+- 批量注册技能
+  - @param {Array<BaseSkill>} skills - 技能数组
 
 ---
 
 ## unregister(skillId)
 
 ```javascript
-unregister(skillId)
+unregister(skillId);
 ```
 
-* 注销技能
-   * @param {string} skillId - 技能 ID
+- 注销技能
+  - @param {string} skillId - 技能 ID
 
 ---
 
 ## hotLoadSkill(skillId, definition)
 
 ```javascript
-hotLoadSkill(skillId, definition)
+hotLoadSkill(skillId, definition);
 ```
 
-* 热加载单个技能
-   * @param {string} skillId - 技能 ID
-   * @param {object} definition - 技能定义
-   * @returns {boolean} 是否成功
+- 热加载单个技能
+  - @param {string} skillId - 技能 ID
+  - @param {object} definition - 技能定义
+  - @returns {boolean} 是否成功
 
 ---
 
 ## hotUnloadSkill(skillId)
 
 ```javascript
-hotUnloadSkill(skillId)
+hotUnloadSkill(skillId);
 ```
 
-* 热卸载单个技能
-   * @param {string} skillId - 技能 ID
-   * @returns {boolean} 是否成功
+- 热卸载单个技能
+  - @param {string} skillId - 技能 ID
+  - @returns {boolean} 是否成功
 
 ---
 
 ## getSkill(skillId)
 
 ```javascript
-getSkill(skillId)
+getSkill(skillId);
 ```
 
-* 获取技能
-   * @param {string} skillId - 技能 ID
-   * @returns {BaseSkill|undefined}
+- 获取技能
+  - @param {string} skillId - 技能 ID
+  - @returns {BaseSkill|undefined}
 
 ---
 
@@ -106,68 +106,68 @@ getSkill(skillId)
 findSkillsForTask(task, options =
 ```
 
-* 查找能处理任务的技能
-   * @param {Object} task - 任务对象
-   * @param {Object} options - 选项
-   * @returns {Array<{skill: BaseSkill, score: number}>}
+- 查找能处理任务的技能
+  - @param {Object} task - 任务对象
+  - @param {Object} options - 选项
+  - @returns {Array<{skill: BaseSkill, score: number}>}
 
 ---
 
 ## selectBestSkill(task)
 
 ```javascript
-selectBestSkill(task)
+selectBestSkill(task);
 ```
 
-* 选择最佳技能
-   * @param {Object} task - 任务对象
-   * @returns {BaseSkill|null}
+- 选择最佳技能
+  - @param {Object} task - 任务对象
+  - @returns {BaseSkill|null}
 
 ---
 
 ## getSkillsByCategory(category)
 
 ```javascript
-getSkillsByCategory(category)
+getSkillsByCategory(category);
 ```
 
-* 按分类获取技能
-   * @param {string} category - 分类
-   * @returns {Array<BaseSkill>}
+- 按分类获取技能
+  - @param {string} category - 分类
+  - @returns {Array<BaseSkill>}
 
 ---
 
 ## getSkillsByFileType(fileType)
 
 ```javascript
-getSkillsByFileType(fileType)
+getSkillsByFileType(fileType);
 ```
 
-* 按文件类型获取技能
-   * @param {string} fileType - 文件类型
-   * @returns {Array<BaseSkill>}
+- 按文件类型获取技能
+  - @param {string} fileType - 文件类型
+  - @returns {Array<BaseSkill>}
 
 ---
 
 ## getAllSkills()
 
 ```javascript
-getAllSkills()
+getAllSkills();
 ```
 
-* 获取所有技能
-   * @returns {Array<BaseSkill>}
+- 获取所有技能
+  - @returns {Array<BaseSkill>}
 
 ---
 
 ## getEnabledSkills()
 
 ```javascript
-getEnabledSkills()
+getEnabledSkills();
 ```
 
-* 获取已启用的技能
-   * @returns {Array<BaseSkill>}
+- 获取已启用的技能
+  - @returns {Array<BaseSkill>}
 
 ---
 
@@ -177,11 +177,11 @@ getEnabledSkills()
 async executeSkill(skillId, task, context =
 ```
 
-* 执行技能
-   * @param {string} skillId - 技能 ID
-   * @param {Object} task - 任务对象
-   * @param {Object} context - 执行上下文
-   * @returns {Promise<any>} 执行结果
+- 执行技能
+  - @param {string} skillId - 技能 ID
+  - @param {Object} task - 任务对象
+  - @param {Object} context - 执行上下文
+  - @returns {Promise<any>} 执行结果
 
 ---
 
@@ -191,74 +191,74 @@ async executeSkill(skillId, task, context =
 async autoExecute(task, context =
 ```
 
-* 自动执行任务（选择最佳技能）
-   * @param {Object} task - 任务对象
-   * @param {Object} context - 执行上下文
-   * @returns {Promise<any>} 执行结果
+- 自动执行任务（选择最佳技能）
+  - @param {Object} task - 任务对象
+  - @param {Object} context - 执行上下文
+  - @returns {Promise<any>} 执行结果
 
 ---
 
 ## autoLoadBuiltinSkills()
 
 ```javascript
-autoLoadBuiltinSkills()
+autoLoadBuiltinSkills();
 ```
 
-* 自动加载内置技能
+- 自动加载内置技能
 
 ---
 
-## _attachSkillEventListeners(skill)
+## \_attachSkillEventListeners(skill)
 
 ```javascript
-_attachSkillEventListeners(skill)
+_attachSkillEventListeners(skill);
 ```
 
-* 附加技能事件监听器
-   * @private
+- 附加技能事件监听器
+  - @private
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计信息
-   * @returns {Object}
+- 获取统计信息
+  - @returns {Object}
 
 ---
 
 ## getSkillList()
 
 ```javascript
-getSkillList()
+getSkillList();
 ```
 
-* 获取技能列表信息
-   * @returns {Array}
+- 获取技能列表信息
+  - @returns {Array}
 
 ---
 
 ## resetAllMetrics()
 
 ```javascript
-resetAllMetrics()
+resetAllMetrics();
 ```
 
-* 重置所有技能指标
+- 重置所有技能指标
 
 ---
 
-## _log(message, level = "info")
+## \_log(message, level = "info")
 
 ```javascript
-_log(message, level = "info")
+_log(message, (level = "info"));
 ```
 
-* 日志输出
-   * @private
+- 日志输出
+  - @private
 
 ---
 
@@ -268,20 +268,20 @@ _log(message, level = "info")
 async findBestSkill(task)
 ```
 
-* 查找最佳技能（别名：selectBestSkill）
-   * @param {object} task - 任务对象
-   * @returns {Promise<object>} 匹配结果
+- 查找最佳技能（别名：selectBestSkill）
+  - @param {object} task - 任务对象
+  - @returns {Promise<object>} 匹配结果
 
 ---
 
 ## setLoader(loader)
 
 ```javascript
-setLoader(loader)
+setLoader(loader);
 ```
 
-* 设置技能加载器
-   * @param {SkillLoader} loader - 技能加载器实例
+- 设置技能加载器
+  - @param {SkillLoader} loader - 技能加载器实例
 
 ---
 
@@ -291,43 +291,43 @@ setLoader(loader)
 async loadAllSkills()
 ```
 
-* 从加载器加载所有技能（三层加载）
-   * @returns {Promise<{loaded: number, registered: number, errors: Array}>}
+- 从加载器加载所有技能（三层加载）
+  - @returns {Promise<{loaded: number, registered: number, errors: Array}>}
 
 ---
 
 ## getSkillsBySource(source)
 
 ```javascript
-getSkillsBySource(source)
+getSkillsBySource(source);
 ```
 
-* 按来源获取技能
-   * @param {'bundled'|'managed'|'workspace'} source - 来源
-   * @returns {Array<BaseSkill>}
+- 按来源获取技能
+  - @param {'bundled'|'managed'|'workspace'} source - 来源
+  - @returns {Array<BaseSkill>}
 
 ---
 
 ## getUserInvocableSkills()
 
 ```javascript
-getUserInvocableSkills()
+getUserInvocableSkills();
 ```
 
-* 获取用户可调用的技能
-   * @returns {Array<BaseSkill>}
+- 获取用户可调用的技能
+  - @returns {Array<BaseSkill>}
 
 ---
 
 ## getSkillDefinition(skillId)
 
 ```javascript
-getSkillDefinition(skillId)
+getSkillDefinition(skillId);
 ```
 
-* 获取技能定义（原始 SKILL.md 数据）
-   * @param {string} skillId - 技能 ID
-   * @returns {object|null}
+- 获取技能定义（原始 SKILL.md 数据）
+  - @param {string} skillId - 技能 ID
+  - @returns {object|null}
 
 ---
 
@@ -337,19 +337,19 @@ getSkillDefinition(skillId)
 async reloadAllSkills()
 ```
 
-* 重新加载所有技能
-   * @returns {Promise<object>}
+- 重新加载所有技能
+  - @returns {Promise<object>}
 
 ---
 
 ## getSkillSources()
 
 ```javascript
-getSkillSources()
+getSkillSources();
 ```
 
-* 获取三层目录信息
-   * @returns {object|null}
+- 获取三层目录信息
+  - @returns {object|null}
 
 ---
 
@@ -359,9 +359,8 @@ getSkillSources()
 function getSkillRegistry(options =
 ```
 
-* 获取技能注册表单例
- * @param {Object} options - 配置选项
- * @returns {SkillRegistry}
+- 获取技能注册表单例
+- @param {Object} options - 配置选项
+- @returns {SkillRegistry}
 
 ---
-

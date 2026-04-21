@@ -12,15 +12,15 @@
 const
 ```
 
-* DID 自动更新管理器
- *
- * 自动检测并更新DID文档变更
- *
- * 功能:
- * - DID文档版本管理
- * - 自动重新发布
- * - 变更通知机制
- * - 冲突解决
+- DID 自动更新管理器
+-
+- 自动检测并更新DID文档变更
+-
+- 功能:
+- - DID文档版本管理
+- - 自动重新发布
+- - 变更通知机制
+- - 冲突解决
 
 ---
 
@@ -30,7 +30,7 @@ const
 const DEFAULT_CONFIG =
 ```
 
-* DID更新器配置
+- DID更新器配置
 
 ---
 
@@ -40,7 +40,7 @@ const DEFAULT_CONFIG =
 class DIDUpdater extends EventEmitter
 ```
 
-* DID自动更新器类
+- DID自动更新器类
 
 ---
 
@@ -50,7 +50,7 @@ class DIDUpdater extends EventEmitter
 async initialize()
 ```
 
-* 初始化更新器
+- 初始化更新器
 
 ---
 
@@ -60,51 +60,51 @@ async initialize()
 async ensureVersionHistoryTable()
 ```
 
-* 确保版本历史表存在
+- 确保版本历史表存在
 
 ---
 
 ## startAutoUpdate(did)
 
 ```javascript
-startAutoUpdate(did)
+startAutoUpdate(did);
 ```
 
-* 启动自动更新
-   * @param {string} did - DID标识符
+- 启动自动更新
+  - @param {string} did - DID标识符
 
 ---
 
 ## stopAutoUpdate(did)
 
 ```javascript
-stopAutoUpdate(did)
+stopAutoUpdate(did);
 ```
 
-* 停止自动更新
-   * @param {string} did - DID标识符
+- 停止自动更新
+  - @param {string} did - DID标识符
 
 ---
 
 ## startAutoRepublish(did)
 
 ```javascript
-startAutoRepublish(did)
+startAutoRepublish(did);
 ```
 
-* 启动自动重新发布
-   * @param {string} did - DID标识符
+- 启动自动重新发布
+  - @param {string} did - DID标识符
 
 ---
 
 ## stopAutoRepublish(did)
 
 ```javascript
-stopAutoRepublish(did)
+stopAutoRepublish(did);
 ```
 
-* 停止自动重新发布
-   * @param {string} did - DID标识符
+- 停止自动重新发布
+  - @param {string} did - DID标识符
 
 ---
 
@@ -114,34 +114,34 @@ stopAutoRepublish(did)
 async checkAndUpdate(did)
 ```
 
-* 检查并更新DID
-   * @param {string} did - DID标识符
+- 检查并更新DID
+  - @param {string} did - DID标识符
 
 ---
 
 ## needsUpdate(localDoc, remoteDoc)
 
 ```javascript
-needsUpdate(localDoc, remoteDoc)
+needsUpdate(localDoc, remoteDoc);
 ```
 
-* 判断是否需要更新
-   * @param {Object} localDoc - 本地DID文档
-   * @param {Object} remoteDoc - 远程DID文档
-   * @returns {boolean} 是否需要更新
+- 判断是否需要更新
+  - @param {Object} localDoc - 本地DID文档
+  - @param {Object} remoteDoc - 远程DID文档
+  - @returns {boolean} 是否需要更新
 
 ---
 
 ## detectChanges(oldDoc, newDoc)
 
 ```javascript
-detectChanges(oldDoc, newDoc)
+detectChanges(oldDoc, newDoc);
 ```
 
-* 检测变更
-   * @param {Object} oldDoc - 旧文档
-   * @param {Object} newDoc - 新文档
-   * @returns {Array} 变更列表
+- 检测变更
+  - @param {Object} oldDoc - 旧文档
+  - @param {Object} newDoc - 新文档
+  - @returns {Array} 变更列表
 
 ---
 
@@ -151,10 +151,10 @@ detectChanges(oldDoc, newDoc)
 async updateLocalDID(did, newDoc, remoteDID)
 ```
 
-* 更新本地DID
-   * @param {string} did - DID标识符
-   * @param {Object} newDoc - 新DID文档
-   * @param {Object} remoteDID - 远程DID数据
+- 更新本地DID
+  - @param {string} did - DID标识符
+  - @param {Object} newDoc - 新DID文档
+  - @param {Object} remoteDID - 远程DID数据
 
 ---
 
@@ -164,9 +164,9 @@ async updateLocalDID(did, newDoc, remoteDID)
 async saveVersionHistory(did, document)
 ```
 
-* 保存版本历史
-   * @param {string} did - DID标识符
-   * @param {Object} document - DID文档
+- 保存版本历史
+  - @param {string} did - DID标识符
+  - @param {Object} document - DID文档
 
 ---
 
@@ -176,20 +176,20 @@ async saveVersionHistory(did, document)
 async cleanupVersionHistory(did)
 ```
 
-* 清理旧版本历史
-   * @param {string} did - DID标识符
+- 清理旧版本历史
+  - @param {string} did - DID标识符
 
 ---
 
 ## getVersionHistory(did)
 
 ```javascript
-getVersionHistory(did)
+getVersionHistory(did);
 ```
 
-* 获取版本历史
-   * @param {string} did - DID标识符
-   * @returns {Array} 版本历史列表
+- 获取版本历史
+  - @param {string} did - DID标识符
+  - @returns {Array} 版本历史列表
 
 ---
 
@@ -199,8 +199,8 @@ getVersionHistory(did)
 async republish(did)
 ```
 
-* 重新发布DID到DHT
-   * @param {string} did - DID标识符
+- 重新发布DID到DHT
+  - @param {string} did - DID标识符
 
 ---
 
@@ -210,9 +210,9 @@ async republish(did)
 async incrementVersion(did, changes = "Updated")
 ```
 
-* 增加DID文档版本号
-   * @param {string} did - DID标识符
-   * @param {string} changes - 变更说明
+- 增加DID文档版本号
+  - @param {string} did - DID标识符
+  - @param {string} changes - 变更说明
 
 ---
 
@@ -222,7 +222,6 @@ async incrementVersion(did, changes = "Updated")
 async destroy()
 ```
 
-* 销毁更新器
+- 销毁更新器
 
 ---
-

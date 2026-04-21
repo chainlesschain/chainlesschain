@@ -12,7 +12,6 @@
 function registerPerformanceIPC()
 ```
 
-* 注册性能监控IPC处理器
+- 注册性能监控IPC处理器
 
 ---
-

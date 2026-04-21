@@ -12,14 +12,14 @@
 class SlotFiller
 ```
 
-* 槽位填充器 (Slot Filler)
- * 负责识别缺失的必需参数，并通过上下文推断或用户询问来填充
- *
- * 核心功能:
- * 1. 定义每个意图的必需/可选槽位
- * 2. 从上下文智能推断缺失参数
- * 3. 与用户交互获取缺失信息
- * 4. 验证槽位完整性
+- 槽位填充器 (Slot Filler)
+- 负责识别缺失的必需参数，并通过上下文推断或用户询问来填充
+-
+- 核心功能:
+- 1.  定义每个意图的必需/可选槽位
+- 2.  从上下文智能推断缺失参数
+- 3.  与用户交互获取缺失信息
+- 4.  验证槽位完整性
 
 ---
 
@@ -29,11 +29,11 @@ class SlotFiller
 async fillSlots(intent, context =
 ```
 
-* 填充槽位
-   * @param {Object} intent - 意图识别结果
-   * @param {Object} context - 上下文信息
-   * @param {Function} askUserCallback - 询问用户的回调函数 (question, options) => Promise<answer>
-   * @returns {Promise<Object>} 填充后的实体对象
+- 填充槽位
+  - @param {Object} intent - 意图识别结果
+  - @param {Object} context - 上下文信息
+  - @param {Function} askUserCallback - 询问用户的回调函数 (question, options) => Promise<answer>
+  - @returns {Promise<Object>} 填充后的实体对象
 
 ---
 
@@ -43,8 +43,8 @@ async fillSlots(intent, context =
 async inferFromContext(slots, context, currentEntities)
 ```
 
-* 从上下文推断槽位值
-   * @private
+- 从上下文推断槽位值
+  - @private
 
 ---
 
@@ -54,8 +54,8 @@ async inferFromContext(slots, context, currentEntities)
 async askUser(slot, askUserCallback)
 ```
 
-* 询问用户填充槽位
-   * @private
+- 询问用户填充槽位
+  - @private
 
 ---
 
@@ -65,41 +65,41 @@ async askUser(slot, askUserCallback)
 async inferOptionalSlot(slot, intent, context, entities)
 ```
 
-* 推断可选槽位（使用LLM）
-   * @private
+- 推断可选槽位（使用LLM）
+  - @private
 
 ---
 
 ## validateSlots(intentType, entities)
 
 ```javascript
-validateSlots(intentType, entities)
+validateSlots(intentType, entities);
 ```
 
-* 验证槽位完整性
-   * @private
+- 验证槽位完整性
+  - @private
 
 ---
 
 ## extToFileType(ext)
 
 ```javascript
-extToFileType(ext)
+extToFileType(ext);
 ```
 
-* 文件扩展名转文件类型
-   * @private
+- 文件扩展名转文件类型
+  - @private
 
 ---
 
 ## isDataFile(filePath)
 
 ```javascript
-isDataFile(filePath)
+isDataFile(filePath);
 ```
 
-* 判断是否为数据文件
-   * @private
+- 判断是否为数据文件
+  - @private
 
 ---
 
@@ -109,10 +109,10 @@ isDataFile(filePath)
 async recordFillingHistory(userId, intentType, entities)
 ```
 
-* 记录槽位填充历史（用于学习用户偏好）
-   * @param {string} userId - 用户ID
-   * @param {string} intentType - 意图类型
-   * @param {Object} entities - 填充后的实体
+- 记录槽位填充历史（用于学习用户偏好）
+  - @param {string} userId - 用户ID
+  - @param {string} intentType - 意图类型
+  - @param {Object} entities - 填充后的实体
 
 ---
 
@@ -122,21 +122,20 @@ async recordFillingHistory(userId, intentType, entities)
 async learnUserPreference(userId, intentType, slot)
 ```
 
-* 从历史学习用户偏好
-   * @param {string} userId - 用户ID
-   * @param {string} intentType - 意图类型
-   * @param {string} slot - 槽位名
-   * @returns {Promise<string|null>} 用户常用的槽位值
+- 从历史学习用户偏好
+  - @param {string} userId - 用户ID
+  - @param {string} intentType - 意图类型
+  - @param {string} slot - 槽位名
+  - @returns {Promise<string|null>} 用户常用的槽位值
 
 ---
 
 ## getSummary(result)
 
 ```javascript
-getSummary(result)
+getSummary(result);
 ```
 
-* 生成槽位摘要（用于日志和调试）
+- 生成槽位摘要（用于日志和调试）
 
 ---
-

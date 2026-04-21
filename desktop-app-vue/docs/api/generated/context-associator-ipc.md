@@ -12,12 +12,12 @@
 const
 ```
 
-* ContextAssociator IPC Handlers
- * Handles IPC communication for context association
- *
- * @module context-associator-ipc
- * @version 1.0.0
- * @since 2026-01-18
+- ContextAssociator IPC Handlers
+- Handles IPC communication for context association
+-
+- @module context-associator-ipc
+- @version 1.0.0
+- @since 2026-01-18
 
 ---
 
@@ -27,10 +27,10 @@ const
 function registerContextAssociatorIPC(
 ```
 
-* Register all ContextAssociator IPC handlers
- * @param {Object} dependencies - Dependencies
- * @param {Object} dependencies.contextAssociator - ContextAssociator instance
- * @param {Object} [dependencies.ipcMain] - IPC main object (for testing)
+- Register all ContextAssociator IPC handlers
+- @param {Object} dependencies - Dependencies
+- @param {Object} dependencies.contextAssociator - ContextAssociator instance
+- @param {Object} [dependencies.ipcMain] - IPC main object (for testing)
 
 ---
 
@@ -40,8 +40,8 @@ function registerContextAssociatorIPC(
 ipcMain.handle(
 ```
 
-* Extract knowledge from session
-   * Channel: 'context:extract-knowledge'
+- Extract knowledge from session
+  - Channel: 'context:extract-knowledge'
 
 ---
 
@@ -51,8 +51,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-* Get session knowledge
-   * Channel: 'context:get-session-knowledge'
+- Get session knowledge
+  - Channel: 'context:get-session-knowledge'
 
 ---
 
@@ -62,8 +62,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-* Find related sessions
-   * Channel: 'context:find-related'
+- Find related sessions
+  - Channel: 'context:find-related'
 
 ---
 
@@ -73,8 +73,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-* Analyze conversation
-   * Channel: 'context:analyze-conversation'
+- Analyze conversation
+  - Channel: 'context:analyze-conversation'
 
 ---
 
@@ -84,8 +84,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-* Search knowledge
-   * Channel: 'context:search-knowledge'
+- Search knowledge
+  - Channel: 'context:search-knowledge'
 
 ---
 
@@ -95,19 +95,19 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-* Get or create topic
-   * Channel: 'context:get-or-create-topic'
+- Get or create topic
+  - Channel: 'context:get-or-create-topic'
 
 ---
 
-## ipcMain.handle("context:get-popular-topics", async (_event, options =
+## ipcMain.handle("context:get-popular-topics", async (\_event, options =
 
 ```javascript
 ipcMain.handle("context:get-popular-topics", async (_event, options =
 ```
 
-* Get popular topics
-   * Channel: 'context:get-popular-topics'
+- Get popular topics
+  - Channel: 'context:get-popular-topics'
 
 ---
 
@@ -117,8 +117,8 @@ ipcMain.handle("context:get-popular-topics", async (_event, options =
 ipcMain.handle("context:get-stats", async () =>
 ```
 
-* Get statistics
-   * Channel: 'context:get-stats'
+- Get statistics
+  - Channel: 'context:get-stats'
 
 ---
 
@@ -128,9 +128,8 @@ ipcMain.handle("context:get-stats", async () =>
 function updateContextAssociator(newAssociator)
 ```
 
-* Update ContextAssociator reference
-   * For hot-reload or reinitialization
-   * @param {ContextAssociator} newAssociator - New instance
+- Update ContextAssociator reference
+  - For hot-reload or reinitialization
+  - @param {ContextAssociator} newAssociator - New instance
 
 ---
-

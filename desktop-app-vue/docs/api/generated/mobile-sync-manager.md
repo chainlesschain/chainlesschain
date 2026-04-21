@@ -12,15 +12,15 @@
 const
 ```
 
-* 移动端同步管理器
- *
- * 功能：
- * - 桌面端与移动端数据双向同步
- * - 群聊消息同步
- * - 知识库同步
- * - 联系人同步
- * - 增量同步和冲突解决
- * - 离线队列管理
+- 移动端同步管理器
+-
+- 功能：
+- - 桌面端与移动端数据双向同步
+- - 群聊消息同步
+- - 知识库同步
+- - 联系人同步
+- - 增量同步和冲突解决
+- - 离线队列管理
 
 ---
 
@@ -30,21 +30,21 @@ const
 async registerMobileDevice(deviceId, peerId, deviceInfo)
 ```
 
-* 注册移动设备
-   * @param {string} deviceId - 设备ID
-   * @param {string} peerId - P2P节点ID
-   * @param {Object} deviceInfo - 设备信息
+- 注册移动设备
+  - @param {string} deviceId - 设备ID
+  - @param {string} peerId - P2P节点ID
+  - @param {Object} deviceInfo - 设备信息
 
 ---
 
 ## unregisterMobileDevice(deviceId)
 
 ```javascript
-unregisterMobileDevice(deviceId)
+unregisterMobileDevice(deviceId);
 ```
 
-* 注销移动设备
-   * @param {string} deviceId - 设备ID
+- 注销移动设备
+  - @param {string} deviceId - 设备ID
 
 ---
 
@@ -54,9 +54,9 @@ unregisterMobileDevice(deviceId)
 async startSync(deviceId, options =
 ```
 
-* 开始同步
-   * @param {string} deviceId - 目标设备ID
-   * @param {Object} options - 同步选项
+- 开始同步
+  - @param {string} deviceId - 目标设备ID
+  - @param {Object} options - 同步选项
 
 ---
 
@@ -66,7 +66,7 @@ async startSync(deviceId, options =
 async syncKnowledge(deviceId, since)
 ```
 
-* 同步知识库
+- 同步知识库
 
 ---
 
@@ -76,7 +76,7 @@ async syncKnowledge(deviceId, since)
 async syncContacts(deviceId, since)
 ```
 
-* 同步联系人
+- 同步联系人
 
 ---
 
@@ -86,7 +86,7 @@ async syncContacts(deviceId, since)
 async syncGroupChats(deviceId, since)
 ```
 
-* 同步群聊
+- 同步群聊
 
 ---
 
@@ -96,7 +96,7 @@ async syncGroupChats(deviceId, since)
 async syncMessages(deviceId, since)
 ```
 
-* 同步消息
+- 同步消息
 
 ---
 
@@ -106,7 +106,7 @@ async syncMessages(deviceId, since)
 async getKnowledgeChanges(since)
 ```
 
-* 获取知识库变更
+- 获取知识库变更
 
 ---
 
@@ -116,7 +116,7 @@ async getKnowledgeChanges(since)
 async getContactsChanges(since)
 ```
 
-* 获取联系人变更
+- 获取联系人变更
 
 ---
 
@@ -126,7 +126,7 @@ async getContactsChanges(since)
 async getGroupChatsChanges(since)
 ```
 
-* 获取群聊变更
+- 获取群聊变更
 
 ---
 
@@ -136,7 +136,7 @@ async getGroupChatsChanges(since)
 async getMessagesChanges(since)
 ```
 
-* 获取消息变更
+- 获取消息变更
 
 ---
 
@@ -146,7 +146,7 @@ async getMessagesChanges(since)
 async handleMobileSyncRequest(deviceId, payload)
 ```
 
-* 处理来自移动端的同步请求
+- 处理来自移动端的同步请求
 
 ---
 
@@ -156,7 +156,7 @@ async handleMobileSyncRequest(deviceId, payload)
 async applyKnowledgeChanges(changes)
 ```
 
-* 应用知识库变更
+- 应用知识库变更
 
 ---
 
@@ -166,7 +166,7 @@ async applyKnowledgeChanges(changes)
 async applyContactsChanges(changes)
 ```
 
-* 应用联系人变更
+- 应用联系人变更
 
 ---
 
@@ -176,7 +176,7 @@ async applyContactsChanges(changes)
 async applyGroupChatsChanges(changes)
 ```
 
-* 应用群聊变更
+- 应用群聊变更
 
 ---
 
@@ -186,67 +186,66 @@ async applyGroupChatsChanges(changes)
 async applyMessagesChanges(changes)
 ```
 
-* 应用消息变更
+- 应用消息变更
 
 ---
 
 ## updateProgress(deviceId, type, progress)
 
 ```javascript
-updateProgress(deviceId, type, progress)
+updateProgress(deviceId, type, progress);
 ```
 
-* 更新同步进度
+- 更新同步进度
 
 ---
 
 ## chunkArray(array, size)
 
 ```javascript
-chunkArray(array, size)
+chunkArray(array, size);
 ```
 
-* 分块数组
+- 分块数组
 
 ---
 
 ## startAutoSync()
 
 ```javascript
-startAutoSync()
+startAutoSync();
 ```
 
-* 启动自动同步
+- 启动自动同步
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
 
 ## getMobileDevices()
 
 ```javascript
-getMobileDevices()
+getMobileDevices();
 ```
 
-* 获取移动设备列表
+- 获取移动设备列表
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup()
+cleanup();
 ```
 
-* 清理资源
+- 清理资源
 
 ---
-

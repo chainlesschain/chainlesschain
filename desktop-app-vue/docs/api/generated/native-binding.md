@@ -12,9 +12,9 @@
 const
 ```
 
-* Native Module Binding for XinJinKe U盾
- *
- * 使用 Koffi (Foreign Function Interface) 调用 xjk.dll
+- Native Module Binding for XinJinKe U盾
+-
+- 使用 Koffi (Foreign Function Interface) 调用 xjk.dll
 
 ---
 
@@ -24,205 +24,204 @@ const
 class XinJinKeNativeBinding
 ```
 
-* XinJinKe Native Binding
- *
- * 根据官方文档绑定所有DLL函数
+- XinJinKe Native Binding
+-
+- 根据官方文档绑定所有DLL函数
 
 ---
 
 ## findDllPath()
 
 ```javascript
-findDllPath()
+findDllPath();
 ```
 
-* 查找DLL路径
+- 查找DLL路径
 
 ---
 
 ## load()
 
 ```javascript
-load()
+load();
 ```
 
-* 加载DLL库
+- 加载DLL库
 
 ---
 
 ## unload()
 
 ```javascript
-unload()
+unload();
 ```
 
-* 卸载DLL库
+- 卸载DLL库
 
 ---
 
 ## openKey()
 
 ```javascript
-openKey()
+openKey();
 ```
 
-* 打开U盾（默认密码）
+- 打开U盾（默认密码）
 
 ---
 
 ## openKeyEx(password)
 
 ```javascript
-openKeyEx(password)
+openKeyEx(password);
 ```
 
-* 打开U盾（指定密码）
-   * @param {string} password - 密码
+- 打开U盾（指定密码）
+  - @param {string} password - 密码
 
 ---
 
 ## closeKey()
 
 ```javascript
-closeKey()
+closeKey();
 ```
 
-* 关闭U盾
+- 关闭U盾
 
 ---
 
 ## findPort()
 
 ```javascript
-findPort()
+findPort();
 ```
 
-* 查找U盾端口
+- 查找U盾端口
 
 ---
 
 ## getSerial()
 
 ```javascript
-getSerial()
+getSerial();
 ```
 
-* 获取序列号
-   * @returns {string} 序列号
+- 获取序列号
+  - @returns {string} 序列号
 
 ---
 
 ## getSectors()
 
 ```javascript
-getSectors()
+getSectors();
 ```
 
-* 获取扇区总数
+- 获取扇区总数
 
 ---
 
 ## getClusters()
 
 ```javascript
-getClusters()
+getClusters();
 ```
 
-* 获取簇总数
+- 获取簇总数
 
 ---
 
 ## readSector(sector)
 
 ```javascript
-readSector(sector)
+readSector(sector);
 ```
 
-* 读取扇区数据
-   * @param {number} sector - 扇区号
-   * @returns {Buffer} 512字节数据
+- 读取扇区数据
+  - @param {number} sector - 扇区号
+  - @returns {Buffer} 512字节数据
 
 ---
 
 ## writeSector(data, sector)
 
 ```javascript
-writeSector(data, sector)
+writeSector(data, sector);
 ```
 
-* 写入扇区数据
-   * @param {Buffer} data - 512字节数据
-   * @param {number} sector - 扇区号
+- 写入扇区数据
+  - @param {Buffer} data - 512字节数据
+  - @param {number} sector - 扇区号
 
 ---
 
 ## readCluster(cluster)
 
 ```javascript
-readCluster(cluster)
+readCluster(cluster);
 ```
 
-* 读取簇数据
-   * @param {number} cluster - 簇号
-   * @returns {Buffer} 4096字节数据
+- 读取簇数据
+  - @param {number} cluster - 簇号
+  - @returns {Buffer} 4096字节数据
 
 ---
 
 ## writeCluster(data, cluster)
 
 ```javascript
-writeCluster(data, cluster)
+writeCluster(data, cluster);
 ```
 
-* 写入簇数据
-   * @param {Buffer} data - 4096字节数据
-   * @param {number} cluster - 簇号
+- 写入簇数据
+  - @param {Buffer} data - 4096字节数据
+  - @param {number} cluster - 簇号
 
 ---
 
 ## changePassword(oldPassword, newPassword)
 
 ```javascript
-changePassword(oldPassword, newPassword)
+changePassword(oldPassword, newPassword);
 ```
 
-* 修改密码
-   * @param {string} oldPassword - 旧密码
-   * @param {string} newPassword - 新密码
+- 修改密码
+  - @param {string} oldPassword - 旧密码
+  - @param {string} newPassword - 新密码
 
 ---
 
 ## encrypt(data)
 
 ```javascript
-encrypt(data)
+encrypt(data);
 ```
 
-* 加密数据
-   * @param {Buffer} data - 原始数据
-   * @returns {Buffer} 加密后数据
+- 加密数据
+  - @param {Buffer} data - 原始数据
+  - @returns {Buffer} 加密后数据
 
 ---
 
 ## decrypt(encryptedData)
 
 ```javascript
-decrypt(encryptedData)
+decrypt(encryptedData);
 ```
 
-* 解密数据
-   * @param {Buffer} encryptedData - 加密数据
-   * @returns {Buffer} 解密后数据
+- 解密数据
+  - @param {Buffer} encryptedData - 加密数据
+  - @returns {Buffer} 解密后数据
 
 ---
 
 ## isLibraryLoaded()
 
 ```javascript
-isLibraryLoaded()
+isLibraryLoaded();
 ```
 
-* 检查DLL是否已加载
+- 检查DLL是否已加载
 
 ---
-

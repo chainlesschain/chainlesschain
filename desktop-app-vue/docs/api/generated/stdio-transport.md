@@ -12,13 +12,13 @@
 const
 ```
 
-* Stdio Transport for MCP
- *
- * Provides stdio-based communication with MCP servers.
- * Handles process lifecycle, message serialization, and error recovery.
- * Supports cross-platform operation (Windows, macOS, Linux).
- *
- * @module StdioTransport
+- Stdio Transport for MCP
+-
+- Provides stdio-based communication with MCP servers.
+- Handles process lifecycle, message serialization, and error recovery.
+- Supports cross-platform operation (Windows, macOS, Linux).
+-
+- @module StdioTransport
 
 ---
 
@@ -28,7 +28,7 @@ const
 const PLATFORM =
 ```
 
-* Platform detection
+- Platform detection
 
 ---
 
@@ -38,9 +38,9 @@ const PLATFORM =
 function getPlatformSpawnOptions(config)
 ```
 
-* Get platform-specific spawn options
- * @param {Object} config - Configuration object
- * @returns {Object} Spawn options
+- Get platform-specific spawn options
+- @param {Object} config - Configuration object
+- @returns {Object} Spawn options
 
 ---
 
@@ -50,9 +50,9 @@ function getPlatformSpawnOptions(config)
 function normalizePath(inputPath)
 ```
 
-* Normalize a path for the current platform
- * @param {string} inputPath - Input path
- * @returns {string} Normalized path
+- Normalize a path for the current platform
+- @param {string} inputPath - Input path
+- @returns {string} Normalized path
 
 ---
 
@@ -62,8 +62,8 @@ function normalizePath(inputPath)
 function getKillSignal()
 ```
 
-* Get the appropriate kill signal for the platform
- * @returns {string} Kill signal
+- Get the appropriate kill signal for the platform
+- @returns {string} Kill signal
 
 ---
 
@@ -73,12 +73,12 @@ function getKillSignal()
 class StdioTransport extends EventEmitter
 ```
 
-* @typedef {Object} TransportConfig
- * @property {string} command - Command to execute
- * @property {string[]} args - Command arguments
- * @property {Object} env - Environment variables
- * @property {string} cwd - Working directory
- * @property {number} timeout - Operation timeout in ms
+- @typedef {Object} TransportConfig
+- @property {string} command - Command to execute
+- @property {string[]} args - Command arguments
+- @property {Object} env - Environment variables
+- @property {string} cwd - Working directory
+- @property {number} timeout - Operation timeout in ms
 
 ---
 
@@ -88,9 +88,9 @@ class StdioTransport extends EventEmitter
 async start(config =
 ```
 
-* Start the MCP server process
-   * @param {TransportConfig} config - Transport configuration
-   * @returns {Promise<void>}
+- Start the MCP server process
+  - @param {TransportConfig} config - Transport configuration
+  - @returns {Promise<void>}
 
 ---
 
@@ -100,34 +100,34 @@ async start(config =
 async send(message)
 ```
 
-* Send a message to the MCP server
-   * @param {Object} message - JSON-RPC message
-   * @returns {Promise<Object>} Response from server
+- Send a message to the MCP server
+  - @param {Object} message - JSON-RPC message
+  - @returns {Promise<Object>} Response from server
 
 ---
 
-## _handleMessage(line)
+## \_handleMessage(line)
 
 ```javascript
-_handleMessage(line)
+_handleMessage(line);
 ```
 
-* Handle incoming message from server
-   * @private
-   * @param {string} line - Raw JSON line
+- Handle incoming message from server
+  - @private
+  - @param {string} line - Raw JSON line
 
 ---
 
-## _handleProcessExit(code, signal)
+## \_handleProcessExit(code, signal)
 
 ```javascript
-_handleProcessExit(code, signal)
+_handleProcessExit(code, signal);
 ```
 
-* Handle process exit
-   * @private
-   * @param {number} code - Exit code
-   * @param {string} signal - Exit signal
+- Handle process exit
+  - @private
+  - @param {number} code - Exit code
+  - @param {string} signal - Exit signal
 
 ---
 
@@ -137,41 +137,40 @@ _handleProcessExit(code, signal)
 async stop()
 ```
 
-* Stop the MCP server process
-   * @returns {Promise<void>}
+- Stop the MCP server process
+  - @returns {Promise<void>}
 
 ---
 
-## _windowsKill()
+## \_windowsKill()
 
 ```javascript
-_windowsKill()
+_windowsKill();
 ```
 
-* Windows-specific process termination
-   * @private
+- Windows-specific process termination
+  - @private
 
 ---
 
-## _forceKill()
+## \_forceKill()
 
 ```javascript
-_forceKill()
+_forceKill();
 ```
 
-* Force kill the process
-   * @private
+- Force kill the process
+  - @private
 
 ---
 
 ## isReady()
 
 ```javascript
-isReady()
+isReady();
 ```
 
-* Check if transport is connected
-   * @returns {boolean}
+- Check if transport is connected
+  - @returns {boolean}
 
 ---
-

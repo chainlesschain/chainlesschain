@@ -12,8 +12,8 @@
 const
 ```
 
-* 数据库集成脚本 - 将 additional-skills-v3 和 additional-tools-v3 插入数据库
- * 运行方式: node src/main/skill-tool-system/db-integration.js
+- 数据库集成脚本 - 将 additional-skills-v3 和 additional-tools-v3 插入数据库
+- 运行方式: node src/main/skill-tool-system/db-integration.js
 
 ---
 
@@ -23,7 +23,7 @@ const
 async initialize()
 ```
 
-* 初始化数据库连接
+- 初始化数据库连接
 
 ---
 
@@ -33,7 +33,7 @@ async initialize()
 async insertTools()
 ```
 
-* 插入工具到数据库
+- 插入工具到数据库
 
 ---
 
@@ -43,7 +43,7 @@ async insertTools()
 async insertSkills()
 ```
 
-* 插入技能到数据库
+- 插入技能到数据库
 
 ---
 
@@ -53,7 +53,7 @@ async insertSkills()
 async createSkillToolRelations()
 ```
 
-* 创建技能-工具关联关系
+- 创建技能-工具关联关系
 
 ---
 
@@ -63,7 +63,7 @@ async createSkillToolRelations()
 async verify()
 ```
 
-* 验证数据插入结果
+- 验证数据插入结果
 
 ---
 
@@ -73,7 +73,7 @@ async verify()
 async close()
 ```
 
-* 关闭数据库连接
+- 关闭数据库连接
 
 ---
 
@@ -83,7 +83,6 @@ async close()
 async run()
 ```
 
-* 执行完整的集成流程
+- 执行完整的集成流程
 
 ---
-

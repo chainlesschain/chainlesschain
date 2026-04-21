@@ -12,12 +12,12 @@
 class PluginRegistry
 ```
 
-* PluginRegistry - 插件注册表
- *
- * 职责：
- * - 管理插件的元数据
- * - 与数据库交互
- * - 提供插件查询和管理接口
+- PluginRegistry - 插件注册表
+-
+- 职责：
+- - 管理插件的元数据
+- - 与数据库交互
+- - 提供插件查询和管理接口
 
 ---
 
@@ -27,8 +27,8 @@ class PluginRegistry
 async initialize()
 ```
 
-* 初始化插件注册表
-   * 创建必要的数据库表
+- 初始化插件注册表
+  - 创建必要的数据库表
 
 ---
 
@@ -38,10 +38,10 @@ async initialize()
 async register(manifest, installedPath)
 ```
 
-* 注册插件
-   * @param {Object} manifest - 插件manifest
-   * @param {string} installedPath - 安装路径
-   * @returns {Object} 注册的插件信息
+- 注册插件
+  - @param {Object} manifest - 插件manifest
+  - @param {string} installedPath - 安装路径
+  - @returns {Object} 注册的插件信息
 
 ---
 
@@ -51,7 +51,7 @@ async register(manifest, installedPath)
 async registerPermissions(pluginId, permissions)
 ```
 
-* 注册插件权限
+- 注册插件权限
 
 ---
 
@@ -61,19 +61,19 @@ async registerPermissions(pluginId, permissions)
 async registerDependencies(pluginId, dependencies)
 ```
 
-* 注册插件依赖
+- 注册插件依赖
 
 ---
 
 ## getPlugin(pluginId)
 
 ```javascript
-getPlugin(pluginId)
+getPlugin(pluginId);
 ```
 
-* 获取插件信息
-   * @param {string} pluginId - 插件ID
-   * @returns {Object|null} 插件信息
+- 获取插件信息
+  - @param {string} pluginId - 插件ID
+  - @returns {Object|null} 插件信息
 
 ---
 
@@ -83,9 +83,9 @@ getPlugin(pluginId)
 getInstalledPlugins(filters =
 ```
 
-* 获取所有已安装的插件
-   * @param {Object} filters - 过滤条件
-   * @returns {Array} 插件列表
+- 获取所有已安装的插件
+  - @param {Object} filters - 过滤条件
+  - @returns {Array} 插件列表
 
 ---
 
@@ -95,9 +95,9 @@ getInstalledPlugins(filters =
 async updatePluginState(pluginId, state)
 ```
 
-* 更新插件状态
-   * @param {string} pluginId - 插件ID
-   * @param {string} state - 新状态
+- 更新插件状态
+  - @param {string} pluginId - 插件ID
+  - @param {string} state - 新状态
 
 ---
 
@@ -107,9 +107,9 @@ async updatePluginState(pluginId, state)
 async updateEnabled(pluginId, enabled)
 ```
 
-* 更新启用状态
-   * @param {string} pluginId - 插件ID
-   * @param {boolean} enabled - 是否启用
+- 更新启用状态
+  - @param {string} pluginId - 插件ID
+  - @param {boolean} enabled - 是否启用
 
 ---
 
@@ -119,8 +119,8 @@ async updateEnabled(pluginId, enabled)
 async unregister(pluginId)
 ```
 
-* 注销插件
-   * @param {string} pluginId - 插件ID
+- 注销插件
+  - @param {string} pluginId - 插件ID
 
 ---
 
@@ -130,9 +130,9 @@ async unregister(pluginId)
 async recordError(pluginId, error)
 ```
 
-* 记录错误
-   * @param {string} pluginId - 插件ID
-   * @param {Error} error - 错误对象
+- 记录错误
+  - @param {string} pluginId - 插件ID
+  - @param {Error} error - 错误对象
 
 ---
 
@@ -142,23 +142,23 @@ async recordError(pluginId, error)
 async logEvent(pluginId, eventType, eventData =
 ```
 
-* 记录事件日志
-   * @param {string} pluginId - 插件ID
-   * @param {string} eventType - 事件类型
-   * @param {Object} eventData - 事件数据
-   * @param {string} level - 日志级别
+- 记录事件日志
+  - @param {string} pluginId - 插件ID
+  - @param {string} eventType - 事件类型
+  - @param {Object} eventData - 事件数据
+  - @param {string} level - 日志级别
 
 ---
 
 ## getPluginPermissions(pluginId)
 
 ```javascript
-getPluginPermissions(pluginId)
+getPluginPermissions(pluginId);
 ```
 
-* 获取插件的权限
-   * @param {string} pluginId - 插件ID
-   * @returns {Array} 权限列表
+- 获取插件的权限
+  - @param {string} pluginId - 插件ID
+  - @returns {Array} 权限列表
 
 ---
 
@@ -168,22 +168,22 @@ getPluginPermissions(pluginId)
 async updatePermission(pluginId, permission, granted)
 ```
 
-* 更新权限授予状态
-   * @param {string} pluginId - 插件ID
-   * @param {string} permission - 权限名称
-   * @param {boolean} granted - 是否授予
+- 更新权限授予状态
+  - @param {string} pluginId - 插件ID
+  - @param {string} permission - 权限名称
+  - @param {boolean} granted - 是否授予
 
 ---
 
 ## getPluginExtensions(pluginId)
 
 ```javascript
-getPluginExtensions(pluginId)
+getPluginExtensions(pluginId);
 ```
 
-* 获取插件的扩展点
-   * @param {string} pluginId - 插件ID
-   * @returns {Array} 扩展点列表
+- 获取插件的扩展点
+  - @param {string} pluginId - 插件ID
+  - @returns {Array} 扩展点列表
 
 ---
 
@@ -193,11 +193,11 @@ getPluginExtensions(pluginId)
 async registerExtension(pluginId, extensionPoint, config, priority = 100)
 ```
 
-* 注册扩展点
-   * @param {string} pluginId - 插件ID
-   * @param {string} extensionPoint - 扩展点名称
-   * @param {Object} config - 配置
-   * @param {number} priority - 优先级
+- 注册扩展点
+  - @param {string} pluginId - 插件ID
+  - @param {string} extensionPoint - 扩展点名称
+  - @param {Object} config - 配置
+  - @param {number} priority - 优先级
 
 ---
 
@@ -207,20 +207,20 @@ async registerExtension(pluginId, extensionPoint, config, priority = 100)
 async unregisterExtensions(pluginId)
 ```
 
-* 注销扩展点
-   * @param {string} pluginId - 插件ID
+- 注销扩展点
+  - @param {string} pluginId - 插件ID
 
 ---
 
 ## getExtensionsByPoint(extensionPoint)
 
 ```javascript
-getExtensionsByPoint(extensionPoint)
+getExtensionsByPoint(extensionPoint);
 ```
 
-* 获取指定扩展点的所有扩展
-   * @param {string} extensionPoint - 扩展点名称
-   * @returns {Array} 扩展列表
+- 获取指定扩展点的所有扩展
+  - @param {string} extensionPoint - 扩展点名称
+  - @returns {Array} 扩展列表
 
 ---
 
@@ -230,7 +230,6 @@ getExtensionsByPoint(extensionPoint)
 async cleanupLogs()
 ```
 
-* 清理旧的日志（保留最近30天）
+- 清理旧的日志（保留最近30天）
 
 ---
-

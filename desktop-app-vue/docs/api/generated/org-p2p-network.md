@@ -12,14 +12,14 @@
 const
 ```
 
-* 组织P2P网络管理器
- *
- * 功能：
- * - Topic订阅机制
- * - 组织成员自动发现
- * - 组织内消息广播
- * - 成员在线状态同步
- * - 去中心化组织协作
+- 组织P2P网络管理器
+-
+- 功能：
+- - Topic订阅机制
+- - 组织成员自动发现
+- - 组织内消息广播
+- - 成员在线状态同步
+- - 去中心化组织协作
 
 ---
 
@@ -29,7 +29,7 @@ const
 const MessageType =
 ```
 
-* 消息类型枚举
+- 消息类型枚举
 
 ---
 
@@ -39,7 +39,7 @@ const MessageType =
 class OrgP2PNetwork extends EventEmitter
 ```
 
-* 组织P2P网络管理器类
+- 组织P2P网络管理器类
 
 ---
 
@@ -49,9 +49,9 @@ class OrgP2PNetwork extends EventEmitter
 async initialize(orgId)
 ```
 
-* 初始化组织P2P网络
-   * @param {string} orgId - 组织ID
-   * @returns {Promise<void>}
+- 初始化组织P2P网络
+  - @param {string} orgId - 组织ID
+  - @returns {Promise<void>}
 
 ---
 
@@ -61,10 +61,10 @@ async initialize(orgId)
 async subscribeTopic(orgId, topic)
 ```
 
-* 订阅组织Topic
-   * @param {string} orgId - 组织ID
-   * @param {string} topic - Topic名称
-   * @returns {Promise<void>}
+- 订阅组织Topic
+  - @param {string} orgId - 组织ID
+  - @param {string} topic - Topic名称
+  - @returns {Promise<void>}
 
 ---
 
@@ -74,20 +74,20 @@ async subscribeTopic(orgId, topic)
 async unsubscribeTopic(orgId)
 ```
 
-* 取消订阅组织Topic
-   * @param {string} orgId - 组织ID
-   * @returns {Promise<void>}
+- 取消订阅组织Topic
+  - @param {string} orgId - 组织ID
+  - @returns {Promise<void>}
 
 ---
 
 ## registerMessageHandlers(orgId)
 
 ```javascript
-registerMessageHandlers(orgId)
+registerMessageHandlers(orgId);
 ```
 
-* 注册消息处理器
-   * @param {string} orgId - 组织ID
+- 注册消息处理器
+  - @param {string} orgId - 组织ID
 
 ---
 
@@ -97,9 +97,9 @@ registerMessageHandlers(orgId)
 async handleTopicMessage(orgId, message)
 ```
 
-* 处理Topic消息
-   * @param {string} orgId - 组织ID
-   * @param {Object} message - 消息对象
+- 处理Topic消息
+  - @param {string} orgId - 组织ID
+  - @param {Object} message - 消息对象
 
 ---
 
@@ -109,10 +109,10 @@ async handleTopicMessage(orgId, message)
 async broadcastMessage(orgId, message)
 ```
 
-* 广播消息到组织
-   * @param {string} orgId - 组织ID
-   * @param {Object} message - 消息内容
-   * @returns {Promise<void>}
+- 广播消息到组织
+  - @param {string} orgId - 组织ID
+  - @param {Object} message - 消息内容
+  - @returns {Promise<void>}
 
 ---
 
@@ -122,32 +122,32 @@ async broadcastMessage(orgId, message)
 async broadcastDirect(orgId, message)
 ```
 
-* 直接消息广播（PubSub不可用时的后备方案）
-   * @param {string} orgId - 组织ID
-   * @param {Object} message - 消息内容
-   * @returns {Promise<void>}
+- 直接消息广播（PubSub不可用时的后备方案）
+  - @param {string} orgId - 组织ID
+  - @param {Object} message - 消息内容
+  - @returns {Promise<void>}
 
 ---
 
 ## startHeartbeat(orgId)
 
 ```javascript
-startHeartbeat(orgId)
+startHeartbeat(orgId);
 ```
 
-* 启动心跳
-   * @param {string} orgId - 组织ID
+- 启动心跳
+  - @param {string} orgId - 组织ID
 
 ---
 
 ## stopHeartbeat(orgId)
 
 ```javascript
-stopHeartbeat(orgId)
+stopHeartbeat(orgId);
 ```
 
-* 停止心跳
-   * @param {string} orgId - 组织ID
+- 停止心跳
+  - @param {string} orgId - 组织ID
 
 ---
 
@@ -157,31 +157,31 @@ stopHeartbeat(orgId)
 async sendHeartbeat(orgId)
 ```
 
-* 发送心跳
-   * @param {string} orgId - 组织ID
-   * @returns {Promise<void>}
+- 发送心跳
+  - @param {string} orgId - 组织ID
+  - @returns {Promise<void>}
 
 ---
 
 ## startDiscovery(orgId)
 
 ```javascript
-startDiscovery(orgId)
+startDiscovery(orgId);
 ```
 
-* 启动成员发现
-   * @param {string} orgId - 组织ID
+- 启动成员发现
+  - @param {string} orgId - 组织ID
 
 ---
 
 ## stopDiscovery(orgId)
 
 ```javascript
-stopDiscovery(orgId)
+stopDiscovery(orgId);
 ```
 
-* 停止成员发现
-   * @param {string} orgId - 组织ID
+- 停止成员发现
+  - @param {string} orgId - 组织ID
 
 ---
 
@@ -191,9 +191,9 @@ stopDiscovery(orgId)
 async requestDiscovery(orgId)
 ```
 
-* 请求成员发现
-   * @param {string} orgId - 组织ID
-   * @returns {Promise<void>}
+- 请求成员发现
+  - @param {string} orgId - 组织ID
+  - @returns {Promise<void>}
 
 ---
 
@@ -203,9 +203,9 @@ async requestDiscovery(orgId)
 async broadcastMemberOnline(orgId)
 ```
 
-* 广播成员上线
-   * @param {string} orgId - 组织ID
-   * @returns {Promise<void>}
+- 广播成员上线
+  - @param {string} orgId - 组织ID
+  - @returns {Promise<void>}
 
 ---
 
@@ -215,9 +215,9 @@ async broadcastMemberOnline(orgId)
 async broadcastMemberOffline(orgId)
 ```
 
-* 广播成员下线
-   * @param {string} orgId - 组织ID
-   * @returns {Promise<void>}
+- 广播成员下线
+  - @param {string} orgId - 组织ID
+  - @returns {Promise<void>}
 
 ---
 
@@ -227,9 +227,9 @@ async broadcastMemberOffline(orgId)
 async handleMemberOnline(orgId, data)
 ```
 
-* 处理成员上线
-   * @param {string} orgId - 组织ID
-   * @param {Object} data - 消息数据
+- 处理成员上线
+  - @param {string} orgId - 组织ID
+  - @param {Object} data - 消息数据
 
 ---
 
@@ -239,9 +239,9 @@ async handleMemberOnline(orgId, data)
 async handleMemberOffline(orgId, data)
 ```
 
-* 处理成员下线
-   * @param {string} orgId - 组织ID
-   * @param {Object} data - 消息数据
+- 处理成员下线
+  - @param {string} orgId - 组织ID
+  - @param {Object} data - 消息数据
 
 ---
 
@@ -251,9 +251,9 @@ async handleMemberOffline(orgId, data)
 async handleHeartbeat(orgId, data)
 ```
 
-* 处理心跳
-   * @param {string} orgId - 组织ID
-   * @param {Object} data - 消息数据
+- 处理心跳
+  - @param {string} orgId - 组织ID
+  - @param {Object} data - 消息数据
 
 ---
 
@@ -263,9 +263,9 @@ async handleHeartbeat(orgId, data)
 async handleDiscoveryRequest(orgId, data)
 ```
 
-* 处理发现请求
-   * @param {string} orgId - 组织ID
-   * @param {Object} data - 消息数据
+- 处理发现请求
+  - @param {string} orgId - 组织ID
+  - @param {Object} data - 消息数据
 
 ---
 
@@ -275,9 +275,9 @@ async handleDiscoveryRequest(orgId, data)
 async handleDiscoveryResponse(orgId, data)
 ```
 
-* 处理发现响应
-   * @param {string} orgId - 组织ID
-   * @param {Object} data - 消息数据
+- 处理发现响应
+  - @param {string} orgId - 组织ID
+  - @param {Object} data - 消息数据
 
 ---
 
@@ -287,9 +287,9 @@ async handleDiscoveryResponse(orgId, data)
 async handleMemberEvent(orgId, data)
 ```
 
-* 处理成员事件
-   * @param {string} orgId - 组织ID
-   * @param {Object} data - 消息数据
+- 处理成员事件
+  - @param {string} orgId - 组织ID
+  - @param {Object} data - 消息数据
 
 ---
 
@@ -299,9 +299,9 @@ async handleMemberEvent(orgId, data)
 async handleKnowledgeEvent(orgId, data)
 ```
 
-* 处理知识库事件
-   * @param {string} orgId - 组织ID
-   * @param {Object} data - 消息数据
+- 处理知识库事件
+  - @param {string} orgId - 组织ID
+  - @param {Object} data - 消息数据
 
 ---
 
@@ -311,94 +311,94 @@ async handleKnowledgeEvent(orgId, data)
 async handleBroadcastMessage(orgId, data)
 ```
 
-* 处理广播消息
-   * @param {string} orgId - 组织ID
-   * @param {Object} data - 消息数据
+- 处理广播消息
+  - @param {string} orgId - 组织ID
+  - @param {Object} data - 消息数据
 
 ---
 
 ## addOnlineMember(orgId, memberDID)
 
 ```javascript
-addOnlineMember(orgId, memberDID)
+addOnlineMember(orgId, memberDID);
 ```
 
-* 添加在线成员
-   * @param {string} orgId - 组织ID
-   * @param {string} memberDID - 成员DID
+- 添加在线成员
+  - @param {string} orgId - 组织ID
+  - @param {string} memberDID - 成员DID
 
 ---
 
 ## removeOnlineMember(orgId, memberDID)
 
 ```javascript
-removeOnlineMember(orgId, memberDID)
+removeOnlineMember(orgId, memberDID);
 ```
 
-* 移除在线成员
-   * @param {string} orgId - 组织ID
-   * @param {string} memberDID - 成员DID
+- 移除在线成员
+  - @param {string} orgId - 组织ID
+  - @param {string} memberDID - 成员DID
 
 ---
 
 ## getOnlineMembers(orgId)
 
 ```javascript
-getOnlineMembers(orgId)
+getOnlineMembers(orgId);
 ```
 
-* 获取在线成员列表
-   * @param {string} orgId - 组织ID
-   * @returns {Array<string>} 在线成员DID列表
+- 获取在线成员列表
+  - @param {string} orgId - 组织ID
+  - @returns {Array<string>} 在线成员DID列表
 
 ---
 
 ## getOnlineMemberCount(orgId)
 
 ```javascript
-getOnlineMemberCount(orgId)
+getOnlineMemberCount(orgId);
 ```
 
-* 获取在线成员数量
-   * @param {string} orgId - 组织ID
-   * @returns {number} 在线成员数量
+- 获取在线成员数量
+  - @param {string} orgId - 组织ID
+  - @returns {number} 在线成员数量
 
 ---
 
 ## isMemberOnline(orgId, memberDID)
 
 ```javascript
-isMemberOnline(orgId, memberDID)
+isMemberOnline(orgId, memberDID);
 ```
 
-* 检查成员是否在线
-   * @param {string} orgId - 组织ID
-   * @param {string} memberDID - 成员DID
-   * @returns {boolean} 是否在线
+- 检查成员是否在线
+  - @param {string} orgId - 组织ID
+  - @param {string} memberDID - 成员DID
+  - @returns {boolean} 是否在线
 
 ---
 
 ## getOrgTopic(orgId)
 
 ```javascript
-getOrgTopic(orgId)
+getOrgTopic(orgId);
 ```
 
-* 获取组织Topic名称
-   * @param {string} orgId - 组织ID
-   * @returns {string} Topic名称
+- 获取组织Topic名称
+  - @param {string} orgId - 组织ID
+  - @returns {string} Topic名称
 
 ---
 
 ## getNetworkStats(orgId)
 
 ```javascript
-getNetworkStats(orgId)
+getNetworkStats(orgId);
 ```
 
-* 获取网络统计信息
-   * @param {string} orgId - 组织ID
-   * @returns {Object} 统计信息
+- 获取网络统计信息
+  - @param {string} orgId - 组织ID
+  - @returns {Object} 统计信息
 
 ---
 
@@ -408,7 +408,6 @@ getNetworkStats(orgId)
 async cleanup()
 ```
 
-* 清理资源
+- 清理资源
 
 ---
-

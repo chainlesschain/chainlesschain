@@ -12,8 +12,8 @@
 const
 ```
 
-* 文件处理缓存管理器
- * 实现LRU缓存策略，优化文件重复读取性能
+- 文件处理缓存管理器
+- 实现LRU缓存策略，优化文件重复读取性能
 
 ---
 
@@ -23,77 +23,77 @@ const
 class LRUCache
 ```
 
-* LRU缓存实现
+- LRU缓存实现
 
 ---
 
 ## get(key)
 
 ```javascript
-get(key)
+get(key);
 ```
 
-* 获取缓存项
+- 获取缓存项
 
 ---
 
 ## set(key, value, size = 0)
 
 ```javascript
-set(key, value, size = 0)
+set(key, value, (size = 0));
 ```
 
-* 设置缓存项
+- 设置缓存项
 
 ---
 
 ## delete(key)
 
 ```javascript
-delete(key)
+delete key;
 ```
 
-* 删除缓存项
+- 删除缓存项
 
 ---
 
 ## evictOldest()
 
 ```javascript
-evictOldest()
+evictOldest();
 ```
 
-* 驱逐最旧的缓存项
+- 驱逐最旧的缓存项
 
 ---
 
 ## clear()
 
 ```javascript
-clear()
+clear();
 ```
 
-* 清空缓存
+- 清空缓存
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取缓存统计信息
+- 获取缓存统计信息
 
 ---
 
 ## has(key)
 
 ```javascript
-has(key)
+has(key);
 ```
 
-* 检查是否包含key
+- 检查是否包含key
 
 ---
 
@@ -103,7 +103,7 @@ has(key)
 class FileCacheManager
 ```
 
-* 文件缓存管理器
+- 文件缓存管理器
 
 ---
 
@@ -113,7 +113,7 @@ class FileCacheManager
 async generateFileKey(filePath, options =
 ```
 
-* 生成文件缓存key
+- 生成文件缓存key
 
 ---
 
@@ -123,7 +123,7 @@ async generateFileKey(filePath, options =
 async cacheFileContent(filePath, content)
 ```
 
-* 缓存文件内容
+- 缓存文件内容
 
 ---
 
@@ -133,7 +133,7 @@ async cacheFileContent(filePath, content)
 async getCachedFileContent(filePath)
 ```
 
-* 获取缓存的文件内容
+- 获取缓存的文件内容
 
 ---
 
@@ -143,7 +143,7 @@ async getCachedFileContent(filePath)
 async cacheFileMetadata(filePath, metadata)
 ```
 
-* 缓存文件元数据
+- 缓存文件元数据
 
 ---
 
@@ -153,7 +153,7 @@ async cacheFileMetadata(filePath, metadata)
 async getCachedFileMetadata(filePath)
 ```
 
-* 获取缓存的文件元数据
+- 获取缓存的文件元数据
 
 ---
 
@@ -163,7 +163,7 @@ async getCachedFileMetadata(filePath)
 async cacheParseResult(filePath, parseType, result)
 ```
 
-* 缓存解析结果
+- 缓存解析结果
 
 ---
 
@@ -173,7 +173,7 @@ async cacheParseResult(filePath, parseType, result)
 async getCachedParseResult(filePath, parseType)
 ```
 
-* 获取缓存的解析结果
+- 获取缓存的解析结果
 
 ---
 
@@ -183,7 +183,7 @@ async getCachedParseResult(filePath, parseType)
 async invalidateFile(filePath)
 ```
 
-* 使缓存失效
+- 使缓存失效
 
 ---
 
@@ -193,47 +193,47 @@ async invalidateFile(filePath)
 async invalidateFiles(filePaths)
 ```
 
-* 批量使缓存失效
+- 批量使缓存失效
 
 ---
 
 ## clearAll()
 
 ```javascript
-clearAll()
+clearAll();
 ```
 
-* 清空所有缓存
+- 清空所有缓存
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取缓存统计信息
+- 获取缓存统计信息
 
 ---
 
 ## printStats()
 
 ```javascript
-printStats()
+printStats();
 ```
 
-* 打印缓存统计
+- 打印缓存统计
 
 ---
 
 ## watchFile(filePath, callback)
 
 ```javascript
-watchFile(filePath, callback)
+watchFile(filePath, callback);
 ```
 
-* 监听文件变化，自动使缓存失效
+- 监听文件变化，自动使缓存失效
 
 ---
 
@@ -243,7 +243,6 @@ watchFile(filePath, callback)
 function getFileCache(options)
 ```
 
-* 获取FileCacheManager单例
+- 获取FileCacheManager单例
 
 ---
-

@@ -12,11 +12,11 @@
 const
 ```
 
-* 模板执行测试脚本
- * 测试模板的技能和工具关联，以及执行流程
- *
- * 使用方法：
- * node test-template-execution.js
+- 模板执行测试脚本
+- 测试模板的技能和工具关联，以及执行流程
+-
+- 使用方法：
+- node test-template-execution.js
 
 ---
 
@@ -26,7 +26,7 @@ const
 async testTemplateFields()
 ```
 
-* 测试1：检查模板的技能和工具字段
+- 测试1：检查模板的技能和工具字段
 
 ---
 
@@ -36,7 +36,7 @@ async testTemplateFields()
 async testToolExecution()
 ```
 
-* 测试2：模拟工具调用
+- 测试2：模拟工具调用
 
 ---
 
@@ -46,7 +46,7 @@ async testToolExecution()
 async testSkillToolIntegrity()
 ```
 
-* 测试3：检查技能和工具的完整性
+- 测试3：检查技能和工具的完整性
 
 ---
 
@@ -56,7 +56,6 @@ async testSkillToolIntegrity()
 async runAllTests()
 ```
 
-* 运行所有测试
+- 运行所有测试
 
 ---
-

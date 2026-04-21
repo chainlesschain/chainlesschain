@@ -12,9 +12,9 @@
 const
 ```
 
-* RAG (Retrieval-Augmented Generation) 管理器
- *
- * 负责知识库检索和增强生成
+- RAG (Retrieval-Augmented Generation) 管理器
+-
+- 负责知识库检索和增强生成
 
 ---
 
@@ -24,7 +24,7 @@ const
 const DEFAULT_CONFIG =
 ```
 
-* RAG配置
+- RAG配置
 
 ---
 
@@ -34,7 +34,7 @@ const DEFAULT_CONFIG =
 class RAGManager extends EventEmitter
 ```
 
-* RAG管理器类
+- RAG管理器类
 
 ---
 
@@ -44,7 +44,7 @@ class RAGManager extends EventEmitter
 async initialize()
 ```
 
-* 初始化RAG管理器
+- 初始化RAG管理器
 
 ---
 
@@ -54,7 +54,7 @@ async initialize()
 async buildVectorIndex()
 ```
 
-* 构建向量索引
+- 构建向量索引
 
 ---
 
@@ -64,21 +64,21 @@ async buildVectorIndex()
 async retrieve(query, options =
 ```
 
-* 检索相关知识
-   * @param {string} query - 查询文本
-   * @param {Object} options - 选项
-   * @returns {Promise<Array>} 相关知识列表
+- 检索相关知识
+  - @param {string} query - 查询文本
+  - @param {Object} options - 选项
+  - @returns {Promise<Array>} 相关知识列表
 
 ---
 
-## _deduplicateResults(results)
+## \_deduplicateResults(results)
 
 ```javascript
-_deduplicateResults(results)
+_deduplicateResults(results);
 ```
 
-* 去重结果
-   * @private
+- 去重结果
+  - @private
 
 ---
 
@@ -88,10 +88,10 @@ _deduplicateResults(results)
 async vectorSearch(query, topK = 5)
 ```
 
-* 向量搜索
-   * @param {string} query - 查询文本
-   * @param {number} topK - 返回数量
-   * @returns {Promise<Array>} 搜索结果
+- 向量搜索
+  - @param {string} query - 查询文本
+  - @param {number} topK - 返回数量
+  - @returns {Promise<Array>} 搜索结果
 
 ---
 
@@ -101,36 +101,36 @@ async vectorSearch(query, topK = 5)
 async keywordSearch(query, topK = 5)
 ```
 
-* 关键词搜索
-   * @param {string} query - 查询文本
-   * @param {number} topK - 返回数量
-   * @returns {Promise<Array>} 搜索结果
+- 关键词搜索
+  - @param {string} query - 查询文本
+  - @param {number} topK - 返回数量
+  - @returns {Promise<Array>} 搜索结果
 
 ---
 
 ## mergeResults(vectorResults, keywordResults)
 
 ```javascript
-mergeResults(vectorResults, keywordResults)
+mergeResults(vectorResults, keywordResults);
 ```
 
-* 合并搜索结果
-   * @param {Array} vectorResults - 向量搜索结果
-   * @param {Array} keywordResults - 关键词搜索结果
-   * @returns {Array} 合并后的结果
+- 合并搜索结果
+  - @param {Array} vectorResults - 向量搜索结果
+  - @param {Array} keywordResults - 关键词搜索结果
+  - @returns {Array} 合并后的结果
 
 ---
 
 ## buildEnhancedContext(query, retrievedDocs)
 
 ```javascript
-buildEnhancedContext(query, retrievedDocs)
+buildEnhancedContext(query, retrievedDocs);
 ```
 
-* 构建增强上下文
-   * @param {string} query - 用户查询
-   * @param {Array} retrievedDocs - 检索到的文档
-   * @returns {string} 增强上下文
+- 构建增强上下文
+  - @param {string} query - 用户查询
+  - @param {Array} retrievedDocs - 检索到的文档
+  - @returns {string} 增强上下文
 
 ---
 
@@ -140,10 +140,10 @@ buildEnhancedContext(query, retrievedDocs)
 async enhanceQuery(query, options =
 ```
 
-* RAG增强查询
-   * @param {string} query - 用户查询
-   * @param {Object} options - 选项
-   * @returns {Promise<Object>} 增强后的查询信息
+- RAG增强查询
+  - @param {string} query - 用户查询
+  - @param {Object} options - 选项
+  - @returns {Promise<Object>} 增强后的查询信息
 
 ---
 
@@ -153,8 +153,8 @@ async enhanceQuery(query, options =
 async addToIndex(item)
 ```
 
-* 添加文档到索引
-   * @param {Object} item - 知识库项
+- 添加文档到索引
+  - @param {Object} item - 知识库项
 
 ---
 
@@ -164,8 +164,8 @@ async addToIndex(item)
 async removeFromIndex(itemId)
 ```
 
-* 从索引中移除文档
-   * @param {string} itemId - 知识库项ID
+- 从索引中移除文档
+  - @param {string} itemId - 知识库项ID
 
 ---
 
@@ -175,8 +175,8 @@ async removeFromIndex(itemId)
 async updateIndex(item)
 ```
 
-* 更新索引中的文档
-   * @param {Object} item - 知识库项
+- 更新索引中的文档
+  - @param {Object} item - 知识库项
 
 ---
 
@@ -186,7 +186,7 @@ async updateIndex(item)
 async rebuildIndex()
 ```
 
-* 重建索引
+- 重建索引
 
 ---
 
@@ -196,92 +196,92 @@ async rebuildIndex()
 async getIndexStats()
 ```
 
-* 获取索引统计
+- 获取索引统计
 
 ---
 
 ## updateConfig(newConfig)
 
 ```javascript
-updateConfig(newConfig)
+updateConfig(newConfig);
 ```
 
-* 更新配置
+- 更新配置
 
 ---
 
 ## getRerankConfig()
 
 ```javascript
-getRerankConfig()
+getRerankConfig();
 ```
 
-* 获取重排序器配置
+- 获取重排序器配置
 
 ---
 
 ## setRerankingEnabled(enabled)
 
 ```javascript
-setRerankingEnabled(enabled)
+setRerankingEnabled(enabled);
 ```
 
-* 启用/禁用重排序
+- 启用/禁用重排序
 
 ---
 
 ## getPerformanceMetrics(type = null)
 
 ```javascript
-getPerformanceMetrics(type = null)
+getPerformanceMetrics((type = null));
 ```
 
-* 获取性能指标
-   * @param {string} type - 指标类型（可选）
-   * @returns {Object} 性能统计
+- 获取性能指标
+  - @param {string} type - 指标类型（可选）
+  - @returns {Object} 性能统计
 
 ---
 
 ## getRealTimeMetrics()
 
 ```javascript
-getRealTimeMetrics()
+getRealTimeMetrics();
 ```
 
-* 获取实时性能概览
-   * @returns {Object} 实时性能数据
+- 获取实时性能概览
+  - @returns {Object} 实时性能数据
 
 ---
 
 ## getPerformanceReport(timeRange = 3600000)
 
 ```javascript
-getPerformanceReport(timeRange = 3600000)
+getPerformanceReport((timeRange = 3600000));
 ```
 
-* 获取性能报告
-   * @param {number} timeRange - 时间范围（毫秒）
-   * @returns {Object} 性能报告
+- 获取性能报告
+  - @param {number} timeRange - 时间范围（毫秒）
+  - @returns {Object} 性能报告
 
 ---
 
 ## resetMetrics()
 
 ```javascript
-resetMetrics()
+resetMetrics();
 ```
 
-* 重置性能指标
+- 重置性能指标
 
 ---
 
 ## setMetricsEnabled(enabled)
 
 ```javascript
-setMetricsEnabled(enabled)
+setMetricsEnabled(enabled);
 ```
 
-* 启用/禁用性能监控
+- 启用/禁用性能监控
 
 ---
 
@@ -291,9 +291,9 @@ setMetricsEnabled(enabled)
 async addDocument(doc)
 ```
 
-* 添加文档（兼容ProjectRAG接口）
-   * @param {Object} doc - 文档对象
-   * @returns {Promise<void>}
+- 添加文档（兼容ProjectRAG接口）
+  - @param {Object} doc - 文档对象
+  - @returns {Promise<void>}
 
 ---
 
@@ -303,9 +303,9 @@ async addDocument(doc)
 async getDocument(id)
 ```
 
-* 获取文档（兼容ProjectRAG接口）
-   * @param {string} id - 文档ID
-   * @returns {Promise<Object|null>}
+- 获取文档（兼容ProjectRAG接口）
+  - @param {string} id - 文档ID
+  - @returns {Promise<Object|null>}
 
 ---
 
@@ -315,9 +315,9 @@ async getDocument(id)
 async deleteDocument(id)
 ```
 
-* 删除文档（兼容ProjectRAG接口）
-   * @param {string} id - 文档ID
-   * @returns {Promise<void>}
+- 删除文档（兼容ProjectRAG接口）
+  - @param {string} id - 文档ID
+  - @returns {Promise<void>}
 
 ---
 
@@ -327,10 +327,10 @@ async deleteDocument(id)
 async search(query, options =
 ```
 
-* 搜索文档（兼容ProjectRAG接口）
-   * @param {string} query - 查询文本
-   * @param {Object} options - 搜索选项
-   * @returns {Promise<Array>}
+- 搜索文档（兼容ProjectRAG接口）
+  - @param {string} query - 查询文本
+  - @param {Object} options - 搜索选项
+  - @returns {Promise<Array>}
 
 ---
 
@@ -340,11 +340,11 @@ async search(query, options =
 async rerank(query, documents, options =
 ```
 
-* 重排序文档（兼容ProjectRAG接口）
-   * @param {string} query - 查询文本
-   * @param {Array} documents - 文档列表
-   * @param {Object} options - 重排序选项
-   * @returns {Promise<Array>}
+- 重排序文档（兼容ProjectRAG接口）
+  - @param {string} query - 查询文本
+  - @param {Array} documents - 文档列表
+  - @param {Object} options - 重排序选项
+  - @returns {Promise<Array>}
 
 ---
 
@@ -354,11 +354,10 @@ async rerank(query, documents, options =
 function getRAGManager(databaseManager = null, llmManager = null, config =
 ```
 
-* 获取RAG管理器单例实例
- * @param {Object} databaseManager - 数据库管理器
- * @param {Object} llmManager - LLM管理器
- * @param {Object} config - 配置选项
- * @returns {RAGManager}
+- 获取RAG管理器单例实例
+- @param {Object} databaseManager - 数据库管理器
+- @param {Object} llmManager - LLM管理器
+- @param {Object} config - 配置选项
+- @returns {RAGManager}
 
 ---
-

@@ -12,15 +12,15 @@
 const
 ```
 
-* 外部钱包连接器
- *
- * 负责连接和管理外部钱包（MetaMask、WalletConnect）
- * 功能：
- * - 连接 MetaMask
- * - 连接 WalletConnect
- * - 切换网络
- * - 监听账户变化
- * - 监听网络变化
+- 外部钱包连接器
+-
+- 负责连接和管理外部钱包（MetaMask、WalletConnect）
+- 功能：
+- - 连接 MetaMask
+- - 连接 WalletConnect
+- - 切换网络
+- - 监听账户变化
+- - 监听网络变化
 
 ---
 
@@ -30,7 +30,7 @@ const
 const ExternalWalletType =
 ```
 
-* 外部钱包类型
+- 外部钱包类型
 
 ---
 
@@ -40,7 +40,7 @@ const ExternalWalletType =
 async initialize()
 ```
 
-* 初始化连接器
+- 初始化连接器
 
 ---
 
@@ -50,8 +50,8 @@ async initialize()
 async connectMetaMask()
 ```
 
-* 连接 MetaMask
-   * @returns {Promise<object>} 连接信息 {address, chainId}
+- 连接 MetaMask
+  - @returns {Promise<object>} 连接信息 {address, chainId}
 
 ---
 
@@ -61,8 +61,8 @@ async connectMetaMask()
 async connectWalletConnect()
 ```
 
-* 连接 WalletConnect
-   * @returns {Promise<object>} 连接信息 {address, chainId}
+- 连接 WalletConnect
+  - @returns {Promise<object>} 连接信息 {address, chainId}
 
 ---
 
@@ -72,7 +72,7 @@ async connectWalletConnect()
 async disconnect()
 ```
 
-* 断开连接
+- 断开连接
 
 ---
 
@@ -82,8 +82,8 @@ async disconnect()
 async switchChain(chainId)
 ```
 
-* 切换网络
-   * @param {number} chainId - 目标链ID
+- 切换网络
+  - @param {number} chainId - 目标链ID
 
 ---
 
@@ -93,8 +93,8 @@ async switchChain(chainId)
 async addChain(chainId)
 ```
 
-* 添加网络
-   * @param {number} chainId - 链ID
+- 添加网络
+  - @param {number} chainId - 链ID
 
 ---
 
@@ -104,9 +104,9 @@ async addChain(chainId)
 async signMessage(message)
 ```
 
-* 请求签名
-   * @param {string} message - 消息
-   * @returns {Promise<string>} 签名
+- 请求签名
+  - @param {string} message - 消息
+  - @returns {Promise<string>} 签名
 
 ---
 
@@ -116,52 +116,52 @@ async signMessage(message)
 async sendTransaction(transaction)
 ```
 
-* 发送交易
-   * @param {object} transaction - 交易参数
-   * @returns {Promise<string>} 交易哈希
+- 发送交易
+  - @param {object} transaction - 交易参数
+  - @returns {Promise<string>} 交易哈希
 
 ---
 
-## _setupMetaMaskListeners()
+## \_setupMetaMaskListeners()
 
 ```javascript
-_setupMetaMaskListeners()
+_setupMetaMaskListeners();
 ```
 
-* 设置 MetaMask 监听器
-   * @private
+- 设置 MetaMask 监听器
+  - @private
 
 ---
 
-## _setupWalletConnectListeners()
+## \_setupWalletConnectListeners()
 
 ```javascript
-_setupWalletConnectListeners()
+_setupWalletConnectListeners();
 ```
 
-* 设置 WalletConnect 监听器
-   * @private
+- 设置 WalletConnect 监听器
+  - @private
 
 ---
 
-## async _saveExternalWallet(
+## async \_saveExternalWallet(
 
 ```javascript
 async _saveExternalWallet(
 ```
 
-* 保存外部钱包到数据库
-   * @private
+- 保存外部钱包到数据库
+  - @private
 
 ---
 
 ## getConnectionStatus()
 
 ```javascript
-getConnectionStatus()
+getConnectionStatus();
 ```
 
-* 获取当前连接状态
+- 获取当前连接状态
 
 ---
 
@@ -171,7 +171,6 @@ getConnectionStatus()
 async cleanup()
 ```
 
-* 清理资源
+- 清理资源
 
 ---
-

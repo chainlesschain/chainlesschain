@@ -12,8 +12,8 @@
 const
 ```
 
-* 托管管理 IPC 处理器
- * 处理所有 escrow: 相关的 IPC 通信
+- 托管管理 IPC 处理器
+- 处理所有 escrow: 相关的 IPC 通信
 
 ---
 
@@ -23,8 +23,7 @@ const
 function registerEscrowIPC(escrowManager)
 ```
 
-* 注册托管管理相关的 IPC 处理器
- * @param {Object} escrowManager - 托管管理器实例
+- 注册托管管理相关的 IPC 处理器
+- @param {Object} escrowManager - 托管管理器实例
 
 ---
-

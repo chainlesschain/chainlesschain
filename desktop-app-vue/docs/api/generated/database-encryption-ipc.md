@@ -12,57 +12,56 @@
 const
 ```
 
-* 数据库加密 IPC 处理程序
+- 数据库加密 IPC 处理程序
 
 ---
 
 ## initConfigManager()
 
 ```javascript
-initConfigManager()
+initConfigManager();
 ```
 
-* 初始化配置管理器
+- 初始化配置管理器
 
 ---
 
 ## setDatabaseManager(dbManager)
 
 ```javascript
-setDatabaseManager(dbManager)
+setDatabaseManager(dbManager);
 ```
 
-* 设置数据库管理器引用
+- 设置数据库管理器引用
 
 ---
 
 ## setupHandlers()
 
 ```javascript
-setupHandlers()
+setupHandlers();
 ```
 
-* 设置 IPC 处理程序
+- 设置 IPC 处理程序
 
 ---
 
 ## notifyEncryptionStatusChanged(status)
 
 ```javascript
-notifyEncryptionStatusChanged(status)
+notifyEncryptionStatusChanged(status);
 ```
 
-* 发送加密状态变更事件
+- 发送加密状态变更事件
 
 ---
 
 ## setMainWindow(mainWindow)
 
 ```javascript
-setMainWindow(mainWindow)
+setMainWindow(mainWindow);
 ```
 
-* 设置主窗口引用
+- 设置主窗口引用
 
 ---
-

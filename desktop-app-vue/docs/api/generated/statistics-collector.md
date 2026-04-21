@@ -12,15 +12,15 @@
 const
 ```
 
-* 统计数据收集器
- *
- * 收集和统计远程命令执行数据，支持：
- * - 实时统计（内存中）
- * - 持久化统计（SQLite）
- * - 多维度统计（设备、命令、时间）
- * - 性能指标（响应时间、成功率）
- *
- * @module remote/logging/statistics-collector
+- 统计数据收集器
+-
+- 收集和统计远程命令执行数据，支持：
+- - 实时统计（内存中）
+- - 持久化统计（SQLite）
+- - 多维度统计（设备、命令、时间）
+- - 性能指标（响应时间、成功率）
+-
+- @module remote/logging/statistics-collector
 
 ---
 
@@ -30,7 +30,7 @@ const
 const TimePeriod =
 ```
 
-* 时间段类型
+- 时间段类型
 
 ---
 
@@ -40,37 +40,37 @@ const TimePeriod =
 class StatisticsCollector extends EventEmitter
 ```
 
-* 统计数据收集器类
+- 统计数据收集器类
 
 ---
 
 ## initializeDatabase()
 
 ```javascript
-initializeDatabase()
+initializeDatabase();
 ```
 
-* 初始化数据库表
+- 初始化数据库表
 
 ---
 
 ## record(commandData)
 
 ```javascript
-record(commandData)
+record(commandData);
 ```
 
-* 记录命令执行
+- 记录命令执行
 
 ---
 
 ## getRealTimeStats()
 
 ```javascript
-getRealTimeStats()
+getRealTimeStats();
 ```
 
-* 获取实时统计
+- 获取实时统计
 
 ---
 
@@ -80,7 +80,7 @@ getRealTimeStats()
 async aggregate()
 ```
 
-* 聚合统计数据到数据库
+- 聚合统计数据到数据库
 
 ---
 
@@ -90,17 +90,17 @@ async aggregate()
 async aggregateByPeriod(periodType, timestamp)
 ```
 
-* 按时间段聚合
+- 按时间段聚合
 
 ---
 
 ## getPeriodRange(periodType, timestamp)
 
 ```javascript
-getPeriodRange(periodType, timestamp)
+getPeriodRange(periodType, timestamp);
 ```
 
-* 获取时间段范围
+- 获取时间段范围
 
 ---
 
@@ -110,87 +110,86 @@ getPeriodRange(periodType, timestamp)
 queryStats(options =
 ```
 
-* 查询统计数据
+- 查询统计数据
 
 ---
 
 ## getDeviceActivity(days = 7)
 
 ```javascript
-getDeviceActivity(days = 7)
+getDeviceActivity((days = 7));
 ```
 
-* 获取设备活跃度
+- 获取设备活跃度
 
 ---
 
 ## getCommandRanking(limit = 10)
 
 ```javascript
-getCommandRanking(limit = 10)
+getCommandRanking((limit = 10));
 ```
 
-* 获取命令排行
+- 获取命令排行
 
 ---
 
 ## getTrend(periodType = TimePeriod.DAY, days = 7)
 
 ```javascript
-getTrend(periodType = TimePeriod.DAY, days = 7)
+getTrend((periodType = TimePeriod.DAY), (days = 7));
 ```
 
-* 获取趋势数据
+- 获取趋势数据
 
 ---
 
 ## startAggregation()
 
 ```javascript
-startAggregation()
+startAggregation();
 ```
 
-* 启动聚合
+- 启动聚合
 
 ---
 
 ## stopAggregation()
 
 ```javascript
-stopAggregation()
+stopAggregation();
 ```
 
-* 停止聚合
+- 停止聚合
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup()
+cleanup();
 ```
 
-* 清理旧统计数据
+- 清理旧统计数据
 
 ---
 
 ## resetRealTimeStats()
 
 ```javascript
-resetRealTimeStats()
+resetRealTimeStats();
 ```
 
-* 重置实时统计
+- 重置实时统计
 
 ---
 
 ## destroy()
 
 ```javascript
-destroy()
+destroy();
 ```
 
-* 销毁
+- 销毁
 
 ---
-

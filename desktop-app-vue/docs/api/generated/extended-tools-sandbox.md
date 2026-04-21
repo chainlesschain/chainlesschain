@@ -12,12 +12,12 @@
 const
 ```
 
-* 代码执行沙箱工具集
- *
- * 提供安全的 Python 代码执行能力
- *
- * @module extended-tools-sandbox
- * @version 1.0.0
+- 代码执行沙箱工具集
+-
+- 提供安全的 Python 代码执行能力
+-
+- @module extended-tools-sandbox
+- @version 1.0.0
 
 ---
 
@@ -27,29 +27,29 @@ const
 class SandboxToolsHandler
 ```
 
-* Sandbox 工具处理器
+- Sandbox 工具处理器
 
 ---
 
 ## setPythonSandbox(pythonSandbox)
 
 ```javascript
-setPythonSandbox(pythonSandbox)
+setPythonSandbox(pythonSandbox);
 ```
 
-* 设置 PythonSandbox 引用
-   * @param {Object} pythonSandbox - PythonSandbox 实例
+- 设置 PythonSandbox 引用
+  - @param {Object} pythonSandbox - PythonSandbox 实例
 
 ---
 
 ## register(functionCaller)
 
 ```javascript
-register(functionCaller)
+register(functionCaller);
 ```
 
-* 注册所有沙箱工具
-   * @param {FunctionCaller} functionCaller - 函数调用器实例
+- 注册所有沙箱工具
+  - @param {FunctionCaller} functionCaller - 函数调用器实例
 
 ---
 
@@ -59,7 +59,7 @@ register(functionCaller)
 function generateAnalysisCode(analysisType, columns)
 ```
 
-* 生成数据分析代码
+- 生成数据分析代码
 
 ---
 
@@ -69,7 +69,7 @@ function generateAnalysisCode(analysisType, columns)
 function generateMathCode(expression, variables, symbolic)
 ```
 
-* 生成数学计算代码
+- 生成数学计算代码
 
 ---
 
@@ -79,8 +79,7 @@ function generateMathCode(expression, variables, symbolic)
 function getSandboxTools()
 ```
 
-* 获取 SandboxToolsHandler 单例
- * @returns {SandboxToolsHandler}
+- 获取 SandboxToolsHandler 单例
+- @returns {SandboxToolsHandler}
 
 ---
-

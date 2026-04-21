@@ -12,11 +12,10 @@
 const
 ```
 
-* 数据库迁移脚本
- * 为project_templates表添加新字段
- *
- * 使用方法：
- * node database-migration.js
+- 数据库迁移脚本
+- 为project_templates表添加新字段
+-
+- 使用方法：
+- node database-migration.js
 
 ---
-

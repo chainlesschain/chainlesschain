@@ -12,10 +12,10 @@
 const
 ```
 
-* 设备同步管理器
- *
- * 负责多设备间的消息同步和状态管理
- * 功能: 离线消息队列、消息状态同步、设备间数据同步
+- 设备同步管理器
+-
+- 负责多设备间的消息同步和状态管理
+- 功能: 离线消息队列、消息状态同步、设备间数据同步
 
 ---
 
@@ -25,7 +25,7 @@ const
 const MessageStatus =
 ```
 
-* 消息状态
+- 消息状态
 
 ---
 
@@ -35,7 +35,7 @@ const MessageStatus =
 const SyncMessageType =
 ```
 
-* 同步消息类型
+- 同步消息类型
 
 ---
 
@@ -45,7 +45,7 @@ const SyncMessageType =
 class DeviceSyncManager extends EventEmitter
 ```
 
-* 设备同步管理器类
+- 设备同步管理器类
 
 ---
 
@@ -55,7 +55,7 @@ class DeviceSyncManager extends EventEmitter
 async initialize()
 ```
 
-* 初始化同步管理器
+- 初始化同步管理器
 
 ---
 
@@ -65,7 +65,7 @@ async initialize()
 async loadMessageQueue()
 ```
 
-* 加载消息队列
+- 加载消息队列
 
 ---
 
@@ -75,7 +75,7 @@ async loadMessageQueue()
 async saveMessageQueue()
 ```
 
-* 保存消息队列
+- 保存消息队列
 
 ---
 
@@ -85,7 +85,7 @@ async saveMessageQueue()
 async loadMessageStatus()
 ```
 
-* 加载消息状态
+- 加载消息状态
 
 ---
 
@@ -95,7 +95,7 @@ async loadMessageStatus()
 async saveMessageStatus()
 ```
 
-* 保存消息状态
+- 保存消息状态
 
 ---
 
@@ -105,20 +105,20 @@ async saveMessageStatus()
 async queueMessage(targetDeviceId, message)
 ```
 
-* 将消息加入队列
-   * @param {string} targetDeviceId - 目标设备ID
-   * @param {Object} message - 消息对象
+- 将消息加入队列
+  - @param {string} targetDeviceId - 目标设备ID
+  - @param {Object} message - 消息对象
 
 ---
 
 ## getDeviceQueue(deviceId)
 
 ```javascript
-getDeviceQueue(deviceId)
+getDeviceQueue(deviceId);
 ```
 
-* 获取设备的消息队列
-   * @param {string} deviceId - 设备ID
+- 获取设备的消息队列
+  - @param {string} deviceId - 设备ID
 
 ---
 
@@ -128,8 +128,8 @@ getDeviceQueue(deviceId)
 async markMessageSent(messageId)
 ```
 
-* 标记消息已发送
-   * @param {string} messageId - 消息ID
+- 标记消息已发送
+  - @param {string} messageId - 消息ID
 
 ---
 
@@ -139,8 +139,8 @@ async markMessageSent(messageId)
 async markMessageDelivered(messageId)
 ```
 
-* 标记消息已送达
-   * @param {string} messageId - 消息ID
+- 标记消息已送达
+  - @param {string} messageId - 消息ID
 
 ---
 
@@ -150,8 +150,8 @@ async markMessageDelivered(messageId)
 async markMessageRead(messageId)
 ```
 
-* 标记消息已读
-   * @param {string} messageId - 消息ID
+- 标记消息已读
+  - @param {string} messageId - 消息ID
 
 ---
 
@@ -161,9 +161,9 @@ async markMessageRead(messageId)
 async markMessageFailed(messageId, error)
 ```
 
-* 标记消息发送失败
-   * @param {string} messageId - 消息ID
-   * @param {string} error - 错误信息
+- 标记消息发送失败
+  - @param {string} messageId - 消息ID
+  - @param {string} error - 错误信息
 
 ---
 
@@ -173,53 +173,53 @@ async markMessageFailed(messageId, error)
 async removeMessage(messageId)
 ```
 
-* 移除已送达的消息
-   * @param {string} messageId - 消息ID
+- 移除已送达的消息
+  - @param {string} messageId - 消息ID
 
 ---
 
 ## updateDeviceStatus(deviceId, status)
 
 ```javascript
-updateDeviceStatus(deviceId, status)
+updateDeviceStatus(deviceId, status);
 ```
 
-* 更新设备状态
-   * @param {string} deviceId - 设备ID
-   * @param {Object} status - 设备状态
+- 更新设备状态
+  - @param {string} deviceId - 设备ID
+  - @param {Object} status - 设备状态
 
 ---
 
 ## getDeviceStatus(deviceId)
 
 ```javascript
-getDeviceStatus(deviceId)
+getDeviceStatus(deviceId);
 ```
 
-* 获取设备状态
-   * @param {string} deviceId - 设备ID
+- 获取设备状态
+  - @param {string} deviceId - 设备ID
 
 ---
 
 ## startDeviceSync(deviceId)
 
 ```javascript
-startDeviceSync(deviceId)
+startDeviceSync(deviceId);
 ```
 
-* 启动设备同步
-   * @param {string} deviceId - 设备ID
+- 启动设备同步
+  - @param {string} deviceId - 设备ID
 
 ---
 
 ## stopDeviceSync(deviceId)
 
 ```javascript
-stopDeviceSync(deviceId)
+stopDeviceSync(deviceId);
 ```
 
-* 停止设备同步
-   * @param {string} deviceId - 设备ID
+- 停止设备同步
+  - @param {string} deviceId - 设备ID
 
 ---
 
@@ -229,18 +229,18 @@ stopDeviceSync(deviceId)
 async syncDevice(deviceId)
 ```
 
-* 同步设备消息
-   * @param {string} deviceId - 设备ID
+- 同步设备消息
+  - @param {string} deviceId - 设备ID
 
 ---
 
 ## startCleanupTimer()
 
 ```javascript
-startCleanupTimer()
+startCleanupTimer();
 ```
 
-* 启动定期清理
+- 启动定期清理
 
 ---
 
@@ -250,27 +250,27 @@ startCleanupTimer()
 async cleanup()
 ```
 
-* 清理过期消息
+- 清理过期消息
 
 ---
 
 ## generateMessageId()
 
 ```javascript
-generateMessageId()
+generateMessageId();
 ```
 
-* 生成消息ID
+- 生成消息ID
 
 ---
 
 ## getStatistics()
 
 ```javascript
-getStatistics()
+getStatistics();
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
 
@@ -280,7 +280,6 @@ getStatistics()
 async close()
 ```
 
-* 关闭同步管理器
+- 关闭同步管理器
 
 ---
-

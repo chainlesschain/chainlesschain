@@ -12,8 +12,8 @@
 const
 ```
 
-* Excel处理引擎
- * 提供Excel文件的读取、写入、编辑和转换功能
+- Excel处理引擎
+- 提供Excel文件的读取、写入、编辑和转换功能
 
 ---
 
@@ -23,9 +23,9 @@ const
 async readExcel(filePath)
 ```
 
-* 读取Excel文件
-   * @param {string} filePath - 文件路径
-   * @returns {Promise<Object>} 包含工作表数据的对象
+- 读取Excel文件
+  - @param {string} filePath - 文件路径
+  - @returns {Promise<Object>} 包含工作表数据的对象
 
 ---
 
@@ -35,7 +35,7 @@ async readExcel(filePath)
 async readCSV(filePath)
 ```
 
-* 读取CSV文件
+- 读取CSV文件
 
 ---
 
@@ -45,7 +45,7 @@ async readCSV(filePath)
 async readLargeCSV(filePath)
 ```
 
-* 流式读取大CSV文件
+- 流式读取大CSV文件
 
 ---
 
@@ -55,9 +55,9 @@ async readLargeCSV(filePath)
 async writeExcel(filePath, data)
 ```
 
-* 写入Excel文件
-   * @param {string} filePath - 文件路径
-   * @param {Object} data - 表格数据
+- 写入Excel文件
+  - @param {string} filePath - 文件路径
+  - @param {Object} data - 表格数据
 
 ---
 
@@ -67,7 +67,7 @@ async writeExcel(filePath, data)
 async writeCSV(filePath, data)
 ```
 
-* 写入CSV文件
+- 写入CSV文件
 
 ---
 
@@ -77,7 +77,7 @@ async writeCSV(filePath, data)
 async excelToJSON(filePath, options =
 ```
 
-* 转换Excel为JSON
+- 转换Excel为JSON
 
 ---
 
@@ -87,47 +87,47 @@ async excelToJSON(filePath, options =
 async jsonToExcel(jsonData, filePath, options =
 ```
 
-* 转换JSON为Excel
+- 转换JSON为Excel
 
 ---
 
 ## extractCellStyle(cell)
 
 ```javascript
-extractCellStyle(cell)
+extractCellStyle(cell);
 ```
 
-* 提取单元格样式
+- 提取单元格样式
 
 ---
 
 ## applyCellStyle(cell, style)
 
 ```javascript
-applyCellStyle(cell, style)
+applyCellStyle(cell, style);
 ```
 
-* 应用单元格样式
+- 应用单元格样式
 
 ---
 
 ## validateExcelData(data)
 
 ```javascript
-validateExcelData(data)
+validateExcelData(data);
 ```
 
-* 数据验证
+- 数据验证
 
 ---
 
 ## getSheetStats(sheet)
 
 ```javascript
-getSheetStats(sheet)
+getSheetStats(sheet);
 ```
 
-* 获取工作表统计信息
+- 获取工作表统计信息
 
 ---
 
@@ -137,9 +137,9 @@ getSheetStats(sheet)
 async handleProjectTask(params)
 ```
 
-* 处理项目任务（用于任务规划系统集成）
-   * @param {Object} params - 任务参数
-   * @returns {Promise<Object>} 执行结果
+- 处理项目任务（用于任务规划系统集成）
+  - @param {Object} params - 任务参数
+  - @returns {Promise<Object>} 执行结果
 
 ---
 
@@ -149,30 +149,30 @@ async handleProjectTask(params)
 async generateTableStructureFromDescription(description, llmManager)
 ```
 
-* 从描述生成Excel表格结构
-   * @param {string} description - 表格描述
-   * @param {Object} llmManager - LLM管理器
-   * @returns {Promise<Object>} 表格结构
+- 从描述生成Excel表格结构
+  - @param {string} description - 表格描述
+  - @param {Object} llmManager - LLM管理器
+  - @returns {Promise<Object>} 表格结构
 
 ---
 
 ## normalizeTableStructure(structure, description)
 
 ```javascript
-normalizeTableStructure(structure, description)
+normalizeTableStructure(structure, description);
 ```
 
-* 规范化表格结构
+- 规范化表格结构
 
 ---
 
 ## getDefaultTableStructure(description)
 
 ```javascript
-getDefaultTableStructure(description)
+getDefaultTableStructure(description);
 ```
 
-* 获取默认表格结构
+- 获取默认表格结构
 
 ---
 
@@ -182,7 +182,6 @@ getDefaultTableStructure(description)
 async queryBackendAI(prompt)
 ```
 
-* 查询后端AI服务（降级方案）
+- 查询后端AI服务（降级方案）
 
 ---
-

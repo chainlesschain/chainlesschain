@@ -12,8 +12,8 @@
 const
 ```
 
-* AI任务并行执行器
- * 支持依赖分析、并发控制、优先级队列
+- AI任务并行执行器
+- 支持依赖分析、并发控制、优先级队列
 
 ---
 
@@ -23,78 +23,78 @@ const
 class AutoPhaseTransition
 ```
 
-* 自动阶段转换管理器
- * 根据任务执行状态自动切换工具掩码阶段
+- 自动阶段转换管理器
+- 根据任务执行状态自动切换工具掩码阶段
 
 ---
 
 ## setupListeners()
 
 ```javascript
-setupListeners()
+setupListeners();
 ```
 
-* 设置事件监听器
+- 设置事件监听器
 
 ---
 
 ## maybeTransition(targetPhase, reason = "")
 
 ```javascript
-maybeTransition(targetPhase, reason = "")
+maybeTransition(targetPhase, (reason = ""));
 ```
 
-* 尝试切换阶段
+- 尝试切换阶段
 
 ---
 
 ## shouldTransition(targetPhase)
 
 ```javascript
-shouldTransition(targetPhase)
+shouldTransition(targetPhase);
 ```
 
-* 判断是否允许转换
+- 判断是否允许转换
 
 ---
 
 ## manualTransition(targetPhase, reason = "手动触发")
 
 ```javascript
-manualTransition(targetPhase, reason = "手动触发")
+manualTransition(targetPhase, (reason = "手动触发"));
 ```
 
-* 手动切换阶段
+- 手动切换阶段
 
 ---
 
 ## reset()
 
 ```javascript
-reset()
+reset();
 ```
 
-* 重置到初始阶段
+- 重置到初始阶段
 
 ---
 
 ## getCurrentPhase()
 
 ```javascript
-getCurrentPhase()
+getCurrentPhase();
 ```
 
-* 获取当前阶段
+- 获取当前阶段
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
 
@@ -104,7 +104,7 @@ getStats()
 const EXECUTOR_CONFIG =
 ```
 
-* 任务执行器配置
+- 任务执行器配置
 
 ---
 
@@ -114,28 +114,28 @@ const EXECUTOR_CONFIG =
 class DynamicConcurrencyController
 ```
 
-* 动态并发控制器
- * 根据CPU和内存使用率自动调整并发数
+- 动态并发控制器
+- 根据CPU和内存使用率自动调整并发数
 
 ---
 
 ## getCpuUsage()
 
 ```javascript
-getCpuUsage()
+getCpuUsage();
 ```
 
-* 获取CPU使用率（百分比）
+- 获取CPU使用率（百分比）
 
 ---
 
 ## getMemoryUsage()
 
 ```javascript
-getMemoryUsage()
+getMemoryUsage();
 ```
 
-* 获取内存使用率（百分比）
+- 获取内存使用率（百分比）
 
 ---
 
@@ -145,17 +145,17 @@ getMemoryUsage()
 async sampleSystemResources()
 ```
 
-* 采样系统资源
+- 采样系统资源
 
 ---
 
 ## getAverage(samples)
 
 ```javascript
-getAverage(samples)
+getAverage(samples);
 ```
 
-* 计算平均值
+- 计算平均值
 
 ---
 
@@ -165,47 +165,47 @@ getAverage(samples)
 async adjustConcurrency()
 ```
 
-* 调整并发数
+- 调整并发数
 
 ---
 
 ## getCurrentConcurrency()
 
 ```javascript
-getCurrentConcurrency()
+getCurrentConcurrency();
 ```
 
-* 获取当前并发数
+- 获取当前并发数
 
 ---
 
 ## setConcurrency(value)
 
 ```javascript
-setConcurrency(value)
+setConcurrency(value);
 ```
 
-* 手动设置并发数
+- 手动设置并发数
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
 
 ## reset()
 
 ```javascript
-reset()
+reset();
 ```
 
-* 重置统计
+- 重置统计
 
 ---
 
@@ -215,28 +215,28 @@ reset()
 class SmartRetryStrategy
 ```
 
-* 智能重试策略
- * 支持指数退避、错误分类、抖动(jitter)
+- 智能重试策略
+- 支持指数退避、错误分类、抖动(jitter)
 
 ---
 
 ## isRetryable(error)
 
 ```javascript
-isRetryable(error)
+isRetryable(error);
 ```
 
-* 判断错误是否可重试
+- 判断错误是否可重试
 
 ---
 
 ## calculateDelay(attemptNumber)
 
 ```javascript
-calculateDelay(attemptNumber)
+calculateDelay(attemptNumber);
 ```
 
-* 计算重试延迟（指数退避 + 抖动）
+- 计算重试延迟（指数退避 + 抖动）
 
 ---
 
@@ -246,57 +246,57 @@ calculateDelay(attemptNumber)
 async delay(attemptNumber)
 ```
 
-* 执行重试延迟
+- 执行重试延迟
 
 ---
 
 ## shouldRetry(error, currentAttempt)
 
 ```javascript
-shouldRetry(error, currentAttempt)
+shouldRetry(error, currentAttempt);
 ```
 
-* 判断是否应该重试
+- 判断是否应该重试
 
 ---
 
 ## recordSuccess()
 
 ```javascript
-recordSuccess()
+recordSuccess();
 ```
 
-* 记录重试成功
+- 记录重试成功
 
 ---
 
 ## recordFailure()
 
 ```javascript
-recordFailure()
+recordFailure();
 ```
 
-* 记录重试失败
+- 记录重试失败
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
 
 ## reset()
 
 ```javascript
-reset()
+reset();
 ```
 
-* 重置统计
+- 重置统计
 
 ---
 
@@ -306,7 +306,7 @@ reset()
 const TaskStatus =
 ```
 
-* 任务状态
+- 任务状态
 
 ---
 
@@ -316,67 +316,67 @@ const TaskStatus =
 class TaskNode
 ```
 
-* 任务节点
+- 任务节点
 
 ---
 
 ## isReady(completedTasks)
 
 ```javascript
-isReady(completedTasks)
+isReady(completedTasks);
 ```
 
-* 检查是否可以执行
+- 检查是否可以执行
 
 ---
 
 ## markReady()
 
 ```javascript
-markReady()
+markReady();
 ```
 
-* 标记为可执行
+- 标记为可执行
 
 ---
 
 ## markRunning()
 
 ```javascript
-markRunning()
+markRunning();
 ```
 
-* 开始执行
+- 开始执行
 
 ---
 
 ## markCompleted(result)
 
 ```javascript
-markCompleted(result)
+markCompleted(result);
 ```
 
-* 标记完成
+- 标记完成
 
 ---
 
 ## markFailed(error)
 
 ```javascript
-markFailed(error)
+markFailed(error);
 ```
 
-* 标记失败
+- 标记失败
 
 ---
 
 ## getDuration()
 
 ```javascript
-getDuration()
+getDuration();
 ```
 
-* 获取执行时长
+- 获取执行时长
 
 ---
 
@@ -386,57 +386,57 @@ getDuration()
 class TaskExecutor extends EventEmitter
 ```
 
-* 任务执行器
+- 任务执行器
 
 ---
 
 ## addTask(task)
 
 ```javascript
-addTask(task)
+addTask(task);
 ```
 
-* 添加任务
+- 添加任务
 
 ---
 
 ## addTasks(tasks)
 
 ```javascript
-addTasks(tasks)
+addTasks(tasks);
 ```
 
-* 批量添加任务
+- 批量添加任务
 
 ---
 
 ## buildDependencyGraph()
 
 ```javascript
-buildDependencyGraph()
+buildDependencyGraph();
 ```
 
-* 构建依赖图
+- 构建依赖图
 
 ---
 
 ## detectCyclicDependencies()
 
 ```javascript
-detectCyclicDependencies()
+detectCyclicDependencies();
 ```
 
-* 检测循环依赖
+- 检测循环依赖
 
 ---
 
 ## getReadyTasks()
 
 ```javascript
-getReadyTasks()
+getReadyTasks();
 ```
 
-* 获取可执行的任务
+- 获取可执行的任务
 
 ---
 
@@ -446,7 +446,7 @@ getReadyTasks()
 async executeTask(node, executor)
 ```
 
-* 执行单个任务
+- 执行单个任务
 
 ---
 
@@ -456,47 +456,46 @@ async executeTask(node, executor)
 async executeAll(executor, options =
 ```
 
-* 并行执行所有任务
+- 并行执行所有任务
 
 ---
 
 ## cancel()
 
 ```javascript
-cancel()
+cancel();
 ```
 
-* 取消执行
+- 取消执行
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
 
 ## reset()
 
 ```javascript
-reset()
+reset();
 ```
 
-* 重置执行器
+- 重置执行器
 
 ---
 
 ## visualize()
 
 ```javascript
-visualize()
+visualize();
 ```
 
-* 可视化任务图
+- 可视化任务图
 
 ---
-

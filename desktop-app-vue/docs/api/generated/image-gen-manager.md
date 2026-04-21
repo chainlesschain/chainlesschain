@@ -12,19 +12,19 @@
 const EventEmitter = require("events");
 ```
 
-* Image Generation Manager
- *
- * Unified interface for image generation supporting:
- * - Local: Stable Diffusion (AUTOMATIC1111, ComfyUI)
- * - Cloud: OpenAI DALL-E (2/3)
- *
- * Features:
- * - Provider fallback
- * - Generation caching
- * - Cost tracking
- *
- * @module image-gen-manager
- * @version 1.0.0
+- Image Generation Manager
+-
+- Unified interface for image generation supporting:
+- - Local: Stable Diffusion (AUTOMATIC1111, ComfyUI)
+- - Cloud: OpenAI DALL-E (2/3)
+-
+- Features:
+- - Provider fallback
+- - Generation caching
+- - Cost tracking
+-
+- @module image-gen-manager
+- @version 1.0.0
 
 ---
 
@@ -34,7 +34,7 @@ const EventEmitter = require("events");
 const ImageProvider =
 ```
 
-* Image generation providers
+- Image generation providers
 
 ---
 
@@ -44,7 +44,7 @@ const ImageProvider =
 const DEFAULT_CONFIG =
 ```
 
-* Default configuration
+- Default configuration
 
 ---
 
@@ -54,7 +54,7 @@ const DEFAULT_CONFIG =
 class ImageGenManager extends EventEmitter
 ```
 
-* Image Generation Manager
+- Image Generation Manager
 
 ---
 
@@ -64,8 +64,8 @@ class ImageGenManager extends EventEmitter
 async initialize(options =
 ```
 
-* Initialize the manager
-   * @param {Object} options - Initialization options
+- Initialize the manager
+  - @param {Object} options - Initialization options
 
 ---
 
@@ -75,8 +75,8 @@ async initialize(options =
 async checkProviders()
 ```
 
-* Check availability of all providers
-   * @returns {Promise<Object>} Provider status
+- Check availability of all providers
+  - @returns {Promise<Object>} Provider status
 
 ---
 
@@ -86,10 +86,10 @@ async checkProviders()
 async generate(prompt, options =
 ```
 
-* Generate image from text prompt
-   * @param {string} prompt - Text prompt
-   * @param {Object} options - Generation options
-   * @returns {Promise<Object>} Generated image(s)
+- Generate image from text prompt
+  - @param {string} prompt - Text prompt
+  - @param {Object} options - Generation options
+  - @returns {Promise<Object>} Generated image(s)
 
 ---
 
@@ -99,11 +99,11 @@ async generate(prompt, options =
 async img2img(prompt, initImage, options =
 ```
 
-* Generate image from image + prompt (img2img)
-   * @param {string} prompt - Text prompt
-   * @param {string} initImage - Base64 encoded initial image
-   * @param {Object} options - Generation options
-   * @returns {Promise<Object>} Generated image(s)
+- Generate image from image + prompt (img2img)
+  - @param {string} prompt - Text prompt
+  - @param {string} initImage - Base64 encoded initial image
+  - @param {Object} options - Generation options
+  - @returns {Promise<Object>} Generated image(s)
 
 ---
 
@@ -113,10 +113,10 @@ async img2img(prompt, initImage, options =
 async upscale(image, options =
 ```
 
-* Upscale an image
-   * @param {string} image - Base64 encoded image
-   * @param {Object} options - Upscale options
-   * @returns {Promise<Object>} Upscaled image
+- Upscale an image
+  - @param {string} image - Base64 encoded image
+  - @param {Object} options - Upscale options
+  - @returns {Promise<Object>} Upscaled image
 
 ---
 
@@ -126,10 +126,10 @@ async upscale(image, options =
 async createVariations(image, options =
 ```
 
-* Create image variations (DALL-E 2 only)
-   * @param {string} image - Base64 encoded image
-   * @param {Object} options - Generation options
-   * @returns {Promise<Object>} Variations
+- Create image variations (DALL-E 2 only)
+  - @param {string} image - Base64 encoded image
+  - @param {Object} options - Generation options
+  - @returns {Promise<Object>} Variations
 
 ---
 
@@ -139,8 +139,8 @@ async createVariations(image, options =
 async getProgress()
 ```
 
-* Get generation progress (SD only)
-   * @returns {Promise<Object>} Progress info
+- Get generation progress (SD only)
+  - @returns {Promise<Object>} Progress info
 
 ---
 
@@ -150,8 +150,8 @@ async getProgress()
 async interrupt()
 ```
 
-* Interrupt current generation (SD only)
-   * @returns {Promise<boolean>} Success
+- Interrupt current generation (SD only)
+  - @returns {Promise<boolean>} Success
 
 ---
 
@@ -161,8 +161,8 @@ async interrupt()
 async getModels()
 ```
 
-* Get available models (SD)
-   * @returns {Promise<Array>} Available models
+- Get available models (SD)
+  - @returns {Promise<Array>} Available models
 
 ---
 
@@ -172,140 +172,140 @@ async getModels()
 async switchModel(modelName)
 ```
 
-* Switch SD model
-   * @param {string} modelName - Model name
-   * @returns {Promise<boolean>} Success
+- Switch SD model
+  - @param {string} modelName - Model name
+  - @returns {Promise<boolean>} Success
 
 ---
 
 ## setDALLEApiKey(apiKey)
 
 ```javascript
-setDALLEApiKey(apiKey)
+setDALLEApiKey(apiKey);
 ```
 
-* Set DALL-E API key
-   * @param {string} apiKey - OpenAI API key
+- Set DALL-E API key
+  - @param {string} apiKey - OpenAI API key
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* Get statistics
-   * @returns {Object} Statistics
+- Get statistics
+  - @returns {Object} Statistics
 
 ---
 
 ## clearCache()
 
 ```javascript
-clearCache()
+clearCache();
 ```
 
-* Clear cache
+- Clear cache
 
 ---
 
-## async _generateWithSD(prompt, options)
+## async \_generateWithSD(prompt, options)
 
 ```javascript
 async _generateWithSD(prompt, options)
 ```
 
-* Generate with Stable Diffusion
-   * @private
+- Generate with Stable Diffusion
+  - @private
 
 ---
 
-## async _generateWithDALLE(prompt, options)
+## async \_generateWithDALLE(prompt, options)
 
 ```javascript
 async _generateWithDALLE(prompt, options)
 ```
 
-* Generate with DALL-E
-   * @private
+- Generate with DALL-E
+  - @private
 
 ---
 
-## _getPreferredProvider()
+## \_getPreferredProvider()
 
 ```javascript
-_getPreferredProvider()
+_getPreferredProvider();
 ```
 
-* Get preferred provider based on availability
-   * @private
+- Get preferred provider based on availability
+  - @private
 
 ---
 
-## _getFallbackProvider(failedProvider)
+## \_getFallbackProvider(failedProvider)
 
 ```javascript
-_getFallbackProvider(failedProvider)
+_getFallbackProvider(failedProvider);
 ```
 
-* Get fallback provider
-   * @private
+- Get fallback provider
+  - @private
 
 ---
 
-## _getFromCache(prompt, options)
+## \_getFromCache(prompt, options)
 
 ```javascript
-_getFromCache(prompt, options)
+_getFromCache(prompt, options);
 ```
 
-* Get from cache
-   * @private
+- Get from cache
+  - @private
 
 ---
 
-## _addToCache(prompt, options, result)
+## \_addToCache(prompt, options, result)
 
 ```javascript
-_addToCache(prompt, options, result)
+_addToCache(prompt, options, result);
 ```
 
-* Add to cache
-   * @private
+- Add to cache
+  - @private
 
 ---
 
-## _getCacheKey(prompt, options)
+## \_getCacheKey(prompt, options)
 
 ```javascript
-_getCacheKey(prompt, options)
+_getCacheKey(prompt, options);
 ```
 
-* Get cache key
-   * @private
+- Get cache key
+  - @private
 
 ---
 
-## async _saveImages(result, prompt)
+## async \_saveImages(result, prompt)
 
 ```javascript
 async _saveImages(result, prompt)
 ```
 
-* Save images to disk
-   * @private
+- Save images to disk
+  - @private
 
 ---
 
-## _setupEventForwarding()
+## \_setupEventForwarding()
 
 ```javascript
-_setupEventForwarding()
+_setupEventForwarding();
 ```
 
-* Setup event forwarding from clients
-   * @private
+- Setup event forwarding from clients
+  - @private
 
 ---
 
@@ -315,9 +315,8 @@ _setupEventForwarding()
 function getImageGenManager(config)
 ```
 
-* Get ImageGenManager singleton
- * @param {Object} config - Configuration
- * @returns {ImageGenManager}
+- Get ImageGenManager singleton
+- @param {Object} config - Configuration
+- @returns {ImageGenManager}
 
 ---
-

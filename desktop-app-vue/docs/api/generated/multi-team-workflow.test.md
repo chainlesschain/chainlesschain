@@ -12,15 +12,14 @@
 import
 ```
 
-* Multi-Team Workflow Integration Tests
- *
- * Tests multiple teams working concurrently on different tasks,
- * resource sharing, team collaboration, and voting mechanisms.
- *
- * @category Integration Tests
- * @module MultiTeamWorkflow
- *
- * NOTE: Skipped - source files moved to ai-engine/cowork
+- Multi-Team Workflow Integration Tests
+-
+- Tests multiple teams working concurrently on different tasks,
+- resource sharing, team collaboration, and voting mechanisms.
+-
+- @category Integration Tests
+- @module MultiTeamWorkflow
+-
+- NOTE: Skipped - source files moved to ai-engine/cowork
 
 ---
-

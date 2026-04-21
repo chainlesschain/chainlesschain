@@ -12,9 +12,8 @@
 const
 ```
 
-* Skills 模块入口
- *
- * @module ai-engine/cowork/skills
+- Skills 模块入口
+-
+- @module ai-engine/cowork/skills
 
 ---
-

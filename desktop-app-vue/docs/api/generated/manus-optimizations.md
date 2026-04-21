@@ -12,17 +12,17 @@
 const
 ```
 
-* Manus 优化集成模块
- *
- * 将 Context Engineering 和 Tool Masking 集成到 LLM 调用流程中。
- *
- * 主要功能：
- * 1. KV-Cache 友好的 Prompt 构建
- * 2. 工具掩码控制
- * 3. 任务追踪和目标重述
- * 4. 可恢复压缩
- *
- * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
+- Manus 优化集成模块
+-
+- 将 Context Engineering 和 Tool Masking 集成到 LLM 调用流程中。
+-
+- 主要功能：
+- 1.  KV-Cache 友好的 Prompt 构建
+- 2.  工具掩码控制
+- 3.  任务追踪和目标重述
+- 4.  可恢复压缩
+-
+- @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
 
 ---
 
@@ -32,9 +32,9 @@ const
 class ManusOptimizations
 ```
 
-* Manus 优化管理器
- *
- * 协调 Context Engineering 和 Tool Masking 的工作
+- Manus 优化管理器
+-
+- 协调 Context Engineering 和 Tool Masking 的工作
 
 ---
 
@@ -51,86 +51,85 @@ this.unifiedRegistry = null;
 ## bindUnifiedRegistry(registry)
 
 ```javascript
-bindUnifiedRegistry(registry)
+bindUnifiedRegistry(registry);
 ```
 
-* Bind UnifiedToolRegistry for skill-aware prompt building.
-   * When bound, buildOptimizedPrompt will include skill context (instructions, examples).
-   * @param {Object} registry - UnifiedToolRegistry instance
+- Bind UnifiedToolRegistry for skill-aware prompt building.
+  - When bound, buildOptimizedPrompt will include skill context (instructions, examples).
+  - @param {Object} registry - UnifiedToolRegistry instance
 
 ---
 
 ## buildOptimizedPrompt(options)
 
 ```javascript
-buildOptimizedPrompt(options)
+buildOptimizedPrompt(options);
 ```
 
-* 构建优化后的 Prompt
-   *
-   * @param {Object} options - 构建选项
-   * @param {string} options.systemPrompt - 系统提示词
-   * @param {Array} options.messages - 对话历史
-   * @param {Array} options.tools - 工具定义（可选，默认使用掩码系统的工具）
-   * @returns {Object} 优化后的消息和元数据
+- ## 构建优化后的 Prompt
+  - @param {Object} options - 构建选项
+  - @param {string} options.systemPrompt - 系统提示词
+  - @param {Array} options.messages - 对话历史
+  - @param {Array} options.tools - 工具定义（可选，默认使用掩码系统的工具）
+  - @returns {Object} 优化后的消息和元数据
 
 ---
 
-## _buildBasicMessages(options)
+## \_buildBasicMessages(options)
 
 ```javascript
-_buildBasicMessages(options)
+_buildBasicMessages(options);
 ```
 
-* 构建基础消息（不优化）
-   * @private
+- 构建基础消息（不优化）
+  - @private
 
 ---
 
 ## setToolAvailable(toolName, available)
 
 ```javascript
-setToolAvailable(toolName, available)
+setToolAvailable(toolName, available);
 ```
 
-* 设置工具可用性
-   * @param {string} toolName - 工具名称
-   * @param {boolean} available - 是否可用
+- 设置工具可用性
+  - @param {string} toolName - 工具名称
+  - @param {boolean} available - 是否可用
 
 ---
 
 ## setToolsByPrefix(prefix, available)
 
 ```javascript
-setToolsByPrefix(prefix, available)
+setToolsByPrefix(prefix, available);
 ```
 
-* 按前缀设置工具可用性
-   * @param {string} prefix - 工具前缀
-   * @param {boolean} available - 是否可用
+- 按前缀设置工具可用性
+  - @param {string} prefix - 工具前缀
+  - @param {boolean} available - 是否可用
 
 ---
 
 ## validateToolCall(toolName)
 
 ```javascript
-validateToolCall(toolName)
+validateToolCall(toolName);
 ```
 
-* 验证工具调用
-   * @param {string} toolName - 工具名称
-   * @returns {Object} 验证结果
+- 验证工具调用
+  - @param {string} toolName - 工具名称
+  - @returns {Object} 验证结果
 
 ---
 
 ## getAvailableTools()
 
 ```javascript
-getAvailableTools()
+getAvailableTools();
 ```
 
-* 获取可用工具列表
-   * @returns {Array} 工具定义
+- 获取可用工具列表
+  - @returns {Array} 工具定义
 
 ---
 
@@ -140,21 +139,21 @@ getAvailableTools()
 async startTask(task)
 ```
 
-* 开始新任务
-   * @param {Object} task - 任务信息
-   * @param {string} task.objective - 任务目标
-   * @param {Array} task.steps - 任务步骤
+- 开始新任务
+  - @param {Object} task - 任务信息
+  - @param {string} task.objective - 任务目标
+  - @param {Array} task.steps - 任务步骤
 
 ---
 
-## _createMemoryTask(task)
+## \_createMemoryTask(task)
 
 ```javascript
-_createMemoryTask(task)
+_createMemoryTask(task);
 ```
 
-* 创建内存任务（备用）
-   * @private
+- 创建内存任务（备用）
+  - @private
 
 ---
 
@@ -164,9 +163,9 @@ _createMemoryTask(task)
 async updateTaskProgress(stepIndex, status = "in_progress")
 ```
 
-* 更新任务进度
-   * @param {number} stepIndex - 当前步骤索引
-   * @param {string} status - 状态
+- 更新任务进度
+  - @param {number} stepIndex - 当前步骤索引
+  - @param {string} status - 状态
 
 ---
 
@@ -176,8 +175,8 @@ async updateTaskProgress(stepIndex, status = "in_progress")
 async completeCurrentStep(result = null)
 ```
 
-* 完成当前步骤
-   * @param {Object} result - 步骤结果
+- 完成当前步骤
+  - @param {Object} result - 步骤结果
 
 ---
 
@@ -187,8 +186,8 @@ async completeCurrentStep(result = null)
 async completeTask(result = null)
 ```
 
-* 完成任务
-   * @param {Object} result - 任务结果
+- 完成任务
+  - @param {Object} result - 任务结果
 
 ---
 
@@ -198,19 +197,19 @@ async completeTask(result = null)
 async cancelTask(reason = "用户取消")
 ```
 
-* 取消任务
-   * @param {string} reason - 取消原因
+- 取消任务
+  - @param {string} reason - 取消原因
 
 ---
 
 ## getCurrentTask()
 
 ```javascript
-getCurrentTask()
+getCurrentTask();
 ```
 
-* 获取当前任务
-   * @returns {Object|null} 当前任务
+- 获取当前任务
+  - @returns {Object|null} 当前任务
 
 ---
 
@@ -220,8 +219,8 @@ getCurrentTask()
 async getTodoContext()
 ```
 
-* 获取 todo.md 上下文（用于注入到 prompt 末尾）
-   * @returns {Promise<string|null>}
+- 获取 todo.md 上下文（用于注入到 prompt 末尾）
+  - @returns {Promise<string|null>}
 
 ---
 
@@ -231,8 +230,8 @@ async getTodoContext()
 async resumeUnfinishedTask()
 ```
 
-* 恢复未完成的任务
-   * @returns {Promise<Object|null>}
+- 恢复未完成的任务
+  - @returns {Promise<Object|null>}
 
 ---
 
@@ -242,9 +241,9 @@ async resumeUnfinishedTask()
 async getTaskHistory(limit = 10)
 ```
 
-* 获取任务历史
-   * @param {number} limit - 限制数量
-   * @returns {Promise<Array>}
+- 获取任务历史
+  - @param {number} limit - 限制数量
+  - @returns {Promise<Array>}
 
 ---
 
@@ -254,56 +253,56 @@ async getTaskHistory(limit = 10)
 async saveIntermediateResult(stepIndex, result)
 ```
 
-* 保存中间结果
-   * @param {number} stepIndex - 步骤索引
-   * @param {Object} result - 结果数据
+- 保存中间结果
+  - @param {number} stepIndex - 步骤索引
+  - @param {Object} result - 结果数据
 
 ---
 
 ## recordError(error)
 
 ```javascript
-recordError(error)
+recordError(error);
 ```
 
-* 记录错误（供模型学习）
-   * @param {Object} error - 错误信息
+- 记录错误（供模型学习）
+  - @param {Object} error - 错误信息
 
 ---
 
 ## resolveLastError(resolution)
 
 ```javascript
-resolveLastError(resolution)
+resolveLastError(resolution);
 ```
 
-* 标记错误已解决
-   * @param {string} resolution - 解决方案
+- 标记错误已解决
+  - @param {string} resolution - 解决方案
 
 ---
 
 ## compress(content, type = "default")
 
 ```javascript
-compress(content, type = "default")
+compress(content, (type = "default"));
 ```
 
-* 压缩内容
-   * @param {any} content - 原始内容
-   * @param {string} type - 内容类型
-   * @returns {Object} 压缩后的引用
+- 压缩内容
+  - @param {any} content - 原始内容
+  - @param {string} type - 内容类型
+  - @returns {Object} 压缩后的引用
 
 ---
 
 ## isCompressedRef(data)
 
 ```javascript
-isCompressedRef(data)
+isCompressedRef(data);
 ```
 
-* 检查是否为压缩引用
-   * @param {any} data - 数据
-   * @returns {boolean}
+- 检查是否为压缩引用
+  - @param {any} data - 数据
+  - @returns {boolean}
 
 ---
 
@@ -313,76 +312,76 @@ isCompressedRef(data)
 async recover(ref, recoveryFunctions)
 ```
 
-* 恢复压缩内容
-   * @param {Object} ref - 压缩引用
-   * @param {Object} recoveryFunctions - 恢复函数集
-   * @returns {Promise<any>}
+- 恢复压缩内容
+  - @param {Object} ref - 压缩引用
+  - @param {Object} recoveryFunctions - 恢复函数集
+  - @returns {Promise<any>}
 
 ---
 
 ## configureTaskPhases(config = null)
 
 ```javascript
-configureTaskPhases(config = null)
+configureTaskPhases((config = null));
 ```
 
-* 配置任务阶段状态机
-   * @param {Object} config - 状态机配置（可选，默认使用预定义配置）
+- 配置任务阶段状态机
+  - @param {Object} config - 状态机配置（可选，默认使用预定义配置）
 
 ---
 
 ## transitionToPhase(phase)
 
 ```javascript
-transitionToPhase(phase)
+transitionToPhase(phase);
 ```
 
-* 切换到指定阶段
-   * @param {string} phase - 阶段名称
-   * @returns {boolean} 是否成功
+- 切换到指定阶段
+  - @param {string} phase - 阶段名称
+  - @returns {boolean} 是否成功
 
 ---
 
 ## getCurrentPhase()
 
 ```javascript
-getCurrentPhase()
+getCurrentPhase();
 ```
 
-* 获取当前阶段
-   * @returns {string|null}
+- 获取当前阶段
+  - @returns {string|null}
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取综合统计
-   * @returns {Object} 统计数据
+- 获取综合统计
+  - @returns {Object} 统计数据
 
 ---
 
 ## resetStats()
 
 ```javascript
-resetStats()
+resetStats();
 ```
 
-* 重置统计
+- 重置统计
 
 ---
 
 ## exportDebugInfo()
 
 ```javascript
-exportDebugInfo()
+exportDebugInfo();
 ```
 
-* 导出调试信息
-   * @returns {Object}
+- 导出调试信息
+  - @returns {Object}
 
 ---
 
@@ -392,9 +391,9 @@ exportDebugInfo()
 function getManusOptimizations(options =
 ```
 
-* 获取 Manus 优化管理器单例
- * @param {Object} options - 配置选项
- * @returns {ManusOptimizations}
+- 获取 Manus 优化管理器单例
+- @param {Object} options - 配置选项
+- @returns {ManusOptimizations}
 
 ---
 
@@ -404,9 +403,8 @@ function getManusOptimizations(options =
 function createManusOptimizations(options =
 ```
 
-* 创建新的 Manus 优化管理器实例（非单例）
- * @param {Object} options - 配置选项
- * @returns {ManusOptimizations}
+- 创建新的 Manus 优化管理器实例（非单例）
+- @param {Object} options - 配置选项
+- @returns {ManusOptimizations}
 
 ---
-

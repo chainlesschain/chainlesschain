@@ -12,8 +12,7 @@
 import
 ```
 
-* 测试环境设置
- * Mock Electron 和其他依赖
+- 测试环境设置
+- Mock Electron 和其他依赖
 
 ---
-

@@ -12,14 +12,14 @@
 const
 ```
 
-* 批处理命令日志记录器（性能优化版）
- *
- * 性能优化：
- * - 批量写入日志（减少数据库 I/O）
- * - 异步处理（不阻塞主线程）
- * - 内存缓冲（临时存储待写入日志）
- *
- * @module remote/logging/batched-command-logger
+- 批处理命令日志记录器（性能优化版）
+-
+- 性能优化：
+- - 批量写入日志（减少数据库 I/O）
+- - 异步处理（不阻塞主线程）
+- - 内存缓冲（临时存储待写入日志）
+-
+- @module remote/logging/batched-command-logger
 
 ---
 
@@ -29,48 +29,48 @@ const
 class BatchedCommandLogger extends EventEmitter
 ```
 
-* 批处理命令日志记录器类
+- 批处理命令日志记录器类
 
 ---
 
 ## initializeDatabase()
 
 ```javascript
-initializeDatabase()
+initializeDatabase();
 ```
 
-* 初始化数据库表
+- 初始化数据库表
 
 ---
 
 ## prepareStatements()
 
 ```javascript
-prepareStatements()
+prepareStatements();
 ```
 
-* 预编译 SQL 语句（性能优化）
+- 预编译 SQL 语句（性能优化）
 
 ---
 
 ## log(logEntry)
 
 ```javascript
-log(logEntry)
+log(logEntry);
 ```
 
-* 记录命令日志（添加到缓冲区）
-   * @param {Object} logEntry - 日志条目
+- 记录命令日志（添加到缓冲区）
+  - @param {Object} logEntry - 日志条目
 
 ---
 
 ## startBatchProcessing()
 
 ```javascript
-startBatchProcessing()
+startBatchProcessing();
 ```
 
-* 启动批处理定时器
+- 启动批处理定时器
 
 ---
 
@@ -80,7 +80,7 @@ startBatchProcessing()
 async flushBuffer()
 ```
 
-* 刷新缓冲区（批量写入数据库）
+- 刷新缓冲区（批量写入数据库）
 
 ---
 
@@ -90,7 +90,7 @@ async flushBuffer()
 async forceFlush()
 ```
 
-* 强制刷新所有缓冲日志
+- 强制刷新所有缓冲日志
 
 ---
 
@@ -100,40 +100,40 @@ async forceFlush()
 query(options =
 ```
 
-* 查询命令日志
-   * @param {Object} options - 查询选项
-   * @returns {Object} 查询结果
+- 查询命令日志
+  - @param {Object} options - 查询选项
+  - @returns {Object} 查询结果
 
 ---
 
 ## getPerformanceStats()
 
 ```javascript
-getPerformanceStats()
+getPerformanceStats();
 ```
 
-* 获取性能统计
-   * @returns {Object} 性能统计
+- 获取性能统计
+  - @returns {Object} 性能统计
 
 ---
 
 ## startAutoCleanup()
 
 ```javascript
-startAutoCleanup()
+startAutoCleanup();
 ```
 
-* 启动自动清理
+- 启动自动清理
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup()
+cleanup();
 ```
 
-* 清理旧日志
+- 清理旧日志
 
 ---
 
@@ -143,7 +143,6 @@ cleanup()
 async close()
 ```
 
-* 关闭日志记录器
+- 关闭日志记录器
 
 ---
-

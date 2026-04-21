@@ -12,17 +12,17 @@
 const
 ```
 
-* Collaboration Session Manager
- *
- * Manages real-time collaboration sessions for knowledge base items.
- * Tracks active users, cursor positions, and presence information.
- *
- * Features:
- * - Session lifecycle management
- * - User presence tracking
- * - Cursor position synchronization
- * - Activity monitoring
- * - Session statistics
+- Collaboration Session Manager
+-
+- Manages real-time collaboration sessions for knowledge base items.
+- Tracks active users, cursor positions, and presence information.
+-
+- Features:
+- - Session lifecycle management
+- - User presence tracking
+- - Cursor position synchronization
+- - Activity monitoring
+- - Session statistics
 
 ---
 
@@ -32,9 +32,9 @@ const
 async createSession(params)
 ```
 
-* Create a new collaboration session
-   * @param {Object} params - Session parameters
-   * @returns {Object} Session info
+- Create a new collaboration session
+  - @param {Object} params - Session parameters
+  - @returns {Object} Session info
 
 ---
 
@@ -44,9 +44,9 @@ async createSession(params)
 async updateSession(sessionId, updates)
 ```
 
-* Update session activity (cursor position, selection)
-   * @param {string} sessionId - Session ID
-   * @param {Object} updates - Updates to apply
+- Update session activity (cursor position, selection)
+  - @param {string} sessionId - Session ID
+  - @param {Object} updates - Updates to apply
 
 ---
 
@@ -56,76 +56,76 @@ async updateSession(sessionId, updates)
 async endSession(sessionId)
 ```
 
-* End a collaboration session
-   * @param {string} sessionId - Session ID
+- End a collaboration session
+  - @param {string} sessionId - Session ID
 
 ---
 
 ## getActiveSessions(knowledgeId)
 
 ```javascript
-getActiveSessions(knowledgeId)
+getActiveSessions(knowledgeId);
 ```
 
-* Get active sessions for a knowledge item
-   * @param {string} knowledgeId - Knowledge item ID
-   * @returns {Array} Active sessions
+- Get active sessions for a knowledge item
+  - @param {string} knowledgeId - Knowledge item ID
+  - @returns {Array} Active sessions
 
 ---
 
 ## getAllActiveSessions()
 
 ```javascript
-getAllActiveSessions()
+getAllActiveSessions();
 ```
 
-* Get all active sessions
-   * @returns {Object} Map of knowledge ID to sessions
+- Get all active sessions
+  - @returns {Object} Map of knowledge ID to sessions
 
 ---
 
 ## getSessionStats(knowledgeId = null)
 
 ```javascript
-getSessionStats(knowledgeId = null)
+getSessionStats((knowledgeId = null));
 ```
 
-* Get session statistics
-   * @param {string} knowledgeId - Knowledge item ID (optional)
-   * @returns {Object} Statistics
+- Get session statistics
+  - @param {string} knowledgeId - Knowledge item ID (optional)
+  - @returns {Object} Statistics
 
 ---
 
-## async _broadcastSessionEvent(knowledgeId, event)
+## async \_broadcastSessionEvent(knowledgeId, event)
 
 ```javascript
 async _broadcastSessionEvent(knowledgeId, event)
 ```
 
-* Broadcast session event to peers
-   * @private
+- Broadcast session event to peers
+  - @private
 
 ---
 
-## _startHeartbeatMonitor()
+## \_startHeartbeatMonitor()
 
 ```javascript
-_startHeartbeatMonitor()
+_startHeartbeatMonitor();
 ```
 
-* Start heartbeat monitor to detect inactive sessions
-   * @private
+- Start heartbeat monitor to detect inactive sessions
+  - @private
 
 ---
 
-## _generateUserColor()
+## \_generateUserColor()
 
 ```javascript
-_generateUserColor()
+_generateUserColor();
 ```
 
-* Generate a random user color
-   * @private
+- Generate a random user color
+  - @private
 
 ---
 
@@ -135,7 +135,6 @@ _generateUserColor()
 async cleanup()
 ```
 
-* Clean up all sessions
+- Clean up all sessions
 
 ---
-

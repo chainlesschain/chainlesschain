@@ -12,24 +12,24 @@
 const
 ```
 
-* 消息管理器 - 消息去重和批量处理
- *
- * 功能：
- * - 消息ID生成和管理
- * - 消息去重（基于ID）
- * - 批量消息发送
- * - 消息确认和重传
- * - 消息压缩（可选）
+- 消息管理器 - 消息去重和批量处理
+-
+- 功能：
+- - 消息ID生成和管理
+- - 消息去重（基于ID）
+- - 批量消息发送
+- - 消息确认和重传
+- - 消息压缩（可选）
 
 ---
 
 ## generateMessageId()
 
 ```javascript
-generateMessageId()
+generateMessageId();
 ```
 
-* 生成消息ID
+- 生成消息ID
 
 ---
 
@@ -39,10 +39,10 @@ generateMessageId()
 async sendMessage(peerId, payload, options =
 ```
 
-* 发送消息（带去重和批量处理）
-   * @param {string} peerId - 目标节点ID
-   * @param {Object} payload - 消息内容
-   * @param {Object} options - 发送选项
+- 发送消息（带去重和批量处理）
+  - @param {string} peerId - 目标节点ID
+  - @param {Object} payload - 消息内容
+  - @param {Object} options - 发送选项
 
 ---
 
@@ -52,9 +52,9 @@ async sendMessage(peerId, payload, options =
 async receiveMessage(peerId, message)
 ```
 
-* 接收消息（带去重）
-   * @param {string} peerId - 发送方节点ID
-   * @param {Object} message - 消息对象
+- 接收消息（带去重）
+  - @param {string} peerId - 发送方节点ID
+  - @param {Object} message - 消息对象
 
 ---
 
@@ -64,37 +64,37 @@ async receiveMessage(peerId, message)
 async receiveBatchMessages(peerId, messages)
 ```
 
-* 接收批量消息
+- 接收批量消息
 
 ---
 
 ## isDuplicate(messageId)
 
 ```javascript
-isDuplicate(messageId)
+isDuplicate(messageId);
 ```
 
-* 检查是否重复
+- 检查是否重复
 
 ---
 
 ## queueMessage(peerId, message)
 
 ```javascript
-queueMessage(peerId, message)
+queueMessage(peerId, message);
 ```
 
-* 加入批量队列
+- 加入批量队列
 
 ---
 
 ## scheduleBatchSend(peerId)
 
 ```javascript
-scheduleBatchSend(peerId)
+scheduleBatchSend(peerId);
 ```
 
-* 计划批量发送
+- 计划批量发送
 
 ---
 
@@ -104,7 +104,7 @@ scheduleBatchSend(peerId)
 async flushQueue(peerId)
 ```
 
-* 刷新队列（批量发送）
+- 刷新队列（批量发送）
 
 ---
 
@@ -114,7 +114,7 @@ async flushQueue(peerId)
 async sendImmediately(peerId, message)
 ```
 
-* 立即发送单条消息
+- 立即发送单条消息
 
 ---
 
@@ -124,7 +124,7 @@ async sendImmediately(peerId, message)
 async sendBatch(peerId, messages)
 ```
 
-* 发送批量消息
+- 发送批量消息
 
 ---
 
@@ -134,27 +134,27 @@ async sendBatch(peerId, messages)
 async sendAck(peerId, messageId)
 ```
 
-* 发送确认
+- 发送确认
 
 ---
 
 ## waitForAck(messageId, peerId, message)
 
 ```javascript
-waitForAck(messageId, peerId, message)
+waitForAck(messageId, peerId, message);
 ```
 
-* 等待确认
+- 等待确认
 
 ---
 
 ## receiveAck(ackFor)
 
 ```javascript
-receiveAck(ackFor)
+receiveAck(ackFor);
 ```
 
-* 接收确认
+- 接收确认
 
 ---
 
@@ -164,17 +164,17 @@ receiveAck(ackFor)
 async handleAckTimeout(messageId, peerId, message)
 ```
 
-* 处理确认超时
+- 处理确认超时
 
 ---
 
 ## shouldCompress(message)
 
 ```javascript
-shouldCompress(message)
+shouldCompress(message);
 ```
 
-* 判断是否需要压缩
+- 判断是否需要压缩
 
 ---
 
@@ -184,7 +184,7 @@ shouldCompress(message)
 async compressPayload(payload)
 ```
 
-* 压缩payload
+- 压缩payload
 
 ---
 
@@ -194,47 +194,46 @@ async compressPayload(payload)
 async decompressPayload(compressedPayload)
 ```
 
-* 解压缩payload
+- 解压缩payload
 
 ---
 
 ## startCleanupTimer()
 
 ```javascript
-startCleanupTimer()
+startCleanupTimer();
 ```
 
-* 启动清理定时器
+- 启动清理定时器
 
 ---
 
 ## cleanupExpiredData()
 
 ```javascript
-cleanupExpiredData()
+cleanupExpiredData();
 ```
 
-* 清理过期数据
+- 清理过期数据
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup()
+cleanup();
 ```
 
-* 清理资源
+- 清理资源
 
 ---
-

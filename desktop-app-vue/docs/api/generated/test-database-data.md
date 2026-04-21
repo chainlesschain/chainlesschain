@@ -12,8 +12,7 @@
 const
 ```
 
-* 测试数据库数据完整性
- * 使用应用的 DatabaseManager 来访问加密数据库
+- 测试数据库数据完整性
+- 使用应用的 DatabaseManager 来访问加密数据库
 
 ---
-

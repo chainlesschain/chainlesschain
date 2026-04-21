@@ -12,13 +12,13 @@
 const
 ```
 
-* PluginSandbox - 插件沙箱
- *
- * 职责：
- * - 在隔离环境中执行插件代码
- * - 提供安全的global对象
- * - 超时控制和资源限制
- * - 生命周期钩子调用
+- PluginSandbox - 插件沙箱
+-
+- 职责：
+- - 在隔离环境中执行插件代码
+- - 提供安全的global对象
+- - 超时控制和资源限制
+- - 生命周期钩子调用
 
 ---
 
@@ -28,40 +28,40 @@ const
 async load()
 ```
 
-* 加载插件代码
-   * @returns {Promise<Object>} 插件实例
+- 加载插件代码
+  - @returns {Promise<Object>} 插件实例
 
 ---
 
 ## createSandboxContext()
 
 ```javascript
-createSandboxContext()
+createSandboxContext();
 ```
 
-* 创建沙箱上下文
-   * @returns {Object} 沙箱上下文
+- 创建沙箱上下文
+  - @returns {Object} 沙箱上下文
 
 ---
 
 ## createRequireFunction()
 
 ```javascript
-createRequireFunction()
+createRequireFunction();
 ```
 
-* 创建受限的require函数
-   * @returns {Function} require函数
+- 创建受限的require函数
+  - @returns {Function} require函数
 
 ---
 
 ## validatePluginInterface()
 
 ```javascript
-validatePluginInterface()
+validatePluginInterface();
 ```
 
-* 验证插件接口
+- 验证插件接口
 
 ---
 
@@ -71,10 +71,10 @@ validatePluginInterface()
 async callHook(hookName, ...args)
 ```
 
-* 调用插件钩子
-   * @param {string} hookName - 钩子名称
-   * @param {...any} args - 参数
-   * @returns {Promise<any>} 钩子返回值
+- 调用插件钩子
+  - @param {string} hookName - 钩子名称
+  - @param {...any} args - 参数
+  - @returns {Promise<any>} 钩子返回值
 
 ---
 
@@ -84,8 +84,8 @@ async callHook(hookName, ...args)
 async enable()
 ```
 
-* 启用插件
-   * @returns {Promise<void>}
+- 启用插件
+  - @returns {Promise<void>}
 
 ---
 
@@ -95,8 +95,8 @@ async enable()
 async disable()
 ```
 
-* 禁用插件
-   * @returns {Promise<void>}
+- 禁用插件
+  - @returns {Promise<void>}
 
 ---
 
@@ -106,8 +106,8 @@ async disable()
 async unload()
 ```
 
-* 卸载插件
-   * @returns {Promise<void>}
+- 卸载插件
+  - @returns {Promise<void>}
 
 ---
 
@@ -117,42 +117,41 @@ async unload()
 async callMethod(methodName, ...args)
 ```
 
-* 调用插件方法
-   * @param {string} methodName - 方法名
-   * @param {...any} args - 参数
-   * @returns {Promise<any>} 方法返回值
+- 调用插件方法
+  - @param {string} methodName - 方法名
+  - @param {...any} args - 参数
+  - @returns {Promise<any>} 方法返回值
 
 ---
 
 ## getState()
 
 ```javascript
-getState()
+getState();
 ```
 
-* 获取插件状态
-   * @returns {string} 状态
+- 获取插件状态
+  - @returns {string} 状态
 
 ---
 
 ## getInstance()
 
 ```javascript
-getInstance()
+getInstance();
 ```
 
-* 获取插件实例
-   * @returns {Object|null} 插件实例
+- 获取插件实例
+  - @returns {Object|null} 插件实例
 
 ---
 
 ## destroy()
 
 ```javascript
-destroy()
+destroy();
 ```
 
-* 销毁沙箱
+- 销毁沙箱
 
 ---
-

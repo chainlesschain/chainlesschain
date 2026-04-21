@@ -12,8 +12,8 @@
 class DatabasePerformanceWrapper
 ```
 
-* 数据库性能包装器
- * 自动跟踪所有数据库查询的性能
+- 数据库性能包装器
+- 自动跟踪所有数据库查询的性能
 
 ---
 
@@ -23,7 +23,7 @@ class DatabasePerformanceWrapper
 async query(sql, params = [])
 ```
 
-* 包装查询方法
+- 包装查询方法
 
 ---
 
@@ -33,7 +33,7 @@ async query(sql, params = [])
 async execute(sql, params = [])
 ```
 
-* 包装执行方法
+- 包装执行方法
 
 ---
 
@@ -43,7 +43,7 @@ async execute(sql, params = [])
 async run(sql, params = [])
 ```
 
-* 包装run方法
+- 包装run方法
 
 ---
 
@@ -53,7 +53,7 @@ async run(sql, params = [])
 async get(sql, params = [])
 ```
 
-* 包装get方法
+- 包装get方法
 
 ---
 
@@ -63,17 +63,17 @@ async get(sql, params = [])
 async all(sql, params = [])
 ```
 
-* 包装all方法
+- 包装all方法
 
 ---
 
-## _proxyMethod(methodName)
+## \_proxyMethod(methodName)
 
 ```javascript
-_proxyMethod(methodName)
+_proxyMethod(methodName);
 ```
 
-* 代理其他方法到原始数据库对象
+- 代理其他方法到原始数据库对象
 
 ---
 
@@ -83,7 +83,6 @@ _proxyMethod(methodName)
 function wrapDatabaseWithPerformanceMonitoring(database)
 ```
 
-* 创建数据库性能包装器
+- 创建数据库性能包装器
 
 ---
-

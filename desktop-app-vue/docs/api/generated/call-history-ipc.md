@@ -12,29 +12,28 @@
 let electron;
 ```
 
-* Call History IPC Handler
- *
- * 处理通话历史记录相关的IPC请求
+- Call History IPC Handler
+-
+- 处理通话历史记录相关的IPC请求
 
 ---
 
 ## register()
 
 ```javascript
-register()
+register();
 ```
 
-* 注册IPC处理器
+- 注册IPC处理器
 
 ---
 
 ## unregister()
 
 ```javascript
-unregister()
+unregister();
 ```
 
-* 注销IPC处理器
+- 注销IPC处理器
 
 ---
-

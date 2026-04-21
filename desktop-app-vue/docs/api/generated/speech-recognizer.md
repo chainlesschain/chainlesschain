@@ -12,12 +12,12 @@
 const
 ```
 
-* 语音识别引擎
- *
- * 支持多种语音识别引擎的统一接口
- * - Whisper API (OpenAI)
- * - Whisper Local (本地模型)
- * - Web Speech API (浏览器)
+- 语音识别引擎
+-
+- 支持多种语音识别引擎的统一接口
+- - Whisper API (OpenAI)
+- - Whisper Local (本地模型)
+- - Web Speech API (浏览器)
 
 ---
 
@@ -27,7 +27,7 @@ const
 class BaseSpeechRecognizer
 ```
 
-* 基础识别器接口
+- 基础识别器接口
 
 ---
 
@@ -37,20 +37,20 @@ class BaseSpeechRecognizer
 async recognize(audio, options =
 ```
 
-* 识别音频
-   * @param {string|Buffer} audio - 音频数据
-   * @param {Object} options - 识别选项
-   * @returns {Promise<Object>} 识别结果
+- 识别音频
+  - @param {string|Buffer} audio - 音频数据
+  - @param {Object} options - 识别选项
+  - @returns {Promise<Object>} 识别结果
 
 ---
 
 ## getEngineName()
 
 ```javascript
-getEngineName()
+getEngineName();
 ```
 
-* 获取引擎名称
+- 获取引擎名称
 
 ---
 
@@ -60,7 +60,7 @@ getEngineName()
 async isAvailable()
 ```
 
-* 检查是否可用
+- 检查是否可用
 
 ---
 
@@ -70,7 +70,7 @@ async isAvailable()
 class WhisperAPIRecognizer extends BaseSpeechRecognizer
 ```
 
-* Whisper API 识别器 (OpenAI)
+- Whisper API 识别器 (OpenAI)
 
 ---
 
@@ -80,10 +80,10 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer
 async recognize(audioPath, options =
 ```
 
-* 识别音频文件
-   * @param {string} audioPath - 音频文件路径
-   * @param {Object} options - 识别选项
-   * @returns {Promise<Object>}
+- 识别音频文件
+  - @param {string} audioPath - 音频文件路径
+  - @param {Object} options - 识别选项
+  - @returns {Promise<Object>}
 
 ---
 
@@ -93,10 +93,10 @@ async recognize(audioPath, options =
 async recognizeBatch(audioPaths, options =
 ```
 
-* 批量识别（自动处理速率限制）
-   * @param {Array} audioPaths - 音频文件路径列表
-   * @param {Object} options - 识别选项
-   * @returns {Promise<Array>}
+- 批量识别（自动处理速率限制）
+  - @param {Array} audioPaths - 音频文件路径列表
+  - @param {Object} options - 识别选项
+  - @returns {Promise<Array>}
 
 ---
 
@@ -106,21 +106,21 @@ async recognizeBatch(audioPaths, options =
 async detectLanguage(audioPath)
 ```
 
-* 自动检测音频语言
-   * @param {string} audioPath - 音频文件路径
-   * @returns {Promise<Object>} 语言检测结果
+- 自动检测音频语言
+  - @param {string} audioPath - 音频文件路径
+  - @returns {Promise<Object>} 语言检测结果
 
 ---
 
 ## getLanguageName(code)
 
 ```javascript
-getLanguageName(code)
+getLanguageName(code);
 ```
 
-* 获取语言名称
-   * @param {string} code - 语言代码
-   * @returns {string}
+- 获取语言名称
+  - @param {string} code - 语言代码
+  - @returns {string}
 
 ---
 
@@ -130,9 +130,9 @@ getLanguageName(code)
 async detectLanguages(audioPaths)
 ```
 
-* 批量语言检测
-   * @param {Array} audioPaths - 音频文件路径列表
-   * @returns {Promise<Array>}
+- 批量语言检测
+  - @param {Array} audioPaths - 音频文件路径列表
+  - @returns {Promise<Array>}
 
 ---
 
@@ -142,8 +142,8 @@ async detectLanguages(audioPaths)
 class WhisperLocalRecognizer extends BaseSpeechRecognizer
 ```
 
-* Whisper Local 识别器（本地模型）
- * Phase 2 实现
+- Whisper Local 识别器（本地模型）
+- Phase 2 实现
 
 ---
 
@@ -153,10 +153,10 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer
 async recognize(audioPath, options =
 ```
 
-* 识别音频文件（使用本地 Whisper 服务）
-   * @param {string} audioPath - 音频文件路径
-   * @param {Object} options - 识别选项
-   * @returns {Promise<Object>}
+- 识别音频文件（使用本地 Whisper 服务）
+  - @param {string} audioPath - 音频文件路径
+  - @param {Object} options - 识别选项
+  - @returns {Promise<Object>}
 
 ---
 
@@ -166,7 +166,7 @@ async recognize(audioPath, options =
 async isAvailable()
 ```
 
-* 检查本地 Whisper 服务是否可用
+- 检查本地 Whisper 服务是否可用
 
 ---
 
@@ -176,7 +176,7 @@ async isAvailable()
 async getAvailableModels()
 ```
 
-* 获取可用的模型列表
+- 获取可用的模型列表
 
 ---
 
@@ -186,7 +186,7 @@ async getAvailableModels()
 async recognizeBatch(audioPaths, options =
 ```
 
-* 批量识别（本地服务通常更快，可以并发）
+- 批量识别（本地服务通常更快，可以并发）
 
 ---
 
@@ -196,8 +196,8 @@ async recognizeBatch(audioPaths, options =
 class WebSpeechRecognizer extends BaseSpeechRecognizer
 ```
 
-* Web Speech API 识别器
- * 注意：此引擎在浏览器端使用，这里仅作为占位符
+- Web Speech API 识别器
+- 注意：此引擎在浏览器端使用，这里仅作为占位符
 
 ---
 
@@ -207,20 +207,20 @@ class WebSpeechRecognizer extends BaseSpeechRecognizer
 class SpeechRecognizer
 ```
 
-* 语音识别器工厂类
+- 语音识别器工厂类
 
 ---
 
 ## createEngine(engineType, config)
 
 ```javascript
-createEngine(engineType, config)
+createEngine(engineType, config);
 ```
 
-* 创建识别引擎
-   * @param {string} engineType - 引擎类型
-   * @param {Object} config - 引擎配置
-   * @returns {BaseSpeechRecognizer}
+- 创建识别引擎
+  - @param {string} engineType - 引擎类型
+  - @param {Object} config - 引擎配置
+  - @returns {BaseSpeechRecognizer}
 
 ---
 
@@ -230,10 +230,10 @@ createEngine(engineType, config)
 async recognize(audioPath, options =
 ```
 
-* 识别音频
-   * @param {string} audioPath - 音频文件路径
-   * @param {Object} options - 识别选项
-   * @returns {Promise<Object>}
+- 识别音频
+  - @param {string} audioPath - 音频文件路径
+  - @param {Object} options - 识别选项
+  - @returns {Promise<Object>}
 
 ---
 
@@ -243,9 +243,9 @@ async recognize(audioPath, options =
 switchEngine(engineType, config =
 ```
 
-* 切换识别引擎
-   * @param {string} engineType - 引擎类型
-   * @param {Object} config - 引擎配置
+- 切换识别引擎
+  - @param {string} engineType - 引擎类型
+  - @param {Object} config - 引擎配置
 
 ---
 
@@ -255,18 +255,18 @@ switchEngine(engineType, config =
 async getAvailableEngines()
 ```
 
-* 获取可用的引擎列表
-   * @returns {Promise<Array>}
+- 获取可用的引擎列表
+  - @returns {Promise<Array>}
 
 ---
 
 ## getCurrentEngine()
 
 ```javascript
-getCurrentEngine()
+getCurrentEngine();
 ```
 
-* 获取当前引擎名称
+- 获取当前引擎名称
 
 ---
 
@@ -276,7 +276,6 @@ getCurrentEngine()
 async recognizeBatch(audioPaths, options =
 ```
 
-* 批量识别
+- 批量识别
 
 ---
-

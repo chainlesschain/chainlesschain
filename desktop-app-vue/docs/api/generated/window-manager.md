@@ -12,8 +12,8 @@
 const
 ```
 
-* 窗口管理器
- * 管理多窗口、窗口状态保存和恢复
+- 窗口管理器
+- 管理多窗口、窗口状态保存和恢复
 
 ---
 
@@ -23,187 +23,186 @@ const
 createWindow(options =
 ```
 
-* 创建窗口
+- 创建窗口
 
 ---
 
 ## setupWindowListeners(window, windowId)
 
 ```javascript
-setupWindowListeners(window, windowId)
+setupWindowListeners(window, windowId);
 ```
 
-* 设置窗口监听器
+- 设置窗口监听器
 
 ---
 
 ## saveWindowState(window, windowId)
 
 ```javascript
-saveWindowState(window, windowId)
+saveWindowState(window, windowId);
 ```
 
-* 保存窗口状态
+- 保存窗口状态
 
 ---
 
 ## ensureWindowInBounds(options)
 
 ```javascript
-ensureWindowInBounds(options)
+ensureWindowInBounds(options);
 ```
 
-* 确保窗口在屏幕范围内
+- 确保窗口在屏幕范围内
 
 ---
 
 ## getWindow(windowId)
 
 ```javascript
-getWindow(windowId)
+getWindow(windowId);
 ```
 
-* 获取窗口
+- 获取窗口
 
 ---
 
 ## getAllWindows()
 
 ```javascript
-getAllWindows()
+getAllWindows();
 ```
 
-* 获取所有窗口
+- 获取所有窗口
 
 ---
 
 ## closeWindow(windowId)
 
 ```javascript
-closeWindow(windowId)
+closeWindow(windowId);
 ```
 
-* 关闭窗口
+- 关闭窗口
 
 ---
 
 ## closeAllWindows()
 
 ```javascript
-closeAllWindows()
+closeAllWindows();
 ```
 
-* 关闭所有窗口
+- 关闭所有窗口
 
 ---
 
 ## showWindow(windowId)
 
 ```javascript
-showWindow(windowId)
+showWindow(windowId);
 ```
 
-* 显示窗口
+- 显示窗口
 
 ---
 
 ## hideWindow(windowId)
 
 ```javascript
-hideWindow(windowId)
+hideWindow(windowId);
 ```
 
-* 隐藏窗口
+- 隐藏窗口
 
 ---
 
 ## minimizeWindow(windowId)
 
 ```javascript
-minimizeWindow(windowId)
+minimizeWindow(windowId);
 ```
 
-* 最小化窗口
+- 最小化窗口
 
 ---
 
 ## maximizeWindow(windowId)
 
 ```javascript
-maximizeWindow(windowId)
+maximizeWindow(windowId);
 ```
 
-* 最大化窗口
+- 最大化窗口
 
 ---
 
 ## toggleFullScreen(windowId)
 
 ```javascript
-toggleFullScreen(windowId)
+toggleFullScreen(windowId);
 ```
 
-* 全屏窗口
+- 全屏窗口
 
 ---
 
 ## setAlwaysOnTop(windowId, flag)
 
 ```javascript
-setAlwaysOnTop(windowId, flag)
+setAlwaysOnTop(windowId, flag);
 ```
 
-* 设置窗口置顶
+- 设置窗口置顶
 
 ---
 
 ## loadStates()
 
 ```javascript
-loadStates()
+loadStates();
 ```
 
-* 加载窗口状态
+- 加载窗口状态
 
 ---
 
 ## saveStates()
 
 ```javascript
-saveStates()
+saveStates();
 ```
 
-* 保存窗口状态到文件
+- 保存窗口状态到文件
 
 ---
 
 ## clearStates()
 
 ```javascript
-clearStates()
+clearStates();
 ```
 
-* 清除保存的状态
+- 清除保存的状态
 
 ---
 
 ## getWindowCount()
 
 ```javascript
-getWindowCount()
+getWindowCount();
 ```
 
-* 获取窗口数量
+- 获取窗口数量
 
 ---
 
 ## destroy()
 
 ```javascript
-destroy()
+destroy();
 ```
 
-* 销毁管理器
+- 销毁管理器
 
 ---
-

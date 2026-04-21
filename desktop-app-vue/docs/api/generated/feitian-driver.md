@@ -12,10 +12,10 @@
 const
 ```
 
-* 飞天诚信（FeiTian）U盾驱动
- *
- * 基于SKF标准API
- * 支持飞天诚信的ePass系列U盾
+- 飞天诚信（FeiTian）U盾驱动
+-
+- 基于SKF标准API
+- 支持飞天诚信的ePass系列U盾
 
 ---
 
@@ -25,28 +25,27 @@ const
 class FeiTianDriver extends SKFDriver
 ```
 
-* 飞天诚信驱动类
- *
- * 支持的产品：
- * - ePass1000
- * - ePass2000
- * - ePass3000
- * - ePass NG系列
+- 飞天诚信驱动类
+-
+- 支持的产品：
+- - ePass1000
+- - ePass2000
+- - ePass3000
+- - ePass NG系列
 
 ---
 
 ## findDllPath()
 
 ```javascript
-findDllPath()
+findDllPath();
 ```
 
-* 查找DLL路径
-   *
-   * 飞天诚信的DLL通常命名为：
-   * - ft2k.dll (FeiTian 2K系列)
-   * - ShuttleCsp11_3003.dll
-   * - FT_SKFAPI.dll
+- ## 查找DLL路径
+  - 飞天诚信的DLL通常命名为：
+  - - ft2k.dll (FeiTian 2K系列)
+  - - ShuttleCsp11_3003.dll
+  - - FT_SKFAPI.dll
 
 ---
 
@@ -56,47 +55,47 @@ findDllPath()
 async initialize()
 ```
 
-* 初始化驱动
+- 初始化驱动
 
 ---
 
 ## getManufacturerName()
 
 ```javascript
-getManufacturerName()
+getManufacturerName();
 ```
 
-* 获取制造商名称
+- 获取制造商名称
 
 ---
 
 ## getModelName()
 
 ```javascript
-getModelName()
+getModelName();
 ```
 
-* 获取型号名称
+- 获取型号名称
 
 ---
 
 ## getDriverName()
 
 ```javascript
-getDriverName()
+getDriverName();
 ```
 
-* 获取驱动名称
+- 获取驱动名称
 
 ---
 
 ## getDriverVersion()
 
 ```javascript
-getDriverVersion()
+getDriverVersion();
 ```
 
-* 获取驱动版本
+- 获取驱动版本
 
 ---
 
@@ -106,19 +105,18 @@ getDriverVersion()
 async detect()
 ```
 
-* 检测设备
-   *
-   * 飞天诚信特定的检测逻辑
+- ## 检测设备
+  - 飞天诚信特定的检测逻辑
 
 ---
 
 ## simulateDetect()
 
 ```javascript
-simulateDetect()
+simulateDetect();
 ```
 
-* 模拟检测（用于开发测试）
+- 模拟检测（用于开发测试）
 
 ---
 
@@ -128,7 +126,7 @@ simulateDetect()
 async getDeviceInfo()
 ```
 
-* 获取设备信息
+- 获取设备信息
 
 ---
 
@@ -138,9 +136,8 @@ async getDeviceInfo()
 async getDeviceSerial()
 ```
 
-* 飞天诚信特定功能：读取设备序列号
-   *
-   * 注意：这需要SKF API的扩展支持
+- ## 飞天诚信特定功能：读取设备序列号
+  - 注意：这需要SKF API的扩展支持
 
 ---
 
@@ -150,7 +147,7 @@ async getDeviceSerial()
 async getDeviceCertificate()
 ```
 
-* 飞天诚信特定功能：获取设备证书
+- 飞天诚信特定功能：获取设备证书
 
 ---
 
@@ -160,7 +157,6 @@ async getDeviceCertificate()
 async checkDeviceHealth()
 ```
 
-* 飞天诚信特定功能：检查设备健康状态
+- 飞天诚信特定功能：检查设备健康状态
 
 ---
-
