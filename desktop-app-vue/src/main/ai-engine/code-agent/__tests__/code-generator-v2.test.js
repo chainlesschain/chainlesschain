@@ -94,6 +94,34 @@ describe("CodeGeneratorV2", () => {
     expect(db._prep.run).toHaveBeenCalled();
   });
 
+  it("should delegate to injected llmManager and mark llmUsed", async () => {
+    const llmManager = {
+      query: vi
+        .fn()
+        .mockResolvedValue({ text: "function add(a,b){return a+b}" }),
+    };
+    await generator.initialize(db, { llmManager });
+    const result = await generator.generate("add two numbers", {
+      language: "javascript",
+    });
+    expect(llmManager.query).toHaveBeenCalledOnce();
+    expect(result.output.code).toBe("function add(a,b){return a+b}");
+    expect(result.metadata.llmUsed).toBe(true);
+  });
+
+  it("should fall back to stub when llmManager throws", async () => {
+    const llmManager = {
+      query: vi.fn().mockRejectedValue(new Error("LLM down")),
+    };
+    await generator.initialize(db, { llmManager });
+    const result = await generator.generate("hello world", {
+      language: "python",
+    });
+    expect(result.output.code).toContain("hello world");
+    expect(result.output.code).toContain("python");
+    expect(result.metadata.llmUsed).toBe(false);
+  });
+
   // --- Review ---
 
   it("should review clean code with high score", async () => {

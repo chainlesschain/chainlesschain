@@ -70,18 +70,53 @@ class CodeGeneratorV2 extends EventEmitter {
   async generate(prompt, options = {}) {
     const id = `gen-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const language = options.language || "javascript";
+    const type = options.type || "function";
+
+    let code = null;
+    let explanation = null;
+    let llmUsed = false;
+
+    if (this._llmManager && typeof this._llmManager.query === "function") {
+      try {
+        const systemPrompt = `You are a code generator. Output ONLY valid ${language} source for a ${type}, with no prose and no markdown fences.`;
+        const llmResult = await this._llmManager.query(prompt, {
+          systemPrompt,
+          maxTokens: this._config.maxGenerationLength,
+        });
+        const text = (
+          llmResult?.text ??
+          llmResult?.message?.content ??
+          ""
+        ).trim();
+        if (text) {
+          code = text;
+          explanation = `LLM-generated ${language} ${type} for: ${prompt}`;
+          llmUsed = true;
+        }
+      } catch (error) {
+        logger.warn(
+          "[CodeGeneratorV2] LLM generation failed, falling back to stub:",
+          error.message,
+        );
+      }
+    }
+
+    if (!code) {
+      code = `// Generated code for: ${prompt}\n// Language: ${language}`;
+      explanation = `Code generation for: ${prompt}`;
+    }
 
     const result = {
       id,
       prompt,
       language,
-      type: options.type || "function",
+      type,
       output: {
-        code: `// Generated code for: ${prompt}\n// Language: ${language}\n// TODO: Implement with LLM integration`,
-        explanation: `Code generation for: ${prompt}`,
+        code,
+        explanation,
         tests: options.includeTests ? `// Test stub for: ${prompt}` : null,
       },
-      metadata: { options, timestamp: Date.now() },
+      metadata: { options, timestamp: Date.now(), llmUsed },
     };
 
     this._generationHistory.push(result);
