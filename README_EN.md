@@ -441,13 +441,13 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.34-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.43-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-12900%2B-brightgreen.svg)
-![Skills](https://img.shields.io/badge/skills-138-blue.svg)
+![Skills](https://img.shields.io/badge/skills-139-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
@@ -461,7 +461,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.2.34 Evolution Edition (2026-04-19 · CLI 0.142.0 · V2 Canonical Layer Batch 9 + 10)
+## ⭐ Current Version: v5.0.2.43 Evolution Edition (2026-04-20 · CLI 0.156.2 · V6 Desktop Shell Regression Closure + V2 Canonical Layer iter16-iter28)
 
 ### Latest Update - Managed Agents Parity · CLI Persistence (2026-04-16) 🆕
 

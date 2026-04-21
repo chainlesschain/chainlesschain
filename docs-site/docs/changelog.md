@@ -3,6 +3,33 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.2.43 / CLI 0.156.2] - 2026-04-21 (发布前测试回归闭环 + 533 自动文档刷新)
+
+### Added
+
+- **发布前测试回归闭环** — 92 单元测试 + 5 集成测试 + `vue-tsc --noEmit` + `vite build` + `describe.skip` E2E **五关全绿**，无 bug 溢出。
+- **533 份自动文档刷新** — `desktop-app-vue/docs/api/generated/*.md` prettier list/heading 规范刷新，`ARCHITECTURE_OVERVIEW.md` + `COMPONENT_REFERENCE.md` 格式同步。
+- **CLI 0.156.1 → 0.156.2** — patch 补丁（无源码改动，用于 v5.0.2.43 npm 发布）。
+
+### Changed
+
+- 三站版本号统一刷新：`docs-website-v2` 官网 footer + `/desktop` chip + `index.astro` 首页 hero chip 全部 `v5.0.2.34` → `v5.0.2.43`，CLI chip `v0.156.0` → `v0.156.2`。
+
+---
+
+## [5.0.2.42 / CLI 0.156.1] - 2026-04-20 晚 (V6 Shell 回归闭环 + 用户文档)
+
+### Added
+
+- **V6 Shell + `/v6-preview` 用户文档** — `desktop-v6-shell.md` 新增 §18 "P7–P9b 预览壳" 全套 + §18.7 测试回归表；`desktop-ui-refactor-user-guide.md` 新建 355 行用户指南；6 份核心指南追加 17 章规范附录。
+- **设计文档** — `docs/design/桌面版UI重构_设计文档.md` 458 行，含 10 章 + 附录 A/B。
+
+### Changed
+
+- `sync-docs.js` / `sync-design-docs.js` 加入新中文 → ASCII 映射；两站 VitePress sidebar 加入新条目。
+
+---
+
 ## [5.0.2.34 / CLI 0.140-0.142] - 2026-04-19 (V2 第十批 · 16 个编排/自治/经济/进化 lib 级治理表面)
 
 ### Added — 16 个 V2 lib 级治理表面（严格增量 · 内存 governance · 与运行态 / 传输层 / 协议层完全独立）

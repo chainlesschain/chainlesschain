@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: v5.0.2.34 | CLI 0.156.0 · 109 命令 · V2 规范层（iter16-iter28 · 220+ 治理表面，iter25-iter28 再增 48 lib surface）· 14800+ 测试
+  tagline: v5.0.2.43 | CLI 0.156.2 · 109 命令 · V2 规范层（iter16-iter28 · 220+ 治理表面，iter25-iter28 再增 48 lib surface）· 14800+ 测试 · V6 桌面壳
   image:
     src: /logo.png
     alt: ChainlessChain Logo

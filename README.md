@@ -602,7 +602,7 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.34-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.43-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -622,7 +622,7 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 ---
 
-## ⭐ 当前版本: v5.0.2.34 Evolution Edition (2026-04-19 · CLI 0.142.0 · V2 规范层第九 + 第十批)
+## ⭐ 当前版本: v5.0.2.43 Evolution Edition (2026-04-20 · CLI 0.156.2 · V6 桌面壳回归闭包 + V2 规范层 iter16-iter28)
 
 ### 最新更新 - 合规与威胁情报补齐 (STIX 2.1 · UEBA · Framework Reporter, 2026-04-16) 🆕
 
