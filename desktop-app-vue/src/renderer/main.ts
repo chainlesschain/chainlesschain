@@ -3,7 +3,7 @@ import { logger } from "@/utils/logger";
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import App from "./App.vue";
-import router from "./router";
+import router, { setV6ShellDefault } from "./router";
 import i18n from "./locales";
 import { registerPermissionDirective } from "./directives/permission";
 // Ant Design Vue 已通过 unplugin-vue-components 自动按需导入
@@ -62,6 +62,18 @@ app.directive("lazy", createLazyLoadDirective());
 app.directive("content-visibility", createContentVisibilityDirective());
 
 logger.info("[App] Performance optimizations initialized");
+
+// 启动前预读 V6 壳默认开关：让 router 守卫能在第一次导航时就生效
+// 失败或不可用时保持默认 V5 壳，不阻塞挂载
+try {
+  const invoke = window.electronAPI?.invoke;
+  if (typeof invoke === "function") {
+    const raw = await invoke("config:get", "ui.useV6ShellByDefault");
+    setV6ShellDefault(raw === true);
+  }
+} catch (err) {
+  logger.warn("[App] 读取 V6 壳默认开关失败，保持 V5 默认", err);
+}
 
 app.mount("#app");
 

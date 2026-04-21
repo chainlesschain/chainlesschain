@@ -32,6 +32,15 @@ declare global {
   }
 }
 
+// V6 壳默认开关：实际状态与纯函数都放在独立文件 v6-shell-default.ts 里，
+// 便于在不实例化整个 router 的情况下做单测。
+import {
+  setV6ShellDefault,
+  isV6ShellDefault,
+  resolveHomeRedirect,
+} from "./v6-shell-default";
+export { setV6ShellDefault, isV6ShellDefault };
+
 // ===== 优化的路由组件加载器 =====
 // 使用webpack magic comments进行代码分割命名
 
@@ -1879,13 +1888,22 @@ router.beforeEach(
     if (to.meta.requiresAuth && !store.isAuthenticated) {
       logger.info("[Router] 需要认证但未登录，重定向到 /login");
       next("/login");
-    } else if (to.path === "/login" && store.isAuthenticated) {
-      logger.info("[Router] 已登录，重定向到首页");
-      next("/");
-    } else {
-      logger.info("[Router] 放行");
-      next();
+      return;
     }
+    const useV6ShellByDefault = isV6ShellDefault();
+    if (to.path === "/login" && store.isAuthenticated) {
+      logger.info("[Router] 已登录，重定向到首页");
+      next(useV6ShellByDefault ? "/v2" : "/");
+      return;
+    }
+    const v6Redirect = resolveHomeRedirect(to, { useV6ShellByDefault });
+    if (v6Redirect) {
+      logger.info("[Router] V6 壳默认开启，/ 重定向到 /v2");
+      next(v6Redirect);
+      return;
+    }
+    logger.info("[Router] 放行");
+    next();
   },
 );
 
