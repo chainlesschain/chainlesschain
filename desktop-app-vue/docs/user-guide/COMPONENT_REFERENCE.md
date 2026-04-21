@@ -1,8 +1,8 @@
 # Component Reference
 
-**Generated**: 2026-04-21T04:11:31.665Z
+**Generated**: 2026-04-21T06:10:31.384Z
 
-**Total Components**: 565
+**Total Components**: 569
 
 ---
 
@@ -943,6 +943,38 @@
 **File**: `src/renderer/pages/settings/DatabaseSecurity.vue`
 
 **Description**: 性能监控
+
+---
+
+## src/renderer/pages/settings/panes
+
+### SpeechRecognitionPane
+
+**File**: `src/renderer/pages/settings/panes/SpeechRecognitionPane.vue`
+
+**Description**: 引擎选择
+
+---
+
+### P2PNetworkPane
+
+**File**: `src/renderer/pages/settings/panes/P2PNetworkPane.vue`
+
+**Description**: 传输层配置
+
+---
+
+### LLMPane
+
+**File**: `src/renderer/pages/settings/panes/LLMPane.vue`
+
+**Description**: Ollama 配置
+
+---
+
+### DatabasePane
+
+**File**: `src/renderer/pages/settings/panes/DatabasePane.vue`
 
 ---
 

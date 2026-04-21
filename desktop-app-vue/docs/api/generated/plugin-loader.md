@@ -2,7 +2,7 @@
 
 **Source**: `src/main/plugins/plugin-loader.js`
 
-**Generated**: 2026-04-21T04:11:31.454Z
+**Generated**: 2026-04-21T06:10:31.139Z
 
 ---
 
