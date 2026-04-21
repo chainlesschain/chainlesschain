@@ -14,8 +14,8 @@
  * @version 1.0.0
  */
 
-import * as Y from 'yjs';
-import { Observable } from 'lib0/observable';
+import * as Y from "yjs";
+import { Observable } from "lib0/observable";
 
 // ==================== Type Definitions ====================
 
@@ -64,7 +64,7 @@ export interface YjsIPCConnectResult {
  * Status event payload
  */
 export interface YjsIPCStatusEvent {
-  status: 'connected' | 'disconnected' | 'connecting';
+  status: "connected" | "disconnected" | "connecting";
 }
 
 // ==================== Provider Implementation ====================
@@ -141,16 +141,18 @@ export class YjsIPCProvider extends Observable<string> {
     // Captures updates made locally and forwards them to main process via IPC
     this._updateHandler = (update: Uint8Array, origin: any) => {
       // Skip updates that came from the remote (to avoid echo loops)
-      if (origin === 'remote' || this._destroying) return;
+      if (origin === "remote" || this._destroying) return;
 
       // Serialize Uint8Array to a plain number array for IPC transport
       const serializedUpdate: number[] = Array.from(update);
 
-      window.electronAPI?.invoke('collab:yjs-update', {
+      const result = window.electronAPI?.invoke("collab:yjs-update", {
         documentId: this.documentId,
         update: serializedUpdate,
-      }).catch((err: any) => {
-        console.error('[YjsIPC] Failed to send update:', err);
+      });
+      // invoke 在测试 mock / 未挂载时可能返回 undefined，用 Promise.resolve 包裹
+      Promise.resolve(result).catch((err: any) => {
+        console.error("[YjsIPC] Failed to send update:", err);
       });
     };
 
@@ -162,9 +164,9 @@ export class YjsIPCProvider extends Observable<string> {
 
       try {
         const update = new Uint8Array(data.update);
-        Y.applyUpdate(this.doc, update, 'remote');
+        Y.applyUpdate(this.doc, update, "remote");
       } catch (err) {
-        console.error('[YjsIPC] Failed to apply remote update:', err);
+        console.error("[YjsIPC] Failed to apply remote update:", err);
       }
     };
 
@@ -181,7 +183,7 @@ export class YjsIPCProvider extends Observable<string> {
         }
       }
 
-      this.emit('awareness-update', [data]);
+      this.emit("awareness-update", [data]);
     };
   }
 
@@ -199,35 +201,41 @@ export class YjsIPCProvider extends Observable<string> {
   async connect(): Promise<void> {
     if (this._destroying) return;
 
-    this.emit('status', [{ status: 'connecting' } as YjsIPCStatusEvent]);
+    this.emit("status", [{ status: "connecting" } as YjsIPCStatusEvent]);
 
     // 1. Register local doc update listener
-    this.doc.on('update', this._updateHandler);
+    this.doc.on("update", this._updateHandler);
 
     // 2. Listen for remote updates from main process
-    window.electronAPI?.on?.('collab:yjs-remote-update', this._remoteUpdateHandler);
-    window.electronAPI?.on?.('collab:yjs-awareness-update', this._awarenessHandler);
+    window.electronAPI?.on?.(
+      "collab:yjs-remote-update",
+      this._remoteUpdateHandler,
+    );
+    window.electronAPI?.on?.(
+      "collab:yjs-awareness-update",
+      this._awarenessHandler,
+    );
 
     // 3. Connect to main process document session
     try {
       const result: YjsIPCConnectResult = await window.electronAPI?.invoke(
-        'collab:yjs-connect',
-        { documentId: this.documentId }
+        "collab:yjs-connect",
+        { documentId: this.documentId },
       );
 
       if (result?.success && result.data?.initialState) {
         // Apply initial state from main process
         const state = new Uint8Array(result.data.initialState);
-        Y.applyUpdate(this.doc, state, 'remote');
+        Y.applyUpdate(this.doc, state, "remote");
       }
 
       this.connected = true;
       this.synced = true;
-      this.emit('synced', [this]);
-      this.emit('status', [{ status: 'connected' } as YjsIPCStatusEvent]);
+      this.emit("synced", [this]);
+      this.emit("status", [{ status: "connected" } as YjsIPCStatusEvent]);
     } catch (error) {
-      console.error('[YjsIPC] Connect failed:', error);
-      this.emit('status', [{ status: 'disconnected' } as YjsIPCStatusEvent]);
+      console.error("[YjsIPC] Connect failed:", error);
+      this.emit("status", [{ status: "disconnected" } as YjsIPCStatusEvent]);
 
       // Schedule auto-reconnect if enabled
       if (this.options.autoReconnect && !this._destroying) {
@@ -257,21 +265,21 @@ export class YjsIPCProvider extends Observable<string> {
     }
 
     // Remove local doc listener
-    this.doc.off('update', this._updateHandler);
+    this.doc.off("update", this._updateHandler);
 
     // Remove IPC listeners
     window.electronAPI?.removeListener?.(
-      'collab:yjs-remote-update',
-      this._remoteUpdateHandler
+      "collab:yjs-remote-update",
+      this._remoteUpdateHandler,
     );
     window.electronAPI?.removeListener?.(
-      'collab:yjs-awareness-update',
-      this._awarenessHandler
+      "collab:yjs-awareness-update",
+      this._awarenessHandler,
     );
 
     // Notify main process of disconnect
     try {
-      await window.electronAPI?.invoke('collab:yjs-disconnect', {
+      await window.electronAPI?.invoke("collab:yjs-disconnect", {
         documentId: this.documentId,
       });
     } catch (e) {
@@ -282,7 +290,7 @@ export class YjsIPCProvider extends Observable<string> {
     this.connected = false;
     this.synced = false;
     this.awareness.clear();
-    this.emit('status', [{ status: 'disconnected' } as YjsIPCStatusEvent]);
+    this.emit("status", [{ status: "disconnected" } as YjsIPCStatusEvent]);
   }
 
   /**
@@ -298,12 +306,12 @@ export class YjsIPCProvider extends Observable<string> {
 
     // Send to main process for broadcasting
     try {
-      await window.electronAPI?.invoke('collab:yjs-update', {
+      await window.electronAPI?.invoke("collab:yjs-update", {
         documentId: this.documentId,
         awarenessState: state,
       });
     } catch (err) {
-      console.error('[YjsIPC] Failed to update awareness state:', err);
+      console.error("[YjsIPC] Failed to update awareness state:", err);
     }
   }
 

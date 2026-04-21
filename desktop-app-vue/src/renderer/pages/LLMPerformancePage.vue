@@ -5,9 +5,7 @@
         <BarChartOutlined />
         LLM 性能仪表板
       </h1>
-      <p class="page-description">
-        实时监控 Token 使用、成本分析和性能优化
-      </p>
+      <p class="page-description">实时监控 Token 使用、成本分析和性能优化</p>
     </div>
 
     <!-- Budget Alert Banner -->
@@ -52,16 +50,8 @@
       />
 
       <!-- Cache & Budget Details Row -->
-      <a-row
-        :gutter="[16, 16]"
-        class="cache-budget-row"
-      >
-        <a-col
-          :xs="24"
-          :sm="24"
-          :md="12"
-          :lg="12"
-        >
+      <a-row :gutter="[16, 16]" class="cache-budget-row">
+        <a-col :xs="24" :sm="24" :md="12" :lg="12">
           <LLMCachePanel
             :stats="cacheStats"
             :loading="loading"
@@ -69,16 +59,8 @@
             @clear-cache="clearExpiredCache"
           />
         </a-col>
-        <a-col
-          :xs="24"
-          :sm="24"
-          :md="12"
-          :lg="12"
-        >
-          <LLMBudgetPanel
-            :budget="budget"
-            :loading="loading"
-          />
+        <a-col :xs="24" :sm="24" :md="12" :lg="12">
+          <LLMBudgetPanel :budget="budget" :loading="loading" />
         </a-col>
       </a-row>
 
@@ -434,9 +416,15 @@ const refreshData = async () => {
         interval: trendInterval.value,
       }),
       window.electronAPI.invoke("llm:get-cost-breakdown", dateRange),
-      window.electronAPI.invoke("llm:get-cache-stats").catch(() => null),
-      window.electronAPI.invoke("llm:get-budget").catch(() => null),
-      window.electronAPI.invoke("llm:get-alert-history").catch(() => []),
+      Promise.resolve(window.electronAPI.invoke("llm:get-cache-stats")).catch(
+        () => null,
+      ),
+      Promise.resolve(window.electronAPI.invoke("llm:get-budget")).catch(
+        () => null,
+      ),
+      Promise.resolve(window.electronAPI.invoke("llm:get-alert-history")).catch(
+        () => [],
+      ),
     ]);
 
     if (statsResult) {
