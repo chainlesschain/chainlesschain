@@ -203,7 +203,12 @@ jobs:
             npm version "$VERSION" --no-git-tag-version --allow-same-version
           fi
 
-          npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+          PKG_VER=$(node -p "require('./package.json').version")
+          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
