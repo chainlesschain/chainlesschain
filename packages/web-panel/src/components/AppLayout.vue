@@ -158,7 +158,7 @@
             </a-tooltip>
           </div>
 
-          <span class="version-tag">v5.0.2.9</span>
+          <span class="version-tag">v5.0.2.43</span>
           <a-tag
             :color="wsStatus === 'connected' ? 'green' : wsStatus === 'connecting' ? 'orange' : 'red'"
             class="ws-tag"

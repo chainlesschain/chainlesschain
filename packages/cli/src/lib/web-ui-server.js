@@ -483,7 +483,7 @@ function buildHtml({
         <div id="conn-dot"></div>
         <span id="conn-label">未连接</span>
       </div>
-      <span id="version-label">v5.0.2.5</span>
+      <span id="version-label">v5.0.2.43</span>
     </div>
   </nav>
 
