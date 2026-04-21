@@ -434,60 +434,68 @@ module.exports = {
       console.log("Running post-copy hook...");
 
       // 复制workspace的node_modules到打包目录
+      // 注意：即使在 CI 已经通过 junction 链接的情况下，也必须显式 xcopy。
+      // electron-packager 对 Windows junction 的遍历行为不可靠 —— 曾经在 CI 产物
+      // 中丢失 hoisted 依赖（例如 express），导致打包后的 app 启动时 require 失败。
+      // xcopy /E 会穿透 junction 实打实复制内容，保证 buildPath 自给自足。
       const rootNodeModules = path.join(ROOT_DIR, "node_modules");
       const buildNodeModules = path.join(buildPath, "node_modules");
 
-      // 在 CI 环境中，如果已经通过 junction/symlink 链接了 node_modules，跳过复制
-      // electron-forge 会自动处理 junction 指向的内容
-      const isCI = process.env.CI || process.env.GITHUB_ACTIONS;
-      const localNodeModules = path.join(__dirname, "node_modules");
+      console.log("[Packaging] Copying workspace dependencies...");
+      console.log(`  From: ${rootNodeModules}`);
+      console.log(`  To: ${buildNodeModules}`);
 
-      if (isCI && fs.existsSync(localNodeModules)) {
-        console.log(
-          "[Packaging] CI environment detected with linked node_modules",
-        );
-        console.log(
-          "[Packaging] Skipping redundant copy - electron-forge will use linked modules",
-        );
-      } else {
-        console.log("[Packaging] Copying workspace dependencies...");
-        console.log(`  From: ${rootNodeModules}`);
-        console.log(`  To: ${buildNodeModules}`);
+      if (fs.existsSync(buildNodeModules)) {
+        console.log("[Packaging] Removing existing node_modules...");
+        fs.rmSync(buildNodeModules, { recursive: true, force: true });
+      }
 
-        // 删除现有的node_modules（包含符号链接）
-        if (fs.existsSync(buildNodeModules)) {
-          console.log("[Packaging] Removing existing node_modules...");
-          fs.rmSync(buildNodeModules, { recursive: true, force: true });
-        }
-
-        // 跨平台复制 node_modules
-        console.log("[Packaging] Copying workspace dependencies...");
-        try {
-          if (process.platform === "win32") {
-            // Windows: use xcopy (robocopy is slower for this use case)
-            execSync(
-              `xcopy "${rootNodeModules}" "${buildNodeModules}" /E /I /H /Y /Q`,
-              {
-                stdio: "inherit",
-                maxBuffer: 1024 * 1024 * 100, // 100MB buffer
-              },
-            );
-          } else {
-            // macOS/Linux: use cp -R
-            execSync(`cp -R "${rootNodeModules}" "${buildNodeModules}"`, {
+      try {
+        if (process.platform === "win32") {
+          // Windows: use xcopy (robocopy is slower for this use case)
+          execSync(
+            `xcopy "${rootNodeModules}" "${buildNodeModules}" /E /I /H /Y /Q`,
+            {
               stdio: "inherit",
               maxBuffer: 1024 * 1024 * 100, // 100MB buffer
-            });
-          }
-          console.log("[Packaging] Workspace dependencies copied successfully");
-        } catch (error) {
-          console.error(
-            "[Packaging] Failed to copy node_modules:",
-            error.message,
+            },
           );
-          throw error;
+        } else {
+          // macOS/Linux: use cp -R
+          execSync(`cp -R "${rootNodeModules}" "${buildNodeModules}"`, {
+            stdio: "inherit",
+            maxBuffer: 1024 * 1024 * 100, // 100MB buffer
+          });
         }
+        console.log("[Packaging] Workspace dependencies copied successfully");
+      } catch (error) {
+        console.error(
+          "[Packaging] Failed to copy node_modules:",
+          error.message,
+        );
+        throw error;
       }
+
+      // 校验：package.json 中声明的每个 runtime 依赖必须真实落到 buildNodeModules。
+      // 若 hoisting / junction / prune 任一环节把依赖弄丢，这里直接抛错，
+      // 让构建在生成 zip 之前失败 —— 胜过终端用户双击时才炸出 "Cannot find module"。
+      const buildPkg = JSON.parse(
+        fs.readFileSync(path.join(buildPath, "package.json"), "utf-8"),
+      );
+      const declaredDeps = Object.keys(buildPkg.dependencies || {});
+      const missingDeps = declaredDeps.filter((depName) => {
+        const depPkgJson = path.join(buildNodeModules, depName, "package.json");
+        return !fs.existsSync(depPkgJson);
+      });
+      if (missingDeps.length > 0) {
+        throw new Error(
+          `[Packaging] Packaged bundle missing ${missingDeps.length} declared dependencies: ${missingDeps.join(", ")}\n` +
+            `Run \`npm install\` at repo root to restore workspace hoisting, then re-run the packaging command.`,
+        );
+      }
+      console.log(
+        `[Packaging] Verified ${declaredDeps.length} declared deps are present in bundle`,
+      );
 
       // 创建必要的目录结构
       const dataDir = path.join(buildPath, "..", "..", "data");
