@@ -2,7 +2,7 @@
 
 **Source**: `src/main/utils/pptx-parser.js`
 
-**Generated**: 2026-04-21T06:10:31.086Z
+**Generated**: 2026-04-21T06:53:39.489Z
 
 ---
 

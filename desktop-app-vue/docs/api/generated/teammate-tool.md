@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/cowork/teammate-tool.js`
 
-**Generated**: 2026-04-21T06:10:31.232Z
+**Generated**: 2026-04-21T06:53:39.575Z
 
 ---
 

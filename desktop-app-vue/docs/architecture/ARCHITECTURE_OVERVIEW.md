@@ -1,6 +1,6 @@
 # Architecture Overview
 
-**Generated**: 2026-04-21T06:10:31.471Z
+**Generated**: 2026-04-21T06:53:39.757Z
 
 ---
 
@@ -9,7 +9,7 @@
 | Module | Files | Total Size |
 |--------|-------|------------|
 | main | 1664 | 23.77 MB |
-| renderer | 12 | 0.05 MB |
+| renderer | 14 | 0.06 MB |
 | shared | 0 | 0.00 MB |
 
 ## main Module
@@ -31,7 +31,7 @@
 
 ## renderer Module
 
-**Files**: 12
+**Files**: 14
 
 **Top 10 Largest Files**:
 
@@ -41,10 +41,10 @@
 4. `src/renderer/workers/syntax-highlighter.worker.js` - 8.0 KB
 5. `src/renderer/workers/file-parser.worker.js` - 6.0 KB
 6. `src/renderer/services/__tests__/api.test.js` - 5.2 KB
-7. `src/renderer/components/llm-performance/index.js` - 1.5 KB
-8. `src/renderer/components/workflow/index.js` - 0.6 KB
-9. `src/renderer/components/memory/index.js` - 0.5 KB
-10. `src/renderer/components/browser/workflow/index.js` - 0.4 KB
+7. `src/renderer/components/projects/chatPanelUtils.js` - 4.7 KB
+8. `src/renderer/composables/useMemoryLeakGuard.js` - 2.0 KB
+9. `src/renderer/components/llm-performance/index.js` - 1.5 KB
+10. `src/renderer/components/workflow/index.js` - 0.6 KB
 
 ## shared Module
 

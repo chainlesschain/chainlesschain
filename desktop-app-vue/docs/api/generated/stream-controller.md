@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/stream-controller.js`
 
-**Generated**: 2026-04-21T06:10:31.159Z
+**Generated**: 2026-04-21T06:53:39.537Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/migrations/add-social-foreign-keys.js`
 
-**Generated**: 2026-04-21T06:10:31.150Z
+**Generated**: 2026-04-21T06:53:39.531Z
 
 ---
 

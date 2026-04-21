@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/llm-ipc.js`
 
-**Generated**: 2026-04-21T06:10:31.162Z
+**Generated**: 2026-04-21T06:53:39.539Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/system/window-manager.js`
 
-**Generated**: 2026-04-21T06:10:31.101Z
+**Generated**: 2026-04-21T06:53:39.498Z
 
 ---
 

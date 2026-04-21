@@ -1,8 +1,8 @@
 # Component Reference
 
-**Generated**: 2026-04-21T06:10:31.384Z
+**Generated**: 2026-04-21T06:53:39.671Z
 
-**Total Components**: 569
+**Total Components**: 571
 
 ---
 
@@ -953,6 +953,18 @@
 **File**: `src/renderer/pages/settings/panes/SpeechRecognitionPane.vue`
 
 **Description**: 引擎选择
+
+---
+
+### ProjectPane
+
+**File**: `src/renderer/pages/settings/panes/ProjectPane.vue`
+
+---
+
+### PerformancePane
+
+**File**: `src/renderer/pages/settings/panes/PerformancePane.vue`
 
 ---
 
