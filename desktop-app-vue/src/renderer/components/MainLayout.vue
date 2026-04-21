@@ -813,93 +813,10 @@
     <!-- 主内容区 -->
     <a-layout class="main-content-area">
       <!-- 顶部栏 -->
-      <a-layout-header class="layout-header">
-        <div class="header-left">
-          <!-- 只在有侧边栏时显示折叠按钮 -->
-          <a-button
-            v-if="showSidebar"
-            type="text"
-            class="trigger-btn"
-            @click="toggleSidebar"
-          >
-            <MenuFoldOutlined v-if="!sidebarCollapsed" />
-            <MenuUnfoldOutlined v-else />
-          </a-button>
-          <!-- 没有侧边栏时显示返回按钮 -->
-          <div v-else class="page-title">
-            <a-button type="text" class="back-btn" @click="handleBackToHome">
-              <ArrowLeftOutlined />
-              返回首页
-            </a-button>
-          </div>
-
-          <!-- 面包屑导航 -->
-          <HeaderBreadcrumbs :icon-resolver="getIconComponent" />
-        </div>
-
-        <div class="header-right">
-          <a-space :size="16">
-            <!-- 搜索按钮 -->
-            <a-tooltip title="搜索菜单 (Ctrl+K)">
-              <a-button
-                type="text"
-                class="search-btn"
-                @click="showCommandPalette"
-              >
-                <SearchOutlined />
-              </a-button>
-            </a-tooltip>
-
-            <!-- 同步状态 -->
-            <SyncStatusButton />
-
-            <!-- 数据库加密状态 -->
-            <DatabaseEncryptionStatus />
-
-            <!-- AI对话 -->
-            <a-tooltip title="AI对话">
-              <a-button type="text" @click="toggleChat">
-                <MessageOutlined />
-              </a-button>
-            </a-tooltip>
-
-            <!-- 语言切换 -->
-            <LanguageSwitcher />
-
-            <!-- DID邀请通知 -->
-            <DIDInvitationNotifier />
-
-            <!-- 通知中心 -->
-            <a-badge :count="socialStore.totalUnreadCount" :overflow-count="99">
-              <a-tooltip title="通知中心">
-                <a-button type="text" @click="toggleNotificationPanel">
-                  <BellOutlined />
-                </a-button>
-              </a-tooltip>
-            </a-badge>
-
-            <!-- 用户菜单 -->
-            <a-dropdown>
-              <a-button type="text">
-                <UserOutlined />
-              </a-button>
-              <template #overlay>
-                <a-menu>
-                  <a-menu-item key="profile">
-                    <UserOutlined />
-                    个人资料
-                  </a-menu-item>
-                  <a-menu-divider />
-                  <a-menu-item key="logout" @click="handleLogout">
-                    <LogoutOutlined />
-                    退出登录
-                  </a-menu-item>
-                </a-menu>
-              </template>
-            </a-dropdown>
-          </a-space>
-        </div>
-      </a-layout-header>
+      <AppHeader
+        :icon-resolver="getIconComponent"
+        @show-command-palette="showCommandPalette"
+      />
 
       <!-- 标签页栏 -->
       <div class="tabs-bar">
@@ -997,8 +914,6 @@ import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { message } from "ant-design-vue";
 import {
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
   FileTextOutlined,
   TeamOutlined,
   ShopOutlined,
@@ -1019,7 +934,6 @@ import {
   SyncOutlined,
   DatabaseOutlined,
   SafetyOutlined,
-  LogoutOutlined,
   DownOutlined,
   FolderOutlined,
   FolderOpenOutlined,
@@ -1027,10 +941,8 @@ import {
   InboxOutlined,
   RobotOutlined,
   ExclamationCircleOutlined,
-  ArrowLeftOutlined,
   AppstoreOutlined,
   NodeIndexOutlined,
-  BellOutlined,
   DashboardOutlined,
   ThunderboltOutlined,
   ToolOutlined,
@@ -1059,26 +971,21 @@ import {
   BugOutlined,
   HistoryOutlined,
   BookOutlined,
-  SearchOutlined,
   ExperimentOutlined,
 } from "@ant-design/icons-vue";
 import { useAppStore } from "../stores/app";
 import { useSocialStore } from "../stores/social";
 import ChatPanel from "./ChatPanel.vue";
 import SyncConflictDialog from "./SyncConflictDialog.vue";
-import LanguageSwitcher from "./LanguageSwitcher.vue";
 import NotificationCenter from "./social/NotificationCenter.vue";
-import DatabaseEncryptionStatus from "./DatabaseEncryptionStatus.vue";
 import VoiceCommandHandler from "./layout/VoiceCommandHandler.vue";
 import SidebarContextMenu from "./layout/SidebarContextMenu.vue";
 import CommandPalette from "./common/CommandPalette.vue";
-import DIDInvitationNotifier from "./DIDInvitationNotifier.vue";
 import { registerMenuCommands } from "../utils/keyboard-shortcuts";
 import { usePluginMenus } from "../composables/usePluginExtensions";
 import PluginSlot from "./plugins/PluginSlot.vue";
 import FavoriteManagerModal from "./layout/FavoriteManagerModal.vue";
-import HeaderBreadcrumbs from "./layout/HeaderBreadcrumbs.vue";
-import SyncStatusButton from "./layout/SyncStatusButton.vue";
+import AppHeader from "./layout/AppHeader.vue";
 
 const router = useRouter();
 const route = useRoute();
@@ -1298,23 +1205,15 @@ watch(
   { immediate: true },
 );
 
-const toggleSidebar = () => {
-  sidebarCollapsed.value = !sidebarCollapsed.value;
-};
-
 const toggleChat = () => {
   chatPanelVisible.value = !chatPanelVisible.value;
 };
 
-// 通知中心面板
+// 通知中心面板（抽屉仍由 MainLayout 管理）
 const notificationPanelVisible = computed({
   get: () => socialStore.notificationPanelVisible,
   set: (val) => socialStore.toggleNotificationPanel(val),
 });
-
-const toggleNotificationPanel = () => {
-  socialStore.toggleNotificationPanel();
-};
 
 const handleMenuClick = ({ key }) => {
   // 检查是否是插件菜单项
@@ -1404,17 +1303,6 @@ const handleTabDropdown = ({ key }) => {
     store.closeAllTabs();
     router.push("/");
   }
-};
-
-const handleLogout = () => {
-  store.logout();
-  router.push("/login");
-  message.success("已退出登录");
-};
-
-// 返回首页
-const handleBackToHome = () => {
-  router.push("/");
 };
 
 // ==================== 命令面板 ====================
@@ -1828,57 +1716,6 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.1);
 }
 
-.layout-header {
-  background: #fff;
-  padding: 0 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #f0f0f0;
-  height: 56px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  /* 允许通过header拖拽窗口 */
-  -webkit-app-region: drag;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  /* 确保按钮可以点击，不被拖拽覆盖 */
-  -webkit-app-region: no-drag;
-}
-
-.trigger-btn {
-  font-size: 18px;
-  padding: 0 16px;
-  height: 56px;
-}
-
-.trigger-btn:hover {
-  background: rgba(0, 0, 0, 0.025);
-}
-
-.page-title {
-  display: flex;
-  align-items: center;
-}
-
-.back-btn {
-  font-size: 14px;
-  padding: 0 16px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #667eea;
-  font-weight: 500;
-}
-
-.back-btn:hover {
-  background: rgba(102, 126, 234, 0.1);
-  color: #764ba2;
-}
-
 /* 面包屑导航 */
 .breadcrumb-nav {
   margin-left: 20px;
@@ -1942,25 +1779,6 @@ onUnmounted(() => {
 
 .breadcrumb-nav :deep(.ant-breadcrumb-separator) {
   margin: 0;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  /* 为Windows窗口控制按钮预留空间，避免与个人中心等按钮重叠 */
-  padding-right: 140px;
-  -webkit-app-region: no-drag;
-}
-
-.search-btn {
-  font-size: 16px;
-  color: #667eea;
-  transition: all 0.3s;
-}
-
-.search-btn:hover {
-  color: #764ba2;
-  transform: scale(1.1);
 }
 
 .tabs-bar {
