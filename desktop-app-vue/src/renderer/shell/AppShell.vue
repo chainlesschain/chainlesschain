@@ -82,6 +82,7 @@ let appliedThemeVars: string[] = [];
 let unregisterAdminHandler: (() => void) | null = null;
 let unregisterPromptsHandler: (() => void) | null = null;
 let unregisterGitHooksHandler: (() => void) | null = null;
+let unregisterKnowledgeGraphHandler: (() => void) | null = null;
 
 onMounted(async () => {
   window.addEventListener("keydown", handleKeydown);
@@ -113,6 +114,16 @@ onMounted(async () => {
       }
     },
   );
+  unregisterKnowledgeGraphHandler = registerSlashHandler(
+    "builtin:openKnowledgeGraphPanel",
+    ({ args }) => {
+      if (args) {
+        antMessage.info(`知识图谱：${args}（完整面板将在后续迭代接入）`);
+      } else {
+        antMessage.info("知识图谱面板（完整面板将在后续迭代接入）");
+      }
+    },
+  );
   await registry.refreshAll();
   appliedThemeVars = applyBrandTheme(registry.brandTheme);
   artifactStore.seedIfEmpty();
@@ -127,6 +138,8 @@ onBeforeUnmount(() => {
   unregisterPromptsHandler = null;
   unregisterGitHooksHandler?.();
   unregisterGitHooksHandler = null;
+  unregisterKnowledgeGraphHandler?.();
+  unregisterKnowledgeGraphHandler = null;
 });
 </script>
 

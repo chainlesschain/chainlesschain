@@ -128,6 +128,7 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ids).toContain("admin-console");
     expect(ids).toContain("ai-prompts");
     expect(ids).toContain("git-hooks");
+    expect(ids).toContain("knowledge-graph");
     expect(ids).toContain("acme-override");
   });
 
@@ -161,6 +162,22 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(hooksWidget).toBeDefined();
     expect(hooksWidget.size).toBe("medium");
     expect(hooksWidget.title).toBe("Git Hooks");
+  });
+
+  it("knowledge-graph 的 /kg slash 命令 + KnowledgeGraphWidget home widget 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const kg = slash.find((s) => s.trigger === "/kg");
+    expect(kg).toBeDefined();
+    expect(kg.handler).toBe("builtin:openKnowledgeGraphPanel");
+    expect(kg.pluginId).toBe("knowledge-graph");
+
+    const widgets = Array.from(pm.uiRegistry.homeWidgets.values());
+    const kgWidget = widgets.find(
+      (w) => w.component === "builtin:KnowledgeGraphWidget",
+    );
+    expect(kgWidget).toBeDefined();
+    expect(kgWidget.size).toBe("medium");
+    expect(kgWidget.title).toBe("知识图谱");
   });
 
   it("brand.theme priority 100 覆盖默认 10", () => {
