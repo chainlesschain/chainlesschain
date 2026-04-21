@@ -59,11 +59,9 @@ jobs:
           cache-dependency-path: 'desktop-app-vue/package-lock.json'
 
       - name: Install root dependencies
-        run: npm install --legacy-peer-deps
-
-      - name: Install desktop-app-vue dependencies
-        working-directory: ./desktop-app-vue
-        run: npm install --legacy-peer-deps
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-command: npm install --legacy-peer-deps
 
       - name: Build main process
         working-directory: ./desktop-app-vue

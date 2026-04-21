@@ -31,7 +31,9 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - name: Install root dependencies
-        run: npm install --legacy-peer-deps
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-command: npm install --legacy-peer-deps
 
       - name: Build desktop app main process
         working-directory: ./desktop-app-vue
