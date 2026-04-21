@@ -1,5 +1,37 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-21 Update — Phase 3.3c closure + Phase 3.4 soft switch + regression expansion
+
+Following the V6 preview shell P9c and 8 V5→V6 probes landed 2026-04-20, this cut **fills in unit tests for the 5 Phase 3.3c thin stores**, merges the **Phase 3.4 soft switch** (`/` → `/v2` opt-in), and fixes two pre-existing type/runtime drifts surfaced by the expanded regression.
+
+| Stage | Command | Result |
+|---|---|---|
+| **New store unit tests** (rag / wallet / git-hooks / workflow-designer / analytics-dashboard) | `npx vitest run src/renderer/stores/__tests__/{rag,wallet,git-hooks,workflow-designer,analytics-dashboard}.test.ts` | **83 / 83 green** (rag 12 · wallet 13 · git-hooks 14 · analytics 20 · workflow 24) |
+| **Full store regression** | `npx vitest run src/renderer/stores/__tests__/` | **600 / 600 green** · 23 files · ~42s |
+| **Plugin extension-points integration** | `npx vitest run tests/integration/plugin-extension-points.integration.test.js` | **13 / 13 green** (5 legacy MDM override + 8 Phase 3.2 probes) |
+| **Phase 3.4 router-guard unit test** | `npx vitest run src/renderer/router/__tests__/v6-shell-default.test.ts` | **9 / 9 green** |
+| **Type check** | `npx vue-tsc --noEmit` | **0 errors** (fixed one pre-existing `electronAPI.config` type drift) |
+| **E2E structural health check** | `npm run test:e2e:check` | **66 / 66 structurally valid** · 10 module groups |
+| **E2E Playwright full run** | — | Not in this cut (needs a live Electron process; out of scope for a non-UI regression) |
+
+**Bug fixes in this cut**:
+1. `src/renderer/utils/logger.ts:121` — wrapped IPC return with `Promise.resolve(result).catch(...)` to defend against `invoke()` returning `undefined`, which was throwing `Cannot read properties of undefined (reading 'catch')`.
+2. `src/renderer/types/electron.d.ts` — added the missing `ConfigAPI` interface to match `preload/index.js:367` (already exposing `config.{get,set,update,...}`), resolving the `main.ts:69` TS2339 drift.
+
+**New Phase 3.3c store index** (landed in commits `11b69d / 461d42 / c86bf4 / 4cf49ef / 8aec26`):
+
+| Store | Backing Panel | Triggered IPC prefix |
+|---|---|---|
+| `stores/rag.ts` | `shell/KnowledgeGraphPanel.vue` | `rag:get-stats` · `rag:rebuild-index` |
+| `stores/wallet.ts` | `shell/WalletPanel.vue` | `wallet:get-all` · `wallet:set-default` |
+| `stores/git-hooks.ts` | `shell/GitHooksPanel.vue` | `git-hooks:run-pre-commit` · `run-impact` · `run-auto-fix` · `get-config` · `set-config` · `get-history` · `get-stats` |
+| `stores/workflow-designer.ts` | `shell/WorkflowDesignerPanel.vue` | `workflow:list` · `workflow:create` · `workflow:get` · `workflow:save` · `workflow:execute` · `workflow:step:*` event stream |
+| `stores/analytics-dashboard.ts` | `shell/AnalyticsDashboardPanel.vue` | `analytics:get-dashboard-summary` · `get-time-series` · `get-top-n` · `export-{csv,json}` · `realtime-update` event stream |
+
+🟢 Unit / integration / type-check — three gates, zero bug overflow; two pre-existing drifts fixed; full E2E deferred to the UI walkthrough stage. See [user guide §18.8](./docs-site/docs/guide/desktop-v6-shell.md#188-v50243-测试回归2026-04-21) and [design v0.6](./docs/design/桌面版UI重构_设计文档.md).
+
+---
+
 ## 2026-04-20 Update — Desktop V6 · P7 Claude-Desktop-style appearance preview
 
 Building on P0–P6, ChainlessChain adds a new `/v6-preview` route (coexists with `/v2`, replaces nothing). The appearance aligns with Claude Desktop and pins 4 decentralized entries at the bottom of the sidebar:

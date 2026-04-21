@@ -1,5 +1,37 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-21 增量更新（Phase 3.3c 闭环 + Phase 3.4 软开关 + 回归扩面）
+
+延续 2026-04-20 的 V6 预览壳 P9c 与 8 颗 V5→V6 探针，本轮把 **Phase 3.3c 的 5 个 thin store 补齐单元测试**、把 **Phase 3.4 软开关**（`/` → `/v2` opt-in）并入、并顺带修掉两个回归面暴露的遗留 bug。
+
+| 环节 | 命令 | 结果 |
+|---|---|---|
+| **新增 store 单测**（rag / wallet / git-hooks / workflow-designer / analytics-dashboard） | `npx vitest run src/renderer/stores/__tests__/{rag,wallet,git-hooks,workflow-designer,analytics-dashboard}.test.ts` | **83 例全绿**（rag 12 · wallet 13 · git-hooks 14 · analytics 20 · workflow 24） |
+| **Store 全量回归** | `npx vitest run src/renderer/stores/__tests__/` | **600 / 600 全绿** · 23 个文件 · 约 42s |
+| **插件扩展点集成测** | `npx vitest run tests/integration/plugin-extension-points.integration.test.js` | **13 / 13 全绿**（5 原 MDM override + 8 Phase 3.2 探针）|
+| **Phase 3.4 路由守卫单测** | `npx vitest run src/renderer/router/__tests__/v6-shell-default.test.ts` | **9 / 9 全绿** |
+| **类型检查** | `npx vue-tsc --noEmit` | **0 错误**（修掉一个历史 `electronAPI.config` 未定义 drift）|
+| **E2E 结构健康检查** | `npm run test:e2e:check` | **66 / 66 结构正确** · 10 模块分组 |
+| **E2E Playwright 全量** | — | 本轮未执行（需 Electron runtime 常驻进程，超出非 UI 回归范围）|
+
+**本轮 bug 修复**：
+1. `src/renderer/utils/logger.ts:121` — 用 `Promise.resolve(result).catch(...)` 包裹 IPC 返回，防御 `invoke()` 返回 `undefined` 时的 `Cannot read properties of undefined (reading 'catch')` 抛错。
+2. `src/renderer/types/electron.d.ts` — 补齐 `ConfigAPI` 类型定义，与 `preload/index.js:367` 早已暴露的 `config.{get,set,update,...}` 对齐，解决 `main.ts:69` 的 TS2339 drift。
+
+**Phase 3.3c 新增 store 索引**（已在 commit `11b69d / 461d42 / c86bf4 / 4cf49ef / 8aec26` landed）：
+
+| Store | 对应 Panel | 触发 IPC 前缀 |
+|---|---|---|
+| `stores/rag.ts` | `shell/KnowledgeGraphPanel.vue` | `rag:get-stats` · `rag:rebuild-index` |
+| `stores/wallet.ts` | `shell/WalletPanel.vue` | `wallet:get-all` · `wallet:set-default` |
+| `stores/git-hooks.ts` | `shell/GitHooksPanel.vue` | `git-hooks:run-pre-commit` · `run-impact` · `run-auto-fix` · `get-config` · `set-config` · `get-history` · `get-stats` |
+| `stores/workflow-designer.ts` | `shell/WorkflowDesignerPanel.vue` | `workflow:list` · `workflow:create` · `workflow:get` · `workflow:save` · `workflow:execute` · `workflow:step:*` 事件流 |
+| `stores/analytics-dashboard.ts` | `shell/AnalyticsDashboardPanel.vue` | `analytics:get-dashboard-summary` · `get-time-series` · `get-top-n` · `export-{csv,json}` · `realtime-update` 事件流 |
+
+🟢 单测、集成、类型检查三关无 bug 溢出；两处遗留 drift 已修复；E2E 全量留待 UI 走查与手测阶段。详见 [用户文档 §18.8](./docs-site/docs/guide/desktop-v6-shell.md#188-v50243-测试回归2026-04-21) 与 [设计文档 v0.6](./docs/design/桌面版UI重构_设计文档.md)。
+
+---
+
 ## 2026-04-20 增量更新（桌面版 V6 · 发布前测试回归闭环）
 
 在 P0–P9b 实现全部落地后，对 V6 Shell + `/v6-preview` 预览壳做了一轮完整回归，均在 Windows + Node 环境：

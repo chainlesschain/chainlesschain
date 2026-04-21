@@ -11,8 +11,8 @@
 | 文档类型 | 设计文档（Design Document） |
 | 模块 | desktop-app-vue（Electron + Vue 3） |
 | 适用版本 | v5.0.2.x → v6.0 |
-| 状态 | P0–P9b 实现完成 + 回归全绿（Implementation Complete · Regression Green） |
-| 最近更新 | 2026-04-20 |
+| 状态 | P0–P9c + Phase 3.3c / 3.4 落地 + 回归扩面全绿（Implementation Complete · Regression Green） |
+| 最近更新 | 2026-04-21 |
 | 关联文档 | `docs/design/系统设计_主文档.md`、`docs/guides/桌面版UI重构_用户指南.md` |
 
 ### 修订历史
@@ -24,6 +24,7 @@
 | v0.3 | 2026-04-20 | ChainlessChain 团队 | P6：Slash 命令分发器 + 状态栏 Widget 注册表 + 内置 AdminShortcut；插件声明的 `handler`/`component` 现在会真正生效 |
 | v0.4 | 2026-04-20 | ChainlessChain 团队 | P7–P9b：`/v6-preview` 预览壳 + 4 主题 + 4 颗去中心化入口 + 会话 localStorage 持久化 + `llm-preview-bridge` 桥接 `window.electronAPI.llm.chat` |
 | v0.5 | 2026-04-20 | ChainlessChain 团队 | 发布前测试回归闭环：92 单测 + 5 集成测 + `vue-tsc --noEmit` + `vite build` 全绿；E2E 跟随既有 `describe.skip` 约定；本轮回归无 bug 溢出 |
+| v0.6 | 2026-04-21 | ChainlessChain 团队 | Phase 3.3c 补齐 5 个 thin store 单测（rag / wallet / git-hooks / workflow-designer / analytics-dashboard，83 例）+ Phase 3.4 路由守卫 9 例 + 600 store 回归 + 13 plugin 扩展点集成全绿；修复两个 drift（`logger.ts` IPC `.catch()` 防御、`electron.d.ts` 补齐 `ConfigAPI` 类型） |
 
 ---
 

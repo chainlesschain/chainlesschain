@@ -475,3 +475,34 @@ registerSlashHandler("my-notes:createNote", async (ctx) => {
 | E2E（`tests/e2e/v6-shell/admin-console.e2e.test.ts`） | — | **按约定 `describe.skip`**（等 `login()` 辅助函数预置 admin 权限后再开启）|
 
 > 🟢 单测、集成、类型、构建四关无 bug 溢出；E2E 依赖项目未完成的 helper，跟随既有 skip 约定。本轮回归未触发任何代码修复。
+
+### 18.8 v5.0.2.43 测试回归（2026-04-21）
+
+Phase 3.3c 收尾 + Phase 3.4 软开关并入后的回归扩面。本轮把 5 个没有单测覆盖的 thin store 补齐，并顺带处理两个历史 drift：
+
+| 环节 | 命令 | 结果 |
+|---|---|---|
+| 新增 store 单测 | `npx vitest run src/renderer/stores/__tests__/{rag,wallet,git-hooks,workflow-designer,analytics-dashboard}.test.ts` | **83 / 83 全绿**（rag 12 · wallet 13 · git-hooks 14 · analytics 20 · workflow 24） |
+| Store 全量 | `npx vitest run src/renderer/stores/__tests__/` | **600 / 600 全绿** · 23 个文件 · 约 42s |
+| 插件扩展点集成 | `npx vitest run tests/integration/plugin-extension-points.integration.test.js` | **13 / 13 全绿** |
+| Phase 3.4 路由守卫 | `npx vitest run src/renderer/router/__tests__/v6-shell-default.test.ts` | **9 / 9 全绿** |
+| 类型检查 | `npx vue-tsc --noEmit` | **0 错误** |
+| E2E 结构检查 | `npm run test:e2e:check` | **66 / 66 结构正确** · 10 模块分组 |
+| E2E Playwright 全量 | — | **本轮未执行**（需常驻 Electron runtime，留待 UI 走查）|
+
+**Phase 3.3c 新增 store 对应关系**
+
+| Store | 对应 Panel | 主要 IPC |
+|---|---|---|
+| `stores/rag.ts` | `shell/KnowledgeGraphPanel.vue` | `rag:get-stats` · `rag:rebuild-index` |
+| `stores/wallet.ts` | `shell/WalletPanel.vue` | `wallet:get-all` · `wallet:set-default` |
+| `stores/git-hooks.ts` | `shell/GitHooksPanel.vue` | `git-hooks:run-pre-commit` · `run-impact` · `run-auto-fix` · `get-config` · `set-config` · `get-history` · `get-stats` |
+| `stores/workflow-designer.ts` | `shell/WorkflowDesignerPanel.vue` | `workflow:list` · `workflow:create` · `workflow:execute` · `workflow:step:*` 事件流 |
+| `stores/analytics-dashboard.ts` | `shell/AnalyticsDashboardPanel.vue` | `analytics:get-dashboard-summary` · `get-time-series` · `get-top-n` · `export-{csv,json}` · `realtime-update` 事件流 |
+
+**本轮 bug 修复**：
+
+1. `src/renderer/utils/logger.ts:121` — `electronAPI.invoke('logger:write', ...)` 在 mock/未挂载场景下可能返回 `undefined`，直接 `.catch()` 会抛 `Cannot read properties of undefined (reading 'catch')` 污染测试日志。修复：用 `Promise.resolve(result).catch(...)` 包裹，兼容返回非 Promise 值。
+2. `src/renderer/types/electron.d.ts` — `ElectronAPI` 接口缺 `config` 成员，但 `preload/index.js:367` 早已暴露该对象，`main.ts:69` 使用时触发 TS2339。修复：补齐 `ConfigAPI` 接口（`getAll / get / update / set / reset / exportEnv`）。
+
+> 🟢 新增 83 单测 + 9 路由单测 + 13 集成全部通过；类型检查零错误；E2E 结构健康 80%。两处 drift 已在回归中暴露并修复。
