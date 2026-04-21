@@ -10,11 +10,7 @@ import {
   setupCommonHints,
   preloadRouteResources,
 } from "../utils/resource-hints";
-import {
-  lazyRoute,
-  createRouteGroup,
-  progressiveLoader,
-} from "../utils/code-splitting";
+import { lazyRoute, createRouteGroup } from "../utils/code-splitting";
 
 // 扩展路由元信息类型
 declare module "vue-router" {
@@ -114,16 +110,6 @@ const knowledgePages = createRouteGroup("knowledge", {
     ),
 });
 
-// AI相关页面组（中优先级）
-const aiPages = createRouteGroup("ai", {
-  chat: () =>
-    import(/* webpackChunkName: "ai-chat" */ "../pages/AIChatPage.vue"),
-  prompts: () =>
-    import(/* webpackChunkName: "ai-prompts" */ "../pages/AIPromptsPage.vue"),
-  browserControl: () =>
-    import(/* webpackChunkName: "ai-browser" */ "../pages/BrowserControl.vue"),
-});
-
 // 设置页面组（低优先级）
 const settingsPages = createRouteGroup("settings", {
   main: () =>
@@ -217,34 +203,6 @@ const socialPages = createRouteGroup("social", {
     ),
 });
 
-// 监控与诊断页面组（中优先级）
-const monitoringPages = createRouteGroup("monitoring", {
-  sessionManager: () =>
-    import(
-      /* webpackChunkName: "monitoring-sessions" */ "../pages/SessionManagerPage.vue"
-    ),
-  errorMonitor: () =>
-    import(
-      /* webpackChunkName: "monitoring-errors" */ "../pages/ErrorMonitorPage.vue"
-    ),
-  memoryDashboard: () =>
-    import(
-      /* webpackChunkName: "monitoring-memory" */ "../pages/MemoryDashboardPage.vue"
-    ),
-  tagManager: () =>
-    import(
-      /* webpackChunkName: "monitoring-tags" */ "../pages/TagManagerPage.vue"
-    ),
-  llmPerformance: () =>
-    import(
-      /* webpackChunkName: "monitoring-llm" */ "../pages/LLMPerformancePage.vue"
-    ),
-  databasePerformance: () =>
-    import(
-      /* webpackChunkName: "monitoring-database" */ "../pages/DatabasePerformancePage.vue"
-    ),
-});
-
 // Cowork 多代理协作页面组（中优先级）
 const coworkPages = createRouteGroup("cowork", {
   dashboard: () =>
@@ -318,34 +276,6 @@ const enterpriseCollabPages = createRouteGroup("enterprise-collab", {
     ),
 });
 
-// P2P高级功能页面组（低优先级）
-const p2pAdvancedPages = createRouteGroup("p2p-advanced", {
-  devicePairing: () =>
-    import(
-      /* webpackChunkName: "p2p-device-pairing" */ "../pages/p2p/DevicePairingPage.vue"
-    ),
-  deviceManagement: () =>
-    import(
-      /* webpackChunkName: "p2p-device-mgmt" */ "../pages/p2p/DeviceManagementPage.vue"
-    ),
-  fileTransfer: () =>
-    import(
-      /* webpackChunkName: "p2p-file-transfer" */ "../pages/p2p/FileTransferPage.vue"
-    ),
-  safetyNumbers: () =>
-    import(
-      /* webpackChunkName: "p2p-safety-numbers" */ "../pages/p2p/SafetyNumbersPage.vue"
-    ),
-  sessionFingerprint: () =>
-    import(
-      /* webpackChunkName: "p2p-session-fp" */ "../pages/p2p/SessionFingerprintPage.vue"
-    ),
-  messageQueue: () =>
-    import(
-      /* webpackChunkName: "p2p-msg-queue" */ "../pages/p2p/MessageQueuePage.vue"
-    ),
-});
-
 // Enterprise Edition v1.0 页面组（中优先级）
 const enterpriseV1Pages = createRouteGroup("enterprise-v1", {
   orgManagement: () =>
@@ -365,37 +295,6 @@ const enterpriseV1Pages = createRouteGroup("enterprise-v1", {
       /* webpackChunkName: "autonomous-agent" */ "../pages/AutonomousAgentPage.vue"
     ),
 });
-
-// 其他功能页面（按需加载）
-const miscPages = {
-  webIDE: lazyRoute(
-    () =>
-      import(
-        /* webpackChunkName: "misc-webide" */ "../pages/webide/WebIDEPage.vue"
-      ),
-    {
-      chunkName: "webide",
-    },
-  ),
-  designEditor: lazyRoute(
-    () =>
-      import(
-        /* webpackChunkName: "misc-design" */ "../pages/design/DesignEditorPage.vue"
-      ),
-    {
-      chunkName: "design",
-    },
-  ),
-  organizations: lazyRoute(
-    () =>
-      import(
-        /* webpackChunkName: "misc-orgs" */ "../pages/OrganizationsPage.vue"
-      ),
-    {
-      chunkName: "orgs",
-    },
-  ),
-};
 
 const routes: RouteRecordRaw[] = [
   {
