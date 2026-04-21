@@ -436,10 +436,18 @@ module.exports = {
       // Merge workspace hoisted deps into buildPath/node_modules.
       // npm workspaces split deps between root/node_modules (hoisted) and
       // desktop-app-vue/node_modules (non-hoistable conflict-resolution versions,
-      // e.g. handlebars pinned to v4 while another workspace needs v5).
-      // electron-forge's own copy brings the nested tree into buildPath; we must
-      // MERGE root hoisted on top WITHOUT overwriting the nested versions, else we
-      // break version pins at runtime. fs.cpSync with force:false skips existing files.
+      // e.g. handlebars pinned to v4 while another workspace needs v5). Plus,
+      // workspace-linked packages (@chainlesschain/*) are symlinks pointing at
+      // sibling `packages/*` dirs.
+      //
+      // electron-forge's own copy brings the nested tree (including symlinks) into
+      // buildPath. We must merge root hoisted on top WITHOUT:
+      //   1. overwriting nested conflict-resolution versions (breaks version pins),
+      //   2. re-creating symlinks that already exist (EEXIST crash).
+      //
+      // Strategy: walk root's package dirs, and for each entry only copy when the
+      // destination has NO corresponding entry at all. Inside scoped namespaces
+      // (@xxx/) recurse one level to merge individual scoped packages.
       const rootNodeModules = path.join(ROOT_DIR, "node_modules");
       const buildNodeModules = path.join(buildPath, "node_modules");
 
@@ -451,16 +459,41 @@ module.exports = {
         fs.mkdirSync(buildNodeModules, { recursive: true });
       }
 
+      const hasEntry = (p) => {
+        try {
+          fs.lstatSync(p);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      const copyMissing = (srcDir, dstDir) => {
+        for (const name of fs.readdirSync(srcDir)) {
+          const src = path.join(srcDir, name);
+          const dst = path.join(dstDir, name);
+          if (hasEntry(dst)) {
+            // Scoped namespaces (@chainlesschain/, @eslint/, …) need per-package
+            // merging: dst may have some sub-packages (from forge's copy of nested)
+            // and be missing others (hoisted at root only).
+            if (name.startsWith("@")) {
+              const srcStat = fs.lstatSync(src);
+              const dstStat = fs.lstatSync(dst);
+              if (srcStat.isDirectory() && dstStat.isDirectory()) {
+                copyMissing(src, dst);
+              }
+            }
+            continue;
+          }
+          fs.cpSync(src, dst, { recursive: true, dereference: false });
+        }
+      };
+
       try {
-        // force:false = don't overwrite existing files (preserves nested resolutions)
-        // errorOnExist:false = don't throw on conflicts, just skip
-        fs.cpSync(rootNodeModules, buildNodeModules, {
-          recursive: true,
-          force: false,
-          errorOnExist: false,
-          dereference: false,
-        });
-        console.log("[Packaging] Merge complete (nested deps preserved)");
+        copyMissing(rootNodeModules, buildNodeModules);
+        console.log(
+          "[Packaging] Merge complete (nested deps and symlinks preserved)",
+        );
       } catch (error) {
         console.error(
           "[Packaging] Failed to merge node_modules:",
