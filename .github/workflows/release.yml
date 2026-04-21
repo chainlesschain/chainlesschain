@@ -126,6 +126,22 @@ jobs:
           rm -f node_modules/chainlesschain-desktop-vue
           mkdir -p desktop-app-vue/node_modules
           cp -Rn node_modules/. desktop-app-vue/node_modules/
+          # Rewrite @chainlesschain/* workspace symlinks: cp -Rn preserves their
+          # RELATIVE targets (../../packages/*), which break when resolved from
+          # desktop-app-vue/node_modules/. Replace with absolute paths.
+          if [ -d desktop-app-vue/node_modules/@chainlesschain ]; then
+            for link in desktop-app-vue/node_modules/@chainlesschain/*; do
+              if [ -L "$link" ]; then
+                name=$(basename "$link")
+                target="$(pwd)/packages/$name"
+                if [ -d "$target" ]; then
+                  rm "$link"
+                  ln -sf "$target" "$link"
+                  echo "Rewrote @chainlesschain/$name -> $target"
+                fi
+              fi
+            done
+          fi
           echo "Hoisted modules merged into desktop-app-vue (nested preserved)"
 
       - name: Package macOS (${{ matrix.arch }})
@@ -194,6 +210,22 @@ jobs:
           rm -f node_modules/chainlesschain-desktop-vue
           mkdir -p desktop-app-vue/node_modules
           cp -Rn node_modules/. desktop-app-vue/node_modules/
+          # Rewrite @chainlesschain/* workspace symlinks: cp -Rn preserves their
+          # RELATIVE targets (../../packages/*), which break when resolved from
+          # desktop-app-vue/node_modules/. Replace with absolute paths.
+          if [ -d desktop-app-vue/node_modules/@chainlesschain ]; then
+            for link in desktop-app-vue/node_modules/@chainlesschain/*; do
+              if [ -L "$link" ]; then
+                name=$(basename "$link")
+                target="$(pwd)/packages/$name"
+                if [ -d "$target" ]; then
+                  rm "$link"
+                  ln -sf "$target" "$link"
+                  echo "Rewrote @chainlesschain/$name -> $target"
+                fi
+              fi
+            done
+          fi
           echo "Hoisted modules merged into desktop-app-vue (nested preserved)"
 
       - name: Package Linux
