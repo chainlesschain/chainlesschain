@@ -2,7 +2,7 @@
 
 **Source**: `src/main/templates/import-templates-to-db.js`
 
-**Generated**: 2026-04-20T10:46:39.712Z
+**Generated**: 2026-04-21T04:11:31.413Z
 
 ---
 
@@ -12,11 +12,11 @@
 const
 ```
 
-- 导入模板到数据库
-- 从JSON文件批量导入模板到project_templates表
--
-- 使用方法：
-- node import-templates-to-db.js
+* 导入模板到数据库
+ * 从JSON文件批量导入模板到project_templates表
+ *
+ * 使用方法：
+ * node import-templates-to-db.js
 
 ---
 
@@ -26,7 +26,7 @@ const
 async importTemplate(templatePath, category)
 ```
 
-- 导入单个模板
+* 导入单个模板
 
 ---
 
@@ -36,27 +36,27 @@ async importTemplate(templatePath, category)
 async importAll()
 ```
 
-- 扫描并导入所有模板
+* 扫描并导入所有模板
 
 ---
 
 ## showStats()
 
 ```javascript
-showStats();
+showStats()
 ```
 
-- 显示统计信息
+* 显示统计信息
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup();
+cleanup()
 ```
 
-- 清理
+* 清理
 
 ---
 
@@ -66,6 +66,7 @@ cleanup();
 async run()
 ```
 
-- 运行导入
+* 运行导入
 
 ---
+

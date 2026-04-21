@@ -2,7 +2,7 @@
 
 **Source**: `src/main/cowork/__tests__/security/ipc-security.test.js`
 
-**Generated**: 2026-04-20T10:46:39.807Z
+**Generated**: 2026-04-21T04:11:31.514Z
 
 ---
 
@@ -12,18 +12,19 @@
 import
 ```
 
-- IPC Security Tests
--
-- Security testing for IPC communication between renderer and main process:
-- - Input validation and sanitization
-- - Authorization checks
-- - Rate limiting
-- - Command injection prevention
-- - Data leakage prevention
--
-- @category Security Tests
-- @module IPCSecurity
--
-- NOTE: Skipped - source files moved to ai-engine/cowork
+* IPC Security Tests
+ *
+ * Security testing for IPC communication between renderer and main process:
+ * - Input validation and sanitization
+ * - Authorization checks
+ * - Rate limiting
+ * - Command injection prevention
+ * - Data leakage prevention
+ *
+ * @category Security Tests
+ * @module IPCSecurity
+ *
+ * NOTE: Skipped - source files moved to ai-engine/cowork
 
 ---
+

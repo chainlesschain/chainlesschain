@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ipc/file-sharing-ipc.js`
 
-**Generated**: 2026-04-20T10:46:39.781Z
+**Generated**: 2026-04-21T04:11:31.486Z
 
 ---
 
@@ -12,10 +12,10 @@
 const
 ```
 
-- 文件共享 IPC 处理器
-- Phase 2 - v0.18.0
--
-- 注册所有文件共享相关的IPC接口（12个）
+* 文件共享 IPC 处理器
+ * Phase 2 - v0.18.0
+ *
+ * 注册所有文件共享相关的IPC接口（12个）
 
 ---
 
@@ -25,8 +25,8 @@ const
 function registerFileSharingIPC(app)
 ```
 
-- 注册文件共享IPC处理器
-- @param {Object} app - ChainlessChainApp实例
+* 注册文件共享IPC处理器
+ * @param {Object} app - ChainlessChainApp实例
 
 ---
 
@@ -36,7 +36,7 @@ function registerFileSharingIPC(app)
 ipcMain.handle("file:upload", async (event,
 ```
 
-- 上传文件
+* 上传文件
 
 ---
 
@@ -46,7 +46,7 @@ ipcMain.handle("file:upload", async (event,
 ipcMain.handle("file:list", async (event,
 ```
 
-- 获取文件列表
+* 获取文件列表
 
 ---
 
@@ -56,7 +56,7 @@ ipcMain.handle("file:list", async (event,
 ipcMain.handle("file:detail", async (event,
 ```
 
-- 获取文件详情
+* 获取文件详情
 
 ---
 
@@ -66,7 +66,7 @@ ipcMain.handle("file:detail", async (event,
 ipcMain.handle("file:delete", async (event,
 ```
 
-- 删除文件
+* 删除文件
 
 ---
 
@@ -76,7 +76,7 @@ ipcMain.handle("file:delete", async (event,
 ipcMain.handle("file:lock", async (event,
 ```
 
-- 锁定文件
+* 锁定文件
 
 ---
 
@@ -86,7 +86,7 @@ ipcMain.handle("file:lock", async (event,
 ipcMain.handle("file:unlock", async (event,
 ```
 
-- 解锁文件
+* 解锁文件
 
 ---
 
@@ -96,7 +96,7 @@ ipcMain.handle("file:unlock", async (event,
 ipcMain.handle("file:versions", async (event,
 ```
 
-- 获取文件版本列表
+* 获取文件版本列表
 
 ---
 
@@ -106,7 +106,7 @@ ipcMain.handle("file:versions", async (event,
 ipcMain.handle("file:rollback", async (event,
 ```
 
-- 回滚到指定版本
+* 回滚到指定版本
 
 ---
 
@@ -116,7 +116,7 @@ ipcMain.handle("file:rollback", async (event,
 ipcMain.handle(
 ```
 
-- 比较两个版本
+* 比较两个版本
 
 ---
 
@@ -126,7 +126,7 @@ ipcMain.handle(
 ipcMain.handle("file:grantPermission", async (event,
 ```
 
-- 授予文件权限
+* 授予文件权限
 
 ---
 
@@ -136,7 +136,7 @@ ipcMain.handle("file:grantPermission", async (event,
 ipcMain.handle("file:share", async (event,
 ```
 
-- 共享文件
+* 共享文件
 
 ---
 
@@ -146,6 +146,7 @@ ipcMain.handle("file:share", async (event,
 ipcMain.handle("file:sharedFiles", async (event,
 ```
 
-- 获取共享的文件列表
+* 获取共享的文件列表
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ukey/simulated-driver.js`
 
-**Generated**: 2026-04-20T10:46:39.700Z
+**Generated**: 2026-04-21T04:11:31.402Z
 
 ---
 
@@ -12,14 +12,14 @@
 const
 ```
 
-- 模拟U盾驱动
--
-- 用于开发和测试，不需要实际的硬件设备
-- 模拟完整的U盾功能，包括：
-- - PIN验证
-- - 数字签名
-- - 加密/解密
-- - 设备信息
+* 模拟U盾驱动
+ *
+ * 用于开发和测试，不需要实际的硬件设备
+ * 模拟完整的U盾功能，包括：
+ * - PIN验证
+ * - 数字签名
+ * - 加密/解密
+ * - 设备信息
 
 ---
 
@@ -29,63 +29,63 @@ const
 class SimulatedDriver extends BaseUKeyDriver
 ```
 
-- 模拟驱动类
--
-- 特点：
-- - 不依赖任何硬件
-- - 使用文件系统存储状态
-- - 完全兼容BaseUKeyDriver接口
-- - 适合开发、测试、演示
+* 模拟驱动类
+ *
+ * 特点：
+ * - 不依赖任何硬件
+ * - 使用文件系统存储状态
+ * - 完全兼容BaseUKeyDriver接口
+ * - 适合开发、测试、演示
 
 ---
 
 ## generateDeviceId()
 
 ```javascript
-generateDeviceId();
+generateDeviceId()
 ```
 
-- 生成设备ID
+* 生成设备ID
 
 ---
 
 ## generateSerialNumber()
 
 ```javascript
-generateSerialNumber();
+generateSerialNumber()
 ```
 
-- 生成序列号
+* 生成序列号
 
 ---
 
 ## getStateFilePath()
 
 ```javascript
-getStateFilePath();
+getStateFilePath()
 ```
 
-- 获取状态文件路径
+* 获取状态文件路径
 
 ---
 
 ## loadState()
 
 ```javascript
-loadState();
+loadState()
 ```
 
-- 加载状态
+* 加载状态
 
 ---
 
 ## saveState()
 
 ```javascript
-saveState();
+saveState()
 ```
 
-- 保存状态
+* 保存状态
 
 ---
 
@@ -95,17 +95,17 @@ saveState();
 async initialize()
 ```
 
-- 初始化驱动
+* 初始化驱动
 
 ---
 
 ## generateKeyPair()
 
 ```javascript
-generateKeyPair();
+generateKeyPair()
 ```
 
-- 生成模拟密钥对
+* 生成模拟密钥对
 
 ---
 
@@ -115,7 +115,7 @@ generateKeyPair();
 async detect()
 ```
 
-- 检测设备
+* 检测设备
 
 ---
 
@@ -125,7 +125,7 @@ async detect()
 async verifyPIN(pin)
 ```
 
-- 验证PIN码
+* 验证PIN码
 
 ---
 
@@ -135,7 +135,7 @@ async verifyPIN(pin)
 async changePIN(oldPin, newPin)
 ```
 
-- 修改PIN码
+* 修改PIN码
 
 ---
 
@@ -145,7 +145,7 @@ async changePIN(oldPin, newPin)
 async sign(data)
 ```
 
-- 数字签名
+* 数字签名
 
 ---
 
@@ -155,7 +155,7 @@ async sign(data)
 async verifySignature(data, signature)
 ```
 
-- 验证签名
+* 验证签名
 
 ---
 
@@ -165,7 +165,7 @@ async verifySignature(data, signature)
 async encrypt(data)
 ```
 
-- 加密数据
+* 加密数据
 
 ---
 
@@ -175,7 +175,7 @@ async encrypt(data)
 async decrypt(encryptedData)
 ```
 
-- 解密数据
+* 解密数据
 
 ---
 
@@ -185,7 +185,7 @@ async decrypt(encryptedData)
 async getPublicKey()
 ```
 
-- 获取公钥
+* 获取公钥
 
 ---
 
@@ -195,37 +195,37 @@ async getPublicKey()
 async getDeviceInfo()
 ```
 
-- 获取设备信息
+* 获取设备信息
 
 ---
 
 ## lock()
 
 ```javascript
-lock();
+lock()
 ```
 
-- 锁定设备
+* 锁定设备
 
 ---
 
 ## unlockForTesting()
 
 ```javascript
-unlockForTesting();
+unlockForTesting()
 ```
 
-- 解锁设备（仅用于测试）
+* 解锁设备（仅用于测试）
 
 ---
 
 ## resetForTesting()
 
 ```javascript
-resetForTesting();
+resetForTesting()
 ```
 
-- 重置设备（仅用于测试）
+* 重置设备（仅用于测试）
 
 ---
 
@@ -235,46 +235,47 @@ resetForTesting();
 async close()
 ```
 
-- 关闭驱动
+* 关闭驱动
 
 ---
 
 ## getDriverName()
 
 ```javascript
-getDriverName();
+getDriverName()
 ```
 
-- 获取驱动名称
+* 获取驱动名称
 
 ---
 
 ## getDriverVersion()
 
 ```javascript
-getDriverVersion();
+getDriverVersion()
 ```
 
-- 获取驱动版本
+* 获取驱动版本
 
 ---
 
 ## setAutoDetect(enabled)
 
 ```javascript
-setAutoDetect(enabled);
+setAutoDetect(enabled)
 ```
 
-- 设置自动检测
+* 设置自动检测
 
 ---
 
 ## getStateFile()
 
 ```javascript
-getStateFile();
+getStateFile()
 ```
 
-- 获取状态文件路径（用于调试）
+* 获取状态文件路径（用于调试）
 
 ---
+

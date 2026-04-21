@@ -2,7 +2,7 @@
 
 **Source**: `src/main/security/ipc-integration-example.js`
 
-**Generated**: 2026-04-20T10:46:39.736Z
+**Generated**: 2026-04-21T04:11:31.439Z
 
 ---
 
@@ -12,9 +12,9 @@
 const
 ```
 
-- IPC 权限管理集成示例
--
-- 展示如何在主进程的 IPC handlers 中使用权限管理器
+* IPC 权限管理集成示例
+ *
+ * 展示如何在主进程的 IPC handlers 中使用权限管理器
 
 ---
 
@@ -24,7 +24,7 @@ const
 async function initializeIPCPermissions(app)
 ```
 
-- 初始化 IPC 权限管理
+* 初始化 IPC 权限管理
 
 ---
 
@@ -34,9 +34,9 @@ async function initializeIPCPermissions(app)
 function createSecureIPCHandler(channel, handler)
 ```
 
-- 创建受保护的 IPC handler
--
-- 自动应用权限检查和参数清理
+* 创建受保护的 IPC handler
+ *
+ * 自动应用权限检查和参数清理
 
 ---
 
@@ -46,7 +46,7 @@ function createSecureIPCHandler(channel, handler)
 function registerSecureHandlers(handlers)
 ```
 
-- 批量注册安全的 IPC handlers
+* 批量注册安全的 IPC handlers
 
 ---
 
@@ -56,7 +56,7 @@ function registerSecureHandlers(handlers)
 async function example()
 ```
 
-- 使用示例
+* 使用示例
 
 ---
 
@@ -66,6 +66,7 @@ async function example()
 async function validateUser(username, password)
 ```
 
-- 辅助函数：验证用户
+* 辅助函数：验证用户
 
 ---
+

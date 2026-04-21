@@ -2,7 +2,7 @@
 
 **Source**: `src/main/utils/web-search-ipc.js`
 
-**Generated**: 2026-04-20T10:46:39.696Z
+**Generated**: 2026-04-21T04:11:31.397Z
 
 ---
 
@@ -12,7 +12,7 @@
 const
 ```
 
-- 联网搜索IPC处理器
+* 联网搜索IPC处理器
 
 ---
 
@@ -22,17 +22,17 @@ const
 function registerWebSearchIPC()
 ```
 
-- 注册联网搜索IPC handlers
+* 注册联网搜索IPC handlers
 
 ---
 
-## ipcMain.handle("webSearch:search", async (\_event, query, options =
+## ipcMain.handle("webSearch:search", async (_event, query, options =
 
 ```javascript
 ipcMain.handle("webSearch:search", async (_event, query, options =
 ```
 
-- 通用搜索
+* 通用搜索
 
 ---
 
@@ -42,27 +42,27 @@ ipcMain.handle("webSearch:search", async (_event, query, options =
 ipcMain.handle(
 ```
 
-- DuckDuckGo搜索
+* DuckDuckGo搜索
 
 ---
 
-## ipcMain.handle("webSearch:bing", async (\_event, query, options =
+## ipcMain.handle("webSearch:bing", async (_event, query, options =
 
 ```javascript
 ipcMain.handle("webSearch:bing", async (_event, query, options =
 ```
 
-- Bing搜索
+* Bing搜索
 
 ---
 
-## ipcMain.handle("webSearch:format", async (\_event, searchResult) =>
+## ipcMain.handle("webSearch:format", async (_event, searchResult) =>
 
 ```javascript
 ipcMain.handle("webSearch:format", async (_event, searchResult) =>
 ```
 
-- 格式化搜索结果
+* 格式化搜索结果
 
 ---
 
@@ -72,6 +72,7 @@ ipcMain.handle("webSearch:format", async (_event, searchResult) =>
 function unregisterWebSearchIPC()
 ```
 
-- 注销IPC handlers
+* 注销IPC handlers
 
 ---
+

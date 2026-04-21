@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/p2p-enhanced-ipc.js`
 
-**Generated**: 2026-04-20T10:46:39.756Z
+**Generated**: 2026-04-21T04:11:31.460Z
 
 ---
 
@@ -12,49 +12,49 @@
 const
 ```
 
-- P2P增强功能IPC处理器
--
-- 提供前端与P2P增强功能的通信接口
+* P2P增强功能IPC处理器
+ *
+ * 提供前端与P2P增强功能的通信接口
 
 ---
 
 ## register()
 
 ```javascript
-register();
+register()
 ```
 
-- 注册所有IPC处理器
+* 注册所有IPC处理器
 
 ---
 
 ## registerHandler(channel, handler)
 
 ```javascript
-registerHandler(channel, handler);
+registerHandler(channel, handler)
 ```
 
-- 注册单个处理器
+* 注册单个处理器
 
 ---
 
 ## setupEventForwarding()
 
 ```javascript
-setupEventForwarding();
+setupEventForwarding()
 ```
 
-- 设置事件转发到渲染进程
+* 设置事件转发到渲染进程
 
 ---
 
 ## sendToRenderer(channel, data)
 
 ```javascript
-sendToRenderer(channel, data);
+sendToRenderer(channel, data)
 ```
 
-- 发送事件到渲染进程
+* 发送事件到渲染进程
 
 ---
 
@@ -64,7 +64,7 @@ sendToRenderer(channel, data);
 async handleSendMessage(event,
 ```
 
-- 处理发送消息
+* 处理发送消息
 
 ---
 
@@ -74,7 +74,7 @@ async handleSendMessage(event,
 async handleGetMessageStats(event)
 ```
 
-- 获取消息统计
+* 获取消息统计
 
 ---
 
@@ -84,7 +84,7 @@ async handleGetMessageStats(event)
 async handleSyncKnowledge(event,
 ```
 
-- 处理知识库同步
+* 处理知识库同步
 
 ---
 
@@ -94,7 +94,7 @@ async handleSyncKnowledge(event,
 async handleGetSyncStats(event)
 ```
 
-- 获取同步统计
+* 获取同步统计
 
 ---
 
@@ -104,7 +104,7 @@ async handleGetSyncStats(event)
 async handleGetConflicts(event)
 ```
 
-- 获取冲突列表
+* 获取冲突列表
 
 ---
 
@@ -114,7 +114,7 @@ async handleGetConflicts(event)
 async handleResolveConflict(event,
 ```
 
-- 解决冲突
+* 解决冲突
 
 ---
 
@@ -124,7 +124,7 @@ async handleResolveConflict(event,
 async handleUploadFile(event,
 ```
 
-- 处理文件上传
+* 处理文件上传
 
 ---
 
@@ -134,7 +134,7 @@ async handleUploadFile(event,
 async handleDownloadFile(event,
 ```
 
-- 处理文件下载
+* 处理文件下载
 
 ---
 
@@ -144,7 +144,7 @@ async handleDownloadFile(event,
 async handleGetTransferProgress(event,
 ```
 
-- 获取传输进度
+* 获取传输进度
 
 ---
 
@@ -154,7 +154,7 @@ async handleGetTransferProgress(event,
 async handleCancelTransfer(event,
 ```
 
-- 取消传输
+* 取消传输
 
 ---
 
@@ -164,7 +164,7 @@ async handleCancelTransfer(event,
 async handleGetTransferStats(event)
 ```
 
-- 获取传输统计
+* 获取传输统计
 
 ---
 
@@ -174,7 +174,7 @@ async handleGetTransferStats(event)
 async handleGetStats(event)
 ```
 
-- 获取总体统计
+* 获取总体统计
 
 ---
 
@@ -184,7 +184,7 @@ async handleGetStats(event)
 async handleStartCall(event,
 ```
 
-- 处理发起通话
+* 处理发起通话
 
 ---
 
@@ -194,7 +194,7 @@ async handleStartCall(event,
 async handleAcceptCall(event,
 ```
 
-- 处理接受通话
+* 处理接受通话
 
 ---
 
@@ -204,7 +204,7 @@ async handleAcceptCall(event,
 async handleRejectCall(event,
 ```
 
-- 处理拒绝通话
+* 处理拒绝通话
 
 ---
 
@@ -214,7 +214,7 @@ async handleRejectCall(event,
 async handleEndCall(event,
 ```
 
-- 处理结束通话
+* 处理结束通话
 
 ---
 
@@ -224,7 +224,7 @@ async handleEndCall(event,
 async handleToggleMute(event,
 ```
 
-- 处理切换静音
+* 处理切换静音
 
 ---
 
@@ -234,7 +234,7 @@ async handleToggleMute(event,
 async handleToggleVideo(event,
 ```
 
-- 处理切换视频
+* 处理切换视频
 
 ---
 
@@ -244,7 +244,7 @@ async handleToggleVideo(event,
 async handleGetCallInfo(event,
 ```
 
-- 获取通话信息
+* 获取通话信息
 
 ---
 
@@ -254,16 +254,17 @@ async handleGetCallInfo(event,
 async handleGetActiveCalls(event)
 ```
 
-- 获取活动通话列表
+* 获取活动通话列表
 
 ---
 
 ## unregister()
 
 ```javascript
-unregister();
+unregister()
 ```
 
-- 注销所有处理器
+* 注销所有处理器
 
 ---
+

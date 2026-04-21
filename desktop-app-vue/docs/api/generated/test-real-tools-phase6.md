@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/test-real-tools-phase6.js`
 
-**Generated**: 2026-04-20T10:46:39.729Z
+**Generated**: 2026-04-21T04:11:31.431Z
 
 ---
 
@@ -12,7 +12,8 @@
 process.env.USE_REAL_TOOLS = "true";
 ```
 
-- Phase 6 真实功能测试
-- 测试提醒调度器和密码保险库的真实实现
+* Phase 6 真实功能测试
+ * 测试提醒调度器和密码保险库的真实实现
 
 ---
+

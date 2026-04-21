@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/workflow/workflow-ipc.js`
 
-**Generated**: 2026-04-20T10:46:39.841Z
+**Generated**: 2026-04-21T04:11:31.550Z
 
 ---
 
@@ -12,7 +12,8 @@
 const
 ```
 
-- @module ai-engine/workflow/workflow-ipc
-- Phase 82: Workflow Engine IPC handlers (10 handlers)
+* @module ai-engine/workflow/workflow-ipc
+ * Phase 82: Workflow Engine IPC handlers (10 handlers)
 
 ---
+

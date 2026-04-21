@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/mcp-ipc.js`
 
-**Generated**: 2026-04-20T10:46:39.766Z
+**Generated**: 2026-04-21T04:11:31.470Z
 
 ---
 
@@ -12,23 +12,23 @@
 const
 ```
 
-- MCP IPC Handlers
--
-- IPC communication layer between renderer and main process for MCP operations.
-- Provides secure access to MCP servers and tools.
--
-- @module MCP_IPC
+* MCP IPC Handlers
+ *
+ * IPC communication layer between renderer and main process for MCP operations.
+ * Provides secure access to MCP servers and tools.
+ *
+ * @module MCP_IPC
 
 ---
 
-## function registerBasicMCPConfigIPC(\_deps =
+## function registerBasicMCPConfigIPC(_deps =
 
 ```javascript
 function registerBasicMCPConfigIPC(_deps =
 ```
 
-- Register basic MCP config IPC handlers (always needed, even when MCP is disabled)
-- This allows users to enable/disable MCP through the UI
+* Register basic MCP config IPC handlers (always needed, even when MCP is disabled)
+ * This allows users to enable/disable MCP through the UI
 
 ---
 
@@ -38,7 +38,7 @@ function registerBasicMCPConfigIPC(_deps =
 ipcMain.handle("mcp:get-config", async () =>
 ```
 
-- Get MCP configuration (always available)
+* Get MCP configuration (always available)
 
 ---
 
@@ -48,7 +48,7 @@ ipcMain.handle("mcp:get-config", async () =>
 ipcMain.handle("mcp:update-config", async (event,
 ```
 
-- Update MCP configuration (always available)
+* Update MCP configuration (always available)
 
 ---
 
@@ -58,7 +58,7 @@ ipcMain.handle("mcp:update-config", async (event,
 ipcMain.handle("mcp:list-servers", async () =>
 ```
 
-- List all available MCP servers from registry (always available)
+* List all available MCP servers from registry (always available)
 
 ---
 
@@ -68,7 +68,7 @@ ipcMain.handle("mcp:list-servers", async () =>
 ipcMain.handle("mcp:get-server-config", async (event,
 ```
 
-- Get server config for a specific server (always available)
+* Get server config for a specific server (always available)
 
 ---
 
@@ -78,21 +78,21 @@ ipcMain.handle("mcp:get-server-config", async (event,
 ipcMain.handle(
 ```
 
-- Update server config for a specific server (always available)
-  - Note: Security policy permissions are only updated when MCP is enabled
+* Update server config for a specific server (always available)
+   * Note: Security policy permissions are only updated when MCP is enabled
 
 ---
 
-## function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy, \_deps =
+## function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy, _deps =
 
 ```javascript
 function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy, _deps =
 ```
 
-- Register all MCP-related IPC handlers
-- @param {MCPClientManager} mcpManager - MCP client manager instance
-- @param {MCPToolAdapter} mcpAdapter - MCP tool adapter instance
-- @param {MCPSecurityPolicy} securityPolicy - Security policy instance
+* Register all MCP-related IPC handlers
+ * @param {MCPClientManager} mcpManager - MCP client manager instance
+ * @param {MCPToolAdapter} mcpAdapter - MCP tool adapter instance
+ * @param {MCPSecurityPolicy} securityPolicy - Security policy instance
 
 ---
 
@@ -102,7 +102,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy, _deps =
 ipcMain.handle("mcp:get-connected-servers", async () =>
 ```
 
-- Get connected servers status
+* Get connected servers status
 
 ---
 
@@ -112,7 +112,7 @@ ipcMain.handle("mcp:get-connected-servers", async () =>
 ipcMain.handle(
 ```
 
-- Connect to an MCP server
+* Connect to an MCP server
 
 ---
 
@@ -122,7 +122,7 @@ ipcMain.handle(
 ipcMain.handle("mcp:disconnect-server", async (event,
 ```
 
-- Disconnect from an MCP server
+* Disconnect from an MCP server
 
 ---
 
@@ -132,7 +132,7 @@ ipcMain.handle("mcp:disconnect-server", async (event,
 ipcMain.handle("mcp:list-tools", async (event,
 ```
 
-- List all available tools from MCP servers
+* List all available tools from MCP servers
 
 ---
 
@@ -142,7 +142,7 @@ ipcMain.handle("mcp:list-tools", async (event,
 ipcMain.handle(
 ```
 
-- Call an MCP tool
+* Call an MCP tool
 
 ---
 
@@ -152,7 +152,7 @@ ipcMain.handle(
 ipcMain.handle("mcp:list-resources", async (event,
 ```
 
-- List available resources from MCP servers
+* List available resources from MCP servers
 
 ---
 
@@ -162,7 +162,7 @@ ipcMain.handle("mcp:list-resources", async (event,
 ipcMain.handle(
 ```
 
-- Read a resource from an MCP server
+* Read a resource from an MCP server
 
 ---
 
@@ -172,7 +172,7 @@ ipcMain.handle(
 ipcMain.handle("mcp:get-metrics", async () =>
 ```
 
-- Get MCP performance metrics
+* Get MCP performance metrics
 
 ---
 
@@ -182,7 +182,7 @@ ipcMain.handle("mcp:get-metrics", async () =>
 ipcMain.handle(
 ```
 
-- Handle consent response from renderer
+* Handle consent response from renderer
 
 ---
 
@@ -192,7 +192,7 @@ ipcMain.handle(
 ipcMain.handle("mcp:get-pending-consents", async () =>
 ```
 
-- Get pending consent requests
+* Get pending consent requests
 
 ---
 
@@ -202,7 +202,7 @@ ipcMain.handle("mcp:get-pending-consents", async () =>
 ipcMain.handle("mcp:cancel-consent", async (event,
 ```
 
-- Cancel a pending consent request
+* Cancel a pending consent request
 
 ---
 
@@ -212,7 +212,7 @@ ipcMain.handle("mcp:cancel-consent", async (event,
 ipcMain.handle("mcp:clear-consent-cache", async () =>
 ```
 
-- Clear consent cache
+* Clear consent cache
 
 ---
 
@@ -222,7 +222,7 @@ ipcMain.handle("mcp:clear-consent-cache", async () =>
 ipcMain.handle("mcp:get-security-stats", async () =>
 ```
 
-- Get security statistics
+* Get security statistics
 
 ---
 
@@ -232,6 +232,7 @@ ipcMain.handle("mcp:get-security-stats", async () =>
 ipcMain.handle("mcp:get-audit-log", async (event, filters =
 ```
 
-- Get audit log
+* Get audit log
 
 ---
+

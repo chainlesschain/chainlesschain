@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/call-history-manager.js`
 
-**Generated**: 2026-04-20T10:46:39.759Z
+**Generated**: 2026-04-21T04:11:31.463Z
 
 ---
 
@@ -12,9 +12,9 @@
 const
 ```
 
-- Call History Manager
--
-- 管理通话历史记录
+* Call History Manager
+ *
+ * 管理通话历史记录
 
 ---
 
@@ -24,7 +24,7 @@ const
 async initialize()
 ```
 
-- 初始化
+* 初始化
 
 ---
 
@@ -34,7 +34,7 @@ async initialize()
 async recordCallStart(callData)
 ```
 
-- 记录通话开始
+* 记录通话开始
 
 ---
 
@@ -44,7 +44,7 @@ async recordCallStart(callData)
 async updateCallStatus(callId, status, additionalData =
 ```
 
-- 更新通话状态
+* 更新通话状态
 
 ---
 
@@ -54,7 +54,7 @@ async updateCallStatus(callId, status, additionalData =
 async recordCallEnd(callId, endData =
 ```
 
-- 记录通话结束
+* 记录通话结束
 
 ---
 
@@ -64,7 +64,7 @@ async recordCallEnd(callId, endData =
 async getCallHistory(options =
 ```
 
-- 获取通话历史
+* 获取通话历史
 
 ---
 
@@ -74,7 +74,7 @@ async getCallHistory(options =
 async getCallDetails(callId)
 ```
 
-- 获取通话详情
+* 获取通话详情
 
 ---
 
@@ -84,7 +84,7 @@ async getCallDetails(callId)
 async getCallStatistics(peerId = null)
 ```
 
-- 获取通话统计
+* 获取通话统计
 
 ---
 
@@ -94,7 +94,7 @@ async getCallStatistics(peerId = null)
 async deleteCallHistory(callId)
 ```
 
-- 删除通话记录
+* 删除通话记录
 
 ---
 
@@ -104,16 +104,17 @@ async deleteCallHistory(callId)
 async clearCallHistory(peerId = null)
 ```
 
-- 清空通话历史
+* 清空通话历史
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup();
+cleanup()
 ```
 
-- 清理资源
+* 清理资源
 
 ---
+

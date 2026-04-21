@@ -2,7 +2,7 @@
 
 **Source**: `src/main/trade/contract-templates.js`
 
-**Generated**: 2026-04-20T10:46:39.711Z
+**Generated**: 2026-04-21T04:11:31.412Z
 
 ---
 
@@ -12,9 +12,9 @@
 const
 ```
 
-- 智能合约模板系统
--
-- 提供标准化的合约模板，简化合约创建流程
+* 智能合约模板系统
+ *
+ * 提供标准化的合约模板，简化合约创建流程
 
 ---
 
@@ -24,7 +24,7 @@ const
 class ContractTemplates
 ```
 
-- 合约模板类
+* 合约模板类
 
 ---
 
@@ -34,8 +34,8 @@ class ContractTemplates
 static simpleTrade(
 ```
 
-- 简单买卖合约模板
-  - @param {Object} params - 参数
+* 简单买卖合约模板
+   * @param {Object} params - 参数
 
 ---
 
@@ -45,8 +45,8 @@ static simpleTrade(
 static subscription(
 ```
 
-- 订阅付费合约模板
-  - @param {Object} params - 参数
+* 订阅付费合约模板
+   * @param {Object} params - 参数
 
 ---
 
@@ -56,8 +56,8 @@ static subscription(
 static bounty(
 ```
 
-- 任务悬赏合约模板
-  - @param {Object} params - 参数
+* 任务悬赏合约模板
+   * @param {Object} params - 参数
 
 ---
 
@@ -67,8 +67,8 @@ static bounty(
 static skillExchange(
 ```
 
-- 技能交换合约模板
-  - @param {Object} params - 参数
+* 技能交换合约模板
+   * @param {Object} params - 参数
 
 ---
 
@@ -78,8 +78,8 @@ static skillExchange(
 static multisigEscrow(
 ```
 
-- 多重签名托管合约模板
-  - @param {Object} params - 参数
+* 多重签名托管合约模板
+   * @param {Object} params - 参数
 
 ---
 
@@ -89,8 +89,8 @@ static multisigEscrow(
 static timelockEscrow(
 ```
 
-- 时间锁托管合约模板
-  - @param {Object} params - 参数
+* 时间锁托管合约模板
+   * @param {Object} params - 参数
 
 ---
 
@@ -100,7 +100,7 @@ static timelockEscrow(
 static getAllTemplates()
 ```
 
-- 获取所有模板列表
+* 获取所有模板列表
 
 ---
 
@@ -110,9 +110,9 @@ static getAllTemplates()
 static createFromTemplate(templateId, params)
 ```
 
-- 根据模板 ID 创建合约
-  - @param {string} templateId - 模板 ID
-  - @param {Object} params - 参数
+* 根据模板 ID 创建合约
+   * @param {string} templateId - 模板 ID
+   * @param {Object} params - 参数
 
 ---
 
@@ -122,8 +122,9 @@ static createFromTemplate(templateId, params)
 static validateParams(templateId, params)
 ```
 
-- 验证模板参数
-  - @param {string} templateId - 模板 ID
-  - @param {Object} params - 参数
+* 验证模板参数
+   * @param {string} templateId - 模板 ID
+   * @param {Object} params - 参数
 
 ---
+

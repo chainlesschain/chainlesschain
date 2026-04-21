@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/streaming-response.js`
 
-**Generated**: 2026-04-20T10:46:39.834Z
+**Generated**: 2026-04-21T04:11:31.542Z
 
 ---
 
@@ -12,16 +12,16 @@
 const
 ```
 
-- 流式响应模块 (Streaming Response)
--
-- 功能:
-- 1.  进度反馈 - 实时报告任务执行进度
-- 2.  取消机制 - 允许用户中断正在执行的任务
-- 3.  部分结果流式返回 - 逐步返回中间结果
-- 4.  IPC事件系统 - 与UI层实时通信
-- 5.  状态管理 - 跟踪任务生命周期
--
-- @module streaming-response
+* 流式响应模块 (Streaming Response)
+ *
+ * 功能:
+ * 1. 进度反馈 - 实时报告任务执行进度
+ * 2. 取消机制 - 允许用户中断正在执行的任务
+ * 3. 部分结果流式返回 - 逐步返回中间结果
+ * 4. IPC事件系统 - 与UI层实时通信
+ * 5. 状态管理 - 跟踪任务生命周期
+ *
+ * @module streaming-response
 
 ---
 
@@ -31,7 +31,7 @@ const
 const TaskStatus =
 ```
 
-- 任务状态
+* 任务状态
 
 ---
 
@@ -41,7 +41,7 @@ const TaskStatus =
 const ProgressEventType =
 ```
 
-- 进度事件类型
+* 进度事件类型
 
 ---
 
@@ -51,48 +51,48 @@ const ProgressEventType =
 class CancellationToken
 ```
 
-- 取消令牌
-- 用于传递取消信号
+* 取消令牌
+ * 用于传递取消信号
 
 ---
 
 ## cancel(reason = "User cancelled")
 
 ```javascript
-cancel((reason = "User cancelled"));
+cancel(reason = "User cancelled")
 ```
 
-- 请求取消
+* 请求取消
 
 ---
 
 ## isCancelled()
 
 ```javascript
-isCancelled();
+isCancelled()
 ```
 
-- 检查是否已取消
+* 检查是否已取消
 
 ---
 
 ## throwIfCancelled()
 
 ```javascript
-throwIfCancelled();
+throwIfCancelled()
 ```
 
-- 抛出取消异常（如果已取消）
+* 抛出取消异常（如果已取消）
 
 ---
 
 ## onCancelled(callback)
 
 ```javascript
-onCancelled(callback);
+onCancelled(callback)
 ```
 
-- 注册取消回调
+* 注册取消回调
 
 ---
 
@@ -102,17 +102,17 @@ onCancelled(callback);
 class StreamingTask extends EventEmitter
 ```
 
-- 流式任务执行器
+* 流式任务执行器
 
 ---
 
 ## start(totalSteps = 0)
 
 ```javascript
-start((totalSteps = 0));
+start(totalSteps = 0)
 ```
 
-- 开始任务
+* 开始任务
 
 ---
 
@@ -122,7 +122,7 @@ start((totalSteps = 0));
 updateProgress(step, message = "", metadata =
 ```
 
-- 更新进度
+* 更新进度
 
 ---
 
@@ -132,77 +132,77 @@ updateProgress(step, message = "", metadata =
 milestone(name, data =
 ```
 
-- 报告里程碑
+* 报告里程碑
 
 ---
 
 ## addResult(result)
 
 ```javascript
-addResult(result);
+addResult(result)
 ```
 
-- 添加部分结果
+* 添加部分结果
 
 ---
 
 ## complete(finalResult = null)
 
 ```javascript
-complete((finalResult = null));
+complete(finalResult = null)
 ```
 
-- 完成任务
+* 完成任务
 
 ---
 
 ## fail(error)
 
 ```javascript
-fail(error);
+fail(error)
 ```
 
-- 任务失败
+* 任务失败
 
 ---
 
 ## cancel(reason = "User cancelled")
 
 ```javascript
-cancel((reason = "User cancelled"));
+cancel(reason = "User cancelled")
 ```
 
-- 取消任务
+* 取消任务
 
 ---
 
 ## getCancellationToken()
 
 ```javascript
-getCancellationToken();
+getCancellationToken()
 ```
 
-- 获取取消令牌
+* 获取取消令牌
 
 ---
 
 ## getStatus()
 
 ```javascript
-getStatus();
+getStatus()
 ```
 
-- 获取任务状态
+* 获取任务状态
 
 ---
 
-## \_emitEvent(type, data)
+## _emitEvent(type, data)
 
 ```javascript
-_emitEvent(type, data);
+_emitEvent(type, data)
 ```
 
-- 发送事件
+* 发送事件
 
 ---
 
@@ -212,28 +212,28 @@ _emitEvent(type, data);
 class StreamingResponse
 ```
 
-- 流式响应管理器
+* 流式响应管理器
 
 ---
 
 ## setIPC(ipcChannel)
 
 ```javascript
-setIPC(ipcChannel);
+setIPC(ipcChannel)
 ```
 
-- 设置IPC通道
-  - 在Electron环境中用于与渲染进程通信
+* 设置IPC通道
+   * 在Electron环境中用于与渲染进程通信
 
 ---
 
 ## setDatabase(db)
 
 ```javascript
-setDatabase(db);
+setDatabase(db)
 ```
 
-- 设置数据库连接
+* 设置数据库连接
 
 ---
 
@@ -243,87 +243,87 @@ setDatabase(db);
 createTask(taskId, config =
 ```
 
-- 创建流式任务
+* 创建流式任务
 
 ---
 
 ## getTask(taskId)
 
 ```javascript
-getTask(taskId);
+getTask(taskId)
 ```
 
-- 获取任务
+* 获取任务
 
 ---
 
 ## cancelTask(taskId, reason = "User cancelled")
 
 ```javascript
-cancelTask(taskId, (reason = "User cancelled"));
+cancelTask(taskId, reason = "User cancelled")
 ```
 
-- 取消任务
+* 取消任务
 
 ---
 
 ## cleanupTask(taskId)
 
 ```javascript
-cleanupTask(taskId);
+cleanupTask(taskId)
 ```
 
-- 清理已完成的任务
+* 清理已完成的任务
 
 ---
 
-## \_handleTaskEvent(event)
+## _handleTaskEvent(event)
 
 ```javascript
-_handleTaskEvent(event);
+_handleTaskEvent(event)
 ```
 
-- 处理任务事件
+* 处理任务事件
 
 ---
 
-## async \_recordEvent(event)
+## async _recordEvent(event)
 
 ```javascript
 async _recordEvent(event)
 ```
 
-- 记录事件到数据库
+* 记录事件到数据库
 
 ---
 
-## \_sendToUI(event)
+## _sendToUI(event)
 
 ```javascript
-_sendToUI(event);
+_sendToUI(event)
 ```
 
-- 通过IPC发送事件到UI层
+* 通过IPC发送事件到UI层
 
 ---
 
 ## getActiveTasks()
 
 ```javascript
-getActiveTasks();
+getActiveTasks()
 ```
 
-- 获取所有活跃任务
+* 获取所有活跃任务
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats();
+getStats()
 ```
 
-- 获取任务统计
+* 获取任务统计
 
 ---
 
@@ -333,17 +333,17 @@ getStats();
 async getTaskHistory(options =
 ```
 
-- 获取任务历史（从数据库）
+* 获取任务历史（从数据库）
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup();
+cleanup()
 ```
 
-- 清理资源
+* 清理资源
 
 ---
 
@@ -353,6 +353,7 @@ cleanup();
 async function withStreaming(
 ```
 
-- 辅助函数：包装异步函数以支持流式进度
+* 辅助函数：包装异步函数以支持流式进度
 
 ---
+

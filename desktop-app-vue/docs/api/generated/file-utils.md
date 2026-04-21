@@ -2,7 +2,7 @@
 
 **Source**: `src/main/utils/file-utils.js`
 
-**Generated**: 2026-04-20T10:46:39.697Z
+**Generated**: 2026-04-21T04:11:31.399Z
 
 ---
 
@@ -12,7 +12,7 @@
 async function copyDirectory(source, destination)
 ```
 
-- 文件工具函数
+* 文件工具函数
 
 ---
 
@@ -22,8 +22,9 @@ async function copyDirectory(source, destination)
 async function copyDirectory(source, destination)
 ```
 
-- 递归复制目录
-- @param {string} source - 源目录路径
-- @param {string} destination - 目标目录路径
+* 递归复制目录
+ * @param {string} source - 源目录路径
+ * @param {string} destination - 目标目录路径
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/organization/permission-middleware.js`
 
-**Generated**: 2026-04-20T10:46:39.759Z
+**Generated**: 2026-04-21T04:11:31.463Z
 
 ---
 
@@ -12,17 +12,17 @@
 const
 ```
 
-- Permission Middleware
--
-- Provides middleware functions for permission checking in IPC handlers and API routes.
-- Implements fine-grained access control for enterprise features.
--
-- Features:
-- - Role-based access control (RBAC)
-- - Resource-level permissions
-- - Permission inheritance
-- - Audit logging
-- - Rate limiting for sensitive operations
+* Permission Middleware
+ *
+ * Provides middleware functions for permission checking in IPC handlers and API routes.
+ * Implements fine-grained access control for enterprise features.
+ *
+ * Features:
+ * - Role-based access control (RBAC)
+ * - Resource-level permissions
+ * - Permission inheritance
+ * - Audit logging
+ * - Rate limiting for sensitive operations
 
 ---
 
@@ -32,10 +32,10 @@ const
 requirePermission(requiredPermission, options =
 ```
 
-- Create middleware for IPC handler
-  - @param {string} requiredPermission - Required permission string
-  - @param {Object} options - Middleware options
-  - @returns {Function} Middleware function
+* Create middleware for IPC handler
+   * @param {string} requiredPermission - Required permission string
+   * @param {Object} options - Middleware options
+   * @returns {Function} Middleware function
 
 ---
 
@@ -45,10 +45,10 @@ requirePermission(requiredPermission, options =
 requireAllPermissions(requiredPermissions, options =
 ```
 
-- Create middleware for multiple permissions (AND logic)
-  - @param {string[]} requiredPermissions - Array of required permissions
-  - @param {Object} options - Middleware options
-  - @returns {Function} Middleware function
+* Create middleware for multiple permissions (AND logic)
+   * @param {string[]} requiredPermissions - Array of required permissions
+   * @param {Object} options - Middleware options
+   * @returns {Function} Middleware function
 
 ---
 
@@ -58,10 +58,10 @@ requireAllPermissions(requiredPermissions, options =
 requireAnyPermission(requiredPermissions, options =
 ```
 
-- Create middleware for multiple permissions (OR logic)
-  - @param {string[]} requiredPermissions - Array of required permissions
-  - @param {Object} options - Middleware options
-  - @returns {Function} Middleware function
+* Create middleware for multiple permissions (OR logic)
+   * @param {string[]} requiredPermissions - Array of required permissions
+   * @param {Object} options - Middleware options
+   * @returns {Function} Middleware function
 
 ---
 
@@ -71,10 +71,10 @@ requireAnyPermission(requiredPermissions, options =
 requireRole(allowedRoles, options =
 ```
 
-- Create middleware for role-based access
-  - @param {string[]} allowedRoles - Array of allowed roles
-  - @param {Object} options - Middleware options
-  - @returns {Function} Middleware function
+* Create middleware for role-based access
+   * @param {string[]} allowedRoles - Array of allowed roles
+   * @param {Object} options - Middleware options
+   * @returns {Function} Middleware function
 
 ---
 
@@ -84,11 +84,11 @@ requireRole(allowedRoles, options =
 requireOwnership(resourceType, resourceIdExtractor, options =
 ```
 
-- Create middleware for resource ownership check
-  - @param {string} resourceType - Type of resource (folder, knowledge, etc.)
-  - @param {Function} resourceIdExtractor - Function to extract resource ID from args
-  - @param {Object} options - Middleware options
-  - @returns {Function} Middleware function
+* Create middleware for resource ownership check
+   * @param {string} resourceType - Type of resource (folder, knowledge, etc.)
+   * @param {Function} resourceIdExtractor - Function to extract resource ID from args
+   * @param {Object} options - Middleware options
+   * @returns {Function} Middleware function
 
 ---
 
@@ -98,10 +98,10 @@ requireOwnership(resourceType, resourceIdExtractor, options =
 rateLimit(operation, limits =
 ```
 
-- Create middleware with rate limiting
-  - @param {string} operation - Operation name
-  - @param {Object} limits - Rate limit configuration
-  - @returns {Function} Middleware function
+* Create middleware with rate limiting
+   * @param {string} operation - Operation name
+   * @param {Object} limits - Rate limit configuration
+   * @returns {Function} Middleware function
 
 ---
 
@@ -111,12 +111,12 @@ rateLimit(operation, limits =
 async checkPermission(orgId, userDID, permission, options =
 ```
 
-- Check permission with caching
-  - @param {string} orgId - Organization ID
-  - @param {string} userDID - User DID
-  - @param {string} permission - Permission string
-  - @param {Object} options - Check options
-  - @returns {Promise<boolean>}
+* Check permission with caching
+   * @param {string} orgId - Organization ID
+   * @param {string} userDID - User DID
+   * @param {string} permission - Permission string
+   * @param {Object} options - Check options
+   * @returns {Promise<boolean>}
 
 ---
 
@@ -126,7 +126,7 @@ async checkPermission(orgId, userDID, permission, options =
 async checkOrgPermission(orgId, userDID, action)
 ```
 
-- Check organization-level permission
+* Check organization-level permission
 
 ---
 
@@ -136,7 +136,7 @@ async checkOrgPermission(orgId, userDID, action)
 async checkMemberPermission(orgId, userDID, action)
 ```
 
-- Check member management permission
+* Check member management permission
 
 ---
 
@@ -146,7 +146,7 @@ async checkMemberPermission(orgId, userDID, action)
 async checkKnowledgePermission(orgId, userDID, action, options =
 ```
 
-- Check knowledge base permission
+* Check knowledge base permission
 
 ---
 
@@ -156,7 +156,7 @@ async checkKnowledgePermission(orgId, userDID, action, options =
 async checkProjectPermission(orgId, userDID, action, options =
 ```
 
-- Check project permission
+* Check project permission
 
 ---
 
@@ -166,7 +166,7 @@ async checkProjectPermission(orgId, userDID, action, options =
 async checkGenericPermission(orgId, userDID, permission)
 ```
 
-- Check generic permission
+* Check generic permission
 
 ---
 
@@ -176,17 +176,17 @@ async checkGenericPermission(orgId, userDID, permission)
 async checkOwnership(orgId, userDID, resourceType, resourceId)
 ```
 
-- Check resource ownership
+* Check resource ownership
 
 ---
 
 ## extractContext(args)
 
 ```javascript
-extractContext(args);
+extractContext(args)
 ```
 
-- Extract context from IPC arguments
+* Extract context from IPC arguments
 
 ---
 
@@ -196,7 +196,7 @@ extractContext(args);
 async logPermissionGrant(orgId, userDID, permission, context)
 ```
 
-- Log permission grant
+* Log permission grant
 
 ---
 
@@ -206,7 +206,7 @@ async logPermissionGrant(orgId, userDID, permission, context)
 async logPermissionDenial(orgId, userDID, permission, context)
 ```
 
-- Log permission denial
+* Log permission denial
 
 ---
 
@@ -216,7 +216,7 @@ async logPermissionDenial(orgId, userDID, permission, context)
 async logRoleDenial(orgId, userDID, requiredRoles, userRole, context)
 ```
 
-- Log role denial
+* Log role denial
 
 ---
 
@@ -226,7 +226,7 @@ async logRoleDenial(orgId, userDID, requiredRoles, userRole, context)
 async logOwnershipDenial(orgId, userDID, resourceType, resourceId, context)
 ```
 
-- Log ownership denial
+* Log ownership denial
 
 ---
 
@@ -236,17 +236,17 @@ async logOwnershipDenial(orgId, userDID, resourceType, resourceId, context)
 async logRateLimitExceeded(orgId, userDID, operation, context)
 ```
 
-- Log rate limit exceeded
+* Log rate limit exceeded
 
 ---
 
 ## clearCache(orgId = null, userDID = null)
 
 ```javascript
-clearCache((orgId = null), (userDID = null));
+clearCache(orgId = null, userDID = null)
 ```
 
-- Clear permission cache
+* Clear permission cache
 
 ---
 
@@ -256,16 +256,17 @@ clearCache((orgId = null), (userDID = null));
 async getAuditLog(orgId, options =
 ```
 
-- Get audit log
+* Get audit log
 
 ---
 
 ## destroy()
 
 ```javascript
-destroy();
+destroy()
 ```
 
-- Clean up resources
+* Clean up resources
 
 ---
+

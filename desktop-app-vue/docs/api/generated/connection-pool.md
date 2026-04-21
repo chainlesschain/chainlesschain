@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/connection-pool.js`
 
-**Generated**: 2026-04-20T10:46:39.758Z
+**Generated**: 2026-04-21T04:11:31.462Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-- P2P连接池管理器
-- 优化P2P连接的生命周期管理、健康检查和资源复用
+* P2P连接池管理器
+ * 优化P2P连接的生命周期管理、健康检查和资源复用
 
 ---
 
@@ -23,7 +23,7 @@ const
 const ConnectionState =
 ```
 
-- 连接状态枚举
+* 连接状态枚举
 
 ---
 
@@ -33,77 +33,77 @@ const ConnectionState =
 class Connection
 ```
 
-- 连接包装类
+* 连接包装类
 
 ---
 
 ## markActive()
 
 ```javascript
-markActive();
+markActive()
 ```
 
-- 标记连接为活跃状态
+* 标记连接为活跃状态
 
 ---
 
 ## markIdle()
 
 ```javascript
-markIdle();
+markIdle()
 ```
 
-- 标记连接为空闲状态
+* 标记连接为空闲状态
 
 ---
 
 ## isIdle()
 
 ```javascript
-isIdle();
+isIdle()
 ```
 
-- 检查连接是否空闲
+* 检查连接是否空闲
 
 ---
 
 ## isTimedOut(maxIdleTime)
 
 ```javascript
-isTimedOut(maxIdleTime);
+isTimedOut(maxIdleTime)
 ```
 
-- 检查连接是否超时
+* 检查连接是否超时
 
 ---
 
 ## isHealthy()
 
 ```javascript
-isHealthy();
+isHealthy()
 ```
 
-- 检查连接是否健康
+* 检查连接是否健康
 
 ---
 
 ## recordError()
 
 ```javascript
-recordError();
+recordError()
 ```
 
-- 记录错误
+* 记录错误
 
 ---
 
 ## resetErrors()
 
 ```javascript
-resetErrors();
+resetErrors()
 ```
 
-- 重置错误计数
+* 重置错误计数
 
 ---
 
@@ -113,7 +113,7 @@ resetErrors();
 class ConnectionPool extends EventEmitter
 ```
 
-- P2P连接池管理器
+* P2P连接池管理器
 
 ---
 
@@ -123,7 +123,7 @@ class ConnectionPool extends EventEmitter
 async initialize()
 ```
 
-- 初始化连接池
+* 初始化连接池
 
 ---
 
@@ -133,7 +133,7 @@ async initialize()
 async acquireConnection(peerId, createConnectionFn)
 ```
 
-- 获取连接（支持连接复用）
+* 获取连接（支持连接复用）
 
 ---
 
@@ -143,17 +143,17 @@ async acquireConnection(peerId, createConnectionFn)
 async createConnection(peerId, createConnectionFn)
 ```
 
-- 创建新连接
+* 创建新连接
 
 ---
 
 ## releaseConnection(peerId)
 
 ```javascript
-releaseConnection(peerId);
+releaseConnection(peerId)
 ```
 
-- 释放连接（标记为空闲，但不关闭）
+* 释放连接（标记为空闲，但不关闭）
 
 ---
 
@@ -163,7 +163,7 @@ releaseConnection(peerId);
 async closeConnection(peerId)
 ```
 
-- 关闭连接
+* 关闭连接
 
 ---
 
@@ -173,7 +173,7 @@ async closeConnection(peerId)
 async evictIdleConnections(count = 1)
 ```
 
-- 驱逐空闲连接
+* 驱逐空闲连接
 
 ---
 
@@ -183,57 +183,57 @@ async evictIdleConnections(count = 1)
 async performHealthCheck()
 ```
 
-- 健康检查
+* 健康检查
 
 ---
 
 ## startHealthCheck()
 
 ```javascript
-startHealthCheck();
+startHealthCheck()
 ```
 
-- 启动健康检查
+* 启动健康检查
 
 ---
 
 ## startCleanup()
 
 ```javascript
-startCleanup();
+startCleanup()
 ```
 
-- 启动清理任务
+* 启动清理任务
 
 ---
 
 ## updateStats()
 
 ```javascript
-updateStats();
+updateStats()
 ```
 
-- 更新统计信息
+* 更新统计信息
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats();
+getStats()
 ```
 
-- 获取连接池统计
+* 获取连接池统计
 
 ---
 
 ## getConnectionDetails()
 
 ```javascript
-getConnectionDetails();
+getConnectionDetails()
 ```
 
-- 获取连接详情
+* 获取连接详情
 
 ---
 
@@ -243,7 +243,7 @@ getConnectionDetails();
 async closeAll()
 ```
 
-- 关闭所有连接
+* 关闭所有连接
 
 ---
 
@@ -253,6 +253,7 @@ async closeAll()
 async destroy()
 ```
 
-- 销毁连接池
+* 销毁连接池
 
 ---
+

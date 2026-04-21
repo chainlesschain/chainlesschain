@@ -2,18 +2,18 @@
 
 **Source**: `src/main/video/video-config.js`
 
-**Generated**: 2026-04-20T10:46:39.694Z
+**Generated**: 2026-04-21T04:11:31.396Z
 
 ---
 
 ## const path = require('path');
 
 ```javascript
-const path = require("path");
+const path = require('path');
 ```
 
-- 视频处理系统配置
-- 定义视频导入、分析、存储的各种配置参数
+* 视频处理系统配置
+ * 定义视频导入、分析、存储的各种配置参数
 
 ---
 
@@ -23,101 +23,101 @@ const path = require("path");
 class VideoConfig
 ```
 
-- 视频配置类
+* 视频配置类
 
 ---
 
 ## isSupportedFormat(filePath)
 
 ```javascript
-isSupportedFormat(filePath);
+isSupportedFormat(filePath)
 ```
 
-- 检查文件格式是否支持
-  - @param {string} filePath - 文件路径
-  - @returns {boolean}
+* 检查文件格式是否支持
+   * @param {string} filePath - 文件路径
+   * @returns {boolean}
 
 ---
 
 ## isFileSizeValid(fileSize)
 
 ```javascript
-isFileSizeValid(fileSize);
+isFileSizeValid(fileSize)
 ```
 
-- 检查文件大小是否超限
-  - @param {number} fileSize - 文件大小（字节）
-  - @returns {boolean}
+* 检查文件大小是否超限
+   * @param {number} fileSize - 文件大小（字节）
+   * @returns {boolean}
 
 ---
 
 ## getStoragePath(subdir, userDataPath)
 
 ```javascript
-getStoragePath(subdir, userDataPath);
+getStoragePath(subdir, userDataPath)
 ```
 
-- 获取存储路径
-  - @param {string} subdir - 子目录名称
-  - @param {string} userDataPath - 用户数据路径
-  - @returns {string}
+* 获取存储路径
+   * @param {string} subdir - 子目录名称
+   * @param {string} userDataPath - 用户数据路径
+   * @returns {string}
 
 ---
 
 ## generateFileName(originalName)
 
 ```javascript
-generateFileName(originalName);
+generateFileName(originalName)
 ```
 
-- 生成文件名
-  - @param {string} originalName - 原始文件名
-  - @returns {string}
+* 生成文件名
+   * @param {string} originalName - 原始文件名
+   * @returns {string}
 
 ---
 
 ## generateUUID()
 
 ```javascript
-generateUUID();
+generateUUID()
 ```
 
-- 生成 UUID
-  - @returns {string}
+* 生成 UUID
+   * @returns {string}
 
 ---
 
 ## getCompressionPreset(preset)
 
 ```javascript
-getCompressionPreset(preset);
+getCompressionPreset(preset)
 ```
 
-- 获取压缩预设
-  - @param {string} preset - 预设名称
-  - @returns {Object}
+* 获取压缩预设
+   * @param {string} preset - 预设名称
+   * @returns {Object}
 
 ---
 
 ## updateConfig(updates)
 
 ```javascript
-updateConfig(updates);
+updateConfig(updates)
 ```
 
-- 更新配置
-  - @param {Object} updates - 配置更新对象
+* 更新配置
+   * @param {Object} updates - 配置更新对象
 
 ---
 
 ## toJSON()
 
 ```javascript
-toJSON();
+toJSON()
 ```
 
-- 导出配置为 JSON
-  - @returns {Object}
+* 导出配置为 JSON
+   * @returns {Object}
 
 ---
 
@@ -127,7 +127,8 @@ toJSON();
 function getVideoConfig()
 ```
 
-- 获取配置实例
-- @returns {VideoConfig}
+* 获取配置实例
+ * @returns {VideoConfig}
 
 ---
+

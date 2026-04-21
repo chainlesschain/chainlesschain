@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/cowork/cowork-ipc.js`
 
-**Generated**: 2026-04-20T10:46:39.851Z
+**Generated**: 2026-04-21T04:11:31.558Z
 
 ---
 
@@ -12,11 +12,11 @@
 const
 ```
 
-- Cowork IPC 处理器
--
-- 提供 Cowork 多代理协作系统的 IPC 接口。
--
-- @module ai-engine/cowork/cowork-ipc
+* Cowork IPC 处理器
+ *
+ * 提供 Cowork 多代理协作系统的 IPC 接口。
+ *
+ * @module ai-engine/cowork/cowork-ipc
 
 ---
 
@@ -26,9 +26,9 @@ const
 function initializeCoworkComponents(dependencies)
 ```
 
-- 初始化 Cowork 组件
-- @param {Object} dependencies - 依赖对象
-- @private
+* 初始化 Cowork 组件
+ * @param {Object} dependencies - 依赖对象
+ * @private
 
 ---
 
@@ -38,10 +38,10 @@ function initializeCoworkComponents(dependencies)
 function registerCoworkIPC(dependencies =
 ```
 
-- 注册 Cowork IPC 处理器
-- @param {Object} dependencies - 依赖对象
-- @param {Object} dependencies.database - 数据库管理器
-- @param {Object} dependencies.mainWindow - 主窗口
+* 注册 Cowork IPC 处理器
+ * @param {Object} dependencies - 依赖对象
+ * @param {Object} dependencies.database - 数据库管理器
+ * @param {Object} dependencies.mainWindow - 主窗口
 
 ---
 
@@ -51,7 +51,7 @@ function registerCoworkIPC(dependencies =
 ipcMain.handle(
 ```
 
-- 创建团队
+* 创建团队
 
 ---
 
@@ -61,7 +61,7 @@ ipcMain.handle(
 ipcMain.handle("cowork:discover-teams", async (event,
 ```
 
-- 发现团队
+* 发现团队
 
 ---
 
@@ -71,7 +71,7 @@ ipcMain.handle("cowork:discover-teams", async (event,
 ipcMain.handle(
 ```
 
-- 请求加入团队
+* 请求加入团队
 
 ---
 
@@ -81,7 +81,7 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 分配任务
+* 分配任务
 
 ---
 
@@ -91,7 +91,7 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 广播消息
+* 广播消息
 
 ---
 
@@ -101,7 +101,7 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 发送消息
+* 发送消息
 
 ---
 
@@ -111,7 +111,7 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 投票决策
+* 投票决策
 
 ---
 
@@ -121,7 +121,7 @@ ipcMain.handle(
 ipcMain.handle("cowork:get-team-status", async (event,
 ```
 
-- 获取团队状态
+* 获取团队状态
 
 ---
 
@@ -131,7 +131,7 @@ ipcMain.handle("cowork:get-team-status", async (event,
 ipcMain.handle(
 ```
 
-- 终止代理
+* 终止代理
 
 ---
 
@@ -141,7 +141,7 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 合并结果
+* 合并结果
 
 ---
 
@@ -151,7 +151,7 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 创建检查点
+* 创建检查点
 
 ---
 
@@ -161,7 +161,7 @@ ipcMain.handle(
 ipcMain.handle("cowork:list-members", async (event,
 ```
 
-- 列出团队成员
+* 列出团队成员
 
 ---
 
@@ -171,7 +171,7 @@ ipcMain.handle("cowork:list-members", async (event,
 ipcMain.handle(
 ```
 
-- 更新团队配置
+* 更新团队配置
 
 ---
 
@@ -181,7 +181,7 @@ ipcMain.handle(
 ipcMain.handle("cowork:destroy-team", async (event,
 ```
 
-- 销毁团队
+* 销毁团队
 
 ---
 
@@ -191,7 +191,7 @@ ipcMain.handle("cowork:destroy-team", async (event,
 ipcMain.handle("cowork:pause-team", async (event,
 ```
 
-- 暂停团队
+* 暂停团队
 
 ---
 
@@ -201,7 +201,7 @@ ipcMain.handle("cowork:pause-team", async (event,
 ipcMain.handle("cowork:resume-team", async (event,
 ```
 
-- 恢复团队
+* 恢复团队
 
 ---
 
@@ -211,7 +211,7 @@ ipcMain.handle("cowork:resume-team", async (event,
 ipcMain.handle("cowork:get-stats", async (event) =>
 ```
 
-- 获取统计信息
+* 获取统计信息
 
 ---
 
@@ -221,7 +221,7 @@ ipcMain.handle("cowork:get-stats", async (event) =>
 ipcMain.handle(
 ```
 
-- 请求文件访问权限
+* 请求文件访问权限
 
 ---
 
@@ -231,7 +231,7 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 授予文件访问权限
+* 授予文件访问权限
 
 ---
 
@@ -241,7 +241,7 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 撤销文件访问权限
+* 撤销文件访问权限
 
 ---
 
@@ -251,7 +251,7 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 验证文件访问
+* 验证文件访问
 
 ---
 
@@ -261,7 +261,7 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 读取文件
+* 读取文件
 
 ---
 
@@ -271,7 +271,7 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 写入文件
+* 写入文件
 
 ---
 
@@ -281,7 +281,7 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 删除文件
+* 删除文件
 
 ---
 
@@ -291,7 +291,7 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 列出目录
+* 列出目录
 
 ---
 
@@ -301,7 +301,7 @@ ipcMain.handle(
 ipcMain.handle("cowork:get-allowed-paths", async (event,
 ```
 
-- 获取允许的路径
+* 获取允许的路径
 
 ---
 
@@ -311,7 +311,7 @@ ipcMain.handle("cowork:get-allowed-paths", async (event,
 ipcMain.handle(
 ```
 
-- 获取审计日志
+* 获取审计日志
 
 ---
 
@@ -321,7 +321,7 @@ ipcMain.handle(
 ipcMain.handle("cowork:get-sandbox-stats", async (event) =>
 ```
 
-- 获取沙箱统计
+* 获取沙箱统计
 
 ---
 
@@ -331,7 +331,7 @@ ipcMain.handle("cowork:get-sandbox-stats", async (event) =>
 ipcMain.handle("cowork:create-long-task", async (event,
 ```
 
-- 创建长时运行任务
+* 创建长时运行任务
 
 ---
 
@@ -341,7 +341,7 @@ ipcMain.handle("cowork:create-long-task", async (event,
 ipcMain.handle("cowork:start-task", async (event,
 ```
 
-- 启动任务
+* 启动任务
 
 ---
 
@@ -351,7 +351,7 @@ ipcMain.handle("cowork:start-task", async (event,
 ipcMain.handle("cowork:pause-task", async (event,
 ```
 
-- 暂停任务
+* 暂停任务
 
 ---
 
@@ -361,7 +361,7 @@ ipcMain.handle("cowork:pause-task", async (event,
 ipcMain.handle("cowork:resume-task", async (event,
 ```
 
-- 继续任务
+* 继续任务
 
 ---
 
@@ -371,7 +371,7 @@ ipcMain.handle("cowork:resume-task", async (event,
 ipcMain.handle(
 ```
 
-- 取消任务
+* 取消任务
 
 ---
 
@@ -381,7 +381,7 @@ ipcMain.handle(
 ipcMain.handle("cowork:get-task-status", async (event,
 ```
 
-- 获取任务状态
+* 获取任务状态
 
 ---
 
@@ -391,7 +391,7 @@ ipcMain.handle("cowork:get-task-status", async (event,
 ipcMain.handle("cowork:get-active-tasks", async (event) =>
 ```
 
-- 获取所有活跃任务
+* 获取所有活跃任务
 
 ---
 
@@ -401,7 +401,7 @@ ipcMain.handle("cowork:get-active-tasks", async (event) =>
 ipcMain.handle(
 ```
 
-- 从检查点恢复
+* 从检查点恢复
 
 ---
 
@@ -411,7 +411,7 @@ ipcMain.handle(
 ipcMain.handle("cowork:get-task-manager-stats", async (event) =>
 ```
 
-- 获取任务管理器统计
+* 获取任务管理器统计
 
 ---
 
@@ -421,7 +421,7 @@ ipcMain.handle("cowork:get-task-manager-stats", async (event) =>
 ipcMain.handle(
 ```
 
-- 执行技能
+* 执行技能
 
 ---
 
@@ -431,7 +431,7 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 自动执行任务（选择最佳技能）
+* 自动执行任务（选择最佳技能）
 
 ---
 
@@ -441,7 +441,7 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 查找适合任务的技能
+* 查找适合任务的技能
 
 ---
 
@@ -451,7 +451,7 @@ ipcMain.handle(
 ipcMain.handle("cowork:get-all-skills", async (event) =>
 ```
 
-- 获取所有技能
+* 获取所有技能
 
 ---
 
@@ -461,7 +461,7 @@ ipcMain.handle("cowork:get-all-skills", async (event) =>
 ipcMain.handle("cowork:get-skill-stats", async (event) =>
 ```
 
-- 获取技能统计
+* 获取技能统计
 
 ---
 
@@ -471,7 +471,7 @@ ipcMain.handle("cowork:get-skill-stats", async (event) =>
 ipcMain.handle("cowork:get-skill-sources", async (event) =>
 ```
 
-- 获取三层目录信息
+* 获取三层目录信息
 
 ---
 
@@ -481,7 +481,7 @@ ipcMain.handle("cowork:get-skill-sources", async (event) =>
 ipcMain.handle("cowork:reload-skills", async (event) =>
 ```
 
-- 重新加载全部技能
+* 重新加载全部技能
 
 ---
 
@@ -491,7 +491,7 @@ ipcMain.handle("cowork:reload-skills", async (event) =>
 ipcMain.handle("cowork:get-invocable-skills", async (event) =>
 ```
 
-- 获取用户可调用技能
+* 获取用户可调用技能
 
 ---
 
@@ -501,7 +501,7 @@ ipcMain.handle("cowork:get-invocable-skills", async (event) =>
 ipcMain.handle(
 ```
 
-- 检查技能门控要求
+* 检查技能门控要求
 
 ---
 
@@ -511,7 +511,7 @@ ipcMain.handle(
 ipcMain.handle("cowork:get-skill-definition", async (event,
 ```
 
-- 获取技能原始定义
+* 获取技能原始定义
 
 ---
 
@@ -521,6 +521,7 @@ ipcMain.handle("cowork:get-skill-definition", async (event,
 ipcMain.handle("cowork:get-analytics", async (event, data) =>
 ```
 
-- 获取分析数据
+* 获取分析数据
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/mcp-config-loader.js`
 
-**Generated**: 2026-04-20T10:46:39.766Z
+**Generated**: 2026-04-21T04:11:31.471Z
 
 ---
 
@@ -12,24 +12,24 @@
 const
 ```
 
-- MCP Configuration Loader
--
-- Loads and manages MCP configuration from .chainlesschain/config.json
-- Supports hot-reload and validation.
--
-- @module MCPConfigLoader
+* MCP Configuration Loader
+ *
+ * Loads and manages MCP configuration from .chainlesschain/config.json
+ * Supports hot-reload and validation.
+ *
+ * @module MCPConfigLoader
 
 ---
 
 ## load(watch = false)
 
 ```javascript
-load((watch = false));
+load(watch = false)
 ```
 
-- Load configuration from file
-  - @param {boolean} watch - Enable file watching for hot-reload
-  - @returns {Object} MCP configuration
+* Load configuration from file
+   * @param {boolean} watch - Enable file watching for hot-reload
+   * @returns {Object} MCP configuration
 
 ---
 
@@ -39,131 +39,132 @@ load((watch = false));
 async loadAsync(watch = false)
 ```
 
-- Async load configuration (M2 启动期 IO 异步化)
-  - Uses fs.promises so the readFile/parse work moves off the event loop.
-  - @param {boolean} watch - Enable file watching for hot-reload
-  - @returns {Promise<Object>} MCP configuration
+* Async load configuration (M2 启动期 IO 异步化)
+   * Uses fs.promises so the readFile/parse work moves off the event loop.
+   * @param {boolean} watch - Enable file watching for hot-reload
+   * @returns {Promise<Object>} MCP configuration
 
 ---
 
 ## getConfig()
 
 ```javascript
-getConfig();
+getConfig()
 ```
 
-- Get current configuration
-  - @returns {Object} MCP configuration
+* Get current configuration
+   * @returns {Object} MCP configuration
 
 ---
 
 ## getServerConfig(serverName)
 
 ```javascript
-getServerConfig(serverName);
+getServerConfig(serverName)
 ```
 
-- Get configuration for a specific server
-  - @param {string} serverName - Server identifier
-  - @returns {Object|null} Server configuration
+* Get configuration for a specific server
+   * @param {string} serverName - Server identifier
+   * @returns {Object|null} Server configuration
 
 ---
 
 ## getEnabledServers()
 
 ```javascript
-getEnabledServers();
+getEnabledServers()
 ```
 
-- Get list of enabled servers
-  - @returns {string[]} Array of enabled server names
+* Get list of enabled servers
+   * @returns {string[]} Array of enabled server names
 
 ---
 
 ## reload()
 
 ```javascript
-reload();
+reload()
 ```
 
-- Reload configuration from file
-  - @returns {Object} Updated configuration
+* Reload configuration from file
+   * @returns {Object} Updated configuration
 
 ---
 
 ## stopWatching()
 
 ```javascript
-stopWatching();
+stopWatching()
 ```
 
-- Stop watching configuration file
+* Stop watching configuration file
 
 ---
 
-## \_resolveConfigPath()
+## _resolveConfigPath()
 
 ```javascript
-_resolveConfigPath();
+_resolveConfigPath()
 ```
 
-- Resolve config path by reusing the UnifiedConfigManager's directory.
-  - Falls back to the project root when the manager is unavailable.
-  - @private
+* Resolve config path by reusing the UnifiedConfigManager's directory.
+   * Falls back to the project root when the manager is unavailable.
+   * @private
 
 ---
 
-## \_getDefaultConfig()
+## _getDefaultConfig()
 
 ```javascript
-_getDefaultConfig();
+_getDefaultConfig()
 ```
 
-- Get default configuration
-  - @private
+* Get default configuration
+   * @private
 
 ---
 
-## \_validateConfig(config)
+## _validateConfig(config)
 
 ```javascript
-_validateConfig(config);
+_validateConfig(config)
 ```
 
-- Validate configuration structure
-  - @private
+* Validate configuration structure
+   * @private
 
 ---
 
-## \_validateServerConfig(serverName, config)
+## _validateServerConfig(serverName, config)
 
 ```javascript
-_validateServerConfig(serverName, config);
+_validateServerConfig(serverName, config)
 ```
 
-- Validate server configuration
-  - @private
+* Validate server configuration
+   * @private
 
 ---
 
-## \_setupWatcher()
+## _setupWatcher()
 
 ```javascript
-_setupWatcher();
+_setupWatcher()
 ```
 
-- Setup file watcher for hot-reload
-  - @private
+* Setup file watcher for hot-reload
+   * @private
 
 ---
 
-## \_detectChanges(oldConfig, newConfig)
+## _detectChanges(oldConfig, newConfig)
 
 ```javascript
-_detectChanges(oldConfig, newConfig);
+_detectChanges(oldConfig, newConfig)
 ```
 
-- Detect changes between old and new config
-  - @private
+* Detect changes between old and new config
+   * @private
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/trade/review-manager.js`
 
-**Generated**: 2026-04-20T10:46:39.707Z
+**Generated**: 2026-04-21T04:11:31.408Z
 
 ---
 
@@ -12,28 +12,28 @@
 class ReviewManager extends EventEmitter
 ```
 
-- 评价管理器
-- 负责交易评价、举报和统计
+* 评价管理器
+ * 负责交易评价、举报和统计
 
 ---
 
 ## initDatabase()
 
 ```javascript
-initDatabase();
+initDatabase()
 ```
 
-- 初始化数据库表
+* 初始化数据库表
 
 ---
 
 ## setCurrentUser(did)
 
 ```javascript
-setCurrentUser(did);
+setCurrentUser(did)
 ```
 
-- 设置当前用户
+* 设置当前用户
 
 ---
 
@@ -43,7 +43,7 @@ setCurrentUser(did);
 async createReview(options)
 ```
 
-- 创建评价
+* 创建评价
 
 ---
 
@@ -53,7 +53,7 @@ async createReview(options)
 async updateReview(reviewId, updates)
 ```
 
-- 修改评价（限时）
+* 修改评价（限时）
 
 ---
 
@@ -63,7 +63,7 @@ async updateReview(reviewId, updates)
 async replyToReview(reviewId, content)
 ```
 
-- 回复评价
+* 回复评价
 
 ---
 
@@ -73,7 +73,7 @@ async replyToReview(reviewId, content)
 async markHelpful(reviewId)
 ```
 
-- 标记评价有帮助
+* 标记评价有帮助
 
 ---
 
@@ -83,7 +83,7 @@ async markHelpful(reviewId)
 async reportReview(reviewId, reason, description = "")
 ```
 
-- 举报评价
+* 举报评价
 
 ---
 
@@ -93,7 +93,7 @@ async reportReview(reviewId, reason, description = "")
 async resolveReport(reportId, resolution, action = "none")
 ```
 
-- 处理举报（管理员功能）
+* 处理举报（管理员功能）
 
 ---
 
@@ -103,77 +103,77 @@ async resolveReport(reportId, resolution, action = "none")
 getReviews(filters =
 ```
 
-- 获取评价列表
+* 获取评价列表
 
 ---
 
 ## getReview(reviewId)
 
 ```javascript
-getReview(reviewId);
+getReview(reviewId)
 ```
 
-- 获取评价详情
+* 获取评价详情
 
 ---
 
 ## formatReview(row)
 
 ```javascript
-formatReview(row);
+formatReview(row)
 ```
 
-- 格式化评价数据
+* 格式化评价数据
 
 ---
 
 ## getReviewStatistics(userDid)
 
 ```javascript
-getReviewStatistics(userDid);
+getReviewStatistics(userDid)
 ```
 
-- 获取评价统计
+* 获取评价统计
 
 ---
 
 ## getMyReviews()
 
 ```javascript
-getMyReviews();
+getMyReviews()
 ```
 
-- 获取我创建的评价
+* 获取我创建的评价
 
 ---
 
 ## getPendingReviews()
 
 ```javascript
-getPendingReviews();
+getPendingReviews()
 ```
 
-- 获取待评价的交易
+* 获取待评价的交易
 
 ---
 
 ## getFeaturedReviews(userDid, limit = 10)
 
 ```javascript
-getFeaturedReviews(userDid, (limit = 10));
+getFeaturedReviews(userDid, limit = 10)
 ```
 
-- 获取推荐评价（高质量评价）
+* 获取推荐评价（高质量评价）
 
 ---
 
 ## getAvailableTags(type = "positive")
 
 ```javascript
-getAvailableTags((type = "positive"));
+getAvailableTags(type = "positive")
 ```
 
-- 获取评价标签库
+* 获取评价标签库
 
 ---
 
@@ -183,6 +183,7 @@ getAvailableTags((type = "positive"));
 async bulkDeleteSpamReviews(reviewIds)
 ```
 
-- 批量删除垃圾评价（管理员功能）
+* 批量删除垃圾评价（管理员功能）
 
 ---
+

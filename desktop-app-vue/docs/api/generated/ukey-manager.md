@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ukey/ukey-manager.js`
 
-**Generated**: 2026-04-20T10:46:39.699Z
+**Generated**: 2026-04-21T04:11:31.400Z
 
 ---
 
@@ -12,11 +12,11 @@
 const
 ```
 
-- U盾管理器
--
-- 统一管理多种U盾驱动
-- 支持国产U盾（鑫金科、飞天、握奇、华大、天地融）
-- 支持跨平台 PKCS#11 标准驱动
+* U盾管理器
+ *
+ * 统一管理多种U盾驱动
+ * 支持国产U盾（鑫金科、飞天、握奇、华大、天地融）
+ * 支持跨平台 PKCS#11 标准驱动
 
 ---
 
@@ -26,7 +26,7 @@ const
 const DriverTypes =
 ```
 
-- U盾驱动类型
+* U盾驱动类型
 
 ---
 
@@ -36,13 +36,13 @@ const DriverTypes =
 class UKeyManager extends EventEmitter
 ```
 
-- U盾管理器类
--
-- 功能：
-- - 管理多种U盾驱动
-- - 自动检测U盾类型
-- - 统一的API接口
-- - 设备热插拔监听
+* U盾管理器类
+ *
+ * 功能：
+ * - 管理多种U盾驱动
+ * - 自动检测U盾类型
+ * - 统一的API接口
+ * - 设备热插拔监听
 
 ---
 
@@ -52,7 +52,7 @@ class UKeyManager extends EventEmitter
 async initialize()
 ```
 
-- 初始化管理器
+* 初始化管理器
 
 ---
 
@@ -62,8 +62,8 @@ async initialize()
 async createDriver(driverType)
 ```
 
-- 创建驱动实例
-  - @param {string} driverType - 驱动类型
+* 创建驱动实例
+   * @param {string} driverType - 驱动类型
 
 ---
 
@@ -73,8 +73,8 @@ async createDriver(driverType)
 async switchDriver(driverType)
 ```
 
-- 切换驱动类型
-  - @param {string} driverType - 驱动类型
+* 切换驱动类型
+   * @param {string} driverType - 驱动类型
 
 ---
 
@@ -84,10 +84,11 @@ async switchDriver(driverType)
 async autoDetect()
 ```
 
-- ## 自动检测U盾类型
-  - 尝试不同的驱动，看哪个能成功检测到设备
-  - Windows: 优先使用国产驱动，然后 PKCS#11
-  - macOS/Linux: 优先使用 PKCS#11（跨平台支持）
+* 自动检测U盾类型
+   *
+   * 尝试不同的驱动，看哪个能成功检测到设备
+   * Windows: 优先使用国产驱动，然后 PKCS#11
+   * macOS/Linux: 优先使用 PKCS#11（跨平台支持）
 
 ---
 
@@ -97,7 +98,7 @@ async autoDetect()
 async detect()
 ```
 
-- 检测U盾设备
+* 检测U盾设备
 
 ---
 
@@ -107,7 +108,7 @@ async detect()
 async verifyPIN(pin)
 ```
 
-- 验证PIN码
+* 验证PIN码
 
 ---
 
@@ -117,7 +118,7 @@ async verifyPIN(pin)
 async sign(data)
 ```
 
-- 数字签名
+* 数字签名
 
 ---
 
@@ -127,7 +128,7 @@ async sign(data)
 async verifySignature(data, signature)
 ```
 
-- 验证签名
+* 验证签名
 
 ---
 
@@ -137,7 +138,7 @@ async verifySignature(data, signature)
 async encrypt(data)
 ```
 
-- 加密数据
+* 加密数据
 
 ---
 
@@ -147,7 +148,7 @@ async encrypt(data)
 async decrypt(encryptedData)
 ```
 
-- 解密数据
+* 解密数据
 
 ---
 
@@ -157,7 +158,7 @@ async decrypt(encryptedData)
 async getPublicKey()
 ```
 
-- 获取公钥
+* 获取公钥
 
 ---
 
@@ -167,57 +168,57 @@ async getPublicKey()
 async getDeviceInfo()
 ```
 
-- 获取设备信息
+* 获取设备信息
 
 ---
 
 ## lock()
 
 ```javascript
-lock();
+lock()
 ```
 
-- 锁定U盾
+* 锁定U盾
 
 ---
 
 ## isUnlocked()
 
 ```javascript
-isUnlocked();
+isUnlocked()
 ```
 
-- 检查是否已解锁
+* 检查是否已解锁
 
 ---
 
 ## getDriverType()
 
 ```javascript
-getDriverType();
+getDriverType()
 ```
 
-- 获取当前驱动类型
+* 获取当前驱动类型
 
 ---
 
 ## getDriverName()
 
 ```javascript
-getDriverName();
+getDriverName()
 ```
 
-- 获取当前驱动名称
+* 获取当前驱动名称
 
 ---
 
 ## getDriverVersion()
 
 ```javascript
-getDriverVersion();
+getDriverVersion()
 ```
 
-- 获取当前驱动版本
+* 获取当前驱动版本
 
 ---
 
@@ -227,27 +228,29 @@ getDriverVersion();
 async close()
 ```
 
-- 关闭管理器
+* 关闭管理器
 
 ---
 
 ## startDeviceMonitor(interval = 5000)
 
 ```javascript
-startDeviceMonitor((interval = 5000));
+startDeviceMonitor(interval = 5000)
 ```
 
-- ## 监听设备变化（热插拔）
-  - 使用轮询方式检测设备变化
+* 监听设备变化（热插拔）
+   *
+   * 使用轮询方式检测设备变化
 
 ---
 
 ## stopDeviceMonitor()
 
 ```javascript
-stopDeviceMonitor();
+stopDeviceMonitor()
 ```
 
-- 停止设备监听
+* 停止设备监听
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/social/social-ipc.js`
 
-**Generated**: 2026-04-20T10:46:39.721Z
+**Generated**: 2026-04-21T04:11:31.422Z
 
 ---
 
@@ -12,11 +12,11 @@
 import
 ```
 
-- Social IPC 处理器
-- 负责处理社交网络相关的前后端通信
--
-- @module social-ipc
-- @description 提供联系人管理、好友关系、动态发布、聊天消息、群聊等社交功能的 IPC 接口
+* Social IPC 处理器
+ * 负责处理社交网络相关的前后端通信
+ *
+ * @module social-ipc
+ * @description 提供联系人管理、好友关系、动态发布、聊天消息、群聊等社交功能的 IPC 接口
 
 ---
 
@@ -26,36 +26,36 @@ import
 function registerSocialIPC(
 ```
 
-- 注册所有 Social IPC 处理器
-- @param {Object} dependencies - 依赖对象
-- @param {Object} dependencies.contactManager - 联系人管理器
-- @param {Object} dependencies.friendManager - 好友管理器
-- @param {Object} dependencies.postManager - 动态管理器
-- @param {Object} dependencies.database - 数据库管理器（用于聊天功能）
-- @param {Object} dependencies.groupChatManager - 群聊管理器
-- @param {Object} [dependencies.ipcMain] - Injected ipcMain (for testing)
+* 注册所有 Social IPC 处理器
+ * @param {Object} dependencies - 依赖对象
+ * @param {Object} dependencies.contactManager - 联系人管理器
+ * @param {Object} dependencies.friendManager - 好友管理器
+ * @param {Object} dependencies.postManager - 动态管理器
+ * @param {Object} dependencies.database - 数据库管理器（用于聊天功能）
+ * @param {Object} dependencies.groupChatManager - 群聊管理器
+ * @param {Object} [dependencies.ipcMain] - Injected ipcMain (for testing)
 
 ---
 
-## ipcMain.handle("contact:add", async (\_event, contact) =>
+## ipcMain.handle("contact:add", async (_event, contact) =>
 
 ```javascript
 ipcMain.handle("contact:add", async (_event, contact) =>
 ```
 
-- 添加联系人
-  - Channel: 'contact:add'
+* 添加联系人
+   * Channel: 'contact:add'
 
 ---
 
-## ipcMain.handle("contact:add-from-qr", async (\_event, qrData) =>
+## ipcMain.handle("contact:add-from-qr", async (_event, qrData) =>
 
 ```javascript
 ipcMain.handle("contact:add-from-qr", async (_event, qrData) =>
 ```
 
-- 从二维码添加联系人
-  - Channel: 'contact:add-from-qr'
+* 从二维码添加联系人
+   * Channel: 'contact:add-from-qr'
 
 ---
 
@@ -65,52 +65,52 @@ ipcMain.handle("contact:add-from-qr", async (_event, qrData) =>
 ipcMain.handle("contact:get-all", async () =>
 ```
 
-- 获取所有联系人
-  - Channel: 'contact:get-all'
+* 获取所有联系人
+   * Channel: 'contact:get-all'
 
 ---
 
-## ipcMain.handle("contact:get", async (\_event, did) =>
+## ipcMain.handle("contact:get", async (_event, did) =>
 
 ```javascript
 ipcMain.handle("contact:get", async (_event, did) =>
 ```
 
-- 根据 DID 获取联系人
-  - Channel: 'contact:get'
+* 根据 DID 获取联系人
+   * Channel: 'contact:get'
 
 ---
 
-## ipcMain.handle("contact:update", async (\_event, did, updates) =>
+## ipcMain.handle("contact:update", async (_event, did, updates) =>
 
 ```javascript
 ipcMain.handle("contact:update", async (_event, did, updates) =>
 ```
 
-- 更新联系人信息
-  - Channel: 'contact:update'
+* 更新联系人信息
+   * Channel: 'contact:update'
 
 ---
 
-## ipcMain.handle("contact:delete", async (\_event, did) =>
+## ipcMain.handle("contact:delete", async (_event, did) =>
 
 ```javascript
 ipcMain.handle("contact:delete", async (_event, did) =>
 ```
 
-- 删除联系人
-  - Channel: 'contact:delete'
+* 删除联系人
+   * Channel: 'contact:delete'
 
 ---
 
-## ipcMain.handle("contact:search", async (\_event, query) =>
+## ipcMain.handle("contact:search", async (_event, query) =>
 
 ```javascript
 ipcMain.handle("contact:search", async (_event, query) =>
 ```
 
-- 搜索联系人
-  - Channel: 'contact:search'
+* 搜索联系人
+   * Channel: 'contact:search'
 
 ---
 
@@ -120,8 +120,8 @@ ipcMain.handle("contact:search", async (_event, query) =>
 ipcMain.handle("contact:get-friends", async () =>
 ```
 
-- 获取好友列表（通过联系人管理器）
-  - Channel: 'contact:get-friends'
+* 获取好友列表（通过联系人管理器）
+   * Channel: 'contact:get-friends'
 
 ---
 
@@ -131,41 +131,41 @@ ipcMain.handle("contact:get-friends", async () =>
 ipcMain.handle("contact:get-statistics", async () =>
 ```
 
-- 获取联系人统计信息
-  - Channel: 'contact:get-statistics'
+* 获取联系人统计信息
+   * Channel: 'contact:get-statistics'
 
 ---
 
-## ipcMain.handle("friend:send-request", async (\_event, targetDid, message) =>
+## ipcMain.handle("friend:send-request", async (_event, targetDid, message) =>
 
 ```javascript
 ipcMain.handle("friend:send-request", async (_event, targetDid, message) =>
 ```
 
-- 发送好友请求
-  - Channel: 'friend:send-request'
+* 发送好友请求
+   * Channel: 'friend:send-request'
 
 ---
 
-## ipcMain.handle("friend:accept-request", async (\_event, requestId) =>
+## ipcMain.handle("friend:accept-request", async (_event, requestId) =>
 
 ```javascript
 ipcMain.handle("friend:accept-request", async (_event, requestId) =>
 ```
 
-- 接受好友请求
-  - Channel: 'friend:accept-request'
+* 接受好友请求
+   * Channel: 'friend:accept-request'
 
 ---
 
-## ipcMain.handle("friend:reject-request", async (\_event, requestId) =>
+## ipcMain.handle("friend:reject-request", async (_event, requestId) =>
 
 ```javascript
 ipcMain.handle("friend:reject-request", async (_event, requestId) =>
 ```
 
-- 拒绝好友请求
-  - Channel: 'friend:reject-request'
+* 拒绝好友请求
+   * Channel: 'friend:reject-request'
 
 ---
 
@@ -175,19 +175,19 @@ ipcMain.handle("friend:reject-request", async (_event, requestId) =>
 ipcMain.handle("friend:get-pending-requests", async () =>
 ```
 
-- 获取待处理的好友请求
-  - Channel: 'friend:get-pending-requests'
+* 获取待处理的好友请求
+   * Channel: 'friend:get-pending-requests'
 
 ---
 
-## ipcMain.handle("friend:get-friends", async (\_event, groupName) =>
+## ipcMain.handle("friend:get-friends", async (_event, groupName) =>
 
 ```javascript
 ipcMain.handle("friend:get-friends", async (_event, groupName) =>
 ```
 
-- 获取好友列表（可按分组过滤）
-  - Channel: 'friend:get-friends'
+* 获取好友列表（可按分组过滤）
+   * Channel: 'friend:get-friends'
 
 ---
 
@@ -197,19 +197,19 @@ ipcMain.handle("friend:get-friends", async (_event, groupName) =>
 ipcMain.handle("friend:get-list", async () =>
 ```
 
-- 获取好友列表（返回包装格式，供前端使用）
-  - Channel: 'friend:get-list'
+* 获取好友列表（返回包装格式，供前端使用）
+   * Channel: 'friend:get-list'
 
 ---
 
-## ipcMain.handle("friend:remove", async (\_event, friendDid) =>
+## ipcMain.handle("friend:remove", async (_event, friendDid) =>
 
 ```javascript
 ipcMain.handle("friend:remove", async (_event, friendDid) =>
 ```
 
-- 删除好友
-  - Channel: 'friend:remove'
+* 删除好友
+   * Channel: 'friend:remove'
 
 ---
 
@@ -219,8 +219,8 @@ ipcMain.handle("friend:remove", async (_event, friendDid) =>
 ipcMain.handle(
 ```
 
-- 更新好友备注
-  - Channel: 'friend:update-nickname'
+* 更新好友备注
+   * Channel: 'friend:update-nickname'
 
 ---
 
@@ -230,8 +230,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 更新好友分组
-  - Channel: 'friend:update-group'
+* 更新好友分组
+   * Channel: 'friend:update-group'
 
 ---
 
@@ -241,19 +241,19 @@ ipcMain.handle(
 ipcMain.handle("friend:get-statistics", async () =>
 ```
 
-- 获取好友统计信息
-  - Channel: 'friend:get-statistics'
+* 获取好友统计信息
+   * Channel: 'friend:get-statistics'
 
 ---
 
-## ipcMain.handle("social:getTrustScore", async (\_event, friendDid) =>
+## ipcMain.handle("social:getTrustScore", async (_event, friendDid) =>
 
 ```javascript
 ipcMain.handle("social:getTrustScore", async (_event, friendDid) =>
 ```
 
-- 获取信任分
-  - Channel: 'social:getTrustScore'
+* 获取信任分
+   * Channel: 'social:getTrustScore'
 
 ---
 
@@ -263,8 +263,8 @@ ipcMain.handle("social:getTrustScore", async (_event, friendDid) =>
 ipcMain.handle(
 ```
 
-- 更新信任分
-  - Channel: 'social:updateTrustScore'
+* 更新信任分
+   * Channel: 'social:updateTrustScore'
 
 ---
 
@@ -274,85 +274,85 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 记录信任交互
-  - Channel: 'social:recordTrustInteraction'
+* 记录信任交互
+   * Channel: 'social:recordTrustInteraction'
 
 ---
 
-## ipcMain.handle("post:create", async (\_event, options) =>
+## ipcMain.handle("post:create", async (_event, options) =>
 
 ```javascript
 ipcMain.handle("post:create", async (_event, options) =>
 ```
 
-- 发布动态
-  - Channel: 'post:create'
+* 发布动态
+   * Channel: 'post:create'
 
 ---
 
-## ipcMain.handle("post:get-feed", async (\_event, options) =>
+## ipcMain.handle("post:get-feed", async (_event, options) =>
 
 ```javascript
 ipcMain.handle("post:get-feed", async (_event, options) =>
 ```
 
-- 获取动态流
-  - Channel: 'post:get-feed'
+* 获取动态流
+   * Channel: 'post:get-feed'
 
 ---
 
-## ipcMain.handle("post:get", async (\_event, postId) =>
+## ipcMain.handle("post:get", async (_event, postId) =>
 
 ```javascript
 ipcMain.handle("post:get", async (_event, postId) =>
 ```
 
-- 获取单条动态
-  - Channel: 'post:get'
+* 获取单条动态
+   * Channel: 'post:get'
 
 ---
 
-## ipcMain.handle("post:delete", async (\_event, postId) =>
+## ipcMain.handle("post:delete", async (_event, postId) =>
 
 ```javascript
 ipcMain.handle("post:delete", async (_event, postId) =>
 ```
 
-- 删除动态
-  - Channel: 'post:delete'
+* 删除动态
+   * Channel: 'post:delete'
 
 ---
 
-## ipcMain.handle("post:like", async (\_event, postId) =>
+## ipcMain.handle("post:like", async (_event, postId) =>
 
 ```javascript
 ipcMain.handle("post:like", async (_event, postId) =>
 ```
 
-- 点赞动态
-  - Channel: 'post:like'
+* 点赞动态
+   * Channel: 'post:like'
 
 ---
 
-## ipcMain.handle("post:unlike", async (\_event, postId) =>
+## ipcMain.handle("post:unlike", async (_event, postId) =>
 
 ```javascript
 ipcMain.handle("post:unlike", async (_event, postId) =>
 ```
 
-- 取消点赞
-  - Channel: 'post:unlike'
+* 取消点赞
+   * Channel: 'post:unlike'
 
 ---
 
-## ipcMain.handle("post:get-likes", async (\_event, postId) =>
+## ipcMain.handle("post:get-likes", async (_event, postId) =>
 
 ```javascript
 ipcMain.handle("post:get-likes", async (_event, postId) =>
 ```
 
-- 获取点赞列表
-  - Channel: 'post:get-likes'
+* 获取点赞列表
+   * Channel: 'post:get-likes'
 
 ---
 
@@ -362,30 +362,30 @@ ipcMain.handle("post:get-likes", async (_event, postId) =>
 ipcMain.handle(
 ```
 
-- 添加评论
-  - Channel: 'post:add-comment'
+* 添加评论
+   * Channel: 'post:add-comment'
 
 ---
 
-## ipcMain.handle("post:get-comments", async (\_event, postId) =>
+## ipcMain.handle("post:get-comments", async (_event, postId) =>
 
 ```javascript
 ipcMain.handle("post:get-comments", async (_event, postId) =>
 ```
 
-- 获取评论列表
-  - Channel: 'post:get-comments'
+* 获取评论列表
+   * Channel: 'post:get-comments'
 
 ---
 
-## ipcMain.handle("post:delete-comment", async (\_event, commentId) =>
+## ipcMain.handle("post:delete-comment", async (_event, commentId) =>
 
 ```javascript
 ipcMain.handle("post:delete-comment", async (_event, commentId) =>
 ```
 
-- 删除评论
-  - Channel: 'post:delete-comment'
+* 删除评论
+   * Channel: 'post:delete-comment'
 
 ---
 
@@ -395,8 +395,8 @@ ipcMain.handle("post:delete-comment", async (_event, commentId) =>
 ipcMain.handle("chat:get-sessions", async () =>
 ```
 
-- 获取聊天会话列表
-  - Channel: 'chat:get-sessions'
+* 获取聊天会话列表
+   * Channel: 'chat:get-sessions'
 
 ---
 
@@ -406,19 +406,19 @@ ipcMain.handle("chat:get-sessions", async () =>
 ipcMain.handle(
 ```
 
-- 获取聊天消息
-  - Channel: 'chat:get-messages'
+* 获取聊天消息
+   * Channel: 'chat:get-messages'
 
 ---
 
-## ipcMain.handle("chat:save-message", async (\_event, message) =>
+## ipcMain.handle("chat:save-message", async (_event, message) =>
 
 ```javascript
 ipcMain.handle("chat:save-message", async (_event, message) =>
 ```
 
-- 保存聊天消息
-  - Channel: 'chat:save-message'
+* 保存聊天消息
+   * Channel: 'chat:save-message'
 
 ---
 
@@ -428,19 +428,19 @@ ipcMain.handle("chat:save-message", async (_event, message) =>
 ipcMain.handle(
 ```
 
-- 更新消息状态
-  - Channel: 'chat:update-message-status'
+* 更新消息状态
+   * Channel: 'chat:update-message-status'
 
 ---
 
-## ipcMain.handle("chat:mark-as-read", async (\_event, sessionId) =>
+## ipcMain.handle("chat:mark-as-read", async (_event, sessionId) =>
 
 ```javascript
 ipcMain.handle("chat:mark-as-read", async (_event, sessionId) =>
 ```
 
-- 标记会话为已读
-  - Channel: 'chat:mark-as-read'
+* 标记会话为已读
+   * Channel: 'chat:mark-as-read'
 
 ---
 
@@ -450,8 +450,8 @@ ipcMain.handle("chat:mark-as-read", async (_event, sessionId) =>
 ipcMain.handle(
 ```
 
-- 添加消息表情回应
-  - Channel: 'chat:add-reaction'
+* 添加消息表情回应
+   * Channel: 'chat:add-reaction'
 
 ---
 
@@ -461,41 +461,41 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 移除消息表情回应
-  - Channel: 'chat:remove-reaction'
+* 移除消息表情回应
+   * Channel: 'chat:remove-reaction'
 
 ---
 
-## ipcMain.handle("chat:get-reactions", async (\_event, messageId) =>
+## ipcMain.handle("chat:get-reactions", async (_event, messageId) =>
 
 ```javascript
 ipcMain.handle("chat:get-reactions", async (_event, messageId) =>
 ```
 
-- 获取消息的所有表情回应
-  - Channel: 'chat:get-reactions'
+* 获取消息的所有表情回应
+   * Channel: 'chat:get-reactions'
 
 ---
 
-## ipcMain.handle("chat:get-reaction-stats", async (\_event, messageId) =>
+## ipcMain.handle("chat:get-reaction-stats", async (_event, messageId) =>
 
 ```javascript
 ipcMain.handle("chat:get-reaction-stats", async (_event, messageId) =>
 ```
 
-- 获取消息的表情回应统计
-  - Channel: 'chat:get-reaction-stats'
+* 获取消息的表情回应统计
+   * Channel: 'chat:get-reaction-stats'
 
 ---
 
-## ipcMain.handle("group:create", async (\_event, options) =>
+## ipcMain.handle("group:create", async (_event, options) =>
 
 ```javascript
 ipcMain.handle("group:create", async (_event, options) =>
 ```
 
-- 创建群聊
-  - Channel: 'group:create'
+* 创建群聊
+   * Channel: 'group:create'
 
 ---
 
@@ -505,30 +505,30 @@ ipcMain.handle("group:create", async (_event, options) =>
 ipcMain.handle("group:get-list", async () =>
 ```
 
-- 获取群聊列表
-  - Channel: 'group:get-list'
+* 获取群聊列表
+   * Channel: 'group:get-list'
 
 ---
 
-## ipcMain.handle("group:get-details", async (\_event, groupId) =>
+## ipcMain.handle("group:get-details", async (_event, groupId) =>
 
 ```javascript
 ipcMain.handle("group:get-details", async (_event, groupId) =>
 ```
 
-- 获取群聊详情
-  - Channel: 'group:get-details'
+* 获取群聊详情
+   * Channel: 'group:get-details'
 
 ---
 
-## ipcMain.handle("group:update-info", async (\_event, groupId, updates) =>
+## ipcMain.handle("group:update-info", async (_event, groupId, updates) =>
 
 ```javascript
 ipcMain.handle("group:update-info", async (_event, groupId, updates) =>
 ```
 
-- 更新群信息
-  - Channel: 'group:update-info'
+* 更新群信息
+   * Channel: 'group:update-info'
 
 ---
 
@@ -538,41 +538,41 @@ ipcMain.handle("group:update-info", async (_event, groupId, updates) =>
 ipcMain.handle(
 ```
 
-- 添加群成员
-  - Channel: 'group:add-member'
+* 添加群成员
+   * Channel: 'group:add-member'
 
 ---
 
-## ipcMain.handle("group:remove-member", async (\_event, groupId, memberDid) =>
+## ipcMain.handle("group:remove-member", async (_event, groupId, memberDid) =>
 
 ```javascript
 ipcMain.handle("group:remove-member", async (_event, groupId, memberDid) =>
 ```
 
-- 移除群成员
-  - Channel: 'group:remove-member'
+* 移除群成员
+   * Channel: 'group:remove-member'
 
 ---
 
-## ipcMain.handle("group:leave", async (\_event, groupId) =>
+## ipcMain.handle("group:leave", async (_event, groupId) =>
 
 ```javascript
 ipcMain.handle("group:leave", async (_event, groupId) =>
 ```
 
-- 退出群聊
-  - Channel: 'group:leave'
+* 退出群聊
+   * Channel: 'group:leave'
 
 ---
 
-## ipcMain.handle("group:dismiss", async (\_event, groupId) =>
+## ipcMain.handle("group:dismiss", async (_event, groupId) =>
 
 ```javascript
 ipcMain.handle("group:dismiss", async (_event, groupId) =>
 ```
 
-- 解散群聊
-  - Channel: 'group:dismiss'
+* 解散群聊
+   * Channel: 'group:dismiss'
 
 ---
 
@@ -582,8 +582,8 @@ ipcMain.handle("group:dismiss", async (_event, groupId) =>
 ipcMain.handle(
 ```
 
-- 发送群消息
-  - Channel: 'group:send-message'
+* 发送群消息
+   * Channel: 'group:send-message'
 
 ---
 
@@ -593,8 +593,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 获取群消息
-  - Channel: 'group:get-messages'
+* 获取群消息
+   * Channel: 'group:get-messages'
 
 ---
 
@@ -604,8 +604,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 标记群消息为已读
-  - Channel: 'group:mark-message-read'
+* 标记群消息为已读
+   * Channel: 'group:mark-message-read'
 
 ---
 
@@ -615,41 +615,41 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 邀请成员加入群聊
-  - Channel: 'group:invite-member'
+* 邀请成员加入群聊
+   * Channel: 'group:invite-member'
 
 ---
 
-## ipcMain.handle("group:accept-invitation", async (\_event, invitationId) =>
+## ipcMain.handle("group:accept-invitation", async (_event, invitationId) =>
 
 ```javascript
 ipcMain.handle("group:accept-invitation", async (_event, invitationId) =>
 ```
 
-- 接受群聊邀请
-  - Channel: 'group:accept-invitation'
+* 接受群聊邀请
+   * Channel: 'group:accept-invitation'
 
 ---
 
-## ipcMain.handle("group:reject-invitation", async (\_event, invitationId) =>
+## ipcMain.handle("group:reject-invitation", async (_event, invitationId) =>
 
 ```javascript
 ipcMain.handle("group:reject-invitation", async (_event, invitationId) =>
 ```
 
-- 拒绝群聊邀请
-  - Channel: 'group:reject-invitation'
+* 拒绝群聊邀请
+   * Channel: 'group:reject-invitation'
 
 ---
 
-## ipcMain.handle("group:get-invitations", async (\_event, inviteeDid) =>
+## ipcMain.handle("group:get-invitations", async (_event, inviteeDid) =>
 
 ```javascript
 ipcMain.handle("group:get-invitations", async (_event, inviteeDid) =>
 ```
 
-- 获取群聊邀请列表
-  - Channel: 'group:get-invitations'
+* 获取群聊邀请列表
+   * Channel: 'group:get-invitations'
 
 ---
 
@@ -659,8 +659,8 @@ ipcMain.handle("group:get-invitations", async (_event, inviteeDid) =>
 ipcMain.handle(
 ```
 
-- 发送文件消息（图片/文件）
-  - Channel: 'chat:send-file'
+* 发送文件消息（图片/文件）
+   * Channel: 'chat:send-file'
 
 ---
 
@@ -670,19 +670,19 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 选择并发送图片
-  - Channel: 'chat:select-and-send-image'
+* 选择并发送图片
+   * Channel: 'chat:select-and-send-image'
 
 ---
 
-## ipcMain.handle("chat:select-and-send-file", async (\_event,
+## ipcMain.handle("chat:select-and-send-file", async (_event,
 
 ```javascript
 ipcMain.handle("chat:select-and-send-file", async (_event,
 ```
 
-- 选择并发送文件
-  - Channel: 'chat:select-and-send-file'
+* 选择并发送文件
+   * Channel: 'chat:select-and-send-file'
 
 ---
 
@@ -692,8 +692,8 @@ ipcMain.handle("chat:select-and-send-file", async (_event,
 ipcMain.handle(
 ```
 
-- 下载文件
-  - Channel: 'chat:download-file'
+* 下载文件
+   * Channel: 'chat:download-file'
 
 ---
 
@@ -703,8 +703,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 转发消息
-  - Channel: 'chat:forward-message'
+* 转发消息
+   * Channel: 'chat:forward-message'
 
 ---
 
@@ -714,19 +714,19 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- 获取文件传输进度
-  - Channel: 'chat:get-transfer-progress'
+* 获取文件传输进度
+   * Channel: 'chat:get-transfer-progress'
 
 ---
 
-## ipcMain.handle("chat:cancel-transfer", async (\_event,
+## ipcMain.handle("chat:cancel-transfer", async (_event,
 
 ```javascript
 ipcMain.handle("chat:cancel-transfer", async (_event,
 ```
 
-- 取消文件传输
-  - Channel: 'chat:cancel-transfer'
+* 取消文件传输
+   * Channel: 'chat:cancel-transfer'
 
 ---
 
@@ -736,19 +736,19 @@ ipcMain.handle("chat:cancel-transfer", async (_event,
 ipcMain.handle(
 ```
 
-- 接受文件传输
-  - Channel: 'chat:accept-transfer'
+* 接受文件传输
+   * Channel: 'chat:accept-transfer'
 
 ---
 
-## ipcMain.handle("chat:play-voice-message", async (\_event,
+## ipcMain.handle("chat:play-voice-message", async (_event,
 
 ```javascript
 ipcMain.handle("chat:play-voice-message", async (_event,
 ```
 
-- 播放语音消息
-  - Channel: 'chat:play-voice-message'
+* 播放语音消息
+   * Channel: 'chat:play-voice-message'
 
 ---
 
@@ -758,8 +758,8 @@ ipcMain.handle("chat:play-voice-message", async (_event,
 ipcMain.handle(
 ```
 
-- AI Enhanced Reply
-  - Channel: 'social-ai:enhanced-reply'
+* AI Enhanced Reply
+   * Channel: 'social-ai:enhanced-reply'
 
 ---
 
@@ -769,8 +769,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- AI Multi-Style Replies
-  - Channel: 'social-ai:multi-style-replies'
+* AI Multi-Style Replies
+   * Channel: 'social-ai:multi-style-replies'
 
 ---
 
@@ -780,30 +780,30 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Topic Analysis
-  - Channel: 'social-ai:analyze-topics'
+* Topic Analysis
+   * Channel: 'social-ai:analyze-topics'
 
 ---
 
-## ipcMain.handle("social-ai:trending-topics", async (\_event, options) =>
+## ipcMain.handle("social-ai:trending-topics", async (_event, options) =>
 
 ```javascript
 ipcMain.handle("social-ai:trending-topics", async (_event, options) =>
 ```
 
-- Get Trending Topics
-  - Channel: 'social-ai:trending-topics'
+* Get Trending Topics
+   * Channel: 'social-ai:trending-topics'
 
 ---
 
-## ipcMain.handle("social-ai:batch-sentiment", async (\_event,
+## ipcMain.handle("social-ai:batch-sentiment", async (_event,
 
 ```javascript
 ipcMain.handle("social-ai:batch-sentiment", async (_event,
 ```
 
-- Batch Sentiment Analysis
-  - Channel: 'social-ai:batch-sentiment'
+* Batch Sentiment Analysis
+   * Channel: 'social-ai:batch-sentiment'
 
 ---
 
@@ -813,8 +813,8 @@ ipcMain.handle("social-ai:batch-sentiment", async (_event,
 ipcMain.handle(
 ```
 
-- Record Social Interaction
-  - Channel: 'social-ai:record-interaction'
+* Record Social Interaction
+   * Channel: 'social-ai:record-interaction'
 
 ---
 
@@ -824,107 +824,107 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Get Closest Contacts
-  - Channel: 'social-ai:closest-contacts'
+* Get Closest Contacts
+   * Channel: 'social-ai:closest-contacts'
 
 ---
 
-## ipcMain.handle("social-ai:get-graph", async (\_event,
+## ipcMain.handle("social-ai:get-graph", async (_event,
 
 ```javascript
 ipcMain.handle("social-ai:get-graph", async (_event,
 ```
 
-- Get Social Graph
-  - Channel: 'social-ai:get-graph'
+* Get Social Graph
+   * Channel: 'social-ai:get-graph'
 
 ---
 
-## ipcMain.handle("ap:create-actor", async (\_event,
+## ipcMain.handle("ap:create-actor", async (_event,
 
 ```javascript
 ipcMain.handle("ap:create-actor", async (_event,
 ```
 
-- Create ActivityPub Actor
-  - Channel: 'ap:create-actor'
+* Create ActivityPub Actor
+   * Channel: 'ap:create-actor'
 
 ---
 
-## ipcMain.handle("ap:get-actor", async (\_event,
+## ipcMain.handle("ap:get-actor", async (_event,
 
 ```javascript
 ipcMain.handle("ap:get-actor", async (_event,
 ```
 
-- Get Actor Document
-  - Channel: 'ap:get-actor'
+* Get Actor Document
+   * Channel: 'ap:get-actor'
 
 ---
 
-## ipcMain.handle("ap:publish-post", async (\_event,
+## ipcMain.handle("ap:publish-post", async (_event,
 
 ```javascript
 ipcMain.handle("ap:publish-post", async (_event,
 ```
 
-- Publish Post to ActivityPub
-  - Channel: 'ap:publish-post'
+* Publish Post to ActivityPub
+   * Channel: 'ap:publish-post'
 
 ---
 
-## ipcMain.handle("ap:publish-like", async (\_event,
+## ipcMain.handle("ap:publish-like", async (_event,
 
 ```javascript
 ipcMain.handle("ap:publish-like", async (_event,
 ```
 
-- Publish Like
-  - Channel: 'ap:publish-like'
+* Publish Like
+   * Channel: 'ap:publish-like'
 
 ---
 
-## ipcMain.handle("ap:publish-boost", async (\_event,
+## ipcMain.handle("ap:publish-boost", async (_event,
 
 ```javascript
 ipcMain.handle("ap:publish-boost", async (_event,
 ```
 
-- Publish Boost
-  - Channel: 'ap:publish-boost'
+* Publish Boost
+   * Channel: 'ap:publish-boost'
 
 ---
 
-## ipcMain.handle("ap:follow", async (\_event,
+## ipcMain.handle("ap:follow", async (_event,
 
 ```javascript
 ipcMain.handle("ap:follow", async (_event,
 ```
 
-- Follow Remote Actor
-  - Channel: 'ap:follow'
+* Follow Remote Actor
+   * Channel: 'ap:follow'
 
 ---
 
-## ipcMain.handle("ap:webfinger-lookup", async (\_event,
+## ipcMain.handle("ap:webfinger-lookup", async (_event,
 
 ```javascript
 ipcMain.handle("ap:webfinger-lookup", async (_event,
 ```
 
-- WebFinger Lookup
-  - Channel: 'ap:webfinger-lookup'
+* WebFinger Lookup
+   * Channel: 'ap:webfinger-lookup'
 
 ---
 
-## ipcMain.handle("ap:get-outbox", async (\_event,
+## ipcMain.handle("ap:get-outbox", async (_event,
 
 ```javascript
 ipcMain.handle("ap:get-outbox", async (_event,
 ```
 
-- Get Outbox
-  - Channel: 'ap:get-outbox'
+* Get Outbox
+   * Channel: 'ap:get-outbox'
 
 ---
 
@@ -934,8 +934,8 @@ ipcMain.handle("ap:get-outbox", async (_event,
 ipcMain.handle("ap:sync-status", async () =>
 ```
 
-- Get Sync Status
-  - Channel: 'ap:sync-status'
+* Get Sync Status
+   * Channel: 'ap:sync-status'
 
 ---
 
@@ -945,7 +945,8 @@ ipcMain.handle("ap:sync-status", async () =>
 ipcMain.handle("ap:sync-now", async () =>
 ```
 
-- Trigger Manual Sync
-  - Channel: 'ap:sync-now'
+* Trigger Manual Sync
+   * Channel: 'ap:sync-now'
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/enhanced-handler-example.js`
 
-**Generated**: 2026-04-20T10:46:39.732Z
+**Generated**: 2026-04-21T04:11:31.434Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-- 增强版Handler使用示例
-- 演示如何使用ToolLogger和ErrorHandler包装工具Handler
+* 增强版Handler使用示例
+ * 演示如何使用ToolLogger和ErrorHandler包装工具Handler
 
 ---
 
@@ -23,8 +23,8 @@ const
 function createEnhancedHandler(options =
 ```
 
-- 创建增强版Handler
-- 自动添加日志记录和错误处理
+* 创建增强版Handler
+ * 自动添加日志记录和错误处理
 
 ---
 
@@ -34,6 +34,7 @@ function createEnhancedHandler(options =
 async function exampleUsage()
 ```
 
-- 使用示例
+* 使用示例
 
 ---
+

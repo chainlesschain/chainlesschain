@@ -2,7 +2,7 @@
 
 **Source**: `src/main/git/git-auto-commit.js`
 
-**Generated**: 2026-04-20T10:46:39.788Z
+**Generated**: 2026-04-21T04:11:31.494Z
 
 ---
 
@@ -12,41 +12,41 @@
 const git = require("isomorphic-git");
 ```
 
-- Git自动提交模块
-- 自动检测文件更改并定期提交
+* Git自动提交模块
+ * 自动检测文件更改并定期提交
 
 ---
 
 ## start(projectId, repoPath)
 
 ```javascript
-start(projectId, repoPath);
+start(projectId, repoPath)
 ```
 
-- 启动自动提交
-  - @param {string} projectId - 项目ID
-  - @param {string} repoPath - 仓库路径
+* 启动自动提交
+   * @param {string} projectId - 项目ID
+   * @param {string} repoPath - 仓库路径
 
 ---
 
 ## stop(projectId)
 
 ```javascript
-stop(projectId);
+stop(projectId)
 ```
 
-- 停止自动提交
-  - @param {string} projectId - 项目ID
+* 停止自动提交
+   * @param {string} projectId - 项目ID
 
 ---
 
 ## stopAll()
 
 ```javascript
-stopAll();
+stopAll()
 ```
 
-- 停止所有自动提交
+* 停止所有自动提交
 
 ---
 
@@ -56,10 +56,10 @@ stopAll();
 async checkAndCommit(projectId, repoPath)
 ```
 
-- 检查并提交更改
-  - @param {string} projectId - 项目ID
-  - @param {string} repoPath - 仓库路径
-  - @private
+* 检查并提交更改
+   * @param {string} projectId - 项目ID
+   * @param {string} repoPath - 仓库路径
+   * @private
 
 ---
 
@@ -69,10 +69,10 @@ async checkAndCommit(projectId, repoPath)
 async isGitRepository(repoPath)
 ```
 
-- 检查是否是Git仓库
-  - @param {string} repoPath - 仓库路径
-  - @returns {Promise<boolean>}
-  - @private
+* 检查是否是Git仓库
+   * @param {string} repoPath - 仓库路径
+   * @returns {Promise<boolean>}
+   * @private
 
 ---
 
@@ -82,10 +82,10 @@ async isGitRepository(repoPath)
 async getStatus(repoPath)
 ```
 
-- 获取Git状态
-  - @param {string} repoPath - 仓库路径
-  - @returns {Promise<Object>} 状态对象
-  - @private
+* 获取Git状态
+   * @param {string} repoPath - 仓库路径
+   * @returns {Promise<Object>} 状态对象
+   * @private
 
 ---
 
@@ -95,9 +95,9 @@ async getStatus(repoPath)
 async addAll(repoPath)
 ```
 
-- 添加所有更改
-  - @param {string} repoPath - 仓库路径
-  - @private
+* 添加所有更改
+   * @param {string} repoPath - 仓库路径
+   * @private
 
 ---
 
@@ -107,66 +107,67 @@ async addAll(repoPath)
 async commit(repoPath, message)
 ```
 
-- 提交更改
-  - @param {string} repoPath - 仓库路径
-  - @param {string} message - 提交消息
-  - @private
+* 提交更改
+   * @param {string} repoPath - 仓库路径
+   * @param {string} message - 提交消息
+   * @private
 
 ---
 
 ## generateCommitMessage(status)
 
 ```javascript
-generateCommitMessage(status);
+generateCommitMessage(status)
 ```
 
-- 生成提交消息
-  - @param {Object} status - Git状态
-  - @returns {string} 提交消息
-  - @private
+* 生成提交消息
+   * @param {Object} status - Git状态
+   * @returns {string} 提交消息
+   * @private
 
 ---
 
 ## setInterval(interval)
 
 ```javascript
-setInterval(interval);
+setInterval(interval)
 ```
 
-- 设置提交间隔
-  - @param {number} interval - 间隔时间（毫秒）
+* 设置提交间隔
+   * @param {number} interval - 间隔时间（毫秒）
 
 ---
 
 ## setEnabled(enabled)
 
 ```javascript
-setEnabled(enabled);
+setEnabled(enabled)
 ```
 
-- 启用/禁用自动提交
-  - @param {boolean} enabled - 是否启用
+* 启用/禁用自动提交
+   * @param {boolean} enabled - 是否启用
 
 ---
 
 ## setAuthor(author)
 
 ```javascript
-setAuthor(author);
+setAuthor(author)
 ```
 
-- 设置提交作者信息
-  - @param {Object} author - 作者信息
+* 设置提交作者信息
+   * @param {Object} author - 作者信息
 
 ---
 
 ## getWatchedProjects()
 
 ```javascript
-getWatchedProjects();
+getWatchedProjects()
 ```
 
-- 获取监视的项目列表
-  - @returns {Array} 项目列表
+* 获取监视的项目列表
+   * @returns {Array} 项目列表
 
 ---
+

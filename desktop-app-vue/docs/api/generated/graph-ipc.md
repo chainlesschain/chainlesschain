@@ -2,7 +2,7 @@
 
 **Source**: `src/main/knowledge-graph/graph-ipc.js`
 
-**Generated**: 2026-04-20T10:46:39.777Z
+**Generated**: 2026-04-21T04:11:31.482Z
 
 ---
 
@@ -12,10 +12,10 @@
 const
 ```
 
-- Knowledge Graph IPC Handlers
-- 知识图谱系统 IPC 处理器
--
-- 提供11个IPC处理器用于知识图谱的构建、查询和管理
+* Knowledge Graph IPC Handlers
+ * 知识图谱系统 IPC 处理器
+ *
+ * 提供11个IPC处理器用于知识图谱的构建、查询和管理
 
 ---
 
@@ -25,10 +25,11 @@ const
 function registerGraphIPC(context)
 ```
 
-- 注册知识图谱相关的IPC处理器
-- @param {Object} context - 上下文对象
-- @param {Object} context.database - 数据库管理器实例
-- @param {Object} context.graphExtractor - 图谱提取器实例
-- @param {Object} context.llmManager - LLM管理器实例
+* 注册知识图谱相关的IPC处理器
+ * @param {Object} context - 上下文对象
+ * @param {Object} context.database - 数据库管理器实例
+ * @param {Object} context.graphExtractor - 图谱提取器实例
+ * @param {Object} context.llmManager - LLM管理器实例
 
 ---
+

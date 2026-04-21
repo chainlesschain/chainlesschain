@@ -2,7 +2,7 @@
 
 **Source**: `src/main/api/network-interceptor.js`
 
-**Generated**: 2026-04-20T10:46:39.831Z
+**Generated**: 2026-04-21T04:11:31.538Z
 
 ---
 
@@ -12,128 +12,128 @@
 const
 ```
 
-- 网络请求拦截器
-- 拦截和管理应用的网络请求
+* 网络请求拦截器
+ * 拦截和管理应用的网络请求
 
 ---
 
 ## init()
 
 ```javascript
-init();
+init()
 ```
 
-- 初始化拦截器
+* 初始化拦截器
 
 ---
 
 ## handleBeforeRequest(details, callback)
 
 ```javascript
-handleBeforeRequest(details, callback);
+handleBeforeRequest(details, callback)
 ```
 
-- 处理请求前
+* 处理请求前
 
 ---
 
 ## handleHeadersReceived(details, callback)
 
 ```javascript
-handleHeadersReceived(details, callback);
+handleHeadersReceived(details, callback)
 ```
 
-- 处理响应头
+* 处理响应头
 
 ---
 
 ## handleCompleted(details)
 
 ```javascript
-handleCompleted(details);
+handleCompleted(details)
 ```
 
-- 处理请求完成
+* 处理请求完成
 
 ---
 
 ## handleError(details)
 
 ```javascript
-handleError(details);
+handleError(details)
 ```
 
-- 处理请求错误
+* 处理请求错误
 
 ---
 
 ## matchRule(rule, details)
 
 ```javascript
-matchRule(rule, details);
+matchRule(rule, details)
 ```
 
-- 匹配规则
+* 匹配规则
 
 ---
 
 ## addRule(rule)
 
 ```javascript
-addRule(rule);
+addRule(rule)
 ```
 
-- 添加拦截规则
+* 添加拦截规则
 
 ---
 
 ## removeRule(ruleId)
 
 ```javascript
-removeRule(ruleId);
+removeRule(ruleId)
 ```
 
-- 移除拦截规则
+* 移除拦截规则
 
 ---
 
 ## clearRules()
 
 ```javascript
-clearRules();
+clearRules()
 ```
 
-- 清空所有规则
+* 清空所有规则
 
 ---
 
 ## getRules()
 
 ```javascript
-getRules();
+getRules()
 ```
 
-- 获取所有规则
+* 获取所有规则
 
 ---
 
 ## logRequest(request)
 
 ```javascript
-logRequest(request);
+logRequest(request)
 ```
 
-- 记录请求
+* 记录请求
 
 ---
 
 ## updateRequestLog(id, updates)
 
 ```javascript
-updateRequestLog(id, updates);
+updateRequestLog(id, updates)
 ```
 
-- 更新请求日志
+* 更新请求日志
 
 ---
 
@@ -143,37 +143,37 @@ updateRequestLog(id, updates);
 getRequestLog(filter =
 ```
 
-- 获取请求日志
+* 获取请求日志
 
 ---
 
 ## clearRequestLog()
 
 ```javascript
-clearRequestLog();
+clearRequestLog()
 ```
 
-- 清空请求日志
+* 清空请求日志
 
 ---
 
 ## getStatistics()
 
 ```javascript
-getStatistics();
+getStatistics()
 ```
 
-- 获取统计信息
+* 获取统计信息
 
 ---
 
 ## setCache(enabled)
 
 ```javascript
-setCache(enabled);
+setCache(enabled)
 ```
 
-- 设置缓存
+* 设置缓存
 
 ---
 
@@ -183,16 +183,17 @@ setCache(enabled);
 async clearCache()
 ```
 
-- 清除缓存
+* 清除缓存
 
 ---
 
 ## setUserAgent(userAgent)
 
 ```javascript
-setUserAgent(userAgent);
+setUserAgent(userAgent)
 ```
 
-- 设置用户代理
+* 设置用户代理
 
 ---
+

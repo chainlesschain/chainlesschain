@@ -2,7 +2,7 @@
 
 **Source**: `src/main/rag/text-splitter.js`
 
-**Generated**: 2026-04-20T10:46:39.743Z
+**Generated**: 2026-04-21T04:11:31.446Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-- RecursiveCharacterTextSplitter
-- 递归字符文本分块器，用于将长文档切分为小块以提升RAG检索精度
+* RecursiveCharacterTextSplitter
+ * 递归字符文本分块器，用于将长文档切分为小块以提升RAG检索精度
 
 ---
 
@@ -23,7 +23,7 @@ const
 const DEFAULT_SPLITTER_CONFIG =
 ```
 
-- 文本分块器配置
+* 文本分块器配置
 
 ---
 
@@ -33,7 +33,7 @@ const DEFAULT_SPLITTER_CONFIG =
 class RecursiveCharacterTextSplitter extends EventEmitter
 ```
 
-- 递归字符文本分块器
+* 递归字符文本分块器
 
 ---
 
@@ -43,66 +43,66 @@ class RecursiveCharacterTextSplitter extends EventEmitter
 splitText(text, metadata =
 ```
 
-- 分割文本为块
-  - @param {string} text - 输入文本
-  - @param {Object} metadata - 元数据（可选）
-  - @returns {Array<Object>} 文本块数组
+* 分割文本为块
+   * @param {string} text - 输入文本
+   * @param {Object} metadata - 元数据（可选）
+   * @returns {Array<Object>} 文本块数组
 
 ---
 
-## \_recursiveSplit(text, separators)
+## _recursiveSplit(text, separators)
 
 ```javascript
-_recursiveSplit(text, separators);
+_recursiveSplit(text, separators)
 ```
 
-- 递归分割文本
-  - @private
+* 递归分割文本
+   * @private
 
 ---
 
-## \_splitTextWithSeparator(text, separator)
+## _splitTextWithSeparator(text, separator)
 
 ```javascript
-_splitTextWithSeparator(text, separator);
+_splitTextWithSeparator(text, separator)
 ```
 
-- 使用分隔符分割文本
-  - @private
+* 使用分隔符分割文本
+   * @private
 
 ---
 
-## \_mergeSplits(splits, separator)
+## _mergeSplits(splits, separator)
 
 ```javascript
-_mergeSplits(splits, separator);
+_mergeSplits(splits, separator)
 ```
 
-- 合并小片段，避免产生太多碎片
-  - @private
+* 合并小片段，避免产生太多碎片
+   * @private
 
 ---
 
-## \_forceSplit(text)
+## _forceSplit(text)
 
 ```javascript
-_forceSplit(text);
+_forceSplit(text)
 ```
 
-- 强制分割（当没有更多分隔符时）
-  - @private
+* 强制分割（当没有更多分隔符时）
+   * @private
 
 ---
 
 ## splitDocuments(documents)
 
 ```javascript
-splitDocuments(documents);
+splitDocuments(documents)
 ```
 
-- 分割文档列表
-  - @param {Array<Object>} documents - 文档列表 [{content, metadata}, ...]
-  - @returns {Array<Object>} 分块后的文档列表
+* 分割文档列表
+   * @param {Array<Object>} documents - 文档列表 [{content, metadata}, ...]
+   * @returns {Array<Object>} 分块后的文档列表
 
 ---
 
@@ -112,42 +112,42 @@ splitDocuments(documents);
 createChunksWithOverlap(text, metadata =
 ```
 
-- 创建带重叠的文本块
-  - @param {string} text - 输入文本
-  - @param {Object} metadata - 元数据
-  - @returns {Array<Object>} 文本块数组
+* 创建带重叠的文本块
+   * @param {string} text - 输入文本
+   * @param {Object} metadata - 元数据
+   * @returns {Array<Object>} 文本块数组
 
 ---
 
 ## getChunkStats(text)
 
 ```javascript
-getChunkStats(text);
+getChunkStats(text)
 ```
 
-- 获取分块统计信息
-  - @param {string} text - 输入文本
-  - @returns {Object} 统计信息
+* 获取分块统计信息
+   * @param {string} text - 输入文本
+   * @returns {Object} 统计信息
 
 ---
 
 ## updateConfig(newConfig)
 
 ```javascript
-updateConfig(newConfig);
+updateConfig(newConfig)
 ```
 
-- 更新配置
+* 更新配置
 
 ---
 
 ## getConfig()
 
 ```javascript
-getConfig();
+getConfig()
 ```
 
-- 获取当前配置
+* 获取当前配置
 
 ---
 
@@ -157,7 +157,7 @@ getConfig();
 class MarkdownTextSplitter extends RecursiveCharacterTextSplitter
 ```
 
-- Markdown专用分块器
+* Markdown专用分块器
 
 ---
 
@@ -167,7 +167,7 @@ class MarkdownTextSplitter extends RecursiveCharacterTextSplitter
 class CodeTextSplitter extends RecursiveCharacterTextSplitter
 ```
 
-- 代码专用分块器
+* 代码专用分块器
 
 ---
 
@@ -177,6 +177,7 @@ class CodeTextSplitter extends RecursiveCharacterTextSplitter
 static getSeparatorsForLanguage(language)
 ```
 
-- 获取语言特定的分隔符
+* 获取语言特定的分隔符
 
 ---
+

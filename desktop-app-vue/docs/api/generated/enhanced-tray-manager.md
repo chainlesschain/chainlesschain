@@ -2,7 +2,7 @@
 
 **Source**: `src/main/system/enhanced-tray-manager.js`
 
-**Generated**: 2026-04-20T10:46:39.715Z
+**Generated**: 2026-04-21T04:11:31.416Z
 
 ---
 
@@ -12,28 +12,28 @@
 const
 ```
 
-- 增强的系统托盘管理器
-- 提供丰富的托盘菜单和快捷操作
+* 增强的系统托盘管理器
+ * 提供丰富的托盘菜单和快捷操作
 
 ---
 
 ## create()
 
 ```javascript
-create();
+create()
 ```
 
-- 创建托盘
+* 创建托盘
 
 ---
 
 ## getIconPath()
 
 ```javascript
-getIconPath();
+getIconPath()
 ```
 
-- 获取图标路径
+* 获取图标路径
 
 ---
 
@@ -43,116 +43,117 @@ getIconPath();
 updateContextMenu(options =
 ```
 
-- 更新上下文菜单
+* 更新上下文菜单
 
 ---
 
 ## toggleWindow()
 
 ```javascript
-toggleWindow();
+toggleWindow()
 ```
 
-- 切换窗口显示/隐藏
+* 切换窗口显示/隐藏
 
 ---
 
 ## showWindow()
 
 ```javascript
-showWindow();
+showWindow()
 ```
 
-- 显示窗口
+* 显示窗口
 
 ---
 
 ## hideWindow()
 
 ```javascript
-hideWindow();
+hideWindow()
 ```
 
-- 隐藏窗口
+* 隐藏窗口
 
 ---
 
 ## sendToRenderer(channel, ...args)
 
 ```javascript
-sendToRenderer(channel, ...args);
+sendToRenderer(channel, ...args)
 ```
 
-- 发送消息到渲染进程
+* 发送消息到渲染进程
 
 ---
 
 ## setNotificationCount(count)
 
 ```javascript
-setNotificationCount(count);
+setNotificationCount(count)
 ```
 
-- 更新通知计数
+* 更新通知计数
 
 ---
 
 ## startFlashing()
 
 ```javascript
-startFlashing();
+startFlashing()
 ```
 
-- 开始闪烁托盘图标
+* 开始闪烁托盘图标
 
 ---
 
 ## stopFlashing()
 
 ```javascript
-stopFlashing();
+stopFlashing()
 ```
 
-- 停止闪烁托盘图标
+* 停止闪烁托盘图标
 
 ---
 
 ## displayBalloon(title, content, icon = null)
 
 ```javascript
-displayBalloon(title, content, (icon = null));
+displayBalloon(title, content, icon = null)
 ```
 
-- 显示气球通知（Windows）
+* 显示气球通知（Windows）
 
 ---
 
 ## updateSyncStatus(status)
 
 ```javascript
-updateSyncStatus(status);
+updateSyncStatus(status)
 ```
 
-- 更新同步状态
+* 更新同步状态
 
 ---
 
 ## updateMemoryUsage(usage)
 
 ```javascript
-updateMemoryUsage(usage);
+updateMemoryUsage(usage)
 ```
 
-- 更新内存使用
+* 更新内存使用
 
 ---
 
 ## destroy()
 
 ```javascript
-destroy();
+destroy()
 ```
 
-- 销毁托盘
+* 销毁托盘
 
 ---
+

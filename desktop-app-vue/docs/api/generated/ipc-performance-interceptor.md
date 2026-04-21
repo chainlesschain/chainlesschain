@@ -2,7 +2,7 @@
 
 **Source**: `src/main/performance/ipc-performance-interceptor.js`
 
-**Generated**: 2026-04-20T10:46:39.753Z
+**Generated**: 2026-04-21T04:11:31.457Z
 
 ---
 
@@ -12,39 +12,39 @@
 class IPCPerformanceInterceptor
 ```
 
-- IPC性能拦截器
-- 自动跟踪所有IPC调用的性能
+* IPC性能拦截器
+ * 自动跟踪所有IPC调用的性能
 
 ---
 
 ## register(ipcMain)
 
 ```javascript
-register(ipcMain);
+register(ipcMain)
 ```
 
-- 注册IPC性能监控
-  - @param {Electron.IpcMain} ipcMain - Electron IPC主进程对象
+* 注册IPC性能监控
+   * @param {Electron.IpcMain} ipcMain - Electron IPC主进程对象
 
 ---
 
 ## getActiveRequests()
 
 ```javascript
-getActiveRequests();
+getActiveRequests()
 ```
 
-- 获取活动请求
+* 获取活动请求
 
 ---
 
 ## getSlowRequests(threshold = 1000)
 
 ```javascript
-getSlowRequests((threshold = 1000));
+getSlowRequests(threshold = 1000)
 ```
 
-- 获取慢请求
+* 获取慢请求
 
 ---
 
@@ -54,6 +54,7 @@ getSlowRequests((threshold = 1000));
 function getIPCPerformanceInterceptor()
 ```
 
-- 获取IPC性能拦截器实例
+* 获取IPC性能拦截器实例
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/engines/code-executor.js`
 
-**Generated**: 2026-04-20T10:46:39.800Z
+**Generated**: 2026-04-21T04:11:31.505Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-- 代码执行引擎
-- 提供安全的Python代码执行功能
+* 代码执行引擎
+ * 提供安全的Python代码执行功能
 
 ---
 
@@ -23,7 +23,7 @@ const
 async initialize()
 ```
 
-- 初始化代码执行器
+* 初始化代码执行器
 
 ---
 
@@ -33,17 +33,17 @@ async initialize()
 async detectPython()
 ```
 
-- 检测系统中的Python
+* 检测系统中的Python
 
 ---
 
 ## getPythonVersion(command)
 
 ```javascript
-getPythonVersion(command);
+getPythonVersion(command)
 ```
 
-- 获取Python版本
+* 获取Python版本
 
 ---
 
@@ -53,10 +53,10 @@ getPythonVersion(command);
 async executePython(code, options =
 ```
 
-- 执行Python代码
-  - @param {string} code - Python代码
-  - @param {Object} options - 执行选项
-  - @returns {Promise<Object>} 执行结果
+* 执行Python代码
+   * @param {string} code - Python代码
+   * @param {Object} options - 执行选项
+   * @returns {Promise<Object>} 执行结果
 
 ---
 
@@ -66,10 +66,10 @@ async executePython(code, options =
 async executeFile(filepath, options =
 ```
 
-- 执行代码文件
-  - @param {string} filepath - 文件路径
-  - @param {Object} options - 执行选项
-  - @returns {Promise<Object>} 执行结果
+* 执行代码文件
+   * @param {string} filepath - 文件路径
+   * @param {Object} options - 执行选项
+   * @returns {Promise<Object>} 执行结果
 
 ---
 
@@ -79,35 +79,35 @@ async executeFile(filepath, options =
 runCommand(command, args = [], options =
 ```
 
-- 执行命令
-  - @param {string} command - 命令
-  - @param {Array} args - 参数
-  - @param {Object} options - 选项
-  - @returns {Promise<Object>} 执行结果
+* 执行命令
+   * @param {string} command - 命令
+   * @param {Array} args - 参数
+   * @param {Object} options - 选项
+   * @returns {Promise<Object>} 执行结果
 
 ---
 
 ## detectLanguage(extension)
 
 ```javascript
-detectLanguage(extension);
+detectLanguage(extension)
 ```
 
-- 检测语言类型
-  - @param {string} extension - 文件扩展名
-  - @returns {string|null} 语言类型
+* 检测语言类型
+   * @param {string} extension - 文件扩展名
+   * @returns {string|null} 语言类型
 
 ---
 
 ## checkSafety(code)
 
 ```javascript
-checkSafety(code);
+checkSafety(code)
 ```
 
-- 检查代码安全性(基础检查)
-  - @param {string} code - 代码
-  - @returns {Object} 检查结果
+* 检查代码安全性(基础检查)
+   * @param {string} code - 代码
+   * @returns {Object} 检查结果
 
 ---
 
@@ -117,6 +117,7 @@ checkSafety(code);
 async cleanup()
 ```
 
-- 清理临时文件
+* 清理临时文件
 
 ---
+

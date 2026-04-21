@@ -1,6 +1,6 @@
 # Component Reference
 
-**Generated**: 2026-04-20T10:46:39.954Z
+**Generated**: 2026-04-21T04:11:31.665Z
 
 **Total Components**: 565
 
@@ -4455,3 +4455,4 @@
 **File**: `src/renderer/components/analytics/AIPerformanceChart.vue`
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/database/database-optimizer.js`
 
-**Generated**: 2026-04-20T10:46:39.802Z
+**Generated**: 2026-04-21T04:11:31.509Z
 
 ---
 
@@ -12,15 +12,15 @@
 const
 ```
 
-- 数据库性能优化模块
--
-- 功能：
-- - 查询性能监控
-- - 查询缓存
-- - 批量操作优化
-- - 索引建议
-- - 慢查询日志
-- - 数据库统计信息
+* 数据库性能优化模块
+ *
+ * 功能：
+ * - 查询性能监控
+ * - 查询缓存
+ * - 批量操作优化
+ * - 索引建议
+ * - 慢查询日志
+ * - 数据库统计信息
 
 ---
 
@@ -30,67 +30,67 @@ const
 class QueryCache
 ```
 
-- 查询缓存类
+* 查询缓存类
 
 ---
 
 ## generateKey(sql, params = [])
 
 ```javascript
-generateKey(sql, (params = []));
+generateKey(sql, params = [])
 ```
 
-- 生成缓存键
+* 生成缓存键
 
 ---
 
 ## get(sql, params = [])
 
 ```javascript
-get(sql, (params = []));
+get(sql, params = [])
 ```
 
-- 获取缓存
+* 获取缓存
 
 ---
 
 ## set(sql, params = [], data)
 
 ```javascript
-set(sql, (params = []), data);
+set(sql, params = [], data)
 ```
 
-- 设置缓存
+* 设置缓存
 
 ---
 
 ## clear()
 
 ```javascript
-clear();
+clear()
 ```
 
-- 清空缓存
+* 清空缓存
 
 ---
 
 ## invalidate(pattern)
 
 ```javascript
-invalidate(pattern);
+invalidate(pattern)
 ```
 
-- 使缓存失效（支持模式匹配）
+* 使缓存失效（支持模式匹配）
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats();
+getStats()
 ```
 
-- 获取统计信息
+* 获取统计信息
 
 ---
 
@@ -100,7 +100,7 @@ getStats();
 class DatabaseOptimizer
 ```
 
-- 数据库性能优化器类
+* 数据库性能优化器类
 
 ---
 
@@ -110,37 +110,37 @@ class DatabaseOptimizer
 async query(sql, params = [], options =
 ```
 
-- 执行查询（带性能监控）
+* 执行查询（带性能监控）
 
 ---
 
 ## isSelectQuery(sql)
 
 ```javascript
-isSelectQuery(sql);
+isSelectQuery(sql)
 ```
 
-- 判断是否为SELECT查询
+* 判断是否为SELECT查询
 
 ---
 
 ## recordQueryPerformance(sql, params, duration)
 
 ```javascript
-recordQueryPerformance(sql, params, duration);
+recordQueryPerformance(sql, params, duration)
 ```
 
-- 记录查询性能
+* 记录查询性能
 
 ---
 
 ## generateIndexSuggestion(sql, duration)
 
 ```javascript
-generateIndexSuggestion(sql, duration);
+generateIndexSuggestion(sql, duration)
 ```
 
-- 生成索引建议
+* 生成索引建议
 
 ---
 
@@ -150,7 +150,7 @@ generateIndexSuggestion(sql, duration);
 async batchInsert(table, records, options =
 ```
 
-- 批量插入优化
+* 批量插入优化
 
 ---
 
@@ -160,27 +160,27 @@ async batchInsert(table, records, options =
 async batchUpdate(table, updates, idColumn = "id", options =
 ```
 
-- 批量更新优化
+* 批量更新优化
 
 ---
 
 ## analyzeTable(tableName)
 
 ```javascript
-analyzeTable(tableName);
+analyzeTable(tableName)
 ```
 
-- 分析表性能
+* 分析表性能
 
 ---
 
 ## generateTableSuggestions(tableName, columns, indexes)
 
 ```javascript
-generateTableSuggestions(tableName, columns, indexes);
+generateTableSuggestions(tableName, columns, indexes)
 ```
 
-- 生成表优化建议
+* 生成表优化建议
 
 ---
 
@@ -190,66 +190,67 @@ generateTableSuggestions(tableName, columns, indexes);
 async optimize()
 ```
 
-- 优化数据库
+* 优化数据库
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats();
+getStats()
 ```
 
-- 获取性能统计
+* 获取性能统计
 
 ---
 
 ## resetStats()
 
 ```javascript
-resetStats();
+resetStats()
 ```
 
-- 重置统计信息
+* 重置统计信息
 
 ---
 
 ## getSlowQueries(limit = 20)
 
 ```javascript
-getSlowQueries((limit = 20));
+getSlowQueries(limit = 20)
 ```
 
-- 获取慢查询日志
+* 获取慢查询日志
 
 ---
 
 ## getIndexSuggestions()
 
 ```javascript
-getIndexSuggestions();
+getIndexSuggestions()
 ```
 
-- 获取索引建议
+* 获取索引建议
 
 ---
 
 ## applyIndexSuggestion(suggestion)
 
 ```javascript
-applyIndexSuggestion(suggestion);
+applyIndexSuggestion(suggestion)
 ```
 
-- 应用索引建议
+* 应用索引建议
 
 ---
 
 ## applyAllIndexSuggestions()
 
 ```javascript
-applyAllIndexSuggestions();
+applyAllIndexSuggestions()
 ```
 
-- 应用所有索引建议
+* 应用所有索引建议
 
 ---
+

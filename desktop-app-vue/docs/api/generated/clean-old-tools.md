@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/clean-old-tools.js`
 
-**Generated**: 2026-04-20T10:46:39.732Z
+**Generated**: 2026-04-21T04:11:31.435Z
 
 ---
 
@@ -12,7 +12,8 @@
 const
 ```
 
-- 清理旧的工具和技能数据
-- 用于删除使用中文name的工具，以便重新插入使用英文name的工具
+* 清理旧的工具和技能数据
+ * 用于删除使用中文name的工具，以便重新插入使用英文name的工具
 
 ---
+

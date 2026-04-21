@@ -2,7 +2,7 @@
 
 **Source**: `src/main/organization/organization-manager.js`
 
-**Generated**: 2026-04-20T10:46:39.759Z
+**Generated**: 2026-04-21T04:11:31.464Z
 
 ---
 
@@ -12,20 +12,20 @@
 class OrganizationManager
 ```
 
-- 组织管理器 - 去中心化组织核心模块
-- 负责组织的创建、加入、管理等核心功能
--
-- @class OrganizationManager
+* 组织管理器 - 去中心化组织核心模块
+ * 负责组织的创建、加入、管理等核心功能
+ *
+ * @class OrganizationManager
 
 ---
 
 ## setupP2PEventListeners()
 
 ```javascript
-setupP2PEventListeners();
+setupP2PEventListeners()
 ```
 
-- 设置P2P事件监听器
+* 设置P2P事件监听器
 
 ---
 
@@ -35,13 +35,13 @@ setupP2PEventListeners();
 async createOrganization(orgData)
 ```
 
-- 创建组织
-  - @param {Object} orgData - 组织数据
-  - @param {string} orgData.name - 组织名称
-  - @param {string} orgData.description - 组织描述
-  - @param {string} orgData.type - 组织类型 (startup|company|community|opensource|education)
-  - @param {string} orgData.avatar - 组织头像URL
-  - @returns {Promise<Object>} 创建的组织信息
+* 创建组织
+   * @param {Object} orgData - 组织数据
+   * @param {string} orgData.name - 组织名称
+   * @param {string} orgData.description - 组织描述
+   * @param {string} orgData.type - 组织类型 (startup|company|community|opensource|education)
+   * @param {string} orgData.avatar - 组织头像URL
+   * @returns {Promise<Object>} 创建的组织信息
 
 ---
 
@@ -51,9 +51,9 @@ async createOrganization(orgData)
 async joinOrganization(inviteCode)
 ```
 
-- 加入组织
-  - @param {string} inviteCode - 邀请码
-  - @returns {Promise<Object>} 加入的组织信息
+* 加入组织
+   * @param {string} inviteCode - 邀请码
+   * @returns {Promise<Object>} 加入的组织信息
 
 ---
 
@@ -63,9 +63,9 @@ async joinOrganization(inviteCode)
 async getOrganization(orgId)
 ```
 
-- 获取组织信息
-  - @param {string} orgId - 组织ID
-  - @returns {Promise<Object|null>} 组织信息
+* 获取组织信息
+   * @param {string} orgId - 组织ID
+   * @returns {Promise<Object|null>} 组织信息
 
 ---
 
@@ -75,10 +75,10 @@ async getOrganization(orgId)
 async updateOrganization(orgId, updates)
 ```
 
-- 更新组织信息
-  - @param {string} orgId - 组织ID
-  - @param {Object} updates - 更新的字段
-  - @returns {Promise<Object>} 更新结果
+* 更新组织信息
+   * @param {string} orgId - 组织ID
+   * @param {Object} updates - 更新的字段
+   * @returns {Promise<Object>} 更新结果
 
 ---
 
@@ -88,9 +88,9 @@ async updateOrganization(orgId, updates)
 async getUserOrganizations(userDID)
 ```
 
-- 获取用户所属的所有组织
-  - @param {string} userDID - 用户DID
-  - @returns {Promise<Array>} 组织列表
+* 获取用户所属的所有组织
+   * @param {string} userDID - 用户DID
+   * @returns {Promise<Array>} 组织列表
 
 ---
 
@@ -100,10 +100,10 @@ async getUserOrganizations(userDID)
 async addMember(orgId, memberData)
 ```
 
-- 添加成员
-  - @param {string} orgId - 组织ID
-  - @param {Object} memberData - 成员数据
-  - @returns {Promise<Object>} 添加的成员信息
+* 添加成员
+   * @param {string} orgId - 组织ID
+   * @param {Object} memberData - 成员数据
+   * @returns {Promise<Object>} 添加的成员信息
 
 ---
 
@@ -113,9 +113,9 @@ async addMember(orgId, memberData)
 async getOrganizationMembers(orgId)
 ```
 
-- 获取组织成员列表
-  - @param {string} orgId - 组织ID
-  - @returns {Promise<Array>} 成员列表
+* 获取组织成员列表
+   * @param {string} orgId - 组织ID
+   * @returns {Promise<Array>} 成员列表
 
 ---
 
@@ -125,11 +125,11 @@ async getOrganizationMembers(orgId)
 async updateMemberRole(orgId, memberDID, newRole)
 ```
 
-- 更新成员角色
-  - @param {string} orgId - 组织ID
-  - @param {string} memberDID - 成员DID
-  - @param {string} newRole - 新角色
-  - @returns {Promise<void>}
+* 更新成员角色
+   * @param {string} orgId - 组织ID
+   * @param {string} memberDID - 成员DID
+   * @param {string} newRole - 新角色
+   * @returns {Promise<void>}
 
 ---
 
@@ -139,10 +139,10 @@ async updateMemberRole(orgId, memberDID, newRole)
 async removeMember(orgId, memberDID)
 ```
 
-- 移除成员
-  - @param {string} orgId - 组织ID
-  - @param {string} memberDID - 成员DID
-  - @returns {Promise<void>}
+* 移除成员
+   * @param {string} orgId - 组织ID
+   * @param {string} memberDID - 成员DID
+   * @returns {Promise<void>}
 
 ---
 
@@ -152,34 +152,34 @@ async removeMember(orgId, memberDID)
 async createInvitation(orgId, inviteData)
 ```
 
-- 创建邀请
-  - @param {string} orgId - 组织ID
-  - @param {Object} inviteData - 邀请数据
-  - @returns {Promise<Object>} 邀请信息
+* 创建邀请
+   * @param {string} orgId - 组织ID
+   * @param {Object} inviteData - 邀请数据
+   * @returns {Promise<Object>} 邀请信息
 
 ---
 
 ## getInvitations(orgId)
 
 ```javascript
-getInvitations(orgId);
+getInvitations(orgId)
 ```
 
-- 获取组织的所有邀请（包括邀请码和DID邀请）
-  - @param {string} orgId - 组织ID
-  - @returns {Array} 邀请列表
+* 获取组织的所有邀请（包括邀请码和DID邀请）
+   * @param {string} orgId - 组织ID
+   * @returns {Array} 邀请列表
 
 ---
 
 ## getInvitationStatus(invitation)
 
 ```javascript
-getInvitationStatus(invitation);
+getInvitationStatus(invitation)
 ```
 
-- 获取邀请状态
-  - @param {Object} invitation - 邀请对象
-  - @returns {string} 状态
+* 获取邀请状态
+   * @param {Object} invitation - 邀请对象
+   * @returns {string} 状态
 
 ---
 
@@ -189,10 +189,10 @@ getInvitationStatus(invitation);
 async revokeInvitation(orgId, invitationId)
 ```
 
-- 撤销邀请
-  - @param {string} orgId - 组织ID
-  - @param {string} invitationId - 邀请ID
-  - @returns {Promise<Object>} 结果
+* 撤销邀请
+   * @param {string} orgId - 组织ID
+   * @param {string} invitationId - 邀请ID
+   * @returns {Promise<Object>} 结果
 
 ---
 
@@ -202,22 +202,22 @@ async revokeInvitation(orgId, invitationId)
 async deleteInvitation(orgId, invitationId)
 ```
 
-- 删除邀请
-  - @param {string} orgId - 组织ID
-  - @param {string} invitationId - 邀请ID
-  - @returns {Promise<Object>} 结果
+* 删除邀请
+   * @param {string} orgId - 组织ID
+   * @param {string} invitationId - 邀请ID
+   * @returns {Promise<Object>} 结果
 
 ---
 
 ## shortenDID(did)
 
 ```javascript
-shortenDID(did);
+shortenDID(did)
 ```
 
-- 缩短DID显示
-  - @param {string} did - 完整DID
-  - @returns {string} 缩短的DID
+* 缩短DID显示
+   * @param {string} did - 完整DID
+   * @returns {string} 缩短的DID
 
 ---
 
@@ -227,14 +227,14 @@ shortenDID(did);
 async inviteByDID(orgId, inviteData)
 ```
 
-- 通过DID邀请用户加入组织
-  - @param {string} orgId - 组织ID
-  - @param {Object} inviteData - 邀请数据
-  - @param {string} inviteData.invitedDID - 被邀请人的DID
-  - @param {string} inviteData.role - 角色 (member|admin|viewer)
-  - @param {string} inviteData.message - 邀请消息（可选）
-  - @param {number} inviteData.expireAt - 过期时间戳（可选）
-  - @returns {Promise<Object>} 邀请信息
+* 通过DID邀请用户加入组织
+   * @param {string} orgId - 组织ID
+   * @param {Object} inviteData - 邀请数据
+   * @param {string} inviteData.invitedDID - 被邀请人的DID
+   * @param {string} inviteData.role - 角色 (member|admin|viewer)
+   * @param {string} inviteData.message - 邀请消息（可选）
+   * @param {number} inviteData.expireAt - 过期时间戳（可选）
+   * @returns {Promise<Object>} 邀请信息
 
 ---
 
@@ -244,9 +244,9 @@ async inviteByDID(orgId, inviteData)
 async acceptDIDInvitation(invitationId)
 ```
 
-- 接受DID邀请
-  - @param {string} invitationId - 邀请ID
-  - @returns {Promise<Object>} 组织信息
+* 接受DID邀请
+   * @param {string} invitationId - 邀请ID
+   * @returns {Promise<Object>} 组织信息
 
 ---
 
@@ -256,9 +256,9 @@ async acceptDIDInvitation(invitationId)
 async rejectDIDInvitation(invitationId)
 ```
 
-- 拒绝DID邀请
-  - @param {string} invitationId - 邀请ID
-  - @returns {Promise<boolean>} 是否成功
+* 拒绝DID邀请
+   * @param {string} invitationId - 邀请ID
+   * @returns {Promise<boolean>} 是否成功
 
 ---
 
@@ -268,8 +268,8 @@ async rejectDIDInvitation(invitationId)
 async getPendingDIDInvitations()
 ```
 
-- 获取待处理的DID邀请（当前用户收到的）
-  - @returns {Promise<Array>} 邀请列表
+* 获取待处理的DID邀请（当前用户收到的）
+   * @returns {Promise<Array>} 邀请列表
 
 ---
 
@@ -279,11 +279,11 @@ async getPendingDIDInvitations()
 async getDIDInvitationHistory(options =
 ```
 
-- 获取当前用户的DID邀请历史（已接受、已拒绝、已过期）
-  - @param {Object} options - 选项
-  - @param {string} options.status - 状态筛选（accepted|rejected）
-  - @param {number} options.limit - 限制数量
-  - @returns {Promise<Object>} { accepted, rejected, expired }
+* 获取当前用户的DID邀请历史（已接受、已拒绝、已过期）
+   * @param {Object} options - 选项
+   * @param {string} options.status - 状态筛选（accepted|rejected）
+   * @param {number} options.limit - 限制数量
+   * @returns {Promise<Object>} { accepted, rejected, expired }
 
 ---
 
@@ -293,12 +293,12 @@ async getDIDInvitationHistory(options =
 async getDIDInvitations(orgId, options =
 ```
 
-- 获取组织的DID邀请列表（用于管理）
-  - @param {string} orgId - 组织ID
-  - @param {Object} options - 选项
-  - @param {string} options.status - 状态筛选（pending|accepted|rejected|expired）
-  - @param {number} options.limit - 限制数量
-  - @returns {Promise<Array>} 邀请列表
+* 获取组织的DID邀请列表（用于管理）
+   * @param {string} orgId - 组织ID
+   * @param {Object} options - 选项
+   * @param {string} options.status - 状态筛选（pending|accepted|rejected|expired）
+   * @param {number} options.limit - 限制数量
+   * @returns {Promise<Array>} 邀请列表
 
 ---
 
@@ -308,9 +308,9 @@ async getDIDInvitations(orgId, options =
 async initializeBuiltinRoles(orgId)
 ```
 
-- 初始化内置角色
-  - @param {string} orgId - 组织ID
-  - @returns {Promise<void>}
+* 初始化内置角色
+   * @param {string} orgId - 组织ID
+   * @returns {Promise<void>}
 
 ---
 
@@ -320,11 +320,11 @@ async initializeBuiltinRoles(orgId)
 async checkPermission(orgId, userDID, permission)
 ```
 
-- 检查权限
-  - @param {string} orgId - 组织ID
-  - @param {string} userDID - 用户DID
-  - @param {string} permission - 权限字符串 (如 'knowledge.write')
-  - @returns {Promise<boolean>} 是否有权限
+* 检查权限
+   * @param {string} orgId - 组织ID
+   * @param {string} userDID - 用户DID
+   * @param {string} permission - 权限字符串 (如 'knowledge.write')
+   * @returns {Promise<boolean>} 是否有权限
 
 ---
 
@@ -334,14 +334,14 @@ async checkPermission(orgId, userDID, permission)
 async logActivity(
 ```
 
-- 记录活动日志
-  - @param {string} orgId - 组织ID
-  - @param {string} actorDID - 操作者DID
-  - @param {string} action - 操作类型
-  - @param {string} resourceType - 资源类型
-  - @param {string} resourceId - 资源ID
-  - @param {Object} metadata - 元数据
-  - @returns {Promise<void>}
+* 记录活动日志
+   * @param {string} orgId - 组织ID
+   * @param {string} actorDID - 操作者DID
+   * @param {string} action - 操作类型
+   * @param {string} resourceType - 资源类型
+   * @param {string} resourceId - 资源ID
+   * @param {Object} metadata - 元数据
+   * @returns {Promise<void>}
 
 ---
 
@@ -351,47 +351,47 @@ async logActivity(
 async getOrganizationActivities(orgId, limit = 50)
 ```
 
-- 获取组织活动日志
-  - @param {string} orgId - 组织ID
-  - @param {number} limit - 限制数量
-  - @returns {Promise<Array>} 活动日志列表
+* 获取组织活动日志
+   * @param {string} orgId - 组织ID
+   * @param {number} limit - 限制数量
+   * @returns {Promise<Array>} 活动日志列表
 
 ---
 
 ## getMemberActivities(orgId, memberDID, limit = 10)
 
 ```javascript
-getMemberActivities(orgId, memberDID, (limit = 10));
+getMemberActivities(orgId, memberDID, limit = 10)
 ```
 
-- 获取成员活动历史
-  - @param {string} orgId - 组织ID
-  - @param {string} memberDID - 成员DID
-  - @param {number} limit - 限制数量
-  - @returns {Array} 活动列表
+* 获取成员活动历史
+   * @param {string} orgId - 组织ID
+   * @param {string} memberDID - 成员DID
+   * @param {number} limit - 限制数量
+   * @returns {Array} 活动列表
 
 ---
 
 ## generateInviteCode()
 
 ```javascript
-generateInviteCode();
+generateInviteCode()
 ```
 
-- 生成邀请码
-  - @returns {string} 邀请码
+* 生成邀请码
+   * @returns {string} 邀请码
 
 ---
 
 ## getDefaultPermissionsByRole(role)
 
 ```javascript
-getDefaultPermissionsByRole(role);
+getDefaultPermissionsByRole(role)
 ```
 
-- 根据角色获取默认权限
-  - @param {string} role - 角色名称
-  - @returns {Array} 权限数组
+* 根据角色获取默认权限
+   * @param {string} role - 角色名称
+   * @returns {Array} 权限数组
 
 ---
 
@@ -401,9 +401,9 @@ getDefaultPermissionsByRole(role);
 async initializeOrgP2PNetwork(orgId)
 ```
 
-- 初始化组织P2P网络
-  - @param {string} orgId - 组织ID
-  - @returns {Promise<void>}
+* 初始化组织P2P网络
+   * @param {string} orgId - 组织ID
+   * @returns {Promise<void>}
 
 ---
 
@@ -413,9 +413,9 @@ async initializeOrgP2PNetwork(orgId)
 async connectToOrgP2PNetwork(orgId)
 ```
 
-- 连接到组织P2P网络
-  - @param {string} orgId - 组织ID
-  - @returns {Promise<void>}
+* 连接到组织P2P网络
+   * @param {string} orgId - 组织ID
+   * @returns {Promise<void>}
 
 ---
 
@@ -425,10 +425,10 @@ async connectToOrgP2PNetwork(orgId)
 async handleOrgSyncMessage(orgId, message)
 ```
 
-- 处理组织同步消息
-  - @param {string} orgId - 组织ID
-  - @param {Object} message - 消息内容
-  - @returns {Promise<void>}
+* 处理组织同步消息
+   * @param {string} orgId - 组织ID
+   * @param {Object} message - 消息内容
+   * @returns {Promise<void>}
 
 ---
 
@@ -438,10 +438,10 @@ async handleOrgSyncMessage(orgId, message)
 async broadcastOrgMessage(orgId, data)
 ```
 
-- 广播组织消息
-  - @param {string} orgId - 组织ID
-  - @param {Object} data - 消息数据
-  - @returns {Promise<void>}
+* 广播组织消息
+   * @param {string} orgId - 组织ID
+   * @param {Object} data - 消息数据
+   * @returns {Promise<void>}
 
 ---
 
@@ -451,9 +451,9 @@ async broadcastOrgMessage(orgId, data)
 async requestIncrementalSync(orgId)
 ```
 
-- 请求增量同步
-  - @param {string} orgId - 组织ID
-  - @returns {Promise<void>}
+* 请求增量同步
+   * @param {string} orgId - 组织ID
+   * @returns {Promise<void>}
 
 ---
 
@@ -463,9 +463,9 @@ async requestIncrementalSync(orgId)
 async getLocalVersion(orgId)
 ```
 
-- 获取本地数据版本号
-  - @param {string} orgId - 组织ID
-  - @returns {Promise<number>} 版本号
+* 获取本地数据版本号
+   * @param {string} orgId - 组织ID
+   * @returns {Promise<number>} 版本号
 
 ---
 
@@ -475,11 +475,11 @@ async getLocalVersion(orgId)
 async sendIncrementalData(orgId, targetDID, sinceVersion)
 ```
 
-- 发送增量数据
-  - @param {string} orgId - 组织ID
-  - @param {string} targetDID - 目标用户DID
-  - @param {number} sinceVersion - 起始版本号
-  - @returns {Promise<void>}
+* 发送增量数据
+   * @param {string} orgId - 组织ID
+   * @param {string} targetDID - 目标用户DID
+   * @param {number} sinceVersion - 起始版本号
+   * @returns {Promise<void>}
 
 ---
 
@@ -489,10 +489,10 @@ async sendIncrementalData(orgId, targetDID, sinceVersion)
 async applyIncrementalData(orgId, syncData)
 ```
 
-- 应用增量数据
-  - @param {string} orgId - 组织ID
-  - @param {Object} syncData - 同步数据
-  - @returns {Promise<void>}
+* 应用增量数据
+   * @param {string} orgId - 组织ID
+   * @param {Object} syncData - 同步数据
+   * @returns {Promise<void>}
 
 ---
 
@@ -502,10 +502,10 @@ async applyIncrementalData(orgId, syncData)
 async checkConflict(orgId, change)
 ```
 
-- 检查是否有冲突
-  - @param {string} orgId - 组织ID
-  - @param {Object} change - 变更记录
-  - @returns {Promise<boolean>} 是否冲突
+* 检查是否有冲突
+   * @param {string} orgId - 组织ID
+   * @param {Object} change - 变更记录
+   * @returns {Promise<boolean>} 是否冲突
 
 ---
 
@@ -515,10 +515,10 @@ async checkConflict(orgId, change)
 async resolveConflict(orgId, change)
 ```
 
-- 解决冲突 - 使用Last-Write-Wins策略
-  - @param {string} orgId - 组织ID
-  - @param {Object} change - 变更记录
-  - @returns {Promise<void>}
+* 解决冲突 - 使用Last-Write-Wins策略
+   * @param {string} orgId - 组织ID
+   * @param {Object} change - 变更记录
+   * @returns {Promise<void>}
 
 ---
 
@@ -528,10 +528,10 @@ async resolveConflict(orgId, change)
 async applyChange(orgId, change)
 ```
 
-- 应用变更
-  - @param {string} orgId - 组织ID
-  - @param {Object} change - 变更记录
-  - @returns {Promise<void>}
+* 应用变更
+   * @param {string} orgId - 组织ID
+   * @param {Object} change - 变更记录
+   * @returns {Promise<void>}
 
 ---
 
@@ -541,10 +541,10 @@ async applyChange(orgId, change)
 async syncMemberUpdate(orgId, data)
 ```
 
-- 同步成员更新
-  - @param {string} orgId - 组织ID
-  - @param {Object} data - 成员数据
-  - @returns {Promise<void>}
+* 同步成员更新
+   * @param {string} orgId - 组织ID
+   * @param {Object} data - 成员数据
+   * @returns {Promise<void>}
 
 ---
 
@@ -554,10 +554,10 @@ async syncMemberUpdate(orgId, data)
 async syncKnowledgeChange(orgId, data)
 ```
 
-- 同步知识库变更
-  - @param {string} orgId - 组织ID
-  - @param {Object} data - 知识库变更数据
-  - @returns {Promise<void>}
+* 同步知识库变更
+   * @param {string} orgId - 组织ID
+   * @param {Object} data - 知识库变更数据
+   * @returns {Promise<void>}
 
 ---
 
@@ -567,14 +567,14 @@ async syncKnowledgeChange(orgId, data)
 async syncKnowledgeChange(orgId, data)
 ```
 
-- 同步知识库变更
-  - @param {string} orgId - 组织ID
-  - @param {Object} data - 变更数据
-  - @param {string} data.type - 变更类型 (create|update|delete)
-  - @param {string} data.knowledgeId - 知识库条目ID
-  - @param {Object} data.content - 变更内容
-  - @param {string} data.authorDID - 作者DID
-  - @param {number} data.timestamp - 变更时间戳
+* 同步知识库变更
+   * @param {string} orgId - 组织ID
+   * @param {Object} data - 变更数据
+   * @param {string} data.type - 变更类型 (create|update|delete)
+   * @param {string} data.knowledgeId - 知识库条目ID
+   * @param {Object} data.content - 变更内容
+   * @param {string} data.authorDID - 作者DID
+   * @param {number} data.timestamp - 变更时间戳
 
 ---
 
@@ -584,7 +584,7 @@ async syncKnowledgeChange(orgId, data)
 async createKnowledgeEntry(
 ```
 
-- 创建知识库条目
+* 创建知识库条目
 
 ---
 
@@ -594,7 +594,7 @@ async createKnowledgeEntry(
 async updateKnowledgeEntry(
 ```
 
-- 更新知识库条目
+* 更新知识库条目
 
 ---
 
@@ -604,7 +604,7 @@ async updateKnowledgeEntry(
 async deleteKnowledgeEntry(orgId, knowledgeId, authorDID, timestamp)
 ```
 
-- 删除知识库条目
+* 删除知识库条目
 
 ---
 
@@ -614,9 +614,9 @@ async deleteKnowledgeEntry(orgId, knowledgeId, authorDID, timestamp)
 async syncOrganizationData(orgId)
 ```
 
-- 同步组织数据
-  - @param {string} orgId - 组织ID
-  - @returns {Promise<void>}
+* 同步组织数据
+   * @param {string} orgId - 组织ID
+   * @returns {Promise<void>}
 
 ---
 
@@ -626,10 +626,10 @@ async syncOrganizationData(orgId)
 async leaveOrganization(orgId, userDID)
 ```
 
-- 离开组织
-  - @param {string} orgId - 组织ID
-  - @param {string} userDID - 用户DID
-  - @returns {Promise<void>}
+* 离开组织
+   * @param {string} orgId - 组织ID
+   * @param {string} userDID - 用户DID
+   * @returns {Promise<void>}
 
 ---
 
@@ -639,10 +639,10 @@ async leaveOrganization(orgId, userDID)
 async deleteOrganization(orgId, userDID)
 ```
 
-- 删除组织（仅owner可操作）
-  - @param {string} orgId - 组织ID
-  - @param {string} userDID - 用户DID
-  - @returns {Promise<void>}
+* 删除组织（仅owner可操作）
+   * @param {string} orgId - 组织ID
+   * @param {string} userDID - 用户DID
+   * @returns {Promise<void>}
 
 ---
 
@@ -652,9 +652,9 @@ async deleteOrganization(orgId, userDID)
 async getRoles(orgId)
 ```
 
-- 获取组织所有角色
-  - @param {string} orgId - 组织ID
-  - @returns {Promise<Array>} 角色列表
+* 获取组织所有角色
+   * @param {string} orgId - 组织ID
+   * @returns {Promise<Array>} 角色列表
 
 ---
 
@@ -664,9 +664,9 @@ async getRoles(orgId)
 async getRole(roleId)
 ```
 
-- 获取单个角色
-  - @param {string} roleId - 角色ID
-  - @returns {Promise<Object|null>} 角色信息
+* 获取单个角色
+   * @param {string} roleId - 角色ID
+   * @returns {Promise<Object|null>} 角色信息
 
 ---
 
@@ -676,14 +676,14 @@ async getRole(roleId)
 async createCustomRole(orgId, roleData, creatorDID)
 ```
 
-- 创建自定义角色
-  - @param {string} orgId - 组织ID
-  - @param {Object} roleData - 角色数据
-  - @param {string} roleData.name - 角色名称
-  - @param {string} roleData.description - 角色描述
-  - @param {Array<string>} roleData.permissions - 权限列表
-  - @param {string} creatorDID - 创建者DID
-  - @returns {Promise<Object>} 创建的角色
+* 创建自定义角色
+   * @param {string} orgId - 组织ID
+   * @param {Object} roleData - 角色数据
+   * @param {string} roleData.name - 角色名称
+   * @param {string} roleData.description - 角色描述
+   * @param {Array<string>} roleData.permissions - 权限列表
+   * @param {string} creatorDID - 创建者DID
+   * @returns {Promise<Object>} 创建的角色
 
 ---
 
@@ -693,14 +693,14 @@ async createCustomRole(orgId, roleData, creatorDID)
 async updateRole(roleId, updates, updaterDID)
 ```
 
-- 更新角色（仅能更新自定义角色）
-  - @param {string} roleId - 角色ID
-  - @param {Object} updates - 更新数据
-  - @param {string} updates.name - 角色名称
-  - @param {string} updates.description - 角色描述
-  - @param {Array<string>} updates.permissions - 权限列表
-  - @param {string} updaterDID - 更新者DID
-  - @returns {Promise<Object>} 更新后的角色
+* 更新角色（仅能更新自定义角色）
+   * @param {string} roleId - 角色ID
+   * @param {Object} updates - 更新数据
+   * @param {string} updates.name - 角色名称
+   * @param {string} updates.description - 角色描述
+   * @param {Array<string>} updates.permissions - 权限列表
+   * @param {string} updaterDID - 更新者DID
+   * @returns {Promise<Object>} 更新后的角色
 
 ---
 
@@ -710,58 +710,58 @@ async updateRole(roleId, updates, updaterDID)
 async deleteRole(roleId, deleterDID)
 ```
 
-- 删除自定义角色
-  - @param {string} roleId - 角色ID
-  - @param {string} deleterDID - 删除者DID
-  - @returns {Promise<void>}
+* 删除自定义角色
+   * @param {string} roleId - 角色ID
+   * @param {string} deleterDID - 删除者DID
+   * @returns {Promise<void>}
 
 ---
 
 ## getAllPermissions()
 
 ```javascript
-getAllPermissions();
+getAllPermissions()
 ```
 
-- 获取所有可用权限列表
-  - @returns {Array} 权限列表
+* 获取所有可用权限列表
+   * @returns {Array} 权限列表
 
 ---
 
 ## getOnlineMembers(orgId)
 
 ```javascript
-getOnlineMembers(orgId);
+getOnlineMembers(orgId)
 ```
 
-- 获取组织在线成员列表
-  - @param {string} orgId - 组织ID
-  - @returns {Array<string>} 在线成员DID列表
+* 获取组织在线成员列表
+   * @param {string} orgId - 组织ID
+   * @returns {Array<string>} 在线成员DID列表
 
 ---
 
 ## getOnlineMemberCount(orgId)
 
 ```javascript
-getOnlineMemberCount(orgId);
+getOnlineMemberCount(orgId)
 ```
 
-- 获取组织在线成员数量
-  - @param {string} orgId - 组织ID
-  - @returns {number} 在线成员数量
+* 获取组织在线成员数量
+   * @param {string} orgId - 组织ID
+   * @returns {number} 在线成员数量
 
 ---
 
 ## isMemberOnline(orgId, memberDID)
 
 ```javascript
-isMemberOnline(orgId, memberDID);
+isMemberOnline(orgId, memberDID)
 ```
 
-- 检查成员是否在线
-  - @param {string} orgId - 组织ID
-  - @param {string} memberDID - 成员DID
-  - @returns {boolean} 是否在线
+* 检查成员是否在线
+   * @param {string} orgId - 组织ID
+   * @param {string} memberDID - 成员DID
+   * @returns {boolean} 是否在线
 
 ---
 
@@ -771,10 +771,10 @@ isMemberOnline(orgId, memberDID);
 async isMember(orgId, userDID)
 ```
 
-- 检查用户是否是组织成员
-  - @param {string} orgId - 组织ID
-  - @param {string} userDID - 用户DID
-  - @returns {Promise<boolean>} 是否是成员
+* 检查用户是否是组织成员
+   * @param {string} orgId - 组织ID
+   * @param {string} userDID - 用户DID
+   * @returns {Promise<boolean>} 是否是成员
 
 ---
 
@@ -784,22 +784,22 @@ async isMember(orgId, userDID)
 async broadcastOrgP2PMessage(orgId, message)
 ```
 
-- 广播消息到组织
-  - @param {string} orgId - 组织ID
-  - @param {Object} message - 消息内容
-  - @returns {Promise<void>}
+* 广播消息到组织
+   * @param {string} orgId - 组织ID
+   * @param {Object} message - 消息内容
+   * @returns {Promise<void>}
 
 ---
 
 ## getOrgNetworkStats(orgId)
 
 ```javascript
-getOrgNetworkStats(orgId);
+getOrgNetworkStats(orgId)
 ```
 
-- 获取组织P2P网络统计信息
-  - @param {string} orgId - 组织ID
-  - @returns {Object} 统计信息
+* 获取组织P2P网络统计信息
+   * @param {string} orgId - 组织ID
+   * @returns {Object} 统计信息
 
 ---
 
@@ -809,9 +809,9 @@ getOrgNetworkStats(orgId);
 async disconnectFromOrgP2PNetwork(orgId)
 ```
 
-- 断开组织P2P网络连接
-  - @param {string} orgId - 组织ID
-  - @returns {Promise<void>}
+* 断开组织P2P网络连接
+   * @param {string} orgId - 组织ID
+   * @returns {Promise<void>}
 
 ---
 
@@ -821,11 +821,11 @@ async disconnectFromOrgP2PNetwork(orgId)
 async handleKnowledgeEvent(orgId, type, data)
 ```
 
-- 处理知识库事件
-  - @param {string} orgId - 组织ID
-  - @param {string} type - 事件类型 (knowledge:create|knowledge:update|knowledge:delete|knowledge:sync)
-  - @param {Object} data - 事件数据
-  - @returns {Promise<Object>} 处理结果
+* 处理知识库事件
+   * @param {string} orgId - 组织ID
+   * @param {string} type - 事件类型 (knowledge:create|knowledge:update|knowledge:delete|knowledge:sync)
+   * @param {Object} data - 事件数据
+   * @returns {Promise<Object>} 处理结果
 
 ---
 
@@ -835,9 +835,10 @@ async handleKnowledgeEvent(orgId, type, data)
 async getOrgKnowledgeForSync(orgId, since = 0)
 ```
 
-- 获取组织知识库数据用于同步
-  - @param {string} orgId - 组织ID
-  - @param {number} since - 时间戳，获取此时间之后的数据
-  - @returns {Promise<Object>} 知识库数据
+* 获取组织知识库数据用于同步
+   * @param {string} orgId - 组织ID
+   * @param {number} since - 时间戳，获取此时间之后的数据
+   * @returns {Promise<Object>} 知识库数据
 
 ---
+

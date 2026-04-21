@@ -2,7 +2,7 @@
 
 **Source**: `src/main/config/unified-config-manager.js`
 
-**Generated**: 2026-04-20T10:46:39.809Z
+**Generated**: 2026-04-21T04:11:31.516Z
 
 ---
 
@@ -12,32 +12,32 @@
 import
 ```
 
-- 统一配置管理器
--
-- 基于 OpenClaude 最佳实践，集中管理所有配置、日志、缓存和会话数据
--
-- 目录结构（位于 Electron userData 目录下）：
-- .chainlesschain/
-- ├── config.json # 核心配置
-- ├── rules.md # 项目规则
-- ├── memory/ # 会话与学习数据
-- │ ├── sessions/ # 会话历史
-- │ ├── preferences/ # 用户偏好
-- │ └── learned-patterns/ # 学习到的模式
-- ├── logs/ # 操作日志
-- │ ├── error.log
-- │ ├── performance.log
-- │ └── llm-usage.log
-- ├── cache/ # 缓存数据
-- │ ├── embeddings/ # 向量缓存
-- │ ├── query-results/ # 查询结果缓存
-- │ └── model-outputs/ # 模型输出缓存
-- └── checkpoints/ # 检查点和备份
--     └── auto-backup/
--
-- @version 1.1.0
-- @since 2026-01-16
-- @updated 2026-01-18 - 使用 Electron userData 目录替代 process.cwd()
+* 统一配置管理器
+ *
+ * 基于 OpenClaude 最佳实践，集中管理所有配置、日志、缓存和会话数据
+ *
+ * 目录结构（位于 Electron userData 目录下）：
+ * .chainlesschain/
+ * ├── config.json              # 核心配置
+ * ├── rules.md                 # 项目规则
+ * ├── memory/                  # 会话与学习数据
+ * │   ├── sessions/            # 会话历史
+ * │   ├── preferences/         # 用户偏好
+ * │   └── learned-patterns/    # 学习到的模式
+ * ├── logs/                    # 操作日志
+ * │   ├── error.log
+ * │   ├── performance.log
+ * │   └── llm-usage.log
+ * ├── cache/                   # 缓存数据
+ * │   ├── embeddings/          # 向量缓存
+ * │   ├── query-results/       # 查询结果缓存
+ * │   └── model-outputs/       # 模型输出缓存
+ * └── checkpoints/             # 检查点和备份
+ *     └── auto-backup/
+ *
+ * @version 1.1.0
+ * @since 2026-01-16
+ * @updated 2026-01-18 - 使用 Electron userData 目录替代 process.cwd()
 
 ---
 
@@ -47,9 +47,9 @@ import
 function getConfigDir()
 ```
 
-- 获取配置目录路径
-- 优先使用 Electron 的 userData 目录，确保开发和生产环境一致
-- @returns {string} 配置目录路径
+* 获取配置目录路径
+ * 优先使用 Electron 的 userData 目录，确保开发和生产环境一致
+ * @returns {string} 配置目录路径
 
 ---
 
@@ -59,21 +59,21 @@ function getConfigDir()
 class UnifiedConfigManager
 ```
 
-- 统一配置管理器类
+* 统一配置管理器类
 
 ---
 
 ## initialize()
 
 ```javascript
-initialize();
+initialize()
 ```
 
-- 初始化配置管理器
-  - - 迁移旧配置（从项目根目录）
-  - - 创建目录结构
-  - - 加载配置文件
-  - - 合并环境变量
+* 初始化配置管理器
+   * - 迁移旧配置（从项目根目录）
+   * - 创建目录结构
+   * - 加载配置文件
+   * - 合并环境变量
 
 ---
 
@@ -83,267 +83,267 @@ initialize();
 async initializeAsync()
 ```
 
-- 异步初始化（M2 启动期 IO 异步化）
-  - 使用 fs.promises 将 mkdir / 迁移 / 读取 操作移出事件循环。
-  - 完成后，后续 getUnifiedConfigManager() 的同步调用将走快路径。
+* 异步初始化（M2 启动期 IO 异步化）
+   * 使用 fs.promises 将 mkdir / 迁移 / 读取 操作移出事件循环。
+   * 完成后，后续 getUnifiedConfigManager() 的同步调用将走快路径。
 
 ---
 
 ## migrateFromProjectRoot()
 
 ```javascript
-migrateFromProjectRoot();
+migrateFromProjectRoot()
 ```
 
-- 从项目根目录迁移配置到 userData 目录
-  - 仅在 userData 目录没有配置文件时执行
+* 从项目根目录迁移配置到 userData 目录
+   * 仅在 userData 目录没有配置文件时执行
 
 ---
 
 ## migrateDirectory(srcDir, destDir)
 
 ```javascript
-migrateDirectory(srcDir, destDir);
+migrateDirectory(srcDir, destDir)
 ```
 
-- 递归迁移目录
-  - @param {string} srcDir - 源目录
-  - @param {string} destDir - 目标目录
+* 递归迁移目录
+   * @param {string} srcDir - 源目录
+   * @param {string} destDir - 目标目录
 
 ---
 
 ## ensureDirectoryStructure()
 
 ```javascript
-ensureDirectoryStructure();
+ensureDirectoryStructure()
 ```
 
-- 确保目录结构存在
+* 确保目录结构存在
 
 ---
 
 ## createGitkeepFiles()
 
 ```javascript
-createGitkeepFiles();
+createGitkeepFiles()
 ```
 
-- 在空目录中创建 .gitkeep 文件
+* 在空目录中创建 .gitkeep 文件
 
 ---
 
 ## loadConfig()
 
 ```javascript
-loadConfig();
+loadConfig()
 ```
 
-- 加载配置文件
+* 加载配置文件
 
 ---
 
 ## getDefaultConfig()
 
 ```javascript
-getDefaultConfig();
+getDefaultConfig()
 ```
 
-- 获取默认配置
+* 获取默认配置
 
 ---
 
 ## getEnvConfig()
 
 ```javascript
-getEnvConfig();
+getEnvConfig()
 ```
 
-- 从环境变量获取配置
+* 从环境变量获取配置
 
 ---
 
 ## mergeConfigs(...configs)
 
 ```javascript
-mergeConfigs(...configs);
+mergeConfigs(...configs)
 ```
 
-- 深度合并配置对象
+* 深度合并配置对象
 
 ---
 
 ## validateConfig()
 
 ```javascript
-validateConfig();
+validateConfig()
 ```
 
-- 验证配置
+* 验证配置
 
 ---
 
 ## saveConfig()
 
 ```javascript
-saveConfig();
+saveConfig()
 ```
 
-- 保存配置文件
+* 保存配置文件
 
 ---
 
 ## getAllConfig()
 
 ```javascript
-getAllConfig();
+getAllConfig()
 ```
 
-- 获取所有配置
+* 获取所有配置
 
 ---
 
 ## getConfig(category)
 
 ```javascript
-getConfig(category);
+getConfig(category)
 ```
 
-- 获取特定配置
+* 获取特定配置
 
 ---
 
 ## updateConfig(updates)
 
 ```javascript
-updateConfig(updates);
+updateConfig(updates)
 ```
 
-- 更新配置
+* 更新配置
 
 ---
 
 ## resetConfig()
 
 ```javascript
-resetConfig();
+resetConfig()
 ```
 
-- 重置为默认配置
+* 重置为默认配置
 
 ---
 
 ## getPaths()
 
 ```javascript
-getPaths();
+getPaths()
 ```
 
-- 获取路径配置
+* 获取路径配置
 
 ---
 
 ## getLogsDir()
 
 ```javascript
-getLogsDir();
+getLogsDir()
 ```
 
-- 获取日志目录
+* 获取日志目录
 
 ---
 
 ## getCacheDir()
 
 ```javascript
-getCacheDir();
+getCacheDir()
 ```
 
-- 获取缓存目录
+* 获取缓存目录
 
 ---
 
 ## getSessionsDir()
 
 ```javascript
-getSessionsDir();
+getSessionsDir()
 ```
 
-- 获取会话目录
+* 获取会话目录
 
 ---
 
 ## getCheckpointsDir()
 
 ```javascript
-getCheckpointsDir();
+getCheckpointsDir()
 ```
 
-- 获取检查点目录
+* 获取检查点目录
 
 ---
 
 ## clearCache(type = "all")
 
 ```javascript
-clearCache((type = "all"));
+clearCache(type = "all")
 ```
 
-- 清理缓存
-  - @param {string} type - 缓存类型：'all', 'embeddings', 'queryResults', 'modelOutputs'
+* 清理缓存
+   * @param {string} type - 缓存类型：'all', 'embeddings', 'queryResults', 'modelOutputs'
 
 ---
 
 ## cleanOldLogs(maxFiles = 30)
 
 ```javascript
-cleanOldLogs((maxFiles = 30));
+cleanOldLogs(maxFiles = 30)
 ```
 
-- 清理旧日志文件
-  - @param {number} maxFiles - 保留的最大文件数
+* 清理旧日志文件
+   * @param {number} maxFiles - 保留的最大文件数
 
 ---
 
 ## exportConfig(exportPath)
 
 ```javascript
-exportConfig(exportPath);
+exportConfig(exportPath)
 ```
 
-- 导出配置
-  - @param {string} exportPath - 导出路径
+* 导出配置
+   * @param {string} exportPath - 导出路径
 
 ---
 
 ## importConfig(importPath)
 
 ```javascript
-importConfig(importPath);
+importConfig(importPath)
 ```
 
-- 导入配置
-  - @param {string} importPath - 导入路径
+* 导入配置
+   * @param {string} importPath - 导入路径
 
 ---
 
 ## getConfigSummary()
 
 ```javascript
-getConfigSummary();
+getConfigSummary()
 ```
 
-- 获取配置摘要（用于调试）
+* 获取配置摘要（用于调试）
 
 ---
 
 ## getDirectoryStats()
 
 ```javascript
-getDirectoryStats();
+getDirectoryStats()
 ```
 
-- 获取目录统计信息
-  - @returns {Object} 目录统计
+* 获取目录统计信息
+   * @returns {Object} 目录统计
 
 ---
 
@@ -353,7 +353,7 @@ getDirectoryStats();
 function getUnifiedConfigManager()
 ```
 
-- 获取统一配置管理器实例
+* 获取统一配置管理器实例
 
 ---
 
@@ -363,9 +363,9 @@ function getUnifiedConfigManager()
 async function prewarmUnifiedConfigManager()
 ```
 
-- 异步预热统一配置管理器（M2 启动期 IO 异步化）
-- 在 bootstrap 早期 await 此函数，可将 mkdir/迁移/读取移出事件循环。
-- 完成后，所有同步 getUnifiedConfigManager() 将走快路径。
+* 异步预热统一配置管理器（M2 启动期 IO 异步化）
+ * 在 bootstrap 早期 await 此函数，可将 mkdir/迁移/读取移出事件循环。
+ * 完成后，所有同步 getUnifiedConfigManager() 将走快路径。
 
 ---
 
@@ -375,7 +375,8 @@ async function prewarmUnifiedConfigManager()
 function getCurrentConfigDir()
 ```
 
-- 获取当前配置目录路径
-- @returns {string} 配置目录路径
+* 获取当前配置目录路径
+ * @returns {string} 配置目录路径
 
 ---
+

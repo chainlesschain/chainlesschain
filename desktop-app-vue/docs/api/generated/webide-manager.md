@@ -2,7 +2,7 @@
 
 **Source**: `src/main/webide/webide-manager.js`
 
-**Generated**: 2026-04-20T10:46:39.693Z
+**Generated**: 2026-04-21T04:11:31.395Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-- Web IDE 管理器
-- 负责项目保存、加载、导出等核心功能
+* Web IDE 管理器
+ * 负责项目保存、加载、导出等核心功能
 
 ---
 
@@ -23,7 +23,7 @@ const
 async initDirectories()
 ```
 
-- 初始化目录结构
+* 初始化目录结构
 
 ---
 
@@ -33,9 +33,9 @@ async initDirectories()
 async saveProject(projectData)
 ```
 
-- 保存项目
-  - @param {Object} projectData - 项目数据
-  - @returns {Promise<Object>} 保存结果
+* 保存项目
+   * @param {Object} projectData - 项目数据
+   * @returns {Promise<Object>} 保存结果
 
 ---
 
@@ -45,9 +45,9 @@ async saveProject(projectData)
 async loadProject(projectId)
 ```
 
-- 加载项目
-  - @param {string} projectId - 项目ID
-  - @returns {Promise<Object>} 项目数据
+* 加载项目
+   * @param {string} projectId - 项目ID
+   * @returns {Promise<Object>} 项目数据
 
 ---
 
@@ -57,8 +57,8 @@ async loadProject(projectId)
 async getProjectList()
 ```
 
-- 获取所有项目列表
-  - @returns {Promise<Object>} 项目列表
+* 获取所有项目列表
+   * @returns {Promise<Object>} 项目列表
 
 ---
 
@@ -68,9 +68,9 @@ async getProjectList()
 async deleteProject(projectId)
 ```
 
-- 删除项目
-  - @param {string} projectId - 项目ID
-  - @returns {Promise<Object>} 删除结果
+* 删除项目
+   * @param {string} projectId - 项目ID
+   * @returns {Promise<Object>} 删除结果
 
 ---
 
@@ -80,9 +80,9 @@ async deleteProject(projectId)
 async exportHTML(exportData)
 ```
 
-- 导出项目为 HTML 文件
-  - @param {Object} exportData - 导出数据
-  - @returns {Promise<Object>} 导出结果
+* 导出项目为 HTML 文件
+   * @param {Object} exportData - 导出数据
+   * @returns {Promise<Object>} 导出结果
 
 ---
 
@@ -92,9 +92,9 @@ async exportHTML(exportData)
 async exportZIP(exportData)
 ```
 
-- 导出项目为 ZIP 压缩包
-  - @param {Object} exportData - 导出数据
-  - @returns {Promise<Object>} 导出结果
+* 导出项目为 ZIP 压缩包
+   * @param {Object} exportData - 导出数据
+   * @returns {Promise<Object>} 导出结果
 
 ---
 
@@ -104,19 +104,19 @@ async exportZIP(exportData)
 async createZipArchive(sourceDir, outputPath)
 ```
 
-- 创建 ZIP 压缩包
-  - @private
+* 创建 ZIP 压缩包
+   * @private
 
 ---
 
 ## generateId()
 
 ```javascript
-generateId();
+generateId()
 ```
 
-- 生成唯一 ID
-  - @private
+* 生成唯一 ID
+   * @private
 
 ---
 
@@ -126,27 +126,28 @@ generateId();
 async checkPathExists(filePath)
 ```
 
-- 检查路径是否存在
-  - @private
+* 检查路径是否存在
+   * @private
 
 ---
 
 ## getProjectsPath()
 
 ```javascript
-getProjectsPath();
+getProjectsPath()
 ```
 
-- 获取项目存储路径
+* 获取项目存储路径
 
 ---
 
 ## getTempPath()
 
 ```javascript
-getTempPath();
+getTempPath()
 ```
 
-- 获取临时文件路径
+* 获取临时文件路径
 
 ---
+

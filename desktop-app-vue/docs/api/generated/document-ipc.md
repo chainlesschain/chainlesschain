@@ -2,7 +2,7 @@
 
 **Source**: `src/main/document/document-ipc.js`
 
-**Generated**: 2026-04-20T10:46:39.800Z
+**Generated**: 2026-04-21T04:11:31.506Z
 
 ---
 
@@ -12,11 +12,11 @@
 const
 ```
 
-- 文档处理 IPC
-- 处理 PPT 导出等文档操作
--
-- @module document-ipc
-- @description 文档处理模块，提供 PPT 导出等功能
+* 文档处理 IPC
+ * 处理 PPT 导出等文档操作
+ *
+ * @module document-ipc
+ * @description 文档处理模块，提供 PPT 导出等功能
 
 ---
 
@@ -26,18 +26,19 @@ const
 function registerDocumentIPC(
 ```
 
-- 注册文档处理相关的 IPC 处理器
-- @param {Object} dependencies - 依赖对象
-- @param {Function} dependencies.convertSlidesToOutline - 转换幻灯片为大纲的函数
+* 注册文档处理相关的 IPC 处理器
+ * @param {Object} dependencies - 依赖对象
+ * @param {Function} dependencies.convertSlidesToOutline - 转换幻灯片为大纲的函数
 
 ---
 
-## ipcMain.handle("ppt:export", async (\_event, params) =>
+## ipcMain.handle("ppt:export", async (_event, params) =>
 
 ```javascript
 ipcMain.handle("ppt:export", async (_event, params) =>
 ```
 
-- 导出 PPT
+* 导出 PPT
 
 ---
+

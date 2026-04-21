@@ -2,7 +2,7 @@
 
 **Source**: `src/main/database/database-migration.js`
 
-**Generated**: 2026-04-20T10:46:39.803Z
+**Generated**: 2026-04-21T04:11:31.509Z
 
 ---
 
@@ -12,10 +12,10 @@
 const
 ```
 
-- 数据库迁移工具
--
-- 负责从 sql.js 迁移到 SQLCipher
-- 支持数据完整性校验和回滚
+* 数据库迁移工具
+ *
+ * 负责从 sql.js 迁移到 SQLCipher
+ * 支持数据完整性校验和回滚
 
 ---
 
@@ -25,7 +25,7 @@ const
 const MigrationStatus =
 ```
 
-- 迁移状态
+* 迁移状态
 
 ---
 
@@ -35,7 +35,7 @@ const MigrationStatus =
 class DatabaseMigrator
 ```
 
-- 数据库迁移器类
+* 数据库迁移器类
 
 ---
 
@@ -45,18 +45,18 @@ class DatabaseMigrator
 async initSqlJs()
 ```
 
-- 初始化 sql.js
+* 初始化 sql.js
 
 ---
 
 ## needsMigration()
 
 ```javascript
-needsMigration();
+needsMigration()
 ```
 
-- 检查是否需要迁移
-  - @returns {boolean}
+* 检查是否需要迁移
+   * @returns {boolean}
 
 ---
 
@@ -66,44 +66,44 @@ needsMigration();
 async createBackup()
 ```
 
-- 创建备份
+* 创建备份
 
 ---
 
 ## getTables(db)
 
 ```javascript
-getTables(db);
+getTables(db)
 ```
 
-- 获取表结构
-  - @param {Object} db - 数据库实例
-  - @returns {Array} 表列表
+* 获取表结构
+   * @param {Object} db - 数据库实例
+   * @returns {Array} 表列表
 
 ---
 
 ## getIndexes(db)
 
 ```javascript
-getIndexes(db);
+getIndexes(db)
 ```
 
-- 获取索引定义
-  - @param {Object} db - 数据库实例
-  - @returns {Array} 索引列表
+* 获取索引定义
+   * @param {Object} db - 数据库实例
+   * @returns {Array} 索引列表
 
 ---
 
 ## getTableData(db, tableName)
 
 ```javascript
-getTableData(db, tableName);
+getTableData(db, tableName)
 ```
 
-- 获取表数据
-  - @param {Object} db - 数据库实例
-  - @param {string} tableName - 表名
-  - @returns {Array} 数据行
+* 获取表数据
+   * @param {Object} db - 数据库实例
+   * @param {string} tableName - 表名
+   * @returns {Array} 数据行
 
 ---
 
@@ -113,7 +113,7 @@ getTableData(db, tableName);
 async migrate()
 ```
 
-- 执行迁移
+* 执行迁移
 
 ---
 
@@ -123,10 +123,10 @@ async migrate()
 async verifyMigration(sourceDb, targetDb, tables)
 ```
 
-- 验证迁移的数据完整性
-  - @param {Object} sourceDb - 源数据库
-  - @param {Object} targetDb - 目标数据库
-  - @param {Array} tables - 表列表
+* 验证迁移的数据完整性
+   * @param {Object} sourceDb - 源数据库
+   * @param {Object} targetDb - 目标数据库
+   * @param {Array} tables - 表列表
 
 ---
 
@@ -136,17 +136,17 @@ async verifyMigration(sourceDb, targetDb, tables)
 async rollback()
 ```
 
-- 回滚迁移
+* 回滚迁移
 
 ---
 
 ## deleteBackup()
 
 ```javascript
-deleteBackup();
+deleteBackup()
 ```
 
-- 删除备份
+* 删除备份
 
 ---
 
@@ -156,8 +156,9 @@ deleteBackup();
 async function migrateDatabase(options)
 ```
 
-- 快速迁移函数
-- @param {Object} options - 迁移选项
-- @returns {Promise<Object>} 迁移结果
+* 快速迁移函数
+ * @param {Object} options - 迁移选项
+ * @returns {Promise<Object>} 迁移结果
 
 ---
+

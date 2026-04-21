@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ipc/workspace-task-ipc.js`
 
-**Generated**: 2026-04-20T10:46:39.780Z
+**Generated**: 2026-04-21T04:11:31.485Z
 
 ---
 
@@ -12,10 +12,10 @@
 const
 ```
 
-- 工作区与任务管理 IPC 处理器
-- Phase 1 - v0.17.0
--
-- 注册所有工作区和任务相关的IPC接口（22个）
+* 工作区与任务管理 IPC 处理器
+ * Phase 1 - v0.17.0
+ *
+ * 注册所有工作区和任务相关的IPC接口（22个）
 
 ---
 
@@ -25,8 +25,8 @@ const
 function registerWorkspaceTaskIPC(app)
 ```
 
-- 注册工作区与任务管理IPC处理器
-- @param {Object} app - ChainlessChainApp实例
+* 注册工作区与任务管理IPC处理器
+ * @param {Object} app - ChainlessChainApp实例
 
 ---
 
@@ -36,7 +36,7 @@ function registerWorkspaceTaskIPC(app)
 ipcMain.handle('organization:workspace:create', async (event,
 ```
 
-- 创建工作区
+* 创建工作区
 
 ---
 
@@ -46,7 +46,7 @@ ipcMain.handle('organization:workspace:create', async (event,
 ipcMain.handle('organization:workspace:list', async (event,
 ```
 
-- 获取组织工作区列表
+* 获取组织工作区列表
 
 ---
 
@@ -56,7 +56,7 @@ ipcMain.handle('organization:workspace:list', async (event,
 ipcMain.handle('organization:workspace:update', async (event,
 ```
 
-- 更新工作区
+* 更新工作区
 
 ---
 
@@ -66,7 +66,7 @@ ipcMain.handle('organization:workspace:update', async (event,
 ipcMain.handle('organization:workspace:delete', async (event,
 ```
 
-- 删除工作区
+* 删除工作区
 
 ---
 
@@ -76,7 +76,7 @@ ipcMain.handle('organization:workspace:delete', async (event,
 ipcMain.handle('organization:workspace:restore', async (event,
 ```
 
-- 恢复工作区
+* 恢复工作区
 
 ---
 
@@ -86,7 +86,7 @@ ipcMain.handle('organization:workspace:restore', async (event,
 ipcMain.handle('organization:workspace:permanentDelete', async (event,
 ```
 
-- 永久删除工作区
+* 永久删除工作区
 
 ---
 
@@ -96,7 +96,7 @@ ipcMain.handle('organization:workspace:permanentDelete', async (event,
 ipcMain.handle('organization:workspace:addMember', async (event,
 ```
 
-- 添加工作区成员
+* 添加工作区成员
 
 ---
 
@@ -106,7 +106,7 @@ ipcMain.handle('organization:workspace:addMember', async (event,
 ipcMain.handle('organization:workspace:removeMember', async (event,
 ```
 
-- 移除工作区成员
+* 移除工作区成员
 
 ---
 
@@ -116,7 +116,7 @@ ipcMain.handle('organization:workspace:removeMember', async (event,
 ipcMain.handle('organization:workspace:addResource', async (event,
 ```
 
-- 添加资源到工作区
+* 添加资源到工作区
 
 ---
 
@@ -126,7 +126,7 @@ ipcMain.handle('organization:workspace:addResource', async (event,
 ipcMain.handle('tasks:create', async (event,
 ```
 
-- 创建任务
+* 创建任务
 
 ---
 
@@ -136,7 +136,7 @@ ipcMain.handle('tasks:create', async (event,
 ipcMain.handle('tasks:update', async (event,
 ```
 
-- 更新任务
+* 更新任务
 
 ---
 
@@ -146,7 +146,7 @@ ipcMain.handle('tasks:update', async (event,
 ipcMain.handle('tasks:delete', async (event,
 ```
 
-- 删除任务
+* 删除任务
 
 ---
 
@@ -156,7 +156,7 @@ ipcMain.handle('tasks:delete', async (event,
 ipcMain.handle('tasks:list', async (event,
 ```
 
-- 获取任务列表
+* 获取任务列表
 
 ---
 
@@ -166,7 +166,7 @@ ipcMain.handle('tasks:list', async (event,
 ipcMain.handle('tasks:detail', async (event,
 ```
 
-- 获取任务详情
+* 获取任务详情
 
 ---
 
@@ -176,7 +176,7 @@ ipcMain.handle('tasks:detail', async (event,
 ipcMain.handle('tasks:assign', async (event,
 ```
 
-- 分配任务
+* 分配任务
 
 ---
 
@@ -186,7 +186,7 @@ ipcMain.handle('tasks:assign', async (event,
 ipcMain.handle('tasks:changeStatus', async (event,
 ```
 
-- 变更任务状态
+* 变更任务状态
 
 ---
 
@@ -196,7 +196,7 @@ ipcMain.handle('tasks:changeStatus', async (event,
 ipcMain.handle('tasks:comment:add', async (event,
 ```
 
-- 添加任务评论
+* 添加任务评论
 
 ---
 
@@ -206,7 +206,7 @@ ipcMain.handle('tasks:comment:add', async (event,
 ipcMain.handle('tasks:comment:list', async (event,
 ```
 
-- 获取任务评论列表
+* 获取任务评论列表
 
 ---
 
@@ -216,7 +216,7 @@ ipcMain.handle('tasks:comment:list', async (event,
 ipcMain.handle('tasks:comment:delete', async (event,
 ```
 
-- 删除任务评论
+* 删除任务评论
 
 ---
 
@@ -226,7 +226,7 @@ ipcMain.handle('tasks:comment:delete', async (event,
 ipcMain.handle('tasks:board:create', async (event,
 ```
 
-- 创建任务看板
+* 创建任务看板
 
 ---
 
@@ -236,7 +236,7 @@ ipcMain.handle('tasks:board:create', async (event,
 ipcMain.handle('tasks:board:list', async (event,
 ```
 
-- 获取任务看板列表
+* 获取任务看板列表
 
 ---
 
@@ -246,7 +246,7 @@ ipcMain.handle('tasks:board:list', async (event,
 ipcMain.handle('tasks:board:update', async (event,
 ```
 
-- 更新任务看板
+* 更新任务看板
 
 ---
 
@@ -256,7 +256,7 @@ ipcMain.handle('tasks:board:update', async (event,
 ipcMain.handle('tasks:board:delete', async (event,
 ```
 
-- 删除任务看板
+* 删除任务看板
 
 ---
 
@@ -266,7 +266,7 @@ ipcMain.handle('tasks:board:delete', async (event,
 ipcMain.handle('tasks:board:get', async (event,
 ```
 
-- 获取任务看板详情
+* 获取任务看板详情
 
 ---
 
@@ -276,6 +276,7 @@ ipcMain.handle('tasks:board:get', async (event,
 ipcMain.handle('tasks:getHistory', async (event,
 ```
 
-- 获取任务变更历史
+* 获取任务变更历史
 
 ---
+

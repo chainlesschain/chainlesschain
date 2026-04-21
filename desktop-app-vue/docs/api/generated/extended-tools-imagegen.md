@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/extended-tools-imagegen.js`
 
-**Generated**: 2026-04-20T10:46:39.838Z
+**Generated**: 2026-04-21T04:11:31.546Z
 
 ---
 
@@ -12,15 +12,15 @@
 const
 ```
 
-- Image Generation Tools Integration
--
-- Registers image generation tools with the function caller:
-- - Text-to-image generation
-- - Image-to-image transformation
-- - Upscaling
--
-- @module extended-tools-imagegen
-- @version 1.0.0
+* Image Generation Tools Integration
+ *
+ * Registers image generation tools with the function caller:
+ * - Text-to-image generation
+ * - Image-to-image transformation
+ * - Upscaling
+ *
+ * @module extended-tools-imagegen
+ * @version 1.0.0
 
 ---
 
@@ -30,29 +30,29 @@ const
 class ImageGenToolsHandler
 ```
 
-- Image Generation Tools Handler
+* Image Generation Tools Handler
 
 ---
 
 ## setImageGenManager(imageGenManager)
 
 ```javascript
-setImageGenManager(imageGenManager);
+setImageGenManager(imageGenManager)
 ```
 
-- Set ImageGenManager reference
-  - @param {Object} imageGenManager - ImageGenManager instance
+* Set ImageGenManager reference
+   * @param {Object} imageGenManager - ImageGenManager instance
 
 ---
 
 ## register(functionCaller)
 
 ```javascript
-register(functionCaller);
+register(functionCaller)
 ```
 
-- Register all image generation tools
-  - @param {FunctionCaller} functionCaller - Function caller instance
+* Register all image generation tools
+   * @param {FunctionCaller} functionCaller - Function caller instance
 
 ---
 
@@ -62,7 +62,8 @@ register(functionCaller);
 function getImageGenTools()
 ```
 
-- Get Image Generation Tools Handler singleton
-- @returns {ImageGenToolsHandler}
+* Get Image Generation Tools Handler singleton
+ * @returns {ImageGenToolsHandler}
 
 ---
+

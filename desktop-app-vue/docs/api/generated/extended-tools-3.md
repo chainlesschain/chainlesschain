@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/extended-tools-3.js`
 
-**Generated**: 2026-04-20T10:46:39.839Z
+**Generated**: 2026-04-21T04:11:31.547Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-- 扩展工具集 - 第三批
-- 实现视频音频、ML推理、数据分析、模板、API、云存储、日志、性能监控、国际化、工作流等工具
+* 扩展工具集 - 第三批
+ * 实现视频音频、ML推理、数据分析、模板、API、云存储、日志、性能监控、国际化、工作流等工具
 
 ---
 
@@ -23,7 +23,8 @@ const
 static registerAll(functionCaller)
 ```
 
-- 注册所有第三批扩展工具
-  - @param {FunctionCaller} functionCaller
+* 注册所有第三批扩展工具
+   * @param {FunctionCaller} functionCaller
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/git/git-hot-reload.js`
 
-**Generated**: 2026-04-20T10:46:39.788Z
+**Generated**: 2026-04-21T04:11:31.494Z
 
 ---
 
@@ -12,14 +12,14 @@
 let chokidar;
 ```
 
-- Git Hot Reload Module
-- 监听Git仓库文件变化，实时通知前端更新
--
-- 功能：
-- - 监听仓库文件变化（使用chokidar）
-- - 防抖处理，避免频繁触发
-- - 自动检测Git状态变化
-- - 通知前端更新UI
+* Git Hot Reload Module
+ * 监听Git仓库文件变化，实时通知前端更新
+ *
+ * 功能：
+ * - 监听仓库文件变化（使用chokidar）
+ * - 防抖处理，避免频繁触发
+ * - 自动检测Git状态变化
+ * - 通知前端更新UI
 
 ---
 
@@ -30,7 +30,7 @@ gitLog("GitHotReload", "初始化Git热重载模块");
 ```
 
 ",
-"\*
+      "*
 
 ---
 
@@ -41,17 +41,17 @@ gitLog("GitHotReload", "初始化Git热重载模块");
 ```
 
 ",
-"\*
+      "*
 
 ---
 
 ## start()
 
 ```javascript
-start();
+start()
 ```
 
-- 启动文件监听
+* 启动文件监听
 
 ---
 
@@ -61,29 +61,29 @@ start();
 async stop()
 ```
 
-- 停止文件监听
+* 停止文件监听
 
 ---
 
 ## handleFileChange(eventType, filePath)
 
 ```javascript
-handleFileChange(eventType, filePath);
+handleFileChange(eventType, filePath)
 ```
 
-- 处理文件变化
-  - @param {string} eventType - 事件类型 (add/change/unlink)
-  - @param {string} filePath - 文件路径
+* 处理文件变化
+   * @param {string} eventType - 事件类型 (add/change/unlink)
+   * @param {string} filePath - 文件路径
 
 ---
 
 ## scheduleStatusCheck()
 
 ```javascript
-scheduleStatusCheck();
+scheduleStatusCheck()
 ```
 
-- 调度状态检查（防抖）
+* 调度状态检查（防抖）
 
 ---
 
@@ -93,30 +93,30 @@ scheduleStatusCheck();
 async checkGitStatus()
 ```
 
-- 检查Git状态并通知变化
+* 检查Git状态并通知变化
 
 ---
 
 ## hasStatusChanged(oldStatus, newStatus)
 
 ```javascript
-hasStatusChanged(oldStatus, newStatus);
+hasStatusChanged(oldStatus, newStatus)
 ```
 
-- 比较两个状态是否有变化
-  - @param {Object} oldStatus - 旧状态
-  - @param {Object} newStatus - 新状态
-  - @returns {boolean}
+* 比较两个状态是否有变化
+   * @param {Object} oldStatus - 旧状态
+   * @param {Object} newStatus - 新状态
+   * @returns {boolean}
 
 ---
 
 ## setupGitManagerListeners()
 
 ```javascript
-setupGitManagerListeners();
+setupGitManagerListeners()
 ```
 
-- 设置Git管理器事件监听
+* 设置Git管理器事件监听
 
 ---
 
@@ -126,39 +126,40 @@ setupGitManagerListeners();
 async refresh()
 ```
 
-- 手动触发状态检查
+* 手动触发状态检查
 
 ---
 
 ## setEnabled(enabled)
 
 ```javascript
-setEnabled(enabled);
+setEnabled(enabled)
 ```
 
-- 启用/禁用热重载
-  - @param {boolean} enabled
+* 启用/禁用热重载
+   * @param {boolean} enabled
 
 ---
 
 ## setDebounceDelay(delay)
 
 ```javascript
-setDebounceDelay(delay);
+setDebounceDelay(delay)
 ```
 
-- 设置防抖延迟
-  - @param {number} delay - 延迟时间（毫秒）
+* 设置防抖延迟
+   * @param {number} delay - 延迟时间（毫秒）
 
 ---
 
 ## getStatus()
 
 ```javascript
-getStatus();
+getStatus()
 ```
 
-- 获取监听状态
-  - @returns {Object}
+* 获取监听状态
+   * @returns {Object}
 
 ---
+

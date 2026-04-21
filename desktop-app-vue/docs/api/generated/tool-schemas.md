@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/tool-schemas.js`
 
-**Generated**: 2026-04-20T10:46:39.728Z
+**Generated**: 2026-04-21T04:11:31.430Z
 
 ---
 
@@ -12,7 +12,8 @@
 const toolSchemas =
 ```
 
-- Additional Tools V3 - JSON Schema定义
-- 为27个专业领域工具定义详细的参数和返回值Schema
+* Additional Tools V3 - JSON Schema定义
+ * 为27个专业领域工具定义详细的参数和返回值Schema
 
 ---
+

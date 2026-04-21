@@ -2,7 +2,7 @@
 
 **Source**: `src/main/utils/resumable-processor.js`
 
-**Generated**: 2026-04-20T10:46:39.696Z
+**Generated**: 2026-04-21T04:11:31.397Z
 
 ---
 
@@ -12,15 +12,15 @@
 const
 ```
 
-- 可恢复处理器 - 错误恢复与断点续传
--
-- 核心功能：
-- - 自动检查点保存（每10%进度）
-- - 指数退避重试（最多3次）
-- - 断点续传支持
-- - 错误日志记录
--
-- v0.18.0: 新建文件，支持多媒体处理的容错性
+* 可恢复处理器 - 错误恢复与断点续传
+ *
+ * 核心功能：
+ * - 自动检查点保存（每10%进度）
+ * - 指数退避重试（最多3次）
+ * - 断点续传支持
+ * - 错误日志记录
+ *
+ * v0.18.0: 新建文件，支持多媒体处理的容错性
 
 ---
 
@@ -30,7 +30,7 @@ const
 const DEFAULT_CONFIG =
 ```
 
-- 默认配置
+* 默认配置
 
 ---
 
@@ -40,7 +40,7 @@ const DEFAULT_CONFIG =
 class ResumableProcessor extends EventEmitter
 ```
 
-- 可恢复处理器类
+* 可恢复处理器类
 
 ---
 
@@ -50,7 +50,7 @@ class ResumableProcessor extends EventEmitter
 async initialize()
 ```
 
-- 初始化（确保检查点目录存在）
+* 初始化（确保检查点目录存在）
 
 ---
 
@@ -60,11 +60,11 @@ async initialize()
 async processWithRetry(taskId, processor, options =
 ```
 
-- 处理任务（带重试和断点续传）
-  - @param {string} taskId - 任务唯一标识
-  - @param {Function} processor - 处理函数 (progress, options) => Promise<result>
-  - @param {Object} options - 处理选项
-  - @returns {Promise<Object>} 处理结果
+* 处理任务（带重试和断点续传）
+   * @param {string} taskId - 任务唯一标识
+   * @param {Function} processor - 处理函数 (progress, options) => Promise<result>
+   * @param {Object} options - 处理选项
+   * @returns {Promise<Object>} 处理结果
 
 ---
 
@@ -74,9 +74,9 @@ async processWithRetry(taskId, processor, options =
 async saveCheckpoint(taskId, checkpointData)
 ```
 
-- 保存检查点
-  - @param {string} taskId - 任务ID
-  - @param {Object} checkpointData - 检查点数据
+* 保存检查点
+   * @param {string} taskId - 任务ID
+   * @param {Object} checkpointData - 检查点数据
 
 ---
 
@@ -86,9 +86,9 @@ async saveCheckpoint(taskId, checkpointData)
 async loadCheckpoint(taskId)
 ```
 
-- 加载检查点
-  - @param {string} taskId - 任务ID
-  - @returns {Promise<Object|null>} 检查点数据
+* 加载检查点
+   * @param {string} taskId - 任务ID
+   * @returns {Promise<Object|null>} 检查点数据
 
 ---
 
@@ -98,20 +98,20 @@ async loadCheckpoint(taskId)
 async deleteCheckpoint(taskId)
 ```
 
-- 删除检查点
-  - @param {string} taskId - 任务ID
+* 删除检查点
+   * @param {string} taskId - 任务ID
 
 ---
 
 ## getCheckpointPath(taskId)
 
 ```javascript
-getCheckpointPath(taskId);
+getCheckpointPath(taskId)
 ```
 
-- 获取检查点文件路径
-  - @param {string} taskId - 任务ID
-  - @returns {string} 文件路径
+* 获取检查点文件路径
+   * @param {string} taskId - 任务ID
+   * @returns {string} 文件路径
 
 ---
 
@@ -121,8 +121,8 @@ getCheckpointPath(taskId);
 async getAllCheckpoints()
 ```
 
-- 获取所有检查点
-  - @returns {Promise<Array>} 检查点列表
+* 获取所有检查点
+   * @returns {Promise<Array>} 检查点列表
 
 ---
 
@@ -132,40 +132,40 @@ async getAllCheckpoints()
 async cleanupOldCheckpoints(maxAge = this.config.cleanupDelay)
 ```
 
-- 清理过期检查点
-  - @param {number} maxAge - 最大年龄（毫秒）
-  - @returns {Promise<number>} 清理的数量
+* 清理过期检查点
+   * @param {number} maxAge - 最大年龄（毫秒）
+   * @returns {Promise<number>} 清理的数量
 
 ---
 
 ## startAutoCleanup()
 
 ```javascript
-startAutoCleanup();
+startAutoCleanup()
 ```
 
-- 启动自动清理定时器
+* 启动自动清理定时器
 
 ---
 
 ## stopAutoCleanup()
 
 ```javascript
-stopAutoCleanup();
+stopAutoCleanup()
 ```
 
-- 停止自动清理定时器
+* 停止自动清理定时器
 
 ---
 
 ## getActiveTasks()
 
 ```javascript
-getActiveTasks();
+getActiveTasks()
 ```
 
-- 获取活动任务列表
-  - @returns {Array} 活动任务信息
+* 获取活动任务列表
+   * @returns {Array} 活动任务信息
 
 ---
 
@@ -175,6 +175,7 @@ getActiveTasks();
 async terminate()
 ```
 
-- 终止处理器
+* 终止处理器
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/cowork/agent-pool.js`
 
-**Generated**: 2026-04-20T10:46:39.852Z
+**Generated**: 2026-04-21T04:11:31.559Z
 
 ---
 

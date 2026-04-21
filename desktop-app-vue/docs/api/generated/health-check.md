@@ -2,7 +2,7 @@
 
 **Source**: `src/main/monitoring/health-check.js`
 
-**Generated**: 2026-04-20T10:46:39.761Z
+**Generated**: 2026-04-21T04:11:31.466Z
 
 ---
 
@@ -12,38 +12,38 @@
 const
 ```
 
-- 系统健康检查模块
-- 定期检查各个服务和组件的健康状态,并尝试自动修复问题
+* 系统健康检查模块
+ * 定期检查各个服务和组件的健康状态,并尝试自动修复问题
 
 ---
 
 ## setupChecks()
 
 ```javascript
-setupChecks();
+setupChecks()
 ```
 
-- 设置所有健康检查
+* 设置所有健康检查
 
 ---
 
 ## start()
 
 ```javascript
-start();
+start()
 ```
 
-- 启动健康检查
+* 启动健康检查
 
 ---
 
 ## stop()
 
 ```javascript
-stop();
+stop()
 ```
 
-- 停止健康检查
+* 停止健康检查
 
 ---
 
@@ -53,7 +53,7 @@ stop();
 async runChecks()
 ```
 
-- 运行所有检查
+* 运行所有检查
 
 ---
 
@@ -63,7 +63,7 @@ async runChecks()
 async checkDatabase()
 ```
 
-- 检查数据库
+* 检查数据库
 
 ---
 
@@ -73,7 +73,7 @@ async checkDatabase()
 async checkOllama()
 ```
 
-- 检查Ollama服务
+* 检查Ollama服务
 
 ---
 
@@ -83,7 +83,7 @@ async checkOllama()
 async checkQdrant()
 ```
 
-- 检查Qdrant服务
+* 检查Qdrant服务
 
 ---
 
@@ -93,7 +93,7 @@ async checkQdrant()
 async checkProjectService()
 ```
 
-- 检查Project Service
+* 检查Project Service
 
 ---
 
@@ -103,7 +103,7 @@ async checkProjectService()
 async checkAIService()
 ```
 
-- 检查AI Service
+* 检查AI Service
 
 ---
 
@@ -113,7 +113,7 @@ async checkAIService()
 async checkDiskSpace()
 ```
 
-- 检查磁盘空间
+* 检查磁盘空间
 
 ---
 
@@ -123,7 +123,7 @@ async checkDiskSpace()
 async checkMemory()
 ```
 
-- 检查内存使用
+* 检查内存使用
 
 ---
 
@@ -133,7 +133,7 @@ async checkMemory()
 async checkUKey()
 ```
 
-- 检查U-Key
+* 检查U-Key
 
 ---
 
@@ -143,27 +143,27 @@ async checkUKey()
 async checkNetwork()
 ```
 
-- 检查网络连接
+* 检查网络连接
 
 ---
 
 ## getLastResults()
 
 ```javascript
-getLastResults();
+getLastResults()
 ```
 
-- 获取最后的检查结果
+* 获取最后的检查结果
 
 ---
 
 ## getHealthSummary()
 
 ```javascript
-getHealthSummary();
+getHealthSummary()
 ```
 
-- 获取健康状况摘要
+* 获取健康状况摘要
 
 ---
 
@@ -173,16 +173,17 @@ getHealthSummary();
 async logResults(results)
 ```
 
-- 记录结果到日志
+* 记录结果到日志
 
 ---
 
 ## sleep(ms)
 
 ```javascript
-sleep(ms);
+sleep(ms)
 ```
 
-- 工具函数: 睡眠
+* 工具函数: 睡眠
 
 ---
+

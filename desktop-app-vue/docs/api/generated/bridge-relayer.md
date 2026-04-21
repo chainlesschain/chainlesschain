@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/bridge-relayer.js`
 
-**Generated**: 2026-04-20T10:46:39.826Z
+**Generated**: 2026-04-21T04:11:31.533Z
 
 ---
 
@@ -12,14 +12,14 @@
 const
 ```
 
-- Bridge Relayer System
--
-- Automated relayer for cross-chain bridge operations:
-- - Monitors lock events on source chains
-- - Automatically submits mint transactions on destination chains
-- - Verifies transaction proofs
-- - Handles retries and error recovery
-- - Provides relayer incentives tracking
+* Bridge Relayer System
+ *
+ * Automated relayer for cross-chain bridge operations:
+ * - Monitors lock events on source chains
+ * - Automatically submits mint transactions on destination chains
+ * - Verifies transaction proofs
+ * - Handles retries and error recovery
+ * - Provides relayer incentives tracking
 
 ---
 
@@ -29,7 +29,7 @@ const
 const RELAYER_CONFIG =
 ```
 
-- Relayer configuration
+* Relayer configuration
 
 ---
 
@@ -39,7 +39,7 @@ const RELAYER_CONFIG =
 class BridgeRelayer extends EventEmitter
 ```
 
-- Bridge Relayer
+* Bridge Relayer
 
 ---
 
@@ -49,7 +49,7 @@ class BridgeRelayer extends EventEmitter
 async initialize()
 ```
 
-- Initialize relayer
+* Initialize relayer
 
 ---
 
@@ -59,7 +59,7 @@ async initialize()
 async initializeTables()
 ```
 
-- Initialize database tables
+* Initialize database tables
 
 ---
 
@@ -69,7 +69,7 @@ async initializeTables()
 async loadLastProcessedBlocks()
 ```
 
-- Load last processed blocks
+* Load last processed blocks
 
 ---
 
@@ -79,7 +79,7 @@ async loadLastProcessedBlocks()
 async loadPendingRelays()
 ```
 
-- Load pending relays
+* Load pending relays
 
 ---
 
@@ -89,7 +89,7 @@ async loadPendingRelays()
 async start()
 ```
 
-- Start relayer
+* Start relayer
 
 ---
 
@@ -99,7 +99,7 @@ async start()
 async stop()
 ```
 
-- Stop relayer
+* Stop relayer
 
 ---
 
@@ -109,7 +109,7 @@ async stop()
 async monitoringLoop()
 ```
 
-- Monitoring loop - scan for new lock events
+* Monitoring loop - scan for new lock events
 
 ---
 
@@ -119,7 +119,7 @@ async monitoringLoop()
 async processingLoop()
 ```
 
-- Processing loop - process pending relays
+* Processing loop - process pending relays
 
 ---
 
@@ -129,7 +129,7 @@ async processingLoop()
 async scanForLockEvents()
 ```
 
-- Scan for lock events on all chains
+* Scan for lock events on all chains
 
 ---
 
@@ -139,7 +139,7 @@ async scanForLockEvents()
 async scanChainForLockEvents(chainId)
 ```
 
-- Scan specific chain for lock events
+* Scan specific chain for lock events
 
 ---
 
@@ -149,7 +149,7 @@ async scanChainForLockEvents(chainId)
 async handleLockEvent(event, sourceChainId)
 ```
 
-- Handle lock event
+* Handle lock event
 
 ---
 
@@ -159,7 +159,7 @@ async handleLockEvent(event, sourceChainId)
 async processRelay(requestId)
 ```
 
-- Process relay task
+* Process relay task
 
 ---
 
@@ -169,7 +169,7 @@ async processRelay(requestId)
 async verifySourceTransaction(relayTask)
 ```
 
-- Verify source transaction
+* Verify source transaction
 
 ---
 
@@ -179,7 +179,7 @@ async verifySourceTransaction(relayTask)
 async submitMintTransaction(relayTask)
 ```
 
-- Submit mint transaction on destination chain
+* Submit mint transaction on destination chain
 
 ---
 
@@ -189,17 +189,17 @@ async submitMintTransaction(relayTask)
 async waitForConfirmation(chainId, txHash)
 ```
 
-- Wait for transaction confirmation
+* Wait for transaction confirmation
 
 ---
 
 ## calculateRelayerFee(amount)
 
 ```javascript
-calculateRelayerFee(amount);
+calculateRelayerFee(amount)
 ```
 
-- Calculate relayer fee
+* Calculate relayer fee
 
 ---
 
@@ -209,7 +209,7 @@ calculateRelayerFee(amount);
 async getOptimizedGasPrice()
 ```
 
-- Get optimized gas price
+* Get optimized gas price
 
 ---
 
@@ -219,7 +219,7 @@ async getOptimizedGasPrice()
 async saveRelayTask(task)
 ```
 
-- Save relay task to database
+* Save relay task to database
 
 ---
 
@@ -229,17 +229,17 @@ async saveRelayTask(task)
 async updateRelayTask(requestId, updates)
 ```
 
-- Update relay task
+* Update relay task
 
 ---
 
 ## getStatistics()
 
 ```javascript
-getStatistics();
+getStatistics()
 ```
 
-- Get relayer statistics
+* Get relayer statistics
 
 ---
 
@@ -249,7 +249,7 @@ getStatistics();
 async getRelayHistory(filters =
 ```
 
-- Get relay history
+* Get relay history
 
 ---
 
@@ -259,6 +259,7 @@ async getRelayHistory(filters =
 async close()
 ```
 
-- Close relayer
+* Close relayer
 
 ---
+

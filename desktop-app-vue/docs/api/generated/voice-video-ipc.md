@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/voice-video-ipc.js`
 
-**Generated**: 2026-04-20T10:46:39.754Z
+**Generated**: 2026-04-21T04:11:31.458Z
 
 ---
 
@@ -12,49 +12,49 @@
 const
 ```
 
-- Voice/Video Call IPC处理器
--
-- 提供前端与语音/视频通话功能的通信接口
+* Voice/Video Call IPC处理器
+ *
+ * 提供前端与语音/视频通话功能的通信接口
 
 ---
 
 ## register()
 
 ```javascript
-register();
+register()
 ```
 
-- 注册所有IPC处理器
+* 注册所有IPC处理器
 
 ---
 
 ## registerHandler(channel, handler)
 
 ```javascript
-registerHandler(channel, handler);
+registerHandler(channel, handler)
 ```
 
-- 注册单个处理器
+* 注册单个处理器
 
 ---
 
 ## setupEventForwarding()
 
 ```javascript
-setupEventForwarding();
+setupEventForwarding()
 ```
 
-- 设置事件转发到渲染进程
+* 设置事件转发到渲染进程
 
 ---
 
 ## sendToRenderer(channel, data)
 
 ```javascript
-sendToRenderer(channel, data);
+sendToRenderer(channel, data)
 ```
 
-- 发送事件到渲染进程
+* 发送事件到渲染进程
 
 ---
 
@@ -64,7 +64,7 @@ sendToRenderer(channel, data);
 async handleStartCall(event,
 ```
 
-- 处理发起通话
+* 处理发起通话
 
 ---
 
@@ -74,7 +74,7 @@ async handleStartCall(event,
 async handleAcceptCall(event,
 ```
 
-- 处理接受通话
+* 处理接受通话
 
 ---
 
@@ -84,7 +84,7 @@ async handleAcceptCall(event,
 async handleRejectCall(event,
 ```
 
-- 处理拒绝通话
+* 处理拒绝通话
 
 ---
 
@@ -94,7 +94,7 @@ async handleRejectCall(event,
 async handleEndCall(event,
 ```
 
-- 处理结束通话
+* 处理结束通话
 
 ---
 
@@ -104,7 +104,7 @@ async handleEndCall(event,
 async handleToggleMute(event,
 ```
 
-- 处理切换静音
+* 处理切换静音
 
 ---
 
@@ -114,7 +114,7 @@ async handleToggleMute(event,
 async handleToggleVideo(event,
 ```
 
-- 处理切换视频
+* 处理切换视频
 
 ---
 
@@ -124,7 +124,7 @@ async handleToggleVideo(event,
 async handleGetCallInfo(event,
 ```
 
-- 获取通话信息
+* 获取通话信息
 
 ---
 
@@ -134,7 +134,7 @@ async handleGetCallInfo(event,
 async handleGetActiveCalls(event)
 ```
 
-- 获取活动通话列表
+* 获取活动通话列表
 
 ---
 
@@ -144,16 +144,17 @@ async handleGetActiveCalls(event)
 async handleGetStats(event)
 ```
 
-- 获取统计信息
+* 获取统计信息
 
 ---
 
 ## unregister()
 
 ```javascript
-unregister();
+unregister()
 ```
 
-- 注销所有处理器
+* 注销所有处理器
 
 ---
+

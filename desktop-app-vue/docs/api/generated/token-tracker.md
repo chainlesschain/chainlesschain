@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/token-tracker.js`
 
-**Generated**: 2026-04-20T10:46:39.771Z
+**Generated**: 2026-04-21T04:11:31.476Z
 
 ---
 
@@ -12,13 +12,13 @@
 const
 ```
 
-- TokenTracker - LLM Token 追踪和成本管理核心模块
--
-- 功能:
-- - 记录每次 LLM API 调用的 token 使用和成本
-- - 多提供商定价数据 (OpenAI, Anthropic, DeepSeek, Volcengine, Ollama)
-- - 预算管理和告警
-- - 统计查询和报告导出
+* TokenTracker - LLM Token 追踪和成本管理核心模块
+ *
+ * 功能:
+ * - 记录每次 LLM API 调用的 token 使用和成本
+ * - 多提供商定价数据 (OpenAI, Anthropic, DeepSeek, Volcengine, Ollama)
+ * - 预算管理和告警
+ * - 统计查询和报告导出
 
 ---
 
@@ -28,13 +28,13 @@ const
 const PRICING_DATA =
 ```
 
-- LLM 提供商定价数据 (按百万 tokens 计费, USD)
--
-- 数据来源:
-- - OpenAI: https://openai.com/pricing (2026-01)
-- - Anthropic: https://www.anthropic.com/pricing (2026-01)
-- - DeepSeek: https://platform.deepseek.com/pricing (2026-01)
-- - Volcengine: volcengine-models.js
+* LLM 提供商定价数据 (按百万 tokens 计费, USD)
+ *
+ * 数据来源:
+ * - OpenAI: https://openai.com/pricing (2026-01)
+ * - Anthropic: https://www.anthropic.com/pricing (2026-01)
+ * - DeepSeek: https://platform.deepseek.com/pricing (2026-01)
+ * - Volcengine: volcengine-models.js
 
 ---
 
@@ -44,7 +44,7 @@ const PRICING_DATA =
 class TokenTracker extends EventEmitter
 ```
 
-- TokenTracker 类
+* TokenTracker 类
 
 ---
 
@@ -54,22 +54,22 @@ class TokenTracker extends EventEmitter
 constructor(database, options =
 ```
 
-- 构造函数
-  - @param {Object} database - 数据库管理器实例
-  - @param {Object} options - 配置选项
-  - @param {boolean} options.enableCostTracking - 启用成本追踪 (默认: true)
-  - @param {boolean} options.enableBudgetAlerts - 启用预算告警 (默认: true)
-  - @param {number} options.exchangeRate - 美元到人民币汇率 (默认: 7.2)
+* 构造函数
+   * @param {Object} database - 数据库管理器实例
+   * @param {Object} options - 配置选项
+   * @param {boolean} options.enableCostTracking - 启用成本追踪 (默认: true)
+   * @param {boolean} options.enableBudgetAlerts - 启用预算告警 (默认: true)
+   * @param {number} options.exchangeRate - 美元到人民币汇率 (默认: 7.2)
 
 ---
 
 ## loadVolcenginePricing()
 
 ```javascript
-loadVolcenginePricing();
+loadVolcenginePricing()
 ```
 
-- 从 volcengine-models.js 加载定价数据
+* 从 volcengine-models.js 加载定价数据
 
 ---
 
@@ -79,21 +79,21 @@ loadVolcenginePricing();
 async recordUsage(params)
 ```
 
-- 记录单次 LLM API 调用
-  - @param {Object} params - 使用参数
-  - @param {string} params.conversationId - 对话 ID
-  - @param {string} params.messageId - 消息 ID
-  - @param {string} params.provider - 提供商 (ollama/openai/anthropic/deepseek/volcengine/custom)
-  - @param {string} params.model - 模型名称
-  - @param {number} params.inputTokens - 输入 tokens
-  - @param {number} params.outputTokens - 输出 tokens
-  - @param {number} params.cachedTokens - 缓存 tokens (Anthropic Prompt Caching)
-  - @param {boolean} params.wasCached - 是否来自响应缓存
-  - @param {boolean} params.wasCompressed - 是否使用了 Prompt 压缩
-  - @param {number} params.compressionRatio - 压缩率 (0-1)
-  - @param {number} params.responseTime - 响应时间 (毫秒)
-  - @param {string} params.endpoint - API 端点
-  - @param {string} params.userId - 用户 ID (默认: 'default')
+* 记录单次 LLM API 调用
+   * @param {Object} params - 使用参数
+   * @param {string} params.conversationId - 对话 ID
+   * @param {string} params.messageId - 消息 ID
+   * @param {string} params.provider - 提供商 (ollama/openai/anthropic/deepseek/volcengine/custom)
+   * @param {string} params.model - 模型名称
+   * @param {number} params.inputTokens - 输入 tokens
+   * @param {number} params.outputTokens - 输出 tokens
+   * @param {number} params.cachedTokens - 缓存 tokens (Anthropic Prompt Caching)
+   * @param {boolean} params.wasCached - 是否来自响应缓存
+   * @param {boolean} params.wasCompressed - 是否使用了 Prompt 压缩
+   * @param {number} params.compressionRatio - 压缩率 (0-1)
+   * @param {number} params.responseTime - 响应时间 (毫秒)
+   * @param {string} params.endpoint - API 端点
+   * @param {string} params.userId - 用户 ID (默认: 'default')
 
 ---
 
@@ -103,13 +103,13 @@ async recordUsage(params)
 calculateCost(
 ```
 
-- 计算成本
-  - @param {string} provider - 提供商
-  - @param {string} model - 模型名称
-  - @param {number} inputTokens - 输入 tokens
-  - @param {number} outputTokens - 输出 tokens
-  - @param {number} cachedTokens - 缓存 tokens (Anthropic)
-  - @returns {Object} { costUsd, costCny, pricing }
+* 计算成本
+   * @param {string} provider - 提供商
+   * @param {string} model - 模型名称
+   * @param {number} inputTokens - 输入 tokens
+   * @param {number} outputTokens - 输出 tokens
+   * @param {number} cachedTokens - 缓存 tokens (Anthropic)
+   * @returns {Object} { costUsd, costCny, pricing }
 
 ---
 
@@ -119,12 +119,12 @@ calculateCost(
 updateConversationStats(
 ```
 
-- 更新对话统计
-  - @param {string} conversationId
-  - @param {number} inputTokens
-  - @param {number} outputTokens
-  - @param {number} costUsd
-  - @param {number} costCny
+* 更新对话统计
+   * @param {string} conversationId
+   * @param {number} inputTokens
+   * @param {number} outputTokens
+   * @param {number} costUsd
+   * @param {number} costCny
 
 ---
 
@@ -134,9 +134,9 @@ updateConversationStats(
 async updateBudgetSpend(userId, costUsd)
 ```
 
-- 更新预算支出
-  - @param {string} userId
-  - @param {number} costUsd
+* 更新预算支出
+   * @param {string} userId
+   * @param {number} costUsd
 
 ---
 
@@ -146,8 +146,8 @@ async updateBudgetSpend(userId, costUsd)
 async checkBudgetAlerts(userId)
 ```
 
-- 检查预算告警
-  - @param {string} userId
+* 检查预算告警
+   * @param {string} userId
 
 ---
 
@@ -157,9 +157,9 @@ async checkBudgetAlerts(userId)
 async getBudgetConfig(userId = "default")
 ```
 
-- 获取预算配置
-  - @param {string} userId
-  - @returns {Promise<Object|null>}
+* 获取预算配置
+   * @param {string} userId
+   * @returns {Promise<Object|null>}
 
 ---
 
@@ -169,9 +169,9 @@ async getBudgetConfig(userId = "default")
 async saveBudgetConfig(userId, config)
 ```
 
-- 保存预算配置
-  - @param {string} userId
-  - @param {Object} config
+* 保存预算配置
+   * @param {string} userId
+   * @param {Object} config
 
 ---
 
@@ -181,13 +181,13 @@ async saveBudgetConfig(userId, config)
 async getUsageStats(options =
 ```
 
-- 获取使用统计
-  - @param {Object} options
-  - @param {number} options.startDate - 开始时间戳
-  - @param {number} options.endDate - 结束时间戳
-  - @param {string} options.provider - 提供商过滤
-  - @param {string} options.groupBy - 分组方式 (day/week/month)
-  - @returns {Promise<Object>}
+* 获取使用统计
+   * @param {Object} options
+   * @param {number} options.startDate - 开始时间戳
+   * @param {number} options.endDate - 结束时间戳
+   * @param {string} options.provider - 提供商过滤
+   * @param {string} options.groupBy - 分组方式 (day/week/month)
+   * @returns {Promise<Object>}
 
 ---
 
@@ -197,12 +197,12 @@ async getUsageStats(options =
 async getTimeSeriesData(options =
 ```
 
-- 获取时间序列数据 (用于图表)
-  - @param {Object} options
-  - @param {number} options.startDate
-  - @param {number} options.endDate
-  - @param {string} options.interval - 时间间隔 (hour/day/week)
-  - @returns {Promise<Array>}
+* 获取时间序列数据 (用于图表)
+   * @param {Object} options
+   * @param {number} options.startDate
+   * @param {number} options.endDate
+   * @param {string} options.interval - 时间间隔 (hour/day/week)
+   * @returns {Promise<Array>}
 
 ---
 
@@ -212,9 +212,9 @@ async getTimeSeriesData(options =
 async getCostBreakdown(options =
 ```
 
-- 获取成本分解 (按提供商/模型)
-  - @param {Object} options
-  - @returns {Promise<Object>}
+* 获取成本分解 (按提供商/模型)
+   * @param {Object} options
+   * @returns {Promise<Object>}
 
 ---
 
@@ -224,8 +224,9 @@ async getCostBreakdown(options =
 async exportCostReport(options =
 ```
 
-- 导出成本报告 (CSV)
-  - @param {Object} options
-  - @returns {Promise<string>} CSV 文件路径
+* 导出成本报告 (CSV)
+   * @param {Object} options
+   * @returns {Promise<string>} CSV 文件路径
 
 ---
+

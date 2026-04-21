@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/extended-tools-12.js`
 
-**Generated**: 2026-04-20T10:46:39.839Z
+**Generated**: 2026-04-21T04:11:31.548Z
 
 ---
 
@@ -12,12 +12,12 @@
 const
 ```
 
-- 第十二批扩展工具 (237-256): 日常实用工具
-- 包含文件压缩、图片编辑、视频编辑、文档转换、二维码工具、
-- 截图录屏、日程管理、笔记管理、密码管理、网络诊断等实用功能
--
-- 支持真实实现和模拟实现切换
-- 环境变量 USE_REAL_TOOLS=true 启用真实实现
+* 第十二批扩展工具 (237-256): 日常实用工具
+ * 包含文件压缩、图片编辑、视频编辑、文档转换、二维码工具、
+ * 截图录屏、日程管理、笔记管理、密码管理、网络诊断等实用功能
+ *
+ * 支持真实实现和模拟实现切换
+ * 环境变量 USE_REAL_TOOLS=true 启用真实实现
 
 ---
 
@@ -27,7 +27,7 @@ const
 static registerAll(functionCaller)
 ```
 
-- 注册所有第十二批工具
+* 注册所有第十二批工具
 
 ---
 
@@ -37,8 +37,8 @@ static registerAll(functionCaller)
 functionCaller.registerTool("file_compressor", async (params) =>
 ```
 
-- Tool 237: 文件压缩器
-  - 压缩文件和文件夹为ZIP/RAR/7Z格式
+* Tool 237: 文件压缩器
+     * 压缩文件和文件夹为ZIP/RAR/7Z格式
 
 ---
 
@@ -48,8 +48,8 @@ functionCaller.registerTool("file_compressor", async (params) =>
 functionCaller.registerTool("file_decompressor", async (params) =>
 ```
 
-- Tool 238: 文件解压器
-  - 解压ZIP/RAR/7Z等格式压缩包
+* Tool 238: 文件解压器
+     * 解压ZIP/RAR/7Z等格式压缩包
 
 ---
 
@@ -59,8 +59,8 @@ functionCaller.registerTool("file_decompressor", async (params) =>
 functionCaller.registerTool("image_editor", async (params) =>
 ```
 
-- Tool 239: 图片编辑器
-  - 图片裁剪、缩放、旋转、翻转
+* Tool 239: 图片编辑器
+     * 图片裁剪、缩放、旋转、翻转
 
 ---
 
@@ -70,8 +70,8 @@ functionCaller.registerTool("image_editor", async (params) =>
 functionCaller.registerTool("image_filter", async (params) =>
 ```
 
-- Tool 240: 图片滤镜器
-  - 应用滤镜、调整亮度对比度、添加水印
+* Tool 240: 图片滤镜器
+     * 应用滤镜、调整亮度对比度、添加水印
 
 ---
 
@@ -81,8 +81,8 @@ functionCaller.registerTool("image_filter", async (params) =>
 functionCaller.registerTool("video_cutter", async (params) =>
 ```
 
-- Tool 241: 视频剪辑器
-  - 剪切视频片段、提取音频
+* Tool 241: 视频剪辑器
+     * 剪切视频片段、提取音频
 
 ---
 
@@ -92,8 +92,8 @@ functionCaller.registerTool("video_cutter", async (params) =>
 functionCaller.registerTool("video_merger", async (params) =>
 ```
 
-- Tool 242: 视频合并器
-  - 合并多个视频文件
+* Tool 242: 视频合并器
+     * 合并多个视频文件
 
 ---
 
@@ -103,8 +103,8 @@ functionCaller.registerTool("video_merger", async (params) =>
 functionCaller.registerTool("pdf_converter", async (params) =>
 ```
 
-- Tool 243: PDF转换器
-  - PDF与其他格式互转
+* Tool 243: PDF转换器
+     * PDF与其他格式互转
 
 ---
 
@@ -114,8 +114,8 @@ functionCaller.registerTool("pdf_converter", async (params) =>
 functionCaller.registerTool("office_converter", async (params) =>
 ```
 
-- Tool 244: Office文档转换器
-  - Word/Excel/PPT格式互转
+* Tool 244: Office文档转换器
+     * Word/Excel/PPT格式互转
 
 ---
 
@@ -125,8 +125,8 @@ functionCaller.registerTool("office_converter", async (params) =>
 functionCaller.registerTool("qrcode_generator_advanced", async (params) =>
 ```
 
-- Tool 245: 高级二维码生成器
-  - 生成自定义样式的二维码
+* Tool 245: 高级二维码生成器
+     * 生成自定义样式的二维码
 
 ---
 
@@ -136,8 +136,8 @@ functionCaller.registerTool("qrcode_generator_advanced", async (params) =>
 functionCaller.registerTool("qrcode_scanner", async (params) =>
 ```
 
-- Tool 246: 二维码扫描器
-  - 识别图片中的二维码/条形码
+* Tool 246: 二维码扫描器
+     * 识别图片中的二维码/条形码
 
 ---
 
@@ -147,8 +147,8 @@ functionCaller.registerTool("qrcode_scanner", async (params) =>
 functionCaller.registerTool("screenshot_tool", async (params) =>
 ```
 
-- Tool 247: 截图工具
-  - 屏幕截图和标注
+* Tool 247: 截图工具
+     * 屏幕截图和标注
 
 ---
 
@@ -158,8 +158,8 @@ functionCaller.registerTool("screenshot_tool", async (params) =>
 functionCaller.registerTool("screen_recorder", async (params) =>
 ```
 
-- Tool 248: 屏幕录制器
-  - 录制屏幕视频或GIF
+* Tool 248: 屏幕录制器
+     * 录制屏幕视频或GIF
 
 ---
 
@@ -169,8 +169,8 @@ functionCaller.registerTool("screen_recorder", async (params) =>
 functionCaller.registerTool("calendar_manager", async (params) =>
 ```
 
-- Tool 249: 日历管理器
-  - 创建和管理日历事件
+* Tool 249: 日历管理器
+     * 创建和管理日历事件
 
 ---
 
@@ -180,8 +180,8 @@ functionCaller.registerTool("calendar_manager", async (params) =>
 functionCaller.registerTool("reminder_scheduler", async (params) =>
 ```
 
-- Tool 250: 提醒调度器
-  - 设置和管理提醒事项
+* Tool 250: 提醒调度器
+     * 设置和管理提醒事项
 
 ---
 
@@ -191,8 +191,8 @@ functionCaller.registerTool("reminder_scheduler", async (params) =>
 functionCaller.registerTool("note_editor", async (params) =>
 ```
 
-- Tool 251: 笔记编辑器
-  - Markdown笔记编辑和管理
+* Tool 251: 笔记编辑器
+     * Markdown笔记编辑和管理
 
 ---
 
@@ -202,8 +202,8 @@ functionCaller.registerTool("note_editor", async (params) =>
 functionCaller.registerTool("note_searcher", async (params) =>
 ```
 
-- Tool 252: 笔记搜索器
-  - 搜索和筛选笔记
+* Tool 252: 笔记搜索器
+     * 搜索和筛选笔记
 
 ---
 
@@ -213,8 +213,8 @@ functionCaller.registerTool("note_searcher", async (params) =>
 functionCaller.registerTool(
 ```
 
-- Tool 253: 高级密码生成器
-  - 生成强密码并评估强度
+* Tool 253: 高级密码生成器
+     * 生成强密码并评估强度
 
 ---
 
@@ -224,8 +224,8 @@ functionCaller.registerTool(
 functionCaller.registerTool("password_vault", async (params) =>
 ```
 
-- Tool 254: 密码保险库
-  - 加密存储和管理密码
+* Tool 254: 密码保险库
+     * 加密存储和管理密码
 
 ---
 
@@ -235,8 +235,8 @@ functionCaller.registerTool("password_vault", async (params) =>
 functionCaller.registerTool("network_speed_tester", async (params) =>
 ```
 
-- Tool 255: 网速测试器
-  - 测试网络上传和下载速度
+* Tool 255: 网速测试器
+     * 测试网络上传和下载速度
 
 ---
 
@@ -246,7 +246,8 @@ functionCaller.registerTool("network_speed_tester", async (params) =>
 functionCaller.registerTool("network_diagnostic_tool", async (params) =>
 ```
 
-- Tool 256: 网络诊断工具
-  - Ping、端口扫描、DNS查询、路由追踪
+* Tool 256: 网络诊断工具
+     * Ping、端口扫描、DNS查询、路由追踪
 
 ---
+

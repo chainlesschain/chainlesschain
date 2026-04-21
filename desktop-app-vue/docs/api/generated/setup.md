@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/__tests__/setup.js`
 
-**Generated**: 2026-04-20T10:46:39.735Z
+**Generated**: 2026-04-21T04:11:31.438Z
 
 ---
 
@@ -12,7 +12,8 @@
 import
 ```
 
-- 测试环境设置
-- Mock Electron 和其他依赖
+* 测试环境设置
+ * Mock Electron 和其他依赖
 
 ---
+

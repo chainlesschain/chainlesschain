@@ -2,7 +2,7 @@
 
 **Source**: `src/main/monitoring/error-handler.js`
 
-**Generated**: 2026-04-20T10:46:39.762Z
+**Generated**: 2026-04-21T04:11:31.466Z
 
 ---
 
@@ -12,15 +12,15 @@
 const
 ```
 
-- 全局错误处理系统
--
-- 功能：
-- - 全局错误捕获（未捕获异常、Promise拒绝）
-- - 错误分类和优先级
-- - 错误恢复策略
-- - 用户友好的错误提示
-- - 错误报告和统计
-- - 崩溃报告
+* 全局错误处理系统
+ *
+ * 功能：
+ * - 全局错误捕获（未捕获异常、Promise拒绝）
+ * - 错误分类和优先级
+ * - 错误恢复策略
+ * - 用户友好的错误提示
+ * - 错误报告和统计
+ * - 崩溃报告
 
 ---
 
@@ -30,47 +30,47 @@ const
 class ErrorHandler
 ```
 
-- 错误处理器类
+* 错误处理器类
 
 ---
 
 ## initialize()
 
 ```javascript
-initialize();
+initialize()
 ```
 
-- 初始化错误处理器
+* 初始化错误处理器
 
 ---
 
 ## registerGlobalHandlers()
 
 ```javascript
-registerGlobalHandlers();
+registerGlobalHandlers()
 ```
 
-- 注册全局错误处理器
+* 注册全局错误处理器
 
 ---
 
 ## registerDefaultRecoveryStrategies()
 
 ```javascript
-registerDefaultRecoveryStrategies();
+registerDefaultRecoveryStrategies()
 ```
 
-- 注册默认恢复策略
+* 注册默认恢复策略
 
 ---
 
 ## registerRecoveryStrategy(category, strategy)
 
 ```javascript
-registerRecoveryStrategy(category, strategy);
+registerRecoveryStrategy(category, strategy)
 ```
 
-- 注册错误恢复策略
+* 注册错误恢复策略
 
 ---
 
@@ -80,17 +80,17 @@ registerRecoveryStrategy(category, strategy);
 async handleError(error, options =
 ```
 
-- 处理错误
+* 处理错误
 
 ---
 
 ## handleFatalError(error, report)
 
 ```javascript
-handleFatalError(error, report);
+handleFatalError(error, report)
 ```
 
-- 处理致命错误
+* 处理致命错误
 
 ---
 
@@ -100,17 +100,17 @@ handleFatalError(error, report);
 showErrorDialog(error, options =
 ```
 
-- 显示错误对话框
+* 显示错误对话框
 
 ---
 
 ## getCategoryText(category)
 
 ```javascript
-getCategoryText(category);
+getCategoryText(category)
 ```
 
-- 获取分类文本
+* 获取分类文本
 
 ---
 
@@ -120,77 +120,77 @@ getCategoryText(category);
 generateErrorReport(error, options =
 ```
 
-- 生成错误报告
+* 生成错误报告
 
 ---
 
 ## saveErrorReport(report)
 
 ```javascript
-saveErrorReport(report);
+saveErrorReport(report)
 ```
 
-- 保存错误报告
+* 保存错误报告
 
 ---
 
 ## updateStats(type, category, error)
 
 ```javascript
-updateStats(type, category, error);
+updateStats(type, category, error)
 ```
 
-- 更新统计信息
+* 更新统计信息
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats();
+getStats()
 ```
 
-- 获取统计信息
+* 获取统计信息
 
 ---
 
 ## resetStats()
 
 ```javascript
-resetStats();
+resetStats()
 ```
 
-- 重置统计信息
+* 重置统计信息
 
 ---
 
 ## getErrorReports()
 
 ```javascript
-getErrorReports();
+getErrorReports()
 ```
 
-- 获取错误报告列表
+* 获取错误报告列表
 
 ---
 
 ## readErrorReport(filename)
 
 ```javascript
-readErrorReport(filename);
+readErrorReport(filename)
 ```
 
-- 读取错误报告
+* 读取错误报告
 
 ---
 
 ## cleanOldReports()
 
 ```javascript
-cleanOldReports();
+cleanOldReports()
 ```
 
-- 清理旧报告
+* 清理旧报告
 
 ---
 
@@ -200,7 +200,7 @@ cleanOldReports();
 exportErrorReports(outputPath, options =
 ```
 
-- 导出错误报告
+* 导出错误报告
 
 ---
 
@@ -210,7 +210,7 @@ exportErrorReports(outputPath, options =
 function getErrorHandler()
 ```
 
-- 获取全局错误处理器
+* 获取全局错误处理器
 
 ---
 
@@ -220,7 +220,7 @@ function getErrorHandler()
 function initErrorHandler(options =
 ```
 
-- 初始化错误处理器
+* 初始化错误处理器
 
 ---
 
@@ -230,6 +230,7 @@ function initErrorHandler(options =
 function handleError(error, options =
 ```
 
-- 便捷方法：处理错误
+* 便捷方法：处理错误
 
 ---
+

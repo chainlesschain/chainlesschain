@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/update-tool-handlers.js`
 
-**Generated**: 2026-04-20T10:46:39.728Z
+**Generated**: 2026-04-21T04:11:31.429Z
 
 ---
 
@@ -12,7 +12,8 @@
 const
 ```
 
-- 更新工具的handler_path字段
-- 为29个V3工具设置正确的handler路径
+* 更新工具的handler_path字段
+ * 为29个V3工具设置正确的handler路径
 
 ---
+

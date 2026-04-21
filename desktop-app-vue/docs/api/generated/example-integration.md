@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/examples/example-integration.js`
 
-**Generated**: 2026-04-20T10:46:39.767Z
+**Generated**: 2026-04-21T04:11:31.472Z
 
 ---
 
@@ -12,10 +12,10 @@
 const
 ```
 
-- MCP Integration Example
--
-- Complete example of integrating MCP into ChainlessChain's main process.
-- This shows how to set up and use MCP in production.
+* MCP Integration Example
+ *
+ * Complete example of integrating MCP into ChainlessChain's main process.
+ * This shows how to set up and use MCP in production.
 
 ---
 
@@ -25,17 +25,17 @@ const
 async initialize()
 ```
 
-- Initialize MCP system
+* Initialize MCP system
 
 ---
 
-## \_setupEventHandlers()
+## _setupEventHandlers()
 
 ```javascript
-_setupEventHandlers();
+_setupEventHandlers()
 ```
 
-- Setup event handlers
+* Setup event handlers
 
 ---
 
@@ -45,7 +45,7 @@ _setupEventHandlers();
 async exampleUseMCPTool()
 ```
 
-- Example: Use an MCP tool through ToolManager
+* Example: Use an MCP tool through ToolManager
 
 ---
 
@@ -55,7 +55,7 @@ async exampleUseMCPTool()
 async exampleDirectMCPCall()
 ```
 
-- Example: Directly call MCP server (bypass ToolManager)
+* Example: Directly call MCP server (bypass ToolManager)
 
 ---
 
@@ -65,27 +65,27 @@ async exampleDirectMCPCall()
 async exampleListMCPTools()
 ```
 
-- Example: List all available MCP tools
+* Example: List all available MCP tools
 
 ---
 
 ## getPerformanceMetrics()
 
 ```javascript
-getPerformanceMetrics();
+getPerformanceMetrics()
 ```
 
-- Example: Get performance metrics
+* Example: Get performance metrics
 
 ---
 
 ## generatePerformanceReport()
 
 ```javascript
-generatePerformanceReport();
+generatePerformanceReport()
 ```
 
-- Example: Generate performance report
+* Example: Generate performance report
 
 ---
 
@@ -95,7 +95,7 @@ generatePerformanceReport();
 getSecurityAuditLog(filters =
 ```
 
-- Example: Get security audit log
+* Example: Get security audit log
 
 ---
 
@@ -105,6 +105,7 @@ getSecurityAuditLog(filters =
 async shutdown()
 ```
 
-- Shutdown MCP system
+* Shutdown MCP system
 
 ---
+

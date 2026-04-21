@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ipc/advanced-features-ipc.js`
 
-**Generated**: 2026-04-20T10:46:39.781Z
+**Generated**: 2026-04-21T04:11:31.486Z
 
 ---
 

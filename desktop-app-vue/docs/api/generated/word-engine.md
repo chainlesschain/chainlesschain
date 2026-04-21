@@ -2,7 +2,7 @@
 
 **Source**: `src/main/engines/word-engine.js`
 
-**Generated**: 2026-04-20T10:46:39.798Z
+**Generated**: 2026-04-21T04:11:31.504Z
 
 ---
 
@@ -12,9 +12,9 @@
 const
 ```
 
-- Word文档处理引擎
-- 提供Word文档的读取、写入、编辑和转换功能
-- 支持 .docx 格式
+* Word文档处理引擎
+ * 提供Word文档的读取、写入、编辑和转换功能
+ * 支持 .docx 格式
 
 ---
 
@@ -24,9 +24,9 @@ const
 async readWord(filePath)
 ```
 
-- 读取Word文档
-  - @param {string} filePath - 文件路径
-  - @returns {Promise<Object>} 文档内容
+* 读取Word文档
+   * @param {string} filePath - 文件路径
+   * @returns {Promise<Object>} 文档内容
 
 ---
 
@@ -36,49 +36,49 @@ async readWord(filePath)
 async writeWord(filePath, content)
 ```
 
-- 写入Word文档
-  - @param {string} filePath - 文件路径
-  - @param {Object} content - 文档内容
+* 写入Word文档
+   * @param {string} filePath - 文件路径
+   * @param {Object} content - 文档内容
 
 ---
 
 ## createParagraph(paraData)
 
 ```javascript
-createParagraph(paraData);
+createParagraph(paraData)
 ```
 
-- 创建段落对象
+* 创建段落对象
 
 ---
 
 ## getHeadingLevel(level)
 
 ```javascript
-getHeadingLevel(level);
+getHeadingLevel(level)
 ```
 
-- 获取标题级别
+* 获取标题级别
 
 ---
 
 ## getAlignment(align)
 
 ```javascript
-getAlignment(align);
+getAlignment(align)
 ```
 
-- 获取对齐方式
+* 获取对齐方式
 
 ---
 
 ## parseHtmlToContent(html)
 
 ```javascript
-parseHtmlToContent(html);
+parseHtmlToContent(html)
 ```
 
-- 解析HTML为结构化内容
+* 解析HTML为结构化内容
 
 ---
 
@@ -88,7 +88,7 @@ parseHtmlToContent(html);
 async extractMetadata(filePath)
 ```
 
-- 提取元数据
+* 提取元数据
 
 ---
 
@@ -98,7 +98,7 @@ async extractMetadata(filePath)
 async markdownToWord(markdownText, outputPath, options =
 ```
 
-- Markdown转Word
+* Markdown转Word
 
 ---
 
@@ -108,7 +108,7 @@ async markdownToWord(markdownText, outputPath, options =
 async wordToMarkdown(filePath)
 ```
 
-- Word转Markdown
+* Word转Markdown
 
 ---
 
@@ -118,8 +118,8 @@ async wordToMarkdown(filePath)
 async wordToPDF(filePath, outputPath)
 ```
 
-- Word转PDF
-  - 注意: 需要LibreOffice或其他转换工具
+* Word转PDF
+   * 注意: 需要LibreOffice或其他转换工具
 
 ---
 
@@ -129,7 +129,7 @@ async wordToPDF(filePath, outputPath)
 async htmlToWord(html, outputPath, options =
 ```
 
-- HTML转Word
+* HTML转Word
 
 ---
 
@@ -139,37 +139,37 @@ async htmlToWord(html, outputPath, options =
 async createTemplate(templateType, outputPath, data =
 ```
 
-- 创建Word模板
+* 创建Word模板
 
 ---
 
 ## createReportTemplate(data)
 
 ```javascript
-createReportTemplate(data);
+createReportTemplate(data)
 ```
 
-- 创建报告模板
+* 创建报告模板
 
 ---
 
 ## createLetterTemplate(data)
 
 ```javascript
-createLetterTemplate(data);
+createLetterTemplate(data)
 ```
 
-- 创建信件模板
+* 创建信件模板
 
 ---
 
 ## createResumeTemplate(data)
 
 ```javascript
-createResumeTemplate(data);
+createResumeTemplate(data)
 ```
 
-- 创建简历模板
+* 创建简历模板
 
 ---
 
@@ -179,9 +179,9 @@ createResumeTemplate(data);
 async handleProjectTask(params)
 ```
 
-- 处理项目任务（用于任务规划系统集成）
-  - @param {Object} params - 任务参数
-  - @returns {Promise<Object>} 执行结果
+* 处理项目任务（用于任务规划系统集成）
+   * @param {Object} params - 任务参数
+   * @returns {Promise<Object>} 执行结果
 
 ---
 
@@ -191,30 +191,30 @@ async handleProjectTask(params)
 async generateDocumentStructureFromDescription(description, llmManager)
 ```
 
-- 从描述生成Word文档结构
-  - @param {string} description - 文档描述
-  - @param {Object} llmManager - LLM管理器
-  - @returns {Promise<Object>} 文档结构
+* 从描述生成Word文档结构
+   * @param {string} description - 文档描述
+   * @param {Object} llmManager - LLM管理器
+   * @returns {Promise<Object>} 文档结构
 
 ---
 
 ## normalizeDocumentStructure(structure, description)
 
 ```javascript
-normalizeDocumentStructure(structure, description);
+normalizeDocumentStructure(structure, description)
 ```
 
-- 规范化文档结构
+* 规范化文档结构
 
 ---
 
 ## getDefaultDocumentStructure(description)
 
 ```javascript
-getDefaultDocumentStructure(description);
+getDefaultDocumentStructure(description)
 ```
 
-- 获取默认文档结构
+* 获取默认文档结构
 
 ---
 
@@ -224,6 +224,7 @@ getDefaultDocumentStructure(description);
 async queryBackendAI(prompt)
 ```
 
-- 查询后端AI服务（降级方案）
+* 查询后端AI服务（降级方案）
 
 ---
+

@@ -2,91 +2,91 @@
 
 **Source**: `src/main/knowledge-graph/graph-exporter.js`
 
-**Generated**: 2026-04-20T10:46:39.777Z
+**Generated**: 2026-04-21T04:11:31.483Z
 
 ---
 
 ## const fs = require('fs');
 
 ```javascript
-const fs = require("fs");
+const fs = require('fs');
 ```
 
-- 知识图谱导出工具
--
-- 支持多种格式导出：SVG, PNG, GraphML, GEXF, JSON
+* 知识图谱导出工具
+ *
+ * 支持多种格式导出：SVG, PNG, GraphML, GEXF, JSON
 
 ---
 
 ## loadGraph(nodes, edges)
 
 ```javascript
-loadGraph(nodes, edges);
+loadGraph(nodes, edges)
 ```
 
-- 加载图数据
+* 加载图数据
 
 ---
 
 ## exportToGraphML()
 
 ```javascript
-exportToGraphML();
+exportToGraphML()
 ```
 
-- 导出为GraphML格式
-  - GraphML是标准的图数据交换格式
+* 导出为GraphML格式
+   * GraphML是标准的图数据交换格式
 
 ---
 
 ## exportToGEXF()
 
 ```javascript
-exportToGEXF();
+exportToGEXF()
 ```
 
-- 导出为GEXF格式
-  - GEXF是Gephi使用的图格式
+* 导出为GEXF格式
+   * GEXF是Gephi使用的图格式
 
 ---
 
 ## exportToJSON()
 
 ```javascript
-exportToJSON();
+exportToJSON()
 ```
 
-- 导出为JSON格式
+* 导出为JSON格式
 
 ---
 
 ## exportToCSV()
 
 ```javascript
-exportToCSV();
+exportToCSV()
 ```
 
-- 导出为CSV格式（边列表）
+* 导出为CSV格式（边列表）
 
 ---
 
 ## exportToDOT()
 
 ```javascript
-exportToDOT();
+exportToDOT()
 ```
 
-- 导出为DOT格式（Graphviz）
+* 导出为DOT格式（Graphviz）
 
 ---
 
 ## exportToCytoscape()
 
 ```javascript
-exportToCytoscape();
+exportToCytoscape()
 ```
 
-- 导出为Cytoscape.js格式
+* 导出为Cytoscape.js格式
 
 ---
 
@@ -96,7 +96,7 @@ exportToCytoscape();
 async saveToFile(filePath, format = 'graphml')
 ```
 
-- 保存到文件
+* 保存到文件
 
 ---
 
@@ -106,57 +106,57 @@ async saveToFile(filePath, format = 'graphml')
 async exportImage(canvas, format = 'png', quality = 0.95)
 ```
 
-- 导出图像（需要在渲染进程中调用）
+* 导出图像（需要在渲染进程中调用）
 
 ---
 
 ## exportSVG(chartInstance)
 
 ```javascript
-exportSVG(chartInstance);
+exportSVG(chartInstance)
 ```
 
-- 导出SVG（从ECharts实例）
+* 导出SVG（从ECharts实例）
 
 ---
 
 ## escapeXml(str)
 
 ```javascript
-escapeXml(str);
+escapeXml(str)
 ```
 
-- 辅助方法：转义XML
+* 辅助方法：转义XML
 
 ---
 
 ## escapeDOT(str)
 
 ```javascript
-escapeDOT(str);
+escapeDOT(str)
 ```
 
-- 辅助方法：转义DOT
+* 辅助方法：转义DOT
 
 ---
 
 ## getNodeColor(type)
 
 ```javascript
-getNodeColor(type);
+getNodeColor(type)
 ```
 
-- 辅助方法：获取节点颜色
+* 辅助方法：获取节点颜色
 
 ---
 
 ## getEdgeColor(type)
 
 ```javascript
-getEdgeColor(type);
+getEdgeColor(type)
 ```
 
-- 辅助方法：获取边颜色
+* 辅助方法：获取边颜色
 
 ---
 
@@ -166,6 +166,7 @@ getEdgeColor(type);
 static getSupportedFormats()
 ```
 
-- 获取支持的格式列表
+* 获取支持的格式列表
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/renderer/utils/__tests__/file-utils.test.js`
 
-**Generated**: 2026-04-20T10:46:39.889Z
+**Generated**: 2026-04-21T04:11:31.601Z
 
 ---
 
@@ -12,6 +12,7 @@
 import
 ```
 
-- file-utils 单元测试
+* file-utils 单元测试
 
 ---
+

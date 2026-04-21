@@ -2,7 +2,7 @@
 
 **Source**: `src/main/database/migrations/project-templates-migration.js`
 
-**Generated**: 2026-04-20T10:46:39.804Z
+**Generated**: 2026-04-21T04:11:31.511Z
 
 ---
 
@@ -12,10 +12,11 @@
 const
 ```
 
-- 数据库迁移脚本
-- 为project_templates表添加新字段
--
-- 使用方法：
-- node database-migration.js
+* 数据库迁移脚本
+ * 为project_templates表添加新字段
+ *
+ * 使用方法：
+ * node database-migration.js
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/task-tracker-ipc.js`
 
-**Generated**: 2026-04-20T10:46:39.833Z
+**Generated**: 2026-04-21T04:11:31.541Z
 
 ---
 
@@ -12,9 +12,9 @@
 const
 ```
 
-- 任务追踪 IPC 处理器
--
-- 提供前端访问 TaskTrackerFile (todo.md 机制) 的接口
+* 任务追踪 IPC 处理器
+ *
+ * 提供前端访问 TaskTrackerFile (todo.md 机制) 的接口
 
 ---
 
@@ -24,7 +24,7 @@ const
 function registerTaskTrackerIPC()
 ```
 
-- 注册任务追踪 IPC 处理器
+* 注册任务追踪 IPC 处理器
 
 ---
 
@@ -34,7 +34,7 @@ function registerTaskTrackerIPC()
 ipcMain.handle("task-tracker:create", async (event, plan) =>
 ```
 
-- 创建任务
+* 创建任务
 
 ---
 
@@ -44,7 +44,7 @@ ipcMain.handle("task-tracker:create", async (event, plan) =>
 ipcMain.handle("task-tracker:start", async (event) =>
 ```
 
-- 开始任务
+* 开始任务
 
 ---
 
@@ -54,7 +54,7 @@ ipcMain.handle("task-tracker:start", async (event) =>
 ipcMain.handle(
 ```
 
-- 更新任务进度
+* 更新任务进度
 
 ---
 
@@ -64,7 +64,7 @@ ipcMain.handle(
 ipcMain.handle("task-tracker:complete-step", async (event, result) =>
 ```
 
-- 完成当前步骤
+* 完成当前步骤
 
 ---
 
@@ -74,7 +74,7 @@ ipcMain.handle("task-tracker:complete-step", async (event, result) =>
 ipcMain.handle("task-tracker:complete", async (event, result) =>
 ```
 
-- 完成任务
+* 完成任务
 
 ---
 
@@ -84,7 +84,7 @@ ipcMain.handle("task-tracker:complete", async (event, result) =>
 ipcMain.handle("task-tracker:cancel", async (event, reason) =>
 ```
 
-- 取消任务
+* 取消任务
 
 ---
 
@@ -94,7 +94,7 @@ ipcMain.handle("task-tracker:cancel", async (event, reason) =>
 ipcMain.handle(
 ```
 
-- 记录步骤错误
+* 记录步骤错误
 
 ---
 
@@ -104,7 +104,7 @@ ipcMain.handle(
 ipcMain.handle("task-tracker:get-current", async (event) =>
 ```
 
-- 获取当前任务
+* 获取当前任务
 
 ---
 
@@ -114,7 +114,7 @@ ipcMain.handle("task-tracker:get-current", async (event) =>
 ipcMain.handle("task-tracker:has-active", async (event) =>
 ```
 
-- 检查是否有活动任务
+* 检查是否有活动任务
 
 ---
 
@@ -124,7 +124,7 @@ ipcMain.handle("task-tracker:has-active", async (event) =>
 ipcMain.handle("task-tracker:get-todo-context", async (event) =>
 ```
 
-- 获取 todo.md 内容
+* 获取 todo.md 内容
 
 ---
 
@@ -134,7 +134,7 @@ ipcMain.handle("task-tracker:get-todo-context", async (event) =>
 ipcMain.handle("task-tracker:get-prompt-context", async (event) =>
 ```
 
-- 获取任务上下文（用于 prompt）
+* 获取任务上下文（用于 prompt）
 
 ---
 
@@ -144,7 +144,7 @@ ipcMain.handle("task-tracker:get-prompt-context", async (event) =>
 ipcMain.handle(
 ```
 
-- 保存中间结果
+* 保存中间结果
 
 ---
 
@@ -154,7 +154,7 @@ ipcMain.handle(
 ipcMain.handle("task-tracker:load-result", async (event,
 ```
 
-- 加载中间结果
+* 加载中间结果
 
 ---
 
@@ -164,7 +164,7 @@ ipcMain.handle("task-tracker:load-result", async (event,
 ipcMain.handle("task-tracker:load-unfinished", async (event) =>
 ```
 
-- 加载未完成的任务
+* 加载未完成的任务
 
 ---
 
@@ -174,6 +174,7 @@ ipcMain.handle("task-tracker:load-unfinished", async (event) =>
 ipcMain.handle("task-tracker:get-history", async (event,
 ```
 
-- 获取任务历史
+* 获取任务历史
 
 ---
+

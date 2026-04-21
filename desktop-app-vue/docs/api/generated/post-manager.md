@@ -2,7 +2,7 @@
 
 **Source**: `src/main/social/post-manager.js`
 
-**Generated**: 2026-04-20T10:46:39.722Z
+**Generated**: 2026-04-21T04:11:31.423Z
 
 ---
 
@@ -12,14 +12,14 @@
 const
 ```
 
-- 动态管理器
--
-- 负责社交动态的管理，包括：
-- - 动态发布和编辑
-- - 动态流查询
-- - 点赞和取消点赞
-- - 评论和回复
-- - P2P 动态同步
+* 动态管理器
+ *
+ * 负责社交动态的管理，包括：
+ * - 动态发布和编辑
+ * - 动态流查询
+ * - 点赞和取消点赞
+ * - 评论和回复
+ * - P2P 动态同步
 
 ---
 
@@ -29,7 +29,7 @@ const
 const PostVisibility =
 ```
 
-- 动态可见性
+* 动态可见性
 
 ---
 
@@ -39,7 +39,7 @@ const PostVisibility =
 class PostManager extends EventEmitter
 ```
 
-- 动态管理器类
+* 动态管理器类
 
 ---
 
@@ -49,7 +49,7 @@ class PostManager extends EventEmitter
 async initialize()
 ```
 
-- 初始化动态管理器
+* 初始化动态管理器
 
 ---
 
@@ -59,17 +59,17 @@ async initialize()
 async initializeTables()
 ```
 
-- 初始化数据库表
+* 初始化数据库表
 
 ---
 
 ## setupP2PListeners()
 
 ```javascript
-setupP2PListeners();
+setupP2PListeners()
 ```
 
-- 设置 P2P 监听器
+* 设置 P2P 监听器
 
 ---
 
@@ -79,14 +79,14 @@ setupP2PListeners();
 async createPost(
 ```
 
-- 发布动态
-  - @param {Object} options - 动态选项
-  - @param {string} options.content - 动态内容
-  - @param {Array<string>} options.images - 图片 URL 列表
-  - @param {string} options.linkUrl - 链接 URL
-  - @param {string} options.linkTitle - 链接标题
-  - @param {string} options.linkDescription - 链接描述
-  - @param {string} options.visibility - 可见性
+* 发布动态
+   * @param {Object} options - 动态选项
+   * @param {string} options.content - 动态内容
+   * @param {Array<string>} options.images - 图片 URL 列表
+   * @param {string} options.linkUrl - 链接 URL
+   * @param {string} options.linkTitle - 链接标题
+   * @param {string} options.linkDescription - 链接描述
+   * @param {string} options.visibility - 可见性
 
 ---
 
@@ -96,8 +96,8 @@ async createPost(
 async syncPost(post)
 ```
 
-- 同步动态到 P2P 网络
-  - @param {Object} post - 动态对象
+* 同步动态到 P2P 网络
+   * @param {Object} post - 动态对象
 
 ---
 
@@ -107,8 +107,8 @@ async syncPost(post)
 async handlePostReceived(post)
 ```
 
-- 处理收到的动态
-  - @param {Object} post - 动态对象
+* 处理收到的动态
+   * @param {Object} post - 动态对象
 
 ---
 
@@ -118,11 +118,11 @@ async handlePostReceived(post)
 async getFeed(
 ```
 
-- 获取动态流
-  - @param {Object} options - 查询选项
-  - @param {number} options.limit - 限制数量
-  - @param {number} options.offset - 偏移量
-  - @param {string} options.authorDid - 作者 DID（可选）
+* 获取动态流
+   * @param {Object} options - 查询选项
+   * @param {number} options.limit - 限制数量
+   * @param {number} options.offset - 偏移量
+   * @param {string} options.authorDid - 作者 DID（可选）
 
 ---
 
@@ -132,8 +132,8 @@ async getFeed(
 async getPost(postId)
 ```
 
-- 获取单条动态
-  - @param {string} postId - 动态 ID
+* 获取单条动态
+   * @param {string} postId - 动态 ID
 
 ---
 
@@ -143,8 +143,8 @@ async getPost(postId)
 async deletePost(postId)
 ```
 
-- 删除动态
-  - @param {string} postId - 动态 ID
+* 删除动态
+   * @param {string} postId - 动态 ID
 
 ---
 
@@ -154,8 +154,8 @@ async deletePost(postId)
 async likePost(postId)
 ```
 
-- 点赞动态
-  - @param {string} postId - 动态 ID
+* 点赞动态
+   * @param {string} postId - 动态 ID
 
 ---
 
@@ -165,20 +165,20 @@ async likePost(postId)
 async unlikePost(postId)
 ```
 
-- 取消点赞
-  - @param {string} postId - 动态 ID
+* 取消点赞
+   * @param {string} postId - 动态 ID
 
 ---
 
 ## hasLiked(postId, userDid)
 
 ```javascript
-hasLiked(postId, userDid);
+hasLiked(postId, userDid)
 ```
 
-- 检查是否已点赞
-  - @param {string} postId - 动态 ID
-  - @param {string} userDid - 用户 DID
+* 检查是否已点赞
+   * @param {string} postId - 动态 ID
+   * @param {string} userDid - 用户 DID
 
 ---
 
@@ -188,9 +188,9 @@ hasLiked(postId, userDid);
 async handleLikeReceived(postId, userDid)
 ```
 
-- 处理收到的点赞
-  - @param {string} postId - 动态 ID
-  - @param {string} userDid - 用户 DID
+* 处理收到的点赞
+   * @param {string} postId - 动态 ID
+   * @param {string} userDid - 用户 DID
 
 ---
 
@@ -200,8 +200,8 @@ async handleLikeReceived(postId, userDid)
 async getLikes(postId)
 ```
 
-- 获取点赞列表
-  - @param {string} postId - 动态 ID
+* 获取点赞列表
+   * @param {string} postId - 动态 ID
 
 ---
 
@@ -211,10 +211,10 @@ async getLikes(postId)
 async addComment(postId, content, parentId = null)
 ```
 
-- 添加评论
-  - @param {string} postId - 动态 ID
-  - @param {string} content - 评论内容
-  - @param {string} parentId - 父评论 ID（可选，用于回复）
+* 添加评论
+   * @param {string} postId - 动态 ID
+   * @param {string} content - 评论内容
+   * @param {string} parentId - 父评论 ID（可选，用于回复）
 
 ---
 
@@ -224,8 +224,8 @@ async addComment(postId, content, parentId = null)
 async handleCommentReceived(comment)
 ```
 
-- 处理收到的评论
-  - @param {Object} comment - 评论对象
+* 处理收到的评论
+   * @param {Object} comment - 评论对象
 
 ---
 
@@ -235,8 +235,8 @@ async handleCommentReceived(comment)
 async getComments(postId)
 ```
 
-- 获取评论列表
-  - @param {string} postId - 动态 ID
+* 获取评论列表
+   * @param {string} postId - 动态 ID
 
 ---
 
@@ -246,8 +246,8 @@ async getComments(postId)
 async deleteComment(commentId)
 ```
 
-- 删除评论
-  - @param {string} commentId - 评论 ID
+* 删除评论
+   * @param {string} commentId - 评论 ID
 
 ---
 
@@ -257,6 +257,7 @@ async deleteComment(commentId)
 async close()
 ```
 
-- 关闭动态管理器
+* 关闭动态管理器
 
 ---
+

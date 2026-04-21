@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/multi-agent/agents/code-generation-agent.js`
 
-**Generated**: 2026-04-20T10:46:39.843Z
+**Generated**: 2026-04-21T04:11:31.552Z
 
 ---
 
@@ -12,9 +12,9 @@
 const
 ```
 
-- 代码生成 Agent
--
-- 专门负责代码生成、重构和审查任务。
+* 代码生成 Agent
+ *
+ * 专门负责代码生成、重构和审查任务。
 
 ---
 
@@ -24,9 +24,9 @@ const
 async execute(task)
 ```
 
-- 执行代码相关任务
-  - @param {Object} task - 任务对象
-  - @returns {Promise<Object>} 执行结果
+* 执行代码相关任务
+   * @param {Object} task - 任务对象
+   * @returns {Promise<Object>} 执行结果
 
 ---
 
@@ -36,9 +36,9 @@ async execute(task)
 async generateCode(input, context)
 ```
 
-- 生成代码
-  - @param {Object} input - 输入参数
-  - @param {Object} context - 上下文
+* 生成代码
+   * @param {Object} input - 输入参数
+   * @param {Object} context - 上下文
 
 ---
 
@@ -48,9 +48,9 @@ async generateCode(input, context)
 async refactorCode(input, context)
 ```
 
-- 重构代码
-  - @param {Object} input - 输入参数
-  - @param {Object} context - 上下文
+* 重构代码
+   * @param {Object} input - 输入参数
+   * @param {Object} context - 上下文
 
 ---
 
@@ -60,9 +60,9 @@ async refactorCode(input, context)
 async reviewCode(input, context)
 ```
 
-- 代码审查
-  - @param {Object} input - 输入参数
-  - @param {Object} context - 上下文
+* 代码审查
+   * @param {Object} input - 输入参数
+   * @param {Object} context - 上下文
 
 ---
 
@@ -72,9 +72,9 @@ async reviewCode(input, context)
 async fixBug(input, context)
 ```
 
-- 修复 Bug
-  - @param {Object} input - 输入参数
-  - @param {Object} context - 上下文
+* 修复 Bug
+   * @param {Object} input - 输入参数
+   * @param {Object} context - 上下文
 
 ---
 
@@ -84,9 +84,9 @@ async fixBug(input, context)
 async addFeature(input, context)
 ```
 
-- 添加功能
-  - @param {Object} input - 输入参数
-  - @param {Object} context - 上下文
+* 添加功能
+   * @param {Object} input - 输入参数
+   * @param {Object} context - 上下文
 
 ---
 
@@ -96,9 +96,9 @@ async addFeature(input, context)
 async optimizeCode(input, context)
 ```
 
-- 优化代码
-  - @param {Object} input - 输入参数
-  - @param {Object} context - 上下文
+* 优化代码
+   * @param {Object} input - 输入参数
+   * @param {Object} context - 上下文
 
 ---
 
@@ -108,30 +108,31 @@ async optimizeCode(input, context)
 async writeTests(input, context)
 ```
 
-- 编写测试
-  - @param {Object} input - 输入参数
-  - @param {Object} context - 上下文
+* 编写测试
+   * @param {Object} input - 输入参数
+   * @param {Object} context - 上下文
 
 ---
 
-## \_extractCodeBlocks(text)
+## _extractCodeBlocks(text)
 
 ```javascript
-_extractCodeBlocks(text);
+_extractCodeBlocks(text)
 ```
 
-- 提取代码块
-  - @private
+* 提取代码块
+   * @private
 
 ---
 
-## \_parseReview(text)
+## _parseReview(text)
 
 ```javascript
-_parseReview(text);
+_parseReview(text)
 ```
 
-- 解析审查结果
-  - @private
+* 解析审查结果
+   * @private
 
 ---
+

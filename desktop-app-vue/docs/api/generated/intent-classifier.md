@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/intent-classifier.js`
 
-**Generated**: 2026-04-20T10:46:39.836Z
+**Generated**: 2026-04-21T04:11:31.544Z
 
 ---
 
@@ -12,9 +12,9 @@
 class IntentClassifier
 ```
 
-- 意图识别器
-- 支持6种意图: CREATE_FILE, EDIT_FILE, QUERY_INFO, ANALYZE_DATA, EXPORT_FILE, DEPLOY_PROJECT
-- 使用Few-shot Learning + 关键词规则
+* 意图识别器
+ * 支持6种意图: CREATE_FILE, EDIT_FILE, QUERY_INFO, ANALYZE_DATA, EXPORT_FILE, DEPLOY_PROJECT
+ * 使用Few-shot Learning + 关键词规则
 
 ---
 
@@ -24,130 +24,131 @@ class IntentClassifier
 async classify(userInput, context =
 ```
 
-- 分类用户意图
-  - @param {string} userInput - 用户输入
-  - @param {Object} context - 上下文信息
-  - @returns {Promise<Object>} 意图分类结果
+* 分类用户意图
+   * @param {string} userInput - 用户输入
+   * @param {Object} context - 上下文信息
+   * @returns {Promise<Object>} 意图分类结果
 
 ---
 
 ## classifyByKeywords(text)
 
 ```javascript
-classifyByKeywords(text);
+classifyByKeywords(text)
 ```
 
-- 基于关键词分类
-  - @private
+* 基于关键词分类
+   * @private
 
 ---
 
 ## adjustByContext(intent, text, context)
 
 ```javascript
-adjustByContext(intent, text, context);
+adjustByContext(intent, text, context)
 ```
 
-- 基于上下文调整意图
-  - @private
+* 基于上下文调整意图
+   * @private
 
 ---
 
 ## extractEntities(text, intent)
 
 ```javascript
-extractEntities(text, intent);
+extractEntities(text, intent)
 ```
 
-- 提取实体信息
-  - @private
+* 提取实体信息
+   * @private
 
 ---
 
 ## extractFileType(text)
 
 ```javascript
-extractFileType(text);
+extractFileType(text)
 ```
 
-- 提取文件类型
-  - @private
+* 提取文件类型
+   * @private
 
 ---
 
 ## extractColors(text)
 
 ```javascript
-extractColors(text);
+extractColors(text)
 ```
 
-- 提取颜色
-  - @private
+* 提取颜色
+   * @private
 
 ---
 
 ## extractNumbers(text)
 
 ```javascript
-extractNumbers(text);
+extractNumbers(text)
 ```
 
-- 提取数字
-  - @private
+* 提取数字
+   * @private
 
 ---
 
 ## extractFileName(text)
 
 ```javascript
-extractFileName(text);
+extractFileName(text)
 ```
 
-- 提取文件名
-  - @private
+* 提取文件名
+   * @private
 
 ---
 
 ## extractTargets(text)
 
 ```javascript
-extractTargets(text);
+extractTargets(text)
 ```
 
-- 提取目标对象
-  - @private
+* 提取目标对象
+   * @private
 
 ---
 
 ## extractActions(text)
 
 ```javascript
-extractActions(text);
+extractActions(text)
 ```
 
-- 提取动作
-  - @private
+* 提取动作
+   * @private
 
 ---
 
 ## mentionsFileType(text)
 
 ```javascript
-mentionsFileType(text);
+mentionsFileType(text)
 ```
 
-- 检查是否提到文件类型
-  - @private
+* 检查是否提到文件类型
+   * @private
 
 ---
 
 ## calculateConfidence(text, intent)
 
 ```javascript
-calculateConfidence(text, intent);
+calculateConfidence(text, intent)
 ```
 
-- 计算置信度
-  - @private
+* 计算置信度
+   * @private
 
 ---
+

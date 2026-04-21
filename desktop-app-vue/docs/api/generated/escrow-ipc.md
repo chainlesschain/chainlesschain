@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/escrow-ipc.js`
 
-**Generated**: 2026-04-20T10:46:39.825Z
+**Generated**: 2026-04-21T04:11:31.532Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-- 托管管理 IPC 处理器
-- 处理所有 escrow: 相关的 IPC 通信
+* 托管管理 IPC 处理器
+ * 处理所有 escrow: 相关的 IPC 通信
 
 ---
 
@@ -23,7 +23,8 @@ const
 function registerEscrowIPC(escrowManager)
 ```
 
-- 注册托管管理相关的 IPC 处理器
-- @param {Object} escrowManager - 托管管理器实例
+* 注册托管管理相关的 IPC 处理器
+ * @param {Object} escrowManager - 托管管理器实例
 
 ---
+

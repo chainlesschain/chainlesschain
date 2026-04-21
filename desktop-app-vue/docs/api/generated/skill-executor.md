@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/skill-executor.js`
 
-**Generated**: 2026-04-20T10:46:39.731Z
+**Generated**: 2026-04-21T04:11:31.433Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-- 技能执行器
-- 负责执行技能并调度相关工具
+* 技能执行器
+ * 负责执行技能并调度相关工具
 
 ---
 
@@ -23,10 +23,10 @@ const
 async executeSkill(skillId, params =
 ```
 
-- 执行技能
-  - @param {string} skillId - 技能ID
-  - @param {object} params - 执行参数
-  - @param {object} options - 执行选项
+* 执行技能
+   * @param {string} skillId - 技能ID
+   * @param {object} params - 执行参数
+   * @param {object} options - 执行选项
 
 ---
 
@@ -36,7 +36,7 @@ async executeSkill(skillId, params =
 async executeToolsSequentially(tools, params, executionId)
 ```
 
-- 顺序执行工具
+* 顺序执行工具
 
 ---
 
@@ -46,7 +46,7 @@ async executeToolsSequentially(tools, params, executionId)
 async executeToolsInParallel(tools, params, executionId)
 ```
 
-- 并行执行工具
+* 并行执行工具
 
 ---
 
@@ -56,37 +56,37 @@ async executeToolsInParallel(tools, params, executionId)
 async executeToolsIntelligently(skill, tools, params, executionId)
 ```
 
-- 智能执行工具（根据依赖关系和配置）
+* 智能执行工具（根据依赖关系和配置）
 
 ---
 
 ## prepareToolParams(tool, context)
 
 ```javascript
-prepareToolParams(tool, context);
+prepareToolParams(tool, context)
 ```
 
-- 准备工具参数
+* 准备工具参数
 
 ---
 
 ## analyzeToolDependencies(tools)
 
 ```javascript
-analyzeToolDependencies(tools);
+analyzeToolDependencies(tools)
 ```
 
-- 分析工具依赖关系
+* 分析工具依赖关系
 
 ---
 
 ## buildExecutionPlan(dependencies)
 
 ```javascript
-buildExecutionPlan(dependencies);
+buildExecutionPlan(dependencies)
 ```
 
-- 构建执行计划（拓扑排序）
+* 构建执行计划（拓扑排序）
 
 ---
 
@@ -96,7 +96,7 @@ buildExecutionPlan(dependencies);
 async executeBatch(tasks)
 ```
 
-- 批量执行技能
+* 批量执行技能
 
 ---
 
@@ -106,7 +106,7 @@ async executeBatch(tasks)
 async createWorkflow(workflowDef)
 ```
 
-- 创建自动化工作流
+* 创建自动化工作流
 
 ---
 
@@ -116,95 +116,96 @@ async createWorkflow(workflowDef)
 async executeWorkflow(workflow)
 ```
 
-- 执行工作流
+* 执行工作流
 
 ---
 
 ## getExecutionHistory(limit = 100)
 
 ```javascript
-getExecutionHistory((limit = 100));
+getExecutionHistory(limit = 100)
 ```
 
-- 获取执行历史
+* 获取执行历史
 
 ---
 
 ## getExecutionStats()
 
 ```javascript
-getExecutionStats();
+getExecutionStats()
 ```
 
-- 获取执行统计
+* 获取执行统计
 
 ---
 
 ## generateExecutionId()
 
 ```javascript
-generateExecutionId();
+generateExecutionId()
 ```
 
-- 生成执行ID
+* 生成执行ID
 
 ---
 
 ## generateWorkflowId()
 
 ```javascript
-generateWorkflowId();
+generateWorkflowId()
 ```
 
-- 生成工作流ID
+* 生成工作流ID
 
 ---
 
 ## scheduleWorkflow(workflow)
 
 ```javascript
-scheduleWorkflow(workflow);
+scheduleWorkflow(workflow)
 ```
 
-- 定时执行工作流
-  - @param {object} workflow - 工作流配置
-  - @param {string} workflow.name - 工作流名称
-  - @param {string} workflow.schedule - Cron表达式 (e.g., '0 0 \* \* \*' for daily at midnight)
-  - @param {string} workflow.skillId - 技能ID
-  - @param {object} workflow.params - 执行参数
-  - @param {boolean} workflow.enabled - 是否启用
-  - @returns {string} 任务ID
+* 定时执行工作流
+   * @param {object} workflow - 工作流配置
+   * @param {string} workflow.name - 工作流名称
+   * @param {string} workflow.schedule - Cron表达式 (e.g., '0 0 * * *' for daily at midnight)
+   * @param {string} workflow.skillId - 技能ID
+   * @param {object} workflow.params - 执行参数
+   * @param {boolean} workflow.enabled - 是否启用
+   * @returns {string} 任务ID
 
 ---
 
 ## stopWorkflow(taskId)
 
 ```javascript
-stopWorkflow(taskId);
+stopWorkflow(taskId)
 ```
 
-- 停止定时工作流
-  - @param {string} taskId - 任务ID
+* 停止定时工作流
+   * @param {string} taskId - 任务ID
 
 ---
 
 ## getScheduledWorkflows()
 
 ```javascript
-getScheduledWorkflows();
+getScheduledWorkflows()
 ```
 
-- 获取所有定时任务
-  - @returns {Array} 定时任务列表
+* 获取所有定时任务
+   * @returns {Array} 定时任务列表
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup();
+cleanup()
 ```
 
-- 清理所有定时任务
+* 清理所有定时任务
 
 ---
+

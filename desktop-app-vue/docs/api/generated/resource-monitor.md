@@ -2,7 +2,7 @@
 
 **Source**: `src/main/utils/resource-monitor.js`
 
-**Generated**: 2026-04-20T10:46:39.696Z
+**Generated**: 2026-04-21T04:11:31.398Z
 
 ---
 
@@ -12,18 +12,18 @@
 const
 ```
 
-- 资源监控工具
-- 提供内存、磁盘空间监控和优雅降级策略
+* 资源监控工具
+ * 提供内存、磁盘空间监控和优雅降级策略
 
 ---
 
 ## getMemoryStatus()
 
 ```javascript
-getMemoryStatus();
+getMemoryStatus()
 ```
 
-- 获取当前内存状态
+* 获取当前内存状态
 
 ---
 
@@ -33,59 +33,59 @@ getMemoryStatus();
 async getDiskStatus(dirPath)
 ```
 
-- 获取磁盘空间状态
-  - @param {string} dirPath - 要检查的目录路径
+* 获取磁盘空间状态
+   * @param {string} dirPath - 要检查的目录路径
 
 ---
 
-## async \_getWindowsDiskSpace(dirPath)
+## async _getWindowsDiskSpace(dirPath)
 
 ```javascript
 async _getWindowsDiskSpace(dirPath)
 ```
 
-- Windows 平台磁盘空间检查
+* Windows 平台磁盘空间检查
 
 ---
 
-## async \_getUnixDiskSpace(dirPath)
+## async _getUnixDiskSpace(dirPath)
 
 ```javascript
 async _getUnixDiskSpace(dirPath)
 ```
 
-- Unix/Linux/macOS 平台磁盘空间检查
+* Unix/Linux/macOS 平台磁盘空间检查
 
 ---
 
 ## assessResourceLevel()
 
 ```javascript
-assessResourceLevel();
+assessResourceLevel()
 ```
 
-- 评估当前资源水平
+* 评估当前资源水平
 
 ---
 
 ## updateResourceLevel()
 
 ```javascript
-updateResourceLevel();
+updateResourceLevel()
 ```
 
-- 更新资源水平并触发事件
+* 更新资源水平并触发事件
 
 ---
 
 ## getDegradationStrategy(category)
 
 ```javascript
-getDegradationStrategy(category);
+getDegradationStrategy(category)
 ```
 
-- 获取当前降级策略
-  - @param {string} category - 策略类别（imageProcessing, ocrProcessing, batchImport）
+* 获取当前降级策略
+   * @param {string} category - 策略类别（imageProcessing, ocrProcessing, batchImport）
 
 ---
 
@@ -95,40 +95,40 @@ getDegradationStrategy(category);
 async checkDiskSpace(dirPath, requiredSpace)
 ```
 
-- 检查是否有足够的磁盘空间
-  - @param {string} dirPath - 目标目录
-  - @param {number} requiredSpace - 需要的空间（字节）
+* 检查是否有足够的磁盘空间
+   * @param {string} dirPath - 目标目录
+   * @param {number} requiredSpace - 需要的空间（字节）
 
 ---
 
 ## forceGarbageCollection()
 
 ```javascript
-forceGarbageCollection();
+forceGarbageCollection()
 ```
 
-- 强制垃圾回收（如果可用）
+* 强制垃圾回收（如果可用）
 
 ---
 
 ## startMonitoring(interval = 10000)
 
 ```javascript
-startMonitoring((interval = 10000));
+startMonitoring(interval = 10000)
 ```
 
-- 启动定期监控
-  - @param {number} interval - 监控间隔（毫秒）
+* 启动定期监控
+   * @param {number} interval - 监控间隔（毫秒）
 
 ---
 
 ## stopMonitoring()
 
 ```javascript
-stopMonitoring();
+stopMonitoring()
 ```
 
-- 停止定期监控
+* 停止定期监控
 
 ---
 
@@ -138,7 +138,7 @@ stopMonitoring();
 async getReport(dirPath)
 ```
 
-- 获取资源报告
+* 获取资源报告
 
 ---
 
@@ -148,7 +148,7 @@ async getReport(dirPath)
 let globalMonitor = null;
 ```
 
-- 单例实例
+* 单例实例
 
 ---
 
@@ -158,6 +158,7 @@ let globalMonitor = null;
 function getResourceMonitor(options)
 ```
 
-- 获取全局资源监控器实例
+* 获取全局资源监控器实例
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/mcp-client-manager.js`
 
-**Generated**: 2026-04-20T10:46:39.766Z
+**Generated**: 2026-04-21T04:11:31.471Z
 
 ---
 
@@ -12,13 +12,13 @@
 const
 ```
 
-- MCP Client Manager
--
-- Manages lifecycle of MCP (Model Context Protocol) server connections.
-- Handles server discovery, capability negotiation, and tool execution routing.
-- Supports both stdio (local) and HTTP+SSE (remote) transports.
--
-- @module MCPClientManager
+* MCP Client Manager
+ *
+ * Manages lifecycle of MCP (Model Context Protocol) server connections.
+ * Handles server discovery, capability negotiation, and tool execution routing.
+ * Supports both stdio (local) and HTTP+SSE (remote) transports.
+ *
+ * @module MCPClientManager
 
 ---
 
@@ -28,7 +28,7 @@ const
 const TRANSPORT_TYPES =
 ```
 
-- Transport types
+* Transport types
 
 ---
 
@@ -38,15 +38,15 @@ const TRANSPORT_TYPES =
 class MCPClientManager extends EventEmitter
 ```
 
-- @typedef {Object} ServerConfig
-- @property {string} name - Server identifier
-- @property {string} transport - Transport type: 'stdio' or 'http-sse'
-- @property {string} command - Command to launch server (stdio only)
-- @property {string[]} args - Command arguments (stdio only)
-- @property {string} baseURL - Base URL for HTTP+SSE transport
-- @property {string} apiKey - API key for authentication (HTTP+SSE only)
-- @property {boolean} autoConnect - Auto-connect on initialization
-- @property {Object} permissions - Permission configuration
+* @typedef {Object} ServerConfig
+ * @property {string} name - Server identifier
+ * @property {string} transport - Transport type: 'stdio' or 'http-sse'
+ * @property {string} command - Command to launch server (stdio only)
+ * @property {string[]} args - Command arguments (stdio only)
+ * @property {string} baseURL - Base URL for HTTP+SSE transport
+ * @property {string} apiKey - API key for authentication (HTTP+SSE only)
+ * @property {boolean} autoConnect - Auto-connect on initialization
+ * @property {Object} permissions - Permission configuration
 
 ---
 
@@ -56,10 +56,10 @@ class MCPClientManager extends EventEmitter
 class MCPClientManager extends EventEmitter
 ```
 
-- @typedef {Object} MCPTool
-- @property {string} name - Tool name
-- @property {string} description - Tool description
-- @property {Object} inputSchema - JSON Schema for parameters
+* @typedef {Object} MCPTool
+ * @property {string} name - Tool name
+ * @property {string} description - Tool description
+ * @property {Object} inputSchema - JSON Schema for parameters
 
 ---
 
@@ -69,12 +69,12 @@ class MCPClientManager extends EventEmitter
 constructor(config =
 ```
 
-- @param {Object} config - Manager configuration
-  - @param {Object} deps - Optional dependencies for testing (dependency injection)
-  - @param {Object} deps.mcpClient - MCP SDK client module
-  - @param {Object} deps.mcpStdio - MCP SDK stdio transport module
-  - @param {Object} deps.mcpTypes - MCP SDK types module
-  - @param {Object} deps.httpSseTransport - HTTP+SSE transport module
+* @param {Object} config - Manager configuration
+   * @param {Object} deps - Optional dependencies for testing (dependency injection)
+   * @param {Object} deps.mcpClient - MCP SDK client module
+   * @param {Object} deps.mcpStdio - MCP SDK stdio transport module
+   * @param {Object} deps.mcpTypes - MCP SDK types module
+   * @param {Object} deps.httpSseTransport - HTTP+SSE transport module
 
 ---
 
@@ -84,10 +84,10 @@ constructor(config =
 async connectServer(serverName, serverConfig)
 ```
 
-- Connect to an MCP server
-  - @param {string} serverName - Server identifier
-  - @param {ServerConfig} serverConfig - Server configuration
-  - @returns {Promise<Object>} Server capabilities (tools, resources, prompts)
+* Connect to an MCP server
+   * @param {string} serverName - Server identifier
+   * @param {ServerConfig} serverConfig - Server configuration
+   * @returns {Promise<Object>} Server capabilities (tools, resources, prompts)
 
 ---
 
@@ -97,8 +97,8 @@ async connectServer(serverName, serverConfig)
 async disconnect(name)
 ```
 
-- Disconnect from an MCP server
-  - @param {string} serverName - Server identifier
+* Disconnect from an MCP server
+   * @param {string} serverName - Server identifier
 
 ---
 
@@ -108,9 +108,9 @@ async disconnect(name)
 async disconnect(name)
 ```
 
-- Standard alias for `disconnectServer(name)` to match the CLI MCPClient
-  - API contract used by skill-embedded MCP unmount paths.
-  - @param {string} name
+* Standard alias for `disconnectServer(name)` to match the CLI MCPClient
+   * API contract used by skill-embedded MCP unmount paths.
+   * @param {string} name
 
 ---
 
@@ -120,11 +120,11 @@ async disconnect(name)
 async connect(name, config)
 ```
 
-- Standard alias for `connectServer(name, cfg)` symmetric to disconnect().
-  - Lets Skill-Embedded MCP mount/unmount call `connect/disconnect` pairs
-  - with matching names.
-  - @param {string} name
-  - @param {object} config
+* Standard alias for `connectServer(name, cfg)` symmetric to disconnect().
+   * Lets Skill-Embedded MCP mount/unmount call `connect/disconnect` pairs
+   * with matching names.
+   * @param {string} name
+   * @param {object} config
 
 ---
 
@@ -134,9 +134,9 @@ async connect(name, config)
 async listTools(serverName)
 ```
 
-- List all tools available from a server
-  - @param {string} serverName - Server identifier
-  - @returns {Promise<MCPTool[]>} List of available tools
+* List all tools available from a server
+   * @param {string} serverName - Server identifier
+   * @returns {Promise<MCPTool[]>} List of available tools
 
 ---
 
@@ -146,9 +146,9 @@ async listTools(serverName)
 async listResources(serverName)
 ```
 
-- List all resources available from a server
-  - @param {string} serverName - Server identifier
-  - @returns {Promise<Object[]>} List of available resources
+* List all resources available from a server
+   * @param {string} serverName - Server identifier
+   * @returns {Promise<Object[]>} List of available resources
 
 ---
 
@@ -158,11 +158,11 @@ async listResources(serverName)
 async callTool(serverName, toolName, params =
 ```
 
-- Call a tool on an MCP server
-  - @param {string} serverName - Server identifier
-  - @param {string} toolName - Tool name
-  - @param {Object} params - Tool parameters
-  - @returns {Promise<Object>} Tool execution result
+* Call a tool on an MCP server
+   * @param {string} serverName - Server identifier
+   * @param {string} toolName - Tool name
+   * @param {Object} params - Tool parameters
+   * @returns {Promise<Object>} Tool execution result
 
 ---
 
@@ -172,44 +172,44 @@ async callTool(serverName, toolName, params =
 async readResource(serverName, resourceUri)
 ```
 
-- Read a resource from an MCP server
-  - @param {string} serverName - Server identifier
-  - @param {string} resourceUri - Resource URI
-  - @returns {Promise<Object>} Resource content
+* Read a resource from an MCP server
+   * @param {string} serverName - Server identifier
+   * @param {string} resourceUri - Resource URI
+   * @returns {Promise<Object>} Resource content
 
 ---
 
 ## getConnectedServers()
 
 ```javascript
-getConnectedServers();
+getConnectedServers()
 ```
 
-- Get list of connected servers
-  - @returns {string[]} List of server names
+* Get list of connected servers
+   * @returns {string[]} List of server names
 
 ---
 
 ## getServerInfo(serverName)
 
 ```javascript
-getServerInfo(serverName);
+getServerInfo(serverName)
 ```
 
-- Get server info
-  - @param {string} serverName - Server identifier
-  - @returns {Object} Server information
+* Get server info
+   * @param {string} serverName - Server identifier
+   * @returns {Object} Server information
 
 ---
 
 ## getMetrics()
 
 ```javascript
-getMetrics();
+getMetrics()
 ```
 
-- Get performance metrics
-  - @returns {Object} Performance statistics
+* Get performance metrics
+   * @returns {Object} Performance statistics
 
 ---
 
@@ -219,74 +219,74 @@ getMetrics();
 async shutdown()
 ```
 
-- Shutdown all connections
+* Shutdown all connections
 
 ---
 
-## async \_fetchCapabilities(client, serverName)
+## async _fetchCapabilities(client, serverName)
 
 ```javascript
 async _fetchCapabilities(client, serverName)
 ```
 
-- Fetch server capabilities
-  - @private
+* Fetch server capabilities
+   * @private
 
 ---
 
-## \_setupClientHandlers(client, serverName)
+## _setupClientHandlers(client, serverName)
 
 ```javascript
-_setupClientHandlers(client, serverName);
+_setupClientHandlers(client, serverName)
 ```
 
-- Setup client event handlers
-  - @private
+* Setup client event handlers
+   * @private
 
 ---
 
-## \_getConnectedServer(serverName)
+## _getConnectedServer(serverName)
 
 ```javascript
-_getConnectedServer(serverName);
+_getConnectedServer(serverName)
 ```
 
-- Get a connected server or throw error
-  - @private
+* Get a connected server or throw error
+   * @private
 
 ---
 
-## \_percentile(arr, p)
+## _percentile(arr, p)
 
 ```javascript
-_percentile(arr, p);
+_percentile(arr, p)
 ```
 
-- Calculate percentile
-  - @private
+* Calculate percentile
+   * @private
 
 ---
 
-## \_setupHttpSseHandlers(transport, serverName)
+## _setupHttpSseHandlers(transport, serverName)
 
 ```javascript
-_setupHttpSseHandlers(transport, serverName);
+_setupHttpSseHandlers(transport, serverName)
 ```
 
-- Setup HTTP+SSE transport event handlers
-  - @private
+* Setup HTTP+SSE transport event handlers
+   * @private
 
 ---
 
-## async \_connectWithHttpSse(client, transport, \_serverName)
+## async _connectWithHttpSse(client, transport, _serverName)
 
 ```javascript
 async _connectWithHttpSse(client, transport, _serverName)
 ```
 
-- Connect using HTTP+SSE transport
-  - This creates a bridge between the MCP SDK client and our HTTP+SSE transport
-  - @private
+* Connect using HTTP+SSE transport
+   * This creates a bridge between the MCP SDK client and our HTTP+SSE transport
+   * @private
 
 ---
 
@@ -296,22 +296,23 @@ async _connectWithHttpSse(client, transport, _serverName)
 async connectRemoteServer(serverName, config)
 ```
 
-- Connect to a remote MCP server via HTTP+SSE
-  - Convenience method for remote server connections
-  - @param {string} serverName - Server identifier
-  - @param {Object} config - Remote server configuration
-  - @returns {Promise<Object>} Server capabilities
+* Connect to a remote MCP server via HTTP+SSE
+   * Convenience method for remote server connections
+   * @param {string} serverName - Server identifier
+   * @param {Object} config - Remote server configuration
+   * @returns {Promise<Object>} Server capabilities
 
 ---
 
 ## isRemoteServer(serverName)
 
 ```javascript
-isRemoteServer(serverName);
+isRemoteServer(serverName)
 ```
 
-- Check if a server is using HTTP+SSE transport
-  - @param {string} serverName - Server identifier
-  - @returns {boolean}
+* Check if a server is using HTTP+SSE transport
+   * @param {string} serverName - Server identifier
+   * @returns {boolean}
 
 ---
+

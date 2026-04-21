@@ -2,7 +2,7 @@
 
 **Source**: `src/main/organization/dashboard-ipc.js`
 
-**Generated**: 2026-04-20T10:46:39.760Z
+**Generated**: 2026-04-21T04:11:31.464Z
 
 ---
 
@@ -12,14 +12,14 @@
 const
 ```
 
-- Enterprise Dashboard IPC Handlers
--
-- Provides data for the enterprise dashboard including:
-- - Statistics and metrics
-- - Activity analytics
-- - Member engagement
-- - Knowledge graph visualization
-- - Storage and resource usage
+* Enterprise Dashboard IPC Handlers
+ *
+ * Provides data for the enterprise dashboard including:
+ * - Statistics and metrics
+ * - Activity analytics
+ * - Member engagement
+ * - Knowledge graph visualization
+ * - Storage and resource usage
 
 ---
 
@@ -29,10 +29,10 @@ const
 function registerDashboardIPC(
 ```
 
-- Register all dashboard IPC handlers
-- @param {Object} dependencies
-- @param {Object} dependencies.database - Database manager
-- @param {Object} dependencies.organizationManager - Organization manager
+* Register all dashboard IPC handlers
+ * @param {Object} dependencies
+ * @param {Object} dependencies.database - Database manager
+ * @param {Object} dependencies.organizationManager - Organization manager
 
 ---
 
@@ -42,7 +42,7 @@ function registerDashboardIPC(
 async function getStats(database, organizationManager, orgId, dateRange)
 ```
 
-- Get dashboard statistics
+* Get dashboard statistics
 
 ---
 
@@ -52,7 +52,7 @@ async function getStats(database, organizationManager, orgId, dateRange)
 async function getTopContributors(database, orgId, limit)
 ```
 
-- Get top contributors
+* Get top contributors
 
 ---
 
@@ -62,7 +62,7 @@ async function getTopContributors(database, orgId, limit)
 async function getRecentActivities(database, orgId, limit)
 ```
 
-- Get recent activities
+* Get recent activities
 
 ---
 
@@ -72,7 +72,7 @@ async function getRecentActivities(database, orgId, limit)
 async function getRoleStats(database, orgId)
 ```
 
-- Get role statistics
+* Get role statistics
 
 ---
 
@@ -82,7 +82,7 @@ async function getRoleStats(database, orgId)
 async function getActivityTimeline(database, orgId, days)
 ```
 
-- Get activity timeline
+* Get activity timeline
 
 ---
 
@@ -92,7 +92,7 @@ async function getActivityTimeline(database, orgId, days)
 async function getActivityBreakdown(database, orgId)
 ```
 
-- Get activity breakdown
+* Get activity breakdown
 
 ---
 
@@ -102,7 +102,7 @@ async function getActivityBreakdown(database, orgId)
 async function getKnowledgeGraph(database, orgId)
 ```
 
-- Get knowledge graph data
+* Get knowledge graph data
 
 ---
 
@@ -112,7 +112,7 @@ async function getKnowledgeGraph(database, orgId)
 async function getStorageBreakdown(database, orgId)
 ```
 
-- Get storage breakdown
+* Get storage breakdown
 
 ---
 
@@ -122,7 +122,7 @@ async function getStorageBreakdown(database, orgId)
 async function getMemberEngagement(database, orgId)
 ```
 
-- Get member engagement
+* Get member engagement
 
 ---
 
@@ -132,7 +132,7 @@ async function getMemberEngagement(database, orgId)
 async function getActivityHeatmap(database, orgId)
 ```
 
-- Get activity heatmap
+* Get activity heatmap
 
 ---
 
@@ -142,11 +142,12 @@ async function getActivityHeatmap(database, orgId)
 function getBandwidthUsed(db, orgId, dateRange)
 ```
 
-- Get bandwidth usage for the organization
-- Calculates total bytes transferred based on sync and P2P activity logs
-- @param {Object} db - Database instance
-- @param {string} orgId - Organization ID
-- @param {Object} dateRange - Date range filter
-- @returns {number} Bandwidth used in bytes
+* Get bandwidth usage for the organization
+ * Calculates total bytes transferred based on sync and P2P activity logs
+ * @param {Object} db - Database instance
+ * @param {string} orgId - Organization ID
+ * @param {Object} dateRange - Date range filter
+ * @returns {number} Bandwidth used in bytes
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/vector/vector-store.js`
 
-**Generated**: 2026-04-20T10:46:39.695Z
+**Generated**: 2026-04-21T04:11:31.396Z
 
 ---
 
@@ -12,9 +12,9 @@
 const
 ```
 
-- 向量存储服务
--
-- 使用ChromaDB进行向量存储和检索
+* 向量存储服务
+ *
+ * 使用ChromaDB进行向量存储和检索
 
 ---
 
@@ -24,7 +24,7 @@ const
 const DEFAULT_CONFIG =
 ```
 
-- 向量存储配置
+* 向量存储配置
 
 ---
 
@@ -34,7 +34,7 @@ const DEFAULT_CONFIG =
 class VectorStore extends EventEmitter
 ```
 
-- 向量存储管理类
+* 向量存储管理类
 
 ---
 
@@ -44,7 +44,7 @@ class VectorStore extends EventEmitter
 async initialize()
 ```
 
-- 初始化向量存储
+* 初始化向量存储
 
 ---
 
@@ -54,7 +54,7 @@ async initialize()
 async checkConnection()
 ```
 
-- 检查ChromaDB连接
+* 检查ChromaDB连接
 
 ---
 
@@ -64,7 +64,7 @@ async checkConnection()
 async getOrCreateCollection()
 ```
 
-- 获取或创建集合
+* 获取或创建集合
 
 ---
 
@@ -74,9 +74,9 @@ async getOrCreateCollection()
 async addVector(item, embedding)
 ```
 
-- 添加向量
-  - @param {Object} item - 知识库项
-  - @param {Array} embedding - 嵌入向量
+* 添加向量
+   * @param {Object} item - 知识库项
+   * @param {Array} embedding - 嵌入向量
 
 ---
 
@@ -86,9 +86,9 @@ async addVector(item, embedding)
 async addVectorsBatch(items, embeddings)
 ```
 
-- 批量添加向量
-  - @param {Array} items - 知识库项数组
-  - @param {Array} embeddings - 嵌入向量数组
+* 批量添加向量
+   * @param {Array} items - 知识库项数组
+   * @param {Array} embeddings - 嵌入向量数组
 
 ---
 
@@ -98,10 +98,10 @@ async addVectorsBatch(items, embeddings)
 async updateVector(id, embedding, metadata)
 ```
 
-- 更新向量
-  - @param {string} id - 项目ID
-  - @param {Array} embedding - 新的嵌入向量
-  - @param {Object} metadata - 新的元数据
+* 更新向量
+   * @param {string} id - 项目ID
+   * @param {Array} embedding - 新的嵌入向量
+   * @param {Object} metadata - 新的元数据
 
 ---
 
@@ -111,8 +111,8 @@ async updateVector(id, embedding, metadata)
 async deleteVector(id)
 ```
 
-- 删除向量
-  - @param {string} id - 项目ID
+* 删除向量
+   * @param {string} id - 项目ID
 
 ---
 
@@ -122,32 +122,32 @@ async deleteVector(id)
 async search(queryEmbedding, topK = null, filter = null)
 ```
 
-- 搜索相似向量
-  - @param {Array} queryEmbedding - 查询向量
-  - @param {number} topK - 返回数量
-  - @param {Object} filter - 过滤条件
+* 搜索相似向量
+   * @param {Array} queryEmbedding - 查询向量
+   * @param {number} topK - 返回数量
+   * @param {Object} filter - 过滤条件
 
 ---
 
 ## searchMemory(queryEmbedding, topK)
 
 ```javascript
-searchMemory(queryEmbedding, topK);
+searchMemory(queryEmbedding, topK)
 ```
 
-- 内存模式搜索
-  - @param {Array} queryEmbedding - 查询向量
-  - @param {number} topK - 返回数量
+* 内存模式搜索
+   * @param {Array} queryEmbedding - 查询向量
+   * @param {number} topK - 返回数量
 
 ---
 
 ## cosineSimilarity(vecA, vecB)
 
 ```javascript
-cosineSimilarity(vecA, vecB);
+cosineSimilarity(vecA, vecB)
 ```
 
-- 计算余弦相似度
+* 计算余弦相似度
 
 ---
 
@@ -157,7 +157,7 @@ cosineSimilarity(vecA, vecB);
 async getStats()
 ```
 
-- 获取统计信息
+* 获取统计信息
 
 ---
 
@@ -167,7 +167,7 @@ async getStats()
 async clear()
 ```
 
-- 清空所有向量
+* 清空所有向量
 
 ---
 
@@ -177,9 +177,9 @@ async clear()
 async rebuildIndex(items, embeddingFn)
 ```
 
-- 重建索引
-  - @param {Array} items - 所有知识库项
-  - @param {Function} embeddingFn - 嵌入函数
+* 重建索引
+   * @param {Array} items - 所有知识库项
+   * @param {Function} embeddingFn - 嵌入函数
 
 ---
 
@@ -189,6 +189,7 @@ async rebuildIndex(items, embeddingFn)
 async close()
 ```
 
-- 关闭连接
+* 关闭连接
 
 ---
+

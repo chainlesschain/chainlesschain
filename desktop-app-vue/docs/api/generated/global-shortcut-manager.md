@@ -2,7 +2,7 @@
 
 **Source**: `src/main/system/global-shortcut-manager.js`
 
-**Generated**: 2026-04-20T10:46:39.714Z
+**Generated**: 2026-04-21T04:11:31.416Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-- 全局快捷键注册器
-- 管理Electron全局快捷键
+* 全局快捷键注册器
+ * 管理Electron全局快捷键
 
 ---
 
@@ -23,86 +23,87 @@ const
 register(accelerator, handler, options =
 ```
 
-- 注册快捷键
+* 注册快捷键
 
 ---
 
 ## unregister(accelerator)
 
 ```javascript
-unregister(accelerator);
+unregister(accelerator)
 ```
 
-- 注销快捷键
+* 注销快捷键
 
 ---
 
 ## unregisterAll()
 
 ```javascript
-unregisterAll();
+unregisterAll()
 ```
 
-- 注销所有快捷键
+* 注销所有快捷键
 
 ---
 
 ## isRegistered(accelerator)
 
 ```javascript
-isRegistered(accelerator);
+isRegistered(accelerator)
 ```
 
-- 检查快捷键是否已注册
+* 检查快捷键是否已注册
 
 ---
 
 ## getAll()
 
 ```javascript
-getAll();
+getAll()
 ```
 
-- 获取所有快捷键
+* 获取所有快捷键
 
 ---
 
 ## update(oldAccelerator, newAccelerator, handler)
 
 ```javascript
-update(oldAccelerator, newAccelerator, handler);
+update(oldAccelerator, newAccelerator, handler)
 ```
 
-- 更新快捷键
+* 更新快捷键
 
 ---
 
 ## loadConfig()
 
 ```javascript
-loadConfig();
+loadConfig()
 ```
 
-- 加载配置
+* 加载配置
 
 ---
 
 ## saveConfig(config)
 
 ```javascript
-saveConfig(config);
+saveConfig(config)
 ```
 
-- 保存配置
+* 保存配置
 
 ---
 
 ## resetToDefault()
 
 ```javascript
-resetToDefault();
+resetToDefault()
 ```
 
-- 重置为默认配置
+* 重置为默认配置
 
 ---
+

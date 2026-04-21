@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/extended-tools-2.js`
 
-**Generated**: 2026-04-20T10:46:39.839Z
+**Generated**: 2026-04-21T04:11:31.547Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-- 扩展工具实现 - 第二批
-- 包含第二批20个新增工具的处理函数
+* 扩展工具实现 - 第二批
+ * 包含第二批20个新增工具的处理函数
 
 ---
 
@@ -23,7 +23,8 @@ const
 static registerAll(functionCaller)
 ```
 
-- 注册所有扩展工具到 FunctionCaller
-  - @param {FunctionCaller} functionCaller - FunctionCaller 实例
+* 注册所有扩展工具到 FunctionCaller
+   * @param {FunctionCaller} functionCaller - FunctionCaller 实例
 
 ---
+

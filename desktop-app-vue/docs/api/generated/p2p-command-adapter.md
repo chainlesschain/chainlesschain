@@ -2,7 +2,7 @@
 
 **Source**: `src/main/remote/p2p-command-adapter.js`
 
-**Generated**: 2026-04-20T10:46:39.738Z
+**Generated**: 2026-04-21T04:11:31.441Z
 
 ---
 
@@ -12,15 +12,15 @@
 const
 ```
 
-- P2P 命令适配器 - 将命令协议适配到 P2P 网络
--
-- 功能：
-- - 命令消息类型定义（REQUEST/RESPONSE/EVENT）
-- - 请求/响应匹配机制
-- - 超时处理和重试
-- - 与现有 P2P 网络集成
--
-- @module remote/p2p-command-adapter
+* P2P 命令适配器 - 将命令协议适配到 P2P 网络
+ *
+ * 功能：
+ * - 命令消息类型定义（REQUEST/RESPONSE/EVENT）
+ * - 请求/响应匹配机制
+ * - 超时处理和重试
+ * - 与现有 P2P 网络集成
+ *
+ * @module remote/p2p-command-adapter
 
 ---
 
@@ -30,7 +30,7 @@ const
 const MESSAGE_TYPES =
 ```
 
-- 消息类型常量
+* 消息类型常量
 
 ---
 
@@ -40,7 +40,7 @@ const MESSAGE_TYPES =
 const ERROR_CODES =
 ```
 
-- 错误码
+* 错误码
 
 ---
 
@@ -50,7 +50,7 @@ const ERROR_CODES =
 class P2PCommandAdapter extends EventEmitter
 ```
 
-- P2P 命令适配器
+* P2P 命令适配器
 
 ---
 
@@ -60,17 +60,17 @@ class P2PCommandAdapter extends EventEmitter
 async initialize()
 ```
 
-- 初始化适配器
+* 初始化适配器
 
 ---
 
 ## registerP2PHandlers()
 
 ```javascript
-registerP2PHandlers();
+registerP2PHandlers()
 ```
 
-- 注册 P2P 消息处理器
+* 注册 P2P 消息处理器
 
 ---
 
@@ -80,7 +80,7 @@ registerP2PHandlers();
 async handleP2PMessage(peerId, rawMessage)
 ```
 
-- 处理 P2P 消息
+* 处理 P2P 消息
 
 ---
 
@@ -90,67 +90,67 @@ async handleP2PMessage(peerId, rawMessage)
 async handleCommandRequest(peerId, request)
 ```
 
-- 处理命令请求（来自 Android）
+* 处理命令请求（来自 Android）
 
 ---
 
 ## handleCommandResponse(response)
 
 ```javascript
-handleCommandResponse(response);
+handleCommandResponse(response)
 ```
 
-- 处理命令响应（PC 主动发送命令后收到的响应）
+* 处理命令响应（PC 主动发送命令后收到的响应）
 
 ---
 
 ## handleCommandCancel(peerId, payload)
 
 ```javascript
-handleCommandCancel(peerId, payload);
+handleCommandCancel(peerId, payload)
 ```
 
-- 处理命令取消请求
+* 处理命令取消请求
 
 ---
 
 ## cancelCommand(commandId, reason = "Cancelled by server")
 
 ```javascript
-cancelCommand(commandId, (reason = "Cancelled by server"));
+cancelCommand(commandId, reason = "Cancelled by server")
 ```
 
-- 取消指定命令（PC 端主动取消）
+* 取消指定命令（PC 端主动取消）
 
 ---
 
 ## getRunningCommands()
 
 ```javascript
-getRunningCommands();
+getRunningCommands()
 ```
 
-- 获取运行中的命令列表
+* 获取运行中的命令列表
 
 ---
 
 ## cancelLongRunningCommands(maxDuration = 60000)
 
 ```javascript
-cancelLongRunningCommands((maxDuration = 60000));
+cancelLongRunningCommands(maxDuration = 60000)
 ```
 
-- 取消所有超时的命令
+* 取消所有超时的命令
 
 ---
 
 ## handleHeartbeat(peerId, payload)
 
 ```javascript
-handleHeartbeat(peerId, payload);
+handleHeartbeat(peerId, payload)
 ```
 
-- 处理心跳
+* 处理心跳
 
 ---
 
@@ -160,87 +160,87 @@ handleHeartbeat(peerId, payload);
 async sendCommand(peerId, method, params, options =
 ```
 
-- 发送命令（PC -> Android）
+* 发送命令（PC -> Android）
 
 ---
 
 ## sendResponse(peerId, response)
 
 ```javascript
-sendResponse(peerId, response);
+sendResponse(peerId, response)
 ```
 
-- 发送响应（PC -> Android）
+* 发送响应（PC -> Android）
 
 ---
 
 ## broadcastEvent(method, params, targetDevices = null)
 
 ```javascript
-broadcastEvent(method, params, (targetDevices = null));
+broadcastEvent(method, params, targetDevices = null)
 ```
 
-- 广播事件（PC -> All Android）
+* 广播事件（PC -> All Android）
 
 ---
 
 ## sendMessage(peerId, message)
 
 ```javascript
-sendMessage(peerId, message);
+sendMessage(peerId, message)
 ```
 
-- 发送 P2P 消息（底层方法）
+* 发送 P2P 消息（底层方法）
 
 ---
 
 ## registerDevice(peerId, did)
 
 ```javascript
-registerDevice(peerId, did);
+registerDevice(peerId, did)
 ```
 
-- 注册设备
+* 注册设备
 
 ---
 
 ## getConnectedDevices()
 
 ```javascript
-getConnectedDevices();
+getConnectedDevices()
 ```
 
-- 获取已连接设备列表
+* 获取已连接设备列表
 
 ---
 
 ## startHeartbeat()
 
 ```javascript
-startHeartbeat();
+startHeartbeat()
 ```
 
-- 启动心跳
+* 启动心跳
 
 ---
 
 ## checkDeviceHealth()
 
 ```javascript
-checkDeviceHealth();
+checkDeviceHealth()
 ```
 
-- 检查设备健康状态
+* 检查设备健康状态
 
 ---
 
 ## stopHeartbeat()
 
 ```javascript
-stopHeartbeat();
+stopHeartbeat()
 ```
 
-- 停止心跳
+* 停止心跳
 
 ---
 
@@ -250,67 +250,67 @@ stopHeartbeat();
 async executeWithRetry(fn, retries, delay)
 ```
 
-- 带重试的执行
+* 带重试的执行
 
 ---
 
 ## sleep(ms)
 
 ```javascript
-sleep(ms);
+sleep(ms)
 ```
 
-- 睡眠函数
+* 睡眠函数
 
 ---
 
 ## generateRequestId()
 
 ```javascript
-generateRequestId();
+generateRequestId()
 ```
 
-- 生成请求 ID
+* 生成请求 ID
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats();
+getStats()
 ```
 
-- 获取统计信息
+* 获取统计信息
 
 ---
 
 ## startPendingCleanup()
 
 ```javascript
-startPendingCleanup();
+startPendingCleanup()
 ```
 
-- 启动待处理请求定期清理
+* 启动待处理请求定期清理
 
 ---
 
 ## cleanupStalePendingRequests()
 
 ```javascript
-cleanupStalePendingRequests();
+cleanupStalePendingRequests()
 ```
 
-- 清理过期的待处理请求
+* 清理过期的待处理请求
 
 ---
 
 ## stopPendingCleanup()
 
 ```javascript
-stopPendingCleanup();
+stopPendingCleanup()
 ```
 
-- 停止待处理请求清理
+* 停止待处理请求清理
 
 ---
 
@@ -320,7 +320,7 @@ stopPendingCleanup();
 async disconnectPeer(peerId)
 ```
 
-- 断开指定节点
+* 断开指定节点
 
 ---
 
@@ -330,6 +330,7 @@ async disconnectPeer(peerId)
 async cleanup()
 ```
 
-- 清理资源
+* 清理资源
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/api/data-cleanup.js`
 
-**Generated**: 2026-04-20T10:46:39.831Z
+**Generated**: 2026-04-21T04:11:31.538Z
 
 ---
 
@@ -12,31 +12,31 @@
 const
 ```
 
-- Data Cleanup Manager
-- 定期清理旧的 RSS 和邮件数据
--
-- v0.20.1: 新增数据清理功能
+* Data Cleanup Manager
+ * 定期清理旧的 RSS 和邮件数据
+ *
+ * v0.20.1: 新增数据清理功能
 
 ---
 
-## startAutoCleanup(intervalMs = 24 _ 60 _ 60 \* 1000)
+## startAutoCleanup(intervalMs = 24 * 60 * 60 * 1000)
 
 ```javascript
-startAutoCleanup((intervalMs = 24 * 60 * 60 * 1000));
+startAutoCleanup(intervalMs = 24 * 60 * 60 * 1000)
 ```
 
-- 启动自动清理任务
-  - @param {number} intervalMs - 清理间隔（毫秒），默认24小时
+* 启动自动清理任务
+   * @param {number} intervalMs - 清理间隔（毫秒），默认24小时
 
 ---
 
 ## stopAutoCleanup()
 
 ```javascript
-stopAutoCleanup();
+stopAutoCleanup()
 ```
 
-- 停止自动清理任务
+* 停止自动清理任务
 
 ---
 
@@ -46,7 +46,7 @@ stopAutoCleanup();
 async runCleanup()
 ```
 
-- 执行清理任务
+* 执行清理任务
 
 ---
 
@@ -56,8 +56,8 @@ async runCleanup()
 async cleanupOldRSSItems(retentionDays = this.defaultRetentionDays)
 ```
 
-- 清理旧的 RSS 文章
-  - @param {number} retentionDays - 保留天数，默认30天
+* 清理旧的 RSS 文章
+   * @param {number} retentionDays - 保留天数，默认30天
 
 ---
 
@@ -67,8 +67,8 @@ async cleanupOldRSSItems(retentionDays = this.defaultRetentionDays)
 async cleanupOldEmails(retentionDays = this.defaultRetentionDays)
 ```
 
-- 清理旧的邮件
-  - @param {number} retentionDays - 保留天数，默认30天
+* 清理旧的邮件
+   * @param {number} retentionDays - 保留天数，默认30天
 
 ---
 
@@ -78,7 +78,7 @@ async cleanupOldEmails(retentionDays = this.defaultRetentionDays)
 async cleanupOrphanedAttachments()
 ```
 
-- 清理孤立的附件（邮件已删除但附件仍存在）
+* 清理孤立的附件（邮件已删除但附件仍存在）
 
 ---
 
@@ -88,16 +88,17 @@ async cleanupOrphanedAttachments()
 async getDataStats()
 ```
 
-- 获取数据统计信息
+* 获取数据统计信息
 
 ---
 
 ## setRetentionDays(days)
 
 ```javascript
-setRetentionDays(days);
+setRetentionDays(days)
 ```
 
-- 设置保留天数
+* 设置保留天数
 
 ---
+

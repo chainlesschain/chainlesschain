@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/wrtc-compat.js`
 
-**Generated**: 2026-04-20T10:46:39.754Z
+**Generated**: 2026-04-21T04:11:31.458Z
 
 ---
 
@@ -12,14 +12,14 @@
 let werift = null;
 ```
 
-- WebRTC Compatibility Layer
--
-- Provides wrtc-compatible API using werift (pure JavaScript WebRTC implementation)
-- This replaces the deprecated 'wrtc' package which doesn't support modern Electron/Node.js
--
-- Usage:
-- const wrtc = require('./wrtc-compat');
-- const pc = new wrtc.RTCPeerConnection(config);
+* WebRTC Compatibility Layer
+ *
+ * Provides wrtc-compatible API using werift (pure JavaScript WebRTC implementation)
+ * This replaces the deprecated 'wrtc' package which doesn't support modern Electron/Node.js
+ *
+ * Usage:
+ *   const wrtc = require('./wrtc-compat');
+ *   const pc = new wrtc.RTCPeerConnection(config);
 
 ---
 
@@ -29,8 +29,8 @@ let werift = null;
 class MediaStreamCompat
 ```
 
-- MediaStream compatibility wrapper
-- werift doesn't have MediaStream built-in, so we create a simple implementation
+* MediaStream compatibility wrapper
+ * werift doesn't have MediaStream built-in, so we create a simple implementation
 
 ---
 
@@ -40,11 +40,11 @@ class MediaStreamCompat
 class RTCSessionDescriptionCompat
 ```
 
-- RTCSessionDescription compatibility wrapper
--
-- IMPORTANT: werift's RTCSessionDescription uses (sdp, type) as separate arguments,
-- but the standard WebRTC API expects ({type, sdp}) as an init object.
-- This wrapper provides the standard API.
+* RTCSessionDescription compatibility wrapper
+ *
+ * IMPORTANT: werift's RTCSessionDescription uses (sdp, type) as separate arguments,
+ * but the standard WebRTC API expects ({type, sdp}) as an init object.
+ * This wrapper provides the standard API.
 
 ---
 
@@ -54,6 +54,7 @@ class RTCSessionDescriptionCompat
 class RTCIceCandidateCompat
 ```
 
-- RTCIceCandidate compatibility wrapper
+* RTCIceCandidate compatibility wrapper
 
 ---
+

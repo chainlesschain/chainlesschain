@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/context-engineering.js`
 
-**Generated**: 2026-04-20T10:46:39.775Z
+**Generated**: 2026-04-21T04:11:31.480Z
 
 ---
 
@@ -12,17 +12,17 @@
 import crypto from "crypto";
 ```
 
-- Context Engineering 模块
--
-- 基于 Manus AI 的最佳实践，优化 LLM 上下文构建以最大化 KV-Cache 命中率。
--
-- 核心原则（来自 Manus Blog）：
-- 1.  保持 prompt 前缀稳定 - 避免时间戳等动态内容破坏缓存
-- 2.  采用只读追加模式 - 确保序列化确定性
-- 3.  显式标记缓存断点 - 优化缓存边界
-- 4.  将任务目标重述到上下文末尾 - 解决"丢失中间"问题
--
-- @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
+* Context Engineering 模块
+ *
+ * 基于 Manus AI 的最佳实践，优化 LLM 上下文构建以最大化 KV-Cache 命中率。
+ *
+ * 核心原则（来自 Manus Blog）：
+ * 1. 保持 prompt 前缀稳定 - 避免时间戳等动态内容破坏缓存
+ * 2. 采用只读追加模式 - 确保序列化确定性
+ * 3. 显式标记缓存断点 - 优化缓存边界
+ * 4. 将任务目标重述到上下文末尾 - 解决"丢失中间"问题
+ *
+ * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
 
 ---
 
@@ -32,432 +32,433 @@ import crypto from "crypto";
 class ContextEngineering
 ```
 
-- 上下文工程管理器
+* 上下文工程管理器
 
 ---
 
 ## setInstinctManager(instinctManager)
 
 ```javascript
-setInstinctManager(instinctManager);
+setInstinctManager(instinctManager)
 ```
 
-- Set the InstinctManager for learned pattern injection
-  - @param {Object} instinctManager - InstinctManager instance
+* Set the InstinctManager for learned pattern injection
+   * @param {Object} instinctManager - InstinctManager instance
 
 ---
 
 ## setCodeKnowledgeGraph(codeKnowledgeGraph)
 
 ```javascript
-setCodeKnowledgeGraph(codeKnowledgeGraph);
+setCodeKnowledgeGraph(codeKnowledgeGraph)
 ```
 
-- Set the CodeKnowledgeGraph for architectural insight injection
-  - @param {Object} codeKnowledgeGraph - CodeKnowledgeGraph instance
+* Set the CodeKnowledgeGraph for architectural insight injection
+   * @param {Object} codeKnowledgeGraph - CodeKnowledgeGraph instance
 
 ---
 
 ## setEvoMapBridge(evoMapBridge)
 
 ```javascript
-setEvoMapBridge(evoMapBridge);
+setEvoMapBridge(evoMapBridge)
 ```
 
-- Set the EvoMap Asset Bridge for community knowledge injection
-  - @param {Object} evoMapBridge - EvoMapAssetBridge instance
+* Set the EvoMap Asset Bridge for community knowledge injection
+   * @param {Object} evoMapBridge - EvoMapAssetBridge instance
 
 ---
 
 ## setSocialGraph(socialGraph)
 
 ```javascript
-setSocialGraph(socialGraph);
+setSocialGraph(socialGraph)
 ```
 
-- Set the SocialGraph for relationship-aware context
-  - @param {Object} socialGraph - SocialGraph instance
+* Set the SocialGraph for relationship-aware context
+   * @param {Object} socialGraph - SocialGraph instance
 
 ---
 
 ## setComplianceManager(complianceManager)
 
 ```javascript
-setComplianceManager(complianceManager);
+setComplianceManager(complianceManager)
 ```
 
-- Set the ComplianceManager for compliance-aware context
-  - @param {Object} complianceManager - SOC2Compliance instance
+* Set the ComplianceManager for compliance-aware context
+   * @param {Object} complianceManager - SOC2Compliance instance
 
 ---
 
 ## setMemoryAugManager(memoryAugManager)
 
 ```javascript
-setMemoryAugManager(memoryAugManager);
+setMemoryAugManager(memoryAugManager)
 ```
 
-- 注入 Memory Augmented Generation 管理器
-  - @param {Object} memoryAugManager - MemoryAugmentedGeneration instance
+* 注入 Memory Augmented Generation 管理器
+   * @param {Object} memoryAugManager - MemoryAugmentedGeneration instance
 
 ---
 
 ## setPreferenceLearner(preferenceLearner)
 
 ```javascript
-setPreferenceLearner(preferenceLearner);
+setPreferenceLearner(preferenceLearner)
 ```
 
-- 注入用户偏好学习器
-  - @param {Object} preferenceLearner - UserPreferenceLearner instance
+* 注入用户偏好学习器
+   * @param {Object} preferenceLearner - UserPreferenceLearner instance
 
 ---
 
 ## setThresholdManager(thresholdManager)
 
 ```javascript
-setThresholdManager(thresholdManager);
+setThresholdManager(thresholdManager)
 ```
 
-- 注入 Threshold Signature Manager
-  - @param {Object} thresholdManager - ThresholdSignatureManager instance
+* 注入 Threshold Signature Manager
+   * @param {Object} thresholdManager - ThresholdSignatureManager instance
 
 ---
 
 ## setDLPEngine(dlpEngine)
 
 ```javascript
-setDLPEngine(dlpEngine);
+setDLPEngine(dlpEngine)
 ```
 
-- 注入 DLP Engine
-  - @param {Object} dlpEngine - DLPEngine instance
+* 注入 DLP Engine
+   * @param {Object} dlpEngine - DLPEngine instance
 
 ---
 
 ## setPQCManager(pqcManager)
 
 ```javascript
-setPQCManager(pqcManager);
+setPQCManager(pqcManager)
 ```
 
-- 注入 PQC Migration Manager
-  - @param {Object} pqcManager - PQCMigrationManager instance
+* 注入 PQC Migration Manager
+   * @param {Object} pqcManager - PQCMigrationManager instance
 
 ---
 
 ## setGovernanceAI(governanceAI)
 
 ```javascript
-setGovernanceAI(governanceAI);
+setGovernanceAI(governanceAI)
 ```
 
-- 注入 Governance AI
-  - @param {Object} governanceAI - GovernanceAI instance
+* 注入 Governance AI
+   * @param {Object} governanceAI - GovernanceAI instance
 
 ---
 
 ## setTechLearningEngine(techLearningEngine)
 
 ```javascript
-setTechLearningEngine(techLearningEngine);
+setTechLearningEngine(techLearningEngine)
 ```
 
-- 注入 Tech Learning Engine [Phase 62]
-  - @param {Object} techLearningEngine - TechLearningEngine instance
+* 注入 Tech Learning Engine [Phase 62]
+   * @param {Object} techLearningEngine - TechLearningEngine instance
 
 ---
 
 ## setAutonomousDeveloper(autonomousDeveloper)
 
 ```javascript
-setAutonomousDeveloper(autonomousDeveloper);
+setAutonomousDeveloper(autonomousDeveloper)
 ```
 
-- 注入 Autonomous Developer [Phase 63]
-  - @param {Object} autonomousDeveloper - AutonomousDeveloper instance
+* 注入 Autonomous Developer [Phase 63]
+   * @param {Object} autonomousDeveloper - AutonomousDeveloper instance
 
 ---
 
 ## setCollaborationGovernance(collaborationGovernance)
 
 ```javascript
-setCollaborationGovernance(collaborationGovernance);
+setCollaborationGovernance(collaborationGovernance)
 ```
 
-- 注入 Collaboration Governance [Phase 64]
-  - @param {Object} collaborationGovernance - CollaborationGovernance instance
+* 注入 Collaboration Governance [Phase 64]
+   * @param {Object} collaborationGovernance - CollaborationGovernance instance
 
 ---
 
 ## setSkillServiceProtocol(skillServiceProtocol)
 
 ```javascript
-setSkillServiceProtocol(skillServiceProtocol);
+setSkillServiceProtocol(skillServiceProtocol)
 ```
 
-- 注入 Skill Service Protocol [Phase 65]
-  - @param {Object} skillServiceProtocol - SkillServiceProtocol instance
+* 注入 Skill Service Protocol [Phase 65]
+   * @param {Object} skillServiceProtocol - SkillServiceProtocol instance
 
 ---
 
 ## setInferenceScheduler(inferenceScheduler)
 
 ```javascript
-setInferenceScheduler(inferenceScheduler);
+setInferenceScheduler(inferenceScheduler)
 ```
 
-- 注入 Inference Scheduler [Phase 67]
-  - @param {Object} inferenceScheduler - InferenceScheduler instance
+* 注入 Inference Scheduler [Phase 67]
+   * @param {Object} inferenceScheduler - InferenceScheduler instance
 
 ---
 
 ## setProtocolFusionBridge(protocolFusionBridge)
 
 ```javascript
-setProtocolFusionBridge(protocolFusionBridge);
+setProtocolFusionBridge(protocolFusionBridge)
 ```
 
-- 注入 Protocol Fusion Bridge [Phase 72]
-  - @param {Object} protocolFusionBridge - ProtocolFusionBridge instance
+* 注入 Protocol Fusion Bridge [Phase 72]
+   * @param {Object} protocolFusionBridge - ProtocolFusionBridge instance
 
 ---
 
 ## setEvoMapFederation(evoMapFederation)
 
 ```javascript
-setEvoMapFederation(evoMapFederation);
+setEvoMapFederation(evoMapFederation)
 ```
 
-- 注入 EvoMap Federation [Phase 76]
-  - @param {Object} evoMapFederation - EvoMapFederation instance
+* 注入 EvoMap Federation [Phase 76]
+   * @param {Object} evoMapFederation - EvoMapFederation instance
 
 ---
 
 ## buildOptimizedPrompt(options)
 
 ```javascript
-buildOptimizedPrompt(options);
+buildOptimizedPrompt(options)
 ```
 
-- ## 构建 KV-Cache 友好的 Prompt
-  - 关键策略：
-  - - 静态部分（system prompt + 工具定义）放在最前面
-  - - 动态部分（对话历史 + 用户输入）追加在后面
-  - - 任务目标重述在最末尾
-  -
-  - @param {Object} options - 构建选项
-  - @param {string} options.systemPrompt - 系统提示词
-  - @param {Array} options.messages - 对话历史
-  - @param {Array} options.tools - 工具定义
-  - @param {Object} options.taskContext - 任务上下文
-  - @returns {Object} 优化后的消息数组和元数据
+* 构建 KV-Cache 友好的 Prompt
+   *
+   * 关键策略：
+   * - 静态部分（system prompt + 工具定义）放在最前面
+   * - 动态部分（对话历史 + 用户输入）追加在后面
+   * - 任务目标重述在最末尾
+   *
+   * @param {Object} options - 构建选项
+   * @param {string} options.systemPrompt - 系统提示词
+   * @param {Array} options.messages - 对话历史
+   * @param {Array} options.tools - 工具定义
+   * @param {Object} options.taskContext - 任务上下文
+   * @returns {Object} 优化后的消息数组和元数据
 
 ---
 
-## \_cleanSystemPrompt(systemPrompt)
+## _cleanSystemPrompt(systemPrompt)
 
 ```javascript
-_cleanSystemPrompt(systemPrompt);
+_cleanSystemPrompt(systemPrompt)
 ```
 
-- 清理 System Prompt，移除动态内容
-  - @private
+* 清理 System Prompt，移除动态内容
+   * @private
 
 ---
 
-## \_filterMcpToolsByServer(tools, whitelist)
+## _filterMcpToolsByServer(tools, whitelist)
 
 ```javascript
-_filterMcpToolsByServer(tools, whitelist);
+_filterMcpToolsByServer(tools, whitelist)
 ```
 
-- Restrict MCP tools to a whitelist of server names (Skill-Embedded MCP).
-  - Non-MCP tools (FunctionCaller, skill-bound, etc.) are passed through
-  - untouched. MCP tools are identified by `source === "mcp"` or by the
-  - "mcp" tag; the server is read from `serverName`/tags `server:<name>`.
-  -
-  - @param {Array} tools
-  - @param {Set<string>|Array<string>} whitelist
-  - @returns {Array}
-  - @private
+* Restrict MCP tools to a whitelist of server names (Skill-Embedded MCP).
+   * Non-MCP tools (FunctionCaller, skill-bound, etc.) are passed through
+   * untouched. MCP tools are identified by `source === "mcp"` or by the
+   * "mcp" tag; the server is read from `serverName`/tags `server:<name>`.
+   *
+   * @param {Array} tools
+   * @param {Set<string>|Array<string>} whitelist
+   * @returns {Array}
+   * @private
 
 ---
 
-## \_serializeToolDefinitions(tools)
+## _serializeToolDefinitions(tools)
 
 ```javascript
-_serializeToolDefinitions(tools);
+_serializeToolDefinitions(tools)
 ```
 
-- 序列化工具定义（确保确定性）
-  - @private
+* 序列化工具定义（确保确定性）
+   * @private
 
 ---
 
-## \_serializeToolsWithSkillContext(registry)
+## _serializeToolsWithSkillContext(registry)
 
 ```javascript
-_serializeToolsWithSkillContext(registry);
+_serializeToolsWithSkillContext(registry)
 ```
 
-- Serialize tools grouped by skill with instructions and examples
-  - @private
-  - @param {Object} registry - UnifiedToolRegistry instance
-  - @returns {string} Formatted tool definitions grouped by skill
+* Serialize tools grouped by skill with instructions and examples
+   * @private
+   * @param {Object} registry - UnifiedToolRegistry instance
+   * @returns {string} Formatted tool definitions grouped by skill
 
 ---
 
-## \_cleanMessages(messages)
+## _cleanMessages(messages)
 
 ```javascript
-_cleanMessages(messages);
+_cleanMessages(messages)
 ```
 
-- 清理消息数组，移除动态内容
-  - @private
+* 清理消息数组，移除动态内容
+   * @private
 
 ---
 
-## \_buildErrorContext()
+## _buildErrorContext()
 
 ```javascript
-_buildErrorContext();
+_buildErrorContext()
 ```
 
-- 构建错误上下文（供模型学习）
-  - @private
+* 构建错误上下文（供模型学习）
+   * @private
 
 ---
 
-## \_buildTaskReminder(taskContext)
+## _buildTaskReminder(taskContext)
 
 ```javascript
-_buildTaskReminder(taskContext);
+_buildTaskReminder(taskContext)
 ```
 
-- 构建任务提醒（重述目标到上下文末尾）
-  - @private
+* 构建任务提醒（重述目标到上下文末尾）
+   * @private
 
 ---
 
-## \_computeStaticHash(systemPrompt, tools)
+## _computeStaticHash(systemPrompt, tools)
 
 ```javascript
-_computeStaticHash(systemPrompt, tools);
+_computeStaticHash(systemPrompt, tools)
 ```
 
-- 计算静态部分的哈希值
-  - @private
+* 计算静态部分的哈希值
+   * @private
 
 ---
 
-## \_computeHash(content)
+## _computeHash(content)
 
 ```javascript
-_computeHash(content);
+_computeHash(content)
 ```
 
-- 计算字符串哈希
-  - @private
+* 计算字符串哈希
+   * @private
 
 ---
 
 ## recordError(error)
 
 ```javascript
-recordError(error);
+recordError(error)
 ```
 
-- 记录错误（供模型学习）
-  - @param {Object} error - 错误信息
+* 记录错误（供模型学习）
+   * @param {Object} error - 错误信息
 
 ---
 
 ## resolveError(errorIndex, resolution)
 
 ```javascript
-resolveError(errorIndex, resolution);
+resolveError(errorIndex, resolution)
 ```
 
-- 标记错误已解决
-  - @param {number} errorIndex - 错误索引
-  - @param {string} resolution - 解决方案
+* 标记错误已解决
+   * @param {number} errorIndex - 错误索引
+   * @param {string} resolution - 解决方案
 
 ---
 
 ## setCurrentTask(task)
 
 ```javascript
-setCurrentTask(task);
+setCurrentTask(task)
 ```
 
-- 设置当前任务上下文
-  - @param {Object} task - 任务信息
+* 设置当前任务上下文
+   * @param {Object} task - 任务信息
 
 ---
 
 ## updateTaskProgress(currentStep, status)
 
 ```javascript
-updateTaskProgress(currentStep, status);
+updateTaskProgress(currentStep, status)
 ```
 
-- 更新任务进度
-  - @param {number} currentStep - 当前步骤
-  - @param {string} status - 状态
+* 更新任务进度
+   * @param {number} currentStep - 当前步骤
+   * @param {string} status - 状态
 
 ---
 
 ## getCurrentTask()
 
 ```javascript
-getCurrentTask();
+getCurrentTask()
 ```
 
-- 获取当前任务上下文
-  - @returns {Object|null} 任务上下文
+* 获取当前任务上下文
+   * @returns {Object|null} 任务上下文
 
 ---
 
 ## clearTask()
 
 ```javascript
-clearTask();
+clearTask()
 ```
 
-- 清除任务上下文
+* 清除任务上下文
 
 ---
 
 ## clearErrors()
 
 ```javascript
-clearErrors();
+clearErrors()
 ```
 
-- 清除错误历史
+* 清除错误历史
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats();
+getStats()
 ```
 
-- 获取统计信息
-  - @returns {Object} 统计数据
+* 获取统计信息
+   * @returns {Object} 统计数据
 
 ---
 
 ## resetStats()
 
 ```javascript
-resetStats();
+resetStats()
 ```
 
-- 重置统计
+* 重置统计
 
 ---
 
@@ -467,34 +468,34 @@ resetStats();
 class RecoverableCompressor
 ```
 
-- 可恢复压缩器
--
-- Manus 策略：超长观察数据使用可恢复的压缩——保留 URL/路径，丢弃内容本体
+* 可恢复压缩器
+ *
+ * Manus 策略：超长观察数据使用可恢复的压缩——保留 URL/路径，丢弃内容本体
 
 ---
 
 ## compress(content, type = "default")
 
 ```javascript
-compress(content, (type = "default"));
+compress(content, type = "default")
 ```
 
-- 压缩内容，保留可恢复的引用
-  - @param {any} content - 原始内容
-  - @param {string} type - 内容类型
-  - @returns {Object} 压缩后的引用
+* 压缩内容，保留可恢复的引用
+   * @param {any} content - 原始内容
+   * @param {string} type - 内容类型
+   * @returns {Object} 压缩后的引用
 
 ---
 
 ## isCompressedRef(data)
 
 ```javascript
-isCompressedRef(data);
+isCompressedRef(data)
 ```
 
-- 检查是否为压缩引用
-  - @param {any} data - 数据
-  - @returns {boolean}
+* 检查是否为压缩引用
+   * @param {any} data - 数据
+   * @returns {boolean}
 
 ---
 
@@ -504,10 +505,10 @@ isCompressedRef(data);
 async recover(ref, recoveryFunctions =
 ```
 
-- 恢复压缩内容
-  - @param {Object} ref - 压缩引用
-  - @param {Object} recoveryFunctions - 恢复函数集
-  - @returns {Promise<any>} 恢复的内容
+* 恢复压缩内容
+   * @param {Object} ref - 压缩引用
+   * @param {Object} recoveryFunctions - 恢复函数集
+   * @returns {Promise<any>} 恢复的内容
 
 ---
 
@@ -517,8 +518,9 @@ async recover(ref, recoveryFunctions =
 function getContextEngineering(options =
 ```
 
-- 获取 Context Engineering 单例
-- @param {Object} options - 配置选项
-- @returns {ContextEngineering}
+* 获取 Context Engineering 单例
+ * @param {Object} options - 配置选项
+ * @returns {ContextEngineering}
 
 ---
+

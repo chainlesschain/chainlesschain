@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/vision-manager.js`
 
-**Generated**: 2026-04-20T10:46:39.832Z
+**Generated**: 2026-04-21T04:11:31.539Z
 
 ---
 
@@ -12,13 +12,13 @@
 const
 ```
 
-- Vision Manager - 统一视觉接口管理器
--
-- 支持本地 LLaVA 和云端视觉 API（如火山引擎）
-- 提供图片分析、OCR、视觉问答等功能
--
-- @module vision-manager
-- @version 1.0.0
+* Vision Manager - 统一视觉接口管理器
+ *
+ * 支持本地 LLaVA 和云端视觉 API（如火山引擎）
+ * 提供图片分析、OCR、视觉问答等功能
+ *
+ * @module vision-manager
+ * @version 1.0.0
 
 ---
 
@@ -28,7 +28,7 @@ const
 const VisionProviders =
 ```
 
-- 视觉提供商类型
+* 视觉提供商类型
 
 ---
 
@@ -38,7 +38,7 @@ const VisionProviders =
 const AnalysisTypes =
 ```
 
-- 分析类型
+* 分析类型
 
 ---
 
@@ -48,7 +48,7 @@ const AnalysisTypes =
 class VisionManager extends EventEmitter
 ```
 
-- Vision Manager 类
+* Vision Manager 类
 
 ---
 
@@ -58,8 +58,8 @@ class VisionManager extends EventEmitter
 async initialize(dependencies =
 ```
 
-- 初始化 Vision Manager
-  - @param {Object} dependencies - 依赖注入
+* 初始化 Vision Manager
+   * @param {Object} dependencies - 依赖注入
 
 ---
 
@@ -69,37 +69,37 @@ async initialize(dependencies =
 async analyzeImage(params, options =
 ```
 
-- 分析图片（统一入口）
-  - @param {Object} params - 分析参数
-  - @param {string} params.imagePath - 图片路径
-  - @param {string} [params.imageBase64] - Base64 图片数据
-  - @param {string} [params.type] - 分析类型
-  - @param {string} [params.prompt] - 自定义提示词
-  - @param {string} [params.question] - 问题（VQA 用）
-  - @param {Object} [options] - 选项
-  - @returns {Promise<Object>} 分析结果
+* 分析图片（统一入口）
+   * @param {Object} params - 分析参数
+   * @param {string} params.imagePath - 图片路径
+   * @param {string} [params.imageBase64] - Base64 图片数据
+   * @param {string} [params.type] - 分析类型
+   * @param {string} [params.prompt] - 自定义提示词
+   * @param {string} [params.question] - 问题（VQA 用）
+   * @param {Object} [options] - 选项
+   * @returns {Promise<Object>} 分析结果
 
 ---
 
-## async \_analyzeWithLocal(params, analysisType, options)
+## async _analyzeWithLocal(params, analysisType, options)
 
 ```javascript
 async _analyzeWithLocal(params, analysisType, options)
 ```
 
-- 使用本地模型分析
-  - @private
+* 使用本地模型分析
+   * @private
 
 ---
 
-## async \_analyzeWithCloud(params, analysisType, options)
+## async _analyzeWithCloud(params, analysisType, options)
 
 ```javascript
 async _analyzeWithCloud(params, analysisType, options)
 ```
 
-- 使用云端服务分析
-  - @private
+* 使用云端服务分析
+   * @private
 
 ---
 
@@ -109,7 +109,7 @@ async _analyzeWithCloud(params, analysisType, options)
 async describeImage(params, options =
 ```
 
-- 图片描述（便捷方法）
+* 图片描述（便捷方法）
 
 ---
 
@@ -119,7 +119,7 @@ async describeImage(params, options =
 async performOCR(params, options =
 ```
 
-- OCR 文字识别（便捷方法）
+* OCR 文字识别（便捷方法）
 
 ---
 
@@ -129,7 +129,7 @@ async performOCR(params, options =
 async visualQA(params, options =
 ```
 
-- 视觉问答（便捷方法）
+* 视觉问答（便捷方法）
 
 ---
 
@@ -139,11 +139,11 @@ async visualQA(params, options =
 async analyzeImageStream(params, onChunk, options =
 ```
 
-- 流式分析图片
-  - @param {Object} params - 分析参数
-  - @param {Function} onChunk - 流式回调
-  - @param {Object} [options] - 选项
-  - @returns {Promise<Object>} 完整结果
+* 流式分析图片
+   * @param {Object} params - 分析参数
+   * @param {Function} onChunk - 流式回调
+   * @param {Object} [options] - 选项
+   * @returns {Promise<Object>} 完整结果
 
 ---
 
@@ -153,10 +153,10 @@ async analyzeImageStream(params, onChunk, options =
 async batchAnalyze(imageList, options =
 ```
 
-- 批量分析图片
-  - @param {Array} imageList - 图片列表
-  - @param {Object} [options] - 选项
-  - @returns {Promise<Array>} 分析结果列表
+* 批量分析图片
+   * @param {Array} imageList - 图片列表
+   * @param {Object} [options] - 选项
+   * @returns {Promise<Array>} 分析结果列表
 
 ---
 
@@ -166,40 +166,40 @@ async batchAnalyze(imageList, options =
 async checkStatus()
 ```
 
-- 检查服务状态
-  - @returns {Promise<Object>} 服务状态
+* 检查服务状态
+   * @returns {Promise<Object>} 服务状态
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats();
+getStats()
 ```
 
-- 获取统计数据
-  - @returns {Object} 统计数据
+* 获取统计数据
+   * @returns {Object} 统计数据
 
 ---
 
 ## clearCache()
 
 ```javascript
-clearCache();
+clearCache()
 ```
 
-- 清除缓存
+* 清除缓存
 
 ---
 
 ## updateConfig(newConfig)
 
 ```javascript
-updateConfig(newConfig);
+updateConfig(newConfig)
 ```
 
-- 更新配置
-  - @param {Object} newConfig - 新配置
+* 更新配置
+   * @param {Object} newConfig - 新配置
 
 ---
 
@@ -209,8 +209,9 @@ updateConfig(newConfig);
 function getVisionManager(config =
 ```
 
-- 获取 VisionManager 单例
-- @param {Object} config - 配置（仅首次调用时生效）
-- @returns {VisionManager}
+* 获取 VisionManager 单例
+ * @param {Object} config - 配置（仅首次调用时生效）
+ * @returns {VisionManager}
 
 ---
+

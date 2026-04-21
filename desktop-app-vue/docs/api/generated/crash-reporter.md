@@ -2,7 +2,7 @@
 
 **Source**: `src/main/monitoring/crash-reporter.js`
 
-**Generated**: 2026-04-20T10:46:39.762Z
+**Generated**: 2026-04-21T04:11:31.466Z
 
 ---
 
@@ -12,117 +12,118 @@
 const
 ```
 
-- 崩溃报告器
-- 捕获和报告应用崩溃信息
+* 崩溃报告器
+ * 捕获和报告应用崩溃信息
 
 ---
 
 ## init()
 
 ```javascript
-init();
+init()
 ```
 
-- 初始化崩溃报告器
+* 初始化崩溃报告器
 
 ---
 
 ## setupExceptionHandlers()
 
 ```javascript
-setupExceptionHandlers();
+setupExceptionHandlers()
 ```
 
-- 设置异常处理器
+* 设置异常处理器
 
 ---
 
 ## saveCrashReport(crashInfo)
 
 ```javascript
-saveCrashReport(crashInfo);
+saveCrashReport(crashInfo)
 ```
 
-- 保存崩溃报告
+* 保存崩溃报告
 
 ---
 
 ## showCrashDialog(error)
 
 ```javascript
-showCrashDialog(error);
+showCrashDialog(error)
 ```
 
-- 显示崩溃对话框
+* 显示崩溃对话框
 
 ---
 
 ## getCrashReports()
 
 ```javascript
-getCrashReports();
+getCrashReports()
 ```
 
-- 获取崩溃报告列表
+* 获取崩溃报告列表
 
 ---
 
 ## readCrashReport(filename)
 
 ```javascript
-readCrashReport(filename);
+readCrashReport(filename)
 ```
 
-- 读取崩溃报告
+* 读取崩溃报告
 
 ---
 
 ## deleteCrashReport(filename)
 
 ```javascript
-deleteCrashReport(filename);
+deleteCrashReport(filename)
 ```
 
-- 删除崩溃报告
+* 删除崩溃报告
 
 ---
 
 ## cleanOldReports(maxReports = 20)
 
 ```javascript
-cleanOldReports((maxReports = 20));
+cleanOldReports(maxReports = 20)
 ```
 
-- 清理旧报告
+* 清理旧报告
 
 ---
 
 ## clearAllReports()
 
 ```javascript
-clearAllReports();
+clearAllReports()
 ```
 
-- 清空所有报告
+* 清空所有报告
 
 ---
 
 ## exportCrashReports(outputPath)
 
 ```javascript
-exportCrashReports(outputPath);
+exportCrashReports(outputPath)
 ```
 
-- 导出崩溃报告
+* 导出崩溃报告
 
 ---
 
 ## getCrashStatistics()
 
 ```javascript
-getCrashStatistics();
+getCrashStatistics()
 ```
 
-- 获取崩溃统计
+* 获取崩溃统计
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/cowork/file-sandbox.js`
 
-**Generated**: 2026-04-20T10:46:39.849Z
+**Generated**: 2026-04-21T04:11:31.556Z
 
 ---
 
@@ -12,17 +12,17 @@
 const
 ```
 
-- FileSandbox - 文件沙箱系统
--
-- 基于 Claude Cowork 的文件夹权限模型，实现安全的文件访问控制。
--
-- 核心功能：
-- 1.  文件夹权限管理
-- 2.  路径验证和安全检查
-- 3.  操作审计
-- 4.  敏感文件检测
--
-- @module ai-engine/cowork/file-sandbox
+* FileSandbox - 文件沙箱系统
+ *
+ * 基于 Claude Cowork 的文件夹权限模型，实现安全的文件访问控制。
+ *
+ * 核心功能：
+ * 1. 文件夹权限管理
+ * 2. 路径验证和安全检查
+ * 3. 操作审计
+ * 4. 敏感文件检测
+ *
+ * @module ai-engine/cowork/file-sandbox
 
 ---
 
@@ -32,7 +32,7 @@ const
 const Permission =
 ```
 
-- 权限类型
+* 权限类型
 
 ---
 
@@ -42,7 +42,7 @@ const Permission =
 const SENSITIVE_PATTERNS = [
 ```
 
-- 敏感文件模式（默认拒绝访问）
+* 敏感文件模式（默认拒绝访问）
 
 ---
 
@@ -52,7 +52,7 @@ const SENSITIVE_PATTERNS = [
 const DANGEROUS_OPERATIONS = [
 ```
 
-- 危险操作模式
+* 危险操作模式
 
 ---
 
@@ -62,18 +62,18 @@ const DANGEROUS_OPERATIONS = [
 class FileSandbox extends EventEmitter
 ```
 
-- FileSandbox 类
+* FileSandbox 类
 
 ---
 
 ## setDatabase(db)
 
 ```javascript
-setDatabase(db);
+setDatabase(db)
 ```
 
-- 设置数据库实例
-  - @param {Object} db - 数据库实例
+* 设置数据库实例
+   * @param {Object} db - 数据库实例
 
 ---
 
@@ -83,12 +83,12 @@ setDatabase(db);
 async requestAccess(teamId, folderPath, permissions = [Permission.READ], options =
 ```
 
-- 请求访问权限（弹出授权对话框）
-  - @param {string} teamId - 团队 ID
-  - @param {string} folderPath - 文件夹路径
-  - @param {Array<string>} permissions - 权限列表 ['read', 'write']
-  - @param {Object} options - 选项
-  - @returns {Promise<boolean>} 是否授权
+* 请求访问权限（弹出授权对话框）
+   * @param {string} teamId - 团队 ID
+   * @param {string} folderPath - 文件夹路径
+   * @param {Array<string>} permissions - 权限列表 ['read', 'write']
+   * @param {Object} options - 选项
+   * @returns {Promise<boolean>} 是否授权
 
 ---
 
@@ -98,11 +98,11 @@ async requestAccess(teamId, folderPath, permissions = [Permission.READ], options
 async grantAccess(teamId, folderPath, permissions = [Permission.READ], options =
 ```
 
-- 授予访问权限
-  - @param {string} teamId - 团队 ID
-  - @param {string} folderPath - 文件夹路径
-  - @param {Array<string>} permissions - 权限列表
-  - @param {Object} options - 选项
+* 授予访问权限
+   * @param {string} teamId - 团队 ID
+   * @param {string} folderPath - 文件夹路径
+   * @param {Array<string>} permissions - 权限列表
+   * @param {Object} options - 选项
 
 ---
 
@@ -112,71 +112,71 @@ async grantAccess(teamId, folderPath, permissions = [Permission.READ], options =
 async revokeAccess(teamId, folderPath)
 ```
 
-- 撤销访问权限
-  - @param {string} teamId - 团队 ID
-  - @param {string} folderPath - 文件夹路径
+* 撤销访问权限
+   * @param {string} teamId - 团队 ID
+   * @param {string} folderPath - 文件夹路径
 
 ---
 
 ## hasPermission(teamId, filePath, permission = Permission.READ)
 
 ```javascript
-hasPermission(teamId, filePath, (permission = Permission.READ));
+hasPermission(teamId, filePath, permission = Permission.READ)
 ```
 
-- 检查是否有权限
-  - @param {string} teamId - 团队 ID
-  - @param {string} filePath - 文件路径
-  - @param {string} permission - 权限类型
-  - @returns {boolean}
+* 检查是否有权限
+   * @param {string} teamId - 团队 ID
+   * @param {string} filePath - 文件路径
+   * @param {string} permission - 权限类型
+   * @returns {boolean}
 
 ---
 
 ## getAllowedPaths(teamId)
 
 ```javascript
-getAllowedPaths(teamId);
+getAllowedPaths(teamId)
 ```
 
-- 获取团队的所有允许路径
-  - @param {string} teamId - 团队 ID
-  - @returns {Array<Object>}
+* 获取团队的所有允许路径
+   * @param {string} teamId - 团队 ID
+   * @returns {Array<Object>}
 
 ---
 
 ## checkPathSafety(filePath)
 
 ```javascript
-checkPathSafety(filePath);
+checkPathSafety(filePath)
 ```
 
-- 检查路径是否安全
-  - @param {string} filePath - 文件路径
-  - @returns {Object} { safe: boolean, reason?: string }
+* 检查路径是否安全
+   * @param {string} filePath - 文件路径
+   * @returns {Object} { safe: boolean, reason?: string }
 
 ---
 
 ## isSensitivePath(filePath)
 
 ```javascript
-isSensitivePath(filePath);
+isSensitivePath(filePath)
 ```
 
-- 检查是否为敏感路径
-  - @param {string} filePath - 文件路径
-  - @returns {boolean}
+* 检查是否为敏感路径
+   * @param {string} filePath - 文件路径
+   * @returns {boolean}
 
 ---
 
 ## isDangerousOperation(operation)
 
 ```javascript
-isDangerousOperation(operation);
+isDangerousOperation(operation)
 ```
 
-- 检查操作是否危险
-  - @param {string} operation - 操作描述
-  - @returns {boolean}
+* 检查操作是否危险
+   * @param {string} operation - 操作描述
+   * @returns {boolean}
 
 ---
 
@@ -186,11 +186,11 @@ isDangerousOperation(operation);
 async validateAccess(teamId, filePath, permission = Permission.READ)
 ```
 
-- 验证文件访问
-  - @param {string} teamId - 团队 ID
-  - @param {string} filePath - 文件路径
-  - @param {string} permission - 权限类型
-  - @returns {Promise<Object>} { allowed: boolean, reason?: string }
+* 验证文件访问
+   * @param {string} teamId - 团队 ID
+   * @param {string} filePath - 文件路径
+   * @param {string} permission - 权限类型
+   * @returns {Promise<Object>} { allowed: boolean, reason?: string }
 
 ---
 
@@ -200,12 +200,12 @@ async validateAccess(teamId, filePath, permission = Permission.READ)
 async readFile(teamId, agentId, filePath, options =
 ```
 
-- 安全读取文件
-  - @param {string} teamId - 团队 ID
-  - @param {string} agentId - 代理 ID
-  - @param {string} filePath - 文件路径
-  - @param {Object} options - 选项
-  - @returns {Promise<string>} 文件内容
+* 安全读取文件
+   * @param {string} teamId - 团队 ID
+   * @param {string} agentId - 代理 ID
+   * @param {string} filePath - 文件路径
+   * @param {Object} options - 选项
+   * @returns {Promise<string>} 文件内容
 
 ---
 
@@ -215,12 +215,12 @@ async readFile(teamId, agentId, filePath, options =
 async writeFile(teamId, agentId, filePath, content, options =
 ```
 
-- 安全写入文件
-  - @param {string} teamId - 团队 ID
-  - @param {string} agentId - 代理 ID
-  - @param {string} filePath - 文件路径
-  - @param {string} content - 文件内容
-  - @param {Object} options - 选项
+* 安全写入文件
+   * @param {string} teamId - 团队 ID
+   * @param {string} agentId - 代理 ID
+   * @param {string} filePath - 文件路径
+   * @param {string} content - 文件内容
+   * @param {Object} options - 选项
 
 ---
 
@@ -230,10 +230,10 @@ async writeFile(teamId, agentId, filePath, content, options =
 async deleteFile(teamId, agentId, filePath)
 ```
 
-- 安全删除文件
-  - @param {string} teamId - 团队 ID
-  - @param {string} agentId - 代理 ID
-  - @param {string} filePath - 文件路径
+* 安全删除文件
+   * @param {string} teamId - 团队 ID
+   * @param {string} agentId - 代理 ID
+   * @param {string} filePath - 文件路径
 
 ---
 
@@ -243,22 +243,22 @@ async deleteFile(teamId, agentId, filePath)
 async listDirectory(teamId, agentId, dirPath)
 ```
 
-- 列出目录
-  - @param {string} teamId - 团队 ID
-  - @param {string} agentId - 代理 ID
-  - @param {string} dirPath - 目录路径
-  - @returns {Promise<Array>} 文件列表
+* 列出目录
+   * @param {string} teamId - 团队 ID
+   * @param {string} agentId - 代理 ID
+   * @param {string} dirPath - 目录路径
+   * @returns {Promise<Array>} 文件列表
 
 ---
 
-## async \_auditOperation(teamId, agentId, operation, resourcePath, success, errorMessage = null)
+## async _auditOperation(teamId, agentId, operation, resourcePath, success, errorMessage = null)
 
 ```javascript
 async _auditOperation(teamId, agentId, operation, resourcePath, success, errorMessage = null)
 ```
 
-- 记录操作审计
-  - @private
+* 记录操作审计
+   * @private
 
 ---
 
@@ -268,21 +268,21 @@ async _auditOperation(teamId, agentId, operation, resourcePath, success, errorMe
 getAuditLog(filters =
 ```
 
-- 获取审计日志
-  - @param {Object} filters - 过滤条件
-  - @param {number} limitParam - 限制数量
-  - @returns {Array}
+* 获取审计日志
+   * @param {Object} filters - 过滤条件
+   * @param {number} limitParam - 限制数量
+   * @returns {Array}
 
 ---
 
-## \_log(message, level = 'info')
+## _log(message, level = 'info')
 
 ```javascript
-_log(message, (level = "info"));
+_log(message, level = 'info')
 ```
 
-- 日志输出
-  - @private
+* 日志输出
+   * @private
 
 ---
 
@@ -292,28 +292,28 @@ _log(message, (level = "info"));
 async cleanupExpiredPermissions()
 ```
 
-- 清理过期权限
+* 清理过期权限
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats();
+getStats()
 ```
 
-- 获取统计信息
-  - @returns {Object}
+* 获取统计信息
+   * @returns {Object}
 
 ---
 
 ## reset()
 
 ```javascript
-reset();
+reset()
 ```
 
-- 重置沙箱
+* 重置沙箱
 
 ---
 
@@ -323,12 +323,12 @@ reset();
 async grantPermission(teamId, folderPath, permissions = ['read'], options =
 ```
 
-- 授予权限（别名：grantAccess）
-  - @param {string} teamId - 团队ID
-  - @param {string} folderPath - 文件夹路径
-  - @param {Array<string>} permissions - 权限列表
-  - @param {object} options - 选项
-  - @returns {Promise<object>} 结果
+* 授予权限（别名：grantAccess）
+   * @param {string} teamId - 团队ID
+   * @param {string} folderPath - 文件夹路径
+   * @param {Array<string>} permissions - 权限列表
+   * @param {object} options - 选项
+   * @returns {Promise<object>} 结果
 
 ---
 
@@ -338,11 +338,11 @@ async grantPermission(teamId, folderPath, permissions = ['read'], options =
 async revokePermission(teamId, folderPath, permissions = [])
 ```
 
-- 撤销权限（别名：revokeAccess）
-  - @param {string} teamId - 团队ID
-  - @param {string} folderPath - 文件夹路径
-  - @param {Array<string>} permissions - 权限列表
-  - @returns {Promise<void>}
+* 撤销权限（别名：revokeAccess）
+   * @param {string} teamId - 团队ID
+   * @param {string} folderPath - 文件夹路径
+   * @param {Array<string>} permissions - 权限列表
+   * @returns {Promise<void>}
 
 ---
 
@@ -352,8 +352,9 @@ async revokePermission(teamId, folderPath, permissions = [])
 async recordAuditLog(logData)
 ```
 
-- 记录审计日志（别名：\_auditOperation）
-  - @param {object} logData - 日志数据
-  - @returns {Promise<void>}
+* 记录审计日志（别名：_auditOperation）
+   * @param {object} logData - 日志数据
+   * @returns {Promise<void>}
 
 ---
+

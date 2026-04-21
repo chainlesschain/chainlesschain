@@ -2,7 +2,7 @@
 
 **Source**: `src/main/image/image-processor.js`
 
-**Generated**: 2026-04-20T10:46:39.785Z
+**Generated**: 2026-04-21T04:11:31.491Z
 
 ---
 
@@ -12,9 +12,9 @@
 const
 ```
 
-- 图片处理器
--
-- 负责图片压缩、缩略图生成、格式转换等
+* 图片处理器
+ *
+ * 负责图片压缩、缩略图生成、格式转换等
 
 ---
 
@@ -24,7 +24,7 @@ const
 const DEFAULT_CONFIG =
 ```
 
-- 图片处理配置
+* 图片处理配置
 
 ---
 
@@ -34,19 +34,19 @@ const DEFAULT_CONFIG =
 class ImageProcessor extends EventEmitter
 ```
 
-- 图片处理器类
+* 图片处理器类
 
 ---
 
 ## isSupportedImage(filePath)
 
 ```javascript
-isSupportedImage(filePath);
+isSupportedImage(filePath)
 ```
 
-- 检查文件是否为支持的图片格式
-  - @param {string} filePath - 文件路径
-  - @returns {boolean}
+* 检查文件是否为支持的图片格式
+   * @param {string} filePath - 文件路径
+   * @returns {boolean}
 
 ---
 
@@ -56,9 +56,9 @@ isSupportedImage(filePath);
 async getMetadata(input)
 ```
 
-- 获取图片元信息
-  - @param {string|Buffer} input - 图片路径或 Buffer
-  - @returns {Promise<Object>} 元信息
+* 获取图片元信息
+   * @param {string|Buffer} input - 图片路径或 Buffer
+   * @returns {Promise<Object>} 元信息
 
 ---
 
@@ -68,13 +68,13 @@ async getMetadata(input)
 async compress(input, outputPath, options =
 ```
 
-- 压缩图片
-  - @param {string|Buffer} input - 输入图片
-  - @param {string} outputPath - 输出路径
-  - @param {Object} options - 压缩选项
-  - @returns {Promise<Object>} 处理结果
-  -
-  - v0.18.0: 新增大文件优化（流式输出、像素限制）
+* 压缩图片
+   * @param {string|Buffer} input - 输入图片
+   * @param {string} outputPath - 输出路径
+   * @param {Object} options - 压缩选项
+   * @returns {Promise<Object>} 处理结果
+   *
+   * v0.18.0: 新增大文件优化（流式输出、像素限制）
 
 ---
 
@@ -84,13 +84,13 @@ async compress(input, outputPath, options =
 async generateThumbnail(input, outputPath, options =
 ```
 
-- 生成缩略图
-  - @param {string|Buffer} input - 输入图片
-  - @param {string} outputPath - 输出路径
-  - @param {Object} options - 缩略图选项
-  - @returns {Promise<Object>} 处理结果
-  -
-  - v0.18.0: 新增大文件支持
+* 生成缩略图
+   * @param {string|Buffer} input - 输入图片
+   * @param {string} outputPath - 输出路径
+   * @param {Object} options - 缩略图选项
+   * @returns {Promise<Object>} 处理结果
+   *
+   * v0.18.0: 新增大文件支持
 
 ---
 
@@ -100,13 +100,13 @@ async generateThumbnail(input, outputPath, options =
 async convertFormat(input, outputPath, format)
 ```
 
-- 转换图片格式
-  - @param {string|Buffer} input - 输入图片
-  - @param {string} outputPath - 输出路径
-  - @param {string} format - 目标格式 (jpeg/png/webp)
-  - @returns {Promise<Object>}
-  -
-  - v0.18.0: 新增大文件支持
+* 转换图片格式
+   * @param {string|Buffer} input - 输入图片
+   * @param {string} outputPath - 输出路径
+   * @param {string} format - 目标格式 (jpeg/png/webp)
+   * @returns {Promise<Object>}
+   *
+   * v0.18.0: 新增大文件支持
 
 ---
 
@@ -116,10 +116,10 @@ async convertFormat(input, outputPath, format)
 async batchProcess(images, operation = "compress")
 ```
 
-- 批量处理图片
-  - @param {Array} images - 图片列表 [{input, outputPath, options}]
-  - @param {string} operation - 操作类型 (compress/thumbnail)
-  - @returns {Promise<Array>} 处理结果列表
+* 批量处理图片
+   * @param {Array} images - 图片列表 [{input, outputPath, options}]
+   * @param {string} operation - 操作类型 (compress/thumbnail)
+   * @returns {Promise<Array>} 处理结果列表
 
 ---
 
@@ -129,11 +129,11 @@ async batchProcess(images, operation = "compress")
 async rotate(input, outputPath, angle)
 ```
 
-- 旋转图片
-  - @param {string|Buffer} input - 输入图片
-  - @param {string} outputPath - 输出路径
-  - @param {number} angle - 旋转角度 (90, 180, 270)
-  - @returns {Promise<Object>}
+* 旋转图片
+   * @param {string|Buffer} input - 输入图片
+   * @param {string} outputPath - 输出路径
+   * @param {number} angle - 旋转角度 (90, 180, 270)
+   * @returns {Promise<Object>}
 
 ---
 
@@ -143,32 +143,33 @@ async rotate(input, outputPath, angle)
 async crop(input, outputPath, region)
 ```
 
-- 裁剪图片
-  - @param {string|Buffer} input - 输入图片
-  - @param {string} outputPath - 输出路径
-  - @param {Object} region - 裁剪区域 {left, top, width, height}
-  - @returns {Promise<Object>}
+* 裁剪图片
+   * @param {string|Buffer} input - 输入图片
+   * @param {string} outputPath - 输出路径
+   * @param {Object} region - 裁剪区域 {left, top, width, height}
+   * @returns {Promise<Object>}
 
 ---
 
 ## getSupportedFormats()
 
 ```javascript
-getSupportedFormats();
+getSupportedFormats()
 ```
 
-- 获取支持的格式列表
-  - @returns {Array}
+* 获取支持的格式列表
+   * @returns {Array}
 
 ---
 
 ## updateConfig(newConfig)
 
 ```javascript
-updateConfig(newConfig);
+updateConfig(newConfig)
 ```
 
-- 更新配置
-  - @param {Object} newConfig
+* 更新配置
+   * @param {Object} newConfig
 
 ---
+

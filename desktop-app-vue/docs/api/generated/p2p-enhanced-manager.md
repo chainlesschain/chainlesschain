@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/p2p-enhanced-manager.js`
 
-**Generated**: 2026-04-20T10:46:39.756Z
+**Generated**: 2026-04-21T04:11:31.460Z
 
 ---
 
@@ -12,14 +12,14 @@
 const
 ```
 
-- P2P增强管理器 - 集成消息去重、知识库同步、文件传输
--
-- 功能：
-- - 集成MessageManager（消息去重和批量处理）
-- - 集成KnowledgeSyncManager（知识库增量同步）
-- - 集成FileTransferManager（大文件分块传输）
-- - 统一的事件管理和错误处理
-- - 性能监控和统计
+* P2P增强管理器 - 集成消息去重、知识库同步、文件传输
+ *
+ * 功能：
+ * - 集成MessageManager（消息去重和批量处理）
+ * - 集成KnowledgeSyncManager（知识库增量同步）
+ * - 集成FileTransferManager（大文件分块传输）
+ * - 统一的事件管理和错误处理
+ * - 性能监控和统计
 
 ---
 
@@ -29,37 +29,37 @@ const
 async initialize()
 ```
 
-- 初始化增强管理器
+* 初始化增强管理器
 
 ---
 
 ## connectMediaStreamBridge()
 
 ```javascript
-connectMediaStreamBridge();
+connectMediaStreamBridge()
 ```
 
-- 连接MediaStream桥接到VoiceVideoManager
+* 连接MediaStream桥接到VoiceVideoManager
 
 ---
 
 ## setupEventHandlers()
 
 ```javascript
-setupEventHandlers();
+setupEventHandlers()
 ```
 
-- 设置事件处理器
+* 设置事件处理器
 
 ---
 
 ## connectToP2PNetwork()
 
 ```javascript
-connectToP2PNetwork();
+connectToP2PNetwork()
 ```
 
-- 连接到P2P网络
+* 连接到P2P网络
 
 ---
 
@@ -69,7 +69,7 @@ connectToP2PNetwork();
 async handleIncomingMessage(
 ```
 
-- 处理接收到的消息
+* 处理接收到的消息
 
 ---
 
@@ -79,7 +79,7 @@ async handleIncomingMessage(
 async sendToP2PNetwork(peerId, message)
 ```
 
-- 发送消息到P2P网络
+* 发送消息到P2P网络
 
 ---
 
@@ -89,7 +89,7 @@ async sendToP2PNetwork(peerId, message)
 async sendBatchToP2PNetwork(peerId, messages)
 ```
 
-- 批量发送消息到P2P网络
+* 批量发送消息到P2P网络
 
 ---
 
@@ -99,7 +99,7 @@ async sendBatchToP2PNetwork(peerId, messages)
 async sendMessage(peerId, payload, options =
 ```
 
-- 发送消息（公共API）
+* 发送消息（公共API）
 
 ---
 
@@ -109,7 +109,7 @@ async sendMessage(peerId, payload, options =
 async syncKnowledge(peerId, options =
 ```
 
-- 同步知识库（公共API）
+* 同步知识库（公共API）
 
 ---
 
@@ -119,7 +119,7 @@ async syncKnowledge(peerId, options =
 async uploadFile(peerId, filePath, options =
 ```
 
-- 上传文件（公共API）
+* 上传文件（公共API）
 
 ---
 
@@ -129,17 +129,17 @@ async uploadFile(peerId, filePath, options =
 async downloadFile(peerId, transferId, savePath)
 ```
 
-- 下载文件（公共API）
+* 下载文件（公共API）
 
 ---
 
 ## getFileTransferProgress(transferId)
 
 ```javascript
-getFileTransferProgress(transferId);
+getFileTransferProgress(transferId)
 ```
 
-- 获取文件传输进度
+* 获取文件传输进度
 
 ---
 
@@ -149,17 +149,17 @@ getFileTransferProgress(transferId);
 async cancelFileTransfer(transferId)
 ```
 
-- 取消文件传输
+* 取消文件传输
 
 ---
 
 ## getKnowledgeConflicts()
 
 ```javascript
-getKnowledgeConflicts();
+getKnowledgeConflicts()
 ```
 
-- 获取知识库冲突列表
+* 获取知识库冲突列表
 
 ---
 
@@ -169,7 +169,7 @@ getKnowledgeConflicts();
 async resolveKnowledgeConflict(conflictId, resolution)
 ```
 
-- 手动解决知识库冲突
+* 手动解决知识库冲突
 
 ---
 
@@ -179,7 +179,7 @@ async resolveKnowledgeConflict(conflictId, resolution)
 async startCall(peerId, type, options =
 ```
 
-- 发起语音/视频通话（公共API）
+* 发起语音/视频通话（公共API）
 
 ---
 
@@ -189,7 +189,7 @@ async startCall(peerId, type, options =
 async acceptCall(callId)
 ```
 
-- 接受通话（公共API）
+* 接受通话（公共API）
 
 ---
 
@@ -199,7 +199,7 @@ async acceptCall(callId)
 async rejectCall(callId, reason)
 ```
 
-- 拒绝通话（公共API）
+* 拒绝通话（公共API）
 
 ---
 
@@ -209,47 +209,47 @@ async rejectCall(callId, reason)
 async endCall(callId)
 ```
 
-- 结束通话（公共API）
+* 结束通话（公共API）
 
 ---
 
 ## toggleMute(callId)
 
 ```javascript
-toggleMute(callId);
+toggleMute(callId)
 ```
 
-- 切换静音（公共API）
+* 切换静音（公共API）
 
 ---
 
 ## toggleVideo(callId)
 
 ```javascript
-toggleVideo(callId);
+toggleVideo(callId)
 ```
 
-- 切换视频（公共API）
+* 切换视频（公共API）
 
 ---
 
 ## getCallInfo(callId)
 
 ```javascript
-getCallInfo(callId);
+getCallInfo(callId)
 ```
 
-- 获取通话信息（公共API）
+* 获取通话信息（公共API）
 
 ---
 
 ## getActiveCalls()
 
 ```javascript
-getActiveCalls();
+getActiveCalls()
 ```
 
-- 获取活动通话列表（公共API）
+* 获取活动通话列表（公共API）
 
 ---
 
@@ -259,7 +259,7 @@ getActiveCalls();
 async getCallHistory(options =
 ```
 
-- 获取通话历史（公共API）
+* 获取通话历史（公共API）
 
 ---
 
@@ -269,7 +269,7 @@ async getCallHistory(options =
 async getCallDetails(callId)
 ```
 
-- 获取通话详情（公共API）
+* 获取通话详情（公共API）
 
 ---
 
@@ -279,7 +279,7 @@ async getCallDetails(callId)
 async getCallStatistics(peerId = null)
 ```
 
-- 获取通话统计（公共API）
+* 获取通话统计（公共API）
 
 ---
 
@@ -289,7 +289,7 @@ async getCallStatistics(peerId = null)
 async deleteCallHistory(callId)
 ```
 
-- 删除通话记录（公共API）
+* 删除通话记录（公共API）
 
 ---
 
@@ -299,17 +299,17 @@ async deleteCallHistory(callId)
 async clearCallHistory(peerId = null)
 ```
 
-- 清空通话历史（公共API）
+* 清空通话历史（公共API）
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats();
+getStats()
 ```
 
-- 获取统计信息
+* 获取统计信息
 
 ---
 
@@ -319,6 +319,7 @@ getStats();
 async stop()
 ```
 
-- 停止增强管理器
+* 停止增强管理器
 
 ---
+

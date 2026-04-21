@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/bridge-ipc.js`
 
-**Generated**: 2026-04-20T10:46:39.826Z
+**Generated**: 2026-04-21T04:11:31.533Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-- 跨链桥 IPC 处理器
-- 处理所有 bridge: 相关的 IPC 通信
+* 跨链桥 IPC 处理器
+ * 处理所有 bridge: 相关的 IPC 通信
 
 ---
 
@@ -23,7 +23,8 @@ const
 function registerBridgeIPC(bridgeManager)
 ```
 
-- 注册跨链桥相关的 IPC 处理器
-- @param {Object} bridgeManager - 跨链桥管理器实例
+* 注册跨链桥相关的 IPC 处理器
+ * @param {Object} bridgeManager - 跨链桥管理器实例
 
 ---
+

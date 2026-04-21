@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ukey/skf-driver.js`
 
-**Generated**: 2026-04-20T10:46:39.700Z
+**Generated**: 2026-04-21T04:11:31.402Z
 
 ---
 
@@ -12,11 +12,11 @@
 const
 ```
 
-- SKF标准驱动基类
--
-- 基于中国国家标准 GM/T 0016-2012（智能密码钥匙应用接口规范）
--
-- 此基类实现了SKF API的核心功能，供飞天诚信、握奇等厂商驱动继承使用
+* SKF标准驱动基类
+ *
+ * 基于中国国家标准 GM/T 0016-2012（智能密码钥匙应用接口规范）
+ *
+ * 此基类实现了SKF API的核心功能，供飞天诚信、握奇等厂商驱动继承使用
 
 ---
 
@@ -26,7 +26,7 @@ const
 const SKF_ERROR_CODES =
 ```
 
-- SKF错误码
+* SKF错误码
 
 ---
 
@@ -36,40 +36,40 @@ const SKF_ERROR_CODES =
 class SKFDriver extends BaseUKeyDriver
 ```
 
-- SKF驱动基类
--
-- 实现SKF标准API的封装和调用
+* SKF驱动基类
+ *
+ * 实现SKF标准API的封装和调用
 
 ---
 
 ## findDllPath()
 
 ```javascript
-findDllPath();
+findDllPath()
 ```
 
-- 查找DLL路径
-  - 子类应该重写此方法以指定具体的DLL文件名
+* 查找DLL路径
+   * 子类应该重写此方法以指定具体的DLL文件名
 
 ---
 
 ## loadLibrary()
 
 ```javascript
-loadLibrary();
+loadLibrary()
 ```
 
-- 加载DLL库
+* 加载DLL库
 
 ---
 
 ## bindSKFFunctions()
 
 ```javascript
-bindSKFFunctions();
+bindSKFFunctions()
 ```
 
-- 绑定SKF API函数
+* 绑定SKF API函数
 
 ---
 
@@ -79,7 +79,7 @@ bindSKFFunctions();
 async initialize()
 ```
 
-- 初始化驱动
+* 初始化驱动
 
 ---
 
@@ -89,7 +89,7 @@ async initialize()
 async detect()
 ```
 
-- 检测设备
+* 检测设备
 
 ---
 
@@ -99,7 +99,7 @@ async detect()
 async enumerateDevices()
 ```
 
-- 枚举设备
+* 枚举设备
 
 ---
 
@@ -109,7 +109,7 @@ async enumerateDevices()
 async connectDevice(deviceName)
 ```
 
-- 连接设备
+* 连接设备
 
 ---
 
@@ -119,7 +119,7 @@ async connectDevice(deviceName)
 async verifyPIN(pin)
 ```
 
-- 验证PIN码
+* 验证PIN码
 
 ---
 
@@ -129,7 +129,7 @@ async verifyPIN(pin)
 async openOrCreateApplication()
 ```
 
-- 打开或创建应用
+* 打开或创建应用
 
 ---
 
@@ -139,7 +139,7 @@ async openOrCreateApplication()
 async openOrCreateContainer()
 ```
 
-- 打开或创建容器
+* 打开或创建容器
 
 ---
 
@@ -149,7 +149,7 @@ async openOrCreateContainer()
 async sign(data)
 ```
 
-- 数字签名
+* 数字签名
 
 ---
 
@@ -159,7 +159,7 @@ async sign(data)
 async verifySignature(data, signature)
 ```
 
-- 验证签名
+* 验证签名
 
 ---
 
@@ -169,7 +169,7 @@ async verifySignature(data, signature)
 async encrypt(data)
 ```
 
-- 加密数据
+* 加密数据
 
 ---
 
@@ -179,7 +179,7 @@ async encrypt(data)
 async decrypt(encryptedData)
 ```
 
-- 解密数据
+* 解密数据
 
 ---
 
@@ -189,7 +189,7 @@ async decrypt(encryptedData)
 async generateSessionKey()
 ```
 
-- 生成会话密钥
+* 生成会话密钥
 
 ---
 
@@ -199,7 +199,7 @@ async generateSessionKey()
 async getPublicKey()
 ```
 
-- 获取公钥
+* 获取公钥
 
 ---
 
@@ -209,7 +209,7 @@ async getPublicKey()
 async getDeviceInfo()
 ```
 
-- 获取设备信息
+* 获取设备信息
 
 ---
 
@@ -219,26 +219,27 @@ async getDeviceInfo()
 async close()
 ```
 
-- 关闭驱动
+* 关闭驱动
 
 ---
 
 ## getManufacturerName()
 
 ```javascript
-getManufacturerName();
+getManufacturerName()
 ```
 
-- 获取制造商名称（子类重写）
+* 获取制造商名称（子类重写）
 
 ---
 
 ## getModelName()
 
 ```javascript
-getModelName();
+getModelName()
 ```
 
-- 获取型号名称（子类重写）
+* 获取型号名称（子类重写）
 
 ---
+

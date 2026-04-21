@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ipc/domains/social.js`
 
-**Generated**: 2026-04-20T10:46:39.783Z
+**Generated**: 2026-04-21T04:11:31.488Z
 
 ---
 
@@ -12,10 +12,11 @@
 const
 ```
 
-- @module ipc/domains/social
-- Social domain IPC handlers
-- Handles: DID identity, social forums, contacts, profiles
--
-- Phase 78 - IPC Registry Domain Split
+* @module ipc/domains/social
+ * Social domain IPC handlers
+ * Handles: DID identity, social forums, contacts, profiles
+ *
+ * Phase 78 - IPC Registry Domain Split
 
 ---
+

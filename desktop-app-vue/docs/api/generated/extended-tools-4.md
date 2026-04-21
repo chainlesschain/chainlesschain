@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/extended-tools-4.js`
 
-**Generated**: 2026-04-20T10:46:39.839Z
+**Generated**: 2026-04-21T04:11:31.547Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-- 扩展工具集 - 第四批
-- 实现区块链、邮件、PDF、语音、图表、爬虫、验证、缓存、消息队列、容器管理等工具
+* 扩展工具集 - 第四批
+ * 实现区块链、邮件、PDF、语音、图表、爬虫、验证、缓存、消息队列、容器管理等工具
 
 ---
 
@@ -23,7 +23,8 @@ const
 static registerAll(functionCaller)
 ```
 
-- 注册所有第四批扩展工具
-  - @param {FunctionCaller} functionCaller
+* 注册所有第四批扩展工具
+   * @param {FunctionCaller} functionCaller
 
 ---
+

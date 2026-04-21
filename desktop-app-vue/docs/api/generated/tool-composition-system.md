@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/tool-composition-system.js`
 
-**Generated**: 2026-04-20T10:46:39.833Z
+**Generated**: 2026-04-21T04:11:31.541Z
 
 ---
 
@@ -12,16 +12,17 @@
 const CompositionStrategy =
 ```
 
-- 工具组合系统 (Tool Composition System)
-- P2 扩展功能之二
--
-- 功能:
-- - 智能工具链组合
-- - 工具依赖分析
-- - 工具效果预测
-- - 自动工具选择优化
--
-- 版本: v0.20.0
-- 创建: 2026-01-02
+* 工具组合系统 (Tool Composition System)
+ * P2 扩展功能之二
+ *
+ * 功能:
+ * - 智能工具链组合
+ * - 工具依赖分析
+ * - 工具效果预测
+ * - 自动工具选择优化
+ *
+ * 版本: v0.20.0
+ * 创建: 2026-01-02
 
 ---
+

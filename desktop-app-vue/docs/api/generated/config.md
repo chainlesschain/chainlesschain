@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ukey/config.js`
 
-**Generated**: 2026-04-20T10:46:39.705Z
+**Generated**: 2026-04-21T04:11:31.406Z
 
 ---
 
@@ -12,9 +12,9 @@
 const
 ```
 
-- U盾配置管理
--
-- 负责读取、保存和管理U盾配置
+* U盾配置管理
+ *
+ * 负责读取、保存和管理U盾配置
 
 ---
 
@@ -24,7 +24,7 @@ const
 const DEFAULT_CONFIG =
 ```
 
-- 默认配置
+* 默认配置
 
 ---
 
@@ -34,231 +34,231 @@ const DEFAULT_CONFIG =
 class UKeyConfig
 ```
 
-- U盾配置管理器
+* U盾配置管理器
 
 ---
 
 ## getConfigPath()
 
 ```javascript
-getConfigPath();
+getConfigPath()
 ```
 
-- 获取配置文件路径
+* 获取配置文件路径
 
 ---
 
 ## load()
 
 ```javascript
-load();
+load()
 ```
 
-- 加载配置
+* 加载配置
 
 ---
 
 ## save()
 
 ```javascript
-save();
+save()
 ```
 
-- 保存配置
+* 保存配置
 
 ---
 
 ## get(key, defaultValue = null)
 
 ```javascript
-get(key, (defaultValue = null));
+get(key, defaultValue = null)
 ```
 
-- 获取配置项
-  - @param {string} key - 配置键
-  - @param {\*} defaultValue - 默认值
+* 获取配置项
+   * @param {string} key - 配置键
+   * @param {*} defaultValue - 默认值
 
 ---
 
 ## set(key, value)
 
 ```javascript
-set(key, value);
+set(key, value)
 ```
 
-- 设置配置项
-  - @param {string} key - 配置键
-  - @param {\*} value - 配置值
+* 设置配置项
+   * @param {string} key - 配置键
+   * @param {*} value - 配置值
 
 ---
 
 ## getAll()
 
 ```javascript
-getAll();
+getAll()
 ```
 
-- 获取全部配置
+* 获取全部配置
 
 ---
 
 ## reset()
 
 ```javascript
-reset();
+reset()
 ```
 
-- 重置为默认配置
+* 重置为默认配置
 
 ---
 
 ## getDriverType()
 
 ```javascript
-getDriverType();
+getDriverType()
 ```
 
-- 获取驱动类型
+* 获取驱动类型
 
 ---
 
 ## setDriverType(driverType)
 
 ```javascript
-setDriverType(driverType);
+setDriverType(driverType)
 ```
 
-- 设置驱动类型
+* 设置驱动类型
 
 ---
 
 ## getDriverOptions(driverType)
 
 ```javascript
-getDriverOptions(driverType);
+getDriverOptions(driverType)
 ```
 
-- 获取驱动特定选项
+* 获取驱动特定选项
 
 ---
 
 ## setDriverOptions(driverType, options)
 
 ```javascript
-setDriverOptions(driverType, options);
+setDriverOptions(driverType, options)
 ```
 
-- 设置驱动特定选项
+* 设置驱动特定选项
 
 ---
 
 ## isAutoLockEnabled()
 
 ```javascript
-isAutoLockEnabled();
+isAutoLockEnabled()
 ```
 
-- 是否启用自动锁定
+* 是否启用自动锁定
 
 ---
 
 ## getAutoLockTimeout()
 
 ```javascript
-getAutoLockTimeout();
+getAutoLockTimeout()
 ```
 
-- 获取自动锁定超时（秒）
+* 获取自动锁定超时（秒）
 
 ---
 
 ## setAutoLock(enabled, timeout = null)
 
 ```javascript
-setAutoLock(enabled, (timeout = null));
+setAutoLock(enabled, timeout = null)
 ```
 
-- 设置自动锁定
+* 设置自动锁定
 
 ---
 
 ## isDebugEnabled()
 
 ```javascript
-isDebugEnabled();
+isDebugEnabled()
 ```
 
-- 是否启用调试模式
+* 是否启用调试模式
 
 ---
 
 ## setDebug(enabled)
 
 ```javascript
-setDebug(enabled);
+setDebug(enabled)
 ```
 
-- 设置调试模式
+* 设置调试模式
 
 ---
 
 ## isSimulationMode()
 
 ```javascript
-isSimulationMode();
+isSimulationMode()
 ```
 
-- 是否使用模拟模式
+* 是否使用模拟模式
 
 ---
 
 ## setSimulationMode(enabled)
 
 ```javascript
-setSimulationMode(enabled);
+setSimulationMode(enabled)
 ```
 
-- 设置模拟模式
+* 设置模拟模式
 
 ---
 
 ## getMonitorInterval()
 
 ```javascript
-getMonitorInterval();
+getMonitorInterval()
 ```
 
-- 获取监听间隔
+* 获取监听间隔
 
 ---
 
 ## setMonitorInterval(interval)
 
 ```javascript
-setMonitorInterval(interval);
+setMonitorInterval(interval)
 ```
 
-- 设置监听间隔
+* 设置监听间隔
 
 ---
 
 ## getTimeout()
 
 ```javascript
-getTimeout();
+getTimeout()
 ```
 
-- 获取超时时间
+* 获取超时时间
 
 ---
 
 ## setTimeout(timeout)
 
 ```javascript
-setTimeout(timeout);
+setTimeout(timeout)
 ```
 
-- 设置超时时间
+* 设置超时时间
 
 ---
 
@@ -268,17 +268,17 @@ setTimeout(timeout);
 export()
 ```
 
-- 导出配置（JSON字符串）
+* 导出配置（JSON字符串）
 
 ---
 
 ## import(jsonString)
 
 ```javascript
-import(jsonString);
+import(jsonString)
 ```
 
-- 导入配置（从JSON字符串）
+* 导入配置（从JSON字符串）
 
 ---
 
@@ -288,6 +288,7 @@ import(jsonString);
 function getUKeyConfig()
 ```
 
-- 获取配置管理器实例
+* 获取配置管理器实例
 
 ---
+

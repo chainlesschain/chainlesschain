@@ -2,7 +2,7 @@
 
 **Source**: `src/main/database/key-manager.js`
 
-**Generated**: 2026-04-20T10:46:39.802Z
+**Generated**: 2026-04-21T04:11:31.508Z
 
 ---
 
@@ -12,10 +12,10 @@
 const
 ```
 
-- 数据库加密密钥管理器
--
-- 负责生成、派生和管理数据库加密密钥
-- 支持U-Key硬件密钥派生和密码派生两种模式
+* 数据库加密密钥管理器
+ *
+ * 负责生成、派生和管理数据库加密密钥
+ * 支持U-Key硬件密钥派生和密码派生两种模式
 
 ---
 
@@ -25,7 +25,7 @@ const
 const KEY_DERIVATION_CONFIG =
 ```
 
-- 密钥派生配置
+* 密钥派生配置
 
 ---
 
@@ -35,7 +35,7 @@ const KEY_DERIVATION_CONFIG =
 class KeyManager
 ```
 
-- 密钥管理器类
+* 密钥管理器类
 
 ---
 
@@ -45,27 +45,27 @@ class KeyManager
 async initialize()
 ```
 
-- 初始化密钥管理器
+* 初始化密钥管理器
 
 ---
 
 ## isEncryptionEnabled()
 
 ```javascript
-isEncryptionEnabled();
+isEncryptionEnabled()
 ```
 
-- 检查是否启用了加密
+* 检查是否启用了加密
 
 ---
 
 ## hasUKey()
 
 ```javascript
-hasUKey();
+hasUKey()
 ```
 
-- 检查是否有可用的U-Key
+* 检查是否有可用的U-Key
 
 ---
 
@@ -75,9 +75,9 @@ hasUKey();
 async deriveKeyFromUKey(pin)
 ```
 
-- 使用U-Key派生数据库加密密钥
-  - @param {string} pin - U-Key PIN码
-  - @returns {Promise<string>} 十六进制格式的加密密钥
+* 使用U-Key派生数据库加密密钥
+   * @param {string} pin - U-Key PIN码
+   * @returns {Promise<string>} 十六进制格式的加密密钥
 
 ---
 
@@ -87,10 +87,10 @@ async deriveKeyFromUKey(pin)
 async deriveKeyFromPassword(password, salt = null)
 ```
 
-- 使用密码派生数据库加密密钥
-  - @param {string} password - 用户密码
-  - @param {Buffer} [salt] - 盐值，如果不提供则生成新的
-  - @returns {Promise<{key: string, salt: string}>} 密钥和盐值（十六进制）
+* 使用密码派生数据库加密密钥
+   * @param {string} password - 用户密码
+   * @param {Buffer} [salt] - 盐值，如果不提供则生成新的
+   * @returns {Promise<{key: string, salt: string}>} 密钥和盐值（十六进制）
 
 ---
 
@@ -100,23 +100,23 @@ async deriveKeyFromPassword(password, salt = null)
 async getOrCreateKey(options =
 ```
 
-- 获取或生成数据库加密密钥
-  - @param {Object} options - 选项
-  - @param {string} options.password - 密码（密码模式必需）
-  - @param {string} options.pin - U-Key PIN码（U-Key模式必需）
-  - @param {string} options.salt - 盐值（密码模式，已有数据库时必需）
-  - @param {boolean} options.forcePassword - 强制使用密码模式
-  - @returns {Promise<{key: string, salt?: string, method: string}>}
+* 获取或生成数据库加密密钥
+   * @param {Object} options - 选项
+   * @param {string} options.password - 密码（密码模式必需）
+   * @param {string} options.pin - U-Key PIN码（U-Key模式必需）
+   * @param {string} options.salt - 盐值（密码模式，已有数据库时必需）
+   * @param {boolean} options.forcePassword - 强制使用密码模式
+   * @returns {Promise<{key: string, salt?: string, method: string}>}
 
 ---
 
 ## clearKeyCache()
 
 ```javascript
-clearKeyCache();
+clearKeyCache()
 ```
 
-- 清除缓存的密钥
+* 清除缓存的密钥
 
 ---
 
@@ -126,8 +126,8 @@ clearKeyCache();
 async saveKeyMetadata(metadata)
 ```
 
-- 保存密钥元数据（不包含密钥本身）
-  - @param {Object} metadata - 元数据
+* 保存密钥元数据（不包含密钥本身）
+   * @param {Object} metadata - 元数据
 
 ---
 
@@ -137,9 +137,9 @@ async saveKeyMetadata(metadata)
 async loadKeyMetadata()
 ```
 
-- 加载密钥元数据
-  - M2: 异步 IO 避免阻塞事件循环
-  - @returns {Promise<Object|null>}
+* 加载密钥元数据
+   * M2: 异步 IO 避免阻塞事件循环
+   * @returns {Promise<Object|null>}
 
 ---
 
@@ -149,6 +149,7 @@ async loadKeyMetadata()
 async close()
 ```
 
-- 关闭密钥管理器
+* 关闭密钥管理器
 
 ---
+

@@ -2,23 +2,23 @@
 
 **Source**: `src/main/image-gen/sd-client.js`
 
-**Generated**: 2026-04-20T10:46:39.784Z
+**Generated**: 2026-04-21T04:11:31.490Z
 
 ---
 
 ## const EventEmitter = require('events');
 
 ```javascript
-const EventEmitter = require("events");
+const EventEmitter = require('events');
 ```
 
-- Stable Diffusion Client
--
-- Connects to local Stable Diffusion WebUI (AUTOMATIC1111) or ComfyUI
-- for image generation capabilities.
--
-- @module sd-client
-- @version 1.0.0
+* Stable Diffusion Client
+ *
+ * Connects to local Stable Diffusion WebUI (AUTOMATIC1111) or ComfyUI
+ * for image generation capabilities.
+ *
+ * @module sd-client
+ * @version 1.0.0
 
 ---
 
@@ -28,7 +28,7 @@ const EventEmitter = require("events");
 const SDAPIType =
 ```
 
-- SD API Types
+* SD API Types
 
 ---
 
@@ -38,7 +38,7 @@ const SDAPIType =
 const DEFAULT_CONFIG =
 ```
 
-- Default configuration
+* Default configuration
 
 ---
 
@@ -48,7 +48,7 @@ const DEFAULT_CONFIG =
 class SDClient extends EventEmitter
 ```
 
-- Stable Diffusion Client
+* Stable Diffusion Client
 
 ---
 
@@ -58,8 +58,8 @@ class SDClient extends EventEmitter
 async checkStatus()
 ```
 
-- Check if SD is available
-  - @returns {Promise<Object>} Status object
+* Check if SD is available
+   * @returns {Promise<Object>} Status object
 
 ---
 
@@ -69,10 +69,10 @@ async checkStatus()
 async txt2img(prompt, options =
 ```
 
-- Generate image from text prompt
-  - @param {string} prompt - Text prompt
-  - @param {Object} options - Generation options
-  - @returns {Promise<Object>} Generated image data
+* Generate image from text prompt
+   * @param {string} prompt - Text prompt
+   * @param {Object} options - Generation options
+   * @returns {Promise<Object>} Generated image data
 
 ---
 
@@ -82,11 +82,11 @@ async txt2img(prompt, options =
 async img2img(prompt, initImage, options =
 ```
 
-- Generate image from image + prompt (img2img)
-  - @param {string} prompt - Text prompt
-  - @param {string} initImage - Base64 encoded initial image
-  - @param {Object} options - Generation options
-  - @returns {Promise<Object>} Generated image data
+* Generate image from image + prompt (img2img)
+   * @param {string} prompt - Text prompt
+   * @param {string} initImage - Base64 encoded initial image
+   * @param {Object} options - Generation options
+   * @returns {Promise<Object>} Generated image data
 
 ---
 
@@ -96,10 +96,10 @@ async img2img(prompt, initImage, options =
 async upscale(image, options =
 ```
 
-- Upscale an image
-  - @param {string} image - Base64 encoded image
-  - @param {Object} options - Upscale options
-  - @returns {Promise<Object>} Upscaled image data
+* Upscale an image
+   * @param {string} image - Base64 encoded image
+   * @param {Object} options - Upscale options
+   * @returns {Promise<Object>} Upscaled image data
 
 ---
 
@@ -109,8 +109,8 @@ async upscale(image, options =
 async getProgress()
 ```
 
-- Get current generation progress
-  - @returns {Promise<Object>} Progress info
+* Get current generation progress
+   * @returns {Promise<Object>} Progress info
 
 ---
 
@@ -120,8 +120,8 @@ async getProgress()
 async interrupt()
 ```
 
-- Interrupt current generation
-  - @returns {Promise<boolean>} Success
+* Interrupt current generation
+   * @returns {Promise<boolean>} Success
 
 ---
 
@@ -131,41 +131,42 @@ async interrupt()
 async switchModel(modelName)
 ```
 
-- Switch to a different model
-  - @param {string} modelName - Model checkpoint name
-  - @returns {Promise<boolean>} Success
+* Switch to a different model
+   * @param {string} modelName - Model checkpoint name
+   * @returns {Promise<boolean>} Success
 
 ---
 
-## async \_loadModels()
+## async _loadModels()
 
 ```javascript
 async _loadModels()
 ```
 
-- Load available models
-  - @private
+* Load available models
+   * @private
 
 ---
 
-## async \_loadSamplers()
+## async _loadSamplers()
 
 ```javascript
 async _loadSamplers()
 ```
 
-- Load available samplers
-  - @private
+* Load available samplers
+   * @private
 
 ---
 
-## async \_fetch(endpoint, options =
+## async _fetch(endpoint, options =
 
 ```javascript
 async _fetch(endpoint, options =
 ```
 
-- HTTP fetch wrapper
-  - @private
+* HTTP fetch wrapper
+   * @private
 
 ---
+

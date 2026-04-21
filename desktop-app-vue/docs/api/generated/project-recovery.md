@@ -2,7 +2,7 @@
 
 **Source**: `src/main/sync/project-recovery.js`
 
-**Generated**: 2026-04-20T10:46:39.716Z
+**Generated**: 2026-04-21T04:11:31.417Z
 
 ---
 
@@ -12,64 +12,65 @@
 class ProjectRecovery
 ```
 
-- 项目恢复工具
-- 用于恢复被同步逻辑错误标记为删除的项目
+* 项目恢复工具
+ * 用于恢复被同步逻辑错误标记为删除的项目
 
 ---
 
 ## scanRecoverableProjects()
 
 ```javascript
-scanRecoverableProjects();
+scanRecoverableProjects()
 ```
 
-- 扫描被标记为删除但应该恢复的项目
-  - @returns {Array} 可恢复的项目列表
+* 扫描被标记为删除但应该恢复的项目
+   * @returns {Array} 可恢复的项目列表
 
 ---
 
 ## recoverProject(projectId)
 
 ```javascript
-recoverProject(projectId);
+recoverProject(projectId)
 ```
 
-- 恢复单个项目
-  - @param {string} projectId - 项目ID
-  - @returns {boolean} 是否成功
+* 恢复单个项目
+   * @param {string} projectId - 项目ID
+   * @returns {boolean} 是否成功
 
 ---
 
 ## recoverProjects(projectIds)
 
 ```javascript
-recoverProjects(projectIds);
+recoverProjects(projectIds)
 ```
 
-- 批量恢复项目
-  - @param {Array<string>} projectIds - 项目ID数组
-  - @returns {Object} 恢复结果
+* 批量恢复项目
+   * @param {Array<string>} projectIds - 项目ID数组
+   * @returns {Object} 恢复结果
 
 ---
 
 ## autoRecoverAll()
 
 ```javascript
-autoRecoverAll();
+autoRecoverAll()
 ```
 
-- 自动恢复所有可恢复的项目
-  - @returns {Object} 恢复结果
+* 自动恢复所有可恢复的项目
+   * @returns {Object} 恢复结果
 
 ---
 
 ## getRecoveryStats()
 
 ```javascript
-getRecoveryStats();
+getRecoveryStats()
 ```
 
-- 获取恢复统计信息
-  - @returns {Object} 统计信息
+* 获取恢复统计信息
+   * @returns {Object} 统计信息
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ipc/logger-ipc.js`
 
-**Generated**: 2026-04-20T10:46:39.780Z
+**Generated**: 2026-04-21T04:11:31.486Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-- 日志系统 IPC 处理器
-- 接收渲染进程的日志并写入文件
+* 日志系统 IPC 处理器
+ * 接收渲染进程的日志并写入文件
 
 ---
 
@@ -23,6 +23,7 @@ const
 function registerLoggerIPC()
 ```
 
-- 注册日志相关的 IPC 处理器
+* 注册日志相关的 IPC 处理器
 
 ---
+

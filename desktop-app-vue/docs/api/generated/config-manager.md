@@ -2,7 +2,7 @@
 
 **Source**: `src/main/database/config-manager.js`
 
-**Generated**: 2026-04-20T10:46:39.803Z
+**Generated**: 2026-04-21T04:11:31.510Z
 
 ---
 
@@ -12,166 +12,167 @@
 const
 ```
 
-- 数据库加密配置管理器
+* 数据库加密配置管理器
 
 ---
 
 ## isDevelopmentMode()
 
 ```javascript
-isDevelopmentMode();
+isDevelopmentMode()
 ```
 
-- 检查是否为开发模式
+* 检查是否为开发模式
 
 ---
 
 ## loadConfig()
 
 ```javascript
-loadConfig();
+loadConfig()
 ```
 
-- 加载配置
+* 加载配置
 
 ---
 
 ## saveConfig()
 
 ```javascript
-saveConfig();
+saveConfig()
 ```
 
-- 保存配置
+* 保存配置
 
 ---
 
 ## get(key, defaultValue = null)
 
 ```javascript
-get(key, (defaultValue = null));
+get(key, defaultValue = null)
 ```
 
-- 获取配置项
+* 获取配置项
 
 ---
 
 ## set(key, value)
 
 ```javascript
-set(key, value);
+set(key, value)
 ```
 
-- 设置配置项
+* 设置配置项
 
 ---
 
 ## setMultiple(values)
 
 ```javascript
-setMultiple(values);
+setMultiple(values)
 ```
 
-- 批量设置配置
+* 批量设置配置
 
 ---
 
 ## isFirstTimeSetup()
 
 ```javascript
-isFirstTimeSetup();
+isFirstTimeSetup()
 ```
 
-- 是否已完成首次设置
+* 是否已完成首次设置
 
 ---
 
 ## markFirstTimeSetupComplete()
 
 ```javascript
-markFirstTimeSetupComplete();
+markFirstTimeSetupComplete()
 ```
 
-- 标记首次设置已完成
+* 标记首次设置已完成
 
 ---
 
 ## isEncryptionEnabled()
 
 ```javascript
-isEncryptionEnabled();
+isEncryptionEnabled()
 ```
 
-- 是否启用加密
+* 是否启用加密
 
 ---
 
 ## setEncryptionEnabled(enabled)
 
 ```javascript
-setEncryptionEnabled(enabled);
+setEncryptionEnabled(enabled)
 ```
 
-- 启用/禁用加密
+* 启用/禁用加密
 
 ---
 
 ## getEncryptionMethod()
 
 ```javascript
-getEncryptionMethod();
+getEncryptionMethod()
 ```
 
-- 获取加密方法
+* 获取加密方法
 
 ---
 
 ## setEncryptionMethod(method)
 
 ```javascript
-setEncryptionMethod(method);
+setEncryptionMethod(method)
 ```
 
-- 设置加密方法
+* 设置加密方法
 
 ---
 
 ## getAll()
 
 ```javascript
-getAll();
+getAll()
 ```
 
-- 获取所有配置
+* 获取所有配置
 
 ---
 
 ## getDevelopmentMode()
 
 ```javascript
-getDevelopmentMode();
+getDevelopmentMode()
 ```
 
-- 获取开发模式状态
+* 获取开发模式状态
 
 ---
 
 ## canSkipPassword()
 
 ```javascript
-canSkipPassword();
+canSkipPassword()
 ```
 
-- 是否可以跳过密码设置（仅开发模式）
+* 是否可以跳过密码设置（仅开发模式）
 
 ---
 
 ## reset()
 
 ```javascript
-reset();
+reset()
 ```
 
-- 重置配置
+* 重置配置
 
 ---
+

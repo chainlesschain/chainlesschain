@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/voice-command-recognizer.js`
 
-**Generated**: 2026-04-20T10:46:39.718Z
+**Generated**: 2026-04-21T04:11:31.419Z
 
 ---
 
@@ -12,10 +12,10 @@
 const
 ```
 
-- 语音命令识别器
--
-- 智能识别和执行语音命令
-- 支持系统命令、导航命令、AI命令等
+* 语音命令识别器
+ *
+ * 智能识别和执行语音命令
+ * 支持系统命令、导航命令、AI命令等
 
 ---
 
@@ -25,28 +25,28 @@ const
 class VoiceCommandRecognizer extends EventEmitter
 ```
 
-- 语音命令识别类
+* 语音命令识别类
 
 ---
 
 ## registerDefaultCommands()
 
 ```javascript
-registerDefaultCommands();
+registerDefaultCommands()
 ```
 
-- 注册默认命令
+* 注册默认命令
 
 ---
 
 ## registerCommand(command)
 
 ```javascript
-registerCommand(command);
+registerCommand(command)
 ```
 
-- 注册命令
-  - @param {Object} command - 命令配置
+* 注册命令
+   * @param {Object} command - 命令配置
 
 ---
 
@@ -56,139 +56,140 @@ registerCommand(command);
 recognize(text, context =
 ```
 
-- 识别命令
-  - @param {string} text - 语音转文字结果
-  - @param {Object} context - 当前上下文
-  - @returns {Object|null} 识别结果
+* 识别命令
+   * @param {string} text - 语音转文字结果
+   * @param {Object} context - 当前上下文
+   * @returns {Object|null} 识别结果
 
 ---
 
 ## findExactMatch(text, context)
 
 ```javascript
-findExactMatch(text, context);
+findExactMatch(text, context)
 ```
 
-- 精确匹配
+* 精确匹配
 
 ---
 
 ## findFuzzyMatch(text, context)
 
 ```javascript
-findFuzzyMatch(text, context);
+findFuzzyMatch(text, context)
 ```
 
-- 模糊匹配
+* 模糊匹配
 
 ---
 
 ## calculateSimilarity(text1, text2)
 
 ```javascript
-calculateSimilarity(text1, text2);
+calculateSimilarity(text1, text2)
 ```
 
-- 计算相似度
+* 计算相似度
 
 ---
 
 ## levenshteinDistance(str1, str2)
 
 ```javascript
-levenshteinDistance(str1, str2);
+levenshteinDistance(str1, str2)
 ```
 
-- Levenshtein距离
+* Levenshtein距离
 
 ---
 
 ## isContextMatch(command, context)
 
 ```javascript
-isContextMatch(command, context);
+isContextMatch(command, context)
 ```
 
-- 上下文匹配检查
+* 上下文匹配检查
 
 ---
 
 ## buildResult(command, originalText, confidence)
 
 ```javascript
-buildResult(command, originalText, confidence);
+buildResult(command, originalText, confidence)
 ```
 
-- 构建结果
+* 构建结果
 
 ---
 
 ## parseWithNLU(text, context)
 
 ```javascript
-parseWithNLU(text, context);
+parseWithNLU(text, context)
 ```
 
-- NLU解析（简单版本）
+* NLU解析（简单版本）
 
 ---
 
 ## extractEntities(text)
 
 ```javascript
-extractEntities(text);
+extractEntities(text)
 ```
 
-- 提取实体
+* 提取实体
 
 ---
 
 ## pushContext(context)
 
 ```javascript
-pushContext(context);
+pushContext(context)
 ```
 
-- 设置上下文
+* 设置上下文
 
 ---
 
 ## popContext()
 
 ```javascript
-popContext();
+popContext()
 ```
 
-- 弹出上下文
+* 弹出上下文
 
 ---
 
 ## getCurrentContext()
 
 ```javascript
-getCurrentContext();
+getCurrentContext()
 ```
 
-- 获取当前上下文
+* 获取当前上下文
 
 ---
 
 ## getAllCommands()
 
 ```javascript
-getAllCommands();
+getAllCommands()
 ```
 
-- 获取所有命令
+* 获取所有命令
 
 ---
 
 ## unregisterCommand(name)
 
 ```javascript
-unregisterCommand(name);
+unregisterCommand(name)
 ```
 
-- 移除命令
+* 移除命令
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/tool-logger.js`
 
-**Generated**: 2026-04-20T10:46:39.728Z
+**Generated**: 2026-04-21T04:11:31.430Z
 
 ---
 
@@ -12,58 +12,58 @@
 const
 ```
 
-- 工具日志记录器
-- 提供结构化的日志记录和错误追踪功能
+* 工具日志记录器
+ * 提供结构化的日志记录和错误追踪功能
 
 ---
 
-## async \_ensureLogDir()
+## async _ensureLogDir()
 
 ```javascript
 async _ensureLogDir()
 ```
 
-- 确保日志目录存在
+* 确保日志目录存在
 
 ---
 
-## \_formatMessage(level, message, data = null, error = null)
+## _formatMessage(level, message, data = null, error = null)
 
 ```javascript
-_formatMessage(level, message, (data = null), (error = null));
+_formatMessage(level, message, data = null, error = null)
 ```
 
-- 格式化日志消息
+* 格式化日志消息
 
 ---
 
-## async \_writeLog(level, message, data = null, error = null)
+## async _writeLog(level, message, data = null, error = null)
 
 ```javascript
 async _writeLog(level, message, data = null, error = null)
 ```
 
-- 写入日志
+* 写入日志
 
 ---
 
-## \_consoleOutput(level, logEntry)
+## _consoleOutput(level, logEntry)
 
 ```javascript
-_consoleOutput(level, logEntry);
+_consoleOutput(level, logEntry)
 ```
 
-- 控制台输出
+* 控制台输出
 
 ---
 
-## async \_fileOutput(logEntry)
+## async _fileOutput(logEntry)
 
 ```javascript
 async _fileOutput(logEntry)
 ```
 
-- 文件输出
+* 文件输出
 
 ---
 
@@ -73,7 +73,7 @@ async _fileOutput(logEntry)
 async error(message, error = null, data = null)
 ```
 
-- 记录错误
+* 记录错误
 
 ---
 
@@ -83,7 +83,7 @@ async error(message, error = null, data = null)
 async warn(message, data = null)
 ```
 
-- 记录警告
+* 记录警告
 
 ---
 
@@ -93,7 +93,7 @@ async warn(message, data = null)
 async info(message, data = null)
 ```
 
-- 记录信息
+* 记录信息
 
 ---
 
@@ -103,7 +103,7 @@ async info(message, data = null)
 async debug(message, data = null)
 ```
 
-- 记录调试信息
+* 记录调试信息
 
 ---
 
@@ -113,7 +113,7 @@ async debug(message, data = null)
 async trace(message, data = null)
 ```
 
-- 记录追踪信息
+* 记录追踪信息
 
 ---
 
@@ -123,7 +123,7 @@ async trace(message, data = null)
 async logToolCall(toolName, params, startTime)
 ```
 
-- 记录工具调用
+* 记录工具调用
 
 ---
 
@@ -133,7 +133,7 @@ async logToolCall(toolName, params, startTime)
 async logToolSuccess(toolName, result, duration)
 ```
 
-- 记录工具成功
+* 记录工具成功
 
 ---
 
@@ -143,26 +143,27 @@ async logToolSuccess(toolName, result, duration)
 async logToolFailure(toolName, error, duration, params)
 ```
 
-- 记录工具失败
+* 记录工具失败
 
 ---
 
-## \_sanitizeParams(params)
+## _sanitizeParams(params)
 
 ```javascript
-_sanitizeParams(params);
+_sanitizeParams(params)
 ```
 
-- 清理敏感参数（用于日志记录）
+* 清理敏感参数（用于日志记录）
 
 ---
 
 ## child(context)
 
 ```javascript
-child(context);
+child(context)
 ```
 
-- 创建子logger（带有特定上下文）
+* 创建子logger（带有特定上下文）
 
 ---
+

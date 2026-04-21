@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/user-profile-manager.js`
 
-**Generated**: 2026-04-20T10:46:39.832Z
+**Generated**: 2026-04-21T04:11:31.540Z
 
 ---
 
@@ -12,19 +12,19 @@
 class LRUCache
 ```
 
-- UserProfileManager - 用户画像管理器
-- P2智能层用户画像系统
--
-- 功能:
-- - 用户画像CRUD操作
-- - 技能水平评估
-- - 偏好提取与分析
-- - 时间模式识别
-- - 自动画像更新
-- - LRU缓存优化
--
-- Version: v0.21.0
-- Date: 2026-01-02
+* UserProfileManager - 用户画像管理器
+ * P2智能层用户画像系统
+ *
+ * 功能:
+ * - 用户画像CRUD操作
+ * - 技能水平评估
+ * - 偏好提取与分析
+ * - 时间模式识别
+ * - 自动画像更新
+ * - LRU缓存优化
+ *
+ * Version: v0.21.0
+ * Date: 2026-01-02
 
 ---
 
@@ -34,17 +34,17 @@ class LRUCache
 class LRUCache
 ```
 
-- 简单LRU缓存实现
+* 简单LRU缓存实现
 
 ---
 
 ## setDatabase(db)
 
 ```javascript
-setDatabase(db);
+setDatabase(db)
 ```
 
-- 设置数据库连接
+* 设置数据库连接
 
 ---
 
@@ -54,9 +54,9 @@ setDatabase(db);
 async getProfile(userId)
 ```
 
-- 获取用户画像
-  - @param {string} userId - 用户ID
-  - @returns {Object} 用户画像对象
+* 获取用户画像
+   * @param {string} userId - 用户ID
+   * @returns {Object} 用户画像对象
 
 ---
 
@@ -66,7 +66,7 @@ async getProfile(userId)
 async loadProfileFromDB(userId)
 ```
 
-- 从数据库加载用户画像
+* 从数据库加载用户画像
 
 ---
 
@@ -76,17 +76,17 @@ async loadProfileFromDB(userId)
 async buildNewProfile(userId)
 ```
 
-- 构建新用户画像
+* 构建新用户画像
 
 ---
 
 ## createDefaultProfile(userId)
 
 ```javascript
-createDefaultProfile(userId);
+createDefaultProfile(userId)
 ```
 
-- 创建默认画像
+* 创建默认画像
 
 ---
 
@@ -96,57 +96,57 @@ createDefaultProfile(userId);
 async loadUserHistory(userId)
 ```
 
-- 加载用户历史数据
+* 加载用户历史数据
 
 ---
 
 ## assessSkillLevel(history)
 
 ```javascript
-assessSkillLevel(history);
+assessSkillLevel(history)
 ```
 
-- 评估技能水平
+* 评估技能水平
 
 ---
 
 ## assessDomainSkills(history)
 
 ```javascript
-assessDomainSkills(history);
+assessDomainSkills(history)
 ```
 
-- 评估领域技能
+* 评估领域技能
 
 ---
 
 ## extractPreferences(history)
 
 ```javascript
-extractPreferences(history);
+extractPreferences(history)
 ```
 
-- 提取用户偏好
+* 提取用户偏好
 
 ---
 
 ## calculateStatistics(history)
 
 ```javascript
-calculateStatistics(history);
+calculateStatistics(history)
 ```
 
-- 计算统计信息
+* 计算统计信息
 
 ---
 
 ## analyzeTemporalPatterns(history)
 
 ```javascript
-analyzeTemporalPatterns(history);
+analyzeTemporalPatterns(history)
 ```
 
-- 分析时间模式
+* 分析时间模式
 
 ---
 
@@ -156,7 +156,7 @@ analyzeTemporalPatterns(history);
 async saveProfile(profile)
 ```
 
-- 保存用户画像
+* 保存用户画像
 
 ---
 
@@ -166,7 +166,7 @@ async saveProfile(profile)
 async updateProfile(userId, newData)
 ```
 
-- 更新用户画像（增量更新）
+* 更新用户画像（增量更新）
 
 ---
 
@@ -176,17 +176,17 @@ async updateProfile(userId, newData)
 async reassessProfile(userId)
 ```
 
-- 重新评估用户画像（基于最新历史数据）
+* 重新评估用户画像（基于最新历史数据）
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats();
+getStats()
 ```
 
-- 获取统计信息
+* 获取统计信息
 
 ---
 
@@ -196,6 +196,7 @@ getStats();
 async cleanup()
 ```
 
-- 清理资源
+* 清理资源
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/import/file-importer.js`
 
-**Generated**: 2026-04-20T10:46:39.784Z
+**Generated**: 2026-04-21T04:11:31.490Z
 
 ---
 
@@ -12,30 +12,30 @@
 const
 ```
 
-- 文件导入器
-- 支持 PDF、Word、Markdown 等多种文件格式的导入
--
-- v0.17.0: 集成文件安全验证
+* 文件导入器
+ * 支持 PDF、Word、Markdown 等多种文件格式的导入
+ *
+ * v0.17.0: 集成文件安全验证
 
 ---
 
 ## isSupportedFile(filePath)
 
 ```javascript
-isSupportedFile(filePath);
+isSupportedFile(filePath)
 ```
 
-- 检查文件格式是否支持
+* 检查文件格式是否支持
 
 ---
 
 ## getFileType(filePath)
 
 ```javascript
-getFileType(filePath);
+getFileType(filePath)
 ```
 
-- 获取文件类型
+* 获取文件类型
 
 ---
 
@@ -45,7 +45,7 @@ getFileType(filePath);
 async importFile(filePath, options =
 ```
 
-- 导入单个文件
+* 导入单个文件
 
 ---
 
@@ -55,7 +55,7 @@ async importFile(filePath, options =
 async importFiles(filePaths, options =
 ```
 
-- 批量导入文件
+* 批量导入文件
 
 ---
 
@@ -65,7 +65,7 @@ async importFiles(filePaths, options =
 async importMarkdown(filePath, options =
 ```
 
-- 导入 Markdown 文件
+* 导入 Markdown 文件
 
 ---
 
@@ -75,10 +75,10 @@ async importMarkdown(filePath, options =
 async importPDF(filePath, options =
 ```
 
-- 导入 PDF 文件
-  - 需要 pdf-parse 库
-  -
-  - v0.18.0: 新增流式导入支持（大文件优化）
+* 导入 PDF 文件
+   * 需要 pdf-parse 库
+   *
+   * v0.18.0: 新增流式导入支持（大文件优化）
 
 ---
 
@@ -88,8 +88,8 @@ async importPDF(filePath, options =
 async importWord(filePath, options =
 ```
 
-- 导入 Word 文件
-  - 需要 mammoth 库
+* 导入 Word 文件
+   * 需要 mammoth 库
 
 ---
 
@@ -99,26 +99,27 @@ async importWord(filePath, options =
 async importText(filePath, options =
 ```
 
-- 导入纯文本文件
+* 导入纯文本文件
 
 ---
 
 ## getSupportedFormats()
 
 ```javascript
-getSupportedFormats();
+getSupportedFormats()
 ```
 
-- 获取支持的文件格式列表
+* 获取支持的文件格式列表
 
 ---
 
 ## getSupportedExtensions()
 
 ```javascript
-getSupportedExtensions();
+getSupportedExtensions()
 ```
 
-- 获取支持的文件扩展名列表（用于文件选择对话框）
+* 获取支持的文件扩展名列表（用于文件选择对话框）
 
 ---
+

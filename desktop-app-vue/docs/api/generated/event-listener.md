@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/event-listener.js`
 
-**Generated**: 2026-04-20T10:46:39.825Z
+**Generated**: 2026-04-21T04:11:31.532Z
 
 ---
 
@@ -12,14 +12,14 @@
 const
 ```
 
-- 区块链事件监听器
--
-- 负责监听链上事件并同步到本地数据库
-- 支持：
-- - 资产转账事件
-- - 托管合约事件
-- - 订阅合约事件
-- - 悬赏合约事件
+* 区块链事件监听器
+ *
+ * 负责监听链上事件并同步到本地数据库
+ * 支持：
+ * - 资产转账事件
+ * - 托管合约事件
+ * - 订阅合约事件
+ * - 悬赏合约事件
 
 ---
 
@@ -29,7 +29,7 @@ const
 async initialize()
 ```
 
-- 初始化事件监听器
+* 初始化事件监听器
 
 ---
 
@@ -39,7 +39,7 @@ async initialize()
 async initializeTables()
 ```
 
-- 初始化数据库表
+* 初始化数据库表
 
 ---
 
@@ -49,8 +49,8 @@ async initializeTables()
 async addListener(options)
 ```
 
-- 添加事件监听器
-  - @param {Object} options - 监听器配置
+* 添加事件监听器
+   * @param {Object} options - 监听器配置
 
 ---
 
@@ -60,8 +60,8 @@ async addListener(options)
 async handleEvent(options)
 ```
 
-- 处理事件
-  - @param {Object} options - 事件信息
+* 处理事件
+   * @param {Object} options - 事件信息
 
 ---
 
@@ -71,10 +71,10 @@ async handleEvent(options)
 async processEventByType(contractType, eventName, eventData)
 ```
 
-- 根据合约类型处理事件
-  - @param {string} contractType - 合约类型
-  - @param {string} eventName - 事件名称
-  - @param {Object} eventData - 事件数据
+* 根据合约类型处理事件
+   * @param {string} contractType - 合约类型
+   * @param {string} eventName - 事件名称
+   * @param {Object} eventData - 事件数据
 
 ---
 
@@ -84,7 +84,7 @@ async processEventByType(contractType, eventName, eventData)
 async processERC20Event(eventName, eventData)
 ```
 
-- 处理 ERC-20 事件
+* 处理 ERC-20 事件
 
 ---
 
@@ -94,7 +94,7 @@ async processERC20Event(eventName, eventData)
 async processERC721Event(eventName, eventData)
 ```
 
-- 处理 ERC-721 事件
+* 处理 ERC-721 事件
 
 ---
 
@@ -104,7 +104,7 @@ async processERC721Event(eventName, eventData)
 async processEscrowEvent(eventName, eventData)
 ```
 
-- 处理托管合约事件
+* 处理托管合约事件
 
 ---
 
@@ -114,7 +114,7 @@ async processEscrowEvent(eventName, eventData)
 async processSubscriptionEvent(eventName, eventData)
 ```
 
-- 处理订阅合约事件
+* 处理订阅合约事件
 
 ---
 
@@ -124,7 +124,7 @@ async processSubscriptionEvent(eventName, eventData)
 async processBountyEvent(eventName, eventData)
 ```
 
-- 处理悬赏合约事件
+* 处理悬赏合约事件
 
 ---
 
@@ -134,10 +134,10 @@ async processBountyEvent(eventName, eventData)
 async removeListener(contractAddress, chainId, eventName)
 ```
 
-- 移除事件监听器
-  - @param {string} contractAddress - 合约地址
-  - @param {number} chainId - 链 ID
-  - @param {string} eventName - 事件名称
+* 移除事件监听器
+   * @param {string} contractAddress - 合约地址
+   * @param {number} chainId - 链 ID
+   * @param {string} eventName - 事件名称
 
 ---
 
@@ -147,7 +147,7 @@ async removeListener(contractAddress, chainId, eventName)
 async restoreListeners()
 ```
 
-- 恢复之前的监听器
+* 恢复之前的监听器
 
 ---
 
@@ -157,8 +157,8 @@ async restoreListeners()
 async getProcessedEvents(filters =
 ```
 
-- 获取已处理的事件
-  - @param {Object} filters - 筛选条件
+* 获取已处理的事件
+   * @param {Object} filters - 筛选条件
 
 ---
 
@@ -168,6 +168,7 @@ async getProcessedEvents(filters =
 async cleanup()
 ```
 
-- 清理资源
+* 清理资源
 
 ---
+

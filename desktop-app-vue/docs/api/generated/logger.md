@@ -2,7 +2,7 @@
 
 **Source**: `src/main/logging/logger.js`
 
-**Generated**: 2026-04-20T10:46:39.770Z
+**Generated**: 2026-04-21T04:11:31.475Z
 
 ---
 
@@ -12,16 +12,16 @@
 const
 ```
 
-- 结构化日志系统
--
-- 功能：
-- - 多级别日志（debug, info, warn, error, fatal）
-- - 日志轮转（按大小和时间）
-- - 日志分类（按模块）
-- - 性能监控
-- - 错误追踪
-- - 日志导出
-- - 向后兼容旧的Logger接口
+* 结构化日志系统
+ *
+ * 功能：
+ * - 多级别日志（debug, info, warn, error, fatal）
+ * - 日志轮转（按大小和时间）
+ * - 日志分类（按模块）
+ * - 性能监控
+ * - 错误追踪
+ * - 日志导出
+ * - 向后兼容旧的Logger接口
 
 ---
 
@@ -31,7 +31,7 @@ const
 function initLogger(options =
 ```
 
-- 初始化日志系统
+* 初始化日志系统
 
 ---
 
@@ -41,7 +41,7 @@ function initLogger(options =
 function cleanOldLogs()
 ```
 
-- 清理旧日志文件
+* 清理旧日志文件
 
 ---
 
@@ -51,7 +51,7 @@ function cleanOldLogs()
 function getCurrentLogFile()
 ```
 
-- 获取当前日志文件路径
+* 获取当前日志文件路径
 
 ---
 
@@ -61,7 +61,7 @@ function getCurrentLogFile()
 function writeToFile(message)
 ```
 
-- 写入日志到文件
+* 写入日志到文件
 
 ---
 
@@ -71,77 +71,77 @@ function writeToFile(message)
 class Logger
 ```
 
-- Logger类
+* Logger类
 
 ---
 
 ## formatMessage(level, args)
 
 ```javascript
-formatMessage(level, args);
+formatMessage(level, args)
 ```
 
-- 格式化日志消息
+* 格式化日志消息
 
 ---
 
 ## formatConsoleMessage(level, args)
 
 ```javascript
-formatConsoleMessage(level, args);
+formatConsoleMessage(level, args)
 ```
 
-- 格式化控制台输出
+* 格式化控制台输出
 
 ---
 
-## \_log(level, ...args)
+## _log(level, ...args)
 
 ```javascript
-_log(level, ...args);
+_log(level, ...args)
 ```
 
-- 内部日志方法
+* 内部日志方法
 
 ---
 
 ## child(subModuleName)
 
 ```javascript
-child(subModuleName);
+child(subModuleName)
 ```
 
-- 创建子日志器
+* 创建子日志器
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats();
+getStats()
 ```
 
-- 获取统计信息
+* 获取统计信息
 
 ---
 
 ## resetStats()
 
 ```javascript
-resetStats();
+resetStats()
 ```
 
-- 重置统计信息
+* 重置统计信息
 
 ---
 
 ## setLevel(level)
 
 ```javascript
-setLevel(level);
+setLevel(level)
 ```
 
-- 设置日志级别
+* 设置日志级别
 
 ---
 
@@ -151,9 +151,9 @@ setLevel(level);
 function getLogger(moduleName)
 ```
 
-- 获取指定模块的 logger 实例
-- @param {string} moduleName - 模块名称
-- @returns {Logger} Logger 实例
+* 获取指定模块的 logger 实例
+ * @param {string} moduleName - 模块名称
+ * @returns {Logger} Logger 实例
 
 ---
 
@@ -163,7 +163,7 @@ function getLogger(moduleName)
 function getLogFiles()
 ```
 
-- 获取日志文件列表
+* 获取日志文件列表
 
 ---
 
@@ -173,7 +173,7 @@ function getLogFiles()
 function readLogFile(filename, options =
 ```
 
-- 读取日志文件
+* 读取日志文件
 
 ---
 
@@ -183,6 +183,7 @@ function readLogFile(filename, options =
 function exportLogs(outputPath, options =
 ```
 
-- 导出日志
+* 导出日志
 
 ---
+
