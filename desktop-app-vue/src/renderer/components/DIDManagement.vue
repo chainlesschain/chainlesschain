@@ -395,127 +395,15 @@
       @after-republish="loadIdentities"
     />
 
-    <!-- 助记词显示模态框（新创建身份后） -->
-    <a-modal
-      v-model:open="showMnemonicDisplayModal"
-      title="备份助记词"
-      :width="700"
-      :closable="false"
-      :mask-closable="false"
-      :keyboard="false"
-    >
-      <template #footer>
-        <a-space>
-          <a-button @click="handleDownloadMnemonic">
-            <download-outlined /> 下载备份
-          </a-button>
-          <a-button type="primary" @click="handleCopyMnemonic">
-            <copy-outlined /> 复制助记词
-          </a-button>
-          <a-button
-            type="primary"
-            danger
-            :disabled="!mnemonicCopied"
-            @click="handleConfirmMnemonicBackup"
-          >
-            我已安全备份
-          </a-button>
-        </a-space>
-      </template>
-
-      <a-alert
-        message="请妥善保管助记词！"
-        description="助记词是恢复身份的唯一凭证。任何人获得助记词都可以完全控制您的身份。请将其保存在安全的地方，不要截图或发送给他人。"
-        type="warning"
-        show-icon
-        style="margin-bottom: 24px"
-      />
-
-      <div class="mnemonic-display">
-        <div class="mnemonic-grid">
-          <div
-            v-for="(word, index) in mnemonicWords"
-            :key="index"
-            class="mnemonic-word"
-          >
-            <span class="word-number">{{ index + 1 }}</span>
-            <span class="word-text">{{ word }}</span>
-          </div>
-        </div>
-
-        <a-divider />
-
-        <div class="mnemonic-full">
-          <a-typography-paragraph :copyable="{ text: generatedMnemonic }">
-            <code>{{ generatedMnemonic }}</code>
-          </a-typography-paragraph>
-        </div>
-
-        <a-alert
-          v-if="mnemonicCopied"
-          message="已复制到剪贴板"
-          type="success"
-          show-icon
-          style="margin-top: 16px"
-        />
-      </div>
-    </a-modal>
-
-    <!-- 助记词导出模态框（导出现有身份） -->
-    <a-modal
-      v-model:open="showMnemonicExportModal"
-      title="导出助记词"
-      :width="700"
-      :footer="null"
-    >
-      <a-alert
-        message="请确保周围环境安全！"
-        description="助记词一旦泄露，您的身份将面临安全风险。请确保没有人在旁边，也没有摄像头或录屏软件正在运行。"
-        type="error"
-        show-icon
-        style="margin-bottom: 24px"
-      />
-
-      <div class="mnemonic-export">
-        <div class="mnemonic-grid">
-          <div
-            v-for="(word, index) in exportingMnemonic.split(' ')"
-            :key="index"
-            class="mnemonic-word"
-          >
-            <span class="word-number">{{ index + 1 }}</span>
-            <span class="word-text">{{ word }}</span>
-          </div>
-        </div>
-
-        <a-divider />
-
-        <div class="mnemonic-full">
-          <a-typography-paragraph :copyable="{ text: exportingMnemonic }">
-            <code>{{ exportingMnemonic }}</code>
-          </a-typography-paragraph>
-        </div>
-
-        <a-space style="margin-top: 24px; width: 100%; justify-content: center">
-          <a-button type="primary" @click="handleCopyExportedMnemonic">
-            <copy-outlined /> 复制助记词
-          </a-button>
-          <a-button @click="handleDownloadExportedMnemonic">
-            <download-outlined /> 下载备份
-          </a-button>
-          <a-button danger @click="showMnemonicExportModal = false">
-            关闭
-          </a-button>
-        </a-space>
-      </div>
-    </a-modal>
+    <!-- 助记词展示/导出模态框 -->
+    <MnemonicModals ref="mnemonicModalsRef" />
   </div>
 </template>
 
 <script setup>
 import { logger } from "@/utils/logger";
 
-import { ref, reactive, onMounted, h } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { message, Modal } from "ant-design-vue";
 import {
   PlusOutlined,
@@ -534,6 +422,7 @@ import {
 } from "@ant-design/icons-vue";
 import QRCode from "qrcode";
 import AutoRepublishSettingsPane from "./did/AutoRepublishSettingsPane.vue";
+import MnemonicModals from "./did/MnemonicModals.vue";
 
 const loading = ref(false);
 const creating = ref(false);
@@ -547,9 +436,9 @@ const showDetailsModal = ref(false);
 const showDocumentModal = ref(false);
 const showQRModal = ref(false);
 const showAutoRepublishModal = ref(false);
-const showMnemonicModal = ref(false);
-const showMnemonicDisplayModal = ref(false);
-const showMnemonicExportModal = ref(false);
+
+// MnemonicModals 子组件 ref（提供 showDisplay / triggerExport 两个方法）
+const mnemonicModalsRef = ref(null);
 
 // 当前选中的身份
 const currentIdentity = ref(null);
@@ -572,13 +461,6 @@ const createForm = reactive({
   useMnemonic: false, // 是否使用助记词创建
   mnemonic: "", // 助记词（用于恢复）
 });
-
-// 助记词相关状态
-const generatedMnemonic = ref("");
-const mnemonicWords = ref([]);
-const mnemonicCopied = ref(false);
-const mnemonicConfirmed = ref(false);
-const exportingMnemonic = ref("");
 
 // 加载身份列表
 async function loadIdentities() {
@@ -672,15 +554,9 @@ async function handleCreateIdentity() {
         options,
       );
 
-      // 保存生成的助记词并显示
-      generatedMnemonic.value = mnemonic;
-      mnemonicWords.value = mnemonic.split(" ");
-      mnemonicCopied.value = false;
-      mnemonicConfirmed.value = false;
-
-      // 关闭创建模态框，显示助记词模态框
+      // 关闭创建模态框，交给 MnemonicModals 展示助记词
       showCreateModal.value = false;
-      showMnemonicDisplayModal.value = true;
+      mnemonicModalsRef.value?.showDisplay(mnemonic);
       message.success("身份创建成功！请务必备份助记词！");
     }
 
@@ -918,101 +794,12 @@ async function handleUnpublishFromDHT() {
   });
 }
 
-// 复制助记词
-async function handleCopyMnemonic() {
-  try {
-    await navigator.clipboard.writeText(generatedMnemonic.value);
-    mnemonicCopied.value = true;
-    message.success("助记词已复制到剪贴板");
-  } catch (error) {
-    message.error("复制失败: " + error.message);
-  }
-}
-
-// 确认助记词备份
-function handleConfirmMnemonicBackup() {
-  if (!mnemonicCopied.value) {
-    Modal.warning({
-      title: "请先复制助记词",
-      content: "请务必复制并安全保存助记词，这是恢复身份的唯一方式！",
-    });
-    return;
-  }
-
-  mnemonicConfirmed.value = true;
-  showMnemonicDisplayModal.value = false;
-  message.success("助记词备份确认完成");
-}
-
-// 下载助记词为文本文件
-function handleDownloadMnemonic() {
-  const blob = new Blob([generatedMnemonic.value], { type: "text/plain" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `mnemonic-backup-${Date.now()}.txt`;
-  a.click();
-  URL.revokeObjectURL(url);
-  mnemonicCopied.value = true;
-  message.success("助记词已下载");
-}
-
-// 导出现有身份的助记词
-async function handleExportMnemonic() {
+// 详情页触发助记词导出（交给 MnemonicModals 处理 confirm + export 流程）
+function handleExportMnemonic() {
   if (!currentIdentity.value) {
     return;
   }
-
-  // 安全警告
-  Modal.confirm({
-    title: "导出助记词",
-    content:
-      "助记词是恢复身份的唯一凭证，请务必妥善保管！任何人获得助记词都可以完全控制您的身份。确定要导出吗？",
-    icon: h(WarningOutlined),
-    okText: "确定导出",
-    okType: "danger",
-    cancelText: "取消",
-    async onOk() {
-      try {
-        const mnemonic = await window.electronAPI.did.exportMnemonic(
-          currentIdentity.value.did,
-        );
-
-        if (!mnemonic) {
-          message.warning("该身份没有助记词备份");
-          return;
-        }
-
-        exportingMnemonic.value = mnemonic;
-        showMnemonicExportModal.value = true;
-      } catch (error) {
-        logger.error("导出助记词失败:", error);
-        message.error("导出助记词失败: " + error.message);
-      }
-    },
-  });
-}
-
-// 复制导出的助记词
-async function handleCopyExportedMnemonic() {
-  try {
-    await navigator.clipboard.writeText(exportingMnemonic.value);
-    message.success("助记词已复制到剪贴板");
-  } catch (error) {
-    message.error("复制失败: " + error.message);
-  }
-}
-
-// 下载导出的助记词
-function handleDownloadExportedMnemonic() {
-  const blob = new Blob([exportingMnemonic.value], { type: "text/plain" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `mnemonic-${currentIdentity.value.nickname}-${Date.now()}.txt`;
-  a.click();
-  URL.revokeObjectURL(url);
-  message.success("助记词已下载");
+  mnemonicModalsRef.value?.triggerExport(currentIdentity.value);
 }
 
 onMounted(() => {
@@ -1132,67 +919,5 @@ onMounted(() => {
   color: #999;
   font-size: 14px;
   margin: 0;
-}
-
-/* 助记词显示样式 */
-.mnemonic-display,
-.mnemonic-export {
-  padding: 20px 0;
-}
-
-.mnemonic-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.mnemonic-word {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px;
-  background: #f5f5f5;
-  border-radius: 6px;
-  border: 1px solid #e0e0e0;
-  transition: all 0.3s;
-}
-
-.mnemonic-word:hover {
-  background: #e8f4ff;
-  border-color: #1890ff;
-}
-
-.word-number {
-  font-size: 12px;
-  color: #999;
-  font-weight: 600;
-  min-width: 24px;
-}
-
-.word-text {
-  font-size: 14px;
-  font-family: "Courier New", monospace;
-  font-weight: 500;
-  color: #333;
-}
-
-.mnemonic-full {
-  background: #fafafa;
-  padding: 16px;
-  border-radius: 4px;
-  border: 1px dashed #d9d9d9;
-}
-
-.mnemonic-full code {
-  word-break: break-all;
-  font-size: 13px;
-  line-height: 1.8;
-}
-
-@media (max-width: 768px) {
-  .mnemonic-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 </style>
