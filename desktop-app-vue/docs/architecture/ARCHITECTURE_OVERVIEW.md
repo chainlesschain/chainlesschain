@@ -1,6 +1,6 @@
 # Architecture Overview
 
-**Generated**: 2026-04-20T01:53:52.551Z
+**Generated**: 2026-04-20T10:46:40.049Z
 
 ---
 
@@ -14,7 +14,7 @@
 
 ## main Module
 
-**Files**: 1661
+**Files**: 1664
 
 **Top 10 Largest Files**:
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/audio-storage.js`
 
-**Generated**: 2026-04-20T01:53:52.224Z
+**Generated**: 2026-04-20T10:46:39.719Z
 
 ---
 
@@ -12,9 +12,9 @@
 const
 ```
 
-- 音频存储管理
--
-- 管理音频文件的存储和数据库记录
+* 音频存储管理
+ *
+ * 管理音频文件的存储和数据库记录
 
 ---
 
@@ -24,7 +24,7 @@ const
 class AudioStorage
 ```
 
-- 音频存储管理类
+* 音频存储管理类
 
 ---
 
@@ -34,7 +34,7 @@ class AudioStorage
 async initialize()
 ```
 
-- 初始化存储
+* 初始化存储
 
 ---
 
@@ -44,10 +44,10 @@ async initialize()
 async saveAudioFile(sourcePath, metadata =
 ```
 
-- 保存音频文件
-  - @param {string} sourcePath - 源文件路径
-  - @param {Object} metadata - 文件元数据
-  - @returns {Promise<Object>} 保存结果
+* 保存音频文件
+   * @param {string} sourcePath - 源文件路径
+   * @param {Object} metadata - 文件元数据
+   * @returns {Promise<Object>} 保存结果
 
 ---
 
@@ -57,9 +57,9 @@ async saveAudioFile(sourcePath, metadata =
 async createAudioRecord(data)
 ```
 
-- 创建音频记录
-  - @param {Object} data - 音频数据
-  - @returns {Promise<Object>}
+* 创建音频记录
+   * @param {Object} data - 音频数据
+   * @returns {Promise<Object>}
 
 ---
 
@@ -69,10 +69,10 @@ async createAudioRecord(data)
 async updateAudioRecord(id, updates)
 ```
 
-- 更新音频记录
-  - @param {string} id - 音频ID
-  - @param {Object} updates - 更新数据
-  - @returns {Promise<Object>}
+* 更新音频记录
+   * @param {string} id - 音频ID
+   * @param {Object} updates - 更新数据
+   * @returns {Promise<Object>}
 
 ---
 
@@ -82,9 +82,9 @@ async updateAudioRecord(id, updates)
 async getAudioRecord(id)
 ```
 
-- 获取音频记录
-  - @param {string} id - 音频ID
-  - @returns {Promise<Object|null>}
+* 获取音频记录
+   * @param {string} id - 音频ID
+   * @returns {Promise<Object|null>}
 
 ---
 
@@ -94,9 +94,9 @@ async getAudioRecord(id)
 async getAllAudioFiles(options =
 ```
 
-- 获取所有音频文件
-  - @param {Object} options - 查询选项
-  - @returns {Promise<Array>}
+* 获取所有音频文件
+   * @param {Object} options - 查询选项
+   * @returns {Promise<Array>}
 
 ---
 
@@ -106,10 +106,10 @@ async getAllAudioFiles(options =
 async searchAudioFiles(query, options =
 ```
 
-- 搜索音频（通过转录文本）
-  - @param {string} query - 搜索关键词
-  - @param {Object} options - 搜索选项
-  - @returns {Promise<Array>}
+* 搜索音频（通过转录文本）
+   * @param {string} query - 搜索关键词
+   * @param {Object} options - 搜索选项
+   * @returns {Promise<Array>}
 
 ---
 
@@ -119,9 +119,9 @@ async searchAudioFiles(query, options =
 async deleteAudioFile(id)
 ```
 
-- 删除音频文件
-  - @param {string} id - 音频ID
-  - @returns {Promise<Object>}
+* 删除音频文件
+   * @param {string} id - 音频ID
+   * @returns {Promise<Object>}
 
 ---
 
@@ -131,9 +131,9 @@ async deleteAudioFile(id)
 async addTranscriptionHistory(data)
 ```
 
-- 添加转录历史
-  - @param {Object} data - 转录数据
-  - @returns {Promise<Object>}
+* 添加转录历史
+   * @param {Object} data - 转录数据
+   * @returns {Promise<Object>}
 
 ---
 
@@ -143,9 +143,9 @@ async addTranscriptionHistory(data)
 async getTranscriptionHistory(audio_file_id)
 ```
 
-- 获取转录历史
-  - @param {string} audio_file_id - 音频文件ID
-  - @returns {Promise<Array>}
+* 获取转录历史
+   * @param {string} audio_file_id - 音频文件ID
+   * @returns {Promise<Array>}
 
 ---
 
@@ -155,9 +155,9 @@ async getTranscriptionHistory(audio_file_id)
 async getAllTranscriptionHistory(options =
 ```
 
-- 获取所有转录历史
-  - @param {Object} options - 查询选项
-  - @returns {Promise<Array>}
+* 获取所有转录历史
+   * @param {Object} options - 查询选项
+   * @returns {Promise<Array>}
 
 ---
 
@@ -167,10 +167,10 @@ async getAllTranscriptionHistory(options =
 async searchTranscriptionHistory(query, options =
 ```
 
-- 搜索转录历史
-  - @param {string} query - 搜索关键词
-  - @param {Object} options - 查询选项
-  - @returns {Promise<Array>}
+* 搜索转录历史
+   * @param {string} query - 搜索关键词
+   * @param {Object} options - 查询选项
+   * @returns {Promise<Array>}
 
 ---
 
@@ -180,9 +180,9 @@ async searchTranscriptionHistory(query, options =
 async deleteTranscriptionHistory(id)
 ```
 
-- 删除转录历史
-  - @param {string} id - 历史记录ID
-  - @returns {Promise<Object>}
+* 删除转录历史
+   * @param {string} id - 历史记录ID
+   * @returns {Promise<Object>}
 
 ---
 
@@ -192,9 +192,9 @@ async deleteTranscriptionHistory(id)
 async getStats(user_id = "local-user")
 ```
 
-- 获取统计信息
-  - @param {string} user_id - 用户ID
-  - @returns {Promise<Object>}
+* 获取统计信息
+   * @param {string} user_id - 用户ID
+   * @returns {Promise<Object>}
 
 ---
 
@@ -204,8 +204,9 @@ async getStats(user_id = "local-user")
 async cleanupOldFiles(days = 30)
 ```
 
-- 清理旧文件
-  - @param {number} days - 保留天数
-  - @returns {Promise<Object>}
+* 清理旧文件
+   * @param {number} days - 保留天数
+   * @returns {Promise<Object>}
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/multi-agent/agents/code-generation-agent.js`
 
-**Generated**: 2026-04-20T01:53:52.346Z
+**Generated**: 2026-04-20T10:46:39.843Z
 
 ---
 

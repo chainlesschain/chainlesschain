@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ipc/advanced-features-ipc.js`
 
-**Generated**: 2026-04-20T01:53:52.285Z
+**Generated**: 2026-04-20T10:46:39.781Z
 
 ---
 
@@ -12,18 +12,18 @@
 const
 ```
 
-- 高级特性 IPC 处理程序
-- 将三大高级特性集成到主应用的IPC系统
+* 高级特性 IPC 处理程序
+ * 将三大高级特性集成到主应用的IPC系统
 
 ---
 
 ## executeScript(script, args = [])
 
 ```javascript
-executeScript(script, (args = []));
+executeScript(script, args = [])
 ```
 
-- 执行脚本命令
+* 执行脚本命令
 
 ---
 
@@ -33,7 +33,7 @@ executeScript(script, (args = []));
 async getOverviewData(days)
 ```
 
-- 获取总览数据
+* 获取总览数据
 
 ---
 
@@ -43,7 +43,7 @@ async getOverviewData(days)
 async getThresholdHistory(limit)
 ```
 
-- 获取阈值调整历史
+* 获取阈值调整历史
 
 ---
 
@@ -53,7 +53,7 @@ async getThresholdHistory(limit)
 async getConfig()
 ```
 
-- 获取配置
+* 获取配置
 
 ---
 
@@ -63,7 +63,7 @@ async getConfig()
 async saveConfig(config)
 ```
 
-- 保存配置
+* 保存配置
 
 ---
 
@@ -73,7 +73,7 @@ async saveConfig(config)
 async getLogs(options =
 ```
 
-- 获取日志
+* 获取日志
 
 ---
 
@@ -83,16 +83,17 @@ async getLogs(options =
 async openControlPanel()
 ```
 
-- 打开控制面板
+* 打开控制面板
 
 ---
 
 ## getDatabase()
 
 ```javascript
-getDatabase();
+getDatabase()
 ```
 
-- 获取数据库连接
+* 获取数据库连接
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/blockchain-adapter.js`
 
-**Generated**: 2026-04-20T01:53:52.330Z
+**Generated**: 2026-04-20T10:46:39.827Z
 
 ---
 

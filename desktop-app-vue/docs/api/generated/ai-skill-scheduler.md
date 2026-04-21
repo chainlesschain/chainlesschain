@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/ai-skill-scheduler.js`
 
-**Generated**: 2026-04-20T01:53:52.240Z
+**Generated**: 2026-04-20T10:46:39.733Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-- AI智能调度器
-- 根据用户意图自动选择和调度技能
+* AI智能调度器
+ * 根据用户意图自动选择和调度技能
 
 ---
 
@@ -23,9 +23,9 @@ const
 async smartSchedule(userInput, context =
 ```
 
-- 根据用户输入智能调度技能
-  - @param {string} userInput - 用户输入的自然语言
-  - @param {object} context - 上下文信息
+* 根据用户输入智能调度技能
+   * @param {string} userInput - 用户输入的自然语言
+   * @param {object} context - 上下文信息
 
 ---
 
@@ -35,17 +35,17 @@ async smartSchedule(userInput, context =
 async analyzeIntent(userInput, context)
 ```
 
-- 分析用户意图
+* 分析用户意图
 
 ---
 
 ## analyzeByKeywords(userInput)
 
 ```javascript
-analyzeByKeywords(userInput);
+analyzeByKeywords(userInput)
 ```
 
-- 基于关键词的意图分析
+* 基于关键词的意图分析
 
 ---
 
@@ -55,27 +55,27 @@ analyzeByKeywords(userInput);
 async analyzeByLLM(userInput, context)
 ```
 
-- 基于LLM的意图分析
+* 基于LLM的意图分析
 
 ---
 
 ## extractEntities(userInput)
 
 ```javascript
-extractEntities(userInput);
+extractEntities(userInput)
 ```
 
-- 提取实体
+* 提取实体
 
 ---
 
 ## mergeIntents(keywordIntent, llmIntent)
 
 ```javascript
-mergeIntents(keywordIntent, llmIntent);
+mergeIntents(keywordIntent, llmIntent)
 ```
 
-- 合并意图（关键词 + LLM）
+* 合并意图（关键词 + LLM）
 
 ---
 
@@ -85,27 +85,27 @@ mergeIntents(keywordIntent, llmIntent);
 async recommendSkills(intent, context)
 ```
 
-- 推荐技能
+* 推荐技能
 
 ---
 
 ## calculateSkillScore(skill, intent, context)
 
 ```javascript
-calculateSkillScore(skill, intent, context);
+calculateSkillScore(skill, intent, context)
 ```
 
-- 计算技能评分
+* 计算技能评分
 
 ---
 
 ## selectBestSkill(recommendations, intent, context)
 
 ```javascript
-selectBestSkill(recommendations, intent, context);
+selectBestSkill(recommendations, intent, context)
 ```
 
-- 选择最佳技能
+* 选择最佳技能
 
 ---
 
@@ -115,7 +115,7 @@ selectBestSkill(recommendations, intent, context);
 async generateParams(skill, intent, context)
 ```
 
-- 生成执行参数
+* 生成执行参数
 
 ---
 
@@ -125,47 +125,47 @@ async generateParams(skill, intent, context)
 async generateParamsByLLM(skill, intent, context)
 ```
 
-- 使用LLM生成参数
+* 使用LLM生成参数
 
 ---
 
 ## learnFromExecution(userInput, skill, result)
 
 ```javascript
-learnFromExecution(userInput, skill, result);
+learnFromExecution(userInput, skill, result)
 ```
 
-- 从执行结果学习
+* 从执行结果学习
 
 ---
 
 ## getUserPreference(skillId)
 
 ```javascript
-getUserPreference(skillId);
+getUserPreference(skillId)
 ```
 
-- 获取用户偏好
+* 获取用户偏好
 
 ---
 
 ## buildIntentMapping()
 
 ```javascript
-buildIntentMapping();
+buildIntentMapping()
 ```
 
-- 构建意图-技能映射
+* 构建意图-技能映射
 
 ---
 
 ## getSkillByIntentMapping(intent)
 
 ```javascript
-getSkillByIntentMapping(intent);
+getSkillByIntentMapping(intent)
 ```
 
-- 获取意图映射的技能
+* 获取意图映射的技能
 
 ---
 
@@ -175,16 +175,17 @@ getSkillByIntentMapping(intent);
 async processBatch(userInputs, context =
 ```
 
-- 批量处理用户请求
+* 批量处理用户请求
 
 ---
 
 ## getRecommendationStats()
 
 ```javascript
-getRecommendationStats();
+getRecommendationStats()
 ```
 
-- 获取推荐统计
+* 获取推荐统计
 
 ---
+

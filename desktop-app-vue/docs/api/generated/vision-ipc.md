@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/vision-ipc.js`
 
-**Generated**: 2026-04-20T01:53:52.335Z
+**Generated**: 2026-04-20T10:46:39.832Z
 
 ---
 

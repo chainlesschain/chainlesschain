@@ -2,7 +2,7 @@
 
 **Source**: `src/main/plugins/plugin-manager.js`
 
-**Generated**: 2026-04-20T01:53:52.255Z
+**Generated**: 2026-04-20T10:46:39.750Z
 
 ---
 
@@ -50,6 +50,35 @@ registerBuiltInExtensionPoints();
 ```
 
 - 注册内置扩展点
+
+---
+
+## async loadFirstPartyPlugins()
+
+```javascript
+async loadFirstPartyPlugins()
+```
+
+* 加载 first-party 内置插件
+   *
+   * 扫描多个目录，顺序：
+   *   1. src/main/plugins-builtin/       — 应用内置默认（最低优先级）
+   *   2. 注入的 mdmExtractDir（可选）     — MDM Profile 解包目录（最高优先级）
+   *
+   * 同 id 的插件后注册者胜出；但贡献本身由 priority 决定最终生效项，
+   * 因此 Profile 里的高 priority 贡献会自动覆盖默认值。
+   *
+   * first-party 插件是受信代码，不走 DB / sandbox / permission 流程。
+
+---
+
+## setMDMExtractDir(dir)
+
+```javascript
+setMDMExtractDir(dir)
+```
+
+* 设置 MDM profile 解包目录；在 initialize() 之前调用才生效
 
 ---
 
@@ -243,6 +272,105 @@ async handleUIComponentExtension(context)
 
 ---
 
+## async handleUISpaceExtension(context)
+
+```javascript
+async handleUISpaceExtension(context)
+```
+
+* 处理 Space 扩展：注册个人空间模板
+   * config: { id, name, icon, description, ragPreset, systemPrompt, contactsGroup, permissions }
+
+---
+
+## async handleUIArtifactExtension(context)
+
+```javascript
+async handleUIArtifactExtension(context)
+```
+
+* 处理 Artifact 扩展：注册 Artifact 类型与渲染器
+   * config: { type, renderer, rendererPath, actions, icon, label }
+
+---
+
+## async handleUISlashExtension(context)
+
+```javascript
+async handleUISlashExtension(context)
+```
+
+* 处理 Slash 命令扩展：注册 / 命令
+   * config: { trigger, handler, description, icon, requirePermissions }
+
+---
+
+## async handleUIMentionExtension(context)
+
+```javascript
+async handleUIMentionExtension(context)
+```
+
+* 处理 Mention 源扩展：注册 @ 自动补全源
+   * config: { prefix, source, label, icon }
+
+---
+
+## async handleUIStatusBarExtension(context)
+
+```javascript
+async handleUIStatusBarExtension(context)
+```
+
+* 处理 StatusBar 小组件扩展
+   * config: { id, component, componentPath, position, order, tooltip }
+
+---
+
+## async handleUIHomeWidgetExtension(context)
+
+```javascript
+async handleUIHomeWidgetExtension(context)
+```
+
+* 处理 HomeWidget 扩展：Today 页卡片
+   * config: { id, component, componentPath, size, order, title }
+
+---
+
+## async handleUIComposerSlotExtension(context)
+
+```javascript
+async handleUIComposerSlotExtension(context)
+```
+
+* 处理 ComposerSlot 扩展：输入框行内槽
+   * config: { id, component, componentPath, position, order }
+
+---
+
+## async handleBrandThemeExtension(context)
+
+```javascript
+async handleBrandThemeExtension(context)
+```
+
+* 处理 brand.theme 扩展：企业主题
+   * config: { id, name, mode: "light"|"dark"|"auto", tokens: { ... }, priority }
+
+---
+
+## async handleBrandIdentityExtension(context)
+
+```javascript
+async handleBrandIdentityExtension(context)
+```
+
+* 处理 brand.identity 扩展：企业品牌标识
+   * config: { id, productName, logo, splash, eula, links, priority }
+
+---
+
 ## getRegisteredPages(pluginId = null)
 
 ```javascript
@@ -281,6 +409,56 @@ getRegisteredComponents((slot = null), (pluginId = null));
 
 ---
 
+## getRegisteredBrandThemes(pluginId = null)
+
+```javascript
+getRegisteredBrandThemes(pluginId = null)
+```
+
+* 获取全部已注册的 brand.theme 贡献（按 priority 降序）
+
+---
+
+## getActiveBrandTheme()
+
+```javascript
+getActiveBrandTheme()
+```
+
+* 获取当前激活的 brand.theme（最高 priority；后续 Profile 会显式 pin）
+
+---
+
+## getRegisteredBrandIdentities(pluginId = null)
+
+```javascript
+getRegisteredBrandIdentities(pluginId = null)
+```
+
+* 获取全部已注册的 brand.identity 贡献（按 priority 降序）
+
+---
+
+## getActiveBrandIdentity()
+
+```javascript
+getActiveBrandIdentity()
+```
+
+* 获取当前激活的 brand.identity（最高 priority）
+
+---
+
+## getRegisteredLLMProviders(pluginId = null)
+
+```javascript
+getRegisteredLLMProviders(pluginId = null)
+```
+
+* P4 能力点 getters：按 priority 降序；空列表返回 null 的 active-getter
+
+---
+
 ## unregisterPluginUI(pluginId)
 
 ```javascript
@@ -292,6 +470,61 @@ unregisterPluginUI(pluginId);
 
 ---
 
+## async handleAILLMProviderExtension(context)
+
+```javascript
+async handleAILLMProviderExtension(context)
+```
+
+* 处理 ai.llm-provider 扩展：LLM 推理后端
+   * config: { id, name, models, endpoint, priority, capabilities }
+
+---
+
+## async handleAuthProviderExtension(context)
+
+```javascript
+async handleAuthProviderExtension(context)
+```
+
+* 处理 auth.provider 扩展：认证/单点登录提供方
+   * config: { id, name, kind: "local"|"oidc"|"saml"|"ldap"|"did", endpoints, scopes, priority }
+
+---
+
+## async handleDataStorageExtension(context)
+
+```javascript
+async handleDataStorageExtension(context)
+```
+
+* 处理 data.storage 扩展：数据存储后端
+   * config: { id, name, kind: "sqlite"|"postgres"|"ipfs"|"s3"|"custom", capabilities, priority }
+
+---
+
+## async handleDataCryptoExtension(context)
+
+```javascript
+async handleDataCryptoExtension(context)
+```
+
+* 处理 data.crypto 扩展：加密服务提供方
+   * config: { id, name, algs, capabilities: { sign, encrypt, hash, pqc }, priority }
+
+---
+
+## async handleComplianceAuditExtension(context)
+
+```javascript
+async handleComplianceAuditExtension(context)
+```
+
+* 处理 compliance.audit 扩展：审计/合规输出端
+   * config: { id, name, kind: "syslog"|"file"|"splunk"|"siem"|"custom", sinks, priority }
+
+---
+
 ## async registerPluginExtensions(pluginId)
 
 ```javascript
@@ -300,6 +533,21 @@ async registerPluginExtensions(pluginId)
 
 - 注册插件的扩展点
   - @param {string} pluginId - 插件ID
+
+---
+
+## async applyExtension(pluginId, point, config, priority = 100)
+
+```javascript
+async applyExtension(pluginId, point, config, priority = 100)
+```
+
+* 应用单个扩展：调用扩展点 handler 并将其记入 extensions 数组，
+   * 以便 uiRegistry 同步更新，triggerExtensionPoint 可遍历执行。
+   * @param {string} pluginId
+   * @param {string} point - 扩展点名
+   * @param {Object} config - 扩展配置
+   * @param {number} priority
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/plugins/permission-checker.js`
 
-**Generated**: 2026-04-20T01:53:52.256Z
+**Generated**: 2026-04-20T10:46:39.751Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/did/did-manager.js`
 
-**Generated**: 2026-04-20T01:53:52.304Z
+**Generated**: 2026-04-20T10:46:39.800Z
 
 ---
 
