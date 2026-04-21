@@ -81,6 +81,7 @@ function handleKeydown(e: KeyboardEvent) {
 let appliedThemeVars: string[] = [];
 let unregisterAdminHandler: (() => void) | null = null;
 let unregisterPromptsHandler: (() => void) | null = null;
+let unregisterGitHooksHandler: (() => void) | null = null;
 
 onMounted(async () => {
   window.addEventListener("keydown", handleKeydown);
@@ -102,6 +103,16 @@ onMounted(async () => {
       }
     },
   );
+  unregisterGitHooksHandler = registerSlashHandler(
+    "builtin:openGitHooksPanel",
+    ({ args }) => {
+      if (args) {
+        antMessage.info(`Git Hooks：${args}（完整面板将在后续迭代接入）`);
+      } else {
+        antMessage.info("Git Hooks 管理面板（完整面板将在后续迭代接入）");
+      }
+    },
+  );
   await registry.refreshAll();
   appliedThemeVars = applyBrandTheme(registry.brandTheme);
   artifactStore.seedIfEmpty();
@@ -114,6 +125,8 @@ onBeforeUnmount(() => {
   unregisterAdminHandler = null;
   unregisterPromptsHandler?.();
   unregisterPromptsHandler = null;
+  unregisterGitHooksHandler?.();
+  unregisterGitHooksHandler = null;
 });
 </script>
 

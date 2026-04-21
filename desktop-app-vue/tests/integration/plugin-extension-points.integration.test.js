@@ -127,6 +127,7 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ids).toContain("ai-ollama-default");
     expect(ids).toContain("admin-console");
     expect(ids).toContain("ai-prompts");
+    expect(ids).toContain("git-hooks");
     expect(ids).toContain("acme-override");
   });
 
@@ -144,6 +145,22 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(aiWidget).toBeDefined();
     expect(aiWidget.size).toBe("medium");
     expect(aiWidget.title).toBe("AI 提示模板");
+  });
+
+  it("git-hooks 的 /git-hooks slash 命令 + GitHooksWidget home widget 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const gitHooks = slash.find((s) => s.trigger === "/git-hooks");
+    expect(gitHooks).toBeDefined();
+    expect(gitHooks.handler).toBe("builtin:openGitHooksPanel");
+    expect(gitHooks.pluginId).toBe("git-hooks");
+
+    const widgets = Array.from(pm.uiRegistry.homeWidgets.values());
+    const hooksWidget = widgets.find(
+      (w) => w.component === "builtin:GitHooksWidget",
+    );
+    expect(hooksWidget).toBeDefined();
+    expect(hooksWidget.size).toBe("medium");
+    expect(hooksWidget.title).toBe("Git Hooks");
   });
 
   it("brand.theme priority 100 覆盖默认 10", () => {

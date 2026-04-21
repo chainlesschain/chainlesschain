@@ -1,0 +1,31 @@
+{
+  "id": "git-hooks",
+  "name": "Git Hooks",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/git-hooks 斜杠命令 + Home 页 Git hooks 状态卡片（V5 GitHooksPage 的 V6 探针迁移）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "git-hooks",
+        "trigger": "/git-hooks",
+        "handler": "builtin:openGitHooksPanel",
+        "description": "打开 Git Hooks 管理面板",
+        "icon": "BranchesOutlined"
+      }
+    },
+    {
+      "point": "ui.home-widget",
+      "priority": 10,
+      "config": {
+        "id": "git-hooks-status",
+        "component": "builtin:GitHooksWidget",
+        "size": "medium",
+        "order": 30,
+        "title": "Git Hooks"
+      }
+    }
+  ]
+}

@@ -6,6 +6,8 @@
 import { registerWidgetComponent } from "../widget-registry";
 import AdminShortcut from "./AdminShortcut.vue";
 import AIPromptsWidget from "./AIPromptsWidget.vue";
+import GitHooksWidget from "./GitHooksWidget.vue";
 
 registerWidgetComponent("builtin:AdminShortcut", AdminShortcut);
 registerWidgetComponent("builtin:AIPromptsWidget", AIPromptsWidget);
+registerWidgetComponent("builtin:GitHooksWidget", GitHooksWidget);
