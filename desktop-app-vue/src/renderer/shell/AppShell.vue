@@ -38,6 +38,7 @@ import { useExtensionRegistryStore } from "../stores/extensionRegistry";
 import { useArtifactStore } from "../stores/artifacts";
 import { applyBrandTheme, clearBrandTheme } from "./theme-applier";
 import { registerSlashHandler } from "./slash-dispatch";
+import { message as antMessage } from "ant-design-vue";
 import "./widgets";
 import ShellSidebar from "./ShellSidebar.vue";
 import ConversationStream from "./ConversationStream.vue";
@@ -79,6 +80,7 @@ function handleKeydown(e: KeyboardEvent) {
 
 let appliedThemeVars: string[] = [];
 let unregisterAdminHandler: (() => void) | null = null;
+let unregisterPromptsHandler: (() => void) | null = null;
 
 onMounted(async () => {
   window.addEventListener("keydown", handleKeydown);
@@ -86,6 +88,18 @@ onMounted(async () => {
     "builtin:openAdminConsole",
     () => {
       adminOpen.value = true;
+    },
+  );
+  unregisterPromptsHandler = registerSlashHandler(
+    "builtin:openPromptsPanel",
+    ({ args }) => {
+      if (args) {
+        antMessage.info(
+          `已预填充提示：${args.slice(0, 40)}${args.length > 40 ? "…" : ""}`,
+        );
+      } else {
+        antMessage.info("AI 提示面板（完整面板将在后续迭代接入）");
+      }
     },
   );
   await registry.refreshAll();
@@ -98,6 +112,8 @@ onBeforeUnmount(() => {
   clearBrandTheme(appliedThemeVars);
   unregisterAdminHandler?.();
   unregisterAdminHandler = null;
+  unregisterPromptsHandler?.();
+  unregisterPromptsHandler = null;
 });
 </script>
 

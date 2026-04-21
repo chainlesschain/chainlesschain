@@ -126,7 +126,24 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ids).toContain("brand-default");
     expect(ids).toContain("ai-ollama-default");
     expect(ids).toContain("admin-console");
+    expect(ids).toContain("ai-prompts");
     expect(ids).toContain("acme-override");
+  });
+
+  it("ai-prompts 的 /prompts slash 命令 + AIPromptsWidget home widget 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const prompts = slash.find((s) => s.trigger === "/prompts");
+    expect(prompts).toBeDefined();
+    expect(prompts.handler).toBe("builtin:openPromptsPanel");
+    expect(prompts.pluginId).toBe("ai-prompts");
+
+    const widgets = Array.from(pm.uiRegistry.homeWidgets.values());
+    const aiWidget = widgets.find(
+      (w) => w.component === "builtin:AIPromptsWidget",
+    );
+    expect(aiWidget).toBeDefined();
+    expect(aiWidget.size).toBe("medium");
+    expect(aiWidget.title).toBe("AI 提示模板");
   });
 
   it("brand.theme priority 100 覆盖默认 10", () => {
