@@ -1,0 +1,31 @@
+{
+  "id": "enterprise-dashboard",
+  "name": "Enterprise Dashboard",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/enterprise 斜杠命令 + Home 页企业仪表盘快捷卡片（V5 EnterpriseDashboard 的 V6 探针迁移）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "enterprise-dashboard",
+        "trigger": "/enterprise",
+        "handler": "builtin:openEnterpriseDashboardPanel",
+        "description": "打开企业仪表盘",
+        "icon": "BankOutlined"
+      }
+    },
+    {
+      "point": "ui.home-widget",
+      "priority": 10,
+      "config": {
+        "id": "enterprise-quick",
+        "component": "builtin:EnterpriseDashboardWidget",
+        "size": "medium",
+        "order": 60,
+        "title": "企业仪表盘"
+      }
+    }
+  ]
+}

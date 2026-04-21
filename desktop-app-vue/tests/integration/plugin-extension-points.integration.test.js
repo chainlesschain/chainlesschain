@@ -130,6 +130,10 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ids).toContain("git-hooks");
     expect(ids).toContain("knowledge-graph");
     expect(ids).toContain("workflow-designer");
+    expect(ids).toContain("enterprise-dashboard");
+    expect(ids).toContain("cross-chain-bridge");
+    expect(ids).toContain("wallet");
+    expect(ids).toContain("analytics-dashboard");
     expect(ids).toContain("acme-override");
   });
 
@@ -195,6 +199,66 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(wfWidget).toBeDefined();
     expect(wfWidget.size).toBe("medium");
     expect(wfWidget.title).toBe("工作流");
+  });
+
+  it("enterprise-dashboard 的 /enterprise slash + EnterpriseDashboardWidget 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const ent = slash.find((s) => s.trigger === "/enterprise");
+    expect(ent).toBeDefined();
+    expect(ent.handler).toBe("builtin:openEnterpriseDashboardPanel");
+    expect(ent.pluginId).toBe("enterprise-dashboard");
+
+    const widgets = Array.from(pm.uiRegistry.homeWidgets.values());
+    const entWidget = widgets.find(
+      (w) => w.component === "builtin:EnterpriseDashboardWidget",
+    );
+    expect(entWidget).toBeDefined();
+    expect(entWidget.title).toBe("企业仪表盘");
+  });
+
+  it("cross-chain-bridge 的 /bridge slash + CrossChainBridgeWidget 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const br = slash.find((s) => s.trigger === "/bridge");
+    expect(br).toBeDefined();
+    expect(br.handler).toBe("builtin:openCrossChainBridgePanel");
+    expect(br.pluginId).toBe("cross-chain-bridge");
+
+    const widgets = Array.from(pm.uiRegistry.homeWidgets.values());
+    const brWidget = widgets.find(
+      (w) => w.component === "builtin:CrossChainBridgeWidget",
+    );
+    expect(brWidget).toBeDefined();
+    expect(brWidget.title).toBe("跨链桥");
+  });
+
+  it("wallet 的 /wallet slash + WalletWidget 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const wl = slash.find((s) => s.trigger === "/wallet");
+    expect(wl).toBeDefined();
+    expect(wl.handler).toBe("builtin:openWalletPanel");
+    expect(wl.pluginId).toBe("wallet");
+
+    const widgets = Array.from(pm.uiRegistry.homeWidgets.values());
+    const wlWidget = widgets.find(
+      (w) => w.component === "builtin:WalletWidget",
+    );
+    expect(wlWidget).toBeDefined();
+    expect(wlWidget.title).toBe("钱包");
+  });
+
+  it("analytics-dashboard 的 /analytics slash + AnalyticsDashboardWidget 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const an = slash.find((s) => s.trigger === "/analytics");
+    expect(an).toBeDefined();
+    expect(an.handler).toBe("builtin:openAnalyticsDashboardPanel");
+    expect(an.pluginId).toBe("analytics-dashboard");
+
+    const widgets = Array.from(pm.uiRegistry.homeWidgets.values());
+    const anWidget = widgets.find(
+      (w) => w.component === "builtin:AnalyticsDashboardWidget",
+    );
+    expect(anWidget).toBeDefined();
+    expect(anWidget.title).toBe("高级分析");
   });
 
   it("brand.theme priority 100 覆盖默认 10", () => {

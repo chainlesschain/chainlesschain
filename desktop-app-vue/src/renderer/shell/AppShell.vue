@@ -84,6 +84,10 @@ let unregisterPromptsHandler: (() => void) | null = null;
 let unregisterGitHooksHandler: (() => void) | null = null;
 let unregisterKnowledgeGraphHandler: (() => void) | null = null;
 let unregisterWorkflowDesignerHandler: (() => void) | null = null;
+let unregisterEnterpriseDashboardHandler: (() => void) | null = null;
+let unregisterCrossChainBridgeHandler: (() => void) | null = null;
+let unregisterWalletHandler: (() => void) | null = null;
+let unregisterAnalyticsDashboardHandler: (() => void) | null = null;
 
 onMounted(async () => {
   window.addEventListener("keydown", handleKeydown);
@@ -135,6 +139,46 @@ onMounted(async () => {
       }
     },
   );
+  unregisterEnterpriseDashboardHandler = registerSlashHandler(
+    "builtin:openEnterpriseDashboardPanel",
+    ({ args }) => {
+      if (args) {
+        antMessage.info(`企业仪表盘：${args}（完整面板将在后续迭代接入）`);
+      } else {
+        antMessage.info("企业仪表盘（完整面板将在后续迭代接入）");
+      }
+    },
+  );
+  unregisterCrossChainBridgeHandler = registerSlashHandler(
+    "builtin:openCrossChainBridgePanel",
+    ({ args }) => {
+      if (args) {
+        antMessage.info(`跨链桥：${args}（完整面板将在后续迭代接入）`);
+      } else {
+        antMessage.info("跨链桥面板（完整面板将在后续迭代接入）");
+      }
+    },
+  );
+  unregisterWalletHandler = registerSlashHandler(
+    "builtin:openWalletPanel",
+    ({ args }) => {
+      if (args) {
+        antMessage.info(`钱包：${args}（完整面板将在后续迭代接入）`);
+      } else {
+        antMessage.info("钱包面板（完整面板将在后续迭代接入）");
+      }
+    },
+  );
+  unregisterAnalyticsDashboardHandler = registerSlashHandler(
+    "builtin:openAnalyticsDashboardPanel",
+    ({ args }) => {
+      if (args) {
+        antMessage.info(`高级分析：${args}（完整面板将在后续迭代接入）`);
+      } else {
+        antMessage.info("高级分析仪表盘（完整面板将在后续迭代接入）");
+      }
+    },
+  );
   await registry.refreshAll();
   appliedThemeVars = applyBrandTheme(registry.brandTheme);
   artifactStore.seedIfEmpty();
@@ -153,6 +197,14 @@ onBeforeUnmount(() => {
   unregisterKnowledgeGraphHandler = null;
   unregisterWorkflowDesignerHandler?.();
   unregisterWorkflowDesignerHandler = null;
+  unregisterEnterpriseDashboardHandler?.();
+  unregisterEnterpriseDashboardHandler = null;
+  unregisterCrossChainBridgeHandler?.();
+  unregisterCrossChainBridgeHandler = null;
+  unregisterWalletHandler?.();
+  unregisterWalletHandler = null;
+  unregisterAnalyticsDashboardHandler?.();
+  unregisterAnalyticsDashboardHandler = null;
 });
 </script>
 

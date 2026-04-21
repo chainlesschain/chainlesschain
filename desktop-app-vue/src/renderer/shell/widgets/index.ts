@@ -9,6 +9,10 @@ import AIPromptsWidget from "./AIPromptsWidget.vue";
 import GitHooksWidget from "./GitHooksWidget.vue";
 import KnowledgeGraphWidget from "./KnowledgeGraphWidget.vue";
 import WorkflowDesignerWidget from "./WorkflowDesignerWidget.vue";
+import EnterpriseDashboardWidget from "./EnterpriseDashboardWidget.vue";
+import CrossChainBridgeWidget from "./CrossChainBridgeWidget.vue";
+import WalletWidget from "./WalletWidget.vue";
+import AnalyticsDashboardWidget from "./AnalyticsDashboardWidget.vue";
 
 registerWidgetComponent("builtin:AdminShortcut", AdminShortcut);
 registerWidgetComponent("builtin:AIPromptsWidget", AIPromptsWidget);
@@ -17,4 +21,17 @@ registerWidgetComponent("builtin:KnowledgeGraphWidget", KnowledgeGraphWidget);
 registerWidgetComponent(
   "builtin:WorkflowDesignerWidget",
   WorkflowDesignerWidget,
+);
+registerWidgetComponent(
+  "builtin:EnterpriseDashboardWidget",
+  EnterpriseDashboardWidget,
+);
+registerWidgetComponent(
+  "builtin:CrossChainBridgeWidget",
+  CrossChainBridgeWidget,
+);
+registerWidgetComponent("builtin:WalletWidget", WalletWidget);
+registerWidgetComponent(
+  "builtin:AnalyticsDashboardWidget",
+  AnalyticsDashboardWidget,
 );
