@@ -29,6 +29,10 @@
 
     <CommandPalette v-model:open="paletteOpen" />
     <AdminConsole v-model:open="adminOpen" />
+    <PromptsPanel
+      v-model:open="promptsPanelOpen"
+      :prefill-text="promptsPrefill"
+    />
   </a-layout>
 </template>
 
@@ -47,11 +51,14 @@ import ArtifactPanel from "./ArtifactPanel.vue";
 import ShellStatusBar from "./ShellStatusBar.vue";
 import CommandPalette from "./CommandPalette.vue";
 import AdminConsole from "./AdminConsole.vue";
+import PromptsPanel from "./PromptsPanel.vue";
 
 const sidebarCollapsed = ref(false);
 const artifactOpen = ref(false);
 const paletteOpen = ref(false);
 const adminOpen = ref(false);
+const promptsPanelOpen = ref(false);
+const promptsPrefill = ref("");
 
 const registry = useExtensionRegistryStore();
 const artifactStore = useArtifactStore();
@@ -100,13 +107,8 @@ onMounted(async () => {
   unregisterPromptsHandler = registerSlashHandler(
     "builtin:openPromptsPanel",
     ({ args }) => {
-      if (args) {
-        antMessage.info(
-          `已预填充提示：${args.slice(0, 40)}${args.length > 40 ? "…" : ""}`,
-        );
-      } else {
-        antMessage.info("AI 提示面板（完整面板将在后续迭代接入）");
-      }
+      promptsPrefill.value = args ?? "";
+      promptsPanelOpen.value = true;
     },
   );
   unregisterGitHooksHandler = registerSlashHandler(
