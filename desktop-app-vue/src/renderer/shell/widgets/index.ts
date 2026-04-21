@@ -8,8 +8,13 @@ import AdminShortcut from "./AdminShortcut.vue";
 import AIPromptsWidget from "./AIPromptsWidget.vue";
 import GitHooksWidget from "./GitHooksWidget.vue";
 import KnowledgeGraphWidget from "./KnowledgeGraphWidget.vue";
+import WorkflowDesignerWidget from "./WorkflowDesignerWidget.vue";
 
 registerWidgetComponent("builtin:AdminShortcut", AdminShortcut);
 registerWidgetComponent("builtin:AIPromptsWidget", AIPromptsWidget);
 registerWidgetComponent("builtin:GitHooksWidget", GitHooksWidget);
 registerWidgetComponent("builtin:KnowledgeGraphWidget", KnowledgeGraphWidget);
+registerWidgetComponent(
+  "builtin:WorkflowDesignerWidget",
+  WorkflowDesignerWidget,
+);

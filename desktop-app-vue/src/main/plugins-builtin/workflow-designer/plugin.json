@@ -1,0 +1,31 @@
+{
+  "id": "workflow-designer",
+  "name": "Workflow Designer",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/workflow 斜杠命令 + Home 页工作流设计快捷卡片（V5 WorkflowDesignerPage 的 V6 探针迁移）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "workflow-designer",
+        "trigger": "/workflow",
+        "handler": "builtin:openWorkflowDesignerPanel",
+        "description": "打开工作流设计器",
+        "icon": "PartitionOutlined"
+      }
+    },
+    {
+      "point": "ui.home-widget",
+      "priority": 10,
+      "config": {
+        "id": "workflow-quick",
+        "component": "builtin:WorkflowDesignerWidget",
+        "size": "medium",
+        "order": 50,
+        "title": "工作流"
+      }
+    }
+  ]
+}

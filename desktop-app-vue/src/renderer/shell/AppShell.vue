@@ -83,6 +83,7 @@ let unregisterAdminHandler: (() => void) | null = null;
 let unregisterPromptsHandler: (() => void) | null = null;
 let unregisterGitHooksHandler: (() => void) | null = null;
 let unregisterKnowledgeGraphHandler: (() => void) | null = null;
+let unregisterWorkflowDesignerHandler: (() => void) | null = null;
 
 onMounted(async () => {
   window.addEventListener("keydown", handleKeydown);
@@ -124,6 +125,16 @@ onMounted(async () => {
       }
     },
   );
+  unregisterWorkflowDesignerHandler = registerSlashHandler(
+    "builtin:openWorkflowDesignerPanel",
+    ({ args }) => {
+      if (args) {
+        antMessage.info(`工作流：${args}（完整设计器将在后续迭代接入）`);
+      } else {
+        antMessage.info("工作流设计器（完整设计器将在后续迭代接入）");
+      }
+    },
+  );
   await registry.refreshAll();
   appliedThemeVars = applyBrandTheme(registry.brandTheme);
   artifactStore.seedIfEmpty();
@@ -140,6 +151,8 @@ onBeforeUnmount(() => {
   unregisterGitHooksHandler = null;
   unregisterKnowledgeGraphHandler?.();
   unregisterKnowledgeGraphHandler = null;
+  unregisterWorkflowDesignerHandler?.();
+  unregisterWorkflowDesignerHandler = null;
 });
 </script>
 

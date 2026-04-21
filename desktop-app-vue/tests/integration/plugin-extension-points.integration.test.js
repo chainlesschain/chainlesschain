@@ -129,6 +129,7 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ids).toContain("ai-prompts");
     expect(ids).toContain("git-hooks");
     expect(ids).toContain("knowledge-graph");
+    expect(ids).toContain("workflow-designer");
     expect(ids).toContain("acme-override");
   });
 
@@ -178,6 +179,22 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(kgWidget).toBeDefined();
     expect(kgWidget.size).toBe("medium");
     expect(kgWidget.title).toBe("知识图谱");
+  });
+
+  it("workflow-designer 的 /workflow slash 命令 + WorkflowDesignerWidget home widget 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const wf = slash.find((s) => s.trigger === "/workflow");
+    expect(wf).toBeDefined();
+    expect(wf.handler).toBe("builtin:openWorkflowDesignerPanel");
+    expect(wf.pluginId).toBe("workflow-designer");
+
+    const widgets = Array.from(pm.uiRegistry.homeWidgets.values());
+    const wfWidget = widgets.find(
+      (w) => w.component === "builtin:WorkflowDesignerWidget",
+    );
+    expect(wfWidget).toBeDefined();
+    expect(wfWidget.size).toBe("medium");
+    expect(wfWidget.title).toBe("工作流");
   });
 
   it("brand.theme priority 100 覆盖默认 10", () => {
