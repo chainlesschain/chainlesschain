@@ -934,6 +934,18 @@ export interface ElectronAPI {
   rag: RAGAPI;
   mcp: MCPAPI;
   multimedia: MultimediaAPI;
+  config: ConfigAPI;
+}
+
+// ==================== 配置 API ====================
+
+export interface ConfigAPI {
+  getAll(): Promise<any>;
+  get(key: string): Promise<any>;
+  update(config: any): Promise<any>;
+  set(key: string, value: any): Promise<any>;
+  reset(): Promise<any>;
+  exportEnv(filePath: string): Promise<any>;
 }
 
 // ==================== 全局类型扩展 ====================
