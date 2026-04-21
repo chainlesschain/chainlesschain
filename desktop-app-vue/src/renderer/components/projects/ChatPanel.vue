@@ -1,13 +1,7 @@
 <template>
-  <div
-    class="chat-panel"
-    data-testid="chat-panel"
-  >
+  <div class="chat-panel" data-testid="chat-panel">
     <!-- 头部：上下文选择器 -->
-    <div
-      class="chat-header"
-      data-testid="chat-header"
-    >
+    <div class="chat-header" data-testid="chat-header">
       <h3 class="chat-title">
         <MessageOutlined />
         AI 助手
@@ -19,24 +13,15 @@
         button-style="solid"
         data-testid="context-mode-selector"
       >
-        <a-radio-button
-          value="project"
-          data-testid="context-mode-project"
-        >
+        <a-radio-button value="project" data-testid="context-mode-project">
           <FolderOutlined />
           项目
         </a-radio-button>
-        <a-radio-button
-          value="file"
-          data-testid="context-mode-file"
-        >
+        <a-radio-button value="file" data-testid="context-mode-file">
           <FileTextOutlined />
           文件
         </a-radio-button>
-        <a-radio-button
-          value="global"
-          data-testid="context-mode-global"
-        >
+        <a-radio-button value="global" data-testid="context-mode-global">
           <GlobalOutlined />
           全局
         </a-radio-button>
@@ -81,8 +66,8 @@
           <SystemMessage
             v-if="
               message.type === MessageType.SYSTEM ||
-                message.type === MessageType.TASK_ANALYSIS ||
-                message.type === MessageType.INTENT_RECOGNITION
+              message.type === MessageType.TASK_ANALYSIS ||
+              message.type === MessageType.INTENT_RECOGNITION
             "
             :message="message"
           />
@@ -115,10 +100,7 @@
           />
 
           <!-- 普通用户/助手消息 -->
-          <div
-            v-else
-            :class="['message-item', message.role]"
-          >
+          <div v-else :class="['message-item', message.role]">
             <div class="message-avatar">
               <UserOutlined v-if="message.role === 'user'" />
               <RobotOutlined v-else />
@@ -153,10 +135,7 @@
     </div>
 
     <!-- 输入区域 -->
-    <div
-      class="input-container"
-      data-testid="input-container"
-    >
+    <div class="input-container" data-testid="input-container">
       <div class="input-wrapper">
         <a-textarea
           v-model:value="userInput"
@@ -197,11 +176,7 @@
       </div>
 
       <!-- 上下文信息提示 -->
-      <div
-        v-if="contextInfo"
-        class="context-info"
-        data-testid="context-info"
-      >
+      <div v-if="contextInfo" class="context-info" data-testid="context-info">
         <InfoCircleOutlined />
         <span>{{ contextInfo }}</span>
       </div>
@@ -261,6 +236,11 @@ import {
   formatIntentLog,
   handleClassificationError,
 } from "../../utils/followupIntentHelper";
+import {
+  sanitizeJSONString,
+  resolveProjectOutput,
+  cleanForIPC,
+} from "./chatPanelUtils";
 
 // 配置 marked 选项
 marked.setOptions({
@@ -393,185 +373,6 @@ const clearSafeTimeout = (timerId) => {
   const index = activeTimers.value.indexOf(timerId);
   if (index > -1) {
     activeTimers.value.splice(index, 1);
-  }
-};
-
-// ============ 工具函数 ============
-
-/**
- * 清理JSON字符串中的控制字符
- * 修复 "Bad control character in string literal" 错误
- * 注意：不能转义结构性空白（换行、制表符），只移除有害的控制字符
- * @param {string} jsonString - 原始JSON字符串
- * @returns {string} 清理后的JSON字符串
- */
-const sanitizeJSONString = (jsonString) => {
-  if (!jsonString || typeof jsonString !== "string") {
-    return jsonString;
-  }
-
-  // 只移除有害的控制字符，保留换行符、制表符等JSON合法的空白字符
-  // \x00-\x08: NUL到BS（退格之前）
-  // \x0B: 垂直制表符
-  // \x0C: 换页符
-  // \x0E-\x1F: 其他控制字符（不包括 \x09=TAB, \x0A=LF, \x0D=CR）
-  // \x7F-\x9F: DEL和扩展控制字符
-  // eslint-disable-next-line no-control-regex
-  return jsonString.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, "");
-};
-
-const WINDOWS_RESERVED_FILE_NAMES = new Set([
-  "CON",
-  "PRN",
-  "AUX",
-  "NUL",
-  "COM1",
-  "COM2",
-  "COM3",
-  "COM4",
-  "COM5",
-  "COM6",
-  "COM7",
-  "COM8",
-  "COM9",
-  "LPT1",
-  "LPT2",
-  "LPT3",
-  "LPT4",
-  "LPT5",
-  "LPT6",
-  "LPT7",
-  "LPT8",
-  "LPT9",
-]);
-
-const sanitizeFileName = (rawName, fallbackName = "document") => {
-  const baseName = String(rawName || fallbackName)
-    // eslint-disable-next-line no-control-regex
-    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\.+$/, "");
-  const normalized = baseName || fallbackName;
-  const safeName = WINDOWS_RESERVED_FILE_NAMES.has(normalized.toUpperCase())
-    ? `${normalized}_file`
-    : normalized;
-  return safeName.slice(0, 120);
-};
-
-const getDirectoryPath = (targetPath) => {
-  if (!targetPath || typeof targetPath !== "string") {
-    return "";
-  }
-  const normalized = targetPath.trim();
-  const lastSlashIndex = Math.max(
-    normalized.lastIndexOf("/"),
-    normalized.lastIndexOf("\\"),
-  );
-  if (lastSlashIndex <= 0) {
-    return normalized;
-  }
-  return normalized.slice(0, lastSlashIndex);
-};
-
-const joinPath = (dirPath, fileName) => {
-  const separator = dirPath.includes("\\") ? "\\" : "/";
-  return dirPath.endsWith("/") || dirPath.endsWith("\\")
-    ? `${dirPath}${fileName}`
-    : `${dirPath}${separator}${fileName}`;
-};
-
-const resolveProjectOutput = async (
-  projectId,
-  rawBaseName,
-  extension,
-  fallbackBaseName,
-) => {
-  const project = await window.electronAPI.project.get(projectId);
-  if (!project || !project.root_path) {
-    throw new Error("无法获取项目路径，请确保项目已正确配置");
-  }
-
-  let targetDir = project.root_path;
-  try {
-    const statResult = await window.electronAPI.file.stat(targetDir);
-    if (statResult?.success && statResult.stats?.isFile) {
-      targetDir = getDirectoryPath(targetDir);
-    }
-  } catch (statError) {
-    logger.warn("[ChatPanel] 项目路径检查失败，按目录继续处理:", statError);
-  }
-
-  if (!targetDir) {
-    throw new Error("项目路径无效，无法生成输出文件");
-  }
-
-  const safeBaseName = sanitizeFileName(rawBaseName, fallbackBaseName);
-  const fileName = `${safeBaseName}.${extension}`;
-  const outputPath = joinPath(targetDir, fileName);
-
-  return { fileName, outputPath, targetDir };
-};
-
-/**
- * 清理对象，移除不可序列化的内容（用于IPC传输）
- * @param {any} obj - 要清理的对象
- * @returns {any} 清理后的对象
- */
-const cleanForIPC = (obj) => {
-  try {
-    // 使用JSON序列化来清理不可序列化的对象
-    return JSON.parse(JSON.stringify(obj));
-  } catch (error) {
-    logger.error("[ChatPanel] 清理对象失败，使用手动清理:", error);
-
-    // 如果JSON.stringify失败（可能是循环引用），手动清理
-    const seen = new WeakSet();
-
-    const clean = (value) => {
-      // 处理基本类型
-      if (value === null || typeof value !== "object") {
-        return value;
-      }
-
-      // 检测循环引用
-      if (seen.has(value)) {
-        return "[Circular]";
-      }
-
-      seen.add(value);
-
-      // 处理数组
-      if (Array.isArray(value)) {
-        return value.map((item) => clean(item));
-      }
-
-      // 处理普通对象
-      const cleaned = {};
-      for (const key in value) {
-        if (Object.prototype.hasOwnProperty.call(value, key)) {
-          const val = value[key];
-          // 跳过函数
-          if (typeof val === "function") {
-            continue;
-          }
-          // 跳过Symbol
-          if (typeof val === "symbol") {
-            continue;
-          }
-          // 跳过undefined
-          if (val === undefined) {
-            continue;
-          }
-
-          cleaned[key] = clean(val);
-        }
-      }
-
-      return cleaned;
-    };
-
-    return clean(obj);
   }
 };
 
@@ -2210,7 +2011,8 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           throw new Error(result.error || "生成PPT失败");
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         logger.error("[ChatPanel] ❌ 生成PPT文件失败:", {
           message: errorMessage,
           stack: error instanceof Error ? error.stack : undefined,
@@ -2302,7 +2104,9 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           title: rawDocumentStructure.title || "文档",
           paragraphs: (rawDocumentStructure.paragraphs || []).map((para) => ({
             text: para.content || para.text || para.heading || "",
-            heading: para.level || (typeof para.heading === "number" ? para.heading : undefined),
+            heading:
+              para.level ||
+              (typeof para.heading === "number" ? para.heading : undefined),
             alignment: para.alignment || "left",
             style: para.style || {},
             spacing: para.spacing || { after: 200 },
@@ -2360,7 +2164,8 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           throw new Error(result.error || "生成Word文档失败");
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         const errorStack = error instanceof Error ? error.stack : undefined;
         logger.error("[ChatPanel] ❌ 生成Word文件失败:", {
           message: errorMessage,
@@ -2481,7 +2286,8 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           emit("files-changed");
         }, 2000);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         logger.error("[ChatPanel] ❌ 生成Excel文件失败:", {
           message: errorMessage,
           stack: error instanceof Error ? error.stack : undefined,
@@ -2564,7 +2370,8 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           emit("files-changed");
         }, 2000);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         logger.error("[ChatPanel] ❌ 生成Markdown文件失败:", {
           message: errorMessage,
           stack: error instanceof Error ? error.stack : undefined,
