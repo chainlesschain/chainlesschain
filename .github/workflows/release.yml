@@ -49,20 +49,21 @@ jobs:
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
-      - name: Link hoisted modules for packaging
+      - name: Merge hoisted modules into nested (preserve non-hoistable deps)
         shell: cmd
         run: |
-          @REM Use directory junction (mklink /J) for instant linking instead of slow copy
-          @REM This is MUCH faster than robocopy for large node_modules directories
-          if exist "desktop-app-vue\node_modules" rmdir /s /q "desktop-app-vue\node_modules"
-          @REM Remove workspace self-referencing symlink to prevent ELOOP during packaging
+          @REM npm workspace leaves non-hoistable deps (e.g. handlebars) ONLY under
+          @REM desktop-app-vue/node_modules/. Destroying that dir and linking to root
+          @REM loses them — packaged app then fails with "Cannot find module 'handlebars'".
+          @REM Use robocopy with /XC /XN /XO to merge root hoisted deps into nested
+          @REM WITHOUT overwriting existing files (preserves conflict-resolution versions).
+          @REM Remove workspace self-referencing symlink to prevent ELOOP during packaging.
           if exist "node_modules\chainlesschain-desktop-vue" rmdir "node_modules\chainlesschain-desktop-vue"
-          mklink /J "desktop-app-vue\node_modules" "%CD%\node_modules"
-          if %ERRORLEVEL% NEQ 0 (
-            echo Junction failed, falling back to xcopy...
-            xcopy node_modules desktop-app-vue\node_modules /E /I /H /Y /Q
-          )
-          echo Hoisted modules linked to desktop-app-vue
+          robocopy node_modules desktop-app-vue\node_modules /E /XC /XN /XO /NFL /NDL /NJH /NJS /NP
+          @REM robocopy exit codes 0-7 = success, >=8 = failure
+          if %ERRORLEVEL% GEQ 8 exit /b %ERRORLEVEL%
+          echo Hoisted modules merged into desktop-app-vue (nested preserved)
+          exit /b 0
 
       - name: Package Windows
         working-directory: desktop-app-vue
@@ -114,13 +115,18 @@ jobs:
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
-      - name: Link hoisted modules for packaging
+      - name: Merge hoisted modules into nested (preserve non-hoistable deps)
         run: |
-          rm -rf desktop-app-vue/node_modules
-          # Remove workspace self-referencing symlink to prevent ELOOP during packaging
+          # npm workspace leaves non-hoistable deps (e.g. handlebars) ONLY under
+          # desktop-app-vue/node_modules/. Destroying that dir and symlinking to root
+          # loses them — packaged app then fails with "Cannot find module 'handlebars'".
+          # cp -Rn = recursive + no-clobber: merge root hoisted into nested WITHOUT
+          # overwriting existing files (preserves conflict-resolution versions).
+          # Remove workspace self-referencing symlink to prevent ELOOP during packaging.
           rm -f node_modules/chainlesschain-desktop-vue
-          ln -s "$(pwd)/node_modules" desktop-app-vue/node_modules
-          echo "Hoisted modules symlinked to desktop-app-vue"
+          mkdir -p desktop-app-vue/node_modules
+          cp -Rn node_modules/. desktop-app-vue/node_modules/
+          echo "Hoisted modules merged into desktop-app-vue (nested preserved)"
 
       - name: Package macOS (${{ matrix.arch }})
         working-directory: desktop-app-vue
@@ -177,13 +183,18 @@ jobs:
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
-      - name: Link hoisted modules for packaging
+      - name: Merge hoisted modules into nested (preserve non-hoistable deps)
         run: |
-          rm -rf desktop-app-vue/node_modules
-          # Remove workspace self-referencing symlink to prevent ELOOP during packaging
+          # npm workspace leaves non-hoistable deps (e.g. handlebars) ONLY under
+          # desktop-app-vue/node_modules/. Destroying that dir and symlinking to root
+          # loses them — packaged app then fails with "Cannot find module 'handlebars'".
+          # cp -Rn = recursive + no-clobber: merge root hoisted into nested WITHOUT
+          # overwriting existing files (preserves conflict-resolution versions).
+          # Remove workspace self-referencing symlink to prevent ELOOP during packaging.
           rm -f node_modules/chainlesschain-desktop-vue
-          ln -s "$(pwd)/node_modules" desktop-app-vue/node_modules
-          echo "Hoisted modules symlinked to desktop-app-vue"
+          mkdir -p desktop-app-vue/node_modules
+          cp -Rn node_modules/. desktop-app-vue/node_modules/
+          echo "Hoisted modules merged into desktop-app-vue (nested preserved)"
 
       - name: Package Linux
         working-directory: desktop-app-vue

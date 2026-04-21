@@ -433,44 +433,37 @@ module.exports = {
     ) => {
       console.log("Running post-copy hook...");
 
-      // 复制workspace的node_modules到打包目录
-      // 注意：即使在 CI 已经通过 junction 链接的情况下，也必须显式 xcopy。
-      // electron-packager 对 Windows junction 的遍历行为不可靠 —— 曾经在 CI 产物
-      // 中丢失 hoisted 依赖（例如 express），导致打包后的 app 启动时 require 失败。
-      // xcopy /E 会穿透 junction 实打实复制内容，保证 buildPath 自给自足。
+      // Merge workspace hoisted deps into buildPath/node_modules.
+      // npm workspaces split deps between root/node_modules (hoisted) and
+      // desktop-app-vue/node_modules (non-hoistable conflict-resolution versions,
+      // e.g. handlebars pinned to v4 while another workspace needs v5).
+      // electron-forge's own copy brings the nested tree into buildPath; we must
+      // MERGE root hoisted on top WITHOUT overwriting the nested versions, else we
+      // break version pins at runtime. fs.cpSync with force:false skips existing files.
       const rootNodeModules = path.join(ROOT_DIR, "node_modules");
       const buildNodeModules = path.join(buildPath, "node_modules");
 
-      console.log("[Packaging] Copying workspace dependencies...");
+      console.log("[Packaging] Merging workspace hoisted deps into bundle...");
       console.log(`  From: ${rootNodeModules}`);
-      console.log(`  To: ${buildNodeModules}`);
+      console.log(`  Into: ${buildNodeModules}`);
 
-      if (fs.existsSync(buildNodeModules)) {
-        console.log("[Packaging] Removing existing node_modules...");
-        fs.rmSync(buildNodeModules, { recursive: true, force: true });
+      if (!fs.existsSync(buildNodeModules)) {
+        fs.mkdirSync(buildNodeModules, { recursive: true });
       }
 
       try {
-        if (process.platform === "win32") {
-          // Windows: use xcopy (robocopy is slower for this use case)
-          execSync(
-            `xcopy "${rootNodeModules}" "${buildNodeModules}" /E /I /H /Y /Q`,
-            {
-              stdio: "inherit",
-              maxBuffer: 1024 * 1024 * 100, // 100MB buffer
-            },
-          );
-        } else {
-          // macOS/Linux: use cp -R
-          execSync(`cp -R "${rootNodeModules}" "${buildNodeModules}"`, {
-            stdio: "inherit",
-            maxBuffer: 1024 * 1024 * 100, // 100MB buffer
-          });
-        }
-        console.log("[Packaging] Workspace dependencies copied successfully");
+        // force:false = don't overwrite existing files (preserves nested resolutions)
+        // errorOnExist:false = don't throw on conflicts, just skip
+        fs.cpSync(rootNodeModules, buildNodeModules, {
+          recursive: true,
+          force: false,
+          errorOnExist: false,
+          dereference: false,
+        });
+        console.log("[Packaging] Merge complete (nested deps preserved)");
       } catch (error) {
         console.error(
-          "[Packaging] Failed to copy node_modules:",
+          "[Packaging] Failed to merge node_modules:",
           error.message,
         );
         throw error;
