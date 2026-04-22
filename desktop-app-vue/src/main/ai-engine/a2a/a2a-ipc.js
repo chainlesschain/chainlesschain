@@ -2,11 +2,23 @@
  * @module ai-engine/a2a/a2a-ipc
  * Phase 81: A2A Protocol IPC handlers (8 handlers)
  */
-const { ipcMain } = require("electron");
+const { ipcMain: electronIpcMain } = require("electron");
 const { logger } = require("../../utils/logger.js");
 
-function registerA2AIPC(deps) {
-  const { a2aEngine } = deps;
+const CHANNELS = [
+  "a2a:discover-agents",
+  "a2a:send-task",
+  "a2a:get-task-status",
+  "a2a:subscribe-updates",
+  "a2a:register-card",
+  "a2a:update-card",
+  "a2a:list-peers",
+  "a2a:negotiate-capability",
+];
+
+function registerA2AIPC(deps = {}) {
+  const { a2aEngine, ipcMain: injectedIpcMain } = deps;
+  const ipcMain = injectedIpcMain || electronIpcMain;
 
   ipcMain.handle("a2a:discover-agents", async (event, filter) => {
     try {
@@ -123,6 +135,19 @@ function registerA2AIPC(deps) {
   );
 
   logger.info("[A2A-IPC] Registered 8 A2A protocol handlers");
+  return { handlerCount: CHANNELS.length };
 }
 
-module.exports = { registerA2AIPC };
+function unregisterA2AIPC(deps = {}) {
+  const ipcMain = deps.ipcMain || electronIpcMain;
+  for (const channel of CHANNELS) {
+    try {
+      ipcMain.removeHandler(channel);
+    } catch {
+      /* Intentionally empty */
+    }
+  }
+  logger.info("[A2A-IPC] All handlers unregistered");
+}
+
+module.exports = { registerA2AIPC, unregisterA2AIPC, CHANNELS };
