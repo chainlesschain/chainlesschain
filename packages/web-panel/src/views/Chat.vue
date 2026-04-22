@@ -63,14 +63,18 @@
         <div v-for="(msg, i) in currentMessages" :key="i" class="message-row" :class="msg.role">
           <!-- Tool message -->
           <div v-if="msg.role === 'tool'" class="tool-msg">
-            <a-collapse ghost size="small">
-              <a-collapse-panel :header="`🔧 ${msg.tool} ${msg.status === 'running' ? '(执行中...)' : '✓'}`" style="border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-card);">
-                <pre style="margin: 0; font-size: 11px; color: #aaa; white-space: pre-wrap;">{{ JSON.stringify(msg.input, null, 2) }}</pre>
-                <div v-if="msg.result" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">
-                  <pre style="margin: 0; font-size: 11px; color: #52c41a; white-space: pre-wrap;">{{ typeof msg.result === 'string' ? msg.result : JSON.stringify(msg.result, null, 2) }}</pre>
-                </div>
-              </a-collapse-panel>
-            </a-collapse>
+            <ToolInvocationCard
+              :item="toToolItem(msg, i)"
+              expandable
+              :expanded="expandedTools.has(i)"
+              @toggle="toggleToolDetail(i)"
+            />
+            <div v-if="expandedTools.has(i)" class="tool-detail">
+              <pre class="tool-detail__pre tool-detail__pre--input">{{ JSON.stringify(msg.input, null, 2) }}</pre>
+              <div v-if="msg.result" class="tool-detail__result">
+                <pre class="tool-detail__pre tool-detail__pre--result">{{ typeof msg.result === 'string' ? msg.result : JSON.stringify(msg.result, null, 2) }}</pre>
+              </div>
+            </div>
           </div>
           <!-- User message -->
           <div v-else-if="msg.role === 'user'" class="user-msg">
@@ -131,12 +135,13 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { ref, reactive, computed, watch, nextTick, onMounted } from 'vue'
 import { MessageOutlined, RobotOutlined, SendOutlined, FolderOutlined, GlobalOutlined } from '@ant-design/icons-vue'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
 import { useChatStore } from '../stores/chat.js'
+import ToolInvocationCard from '../components/ToolInvocationCard.vue'
 
 const cfg = window.__CC_CONFIG__ || {}
 const isProject = computed(() => cfg.mode === 'project')
@@ -170,6 +175,33 @@ const isLoading = computed(() => chatStore.isLoading)
 
 function renderMarkdown(text) {
   try { return marked(text || '') } catch { return text || '' }
+}
+
+const expandedTools = reactive(new Set())
+
+function toggleToolDetail(index) {
+  if (expandedTools.has(index)) expandedTools.delete(index)
+  else expandedTools.add(index)
+}
+
+function toToolItem(msg, index) {
+  return {
+    id: `tool-${index}`,
+    label: msg.tool || 'unknown',
+    detail: toolDetail(msg),
+    status: msg.status === 'done' ? 'done' : 'running',
+  }
+}
+
+function toolDetail(msg) {
+  if (msg.status === 'running') {
+    const keys = msg.input && typeof msg.input === 'object' ? Object.keys(msg.input) : []
+    return keys.length ? `参数 ${keys.length} · ${keys[0]}…` : '执行中'
+  }
+  if (msg.result == null) return '完成'
+  const text = typeof msg.result === 'string' ? msg.result : JSON.stringify(msg.result)
+  const firstLine = text.split('\n')[0] || ''
+  return firstLine.length > 48 ? `${firstLine.slice(0, 48)}…` : firstLine || '完成'
 }
 
 async function newSession(type) {
@@ -229,6 +261,26 @@ onMounted(() => {
 .bubble.streaming::after { content: '▋'; animation: blink 0.7s step-start infinite; color: #1677ff; }
 @keyframes blink { 50% { opacity: 0; } }
 .tool-msg { margin: 8px 0; }
+.tool-detail {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-base);
+}
+.tool-detail__result {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+.tool-detail__pre {
+  margin: 0;
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.tool-detail__pre--input { color: #aaa; }
+.tool-detail__pre--result { color: #52c41a; }
 
 .question-card {
   background: var(--bg-card-hover);
