@@ -22,12 +22,12 @@ import { parseProviders, parseStatus, KNOWN_PROVIDERS } from '../../src/utils/pa
 // ─── Router registration ─────────────────────────────────────────────────────
 
 describe('Router registration', () => {
-  it('has exactly 23 child routes under root', async () => {
+  it('has exactly 27 child routes under root', async () => {
     const routerModule = await import('../../src/router/index.js')
     const router = routerModule.default
     const rootRoute = router.options.routes[0]
-    // 1 redirect + 25 named pages = 26 children
-    expect(rootRoute.children.length).toBe(26)
+    // 1 redirect + 26 named pages = 27 children
+    expect(rootRoute.children.length).toBe(27)
   })
 
   it('contains all expected route names', async () => {
@@ -36,11 +36,11 @@ describe('Router registration', () => {
     const rootRoute = router.options.routes[0]
     const names = rootRoute.children.map(r => r.name).filter(Boolean)
     const expected = [
-      'Dashboard', 'Chat', 'Services', 'Logs', 'Skills',
+      'Dashboard', 'Chat', 'Cowork', 'Services', 'Logs', 'Skills',
       'Providers', 'McpTools', 'Notes', 'Memory', 'Cron',
-      'Tasks', 'Security', 'P2P', 'Git', 'Projects',
+      'Workflow', 'Tasks', 'Security', 'P2P', 'Git', 'Projects',
       'Permissions', 'Wallet', 'Organization', 'Analytics',
-      'Templates', 'Backup', 'RssFeed', 'WebAuthn',
+      'Templates', 'Backup', 'RssFeed', 'WebAuthn', 'VideoEditing',
     ]
     for (const name of expected) {
       expect(names).toContain(name)
