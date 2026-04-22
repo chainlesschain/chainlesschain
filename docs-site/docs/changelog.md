@@ -3,7 +3,11 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
-## [5.0.2.43] - 2026-04-22 (MainLayout + DIDManagement SFC 拆分 · Shell 接入真实 LLM · 启动流程拆 Critical/Deferred · 重型组件懒加载)
+## [5.0.2.43 / CLI 0.156.6] - 2026-04-22 (MainLayout + DIDManagement SFC 拆分 · Shell 接入真实 LLM · 启动流程拆 Critical/Deferred · 重型组件懒加载 · CLI postinstall 跨平台)
+
+### Fixed
+
+- **CLI `postinstall` 跨平台** — `chainlesschain@0.156.5` 把 postinstall 脚本改写成跨平台 Node 实现，修复 Windows 全局安装时 `bash: not found` 导致失败的问题；`0.156.6` 为随后的打包补丁。
 
 ### Added
 
