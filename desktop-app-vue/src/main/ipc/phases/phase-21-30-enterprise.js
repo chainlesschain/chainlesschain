@@ -136,8 +136,8 @@ function registerPhases21to30({
       });
 
       registerAutonomousIPC({
-        autonomousRunner,
-        agentTaskQueue,
+        runner: autonomousRunner,
+        taskQueue: agentTaskQueue,
         mainWindow: deps.mainWindow,
       });
 
