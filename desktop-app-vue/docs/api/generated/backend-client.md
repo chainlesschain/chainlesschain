@@ -2,7 +2,7 @@
 
 **Source**: `src/main/api/backend-client.js`
 
-**Generated**: 2026-04-21T06:53:39.569Z
+**Generated**: 2026-04-22T07:31:34.525Z
 
 ---
 

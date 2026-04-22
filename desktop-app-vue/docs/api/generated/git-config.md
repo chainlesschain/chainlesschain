@@ -2,7 +2,7 @@
 
 **Source**: `src/main/git/git-config.js`
 
-**Generated**: 2026-04-21T06:53:39.547Z
+**Generated**: 2026-04-22T07:31:34.484Z
 
 ---
 

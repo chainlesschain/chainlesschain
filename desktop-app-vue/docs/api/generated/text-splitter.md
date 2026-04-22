@@ -2,7 +2,7 @@
 
 **Source**: `src/main/rag/text-splitter.js`
 
-**Generated**: 2026-04-21T06:53:39.519Z
+**Generated**: 2026-04-22T07:31:34.443Z
 
 ---
 

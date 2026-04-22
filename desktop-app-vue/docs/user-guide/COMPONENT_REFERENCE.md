@@ -1,8 +1,8 @@
 # Component Reference
 
-**Generated**: 2026-04-21T06:53:39.671Z
+**Generated**: 2026-04-22T07:31:34.653Z
 
-**Total Components**: 571
+**Total Components**: 572
 
 ---
 
@@ -3859,6 +3859,14 @@
 **File**: `src/renderer/components/editors/CodeEditor.vue`
 
 **Description**: 工具栏
+
+---
+
+## src/renderer/components/did
+
+### AutoRepublishSettingsPane
+
+**File**: `src/renderer/components/did/AutoRepublishSettingsPane.vue`
 
 ---
 
