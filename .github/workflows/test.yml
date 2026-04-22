@@ -196,6 +196,44 @@ jobs:
             desktop-app-vue/dist/
           retention-days: 7
 
+  # CLI 全局安装冒烟（验证 postinstall 在 Windows/Linux 都不炸）
+  cli-install-smoke:
+    name: CLI Global Install Smoke
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Pack CLI tarball
+        working-directory: ./packages/cli
+        shell: bash
+        run: |
+          npm pack
+          ls chainlesschain-*.tgz
+
+      - name: Global install from tarball (exercises postinstall)
+        working-directory: ./packages/cli
+        shell: bash
+        run: npm install -g ./chainlesschain-*.tgz
+
+      - name: Verify CLI executable
+        shell: bash
+        run: |
+          cc --version
+          chainlesschain --version
+
   # 数据库测试（仅 Linux，需要 SQLite）
   database-tests:
     name: Database Tests

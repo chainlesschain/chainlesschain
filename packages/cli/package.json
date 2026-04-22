@@ -1,6 +1,6 @@
 {
   "name": "chainlesschain",
-  "version": "0.156.4",
+  "version": "0.156.5",
   "description": "CLI for ChainlessChain - install, configure, and manage your personal AI management system",
   "type": "module",
   "bin": {
@@ -19,7 +19,7 @@
     "lint": "eslint src/ bin/ --ext .js",
     "format": "prettier --write \"src/**/*.js\" \"bin/**/*.js\" \"__tests__/**/*.js\"",
     "sync-skill-packs": "node --input-type=module -e \"import { generateCliPacks } from './src/lib/skill-packs/generator.js'; const r = await generateCliPacks({ force: false }); console.log('Skill packs synced:', r.generated.length, 'generated,', r.skipped.length, 'skipped');\"",
-    "postinstall": "node --input-type=module -e \"import { generateCliPacks } from './src/lib/skill-packs/generator.js'; generateCliPacks({ force: false }).catch(() => {});\" 2>/dev/null || true",
+    "postinstall": "node scripts/postinstall.mjs",
     "build:web-panel": "node scripts/build-web-panel.mjs",
     "build:web-panel:force": "node scripts/build-web-panel.mjs --force",
     "prepublishOnly": "npm run build:web-panel"
@@ -30,6 +30,7 @@
   "files": [
     "bin/",
     "src/",
+    "scripts/postinstall.mjs",
     "README.md"
   ],
   "keywords": [

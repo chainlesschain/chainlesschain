@@ -5,6 +5,20 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [CLI 0.156.5] - 2026-04-22 — Windows postinstall 跨平台修复
+
+### Fixed
+
+- **CLI postinstall 在 Windows `cmd.exe` 下失败** — 旧 `postinstall` 脚本用了 Unix-only 的 `2>/dev/null || true`（Windows cmd 把 `/dev/null` 当字面路径，且没有 `true` 命令），导致 `npm install -g chainlesschain` 以 `ELIFECYCLE` 退出，skill-packs 生成失败还会让整个安装红掉。
+- 抽出 `packages/cli/scripts/postinstall.mjs` 跨平台包装脚本：`try/catch` 吞错 + `process.exit(0)` 保底，不再依赖 shell 重定向。
+- `package.json` `files` 数组补充 `scripts/postinstall.mjs`，确保 npm tarball 里包含它。
+
+### Affected versions
+
+- 已发布的 `0.156.0` / `0.156.1` / `0.156.2` / `0.156.4` 全部受影响。Windows 用户请升级到 `0.156.5`，或在旧版本上加 `--ignore-scripts` 绕过。
+
+---
+
 ## [v5.0.2.43] - 2026-04-21 — 发布前测试回归闭环 + 533 自动文档刷新 + CLI 0.156.2
 
 ### Added
