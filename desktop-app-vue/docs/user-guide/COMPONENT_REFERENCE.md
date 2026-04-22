@@ -1,8 +1,8 @@
 # Component Reference
 
-**Generated**: 2026-04-22T07:31:34.653Z
+**Generated**: 2026-04-22T07:47:42.153Z
 
-**Total Components**: 572
+**Total Components**: 573
 
 ---
 
@@ -3863,6 +3863,14 @@
 ---
 
 ## src/renderer/components/did
+
+### MnemonicModals
+
+**File**: `src/renderer/components/did/MnemonicModals.vue`
+
+**Description**: 助记词显示模态框（新创建身份后）
+
+---
 
 ### AutoRepublishSettingsPane
 

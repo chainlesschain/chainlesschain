@@ -2,7 +2,7 @@
 
 **Source**: `src/main/conversation/conversation-ipc.js`
 
-**Generated**: 2026-04-22T07:31:34.503Z
+**Generated**: 2026-04-22T07:47:42.000Z
 
 ---
 

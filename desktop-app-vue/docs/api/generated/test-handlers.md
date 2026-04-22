@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/test-handlers.js`
 
-**Generated**: 2026-04-22T07:31:34.430Z
+**Generated**: 2026-04-22T07:47:41.924Z
 
 ---
 

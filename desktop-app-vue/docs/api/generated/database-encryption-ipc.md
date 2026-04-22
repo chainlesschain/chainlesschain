@@ -2,7 +2,7 @@
 
 **Source**: `src/main/database/database-encryption-ipc.js`
 
-**Generated**: 2026-04-22T07:31:34.499Z
+**Generated**: 2026-04-22T07:47:41.996Z
 
 ---
 
