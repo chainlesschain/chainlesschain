@@ -1,5 +1,57 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-22 增量更新（MainLayout + DIDManagement 拆分 · Shell 真 LLM 接入 · 启动流程 Critical/Deferred · 重型组件懒加载）
+
+延续 2026-04-21 的 SystemSettings / ChatPanel SFC 拆分收尾，本轮把剩余的大 SFC（MainLayout、DIDManagement）继续按功能切分，并同步完成三项"隐藏 bug 面"的根因清理：Shell 真 LLM 接入、主进程启动拆两段、重型渲染器组件懒加载。
+
+### 拆分成绩
+
+| 大文件 | 拆分前 | 拆分后 | 新增子组件 | 路径 |
+|---|---:|---:|---|---|
+| MainLayout.vue | 3203 | **1943（−39%）** | FavoriteManagerModal · HeaderBreadcrumbs · SyncStatusButton · VoiceCommandHandler · SidebarContextMenu · AppHeader | `src/renderer/components/layout/` |
+| DIDManagement.vue | 1390 | **543（−61%）** | AutoRepublishSettingsPane · MnemonicModals · IdentityDetailsModal | `src/renderer/components/did/` |
+
+### Shell 真 LLM 接入（V6 预览壳）
+
+- `ShellComposer.vue` 的 `handleSend()` 不再是占位：先走 `sendLlmChatStream()`（prompt-only，`window.electronAPI.llm.queryStream`）流式，失败回退 `sendLlmChat(payload)` 带 history 非流式；前置 `isAvailable()` 校验。
+- `ConversationStream.vue` 消息源改由 `useConversationPreviewStore` 驱动；新增 typing indicator（3 点波浪 `@keyframes shell-typing`）；移除 `did-chip` 视觉噪音。
+- Phase 3.4 软开关 **重定向目标从 `/v2` 改为 `/v6-preview`**（`resolveHomeRedirect` in `router/v6-shell-default.ts`）：勾上 `ui.useV6ShellByDefault` 后根路径直接进入 Claude-Desktop 风格预览壳，而非 V2 壳；9/9 单测已同步。
+
+### 主进程启动拆 Critical / Deferred
+
+- `bootstrapCritical()` 阶段 0-5（Hooks / 核心 / 文件 / LLM / 会话 / RAG+Git）阻塞 splash（5-55%）。
+- `bootstrapDeferred()` 阶段 6+（技能 / 工具 / 高级）splash 55-90%。
+- IPC 注册拆 `registerCriticalIPC()` + `registerDeferredIPC()`，`setupIPC` 在 `createWindow` 内仅调一次 → 根因消除：原先 phase 文件里散落 `ipcMain.handle()` 与 `ipc-guard.resetAll()` 的竞态会导致 `llm:chat` / `conversation:*` 二次注册后"无法发送消息"。
+- `CHAINLESSCHAIN_LEGACY_BOOT=1` 保留旧单阶段启动回退开关。
+
+### 重型渲染器组件懒加载
+
+5 处 `import` 改 `defineAsyncComponent`：FileEditor → MonacoEditor（~5MB），KnowledgeDetailPage → Milkdown MarkdownEditor（~1.5MB），DesignEditorPage → Fabric DesignCanvas（~1MB），ProjectDetailPage → CodeEditor / MarkdownEditor / WebDevEditor。实测 monaco 独立 chunk **3.7MB / gzip 938KB**，首屏不再强拉。
+
+### 后端服务并行轮询
+
+`BackendServiceManager.waitForServices()`：4 路服务（9101 / 9102 / 9103 / 9090）从串行 4×30s 改并行 `Promise.all`，单服务 `maxRetries=10`；`startServices()` 不再阻塞启动，触发后赋值 `this.servicesReady` 给可选 await。
+
+### 测试回归
+
+| 维度 | 命令 | 结果 |
+|---|---|---|
+| Store 全量 | `npx vitest run src/renderer/stores/__tests__/` | **600 / 600**（23 文件 · 35s） |
+| Shell + router + bootstrap | `npx vitest run src/renderer/shell src/renderer/shell-preview src/renderer/router/__tests__ tests/unit/bootstrap` | **76 / 76**（5 文件） |
+| Skill-handlers + ipc-guard + bootstrap | `npx vitest run tests/unit/ai-engine/skill-handlers.test.js tests/unit/core/ipc-guard.test.js tests/unit/bootstrap/initializer-factory.test.js` | **285 / 285** |
+| Vue 组件 | `npx vitest run tests/unit/components tests/unit/core/core-components.test.ts` | **124 / 125**（1 skip） |
+| AI + core + multi-agent | `npx vitest run tests/unit/ai/skill-tool-ipc.test.js tests/unit/core tests/unit/ai-engine/multi-agent` | **411 / 413**（2 skip） |
+| Database + enterprise + did + knowledge | `npx vitest run tests/unit/database tests/unit/enterprise tests/unit/did tests/unit/knowledge` | **1456 / 1464**（8 skip · 3 stderr 错误为预存测试脚手架问题） |
+| shell-preview（组件 / 服务 / widgets） | `npx vitest run src/renderer/shell-preview` | **51 / 51** |
+| 集成测试（mcp / canonical / coding-agent / planning-ipc / code-execution / file-ops 等 9 文件） | `npx vitest run tests/integration/...` | **98 / 104**（6 skip） |
+| Smoke build | `npm run build:renderer && npm run build:main` | ✅ 两端构建成功（renderer 6m28s） |
+| Lint（含改动文件） | `npx eslint src/renderer/components/layout src/renderer/shell ...` | **0 errors**（237 style warnings，全部 `vue/max-attributes-per-line` 类） |
+| E2E 枚举 | `npx playwright test --list` | Playwright 枚举 **1017 测试 / 163 文件**；环境健康 80% |
+
+🟢 无回归 bug 溢出；详见 [用户文档 changelog](./docs-site/docs/changelog.md) 与 [设计文档附录 C](./docs/design/桌面版UI重构_设计文档.md#附录-cv08-拆分与启动优化2026-04-22)。
+
+---
+
 ## 2026-04-21 增量更新（Phase 3.3c 闭环 + Phase 3.4 软开关 + 回归扩面）
 
 延续 2026-04-20 的 V6 预览壳 P9c 与 8 颗 V5→V6 探针，本轮把 **Phase 3.3c 的 5 个 thin store 补齐单元测试**、把 **Phase 3.4 软开关**（`/` → `/v2` opt-in）并入、并顺带修掉两个回归面暴露的遗留 bug。

@@ -84,8 +84,14 @@
         v-for="slot in rightSlots"
         :key="slot.id"
       />
-      <a-button type="primary" shape="circle" :disabled="!input.trim()">
-        <SendOutlined />
+      <a-button
+        type="primary"
+        shape="circle"
+        :loading="isGenerating"
+        :disabled="!input.trim() || isGenerating"
+        @click="handleSend"
+      >
+        <SendOutlined v-if="!isGenerating" />
       </a-button>
     </div>
   </div>
@@ -99,11 +105,21 @@ import {
   useExtensionRegistryStore,
   type SlashCommandContribution,
 } from "../stores/extensionRegistry";
+import { useConversationPreviewStore } from "../stores/conversation-preview";
+import {
+  isAvailable as isLlmAvailable,
+  sendChat as sendLlmChat,
+  sendChatStream as sendLlmChatStream,
+  streamAvailable as isStreamAvailable,
+  toBridgeMessages,
+} from "../shell-preview/services/llm-preview-bridge";
 import { dispatchSlash } from "./slash-dispatch";
 import { resolveWidgetComponent } from "./widget-registry";
 
 const registry = useExtensionRegistryStore();
 const { composerSlots, slashCommands, mentionSources } = storeToRefs(registry);
+const conversationStore = useConversationPreviewStore();
+const isGenerating = computed(() => conversationStore.isGenerating);
 
 const input = ref("");
 const slashOpen = ref(false);
@@ -157,7 +173,63 @@ function handleKeydown(e: KeyboardEvent) {
     const fired = tryDispatchFromInput();
     if (fired) {
       e.preventDefault();
+      return;
     }
+    if (input.value.trim() && !isGenerating.value) {
+      e.preventDefault();
+      handleSend();
+    }
+  }
+}
+
+async function handleSend() {
+  const text = input.value.trim();
+  if (!text || conversationStore.isGenerating) {
+    return;
+  }
+
+  const history = conversationStore.active?.messages ?? [];
+  const payload = toBridgeMessages(history, text);
+
+  conversationStore.appendMessage("user", text);
+  input.value = "";
+  slashOpen.value = false;
+  mentionOpen.value = false;
+
+  conversationStore.setGenerating(true);
+  try {
+    const available = await isLlmAvailable();
+    if (!available) {
+      conversationStore.appendAssistantMessage(
+        "LLM 服务不可用，请检查 LLM 配置（设置 → LLM）。",
+      );
+      return;
+    }
+
+    if (isStreamAvailable()) {
+      const streamId = conversationStore.beginStreamingAssistant();
+      if (streamId) {
+        const result = await sendLlmChatStream(text, (liveText) => {
+          conversationStore.updateAssistantContent(streamId, liveText);
+        });
+        if (result.ok === true) {
+          conversationStore.finalizeStreamingAssistant(streamId, result.reply);
+          return;
+        }
+        conversationStore.removeMessage(streamId);
+      }
+    }
+
+    const result = await sendLlmChat(payload);
+    if (result.ok === true) {
+      conversationStore.appendAssistantMessage(result.reply);
+    } else {
+      conversationStore.appendAssistantMessage(
+        `LLM 调用失败：${result.reason}`,
+      );
+    }
+  } finally {
+    conversationStore.setGenerating(false);
   }
 }
 

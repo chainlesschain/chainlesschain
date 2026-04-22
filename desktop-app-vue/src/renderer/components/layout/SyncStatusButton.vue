@@ -1,10 +1,6 @@
 <template>
   <a-tooltip :title="syncTooltip">
-    <a-button
-      type="text"
-      :loading="isSyncing"
-      @click="handleSyncClick"
-    >
+    <a-button type="text" :loading="isSyncing" @click="handleSyncClick">
       <template v-if="!isSyncing">
         <SyncOutlined
           v-if="syncStatus === 'synced'"
@@ -14,10 +10,7 @@
           v-else-if="syncStatus === 'error'"
           :style="{ color: '#ff4d4f' }"
         />
-        <CloudSyncOutlined
-          v-else
-          :style="{ color: '#1890ff' }"
-        />
+        <CloudSyncOutlined v-else :style="{ color: '#1890ff' }" />
       </template>
     </a-button>
   </a-tooltip>

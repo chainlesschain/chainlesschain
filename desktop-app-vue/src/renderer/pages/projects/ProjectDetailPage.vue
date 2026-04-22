@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="project-detail-page-wrapper"
-    data-testid="project-detail-wrapper"
-  >
+  <div class="project-detail-page-wrapper" data-testid="project-detail-wrapper">
     <!-- 性能监控面板（开发环境） -->
     <PerformanceMonitor v-if="isDevelopment" />
 
@@ -13,22 +10,12 @@
     <ProjectSidebar />
 
     <!-- 主内容区 -->
-    <div
-      class="project-detail-page"
-      data-testid="project-detail-page"
-    >
+    <div class="project-detail-page" data-testid="project-detail-page">
       <!-- 顶部工具栏 - 使用FadeSlide过渡 -->
-      <FadeSlide
-        direction="down"
-        :duration="300"
-        appear
-      >
+      <FadeSlide direction="down" :duration="300" appear>
         <div class="toolbar">
           <!-- 左侧：面包屑导航 -->
-          <div
-            class="toolbar-left"
-            data-testid="toolbar-breadcrumb"
-          >
+          <div class="toolbar-left" data-testid="toolbar-breadcrumb">
             <a-breadcrumb>
               <a-breadcrumb-item>
                 <a
@@ -49,10 +36,7 @@
           </div>
 
           <!-- 中间：视图模式切换 -->
-          <div
-            v-if="currentFile"
-            class="toolbar-center"
-          >
+          <div v-if="currentFile" class="toolbar-center">
             <a-radio-group
               v-model:value="viewMode"
               button-style="solid"
@@ -124,43 +108,25 @@
                 <DownOutlined />
               </a-button>
               <template #overlay>
-                <a-menu
-                  data-testid="git-actions-menu"
-                  @click="handleGitAction"
-                >
-                  <a-menu-item
-                    key="status"
-                    data-testid="git-status-item"
-                  >
+                <a-menu data-testid="git-actions-menu" @click="handleGitAction">
+                  <a-menu-item key="status" data-testid="git-status-item">
                     <InfoCircleOutlined />
                     查看状态
                   </a-menu-item>
-                  <a-menu-item
-                    key="history"
-                    data-testid="git-history-item"
-                  >
+                  <a-menu-item key="history" data-testid="git-history-item">
                     <HistoryOutlined />
                     提交历史
                   </a-menu-item>
                   <a-menu-divider />
-                  <a-menu-item
-                    key="commit"
-                    data-testid="git-commit-item"
-                  >
+                  <a-menu-item key="commit" data-testid="git-commit-item">
                     <CheckOutlined />
                     提交更改
                   </a-menu-item>
-                  <a-menu-item
-                    key="push"
-                    data-testid="git-push-item"
-                  >
+                  <a-menu-item key="push" data-testid="git-push-item">
                     <CloudUploadOutlined />
                     推送到远程
                   </a-menu-item>
-                  <a-menu-item
-                    key="pull"
-                    data-testid="git-pull-item"
-                  >
+                  <a-menu-item key="pull" data-testid="git-pull-item">
                     <CloudDownloadOutlined />
                     拉取最新
                   </a-menu-item>
@@ -181,10 +147,7 @@
             </a-button>
 
             <!-- 关闭按钮 -->
-            <a-button
-              data-testid="close-button"
-              @click="handleBackToList"
-            >
+            <a-button data-testid="close-button" @click="handleBackToList">
               <CloseOutlined />
               关闭
             </a-button>
@@ -209,10 +172,7 @@
             :rows="8"
             style="flex: 1; margin-right: 16px"
           />
-          <SkeletonLoader
-            type="editor"
-            style="width: 600px"
-          />
+          <SkeletonLoader type="editor" style="width: 600px" />
         </div>
       </div>
 
@@ -250,10 +210,7 @@
           :style="{ width: fileExplorerWidth + 'px' }"
           data-testid="file-explorer-panel"
         >
-          <div
-            class="sidebar-header"
-            data-testid="file-explorer-header"
-          >
+          <div class="sidebar-header" data-testid="file-explorer-header">
             <h3>
               <FolderOutlined />
               项目文件
@@ -282,10 +239,7 @@
             </a-button>
           </div>
 
-          <div
-            class="sidebar-content"
-            data-testid="file-tree-container"
-          >
+          <div class="sidebar-content" data-testid="file-tree-container">
             <!-- 动态组件：根据useVirtualFileTree切换 -->
             <component
               :is="useVirtualFileTree ? VirtualFileTree : EnhancedFileTree"
@@ -446,10 +400,7 @@
           />
 
           <!-- 空状态 -->
-          <div
-            v-else
-            class="empty-editor"
-          >
+          <div v-else class="empty-editor">
             <div class="empty-icon">
               <FileTextOutlined />
             </div>
@@ -460,18 +411,12 @@
       </div>
 
       <!-- 错误状态 -->
-      <div
-        v-else
-        class="error-container"
-      >
+      <div v-else class="error-container">
         <div class="error-icon">
           <ExclamationCircleOutlined />
         </div>
         <h3>项目不存在或已删除</h3>
-        <a-button
-          type="primary"
-          @click="handleBackToList"
-        >
+        <a-button type="primary" @click="handleBackToList">
           返回项目列表
         </a-button>
       </div>
@@ -503,10 +448,7 @@
         @ok="handleConfirmCommit"
       >
         <a-form layout="vertical">
-          <a-form-item
-            label="提交信息"
-            required
-          >
+          <a-form-item label="提交信息" required>
             <a-textarea
               v-model:value="commitMessage"
               placeholder="输入提交信息..."
@@ -582,12 +524,19 @@ import {
 import EnhancedFileTree from "@/components/projects/EnhancedFileTree.vue";
 import VirtualFileTree from "@/components/projects/VirtualFileTree.vue";
 import SimpleEditor from "@/components/projects/SimpleEditor.vue";
-import CodeEditor from "@/components/editors/CodeEditor.vue";
-import MarkdownEditor from "@/components/editors/MarkdownEditor.vue";
-import WebDevEditor from "@/components/editors/WebDevEditor.vue";
 import PreviewPanel from "@/components/projects/PreviewPanel.vue";
 
 // 懒加载重型编辑器（优化：减少初始包大小约40%）
+// CodeEditor/MarkdownEditor/WebDevEditor 拉 monaco-editor（~5MB），仅在实际打开代码/markdown 文件时才加载
+const CodeEditor = defineAsyncComponent(
+  () => import("@/components/editors/CodeEditor.vue"),
+);
+const MarkdownEditor = defineAsyncComponent(
+  () => import("@/components/editors/MarkdownEditor.vue"),
+);
+const WebDevEditor = defineAsyncComponent(
+  () => import("@/components/editors/WebDevEditor.vue"),
+);
 const ExcelEditor = defineAsyncComponent(
   () => import("@/components/editors/ExcelEditor.vue"),
 );

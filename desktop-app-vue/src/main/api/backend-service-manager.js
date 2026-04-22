@@ -29,6 +29,8 @@ class BackendServiceManager {
       "scripts",
       "stop-backend-services.bat",
     );
+    // 异步就绪 Promise：调用方可选择 await
+    this.servicesReady = Promise.resolve();
 
     // 确保目录存在
     this.ensureDirectories();
@@ -86,6 +88,8 @@ class BackendServiceManager {
 
   /**
    * 启动所有后端服务
+   * 注：本方法只负责触发启动，**不阻塞**等待服务完全就绪。
+   * 若调用方需要确认服务就绪，可 await this.servicesReady。
    */
   async startServices() {
     // 开发环境下不启动后端服务（假设使用 Docker）
@@ -96,6 +100,7 @@ class BackendServiceManager {
       logger.info(
         "[Backend Services] Please ensure Docker services are running (docker-compose up)",
       );
+      this.servicesReady = Promise.resolve();
       return;
     }
 
@@ -155,10 +160,13 @@ class BackendServiceManager {
 
       this.services.set("startup", startProcess);
 
-      // 等待服务启动
-      await this.waitForServices();
+      // 后台等待服务就绪（不阻塞启动流程）
+      this.servicesReady = this.waitForServices().catch((err) => {
+        logger.error("[Backend Services] waitForServices error:", err);
+      });
     } catch (error) {
       logger.error("[Backend Services] Error starting services:", error);
+      this.servicesReady = Promise.resolve();
     }
   }
 
@@ -188,7 +196,8 @@ class BackendServiceManager {
   }
 
   /**
-   * 等待服务启动完成
+   * 等待服务启动完成（4 个服务**并行**轮询）
+   * 单个服务最多等待 maxRetries * retryDelay 毫秒，4 个服务总耗时 = 最慢的那一个
    */
   async waitForServices() {
     const services = [
@@ -198,31 +207,26 @@ class BackendServiceManager {
       { name: "Project Service", port: 9090 },
     ];
 
-    const maxRetries = 30; // 最多等待30秒
-    const retryDelay = 1000; // 每次重试间隔1秒
+    const maxRetries = 10; // 单服务最多等待 10 秒（原先 30 秒）
+    const retryDelay = 1000;
 
-    for (const service of services) {
-      let retries = 0;
-      let isRunning = false;
-
-      while (retries < maxRetries && !isRunning) {
-        isRunning = await this.checkService(service.name, service.port);
-        if (!isRunning) {
-          await new Promise((resolve) => setTimeout(resolve, retryDelay));
-          retries++;
+    const waitOne = async (service) => {
+      for (let retries = 0; retries < maxRetries; retries++) {
+        if (await this.checkService(service.name, service.port)) {
+          logger.info(
+            `[Backend Services] ✓ ${service.name} is ready (port ${service.port})`,
+          );
+          return { name: service.name, ok: true };
         }
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
       }
+      logger.warn(
+        `[Backend Services] ✗ ${service.name} failed to start (port ${service.port})`,
+      );
+      return { name: service.name, ok: false };
+    };
 
-      if (isRunning) {
-        logger.info(
-          `[Backend Services] ✓ ${service.name} is ready (port ${service.port})`,
-        );
-      } else {
-        logger.warn(
-          `[Backend Services] ✗ ${service.name} failed to start (port ${service.port})`,
-        );
-      }
-    }
+    return Promise.all(services.map(waitOne));
   }
 
   /**

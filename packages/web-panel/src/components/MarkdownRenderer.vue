@@ -4,24 +4,10 @@
 
 <script setup>
 import { computed } from 'vue'
-import { marked } from 'marked'
-import hljs from 'highlight.js'
-import 'highlight.js/styles/github-dark.css'
-
-marked.setOptions({
-  highlight: (code, lang) => {
-    if (lang && hljs.getLanguage(lang)) {
-      return hljs.highlight(code, { language: lang }).value
-    }
-    return hljs.highlightAuto(code).value
-  },
-  breaks: true
-})
+import { renderMarkdown } from '../utils/markdown.js'
 
 const props = defineProps({ content: { type: String, default: '' } })
-const rendered = computed(() => {
-  try { return marked(props.content) } catch { return props.content }
-})
+const rendered = computed(() => renderMarkdown(props.content || ''))
 </script>
 
 <style scoped>

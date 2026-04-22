@@ -3,23 +3,10 @@
     <!-- 编辑器头部 -->
     <div class="editor-header">
       <div class="header-left">
-        <component
-          :is="fileIcon"
-          class="file-icon"
-        />
+        <component :is="fileIcon" class="file-icon" />
         <span class="file-name">{{ file.file_name }}</span>
-        <a-tag
-          v-if="hasChanges"
-          color="orange"
-          size="small"
-        >
-          未保存
-        </a-tag>
-        <a-tag
-          v-if="saving"
-          color="blue"
-          size="small"
-        >
+        <a-tag v-if="hasChanges" color="orange" size="small"> 未保存 </a-tag>
+        <a-tag v-if="saving" color="blue" size="small">
           <LoadingOutlined />
           保存中...
         </a-tag>
@@ -47,11 +34,7 @@
         </a-tooltip>
 
         <a-tooltip title="刷新">
-          <a-button
-            type="text"
-            size="small"
-            @click="handleRefresh"
-          >
+          <a-button type="text" size="small" @click="handleRefresh">
             <ReloadOutlined />
           </a-button>
         </a-tooltip>
@@ -83,10 +66,7 @@
       </div>
 
       <div class="footer-right">
-        <span
-          v-if="lastSaved"
-          class="status-item"
-        >
+        <span v-if="lastSaved" class="status-item">
           上次保存: {{ lastSaved }}
         </span>
       </div>
@@ -97,7 +77,7 @@
 <script setup>
 import { logger } from "@/utils/logger";
 
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, defineAsyncComponent } from "vue";
 import { message } from "ant-design-vue";
 import {
   SaveOutlined,
@@ -110,7 +90,8 @@ import {
 } from "@ant-design/icons-vue";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
-import MonacoEditor from "./MonacoEditor.vue";
+// monaco-editor（~5MB）只在 FileEditor 真正渲染时加载
+const MonacoEditor = defineAsyncComponent(() => import("./MonacoEditor.vue"));
 
 const props = defineProps({
   file: {

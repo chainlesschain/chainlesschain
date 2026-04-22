@@ -56,7 +56,7 @@ class SettingsManager extends EventEmitter {
 
       // 界面/外壳设置（V5 经典壳为默认，V6 壳为可选）
       ui: {
-        useV6ShellByDefault: false,
+        useV6ShellByDefault: true,
       },
 
       // 编辑器设置

@@ -3,7 +3,96 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
-## [5.0.2.43 / CLI 0.156.2] - 2026-04-21 (发布前测试回归闭环 + 533 自动文档刷新)
+## [5.0.2.43] - 2026-04-22 (MainLayout + DIDManagement SFC 拆分 · Shell 接入真实 LLM · 启动流程拆 Critical/Deferred · 重型组件懒加载)
+
+### Added
+
+- **MainLayout.vue 六级拆分** — 把原 3203 行桌面壳按功能切成 6 个独立 SFC，累计 **3203 → 1943 行（−39%）**：
+  - `FavoriteManagerModal.vue`（151 行） — "管理快捷访问" 弹窗，Favorites / Recents Tab。
+  - `HeaderBreadcrumbs.vue`（170 行） — 135 行 `breadcrumbs` computed（7 路由前缀分支），router.push 点击处理。
+  - `SyncStatusButton.vue`（97 行） — 全局同步状态按钮，自管 `isSyncing` / `syncStatus` / `syncError` + 3 个事件监听。
+  - `VoiceCommandHandler.vue`（584 行） — `VoiceFeedbackWidget` + 75 条语音命令模式表 + 7 个语音识别/转发 handler。
+  - `SidebarContextMenu.vue`（97 行） — 侧边栏右键菜单，`show(event, item)` 命令式暴露，14 个调用点不变。
+  - `AppHeader.vue`（210 行） — `<a-layout-header>` 整块（侧栏切换 / 面包屑 / Ctrl+K / 同步 / AI / 语言 / 通知 / 用户菜单）。
+- **DIDManagement.vue 三级拆分** — 把原 1390 行组件切成 3 个子组件，累计 **1390 → 543 行（−61%）**：
+  - `AutoRepublishSettingsPane.vue`（148 行） — 自动重发布设置弹窗 + 状态轮询。
+  - `MnemonicModals.vue`（308 行） — 助记词展示 + 导出两个弹窗合一，`defineExpose({showDisplay, triggerExport})` 命令式 API。
+  - `IdentityDetailsModal.vue`（约 421 行） — 身份详情 / DID Document / QR 三个弹窗合一 + DHT publish/unpublish。
+- **Shell 接入真实 LLM** — V6 预览壳 ShellComposer 真正可发消息：
+  - `handleSend()` 接入 `llm-preview-bridge`：优先 `sendChatStream` (prompt-only) 走 `queryStream` 流式；失败回退 `sendChat` (带 history) 非流式。
+  - ConversationStream 新增 typing indicator（3 点波浪），无 DID chip 视觉噪音。
+  - 开发基于现有 `useConversationPreviewStore`：`beginStreamingAssistant` / `updateAssistantContent` / `finalizeStreamingAssistant` / `removeMessage`。
+- **主进程启动拆 Critical / Deferred** — `bootstrap` 按阶段分两段，`main/index.js` 改走 fast-start：
+  - `bootstrapCritical()` 仅跑阶段 0-5（Hooks / 核心 / 文件 / LLM / 会话 / RAG+Git），splash 5-55%。
+  - `bootstrapDeferred()` 跑阶段 6+，splash 55-90%。
+  - IPC 注册拆 `registerCriticalIPC()` + `registerDeferredIPC()`，setupIPC 在 `createWindow` 内仅调用一次（避免 `llm:chat` / `conversation:*` 二次注册与 ipc-guard 竞态）。
+  - `CHAINLESSCHAIN_LEGACY_BOOT=1` 保留旧单阶段启动回退开关。
+- **重型渲染器组件懒加载** — 5 个重型编辑器改 `defineAsyncComponent`：
+  - `FileEditor.vue` → Monaco（~5MB）。
+  - `KnowledgeDetailPage.vue` → Milkdown MarkdownEditor（~1.5MB）。
+  - `DesignEditorPage.vue` → Fabric.js DesignCanvas（~1MB）。
+  - `ProjectDetailPage.vue` → CodeEditor / MarkdownEditor / WebDevEditor 一次三件（共 ~5MB）。
+  - 实测 monaco 独立 chunk 3.7MB / gzip 938KB，首屏不再强拉。
+- **后端服务并行轮询** — `BackendServiceManager`：
+  - 4 个服务改并行轮询（原串行 4×30s），单服务最多 10s，新增 `servicesReady` Promise 供调用方 await。
+  - `startServices()` 不再阻塞启动，触发后即返回。
+
+### Changed
+
+- **Phase 3.4 软开关重定向目标：`/v2` → `/v6-preview`** — `router/v6-shell-default.ts::resolveHomeRedirect` 的 opt-in 目标由 `/v2` 改为 `/v6-preview`（Claude-Desktop 风格预览壳），让默认开启场景直接进入真实可用的新壳；同步 9/9 单测 + JSDoc 注释已对齐。
+- `SyncStatusButton` 取消 prettier 多行格式，紧跟项目样式规范。
+- `components.d.ts` 自动生成文件分号风格对齐。
+
+### Verified
+
+- Store 测试 **600/600** 绿（23 文件，35s）。
+- Shell + router + bootstrap 定向测试 **76/76** 绿（5 文件）。
+- Skill-handlers + ipc-guard + bootstrap **285/285** 绿。
+- Vue 组件测试 **124/125（1 skip）**。
+- AI + core + multi-agent 单元测试 **411/413（2 skip）**。
+- Database + enterprise + did + knowledge 单元测试 **1456/1464（8 skip）**（3 stderr 错误是预存在的测试脚手架 `no such table: skills` / `pubsub.addEventListener`，非本次引入）。
+- shell-preview 组件/服务/widgets **51/51** 绿。
+- 集成测试（mcp / canonical-tool / canonical-workflow / code-execution / file-ops / plugin-ext / coding-agent-hosted-tools / planning-ipc / lifecycle）**98/104（6 skip）**。
+- Smoke：`vite build` + `build:main` 均成功；`eslint` 0 errors。
+- E2E：playwright 1017 测试 / 163 文件全部可枚举；环境健康检查 80%。
+
+---
+
+## [5.0.2.43 / CLI 0.156.4] - 2026-04-21（下午）(SystemSettings / ChatPanel SFC 拆分 + CI/Release 修复)
+
+### Added
+
+- **SystemSettings.vue 六级 Pane 拆分** — 把原 3444 行单文件按功能切成 6 个独立 SFC：
+  - `P2PNetworkPane.vue`（830 行） — 流量层 / WebRTC / NAT / Circuit Relay / 网络诊断
+  - `SpeechRecognitionPane.vue`（421 行） — Web Speech / Whisper API / Whisper Local / 音频处理
+  - `LLMPane.vue`（622 行） — 7 个 Provider 表单 + 对话/嵌入连通性测试
+  - `DatabasePane.vue`（约 280 行，自包含） — db 位置 / 迁移 / 备份管理
+  - `ProjectPane.vue`（74 行） — 项目根路径设置
+  - `PerformancePane.vue`（62 行） — 硬件加速 / GPU / 内存 / 缓存滑块
+  - 统一采用 `defineModel('config')` + `v-model:config` 模式，子组件可直接改嵌套 `config.*.*` 路径；最终 SystemSettings.vue **3444 → 1070 行（−69%）**。
+- **ChatPanel.vue 两级外提** — 从 4057 行组件抽出两个可复用模块：
+  - `chatPanelUtils.js` — 7 个纯工具（`sanitizeJSONString` / `sanitizeFileName` / `getDirectoryPath` / `joinPath` / `resolveProjectOutput` / `cleanForIPC` + `WINDOWS_RESERVED_FILE_NAMES`）。
+  - `composables/useMemoryLeakGuard.js` — 封装 `activeTimers` / `activeListeners` + `safeSetTimeout` / `safeRegisterListener` + 自动 `onUnmounted` 清理；对任何跟踪 `electronAPI.*.on` 监听器的组件都可复用。
+  - ChatPanel.vue **4057 → 3788 行（−269）**。
+- **CLI 0.156.2 → 0.156.4** — 0.156.3 已被 npm 占用，跳到 0.156.4 再发布。
+
+### Changed
+
+- 三站 CLI 版本号统一刷新：用户文档 tagline / 官网首页 chip / 设计站 tagline 全部 `0.156.2` → `0.156.4`。
+- 设计站 tagline 修正历史遗留 `v5.0.2.34 / CLI 0.156.0` 为 `v5.0.2.43 / CLI 0.156.4`。
+
+### Fixed
+
+- **CI/Release 打包链** — 多个 commit 修 release 产物：
+  - `rsync --ignore-existing` 替代 `cp -Rn` 做 node_modules 合并。
+  - 跨 workspace 安装平台专属 rollup 原生 binary（E2E workflow）。
+  - 重写 `@chainlesschain/*` workspace symlink 为绝对路径，避免打包后链接指空。
+  - `xcopy` 永远把 hoisted `node_modules` 拷进发布包。
+  - CLI publish 在 npm 已有同版本时跳过（避免 409）。
+
+---
+
+## [5.0.2.43 / CLI 0.156.2] - 2026-04-21（上午）(发布前测试回归闭环 + 533 自动文档刷新)
 
 ### Added
 

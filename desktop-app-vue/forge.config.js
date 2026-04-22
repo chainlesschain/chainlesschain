@@ -286,11 +286,30 @@ module.exports = {
       /node_modules\/.*\/\.github\//,
       /node_modules\/.*\/\.vscode\//,
 
+      // 运行时不需要的类型声明和文档（节省 10-30 MB）
+      /node_modules\/.*\.d\.ts$/,
+      /node_modules\/.*\/CHANGELOG(\.md)?$/i,
+      /node_modules\/.*\/HISTORY(\.md)?$/i,
+      /node_modules\/.*\/AUTHORS$/i,
+      /node_modules\/.*\/CONTRIBUTING(\.md)?$/i,
+      /node_modules\/.*\/\.editorconfig$/,
+      /node_modules\/.*\/\.eslintrc(\..+)?$/,
+      /node_modules\/.*\/\.prettierrc(\..+)?$/,
+      /node_modules\/.*\/tsconfig(\..+)?\.json$/,
+      /node_modules\/.*\/\.nycrc$/,
+      /node_modules\/.*\/\.travis\.yml$/,
+      /node_modules\/.*\/appveyor\.yml$/i,
+      /node_modules\/.*\/yarn\.lock$/,
+
       // Native SQLite modules — packaged app uses sql.js (pure JS/WASM) for
       // cross-platform compatibility. Excluding .node binaries avoids ABI mismatch
       // errors on macOS (older versions / different architectures) and reduces bundle size.
       /node_modules\/better-sqlite3[^/]*\/build\//,
       /node_modules\/better-sqlite3[^/]*\/prebuilds\//,
+
+      // Playwright-core：只打包当前平台的浏览器
+      // playwright 浏览器安装到 ~/.cache/ms-playwright，不进包；但仍去除 driver 冗余
+      /node_modules\/playwright-core\/.local-browsers\//,
 
       // 源码映射
       /\.map$/,
@@ -522,6 +541,104 @@ module.exports = {
       console.log(
         `[Packaging] Verified ${declaredDeps.length} declared deps are present in bundle`,
       );
+
+      // ==========================================================
+      // 跨平台二进制瘦身：删除当前打包平台/架构之外的原生预构建文件。
+      // 一次节省 80-200 MB（sharp/@img、ffmpeg-installer、ffprobe-installer）。
+      // ==========================================================
+      try {
+        const keepPlatform = platform; // "win32" | "darwin" | "linux"
+        const keepArch = arch; // "x64" | "arm64"
+        const pruneForeignBinaries = (
+          dir,
+          { platformKeys, currentPlatformArch },
+        ) => {
+          if (!fs.existsSync(dir)) return 0;
+          let freed = 0;
+          for (const name of fs.readdirSync(dir)) {
+            const full = path.join(dir, name);
+            let stat;
+            try {
+              stat = fs.lstatSync(full);
+            } catch {
+              continue;
+            }
+            if (!stat.isDirectory()) continue;
+            const lower = name.toLowerCase();
+            const matchesSomePlatform = platformKeys.some((p) =>
+              lower.includes(p),
+            );
+            if (matchesSomePlatform && !lower.includes(currentPlatformArch)) {
+              try {
+                fs.rmSync(full, { recursive: true, force: true });
+                freed++;
+              } catch {
+                // 忽略个别文件夹删除失败
+              }
+            }
+          }
+          return freed;
+        };
+
+        const currentKey = `${keepPlatform}-${keepArch}`;
+        const platformKeys = [
+          "win32",
+          "darwin",
+          "linux",
+          "linuxmusl",
+          "freebsd",
+        ];
+
+        // sharp v0.33+ 拆成独立的 @img/sharp-<platform>-<arch> 模块
+        const imgScopeDir = path.join(buildNodeModules, "@img");
+        if (fs.existsSync(imgScopeDir)) {
+          const freed = pruneForeignBinaries(imgScopeDir, {
+            platformKeys,
+            currentPlatformArch: currentKey.replace("darwin", "darwin"),
+          });
+          if (freed > 0) {
+            console.log(
+              `[Packaging] Pruned ${freed} foreign @img/sharp-* binaries`,
+            );
+          }
+        }
+
+        // @ffmpeg-installer/<platform>-<arch>
+        const ffmpegScopeDir = path.join(buildNodeModules, "@ffmpeg-installer");
+        if (fs.existsSync(ffmpegScopeDir)) {
+          const freed = pruneForeignBinaries(ffmpegScopeDir, {
+            platformKeys,
+            currentPlatformArch: currentKey,
+          });
+          if (freed > 0) {
+            console.log(
+              `[Packaging] Pruned ${freed} foreign @ffmpeg-installer binaries`,
+            );
+          }
+        }
+
+        // @ffprobe-installer/<platform>-<arch>
+        const ffprobeScopeDir = path.join(
+          buildNodeModules,
+          "@ffprobe-installer",
+        );
+        if (fs.existsSync(ffprobeScopeDir)) {
+          const freed = pruneForeignBinaries(ffprobeScopeDir, {
+            platformKeys,
+            currentPlatformArch: currentKey,
+          });
+          if (freed > 0) {
+            console.log(
+              `[Packaging] Pruned ${freed} foreign @ffprobe-installer binaries`,
+            );
+          }
+        }
+      } catch (error) {
+        console.warn(
+          "[Packaging] Foreign-binary prune failed (non-fatal):",
+          error.message,
+        );
+      }
 
       // 创建必要的目录结构
       const dataDir = path.join(buildPath, "..", "..", "data");

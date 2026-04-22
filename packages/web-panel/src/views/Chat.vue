@@ -83,14 +83,14 @@
           <!-- Assistant message -->
           <div v-else class="assistant-msg">
             <div class="avatar">AI</div>
-            <div class="bubble assistant" v-html="renderMarkdown(msg.content)"></div>
+            <MarkdownRenderer class="bubble assistant" :content="msg.content" />
           </div>
         </div>
 
         <!-- Streaming indicator -->
         <div v-if="streamingContent" class="assistant-msg">
           <div class="avatar">AI</div>
-          <div class="bubble assistant streaming" v-html="renderMarkdown(streamingContent)"></div>
+          <MarkdownRenderer class="bubble assistant streaming" :content="streamingContent" />
         </div>
 
         <!-- Interactive Question -->
@@ -137,25 +137,12 @@
 <script setup>
 import { ref, reactive, computed, watch, nextTick, onMounted } from 'vue'
 import { MessageOutlined, RobotOutlined, SendOutlined, FolderOutlined, GlobalOutlined } from '@ant-design/icons-vue'
-import { marked } from 'marked'
-import hljs from 'highlight.js'
-import 'highlight.js/styles/github-dark.css'
 import { useChatStore } from '../stores/chat.js'
 import ToolInvocationCard from '../components/ToolInvocationCard.vue'
+import MarkdownRenderer from '../components/MarkdownRenderer.vue'
 
 const cfg = window.__CC_CONFIG__ || {}
 const isProject = computed(() => cfg.mode === 'project')
-
-// Configure marked
-marked.setOptions({
-  highlight: (code, lang) => {
-    if (lang && hljs.getLanguage(lang)) {
-      return hljs.highlight(code, { language: lang }).value
-    }
-    return hljs.highlightAuto(code).value
-  },
-  breaks: true
-})
 
 const chatStore = useChatStore()
 const messagesEl = ref(null)
@@ -171,11 +158,7 @@ const streamingContent = computed(() => {
   return s?.active ? s.content : null
 })
 const pendingQuestion = computed(() => chatStore.pendingQuestion[currentSessionId.value])
-const isLoading = computed(() => chatStore.isLoading)
-
-function renderMarkdown(text) {
-  try { return marked(text || '') } catch { return text || '' }
-}
+const isLoading = computed(() => chatStore.getIsLoading(currentSessionId.value))
 
 const expandedTools = reactive(new Set())
 

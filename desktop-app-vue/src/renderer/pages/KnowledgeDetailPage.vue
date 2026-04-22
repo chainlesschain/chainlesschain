@@ -1,15 +1,8 @@
 <template>
   <div class="knowledge-detail-page">
-    <a-spin
-      v-if="loading"
-      size="large"
-      style="width: 100%; padding: 48px 0"
-    />
+    <a-spin v-if="loading" size="large" style="width: 100%; padding: 48px 0" />
 
-    <div
-      v-else-if="item"
-      class="detail-container"
-    >
+    <div v-else-if="item" class="detail-container">
       <!-- 顶部操作栏 -->
       <div class="detail-header">
         <a-space>
@@ -20,34 +13,21 @@
             返回
           </a-button>
 
-          <a-button
-            v-if="!editing"
-            type="primary"
-            @click="startEdit"
-          >
+          <a-button v-if="!editing" type="primary" @click="startEdit">
             <template #icon>
               <EditOutlined />
             </template>
             编辑
           </a-button>
 
-          <a-button
-            v-else
-            type="primary"
-            @click="saveItem"
-          >
+          <a-button v-else type="primary" @click="saveItem">
             <template #icon>
               <SaveOutlined />
             </template>
             保存
           </a-button>
 
-          <a-button
-            v-if="editing"
-            @click="cancelEdit"
-          >
-            取消
-          </a-button>
+          <a-button v-if="editing" @click="cancelEdit"> 取消 </a-button>
 
           <a-popconfirm
             title="确定要删除这个项目吗？"
@@ -72,18 +52,19 @@
           <div class="meta-info">
             <a-space>
               <a-tag>{{ typeLabels[item.type] }}</a-tag>
-              <span class="meta-text">创建于 {{ formatDate(item.created_at) }}</span>
-              <span class="meta-text">更新于 {{ formatDate(item.updated_at) }}</span>
+              <span class="meta-text"
+                >创建于 {{ formatDate(item.created_at) }}</span
+              >
+              <span class="meta-text"
+                >更新于 {{ formatDate(item.updated_at) }}</span
+              >
             </a-space>
           </div>
 
           <a-divider />
 
           <div class="content-body">
-            <p
-              v-if="!item.content"
-              style="color: rgba(0, 0, 0, 0.25)"
-            >
+            <p v-if="!item.content" style="color: rgba(0, 0, 0, 0.25)">
               暂无内容
             </p>
             <div
@@ -94,32 +75,18 @@
           </div>
         </div>
 
-        <div
-          v-else
-          class="edit-form"
-        >
+        <div v-else class="edit-form">
           <a-form layout="vertical">
             <a-form-item label="标题">
-              <a-input
-                v-model:value="editForm.title"
-                size="large"
-              />
+              <a-input v-model:value="editForm.title" size="large" />
             </a-form-item>
 
             <a-form-item label="类型">
               <a-select v-model:value="editForm.type">
-                <a-select-option value="note">
-                  笔记
-                </a-select-option>
-                <a-select-option value="document">
-                  文档
-                </a-select-option>
-                <a-select-option value="conversation">
-                  对话
-                </a-select-option>
-                <a-select-option value="web_clip">
-                  网页剪藏
-                </a-select-option>
+                <a-select-option value="note"> 笔记 </a-select-option>
+                <a-select-option value="document"> 文档 </a-select-option>
+                <a-select-option value="conversation"> 对话 </a-select-option>
+                <a-select-option value="web_clip"> 网页剪藏 </a-select-option>
               </a-select>
             </a-form-item>
 
@@ -135,29 +102,29 @@
       </div>
     </div>
 
-    <a-empty
-      v-else
-      description="项目不存在"
-    />
+    <a-empty v-else description="项目不存在" />
   </div>
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, onMounted, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
+import { ref, onMounted, watch, defineAsyncComponent } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { message } from "ant-design-vue";
 import {
   ArrowLeftOutlined,
   EditOutlined,
   SaveOutlined,
   DeleteOutlined,
-} from '@ant-design/icons-vue';
-import { useAppStore } from '../stores/app';
-import { dbAPI } from '../utils/ipc';
-import MarkdownEditor from '../components/MarkdownEditor.vue';
-import MarkdownIt from 'markdown-it';
+} from "@ant-design/icons-vue";
+import { useAppStore } from "../stores/app";
+import { dbAPI } from "../utils/ipc";
+// Milkdown（@milkdown/core + presets + theme + prosemirror，合计 ~1.5MB）只在进入编辑态时加载
+const MarkdownEditor = defineAsyncComponent(
+  () => import("../components/MarkdownEditor.vue"),
+);
+import MarkdownIt from "markdown-it";
 
 const route = useRoute();
 const router = useRouter();
@@ -167,16 +134,16 @@ const loading = ref(false);
 const item = ref(null);
 const editing = ref(false);
 const editForm = ref({
-  title: '',
-  type: 'note',
-  content: '',
+  title: "",
+  type: "note",
+  content: "",
 });
 
 const typeLabels = {
-  note: '笔记',
-  document: '文档',
-  conversation: '对话',
-  web_clip: '网页剪藏',
+  note: "笔记",
+  document: "文档",
+  conversation: "对话",
+  web_clip: "网页剪藏",
 };
 
 onMounted(() => {
@@ -189,7 +156,7 @@ watch(
     if (route.params.id) {
       loadItem();
     }
-  }
+  },
 );
 
 const loadItem = async () => {
@@ -201,22 +168,22 @@ const loadItem = async () => {
     item.value = data;
     store.setCurrentItem(data);
   } catch (error) {
-    logger.error('加载项目失败:', error);
-    message.error('加载项目失败');
+    logger.error("加载项目失败:", error);
+    message.error("加载项目失败");
   } finally {
     loading.value = false;
   }
 };
 
 const goBack = () => {
-  router.push('/');
+  router.push("/");
 };
 
 const startEdit = () => {
   editForm.value = {
     title: item.value.title,
     type: item.value.type,
-    content: item.value.content || '',
+    content: item.value.content || "",
   };
   editing.value = true;
 };
@@ -227,7 +194,7 @@ const cancelEdit = () => {
 
 const saveItem = async () => {
   if (!editForm.value.title) {
-    message.warning('请输入标题');
+    message.warning("请输入标题");
     return;
   }
 
@@ -241,10 +208,10 @@ const saveItem = async () => {
     item.value = updated;
     store.updateKnowledgeItem(item.value.id, updated);
     editing.value = false;
-    message.success('保存成功');
+    message.success("保存成功");
   } catch (error) {
-    logger.error('保存失败:', error);
-    message.error('保存失败');
+    logger.error("保存失败:", error);
+    message.error("保存失败");
   }
 };
 
@@ -252,16 +219,16 @@ const deleteItem = async () => {
   try {
     await dbAPI.deleteKnowledgeItem(item.value.id);
     store.deleteKnowledgeItem(item.value.id);
-    message.success('删除成功');
-    router.push('/');
+    message.success("删除成功");
+    router.push("/");
   } catch (error) {
-    logger.error('删除失败:', error);
-    message.error('删除失败');
+    logger.error("删除失败:", error);
+    message.error("删除失败");
   }
 };
 
 const formatDate = (timestamp) => {
-  return new Date(timestamp).toLocaleString('zh-CN');
+  return new Date(timestamp).toLocaleString("zh-CN");
 };
 
 // Markdown渲染
@@ -272,7 +239,7 @@ const md = new MarkdownIt({
 });
 
 const renderMarkdown = (content) => {
-  return md.render(content || '');
+  return md.render(content || "");
 };
 </script>
 
@@ -349,7 +316,7 @@ const renderMarkdown = (content) => {
   padding: 2px 6px;
   background: #f6f8fa;
   border-radius: 3px;
-  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-family: "Monaco", "Menlo", "Consolas", monospace;
   font-size: 0.9em;
 }
 

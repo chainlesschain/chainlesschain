@@ -3,13 +3,8 @@
     <!-- 顶部工具栏 -->
     <div class="editor-header">
       <div class="header-left">
-        <a-button
-          type="text"
-          @click="goBack"
-        >
-          <template #icon>
-            ← 返回
-          </template>
+        <a-button type="text" @click="goBack">
+          <template #icon> ← 返回 </template>
         </a-button>
         <a-divider type="vertical" />
         <h2 class="project-name">
@@ -37,18 +32,8 @@
 
       <div class="header-right">
         <a-space>
-          <a-button
-            :loading="saving"
-            @click="saveProject"
-          >
-            保存
-          </a-button>
-          <a-button
-            type="primary"
-            @click="exportDesign"
-          >
-            导出
-          </a-button>
+          <a-button :loading="saving" @click="saveProject"> 保存 </a-button>
+          <a-button type="primary" @click="exportDesign"> 导出 </a-button>
         </a-space>
       </div>
     </div>
@@ -69,15 +54,9 @@
           @objects-modified="handleObjectsModified"
           @selection-changed="handleSelectionChanged"
         />
-        <div
-          v-else
-          class="empty-state"
-        >
+        <div v-else class="empty-state">
           <a-empty description="请先创建画板" />
-          <a-button
-            type="primary"
-            @click="createNewArtboard"
-          >
+          <a-button type="primary" @click="createNewArtboard">
             创建画板
           </a-button>
         </div>
@@ -166,7 +145,9 @@
         <span>{{ selectedObjects.length }} 个对象已选中</span>
       </div>
       <div class="footer-right">
-        <span>{{ currentArtboard?.width }} × {{ currentArtboard?.height }}px</span>
+        <span
+          >{{ currentArtboard?.width }} × {{ currentArtboard?.height }}px</span
+        >
       </div>
     </div>
   </div>
@@ -175,12 +156,21 @@
 <script setup>
 import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import {
+  ref,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  defineAsyncComponent,
+} from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { message } from "ant-design-vue";
 import { useDesignStore } from "../../stores/design";
 import { storeToRefs } from "pinia";
-import DesignCanvas from "../../components/design/canvas/DesignCanvas.vue";
+// fabric.js（~1MB）只在画布真正挂载时才加载
+const DesignCanvas = defineAsyncComponent(
+  () => import("../../components/design/canvas/DesignCanvas.vue"),
+);
 import ToolPanel from "../../components/design/panels/ToolPanel.vue";
 
 const route = useRoute();

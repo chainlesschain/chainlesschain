@@ -1,25 +1,25 @@
 import { defineStore } from "pinia";
 
-export type PreviewTheme = "dark" | "light" | "blue" | "green";
+export type PreviewTheme = "light" | "dark" | "blue" | "green";
 
 export const PREVIEW_THEMES: ReadonlyArray<{
   key: PreviewTheme;
   label: string;
   icon: string;
 }> = [
-  { key: "dark", label: "暗黑", icon: "🌑" },
-  { key: "light", label: "亮白", icon: "☀️" },
-  { key: "blue", label: "深蓝", icon: "🌊" },
-  { key: "green", label: "翠绿", icon: "🌿" },
+  { key: "light", label: "浅色", icon: "L" },
+  { key: "dark", label: "深色", icon: "D" },
+  { key: "blue", label: "蓝调", icon: "B" },
+  { key: "green", label: "青绿", icon: "G" },
 ];
 
 const STORAGE_KEY = "cc.theme-preview";
-const DEFAULT_THEME: PreviewTheme = "dark";
+const DEFAULT_THEME: PreviewTheme = "light";
 
 function isValidTheme(value: unknown): value is PreviewTheme {
   return (
-    value === "dark" ||
     value === "light" ||
+    value === "dark" ||
     value === "blue" ||
     value === "green"
   );
@@ -31,7 +31,9 @@ export const useThemePreviewStore = defineStore("theme-preview", {
   }),
   actions: {
     apply(theme: PreviewTheme) {
-      if (!isValidTheme(theme)) return;
+      if (!isValidTheme(theme)) {
+        return;
+      }
       this.active = theme;
       if (typeof document !== "undefined") {
         document.documentElement.dataset.themePreview = theme;
@@ -39,7 +41,7 @@ export const useThemePreviewStore = defineStore("theme-preview", {
       try {
         localStorage.setItem(STORAGE_KEY, theme);
       } catch {
-        /* localStorage unavailable (private mode / SSR) */
+        /* ignore localStorage issues */
       }
     },
     restore() {

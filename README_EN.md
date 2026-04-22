@@ -1,5 +1,57 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-22 Update — MainLayout + DIDManagement SFC split · Shell wired to real LLM · Startup Critical/Deferred split · Heavy-component lazy-load
+
+Continuing the SystemSettings / ChatPanel SFC split from 2026-04-21, this cut finishes off the remaining large SFCs (MainLayout, DIDManagement) and clears three "hidden bug surface" root causes: Shell now actually talks to the LLM, the main-process startup is split into Critical/Deferred phases, and heavy renderer components are lazy-loaded.
+
+### Split results
+
+| Large SFC | Before | After | New children | Path |
+|---|---:|---:|---|---|
+| MainLayout.vue | 3203 | **1943 (−39%)** | FavoriteManagerModal · HeaderBreadcrumbs · SyncStatusButton · VoiceCommandHandler · SidebarContextMenu · AppHeader | `src/renderer/components/layout/` |
+| DIDManagement.vue | 1390 | **543 (−61%)** | AutoRepublishSettingsPane · MnemonicModals · IdentityDetailsModal | `src/renderer/components/did/` |
+
+### Shell wired to real LLM (V6 preview shell)
+
+- `ShellComposer.vue` `handleSend()` is no longer a stub: it tries `sendLlmChatStream()` (prompt-only, via `window.electronAPI.llm.queryStream`) first, then falls back to `sendLlmChat(payload)` non-streaming with full history; both gated by an upfront `isAvailable()` check.
+- `ConversationStream.vue` now reads from `useConversationPreviewStore` and renders a 3-dot typing indicator (`@keyframes shell-typing`) while streaming. The `did-chip` has been removed for a cleaner meta row.
+- Phase 3.4 soft switch **redirect target changed from `/v2` to `/v6-preview`** (`resolveHomeRedirect` in `router/v6-shell-default.ts`): when `ui.useV6ShellByDefault` is enabled, the root path now opens the Claude-Desktop-style preview shell directly instead of the V2 shell; all 9 unit tests updated.
+
+### Main-process startup split Critical / Deferred
+
+- `bootstrapCritical()` runs phases 0-5 (hooks / core / file / LLM / session / RAG+Git) and blocks splash (5-55%).
+- `bootstrapDeferred()` runs phase 6+ (skills / tools / advanced) during splash 55-90%.
+- IPC registration split into `registerCriticalIPC()` + `registerDeferredIPC()`; `setupIPC` is only called once inside `createWindow`. Root cause for the "can't send message" symptom: phase files previously registered IPC handlers ad-hoc and raced with `ipc-guard.resetAll()`, leaving duplicate `llm:chat` / `conversation:*` handlers.
+- `CHAINLESSCHAIN_LEGACY_BOOT=1` keeps the legacy single-phase boot as a fallback.
+
+### Heavy renderer components lazy-loaded
+
+Five imports switched to `defineAsyncComponent`: FileEditor → MonacoEditor (~5MB), KnowledgeDetailPage → Milkdown MarkdownEditor (~1.5MB), DesignEditorPage → Fabric DesignCanvas (~1MB), ProjectDetailPage → CodeEditor / MarkdownEditor / WebDevEditor. Build verification: monaco ships as its own chunk, **3.7MB / gzip 938KB**, no longer pulled on first paint.
+
+### Backend services now polled in parallel
+
+`BackendServiceManager.waitForServices()` now runs all 4 services (9101 / 9102 / 9103 / 9090) concurrently via `Promise.all`, each with `maxRetries=10` × 1s (down from 30s). `startServices()` no longer awaits readiness — it assigns the promise to `this.servicesReady` for callers to await if they need it.
+
+### Regression coverage
+
+| Scope | Command | Result |
+|---|---|---|
+| Full store regression | `npx vitest run src/renderer/stores/__tests__/` | **600 / 600** (23 files · 35s) |
+| Shell + router + bootstrap | `npx vitest run src/renderer/shell src/renderer/shell-preview src/renderer/router/__tests__ tests/unit/bootstrap` | **76 / 76** (5 files) |
+| Skill-handlers + ipc-guard + bootstrap | `npx vitest run tests/unit/ai-engine/skill-handlers.test.js tests/unit/core/ipc-guard.test.js tests/unit/bootstrap/initializer-factory.test.js` | **285 / 285** |
+| Vue components | `npx vitest run tests/unit/components tests/unit/core/core-components.test.ts` | **124 / 125** (1 skip) |
+| AI + core + multi-agent | `npx vitest run tests/unit/ai/skill-tool-ipc.test.js tests/unit/core tests/unit/ai-engine/multi-agent` | **411 / 413** (2 skip) |
+| Database + enterprise + did + knowledge | `npx vitest run tests/unit/database tests/unit/enterprise tests/unit/did tests/unit/knowledge` | **1456 / 1464** (8 skip · 3 stderr errors are pre-existing test-scaffolding issues) |
+| shell-preview (components / services / widgets) | `npx vitest run src/renderer/shell-preview` | **51 / 51** |
+| Integration (mcp / canonical / coding-agent / planning-ipc / code-execution / file-ops · 9 files) | `npx vitest run tests/integration/...` | **98 / 104** (6 skip) |
+| Smoke build | `npm run build:renderer && npm run build:main` | ✅ Both green (renderer 6m28s) |
+| Lint (changed files) | `npx eslint src/renderer/components/layout src/renderer/shell ...` | **0 errors** (237 style warnings, all `vue/max-attributes-per-line`) |
+| E2E enumeration | `npx playwright test --list` | Playwright lists **1017 tests / 163 files**; health check 80% |
+
+🟢 No regression bugs leaked; see [docs-site changelog](./docs-site/docs/changelog.md) and [design doc Appendix C](./docs/design/桌面版UI重构_设计文档.md#附录-cv08-拆分与启动优化2026-04-22).
+
+---
+
 ## 2026-04-21 Update — Phase 3.3c closure + Phase 3.4 soft switch + regression expansion
 
 Following the V6 preview shell P9c and 8 V5→V6 probes landed 2026-04-20, this cut **fills in unit tests for the 5 Phase 3.3c thin stores**, merges the **Phase 3.4 soft switch** (`/` → `/v2` opt-in), and fixes two pre-existing type/runtime drifts surfaced by the expanded regression.

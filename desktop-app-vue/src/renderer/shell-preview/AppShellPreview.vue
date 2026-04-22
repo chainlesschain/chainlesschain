@@ -1,101 +1,228 @@
 <template>
-  <div class="cc-preview-shell" :data-active-theme="theme.active">
-    <aside class="cc-preview-shell__sider">
-      <header class="cc-preview-shell__brand">
-        <span class="cc-preview-shell__logo">⛶</span>
-        <span class="cc-preview-shell__name">ChainlessChain</span>
-      </header>
+  <div class="cb-shell" :data-active-theme="theme.active">
+    <aside class="cb-shell__sidebar">
+      <div class="cb-shell__traffic">
+        <span class="cb-shell__traffic-dot cb-shell__traffic-dot--red" />
+        <span class="cb-shell__traffic-dot cb-shell__traffic-dot--yellow" />
+        <span class="cb-shell__traffic-dot cb-shell__traffic-dot--green" />
+      </div>
+
+      <div class="cb-shell__brand-row">
+        <div class="cb-shell__brand">ClaudeBox</div>
+        <button
+          type="button"
+          class="cb-shell__brand-action"
+          title="新建会话"
+          @click="newConversation"
+        >
+          <PlusOutlined />
+        </button>
+      </div>
 
       <ConversationList
-        :conversations="conversations"
+        :conversations="conversationItems"
         :active-id="activeConversationId"
         @select="selectConversation"
         @new-conversation="newConversation"
       />
 
-      <DecentralEntries @activate="onEntryActivate" />
-
-      <footer class="cc-preview-shell__footer">
-        <div class="cc-preview-shell__theme-switch">
+      <div class="cb-shell__sidebar-footer">
+        <div class="cb-shell__theme-switch">
           <button
-            v-for="t in themeList"
-            :key="t.key"
+            v-for="item in themeList"
+            :key="item.key"
             type="button"
-            class="cc-preview-shell__theme-btn"
+            class="cb-shell__theme-btn"
             :class="{
-              'cc-preview-shell__theme-btn--active': theme.active === t.key,
+              'cb-shell__theme-btn--active': theme.active === item.key,
             }"
-            :title="t.label"
-            :aria-pressed="theme.active === t.key"
-            @click="theme.apply(t.key)"
+            :title="item.label"
+            @click="theme.apply(item.key)"
           >
-            {{ t.icon }}
+            {{ item.icon }}
           </button>
         </div>
-      </footer>
+        <DecentralEntries @activate="onEntryActivate" />
+      </div>
     </aside>
 
-    <main class="cc-preview-shell__main">
-      <header class="cc-preview-shell__topbar">
-        <span class="cc-preview-shell__topbar-title">
-          {{ activeConversation?.title || "新会话" }}
-        </span>
-        <div class="cc-preview-shell__topbar-actions">
-          <a-button type="text" size="small" @click="toggleArtifact">
-            {{ artifactOpen ? "隐藏 Artifact" : "查看 Artifact" }}
-          </a-button>
+    <main class="cb-shell__main">
+      <header class="cb-shell__topbar">
+        <div class="cb-shell__topbar-title">
+          <FolderOpenOutlined />
+          <span>{{ activeConversation?.projectName || "workspace" }}</span>
         </div>
+        <button
+          type="button"
+          class="cb-shell__topbar-action"
+          @click="toggleArtifact"
+        >
+          <ReloadOutlined />
+        </button>
       </header>
 
-      <section class="cc-preview-shell__stream">
-        <div v-if="!activeConversation" class="cc-preview-shell__welcome">
-          <h2>个人办公 · 去中心化 AI</h2>
-          <p>隐私数据留在本机，P2P / 交易 / 社交 / U-Key 一键进入。</p>
-        </div>
-        <div v-else class="cc-preview-shell__bubbles">
+      <div class="cb-shell__body">
+        <section class="cb-shell__center">
           <div
-            v-for="msg in activeConversation.messages"
-            :key="msg.id"
-            class="cc-preview-bubble"
-            :class="`cc-preview-bubble--${msg.role}`"
+            v-if="activeConversation?.promptLabel"
+            class="cb-shell__prompt-pill"
           >
-            <div class="cc-preview-bubble__body">
-              {{ msg.content }}
-            </div>
+            {{ activeConversation.promptLabel }}
           </div>
-          <div
-            v-if="showTypingIndicator"
-            class="cc-preview-bubble cc-preview-bubble--assistant"
-            data-testid="cc-preview-typing"
-          >
-            <div
-              class="cc-preview-bubble__body cc-preview-bubble__body--typing"
-            >
-              <span class="cc-preview-typing-dot" />
-              <span class="cc-preview-typing-dot" />
-              <span class="cc-preview-typing-dot" />
-            </div>
-          </div>
-        </div>
-      </section>
 
-      <footer class="cc-preview-shell__composer">
-        <textarea
-          v-model="draft"
-          class="cc-preview-shell__input"
-          placeholder="询问或发起一个任务… (Ctrl/Cmd+Enter 发送)"
-          rows="2"
-          @keydown="onComposerKeydown"
-        />
-        <a-button
-          type="primary"
-          :loading="isGenerating"
-          :disabled="!draft.trim() || isGenerating"
-          @click="sendDraft"
-        >
-          发送
-        </a-button>
-      </footer>
+          <div class="cb-shell__thread">
+            <div v-if="!activeConversation" class="cb-shell__welcome">
+              <h2>桌面工作台预览</h2>
+              <p>左侧切换项目，中间查看执行流，右侧浏览文件树。</p>
+            </div>
+
+            <template v-else>
+              <article
+                v-for="(message, index) in activeConversation.messages"
+                :key="message.id"
+                class="cb-message"
+                :class="`cb-message--${message.role}`"
+              >
+                <div
+                  v-if="message.role === 'assistant'"
+                  class="cb-message__meta"
+                >
+                  <span class="cb-message__agent">
+                    <RobotOutlined />
+                    {{ activeConversation.runtimeStatus.agentLabel }} 已启动
+                  </span>
+                  <span class="cb-message__pid">PID 28244</span>
+                  <span class="cb-message__badge">会话已恢复</span>
+                </div>
+                <div class="cb-message__body">
+                  {{ message.content }}
+                </div>
+                <div
+                  v-if="
+                    message.role === 'assistant' &&
+                    index === 0 &&
+                    activeConversation.actionItems.length
+                  "
+                  class="cb-message__actions"
+                >
+                  <ToolInvocationCard
+                    v-for="item in activeConversation.actionItems"
+                    :key="item.id"
+                    :item="item"
+                  />
+                </div>
+              </article>
+
+              <article
+                v-if="showTypingIndicator"
+                class="cb-message cb-message--assistant"
+                data-testid="cc-preview-typing"
+              >
+                <div class="cb-message__meta">
+                  <span class="cb-message__agent">
+                    <RobotOutlined />
+                    {{ activeConversation.runtimeStatus.agentLabel }}
+                  </span>
+                </div>
+                <div class="cb-message__body cb-message__body--typing">
+                  <span class="cb-typing-dot" />
+                  <span class="cb-typing-dot" />
+                  <span class="cb-typing-dot" />
+                </div>
+              </article>
+
+              <TaskProgressPanel :steps="activeConversation.taskSteps" />
+            </template>
+          </div>
+
+          <footer class="cb-shell__composer">
+            <div class="cb-shell__composer-label">
+              {{
+                activeConversation?.runtimeStatus.agentLabel || "Claude Code"
+              }}
+              运行中...
+            </div>
+            <div class="cb-shell__composer-input">
+              <textarea
+                v-model="draft"
+                class="cb-shell__textarea"
+                placeholder="询问或发起一个任务（Ctrl/Cmd + Enter 发送）"
+                rows="3"
+                @keydown="onComposerKeydown"
+              />
+              <a-button
+                type="primary"
+                :loading="isGenerating"
+                :disabled="!draft.trim() || isGenerating"
+                @click="sendDraft"
+              >
+                发送
+              </a-button>
+            </div>
+            <div class="cb-shell__runtime">
+              <button
+                type="button"
+                class="cb-shell__runtime-new"
+                @click="newConversation"
+              >
+                + 新会话
+              </button>
+              <span class="cb-shell__runtime-chip">
+                {{ activeConversation?.runtimeStatus.progress ?? 0 }}%
+              </span>
+              <span class="cb-shell__runtime-chip">
+                {{ activeConversation?.runtimeStatus.modelLabel }}
+              </span>
+              <span class="cb-shell__runtime-chip">
+                {{ activeConversation?.runtimeStatus.skillLabel }}
+              </span>
+              <span class="cb-shell__runtime-chip">
+                {{ activeConversation?.runtimeStatus.toolLabel }}
+              </span>
+              <span class="cb-shell__runtime-chip">
+                {{ activeConversation?.runtimeStatus.terminalLabel }}
+              </span>
+              <button type="button" class="cb-shell__stop">
+                <CloseCircleOutlined />
+              </button>
+            </div>
+          </footer>
+        </section>
+
+        <aside class="cb-shell__files">
+          <div class="cb-shell__files-header">
+            <span>文件</span>
+            <button
+              type="button"
+              class="cb-shell__files-action"
+              title="刷新"
+              @click="toggleArtifact"
+            >
+              <ReloadOutlined />
+            </button>
+          </div>
+
+          <div class="cb-shell__files-list">
+            <div
+              v-for="file in flatFiles"
+              :key="file.id"
+              class="cb-file"
+              :style="{ paddingLeft: `${16 + file.depth * 18}px` }"
+            >
+              <span class="cb-file__caret">
+                {{ file.kind === "folder" ? "›" : "" }}
+              </span>
+              <component
+                :is="
+                  file.kind === 'folder' ? FolderOpenOutlined : FileTextOutlined
+                "
+                class="cb-file__icon"
+              />
+              <span class="cb-file__name">{{ file.name }}</span>
+            </div>
+          </div>
+        </aside>
+      </div>
 
       <ArtifactDrawer
         :open="artifactOpen"
@@ -111,12 +238,26 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import {
+  CloseCircleOutlined,
+  FileTextOutlined,
+  FolderOpenOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  RobotOutlined,
+} from "@ant-design/icons-vue";
 import { useThemePreviewStore, PREVIEW_THEMES } from "../stores/theme-preview";
-import { useConversationPreviewStore } from "../stores/conversation-preview";
+import {
+  useConversationPreviewStore,
+  type PreviewFileNode,
+  type PreviewStepStatus,
+} from "../stores/conversation-preview";
 import { registerSlashHandler } from "../shell/slash-dispatch";
 import ConversationList from "./ConversationList.vue";
 import DecentralEntries from "./DecentralEntries.vue";
 import ArtifactDrawer from "./ArtifactDrawer.vue";
+import ToolInvocationCard from "./components/ToolInvocationCard.vue";
+import TaskProgressPanel from "./components/TaskProgressPanel.vue";
 import { getPreviewWidget, type DecentralEntryId } from "./widgets";
 import {
   isAvailable as isLlmAvailable,
@@ -126,6 +267,13 @@ import {
   toBridgeMessages,
 } from "./services/llm-preview-bridge";
 import "./themes.css";
+
+interface FlatFileNode {
+  id: string;
+  name: string;
+  kind: PreviewFileNode["kind"];
+  depth: number;
+}
 
 const theme = useThemePreviewStore();
 const themeList = PREVIEW_THEMES;
@@ -150,13 +298,71 @@ const drawerTitle = computed(() =>
 );
 const draft = ref("");
 const isGenerating = computed(() => conversationStore.isGenerating);
+
+const conversationItems = computed(() =>
+  conversations.value.map((conversation) => ({
+    id: conversation.id,
+    title: conversation.title,
+    preview: conversation.preview,
+    relativeTime: conversation.relativeTime,
+    workspaceLabel: conversation.workspaceLabel,
+    status: deriveConversationStatus(
+      conversation.taskSteps.map((step) => step.status),
+    ),
+  })),
+);
+
 const showTypingIndicator = computed(() => {
   if (!isGenerating.value) {
     return false;
   }
-  const last = activeConversation.value?.messages.at(-1);
-  return !(last && last.role === "assistant" && last.content.length > 0);
+  const lastMessage = activeConversation.value?.messages.at(-1);
+  return !(
+    lastMessage &&
+    lastMessage.role === "assistant" &&
+    lastMessage.content.length > 0
+  );
 });
+
+const flatFiles = computed(() =>
+  flattenFiles(activeConversation.value?.files ?? createFallbackFiles()),
+);
+
+function deriveConversationStatus(statuses: PreviewStepStatus[]) {
+  if (statuses.includes("running")) {
+    return "running" as const;
+  }
+  if (statuses.length > 0 && statuses.every((status) => status === "done")) {
+    return "done" as const;
+  }
+  return "idle" as const;
+}
+
+function flattenFiles(nodes: PreviewFileNode[], depth = 0): FlatFileNode[] {
+  return nodes.flatMap((node) => {
+    const current: FlatFileNode = {
+      id: node.id,
+      name: node.name,
+      kind: node.kind,
+      depth,
+    };
+    const children = node.children
+      ? flattenFiles(node.children, depth + 1)
+      : [];
+    return [current, ...children];
+  });
+}
+
+function createFallbackFiles(): PreviewFileNode[] {
+  return [
+    {
+      id: "fallback-root",
+      name: "workspace",
+      kind: "folder",
+      children: [{ id: "fallback-readme", name: "README.md", kind: "file" }],
+    },
+  ];
+}
 
 function selectConversation(id: string) {
   conversationStore.select(id);
@@ -170,10 +376,7 @@ function newConversation() {
 
 async function sendDraft() {
   const text = draft.value.trim();
-  if (!text) {
-    return;
-  }
-  if (conversationStore.isGenerating) {
+  if (!text || conversationStore.isGenerating) {
     return;
   }
 
@@ -188,7 +391,7 @@ async function sendDraft() {
     const available = await isLlmAvailable();
     if (!available) {
       conversationStore.appendAssistantMessage(
-        "LLM 服务不可用，请检查火山引擎/Ollama 配置。",
+        "LLM 服务不可用，请检查本地模型或设置里的 LLM 配置。",
       );
       return;
     }
@@ -220,10 +423,10 @@ async function sendDraft() {
   }
 }
 
-function onComposerKeydown(e: KeyboardEvent) {
-  const isMod = e.ctrlKey || e.metaKey;
-  if (isMod && e.key === "Enter") {
-    e.preventDefault();
+function onComposerKeydown(event: KeyboardEvent) {
+  const isMod = event.ctrlKey || event.metaKey;
+  if (isMod && event.key === "Enter") {
+    event.preventDefault();
     sendDraft();
   }
 }
@@ -280,187 +483,290 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.cc-preview-shell {
-  display: flex;
+.cb-shell {
+  display: grid;
+  grid-template-columns: 272px minmax(0, 1fr);
   height: 100vh;
-  background: var(--cc-preview-bg-base);
+  background:
+    radial-gradient(
+      circle at top left,
+      var(--cc-preview-bg-glow),
+      transparent 38%
+    ),
+    var(--cc-preview-bg-base);
   color: var(--cc-preview-text-primary);
-  font-family:
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    sans-serif;
   overflow: hidden;
 }
 
-.cc-preview-shell__sider {
-  width: 260px;
-  flex-shrink: 0;
+.cb-shell__sidebar {
   display: flex;
   flex-direction: column;
-  background: var(--cc-preview-bg-sidebar);
+  gap: 18px;
+  padding: 18px 18px 14px;
+  background: linear-gradient(
+    180deg,
+    var(--cc-preview-bg-sidebar),
+    var(--cc-preview-bg-sidebar-soft)
+  );
   border-right: 1px solid var(--cc-preview-border-subtle);
 }
 
-.cc-preview-shell__brand {
+.cb-shell__traffic {
+  display: flex;
+  gap: 8px;
+}
+
+.cb-shell__traffic-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.cb-shell__traffic-dot--red {
+  background: #ff5f57;
+}
+
+.cb-shell__traffic-dot--yellow {
+  background: #febc2e;
+}
+
+.cb-shell__traffic-dot--green {
+  background: #28c840;
+}
+
+.cb-shell__brand-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 14px 14px 10px;
-  border-bottom: 1px solid var(--cc-preview-border-subtle);
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.cc-preview-shell__logo {
-  font-size: 18px;
-  color: var(--cc-preview-accent);
+.cb-shell__brand {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
 }
 
-.cc-preview-shell__name {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  color: var(--cc-preview-text-primary);
+.cb-shell__brand-action {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid var(--cc-preview-border-strong);
+  background: var(--cc-preview-bg-elevated);
+  color: var(--cc-preview-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
-.cc-preview-shell__footer {
-  padding: 8px 10px;
+.cb-shell__sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: auto;
+  padding-top: 12px;
   border-top: 1px solid var(--cc-preview-border-subtle);
 }
 
-.cc-preview-shell__theme-switch {
+.cb-shell__theme-switch {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
-.cc-preview-shell__theme-btn {
-  flex: 1;
-  padding: 6px 0;
-  border-radius: 6px;
+.cb-shell__theme-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
   border: 1px solid var(--cc-preview-border-subtle);
-  background: transparent;
+  background: var(--cc-preview-bg-elevated);
   color: var(--cc-preview-text-secondary);
   cursor: pointer;
-  font-size: 14px;
   transition:
-    background 0.12s,
-    border-color 0.12s;
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
 }
 
-.cc-preview-shell__theme-btn:hover {
-  background: var(--cc-preview-bg-hover);
-}
-
-.cc-preview-shell__theme-btn--active {
-  border-color: var(--cc-preview-accent);
+.cb-shell__theme-btn:hover,
+.cb-shell__theme-btn--active {
+  transform: translateY(-1px);
+  border-color: var(--cc-preview-accent-soft);
   color: var(--cc-preview-accent);
 }
 
-.cc-preview-shell__main {
-  flex: 1;
+.cb-shell__main {
   position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-.cc-preview-shell__topbar {
+.cb-shell__topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
+  padding: 18px 24px 14px;
   border-bottom: 1px solid var(--cc-preview-border-subtle);
-  background: var(--cc-preview-bg-base);
+  background: color-mix(in srgb, var(--cc-preview-bg-base) 84%, white 16%);
+  backdrop-filter: blur(12px);
 }
 
-.cc-preview-shell__topbar-title {
-  font-size: 13px;
+.cb-shell__topbar-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 24px;
   font-weight: 600;
 }
 
-.cc-preview-shell__stream {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px 20% 16px;
+.cb-shell__topbar-action,
+.cb-shell__files-action {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid var(--cc-preview-border-subtle);
+  background: var(--cc-preview-bg-elevated);
+  color: var(--cc-preview-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
-.cc-preview-shell__welcome {
-  max-width: 520px;
-  margin: 10vh auto 0;
+.cb-shell__body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  min-height: 0;
+}
+
+.cb-shell__center {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 14px 18px 18px;
+}
+
+.cb-shell__prompt-pill {
+  align-self: center;
+  max-width: min(760px, calc(100% - 40px));
+  padding: 14px 24px;
+  border-radius: 20px;
+  background: linear-gradient(
+    135deg,
+    var(--cc-preview-user-pill-start),
+    var(--cc-preview-user-pill-end)
+  );
+  color: var(--cc-preview-text-primary);
+  font-size: 26px;
+  line-height: 1.35;
+  box-shadow: var(--cc-preview-soft-shadow);
+}
+
+.cb-shell__thread {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 12px 10px 22px;
+}
+
+.cb-shell__welcome {
+  margin: 12vh auto 0;
   text-align: center;
   color: var(--cc-preview-text-secondary);
 }
 
-.cc-preview-shell__welcome h2 {
+.cb-shell__welcome h2 {
+  margin-bottom: 10px;
   color: var(--cc-preview-text-primary);
-  font-size: 20px;
-  margin-bottom: 8px;
 }
 
-.cc-preview-shell__bubbles {
+.cb-message {
+  max-width: 760px;
+  margin-bottom: 18px;
+}
+
+.cb-message--user {
+  margin-left: auto;
+}
+
+.cb-message__meta {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
 }
 
-.cc-preview-bubble {
-  display: flex;
-  max-width: 80%;
-}
-
-.cc-preview-bubble--user {
-  align-self: flex-end;
-  justify-content: flex-end;
-}
-
-.cc-preview-bubble--assistant {
-  align-self: flex-start;
-}
-
-.cc-preview-bubble__body {
-  padding: 10px 14px;
-  border-radius: 12px;
-  font-size: 14px;
-  line-height: 1.55;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.cc-preview-bubble--user .cc-preview-bubble__body {
-  background: var(--cc-preview-bubble-user-bg);
-  color: var(--cc-preview-bubble-user-text);
-}
-
-.cc-preview-bubble--assistant .cc-preview-bubble__body {
-  background: var(--cc-preview-bubble-assistant-bg);
-  color: var(--cc-preview-bubble-assistant-text);
-  border: 1px solid var(--cc-preview-border-subtle);
-}
-
-.cc-preview-bubble__body--typing {
+.cb-message__agent,
+.cb-message__pid,
+.cb-message__badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 12px 14px;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--cc-preview-chip-bg);
+  color: var(--cc-preview-text-secondary);
+  font-size: 12px;
 }
 
-.cc-preview-typing-dot {
-  width: 6px;
-  height: 6px;
+.cb-message__badge {
+  color: var(--cc-preview-status-done);
+}
+
+.cb-message__body {
+  padding: 18px 20px;
+  border-radius: 22px;
+  background: var(--cc-preview-bg-elevated);
+  border: 1px solid var(--cc-preview-border-strong);
+  box-shadow: var(--cc-preview-soft-shadow);
+  line-height: 1.75;
+  font-size: 16px;
+  white-space: pre-wrap;
+}
+
+.cb-message--user .cb-message__body {
+  background: linear-gradient(
+    135deg,
+    var(--cc-preview-user-pill-start),
+    var(--cc-preview-user-pill-end)
+  );
+}
+
+.cb-message__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.cb-message__body--typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cb-typing-dot {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--cc-preview-text-secondary);
   opacity: 0.35;
-  animation: cc-preview-typing 1.2s infinite ease-in-out;
+  animation: cb-typing 1.2s infinite ease-in-out;
 }
 
-.cc-preview-typing-dot:nth-child(2) {
+.cb-typing-dot:nth-child(2) {
   animation-delay: 0.15s;
 }
 
-.cc-preview-typing-dot:nth-child(3) {
+.cb-typing-dot:nth-child(3) {
   animation-delay: 0.3s;
 }
 
-@keyframes cc-preview-typing {
+@keyframes cb-typing {
   0%,
   80%,
   100% {
@@ -468,33 +774,193 @@ onBeforeUnmount(() => {
     transform: translateY(0);
   }
   40% {
-    opacity: 0.9;
+    opacity: 0.95;
     transform: translateY(-2px);
   }
 }
 
-.cc-preview-shell__composer {
+.cb-shell__composer {
+  margin-top: 12px;
+  border: 1px solid var(--cc-preview-border-strong);
+  border-radius: 24px;
+  background: linear-gradient(
+    180deg,
+    var(--cc-preview-composer-top),
+    var(--cc-preview-composer-bottom)
+  );
+  box-shadow: var(--cc-preview-shadow);
+  padding: 16px 18px 14px;
+}
+
+.cb-shell__composer-label {
+  font-size: 24px;
+  color: var(--cc-preview-text-secondary);
+}
+
+.cb-shell__composer-input {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--cc-preview-border-subtle);
-  background: var(--cc-preview-bg-base);
+  gap: 14px;
+  margin-top: 12px;
 }
 
-.cc-preview-shell__input {
+.cb-shell__textarea {
   flex: 1;
   resize: none;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--cc-preview-border-color);
-  background: var(--cc-preview-bg-elevated);
+  border: none;
+  background: transparent;
   color: var(--cc-preview-text-primary);
   font: inherit;
+  line-height: 1.6;
 }
 
-.cc-preview-shell__input:focus {
+.cb-shell__textarea:focus {
   outline: none;
-  border-color: var(--cc-preview-accent);
+}
+
+.cb-shell__runtime {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.cb-shell__runtime-new,
+.cb-shell__runtime-chip,
+.cb-shell__stop {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--cc-preview-text-secondary);
+  min-height: 30px;
+}
+
+.cb-shell__runtime-new {
+  padding: 0 4px;
+  cursor: pointer;
+}
+
+.cb-shell__runtime-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  background: var(--cc-preview-chip-bg);
+}
+
+.cb-shell__stop {
+  width: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  color: #db6f73;
+}
+
+.cb-shell__files {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--cc-preview-border-subtle);
+  background: color-mix(in srgb, var(--cc-preview-bg-base) 76%, white 24%);
+}
+
+.cb-shell__files-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 16px 14px;
+  border-bottom: 1px solid var(--cc-preview-border-subtle);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.cb-shell__files-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 0 18px;
+}
+
+.cb-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding-right: 12px;
+  color: var(--cc-preview-text-secondary);
+  transition: background 0.16s ease;
+}
+
+.cb-file:hover {
+  background: var(--cc-preview-bg-hover);
+}
+
+.cb-file__caret {
+  width: 10px;
+  color: var(--cc-preview-text-muted);
+}
+
+.cb-file__icon {
+  font-size: 14px;
+}
+
+.cb-file__name {
+  color: var(--cc-preview-text-primary);
+  font-size: 14px;
+}
+
+@media (max-width: 1100px) {
+  .cb-shell {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+
+  .cb-shell__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cb-shell__files {
+    display: none;
+  }
+
+  .cb-shell__prompt-pill {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 800px) {
+  .cb-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .cb-shell__sidebar {
+    display: none;
+  }
+
+  .cb-shell__center {
+    padding: 12px;
+  }
+
+  .cb-shell__topbar {
+    padding: 14px 16px 12px;
+  }
+
+  .cb-shell__prompt-pill {
+    width: 100%;
+    max-width: none;
+    font-size: 18px;
+  }
+
+  .cb-shell__composer-label {
+    font-size: 18px;
+  }
+
+  .cb-shell__runtime {
+    gap: 8px;
+  }
+
+  .cb-shell__stop {
+    margin-left: 0;
+  }
 }
 </style>

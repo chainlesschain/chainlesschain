@@ -39,12 +39,28 @@
             <span class="role-label">{{
               msg.role === "user" ? "你" : "助手"
             }}</span>
-            <span v-if="msg.did" class="did-chip" :title="msg.did">
-              {{ shortDid(msg.did) }}
-            </span>
           </div>
           <div class="message-content">
             {{ msg.content }}
+          </div>
+        </div>
+      </div>
+      <div
+        v-if="showTypingIndicator"
+        class="message message-assistant"
+        data-testid="cc-shell-typing"
+      >
+        <div class="message-avatar">
+          <a-avatar>AI</a-avatar>
+        </div>
+        <div class="message-body">
+          <div class="message-meta">
+            <span class="role-label">助手</span>
+          </div>
+          <div class="message-content message-content--typing">
+            <span class="typing-dot" />
+            <span class="typing-dot" />
+            <span class="typing-dot" />
           </div>
         </div>
       </div>
@@ -53,21 +69,28 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted } from "vue";
 import { useArtifactStore } from "../stores/artifacts";
-
-interface ShellMessage {
-  id: string;
-  role: "user" | "assistant" | "system";
-  content: string;
-  did?: string;
-  timestamp: number;
-}
-
-const messages = ref<ShellMessage[]>([]);
+import { useConversationPreviewStore } from "../stores/conversation-preview";
 
 const artifactStore = useArtifactStore();
 const sampleArtifacts = computed(() => artifactStore.all);
+
+const conversationStore = useConversationPreviewStore();
+const messages = computed(() => conversationStore.active?.messages ?? []);
+const showTypingIndicator = computed(() => {
+  if (!conversationStore.isGenerating) {
+    return false;
+  }
+  const last = messages.value.at(-1);
+  return !(last && last.role === "assistant" && last.content.length > 0);
+});
+
+onMounted(() => {
+  if (!conversationStore.restored) {
+    conversationStore.restore();
+  }
+});
 
 const emit = defineEmits<{ (e: "openArtifact"): void }>();
 
@@ -87,15 +110,6 @@ function typeLabel(type: string): string {
     "cowork-session": "协作会话",
   };
   return map[type] || type;
-}
-
-function shortDid(did: string): string {
-  if (!did) {
-    return "";
-  }
-  const parts = did.split(":");
-  const tail = parts[parts.length - 1] || did;
-  return `${tail.slice(0, 6)}…${tail.slice(-4)}`;
 }
 </script>
 
@@ -185,18 +199,45 @@ function shortDid(did: string): string {
   color: var(--shell-muted, #888);
 }
 
-.did-chip {
-  background: #f0f5ff;
-  color: #1677ff;
-  padding: 1px 6px;
-  border-radius: 10px;
-  font-family: monospace;
-  font-size: 11px;
-  cursor: help;
-}
-
 .message-content {
   white-space: pre-wrap;
   line-height: 1.6;
+}
+
+.message-content--typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0;
+}
+
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--shell-muted, #888);
+  opacity: 0.35;
+  animation: shell-typing 1.2s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes shell-typing {
+  0%,
+  80%,
+  100% {
+    opacity: 0.2;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 0.9;
+    transform: translateY(-2px);
+  }
 }
 </style>

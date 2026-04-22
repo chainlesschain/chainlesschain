@@ -270,20 +270,9 @@ import {
   PictureOutlined, CodeOutlined, DesktopOutlined, GlobalOutlined, ReadOutlined,
   ToolOutlined, HistoryOutlined, SafetyCertificateOutlined,
 } from '@ant-design/icons-vue'
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
-import hljs from 'highlight.js'
-import 'highlight.js/styles/github-dark.css'
 import { useCoworkStore } from '../stores/cowork.js'
 import { useChatStore } from '../stores/chat.js'
-
-marked.setOptions({
-  highlight: (code, lang) => {
-    if (lang && hljs.getLanguage(lang)) return hljs.highlight(code, { language: lang }).value
-    return hljs.highlightAuto(code).value
-  },
-  breaks: true,
-})
+import { renderMarkdown } from '../utils/markdown.js'
 
 const store = useCoworkStore()
 const chatStore = useChatStore()
@@ -319,10 +308,6 @@ const inputPlaceholder = computed(() => {
 })
 
 const agentMessages = computed(() => store.currentAgentMessages)
-
-function renderMarkdown(text) {
-  try { return DOMPurify.sanitize(marked(text || '')) } catch { return DOMPurify.sanitize(text || '') }
-}
 
 function verdictColor(verdict) {
   if (verdict === 'APPROVE') return 'green'

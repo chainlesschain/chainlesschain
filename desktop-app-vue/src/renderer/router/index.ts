@@ -1792,12 +1792,12 @@ router.beforeEach(
     const useV6ShellByDefault = isV6ShellDefault();
     if (to.path === "/login" && store.isAuthenticated) {
       logger.info("[Router] 已登录，重定向到首页");
-      next(useV6ShellByDefault ? "/v2" : "/");
+      next(useV6ShellByDefault ? "/v6-preview" : "/");
       return;
     }
     const v6Redirect = resolveHomeRedirect(to, { useV6ShellByDefault });
     if (v6Redirect) {
-      logger.info("[Router] V6 壳默认开启，/ 重定向到 /v2");
+      logger.info("[Router] V6 壳默认开启，/ 重定向到 /v6-preview");
       next(v6Redirect);
       return;
     }

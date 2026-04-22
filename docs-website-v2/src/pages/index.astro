@@ -87,7 +87,8 @@ const evolution = [
   { tag: 'v5.0.2.10', title: 'V2 增强套件（第五批）', sub: '协作治理 + 合规 UEBA + 威胁情报', desc: 'cc collab / cc compliance ueba / cc compliance threat-intel — Agent 成熟度 + 提案/调查/Feed 生命周期、双维度上限、批量 auto-flip，全部覆盖 167+ 新单元测试。' },
   { tag: 'v5.0.2.10', title: 'V2 增强套件（第六批）', sub: '13 个运行时管家 V2 升级', desc: 'automation / instinct / memory / note / org / permmem / rcache / scim / session / social / sync / tokens / wallet — 全部 4-state 成熟度 + 5-state 生命周期、双维度上限、autoPauseIdle / autoFailStuck / autoExpireStale 批量 auto-flip，560 新 V2 单元测试零回归。' },
 
-  // ── v5.0.2.42 / v5.0.2.43 (2026-04-21 文档 + CLI patch 双补丁) ──
+  // ── v5.0.2.42 / v5.0.2.43 (2026-04-21 文档 + CLI patch 双补丁 + 下午 SFC 拆分) ──
+  { tag: 'v5.0.2.43', title: 'SystemSettings / ChatPanel SFC 拆分', sub: 'CLI 0.156.4 · 3444→1070 (−69%)', desc: 'SystemSettings.vue 按功能切成 6 个独立 Pane（P2PNetwork / SpeechRecognition / LLM / Database / Project / Performance），采用 `defineModel(\'config\')` + `v-model:config` 让子组件直接操作嵌套 `config.*.*`；文件从 **3444 → 1070 行（−69%）**。ChatPanel.vue 同时外提 `chatPanelUtils.js`（7 个纯工具）+ `useMemoryLeakGuard` composable（自动清理 timers/listeners），ChatPanel 4057 → 3788 行。CLI `0.156.2 → 0.156.4`（0.156.3 已占用）；600/600 store 单测 + vite build 全绿。' },
   { tag: 'v5.0.2.43', title: 'Phase 3.3c 单测补齐 + Phase 3.4 软开关', sub: '83 新 store 单测 · 2 drift 修复', desc: 'rag / wallet / git-hooks / workflow-designer / analytics-dashboard 5 个 thin store 补齐 83 单测（600 store 全绿 + 13 plugin 扩展点集成 + 9 Phase 3.4 路由守卫全绿 + `vue-tsc --noEmit` 0 错误）；顺带修复 `logger.ts` 的 `.catch()` 未防御 + `electron.d.ts` 缺 `ConfigAPI` 类型两处 drift。' },
   { tag: 'v5.0.2.43', title: '发布前测试回归闭环 + 533 自动文档刷新', sub: 'CLI 0.156.2 · 5 关全绿', desc: '92 单元测试 + 5 集成测试 + `vue-tsc --noEmit` + `vite build` + `describe.skip` E2E 五关全绿，无 bug 溢出；533 份 `desktop-app-vue/docs/api/generated/*.md` 自动生成文档 prettier 规范刷新；CLI `0.156.1 → 0.156.2` patch 补丁（无源码改动）。' },
   { tag: 'v5.0.2.42', title: 'V6 Shell 回归闭环 + 用户文档', sub: 'CLI 0.156.1 · 文档版本', desc: 'v6 shell + `/v6-preview` 发布前测试回归闭环完整呈现到用户文档：`desktop-v6-shell.md` §18.7 回归表、`desktop-ui-refactor-user-guide.md` 新建用户指南、`introduction.md` / `architecture.md` / `tech-stack.md` / `getting-started.md` 等 6 份指南追加 17 章规范附录。' },
@@ -126,7 +127,7 @@ const badges = [
       <div class="max-w-4xl">
         <div class="animate-fade-in flex items-center gap-3 mb-8">
           <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> {PRODUCT_VERSION} · Evolution Edition</span>
-          <span class="chip">CLI v0.156.2</span>
+          <span class="chip">CLI v0.156.4</span>
           <span class="chip">109 命令</span>
           <span class="chip">V6 Chat-First Shell</span>
         </div>

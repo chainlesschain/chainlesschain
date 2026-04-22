@@ -1,15 +1,14 @@
 <template>
-  <div class="cc-preview-decentral" role="toolbar" aria-label="去中心化入口">
+  <div class="cb-shortcuts" role="toolbar" aria-label="快捷入口">
     <button
       v-for="entry in entries"
       :key="entry.id"
       type="button"
-      class="cc-preview-decentral__btn"
+      class="cb-shortcuts__item"
       :title="entry.label"
       @click="trigger(entry)"
     >
-      <component :is="entry.icon" class="cc-preview-decentral__icon" />
-      <span class="cc-preview-decentral__label">{{ entry.label }}</span>
+      <component :is="entry.icon" class="cb-shortcuts__icon" />
     </button>
   </div>
 </template>
@@ -39,19 +38,19 @@ const entries: DecentralEntry[] = [
   },
   {
     id: "trade",
-    label: "去中心化交易",
+    label: "交易",
     icon: SwapOutlined,
     handler: "builtin:openTrade",
   },
   {
     id: "social",
-    label: "去中心化社交",
+    label: "社交",
     icon: GlobalOutlined,
     handler: "builtin:openSocial",
   },
   {
     id: "ukey",
-    label: "U-Key 安全",
+    label: "安全",
     icon: SafetyCertificateOutlined,
     handler: "builtin:openUKey",
   },
@@ -70,56 +69,44 @@ defineExpose({ entries });
 </script>
 
 <style scoped>
-.cc-preview-decentral {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  padding: 10px 8px;
-  border-top: 1px solid var(--cc-preview-border-subtle);
-  background: var(--cc-preview-bg-sidebar);
+.cb-shortcuts {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.cc-preview-decentral__btn {
-  display: flex;
-  flex-direction: column;
+.cb-shortcuts__item {
+  width: 38px;
+  height: 38px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--cc-preview-text-secondary);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 8px 2px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 6px;
   cursor: pointer;
-  color: var(--cc-preview-text-secondary);
   transition:
-    background 0.12s,
-    color 0.12s,
-    border-color 0.12s;
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease;
 }
 
-.cc-preview-decentral__btn:hover {
+.cb-shortcuts__item:hover {
   background: var(--cc-preview-bg-hover);
+  border-color: var(--cc-preview-border-strong);
   color: var(--cc-preview-text-primary);
-  border-color: var(--cc-preview-border-color);
+  transform: translateY(-1px);
 }
 
-.cc-preview-decentral__btn:focus-visible {
-  outline: 2px solid var(--cc-preview-accent);
-  outline-offset: 1px;
+.cb-shortcuts__item:focus-visible {
+  outline: 2px solid var(--cc-preview-accent-soft);
+  outline-offset: 2px;
 }
 
-.cc-preview-decentral__icon {
-  font-size: 18px;
-  color: var(--cc-preview-accent);
-}
-
-.cc-preview-decentral__label {
-  font-size: 10px;
-  line-height: 1.1;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+.cb-shortcuts__icon {
+  font-size: 16px;
 }
 </style>

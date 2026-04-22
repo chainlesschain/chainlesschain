@@ -10,7 +10,7 @@
     >
       <!-- Logo -->
       <div class="logo" :class="{ collapsed }">
-        <span class="logo-icon">⛓</span>
+        <img :src="logoSrc" alt="ChainlessChain" class="logo-icon" />
         <span v-if="!collapsed" class="logo-text">ChainlessChain</span>
       </div>
 
@@ -200,6 +200,7 @@ const collapsed = ref(false)
 const cfg = window.__CC_CONFIG__ || {}
 const isProject = computed(() => cfg.mode === 'project')
 const PRODUCT_VERSION = typeof __PRODUCT_VERSION__ !== 'undefined' ? __PRODUCT_VERSION__ : 'vDev'
+const logoSrc = new URL('../../../../assets/logo.png', import.meta.url).href
 
 const currentTheme = computed(() => themeStore.current)
 const menuTheme    = computed(() => themeStore.config.vars['--menu-mode'])
@@ -251,7 +252,7 @@ onMounted(() => ws.connect())
   flex-shrink: 0;
 }
 .logo.collapsed { padding: 0; justify-content: center; }
-.logo-icon  { font-size: 20px; flex-shrink: 0; }
+.logo-icon  { width: 24px; height: 24px; flex-shrink: 0; object-fit: contain; }
 .logo-text  { color: var(--logo-text); font-weight: 700; font-size: 14px; letter-spacing: 0.01em; }
 
 /* ── Mode banner ──────────────────────────────────────────────────────── */

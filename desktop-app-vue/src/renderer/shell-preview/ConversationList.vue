@@ -1,51 +1,52 @@
 <template>
-  <div class="cc-preview-conv-list">
-    <div class="cc-preview-conv-list__header">
-      <span class="cc-preview-conv-list__title">会话</span>
-      <a-button
-        type="text"
-        size="small"
-        class="cc-preview-conv-list__new"
-        @click="emit('new-conversation')"
-      >
-        <template #icon>
-          <PlusOutlined />
-        </template>
-      </a-button>
-    </div>
+  <div class="cb-projects">
+    <button
+      type="button"
+      class="cb-projects__open"
+      @click="emit('new-conversation')"
+    >
+      <span class="cb-projects__open-icon">+</span>
+      <span>打开项目</span>
+    </button>
 
-    <div v-if="!conversations.length" class="cc-preview-conv-list__empty">
-      暂无会话，点击右上角 + 新建
-    </div>
-
-    <div v-else class="cc-preview-conv-list__items" role="listbox">
-      <div
+    <div class="cb-projects__items" role="listbox" aria-label="项目列表">
+      <button
         v-for="item in conversations"
         :key="item.id"
-        class="cc-preview-conv-item"
-        :class="{ 'cc-preview-conv-item--active': item.id === activeId }"
+        type="button"
+        class="cb-project-item"
+        :class="{ 'cb-project-item--active': item.id === activeId }"
         role="option"
         :aria-selected="item.id === activeId"
         @click="emit('select', item.id)"
       >
-        <div class="cc-preview-conv-item__title">
-          {{ item.title }}
+        <div class="cb-project-item__header">
+          <span class="cb-project-item__title">{{ item.title }}</span>
+          <span
+            class="cb-project-item__status"
+            :class="`cb-project-item__status--${item.status || 'idle'}`"
+          />
         </div>
-        <div v-if="item.preview" class="cc-preview-conv-item__preview">
+        <div class="cb-project-item__meta">
+          <span>{{ item.relativeTime }}</span>
+          <span>{{ item.workspaceLabel }}</span>
+        </div>
+        <div v-if="item.preview" class="cb-project-item__preview">
           {{ item.preview }}
         </div>
-      </div>
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { PlusOutlined } from "@ant-design/icons-vue";
-
 export interface ConversationItem {
   id: string;
   title: string;
   preview?: string;
+  relativeTime?: string;
+  workspaceLabel?: string;
+  status?: "done" | "running" | "idle";
 }
 
 defineProps<{
@@ -60,76 +61,142 @@ const emit = defineEmits<{
 </script>
 
 <style scoped>
-.cc-preview-conv-list {
+.cb-projects {
   display: flex;
   flex-direction: column;
+  gap: 12px;
   min-height: 0;
   flex: 1;
-  padding: 8px 8px 4px;
 }
 
-.cc-preview-conv-list__header {
+.cb-projects__open {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid var(--cc-preview-border-strong);
+  border-radius: 16px;
+  padding: 14px 16px;
+  background: var(--cc-preview-bg-elevated);
+  color: var(--cc-preview-text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: var(--cc-preview-soft-shadow);
+  cursor: pointer;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.cb-projects__open:hover {
+  transform: translateY(-1px);
+  border-color: var(--cc-preview-accent-soft);
+  box-shadow: var(--cc-preview-shadow);
+}
+
+.cb-projects__open-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cc-preview-chip-bg);
+  color: var(--cc-preview-accent);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.cb-projects__items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.cb-project-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  padding: 14px 14px 13px;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.cb-project-item:hover {
+  background: var(--cc-preview-bg-hover);
+}
+
+.cb-project-item--active {
+  background: linear-gradient(
+    180deg,
+    var(--cc-preview-card-highlight),
+    var(--cc-preview-bg-elevated)
+  );
+  border-color: var(--cc-preview-border-strong);
+  box-shadow: var(--cc-preview-soft-shadow);
+}
+
+.cb-project-item__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 6px 8px;
+  gap: 12px;
 }
 
-.cc-preview-conv-list__title {
-  font-size: 12px;
-  color: var(--cc-preview-text-secondary);
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-}
-
-.cc-preview-conv-list__new {
-  color: var(--cc-preview-text-secondary);
-}
-
-.cc-preview-conv-list__empty {
-  padding: 24px 12px;
-  font-size: 12px;
-  color: var(--cc-preview-text-muted);
-  text-align: center;
-}
-
-.cc-preview-conv-list__items {
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
-}
-
-.cc-preview-conv-item {
-  padding: 8px 10px;
-  margin: 2px 0;
-  border-radius: 6px;
-  cursor: pointer;
+.cb-project-item__title {
+  min-width: 0;
+  font-size: 18px;
+  font-weight: 600;
   color: var(--cc-preview-text-primary);
-  transition: background 0.12s;
-}
-
-.cc-preview-conv-item:hover {
-  background: var(--cc-preview-bg-hover);
-}
-
-.cc-preview-conv-item--active {
-  background: var(--cc-preview-bg-hover);
-}
-
-.cc-preview-conv-item__title {
-  font-size: 13px;
-  font-weight: 500;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.cc-preview-conv-item__preview {
-  font-size: 11px;
+.cb-project-item__status {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--cc-preview-status-idle);
+}
+
+.cb-project-item__status--done {
+  background: var(--cc-preview-status-done);
+}
+
+.cb-project-item__status--running {
+  background: var(--cc-preview-status-running);
+  box-shadow: 0 0 0 4px var(--cc-preview-status-running-ring);
+}
+
+.cb-project-item__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 12px;
   color: var(--cc-preview-text-secondary);
-  margin-top: 2px;
+}
+
+.cb-project-item__preview {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--cc-preview-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 </style>

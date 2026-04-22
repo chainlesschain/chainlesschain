@@ -1,14 +1,3 @@
-/**
- * V6 壳默认开关 + resolveHomeRedirect 单测
- *
- * 覆盖：
- *  - 默认关闭：/ 保持在 V5 壳（不重定向）
- *  - 开启后：/ 重定向到 /v2
- *  - 开启后：子路由（/settings、/projects 等）仍然放行
- *  - 开启后：/v2/* 和 /v6-preview 自身不被再次重定向
- *  - setV6ShellDefault/isV6ShellDefault 往返一致
- */
-
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   resolveHomeRedirect,
@@ -17,19 +6,19 @@ import {
 } from "../v6-shell-default";
 
 describe("v6-shell-default.resolveHomeRedirect", () => {
-  it("默认关闭时不重定向根路径", () => {
+  it("does not redirect root when disabled", () => {
     expect(
       resolveHomeRedirect({ path: "/" }, { useV6ShellByDefault: false }),
     ).toBeNull();
   });
 
-  it("开启时根路径重定向到 /v2", () => {
+  it("redirects root to /v6-preview when enabled", () => {
     expect(
       resolveHomeRedirect({ path: "/" }, { useV6ShellByDefault: true }),
-    ).toBe("/v2");
+    ).toBe("/v6-preview");
   });
 
-  it("开启时 V5 子路由仍然放行", () => {
+  it("keeps existing app routes untouched when enabled", () => {
     const subroutes = [
       "/settings",
       "/settings/system",
@@ -47,16 +36,21 @@ describe("v6-shell-default.resolveHomeRedirect", () => {
     }
   });
 
-  it("开启时 /v2 和 /v6-preview 自身不会被再次重定向", () => {
-    const v6paths = ["/v2", "/v2/workspace", "/v6-preview", "/v6-preview/foo"];
-    for (const path of v6paths) {
+  it("does not re-redirect /v2 or /v6-preview paths", () => {
+    const shellPaths = [
+      "/v2",
+      "/v2/workspace",
+      "/v6-preview",
+      "/v6-preview/foo",
+    ];
+    for (const path of shellPaths) {
       expect(
         resolveHomeRedirect({ path }, { useV6ShellByDefault: true }),
       ).toBeNull();
     }
   });
 
-  it("开启时 /login 不会被 V6 守卫重定向", () => {
+  it("does not redirect /login inside resolveHomeRedirect", () => {
     expect(
       resolveHomeRedirect({ path: "/login" }, { useV6ShellByDefault: true }),
     ).toBeNull();
@@ -68,25 +62,27 @@ describe("v6-shell-default.setV6ShellDefault / isV6ShellDefault", () => {
     setV6ShellDefault(false);
   });
 
-  it("默认为 false", () => {
+  it("defaults to false before app config injection", () => {
     expect(isV6ShellDefault()).toBe(false);
   });
 
-  it("设置 true 后返回 true", () => {
+  it("returns true after enabling", () => {
     setV6ShellDefault(true);
     expect(isV6ShellDefault()).toBe(true);
   });
 
-  it("truthy/falsy 值会被强制转成 boolean", () => {
+  it("coerces truthy and falsy inputs to boolean", () => {
     setV6ShellDefault(1 as unknown as boolean);
     expect(isV6ShellDefault()).toBe(true);
+
     setV6ShellDefault("" as unknown as boolean);
     expect(isV6ShellDefault()).toBe(false);
+
     setV6ShellDefault(null as unknown as boolean);
     expect(isV6ShellDefault()).toBe(false);
   });
 
-  it("可以切换回 false", () => {
+  it("can be toggled back to false", () => {
     setV6ShellDefault(true);
     setV6ShellDefault(false);
     expect(isV6ShellDefault()).toBe(false);

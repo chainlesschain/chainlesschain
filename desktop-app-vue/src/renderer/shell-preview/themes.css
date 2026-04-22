@@ -1,78 +1,123 @@
-/**
- * themes.css — v6 preview shell theme tokens.
- * Ported from packages/web-panel/src/stores/theme.js.
- * Applied via [data-theme-preview="dark|light|blue|green"] on <html>.
- * All tokens are prefixed with --cc-preview-* to avoid collision with /v2 shell.
- */
-
-:root[data-theme-preview="dark"] {
-  --cc-preview-bg-base: #141414;
-  --cc-preview-bg-sidebar: #1c1c1c;
-  --cc-preview-bg-elevated: #1f1f1f;
-  --cc-preview-bg-hover: #262626;
-  --cc-preview-border-subtle: #1e1e1e;
-  --cc-preview-border-color: #252525;
-  --cc-preview-text-primary: #e0e0e0;
-  --cc-preview-text-secondary: #888;
-  --cc-preview-text-muted: #444;
-  --cc-preview-accent: #1677ff;
-  --cc-preview-bubble-user-bg: #1677ff;
-  --cc-preview-bubble-user-text: #ffffff;
-  --cc-preview-bubble-assistant-bg: #1f1f1f;
-  --cc-preview-bubble-assistant-text: #e0e0e0;
-  --cc-preview-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+:root[data-theme-preview="light"] {
+  --cc-preview-bg-base: #f7f7fb;
+  --cc-preview-bg-glow: rgba(220, 228, 255, 0.95);
+  --cc-preview-bg-sidebar: #fbfbfe;
+  --cc-preview-bg-sidebar-soft: #f4f5fb;
+  --cc-preview-bg-elevated: rgba(255, 255, 255, 0.92);
+  --cc-preview-bg-elevated-muted: rgba(250, 250, 255, 0.92);
+  --cc-preview-bg-hover: rgba(241, 244, 255, 0.92);
+  --cc-preview-border-subtle: #e8e9f2;
+  --cc-preview-border-strong: #dfe3f1;
+  --cc-preview-text-primary: #1e2432;
+  --cc-preview-text-secondary: #5d6478;
+  --cc-preview-text-muted: #9ba3b7;
+  --cc-preview-accent: #7c7ddf;
+  --cc-preview-accent-soft: rgba(124, 125, 223, 0.35);
+  --cc-preview-chip-bg: rgba(244, 245, 255, 0.96);
+  --cc-preview-card-highlight: rgba(247, 248, 255, 0.98);
+  --cc-preview-user-pill-start: #ece8ff;
+  --cc-preview-user-pill-end: #eef3ff;
+  --cc-preview-composer-top: #f0f2ff;
+  --cc-preview-composer-bottom: #e8ebfb;
+  --cc-preview-progress-track: #dfe3f1;
+  --cc-preview-progress-fill: linear-gradient(90deg, #5aca86, #9ce3b5);
+  --cc-preview-status-done: #57b97c;
+  --cc-preview-status-running: #d6a14f;
+  --cc-preview-status-running-ring: rgba(214, 161, 79, 0.22);
+  --cc-preview-status-idle: #bbc3d6;
+  --cc-preview-shadow: 0 22px 48px rgba(28, 34, 54, 0.12);
+  --cc-preview-soft-shadow: 0 8px 24px rgba(28, 34, 54, 0.07);
 }
 
-:root[data-theme-preview="light"] {
-  --cc-preview-bg-base: #f4f6fb;
-  --cc-preview-bg-sidebar: #ffffff;
-  --cc-preview-bg-elevated: #ffffff;
-  --cc-preview-bg-hover: #f0f4ff;
-  --cc-preview-border-subtle: #f0f0f0;
-  --cc-preview-border-color: #e8edf5;
-  --cc-preview-text-primary: #1a1a2e;
-  --cc-preview-text-secondary: #5a6474;
-  --cc-preview-text-muted: #b0b8c8;
-  --cc-preview-accent: #1677ff;
-  --cc-preview-bubble-user-bg: #1677ff;
-  --cc-preview-bubble-user-text: #ffffff;
-  --cc-preview-bubble-assistant-bg: #ffffff;
-  --cc-preview-bubble-assistant-text: #1a1a2e;
-  --cc-preview-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+:root[data-theme-preview="dark"] {
+  --cc-preview-bg-base: #11151d;
+  --cc-preview-bg-glow: rgba(51, 74, 125, 0.55);
+  --cc-preview-bg-sidebar: #151b25;
+  --cc-preview-bg-sidebar-soft: #101620;
+  --cc-preview-bg-elevated: rgba(26, 33, 47, 0.94);
+  --cc-preview-bg-elevated-muted: rgba(21, 28, 40, 0.95);
+  --cc-preview-bg-hover: rgba(41, 50, 69, 0.9);
+  --cc-preview-border-subtle: #243046;
+  --cc-preview-border-strong: #31405f;
+  --cc-preview-text-primary: #edf2ff;
+  --cc-preview-text-secondary: #a6b1cb;
+  --cc-preview-text-muted: #62708e;
+  --cc-preview-accent: #9fa8ff;
+  --cc-preview-accent-soft: rgba(159, 168, 255, 0.38);
+  --cc-preview-chip-bg: rgba(40, 48, 67, 0.96);
+  --cc-preview-card-highlight: rgba(34, 42, 61, 0.98);
+  --cc-preview-user-pill-start: #343e60;
+  --cc-preview-user-pill-end: #29354f;
+  --cc-preview-composer-top: #202839;
+  --cc-preview-composer-bottom: #19212f;
+  --cc-preview-progress-track: #29354f;
+  --cc-preview-progress-fill: linear-gradient(90deg, #45c07a, #7bf0a7);
+  --cc-preview-status-done: #58cb86;
+  --cc-preview-status-running: #f0b86a;
+  --cc-preview-status-running-ring: rgba(240, 184, 106, 0.18);
+  --cc-preview-status-idle: #5a6782;
+  --cc-preview-shadow: 0 24px 52px rgba(0, 0, 0, 0.45);
+  --cc-preview-soft-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
 }
 
 :root[data-theme-preview="blue"] {
-  --cc-preview-bg-base: #0d1117;
-  --cc-preview-bg-sidebar: #0f1923;
-  --cc-preview-bg-elevated: #161b22;
-  --cc-preview-bg-hover: #1c2230;
-  --cc-preview-border-subtle: #182030;
-  --cc-preview-border-color: #21303f;
-  --cc-preview-text-primary: #c9d8ef;
-  --cc-preview-text-secondary: #6e8caa;
-  --cc-preview-text-muted: #2d4060;
-  --cc-preview-accent: #2f80ed;
-  --cc-preview-bubble-user-bg: #2f80ed;
-  --cc-preview-bubble-user-text: #ffffff;
-  --cc-preview-bubble-assistant-bg: #161b22;
-  --cc-preview-bubble-assistant-text: #c9d8ef;
-  --cc-preview-shadow: 0 2px 8px rgba(0, 40, 80, 0.5);
+  --cc-preview-bg-base: #0b1522;
+  --cc-preview-bg-glow: rgba(47, 128, 237, 0.42);
+  --cc-preview-bg-sidebar: #0f1d2d;
+  --cc-preview-bg-sidebar-soft: #0c1724;
+  --cc-preview-bg-elevated: rgba(18, 31, 48, 0.95);
+  --cc-preview-bg-elevated-muted: rgba(15, 26, 40, 0.96);
+  --cc-preview-bg-hover: rgba(28, 43, 64, 0.92);
+  --cc-preview-border-subtle: #1e3550;
+  --cc-preview-border-strong: #29507a;
+  --cc-preview-text-primary: #e0ecff;
+  --cc-preview-text-secondary: #99b4d9;
+  --cc-preview-text-muted: #58779e;
+  --cc-preview-accent: #78b2ff;
+  --cc-preview-accent-soft: rgba(120, 178, 255, 0.34);
+  --cc-preview-chip-bg: rgba(25, 40, 60, 0.95);
+  --cc-preview-card-highlight: rgba(23, 39, 58, 0.98);
+  --cc-preview-user-pill-start: #173b67;
+  --cc-preview-user-pill-end: #18314e;
+  --cc-preview-composer-top: #17304a;
+  --cc-preview-composer-bottom: #14283e;
+  --cc-preview-progress-track: #21354f;
+  --cc-preview-progress-fill: linear-gradient(90deg, #44beff, #8fe4ff);
+  --cc-preview-status-done: #5dc5ff;
+  --cc-preview-status-running: #ffc466;
+  --cc-preview-status-running-ring: rgba(255, 196, 102, 0.18);
+  --cc-preview-status-idle: #527092;
+  --cc-preview-shadow: 0 24px 52px rgba(1, 11, 24, 0.42);
+  --cc-preview-soft-shadow: 0 10px 28px rgba(1, 11, 24, 0.2);
 }
 
 :root[data-theme-preview="green"] {
-  --cc-preview-bg-base: #0a1a12;
-  --cc-preview-bg-sidebar: #0c1e14;
-  --cc-preview-bg-elevated: #0f2318;
-  --cc-preview-bg-hover: #152e20;
-  --cc-preview-border-subtle: #122a1c;
-  --cc-preview-border-color: #1a3828;
-  --cc-preview-text-primary: #c0e8c8;
-  --cc-preview-text-secondary: #5a9a6a;
-  --cc-preview-text-muted: #1e4028;
-  --cc-preview-accent: #29a270;
-  --cc-preview-bubble-user-bg: #29a270;
-  --cc-preview-bubble-user-text: #ffffff;
-  --cc-preview-bubble-assistant-bg: #0f2318;
-  --cc-preview-bubble-assistant-text: #c0e8c8;
-  --cc-preview-shadow: 0 2px 8px rgba(0, 40, 20, 0.5);
+  --cc-preview-bg-base: #091814;
+  --cc-preview-bg-glow: rgba(41, 162, 112, 0.38);
+  --cc-preview-bg-sidebar: #0d1d18;
+  --cc-preview-bg-sidebar-soft: #091612;
+  --cc-preview-bg-elevated: rgba(15, 33, 28, 0.95);
+  --cc-preview-bg-elevated-muted: rgba(13, 28, 24, 0.96);
+  --cc-preview-bg-hover: rgba(20, 41, 34, 0.92);
+  --cc-preview-border-subtle: #1a392f;
+  --cc-preview-border-strong: #255545;
+  --cc-preview-text-primary: #def8ea;
+  --cc-preview-text-secondary: #99cdb4;
+  --cc-preview-text-muted: #5e8f78;
+  --cc-preview-accent: #7ce2b1;
+  --cc-preview-accent-soft: rgba(124, 226, 177, 0.34);
+  --cc-preview-chip-bg: rgba(24, 45, 38, 0.95);
+  --cc-preview-card-highlight: rgba(18, 38, 31, 0.98);
+  --cc-preview-user-pill-start: #184536;
+  --cc-preview-user-pill-end: #14352b;
+  --cc-preview-composer-top: #15372d;
+  --cc-preview-composer-bottom: #102c24;
+  --cc-preview-progress-track: #22463a;
+  --cc-preview-progress-fill: linear-gradient(90deg, #49d494, #8ef2c3);
+  --cc-preview-status-done: #6adea5;
+  --cc-preview-status-running: #f2ca72;
+  --cc-preview-status-running-ring: rgba(242, 202, 114, 0.18);
+  --cc-preview-status-idle: #557f6c;
+  --cc-preview-shadow: 0 24px 52px rgba(0, 0, 0, 0.42);
+  --cc-preview-soft-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
 }

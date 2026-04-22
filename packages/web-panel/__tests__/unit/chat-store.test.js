@@ -215,6 +215,7 @@ describe('chat store', () => {
       expect.objectContaining({ role: 'assistant', content: 'Hello world!' }),
     )
     expect(store.isLoading).toBe(false)
+    expect(store.getIsLoading('sess-v1')).toBe(false)
   })
 
   it('handles v1.0 tool.call.started and tool.call.completed', async () => {
@@ -262,6 +263,39 @@ describe('chat store', () => {
     const msgs = store.getMessages('sess-err')
     expect(msgs[msgs.length - 1].content).toContain('API key required')
     expect(store.isLoading).toBe(false)
+  })
+
+  it('tracks loading per session instead of globally', async () => {
+    createSession
+      .mockResolvedValueOnce('sess-a')
+      .mockResolvedValueOnce('sess-b')
+
+    const store = useChatStore()
+    await store.createSession('chat')
+    await store.createSession('chat')
+
+    await store.sendMessage('sess-a', 'hello a')
+    await store.sendMessage('sess-b', 'hello b')
+
+    expect(store.getIsLoading('sess-a')).toBe(true)
+    expect(store.getIsLoading('sess-b')).toBe(true)
+    expect(store.isLoading).toBe(true)
+
+    sessionHandlers.get('sess-a')({
+      type: 'assistant.final',
+      sessionId: 'sess-a',
+      payload: { content: 'done a' },
+    })
+
+    expect(store.getIsLoading('sess-a')).toBe(false)
+    expect(store.getIsLoading('sess-b')).toBe(true)
+    expect(store.isLoading).toBe(true)
+
+    store.currentSessionId = 'sess-a'
+    expect(store.isLoading).toBe(false)
+
+    store.currentSessionId = 'sess-b'
+    expect(store.isLoading).toBe(true)
   })
 
   it('switchSession resumes history when local cache is empty', async () => {

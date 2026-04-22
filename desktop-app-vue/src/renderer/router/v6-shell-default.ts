@@ -18,14 +18,14 @@ export function isV6ShellDefault(): boolean {
 }
 
 /**
- * 纯函数：决定是否将 / 重定向到 /v2。
- * 仅在 opts.useV6ShellByDefault === true 且当前目标是根路径时才返回 "/v2"，
- * 其他一切情况（子路由 /settings/*、/projects、/v2/*、/v6-preview、/login 等）都返回 null 放行。
+ * 纯函数：决定是否将 / 重定向到 /v6-preview（Claude-Desktop 风格预览壳）。
+ * 仅在 opts.useV6ShellByDefault === true 且当前目标是根路径时才返回 "/v6-preview"，
+ * 其他一切情况（子路由 /settings/*、/projects、/v2/*、/v6-preview/*、/login 等）都返回 null 放行。
  */
 export function resolveHomeRedirect(
   to: { path: string },
   opts: { useV6ShellByDefault: boolean },
 ): string | null {
   if (!opts.useV6ShellByDefault) return null;
-  return to.path === "/" ? "/v2" : null;
+  return to.path === "/" ? "/v6-preview" : null;
 }

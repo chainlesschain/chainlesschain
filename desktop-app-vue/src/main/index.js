@@ -39,10 +39,15 @@ console.log("[DEBUG] Node modules loaded");
 // Bootstrap 模块
 const {
   bootstrapApplication,
+  bootstrapCritical,
+  bootstrapDeferred,
   lazyLoadModule,
   getAllModules,
   setupP2PPostInit,
 } = require("./bootstrap");
+
+// 是否使用旧版单阶段启动（回退开关）
+const USE_LEGACY_BOOT = process.env.CHAINLESSCHAIN_LEGACY_BOOT === "1";
 
 // IPC Registry
 const { registerAllIPC } = require("./ipc/ipc-registry");
@@ -178,123 +183,197 @@ class ChainlessChainApp {
       logger.error("[Main] 启动后端服务失败:", error);
     }
 
-    // 🚀 使用 Bootstrap 模块进行初始化
+    if (USE_LEGACY_BOOT) {
+      await this.runLegacyBoot();
+    } else {
+      await this.runFastStartBoot();
+    }
+  }
+
+  /**
+   * 旧版启动流程（单阶段）：全部模块就绪后才创建主窗口
+   * 通过环境变量 CHAINLESSCHAIN_LEGACY_BOOT=1 启用
+   */
+  async runLegacyBoot() {
     try {
       const instances = await bootstrapApplication({
         progressCallback: (message, progress) => {
-          // 映射 bootstrap 进度 5-85%
           const mappedProgress = 5 + Math.round(progress * 0.8);
           this.splashWindow?.updateProgress(message, mappedProgress);
         },
         context: { mainWindow: this.mainWindow },
       });
 
-      // 保存实例引用到 this
       this.applyInstances(instances);
+      this.hookTokenTrackerAlert();
 
-      // 设置 Token Tracker 预算告警
-      if (this.tokenTracker) {
-        this.tokenTracker.on("budget-alert", (alert) => {
-          logger.info("[Main] 预算告警:", alert);
-          this.handleBudgetAlert(alert);
-        });
-      }
-
-      logger.info("[Main] Bootstrap 初始化完成");
-      logger.info("[Main] Initialized modules:", Object.keys(instances));
-      logger.info("[Main] templateManager status:", {
-        exists: !!this.templateManager,
-        type: typeof this.templateManager,
-        isFunction: typeof this.templateManager?.getAllTemplates === "function",
-      });
+      logger.info("[Main] Bootstrap 初始化完成 (legacy)");
     } catch (error) {
       logger.error("[Main] Bootstrap 初始化失败", error);
-      logger.error("[Main] Bootstrap 错误详情:", {
-        name: error?.name,
-        message: error?.message,
-        stack: error?.stack,
-      });
-
-      // 显示致命错误对话框（暂时注释掉以便调试）
-      // const { dialog } = require("electron");
-      // dialog.showErrorBox(
-      //   "应用初始化失败",
-      //   `应用初始化过程中发生错误，无法继续启动。\n\n错误: ${error?.message || "未知错误"}\n\n请查看日志文件获取详细信息。`
-      // );
-
-      // // 退出应用
-      // app.quit();
-      // return;
     }
 
-    // 初始化 Initial Setup IPC
-    // IMPORTANT: Always create InitialSetupIPC to ensure IPC handlers are registered
-    // even if database initialization fails. This prevents "检查设置状态失败" errors in App.vue
-    // M2: 异步预热 LLM 配置，避免启动期阻塞事件循环
-    const { prewarmLLMConfig } = require("./llm/llm-config");
-    const llmConfig = await prewarmLLMConfig();
-    this.initialSetupIPC = new InitialSetupIPC(
-      app,
-      this.database, // Pass null if database initialization failed
-      getAppConfig(),
-      llmConfig,
-    );
+    await this.createInitialSetupIPC();
 
-    // Set database manager for encryption IPC if both exist
-    if (this.database && this.dbEncryptionIPC) {
-      this.dbEncryptionIPC.setDatabaseManager(this.database);
-    }
-
-    // P2P 后续初始化
-    logger.info("[Main] ========================================");
-    logger.info("[Main] 调用 setupP2PPostInit...");
-    logger.info("[Main] ========================================");
     await setupP2PPostInit(
       getAllModules(),
       () => this.setupP2PEncryptionEvents(),
       () => this.initializeMobileBridge(),
     );
-    logger.info("[Main] setupP2PPostInit 完成");
 
-    // 初始化外部设备文件管理器
-    if (this.database && this.p2pManager) {
-      try {
-        const ExternalDeviceFileManager = require("./file/external-device-file-manager");
-        const fileTransferManager = this.p2pManager.fileTransferManager;
+    this.initializeExternalFileManager();
 
-        this.externalFileManager = new ExternalDeviceFileManager(
-          this.database,
-          this.p2pManager,
-          fileTransferManager,
-          this.ragManager,
-          {
-            cacheDir: path.join(app.getPath("userData"), "external-file-cache"),
-            maxCacheSize: 1024 * 1024 * 1024, // 1GB
-          },
-        );
-
-        logger.info("[Main] ✓ ExternalDeviceFileManager 初始化完成");
-      } catch (error) {
-        logger.error("[Main] ExternalDeviceFileManager 初始化失败", error);
-      }
-    }
-
-    // 注册技能工具 IPC
-    this.registerSkillToolIPC();
-
-    // 注册高级特性 IPC
+    this.registerCriticalIPC();
+    this.registerDeferredIPC();
     this.registerAdvancedFeaturesIPC();
 
-    // 初始化 MCP 系统
     await this.initializeMCPSystem();
 
-    // 创建主窗口
     this.splashWindow?.updateProgress("创建主窗口...", 95);
     await this.createWindow();
 
-    // 处理启动时的协议URL
     if (this.deepLinkHandler && process.platform !== "darwin") {
       this.deepLinkHandler.handleStartupUrl(process.argv);
+    }
+  }
+
+  /**
+   * 启动流程：
+   *   1. 关键阶段（0-5）前台完成
+   *   2. 延迟阶段（6+）前台完成
+   *   3. 一次性注册所有 IPC（setupIPC）→ 创建主窗口
+   * 保留 bootstrap split 结构以便未来按需懒加载，但在 IPC 注册层不重跑
+   * setupIPC：phase 文件中的 `ipcMain.handle()` 直接注册与 ipc-guard 的
+   * resetAll 存在竞态（resetAll 不会移除未被 guard 跟踪的 handler），
+   * 会导致 `llm:chat`/`conversation:*` 等关键 channel 二次注册抛错后留下
+   * 半旧 handler 与错乱的管理器引用，用户看到的症状就是"无法发送消息"。
+   */
+  async runFastStartBoot() {
+    // === 关键阶段（0-5）：splash 5-55% ===
+    try {
+      const criticalInstances = await bootstrapCritical({
+        progressCallback: (message, progress) => {
+          const mappedProgress = 5 + Math.round(progress * 0.5);
+          this.splashWindow?.updateProgress(message, mappedProgress);
+        },
+        context: { mainWindow: this.mainWindow },
+      });
+
+      this.applyInstances(criticalInstances);
+      this.hookTokenTrackerAlert();
+
+      logger.info("[Main] 关键阶段初始化完成");
+    } catch (error) {
+      logger.error("[Main] 关键阶段初始化失败", error);
+      logger.error("[Main] 错误详情:", {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack,
+      });
+    }
+
+    // === 延迟阶段（6+）：splash 55-90% ===
+    try {
+      const allInstances = await bootstrapDeferred({
+        progressCallback: (message, progress) => {
+          const mappedProgress = 55 + Math.round(progress * 0.35);
+          this.splashWindow?.updateProgress(message, mappedProgress);
+        },
+        context: { mainWindow: this.mainWindow },
+      });
+
+      this.applyInstances(allInstances);
+      logger.info("[Main] 延迟阶段初始化完成");
+    } catch (error) {
+      logger.error("[Main] bootstrapDeferred 失败", error);
+    }
+
+    try {
+      await setupP2PPostInit(
+        getAllModules(),
+        () => this.setupP2PEncryptionEvents(),
+        () => this.initializeMobileBridge(),
+      );
+    } catch (error) {
+      logger.error("[Main] setupP2PPostInit 失败", error);
+    }
+
+    this.initializeExternalFileManager();
+
+    await this.createInitialSetupIPC();
+    this.registerCriticalIPC();
+    this.registerDeferredIPC();
+    this.registerAdvancedFeaturesIPC();
+
+    try {
+      await this.initializeMCPSystem();
+    } catch (error) {
+      logger.error("[Main] MCP 系统初始化失败", error);
+    }
+
+    // 全部模块就绪后再创建主窗口（setupIPC 在 createWindow 内只调用一次）
+    this.splashWindow?.updateProgress("创建主窗口...", 95);
+    await this.createWindow();
+
+    if (this.deepLinkHandler && process.platform !== "darwin") {
+      this.deepLinkHandler.handleStartupUrl(process.argv);
+    }
+  }
+
+  /**
+   * 挂接 Token Tracker 预算告警
+   */
+  hookTokenTrackerAlert() {
+    if (this.tokenTracker) {
+      this.tokenTracker.on("budget-alert", (alert) => {
+        logger.info("[Main] 预算告警:", alert);
+        this.handleBudgetAlert(alert);
+      });
+    }
+  }
+
+  /**
+   * 初始化 Initial Setup IPC（无论数据库是否就绪都要注册，避免 App.vue 报 "检查设置状态失败"）
+   */
+  async createInitialSetupIPC() {
+    const { prewarmLLMConfig } = require("./llm/llm-config");
+    const llmConfig = await prewarmLLMConfig();
+    this.initialSetupIPC = new InitialSetupIPC(
+      app,
+      this.database,
+      getAppConfig(),
+      llmConfig,
+    );
+
+    if (this.database && this.dbEncryptionIPC) {
+      this.dbEncryptionIPC.setDatabaseManager(this.database);
+    }
+  }
+
+  /**
+   * 初始化外部设备文件管理器（依赖 p2pManager + ragManager，归入延迟阶段）
+   */
+  initializeExternalFileManager() {
+    if (!this.database || !this.p2pManager) {
+      return;
+    }
+    try {
+      const ExternalDeviceFileManager = require("./file/external-device-file-manager");
+      const fileTransferManager = this.p2pManager.fileTransferManager;
+
+      this.externalFileManager = new ExternalDeviceFileManager(
+        this.database,
+        this.p2pManager,
+        fileTransferManager,
+        this.ragManager,
+        {
+          cacheDir: path.join(app.getPath("userData"), "external-file-cache"),
+          maxCacheSize: 1024 * 1024 * 1024, // 1GB
+        },
+      );
+
+      logger.info("[Main] ✓ ExternalDeviceFileManager 初始化完成");
+    } catch (error) {
+      logger.error("[Main] ExternalDeviceFileManager 初始化失败", error);
     }
   }
 
@@ -393,13 +472,11 @@ class ChainlessChainApp {
   }
 
   /**
-   * 注册技能工具 IPC
+   * 注册关键 IPC：仅依赖关键阶段（0-5）模块
+   * 在主窗口显示前调用，保证 renderer 首屏 mount 时 session/memory/llm 类 IPC 可用
    */
-  registerSkillToolIPC() {
+  registerCriticalIPC() {
     try {
-      const {
-        registerSkillToolIPC,
-      } = require("./skill-tool-system/skill-tool-ipc");
       const { registerVolcengineIPC } = require("./llm/volcengine-ipc");
       const { registerSecureStorageIPC } = require("./llm/secure-storage-ipc");
       const {
@@ -413,33 +490,11 @@ class ChainlessChainApp {
       const {
         registerTaskTrackerIPC,
       } = require("./ai-engine/task-tracker-ipc");
-      const {
-        registerMultiAgentIPC,
-      } = require("./ai-engine/multi-agent/multi-agent-ipc");
-
-      // Phase 4-5: Browser Workflow and Recording IPC
-      const {
-        registerWorkflowIPC,
-        initializeWorkflowSystem,
-      } = require("./browser/workflow");
-      const {
-        registerRecordingIPC,
-        initializeRecordingSystem,
-      } = require("./browser/recording");
-
-      if (this.skillManager && this.toolManager) {
-        registerSkillToolIPC({
-          ipcMain,
-          skillManager: this.skillManager,
-          toolManager: this.toolManager,
-        });
-        logger.info("[Main] 技能工具IPC已注册");
-      }
 
       registerVolcengineIPC();
       registerSecureStorageIPC();
 
-      // Always register session IPC handlers - they will return errors if sessionManager is unavailable
+      // session IPC：始终注册（缺 sessionManager 时 handler 内部返回错误）
       registerSessionManagerIPC({ sessionManager: this.sessionManager });
       if (!this.sessionManager) {
         logger.warn(
@@ -470,17 +525,52 @@ class ChainlessChainApp {
 
       registerManusIPC();
       registerTaskTrackerIPC();
+
+      logger.info("[Main] 关键 IPC handlers 注册完成");
+    } catch (error) {
+      logger.error("[Main] 关键 IPC 注册失败:", error);
+    }
+  }
+
+  /**
+   * 注册延迟 IPC：依赖延迟阶段（6+）模块（skillManager/toolManager/aiEngineManager）
+   * 在主窗口显示后 bootstrapDeferred 完成时调用
+   */
+  registerDeferredIPC() {
+    try {
+      const {
+        registerSkillToolIPC,
+      } = require("./skill-tool-system/skill-tool-ipc");
+      const {
+        registerMultiAgentIPC,
+      } = require("./ai-engine/multi-agent/multi-agent-ipc");
+      const {
+        registerWorkflowIPC,
+        initializeWorkflowSystem,
+      } = require("./browser/workflow");
+      const {
+        registerRecordingIPC,
+        initializeRecordingSystem,
+      } = require("./browser/recording");
+
+      if (this.skillManager && this.toolManager) {
+        registerSkillToolIPC({
+          ipcMain,
+          skillManager: this.skillManager,
+          toolManager: this.toolManager,
+        });
+        logger.info("[Main] 技能工具 IPC 已注册");
+      }
+
       registerMultiAgentIPC({
         llmManager: this.llmManager,
         functionCaller: this.aiEngineManager?.functionCaller || null,
       });
 
-      // Phase 4-5: Initialize and register Browser Workflow and Recording IPC
       try {
         const { getBrowserEngine } = require("./browser/browser-ipc");
         const browserEngine = getBrowserEngine();
 
-        // Initialize workflow system with browser engine and database
         if (this.database) {
           initializeWorkflowSystem(
             browserEngine,
@@ -492,7 +582,6 @@ class ChainlessChainApp {
           );
         }
 
-        // Register IPC handlers
         registerWorkflowIPC();
         registerRecordingIPC();
 
@@ -506,9 +595,9 @@ class ChainlessChainApp {
         );
       }
 
-      logger.info("[Main] 高级IPC handlers注册完成");
+      logger.info("[Main] 延迟 IPC handlers 注册完成");
     } catch (error) {
-      logger.error("[Main] 高级IPC注册失败:", error);
+      logger.error("[Main] 延迟 IPC 注册失败:", error);
     }
   }
 

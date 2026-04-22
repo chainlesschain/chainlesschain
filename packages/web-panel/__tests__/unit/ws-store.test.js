@@ -162,6 +162,34 @@ describe('ws store — waitConnected()', () => {
     vi.advanceTimersByTime(300)
     await expect(p).rejects.toThrow()
   })
+
+  it('does not reconnect after a manual disconnect', async () => {
+    const store = useWsStore()
+    store.connect()
+    const firstSocket = MockWebSocket._last
+    firstSocket._open()
+    await Promise.resolve()
+
+    store.disconnect()
+    vi.advanceTimersByTime(5000)
+
+    expect(store.status).toBe('disconnected')
+    expect(MockWebSocket._last).toBe(firstSocket)
+  })
+
+  it('reconnects automatically after an unexpected close', async () => {
+    const store = useWsStore()
+    store.connect()
+    const firstSocket = MockWebSocket._last
+    firstSocket._open()
+    await Promise.resolve()
+
+    firstSocket.close()
+    vi.advanceTimersByTime(1000)
+
+    expect(MockWebSocket._last).not.toBe(firstSocket)
+    expect(store.status).toBe('connecting')
+  })
 })
 
 describe('ws store — message routing', () => {

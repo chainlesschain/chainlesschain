@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useWsStore } from './ws.js'
 
 const DEFAULT_CHAT_TITLE = '新对话'
@@ -27,7 +27,7 @@ export const useChatStore = defineStore('chat', () => {
   const messages = reactive({})
   const streaming = reactive({})
   const pendingQuestion = reactive({})
-  const isLoading = ref(false)
+  const loadingBySession = reactive({})
   let unsubscribeRuntimeEvents = null
   // Track which sessions already have a WS handler registered so we never
   // register a second one (the Set in ws.js can't deduplicate anonymous
@@ -37,6 +37,15 @@ export const useChatStore = defineStore('chat', () => {
   function getMessages(sessionId) {
     if (!messages[sessionId]) messages[sessionId] = []
     return messages[sessionId]
+  }
+
+  function getIsLoading(sessionId) {
+    return Boolean(sessionId && loadingBySession[sessionId])
+  }
+
+  function setSessionLoading(sessionId, flag) {
+    if (!sessionId) return
+    loadingBySession[sessionId] = Boolean(flag)
   }
 
   function upsertSession(session) {
@@ -52,6 +61,7 @@ export const useChatStore = defineStore('chat', () => {
   function ensureSessionChannel(sessionId, ws = useWsStore()) {
     if (!messages[sessionId]) messages[sessionId] = []
     if (!streaming[sessionId]) streaming[sessionId] = { content: '', active: false }
+    if (loadingBySession[sessionId] == null) loadingBySession[sessionId] = false
     if (_registeredChannels.has(sessionId)) return
     _registeredChannels.add(sessionId)
     ws.onSession(sessionId, (msg) => handleSessionMsg(sessionId, msg))
@@ -65,6 +75,7 @@ export const useChatStore = defineStore('chat', () => {
 
       if (event.type === 'session:start') {
         const sessionType = payload.sessionType || record.type || 'chat'
+        setSessionLoading(payload.sessionId, false)
         upsertSession({
           id: payload.sessionId,
           type: sessionType,
@@ -87,6 +98,7 @@ export const useChatStore = defineStore('chat', () => {
           }))
         }
         if (!streaming[sessionId]) streaming[sessionId] = { content: '', active: false }
+        if (loadingBySession[sessionId] == null) loadingBySession[sessionId] = false
         upsertSession({
           id: sessionId,
           type: record.type || null,
@@ -99,6 +111,7 @@ export const useChatStore = defineStore('chat', () => {
       } else if (event.type === 'session:end') {
         const sessionId = payload.sessionId
         sessions.value = sessions.value.filter((item) => item.id !== sessionId)
+        delete loadingBySession[sessionId]
         if (currentSessionId.value === sessionId) {
           currentSessionId.value = sessions.value[0]?.id || null
         }
@@ -110,6 +123,9 @@ export const useChatStore = defineStore('chat', () => {
     const ws = useWsStore()
     ensureRuntimeSubscription(ws)
     sessions.value = await ws.listSessions()
+    sessions.value.forEach((session) => {
+      ensureSessionChannel(session.id, ws)
+    })
   }
 
   async function createSession(type = 'chat', options = {}) {
@@ -125,6 +141,7 @@ export const useChatStore = defineStore('chat', () => {
       messageCount: 0,
     })
 
+    setSessionLoading(sessionId, false)
     ensureSessionChannel(sessionId, ws)
     currentSessionId.value = sessionId
     return sessionId
@@ -144,6 +161,7 @@ export const useChatStore = defineStore('chat', () => {
       const token = msg.token || p.token || p.delta || p.content || ''
       streaming[sessionId].content += token
       streaming[sessionId].active = true
+      setSessionLoading(sessionId, true)
     } else if (type === 'response-complete') {
       const content = msg.content || p.content || streaming[sessionId]?.content || ''
       msgs.push({ role: 'assistant', content, timestamp: Date.now() })
@@ -159,7 +177,7 @@ export const useChatStore = defineStore('chat', () => {
       if (session) {
         session.messageCount = msgs.filter((item) => item.role !== 'tool').length
       }
-      isLoading.value = false
+      setSessionLoading(sessionId, false)
     } else if (type === 'tool-executing') {
       msgs.push({
         role: 'tool',
@@ -168,6 +186,7 @@ export const useChatStore = defineStore('chat', () => {
         status: 'running',
         timestamp: Date.now(),
       })
+      setSessionLoading(sessionId, true)
     } else if (type === 'tool-result') {
       const toolName = msg.tool || p.tool || p.toolName || 'unknown'
       const last = [...msgs].reverse().find((item) => item.role === 'tool' && item.tool === toolName)
@@ -181,11 +200,12 @@ export const useChatStore = defineStore('chat', () => {
         question: msg.question || p.question || p.message || '',
         choices: msg.choices || p.choices || p.options || [],
       }
+      setSessionLoading(sessionId, false)
     } else if (type === 'error') {
       // Surface errors in the chat as assistant messages
       const errMsg = msg.message || p.message || 'Unknown error'
       msgs.push({ role: 'assistant', content: `Error: ${errMsg}`, timestamp: Date.now() })
-      isLoading.value = false
+      setSessionLoading(sessionId, false)
       if (streaming[sessionId]) {
         streaming[sessionId].active = false
       }
@@ -199,7 +219,7 @@ export const useChatStore = defineStore('chat', () => {
     msgs.push({ role: 'user', content, timestamp: Date.now() })
     if (!streaming[sessionId]) streaming[sessionId] = { content: '', active: false }
     streaming[sessionId].active = true
-    isLoading.value = true
+    setSessionLoading(sessionId, true)
     ws.sendSessionMessage(sessionId, content)
   }
 
@@ -225,13 +245,17 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  const isLoading = computed(() => getIsLoading(currentSessionId.value))
+
   return {
     sessions,
     currentSessionId,
     messages,
     streaming,
     pendingQuestion,
+    loadingBySession,
     isLoading,
+    getIsLoading,
     loadSessions,
     createSession,
     sendMessage,

@@ -11,8 +11,8 @@
 | 文档类型 | 设计文档（Design Document） |
 | 模块 | desktop-app-vue（Electron + Vue 3） |
 | 适用版本 | v5.0.2.x → v6.0 |
-| 状态 | P0–P9c + Phase 3.3c / 3.4 落地 + 回归扩面全绿（Implementation Complete · Regression Green） |
-| 最近更新 | 2026-04-21 |
+| 状态 | P0–P9c + Phase 3.3c / 3.4 + MainLayout / DIDManagement 拆分 + 启动流程 Critical/Deferred + Shell 真 LLM 接入（Implementation Complete · Regression Green） |
+| 最近更新 | 2026-04-22 |
 | 关联文档 | `docs/design/系统设计_主文档.md`、`docs/guides/桌面版UI重构_用户指南.md` |
 
 ### 修订历史
@@ -25,6 +25,8 @@
 | v0.4 | 2026-04-20 | ChainlessChain 团队 | P7–P9b：`/v6-preview` 预览壳 + 4 主题 + 4 颗去中心化入口 + 会话 localStorage 持久化 + `llm-preview-bridge` 桥接 `window.electronAPI.llm.chat` |
 | v0.5 | 2026-04-20 | ChainlessChain 团队 | 发布前测试回归闭环：92 单测 + 5 集成测 + `vue-tsc --noEmit` + `vite build` 全绿；E2E 跟随既有 `describe.skip` 约定；本轮回归无 bug 溢出 |
 | v0.6 | 2026-04-21 | ChainlessChain 团队 | Phase 3.3c 补齐 5 个 thin store 单测（rag / wallet / git-hooks / workflow-designer / analytics-dashboard，83 例）+ Phase 3.4 路由守卫 9 例 + 600 store 回归 + 13 plugin 扩展点集成全绿；修复两个 drift（`logger.ts` IPC `.catch()` 防御、`electron.d.ts` 补齐 `ConfigAPI` 类型） |
+| v0.7 | 2026-04-21（下午） | ChainlessChain 团队 | SystemSettings.vue 六级 Pane 拆分（P2P / Speech / LLM / Database / Project / Performance）+ ChatPanel.vue 两级外提（`chatPanelUtils.js` 7 个纯工具 + `useMemoryLeakGuard` composable）。SystemSettings 3444 → 1070 行（−69%），ChatPanel 4057 → 3788 行；`defineModel('config')` + `v-model:config` 模式保持子组件可直接操作嵌套 config；600/600 store 单测 + vite build 全绿 |
+| v0.8 | 2026-04-22 | ChainlessChain 团队 | MainLayout.vue 六级拆分（FavoriteManagerModal / HeaderBreadcrumbs / SyncStatusButton / VoiceCommandHandler / SidebarContextMenu / AppHeader），3203 → 1943 行（−39%）；DIDManagement.vue 三级拆分（AutoRepublishSettingsPane / MnemonicModals / IdentityDetailsModal），1390 → 543 行（−61%）；Shell 接入真实 LLM（ShellComposer `handleSend` 流式优先 / 非流式回退 + ConversationStream typing indicator）；主进程启动 Critical/Deferred 两段化（`bootstrapCritical` 阶段 0-5 阻塞 splash / `bootstrapDeferred` 阶段 6+ + `registerCriticalIPC` / `registerDeferredIPC`，回退开关 `CHAINLESSCHAIN_LEGACY_BOOT=1`）；重型渲染器组件（Monaco / Milkdown / Fabric）改 `defineAsyncComponent` 懒加载，monaco 独立 chunk 3.7MB / gzip 938KB；后端服务 4 路并行轮询，startServices 不阻塞；2000+ 定向单元 + 98/104 集成 + smoke build + lint 全绿 |
 
 ---
 
@@ -456,4 +458,104 @@ desktop-app-vue/
 - 用户指南：`docs/guides/桌面版UI重构_用户指南.md`
 - 系统设计主文档：`docs/design/系统设计_主文档.md`
 - 安全机制：`docs/design/安全机制设计.md`
+
+---
+
+## 附录 C：v0.8 拆分与启动优化（2026-04-22）
+
+本附录记录 v0.8 实施细节，补充「修订历史」表格里的摘要。
+
+### C.1 MainLayout.vue 拆分（3203 → 1943 行，−39%）
+
+从主布局抽出 6 个独立 SFC，归入 `src/renderer/components/layout/`：
+
+| 子组件 | 行数 | 职责 | 通信方式 |
+|---|---:|---|---|
+| `FavoriteManagerModal.vue` | 151 | 「管理快捷访问」弹窗（Favorites / Recents Tab） | `defineModel('open')` + `@quick-access-click(item)` + 父传 `iconResolver` prop |
+| `HeaderBreadcrumbs.vue` | 170 | 7 路由前缀面包屑 + `handleBreadcrumbClick` | 内部 `useRoute()/useRouter()`，父传 `iconResolver` |
+| `SyncStatusButton.vue` | 97 | 全局同步状态按钮 | 完全自包含（自管 3 refs + 3 监听器） |
+| `VoiceCommandHandler.vue` | 584 | `VoiceFeedbackWidget` + 75 条语音命令 + 7 handler | 内部 `useRouter/useAppStore/useSocialStore`；`@show-command-palette` 回传父 |
+| `SidebarContextMenu.vue` | 97 | 侧栏右键菜单（`a-dropdown` + 14 调用点） | `defineExpose({show(event,item)})` 命令式；父留 `showContextMenu(event,key)` 薄包装做 `menuConfig` lookup |
+| `AppHeader.vue` | 210 | `<a-layout-header>` 整块（sidebar 切换 / 面包屑 / Ctrl+K / Sync / AI / 语言 / 通知 / 用户菜单） | 自行 `useRoute/useAppStore`；`@show-command-palette` 上传；`iconResolver` 透传 HeaderBreadcrumbs |
+
+**模式约束**：
+
+- 自包含优先（SyncStatusButton / VoiceCommandHandler / SidebarContextMenu），减少父 `ref` 数量。
+- 跨层级状态（面包屑的路由对象、iconResolver 40-entry map）只传一层 prop，不 provide/inject。
+- 命令式 API 只用于「父主动触发子弹窗」场景（SidebarContextMenu.show / IdentityDetailsModal.open），普通可见性仍用 `defineModel('open')`。
+
+### C.2 DIDManagement.vue 拆分（1390 → 543 行，−61%）
+
+三个子组件归入 `src/renderer/components/did/`：
+
+1. **`AutoRepublishSettingsPane.vue`**（148 行） — 自动重发布模态 + 状态轮询 + 保存 / 立即发布 handler；`defineModel('open')` + `@status-change(status)` + `@after-republish`。
+2. **`MnemonicModals.vue`**（308 行） — 助记词两弹窗合一（创建后显示 + 详情导出）。`defineExpose({showDisplay(mnemonic), triggerExport(identity)})`；导出时内嵌 `Modal.confirm` 安全提醒。
+3. **`IdentityDetailsModal.vue`**（约 421 行） — 身份详情 / DID Document / QR 三弹窗合一 + DHT publish/unpublish。`defineExpose({open(identity), openQR(did)})`；`@identities-refreshed` + `@export-mnemonic(identity)`（父桥接到 MnemonicModals.triggerExport）。
+
+### C.3 V6 Shell 真 LLM 接入 + Phase 3.4 重定向目标切换
+
+- **Phase 3.4 软开关重定向目标变更**：`router/v6-shell-default.ts::resolveHomeRedirect` 的 opt-in 重定向目标由 `/v2` 改为 `/v6-preview`；勾上 `ui.useV6ShellByDefault` 后根路径直接进入 Claude-Desktop 风格预览壳（此前是 V2 壳）。动机：V6 shell 已接入真 LLM，可直接作为默认壳体验，`/v2` 仍保留为次级入口。9/9 路由单测已同步，JSDoc 注释已对齐。
+- **ShellComposer.vue `handleSend()`**：
+  - 读 `conversationStore.active?.messages` → `toBridgeMessages(history, text)` 组 payload（末尾挂新 user 消息）。
+  - 先 `conversationStore.appendMessage("user", text)` 清输入；`setGenerating(true)`。
+  - `isLlmAvailable()` false → push 友好提示 → return。
+  - `isStreamAvailable()` → `beginStreamingAssistant()` 拿到 `streamId` → `sendLlmChatStream(text, liveText => updateAssistantContent(streamId, liveText))`；成功 `finalizeStreamingAssistant(streamId, reply)`；失败 `removeMessage(streamId)` fallthrough 到非流式。
+  - 非流式：`sendLlmChat(payload)`；成功 `appendAssistantMessage(reply)`；失败 `appendAssistantMessage("LLM 调用失败：" + reason)`。
+- **ConversationStream.vue**：
+  - 消息源改由 `useConversationPreviewStore()` 提供；`onMounted` 调 `restore()`。
+  - 新增 typing indicator（3 点波浪 `@keyframes shell-typing`），当 `isGenerating` 且最后一条不是已有内容的 assistant 时显示。
+  - 删除 `did-chip` 视觉元素（简化 `message-meta`）。
+
+### C.4 主进程启动 Critical / Deferred 两段化
+
+核心动机：缩短 splash 显示时间 + 避免 IPC 二次注册与 `ipc-guard.resetAll()` 竞态（症状：`llm:chat` 二次注册后"无法发送消息"）。
+
+| 阶段 | Bootstrap 函数 | IPC 注册 | Splash 进度 |
+|---|---|---|---|
+| **Critical**（0-5） | `bootstrapCritical()`：Hooks / 核心 / 文件 / LLM / 会话 / RAG+Git | `registerCriticalIPC()`：volcengine / secureStorage / session / taskTracker / manus | 5% → 55% |
+| **Deferred**（6+） | `bootstrapDeferred()`：技能 / 工具 / 高级 | `registerDeferredIPC()`：skillTool / multiAgent / workflow / recording | 55% → 90% |
+| 主窗口 | — | `createWindow()` 里的 `setupIPC()` 只调一次 | 95% |
+
+关键实现点：
+
+- `bootstrapApplication()` 保留为兼容 wrapper（依次跑 Critical + Deferred），避免外部调用方一次性改动。
+- `CHAINLESSCHAIN_LEGACY_BOOT=1` 走 `runLegacyBoot()` 单阶段旧流程作回退开关。
+- `createInitialSetupIPC()` 独立提成：无论数据库是否就绪都要注册，避免 App.vue 首屏报「检查设置状态失败」。
+- `initializeExternalFileManager()` 因依赖 p2pManager+ragManager 归入延迟阶段。
+
+### C.5 重型渲染器组件懒加载
+
+5 处 `import` 改 `defineAsyncComponent(() => import(...))`：
+
+| 页面 / 组件 | 懒加载目标 | 估算体积 |
+|---|---|---:|
+| `FileEditor.vue` | `MonacoEditor.vue` | ~5MB |
+| `KnowledgeDetailPage.vue` | `MarkdownEditor.vue`（Milkdown） | ~1.5MB |
+| `DesignEditorPage.vue` | `DesignCanvas.vue`（Fabric.js） | ~1MB |
+| `ProjectDetailPage.vue` | `CodeEditor.vue` / `MarkdownEditor.vue` / `WebDevEditor.vue`（均基于 Monaco） | 共 ~5MB |
+
+实测 `vite build` 产出：`monaco-D050Xe0j.js` 独立 chunk **3.7MB / gzip 938KB**，首屏无需强拉。
+
+### C.6 后端服务并行轮询
+
+`BackendServiceManager.waitForServices()`：
+
+- 4 个服务（Skill Engine 9101 / Data Engine 9102 / Collaboration Engine 9103 / Project Service 9090）原串行 4×30s → 改并行 `Promise.all`，单服务 `maxRetries=10` × `retryDelay=1000ms`。
+- `startServices()` 不再 `await waitForServices()`；将 Promise 赋给 `this.servicesReady`，调用方可按需 `await`。
+- 开发环境（非 packaged）直接 `Promise.resolve()`（假设 Docker）。
+
+### C.7 回归覆盖
+
+| 维度 | 结果 |
+|---|---|
+| Store 单元（23 文件） | **600/600** |
+| Shell + router + bootstrap（5 文件） | **76/76** |
+| Skill-handlers + ipc-guard + bootstrap（3 文件） | **285/285** |
+| Vue 组件单元 | **124/125**（1 skip） |
+| AI + core + multi-agent 单元 | **411/413**（2 skip） |
+| Database + enterprise + did + knowledge 单元 | **1456/1464**（8 skip · 3 stderr 错误为预存问题） |
+| shell-preview 组件/服务/widgets | **51/51** |
+| 集成测试（9 文件） | **98/104**（6 skip） |
+| Smoke | `vite build` + `build:main` 成功；`eslint` 0 error / 237 style warn |
+| E2E | Playwright 枚举 1017 / 163 文件；环境健康 80% |
 - 既有插件实现：`desktop-app-vue/src/main/plugins/`

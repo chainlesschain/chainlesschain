@@ -149,12 +149,16 @@ export const useWsStore = defineStore('ws', () => {
 
   let reconnectTimer = null
   let reconnectDelay = 1000
+  let manualClose = false
 
   const cfg = window.__CC_CONFIG__ || {}
   const wsUrl = computed(() => `ws://${cfg.wsHost || '127.0.0.1'}:${cfg.wsPort || 18800}`)
 
   function connect() {
-    if (socket.value?.readyState === WebSocket.OPEN) return
+    if (socket.value?.readyState === WebSocket.OPEN || socket.value?.readyState === WebSocket.CONNECTING) return
+    clearTimeout(reconnectTimer)
+    reconnectTimer = null
+    manualClose = false
     status.value = 'connecting'
     error.value = null
 
@@ -191,9 +195,15 @@ export const useWsStore = defineStore('ws', () => {
         // Reject all pending
         pending.forEach(({ reject }) => reject(new Error('WebSocket closed')))
         pending.clear()
+        if (manualClose) {
+          manualClose = false
+          reconnectTimer = null
+          return
+        }
         // Schedule reconnect
         reconnectTimer = setTimeout(() => {
           reconnectDelay = Math.min(reconnectDelay * 2, 30000)
+          reconnectTimer = null
           connect()
         }, reconnectDelay)
       }
@@ -205,6 +215,8 @@ export const useWsStore = defineStore('ws', () => {
 
   function disconnect() {
     clearTimeout(reconnectTimer)
+    reconnectTimer = null
+    manualClose = true
     socket.value?.close()
     socket.value = null
     status.value = 'disconnected'
