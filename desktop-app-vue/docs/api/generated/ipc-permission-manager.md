@@ -2,7 +2,7 @@
 
 **Source**: `src/main/security/ipc-permission-manager.js`
 
-**Generated**: 2026-04-22T07:47:41.931Z
+**Generated**: 2026-04-22T07:55:53.683Z
 
 ---
 

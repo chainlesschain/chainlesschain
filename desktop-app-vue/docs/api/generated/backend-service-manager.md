@@ -2,7 +2,7 @@
 
 **Source**: `src/main/api/backend-service-manager.js`
 
-**Generated**: 2026-04-22T07:47:42.018Z
+**Generated**: 2026-04-22T07:55:53.769Z
 
 ---
 
@@ -55,6 +55,8 @@ async startServices()
 ```
 
 * 启动所有后端服务
+   * 注：本方法只负责触发启动，**不阻塞**等待服务完全就绪。
+   * 若调用方需要确认服务就绪，可 await this.servicesReady。
 
 ---
 
@@ -74,7 +76,8 @@ async startIndividualServices()
 async waitForServices()
 ```
 
-* 等待服务启动完成
+* 等待服务启动完成（4 个服务**并行**轮询）
+   * 单个服务最多等待 maxRetries * retryDelay 毫秒，4 个服务总耗时 = 最慢的那一个
 
 ---
 

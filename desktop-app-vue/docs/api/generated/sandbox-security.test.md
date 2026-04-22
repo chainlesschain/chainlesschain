@@ -2,7 +2,7 @@
 
 **Source**: `src/main/cowork/__tests__/security/sandbox-security.test.js`
 
-**Generated**: 2026-04-22T07:47:41.999Z
+**Generated**: 2026-04-22T07:55:53.749Z
 
 ---
 

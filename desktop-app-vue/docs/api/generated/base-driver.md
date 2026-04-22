@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ukey/base-driver.js`
 
-**Generated**: 2026-04-22T07:47:41.898Z
+**Generated**: 2026-04-22T07:55:53.654Z
 
 ---
 

@@ -1,8 +1,8 @@
 # Component Reference
 
-**Generated**: 2026-04-22T07:47:42.153Z
+**Generated**: 2026-04-22T07:55:53.900Z
 
-**Total Components**: 573
+**Total Components**: 580
 
 ---
 
@@ -3702,6 +3702,44 @@
 
 ---
 
+## src/renderer/components/layout
+
+### VoiceCommandHandler
+
+**File**: `src/renderer/components/layout/VoiceCommandHandler.vue`
+
+---
+
+### SyncStatusButton
+
+**File**: `src/renderer/components/layout/SyncStatusButton.vue`
+
+---
+
+### SidebarContextMenu
+
+**File**: `src/renderer/components/layout/SidebarContextMenu.vue`
+
+---
+
+### HeaderBreadcrumbs
+
+**File**: `src/renderer/components/layout/HeaderBreadcrumbs.vue`
+
+---
+
+### FavoriteManagerModal
+
+**File**: `src/renderer/components/layout/FavoriteManagerModal.vue`
+
+---
+
+### AppHeader
+
+**File**: `src/renderer/components/layout/AppHeader.vue`
+
+---
+
 ## src/renderer/components/knowledge
 
 ### SubscriptionPlans
@@ -3869,6 +3907,14 @@
 **File**: `src/renderer/components/did/MnemonicModals.vue`
 
 **Description**: 助记词显示模态框（新创建身份后）
+
+---
+
+### IdentityDetailsModal
+
+**File**: `src/renderer/components/did/IdentityDetailsModal.vue`
+
+**Description**: 身份详情模态框
 
 ---
 

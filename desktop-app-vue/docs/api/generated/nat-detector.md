@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/nat-detector.js`
 
-**Generated**: 2026-04-22T07:47:41.951Z
+**Generated**: 2026-04-22T07:55:53.703Z
 
 ---
 

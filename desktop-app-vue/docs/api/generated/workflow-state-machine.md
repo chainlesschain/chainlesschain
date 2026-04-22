@@ -2,7 +2,7 @@
 
 **Source**: `src/main/workflow/workflow-state-machine.js`
 
-**Generated**: 2026-04-22T07:47:41.884Z
+**Generated**: 2026-04-22T07:55:53.640Z
 
 ---
 
