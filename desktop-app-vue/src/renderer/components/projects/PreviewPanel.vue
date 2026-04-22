@@ -4,11 +4,8 @@
     <div class="preview-header">
       <div class="header-left">
         <FileOutlined />
-        <span class="file-name">{{ file?.file_name || '预览' }}</span>
-        <a-tag
-          v-if="fileType"
-          :color="getFileTypeColor()"
-        >
+        <span class="file-name">{{ file?.file_name || "预览" }}</span>
+        <a-tag v-if="fileType" :color="getFileTypeColor()">
           {{ getFileTypeLabel() }}
         </a-tag>
       </div>
@@ -16,29 +13,17 @@
         <!-- 图片预览专用控制 -->
         <template v-if="fileType === 'image'">
           <a-tooltip title="放大">
-            <a-button
-              type="text"
-              size="small"
-              @click="handleZoomIn"
-            >
+            <a-button type="text" size="small" @click="handleZoomIn">
               <ZoomInOutlined />
             </a-button>
           </a-tooltip>
           <a-tooltip title="缩小">
-            <a-button
-              type="text"
-              size="small"
-              @click="handleZoomOut"
-            >
+            <a-button type="text" size="small" @click="handleZoomOut">
               <ZoomOutOutlined />
             </a-button>
           </a-tooltip>
           <a-tooltip title="重置">
-            <a-button
-              type="text"
-              size="small"
-              @click="handleZoomReset"
-            >
+            <a-button type="text" size="small" @click="handleZoomReset">
               <ReloadOutlined />
             </a-button>
           </a-tooltip>
@@ -46,20 +31,12 @@
 
         <!-- 通用控制 -->
         <a-tooltip title="在系统中打开">
-          <a-button
-            type="text"
-            size="small"
-            @click="handleOpenExternal"
-          >
+          <a-button type="text" size="small" @click="handleOpenExternal">
             <ExportOutlined />
           </a-button>
         </a-tooltip>
         <a-tooltip :title="isFullscreen ? '退出全屏 (ESC)' : '全屏 (F11)'">
-          <a-button
-            type="text"
-            size="small"
-            @click="toggleFullscreen"
-          >
+          <a-button type="text" size="small" @click="toggleFullscreen">
             <FullscreenExitOutlined v-if="isFullscreen" />
             <FullscreenOutlined v-else />
           </a-button>
@@ -68,53 +45,47 @@
     </div>
 
     <!-- 预览内容区 -->
-    <div
-      ref="contentRef"
-      class="preview-content"
-    >
+    <div ref="contentRef" class="preview-content">
       <!-- 大文件预览（文本类型） -->
       <LargeFilePreview
-        v-if="isLargeFile && ['markdown', 'code', 'csv', 'json'].includes(fileType)"
+        v-if="
+          isLargeFile && ['markdown', 'code', 'csv', 'json'].includes(fileType)
+        "
         :file="file"
         :project-id="projectId"
       />
 
       <!-- 图片预览 -->
-      <div
-        v-else-if="fileType === 'image'"
-        class="image-preview"
-      >
+      <div v-else-if="fileType === 'image'" class="image-preview">
         <img
           :src="imageUrl"
           :alt="file?.file_name"
           :style="imageStyle"
           @error="handleImageError"
-        >
+        />
       </div>
 
       <!-- Markdown 渲染预览 -->
+      <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
       <div
         v-else-if="fileType === 'markdown'"
         class="markdown-preview"
         v-html="renderedMarkdown"
       />
+      <!-- eslint-enable vue/no-v-html -->
 
       <!-- 代码预览（语法高亮） -->
-      <div
-        v-else-if="fileType === 'code'"
-        class="code-preview"
-      >
+      <div v-else-if="fileType === 'code'" class="code-preview">
+        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
         <pre><code
 :class="codeLanguageClass"
                    v-html="highlightedCode"
         /></pre>
+        <!-- eslint-enable vue/no-v-html -->
       </div>
 
       <!-- CSV 表格预览 -->
-      <div
-        v-else-if="fileType === 'csv'"
-        class="csv-preview"
-      >
+      <div v-else-if="fileType === 'csv'" class="csv-preview">
         <a-table
           :columns="csvColumns"
           :data-source="csvData"
@@ -126,21 +97,17 @@
       </div>
 
       <!-- JSON 格式化预览 -->
-      <div
-        v-else-if="fileType === 'json'"
-        class="json-preview"
-      >
+      <div v-else-if="fileType === 'json'" class="json-preview">
+        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
         <pre><code
 class="language-json"
                    v-html="highlightedJson"
         /></pre>
+        <!-- eslint-enable vue/no-v-html -->
       </div>
 
       <!-- PDF 预览 -->
-      <div
-        v-else-if="fileType === 'pdf'"
-        class="pdf-preview"
-      >
+      <div v-else-if="fileType === 'pdf'" class="pdf-preview">
         <VuePdfEmbed
           v-if="pdfUrl"
           :source="pdfUrl"
@@ -151,43 +118,28 @@ class="language-json"
       </div>
 
       <!-- 视频预览 -->
-      <div
-        v-else-if="fileType === 'video'"
-        class="video-preview"
-      >
-        <video
-          :src="videoUrl"
-          controls
-          class="video-player"
-        >
+      <div v-else-if="fileType === 'video'" class="video-preview">
+        <video :src="videoUrl" controls class="video-player">
           您的浏览器不支持视频播放
         </video>
       </div>
 
       <!-- 音频预览 -->
-      <div
-        v-else-if="fileType === 'audio'"
-        class="audio-preview"
-      >
-        <audio
-          :src="audioUrl"
-          controls
-          class="audio-player"
-        >
+      <div v-else-if="fileType === 'audio'" class="audio-preview">
+        <audio :src="audioUrl" controls class="audio-player">
           您的浏览器不支持音频播放
         </audio>
       </div>
 
       <!-- Word文档预览 -->
-      <div
-        v-else-if="fileType === 'word'"
-        class="office-preview word-preview"
-      >
+      <div v-else-if="fileType === 'word'" class="office-preview word-preview">
+        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
         <div
           v-if="officeContent"
           class="office-content"
           v-html="officeContent"
         />
+        <!-- eslint-enable vue/no-v-html -->
       </div>
 
       <!-- Excel表格预览 -->
@@ -195,10 +147,7 @@ class="language-json"
         v-else-if="fileType === 'excel'"
         class="office-preview excel-preview"
       >
-        <div
-          v-if="officeContent && officeContent.sheets"
-          class="excel-sheets"
-        >
+        <div v-if="officeContent && officeContent.sheets" class="excel-sheets">
           <a-tabs v-model:active-key="activeSheet">
             <a-tab-pane
               v-for="(sheet, index) in officeContent.sheets"
@@ -208,14 +157,8 @@ class="language-json"
               <div class="excel-table-wrapper">
                 <table class="excel-table">
                   <tbody>
-                    <tr
-                      v-for="(row, rowIndex) in sheet.data"
-                      :key="rowIndex"
-                    >
-                      <td
-                        v-for="(cell, colIndex) in row"
-                        :key="colIndex"
-                      >
+                    <tr v-for="(row, rowIndex) in sheet.data" :key="rowIndex">
+                      <td v-for="(cell, colIndex) in row" :key="colIndex">
                         {{ cell }}
                       </td>
                     </tr>
@@ -232,16 +175,10 @@ class="language-json"
         v-else-if="fileType === 'powerpoint'"
         class="office-preview ppt-preview"
       >
-        <div
-          v-if="officeContent && officeContent.slides"
-          class="ppt-slides"
-        >
+        <div v-if="officeContent && officeContent.slides" class="ppt-slides">
           <!-- 幻灯片导航 -->
           <div class="ppt-navigation">
-            <a-button
-              :disabled="currentSlide === 0"
-              @click="previousSlide"
-            >
+            <a-button :disabled="currentSlide === 0" @click="previousSlide">
               <LeftOutlined />
               上一页
             </a-button>
@@ -259,16 +196,14 @@ class="language-json"
 
           <!-- 幻灯片内容 -->
           <div class="ppt-slide-container">
-            <div
-              v-if="officeContent.slides[currentSlide]"
-              class="ppt-slide"
-            >
+            <div v-if="officeContent.slides[currentSlide]" class="ppt-slide">
               <h2 class="slide-title">
                 {{ officeContent.slides[currentSlide].title }}
               </h2>
               <div class="slide-content">
                 <p
-                  v-for="(line, index) in officeContent.slides[currentSlide].content"
+                  v-for="(line, index) in officeContent.slides[currentSlide]
+                    .content"
                   :key="index"
                   class="slide-line"
                 >
@@ -290,34 +225,22 @@ class="language-json"
                 {{ index + 1 }}
               </div>
               <div class="thumbnail-title">
-                {{ slide.title || '无标题' }}
+                {{ slide.title || "无标题" }}
               </div>
             </div>
           </div>
         </div>
 
         <!-- 如果没有幻灯片数据，显示提示 -->
-        <div
-          v-else
-          class="ppt-preview-tip"
-        >
+        <div v-else class="ppt-preview-tip">
           <FilePptOutlined class="ppt-icon" />
           <h3>PowerPoint 演示文稿</h3>
           <p class="file-info">
             {{ file?.file_name }}
           </p>
-          <p class="tip-text">
-            无法加载幻灯片内容
-          </p>
-          <a-space
-            size="large"
-            style="margin-top: 24px"
-          >
-            <a-button
-              type="primary"
-              size="large"
-              @click="handleOpenExternal"
-            >
+          <p class="tip-text">无法加载幻灯片内容</p>
+          <a-space size="large" style="margin-top: 24px">
+            <a-button type="primary" size="large" @click="handleOpenExternal">
               <ExportOutlined />
               用PowerPoint打开
             </a-button>
@@ -333,18 +256,15 @@ class="language-json"
       />
 
       <!-- 不支持预览的文件类型 -->
-      <div
-        v-else
-        class="unsupported-preview"
-      >
+      <div v-else class="unsupported-preview">
         <FileUnknownOutlined class="unsupported-icon" />
         <h3>无法预览此文件</h3>
-        <p>文件类型: {{ file?.file_name?.split('.').pop()?.toUpperCase() || '未知' }}</p>
+        <p>
+          文件类型:
+          {{ file?.file_name?.split(".").pop()?.toUpperCase() || "未知" }}
+        </p>
         <a-space>
-          <a-button
-            type="primary"
-            @click="handleOpenExternal"
-          >
+          <a-button type="primary" @click="handleOpenExternal">
             <ExportOutlined />
             在系统中打开
           </a-button>
@@ -356,40 +276,26 @@ class="language-json"
       </div>
 
       <!-- 加载状态 -->
-      <div
-        v-if="loading"
-        class="loading-overlay"
-      >
-        <a-spin
-          size="large"
-          tip="加载中..."
-        />
+      <div v-if="loading" class="loading-overlay">
+        <a-spin size="large" tip="加载中..." />
       </div>
 
       <!-- 错误状态 -->
-      <div
-        v-if="error"
-        class="error-overlay"
-      >
+      <div v-if="error" class="error-overlay">
         <CloseCircleOutlined class="error-icon" />
         <h3>加载失败</h3>
         <p>{{ error }}</p>
-        <a-button
-          type="primary"
-          @click="handleRetry"
-        >
-          重试
-        </a-button>
+        <a-button type="primary" @click="handleRetry"> 重试 </a-button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   FileOutlined,
   FileUnknownOutlined,
@@ -406,14 +312,15 @@ import {
   RightOutlined,
   FullscreenOutlined,
   FullscreenExitOutlined,
-} from '@ant-design/icons-vue';
-import { marked } from 'marked';
-import hljs from 'highlight.js';
-import 'highlight.js/styles/github.css';
-import Papa from 'papaparse';
-import VuePdfEmbed from 'vue-pdf-embed';
-import ArchivePreview from './ArchivePreview.vue';
-import LargeFilePreview from './LargeFilePreview.vue';
+} from "@ant-design/icons-vue";
+import { marked } from "marked";
+import hljs from "highlight.js";
+import "highlight.js/styles/github.css";
+import Papa from "papaparse";
+import { safeHtml } from "@/utils/sanitizeHtml";
+import VuePdfEmbed from "vue-pdf-embed";
+import ArchivePreview from "./ArchivePreview.vue";
+import LargeFilePreview from "./LargeFilePreview.vue";
 
 const props = defineProps({
   file: {
@@ -422,15 +329,15 @@ const props = defineProps({
   },
   projectPath: {
     type: String,
-    default: '',
+    default: "",
   },
   content: {
     type: String,
-    default: '',
+    default: "",
   },
   projectId: {
     type: String,
-    default: '',
+    default: "",
   },
 });
 
@@ -442,35 +349,39 @@ const isFullscreen = ref(false);
 const isLargeFile = ref(false);
 
 // 图片预览
-const imageUrl = ref('');
+const imageUrl = ref("");
 const imageZoom = ref(1);
 const imageRotate = ref(0);
 
 // Markdown
-const renderedMarkdown = ref('');
+const renderedMarkdown = ref("");
 
 // 代码高亮
-const highlightedCode = ref('');
-const codeLanguageClass = ref('');
+const highlightedCode = ref("");
+const codeLanguageClass = ref("");
 
 // CSV
 const csvData = ref([]);
 const csvColumns = ref([]);
-const csvPagination = ref({ pageSize: 50, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` });
+const csvPagination = ref({
+  pageSize: 50,
+  showSizeChanger: true,
+  showTotal: (total) => `共 ${total} 条`,
+});
 
 // JSON
-const highlightedJson = ref('');
+const highlightedJson = ref("");
 
 // PDF
-const pdfUrl = ref('');
+const pdfUrl = ref("");
 
 // 视频/音频
-const videoUrl = ref('');
-const audioUrl = ref('');
+const videoUrl = ref("");
+const audioUrl = ref("");
 
 // Office文件
 const officeContent = ref(null);
-const officeType = ref('');
+const officeType = ref("");
 const activeSheet = ref(0);
 const currentSlide = ref(0); // PPT 当前幻灯片索引
 
@@ -478,55 +389,104 @@ const currentSlide = ref(0); // PPT 当前幻灯片索引
  * 文件类型检测
  */
 const fileType = computed(() => {
-  if (!props.file?.file_name) {return null;}
+  if (!props.file?.file_name) {
+    return null;
+  }
 
-  const ext = props.file.file_name.split('.').pop().toLowerCase();
+  const ext = props.file.file_name.split(".").pop().toLowerCase();
 
-  const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'];
-  const codeExtensions = ['js', 'ts', 'jsx', 'tsx', 'vue', 'html', 'css', 'scss', 'less', 'xml', 'yml', 'yaml', 'txt'];
-  const videoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi'];
-  const audioExtensions = ['mp3', 'wav', 'ogg', 'm4a', 'flac'];
+  const imageExtensions = [
+    "png",
+    "jpg",
+    "jpeg",
+    "gif",
+    "svg",
+    "webp",
+    "bmp",
+    "ico",
+  ];
+  const codeExtensions = [
+    "js",
+    "ts",
+    "jsx",
+    "tsx",
+    "vue",
+    "html",
+    "css",
+    "scss",
+    "less",
+    "xml",
+    "yml",
+    "yaml",
+    "txt",
+  ];
+  const videoExtensions = ["mp4", "webm", "ogg", "mov", "avi"];
+  const audioExtensions = ["mp3", "wav", "ogg", "m4a", "flac"];
   const officeExtensions = {
-    word: ['docx', 'doc'],
-    excel: ['xlsx', 'xls'],
-    powerpoint: ['pptx', 'ppt']
+    word: ["docx", "doc"],
+    excel: ["xlsx", "xls"],
+    powerpoint: ["pptx", "ppt"],
   };
-  const archiveExtensions = ['zip', 'rar', '7z', 'tar', 'gz', 'bz2'];
+  const archiveExtensions = ["zip", "rar", "7z", "tar", "gz", "bz2"];
 
-  if (ext === 'md') {return 'markdown';}
-  if (ext === 'csv') {return 'csv';}
-  if (ext === 'json') {return 'json';}
-  if (ext === 'pdf') {return 'pdf';}
-  if (imageExtensions.includes(ext)) {return 'image';}
-  if (codeExtensions.includes(ext)) {return 'code';}
-  if (videoExtensions.includes(ext)) {return 'video';}
-  if (audioExtensions.includes(ext)) {return 'audio';}
-  if (officeExtensions.word.includes(ext)) {return 'word';}
-  if (officeExtensions.excel.includes(ext)) {return 'excel';}
-  if (officeExtensions.powerpoint.includes(ext)) {return 'powerpoint';}
-  if (archiveExtensions.includes(ext)) {return 'archive';}
+  if (ext === "md") {
+    return "markdown";
+  }
+  if (ext === "csv") {
+    return "csv";
+  }
+  if (ext === "json") {
+    return "json";
+  }
+  if (ext === "pdf") {
+    return "pdf";
+  }
+  if (imageExtensions.includes(ext)) {
+    return "image";
+  }
+  if (codeExtensions.includes(ext)) {
+    return "code";
+  }
+  if (videoExtensions.includes(ext)) {
+    return "video";
+  }
+  if (audioExtensions.includes(ext)) {
+    return "audio";
+  }
+  if (officeExtensions.word.includes(ext)) {
+    return "word";
+  }
+  if (officeExtensions.excel.includes(ext)) {
+    return "excel";
+  }
+  if (officeExtensions.powerpoint.includes(ext)) {
+    return "powerpoint";
+  }
+  if (archiveExtensions.includes(ext)) {
+    return "archive";
+  }
 
-  return 'unsupported';
+  return "unsupported";
 });
 
-const getFileExtension = (fileName = '') => {
-  const lastDot = fileName.lastIndexOf('.');
+const getFileExtension = (fileName = "") => {
+  const lastDot = fileName.lastIndexOf(".");
   if (lastDot === -1 || lastDot === fileName.length - 1) {
-    return '';
+    return "";
   }
   return fileName.slice(lastDot + 1).toLowerCase();
 };
 
-const extractResolvedPath = (resolvedPath, actionLabel = '路径解析') => {
-  if (typeof resolvedPath === 'string' && resolvedPath) {
+const extractResolvedPath = (resolvedPath, actionLabel = "路径解析") => {
+  if (typeof resolvedPath === "string" && resolvedPath) {
     return resolvedPath;
   }
 
-  if (resolvedPath && typeof resolvedPath === 'object') {
+  if (resolvedPath && typeof resolvedPath === "object") {
     if (resolvedPath.success === false) {
       throw new Error(resolvedPath.error || `${actionLabel}失败`);
     }
-    if (typeof resolvedPath.path === 'string' && resolvedPath.path) {
+    if (typeof resolvedPath.path === "string" && resolvedPath.path) {
       return resolvedPath.path;
     }
   }
@@ -534,18 +494,18 @@ const extractResolvedPath = (resolvedPath, actionLabel = '路径解析') => {
   throw new Error(`${actionLabel}失败: 无效路径返回`);
 };
 
-const normalizeErrorMessage = (err, fallbackMessage = '加载失败') => {
+const normalizeErrorMessage = (err, fallbackMessage = "加载失败") => {
   if (err instanceof Error && err.message) {
     return err.message;
   }
 
-  if (typeof err === 'string' && err.trim()) {
+  if (typeof err === "string" && err.trim()) {
     return err;
   }
 
   try {
     const serialized = JSON.stringify(err);
-    if (serialized && serialized !== '{}' && serialized !== 'null') {
+    if (serialized && serialized !== "{}" && serialized !== "null") {
       return serialized;
     }
   } catch (_serializationError) {
@@ -567,11 +527,11 @@ const toLogErrorData = (err) => {
 };
 
 const ensureSupportedOfficeExtension = (targetType) => {
-  const extension = getFileExtension(props.file?.file_name || '');
+  const extension = getFileExtension(props.file?.file_name || "");
   const legacyMap = {
-    word: { legacy: ['doc'], modern: '.docx' },
-    excel: { legacy: ['xls'], modern: '.xlsx' },
-    powerpoint: { legacy: ['ppt'], modern: '.pptx' },
+    word: { legacy: ["doc"], modern: ".docx" },
+    excel: { legacy: ["xls"], modern: ".xlsx" },
+    powerpoint: { legacy: ["ppt"], modern: ".pptx" },
   };
 
   const config = legacyMap[targetType];
@@ -580,12 +540,14 @@ const ensureSupportedOfficeExtension = (targetType) => {
   }
 
   if (config.legacy.includes(extension)) {
-    throw new Error(`暂不支持 .${extension} 预览，请转换为 ${config.modern} 后重试`);
+    throw new Error(
+      `暂不支持 .${extension} 预览，请转换为 ${config.modern} 后重试`,
+    );
   }
 };
 
 const normalizePreviewFailureMessage = (result, fallbackMessage) => {
-  if (!result || typeof result !== 'object') {
+  if (!result || typeof result !== "object") {
     return fallbackMessage;
   }
 
@@ -595,12 +557,12 @@ const normalizePreviewFailureMessage = (result, fallbackMessage) => {
     return baseMessage;
   }
 
-  if (typeof details === 'string') {
+  if (typeof details === "string") {
     return `${baseMessage} (${details})`;
   }
 
-  if (typeof details === 'object') {
-    const detailMessage = details.message || details.name || '';
+  if (typeof details === "object") {
+    const detailMessage = details.message || details.name || "";
     return detailMessage ? `${baseMessage} (${detailMessage})` : baseMessage;
   }
 
@@ -612,21 +574,21 @@ const normalizePreviewFailureMessage = (result, fallbackMessage) => {
  */
 const getFileTypeColor = () => {
   const colorMap = {
-    image: 'green',
-    markdown: 'blue',
-    code: 'purple',
-    csv: 'orange',
-    json: 'cyan',
-    pdf: 'red',
-    video: 'magenta',
-    audio: 'geekblue',
-    word: 'blue',
-    excel: 'green',
-    powerpoint: 'volcano',
-    archive: 'gold',
-    unsupported: 'default',
+    image: "green",
+    markdown: "blue",
+    code: "purple",
+    csv: "orange",
+    json: "cyan",
+    pdf: "red",
+    video: "magenta",
+    audio: "geekblue",
+    word: "blue",
+    excel: "green",
+    powerpoint: "volcano",
+    archive: "gold",
+    unsupported: "default",
   };
-  return colorMap[fileType.value] || 'default';
+  return colorMap[fileType.value] || "default";
 };
 
 /**
@@ -634,21 +596,21 @@ const getFileTypeColor = () => {
  */
 const getFileTypeLabel = () => {
   const labelMap = {
-    image: '图片',
-    markdown: 'Markdown',
-    code: '代码',
-    csv: 'CSV表格',
-    json: 'JSON',
-    pdf: 'PDF',
-    video: '视频',
-    audio: '音频',
-    word: 'Word文档',
-    excel: 'Excel表格',
-    powerpoint: 'PowerPoint',
-    archive: '压缩包',
-    unsupported: '不支持',
+    image: "图片",
+    markdown: "Markdown",
+    code: "代码",
+    csv: "CSV表格",
+    json: "JSON",
+    pdf: "PDF",
+    video: "视频",
+    audio: "音频",
+    word: "Word文档",
+    excel: "Excel表格",
+    powerpoint: "PowerPoint",
+    archive: "压缩包",
+    unsupported: "不支持",
   };
-  return labelMap[fileType.value] || '未知';
+  return labelMap[fileType.value] || "未知";
 };
 
 /**
@@ -656,7 +618,7 @@ const getFileTypeLabel = () => {
  */
 const imageStyle = computed(() => ({
   transform: `scale(${imageZoom.value}) rotate(${imageRotate.value}deg)`,
-  transition: 'transform 0.3s ease',
+  transition: "transform 0.3s ease",
 }));
 
 const handleZoomIn = () => {
@@ -673,14 +635,16 @@ const handleZoomReset = () => {
 };
 
 const handleImageError = () => {
-  error.value = '图片加载失败';
+  error.value = "图片加载失败";
 };
 
 /**
  * 加载文件内容
  */
 const loadFileContent = async () => {
-  if (!props.file || !fileType.value) {return;}
+  if (!props.file || !fileType.value) {
+    return;
+  }
 
   loading.value = true;
   error.value = null;
@@ -690,14 +654,19 @@ const loadFileContent = async () => {
     const filePath = props.file.file_path;
 
     // 检查是否是大文件（仅对文本类型）
-    if (['markdown', 'code', 'csv', 'json'].includes(fileType.value)) {
+    if (["markdown", "code", "csv", "json"].includes(fileType.value)) {
       try {
         let fullPath = filePath;
-        if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+        if (
+          !fullPath.startsWith("/data/projects/") &&
+          props.projectId &&
+          !fullPath.includes(props.projectId)
+        ) {
           fullPath = `/data/projects/${props.projectId}/${filePath}`;
         }
-        const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
-        const actualPath = extractResolvedPath(resolvedPath, '文件路径解析');
+        const resolvedPath =
+          await window.electronAPI.project.resolvePath(fullPath);
+        const actualPath = extractResolvedPath(resolvedPath, "文件路径解析");
         const sizeResult = await window.electronAPI.file.stat(actualPath);
 
         if (sizeResult.success && sizeResult.stats.size > 10 * 1024 * 1024) {
@@ -707,55 +676,55 @@ const loadFileContent = async () => {
           return;
         }
       } catch (err) {
-        logger.warn('[PreviewPanel] 检查文件大小失败:', err);
+        logger.warn("[PreviewPanel] 检查文件大小失败:", err);
       }
     }
 
     // 根据文件类型加载不同内容
     switch (fileType.value) {
-      case 'image':
+      case "image":
         await loadImage(filePath);
         break;
-      case 'markdown':
-        await loadMarkdown(props.content || '');
+      case "markdown":
+        await loadMarkdown(props.content || "");
         break;
-      case 'code':
-        await loadCode(props.content || '', props.file.file_name);
+      case "code":
+        await loadCode(props.content || "", props.file.file_name);
         break;
-      case 'csv':
-        await loadCsv(props.content || '');
+      case "csv":
+        await loadCsv(props.content || "");
         break;
-      case 'json':
-        await loadJson(props.content || '');
+      case "json":
+        await loadJson(props.content || "");
         break;
-      case 'pdf':
+      case "pdf":
         await loadPdf(filePath);
         break;
-      case 'video':
+      case "video":
         await loadVideo(filePath);
         break;
-      case 'audio':
+      case "audio":
         await loadAudio(filePath);
         break;
-      case 'word':
+      case "word":
         await loadWord(filePath);
         break;
-      case 'excel':
+      case "excel":
         await loadExcel(filePath);
         break;
-      case 'powerpoint':
+      case "powerpoint":
         await loadPowerPoint(filePath);
         break;
     }
   } catch (err) {
-    const errorMessage = normalizeErrorMessage(err, '加载文件失败');
-    logger.error('加载文件失败:', {
+    const errorMessage = normalizeErrorMessage(err, "加载文件失败");
+    logger.error("加载文件失败:", {
       errorMessage,
       error: toLogErrorData(err),
       fileType: fileType.value,
       file: props.file,
     });
-    error.value = errorMessage || '加载文件失败';
+    error.value = errorMessage || "加载文件失败";
   } finally {
     loading.value = false;
   }
@@ -767,7 +736,11 @@ const loadFileContent = async () => {
 const loadImage = async (filePath) => {
   // 构建完整路径
   let fullPath = filePath;
-  if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+  if (
+    !fullPath.startsWith("/data/projects/") &&
+    props.projectId &&
+    !fullPath.includes(props.projectId)
+  ) {
     fullPath = `/data/projects/${props.projectId}/${filePath}`;
   }
 
@@ -775,18 +748,18 @@ const loadImage = async (filePath) => {
   const base64 = await window.electronAPI.file.readBinary(fullPath);
 
   // 根据文件扩展名确定 MIME 类型
-  const ext = props.file.file_name.split('.').pop().toLowerCase();
+  const ext = props.file.file_name.split(".").pop().toLowerCase();
   const mimeTypes = {
-    png: 'image/png',
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
-    gif: 'image/gif',
-    svg: 'image/svg+xml',
-    webp: 'image/webp',
-    bmp: 'image/bmp',
-    ico: 'image/x-icon'
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    gif: "image/gif",
+    svg: "image/svg+xml",
+    webp: "image/webp",
+    bmp: "image/bmp",
+    ico: "image/x-icon",
   };
-  const mimeType = mimeTypes[ext] || 'image/png';
+  const mimeType = mimeTypes[ext] || "image/png";
 
   // 创建 data URL
   imageUrl.value = `data:${mimeType};base64,${base64}`;
@@ -810,41 +783,43 @@ const loadMarkdown = async (content) => {
     gfm: true,
   });
 
-  renderedMarkdown.value = marked(content);
+  renderedMarkdown.value = safeHtml(marked(content));
 };
 
 /**
  * 加载代码（语法高亮）
  */
 const loadCode = async (content, fileName) => {
-  const ext = fileName.split('.').pop().toLowerCase();
+  const ext = fileName.split(".").pop().toLowerCase();
 
   // 语言映射
   const langMap = {
-    js: 'javascript',
-    ts: 'typescript',
-    jsx: 'javascript',
-    tsx: 'typescript',
-    vue: 'html',
-    htm: 'html',
-    html: 'html',
-    css: 'css',
-    scss: 'scss',
-    less: 'less',
-    json: 'json',
-    xml: 'xml',
-    yml: 'yaml',
-    yaml: 'yaml',
-    txt: 'plaintext',
+    js: "javascript",
+    ts: "typescript",
+    jsx: "javascript",
+    tsx: "typescript",
+    vue: "html",
+    htm: "html",
+    html: "html",
+    css: "css",
+    scss: "scss",
+    less: "less",
+    json: "json",
+    xml: "xml",
+    yml: "yaml",
+    yaml: "yaml",
+    txt: "plaintext",
   };
 
-  const language = langMap[ext] || 'plaintext';
+  const language = langMap[ext] || "plaintext";
   codeLanguageClass.value = `language-${language}`;
 
   if (language && hljs.getLanguage(language)) {
-    highlightedCode.value = hljs.highlight(content, { language }).value;
+    highlightedCode.value = safeHtml(
+      hljs.highlight(content, { language }).value,
+    );
   } else {
-    highlightedCode.value = hljs.highlightAuto(content).value;
+    highlightedCode.value = safeHtml(hljs.highlightAuto(content).value);
   }
 };
 
@@ -863,20 +838,22 @@ const loadCsv = async (content) => {
   const result = Papa.parse(content, {
     header: true,
     skipEmptyLines: true,
-    delimiter: '', // 自动检测
-    delimitersToGuess: [',', '\t', '|', ';', Papa.RECORD_SEP, Papa.UNIT_SEP],
+    delimiter: "", // 自动检测
+    delimitersToGuess: [",", "\t", "|", ";", Papa.RECORD_SEP, Papa.UNIT_SEP],
   });
 
   // 检查是否有严重错误（忽略分隔符检测警告）
-  const criticalErrors = result.errors.filter(err => err.type !== 'Delimiter');
+  const criticalErrors = result.errors.filter(
+    (err) => err.type !== "Delimiter",
+  );
   if (criticalErrors.length > 0) {
-    logger.warn('CSV 解析警告:', result.errors);
+    logger.warn("CSV 解析警告:", result.errors);
     // 不抛出错误，继续显示可解析的部分
   }
 
   // 如果没有解析到数据，尝试作为纯文本显示
   if (!result.data || result.data.length === 0) {
-    throw new Error('CSV 文件无法解析，没有找到有效数据');
+    throw new Error("CSV 文件无法解析，没有找到有效数据");
   }
 
   csvData.value = result.data.map((row, index) => ({
@@ -915,9 +892,11 @@ const loadJson = async (content) => {
   try {
     const parsed = JSON.parse(content);
     const formatted = JSON.stringify(parsed, null, 2);
-    highlightedJson.value = hljs.highlight(formatted, { language: 'json' }).value;
+    highlightedJson.value = safeHtml(
+      hljs.highlight(formatted, { language: "json" }).value,
+    );
   } catch (err) {
-    throw new Error('JSON 格式错误: ' + err.message);
+    throw new Error("JSON 格式错误: " + err.message);
   }
 };
 
@@ -927,12 +906,16 @@ const loadJson = async (content) => {
 const loadPdf = async (filePath) => {
   // 构建完整路径
   let fullPath = filePath;
-  if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+  if (
+    !fullPath.startsWith("/data/projects/") &&
+    props.projectId &&
+    !fullPath.includes(props.projectId)
+  ) {
     fullPath = `/data/projects/${props.projectId}/${filePath}`;
   }
 
   const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
-  const actualPath = extractResolvedPath(resolvedPath, 'PDF路径解析');
+  const actualPath = extractResolvedPath(resolvedPath, "PDF路径解析");
   pdfUrl.value = `file://${actualPath}`;
 };
 
@@ -942,12 +925,16 @@ const loadPdf = async (filePath) => {
 const loadVideo = async (filePath) => {
   // 构建完整路径
   let fullPath = filePath;
-  if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+  if (
+    !fullPath.startsWith("/data/projects/") &&
+    props.projectId &&
+    !fullPath.includes(props.projectId)
+  ) {
     fullPath = `/data/projects/${props.projectId}/${filePath}`;
   }
 
   const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
-  const actualPath = extractResolvedPath(resolvedPath, '视频路径解析');
+  const actualPath = extractResolvedPath(resolvedPath, "视频路径解析");
   videoUrl.value = `file://${actualPath}`;
 };
 
@@ -957,12 +944,16 @@ const loadVideo = async (filePath) => {
 const loadAudio = async (filePath) => {
   // 构建完整路径
   let fullPath = filePath;
-  if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+  if (
+    !fullPath.startsWith("/data/projects/") &&
+    props.projectId &&
+    !fullPath.includes(props.projectId)
+  ) {
     fullPath = `/data/projects/${props.projectId}/${filePath}`;
   }
 
   const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
-  const actualPath = extractResolvedPath(resolvedPath, '音频路径解析');
+  const actualPath = extractResolvedPath(resolvedPath, "音频路径解析");
   audioUrl.value = `file://${actualPath}`;
 };
 
@@ -972,48 +963,60 @@ const loadAudio = async (filePath) => {
 const loadWord = async (filePath) => {
   // 构建完整路径
   let fullPath = filePath;
-  if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+  if (
+    !fullPath.startsWith("/data/projects/") &&
+    props.projectId &&
+    !fullPath.includes(props.projectId)
+  ) {
     fullPath = `/data/projects/${props.projectId}/${filePath}`;
   }
 
-  logger.info('[PreviewPanel] 加载Word文档:', {
+  logger.info("[PreviewPanel] 加载Word文档:", {
     原始路径: filePath,
     构建路径: fullPath,
     projectId: props.projectId,
-    file对象: props.file
+    file对象: props.file,
   });
 
   try {
-    ensureSupportedOfficeExtension('word');
+    ensureSupportedOfficeExtension("word");
 
     // 首先尝试解析路径
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
-    logger.info('[PreviewPanel] Word文档解析后路径:', resolvedPath);
+    logger.info("[PreviewPanel] Word文档解析后路径:", resolvedPath);
 
-    const actualPath = extractResolvedPath(resolvedPath, 'Word路径解析');
-    const result = await window.electronAPI.file.previewOffice(actualPath, 'word');
-    logger.info('[PreviewPanel] Word预览结果:', result);
+    const actualPath = extractResolvedPath(resolvedPath, "Word路径解析");
+    const result = await window.electronAPI.file.previewOffice(
+      actualPath,
+      "word",
+    );
+    logger.info("[PreviewPanel] Word预览结果:", result);
 
     if (result.success) {
       if (!result.data || !result.data.html) {
-        logger.warn('[PreviewPanel] Word预览返回空内容:', result.data);
-        throw new Error('Word文档内容为空');
+        logger.warn("[PreviewPanel] Word预览返回空内容:", result.data);
+        throw new Error("Word文档内容为空");
       }
-      officeContent.value = result.data.html;
-      officeType.value = 'word';
-      logger.info('[PreviewPanel] Word内容已设置，长度:', result.data.html.length);
+      officeContent.value = safeHtml(result.data.html);
+      officeType.value = "word";
+      logger.info(
+        "[PreviewPanel] Word内容已设置，长度:",
+        result.data.html.length,
+      );
     } else {
-      throw new Error(normalizePreviewFailureMessage(result, 'Word文档预览失败'));
+      throw new Error(
+        normalizePreviewFailureMessage(result, "Word文档预览失败"),
+      );
     }
   } catch (err) {
-    const errorMessage = normalizeErrorMessage(err, 'Word文档加载失败');
-    logger.error('[PreviewPanel] Word加载失败:', {
+    const errorMessage = normalizeErrorMessage(err, "Word文档加载失败");
+    logger.error("[PreviewPanel] Word加载失败:", {
       errorMessage,
       error: toLogErrorData(err),
       file: props.file,
       projectId: props.projectId,
     });
-    throw new Error(errorMessage || 'Word文档加载失败');
+    throw new Error(errorMessage || "Word文档加载失败");
   }
 };
 
@@ -1023,41 +1026,53 @@ const loadWord = async (filePath) => {
 const loadExcel = async (filePath) => {
   // 构建完整路径
   let fullPath = filePath;
-  if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+  if (
+    !fullPath.startsWith("/data/projects/") &&
+    props.projectId &&
+    !fullPath.includes(props.projectId)
+  ) {
     fullPath = `/data/projects/${props.projectId}/${filePath}`;
   }
 
-  logger.info('[PreviewPanel] 加载Excel表格:', {
+  logger.info("[PreviewPanel] 加载Excel表格:", {
     原始路径: filePath,
     构建路径: fullPath,
-    projectId: props.projectId
+    projectId: props.projectId,
   });
 
   try {
-    ensureSupportedOfficeExtension('excel');
+    ensureSupportedOfficeExtension("excel");
 
     // 首先尝试解析路径
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
-    logger.info('[PreviewPanel] Excel解析后路径:', resolvedPath);
+    logger.info("[PreviewPanel] Excel解析后路径:", resolvedPath);
 
-    const actualPath = extractResolvedPath(resolvedPath, 'Excel路径解析');
-    const result = await window.electronAPI.file.previewOffice(actualPath, 'excel');
-    logger.info('[PreviewPanel] Excel预览结果:', result);
+    const actualPath = extractResolvedPath(resolvedPath, "Excel路径解析");
+    const result = await window.electronAPI.file.previewOffice(
+      actualPath,
+      "excel",
+    );
+    logger.info("[PreviewPanel] Excel预览结果:", result);
 
     if (result.success) {
       if (!result.data || !result.data.sheets) {
-        logger.warn('[PreviewPanel] Excel预览返回空内容:', result.data);
-        throw new Error('Excel文档内容为空');
+        logger.warn("[PreviewPanel] Excel预览返回空内容:", result.data);
+        throw new Error("Excel文档内容为空");
       }
       officeContent.value = result.data;
-      officeType.value = 'excel';
-      logger.info('[PreviewPanel] Excel内容已设置，工作表数量:', result.data.sheets.length);
+      officeType.value = "excel";
+      logger.info(
+        "[PreviewPanel] Excel内容已设置，工作表数量:",
+        result.data.sheets.length,
+      );
     } else {
-      throw new Error(normalizePreviewFailureMessage(result, 'Excel表格预览失败'));
+      throw new Error(
+        normalizePreviewFailureMessage(result, "Excel表格预览失败"),
+      );
     }
   } catch (err) {
-    const errorMessage = normalizeErrorMessage(err, 'Excel表格加载失败');
-    logger.error('[PreviewPanel] Excel加载失败:', {
+    const errorMessage = normalizeErrorMessage(err, "Excel表格加载失败");
+    logger.error("[PreviewPanel] Excel加载失败:", {
       errorMessage,
       error: toLogErrorData(err),
       file: props.file,
@@ -1073,42 +1088,54 @@ const loadExcel = async (filePath) => {
 const loadPowerPoint = async (filePath) => {
   // 构建完整路径
   let fullPath = filePath;
-  if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+  if (
+    !fullPath.startsWith("/data/projects/") &&
+    props.projectId &&
+    !fullPath.includes(props.projectId)
+  ) {
     fullPath = `/data/projects/${props.projectId}/${filePath}`;
   }
 
-  logger.info('[PreviewPanel] 加载PowerPoint:', {
+  logger.info("[PreviewPanel] 加载PowerPoint:", {
     原始路径: filePath,
     构建路径: fullPath,
-    projectId: props.projectId
+    projectId: props.projectId,
   });
 
   try {
-    ensureSupportedOfficeExtension('powerpoint');
+    ensureSupportedOfficeExtension("powerpoint");
 
     // 首先尝试解析路径
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
-    logger.info('[PreviewPanel] PowerPoint解析后路径:', resolvedPath);
+    logger.info("[PreviewPanel] PowerPoint解析后路径:", resolvedPath);
 
-    const actualPath = extractResolvedPath(resolvedPath, 'PowerPoint路径解析');
-    const result = await window.electronAPI.file.previewOffice(actualPath, 'powerpoint');
-    logger.info('[PreviewPanel] PowerPoint预览结果:', result);
+    const actualPath = extractResolvedPath(resolvedPath, "PowerPoint路径解析");
+    const result = await window.electronAPI.file.previewOffice(
+      actualPath,
+      "powerpoint",
+    );
+    logger.info("[PreviewPanel] PowerPoint预览结果:", result);
 
     if (result.success) {
       if (!result.data || !result.data.slides) {
-        logger.warn('[PreviewPanel] PowerPoint预览返回空内容:', result.data);
-        throw new Error('PowerPoint文档内容为空');
+        logger.warn("[PreviewPanel] PowerPoint预览返回空内容:", result.data);
+        throw new Error("PowerPoint文档内容为空");
       }
       officeContent.value = result.data;
-      officeType.value = 'powerpoint';
+      officeType.value = "powerpoint";
       currentSlide.value = 0; // 重置到第一张幻灯片
-      logger.info('[PreviewPanel] PowerPoint内容已设置，幻灯片数量:', result.data.slides.length);
+      logger.info(
+        "[PreviewPanel] PowerPoint内容已设置，幻灯片数量:",
+        result.data.slides.length,
+      );
     } else {
-      throw new Error(normalizePreviewFailureMessage(result, 'PowerPoint预览失败'));
+      throw new Error(
+        normalizePreviewFailureMessage(result, "PowerPoint预览失败"),
+      );
     }
   } catch (err) {
-    const errorMessage = normalizeErrorMessage(err, 'PowerPoint加载失败');
-    logger.error('[PreviewPanel] PowerPoint加载失败:', {
+    const errorMessage = normalizeErrorMessage(err, "PowerPoint加载失败");
+    logger.error("[PreviewPanel] PowerPoint加载失败:", {
       errorMessage,
       error: toLogErrorData(err),
       file: props.file,
@@ -1122,31 +1149,35 @@ const loadPowerPoint = async (filePath) => {
  * PDF 加载完成
  */
 const handlePdfLoaded = () => {
-  logger.info('[PreviewPanel] PDF 加载完成');
+  logger.info("[PreviewPanel] PDF 加载完成");
 };
 
 /**
  * PDF 加载失败
  */
 const handlePdfError = (err) => {
-  error.value = 'PDF 加载失败';
-  logger.error('[PreviewPanel] PDF 加载失败:', err);
+  error.value = "PDF 加载失败";
+  logger.error("[PreviewPanel] PDF 加载失败:", err);
 };
 
 /**
  * 在系统中打开文件
  */
 const handleOpenExternal = async () => {
-  if (!props.file?.file_path) {return;}
+  if (!props.file?.file_path) {
+    return;
+  }
 
   try {
-    const resolvedPath = await window.electronAPI.project.resolvePath(props.file.file_path);
-    const actualPath = extractResolvedPath(resolvedPath, '打开文件路径解析');
+    const resolvedPath = await window.electronAPI.project.resolvePath(
+      props.file.file_path,
+    );
+    const actualPath = extractResolvedPath(resolvedPath, "打开文件路径解析");
     await window.electronAPI.shell.openPath(actualPath);
-    message.success('已在系统中打开');
+    message.success("已在系统中打开");
   } catch (err) {
-    logger.error('打开文件失败:', err);
-    message.error('打开文件失败');
+    logger.error("打开文件失败:", err);
+    message.error("打开文件失败");
   }
 };
 
@@ -1155,36 +1186,40 @@ const handleOpenExternal = async () => {
  */
 const handleDownload = async () => {
   if (!props.file?.file_path) {
-    message.error('文件路径不存在');
+    message.error("文件路径不存在");
     return;
   }
 
   try {
     // 弹出保存文件对话框
-    const result = await window.electron.ipcRenderer.invoke('dialog:save-file', {
-      title: '保存文件',
-      defaultPath: props.file.file_name || props.file.name || 'downloaded_file',
-      filters: [
-        { name: '所有文件', extensions: ['*'] }
-      ]
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "dialog:save-file",
+      {
+        title: "保存文件",
+        defaultPath:
+          props.file.file_name || props.file.name || "downloaded_file",
+        filters: [{ name: "所有文件", extensions: ["*"] }],
+      },
+    );
 
     if (result.canceled || !result.filePath) {
       return;
     }
 
     // 复制文件到目标位置
-    const resolvedPath = await window.electronAPI.project.resolvePath(props.file.file_path);
-    const actualPath = extractResolvedPath(resolvedPath, '下载文件路径解析');
-    await window.electron.ipcRenderer.invoke('file:copy', {
+    const resolvedPath = await window.electronAPI.project.resolvePath(
+      props.file.file_path,
+    );
+    const actualPath = extractResolvedPath(resolvedPath, "下载文件路径解析");
+    await window.electron.ipcRenderer.invoke("file:copy", {
       sourcePath: actualPath,
-      destinationPath: result.filePath
+      destinationPath: result.filePath,
     });
 
-    message.success('文件下载成功');
+    message.success("文件下载成功");
   } catch (err) {
-    logger.error('下载文件失败:', err);
-    message.error('下载文件失败: ' + (err.message || '未知错误'));
+    logger.error("下载文件失败:", err);
+    message.error("下载文件失败: " + (err.message || "未知错误"));
   }
 };
 
@@ -1208,7 +1243,10 @@ const previousSlide = () => {
  * PPT 导航 - 下一张幻灯片
  */
 const nextSlide = () => {
-  if (officeContent.value?.slides && currentSlide.value < officeContent.value.slides.length - 1) {
+  if (
+    officeContent.value?.slides &&
+    currentSlide.value < officeContent.value.slides.length - 1
+  ) {
     currentSlide.value++;
   }
 };
@@ -1217,7 +1255,7 @@ const nextSlide = () => {
  * 切换全屏模式
  */
 const toggleFullscreen = () => {
-  const panel = document.querySelector('.preview-panel');
+  const panel = document.querySelector(".preview-panel");
 
   if (!isFullscreen.value) {
     // 进入全屏
@@ -1251,12 +1289,12 @@ const toggleFullscreen = () => {
  */
 const handleKeyDown = (event) => {
   // F11 全屏切换
-  if (event.key === 'F11') {
+  if (event.key === "F11") {
     event.preventDefault();
     toggleFullscreen();
   }
   // ESC 退出全屏
-  if (event.key === 'Escape' && isFullscreen.value) {
+  if (event.key === "Escape" && isFullscreen.value) {
     isFullscreen.value = false;
   }
 };
@@ -1275,40 +1313,53 @@ const handleFullscreenChange = () => {
 };
 
 // 监听文件变化
-watch(() => props.file, () => {
-  loadFileContent();
-}, { immediate: true });
+watch(
+  () => props.file,
+  () => {
+    loadFileContent();
+  },
+  { immediate: true },
+);
 
 // 监听内容变化
-watch(() => props.content, () => {
-  if (props.file && ['markdown', 'code', 'csv', 'json'].includes(fileType.value)) {
-    loadFileContent();
-  }
-});
+watch(
+  () => props.content,
+  () => {
+    if (
+      props.file &&
+      ["markdown", "code", "csv", "json"].includes(fileType.value)
+    ) {
+      loadFileContent();
+    }
+  },
+);
 
 onMounted(() => {
   // 🔥 修复：不要在这里调用 loadFileContent()，因为 watch 的 immediate: true 已经会调用
   // loadFileContent(); // ← 移除这行，避免重复调用
 
   // 添加键盘事件监听
-  window.addEventListener('keydown', handleKeyDown);
+  window.addEventListener("keydown", handleKeyDown);
 
   // 添加全屏状态变化监听
-  document.addEventListener('fullscreenchange', handleFullscreenChange);
-  document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-  document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-  document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+  document.addEventListener("fullscreenchange", handleFullscreenChange);
+  document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+  document.addEventListener("mozfullscreenchange", handleFullscreenChange);
+  document.addEventListener("MSFullscreenChange", handleFullscreenChange);
 });
 
 onUnmounted(() => {
   // 移除键盘事件监听
-  window.removeEventListener('keydown', handleKeyDown);
+  window.removeEventListener("keydown", handleKeyDown);
 
   // 移除全屏状态变化监听
-  document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-  document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
-  document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+  document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  document.removeEventListener(
+    "webkitfullscreenchange",
+    handleFullscreenChange,
+  );
+  document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
+  document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
 });
 </script>
 
@@ -1498,7 +1549,7 @@ onUnmounted(() => {
   background: #f5f5f5;
   padding: 2px 6px;
   border-radius: 3px;
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: "Consolas", "Monaco", monospace;
   font-size: 0.9em;
 }
 
@@ -1550,7 +1601,7 @@ onUnmounted(() => {
   padding: 16px;
   background: #f6f8fa;
   min-height: 100%;
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: "Consolas", "Monaco", monospace;
   font-size: 13px;
   line-height: 1.5;
 }
@@ -1577,7 +1628,7 @@ onUnmounted(() => {
   padding: 16px;
   background: #f6f8fa;
   min-height: 100%;
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: "Consolas", "Monaco", monospace;
   font-size: 13px;
   line-height: 1.5;
 }
@@ -1923,7 +1974,7 @@ onUnmounted(() => {
 }
 
 .slide-line:before {
-  content: '•';
+  content: "•";
   margin-right: 12px;
   color: #1890ff;
   font-weight: bold;

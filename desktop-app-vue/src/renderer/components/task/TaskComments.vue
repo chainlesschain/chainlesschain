@@ -1,20 +1,14 @@
 <template>
   <div class="task-comments">
     <!-- 评论列表 -->
-    <div
-      ref="commentsContainer"
-      class="comments-list"
-    >
+    <div ref="commentsContainer" class="comments-list">
       <a-empty
         v-if="comments.length === 0"
         description="暂无评论"
         :image="Empty.PRESENTED_IMAGE_SIMPLE"
       />
 
-      <div
-        v-else
-        class="comment-items"
-      >
+      <div v-else class="comment-items">
         <div
           v-for="comment in sortedComments"
           :key="comment.id"
@@ -34,22 +28,25 @@
           <!-- 评论内容 -->
           <div class="comment-content">
             <div class="comment-header">
-              <span class="author-name">{{ getAuthorName(comment.author_did) }}</span>
-              <span class="comment-time">{{ formatTime(comment.created_at) }}</span>
+              <span class="author-name">{{
+                getAuthorName(comment.author_did)
+              }}</span>
+              <span class="comment-time">{{
+                formatTime(comment.created_at)
+              }}</span>
             </div>
 
             <div class="comment-body">
-              <div
-                v-if="comment.is_deleted"
-                class="deleted-message"
-              >
+              <div v-if="comment.is_deleted" class="deleted-message">
                 该评论已被删除
               </div>
               <div v-else>
+                <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
                 <div
                   class="comment-text"
                   v-html="renderComment(comment.content)"
                 />
+                <!-- eslint-enable vue/no-v-html -->
 
                 <!-- 附件 -->
                 <div
@@ -85,15 +82,8 @@
             </div>
 
             <!-- 评论操作 -->
-            <div
-              v-if="!comment.is_deleted"
-              class="comment-actions"
-            >
-              <a-button
-                type="link"
-                size="small"
-                @click="handleReply(comment)"
-              >
+            <div v-if="!comment.is_deleted" class="comment-actions">
+              <a-button type="link" size="small" @click="handleReply(comment)">
                 回复
               </a-button>
               <a-button
@@ -114,7 +104,11 @@
     <div class="comment-input-area">
       <a-textarea
         v-model:value="newComment"
-        :placeholder="replyingTo ? `回复 ${getAuthorName(replyingTo.author_did)}...` : '添加评论...'"
+        :placeholder="
+          replyingTo
+            ? `回复 ${getAuthorName(replyingTo.author_did)}...`
+            : '添加评论...'
+        "
         :auto-size="{ minRows: 3, maxRows: 6 }"
         @keydown.ctrl.enter="handleSubmit"
         @keydown.meta.enter="handleSubmit"
@@ -124,9 +118,7 @@
         <div class="left-actions">
           <!-- @提及选择器 -->
           <a-dropdown :trigger="['click']">
-            <a-button size="small">
-              <at-outlined /> 提及
-            </a-button>
+            <a-button size="small"> <at-outlined /> 提及 </a-button>
             <template #overlay>
               <a-menu @click="handleMention">
                 <a-menu-item
@@ -144,16 +136,11 @@
             :show-upload-list="false"
             :before-upload="handleAttachmentUpload"
           >
-            <a-button size="small">
-              <paperclip-outlined /> 附件
-            </a-button>
+            <a-button size="small"> <paperclip-outlined /> 附件 </a-button>
           </a-upload>
 
           <!-- 已选附件 -->
-          <a-space
-            v-if="attachments.length > 0"
-            size="small"
-          >
+          <a-space v-if="attachments.length > 0" size="small">
             <a-tag
               v-for="(file, index) in attachments"
               :key="index"
@@ -166,11 +153,7 @@
         </div>
 
         <div class="right-actions">
-          <a-button
-            v-if="replyingTo"
-            size="small"
-            @click="cancelReply"
-          >
+          <a-button v-if="replyingTo" size="small" @click="cancelReply">
             取消回复
           </a-button>
           <a-button
@@ -188,41 +171,42 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, h, nextTick, watch } from 'vue';
-import { Modal, Empty } from 'ant-design-vue';
+import { ref, computed, h, nextTick, watch } from "vue";
+import { Modal, Empty } from "ant-design-vue";
 import {
   PaperclipOutlined,
   AtOutlined,
-  SendOutlined
-} from '@ant-design/icons-vue';
-import { useTaskStore } from '../../stores/task';
+  SendOutlined,
+} from "@ant-design/icons-vue";
+import { useTaskStore } from "../../stores/task";
+import { safeHtml, escapeHtml } from "@/utils/sanitizeHtml";
 
 // Props
 const props = defineProps({
   taskId: {
     type: String,
-    required: true
+    required: true,
   },
   comments: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   workspaceMembers: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 });
 
 // Emits
-const emit = defineEmits(['submit', 'delete', 'reply']);
+const emit = defineEmits(["submit", "delete", "reply"]);
 
 // Stores
 const taskStore = useTaskStore();
 
 // State
-const newComment = ref('');
+const newComment = ref("");
 const replyingTo = ref(null);
 const submitting = ref(false);
 const attachments = ref([]);
@@ -237,15 +221,29 @@ const sortedComments = computed(() => {
 // Methods
 function getAuthorName(authorDID) {
   // 从工作区成员信息获取真实姓名
-  const member = props.workspaceMembers.find(m => m.member_did === authorDID || m.did === authorDID);
+  const member = props.workspaceMembers.find(
+    (m) => m.member_did === authorDID || m.did === authorDID,
+  );
   if (member) {
-    return member.display_name || member.nickname || member.name || authorDID.substring(0, 10) + '...';
+    return (
+      member.display_name ||
+      member.nickname ||
+      member.name ||
+      authorDID.substring(0, 10) + "..."
+    );
   }
-  return authorDID.substring(0, 10) + '...';
+  return authorDID.substring(0, 10) + "...";
 }
 
 function getAvatarColor(did) {
-  const colors = ['#1890ff', '#52c41a', '#faad14', '#f5222d', '#722ed1', '#13c2c2'];
+  const colors = [
+    "#1890ff",
+    "#52c41a",
+    "#faad14",
+    "#f5222d",
+    "#722ed1",
+    "#13c2c2",
+  ];
   let hash = 0;
   for (let i = 0; i < did.length; i++) {
     hash = did.charCodeAt(i) + ((hash << 5) - hash);
@@ -258,7 +256,7 @@ function getAvatarText(did) {
 }
 
 function getMentionName(did) {
-  return did.substring(0, 10) + '...';
+  return did.substring(0, 10) + "...";
 }
 
 function formatTime(timestamp) {
@@ -270,26 +268,34 @@ function formatTime(timestamp) {
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
 
-  if (minutes < 1) {return '刚刚';}
-  if (minutes < 60) {return `${minutes}分钟前`;}
-  if (hours < 24) {return `${hours}小时前`;}
-  if (days < 7) {return `${days}天前`;}
+  if (minutes < 1) {
+    return "刚刚";
+  }
+  if (minutes < 60) {
+    return `${minutes}分钟前`;
+  }
+  if (hours < 24) {
+    return `${hours}小时前`;
+  }
+  if (days < 7) {
+    return `${days}天前`;
+  }
 
-  return date.toLocaleDateString('zh-CN');
+  return date.toLocaleDateString("zh-CN");
 }
 
 function renderComment(content) {
-  // 渲染 @ 提及
-  let rendered = content.replace(/@(\w+)/g, '<span class="mention">@$1</span>');
-
-  // 转换换行
-  rendered = rendered.replace(/\n/g, '<br>');
-
-  return rendered;
+  // 先 escape 原始文本，再叠加 @mention 和换行，再走 DOMPurify
+  const escaped = escapeHtml(content);
+  const withMentions = escaped.replace(
+    /@(\w+)/g,
+    '<span class="mention">@$1</span>',
+  );
+  return safeHtml(withMentions.replace(/\n/g, "<br>"));
 }
 
 function handleMention({ key }) {
-  const member = props.workspaceMembers.find(m => m.did === key);
+  const member = props.workspaceMembers.find((m) => m.did === key);
   if (member) {
     newComment.value += `@${member.name} `;
     if (!mentions.value.includes(key)) {
@@ -314,11 +320,13 @@ function handleReply(comment) {
 
 function cancelReply() {
   replyingTo.value = null;
-  newComment.value = '';
+  newComment.value = "";
 }
 
 async function handleSubmit() {
-  if (!newComment.value.trim()) {return;}
+  if (!newComment.value.trim()) {
+    return;
+  }
 
   submitting.value = true;
 
@@ -326,24 +334,25 @@ async function handleSubmit() {
     const success = await taskStore.addComment(
       props.taskId,
       newComment.value,
-      mentions.value
+      mentions.value,
     );
 
     if (success) {
-      newComment.value = '';
+      newComment.value = "";
       mentions.value = [];
       attachments.value = [];
       replyingTo.value = null;
-      emit('submit');
+      emit("submit");
 
       // 滚动到底部
       await nextTick();
       if (commentsContainer.value) {
-        commentsContainer.value.scrollTop = commentsContainer.value.scrollHeight;
+        commentsContainer.value.scrollTop =
+          commentsContainer.value.scrollHeight;
       }
     }
   } catch (error) {
-    logger.error('Submit comment failed:', error);
+    logger.error("Submit comment failed:", error);
   } finally {
     submitting.value = false;
   }
@@ -351,17 +360,17 @@ async function handleSubmit() {
 
 function handleDelete(comment) {
   Modal.confirm({
-    title: '确认删除',
-    content: '确定要删除这条评论吗？',
-    okText: '删除',
-    okType: 'danger',
-    cancelText: '取消',
+    title: "确认删除",
+    content: "确定要删除这条评论吗？",
+    okText: "删除",
+    okType: "danger",
+    cancelText: "取消",
     onOk: async () => {
       const success = await taskStore.deleteComment(comment.id);
       if (success) {
-        emit('delete', comment);
+        emit("delete", comment);
       }
-    }
+    },
   });
 }
 
@@ -373,7 +382,7 @@ watch(
     if (commentsContainer.value) {
       commentsContainer.value.scrollTop = commentsContainer.value.scrollHeight;
     }
-  }
+  },
 );
 </script>
 

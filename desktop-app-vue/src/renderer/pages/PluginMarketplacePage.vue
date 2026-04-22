@@ -60,11 +60,7 @@
         >
           <a-card hoverable>
             <div class="featured-icon">
-              <img
-                v-if="plugin.icon"
-                :src="plugin.icon"
-                :alt="plugin.name"
-              >
+              <img v-if="plugin.icon" :src="plugin.icon" :alt="plugin.name" />
               <AppstoreOutlined
                 v-else
                 style="font-size: 40px; color: #1890ff"
@@ -97,45 +93,24 @@
           style="width: 140px"
           @change="handleSortChange"
         >
-          <a-select-option value="popular">
-            最受欢迎
-          </a-select-option>
-          <a-select-option value="recent">
-            最新发布
-          </a-select-option>
-          <a-select-option value="rating">
-            评分最高
-          </a-select-option>
-          <a-select-option value="downloads">
-            下载最多
-          </a-select-option>
+          <a-select-option value="popular"> 最受欢迎 </a-select-option>
+          <a-select-option value="recent"> 最新发布 </a-select-option>
+          <a-select-option value="rating"> 评分最高 </a-select-option>
+          <a-select-option value="downloads"> 下载最多 </a-select-option>
         </a-select>
-        <a-checkbox v-model:checked="showInstalledOnly">
-          仅已安装
-        </a-checkbox>
-        <a-checkbox v-model:checked="showVerifiedOnly">
-          仅已验证
-        </a-checkbox>
+        <a-checkbox v-model:checked="showInstalledOnly"> 仅已安装 </a-checkbox>
+        <a-checkbox v-model:checked="showVerifiedOnly"> 仅已验证 </a-checkbox>
       </a-space>
       <span class="result-count">共 {{ filteredPlugins.length }} 个插件</span>
     </div>
 
     <!-- 加载状态 -->
-    <div
-      v-if="loading"
-      class="loading-container"
-    >
-      <a-spin
-        size="large"
-        tip="正在加载插件列表..."
-      />
+    <div v-if="loading" class="loading-container">
+      <a-spin size="large" tip="正在加载插件列表..." />
     </div>
 
     <!-- 插件网格 -->
-    <div
-      v-else-if="filteredPlugins.length > 0"
-      class="plugin-grid"
-    >
+    <div v-else-if="filteredPlugins.length > 0" class="plugin-grid">
       <a-row :gutter="[20, 20]">
         <a-col
           v-for="plugin in paginatedPlugins"
@@ -145,18 +120,10 @@
           :md="8"
           :lg="6"
         >
-          <a-card
-            class="plugin-card"
-            hoverable
-            @click="openDetail(plugin)"
-          >
+          <a-card class="plugin-card" hoverable @click="openDetail(plugin)">
             <!-- 插件图标 -->
             <div class="plugin-icon">
-              <img
-                v-if="plugin.icon"
-                :src="plugin.icon"
-                :alt="plugin.name"
-              >
+              <img v-if="plugin.icon" :src="plugin.icon" :alt="plugin.name" />
               <AppstoreOutlined
                 v-else
                 style="font-size: 48px; color: #1890ff"
@@ -166,11 +133,7 @@
             <!-- 插件名称 -->
             <div class="plugin-name">
               <h3>{{ plugin.name }}</h3>
-              <a-tag
-                v-if="plugin.verified"
-                color="blue"
-                size="small"
-              >
+              <a-tag v-if="plugin.verified" color="blue" size="small">
                 <SafetyCertificateOutlined />
                 已验证
               </a-tag>
@@ -200,10 +163,7 @@
             </div>
 
             <!-- 安装按钮 -->
-            <div
-              class="plugin-actions"
-              @click.stop
-            >
+            <div class="plugin-actions" @click.stop>
               <a-button
                 v-if="!plugin.installed"
                 type="primary"
@@ -230,24 +190,12 @@
     </div>
 
     <!-- 空状态 -->
-    <a-empty
-      v-else
-      description="暂无匹配的插件"
-      style="margin-top: 80px"
-    >
-      <a-button
-        type="primary"
-        @click="resetFilters"
-      >
-        清除筛选条件
-      </a-button>
+    <a-empty v-else description="暂无匹配的插件" style="margin-top: 80px">
+      <a-button type="primary" @click="resetFilters"> 清除筛选条件 </a-button>
     </a-empty>
 
     <!-- 分页 -->
-    <div
-      v-if="filteredPlugins.length > pageSize"
-      class="pagination-section"
-    >
+    <div v-if="filteredPlugins.length > pageSize" class="pagination-section">
       <a-pagination
         v-model:current="currentPage"
         :total="filteredPlugins.length"
@@ -264,17 +212,10 @@
       :width="640"
       :destroy-on-close="true"
     >
-      <div
-        v-if="selectedPlugin"
-        class="plugin-detail"
-      >
+      <div v-if="selectedPlugin" class="plugin-detail">
         <!-- 详情头部 -->
         <div class="detail-header">
-          <a-avatar
-            :size="72"
-            :src="selectedPlugin.icon"
-            shape="square"
-          >
+          <a-avatar :size="72" :src="selectedPlugin.icon" shape="square">
             <template #icon>
               <AppstoreOutlined />
             </template>
@@ -285,17 +226,11 @@
               {{ selectedPlugin.author }}
             </p>
             <div class="detail-badges">
-              <a-tag
-                v-if="selectedPlugin.verified"
-                color="blue"
-              >
+              <a-tag v-if="selectedPlugin.verified" color="blue">
                 <SafetyCertificateOutlined />
                 已验证
               </a-tag>
-              <a-tag
-                v-if="selectedPlugin.installed"
-                color="green"
-              >
+              <a-tag v-if="selectedPlugin.installed" color="green">
                 <CheckCircleOutlined />
                 已安装
               </a-tag>
@@ -312,12 +247,10 @@
           style="margin-top: 20px"
         >
           <a-descriptions-item label="评分">
-            <a-rate
-              :value="selectedPlugin.rating"
-              disabled
-              allow-half
-            />
-            <span style="margin-left: 8px">{{ (selectedPlugin.rating || 0).toFixed(1) }}</span>
+            <a-rate :value="selectedPlugin.rating" disabled allow-half />
+            <span style="margin-left: 8px">{{
+              (selectedPlugin.rating || 0).toFixed(1)
+            }}</span>
           </a-descriptions-item>
           <a-descriptions-item label="下载量">
             {{ formatNumber(selectedPlugin.downloads || 0) }}
@@ -328,14 +261,8 @@
           <a-descriptions-item label="更新时间">
             {{ formatDate(selectedPlugin.updatedAt) }}
           </a-descriptions-item>
-          <a-descriptions-item
-            label="分类"
-            :span="2"
-          >
-            <a-tag
-              v-for="tag in (selectedPlugin.tags || [])"
-              :key="tag"
-            >
+          <a-descriptions-item label="分类" :span="2">
+            <a-tag v-for="tag in selectedPlugin.tags || []" :key="tag">
               {{ tag }}
             </a-tag>
           </a-descriptions-item>
@@ -345,17 +272,22 @@
         <div class="detail-section">
           <h3>插件介绍</h3>
           <p>{{ selectedPlugin.description }}</p>
+          <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
           <div
             v-if="selectedPlugin.longDescription"
-            v-html="selectedPlugin.longDescription"
+            v-html="safeHtml(selectedPlugin.longDescription)"
           />
+          <!-- eslint-enable vue/no-v-html -->
         </div>
 
         <!-- 截图预览占位 -->
         <div class="detail-section">
           <h3>截图预览</h3>
           <div
-            v-if="selectedPlugin.screenshots && selectedPlugin.screenshots.length > 0"
+            v-if="
+              selectedPlugin.screenshots &&
+              selectedPlugin.screenshots.length > 0
+            "
             class="screenshots-grid"
           >
             <img
@@ -363,13 +295,9 @@
               :key="idx"
               :src="shot"
               :alt="'Screenshot ' + (idx + 1)"
-            >
+            />
           </div>
-          <a-empty
-            v-else
-            description="暂无截图"
-            :image="simpleImage"
-          />
+          <a-empty v-else description="暂无截图" :image="simpleImage" />
         </div>
 
         <!-- 功能特性 -->
@@ -379,10 +307,7 @@
         >
           <h3>功能特性</h3>
           <ul>
-            <li
-              v-for="(feature, idx) in selectedPlugin.features"
-              :key="idx"
-            >
+            <li v-for="(feature, idx) in selectedPlugin.features" :key="idx">
               {{ feature }}
             </li>
           </ul>
@@ -393,22 +318,20 @@
           <h3>用户评分</h3>
           <div class="rating-summary">
             <div class="rating-big">
-              <span class="rating-number">{{ (selectedPlugin.rating || 0).toFixed(1) }}</span>
-              <a-rate
-                :value="selectedPlugin.rating"
-                disabled
-                allow-half
-              />
-              <span class="rating-count">{{ formatNumber(selectedPlugin.downloads || 0) }} 次下载</span>
+              <span class="rating-number">{{
+                (selectedPlugin.rating || 0).toFixed(1)
+              }}</span>
+              <a-rate :value="selectedPlugin.rating" disabled allow-half />
+              <span class="rating-count"
+                >{{ formatNumber(selectedPlugin.downloads || 0) }} 次下载</span
+              >
             </div>
           </div>
         </div>
 
         <!-- 安装/卸载按钮 -->
         <div class="detail-footer">
-          <a-button @click="detailVisible = false">
-            关闭
-          </a-button>
+          <a-button @click="detailVisible = false"> 关闭 </a-button>
           <a-button
             v-if="!selectedPlugin.installed"
             type="primary"
@@ -418,11 +341,7 @@
             <DownloadOutlined />
             安装插件
           </a-button>
-          <a-button
-            v-else
-            danger
-            @click="handleUninstall(selectedPlugin)"
-          >
+          <a-button v-else danger @click="handleUninstall(selectedPlugin)">
             <DeleteOutlined />
             卸载插件
           </a-button>
@@ -433,8 +352,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, h } from 'vue';
-import { message, Empty } from 'ant-design-vue';
+import { ref, computed, onMounted, h } from "vue";
+import { message, Empty } from "ant-design-vue";
 import {
   ShopOutlined,
   SearchOutlined,
@@ -450,19 +369,20 @@ import {
   SafetyCertificateOutlined,
   CheckCircleOutlined,
   DeleteOutlined,
-} from '@ant-design/icons-vue';
-import { logger, createLogger } from '@/utils/logger';
+} from "@ant-design/icons-vue";
+import { logger, createLogger } from "@/utils/logger";
+import { safeHtml } from "@/utils/sanitizeHtml";
 
-const marketplaceLogger = createLogger('plugin-marketplace-page');
+const marketplaceLogger = createLogger("plugin-marketplace-page");
 
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 
 // ==================== 状态 ====================
 
 const loading = ref(false);
-const searchQuery = ref('');
-const activeCategory = ref('all');
-const sortBy = ref('popular');
+const searchQuery = ref("");
+const activeCategory = ref("all");
+const sortBy = ref("popular");
 const showInstalledOnly = ref(false);
 const showVerifiedOnly = ref(false);
 const currentPage = ref(1);
@@ -476,12 +396,12 @@ const detailVisible = ref(false);
 // ==================== 分类配置 ====================
 
 const categories = [
-  { key: 'all', label: '全部插件', icon: AppstoreOutlined },
-  { key: 'ai', label: 'AI 增强', icon: RobotOutlined },
-  { key: 'productivity', label: '效率工具', icon: ThunderboltOutlined },
-  { key: 'data', label: '数据处理', icon: DatabaseOutlined },
-  { key: 'integration', label: '第三方集成', icon: ApiOutlined },
-  { key: 'ui', label: '界面扩展', icon: LayoutOutlined },
+  { key: "all", label: "全部插件", icon: AppstoreOutlined },
+  { key: "ai", label: "AI 增强", icon: RobotOutlined },
+  { key: "productivity", label: "效率工具", icon: ThunderboltOutlined },
+  { key: "data", label: "数据处理", icon: DatabaseOutlined },
+  { key: "integration", label: "第三方集成", icon: ApiOutlined },
+  { key: "ui", label: "界面扩展", icon: LayoutOutlined },
 ];
 
 // ==================== 计算属性 ====================
@@ -490,7 +410,7 @@ const filteredPlugins = computed(() => {
   let result = [...plugins.value];
 
   // 分类筛选
-  if (activeCategory.value !== 'all') {
+  if (activeCategory.value !== "all") {
     result = result.filter((p) => p.category === activeCategory.value);
   }
 
@@ -502,7 +422,8 @@ const filteredPlugins = computed(() => {
         p.name.toLowerCase().includes(query) ||
         (p.author && p.author.toLowerCase().includes(query)) ||
         (p.description && p.description.toLowerCase().includes(query)) ||
-        (p.tags && p.tags.some((tag: string) => tag.toLowerCase().includes(query)))
+        (p.tags &&
+          p.tags.some((tag: string) => tag.toLowerCase().includes(query))),
     );
   }
 
@@ -518,16 +439,20 @@ const filteredPlugins = computed(() => {
 
   // 排序
   switch (sortBy.value) {
-    case 'popular':
+    case "popular":
       result.sort((a, b) => (b.downloads || 0) - (a.downloads || 0));
       break;
-    case 'recent':
-      result.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+    case "recent":
+      result.sort(
+        (a, b) =>
+          new Date(b.updatedAt || 0).getTime() -
+          new Date(a.updatedAt || 0).getTime(),
+      );
       break;
-    case 'rating':
+    case "rating":
       result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
       break;
-    case 'downloads':
+    case "downloads":
       result.sort((a, b) => (b.downloads || 0) - (a.downloads || 0));
       break;
   }
@@ -544,24 +469,30 @@ const paginatedPlugins = computed(() => {
 
 async function fetchCategories() {
   try {
-    const result = await (window as any).electronAPI.invoke('plugin-marketplace:categories');
+    const result = await (window as any).electronAPI.invoke(
+      "plugin-marketplace:categories",
+    );
     if (result.success && result.data) {
-      marketplaceLogger.info('分类加载成功');
+      marketplaceLogger.info("分类加载成功");
     }
   } catch (error) {
-    marketplaceLogger.warn('加载分类失败，使用默认分类:', error);
+    marketplaceLogger.warn("加载分类失败，使用默认分类:", error);
   }
 }
 
 async function fetchFeatured() {
   try {
-    const result = await (window as any).electronAPI.invoke('plugin-marketplace:featured');
+    const result = await (window as any).electronAPI.invoke(
+      "plugin-marketplace:featured",
+    );
     if (result.success) {
       featuredPlugins.value = result.data || result.plugins || [];
-      marketplaceLogger.info(`推荐插件加载成功: ${featuredPlugins.value.length} 个`);
+      marketplaceLogger.info(
+        `推荐插件加载成功: ${featuredPlugins.value.length} 个`,
+      );
     }
   } catch (error) {
-    marketplaceLogger.warn('加载推荐插件失败:', error);
+    marketplaceLogger.warn("加载推荐插件失败:", error);
     featuredPlugins.value = [];
   }
 }
@@ -569,25 +500,30 @@ async function fetchFeatured() {
 async function fetchPlugins() {
   loading.value = true;
   try {
-    const result = await (window as any).electronAPI.invoke('plugin-marketplace:list', {
-      category: activeCategory.value !== 'all' ? activeCategory.value : null,
-      sort: sortBy.value,
-      page: currentPage.value,
-      pageSize: 200,
-    });
+    const result = await (window as any).electronAPI.invoke(
+      "plugin-marketplace:list",
+      {
+        category: activeCategory.value !== "all" ? activeCategory.value : null,
+        sort: sortBy.value,
+        page: currentPage.value,
+        pageSize: 200,
+      },
+    );
 
     if (result.success) {
       plugins.value = (result.data || result.plugins || []).map((p: any) => ({
         ...p,
         installing: false,
       }));
-      marketplaceLogger.info(`插件列表加载成功: ${plugins.value.length} 个插件`);
+      marketplaceLogger.info(
+        `插件列表加载成功: ${plugins.value.length} 个插件`,
+      );
     } else {
-      marketplaceLogger.warn('插件列表加载失败，使用模拟数据');
+      marketplaceLogger.warn("插件列表加载失败，使用模拟数据");
       plugins.value = getMockPlugins();
     }
   } catch (error) {
-    marketplaceLogger.warn('插件市场 API 不可用，使用模拟数据:', error);
+    marketplaceLogger.warn("插件市场 API 不可用，使用模拟数据:", error);
     plugins.value = getMockPlugins();
   } finally {
     loading.value = false;
@@ -618,20 +554,23 @@ function openDetail(plugin: any) {
 async function handleInstall(plugin: any) {
   try {
     plugin.installing = true;
-    const result = await (window as any).electronAPI.invoke('plugin-marketplace:install', {
-      pluginId: plugin.id,
-      version: plugin.version || 'latest',
-    });
+    const result = await (window as any).electronAPI.invoke(
+      "plugin-marketplace:install",
+      {
+        pluginId: plugin.id,
+        version: plugin.version || "latest",
+      },
+    );
 
     if (result.success) {
       plugin.installed = true;
       message.success(`插件 "${plugin.name}" 安装成功`);
     } else {
-      message.error(result.error || '安装失败');
+      message.error(result.error || "安装失败");
     }
   } catch (error) {
-    marketplaceLogger.error('安装插件失败:', error);
-    message.error('安装失败: ' + (error as Error).message);
+    marketplaceLogger.error("安装插件失败:", error);
+    message.error("安装失败: " + (error as Error).message);
   } finally {
     plugin.installing = false;
   }
@@ -639,26 +578,29 @@ async function handleInstall(plugin: any) {
 
 async function handleUninstall(plugin: any) {
   try {
-    const result = await (window as any).electronAPI.invoke('plugin-marketplace:uninstall', {
-      pluginId: plugin.id,
-    });
+    const result = await (window as any).electronAPI.invoke(
+      "plugin-marketplace:uninstall",
+      {
+        pluginId: plugin.id,
+      },
+    );
 
     if (result.success) {
       plugin.installed = false;
       message.success(`插件 "${plugin.name}" 已卸载`);
     } else {
-      message.error(result.error || '卸载失败');
+      message.error(result.error || "卸载失败");
     }
   } catch (error) {
-    marketplaceLogger.error('卸载插件失败:', error);
-    message.error('卸载失败: ' + (error as Error).message);
+    marketplaceLogger.error("卸载插件失败:", error);
+    message.error("卸载失败: " + (error as Error).message);
   }
 }
 
 function resetFilters() {
-  searchQuery.value = '';
-  activeCategory.value = 'all';
-  sortBy.value = 'popular';
+  searchQuery.value = "";
+  activeCategory.value = "all";
+  sortBy.value = "popular";
   showInstalledOnly.value = false;
   showVerifiedOnly.value = false;
   currentPage.value = 1;
@@ -666,126 +608,133 @@ function resetFilters() {
 
 function formatNumber(num: number): string {
   if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
+    return (num / 1000000).toFixed(1) + "M";
   } else if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
+    return (num / 1000).toFixed(1) + "K";
   }
   return num.toString();
 }
 
 function formatDate(date: string | number | undefined): string {
-  if (!date) {return '';}
-  return new Date(date).toLocaleDateString('zh-CN');
+  if (!date) {
+    return "";
+  }
+  return new Date(date).toLocaleDateString("zh-CN");
 }
 
 function getMockPlugins(): any[] {
   return [
     {
-      id: 'translator-plugin',
-      name: '多语言翻译器',
-      author: 'ChainlessChain Team',
-      version: '1.2.0',
-      description: '支持 50+ 种语言的智能翻译插件，集成主流翻译 API',
-      category: 'ai',
-      tags: ['翻译', 'AI', '多语言'],
+      id: "translator-plugin",
+      name: "多语言翻译器",
+      author: "ChainlessChain Team",
+      version: "1.2.0",
+      description: "支持 50+ 种语言的智能翻译插件，集成主流翻译 API",
+      category: "ai",
+      tags: ["翻译", "AI", "多语言"],
       icon: null,
       verified: true,
       rating: 4.8,
       downloads: 15234,
-      updatedAt: '2026-02-01',
+      updatedAt: "2026-02-01",
       installed: false,
       installing: false,
-      features: ['50+ 种语言互译', '智能上下文理解', '批量翻译', '自定义术语表'],
+      features: [
+        "50+ 种语言互译",
+        "智能上下文理解",
+        "批量翻译",
+        "自定义术语表",
+      ],
       screenshots: [],
     },
     {
-      id: 'code-analyzer',
-      name: '代码分析助手',
-      author: 'DevTools Lab',
-      version: '2.0.1',
-      description: 'AI 驱动的代码分析工具，支持多种编程语言的静态分析和建议',
-      category: 'productivity',
-      tags: ['代码分析', '开发工具', 'AI'],
+      id: "code-analyzer",
+      name: "代码分析助手",
+      author: "DevTools Lab",
+      version: "2.0.1",
+      description: "AI 驱动的代码分析工具，支持多种编程语言的静态分析和建议",
+      category: "productivity",
+      tags: ["代码分析", "开发工具", "AI"],
       icon: null,
       verified: true,
       rating: 4.6,
       downloads: 8921,
-      updatedAt: '2026-01-28',
+      updatedAt: "2026-01-28",
       installed: false,
       installing: false,
-      features: ['多语言支持', '安全漏洞检测', '性能建议', 'Git 集成'],
+      features: ["多语言支持", "安全漏洞检测", "性能建议", "Git 集成"],
       screenshots: [],
     },
     {
-      id: 'data-visualizer',
-      name: '数据可视化引擎',
-      author: 'VizCraft',
-      version: '1.5.0',
-      description: '强大的数据可视化插件，支持图表、地图和仪表盘',
-      category: 'data',
-      tags: ['可视化', '图表', '数据分析'],
+      id: "data-visualizer",
+      name: "数据可视化引擎",
+      author: "VizCraft",
+      version: "1.5.0",
+      description: "强大的数据可视化插件，支持图表、地图和仪表盘",
+      category: "data",
+      tags: ["可视化", "图表", "数据分析"],
       icon: null,
       verified: false,
       rating: 4.3,
       downloads: 5467,
-      updatedAt: '2026-01-15',
+      updatedAt: "2026-01-15",
       installed: false,
       installing: false,
-      features: ['20+ 图表类型', '实时数据流', '交互式仪表盘', '数据导出'],
+      features: ["20+ 图表类型", "实时数据流", "交互式仪表盘", "数据导出"],
       screenshots: [],
     },
     {
-      id: 'notion-sync',
-      name: 'Notion 同步器',
-      author: 'SyncBridge',
-      version: '1.0.3',
-      description: '双向同步 Notion 笔记和知识库内容',
-      category: 'integration',
-      tags: ['Notion', '同步', '知识库'],
+      id: "notion-sync",
+      name: "Notion 同步器",
+      author: "SyncBridge",
+      version: "1.0.3",
+      description: "双向同步 Notion 笔记和知识库内容",
+      category: "integration",
+      tags: ["Notion", "同步", "知识库"],
       icon: null,
       verified: true,
       rating: 4.5,
       downloads: 12890,
-      updatedAt: '2026-02-10',
+      updatedAt: "2026-02-10",
       installed: false,
       installing: false,
-      features: ['双向同步', '冲突解决', '增量更新', '自动调度'],
+      features: ["双向同步", "冲突解决", "增量更新", "自动调度"],
       screenshots: [],
     },
     {
-      id: 'theme-builder',
-      name: '主题构建器',
-      author: 'UI Workshop',
-      version: '1.1.0',
-      description: '可视化主题编辑器，自定义界面外观和配色方案',
-      category: 'ui',
-      tags: ['主题', '界面', '自定义'],
+      id: "theme-builder",
+      name: "主题构建器",
+      author: "UI Workshop",
+      version: "1.1.0",
+      description: "可视化主题编辑器，自定义界面外观和配色方案",
+      category: "ui",
+      tags: ["主题", "界面", "自定义"],
       icon: null,
       verified: false,
       rating: 4.1,
       downloads: 3200,
-      updatedAt: '2026-01-20',
+      updatedAt: "2026-01-20",
       installed: false,
       installing: false,
-      features: ['可视化编辑', '实时预览', '主题导入导出', '暗色模式支持'],
+      features: ["可视化编辑", "实时预览", "主题导入导出", "暗色模式支持"],
       screenshots: [],
     },
     {
-      id: 'smart-scheduler',
-      name: '智能日程管理',
-      author: 'ChainlessChain Team',
-      version: '1.3.2',
-      description: 'AI 辅助的日程安排和时间管理工具',
-      category: 'productivity',
-      tags: ['日程', '时间管理', 'AI'],
+      id: "smart-scheduler",
+      name: "智能日程管理",
+      author: "ChainlessChain Team",
+      version: "1.3.2",
+      description: "AI 辅助的日程安排和时间管理工具",
+      category: "productivity",
+      tags: ["日程", "时间管理", "AI"],
       icon: null,
       verified: true,
       rating: 4.7,
       downloads: 9876,
-      updatedAt: '2026-02-05',
+      updatedAt: "2026-02-05",
       installed: false,
       installing: false,
-      features: ['AI 日程优化', '冲突检测', '提醒通知', '日历同步'],
+      features: ["AI 日程优化", "冲突检测", "提醒通知", "日历同步"],
       screenshots: [],
     },
   ];
@@ -794,7 +743,7 @@ function getMockPlugins(): any[] {
 // ==================== 生命周期 ====================
 
 onMounted(async () => {
-  marketplaceLogger.info('PluginMarketplacePage 挂载');
+  marketplaceLogger.info("PluginMarketplacePage 挂载");
   await Promise.all([fetchCategories(), fetchFeatured(), fetchPlugins()]);
 });
 </script>

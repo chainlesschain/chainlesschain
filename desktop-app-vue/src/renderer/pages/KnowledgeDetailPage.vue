@@ -67,11 +67,13 @@
             <p v-if="!item.content" style="color: rgba(0, 0, 0, 0.25)">
               暂无内容
             </p>
+            <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
             <div
               v-else
               class="markdown-content"
               v-html="renderMarkdown(item.content)"
             />
+            <!-- eslint-enable vue/no-v-html -->
           </div>
         </div>
 

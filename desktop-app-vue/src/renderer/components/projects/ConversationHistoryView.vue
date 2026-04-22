@@ -1,15 +1,9 @@
 <template>
   <div class="conversation-history-view">
     <!-- 消息列表容器 -->
-    <div
-      ref="messagesContainer"
-      class="messages-container"
-    >
+    <div ref="messagesContainer" class="messages-container">
       <!-- 空状态 -->
-      <div
-        v-if="messages.length === 0 && !isLoading"
-        class="empty-state"
-      >
+      <div v-if="messages.length === 0 && !isLoading" class="empty-state">
         <div class="empty-icon">
           <RobotOutlined />
         </div>
@@ -20,10 +14,7 @@
       </div>
 
       <!-- 消息列表 -->
-      <div
-        v-else
-        class="messages-list"
-      >
+      <div v-else class="messages-list">
         <div
           v-for="(message, index) in messages"
           :key="message.id || index"
@@ -36,10 +27,12 @@
 
           <div class="message-content">
             <!-- 消息文本 -->
+            <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
             <div
               class="message-text"
               v-html="renderMarkdown(message.content)"
             />
+            <!-- eslint-enable vue/no-v-html -->
 
             <!-- AI创建进度（如果有） -->
             <div
@@ -49,13 +42,21 @@
               <!-- 总进度条 -->
               <a-progress
                 :percent="message.progress.overallProgress || 0"
-                :status="message.progress.status === 'error' ? 'exception' : (message.progress.status === 'completed' ? 'success' : 'active')"
+                :status="
+                  message.progress.status === 'error'
+                    ? 'exception'
+                    : message.progress.status === 'completed'
+                      ? 'success'
+                      : 'active'
+                "
                 stroke-color="#667eea"
               />
 
               <!-- 阶段步骤 -->
               <div
-                v-if="message.progress.stages && message.progress.stages.length > 0"
+                v-if="
+                  message.progress.stages && message.progress.stages.length > 0
+                "
                 class="creation-stages"
               >
                 <div
@@ -76,24 +77,28 @@
                     v-else-if="stage.status === 'error'"
                     class="stage-icon error"
                   />
-                  <span
-                    v-else
-                    class="stage-number"
-                  >{{ idx + 1 }}</span>
-                  <span class="stage-message">{{ stage.message || stage.stage }}</span>
+                  <span v-else class="stage-number">{{ idx + 1 }}</span>
+                  <span class="stage-message">{{
+                    stage.message || stage.stage
+                  }}</span>
                 </div>
               </div>
 
               <!-- 代码预览（可展开） -->
               <div
-                v-if="message.progress.contentByStage && Object.keys(message.progress.contentByStage).length > 0"
+                v-if="
+                  message.progress.contentByStage &&
+                  Object.keys(message.progress.contentByStage).length > 0
+                "
                 class="content-preview"
               >
                 <div
                   class="preview-header"
                   @click="toggleContentPreview(message.id)"
                 >
-                  <CaretRightOutlined :class="{ 'expanded': expandedPreviews[message.id] }" />
+                  <CaretRightOutlined
+                    :class="{ expanded: expandedPreviews[message.id] }"
+                  />
                   <span>查看生成内容</span>
                 </div>
                 <div
@@ -102,7 +107,8 @@
                 >
                   <a-tabs v-model:active-key="activePreviewTab[message.id]">
                     <a-tab-pane
-                      v-for="(content, stageName) in message.progress.contentByStage"
+                      v-for="(content, stageName) in message.progress
+                        .contentByStage"
                       :key="stageName"
                       :tab="getStageDisplayName(stageName)"
                     >
@@ -118,17 +124,13 @@
               v-if="message.steps && message.steps.length > 0"
               class="steps-container"
             >
-              <div
-                class="steps-header"
-                @click="toggleSteps(message.id)"
-              >
-                <CaretRightOutlined :class="{ 'expanded': expandedSteps[message.id] }" />
+              <div class="steps-header" @click="toggleSteps(message.id)">
+                <CaretRightOutlined
+                  :class="{ expanded: expandedSteps[message.id] }"
+                />
                 <span>{{ message.steps.length }} 个步骤</span>
               </div>
-              <div
-                v-show="expandedSteps[message.id]"
-                class="steps-content"
-              >
+              <div v-show="expandedSteps[message.id]" class="steps-content">
                 <div
                   v-for="(step, idx) in message.steps"
                   :key="idx"
@@ -138,10 +140,7 @@
                     v-if="step.completed"
                     class="step-icon completed"
                   />
-                  <ClockCircleOutlined
-                    v-else
-                    class="step-icon pending"
-                  />
+                  <ClockCircleOutlined v-else class="step-icon pending" />
                   <span class="step-title">{{ step.title || step.name }}</span>
                 </div>
               </div>
@@ -166,11 +165,8 @@
                   <FileTextOutlined v-if="source.source === 'project'" />
                   <BookOutlined v-else-if="source.source === 'knowledge'" />
                   <MessageOutlined v-else />
-                  {{ source.fileName || source.title || '未知文件' }}
-                  <span
-                    v-if="source.score"
-                    class="source-score"
-                  >
+                  {{ source.fileName || source.title || "未知文件" }}
+                  <span v-if="source.score" class="source-score">
                     {{ Math.round(source.score * 100) }}%
                   </span>
                 </a-tag>
@@ -198,10 +194,7 @@
               <span class="message-time">
                 {{ formatTime(message.timestamp) }}
               </span>
-              <span
-                v-if="message.tokens"
-                class="message-tokens"
-              >
+              <span v-if="message.tokens" class="message-tokens">
                 {{ message.tokens }} tokens
               </span>
             </div>
@@ -209,10 +202,7 @@
         </div>
 
         <!-- 加载中指示器 -->
-        <div
-          v-if="isLoading"
-          class="message-item assistant loading"
-        >
+        <div v-if="isLoading" class="message-item assistant loading">
           <div class="message-avatar">
             <LoadingOutlined spin />
           </div>
@@ -228,9 +218,9 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, watch, nextTick, onMounted } from 'vue';
+import { ref, watch, nextTick, onMounted } from "vue";
 import {
   RobotOutlined,
   UserOutlined,
@@ -244,10 +234,10 @@ import {
   ClockCircleOutlined,
   CloseCircleOutlined,
   PaperClipOutlined,
-} from '@ant-design/icons-vue';
-import { marked } from 'marked';
-import { formatDistanceToNow } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+} from "@ant-design/icons-vue";
+import { marked } from "marked";
+import { formatDistanceToNow } from "date-fns";
+import { zhCN } from "date-fns/locale";
 
 const props = defineProps({
   messages: {
@@ -260,15 +250,15 @@ const props = defineProps({
   },
   loadingText: {
     type: String,
-    default: '正在思考...',
+    default: "正在思考...",
   },
   emptyTitle: {
     type: String,
-    default: '开始新对话',
+    default: "开始新对话",
   },
   emptyHint: {
     type: String,
-    default: '在下方输入框中输入消息开始对话',
+    default: "在下方输入框中输入消息开始对话",
   },
   autoScroll: {
     type: Boolean,
@@ -276,7 +266,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['source-click', 'file-click']);
+const emit = defineEmits(["source-click", "file-click"]);
 
 // 响应式状态
 const messagesContainer = ref(null);
@@ -297,34 +287,37 @@ const renderMarkdown = (content) => {
   try {
     // 确保 content 是字符串
     let textContent = content;
-    if (typeof content === 'object') {
-      textContent = content?.text || content?.content || JSON.stringify(content);
+    if (typeof content === "object") {
+      textContent =
+        content?.text || content?.content || JSON.stringify(content);
     }
-    textContent = String(textContent || '');
+    textContent = String(textContent || "");
 
     // marked.parse() 会自动转义 HTML 标签
     const rawHTML = marked.parse(textContent);
     return rawHTML;
   } catch (error) {
-    logger.error('Markdown rendering error:', error);
+    logger.error("Markdown rendering error:", error);
     // 发生错误时，转义文本以防止 XSS
-    const div = document.createElement('div');
-    div.textContent = String(content || '');
+    const div = document.createElement("div");
+    div.textContent = String(content || "");
     return div.innerHTML;
   }
 };
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) {return '';}
+  if (!timestamp) {
+    return "";
+  }
   try {
     return formatDistanceToNow(new Date(timestamp), {
       addSuffix: true,
       locale: zhCN,
     });
   } catch (error) {
-    logger.error('Time formatting error:', error);
-    return '';
+    logger.error("Time formatting error:", error);
+    return "";
   }
 };
 
@@ -341,31 +334,33 @@ const toggleContentPreview = (messageId) => {
 // 获取阶段显示名称
 const getStageDisplayName = (stageName) => {
   const stageNames = {
-    'intent': '意图识别',
-    'spec': '生成规格',
-    'engine': '引擎选择',
-    'outline': '生成大纲',
-    'content': '生成内容',
-    'html': 'HTML',
-    'css': 'CSS',
-    'js': 'JavaScript',
+    intent: "意图识别",
+    spec: "生成规格",
+    engine: "引擎选择",
+    outline: "生成大纲",
+    content: "生成内容",
+    html: "HTML",
+    css: "CSS",
+    js: "JavaScript",
   };
   return stageNames[stageName] || stageName;
 };
 
 // 处理来源点击
 const handleSourceClick = (source) => {
-  emit('source-click', source);
+  emit("source-click", source);
 };
 
 // 处理文件点击
 const handleFileClick = (file) => {
-  emit('file-click', file);
+  emit("file-click", file);
 };
 
 // 滚动到底部
 const scrollToBottom = () => {
-  if (!props.autoScroll) {return;}
+  if (!props.autoScroll) {
+    return;
+  }
 
   nextTick(() => {
     if (messagesContainer.value) {
@@ -376,13 +371,20 @@ const scrollToBottom = () => {
 };
 
 // 监听消息变化，自动滚动到底部
-watch(() => props.messages, () => {
-  scrollToBottom();
-}, { deep: true });
+watch(
+  () => props.messages,
+  () => {
+    scrollToBottom();
+  },
+  { deep: true },
+);
 
-watch(() => props.isLoading, () => {
-  scrollToBottom();
-});
+watch(
+  () => props.isLoading,
+  () => {
+    scrollToBottom();
+  },
+);
 
 // 组件挂载后滚动到底部
 onMounted(() => {
@@ -530,7 +532,7 @@ onMounted(() => {
   background: #f3f4f6;
   padding: 2px 6px;
   border-radius: 4px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   font-size: 0.9em;
 }
 
@@ -855,7 +857,7 @@ onMounted(() => {
   border-radius: 6px;
   overflow-x: auto;
   margin: 0;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   font-size: 13px;
   line-height: 1.5;
 }

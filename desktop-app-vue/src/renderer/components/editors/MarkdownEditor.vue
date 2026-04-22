@@ -25,28 +25,16 @@
         <a-divider type="vertical" />
 
         <a-button-group size="small">
-          <a-button
-            title="粗体"
-            @click="insertFormat('**', '**')"
-          >
+          <a-button title="粗体" @click="insertFormat('**', '**')">
             <BoldOutlined />
           </a-button>
-          <a-button
-            title="斜体"
-            @click="insertFormat('*', '*')"
-          >
+          <a-button title="斜体" @click="insertFormat('*', '*')">
             <ItalicOutlined />
           </a-button>
-          <a-button
-            title="删除线"
-            @click="insertFormat('~~', '~~')"
-          >
+          <a-button title="删除线" @click="insertFormat('~~', '~~')">
             <StrikethroughOutlined />
           </a-button>
-          <a-button
-            title="行内代码"
-            @click="insertFormat('`', '`')"
-          >
+          <a-button title="行内代码" @click="insertFormat('`', '`')">
             <CodeOutlined />
           </a-button>
         </a-button-group>
@@ -54,76 +42,37 @@
         <a-divider type="vertical" />
 
         <a-button-group size="small">
-          <a-button
-            title="标题1"
-            @click="insertHeading(1)"
-          >
-            H1
-          </a-button>
-          <a-button
-            title="标题2"
-            @click="insertHeading(2)"
-          >
-            H2
-          </a-button>
-          <a-button
-            title="标题3"
-            @click="insertHeading(3)"
-          >
-            H3
-          </a-button>
+          <a-button title="标题1" @click="insertHeading(1)"> H1 </a-button>
+          <a-button title="标题2" @click="insertHeading(2)"> H2 </a-button>
+          <a-button title="标题3" @click="insertHeading(3)"> H3 </a-button>
         </a-button-group>
 
         <a-divider type="vertical" />
 
         <a-button-group size="small">
-          <a-button
-            title="无序列表"
-            @click="insertList('ul')"
-          >
+          <a-button title="无序列表" @click="insertList('ul')">
             <UnorderedListOutlined />
           </a-button>
-          <a-button
-            title="有序列表"
-            @click="insertList('ol')"
-          >
+          <a-button title="有序列表" @click="insertList('ol')">
             <OrderedListOutlined />
           </a-button>
-          <a-button
-            title="引用"
-            @click="insertQuote()"
-          >
+          <a-button title="引用" @click="insertQuote()">
             <MessageOutlined />
           </a-button>
-          <a-button
-            title="代码块"
-            @click="insertCodeBlock()"
-          >
+          <a-button title="代码块" @click="insertCodeBlock()">
             <FileTextOutlined />
           </a-button>
         </a-button-group>
 
         <a-divider type="vertical" />
 
-        <a-button
-          size="small"
-          title="插入链接"
-          @click="insertLink()"
-        >
+        <a-button size="small" title="插入链接" @click="insertLink()">
           <LinkOutlined />
         </a-button>
-        <a-button
-          size="small"
-          title="插入图片"
-          @click="insertImage()"
-        >
+        <a-button size="small" title="插入图片" @click="insertImage()">
           <PictureOutlined />
         </a-button>
-        <a-button
-          size="small"
-          title="插入表格"
-          @click="insertTable()"
-        >
+        <a-button size="small" title="插入表格" @click="insertTable()">
           <TableOutlined />
         </a-button>
       </div>
@@ -139,30 +88,16 @@
           </a-button>
           <template #overlay>
             <a-menu @click="handleExport">
-              <a-menu-item key="html">
-                导出HTML
-              </a-menu-item>
-              <a-menu-item key="pdf">
-                导出PDF
-              </a-menu-item>
-              <a-menu-item key="word">
-                导出Word
-              </a-menu-item>
+              <a-menu-item key="html"> 导出HTML </a-menu-item>
+              <a-menu-item key="pdf"> 导出PDF </a-menu-item>
+              <a-menu-item key="word"> 导出Word </a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
 
-        <a-tag
-          v-if="wordCount > 0"
-          color="blue"
-        >
-          {{ wordCount }} 字
-        </a-tag>
+        <a-tag v-if="wordCount > 0" color="blue"> {{ wordCount }} 字 </a-tag>
 
-        <a-tag
-          v-if="hasChanges"
-          color="orange"
-        >
+        <a-tag v-if="hasChanges" color="orange">
           <ClockCircleOutlined />
           未保存
         </a-tag>
@@ -202,23 +137,23 @@
         v-show="viewMode === 'preview' || viewMode === 'split'"
         class="preview-pane"
       >
-        <div
-          class="markdown-preview"
-          v-html="renderedHTML"
-        />
+        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+        <div class="markdown-preview" v-html="renderedHTML" />
+        <!-- eslint-enable vue/no-v-html -->
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
-import { message } from 'ant-design-vue';
-import { marked } from 'marked';
-import hljs from 'highlight.js';
-import 'highlight.js/styles/github-dark.css';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import { message } from "ant-design-vue";
+import { marked } from "marked";
+import hljs from "highlight.js";
+import "highlight.js/styles/github-dark.css";
+import { safeHtml } from "@/utils/sanitizeHtml";
 import {
   EditOutlined,
   EyeOutlined,
@@ -238,7 +173,7 @@ import {
   DownOutlined,
   SaveOutlined,
   ClockCircleOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   file: {
@@ -247,7 +182,7 @@ const props = defineProps({
   },
   initialContent: {
     type: String,
-    default: '',
+    default: "",
   },
   autoSave: {
     type: Boolean,
@@ -255,24 +190,24 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['change', 'save']);
+const emit = defineEmits(["change", "save"]);
 
 // 状态
 const editorRef = ref(null);
-const content = ref(props.initialContent || '');
-const viewMode = ref('split');
+const content = ref(props.initialContent || "");
+const viewMode = ref("split");
 const saving = ref(false);
 const hasChanges = ref(false);
 let autoSaveTimer = null;
 
 // 配置marked
 marked.setOptions({
-  highlight: function(code, lang) {
+  highlight: function (code, lang) {
     if (lang && hljs.getLanguage(lang)) {
       try {
         return hljs.highlight(code, { language: lang }).value;
       } catch (err) {
-        logger.error('Highlight error:', err);
+        logger.error("Highlight error:", err);
       }
     }
     return code;
@@ -284,21 +219,21 @@ marked.setOptions({
 // 计算属性
 const renderedHTML = computed(() => {
   try {
-    return marked(content.value || '');
+    return safeHtml(marked(content.value || ""));
   } catch (error) {
-    logger.error('Markdown render error:', error);
-    return '<p>Markdown渲染错误</p>';
+    logger.error("Markdown render error:", error);
+    return "<p>Markdown渲染错误</p>";
   }
 });
 
 const wordCount = computed(() => {
-  return content.value.replace(/\s/g, '').length;
+  return content.value.replace(/\s/g, "").length;
 });
 
 // 处理输入
 const handleInput = () => {
   hasChanges.value = true;
-  emit('change', content.value);
+  emit("change", content.value);
 
   if (props.autoSave) {
     scheduleAutoSave();
@@ -308,32 +243,38 @@ const handleInput = () => {
 // 处理键盘事件
 const handleKeydown = (e) => {
   // Ctrl+S 保存
-  if (e.ctrlKey && e.key === 's') {
+  if (e.ctrlKey && e.key === "s") {
     e.preventDefault();
     save();
   }
 
   // Tab键插入4个空格
-  if (e.key === 'Tab') {
+  if (e.key === "Tab") {
     e.preventDefault();
-    insertText('    ');
+    insertText("    ");
   }
 };
 
 // 插入文本
 const insertText = (text, offset = 0) => {
   const textarea = editorRef.value;
-  if (!textarea) {return;}
+  if (!textarea) {
+    return;
+  }
 
   const start = textarea.selectionStart;
   const end = textarea.selectionEnd;
 
-  content.value = content.value.substring(0, start) + text + content.value.substring(end);
+  content.value =
+    content.value.substring(0, start) + text + content.value.substring(end);
 
   // 设置光标位置
   setTimeout(() => {
     textarea.focus();
-    textarea.setSelectionRange(start + text.length + offset, start + text.length + offset);
+    textarea.setSelectionRange(
+      start + text.length + offset,
+      start + text.length + offset,
+    );
   }, 0);
 
   hasChanges.value = true;
@@ -342,7 +283,9 @@ const insertText = (text, offset = 0) => {
 // 插入格式
 const insertFormat = (before, after) => {
   const textarea = editorRef.value;
-  if (!textarea) {return;}
+  if (!textarea) {
+    return;
+  }
 
   const start = textarea.selectionStart;
   const end = textarea.selectionEnd;
@@ -351,7 +294,10 @@ const insertFormat = (before, after) => {
   if (selectedText) {
     // 有选中文本，包裹它
     const newText = before + selectedText + after;
-    content.value = content.value.substring(0, start) + newText + content.value.substring(end);
+    content.value =
+      content.value.substring(0, start) +
+      newText +
+      content.value.substring(end);
 
     setTimeout(() => {
       textarea.focus();
@@ -359,8 +305,11 @@ const insertFormat = (before, after) => {
     }, 0);
   } else {
     // 无选中文本，插入并定位光标
-    const newText = before + '文本' + after;
-    content.value = content.value.substring(0, start) + newText + content.value.substring(end);
+    const newText = before + "文本" + after;
+    content.value =
+      content.value.substring(0, start) +
+      newText +
+      content.value.substring(end);
 
     setTimeout(() => {
       textarea.focus();
@@ -374,50 +323,53 @@ const insertFormat = (before, after) => {
 
 // 插入标题
 const insertHeading = (level) => {
-  const prefix = '#'.repeat(level) + ' ';
+  const prefix = "#".repeat(level) + " ";
   insertLinePrefix(prefix);
 };
 
 // 插入列表
 const insertList = (type) => {
-  const prefix = type === 'ol' ? '1. ' : '- ';
+  const prefix = type === "ol" ? "1. " : "- ";
   insertLinePrefix(prefix);
 };
 
 // 插入引用
 const insertQuote = () => {
-  insertLinePrefix('> ');
+  insertLinePrefix("> ");
 };
 
 // 插入代码块
 const insertCodeBlock = () => {
-  const codeBlock = '\n```javascript\n// 代码\n```\n';
+  const codeBlock = "\n```javascript\n// 代码\n```\n";
   insertText(codeBlock, -5);
 };
 
 // 插入链接
 const insertLink = () => {
-  insertFormat('[', '](https://)');
+  insertFormat("[", "](https://)");
 };
 
 // 插入图片
 const insertImage = () => {
-  insertFormat('![', '](https://)');
+  insertFormat("![", "](https://)");
 };
 
 // 插入表格
 const insertTable = () => {
-  const table = '\n| 列1 | 列2 | 列3 |\n|-----|-----|-----|\n| 内容 | 内容 | 内容 |\n';
+  const table =
+    "\n| 列1 | 列2 | 列3 |\n|-----|-----|-----|\n| 内容 | 内容 | 内容 |\n";
   insertText(table);
 };
 
 // 插入行前缀
 const insertLinePrefix = (prefix) => {
   const textarea = editorRef.value;
-  if (!textarea) {return;}
+  if (!textarea) {
+    return;
+  }
 
   const start = textarea.selectionStart;
-  const lines = content.value.split('\n');
+  const lines = content.value.split("\n");
   let currentLine = 0;
   let charCount = 0;
 
@@ -432,7 +384,7 @@ const insertLinePrefix = (prefix) => {
 
   // 插入前缀
   lines[currentLine] = prefix + lines[currentLine];
-  content.value = lines.join('\n');
+  content.value = lines.join("\n");
 
   // 设置光标位置
   setTimeout(() => {
@@ -446,31 +398,36 @@ const insertLinePrefix = (prefix) => {
 
 // 保存
 const save = async () => {
-  if (!hasChanges.value) {return;}
+  if (!hasChanges.value) {
+    return;
+  }
 
   if (!props.file?.file_path) {
-    message.warning('文件路径不存在，无法保存');
+    message.warning("文件路径不存在，无法保存");
     return;
   }
 
   saving.value = true;
   try {
-    logger.info('[MarkdownEditor] 保存文件:', props.file.file_path);
-    logger.info('[MarkdownEditor] 内容长度:', content.value?.length);
+    logger.info("[MarkdownEditor] 保存文件:", props.file.file_path);
+    logger.info("[MarkdownEditor] 内容长度:", content.value?.length);
 
-    const result = await window.electronAPI.file.writeContent(props.file.file_path, content.value);
+    const result = await window.electronAPI.file.writeContent(
+      props.file.file_path,
+      content.value,
+    );
 
     if (result.success) {
       hasChanges.value = false;
-      emit('save', content.value);
-      message.success('已保存');
-      logger.info('[MarkdownEditor] 保存成功');
+      emit("save", content.value);
+      message.success("已保存");
+      logger.info("[MarkdownEditor] 保存成功");
     } else {
-      throw new Error(result.error || '保存失败');
+      throw new Error(result.error || "保存失败");
     }
   } catch (error) {
-    logger.error('[MarkdownEditor] 保存失败:', error);
-    message.error('保存失败: ' + error.message);
+    logger.error("[MarkdownEditor] 保存失败:", error);
+    message.error("保存失败: " + error.message);
   } finally {
     saving.value = false;
   }
@@ -480,19 +437,19 @@ const save = async () => {
 const handleExport = async ({ key }) => {
   try {
     switch (key) {
-      case 'html':
+      case "html":
         await exportHTML();
         break;
-      case 'pdf':
+      case "pdf":
         await exportPDF();
         break;
-      case 'word':
+      case "word":
         await exportWord();
         break;
     }
   } catch (error) {
-    logger.error('[MarkdownEditor] 导出失败:', error);
-    message.error('导出失败: ' + error.message);
+    logger.error("[MarkdownEditor] 导出失败:", error);
+    message.error("导出失败: " + error.message);
   }
 };
 
@@ -502,7 +459,7 @@ const exportHTML = async () => {
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>${props.file?.file_name || 'Markdown文档'}</title>
+  <title>${props.file?.file_name || "Markdown文档"}</title>
   <style>
     body {
       max-width: 800px;
@@ -551,95 +508,103 @@ const exportHTML = async () => {
 </html>`;
 
   const result = await window.electronAPI.dialog.showSaveDialog({
-    defaultPath: props.file?.file_name?.replace('.md', '.html') || 'document.html',
-    filters: [{ name: 'HTML文件', extensions: ['html'] }],
+    defaultPath:
+      props.file?.file_name?.replace(".md", ".html") || "document.html",
+    filters: [{ name: "HTML文件", extensions: ["html"] }],
   });
 
   if (!result.canceled && result.filePath) {
     await window.electronAPI.file.writeContent(result.filePath, html);
-    message.success('导出成功: ' + result.filePath);
+    message.success("导出成功: " + result.filePath);
   }
 };
 
 // 导出PDF
 const exportPDF = async () => {
-  logger.info('[MarkdownEditor] 🔄 开始导出PDF...');
-  logger.info('[MarkdownEditor] 文件名:', props.file?.file_name);
-  logger.info('[MarkdownEditor] 内容长度:', content.value?.length, '字符');
+  logger.info("[MarkdownEditor] 🔄 开始导出PDF...");
+  logger.info("[MarkdownEditor] 文件名:", props.file?.file_name);
+  logger.info("[MarkdownEditor] 内容长度:", content.value?.length, "字符");
 
   try {
-    logger.info('[MarkdownEditor] 📂 打开保存对话框...');
+    logger.info("[MarkdownEditor] 📂 打开保存对话框...");
     const result = await window.electronAPI.dialog.showSaveDialog({
-      defaultPath: props.file?.file_name?.replace('.md', '.pdf') || 'document.pdf',
-      filters: [{ name: 'PDF文档', extensions: ['pdf'] }],
+      defaultPath:
+        props.file?.file_name?.replace(".md", ".pdf") || "document.pdf",
+      filters: [{ name: "PDF文档", extensions: ["pdf"] }],
     });
 
-    logger.info('[MarkdownEditor] 对话框结果:', { canceled: result.canceled, filePath: result.filePath });
+    logger.info("[MarkdownEditor] 对话框结果:", {
+      canceled: result.canceled,
+      filePath: result.filePath,
+    });
 
     if (result.canceled) {
-      logger.info('[MarkdownEditor] ❌ 用户取消导出');
+      logger.info("[MarkdownEditor] ❌ 用户取消导出");
       return;
     }
 
     if (!result.filePath) {
-      logger.error('[MarkdownEditor] ❌ 未获取到文件路径');
-      message.error('未选择保存路径');
+      logger.error("[MarkdownEditor] ❌ 未获取到文件路径");
+      message.error("未选择保存路径");
       return;
     }
 
-    logger.info('[MarkdownEditor] 📝 准备转换内容...');
-    logger.info('[MarkdownEditor] Markdown内容:', content.value?.substring(0, 100) + '...');
+    logger.info("[MarkdownEditor] 📝 准备转换内容...");
+    logger.info(
+      "[MarkdownEditor] Markdown内容:",
+      content.value?.substring(0, 100) + "...",
+    );
 
-    message.loading({ content: '正在生成PDF...', key: 'pdf-export' });
+    message.loading({ content: "正在生成PDF...", key: "pdf-export" });
 
     // 调用PDF转换API
     const pdfResult = await window.electronAPI.pdf.markdownToPDF({
       markdown: content.value,
       outputPath: result.filePath,
-      title: props.file?.file_name || 'Markdown文档',
+      title: props.file?.file_name || "Markdown文档",
       options: {
-        format: 'A4',
+        format: "A4",
         margin: {
-          top: '20mm',
-          right: '20mm',
-          bottom: '20mm',
-          left: '20mm'
+          top: "20mm",
+          right: "20mm",
+          bottom: "20mm",
+          left: "20mm",
         },
         printBackground: true,
-        preferCSSPageSize: false
-      }
+        preferCSSPageSize: false,
+      },
     });
 
-    logger.info('[MarkdownEditor] PDF转换结果:', pdfResult);
+    logger.info("[MarkdownEditor] PDF转换结果:", pdfResult);
 
     if (pdfResult.success) {
       message.success({
         content: `PDF导出成功: ${result.filePath}`,
-        key: 'pdf-export',
-        duration: 3
+        key: "pdf-export",
+        duration: 3,
       });
-      logger.info('[MarkdownEditor] ✅ PDF导出成功');
+      logger.info("[MarkdownEditor] ✅ PDF导出成功");
     } else {
-      const errorMsg = pdfResult.error || '未知错误';
-      logger.error('[MarkdownEditor] ❌ PDF转换失败:', errorMsg);
+      const errorMsg = pdfResult.error || "未知错误";
+      logger.error("[MarkdownEditor] ❌ PDF转换失败:", errorMsg);
       message.error({
         content: `PDF导出失败: ${errorMsg}`,
-        key: 'pdf-export',
-        duration: 3
+        key: "pdf-export",
+        duration: 3,
       });
     }
   } catch (error) {
-    logger.error('[MarkdownEditor] ❌ PDF导出异常:', error);
-    logger.error('[MarkdownEditor] 错误堆栈:', error.stack);
+    logger.error("[MarkdownEditor] ❌ PDF导出异常:", error);
+    logger.error("[MarkdownEditor] 错误堆栈:", error.stack);
 
-    let errorMessage = 'PDF导出失败';
+    let errorMessage = "PDF导出失败";
     if (error.message) {
-      if (error.message.includes('not available')) {
-        errorMessage = 'PDF转换服务不可用，请检查系统配置';
-      } else if (error.message.includes('permission')) {
-        errorMessage = '没有权限写入文件，请检查文件路径';
-      } else if (error.message.includes('disk')) {
-        errorMessage = '磁盘空间不足';
+      if (error.message.includes("not available")) {
+        errorMessage = "PDF转换服务不可用，请检查系统配置";
+      } else if (error.message.includes("permission")) {
+        errorMessage = "没有权限写入文件，请检查文件路径";
+      } else if (error.message.includes("disk")) {
+        errorMessage = "磁盘空间不足";
       } else {
         errorMessage = `PDF导出失败: ${error.message}`;
       }
@@ -647,60 +612,64 @@ const exportPDF = async () => {
 
     message.error({
       content: errorMessage,
-      key: 'pdf-export',
-      duration: 3
+      key: "pdf-export",
+      duration: 3,
     });
   }
 };
 
 // 导出Word
 const exportWord = async () => {
-  logger.info('[MarkdownEditor] 🔄 开始导出Word...');
-  logger.info('[MarkdownEditor] 文件名:', props.file?.file_name);
-  logger.info('[MarkdownEditor] 内容长度:', content.value?.length, '字符');
+  logger.info("[MarkdownEditor] 🔄 开始导出Word...");
+  logger.info("[MarkdownEditor] 文件名:", props.file?.file_name);
+  logger.info("[MarkdownEditor] 内容长度:", content.value?.length, "字符");
 
   try {
-    logger.info('[MarkdownEditor] 📂 打开保存对话框...');
+    logger.info("[MarkdownEditor] 📂 打开保存对话框...");
     const result = await window.electronAPI.dialog.showSaveDialog({
-      defaultPath: props.file?.file_name?.replace('.md', '.docx') || 'document.docx',
-      filters: [{ name: 'Word文档', extensions: ['docx'] }],
+      defaultPath:
+        props.file?.file_name?.replace(".md", ".docx") || "document.docx",
+      filters: [{ name: "Word文档", extensions: ["docx"] }],
     });
 
-    logger.info('[MarkdownEditor] 对话框结果:', { canceled: result.canceled, filePath: result.filePath });
+    logger.info("[MarkdownEditor] 对话框结果:", {
+      canceled: result.canceled,
+      filePath: result.filePath,
+    });
 
     if (result.canceled) {
-      logger.info('[MarkdownEditor] ❌ 用户取消了导出');
+      logger.info("[MarkdownEditor] ❌ 用户取消了导出");
       return;
     }
 
     if (!result.filePath) {
-      logger.error('[MarkdownEditor] ❌ 没有选择文件路径');
-      message.error('请选择保存位置');
+      logger.error("[MarkdownEditor] ❌ 没有选择文件路径");
+      message.error("请选择保存位置");
       return;
     }
 
-    logger.info('[MarkdownEditor] ✅ 用户选择路径:', result.filePath);
-    logger.info('[MarkdownEditor] 📝 调用 markdownToWord IPC...');
+    logger.info("[MarkdownEditor] ✅ 用户选择路径:", result.filePath);
+    logger.info("[MarkdownEditor] 📝 调用 markdownToWord IPC...");
 
     const exportResult = await window.electronAPI.file.markdownToWord(
       content.value,
       result.filePath,
-      { title: props.file?.file_name || 'Document' }
+      { title: props.file?.file_name || "Document" },
     );
 
-    logger.info('[MarkdownEditor] IPC返回结果:', exportResult);
+    logger.info("[MarkdownEditor] IPC返回结果:", exportResult);
 
     if (exportResult && exportResult.success) {
-      logger.info('[MarkdownEditor] ✅ 导出成功!');
-      message.success('导出成功: ' + result.filePath);
+      logger.info("[MarkdownEditor] ✅ 导出成功!");
+      message.success("导出成功: " + result.filePath);
     } else {
-      logger.error('[MarkdownEditor] ❌ 导出失败:', exportResult);
-      message.error('导出失败: ' + (exportResult?.error || '未知错误'));
+      logger.error("[MarkdownEditor] ❌ 导出失败:", exportResult);
+      message.error("导出失败: " + (exportResult?.error || "未知错误"));
     }
   } catch (error) {
-    logger.error('[MarkdownEditor] ❌ 导出过程发生异常:', error);
-    logger.error('[MarkdownEditor] 错误堆栈:', error.stack);
-    message.error('导出失败: ' + error.message);
+    logger.error("[MarkdownEditor] ❌ 导出过程发生异常:", error);
+    logger.error("[MarkdownEditor] 错误堆栈:", error.stack);
+    message.error("导出失败: " + error.message);
   }
 };
 
@@ -713,37 +682,55 @@ const scheduleAutoSave = () => {
 };
 
 // 监听 initialContent 变化（主要加载方式）
-watch(() => props.initialContent, (newContent) => {
-  if (newContent !== undefined && newContent !== content.value) {
-    logger.info('[MarkdownEditor] initialContent 变化，更新内容，长度:', newContent?.length);
-    content.value = newContent || '';
-    hasChanges.value = false;
-  }
-}, { immediate: true });
+watch(
+  () => props.initialContent,
+  (newContent) => {
+    if (newContent !== undefined && newContent !== content.value) {
+      logger.info(
+        "[MarkdownEditor] initialContent 变化，更新内容，长度:",
+        newContent?.length,
+      );
+      content.value = newContent || "";
+      hasChanges.value = false;
+    }
+  },
+  { immediate: true },
+);
 
 // 监听文件变化（作为备用加载方式）
-watch(() => props.file?.id, async (newId, oldId) => {
-  if (newId && newId !== oldId && props.file?.file_path) {
-    // 只有在 initialContent 为空时才尝试直接读取文件
-    if (!props.initialContent) {
-      try {
-        logger.info('[MarkdownEditor] 文件变化，直接读取:', props.file.file_path);
-        const result = await window.electronAPI.file.readContent(props.file.file_path);
-        if (result.success) {
-          content.value = result.content || '';
-          hasChanges.value = false;
+watch(
+  () => props.file?.id,
+  async (newId, oldId) => {
+    if (newId && newId !== oldId && props.file?.file_path) {
+      // 只有在 initialContent 为空时才尝试直接读取文件
+      if (!props.initialContent) {
+        try {
+          logger.info(
+            "[MarkdownEditor] 文件变化，直接读取:",
+            props.file.file_path,
+          );
+          const result = await window.electronAPI.file.readContent(
+            props.file.file_path,
+          );
+          if (result.success) {
+            content.value = result.content || "";
+            hasChanges.value = false;
+          }
+        } catch (error) {
+          logger.error("[MarkdownEditor] 读取文件失败:", error);
+          message.error("读取文件失败: " + error.message);
         }
-      } catch (error) {
-        logger.error('[MarkdownEditor] 读取文件失败:', error);
-        message.error('读取文件失败: ' + error.message);
       }
     }
-  }
-});
+  },
+);
 
 // 组件挂载
 onMounted(() => {
-  logger.info('[MarkdownEditor] 组件挂载，initialContent 长度:', props.initialContent?.length);
+  logger.info(
+    "[MarkdownEditor] 组件挂载，initialContent 长度:",
+    props.initialContent?.length,
+  );
   if (props.initialContent) {
     content.value = props.initialContent;
   }
@@ -821,7 +808,7 @@ defineExpose({
   padding: 20px;
   border: none;
   outline: none;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   font-size: 14px;
   line-height: 1.6;
   resize: none;
@@ -831,7 +818,8 @@ defineExpose({
 
 .markdown-preview {
   padding: 20px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   line-height: 1.6;
   color: #333;
 
@@ -865,7 +853,7 @@ defineExpose({
     background: #f6f8fa;
     padding: 2px 6px;
     border-radius: 3px;
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-family: "Consolas", "Monaco", "Courier New", monospace;
     font-size: 13px;
     color: #e83e8c;
   }

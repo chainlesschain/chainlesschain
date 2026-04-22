@@ -129,13 +129,17 @@
           <!-- 内容 -->
           <div class="result-content">
             <div class="result-title">
+              <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
               <span v-html="highlightMatch(result.title)" />
+              <!-- eslint-enable vue/no-v-html -->
               <a-tag size="small" :color="getTypeColor(result.type)">
                 {{ getTypeName(result.type) }}
               </a-tag>
             </div>
             <div v-if="result.description" class="result-description">
+              <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
               <span v-html="highlightMatch(result.description)" />
+              <!-- eslint-enable vue/no-v-html -->
             </div>
             <div class="result-meta">
               <span v-if="result.path" class="result-path">

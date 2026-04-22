@@ -1,14 +1,9 @@
 <template>
   <div class="share-project-view">
     <!-- 加载中 -->
-    <div
-      v-if="loading"
-      class="loading-container"
-    >
+    <div v-if="loading" class="loading-container">
       <a-spin size="large" />
-      <p class="loading-text">
-        正在加载分享项目...
-      </p>
+      <p class="loading-text">正在加载分享项目...</p>
     </div>
 
     <!-- 错误提示 -->
@@ -19,20 +14,12 @@
       :sub-title="errorMessage"
     >
       <template #extra>
-        <a-button
-          type="primary"
-          @click="handleBackToHome"
-        >
-          返回首页
-        </a-button>
+        <a-button type="primary" @click="handleBackToHome"> 返回首页 </a-button>
       </template>
     </a-result>
 
     <!-- 项目内容 -->
-    <div
-      v-else-if="shareInfo"
-      class="project-container"
-    >
+    <div v-else-if="shareInfo" class="project-container">
       <!-- 项目头部 -->
       <div class="project-header">
         <div class="header-content">
@@ -42,12 +29,11 @@
               v-if="shareInfo.cover_image_url"
               :src="shareInfo.cover_image_url"
               :alt="shareInfo.project_name"
-            >
-            <div
-              v-else
-              class="cover-placeholder"
-            >
-              <FolderOpenOutlined :style="{ fontSize: '64px', color: '#1890ff' }" />
+            />
+            <div v-else class="cover-placeholder">
+              <FolderOpenOutlined
+                :style="{ fontSize: '64px', color: '#1890ff' }"
+              />
             </div>
           </div>
 
@@ -75,18 +61,12 @@
               </span>
             </div>
 
-            <p
-              v-if="shareInfo.project_description"
-              class="project-description"
-            >
+            <p v-if="shareInfo.project_description" class="project-description">
               {{ shareInfo.project_description }}
             </p>
 
             <div class="project-actions">
-              <a-button
-                type="primary"
-                @click="handleOpenInApp"
-              >
+              <a-button type="primary" @click="handleOpenInApp">
                 <DownloadOutlined />
                 在应用中打开
               </a-button>
@@ -115,10 +95,7 @@
         </div>
 
         <!-- 文件列表 -->
-        <div
-          v-if="loading"
-          class="files-loading"
-        >
+        <div v-if="loading" class="files-loading">
           <a-spin />
         </div>
 
@@ -127,10 +104,7 @@
           description="暂无文件"
         />
 
-        <div
-          v-else
-          class="files-list"
-        >
+        <div v-else class="files-list">
           <div
             v-for="file in paginatedFiles"
             :key="file.id"
@@ -138,10 +112,7 @@
             @click="handleFileClick(file)"
           >
             <div class="file-icon">
-              <FileIcon
-                :filename="file.file_name"
-                :size="40"
-              />
+              <FileIcon :filename="file.file_name" :size="40" />
             </div>
 
             <div class="file-info">
@@ -178,7 +149,7 @@
             v-model:page-size="pageSize"
             :total="filteredFiles.length"
             :show-size-changer="true"
-            :show-total="total => `共 ${total} 个文件`"
+            :show-total="(total) => `共 ${total} 个文件`"
           />
         </div>
       </div>
@@ -194,36 +165,26 @@
     >
       <div class="file-preview">
         <!-- Markdown预览 -->
+        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
         <div
           v-if="isMarkdown(previewFile)"
           class="markdown-preview"
           v-html="renderedMarkdown"
         />
+        <!-- eslint-enable vue/no-v-html -->
 
         <!-- 代码预览 -->
-        <div
-          v-else-if="isCode(previewFile)"
-          class="code-preview"
-        >
+        <div v-else-if="isCode(previewFile)" class="code-preview">
           <pre><code>{{ previewContent }}</code></pre>
         </div>
 
         <!-- 图片预览 -->
-        <div
-          v-else-if="isImage(previewFile)"
-          class="image-preview"
-        >
-          <img
-            :src="previewFile.fs_path"
-            :alt="previewFile.file_name"
-          >
+        <div v-else-if="isImage(previewFile)" class="image-preview">
+          <img :src="previewFile.fs_path" :alt="previewFile.file_name" />
         </div>
 
         <!-- 纯文本预览 -->
-        <div
-          v-else
-          class="text-preview"
-        >
+        <div v-else class="text-preview">
           <pre>{{ previewContent }}</pre>
         </div>
       </div>
@@ -232,11 +193,11 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { message } from "ant-design-vue";
 import {
   FolderOpenOutlined,
   FileOutlined,
@@ -244,9 +205,10 @@ import {
   ClockCircleOutlined,
   DownloadOutlined,
   LinkOutlined,
-} from '@ant-design/icons-vue';
-import FileIcon from '../components/projects/FileIcon.vue';
-import { marked } from 'marked';
+} from "@ant-design/icons-vue";
+import FileIcon from "../components/projects/FileIcon.vue";
+import { marked } from "marked";
+import { safeHtml, escapeHtml } from "@/utils/sanitizeHtml";
 
 const route = useRoute();
 const router = useRouter();
@@ -254,25 +216,27 @@ const router = useRouter();
 // 状态
 const loading = ref(true);
 const error = ref(false);
-const errorStatus = ref('404');
-const errorTitle = ref('分享不存在');
-const errorMessage = ref('');
+const errorStatus = ref("404");
+const errorTitle = ref("分享不存在");
+const errorMessage = ref("");
 const shareInfo = ref(null);
 const projectFiles = ref([]);
-const searchText = ref('');
+const searchText = ref("");
 const currentPage = ref(1);
 const pageSize = ref(20);
 const previewVisible = ref(false);
 const previewFile = ref(null);
-const previewContent = ref('');
+const previewContent = ref("");
 
 // 计算属性
 const filteredFiles = computed(() => {
-  if (!searchText.value) {return projectFiles.value;}
+  if (!searchText.value) {
+    return projectFiles.value;
+  }
 
   const keyword = searchText.value.toLowerCase();
-  return projectFiles.value.filter(file =>
-    file.file_name.toLowerCase().includes(keyword)
+  return projectFiles.value.filter((file) =>
+    file.file_name.toLowerCase().includes(keyword),
   );
 });
 
@@ -283,11 +247,13 @@ const paginatedFiles = computed(() => {
 });
 
 const renderedMarkdown = computed(() => {
-  if (!previewContent.value) {return '';}
+  if (!previewContent.value) {
+    return "";
+  }
   try {
-    return marked(previewContent.value);
+    return safeHtml(marked(previewContent.value));
   } catch (e) {
-    return previewContent.value;
+    return escapeHtml(previewContent.value);
   }
 });
 
@@ -296,7 +262,7 @@ const loadShareInfo = async () => {
   const token = route.params.token;
 
   if (!token) {
-    showError('404', '分享不存在', '无效的分享链接');
+    showError("404", "分享不存在", "无效的分享链接");
     return;
   }
 
@@ -313,17 +279,17 @@ const loadShareInfo = async () => {
       // 加载项目文件
       await loadProjectFiles(result.share.project_id);
     } else {
-      showError('403', '无法访问', '该分享不存在或已失效');
+      showError("403", "无法访问", "该分享不存在或已失效");
     }
   } catch (err) {
-    logger.error('加载分享失败:', err);
+    logger.error("加载分享失败:", err);
 
-    if (err.message.includes('过期')) {
-      showError('410', '分享已过期', '该分享链接已过期，请联系分享者');
-    } else if (err.message.includes('私密')) {
-      showError('403', '无权访问', '该项目已设置为私密，无法通过链接访问');
+    if (err.message.includes("过期")) {
+      showError("410", "分享已过期", "该分享链接已过期，请联系分享者");
+    } else if (err.message.includes("私密")) {
+      showError("403", "无权访问", "该项目已设置为私密，无法通过链接访问");
     } else {
-      showError('500', '加载失败', err.message || '无法加载分享项目');
+      showError("500", "加载失败", err.message || "无法加载分享项目");
     }
   } finally {
     loading.value = false;
@@ -338,8 +304,8 @@ const loadProjectFiles = async (projectId) => {
       projectFiles.value = result.files;
     }
   } catch (err) {
-    logger.error('加载项目文件失败:', err);
-    message.error('加载文件列表失败');
+    logger.error("加载项目文件失败:", err);
+    message.error("加载文件列表失败");
   }
 };
 
@@ -351,20 +317,23 @@ const showError = (status, title, msg) => {
 };
 
 const handleBackToHome = () => {
-  router.push('/');
+  router.push("/");
 };
 
 const handleOpenInApp = () => {
-  message.info('请在ChainlessChain应用中打开此链接');
+  message.info("请在ChainlessChain应用中打开此链接");
 };
 
 const handleCopyLink = () => {
   const link = window.location.href;
-  navigator.clipboard.writeText(link).then(() => {
-    message.success('链接已复制到剪贴板');
-  }).catch(() => {
-    message.error('复制失败');
-  });
+  navigator.clipboard
+    .writeText(link)
+    .then(() => {
+      message.success("链接已复制到剪贴板");
+    })
+    .catch(() => {
+      message.error("复制失败");
+    });
 };
 
 const handleSearch = () => {
@@ -378,76 +347,100 @@ const handleFileClick = (file) => {
 const handlePreview = async (file) => {
   previewFile.value = file;
   previewVisible.value = true;
-  previewContent.value = '';
+  previewContent.value = "";
 
   // 加载文件内容
   try {
     const result = await window.electronAPI.project.getFile(file.id);
 
     if (result.success && result.file) {
-      previewContent.value = result.file.content || '无法预览此文件';
+      previewContent.value = result.file.content || "无法预览此文件";
     }
   } catch (err) {
-    logger.error('加载文件内容失败:', err);
-    previewContent.value = '加载失败';
+    logger.error("加载文件内容失败:", err);
+    previewContent.value = "加载失败";
   }
 };
 
 // 工具函数
 const getProjectTypeColor = (type) => {
   const colors = {
-    web: 'blue',
-    document: 'green',
-    data: 'orange',
-    app: 'purple'
+    web: "blue",
+    document: "green",
+    data: "orange",
+    app: "purple",
   };
-  return colors[type] || 'default';
+  return colors[type] || "default";
 };
 
 const getProjectTypeLabel = (type) => {
   const labels = {
-    web: 'Web项目',
-    document: '文档项目',
-    data: '数据项目',
-    app: '应用项目'
+    web: "Web项目",
+    document: "文档项目",
+    data: "数据项目",
+    app: "应用项目",
   };
   return labels[type] || type;
 };
 
 const formatDate = (timestamp) => {
-  if (!timestamp) {return '未知';}
+  if (!timestamp) {
+    return "未知";
+  }
   const date = new Date(timestamp);
-  return date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
+  return date.toLocaleDateString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   });
 };
 
 const formatFileSize = (bytes) => {
-  if (!bytes || bytes === 0) {return '0 B';}
+  if (!bytes || bytes === 0) {
+    return "0 B";
+  }
 
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 };
 
 const isMarkdown = (file) => {
-  if (!file) {return false;}
-  return file.file_type === 'md' || file.file_name.endsWith('.md');
+  if (!file) {
+    return false;
+  }
+  return file.file_type === "md" || file.file_name.endsWith(".md");
 };
 
 const isCode = (file) => {
-  if (!file) {return false;}
-  const codeTypes = ['js', 'ts', 'jsx', 'tsx', 'vue', 'py', 'java', 'cpp', 'c', 'h', 'css', 'html', 'json'];
+  if (!file) {
+    return false;
+  }
+  const codeTypes = [
+    "js",
+    "ts",
+    "jsx",
+    "tsx",
+    "vue",
+    "py",
+    "java",
+    "cpp",
+    "c",
+    "h",
+    "css",
+    "html",
+    "json",
+  ];
   return codeTypes.includes(file.file_type);
 };
 
 const isImage = (file) => {
-  if (!file) {return false;}
-  const imageTypes = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'];
+  if (!file) {
+    return false;
+  }
+  const imageTypes = ["jpg", "jpeg", "png", "gif", "svg", "webp"];
   return imageTypes.includes(file.file_type);
 };
 
@@ -696,7 +689,7 @@ onMounted(() => {
     background: #f5f5f5;
     padding: 2px 6px;
     border-radius: 3px;
-    font-family: 'Consolas', 'Monaco', monospace;
+    font-family: "Consolas", "Monaco", monospace;
   }
 
   :deep(pre) {
@@ -716,7 +709,7 @@ onMounted(() => {
 
   pre {
     margin: 0;
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-family: "Consolas", "Monaco", "Courier New", monospace;
     font-size: 13px;
     line-height: 1.6;
     color: #262626;

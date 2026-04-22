@@ -1,25 +1,16 @@
 <template>
   <div class="ppt-editor">
     <!-- 🔥 二进制.pptx文件提示 -->
-    <div
-      v-if="isBinaryPPTX"
-      class="binary-pptx-notice"
-    >
+    <div v-if="isBinaryPPTX" class="binary-pptx-notice">
       <div class="notice-content">
         <FilePptOutlined class="notice-icon" />
         <h3>无法编辑此PowerPoint文件</h3>
         <p class="notice-desc">
-          这是一个Microsoft PowerPoint二进制文件（.pptx），需要使用PowerPoint或WPS打开编辑。
+          这是一个Microsoft
+          PowerPoint二进制文件（.pptx），需要使用PowerPoint或WPS打开编辑。
         </p>
-        <a-space
-          size="large"
-          style="margin-top: 24px"
-        >
-          <a-button
-            type="primary"
-            size="large"
-            @click="handleDownload"
-          >
+        <a-space size="large" style="margin-top: 24px">
+          <a-button type="primary" size="large" @click="handleDownload">
             <DownloadOutlined />
             下载文件
           </a-button>
@@ -34,19 +25,19 @@
     </div>
 
     <!-- 演示模式 -->
-    <div
-      v-else-if="isPresentMode"
-      class="presentation-mode"
-    >
+    <div v-else-if="isPresentMode" class="presentation-mode">
       <div class="presentation-slide">
+        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
         <div
           v-if="slides[presentSlideIndex]"
           class="presentation-content"
           :style="{
-            backgroundColor: slides[presentSlideIndex].backgroundColor || '#ffffff'
+            backgroundColor:
+              slides[presentSlideIndex].backgroundColor || '#ffffff',
           }"
-          v-html="slides[presentSlideIndex].content"
+          v-html="safeHtml(slides[presentSlideIndex].content)"
         />
+        <!-- eslint-enable vue/no-v-html -->
       </div>
 
       <div class="presentation-controls">
@@ -54,16 +45,10 @@
           {{ presentSlideIndex + 1 }} / {{ slides.length }}
         </div>
         <div class="control-buttons">
-          <a-button
-            :disabled="presentSlideIndex === 0"
-            @click="prevSlide"
-          >
+          <a-button :disabled="presentSlideIndex === 0" @click="prevSlide">
             <LeftOutlined />
           </a-button>
-          <a-button
-            danger
-            @click="exitPresent"
-          >
+          <a-button danger @click="exitPresent">
             <CloseOutlined /> 退出
           </a-button>
           <a-button
@@ -81,18 +66,8 @@
       <div class="header-left">
         <FilePptOutlined class="file-icon" />
         <span class="file-name">{{ file.file_name }}</span>
-        <a-tag
-          v-if="hasChanges"
-          color="orange"
-          size="small"
-        >
-          未保存
-        </a-tag>
-        <a-tag
-          v-if="saving"
-          color="blue"
-          size="small"
-        >
+        <a-tag v-if="hasChanges" color="orange" size="small"> 未保存 </a-tag>
+        <a-tag v-if="saving" color="blue" size="small">
           <LoadingOutlined />
           保存中...
         </a-tag>
@@ -111,31 +86,19 @@
         </a-tooltip>
 
         <a-tooltip title="下载PPT">
-          <a-button
-            type="text"
-            size="small"
-            @click="handleDownload"
-          >
+          <a-button type="text" size="small" @click="handleDownload">
             <DownloadOutlined />
           </a-button>
         </a-tooltip>
 
         <a-tooltip title="演示">
-          <a-button
-            type="text"
-            size="small"
-            @click="handlePresent"
-          >
+          <a-button type="text" size="small" @click="handlePresent">
             <PlayCircleOutlined />
           </a-button>
         </a-tooltip>
 
         <a-tooltip title="全屏">
-          <a-button
-            type="text"
-            size="small"
-            @click="toggleFullscreen"
-          >
+          <a-button type="text" size="small" @click="toggleFullscreen">
             <FullscreenOutlined v-if="!isFullscreen" />
             <FullscreenExitOutlined v-else />
           </a-button>
@@ -145,14 +108,8 @@
 
     <!-- PPT工具栏 -->
     <div class="ppt-toolbar">
-      <a-tabs
-        v-model:active-key="activeTab"
-        size="small"
-      >
-        <a-tab-pane
-          key="design"
-          tab="设计"
-        >
+      <a-tabs v-model:active-key="activeTab" size="small">
+        <a-tab-pane key="design" tab="设计">
           <div class="toolbar-group">
             <a-dropdown>
               <a-button size="small">
@@ -161,80 +118,48 @@
               </a-button>
               <template #overlay>
                 <a-menu @click="handleThemeChange">
-                  <a-menu-item key="default">
-                    默认主题
-                  </a-menu-item>
-                  <a-menu-item key="business">
-                    商务主题
-                  </a-menu-item>
-                  <a-menu-item key="creative">
-                    创意主题
-                  </a-menu-item>
-                  <a-menu-item key="minimal">
-                    简约主题
-                  </a-menu-item>
+                  <a-menu-item key="default"> 默认主题 </a-menu-item>
+                  <a-menu-item key="business"> 商务主题 </a-menu-item>
+                  <a-menu-item key="creative"> 创意主题 </a-menu-item>
+                  <a-menu-item key="minimal"> 简约主题 </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
 
-            <a-button
-              size="small"
-              @click="showLayoutPicker"
-            >
+            <a-button size="small" @click="showLayoutPicker">
               <LayoutOutlined />
               布局
             </a-button>
 
-            <a-button
-              size="small"
-              @click="showColorPicker"
-            >
+            <a-button size="small" @click="showColorPicker">
               <BgColorsOutlined />
               配色
             </a-button>
           </div>
         </a-tab-pane>
 
-        <a-tab-pane
-          key="insert"
-          tab="插入"
-        >
+        <a-tab-pane key="insert" tab="插入">
           <div class="toolbar-group">
-            <a-button
-              size="small"
-              @click="insertTextBox"
-            >
+            <a-button size="small" @click="insertTextBox">
               <FontSizeOutlined />
               文本框
             </a-button>
-            <a-button
-              size="small"
-              @click="insertImage"
-            >
+            <a-button size="small" @click="insertImage">
               <PictureOutlined />
               图片
             </a-button>
-            <a-button
-              size="small"
-              @click="insertShape"
-            >
+            <a-button size="small" @click="insertShape">
               <BorderOutlined />
               形状
             </a-button>
-            <a-button
-              size="small"
-              @click="insertChart"
-            >
+            <a-button size="small" @click="insertChart">
               <BarChartOutlined />
               图表
             </a-button>
           </div>
         </a-tab-pane>
 
-        <a-tab-pane
-          key="animation"
-          tab="动画"
-        >
+        <a-tab-pane key="animation" tab="动画">
           <div class="toolbar-group">
             <a-select
               v-model:value="selectedAnimation"
@@ -242,24 +167,13 @@
               style="width: 120px"
               @change="applyAnimation"
             >
-              <a-select-option value="fade">
-                淡入
-              </a-select-option>
-              <a-select-option value="slide">
-                滑动
-              </a-select-option>
-              <a-select-option value="zoom">
-                缩放
-              </a-select-option>
-              <a-select-option value="rotate">
-                旋转
-              </a-select-option>
+              <a-select-option value="fade"> 淡入 </a-select-option>
+              <a-select-option value="slide"> 滑动 </a-select-option>
+              <a-select-option value="zoom"> 缩放 </a-select-option>
+              <a-select-option value="rotate"> 旋转 </a-select-option>
             </a-select>
 
-            <a-button
-              size="small"
-              @click="showAnimationPanel"
-            >
+            <a-button size="small" @click="showAnimationPanel">
               动画窗格
             </a-button>
           </div>
@@ -273,11 +187,7 @@
       <div class="slides-sidebar">
         <div class="sidebar-header">
           <span>幻灯片</span>
-          <a-button
-            type="text"
-            size="small"
-            @click="addSlide"
-          >
+          <a-button type="text" size="small" @click="addSlide">
             <PlusOutlined />
           </a-button>
         </div>
@@ -301,28 +211,23 @@
                 {{ index + 1 }}
               </div>
               <div class="slide-preview">
+                <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
                 <div
                   class="slide-content-preview"
-                  v-html="slide.content"
+                  v-html="safeHtml(slide.content)"
                 />
+                <!-- eslint-enable vue/no-v-html -->
               </div>
             </div>
 
             <div class="slide-actions">
               <a-dropdown>
-                <a-button
-                  type="text"
-                  size="small"
-                  @click.stop
-                >
+                <a-button type="text" size="small" @click.stop>
                   <EllipsisOutlined />
                 </a-button>
                 <template #overlay>
                   <a-menu>
-                    <a-menu-item
-                      key="duplicate"
-                      @click="duplicateSlide(index)"
-                    >
+                    <a-menu-item key="duplicate" @click="duplicateSlide(index)">
                       <CopyOutlined />
                       复制
                     </a-menu-item>
@@ -343,37 +248,24 @@
       </div>
 
       <!-- 中央：当前幻灯片编辑区 -->
-      <div
-        ref="slideEditorRef"
-        class="slide-editor"
-      >
-        <div
-          class="slide-canvas"
-          :style="canvasStyle"
-        >
+      <div ref="slideEditorRef" class="slide-editor">
+        <div class="slide-canvas" :style="canvasStyle">
+          <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
           <div
             v-if="currentSlide"
             class="slide-content"
             contenteditable="true"
             @input="handleSlideContentChange"
-            v-html="currentSlide.content"
+            v-html="safeHtml(currentSlide.content)"
           />
+          <!-- eslint-enable vue/no-v-html -->
         </div>
       </div>
 
       <!-- 右侧：属性面板 -->
-      <div
-        v-if="showProperties"
-        class="properties-panel"
-      >
-        <a-tabs
-          v-model:active-key="propertiesTab"
-          size="small"
-        >
-          <a-tab-pane
-            key="slide"
-            tab="幻灯片"
-          >
+      <div v-if="showProperties" class="properties-panel">
+        <a-tabs v-model:active-key="propertiesTab" size="small">
+          <a-tab-pane key="slide" tab="幻灯片">
             <div class="panel-content">
               <div class="property-group">
                 <label>背景颜色</label>
@@ -381,25 +273,19 @@
                   v-model="currentSlide.backgroundColor"
                   type="color"
                   @change="updateSlideStyle"
-                >
+                />
               </div>
 
               <div class="property-group">
                 <label>背景图片</label>
-                <a-button
-                  size="small"
-                  @click="selectBackgroundImage"
-                >
+                <a-button size="small" @click="selectBackgroundImage">
                   选择图片
                 </a-button>
               </div>
             </div>
           </a-tab-pane>
 
-          <a-tab-pane
-            key="text"
-            tab="文本"
-          >
+          <a-tab-pane key="text" tab="文本">
             <div class="panel-content">
               <div class="property-group">
                 <label>字体大小</label>
@@ -417,15 +303,12 @@
                   v-model="textColor"
                   type="color"
                   @change="applyTextStyle"
-                >
+                />
               </div>
             </div>
           </a-tab-pane>
 
-          <a-tab-pane
-            key="layout"
-            tab="布局"
-          >
+          <a-tab-pane key="layout" tab="布局">
             <div class="panel-content">
               <div class="layout-templates">
                 <div
@@ -464,10 +347,7 @@
           </a-button>
         </a-button-group>
 
-        <span
-          v-if="lastSaved"
-          class="status-item"
-        >
+        <span v-if="lastSaved" class="status-item">
           上次保存: {{ lastSaved }}
         </span>
       </div>
@@ -476,11 +356,11 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { message } from 'ant-design-vue';
-import { VueDraggable } from 'vue-draggable-plus';
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
+import { VueDraggable } from "vue-draggable-plus";
 import {
   FilePptOutlined,
   SaveOutlined,
@@ -505,9 +385,10 @@ import {
   RightOutlined,
   CloseOutlined,
   ExportOutlined,
-} from '@ant-design/icons-vue';
-import { formatDistanceToNow } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+} from "@ant-design/icons-vue";
+import { formatDistanceToNow } from "date-fns";
+import { zhCN } from "date-fns/locale";
+import { safeHtml } from "@/utils/sanitizeHtml";
 
 const props = defineProps({
   file: {
@@ -520,7 +401,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['change', 'save']);
+const emit = defineEmits(["change", "save"]);
 
 // 响应式状态
 const slideEditorRef = ref(null);
@@ -528,22 +409,22 @@ const slides = ref([]);
 const currentSlideIndex = ref(0);
 const hasChanges = ref(false);
 const saving = ref(false);
-const lastSaved = ref('');
+const lastSaved = ref("");
 const isFullscreen = ref(false);
-const activeTab = ref('design');
-const selectedAnimation = ref('fade');
+const activeTab = ref("design");
+const selectedAnimation = ref("fade");
 const showProperties = ref(true);
-const propertiesTab = ref('slide');
+const propertiesTab = ref("slide");
 const zoomLevel = ref(100);
 const fontSize = ref(24);
-const textColor = ref('#000000');
+const textColor = ref("#000000");
 
 // 布局模板
 const layouts = [
-  { id: 'title', name: '标题幻灯片' },
-  { id: 'content', name: '标题和内容' },
-  { id: 'two-column', name: '两栏布局' },
-  { id: 'blank', name: '空白' },
+  { id: "title", name: "标题幻灯片" },
+  { id: "content", name: "标题和内容" },
+  { id: "two-column", name: "两栏布局" },
+  { id: "blank", name: "空白" },
 ];
 
 // 计算属性
@@ -554,18 +435,18 @@ const currentSlide = computed(() => {
 const canvasStyle = computed(() => {
   return {
     transform: `scale(${zoomLevel.value / 100})`,
-    transformOrigin: 'top center',
+    transformOrigin: "top center",
   };
 });
 
 // 初始化
 onMounted(() => {
   initPPT();
-  document.addEventListener('keydown', handleKeydown);
+  document.addEventListener("keydown", handleKeydown);
 });
 
 onUnmounted(() => {
-  document.removeEventListener('keydown', handleKeydown);
+  document.removeEventListener("keydown", handleKeydown);
 });
 
 // 是否为二进制.pptx文件
@@ -574,49 +455,52 @@ const isBinaryPPTX = ref(false);
 // 初始化PPT
 const initPPT = async () => {
   try {
-    logger.info('[PPTEditor] 初始化PPT编辑器, file:', props.file);
+    logger.info("[PPTEditor] 初始化PPT编辑器, file:", props.file);
     let sourceContent = props.file.content;
 
     // 🔥 检测是否为二进制.pptx文件（无content或content无效）
-    if (!sourceContent || sourceContent.trim() === '') {
-      logger.warn('[PPTEditor] 文件内容为空，尝试从磁盘加载...');
+    if (!sourceContent || sourceContent.trim() === "") {
+      logger.warn("[PPTEditor] 文件内容为空，尝试从磁盘加载...");
 
       // 尝试从磁盘读取文件内容
       try {
-        const result = await window.electronAPI.file.readContent(props.file.file_path);
+        const result = await window.electronAPI.file.readContent(
+          props.file.file_path,
+        );
         if (result && result.success && result.content) {
           sourceContent = result.content;
-          logger.info('[PPTEditor] 从磁盘加载内容成功');
+          logger.info("[PPTEditor] 从磁盘加载内容成功");
         } else {
-          logger.warn('[PPTEditor] 检测到二进制.pptx文件，无法编辑');
+          logger.warn("[PPTEditor] 检测到二进制.pptx文件，无法编辑");
           isBinaryPPTX.value = true;
           return;
         }
       } catch (readError) {
-        logger.error('[PPTEditor] 读取文件失败:', readError);
+        logger.error("[PPTEditor] 读取文件失败:", readError);
         isBinaryPPTX.value = true;
         return;
       }
     }
 
     // 尝试解析JSON格式的演示文稿数据
-    const data = typeof sourceContent === 'string'
-      ? JSON.parse(sourceContent)
-      : sourceContent;
+    const data =
+      typeof sourceContent === "string"
+        ? JSON.parse(sourceContent)
+        : sourceContent;
 
     if (data.slides && Array.isArray(data.slides)) {
       slides.value = data.slides;
       isBinaryPPTX.value = false;
-      logger.info('[PPTEditor] 加载了', slides.value.length, '张幻灯片');
+      logger.info("[PPTEditor] 加载了", slides.value.length, "张幻灯片");
     } else {
-      logger.info('[PPTEditor] 创建默认幻灯片');
+      logger.info("[PPTEditor] 创建默认幻灯片");
       createDefaultSlide();
       isBinaryPPTX.value = false;
     }
   } catch (error) {
-    logger.error('[PPTEditor] 解析PPT数据失败:', error);
+    logger.error("[PPTEditor] 解析PPT数据失败:", error);
     // JSON解析失败，可能是二进制文件
-    logger.warn('[PPTEditor] 这是一个二进制.pptx文件，显示下载提示');
+    logger.warn("[PPTEditor] 这是一个二进制.pptx文件，显示下载提示");
     isBinaryPPTX.value = true;
   }
 };
@@ -626,10 +510,10 @@ const createDefaultSlide = () => {
   slides.value = [
     {
       id: Date.now(),
-      content: '<h1>标题</h1><p>在此输入内容...</p>',
-      backgroundColor: '#ffffff',
-      backgroundImage: '',
-      animation: 'fade',
+      content: "<h1>标题</h1><p>在此输入内容...</p>",
+      backgroundColor: "#ffffff",
+      backgroundImage: "",
+      animation: "fade",
     },
   ];
 };
@@ -638,15 +522,15 @@ const createDefaultSlide = () => {
 const addSlide = () => {
   const newSlide = {
     id: Date.now(),
-    content: '<h2>新幻灯片</h2><p>在此输入内容...</p>',
-    backgroundColor: '#ffffff',
-    backgroundImage: '',
-    animation: 'fade',
+    content: "<h2>新幻灯片</h2><p>在此输入内容...</p>",
+    backgroundColor: "#ffffff",
+    backgroundImage: "",
+    animation: "fade",
   };
   slides.value.push(newSlide);
   currentSlideIndex.value = slides.value.length - 1;
   hasChanges.value = true;
-  message.success('已添加新幻灯片');
+  message.success("已添加新幻灯片");
 };
 
 // 选择幻灯片
@@ -659,13 +543,13 @@ const duplicateSlide = (index) => {
   const slide = { ...slides.value[index], id: Date.now() };
   slides.value.splice(index + 1, 0, slide);
   hasChanges.value = true;
-  message.success('已复制幻灯片');
+  message.success("已复制幻灯片");
 };
 
 // 删除幻灯片
 const deleteSlide = (index) => {
   if (slides.value.length <= 1) {
-    message.warning('至少需要保留一张幻灯片');
+    message.warning("至少需要保留一张幻灯片");
     return;
   }
 
@@ -674,13 +558,13 @@ const deleteSlide = (index) => {
     currentSlideIndex.value = slides.value.length - 1;
   }
   hasChanges.value = true;
-  message.success('已删除幻灯片');
+  message.success("已删除幻灯片");
 };
 
 // 处理幻灯片重新排序
 const handleSlidesReorder = () => {
   hasChanges.value = true;
-  message.success('幻灯片顺序已更新');
+  message.success("幻灯片顺序已更新");
 };
 
 // 处理幻灯片内容变化
@@ -700,30 +584,34 @@ const handleThemeChange = ({ key }) => {
 // 插入元素
 const insertTextBox = () => {
   if (!currentSlide.value) {
-    message.warning('请先选择一张幻灯片');
+    message.warning("请先选择一张幻灯片");
     return;
   }
 
-  const textBoxHTML = '<p contenteditable="true" style="border: 1px dashed #ccc; padding: 10px; margin: 10px 0;">双击编辑文本...</p>';
+  const textBoxHTML =
+    '<p contenteditable="true" style="border: 1px dashed #ccc; padding: 10px; margin: 10px 0;">双击编辑文本...</p>';
   currentSlide.value.content += textBoxHTML;
   hasChanges.value = true;
-  message.success('已插入文本框');
+  message.success("已插入文本框");
 };
 
 const insertImage = async () => {
   if (!currentSlide.value) {
-    message.warning('请先选择一张幻灯片');
+    message.warning("请先选择一张幻灯片");
     return;
   }
 
   try {
     // 打开文件选择对话框
     const result = await window.electronAPI.dialog.showOpenDialog({
-      title: '选择图片',
+      title: "选择图片",
       filters: [
-        { name: '图片', extensions: ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'] }
+        {
+          name: "图片",
+          extensions: ["jpg", "jpeg", "png", "gif", "svg", "webp"],
+        },
       ],
-      properties: ['openFile']
+      properties: ["openFile"],
     });
 
     if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
@@ -734,25 +622,27 @@ const insertImage = async () => {
 
     // 读取图片为 Base64（通过 IPC）
     const imageBuffer = await window.electronAPI.file.readBinary(imagePath);
-    const base64 = btoa(String.fromCharCode.apply(null, new Uint8Array(imageBuffer)));
-    const ext = imagePath.split('.').pop().toLowerCase();
-    const mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+    const base64 = btoa(
+      String.fromCharCode.apply(null, new Uint8Array(imageBuffer)),
+    );
+    const ext = imagePath.split(".").pop().toLowerCase();
+    const mimeType = `image/${ext === "jpg" ? "jpeg" : ext}`;
     const dataUrl = `data:${mimeType};base64,${base64}`;
 
     // 插入图片到幻灯片
     const imageHTML = `<img src="${dataUrl}" style="max-width: 600px; max-height: 400px; display: block; margin: 20px auto;" alt="插入的图片" />`;
     currentSlide.value.content += imageHTML;
     hasChanges.value = true;
-    message.success('已插入图片');
+    message.success("已插入图片");
   } catch (error) {
-    logger.error('插入图片失败:', error);
-    message.error('插入图片失败: ' + error.message);
+    logger.error("插入图片失败:", error);
+    message.error("插入图片失败: " + error.message);
   }
 };
 
 const insertShape = () => {
   if (!currentSlide.value) {
-    message.warning('请先选择一张幻灯片');
+    message.warning("请先选择一张幻灯片");
     return;
   }
 
@@ -760,12 +650,12 @@ const insertShape = () => {
   const shapeHTML = `<div style="width: 300px; height: 200px; background: #3498db; border-radius: 8px; margin: 20px auto; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold;" contenteditable="true">点击编辑</div>`;
   currentSlide.value.content += shapeHTML;
   hasChanges.value = true;
-  message.success('已插入形状');
+  message.success("已插入形状");
 };
 
 const insertChart = () => {
   if (!currentSlide.value) {
-    message.warning('请先选择一张幻灯片');
+    message.warning("请先选择一张幻灯片");
     return;
   }
 
@@ -799,7 +689,7 @@ const insertChart = () => {
   `;
   currentSlide.value.content += chartHTML;
   hasChanges.value = true;
-  message.success('已插入图表（导出时会转换为真正的图表）');
+  message.success("已插入图表（导出时会转换为真正的图表）");
 };
 
 // 应用动画
@@ -813,17 +703,17 @@ const applyAnimation = (value) => {
 
 // 显示面板
 const showLayoutPicker = () => {
-  propertiesTab.value = 'layout';
+  propertiesTab.value = "layout";
   showProperties.value = true;
 };
 
 const showColorPicker = () => {
-  propertiesTab.value = 'slide';
+  propertiesTab.value = "slide";
   showProperties.value = true;
 };
 
 const showAnimationPanel = () => {
-  message.info('动画窗格');
+  message.info("动画窗格");
 };
 
 // 应用布局
@@ -842,7 +732,7 @@ const applyTextStyle = () => {
 };
 
 const selectBackgroundImage = () => {
-  message.info('选择背景图片');
+  message.info("选择背景图片");
 };
 
 // 缩放控制
@@ -865,7 +755,7 @@ const presentSlideIndex = ref(0);
 // 演示
 const handlePresent = () => {
   if (slides.value.length === 0) {
-    message.warning('没有幻灯片可以演示');
+    message.warning("没有幻灯片可以演示");
     return;
   }
 
@@ -878,7 +768,7 @@ const handlePresent = () => {
     elem.requestFullscreen();
   }
 
-  message.info('按 ← → 翻页，ESC 退出演示');
+  message.info("按 ← → 翻页，ESC 退出演示");
 };
 
 // 下一张幻灯片
@@ -908,7 +798,9 @@ const exitPresent = () => {
 
 // 保存
 const handleSave = async () => {
-  if (!hasChanges.value || saving.value) {return;}
+  if (!hasChanges.value || saving.value) {
+    return;
+  }
 
   saving.value = true;
 
@@ -924,7 +816,7 @@ const handleSave = async () => {
     await window.electronAPI.project.updateFile({
       id: props.file.id,
       content: content,
-      project_id: props.projectId
+      project_id: props.projectId,
     });
 
     hasChanges.value = false;
@@ -933,11 +825,11 @@ const handleSave = async () => {
       locale: zhCN,
     });
 
-    emit('save');
-    message.success('文件已保存');
+    emit("save");
+    message.success("文件已保存");
   } catch (error) {
-    logger.error('保存文件失败:', error);
-    message.error('保存文件失败: ' + error.message);
+    logger.error("保存文件失败:", error);
+    message.error("保存文件失败: " + error.message);
   } finally {
     saving.value = false;
   }
@@ -947,28 +839,28 @@ const handleSave = async () => {
 const handleDownload = async () => {
   try {
     // 提取PPT标题
-    let pptTitle = props.file.file_name.replace(/\.(ppt|pptx|json)$/i, '');
+    let pptTitle = props.file.file_name.replace(/\.(ppt|pptx|json)$/i, "");
     if (slides.value.length > 0 && slides.value[0].content) {
       const h1Match = slides.value[0].content.match(/<h1[^>]*>(.*?)<\/h1>/i);
       if (h1Match) {
-        pptTitle = h1Match[1].replace(/<[^>]*>/g, '').trim();
+        pptTitle = h1Match[1].replace(/<[^>]*>/g, "").trim();
       }
     }
 
-    message.loading({ content: '正在导出PPT...', key: 'export', duration: 0 });
+    message.loading({ content: "正在导出PPT...", key: "export", duration: 0 });
 
     // 调用主进程导出为 .pptx 文件
     const result = await window.electronAPI.project.exportPPT({
       slides: slides.value,
       title: pptTitle,
-      author: '用户',
-      theme: 'business'
+      author: "用户",
+      theme: "business",
     });
 
-    message.destroy('export');
+    message.destroy("export");
 
     if (result.canceled) {
-      message.info('已取消导出');
+      message.info("已取消导出");
       return;
     }
 
@@ -977,11 +869,11 @@ const handleDownload = async () => {
 
       // 询问是否打开文件
       const openResult = await window.electronAPI.dialog.showMessageBox({
-        type: 'question',
-        buttons: ['打开文件', '打开文件夹', '关闭'],
+        type: "question",
+        buttons: ["打开文件", "打开文件夹", "关闭"],
         defaultId: 0,
-        title: '导出成功',
-        message: `PPT已成功导出到:\n${result.path}\n\n是否打开文件？`
+        title: "导出成功",
+        message: `PPT已成功导出到:\n${result.path}\n\n是否打开文件？`,
       });
 
       if (openResult.response === 0) {
@@ -993,9 +885,9 @@ const handleDownload = async () => {
       }
     }
   } catch (error) {
-    message.destroy('export');
-    logger.error('导出PPT失败:', error);
-    message.error('导出PPT失败: ' + error.message);
+    message.destroy("export");
+    logger.error("导出PPT失败:", error);
+    message.error("导出PPT失败: " + error.message);
   }
 };
 
@@ -1020,26 +912,26 @@ const handleKeydown = (e) => {
   // 演示模式键盘控制
   if (isPresentMode.value) {
     switch (e.key) {
-      case 'ArrowRight':
-      case 'PageDown':
-      case ' ':
+      case "ArrowRight":
+      case "PageDown":
+      case " ":
         e.preventDefault();
         nextSlide();
         break;
-      case 'ArrowLeft':
-      case 'PageUp':
+      case "ArrowLeft":
+      case "PageUp":
         e.preventDefault();
         prevSlide();
         break;
-      case 'Escape':
+      case "Escape":
         e.preventDefault();
         exitPresent();
         break;
-      case 'Home':
+      case "Home":
         e.preventDefault();
         presentSlideIndex.value = 0;
         break;
-      case 'End':
+      case "End":
         e.preventDefault();
         presentSlideIndex.value = slides.value.length - 1;
         break;
@@ -1048,7 +940,7 @@ const handleKeydown = (e) => {
   }
 
   // 编辑模式快捷键
-  if (e.ctrlKey && e.key === 's') {
+  if (e.ctrlKey && e.key === "s") {
     e.preventDefault();
     handleSave();
   }
@@ -1062,7 +954,7 @@ watch(
       initPPT();
       hasChanges.value = false;
     }
-  }
+  },
 );
 </script>
 
@@ -1125,7 +1017,8 @@ watch(
         margin-bottom: 0.8em;
       }
 
-      :deep(ul), :deep(ol) {
+      :deep(ul),
+      :deep(ol) {
         font-size: 1.5em;
         line-height: 1.8;
         margin-left: 2em;

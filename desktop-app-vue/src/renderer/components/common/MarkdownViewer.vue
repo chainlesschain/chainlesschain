@@ -1,21 +1,12 @@
 <template>
   <div class="markdown-viewer">
-    <div
-      v-if="loading"
-      class="loading"
-    >
+    <div v-if="loading" class="loading">
       <a-spin />
     </div>
-    <div
-      v-else-if="error"
-      class="error"
-    >
-      <a-alert
-        type="error"
-        :message="error"
-        show-icon
-      />
+    <div v-else-if="error" class="error">
+      <a-alert type="error" :message="error" show-icon />
     </div>
+    <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
     <div
       v-else
       ref="contentRef"
@@ -23,30 +14,32 @@
       @click="handleClick"
       v-html="renderedContent"
     />
+    <!-- eslint-enable vue/no-v-html -->
   </div>
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, watch, onMounted } from 'vue';
-import { marked } from 'marked';
-import hljs from 'highlight.js';
-import 'highlight.js/styles/github.css';
+import { ref, computed, watch, onMounted } from "vue";
+import { marked } from "marked";
+import hljs from "highlight.js";
+import "highlight.js/styles/github.css";
+import { safeHtml } from "@/utils/sanitizeHtml";
 
 const props = defineProps({
   content: {
     type: String,
-    default: '',
+    default: "",
   },
   // 文档路径，从IPC加载
   docPath: {
     type: String,
-    default: '',
+    default: "",
   },
   docType: {
     type: String,
-    default: 'skill',
+    default: "skill",
   },
   // 是否启用链接跳转
   enableLinkNavigation: {
@@ -55,12 +48,12 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['link-click', 'skill-link-click', 'tool-link-click']);
+const emit = defineEmits(["link-click", "skill-link-click", "tool-link-click"]);
 
 const contentRef = ref(null);
 const loading = ref(false);
-const error = ref('');
-const markdownContent = ref('');
+const error = ref("");
+const markdownContent = ref("");
 
 // 配置 marked 支持代码高亮
 marked.setOptions({
@@ -68,12 +61,12 @@ marked.setOptions({
   breaks: true,
   headerIds: true,
   mangle: false,
-  highlight: function(code, lang) {
+  highlight: function (code, lang) {
     if (lang && hljs.getLanguage(lang)) {
       try {
         return hljs.highlight(code, { language: lang }).value;
       } catch (err) {
-        logger.error('Highlight error:', err);
+        logger.error("Highlight error:", err);
       }
     }
     return hljs.highlightAuto(code).value;
@@ -82,16 +75,17 @@ marked.setOptions({
 
 const renderedContent = computed(() => {
   const content = markdownContent.value || props.content;
-  if (!content) {return '';}
+  if (!content) {
+    return "";
+  }
 
   try {
-    // marked.parse() 会自动转义 HTML 标签
-    const rawHtml = marked.parse(content);
-    return rawHtml;
+    // marked@14 不做消毒 — 统一过 DOMPurify（safeHtml）
+    return safeHtml(marked.parse(content));
   } catch (err) {
-    logger.error('Markdown parse error:', err);
+    logger.error("Markdown parse error:", err);
     // 发生错误时，转义文本以防止 XSS
-    const div = document.createElement('div');
+    const div = document.createElement("div");
     div.textContent = content;
     return div.innerHTML;
   }
@@ -99,22 +93,27 @@ const renderedContent = computed(() => {
 
 // 从IPC加载文档
 const loadDocFromPath = async () => {
-  if (!props.docPath) {return;}
+  if (!props.docPath) {
+    return;
+  }
 
   loading.value = true;
-  error.value = '';
+  error.value = "";
 
   try {
-    const channel = props.docType === 'tool' ? 'tool:get-doc' : 'skill:get-doc';
-    const result = await window.electron.ipcRenderer.invoke(channel, props.docPath);
+    const channel = props.docType === "tool" ? "tool:get-doc" : "skill:get-doc";
+    const result = await window.electron.ipcRenderer.invoke(
+      channel,
+      props.docPath,
+    );
     if (result.success) {
-      markdownContent.value = result.content ?? result.data ?? '';
+      markdownContent.value = result.content ?? result.data ?? "";
     } else {
-      error.value = result.error || '加载文档失败';
+      error.value = result.error || "加载文档失败";
     }
   } catch (err) {
-    logger.error('Load doc error:', err);
-    error.value = '加载文档失败: ' + err.message;
+    logger.error("Load doc error:", err);
+    error.value = "加载文档失败: " + err.message;
   } finally {
     loading.value = false;
   }
@@ -122,68 +121,82 @@ const loadDocFromPath = async () => {
 
 // 处理链接点击
 const handleClick = (event) => {
-  if (!props.enableLinkNavigation) {return;}
+  if (!props.enableLinkNavigation) {
+    return;
+  }
 
   const target = event.target;
 
-  if (target.tagName === 'A') {
+  if (target.tagName === "A") {
     event.preventDefault();
-    const href = target.getAttribute('href');
+    const href = target.getAttribute("href");
 
-    if (!href) {return;}
+    if (!href) {
+      return;
+    }
 
     // 内部锚点链接
-    if (href.startsWith('#')) {
+    if (href.startsWith("#")) {
       const anchorId = href.substring(1);
-      const anchorElement = contentRef.value?.querySelector(`[id="${anchorId}"]`);
+      const anchorElement = contentRef.value?.querySelector(
+        `[id="${anchorId}"]`,
+      );
       if (anchorElement) {
-        anchorElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        anchorElement.scrollIntoView({ behavior: "smooth", block: "start" });
       }
       return;
     }
 
     // 技能链接 (skill:skill_id)
-    if (href.startsWith('skill:')) {
+    if (href.startsWith("skill:")) {
       const skillId = href.substring(6);
-      emit('skill-link-click', skillId);
+      emit("skill-link-click", skillId);
       return;
     }
 
     // 工具链接 (tool:tool_id)
-    if (href.startsWith('tool:')) {
+    if (href.startsWith("tool:")) {
       const toolId = href.substring(5);
-      emit('tool-link-click', toolId);
+      emit("tool-link-click", toolId);
       return;
     }
 
     // 外部链接
-    if (href.startsWith('http://') || href.startsWith('https://')) {
+    if (href.startsWith("http://") || href.startsWith("https://")) {
       window.electron.shell.openExternal(href);
       return;
     }
 
     // 相对路径文档链接
-    if (href.endsWith('.md')) {
-      emit('link-click', href);
+    if (href.endsWith(".md")) {
+      emit("link-click", href);
       return;
     }
 
-    emit('link-click', href);
+    emit("link-click", href);
   }
 };
 
 // 监听props变化
-watch(() => props.content, (newContent) => {
-  if (newContent) {
-    markdownContent.value = newContent;
-  }
-}, { immediate: true });
+watch(
+  () => props.content,
+  (newContent) => {
+    if (newContent) {
+      markdownContent.value = newContent;
+    }
+  },
+  { immediate: true },
+);
 
-watch(() => props.docPath, () => {
-  if (props.docPath) {
-    loadDocFromPath();
-  }
-}, { immediate: true });
+watch(
+  () => props.docPath,
+  () => {
+    if (props.docPath) {
+      loadDocFromPath();
+    }
+  },
+  { immediate: true },
+);
 
 onMounted(() => {
   if (props.content) {
@@ -208,11 +221,18 @@ onMounted(() => {
   }
 
   .markdown-content {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+      Cantarell, sans-serif;
     line-height: 1.6;
     color: #24292e;
 
-    :deep(h1), :deep(h2), :deep(h3), :deep(h4), :deep(h5), :deep(h6) {
+    :deep(h1),
+    :deep(h2),
+    :deep(h3),
+    :deep(h4),
+    :deep(h5),
+    :deep(h6) {
       margin-top: 24px;
       margin-bottom: 16px;
       font-weight: 600;
@@ -247,7 +267,9 @@ onMounted(() => {
       font-size: 85%;
       background-color: #f6f8fa;
       border-radius: 6px;
-      font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+      font-family:
+        ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+        "Liberation Mono", monospace;
     }
 
     :deep(pre) {
@@ -272,7 +294,8 @@ onMounted(() => {
       margin-bottom: 16px;
       width: 100%;
 
-      th, td {
+      th,
+      td {
         padding: 6px 13px;
         border: 1px solid #d0d7de;
       }
@@ -287,7 +310,8 @@ onMounted(() => {
       }
     }
 
-    :deep(ul), :deep(ol) {
+    :deep(ul),
+    :deep(ol) {
       padding-left: 2em;
       margin-bottom: 16px;
 

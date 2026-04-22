@@ -10,10 +10,7 @@
     </div>
 
     <!-- 进度条 -->
-    <div
-      v-if="showProgress"
-      class="progress-container"
-    >
+    <div v-if="showProgress" class="progress-container">
       <a-progress
         :percent="progress"
         :show-info="true"
@@ -26,10 +23,7 @@
     </div>
 
     <!-- 步骤列表 -->
-    <div
-      v-if="steps.length > 0"
-      class="steps-container"
-    >
+    <div v-if="steps.length > 0" class="steps-container">
       <div
         v-for="(step, index) in steps"
         :key="index"
@@ -45,25 +39,16 @@
             spin
             class="in-progress"
           />
-          <ClockCircleOutlined
-            v-else
-            class="pending"
-          />
+          <ClockCircleOutlined v-else class="pending" />
         </div>
         <div class="step-content">
           <div class="step-title">
             {{ step.title }}
           </div>
-          <div
-            v-if="step.description"
-            class="step-description"
-          >
+          <div v-if="step.description" class="step-description">
             {{ step.description }}
           </div>
-          <div
-            v-if="step.duration"
-            class="step-duration"
-          >
+          <div v-if="step.duration" class="step-duration">
             {{ formatDuration(step.duration) }}
           </div>
         </div>
@@ -71,28 +56,16 @@
     </div>
 
     <!-- 流式内容预览 -->
-    <div
-      v-if="streamingContent"
-      class="streaming-content"
-    >
-      <div class="streaming-label">
-        生成中...
-      </div>
-      <div
-        class="streaming-text"
-        v-html="renderMarkdown(streamingContent)"
-      />
+    <div v-if="streamingContent" class="streaming-content">
+      <div class="streaming-label">生成中...</div>
+      <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+      <div class="streaming-text" v-html="renderMarkdown(streamingContent)" />
+      <!-- eslint-enable vue/no-v-html -->
     </div>
 
     <!-- 取消按钮 -->
-    <div
-      v-if="showCancelButton"
-      class="action-buttons"
-    >
-      <a-button
-        size="small"
-        @click="handleCancel"
-      >
+    <div v-if="showCancelButton" class="action-buttons">
+      <a-button size="small" @click="handleCancel">
         <CloseOutlined />
         取消
       </a-button>
@@ -101,58 +74,58 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed } from "vue";
 import {
   LoadingOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
-  CloseOutlined
-} from '@ant-design/icons-vue';
-import { marked } from 'marked';
+  CloseOutlined,
+} from "@ant-design/icons-vue";
+import { marked } from "marked";
 
 const props = defineProps({
   currentStage: {
     type: String,
-    default: '正在思考...'
+    default: "正在思考...",
   },
   progress: {
     type: Number,
-    default: 0
+    default: 0,
   },
   showProgress: {
     type: Boolean,
-    default: true
+    default: true,
   },
   progressText: {
     type: String,
-    default: ''
+    default: "",
   },
   status: {
     type: String,
-    default: 'active', // 'active' | 'success' | 'exception'
-    validator: (value) => ['active', 'success', 'exception'].includes(value)
+    default: "active", // 'active' | 'success' | 'exception'
+    validator: (value) => ["active", "success", "exception"].includes(value),
   },
   steps: {
     type: Array,
-    default: () => []
+    default: () => [],
     // 每个step格式: { title: string, description?: string, status: 'pending' | 'in-progress' | 'completed', duration?: number }
   },
   streamingContent: {
     type: String,
-    default: ''
+    default: "",
   },
   showCancelButton: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 });
 
-const emit = defineEmits(['cancel']);
+const emit = defineEmits(["cancel"]);
 
 // 渲染Markdown
 const renderMarkdown = (content) => {
   try {
-    return marked.parse(content || '');
+    return marked.parse(content || "");
   } catch (error) {
     return content;
   }
@@ -160,14 +133,18 @@ const renderMarkdown = (content) => {
 
 // 格式化持续时间
 const formatDuration = (ms) => {
-  if (ms < 1000) {return `${ms}ms`;}
-  if (ms < 60000) {return `${(ms / 1000).toFixed(1)}s`;}
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
+  if (ms < 60000) {
+    return `${(ms / 1000).toFixed(1)}s`;
+  }
   return `${(ms / 60000).toFixed(1)}min`;
 };
 
 // 处理取消
 const handleCancel = () => {
-  emit('cancel');
+  emit("cancel");
 };
 </script>
 
@@ -238,7 +215,11 @@ const handleCancel = () => {
 
 .step-item.in-progress {
   box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-  background: linear-gradient(90deg, rgba(102, 126, 234, 0.05) 0%, transparent 100%);
+  background: linear-gradient(
+    90deg,
+    rgba(102, 126, 234, 0.05) 0%,
+    transparent 100%
+  );
 }
 
 .step-item.completed {

@@ -1,13 +1,7 @@
 <template>
-  <div
-    class="plugin-component-wrapper"
-    :class="{ 'has-error': hasError }"
-  >
+  <div class="plugin-component-wrapper" :class="{ 'has-error': hasError }">
     <!-- 错误边界 -->
-    <div
-      v-if="hasError"
-      class="plugin-component-error"
-    >
+    <div v-if="hasError" class="plugin-component-error">
       <a-alert
         type="error"
         :message="t('plugin.componentError')"
@@ -15,10 +9,7 @@
         show-icon
       >
         <template #action>
-          <a-button
-            size="small"
-            @click="retry"
-          >
+          <a-button size="small" @click="retry">
             {{ t("common.retry") }}
           </a-button>
         </template>
@@ -26,22 +17,21 @@
     </div>
 
     <!-- 加载状态 -->
-    <div
-      v-else-if="loading"
-      class="plugin-component-loading"
-    >
+    <div v-else-if="loading" class="plugin-component-loading">
       <a-spin size="small" />
     </div>
 
     <!-- 渲染插件组件 -->
     <template v-else>
       <!-- 内联 HTML 组件 -->
+      <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
       <div
         v-if="renderType === 'html'"
         class="plugin-component-html"
         @click="handleHtmlClick"
         v-html="sanitizedHtml"
       />
+      <!-- eslint-enable vue/no-v-html -->
 
       <!-- 按钮组件 -->
       <a-button
@@ -60,10 +50,7 @@
         class="plugin-component-link"
         @click="handleLinkClick"
       >
-        <component
-          :is="linkIcon"
-          v-if="linkIcon"
-        />
+        <component :is="linkIcon" v-if="linkIcon" />
         {{ componentConfig.label }}
       </a>
 
@@ -75,7 +62,9 @@
         size="small"
         class="plugin-component-panel"
       >
+        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
         <div v-html="sanitizedPanelContent" />
+        <!-- eslint-enable vue/no-v-html -->
       </a-card>
 
       <!-- 工具栏按钮 -->
@@ -89,10 +78,7 @@
           class="plugin-toolbar-button"
           @click="handleToolbarClick"
         >
-          <component
-            :is="toolbarIcon"
-            v-if="toolbarIcon"
-          />
+          <component :is="toolbarIcon" v-if="toolbarIcon" />
         </a-button>
       </a-tooltip>
 
@@ -102,11 +88,7 @@
         class="plugin-menu-item"
         @click="handleMenuItemClick"
       >
-        <component
-          :is="menuIcon"
-          v-if="menuIcon"
-          class="menu-icon"
-        />
+        <component :is="menuIcon" v-if="menuIcon" class="menu-icon" />
         <span class="menu-label">{{ componentConfig.label }}</span>
         <a-badge
           v-if="componentConfig.badge"
@@ -116,21 +98,15 @@
       </div>
 
       <!-- 默认：使用 props 渲染 -->
-      <div
-        v-else
-        class="plugin-component-custom"
-      >
-        <slot
-          :config="componentConfig"
-          :context="context"
-        />
+      <div v-else class="plugin-component-custom">
+        <slot :config="componentConfig" :context="context" />
       </div>
     </template>
   </div>
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
 import { ref, computed, onMounted, onErrorCaptured } from "vue";
 import {
@@ -208,7 +184,9 @@ const iconMap = {
 
 // 获取图标组件
 const getIcon = (iconName) => {
-  if (!iconName) {return null;}
+  if (!iconName) {
+    return null;
+  }
   return iconMap[iconName] || AppstoreOutlined;
 };
 
@@ -219,7 +197,9 @@ const renderType = computed(() => {
 
 // HTML 内容净化
 const sanitizedHtml = computed(() => {
-  if (!props.componentConfig?.html) {return "";}
+  if (!props.componentConfig?.html) {
+    return "";
+  }
   return DOMPurify.sanitize(props.componentConfig.html, {
     ALLOWED_TAGS: [
       "div",
@@ -237,7 +217,9 @@ const sanitizedHtml = computed(() => {
 });
 
 const sanitizedPanelContent = computed(() => {
-  if (!props.componentConfig?.content) {return "";}
+  if (!props.componentConfig?.content) {
+    return "";
+  }
   return DOMPurify.sanitize(props.componentConfig.content);
 });
 

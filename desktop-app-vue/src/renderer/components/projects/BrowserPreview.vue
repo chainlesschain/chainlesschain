@@ -5,22 +5,13 @@
       <div class="toolbar-left">
         <!-- 导航按钮 -->
         <a-button-group size="small">
-          <a-button
-            :disabled="!canGoBack"
-            @click="handleBack"
-          >
+          <a-button :disabled="!canGoBack" @click="handleBack">
             <ArrowLeftOutlined />
           </a-button>
-          <a-button
-            :disabled="!canGoForward"
-            @click="handleForward"
-          >
+          <a-button :disabled="!canGoForward" @click="handleForward">
             <ArrowRightOutlined />
           </a-button>
-          <a-button
-            :loading="loading"
-            @click="handleRefresh"
-          >
+          <a-button :loading="loading" @click="handleRefresh">
             <ReloadOutlined />
           </a-button>
         </a-button-group>
@@ -36,11 +27,8 @@
             :placeholder="placeholder"
             @keydown.enter="handleAddressEnter"
             @blur="handleAddressBlur"
-          >
-          <span
-            v-if="isSecure"
-            class="secure-icon"
-          >
+          />
+          <span v-if="isSecure" class="secure-icon">
             <LockOutlined />
           </span>
         </div>
@@ -50,10 +38,7 @@
         <!-- 缩放控制 -->
         <div class="zoom-control">
           <a-button-group size="small">
-            <a-button
-              :disabled="zoomLevel <= 50"
-              @click="handleZoomOut"
-            >
+            <a-button :disabled="zoomLevel <= 50" @click="handleZoomOut">
               <MinusOutlined />
             </a-button>
             <a-dropdown :trigger="['click']">
@@ -63,28 +48,15 @@
               </a-button>
               <template #overlay>
                 <a-menu @click="handleZoomSelect">
-                  <a-menu-item key="50">
-                    50%
-                  </a-menu-item>
-                  <a-menu-item key="75">
-                    75%
-                  </a-menu-item>
-                  <a-menu-item key="100">
-                    100%
-                  </a-menu-item>
-                  <a-menu-item key="125">
-                    125%
-                  </a-menu-item>
-                  <a-menu-item key="150">
-                    150%
-                  </a-menu-item>
+                  <a-menu-item key="50"> 50% </a-menu-item>
+                  <a-menu-item key="75"> 75% </a-menu-item>
+                  <a-menu-item key="100"> 100% </a-menu-item>
+                  <a-menu-item key="125"> 125% </a-menu-item>
+                  <a-menu-item key="150"> 150% </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
-            <a-button
-              :disabled="zoomLevel >= 150"
-              @click="handleZoomIn"
-            >
+            <a-button :disabled="zoomLevel >= 150" @click="handleZoomIn">
               <PlusOutlined />
             </a-button>
           </a-button-group>
@@ -92,10 +64,7 @@
 
         <!-- 在新窗口打开 -->
         <a-tooltip title="在浏览器中打开">
-          <a-button
-            size="small"
-            @click="handleOpenInBrowser"
-          >
+          <a-button size="small" @click="handleOpenInBrowser">
             <ExportOutlined />
           </a-button>
         </a-tooltip>
@@ -132,14 +101,8 @@
       :style="{ transform: `scale(${zoomLevel / 100})` }"
     >
       <!-- 加载状态 -->
-      <div
-        v-if="loading"
-        class="loading-overlay"
-      >
-        <a-spin
-          size="large"
-          tip="加载中..."
-        />
+      <div v-if="loading" class="loading-overlay">
+        <a-spin size="large" tip="加载中..." />
       </div>
 
       <!-- iframe预览 -->
@@ -153,61 +116,44 @@
       />
 
       <!-- HTML内容预览 -->
+      <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
       <div
         v-else-if="previewType === 'html'"
         class="preview-html"
-        v-html="htmlContent"
+        v-html="safeHtml(htmlContent)"
       />
+      <!-- eslint-enable vue/no-v-html -->
 
       <!-- 图片预览 -->
-      <div
-        v-else-if="previewType === 'image'"
-        class="preview-image"
-      >
-        <img
-          :src="imageUrl"
-          :alt="title"
-          @load="handleImageLoad"
-        >
+      <div v-else-if="previewType === 'image'" class="preview-image">
+        <img :src="imageUrl" :alt="title" @load="handleImageLoad" />
       </div>
 
       <!-- PDF预览 -->
-      <div
-        v-else-if="previewType === 'pdf'"
-        class="preview-pdf"
-      >
+      <div v-else-if="previewType === 'pdf'" class="preview-pdf">
         <embed
           :src="pdfUrl"
           type="application/pdf"
           width="100%"
           height="100%"
-        >
+        />
       </div>
 
       <!-- 错误状态 -->
-      <div
-        v-else-if="error"
-        class="error-state"
-      >
+      <div v-else-if="error" class="error-state">
         <div class="error-icon">
           <ExclamationCircleOutlined />
         </div>
         <h3>加载失败</h3>
         <p>{{ errorMessage }}</p>
-        <a-button
-          type="primary"
-          @click="handleRetry"
-        >
+        <a-button type="primary" @click="handleRetry">
           <ReloadOutlined />
           重试
         </a-button>
       </div>
 
       <!-- 空状态 -->
-      <div
-        v-else
-        class="empty-state"
-      >
+      <div v-else class="empty-state">
         <div class="empty-icon">
           <GlobalOutlined />
         </div>
@@ -217,26 +163,20 @@
     </div>
 
     <!-- 底部状态栏 -->
-    <div
-      v-if="showStatusbar"
-      class="browser-statusbar"
-    >
+    <div v-if="showStatusbar" class="browser-statusbar">
       <div class="status-left">
         <span class="status-item">
           <ClockCircleOutlined />
           加载时间: {{ loadTime }}ms
         </span>
-        <span
-          v-if="fileSize"
-          class="status-item"
-        >
+        <span v-if="fileSize" class="status-item">
           <FileOutlined />
           大小: {{ formatFileSize(fileSize) }}
         </span>
       </div>
       <div class="status-right">
         <span class="status-item">
-          {{ currentUrl || '未加载' }}
+          {{ currentUrl || "未加载" }}
         </span>
       </div>
     </div>
@@ -244,8 +184,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch, nextTick } from "vue";
+import { message } from "ant-design-vue";
+import { safeHtml } from "@/utils/sanitizeHtml";
 import {
   ArrowLeftOutlined,
   ArrowRightOutlined,
@@ -263,44 +204,44 @@ import {
   ExclamationCircleOutlined,
   ClockCircleOutlined,
   FileOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   // 预览类型: iframe | html | image | pdf
   previewType: {
     type: String,
-    default: 'iframe',
-    validator: (value) => ['iframe', 'html', 'image', 'pdf'].includes(value),
+    default: "iframe",
+    validator: (value) => ["iframe", "html", "image", "pdf"].includes(value),
   },
   // URL地址
   url: {
     type: String,
-    default: '',
+    default: "",
   },
   // HTML内容
   htmlContent: {
     type: String,
-    default: '',
+    default: "",
   },
   // 图片URL
   imageUrl: {
     type: String,
-    default: '',
+    default: "",
   },
   // PDF URL
   pdfUrl: {
     type: String,
-    default: '',
+    default: "",
   },
   // 标题
   title: {
     type: String,
-    default: '预览',
+    default: "预览",
   },
   // 占位符
   placeholder: {
     type: String,
-    default: '输入URL或选择文件...',
+    default: "输入URL或选择文件...",
   },
   // 默认缩放级别
   defaultZoom: {
@@ -316,13 +257,13 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-  'load',
-  'error',
-  'navigate',
-  'zoom-change',
-  'screenshot',
-  'share',
-  'open-devtools',
+  "load",
+  "error",
+  "navigate",
+  "zoom-change",
+  "screenshot",
+  "share",
+  "open-devtools",
 ]);
 
 // 响应式状态
@@ -332,7 +273,7 @@ const currentUrl = ref(props.url);
 const zoomLevel = ref(props.defaultZoom);
 const loading = ref(false);
 const error = ref(false);
-const errorMessage = ref('');
+const errorMessage = ref("");
 const loadTime = ref(0);
 const fileSize = ref(0);
 
@@ -342,19 +283,26 @@ const historyIndex = ref(-1);
 
 // 计算属性
 const canGoBack = computed(() => historyIndex.value > 0);
-const canGoForward = computed(() => historyIndex.value < history.value.length - 1);
-const isSecure = computed(() => currentUrl.value.startsWith('https://'));
+const canGoForward = computed(
+  () => historyIndex.value < history.value.length - 1,
+);
+const isSecure = computed(() => currentUrl.value.startsWith("https://"));
 
 // 监听URL变化
-watch(() => props.url, (newUrl) => {
-  if (newUrl) {
-    loadUrl(newUrl);
-  }
-});
+watch(
+  () => props.url,
+  (newUrl) => {
+    if (newUrl) {
+      loadUrl(newUrl);
+    }
+  },
+);
 
 // 加载URL
 const loadUrl = async (url) => {
-  if (!url) {return;}
+  if (!url) {
+    return;
+  }
 
   loading.value = true;
   error.value = false;
@@ -373,11 +321,10 @@ const loadUrl = async (url) => {
 
     // 等待加载完成
     await nextTick();
-
   } catch (err) {
     error.value = true;
-    errorMessage.value = err.message || '加载失败';
-    emit('error', err);
+    errorMessage.value = err.message || "加载失败";
+    emit("error", err);
   } finally {
     loadTime.value = Date.now() - startTime;
   }
@@ -386,7 +333,7 @@ const loadUrl = async (url) => {
 // iframe加载完成
 const handleIframeLoad = () => {
   loading.value = false;
-  emit('load', {
+  emit("load", {
     url: currentUrl.value,
     loadTime: loadTime.value,
   });
@@ -396,7 +343,7 @@ const handleIframeLoad = () => {
 const handleImageLoad = (e) => {
   loading.value = false;
   fileSize.value = e.target.naturalWidth * e.target.naturalHeight * 4; // 估算大小
-  emit('load', {
+  emit("load", {
     url: props.imageUrl,
     loadTime: loadTime.value,
   });
@@ -421,7 +368,7 @@ const handleBack = () => {
     const url = history.value[historyIndex.value];
     currentUrl.value = url;
     addressInput.value = url;
-    emit('navigate', { direction: 'back', url });
+    emit("navigate", { direction: "back", url });
   }
 };
 
@@ -432,7 +379,7 @@ const handleForward = () => {
     const url = history.value[historyIndex.value];
     currentUrl.value = url;
     addressInput.value = url;
-    emit('navigate', { direction: 'forward', url });
+    emit("navigate", { direction: "forward", url });
   }
 };
 
@@ -454,55 +401,57 @@ const handleRetry = () => {
 // 缩小
 const handleZoomOut = () => {
   zoomLevel.value = Math.max(50, zoomLevel.value - 10);
-  emit('zoom-change', zoomLevel.value);
+  emit("zoom-change", zoomLevel.value);
 };
 
 // 放大
 const handleZoomIn = () => {
   zoomLevel.value = Math.min(150, zoomLevel.value + 10);
-  emit('zoom-change', zoomLevel.value);
+  emit("zoom-change", zoomLevel.value);
 };
 
 // 选择缩放级别
 const handleZoomSelect = ({ key }) => {
   zoomLevel.value = parseInt(key);
-  emit('zoom-change', zoomLevel.value);
+  emit("zoom-change", zoomLevel.value);
 };
 
 // 在浏览器中打开
 const handleOpenInBrowser = () => {
   if (currentUrl.value) {
-    window.open(currentUrl.value, '_blank');
+    window.open(currentUrl.value, "_blank");
   } else {
-    message.warning('没有可打开的URL');
+    message.warning("没有可打开的URL");
   }
 };
 
 // 更多操作
 const handleMoreAction = ({ key }) => {
   switch (key) {
-    case 'screenshot':
-      emit('screenshot');
-      message.info('截图功能开发中...');
+    case "screenshot":
+      emit("screenshot");
+      message.info("截图功能开发中...");
       break;
-    case 'share':
-      emit('share');
-      message.info('分享功能开发中...');
+    case "share":
+      emit("share");
+      message.info("分享功能开发中...");
       break;
-    case 'devtools':
-      emit('open-devtools');
-      message.info('开发者工具功能开发中...');
+    case "devtools":
+      emit("open-devtools");
+      message.info("开发者工具功能开发中...");
       break;
   }
 };
 
 // 格式化文件大小
 const formatFileSize = (bytes) => {
-  if (bytes === 0) {return '0 B';}
+  if (bytes === 0) {
+    return "0 B";
+  }
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 };
 
 // 暴露方法
@@ -522,12 +471,12 @@ defineExpose({
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #F5F5F5;
+  background: #f5f5f5;
 }
 
 .browser-toolbar {
   background: white;
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid #e5e7eb;
   padding: 12px 16px;
   display: flex;
   justify-content: space-between;
@@ -548,8 +497,8 @@ defineExpose({
   flex: 1;
   display: flex;
   align-items: center;
-  background: #F9FAFB;
-  border: 1px solid #E5E7EB;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
   border-radius: 6px;
   padding: 0 12px;
   height: 36px;
@@ -557,12 +506,12 @@ defineExpose({
 
   &:focus-within {
     background: white;
-    border-color: #1677FF;
+    border-color: #1677ff;
     box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
   }
 
   .address-icon {
-    color: #9CA3AF;
+    color: #9ca3af;
     display: flex;
     align-items: center;
     margin-right: 8px;
@@ -577,12 +526,12 @@ defineExpose({
     color: #333;
 
     &::placeholder {
-      color: #9CA3AF;
+      color: #9ca3af;
     }
   }
 
   .secure-icon {
-    color: #52C41A;
+    color: #52c41a;
     display: flex;
     align-items: center;
     margin-left: 8px;
@@ -644,7 +593,7 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #F9FAFB;
+  background: #f9fafb;
   padding: 20px;
 
   img {
@@ -677,11 +626,11 @@ defineExpose({
   }
 
   .error-icon {
-    color: #FF4D4F;
+    color: #ff4d4f;
   }
 
   .empty-icon {
-    color: #D1D5DB;
+    color: #d1d5db;
   }
 
   h3 {
@@ -693,20 +642,20 @@ defineExpose({
 
   p {
     font-size: 14px;
-    color: #6B7280;
+    color: #6b7280;
     margin: 0 0 24px 0;
   }
 }
 
 .browser-statusbar {
   background: white;
-  border-top: 1px solid #E5E7EB;
+  border-top: 1px solid #e5e7eb;
   padding: 6px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 12px;
-  color: #6B7280;
+  color: #6b7280;
   flex-shrink: 0;
 }
 

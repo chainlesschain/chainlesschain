@@ -3,20 +3,14 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
-        <a-button
-          type="text"
-          class="back-button"
-          @click="handleBack"
-        >
+        <a-button type="text" class="back-button" @click="handleBack">
           <ArrowLeftOutlined />
           返回
         </a-button>
         <h1 v-if="plugin">
           {{ plugin.name }}
         </h1>
-        <h1 v-else>
-          插件详情
-        </h1>
+        <h1 v-else>插件详情</h1>
       </div>
     </div>
 
@@ -26,11 +20,7 @@
         <!-- 插件信息区 -->
         <div class="plugin-info-section">
           <div class="info-left">
-            <a-avatar
-              :size="80"
-              shape="square"
-              :src="(plugin as any).icon"
-            >
+            <a-avatar :size="80" shape="square" :src="(plugin as any).icon">
               <template #icon>
                 <AppstoreOutlined />
               </template>
@@ -40,22 +30,14 @@
             <h2>{{ plugin.name }}</h2>
             <p class="author-line">
               <UserOutlined />
-              {{ plugin.author || '未知作者' }}
+              {{ plugin.author || "未知作者" }}
             </p>
             <div class="meta-badges">
-              <a-tag color="blue">
-                v{{ plugin.version }}
-              </a-tag>
-              <a-tag
-                v-if="plugin.category"
-                color="cyan"
-              >
+              <a-tag color="blue"> v{{ plugin.version }} </a-tag>
+              <a-tag v-if="plugin.category" color="cyan">
                 {{ plugin.category }}
               </a-tag>
-              <a-tag
-                v-if="plugin.verified"
-                color="green"
-              >
+              <a-tag v-if="plugin.verified" color="green">
                 <SafetyCertificateOutlined />
                 已验证
               </a-tag>
@@ -72,16 +54,17 @@
                   allow-half
                   class="inline-rate"
                 />
-                <span class="rating-value">{{ (plugin.rating || 0).toFixed(1) }}</span>
-                <span class="rating-count">({{ plugin.ratingCount || 0 }} 评价)</span>
+                <span class="rating-value">{{
+                  (plugin.rating || 0).toFixed(1)
+                }}</span>
+                <span class="rating-count"
+                  >({{ plugin.ratingCount || 0 }} 评价)</span
+                >
               </span>
             </div>
           </div>
           <div class="info-right">
-            <a-space
-              direction="vertical"
-              :size="12"
-            >
+            <a-space direction="vertical" :size="12">
               <a-button
                 v-if="!isInstalled"
                 type="primary"
@@ -104,10 +87,7 @@
                 <DeleteOutlined />
                 卸载插件
               </a-button>
-              <a-button
-                block
-                @click="rateModalVisible = true"
-              >
+              <a-button block @click="rateModalVisible = true">
                 <StarOutlined />
                 评价插件
               </a-button>
@@ -121,31 +101,27 @@
         </div>
 
         <!-- 标签页 -->
-        <a-tabs
-          v-model:active-key="activeTab"
-          class="detail-tabs"
-        >
+        <a-tabs v-model:active-key="activeTab" class="detail-tabs">
           <!-- 概述 -->
-          <a-tab-pane
-            key="overview"
-            tab="概述"
-          >
+          <a-tab-pane key="overview" tab="概述">
             <div class="tab-content overview-content">
               <div
                 v-if="(plugin as any).longDescription"
                 class="long-description"
               >
-                <div v-html="(plugin as any).longDescription" />
+                <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+                <div v-html="safeHtml((plugin as any).longDescription)" />
+                <!-- eslint-enable vue/no-v-html -->
               </div>
-              <div
-                v-else
-                class="long-description"
-              >
+              <div v-else class="long-description">
                 <p>{{ plugin.description }}</p>
               </div>
 
               <div
-                v-if="(plugin as any).features && (plugin as any).features.length > 0"
+                v-if="
+                  (plugin as any).features &&
+                  (plugin as any).features.length > 0
+                "
                 class="features-section"
               >
                 <h3>功能特性</h3>
@@ -154,7 +130,9 @@
                     v-for="(feature, idx) in (plugin as any).features"
                     :key="idx"
                   >
-                    <CheckCircleOutlined style="color: #52c41a; margin-right: 8px" />
+                    <CheckCircleOutlined
+                      style="color: #52c41a; margin-right: 8px"
+                    />
                     {{ feature }}
                   </li>
                 </ul>
@@ -166,11 +144,7 @@
               >
                 <h3>标签</h3>
                 <div class="tags-list">
-                  <a-tag
-                    v-for="tag in plugin.tags"
-                    :key="tag"
-                    color="default"
-                  >
+                  <a-tag v-for="tag in plugin.tags" :key="tag" color="default">
                     {{ tag }}
                   </a-tag>
                 </div>
@@ -179,22 +153,19 @@
           </a-tab-pane>
 
           <!-- 评价 -->
-          <a-tab-pane
-            key="ratings"
-            tab="评价"
-          >
+          <a-tab-pane key="ratings" tab="评价">
             <div class="tab-content ratings-content">
               <!-- 评分概览 -->
               <div class="rating-overview">
                 <div class="rating-big">
-                  <span class="rating-number">{{ (plugin.rating || 0).toFixed(1) }}</span>
+                  <span class="rating-number">{{
+                    (plugin.rating || 0).toFixed(1)
+                  }}</span>
                   <div class="rating-detail">
-                    <a-rate
-                      :value="plugin.rating || 0"
-                      disabled
-                      allow-half
-                    />
-                    <span class="total-ratings">共 {{ plugin.ratingCount || 0 }} 条评价</span>
+                    <a-rate :value="plugin.rating || 0" disabled allow-half />
+                    <span class="total-ratings"
+                      >共 {{ plugin.ratingCount || 0 }} 条评价</span
+                    >
                   </div>
                 </div>
               </div>
@@ -211,12 +182,12 @@
                     <a-list-item-meta>
                       <template #avatar>
                         <a-avatar>
-                          {{ (item.username || '匿名').charAt(0) }}
+                          {{ (item.username || "匿名").charAt(0) }}
                         </a-avatar>
                       </template>
                       <template #title>
                         <div class="rating-item-header">
-                          <span>{{ item.username || '匿名用户' }}</span>
+                          <span>{{ item.username || "匿名用户" }}</span>
                           <a-rate
                             :value="item.rating"
                             disabled
@@ -226,7 +197,9 @@
                         </div>
                       </template>
                       <template #description>
-                        <span class="rating-date">{{ formatDate(item.createdAt) }}</span>
+                        <span class="rating-date">{{
+                          formatDate(item.createdAt)
+                        }}</span>
                       </template>
                     </a-list-item-meta>
                     <p class="rating-comment">
@@ -236,10 +209,7 @@
                 </template>
               </a-list>
 
-              <a-empty
-                v-else
-                description="暂无评价"
-              />
+              <a-empty v-else description="暂无评价" />
 
               <!-- 提交评价表单 -->
               <div class="submit-rating-section">
@@ -274,10 +244,7 @@
           </a-tab-pane>
 
           <!-- 版本历史 -->
-          <a-tab-pane
-            key="versions"
-            tab="版本历史"
-          >
+          <a-tab-pane key="versions" tab="版本历史">
             <div class="tab-content versions-content">
               <a-timeline v-if="versionHistory.length > 0">
                 <a-timeline-item
@@ -295,21 +262,15 @@
                       >
                         当前版本
                       </a-tag>
-                      <span class="version-date">{{ ver.date || '' }}</span>
+                      <span class="version-date">{{ ver.date || "" }}</span>
                     </div>
-                    <p
-                      v-if="ver.changelog"
-                      class="version-changelog"
-                    >
+                    <p v-if="ver.changelog" class="version-changelog">
                       {{ ver.changelog }}
                     </p>
                   </div>
                 </a-timeline-item>
               </a-timeline>
-              <a-empty
-                v-else
-                description="暂无版本历史记录"
-              />
+              <a-empty v-else description="暂无版本历史记录" />
             </div>
           </a-tab-pane>
         </a-tabs>
@@ -323,12 +284,7 @@
         sub-title="请检查插件 ID 是否正确"
       >
         <template #extra>
-          <a-button
-            type="primary"
-            @click="handleBack"
-          >
-            返回
-          </a-button>
+          <a-button type="primary" @click="handleBack"> 返回 </a-button>
         </template>
       </a-result>
     </a-spin>
@@ -361,9 +317,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
+import { ref, reactive, computed, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { message } from "ant-design-vue";
 import {
   ArrowLeftOutlined,
   AppstoreOutlined,
@@ -373,11 +329,12 @@ import {
   StarOutlined,
   SafetyCertificateOutlined,
   CheckCircleOutlined,
-} from '@ant-design/icons-vue';
-import { useMarketplaceStore, type PluginInfo } from '@/stores/marketplace';
-import { logger, createLogger } from '@/utils/logger';
+} from "@ant-design/icons-vue";
+import { useMarketplaceStore, type PluginInfo } from "@/stores/marketplace";
+import { logger, createLogger } from "@/utils/logger";
+import { safeHtml } from "@/utils/sanitizeHtml";
 
-const pageLogger = createLogger('plugin-detail-page');
+const pageLogger = createLogger("plugin-detail-page");
 
 const route = useRoute();
 const router = useRouter();
@@ -385,7 +342,7 @@ const marketplaceStore = useMarketplaceStore();
 
 // ==================== 状态 ====================
 
-const activeTab = ref('overview');
+const activeTab = ref("overview");
 const installing = ref(false);
 const uninstalling = ref(false);
 const submittingRating = ref(false);
@@ -393,10 +350,12 @@ const rateModalVisible = ref(false);
 
 const ratingForm = reactive({
   rating: 0,
-  comment: '',
+  comment: "",
 });
 
-const versionHistory = ref<Array<{ version: string; date?: string; changelog?: string }>>([]);
+const versionHistory = ref<
+  Array<{ version: string; date?: string; changelog?: string }>
+>([]);
 
 // ==================== 计算属性 ====================
 
@@ -405,7 +364,9 @@ const pluginId = computed(() => route.params.id as string);
 const plugin = computed(() => marketplaceStore.currentPlugin);
 
 const isInstalled = computed(() => {
-  if (!plugin.value) {return false;}
+  if (!plugin.value) {
+    return false;
+  }
   return marketplaceStore.isInstalled(plugin.value.pluginId || plugin.value.id);
 });
 
@@ -413,19 +374,21 @@ const isInstalled = computed(() => {
 
 function formatNumber(num: number): string {
   if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
+    return (num / 1000000).toFixed(1) + "M";
   } else if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
+    return (num / 1000).toFixed(1) + "K";
   }
   return num.toString();
 }
 
 function formatDate(date: string | number | undefined): string {
-  if (!date) {return '';}
-  return new Date(date).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+  if (!date) {
+    return "";
+  }
+  return new Date(date).toLocaleDateString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   });
 }
 
@@ -434,42 +397,48 @@ function handleBack() {
 }
 
 async function handleInstall() {
-  if (!plugin.value) {return;}
+  if (!plugin.value) {
+    return;
+  }
   installing.value = true;
   try {
     await marketplaceStore.installPlugin(
       plugin.value.pluginId || plugin.value.id,
-      plugin.value.version
+      plugin.value.version,
     );
     message.success(`插件 "${plugin.value.name}" 安装成功`);
   } catch (error) {
-    pageLogger.error('安装插件失败:', error);
-    message.error('安装失败: ' + (error as Error).message);
+    pageLogger.error("安装插件失败:", error);
+    message.error("安装失败: " + (error as Error).message);
   } finally {
     installing.value = false;
   }
 }
 
 async function handleUninstall() {
-  if (!plugin.value) {return;}
+  if (!plugin.value) {
+    return;
+  }
   uninstalling.value = true;
   try {
     await marketplaceStore.uninstallPlugin(
-      plugin.value.pluginId || plugin.value.id
+      plugin.value.pluginId || plugin.value.id,
     );
     message.success(`插件 "${plugin.value.name}" 已卸载`);
   } catch (error) {
-    pageLogger.error('卸载插件失败:', error);
-    message.error('卸载失败: ' + (error as Error).message);
+    pageLogger.error("卸载插件失败:", error);
+    message.error("卸载失败: " + (error as Error).message);
   } finally {
     uninstalling.value = false;
   }
 }
 
 async function handleSubmitRating() {
-  if (!plugin.value) {return;}
+  if (!plugin.value) {
+    return;
+  }
   if (!ratingForm.rating) {
-    message.warning('请先选择评分');
+    message.warning("请先选择评分");
     return;
   }
 
@@ -478,40 +447,46 @@ async function handleSubmitRating() {
     await marketplaceStore.ratePlugin(
       plugin.value.pluginId || plugin.value.id,
       ratingForm.rating,
-      ratingForm.comment
+      ratingForm.comment,
     );
-    message.success('评价提交成功');
+    message.success("评价提交成功");
     rateModalVisible.value = false;
     ratingForm.rating = 0;
-    ratingForm.comment = '';
+    ratingForm.comment = "";
 
     // 刷新评价列表
-    await marketplaceStore.fetchRatings(plugin.value.pluginId || plugin.value.id);
+    await marketplaceStore.fetchRatings(
+      plugin.value.pluginId || plugin.value.id,
+    );
   } catch (error) {
-    pageLogger.error('提交评价失败:', error);
-    message.error('评价提交失败: ' + (error as Error).message);
+    pageLogger.error("提交评价失败:", error);
+    message.error("评价提交失败: " + (error as Error).message);
   } finally {
     submittingRating.value = false;
   }
 }
 
 async function loadPluginDetail() {
-  if (!pluginId.value) {return;}
+  if (!pluginId.value) {
+    return;
+  }
 
   try {
     await marketplaceStore.fetchPluginDetail(pluginId.value);
 
     if (plugin.value) {
       // 获取评价列表
-      await marketplaceStore.fetchRatings(plugin.value.pluginId || plugin.value.id);
+      await marketplaceStore.fetchRatings(
+        plugin.value.pluginId || plugin.value.id,
+      );
 
       // 构造版本历史（如果插件数据中包含）
       const pluginAny = plugin.value as any;
       if (pluginAny.changelog && Array.isArray(pluginAny.changelog)) {
         versionHistory.value = pluginAny.changelog.map((c: any) => ({
           version: c.version,
-          date: c.date ? formatDate(c.date) : '',
-          changelog: c.description || c.changelog || '',
+          date: c.date ? formatDate(c.date) : "",
+          changelog: c.description || c.changelog || "",
         }));
       } else {
         // 至少显示当前版本
@@ -519,7 +494,7 @@ async function loadPluginDetail() {
           {
             version: plugin.value.version,
             date: formatDate(Date.now()),
-            changelog: '当前安装版本',
+            changelog: "当前安装版本",
           },
         ];
       }
@@ -527,15 +502,15 @@ async function loadPluginDetail() {
 
     pageLogger.info(`加载插件详情: ${pluginId.value}`);
   } catch (error) {
-    pageLogger.error('加载插件详情失败:', error);
-    message.error('加载插件详情失败');
+    pageLogger.error("加载插件详情失败:", error);
+    message.error("加载插件详情失败");
   }
 }
 
 // ==================== 生命周期 ====================
 
 onMounted(async () => {
-  pageLogger.info('PluginDetailPage 挂载', { pluginId: pluginId.value });
+  pageLogger.info("PluginDetailPage 挂载", { pluginId: pluginId.value });
   await loadPluginDetail();
 });
 </script>

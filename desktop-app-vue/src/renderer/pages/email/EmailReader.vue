@@ -3,17 +3,9 @@
     <a-row :gutter="16">
       <!-- 左侧：邮箱树 -->
       <a-col :span="5">
-        <a-card
-          title="邮箱"
-          size="small"
-          :bordered="false"
-        >
+        <a-card title="邮箱" size="small" :bordered="false">
           <template #extra>
-            <a-button
-              type="link"
-              size="small"
-              @click="syncMailboxes"
-            >
+            <a-button type="link" size="small" @click="syncMailboxes">
               <ReloadOutlined />
             </a-button>
           </template>
@@ -34,11 +26,7 @@
             </template>
           </a-tree>
 
-          <a-empty
-            v-else
-            description="暂无邮箱"
-            size="small"
-          />
+          <a-empty v-else description="暂无邮箱" size="small" />
         </a-card>
       </a-col>
 
@@ -55,37 +43,21 @@
           <template #extra>
             <a-space>
               <a-dropdown>
-                <a-button size="small">
-                  <FilterOutlined /> 筛选
-                </a-button>
+                <a-button size="small"> <FilterOutlined /> 筛选 </a-button>
                 <template #overlay>
                   <a-menu @click="handleFilterChange">
-                    <a-menu-item key="all">
-                      全部
-                    </a-menu-item>
-                    <a-menu-item key="unread">
-                      未读
-                    </a-menu-item>
-                    <a-menu-item key="starred">
-                      收藏
-                    </a-menu-item>
+                    <a-menu-item key="all"> 全部 </a-menu-item>
+                    <a-menu-item key="unread"> 未读 </a-menu-item>
+                    <a-menu-item key="starred"> 收藏 </a-menu-item>
                   </a-menu>
                 </template>
               </a-dropdown>
 
-              <a-button
-                size="small"
-                :loading="syncing"
-                @click="syncEmails"
-              >
+              <a-button size="small" :loading="syncing" @click="syncEmails">
                 <SyncOutlined />
               </a-button>
 
-              <a-button
-                type="primary"
-                size="small"
-                @click="showComposer"
-              >
+              <a-button type="primary" size="small" @click="showComposer">
                 <EditOutlined /> 写邮件
               </a-button>
             </a-space>
@@ -141,12 +113,7 @@
                     title="确定删除此草稿？"
                     @confirm="deleteDraft(item)"
                   >
-                    <a-button
-                      type="link"
-                      size="small"
-                      danger
-                      @click.stop
-                    >
+                    <a-button type="link" size="small" danger @click.stop>
                       删除
                     </a-button>
                   </a-popconfirm>
@@ -213,10 +180,7 @@
 
       <!-- 右侧：邮件内容 -->
       <a-col :span="11">
-        <a-card
-          v-if="selectedEmail"
-          :bordered="false"
-        >
+        <a-card v-if="selectedEmail" :bordered="false">
           <template #title>
             <div class="email-header">
               <h3>{{ selectedEmail.subject || "(无主题)" }}</h3>
@@ -241,28 +205,19 @@
               </a-tooltip>
 
               <a-tooltip title="回复">
-                <a-button
-                  type="text"
-                  @click="replyEmail"
-                >
+                <a-button type="text" @click="replyEmail">
                   <RollbackOutlined />
                 </a-button>
               </a-tooltip>
 
               <a-tooltip title="转发">
-                <a-button
-                  type="text"
-                  @click="forwardEmail"
-                >
+                <a-button type="text" @click="forwardEmail">
                   <ShareAltOutlined />
                 </a-button>
               </a-tooltip>
 
               <a-tooltip title="保存到知识库">
-                <a-button
-                  type="text"
-                  @click="saveToKnowledge"
-                >
+                <a-button type="text" @click="saveToKnowledge">
                   <SaveOutlined />
                 </a-button>
               </a-tooltip>
@@ -283,10 +238,7 @@
                     <a-menu-item key="archive">
                       <InboxOutlined /> 归档
                     </a-menu-item>
-                    <a-menu-item
-                      key="delete"
-                      danger
-                    >
+                    <a-menu-item key="delete" danger>
                       <DeleteOutlined /> 删除
                     </a-menu-item>
                   </a-menu>
@@ -297,20 +249,14 @@
 
           <!-- 邮件详情 -->
           <div class="email-details">
-            <a-descriptions
-              :column="1"
-              size="small"
-            >
+            <a-descriptions :column="1" size="small">
               <a-descriptions-item label="发件人">
                 {{ selectedEmail.from_address }}
               </a-descriptions-item>
               <a-descriptions-item label="收件人">
                 {{ selectedEmail.to_address }}
               </a-descriptions-item>
-              <a-descriptions-item
-                v-if="selectedEmail.cc_address"
-                label="抄送"
-              >
+              <a-descriptions-item v-if="selectedEmail.cc_address" label="抄送">
                 {{ selectedEmail.cc_address }}
               </a-descriptions-item>
               <a-descriptions-item label="日期">
@@ -322,21 +268,14 @@
           <a-divider />
 
           <!-- 邮件内容 -->
-          <div
-            class="email-content"
-            v-html="sanitizedContent"
-          />
+          <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+          <div class="email-content" v-html="sanitizedContent" />
+          <!-- eslint-enable vue/no-v-html -->
 
           <!-- 附件列表 -->
-          <div
-            v-if="attachments.length > 0"
-            class="email-attachments"
-          >
+          <div v-if="attachments.length > 0" class="email-attachments">
             <a-divider>附件 ({{ attachments.length }})</a-divider>
-            <a-list
-              :data-source="attachments"
-              size="small"
-            >
+            <a-list :data-source="attachments" size="small">
               <template #renderItem="{ item }">
                 <a-list-item>
                   <a-list-item-meta>
@@ -369,43 +308,30 @@
         </a-card>
 
         <!-- 草稿预览 -->
-        <a-card
-          v-else-if="selectedDraft"
-          :bordered="false"
-        >
+        <a-card v-else-if="selectedDraft" :bordered="false">
           <template #title>
             <div class="email-header">
               <h3>{{ selectedDraft.subject || "(无主题)" }}</h3>
-              <a-tag color="blue">
-                草稿
-              </a-tag>
+              <a-tag color="blue"> 草稿 </a-tag>
             </div>
           </template>
 
           <template #extra>
             <a-space>
-              <a-button
-                type="primary"
-                @click="editDraft(selectedDraft)"
-              >
+              <a-button type="primary" @click="editDraft(selectedDraft)">
                 <EditOutlined /> 继续编辑
               </a-button>
               <a-popconfirm
                 title="确定删除此草稿？"
                 @confirm="deleteDraft(selectedDraft)"
               >
-                <a-button danger>
-                  <DeleteOutlined /> 删除
-                </a-button>
+                <a-button danger> <DeleteOutlined /> 删除 </a-button>
               </a-popconfirm>
             </a-space>
           </template>
 
           <div class="email-details">
-            <a-descriptions
-              :column="1"
-              size="small"
-            >
+            <a-descriptions :column="1" size="small">
               <a-descriptions-item label="收件人">
                 {{ selectedDraft.to_address?.join(", ") || "(未设置)" }}
               </a-descriptions-item>
@@ -432,8 +358,8 @@
           <div class="email-content">
             {{
               selectedDraft.text_content ||
-                selectedDraft.html_content ||
-                "(无内容)"
+              selectedDraft.html_content ||
+              "(无内容)"
             }}
           </div>
 
@@ -443,10 +369,7 @@
             class="email-attachments"
           >
             <a-divider>附件 ({{ selectedDraft.attachments.length }})</a-divider>
-            <a-list
-              :data-source="selectedDraft.attachments"
-              size="small"
-            >
+            <a-list :data-source="selectedDraft.attachments" size="small">
               <template #renderItem="{ item }">
                 <a-list-item>
                   <a-list-item-meta>

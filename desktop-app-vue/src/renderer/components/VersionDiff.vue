@@ -62,24 +62,15 @@
       button-style="solid"
       style="margin-bottom: 16px"
     >
-      <a-radio-button value="split">
-        分屏对比
-      </a-radio-button>
-      <a-radio-button value="unified">
-        统一对比
-      </a-radio-button>
-      <a-radio-button value="inline">
-        行内对比
-      </a-radio-button>
+      <a-radio-button value="split"> 分屏对比 </a-radio-button>
+      <a-radio-button value="unified"> 统一对比 </a-radio-button>
+      <a-radio-button value="inline"> 行内对比 </a-radio-button>
     </a-radio-group>
 
     <!-- 对比内容 -->
     <div class="diff-content">
       <!-- 分屏模式 -->
-      <div
-        v-if="diffMode === 'split'"
-        class="split-view"
-      >
+      <div v-if="diffMode === 'split'" class="split-view">
         <a-row :gutter="16">
           <a-col :span="12">
             <div class="diff-pane">
@@ -97,37 +88,35 @@
       </div>
 
       <!-- 统一模式 -->
-      <div
-        v-else-if="diffMode === 'unified'"
-        class="unified-view"
-      >
+      <div v-else-if="diffMode === 'unified'" class="unified-view">
         <div
           v-for="(change, index) in diffChanges"
           :key="index"
           class="diff-line"
         >
+          <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
           <div
             :class="['line-content', `line-${change.type}`]"
-            v-html="change.content"
+            v-html="safeHtml(change.content)"
           />
+          <!-- eslint-enable vue/no-v-html -->
         </div>
       </div>
 
       <!-- 行内模式 -->
-      <div
-        v-else
-        class="inline-view"
-      >
+      <div v-else class="inline-view">
         <div
           v-for="(line, index) in inlineDiff"
           :key="index"
           class="inline-line"
         >
           <span class="line-number">{{ index + 1 }}</span>
+          <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
           <span
             :class="['line-text', line.changed ? 'line-changed' : '']"
-            v-html="line.content"
+            v-html="safeHtml(line.content)"
           />
+          <!-- eslint-enable vue/no-v-html -->
         </div>
       </div>
     </div>
@@ -135,27 +124,28 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed } from "vue";
 import {
   UserOutlined,
   ClockCircleOutlined,
-  InfoCircleOutlined
-} from '@ant-design/icons-vue';
+  InfoCircleOutlined,
+} from "@ant-design/icons-vue";
+import { safeHtml } from "@/utils/sanitizeHtml";
 
 // ==================== Props ====================
 const props = defineProps({
   currentVersion: {
     type: Object,
-    required: true
+    required: true,
   },
   targetVersion: {
     type: Object,
-    required: true
-  }
+    required: true,
+  },
 });
 
 // ==================== State ====================
-const diffMode = ref('split');
+const diffMode = ref("split");
 
 // ==================== Computed ====================
 
@@ -163,43 +153,43 @@ const diffMode = ref('split');
  * 计算差异变更
  */
 const diffChanges = computed(() => {
-  const current = props.currentVersion.content || '';
-  const target = props.targetVersion.content || '';
+  const current = props.currentVersion.content || "";
+  const target = props.targetVersion.content || "";
 
   // 简单的逐行对比（生产环境应使用 diff 库如 diff-match-patch）
-  const currentLines = current.split('\n');
-  const targetLines = target.split('\n');
+  const currentLines = current.split("\n");
+  const targetLines = target.split("\n");
 
   const changes = [];
   const maxLines = Math.max(currentLines.length, targetLines.length);
 
   for (let i = 0; i < maxLines; i++) {
-    const currentLine = currentLines[i] || '';
-    const targetLine = targetLines[i] || '';
+    const currentLine = currentLines[i] || "";
+    const targetLine = targetLines[i] || "";
 
     if (currentLine === targetLine) {
       changes.push({
-        type: 'unchanged',
-        content: escapeHtml(currentLine)
+        type: "unchanged",
+        content: escapeHtml(currentLine),
       });
     } else {
       if (currentLine && !targetLine) {
         changes.push({
-          type: 'deleted',
-          content: `<span class="deleted-text">- ${escapeHtml(currentLine)}</span>`
+          type: "deleted",
+          content: `<span class="deleted-text">- ${escapeHtml(currentLine)}</span>`,
         });
       } else if (!currentLine && targetLine) {
         changes.push({
-          type: 'added',
-          content: `<span class="added-text">+ ${escapeHtml(targetLine)}</span>`
+          type: "added",
+          content: `<span class="added-text">+ ${escapeHtml(targetLine)}</span>`,
         });
       } else {
         changes.push({
-          type: 'modified',
+          type: "modified",
           content: `
             <span class="deleted-text">- ${escapeHtml(currentLine)}</span><br>
             <span class="added-text">+ ${escapeHtml(targetLine)}</span>
-          `
+          `,
         });
       }
     }
@@ -212,15 +202,15 @@ const diffChanges = computed(() => {
  * 行内差异
  */
 const inlineDiff = computed(() => {
-  const current = props.currentVersion.content || '';
-  const target = props.targetVersion.content || '';
+  const current = props.currentVersion.content || "";
+  const target = props.targetVersion.content || "";
 
-  const currentLines = current.split('\n');
-  const targetLines = target.split('\n');
+  const currentLines = current.split("\n");
+  const targetLines = target.split("\n");
 
   return currentLines.map((line, index) => ({
     content: escapeHtml(line),
-    changed: line !== (targetLines[index] || '')
+    changed: line !== (targetLines[index] || ""),
   }));
 });
 
@@ -230,31 +220,37 @@ const inlineDiff = computed(() => {
  * 获取差异摘要
  */
 function getDiffSummary() {
-  const current = props.currentVersion.content || '';
-  const target = props.targetVersion.content || '';
+  const current = props.currentVersion.content || "";
+  const target = props.targetVersion.content || "";
 
-  const currentLines = current.split('\n').length;
-  const targetLines = target.split('\n').length;
+  const currentLines = current.split("\n").length;
+  const targetLines = target.split("\n").length;
 
   const addedLines = Math.max(0, targetLines - currentLines);
   const deletedLines = Math.max(0, currentLines - targetLines);
 
   if (addedLines === 0 && deletedLines === 0) {
-    return '两个版本的行数相同，可能存在内容修改';
+    return "两个版本的行数相同，可能存在内容修改";
   }
 
   const parts = [];
-  if (addedLines > 0) {parts.push(`+${addedLines} 行`);}
-  if (deletedLines > 0) {parts.push(`-${deletedLines} 行`);}
+  if (addedLines > 0) {
+    parts.push(`+${addedLines} 行`);
+  }
+  if (deletedLines > 0) {
+    parts.push(`-${deletedLines} 行`);
+  }
 
-  return `差异统计：${parts.join(', ')}`;
+  return `差异统计：${parts.join(", ")}`;
 }
 
 /**
  * 获取用户名
  */
 function getUserName(did) {
-  if (!did) {return '未知';}
+  if (!did) {
+    return "未知";
+  }
   if (did.length > 20) {
     return `${did.slice(0, 10)}...${did.slice(-6)}`;
   }
@@ -265,16 +261,18 @@ function getUserName(did) {
  * 格式化日期
  */
 function formatDate(timestamp) {
-  if (!timestamp) {return '-';}
+  if (!timestamp) {
+    return "-";
+  }
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN');
+  return date.toLocaleString("zh-CN");
 }
 
 /**
  * HTML转义
  */
 function escapeHtml(text) {
-  const div = document.createElement('div');
+  const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
 }
@@ -347,7 +345,7 @@ function escapeHtml(text) {
 
       .diff-line {
         padding: 4px 16px;
-        font-family: 'Courier New', monospace;
+        font-family: "Courier New", monospace;
         font-size: 13px;
         line-height: 1.6;
 
@@ -390,7 +388,7 @@ function escapeHtml(text) {
       .inline-line {
         display: flex;
         padding: 4px 0;
-        font-family: 'Courier New', monospace;
+        font-family: "Courier New", monospace;
         font-size: 13px;
         line-height: 1.6;
 

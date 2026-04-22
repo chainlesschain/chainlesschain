@@ -44,7 +44,11 @@ module.exports = [
       // Vue.js 规则
       "vue/multi-word-component-names": "warn",
       "vue/no-unused-vars": "warn",
-      "vue/no-v-html": "warn",
+      // Every existing v-html site is sanitized (safeHtml / renderMarkdown
+      // / DOMPurify / escapeHtml); new usage must either route through one
+      // of those or carry an explicit `eslint-disable-next-line` with a
+      // justification. See AUDIT_2026-04-22.md §3.
+      "vue/no-v-html": "error",
       "vue/require-default-prop": "warn",
       "vue/require-prop-types": "warn",
       "vue/valid-v-slot": "warn",

@@ -1,47 +1,26 @@
 <template>
-  <div
-    class="chat-panel"
-    :class="{ collapsed: !props.open }"
-  >
+  <div class="chat-panel" :class="{ collapsed: !props.open }">
     <!-- 头部 -->
     <div class="chat-header">
       <div class="header-left">
         <a-space>
           <message-outlined />
           <span class="header-title">AI 对话</span>
-          <a-tag
-            v-if="llmStore.isAvailable"
-            color="success"
-            size="small"
-          >
+          <a-tag v-if="llmStore.isAvailable" color="success" size="small">
             {{ llmStore.providerDisplayName }}
           </a-tag>
-          <a-tag
-            v-else
-            color="error"
-            size="small"
-          >
-            未配置
-          </a-tag>
+          <a-tag v-else color="error" size="small"> 未配置 </a-tag>
         </a-space>
       </div>
       <div class="header-right">
         <a-space>
           <a-tooltip title="新对话">
-            <a-button
-              type="text"
-              size="small"
-              @click="handleNewConversation"
-            >
+            <a-button type="text" size="small" @click="handleNewConversation">
               <plus-outlined />
             </a-button>
           </a-tooltip>
           <a-tooltip title="对话历史">
-            <a-button
-              type="text"
-              size="small"
-              @click="showHistory = true"
-            >
+            <a-button type="text" size="small" @click="showHistory = true">
               <history-outlined />
             </a-button>
           </a-tooltip>
@@ -55,11 +34,7 @@
             </a-button>
           </a-tooltip>
           <a-tooltip :title="props.open ? '收起' : '展开'">
-            <a-button
-              type="text"
-              size="small"
-              @click="togglePanel"
-            >
+            <a-button type="text" size="small" @click="togglePanel">
               <right-outlined v-if="props.open" />
               <left-outlined v-else />
             </a-button>
@@ -69,19 +44,13 @@
     </div>
 
     <!-- 消息列表 -->
-    <div
-      ref="messagesContainer"
-      class="chat-messages"
-    >
+    <div ref="messagesContainer" class="chat-messages">
       <a-empty
         v-if="!llmStore.isAvailable"
         description="LLM服务未配置或不可用"
         :image="Empty.PRESENTED_IMAGE_SIMPLE"
       >
-        <a-button
-          type="primary"
-          @click="router.push('/settings?tab=llm')"
-        >
+        <a-button type="primary" @click="router.push('/settings?tab=llm')">
           前往配置
         </a-button>
       </a-empty>
@@ -104,10 +73,7 @@
         </div>
       </a-empty>
 
-      <div
-        v-else
-        class="messages-list"
-      >
+      <div v-else class="messages-list">
         <div
           v-for="(msg, index) in currentMessages"
           :key="msg.id || index"
@@ -123,10 +89,7 @@
                 <user-outlined />
               </template>
             </a-avatar>
-            <a-avatar
-              v-else
-              :style="{ backgroundColor: '#52c41a' }"
-            >
+            <a-avatar v-else :style="{ backgroundColor: '#52c41a' }">
               <template #icon>
                 <robot-outlined />
               </template>
@@ -134,44 +97,35 @@
           </div>
           <div class="message-content">
             <div class="message-header">
-              <span class="message-role">{{ msg.role === 'user' ? '我' : 'AI' }}</span>
+              <span class="message-role">{{
+                msg.role === "user" ? "我" : "AI"
+              }}</span>
               <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
             </div>
             <div class="message-text">
+              <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
               <div
                 v-if="msg.role === 'assistant'"
                 v-html="renderMarkdown(msg.content)"
               />
+              <!-- eslint-enable vue/no-v-html -->
               <div v-else>
                 {{ msg.content }}
               </div>
             </div>
-            <div
-              v-if="msg.tokens || msg.references"
-              class="message-meta"
-            >
-              <a-space
-                size="small"
-                direction="vertical"
-                style="width: 100%"
-              >
-                <a-space
-                  v-if="msg.tokens"
-                  size="small"
-                >
+            <div v-if="msg.tokens || msg.references" class="message-meta">
+              <a-space size="small" direction="vertical" style="width: 100%">
+                <a-space v-if="msg.tokens" size="small">
                   <span class="meta-item">Tokens: {{ msg.tokens }}</span>
-                  <span
-                    v-if="msg.model"
-                    class="meta-item"
-                  >模型: {{ msg.model }}</span>
+                  <span v-if="msg.model" class="meta-item"
+                    >模型: {{ msg.model }}</span
+                  >
                 </a-space>
                 <div
                   v-if="msg.references && msg.references.length > 0"
                   class="message-references"
                 >
-                  <div class="references-title">
-                    📚 参考了以下知识库内容:
-                  </div>
+                  <div class="references-title">📚 参考了以下知识库内容:</div>
                   <div class="references-list">
                     <a-tag
                       v-for="ref in msg.references"
@@ -180,7 +134,8 @@
                       size="small"
                       class="reference-tag"
                     >
-                      {{ ref.title }} (相似度: {{ (ref.score * 100).toFixed(0) }}%)
+                      {{ ref.title }} (相似度:
+                      {{ (ref.score * 100).toFixed(0) }}%)
                     </a-tag>
                   </div>
                 </div>
@@ -190,10 +145,7 @@
         </div>
 
         <!-- 流式输出中的消息 -->
-        <div
-          v-if="isStreaming"
-          class="message-item assistant streaming"
-        >
+        <div v-if="isStreaming" class="message-item assistant streaming">
           <div class="message-avatar">
             <a-avatar :style="{ backgroundColor: '#52c41a' }">
               <template #icon>
@@ -207,17 +159,16 @@
               <span class="message-time">正在输入...</span>
             </div>
             <div class="message-text">
+              <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
               <div v-html="renderMarkdown(streamingText)" />
+              <!-- eslint-enable vue/no-v-html -->
               <span class="typing-cursor">▊</span>
             </div>
           </div>
         </div>
 
         <!-- AI正在思考 -->
-        <div
-          v-if="isThinking && !isStreaming"
-          class="message-item assistant"
-        >
+        <div v-if="isThinking && !isStreaming" class="message-item assistant">
           <div class="message-avatar">
             <a-avatar :style="{ backgroundColor: '#52c41a' }">
               <template #icon>
@@ -226,9 +177,7 @@
             </a-avatar>
           </div>
           <div class="message-content">
-            <div class="message-text">
-              <a-spin size="small" /> 正在思考...
-            </div>
+            <div class="message-text"><a-spin size="small" /> 正在思考...</div>
           </div>
         </div>
       </div>
@@ -238,7 +187,11 @@
     <div class="chat-input">
       <a-textarea
         v-model:value="inputText"
-        :placeholder="llmStore.isAvailable ? '输入消息... (Shift+Enter换行，Enter发送)' : 'LLM服务未配置'"
+        :placeholder="
+          llmStore.isAvailable
+            ? '输入消息... (Shift+Enter换行，Enter发送)'
+            : 'LLM服务未配置'
+        "
         :auto-size="{ minRows: 1, maxRows: 4 }"
         :disabled="!llmStore.isAvailable || isProcessing"
         @keydown.enter="handleKeyDown"
@@ -256,11 +209,7 @@
             </template>
             发送
           </a-button>
-          <a-button
-            v-if="isProcessing"
-            danger
-            @click="handleStop"
-          >
+          <a-button v-if="isProcessing" danger @click="handleStop">
             <template #icon>
               <stop-outlined />
             </template>
@@ -300,11 +249,11 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { message, Empty } from 'ant-design-vue';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
+import { message, Empty } from "ant-design-vue";
 import {
   MessageOutlined,
   UserOutlined,
@@ -319,11 +268,11 @@ import {
   MoreOutlined,
   DeleteOutlined,
   ExportOutlined,
-} from '@ant-design/icons-vue';
-import { useLLMStore } from '../stores/llm';
-import { useConversationStore } from '../stores/conversation';
-import ConversationHistory from './ConversationHistory.vue';
-import MarkdownIt from 'markdown-it';
+} from "@ant-design/icons-vue";
+import { useLLMStore } from "../stores/llm";
+import { useConversationStore } from "../stores/conversation";
+import ConversationHistory from "./ConversationHistory.vue";
+import MarkdownIt from "markdown-it";
 
 const props = defineProps({
   open: {
@@ -332,7 +281,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:open', 'toggle']);
+const emit = defineEmits(["update:open", "toggle"]);
 
 const router = useRouter();
 const llmStore = useLLMStore();
@@ -340,27 +289,27 @@ const conversationStore = useConversationStore();
 
 // Markdown渲染器 - 禁用 HTML 以防止 XSS 攻击
 const md = new MarkdownIt({
-  html: false,  // 禁用 HTML 标签
+  html: false, // 禁用 HTML 标签
   linkify: true,
   breaks: true,
   xhtmlOut: true,
 });
 
 // 状态
-const inputText = ref('');
+const inputText = ref("");
 const showHistory = ref(false);
 const messagesContainer = ref(null);
 const isProcessing = ref(false);
 const isThinking = ref(false);
 const isStreaming = ref(false);
-const streamingText = ref('');
+const streamingText = ref("");
 
 // 快捷提示
 const quickPrompts = [
-  '帮我总结一下这个笔记',
-  '这个概念是什么意思？',
-  '给我一些相关的例子',
-  '解释一下这个问题',
+  "帮我总结一下这个笔记",
+  "这个概念是什么意思？",
+  "给我一些相关的例子",
+  "解释一下这个问题",
 ];
 
 // 当前消息列表
@@ -368,12 +317,12 @@ const currentMessages = computed(() => conversationStore.currentMessages);
 
 // 切换面板
 const togglePanel = () => {
-  emit('toggle');
+  emit("toggle");
 };
 
 // 处理键盘事件
 const handleKeyDown = (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
+  if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
     handleSend();
   }
@@ -386,12 +335,12 @@ const handleSend = async () => {
   }
 
   const userMessage = inputText.value.trim();
-  inputText.value = '';
+  inputText.value = "";
 
   try {
     // 添加用户消息
     conversationStore.addMessage({
-      role: 'user',
+      role: "user",
       content: userMessage,
       timestamp: Date.now(),
     });
@@ -414,30 +363,29 @@ const handleSend = async () => {
 
         // 如果有检索到的文档，在消息中添加引用信息
         if (retrievedDocs.length > 0) {
-          logger.info(`[ChatPanel] RAG检索到 ${retrievedDocs.length} 个相关文档`);
+          logger.info(
+            `[ChatPanel] RAG检索到 ${retrievedDocs.length} 个相关文档`,
+          );
         }
       }
     } catch (error) {
-      logger.warn('[ChatPanel] RAG增强失败，使用原始查询:', error);
+      logger.warn("[ChatPanel] RAG增强失败，使用原始查询:", error);
       // RAG失败不影响主流程，继续使用原始查询
     }
 
     if (llmStore.config.streamEnabled) {
       // 流式输出
       isStreaming.value = true;
-      streamingText.value = '';
+      streamingText.value = "";
 
-      await llmStore.queryStream(
-        enhancedPrompt,
-        (data) => {
-          streamingText.value = data.fullText;
-          scrollToBottom();
-        }
-      );
+      await llmStore.queryStream(enhancedPrompt, (data) => {
+        streamingText.value = data.fullText;
+        scrollToBottom();
+      });
 
       // 添加AI消息
       const aiMessage = {
-        role: 'assistant',
+        role: "assistant",
         content: streamingText.value,
         timestamp: Date.now(),
         model: llmStore.currentModel,
@@ -445,7 +393,7 @@ const handleSend = async () => {
 
       // 如果有检索到的文档，添加引用
       if (retrievedDocs.length > 0) {
-        aiMessage.references = retrievedDocs.map(doc => ({
+        aiMessage.references = retrievedDocs.map((doc) => ({
           id: doc.id,
           title: doc.title,
           score: doc.score,
@@ -455,7 +403,7 @@ const handleSend = async () => {
       conversationStore.addMessage(aiMessage);
 
       isStreaming.value = false;
-      streamingText.value = '';
+      streamingText.value = "";
     } else {
       // 非流式输出
       isThinking.value = true;
@@ -463,7 +411,7 @@ const handleSend = async () => {
       const response = await llmStore.query(enhancedPrompt);
 
       const aiMessage = {
-        role: 'assistant',
+        role: "assistant",
         content: response.text,
         timestamp: Date.now(),
         tokens: response.tokens,
@@ -472,7 +420,7 @@ const handleSend = async () => {
 
       // 如果有检索到的文档，添加引用
       if (retrievedDocs.length > 0) {
-        aiMessage.references = retrievedDocs.map(doc => ({
+        aiMessage.references = retrievedDocs.map((doc) => ({
           id: doc.id,
           title: doc.title,
           score: doc.score,
@@ -489,26 +437,29 @@ const handleSend = async () => {
       try {
         await conversationStore.saveCurrentConversation();
       } catch (saveError) {
-        logger.error('[ChatPanel] 自动保存失败:', saveError);
-        message.warning('对话保存失败，但消息已添加到当前会话');
+        logger.error("[ChatPanel] 自动保存失败:", saveError);
+        message.warning("对话保存失败，但消息已添加到当前会话");
       }
     }
 
     scrollToBottom();
   } catch (error) {
-    logger.error('[ChatPanel] 发送消息失败:', error);
+    logger.error("[ChatPanel] 发送消息失败:", error);
 
     // 根据错误类型提供更友好的错误消息
-    let errorMessage = '发送失败';
+    let errorMessage = "发送失败";
     if (error.message) {
-      if (error.message.includes('timeout')) {
-        errorMessage = '请求超时，请检查网络连接或LLM服务状态';
-      } else if (error.message.includes('network')) {
-        errorMessage = '网络错误，请检查网络连接';
-      } else if (error.message.includes('unauthorized') || error.message.includes('401')) {
-        errorMessage = 'API密钥无效或已过期，请检查配置';
-      } else if (error.message.includes('rate limit')) {
-        errorMessage = 'API调用频率超限，请稍后再试';
+      if (error.message.includes("timeout")) {
+        errorMessage = "请求超时，请检查网络连接或LLM服务状态";
+      } else if (error.message.includes("network")) {
+        errorMessage = "网络错误，请检查网络连接";
+      } else if (
+        error.message.includes("unauthorized") ||
+        error.message.includes("401")
+      ) {
+        errorMessage = "API密钥无效或已过期，请检查配置";
+      } else if (error.message.includes("rate limit")) {
+        errorMessage = "API调用频率超限，请稍后再试";
       } else {
         errorMessage = `发送失败: ${error.message}`;
       }
@@ -528,13 +479,13 @@ const handleSend = async () => {
 const handleStop = async () => {
   try {
     // 调用LLM store的取消方法
-    await llmStore.cancelStream('用户手动停止');
+    await llmStore.cancelStream("用户手动停止");
 
     // 如果有部分生成的内容，保存为消息
     if (streamingText.value && streamingText.value.trim()) {
       const aiMessage = {
-        role: 'assistant',
-        content: streamingText.value + '\n\n[已停止生成]',
+        role: "assistant",
+        content: streamingText.value + "\n\n[已停止生成]",
         timestamp: Date.now(),
         model: llmStore.currentModel,
         incomplete: true,
@@ -552,18 +503,18 @@ const handleStop = async () => {
     isProcessing.value = false;
     isStreaming.value = false;
     isThinking.value = false;
-    streamingText.value = '';
+    streamingText.value = "";
 
-    message.success('已停止生成');
+    message.success("已停止生成");
   } catch (error) {
-    logger.error('停止生成失败:', error);
-    message.error('停止失败: ' + (error.message || '未知错误'));
+    logger.error("停止生成失败:", error);
+    message.error("停止失败: " + (error.message || "未知错误"));
 
     // 确保状态被重置
     isProcessing.value = false;
     isStreaming.value = false;
     isThinking.value = false;
-    streamingText.value = '';
+    streamingText.value = "";
   }
 };
 
@@ -575,16 +526,16 @@ const handleQuickPrompt = (prompt) => {
 // 新对话
 const handleNewConversation = () => {
   conversationStore.createNewConversation();
-  message.success('已创建新对话');
+  message.success("已创建新对话");
 };
 
 // 清除上下文
 const handleClearContext = async () => {
   try {
     await llmStore.clearContext();
-    message.success('已清除上下文');
+    message.success("已清除上下文");
   } catch (error) {
-    message.error('清除失败: ' + error.message);
+    message.error("清除失败: " + error.message);
   }
 };
 
@@ -592,46 +543,48 @@ const handleClearContext = async () => {
 const handleExport = () => {
   const conversation = conversationStore.currentConversation;
   if (!conversation || conversation.messages.length === 0) {
-    message.warning('没有可导出的对话');
+    message.warning("没有可导出的对话");
     return;
   }
 
   const content = conversation.messages
     .map((msg) => {
-      const role = msg.role === 'user' ? '我' : 'AI';
-      const time = new Date(msg.timestamp).toLocaleString('zh-CN');
+      const role = msg.role === "user" ? "我" : "AI";
+      const time = new Date(msg.timestamp).toLocaleString("zh-CN");
       return `[${role}] ${time}\n${msg.content}\n`;
     })
-    .join('\n---\n\n');
+    .join("\n---\n\n");
 
-  const blob = new Blob([content], { type: 'text/plain' });
+  const blob = new Blob([content], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = `对话_${conversation.title}_${Date.now()}.txt`;
   a.click();
   URL.revokeObjectURL(url);
 
-  message.success('对话已导出');
+  message.success("对话已导出");
 };
 
 // 选择对话
 const handleSelectConversation = (conversation) => {
   conversationStore.loadConversation(conversation.id);
   showHistory.value = false;
-  message.success('已加载对话: ' + conversation.title);
+  message.success("已加载对话: " + conversation.title);
 };
 
 // 渲染Markdown
 const renderMarkdown = (text) => {
-  if (!text) {return '';}
+  if (!text) {
+    return "";
+  }
   try {
     // MarkdownIt 已配置为 html: false，会自动转义 HTML 标签，防止 XSS
     return md.render(text);
   } catch (error) {
-    logger.error('Markdown 渲染失败:', error);
+    logger.error("Markdown 渲染失败:", error);
     // 发生错误时，转义文本以防止 XSS
-    const div = document.createElement('div');
+    const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
   }
@@ -639,24 +592,29 @@ const renderMarkdown = (text) => {
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) {return '';}
+  if (!timestamp) {
+    return "";
+  }
 
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;
 
   if (diff < 60000) {
-    return '刚刚';
+    return "刚刚";
   } else if (diff < 3600000) {
     return `${Math.floor(diff / 60000)}分钟前`;
   } else if (diff < 86400000) {
-    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString("zh-CN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   } else {
-    return date.toLocaleString('zh-CN', {
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleString("zh-CN", {
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   }
 };
@@ -803,7 +761,7 @@ onMounted(async () => {
   background: #f0f0f0;
   padding: 2px 6px;
   border-radius: 3px;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
 }
 
 .message-item.user .message-text :deep(pre),
@@ -858,8 +816,14 @@ onMounted(async () => {
 }
 
 @keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
 }
 
 .chat-input {

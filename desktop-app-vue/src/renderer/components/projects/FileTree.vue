@@ -16,18 +16,12 @@
     </div>
 
     <!-- 搜索结果统计 -->
-    <div
-      v-if="searchQuery && filteredTreeData.length > 0"
-      class="search-stats"
-    >
+    <div v-if="searchQuery && filteredTreeData.length > 0" class="search-stats">
       找到 <strong>{{ searchResultCount }}</strong> 个文件
     </div>
 
     <!-- 加载状态 -->
-    <div
-      v-if="loading"
-      class="tree-loading"
-    >
+    <div v-if="loading" class="tree-loading">
       <a-spin size="small" />
       <span>加载中...</span>
     </div>
@@ -43,11 +37,10 @@
     >
       <template #title="{ title, isLeaf, icon, filePath }">
         <div class="tree-node-title">
-          <component
-            :is="icon"
-            class="node-icon"
-          />
+          <component :is="icon" class="node-icon" />
+          <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
           <span v-html="highlightText(title, searchQuery)" />
+          <!-- eslint-enable vue/no-v-html -->
           <a-tag
             v-if="gitStatus && filePath && gitStatus[filePath]"
             :color="getStatusColor(gitStatus[filePath])"
@@ -61,19 +54,13 @@
     </a-tree>
 
     <!-- 空状态 -->
-    <div
-      v-else-if="!searchQuery"
-      class="tree-empty"
-    >
+    <div v-else-if="!searchQuery" class="tree-empty">
       <FolderOpenOutlined />
       <p>暂无文件</p>
     </div>
 
     <!-- 搜索无结果 -->
-    <div
-      v-else
-      class="tree-empty"
-    >
+    <div v-else class="tree-empty">
       <FileSearchOutlined />
       <p>未找到匹配的文件</p>
       <span class="empty-hint">尝试使用不同的关键词</span>
@@ -82,9 +69,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch } from "vue";
+import { escapeHtml } from "@/utils/sanitizeHtml";
 import {
   FolderOutlined,
   FolderOpenOutlined,
@@ -98,7 +86,7 @@ import {
   Html5Outlined,
   SearchOutlined,
   FileSearchOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   files: {
@@ -119,12 +107,12 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['select']);
+const emit = defineEmits(["select"]);
 
 // 响应式状态
 const selectedKeys = ref([]);
 const expandedKeys = ref([]);
-const searchQuery = ref(''); // 搜索关键词
+const searchQuery = ref(""); // 搜索关键词
 
 // 文件图标映射
 const fileIconMap = {
@@ -180,8 +168,8 @@ const fileIconMap = {
 
 // 获取文件扩展名
 const getFileExtension = (filename) => {
-  const parts = filename.split('.');
-  return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : '';
+  const parts = filename.split(".");
+  return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : "";
 };
 
 // 获取文件图标
@@ -199,9 +187,9 @@ const buildTree = (files) => {
   // 按路径分组
   const tree = {};
 
-  files.forEach(file => {
-    const filePath = file.file_path || file.file_name || 'untitled';
-    logger.info('[FileTree] 处理文件:', filePath, 'file对象:', file);
+  files.forEach((file) => {
+    const filePath = file.file_path || file.file_name || "untitled";
+    logger.info("[FileTree] 处理文件:", filePath, "file对象:", file);
     // 支持 Windows 和 Unix 路径分隔符
     const parts = filePath.split(/[\\/]/);
     let current = tree;
@@ -220,8 +208,8 @@ const buildTree = (files) => {
   });
 
   // 转换为ant-design-vue树形数据格式
-  const convertToTreeData = (obj, path = '') => {
-    return Object.keys(obj).map(key => {
+  const convertToTreeData = (obj, path = "") => {
+    return Object.keys(obj).map((key) => {
       const node = obj[key];
       const currentPath = path ? `${path}/${key}` : key;
       const isLeaf = node.isLeaf;
@@ -249,37 +237,41 @@ const buildTree = (files) => {
 // Git 状态颜色映射
 const getStatusColor = (status) => {
   const colorMap = {
-    untracked: 'green',
-    modified: 'orange',
-    deleted: 'red',
-    added: 'blue',
-    staged: 'cyan',
+    untracked: "green",
+    modified: "orange",
+    deleted: "red",
+    added: "blue",
+    staged: "cyan",
   };
-  return colorMap[status] || 'default';
+  return colorMap[status] || "default";
 };
 
 // Git 状态标签映射
 const getStatusLabel = (status) => {
   const labelMap = {
-    untracked: 'U',
-    modified: 'M',
-    deleted: 'D',
-    added: 'A',
-    staged: 'S',
+    untracked: "U",
+    modified: "M",
+    deleted: "D",
+    added: "A",
+    staged: "S",
   };
-  return labelMap[status] || '?';
+  return labelMap[status] || "?";
 };
 
 // 计算树形数据
 const treeData = computed(() => {
-  logger.info('[FileTree] 接收到 files prop:', props.files?.length || 0, 'files');
+  logger.info(
+    "[FileTree] 接收到 files prop:",
+    props.files?.length || 0,
+    "files",
+  );
   if (!props.files || props.files.length === 0) {
-    logger.info('[FileTree] 没有文件，显示空状态');
+    logger.info("[FileTree] 没有文件，显示空状态");
     return [];
   }
-  logger.info('[FileTree] 构建树形结构...');
+  logger.info("[FileTree] 构建树形结构...");
   const tree = buildTree(props.files);
-  logger.info('[FileTree] 树形数据:', tree);
+  logger.info("[FileTree] 树形数据:", tree);
   return tree;
 });
 
@@ -296,7 +288,7 @@ const filteredTreeData = computed(() => {
   // 递归过滤树节点
   const filterTree = (nodes) => {
     return nodes
-      .map(node => {
+      .map((node) => {
         // 检查当前节点是否匹配
         const titleMatch = node.title.toLowerCase().includes(query);
 
@@ -308,7 +300,7 @@ const filteredTreeData = computed(() => {
           if (filteredChildren.length > 0 || titleMatch) {
             return {
               ...node,
-              children: filteredChildren
+              children: filteredChildren,
             };
           }
           return null;
@@ -330,7 +322,7 @@ const filteredTreeData = computed(() => {
 
 const collectFolderKeys = (nodes) => {
   let keys = [];
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     if (!node.isLeaf) {
       keys.push(node.key);
       if (node.children) {
@@ -341,11 +333,15 @@ const collectFolderKeys = (nodes) => {
   return keys;
 };
 
-watch([filteredTreeData, searchQuery], ([filtered, query]) => {
-  if (query && query.trim() && filtered.length > 0) {
-    expandedKeys.value = collectFolderKeys(filtered);
-  }
-}, { immediate: true });
+watch(
+  [filteredTreeData, searchQuery],
+  ([filtered, query]) => {
+    if (query && query.trim() && filtered.length > 0) {
+      expandedKeys.value = collectFolderKeys(filtered);
+    }
+  },
+  { immediate: true },
+);
 
 /**
  * 计算搜索结果数量
@@ -353,7 +349,7 @@ watch([filteredTreeData, searchQuery], ([filtered, query]) => {
 const searchResultCount = computed(() => {
   const countFiles = (nodes) => {
     let count = 0;
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       if (node.isLeaf) {
         count++;
       }
@@ -367,22 +363,25 @@ const searchResultCount = computed(() => {
 });
 
 /**
- * 高亮搜索关键词
+ * 高亮搜索关键词 — escape text 防 XSS，escape query 防 regex 注入
  */
 const highlightText = (text, query) => {
-  if (!query || !query.trim()) {
-    return text;
+  if (!text) {
+    return "";
   }
-
-  const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
-  return text.replace(regex, '<mark class="search-highlight">$1</mark>');
+  const safeText = escapeHtml(text);
+  if (!query || !query.trim()) {
+    return safeText;
+  }
+  const regex = new RegExp(`(${escapeRegExp(query)})`, "gi");
+  return safeText.replace(regex, '<mark class="search-highlight">$1</mark>');
 };
 
 /**
  * 转义正则表达式特殊字符
  */
 const escapeRegExp = (string) => {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
 /**
@@ -390,14 +389,14 @@ const escapeRegExp = (string) => {
  */
 const handleSearchChange = () => {
   // 搜索时的逻辑已在 computed 中处理
-  logger.info('[FileTree] 搜索:', searchQuery.value);
+  logger.info("[FileTree] 搜索:", searchQuery.value);
 };
 
 // 处理节点选择
 const handleSelect = (keys, { node }) => {
   if (node.isLeaf && node.fileId) {
     selectedKeys.value = [node.fileId];
-    emit('select', node.fileId);
+    emit("select", node.fileId);
   }
 };
 
@@ -407,33 +406,41 @@ const handleExpand = (keys) => {
 };
 
 // 监听当前文件变化
-watch(() => props.currentFileId, (newFileId) => {
-  if (newFileId) {
-    selectedKeys.value = [newFileId];
-  } else {
-    selectedKeys.value = [];
-  }
-}, { immediate: true });
+watch(
+  () => props.currentFileId,
+  (newFileId) => {
+    if (newFileId) {
+      selectedKeys.value = [newFileId];
+    } else {
+      selectedKeys.value = [];
+    }
+  },
+  { immediate: true },
+);
 
 // 初始化时展开所有文件夹
-watch(treeData, (newTreeData) => {
-  if (newTreeData.length > 0) {
-    const getAllFolderKeys = (nodes) => {
-      let keys = [];
-      nodes.forEach(node => {
-        if (!node.isLeaf) {
-          keys.push(node.key);
-          if (node.children) {
-            keys = keys.concat(getAllFolderKeys(node.children));
+watch(
+  treeData,
+  (newTreeData) => {
+    if (newTreeData.length > 0) {
+      const getAllFolderKeys = (nodes) => {
+        let keys = [];
+        nodes.forEach((node) => {
+          if (!node.isLeaf) {
+            keys.push(node.key);
+            if (node.children) {
+              keys = keys.concat(getAllFolderKeys(node.children));
+            }
           }
-        }
-      });
-      return keys;
-    };
+        });
+        return keys;
+      };
 
-    expandedKeys.value = getAllFolderKeys(newTreeData);
-  }
-}, { immediate: true });
+      expandedKeys.value = getAllFolderKeys(newTreeData);
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped>

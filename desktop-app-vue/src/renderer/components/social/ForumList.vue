@@ -3,10 +3,7 @@
     <!-- 头部 -->
     <div class="forum-header">
       <h2>社区论坛</h2>
-      <a-button
-        type="primary"
-        @click="showCreateTopicModal"
-      >
+      <a-button type="primary" @click="showCreateTopicModal">
         <PlusOutlined /> 发帖
       </a-button>
     </div>
@@ -34,14 +31,8 @@
       :confirm-loading="publishing"
       @ok="handleCreateTopic"
     >
-      <a-form
-        :model="topicForm"
-        layout="vertical"
-      >
-        <a-form-item
-          label="标题"
-          required
-        >
+      <a-form :model="topicForm" layout="vertical">
+        <a-form-item label="标题" required>
           <a-input
             v-model:value="topicForm.title"
             placeholder="请输入标题"
@@ -50,14 +41,8 @@
           />
         </a-form-item>
 
-        <a-form-item
-          label="分类"
-          required
-        >
-          <a-select
-            v-model:value="topicForm.category"
-            style="width: 100%"
-          >
+        <a-form-item label="分类" required>
+          <a-select v-model:value="topicForm.category" style="width: 100%">
             <a-select-option
               v-for="cat in categories"
               :key="cat.id"
@@ -68,10 +53,7 @@
           </a-select>
         </a-form-item>
 
-        <a-form-item
-          label="内容"
-          required
-        >
+        <a-form-item label="内容" required>
           <a-textarea
             v-model:value="topicForm.content"
             :rows="8"
@@ -113,43 +95,27 @@
               <div class="stat-value">
                 {{ topic.views_count || 0 }}
               </div>
-              <div class="stat-label">
-                浏览
-              </div>
+              <div class="stat-label">浏览</div>
             </div>
             <div class="stat-item">
               <div class="stat-value">
                 {{ topic.replies_count || 0 }}
               </div>
-              <div class="stat-label">
-                回复
-              </div>
+              <div class="stat-label">回复</div>
             </div>
             <div class="stat-item">
               <div class="stat-value">
                 {{ topic.likes_count || 0 }}
               </div>
-              <div class="stat-label">
-                点赞
-              </div>
+              <div class="stat-label">点赞</div>
             </div>
           </div>
 
           <!-- 中间：帖子信息 -->
           <div class="topic-content">
             <div class="topic-title">
-              <a-tag
-                v-if="topic.is_pinned"
-                color="red"
-              >
-                置顶
-              </a-tag>
-              <a-tag
-                v-if="topic.is_hot"
-                color="orange"
-              >
-                热门
-              </a-tag>
+              <a-tag v-if="topic.is_pinned" color="red"> 置顶 </a-tag>
+              <a-tag v-if="topic.is_hot" color="orange"> 热门 </a-tag>
               <span>{{ topic.title }}</span>
             </div>
 
@@ -158,10 +124,7 @@
                 <a-tag color="blue">
                   {{ getCategoryName(topic.category_id) }}
                 </a-tag>
-                <a-tag
-                  v-for="tag in topic.tags"
-                  :key="tag"
-                >
+                <a-tag v-for="tag in topic.tags" :key="tag">
                   {{ tag }}
                 </a-tag>
               </a-space>
@@ -173,18 +136,20 @@
                   <UserOutlined />
                 </template>
               </a-avatar>
-              <span class="topic-author">{{ topic.author_name || shortenDid(topic.author_did) }}</span>
+              <span class="topic-author">{{
+                topic.author_name || shortenDid(topic.author_did)
+              }}</span>
               <span class="topic-time">{{ formatTime(topic.created_at) }}</span>
             </div>
           </div>
 
           <!-- 右侧：最新回复 -->
-          <div
-            v-if="topic.last_reply"
-            class="topic-last-reply"
-          >
+          <div v-if="topic.last_reply" class="topic-last-reply">
             <div class="last-reply-author">
-              {{ topic.last_reply.author_name || shortenDid(topic.last_reply.author_did) }}
+              {{
+                topic.last_reply.author_name ||
+                shortenDid(topic.last_reply.author_did)
+              }}
             </div>
             <div class="last-reply-time">
               {{ formatTime(topic.last_reply.created_at) }}
@@ -193,15 +158,8 @@
         </div>
 
         <!-- 加载更多 -->
-        <div
-          v-if="hasMore"
-          class="load-more"
-        >
-          <a-button
-            type="link"
-            :loading="loadingMore"
-            @click="loadMore"
-          >
+        <div v-if="hasMore" class="load-more">
+          <a-button type="link" :loading="loadingMore" @click="loadMore">
             加载更多
           </a-button>
         </div>
@@ -215,10 +173,7 @@
       width="900px"
       :footer="null"
     >
-      <div
-        v-if="currentTopic"
-        class="topic-detail"
-      >
+      <div v-if="currentTopic" class="topic-detail">
         <!-- 帖子内容 -->
         <div class="topic-detail-content">
           <div class="topic-detail-header">
@@ -229,39 +184,36 @@
             </a-avatar>
             <div class="topic-detail-author-info">
               <div class="topic-detail-author">
-                {{ currentTopic.author_name || shortenDid(currentTopic.author_did) }}
+                {{
+                  currentTopic.author_name ||
+                  shortenDid(currentTopic.author_did)
+                }}
               </div>
               <div class="topic-detail-time">
                 {{ formatTime(currentTopic.created_at) }}
               </div>
             </div>
             <a-space>
-              <a-button
-                type="text"
-                @click="handleLikeTopic(currentTopic)"
-              >
-                <LikeOutlined :style="{ color: currentTopic.liked ? '#1890ff' : undefined }" />
+              <a-button type="text" @click="handleLikeTopic(currentTopic)">
+                <LikeOutlined
+                  :style="{ color: currentTopic.liked ? '#1890ff' : undefined }"
+                />
                 {{ currentTopic.likes_count || 0 }}
               </a-button>
-              <a-button type="text">
-                <StarOutlined /> 收藏
-              </a-button>
-              <a-button type="text">
-                <ShareAltOutlined /> 分享
-              </a-button>
+              <a-button type="text"> <StarOutlined /> 收藏 </a-button>
+              <a-button type="text"> <ShareAltOutlined /> 分享 </a-button>
             </a-space>
           </div>
 
           <div class="topic-detail-body">
+            <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
             <div v-html="renderMarkdown(currentTopic.content)" />
+            <!-- eslint-enable vue/no-v-html -->
           </div>
 
           <div class="topic-detail-tags">
             <a-space>
-              <a-tag
-                v-for="tag in currentTopic.tags"
-                :key="tag"
-              >
+              <a-tag v-for="tag in currentTopic.tags" :key="tag">
                 {{ tag }}
               </a-tag>
             </a-space>
@@ -272,11 +224,7 @@
         <div class="topic-replies">
           <h3>回复 ({{ currentTopic.replies_count || 0 }})</h3>
 
-          <div
-            v-for="reply in replies"
-            :key="reply.id"
-            class="reply-item"
-          >
+          <div v-for="reply in replies" :key="reply.id" class="reply-item">
             <a-avatar :size="36">
               <template #icon>
                 <UserOutlined />
@@ -287,7 +235,9 @@
                 <span class="reply-author">
                   {{ reply.author_name || shortenDid(reply.author_did) }}
                 </span>
-                <span class="reply-time">{{ formatTime(reply.created_at) }}</span>
+                <span class="reply-time">{{
+                  formatTime(reply.created_at)
+                }}</span>
               </div>
               <div class="reply-body">
                 {{ reply.content }}
@@ -298,7 +248,9 @@
                   size="small"
                   @click="handleLikeReply(reply)"
                 >
-                  <LikeOutlined :style="{ color: reply.liked ? '#1890ff' : undefined }" />
+                  <LikeOutlined
+                    :style="{ color: reply.liked ? '#1890ff' : undefined }"
+                  />
                   {{ reply.likes_count || 0 }}
                 </a-button>
                 <a-button
@@ -322,11 +274,7 @@
               show-count
             />
             <div class="reply-input-actions">
-              <a-button
-                type="primary"
-                :loading="replying"
-                @click="handleReply"
-              >
+              <a-button type="primary" :loading="replying" @click="handleReply">
                 发表回复
               </a-button>
             </div>
@@ -338,10 +286,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, reactive, onMounted, computed } from 'vue';
-import { message as antMessage } from 'ant-design-vue';
+import { ref, reactive, onMounted, computed } from "vue";
+import { message as antMessage } from "ant-design-vue";
 import {
   PlusOutlined,
   UserOutlined,
@@ -349,10 +297,10 @@ import {
   StarOutlined,
   ShareAltOutlined,
   CommentOutlined,
-} from '@ant-design/icons-vue';
-import { marked } from 'marked';
-import { useSocialStore } from '../../stores/social';
-import { useIdentityStore } from '../../stores/identity';
+} from "@ant-design/icons-vue";
+import { marked } from "marked";
+import { useSocialStore } from "../../stores/social";
+import { useIdentityStore } from "../../stores/identity";
 
 const socialStore = useSocialStore();
 const identityStore = useIdentityStore();
@@ -366,28 +314,28 @@ const topicDetailVisible = ref(false);
 const topics = ref([]);
 const replies = ref([]);
 const currentTopic = ref(null);
-const replyContent = ref('');
+const replyContent = ref("");
 const hasMore = ref(true);
 const currentPage = ref(1);
 const pageSize = 20;
-const selectedCategory = ref('all');
+const selectedCategory = ref("all");
 
 const currentUserDid = computed(() => identityStore.currentDid);
 
 // 分类列表
 const categories = ref([
-  { id: 'all', name: '全部' },
-  { id: 'general', name: '综合讨论' },
-  { id: 'tech', name: '技术交流' },
-  { id: 'knowledge', name: '知识分享' },
-  { id: 'qa', name: '问答求助' },
-  { id: 'announcement', name: '公告通知' },
+  { id: "all", name: "全部" },
+  { id: "general", name: "综合讨论" },
+  { id: "tech", name: "技术交流" },
+  { id: "knowledge", name: "知识分享" },
+  { id: "qa", name: "问答求助" },
+  { id: "announcement", name: "公告通知" },
 ]);
 
 const topicForm = reactive({
-  title: '',
-  category: 'general',
-  content: '',
+  title: "",
+  category: "general",
+  content: "",
   tags: [],
 });
 
@@ -401,7 +349,8 @@ const loadTopics = async (page = 1) => {
     }
 
     const result = await window.electronAPI.social.getForumTopics({
-      category: selectedCategory.value === 'all' ? undefined : selectedCategory.value,
+      category:
+        selectedCategory.value === "all" ? undefined : selectedCategory.value,
       page,
       pageSize,
     });
@@ -415,11 +364,11 @@ const loadTopics = async (page = 1) => {
       hasMore.value = result.data.hasMore || false;
       currentPage.value = page;
     } else {
-      antMessage.error(result.error || '加载帖子失败');
+      antMessage.error(result.error || "加载帖子失败");
     }
   } catch (error) {
-    logger.error('加载帖子失败:', error);
-    antMessage.error('加载帖子失败');
+    logger.error("加载帖子失败:", error);
+    antMessage.error("加载帖子失败");
   } finally {
     loading.value = false;
     loadingMore.value = false;
@@ -435,20 +384,20 @@ const selectCategory = (categoryId) => {
 // 显示发帖模态框
 const showCreateTopicModal = () => {
   createTopicModalVisible.value = true;
-  topicForm.title = '';
-  topicForm.category = 'general';
-  topicForm.content = '';
+  topicForm.title = "";
+  topicForm.category = "general";
+  topicForm.content = "";
   topicForm.tags = [];
 };
 
 // 发布帖子
 const handleCreateTopic = async () => {
   if (!topicForm.title.trim()) {
-    antMessage.warning('请输入标题');
+    antMessage.warning("请输入标题");
     return;
   }
   if (!topicForm.content.trim()) {
-    antMessage.warning('请输入内容');
+    antMessage.warning("请输入内容");
     return;
   }
 
@@ -463,15 +412,15 @@ const handleCreateTopic = async () => {
     });
 
     if (result.success) {
-      antMessage.success('发布成功');
+      antMessage.success("发布成功");
       createTopicModalVisible.value = false;
       loadTopics(1);
     } else {
-      antMessage.error(result.error || '发布失败');
+      antMessage.error(result.error || "发布失败");
     }
   } catch (error) {
-    logger.error('发布帖子失败:', error);
-    antMessage.error('发布失败');
+    logger.error("发布帖子失败:", error);
+    antMessage.error("发布失败");
   } finally {
     publishing.value = false;
   }
@@ -489,7 +438,7 @@ const viewTopic = async (topic) => {
       replies.value = result.data.replies || [];
     }
   } catch (error) {
-    logger.error('加载回复失败:', error);
+    logger.error("加载回复失败:", error);
   }
 
   // 增加浏览量
@@ -505,8 +454,8 @@ const handleLikeTopic = async (topic) => {
       topic.likes_count = (topic.likes_count || 0) + (topic.liked ? 1 : -1);
     }
   } catch (error) {
-    logger.error('点赞失败:', error);
-    antMessage.error('操作失败');
+    logger.error("点赞失败:", error);
+    antMessage.error("操作失败");
   }
 };
 
@@ -519,15 +468,15 @@ const handleLikeReply = async (reply) => {
       reply.likes_count = (reply.likes_count || 0) + (reply.liked ? 1 : -1);
     }
   } catch (error) {
-    logger.error('点赞失败:', error);
-    antMessage.error('操作失败');
+    logger.error("点赞失败:", error);
+    antMessage.error("操作失败");
   }
 };
 
 // 回复帖子
 const handleReply = async () => {
   if (!replyContent.value.trim()) {
-    antMessage.warning('请输入回复内容');
+    antMessage.warning("请输入回复内容");
     return;
   }
 
@@ -541,15 +490,16 @@ const handleReply = async () => {
 
     if (result.success) {
       replies.value.push(result.data);
-      currentTopic.value.replies_count = (currentTopic.value.replies_count || 0) + 1;
-      replyContent.value = '';
-      antMessage.success('回复成功');
+      currentTopic.value.replies_count =
+        (currentTopic.value.replies_count || 0) + 1;
+      replyContent.value = "";
+      antMessage.success("回复成功");
     } else {
-      antMessage.error(result.error || '回复失败');
+      antMessage.error(result.error || "回复失败");
     }
   } catch (error) {
-    logger.error('回复失败:', error);
-    antMessage.error('回复失败');
+    logger.error("回复失败:", error);
+    antMessage.error("回复失败");
   } finally {
     replying.value = false;
   }
@@ -567,13 +517,13 @@ const loadMore = () => {
 
 // 获取分类名称
 const getCategoryName = (categoryId) => {
-  const category = categories.value.find(c => c.id === categoryId);
-  return category ? category.name : '未知';
+  const category = categories.value.find((c) => c.id === categoryId);
+  return category ? category.name : "未知";
 };
 
 // 渲染Markdown
 const renderMarkdown = (content) => {
-  return marked(content || '');
+  return marked(content || "");
 };
 
 // 格式化时间
@@ -582,17 +532,27 @@ const formatTime = (timestamp) => {
   const now = new Date();
   const diff = now - date;
 
-  if (diff < 60000) {return '刚刚';}
-  if (diff < 3600000) {return `${Math.floor(diff / 60000)}分钟前`;}
-  if (diff < 86400000) {return `${Math.floor(diff / 3600000)}小时前`;}
-  if (diff < 604800000) {return `${Math.floor(diff / 86400000)}天前`;}
+  if (diff < 60000) {
+    return "刚刚";
+  }
+  if (diff < 3600000) {
+    return `${Math.floor(diff / 60000)}分钟前`;
+  }
+  if (diff < 86400000) {
+    return `${Math.floor(diff / 3600000)}小时前`;
+  }
+  if (diff < 604800000) {
+    return `${Math.floor(diff / 86400000)}天前`;
+  }
 
   return date.toLocaleDateString();
 };
 
 // 缩短DID显示
 const shortenDid = (did) => {
-  if (!did) {return '';}
+  if (!did) {
+    return "";
+  }
   return `${did.slice(0, 8)}...${did.slice(-6)}`;
 };
 

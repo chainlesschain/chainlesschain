@@ -7,43 +7,23 @@
         <span class="subtitle">Multimodal Collaboration</span>
       </div>
       <div class="header-right">
-        <a-button @click="handleGetStats">
-          统计
-        </a-button>
+        <a-button @click="handleGetStats"> 统计 </a-button>
       </div>
     </div>
 
     <!-- 输入区域 -->
-    <a-card
-      title="输入"
-      size="small"
-      class="input-section"
-    >
+    <a-card title="输入" size="small" class="input-section">
       <div class="modality-selector">
-        <a-radio-group
-          v-model:value="selectedModality"
-          button-style="solid"
-        >
-          <a-radio-button value="text">
-            文本
-          </a-radio-button>
-          <a-radio-button value="document">
-            文档
-          </a-radio-button>
-          <a-radio-button value="image">
-            图像
-          </a-radio-button>
-          <a-radio-button value="screen">
-            屏幕捕获
-          </a-radio-button>
+        <a-radio-group v-model:value="selectedModality" button-style="solid">
+          <a-radio-button value="text"> 文本 </a-radio-button>
+          <a-radio-button value="document"> 文档 </a-radio-button>
+          <a-radio-button value="image"> 图像 </a-radio-button>
+          <a-radio-button value="screen"> 屏幕捕获 </a-radio-button>
         </a-radio-group>
       </div>
 
       <!-- 文本输入 -->
-      <div
-        v-if="selectedModality === 'text'"
-        class="input-area"
-      >
+      <div v-if="selectedModality === 'text'" class="input-area">
         <a-textarea
           v-model:value="textInput"
           placeholder="输入文本内容..."
@@ -60,10 +40,7 @@
       </div>
 
       <!-- 文档上传 -->
-      <div
-        v-if="selectedModality === 'document'"
-        class="input-area"
-      >
+      <div v-if="selectedModality === 'document'" class="input-area">
         <a-upload-dragger
           :before-upload="handleDocumentUpload"
           :show-upload-list="false"
@@ -72,20 +49,13 @@
           <p class="ant-upload-drag-icon">
             <InboxOutlined />
           </p>
-          <p class="ant-upload-text">
-            点击或拖拽上传文档
-          </p>
-          <p class="ant-upload-hint">
-            支持 PDF、Word、TXT、Markdown
-          </p>
+          <p class="ant-upload-text">点击或拖拽上传文档</p>
+          <p class="ant-upload-hint">支持 PDF、Word、TXT、Markdown</p>
         </a-upload-dragger>
       </div>
 
       <!-- 图像上传 -->
-      <div
-        v-if="selectedModality === 'image'"
-        class="input-area"
-      >
+      <div v-if="selectedModality === 'image'" class="input-area">
         <a-upload-dragger
           :before-upload="handleImageUpload"
           :show-upload-list="false"
@@ -94,20 +64,13 @@
           <p class="ant-upload-drag-icon">
             <InboxOutlined />
           </p>
-          <p class="ant-upload-text">
-            点击或拖拽上传图像
-          </p>
-          <p class="ant-upload-hint">
-            支持 PNG、JPG、GIF、WebP
-          </p>
+          <p class="ant-upload-text">点击或拖拽上传图像</p>
+          <p class="ant-upload-hint">支持 PNG、JPG、GIF、WebP</p>
         </a-upload-dragger>
       </div>
 
       <!-- 屏幕捕获 -->
-      <div
-        v-if="selectedModality === 'screen'"
-        class="input-area"
-      >
+      <div v-if="selectedModality === 'screen'" class="input-area">
         <a-button
           type="primary"
           :loading="store.loading"
@@ -118,10 +81,7 @@
       </div>
 
       <!-- 已添加的输入列表 -->
-      <div
-        v-if="pendingInputs.length > 0"
-        class="pending-inputs"
-      >
+      <div v-if="pendingInputs.length > 0" class="pending-inputs">
         <h4>待融合输入 ({{ pendingInputs.length }})</h4>
         <a-tag
           v-for="(input, idx) in pendingInputs"
@@ -156,14 +116,13 @@
           :status="store.tokenBudgetPercent > 90 ? 'exception' : 'active'"
           style="flex: 1; margin-left: 12px"
         />
-        <span class="token-info">{{ store.tokenBudgetUsed }} / {{ store.tokenBudgetTotal }}</span>
+        <span class="token-info"
+          >{{ store.tokenBudgetUsed }} / {{ store.tokenBudgetTotal }}</span
+        >
       </div>
       <div class="session-inputs">
         <h4>融合内容 ({{ store.currentSession.inputs?.length || 0 }} 项)</h4>
-        <a-tag
-          v-for="input in store.currentSession.inputs"
-          :key="input.id"
-        >
+        <a-tag v-for="input in store.currentSession.inputs" :key="input.id">
           {{ input.modality }} ({{ input.tokenCost }} tokens)
         </a-tag>
       </div>
@@ -178,22 +137,11 @@
     >
       <div class="output-format">
         <span>输出格式:</span>
-        <a-radio-group
-          v-model:value="outputFormat"
-          style="margin-left: 12px"
-        >
-          <a-radio-button value="markdown">
-            Markdown
-          </a-radio-button>
-          <a-radio-button value="html">
-            HTML
-          </a-radio-button>
-          <a-radio-button value="echarts">
-            ECharts
-          </a-radio-button>
-          <a-radio-button value="ppt">
-            PPT
-          </a-radio-button>
+        <a-radio-group v-model:value="outputFormat" style="margin-left: 12px">
+          <a-radio-button value="markdown"> Markdown </a-radio-button>
+          <a-radio-button value="html"> HTML </a-radio-button>
+          <a-radio-button value="echarts"> ECharts </a-radio-button>
+          <a-radio-button value="ppt"> PPT </a-radio-button>
         </a-radio-group>
         <a-button
           type="primary"
@@ -206,19 +154,15 @@
       </div>
 
       <!-- 渲染区 -->
-      <div
-        v-if="latestArtifact"
-        class="render-area"
-      >
+      <div v-if="latestArtifact" class="render-area">
+        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
         <div
           v-if="outputFormat === 'markdown' || outputFormat === 'html'"
           class="rendered-content"
-          v-html="latestArtifact.content"
+          v-html="safeHtml(latestArtifact.content)"
         />
-        <pre
-          v-else
-          class="raw-content"
-        >{{ latestArtifact.content }}</pre>
+        <!-- eslint-enable vue/no-v-html -->
+        <pre v-else class="raw-content">{{ latestArtifact.content }}</pre>
       </div>
     </a-card>
 
@@ -229,10 +173,7 @@
       size="small"
       class="artifacts-section"
     >
-      <a-list
-        :data-source="store.artifacts"
-        size="small"
-      >
+      <a-list :data-source="store.artifacts" size="small">
         <template #renderItem="{ item }">
           <a-list-item>
             <a-list-item-meta
@@ -251,6 +192,7 @@ import { ref, computed, onMounted } from "vue";
 import { InboxOutlined } from "@ant-design/icons-vue";
 import { message } from "ant-design-vue";
 import { useMultimodalStore } from "../stores/multimodal";
+import { safeHtml } from "@/utils/sanitizeHtml";
 
 const store = useMultimodalStore();
 

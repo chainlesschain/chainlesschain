@@ -9,10 +9,7 @@
         >
           <template #title>
             <a-space>
-              <a-button
-                type="link"
-                @click="goBack"
-              >
+              <a-button type="link" @click="goBack">
                 <ArrowLeftOutlined />
               </a-button>
               <span>{{ feedTitle }}</span>
@@ -22,27 +19,16 @@
           <template #extra>
             <a-space>
               <a-dropdown>
-                <a-button size="small">
-                  <FilterOutlined /> 筛选
-                </a-button>
+                <a-button size="small"> <FilterOutlined /> 筛选 </a-button>
                 <template #overlay>
                   <a-menu @click="handleFilterChange">
-                    <a-menu-item key="all">
-                      全部
-                    </a-menu-item>
-                    <a-menu-item key="unread">
-                      未读
-                    </a-menu-item>
-                    <a-menu-item key="starred">
-                      收藏
-                    </a-menu-item>
+                    <a-menu-item key="all"> 全部 </a-menu-item>
+                    <a-menu-item key="unread"> 未读 </a-menu-item>
+                    <a-menu-item key="starred"> 收藏 </a-menu-item>
                   </a-menu>
                 </template>
               </a-dropdown>
-              <a-button
-                size="small"
-                @click="loadArticles"
-              >
+              <a-button size="small" @click="loadArticles">
                 <ReloadOutlined />
               </a-button>
             </a-space>
@@ -56,7 +42,11 @@
           >
             <template #renderItem="{ item }">
               <a-list-item
-                :class="{ 'article-item': true, 'article-read': item.is_read, 'article-selected': selectedArticle?.id === item.id }"
+                :class="{
+                  'article-item': true,
+                  'article-read': item.is_read,
+                  'article-selected': selectedArticle?.id === item.id,
+                }"
                 style="cursor: pointer"
                 @click="selectArticle(item)"
               >
@@ -67,7 +57,11 @@
                         v-if="item.is_starred"
                         style="color: #faad14"
                       />
-                      <span :style="{ fontWeight: item.is_read ? 'normal' : 'bold' }">
+                      <span
+                        :style="{
+                          fontWeight: item.is_read ? 'normal' : 'bold',
+                        }"
+                      >
                         {{ item.title }}
                       </span>
                     </a-space>
@@ -104,12 +98,10 @@
                     <UserOutlined /> {{ selectedArticle.author }}
                   </span>
                   <span>
-                    <ClockCircleOutlined /> {{ formatTime(selectedArticle.pub_date) }}
+                    <ClockCircleOutlined />
+                    {{ formatTime(selectedArticle.pub_date) }}
                   </span>
-                  <a-tag
-                    v-for="cat in selectedArticle.categories"
-                    :key="cat"
-                  >
+                  <a-tag v-for="cat in selectedArticle.categories" :key="cat">
                     {{ cat }}
                   </a-tag>
                 </a-space>
@@ -119,10 +111,14 @@
 
           <template #extra>
             <a-space>
-              <a-tooltip :title="selectedArticle.is_starred ? '取消收藏' : '收藏'">
+              <a-tooltip
+                :title="selectedArticle.is_starred ? '取消收藏' : '收藏'"
+              >
                 <a-button
                   type="text"
-                  :style="{ color: selectedArticle.is_starred ? '#faad14' : undefined }"
+                  :style="{
+                    color: selectedArticle.is_starred ? '#faad14' : undefined,
+                  }"
                   @click="toggleStar"
                 >
                   <StarFilled v-if="selectedArticle.is_starred" />
@@ -131,19 +127,13 @@
               </a-tooltip>
 
               <a-tooltip title="保存到知识库">
-                <a-button
-                  type="text"
-                  @click="saveToKnowledge"
-                >
+                <a-button type="text" @click="saveToKnowledge">
                   <SaveOutlined />
                 </a-button>
               </a-tooltip>
 
               <a-tooltip title="在浏览器中打开">
-                <a-button
-                  type="text"
-                  @click="openInBrowser"
-                >
+                <a-button type="text" @click="openInBrowser">
                   <LinkOutlined />
                 </a-button>
               </a-tooltip>
@@ -171,18 +161,14 @@
           </template>
 
           <!-- 文章内容 -->
-          <div
-            class="article-content"
-            v-html="sanitizedContent"
-          />
+          <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+          <div class="article-content" v-html="sanitizedContent" />
+          <!-- eslint-enable vue/no-v-html -->
 
           <!-- 原文链接 -->
           <a-divider />
           <div class="article-footer">
-            <a
-              :href="selectedArticle.link"
-              target="_blank"
-            >
+            <a :href="selectedArticle.link" target="_blank">
               查看原文 <LinkOutlined />
             </a>
           </div>
@@ -199,15 +185,15 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
-import DOMPurify from 'dompurify';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import 'dayjs/locale/zh-cn';
+import { ref, computed, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { message } from "ant-design-vue";
+import DOMPurify from "dompurify";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/zh-cn";
 import {
   ArrowLeftOutlined,
   FilterOutlined,
@@ -222,10 +208,10 @@ import {
   InboxOutlined,
   UserOutlined,
   ClockCircleOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 dayjs.extend(relativeTime);
-dayjs.locale('zh-cn');
+dayjs.locale("zh-cn");
 
 const route = useRoute();
 const router = useRouter();
@@ -233,35 +219,63 @@ const router = useRouter();
 // 状态
 const loading = ref(false);
 const feedId = ref(route.params.feedId);
-const feedTitle = ref('');
+const feedTitle = ref("");
 const articles = ref([]);
 const selectedArticle = ref(null);
-const filter = ref('all');
+const filter = ref("all");
 
 // 计算属性
 const sanitizedContent = computed(() => {
-  if (!selectedArticle.value) {return '';}
+  if (!selectedArticle.value) {
+    return "";
+  }
 
-  const content = selectedArticle.value.content || selectedArticle.value.description;
+  const content =
+    selectedArticle.value.content || selectedArticle.value.description;
   return DOMPurify.sanitize(content, {
     ALLOWED_TAGS: [
-      'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'code', 'pre',
-      'table', 'thead', 'tbody', 'tr', 'th', 'td'
+      "p",
+      "br",
+      "strong",
+      "em",
+      "u",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "ul",
+      "ol",
+      "li",
+      "a",
+      "img",
+      "blockquote",
+      "code",
+      "pre",
+      "table",
+      "thead",
+      "tbody",
+      "tr",
+      "th",
+      "td",
     ],
-    ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class']
+    ALLOWED_ATTR: ["href", "src", "alt", "title", "class"],
   });
 });
 
 // 方法
 const loadFeed = async () => {
   try {
-    const result = await window.electron.ipcRenderer.invoke('rss:get-feed', feedId.value);
+    const result = await window.electron.ipcRenderer.invoke(
+      "rss:get-feed",
+      feedId.value,
+    );
     if (result.success) {
       feedTitle.value = result.feed.title;
     }
   } catch (error) {
-    message.error('加载订阅源失败: ' + error.message);
+    message.error("加载订阅源失败: " + error.message);
   }
 };
 
@@ -270,18 +284,21 @@ const loadArticles = async () => {
   try {
     const options = { feedId: feedId.value };
 
-    if (filter.value === 'unread') {
+    if (filter.value === "unread") {
       options.isRead = false;
-    } else if (filter.value === 'starred') {
+    } else if (filter.value === "starred") {
       options.isStarred = true;
     }
 
-    const result = await window.electron.ipcRenderer.invoke('rss:get-items', options);
+    const result = await window.electron.ipcRenderer.invoke(
+      "rss:get-items",
+      options,
+    );
     if (result.success) {
       articles.value = result.items;
     }
   } catch (error) {
-    message.error('加载文章失败: ' + error.message);
+    message.error("加载文章失败: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -293,97 +310,116 @@ const selectArticle = async (article) => {
   // 标记为已读
   if (!article.is_read) {
     try {
-      await window.electron.ipcRenderer.invoke('rss:mark-as-read', article.id);
+      await window.electron.ipcRenderer.invoke("rss:mark-as-read", article.id);
       article.is_read = 1;
     } catch (error) {
-      logger.error('标记已读失败:', error);
+      logger.error("标记已读失败:", error);
     }
   }
 };
 
 const toggleStar = async () => {
-  if (!selectedArticle.value) {return;}
+  if (!selectedArticle.value) {
+    return;
+  }
 
   const newStarred = !selectedArticle.value.is_starred;
 
   try {
     await window.electron.ipcRenderer.invoke(
-      'rss:mark-as-starred',
+      "rss:mark-as-starred",
       selectedArticle.value.id,
-      newStarred
+      newStarred,
     );
 
     selectedArticle.value.is_starred = newStarred ? 1 : 0;
 
     // 更新列表中的状态
-    const article = articles.value.find(a => a.id === selectedArticle.value.id);
+    const article = articles.value.find(
+      (a) => a.id === selectedArticle.value.id,
+    );
     if (article) {
       article.is_starred = newStarred ? 1 : 0;
     }
 
-    message.success(newStarred ? '已收藏' : '已取消收藏');
+    message.success(newStarred ? "已收藏" : "已取消收藏");
   } catch (error) {
-    message.error('操作失败: ' + error.message);
+    message.error("操作失败: " + error.message);
   }
 };
 
 const saveToKnowledge = async () => {
-  if (!selectedArticle.value) {return;}
+  if (!selectedArticle.value) {
+    return;
+  }
 
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'rss:save-to-knowledge',
-      selectedArticle.value.id
+      "rss:save-to-knowledge",
+      selectedArticle.value.id,
     );
 
     if (result.success) {
-      message.success('已保存到知识库');
+      message.success("已保存到知识库");
     }
   } catch (error) {
-    message.error('保存失败: ' + error.message);
+    message.error("保存失败: " + error.message);
   }
 };
 
 const openInBrowser = () => {
   if (selectedArticle.value?.link) {
-    window.open(selectedArticle.value.link, '_blank');
+    window.open(selectedArticle.value.link, "_blank");
   }
 };
 
 const handleMenuClick = async ({ key }) => {
-  if (!selectedArticle.value) {return;}
+  if (!selectedArticle.value) {
+    return;
+  }
 
   try {
     switch (key) {
-      case 'markRead':
-        await window.electron.ipcRenderer.invoke('rss:mark-as-read', selectedArticle.value.id);
+      case "markRead":
+        await window.electron.ipcRenderer.invoke(
+          "rss:mark-as-read",
+          selectedArticle.value.id,
+        );
         selectedArticle.value.is_read = 1;
-        message.success('已标记为已读');
+        message.success("已标记为已读");
         break;
 
-      case 'markUnread': {
-        await window.electron.ipcRenderer.invoke('rss:mark-as-unread', selectedArticle.value.id);
+      case "markUnread": {
+        await window.electron.ipcRenderer.invoke(
+          "rss:mark-as-unread",
+          selectedArticle.value.id,
+        );
         selectedArticle.value.is_read = 0;
 
         // 更新列表中的状态
-        const article = articles.value.find(a => a.id === selectedArticle.value.id);
+        const article = articles.value.find(
+          (a) => a.id === selectedArticle.value.id,
+        );
         if (article) {
           article.is_read = 0;
         }
 
-        message.success('已标记为未读');
+        message.success("已标记为未读");
         break;
       }
 
-      case 'archive':
-        await window.electron.ipcRenderer.invoke('rss:archive-item', selectedArticle.value.id);
-        message.success('已归档');
+      case "archive":
+        await window.electron.ipcRenderer.invoke(
+          "rss:archive-item",
+          selectedArticle.value.id,
+        );
+        message.success("已归档");
         await loadArticles();
         selectedArticle.value = null;
         break;
     }
   } catch (error) {
-    message.error('操作失败: ' + error.message);
+    message.error("操作失败: " + error.message);
   }
 };
 
@@ -482,7 +518,7 @@ onMounted(() => {
   background-color: #f5f5f5;
   padding: 2px 6px;
   border-radius: 3px;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
 }
 
 .article-content :deep(blockquote) {

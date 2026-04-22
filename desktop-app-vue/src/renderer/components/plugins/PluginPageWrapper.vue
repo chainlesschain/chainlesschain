@@ -1,29 +1,20 @@
 <template>
   <div class="plugin-page-wrapper">
     <!-- 加载状态 -->
-    <div
-      v-if="loading"
-      class="plugin-page-loading"
-    >
+    <div v-if="loading" class="plugin-page-loading">
       <a-spin size="large" />
       <p>{{ t("plugin.loading") }}</p>
     </div>
 
     <!-- 错误状态 -->
-    <div
-      v-else-if="error"
-      class="plugin-page-error"
-    >
+    <div v-else-if="error" class="plugin-page-error">
       <a-result
         status="error"
         :title="t('plugin.loadError')"
         :sub-title="error"
       >
         <template #extra>
-          <a-button
-            type="primary"
-            @click="reload"
-          >
+          <a-button type="primary" @click="reload">
             {{ t("common.retry") }}
           </a-button>
           <a-button @click="goBack">
@@ -34,15 +25,9 @@
     </div>
 
     <!-- 插件页面内容 -->
-    <div
-      v-else
-      class="plugin-page-content"
-    >
+    <div v-else class="plugin-page-content">
       <!-- 页面头部 -->
-      <div
-        v-if="showHeader"
-        class="plugin-page-header"
-      >
+      <div v-if="showHeader" class="plugin-page-header">
         <div class="header-left">
           <component
             :is="getIconComponent(pageConfig?.icon)"
@@ -51,20 +36,13 @@
           <h2 class="page-title">
             {{ pageConfig?.title || pluginName }}
           </h2>
-          <a-tag
-            v-if="pluginInfo"
-            color="blue"
-            size="small"
-          >
+          <a-tag v-if="pluginInfo" color="blue" size="small">
             {{ pluginInfo.name }} v{{ pluginInfo.version }}
           </a-tag>
         </div>
         <div class="header-right">
           <a-tooltip :title="t('plugin.settings')">
-            <a-button
-              type="text"
-              @click="openPluginSettings"
-            >
+            <a-button type="text" @click="openPluginSettings">
               <SettingOutlined />
             </a-button>
           </a-tooltip>
@@ -72,10 +50,7 @@
       </div>
 
       <!-- 插件渲染的内容区域 -->
-      <div
-        ref="contentAreaRef"
-        class="plugin-content-area"
-      >
+      <div ref="contentAreaRef" class="plugin-content-area">
         <!-- 使用 iframe 沙箱渲染不安全的插件内容 -->
         <iframe
           v-if="renderMode === 'iframe'"
@@ -95,17 +70,16 @@
         />
 
         <!-- 使用 HTML 渲染（静态内容） -->
+        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
         <div
           v-else-if="renderMode === 'html' && htmlContent"
           class="plugin-html-content"
           v-html="sanitizedHtml"
         />
+        <!-- eslint-enable vue/no-v-html -->
 
         <!-- 默认占位 -->
-        <div
-          v-else
-          class="plugin-placeholder"
-        >
+        <div v-else class="plugin-placeholder">
           <a-empty :description="t('plugin.noContent')">
             <template #image>
               <AppstoreOutlined style="font-size: 64px; color: #bfbfbf" />
@@ -118,7 +92,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
 import {
   ref,
@@ -207,7 +181,9 @@ const getIconComponent = (iconName) => {
 
 // 净化 HTML 内容
 const sanitizedHtml = computed(() => {
-  if (!htmlContent.value) {return "";}
+  if (!htmlContent.value) {
+    return "";
+  }
   return DOMPurify.sanitize(htmlContent.value, {
     ALLOWED_TAGS: [
       "div",
@@ -354,7 +330,9 @@ function onIframeLoad() {
 
 // 设置 iframe 通信
 function setupIframeCommunication() {
-  if (!iframeRef.value) {return;}
+  if (!iframeRef.value) {
+    return;
+  }
 
   // 监听来自 iframe 的消息
   window.addEventListener("message", handleIframeMessage);
@@ -363,7 +341,9 @@ function setupIframeCommunication() {
 // 处理 iframe 消息
 function handleIframeMessage(event) {
   // 验证消息来源
-  if (event.source !== iframeRef.value?.contentWindow) {return;}
+  if (event.source !== iframeRef.value?.contentWindow) {
+    return;
+  }
 
   const { type, payload } = event.data || {};
 

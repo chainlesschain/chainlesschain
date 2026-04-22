@@ -89,7 +89,9 @@
               :key="index"
               :header="faq.question"
             >
+              <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
               <p v-html="safeHtml(faq.answer)" />
+              <!-- eslint-enable vue/no-v-html -->
             </a-collapse-panel>
           </a-collapse>
         </div>
@@ -131,7 +133,9 @@
             </template>
             返回
           </a-button>
+          <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
           <div class="topic-content" v-html="topicContent" />
+          <!-- eslint-enable vue/no-v-html -->
         </div>
 
         <!-- 联系支持 -->

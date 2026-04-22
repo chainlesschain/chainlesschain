@@ -1,10 +1,7 @@
 <template>
   <div class="conversation-history-wrapper">
     <!-- 对话列表 -->
-    <div
-      ref="messageListRef"
-      class="message-list"
-    >
+    <div ref="messageListRef" class="message-list">
       <div
         v-for="(message, index) in messages"
         :key="message.id || index"
@@ -23,7 +20,9 @@
           <div class="message-content">
             <div class="message-header">
               <span class="message-author">你</span>
-              <span class="message-time">{{ formatTime(message.created_at) }}</span>
+              <span class="message-time">{{
+                formatTime(message.created_at)
+              }}</span>
             </div>
             <div class="message-text">
               {{ message.content }}
@@ -49,10 +48,7 @@
         <!-- AI助手消息 -->
         <template v-else-if="message.role === 'assistant'">
           <div class="message-avatar">
-            <a-avatar
-              :size="36"
-              style="background: #1677FF;"
-            >
+            <a-avatar :size="36" style="background: #1677ff">
               <template #icon>
                 <RobotOutlined />
               </template>
@@ -61,15 +57,16 @@
           <div class="message-content">
             <div class="message-header">
               <span class="message-author">AI助手</span>
-              <span class="message-time">{{ formatTime(message.created_at) }}</span>
+              <span class="message-time">{{
+                formatTime(message.created_at)
+              }}</span>
             </div>
 
             <!-- 消息文本 -->
-            <div
-              v-if="message.content"
-              class="message-text ai-response"
-            >
+            <div v-if="message.content" class="message-text ai-response">
+              <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
               <div v-html="renderMarkdown(message.content)" />
+              <!-- eslint-enable vue/no-v-html -->
             </div>
 
             <!-- Tool Calls (步骤展示) -->
@@ -112,10 +109,7 @@
                       {{ formatFileSize(file.size) }}
                     </div>
                   </div>
-                  <a-button
-                    type="link"
-                    size="small"
-                  >
+                  <a-button type="link" size="small">
                     打开
                     <ArrowRightOutlined />
                   </a-button>
@@ -141,16 +135,10 @@
                 <ReloadOutlined />
                 重新生成
               </a-button>
-              <a-button
-                type="text"
-                size="small"
-              >
+              <a-button type="text" size="small">
                 <LikeOutlined />
               </a-button>
-              <a-button
-                type="text"
-                size="small"
-              >
+              <a-button type="text" size="small">
                 <DislikeOutlined />
               </a-button>
             </div>
@@ -167,29 +155,16 @@
       </div>
 
       <!-- 加载更多 -->
-      <div
-        v-if="hasMore"
-        class="load-more"
-      >
-        <a-button
-          type="link"
-          :loading="loadingMore"
-          @click="handleLoadMore"
-        >
+      <div v-if="hasMore" class="load-more">
+        <a-button type="link" :loading="loadingMore" @click="handleLoadMore">
           加载更多历史消息
         </a-button>
       </div>
 
       <!-- AI输入中状态 -->
-      <div
-        v-if="isTyping"
-        class="typing-indicator"
-      >
+      <div v-if="isTyping" class="typing-indicator">
         <div class="message-avatar">
-          <a-avatar
-            :size="36"
-            style="background: #1677FF;"
-          >
+          <a-avatar :size="36" style="background: #1677ff">
             <template #icon>
               <RobotOutlined />
             </template>
@@ -218,10 +193,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
-import { message as antMessage } from 'ant-design-vue';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
+import { message as antMessage } from "ant-design-vue";
 import {
   UserOutlined,
   RobotOutlined,
@@ -239,36 +214,36 @@ import {
   FileWordOutlined,
   FileExcelOutlined,
   CodeOutlined,
-} from '@ant-design/icons-vue';
-import StepDisplay from './StepDisplay.vue';
-import { marked } from 'marked';
+} from "@ant-design/icons-vue";
+import StepDisplay from "./StepDisplay.vue";
+import { marked } from "marked";
 
 const props = defineProps({
   messages: {
     type: Array,
     required: true,
-    default: () => []
+    default: () => [],
   },
   hasMore: {
     type: Boolean,
-    default: false
+    default: false,
   },
   isTyping: {
     type: Boolean,
-    default: false
+    default: false,
   },
   autoScroll: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 });
 
 const emit = defineEmits([
-  'load-more',
-  'regenerate',
-  'copy',
-  'view-attachment',
-  'open-file',
+  "load-more",
+  "regenerate",
+  "copy",
+  "view-attachment",
+  "open-file",
 ]);
 
 // 响应式状态
@@ -285,34 +260,44 @@ marked.setOptions({
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) {return '';}
+  if (!timestamp) {
+    return "";
+  }
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;
 
   // 小于1分钟
-  if (diff < 60000) {return '刚刚';}
+  if (diff < 60000) {
+    return "刚刚";
+  }
   // 小于1小时
-  if (diff < 3600000) {return `${Math.floor(diff / 60000)}分钟前`;}
+  if (diff < 3600000) {
+    return `${Math.floor(diff / 60000)}分钟前`;
+  }
   // 小于1天
-  if (diff < 86400000) {return `${Math.floor(diff / 3600000)}小时前`;}
+  if (diff < 86400000) {
+    return `${Math.floor(diff / 3600000)}小时前`;
+  }
 
   // 超过1天，显示具体时间
-  return date.toLocaleString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
+  return date.toLocaleString("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
 // 渲染Markdown
 const renderMarkdown = (content) => {
-  if (!content) {return '';}
+  if (!content) {
+    return "";
+  }
   try {
     return marked(content);
   } catch (error) {
-    logger.error('Markdown render error:', error);
+    logger.error("Markdown render error:", error);
     return content;
   }
 };
@@ -321,9 +306,9 @@ const renderMarkdown = (content) => {
 const parseToolCall = (toolCall) => {
   return {
     id: toolCall.id || `tool-${Date.now()}`,
-    name: toolCall.function?.name || toolCall.tool || '执行操作',
-    title: toolCall.function?.name || toolCall.tool || '执行操作',
-    status: toolCall.status || 'completed',
+    name: toolCall.function?.name || toolCall.tool || "执行操作",
+    title: toolCall.function?.name || toolCall.tool || "执行操作",
+    status: toolCall.status || "completed",
     tool: toolCall.function?.name || toolCall.tool,
     params: toolCall.function?.arguments || toolCall.params || {},
     result: toolCall.result,
@@ -335,39 +320,45 @@ const parseToolCall = (toolCall) => {
 // 获取文件图标
 const getFileIcon = (fileType) => {
   const iconMap = {
-    'text': FileTextOutlined,
-    'image': FileImageOutlined,
-    'pdf': FilePdfOutlined,
-    'word': FileWordOutlined,
-    'excel': FileExcelOutlined,
-    'code': CodeOutlined,
+    text: FileTextOutlined,
+    image: FileImageOutlined,
+    pdf: FilePdfOutlined,
+    word: FileWordOutlined,
+    excel: FileExcelOutlined,
+    code: CodeOutlined,
   };
   return iconMap[fileType] || FileOutlined;
 };
 
 // 格式化文件大小
 const formatFileSize = (bytes) => {
-  if (!bytes || bytes === 0) {return '0 B';}
+  if (!bytes || bytes === 0) {
+    return "0 B";
+  }
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 };
 
 // 滚动到底部
 const scrollToBottom = (smooth = true) => {
-  if (!messageListRef.value) {return;}
+  if (!messageListRef.value) {
+    return;
+  }
   nextTick(() => {
     messageListRef.value.scrollTo({
       top: messageListRef.value.scrollHeight,
-      behavior: smooth ? 'smooth' : 'auto'
+      behavior: smooth ? "smooth" : "auto",
     });
   });
 };
 
 // 处理滚动事件
 const handleScroll = () => {
-  if (!messageListRef.value) {return;}
+  if (!messageListRef.value) {
+    return;
+  }
 
   const { scrollTop, scrollHeight, clientHeight } = messageListRef.value;
   const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
@@ -381,17 +372,18 @@ const handleLoadMore = async () => {
   lastScrollHeight.value = messageListRef.value.scrollHeight;
 
   try {
-    emit('load-more');
+    emit("load-more");
   } catch (error) {
-    logger.error('Load more failed:', error);
-    antMessage.error('加载失败');
+    logger.error("Load more failed:", error);
+    antMessage.error("加载失败");
   } finally {
     loadingMore.value = false;
     // 保持滚动位置
     nextTick(() => {
       if (messageListRef.value) {
         const newScrollHeight = messageListRef.value.scrollHeight;
-        messageListRef.value.scrollTop = newScrollHeight - lastScrollHeight.value;
+        messageListRef.value.scrollTop =
+          newScrollHeight - lastScrollHeight.value;
       }
     });
   }
@@ -401,47 +393,53 @@ const handleLoadMore = async () => {
 const handleCopyMessage = async (msg) => {
   try {
     await navigator.clipboard.writeText(msg.content);
-    antMessage.success('已复制到剪贴板');
-    emit('copy', msg);
+    antMessage.success("已复制到剪贴板");
+    emit("copy", msg);
   } catch (error) {
-    logger.error('Copy failed:', error);
-    antMessage.error('复制失败');
+    logger.error("Copy failed:", error);
+    antMessage.error("复制失败");
   }
 };
 
 // 重新生成回复
 const handleRegenerateResponse = (msg) => {
-  emit('regenerate', msg);
+  emit("regenerate", msg);
 };
 
 // 查看附件
 const handleViewAttachment = (file) => {
-  emit('view-attachment', file);
+  emit("view-attachment", file);
 };
 
 // 打开文件
 const handleOpenFile = (file) => {
-  emit('open-file', file);
+  emit("open-file", file);
 };
 
 // 监听消息变化，自动滚动到底部
-watch(() => props.messages.length, () => {
-  if (props.autoScroll) {
-    nextTick(() => scrollToBottom());
-  }
-});
+watch(
+  () => props.messages.length,
+  () => {
+    if (props.autoScroll) {
+      nextTick(() => scrollToBottom());
+    }
+  },
+);
 
 // 监听输入状态
-watch(() => props.isTyping, (newVal) => {
-  if (newVal && props.autoScroll) {
-    nextTick(() => scrollToBottom());
-  }
-});
+watch(
+  () => props.isTyping,
+  (newVal) => {
+    if (newVal && props.autoScroll) {
+      nextTick(() => scrollToBottom());
+    }
+  },
+);
 
 // 组件挂载
 onMounted(() => {
   if (messageListRef.value) {
-    messageListRef.value.addEventListener('scroll', handleScroll);
+    messageListRef.value.addEventListener("scroll", handleScroll);
     scrollToBottom(false);
   }
 });
@@ -449,7 +447,7 @@ onMounted(() => {
 // 组件卸载
 onUnmounted(() => {
   if (messageListRef.value) {
-    messageListRef.value.removeEventListener('scroll', handleScroll);
+    messageListRef.value.removeEventListener("scroll", handleScroll);
   }
 });
 
@@ -469,7 +467,7 @@ defineExpose({
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #FFFFFF;
+  background: #ffffff;
 }
 
 .message-list {
@@ -485,16 +483,16 @@ defineExpose({
   }
 
   &::-webkit-scrollbar-thumb {
-    background: #D1D5DB;
+    background: #d1d5db;
     border-radius: 4px;
 
     &:hover {
-      background: #9CA3AF;
+      background: #9ca3af;
     }
   }
 
   &::-webkit-scrollbar-track {
-    background: #F9FAFB;
+    background: #f9fafb;
   }
 }
 
@@ -506,15 +504,15 @@ defineExpose({
 
   &.message-user {
     .message-content {
-      background: #F0F5FF;
-      border: 1px solid #D6E4FF;
+      background: #f0f5ff;
+      border: 1px solid #d6e4ff;
     }
   }
 
   &.message-assistant {
     .message-content {
-      background: #FFFFFF;
-      border: 1px solid #E5E7EB;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
     }
   }
 }
@@ -545,7 +543,7 @@ defineExpose({
 
 .message-time {
   font-size: 12px;
-  color: #9CA3AF;
+  color: #9ca3af;
 }
 
 .message-text {
@@ -564,16 +562,16 @@ defineExpose({
     }
 
     :deep(code) {
-      background: #F3F4F6;
+      background: #f3f4f6;
       padding: 2px 6px;
       border-radius: 4px;
-      font-family: 'Courier New', monospace;
+      font-family: "Courier New", monospace;
       font-size: 13px;
     }
 
     :deep(pre) {
-      background: #1F2937;
-      color: #E5E7EB;
+      background: #1f2937;
+      color: #e5e7eb;
       padding: 12px;
       border-radius: 6px;
       overflow-x: auto;
@@ -600,17 +598,17 @@ defineExpose({
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 6px;
   font-size: 13px;
-  color: #1677FF;
+  color: #1677ff;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: #F0F5FF;
-    border-color: #1677FF;
+    background: #f0f5ff;
+    border-color: #1677ff;
   }
 }
 
@@ -623,7 +621,7 @@ defineExpose({
 
 .message-files {
   margin-top: 16px;
-  border-top: 1px solid #E5E7EB;
+  border-top: 1px solid #e5e7eb;
   padding-top: 16px;
 }
 
@@ -648,21 +646,21 @@ defineExpose({
   align-items: center;
   gap: 12px;
   padding: 12px;
-  background: #F9FAFB;
-  border: 1px solid #E5E7EB;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: #F0F5FF;
-    border-color: #1677FF;
+    background: #f0f5ff;
+    border-color: #1677ff;
   }
 }
 
 .file-icon {
   font-size: 24px;
-  color: #1677FF;
+  color: #1677ff;
   flex-shrink: 0;
 }
 
@@ -682,7 +680,7 @@ defineExpose({
 
 .file-meta {
   font-size: 12px;
-  color: #6B7280;
+  color: #6b7280;
   margin-top: 2px;
 }
 
@@ -691,7 +689,7 @@ defineExpose({
   gap: 8px;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #F3F4F6;
+  border-top: 1px solid #f3f4f6;
 }
 
 .system-message {
@@ -700,11 +698,11 @@ defineExpose({
   justify-content: center;
   gap: 8px;
   padding: 12px;
-  background: #FFF7ED;
-  border: 1px solid #FED7AA;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
   border-radius: 8px;
   font-size: 13px;
-  color: #92400E;
+  color: #92400e;
   text-align: center;
 }
 
@@ -724,14 +722,14 @@ defineExpose({
   align-items: center;
   gap: 6px;
   padding: 16px 20px;
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 12px;
 
   span {
     width: 8px;
     height: 8px;
-    background: #9CA3AF;
+    background: #9ca3af;
     border-radius: 50%;
     animation: typing 1.4s infinite;
 
@@ -757,7 +755,9 @@ defineExpose({
 }
 
 @keyframes typing {
-  0%, 60%, 100% {
+  0%,
+  60%,
+  100% {
     transform: translateY(0);
     opacity: 0.4;
   }
