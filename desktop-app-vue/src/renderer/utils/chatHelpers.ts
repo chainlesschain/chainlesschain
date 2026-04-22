@@ -5,6 +5,7 @@
 
 import { logger } from "@/utils/logger";
 import { marked } from "marked";
+import { safeHtml } from "./sanitizeHtml";
 
 // ==================== 类型定义 ====================
 
@@ -131,9 +132,10 @@ export const renderMarkdown = (
       textContent = String(content || "");
     }
 
-    // marked.parse() 已配置为安全模式，会自动转义危险内容
+    // marked@14 does NOT sanitize by default — pipe every render through
+    // DOMPurify so v-html consumers can't be XSS'd by untrusted markdown.
     const rawHTML = marked.parse(textContent) as string;
-    return rawHTML;
+    return safeHtml(rawHTML);
   } catch (error) {
     logger.error("[ChatHelpers] Markdown 渲染失败:", error);
     // 发生错误时，转义文本以防止 XSS

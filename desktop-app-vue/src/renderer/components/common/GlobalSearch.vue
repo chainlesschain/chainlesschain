@@ -19,16 +19,9 @@
         class="search-input"
         @input="handleSearch"
         @keydown="handleKeyDown"
-      >
-      <a-spin
-        v-if="isSearching"
-        size="small"
       />
-      <CloseOutlined
-        v-else
-        class="close-icon"
-        @click="handleClose"
-      />
+      <a-spin v-if="isSearching" size="small" />
+      <CloseOutlined v-else class="close-icon" @click="handleClose" />
     </div>
 
     <!-- 搜索类型过滤 -->
@@ -83,10 +76,7 @@
     </div>
 
     <!-- 搜索结果 -->
-    <div
-      ref="resultsContainer"
-      class="search-results"
-    >
+    <div ref="resultsContainer" class="search-results">
       <!-- 空状态 -->
       <a-empty
         v-if="!isSearching && searchQuery && filteredResults.length === 0"
@@ -96,18 +86,13 @@
         <template #description>
           <div class="empty-tips">
             <p>没有找到 "{{ searchQuery }}" 的相关结果</p>
-            <p class="empty-hint">
-              试试其他关键词或检查拼写
-            </p>
+            <p class="empty-hint">试试其他关键词或检查拼写</p>
           </div>
         </template>
       </a-empty>
 
       <!-- 初始状态 -->
-      <div
-        v-else-if="!searchQuery"
-        class="search-tips"
-      >
+      <div v-else-if="!searchQuery" class="search-tips">
         <div class="tips-icon">
           <SearchOutlined />
         </div>
@@ -117,23 +102,14 @@
           <div class="shortcut-item">
             <kbd>Ctrl</kbd> + <kbd>K</kbd> 打开搜索
           </div>
-          <div class="shortcut-item">
-            <kbd>↑</kbd> <kbd>↓</kbd> 选择结果
-          </div>
-          <div class="shortcut-item">
-            <kbd>Enter</kbd> 打开
-          </div>
-          <div class="shortcut-item">
-            <kbd>Esc</kbd> 关闭
-          </div>
+          <div class="shortcut-item"><kbd>↑</kbd> <kbd>↓</kbd> 选择结果</div>
+          <div class="shortcut-item"><kbd>Enter</kbd> 打开</div>
+          <div class="shortcut-item"><kbd>Esc</kbd> 关闭</div>
         </div>
       </div>
 
       <!-- 结果列表 -->
-      <div
-        v-else
-        class="results-list"
-      >
+      <div v-else class="results-list">
         <div
           v-for="(result, index) in filteredResults"
           :key="result.id"
@@ -154,24 +130,15 @@
           <div class="result-content">
             <div class="result-title">
               <span v-html="highlightMatch(result.title)" />
-              <a-tag
-                size="small"
-                :color="getTypeColor(result.type)"
-              >
+              <a-tag size="small" :color="getTypeColor(result.type)">
                 {{ getTypeName(result.type) }}
               </a-tag>
             </div>
-            <div
-              v-if="result.description"
-              class="result-description"
-            >
+            <div v-if="result.description" class="result-description">
               <span v-html="highlightMatch(result.description)" />
             </div>
             <div class="result-meta">
-              <span
-                v-if="result.path"
-                class="result-path"
-              >
+              <span v-if="result.path" class="result-path">
                 <FolderOutlined />
                 {{ result.path }}
               </span>
@@ -183,10 +150,7 @@
 
           <!-- 操作 -->
           <div class="result-actions">
-            <a-button
-              type="text"
-              size="small"
-            >
+            <a-button type="text" size="small">
               <EnterOutlined />
             </a-button>
           </div>
@@ -200,23 +164,13 @@
         <span v-if="searchQuery">
           找到 {{ filteredResults.length }} 个结果
         </span>
-        <span v-else>
-          索引统计: {{ formatStatistics() }}
-        </span>
+        <span v-else> 索引统计: {{ formatStatistics() }} </span>
       </div>
       <div class="footer-actions">
-        <a-button
-          type="link"
-          size="small"
-          @click="handleClearHistory"
-        >
+        <a-button type="link" size="small" @click="handleClearHistory">
           清空历史
         </a-button>
-        <a-button
-          type="link"
-          size="small"
-          @click="handleRebuildIndex"
-        >
+        <a-button type="link" size="small" @click="handleRebuildIndex">
           重建索引
         </a-button>
       </div>
@@ -225,10 +179,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
-import { message, Empty } from 'ant-design-vue';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
+import { message, Empty } from "ant-design-vue";
 import {
   SearchOutlined,
   CloseOutlined,
@@ -242,9 +196,10 @@ import {
   BookOutlined,
   ProjectOutlined,
   UserOutlined,
-} from '@ant-design/icons-vue';
-import { useGlobalSearch, SearchType } from '@/utils/globalSearchManager';
-import { useRouter } from 'vue-router';
+} from "@ant-design/icons-vue";
+import { useGlobalSearch, SearchType } from "@/utils/globalSearchManager";
+import { escapeHtml, escapeRegExp } from "@/utils/sanitizeHtml";
+import { useRouter } from "vue-router";
 
 const props = defineProps({
   modelValue: {
@@ -253,7 +208,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(["update:modelValue"]);
 
 const router = useRouter();
 
@@ -269,12 +224,12 @@ const {
 
 const visible = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value),
+  set: (value) => emit("update:modelValue", value),
 });
 
 const searchInput = ref(null);
 const resultsContainer = ref(null);
-const searchQuery = ref('');
+const searchQuery = ref("");
 const searchType = ref(SearchType.ALL);
 const searchResults = ref([]);
 const selectedResultIndex = ref(0);
@@ -283,12 +238,17 @@ const searchTimer = ref(null);
 
 // 搜索建议
 const suggestions = computed(() => {
-  if (!searchQuery.value) {return searchHistory.value.slice(0, 5).map(h => h.query);}
+  if (!searchQuery.value) {
+    return searchHistory.value.slice(0, 5).map((h) => h.query);
+  }
   return getSuggestions(searchQuery.value, 5);
 });
 
 const showSuggestions = computed(() => {
-  return !searchQuery.value || (searchQuery.value.length > 0 && searchQuery.value.length < 3);
+  return (
+    !searchQuery.value ||
+    (searchQuery.value.length > 0 && searchQuery.value.length < 3)
+  );
 });
 
 // 过滤后的结果
@@ -296,7 +256,7 @@ const filteredResults = computed(() => {
   if (searchType.value === SearchType.ALL) {
     return searchResults.value;
   }
-  return searchResults.value.filter(r => r.type === searchType.value);
+  return searchResults.value.filter((r) => r.type === searchType.value);
 });
 
 // 总结果数
@@ -304,7 +264,7 @@ const totalResults = computed(() => searchResults.value.length);
 
 // 获取类型数量
 const getTypeCount = (type) => {
-  return searchResults.value.filter(r => r.type === type).length;
+  return searchResults.value.filter((r) => r.type === type).length;
 };
 
 // 获取结果图标
@@ -323,35 +283,41 @@ const getResultIcon = (type) => {
 // 获取类型颜色
 const getTypeColor = (type) => {
   const colorMap = {
-    [SearchType.NOTES]: 'blue',
-    [SearchType.FILES]: 'green',
-    [SearchType.CHATS]: 'purple',
-    [SearchType.PROJECTS]: 'orange',
-    [SearchType.CONTACTS]: 'cyan',
-    [SearchType.COMMANDS]: 'magenta',
+    [SearchType.NOTES]: "blue",
+    [SearchType.FILES]: "green",
+    [SearchType.CHATS]: "purple",
+    [SearchType.PROJECTS]: "orange",
+    [SearchType.CONTACTS]: "cyan",
+    [SearchType.COMMANDS]: "magenta",
   };
-  return colorMap[type] || 'default';
+  return colorMap[type] || "default";
 };
 
 // 获取类型名称
 const getTypeName = (type) => {
   const nameMap = {
-    [SearchType.NOTES]: '笔记',
-    [SearchType.FILES]: '文件',
-    [SearchType.CHATS]: '对话',
-    [SearchType.PROJECTS]: '项目',
-    [SearchType.CONTACTS]: '联系人',
-    [SearchType.COMMANDS]: '命令',
+    [SearchType.NOTES]: "笔记",
+    [SearchType.FILES]: "文件",
+    [SearchType.CHATS]: "对话",
+    [SearchType.PROJECTS]: "项目",
+    [SearchType.CONTACTS]: "联系人",
+    [SearchType.COMMANDS]: "命令",
   };
   return nameMap[type] || type;
 };
 
-// 高亮匹配文本
+// 高亮匹配文本 — escape both the haystack (防 XSS) and the query
+// (防 regex 注入), then only emit the one whitelisted <mark> tag.
 const highlightMatch = (text) => {
-  if (!searchQuery.value || !text) {return text;}
-
-  const regex = new RegExp(`(${searchQuery.value})`, 'gi');
-  return text.replace(regex, '<mark>$1</mark>');
+  if (!text) {
+    return "";
+  }
+  const safeText = escapeHtml(text);
+  if (!searchQuery.value) {
+    return safeText;
+  }
+  const regex = new RegExp(`(${escapeRegExp(searchQuery.value)})`, "gi");
+  return safeText.replace(regex, "<mark>$1</mark>");
 };
 
 // 格式化统计信息
@@ -363,7 +329,7 @@ const formatStatistics = () => {
       parts.push(`${getTypeName(type)} ${count}`);
     }
   }
-  return parts.join(', ') || '暂无索引';
+  return parts.join(", ") || "暂无索引";
 };
 
 // 处理搜索
@@ -387,8 +353,8 @@ const handleSearch = () => {
       searchResults.value = results;
       selectedResultIndex.value = 0;
     } catch (error) {
-      logger.error('[GlobalSearch] Search error:', error);
-      message.error('搜索失败');
+      logger.error("[GlobalSearch] Search error:", error);
+      message.error("搜索失败");
     }
   }, 300);
 };
@@ -427,18 +393,21 @@ const handleKeyDown = (event) => {
   if (showSuggestions.value && suggestions.value.length > 0) {
     // 建议列表导航
     switch (event.key) {
-      case 'ArrowDown':
+      case "ArrowDown":
         event.preventDefault();
         selectedSuggestionIndex.value = Math.min(
           selectedSuggestionIndex.value + 1,
-          suggestions.value.length - 1
+          suggestions.value.length - 1,
         );
         break;
-      case 'ArrowUp':
+      case "ArrowUp":
         event.preventDefault();
-        selectedSuggestionIndex.value = Math.max(selectedSuggestionIndex.value - 1, 0);
+        selectedSuggestionIndex.value = Math.max(
+          selectedSuggestionIndex.value - 1,
+          0,
+        );
         break;
-      case 'Enter':
+      case "Enter":
         event.preventDefault();
         if (suggestions.value[selectedSuggestionIndex.value]) {
           applySuggestion(suggestions.value[selectedSuggestionIndex.value]);
@@ -448,26 +417,26 @@ const handleKeyDown = (event) => {
   } else {
     // 结果列表导航
     switch (event.key) {
-      case 'ArrowDown':
+      case "ArrowDown":
         event.preventDefault();
         selectedResultIndex.value = Math.min(
           selectedResultIndex.value + 1,
-          filteredResults.value.length - 1
+          filteredResults.value.length - 1,
         );
         scrollToSelected();
         break;
-      case 'ArrowUp':
+      case "ArrowUp":
         event.preventDefault();
         selectedResultIndex.value = Math.max(selectedResultIndex.value - 1, 0);
         scrollToSelected();
         break;
-      case 'Enter':
+      case "Enter":
         event.preventDefault();
         if (filteredResults.value[selectedResultIndex.value]) {
           handleResultClick(filteredResults.value[selectedResultIndex.value]);
         }
         break;
-      case 'Escape':
+      case "Escape":
         event.preventDefault();
         handleClose();
         break;
@@ -478,9 +447,11 @@ const handleKeyDown = (event) => {
 // 滚动到选中项
 const scrollToSelected = () => {
   nextTick(() => {
-    const selected = resultsContainer.value?.querySelector('.result-item.active');
+    const selected = resultsContainer.value?.querySelector(
+      ".result-item.active",
+    );
     if (selected) {
-      selected.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      selected.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
   });
 };
@@ -488,7 +459,7 @@ const scrollToSelected = () => {
 // 关闭搜索
 const handleClose = () => {
   visible.value = false;
-  searchQuery.value = '';
+  searchQuery.value = "";
   searchResults.value = [];
   selectedResultIndex.value = 0;
 };
@@ -496,13 +467,13 @@ const handleClose = () => {
 // 清空历史
 const handleClearHistory = () => {
   clearHistory();
-  message.success('搜索历史已清空');
+  message.success("搜索历史已清空");
 };
 
 // 重建索引
 const handleRebuildIndex = async () => {
   try {
-    message.loading('正在重建索引...', 0);
+    message.loading("正在重建索引...", 0);
     await Promise.all([
       rebuildIndex(SearchType.NOTES),
       rebuildIndex(SearchType.FILES),
@@ -510,10 +481,10 @@ const handleRebuildIndex = async () => {
       rebuildIndex(SearchType.PROJECTS),
     ]);
     message.destroy();
-    message.success('索引重建完成');
+    message.success("索引重建完成");
   } catch (error) {
     message.destroy();
-    message.error('索引重建失败');
+    message.error("索引重建失败");
   }
 };
 
@@ -659,7 +630,7 @@ watch(searchQuery, () => {
 .shortcut-item kbd {
   display: inline-block;
   padding: 3px 8px;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 11px;
   background: #ffffff;
   border: 1px solid #d9d9d9;

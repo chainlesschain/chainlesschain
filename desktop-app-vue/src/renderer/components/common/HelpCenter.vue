@@ -35,24 +35,16 @@
 
       <div class="help-content">
         <!-- 快速链接 -->
-        <div
-          v-if="!searchQuery && !selectedTopic"
-          class="quick-links"
-        >
+        <div v-if="!searchQuery && !selectedTopic" class="quick-links">
           <h3>快速开始</h3>
-          <a-space
-            direction="vertical"
-            style="width: 100%"
-          >
+          <a-space direction="vertical" style="width: 100%">
             <a-card
               size="small"
               hoverable
               class="link-card"
               @click="showTopic('quickstart')"
             >
-              <template #title>
-                <RocketOutlined /> 5分钟快速上手
-              </template>
+              <template #title> <RocketOutlined /> 5分钟快速上手 </template>
               <p>新手？从这里开始</p>
             </a-card>
 
@@ -62,9 +54,7 @@
               class="link-card"
               @click="showTopic('skills')"
             >
-              <template #title>
-                <AppstoreOutlined /> 技能管理
-              </template>
+              <template #title> <AppstoreOutlined /> 技能管理 </template>
               <p>如何管理和创建技能</p>
             </a-card>
 
@@ -74,9 +64,7 @@
               class="link-card"
               @click="showTopic('tools')"
             >
-              <template #title>
-                <ToolOutlined /> 工具管理
-              </template>
+              <template #title> <ToolOutlined /> 工具管理 </template>
               <p>如何使用和测试工具</p>
             </a-card>
 
@@ -86,19 +74,14 @@
               class="link-card"
               @click="showTopic('batch')"
             >
-              <template #title>
-                <CheckSquareOutlined /> 批量操作
-              </template>
+              <template #title> <CheckSquareOutlined /> 批量操作 </template>
               <p>批量管理技能和工具</p>
             </a-card>
           </a-space>
         </div>
 
         <!-- 常见问题 -->
-        <div
-          v-if="!searchQuery && !selectedTopic"
-          class="faq-section"
-        >
+        <div v-if="!searchQuery && !selectedTopic" class="faq-section">
           <h3>常见问题</h3>
           <a-collapse accordion>
             <a-collapse-panel
@@ -106,33 +89,21 @@
               :key="index"
               :header="faq.question"
             >
-              <p v-html="faq.answer" />
+              <p v-html="safeHtml(faq.answer)" />
             </a-collapse-panel>
           </a-collapse>
         </div>
 
         <!-- 搜索结果 -->
-        <div
-          v-if="searchQuery && !selectedTopic"
-          class="search-results"
-        >
+        <div v-if="searchQuery && !selectedTopic" class="search-results">
           <h3>搜索结果</h3>
-          <div
-            v-if="searchResults.length === 0"
-            class="no-results"
-          >
+          <div v-if="searchResults.length === 0" class="no-results">
             <a-empty description="未找到相关内容" />
-            <a-button
-              type="link"
-              @click="searchQuery = ''"
-            >
+            <a-button type="link" @click="searchQuery = ''">
               清空搜索
             </a-button>
           </div>
-          <a-list
-            v-else
-            :data-source="searchResults"
-          >
+          <a-list v-else :data-source="searchResults">
             <template #renderItem="{ item }">
               <a-list-item @click="showTopic(item.id)">
                 <a-list-item-meta>
@@ -149,10 +120,7 @@
         </div>
 
         <!-- 主题详情 -->
-        <div
-          v-if="selectedTopic"
-          class="topic-detail"
-        >
+        <div v-if="selectedTopic" class="topic-detail">
           <a-button
             type="link"
             style="margin-bottom: 16px"
@@ -163,45 +131,27 @@
             </template>
             返回
           </a-button>
-          <div
-            class="topic-content"
-            v-html="topicContent"
-          />
+          <div class="topic-content" v-html="topicContent" />
         </div>
 
         <!-- 联系支持 -->
-        <div
-          v-if="!selectedTopic"
-          class="contact-section"
-        >
+        <div v-if="!selectedTopic" class="contact-section">
           <a-divider />
           <h3>需要更多帮助？</h3>
-          <a-space
-            direction="vertical"
-            style="width: 100%"
-          >
-            <a-button
-              block
-              @click="openUserManual"
-            >
+          <a-space direction="vertical" style="width: 100%">
+            <a-button block @click="openUserManual">
               <template #icon>
                 <BookOutlined />
               </template>
               查看完整用户手册
             </a-button>
-            <a-button
-              block
-              @click="openCommunity"
-            >
+            <a-button block @click="openCommunity">
               <template #icon>
                 <CommentOutlined />
               </template>
               访问社区论坛
             </a-button>
-            <a-button
-              block
-              @click="contactSupport"
-            >
+            <a-button block @click="contactSupport">
               <template #icon>
                 <MailOutlined />
               </template>
@@ -215,8 +165,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch } from "vue";
+import { message } from "ant-design-vue";
+import { safeHtml } from "@/utils/sanitizeHtml";
 import {
   QuestionCircleOutlined,
   RocketOutlined,
@@ -227,41 +178,46 @@ import {
   BookOutlined,
   CommentOutlined,
   MailOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const visible = ref(false);
-const searchQuery = ref('');
+const searchQuery = ref("");
 const selectedTopic = ref(null);
 
 // 常见问题数据
 const faqs = ref([
   {
-    question: '如何创建一个新技能？',
-    answer: '点击技能管理页面右上角的<strong>"创建技能"</strong>按钮，填写技能名称、描述等基本信息，选择关联的工具，最后点击保存即可。',
+    question: "如何创建一个新技能？",
+    answer:
+      '点击技能管理页面右上角的<strong>"创建技能"</strong>按钮，填写技能名称、描述等基本信息，选择关联的工具，最后点击保存即可。',
   },
   {
-    question: '批量操作后如何撤销？',
-    answer: '批量操作<strong>无法撤销</strong>，特别是删除操作。建议在批量删除前先使用批量禁用功能，确认无误后再删除。',
+    question: "批量操作后如何撤销？",
+    answer:
+      "批量操作<strong>无法撤销</strong>，特别是删除操作。建议在批量删除前先使用批量禁用功能，确认无误后再删除。",
   },
   {
-    question: '为什么搜索没有结果？',
-    answer: '请检查：1) 关键词拼写是否正确 2) 是否设置了过滤条件 3) 尝试使用部分关键词搜索。',
+    question: "为什么搜索没有结果？",
+    answer:
+      "请检查：1) 关键词拼写是否正确 2) 是否设置了过滤条件 3) 尝试使用部分关键词搜索。",
   },
   {
-    question: '如何查看技能的依赖关系？',
-    answer: '点击<strong>"依赖关系图"</strong>按钮，可以查看技能和工具之间的依赖关系图。使用鼠标滚轮可以缩放，拖拽可以移动节点。',
+    question: "如何查看技能的依赖关系？",
+    answer:
+      '点击<strong>"依赖关系图"</strong>按钮，可以查看技能和工具之间的依赖关系图。使用鼠标滚轮可以缩放，拖拽可以移动节点。',
   },
   {
-    question: '工具测试失败怎么办？',
-    answer: '检查：1) 参数格式是否正确 2) 是否有必要的权限 3) 工具是否已启用 4) 查看错误信息进行排查。',
+    question: "工具测试失败怎么办？",
+    answer:
+      "检查：1) 参数格式是否正确 2) 是否有必要的权限 3) 工具是否已启用 4) 查看错误信息进行排查。",
   },
 ]);
 
 // 帮助主题数据
 const topics = {
   quickstart: {
-    title: '5分钟快速上手',
-    description: '新手快速入门指南',
+    title: "5分钟快速上手",
+    description: "新手快速入门指南",
     content: `
       <h2>欢迎使用 Skill-Tool System!</h2>
       <p>按照以下步骤快速上手：</p>
@@ -285,8 +241,8 @@ const topics = {
     `,
   },
   skills: {
-    title: '技能管理',
-    description: '如何管理和创建技能',
+    title: "技能管理",
+    description: "如何管理和创建技能",
     content: `
       <h2>技能管理完全指南</h2>
 
@@ -318,8 +274,8 @@ const topics = {
     `,
   },
   tools: {
-    title: '工具管理',
-    description: '如何使用和测试工具',
+    title: "工具管理",
+    description: "如何使用和测试工具",
     content: `
       <h2>工具管理完全指南</h2>
 
@@ -355,8 +311,8 @@ const topics = {
     `,
   },
   batch: {
-    title: '批量操作',
-    description: '批量管理技能和工具',
+    title: "批量操作",
+    description: "批量管理技能和工具",
     content: `
       <h2>批量操作指南</h2>
 
@@ -395,7 +351,9 @@ const topics = {
 
 // 搜索结果
 const searchResults = computed(() => {
-  if (!searchQuery.value) {return [];}
+  if (!searchQuery.value) {
+    return [];
+  }
 
   const query = searchQuery.value.toLowerCase();
   const results = [];
@@ -420,7 +378,7 @@ const searchResults = computed(() => {
       results.push({
         id: `faq-${index}`,
         title: faq.question,
-        description: faq.answer.replace(/<[^>]+>/g, ''),
+        description: faq.answer.replace(/<[^>]+>/g, ""),
       });
     }
   });
@@ -428,17 +386,19 @@ const searchResults = computed(() => {
   return results;
 });
 
-// 当前主题内容
+// 当前主题内容 — 经过 DOMPurify 消毒后再 v-html 注入
 const topicContent = computed(() => {
-  if (!selectedTopic.value) {return '';}
+  if (!selectedTopic.value) {
+    return "";
+  }
   const topic = topics[selectedTopic.value];
-  return topic ? topic.content : '';
+  return topic ? safeHtml(topic.content) : "";
 });
 
 // 显示主题
 const showTopic = (topicId) => {
   selectedTopic.value = topicId;
-  searchQuery.value = '';
+  searchQuery.value = "";
 };
 
 // 搜索处理
@@ -448,22 +408,22 @@ const handleSearch = () => {
 
 // 打开用户手册
 const openUserManual = () => {
-  window.open('/docs/USER_MANUAL.md', '_blank');
+  window.open("/docs/USER_MANUAL.md", "_blank");
 };
 
 // 打开社区
 const openCommunity = () => {
-  window.open('https://community.chainlesschain.com', '_blank');
+  window.open("https://community.chainlesschain.com", "_blank");
 };
 
 // 联系支持
 const contactSupport = () => {
-  message.info('邮箱: support@chainlesschain.com');
+  message.info("邮箱: support@chainlesschain.com");
 };
 
 // 监听F1快捷键
 const handleKeyPress = (e) => {
-  if (e.key === 'F1') {
+  if (e.key === "F1") {
     e.preventDefault();
     visible.value = true;
   }
@@ -471,18 +431,18 @@ const handleKeyPress = (e) => {
 
 // 生命周期
 onMounted(() => {
-  window.addEventListener('keydown', handleKeyPress);
+  window.addEventListener("keydown", handleKeyPress);
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener('keydown', handleKeyPress);
+  window.removeEventListener("keydown", handleKeyPress);
 });
 </script>
 
 <script>
-import { onMounted, onBeforeUnmount } from 'vue';
+import { onMounted, onBeforeUnmount } from "vue";
 export default {
-  name: 'HelpCenter',
+  name: "HelpCenter",
 };
 </script>
 
@@ -566,7 +526,8 @@ export default {
           line-height: 1.6;
         }
 
-        :deep(ul), :deep(ol) {
+        :deep(ul),
+        :deep(ol) {
           margin: 12px 0;
           padding-left: 24px;
 
