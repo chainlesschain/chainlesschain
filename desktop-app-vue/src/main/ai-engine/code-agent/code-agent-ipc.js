@@ -5,14 +5,33 @@
  * @version 5.0.0
  */
 const { logger } = require("../../utils/logger.js");
-const { ipcMain } = require("electron");
+const { ipcMain: electronIpcMain } = require("electron");
+
+const CHANNELS = [
+  "code-agent:generate",
+  "code-agent:review",
+  "code-agent:fix",
+  "code-agent:scaffold",
+  "code-agent:configure-ci",
+  "code-agent:analyze-git",
+  "code-agent:explain",
+  "code-agent:refactor",
+];
 
 /**
- * Register Code Agent v2 IPC handlers
- * @param {Object} codeGenerator - CodeGeneratorV2 instance
+ * Register Code Agent v2 IPC handlers.
+ *
+ * Accepts either a CodeGeneratorV2 instance directly (legacy positional
+ * form) or a deps object `{ codeGenerator, ipcMain }` for DI/testing.
  */
-function registerCodeAgentIPC(codeGenerator) {
-  // Generate code
+function registerCodeAgentIPC(arg) {
+  const deps =
+    arg && typeof arg === "object" && "codeGenerator" in arg
+      ? arg
+      : { codeGenerator: arg };
+  const { codeGenerator, ipcMain: injectedIpcMain } = deps;
+  const ipcMain = injectedIpcMain || electronIpcMain;
+
   ipcMain.handle("code-agent:generate", async (_event, params) => {
     try {
       if (!codeGenerator) {
@@ -29,7 +48,6 @@ function registerCodeAgentIPC(codeGenerator) {
     }
   });
 
-  // Review code
   ipcMain.handle("code-agent:review", async (_event, params) => {
     try {
       if (!codeGenerator) {
@@ -43,7 +61,6 @@ function registerCodeAgentIPC(codeGenerator) {
     }
   });
 
-  // Fix code issues
   ipcMain.handle("code-agent:fix", async (_event, params) => {
     try {
       if (!codeGenerator) {
@@ -61,7 +78,6 @@ function registerCodeAgentIPC(codeGenerator) {
     }
   });
 
-  // Scaffold project
   ipcMain.handle("code-agent:scaffold", async (_event, params) => {
     try {
       if (!codeGenerator) {
@@ -78,7 +94,6 @@ function registerCodeAgentIPC(codeGenerator) {
     }
   });
 
-  // Configure CI/CD
   ipcMain.handle("code-agent:configure-ci", async (_event, params) => {
     try {
       if (!codeGenerator) {
@@ -95,7 +110,6 @@ function registerCodeAgentIPC(codeGenerator) {
     }
   });
 
-  // Analyze git context
   ipcMain.handle("code-agent:analyze-git", async (_event, params) => {
     try {
       if (!codeGenerator) {
@@ -112,7 +126,6 @@ function registerCodeAgentIPC(codeGenerator) {
     }
   });
 
-  // Explain code
   ipcMain.handle("code-agent:explain", async (_event, params) => {
     try {
       if (!codeGenerator) {
@@ -126,7 +139,6 @@ function registerCodeAgentIPC(codeGenerator) {
     }
   });
 
-  // Refactor code
   ipcMain.handle("code-agent:refactor", async (_event, params) => {
     try {
       if (!codeGenerator) {
@@ -140,8 +152,20 @@ function registerCodeAgentIPC(codeGenerator) {
     }
   });
 
-  logger.info("[CodeAgentIPC] Registered 8 handlers");
-  return { handlerCount: 8 };
+  logger.info(`[CodeAgentIPC] Registered ${CHANNELS.length} handlers`);
+  return { handlerCount: CHANNELS.length };
 }
 
-module.exports = { registerCodeAgentIPC };
+function unregisterCodeAgentIPC(deps = {}) {
+  const ipcMain = deps.ipcMain || electronIpcMain;
+  for (const channel of CHANNELS) {
+    try {
+      ipcMain.removeHandler(channel);
+    } catch {
+      /* Intentionally empty */
+    }
+  }
+  logger.info("[CodeAgentIPC] All handlers unregistered");
+}
+
+module.exports = { registerCodeAgentIPC, unregisterCodeAgentIPC, CHANNELS };
