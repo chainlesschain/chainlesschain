@@ -278,7 +278,7 @@ async function main() {
 
   // 正确的 Signal 协议流程:
   // 1. Alice 获取 Bob 的预密钥包并建立会话
-  // 2. Alice 发送第一条消息 (PreKeyWhisperMessage type 1)
+  // 2. Alice 发送第一条消息 (PreKeyWhisperMessage type 3)
   // 3. Bob 收到消息时自动建立会话 (通过 decryptPreKeyWhisperMessage)
   // 不需要 Bob 主动调用 processPreKeyBundle
 
@@ -312,11 +312,11 @@ async function main() {
     assertDefined(ciphertext, "Ciphertext should be defined");
     assertDefined(ciphertext.type, "Ciphertext should have type");
     assertDefined(ciphertext.body, "Ciphertext should have body");
-    // 第一条消息应该是 PreKeyWhisperMessage (type 1)
+    // 第一条消息应该是 PreKeyWhisperMessage (type 3)
     assertEqual(
       ciphertext.type,
-      1,
-      "First message should be PreKeyWhisperMessage (type 1)",
+      3,
+      "First message should be PreKeyWhisperMessage (type 3)",
     );
 
     // Debug: 检查 body 格式

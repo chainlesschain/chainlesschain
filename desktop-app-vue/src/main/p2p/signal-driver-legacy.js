@@ -1,0 +1,782 @@
+/**
+ * Signal 协议会话管理器
+ *
+ * 实现端到端加密的消息通信
+ * 基于 Signal 协议 (X3DH + Double Ratchet)
+ *
+ * 核心功能：
+ * - 身份密钥管理
+ * - 预密钥生成和管理
+ * - 会话建立 (X3DH 密钥协商)
+ * - 消息加密/解密 (Double Ratchet)
+ * - 会话持久化
+ */
+
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
+const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
+
+// M2: _deps injection so tests can mock fs.promises (vi.mock cannot
+// intercept fs.promises for inlined CJS modules)
+const _deps = { fsp: fs.promises };
+
+// Signal 协议库
+let KeyHelper, SessionBuilder, SessionCipher, SignalProtocolAddress;
+
+/**
+ * Signal 会话管理器类
+ */
+class LegacySignalDriver extends EventEmitter {
+  constructor(config = {}) {
+    super();
+
+    this.config = {
+      userId: config.userId || "default-user",
+      deviceId: config.deviceId || 1,
+      dataPath: config.dataPath || null,
+      ...config,
+    };
+
+    this.store = null;
+    this.identityKeyPair = null;
+    this.registrationId = null;
+    this.preKeys = new Map();
+    this.signedPreKey = null;
+    this.sessions = new Map();
+    this.initialized = false;
+  }
+
+  /**
+   * 初始化 Signal 会话管理器
+   */
+  async initialize() {
+    logger.info("[SignalSession] 初始化 Signal 会话管理器...");
+
+    try {
+      // 动态导入 Signal 协议库
+      await this.loadSignalLibrary();
+
+      // 创建存储
+      this.store = new LocalSignalProtocolStore();
+
+      // 加载或生成身份
+      await this.loadOrGenerateIdentity();
+
+      // 生成预密钥
+      await this.generatePreKeys();
+
+      this.initialized = true;
+
+      logger.info("[SignalSession] Signal 会话管理器已初始化");
+      logger.info("[SignalSession] 用户 ID:", this.config.userId);
+      logger.info("[SignalSession] 设备 ID:", this.config.deviceId);
+      logger.info("[SignalSession] 注册 ID:", this.registrationId);
+
+      this.emit("initialized", {
+        userId: this.config.userId,
+        deviceId: this.config.deviceId,
+        registrationId: this.registrationId,
+      });
+
+      return true;
+    } catch (error) {
+      logger.error("[SignalSession] 初始化失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 加载 Signal 协议库
+   */
+  async loadSignalLibrary() {
+    try {
+      const signal =
+        await import("@privacyresearch/libsignal-protocol-typescript");
+
+      KeyHelper = signal.KeyHelper;
+      SessionBuilder = signal.SessionBuilder;
+      SessionCipher = signal.SessionCipher;
+      SignalProtocolAddress = signal.SignalProtocolAddress;
+
+      logger.info("[SignalSession] Signal 协议库已加载");
+    } catch (error) {
+      logger.error("[SignalSession] 加载 Signal 协议库失败:", error);
+      throw new Error("Failed to load Signal protocol library");
+    }
+  }
+
+  /**
+   * 加载或生成身份
+   */
+  async loadOrGenerateIdentity() {
+    if (!this.config.dataPath) {
+      // 无数据路径，生成临时身份
+      await this.generateIdentity();
+      return;
+    }
+
+    const identityPath = path.join(
+      this.config.dataPath,
+      "signal-identity.json",
+    );
+
+    // M2: 异步读取/写入，避免启动期阻塞事件循环
+    try {
+      const content = await _deps.fsp.readFile(identityPath, "utf8");
+      const identityData = JSON.parse(content);
+
+      // 重建身份密钥对 - 从 JSON 序列化格式转换回 ArrayBuffer
+      this.identityKeyPair = {
+        pubKey: this.arrayBufferFromObject(identityData.identityKeyPair.pubKey),
+        privKey: this.arrayBufferFromObject(
+          identityData.identityKeyPair.privKey,
+        ),
+      };
+      this.registrationId = identityData.registrationId;
+
+      // 存储到 Signal Store
+      await this.store.put("identityKey", this.identityKeyPair);
+      await this.store.put("registrationId", this.registrationId);
+
+      logger.info("[SignalSession] 已加载现有身份");
+      return;
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        logger.warn("[SignalSession] 加载身份失败，将生成新的:", error.message);
+      }
+    }
+
+    // 生成新身份并保存
+    await this.generateIdentity();
+
+    try {
+      await _deps.fsp.mkdir(path.dirname(identityPath), { recursive: true });
+
+      // 序列化身份数据 - 将 ArrayBuffer 转换为可序列化的数组
+      const serializableIdentity = {
+        identityKeyPair: {
+          pubKey: Array.from(new Uint8Array(this.identityKeyPair.pubKey)),
+          privKey: Array.from(new Uint8Array(this.identityKeyPair.privKey)),
+        },
+        registrationId: this.registrationId,
+      };
+
+      await _deps.fsp.writeFile(
+        identityPath,
+        JSON.stringify(serializableIdentity, null, 2),
+      );
+      logger.info("[SignalSession] 身份已保存到:", identityPath);
+    } catch (error) {
+      logger.warn("[SignalSession] 保存身份失败:", error.message);
+    }
+  }
+
+  /**
+   * 生成新身份
+   */
+  async generateIdentity() {
+    logger.info("[SignalSession] 生成新身份...");
+
+    // 生成身份密钥对
+    this.identityKeyPair = await KeyHelper.generateIdentityKeyPair();
+
+    // 生成注册 ID
+    this.registrationId = KeyHelper.generateRegistrationId();
+
+    // 存储到 Signal Store
+    await this.store.put("identityKey", this.identityKeyPair);
+    await this.store.put("registrationId", this.registrationId);
+
+    logger.info("[SignalSession] 新身份已生成");
+  }
+
+  /**
+   * 生成预密钥
+   */
+  async generatePreKeys() {
+    logger.info("[SignalSession] 生成预密钥...");
+
+    // 生成签名预密钥
+    const signedPreKeyId = Math.floor(Math.random() * 16777215);
+    this.signedPreKey = await KeyHelper.generateSignedPreKey(
+      this.identityKeyPair,
+      signedPreKeyId,
+    );
+
+    // 存储签名预密钥
+    await this.store.storeSignedPreKey(
+      signedPreKeyId,
+      this.signedPreKey.keyPair,
+    );
+
+    // 生成一批一次性预密钥 (100个)
+    const basePreKeyId = Math.floor(Math.random() * 16777215);
+    const preKeyCount = 100;
+    const preKeys = [];
+
+    for (let i = 0; i < preKeyCount; i++) {
+      const preKeyId = (basePreKeyId + i) % 16777215;
+      const preKey = await KeyHelper.generatePreKey(preKeyId);
+      preKeys.push(preKey);
+
+      // 存储预密钥
+      await this.store.storePreKey(preKey.keyId, preKey.keyPair);
+      this.preKeys.set(preKey.keyId, preKey);
+    }
+
+    logger.info("[SignalSession] 预密钥已生成:", preKeys.length, "个");
+  }
+
+  /**
+   * 获取预密钥包 (Pre Key Bundle)
+   * 用于建立新会话
+   */
+  async getPreKeyBundle() {
+    if (!this.initialized) {
+      throw new Error("Signal session manager not initialized");
+    }
+
+    // 获取一个一次性预密钥
+    const preKeyArray = Array.from(this.preKeys.values());
+    const preKey = preKeyArray[Math.floor(Math.random() * preKeyArray.length)];
+
+    if (!preKey) {
+      throw new Error("No pre keys available");
+    }
+
+    return {
+      registrationId: this.registrationId,
+      identityKey: this.identityKeyPair.pubKey,
+      signedPreKey: {
+        keyId: this.signedPreKey.keyId,
+        publicKey: this.signedPreKey.keyPair.pubKey,
+        signature: this.signedPreKey.signature,
+      },
+      preKey: {
+        keyId: preKey.keyId,
+        publicKey: preKey.keyPair.pubKey,
+      },
+    };
+  }
+
+  /**
+   * 处理预密钥包并建立会话
+   * @param {string} recipientId - 接收者 ID
+   * @param {number} deviceId - 设备 ID
+   * @param {Object} preKeyBundle - 预密钥包
+   */
+  async processPreKeyBundle(recipientId, deviceId, preKeyBundle) {
+    logger.info(
+      "[SignalSession] 处理预密钥包，建立会话:",
+      recipientId,
+      deviceId,
+    );
+
+    // 验证预密钥包
+    if (!preKeyBundle) {
+      throw new Error("Pre key bundle is required");
+    }
+    if (!preKeyBundle.registrationId || preKeyBundle.registrationId <= 0) {
+      throw new Error("Invalid registration ID in pre key bundle");
+    }
+    if (!preKeyBundle.identityKey) {
+      throw new Error("Identity key is required in pre key bundle");
+    }
+    if (!preKeyBundle.signedPreKey || !preKeyBundle.signedPreKey.publicKey) {
+      throw new Error("Signed pre key is required in pre key bundle");
+    }
+
+    try {
+      const address = new SignalProtocolAddress(recipientId, deviceId);
+
+      // 创建会话构建器
+      const sessionBuilder = new SessionBuilder(this.store, address);
+
+      // 确保所有密钥都是正确的 ArrayBuffer 格式
+      const processedBundle = {
+        registrationId: preKeyBundle.registrationId,
+        identityKey: this.ensureArrayBuffer(preKeyBundle.identityKey),
+        signedPreKey: {
+          keyId: preKeyBundle.signedPreKey.keyId,
+          publicKey: this.ensureArrayBuffer(
+            preKeyBundle.signedPreKey.publicKey,
+          ),
+          signature: this.ensureArrayBuffer(
+            preKeyBundle.signedPreKey.signature,
+          ),
+        },
+        preKey: preKeyBundle.preKey
+          ? {
+              keyId: preKeyBundle.preKey.keyId,
+              publicKey: this.ensureArrayBuffer(preKeyBundle.preKey.publicKey),
+            }
+          : undefined,
+      };
+
+      // 处理预密钥包
+      await sessionBuilder.processPreKey(processedBundle);
+
+      // Debug: 检查会话是否正确存储
+      const storedSession = await this.store.loadSession(address.toString());
+      logger.info("[SignalSession] 会话已建立:", recipientId);
+      logger.info(
+        "[SignalSession] 存储的会话:",
+        storedSession ? "存在" : "不存在",
+      );
+      if (storedSession) {
+        logger.info("[SignalSession] 会话类型:", typeof storedSession);
+        logger.info(
+          "[SignalSession] 会话是 ArrayBuffer:",
+          storedSession instanceof ArrayBuffer,
+        );
+        logger.info(
+          "[SignalSession] 会话是 Uint8Array:",
+          storedSession instanceof Uint8Array,
+        );
+        logger.info(
+          "[SignalSession] 会话长度:",
+          storedSession.length || storedSession.byteLength,
+        );
+      }
+
+      this.emit("session:created", { recipientId, deviceId });
+
+      return { success: true };
+    } catch (error) {
+      logger.error("[SignalSession] 建立会话失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 确保数据是 ArrayBuffer 格式
+   * @param {*} data - 输入数据
+   * @returns {ArrayBuffer} ArrayBuffer
+   */
+  ensureArrayBuffer(data) {
+    if (data instanceof ArrayBuffer) {
+      return data;
+    }
+    return this.arrayBufferFromObject(data);
+  }
+
+  /**
+   * 加密消息
+   * @param {string} recipientId - 接收者 ID
+   * @param {number} deviceId - 设备 ID
+   * @param {string|Buffer|ArrayBuffer} plaintext - 明文消息
+   */
+  async encryptMessage(recipientId, deviceId, plaintext) {
+    logger.info("[SignalSession] 加密消息:", recipientId);
+
+    try {
+      const address = new SignalProtocolAddress(recipientId, deviceId);
+
+      // 创建会话加密器
+      const sessionCipher = new SessionCipher(this.store, address);
+
+      // 转换明文为 ArrayBuffer（Signal 库要求）
+      let plaintextBuffer;
+      if (typeof plaintext === "string") {
+        // 字符串 -> Uint8Array -> ArrayBuffer
+        const encoder = new TextEncoder();
+        const uint8 = encoder.encode(plaintext);
+        plaintextBuffer = uint8.buffer.slice(
+          uint8.byteOffset,
+          uint8.byteOffset + uint8.byteLength,
+        );
+      } else if (plaintext instanceof ArrayBuffer) {
+        plaintextBuffer = plaintext;
+      } else if (Buffer.isBuffer(plaintext)) {
+        // Buffer -> ArrayBuffer (创建副本)
+        plaintextBuffer = new ArrayBuffer(plaintext.length);
+        const view = new Uint8Array(plaintextBuffer);
+        view.set(plaintext);
+      } else if (plaintext instanceof Uint8Array) {
+        // Uint8Array -> ArrayBuffer (创建副本)
+        plaintextBuffer = new ArrayBuffer(plaintext.length);
+        const view = new Uint8Array(plaintextBuffer);
+        view.set(plaintext);
+      } else {
+        // 尝试通用转换
+        plaintextBuffer = this.ensureArrayBuffer(plaintext);
+      }
+
+      // 加密消息
+      const ciphertext = await sessionCipher.encrypt(plaintextBuffer);
+
+      logger.info("[SignalSession] 消息已加密");
+
+      return {
+        // Library semantics:
+        // 3 = PreKeyWhisperMessage (first message)
+        // 1 = WhisperMessage (subsequent messages)
+        type: ciphertext.type,
+        body: ciphertext.body,
+        registrationId: ciphertext.registrationId,
+      };
+    } catch (error) {
+      logger.error("[SignalSession] 加密消息失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 解密消息
+   * @param {string} senderId - 发送者 ID
+   * @param {number} deviceId - 设备 ID
+   * @param {Object} ciphertext - 密文消息
+   */
+  async decryptMessage(senderId, deviceId, ciphertext) {
+    logger.info("[SignalSession] 解密消息:", senderId);
+
+    try {
+      const address = new SignalProtocolAddress(senderId, deviceId);
+
+      // 创建会话加密器
+      const sessionCipher = new SessionCipher(this.store, address);
+
+      // Signal 库的 encrypt 返回的 body 是字符串格式（序列化的 protobuf）
+      // decrypt 方法期望接收相同格式的 body
+      // 不要转换 - 直接传递原始 body
+      const ciphertextBody = ciphertext.body;
+
+      let plaintext;
+
+      if (ciphertext.type === 3) {
+        // PreKeyWhisperMessage (首次消息)
+        plaintext = await sessionCipher.decryptPreKeyWhisperMessage(
+          ciphertextBody,
+          "binary",
+        );
+      } else if (ciphertext.type === 1) {
+        // WhisperMessage (后续消息)
+        plaintext = await sessionCipher.decryptWhisperMessage(
+          ciphertextBody,
+          "binary",
+        );
+      } else {
+        throw new Error("Unknown message type: " + ciphertext.type);
+      }
+
+      logger.info("[SignalSession] 消息已解密");
+
+      // 将解密结果转换为字符串
+      const decoder = new TextDecoder("utf-8");
+      if (plaintext instanceof ArrayBuffer) {
+        return decoder.decode(plaintext);
+      } else if (plaintext instanceof Uint8Array) {
+        return decoder.decode(plaintext);
+      } else {
+        return Buffer.from(plaintext).toString("utf8");
+      }
+    } catch (error) {
+      logger.error("[SignalSession] 解密消息失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 检查是否存在会话
+   * @param {string} recipientId - 接收者 ID
+   * @param {number} deviceId - 设备 ID
+   */
+  async hasSession(recipientId, deviceId) {
+    const address = new SignalProtocolAddress(recipientId, deviceId);
+    return (await this.store.loadSession(address.toString())) !== undefined;
+  }
+
+  /**
+   * 删除会话
+   * @param {string} recipientId - 接收者 ID
+   * @param {number} deviceId - 设备 ID
+   */
+  async deleteSession(recipientId, deviceId) {
+    logger.info("[SignalSession] 删除会话:", recipientId);
+
+    try {
+      const address = new SignalProtocolAddress(recipientId, deviceId);
+      await this.store.removeSession(address.toString());
+
+      logger.info("[SignalSession] 会话已删除");
+
+      this.emit("session:deleted", { recipientId, deviceId });
+
+      return { success: true };
+    } catch (error) {
+      logger.error("[SignalSession] 删除会话失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取所有会话列表
+   */
+  async getSessions() {
+    try {
+      const sessions = await this.store.getAllSessions();
+      return Array.from(sessions.keys());
+    } catch (error) {
+      logger.error("[SignalSession] 获取会话列表失败:", error);
+      return [];
+    }
+  }
+
+  /**
+   * 从 JSON 对象重建 ArrayBuffer
+   * @param {Object} obj - JSON 对象 (可能是 { type: 'Buffer', data: [...] } 或数组)
+   * @returns {ArrayBuffer} ArrayBuffer
+   */
+  arrayBufferFromObject(obj) {
+    if (!obj) {
+      return new ArrayBuffer(0);
+    }
+
+    // 已经是 ArrayBuffer - 直接返回
+    if (obj instanceof ArrayBuffer) {
+      return obj;
+    }
+
+    // Uint8Array - 提取底层 ArrayBuffer (Signal library 常返回这种类型)
+    if (obj instanceof Uint8Array) {
+      // 创建新的 ArrayBuffer 副本，避免共享内存问题
+      const buffer = new ArrayBuffer(obj.length);
+      const view = new Uint8Array(buffer);
+      view.set(obj);
+      return buffer;
+    }
+
+    // Buffer 类型 - 转换为 ArrayBuffer
+    if (Buffer.isBuffer(obj)) {
+      // 创建新的 ArrayBuffer 副本
+      const buffer = new ArrayBuffer(obj.length);
+      const view = new Uint8Array(buffer);
+      view.set(obj);
+      return buffer;
+    }
+
+    // 其他 TypedArray 或 DataView - 提取底层 ArrayBuffer
+    if (ArrayBuffer.isView(obj)) {
+      const buffer = new ArrayBuffer(obj.byteLength);
+      const view = new Uint8Array(buffer);
+      view.set(new Uint8Array(obj.buffer, obj.byteOffset, obj.byteLength));
+      return buffer;
+    }
+
+    // 处理数组格式
+    let array;
+    if (obj.type === "Buffer" && Array.isArray(obj.data)) {
+      // Node.js Buffer 序列化格式
+      array = obj.data;
+    } else if (Array.isArray(obj)) {
+      // 普通数组格式
+      array = obj;
+    } else if (typeof obj === "object" && obj !== null) {
+      // 可能是 Object 形式的数组 (如 {0: 1, 1: 2, length: 2})
+      if (typeof obj.length === "number") {
+        array = Array.from({ length: obj.length }, (_, i) => obj[i] || 0);
+      } else {
+        logger.warn(
+          "[SignalSession] 未知的 ArrayBuffer 格式:",
+          typeof obj,
+          obj,
+        );
+        return new ArrayBuffer(0);
+      }
+    } else {
+      logger.warn("[SignalSession] 未知的 ArrayBuffer 格式:", typeof obj);
+      return new ArrayBuffer(0);
+    }
+
+    // 从数组创建 ArrayBuffer
+    const buffer = new ArrayBuffer(array.length);
+    const view = new Uint8Array(buffer);
+    for (let i = 0; i < array.length; i++) {
+      view[i] = array[i];
+    }
+    return buffer;
+  }
+
+  /**
+   * 将 ArrayBuffer 转换为 Uint8Array（Signal library 期望的格式）
+   * @param {ArrayBuffer|Uint8Array|Buffer} data - 输入数据
+   * @returns {Uint8Array} Uint8Array
+   */
+  toUint8Array(data) {
+    if (data instanceof Uint8Array) {
+      return data;
+    }
+    if (data instanceof ArrayBuffer) {
+      return new Uint8Array(data);
+    }
+    if (Buffer.isBuffer(data)) {
+      return new Uint8Array(data);
+    }
+    if (ArrayBuffer.isView(data)) {
+      return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+    }
+    // 尝试从对象转换
+    const arrayBuffer = this.arrayBufferFromObject(data);
+    return new Uint8Array(arrayBuffer);
+  }
+
+  /**
+   * 关闭会话管理器
+   */
+  async close() {
+    logger.info("[SignalSession] 关闭会话管理器");
+
+    this.initialized = false;
+    this.sessions.clear();
+    this.preKeys.clear();
+
+    this.emit("closed");
+  }
+}
+
+/**
+ * Signal Protocol Store 实现
+ * 存储会话、身份密钥、预密钥等
+ */
+class LocalSignalProtocolStore {
+  constructor() {
+    this.store = new Map();
+  }
+
+  async getIdentityKeyPair() {
+    return this.store.get("identityKey");
+  }
+
+  async getLocalRegistrationId() {
+    return this.store.get("registrationId");
+  }
+
+  async put(key, value) {
+    this.store.set(key, value);
+  }
+
+  async get(key, defaultValue) {
+    if (this.store.has(key)) {
+      return this.store.get(key);
+    }
+    return defaultValue;
+  }
+
+  async remove(key) {
+    this.store.delete(key);
+  }
+
+  // Session 相关
+  async loadSession(identifier) {
+    const session = this.store.get(`session_${identifier}`);
+    // Debug: 输出会话加载信息
+    logger.info(
+      `[SignalStore] loadSession(${identifier}): ${session ? "找到会话" : "无会话"}`,
+    );
+    // 重要：Signal 库期望返回 undefined 表示没有会话，而不是 null
+    // 返回 null 会导致 SessionRecord.deserialize 失败
+    return session || undefined;
+  }
+
+  async storeSession(identifier, record) {
+    logger.info(`[SignalStore] storeSession(${identifier}): 保存会话`);
+    // Debug: 检查会话内容
+    if (typeof record === "string") {
+      try {
+        const parsed = JSON.parse(record);
+        logger.info(`[SignalStore] 会话结构 keys:`, Object.keys(parsed));
+        // sessions 是一个对象，键是 base key identifier
+        if (parsed.sessions && typeof parsed.sessions === "object") {
+          const sessionKeys = Object.keys(parsed.sessions);
+          logger.info(`[SignalStore] sessions 数量:`, sessionKeys.length);
+          if (sessionKeys.length > 0) {
+            const firstSession = parsed.sessions[sessionKeys[0]];
+            logger.info(
+              `[SignalStore] 第一个 session keys:`,
+              Object.keys(firstSession),
+            );
+            logger.info(
+              `[SignalStore] 会话包含 pendingPreKey:`,
+              !!firstSession.pendingPreKey,
+            );
+            if (firstSession.pendingPreKey) {
+              logger.info(
+                `[SignalStore] pendingPreKey:`,
+                JSON.stringify(firstSession.pendingPreKey).substring(0, 200),
+              );
+            }
+          }
+        }
+      } catch (e) {
+        logger.info(`[SignalStore] 无法解析会话内容:`, e.message);
+      }
+    }
+    this.store.set(`session_${identifier}`, record);
+  }
+
+  async removeSession(identifier) {
+    this.store.delete(`session_${identifier}`);
+  }
+
+  async getAllSessions() {
+    const sessions = new Map();
+    for (const [key, value] of this.store.entries()) {
+      if (key.startsWith("session_")) {
+        sessions.set(key.replace("session_", ""), value);
+      }
+    }
+    return sessions;
+  }
+
+  // PreKey 相关
+  async loadPreKey(keyId) {
+    return this.store.get(`preKey_${keyId}`);
+  }
+
+  async storePreKey(keyId, keyPair) {
+    this.store.set(`preKey_${keyId}`, keyPair);
+  }
+
+  async removePreKey(keyId) {
+    this.store.delete(`preKey_${keyId}`);
+  }
+
+  // Signed PreKey 相关
+  async loadSignedPreKey(keyId) {
+    return this.store.get(`signedPreKey_${keyId}`);
+  }
+
+  async storeSignedPreKey(keyId, keyPair) {
+    this.store.set(`signedPreKey_${keyId}`, keyPair);
+  }
+
+  async removeSignedPreKey(keyId) {
+    this.store.delete(`signedPreKey_${keyId}`);
+  }
+
+  // Identity Key 相关
+  async isTrustedIdentity(identifier, identityKey, direction) {
+    // 简单实现：信任所有密钥
+    // 生产环境应该验证密钥指纹
+    return true;
+  }
+
+  async loadIdentityKey(identifier) {
+    return this.store.get(`identityKey_${identifier}`);
+  }
+
+  async saveIdentity(identifier, identityKey) {
+    const existing = this.store.get(`identityKey_${identifier}`);
+    this.store.set(`identityKey_${identifier}`, identityKey);
+
+    if (existing && existing !== identityKey) {
+      return true; // Identity changed
+    }
+    return false;
+  }
+}
+
+module.exports = LegacySignalDriver;
+module.exports._deps = _deps;

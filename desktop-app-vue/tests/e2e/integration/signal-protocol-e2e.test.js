@@ -195,8 +195,8 @@ test.describe("Signal 协议 E2E 加密测试", () => {
       const plaintext = "First message to Bob2";
       const ciphertext = await alice.encryptMessage("bob2", 1, plaintext);
 
-      // 首条消息应该是 PreKeyWhisperMessage (type 1)
-      expect(ciphertext.type).toBe(1);
+      // 首条消息应该是 PreKeyWhisperMessage (type 3)
+      expect(ciphertext.type).toBe(3);
 
       // Bob2 解密首条消息（自动建立会话）
       const decrypted = await bob2.decryptMessage("alice", 1, ciphertext);
@@ -224,8 +224,8 @@ test.describe("Signal 协议 E2E 加密测试", () => {
         secondMessage,
       );
 
-      // 后续消息应该是 WhisperMessage (type 3)
-      expect(secondCiphertext.type).toBe(3);
+      // 后续消息应该是 WhisperMessage (type 1)
+      expect(secondCiphertext.type).toBe(1);
 
       // 解密第二条消息
       const decrypted = await bob.decryptMessage("alice", 1, secondCiphertext);

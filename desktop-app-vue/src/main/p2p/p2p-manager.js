@@ -32,6 +32,9 @@ let webSockets, webRTC, yamux, circuitRelayTransport, dcutr, identify, ping;
  */
 const DEFAULT_CONFIG = {
   port: 9000,
+  signal: {
+    driver: "legacy",
+  },
   bootstrapNodes: [
     // 公共引导节点（可配置）
     "/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
@@ -144,6 +147,9 @@ class P2PManager extends EventEmitter {
         compatibility: {
           detectLegacy: settings["p2p.compatibility.detectLegacy"] !== "false",
         },
+        signal: {
+          driver: settings["p2p.signal.driver"] || "legacy",
+        },
       };
     } catch (error) {
       logger.warn("[P2PManager] 加载P2P配置失败，使用默认值:", error);
@@ -198,8 +204,39 @@ class P2PManager extends EventEmitter {
         compatibility: {
           detectLegacy: true,
         },
+        signal: {
+          driver: this.config.signal?.driver || "legacy",
+        },
       };
     }
+  }
+
+  resolveSignalDriverName() {
+    const configuredDriver =
+      this.p2pConfig?.signal?.driver ||
+      this.config.signal?.driver ||
+      this.config.signalDriver ||
+      "legacy";
+
+    if (configuredDriver === "legacy" || configuredDriver === "official") {
+      return configuredDriver;
+    }
+
+    logger.warn(
+      `[P2PManager] Unsupported Signal driver "${configuredDriver}", falling back to legacy`,
+    );
+    return "legacy";
+  }
+
+  buildSignalManagerConfig(deviceId) {
+    return {
+      userId: this.peerId.toString(),
+      deviceId,
+      dataPath: this.config.dataPath,
+      signal: {
+        driver: this.resolveSignalDriverName(),
+      },
+    };
   }
 
   /**
@@ -716,11 +753,9 @@ class P2PManager extends EventEmitter {
         ? this.deviceManager.getCurrentDevice().deviceId
         : "default-device";
 
-      this.signalManager = new SignalSessionManager({
-        userId: this.peerId.toString(),
-        deviceId: deviceId,
-        dataPath: this.config.dataPath,
-      });
+      this.signalManager = new SignalSessionManager(
+        this.buildSignalManagerConfig(deviceId),
+      );
 
       await this.signalManager.initialize();
 

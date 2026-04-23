@@ -79,7 +79,7 @@ function setupMockImplementations() {
   // Setup SessionCipher constructor mock
   MockSessionCipher.mockImplementation(() => mockSessionCipher);
   mockSessionCipher.encrypt.mockResolvedValue({
-    type: 1,
+    type: 3,
     body: new Uint8Array([1, 2, 3, 4, 5]),
     registrationId: 12345,
   });
@@ -374,9 +374,9 @@ describe("SignalSessionManager", () => {
       expect(mockSessionCipher.encrypt).toHaveBeenCalled();
     });
 
-    it("should decrypt PreKeyWhisperMessage (type 1)", async () => {
+    it("should decrypt PreKeyWhisperMessage (type 3)", async () => {
       const ciphertext = {
-        type: 1,
+        type: 3,
         body: new Uint8Array([1, 2, 3]),
       };
 
@@ -386,9 +386,9 @@ describe("SignalSessionManager", () => {
       expect(mockSessionCipher.decryptPreKeyWhisperMessage).toHaveBeenCalled();
     });
 
-    it("should decrypt WhisperMessage (type 3)", async () => {
+    it("should decrypt WhisperMessage (type 1)", async () => {
       const ciphertext = {
-        type: 3,
+        type: 1,
         body: new Uint8Array([1, 2, 3]),
       };
 

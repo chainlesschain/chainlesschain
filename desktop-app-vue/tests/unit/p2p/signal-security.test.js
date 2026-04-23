@@ -114,7 +114,7 @@ function setupMockImplementations() {
     }
 
     const ciphertext = {
-      type: sessions.has(sessionKey) ? 3 : 1,
+      type: sessions.has(sessionKey) ? 1 : 3,
       body: encrypted,
       registrationId: 12345,
       messageCounter,
