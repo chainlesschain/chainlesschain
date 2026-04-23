@@ -17,6 +17,11 @@ export function registerUiCommand(program) {
       "--web-panel-dir <dir>",
       "Path to built web-panel dist/ directory (auto-detected by default)",
     )
+    .option(
+      "--ui-mode <mode>",
+      'UI rendering mode: "auto" (default), "full" (require Vue panel), or "minimal" (embedded HTML only)',
+      "auto",
+    )
     .action(async (opts) => {
       try {
         const runtime = createAgentRuntimeFactory().createUiRuntime({
@@ -26,6 +31,7 @@ export function registerUiCommand(program) {
           open: opts.open,
           token: opts.token || null,
           webPanelDir: opts.webPanelDir || null,
+          uiMode: opts.uiMode || "auto",
         });
         await runtime.startUiServer();
       } catch (err) {

@@ -127,6 +127,7 @@ import { registerServeCommand } from "./commands/serve.js";
 
 // Web UI
 import { registerUiCommand } from "./commands/ui.js";
+import { registerPackCommand } from "./commands/pack.js";
 
 // Video Editing Agent (CutClaw-inspired)
 import { registerVideoCommand } from "./commands/video.js";
@@ -509,6 +510,9 @@ export function createProgram() {
 
   // Web UI
   registerUiCommand(program);
+
+  // Standalone Executable Bundling
+  registerPackCommand(program);
 
   // Orchestration Layer
   registerOrchestrateCommand(program);

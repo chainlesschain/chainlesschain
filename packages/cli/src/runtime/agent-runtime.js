@@ -495,6 +495,7 @@ export class AgentRuntime {
       projectName,
       mode,
       staticDir: this.policy.webPanelDir,
+      uiMode: this.policy.uiMode,
     });
 
     await new Promise((resolve, reject) => {

@@ -715,3 +715,94 @@ describe("createWebUIServer – staticDir nonexistent falls back to embedded HTM
     expect(res.body).toContain("window.__CC_CONFIG__");
   });
 });
+
+// ── uiMode parameter (Phase 0 of cc pack) ────────────────────────────────────
+
+describe("createWebUIServer – uiMode parameter", () => {
+  let tmpBase;
+
+  beforeEach(() => {
+    tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ui-mode-"));
+  });
+
+  afterEach(() => {
+    try {
+      fs.rmSync(tmpBase, { recursive: true, force: true });
+    } catch (_) {
+      /* best effort */
+    }
+  });
+
+  it("rejects unknown uiMode value", () => {
+    expect(() =>
+      createWebUIServer({ ...FALLBACK_GLOBAL, uiMode: "weird" }),
+    ).toThrow(/Invalid uiMode/);
+  });
+
+  it('uiMode="full" throws when no dist directory is found', () => {
+    expect(() =>
+      createWebUIServer({
+        ...GLOBAL_OPTS,
+        staticDir: path.join(tmpBase, "no-such-dist"),
+        uiMode: "full",
+      }),
+    ).toThrow(/uiMode="full"/);
+  });
+
+  it('uiMode="full" succeeds when dist directory exists', async () => {
+    const distDir = makeFakeDist(tmpBase);
+    const server = await startServer({
+      ...GLOBAL_OPTS,
+      staticDir: distDir,
+      uiMode: "full",
+    });
+    const port = server.address().port;
+    const res = await get(port, "/");
+    await stopServer(server);
+    expect(res.status).toBe(200);
+    expect(res.body).toContain('<div id="app"></div>');
+  });
+
+  it('uiMode="minimal" forces embedded HTML even when dist exists', async () => {
+    const distDir = makeFakeDist(tmpBase);
+    const server = await startServer({
+      ...GLOBAL_OPTS,
+      staticDir: distDir,
+      uiMode: "minimal",
+    });
+    const port = server.address().port;
+    const res = await get(port, "/");
+    await stopServer(server);
+    expect(res.status).toBe(200);
+    // Embedded HTML signature, not the fake dist
+    expect(res.body).toContain("window.__CC_CONFIG__");
+    expect(res.body).not.toContain('<div id="app"></div>');
+  });
+
+  it('uiMode="auto" (default) prefers SPA when dist exists', async () => {
+    const distDir = makeFakeDist(tmpBase);
+    const server = await startServer({
+      ...GLOBAL_OPTS,
+      staticDir: distDir,
+      uiMode: "auto",
+    });
+    const port = server.address().port;
+    const res = await get(port, "/");
+    await stopServer(server);
+    expect(res.status).toBe(200);
+    expect(res.body).toContain('<div id="app"></div>');
+  });
+
+  it('uiMode="auto" falls back to embedded HTML when dist is missing', async () => {
+    const server = await startServer({
+      ...GLOBAL_OPTS,
+      staticDir: path.join(tmpBase, "no-such-dist"),
+      uiMode: "auto",
+    });
+    const port = server.address().port;
+    const res = await get(port, "/");
+    await stopServer(server);
+    expect(res.status).toBe(200);
+    expect(res.body).toContain("<!DOCTYPE html>");
+  });
+});

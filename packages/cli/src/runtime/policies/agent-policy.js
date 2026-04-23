@@ -51,5 +51,6 @@ export function resolveUiPolicy(overrides = {}) {
     open: overrides.open !== false,
     token: overrides.token || null,
     webPanelDir: overrides.webPanelDir || null,
+    uiMode: overrides.uiMode || "auto",
   };
 }

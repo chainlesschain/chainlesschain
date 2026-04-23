@@ -4,8 +4,16 @@
  * The UI is a self-contained single-page app with an embedded WebSocket client.
  *
  * Usage:
- *   const server = createWebUIServer({ wsPort, wsToken, wsHost, projectRoot, projectName, mode });
+ *   const server = createWebUIServer({ wsPort, wsToken, wsHost, projectRoot, projectName, mode, uiMode });
  *   server.listen(18810, '127.0.0.1');
+ *
+ * uiMode controls which front-end is served:
+ *   - "auto"    (default): SPA if web-panel/dist exists, else embedded HTML
+ *   - "full":   SPA only — throws if web-panel/dist is missing
+ *   - "minimal": embedded HTML only, even if SPA is available
+ *
+ * `cc pack` artifacts always set uiMode="full" so the bundled exe never
+ * silently degrades to the minimal HTML when assets failed to bundle.
  */
 
 import http from "http";
@@ -1223,11 +1231,28 @@ function findWebPanelDist(staticDir) {
  * @param {string|null} opts.projectRoot
  * @param {string|null} opts.projectName
  * @param {"project"|"global"} opts.mode
+ * @param {"auto"|"full"|"minimal"} [opts.uiMode="auto"]
  * @param {string|null} [opts.staticDir]   - Optional override for dist directory
  * @returns {import("http").Server}
  */
 export function createWebUIServer(opts) {
-  const distDir = findWebPanelDist(opts.staticDir || null);
+  const uiMode = opts.uiMode || "auto";
+  if (uiMode !== "auto" && uiMode !== "full" && uiMode !== "minimal") {
+    throw new Error(
+      `Invalid uiMode "${uiMode}". Expected "auto", "full", or "minimal".`,
+    );
+  }
+
+  const distDir =
+    uiMode === "minimal" ? null : findWebPanelDist(opts.staticDir || null);
+
+  if (uiMode === "full" && !distDir) {
+    throw new Error(
+      'uiMode="full" requires a built web-panel dist directory, but none was found. ' +
+        "Run `npm run build:web-panel` in packages/cli, or pass `staticDir` to override.",
+    );
+  }
+
   const configJson = buildConfigJson(opts);
 
   if (distDir) {

@@ -9,6 +9,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   tokenizeCommand,
   ChainlessChainWSServer,
+  isCommandBlocked,
 } from "../../src/lib/ws-server.js";
 import WebSocket from "ws";
 
@@ -98,6 +99,40 @@ describe("tokenizeCommand", () => {
     expect(tokenizeCommand('--name="test value"')).toEqual([
       "--name=test value",
     ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isCommandBlocked — pure policy function (Phase 0 of cc pack)
+// ---------------------------------------------------------------------------
+describe("isCommandBlocked", () => {
+  it("always blocks serve, setup, pack regardless of mode", () => {
+    expect(isCommandBlocked("serve", {})).toBe(true);
+    expect(isCommandBlocked("setup", {})).toBe(true);
+    expect(isCommandBlocked("pack", {})).toBe(true);
+    expect(isCommandBlocked("serve", { CC_PACK_MODE: "1" })).toBe(true);
+    expect(isCommandBlocked("setup", { CC_PACK_MODE: "1" })).toBe(true);
+    expect(isCommandBlocked("pack", { CC_PACK_MODE: "1" })).toBe(true);
+  });
+
+  it("blocks chat and agent by default (no pack mode)", () => {
+    expect(isCommandBlocked("chat", {})).toBe(true);
+    expect(isCommandBlocked("agent", {})).toBe(true);
+    expect(isCommandBlocked("chat", { CC_PACK_MODE: "0" })).toBe(true);
+    expect(isCommandBlocked("agent", { CC_PACK_MODE: "" })).toBe(true);
+  });
+
+  it("unlocks chat and agent when CC_PACK_MODE=1", () => {
+    expect(isCommandBlocked("chat", { CC_PACK_MODE: "1" })).toBe(false);
+    expect(isCommandBlocked("agent", { CC_PACK_MODE: "1" })).toBe(false);
+    expect(isCommandBlocked("chat", { CC_PACK_MODE: "true" })).toBe(false);
+    expect(isCommandBlocked("agent", { CC_PACK_MODE: "true" })).toBe(false);
+  });
+
+  it("does not block ordinary commands", () => {
+    expect(isCommandBlocked("note", {})).toBe(false);
+    expect(isCommandBlocked("status", {})).toBe(false);
+    expect(isCommandBlocked("doctor", { CC_PACK_MODE: "1" })).toBe(false);
   });
 });
 
@@ -559,6 +594,72 @@ describe("ChainlessChainWSServer", () => {
       expect(resp.type).toBe("error");
       expect(resp.code).toBe("COMMAND_BLOCKED");
       ws.close();
+    });
+
+    it("blocks the pack command (always, even in pack mode)", async () => {
+      port = nextPort();
+      server = new ChainlessChainWSServer({ port });
+      await server.start();
+      const prev = process.env.CC_PACK_MODE;
+      process.env.CC_PACK_MODE = "1";
+      try {
+        const ws = await connect(port);
+        const resp = await rpc(ws, {
+          id: "1",
+          type: "execute",
+          command: "pack",
+        });
+        expect(resp.type).toBe("error");
+        expect(resp.code).toBe("COMMAND_BLOCKED");
+        ws.close();
+      } finally {
+        if (prev === undefined) delete process.env.CC_PACK_MODE;
+        else process.env.CC_PACK_MODE = prev;
+      }
+    });
+
+    it("unlocks chat command when CC_PACK_MODE=1", async () => {
+      port = nextPort();
+      server = new ChainlessChainWSServer({ port });
+      await server.start();
+      const prev = process.env.CC_PACK_MODE;
+      process.env.CC_PACK_MODE = "1";
+      try {
+        const ws = await connect(port);
+        // chat without TTY will exit quickly with non-zero — we just check it
+        // is NOT blocked at the WS layer (i.e. not a COMMAND_BLOCKED error).
+        const resp = await rpc(ws, {
+          id: "1",
+          type: "execute",
+          command: "chat --help",
+        });
+        expect(resp.code).not.toBe("COMMAND_BLOCKED");
+        ws.close();
+      } finally {
+        if (prev === undefined) delete process.env.CC_PACK_MODE;
+        else process.env.CC_PACK_MODE = prev;
+      }
+    });
+
+    it("unlocks agent command when CC_PACK_MODE=1", async () => {
+      port = nextPort();
+      server = new ChainlessChainWSServer({ port });
+      await server.start();
+      const prev = process.env.CC_PACK_MODE;
+      process.env.CC_PACK_MODE = "1";
+      try {
+        const ws = await connect(port);
+        const resp = await rpc(ws, {
+          id: "1",
+          type: "execute",
+          command: "agent --help",
+        });
+        expect(resp.code).not.toBe("COMMAND_BLOCKED");
+        ws.close();
+      } finally {
+        if (prev === undefined) delete process.env.CC_PACK_MODE;
+        else process.env.CC_PACK_MODE = prev;
+      }
     });
 
     it("returns error for empty command", async () => {

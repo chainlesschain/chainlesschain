@@ -200,3 +200,34 @@ describe("registerUiCommand – --web-panel-dir option", () => {
     expect(cmd.opts().webPanelDir).toBeUndefined();
   });
 });
+
+// ── --ui-mode option (Phase 0 of cc pack) ────────────────────────────────────
+
+describe("registerUiCommand – --ui-mode option", () => {
+  it("has --ui-mode option", () => {
+    const program = buildProgram();
+    const cmd = findCommand(program, "ui");
+    expect(findOption(cmd, "--ui-mode")).not.toBeNull();
+  });
+
+  it('--ui-mode default is "auto"', () => {
+    const program = buildProgram();
+    const cmd = findCommand(program, "ui");
+    cmd.parseOptions(["--no-open"]);
+    expect(cmd.opts().uiMode).toBe("auto");
+  });
+
+  it("parses --ui-mode full", () => {
+    const program = buildProgram();
+    const cmd = findCommand(program, "ui");
+    cmd.parseOptions(["--ui-mode", "full", "--no-open"]);
+    expect(cmd.opts().uiMode).toBe("full");
+  });
+
+  it("parses --ui-mode minimal", () => {
+    const program = buildProgram();
+    const cmd = findCommand(program, "ui");
+    cmd.parseOptions(["--ui-mode", "minimal", "--no-open"]);
+    expect(cmd.opts().uiMode).toBe("minimal");
+  });
+});

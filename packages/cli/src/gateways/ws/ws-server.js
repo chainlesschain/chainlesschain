@@ -81,8 +81,34 @@ const __dirname = dirname(__filename);
 /** Absolute path to the CLI entry point */
 const BIN_PATH = join(__dirname, "..", "..", "..", "bin", "chainlesschain.js");
 
-/** Commands that must not be executed via WebSocket */
-const BLOCKED_COMMANDS = new Set(["serve", "chat", "agent", "setup"]);
+/**
+ * Commands always blocked over WebSocket (any mode):
+ *  - serve: would recursively spawn another WS server
+ *  - setup: needs interactive TTY
+ *  - pack: meaningless self-bundling from inside running instance
+ */
+const ALWAYS_BLOCKED_COMMANDS = new Set(["serve", "setup", "pack"]);
+
+/**
+ * Commands blocked by default but unlocked when running inside a pack
+ * artifact (CC_PACK_MODE=1). The Web UI may then expose these via a
+ * shell-like surface for advanced users.
+ */
+const PACK_UNLOCKABLE_COMMANDS = new Set(["chat", "agent"]);
+
+/**
+ * Decide if a command is currently blocked over WebSocket.
+ * Reads CC_PACK_MODE at call time so tests can flip it per-case.
+ * @param {string} baseCmd
+ * @param {object} [env=process.env]
+ * @returns {boolean}
+ */
+export function isCommandBlocked(baseCmd, env = process.env) {
+  if (ALWAYS_BLOCKED_COMMANDS.has(baseCmd)) return true;
+  const packMode = env.CC_PACK_MODE === "1" || env.CC_PACK_MODE === "true";
+  if (PACK_UNLOCKABLE_COMMANDS.has(baseCmd) && !packMode) return true;
+  return false;
+}
 
 /** Heartbeat interval (ms) */
 const HEARTBEAT_INTERVAL = 30_000;
@@ -499,7 +525,7 @@ export class ChainlessChainWSServer extends EventEmitter {
 
     // Block dangerous/interactive commands
     const baseCmd = args[0];
-    if (BLOCKED_COMMANDS.has(baseCmd)) {
+    if (isCommandBlocked(baseCmd)) {
       this._send(ws, {
         id,
         type: "error",
