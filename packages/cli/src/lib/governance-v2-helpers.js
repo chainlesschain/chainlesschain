@@ -14,9 +14,7 @@
  * (and migrated) modules replace ~50 lines of boilerplate with ~10.
  *
  * Migration guide: see GOV_V2_MIGRATION.md at repo root.
- *
- * CJS + ESM compat: re-exported via both styles so the existing mix of
- * module systems inside packages/cli/src/lib can consume it.
+ * `packages/cli` is an ESM package, so this helper exports ESM bindings.
  */
 
 /**
@@ -102,7 +100,7 @@ function buildTransitionMap(table) {
   return m;
 }
 
-module.exports = {
+export {
   positiveInteger,
   createTransitionChecker,
   createCapRegistry,
