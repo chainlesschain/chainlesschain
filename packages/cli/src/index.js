@@ -356,7 +356,14 @@ import { registerKgV2Commands } from "./commands/kg.js";
 import { registerPmodeV2Commands } from "./commands/planmode.js";
 import { registerPipoV2Commands } from "./commands/pipeline.js";
 
-export function createProgram() {
+/**
+ * @param {object} [opts]
+ * @param {Set<string>} [opts.allowedCommands]  When set, only these top-level
+ *   command names survive. Env var CC_PROJECT_ALLOWED_SUBCOMMANDS provides the
+ *   same filter at runtime (packed exe project mode — comma-separated list).
+ *   opts.allowedCommands takes precedence over the env var.
+ */
+export function createProgram(opts = {}) {
   const program = new Command();
 
   program
@@ -723,6 +730,28 @@ export function createProgram() {
   registerKgV2Commands(program);
   registerPmodeV2Commands(program);
   registerPipoV2Commands(program);
+
+  // Phase 3a: project-mode command whitelist.
+  // In a packed project-mode exe, CC_PROJECT_ALLOWED_SUBCOMMANDS (set by the
+  // entry script from BAKED.projectAllowedSubcommands) restricts which top-level
+  // commands are visible. opts.allowedCommands (a Set<string>) is preferred for
+  // programmatic/test use and takes precedence over the env var.
+  const allowedSet =
+    opts.allowedCommands instanceof Set
+      ? opts.allowedCommands
+      : process.env.CC_PROJECT_ALLOWED_SUBCOMMANDS
+        ? new Set(
+            process.env.CC_PROJECT_ALLOWED_SUBCOMMANDS.split(",")
+              .map((s) => s.trim())
+              .filter(Boolean),
+          )
+        : null;
+
+  if (allowedSet && allowedSet.size > 0) {
+    program.commands = program.commands.filter((cmd) =>
+      allowedSet.has(cmd.name()),
+    );
+  }
 
   return program;
 }
