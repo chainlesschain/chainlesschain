@@ -8,6 +8,8 @@
 /* eslint-disable no-undef */
 /* global chrome */
 
+import { commandHandlerRegistry, listTabs } from "./handlers/index.js";
+
 // Connection state
 let ws = null;
 let connected = false;
@@ -223,6 +225,11 @@ async function handleMessage(data) {
  */
 async function executeCommand(method, params) {
   console.log(`[ChainlessChain] Executing: ${method}`);
+
+  const registryHandler = commandHandlerRegistry[method];
+  if (registryHandler) {
+    return await registryHandler(params);
+  }
 
   switch (method) {
     // Tab management
@@ -1740,72 +1747,6 @@ async function executeCommand(method, params) {
   }
 }
 
-// ==================== Tab Operations ====================
-
-async function listTabs() {
-  const tabs = await chrome.tabs.query({});
-  return tabs.map((tab) => ({
-    id: tab.id,
-    title: tab.title,
-    url: tab.url,
-    active: tab.active,
-    windowId: tab.windowId,
-    index: tab.index,
-    pinned: tab.pinned,
-    favIconUrl: tab.favIconUrl,
-  }));
-}
-
-async function getTab(tabId) {
-  const tab = await chrome.tabs.get(tabId);
-  return {
-    id: tab.id,
-    title: tab.title,
-    url: tab.url,
-    active: tab.active,
-    windowId: tab.windowId,
-  };
-}
-
-async function createTab(params) {
-  const tab = await chrome.tabs.create({
-    url: params.url || "about:blank",
-    active: params.active !== false,
-  });
-  return { id: tab.id, url: tab.url };
-}
-
-async function closeTab(tabId) {
-  await chrome.tabs.remove(tabId);
-  return { success: true };
-}
-
-async function focusTab(tabId) {
-  const tab = await chrome.tabs.update(tabId, { active: true });
-  await chrome.windows.update(tab.windowId, { focused: true });
-  return { success: true };
-}
-
-async function navigateTab(tabId, url) {
-  const tab = await chrome.tabs.update(tabId, { url });
-  return { id: tab.id, url: tab.url };
-}
-
-async function reloadTab(tabId) {
-  await chrome.tabs.reload(tabId);
-  return { success: true };
-}
-
-async function goBack(tabId) {
-  await chrome.tabs.goBack(tabId);
-  return { success: true };
-}
-
-async function goForward(tabId) {
-  await chrome.tabs.goForward(tabId);
-  return { success: true };
-}
-
 // ==================== Page Operations ====================
 
 async function getPageContent(tabId, selector) {
@@ -1861,54 +1802,6 @@ async function captureScreenshot(tabId, options = {}) {
   });
 
   return { dataUrl };
-}
-
-// ==================== Bookmarks ====================
-
-async function getBookmarkTree() {
-  const tree = await chrome.bookmarks.getTree();
-  return { tree };
-}
-
-async function searchBookmarks(query) {
-  const results = await chrome.bookmarks.search(query);
-  return { bookmarks: results };
-}
-
-async function createBookmark(params) {
-  const bookmark = await chrome.bookmarks.create({
-    parentId: params.parentId,
-    title: params.title,
-    url: params.url,
-  });
-  return { bookmark };
-}
-
-async function removeBookmark(id) {
-  await chrome.bookmarks.remove(id);
-  return { success: true };
-}
-
-// ==================== History ====================
-
-async function searchHistory(params) {
-  const results = await chrome.history.search({
-    text: params.query || "",
-    maxResults: params.limit || 100,
-    startTime: params.startTime || 0,
-    endTime: params.endTime || Date.now(),
-  });
-  return { history: results };
-}
-
-async function getVisits(url) {
-  const visits = await chrome.history.getVisits({ url });
-  return { visits };
-}
-
-async function deleteHistory(url) {
-  await chrome.history.deleteUrl({ url });
-  return { success: true };
 }
 
 // ==================== Clipboard ====================

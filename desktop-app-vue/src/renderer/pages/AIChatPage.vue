@@ -1138,105 +1138,17 @@
         </div>
       </div>
     </a-modal>
-    <a-drawer
+    <HarnessTaskDrawer
       v-model:open="harnessTaskDrawerVisible"
-      title="Background Task Details"
-      width="520"
-      @close="handleCloseHarnessTaskDrawer"
-    >
-      <div v-if="selectedHarnessTask" class="harness-task-drawer">
-        <div class="approval-step-main">
-          <div class="approval-panel-label">Selected task</div>
-          <a-tag>
-            {{ selectedHarnessTask.status || "unknown" }}
-          </a-tag>
-        </div>
-        <div class="harness-task-detail-title">
-          {{
-            selectedHarnessTask.title ||
-            selectedHarnessTask.name ||
-            selectedHarnessTask.id
-          }}
-        </div>
-        <div class="harness-task-meta">
-          <span>Task ID: {{ selectedHarnessTask.id }}</span>
-          <span v-if="selectedHarnessTask.type">
-            Type: {{ selectedHarnessTask.type }}
-          </span>
-        </div>
-        <div
-          v-if="selectedHarnessTask.summary || selectedHarnessTask.description"
-          class="approval-step-description"
-        >
-          {{ selectedHarnessTask.summary || selectedHarnessTask.description }}
-        </div>
-        <div
-          v-if="selectedHarnessTaskHistoryItems.length > 0"
-          class="harness-history"
-        >
-          <div class="approval-panel-label">History</div>
-          <ul class="harness-history-list">
-            <li
-              v-for="(item, index) in selectedHarnessTaskHistoryItems"
-              :key="item.id || `${selectedHarnessTask.id}-history-${index}`"
-              class="harness-history-item"
-            >
-              <span class="harness-history-event">
-                {{ item.event || item.type || "event" }}
-              </span>
-              <span v-if="item.timestamp" class="harness-history-time">
-                {{ item.timestamp }}
-              </span>
-              <span
-                v-if="item.message || item.summary"
-                class="harness-history-message"
-              >
-                {{ item.message || item.summary }}
-              </span>
-            </li>
-          </ul>
-          <div class="harness-task-actions">
-            <a-button
-              v-if="selectedHarnessTaskHistoryHasMore"
-              size="small"
-              @click="handleLoadMoreBackgroundTaskHistory"
-            >
-              Load More History
-            </a-button>
-          </div>
-        </div>
-        <a-empty
-          v-else
-          description="No history entries available for this task yet."
-        />
-        <div class="harness-task-actions">
-          <a-button
-            size="small"
-            :disabled="!selectedHarnessTaskHasPrevious"
-            @click="handleNavigateHarnessTask(-1)"
-          >
-            Previous Task
-          </a-button>
-          <a-button
-            size="small"
-            :disabled="!selectedHarnessTaskHasNext"
-            @click="handleNavigateHarnessTask(1)"
-          >
-            Next Task
-          </a-button>
-          <a-button size="small" @click="handleCloseHarnessTaskDrawer">
-            Close
-          </a-button>
-          <a-button size="small" @click="handleClearBackgroundTaskSelection">
-            Clear Selection
-          </a-button>
-        </div>
-      </div>
-      <a-empty
-        v-else
-        description="Select a background task to inspect its details."
-      />
-    </a-drawer>
+      :selected-task="selectedHarnessTask"
+      :selected-task-history-items="selectedHarnessTaskHistoryItems"
+      :selected-task-history-has-more="selectedHarnessTaskHistoryHasMore"
+      :selected-task-has-previous="selectedHarnessTaskHasPrevious"
+      :selected-task-has-next="selectedHarnessTaskHasNext"
+      @load-more-history="handleLoadMoreBackgroundTaskHistory"
+      @navigate="handleNavigateHarnessTask"
+      @clear-selection="handleClearBackgroundTaskSelection"
+    />
   </div>
 </template>
 
@@ -1257,6 +1169,7 @@ import {
 import ConversationInput from "@/components/projects/ConversationInput.vue";
 import BrowserPreview from "@/components/projects/BrowserPreview.vue";
 import StepDisplay from "@/components/projects/StepDisplay.vue";
+import HarnessTaskDrawer from "@/components/chat/HarnessTaskDrawer.vue";
 import { useCodingAgentStore } from "@/stores/coding-agent";
 import { useSessionCoreStore } from "@/stores/sessionCore";
 import { marked } from "marked";
@@ -4713,66 +4626,6 @@ defineExpose({
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 8px;
-}
-
-.harness-task-drawer {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.harness-task-detail-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #0f172a;
-  margin-bottom: 6px;
-}
-
-.harness-task-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 8px;
-  font-size: 12px;
-  color: #475569;
-}
-
-.harness-history {
-  margin-top: 10px;
-}
-
-.harness-history-list {
-  list-style: none;
-  padding: 0;
-  margin: 8px 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.harness-history-item {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.75);
-  border: 1px solid rgba(191, 219, 254, 0.6);
-  font-size: 12px;
-  color: #334155;
-}
-
-.harness-history-event {
-  font-weight: 700;
-  color: #1d4ed8;
-}
-
-.harness-history-time {
-  color: #64748b;
-}
-
-.harness-history-message {
-  flex: 1 1 100%;
 }
 
 .coding-agent-approval-panel {
