@@ -19,6 +19,10 @@ import {
   downloadAndVerify,
   DownloadError,
 } from "../lib/packer/pack-update-downloader.js";
+import {
+  scheduleReplace,
+  ApplyError,
+} from "../lib/packer/pack-update-applier.js";
 import { VERSION } from "../constants.js";
 
 /**
@@ -202,6 +206,20 @@ export function registerPackCommand(program) {
       "--dest <path>",
       "Phase 5b: download destination. Defaults to `<currentExePath>.new` inside a packed exe, or `./<basename(artifactUrl)>` otherwise. (Named `--dest`, not `--output`, to avoid colliding with the parent `pack -o`.)",
     )
+    .option(
+      "--apply",
+      "Phase 5c: after download, replace the current exe with the new one. Requires --download. On Windows a sidecar cmd runs the move after this process exits",
+      false,
+    )
+    .option(
+      "--target-exe <path>",
+      "Phase 5c: path of the exe to replace. Defaults to process.execPath (the currently-running binary)",
+    )
+    .option(
+      "--restart",
+      "Phase 5c: spawn the new exe after replacement (default: exit without restart)",
+      false,
+    )
     .action(async (opts) => {
       const manifestUrl =
         opts.manifestUrl ||
@@ -364,11 +382,69 @@ export function registerPackCommand(program) {
               `\n  ✓ Downloaded + verified ${formatMB(dl.bytes)} to ${dl.outputPath}`,
             ),
           );
-          logger.log(
-            chalk.dim(
-              `    sha256 OK. Replace your running exe with this file to upgrade (Phase 5c will automate this).`,
-            ),
-          );
+          if (!opts.apply) {
+            logger.log(
+              chalk.dim(
+                `    sha256 OK. Pass --apply to replace the running exe automatically.`,
+              ),
+            );
+          }
+        }
+
+        // ── --apply branch (Phase 5c) ──────────────────────────────────────
+        if (!opts.apply) return;
+
+        const targetExe = opts.targetExe || process.execPath;
+        if (!opts.json) {
+          logger.log(chalk.bold(`\n  Applying update → ${targetExe}`));
+          if (process.platform === "win32") {
+            logger.log(
+              chalk.yellow(
+                `  [Windows] This process will exit after scheduling a sidecar cmd; the replacement runs detached. ${opts.restart ? "The new exe will start automatically." : "Re-launch the exe yourself after exit."}`,
+              ),
+            );
+          } else {
+            logger.log(
+              chalk.dim(
+                `  [POSIX] Atomic rename; the currently-running inode survives until exit. ${opts.restart ? "A detached copy will be started now." : "Next launch picks up the new bytes."}`,
+              ),
+            );
+          }
+        }
+
+        try {
+          const plan = await scheduleReplace({
+            newExePath: dl.outputPath,
+            targetExePath: targetExe,
+            restart: Boolean(opts.restart),
+          });
+          if (opts.json) {
+            logger.log(JSON.stringify({ applied: true, ...plan }, null, 2));
+          } else {
+            logger.log(
+              chalk.green(
+                `  ✓ Apply scheduled: action=${plan.action}${plan.sidecarPath ? `, sidecar=${plan.sidecarPath}` : ""}`,
+              ),
+            );
+          }
+          // On Windows the sidecar waits for us to exit. On POSIX the rename
+          // already happened; if we were asked to restart, the detached child
+          // is running. Either way the parent's job is done.
+          if (plan.action === "sidecar-cmd") {
+            // Give the sidecar a moment to start waiting on our PID before we
+            // actually exit. Without this, process.exit(0) can race ahead and
+            // the sidecar's tasklist check may spuriously see us as gone
+            // before it has even polled once (harmless, but nicer to avoid).
+            setTimeout(() => process.exit(0), 500).unref?.();
+          }
+        } catch (err) {
+          const code = err instanceof ApplyError ? err.code : "UNKNOWN";
+          if (opts.json) {
+            logger.log(JSON.stringify({ error: err.message, code }));
+          } else {
+            logger.error(`apply failed [${code}]: ${err.message}`);
+          }
+          process.exit(5);
         }
       } catch (err) {
         const code = err instanceof DownloadError ? err.code : "UNKNOWN";
