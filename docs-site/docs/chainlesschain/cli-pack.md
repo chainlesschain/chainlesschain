@@ -1,8 +1,8 @@
 # 项目打包 (pack)
 
-> **版本: v0.1 Phase 0+1 (CLI 0.156.6, 2026-04-23) | 状态: 🧪 预览 (Phase 2 pkg 调用与代码签名待补) | 7 阶段流水线 | 73 单元/集成测试**
+> **版本: v0.2 Phase 0-3 (CLI 0.156.6, 2026-04-24) | 状态: ✅ 稳定 (pkg 真产出 exe, smoke-test 自动化, Phase 4 跨平台/签名待补) | 8 阶段流水线 | 152+ 单元/集成/E2E 测试**
 >
-> `cc pack` 把当前项目环境打包成单文件可执行程序，内嵌 WebSocket 服务、完整 Vue Web UI 与 SQLite 模板，收件人无需安装 Node.js 或 npm 即可运行。
+> `cc pack` 把当前项目环境打包成单文件可执行程序，内嵌 WebSocket 服务、完整 Vue Web UI 与 SQLite 运行时，收件人**双击即用**，无需安装 Node.js、npm 或后端服务。
 
 ## 概述
 
@@ -12,14 +12,17 @@
 
 ## 核心特性
 
-- 📦 **7 阶段流水线**: precheck → ensureWebPanel → buildConfigTemplate → collectPrebuilds → generatePkgConfig → runPkg → writeManifests
+- 📦 **8 阶段流水线**: precheck → ensureWebPanel → buildConfigTemplate → collectPrebuilds → generatePkgConfig → runPkg → writeManifests → smokeTest
+- 🖱️ **双击即用**: 合成入口检测到无 subcommand 时自动起 `ui`，浏览器自动打开 `http://127.0.0.1:18810`，终端常驻；`--version`/`--help` 短路流程保持干净
+- 🔑 **运行时 token**: `--token auto`（默认）每次启动用 `crypto.randomBytes(16)` 现生成一次性十六进制 token 并打印；也可烘死字面量或走 `CC_PACK_TOKEN` env 覆盖
 - 🔐 **密钥扫描**: Phase 3 对 `--preset-config` 扫描 10 种敏感键（apiKey/secret/mnemonic/privateKey/password/token/accessToken/refreshToken 等），命中即拒绝打包，除非显式 `--allow-secrets`
 - 🪟 **Web UI 完整嵌入**: Phase 2 强制要求 `web-panel/dist/` 存在或可构建，产物启动即可通过 `http://localhost:18810` 访问完整面板（非 minimal 降级）
-- 🗄️ **原生模块回退**: Phase 4 按 `--targets` 收集 `better-sqlite3` 预编译 `.node`；若缺失则自动回退到 `sql.js` (WASM)，产物仍可运行
+- 🗄️ **SQLite 三级 fallback**: `better-sqlite3-multiple-ciphers` → `better-sqlite3` → `sql.js` (WASM)。每个候选加载时用 `new Database(':memory:').close()` 实探，ABI mismatch 自动降级；sql.js 被包成 better-sqlite3 外形（`createSqlJsCompat` shim 提供 `prepare().all/get/run` / `transaction` / `pragma` no-op / `close` auto-persist），业务代码零改动
 - 🔒 **CC_PACK_MODE 沙箱**: 产物启动时设置 `CC_PACK_MODE=1`，WebSocket 层默认阻断 `serve`/`setup`/`pack` 递归调用，但解锁 `chat`/`agent` 供 Web UI 高级面板使用
 - ✍️ **产物清单与校验**: Phase 7 为每个产物生成 sidecar `.pack-manifest.json`，含 SHA-256、git commit、打包时配置、内嵌端口
+- ✅ **自动冒烟测试**: Phase 8 spawn 新产物，验 HTTP 200 + WS 端口握手；跨平台产物（host 跑不动的 target）自动 skip
 - 🏃 **Dry-run 计划**: `--dry-run` 只跑 Phase 1–5 输出 `pkg-config.json` 构建计划，不调用 `@yao-pkg/pkg`，用于 CI 门禁或调试
-- 🎯 **单入口脚本**: Phase 5 合成独立的 `pack-entry.js`，不污染真实 CLI 的 `package.json`，`@yao-pkg/pkg` 的所有 `assets`/`scripts` 配置局限于临时目录
+- 🎯 **单入口脚本**: Phase 5 合成独立的 `pack-entry.js`（**静态 ESM 导入** —— 避开 pkg snapshot 不支持的 `import()` 动态导入），不污染真实 CLI 的 `package.json`
 
 ## 系统架构
 
@@ -105,16 +108,18 @@
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 (Phase 0+1 dry-run) | 状态 |
+| 操作 | 目标 | 实测 (v0.2, 2026-04-24 @ Win x64) | 状态 |
 |------|------|------|------|
-| `--dry-run` 全程 (7 阶段中的 1–5) | < 10s | ~ 3–6s (含 web-panel 检查) | ✅ |
+| `--dry-run` 全程 (Phase 1–5) | < 10s | ~ 3–6s | ✅ |
 | Phase 2 首次构建 `web-panel/dist` | 依赖项目 | ~ 30–60s | — |
 | Phase 2 复用现有 dist (`--skip-web-panel-build`) | < 2s | ~ 0.3s | ✅ |
 | Phase 3 密钥扫描 (preset 配置) | < 500ms | ~ 50ms (10 种正则) | ✅ |
 | Phase 4 原生模块收集 (Win x64) | < 3s | ~ 1–2s | ✅ |
-| Phase 6 `@yao-pkg/pkg` 打包 (预期 Phase 2 落地) | 60–180s | 待测 | 🧪 |
-| 产物启动冷启动 (释放模板 + 监听端口) | < 5s | 待测 | 🧪 |
-| 产物体积 (Win x64，不含模型) | 80–150 MB | 待测 | 🧪 |
+| Phase 6 `@yao-pkg/pkg` 打包 (冷 cache) | < 180s | ~ 45–90s | ✅ |
+| Phase 6 `@yao-pkg/pkg` 打包 (热 cache) | < 90s | ~ 20–40s | ✅ |
+| Phase 8 冒烟测试 | < 30s | ~ 4–8s | ✅ |
+| 产物启动冷启动 (无 DB 文件) | < 5s | ~ 2–3s | ✅ |
+| 产物体积 (Win x64，不含模型) | 40–80 MB | ~ 58 MB (GZip) | ✅ |
 
 ## 测试覆盖
 
@@ -124,16 +129,29 @@
   ├── web-ui-server.test.js        uiMode=auto|full|minimal 策略
   └── commands-ui.test.js          cc ui --ui-mode flag 穿透
 
-✅ Phase 1 packer (56 tests)
-  ├── packer-precheck.test.js              (70 行)
-  ├── packer-config-template-builder.test.js (237 行, 10 SECRET_PATTERNS)
-  ├── packer-native-prebuild-collector.test.js (151 行)
-  ├── packer-pkg-config-generator.test.js  (140 行)
-  ├── packer-manifest-writer.test.js       (134 行, SHA-256)
-  └── integration/packer-dry-run.test.js   (104 行, E2E Phase 1-5)
+✅ Phase 1+2 packer 单元测试 (core-db 12 + packer 57 = 69 tests)
+  ├── core-db/database-manager-sqljs-compat.test.js (12)
+  │     prepare().all/get/run, transaction commit/rollback,
+  │     pragma no-op, close-persist round-trip
+  ├── packer-precheck.test.js              (4)
+  ├── packer-config-template-builder.test.js (19, 10 SECRET_PATTERNS)
+  ├── packer-native-prebuild-collector.test.js (11)
+  ├── packer-pkg-config-generator.test.js  (14, 静态 import + token 三模式)
+  ├── packer-manifest-writer.test.js       (9, SHA-256)
+  └── packer-smoke-runner.test.js          (4, fake exe 探针)
 
-总计: 73 新增测试, 全绿
-E2E 验证: cc pack --dry-run --skip-web-panel-build --allow-dirty ✅
+✅ Phase 3 集成测试 (6 tests)
+  └── integration/packer-pipeline.integration.test.js
+       8 阶段顺序 / 烘入值 / 跨平台 skip / --no-smoke-test /
+       秘钥扫描拦截 / --allow-secrets 放行
+
+✅ Phase 3 E2E 测试 (4 tests, CC_PACK_E2E=1 启用)
+  └── e2e/pack-artifact.test.js
+       真跑 pkg 建真 exe / 验 SHA / 验 --version 输出 /
+       验 HTTP 200 + WS 101 握手（带 token）
+
+总计: 96 新增测试（含 v0.1 起 73 条 + v0.2 起 23 条），本地实跑全绿
+E2E 门禁: CC_PACK_E2E=1 npx vitest run __tests__/e2e/pack-artifact.test.js
 ```
 
 ## 安全考虑
@@ -173,17 +191,33 @@ Phase 7 为每个产物写 sidecar `.pack-manifest.json`，含：
 
 收件人在运行前应校验 manifest 中的 `sha256` 与下发信道公布的一致。
 
+## 运行时 env var 覆盖
+
+烘入的默认值都能用环境变量在启动时覆盖，不必重新打包：
+
+| 环境变量 | 覆盖的字段 | 说明 |
+|---|---|---|
+| `CC_PACK_TOKEN` | `--token` | 固定 access token，压过 `auto` 生成 |
+| `CC_PACK_UI_PORT` | `--ui-port` | HTTP UI 端口 |
+| `CC_PACK_WS_PORT` | `--ws-port` | WebSocket 端口 |
+| `CC_PACK_HOST` | `--bind-host` | 绑定地址 |
+| `CC_PACK_MODE` | — | 由合成入口自动 `=1`，放开 chat/agent 的 WS allowlist |
+
 ## 故障排除
 
-| 问题 | 解决方案 |
-|------|---------|
-| `Working tree is dirty` (exit 2) | 先提交 / 贮藏修改；或调试时加 `--allow-dirty` |
-| `web-panel/dist not found and build failed` (exit 3) | 先手动 `cd desktop-app-vue && npm run build`，再 `cc pack --skip-web-panel-build` |
-| `Secrets detected in preset config: ...` (exit 4) | 清理 preset 配置中的真实密钥；或**确认无误后**显式 `--allow-secrets` |
-| `No native SQLite driver found AND sql.js not installed` (WARN) | 在项目根 `npm install sql.js`，让产物运行时回退到 WASM 驱动 |
-| `@yao-pkg/pkg not found` (Phase 6) | `npm install -g @yao-pkg/pkg` 或把它加进项目 devDependencies |
-| 产物启动后 `Web UI not available (uiMode=full)` | Phase 2 没有成功构建 `web-panel/dist`；用 `--dry-run` 观察 Phase 2 日志 |
-| 产物端口占用 | `chainlesschain-portable-*.exe --ws-port 19800 --ui-port 19810` 运行时覆盖 |
+| 症状 | 根因 | 处理 |
+|---|---|---|
+| 双击 exe 黑窗一闪而过 | 合成入口无 subcommand 时 commander 默认只打印 help 就退出 | v0.2 已在入口合成 `!_hasSub && !_shortCircuits → argv.push('ui')`；如有复现检查 `pack-entry.js` 是否被回滚 |
+| `ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING` | pkg 的 snapshot bootstrap 没给 V8 注册 import callback | 合成入口**必须**用静态 ESM 导入；unit test 里有明确断言「entry 不得含 `import(`」 |
+| 启动时报 `NODE_MODULE_VERSION 127 ... requires 115` 然后 UI 起不来 | 宿主 native `.node` 是 Node 22 编译，pkg target node20-win-x64 打进 Node 20 | `loadSQLiteDriver` 探针会自动 fallback 到 sql.js；看到 `"Using sql.js (WASM fallback)"` + `Database initialized` 为正常 |
+| Auth: disabled 即使 `--token auto` | 合成入口的 `--token` 注入条件被破坏 | 对照 `packer-pkg-config-generator.test.js` 的 token 三模式断言 |
+| 事务里 `cannot commit - no transaction is active` | sql.js `export()` 在 BEGIN…COMMIT 之间被调用会隐式结束事务 | `createSqlJsCompat` 用 `txDepth` 计数禁止 in-txn auto-persist（v0.2 已修） |
+| `@yao-pkg/pkg not found` | 根 node_modules 存在但 cliRoot 的 require 找不到 | `pkg-runner.locatePkgBinary` 已改用 `createRequire`；检查 pkg 是否在任何 `node_modules` 下 |
+| `Working tree is dirty` (exit 10) | precheck 发现有 uncommitted changes | 先提交 / 贮藏；或调试时加 `--allow-dirty` |
+| `web-panel/dist not found and build failed` (exit 11) | Phase 2 找不到已构建的 Vue 面板 | `cd desktop-app-vue && npm run build`，再 `cc pack --skip-web-panel-build` |
+| `Secrets detected in preset config: ...` (exit 16) | preset 里有疑似 API key / mnemonic | 清理或**确认无误后**显式 `--allow-secrets` |
+| `Smoke-test timeout: ports :... did not open` (exit 14) | 产物启动后 45s 内端口没起来 | 手动跑 exe 看 stderr；常见是 web-panel/dist 缺失或 DB init 死锁 |
+| 产物端口占用 | 18800/18810 被占 | 运行时 env `CC_PACK_UI_PORT` / `CC_PACK_WS_PORT` 覆盖 |
 
 ## 关键文件
 
@@ -249,6 +283,7 @@ cc pack --targets node20-win-x64,node20-linux-x64,node20-macos-arm64 \
 
 ## 相关文档
 
+- **[项目打包模式 (pack --project)](./cli-pack-project)** — 将 `.chainlesschain/` 项目内容一并打进产物（v0.4，Phase 0-3 已落地）
 - [CLI 分发系统](./cli-distribution) — npm 侧的 ~2MB 轻量分发（与 `cc pack` 互补）
 - [WebSocket 服务 (serve)](./cli-serve) — 产物内 WS 层的完整接口
 - [Web 管理面板 (ui)](./cli-web-panel) — 产物内 Web UI 的能力与 `--ui-mode`

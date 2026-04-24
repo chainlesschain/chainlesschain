@@ -1,5 +1,62 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-24 增量更新（`cc pack` v0.4 —— 基础模式 + **项目模式** 全链路落地）
+
+新命令 **`cc pack`** 从 v0.2 的"CLI 打包器"演进为 v0.4 的"**项目打包器**"：除了原有 CLI + Web UI 的单文件分发，新增 `--project` 模式，把 CWD 的 `.chainlesschain/`（config、skills、rules、persona）一并烘进 exe —— 收件人双击跑的就是"这个项目对应的 Agent"。
+
+### 两种模式一句话能力
+
+```bash
+# 基础模式：通用 ChainlessChain 便携 exe
+cc pack --skip-web-panel-build --allow-dirty
+# → dist/chainlesschain-portable-node20-win-x64.exe (~58 MB)
+
+# 项目模式：CWD 的 .chainlesschain/ 自动内嵌（自动检测）
+mkdir my-medical-agent && cd my-medical-agent
+cc init -t medical-triage
+cc pack
+# → dist/my-medical-agent-portable-node20-win-x64.exe
+#   + 同目录的 .pack-manifest.json（含 bundledSkills 审计清单）
+```
+
+产物启动后：基础模式弹出通用 Web UI；项目模式先物化 `.chainlesschain/` 到 `~/.chainlesschain-projects/<name>-<sha8>/`，`CC_PACK_AUTO_PERSONA` 激活项目 persona，`CC_PROJECT_ALLOWED_SUBCOMMANDS` 收敛 commander 白名单，`/api/skills` 返回项目内 skill 列表。
+
+### Phase 2 修掉的打包关键 bug（基础模式）
+
+| 症状 | 根因 | 修复 |
+|---|---|---|
+| 双击黑窗一闪而过 | 合成入口无 subcommand 时 commander 只打印 help 就退出 | 入口检测到无 sub 时自动 `argv.push('ui')`，浏览器自动开；`--version`/`--help` 短路不污染 |
+| `ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING` | pkg snapshot 不给 V8 注册 import callback | 入口改用**静态 ESM 导入** `ensureUtf8` + `createProgram`，不再 `import(...)` |
+| `NODE_MODULE_VERSION 127 … requires 115` | 原生 `.node` 按 Node 22 ABI 编译，pkg 打进 Node 20 | `loadSQLiteDriver` 每个 native 候选加探针 `new Database(':memory:').close()`；ABI mismatch 自动降级到 sql.js |
+| sql.js 选中但 `prepare(...).all is not a function` | 历史 fallback 只切 driver 不适配 API | 新增 `createSqlJsCompat(raw, dbPath)`：把 sql.js 包成 better-sqlite3 外形（`prepare().all/get/run` + `transaction` + `pragma` no-op + `close` auto-persist），业务代码零改动 |
+| Auth: disabled 即使 `--token auto` | 入口没烘 token 字段 | 入口合成一个冻结 `BAKED` 常量，`--token auto`（默认）每次启动用 `crypto.randomBytes(16)` 现生成一次性 token 并打印；`CC_PACK_TOKEN` / `CC_PACK_UI_PORT` / `CC_PACK_WS_PORT` / `CC_PACK_HOST` 四个 env var 可覆盖 |
+
+### 项目模式 Phase 2a / 2b / 3a / 3b（v0.4 新增）
+
+| Phase | Commit | 关键产出 |
+|---|---|---|
+| **2a** | `522d7c8c9` | BAKED 字段（projectMode/Name/Sha/Entry/AutoPersona/AllowedSubcommands/BundledDir）+ 入口 `copyRecursiveMerge`（新文件追加，已存在保留 + warn）+ `sanitizeProjectName()`（Windows 保留名、64 字符上限） |
+| **2b** | `69a91c450` | `web-ui-server.js` 新增 `GET /api/skills`：返回 `{schema:1, skills:[{name, source, category, ...}]}`，由 `CLISkillLoader.loadAll()` 驱动；smoke-runner 从 pre-wired 升级为实断言 |
+| **3a** | `dce8e5d66` | `createProgram(opts)` 支持 `allowedCommands` 白名单 / `CC_PROJECT_ALLOWED_SUBCOMMANDS` 环境变量过滤，未列出子命令根本不注册到 commander |
+| **3b** | `7633ad483` | `CC_PACK_AUTO_PERSONA` 环境变量导出 + `pack-manifest.json.bundledSkills` 字段（收件方审计）+ Phase 8 smoke 对照返回集合 |
+
+### 测试矩阵（合计 **108 条项目模式 + 96 条基础模式 = 204 条全绿**）
+
+- **基础模式**（Phase 0-3）：core-db `createSqlJsCompat` 12 + packer 五模块 57 + 集成 6 + E2E 4（门禁）
+- **项目模式**（v0.4 新增）：
+  - 单元 97：allowed-commands 9 + precheck-project-mode 26 + project-assets-collector 17 + pkg-config-generator 28 + manifest-writer 9 + smoke-runner 8
+  - 集成 11：packer-pipeline 8 + packer-dry-run 3
+- **冒烟**：`runPack` phase 8 自动 spawn 产物探 HTTP 200 + WS 握手 +（项目模式）`/api/skills` 断言 bundledSkills；跨平台产物 / 旧 artifact 404 均软容忍
+
+### 详细文档
+
+- 基础命令参考：[docs-site/docs/chainlesschain/cli-pack.md](./docs-site/docs/chainlesschain/cli-pack.md)
+- **项目模式用户文档**：[docs-site/docs/chainlesschain/cli-pack-project.md](./docs-site/docs/chainlesschain/cli-pack-project.md) (v0.4)
+- 完整设计：[docs/design/CC_PACK_打包指令设计文档.md](./docs/design/CC_PACK_打包指令设计文档.md) (v0.4)
+- CLI 索引：[docs/CLI_COMMANDS_REFERENCE.md](./docs/CLI_COMMANDS_REFERENCE.md) → System Management
+
+---
+
 ## 2026-04-22 增量更新（MainLayout + DIDManagement 拆分 · Shell 真 LLM 接入 · 启动流程 Critical/Deferred · 重型组件懒加载）
 
 延续 2026-04-21 的 SystemSettings / ChatPanel SFC 拆分收尾，本轮把剩余的大 SFC（MainLayout、DIDManagement）继续按功能切分，并同步完成三项"隐藏 bug 面"的根因清理：Shell 真 LLM 接入、主进程启动拆两段、重型渲染器组件懒加载。

@@ -1,5 +1,7 @@
 ---
+import rootPkg from '../../../package.json';
 const year = new Date().getFullYear();
+const PRODUCT_VERSION = rootPkg.productVersion;
 ---
 <footer class="mt-32 border-t border-line bg-paper">
   <div class="container-wide py-16 grid grid-cols-2 md:grid-cols-5 gap-10">
@@ -61,7 +63,7 @@ const year = new Date().getFullYear();
         <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" class="text-ink/50 hover:text-ink/70">闽ICP备2025105973号-1</a>
       </div>
       <div class="flex items-center gap-4 font-mono">
-        <span>v5.0.2.43</span>
+        <span>{PRODUCT_VERSION}</span>
         <span>·</span>
         <span>等保三级认证</span>
         <span>·</span>

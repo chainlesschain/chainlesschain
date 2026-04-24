@@ -39,6 +39,9 @@ const ROOT_FILE_MAP = {
   "BROWSER_EXTENSION_PLAN.md": "BROWSER_EXTENSION_PLAN.md",
   "README.md": "README.md",
   "桌面版UI重构_设计文档.md": "desktop-ui-refactor.md",
+  "CC_PACK_打包指令设计文档.md": "cc-pack-design.md",
+  "CC_PACK_项目模式_设计文档.md": "cc-pack-project-mode-design.md",
+  "ClaudeBox学习_工具卡与任务面板落地方案.md": "claudebox-learning-plan.md",
 };
 
 // modules/ 文件：01-xxx 格式（无 m 前缀，与 config.js sidebar 一致）

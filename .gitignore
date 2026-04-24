@@ -176,6 +176,10 @@ packaging/redis/
 test-results/
 playwright-report/
 
+# cc pack temp output (exe + manifest + smoke logs)
+tmp-pack/
+*.pack-manifest.json
+
 # ChainlessChain unified configuration (root and subdirectories)
 .chainlesschain/memory/
 .chainlesschain/logs/

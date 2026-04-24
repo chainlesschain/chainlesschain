@@ -27,6 +27,8 @@ chainlesschain services up # 启动 Docker 服务
 chainlesschain config list # 显示配置
 chainlesschain update      # 检查更新
 chainlesschain doctor      # 诊断环境
+chainlesschain pack        # 把当前项目环境打成单文件 .exe（v0.2 Phase 0-3 稳定）
+                           #   详见 docs/design/CC_PACK_打包指令设计文档.md
 ```
 
 ## Headless Commands (no GUI required)

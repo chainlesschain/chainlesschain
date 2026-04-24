@@ -1,5 +1,62 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-24 Update — `cc pack` v0.4 (base mode + **project mode** fully shipped)
+
+**`cc pack`** evolves from a "CLI bundler" (v0.2) into a "**project bundler**" (v0.4). In addition to the original single-file CLI + Web UI distribution, the new `--project` mode bakes the CWD's `.chainlesschain/` (config, skills, rules, persona) into the exe — so what the recipient double-clicks is "the agent for **this** project", not a vanilla ChainlessChain.
+
+### Two modes, one line each
+
+```bash
+# Base mode: generic ChainlessChain portable exe
+cc pack --skip-web-panel-build --allow-dirty
+# → dist/chainlesschain-portable-node20-win-x64.exe (~58 MB)
+
+# Project mode: CWD's .chainlesschain/ auto-embedded (auto-detected)
+mkdir my-medical-agent && cd my-medical-agent
+cc init -t medical-triage
+cc pack
+# → dist/my-medical-agent-portable-node20-win-x64.exe
+#   + same-dir .pack-manifest.json (with a bundledSkills audit list)
+```
+
+At startup: base mode opens the generic Web UI; project mode first materializes `.chainlesschain/` into `~/.chainlesschain-projects/<name>-<sha8>/`, `CC_PACK_AUTO_PERSONA` activates the project persona, `CC_PROJECT_ALLOWED_SUBCOMMANDS` narrows the commander whitelist, and `/api/skills` returns the project's skill list.
+
+### Phase 2 packing bugs fixed (base mode)
+
+| Symptom | Root cause | Fix |
+|---|---|---|
+| Double-clicking flashes a black window that closes instantly | Synthesized entry had no subcommand → commander prints help and exits | Entry now injects `argv.push('ui')` when no subcommand is present; `--version`/`--help` short-circuit untouched |
+| `ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING` on first launch | pkg's snapshot bootstrap doesn't register a dynamic-import callback | Entry rewritten to **static ESM imports** of `ensureUtf8` + `createProgram` — no `import(...)` |
+| `NODE_MODULE_VERSION 127 … requires 115` then DB init fails | Host built the native `.node` against Node 22; pkg packaged Node 20 | `loadSQLiteDriver` now probes each native candidate via `new Database(':memory:').close()`; ABI mismatch → automatic sql.js fallback |
+| sql.js fallback selected but `prepare(...).all is not a function` | Legacy fallback only swapped the driver, never adapted the API surface | New `createSqlJsCompat(raw, dbPath)` wraps sql.js into the better-sqlite3 shape callers assume: `prepare().all/get/run`, `transaction` BEGIN/COMMIT/ROLLBACK, `pragma` no-op, `close` auto-persist |
+| `Auth: disabled` even with `--token auto` | Entry never baked the token field | Entry now embeds a frozen `BAKED` constant; `--token auto` (default) generates a fresh `crypto.randomBytes(16)` token on every launch and prints it; `CC_PACK_TOKEN` / `CC_PACK_UI_PORT` / `CC_PACK_WS_PORT` / `CC_PACK_HOST` env vars override at runtime |
+
+### Project mode Phase 2a / 2b / 3a / 3b (new in v0.4)
+
+| Phase | Commit | Key outputs |
+|---|---|---|
+| **2a** | `522d7c8c9` | BAKED fields (projectMode/Name/Sha/Entry/AutoPersona/AllowedSubcommands/BundledDir) + entry `copyRecursiveMerge` (new files appended, existing files preserved + warn) + `sanitizeProjectName()` (Windows reserved names, 64-char cap) |
+| **2b** | `69a91c450` | `web-ui-server.js` adds `GET /api/skills`: returns `{schema:1, skills:[{name, source, category, ...}]}` driven by `CLISkillLoader.loadAll()`; smoke-runner upgrades from pre-wired to a real assertion |
+| **3a** | `dce8e5d66` | `createProgram(opts)` supports `allowedCommands` whitelist / `CC_PROJECT_ALLOWED_SUBCOMMANDS` env-var filtering — unlisted subcommands never register with commander |
+| **3b** | `7633ad483` | `CC_PACK_AUTO_PERSONA` env var export + `pack-manifest.json.bundledSkills` field (recipient audit) + Phase 8 smoke cross-checks the returned set |
+
+### Test matrix (total **108 project-mode + 96 base-mode = 204, all green**)
+
+- **Base mode** (Phase 0-3): `createSqlJsCompat` ×12 + packer five modules ×57 + integration ×6 + E2E ×4 (gated)
+- **Project mode** (new in v0.4):
+  - Unit ×97: allowed-commands 9 + precheck-project-mode 26 + project-assets-collector 17 + pkg-config-generator 28 + manifest-writer 9 + smoke-runner 8
+  - Integration ×11: packer-pipeline 8 + packer-dry-run 3
+- **Smoke**: `runPack` phase 8 spawns the fresh artifact, probes HTTP 200 + WS handshake + (project mode) asserts `/api/skills` contains bundledSkills; cross-platform builds / pre-Phase-2b artifacts (404) are softly tolerated
+
+### Docs
+
+- Base command reference: [docs-site/docs/chainlesschain/cli-pack.md](./docs-site/docs/chainlesschain/cli-pack.md)
+- **Project-mode user doc**: [docs-site/docs/chainlesschain/cli-pack-project.md](./docs-site/docs/chainlesschain/cli-pack-project.md) (v0.4)
+- Full design spec (v0.4): [docs/design/CC_PACK_打包指令设计文档.md](./docs/design/CC_PACK_打包指令设计文档.md)
+- CLI index: [docs/CLI_COMMANDS_REFERENCE.md](./docs/CLI_COMMANDS_REFERENCE.md) → System Management
+
+---
+
 ## 2026-04-22 Update — MainLayout + DIDManagement SFC split · Shell wired to real LLM · Startup Critical/Deferred split · Heavy-component lazy-load
 
 Continuing the SystemSettings / ChatPanel SFC split from 2026-04-21, this cut finishes off the remaining large SFCs (MainLayout, DIDManagement) and clears three "hidden bug surface" root causes: Shell now actually talks to the LLM, the main-process startup is split into Critical/Deferred phases, and heavy renderer components are lazy-loaded.
