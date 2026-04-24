@@ -52,7 +52,10 @@ function collectMessages(ws, n, timeoutMs = 10000) {
   });
 }
 
-describe("Integration: WebSocket Server Workflow", () => {
+// CI runners can be slow spawning Node subprocess per `execute` — bump the
+// per-test timeout. Locally these pass in ~3s; on ubuntu-latest under load
+// they hit the default 30s. Raising to 60s is conservative but harmless.
+describe("Integration: WebSocket Server Workflow", { timeout: 60000 }, () => {
   /** @type {ChainlessChainWSServer} */
   let server;
 
