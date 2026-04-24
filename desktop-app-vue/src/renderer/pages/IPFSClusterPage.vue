@@ -3,7 +3,7 @@
     <a-page-header
       title="IPFS Cluster"
       sub-title="Distributed pin management with automated replication and health monitoring"
-      @back="() => $router.back()"
+      @back="() => router.back()"
     >
       <template #extra>
         <a-space>
@@ -286,6 +286,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { message } from "ant-design-vue";
 import {
   PlusOutlined,
@@ -297,6 +298,7 @@ import {
 } from "@ant-design/icons-vue";
 import { useIPFSClusterStore } from "../stores/ipfsCluster";
 
+const router = useRouter();
 const clusterStore = useIPFSClusterStore();
 
 const statsLoading = ref(false);

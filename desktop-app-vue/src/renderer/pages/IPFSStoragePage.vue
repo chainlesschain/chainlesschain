@@ -3,7 +3,7 @@
     <a-page-header
       title="IPFS Decentralized Storage"
       sub-title="Content-addressed storage with pinning, encryption, and knowledge base integration"
-      @back="() => $router.back()"
+      @back="() => router.back()"
     >
       <template #extra>
         <a-space>
@@ -38,12 +38,8 @@
             style="width: 140px"
             @change="handleModeChange"
           >
-            <a-select-option value="embedded">
-              Embedded
-            </a-select-option>
-            <a-select-option value="external">
-              External Kubo
-            </a-select-option>
+            <a-select-option value="embedded"> Embedded </a-select-option>
+            <a-select-option value="external"> External Kubo </a-select-option>
           </a-select>
         </a-space>
       </template>
@@ -51,10 +47,7 @@
 
     <div class="ipfs-content">
       <!-- Row 1: Statistics Cards -->
-      <a-row
-        :gutter="16"
-        class="stats-row"
-      >
+      <a-row :gutter="16" class="stats-row">
         <a-col :span="6">
           <a-card :loading="statsLoading">
             <a-statistic
@@ -98,9 +91,7 @@
               size="small"
               style="margin-top: 8px"
             />
-            <div class="quota-label">
-              Quota: {{ ipfsStore.formattedQuota }}
-            </div>
+            <div class="quota-label">Quota: {{ ipfsStore.formattedQuota }}</div>
           </a-card>
         </a-col>
         <a-col :span="6">
@@ -114,10 +105,7 @@
                 <LinkOutlined />
               </template>
             </a-statistic>
-            <div
-              v-if="ipfsStore.nodeStatus.peerId"
-              class="peer-id-label"
-            >
+            <div v-if="ipfsStore.nodeStatus.peerId" class="peer-id-label">
               <a-tooltip :title="ipfsStore.nodeStatus.peerId">
                 PeerID: {{ truncate(ipfsStore.nodeStatus.peerId, 16) }}
               </a-tooltip>
@@ -127,17 +115,10 @@
       </a-row>
 
       <!-- Row 2: Pinned Content Table -->
-      <a-card
-        title="Pinned Content"
-        :bordered="false"
-        class="table-card"
-      >
+      <a-card title="Pinned Content" :bordered="false" class="table-card">
         <template #extra>
           <a-space>
-            <a-button
-              :loading="gcLoading"
-              @click="handleGarbageCollect"
-            >
+            <a-button :loading="gcLoading" @click="handleGarbageCollect">
               <template #icon>
                 <ClearOutlined />
               </template>
@@ -163,7 +144,7 @@
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'filename'">
-              {{ record.filename || '(unnamed)' }}
+              {{ record.filename || "(unnamed)" }}
             </template>
 
             <template v-else-if="column.key === 'cid'">
@@ -187,18 +168,10 @@
             </template>
 
             <template v-else-if="column.key === 'encrypted'">
-              <a-tag
-                v-if="record.encrypted"
-                color="blue"
-              >
+              <a-tag v-if="record.encrypted" color="blue">
                 <LockOutlined /> Encrypted
               </a-tag>
-              <a-tag
-                v-else
-                color="default"
-              >
-                Plain
-              </a-tag>
+              <a-tag v-else color="default"> Plain </a-tag>
             </template>
 
             <template v-else-if="column.key === 'actions'">
@@ -228,11 +201,7 @@
                   @confirm="handleUnpin(record.cid)"
                 >
                   <a-tooltip title="Unpin">
-                    <a-button
-                      type="link"
-                      danger
-                      size="small"
-                    >
+                    <a-button type="link" danger size="small">
                       <DeleteOutlined />
                     </a-button>
                   </a-tooltip>
@@ -244,16 +213,10 @@
       </a-card>
 
       <!-- Row 3: Upload + Configuration -->
-      <a-row
-        :gutter="16"
-        class="bottom-row"
-      >
+      <a-row :gutter="16" class="bottom-row">
         <!-- Upload Zone -->
         <a-col :span="14">
-          <a-card
-            title="Upload Content"
-            :bordered="false"
-          >
+          <a-card title="Upload Content" :bordered="false">
             <a-upload-dragger
               :before-upload="handleBeforeUpload"
               :show-upload-list="false"
@@ -267,15 +230,13 @@
                 Click or drag files here to upload to IPFS
               </p>
               <p class="ant-upload-hint">
-                Files are content-addressed and stored on the decentralized network.
+                Files are content-addressed and stored on the decentralized
+                network.
               </p>
             </a-upload-dragger>
 
             <div class="upload-options">
-              <a-space
-                align="center"
-                style="margin-top: 12px"
-              >
+              <a-space align="center" style="margin-top: 12px">
                 <a-switch
                   v-model:checked="uploadEncrypt"
                   :disabled="!ipfsStore.isNodeRunning"
@@ -316,10 +277,7 @@
 
         <!-- Configuration Panel -->
         <a-col :span="10">
-          <a-card
-            title="Configuration"
-            :bordered="false"
-          >
+          <a-card title="Configuration" :bordered="false">
             <a-form layout="vertical">
               <a-form-item label="Operating Mode">
                 <a-select
@@ -378,7 +336,7 @@
                   :checked="ipfsStore.config?.encryptionEnabled ?? false"
                   disabled
                 />
-                <span style="margin-left: 8px; color: rgba(0,0,0,0.45)">
+                <span style="margin-left: 8px; color: rgba(0, 0, 0, 0.45)">
                   AES-256-GCM (per-file toggle available at upload)
                 </span>
               </a-form-item>
@@ -391,8 +349,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
-import { message } from 'ant-design-vue'
+import { ref, reactive, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { message } from "ant-design-vue";
 import {
   PlayCircleOutlined,
   PauseCircleOutlined,
@@ -410,33 +369,34 @@ import {
   CloudUploadOutlined,
   GlobalOutlined,
   ApiOutlined,
-} from '@ant-design/icons-vue'
-import { useIPFSStorageStore } from '../stores/ipfs-storage'
-import dayjs from 'dayjs'
+} from "@ant-design/icons-vue";
+import { useIPFSStorageStore } from "../stores/ipfs-storage";
+import dayjs from "dayjs";
 
-const ipfsStore = useIPFSStorageStore()
+const router = useRouter();
+const ipfsStore = useIPFSStorageStore();
 
 // ==================== Local State ====================
 
-const startingNode = ref(false)
-const stoppingNode = ref(false)
-const statsLoading = ref(false)
-const gcLoading = ref(false)
-const textUploading = ref(false)
-const uploadEncrypt = ref(false)
-const textContent = ref('')
-const gatewayUrl = ref('https://ipfs.io')
-const externalApiUrl = ref('http://127.0.0.1:5001')
-const quotaGB = ref(1)
-const currentPage = ref(1)
-const pageSize = ref(20)
+const startingNode = ref(false);
+const stoppingNode = ref(false);
+const statsLoading = ref(false);
+const gcLoading = ref(false);
+const textUploading = ref(false);
+const uploadEncrypt = ref(false);
+const textContent = ref("");
+const gatewayUrl = ref("https://ipfs.io");
+const externalApiUrl = ref("http://127.0.0.1:5001");
+const quotaGB = ref(1);
+const currentPage = ref(1);
+const pageSize = ref(20);
 
 const quotaMarks = reactive({
-  1: '1 GB',
-  10: '10 GB',
-  50: '50 GB',
-  100: '100 GB',
-})
+  1: "1 GB",
+  10: "10 GB",
+  50: "50 GB",
+  100: "100 GB",
+});
 
 // ==================== Computed ====================
 
@@ -447,98 +407,98 @@ const tablePagination = computed(() => ({
   showSizeChanger: true,
   showQuickJumper: true,
   showTotal: (total: number) => `${total} items`,
-}))
+}));
 
 // ==================== Table Columns ====================
 
 const columns = [
   {
-    title: 'Filename',
-    key: 'filename',
-    dataIndex: 'filename',
+    title: "Filename",
+    key: "filename",
+    dataIndex: "filename",
     width: 200,
     ellipsis: true,
   },
   {
-    title: 'CID',
-    key: 'cid',
-    dataIndex: 'cid',
+    title: "CID",
+    key: "cid",
+    dataIndex: "cid",
     width: 220,
   },
   {
-    title: 'Size',
-    key: 'size',
-    dataIndex: 'size',
+    title: "Size",
+    key: "size",
+    dataIndex: "size",
     width: 100,
     sorter: (a: any, b: any) => a.size - b.size,
   },
   {
-    title: 'Date',
-    key: 'createdAt',
-    dataIndex: 'createdAt',
+    title: "Date",
+    key: "createdAt",
+    dataIndex: "createdAt",
     width: 170,
     sorter: (a: any, b: any) =>
       new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   },
   {
-    title: 'Encryption',
-    key: 'encrypted',
-    dataIndex: 'encrypted',
+    title: "Encryption",
+    key: "encrypted",
+    dataIndex: "encrypted",
     width: 120,
   },
   {
-    title: 'Actions',
-    key: 'actions',
+    title: "Actions",
+    key: "actions",
     width: 140,
-    fixed: 'right' as const,
+    fixed: "right" as const,
   },
-]
+];
 
 // ==================== Node Control ====================
 
 async function handleStartNode() {
-  startingNode.value = true
+  startingNode.value = true;
   try {
-    const result = await ipfsStore.initializeIPFS()
+    const result = await ipfsStore.initializeIPFS();
     if (result.success) {
-      message.success('IPFS node started successfully')
-      await refreshData()
+      message.success("IPFS node started successfully");
+      await refreshData();
     } else {
-      message.error(result.error || 'Failed to start IPFS node')
+      message.error(result.error || "Failed to start IPFS node");
     }
   } catch (error) {
-    message.error('Failed to start IPFS node')
+    message.error("Failed to start IPFS node");
   } finally {
-    startingNode.value = false
+    startingNode.value = false;
   }
 }
 
 async function handleStopNode() {
-  stoppingNode.value = true
+  stoppingNode.value = true;
   try {
-    const result = await ipfsStore.stopNode()
+    const result = await ipfsStore.stopNode();
     if (result.success) {
-      message.success('IPFS node stopped')
+      message.success("IPFS node stopped");
     } else {
-      message.error(result.error || 'Failed to stop IPFS node')
+      message.error(result.error || "Failed to stop IPFS node");
     }
   } catch (error) {
-    message.error('Failed to stop IPFS node')
+    message.error("Failed to stop IPFS node");
   } finally {
-    stoppingNode.value = false
+    stoppingNode.value = false;
   }
 }
 
-async function handleModeChange(mode: 'embedded' | 'external') {
+async function handleModeChange(mode: "embedded" | "external") {
   try {
-    const result = await ipfsStore.setMode(mode)
+    const result = await ipfsStore.setMode(mode);
     if (result.success) {
-      message.success(`Mode changed to ${mode}`)
+      message.success(`Mode changed to ${mode}`);
     } else {
-      message.error(result.error || 'Failed to change mode')
+      message.error(result.error || "Failed to change mode");
     }
   } catch (error) {
-    message.error('Failed to change mode')
+    message.error("Failed to change mode");
   }
 }
 
@@ -546,200 +506,212 @@ async function handleModeChange(mode: 'embedded' | 'external') {
 
 function handleBeforeUpload(file: File) {
   // Prevent default upload behavior; handle via IPC
-  const reader = new FileReader()
+  const reader = new FileReader();
   reader.onload = async () => {
     try {
-      const result = await ipfsStore.addContent(
-        reader.result as string,
-        {
-          encrypt: uploadEncrypt.value,
-          filename: file.name,
-          metadata: {
-            originalName: file.name,
-            mimeType: file.type,
-            lastModified: file.lastModified,
-          },
-        }
-      )
+      const result = await ipfsStore.addContent(reader.result as string, {
+        encrypt: uploadEncrypt.value,
+        filename: file.name,
+        metadata: {
+          originalName: file.name,
+          mimeType: file.type,
+          lastModified: file.lastModified,
+        },
+      });
       if (result.success) {
-        message.success(`${file.name} uploaded to IPFS`)
+        message.success(`${file.name} uploaded to IPFS`);
       } else {
-        message.error(result.error || 'Upload failed')
+        message.error(result.error || "Upload failed");
       }
     } catch (error) {
-      message.error(`Failed to upload ${file.name}`)
+      message.error(`Failed to upload ${file.name}`);
     }
-  }
-  reader.readAsDataURL(file)
-  return false // prevent default upload
+  };
+  reader.readAsDataURL(file);
+  return false; // prevent default upload
 }
 
 async function handleUploadText() {
-  if (!textContent.value) {return}
+  if (!textContent.value) {
+    return;
+  }
 
-  textUploading.value = true
+  textUploading.value = true;
   try {
     const result = await ipfsStore.addContent(textContent.value, {
       encrypt: uploadEncrypt.value,
       filename: `text-${Date.now()}.txt`,
-    })
+    });
     if (result.success) {
-      message.success('Text content uploaded to IPFS')
-      textContent.value = ''
+      message.success("Text content uploaded to IPFS");
+      textContent.value = "";
     } else {
-      message.error(result.error || 'Upload failed')
+      message.error(result.error || "Upload failed");
     }
   } catch (error) {
-    message.error('Failed to upload text content')
+    message.error("Failed to upload text content");
   } finally {
-    textUploading.value = false
+    textUploading.value = false;
   }
 }
 
 async function handleDownload(record: any) {
   try {
-    const result = await ipfsStore.getContent(record.cid)
+    const result = await ipfsStore.getContent(record.cid);
     if (result.success && result.data) {
       // Create a download from the base64 content
-      const link = document.createElement('a')
-      link.href = `data:application/octet-stream;base64,${result.data.content}`
-      link.download = record.filename || `ipfs-${record.cid.substring(0, 8)}`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      message.success('Download started')
+      const link = document.createElement("a");
+      link.href = `data:application/octet-stream;base64,${result.data.content}`;
+      link.download = record.filename || `ipfs-${record.cid.substring(0, 8)}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      message.success("Download started");
     } else {
-      message.error(result.error || 'Download failed')
+      message.error(result.error || "Download failed");
     }
   } catch (error) {
-    message.error('Failed to download content')
+    message.error("Failed to download content");
   }
 }
 
 function handleCopyCID(cid: string) {
-  navigator.clipboard.writeText(cid).then(() => {
-    message.success('CID copied to clipboard')
-  }).catch(() => {
-    message.error('Failed to copy CID')
-  })
+  navigator.clipboard
+    .writeText(cid)
+    .then(() => {
+      message.success("CID copied to clipboard");
+    })
+    .catch(() => {
+      message.error("Failed to copy CID");
+    });
 }
 
 async function handleUnpin(cid: string) {
   try {
-    const result = await ipfsStore.unpinContent(cid)
+    const result = await ipfsStore.unpinContent(cid);
     if (result.success) {
-      message.success('Content unpinned')
+      message.success("Content unpinned");
     } else {
-      message.error(result.error || 'Unpin failed')
+      message.error(result.error || "Unpin failed");
     }
   } catch (error) {
-    message.error('Failed to unpin content')
+    message.error("Failed to unpin content");
   }
 }
 
 // ==================== Table & Pagination ====================
 
 function handleTableChange(pagination: any) {
-  currentPage.value = pagination.current
-  pageSize.value = pagination.pageSize
+  currentPage.value = pagination.current;
+  pageSize.value = pagination.pageSize;
   ipfsStore.fetchPinnedContent({
     offset: (pagination.current - 1) * pagination.pageSize,
     limit: pagination.pageSize,
-  })
+  });
 }
 
 // ==================== Storage Management ====================
 
 async function handleGarbageCollect() {
-  gcLoading.value = true
+  gcLoading.value = true;
   try {
-    const result = await ipfsStore.garbageCollect()
+    const result = await ipfsStore.garbageCollect();
     if (result.success && result.data) {
       message.success(
-        `GC complete: freed ${ipfsStore.formatBytes(result.data.freedBytes)}, removed ${result.data.removedItems} items`
-      )
+        `GC complete: freed ${ipfsStore.formatBytes(result.data.freedBytes)}, removed ${result.data.removedItems} items`,
+      );
     } else {
-      message.error(result.error || 'Garbage collection failed')
+      message.error(result.error || "Garbage collection failed");
     }
   } catch (error) {
-    message.error('Garbage collection failed')
+    message.error("Garbage collection failed");
   } finally {
-    gcLoading.value = false
+    gcLoading.value = false;
   }
 }
 
 async function handleQuotaChange(value: number) {
-  const quotaBytes = value * 1024 * 1024 * 1024 // GB to bytes
+  const quotaBytes = value * 1024 * 1024 * 1024; // GB to bytes
   try {
-    const result = await ipfsStore.setQuota(quotaBytes)
+    const result = await ipfsStore.setQuota(quotaBytes);
     if (result.success) {
-      message.success(`Storage quota set to ${value} GB`)
+      message.success(`Storage quota set to ${value} GB`);
     } else {
-      message.error(result.error || 'Failed to set quota')
+      message.error(result.error || "Failed to set quota");
     }
   } catch (error) {
-    message.error('Failed to set storage quota')
+    message.error("Failed to set storage quota");
   }
 }
 
 // ==================== Refresh ====================
 
 async function refreshData() {
-  statsLoading.value = true
+  statsLoading.value = true;
   try {
     await Promise.all([
       ipfsStore.fetchNodeStatus(),
       ipfsStore.fetchStorageStats(),
       ipfsStore.fetchPinnedContent(),
       ipfsStore.fetchConfig(),
-    ])
+    ]);
   } catch (error) {
-    console.error('[IPFSStoragePage] Failed to refresh data:', error)
+    console.error("[IPFSStoragePage] Failed to refresh data:", error);
   } finally {
-    statsLoading.value = false
+    statsLoading.value = false;
   }
 }
 
 async function handleRefresh() {
-  await refreshData()
-  message.success('Data refreshed')
+  await refreshData();
+  message.success("Data refreshed");
 }
 
 // ==================== Helpers ====================
 
 function truncate(str: string, maxLen: number): string {
-  if (!str) {return '-'}
-  if (str.length <= maxLen) {return str}
-  return str.substring(0, Math.floor(maxLen / 2)) + '...' + str.substring(str.length - Math.floor(maxLen / 2))
+  if (!str) {
+    return "-";
+  }
+  if (str.length <= maxLen) {
+    return str;
+  }
+  return (
+    str.substring(0, Math.floor(maxLen / 2)) +
+    "..." +
+    str.substring(str.length - Math.floor(maxLen / 2))
+  );
 }
 
 function formatDate(dateStr: string) {
-  return dayjs(dateStr).format('YYYY-MM-DD HH:mm:ss')
+  return dayjs(dateStr).format("YYYY-MM-DD HH:mm:ss");
 }
 
 // ==================== Lifecycle ====================
 
 onMounted(async () => {
   try {
-    await ipfsStore.fetchNodeStatus()
-    await ipfsStore.fetchConfig()
+    await ipfsStore.fetchNodeStatus();
+    await ipfsStore.fetchConfig();
 
     if (ipfsStore.isNodeRunning) {
-      await refreshData()
+      await refreshData();
     }
 
     // Sync config to local refs
     if (ipfsStore.config) {
-      gatewayUrl.value = ipfsStore.config.gatewayUrl || 'https://ipfs.io'
-      externalApiUrl.value = ipfsStore.config.externalApiUrl || 'http://127.0.0.1:5001'
+      gatewayUrl.value = ipfsStore.config.gatewayUrl || "https://ipfs.io";
+      externalApiUrl.value =
+        ipfsStore.config.externalApiUrl || "http://127.0.0.1:5001";
       quotaGB.value = Math.round(
-        (ipfsStore.config.storageQuotaBytes || 1073741824) / (1024 * 1024 * 1024)
-      )
+        (ipfsStore.config.storageQuotaBytes || 1073741824) /
+          (1024 * 1024 * 1024),
+      );
     }
   } catch (error) {
-    console.error('[IPFSStoragePage] Mount error:', error)
+    console.error("[IPFSStoragePage] Mount error:", error);
   }
-})
+});
 </script>
 
 <style scoped lang="less">
@@ -777,7 +749,7 @@ onMounted(async () => {
   margin-bottom: 16px;
 
   .cid-text {
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     font-size: 12px;
   }
 }

@@ -4,14 +4,12 @@
     <a-page-header
       :title="orgName || 'Organization'"
       sub-title="Enterprise Department Management"
-      @back="() => $router.back()"
+      @back="() => router.back()"
     >
       <template #breadcrumb>
         <a-breadcrumb>
           <a-breadcrumb-item>
-            <router-link to="/">
-              Home
-            </router-link>
+            <router-link to="/"> Home </router-link>
           </a-breadcrumb-item>
           <a-breadcrumb-item>Enterprise</a-breadcrumb-item>
           <a-breadcrumb-item>Organization</a-breadcrumb-item>
@@ -19,19 +17,13 @@
       </template>
       <template #extra>
         <a-space>
-          <a-button
-            type="primary"
-            @click="showCreateDeptModal = true"
-          >
+          <a-button type="primary" @click="showCreateDeptModal = true">
             <PlusOutlined /> Add Department
           </a-button>
           <a-button @click="showBulkImportModal = true">
             <ImportOutlined /> Import Members
           </a-button>
-          <a-button
-            :loading="store.loading"
-            @click="handleRefresh"
-          >
+          <a-button :loading="store.loading" @click="handleRefresh">
             <ReloadOutlined /> Refresh
           </a-button>
         </a-space>
@@ -39,15 +31,8 @@
     </a-page-header>
 
     <!-- Dashboard Stats -->
-    <a-row
-      :gutter="[16, 16]"
-      class="stats-row"
-    >
-      <a-col
-        :xs="24"
-        :sm="12"
-        :lg="6"
-      >
+    <a-row :gutter="[16, 16]" class="stats-row">
+      <a-col :xs="24" :sm="12" :lg="6">
         <a-card>
           <a-statistic
             title="Total Members"
@@ -59,11 +44,7 @@
           </a-statistic>
         </a-card>
       </a-col>
-      <a-col
-        :xs="24"
-        :sm="12"
-        :lg="6"
-      >
+      <a-col :xs="24" :sm="12" :lg="6">
         <a-card>
           <a-statistic
             title="Teams"
@@ -75,11 +56,7 @@
           </a-statistic>
         </a-card>
       </a-col>
-      <a-col
-        :xs="24"
-        :sm="12"
-        :lg="6"
-      >
+      <a-col :xs="24" :sm="12" :lg="6">
         <a-card>
           <a-statistic
             title="Departments"
@@ -91,11 +68,7 @@
           </a-statistic>
         </a-card>
       </a-col>
-      <a-col
-        :xs="24"
-        :sm="12"
-        :lg="6"
-      >
+      <a-col :xs="24" :sm="12" :lg="6">
         <a-card>
           <a-statistic
             title="Pending Approvals"
@@ -110,19 +83,10 @@
     </a-row>
 
     <!-- Main Content: Tree + Detail -->
-    <a-row
-      :gutter="16"
-      class="main-content"
-    >
+    <a-row :gutter="16" class="main-content">
       <!-- Left Panel: Hierarchy Tree (40%) -->
-      <a-col
-        :xs="24"
-        :lg="10"
-      >
-        <a-card
-          title="Organization Hierarchy"
-          :loading="store.loading"
-        >
+      <a-col :xs="24" :lg="10">
+        <a-card title="Organization Hierarchy" :loading="store.loading">
           <template #extra>
             <a-input-search
               v-model:value="searchQuery"
@@ -154,12 +118,9 @@
                   v-if="teamType === 'department'"
                   color="blue"
                   size="small"
-                >Dept</a-tag>
-                <a-tag
-                  v-else
-                  color="green"
-                  size="small"
-                >Team</a-tag>
+                  >Dept</a-tag
+                >
+                <a-tag v-else color="green" size="small">Team</a-tag>
                 <a-badge
                   :count="memberCount"
                   :number-style="{ backgroundColor: '#999', fontSize: '11px' }"
@@ -170,22 +131,13 @@
             </template>
           </a-tree>
 
-          <a-empty
-            v-else
-            description="No departments or teams found"
-          />
+          <a-empty v-else description="No departments or teams found" />
         </a-card>
       </a-col>
 
       <!-- Right Panel: Detail (60%) -->
-      <a-col
-        :xs="24"
-        :lg="14"
-      >
-        <a-card
-          v-if="store.selectedDepartment"
-          :loading="store.loadingMembers"
-        >
+      <a-col :xs="24" :lg="14">
+        <a-card v-if="store.selectedDepartment" :loading="store.loadingMembers">
           <template #title>
             <span>
               {{ store.selectedDepartment.name }}
@@ -199,10 +151,7 @@
           </template>
           <template #extra>
             <a-space>
-              <a-button
-                size="small"
-                @click="handleEditDepartment"
-              >
+              <a-button size="small" @click="handleEditDepartment">
                 <EditOutlined /> Edit
               </a-button>
               <a-popconfirm
@@ -211,10 +160,7 @@
                 cancel-text="No"
                 @confirm="handleDeleteDepartment"
               >
-                <a-button
-                  size="small"
-                  danger
-                >
+                <a-button size="small" danger>
                   <DeleteOutlined /> Delete
                 </a-button>
               </a-popconfirm>
@@ -222,20 +168,12 @@
           </template>
 
           <!-- Department Info -->
-          <a-descriptions
-            :column="2"
-            bordered
-            size="small"
-            class="dept-info"
-          >
-            <a-descriptions-item
-              label="Description"
-              :span="2"
-            >
-              {{ store.selectedDepartment.description || 'No description' }}
+          <a-descriptions :column="2" bordered size="small" class="dept-info">
+            <a-descriptions-item label="Description" :span="2">
+              {{ store.selectedDepartment.description || "No description" }}
             </a-descriptions-item>
             <a-descriptions-item label="Lead">
-              {{ store.selectedDepartment.leadName || 'Not assigned' }}
+              {{ store.selectedDepartment.leadName || "Not assigned" }}
             </a-descriptions-item>
             <a-descriptions-item label="Members">
               {{ store.departmentMembers.length }}
@@ -249,9 +187,7 @@
           </a-descriptions>
 
           <!-- Members Table -->
-          <a-divider orientation="left">
-            Members
-          </a-divider>
+          <a-divider orientation="left"> Members </a-divider>
           <a-table
             :columns="memberColumns"
             :data-source="store.departmentMembers"
@@ -274,7 +210,9 @@
         </a-card>
 
         <a-card v-else>
-          <a-empty description="Select a department or team from the hierarchy" />
+          <a-empty
+            description="Select a department or team from the hierarchy"
+          />
         </a-card>
       </a-col>
     </a-row>
@@ -287,14 +225,8 @@
       @ok="handleCreateDepartment"
       @cancel="resetCreateForm"
     >
-      <a-form
-        :model="createForm"
-        layout="vertical"
-      >
-        <a-form-item
-          label="Department Name"
-          required
-        >
+      <a-form :model="createForm" layout="vertical">
+        <a-form-item label="Department Name" required>
           <a-input
             v-model:value="createForm.name"
             placeholder="Enter department name"
@@ -339,14 +271,8 @@
       @ok="handleSaveEditDepartment"
       @cancel="showEditDeptModal = false"
     >
-      <a-form
-        :model="editForm"
-        layout="vertical"
-      >
-        <a-form-item
-          label="Department Name"
-          required
-        >
+      <a-form :model="editForm" layout="vertical">
+        <a-form-item label="Department Name" required>
           <a-input
             v-model:value="editForm.name"
             placeholder="Enter department name"
@@ -389,10 +315,7 @@
         show-icon
         class="import-alert"
       />
-      <a-form
-        :model="bulkImportForm"
-        layout="vertical"
-      >
+      <a-form :model="bulkImportForm" layout="vertical">
         <a-form-item label="Members (CSV format)">
           <a-textarea
             v-model:value="bulkImportForm.rawText"
@@ -402,24 +325,15 @@
         </a-form-item>
         <a-form-item label="Default Role">
           <a-select v-model:value="bulkImportForm.defaultRole">
-            <a-select-option value="member">
-              Member
-            </a-select-option>
-            <a-select-option value="admin">
-              Admin
-            </a-select-option>
-            <a-select-option value="lead">
-              Lead
-            </a-select-option>
+            <a-select-option value="member"> Member </a-select-option>
+            <a-select-option value="admin"> Admin </a-select-option>
+            <a-select-option value="lead"> Lead </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
 
       <!-- Import Results -->
-      <div
-        v-if="bulkImportResult"
-        class="import-results"
-      >
+      <div v-if="bulkImportResult" class="import-results">
         <a-divider />
         <a-row :gutter="8">
           <a-col :span="8">
@@ -450,9 +364,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
-import { useRoute } from 'vue-router';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { message } from "ant-design-vue";
 import {
   PlusOutlined,
   ImportOutlined,
@@ -463,21 +377,26 @@ import {
   AuditOutlined,
   EditOutlined,
   DeleteOutlined,
-} from '@ant-design/icons-vue';
-import { useEnterpriseOrgStore } from '../../stores/enterprise-org';
-import type { Department, DepartmentNode, BulkImportResult } from '../../stores/enterprise-org';
+} from "@ant-design/icons-vue";
+import { useEnterpriseOrgStore } from "../../stores/enterprise-org";
+import type {
+  Department,
+  DepartmentNode,
+  BulkImportResult,
+} from "../../stores/enterprise-org";
 
 const route = useRoute();
+const router = useRouter();
 const store = useEnterpriseOrgStore();
 
 // Resolve orgId from route params or query
 const orgId = computed(() => {
-  return (route.params.orgId as string) || (route.query.orgId as string) || '';
+  return (route.params.orgId as string) || (route.query.orgId as string) || "";
 });
-const orgName = ref('');
+const orgName = ref("");
 
 // Tree state
-const searchQuery = ref('');
+const searchQuery = ref("");
 const selectedKeys = ref<string[]>([]);
 const expandedKeys = ref<string[]>([]);
 
@@ -488,35 +407,35 @@ const showBulkImportModal = ref(false);
 
 // Create department form
 const createForm = ref({
-  name: '',
-  description: '',
+  name: "",
+  description: "",
   parentDeptId: null as string | null,
-  leadDid: '',
-  leadName: '',
+  leadDid: "",
+  leadName: "",
 });
 
 // Edit department form
 const editForm = ref({
-  name: '',
-  description: '',
-  leadDid: '',
-  leadName: '',
+  name: "",
+  description: "",
+  leadDid: "",
+  leadName: "",
 });
 
 // Bulk import form
 const bulkImportForm = ref({
-  rawText: '',
-  defaultRole: 'member',
+  rawText: "",
+  defaultRole: "member",
 });
 const bulkImportResult = ref<BulkImportResult | null>(null);
 
 // Member table columns
 const memberColumns = [
-  { title: 'Name', dataIndex: 'memberName', key: 'memberName', ellipsis: true },
-  { title: 'DID', dataIndex: 'memberDid', key: 'memberDid', ellipsis: true },
-  { title: 'Team', dataIndex: 'teamName', key: 'teamName' },
-  { title: 'Role', dataIndex: 'role', key: 'role', width: 100 },
-  { title: 'Joined', dataIndex: 'joinedAt', key: 'joinedAt', width: 160 },
+  { title: "Name", dataIndex: "memberName", key: "memberName", ellipsis: true },
+  { title: "DID", dataIndex: "memberDid", key: "memberDid", ellipsis: true },
+  { title: "Team", dataIndex: "teamName", key: "teamName" },
+  { title: "Role", dataIndex: "role", key: "role", width: 100 },
+  { title: "Joined", dataIndex: "joinedAt", key: "joinedAt", width: 160 },
 ];
 
 // ==================== Computed: Tree Data ====================
@@ -525,12 +444,16 @@ const memberColumns = [
  * Convert the hierarchy into Ant Design Tree compatible format.
  */
 const treeData = computed(() => {
-  if (!store.hierarchy?.hierarchy) {return [];}
+  if (!store.hierarchy?.hierarchy) {
+    return [];
+  }
 
   const convert = (nodes: DepartmentNode[]): any[] => {
     return nodes
       .filter((node) => {
-        if (!searchQuery.value) {return true;}
+        if (!searchQuery.value) {
+          return true;
+        }
         const q = searchQuery.value.toLowerCase();
         return (
           node.name.toLowerCase().includes(q) ||
@@ -554,7 +477,9 @@ const treeData = computed(() => {
  * Parent department tree data for the create form tree-select.
  */
 const parentTreeData = computed(() => {
-  if (!store.hierarchy?.hierarchy) {return [];}
+  if (!store.hierarchy?.hierarchy) {
+    return [];
+  }
 
   const convert = (nodes: DepartmentNode[]): any[] => {
     return nodes.map((node) => ({
@@ -597,13 +522,15 @@ async function loadData() {
 
   // Auto-expand all root nodes
   if (store.hierarchy?.hierarchy) {
-    expandedKeys.value = store.hierarchy.hierarchy.map((n: DepartmentNode) => n.id);
+    expandedKeys.value = store.hierarchy.hierarchy.map(
+      (n: DepartmentNode) => n.id,
+    );
   }
 }
 
 async function handleRefresh() {
   await loadData();
-  message.success('Data refreshed');
+  message.success("Data refreshed");
 }
 
 // ==================== Tree Handlers ====================
@@ -625,13 +552,15 @@ async function onTreeDrop(info: any) {
   const dropToGap = info.dropToGap;
 
   // If dropped onto a node (not into gap), set as child
-  const newParentId = dropToGap ? info.node.raw?.parentDeptId || null : dropNodeId;
+  const newParentId = dropToGap
+    ? info.node.raw?.parentDeptId || null
+    : dropNodeId;
 
   const success = await store.moveDepartment(dragNodeId, newParentId);
   if (success) {
-    message.success('Department moved successfully');
+    message.success("Department moved successfully");
   } else {
-    message.error(store.error || 'Failed to move department');
+    message.error(store.error || "Failed to move department");
   }
 }
 
@@ -639,7 +568,7 @@ async function onTreeDrop(info: any) {
 
 async function handleCreateDepartment() {
   if (!createForm.value.name.trim()) {
-    message.warning('Department name is required');
+    message.warning("Department name is required");
     return;
   }
 
@@ -656,36 +585,40 @@ async function handleCreateDepartment() {
     showCreateDeptModal.value = false;
     resetCreateForm();
   } else {
-    message.error(store.error || 'Failed to create department');
+    message.error(store.error || "Failed to create department");
   }
 }
 
 function resetCreateForm() {
   createForm.value = {
-    name: '',
-    description: '',
+    name: "",
+    description: "",
     parentDeptId: null,
-    leadDid: '',
-    leadName: '',
+    leadDid: "",
+    leadName: "",
   };
 }
 
 function handleEditDepartment() {
-  if (!store.selectedDepartment) {return;}
+  if (!store.selectedDepartment) {
+    return;
+  }
   editForm.value = {
     name: store.selectedDepartment.name,
-    description: store.selectedDepartment.description || '',
-    leadDid: store.selectedDepartment.leadDid || '',
-    leadName: store.selectedDepartment.leadName || '',
+    description: store.selectedDepartment.description || "",
+    leadDid: store.selectedDepartment.leadDid || "",
+    leadName: store.selectedDepartment.leadName || "",
   };
   showEditDeptModal.value = true;
 }
 
 async function handleSaveEditDepartment() {
-  if (!store.selectedDepartment) {return;}
+  if (!store.selectedDepartment) {
+    return;
+  }
 
   if (!editForm.value.name.trim()) {
-    message.warning('Department name is required');
+    message.warning("Department name is required");
     return;
   }
 
@@ -697,15 +630,17 @@ async function handleSaveEditDepartment() {
   });
 
   if (success) {
-    message.success('Department updated');
+    message.success("Department updated");
     showEditDeptModal.value = false;
   } else {
-    message.error(store.error || 'Failed to update department');
+    message.error(store.error || "Failed to update department");
   }
 }
 
 async function handleDeleteDepartment() {
-  if (!store.selectedDepartment) {return;}
+  if (!store.selectedDepartment) {
+    return;
+  }
 
   const name = store.selectedDepartment.name;
   const success = await store.deleteDepartment(store.selectedDepartment.id);
@@ -714,7 +649,7 @@ async function handleDeleteDepartment() {
     message.success(`Department "${name}" deleted`);
     selectedKeys.value = [];
   } else {
-    message.error(store.error || 'Failed to delete department');
+    message.error(store.error || "Failed to delete department");
   }
 }
 
@@ -722,20 +657,20 @@ async function handleDeleteDepartment() {
 
 async function handleBulkImport() {
   if (!bulkImportForm.value.rawText.trim()) {
-    message.warning('Please enter member data');
+    message.warning("Please enter member data");
     return;
   }
 
   const lines = bulkImportForm.value.rawText
     .trim()
-    .split('\n')
+    .split("\n")
     .filter((line: string) => line.trim());
 
   const members = lines.map((line: string) => {
-    const parts = line.split(',').map((p: string) => p.trim());
+    const parts = line.split(",").map((p: string) => p.trim());
     return {
-      did: parts[0] || '',
-      name: parts[1] || parts[0] || '',
+      did: parts[0] || "",
+      name: parts[1] || parts[0] || "",
       role: parts[2] || bulkImportForm.value.defaultRole,
     };
   });
@@ -745,19 +680,19 @@ async function handleBulkImport() {
   if (result) {
     bulkImportResult.value = result;
     message.info(
-      `Import complete: ${result.imported.length} imported, ${result.skipped.length} skipped, ${result.failed.length} failed`
+      `Import complete: ${result.imported.length} imported, ${result.skipped.length} skipped, ${result.failed.length} failed`,
     );
     // Refresh data after import
     await loadData();
   } else {
-    message.error(store.error || 'Bulk import failed');
+    message.error(store.error || "Bulk import failed");
   }
 }
 
 function resetBulkImportForm() {
   bulkImportForm.value = {
-    rawText: '',
-    defaultRole: 'member',
+    rawText: "",
+    defaultRole: "member",
   };
   bulkImportResult.value = null;
 }
@@ -765,7 +700,9 @@ function resetBulkImportForm() {
 // ==================== Utilities ====================
 
 function formatDate(timestamp: number | undefined): string {
-  if (!timestamp) {return '-';}
+  if (!timestamp) {
+    return "-";
+  }
   return new Date(timestamp).toLocaleString();
 }
 </script>
