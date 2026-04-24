@@ -242,6 +242,8 @@ module.exports = {
     name: "ChainlessChain",
     executableName: "chainlesschain",
     icon: path.join(__dirname, "assets", "icon"),
+    // Allow offline packaging when a local Electron ZIP cache directory is provided.
+    electronZipDir: process.env.ELECTRON_ZIP_DIR,
     asar: {
       unpack: "*.{node,dll,dylib,so,exe}", // 排除原生模块和可执行文件
     },
@@ -249,7 +251,9 @@ module.exports = {
 
     // 🚀 性能优化：启用prune以移除未使用的依赖（减少30-50%包体积）
     // 注意：如果使用workspace，需要确保所有依赖都在package.json中声明
-    prune: true,
+    // Disable prune for workspace installs; flora-colossus mis-resolves our
+    // hoisted and nested dependency layout before packageAfterCopy can fix it.
+    prune: false,
 
     // 指定需要保留的npm包（即使prune=true）
     // 如果某些包在运行时动态require，在这里列出
@@ -489,14 +493,20 @@ module.exports = {
 
       const copyMissing = (srcDir, dstDir) => {
         for (const name of fs.readdirSync(srcDir)) {
+          if (name.startsWith(".")) {
+            continue;
+          }
           const src = path.join(srcDir, name);
           const dst = path.join(dstDir, name);
+          const srcStat = fs.lstatSync(src);
+          if (srcStat.isSymbolicLink()) {
+            continue;
+          }
           if (hasEntry(dst)) {
             // Scoped namespaces (@chainlesschain/, @eslint/, …) need per-package
             // merging: dst may have some sub-packages (from forge's copy of nested)
             // and be missing others (hoisted at root only).
             if (name.startsWith("@")) {
-              const srcStat = fs.lstatSync(src);
               const dstStat = fs.lstatSync(dst);
               if (srcStat.isDirectory() && dstStat.isDirectory()) {
                 copyMissing(src, dst);
