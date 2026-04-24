@@ -55,6 +55,46 @@ process.on('SIGTERM', () => { httpSrv.close(); tcpSrv.close(); process.exit(0); 
 setInterval(() => {}, 1000);
 `;
 
+// Skills endpoint: serves full skill list at /api/skills, 200 on /
+const skillsExeBody = `
+const http = require('node:http');
+const net = require('node:net');
+const uiPort = Number(process.env.CC_PACK_UI_PORT);
+const wsPort = Number(process.env.CC_PACK_WS_PORT);
+const httpSrv = http.createServer((req, res) => {
+  if (req.url === '/api/skills') {
+    res.writeHead(200, {'Content-Type':'application/json'});
+    res.end(JSON.stringify([{name:'skill-alpha'},{name:'skill-beta'}]));
+    return;
+  }
+  res.writeHead(200, {'Content-Type':'text/plain'});
+  res.end('ok');
+});
+httpSrv.listen(uiPort, '127.0.0.1');
+net.createServer((sock) => sock.end()).listen(wsPort, '127.0.0.1');
+setInterval(() => {}, 1000);
+`;
+
+// Missing skill: only skill-alpha registered, skill-beta absent
+const missingSkillExeBody = `
+const http = require('node:http');
+const net = require('node:net');
+const uiPort = Number(process.env.CC_PACK_UI_PORT);
+const wsPort = Number(process.env.CC_PACK_WS_PORT);
+const httpSrv = http.createServer((req, res) => {
+  if (req.url === '/api/skills') {
+    res.writeHead(200, {'Content-Type':'application/json'});
+    res.end(JSON.stringify([{name:'skill-alpha'}]));
+    return;
+  }
+  res.writeHead(200, {'Content-Type':'text/plain'});
+  res.end('ok');
+});
+httpSrv.listen(uiPort, '127.0.0.1');
+net.createServer((sock) => sock.end()).listen(wsPort, '127.0.0.1');
+setInterval(() => {}, 1000);
+`;
+
 const bad500ExeBody = `
 const http = require('node:http');
 const net = require('node:net');
@@ -68,6 +108,27 @@ setInterval(() => {}, 1000);
 const crashExeBody = `
 console.error('boom-before-listen');
 process.exit(42);
+`;
+
+// Phase 2b not landed: /api/skills returns 404, / returns 200. Smoke-runner
+// must NOT treat this as a hard fail — just skip the skills check with a warn.
+const no404SkillsExeBody = `
+const http = require('node:http');
+const net = require('node:net');
+const uiPort = Number(process.env.CC_PACK_UI_PORT);
+const wsPort = Number(process.env.CC_PACK_WS_PORT);
+const httpSrv = http.createServer((req, res) => {
+  if (req.url === '/api/skills') {
+    res.writeHead(404, {'Content-Type':'text/plain'});
+    res.end('Not Found');
+    return;
+  }
+  res.writeHead(200, {'Content-Type':'text/plain'});
+  res.end('ok');
+});
+httpSrv.listen(uiPort, '127.0.0.1');
+net.createServer((sock) => sock.end()).listen(wsPort, '127.0.0.1');
+setInterval(() => {}, 1000);
 `;
 
 describe("smokeTestExe", () => {
@@ -143,5 +204,66 @@ describe("smokeTestExe", () => {
     await expect(smokeTestExe({ exePath: "" })).rejects.toBeInstanceOf(
       PackError,
     );
+  });
+
+  it("skillsCheck is null when bundledSkillNames is not provided (CLI-only mode)", async () => {
+    const exe = writeFakeExe(tmpDir, goodExeBody);
+    const res = await smokeTestExe({
+      exePath: exe,
+      uiPort: 19211,
+      wsPort: 19210,
+      bootTimeoutMs: 15_000,
+      logger: { log: () => {}, warn: () => {} },
+    });
+    expect(res.ok).toBe(true);
+    expect(res.skillsCheck).toBeNull();
+  });
+
+  it("skillsCheck passes when /api/skills returns all bundled skills", async () => {
+    const exe = writeFakeExe(tmpDir, skillsExeBody);
+    const res = await smokeTestExe({
+      exePath: exe,
+      uiPort: 19213,
+      wsPort: 19212,
+      bundledSkillNames: ["skill-alpha", "skill-beta"],
+      bootTimeoutMs: 15_000,
+      logger: { log: () => {}, warn: () => {} },
+    });
+    expect(res.ok).toBe(true);
+    expect(res.skillsCheck).toEqual({ ok: true, checked: 2 });
+  });
+
+  it("skillsCheck skips gracefully when /api/skills returns 404 (Phase 2b pending)", async () => {
+    const exe = writeFakeExe(tmpDir, no404SkillsExeBody);
+    const res = await smokeTestExe({
+      exePath: exe,
+      uiPort: 19217,
+      wsPort: 19216,
+      bundledSkillNames: ["skill-alpha"],
+      bootTimeoutMs: 15_000,
+      logger: { log: () => {}, warn: () => {} },
+    });
+    expect(res.ok).toBe(true);
+    expect(res.skillsCheck).toEqual({ ok: true, skipped: "endpoint-404" });
+  });
+
+  it("skillsCheck throws PackError when a bundled skill is missing from /api/skills", async () => {
+    const exe = writeFakeExe(tmpDir, missingSkillExeBody);
+    let caught;
+    try {
+      await smokeTestExe({
+        exePath: exe,
+        uiPort: 19215,
+        wsPort: 19214,
+        bundledSkillNames: ["skill-alpha", "skill-beta"],
+        bootTimeoutMs: 15_000,
+        logger: { log: () => {}, warn: () => {} },
+      });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(PackError);
+    expect(caught.exitCode).toBe(EXIT.SMOKE);
+    expect(caught.message).toMatch(/skill-beta/);
   });
 });

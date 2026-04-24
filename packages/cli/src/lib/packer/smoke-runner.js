@@ -11,6 +11,7 @@
  *   - command registry missing `ui` after the entry shim injects it
  *   - HTTP listens but returns non-200 for `/` (web-panel assets not
  *     embedded, or pkg snapshot path mismatch)
+ *   - project mode: /api/skills doesn't list all bundled skills
  *
  * The probe is deliberately narrow (HTTP 200 from `/` + TCP-level WS port
  * binding). Deeper handshakes belong in e2e tests.
@@ -36,8 +37,14 @@ const DEFAULT_PROBE_TIMEOUT_MS = 5_000;
  * @param {number} [ctx.wsPort=18801]          WS port to probe
  * @param {number} [ctx.bootTimeoutMs]
  * @param {number} [ctx.probeTimeoutMs]
+ * @param {string[]|null} [ctx.bundledSkillNames]  project-mode: assert these
+ *                                             skill names appear in /api/skills.
+ *                                             null or empty = skip the check.
+ *                                             If the endpoint returns 404 we
+ *                                             skip gracefully (Phase 2b is
+ *                                             still pending the HTTP route).
  * @param {object} [ctx.logger]                logger.log/warn/error
- * @returns {Promise<{ok:true, uiStatus:number, wsListening:true, stdout:string}>}
+ * @returns {Promise<{ok:true, uiStatus:number, wsListening:true, stdout:string, skillsCheck:object|null}>}
  */
 export async function smokeTestExe(ctx) {
   const {
@@ -46,6 +53,7 @@ export async function smokeTestExe(ctx) {
     wsPort = 18801,
     bootTimeoutMs = DEFAULT_BOOT_TIMEOUT_MS,
     probeTimeoutMs = DEFAULT_PROBE_TIMEOUT_MS,
+    bundledSkillNames = null,
     logger = console,
   } = ctx;
 
@@ -161,6 +169,65 @@ export async function smokeTestExe(ctx) {
     `        UI=${uiStatus} on :${uiPort}, WS listening on :${wsPort}, exe=${path.basename(exePath)}`,
   );
 
+  // ── Project mode: verify bundled skills are registered ──────────────────
+  // Phase 2b is still blocked on the /api/skills HTTP endpoint landing. Until
+  // then the endpoint returns 404, which would otherwise fail every pack that
+  // ships skills. Tolerate the 404 here (skip with a warning) so the probe is
+  // pre-wired but not gating. A real HTTP error (connection refused, 5xx, JSON
+  // parse failure) is still a hard fail — that means the server is broken.
+  let skillsCheck = null;
+  if (bundledSkillNames && bundledSkillNames.length > 0) {
+    let skillsBody;
+    try {
+      skillsBody = await probeHttpJson({
+        host: "127.0.0.1",
+        port: uiPort,
+        path: "/api/skills",
+        timeoutMs: probeTimeoutMs,
+      });
+    } catch (e) {
+      if (/HTTP 404/.test(e.message)) {
+        warn(
+          `        skills check: /api/skills not yet implemented — skipping (Phase 2b pending)`,
+        );
+        skillsCheck = { ok: true, skipped: "endpoint-404" };
+        killChild();
+        return {
+          ok: true,
+          uiStatus,
+          wsListening: true,
+          stdout: stdoutBuf,
+          skillsCheck,
+        };
+      }
+      killChild();
+      throw new PackError(
+        `Smoke-test /api/skills probe failed: ${e.message}`,
+        EXIT.SMOKE,
+      );
+    }
+    const items = Array.isArray(skillsBody)
+      ? skillsBody
+      : Array.isArray(skillsBody?.skills)
+        ? skillsBody.skills
+        : [];
+    const registeredNames = new Set(
+      items.map((s) => (typeof s === "string" ? s : s?.name)).filter(Boolean),
+    );
+    const missing = bundledSkillNames.filter((n) => !registeredNames.has(n));
+    if (missing.length > 0) {
+      killChild();
+      throw new PackError(
+        `Smoke-test skills check: bundled skill(s) not registered: ${missing.join(", ")}`,
+        EXIT.SMOKE,
+      );
+    }
+    warn(
+      `        skills check: ${bundledSkillNames.length} bundled skill(s) verified in /api/skills`,
+    );
+    skillsCheck = { ok: true, checked: bundledSkillNames.length };
+  }
+
   killChild();
 
   return {
@@ -168,6 +235,7 @@ export async function smokeTestExe(ctx) {
     uiStatus,
     wsListening: true,
     stdout: stdoutBuf,
+    skillsCheck,
   };
 }
 
@@ -218,6 +286,37 @@ function probeHttp({ host, port, path: urlPath, timeoutMs }) {
         // Drain body so the socket can close cleanly.
         res.on("data", () => {});
         res.on("end", () => resolve(status));
+        res.on("error", reject);
+      },
+    );
+    req.on("timeout", () => {
+      req.destroy(new Error(`HTTP probe timeout after ${timeoutMs}ms`));
+    });
+    req.on("error", reject);
+  });
+}
+
+function probeHttpJson({ host, port, path: urlPath, timeoutMs }) {
+  return new Promise((resolve, reject) => {
+    const req = http.get(
+      { host, port, path: urlPath, timeout: timeoutMs },
+      (res) => {
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          res.resume();
+          reject(new Error(`HTTP ${res.statusCode} from ${urlPath}`));
+          return;
+        }
+        let body = "";
+        res.on("data", (d) => {
+          body += d.toString("utf8");
+        });
+        res.on("end", () => {
+          try {
+            resolve(JSON.parse(body));
+          } catch (e) {
+            reject(new Error(`JSON parse failed for ${urlPath}: ${e.message}`));
+          }
+        });
         res.on("error", reject);
       },
     );

@@ -188,9 +188,13 @@ export async function runPack(cliOpts, deps = {}) {
 
   // ── Phase 5 ────────────────────────────────────────────────────────────
   log(chalk.cyan("  [5/7] Generate pkg config"));
+  // In project mode the artifact is named after the project, not the CLI.
+  const artifactBase =
+    pre.projectMode && project?.projectName
+      ? `${project.projectName}-portable-${targets[0]}`
+      : `chainlesschain-portable-${targets[0]}`;
   const outputPath = path.resolve(
-    cliOpts.output ||
-      path.join(projectRoot, "dist", `chainlesschain-portable-${targets[0]}`),
+    cliOpts.output || path.join(projectRoot, "dist", artifactBase),
   );
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   const pkgCfg = generatePkgConfig({
@@ -208,6 +212,9 @@ export async function runPack(cliOpts, deps = {}) {
       wsPort: parseInt(cliOpts.wsPort, 10),
       uiPort: parseInt(cliOpts.uiPort, 10),
     },
+    project,
+    projectEntry: cliOpts.entry || null,
+    forceRefreshOnLaunch: Boolean(cliOpts.forceRefreshOnLaunch),
   });
   steps.push({
     phase: "pkg-config",
@@ -254,6 +261,27 @@ export async function runPack(cliOpts, deps = {}) {
   });
   steps.push({ phase: "manifest", ok: true, count: manifests.length });
 
+  // Project manifest sidecar: <artifact>.project.json beside each exe.
+  if (project && manifests.length > 0) {
+    const projectManifest = {
+      schema: 1,
+      projectName: project.projectName,
+      configSha: project.configSha,
+      fileCount: project.fileCount,
+      bundledSkills: project.bundledSkills.map((s) => ({
+        name: s.name,
+        dir: s.dir,
+      })),
+    };
+    for (const { artifact } of manifests) {
+      fs.writeFileSync(
+        artifact + ".project.json",
+        JSON.stringify(projectManifest, null, 2),
+        "utf-8",
+      );
+    }
+  }
+
   // ── Phase 8 (optional) ────────────────────────────────────────────────
   // The `--no-smoke-test` flag and cross-target builds skip this: pkg can
   // compile a linux-x64 artifact on Windows, but we can't execute it. We
@@ -274,6 +302,7 @@ export async function runPack(cliOpts, deps = {}) {
           exePath: out.path,
           uiPort: 18951,
           wsPort: 18950,
+          bundledSkillNames: project?.bundledSkills?.map((s) => s.name) ?? null,
           logger,
         });
         steps.push({

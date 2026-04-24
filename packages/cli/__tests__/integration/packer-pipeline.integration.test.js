@@ -286,6 +286,134 @@ describe("cc pack — full pipeline integration", () => {
     expect(caught.exitCode).toBe(EXIT.SECRETS);
   });
 
+  // ── Project-mode integration (Phase 3.5 + 3b) ───────────────────────────
+  // Covers: auto-detection from .chainlesschain/config.json, projectName
+  // derives the artifact filename, entry script wires CC_PACK_AUTO_PERSONA
+  // when config.pack.autoPersona is set, and <artifact>.project.json sidecar
+  // captures projectName/configSha/bundledSkills/fileCount.
+  it("project mode auto-detects .chainlesschain/, writes project.json sidecar, wires auto-persona", async () => {
+    // Build a minimal project tree under the fake monorepo so precheck
+    // picks up both cliRoot (for the CLI side) and projectRoot (for the
+    // bundled content). projectRoot is a child of projectRoot's parent —
+    // we reuse the same temp dir as projectRoot so cc pack sees a
+    // .chainlesschain/ at cwd.
+    const ccDir = path.join(cliRoot, ".chainlesschain");
+    fs.mkdirSync(ccDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(ccDir, "config.json"),
+      JSON.stringify({
+        name: "my-medical-agent",
+        pack: {
+          entry: "chat",
+          autoPersona: "medical-persona",
+          allowedSubcommands: ["chat", "agent", "skill"],
+        },
+      }),
+      "utf-8",
+    );
+    // One bundled skill — validates bundledSkills extraction.
+    const skillDir = path.join(ccDir, "skills", "triage-skill");
+    fs.mkdirSync(skillDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(skillDir, "skill.md"),
+      "---\nname: triage-skill\n---\n\nTriage logic.\n",
+      "utf-8",
+    );
+
+    const outputPath = path.join(outputDir, "cc-project");
+    const result = await runPack(
+      {
+        cwd: cliRoot,
+        targets: "node20-linux-x64", // cross-target → smoke skipped
+        output: outputPath,
+        skipWebPanelBuild: true,
+        allowDirty: true,
+        wsPort: "18800",
+        uiPort: "18810",
+        bindHost: "127.0.0.1",
+        token: "auto",
+        smokeTest: false,
+        // projectMode left undefined → auto-detect picks up .chainlesschain/
+      },
+      { logger: quietLogger },
+    );
+
+    // Project phase landed and carried bundled skill through.
+    const projectStep = result.steps.find((s) => s.phase === "project-assets");
+    expect(projectStep).toBeDefined();
+    expect(projectStep.projectName).toBe("my-medical-agent");
+    expect(projectStep.bundledSkills).toContain("triage-skill");
+
+    // <artifact>.project.json sidecar written next to the exe.
+    const projectManifestPath = result.outputPath + ".project.json";
+    expect(fs.existsSync(projectManifestPath)).toBe(true);
+    const pm = JSON.parse(fs.readFileSync(projectManifestPath, "utf-8"));
+    expect(pm.schema).toBe(1);
+    expect(pm.projectName).toBe("my-medical-agent");
+    expect(pm.configSha).toMatch(/^[0-9a-f]{64}$/);
+    expect(pm.fileCount).toBeGreaterThan(0);
+    expect(pm.bundledSkills.map((s) => s.name)).toContain("triage-skill");
+  });
+
+  it("project mode entry script wires CC_PACK_AUTO_PERSONA from config.pack.autoPersona", async () => {
+    const ccDir = path.join(cliRoot, ".chainlesschain");
+    fs.mkdirSync(ccDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(ccDir, "config.json"),
+      JSON.stringify({
+        name: "persona-probe",
+        pack: { entry: "chat", autoPersona: "doctor-hat" },
+      }),
+      "utf-8",
+    );
+
+    const outputPath = path.join(outputDir, "cc-persona");
+    await runPack(
+      {
+        cwd: cliRoot,
+        targets: "node20-linux-x64",
+        output: outputPath,
+        skipWebPanelBuild: true,
+        allowDirty: true,
+        wsPort: "18800",
+        uiPort: "18810",
+        smokeTest: false,
+      },
+      { logger: quietLogger },
+    );
+
+    // runPack cleans up the tempDir on success — re-run just the generator
+    // to inspect the entry script (same inputs a pack consumer would use).
+    const { generatePkgConfig } =
+      await import("../../src/lib/packer/pkg-config-generator.js");
+    const { collectProjectAssets } =
+      await import("../../src/lib/packer/project-assets-collector.js");
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-verify-"));
+    try {
+      const project = collectProjectAssets({
+        projectRoot: cliRoot,
+        tempDir,
+        logger: quietLogger,
+      });
+      const { entryScript } = generatePkgConfig({
+        cliRoot,
+        tempDir,
+        distDir: path.join(cliRoot, "src", "assets", "web-panel"),
+        prebuildsDir: null,
+        templatesDir: tempDir,
+        targets: ["node20-linux-x64"],
+        outputPath,
+        compress: true,
+        project,
+      });
+      const entry = fs.readFileSync(entryScript, "utf-8");
+      expect(entry).toContain('"projectAutoPersona":"doctor-hat"');
+      expect(entry).toContain("CC_PACK_AUTO_PERSONA");
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("--allow-secrets bypasses the secret scan", async () => {
     const preset = path.join(outputDir, "preset-ok.json");
     fs.writeFileSync(

@@ -292,6 +292,30 @@ describe("generatePkgConfig", () => {
       expect(entry).toContain(".join(',')");
     });
 
+    it("CC_PACK_AUTO_PERSONA is set from config.pack.autoPersona (Phase 3b)", () => {
+      const r = callProjectGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      expect(entry).toContain('"projectAutoPersona":"medical-persona"');
+      expect(entry).toContain("CC_PACK_AUTO_PERSONA");
+      // Guarded by `if (BAKED.projectAutoPersona)` — null/empty values
+      // must not overwrite an already-set env var.
+      expect(entry).toContain("if (BAKED.projectAutoPersona)");
+    });
+
+    it("projectAutoPersona is null in BAKED when config omits it", () => {
+      const ccDir = path.join(projectDir, ".chainlesschain");
+      fs.writeFileSync(
+        path.join(ccDir, "config.json"),
+        JSON.stringify({ name: "bare", pack: { entry: "ui" } }),
+        "utf-8",
+      );
+      const r = callGenerator({
+        project: { projectDir, projectName: "bare", configSha: FAKE_SHA },
+      });
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      expect(entry).toContain('"projectAutoPersona":null');
+    });
+
     it("assets include project dir glob", () => {
       const r = callProjectGenerator();
       const synth = JSON.parse(fs.readFileSync(r.pkgConfigFile, "utf-8"));

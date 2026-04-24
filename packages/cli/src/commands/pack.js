@@ -104,6 +104,15 @@ export function registerPackCommand(program) {
       "Bypass the 50MB .chainlesschain/ size cap (DANGEROUS — bloats the exe)",
       false,
     )
+    .option(
+      "--entry <subcommand>",
+      "Override the default subcommand from config.pack.entry (project mode only)",
+    )
+    .option(
+      "--force-refresh-on-launch",
+      "Re-materialize project assets on every launch (project mode only)",
+      false,
+    )
     .action(async (opts) => {
       try {
         const result = await runPack(opts, { logger });
