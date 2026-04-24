@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/builtin-tools.js`
 
-**Generated**: 2026-04-22T07:55:53.680Z
+**Generated**: 2026-04-24T14:08:13.780Z
 
 ---
 

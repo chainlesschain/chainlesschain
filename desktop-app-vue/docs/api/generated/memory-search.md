@@ -2,7 +2,7 @@
 
 **Source**: `src/main/memory/memory-search.js`
 
-**Generated**: 2026-04-22T07:55:53.709Z
+**Generated**: 2026-04-24T14:08:13.810Z
 
 ---
 

@@ -1,6 +1,6 @@
 # Component Reference
 
-**Generated**: 2026-04-22T07:55:53.900Z
+**Generated**: 2026-04-24T14:08:14.003Z
 
 **Total Components**: 580
 
@@ -1820,7 +1820,7 @@
 
 **File**: `src/renderer/components/EnhancedCodeBlock.vue`
 
-**Description**: 代码解释抽屉
+**Description**: eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3
 
 ---
 
@@ -4086,6 +4086,8 @@
 
 **File**: `src/renderer/components/common/MarkdownViewer.vue`
 
+**Description**: eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3
+
 ---
 
 ### LoadingState
@@ -4258,7 +4260,7 @@
 
 **File**: `src/renderer/components/chat/UserAssistantMessage.vue`
 
-**Description**: RAG上下文来源
+**Description**: eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3
 
 ---
 

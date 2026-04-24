@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ukey/native-binding.js`
 
-**Generated**: 2026-04-22T07:55:53.650Z
+**Generated**: 2026-04-24T14:08:13.751Z
 
 ---
 
