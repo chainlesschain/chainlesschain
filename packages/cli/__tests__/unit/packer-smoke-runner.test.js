@@ -110,8 +110,9 @@ console.error('boom-before-listen');
 process.exit(42);
 `;
 
-// Phase 2b not landed: /api/skills returns 404, / returns 200. Smoke-runner
-// must NOT treat this as a hard fail — just skip the skills check with a warn.
+// Older pack artifact (pre-Phase 2b): /api/skills returns 404, / returns 200.
+// Smoke-runner must NOT treat this as a hard fail — just skip the skills check
+// with a warn. Forward-compat guard so re-smoking an old exe doesn't regress.
 const no404SkillsExeBody = `
 const http = require('node:http');
 const net = require('node:net');
@@ -233,7 +234,7 @@ describe("smokeTestExe", () => {
     expect(res.skillsCheck).toEqual({ ok: true, checked: 2 });
   });
 
-  it("skillsCheck skips gracefully when /api/skills returns 404 (Phase 2b pending)", async () => {
+  it("skillsCheck skips gracefully when /api/skills returns 404 (pre-Phase 2b pack)", async () => {
     const exe = writeFakeExe(tmpDir, no404SkillsExeBody);
     const res = await smokeTestExe({
       exePath: exe,

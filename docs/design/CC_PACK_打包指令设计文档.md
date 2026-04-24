@@ -1,10 +1,62 @@
 # `cc pack` — 项目一键打包为可执行文件 设计文档
 
-> 版本：v0.1 (Draft)
-> 日期：2026-04-23
+> 版本：v0.4 (Phase 0-3 + 4a + 项目模式 Phase 2a/2b/3a/3b 已落地)
+> 日期：2026-04-24
 > 作者：longfa
-> 状态：草案，待实施
+> 状态：**Phase 0 / 1 / 2 / 3 + Phase 4a 完成**；**项目模式（`--project`）Phase 2a / 2b / 3a / 3b 完成**；Phase 4b（macOS / Windows 代码签名）未启动；Phase 5（自动升级）未启动
 > 关联版本：ChainlessChain v5.0.2.49 / CLI 0.156.6
+
+---
+
+## 变更日志
+
+### v0.4（2026-04-24）—— 项目模式（`--project`）全链路落地
+
+项目模式（`cc pack --project`）在基础流水线的 Phase 3 与 Phase 7 之间插入 `collectProjectAssets`（Phase 3.5），把 CWD 的 `.chainlesschain/` 打进 exe，运行时物化到 `~/.chainlesschain-projects/<name>-<configSha8>/`。本版本把项目模式从"草案"推进到"可分发"，主要产出：
+
+- **Phase 2a**（commit `522d7c8c9`）：`pkg-config-generator` 注入项目模式 BAKED 字段（`projectMode / projectName / projectEntry / projectConfigSha / projectAutoPersona / projectAllowedSubcommands / projectBundledDir / forceRefreshOnLaunch`）；入口脚本插入 `copyRecursiveMerge`（新文件追加、已存在文件保留 + warn）+ `CC_PROJECT_ROOT` 导出；新增 `sanitizeProjectName(rawName)` 导出 —— 小写化、`[^a-z0-9_-]` → `-`、连字符折叠、Windows 保留名 + `-proj` 后缀、64 字符上限
+- **Phase 2b**（commit `69a91c450`）：`packages/cli/src/lib/web-ui-server.js` 新增 `handleApiRequest(req, res)`，`/api/skills` 路径交由 `CLISkillLoader.loadAll()` 驱动，返回 `{schema:1, skills:[{name, displayName, source, category, description, version}]}`（SPA + minimal 两路径共享 handler，404 回落原有静态资源）。smoke-runner 对该端点从 pre-wired 升级为实断言，404 分支保留作为**对旧 artifact 的前向兼容兜底**（注释已同步更新，不再称为"Phase 2b pending"）
+- **Phase 3a**（commit `dce8e5d66`）：`createProgram(opts)` 接受 `allowedCommands: Set<string>`，或从环境变量 `CC_PROJECT_ALLOWED_SUBCOMMANDS`（逗号分隔）解析；在注册 commander 命令前按 action 名过滤；未列出的子命令根本不注册到 commander，避免 `--help` 也能发现隐藏能力
+- **Phase 3b**（commit `7633ad483`）：入口脚本追加 `CC_PACK_AUTO_PERSONA` 环境变量（来自 `BAKED.projectAutoPersona`）；`pack-manifest.json` 扩展 `bundledSkills` 字段（名字列表），供收件方审计；Phase 8 smoke 用该字段对照 `/api/skills` 返回集合
+- **文档产出**：
+  - 新增独立用户文档 [`docs-site/docs/chainlesschain/cli-pack-project.md`](../../docs-site/docs/chainlesschain/cli-pack-project.md)（v0.4），从"设计中"占位状态升级为"已落地"正式文档，含 108 条实测测试清单 + 本地 Win11 x64 性能实测
+  - `README.md` / `README_EN.md` 追加项目模式速查（§`cc pack` 小节）
+  - `.gitignore` 新增 `tmp-pack/` + `*.pack-manifest.json`（打包烟测临时目录，避免误提交 61MB exe）
+- **测试产出**（项目模式合计 **+97 条单元 + 11 条集成 = 108 条**，全绿）：
+  - `__tests__/unit/packer-allowed-commands.test.js`（9 条）—— whitelist 行为矩阵
+  - `__tests__/unit/packer-precheck-project-mode.test.js`（26 条）—— sanitize + resolveProjectMode 触发矩阵 + config schema 校验
+  - `__tests__/unit/packer-project-assets-collector.test.js`（17 条）—— 50MB 上限、skip、secret-scan 复用、bundledSkills 解析
+  - `__tests__/unit/packer-pkg-config-generator.test.js`（28 条）—— BAKED 扩展 + 物化逻辑 + chdir + persona env + allowedSubcommands env
+  - `__tests__/unit/packer-manifest-writer.test.js`（9 条）—— 项目模式 bundledSkills 字段 + SHA-256 一致性
+  - `__tests__/unit/packer-smoke-runner.test.js`（8 条）—— HTTP 200 + WS 握手 + `/api/skills` 实断言 + 404 软容忍
+  - `__tests__/integration/packer-pipeline.integration.test.js` 扩展到 8 条 + `packer-dry-run.test.js` 3 条
+
+### v0.3（2026-04-24）—— Phase 4a: Linux x64 流水线可用
+
+- **host-aware 默认 target**：`cc pack -t` 默认值从硬编码 `node20-win-x64` 改为 `defaultPkgTarget()`（Windows→win-x64、Linux→linux-x64、macOS x64/arm64 都识别）。代码级的跨平台阻塞点已清零 —— packer 里唯一的平台分支是 `smoke-runner` 的 `taskkill`（已守卫 `process.platform === "win32"`）和 `ensureUtf8()` 的 `chcp 65001`（已守卫），这两条都在 Linux 上自动变成 no-op
+- **CI Linux dry-run 守护**：`.github/workflows/cli-ci.yml` 新增 `pack-linux-dryrun` job（`ubuntu-latest`），跑 `cc pack --dry-run --targets node20-linux-x64` 过一遍 Phase 1-5（precheck / web-panel / config-template / native-prebuilds / pkg-config）。真正 pkg 调用 + smoke 仍在 E2E 层（`CC_PACK_E2E=1`），这个 dry-run 的目的是在 Linux 上守住流水线的前 5 步不被 Windows-only 假设悄悄引入
+- **未落地 / 仍需 Linux host**：`@yao-pkg/pkg` 实际打 Linux exe 必须在 Linux host（或 Linux Docker）跑 —— 因为 Windows 的 `node_modules/better-sqlite3-multiple-ciphers/build/Release/*.node` 只有 win-x64 的 ABI，Linux target 会降级到 sql.js 兜底（功能完整但略慢）。如需原生 Linux SQLite 性能，要么在 Linux 构建机上 `npm rebuild`，要么把 Linux prebuild 额外拷进去
+- **测试**：`packer-default-target.test.js` 8 条，覆盖当前 host / 5 个 (os,arch) 分支 / 2 条降级路径
+
+### v0.2（2026-04-24）—— Phase 0-3 全部落地
+
+- **Phase 0 + 1** 已随 commit `43f307c30` 合入：`cc pack` 命令骨架、7 阶段流水线、`CC_PACK_MODE`、`web-ui-server` 三模式、design doc v0.1
+- **Phase 2 关键修复**：
+  - 合成入口不再使用 `import('...')` —— pkg 的 snapshot 不给 V8 注册动态 import 回调（`ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`）。改为静态 ESM 导入 `ensureUtf8` + `createProgram` 并内联 bin 的 6 行逻辑
+  - **双击 Explorer 默认进 `ui`**：无 subcommand 时合成入口自动追加 `ui`，避免 "闪一下黑窗"；`--version` / `--help` 不会触发这套默认，commander 短路流程不被污染
+  - **token / host / ports 烘到 exe 里**：合成入口包含一个冻结的 `BAKED` 常量，`--token auto`（默认）会在**每次启动**用 `crypto.randomBytes(16)` 生成一次性 token 并在终端打印；`CC_PACK_TOKEN` / `CC_PACK_UI_PORT` / `CC_PACK_WS_PORT` / `CC_PACK_HOST` 四个环境变量可覆盖
+  - **原生 SQLite 驱动探针 + sql.js 兜底**：`loadSQLiteDriver()` 对每个 native 候选做 `new Database(':memory:').close()` 探针，ABI mismatch（如 pkg 打进 Node 20 但 `.node` 是 Node 22 编译）自动降级到 sql.js；`createSqlJsCompat(raw, dbPath)` shim 把 sql.js 包成 better-sqlite3 的外形（`prepare().all/get/run` / `transaction` / `pragma` no-op / `close` auto-persist），补齐历史遗留的空 fallback 路径
+  - **monorepo resolver** 修复：`native-prebuild-collector.js` 和 `pkg-runner.js` 用 `createRequire` + 候选目录 walk，正确命中 `packages/core-db/node_modules/better-sqlite3-multiple-ciphers/build/Release/better_sqlite3.node`（源码级 hoist 在根 node_modules，编译产物在 sibling package）
+- **Phase 3 冒烟测试落地**：新增 `packer/smoke-runner.js`（Phase 8），`runPack` 在产物就绪后自动 spawn 单次 exe，探 UI HTTP 200 + WS 端口握手，跨平台产物自动 skip（Windows host 上打 linux-x64 不能本地执行）
+- **测试覆盖**：
+  - 单元测试：packer 模块 5 个文件（config-template / native-prebuild / pkg-config / manifest / smoke-runner + precheck）共 57 条；`core-db` 的 `createSqlJsCompat` 独立 12 条
+  - 集成测试：`__tests__/integration/packer-pipeline.integration.test.js` 6 条，覆盖 8 阶段顺序 / 烘入值 / 跨平台 skip / `--no-smoke-test` / 秘钥扫描拦截
+  - E2E 测试：`__tests__/e2e/pack-artifact.test.js` 4 条，`CC_PACK_E2E=1` 时实跑 pkg、验 SHA、实跑 exe、验 HTTP 200 + WS 101 握手
+  - 总计 **79 个新增测试** 全绿
+
+### v0.1（2026-04-23）—— 初稿
+
+- 锁定需求、命令接口、产物结构、启动行为、技术选型、7 阶段流水线骨架、安全模型、分阶段交付计划
 
 ---
 
@@ -825,7 +877,7 @@ exit(0)
 | DB 密码错误 | "数据库密码错误，请重试" | 允许重试 3 次，超过退出 |
 | 端口全被占 | "端口 18800-18809 均被占用" | 提示 `--ws-port` 指定 |
 | DB 损坏 | "数据库文件损坏" | 提示 `--reset-data` 或 `--restore <backup>` |
-| 缺失 .node | "原生模块加载失败：<details>" | 提示去 issue 反馈（不应该发生） |
+| 缺失 .node | `"原生模块加载失败：<details>"` | 提示去 issue 反馈（不应该发生） |
 
 ### 16.2 日志与反馈
 
@@ -847,6 +899,20 @@ chainlesschain-portable.exe --diagnose
 - 端口可用性
 - 原生模块加载状态
 - 最近一次崩溃日志摘要
+
+### 16.4 Phase 2-3 实战 trouble-shooting 清单
+
+v0.2 期间抓出并修掉的典型症状，遇到时的定位方式：
+
+| 症状 | 根因 | 定位 / 处理 |
+|---|---|---|
+| 双击 exe 黑窗一闪而过 | 合成入口无 subcommand 时 commander 默认只打印 help 就退出 | Phase 2 已在入口合成 `!_hasSub && !_shortCircuits → argv.push('ui')`；如有复现检查 `pack-entry.js` 是否被回滚到 `import('...')` 版本 |
+| `ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING` | pkg 的 snapshot bootstrap 没给 V8 注册 import callback，`import('...')` 直接崩 | 合成入口**必须**用静态 ESM 导入；unit test `packer-pkg-config-generator.test.js` 里有一条明确断言「entry 不得含 `import(`」 |
+| 启动时报 `NODE_MODULE_VERSION 127 ... requires 115` 然后 UI 起不来 | 宿主机 native `.node` 是 Node 22 编译，pkg target node20-win-x64 打进的是 Node 20 | `loadSQLiteDriver` 探针会自动 fallback 到 sql.js（v0.2 已修）；如果看到 `"[DatabaseManager] Using sql.js (WASM fallback)"` 且随后 `Database initialized` 则正常 |
+| sql.js 选中但 `this.db.prepare(...).all is not a function` | 历史 fallback 路径只切 driver 不做 API 适配，sql.js 的 Statement 是 step/getAsObject | `createSqlJsCompat` 已补齐 better-sqlite3 外形；如果报错没消失，检查 `DatabaseManager.initialize` 里的 wasm 分支是不是被改回裸 `new SQL.Database(...)` |
+| Auth: disabled 即使 `--token auto` | 合成入口的 `--token` 注入条件被破坏，或者用户手动传了 `--token ""` | `packer-pkg-config-generator.test.js` 有三条测试覆盖 `auto` / 空串 / 字面量 三种模式；对照 BAKED 常量 |
+| 事务里的 INSERT 被 "cannot commit - no transaction is active" 打断 | sql.js `export()` 在 BEGIN…COMMIT 之间被调用会隐式结束事务 | `createSqlJsCompat` 用 `txDepth` 计数禁止 in-txn auto-persist；相关单测 `transaction commits on success` / `transaction rolls back on thrown error` |
+| pkg 抱怨找不到 `@yao-pkg/pkg` | 根 node_modules 存在但 cliRoot 的 require 找不到 | `pkg-runner.locatePkgBinary` 已改用 `createRequire` 按 node 解析算法定位，monorepo hoist 透明处理 |
 
 ---
 
@@ -888,48 +954,60 @@ chainlesschain-portable.exe --diagnose
 
 ## 18. 分阶段交付
 
-### Phase 0：本地联调（~1 天）
+### Phase 0：本地联调（~1 天） ✅ 已完成（commit `43f307c30`）
 
 **目标**：改 `ws-server.js` 和 `web-ui-server.js`，本地 `cc ui` 能跑完整 Vue 面板且支持 chat/agent。
 
 **产出**：
-- [ ] `blockedCommands` 改为环境变量驱动
-- [ ] `web-ui-server.js` 加 `mode: 'full' | 'minimal'`
-- [ ] 本地 `cc ui --mode full` 验证通过
+- [x] `blockedCommands` 改为 `isCommandBlocked(cmd, env)` 函数驱动（serve/setup/pack 永远 block，chat/agent 在 `CC_PACK_MODE=1` 时解禁）
+- [x] `web-ui-server.js` 加 `uiMode: 'auto' | 'full' | 'minimal'`（`full` 模式下 web-panel/dist 缺失直接报错）
+- [x] `cc ui --ui-mode` 联调通过
 
-### Phase 1：最小 pack（~2 天）
+### Phase 1：最小 pack（~2 天） ✅ 已完成（commit `43f307c30`）
 
 **目标**：Windows x64 单目标能产出可运行 exe。
 
 **产出**：
-- [ ] `cc pack` 命令骨架 + 8 个 packer 子模块
-- [ ] Phase 2-7 流水线跑通
-- [ ] 产物能启动 Web UI（better-sqlite3 可能还缺）
+- [x] `cc pack` 命令骨架（[packages/cli/src/commands/pack.js](../../packages/cli/src/commands/pack.js)）
+- [x] 8 个 packer 子模块（precheck / web-panel-builder / config-template-builder / native-prebuild-collector / pkg-config-generator / pkg-runner / manifest-writer / smoke-runner）
+- [x] `--dry-run` 能跑完 phase 1-5 不调 pkg
 
-### Phase 2：原生模块 + 独立性（~1 天）
+### Phase 2：原生模块 + 独立性（~1 天） ✅ 已完成（2026-04-24）
 
-**目标**：产物在无 Node 环境可用。
-
-**产出**：
-- [ ] prebuild 抽取 + 运行时 native loader
-- [ ] 首启 DB 初始化 + 密码设置
-- [ ] 数据目录策略
-
-### Phase 3：冒烟测试与签名（~1 天）
-
-**目标**：产物可安全分发。
+**目标**：产物在无 Node 环境可用，native ABI mismatch 自动 fallback 到 sql.js。
 
 **产出**：
-- [ ] `--smoke-test` 实现
-- [ ] 代码签名流水线
-- [ ] README 含 SHA256 校验说明
+- [x] `native-prebuild-collector` 的 monorepo resolver —— `createRequire` + 候选目录 walk，同时探源码级 hoist 根目录和 sibling workspace package 的 nested 拷贝，正确命中编译产物
+- [x] `loadSQLiteDriver` 加探针：每个 native 候选都用 `new Database(':memory:').close()` 实测，require() 成功但 `.node` load 失败的不算数，继续走 fallback
+- [x] `createSqlJsCompat(rawDb, dbPath)` wrapper：sql.js 的 Statement API（step/getAsObject）→ better-sqlite3 的 `prepare().all/get/run` 外形 + `transaction` BEGIN/COMMIT/ROLLBACK + `pragma` no-op + `close` auto-persist；覆盖历史空 fallback 路径
+- [x] sql.js WASM 资源（sql-wasm.js + sql-wasm.wasm）在 packer phase 4 被打成 pkg asset
+- [x] 合成入口改为**静态 ESM 导入**（避开 pkg 不支持的 dynamic import）+ 双击友好默认（无 subcommand 自动 `ui`，`--version`/`--help` 不触发）+ token/host/port 烘入 + 4 个 env var override + auto-token per-run 生成
 
-### Phase 4（P1）：跨平台（~3 天）
+### Phase 3：冒烟测试与测试矩阵（~1 天） ✅ 已完成（2026-04-24）
 
-- [ ] macOS (Intel + ARM)
-- [ ] Linux x64
+**目标**：产物可安全分发，CI 能拦住回归。
 
-### Phase 5（P2+）：增量升级、auto-update
+**产出**：
+- [x] `smoke-runner.js` 实现 `--smoke-test` —— `runPack` phase 8 自动 spawn 新产物，探 UI HTTP 200 + WS 端口 TCP 握手；跨平台产物（host 跑不动的 target）自动 skip
+- [x] 单元测试：core-db `createSqlJsCompat` 12 条 + packer 各模块共 57 条（含 smoke-runner 4 条）
+- [x] 集成测试：`packer-pipeline.integration.test.js` 6 条
+- [x] E2E 测试：`pack-artifact.test.js` 4 条，`CC_PACK_E2E=1` 启用
+- [ ] 代码签名（`--sign` 参数骨架已在 pack.js，实施延后到 Phase 4）
+
+### Phase 4（P1）：跨平台 + 代码签名
+
+**Phase 4a（已落地，v0.3）**：Linux x64 流水线可用
+- [x] host-aware 默认 target（`defaultPkgTarget()`）+ 8 条单元测试
+- [x] CI job `pack-linux-dryrun` 在 `ubuntu-latest` 过前 5 阶段
+- [x] 代码级 Windows-only 分支全部守卫（`taskkill` + `chcp 65001` + smoke-runner 平台探测）
+- [ ] **仍需 Linux host 验证**：真正的 pkg 调用 + smoke 需要在 Linux 机器（或 Docker）跑一次 `CC_PACK_E2E=1`，确认 sql.js fallback 工作
+- [ ] **可选优化**：Linux host 上 `npm rebuild better-sqlite3-multiple-ciphers` 后产出的 `.node` 打进 Linux prebuild，跳过 sql.js 降级（原生路径性能更好）
+
+**Phase 4b（未启动）**：macOS + 代码签名
+- [ ] macOS (Intel + ARM) —— 阻塞点：需要 Apple Developer 签名证书 + notarization 流水线
+- [ ] Windows 代码签名 (`--sign` + `--sign-password`) —— 流水线对接 EV 证书，参数骨架已在 `pack.js`
+
+### Phase 5（P2+）：增量升级、auto-update 未启动
 
 ---
 

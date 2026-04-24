@@ -54,6 +54,46 @@ jobs:
         working-directory: packages/cli
         run: node bin/chainlesschain.js --help
 
+  # Phase 4a: validate `cc pack` end-to-end on Linux without running pkg.
+  # Dry-run exercises precheck → web-panel → config-template → native-prebuilds
+  # → pkg-config synthesis, which is where most platform regressions surface.
+  # A full pkg + smoke run would need CC_PACK_E2E=1 and ~30s of pkg download
+  # on every PR — out of scope for this job; use the manual e2e suite instead.
+  pack-linux-dryrun:
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies (workspace-aware)
+        uses: ./.github/actions/setup-node-deps
+
+      - name: Ensure web-panel dist exists (stub)
+        working-directory: packages/cli
+        run: |
+          mkdir -p src/assets/web-panel
+          if [ ! -f src/assets/web-panel/index.html ]; then
+            echo '<!doctype html><title>stub</title>' > src/assets/web-panel/index.html
+          fi
+
+      - name: cc pack --dry-run for linux-x64
+        working-directory: packages/cli
+        run: |
+          node bin/chainlesschain.js pack \
+            --dry-run \
+            --targets node20-linux-x64 \
+            --allow-dirty \
+            --skip-web-panel-build \
+            --no-smoke-test
+
   dry-run-publish:
     needs: [test]
     runs-on: ubuntu-latest

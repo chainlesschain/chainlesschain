@@ -40,9 +40,10 @@ const DEFAULT_PROBE_TIMEOUT_MS = 5_000;
  * @param {string[]|null} [ctx.bundledSkillNames]  project-mode: assert these
  *                                             skill names appear in /api/skills.
  *                                             null or empty = skip the check.
- *                                             If the endpoint returns 404 we
- *                                             skip gracefully (Phase 2b is
- *                                             still pending the HTTP route).
+ *                                             404 is tolerated (skipped with a
+ *                                             warning) so packs produced against
+ *                                             an older web-ui-server don't fail
+ *                                             the probe.
  * @param {object} [ctx.logger]                logger.log/warn/error
  * @returns {Promise<{ok:true, uiStatus:number, wsListening:true, stdout:string, skillsCheck:object|null}>}
  */
@@ -170,11 +171,10 @@ export async function smokeTestExe(ctx) {
   );
 
   // ── Project mode: verify bundled skills are registered ──────────────────
-  // Phase 2b is still blocked on the /api/skills HTTP endpoint landing. Until
-  // then the endpoint returns 404, which would otherwise fail every pack that
-  // ships skills. Tolerate the 404 here (skip with a warning) so the probe is
-  // pre-wired but not gating. A real HTTP error (connection refused, 5xx, JSON
-  // parse failure) is still a hard fail — that means the server is broken.
+  // /api/skills is served by web-ui-server (Phase 2b, shipped in 69a91c450).
+  // We still tolerate 404 here so older packs produced before 2b don't regress
+  // the probe when re-smoked. A real HTTP error (connection refused, 5xx, JSON
+  // parse failure) is a hard fail — that means the server is broken.
   let skillsCheck = null;
   if (bundledSkillNames && bundledSkillNames.length > 0) {
     let skillsBody;
@@ -188,7 +188,7 @@ export async function smokeTestExe(ctx) {
     } catch (e) {
       if (/HTTP 404/.test(e.message)) {
         warn(
-          `        skills check: /api/skills not yet implemented — skipping (Phase 2b pending)`,
+          `        skills check: /api/skills returned 404 — skipping (older pack predating Phase 2b)`,
         );
         skillsCheck = { ok: true, skipped: "endpoint-404" };
         killChild();

@@ -11,6 +11,26 @@ import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { runPack } from "../lib/packer/index.js";
 
+/**
+ * Default pkg target string for the host platform+arch. Falls back to
+ * `node20-win-x64` for unknown combos so users on uncommon hosts still get
+ * a sensible string to edit with `--targets`.
+ */
+export function defaultPkgTarget() {
+  const osSlug =
+    process.platform === "win32"
+      ? "win"
+      : process.platform === "darwin"
+        ? "macos"
+        : process.platform === "linux"
+          ? "linux"
+          : null;
+  const archSlug =
+    process.arch === "x64" ? "x64" : process.arch === "arm64" ? "arm64" : null;
+  if (!osSlug || !archSlug) return "node20-win-x64";
+  return `node20-${osSlug}-${archSlug}`;
+}
+
 export function registerPackCommand(program) {
   program
     .command("pack")
@@ -19,12 +39,12 @@ export function registerPackCommand(program) {
     )
     .option(
       "-o, --output <path>",
-      "Output path (no extension; pkg appends .exe on Windows)",
+      "Output path without extension. pkg appends .exe for win targets only.",
     )
     .option(
       "-t, --targets <list>",
-      "Comma-separated pkg targets (default: current platform)",
-      "node20-win-x64",
+      "Comma-separated pkg targets (defaults to current host platform)",
+      defaultPkgTarget(),
     )
     .option("--ws-port <n>", "Default WS port baked into the artifact", "18800")
     .option(
