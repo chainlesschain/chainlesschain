@@ -61,9 +61,16 @@ describe("collectPrebuilds", () => {
   });
 
   function writeFakeNodeFile(modName) {
-    const dir = path.join(cliRoot, "node_modules", modName, "build", "Release");
-    fs.mkdirSync(dir, { recursive: true });
-    const file = path.join(dir, `${modName}.node`);
+    const moduleDir = path.join(cliRoot, "node_modules", modName);
+    const releaseDir = path.join(moduleDir, "build", "Release");
+    fs.mkdirSync(releaseDir, { recursive: true });
+    // Module resolution (createRequire / fallback walk) requires package.json
+    fs.writeFileSync(
+      path.join(moduleDir, "package.json"),
+      JSON.stringify({ name: modName, version: "0.0.0", main: "index.js" }),
+    );
+    fs.writeFileSync(path.join(moduleDir, "index.js"), "module.exports = {};");
+    const file = path.join(releaseDir, `${modName}.node`);
     fs.writeFileSync(file, "fake-binary-content", "binary");
     return file;
   }
@@ -109,14 +116,16 @@ describe("collectPrebuilds", () => {
     expect(optMissing.required).toBe(false);
   });
 
-  it("throws PackError when better-sqlite3 (required) is missing", () => {
-    expect(() =>
-      collectPrebuilds({
-        cliRoot,
-        targets: ["node20-win-x64"],
-        tempDir,
-      }),
-    ).toThrow(PackError);
+  it("no longer throws when natives are missing — reports them instead (sql.js fallback)", () => {
+    const r = collectPrebuilds({
+      cliRoot,
+      targets: ["node20-win-x64"],
+      tempDir,
+    });
+    expect(r.collected).toEqual([]);
+    const bs = r.missing.find((m) => m.module === "better-sqlite3");
+    expect(bs).toBeDefined();
+    expect(bs.required).toBe(false);
   });
 
   it("throws PackError on malformed target", () => {

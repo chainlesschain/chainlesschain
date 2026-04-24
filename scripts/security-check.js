@@ -83,6 +83,8 @@ const ALLOWED_FILES = [
   "proxy-base-url-override.test.js",
   // Plugin ecosystem test (contains fake API key for secret-detection test)
   "plugin-ecosystem.test.js",
+  // Pack pipeline integration test (contains intentional fake key to test the secret scanner)
+  "packer-pipeline.integration.test.js",
 ];
 
 function checkFileForSecrets(filePath) {

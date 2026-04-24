@@ -132,9 +132,62 @@ describe("generatePkgConfig", () => {
     expect(entry).toContain("'1'");
   });
 
-  it("pack-entry.js imports the real CLI bin", () => {
+  it("pack-entry.js statically imports the real CLI bootstrap (not dynamic)", () => {
     const r = callGenerator();
     const entry = fs.readFileSync(r.entryScript, "utf-8");
-    expect(entry).toContain("chainlesschain.js");
+    // Must use static imports — pkg's snapshot has no dynamic-import callback.
+    expect(entry).toMatch(/import\s+\{\s*ensureUtf8\s*\}\s+from/);
+    expect(entry).toMatch(/import\s+\{\s*createProgram\s*\}\s+from/);
+    expect(entry).toContain("program.parse(process.argv)");
+    expect(entry).not.toMatch(/\bimport\(/);
+  });
+
+  it("pack-entry.js defaults to `ui` when no subcommand is given (double-click friendliness)", () => {
+    const r = callGenerator();
+    const entry = fs.readFileSync(r.entryScript, "utf-8");
+    expect(entry).toContain("process.argv.push('ui')");
+    expect(entry).toContain("uncaughtException");
+  });
+
+  it("pack-entry.js bakes runtime defaults (token/ports/host) and honors env overrides", () => {
+    const r = callGenerator({
+      runtime: {
+        token: "auto",
+        bindHost: "0.0.0.0",
+        wsPort: 29000,
+        uiPort: 29010,
+      },
+    });
+    const entry = fs.readFileSync(r.entryScript, "utf-8");
+    // Defaults serialize into the frozen BAKED constant.
+    expect(entry).toContain('"tokenMode":"auto"');
+    expect(entry).toContain('"host":"0.0.0.0"');
+    expect(entry).toContain('"wsPort":"29000"');
+    expect(entry).toContain('"uiPort":"29010"');
+    // Env-var overrides are honored before the frozen default.
+    expect(entry).toContain("CC_PACK_UI_PORT");
+    expect(entry).toContain("CC_PACK_WS_PORT");
+    expect(entry).toContain("CC_PACK_HOST");
+    expect(entry).toContain("CC_PACK_TOKEN");
+    // Only inject a flag the user didn't already pass on the command line.
+    expect(entry).toContain("_hasFlag('-p', '--port')");
+    expect(entry).toContain("_hasFlag('--token')");
+    // 'auto' token mode must generate a fresh random token each run.
+    expect(entry).toContain("crypto.randomBytes(16)");
+  });
+
+  it("pack-entry.js token='' (empty) disables token injection entirely", () => {
+    const r = callGenerator({ runtime: { token: "" } });
+    const entry = fs.readFileSync(r.entryScript, "utf-8");
+    expect(entry).toContain('"tokenMode":""');
+    // The literal empty string is falsy, so the `&& BAKED.tokenMode` guard
+    // in the entry skips `--token` injection — no-auth mode intentionally.
+    expect(entry).toContain("&& BAKED.tokenMode");
+  });
+
+  it("pack-entry.js token='<literal>' hardcodes the baked value", () => {
+    const r = callGenerator({ runtime: { token: "hunter2" } });
+    const entry = fs.readFileSync(r.entryScript, "utf-8");
+    expect(entry).toContain('"tokenMode":"hunter2"');
   });
 });
