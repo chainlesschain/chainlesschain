@@ -8,6 +8,68 @@ import path from "node:path";
 import { execSync } from "node:child_process";
 import { PackError, EXIT } from "./errors.js";
 
+const WINDOWS_RESERVED = new Set([
+  "CON",
+  "PRN",
+  "AUX",
+  "NUL",
+  "COM1",
+  "COM2",
+  "COM3",
+  "COM4",
+  "COM5",
+  "COM6",
+  "COM7",
+  "COM8",
+  "COM9",
+  "LPT1",
+  "LPT2",
+  "LPT3",
+  "LPT4",
+  "LPT5",
+  "LPT6",
+  "LPT7",
+  "LPT8",
+  "LPT9",
+]);
+
+/**
+ * Sanitize a project name for safe use as a filesystem directory segment.
+ *
+ * Rules:
+ *   - Lowercase; replace any char outside [a-z0-9_-] with '-'
+ *   - Collapse consecutive dashes; strip leading/trailing dashes
+ *   - Windows reserved names get '-proj' appended
+ *   - Truncate to 64 characters
+ *   - Empty result after sanitization → PackError
+ *
+ * @param {string} rawName   raw value from config.json "name" field
+ * @returns {string}         safe directory name
+ */
+export function sanitizeProjectName(rawName) {
+  let name = String(rawName || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  if (WINDOWS_RESERVED.has(name.toUpperCase())) {
+    name = name + "-proj";
+  }
+
+  name = name.slice(0, 64);
+
+  if (!name) {
+    throw new PackError(
+      `Project name "${rawName}" cannot be sanitized to a valid filesystem segment. ` +
+        'Use only ASCII letters, digits, hyphens, and underscores in the "name" field.',
+      EXIT.PRECHECK,
+    );
+  }
+
+  return name;
+}
+
 /**
  * @param {object} ctx
  * @param {string} ctx.projectRoot                  absolute path
@@ -100,7 +162,7 @@ export function precheck(ctx) {
     );
   }
 
-  const { projectMode, projectConfigPath } = resolveProjectMode({
+  const { projectMode, projectConfigPath, projectName } = resolveProjectMode({
     projectRoot,
     projectMode: ctx.projectMode,
     projectConfigOverride: ctx.projectConfigOverride || null,
@@ -113,6 +175,7 @@ export function precheck(ctx) {
     dirty,
     projectMode,
     projectConfigPath,
+    projectName,
   };
 }
 
@@ -137,7 +200,7 @@ export function resolveProjectMode(ctx) {
   const { projectRoot, projectMode, projectConfigOverride } = ctx;
 
   if (projectMode === false) {
-    return { projectMode: false, projectConfigPath: null };
+    return { projectMode: false, projectConfigPath: null, projectName: null };
   }
 
   const candidatePath = projectConfigOverride
@@ -156,22 +219,24 @@ export function resolveProjectMode(ctx) {
         EXIT.PRECHECK,
       );
     }
-    validateProjectConfig(candidatePath);
-    return { projectMode: true, projectConfigPath: candidatePath };
+    const { name: projectName } = validateProjectConfig(candidatePath);
+    return { projectMode: true, projectConfigPath: candidatePath, projectName };
   }
 
   // Auto-detect
   if (exists) {
-    validateProjectConfig(candidatePath);
-    return { projectMode: true, projectConfigPath: candidatePath };
+    const { name: projectName } = validateProjectConfig(candidatePath);
+    return { projectMode: true, projectConfigPath: candidatePath, projectName };
   }
-  return { projectMode: false, projectConfigPath: null };
+  return { projectMode: false, projectConfigPath: null, projectName: null };
 }
 
 /**
  * Minimal Phase-0 schema check. Confirms the file parses as JSON and has a
- * non-empty `name` field (required by the §4.1 naming rule). Deeper schema
- * validation lands in Phase 1 alongside `project-assets-collector`.
+ * non-empty `name` field (required by the §4.1 naming rule). Returns the
+ * sanitized project name so callers can propagate it without re-reading.
+ *
+ * @returns {{ name: string }}
  */
 function validateProjectConfig(configPath) {
   let raw;
@@ -198,4 +263,6 @@ function validateProjectConfig(configPath) {
       EXIT.PRECHECK,
     );
   }
+  const name = sanitizeProjectName(parsed.name.trim());
+  return { name };
 }

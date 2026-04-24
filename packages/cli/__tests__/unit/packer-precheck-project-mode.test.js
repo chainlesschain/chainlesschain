@@ -24,7 +24,11 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { precheck, resolveProjectMode } from "../../src/lib/packer/precheck.js";
+import {
+  precheck,
+  resolveProjectMode,
+  sanitizeProjectName,
+} from "../../src/lib/packer/precheck.js";
 import { PackError } from "../../src/lib/packer/errors.js";
 
 // precheck() also enforces clean git + projectRoot existence. Every test
@@ -235,7 +239,11 @@ describe("resolveProjectMode — pure helper", () => {
       projectMode: false,
       projectConfigOverride: null,
     });
-    expect(r).toEqual({ projectMode: false, projectConfigPath: null });
+    expect(r).toEqual({
+      projectMode: false,
+      projectConfigPath: null,
+      projectName: null,
+    });
   });
 
   it("handles the 4-case matrix cleanly", () => {
@@ -294,5 +302,88 @@ describe("resolveProjectMode — pure helper", () => {
         projectConfigOverride: null,
       }).projectMode,
     ).toBe(false);
+  });
+});
+
+describe("sanitizeProjectName", () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-san-"));
+  });
+
+  afterEach(() => {
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch {
+      /* best effort */
+    }
+  });
+
+  it("lowercases and strips non-alphanumeric chars", () => {
+    // trailing "!" → "-" → stripped by trailing-dash rule
+    expect(sanitizeProjectName("My Medical Agent!")).toBe("my-medical-agent");
+  });
+
+  it("replaces spaces with dashes and collapses consecutive dashes", () => {
+    // "foo  bar" → "foo--bar" → collapse → "foo-bar"; "__" is kept as-is
+    expect(sanitizeProjectName("foo  bar__baz")).toBe("foo-bar__baz");
+    expect(sanitizeProjectName("a---b")).toBe("a-b");
+  });
+
+  it("strips leading and trailing dashes", () => {
+    expect(sanitizeProjectName("-foo-")).toBe("foo");
+  });
+
+  it("passthrough for already-valid names", () => {
+    expect(sanitizeProjectName("my-project-v2")).toBe("my-project-v2");
+    expect(sanitizeProjectName("agent_01")).toBe("agent_01");
+  });
+
+  it("appends -proj to Windows reserved names", () => {
+    expect(sanitizeProjectName("CON")).toBe("con-proj");
+    expect(sanitizeProjectName("NUL")).toBe("nul-proj");
+    expect(sanitizeProjectName("com1")).toBe("com1-proj");
+    expect(sanitizeProjectName("LPT9")).toBe("lpt9-proj");
+  });
+
+  it("truncates at 64 characters", () => {
+    const long = "a".repeat(100);
+    expect(sanitizeProjectName(long)).toBe("a".repeat(64));
+  });
+
+  it("throws PackError when sanitized result is empty", () => {
+    expect(() => sanitizeProjectName("---")).toThrow(PackError);
+    expect(() => sanitizeProjectName("!!!")).toThrow(PackError);
+    expect(() => sanitizeProjectName("")).toThrow(PackError);
+  });
+
+  it("throws PackError with PRECHECK exit code (10)", () => {
+    try {
+      sanitizeProjectName("!!!");
+      throw new Error("should have thrown");
+    } catch (e) {
+      expect(e).toBeInstanceOf(PackError);
+      expect(e.exitCode).toBe(10);
+    }
+  });
+
+  it("precheck returns sanitized projectName for project mode", () => {
+    const ccDir = path.join(tmpDir, ".chainlesschain");
+    fs.mkdirSync(ccDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(ccDir, "config.json"),
+      JSON.stringify({ name: "My Agent" }),
+      "utf-8",
+    );
+    const r = precheck({ projectRoot: tmpDir, allowDirty: true });
+    expect(r.projectMode).toBe(true);
+    expect(r.projectName).toBe("my-agent");
+  });
+
+  it("precheck returns projectName:null in CLI-only mode", () => {
+    const r = precheck({ projectRoot: tmpDir, allowDirty: true });
+    expect(r.projectMode).toBe(false);
+    expect(r.projectName).toBeNull();
   });
 });

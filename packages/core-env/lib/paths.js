@@ -54,6 +54,11 @@ function getElectronApp() {
  * @returns {string}
  */
 export function getUserDataPath() {
+  // Project-mode packed exe: entry script sets CC_PROJECT_ROOT to the
+  // materialized user-data dir so all path resolution points there.
+  if (process.env.CC_PROJECT_ROOT) {
+    return process.env.CC_PROJECT_ROOT;
+  }
   if (process.env.CHAINLESSCHAIN_HOME) {
     return process.env.CHAINLESSCHAIN_HOME;
   }

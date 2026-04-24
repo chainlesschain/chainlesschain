@@ -145,7 +145,9 @@ describe("generatePkgConfig", () => {
   it("pack-entry.js defaults to `ui` when no subcommand is given (double-click friendliness)", () => {
     const r = callGenerator();
     const entry = fs.readFileSync(r.entryScript, "utf-8");
-    expect(entry).toContain("process.argv.push('ui')");
+    // CLI-only: BAKED.projectMode is absent, _entryCmd falls back to literal 'ui'
+    expect(entry).toContain("BAKED.projectMode ? BAKED.projectEntry : 'ui'");
+    expect(entry).toContain("_entryCmd.split");
     expect(entry).toContain("uncaughtException");
   });
 
@@ -189,5 +191,137 @@ describe("generatePkgConfig", () => {
     const r = callGenerator({ runtime: { token: "hunter2" } });
     const entry = fs.readFileSync(r.entryScript, "utf-8");
     expect(entry).toContain('"tokenMode":"hunter2"');
+  });
+
+  describe("project mode", () => {
+    const FAKE_SHA =
+      "abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd";
+    let projectDir;
+
+    beforeEach(() => {
+      projectDir = path.join(tempDir, "project");
+      const ccDir = path.join(projectDir, ".chainlesschain");
+      fs.mkdirSync(ccDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(ccDir, "config.json"),
+        JSON.stringify({
+          name: "my-medical-agent",
+          pack: {
+            entry: "chat",
+            autoPersona: "medical-persona",
+            allowedSubcommands: ["chat", "agent"],
+          },
+        }),
+        "utf-8",
+      );
+    });
+
+    function callProjectGenerator(extraOpts = {}) {
+      return callGenerator({
+        project: {
+          projectDir,
+          projectName: "my-medical-agent",
+          configSha: FAKE_SHA,
+        },
+        ...extraOpts,
+      });
+    }
+
+    it("BAKED includes projectMode/projectName/projectEntry/projectConfigSha", () => {
+      const r = callProjectGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      expect(entry).toContain('"projectMode":true');
+      expect(entry).toContain('"projectName":"my-medical-agent"');
+      expect(entry).toContain('"projectEntry":"chat"');
+      expect(entry).toContain(`"projectConfigSha":"${FAKE_SHA}"`);
+    });
+
+    it("reads projectEntry from config.pack.entry when ctx.projectEntry is omitted", () => {
+      const r = callProjectGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      expect(entry).toContain('"projectEntry":"chat"');
+    });
+
+    it("ctx.projectEntry overrides config.pack.entry", () => {
+      const r = callProjectGenerator({ projectEntry: "agent" });
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      expect(entry).toContain('"projectEntry":"agent"');
+    });
+
+    it("defaults to ui entry when config has no pack.entry field", () => {
+      const ccDir = path.join(projectDir, ".chainlesschain");
+      fs.writeFileSync(
+        path.join(ccDir, "config.json"),
+        JSON.stringify({ name: "bare-agent" }),
+        "utf-8",
+      );
+      const r = callGenerator({
+        project: { projectDir, projectName: "bare-agent", configSha: FAKE_SHA },
+      });
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      expect(entry).toContain('"projectEntry":"ui"');
+    });
+
+    it("entry script sets CC_PROJECT_ROOT and has materialization block", () => {
+      const r = callProjectGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      expect(entry).toContain("CC_PROJECT_ROOT");
+      expect(entry).not.toContain("process.chdir");
+      expect(entry).toContain(".chainlesschain-projects");
+      expect(entry).toContain("copyRecursiveMerge");
+    });
+
+    it("entry script checks .pack-version marker before re-materializing", () => {
+      const r = callProjectGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      expect(entry).toContain(".pack-version");
+      expect(entry).toContain("_needsMaterialize");
+      expect(entry).toContain("BAKED.projectConfigSha");
+    });
+
+    it("forceRefreshOnLaunch=true bakes the flag as true", () => {
+      const r = callProjectGenerator({ forceRefreshOnLaunch: true });
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      expect(entry).toContain('"forceRefreshOnLaunch":true');
+    });
+
+    it("CC_PROJECT_ALLOWED_SUBCOMMANDS is set from projectAllowedSubcommands", () => {
+      const r = callProjectGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      expect(entry).toContain("CC_PROJECT_ALLOWED_SUBCOMMANDS");
+      expect(entry).toContain(".join(',')");
+    });
+
+    it("assets include project dir glob", () => {
+      const r = callProjectGenerator();
+      const synth = JSON.parse(fs.readFileSync(r.pkgConfigFile, "utf-8"));
+      const assetStr = synth.pkg.assets.join("|");
+      expect(assetStr).toContain(projectDir.replace(/\\/g, "/"));
+    });
+
+    it("projectMeta is returned with the correct shape", () => {
+      const r = callProjectGenerator();
+      expect(r.projectMeta).not.toBeNull();
+      expect(r.projectMeta.projectMode).toBe(true);
+      expect(r.projectMeta.projectName).toBe("my-medical-agent");
+      expect(r.projectMeta.projectEntry).toBe("chat");
+      expect(r.projectMeta.projectConfigSha).toBe(FAKE_SHA);
+      expect(r.projectMeta.projectAllowedSubcommands).toEqual([
+        "chat",
+        "agent",
+      ]);
+    });
+
+    it("CLI-only mode returns null projectMeta", () => {
+      const r = callGenerator();
+      expect(r.projectMeta).toBeNull();
+    });
+
+    it("entry uses BAKED.projectEntry (not hardcoded ui) when projectMode is set", () => {
+      const r = callProjectGenerator({ projectEntry: "agent" });
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      // Project mode path: pushes parts of BAKED.projectEntry
+      expect(entry).toContain("BAKED.projectMode ? BAKED.projectEntry : 'ui'");
+    });
   });
 });
