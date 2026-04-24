@@ -806,3 +806,113 @@ describe("createWebUIServer – uiMode parameter", () => {
     expect(res.body).toContain("<!DOCTYPE html>");
   });
 });
+
+// ── GET /api/skills (Phase 2b — smoke-runner probe target) ──────────────────
+// The endpoint is exposed in both SPA and embedded-HTML modes so a packed
+// exe's smoke test can verify bundled skills registered, regardless of how
+// the web-panel dist was resolved.
+describe("createWebUIServer – GET /api/skills (Phase 2b)", () => {
+  function postJson(port, urlPath, method = "POST") {
+    return new Promise((resolve, reject) => {
+      const req = http.request(
+        {
+          host: "127.0.0.1",
+          port,
+          path: urlPath,
+          method,
+        },
+        (res) => {
+          const chunks = [];
+          res.on("data", (c) => chunks.push(c));
+          res.on("end", () =>
+            resolve({
+              status: res.statusCode,
+              headers: res.headers,
+              body: Buffer.concat(chunks).toString("utf8"),
+            }),
+          );
+        },
+      );
+      req.on("error", reject);
+      req.end();
+    });
+  }
+
+  describe("SPA mode", () => {
+    let server;
+    let port;
+    let tmpBase;
+
+    beforeEach(async () => {
+      tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ws-api-spa-"));
+      const distDir = makeFakeDist(tmpBase);
+      server = await startServer({ ...GLOBAL_OPTS, staticDir: distDir });
+      port = server.address().port;
+    });
+
+    afterEach(async () => {
+      await stopServer(server);
+      fs.rmSync(tmpBase, { recursive: true, force: true });
+    });
+
+    it("returns 200 with {schema, skills} shape", async () => {
+      const res = await get(port, "/api/skills");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toContain("application/json");
+      const body = JSON.parse(res.body);
+      expect(body.schema).toBe(1);
+      expect(Array.isArray(body.skills)).toBe(true);
+    });
+
+    it("rejects non-GET methods with 405", async () => {
+      const res = await postJson(port, "/api/skills", "POST");
+      expect(res.status).toBe(405);
+    });
+
+    it("unknown /api/* path returns 404 (distinct from server broken)", async () => {
+      const res = await get(port, "/api/nonexistent-xyz");
+      expect(res.status).toBe(404);
+      const body = JSON.parse(res.body);
+      expect(body.error).toBe("Not Found");
+      expect(body.path).toBe("/api/nonexistent-xyz");
+    });
+
+    it("each skill entry has name + source + category fields", async () => {
+      const res = await get(port, "/api/skills");
+      const body = JSON.parse(res.body);
+      for (const s of body.skills) {
+        expect(typeof s.name).toBe("string");
+        expect(typeof s.source).toBe("string");
+        // category defaults to 'uncategorized' in the loader — may be null
+        // only if skill.md is malformed, which the loader filters out
+        expect(s).toHaveProperty("category");
+      }
+    });
+  });
+
+  describe("embedded HTML (minimal) mode", () => {
+    let server;
+    let port;
+
+    beforeEach(async () => {
+      server = await startServer(FALLBACK_GLOBAL);
+      port = server.address().port;
+    });
+
+    afterEach(() => stopServer(server));
+
+    it("returns 200 with {schema, skills} shape (same as SPA mode)", async () => {
+      const res = await get(port, "/api/skills");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toContain("application/json");
+      const body = JSON.parse(res.body);
+      expect(body.schema).toBe(1);
+      expect(Array.isArray(body.skills)).toBe(true);
+    });
+
+    it("unknown /api/* path returns 404", async () => {
+      const res = await get(port, "/api/does-not-exist");
+      expect(res.status).toBe(404);
+    });
+  });
+});

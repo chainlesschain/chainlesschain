@@ -21,6 +21,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { getInlineSource as getEnvelopeInlineSource } from "./web-ui-envelope.js";
+import { CLISkillLoader } from "./skill-loader.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -1218,6 +1219,67 @@ function findWebPanelDist(staticDir) {
 }
 
 /**
+ * Handle `/api/*` routes. Returns `true` if the request was handled (caller
+ * must stop further processing) and `false` for everything else (caller
+ * continues with the static/SPA handler).
+ *
+ * Currently exposes a single read-only endpoint:
+ *
+ *   GET /api/skills → 200 { schema: 1, skills: [{name, source, category,
+ *                    description, version}] }
+ *
+ * The smoke-runner's project-mode probe (packer/smoke-runner.js) hits this
+ * to verify bundled skills were materialized and registered. The shape is
+ * deliberately minimal — the Web UI's richer skill views use WS.
+ *
+ * @param {import("http").IncomingMessage} req
+ * @param {import("http").ServerResponse}  res
+ * @returns {boolean}  true if handled, false if the caller should continue
+ */
+export function handleApiRequest(req, res) {
+  const urlPath = req.url.split("?")[0];
+  if (!urlPath.startsWith("/api/")) return false;
+
+  if (urlPath === "/api/skills") {
+    if (req.method !== "GET") {
+      res.writeHead(405, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Method Not Allowed" }));
+      return true;
+    }
+    try {
+      const loader = new CLISkillLoader();
+      const resolved = loader.loadAll();
+      const skills = resolved.map((s) => ({
+        name: s.id,
+        displayName: s.displayName,
+        source: s.source,
+        category: s.category,
+        description: s.description,
+        version: s.version,
+      }));
+      res.writeHead(200, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+      });
+      res.end(JSON.stringify({ schema: 1, skills }));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({ error: "Skill load failed", detail: err.message }),
+      );
+    }
+    return true;
+  }
+
+  // Unknown /api/* path — explicit 404 so callers (smoke-runner) can tell
+  // "endpoint not implemented" from "server broken".
+  res.writeHead(404, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ error: "Not Found", path: urlPath }));
+  return true;
+}
+
+/**
  * Create and return a Node.js HTTP server that serves the Web UI.
  *
  * When packages/web-panel/dist/ is present (built Vue3 app), it is served as
@@ -1258,6 +1320,10 @@ export function createWebUIServer(opts) {
   if (distDir) {
     // ── Serve built Vue3 web panel ──────────────────────────────────────────
     return http.createServer((req, res) => {
+      // /api/* routes are handled before the static file logic so GET /api/skills
+      // doesn't accidentally resolve to index.html via the SPA fallback.
+      if (handleApiRequest(req, res)) return;
+
       if (req.method !== "GET") {
         res.writeHead(405, { "Content-Type": "text/plain" });
         res.end("Method Not Allowed");
@@ -1315,6 +1381,8 @@ export function createWebUIServer(opts) {
   // ── Fallback: embedded classic single-page HTML ─────────────────────────
   const html = buildHtml(opts);
   return http.createServer((req, res) => {
+    if (handleApiRequest(req, res)) return;
+
     const urlPath = req.url.split("?")[0];
     if (
       req.method !== "GET" ||

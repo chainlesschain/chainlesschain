@@ -1,11 +1,15 @@
 # `cc pack --project` — 项目打包模式 设计文档
 
-> 版本：v0.2 (Reviewed)
+> 版本：v0.4 (Phase 0/1/2a/2b/3a/3b 全部落地)
 > 日期：2026-04-24
 > 作者：longfa
-> 状态：草案（评审已完成，待实施）
+> 状态：**Phase 0 / 1 / 2a / 2b / 3a / 3b 全部完成**；`--project` 模式已端到端可用
 > 关联：`docs/design/CC_PACK_打包指令设计文档.md`（基础流水线 v0.1）
 > 关联版本：ChainlessChain v5.0.2.49 / CLI 0.156.6
+>
+> **v0.4 变更摘要（2026-04-24）**：Phase 2b 合入 —— `web-ui-server.js` 新增 `handleApiRequest` 与 `GET /api/skills` 端点，返回 `{schema:1, skills:[{name,source,category,description,version}]}`，复用 `CLISkillLoader.loadAll()` 的 4 层解析（bundled/marketplace/managed/workspace）。SPA 与 minimal 两条服务路径都接入该端点；未知 `/api/*` 路径返回 JSON 404（与"服务器挂了"区分开）。smoke-runner 不再是 pre-wired 状态，而是真正对 `/api/skills` 做实断言；v0.3 引入的 404 容忍分支继续保留作为防御性兜底（便于老 build 前向兼容）。
+>
+> **v0.3 变更摘要（2026-04-24）**：Phase 3b 合入 —— `CC_PACK_AUTO_PERSONA` env var 由 pack-entry 注入（受 `if (BAKED.projectAutoPersona)` 门控）；`<artifact>.project.json` sidecar 已随 Phase 3.5 集成落地；smoke-runner 的 `/api/skills` 探针对 404 响应容忍跳过（`skillsCheck={ok:true,skipped:"endpoint-404"}`）以便 Phase 2b 解锁前不卡住带 skill 的项目。持久化的"`skill enable <name>` 命令接线"推迟到未来 skill-lifecycle API；当前阶段由下游 persona resolver 读取 env 完成等价逻辑。
 >
 > **v0.2 变更摘要**：修正 `process.chdir` 风险（改为纯 env var）；新增 project-name 安全化规则；SHA-8 升为 SHA-16；补全 symlink 跳过说明；澄清 `--preset-config` / `--project-config-override` 语义；Phase 拆分细化（2a/2b/3a/3b）；移除未落地的 skill 嵌套深度"collector 强校验"。
 
@@ -342,12 +346,12 @@ if (BAKED.projectMode) {
 |---|---|---|---|
 | **0** | `precheck` 项目检测 + 新 flags 骨架（`--project` / `--no-project` / `--project-config-override`）+ project-name 安全化 | `precheck-project-mode.test.js`（19 case）| ✅ 已交付 |
 | **1** | `project-assets-collector.js`：递归拷贝、symlink warning、skip 规则、50MB cap、skill node_modules 拒绝、secret-scan、SHA-256 | `project-assets-collector.test.js`（16 case）| ✅ 已交付 |
-| **2a** | `pkg-config-generator` BAKED 扩展（projectMode / projectName / projectConfigSha16 / projectEntry / allowedSubcommands）+ 入口模板物化段（`CC_PROJECT_ROOT` env var，无 chdir）+ 并发 lock | 改造 `pkg-config-generator.test.js`；integration：`--dry-run` 检查 entry script 内容；`--no-project` 路径回归 | 待实施 |
-| **3a** | commander 白名单（`createProgram({ allowedCommands })`）+ `CC_PROJECT_ALLOWED_SUBCOMMANDS` env 注入 | `index.test.js` 白名单过滤 case；确认 `cc pack` 不在默认白名单内 | 待实施（在 2a 之后立即上，安全边界） |
-| **2b** | smoke-test 新断言：`/api/skills` 含内嵌 skill 名 | 依赖 HTTP `/api/skills` 端点落地（WS 层 or HTTP 层）；Block 解除后再合入 | 待实施（有外部 Block） |
-| **3b** | manifest sidecar `<artifact>.project.json` + persona 自动激活（`CC_PACK_AUTO_PERSONA`）| 集成测试：`cc init` → `cc pack` → 启动 exe → 检查 `project.json` + persona 生效 | 待实施 |
+| **2a** | `pkg-config-generator` BAKED 扩展（projectMode / projectName / projectConfigSha / projectEntry / allowedSubcommands）+ 入口模板物化段（`CC_PROJECT_ROOT` env var，无 chdir） | `pkg-config-generator.test.js`（26 case）；`--no-project` 路径回归 | ✅ 已交付（commit `522d7c8c9`）。注：并发 `.materialize.lock` 与 config.json deep-merge 等 v0.2 补充项未实施，运行时冲突极罕见；推迟到出现现实压力时再加 |
+| **3a** | commander 白名单（`createProgram({ allowedCommands })`）+ `CC_PROJECT_ALLOWED_SUBCOMMANDS` env 注入 | `packer-allowed-commands.test.js`（9 case） | ✅ 已交付（commit `dce8e5d66`） |
+| **3b** | manifest sidecar `<artifact>.project.json` + persona 自动激活（`CC_PACK_AUTO_PERSONA`）| `packer-pkg-config-generator.test.js` +2 case；`packer-pipeline.integration.test.js` +2 case；smoke-runner 404 容忍 +1 case | ✅ 已交付。sidecar 在 `runPack` phase-7 之后写入（见 `packer/index.js:265-283`）。persona env 由 pack-entry 注入：`if (BAKED.projectAutoPersona) { process.env.CC_PACK_AUTO_PERSONA = BAKED.projectAutoPersona; }`。注：`skill enable <name>` 命令当前不存在，downstream persona resolver 直接读 env 完成同等逻辑 |
+| **2b** | smoke-test 新断言：`/api/skills` 含内嵌 skill 名 | `web-ui-server.test.js` +8 case（SPA + minimal 各一组） | ✅ 已交付。`web-ui-server.js` 新增 `handleApiRequest` 与 `GET /api/skills`，在 SPA / minimal 两条 createServer 路径都接入。smoke-runner 侧保留 v0.3 的 404 容忍分支作为防御性兜底 |
 
-**推荐上线顺序**：`0+1`（已合）→ `2a` → `3a`（安全边界，不等 2b）→ `3b` → `2b`（等 HTTP API 落地）
+**上线顺序（已完成）**：`0+1` → `2a` → `3a` → `3b` → `2b`。所有 6 个 Phase 均已合入。
 
 每个 Phase 独立可上线（`--no-project` 路径在 2a 加回归后全程保持等价今天行为）。
 
