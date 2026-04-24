@@ -112,10 +112,15 @@ describe("cc pack — full pipeline integration", () => {
 
   it("runs all 8 phases in order and produces a manifest sidecar", async () => {
     const outputPath = path.join(outputDir, "cc-packed");
+    // Pick a non-host target so smoke-test auto-skips — otherwise it tries
+    // to spawn our fake artifact (stubbed as "MZ\0\0fake-pkg-output") and
+    // fails with EACCES on Linux / a bad-exe error on Windows.
+    const foreignTarget =
+      process.platform === "linux" ? "node20-win-x64" : "node20-linux-x64";
     const result = await runPack(
       {
         cwd: cliRoot,
-        targets: "node20-linux-x64", // cross-target → smoke-test skipped
+        targets: foreignTarget,
         output: outputPath,
         skipWebPanelBuild: true,
         allowDirty: true,
@@ -151,7 +156,7 @@ describe("cc pack — full pipeline integration", () => {
     expect(typeof mf.productVersion).toBe("string");
     expect(mf.productVersion.length).toBeGreaterThan(0);
     expect(mf.cliVersion).toMatch(/^\d+\.\d+\.\d+/);
-    expect(mf.targets).toEqual(["node20-linux-x64"]);
+    expect(mf.targets).toEqual([foreignTarget]);
     expect(mf.sha256).toMatch(/^[0-9a-f]{64}$/);
     expect(result.sha256).toBe(mf.sha256);
   });
