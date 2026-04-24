@@ -444,6 +444,10 @@ export default defineConfig({
               link: "/chainlesschain/cli-distribution",
             },
             {
+              text: "项目打包 (pack)",
+              link: "/chainlesschain/cli-pack",
+            },
+            {
               text: "项目初始化 (init)",
               link: "/chainlesschain/cli-init",
             },
