@@ -2,7 +2,7 @@
 
 **Source**: `src/main/utils/file-utils.js`
 
-**Generated**: 2026-04-24T14:08:13.746Z
+**Generated**: 2026-04-24T14:17:57.941Z
 
 ---
 

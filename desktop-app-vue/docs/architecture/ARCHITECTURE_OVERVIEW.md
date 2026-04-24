@@ -1,6 +1,6 @@
 # Architecture Overview
 
-**Generated**: 2026-04-24T14:08:14.097Z
+**Generated**: 2026-04-24T14:17:58.292Z
 
 ---
 
@@ -8,17 +8,17 @@
 
 | Module | Files | Total Size |
 |--------|-------|------------|
-| main | 1666 | 23.77 MB |
+| main | 1670 | 23.77 MB |
 | renderer | 14 | 0.06 MB |
 | shared | 0 | 0.00 MB |
 
 ## main Module
 
-**Files**: 1666
+**Files**: 1670
 
 **Top 10 Largest Files**:
 
-1. `src/main/remote/browser-extension/background.js` - 444.4 KB
+1. `src/main/remote/browser-extension/background.js` - 442.1 KB
 2. `src/main/database/database-schema.js` - 166.4 KB
 3. `src/main/skill-tool-system/tools/system-tools.js` - 132.1 KB
 4. `src/main/skill-tool-system/tools/ai-tools.js` - 128.6 KB

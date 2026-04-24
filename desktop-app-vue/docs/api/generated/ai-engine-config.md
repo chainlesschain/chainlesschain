@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/ai-engine-config.js`
 
-**Generated**: 2026-04-24T14:08:13.883Z
+**Generated**: 2026-04-24T14:17:58.080Z
 
 ---
 

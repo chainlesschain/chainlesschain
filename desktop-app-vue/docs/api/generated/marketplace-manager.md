@@ -2,7 +2,7 @@
 
 **Source**: `src/main/trade/marketplace-manager.js`
 
-**Generated**: 2026-04-24T14:08:13.756Z
+**Generated**: 2026-04-24T14:17:57.951Z
 
 ---
 

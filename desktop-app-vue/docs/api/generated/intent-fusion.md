@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/intent-fusion.js`
 
-**Generated**: 2026-04-24T14:08:13.878Z
+**Generated**: 2026-04-24T14:17:58.075Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/media-stream-bridge.js`
 
-**Generated**: 2026-04-24T14:08:13.804Z
+**Generated**: 2026-04-24T14:17:57.999Z
 
 ---
 

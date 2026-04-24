@@ -1,8 +1,8 @@
 # Component Reference
 
-**Generated**: 2026-04-24T14:08:14.003Z
+**Generated**: 2026-04-24T14:17:58.203Z
 
-**Total Components**: 580
+**Total Components**: 581
 
 ---
 
@@ -4281,6 +4281,12 @@
 ### InputActions
 
 **File**: `src/renderer/components/chat/InputActions.vue`
+
+---
+
+### HarnessTaskDrawer
+
+**File**: `src/renderer/components/chat/HarnessTaskDrawer.vue`
 
 ---
 
