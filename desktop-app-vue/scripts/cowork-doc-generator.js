@@ -44,7 +44,10 @@ const docConfig = {
   },
   userGuide: {
     enabled: true,
-    sourcePatterns: ["src/renderer/pages/**/*.vue", "src/renderer/components/**/*.vue"],
+    sourcePatterns: [
+      "src/renderer/pages/**/*.vue",
+      "src/renderer/components/**/*.vue",
+    ],
     outputPath: "docs/user-guide",
     template: "user-guide-template.md",
   },
@@ -81,17 +84,20 @@ function getSourceFiles(patterns) {
         cwd: process.cwd(),
         absolute: true,
         ignore: [
-          '**/node_modules/**',
-          '**/.git/**',
-          '**/dist/**',
-          '**/build/**',
-          '**/.cache/**'
-        ]
+          "**/node_modules/**",
+          "**/.git/**",
+          "**/dist/**",
+          "**/build/**",
+          "**/.cache/**",
+        ],
       });
 
       allFiles.push(...found);
     } catch (error) {
-      console.error(`   ❌ Error processing pattern ${pattern}:`, error.message);
+      console.error(
+        `   ❌ Error processing pattern ${pattern}:`,
+        error.message,
+      );
     }
   });
 
@@ -123,7 +129,7 @@ function findFilesRecursive(dir, pattern) {
     } else {
       // Simple pattern matching
       const regex = new RegExp(
-        pattern.replace(/\./g, "\\.").replace(/\*/g, ".*")
+        pattern.replace(/\./g, "\\.").replace(/\*/g, ".*"),
       );
       if (regex.test(item)) {
         files.push(fullPath);
@@ -149,7 +155,9 @@ function extractJSDoc(filePath) {
       const startPos = match.index + match[0].length;
 
       // Get the next line after JSDoc (likely function/class declaration)
-      const nextLineMatch = content.slice(startPos).match(/\n\s*(\w+.*?)(?:\{|\n)/);
+      const nextLineMatch = content
+        .slice(startPos)
+        .match(/\n\s*(\w+.*?)(?:\{|\n)/);
       const declaration = nextLineMatch ? nextLineMatch[1].trim() : "";
 
       matches.push({
@@ -174,16 +182,14 @@ function extractVueDoc(filePath) {
     const content = fs.readFileSync(filePath, "utf-8");
 
     // Extract component name
-    const nameMatch = content.match(/<template[^>]*>\s*<!--\s*@component\s+(\w+)/);
-    const componentName =
-      nameMatch?.[1] ||
-      path.basename(filePath, ".vue");
+    const nameMatch = content.match(
+      /<template[^>]*>\s*<!--\s*@component\s+(\w+)/,
+    );
+    const componentName = nameMatch?.[1] || path.basename(filePath, ".vue");
 
     // Extract props
     const propsMatch = content.match(/props:\s*\{([\s\S]*?)\}/);
-    const props = propsMatch
-      ? extractPropsFromString(propsMatch[1])
-      : [];
+    const props = propsMatch ? extractPropsFromString(propsMatch[1]) : [];
 
     // Extract emits
     const emitsMatch = content.match(/emits:\s*\[([\s\S]*?)\]/);
@@ -330,7 +336,6 @@ function generateAPIDocs() {
 
     let content = `# ${fileName}\n\n`;
     content += `**Source**: \`${file}\`\n\n`;
-    content += `**Generated**: ${new Date().toISOString()}\n\n`;
     content += `---\n\n`;
 
     docs.forEach((doc) => {
@@ -348,7 +353,9 @@ function generateAPIDocs() {
     console.log(`   ✅ Generated: ${path.relative(process.cwd(), outputFile)}`);
   });
 
-  console.log(`\n   📊 Summary: ${totalFiles} API documentation files generated`);
+  console.log(
+    `\n   📊 Summary: ${totalFiles} API documentation files generated`,
+  );
 }
 
 /**
@@ -369,7 +376,9 @@ function generateUserGuide() {
     }
   });
 
-  console.log(`   Extracted ${components.length} component documentation entries`);
+  console.log(
+    `   Extracted ${components.length} component documentation entries`,
+  );
 
   // Generate component reference
   const outputPath = path.join(process.cwd(), docConfig.userGuide.outputPath);
@@ -380,7 +389,6 @@ function generateUserGuide() {
   const outputFile = path.join(outputPath, "COMPONENT_REFERENCE.md");
 
   let content = `# Component Reference\n\n`;
-  content += `**Generated**: ${new Date().toISOString()}\n\n`;
   content += `**Total Components**: ${components.length}\n\n`;
   content += `---\n\n`;
 
@@ -449,7 +457,6 @@ function generateChangelog() {
   const outputPath = path.join(process.cwd(), docConfig.changelog.outputPath);
 
   let content = `# Changelog\n\n`;
-  content += `**Generated**: ${new Date().toISOString()}\n\n`;
   content += `**Range**: ${docConfig.changelog.gitRange}\n\n`;
   content += `---\n\n`;
 
@@ -521,7 +528,10 @@ function generateArchitectureDocs() {
   });
 
   // Generate architecture overview
-  const outputPath = path.join(process.cwd(), docConfig.architecture.outputPath);
+  const outputPath = path.join(
+    process.cwd(),
+    docConfig.architecture.outputPath,
+  );
   if (!fs.existsSync(outputPath)) {
     fs.mkdirSync(outputPath, { recursive: true });
   }
@@ -529,7 +539,6 @@ function generateArchitectureDocs() {
   const outputFile = path.join(outputPath, "ARCHITECTURE_OVERVIEW.md");
 
   let content = `# Architecture Overview\n\n`;
-  content += `**Generated**: ${new Date().toISOString()}\n\n`;
   content += `---\n\n`;
 
   content += `## Module Summary\n\n`;
@@ -618,7 +627,9 @@ async function main() {
         break;
       default:
         console.error(`❌ Unknown documentation type: ${docType}`);
-        console.log("\nAvailable types: api, user-guide, changelog, architecture, all");
+        console.log(
+          "\nAvailable types: api, user-guide, changelog, architecture, all",
+        );
         process.exit(1);
     }
 
