@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { PackError, EXIT } from "./errors.js";
 
 const WINDOWS_RESERVED = new Set([
@@ -99,8 +100,12 @@ export function precheck(ctx) {
   const { projectRoot, allowDirty } = ctx;
 
   // Locate this CLI package root (packages/cli) — relative to this file.
+  // fileURLToPath handles Windows (C:/...) and POSIX absolute paths uniformly;
+  // the old `new URL(import.meta.url).pathname.replace(/^\//, "")` dropped the
+  // leading "/" on POSIX, making the path relative, which then caused
+  // path.resolve to prepend cwd → doubled prefix on Linux CI.
   const cliRoot = path.resolve(
-    path.dirname(new URL(import.meta.url).pathname.replace(/^\//, "")),
+    path.dirname(fileURLToPath(import.meta.url)),
     "..",
     "..",
     "..",

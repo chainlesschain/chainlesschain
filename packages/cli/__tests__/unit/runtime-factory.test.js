@@ -111,6 +111,7 @@ describe("runtime-factory", () => {
       open: false,
       token: "ui-token",
       webPanelDir: "/tmp/panel",
+      uiMode: "auto",
     });
   });
 
