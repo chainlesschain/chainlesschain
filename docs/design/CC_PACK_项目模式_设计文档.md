@@ -1,11 +1,13 @@
 # `cc pack --project` — 项目打包模式 设计文档
 
-> 版本：v0.1 (Draft)
+> 版本：v0.2 (Reviewed)
 > 日期：2026-04-24
 > 作者：longfa
-> 状态：草案，待评审
+> 状态：草案（评审已完成，待实施）
 > 关联：`docs/design/CC_PACK_打包指令设计文档.md`（基础流水线 v0.1）
 > 关联版本：ChainlessChain v5.0.2.49 / CLI 0.156.6
+>
+> **v0.2 变更摘要**：修正 `process.chdir` 风险（改为纯 env var）；新增 project-name 安全化规则；SHA-8 升为 SHA-16；补全 symlink 跳过说明；澄清 `--preset-config` / `--project-config-override` 语义；Phase 拆分细化（2a/2b/3a/3b）；移除未落地的 skill 嵌套深度"collector 强校验"。
 
 ---
 
@@ -74,6 +76,12 @@ cc pack                           # 自动检测项目模式
 - CLI-only：`chainlesschain-portable-<target>.exe`（不变）
 - 项目模式：`<project-name>-portable-<target>.exe`，`project-name` 取自 `.chainlesschain/config.json` 的 `name` 字段（`cc init` 默认填 CWD basename）
 
+`project-name` 在写入文件系统前必须经过安全化（`sanitizeProjectName`）：
+- 字符白名单：`[a-z0-9_-]`（lowercase、数字、下划线、短横线）；大写转小写，其余字符替换为 `-`
+- Windows 保留名（`CON` / `PRN` / `AUX` / `NUL` / `COM1-9` / `LPT1-9`）检测到则追加 `-proj` 后缀
+- 长度上限 64 字符（截断后追加末 4 位 SHA hex 防碰撞）
+- 安全化在 `precheck` 阶段的 `validateProjectConfig` 里执行，校验失败（产出为空串）直接 `PackError`
+
 ### 4.2 默认子命令
 
 今天硬编码追加 `ui` 子命令。项目模式可在 config 里声明：
@@ -100,9 +108,13 @@ cc pack                           # 自动检测项目模式
 
 ### 4.3 运行时项目根
 
-- 首次启动：把内嵌的 `.chainlesschain/` 物化到 `%APPDATA%/.chainlesschain-projects/<project-name>-<configSha8>/`
-- 设置 `process.env.CC_PROJECT_ROOT = <userDataDir>`
-- `process.chdir(userDataDir)` —— CLI 现有的 `findProjectRoot` 链路无须改动即可拾起
+- 首次启动：把内嵌的 `.chainlesschain/` 物化到 `%APPDATA%/.chainlesschain-projects/<project-name>-<configSha16>/`
+  - `configSha16`：`configSha` 前 16 字符（64 位熵，碰撞概率可忽略）
+- **只设环境变量**，不调用 `process.chdir()`：
+  ```js
+  process.env.CC_PROJECT_ROOT = userDataDir;
+  ```
+  `bootstrap.js` 的 `findProjectRoot` 优先读 `CC_PROJECT_ROOT`（§8 改动），这样 CWD 保持不变，避免模块初始化时缓存 CWD 的库（`dotenv`、部分 `winston` transport、`sqlite` 路径解析等）在 chdir 后读写错误路径。
 - 用户修改 user-data 目录里的 config / skills 立即生效，重启 exe 也保留（write-through）
 
 ### 4.4 漂移检测
@@ -110,7 +122,9 @@ cc pack                           # 自动检测项目模式
 bundle 时计算 `.chainlesschain/` 全量 SHA-256 写入 `BAKED.projectConfigSha`。运行时若 user-data 里的 marker 不匹配：
 
 - 默认：**追加新文件 + 警告**，不覆盖用户改动
-- `--force-refresh-on-launch`（打包时设置）：每次启动都强制重置
+  - 例外：`config.json` 做 **deep-merge（旧文件值优先）**，而非"有则跳过"。这样新版 exe 引入的必需字段（schema 升级）能被补入，不会因为旧 user-data 缺字段而 runtime 报错
+- `--force-refresh-on-launch`（打包时设置）：每次启动都强制重置整棵树（config.json 也覆盖）
+- **并发物化保护**：物化前尝试创建 `.lock` 文件（`fs.openSync(..., 'wx')`），失败说明另一个实例正在运行，等待最多 5 s 后继续（非阻塞，只做日志）
 
 ---
 
@@ -125,10 +139,10 @@ bundle 时计算 `.chainlesschain/` 全量 SHA-256 写入 `BAKED.projectConfigSh
 | 3. buildConfigTemplate | 从 `--preset-config` 读 | **复用**：把项目 config 当 preset，过同一套 secret-scanner |
 | **3.5 collectProjectAssets（新增）** | — | 见 §6 |
 | 4. collectPrebuilds | 不变 | 不变 |
-| 5. generatePkgConfig | scripts=cliRoot/src | **assets 追加** `tempDir/project/**/*`；**entry 模板改写** 见 §7 |
+| 5. generatePkgConfig | scripts=cliRoot/src | **assets 追加** `tempDir/project/**/*`；**entry 模板改写** 见 §7（Phase 2a） |
 | 6. runPkg | 不变 | 不变 |
-| 7. writeManifests | sidecar SHA-256 | **追加** `<artifact>.project.json`（projectName / configSha / fileCount / bundledSkills 列表） |
-| 8. smokeTest | UI 探针 | **新断言**：`/api/skills` 返回的列表必须包含内嵌 skill 名 |
+| 7. writeManifests | sidecar SHA-256 | **追加** `<artifact>.project.json`（projectName / configSha16 / fileCount / bundledSkills 列表）— Phase 3b |
+| 8. smokeTest | UI 探针 | **新断言**（Phase 2b，依赖 `/api/skills` HTTP 端点落地后才可加）：返回列表必须包含内嵌 skill 名 |
 
 ---
 
@@ -157,7 +171,11 @@ export function collectProjectAssets(ctx) { ... }
 **实现要点**：
 
 1. 递归拷 `projectRoot/.chainlesschain/` → `tempDir/project/.chainlesschain/`
-2. **强制 skip**：`.git/`、`node_modules/`、`.cache/`、`dist/`、`*.log`、任何 dotfile 除 `.chainlesschain` 本身
+2. **强制 skip**（静默，不报错）：
+   - 目录名：`node_modules/`、`.git/`、`.cache/`、`dist/`
+   - 文件后缀：`*.log`
+   - **符号链接**：静默跳过并输出 warning（`WARN: symlink skipped: <rel>`）——不跟随 symlink 以保证 bundle 完全自包含、避免 escape-out-of-tree 路径。用户若有共享脚本应改为普通文件拷贝或发布成 skill pack
+   - 注：dotfile（如 `.gitignore`）**不在**跳过列表里，正常复制
 3. **拒绝条件**（直接抛 PackError）：
    - `.chainlesschain/skills/*/node_modules/` 存在 → 报错"skill 含 hidden deps，请先 `cc skill sync-cli` 发布"
    - 总大小 > 50MB → 报错"项目超过 50MB，使用 `--force-large-project` 跳过"
@@ -184,9 +202,10 @@ const BAKED = Object.freeze({
   tokenMode, host, wsPort, uiPort,
   // ── 新增（仅项目模式有值）──
   projectMode: true,
-  projectName: 'my-medical-agent',
+  projectName: 'my-medical-agent',      // 安全化后的名称（见 §4.1）
   projectEntry: 'ui',                   // 默认 subcommand
-  projectConfigSha: 'abc12345...',      // 完整 sha256
+  projectConfigSha: 'abc12345deadbeef', // 完整 sha256（64 chars）
+  projectConfigSha16: 'abc12345deadbeef', // 前 16 chars，用于 userDataDir 后缀
   projectAutoPersona: 'medical-triage-persona',
   projectAllowedSubcommands: ['ui','chat','agent','skill'],
   forceRefreshOnLaunch: false,
@@ -198,29 +217,47 @@ const BAKED = Object.freeze({
 在现有 `pack-entry.js` 模板的 `ensureUtf8()` 之后、commander 解析之前插入：
 
 ```js
-// ── 项目模式：物化 + chdir ──
+// ── 项目模式：物化 ──
 if (BAKED.projectMode) {
   const userDataDir = path.join(
     os.homedir(),
+    'AppData', 'Roaming',
     '.chainlesschain-projects',
-    `${BAKED.projectName}-${BAKED.projectConfigSha.slice(0, 8)}`,
+    `${BAKED.projectName}-${BAKED.projectConfigSha16}`,
   );
   const markerFile = path.join(userDataDir, '.chainlesschain', '.pack-version');
+  const lockFile  = path.join(userDataDir, '.chainlesschain', '.materialize.lock');
+
+  // 并发物化保护：只有第一个实例写 lock，其余等待后跳过
+  let lockFd = null;
+  try { lockFd = fs.openSync(lockFile, 'wx'); } catch { /* 另一实例持有 lock */ }
+
   const needsMaterialize =
     BAKED.forceRefreshOnLaunch ||
     !fs.existsSync(markerFile) ||
     fs.readFileSync(markerFile, 'utf8').trim() !== BAKED.projectConfigSha;
 
-  if (needsMaterialize) {
+  if (needsMaterialize && lockFd !== null) {
     // pkg snapshot FS：__dirname/../project/ 下是打包时收集的全量
     const bundledRoot = path.join(__dirname, '..', 'project', '.chainlesschain');
-    copyRecursiveMerge(bundledRoot, path.join(userDataDir, '.chainlesschain'));
+    // copyRecursiveMerge 行为：
+    //   - 普通文件：目标已存在则跳过（保留用户改动）；
+    //   - config.json：deep-merge，旧文件值优先（确保 schema 升级字段被补入）；
+    //   - BAKED.forceRefreshOnLaunch 时：全量覆盖
+    copyRecursiveMerge(bundledRoot, path.join(userDataDir, '.chainlesschain'), {
+      forceOverwrite: BAKED.forceRefreshOnLaunch,
+    });
     fs.mkdirSync(path.dirname(markerFile), { recursive: true });
     fs.writeFileSync(markerFile, BAKED.projectConfigSha);
   }
 
+  if (lockFd !== null) {
+    try { fs.closeSync(lockFd); fs.unlinkSync(lockFile); } catch { /* best effort */ }
+  }
+
+  // 不调用 process.chdir()。只设 env var；bootstrap.js 的
+  // findProjectRoot 优先读 CC_PROJECT_ROOT（见 §8）。
   process.env.CC_PROJECT_ROOT = userDataDir;
-  process.chdir(userDataDir);
 
   // 默认 subcommand 从 BAKED 读，覆盖原本硬编码的 'ui'
   if (!_hasSub) {
@@ -231,7 +268,7 @@ if (BAKED.projectMode) {
 }
 ```
 
-`copyRecursiveMerge` 行为：目标已存在则**不覆盖**（用户可能改过），只补齐缺失文件并打印一行 warning。
+**为什么不调用 `process.chdir()`**：Node.js 有若干库在模块初始化（`require` / 顶层 `import`）时缓存 CWD，典型有 `dotenv`、部分 `winston` transport、`sqlite` 路径解析。pkg 打包后模块顺序固定，在 chdir 之前已经运行的模块会读写错误路径且不抛异常。纯 env var 方式规避了这个时序陷阱，且 `findProjectRoot` 已改为优先读 `CC_PROJECT_ROOT`（§8）。
 
 ### 7.3 commander 注册过滤
 
@@ -257,10 +294,12 @@ if (BAKED.projectMode) {
 | 风险 | 措施 |
 |---|---|
 | **密钥被打进 exe** | secret-scanner 复用，命中即拒；`--allow-secrets` 逃生舱保留 + 写入 manifest 警告 |
-| **LLM API keys** | 明确不允许打进 exe。约定 key 由旁边的 `.env` 提供，`pack-entry.js` 启动时尝试读 `<exePath>/.env` 和 `%APPDATA%/.chainlesschain-projects/<id>/.env` |
-| **第三方 skill** | bundledSkills 列表写入 manifest，便于审计；首发不做签名校验 |
-| **物化路径冲突** | `<projectName>-<configSha8>` 后缀避免不同版本 / 不同项目同名碰撞 |
-| **Windows 路径长度** | user-data 路径走 `%APPDATA%` 而非 `LocalAppData`；skill 嵌套层级不能超过 5 级（collector 强校验） |
+| **LLM API keys** | 明确不允许打进 exe。约定 key 由旁边的 `.env` 提供，`pack-entry.js` 启动时按优先级读取：① `<userDataDir>/.env`（用户运行时配置，最高优先级）② `<exePath 同目录>/.env`（分发时旁置），覆盖 bundled config 中的同名字段 |
+| **第三方 skill** | bundledSkills 列表写入 manifest sidecar，便于审计；首发不做签名校验 |
+| **物化路径冲突** | `<projectName>-<configSha16>` 后缀（16 字符 hex = 64 位熵）避免不同版本 / 不同项目同名碰撞 |
+| **project-name 路径注入** | `sanitizeProjectName`（见 §4.1）在 precheck 阶段强制执行，拦截 Windows 保留名、路径分隔符、控制字符 |
+| **Windows 路径长度** | user-data 路径走 `%APPDATA%`（`AppData\Roaming`）而非 `LocalAppData`；路径总长度 > 200 字符时 precheck 报 warning（截断 projectName 见 §4.1 64 字符上限） |
+| **并发物化竞态** | `.materialize.lock` 文件锁（见 §7.2）；并发实例等待后静默跳过物化，不影响运行 |
 
 ---
 
@@ -291,20 +330,26 @@ if (BAKED.projectMode) {
 --force-large-project           跳过 50MB 上限
 ```
 
+**`--preset-config` 与 `--project-config-override` 的语义**：两者不能同时传。项目模式下（`--project` 或 auto-detect），`--preset-config` 被**忽略**，统一以 project config（或 `--project-config-override` 指定路径）为准；CLI-only 模式下（`--no-project`）才使用 `--preset-config`。同时传入两者时 precheck 阶段直接 `PackError`（不静默）。
+
 未列出的 flags（如 `--dry-run` / `--allow-dirty` / `--smoke-test`）行为完全等价。
 
 ---
 
 ## 12. 实施拆分
 
-| Phase | 范围 | 单测 / 回归 |
-|---|---|---|
-| **0** | `precheck` 项目检测 + 新 flags 骨架 + 行为矩阵单测 | 新增 `precheck-project-mode.test.js`（4 case：auto-detect on/off × `--project`/`--no-project`） |
-| **1** | `project-assets-collector.js` + secret-scan 复用 + 50MB cap + node_modules 拒绝 | 新增 `project-assets-collector.test.js`（≥10 case） |
-| **2** | `pkg-config-generator` BAKED 扩展 + 入口模板 + `CC_PROJECT_ROOT` 兼容 + smoke-test 新断言 | 改造 `pkg-config-generator.test.js`；E2E：在 `tmp-pack/` 跑一遍真实打包 |
-| **3** | manifest sidecar + 命名规则 + commander 白名单 + persona 自动激活 | 集成测试：模拟 `cc init` → `cc pack` → 启动 exe → 检查 `/api/skills` 列表 |
+| Phase | 范围 | 单测 / 回归 | 状态 |
+|---|---|---|---|
+| **0** | `precheck` 项目检测 + 新 flags 骨架（`--project` / `--no-project` / `--project-config-override`）+ project-name 安全化 | `precheck-project-mode.test.js`（19 case）| ✅ 已交付 |
+| **1** | `project-assets-collector.js`：递归拷贝、symlink warning、skip 规则、50MB cap、skill node_modules 拒绝、secret-scan、SHA-256 | `project-assets-collector.test.js`（16 case）| ✅ 已交付 |
+| **2a** | `pkg-config-generator` BAKED 扩展（projectMode / projectName / projectConfigSha16 / projectEntry / allowedSubcommands）+ 入口模板物化段（`CC_PROJECT_ROOT` env var，无 chdir）+ 并发 lock | 改造 `pkg-config-generator.test.js`；integration：`--dry-run` 检查 entry script 内容；`--no-project` 路径回归 | 待实施 |
+| **3a** | commander 白名单（`createProgram({ allowedCommands })`）+ `CC_PROJECT_ALLOWED_SUBCOMMANDS` env 注入 | `index.test.js` 白名单过滤 case；确认 `cc pack` 不在默认白名单内 | 待实施（在 2a 之后立即上，安全边界） |
+| **2b** | smoke-test 新断言：`/api/skills` 含内嵌 skill 名 | 依赖 HTTP `/api/skills` 端点落地（WS 层 or HTTP 层）；Block 解除后再合入 | 待实施（有外部 Block） |
+| **3b** | manifest sidecar `<artifact>.project.json` + persona 自动激活（`CC_PACK_AUTO_PERSONA`）| 集成测试：`cc init` → `cc pack` → 启动 exe → 检查 `project.json` + persona 生效 | 待实施 |
 
-每个 Phase 独立可上线，建议拆 4 个 commit / PR。
+**推荐上线顺序**：`0+1`（已合）→ `2a` → `3a`（安全边界，不等 2b）→ `3b` → `2b`（等 HTTP API 落地）
+
+每个 Phase 独立可上线（`--no-project` 路径在 2a 加回归后全程保持等价今天行为）。
 
 ---
 
@@ -313,7 +358,7 @@ if (BAKED.projectMode) {
 | # | 问题 | 倾向 |
 |---|---|---|
 | 1 | `.chainlesschain/skills/` 第三方 pack 是否打进去？ | **是**，但写入 manifest 的 `bundledSkills.source` 字段 |
-| 2 | 多项目共用 user-data 目录命名碰撞？ | `<name>-<sha8>` 后缀解决 |
+| 2 | 多项目共用 user-data 目录命名碰撞？ | `<name>-<sha16>` 后缀解决（64 位熵，碰撞概率可忽略） |
 | 3 | exe `--version` 是否暴露 bundled project 信息？ | **是**，新增 `--version --json` 输出 `{cli:"0.156.6", project:{name,sha}}` |
 | 4 | LLM API keys 怎么解？ | `.env` sidecar 优先级最高，覆盖 bundled config 中的同名字段 |
 | 5 | CLI-only 与项目模式的 user-data 是否共享？ | **不共享**。CLI-only 用 `%APPDATA%/chainlesschain-portable/`，项目模式用 `%APPDATA%/.chainlesschain-projects/<id>/`，避免互污染 |
