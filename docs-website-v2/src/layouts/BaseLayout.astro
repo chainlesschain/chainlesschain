@@ -2,6 +2,8 @@
 import '../styles/global.css';
 import SiteHeader from '../components/SiteHeader.astro';
 import SiteFooter from '../components/SiteFooter.astro';
+import rootPkg from '../../../package.json';
+const PRODUCT_VERSION_BARE = rootPkg.productVersion.replace(/^v/, '');
 
 const {
   title = 'ChainlessChain 无链之链 — 让数据主权回归个人，AI效率触手可及',
@@ -85,7 +87,7 @@ const {
           streetAddress: '自由贸易试验区象屿路93号厦门国际航运中心C栋4层431单元H',
         },
       },
-      softwareVersion: '5.0.2.10',
+      softwareVersion: PRODUCT_VERSION_BARE,
       featureList: ['CLI 65 命令', '139 内置 Skills', 'Cowork 多智能体', 'U-Key/SIMKey 硬件加密', 'Signal E2E 加密', '本地 Ollama 部署'],
     })} />
 
