@@ -87,6 +87,23 @@ export function registerPackCommand(program) {
       "--cwd <dir>",
       "Override the project root (defaults to process.cwd())",
     )
+    .option(
+      "--project",
+      "Project mode: bundle .chainlesschain/ from cwd into the artifact",
+    )
+    .option(
+      "--no-project",
+      "Disable project-mode auto-detection; pack CLI-only (legacy behavior)",
+    )
+    .option(
+      "--project-config-override <path>",
+      "Use an alternate config.json instead of cwd/.chainlesschain/config.json",
+    )
+    .option(
+      "--force-large-project",
+      "Bypass the 50MB .chainlesschain/ size cap (DANGEROUS — bloats the exe)",
+      false,
+    )
     .action(async (opts) => {
       try {
         const result = await runPack(opts, { logger });

@@ -12,7 +12,9 @@ import crypto from "node:crypto";
 
 /**
  * @param {object} ctx
- * @param {string[]} ctx.outputs            artifact paths
+ * @param {Array<string|{path:string, target?:string}>} ctx.outputs
+ *                                          artifact paths or {path, target}
+ *                                          objects (as returned by runPkg).
  * @param {string} ctx.cliRoot
  * @param {string|null} ctx.gitCommit
  * @param {boolean} ctx.gitDirty
@@ -31,7 +33,8 @@ export function writeManifests(ctx) {
   const productVersion = rootPkg?.productVersion || "vDev";
 
   const out = [];
-  for (const artifact of ctx.outputs) {
+  for (const entry of ctx.outputs) {
+    const artifact = typeof entry === "string" ? entry : entry.path;
     const sha256 = sha256File(artifact);
     const manifest = {
       schema: 1,

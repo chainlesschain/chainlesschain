@@ -66,6 +66,7 @@
   "devDependencies": {
     "@noble/curves": "^1.9.7",
     "@scure/base": "^1.2.6",
+    "@yao-pkg/pkg": "^6.18.2",
     "vitest": "^3.1.1"
   }
 }

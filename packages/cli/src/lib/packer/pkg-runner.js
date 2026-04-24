@@ -13,6 +13,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
 import { PackError, EXIT } from "./errors.js";
 
@@ -70,39 +71,49 @@ export function runPkg(ctx) {
       EXIT.PKG,
     );
   }
-  return { outputs };
+  // Pair each produced artifact with the pkg target it came from. For a
+  // single target build, pkg writes to the bare --output path; for multi
+  // target it suffixes with "-<platformKey>". We match on the suffix
+  // when possible and fall back to positional pairing.
+  const rich = outputs.map((p) => {
+    const base = path.basename(outputPath);
+    const name = path.basename(p, path.extname(p));
+    const suffix = name.startsWith(base + "-")
+      ? name.slice(base.length + 1)
+      : null;
+    let target = null;
+    if (suffix && targets.length > 1) {
+      target = targets.find((t) => t.endsWith(suffix)) || null;
+    }
+    if (!target && targets.length === 1) target = targets[0];
+    return { path: p, target };
+  });
+  return { outputs: rich };
 }
 
 /**
- * Locate a runnable pkg binary. Tries:
- *   1. node_modules/.bin/pkg / pkg.cmd
- *   2. node_modules/@yao-pkg/pkg/lib-es5/bin.js (run via current node)
- *   3. node_modules/pkg/lib-es5/bin.js (legacy vercel/pkg fallback)
+ * Locate a runnable pkg binary using node's resolution algorithm so we
+ * find both local and monorepo-hoisted installs of @yao-pkg/pkg (or
+ * legacy vercel/pkg) without hard-coding paths.
  */
 function locatePkgBinary(cliRoot) {
-  const yaoBin = path.join(
-    cliRoot,
-    "node_modules",
-    "@yao-pkg",
-    "pkg",
-    "lib-es5",
-    "bin.js",
-  );
-  if (fs.existsSync(yaoBin)) {
-    return { runtime: process.execPath, script: yaoBin };
+  const req = createRequire(path.join(cliRoot, "package.json"));
+  for (const pkgName of ["@yao-pkg/pkg", "pkg"]) {
+    try {
+      const pkgJson = req.resolve(`${pkgName}/package.json`);
+      const moduleDir = path.dirname(pkgJson);
+      const meta = JSON.parse(fs.readFileSync(pkgJson, "utf-8"));
+      const binEntry = typeof meta.bin === "string" ? meta.bin : meta.bin?.pkg;
+      if (binEntry) {
+        const script = path.join(moduleDir, binEntry);
+        if (fs.existsSync(script)) {
+          return { runtime: process.execPath, script };
+        }
+      }
+    } catch {
+      /* not installed via this name */
+    }
   }
-
-  const legacyBin = path.join(
-    cliRoot,
-    "node_modules",
-    "pkg",
-    "lib-es5",
-    "bin.js",
-  );
-  if (fs.existsSync(legacyBin)) {
-    return { runtime: process.execPath, script: legacyBin };
-  }
-
   return null;
 }
 

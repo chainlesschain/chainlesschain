@@ -10,9 +10,28 @@ import { PackError, EXIT } from "./errors.js";
 
 /**
  * @param {object} ctx
- * @param {string} ctx.projectRoot       absolute path
- * @param {boolean} ctx.allowDirty       allow uncommitted changes
- * @returns {{cliRoot:string, repoRoot:string, gitCommit:string|null, dirty:boolean}}
+ * @param {string} ctx.projectRoot                  absolute path
+ * @param {boolean} ctx.allowDirty                  allow uncommitted changes
+ * @param {boolean|undefined} [ctx.projectMode]     tri-state: true = force
+ *                                                  project-mode (fail if no
+ *                                                  config), false = force
+ *                                                  CLI-only, undefined =
+ *                                                  auto-detect from the
+ *                                                  presence of
+ *                                                  projectRoot/.chainlesschain/config.json
+ * @param {string|null} [ctx.projectConfigOverride] absolute or projectRoot-
+ *                                                  relative path to an
+ *                                                  alternate config.json
+ *                                                  (takes precedence over
+ *                                                  the default location)
+ * @returns {{
+ *   cliRoot:string,
+ *   repoRoot:string|null,
+ *   gitCommit:string|null,
+ *   dirty:boolean,
+ *   projectMode:boolean,
+ *   projectConfigPath:string|null,
+ * }}
  */
 export function precheck(ctx) {
   const { projectRoot, allowDirty } = ctx;
@@ -81,5 +100,102 @@ export function precheck(ctx) {
     );
   }
 
-  return { cliRoot, repoRoot, gitCommit, dirty };
+  const { projectMode, projectConfigPath } = resolveProjectMode({
+    projectRoot,
+    projectMode: ctx.projectMode,
+    projectConfigOverride: ctx.projectConfigOverride || null,
+  });
+
+  return {
+    cliRoot,
+    repoRoot,
+    gitCommit,
+    dirty,
+    projectMode,
+    projectConfigPath,
+  };
+}
+
+/**
+ * Decide whether this pack invocation runs in project mode and where the
+ * bundled config.json lives. Separated out for unit-testability.
+ *
+ * Matrix:
+ *   projectMode === true  + config exists  → project mode, use config
+ *   projectMode === true  + config missing → PackError
+ *   projectMode === false                  → CLI-only, ignore any config
+ *   projectMode === undefined + exists     → project mode (auto-detect)
+ *   projectMode === undefined + missing    → CLI-only
+ *
+ * @param {object} ctx
+ * @param {string} ctx.projectRoot
+ * @param {boolean|undefined} ctx.projectMode
+ * @param {string|null} ctx.projectConfigOverride
+ * @returns {{projectMode:boolean, projectConfigPath:string|null}}
+ */
+export function resolveProjectMode(ctx) {
+  const { projectRoot, projectMode, projectConfigOverride } = ctx;
+
+  if (projectMode === false) {
+    return { projectMode: false, projectConfigPath: null };
+  }
+
+  const candidatePath = projectConfigOverride
+    ? path.isAbsolute(projectConfigOverride)
+      ? projectConfigOverride
+      : path.resolve(projectRoot, projectConfigOverride)
+    : path.join(projectRoot, ".chainlesschain", "config.json");
+
+  const exists = fs.existsSync(candidatePath);
+
+  if (projectMode === true) {
+    if (!exists) {
+      throw new PackError(
+        `--project mode requires a config.json at ${candidatePath}. ` +
+          "Run 'cc init' first, or pass --project-config-override <path>.",
+        EXIT.PRECHECK,
+      );
+    }
+    validateProjectConfig(candidatePath);
+    return { projectMode: true, projectConfigPath: candidatePath };
+  }
+
+  // Auto-detect
+  if (exists) {
+    validateProjectConfig(candidatePath);
+    return { projectMode: true, projectConfigPath: candidatePath };
+  }
+  return { projectMode: false, projectConfigPath: null };
+}
+
+/**
+ * Minimal Phase-0 schema check. Confirms the file parses as JSON and has a
+ * non-empty `name` field (required by the §4.1 naming rule). Deeper schema
+ * validation lands in Phase 1 alongside `project-assets-collector`.
+ */
+function validateProjectConfig(configPath) {
+  let raw;
+  try {
+    raw = fs.readFileSync(configPath, "utf-8");
+  } catch (e) {
+    throw new PackError(
+      `Cannot read project config ${configPath}: ${e.message}`,
+      EXIT.PRECHECK,
+    );
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    throw new PackError(
+      `Project config ${configPath} is not valid JSON: ${e.message}`,
+      EXIT.PRECHECK,
+    );
+  }
+  if (!parsed || typeof parsed.name !== "string" || !parsed.name.trim()) {
+    throw new PackError(
+      `Project config ${configPath} is missing required field "name".`,
+      EXIT.PRECHECK,
+    );
+  }
 }

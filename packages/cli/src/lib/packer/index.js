@@ -23,9 +23,11 @@ import {
   writeTemplate,
 } from "./config-template-builder.js";
 import { collectPrebuilds } from "./native-prebuild-collector.js";
+import { collectProjectAssets } from "./project-assets-collector.js";
 import { generatePkgConfig } from "./pkg-config-generator.js";
 import { runPkg } from "./pkg-runner.js";
 import { writeManifests } from "./manifest-writer.js";
+import { smokeTestExe } from "./smoke-runner.js";
 import { PackError } from "./errors.js";
 
 /**
@@ -64,11 +66,15 @@ export async function runPack(cliOpts, deps = {}) {
   const pre = precheck({
     projectRoot,
     allowDirty: Boolean(cliOpts.allowDirty),
+    projectMode: cliOpts.project, // tri-state: true / false / undefined
+    projectConfigOverride: cliOpts.projectConfigOverride || null,
   });
   steps.push({ phase: "precheck", ok: true, ...pre });
   log(
     `        cliRoot=${pre.cliRoot}\n` +
-      `        gitCommit=${pre.gitCommit || "(no git)"} dirty=${pre.dirty}`,
+      `        gitCommit=${pre.gitCommit || "(no git)"} dirty=${pre.dirty}\n` +
+      `        projectMode=${pre.projectMode} ` +
+      `projectConfig=${pre.projectConfigPath || "(none)"}`,
   );
 
   // ── Phase 2 ────────────────────────────────────────────────────────────
@@ -110,47 +116,74 @@ export async function runPack(cliOpts, deps = {}) {
   log(`        template=${templateFile}`);
   log(`        secretsFound=${cfg.secrets.length}`);
 
-  // ── Phase 4 ────────────────────────────────────────────────────────────
-  // In dry-run we want a complete plan even if native modules aren't
-  // installed in this workspace, so we downgrade the required-missing
-  // error to a logged warning. Real builds still fail hard.
-  log(chalk.cyan("  [4/7] Collect native prebuilds"));
-  let native;
-  try {
-    native = collectPrebuilds({
-      cliRoot: pre.cliRoot,
-      targets,
+  // ── Phase 3.5 (project mode only) ─────────────────────────────────────
+  // Snapshot projectRoot/.chainlesschain/ into tempDir/project/ so pkg can
+  // bundle it as an asset. The runtime entry script materializes this at
+  // first launch. See docs/design/CC_PACK_项目模式_设计文档.md §6.
+  let project = null;
+  if (pre.projectMode) {
+    log(chalk.cyan("  [3.5/7] Collect project assets"));
+    project = collectProjectAssets({
+      projectRoot,
       tempDir,
+      allowSecrets: Boolean(cliOpts.allowSecrets),
+      forceLargeProject: Boolean(cliOpts.forceLargeProject),
+      logger,
     });
-  } catch (e) {
-    if (cliOpts.dryRun && e instanceof PackError) {
-      log(
-        chalk.yellow(
-          `        WARN (dry-run only): ${e.message.split("\n")[0]}`,
-        ),
-      );
-      native = { prebuildsDir: null, collected: [], missing: [] };
-    } else {
-      throw e;
-    }
+    steps.push({
+      phase: "project-assets",
+      ok: true,
+      projectName: project.projectName,
+      fileCount: project.fileCount,
+      totalBytes: project.totalBytes,
+      bundledSkills: project.bundledSkills.map((s) => s.name),
+      configSha: project.configSha,
+    });
+    log(
+      `        projectName=${project.projectName}\n` +
+        `        files=${project.fileCount} size=${formatMB(project.totalBytes)}\n` +
+        `        bundledSkills=[${project.bundledSkills.map((s) => s.name).join(", ")}]\n` +
+        `        configSha=${project.configSha.slice(0, 12)}...`,
+    );
   }
+
+  // ── Phase 4 ────────────────────────────────────────────────────────────
+  // None of the native drivers are required anymore — the runtime falls
+  // back to sql.js (WASM). Missing natives are reported, not fatal.
+  log(chalk.cyan("  [4/7] Collect native prebuilds"));
+  const native = collectPrebuilds({
+    cliRoot: pre.cliRoot,
+    targets,
+    tempDir,
+  });
   steps.push({
     phase: "native-prebuilds",
     ok: true,
     collected: native.collected.length,
     missing: native.missing.length,
+    sqlJs: Boolean(native.sqlJs),
   });
   log(
-    `        collected=${native.collected.length} missing=${native.missing.length}`,
+    `        collected=${native.collected.length} missing=${native.missing.length}` +
+      ` sqlJs=${native.sqlJs ? "bundled" : "absent"}`,
   );
   if (native.missing.length > 0) {
     for (const m of native.missing) {
       log(
         chalk.yellow(
-          `        - missing: ${m.module} (${m.target}) ${m.required ? "REQUIRED" : "optional"}`,
+          `        - missing: ${m.module} (${m.target}) — will fall back to sql.js at runtime`,
         ),
       );
     }
+  }
+  if (native.collected.length === 0 && !native.sqlJs) {
+    log(
+      chalk.red(
+        "        WARN: no native SQLite driver found AND sql.js not installed.\n" +
+          "              The packed binary will fail at DB init. Install sql.js" +
+          " in the workspace before packing.",
+      ),
+    );
   }
 
   // ── Phase 5 ────────────────────────────────────────────────────────────
@@ -169,6 +202,12 @@ export async function runPack(cliOpts, deps = {}) {
     targets,
     outputPath,
     compress: cliOpts.compress !== false,
+    runtime: {
+      token: typeof cliOpts.token === "string" ? cliOpts.token : "auto",
+      bindHost: cliOpts.bindHost,
+      wsPort: parseInt(cliOpts.wsPort, 10),
+      uiPort: parseInt(cliOpts.uiPort, 10),
+    },
   });
   steps.push({
     phase: "pkg-config",
@@ -182,7 +221,7 @@ export async function runPack(cliOpts, deps = {}) {
   if (cliOpts.dryRun) {
     log(chalk.yellow("\n  [dry-run] Stopping before pkg invocation."));
     log(chalk.dim(`  Plan written to: ${pkgCfg.pkgConfigFile}`));
-    return { steps, dryRun: true, tempDir };
+    return { steps, dryRun: true, tempDir, project };
   }
 
   // ── Phase 6 ────────────────────────────────────────────────────────────
@@ -215,6 +254,55 @@ export async function runPack(cliOpts, deps = {}) {
   });
   steps.push({ phase: "manifest", ok: true, count: manifests.length });
 
+  // ── Phase 8 (optional) ────────────────────────────────────────────────
+  // The `--no-smoke-test` flag and cross-target builds skip this: pkg can
+  // compile a linux-x64 artifact on Windows, but we can't execute it. We
+  // also skip when the artifact is for an OS/arch other than the host.
+  const hostTargetable = targets.filter((t) => isHostExecutable(t));
+  const smokeable = built.outputs.filter((o) =>
+    hostTargetable.some((t) => o.target === t),
+  );
+  if (cliOpts.smokeTest !== false && smokeable.length > 0) {
+    log(chalk.cyan("  [8/8] Smoke-test artifact"));
+    for (const out of smokeable) {
+      log(`        probing: ${out.path}`);
+      try {
+        // Pick ports guaranteed not to clash with a user's running
+        // instance on the defaults 18800/18810. These flow into the
+        // spawned exe via CC_PACK_{UI,WS}_PORT env.
+        const res = await smokeTestExe({
+          exePath: out.path,
+          uiPort: 18951,
+          wsPort: 18950,
+          logger,
+        });
+        steps.push({
+          phase: "smoke",
+          ok: true,
+          target: out.target,
+          uiStatus: res.uiStatus,
+          wsListening: res.wsListening,
+        });
+      } catch (e) {
+        steps.push({
+          phase: "smoke",
+          ok: false,
+          target: out.target,
+          error: e.message,
+        });
+        throw e;
+      }
+    }
+  } else if (cliOpts.smokeTest === false) {
+    log(chalk.dim("  [8/8] Smoke-test skipped (--no-smoke-test)"));
+  } else {
+    log(
+      chalk.dim(
+        `  [8/8] Smoke-test skipped — no host-executable target in ${targets.join(",")}`,
+      ),
+    );
+  }
+
   // Optional cleanup of temp dir on success
   try {
     fs.rmSync(tempDir, { recursive: true, force: true });
@@ -229,7 +317,36 @@ export async function runPack(cliOpts, deps = {}) {
     sha256: first.sha256,
     manifests,
     steps,
+    project, // null in CLI-only mode
   };
+}
+
+/**
+ * Return true if a pkg target can actually run on the current host. We
+ * only smoke-test artifacts that match the host platform+arch — pkg can
+ * cross-compile to other OS/arch combos, but we have no way to execute
+ * them locally. The small shape of the target string (`nodeXX-<os>-<arch>`)
+ * makes a purely string comparison safe.
+ */
+function isHostExecutable(target) {
+  const parts = String(target).split("-");
+  if (parts.length < 3) return false;
+  const [, os, arch] = parts;
+  const hostOs =
+    process.platform === "win32"
+      ? "win"
+      : process.platform === "darwin"
+        ? "macos"
+        : "linux";
+  const hostArch = process.arch; // 'x64' | 'arm64' | ...
+  // 'alpine' is linux with musl; still host-executable on a glibc host in
+  // practice for smoke tests, but skip to avoid false negatives.
+  if (os === "alpine") return false;
+  return os === hostOs && arch === hostArch;
+}
+
+function formatMB(bytes) {
+  return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
 }
 
 // Re-export the typed error so callers can introspect exit codes if needed.
