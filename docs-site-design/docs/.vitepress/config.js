@@ -85,6 +85,10 @@ export default defineConfig({
             text: "v5.0.2.10 Runtime收口 (80-83) ⭐NEW",
             link: "/modules/m80-canonical-workflow",
           },
+          {
+            text: "v5.0.2.49 CLI 项目打包 ⭐NEW",
+            link: "/cc-pack-design",
+          },
         ],
       },
       {
@@ -549,6 +553,30 @@ export default defineConfig({
             {
               text: "72 AI文档创作模板 ⭐",
               link: "/modules/m72-ai-doc-creator",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.49 CLI 项目打包 ⭐NEW",
+          collapsed: false,
+          items: [
+            {
+              text: "cc pack 打包指令设计 ⭐NEW",
+              link: "/cc-pack-design",
+            },
+            {
+              text: "cc pack --project 项目模式 ⭐NEW",
+              link: "/cc-pack-project-mode-design",
+            },
+          ],
+        },
+        {
+          text: "ClaudeBox 学习方案",
+          collapsed: true,
+          items: [
+            {
+              text: "工具卡 + TodoWrite 面板落地方案",
+              link: "/claudebox-learning-plan",
             },
           ],
         },

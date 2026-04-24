@@ -1337,6 +1337,7 @@ export default defineConfig({
             { text: "85 Hermes Agent对标 ⭐NEW", link: "/design/modules/85-hermes-agent-parity" },
             { text: "85b 文档代码差距补全 ⭐NEW", link: "/design/modules/85b-doc-code-gap-fill" },
             { text: "86 Web Cowork协作 ⭐NEW", link: "/design/modules/86-web-cowork" },
+            { text: "87 Cowork Evolution N1–N7 ⭐NEW", link: "/design/modules/87-cowork-evolution" },
             { text: "88 Open-Agents 对标 ⭐NEW", link: "/design/modules/88-open-agents-parity" },
             { text: "89 v5.0.2.9 六项优化 ⭐NEW", link: "/design/modules/89-runtime-six-enhancements" },
             { text: "90 AI视频生成 Seedance ⭐NEW", link: "/design/modules/90-ai-video-generation-seedance" },
@@ -1356,6 +1357,29 @@ export default defineConfig({
             {
               text: "桌面版 UI 重构 (v6 Shell P0–P6)",
               link: "/design/desktop-ui-refactor",
+            },
+          ],
+        },
+        {
+          text: "CLI 项目打包 ⭐NEW",
+          items: [
+            {
+              text: "cc pack 打包指令设计",
+              link: "/design/cc-pack-design",
+            },
+            {
+              text: "cc pack --project 项目模式",
+              link: "/design/cc-pack-project-mode-design",
+            },
+          ],
+        },
+        {
+          text: "ClaudeBox 学习方案",
+          collapsed: true,
+          items: [
+            {
+              text: "工具卡 + TodoWrite 面板落地方案",
+              link: "/design/claudebox-learning-plan",
             },
           ],
         },

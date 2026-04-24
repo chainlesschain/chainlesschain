@@ -600,6 +600,30 @@ Requirements: `winget install pandoc` (for docx), `winget install LibreOffice.Li
 
 Also creates a `templates/` directory with README for document templates.
 
+### `chainlesschain pack`
+
+Package a ChainlessChain project into a standalone executable (single-file, no Node.js required) for macOS / Windows / Linux. Includes `--project` mode for embedding a specific project's skills, persona, and allowed-command whitelist directly into the binary.
+
+```bash
+chainlesschain pack                                    # Pack current dir as a generic CLI binary
+chainlesschain pack --project                          # Project mode: bake current project's skills/persona into the binary
+chainlesschain pack --project --name myproject         # Override output binary name
+chainlesschain pack --platform win-x64                 # Target Windows x64 (default: host platform)
+chainlesschain pack --platform darwin-arm64            # Target macOS Apple Silicon
+chainlesschain pack --platform linux-x64               # Target Linux x64
+chainlesschain pack --dry-run                          # Print effective config without building
+chainlesschain pack check-update                       # Probe OTA manifest for a newer pack on this channel
+```
+
+**Project mode** (`--project`) bakes the following into the executable at build time:
+
+- `.chainlesschain/skills/**` — project-local skills, loaded via `CC_PROJECT_ROOT` at runtime
+- `.chainlesschain/persona.json` — auto-applied project persona (name / role / behavior)
+- `commander.allowedCommands` whitelist — only the subcommands the project actually uses
+- Sanitized project name (kebab-case) as the default binary name + manifest sidecar (`<binary>.manifest.json`) with a signed descriptor
+
+**OTA check-update** reads the pack's baked channel + version, fetches the configured manifest URL, and reports whether a newer build is available (no auto-download — download/install is a separate workflow).
+
 ### `chainlesschain persona <action>`
 
 Manage the AI persona for the current project (set by `init` templates or manually).
