@@ -10,10 +10,15 @@
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { runPack } from "../lib/packer/index.js";
+import path from "node:path";
 import {
   checkPackUpdate,
   PackUpdateError,
 } from "../lib/packer/pack-update-checker.js";
+import {
+  downloadAndVerify,
+  DownloadError,
+} from "../lib/packer/pack-update-downloader.js";
 import { VERSION } from "../constants.js";
 
 /**
@@ -188,6 +193,15 @@ export function registerPackCommand(program) {
       "Override the current version (defaults to CLI VERSION or BAKED.packedCliVersion)",
     )
     .option("--json", "Emit JSON instead of human-readable output", false)
+    .option(
+      "--download",
+      "Phase 5b: after the check, download + SHA-256 verify the artifact (no install)",
+      false,
+    )
+    .option(
+      "--dest <path>",
+      "Phase 5b: download destination. Defaults to `<currentExePath>.new` inside a packed exe, or `./<basename(artifactUrl)>` otherwise. (Named `--dest`, not `--output`, to avoid colliding with the parent `pack -o`.)",
+    )
     .action(async (opts) => {
       const manifestUrl =
         opts.manifestUrl ||
@@ -215,12 +229,26 @@ export function registerPackCommand(program) {
 
       const target = opts.target || defaultPkgTarget();
 
+      let result;
       try {
-        const result = await checkPackUpdate({
+        result = await checkPackUpdate({
           manifestUrl,
           currentVersion,
           target,
         });
+      } catch (err) {
+        const code = err instanceof PackUpdateError ? err.code : "UNKNOWN";
+        if (opts.json) {
+          logger.log(JSON.stringify({ error: err.message, code }));
+        } else {
+          logger.error(`check-update failed [${code}]: ${err.message}`);
+        }
+        // Network / schema issues are non-zero but distinct from "pack failed"
+        process.exit(3);
+      }
+
+      // Human or JSON report for the check result.
+      if (!opts.download) {
         if (opts.json) {
           logger.log(JSON.stringify(result, null, 2));
           return;
@@ -252,15 +280,108 @@ export function registerPackCommand(program) {
             ),
           );
         }
+        return;
+      }
+
+      // ── --download branch (Phase 5b) ─────────────────────────────────────
+      if (!result.updateAvailable) {
+        const msg = `Already on the latest version (${result.currentVersion}); nothing to download.`;
+        if (opts.json) logger.log(JSON.stringify({ skipped: msg, ...result }));
+        else logger.log(chalk.green(`  ✓ ${msg}`));
+        return;
+      }
+      if (!result.artifact) {
+        const msg = `No artifact for target "${target}" in this manifest.`;
+        if (opts.json)
+          logger.log(JSON.stringify({ error: msg, code: "NO_ARTIFACT" }));
+        else logger.error(msg);
+        process.exit(3);
+      }
+
+      // Default output path. Inside a pkg-packed exe, `process.execPath` is the
+      // exe itself — writing `<exe>.new` alongside is conventional for the
+      // future Phase 5c self-replacer. Outside pkg, fall back to a filename
+      // under cwd so `cc pack check-update --download` from a dev checkout
+      // drops the artifact where the user can find it.
+      const outputPath = opts.dest
+        ? path.resolve(opts.dest)
+        : process.pkg
+          ? process.execPath + ".new"
+          : path.resolve(
+              process.cwd(),
+              path.basename(new URL(result.artifact.url).pathname) ||
+                "pack-update-artifact",
+            );
+
+      if (!opts.json) {
+        logger.log(
+          chalk.bold(
+            `\n  Downloading ${result.currentVersion} → ${chalk.green(result.latestVersion)}`,
+          ),
+        );
+        logger.log(`  ${result.artifact.url}`);
+        logger.log(chalk.dim(`  → ${outputPath}`));
+      }
+
+      let lastPercent = -1;
+      try {
+        const dl = await downloadAndVerify({
+          url: result.artifact.url,
+          sha256: result.artifact.sha256,
+          outputPath,
+          onProgress: opts.json
+            ? undefined
+            : ({ bytes, total }) => {
+                if (!total) return;
+                const pct = Math.floor((bytes / total) * 100);
+                if (pct !== lastPercent && pct % 10 === 0) {
+                  lastPercent = pct;
+                  logger.log(
+                    chalk.dim(
+                      `    ${pct}% (${formatMB(bytes)}/${formatMB(total)})`,
+                    ),
+                  );
+                }
+              },
+        });
+        if (opts.json) {
+          logger.log(
+            JSON.stringify(
+              {
+                downloaded: true,
+                outputPath: dl.outputPath,
+                bytes: dl.bytes,
+                sha256: dl.sha256,
+                latestVersion: result.latestVersion,
+              },
+              null,
+              2,
+            ),
+          );
+        } else {
+          logger.log(
+            chalk.green(
+              `\n  ✓ Downloaded + verified ${formatMB(dl.bytes)} to ${dl.outputPath}`,
+            ),
+          );
+          logger.log(
+            chalk.dim(
+              `    sha256 OK. Replace your running exe with this file to upgrade (Phase 5c will automate this).`,
+            ),
+          );
+        }
       } catch (err) {
-        const code = err instanceof PackUpdateError ? err.code : "UNKNOWN";
+        const code = err instanceof DownloadError ? err.code : "UNKNOWN";
         if (opts.json) {
           logger.log(JSON.stringify({ error: err.message, code }));
         } else {
-          logger.error(`check-update failed [${code}]: ${err.message}`);
+          logger.error(`download failed [${code}]: ${err.message}`);
         }
-        // Network / schema issues are non-zero but distinct from "pack failed"
-        process.exit(3);
+        process.exit(4);
       }
     });
+}
+
+function formatMB(bytes) {
+  return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
 }

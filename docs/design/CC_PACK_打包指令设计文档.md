@@ -1,9 +1,9 @@
 # `cc pack` — 项目一键打包为可执行文件 设计文档
 
-> 版本：v0.5 (Phase 0-3 + 4a + 5a + 项目模式 Phase 2a/2b/3a/3b 已落地)
+> 版本：v0.6 (Phase 0-3 + 4a + 5a + 5b + 项目模式 Phase 2a/2b/3a/3b 已落地)
 > 日期：2026-04-24
 > 作者：longfa
-> 状态：**Phase 0 / 1 / 2 / 3 + 4a + 5a 完成**；**项目模式（`--project`）Phase 2a / 2b / 3a / 3b 完成**；Phase 4b（macOS / Windows 代码签名）未启动；Phase 5b/5c/5d（OTA 下载+替换）未启动
+> 状态：**Phase 0 / 1 / 2 / 3 + 4a + 5a + 5b 完成**；**项目模式（`--project`）Phase 2a / 2b / 3a / 3b 完成**；Phase 4b（macOS / Windows 代码签名）未启动；Phase 5c（自替换）/ 5d（delta）未启动
 > 关联版本：ChainlessChain v5.0.2.49 / CLI 0.156.6
 
 ---
@@ -1077,7 +1077,7 @@ v0.2 期间抓出并修掉的典型症状，遇到时的定位方式：
 设计见 §17.5-17.7。拆分为 5a / 5b / 5c / 5d 四个子阶段。
 
 - [x] **Phase 5a**：check-only 子命令 `cc pack check-update` + manifest 取回 + 版本对比 + BAKED `packedCliVersion` / `updateManifestUrl` 字段 + 单元测试
-- [ ] **Phase 5b**：下载 + SHA-256 校验（`--download` flag）
+- [x] **Phase 5b**：`--download [--dest <path>]` flag + 流式下载到 `<path>.partial` + 增量 SHA-256 + 原子 rename；失败自动清理 `.partial`。`--dest` 取代 `--output` 避免与父命令 `pack -o` 冲突。进度回调 10% 粒度打印。默认 dest：pkg exe 下为 `<execPath>.new`，开发环境下为 `cwd/<basename(url)>`。新增 `pack-update-downloader.js` + 11 条单元测试
 - [ ] **Phase 5c**：自替换（`--apply` flag；Windows 需 `updater.exe` 旁挂进程）
 - [ ] **Phase 5d**：delta / 差分升级（延后评估）
 
