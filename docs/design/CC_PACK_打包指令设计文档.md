@@ -1,9 +1,9 @@
 # `cc pack` — 项目一键打包为可执行文件 设计文档
 
-> 版本：v0.4 (Phase 0-3 + 4a + 项目模式 Phase 2a/2b/3a/3b 已落地)
+> 版本：v0.5 (Phase 0-3 + 4a + 5a + 项目模式 Phase 2a/2b/3a/3b 已落地)
 > 日期：2026-04-24
 > 作者：longfa
-> 状态：**Phase 0 / 1 / 2 / 3 + Phase 4a 完成**；**项目模式（`--project`）Phase 2a / 2b / 3a / 3b 完成**；Phase 4b（macOS / Windows 代码签名）未启动；Phase 5（自动升级）未启动
+> 状态：**Phase 0 / 1 / 2 / 3 + 4a + 5a 完成**；**项目模式（`--project`）Phase 2a / 2b / 3a / 3b 完成**；Phase 4b（macOS / Windows 代码签名）未启动；Phase 5b/5c/5d（OTA 下载+替换）未启动
 > 关联版本：ChainlessChain v5.0.2.49 / CLI 0.156.6
 
 ---
@@ -950,6 +950,55 @@ v0.2 期间抓出并修掉的典型症状，遇到时的定位方式：
 - 每次升级前自动备份到 `backups/<timestamp>/`
 - 保留最近 3 份，超出自动清理
 
+### 17.5 OTA（Phase 5）背景与非目标
+
+已有的 `cc update` 命令（`src/commands/update.js`）调用 `npm install -g chainlesschain@<v>` —— 这在 **npm 全局安装的 CLI** 上可用，但在 **packed exe** 上完全不可用（产物里没有 Node / npm）。因此 Phase 5 需要为 packed exe 单独设计一条升级路径。
+
+**目标**：
+- 用户手里的 portable exe 能感知新版本（双击运行时不需要手动跑 npm）
+- 签名验证链：下载的 exe 必须能校验（SHA-256 + 未来的代码签名）
+- 与项目模式兼容：升级 exe 本身，但不动 `~/.chainlesschain-projects/<name>-<sha>/` 下的用户数据
+
+**非目标**：
+- 不做 delta / 差分升级（首发全量下载；差分算法后置到 Phase 5d，留待体积真正成为痛点再做）
+- 不做自动后台更新（必须用户显式触发；静默更新的信任成本太高）
+- 不替代 `cc update`（npm 用户继续走 `cc update`；`cc pack check-update` 只给 packed exe 用）
+
+### 17.6 Manifest 格式
+
+托管在由打包方决定的 URL（默认 `https://releases.chainlesschain.com/pack/manifest.json`，`cc pack --update-manifest-url <url>` 打包时覆盖；运行时也可 `CC_PACK_UPDATE_MANIFEST` 环境变量覆盖或 `--manifest-url`）：
+
+```json
+{
+  "schema": 1,
+  "channel": "stable",
+  "latest": {
+    "cliVersion": "0.157.0",
+    "productVersion": "v5.0.3.0",
+    "publishedAt": "2026-04-25T00:00:00Z",
+    "releaseNotes": "https://releases.chainlesschain.com/v5.0.3.0/notes.md",
+    "artifacts": [
+      { "target": "node20-win-x64",   "url": "https://.../chainlesschain-portable-win-x64.exe",   "sha256": "..." },
+      { "target": "node20-linux-x64", "url": "https://.../chainlesschain-portable-linux-x64.exe", "sha256": "..." },
+      { "target": "node20-macos-arm64", "url": "https://.../chainlesschain-portable-macos-arm64", "sha256": "..." }
+    ]
+  }
+}
+```
+
+客户端按**当前 exe 的 pkg target**（由 BAKED 字段记录）匹配 artifact；找不到匹配项则报 "no artifact for your platform"。
+
+### 17.7 Phase 5 实施拆分
+
+| Sub | 范围 | 用户 UX |
+|---|---|---|
+| **5a** | check-only 子命令 `cc pack check-update`：取 manifest → 比较版本 → 打印差值 + 下载 URL。无下载无安装 | `cc pack check-update` 输出 `0.156.6 → 0.157.0 available (get it at https://…)` 或 `You are up to date` |
+| **5b** | 下载 + SHA-256 校验：`cc pack check-update --download [--output <path>]`。产物放在 `<exePath>.new`，不激活 | 用户手动用新文件替换旧 exe（Windows 下正在运行的 exe 不能自覆盖） |
+| **5c** | 自替换：`cc pack check-update --apply`。调用 `updater.exe` 旁挂进程：拷 new exe → 退出当前进程 → `updater.exe` 重命名 + 重启 | 最终态：一条命令完成下载 + 替换 + 重启 |
+| **5d**（延后） | Delta / 差分升级 | 需要 patch 服务端 + client 应用；先跑通 5a-5c 看反馈再评估 |
+
+**本轮（v0.4+）只做 5a**，理由：5a 无破坏性，用户能立刻用上"有没有更新"的信号；5b/5c 引入磁盘写入和进程管理，风险面更大，值得独立迭代。
+
 ---
 
 ## 18. 分阶段交付
@@ -994,6 +1043,22 @@ v0.2 期间抓出并修掉的典型症状，遇到时的定位方式：
 - [x] E2E 测试：`pack-artifact.test.js` 4 条，`CC_PACK_E2E=1` 启用
 - [ ] 代码签名（`--sign` 参数骨架已在 pack.js，实施延后到 Phase 4）
 
+### 项目模式（`--project`） Phase 2a / 2b / 3a / 3b ✅ 已完成（2026-04-24，v0.4）
+
+**目标**：把 CWD 的 `.chainlesschain/` 打进 exe，产物双击即运行项目 persona + 项目 skills，而非裸 ChainlessChain。
+
+**产出**：
+- [x] **Phase 2a**（`522d7c8c9`）：`pkg-config-generator` 注入项目模式 BAKED 字段 + 入口脚本 `copyRecursiveMerge` + user-data 物化（`~/.chainlesschain-projects/<name>-<configSha8>/`）+ `CC_PROJECT_ROOT` 导出 + `sanitizeProjectName()` 实现
+- [x] **Phase 2b**（`69a91c450`）：`web-ui-server.js` 新增 `GET /api/skills`（SPA + minimal 两路径共享 handler）；smoke-runner 对该端点升级为实断言，404 保留前向兼容兜底
+- [x] **Phase 3a**（`dce8e5d66`）：`createProgram(opts)` 白名单过滤（`allowedCommands` 或 `CC_PROJECT_ALLOWED_SUBCOMMANDS` 环境变量），未列出子命令不注册到 commander
+- [x] **Phase 3b**（`7633ad483`）：`CC_PACK_AUTO_PERSONA` 环境变量导出 + `pack-manifest.json.bundledSkills` 字段 + Phase 8 smoke 对照 `/api/skills` 返回
+- [x] **测试**：+97 条单元 + 11 条集成 = **108 条项目模式专属测试**，全绿
+- [x] **文档**：用户文档 `docs-site/docs/chainlesschain/cli-pack-project.md` 推进到 v0.4（"已落地"状态）
+
+**未解决 / 延后**：
+- [ ] E2E 测试 `pack-project-artifact.test.js` 尚未编写（复用 `pack-artifact.test.js` 基础设施，CC_PACK_E2E=1 启用）。项目模式的 E2E 目前靠手工跑 `cc pack --project` → 启动 exe → 访问 `/api/skills` 验证
+- [ ] `pack.autoOpenBrowser` 字段未进入本版本实施（由 `cc ui` 自身行为兜底）
+
 ### Phase 4（P1）：跨平台 + 代码签名
 
 **Phase 4a（已落地，v0.3）**：Linux x64 流水线可用
@@ -1007,7 +1072,14 @@ v0.2 期间抓出并修掉的典型症状，遇到时的定位方式：
 - [ ] macOS (Intel + ARM) —— 阻塞点：需要 Apple Developer 签名证书 + notarization 流水线
 - [ ] Windows 代码签名 (`--sign` + `--sign-password`) —— 流水线对接 EV 证书，参数骨架已在 `pack.js`
 
-### Phase 5（P2+）：增量升级、auto-update 未启动
+### Phase 5（P2+）：OTA / 自动升级
+
+设计见 §17.5-17.7。拆分为 5a / 5b / 5c / 5d 四个子阶段。
+
+- [x] **Phase 5a**：check-only 子命令 `cc pack check-update` + manifest 取回 + 版本对比 + BAKED `packedCliVersion` / `updateManifestUrl` 字段 + 单元测试
+- [ ] **Phase 5b**：下载 + SHA-256 校验（`--download` flag）
+- [ ] **Phase 5c**：自替换（`--apply` flag；Windows 需 `updater.exe` 旁挂进程）
+- [ ] **Phase 5d**：delta / 差分升级（延后评估）
 
 ---
 

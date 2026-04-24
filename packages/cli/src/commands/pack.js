@@ -10,6 +10,11 @@
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { runPack } from "../lib/packer/index.js";
+import {
+  checkPackUpdate,
+  PackUpdateError,
+} from "../lib/packer/pack-update-checker.js";
+import { VERSION } from "../constants.js";
 
 /**
  * Default pkg target string for the host platform+arch. Falls back to
@@ -32,11 +37,13 @@ export function defaultPkgTarget() {
 }
 
 export function registerPackCommand(program) {
-  program
+  const packCmd = program
     .command("pack")
     .description(
       "Bundle the current project environment into a standalone executable",
-    )
+    );
+
+  packCmd
     .option(
       "-o, --output <path>",
       "Output path without extension. pkg appends .exe for win targets only.",
@@ -133,6 +140,10 @@ export function registerPackCommand(program) {
       "Re-materialize project assets on every launch (project mode only)",
       false,
     )
+    .option(
+      "--update-manifest-url <url>",
+      "OTA manifest URL to bake into the artifact (enables `cc pack check-update`)",
+    )
     .action(async (opts) => {
       try {
         const result = await runPack(opts, { logger });
@@ -152,6 +163,104 @@ export function registerPackCommand(program) {
         logger.error(`pack failed: ${err.message}`);
         if (err.exitCode) process.exit(err.exitCode);
         process.exit(1);
+      }
+    });
+
+  // Phase 5a: check-only OTA probe. Packed exes can't use `cc update`
+  // (that runs `npm install -g`), so this subcommand fetches a manifest
+  // and reports whether a newer packed artifact exists. Download +
+  // self-replace are Phase 5b/5c. See design doc §17.5-17.7.
+  packCmd
+    .command("check-update")
+    .description(
+      "Check whether a newer packed artifact is published (no download)",
+    )
+    .option(
+      "--manifest-url <url>",
+      "Manifest URL (falls back to BAKED.updateManifestUrl or CC_PACK_UPDATE_MANIFEST env)",
+    )
+    .option(
+      "--target <slug>",
+      "pkg target to match against manifest.latest.artifacts (e.g. node20-win-x64); defaults to current host",
+    )
+    .option(
+      "--current <version>",
+      "Override the current version (defaults to CLI VERSION or BAKED.packedCliVersion)",
+    )
+    .option("--json", "Emit JSON instead of human-readable output", false)
+    .action(async (opts) => {
+      const manifestUrl =
+        opts.manifestUrl ||
+        process.env.CC_PACK_UPDATE_MANIFEST ||
+        (typeof globalThis.BAKED === "object" &&
+          globalThis.BAKED?.updateManifestUrl) ||
+        null;
+
+      if (!manifestUrl) {
+        const msg =
+          "No manifest URL. Provide --manifest-url, set CC_PACK_UPDATE_MANIFEST, or bake one via `cc pack --update-manifest-url`.";
+        if (opts.json) {
+          logger.log(JSON.stringify({ error: msg, code: "NO_MANIFEST_URL" }));
+        } else {
+          logger.error(msg);
+        }
+        process.exit(2);
+      }
+
+      const currentVersion =
+        opts.current ||
+        (typeof globalThis.BAKED === "object" &&
+          globalThis.BAKED?.packedCliVersion) ||
+        VERSION;
+
+      const target = opts.target || defaultPkgTarget();
+
+      try {
+        const result = await checkPackUpdate({
+          manifestUrl,
+          currentVersion,
+          target,
+        });
+        if (opts.json) {
+          logger.log(JSON.stringify(result, null, 2));
+          return;
+        }
+        if (result.updateAvailable) {
+          logger.log(
+            chalk.bold(
+              `\n  Update available: ${result.currentVersion} → ${chalk.green(result.latestVersion)}\n`,
+            ),
+          );
+          if (result.artifact) {
+            logger.log(`  Artifact (${target}):`);
+            logger.log(`    ${result.artifact.url}`);
+            logger.log(chalk.dim(`    sha256: ${result.artifact.sha256}`));
+          } else {
+            logger.log(
+              chalk.yellow(
+                `  No artifact for target "${target}" in this manifest.`,
+              ),
+            );
+          }
+          if (result.releaseNotes) {
+            logger.log(chalk.dim(`  Release notes: ${result.releaseNotes}`));
+          }
+        } else {
+          logger.log(
+            chalk.green(
+              `  ✓ You are on the latest version (${result.currentVersion}).`,
+            ),
+          );
+        }
+      } catch (err) {
+        const code = err instanceof PackUpdateError ? err.code : "UNKNOWN";
+        if (opts.json) {
+          logger.log(JSON.stringify({ error: err.message, code }));
+        } else {
+          logger.error(`check-update failed [${code}]: ${err.message}`);
+        }
+        // Network / schema issues are non-zero but distinct from "pack failed"
+        process.exit(3);
       }
     });
 }

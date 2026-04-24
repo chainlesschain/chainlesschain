@@ -215,6 +215,7 @@ export async function runPack(cliOpts, deps = {}) {
     project,
     projectEntry: cliOpts.entry || null,
     forceRefreshOnLaunch: Boolean(cliOpts.forceRefreshOnLaunch),
+    updateManifestUrl: cliOpts.updateManifestUrl || null,
   });
   steps.push({
     phase: "pkg-config",

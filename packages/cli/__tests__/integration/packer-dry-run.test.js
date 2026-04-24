@@ -27,6 +27,7 @@ describe("runPack – dry-run end-to-end", () => {
         compress: true,
         skipWebPanelBuild: true,
         allowDirty: true,
+        project: false,
       },
       { logger: silent },
     );
@@ -61,6 +62,7 @@ describe("runPack – dry-run end-to-end", () => {
         compress: true,
         skipWebPanelBuild: true,
         allowDirty: true,
+        project: false,
       },
       { logger: silent },
     );
@@ -96,6 +98,7 @@ describe("runPack – dry-run end-to-end", () => {
           presetConfig: "/nonexistent/preset.json",
           allowDirty: true,
           skipWebPanelBuild: true,
+          project: false,
         },
         { logger: silent },
       ),

@@ -51,6 +51,9 @@ import path from "node:path";
  *                                            omitted, reads from the bundled
  *                                            config's `pack.entry` field.
  * @param {boolean} [ctx.forceRefreshOnLaunch] re-materialize every launch
+ * @param {string|null} [ctx.updateManifestUrl] Phase 5a OTA manifest URL;
+ *                                            baked into BAKED.updateManifestUrl
+ *                                            and surfaced via `cc pack check-update`
  * @returns {{ pkgConfigDir: string, pkgConfigFile: string, entryScript: string, projectMeta: object|null }}
  */
 export function generatePkgConfig(ctx) {
@@ -67,6 +70,7 @@ export function generatePkgConfig(ctx) {
     project = null,
     projectEntry,
     forceRefreshOnLaunch = false,
+    updateManifestUrl = null,
   } = ctx;
 
   const bakedTokenMode =
@@ -126,14 +130,6 @@ export function generatePkgConfig(ctx) {
     };
   }
 
-  const bakedObj = {
-    tokenMode: bakedTokenMode,
-    host: bakedHost,
-    wsPort: bakedWsPort,
-    uiPort: bakedUiPort,
-    ...(projectBaked || {}),
-  };
-
   const pkgConfigDir = path.join(tempDir, "pkg-config");
   fs.mkdirSync(pkgConfigDir, { recursive: true });
 
@@ -141,6 +137,22 @@ export function generatePkgConfig(ctx) {
   const realPkg = JSON.parse(
     fs.readFileSync(path.join(cliRoot, "package.json"), "utf-8"),
   );
+
+  // Phase 5a: bake OTA manifest URL + the exact CLI version shipped in this
+  // artifact so `cc pack check-update` can compare against the manifest's
+  // latest.cliVersion without relying on the unpacked CLI's VERSION constant.
+  const bakedObj = {
+    tokenMode: bakedTokenMode,
+    host: bakedHost,
+    wsPort: bakedWsPort,
+    uiPort: bakedUiPort,
+    packedCliVersion: realPkg.version || null,
+    updateManifestUrl:
+      typeof updateManifestUrl === "string" && updateManifestUrl
+        ? updateManifestUrl
+        : null,
+    ...(projectBaked || {}),
+  };
 
   // Inline the real bin's logic directly. We can't use `import('...')`
   // because pkg's snapshot bootstrap does not register a dynamic-import
@@ -168,6 +180,10 @@ export function generatePkgConfig(ctx) {
       "// Build-time defaults baked by the packer. Each is overridable at",
       "// runtime either via the matching env var or by passing the flag.",
       `const BAKED = Object.freeze(${JSON.stringify(bakedObj)});`,
+      "// Expose BAKED on globalThis so downstream subcommands (e.g. `cc pack",
+      "// check-update`) can read packedCliVersion / updateManifestUrl without",
+      "// importing from the packer. No-op in CLI-only builds outside pkg.",
+      "globalThis.BAKED = BAKED;",
       "// Merge-copy helper: copies src tree into dest, skipping files that",
       "// already exist (preserves user modifications). Used only in project mode.",
       "function copyRecursiveMerge(src, dest) {",

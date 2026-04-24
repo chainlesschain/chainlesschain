@@ -28,9 +28,19 @@ describe("precheck", () => {
     }
   });
 
+  // These four cases exercise base-mode precheck against the real repo (so
+  // git/node_modules state is authentic). We pass `projectMode: false`
+  // explicitly so the auto-detect doesn't try to validate whatever
+  // `.chainlesschain/config.json` happens to sit at cwd — that's
+  // project-mode territory and covered in packer-precheck-project-mode.test.js.
+
   it("succeeds when projectRoot exists and node_modules present", () => {
     // Use the real packages/cli root (we're running inside it)
-    const r = precheck({ projectRoot: process.cwd(), allowDirty: true });
+    const r = precheck({
+      projectRoot: process.cwd(),
+      allowDirty: true,
+      projectMode: false,
+    });
     expect(r.cliRoot).toMatch(/packages[/\\]cli$/);
     expect(typeof r.dirty).toBe("boolean");
   });
@@ -40,13 +50,18 @@ describe("precheck", () => {
       precheck({
         projectRoot: path.join(tmpDir, "no-such"),
         allowDirty: true,
+        projectMode: false,
       }),
     ).toThrow(PackError);
   });
 
   it("returns gitCommit metadata when in a git repo", () => {
     // process.cwd() is the chainlesschain repo, which IS a git repo.
-    const r = precheck({ projectRoot: process.cwd(), allowDirty: true });
+    const r = precheck({
+      projectRoot: process.cwd(),
+      allowDirty: true,
+      projectMode: false,
+    });
     if (r.gitCommit !== null) {
       expect(typeof r.gitCommit).toBe("string");
       expect(r.gitCommit.length).toBeGreaterThan(0);
@@ -57,14 +72,22 @@ describe("precheck", () => {
     // Skip this test if the current tree happens to be clean — we can't
     // forcibly dirty it without leaving turds. Best-effort: detect first
     // and only assert if dirty.
-    const probe = precheck({ projectRoot: process.cwd(), allowDirty: true });
+    const probe = precheck({
+      projectRoot: process.cwd(),
+      allowDirty: true,
+      projectMode: false,
+    });
     if (!probe.dirty) {
       // Tree is clean, nothing to assert. Mark passing.
       expect(true).toBe(true);
       return;
     }
     expect(() =>
-      precheck({ projectRoot: process.cwd(), allowDirty: false }),
+      precheck({
+        projectRoot: process.cwd(),
+        allowDirty: false,
+        projectMode: false,
+      }),
     ).toThrow(/dirty/);
   });
 });
