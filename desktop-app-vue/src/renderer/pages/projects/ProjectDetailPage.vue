@@ -589,6 +589,7 @@ import {
 } from "@/utils/intelligent-prefetch";
 import { getAccessibilityManager, announce } from "@/utils/accessibility";
 import keyboardShortcuts from "@/utils/keyboard-shortcuts";
+import { useProjectGit } from "@/composables/useProjectGit";
 
 const route = useRoute();
 const router = useRouter();
@@ -598,12 +599,7 @@ const projectStore = useProjectStore();
 const loading = ref(true);
 const saving = ref(false);
 const refreshing = ref(false);
-const committing = ref(false);
 const hasUnsavedChanges = ref(false);
-const showGitStatusModal = ref(false);
-const showGitHistoryModal = ref(false);
-const showGitCommitModal = ref(false);
-const commitMessage = ref("");
 const resolvedProjectPath = ref("");
 const aiCreationData = ref(null); // AI创建数据
 const autoSendMessage = ref(""); // 自动发送的消息（从路由参数传入）
@@ -628,8 +624,6 @@ const codeEditorRef = ref(null); // 代码编辑器引用
 const markdownEditorRef = ref(null); // Markdown编辑器引用
 const webEditorRef = ref(null); // Web开发编辑器引用
 const pptEditorRef = ref(null); // PPT编辑器引用
-const gitStatus = ref({}); // Git 状态
-let gitStatusInterval = null; // Git 状态轮询定时器
 const showFileManageModal = ref(false); // 文件管理Modal
 const showShareModal = ref(false); // 分享Modal
 const useVirtualFileTree = ref(true); // 使用虚拟滚动文件树（性能优化）- 已启用
@@ -641,6 +635,29 @@ const isAICreatingMode = computed(() => {
   return id === "ai-creating" || String(id).includes("ai-creating");
 });
 const currentProject = computed(() => projectStore.currentProject);
+
+// Git operations + status polling — see composables/useProjectGit.js.
+// onRefreshFiles is wrapped in an arrow so the binding resolves lazily at
+// pull-time (handleRefreshFiles is declared further down the file).
+const {
+  gitStatus,
+  showGitStatusModal,
+  showGitHistoryModal,
+  showGitCommitModal,
+  commitMessage,
+  committing,
+  refreshGitStatus,
+  startStatusPolling,
+  handleGitAction,
+  handleShowCommitDialog,
+  handleConfirmCommit,
+} = useProjectGit({
+  projectId,
+  currentProject,
+  projectStore,
+  onRefreshFiles: () => handleRefreshFiles(),
+});
+
 const isDevelopment = computed(() => {
   return process.env.NODE_ENV === "development";
 });
@@ -889,24 +906,9 @@ const handleEditorPanelResize = throttle((delta) => {
   }
 }, 16); // 60fps
 
-// 刷新 Git 状态
-const refreshGitStatus = async () => {
-  if (!currentProject.value?.root_path) {
-    return;
-  }
-
-  try {
-    const status = await window.electronAPI.project.gitStatus(
-      currentProject.value.root_path,
-    );
-    if (status) {
-      gitStatus.value = status;
-    }
-  } catch (error) {
-    logger.error("[ProjectDetail] 获取 Git 状态失败:", error);
-    // 不显示错误消息，因为可能项目不是 Git 仓库
-  }
-};
+// refreshGitStatus / checkGitInitialized / initializeGitRepo / handleGitAction /
+// handleShowCommitDialog / handleConfirmCommit / handleGitPush / handleGitPull
+// + status-polling lifecycle moved to composables/useProjectGit.js.
 
 // 加载文件内容（优化：使用IndexedDB缓存和Web Workers）
 const loadFileContent = async (file) => {
@@ -1468,148 +1470,6 @@ const handleExport = (exportType) => {
   // 比如调用FileExportMenu中已有的导出功能
 };
 
-// 检查 Git 是否已初始化
-const checkGitInitialized = async () => {
-  if (!currentProject.value?.root_path) {
-    return false;
-  }
-
-  try {
-    // 检查项目目录中是否存在 .git 文件夹
-    const exists = await window.electronAPI.file.exists(
-      currentProject.value.root_path + "/.git",
-    );
-    return exists;
-  } catch (error) {
-    logger.error("检查 Git 初始化状态失败:", error);
-    return false;
-  }
-};
-
-// 初始化 Git 仓库
-const initializeGitRepo = async () => {
-  try {
-    await projectStore.initGit(projectId.value);
-    message.success("Git 仓库初始化成功");
-    return true;
-  } catch (error) {
-    logger.error("Git 初始化失败:", error);
-    message.error("Git 初始化失败：" + error.message);
-    return false;
-  }
-};
-
-// Git操作
-const handleGitAction = async ({ key }) => {
-  // 对于需要 Git 仓库的操作，先检查是否已初始化
-  const needsGitInit = ["commit", "push", "pull", "history", "status"];
-
-  if (needsGitInit.includes(key)) {
-    const isInitialized = await checkGitInitialized();
-
-    if (!isInitialized) {
-      // 显示确认对话框
-      Modal.confirm({
-        title: "Git 仓库未初始化",
-        content: "当前项目还未初始化 Git 仓库，是否立即初始化？",
-        okText: "立即初始化",
-        cancelText: "取消",
-        onOk: async () => {
-          const success = await initializeGitRepo();
-          if (success) {
-            // 初始化成功后，继续执行原操作
-            await executeGitAction(key);
-          }
-        },
-      });
-      return;
-    }
-  }
-
-  // 执行 Git 操作
-  await executeGitAction(key);
-};
-
-// 执行具体的 Git 操作
-const executeGitAction = async (key) => {
-  switch (key) {
-    case "status":
-      await showGitStatus();
-      break;
-    case "history":
-      showGitHistoryModal.value = true;
-      break;
-    case "commit":
-      showGitCommitModal.value = true;
-      break;
-    case "push":
-      await handleGitPush();
-      break;
-    case "pull":
-      await handleGitPull();
-      break;
-  }
-};
-
-// 查看Git状态
-const showGitStatus = async () => {
-  showGitStatusModal.value = true;
-};
-
-// 显示提交对话框（从GitStatusDialog触发）
-const handleShowCommitDialog = () => {
-  showGitStatusModal.value = false;
-  showGitCommitModal.value = true;
-};
-
-// 确认提交
-const handleConfirmCommit = async () => {
-  if (!commitMessage.value.trim()) {
-    message.warning("请输入提交信息");
-    return;
-  }
-
-  committing.value = true;
-  try {
-    const repoPath = currentProject.value.root_path;
-    await projectStore.gitCommit(projectId.value, commitMessage.value);
-
-    message.success("提交成功");
-    showGitCommitModal.value = false;
-    commitMessage.value = "";
-  } catch (error) {
-    logger.error("Git commit failed:", error);
-    message.error("提交失败：" + error.message);
-  } finally {
-    committing.value = false;
-  }
-};
-
-// Git推送
-const handleGitPush = async () => {
-  try {
-    const repoPath = currentProject.value.root_path;
-    await projectStore.gitPush(repoPath);
-    message.success("推送成功");
-  } catch (error) {
-    logger.error("Git push failed:", error);
-    message.error("推送失败：" + error.message);
-  }
-};
-
-// Git拉取
-const handleGitPull = async () => {
-  try {
-    const repoPath = currentProject.value.root_path;
-    await projectStore.gitPull(repoPath);
-    message.success("拉取成功");
-    await handleRefreshFiles();
-  } catch (error) {
-    logger.error("Git pull failed:", error);
-    message.error("拉取失败：" + error.message);
-  }
-};
-
 // ==================== 文件管理Modal事件处理 ====================
 
 // 从文件管理Modal点击文件
@@ -1918,14 +1778,8 @@ onMounted(async () => {
       );
     }
 
-    // 初始化 Git 状态
-    await refreshGitStatus();
-    // 每 10 秒刷新一次 Git 状态
-    gitStatusInterval = setInterval(() => {
-      refreshGitStatus().catch((err) => {
-        logger.error("[ProjectDetail] Git status interval error:", err);
-      });
-    }, 30000); // 优化：从10秒增加到30秒，减少资源消耗
+    // 初始化 Git 状态轮询（30s 间隔；composable 自管 unmount 清理）
+    await startStatusPolling();
 
     // 启动项目统计收集
     if (resolvedProjectPath.value) {
@@ -2019,11 +1873,7 @@ onMounted(async () => {
 onUnmounted(async () => {
   // 清理快捷键
   cleanupShortcuts();
-
-  if (gitStatusInterval) {
-    clearInterval(gitStatusInterval);
-    gitStatusInterval = null;
-  }
+  // gitStatusInterval cleanup is owned by useProjectGit's onUnmounted
 
   // 停止项目统计收集
   if (projectId.value) {
