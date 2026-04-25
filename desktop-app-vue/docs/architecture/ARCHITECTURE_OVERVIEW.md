@@ -37,11 +37,11 @@
 2. `src/renderer/workers/file-worker.js` - 10.3 KB
 3. `src/renderer/pages/projects/ProjectsPage.improved.example.js` - 8.7 KB
 4. `src/renderer/workers/syntax-highlighter.worker.js` - 8.0 KB
-5. `src/renderer/components/tool/additionalToolsStatsExport.js` - 6.1 KB
-6. `src/renderer/workers/file-parser.worker.js` - 6.0 KB
-7. `src/renderer/composables/useProjectGit.js` - 5.8 KB
-8. `src/renderer/services/__tests__/api.test.js` - 5.2 KB
-9. `src/renderer/components/projects/chatPanelUtils.js` - 4.7 KB
+5. `src/renderer/components/projects/chatPanelUtils.js` - 7.4 KB
+6. `src/renderer/components/tool/additionalToolsStatsExport.js` - 6.1 KB
+7. `src/renderer/workers/file-parser.worker.js` - 6.0 KB
+8. `src/renderer/composables/useProjectGit.js` - 5.8 KB
+9. `src/renderer/services/__tests__/api.test.js` - 5.2 KB
 10. `src/renderer/components/projects/previewPanelUtils.js` - 4.0 KB
 
 ## shared Module
