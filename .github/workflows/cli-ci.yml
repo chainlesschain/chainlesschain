@@ -51,11 +51,19 @@ jobs:
       # each batch's wall-clock time well under the 60s RPC timeout.
       - name: Run E2E tests (batch 1, a-o)
         working-directory: packages/cli
-        run: npx vitest run --config vitest.e2e.config.js "__tests__/e2e/[a-o]*.test.js"
+        shell: bash
+        run: |
+          files=(__tests__/e2e/[a-o]*.test.js)
+          echo "Batch 1 files: ${#files[@]}"
+          npx vitest run --config vitest.e2e.config.js "${files[@]}"
 
       - name: Run E2E tests (batch 2, p-z)
         working-directory: packages/cli
-        run: npx vitest run --config vitest.e2e.config.js "__tests__/e2e/[p-z]*.test.js"
+        shell: bash
+        run: |
+          files=(__tests__/e2e/[p-z]*.test.js)
+          echo "Batch 2 files: ${#files[@]}"
+          npx vitest run --config vitest.e2e.config.js "${files[@]}"
 
       - name: Verify CLI --version
         working-directory: packages/cli
