@@ -68,13 +68,30 @@ jobs:
         working-directory: ./desktop-app-vue
         run: |
           echo "📚 Previewing documentation generation..."
-          node scripts/cowork-doc-generator.js --type ${{ github.event.inputs.doc_type || 'all' }} --dry-run
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            node scripts/cowork-doc-generator.js --type api --dry-run
+            node scripts/cowork-doc-generator.js --type user-guide --dry-run
+            node scripts/cowork-doc-generator.js --type architecture --dry-run
+          else
+            node scripts/cowork-doc-generator.js --type ${{ github.event.inputs.doc_type || 'all' }} --dry-run
+          fi
 
       - name: Generate documentation
         working-directory: ./desktop-app-vue
         run: |
           echo "📖 Generating documentation..."
-          node scripts/cowork-doc-generator.js --type ${{ github.event.inputs.doc_type || 'all' }}
+          # On push events: skip changelog (gitRange "v0.26.0..HEAD" grows by
+          # one line per push, which would otherwise trigger an auto-commit on
+          # every push regardless of source changes — pure noise). Changelog
+          # regenerates on workflow_dispatch (default 'all') or when explicitly
+          # requested via doc_type input.
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            node scripts/cowork-doc-generator.js --type api
+            node scripts/cowork-doc-generator.js --type user-guide
+            node scripts/cowork-doc-generator.js --type architecture
+          else
+            node scripts/cowork-doc-generator.js --type ${{ github.event.inputs.doc_type || 'all' }}
+          fi
 
       - name: Check for documentation changes
         id: check-changes
