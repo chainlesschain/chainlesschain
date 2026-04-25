@@ -5,8 +5,8 @@
       <div class="header-left">
         <FileOutlined />
         <span class="file-name">{{ file?.file_name || "预览" }}</span>
-        <a-tag v-if="fileType" :color="getFileTypeColor()">
-          {{ getFileTypeLabel() }}
+        <a-tag v-if="fileType" :color="getFileTypeColor(fileType)">
+          {{ getFileTypeLabel(fileType) }}
         </a-tag>
       </div>
       <div class="header-right">
@@ -321,6 +321,17 @@ import { safeHtml } from "@/utils/sanitizeHtml";
 import VuePdfEmbed from "vue-pdf-embed";
 import ArchivePreview from "./ArchivePreview.vue";
 import LargeFilePreview from "./LargeFilePreview.vue";
+import {
+  getFileExtension,
+  extractResolvedPath,
+  normalizeErrorMessage,
+  toLogErrorData,
+  normalizePreviewFailureMessage,
+  getFileTypeColor,
+  getFileTypeLabel,
+  ensureSupportedOfficeExtension,
+  getCodeLanguageForExtension,
+} from "./previewPanelUtils";
 
 const props = defineProps({
   file: {
@@ -469,149 +480,9 @@ const fileType = computed(() => {
   return "unsupported";
 });
 
-const getFileExtension = (fileName = "") => {
-  const lastDot = fileName.lastIndexOf(".");
-  if (lastDot === -1 || lastDot === fileName.length - 1) {
-    return "";
-  }
-  return fileName.slice(lastDot + 1).toLowerCase();
-};
-
-const extractResolvedPath = (resolvedPath, actionLabel = "路径解析") => {
-  if (typeof resolvedPath === "string" && resolvedPath) {
-    return resolvedPath;
-  }
-
-  if (resolvedPath && typeof resolvedPath === "object") {
-    if (resolvedPath.success === false) {
-      throw new Error(resolvedPath.error || `${actionLabel}失败`);
-    }
-    if (typeof resolvedPath.path === "string" && resolvedPath.path) {
-      return resolvedPath.path;
-    }
-  }
-
-  throw new Error(`${actionLabel}失败: 无效路径返回`);
-};
-
-const normalizeErrorMessage = (err, fallbackMessage = "加载失败") => {
-  if (err instanceof Error && err.message) {
-    return err.message;
-  }
-
-  if (typeof err === "string" && err.trim()) {
-    return err;
-  }
-
-  try {
-    const serialized = JSON.stringify(err);
-    if (serialized && serialized !== "{}" && serialized !== "null") {
-      return serialized;
-    }
-  } catch (_serializationError) {
-    // ignore
-  }
-
-  return fallbackMessage;
-};
-
-const toLogErrorData = (err) => {
-  if (err instanceof Error) {
-    return {
-      name: err.name,
-      message: err.message,
-      stack: err.stack,
-    };
-  }
-  return err;
-};
-
-const ensureSupportedOfficeExtension = (targetType) => {
-  const extension = getFileExtension(props.file?.file_name || "");
-  const legacyMap = {
-    word: { legacy: ["doc"], modern: ".docx" },
-    excel: { legacy: ["xls"], modern: ".xlsx" },
-    powerpoint: { legacy: ["ppt"], modern: ".pptx" },
-  };
-
-  const config = legacyMap[targetType];
-  if (!config) {
-    return;
-  }
-
-  if (config.legacy.includes(extension)) {
-    throw new Error(
-      `暂不支持 .${extension} 预览，请转换为 ${config.modern} 后重试`,
-    );
-  }
-};
-
-const normalizePreviewFailureMessage = (result, fallbackMessage) => {
-  if (!result || typeof result !== "object") {
-    return fallbackMessage;
-  }
-
-  const baseMessage = result.error || fallbackMessage;
-  const details = result.details;
-  if (!details) {
-    return baseMessage;
-  }
-
-  if (typeof details === "string") {
-    return `${baseMessage} (${details})`;
-  }
-
-  if (typeof details === "object") {
-    const detailMessage = details.message || details.name || "";
-    return detailMessage ? `${baseMessage} (${detailMessage})` : baseMessage;
-  }
-
-  return baseMessage;
-};
-
-/**
- * 获取文件类型标签颜色
- */
-const getFileTypeColor = () => {
-  const colorMap = {
-    image: "green",
-    markdown: "blue",
-    code: "purple",
-    csv: "orange",
-    json: "cyan",
-    pdf: "red",
-    video: "magenta",
-    audio: "geekblue",
-    word: "blue",
-    excel: "green",
-    powerpoint: "volcano",
-    archive: "gold",
-    unsupported: "default",
-  };
-  return colorMap[fileType.value] || "default";
-};
-
-/**
- * 获取文件类型标签文本
- */
-const getFileTypeLabel = () => {
-  const labelMap = {
-    image: "图片",
-    markdown: "Markdown",
-    code: "代码",
-    csv: "CSV表格",
-    json: "JSON",
-    pdf: "PDF",
-    video: "视频",
-    audio: "音频",
-    word: "Word文档",
-    excel: "Excel表格",
-    powerpoint: "PowerPoint",
-    archive: "压缩包",
-    unsupported: "不支持",
-  };
-  return labelMap[fileType.value] || "未知";
-};
+// File-type / path / error helpers moved to ./previewPanelUtils.js.
+// ensureSupportedOfficeExtension now takes fileName as an explicit arg
+// instead of reading props.file.file_name internally — see call sites.
 
 /**
  * 图片缩放控制
@@ -790,28 +661,8 @@ const loadMarkdown = async (content) => {
  * 加载代码（语法高亮）
  */
 const loadCode = async (content, fileName) => {
-  const ext = fileName.split(".").pop().toLowerCase();
-
-  // 语言映射
-  const langMap = {
-    js: "javascript",
-    ts: "typescript",
-    jsx: "javascript",
-    tsx: "typescript",
-    vue: "html",
-    htm: "html",
-    html: "html",
-    css: "css",
-    scss: "scss",
-    less: "less",
-    json: "json",
-    xml: "xml",
-    yml: "yaml",
-    yaml: "yaml",
-    txt: "plaintext",
-  };
-
-  const language = langMap[ext] || "plaintext";
+  const ext = getFileExtension(fileName);
+  const language = getCodeLanguageForExtension(ext);
   codeLanguageClass.value = `language-${language}`;
 
   if (language && hljs.getLanguage(language)) {
@@ -979,7 +830,7 @@ const loadWord = async (filePath) => {
   });
 
   try {
-    ensureSupportedOfficeExtension("word");
+    ensureSupportedOfficeExtension("word", props.file?.file_name || "");
 
     // 首先尝试解析路径
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
@@ -1041,7 +892,7 @@ const loadExcel = async (filePath) => {
   });
 
   try {
-    ensureSupportedOfficeExtension("excel");
+    ensureSupportedOfficeExtension("excel", props.file?.file_name || "");
 
     // 首先尝试解析路径
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
@@ -1103,7 +954,7 @@ const loadPowerPoint = async (filePath) => {
   });
 
   try {
-    ensureSupportedOfficeExtension("powerpoint");
+    ensureSupportedOfficeExtension("powerpoint", props.file?.file_name || "");
 
     // 首先尝试解析路径
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
