@@ -210,6 +210,11 @@ import TaskExecutionMonitor from "@/components/projects/TaskExecutionMonitor.vue
 import ProjectSidebar from "@/components/ProjectSidebar.vue";
 import TemplateGallery from "@/components/templates/TemplateGallery.vue";
 import TemplateVariableModal from "@/components/templates/TemplateVariableModal.vue";
+import {
+  formatTime,
+  getStageColor,
+  detectCreateIntent,
+} from "./projectsPageUtils";
 
 const router = useRouter();
 const projectStore = useProjectStore();
@@ -830,43 +835,7 @@ const handleUserAction = (action) => {
 };
 
 // 🔥 AI对话辅助方法
-const formatTime = (timestamp) => {
-  if (!timestamp) {
-    return "";
-  }
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diff = now - date;
-
-  if (diff < 60000) {
-    return "刚刚";
-  }
-  if (diff < 3600000) {
-    return `${Math.floor(diff / 60000)}分钟前`;
-  }
-  if (diff < 86400000) {
-    return `${Math.floor(diff / 3600000)}小时前`;
-  }
-  return date.toLocaleString("zh-CN", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-const getStageColor = (stage) => {
-  const colors = {
-    intent: "blue",
-    engine: "cyan",
-    spec: "purple",
-    html: "orange",
-    css: "green",
-    js: "volcano",
-    complete: "success",
-  };
-  return colors[stage] || "default";
-};
+// formatTime / getStageColor / detectCreateIntent moved to ./projectsPageUtils.js.
 
 const clearConversation = () => {
   conversationMessages.value = [];
@@ -893,54 +862,10 @@ const addMessage = (type, content, options = {}) => {
 // 处理对话式创建项目（流式）
 const handleConversationalCreate = async ({ text, attachments }) => {
   try {
-    const textLower = text.toLowerCase();
+    // 意图分类（chat / project-creation）— 见 ./projectsPageUtils.js
+    const { isChatIntent, isProjectCreationIntent } = detectCreateIntent(text);
 
-    // ============================================================
-    // 🔥 改进意图识别：区分"创建项目"和"聊天咨询"
-    // ============================================================
-
-    // 1. 检测是否是纯聊天/咨询意图（不需要创建项目）
-    const isChatIntent =
-      // 设计/绘图类咨询（不涉及实际文件创建）
-      textLower.includes("logo") ||
-      textLower.includes("标志") ||
-      textLower.includes("图标") ||
-      (textLower.includes("设计") &&
-        !textLower.includes("网页") &&
-        !textLower.includes("网站") &&
-        !textLower.includes("页面")) ||
-      (textLower.includes("做个") &&
-        (textLower.includes("图") || textLower.includes("画"))) ||
-      // 纯咨询类问题
-      textLower.includes("什么是") ||
-      textLower.includes("如何") ||
-      textLower.includes("怎么") ||
-      textLower.includes("为什么") ||
-      textLower.includes("能不能") ||
-      textLower.includes("可以吗") ||
-      textLower.includes("告诉我") ||
-      // 明确表示只是想聊天
-      textLower.includes("聊聊") ||
-      textLower.includes("咨询") ||
-      textLower.includes("问一下");
-
-    // 2. 检测是否是明确的项目创建意图
-    const isProjectCreationIntent =
-      textLower.includes("创建项目") ||
-      textLower.includes("新建项目") ||
-      textLower.includes("创建网页") ||
-      textLower.includes("做个网站") ||
-      textLower.includes("建个网站") ||
-      textLower.includes("创建网站") ||
-      textLower.includes("做个应用") ||
-      textLower.includes("创建应用") ||
-      textLower.includes("写个网页") ||
-      textLower.includes("生成网页") ||
-      textLower.includes("创建文件") ||
-      textLower.includes("新建文件") ||
-      textLower.includes("生成文件");
-
-    // 3. 如果是纯聊天意图且不是项目创建意图，则跳转到AI对话
+    // 1. 纯聊天意图且不是项目创建意图 → 走 AI 对话回路
     if (isChatIntent && !isProjectCreationIntent) {
       logger.info("[ProjectsPage] 检测到聊天咨询意图，不创建项目");
 
