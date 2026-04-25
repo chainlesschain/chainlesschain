@@ -43,9 +43,19 @@ jobs:
         working-directory: packages/cli
         run: npx vitest run __tests__/integration/
 
-      - name: Run E2E tests
+      # Split E2E into 2 batches: with singleFork:true the whole 39-file
+      # E2E suite serialized through one worker, and any test that kept the
+      # worker busy >60s without RPC roundtrip would trigger Vitest's
+      # internal "Timeout calling onTaskUpdate" on Windows/macOS (they're
+      # 2-3x slower at child_process.spawn than Linux). Splitting bounds
+      # each batch's wall-clock time well under the 60s RPC timeout.
+      - name: Run E2E tests (batch 1, a-o)
         working-directory: packages/cli
-        run: npx vitest run --config vitest.e2e.config.js __tests__/e2e/
+        run: npx vitest run --config vitest.e2e.config.js "__tests__/e2e/[a-o]*.test.js"
+
+      - name: Run E2E tests (batch 2, p-z)
+        working-directory: packages/cli
+        run: npx vitest run --config vitest.e2e.config.js "__tests__/e2e/[p-z]*.test.js"
 
       - name: Verify CLI --version
         working-directory: packages/cli
