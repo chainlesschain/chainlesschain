@@ -7,7 +7,7 @@
 | Module | Files | Total Size |
 |--------|-------|------------|
 | main | 1670 | 23.77 MB |
-| renderer | 17 | 0.07 MB |
+| renderer | 18 | 0.07 MB |
 | shared | 0 | 0.00 MB |
 
 ## main Module
@@ -29,7 +29,7 @@
 
 ## renderer Module
 
-**Files**: 17
+**Files**: 18
 
 **Top 10 Largest Files**:
 
@@ -41,8 +41,8 @@
 6. `src/renderer/workers/file-parser.worker.js` - 6.0 KB
 7. `src/renderer/services/__tests__/api.test.js` - 5.2 KB
 8. `src/renderer/components/projects/chatPanelUtils.js` - 4.7 KB
-9. `src/renderer/pages/aiChatPageUtils.js` - 2.7 KB
-10. `src/renderer/components/mcp/mcpToolUtils.js` - 2.2 KB
+9. `src/renderer/components/projects/previewPanelUtils.js` - 4.0 KB
+10. `src/renderer/pages/aiChatPageUtils.js` - 2.7 KB
 
 ## shared Module
 
