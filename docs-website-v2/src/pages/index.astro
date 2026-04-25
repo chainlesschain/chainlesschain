@@ -28,6 +28,13 @@ const everyday = [
 ];
 
 const evolution = [
+  // ── v5.0.2.49 → v5.0.2.53 Latest (2026-04-22 → 2026-04-25) ──
+  { tag: 'v5.0.2.53', title: 'docs-gen 链路收口', sub: 'CLI 0.156.7 · pack 提示增强 · CI E2E 拆批', desc: 'validate-docs artifact 缺失降级为 warning；自动触发跳过 changelog 重生避免 per-push churn；release tag edit-in-place 绕开 immutable lock。`cc pack` 缺 `@yao-pkg/pkg` 时按 npm 全局/项目本地/源码三路给出对应安装提示。CLI E2E 拆 2 批避免 vitest RPC timeout。' },
+  { tag: 'v5.0.2.52', title: 'AIChatPage 工具外提 + 死测试清理', sub: 'CLI 0.156.7 · −5856 行', desc: 'AIChatPage.vue 抽出 `aiChatPageUtils.js`（path/filename/IPC 数据清洗等纯工具）为后续按区域拆 SFC 做准备。同时移除 10 个 skip-only 测试 shell（−5856 行）+ ws-server-workflow describe 在 CI 整体 skip + pipeline integration 在 Linux 改 foreign target，CI 不再 60s+ hang。' },
+  { tag: 'v5.0.2.51', title: 'pack precheck 跨平台修复', sub: 'CLI 0.156.7 · 设计站侧栏', desc: '`cc pack` precheck 在 POSIX 下 cliRoot 解析与 runtime-factory uiMode 推断口径对齐，修部分 Linux/macOS 下"非 CLI 工作区"误报。docs-gen 头部去 ISO 时间戳消除每次 push 的纯时间戳 diff；cli-ci 矩阵 `fail-fast: false` 让单格失败不连带杀其他平台。设计文档站侧栏接入 `cc pack --project` 入口。' },
+  { tag: 'v5.0.2.50', title: 'cc pack 项目打包 + OTA 三段', sub: 'CLI 0.156.7 · Phase 0-5c 全量', desc: '`cc pack` 命令首发：把 CLI 工作区 + node_modules 打成单文件可执行（基于 @yao-pkg/pkg）。`--project` 模式 Phase 2a-3b 全量落地：BAKED 项目内容 + sanitizeProjectName + Commander 子命令白名单 + 自动 persona + manifest sidecar；Phase 2b `GET /api/skills` 真接线 + smoke-runner 实断言。OTA 三段（5a check-update / 5b 下载+SHA-256 / 5c --apply 自替换 POSIX rename + Windows sidecar）。CI 加 Linux x64 矩阵格。core-db 加 sql.js WASM 兼容层与 ABI probe。' },
+  { tag: 'v5.0.2.49', title: 'V6 Preview 工具/任务 Widget + XSS 收口', sub: 'CLI 0.156.6 · IPC 契约锁定', desc: '`/v6-preview` 新增工具调用与任务进度 Widget；web-panel ClaudeBox 风格工具卡同步在 Chat View 上线。所有 `v-html` 强制 sanitizer + lint rule warn→error；`renderMarkdown` + GlobalSearch 高亮路径接 DOMPurify。`agents` / `autonomous` / `ai-engine` / `code-agent-ipc` / `a2a` / `collaboration-governance` / `tech-learning` IPC 契约测试全锁定。CLI 治理 v2 共享 helpers 抽取 + 迁移指南。CLI postinstall 改 Node 跨平台。' },
+
   // ── v5.0.2.9 Evolution ──
   { tag: 'v5.0.2.9', title: 'Hashline', sub: '内容哈希锚定编辑', desc: '用 6 字符哈希替代行号锚点，抗自动格式化漂移，成功率从 6.7% 跃升至 68.3%。' },
   { tag: 'v5.0.2.9', title: 'Hooks 三件套', sub: '会话级生命周期钩子', desc: 'SessionStart / UserPromptSubmit / SessionEnd 三个生命周期点统一触发，fire-and-forget 零侵入。' },
@@ -127,7 +134,7 @@ const badges = [
       <div class="max-w-4xl">
         <div class="animate-fade-in flex items-center gap-3 mb-8">
           <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> {PRODUCT_VERSION} · Evolution Edition</span>
-          <span class="chip">CLI v0.156.6</span>
+          <span class="chip">CLI v0.156.7</span>
           <span class="chip">109 命令</span>
           <span class="chip">V6 Chat-First Shell</span>
         </div>
@@ -359,7 +366,7 @@ const badges = [
   <section class="py-24 md:py-32 bg-cream/50 border-y border-line">
     <div class="container-wide">
       <div class="max-w-3xl mb-14">
-        <div class="chip mb-6">架构演进 · 222+ 项（v5.0.2.43 + v5.0.2.42 双补丁 · v5.0.2.34 V2 规范层 iter16-iter28 · 120 新 lib surface + 52 shim 升级到 canonical · 164 V2 测试文件）</div>
+        <div class="chip mb-6">架构演进 · 227+ 项（v5.0.2.49→v5.0.2.53 cc pack + OTA 三段 + 项目模式 · v5.0.2.43 SFC 拆分 · v5.0.2.34 V2 规范层 iter16-iter28 · 220+ 治理表面）</div>
         <h2 class="text-display-md md:text-5xl leading-tight">
           把多智能体做成<br/>
           <span class="italic">工程可复制的模式</span>。
@@ -375,7 +382,7 @@ const badges = [
             <div class="flex items-center justify-between mb-4">
               <div class="font-mono text-[10px] text-muted uppercase tracking-widest">{(i + 1).toString().padStart(2, '0')} · Pattern</div>
               {e.tag && (
-                <span class={`font-mono text-[10px] px-2 py-0.5 rounded-full ${(e.tag === 'v5.0.2.43' || e.tag === 'v5.0.2.42') ? 'bg-ember text-cream' : e.tag === 'v5.0.2.34' ? 'bg-ember/70 text-cream' : e.tag === 'v5.0.2.10' ? 'bg-ember/15 text-ember' : 'bg-muted/10 text-muted'}`}>{e.tag}</span>
+                <span class={`font-mono text-[10px] px-2 py-0.5 rounded-full ${['v5.0.2.53', 'v5.0.2.52', 'v5.0.2.51', 'v5.0.2.50', 'v5.0.2.49'].includes(e.tag) ? 'bg-ember text-cream ring-2 ring-ember/30' : (e.tag === 'v5.0.2.43' || e.tag === 'v5.0.2.42') ? 'bg-ember/85 text-cream' : e.tag === 'v5.0.2.34' ? 'bg-ember/60 text-cream' : e.tag === 'v5.0.2.10' ? 'bg-ember/15 text-ember' : 'bg-muted/10 text-muted'}`}>{e.tag}</span>
               )}
             </div>
             <h3 class="font-display text-2xl mb-1 group-hover:text-ember transition-colors">{e.title}</h3>

@@ -4,9 +4,17 @@
 export LANG=zh_CN.UTF-8
 export LC_ALL=zh_CN.UTF-8
 
+# 动态读取产品版本（来源：仓库根 package.json.productVersion，单一真值）
+ROOT_PKG="$(cd "$(dirname "$0")/.." && pwd)/package.json"
+PRODUCT_VERSION="$(node -e "console.log(require('${ROOT_PKG//\\/\\\\}').productVersion)" 2>/dev/null || echo "")"
+if [ -z "$PRODUCT_VERSION" ]; then
+    echo "❌ 错误: 无法从 ${ROOT_PKG} 读取 productVersion，请确保 Node.js 可用"
+    exit 1
+fi
+
 echo ""
 echo "========================================"
-echo "  文档网站打包脚本 v5.0.2.10"
+echo "  文档网站打包脚本 ${PRODUCT_VERSION}"
 echo "========================================"
 echo ""
 
@@ -58,7 +66,7 @@ echo "✅ 构建成功"
 echo ""
 echo "[5/5] 打包文件..."
 DIST_DIR="docs/.vitepress/dist"
-PACKAGE_NAME="chainlesschain-docs-v5.0.2.10-$(date +%Y%m%d).tar.gz"
+PACKAGE_NAME="chainlesschain-docs-${PRODUCT_VERSION}-$(date +%Y%m%d-%H%M).tar.gz"
 
 if [ -f "$PACKAGE_NAME" ]; then
     rm "$PACKAGE_NAME"

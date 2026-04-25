@@ -74,7 +74,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "专题指南 (v5.0.2.10)",
+          text: "专题指南",
           items: [
             {
               text: "社交协议生态 (Nostr/Matrix/ActivityPub)",

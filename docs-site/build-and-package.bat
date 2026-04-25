@@ -2,9 +2,16 @@
 setlocal
 chcp 65001 >nul
 
+REM 动态读取产品版本（来源：仓库根 package.json.productVersion，单一真值）
+for /f %%i in ('node -e "console.log(require('../package.json').productVersion)" 2^>nul') do set "PRODUCT_VERSION=%%i"
+if "%PRODUCT_VERSION%"=="" (
+    echo ERROR: Cannot read productVersion from ..\package.json. Ensure Node.js is available.
+    exit /b 1
+)
+
 echo.
 echo ========================================
-echo   Docs Site Packager v5.0.2.10
+echo   Docs Site Packager %PRODUCT_VERSION%
 echo ========================================
 echo.
 
@@ -47,7 +54,7 @@ echo OK: site build succeeded
 echo.
 echo [5/5] Package site...
 set "DIST_DIR=docs\.vitepress\dist"
-set "PACKAGE_NAME=chainlesschain-docs-v5.0.2.10-%date:~0,4%%date:~5,2%%date:~8,2%.zip"
+set "PACKAGE_NAME=chainlesschain-docs-%PRODUCT_VERSION%-%date:~0,4%%date:~5,2%%date:~8,2%.zip"
 if exist "%PACKAGE_NAME%" del "%PACKAGE_NAME%"
 
 powershell -Command "Compress-Archive -Path 'docs/.vitepress/dist/*' -DestinationPath '%PACKAGE_NAME%' -Force"

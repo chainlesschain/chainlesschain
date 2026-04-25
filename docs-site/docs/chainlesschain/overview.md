@@ -1,6 +1,6 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.2.50 进化版 | 139桌面技能 + 28 Android技能 | CLI v0.156.7 / 109 命令 / 14800+ 测试 | V6 Chat-First 桌面壳（P0–P9c 全量落地）| CLI V2 规范层 220+ 治理表面（iter16–iter28 · ~5,984 V2 测试）| cc pack 多平台打包（macOS / Windows / Linux + 项目模式 Phase 2a/2b/3a/3b + OTA check-update）**
+> **当前版本: v5.0.2.53 进化版 | 139桌面技能 + 28 Android技能 | CLI v0.156.7 / 109 命令 / 14800+ 测试 | V6 Chat-First 桌面壳（P0–P9c 全量落地）| CLI V2 规范层 220+ 治理表面（iter16–iter28 · ~5,984 V2 测试）| cc pack 多平台打包（macOS / Windows / Linux + 项目模式 Phase 2a/2b/3a/3b + OTA check-update / SHA-256 / 自替换）**
 
 ## 概述
 
