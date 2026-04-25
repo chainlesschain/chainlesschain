@@ -262,10 +262,20 @@ export class ChainlessChainWSServer extends EventEmitter {
     }
     this.clients.clear();
 
-    // Close the server
+    // Close the server. ws.WebSocketServer.close() waits for all underlying
+    // sockets to fully terminate before invoking its callback — on slow CI
+    // runners (especially GH Linux/macOS) sockets can linger in TIME_WAIT /
+    // CLOSE_WAIT longer than Vitest's task timeout, causing the callback to
+    // never fire and afterEach to hang forever. Hard 2s ceiling here lets
+    // the test suite reclaim the worker even if a lingering socket exists;
+    // the underlying handle is GC'd by node shortly after anyway.
     if (this.wss) {
       await new Promise((resolve) => {
-        this.wss.close(() => resolve());
+        const ceiling = setTimeout(() => resolve(), 2000);
+        this.wss.close(() => {
+          clearTimeout(ceiling);
+          resolve();
+        });
       });
       this.wss = null;
     }

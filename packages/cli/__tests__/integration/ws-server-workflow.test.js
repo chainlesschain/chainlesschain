@@ -52,16 +52,14 @@ function collectMessages(ws, n, timeoutMs = 10000) {
   });
 }
 
-// CI-skip: the entire ws-server-workflow integration suite hangs >60s
-// on ubuntu-latest GitHub runners. Even the tests that don't spawn
-// subprocesses (e.g. "failed auth blocks subsequent commands") time
-// out, suggesting a systemic issue with WebSocket lifecycle inside
-// Vitest's forks pool on CI. Locally all 7 pass in ~10s.
-//
-// Core WS auth/execute/stream semantics are covered by
-// __tests__/unit/ws-server.test.js (54 tests, mocked spawn, passes on
-// CI). Re-enable locally with RUN_WS_INTEGRATION=1.
-const skipWsSuite = process.env.RUN_WS_INTEGRATION !== "1" && process.env.CI;
+// Previously this suite was skipped on CI because afterEach's
+// `await server.stop()` hung — wss.close() awaits TIME_WAIT-d
+// sockets and the callback never fired on GH runners. The fix in
+// ws-server.js (2s hard ceiling on wss.close) lets the cleanup
+// always return, so we can run the full integration suite on CI
+// again. Set CC_SKIP_WS_INTEGRATION=1 to opt back into skipping
+// if a regression turns up.
+const skipWsSuite = process.env.CC_SKIP_WS_INTEGRATION === "1";
 const describeWS = skipWsSuite ? describe.skip : describe;
 
 describeWS("Integration: WebSocket Server Workflow", { timeout: 60000 }, () => {
