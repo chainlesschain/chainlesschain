@@ -633,23 +633,28 @@ jobs:
             [ "${{ inputs.prerelease }}" == "true" ] && EXTRA_FLAGS="$EXTRA_FLAGS --prerelease"
           fi
 
-          # Delete existing release and its tag if any (to avoid immutable conflict)
+          # If release already exists (e.g. retry after publish-cli failure),
+          # update in place rather than delete+recreate. GitHub keeps the tag
+          # name "used by an immutable release" for ~24h after a delete, which
+          # then blocks `gh release create` with HTTP 422 — the v5.0.2.51 →
+          # v5.0.2.52 incident. `gh release edit` + `upload --clobber` avoids
+          # the deletion entirely.
           if gh release view "$VERSION" > /dev/null 2>&1; then
-            echo "Deleting existing release ${VERSION} to recreate with artifacts..."
-            gh release delete "$VERSION" --yes --cleanup-tag || true
-            # Wait for GitHub to propagate the deletion
-            sleep 5
+            echo "Release ${VERSION} already exists — updating notes + assets in place..."
+            gh release edit "$VERSION" \
+              --title "ChainlessChain ${VERSION}" \
+              --notes-file release-notes.md
+            # Upload all assets, replacing any with same name (clobber)
+            gh release upload "$VERSION" release-assets/* --clobber
+          else
+            echo "Creating new release ${VERSION} with artifacts..."
+            gh release create "$VERSION" \
+              --title "ChainlessChain ${VERSION}" \
+              --notes-file release-notes.md \
+              --target "${{ github.sha }}" \
+              $EXTRA_FLAGS \
+              release-assets/*
           fi
-
-          # Create release with all uniquely-named artifacts
-          # Use --target to specify the commit since tag may have been deleted above
-          echo "Creating release ${VERSION} with artifacts..."
-          gh release create "$VERSION" \
-            --title "ChainlessChain ${VERSION}" \
-            --notes-file release-notes.md \
-            --target "${{ github.sha }}" \
-            $EXTRA_FLAGS \
-            release-assets/*
 
           echo "✅ Release ${VERSION} completed!"
           echo "🔗 View at: https://github.com/${{ github.repository }}/releases/tag/${VERSION}"
