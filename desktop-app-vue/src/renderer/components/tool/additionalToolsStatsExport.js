@@ -162,3 +162,30 @@ export function downloadBlob(content, mimeType, filename) {
   link.click();
   document.body.removeChild(link);
 }
+
+/**
+ * Render an ECharts instance to a PNG data URL. Returns null if the
+ * chart is not yet initialized so callers can warn the user.
+ */
+export function chartToPngDataURL(chart) {
+  if (!chart) {
+    return null;
+  }
+  return chart.getDataURL({
+    type: "png",
+    pixelRatio: 2,
+    backgroundColor: "#fff",
+  });
+}
+
+/**
+ * Trigger a browser download of a data URL with the given filename.
+ * Used for chart-to-image exports where we already have the DataURL
+ * and don't need a Blob round-trip.
+ */
+export function downloadDataURL(dataURL, filename) {
+  const link = document.createElement("a");
+  link.href = dataURL;
+  link.download = filename;
+  link.click();
+}

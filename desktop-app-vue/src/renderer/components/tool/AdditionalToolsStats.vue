@@ -411,6 +411,8 @@ import {
   buildExcelReport,
   buildPdfReport,
   downloadBlob,
+  chartToPngDataURL,
+  downloadDataURL,
 } from "./additionalToolsStatsExport";
 
 // 加载状态
@@ -734,24 +736,12 @@ const exportToPDF = () => {
  */
 const exportChartAsImage = (chart, chartName) => {
   try {
-    if (!chart) {
+    const dataURL = chartToPngDataURL(chart);
+    if (!dataURL) {
       message.warning(`${chartName}图表未初始化`);
       return;
     }
-
-    // 获取图表的DataURL
-    const dataURL = chart.getDataURL({
-      type: "png",
-      pixelRatio: 2,
-      backgroundColor: "#fff",
-    });
-
-    // 创建下载链接
-    const link = document.createElement("a");
-    link.href = dataURL;
-    link.download = `${chartName}-${Date.now()}.png`;
-    link.click();
-
+    downloadDataURL(dataURL, `${chartName}-${Date.now()}.png`);
     message.success(`${chartName}图表导出成功`);
   } catch (error) {
     logger.error(`[Export] ${chartName}图表导出失败:`, error);
