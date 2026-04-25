@@ -986,6 +986,7 @@ import { usePluginMenus } from "../composables/usePluginExtensions";
 import PluginSlot from "./plugins/PluginSlot.vue";
 import FavoriteManagerModal from "./layout/FavoriteManagerModal.vue";
 import AppHeader from "./layout/AppHeader.vue";
+import { getMenuIcon } from "./layout/mainLayoutUtils";
 
 const router = useRouter();
 const route = useRoute();
@@ -1376,68 +1377,7 @@ const getIconComponent = (iconName) => {
   return iconMap[iconName] || FileTextOutlined;
 };
 
-/**
- * 获取菜单图标名称
- */
-const getMenuIcon = (key) => {
-  const iconMap = {
-    "project-categories": "AppstoreOutlined",
-    projects: "FolderOpenOutlined",
-    "project-list-management": "TableOutlined",
-    "workspace-management": "ApartmentOutlined",
-    "template-management": "TagsOutlined",
-    "project-market": "ShopOutlined",
-    "project-collaboration": "TeamOutlined",
-    "project-archived": "InboxOutlined",
-    home: "HomeOutlined",
-    "knowledge-list": "FileTextOutlined",
-    "knowledge-graph": "NodeIndexOutlined",
-    "file-import": "CloudUploadOutlined",
-    "image-upload": "FileImageOutlined",
-    "audio-import": "SoundOutlined",
-    "multimedia-demo": "VideoCameraOutlined",
-    "prompt-templates": "TagsOutlined",
-    "ai-chat": "RobotOutlined",
-    "knowledge-store": "ShopOutlined",
-    "my-purchases": "ShoppingCartOutlined",
-    did: "IdcardOutlined",
-    credentials: "SafetyCertificateOutlined",
-    contacts: "TeamOutlined",
-    friends: "UserOutlined",
-    posts: "CommentOutlined",
-    "p2p-messaging": "MessageOutlined",
-    trading: "DashboardOutlined",
-    marketplace: "ShopOutlined",
-    contracts: "AuditOutlined",
-    "credit-score": "StarOutlined",
-    wallet: "WalletOutlined",
-    bridge: "SwapOutlined",
-    webide: "CodeOutlined",
-    "design-editor": "BgColorsOutlined",
-    "rss-feeds": "ReadOutlined",
-    "email-accounts": "MailOutlined",
-    organizations: "ApartmentOutlined",
-    "enterprise-dashboard": "DashboardOutlined",
-    "permission-management": "SafetyCertificateOutlined",
-    "system-settings": "SettingOutlined",
-    settings: "SettingOutlined",
-    "plugin-management": "AppstoreOutlined",
-    "plugin-marketplace": "ShopOutlined",
-    "plugin-publisher": "CloudUploadOutlined",
-    "skill-management": "ThunderboltOutlined",
-    "demo-templates": "ExperimentOutlined",
-    "tools-explorer": "AppstoreOutlined",
-    "tool-management": "ToolOutlined",
-    "llm-settings": "ApiOutlined",
-    "rag-settings": "DatabaseOutlined",
-    "git-settings": "SyncOutlined",
-    "sync-conflicts": "ExclamationCircleOutlined",
-    "ukey-settings": "SafetyOutlined",
-    "database-performance": "DashboardOutlined",
-    "workflow-optimizations": "ThunderboltOutlined",
-  };
-  return iconMap[key] || "FileTextOutlined";
-};
+// getMenuIcon moved to ./layout/mainLayoutUtils.js (pure key→icon-name map).
 
 /**
  * 处理快捷访问点击
