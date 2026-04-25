@@ -7,7 +7,7 @@
 | Module | Files | Total Size |
 |--------|-------|------------|
 | main | 1670 | 23.77 MB |
-| renderer | 15 | 0.06 MB |
+| renderer | 16 | 0.06 MB |
 | shared | 0 | 0.00 MB |
 
 ## main Module
@@ -29,7 +29,7 @@
 
 ## renderer Module
 
-**Files**: 15
+**Files**: 16
 
 **Top 10 Largest Files**:
 
@@ -41,8 +41,8 @@
 6. `src/renderer/services/__tests__/api.test.js` - 5.2 KB
 7. `src/renderer/components/projects/chatPanelUtils.js` - 4.7 KB
 8. `src/renderer/pages/aiChatPageUtils.js` - 2.7 KB
-9. `src/renderer/composables/useMemoryLeakGuard.js` - 2.0 KB
-10. `src/renderer/components/llm-performance/index.js` - 1.5 KB
+9. `src/renderer/components/mcp/mcpToolUtils.js` - 2.2 KB
+10. `src/renderer/composables/useMemoryLeakGuard.js` - 2.0 KB
 
 ## shared Module
 

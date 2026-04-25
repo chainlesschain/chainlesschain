@@ -1,6 +1,6 @@
 # Component Reference
 
-**Total Components**: 581
+**Total Components**: 582
 
 ---
 
@@ -3585,6 +3585,12 @@
 ---
 
 ## src/renderer/components/mcp
+
+### MCPToolTestModal
+
+**File**: `src/renderer/components/mcp/MCPToolTestModal.vue`
+
+---
 
 ### MCPConsentProvider
 
