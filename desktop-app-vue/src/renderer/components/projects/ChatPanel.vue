@@ -43,9 +43,9 @@
         <div class="empty-icon">
           <RobotOutlined />
         </div>
-        <h4>{{ getEmptyStateText() }}</h4>
+        <h4>{{ getEmptyStateText(contextMode) }}</h4>
         <p class="empty-hint">
-          {{ getEmptyHint() }}
+          {{ getEmptyHint(contextMode, currentFile?.file_name) }}
         </p>
       </div>
 
@@ -141,7 +141,9 @@
       <div class="input-wrapper">
         <a-textarea
           v-model:value="userInput"
-          :placeholder="getInputPlaceholder()"
+          :placeholder="
+            getInputPlaceholder(contextMode, currentFile?.file_name)
+          "
           :auto-size="{ minRows: 1, maxRows: 4 }"
           :disabled="isLoading"
           data-test="chat-input"
@@ -242,6 +244,11 @@ import {
   sanitizeJSONString,
   resolveProjectOutput,
   cleanForIPC,
+  getEmptyStateText,
+  getEmptyHint,
+  getInputPlaceholder,
+  renderMarkdown,
+  formatTime,
 } from "./chatPanelUtils";
 import { useMemoryLeakGuard } from "@/composables/useMemoryLeakGuard";
 
@@ -334,111 +341,9 @@ const { safeSetTimeout, safeRegisterListener, clearSafeTimeout } =
 /**
  * 获取空状态文本
  */
-const getEmptyStateText = () => {
-  if (contextMode.value === "project") {
-    return "项目 AI 助手";
-  } else if (contextMode.value === "file") {
-    return "文件 AI 助手";
-  }
-  return "AI 助手";
-};
-
-/**
- * 获取空状态提示
- */
-const getEmptyHint = () => {
-  if (contextMode.value === "project") {
-    return '询问项目相关问题，比如"这个项目有哪些文件？"';
-  } else if (contextMode.value === "file" && props.currentFile) {
-    return `询问关于 ${props.currentFile.file_name} 的问题`;
-  } else if (contextMode.value === "file") {
-    return "请先从左侧选择一个文件";
-  }
-  return "开始新对话";
-};
-
-/**
- * 获取输入提示
- */
-const getInputPlaceholder = () => {
-  if (contextMode.value === "project") {
-    return "询问项目相关问题...";
-  } else if (contextMode.value === "file" && props.currentFile) {
-    return `询问关于 ${props.currentFile.file_name} 的问题...`;
-  } else if (contextMode.value === "file") {
-    return "请先选择一个文件...";
-  }
-  return "输入消息...";
-};
-
-/**
- * 渲染 Markdown
- */
-const renderMarkdown = (content) => {
-  try {
-    // 确保 content 是字符串
-    let textContent = content;
-    if (typeof content === "object") {
-      // 如果是对象，尝试提取文本内容
-      textContent =
-        content?.text || content?.content || JSON.stringify(content);
-    }
-    textContent = String(textContent || "");
-
-    // marked.parse() 已配置为安全模式，会自动转义危险内容
-    const rawHTML = marked.parse(textContent);
-    return rawHTML;
-  } catch (error) {
-    logger.error("Markdown 渲染失败:", error);
-    // 发生错误时，转义文本以防止 XSS
-    const div = document.createElement("div");
-    div.textContent = String(content || "");
-    return div.innerHTML;
-  }
-};
-
-/**
- * 格式化时间
- */
-const formatTime = (timestamp) => {
-  if (!timestamp) {
-    return "";
-  }
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diff = now - date;
-
-  // 小于1分钟
-  if (diff < 60000) {
-    return "刚刚";
-  }
-
-  // 小于1小时
-  if (diff < 3600000) {
-    return `${Math.floor(diff / 60000)}分钟前`;
-  }
-
-  // 小于24小时
-  if (diff < 86400000) {
-    return `${Math.floor(diff / 3600000)}小时前`;
-  }
-
-  // 今天
-  if (date.toDateString() === now.toDateString()) {
-    return date.toLocaleTimeString("zh-CN", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-
-  // 超过今天
-  return date.toLocaleString("zh-CN", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
+// getEmptyStateText / getEmptyHint / getInputPlaceholder / renderMarkdown /
+// formatTime moved to ./chatPanelUtils.js. Template call sites pass
+// contextMode and props.currentFile?.file_name through explicitly.
 
 /**
  * 打开文件

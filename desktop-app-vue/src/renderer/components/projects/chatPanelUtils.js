@@ -1,3 +1,4 @@
+import { marked } from "marked";
 import { logger } from "@/utils/logger";
 
 /**
@@ -175,4 +176,110 @@ export const cleanForIPC = (obj) => {
 
     return clean(obj);
   }
+};
+
+/**
+ * Empty-state header label, varies by chat context mode.
+ */
+export const getEmptyStateText = (contextMode) => {
+  if (contextMode === "project") {
+    return "项目 AI 助手";
+  }
+  if (contextMode === "file") {
+    return "文件 AI 助手";
+  }
+  return "AI 助手";
+};
+
+/**
+ * Empty-state secondary hint, varies by context mode + current file.
+ */
+export const getEmptyHint = (contextMode, currentFileName) => {
+  if (contextMode === "project") {
+    return '询问项目相关问题，比如"这个项目有哪些文件？"';
+  }
+  if (contextMode === "file" && currentFileName) {
+    return `询问关于 ${currentFileName} 的问题`;
+  }
+  if (contextMode === "file") {
+    return "请先从左侧选择一个文件";
+  }
+  return "开始新对话";
+};
+
+/**
+ * Input placeholder, varies by context mode + current file.
+ */
+export const getInputPlaceholder = (contextMode, currentFileName) => {
+  if (contextMode === "project") {
+    return "询问项目相关问题...";
+  }
+  if (contextMode === "file" && currentFileName) {
+    return `询问关于 ${currentFileName} 的问题...`;
+  }
+  if (contextMode === "file") {
+    return "请先选择一个文件...";
+  }
+  return "输入消息...";
+};
+
+/**
+ * Render Markdown to (sanitized) HTML. marked is configured globally
+ * with safe-mode escaping; this helper just normalizes object inputs
+ * and adds an XSS-safe fallback when marked itself throws.
+ */
+export const renderMarkdown = (content) => {
+  try {
+    let textContent = content;
+    if (typeof content === "object") {
+      textContent =
+        content?.text || content?.content || JSON.stringify(content);
+    }
+    textContent = String(textContent || "");
+    return marked.parse(textContent);
+  } catch (error) {
+    logger.error("Markdown 渲染失败:", error);
+    const div = document.createElement("div");
+    div.textContent = String(content || "");
+    return div.innerHTML;
+  }
+};
+
+/**
+ * Friendly relative timestamp.
+ *  < 1m     → "刚刚"
+ *  < 1h     → "N分钟前"
+ *  < 24h    → "N小时前"
+ *  same day → "HH:mm"
+ *  else     → "MM-DD HH:mm" (zh-CN)
+ */
+export const formatTime = (timestamp) => {
+  if (!timestamp) {
+    return "";
+  }
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diff = now - date;
+
+  if (diff < 60000) {
+    return "刚刚";
+  }
+  if (diff < 3600000) {
+    return `${Math.floor(diff / 60000)}分钟前`;
+  }
+  if (diff < 86400000) {
+    return `${Math.floor(diff / 3600000)}小时前`;
+  }
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString("zh-CN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+  return date.toLocaleString("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
