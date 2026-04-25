@@ -2,8 +2,6 @@
 
 **Source**: `src/main/engines/code-engine.js`
 
-**Generated**: 2026-04-24T14:17:58.041Z
-
 ---
 
 ## const

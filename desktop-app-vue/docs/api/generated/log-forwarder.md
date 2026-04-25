@@ -2,8 +2,6 @@
 
 **Source**: `src/main/utils/log-forwarder.js`
 
-**Generated**: 2026-04-24T14:17:57.941Z
-
 ---
 
 ## const LOG_CHANNEL = "main:log";

@@ -2,8 +2,6 @@
 
 **Source**: `src/main/speech/local-tts-client.js`
 
-**Generated**: 2026-04-24T14:17:57.960Z
-
 ---
 
 ## const EventEmitter = require("events");

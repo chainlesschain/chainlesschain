@@ -2,8 +2,6 @@
 
 **Source**: `src/main/utils/file-cache.js`
 
-**Generated**: 2026-04-24T14:17:57.942Z
-
 ---
 
 ## const

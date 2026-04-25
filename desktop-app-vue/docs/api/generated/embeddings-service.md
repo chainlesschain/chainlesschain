@@ -2,8 +2,6 @@
 
 **Source**: `src/main/rag/embeddings-service.js`
 
-**Generated**: 2026-04-24T14:17:57.987Z
-
 ---
 
 ## const

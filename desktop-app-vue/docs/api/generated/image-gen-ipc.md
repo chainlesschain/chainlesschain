@@ -2,8 +2,6 @@
 
 **Source**: `src/main/image-gen/image-gen-ipc.js`
 
-**Generated**: 2026-04-24T14:17:58.026Z
-
 ---
 
 ## const

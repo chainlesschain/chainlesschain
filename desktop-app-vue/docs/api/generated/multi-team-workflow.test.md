@@ -2,8 +2,6 @@
 
 **Source**: `src/main/cowork/__tests__/integration/multi-team-workflow.test.js`
 
-**Generated**: 2026-04-24T14:17:58.050Z
-
 ---
 
 ## import

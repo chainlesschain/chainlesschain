@@ -2,8 +2,6 @@
 
 **Source**: `src/main/api/rss-ipc.js`
 
-**Generated**: 2026-04-24T14:17:58.069Z
-
 ---
 
 ## const

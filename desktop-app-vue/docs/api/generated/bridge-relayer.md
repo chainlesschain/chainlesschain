@@ -2,8 +2,6 @@
 
 **Source**: `src/main/blockchain/bridge-relayer.js`
 
-**Generated**: 2026-04-24T14:17:58.065Z
-
 ---
 
 ## const

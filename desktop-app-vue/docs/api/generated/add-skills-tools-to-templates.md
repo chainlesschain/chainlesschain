@@ -2,8 +2,6 @@
 
 **Source**: `src/main/templates/add-skills-tools-to-templates.js`
 
-**Generated**: 2026-04-24T14:17:57.954Z
-
 ---
 
 ## const

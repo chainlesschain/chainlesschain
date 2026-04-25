@@ -2,8 +2,6 @@
 
 **Source**: `src/main/trade/realtime-trading-engine.js`
 
-**Generated**: 2026-04-24T14:17:57.951Z
-
 ---
 
 ## const

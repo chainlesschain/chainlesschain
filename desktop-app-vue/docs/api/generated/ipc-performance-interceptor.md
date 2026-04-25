@@ -2,8 +2,6 @@
 
 **Source**: `src/main/performance/ipc-performance-interceptor.js`
 
-**Generated**: 2026-04-24T14:17:57.995Z
-
 ---
 
 ## class IPCPerformanceInterceptor

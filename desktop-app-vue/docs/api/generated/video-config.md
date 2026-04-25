@@ -2,8 +2,6 @@
 
 **Source**: `src/main/video/video-config.js`
 
-**Generated**: 2026-04-24T14:17:57.938Z
-
 ---
 
 ## const path = require('path');

@@ -2,8 +2,6 @@
 
 **Source**: `src/main/p2p/p2p-ipc.js`
 
-**Generated**: 2026-04-24T14:17:57.998Z
-
 ---
 
 ## function registerP2PIPC(

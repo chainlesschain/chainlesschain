@@ -2,8 +2,6 @@
 
 **Source**: `src/main/ukey/ukey-manager.js`
 
-**Generated**: 2026-04-24T14:17:57.943Z
-
 ---
 
 ## const

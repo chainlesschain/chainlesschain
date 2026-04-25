@@ -2,8 +2,6 @@
 
 **Source**: `src/main/collaboration/permission-manager.js`
 
-**Generated**: 2026-04-24T14:17:58.053Z
-
 ---
 
 ## const

@@ -2,8 +2,6 @@
 
 **Source**: `src/main/ai-engine/feature-extractor.js`
 
-**Generated**: 2026-04-24T14:17:58.076Z
-
 ---
 
 ## class FeatureExtractor

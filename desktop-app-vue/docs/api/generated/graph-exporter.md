@@ -2,8 +2,6 @@
 
 **Source**: `src/main/knowledge-graph/graph-exporter.js`
 
-**Generated**: 2026-04-24T14:17:58.019Z
-
 ---
 
 ## const fs = require('fs');

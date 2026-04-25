@@ -2,8 +2,6 @@
 
 **Source**: `src/main/ai-engine/intent-recognizer.js`
 
-**Generated**: 2026-04-24T14:17:58.075Z
-
 ---
 
 ## async function recognizeProjectIntent(userInput, llmManager)

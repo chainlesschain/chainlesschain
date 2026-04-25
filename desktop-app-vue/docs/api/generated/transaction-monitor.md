@@ -2,8 +2,6 @@
 
 **Source**: `src/main/blockchain/transaction-monitor.js`
 
-**Generated**: 2026-04-24T14:17:58.064Z
-
 ---
 
 ## const

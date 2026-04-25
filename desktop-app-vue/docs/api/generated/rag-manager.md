@@ -2,8 +2,6 @@
 
 **Source**: `src/main/rag/rag-manager.js`
 
-**Generated**: 2026-04-24T14:17:57.986Z
-
 ---
 
 ## const

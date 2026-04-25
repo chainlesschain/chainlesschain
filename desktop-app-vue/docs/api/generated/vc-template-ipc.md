@@ -2,8 +2,6 @@
 
 **Source**: `src/main/vc-template/vc-template-ipc.js`
 
-**Generated**: 2026-04-24T14:17:57.939Z
-
 ---
 
 ## function registerVCTemplateIPC(vcTemplateManager)

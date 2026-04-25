@@ -2,8 +2,6 @@
 
 **Source**: `src/main/mcp/examples/example-integration.js`
 
-**Generated**: 2026-04-24T14:17:58.009Z
-
 ---
 
 ## const

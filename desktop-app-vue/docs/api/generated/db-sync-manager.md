@@ -2,8 +2,6 @@
 
 **Source**: `src/main/sync/db-sync-manager.js`
 
-**Generated**: 2026-04-24T14:17:57.958Z
-
 ---
 
 ## class DBSyncManager extends EventEmitter

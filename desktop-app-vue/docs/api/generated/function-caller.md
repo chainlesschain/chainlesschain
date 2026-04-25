@@ -2,8 +2,6 @@
 
 **Source**: `src/main/ai-engine/function-caller.js`
 
-**Generated**: 2026-04-24T14:17:58.076Z
-
 ---
 
 ## const

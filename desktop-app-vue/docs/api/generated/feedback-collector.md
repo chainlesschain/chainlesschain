@@ -2,8 +2,6 @@
 
 **Source**: `src/main/feedback/feedback-collector.js`
 
-**Generated**: 2026-04-24T14:17:58.035Z
-
 ---
 
 ## const

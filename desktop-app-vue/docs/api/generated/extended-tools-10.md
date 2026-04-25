@@ -2,8 +2,6 @@
 
 **Source**: `src/main/ai-engine/extended-tools-10.js`
 
-**Generated**: 2026-04-24T14:17:58.079Z
-
 ---
 
 ## class ExtendedTools10

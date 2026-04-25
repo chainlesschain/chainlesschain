@@ -2,8 +2,6 @@
 
 **Source**: `src/main/ipc/logger-ipc.js`
 
-**Generated**: 2026-04-24T14:17:58.022Z
-
 ---
 
 ## const

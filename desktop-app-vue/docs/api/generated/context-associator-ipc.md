@@ -2,8 +2,6 @@
 
 **Source**: `src/main/memory/context-associator-ipc.js`
 
-**Generated**: 2026-04-24T14:17:58.006Z
-
 ---
 
 ## const

@@ -2,8 +2,6 @@
 
 **Source**: `src/main/monitoring/performance-monitor.js`
 
-**Generated**: 2026-04-24T14:17:58.002Z
-
 ---
 
 ## class PerformanceMonitor

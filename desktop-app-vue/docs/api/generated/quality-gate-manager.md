@@ -2,8 +2,6 @@
 
 **Source**: `src/main/workflow/quality-gate-manager.js`
 
-**Generated**: 2026-04-24T14:17:57.937Z
-
 ---
 
 ## const

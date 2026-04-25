@@ -2,8 +2,6 @@
 
 **Source**: `src/main/git/path-converter.js`
 
-**Generated**: 2026-04-24T14:17:58.029Z
-
 ---
 
 ## const path = require('path');

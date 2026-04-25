@@ -2,8 +2,6 @@
 
 **Source**: `src/main/p2p/device-sync-manager.js`
 
-**Generated**: 2026-04-24T14:17:58.000Z
-
 ---
 
 ## const

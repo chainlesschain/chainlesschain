@@ -2,8 +2,6 @@
 
 **Source**: `src/main/contacts/contact-manager.js`
 
-**Generated**: 2026-04-24T14:17:58.051Z
-
 ---
 
 ## const

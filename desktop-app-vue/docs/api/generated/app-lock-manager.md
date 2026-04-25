@@ -2,8 +2,6 @@
 
 **Source**: `src/main/system/app-lock-manager.js`
 
-**Generated**: 2026-04-24T14:17:57.957Z
-
 ---
 
 ## const

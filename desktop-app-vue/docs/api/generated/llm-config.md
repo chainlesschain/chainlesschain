@@ -2,8 +2,6 @@
 
 **Source**: `src/main/llm/llm-config.js`
 
-**Generated**: 2026-04-24T14:17:58.016Z
-
 ---
 
 ## const

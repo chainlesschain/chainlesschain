@@ -1,7 +1,5 @@
 # Component Reference
 
-**Generated**: 2026-04-24T14:17:58.203Z
-
 **Total Components**: 581
 
 ---

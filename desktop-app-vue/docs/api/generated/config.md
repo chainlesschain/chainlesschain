@@ -2,8 +2,6 @@
 
 **Source**: `src/main/ukey/config.js`
 
-**Generated**: 2026-04-24T14:17:57.949Z
-
 ---
 
 ## const

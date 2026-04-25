@@ -2,8 +2,6 @@
 
 **Source**: `src/main/sync/sync-queue.js`
 
-**Generated**: 2026-04-24T14:17:57.957Z
-
 ---
 
 ## class SyncQueue extends EventEmitter

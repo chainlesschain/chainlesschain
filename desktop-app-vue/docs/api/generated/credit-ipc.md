@@ -2,8 +2,6 @@
 
 **Source**: `src/main/credit/credit-ipc.js`
 
-**Generated**: 2026-04-24T14:17:58.049Z
-
 ---
 
 ## function registerCreditIPC(context)

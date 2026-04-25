@@ -2,8 +2,6 @@
 
 **Source**: `src/main/utils/file-utils.js`
 
-**Generated**: 2026-04-24T14:17:57.941Z
-
 ---
 
 ## async function copyDirectory(source, destination)

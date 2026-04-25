@@ -2,8 +2,6 @@
 
 **Source**: `src/main/p2p/pc-status-handler.js`
 
-**Generated**: 2026-04-24T14:17:57.998Z
-
 ---
 
 ## const

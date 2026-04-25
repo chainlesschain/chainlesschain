@@ -2,8 +2,6 @@
 
 **Source**: `src/main/ai-engine/hierarchical-task-planner.js`
 
-**Generated**: 2026-04-24T14:17:58.076Z
-
 ---
 
 ## class HierarchicalTaskPlanner

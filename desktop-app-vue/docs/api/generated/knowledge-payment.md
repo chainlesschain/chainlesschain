@@ -2,8 +2,6 @@
 
 **Source**: `src/main/trade/knowledge-payment.js`
 
-**Generated**: 2026-04-24T14:17:57.952Z
-
 ---
 
 ## class KnowledgePaymentManager extends EventEmitter

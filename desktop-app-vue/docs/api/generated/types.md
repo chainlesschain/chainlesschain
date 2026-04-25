@@ -2,8 +2,6 @@
 
 **Source**: `src/main/ukey/types.js`
 
-**Generated**: 2026-04-24T14:17:57.943Z
-
 ---
 
 ## module.exports =

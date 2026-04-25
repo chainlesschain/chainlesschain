@@ -2,8 +2,6 @@
 
 **Source**: `src/main/api/network-interceptor.js`
 
-**Generated**: 2026-04-24T14:17:58.070Z
-
 ---
 
 ## const

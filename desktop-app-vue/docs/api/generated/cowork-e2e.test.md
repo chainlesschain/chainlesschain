@@ -2,8 +2,6 @@
 
 **Source**: `src/main/cowork/__tests__/integration/cowork-e2e.test.js`
 
-**Generated**: 2026-04-24T14:17:58.050Z
-
 ---
 
 ## const path = require("path");

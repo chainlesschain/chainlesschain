@@ -2,8 +2,6 @@
 
 **Source**: `src/main/trade/review-manager.js`
 
-**Generated**: 2026-04-24T14:17:57.951Z
-
 ---
 
 ## class ReviewManager extends EventEmitter

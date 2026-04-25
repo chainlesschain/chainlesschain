@@ -2,8 +2,6 @@
 
 **Source**: `src/main/monitoring/error-monitor-ipc.js`
 
-**Generated**: 2026-04-24T14:17:58.003Z
-
 ---
 
 ## const

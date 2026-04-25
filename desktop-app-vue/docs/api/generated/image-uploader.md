@@ -2,8 +2,6 @@
 
 **Source**: `src/main/image/image-uploader.js`
 
-**Generated**: 2026-04-24T14:17:58.027Z
-
 ---
 
 ## const

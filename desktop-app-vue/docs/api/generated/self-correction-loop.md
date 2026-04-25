@@ -2,8 +2,6 @@
 
 **Source**: `src/main/ai-engine/self-correction-loop.js`
 
-**Generated**: 2026-04-24T14:17:58.074Z
-
 ---
 
 ## class SelfCorrectionLoop

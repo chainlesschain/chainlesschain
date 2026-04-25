@@ -2,8 +2,6 @@
 
 **Source**: `src/main/skill-tool-system/builtin-skills.js`
 
-**Generated**: 2026-04-24T14:17:57.973Z
-
 ---
 
 ## const additionalSkills = require('./additional-skills');

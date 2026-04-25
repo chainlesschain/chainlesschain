@@ -2,8 +2,6 @@
 
 **Source**: `src/main/skill-tool-system/tool-logger.js`
 
-**Generated**: 2026-04-24T14:17:57.969Z
-
 ---
 
 ## const

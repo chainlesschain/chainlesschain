@@ -2,8 +2,6 @@
 
 **Source**: `src/main/browser/actions/clipboard-manager.js`
 
-**Generated**: 2026-04-24T14:17:58.061Z
-
 ---
 
 ## const

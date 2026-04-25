@@ -2,8 +2,6 @@
 
 **Source**: `src/main/project/http-client.js`
 
-**Generated**: 2026-04-24T14:17:57.991Z
-
 ---
 
 ## class ProjectHTTPClient

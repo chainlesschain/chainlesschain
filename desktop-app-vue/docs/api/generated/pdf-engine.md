@@ -2,8 +2,6 @@
 
 **Source**: `src/main/engines/pdf-engine.js`
 
-**Generated**: 2026-04-24T14:17:58.040Z
-
 ---
 
 ## const

@@ -2,8 +2,6 @@
 
 **Source**: `src/main/database/sqlcipher-wrapper.js`
 
-**Generated**: 2026-04-24T14:17:58.044Z
-
 ---
 
 ## const

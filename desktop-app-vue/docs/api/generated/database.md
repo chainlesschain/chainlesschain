@@ -2,8 +2,6 @@
 
 **Source**: `src/main/database.js`
 
-**Generated**: 2026-04-24T14:17:57.935Z
-
 ---
 
 ## class DatabaseManager

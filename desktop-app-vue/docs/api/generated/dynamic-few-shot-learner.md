@@ -2,8 +2,6 @@
 
 **Source**: `src/main/ai-engine/dynamic-few-shot-learner.js`
 
-**Generated**: 2026-04-24T14:17:58.079Z
-
 ---
 
 ## class DynamicFewShotLearner

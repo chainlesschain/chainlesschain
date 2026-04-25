@@ -2,8 +2,6 @@
 
 **Source**: `src/main/config/database-config.js`
 
-**Generated**: 2026-04-24T14:17:58.052Z
-
 ---
 
 ## const

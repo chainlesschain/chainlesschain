@@ -2,8 +2,6 @@
 
 **Source**: `src/main/ai-engine/task-tracker-file.js`
 
-**Generated**: 2026-04-24T14:17:58.072Z
-
 ---
 
 ## const

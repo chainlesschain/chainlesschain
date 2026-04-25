@@ -2,8 +2,6 @@
 
 **Source**: `src/main/ukey/huada-driver.js`
 
-**Generated**: 2026-04-24T14:17:57.947Z
-
 ---
 
 ## const

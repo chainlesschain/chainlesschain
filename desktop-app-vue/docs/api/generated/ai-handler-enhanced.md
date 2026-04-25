@@ -2,8 +2,6 @@
 
 **Source**: `src/main/remote/handlers/ai-handler-enhanced.js`
 
-**Generated**: 2026-04-24T14:17:57.985Z
-
 ---
 
 ## const

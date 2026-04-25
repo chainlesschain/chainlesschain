@@ -2,8 +2,6 @@
 
 **Source**: `src/main/sandbox/sandbox-ipc.js`
 
-**Generated**: 2026-04-24T14:17:57.980Z
-
 ---
 
 ## const

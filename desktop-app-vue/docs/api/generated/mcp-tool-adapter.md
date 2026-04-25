@@ -2,8 +2,6 @@
 
 **Source**: `src/main/mcp/mcp-tool-adapter.js`
 
-**Generated**: 2026-04-24T14:17:58.006Z
-
 ---
 
 ## const

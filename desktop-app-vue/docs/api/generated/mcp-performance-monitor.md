@@ -2,8 +2,6 @@
 
 **Source**: `src/main/mcp/mcp-performance-monitor.js`
 
-**Generated**: 2026-04-24T14:17:58.007Z
-
 ---
 
 ## const

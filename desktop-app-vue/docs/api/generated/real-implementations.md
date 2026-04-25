@@ -2,8 +2,6 @@
 
 **Source**: `src/main/ai-engine/real-implementations.js`
 
-**Generated**: 2026-04-24T14:17:58.074Z
-
 ---
 
 ## const

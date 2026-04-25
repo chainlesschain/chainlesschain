@@ -2,8 +2,6 @@
 
 **Source**: `src/main/p2p/file-sync-protocols.js`
 
-**Generated**: 2026-04-24T14:17:57.999Z
-
 ---
 
 ## const FILE_SYNC_PROTOCOLS =

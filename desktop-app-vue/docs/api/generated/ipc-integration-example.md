@@ -2,8 +2,6 @@
 
 **Source**: `src/main/security/ipc-integration-example.js`
 
-**Generated**: 2026-04-24T14:17:57.979Z
-
 ---
 
 ## const

@@ -2,8 +2,6 @@
 
 **Source**: `src/main/memory/memgpt-core.js`
 
-**Generated**: 2026-04-24T14:17:58.005Z
-
 ---
 
 ## const EventEmitter = require("events");

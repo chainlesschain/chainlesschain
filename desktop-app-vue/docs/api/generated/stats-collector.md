@@ -2,8 +2,6 @@
 
 **Source**: `src/main/project/stats-collector.js`
 
-**Generated**: 2026-04-24T14:17:57.990Z
-
 ---
 
 ## const

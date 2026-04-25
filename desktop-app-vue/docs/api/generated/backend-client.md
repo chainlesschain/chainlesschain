@@ -2,8 +2,6 @@
 
 **Source**: `src/main/api/backend-client.js`
 
-**Generated**: 2026-04-24T14:17:58.071Z
-
 ---
 
 ## const

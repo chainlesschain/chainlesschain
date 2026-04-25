@@ -2,8 +2,6 @@
 
 **Source**: `src/main/sync/p2p-sync-engine.js`
 
-**Generated**: 2026-04-24T14:17:57.958Z
-
 ---
 
 ## class P2PSyncEngine extends EventEmitter

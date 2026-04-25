@@ -2,8 +2,6 @@
 
 **Source**: `src/main/ai-engine/multi-agent/multi-agent-ipc.js`
 
-**Generated**: 2026-04-24T14:17:58.081Z
-
 ---
 
 ## const

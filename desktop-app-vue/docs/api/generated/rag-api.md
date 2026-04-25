@@ -2,8 +2,6 @@
 
 **Source**: `src/main/project/rag-api.js`
 
-**Generated**: 2026-04-24T14:17:57.990Z
-
 ---
 
 ## let projectRAGManager = null;

@@ -2,8 +2,6 @@
 
 **Source**: `src/main/git/ai-commit-message.js`
 
-**Generated**: 2026-04-24T14:17:58.030Z
-
 ---
 
 ## const

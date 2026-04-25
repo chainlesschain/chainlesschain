@@ -2,8 +2,6 @@
 
 **Source**: `src/main/memory/memory-sync-ipc.js`
 
-**Generated**: 2026-04-24T14:17:58.004Z
-
 ---
 
 ## const

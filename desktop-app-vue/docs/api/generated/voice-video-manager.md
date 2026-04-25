@@ -2,8 +2,6 @@
 
 **Source**: `src/main/p2p/voice-video-manager.js`
 
-**Generated**: 2026-04-24T14:17:57.996Z
-
 ---
 
 ## const

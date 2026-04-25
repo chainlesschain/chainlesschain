@@ -2,8 +2,6 @@
 
 **Source**: `src/main/blockchain/blockchain-ipc.js`
 
-**Generated**: 2026-04-24T14:17:58.066Z
-
 ---
 
 ## const
