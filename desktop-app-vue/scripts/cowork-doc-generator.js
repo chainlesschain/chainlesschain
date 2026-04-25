@@ -57,12 +57,6 @@ const docConfig = {
     outputPath: "docs/architecture",
     template: "architecture-template.md",
   },
-  releaseNotes: {
-    enabled: true,
-    gitRange: "HEAD~10..HEAD", // Last 10 commits
-    outputPath: "docs/releases",
-    template: "release-notes-template.md",
-  },
   changelog: {
     enabled: true,
     gitRange: "v0.26.0..HEAD",
