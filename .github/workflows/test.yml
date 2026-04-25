@@ -43,6 +43,10 @@ jobs:
 
       - name: Run TypeScript type check
         working-directory: ./desktop-app-vue
+        # vue-tsc on 164k+ LOC trips macOS runner's 7GB RAM ceiling without
+        # this; SIGABRT (exit 134). Match the 4GB cap used in release.yml.
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
         run: npm run type-check
 
       - name: Fetch base branch for diff
