@@ -255,6 +255,7 @@ Phase 0-3 合入 main 时 **108 条测试全绿**（其中项目模式新增 97 
 
 | 症状 | 根因 | 处理 |
 |---|---|---|
+| `@yao-pkg/pkg not found` (exit 13) | `pkg` 是 dev-only 工具，`npm i -g chainlesschain` 不会一并装入 | 全局安装时跑 `cd "$(npm root -g)/chainlesschain" && npm install @yao-pkg/pkg`；CLI 已按安装上下文（monorepo / 全局 / 本地）给出对应命令，照着执行即可 |
 | `PackError: .chainlesschain/config.json not found` (exit 10) | `--project` 强制模式但 CWD 无 config | 先运行 `cc init` 初始化项目，或切换到正确目录 |
 | `PackError: Secrets detected in project config` (exit 16) | config.json 含 apiKey / secret 等字段（10 类正则） | 把 key 移出 config，改用旁边的 `.env` sidecar |
 | `PackError: skill contains node_modules` (exit `EXIT.PROJECT`) | skill 目录下存在 node_modules | 运行 `cc skill sync-cli` 发布 skill，再重试 |

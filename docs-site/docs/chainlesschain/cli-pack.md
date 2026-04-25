@@ -212,7 +212,7 @@ Phase 7 为每个产物写 sidecar `.pack-manifest.json`，含：
 | 启动时报 `NODE_MODULE_VERSION 127 ... requires 115` 然后 UI 起不来 | 宿主 native `.node` 是 Node 22 编译，pkg target node20-win-x64 打进 Node 20 | `loadSQLiteDriver` 探针会自动 fallback 到 sql.js；看到 `"Using sql.js (WASM fallback)"` + `Database initialized` 为正常 |
 | Auth: disabled 即使 `--token auto` | 合成入口的 `--token` 注入条件被破坏 | 对照 `packer-pkg-config-generator.test.js` 的 token 三模式断言 |
 | 事务里 `cannot commit - no transaction is active` | sql.js `export()` 在 BEGIN…COMMIT 之间被调用会隐式结束事务 | `createSqlJsCompat` 用 `txDepth` 计数禁止 in-txn auto-persist（v0.2 已修） |
-| `@yao-pkg/pkg not found` | 根 node_modules 存在但 cliRoot 的 require 找不到 | `pkg-runner.locatePkgBinary` 已改用 `createRequire`；检查 pkg 是否在任何 `node_modules` 下 |
+| `@yao-pkg/pkg not found` | `pkg` 是 dev-only 工具，未默认随 CLI 安装；CLI 会按当前安装方式（monorepo / 全局 / 本地）给出对应安装命令 | 全局安装：`cd "$(npm root -g)/chainlesschain" && npm install @yao-pkg/pkg`；monorepo：`npm install -D @yao-pkg/pkg --workspace packages/cli`；本地：在 CLI 所在目录 `npm install -D @yao-pkg/pkg` |
 | `Working tree is dirty` (exit 10) | precheck 发现有 uncommitted changes | 先提交 / 贮藏；或调试时加 `--allow-dirty` |
 | `web-panel/dist not found and build failed` (exit 11) | Phase 2 找不到已构建的 Vue 面板 | `cd desktop-app-vue && npm run build`，再 `cc pack --skip-web-panel-build` |
 | `Secrets detected in preset config: ...` (exit 16) | preset 里有疑似 API key / mnemonic | 清理或**确认无误后**显式 `--allow-secrets` |

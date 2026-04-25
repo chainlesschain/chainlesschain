@@ -32,11 +32,7 @@ export function runPkg(ctx) {
 
   const pkgBin = locatePkgBinary(cliRoot);
   if (!pkgBin) {
-    throw new PackError(
-      "@yao-pkg/pkg not found in node_modules. Install it as a devDependency:\n" +
-        "    npm install -D @yao-pkg/pkg --workspace packages/cli",
-      EXIT.PKG,
-    );
+    throw new PackError(buildPkgMissingMessage(cliRoot), EXIT.PKG);
   }
 
   // Use --output to control the produced filename; pkg auto-appends platform
@@ -89,6 +85,64 @@ export function runPkg(ctx) {
     return { path: p, target };
   });
   return { outputs: rich };
+}
+
+/**
+ * Build an install-context-aware "pkg not found" message. The CLI ships in
+ * three shapes (monorepo workspace, global npm install, plain local install),
+ * each of which needs a different `npm install` invocation.
+ */
+export function buildPkgMissingMessage(cliRoot) {
+  const ctx = detectInstallContext(cliRoot);
+  const header =
+    "@yao-pkg/pkg not found in node_modules. Install it where the CLI lives:";
+  if (ctx.kind === "monorepo") {
+    return `${header}\n    npm install -D @yao-pkg/pkg --workspace packages/cli`;
+  }
+  if (ctx.kind === "global") {
+    return (
+      `${header}\n` +
+      `    cd "${ctx.installDir}" && npm install @yao-pkg/pkg\n` +
+      `(The CLI is installed globally at the path above; pkg must be added to that node_modules.)`
+    );
+  }
+  return (
+    `${header}\n` + `    cd "${ctx.installDir}" && npm install -D @yao-pkg/pkg`
+  );
+}
+
+/**
+ * Classify how the CLI is installed by looking at cliRoot's parent chain.
+ *   - "monorepo": cliRoot is a workspace package inside a repo whose root
+ *      package.json declares `workspaces`.
+ *   - "global":   cliRoot's immediate parent is `node_modules` (the npm-i-g
+ *      and `npx` install layouts both produce this).
+ *   - "standalone": neither of the above — fall back to a generic
+ *      `cd <cliRoot> && npm install -D` hint.
+ */
+function detectInstallContext(cliRoot) {
+  const parent = path.dirname(cliRoot);
+  if (path.basename(parent) === "node_modules") {
+    return { kind: "global", installDir: cliRoot };
+  }
+  let cur = parent;
+  for (let i = 0; i < 5; i++) {
+    const pj = path.join(cur, "package.json");
+    if (fs.existsSync(pj)) {
+      try {
+        const meta = JSON.parse(fs.readFileSync(pj, "utf-8"));
+        if (meta.workspaces) {
+          return { kind: "monorepo", installDir: cur };
+        }
+      } catch {
+        /* malformed package.json — keep walking */
+      }
+    }
+    const next = path.dirname(cur);
+    if (next === cur) break;
+    cur = next;
+  }
+  return { kind: "standalone", installDir: cliRoot };
 }
 
 /**
