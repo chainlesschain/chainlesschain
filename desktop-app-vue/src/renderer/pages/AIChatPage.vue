@@ -1172,7 +1172,11 @@ import StepDisplay from "@/components/projects/StepDisplay.vue";
 import HarnessTaskDrawer from "@/components/chat/HarnessTaskDrawer.vue";
 import { useCodingAgentStore } from "@/stores/coding-agent";
 import { useSessionCoreStore } from "@/stores/sessionCore";
-import { marked } from "marked";
+import {
+  renderMarkdown,
+  formatTime,
+  enhanceCodeBlocks,
+} from "./aiChatPageUtils";
 
 const authStore = useAuthStore();
 const codingAgentStore = useCodingAgentStore();
@@ -4158,131 +4162,6 @@ const scrollToBottom = () => {
     messagesContainerRef.value.scrollTop =
       messagesContainerRef.value.scrollHeight;
   }
-};
-
-// 配置 marked
-marked.setOptions({
-  highlight: function (code, _lang) {
-    // highlight.js 会在 EnhancedCodeBlock 中处理
-    return code;
-  },
-  breaks: true,
-  gfm: true,
-});
-
-// 自定义 marked renderer 来增强代码块
-const renderer = new marked.Renderer();
-
-renderer.code = function (code, language) {
-  // 为代码块添加特殊标记，以便后续处理
-  const escapedCode = code
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-
-  return `<div class="code-block-wrapper" data-language="${language || ""}" data-code="${escapedCode}">
-    <div class="code-block-placeholder">
-      <pre><code class="language-${language || "plaintext"}">${escapedCode}</code></pre>
-    </div>
-  </div>`;
-};
-
-marked.use({ renderer });
-
-// 渲染Markdown（使用 marked 库）
-const renderMarkdown = (content) => {
-  if (!content) {
-    return "";
-  }
-
-  try {
-    // 使用 marked 解析 markdown - marked 会自动转义 HTML 标签
-    const rawHtml = marked.parse(content);
-    return rawHtml;
-  } catch (error) {
-    logger.error("Markdown 渲染失败:", error);
-    // 发生错误时，转义文本以防止 XSS
-    const div = document.createElement("div");
-    div.textContent = content;
-    return div.innerHTML;
-  }
-};
-
-// 格式化时间
-const formatTime = (timestamp) => {
-  if (!timestamp) {
-    return "";
-  }
-  const date = new Date(timestamp);
-  const now = new Date();
-
-  // 如果是今天，只显示时间
-  if (date.toDateString() === now.toDateString()) {
-    return date.toLocaleTimeString("zh-CN", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-
-  // 否则显示日期和时间
-  return date.toLocaleString("zh-CN", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-// 增强代码块功能（添加复制按钮）
-const enhanceCodeBlocks = () => {
-  nextTick(() => {
-    const codeBlocks = document.querySelectorAll(".code-block-wrapper");
-
-    codeBlocks.forEach((wrapper) => {
-      // 如果已经添加过按钮，跳过
-      if (wrapper.querySelector(".code-copy-btn")) {
-        return;
-      }
-
-      const code = wrapper.getAttribute("data-code");
-      if (!code) {
-        return;
-      }
-
-      // 创建复制按钮
-      const copyBtn = document.createElement("button");
-      copyBtn.className = "code-copy-btn";
-      copyBtn.textContent = "复制";
-      copyBtn.onclick = async (e) => {
-        e.stopPropagation();
-        try {
-          // 解码HTML实体
-          const decodedCode = code
-            .replace(/&amp;/g, "&")
-            .replace(/&lt;/g, "<")
-            .replace(/&gt;/g, ">")
-            .replace(/&quot;/g, '"')
-            .replace(/&#39;/g, "'");
-
-          await navigator.clipboard.writeText(decodedCode);
-          copyBtn.textContent = "✓ 已复制";
-          setTimeout(() => {
-            copyBtn.textContent = "复制";
-          }, 2000);
-        } catch (err) {
-          logger.error("复制失败:", err);
-          copyBtn.textContent = "✗ 失败";
-          setTimeout(() => {
-            copyBtn.textContent = "复制";
-          }, 2000);
-        }
-      };
-
-      wrapper.appendChild(copyBtn);
-    });
-  });
 };
 
 // 键盘快捷键处理
