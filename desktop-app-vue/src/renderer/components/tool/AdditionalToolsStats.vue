@@ -55,11 +55,7 @@
           un-checked-children="手动刷新"
           @change="handleAutoRefreshChange"
         />
-        <a-button
-          :loading="loading"
-          type="primary"
-          @click="handleRefresh"
-        >
+        <a-button :loading="loading" type="primary" @click="handleRefresh">
           <template #icon>
             <ReloadOutlined />
           </template>
@@ -69,23 +65,12 @@
     </div>
 
     <!-- 筛选控件区 -->
-    <a-card
-      size="small"
-      class="filter-card"
-    >
+    <a-card size="small" class="filter-card">
       <a-row :gutter="[16, 16]">
-        <a-col
-          :xs="24"
-          :sm="12"
-          :md="8"
-        >
+        <a-col :xs="24" :sm="12" :md="8">
           <div class="filter-item">
             <label>时间范围</label>
-            <a-space
-              direction="vertical"
-              style="width: 100%"
-              :size="4"
-            >
+            <a-space direction="vertical" style="width: 100%" :size="4">
               <a-range-picker
                 v-model:value="dateRange"
                 style="width: 100%"
@@ -94,45 +79,26 @@
                 @change="handleFilterChange"
               />
               <a-space :size="4">
-                <a-button
-                  size="small"
-                  @click="setQuickDateRange('today')"
-                >
+                <a-button size="small" @click="setQuickDateRange('today')">
                   今天
                 </a-button>
-                <a-button
-                  size="small"
-                  @click="setQuickDateRange('week')"
-                >
+                <a-button size="small" @click="setQuickDateRange('week')">
                   本周
                 </a-button>
-                <a-button
-                  size="small"
-                  @click="setQuickDateRange('month')"
-                >
+                <a-button size="small" @click="setQuickDateRange('month')">
                   本月
                 </a-button>
-                <a-button
-                  size="small"
-                  @click="setQuickDateRange('last7days')"
-                >
+                <a-button size="small" @click="setQuickDateRange('last7days')">
                   最近7天
                 </a-button>
-                <a-button
-                  size="small"
-                  @click="setQuickDateRange('last30days')"
-                >
+                <a-button size="small" @click="setQuickDateRange('last30days')">
                   最近30天
                 </a-button>
               </a-space>
             </a-space>
           </div>
         </a-col>
-        <a-col
-          :xs="24"
-          :sm="12"
-          :md="8"
-        >
+        <a-col :xs="24" :sm="12" :md="8">
           <div class="filter-item">
             <label>分类筛选</label>
             <a-select
@@ -145,11 +111,7 @@
             />
           </div>
         </a-col>
-        <a-col
-          :xs="24"
-          :sm="12"
-          :md="8"
-        >
+        <a-col :xs="24" :sm="12" :md="8">
           <div class="filter-item">
             <label>搜索工具</label>
             <a-input-search
@@ -165,10 +127,7 @@
       <a-row style="margin-top: 12px">
         <a-col :span="24">
           <a-space>
-            <a-button
-              size="small"
-              @click="handleResetFilters"
-            >
+            <a-button size="small" @click="handleResetFilters">
               <template #icon>
                 <ClearOutlined />
               </template>
@@ -202,10 +161,7 @@
                       </a-button>
                     </a-menu-item>
                   </a-menu-item-group>
-                  <a-menu-item
-                    v-else
-                    disabled
-                  >
+                  <a-menu-item v-else disabled>
                     暂无保存的筛选条件
                   </a-menu-item>
                 </a-menu>
@@ -218,10 +174,7 @@
                 <DownOutlined />
               </a-button>
             </a-dropdown>
-            <a-tag
-              v-if="hasActiveFilters"
-              color="blue"
-            >
+            <a-tag v-if="hasActiveFilters" color="blue">
               已应用 {{ activeFilterCount }} 个筛选条件
             </a-tag>
           </a-space>
@@ -230,39 +183,17 @@
     </a-card>
 
     <!-- 加载状态 -->
-    <div
-      v-if="loading && !overview.totalTools"
-      class="loading-container"
-    >
-      <a-spin
-        size="large"
-        tip="加载统计数据中..."
-      />
+    <div v-if="loading && !overview.totalTools" class="loading-container">
+      <a-spin size="large" tip="加载统计数据中..." />
     </div>
 
     <!-- 统计数据 -->
-    <div
-      v-else
-      class="stats-container"
-    >
-      <a-space
-        direction="vertical"
-        :size="24"
-        style="width: 100%"
-      >
+    <div v-else class="stats-container">
+      <a-space direction="vertical" :size="24" style="width: 100%">
         <!-- 概览卡片 -->
         <a-row :gutter="16">
-          <a-col
-            :xs="24"
-            :sm="12"
-            :md="8"
-            :lg="4"
-            :xl="4"
-          >
-            <a-card
-              size="small"
-              class="stat-card"
-            >
+          <a-col :xs="24" :sm="12" :md="8" :lg="4" :xl="4">
+            <a-card size="small" class="stat-card">
               <a-statistic
                 title="总工具数"
                 :value="overview.totalTools"
@@ -274,17 +205,8 @@
               </a-statistic>
             </a-card>
           </a-col>
-          <a-col
-            :xs="24"
-            :sm="12"
-            :md="8"
-            :lg="4"
-            :xl="4"
-          >
-            <a-card
-              size="small"
-              class="stat-card"
-            >
+          <a-col :xs="24" :sm="12" :md="8" :lg="4" :xl="4">
+            <a-card size="small" class="stat-card">
               <a-statistic
                 title="已启用"
                 :value="overview.enabledTools"
@@ -296,17 +218,8 @@
               </a-statistic>
             </a-card>
           </a-col>
-          <a-col
-            :xs="24"
-            :sm="12"
-            :md="8"
-            :lg="5"
-            :xl="5"
-          >
-            <a-card
-              size="small"
-              class="stat-card"
-            >
+          <a-col :xs="24" :sm="12" :md="8" :lg="5" :xl="5">
+            <a-card size="small" class="stat-card">
               <a-statistic
                 title="总调用次数"
                 :value="overview.totalInvocations"
@@ -318,17 +231,8 @@
               </a-statistic>
             </a-card>
           </a-col>
-          <a-col
-            :xs="24"
-            :sm="12"
-            :md="8"
-            :lg="5"
-            :xl="5"
-          >
-            <a-card
-              size="small"
-              class="stat-card"
-            >
+          <a-col :xs="24" :sm="12" :md="8" :lg="5" :xl="5">
+            <a-card size="small" class="stat-card">
               <a-statistic
                 title="成功率"
                 :value="overview.successRate"
@@ -343,17 +247,8 @@
               </a-statistic>
             </a-card>
           </a-col>
-          <a-col
-            :xs="24"
-            :sm="12"
-            :md="8"
-            :lg="6"
-            :xl="6"
-          >
-            <a-card
-              size="small"
-              class="stat-card"
-            >
+          <a-col :xs="24" :sm="12" :md="8" :lg="6" :xl="6">
+            <a-card size="small" class="stat-card">
               <a-statistic
                 title="平均响应时间"
                 :value="overview.avgExecutionTime"
@@ -372,32 +267,15 @@
         <!-- 图表区域 -->
         <a-row :gutter="16">
           <!-- 使用排行 Top 10 -->
-          <a-col
-            :xs="24"
-            :lg="12"
-          >
-            <a-card
-              title="使用次数排行 Top 10"
-              size="small"
-              class="chart-card"
-            >
-              <div
-                ref="usageChartRef"
-                style="width: 100%; height: 350px"
-              />
+          <a-col :xs="24" :lg="12">
+            <a-card title="使用次数排行 Top 10" size="small" class="chart-card">
+              <div ref="usageChartRef" style="width: 100%; height: 350px" />
             </a-card>
           </a-col>
 
           <!-- 成功率排行 Top 10 -->
-          <a-col
-            :xs="24"
-            :lg="12"
-          >
-            <a-card
-              title="成功率排行 Top 10"
-              size="small"
-              class="chart-card"
-            >
+          <a-col :xs="24" :lg="12">
+            <a-card title="成功率排行 Top 10" size="small" class="chart-card">
               <div
                 ref="successRateChartRef"
                 style="width: 100%; height: 350px"
@@ -409,15 +287,8 @@
         <!-- 分类统计 & 性能分布 -->
         <a-row :gutter="16">
           <!-- 分类统计 -->
-          <a-col
-            :xs="24"
-            :lg="14"
-          >
-            <a-card
-              title="分类统计"
-              size="small"
-              class="chart-card"
-            >
+          <a-col :xs="24" :lg="14">
+            <a-card title="分类统计" size="small" class="chart-card">
               <a-table
                 :columns="categoryColumns"
                 :data-source="categoryStats"
@@ -446,15 +317,8 @@
           </a-col>
 
           <!-- 性能分布 -->
-          <a-col
-            :xs="24"
-            :lg="10"
-          >
-            <a-card
-              title="性能分布"
-              size="small"
-              class="chart-card"
-            >
+          <a-col :xs="24" :lg="10">
+            <a-card title="性能分布" size="small" class="chart-card">
               <div
                 ref="performanceChartRef"
                 style="width: 100%; height: 300px"
@@ -466,15 +330,8 @@
         <!-- 7天使用趋势 -->
         <a-row :gutter="16">
           <a-col :span="24">
-            <a-card
-              title="7天使用趋势"
-              size="small"
-              class="chart-card"
-            >
-              <div
-                ref="trendChartRef"
-                style="width: 100%; height: 300px"
-              />
+            <a-card title="7天使用趋势" size="small" class="chart-card">
+              <div ref="trendChartRef" style="width: 100%; height: 300px" />
             </a-card>
           </a-col>
         </a-row>
@@ -482,11 +339,7 @@
         <!-- 最近使用 -->
         <a-row :gutter="16">
           <a-col :span="24">
-            <a-card
-              title="最近使用"
-              size="small"
-              class="chart-card"
-            >
+            <a-card title="最近使用" size="small" class="chart-card">
               <a-list
                 :data-source="recentTools"
                 :pagination="{ pageSize: 10, showSizeChanger: false }"
@@ -553,6 +406,12 @@ import {
   CheckOutlined,
   DeleteOutlined,
 } from "@ant-design/icons-vue";
+import {
+  buildCsvReport,
+  buildExcelReport,
+  buildPdfReport,
+  downloadBlob,
+} from "./additionalToolsStatsExport";
 
 // 加载状态
 const loading = ref(true);
@@ -809,66 +668,26 @@ const handleResetFilters = () => {
 /**
  * 导出为CSV格式
  */
+// Builders for CSV / Excel / PDF reports moved to
+// ./additionalToolsStatsExport.js — pure data → string transforms.
+
+const collectStatsForExport = () => ({
+  overview: overview.value,
+  rankings: rankings.value,
+  categoryStats: categoryStats.value,
+  dailyStats: dailyStats.value,
+  hasActiveFilters: hasActiveFilters.value,
+  activeFilterCount: activeFilterCount.value,
+});
+
 const exportToCSV = () => {
   try {
-    let csv = "";
-
-    // 添加概览数据
-    csv += "=== Additional Tools V3 统计报告 ===\n";
-    csv += `生成时间:,${new Date().toLocaleString()}\n`;
-    csv += `筛选条件:,${hasActiveFilters.value ? activeFilterCount.value + "个" : "无"}\n\n`;
-
-    // 概览数据
-    csv += "--- 概览统计 ---\n";
-    csv += "指标,数值\n";
-    csv += `总工具数,${overview.value.totalTools}\n`;
-    csv += `已启用,${overview.value.enabledTools}\n`;
-    csv += `总调用次数,${overview.value.totalInvocations}\n`;
-    csv += `成功率,${overview.value.successRate}\n`;
-    csv += `平均响应时间,${overview.value.avgExecutionTime}ms\n\n`;
-
-    // 使用排行
-    csv += "--- 使用次数排行 Top 10 ---\n";
-    csv += "排名,工具名称,调用次数,成功次数,平均响应时间\n";
-    rankings.value.mostUsed.slice(0, 10).forEach((tool, index) => {
-      csv += `${index + 1},${tool.display_name || tool.name},${tool.usage_count},${tool.success_count},${tool.avg_execution_time}ms\n`;
-    });
-    csv += "\n";
-
-    // 成功率排行
-    csv += "--- 成功率排行 Top 10 ---\n";
-    csv += "排名,工具名称,调用次数,成功率\n";
-    rankings.value.highestSuccessRate.slice(0, 10).forEach((tool, index) => {
-      csv += `${index + 1},${tool.display_name || tool.name},${tool.usage_count},${tool.success_rate}%\n`;
-    });
-    csv += "\n";
-
-    // 分类统计
-    csv += "--- 分类统计 ---\n";
-    csv += "分类,工具数,使用次数,成功率,平均响应时间\n";
-    categoryStats.value.forEach((cat) => {
-      csv += `${cat.category},${cat.toolCount},${cat.totalUsage},${cat.successRate}%,${cat.avgTime}ms\n`;
-    });
-    csv += "\n";
-
-    // 每日统计
-    csv += "--- 最近7天统计 ---\n";
-    csv += "日期,调用次数,成功次数,失败次数,成功率\n";
-    dailyStats.value.forEach((stat) => {
-      csv += `${stat.date},${stat.invokes},${stat.success},${stat.failure},${stat.successRate}%\n`;
-    });
-
-    // 创建下载
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `additional-tools-stats-${Date.now()}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
+    const csv = buildCsvReport(collectStatsForExport());
+    downloadBlob(
+      csv,
+      "text/csv;charset=utf-8;",
+      `additional-tools-stats-${Date.now()}.csv`,
+    );
     message.success("CSV导出成功");
   } catch (error) {
     logger.error("[Export] CSV导出失败:", error);
@@ -876,61 +695,14 @@ const exportToCSV = () => {
   }
 };
 
-/**
- * 导出为Excel格式（使用CSV兼容格式）
- */
 const exportToExcel = () => {
   try {
-    // 创建简单的HTML表格格式，Excel可以打开
-    let html = '<html><head><meta charset="utf-8"></head><body>';
-    html += "<h1>Additional Tools V3 统计报告</h1>";
-    html += `<p>生成时间: ${new Date().toLocaleString()}</p>`;
-    html += `<p>筛选条件: ${hasActiveFilters.value ? activeFilterCount.value + "个" : "无"}</p><br/>`;
-
-    // 概览数据
-    html += "<h2>概览统计</h2>";
-    html += '<table border="1" cellpadding="5" cellspacing="0">';
-    html += "<tr><th>指标</th><th>数值</th></tr>";
-    html += `<tr><td>总工具数</td><td>${overview.value.totalTools}</td></tr>`;
-    html += `<tr><td>已启用</td><td>${overview.value.enabledTools}</td></tr>`;
-    html += `<tr><td>总调用次数</td><td>${overview.value.totalInvocations}</td></tr>`;
-    html += `<tr><td>成功率</td><td>${overview.value.successRate}</td></tr>`;
-    html += `<tr><td>平均响应时间</td><td>${overview.value.avgExecutionTime}ms</td></tr>`;
-    html += "</table><br/>";
-
-    // 使用排行
-    html += "<h2>使用次数排行 Top 10</h2>";
-    html += '<table border="1" cellpadding="5" cellspacing="0">';
-    html +=
-      "<tr><th>排名</th><th>工具名称</th><th>调用次数</th><th>成功次数</th><th>平均响应时间</th></tr>";
-    rankings.value.mostUsed.slice(0, 10).forEach((tool, index) => {
-      html += `<tr><td>${index + 1}</td><td>${tool.display_name || tool.name}</td><td>${tool.usage_count}</td><td>${tool.success_count}</td><td>${tool.avg_execution_time}ms</td></tr>`;
-    });
-    html += "</table><br/>";
-
-    // 分类统计
-    html += "<h2>分类统计</h2>";
-    html += '<table border="1" cellpadding="5" cellspacing="0">';
-    html +=
-      "<tr><th>分类</th><th>工具数</th><th>使用次数</th><th>成功率</th><th>平均响应时间</th></tr>";
-    categoryStats.value.forEach((cat) => {
-      html += `<tr><td>${cat.category}</td><td>${cat.toolCount}</td><td>${cat.totalUsage}</td><td>${cat.successRate}%</td><td>${cat.avgTime}ms</td></tr>`;
-    });
-    html += "</table><br/>";
-
-    html += "</body></html>";
-
-    // 创建下载
-    const blob = new Blob([html], { type: "application/vnd.ms-excel" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `additional-tools-stats-${Date.now()}.xls`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
+    const html = buildExcelReport(collectStatsForExport());
+    downloadBlob(
+      html,
+      "application/vnd.ms-excel",
+      `additional-tools-stats-${Date.now()}.xls`,
+    );
     message.success("Excel导出成功");
   } catch (error) {
     logger.error("[Export] Excel导出失败:", error);
@@ -938,61 +710,14 @@ const exportToExcel = () => {
   }
 };
 
-/**
- * 导出为PDF格式（生成纯文本报告）
- */
 const exportToPDF = () => {
   try {
-    // 创建简单的文本报告
-    let text = "=".repeat(60) + "\n";
-    text += "  Additional Tools V3 统计报告\n";
-    text += "=".repeat(60) + "\n\n";
-    text += `生成时间: ${new Date().toLocaleString()}\n`;
-    text += `筛选条件: ${hasActiveFilters.value ? activeFilterCount.value + "个" : "无"}\n\n`;
-
-    // 概览数据
-    text += "-".repeat(60) + "\n";
-    text += "概览统计\n";
-    text += "-".repeat(60) + "\n";
-    text += `总工具数:       ${overview.value.totalTools}\n`;
-    text += `已启用:         ${overview.value.enabledTools}\n`;
-    text += `总调用次数:     ${overview.value.totalInvocations}\n`;
-    text += `成功率:         ${overview.value.successRate}\n`;
-    text += `平均响应时间:   ${overview.value.avgExecutionTime}ms\n\n`;
-
-    // 使用排行
-    text += "-".repeat(60) + "\n";
-    text += "使用次数排行 Top 10\n";
-    text += "-".repeat(60) + "\n";
-    rankings.value.mostUsed.slice(0, 10).forEach((tool, index) => {
-      text += `${(index + 1).toString().padStart(2)}. ${(tool.display_name || tool.name).padEnd(30)} ${tool.usage_count}次\n`;
-    });
-    text += "\n";
-
-    // 分类统计
-    text += "-".repeat(60) + "\n";
-    text += "分类统计\n";
-    text += "-".repeat(60) + "\n";
-    categoryStats.value.forEach((cat) => {
-      text += `${cat.category.padEnd(15)} 工具数:${cat.toolCount} 使用:${cat.totalUsage}次 成功率:${cat.successRate}%\n`;
-    });
-    text += "\n";
-
-    text += "=".repeat(60) + "\n";
-    text += "报告结束\n";
-    text += "=".repeat(60) + "\n";
-
-    // 创建下载
-    const blob = new Blob([text], { type: "text/plain;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `additional-tools-stats-${Date.now()}.txt`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
+    const text = buildPdfReport(collectStatsForExport());
+    downloadBlob(
+      text,
+      "text/plain;charset=utf-8;",
+      `additional-tools-stats-${Date.now()}.txt`,
+    );
     message.success("PDF文本报告导出成功");
   } catch (error) {
     logger.error("[Export] PDF导出失败:", error);
