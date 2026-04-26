@@ -1,0 +1,1841 @@
+# 基于U盾和SIMKey的个人移动AI管理系统
+
+## 系统设计文档 v3.3 (更新至 v5.0.1 Evolution Edition — Phase 1-102 全部完成)
+
+**文档版本**: 3.3
+**系统版本**: v5.0.1.8 Evolution Edition (Phase 1-102 Complete: 138 Desktop Skills + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 62 Commands/2700+ Tests + Persona System + Agent Context Engineering + Autonomous Agent + EvoMap + 10 LLM Providers + 3 Proxy Relays + Task Model Selector + CLI-Anything Integration + WebSocket Server + WebSocket Sessions + SlotFiller + InteractivePlanner + Agent Intelligence + Sub-Agent Isolation v2 + 4600+ Tests + 12 Store Test Files)
+**最后更新**: 2026-03-16
+
+> **注意**: 本文档为主文档索引，详细的模块设计已拆分到独立文件中。
+
+---
+
+## 文档索引
+
+### 核心模块设计
+
+| 模块                           | 文档                                                                      | 说明                                                                                     |
+| ------------------------------ | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| 知识库管理                     | [01\_知识库管理模块.md](modules/m01-knowledge-base.md)                     | 个人第二大脑,RAG检索,向量存储                                                            |
+| 去中心化社交                   | [02\_去中心化社交模块.md](modules/m02-decentralized-social.md)                 | DID身份,P2P通信,Signal加密                                                               |
+| 交易辅助                       | [03\_交易辅助模块.md](modules/m03-trading-assistant.md)                         | 智能合约,信用评分,AI协商                                                                 |
+| 项目管理 ⭐                    | [04\_项目管理模块.md](modules/m04-project-management.md)                         | **核心功能**,对话式任务,AI生成                                                           |
+| 企业版组织                     | [05\_企业版组织模块.md](modules/m05-enterprise-org.md)                     | RBAC权限,组织协作,实时编辑                                                               |
+| AI优化系统                     | [06_AI优化系统.md](modules/m06-ai-optimization.md)                              | P2优化,高级特性,在线学习                                                                 |
+| 性能优化                       | [07\_性能优化系统.md](modules/m07-performance-optimization.md)                         | 三层优化体系,Core Web Vitals                                                             |
+| MCP与配置                      | [08_MCP与配置系统.md](modules/m08-mcp-config.md)                        | Model Context Protocol,统一配置,预算跟踪                                                 |
+| 浏览器自动化 ⭐                | [09\_浏览器自动化系统.md](modules/m09-browser-automation.md)                 | **v0.29.0新增**,工作流编辑,智能定位,录制回放                                             |
+| 远程控制系统 ⭐                | [10\_远程控制系统.md](modules/m10-remote-control.md)                         | **v0.33.0新增**,P2P远程控制,桌面操作                                                     |
+| 企业审计系统 ⭐                | [11\_企业审计系统.md](modules/m11-enterprise-audit.md)                         | **v0.34.0新增**,审计日志,合规管理,DSR                                                    |
+| 插件市场系统 ⭐                | [12\_插件市场系统.md](modules/m12-plugin-marketplace.md)                         | **v0.34.0新增**,插件生命周期,社区生态                                                    |
+| 多代理系统 ⭐                  | [13\_多代理系统.md](modules/m13-multi-agent.md)                             | **v0.34.0新增**,8种专业代理,任务编排                                                     |
+| SSO企业认证 ⭐                 | [14_SSO企业认证.md](modules/m14-sso-enterprise-auth.md)                            | **v0.34.0新增**,SAML/OAuth/OIDC,身份关联                                                 |
+| MCP SDK ⭐                     | [15_MCP_SDK系统.md](modules/m15-mcp-sdk.md)                            | **v0.34.0新增**,Server Builder,社区注册                                                  |
+| AI技能系统 ⭐                  | [16_AI技能系统.md](modules/m16-ai-skills.md)                              | **v1.2.2更新**,138技能(100% Handler),统一工具注册表,演示模板                             |
+| SIMKey安全增强 ⭐              | [安全机制设计.md](security-design.md)                                        | **v0.38.0更新**,iOS eSIM,5G优化,NFC离线,多卡切换,量子抗性                                |
+| 去中心化社交平台 ⭐            | [modules/02\_去中心化社交模块.md](modules/m02-decentralized-social.md)         | **v1.0.0新增**,P2P通话,共享相册,社区频道,时光机,直播,社交代币                            |
+| IPFS去中心化存储 ⭐            | —                                                                         | **v1.0.0新增**,Helia/Kubo双引擎,内容寻址,P2P CDN                                         |
+| 实时协作系统 ⭐                | —                                                                         | **v1.0.0新增**,Yjs CRDT,P2P实时同步,光标共享,文档锁                                      |
+| 自治Agent Runner ⭐            | —                                                                         | **v1.0.0新增**,ReAct循环,目标分解,自主任务执行                                           |
+| 模型量化系统 ⭐                | —                                                                         | **v1.0.0新增**,GGUF 14级量化,AutoGPTQ,Ollama集成                                         |
+| i18n国际化 ⭐                  | —                                                                         | **v1.0.0新增**,4语言支持,运行时切换                                                      |
+| 性能自动调优 ⭐                | —                                                                         | **v1.0.0新增**,实时监控,参数自动调整,负载预测                                            |
+| 企业组织管理 ⭐                | —                                                                         | **v1.0.0新增**,组织层级,审批工作流,多租户                                                |
+| 去中心化Agent网络 ⭐           | —                                                                         | **v1.1.0新增**,W3C DID身份,Ed25519认证,VC凭证,信誉评分,联邦DHT注册表,跨组织路由 (20 IPC) |
+| 自治运维系统 ⭐                | —                                                                         | **v1.1.0新增**,异常检测,事件管理,Playbook,自动修复,回滚,部署后监控,事后分析 (15 IPC)     |
+| 开发流水线编排 ⭐              | —                                                                         | **v1.1.0新增**,流水线管理,6种部署策略,审批门控,烟雾测试,规范翻译 (15 IPC)                |
+| 多模态协作 ⭐                  | —                                                                         | **v1.1.0新增**,多模态融合,文档解析,跨模态上下文,多格式输出,屏幕录制 (12 IPC)             |
+| 自然语言编程 ⭐                | —                                                                         | **v1.1.0新增**,NL→代码管道,需求解析,项目风格分析 (10 IPC)                                |
+| EvoMap全球知识共享 ⭐          | [17_EvoMap系统.md](modules/m17-evomap.md)                              | **Phase 41新增**,GEP-A2A协议,Gene/Capsule合成,双向同步,隐私过滤,上下文注入 (25 IPC)      |
+| Social AI + ActivityPub ⭐     | [18\_社交AI系统.md](modules/m18-social-ai.md)                             | **Phase 42新增**,主题分析,社交图谱,ActivityPub S2S,WebFinger,AI助手 (18 IPC)             |
+| Compliance + Classification ⭐ | [19\_合规分类系统.md](modules/m19-compliance.md)                         | **Phase 43新增**,SOC2合规,数据分类,DSR处理,合规管理 (12 IPC)                             |
+| SCIM 2.0 Provisioning ⭐       | [20\_企业用户配置系统.md](modules/m20-enterprise-provisioning.md)                 | **Phase 44新增**,SCIM服务器,IdP同步,冲突解决 (8 IPC)                                     |
+| Unified Key + FIDO2 ⭐         | [21\_统一密钥系统.md](modules/m21-unified-key.md)                         | **Phase 45新增**,BIP-32密钥,WebAuthn,跨平台USB (8 IPC)                                   |
+| Threshold + Biometric ⭐       | [21\_统一密钥系统.md](modules/m21-unified-key.md)                         | **Phase 46新增**,Shamir门限签名,TEE生物绑定,份额管理 (8 IPC)                             |
+| BLE U-Key ⭐                   | [21\_统一密钥系统.md](modules/m21-unified-key.md)                         | **Phase 47新增**,GATT服务发现,蓝牙自动重连,设备监控 (4 IPC)                              |
+| Content Recommendation ⭐      | [22\_智能内容推荐系统.md](modules/m22-content-recommendation.md)                 | **Phase 48新增**,本地协同过滤,兴趣画像,智能推荐 (6 IPC)                                  |
+| Nostr Bridge ⭐                | [23_Nostr桥接系统.md](modules/m23-nostr-bridge.md)                        | **Phase 49新增**,NIP-01协议,Relay管理,Schnorr签名,DID互操作 (6 IPC)                      |
+| DLP Prevention ⭐              | [24\_数据防泄漏系统.md](modules/m24b-dlp-prevention.md)                     | **Phase 50新增**,数据泄露检测,敏感数据扫描,策略管理,违规阻断 (8 IPC)                     |
+| SIEM Integration ⭐            | [25\_安全信息事件管理系统.md](modules/m25-siem.md)         | **Phase 51新增**,CEF/LEEF/JSON导出,多目标批量导出 (4 IPC)                                |
+| PQC Migration ⭐               | [21\_统一密钥系统.md](modules/m21-unified-key.md)                         | **Phase 52新增**,ML-KEM/ML-DSA后量子密码,混合模式,迁移执行 (4 IPC)                       |
+| Firmware OTA ⭐                | [21\_统一密钥系统.md](modules/m21-unified-key.md)                         | **Phase 53新增**,固件检查/下载/验证/安装,回滚机制 (4 IPC)                                |
+| AI Governance ⭐               | [26\_社区治理系统.md](modules/m26-community-governance.md)                         | **Phase 54新增**,提案管理,AI影响分析,投票预测 (4 IPC)                                    |
+| Matrix Bridge ⭐               | [27_Matrix集成系统.md](modules/m27-matrix-integration.md)                      | **Phase 55新增**,Matrix CS API,E2EE消息,DID映射 (5 IPC)                                  |
+| Terraform Provider ⭐          | [28\_基础设施编排系统.md](modules/m28-infra-orchestration.md)                 | **Phase 56新增**,IaC集成,工作空间管理,Plan/Apply (4 IPC)                                 |
+| Production Hardening ⭐        | [29\_生产强化系统.md](modules/m29-production-hardening.md)                         | **Phase 57新增**,性能基线,安全审计,回归检测 (6 IPC)                                      |
+| Federation Hardening ⭐        | [30\_联邦强化系统.md](modules/m30-federation-hardening.md)                         | **Phase 58新增**,熔断器,健康检查,连接池管理 (4 IPC)                                      |
+| Stress Test ⭐                 | [31\_压力测试系统.md](modules/m31-stress-testing.md)                         | **Phase 59新增**,联邦压测,并发任务,吞吐量/延迟/P95/P99 (4 IPC)                           |
+| Reputation Optimizer ⭐        | [32\_信誉优化系统.md](modules/m32-reputation-optimizer.md)                         | **Phase 60新增**,贝叶斯优化,Z-Score异常检测 (4 IPC)                                      |
+| SLA Manager ⭐                 | [33\_跨组织SLA管理系统.md](modules/m33-cross-org-sla.md)               | **Phase 61新增**,跨组织SLA合约,违规追踪,合规检查 (5 IPC)                                 |
+| Tech Learning ⭐               | [34\_技术学习引擎系统.md](modules/m34-tech-learning.md)                 | **Phase 62新增**,技术栈检测,最佳实践提取,技能合成 (5 IPC)                                |
+| Autonomous Developer ⭐        | [35\_自主开发者系统.md](modules/m35-autonomous-developer.md)                     | **Phase 63新增**,Intent→PRD→架构→代码→自审 (5 IPC)                                       |
+| Collaboration Governance ⭐    | [36\_协作治理系统.md](modules/m36-collaboration-governance.md)                         | **Phase 64新增**,人机协作审批,渐进式自主级别 (5 IPC)                                     |
+| Skill Marketplace ⭐           | [37\_技能市场系统.md](modules/m37-skill-marketplace.md)                         | **Phase 65-66新增**,技能发布/调用/计费,代币激励,贡献追踪 (10 IPC)                        |
+| Inference Network ⭐           | [38\_去中心化推理网络系统.md](modules/m38-decentralized-inference.md)         | **Phase 67新增**,去中心化推理,节点注册,隐私推理 (6 IPC)                                  |
+| Trust Security ⭐              | [39\_信任安全系统.md](modules/m39-trust-security.md)                         | **Phase 68-71新增**,TPM/TEE/SE信任根,PQC生态,卫星通信,HSM适配 (18 IPC)                   |
+| Protocol Fusion ⭐             | [40\_协议融合系统.md](modules/m40-protocol-fusion.md)                         | **Phase 72-73新增**,四协议桥接,实时翻译,内容质量 (10 IPC)                                |
+| Decentralized Infra ⭐         | [41\_去中心化基础设施系统.md](modules/m41-decentralized-infra.md)         | **Phase 74-75新增**,Filecoin存储,P2P分发,抗审查通信 (10 IPC)                             |
+| EvoMap Advanced ⭐             | [42_EvoMap高级联邦系统.md](modules/m42-evomap-federation.md)              | **Phase 76-77新增**,多Hub联邦,基因谱系,IP保护,治理DAO (10 IPC)                           |
+| IPC域分割+懒加载 ⭐            | [43_IPC域分割与懒加载系统.md](modules/m43-ipc-domain-split.md)        | **Phase 78新增**,10域拆分,懒加载,中间件(限流/权限/计时) (3 IPC)                          |
+| 共享资源层+DI容器 ⭐           | [44\_共享资源层与依赖注入容器.md](modules/m44-di-container.md) | **Phase 79新增**,DI容器,LRU缓存,EventBus,资源池 (4 IPC)                                  |
+| 数据库演进框架 ⭐              | [45\_数据库演进与迁移框架.md](modules/m45-database-migration.md)         | **Phase 80新增**,版本化迁移,SQL构建器,索引优化器 (4 IPC)                                 |
+| A2A协议引擎 ⭐                 | [46_A2A协议引擎.md](modules/m46-a2a-protocol.md)                            | **Phase 81新增**,Google A2A标准,Agent Card,Task生命周期 (8 IPC)                          |
+| 自主工作流编排 ⭐              | [47\_自主工作流编排器.md](modules/m47-workflow-orchestrator.md)                 | **Phase 82新增**,DAG工作流,审批门,断点续执行 (10 IPC)                                    |
+| 层次化记忆2.0 ⭐               | [48\_层次化记忆系统2.0.md](modules/m48-hierarchical-memory.md)               | **Phase 83新增**,4层记忆,遗忘曲线,跨Agent共享 (8 IPC)                                    |
+| 多模态感知层 ⭐                | [49\_多模态感知层.md](modules/m49-multimodal-perception.md)                         | **Phase 84新增**,屏幕理解,语音流,文档解析,视频分析 (8 IPC)                               |
+| Agent经济系统 ⭐               | [50_Agent经济系统.md](modules/m50-agent-economy.md)                        | **Phase 85新增**,State Channel微支付,资源市场,NFT,贡献证明 (10 IPC)                      |
+| 代码生成Agent 2.0 ⭐           | [51\_代码生成Agent2.0.md](modules/m51-code-agent.md)                 | **Phase 86新增**,全栈生成,Git感知,代码审查,脚手架 (8 IPC)                                |
+| Agent安全沙箱2.0 ⭐            | [52_Agent安全沙箱2.0.md](modules/m52-agent-sandbox.md)                  | **Phase 87新增**,WASM隔离,权限白名单,行为AI监控 (6 IPC)                                  |
+| 零知识证明引擎 ⭐              | [53\_零知识证明引擎.md](modules/m53-zkp-engine.md)                     | **Phase 88新增**,zk-SNARK/STARK,Groth16,身份选择性披露 (6 IPC)                           |
+| 跨链互操作协议 ⭐              | [54\_跨链互操作协议.md](modules/m54-cross-chain.md)                     | **Phase 89新增**,EVM+Solana桥接,HTLC原子交换 (8 IPC)                                     |
+| 去中心化身份2.0 ⭐             | [55\_去中心化身份2.0.md](modules/m55-did-v2.md)                   | **Phase 90新增**,W3C DID v2.0,VP协议,社交恢复,漫游 (8 IPC)                               |
+| 隐私计算框架 ⭐                | [56\_隐私计算框架.md](modules/m56-privacy-computing.md)                         | **Phase 91新增**,联邦学习,MPC,差分隐私,同态加密 (8 IPC)                                  |
+| DAO治理2.0 ⭐                  | [57_DAO治理2.0.md](modules/m57-dao-governance.md)                              | **Phase 92新增**,二次方投票,委托,国库管理 (8 IPC)                                        |
+| 低代码平台 ⭐                  | [58\_低代码平台.md](modules/m58-low-code.md)                             | **Phase 93新增**,可视化构建,15组件,数据连接器 (10 IPC)                                   |
+| 企业知识图谱 ⭐                | [59\_企业知识图谱.md](modules/m59-enterprise-kg.md)                         | **Phase 94新增**,实体抽取,图查询,推理引擎,GraphRAG (8 IPC)                               |
+| BI智能分析 ⭐                  | [60_BI智能分析.md](modules/m60-bi-analytics.md)                              | **Phase 95新增**,NL→SQL,OLAP,智能报表,异常检测 (8 IPC)                                   |
+| 工作流自动化 ⭐                | [61\_工作流自动化引擎.md](modules/m61-workflow-automation.md)                 | **Phase 96新增**,12连接器,触发器系统 (10 IPC)                                            |
+| 多租户SaaS ⭐                  | [62\_多租户SaaS引擎.md](modules/m62-multi-tenant-saas.md)                     | **Phase 97新增**,租户隔离,计量计费,4套餐 (8 IPC)                                         |
+| 统一应用运行时 ⭐              | [63\_统一应用运行时.md](modules/m63-unified-runtime.md)                     | **Phase 98新增**,插件SDK 2.0,热更新,Profiler,CRDT同步 (8 IPC)                            |
+| 智能插件生态2.0 ⭐             | [64\_智能插件生态2.0.md](modules/m64-plugin-ecosystem.md)                   | **Phase 99新增**,AI推荐,依赖解析,沙箱,代码审计 (8 IPC)                                   |
+| 自进化AI系统 ⭐                | [65\_自进化AI系统.md](modules/m65-self-evolving-ai.md)                         | **Phase 100新增**,NAS,持续学习,自我修复,行为预测 (8 IPC)                                 |
+| CLI分发系统 ⭐                 | [66_CLI分发系统.md](modules/m66-cli-distribution.md)                            | **Phase 101新增**,npm全局CLI,预构建二进制下载,轻量编排层 (8命令)                         |
+| CLI-Anything集成 ⭐            | [68_CLI-Anything集成.md](modules/m68-cli-anything.md)                  | **v5.0.1新增**,CLI-Anything桥接,外部软件Agent化,managed层技能注册 (5子命令)              |
+| WebSocket服务器接口 ⭐         | [69_WebSocket服务器接口.md](modules/m69-websocket-server.md)            | **v5.0.1新增**,WebSocket远程CLI调用,流式执行,Token认证,有状态会话,SlotFiller,InteractivePlanner (250测试) |
+| Agent智能增强 ⭐               | [70_Agent智能增强系统.md](modules/m70-agent-intelligence.md)                | **v5.0.1新增**,agent-core提取去重,auto pip-install,脚本持久化,错误分类,环境检测 (132测试) |
+| 子代理隔离系统 ⭐              | [71_子代理隔离系统.md](modules/m71-sub-agent-isolation.md)                      | **v5.0.1.7新增**,SubAgentContext上下文隔离,spawn_sub_agent工具,命名空间化记忆,角色工具白名单,三级摘要,生命周期注册表 |
+| AI编排层系统 ⭐                | [74_AI编排层系统.md](modules/m74-orchestration-layer.md)                          | **v5.0.2.4新增**,Claude Code/Codex执行代理,AgentRouter多路路由,CI自动验证,Telegram/微信/钉钉/飞书通知,Webhook接收IM指令 (106测试) |
+| V2 规范层 Governance ⭐        | [V2 规范层 governance](modules/m96-v2-governance.md)                  | **v5.0.2.34 + CLI 0.151.0**,第 1-10 批 + iter11-iter21 累计 **156+ 治理表面**,双状态机（4-state 成熟度 × 5-state 记录生命周期）+ per-owner / per-entity caps + auto-suspend-idle/auto-fail-stuck,严格增量不影响 legacy（iter16-iter21 +2,816 新 V2 单测 · 14,255 单元 / 696 集成 / 565 e2e 全绿） |
+
+### 基础设施设计
+
+| 文档                                   | 说明                                 |
+| -------------------------------------- | ------------------------------------ |
+| [安全机制设计.md](security-design.md)     | U盾/SIMKey硬件安全,密钥管理,备份恢复 |
+| [数据同步方案.md](data-sync-design.md)     | Git同步,HTTP同步,P2P移动端同步       |
+| [AI模型部署方案.md](ai-model-deploy.md) | Ollama本地部署,云端API,模型选型      |
+
+### 参考资料
+
+| 文档                                                              | 说明                                       |
+| ----------------------------------------------------------------- | ------------------------------------------ |
+| [实施总结与附录.md](implementation-summary.md)                            | 实施完成状态,快速开始指南,API文档,版本历史 |
+| [系统设计\_个人移动AI管理系统.md](system-design-full.md) | 原始完整文档(归档)                         |
+
+---
+
+## 一、系统概述
+
+### 1.1 系统定位
+
+本系统是一个**去中心化的个人AI助手平台**,整合了知识库管理、**项目管理(⭐核心)**、**企业版组织协作(⭐新增)**、社交网络和交易辅助五大核心功能,通过U盾(USB Key)和SIMKey提供硬件级安全保障。
+
+**主要应用**: `desktop-app-vue/` (Electron 39.2.7 + Vue 3.4 + TypeScript 5.9.3)
+
+**当前状态** (v5.0.1 Evolution Edition - Phase 1-102全部完成 + v1.2.2 138技能，2026-03-14更新):
+
+| 模块                                    | 桌面端  | iOS     | Android | 说明                                                                                   |
+| --------------------------------------- | ------- | ------- | ------- | -------------------------------------------------------------------------------------- |
+| 知识库管理                              | 100% ✅ | 100% ✅ | 100% ✅ | RAG检索,向量存储,知识图谱可视化                                                        |
+| 项目管理                                | 100% ✅ | -       | 100% ✅ | 对话式任务,AI代码/文档生成,文件导入功能                                                |
+| 企业版协作                              | 100% ✅ | 100% ✅ | 100% ✅ | RBAC权限,组织管理,团队管理 ⭐v0.32.0                                                   |
+| **AI引擎系统**                          | 100% ✅ | 100% ✅ | 100% ✅ | **17项优化全部完成,成功率40%→70%** ⭐v0.27.1                                           |
+| **工作流优化**                          | 100% ✅ | 100% ✅ | -       | **Phase 1-4完成,6,344行代码,LLM成本-70%** ⭐v0.27.1                                    |
+| Cowork多代理                            | 100% ✅ | -       | 100% ✅ | 智能编排+代理池+45 IPC+200+测试 ⭐v0.32.0                                              |
+| MCP集成                                 | 100% ✅ | -       | 100% ✅ | Model Context Protocol + HTTP传输 ⭐v0.32.0                                            |
+| P2P社交                                 | 100% ✅ | 100% ✅ | 100% ✅ | WebRTC音视频,Signal加密,文件传输,P2P UI完整                                            |
+| 交易系统                                | 100% ✅ | -       | -       | 实时交易引擎,6个智能合约                                                               |
+| **SessionManager**                      | 100% ✅ | 100% ✅ | -       | 自动压缩,30-40%令牌节省 ⭐v0.32.0                                                      |
+| **ErrorMonitor**                        | 100% ✅ | -       | -       | LLM诊断,自动修复策略 ⭐v2.0                                                            |
+| **LLM性能仪表板**                       | 100% ✅ | -       | 100% ✅ | 令牌追踪,成本分析,性能监控 ⭐v0.32.0                                                   |
+| **Manus优化**                           | 100% ✅ | -       | -       | Context Engineering + Tool Masking + Multi-Agent ⭐v0.24.0                             |
+| **统一日志系统**                        | 100% ✅ | 100% ✅ | -       | 多级日志,自动清理,敏感数据脱敏 ⭐v0.21.0                                               |
+| **内存泄漏防护**                        | 100% ✅ | -       | -       | 4层防护机制,ChatPanel优化 ⭐v0.26.0                                                    |
+| **E2E测试套件**                         | 100% ✅ | -       | -       | 100%通过率,完整测试覆盖 ⭐v0.26.2                                                      |
+| **永久记忆系统**                        | 100% ✅ | 100% ✅ | -       | Clawdbot风格Daily Notes+MEMORY.md ⭐v0.32.0                                            |
+| **混合搜索引擎**                        | 100% ✅ | -       | -       | Vector+BM25 RRF融合,<20ms延迟 ⭐v0.26.2                                                |
+| **IPC错误中间件**                       | 100% ✅ | -       | -       | 10种错误分类,AI诊断集成 ⭐v0.26.2                                                      |
+| **浏览器自动化**                        | 100% ✅ | -       | -       | **Phase 1-3完成,工作流编辑+智能定位+录制** ⭐v0.29.0                                   |
+| **TypeScript迁移**                      | 100% ✅ | -       | -       | **28个Stores完整迁移,类型安全** ⭐v0.29.0                                              |
+| **Hooks系统**                           | 100% ✅ | 100% ✅ | 100% ✅ | Claude Code风格钩子系统 ⭐v0.32.0                                                      |
+| **知识图谱**                            | 100% ✅ | -       | 100% ✅ | 知识图谱管理和可视化 ⭐v0.32.0                                                         |
+| **语音交互**                            | -       | 100% ✅ | 100% ✅ | TTS客户端+实时语音输入+音频处理 ⭐v0.32.0                                              |
+| **Computer Use**                        | 100% ✅ | -       | -       | **68+ IPC,视觉定位+工作流引擎+安全模式** ⭐v0.33.0                                     |
+| **远程控制系统**                        | 100% ✅ | -       | 100% ✅ | **P2P远程控制,20+处理器,12个UI** ⭐v0.33.0                                             |
+| **浏览器扩展**                          | 100% ✅ | -       | -       | **高级自动化API,原生宿主通信** ⭐v0.33.0                                               |
+| **企业审计系统**                        | 100% ✅ | -       | -       | **统一审计+GDPR合规+DSR+保留策略** ⭐v0.34.0                                           |
+| **插件市场**                            | 100% ✅ | -       | -       | **浏览/安装/评分/发布+自动更新** ⭐v0.34.0                                             |
+| **专业化多代理**                        | 100% ✅ | -       | -       | **8种代理模板+任务编排+5内置技能** ⭐v0.34.0                                           |
+| **SSO企业认证**                         | 100% ✅ | -       | -       | **SAML 2.0+OAuth 2.0/OIDC+PKCE+DID关联** ⭐v0.34.0                                     |
+| **MCP SDK**                             | 100% ✅ | -       | -       | **Server Builder+HTTP+SSE+社区注册中心** ⭐v0.34.0                                     |
+| **AI技能系统**                          | 100% ✅ | -       | 100% ✅ | **138技能(100% Handler)+统一工具注册表+10演示模板** ⭐v1.2.2                           |
+| **SIMKey安全增强**                      | 100% ✅ | 100% ✅ | 100% ✅ | **iOS eSIM+5G优化+NFC离线签名+多SIM卡切换+健康监控+量子抗性** ⭐v0.38.0                |
+| **P2P语音/视频通话**                    | 100% ✅ | -       | -       | **WebRTC+DTLS-SRTP+SFU中继+2-8人会议室+屏幕共享** ⭐v1.0.0                             |
+| **社区与频道**                          | 100% ✅ | -       | -       | **Gossip协议分发+角色权限+治理投票引擎+社区经济模型** ⭐v1.0.0                         |
+| **时光机**                              | 100% ✅ | -       | -       | **AI记忆摘要+情感分析+历史回放+重要时刻提取** ⭐v1.0.0                                 |
+| **共享加密相册**                        | 100% ✅ | -       | -       | **E2E加密+EXIF擦除+访问控制+版本管理** ⭐v1.0.0                                        |
+| **去中心化直播**                        | 100% ✅ | -       | -       | **IPFS视频流+弹幕系统+打赏机制+P2P CDN** ⭐v1.0.0                                      |
+| **社交代币**                            | 100% ✅ | -       | -       | **ERC-20社交积分+创作者经济+治理投票** ⭐v1.0.0                                        |
+| **IPFS去中心化存储**                    | 100% ✅ | -       | -       | **Helia/Kubo双引擎+内容寻址+P2P CDN+自动固定策略** ⭐v1.0.0                            |
+| **实时协作(CRDT/Yjs)**                  | 100% ✅ | -       | -       | **Yjs冲突解决+P2P实时同步+光标共享+文档锁+协作历史** ⭐v1.0.0                          |
+| **自治Agent Runner**                    | 100% ✅ | -       | -       | **ReAct循环+目标分解+自主任务执行+检查点恢复** ⭐v1.0.0                                |
+| **模型量化系统**                        | 100% ✅ | -       | -       | **GGUF 14级量化+AutoGPTQ Python桥接+Ollama导入** ⭐v1.0.0                              |
+| **i18n国际化**                          | 100% ✅ | -       | -       | **4语言(中/英/日/韩)+运行时切换+AI提示词本地化** ⭐v1.0.0                              |
+| **性能自动调优**                        | 100% ✅ | -       | -       | **实时监控+参数自动调整+内存预警+负载预测** ⭐v1.0.0                                   |
+| **企业组织管理**                        | 100% ✅ | -       | -       | **组织层级+审批工作流+多租户+权限继承** ⭐v1.0.0                                       |
+| **分析仪表板**                          | 100% ✅ | -       | -       | **实时数据聚合+多维指标+可视化报表+趋势分析** ⭐v1.0.0                                 |
+| **去中心化Agent网络**                   | 100% ✅ | -       | -       | **W3C DID+Ed25519认证+VC凭证+信誉评分+联邦DHT注册表+跨组织任务路由 (20 IPC)** ⭐v1.1.0 |
+| **自治运维系统**                        | 100% ✅ | -       | -       | **异常检测+事件管理+Playbook+自动修复+回滚+部署后监控+AI事后分析 (15 IPC)** ⭐v1.1.0   |
+| **开发流水线编排**                      | 100% ✅ | -       | -       | **流水线管理+6种部署策略+审批门控+烟雾测试+制品管理+规范翻译 (15 IPC)** ⭐v1.1.0       |
+| **多模态协作**                          | 100% ✅ | -       | -       | **多模态融合+文档解析+跨模态上下文+多格式输出+屏幕录制 (12 IPC)** ⭐v1.1.0             |
+| **自然语言编程**                        | 100% ✅ | -       | -       | **NL→代码管道+需求结构化解析+项目风格检测+代码约定提取 (10 IPC)** ⭐v1.1.0             |
+| **EvoMap知识共享 (Phase 41)**           | 100% ✅ | -       | -       | **GEP-A2A协议+Gene/Capsule合成+双向同步+隐私过滤+上下文注入 (25 IPC)** ⭐v1.1.0-alpha  |
+| **Social AI (Phase 42)**                | 100% ✅ | -       | -       | **主题分析+社交图谱+ActivityPub S2S+WebFinger+AI助手 (18 IPC)** ⭐v1.1.0-alpha         |
+| **Compliance (Phase 43)**               | 100% ✅ | -       | -       | **SOC2合规+数据分类+DSR处理+合规管理 (12 IPC)** ⭐v1.1.0-alpha                         |
+| **SCIM 2.0 (Phase 44)**                 | 100% ✅ | -       | -       | **SCIM服务器+IdP同步+冲突解决 (8 IPC)** ⭐v1.1.0-alpha                                 |
+| **Unified Key (Phase 45)**              | 100% ✅ | -       | -       | **BIP-32密钥+WebAuthn FIDO2+跨平台USB (8 IPC)** ⭐v1.1.0-alpha                         |
+| **Threshold Security (Phase 46)**       | 100% ✅ | -       | -       | **Shamir门限签名+TEE生物绑定+份额管理 (8 IPC)** ⭐v1.1.0-alpha                         |
+| **BLE U-Key (Phase 47)**                | 100% ✅ | -       | -       | **GATT服务发现+蓝牙自动重连+设备监控 (4 IPC)** ⭐v1.1.0-alpha                          |
+| **Content Recommendation (Phase 48)**   | 100% ✅ | -       | -       | **本地协同过滤+兴趣画像+智能推荐 (6 IPC)** ⭐v1.1.0-alpha                              |
+| **Nostr Bridge (Phase 49)**             | 100% ✅ | -       | -       | **NIP-01协议+Relay管理+Schnorr签名 (6 IPC)** ⭐v1.1.0-alpha                            |
+| **DLP Prevention (Phase 50)**           | 100% ✅ | -       | -       | **数据泄露检测+敏感扫描+违规阻断 (8 IPC)** ⭐v1.1.0-alpha                              |
+| **SIEM Integration (Phase 51)**         | 100% ✅ | -       | -       | **CEF/LEEF/JSON导出+Syslog传输 (4 IPC)** ⭐v1.1.0-alpha                                |
+| **PQC Migration (Phase 52)**            | 100% ✅ | -       | -       | **ML-KEM/ML-DSA密钥+混合模式+迁移执行 (4 IPC)** ⭐v1.1.0-alpha                         |
+| **Firmware OTA (Phase 53)**             | 100% ✅ | -       | -       | **固件检查+下载验证+自动安装+回滚 (4 IPC)** ⭐v1.1.0-alpha                             |
+| **AI Governance (Phase 54)**            | 100% ✅ | -       | -       | **提案管理+AI影响分析+投票预测 (4 IPC)** ⭐v1.1.0-alpha                                |
+| **Matrix Bridge (Phase 55)**            | 100% ✅ | -       | -       | **Matrix CS API+E2EE消息+房间管理 (5 IPC)** ⭐v1.1.0-alpha                             |
+| **Terraform Provider (Phase 56)**       | 100% ✅ | -       | -       | **工作空间管理+Plan/Apply+状态管理 (4 IPC)** ⭐v1.1.0-alpha                            |
+| **Production Hardening (Phase 57)**     | 100% ✅ | -       | -       | **性能基线+安全审计+回归检测 (6 IPC)** ⭐v1.1.0-alpha                                  |
+| **Federation Hardening (Phase 58)**     | 100% ✅ | -       | -       | **熔断器+健康检查+连接池管理 (4 IPC)** ⭐v1.1.0-alpha                                  |
+| **Stress Test (Phase 59)**              | 100% ✅ | -       | -       | **联邦压测+吞吐量/延迟/P95/P99 (4 IPC)** ⭐v1.1.0-alpha                                |
+| **Reputation Optimizer (Phase 60)**     | 100% ✅ | -       | -       | **贝叶斯优化+Z-Score异常检测 (4 IPC)** ⭐v1.1.0-alpha                                  |
+| **SLA Manager (Phase 61)**              | 100% ✅ | -       | -       | **跨组织SLA合约+违规追踪+合规检查 (5 IPC)** ⭐v1.1.0-alpha                             |
+| **Tech Learning (Phase 62)**            | 100% ✅ | -       | -       | **技术栈检测+最佳实践提取+技能合成 (5 IPC)** ⭐v1.1.0-alpha                            |
+| **Autonomous Developer (Phase 63)**     | 100% ✅ | -       | -       | **Intent→PRD→架构→代码→自审 (5 IPC)** ⭐v1.1.0-alpha                                   |
+| **Collaboration Governance (Phase 64)** | 100% ✅ | -       | -       | **人机协作审批+渐进式自主级别 (5 IPC)** ⭐v1.1.0-alpha                                 |
+| **Skill Service (Phase 65)**            | 100% ✅ | -       | -       | **技能发布+远程调用+计费 (5 IPC)** ⭐v3.1.0                                            |
+| **Token Incentive (Phase 66)**          | 100% ✅ | -       | -       | **代币激励+贡献追踪+信誉权重 (5 IPC)** ⭐v3.1.0                                        |
+| **Inference Network (Phase 67)**        | 100% ✅ | -       | -       | **去中心化推理+节点注册+隐私推理 (6 IPC)** ⭐v3.1.0                                    |
+| **Trust Root (Phase 68)**               | 100% ✅ | -       | -       | **TPM/TEE/SE三位一体信任根+远程证明 (5 IPC)** ⭐v3.2.0                                 |
+| **PQC Ecosystem (Phase 69)**            | 100% ✅ | -       | -       | **PQC全面迁移+互操作测试+迁移计划 (4 IPC)** ⭐v3.2.0                                   |
+| **Satellite Comm (Phase 70)**           | 100% ✅ | -       | -       | **Iridium/Starlink/Beidou+密钥撤销广播 (5 IPC)** ⭐v3.2.0                              |
+| **HSM Adapter (Phase 71)**              | 100% ✅ | -       | -       | **多厂商HSM适配+FIPS-140-3合规 (4 IPC)** ⭐v3.2.0                                      |
+| **Protocol Fusion (Phase 72)**          | 100% ✅ | -       | -       | **DID/AP/Nostr/Matrix四协议桥接 (5 IPC)** ⭐v3.3.0                                     |
+| **AI Social Enhancement (Phase 73)**    | 100% ✅ | -       | -       | **实时翻译+内容质量评估+有害检测 (5 IPC)** ⭐v3.3.0                                    |
+| **Decentralized Storage (Phase 74)**    | 100% ✅ | -       | -       | **Filecoin存储+P2P内容分发+IPLD版本 (5 IPC)** ⭐v3.3.0                                 |
+| **Anti-Censorship (Phase 75)**          | 100% ✅ | -       | -       | **Tor隐藏服务+域前置+Mesh网络 (5 IPC)** ⭐v3.3.0                                       |
+| **EvoMap Federation (Phase 76)**        | 100% ✅ | -       | -       | **多Hub联邦同步+基因谱系+进化压力 (5 IPC)** ⭐v3.4.0                                   |
+| **EvoMap Governance (Phase 77)**        | 100% ✅ | -       | -       | **DID+VC IP保护+治理DAO+投票 (5 IPC)** ⭐v3.4.0                                        |
+| **IPC域分割+懒加载 (Phase 78)**         | 100% ✅ | -       | -       | **10域拆分+懒加载+中间件(限流/权限/计时) (3 IPC)** ⭐v5.0.0                             |
+| **DI容器+共享资源层 (Phase 79)**        | 100% ✅ | -       | -       | **DI容器+LRU缓存+EventBus+资源池 (4 IPC)** ⭐v5.0.0                                    |
+| **数据库演进框架 (Phase 80)**           | 100% ✅ | -       | -       | **版本化迁移+SQL构建器+索引优化器 (4 IPC)** ⭐v5.0.0                                    |
+| **A2A协议引擎 (Phase 81)**              | 100% ✅ | -       | -       | **Google A2A标准+Agent Card+Task生命周期 (8 IPC)** ⭐v5.0.0                             |
+| **自主工作流编排 (Phase 82)**           | 100% ✅ | -       | -       | **DAG工作流+审批门+断点续执行 (10 IPC)** ⭐v5.0.0                                      |
+| **层次化记忆2.0 (Phase 83)**            | 100% ✅ | -       | -       | **4层记忆+遗忘曲线+跨Agent共享 (8 IPC)** ⭐v5.0.0                                      |
+| **多模态感知层 (Phase 84)**             | 100% ✅ | -       | -       | **屏幕理解+语音流+文档解析+视频分析 (8 IPC)** ⭐v5.0.0                                  |
+| **Agent经济系统 (Phase 85)**            | 100% ✅ | -       | -       | **State Channel微支付+资源市场+NFT+贡献证明 (10 IPC)** ⭐v5.0.0                        |
+| **代码生成Agent 2.0 (Phase 86)**        | 100% ✅ | -       | -       | **全栈生成+Git感知+代码审查+脚手架 (8 IPC)** ⭐v5.0.0                                  |
+| **Agent安全沙箱2.0 (Phase 87)**         | 100% ✅ | -       | -       | **WASM隔离+权限白名单+行为AI监控 (6 IPC)** ⭐v5.0.0                                    |
+| **零知识证明引擎 (Phase 88)**           | 100% ✅ | -       | -       | **zk-SNARK/STARK+Groth16+身份选择性披露 (6 IPC)** ⭐v5.0.0                             |
+| **跨链互操作协议 (Phase 89)**           | 100% ✅ | -       | -       | **EVM+Solana桥接+HTLC原子交换 (8 IPC)** ⭐v5.0.0                                       |
+| **去中心化身份2.0 (Phase 90)**          | 100% ✅ | -       | -       | **W3C DID v2.0+VP协议+社交恢复+漫游 (8 IPC)** ⭐v5.0.0                                 |
+| **隐私计算框架 (Phase 91)**             | 100% ✅ | -       | -       | **联邦学习+MPC+差分隐私+同态加密 (8 IPC)** ⭐v5.0.0                                    |
+| **DAO治理2.0 (Phase 92)**               | 100% ✅ | -       | -       | **二次方投票+委托+国库管理 (8 IPC)** ⭐v5.0.0                                          |
+| **低代码平台 (Phase 93)**               | 100% ✅ | -       | -       | **可视化构建+15组件+数据连接器 (10 IPC)** ⭐v5.0.0                                     |
+| **企业知识图谱 (Phase 94)**             | 100% ✅ | -       | -       | **实体抽取+图查询+推理引擎+GraphRAG (8 IPC)** ⭐v5.0.0                                 |
+| **BI智能分析 (Phase 95)**               | 100% ✅ | -       | -       | **NL→SQL+OLAP+智能报表+异常检测 (8 IPC)** ⭐v5.0.0                                     |
+| **工作流自动化 (Phase 96)**             | 100% ✅ | -       | -       | **12连接器+触发器系统 (10 IPC)** ⭐v5.0.0                                              |
+| **多租户SaaS (Phase 97)**               | 100% ✅ | -       | -       | **租户隔离+计量计费+4套餐 (8 IPC)** ⭐v5.0.0                                           |
+| **统一应用运行时 (Phase 98)**           | 100% ✅ | -       | -       | **插件SDK 2.0+热更新+Profiler+CRDT同步 (8 IPC)** ⭐v5.0.0                              |
+| **智能插件生态2.0 (Phase 99)**          | 100% ✅ | -       | -       | **AI推荐+依赖解析+沙箱+代码审计 (8 IPC)** ⭐v5.0.0                                     |
+| **自进化AI系统 (Phase 100)**            | 100% ✅ | -       | -       | **NAS+持续学习+自我修复+行为预测 (8 IPC)** ⭐v5.0.0                                    |
+| **CLI分发系统 (Phase 101-102)**          | 100% ✅ | -       | -       | **npm全局CLI+预构建二进制下载+2503测试 (61命令/113文件)+Context Engineering+Autonomous Agent+EvoMap+10 LLM Providers+3 Proxy Relays+Task Model Selector+CLI-Anything+WebSocket Sessions+Agent Intelligence** ⭐v5.0.1 |
+
+**总体完成度**:
+
+- **桌面端**: 100% (v5.0.1.6 Evolution Edition, Phase 1-102全部完成: Phase 41-77 全面实现 + Phase 78 IPC域分割 + Phase 79 DI容器 + Phase 80 数据库演进 + Phase 81 A2A协议 + Phase 82 工作流编排 + Phase 83 层次化记忆2.0 + Phase 84 多模态感知 + Phase 85 Agent经济 + Phase 86 代码生成Agent 2.0 + Phase 87 安全沙箱2.0 + Phase 88 零知识证明 + Phase 89 跨链互操作 + Phase 90 DID 2.0 + Phase 91 隐私计算 + Phase 92 DAO治理2.0 + Phase 93 低代码平台 + Phase 94 企业知识图谱 + Phase 95 BI智能分析 + Phase 96 工作流自动化 + Phase 97 多租户SaaS + Phase 98 统一运行时 + Phase 99 插件生态2.0 + Phase 100 自进化AI + Phase 101-102 CLI分发+高级功能+CLI-Anything集成+WebSocket Sessions+Agent Intelligence + 138技能)
+- **iOS**: 100% (所有核心模块完成,语音交互+永久记忆+权限系统+eSIM SIMKey ⭐v0.38.0)
+- **Android**: 100% (全功能完成,MCP/Hooks/协作/性能模块+SIMKey增强 ⭐v0.38.0)
+
+### 1.2 核心特性
+
+- **完全去中心化**: 数据存储在用户自己的设备上,不依赖第三方云服务
+- **硬件安全**: 基于U盾/SIMKey的硬件级密钥保护,支持后量子密码学(ML-KEM/ML-DSA/SLH-DSA)
+- **SIMKey v0.38.0**: iOS eSIM支持 + 5G SIM卡优化(3-5x) + NFC离线签名 + 多SIM卡自动切换 + 健康监控 + 量子抗性
+- **v5.0.1 Evolution Edition (Phase 1-102)**: 138技能 + CLI分发系统(npm全局安装+61命令+2063测试+项目初始化+多层技能系统+多智能体协作+6维Context Engineering+Autonomous Agent+EvoMap基因交换+10 LLM Providers+3 Proxy Relays+Task Model Selector+DAG计划执行+Hook管道+Content Recommender+CLI-Anything集成+WebSocket Server) + Phase 78-100全部完成(IPC域分割+DI容器+数据库演进+A2A协议+工作流编排+层次化记忆2.0+多模态感知+Agent经济+代码生成Agent 2.0+安全沙箱2.0+ZKP引擎+跨链桥+DID 2.0+隐私计算+DAO治理2.0+低代码平台+企业知识图谱+BI分析+工作流自动化+多租户SaaS+统一运行时+插件生态2.0+自进化AI)
+- **v1.1.0-alpha (Phase 41-56)**: EvoMap全球Agent知识共享(GEP-A2A协议+Gene/Capsule合成+双向同步) + Social AI(主题分析+社交图谱+ActivityPub S2S) + 企业合规(SOC2+数据分类+DSR) + SCIM 2.0(IdP同步+冲突解决) + 统一密钥(BIP-32+FIDO2+跨平台USB) + 门限签名(Shamir 2-of-3) + BLE U-Key + 智能推荐 + Nostr桥接 + DLP防泄漏 + SIEM对接 + 后量子密码迁移(ML-KEM/ML-DSA) + 固件OTA升级 + AI社区治理 + Matrix集成(E2EE) + Terraform Provider
+- **v1.1.0 Enterprise Edition**: Cowork去中心化Agent网络(W3C DID+VC凭证+联邦DHT+跨组织路由) + 自治运维系统(异常检测+Playbook+自动修复) + 开发流水线编排(6种部署策略) + 多模态协作(文本/图像/音频/视频) + 自然语言编程(NL→代码)
+- **v1.0.0 Enterprise Edition**: P2P语音/视频通话 + 社区频道 + 时光机 + 去中心化直播 + 社交代币 + IPFS存储 + 实时协作(CRDT/Yjs) + 自治Agent Runner + 模型量化系统 + i18n国际化 + 性能自动调优 + 企业组织管理 + 分析仪表板
+- **跨设备同步**: Git同步 + HTTP同步 + P2P移动端同步
+- **AI增强**: 集成本地大模型(Ollama)和14+云端LLM API,支持RAG检索增强
+- **隐私优先**: 用户完全掌控自己的数据和AI模型
+- **对话式项目管理**: AI驱动的项目创建、文件生成和智能任务拆解
+- **多身份切换**: 个人身份+多组织身份,数据完全隔离
+
+### 1.2.1 最近更新 (v5.0.1)
+
+**CLI分发系统 + Phase 78-102全部完成 + 138技能** (2026-03-14) ⭐ Evolution Edition:
+
+**CLI分发系统 (Phase 101-102)** (61命令, 2503测试, 113文件):
+
+- ✅ **npm全局CLI** (`chainlesschain` / `cc` / `clc` / `clchain`) - `npm install -g chainlesschain`一键安装，支持4个等价命令别名
+- ✅ **Phase 1-9命令** - 系统管理 + AI智能 + 知识管理 + MCP集成 + 安全身份 + P2P企业 + Hook/Workflow/A2A + Agent经济/ZKP/BI + 低代码/EvoMap
+- ✅ **预构建二进制下载** - GitHub Release自动下载,平台检测,校验完整性
+- ✅ **2503测试通过** - 118 core测试 + 2385 CLI测试,113个测试文件
+- ✅ **6维Context Engineering** — Instinct/Memory/BM25 Notes/Task/Permanent Memory/Compaction Summary + KV-Cache稳定前缀缓存 + 智能压缩(含可恢复摘要)
+- ✅ **Autonomous Agent** — ReAct自主任务循环(`/auto`命令) + 目标分解 + 自我纠正
+- ✅ **多Provider支持** — 10个LLM提供商(ollama/openai/anthropic/deepseek/dashscope/gemini/mistral/volcengine/kimi/minimax) + 3个代理中转(openai-proxy/anthropic-proxy/gemini-proxy) + 任务智能模型选择
+- ✅ **DAG计划执行+风险评估** — `/plan execute`按依赖拓扑排序 + `/plan risk`风险评分
+- ✅ **EvoMap基因交换** — `evomap search|download|publish|list|hubs` GEP-A2A协议客户端
+- ✅ **CLI-Anything集成** — `cli-anything doctor|scan|register|list|remove` 外部软件Agent化桥接 (56测试)
+- ✅ **WebSocket服务器** — `serve` 命令通过WebSocket暴露全部CLI命令,支持execute/stream/cancel+Token认证+心跳+注入防护 (54测试)
+- ✅ **WebSocket有状态会话** — agent-core/chat-core提取+WSSessionManager+InteractionAdapter+SlotFiller+InteractivePlanner (250测试)
+- ✅ **Agent智能增强** — agent-core.js提取去重+auto pip-install+脚本持久化+错误分类(5种)+环境检测+Desktop agent模式 (132测试)
+- ✅ **子代理隔离系统** — SubAgentContext上下文隔离+spawn_sub_agent工具+命名空间化记忆+作用域上下文引擎+角色工具白名单+三级摘要+SubAgentRegistry生命周期管理
+- ✅ **SlotFiller意图检测** — `detectIntent()` 9种意图类型(create_file/deploy/refactor/test/analyze/search/install/generate/edit_file)+实体提取
+- ✅ **Hook管道** — PreToolUse/PostToolUse/ToolError工具调用钩子集成
+- ✅ **Content Recommender** — TF-IDF工具相似度 + 工具链频率推荐
+- ✅ **项目初始化** (`init`) — 7种模板(code-project/data-science/devops/medical-triage/agriculture-expert/general-assistant/空项目),生成 `.chainlesschain/` 项目结构
+- ✅ **Persona 系统** — 项目级AI角色配置(`persona show/set/reset`),自动替换默认编码助手 system prompt,工具权限控制(toolsDisabled/toolsPriority),自动激活Persona Skill
+- ✅ **多层技能系统** — 4层优先级(bundled < marketplace < managed < workspace),自定义技能管理(add/remove/sources)
+- ✅ **多智能体协作** (`cowork`) — 多视角辩论审查(debate) + A/B方案对比(compare) + 代码分析(analyze)
+- ✅ **5个核心包** - core-env, shared-logger, core-infra, core-config, core-db
+
+**Phase 78-100 重大特性**:
+
+- ✅ **IPC域分割** (Phase 78) - 10域拆分+懒加载+限流/权限/计时中间件
+- ✅ **DI容器** (Phase 79) - 依赖注入+LRU缓存+EventBus+资源池
+- ✅ **A2A协议** (Phase 81) - Google A2A标准+Agent Card+Task生命周期
+- ✅ **Agent经济** (Phase 85) - State Channel微支付+资源市场+NFT
+- ✅ **ZKP引擎** (Phase 88) - zk-SNARK/STARK+Groth16+选择性披露
+- ✅ **跨链桥** (Phase 89) - EVM+Solana桥接+HTLC原子交换
+- ✅ **低代码平台** (Phase 93) - 可视化构建+15组件+数据连接器
+- ✅ **自进化AI** (Phase 100) - NAS+持续学习+自我修复+行为预测
+
+### 1.2.1.1 更新历史 (v1.1.0)
+
+**Cowork去中心化Agent网络 + 自治运维系统 + 开发流水线编排 + 多模态协作 + 自然语言编程** (2026-02-25) ⭐ 重大更新 - Cowork v4.0升级:
+
+**去中心化Agent网络 (v4.0)** (20个IPC处理器, 3张新DB表):
+
+- ✅ **Agent DID身份** (`agent-did.js`) - W3C标准去中心化标识符，Ed25519密钥对，能力访问控制，生命周期管理
+- ✅ **Agent认证** (`agent-authenticator.js`) - 挑战-响应协议，三种认证方式，1小时会话TTL
+- ✅ **Agent凭证管理** (`agent-credential-manager.js`) - W3C VC规范，签发/验证/吊销，凭证链验证
+- ✅ **Agent信誉系统** (`agent-reputation.js`) - 加权评分，4级等级，闲置衰减，任务统计
+- ✅ **联邦Agent注册表** (`federated-agent-registry.js`) - Kademlia DHT启发，K桶路由，3种发现模式
+- ✅ **跨组织任务路由** (`cross-org-task-router.js`) - 4种路由策略，50并发上限，5分钟超时
+- ✅ **去中心化网络IPC** (`decentralized-network-ipc.js`) - 20个IPC处理器统一管理
+
+**自治运维系统 (v3.3)** (15个IPC处理器, 2张新DB表):
+
+- ✅ **事件管理** - 异常检测，事件分级，基线管理，状态追踪
+- ✅ **Playbook执行** - 修复剧本库，自动触发，执行记录
+- ✅ **自动修复器** (`auto-remediator.js`) + **回滚管理器** (`rollback-manager.js`) + **告警管理器** (`alert-manager.js`)
+- ✅ **部署后监控** (`post-deploy-monitor.js`) + **事后分析生成** (`postmortem-generator.js`)
+
+**开发流水线编排 (v3.0)** (15个IPC处理器):
+
+- ✅ **流水线管理** - 完整生命周期(创建/启动/暂停/恢复/取消)，审批门控
+- ✅ **部署代理** (`deploy-agent.js`) - 6种策略(GIT_PR/DOCKER/NPM_PUBLISH/LOCAL/STAGING)，烟雾测试
+- ✅ **规范翻译器** (`spec-translator.js`) - 技术规范文档格式转换
+
+**多模态协作 (v3.2)** (12个IPC处理器, 2张新DB表):
+
+- ✅ **多模态融合** (`modality-fusion.js`) + **文档解析** (`document-parser.js`)
+- ✅ **跨模态上下文** (`multimodal-context.js`) + **多格式输出** (`multimodal-output.js`) + **屏幕录制** (`screen-recorder.js`)
+
+**自然语言编程 (v3.1)** (10个IPC处理器):
+
+- ✅ **NL→代码管道** (`nl-programming-ipc.js`) + **需求解析** (`requirement-parser.js`) + **风格分析** (`project-style-analyzer.js`)
+
+**版本统计提升**:
+
+| 指标           | v1.0.0   | v1.1.0   | 提升               |
+| -------------- | -------- | -------- | ------------------ |
+| Cowork IPC总量 | 166+     | 238+     | **+72个IPC处理器** |
+| Cowork模块数   | 31个文件 | 56个文件 | **+25个新模块**    |
+| 数据库表数     | 50+张    | 57+张    | **+7张新表**       |
+
+---
+
+### 1.2.1.2 最新更新 - Phase 52-56 (Q4 2026)
+
+**后量子密码迁移 + 固件OTA升级 + AI社区治理 + Matrix集成 + Terraform Provider** (2026-02-27) ⭐ Phase 3扩展 - 21个新IPC处理器，10张新数据库表，5个新前端路由
+
+**Phase 52 — 后量子密码迁移 (Post-Quantum Cryptography)** (4个IPC处理器, 2张新DB表):
+
+- ✅ **PQC Migration Manager** (`ukey/pqc-migration-manager.js`) - NIST后量子密码算法集成
+  - ML-KEM (Module-Lattice-Based Key-Encapsulation Mechanism) - 格基密钥封装，3种安全级别(512/768/1024)
+  - ML-DSA (Module-Lattice-Based Digital Signature Algorithm) - 格基数字签名
+  - 混合加密模式 - PQC + 经典算法(RSA/ECDSA)双重保护，向后兼容
+  - 迁移计划执行 - 批量密钥轮换，风险评估，进度追踪
+- ✅ **PQC IPC** (`ukey/pqc-ipc.js`) - 4个处理器(list-pqc-keys, generate-pqc-key, get-migration-status, execute-migration)
+- ✅ **数据库**: `pqc_keys` (密钥存储) + `pqc_migration_status` (迁移状态追踪)
+- ✅ **Pinia Store**: `pqcMigration.ts` - 密钥列表，迁移进度，算法选择
+- ✅ **前端UI**: PQCMigrationPage - 算法对比/迁移计划/进度监控/兼容性检查
+
+**Phase 53 — 固件空中升级 (Firmware OTA)** (4个IPC处理器, 2张新DB表):
+
+- ✅ **Firmware OTA Manager** (`ukey/firmware-ota-manager.js`) - U-Key固件远程更新
+  - 固件版本检查 - 服务器版本查询，增量更新检测
+  - OTA下载 - 分块传输，断点续传，进度回调
+  - 签名验证 - Ed25519数字签名，防篡改保护
+  - 自动安装 - 固件刷写，设备重启，版本确认
+  - 回滚机制 - 版本历史管理，一键回滚到上一版本
+- ✅ **Firmware OTA IPC** (`ukey/firmware-ota-ipc.js`) - 4个处理器(check-updates, list-versions, start-update, get-history)
+- ✅ **数据库**: `firmware_versions` (版本库) + `firmware_update_log` (更新日志)
+- ✅ **Pinia Store**: `firmwareOta.ts` - 版本列表，更新进度，历史记录
+- ✅ **前端UI**: FirmwareOTAPage - 版本对比/更新日志/进度条/回滚操作
+
+**Phase 54 — AI社区治理 (AI-Powered Governance)** (4个IPC处理器, 2张新DB表):
+
+- ✅ **Governance AI** (`social/governance-ai.js`) - AI驱动的去中心化社区治理
+  - 提案管理 - CRUD操作，提案状态追踪(draft/active/passed/rejected)
+  - AI影响分析 - 利益相关方识别，风险评估，ROI预测
+  - LLM投票预测 - 基于历史投票数据的sentiment分析，投票结果预测
+  - 治理工作流 - 提案审核，投票期管理，执行追踪
+- ✅ **Governance IPC** (`social/governance-ipc.js`) - 4个处理器(list-proposals, create-proposal, analyze-impact, predict-vote)
+- ✅ **数据库**: `governance_proposals` (提案) + `governance_votes` (投票记录)
+- ✅ **Pinia Store**: `governance.ts` - 提案列表，AI分析，投票预测
+- ✅ **前端UI**: GovernancePage - 提案列表/AI影响分析/投票预测/提案创建
+
+**Phase 55 — Matrix协议集成 (Matrix Bridge)** (5个IPC处理器, 2张新DB表):
+
+- ✅ **Matrix Bridge** (`social/matrix-bridge.js`) - Matrix去中心化通信协议集成
+  - Matrix Client-Server API - 登录/注册，会话管理
+  - 房间管理 - 创建/加入/离开/邀请，房间列表同步
+  - E2EE消息 - Olm/Megolm端到端加密，设备验证
+  - 事件同步 - since token增量同步，历史消息查询
+  - DID互操作 - DID↔MXID身份映射，跨协议通信
+- ✅ **Matrix IPC** (`social/matrix-ipc.js`) - 5个处理器(login, list-rooms, send-message, get-messages, join-room)
+- ✅ **数据库**: `matrix_rooms` (房间) + `matrix_events` (事件)
+- ✅ **Pinia Store**: `matrixBridge.ts` - 房间列表，消息流，E2EE密钥
+- ✅ **前端UI**: MatrixBridgePage - 登录/房间列表/消息时间线/E2EE指示器
+
+**Phase 56 — Terraform Provider (IaC Integration)** (4个IPC处理器, 2张新DB表):
+
+- ✅ **Terraform Manager** (`enterprise/terraform-manager.js`) - 基础设施即代码集成
+  - 工作空间管理 - CRUD操作，变量配置，环境隔离
+  - Plan/Apply/Destroy - Terraform运行管理，状态锁定
+  - 状态管理 - 状态版本控制，远程状态后端
+  - 运行历史 - 执行日志，输出读取，错误追踪
+- ✅ **Terraform IPC** (`enterprise/terraform-ipc.js`) - 4个处理器(list-workspaces, create-workspace, plan-run, list-runs)
+- ✅ **数据库**: `terraform_workspaces` (工作空间) + `terraform_runs` (运行历史)
+- ✅ **Pinia Store**: `terraform.ts` - 工作空间列表，运行历史，状态版本
+- ✅ **前端UI**: TerraformProviderPage - 工作空间管理/Plan预览/Apply执行
+
+**配置新增** (5个新配置段):
+
+- ✅ `pqc` - 后量子密码配置(默认算法, 混合模式, 迁移策略)
+- ✅ `firmwareOta` - 固件OTA配置(检查间隔, 自动更新, 下载超时)
+- ✅ `governance` - 社区治理配置(提案门槛, 投票期限, quorum要求)
+- ✅ `matrix` - Matrix配置(homeserver URL, 同步超时, E2EE启用)
+- ✅ `terraform` - Terraform配置(工作空间路径, 状态后端, 并发运行数)
+
+**Context Engineering集成**:
+
+- ✅ step 4.13: 后量子密码上下文注入(`setPQCManager()`)
+- ✅ step 4.14: 社区治理AI上下文注入(`setGovernanceAI()`)
+
+**版本统计提升**:
+
+| 指标                | Phase 46-51 | Phase 52-56 | 累计                  |
+| ------------------- | ----------- | ----------- | --------------------- |
+| 新增IPC处理器       | 36个        | 21个        | **57个**              |
+| 新增数据库表        | 9张         | 10张        | **19张**              |
+| 新增前端路由        | 6个         | 5个         | **11个**              |
+| 新增Pinia Stores    | 6个         | 5个         | **11个**              |
+| Context Engineering | 2个setter   | 2个setter   | **4个新setter**       |
+| 总IPC处理器数       | -           | -           | **259+ (238+21)**     |
+| 总数据库表数        | -           | -           | **67+ (57+10)**       |
+| 总前端路由数        | -           | -           | **50+ routes**        |
+| 总Pinia Stores数    | -           | -           | **51 TypeScript文件** |
+
+---
+
+### 1.2.1.0 最新更新 - Phase 65-77 (v3.1.0-v3.4.0)
+
+**技能市场 + 推理网络 + 信任安全 + 协议融合 + 去中心化基础设施 + EvoMap高级** (2026-02-28) ⭐ Phase 5扩展 - 64个新IPC处理器，22张新数据库表，13个新前端路由
+
+**Phase 65 — 技能即服务 (Skill-as-a-Service)** (5个IPC处理器, 3张新DB表):
+
+- ✅ **SkillServiceProtocol** (`ai-engine/skill-service/skill-service-protocol.js`) - 技能发布与注册
+  - 技能发布（版本管理、能力声明、端点注册）
+  - 技能发现（按能力/标签/提供者过滤）
+  - 技能注册表管理
+- ✅ **SkillInvoker** (`ai-engine/skill-service/skill-invoker.js`) - 远程技能调用与计费
+  - JSON-RPC 2.0远程调用
+  - 调用计费记录和统计
+- ✅ **Skill Service IPC** (`ai-engine/skill-service/skill-service-ipc.js`) - 5个处理器(publish, discover, invoke, get-stats, list-published)
+- ✅ **数据库**: `skill_registry` + `skill_invocations` + `skill_billing`
+- ✅ **Pinia Store**: `skillService.ts` - 技能列表，调用统计
+- ✅ **前端UI**: SkillMarketplacePage - 技能浏览/发布/调用/计费
+- ✅ **Context Engineering**: step 4.9 `setSkillServiceProtocol()` 技能服务上下文注入
+
+**Phase 66 — 代币激励 (Token Incentive)** (5个IPC处理器, 2张新DB表):
+
+- ✅ **TokenLedger** (`ai-engine/skill-service/token-ledger.js`) - 代币账本管理
+  - 信用代币发行与转账
+  - 余额查询和交易历史
+- ✅ **ContributionTracker** (`ai-engine/skill-service/contribution-tracker.js`) - 贡献追踪与奖励
+  - 贡献记录（知识/代码/审核等类型）
+  - 信誉加权奖励分配
+  - 排行榜
+- ✅ **Token IPC** (`ai-engine/skill-service/token-ipc.js`) - 5个处理器(get-balance, transfer, get-history, record-contribution, get-leaderboard)
+- ✅ **数据库**: `token_accounts` + `contribution_records`
+- ✅ **Pinia Store**: `tokenIncentive.ts` - 代币余额，贡献排行榜
+- ✅ **前端UI**: TokenIncentivePage - 代币管理/贡献追踪/排行榜
+
+**Phase 67 — 去中心化推理网络 (Decentralized Inference)** (6个IPC处理器, 2张新DB表):
+
+- ✅ **InferenceNodeRegistry** (`ai-engine/inference/inference-node-registry.js`) - 推理节点注册表
+  - 节点注册/注销/心跳（ONLINE/OFFLINE/BUSY/DEGRADED）
+  - GPU内存/能力声明
+- ✅ **InferenceScheduler** (`ai-engine/inference/inference-scheduler.js`) - 推理任务调度
+  - 三种隐私模式（STANDARD/ENCRYPTED/FEDERATED）
+  - 智能路由到最优节点
+  - 调度统计（队列长度、完成数、平均延迟）
+- ✅ **Inference IPC** (`ai-engine/inference/inference-ipc.js`) - 6个处理器(register-node, unregister-node, list-nodes, submit-task, get-task-status, get-stats)
+- ✅ **数据库**: `inference_nodes` + `inference_tasks`
+- ✅ **Pinia Store**: `inferenceNetwork.ts` - 节点列表，任务队列
+- ✅ **前端UI**: InferenceNetworkPage - 节点管理/任务提交/实时监控
+- ✅ **Context Engineering**: step 4.10 `setInferenceScheduler()` 推理网络上下文注入
+
+**Phase 68 — 三位一体信任根 (Trinity Trust Root)** (5个IPC处理器, 1张新DB表):
+
+- ✅ **TrustRootManager** (`ukey/trust-root-manager.js`) - TPM/TEE/SE三锚信任根
+  - 远程证明（挑战-响应机制）
+  - 安全启动链验证
+  - 设备指纹绑定
+  - 证明历史记录
+- ✅ **Trust Root IPC** (`ukey/trust-root-ipc.js`) - 5个处理器(attest, verify-boot, bind-fingerprint, get-history, get-status)
+- ✅ **数据库**: `trust_attestations`
+- ✅ **Pinia Store**: `trustRoot.ts` - 信任锚状态，证明历史
+- ✅ **前端UI**: TrustRootPage - 信任锚管理/远程证明/启动验证
+
+**Phase 69 — PQC全面迁移生态 (PQC Ecosystem)** (4个IPC处理器, 1张新DB表):
+
+- ✅ **PQCEcosystemManager** (`ukey/pqc-ecosystem-manager.js`) - 后量子密码全面迁移
+  - 算法兼容性检测
+  - 互操作性测试
+  - 迁移计划生成
+- ✅ **PQC Ecosystem IPC** (`ukey/pqc-ecosystem-ipc.js`) - 4个处理器(check-compatibility, get-status, run-interop-test, get-transition-plan)
+- ✅ **数据库**: `pqc_interop_tests`
+- ✅ **Pinia Store**: `pqcEcosystem.ts` - PQC兼容性，迁移进度
+- ✅ **前端UI**: PQCEcosystemPage - PQC生态/兼容性检查/互操作测试
+
+**Phase 70 — 卫星通信 (Satellite Communication)** (5个IPC处理器, 1张新DB表):
+
+- ✅ **SatelliteComm** (`security/satellite-comm.js`) - 卫星通信模块
+  - Iridium/Starlink/Beidou多提供商
+  - 离线场景密钥撤销广播
+  - 消息优先级队列
+- ✅ **Satellite IPC** (`security/satellite-ipc.js`) - 5个处理器(send-message, broadcast-revocation, get-messages, get-connection-status, get-stats)
+- ✅ **数据库**: `satellite_messages`
+- ✅ **Pinia Store**: `satellite.ts` - 卫星消息，连接状态
+- ✅ **前端UI**: SatelliteCommPage - 卫星通信/密钥撤销/消息管理
+
+**Phase 71 — HSM适配器 (HSM Adapter)** (4个IPC处理器, 1张新DB表):
+
+- ✅ **HsmAdapterManager** (`ukey/hsm-adapter-manager.js`) - 多厂商HSM统一适配
+  - YubiKey/Ledger/Trezor设备发现
+  - FIPS-140-2/140-3/CC-EAL4合规级别
+  - HSM签名操作
+- ✅ **HSM Adapter IPC** (`ukey/hsm-adapter-ipc.js`) - 4个处理器(discover-devices, get-device-info, sign, get-compliance)
+- ✅ **数据库**: `hsm_devices`
+- ✅ **Pinia Store**: `hsmAdapter.ts` - HSM设备列表，合规状态
+- ✅ **前端UI**: HSMAdapterPage - HSM设备/签名操作/合规报告
+
+**Phase 72 — 协议融合 (Protocol Fusion)** (5个IPC处理器, 2张新DB表):
+
+- ✅ **ProtocolFusionBridge** (`social/protocol-fusion-bridge.js`) - 四协议统一桥接
+  - DID/ActivityPub/Nostr/Matrix跨协议消息路由
+  - 统一身份映射（跨协议身份关联）
+  - 协议状态统计
+- ✅ **Protocol Fusion IPC** (`social/protocol-fusion-ipc.js`) - 5个处理器(get-unified-feed, send-message, map-identity, get-identity-map, get-protocol-status)
+- ✅ **数据库**: `unified_messages` + `identity_mappings`
+- ✅ **Pinia Store**: `protocolFusion.ts` - 统一消息流，身份映射
+- ✅ **前端UI**: ProtocolFusionPage - 统一消息/身份映射/协议管理
+- ✅ **Context Engineering**: step 4.11 `setProtocolFusionBridge()` 协议融合上下文注入
+
+**Phase 73 — AI社交增强 (AI Social Enhancement)** (5个IPC处理器, 2张新DB表):
+
+- ✅ **RealtimeTranslator** (`social/realtime-translator.js`) - AI实时多语言翻译
+  - 翻译缓存机制
+  - 语言自动检测
+  - 翻译统计
+- ✅ **ContentQualityAssessor** (`social/content-quality-assessor.js`) - 内容质量评估
+  - 四级质量评估（HIGH/MEDIUM/LOW/HARMFUL）
+  - 有害内容检测
+  - 质量报告
+- ✅ **AI Social IPC** (`social/ai-social-ipc.js`) - 5个处理器(translate-message, detect-language, assess-quality, get-quality-report, get-translation-stats)
+- ✅ **数据库**: `content_quality_scores` + `translation_cache`
+- ✅ **Pinia Store**: `aiSocialEnhancement.ts` - 翻译结果，质量评估
+- ✅ **前端UI**: AISocialEnhancementPage - 翻译/质量评估/统计
+
+**Phase 74 — 去中心化存储 (Decentralized Storage)** (5个IPC处理器, 2张新DB表):
+
+- ✅ **FilecoinStorage** (`ipfs/filecoin-storage.js`) - Filecoin存储交易管理
+  - 存储交易创建和状态跟踪
+  - 存储统计（总交易数、活跃数、总大小）
+- ✅ **ContentDistributor** (`ipfs/content-distributor.js`) - P2P内容分发
+  - IPLD版本化管理
+  - 内容分发到多节点
+- ✅ **Decentralized Storage IPC** (`ipfs/decentralized-storage-ipc.js`) - 5个处理器(store-to-filecoin, get-deal-status, distribute-content, get-version-history, get-storage-stats)
+- ✅ **数据库**: `filecoin_deals` + `content_versions`
+- ✅ **Pinia Store**: `decentralizedStorage.ts` - 交易列表，版本历史
+- ✅ **前端UI**: DecentralizedStoragePage - 存储交易/内容分发/版本管理
+
+**Phase 75 — 抗审查通信 (Anti-Censorship)** (5个IPC处理器, 1张新DB表):
+
+- ✅ **AntiCensorshipManager** (`security/anti-censorship-manager.js`) - 多层抗审查
+  - Tor隐藏服务集成
+  - CDN域前置
+  - 连通性报告
+- ✅ **MeshNetworkManager** (`security/mesh-network-manager.js`) - Mesh网络
+  - BLE/WiFi-Direct离线通信
+  - 节点发现
+- ✅ **Anti-Censorship IPC** (`security/anti-censorship-ipc.js`) - 5个处理器(start-tor, get-tor-status, enable-domain-fronting, start-mesh, get-connectivity-report)
+- ✅ **数据库**: `anti_censorship_routes`
+- ✅ **Pinia Store**: `antiCensorship.ts` - Tor状态，路由列表
+- ✅ **前端UI**: AntiCensorshipPage - Tor/域前置/Mesh/连通性
+
+**Phase 76 — EvoMap联邦 (EvoMap Federation)** (5个IPC处理器, 2张新DB表):
+
+- ✅ **EvoMapFederation** (`evomap/evomap-federation.js`) - 全球Hub联邦网络
+  - 多Hub同步（ONLINE/OFFLINE/SYNCING/DEGRADED）
+  - 基因重组和谱系追踪
+  - 进化压力报告（总基因数、平均适应度、最大世代）
+- ✅ **EvoMap Federation IPC** (`evomap/evomap-federation-ipc.js`) - 5个处理器(list-hubs, sync-genes, get-pressure-report, recombine-genes, get-lineage)
+- ✅ **数据库**: `evomap_hub_federation` + `gene_lineage`
+- ✅ **Pinia Store**: `evoMapFederation.ts` - Hub列表，进化压力，谱系
+- ✅ **前端UI**: EvoMapFederationPage - Hub管理/基因同步/谱系可视化
+- ✅ **Context Engineering**: step 4.12 `setEvoMapFederation()` EvoMap联邦上下文注入
+
+**Phase 77 — EvoMap治理DAO (EvoMap Governance)** (5个IPC处理器, 2张新DB表):
+
+- ✅ **GeneIPManager** (`evomap/gene-ip-manager.js`) - 基因知识产权管理
+  - DID+VC原创性证明
+  - 贡献者追踪和收益分配
+- ✅ **EvoMapDAO** (`evomap/evomap-dao.js`) - 去中心化治理
+  - 治理提案管理（DRAFT/ACTIVE/PASSED/REJECTED/EXECUTED）
+  - 投票机制（达到quorum自动裁决）
+  - 治理仪表板
+- ✅ **EvoMap Governance IPC** (`evomap/evomap-governance-ipc.js`) - 5个处理器(register-ownership, trace-contributions, create-proposal, cast-vote, get-governance-dashboard)
+- ✅ **数据库**: `gene_ownership` + `evomap_governance_proposals`
+- ✅ **Pinia Store**: `evoMapGovernance.ts` - 所有权记录，提案列表
+- ✅ **前端UI**: EvoMapGovernancePage - IP注册/提案管理/投票
+
+**配置新增** (13个新配置段):
+
+- ✅ `skillService` - 技能服务配置(最大技能数, 调用超时)
+- ✅ `tokenIncentive` - 代币激励配置(初始余额, 奖励系数)
+- ✅ `inferenceNetwork` - 推理网络配置(最大节点数, 心跳间隔, 隐私模式)
+- ✅ `trustRoot` - 信任根配置(证明间隔, 启动验证, 指纹绑定)
+- ✅ `pqcEcosystem` - PQC生态配置(全面迁移, 过渡期天数)
+- ✅ `satellite` - 卫星通信配置(提供商, 压缩, 消息大小限制)
+- ✅ `hsmAdapter` - HSM适配配置(支持厂商, 合规级别, 自动发现)
+- ✅ `protocolFusion` - 协议融合配置(支持协议, 自动同步, 身份验证)
+- ✅ `aiSocialEnhancement` - AI社交增强配置(目标语言, 缓存, 质量阈值)
+- ✅ `decentralizedStorage` - 去中心化存储配置(Filecoin, 最大交易大小, 热内容缓存)
+- ✅ `antiCensorship` - 抗审查配置(Tor, 域前置, Mesh网络)
+- ✅ `evoMapFederation` - EvoMap联邦配置(最大Hub数, 同步间隔, 进化压力)
+- ✅ `evoMapGovernance` - EvoMap治理配置(投票时长, 法定人数, 仲裁)
+
+**Context Engineering集成**:
+
+- ✅ step 4.9: 技能服务上下文注入(`setSkillServiceProtocol()`)
+- ✅ step 4.10: 推理网络上下文注入(`setInferenceScheduler()`)
+- ✅ step 4.11: 协议融合上下文注入(`setProtocolFusionBridge()`)
+- ✅ step 4.12: EvoMap联邦上下文注入(`setEvoMapFederation()`)
+
+**Phase 65-77 版本统计提升**:
+
+| 指标                | Phase 57-64 | Phase 65-77 | 累计                  |
+| ------------------- | ----------- | ----------- | --------------------- |
+| 新增IPC处理器       | 38个        | 64个        | **159个**             |
+| 新增数据库表        | 20张        | 22张        | **61张**              |
+| 新增前端路由        | 8个         | 13个        | **32个**              |
+| 新增Pinia Stores    | 8个         | 13个        | **32个**              |
+| Context Engineering | 3个setter   | 4个setter   | **11个新setter**      |
+| 总IPC处理器数       | -           | -           | **361+ (297+64)**     |
+| 总数据库表数        | -           | -           | **109+ (87+22)**      |
+| 总前端路由数        | -           | -           | **71+ routes**        |
+| 总Pinia Stores数    | -           | -           | **72 TypeScript文件** |
+
+---
+
+### 1.2.1.0a 历史更新 - Phase 57-64 (Q1 2027)
+
+**生产强化 + 联邦硬化 + 压力测试 + 信誉优化 + SLA管理 + 技术学习 + 自主开发 + 协作治理** (2026-02-28) ⭐ Phase 4扩展 - 38个新IPC处理器，20张新数据库表，8个新前端路由
+
+**Phase 57 — 生产强化 (Production Hardening)** (6个IPC处理器, 2张新DB表):
+
+- ✅ **Performance Baseline** (`performance/performance-baseline.js`) - 性能基线管理
+  - IPC/内存/DB查询/启动时间等多维度指标采集
+  - 基线对比和回归检测（阈值可配置）
+  - 指标采样统计（均值/P95/P99/最大值/最小值）
+- ✅ **Security Auditor** (`audit/security-auditor.js`) - 自动化安全审计
+  - 5类审计（CONFIG/DEPENDENCY/PERMISSION/CRYPTO/NETWORK）
+  - 5级风险评估（CRITICAL/HIGH/MEDIUM/LOW/INFO）
+  - 审计报告生成和历史追踪
+- ✅ **Hardening IPC** (`performance/hardening-ipc.js`) - 6个处理器(collect-baseline, compare-baseline, get-baselines, run-security-audit, get-audit-reports, get-audit-report)
+- ✅ **数据库**: `performance_baselines` (基线数据) + `security_audit_reports` (审计报告)
+- ✅ **Pinia Store**: `hardening.ts` - 基线列表，审计报告，对比结果
+- ✅ **前端UI**: ProductionHardeningPage - 性能基线/安全审计/趋势图表
+
+**Phase 58 — 联邦硬化 (Federation Hardening)** (4个IPC处理器, 2张新DB表):
+
+- ✅ **Federation Hardening** (`cowork/federation-hardening.js`) - 联邦网络稳定性增强
+  - 熔断器模式（CLOSED/OPEN/HALF_OPEN 三态切换）
+  - 实时健康检查（HEALTHY/DEGRADED/UNHEALTHY）
+  - 故障隔离防雪崩，自动摘除和恢复
+- ✅ **Federation Hardening IPC** (`cowork/federation-hardening-ipc.js`) - 4个处理器(get-status, get-circuit-breakers, reset-circuit, run-health-check)
+- ✅ **数据库**: `federation_circuit_breakers` (熔断器状态) + `federation_health_checks` (健康检查记录)
+- ✅ **Pinia Store**: `federationHardening.ts` - 熔断器状态，健康指标
+- ✅ **前端UI**: FederationHardeningPage - 熔断器仪表板/节点健康/状态切换
+
+**Phase 59 — 联邦压力测试 (Federation Stress Test)** (4个IPC处理器, 2张新DB表):
+
+- ✅ **Federation Stress Tester** (`cowork/federation-stress-tester.js`) - 联邦网络压测系统
+  - 可配置节点数/并发任务/持续时间的压测方案
+  - 吞吐量/延迟/P95/P99/错误率等完整指标
+  - 实时运行监控，支持手动停止
+- ✅ **Stress Test IPC** (`cowork/stress-test-ipc.js`) - 4个处理器(start, stop, get-runs, get-results)
+- ✅ **数据库**: `stress_test_runs` (测试运行) + `stress_test_results` (测试结果)
+- ✅ **Pinia Store**: `stressTest.ts` - 测试运行列表，实时结果
+- ✅ **前端UI**: StressTestPage - 压测配置/实时监控/结果分析
+
+**Phase 60 — 信誉优化器 (Reputation Optimizer)** (4个IPC处理器, 2张新DB表):
+
+- ✅ **Reputation Optimizer** (`cowork/reputation-optimizer.js`) - 信誉参数贝叶斯优化
+  - 贝叶斯优化：迭代搜索最优信誉参数组合
+  - Z-Score异常检测（阈值2.5标准差），7天时间窗口
+  - 优化历史和分析记录
+- ✅ **Reputation Optimizer IPC** (`cowork/reputation-optimizer-ipc.js`) - 4个处理器(run-optimization, get-analytics, detect-anomalies, get-history)
+- ✅ **数据库**: `reputation_optimization_runs` (优化运行) + `reputation_analytics` (分析记录)
+- ✅ **Pinia Store**: `reputationOptimizer.ts` - 优化参数，异常列表
+- ✅ **前端UI**: ReputationOptimizerPage - 参数调优/异常检测/优化历史
+
+**Phase 61 — 跨组织SLA管理 (Cross-Org SLA)** (5个IPC处理器, 2张新DB表):
+
+- ✅ **SLA Manager** (`cowork/sla-manager.js`) - 跨组织服务等级协议
+  - SLA合约管理（DRAFT/ACTIVE/VIOLATED/EXPIRED/TERMINATED）
+  - 保证条款/违约罚则/奖励机制
+  - 违规追踪（CRITICAL/MAJOR/MINOR 三级严重度）
+  - 合规检查仪表板
+- ✅ **SLA IPC** (`cowork/sla-ipc.js`) - 5个处理器(list-contracts, create-contract, get-violations, check-compliance, get-dashboard)
+- ✅ **数据库**: `sla_contracts` (SLA合约) + `sla_violations` (违规记录)
+- ✅ **Pinia Store**: `slaManager.ts` - 合约列表，违规记录，合规仪表板
+- ✅ **前端UI**: SLAManagerPage - 合约管理/违规列表/合规状态
+
+**Phase 62 — 技术学习引擎 (Tech Learning Engine)** (5个IPC处理器, 2张新DB表):
+
+- ✅ **Tech Learning Engine** (`autonomous/tech-learning-engine.js`) - AI自主技术栈学习
+  - 8种清单格式自动检测（package.json, pom.xml, requirements.txt等）
+  - 最佳实践提取（EXTRACTED/VERIFIED/PROMOTED）
+  - 技能合成：从实践中生成可复用技能
+- ✅ **Tech Learning IPC** (`autonomous/tech-learning-ipc.js`) - 5个处理器(detect-stack, get-profiles, extract-practices, get-practices, synthesize-skill)
+- ✅ **数据库**: `tech_stack_profiles` (技术栈画像) + `learned_practices` (学习到的实践)
+- ✅ **Pinia Store**: `techLearning.ts` - 技术栈，实践列表，合成技能
+- ✅ **前端UI**: TechLearningPage - 技术栈分析/实践列表/技能合成
+- ✅ **Context Engineering**: step 4.15 `setTechLearningEngine()` 技术学习上下文注入
+
+**Phase 63 — 自主开发者 (Autonomous Developer)** (5个IPC处理器, 2张新DB表):
+
+- ✅ **Autonomous Developer** (`autonomous/autonomous-developer.js`) - AI自主代码开发流水线
+  - Intent→PRD→Architecture→Code Generation→Self-Review 完整流水线
+  - 会话状态管理（INTENT/PRD/ARCHITECTURE/GENERATING/REVIEWING/COMPLETE/FAILED）
+  - 4维代码自审（SECURITY/PERFORMANCE/MAINTAINABILITY/CORRECTNESS）
+  - 架构决策记录（ADR）
+- ✅ **Autonomous Developer IPC** (`autonomous/autonomous-developer-ipc.js`) - 5个处理器(start-session, refine, generate, review, list-sessions)
+- ✅ **数据库**: `dev_sessions` (开发会话) + `architecture_decisions` (架构决策)
+- ✅ **Pinia Store**: `autonomousDev.ts` - 会话列表，代码生成，审查结果
+- ✅ **前端UI**: AutonomousDeveloperPage - 意图输入/PRD生成/代码预览/审查报告
+- ✅ **Context Engineering**: step 4.16 `setAutonomousDeveloper()` 自主开发上下文注入
+
+**Phase 64 — 协作治理 (Collaboration Governance)** (5个IPC处理器, 2张新DB表):
+
+- ✅ **Collaboration Governance** (`autonomous/collaboration-governance.js`) - 人机协作治理系统
+  - 决策审批工作流（PENDING/APPROVED/REJECTED/AUTO_APPROVED/EXPIRED）
+  - 6类决策（ARCHITECTURE/MIGRATION/SECURITY/DEPLOYMENT/DATA/GENERAL）
+  - 渐进式自主级别（NONE=0 到 FULL=10），超过信心阈值自动审批
+  - 分作用域策略管理
+- ✅ **Collaboration Governance IPC** (`autonomous/collaboration-governance-ipc.js`) - 5个处理器(get-pending, approve-decision, reject-decision, get-autonomy-level, set-autonomy-policy)
+- ✅ **数据库**: `governance_decisions` (治理决策) + `autonomy_levels` (自主级别)
+- ✅ **Pinia Store**: `collaborationGovernance.ts` - 待审批列表，自主级别，策略配置
+- ✅ **前端UI**: CollaborationGovernancePage - 决策审批/自主级别/策略管理
+- ✅ **Context Engineering**: step 4.17 `setCollaborationGovernance()` 协作治理上下文注入
+
+**配置新增** (8个新配置段):
+
+- ✅ `hardening` - 生产强化配置(采集间隔, 基线名称, 审计类别)
+- ✅ `federationHardening` - 联邦硬化配置(熔断阈值, 健康检查间隔, 半开重试)
+- ✅ `stressTest` - 压力测试配置(默认节点数, 并发数, 持续时间)
+- ✅ `reputationOptimizer` - 信誉优化配置(迭代次数, 异常阈值, 时间窗口)
+- ✅ `sla` - SLA管理配置(合规检查间隔, 违规通知, 自动续约)
+- ✅ `techLearning` - 技术学习配置(扫描深度, 实践验证, 技能合成)
+- ✅ `autonomousDev` - 自主开发配置(自审启用, 最大迭代, 代码风格)
+- ✅ `collaborationGovernance` - 协作治理配置(默认自主级别, 审批超时, 自动过期)
+
+**Context Engineering集成**:
+
+- ✅ step 4.15: 技术学习上下文注入(`setTechLearningEngine()`)
+- ✅ step 4.16: 自主开发上下文注入(`setAutonomousDeveloper()`)
+- ✅ step 4.17: 协作治理上下文注入(`setCollaborationGovernance()`)
+
+**Phase 57-64 版本统计提升**:
+
+| 指标                | Phase 46-56 | Phase 57-64 | 累计                  |
+| ------------------- | ----------- | ----------- | --------------------- |
+| 新增IPC处理器       | 57个        | 38个        | **95个**              |
+| 新增数据库表        | 19张        | 20张        | **39张**              |
+| 新增前端路由        | 11个        | 8个         | **19个**              |
+| 新增Pinia Stores    | 11个        | 8个         | **19个**              |
+| Context Engineering | 4个setter   | 3个setter   | **7个新setter**       |
+| 总IPC处理器数       | -           | -           | **297+ (259+38)**     |
+| 总数据库表数        | -           | -           | **87+ (67+20)**       |
+| 总前端路由数        | -           | -           | **58+ routes**        |
+| 总Pinia Stores数    | -           | -           | **59 TypeScript文件** |
+
+---
+
+### 1.2.1.1 历史更新 (v1.0.0)
+
+**去中心化社交平台全面升级 + 企业级基础设施 + 模型量化系统** (2026-02-23) ⭐ 重大更新 - Enterprise Edition:
+
+**P2P社交新功能** (7大功能, 新增测试: p2p/**tests**/ + social/**tests**/ + integration/):
+
+- ✅ **P2P语音/视频通话** (`call-manager` + `call-signaling`) - WebRTC + DTLS-SRTP端到端加密，SFU中继支持2-8人，音频降噪，屏幕共享，通话录制
+- ✅ **共享加密相册** (`shared-album-manager`) - E2E加密，EXIF隐私擦除，P2P分发，访问控制，版本管理
+- ✅ **社区与频道** (`community-manager` + `channel-manager` + `governance-engine`) - Gossip协议消息分发，频道角色权限，治理投票，社区经济模型
+- ✅ **时光机** (`time-machine` + `sentiment-analyzer`) - AI生成记忆摘要，情感分析，历史回放，重要时刻提取
+- ✅ **去中心化直播** - IPFS视频流，弹幕系统，打赏机制，P2P CDN加速
+- ✅ **社交代币** (`social-token`) - ERC-20社交积分，创作者经济，代币发行与流通，治理投票
+- ✅ **匿名模式** - ZKP零知识证明身份验证，临时DID，可撤销匿名
+
+**企业级基础设施** (5大新模块):
+
+- ✅ **IPFS去中心化存储** (`ipfs-manager`) - Helia/Kubo双引擎，内容寻址，P2P CDN，自动固定策略
+- ✅ **实时协作(CRDT/Yjs)** (`yjs-collab-manager` + `realtime-collab-manager`) - Yjs CRDT冲突解决，P2P实时同步，光标共享，文档锁，协作历史
+- ✅ **分析仪表板** (`analytics-aggregator`) - 实时数据聚合，多维指标，可视化报表，趋势分析
+- ✅ **自治Agent Runner** (`autonomous-agent-runner`) - ReAct循环，目标分解，多步推理，自主任务执行，检查点恢复
+- ✅ **企业组织管理** (`enterprise-org-manager`) - 组织层级，审批工作流，多租户，权限继承
+
+**系统增强** (4大改进):
+
+- ✅ **模型量化系统** (`quantization-manager` + `gguf-quantizer` + `gptq-quantizer`) - GGUF 14种量化级别(Q2_K~F32)，AutoGPTQ Python桥接，进度追踪，Ollama导入
+- ✅ **i18n国际化** (`i18n/index.js`) - 4种语言(中文/English/日本語/한국어)，运行时切换，AI提示词本地化
+- ✅ **性能自动调优** (`auto-tuner` + `performance-monitor`) - 实时性能监控，自动参数调整，内存预警，负载预测
+- ✅ **TypeScript Stores扩展** - 46个TypeScript Stores（新增13个），完整类型覆盖
+
+**测试体系新增**:
+
+- ✅ `p2p/__tests__/call-manager.test.js` + `call-signaling.test.js` - P2P通话完整单元测试
+- ✅ `social/__tests__/` (7个文件) - community/channel/governance/sentiment/album/token/time-machine
+- ✅ `tests/integration/community-channels.test.js` + `social-calls.test.js` + `social-tokens.test.js`
+
+**版本统计提升**:
+
+| 指标              | v0.39.0  | v1.0.0   | 提升             |
+| ----------------- | -------- | -------- | ---------------- |
+| 代码行数          | 290,000+ | 310,000+ | **+20,000行**    |
+| Vue组件数         | 358      | 370      | **+12组件**      |
+| TypeScript Stores | 33       | 46       | **+13 stores**   |
+| 内置技能数        | 92       | 138      | **+46技能**      |
+| 测试用例数        | 2000+    | 4200+    | **+2200测试**    |
+| Store测试文件     | 0        | 12       | **+12文件/431测** |
+| 新增核心模块      | -        | 16个     | **社交+企业+AI** |
+
+---
+
+### 1.2.1.1 历史更新 (v0.39.0)
+
+**90 Built-in Skills (100% Handler 覆盖) + Android 28 Skills + PC Remote Delegation** (2026-02-17) ⭐ 重大更新:
+
+**桌面端 90 个内置技能 (全部配备可执行 Handler)**:
+
+- ✅ **核心(15)**: browser-automation, computer-use, workflow-automation, memory-management, smart-search, web-scraping, remote-control, code-review, git-commit, explain-code, data-analysis, security-audit, devops-automation, test-generator, performance-optimizer
+- ✅ **开发(15)**: repo-map, refactor, onboard-project, lint-and-fix, project-scaffold, mcp-server-generator, architect-mode, commit-splitter, screenshot-to-code, diff-previewer, task-decomposer, code-translator, dead-code-eliminator, mock-data-generator, code-runner
+- ✅ **测试/分析(10)**: api-tester, test-and-fix, bugbot, fault-localizer, dependency-analyzer, impact-analyzer, rules-engine, git-history-analyzer, changelog-generator, i18n-manager
+- ✅ **AI(4)**: prompt-enhancer, auto-context, multi-model-router, codebase-qa
+- ✅ **知识(4)**: context-loader, research-agent, knowledge-graph, query-enhancer, memory-insights
+- ✅ **文档/Office(7)**: doc-generator, pdf-toolkit, doc-converter, excel-analyzer, pptx-creator, doc-comparator, word-generator
+- ✅ **音视频/图像(8)**: audio-transcriber, video-toolkit, subtitle-generator, tts-synthesizer, media-metadata, image-editor, ocr-scanner, image-generator
+- ✅ **数据(4)**: chart-creator, csv-processor, data-exporter, template-renderer
+- ✅ **系统/安全/DevOps(13)**: env-doctor, release-manager, vulnerability-scanner, db-migration, log-analyzer, system-monitor, env-file-manager, backup-manager, performance-profiler, crypto-toolkit, password-generator, network-diagnostics, markdown-enhancer
+- ✅ **工具(10)**: file-compressor, json-yaml-toolkit, regex-playground, http-client, snippet-library, clipboard-manager, text-transformer, color-picker, voice-commander, image-generator
+
+**Android 28 技能 (12 Handler + 8 REMOTE)**:
+
+- ✅ **12 LOCAL Handler**: CodeReview, ExplainCode, Summarize, Translate, Refactor, UnitTest, Debug, QuickNote, EmailDraft, MeetingNotes, DailyPlanner, TextImprover
+- ✅ **8 REMOTE PC 委托**: pc-screenshot→computer-use, pc-file-search→smart-search, pc-run-command→remote-control 等
+- ✅ **remoteSkillName 映射**: Android 技能→桌面技能名称自动路由
+
+**Unified Tool Registry + AI Call Chain**:
+
+- ✅ **UnifiedToolRegistry** - 聚合FunctionCaller(60+)+MCP(8服务器)+Skills(90技能)
+- ✅ **AI Call Chain Integration** - ManusOptimizations.bindUnifiedRegistry() 打通完整调用链
+- ✅ **10个演示模板** - 自动化(3)+AI工作流(3)+知识管理(2)+远程控制(2)
+- ✅ **Agent Skills Open Standard** - 13个扩展字段完整支持
+- ✅ **Frontend** - ToolsExplorerPage + DemoTemplatesPage + unified-tools store
+
+**性能提升总结**:
+
+| 指标           | v0.36.0 | v0.37.6 | 提升           |
+| -------------- | ------- | ------- | -------------- |
+| 桌面端内置技能 | 30      | 90      | **+60 skills** |
+| Handler 覆盖率 | 80%     | 100%    | **全部可执行** |
+| Android 技能   | 15      | 28      | **+13 skills** |
+| 测试用例       | ~120    | ~250    | **+130 tests** |
+| 技能类别       | 12      | 18+     | **全面覆盖**   |
+
+---
+
+### 1.2.2 历史更新 (v0.34.0)
+
+**Enterprise Features 企业级功能** (2026-02-15) ⭐ 重大更新:
+
+**Phase 1: 企业审计与合规** (18 IPC handlers):
+
+- ✅ **EnterpriseAuditLogger** - 统一审计日志聚合器，跨子系统事件追踪
+- ✅ **ComplianceManager** - GDPR/SOC2/HIPAA合规检查、策略引擎、报告生成
+- ✅ **DataSubjectHandler** - GDPR数据主体请求(访问/删除/更正/可移植性)
+- ✅ **3个HookEvents** - AuditLog/ComplianceCheck/DataSubjectRequest钩子事件
+
+**Phase 2: 插件市场** (22 IPC handlers):
+
+- ✅ **MarketplaceClient** - HTTP客户端，DID身份认证，REST API集成
+- ✅ **PluginInstaller** - 下载/哈希校验/解压/SkillLoader注册
+- ✅ **PluginUpdater** - 后台更新检查，自动更新通知
+- ✅ **4层技能系统** - bundled → marketplace → managed → workspace
+
+**Phase 3: 专业化多代理系统** (16 IPC handlers):
+
+- ✅ **8种代理模板** - CodeSecurity/DevOps/DataAnalysis/Documentation/TestGenerator/Architect/Performance/Compliance
+- ✅ **AgentCoordinator** - 多代理任务分解、分配、结果聚合
+- ✅ **AgentRegistry** - 代理类型注册、工厂模式、版本管理
+- ✅ **5个内置技能** - security-audit/devops-automation/data-analysis/test-generator/performance-optimizer
+
+**Phase 4: SSO企业认证** (20 IPC handlers):
+
+- ✅ **SSOManager** - 多供应商协调器(SAML/OAuth/OIDC)，PKCE支持
+- ✅ **SAMLProvider** - SP元数据生成、AuthnRequest、断言解析、签名验证
+- ✅ **OAuthProvider** - 授权码+PKCE、令牌刷新、用户信息、ID Token验证
+- ✅ **SSOSessionManager** - AES-256-GCM加密令牌存储，自动刷新
+- ✅ **IdentityBridge** - DID ↔ SSO身份关联，双向查找
+
+**Phase 5: MCP SDK增强**:
+
+- ✅ **MCPServerBuilder** - 流式API: `new MCPServerBuilder().name().tool().build()`
+- ✅ **MCPHttpServer** - HTTP+SSE服务器，CORS，Bearer/API-Key/Basic认证
+- ✅ **MCPStdioServer** - JSON-RPC 2.0 Stdio服务器
+- ✅ **CommunityRegistry** - 8+社区MCP服务器发现/安装
+
+**性能提升总结**:
+
+| 指标         | v0.33.0 | v0.34.0    | 提升               |
+| ------------ | ------- | ---------- | ------------------ |
+| IPC Handlers | 68+     | 76+ (新增) | **+76 handlers**   |
+| 新增代码     | -       | 26,000+ 行 | **44个新文件**     |
+| Pinia Stores | 28      | 32         | **+4 stores**      |
+| 数据库表     | ~50     | 60+        | **+10 tables**     |
+| 内置技能     | 3       | 8          | **+5 skills**      |
+| 技能加载层   | 3层     | 4层        | **+marketplace层** |
+
+---
+
+### 1.2.3 历史更新 (v0.33.0)
+
+**Computer Use + 远程控制系统** (2026-02-11) ⭐ 重大更新:
+
+**Phase 1: Computer Use 能力 (Claude Computer Use 风格)** (~2000+ 行新代码):
+
+- ✅ **CoordinateAction** - 像素级坐标点击、拖拽、手势操作
+- ✅ **VisionAction** - Vision AI 集成，视觉元素定位 (Claude/GPT-4V/LLaVA)
+- ✅ **NetworkInterceptor** - 网络请求拦截、模拟、条件控制
+- ✅ **DesktopAction** - 桌面级截图、鼠标键盘控制、窗口管理
+- ✅ **ComputerUseAgent** - 统一代理，整合所有 Computer Use 能力
+- ✅ **AuditLogger** - 操作审计日志，风险评估，敏感信息脱敏
+- ✅ **ScreenRecorder** - 屏幕录制，支持暂停/恢复/导出
+- ✅ **ActionReplay** - 操作回放引擎，支持变速、单步、断点调试
+- ✅ **SafeMode** - 安全模式，权限控制、区域限制、速率限制
+- ✅ **WorkflowEngine** - 工作流引擎，条件分支、循环、并行执行
+- ✅ **ElementHighlighter** - 元素高亮显示，调试可视化
+- ✅ **TemplateActions** - 预定义操作模板
+- ✅ **ComputerUseMetrics** - 性能指标收集和分析
+
+**Phase 2: 远程控制系统 (P2P Remote Control)** (~3000+ 行新代码):
+
+- ✅ **20+ Remote Handlers** - browser, power, media, process, input, network, storage, display, application, security 等
+- ✅ **Browser Extension** - 完整的浏览器扩展实现，原生宿主通信
+- ✅ **Permission Gate** - 远程操作权限控制和验证
+
+**Phase 3: Android Remote Control UI** (~2000+ 行新代码):
+
+- ✅ **PowerControlScreen** - 电源控制界面
+- ✅ **ProcessManagerScreen** - 进程管理界面
+- ✅ **MediaControlScreen** - 媒体控制界面
+- ✅ **InputControlScreen** - 输入控制界面
+- ✅ **StorageInfoScreen** - 存储信息界面
+- ✅ **NetworkInfoScreen** - 网络信息界面
+- ✅ **ApplicationManagerScreen** - 应用管理界面
+- ✅ **SecurityInfoScreen** - 安全信息界面
+
+**性能提升总结**:
+
+| 指标             | v0.32.0 | v0.33.0   | 提升             |
+| ---------------- | ------- | --------- | ---------------- |
+| Computer Use IPC | 45      | 68+       | **+23 handlers** |
+| Remote Handlers  | 10      | 20+       | **+10 handlers** |
+| Android 远程 UI  | 4       | 12        | **+8 screens**   |
+| 新增代码         | -       | 7,000+ 行 | **20+ commits**  |
+
+**新增代码**: ~7,000+ 行 (Desktop ~3000 + Android ~2000 + Tests/Docs)
+**提交数**: 20+ commits
+
+---
+
+### 1.2.4 历史更新 (v0.32.0)
+
+**iOS/Android 大规模功能增强** (2026-02-10) ⭐ 重大更新:
+
+**Phase 1: iOS 核心模块扩展** (~4000+ 行新代码):
+
+- ✅ **SessionManager.swift** - LLM 会话上下文管理
+- ✅ **PermanentMemoryManager.swift** - Clawdbot 风格永久记忆系统
+- ✅ **ContextEngineering.swift** - KV-Cache 优化引擎
+- ✅ **PermissionEngine.swift** - 企业级 RBAC 权限引擎
+- ✅ **TeamManager.swift** - 组织子团队管理
+- ✅ **HookSystem.swift** - Claude Code 风格钩子系统
+- ✅ **PlanModeManager.swift** - 安全规划模式
+- ✅ **RealtimeVoiceInput.swift** - 实时语音输入
+- ✅ **VoiceManager.swift** - 语音功能管理
+- ✅ **BlockchainEngine.swift** - WalletManager 集成增强
+- ✅ **KnowledgeEngine.swift** - SQLite FTS5 全文搜索
+- ✅ **SecurityEngine.swift** - 真实漏洞扫描
+
+**Phase 2: Android 功能模块** (~3000+ 行新代码):
+
+- ✅ **MCP 集成模块** - Model Context Protocol 完整实现
+- ✅ **Hooks 系统** - 21 个钩子事件, 4 种钩子类型
+- ✅ **协作模块** - Cowork 多代理系统移植
+- ✅ **性能模块** - LLM 性能追踪和成本监控
+- ✅ **任务规划系统** - TaskPlanManager, PlanningSession, TaskPlanCard
+- ✅ **10+ 语法高亮器** - Go, Rust, C/C++, SQL, Shell, Dart, PHP, Ruby
+- ✅ **AI 聊天 UI 增强** - 模型选择器, 文件引用, 思考动画
+- ✅ **知识图谱管理** - 知识图谱仓库和展示层
+- ✅ **TTS 客户端** - 文本转语音功能
+- ✅ **音频处理器** - 音频处理引擎
+
+**Phase 3: 桌面端修复和测试**:
+
+- ✅ teammate-tool.js 审计保留 (团队/代理销毁后保留用于审计)
+- ✅ office-skill 测试断言修复
+- ✅ sandbox-security 测试稳定性改进
+- ✅ IPC 错误处理增强
+
+**性能提升总结**:
+
+| 指标         | v0.29.0 | v0.32.0          | 提升           |
+| ------------ | ------- | ---------------- | -------------- |
+| iOS 功能完成 | 55%     | 95%              | **+40%**       |
+| Android 功能 | 92%     | 100%             | **+8%**        |
+| 新增代码     | -       | 12,000+ 行       | **18 commits** |
+| 语音交互     | 无      | iOS+Android 完整 | **新增能力**   |
+| 权限系统     | 桌面端  | 全平台           | **跨平台**     |
+
+**新增代码**: ~12,000+ 行 (iOS ~4000 + Android ~3000 + 测试/文档)
+**提交数**: 18 commits
+
+---
+
+### 1.2.4 历史更新 (v0.29.0)
+
+**TypeScript 全量迁移 + 浏览器自动化系统 + Android 任务系统** (2026-02-06) ⭐ 重大更新:
+
+**Phase 1: 完整的 TypeScript 迁移** (commits 1755ab15, e8b19fe7, 6578ca6b):
+
+- ✅ 所有 28 个 Pinia stores 完整迁移至 TypeScript
+- ✅ 完整的类型定义和接口 (app.ts, auth.ts, session.ts, conversation.ts, llm.ts 等)
+- ✅ 改进 logger.info() 调用的兼容性
+- ✅ 桌面端前端层 100% TypeScript 覆盖
+- ✅ 类型安全和 IDE 支持改进
+
+**Phase 2: 浏览器自动化系统 v1.0** (Phase 1-3 完成):
+
+- ✅ **BrowserEngine** (~300行) - 核心自动化引擎，Puppeteer API 兼容
+- ✅ **ElementLocator** (~450行) - 智能元素定位，多策略匹配 (XPath/CSS/文本/视觉)
+- ✅ **SnapshotEngine** (~280行) - 快照对比和诊断
+- ✅ **RecordingEngine** (~250行) - 用户操作录制和回放
+- ✅ **SmartDiagnostics** - AI 诊断系统
+- ✅ **SPA Observer** - 单页应用状态监测
+- ✅ **OCR Engine** - 光学识别集成
+- ✅ 工作流编辑器 UI (BrowserControl.vue)
+- ✅ 诊断面板 (DiagnosticsPanel.vue)
+- ✅ 录制面板 (RecordingPanel.vue)
+- **性能**: 元素定位准确率 95%+, 快照对比延迟 <200ms
+
+**Phase 3: Android 任务系统** (commits 023c74cb, a8dba246):
+
+- ✅ 完整的任务管理系统
+- ✅ 任务界面集成到 Android 主应用
+- ✅ 与桌面端任务系统同步
+- ✅ 响应式任务列表和详情视图
+
+**性能提升总结**:
+
+| 指标           | 优化前 | 优化后           | 提升         |
+| -------------- | ------ | ---------------- | ------------ |
+| 类型安全覆盖   | 部分   | 100% (28 stores) | **全面提升** |
+| 元素定位准确率 | -      | 95%+             | **新增能力** |
+| 快照诊断延迟   | -      | <200ms           | **新增能力** |
+| 工作流编辑响应 | -      | <50ms            | **新增能力** |
+
+**新增代码**: ~3000+ 行 (浏览器自动化) + ~2000 行 (TypeScript 迁移)
+**完整文档**: `docs/design/modules/09_浏览器自动化系统.md`
+
+**后续改进** (2026-02-07 ~ 2026-02-08):
+
+- ✅ **社交通知UI增强** (commit c9b658c7) - 社交通知中心界面
+- ✅ **项目文件操作改进** - 项目文件操作流程优化
+- ✅ **浏览器IPC可测试性** (commit 78a1995a) - browser-ipc测试增加setupMockImplementations
+- ✅ **Compose BOM版本对齐** (commit b961b40f) - feature-p2p和feature-project模块BOM版本统一
+- ✅ **Android测试域重组** (commit 52e9334e) - 测试文件按域子目录组织 (knowledge/, remote/, social/, project/)
+- ✅ **DI改进: getBrowserEngine注入** (commit 2b3c2d73) - 通过依赖注入提高浏览器引擎可测试性
+- ✅ **数据库测试DI实现** - 102个数据库测试通过DI改进
+
+---
+
+### 1.2.5 历史更新 (v0.26.2)
+
+**Clawdbot 永久记忆系统集成** (2026-02-01) ⭐ 重大更新:
+
+跨会话持久记忆系统 - 灵感来自 Clawdbot 架构，实现 AI 助手的长期记忆能力
+
+**Phase 1 基础架构** (6个核心组件):
+
+1. **PermanentMemoryManager** - `permanent-memory-manager.js` (~841行)
+   - Daily Notes 自动记录 (`memory/daily/YYYY-MM-DD.md`)
+   - MEMORY.md 长期知识萃取
+   - 元数据自动解析和统计
+   - 文件 Hash 计算和缓存
+
+2. **PermanentMemoryIPC** - `permanent-memory-ipc.js` (~183行)
+   - 7个核心 IPC 通道
+   - write-daily-note, read-daily-note, read-memory, append-to-memory 等
+
+3. **数据库迁移** - `009_embedding_cache.sql` (~180行)
+   - `embedding_cache` 表 (Embedding缓存)
+   - `memory_file_hashes` 表 (文件Hash跟踪)
+   - `daily_notes_metadata` 表 (Daily Notes元数据)
+   - `memory_sections` 表 (MEMORY.md分类)
+   - `memory_stats` 表 (记忆统计)
+
+**Phase 2 混合搜索引擎** (2个新模块):
+
+4. **BM25SearchEngine** - `bm25-search.js` (~310行)
+   - Okapi BM25 算法实现
+   - 中文/英文智能分词器
+   - 词频 (TF) 和逆文档频率 (IDF) 计算
+   - 可调参数: k1=1.5, b=0.75
+
+5. **HybridSearchEngine** - `hybrid-search-engine.js` (~292行)
+   - Vector Search (语义, 0.6权重) + BM25 Search (关键词, 0.4权重)
+   - RRF (Reciprocal Rank Fusion) 融合算法
+   - 并行执行双路搜索
+   - **性能**: 搜索延迟 <20ms
+
+6. **IPC错误处理中间件** - `ipc-error-handler.js` (~498行)
+   - 10种错误类型分类 (Validation, Network, Permission, NotFound等)
+   - 统一错误响应格式
+   - ErrorMonitor AI诊断集成
+   - 错误统计和上报
+
+**性能提升总结**:
+
+| 指标       | 优化前 | 优化后                  | 提升         |
+| ---------- | ------ | ----------------------- | ------------ |
+| 搜索准确率 | 仅语义 | 语义+关键词             | **+30-40%**  |
+| 搜索延迟   | ~50ms  | <20ms                   | **2.5x**     |
+| 跨会话记忆 | 无     | Daily Notes + MEMORY.md | **全新能力** |
+| 错误处理   | 分散   | 统一中间件              | **标准化**   |
+
+**测试验证**: 18+测试用例全部通过
+**完整文档**: `docs/features/PERMANENT_MEMORY_INTEGRATION.md`
+
+---
+
+### 1.2.6 历史更新 (v0.27.1)
+
+**Phase 3/4 工作流优化全部完成** (2026-01-27) ⭐ 重大更新:
+
+AI引擎性能大幅提升 - 新增7个智能优化模块，任务执行成功率从40%提升至70%
+
+**核心优化模块** (6,344行新代码):
+
+1. **智能任务计划缓存 (Optimization 3)** - `smart-plan-cache.js` (~795行)
+   - LLM Embedding向量化语义理解
+   - 余弦相似度匹配(非精确匹配)
+   - LRU淘汰策略 + TTL过期机制(7天)
+   - TF-IDF后备方案(无LLM API时可工作)
+   - **性能**: 缓存命中率20%→60-85% (+3-4x), LLM成本减少70%
+
+2. **LLM辅助多代理决策 (Optimization 4)** - `llm-decision-engine.js` (~1,220行)
+   - 三层智能决策策略(规则→LLM→历史学习)
+   - 5个启发式规则快速判断(85%情况)
+   - 决策缓存 + 历史强化学习
+   - **性能**: 多代理利用率70%→90% (+20%), 决策准确率75%→92% (+17%)
+
+3. **代理池复用系统 (Optimization 5)** - `agent-pool.js` (~555行)
+   - 预热机制 + 动态伸缩 + 状态隔离
+   - 等待队列 + 空闲超时
+   - **性能**: 代理获取速度50ms→5ms (10x), 创建开销减少85%
+
+4. **关键路径优化 (Optimization 8)** - `critical-path-optimizer.js` (~860行)
+   - CPM(Critical Path Method)算法实现
+   - DAG分析 + 拓扑排序 + 动态优先级调整
+   - **性能**: 复杂工作流执行时间减少15-36%, 并行效率提升50%
+
+5. **实时质量检查 (Optimization 11)** - `real-time-quality-gate.js` (~930行)
+   - 文件监控(chokidar) + 防抖机制
+   - 5个内置质量规则
+   - **性能**: 问题发现30分钟→<1秒 (1800x快), 返工时间减少50%
+
+6. **自动阶段转换 (Optimization 10)** - AutoPhaseTransition 类 (~145行)
+   - 事件驱动工作流
+   - **收益**: 消除手动阶段转换错误(100%)
+
+7. **智能检查点策略 (Optimization 15)** - SmartCheckpointStrategy 类 (~140行)
+   - 基于任务特征动态调整间隔
+   - **性能**: IO开销减少30-40%
+
+**性能提升总结**:
+
+| 指标         | 优化前 | 优化后   | 提升      |
+| ------------ | ------ | -------- | --------- |
+| 任务成功率   | 40%    | 70%      | **+75%**  |
+| LLM规划成本  | 基准   | 基准×0.3 | **-70%**  |
+| 缓存命中率   | 20%    | 60-85%   | **+3-4x** |
+| 多代理利用率 | 70%    | 90%      | **+20%**  |
+| 代理获取速度 | 基准   | 基准×10  | **10x**   |
+| 质量发现速度 | 30分钟 | <1秒     | **1800x** |
+
+**测试验证**: 新增约1,370行测试代码, 55+测试套件
+**完整文档**: 约3,871行文档 (Phase 3/4总结 + 4个优化模块详细文档)
+
+详见: `docs/features/WORKFLOW_PHASE3_COMPLETION_SUMMARY.md`
+
+---
+
+### 1.2.7 历史更新 (v0.26.2-tests)
+
+**桌面端测试覆盖完善** (2026-01-26, commits f6a9befc, 3e4e35a4):
+
+- ✅ AI引擎系统：24个专业单元测试,2500+测试用例
+  - user-profile-manager.test.js (78/78 通过)
+  - feature-extractor.test.js (92/92 通过)
+  - ml-tool-matcher.test.js (73/73 通过)
+  - collaborative-filter.test.js (62/62 通过)
+  - checkpoint-validator.test.js (83/83 通过)
+  - hierarchical-task-planner.test.js (73/73 通过)
+- ✅ E2E测试套件：100%通过率,完整功能验证
+- ✅ 文件导入项目功能：Android端文件导入到PC端项目系统
+- ✅ 文档结构重组：跨模块文档优化,改进可读性
+
+**Android Phase 9完成** (2026-01-26, commit 9adcacf4):
+
+- ✅ 社交功能完整集成：书签管理,好友列表,消息中心
+- ✅ LLM设置界面：多提供商配置,测试聊天界面
+- ✅ 文件浏览器：完整的文件管理系统
+- ✅ 权限管理器：统一的权限请求和管理
+- ✅ 性能优化持续改进：启动速度+40%,UI流畅度+16%
+
+### 1.2.8 历史更新 (v0.27.0)
+
+**Cowork多代理协作系统 v1.0.0** (2026-01-27):
+
+- ✅ 智能编排系统 - AI驱动的单/多代理决策
+- ✅ 核心协作引擎 - TeammateTool (1,100行), 13个协作操作
+- ✅ 文件沙箱系统 - FileSandbox (700行), 18+敏感文件检测
+- ✅ 长时任务管理 - 检查点/恢复机制, 指数退避重试
+- ✅ 技能系统 - 4个Office技能, 智能匹配
+- ✅ 完整前端UI - 4个主要组件(Dashboard/Monitor/Manager/Analytics)
+- ✅ ECharts可视化 - 10+图表类型
+- ✅ 数据库架构 - 9张专用表, 35个索引
+- ✅ IPC通信层 - 45个处理器
+- ✅ 200+ 测试用例 - 90%+ 代码覆盖率
+
+详见: `docs/features/COWORK_FINAL_SUMMARY.md`
+
+---
+
+### 1.2.9 历史更新 (v0.26.0)
+
+**iOS原生应用** (2026-01-19, commits 4b8a7c4, 85c9056f):
+
+- ✅ SwiftUI + MVVM + Clean Architecture
+- ✅ 6个核心模块 (Swift Package Manager): CoreCommon, CoreSecurity, CoreDatabase, CoreDID, CoreE2EE, CoreP2P
+- ✅ 5大功能模块: 认证(100%), 知识库(95%), AI聊天(95%), 社交/P2P(20%), 设置(90%)
+- ✅ SQLCipher AES-256加密 + iOS Keychain + Secure Enclave
+- ✅ Signal Protocol E2EE (CryptoKit实现)
+- ✅ 多LLM支持 (Ollama, OpenAI, Anthropic, DeepSeek, Volcengine) ⭐LLM完整集成
+  - LLMManager统一管理器 (413行)
+  - 流式响应支持,token-by-token显示
+  - 配置持久化与运行时切换
+- ✅ DID身份系统 (did:key, Ed25519)
+- ✅ P2P消息与图像处理功能 ⭐新增
+  - P2PManager (596行): WebRTC连接管理
+  - MessageManager (294行): 消息发送/接收/存储
+  - ImageProcessor (499行): 图像压缩/格式转换/滤镜
+  - ImageCacheManager (394行): 三级缓存系统
+- ✅ RAG检索增强系统
+  - RAGManager (400行): 向量检索与上下文增强
+  - EmbeddingsService (264行): 文本向量化
+  - VectorStore (296行): 向量存储与相似度搜索
+- 🚧 WebRTC P2P通信 (框架完成,UI集成中)
+
+**桌面端内存泄漏防护** (2026-01-19, commits 80c91e8f, a72437de):
+
+- ✅ 4层防护机制: Timer安全包装, 事件监听器自动清理, API请求取消, 消息列表优化
+- ✅ ChatPanel组件优化: 限制200条消息,自动清理旧消息
+- ✅ 共享目录构建支持,改进构建流程
+
+**统一日志系统** (commit 5746aa8a):
+
+- ✅ 主进程+渲染进程双端日志
+- ✅ 5级日志 (DEBUG/INFO/WARN/ERROR/FATAL)
+- ✅ 日志轮转 (10MB/文件,最多30个文件)
+- ✅ 自动敏感数据脱敏 (密码/Token/API密钥)
+- ✅ 性能监控和错误追踪
+- ✅ 模块化日志分类
+
+**Android P2P UI集成** (commit edc563d0):
+
+- ✅ 8个完整P2P界面 (设备发现,配对,安全码验证,会话指纹,DID管理,消息队列,QR扫描)
+- ✅ 5阶段设备配对流程
+- ✅ 60位安全码验证 + QR码扫描
+- ✅ 色块会话指纹可视化
+- ✅ 实时设备状态监控
+
+**Android性能优化** (commit 34359aa6):
+
+- ✅ buildSrc统一依赖管理 (6,228行)
+- ✅ Gradle优化: 并行构建, G1GC, 构建缓存
+- ✅ 性能提升: 构建速度+30-50%, 启动速度+20-40%, 内存-20%, APK大小-15-25%
+- ✅ 数据库优化: WAL模式, 40MB缓存, 查询优化 (+60%性能)
+- ✅ Compose性能监控: 重组追踪, 渲染时间测量
+
+**架构重构** (2026-01-18):
+
+- ✅ 主进程代码重组: 508个文件重新组织到75个分类目录
+- ✅ 改进代码可维护性和可发现性
+- ✅ 更新所有导入路径和测试引用
+
+**P2P增强**:
+
+- ✅ 新增WebRTC兼容层 (`wrtc-compat.js`, 152行)
+- ✅ 增强P2P通信稳定性
+- ✅ 改进P2P功能测试覆盖
+
+**测试框架改进**:
+
+- ✅ 跳过不稳定的环境依赖测试
+- ✅ 改进CI/CD稳定性
+- ✅ 更好的测试组织结构
+
+**关键提交**:
+
+- `4b8a7c4` - 功能: 初始化iOS原生应用,SwiftUI模块化架构
+- `17125bd7` - 文档: 更新README至v0.26.0,最新功能
+- `80c91e8f` - 修复: 完善ChatPanel内存泄漏防护机制
+- `a72437de` - 修复: 防止ChatPanel内存泄漏,添加共享目录构建
+- `5746aa8a` - 重构: 用统一日志系统替换console日志
+- `edc563d0` - 功能: 集成P2P UI导航到Android主应用
+- `34359aa6` - 功能: Android全面性能和构建系统优化
+- `b1a87b8` - 重构: 将src/main重组为分类子目录
+- `733c7ab` - 功能: 添加WebRTC兼容层并更新测试
+- `1e4317f` - 修复: 为状态模态框传递正确的项目ID
+
+### 1.3 架构规模 (v1.0.0)
+
+- **600+个** 主进程文件 (JS/TS混合，组织在80+分类目录中)
+- **310,000+行** 代码 (包含iOS/Android新模块)
+- **370个** Vue组件 (23个页面 + 347个业务组件)
+- **46个** TypeScript Stores (完整迁移)
+- **17个** 数据库迁移文件 (3,300行SQL)
+- **380+** IPC处理器, **300+** 工具函数, **95** 桌面内置技能 + **28** Android技能
+- **2500+** 测试用例, **417+** 测试文件
+- **100,000+字** 技术文档
+
+**主进程目录结构** (76个分类目录):
+
+```
+核心系统:
+├── ai-engine/        (61+文件) - 多意图识别,少样本学习,任务规划,自治Agent Runner ⭐v1.0.0
+├── llm/              (28文件) - LLM集成,会话管理,Manus优化,永久记忆 ⭐
+│   ├── permanent-memory-manager.js  - Clawdbot风格永久记忆
+│   └── permanent-memory-ipc.js      - 记忆系统IPC通道
+├── rag/              (11文件) - RAG检索增强生成,混合搜索 ⭐
+│   ├── hybrid-search-engine.js      - Vector+BM25融合搜索
+│   └── bm25-search.js               - Okapi BM25全文搜索
+├── browser/          (28文件) - 浏览器自动化系统+Computer Use ⭐v0.33.0增强
+│   ├── actions/      (28文件) - 自动化操作处理+Computer Use能力
+│   │   ├── coordinate-action.js  - 坐标级点击/拖拽
+│   │   ├── vision-action.js      - Vision AI视觉定位
+│   │   ├── desktop-action.js     - 桌面级操作
+│   │   ├── workflow-engine.js    - 工作流引擎
+│   │   ├── audit-logger.js       - 操作审计日志
+│   │   ├── screen-recorder.js    - 屏幕录制
+│   │   ├── action-replay.js      - 操作回放
+│   │   ├── safe-mode.js          - 安全模式
+│   │   └── ...                   - 更多操作模块
+│   ├── advanced/     (3文件)  - 高级扫描器
+│   ├── diagnostics/  (4文件)  - 诊断系统
+│   ├── recording/    (3文件)  - 录制/回放
+│   ├── browser-engine.js        - 核心自动化引擎
+│   ├── element-locator.js       - 智能元素定位
+│   ├── computer-use-agent.js    - Computer Use统一代理 ⭐v0.33.0
+│   └── browser-automation-agent.js - AI自动化代理
+├── remote/           (41文件) - 远程控制系统 ⭐v0.33.0新增
+│   ├── handlers/     (23文件) - 命令处理器(AI/系统/文件/桌面等)
+│   ├── browser-extension/ (4文件) - 浏览器扩展
+│   ├── logging/      (4文件)  - 日志和统计
+│   ├── workflow/     (1文件)  - 工作流引擎
+│   ├── remote-gateway.js        - 远程网关
+│   ├── p2p-command-adapter.js   - P2P命令适配器
+│   ├── permission-gate.js       - 权限控制
+│   └── command-router.js        - 命令路由
+├── mcp/              (16文件) - Model Context Protocol集成
+├── memory/           (18文件) - 记忆库系统(偏好,学习模式,备份)
+├── p2p/              (29+文件) - P2P网络,WebRTC,Signal协议,语音/视频通话 ⭐v1.0.0
+│   └── __tests__/   - call-manager/call-signaling单元测试
+├── social/           (10+文件) - 社区/频道/时光机/相册/代币/直播/情感分析 ⭐v1.0.0新增
+│   └── __tests__/   - 7个社交功能单元测试文件
+├── ipfs/             (2+文件)  - IPFS去中心化存储 (Helia/Kubo) ⭐v1.0.0新增
+├── collaboration/    (4+文件)  - 实时协作 (Yjs CRDT/P2P同步) ⭐v1.0.0新增
+├── analytics/        (2+文件)  - 分析仪表板 (实时聚合/多维指标) ⭐v1.0.0新增
+├── i18n/             (1文件)   - 国际化 (4语言支持) ⭐v1.0.0新增
+├── performance/      (2文件)   - 性能监控+自动调优 ⭐v1.0.0新增
+├── quantization/     (3文件)   - 模型量化 (GGUF+GPTQ) ⭐v1.0.0新增
+├── enterprise/       (2+文件)  - 企业组织管理 (多租户/审批工作流) ⭐v1.0.0新增
+├── trade/            (12文件) - 交易引擎,合约,市场
+├── monitoring/       (9文件)  - 错误监控,健康检查,分析
+├── skill-tool-system/(65+文件) - 320工具(8域模块拆分),138技能,18+类别 ⭐v5.0.1质量改进
+
+数据与存储:
+├── database/         (15文件) - SQLCipher加密,迁移,密钥管理
+├── file/             (9文件)  - 文件管理,版本控制,大文件处理
+├── file-sync/        (4文件)  - 同步管理,冲突解决
+├── knowledge/        (7文件)  - 知识版本控制,协作
+
+集成与API:
+├── api/              (12文件) - 后端客户端(项目,Git,RAG,代码API)
+├── ipc/              (8文件)  - IPC注册和处理器
+
+专业引擎:
+├── engines/          (20文件) - 代码,文档,数据,图像,视频,Web引擎
+├── blockchain/       (25文件) - 智能合约,钱包,交易监控
+├── did/              (6文件)  - DID身份系统
+├── social/           (6文件)  - 社交功能,论坛
+├── organization/     (12文件) - 企业组织管理
+
+工具与支持:
+├── utils/            (17文件) - 辅助工具,性能监控,日志转发 ⭐
+│   └── ipc-error-handler.js         - 统一IPC错误处理中间件
+├── config/           (10文件) - 配置管理,数据库配置
+├── git/              (10文件) - Git操作,自动提交,Markdown导出
+├── plugins/          (15文件) - 插件系统,市场,沙箱
+├── ukey/             (18文件) - U盾硬件集成(仅Windows)
+```
+
+### 1.4 技术架构图
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        用户层                                     │
+├──────────────────────┬──────────────────────┬───────────────────┤
+│   移动端 (Android/iOS)│ PC端 (Win/Mac/Linux) │   Web端 (可选)    │
+│   - SIMKey认证        │      - U盾认证        │   - 浏览器访问     │
+│   - P2P同步           │      - P2P桥接        │   - 轻量级界面     │
+└──────────────────────┴──────────────────────┴───────────────────┘
+              ↕                       ↕                    ↕
+┌─────────────────────────────────────────────────────────────────┐
+│                     业务逻辑层                                    │
+├──────────────────────────────────────────────────────────────────┤
+│  项目管理(核心) │ 知识库管理 │ 社交模块 │ 交易模块 │ 企业协作   │
+└──────────────────────────────────────────────────────────────────┘
+              ↕                       ↕                    ↕
+┌─────────────────────────────────────────────────────────────────┐
+│                     数据层                                        │
+├──────────────────┬─────────────────────┬────────────────────────┤
+│  本地存储         │   分布式存储         │   AI模型层             │
+│  - SQLite/sql.js │   - Git仓库          │   - Ollama本地         │
+│  - ChromaDB      │   - P2P同步          │   - 14+云端API         │
+└──────────────────┴─────────────────────┴────────────────────────┘
+              ↕                       ↕                    ↕
+┌─────────────────────────────────────────────────────────────────┐
+│                     安全层                                        │
+├──────────────────────────────┬──────────────────────────────────┤
+│       U盾 (PC端)              │        SIMKey (移动端)           │
+│  - 私钥存储/数字签名          │   - 私钥存储/SIM卡安全芯片       │
+└──────────────────────────────┴──────────────────────────────────┘
+```
+
+---
+
+## 二、核心模块设计 (详见子文档)
+
+| 序号     | 模块                 | 子文档                                                            |
+| -------- | -------------------- | ----------------------------------------------------------------- |
+| 2.1      | 知识库管理模块       | [modules/01\_知识库管理模块.md](modules/m01-knowledge-base.md)     |
+| 2.2      | 去中心化社交模块     | [modules/02\_去中心化社交模块.md](modules/m02-decentralized-social.md) |
+| 2.3      | 去中心化交易辅助模块 | [modules/03\_交易辅助模块.md](modules/m03-trading-assistant.md)         |
+| 2.4      | 项目管理模块 ⭐核心  | [modules/04\_项目管理模块.md](modules/m04-project-management.md)         |
+| 2.5      | 企业版组织模块       | [modules/05\_企业版组织模块.md](modules/m05-enterprise-org.md)     |
+| 2.6-2.7  | AI优化系统           | [modules/06_AI优化系统.md](modules/m06-ai-optimization.md)              |
+| 2.8      | 性能优化系统         | [modules/07\_性能优化系统.md](modules/m07-performance-optimization.md)         |
+| 2.9-2.11 | MCP与配置系统        | [modules/08_MCP与配置系统.md](modules/m08-mcp-config.md)        |
+| 2.12     | 浏览器自动化系统 ⭐  | [modules/09\_浏览器自动化系统.md](modules/m09-browser-automation.md) |
+| 2.13     | 远程控制系统 ⭐新    | [modules/10\_远程控制系统.md](modules/m10-remote-control.md)         |
+
+---
+
+## 三、安全机制设计 (详见子文档)
+
+详细设计请参考: [安全机制设计.md](security-design.md)
+
+主要内容:
+
+- 3.1 U盾安全机制 (密钥管理、备份恢复)
+- 3.2 SIMKey安全机制
+- 3.3 数据加密方案
+
+---
+
+## 四、数据同步方案 (详见子文档)
+
+详细设计请参考: [数据同步方案.md](data-sync-design.md)
+
+主要内容:
+
+- 4.1 Git同步 (PC间版本控制同步)
+- 4.2 HTTP同步 (轻量级PC间同步)
+- 4.3 P2P移动端同步 (WebRTC实时同步)
+
+---
+
+## 五、AI模型部署方案 (详见子文档)
+
+详细设计请参考: [AI模型部署方案.md](ai-model-deploy.md)
+
+主要内容:
+
+- 5.1 模型选型 (LLM、Embedding、向量数据库)
+- 5.2 部署架构 (PC端Docker、移动端轻量级)
+- 5.3 混合推理策略
+
+---
+
+## 六、系统实现技术栈
+
+### 6.1 PC端 (跨平台桌面应用)
+
+**核心框架**: Electron 39.2.7 + Vue 3.4.0 + Vite 7.2.7 + TypeScript 5.9.3
+
+```
+实际技术栈 (v0.26.0):
+├── 前端框架: Vue 3.4.0 + TypeScript 5.9.3
+├── UI库: Ant Design Vue 4.1.0
+├── 可视化: ECharts 6.0.0 + ECharts GL 2.0.9
+├── 编辑器: Monaco Editor 0.55.1 + Milkdown 7.17.3
+├── 状态管理: Pinia 2.1.7
+├── Git操作: isomorphic-git 1.25.4
+├── 数据库: better-sqlite3-multiple-ciphers 12.5.0 (SQLCipher)
+├── 向量库: ChromaDB 3.1.8 + @chroma-core/default-embed 0.1.9
+├── 加密: node-forge 1.3.1 + tweetnacl 1.0.3
+├── P2P网络: libp2p 3.1.2
+│   ├── @libp2p/webrtc 6.0.10
+│   ├── @libp2p/noise 1.0.1
+│   ├── @libp2p/kad-dht 16.1.2
+│   ├── @libp2p/circuit-relay-v2 4.1.2
+│   └── werift 0.22.2 (WebRTC)
+├── Signal协议: @privacyresearch/libsignal-protocol-typescript 0.0.16
+├── 区块链: ethers 6.16.0 + @openzeppelin/contracts 5.4.0
+├── 文件处理:
+│   ├── Sharp 0.33.5 (图像处理)
+│   ├── Tesseract.js 5.1.1 (OCR)
+│   ├── pdf-parse 1.1.1
+│   ├── docx 9.5.1
+│   ├── exceljs 4.4.0
+│   └── pptxgenjs 4.0.1
+├── MCP集成: @modelcontextprotocol/sdk 1.25.2
+├── LLM客户端: Ollama SDK + 14+云端API客户端
+├── 测试框架: Vitest 3.0.0 + Playwright 1.57.0
+├── 打包: Electron Forge 7.2.0
+└── 代码规范: ESLint 9.18.0 + Prettier 3.2.4
+```
+
+### 6.2 移动端
+
+**Android** (v0.32.0 - 功能完成, 100%):
+
+- **语言**: Kotlin 1.9.22
+- **UI**: Jetpack Compose 1.6.1 + Material 3
+- **架构**: Clean Architecture + MVVM + Hilt DI
+- **数据库**: Room 2.6.1 + SQLCipher 4.5.6 (AES-256)
+- **安全**: Android Keystore + Biometric API + Tink
+- **P2P**: WebRTC 120.0.0 + libp2p
+- **E2EE**: Signal Protocol (完整实现,~8,195行代码)
+- **构建**: Gradle 8.7 + Java 17
+- **编译版本**: compileSdk 35 (Android 15), targetSdk 35, minSdk 26
+- **模块化架构** (12个模块):
+  - app (主应用)
+  - core-common (通用工具)
+  - core-database (Room + SQLCipher)
+  - core-did (DID身份系统)
+  - core-e2ee (Signal Protocol E2EE) ⭐
+  - core-network (网络层)
+  - core-p2p (P2P网络)
+  - core-security (安全模块)
+  - core-ui (UI主题)
+  - feature-auth (认证功能)
+  - feature-knowledge (知识库功能)
+  - feature-ai (AI对话功能)
+  - feature-p2p (P2P功能) ⭐
+- **E2EE系统** (100%完成) ⭐v0.4.1:
+  - ✅ Signal Protocol实现: X3DH密钥交换 + Double Ratchet加密
+  - ✅ 会话管理: 持久化会话存储, 密钥轮转
+  - ✅ 消息队列: 离线消息队列, 优先级处理
+  - ✅ 身份验证: Safety Numbers (60位), 会话指纹验证
+  - ✅ 高级功能: 已读回执, 消息撤回, 群组加密接口
+  - ✅ 22个测试用例覆盖核心功能
+- **P2P UI系统** (100%完成) ⭐v0.4.1:
+  - ✅ 设备管理: NSD发现, 配对状态管理
+  - ✅ 设备配对: 5阶段配对流程, QR码扫描
+  - ✅ 安全验证: Safety Numbers (60位), 会话指纹可视化
+  - ✅ DID管理: 导出, 分享功能
+  - ✅ 8个完整界面: DeviceListScreen, DevicePairingScreen, SafetyNumbersScreen, SessionFingerprintDisplay, QRCodeScannerScreen, P2PChatScreen, DIDManagementScreen, MessageQueueScreen
+- **性能优化系统** (100%完成) ⭐v0.4.1:
+  - ✅ buildSrc统一依赖管理 (6,228行)
+  - ✅ Gradle构建优化: 并行构建 + G1GC, 构建速度提升45.8%
+  - ✅ 数据库优化: WAL模式 + 40MB缓存, 查询性能提升62.5%
+  - ✅ Compose性能监控: 重组追踪, 渲染时间测量
+  - ✅ 性能指标: 构建+30-50%, 启动+20-40%, 内存-20%, APK大小-15-25%
+- **Phase 9 功能集** (100%完成) ⭐v0.28.0:
+  - ✅ 社交功能: 书签管理, 好友列表, 社交信息流
+  - ✅ LLM设置: 多提供商配置界面, 实时测试聊天
+  - ✅ 文件浏览器: 完整的文件管理系统, 多格式预览
+  - ✅ 权限管理: 统一的权限请求和管理系统
+  - ✅ UI组件: BookmarkScreen, LLMSettingsScreen, FileBrowserScreen, SocialFeedScreen
+- **v0.32.0 新增功能集** ⭐:
+  - ✅ MCP集成模块: Model Context Protocol完整实现
+  - ✅ Hooks系统: 21个钩子事件, 4种钩子类型
+  - ✅ 协作模块: Cowork多代理系统移植
+  - ✅ 性能模块: LLM性能追踪和成本监控
+  - ✅ 任务规划系统: TaskPlanManager, PlanningSession, TaskPlanCard
+  - ✅ 语法高亮: Go, Rust, C/C++, SQL, Shell, Dart, PHP, Ruby等10+语言
+  - ✅ AI聊天UI增强: 模型选择器, 文件引用, 思考动画
+  - ✅ 知识图谱管理: KnowledgeGraphManager和展示层
+  - ✅ TTS客户端: 文本转语音功能
+  - ✅ 音频处理器: AudioProcessor引擎
+  - ✅ 企业RBAC: RBACManager权限系统
+  - ✅ 团队管理: TeamManager和TeamRepository
+- **其他特性**:
+  - ✅ 认证系统 (PIN + 生物识别)
+  - ✅ 知识库 (FTS5全文搜索 + Markdown编辑器)
+  - ✅ AI聊天 (OpenAI, DeepSeek, Ollama + RAG)
+  - ✅ 项目管理 (文件导入, 模板系统, Git集成)
+- **关键文件**:
+  - `android-app/core-e2ee/src/main/java/com/chainlesschain/android/core/e2ee/protocol/X3DHKeyExchange.kt`
+  - `android-app/feature-p2p/src/main/java/com/chainlesschain/android/feature/p2p/ui/DevicePairingScreen.kt`
+  - `android-app/buildSrc/src/main/kotlin/Dependencies.kt` (6,228行)
+
+**iOS** (v0.3.0 - 核心模块完成, 95%):
+
+- **语言**: Swift 5.9+, iOS 15.0+
+- **UI**: SwiftUI + MVVM架构
+- **依赖管理**: Swift Package Manager
+- **核心模块** (6个Swift Package):
+  - CoreCommon (日志,扩展,常量,工具类)
+  - CoreSecurity (Keychain, 生物识别, AES/PBKDF2加密)
+  - CoreDatabase (SQLite + SQLCipher 4.5.6, Core Data)
+  - CoreDID (did:key, Ed25519签名)
+  - CoreE2EE (Signal Protocol, X3DH, Double Ratchet)
+  - CoreP2P (WebRTC框架, 信令管理)
+- **功能模块**:
+  - ✅ 认证系统 (PIN 6-8位 + Face ID/Touch ID, 100%)
+    - 自动DID生成, 数据库密钥管理
+  - ✅ 知识库管理 (CRUD, 实时搜索, 标签系统, 100%)
+    - 分类管理, 收藏功能, 统计面板, FTS5全文搜索
+  - ✅ AI对话系统 (6个LLM提供商, 流式响应, 100%)
+    - LLMManager统一管理 + LLMClient协议
+    - 支持: Ollama, OpenAI, Anthropic (Claude), DeepSeek, Volcengine (Doubao), 通用OpenAI兼容
+    - 流式token-by-token显示, 配置持久化
+  - ✅ 社交/P2P (100%) ⭐v0.32.0完成
+    - ✅ P2P消息框架 (MessageManager, P2PManager)
+    - ✅ WebRTC管理器 (WebRTCManager, 466行)
+    - ✅ Signal协议管理器 (SignalProtocolManager, 431行)
+    - ✅ 完整UI集成
+  - ✅ 图像处理 (100%)
+    - ✅ ImageProcessor (499行): 压缩, 格式转换, 滤镜
+    - ✅ ImageCacheManager (394行): 三级缓存 (内存/磁盘/远程)
+    - ✅ ImageStorageManager (417行): 文件管理, 元数据
+  - ✅ 设置 (DID显示, PIN修改, LLM配置, 100%)
+- **v0.32.0 新增模块** ⭐:
+  - ✅ SessionManager - LLM会话上下文管理
+  - ✅ PermanentMemoryManager - Clawdbot风格永久记忆
+  - ✅ ContextEngineering - KV-Cache优化
+  - ✅ PermissionEngine - 企业级RBAC权限引擎
+  - ✅ TeamManager - 组织子团队管理
+  - ✅ HookSystem - Claude Code风格钩子系统
+  - ✅ PlanModeManager - 安全规划模式
+  - ✅ RealtimeVoiceInput - 实时语音输入
+  - ✅ VoiceManager - 语音功能管理
+- **安全特性**:
+  - SQLCipher AES-256 + PBKDF2 (256,000次迭代)
+  - iOS Keychain (kSecAttrAccessibleWhenUnlockedThisDeviceOnly)
+  - Secure Enclave支持 (硬件级密钥保护)
+  - CryptoKit Signal Protocol (P256曲线)
+- **RAG系统**:
+  - ✅ RAGManager (400行): 向量检索, 上下文增强
+  - ✅ EmbeddingsService (264行): 文本向量化
+  - ✅ VectorStore (296行): 向量存储与相似度搜索
+- **代码规模**: ~19,000+行代码, 65+文件 (v0.32.0新增~4000行)
+- **关键文件**:
+  - `ios-app/ChainlessChain/Features/AI/Services/LLMManager.swift` (413行)
+  - `ios-app/ChainlessChain/Features/Social/Services/P2PManager.swift` (596行)
+  - `ios-app/ChainlessChain/Features/Knowledge/Services/ImageProcessor.swift` (499行)
+
+### 6.3 后端服务 (可选)
+
+- **中继服务器**: Rust/Go + PostgreSQL + Redis
+- **引导节点**: Go + libp2p (DHT网络)
+
+---
+
+## 七、开发路线图
+
+### Phase 1: MVP (最小可行产品) - 已完成 ✅
+
+- 知识库基础功能
+- AI集成 (Ollama + RAG)
+- Git同步
+
+### Phase 2: 社交功能 - 已完成 ✅
+
+- DID系统
+- P2P通信
+- Signal协议加密
+
+### Phase 3: 交易功能 - 已完成 ✅
+
+- 交易发布与匹配
+- 智能合约
+- 信誉系统
+
+### Phase 4: 生态完善 - 已完成 ✅
+
+- [x] 浏览器扩展完善 ✅ v0.33.0
+- [x] 更多LLM支持 (14+云端API + 本地量化) ✅ v1.0.0
+- [x] 企业版增强 (IPFS+实时协作+组织管理+分析仪表板) ✅ v1.0.0
+- [x] 去中心化社交平台全面升级 ✅ v1.0.0
+- [x] 自治Agent Runner ✅ v1.0.0
+- [x] i18n国际化 (4语言) ✅ v1.0.0
+- [x] 性能自动调优 ✅ v1.0.0
+
+### Phase 5: 扩展计划 (v1.x)
+
+- [ ] Web端 (PWA)
+- [ ] 更多区块链支持
+- [ ] 跨平台Plugin Marketplace完善
+
+---
+
+## 八、关键挑战与解决方案
+
+### 8.1 U盾/SIMKey兼容性
+
+**解决方案**: 抽象层设计 + 适配器模式 + 自动检测 + 降级方案
+
+### 8.2 移动端性能优化
+
+**解决方案**: 模型量化 + 混合推理 + 预计算缓存 + 异步处理
+
+### 8.3 数据隐私与合规
+
+**解决方案**: 隐私设计原则 + GDPR/CCPA合规 + 审计日志
+
+### 8.4 P2P网络稳定性
+
+**解决方案**: 多层连接策略 + 离线支持 + 全球中继节点
+
+---
+
+## 九、商业模式 (可选)
+
+### 9.1 免费增值模式
+
+**免费功能**: 完整知识库、基础社交、本地LLM、Git同步
+
+**高级功能**: 云端LLM额度、托管Git仓库、全球加速中继、企业版协作
+
+### 9.2 企业服务
+
+私有化部署、定制开发、技术支持、员工培训
+
+### 9.3 生态收益
+
+硬件销售分成、插件市场抽成、交易手续费
+
+---
+
+## 十、总结
+
+这套**基于U盾和SIMKey的个人移动AI管理系统**整合了:
+
+1. **知识库管理**: 个人第二大脑,本地AI增强检索和问答
+2. **去中心化社交**: 基于DID的隐私优先社交网络
+3. **去中心化交易**: AI辅助的可信交易平台
+
+**核心优势**:
+
+- **极致安全**: 硬件级密钥保护,端到端加密
+- **完全去中心化**: 无需信任第三方平台
+- **AI原生**: 本地大模型,保护隐私的同时享受AI能力
+- **跨设备**: PC、手机无缝协作
+- **开源自主**: 代码开源,数据自己掌控
+
+---
+
+## 系统质量保证 (v5.0.1 Quality Improvement)
+
+### 测试架构
+
+| 层次 | 测试数 | 工具 | 覆盖范围 |
+|------|--------|------|----------|
+| **Pinia Store 单元测试** | 431 | Vitest + jsdom | 12 个核心 Store (app/session/conversation/permission/skill/enterprise-org/llm/project/audit/task/file/performance-monitor) |
+| **AI Engine 单元测试** | 1238+ | Vitest forks | Cowork 多代理、Pipeline、Deploy、Rollback、Federation、Auth |
+| **Skill Handler 测试** | 250 | Vitest | 138 个技能 handler 加载验证 + env-doctor 诊断 |
+| **CLI 测试** | 2503 | Vitest | 61 个命令、113 个测试文件 |
+| **集成测试** | 37文件 | Vitest | P2P、RAG、DID、错误恢复、外部服务 |
+| **E2E 测试** | 189文件 | Playwright + Electron | 28 个功能类别全覆盖 |
+| **总计** | **4500+** | - | 跨平台 CI (Ubuntu/Windows/macOS) |
+
+### 代码质量改进
+
+- **builtin-tools.js 拆分**: 25,386 行单文件 → 8 个域模块 (`tools/file-tools.js`, `web-tools.js`, `data-tools.js`, `ai-tools.js`, `dev-tools.js`, `system-tools.js`, `blockchain-tools.js`, `misc-tools.js`) + 聚合入口
+- **CI 管道修复**: 移除 `continue-on-error: true` (unit-tests/lint/database-tests)，恢复 renderer 测试
+- **空 catch 块清理**: 所有空 catch 块添加 `// Intentionally ignored` 注释或错误日志
+- **硬编码凭证移除**: 测试 token → `process.env.TEST_GITHUB_TOKEN || "test-token-placeholder"`
+- **Bug 修复**: `ipc-validator.js` formatZodError (`error.errors` → `error.issues`)
+
+---
+
+## 附录
+
+详细附录内容请参考: [实施总结与附录.md](implementation-summary.md)
+
+- 附录A: 快速开始指南
+- 附录B: API文档
+- 附录C: 版本更新历史

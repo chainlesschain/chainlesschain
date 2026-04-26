@@ -1,0 +1,423 @@
+# 安全机制设计
+
+> 本文档是 [系统设计主文档](system-design-main.md) 的子文档，详细描述U盾和SIMKey安全机制的设计。
+
+---
+
+## 3.1 U盾安全机制
+
+### 3.1.1 U盾架构
+
+```
+U盾 (USB Key)
+├── 硬件层
+│   ├── 安全芯片 (SE - Secure Element)
+│   ├── USB接口控制器
+│   ├── 闪存存储 (存储公钥、证书、配置)
+│   └── 随机数生成器 (TRNG)
+│
+├── 固件层
+│   ├── PIN验证模块 (防暴力破解)
+│   ├── 密钥生成模块
+│   ├── 加密/解密引擎 (RSA-2048/4096, AES-256)
+│   ├── 签名验证模块 (RSA/ECDSA)
+│   └── 生命周期管理 (初始化、锁定、解锁、重置)
+│
+└── API层
+    ├── PKCS#11接口 (通用加密API)
+    ├── 自定义SDK (针对本系统)
+    └── 驱动程序 (Windows/Linux/Mac)
+```
+
+### 3.1.2 密钥管理
+
+**密钥层次结构**:
+
+```
+主密钥 (Master Key) - 永不导出,仅存U盾内
+├── 设备签名密钥 (Device Sign Key)
+│   └── 用途: 签名DID文档、交易、消息
+│
+├── 设备加密密钥 (Device Encrypt Key)
+│   └── 用途: 接收加密消息、文件
+│
+├── 数据库加密密钥 (DB Encryption Key)
+│   └── 用途: 加密SQLCipher数据库
+│
+└── 备份加密密钥 (Backup Encryption Key)
+    └── 用途: 加密Git仓库、云备份
+```
+
+**密钥生成流程**:
+
+```
+1. 用户插入U盾
+2. 输入PIN码解锁
+3. 调用U盾API生成密钥对
+   - RSA-4096 (兼容性好,适合签名)
+   - 或 Ed25519 (高效,256位安全性)
+4. 私钥写入安全芯片 (标记为不可导出)
+5. 公钥导出并存储到应用数据库
+6. 生成对应的DID标识符
+```
+
+**安全操作**:
+
+```c
+// U盾签名操作示例
+int ukey_sign_data(const char* data, size_t data_len,
+                   unsigned char* signature, size_t* sig_len) {
+    // 1. 验证U盾连接
+    if (!ukey_is_connected()) return ERROR_UKEY_NOT_FOUND;
+
+    // 2. 验证PIN (带重试次数限制)
+    if (!ukey_verify_pin(pin, &retries_left)) {
+        if (retries_left == 0) {
+            ukey_lock();  // PIN错误次数过多,锁定U盾
+        }
+        return ERROR_INVALID_PIN;
+    }
+
+    // 3. 计算数据哈希
+    unsigned char hash[32];
+    sha256(data, data_len, hash);
+
+    // 4. 调用安全芯片签名 (私钥永不离开芯片)
+    int ret = se_sign(DEVICE_SIGN_KEY_ID, hash, 32, signature, sig_len);
+
+    return ret;
+}
+```
+
+### 3.1.3 备份与恢复
+
+**备份方案**:
+
+```
+方案一: 助记词备份 (BIP39)
+1. 生成256位熵
+2. 转换为24个助记词
+3. 用户抄写并安全保存 (纸质、金属板)
+4. 可选加密助记词 (需要额外密码)
+5. 从助记词可恢复所有密钥
+
+方案二: 备份U盾
+1. 制作2-3个备份U盾
+2. 将私钥安全导出并写入备份U盾
+   (需要管理员级别权限和二次验证)
+3. 备份U盾存放在不同物理位置
+
+方案三: 社交恢复 (Shamir秘密共享)
+1. 将主密钥分割为N份 (如5份)
+2. 任意M份可恢复 (如3份)
+3. 分发给可信朋友/家人
+4. 丢失U盾时向他们请求恢复
+```
+
+**U盾丢失恢复流程**:
+
+```
+1. 用户使用助记词或备份U盾
+2. 生成新的U盾并导入密钥
+3. 登录系统后发布DID更新事件
+   - 声明旧U盾已作废
+   - 发布新的设备公钥
+   - 使用旧私钥签名证明身份连续性
+4. 通知所有联系人更新公钥
+5. 旧U盾私钥加入黑名单
+```
+
+## 3.2 SIMKey安全机制
+
+### 3.2.1 SIMKey架构
+
+```
+SIMKey (SIM卡安全芯片)
+├── 硬件层
+│   ├── SIM卡芯片 (Java Card或类似)
+│   ├── 安全存储区域 (几十KB)
+│   └── 加密协处理器
+│
+├── Applet层 (在SIM卡上运行的小程序)
+│   ├── PIN管理
+│   ├── 密钥生成 (RSA/ECC)
+│   ├── 签名/验证
+│   ├── 加密/解密
+│   └── 安全存储API
+│
+└── 移动端接口
+    ├── Android: OMAPI (Open Mobile API)
+    ├── iOS: 需要运营商支持的特殊API
+    └── APDU命令 (Application Protocol Data Unit)
+```
+
+### 3.2.2 SIMKey优势
+
+- **始终在线**: 手机随身携带,SIM卡始终在手机中
+- **运营商背书**: 实名制SIM卡提供额外身份保证
+- **难以复制**: SIM卡丢失后可挂失,防止冒用
+- **普及性高**: 无需额外硬件,人人都有SIM卡
+
+### 3.2.3 SIMKey操作示例
+
+**Android OMAPI通信**:
+
+```java
+// 打开SIM卡安全通道
+SEService seService = new SEService(context, new SEService.OnConnectedListener() {
+    @Override
+    public void onConnected() {
+        Reader[] readers = seService.getReaders();
+        for (Reader reader : readers) {
+            if (reader.getName().contains("SIM")) {
+                Session session = reader.openSession();
+                // 选择我们的Applet
+                Channel channel = session.openLogicalChannel(APPLET_AID);
+
+                // 发送签名命令 (APDU)
+                byte[] signCommand = buildSignAPDU(dataToSign);
+                byte[] response = channel.transmit(signCommand);
+
+                // 解析签名结果
+                byte[] signature = parseSignatureResponse(response);
+            }
+        }
+    }
+});
+```
+
+**SIMKey生命周期**:
+
+```
+1. 用户首次使用:
+   - 检测SIM卡是否支持安全Applet
+   - 安装Chainlesschain Applet (需要运营商支持或开放式SIM卡)
+   - 或使用已有的USIM安全功能
+
+2. 初始化:
+   - 设置Applet PIN (独立于SIM卡PIN)
+   - 生成密钥对
+   - 导出公钥存储到应用
+
+3. 日常使用:
+   - 输入PIN解锁 (或使用生物识别委托)
+   - 调用签名/加密API
+   - 会话超时后自动锁定
+
+4. SIM卡更换:
+   - 从备份恢复私钥到新SIM卡
+   - 或生成新密钥并发布DID更新
+```
+
+## 3.3 统一认证流程
+
+**PC端登录**:
+
+```
+1. 用户打开应用
+2. 插入U盾
+3. 输入PIN码 (或生物识别)
+4. U盾解密本地配置文件
+5. 读取DID和数据库密钥
+6. 解密SQLCipher数据库
+7. 加载知识库和联系人
+8. 进入主界面
+```
+
+**移动端登录**:
+
+```
+1. 用户打开APP
+2. 选择使用SIMKey认证
+3. 输入PIN (或指纹/面容ID)
+4. SIMKey解密本地配置
+5. 读取DID和数据库密钥
+6. 解密SQLCipher数据库
+7. 后台同步Git仓库
+8. 进入主界面
+```
+
+**跨设备认证** (PC与手机联动):
+
+```
+1. 用户在新PC上安装应用
+2. PC显示二维码
+3. 用户用手机扫码
+4. 手机SIMKey签名授权消息
+5. PC验证签名
+6. 建立加密通道
+7. 手机通过加密通道传输临时会话密钥
+8. PC使用会话密钥访问云端Git仓库
+9. 下载数据到PC本地
+10. 用户决定是否信任此PC (写入新设备到设备列表)
+```
+
+## 3.4 加密方案
+
+**数据加密层次**:
+
+```
+1. 存储加密 (Data at Rest)
+   ├── SQLCipher数据库: AES-256-CBC
+   │   └── 密钥来源: U盾/SIMKey导出的DB密钥
+   │
+   ├── 敏感文件: AES-256-GCM
+   │   ├── 知识库文件
+   │   ├── 私密照片/文档
+   │   └── 聊天记录备份
+   │
+   └── Git仓库加密
+       ├── git-crypt (透明加密)
+       └── 或 git-remote-gcrypt (远程仓库加密)
+
+2. 传输加密 (Data in Transit)
+   ├── P2P通信: TLS 1.3 + Signal协议
+   ├── Git同步: HTTPS + 仓库级加密
+   └── API调用: TLS 1.3
+
+3. 端到端加密 (End-to-End Encryption)
+   ├── 私密消息: Signal协议
+   ├── 群组消息: MLS (Messaging Layer Security)
+   └── 文件传输: 接收方公钥加密
+```
+
+**加密密钥派生** (KDF):
+
+```
+Master Key (U盾/SIMKey中,256位)
+    ↓ HKDF-SHA256
+├── DB_Encryption_Key (数据库加密)
+├── File_Encryption_Key (文件加密)
+├── Backup_Encryption_Key (备份加密)
+└── Transport_Key_Seed (传输密钥种子)
+```
+
+## 实现状态 (v0.38.0)
+
+**加密技术**:
+
+- **better-sqlite3-multiple-ciphers 12.5.0** - SQLCipher AES-256加密
+- **node-forge 1.3.1** - 加密库
+- **tweetnacl 1.0.3** - 现代加密
+- **U盾SDK** - 硬件密钥管理(仅Windows)
+
+**完成度**: 100% ✅ (数据库加密,密钥管理,备份恢复)
+
+---
+
+## SIMKey v0.38.0 安全增强 (2026-02-21)
+
+### 六大安全增强功能
+
+| 功能                 | 说明                                            | 平台支持             |
+| -------------------- | ----------------------------------------------- | -------------------- |
+| **iOS eSIM支持**     | Apple eSIM API + Secure Enclave集成             | iOS 16+ (iPhone 12+) |
+| **5G SIM卡优化**     | 签名速度3-5x提升，国密SM2/SM3/SM4/SM9，批量签名 | Android 9+           |
+| **NFC离线签名**      | 离线身份验证、交易签名、文件签名                | Android (NFC设备)    |
+| **多SIM卡自动切换**  | 双卡智能管理，网络故障切换，工作/个人分离       | Android (双卡设备)   |
+| **SIM卡健康监控**    | 实时健康评分仪表盘，智能告警，自动维护          | Android / iOS        |
+| **量子抗性算法升级** | NIST PQC标准(ML-KEM/ML-DSA/SLH-DSA)，混合加密   | 全平台               |
+
+### 后量子密码学
+
+采用NIST后量子密码学标准，确保长期数据安全:
+
+- **ML-KEM** (前CRYSTALS-Kyber): 密钥封装机制
+- **ML-DSA** (前CRYSTALS-Dilithium): 数字签名
+- **SLH-DSA** (前SPHINCS+): 基于哈希的签名
+- **混合模式**: 经典算法(RSA/ECDSA) + 后量子算法双重保护
+- **密钥迁移工具**: 从经典密钥平滑迁移到后量子密钥
+
+### NFC离线签名安全机制
+
+```
+NFC签名安全保障:
+✅ 距离限制: NFC通信距离 < 4cm，防止远程窃听
+✅ 加密通道: NFC数据使用ECDH密钥协商加密
+✅ 防重放: 每次签名包含时间戳和随机数
+✅ 金额限制: 可设置单笔/日累计限额
+✅ 白名单: 可限制只与已知设备交互
+✅ 操作日志: 所有NFC签名操作记录到审计日志
+```
+
+详细文档见 [文档站 SIMKey 页面](../../docs-site/docs/chainlesschain/simkey.md)
+
+---
+
+## Phase 46 — 门限签名 + 生物识别 (2026-02-27)
+
+### 门限签名 (Threshold Signatures)
+
+基于 Shamir 秘密共享方案,实现 (k, n) 门限密钥管理:
+
+**核心机制**:
+
+- **密钥分片**: 将 BIP-32 主密钥分割为 n 个份额 (默认 2-of-3)
+- **分布式签名**: 收集 k 个份额重建临时密钥进行签名
+- **份额管理**: 每个份额绑定持有者 DID,支持过期时间
+- **安全销毁**: 使用后安全擦除重建的临时密钥
+
+**支持方案**:
+
+| 方案   | 门限 | 总份额 | 适用场景                        |
+| ------ | ---- | ------ | ------------------------------- |
+| 2-of-3 | 2    | 3      | 个人用户 (主设备+备份+社交恢复) |
+| 3-of-5 | 3    | 5      | 小型团队                        |
+| 5-of-7 | 5    | 7      | 企业级                          |
+
+**数据库**: `threshold_key_shares` 表
+**IPC**: `threshold:split-key`, `threshold:reconstruct-key`, `threshold:list-shares`, `threshold:delete-share`
+
+详细设计见 [21\_统一密钥系统.md](modules/m21-unified-key.md) 第十一章
+
+### 生物识别绑定 (Biometric Binding)
+
+**核心机制**:
+
+- **TEE 集成**: 可信执行环境中处理生物特征
+- **模板哈希**: SHA-256 指纹/人脸模板哈希,原始模板不存储
+- **设备指纹**: 硬件唯一标识符绑定,防止跨设备重放
+- **UV/UP 验证**: User Verification (PIN + 生物特征) + User Presence (物理触摸)
+
+**数据库**: `biometric_bindings` 表
+**IPC**: `biometric:create-binding`, `biometric:verify-binding`, `biometric:list-bindings`, `biometric:revoke-binding`
+
+详细设计见 [21\_统一密钥系统.md](modules/m21-unified-key.md) 第十一章
+
+---
+
+## Phase 50 — 数据防泄漏 DLP (2026-02-27)
+
+**核心机制**:
+
+- **策略驱动**: 正则模式 + 关键词匹配,多通道覆盖
+- **四级响应**: 允许 (allow) → 告警 (alert) → 阻止 (block) → 隔离 (quarantine)
+- **扫描通道**: 邮件、聊天、文件传输、剪贴板、导出
+- **内容哈希**: SHA-256 去重,防止重复告警
+- **审计集成**: DLP 事件自动写入审计日志,可通过 SIEM 导出
+
+详细设计见 [24\_数据防泄漏系统.md](modules/m24b-dlp-prevention.md)
+
+---
+
+## Phase 52 — 后量子密码迁移 PQC (2026-02-27)
+
+**NIST 标准算法**:
+
+- **ML-KEM** (格基密钥封装): ML-KEM-512/768/1024 三级安全强度
+- **ML-DSA** (格基数字签名): ML-DSA-44/65/87 三级签名大小
+
+**混合加密模式**:
+
+- `ML-KEM-768 + ECDH-P256` 密钥交换
+- `ML-DSA-65 + ECDSA-P256` 双重签名
+- 向后兼容经典算法降级
+
+**迁移管理**:
+
+- 批量密钥轮换 (按优先级分批)
+- 风险评估 (识别短密钥长度、弱算法)
+- 进度追踪 (total_keys, migrated_keys, current_step)
+- 回滚支持 (保留经典密钥备份)
+
+详细设计见 [21\_统一密钥系统.md](modules/m21-unified-key.md) 第十三章
