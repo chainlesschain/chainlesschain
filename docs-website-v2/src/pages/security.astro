@@ -181,10 +181,31 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </div>
   </section>
 
+  <section class="py-24">
+    <div class="container-wide max-w-4xl mx-auto">
+      <h2 class="text-4xl md:text-5xl mb-6">默克尔树证书 (MTC) — 后量子安全压缩</h2>
+      <p class="text-xl leading-relaxed mb-6">
+        借鉴 IETF PLANTS WG 协议，把后量子签名（SLH-DSA-128f）切换后单证书 17 KB 暴涨问题压回 ~700 B —— <strong>节省约 97%</strong>。
+      </p>
+      <ul class="text-lg leading-relaxed list-disc pl-6 space-y-2 mb-6">
+        <li>批量签发 + RFC 6962 Merkle 树 + 域分离前缀（防签名重放）</li>
+        <li>Split-view 攻击防御（同 namespace + tree_size 不同根 → MTCA_DOUBLE_SIGNED 拒绝）</li>
+        <li>多种传输：内存 / 文件系统 drop-zone / 真 libp2p（TCP+Noise+Yamux）+ gossipsub</li>
+        <li>verifier 守护进程 <code>cc mtc serve</code> 自动订阅 + 持久化 + 篡改检测</li>
+      </ul>
+      <p class="prose-muted">
+        Phase 1 + 1.5 已完整落地（154 测试全绿）。审计日志双轨签名路径阻塞于合规复核（等保三级 / T/ZGCMCA 023—2025 条款）。详见
+        <a href="https://docs.chainlesschain.com/guide/mtc-merkle-tree-certs" class="underline">用户使用指南</a>
+        与
+        <a href="https://design.chainlesschain.com/mtc-landing-plan" class="underline">设计文档</a>。
+      </p>
+    </div>
+  </section>
+
   <section class="py-24 bg-ink text-cream">
     <div class="container-wide text-center max-w-3xl mx-auto">
       <h2 class="text-4xl md:text-5xl mb-6">对安全有更严格要求？</h2>
-      <p class="text-muted-dark text-lg mb-8">我们为金融、医疗、政企客户提供门限签名、HSM 集成、PQC 迁移等深度定制方案。</p>
+      <p class="text-muted-dark text-lg mb-8">我们为金融、医疗、政企客户提供门限签名、HSM 集成、PQC 迁移、MTC 多模式 MTCA 部署等深度定制方案。</p>
       <a href="tel:400-1068-687" class="inline-flex items-center gap-3 px-8 py-4 rounded-md bg-ember text-ink font-display text-2xl hover:bg-ember-dark transition-colors">
         <span>☎</span><span class="tracking-tight">400-1068-687</span>
       </a>

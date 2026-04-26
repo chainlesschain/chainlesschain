@@ -311,6 +311,10 @@ export default defineConfig({
               link: "/chainlesschain/satellite-comm",
             },
             { text: "HSM硬件适配器", link: "/chainlesschain/hsm-adapter" },
+            {
+              text: "默克尔树证书 MTC ⭐NEW",
+              link: "/chainlesschain/mtc",
+            },
           ],
         },
         {

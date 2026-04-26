@@ -1,5 +1,41 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-26 增量更新（**默克尔树证书 MTC** Phase 1 + 1.5 全部落地）
+
+新包 **`@chainlesschain/core-mtc`** 落地后量子安全签名压缩方案 — 借鉴 IETF PLANTS WG 的 [Merkle Tree Certificates](https://datatracker.ietf.org/doc/draft-ietf-plants-merkle-tree-certs/) 协议（与 Cloudflare + Google Chrome 联合推进的 HTTPS 后量子方案同源）。
+
+切到 SLH-DSA-128f 时，单签从 64 B 暴涨到 17 KB；DHT 周流量从 5 GB 涨到 170 GB（10K 用户规模）。MTC 通过批量签发 + Merkle inclusion proof，把单证书携带物压回 ~700 B —— **节省约 97%**。
+
+### `cc mtc` 6 子命令（17 集成测试全绿）
+
+```bash
+cc mtc batch <input>              # 通用批次构造
+cc mtc batch-dids                 # 从本地 DID DB 读身份
+cc mtc batch-skills               # 从 CLISkillLoader 读技能（Marketplace 路径）
+cc mtc verify <env> --landmark X  # 验证 inclusion proof
+cc mtc landmark inspect <X>       # 查看 landmark 元信息
+cc mtc serve --transport=...      # verifier 守护进程
+```
+
+### 落地范围（154 测试全绿）
+
+| Commit | 内容 |
+|---|---|
+| `be70c5b17` | RFC 6962 Merkle 树 + Verifier + LandmarkCache + 3 子命令 |
+| `8926a5bc0` / `a4b88ebda` | 持久化 + Ed25519 实签（去 alwaysAccept 桩） |
+| `1e63dacc1` | `cc mtc batch-dids` 读本地 DID DB |
+| `58ad63a6b` | InMemory + Filesystem transport（含两节点 e2e） |
+| `40fa0689a` | 真 libp2p Transport（TCP+Noise+Yamux+identify+自定义协议） |
+| `1b0ae1105` | gossipsub mode（@chainsafe/libp2p-gossipsub@14） |
+| `4d1a81586` | `cc mtc serve` verifier 守护进程 |
+| `67da18480` | Marketplace `cc mtc batch-skills` |
+
+详细使用：[用户指南](https://docs.chainlesschain.com/guide/mtc-merkle-tree-certs)；架构与字节级规范：[设计文档](https://design.chainlesschain.com/mtc-landing-plan)、[`docs/design/默克尔树证书_MTC_落地方案.md`](docs/design/默克尔树证书_MTC_落地方案.md)。
+
+**当前签名**：Ed25519 stopgap；待 `@noble/post-quantum` 上线后切 SLH-DSA-128f（接口已为此预留）。**Phase 2 audit 路径**阻塞于合规复核（等保三级最终性窗口 / T/ZGCMCA 023—2025 条款）。
+
+---
+
 ## 2026-04-24 增量更新（`cc pack` v0.4 —— 基础模式 + **项目模式** 全链路落地）
 
 新命令 **`cc pack`** 从 v0.2 的"CLI 打包器"演进为 v0.4 的"**项目打包器**"：除了原有 CLI + Web UI 的单文件分发，新增 `--project` 模式，把 CWD 的 `.chainlesschain/`（config、skills、rules、persona）一并烘进 exe —— 收件人双击跑的就是"这个项目对应的 Agent"。
