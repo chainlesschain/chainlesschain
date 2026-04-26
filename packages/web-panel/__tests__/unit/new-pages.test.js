@@ -22,12 +22,12 @@ import { parseProviders, parseStatus, KNOWN_PROVIDERS } from '../../src/utils/pa
 // ─── Router registration ─────────────────────────────────────────────────────
 
 describe('Router registration', () => {
-  it('has exactly 33 child routes under root', async () => {
+  it('has exactly 34 child routes under root', async () => {
     const routerModule = await import('../../src/router/index.js')
     const router = routerModule.default
     const rootRoute = router.options.routes[0]
-    // 1 redirect + 32 named pages = 33 children
-    expect(rootRoute.children.length).toBe(33)
+    // 1 redirect + 33 named pages = 34 children
+    expect(rootRoute.children.length).toBe(34)
   })
 
   it('contains all expected route names', async () => {
@@ -41,7 +41,7 @@ describe('Router registration', () => {
       'Workflow', 'Tasks', 'Security', 'DID', 'P2P', 'Git', 'Projects',
       'Permissions', 'Wallet', 'Organization', 'Analytics',
       'Templates', 'Backup', 'RssFeed', 'WebAuthn', 'Community', 'Marketplace',
-      'Crosschain', 'VideoEditing',
+      'Crosschain', 'AIOps', 'VideoEditing',
     ]
     for (const name of expected) {
       expect(names).toContain(name)
@@ -136,6 +136,15 @@ describe('Router registration', () => {
     const xRoute = rootRoute.children.find(r => r.name === 'Crosschain')
     expect(xRoute).toBeDefined()
     expect(xRoute.path).toBe('crosschain')
+  })
+
+  it('maps AIOps to /aiops path', async () => {
+    const routerModule = await import('../../src/router/index.js')
+    const router = routerModule.default
+    const rootRoute = router.options.routes[0]
+    const opsRoute = rootRoute.children.find(r => r.name === 'AIOps')
+    expect(opsRoute).toBeDefined()
+    expect(opsRoute.path).toBe('aiops')
   })
 
   it('has redirect from / to /dashboard', async () => {

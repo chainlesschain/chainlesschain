@@ -49,6 +49,7 @@
             <a-menu-item key="chat"><template #icon><MessageOutlined /></template>AI 对话</a-menu-item>
             <a-menu-item key="cowork"><template #icon><RocketOutlined /></template>日常协作</a-menu-item>
             <a-menu-item key="services"><template #icon><ControlOutlined /></template>服务管理</a-menu-item>
+            <a-menu-item key="aiops"><template #icon><AlertOutlined /></template>AIOps</a-menu-item>
             <a-menu-item key="logs"><template #icon><FileTextOutlined /></template>日志查看</a-menu-item>
           </a-menu-item-group>
           <a-menu-item-group>
@@ -105,6 +106,7 @@
           <a-menu-item key="chat"><template #icon><MessageOutlined /></template></a-menu-item>
           <a-menu-item key="cowork"><template #icon><RocketOutlined /></template></a-menu-item>
           <a-menu-item key="services"><template #icon><ControlOutlined /></template></a-menu-item>
+          <a-menu-item key="aiops"><template #icon><AlertOutlined /></template></a-menu-item>
           <a-menu-item key="logs"><template #icon><FileTextOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="skills"><template #icon><AppstoreOutlined /></template></a-menu-item>
@@ -203,7 +205,7 @@ import {
   SafetyCertificateOutlined, LockOutlined, WifiOutlined, CodeOutlined, ProjectOutlined,
   WalletOutlined, TeamOutlined, BarChartOutlined, BlockOutlined, CloudUploadOutlined,
   ReadOutlined, KeyOutlined, VideoCameraOutlined, ShareAltOutlined, IdcardOutlined,
-  UsergroupAddOutlined, ShoppingOutlined, SwapOutlined,
+  UsergroupAddOutlined, ShoppingOutlined, SwapOutlined, AlertOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'
