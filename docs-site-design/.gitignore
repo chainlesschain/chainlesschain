@@ -5,5 +5,7 @@ docs/.vitepress/cache/
 package-lock.json
 
 # 同步过来的设计文档（源文件在 docs/design/）
+docs/*.md
+!docs/index.md
 docs/modules/
 *.tar.gz
