@@ -1,0 +1,47 @@
+{
+  "name": "@chainlesschain/core-mtc",
+  "version": "0.1.0",
+  "description": "Merkle Tree Certificates (MTC) — RFC 6962 tree, JCS canonicalization, inclusion proofs",
+  "type": "commonjs",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./constants": "./lib/constants.js",
+    "./hash": "./lib/hash.js",
+    "./merkle": "./lib/merkle.js",
+    "./jcs": "./lib/jcs.js",
+    "./verifier": "./lib/verifier.js",
+    "./landmark-cache": "./lib/landmark-cache.js"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "files": [
+    "lib/"
+  ],
+  "keywords": [
+    "chainlesschain",
+    "mtc",
+    "merkle-tree",
+    "rfc-6962",
+    "post-quantum",
+    "jcs"
+  ],
+  "author": "ChainlessChain Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chainlesschain/chainlesschain.git",
+    "directory": "packages/core-mtc"
+  },
+  "dependencies": {
+    "canonicalize": "^2.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.1.1"
+  }
+}

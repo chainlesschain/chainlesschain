@@ -193,6 +193,8 @@ import { registerQuantizationCommand } from "./commands/quantization.js";
 import { registerRuntimeCommand } from "./commands/runtime.js";
 // Phase 17: IPFS decentralized storage
 import { registerIpfsCommand } from "./commands/ipfs.js";
+// MTC: Merkle Tree Certificates (Phase 1 Week 3)
+import { registerMtcCommand } from "./commands/mtc.js";
 // Phase 27: Multimodal Collaboration
 import { registerMultimodalCommand } from "./commands/multimodal.js";
 // Phase 22: Performance auto-tuning
@@ -576,6 +578,7 @@ export function createProgram(opts = {}) {
   registerQuantizationCommand(program);
   registerRuntimeCommand(program);
   registerIpfsCommand(program);
+  registerMtcCommand(program);
   registerMultimodalCommand(program);
   registerPerfCommand(program);
   registerAgentNetworkCommand(program);
