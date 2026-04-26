@@ -89,6 +89,7 @@
             <template #title><span class="group-label">企 业</span></template>
             <a-menu-item key="wallet"><template #icon><WalletOutlined /></template>钱包管理</a-menu-item>
             <a-menu-item key="organization"><template #icon><TeamOutlined /></template>组织管理</a-menu-item>
+            <a-menu-item key="tenant"><template #icon><BankOutlined /></template>多租户 SaaS</a-menu-item>
             <a-menu-item key="analytics"><template #icon><BarChartOutlined /></template>使用分析</a-menu-item>
             <a-menu-item key="templates"><template #icon><BlockOutlined /></template>模板中心</a-menu-item>
           </a-sub-menu>
@@ -142,6 +143,7 @@
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="wallet"><template #icon><WalletOutlined /></template></a-menu-item>
           <a-menu-item key="organization"><template #icon><TeamOutlined /></template></a-menu-item>
+          <a-menu-item key="tenant"><template #icon><BankOutlined /></template></a-menu-item>
           <a-menu-item key="analytics"><template #icon><BarChartOutlined /></template></a-menu-item>
           <a-menu-item key="templates"><template #icon><BlockOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
@@ -215,7 +217,7 @@ import {
   WalletOutlined, TeamOutlined, BarChartOutlined, BlockOutlined, CloudUploadOutlined,
   ReadOutlined, KeyOutlined, VideoCameraOutlined, ShareAltOutlined, IdcardOutlined,
   UsergroupAddOutlined, ShoppingOutlined, SwapOutlined, AlertOutlined, SafetyOutlined,
-  ExperimentOutlined, DeploymentUnitOutlined, BulbOutlined,
+  ExperimentOutlined, DeploymentUnitOutlined, BulbOutlined, BankOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'

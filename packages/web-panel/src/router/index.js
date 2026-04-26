@@ -42,6 +42,7 @@ const routes = [
       { path: 'privacy',     name: 'Privacy',     component: () => import('../views/Privacy.vue') },
       { path: 'inference',   name: 'Inference',   component: () => import('../views/Inference.vue') },
       { path: 'nlprog',      name: 'NLProgramming', component: () => import('../views/NLProgramming.vue') },
+      { path: 'tenant',      name: 'Tenant',      component: () => import('../views/Tenant.vue') },
       { path: 'video',       name: 'VideoEditing', component: () => import('../views/VideoEditing.vue') },
     ]
   }
