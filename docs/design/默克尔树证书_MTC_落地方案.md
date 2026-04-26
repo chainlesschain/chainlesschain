@@ -1,14 +1,30 @@
 # 默克尔树证书 (MTC) — ChainlessChain 落地方案
 
-> 版本：v0.1（首版草案）
+> 版本：v0.3（Phase 1 + 1.5 全部落地，Phase 2 部分启动）
 > 日期：2026-04-26
 > 作者：longfa
-> 状态：**草案 / Draft** — 待评审，未进入实施
+> 状态：**Phase 1 + 1.5 完成** — Local MTCA 端到端管道（DID + Skill）、持久化、Ed25519 实签、3 种传输（InMemory / Filesystem / libp2p direct + gossipsub）、`cc mtc` 5 子命令；Phase 2 audit 路径阻塞于合规复核
 > 关联：
+> - **协议级字节规范**：`docs/design/MTC_数据格式_v1.md`（v0.1）
+> - **评审清单**：`docs/design/默克尔树证书_MTC_v0.2_评审清单.md`（16 题，3 项 ⚠️ 合规待确认）
 > - 上游协议：`draft-ietf-plants-merkle-tree-certs-02`（IETF PLANTS WG，2026-03）/ `draft-davidben-tls-merkle-tree-certs-10`
 > - 项目内：`docs/design/安全机制设计.md`、`docs/design/modules/21_统一密钥系统.md`、`docs/design/modules/12_插件市场系统.md`、`docs/design/modules/11_企业审计系统.md`
-> - 已有依赖：PQC SLH-DSA（FIPS 205，6 变体 + Ed25519 hybrid，`packages/cli` 已落地 33 测试）、libp2p DHT、IPFS 存储、Cowork 多代理
 > - 关联版本：ChainlessChain v5.0.2.54 / CLI 0.156.7
+>
+> **v0.3 落地清单（commit hash）**：
+> | 阶段 | commit | 内容 |
+> |---|---|---|
+> | Phase 1 W1+2+3 | `be70c5b17` | RFC 6962 树 + Verifier + LandmarkCache + `cc mtc batch/verify/landmark inspect`（94 + 7 测试） |
+> | Phase 1 W4 持久化 | `8926a5bc0` | LandmarkCache `persistDir` + `loadFromDisk` + Ed25519 signer 模块 |
+> | Phase 1 W4 Ed25519 | `a4b88ebda` | CLI 用真实 Ed25519，去掉 alwaysAccept 桩 |
+> | Phase 1 W4 DID | `1e63dacc1` | `cc mtc batch-dids` 从本地 DID DB 读 |
+> | Phase 1 W5 transport | `58ad63a6b` | InMemory + Filesystem transport（含两节点 e2e） |
+> | Phase 1.5 libp2p | `40fa0689a` | 真 libp2p Transport（TCP+Noise+Yamux+identify，自定义协议） |
+> | Phase 1.5 gossipsub | `1b0ae1105` | gossipsub mode（@chainsafe/libp2p-gossipsub@14，topic 路由） |
+> | Phase 1.5 serve | `4d1a81586` | `cc mtc serve` verifier 守护进程 + core-mtc subpath exports |
+> | Phase 2 partial | `67da18480` | `cc mtc batch-skills` 从 CLISkillLoader 读（Marketplace 路径） |
+>
+> **累计测试**：core-mtc 137 + CLI 17 = **154 测试，全绿**。
 >
 > **本草案要解决的核心问题**：当 ChainlessChain 全面切换到后量子签名时，DID 文档发布、Skill Marketplace 上架、企业审计日志这三处的**单条签名体积**会从今天的 64 B (Ed25519) 暴涨到 7.8–49 KB (SLH-DSA)。三处都是**高频 + 大批量**写入路径，直接套用 PQC 会让 DHT 流量、IPFS 存储成本、审计日志体积放大 1–3 个量级。
 
