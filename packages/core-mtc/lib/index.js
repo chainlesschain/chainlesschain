@@ -6,6 +6,7 @@ const merkle = require("./merkle.js");
 const jcsModule = require("./jcs.js");
 const verifier = require("./verifier.js");
 const landmarkCacheModule = require("./landmark-cache.js");
+const ed25519Signer = require("./signers/ed25519.js");
 
 module.exports = {
   // constants
@@ -42,4 +43,8 @@ module.exports = {
   LandmarkCache: landmarkCacheModule.LandmarkCache,
   alwaysAcceptSignatureVerifier:
     landmarkCacheModule.alwaysAcceptSignatureVerifier,
+  encodeIdForFs: landmarkCacheModule.encodeIdForFs,
+
+  // Ed25519 signer (stopgap until @noble/post-quantum SLH-DSA lands)
+  ed25519: ed25519Signer,
 };

@@ -1,5 +1,7 @@
 "use strict";
 
+const fs = require("node:fs");
+const path = require("node:path");
 const {
   SCHEMA_LANDMARK,
   SCHEMA_TREE_HEAD,
@@ -9,37 +11,15 @@ const {
 const { sha256, encodeHashStr } = require("./hash.js");
 const { jcs } = require("./jcs.js");
 
-/**
- * Stub signature verifier — accepts ANY signature.
- *
- * Use ONLY for tests / local dev. Production callers must inject a real
- * verifier wired to PQC SLH-DSA (or Ed25519 fallback).
- */
 function alwaysAcceptSignatureVerifier() {
   return true;
 }
 
-/**
- * In-memory cache of verified tree_heads, keyed by (namespace, tree_head_id).
- *
- * Responsibilities:
- *   - Verify each snapshot's tree_head signature on ingest (via injected verifier)
- *   - Recompute tree_head_id and check it matches the claimed value
- *   - Enforce split-view defense: same namespace + tree_size must yield same root_hash
- *   - Provide O(1) lookup for the verifier
- *
- * NOT responsible for:
- *   - PQC algorithm details (delegated to signatureVerifier)
- *   - landmark.publisher_signature (caller verifies before calling ingest)
- *   - IPFS / network fetch (caller hands in already-fetched landmark JSON)
- *   - Persistence to disk (Phase 1 Week 3)
- */
+function encodeIdForFs(treeHeadId) {
+  return treeHeadId.replace(/:/g, "_");
+}
+
 class LandmarkCache {
-  /**
-   * @param {object} [options]
-   * @param {(signingInput: Buffer, signature: object) => boolean} [options.signatureVerifier]
-   *   Verifies the tree_head's PQC/Ed25519 signature. Defaults to throw-on-call.
-   */
   constructor(options) {
     const opts = options || {};
     this._signatureVerifier =
@@ -52,114 +32,126 @@ class LandmarkCache {
         throw e;
       };
     this._byNamespace = new Map();
+    this._persistDir = opts.persistDir || null;
   }
 
-  /**
-   * Ingest a landmark. Verifies each snapshot and stores its tree_head.
-   *
-   * @param {object} landmark
-   * @returns {{ accepted: number, total: number }}
-   * @throws Error with code: BAD_LANDMARK_SCHEMA / BAD_TREE_HEAD_SCHEMA /
-   *   BAD_NAMESPACE / BAD_TREE_HEAD_ID / BAD_TREE_HEAD_SIG / MTCA_DOUBLE_SIGNED
-   */
   ingest(landmark) {
-    if (!landmark || typeof landmark !== "object") {
-      const e = new Error("BAD_LANDMARK_SCHEMA");
-      e.code = "BAD_LANDMARK_SCHEMA";
-      throw e;
-    }
-    if (landmark.schema !== SCHEMA_LANDMARK) {
-      const e = new Error("BAD_LANDMARK_SCHEMA");
-      e.code = "BAD_LANDMARK_SCHEMA";
-      throw e;
-    }
+    if (!landmark || typeof landmark !== "object") throw this._err("BAD_LANDMARK_SCHEMA");
+    if (landmark.schema !== SCHEMA_LANDMARK) throw this._err("BAD_LANDMARK_SCHEMA");
     if (!Array.isArray(landmark.snapshots) || landmark.snapshots.length === 0) {
-      const e = new Error("BAD_LANDMARK_SCHEMA");
-      e.code = "BAD_LANDMARK_SCHEMA";
-      throw e;
+      throw this._err("BAD_LANDMARK_SCHEMA");
     }
 
     let accepted = 0;
     for (const snap of landmark.snapshots) {
-      if (!snap || typeof snap !== "object") {
-        const e = new Error("BAD_TREE_HEAD_SCHEMA");
-        e.code = "BAD_TREE_HEAD_SCHEMA";
-        throw e;
-      }
-      const th = snap.tree_head;
-      if (!th || th.schema !== SCHEMA_TREE_HEAD) {
-        const e = new Error("BAD_TREE_HEAD_SCHEMA");
-        e.code = "BAD_TREE_HEAD_SCHEMA";
-        throw e;
-      }
-      if (typeof th.namespace !== "string" || !NAMESPACE_RE.test(th.namespace)) {
-        const e = new Error("BAD_NAMESPACE");
-        e.code = "BAD_NAMESPACE";
-        throw e;
-      }
-      if (
-        !Number.isInteger(th.tree_size) ||
-        th.tree_size < 1 ||
-        typeof th.root_hash !== "string" ||
-        typeof th.expires_at !== "string" ||
-        typeof th.issued_at !== "string" ||
-        typeof th.issuer !== "string"
-      ) {
-        const e = new Error("BAD_TREE_HEAD_SCHEMA");
-        e.code = "BAD_TREE_HEAD_SCHEMA";
-        throw e;
-      }
-
-      const canonical = jcs(th);
-      const expectedId = encodeHashStr(sha256(canonical));
-      if (snap.tree_head_id !== expectedId) {
-        const e = new Error("BAD_TREE_HEAD_ID");
-        e.code = "BAD_TREE_HEAD_ID";
-        e.expected = expectedId;
-        e.actual = snap.tree_head_id;
-        throw e;
-      }
-
-      const signingInput = Buffer.concat([TREE_HEAD_SIG_PREFIX, canonical]);
-      const sigOk = this._signatureVerifier(signingInput, snap.signature);
-      if (!sigOk) {
-        const e = new Error("BAD_TREE_HEAD_SIG");
-        e.code = "BAD_TREE_HEAD_SIG";
-        throw e;
-      }
-
-      // Split-view defense: same namespace + tree_size must yield same root_hash
-      const existing = this._byNamespace.get(th.namespace);
-      if (existing) {
-        for (const knownTh of existing.values()) {
-          if (
-            knownTh.tree_size === th.tree_size &&
-            knownTh.root_hash !== th.root_hash
-          ) {
-            const e = new Error("MTCA_DOUBLE_SIGNED");
-            e.code = "MTCA_DOUBLE_SIGNED";
-            e.namespace = th.namespace;
-            e.tree_size = th.tree_size;
-            e.knownRoot = knownTh.root_hash;
-            e.newRoot = th.root_hash;
-            throw e;
-          }
-        }
-      }
-
-      let nsMap = this._byNamespace.get(th.namespace);
-      if (!nsMap) {
-        nsMap = new Map();
-        this._byNamespace.set(th.namespace, nsMap);
-      }
-      // Idempotent: same id + same tree_head → no-op (already passed split-view above)
-      if (!nsMap.has(snap.tree_head_id)) {
-        nsMap.set(snap.tree_head_id, th);
+      const result = this._validateAndStoreSnapshot(snap);
+      if (result === "accepted") {
         accepted++;
+        if (this._persistDir) this._writeSnapshotToDisk(snap);
+      }
+    }
+    return { accepted, total: landmark.snapshots.length };
+  }
+
+  _validateAndStoreSnapshot(snap) {
+    if (!snap || typeof snap !== "object") throw this._err("BAD_TREE_HEAD_SCHEMA");
+    const th = snap.tree_head;
+    if (!th || th.schema !== SCHEMA_TREE_HEAD) throw this._err("BAD_TREE_HEAD_SCHEMA");
+    if (typeof th.namespace !== "string" || !NAMESPACE_RE.test(th.namespace)) {
+      throw this._err("BAD_NAMESPACE");
+    }
+    if (
+      !Number.isInteger(th.tree_size) ||
+      th.tree_size < 1 ||
+      typeof th.root_hash !== "string" ||
+      typeof th.expires_at !== "string" ||
+      typeof th.issued_at !== "string" ||
+      typeof th.issuer !== "string"
+    ) {
+      throw this._err("BAD_TREE_HEAD_SCHEMA");
+    }
+
+    const canonical = jcs(th);
+    const expectedId = encodeHashStr(sha256(canonical));
+    if (snap.tree_head_id !== expectedId) {
+      const e = this._err("BAD_TREE_HEAD_ID");
+      e.expected = expectedId;
+      e.actual = snap.tree_head_id;
+      throw e;
+    }
+
+    const signingInput = Buffer.concat([TREE_HEAD_SIG_PREFIX, canonical]);
+    const sigOk = this._signatureVerifier(signingInput, snap.signature);
+    if (!sigOk) throw this._err("BAD_TREE_HEAD_SIG");
+
+    const existing = this._byNamespace.get(th.namespace);
+    if (existing) {
+      for (const knownTh of existing.values()) {
+        if (knownTh.tree_size === th.tree_size && knownTh.root_hash !== th.root_hash) {
+          const e = this._err("MTCA_DOUBLE_SIGNED");
+          e.namespace = th.namespace;
+          e.tree_size = th.tree_size;
+          e.knownRoot = knownTh.root_hash;
+          e.newRoot = th.root_hash;
+          throw e;
+        }
       }
     }
 
-    return { accepted, total: landmark.snapshots.length };
+    let nsMap = this._byNamespace.get(th.namespace);
+    if (!nsMap) {
+      nsMap = new Map();
+      this._byNamespace.set(th.namespace, nsMap);
+    }
+    if (nsMap.has(snap.tree_head_id)) return "duplicate";
+    nsMap.set(snap.tree_head_id, th);
+    return "accepted";
+  }
+
+  _err(code) {
+    const e = new Error(code);
+    e.code = code;
+    return e;
+  }
+
+  _snapshotFilePath(snap) {
+    const nsParts = snap.tree_head.namespace.split("/");
+    const dir = path.join(this._persistDir, ...nsParts);
+    return path.join(dir, `${encodeIdForFs(snap.tree_head_id)}.json`);
+  }
+
+  _writeSnapshotToDisk(snap) {
+    const file = this._snapshotFilePath(snap);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, JSON.stringify(snap, null, 2), "utf-8");
+  }
+
+  loadFromDisk() {
+    if (!this._persistDir) throw this._err("NO_PERSIST_DIR");
+    if (!fs.existsSync(this._persistDir)) return { loaded: 0, failed: [] };
+
+    const files = [];
+    function walk(dir) {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (entry.isFile() && entry.name.endsWith(".json")) files.push(full);
+      }
+    }
+    walk(this._persistDir);
+
+    let loaded = 0;
+    const failed = [];
+    for (const file of files) {
+      try {
+        const snap = JSON.parse(fs.readFileSync(file, "utf-8"));
+        const result = this._validateAndStoreSnapshot(snap);
+        if (result === "accepted") loaded++;
+      } catch (err) {
+        failed.push({ path: file, code: err.code || "PARSE_ERROR" });
+      }
+    }
+    return { loaded, failed };
   }
 
   lookup(namespace, treeHeadId) {
@@ -193,4 +185,4 @@ class LandmarkCache {
   }
 }
 
-module.exports = { LandmarkCache, alwaysAcceptSignatureVerifier };
+module.exports = { LandmarkCache, alwaysAcceptSignatureVerifier, encodeIdForFs };
