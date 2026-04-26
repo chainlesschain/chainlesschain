@@ -14,6 +14,7 @@ import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import { getAllIdentities, getIdentity } from "../lib/did-manager.js";
+import { CLISkillLoader } from "../lib/skill-loader.js";
 import mtcLib from "@chainlesschain/core-mtc";
 
 const {
@@ -493,6 +494,149 @@ export function registerMtcCommand(program) {
       } catch (err) {
         logger.error(`mtc batch-dids failed: ${err.message}`);
         if (ctx) await shutdown().catch(() => {});
+        process.exit(1);
+      }
+    });
+
+  // mtc batch-skills — read local skills and produce a batch
+  mtc
+    .command("batch-skills")
+    .description("Build a batch from local CLI skills (all by default)")
+    .requiredOption("--namespace <ns>", "Namespace, e.g. mtc/v1/skill/000001")
+    .requiredOption("--issuer <issuer>", "MTCA issuer string")
+    .option(
+      "--skill <id>",
+      "Include only this skill id (repeatable)",
+      (v, prev) => [...(prev || []), v],
+    )
+    .option("--out <dir>", "Output directory (default: ./mtc-out)", "./mtc-out")
+    .option("--issued-at <iso>", "Override issued_at timestamp")
+    .option("--expires-at <iso>", "Override expires_at timestamp")
+    .option(
+      "--secret-key-file <path>",
+      "Reuse Ed25519 secret key from this hex file (creates one if missing)",
+    )
+    .option("--json", "Print JSON summary instead of human output")
+    .action(async (options) => {
+      try {
+        const loader = new CLISkillLoader();
+        const allSkills = loader.loadAll();
+        if (allSkills.length === 0) {
+          throw new Error(
+            "No skills found in any layer. Set up skill packs first.",
+          );
+        }
+
+        let skills;
+        if (options.skill && options.skill.length > 0) {
+          const want = new Set(options.skill);
+          skills = allSkills.filter((s) => want.has(s.id));
+          if (skills.length === 0) {
+            throw new Error("No skills matched --skill filters");
+          }
+        } else {
+          skills = allSkills;
+        }
+
+        const rawLeaves = skills.map((s) => {
+          // Hash a canonical view of the skill (id+version+category+description+body fingerprint)
+          const canonicalSkill = {
+            id: s.id,
+            displayName: s.displayName,
+            description: s.description,
+            version: s.version,
+            category: s.category,
+            activation: s.activation,
+            tags: s.tags,
+          };
+          return {
+            kind: "skill-manifest",
+            content_hash: encodeHashStr(sha256(jcs(canonicalSkill))),
+            issued_at: new Date().toISOString(),
+            subject: `skill:cc:${s.id}@${s.version}`,
+            metadata: {
+              publisher: options.issuer,
+              skill_id: s.id,
+              version: s.version,
+              category: s.category,
+            },
+          };
+        });
+
+        const { landmark, envelopes, treeHeadId, keys } = buildBatch(
+          rawLeaves,
+          {
+            namespace: options.namespace,
+            issuer: options.issuer,
+            issuedAt: options.issuedAt,
+            expiresAt: options.expiresAt,
+            secretKeyFile: options.secretKeyFile,
+          },
+        );
+
+        const outDir = path.resolve(options.out);
+        const landmarkPath = path.join(outDir, "landmark.json");
+        writeJsonFile(landmarkPath, landmark);
+
+        if (options.secretKeyFile && !fs.existsSync(options.secretKeyFile)) {
+          fs.mkdirSync(path.dirname(options.secretKeyFile), {
+            recursive: true,
+          });
+          fs.writeFileSync(
+            options.secretKeyFile,
+            keys.secretKey.toString("hex"),
+            { mode: 0o600 },
+          );
+        }
+
+        const envelopePaths = [];
+        for (let i = 0; i < envelopes.length; i++) {
+          const p = path.join(
+            outDir,
+            `envelope-${String(i).padStart(6, "0")}.json`,
+          );
+          writeJsonFile(p, envelopes[i]);
+          envelopePaths.push(p);
+        }
+
+        const subjects = rawLeaves.map((l) => l.subject);
+
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              {
+                ok: true,
+                tree_head_id: treeHeadId,
+                tree_size: rawLeaves.length,
+                root_hash: landmark.snapshots[0].tree_head.root_hash,
+                landmark_path: landmarkPath,
+                envelope_paths: envelopePaths,
+                subjects,
+              },
+              null,
+              2,
+            ),
+          );
+        } else {
+          logger.log(STOPGAP_BANNER);
+          logger.success(`Batched ${rawLeaves.length} skill(s)`);
+          logger.log(`  ${chalk.bold("Namespace:")}    ${options.namespace}`);
+          logger.log(`  ${chalk.bold("Tree size:")}    ${rawLeaves.length}`);
+          logger.log(
+            `  ${chalk.bold("Root hash:")}    ${landmark.snapshots[0].tree_head.root_hash}`,
+          );
+          logger.log(`  ${chalk.bold("Tree head ID:")} ${treeHeadId}`);
+          logger.log(
+            `  ${chalk.bold("Landmark:")}     ${chalk.cyan(landmarkPath)}`,
+          );
+          logger.log(
+            `  ${chalk.bold("Envelopes:")}    ${envelopePaths.length} files in ${outDir}`,
+          );
+          logger.log(`  ${chalk.bold("Subjects:")}`);
+          for (const s of subjects) logger.log(`    ${chalk.gray(s)}`);
+        }
+      } catch (err) {
+        logger.error(`mtc batch-skills failed: ${err.message}`);
         process.exit(1);
       }
     });
