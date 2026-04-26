@@ -2,7 +2,7 @@
 
 Complete list of implemented features in the ChainlessChain project.
 
-**Last Updated**: 2026-04-21 (v5.0.2.43)
+**Last Updated**: 2026-04-26 (v5.0.2.43, web-panel Phase B shipped)
 
 ## Core Features
 
@@ -350,3 +350,62 @@ Uses same SKILL.md format as desktop. Details in `MEMORY.md`.
 - **Empty catch blocks**: Cleaned across `mobile-app-uniapp/` and `packages/cli/`
 - **Hardcoded credentials**: Removed test tokens and dev passwords, replaced with env vars
 - **Bug fix**: `formatZodError()` in `ipc-validator.js` — was accessing `error.errors` instead of `error.issues`
+
+## Web Panel (`packages/web-panel/`)
+
+Browser-served counterpart of the desktop app, talking to a CLI WebSocket bridge (`cc serve`). 34 named routes in `src/router/index.js`.
+
+### Routes by sidebar group
+
+| Group | Route | View | CLI source | Phase |
+|-------|-------|------|------------|-------|
+| 概 览 | `/dashboard` | `Dashboard.vue` | `status` | base |
+| 概 览 | `/chat` | `Chat.vue` | `chat` (WS streaming) | base |
+| 概 览 | `/cowork` | `Cowork.vue` | `cowork` | base |
+| 概 览 | `/services` | `Services.vue` | `services` | base |
+| 概 览 | `/aiops` | `AIOps.vue` | `cc ops *` | **B4** |
+| 概 览 | `/logs` | `Logs.vue` | logs reader | base |
+| 配 置 | `/skills` | `Skills.vue` | `skill list` | base |
+| 配 置 | `/providers` | `Providers.vue` | `llm providers` + `config get llm` | base |
+| 配 置 | `/mcp` | `McpTools.vue` | `mcp servers/tools` | base |
+| 配 置 | `/project-settings` | `ProjectSettings.vue` | `config get/set project.*` | **A3** |
+| 数 据 | `/notes` | `Notes.vue` | `note list/show/add/search` | base |
+| 数 据 | `/memory` | `Memory.vue` | `memory show/add` | base |
+| 数 据 | `/knowledge` | `KnowledgeGraph.vue` | `kg list/relations/stats/reason` | **A1** |
+| 数 据 | `/marketplace` | `Marketplace.vue` | `cc marketplace *` | **B2** |
+| 数 据 | `/cron` | `Cron.vue` | `ccron` | base |
+| 数 据 | `/workflow` | `WorkflowEditor.vue` | `workflow` | base |
+| 数 据 | `/tasks` | `Tasks.vue` | task store | base |
+| 高 级 | `/security` | `Security.vue` | `audit` + `did list` | base |
+| 高 级 | `/did` | `DID.vue` | `cc did *` | **A2** |
+| 高 级 | `/permissions` | `Permissions.vue` | `auth roles/permissions` | base |
+| 高 级 | `/p2p` | `P2P.vue` | `p2p status/peers` | base |
+| 高 级 | `/backup` | `Backup.vue` | `db backup/sync` | base |
+| 高 级 | `/git` | `Git.vue` | `git status/log` | base |
+| 高 级 | `/projects` | `Projects.vue` | project store | base |
+| 高 级 | `/crosschain` | `Crosschain.vue` | `cc crosschain *` | **B3** |
+| 高 级 | `/compliance` | `Compliance.vue` | `cc compliance threat-intel/ueba` | **B5** |
+| 企 业 | `/wallet` | `Wallet.vue` | `wallet list/balance` | base |
+| 企 业 | `/organization` | `Organization.vue` | `org list/members` | base |
+| 企 业 | `/analytics` | `Analytics.vue` | aggregated stats | base |
+| 企 业 | `/templates` | `Templates.vue` | `init --template` | base |
+| 社 交 | `/community` | `Community.vue` | `cc social *` | **B1** |
+| 媒 体 | `/video` | `VideoEditing.vue` | video pipeline | base |
+| 扩 展 | `/rssfeed` | `RssFeed.vue` | rss reader | base |
+| 扩 展 | `/webauthn` | `WebAuthn.vue` | `cc webauthn` | base |
+
+### Phase A & B port pattern (mechanical)
+
+Each port = one commit in scope `feat(web-panel):` with 4 deliverables:
+1. `src/utils/<feature>-parser.js` (pure, with shared `stripCliNoise` from `community-parser.js`)
+2. `src/views/<Feature>.vue` (uses `ws.execute('cc <cmd> --json', timeout)`)
+3. `src/router/index.js` + `src/components/AppLayout.vue` sidebar entry
+4. `__tests__/unit/<feature>-parser.test.js` + new-pages count assertion +1 + path-mapping test
+
+**Sidebar**: 8 collapsible groups via `<a-sub-menu>` with `v-model:openKeys` persisted to `localStorage['cc.web-panel.sidebar.openKeys']`. Independent scroll inside the sider via `height:100vh` + flex column on `.app-root`.
+
+### Test counts (web-panel)
+
+- Unit (`__tests__/unit/`): **809**
+- Integration (`__tests__/integration/`): existing `cli-commands.test.js` + new `phase-b-cli-commands.test.js` (**19** new tests, ~40s)
+- E2E (`__tests__/e2e/`): `panel.test.js` HTTP SPA fallback for all 34 routes

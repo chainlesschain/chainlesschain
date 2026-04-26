@@ -1,5 +1,57 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-26 增量更新（**web-panel Phase B 全量收官** — Community / Marketplace / Cross-chain / AIOps / Compliance + 侧边栏可滚动可折叠）
+
+V6 硬翻定调后，web-panel 进入 Phase B：把桌面端 5 个高频功能整体移植到浏览器面板，每件 1 个 commit、scope `feat(web-panel):`，模板 = `<feature>-parser.js`（pure，含 `stripCliNoise` 复用）+ `<Feature>.vue` + router/sidebar 接线 + parser unit tests + new-pages 路由计数 +1 + 路径断言。Phase B 完成后顺手做了 sidebar 独立滚动 + 二级菜单收缩。
+
+### Phase B 5 件事（按 commit 顺序）
+
+| Commit | 路由 | 侧边栏组 | CLI 来源 | 卡片 / Tab / 弹窗 |
+|---|---|---|---|---|
+| `260787c99` | `/community` | 社 交（新建） | `cc social ...` | 5 / 3 (帖子+好友+联系人) / 2 (发帖+加联系人) |
+| `792b211e1` | `/marketplace` | 数 据 | `cc marketplace ...` | 5 / 2 (服务+调用) / 2 (发布+记录调用) + 状态机下拉 |
+| `8f7d87ede` | `/crosschain` | 高 级 | `cc crosschain ...` | 5 / 3 (桥接+原子交换+消息) / 4 (Bridge+Swap+Send+FeeEstimate) + 链目录 tag |
+| `30cf3b6ab` | `/aiops` | 概 览 | `cc ops ...` | 5 / 3 (事件+Playbook+基线) / 4 (创建事件+Playbook+基线+异常检测) + 严重度分布 |
+| `04c57237d` | `/compliance` | 高 级 | `cc compliance threat-intel/ueba` | 5 / 2 (威胁情报+UEBA) / 3 (匹配+构建基线+行为分析) + IoC 类型分布 |
+
+### Sidebar 改造 — commit `7ee1985c5`
+
+加完 5 个新条目后侧栏在小屏被撑出视口范围；根因是 `.app-root` 用了 `min-height:100vh`（允许增长），`.side-menu` 的 `overflow-y:auto` 永不触发。
+
+| 改动 | 效果 |
+|---|---|
+| `.app-root` `min-height` → `height: 100vh; overflow: hidden` | 锁死视口高度 |
+| `.main-area` 加 `display: flex; flex-direction: column; height: 100vh` | 头/内容区 flex 分摊 |
+| `.page-content` 改 `flex: 1; min-height: 0` | flex child 触发独立滚动 |
+| 8 个 `<a-menu-item-group>` → `<a-sub-menu>` | 二级菜单可点击折叠 |
+| `v-model:openKeys` + localStorage 持久化（`cc.web-panel.sidebar.openKeys`） | 跨刷新保留展开状态，9 测试覆盖 |
+
+### 同步加固的测试 — commit `d43e43a93`
+
+| 改动 | 内容 |
+|---|---|
+| **NEW integration**: `__tests__/integration/phase-b-cli-commands.test.js` | 19 测试，在 19410 端口起真实 `cc serve`，把 5 个视图依赖的所有 CLI 命令实跑一遍，输出过对应 parser 不抛错 |
+| **FIX e2e**: `__tests__/e2e/panel.test.js SPA_ROUTES` | 23 → 34（先前 11 条路由没在 SPA fallback 测试覆盖里，包括 Phase A 的 did/project-settings/knowledge）|
+| **NEW unit**: `__tests__/unit/sidebar-openkeys.test.js` | 9 测试，锁住 localStorage 默认值 / 反序列化容错 / 未知键过滤 |
+
+### 测试矩阵
+
+| Suite | 结果 |
+|---|---|
+| web-panel `__tests__/unit/` | **809/809**（599 baseline + 5 × ~35 parser + 9 sidebar + 路由断言增量）|
+| web-panel `__tests__/integration/phase-b-cli-commands.test.js` | **19/19**（~40s end-to-end，每命令实跑一次）|
+| vite build | clean，KnowledgeGraph chunk 仍是唯一 >500kB 警告（Phase A 时既有，echarts 体积）|
+
+### 路由计数
+
+router 子项 30 → **35**（1 redirect + 34 named pages）；侧边栏新增 1 个组（社 交）+ 4 个条目（数据/概览/高级 各扩展）。
+
+### 后续观察
+
+Phase B 收完。下一阶段候选：B6+ 预备役（Privacy Computing / Inference Network / NL Programming / Tenant SaaS / AI-doc-creator），按需触发；模板已机械化。
+
+---
+
 ## 2026-04-26 增量更新（**V6 shell 硬翻** + top-10 parity 10/10 收口 + web-panel Phase A 全量上线）
 
 V6 桌面壳从 2026-04-21 的 soft opt-in 走到 **default**：完成最后 6 个 V5→V6 widget probe（did-management / projects / p2p-messaging / community / ai-chat / settings），凑齐 top-10 parity 10/10，随即把默认入口翻到 V6。同日把 web-panel 的 Phase A 三件（DID / Knowledge Graph / Project Settings）全量上线接路由。

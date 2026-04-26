@@ -1,5 +1,57 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-26 Update — **web-panel Phase B fully shipped** — Community / Marketplace / Cross-chain / AIOps / Compliance + scrollable & collapsible sidebar
+
+After the V6 hard-flip closed, web-panel entered Phase B: ports 5 high-traffic desktop features into the browser panel, one commit per feature with scope `feat(web-panel):`, template = `<feature>-parser.js` (pure, with shared `stripCliNoise`) + `<Feature>.vue` + router/sidebar wiring + parser unit tests + new-pages route count +1 + path-mapping assertion. After Phase B completed, did sidebar independent-scroll + collapsible-groups as a follow-up.
+
+### Phase B — 5 ports (commit order)
+
+| Commit | Route | Sidebar group | CLI source | Cards / Tabs / Modals |
+|---|---|---|---|---|
+| `260787c99` | `/community` | 社 交 (new) | `cc social ...` | 5 / 3 (Posts+Friends+Contacts) / 2 (Publish+AddContact) |
+| `792b211e1` | `/marketplace` | 数 据 | `cc marketplace ...` | 5 / 2 (Services+Invocations) / 2 (Publish+RecordInvocation) + status-transition dropdown |
+| `8f7d87ede` | `/crosschain` | 高 级 | `cc crosschain ...` | 5 / 3 (Bridges+Swaps+Messages) / 4 (Bridge+Swap+Send+FeeEstimate) + chain catalogue |
+| `30cf3b6ab` | `/aiops` | 概 览 | `cc ops ...` | 5 / 3 (Incidents+Playbooks+Baselines) / 4 (CreateIncident+Playbook+Baseline+DetectAnomaly) + severity breakdown |
+| `04c57237d` | `/compliance` | 高 级 | `cc compliance threat-intel/ueba` | 5 / 2 (ThreatIntel+UEBA) / 3 (Match+BuildBaseline+RunAnalyze) + IoC type breakdown |
+
+### Sidebar refactor — commit `7ee1985c5`
+
+After 5 new entries pushed the sidebar past viewport on shorter screens. Root cause: `.app-root` used `min-height:100vh` (allows growth), so `.side-menu`'s `overflow-y:auto` never triggered.
+
+| Change | Effect |
+|---|---|
+| `.app-root` `min-height` → `height: 100vh; overflow: hidden` | Lock viewport height |
+| `.main-area` `display: flex; flex-direction: column; height: 100vh` | Header + content split via flex |
+| `.page-content` `flex: 1; min-height: 0` | Flex child triggers independent scroll |
+| 8 `<a-menu-item-group>` → `<a-sub-menu>` | Second-level menus collapse on click |
+| `v-model:openKeys` + localStorage (`cc.web-panel.sidebar.openKeys`) | Open state survives reload, 9 tests cover the contract |
+
+### Test reinforcement — commit `d43e43a93`
+
+| Change | Detail |
+|---|---|
+| **NEW integration**: `__tests__/integration/phase-b-cli-commands.test.js` | 19 tests. Spawns real `cc serve` on 19410 and runs every CLI command the 5 views consume; pipes output through the matching parser and asserts no throw + expected shape |
+| **FIX e2e**: `__tests__/e2e/panel.test.js SPA_ROUTES` | 23 → 34 (11 routes were missing from SPA fallback coverage, including Phase A's did/project-settings/knowledge) |
+| **NEW unit**: `__tests__/unit/sidebar-openkeys.test.js` | 9 tests locking the localStorage contract: defaults, partial state, all-collapsed, corrupt-JSON tolerance, unknown-key filtering |
+
+### Test matrix
+
+| Suite | Result |
+|---|---|
+| web-panel `__tests__/unit/` | **809/809** (599 baseline + 5 × ~35 parser + 9 sidebar + new-pages assertions) |
+| web-panel `__tests__/integration/phase-b-cli-commands.test.js` | **19/19** (~40s end-to-end, every command runs against the live CLI) |
+| vite build | clean — KnowledgeGraph chunk is the only >500kB warning (pre-existing Phase A, echarts size) |
+
+### Route count
+
+router children 30 → **35** (1 redirect + 34 named pages); sidebar gains 1 new group (社 交) + 4 entries spread across Data / Overview / Advanced.
+
+### Next watch
+
+Phase B closed. Bench candidates for B6+: Privacy Computing / Inference Network / NL Programming / Tenant SaaS / AI-doc-creator — pull as needed; the template is fully mechanical.
+
+---
+
 ## 2026-04-26 Update — **V6 shell hard-flip** + top-10 parity 10/10 closure + web-panel Phase A fully landed
 
 The V6 desktop shell graduates from soft-opt-in (2026-04-21) to **default**: completed the last 6 V5→V6 widget probes (did-management / projects / p2p-messaging / community / ai-chat / settings), filled top-10 parity to 10/10, and flipped the default destination to V6. Same day, the web-panel Phase A trio (DID / Knowledge Graph / Project Settings) shipped wired into the router.
