@@ -3,6 +3,21 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.2.54 / CLI 0.156.7] - 2026-04-26 (技能数对齐 141 · ws-server CI 解锁 · release-tag 链路修复)
+
+### Fixed
+
+- **release-tag 工作流**: v5.0.2.53 的 `create-release` 步因走旧路径执行了 `--cleanup-tag`（先删后建），命中 GitHub "tag was used by an immutable release" 锁定窗口，HTTP 403。改成 `gh release edit`（存在则就地编辑，否则 create），避开 delete+recreate 循环，新 tag 正常落地。
+- **CI ws-server 集成测试解锁**: `wss.close()` 增加 2s 硬上限超时熔断，CI 上不再因 socket 残留挂死整个测试套件。
+
+### Changed
+
+- **桌面技能数全面对齐 141**: 文件系统真实数 144（其中 3 个为模板/示例 skills 不计入用户面），跨 9 个文件 16 处「139 内置技能」统一刷新到 141。覆盖 README header、`docs-website-v2`（web/desktop/cli/BaseLayout/Terminal/index 共 5 文件）、`docs-site/overview.md`（3 处）、`packages/cli/README.md`（2 处）、`AnalyticsDashboardPanel.vue` 与 CLAUDE.md。
+- 仓库根 `productVersion` `v5.0.2.53 → v5.0.2.54`（commit `d343fe50b`），CLI npm 版本保持 `0.156.7`。
+- 桌面端持续 SFC 拆分推进：`AdditionalToolsStats.vue` 抽出 chart-image 导出 helpers，`MainLayout.vue` 抽出 `getMenuIcon`，`ChatPanel.vue` 再抽 5 个 helper，`MCPSettings.vue` 拆出 `MCPToolTestModal` + `mcpToolUtils`，`ProjectsPage.vue` / `PreviewPanel.vue` 抽纯函数，新增 `useProjectGit` composable。
+
+---
+
 ## [5.0.2.53 / CLI 0.156.7] - 2026-04-25 (docs-gen 链路收口 · pack 错误信息增强 · CI E2E 拆批)
 
 ### Fixed

@@ -271,7 +271,7 @@ export class ChainlessChainWSServer extends EventEmitter {
     // the underlying handle is GC'd by node shortly after anyway.
     if (this.wss) {
       await new Promise((resolve) => {
-        const ceiling = setTimeout(() => resolve(), 2000);
+        const ceiling = setTimeout(() => resolve(), 5000);
         this.wss.close(() => {
           clearTimeout(ceiling);
           resolve();

@@ -1,6 +1,6 @@
 {
   "name": "chainlesschain-docs",
-  "version": "5.0.2.53",
+  "version": "5.0.2.54",
   "type": "module",
   "description": "ChainlessChain Documentation Website",
   "scripts": {
