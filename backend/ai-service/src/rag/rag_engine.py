@@ -2,6 +2,7 @@
 RAG Engine - 检索增强生成引擎
 基于Qdrant向量数据库的语义检索
 """
+import logging
 import os
 from typing import List, Dict, Any, Optional
 from qdrant_client import QdrantClient
@@ -11,11 +12,17 @@ import uuid
 
 from .crossencoder_reranker import get_reranker
 
+logger = logging.getLogger(__name__)
+
 
 class RAGEngine:
     """RAG检索引擎"""
 
     def __init__(self):
+        # localhost defaults are correct for the supported topology (ai-service
+        # runs on the same host as Ollama + Qdrant via docker-compose port
+        # forwarding). Override via QDRANT_HOST / QDRANT_PORT env vars when
+        # deploying to a network where Qdrant lives elsewhere.
         self.qdrant_host = os.getenv("QDRANT_HOST", "localhost")
         self.qdrant_port = int(os.getenv("QDRANT_PORT", "6333"))
         self.embedding_model_name = os.getenv("EMBEDDING_MODEL", "BAAI/bge-base-zh-v1.5")
@@ -33,8 +40,18 @@ class RAGEngine:
             self._ensure_collection()
 
             self._ready = True
+            logger.info(
+                "RAG engine ready: qdrant=%s:%d, embedding=%s, vector_size=%d",
+                self.qdrant_host, self.qdrant_port, self.embedding_model_name,
+                self.vector_size,
+            )
         except Exception as e:
-            print(f"RAG engine initialization error: {e}")
+            # Don't silently swallow with print(); log with stack trace so
+            # operators see WHY the engine is unavailable on startup.
+            logger.exception(
+                "RAG engine initialization failed (qdrant=%s:%d, embedding=%s): %s",
+                self.qdrant_host, self.qdrant_port, self.embedding_model_name, e,
+            )
             self._ready = False
 
     def _ensure_collection(self):
