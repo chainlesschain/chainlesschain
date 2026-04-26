@@ -496,4 +496,147 @@ export function registerMtcCommand(program) {
         process.exit(1);
       }
     });
+
+  // mtc serve — verifier daemon: subscribe to a transport, persist + verify
+  mtc
+    .command("serve")
+    .description(
+      "Run a verifier daemon: subscribe to landmarks, persist to disk, ingest",
+    )
+    .option(
+      "--transport <kind>",
+      "libp2p | filesystem (default: libp2p)",
+      "libp2p",
+    )
+    .option(
+      "--listen <multiaddr>",
+      "[libp2p] listen address (default /ip4/127.0.0.1/tcp/0)",
+    )
+    .option(
+      "--connect <multiaddr>",
+      "[libp2p] dial this peer on startup (repeatable)",
+      (v, prev) => [...(prev || []), v],
+    )
+    .option(
+      "--mode <kind>",
+      "[libp2p] direct | gossipsub (default: direct)",
+      "direct",
+    )
+    .option("--drop-zone <dir>", "[filesystem] shared directory to watch")
+    .option(
+      "--prefix <ns>",
+      "namespace prefix to subscribe to (repeatable, default: mtc/v1/did)",
+      (v, prev) => [...(prev || []), v],
+    )
+    .option(
+      "--cache-dir <dir>",
+      "LandmarkCache persistDir for ingested snapshots",
+    )
+    .option(
+      "--exit-after <n>",
+      "exit after receiving N landmarks (test/CI use)",
+      (v) => parseInt(v, 10),
+    )
+    .action(async (options) => {
+      let transport;
+      try {
+        const prefixes =
+          options.prefix && options.prefix.length > 0
+            ? options.prefix
+            : ["mtc/v1/did"];
+
+        // Build transport
+        const kind = options.transport;
+        if (kind === "libp2p") {
+          const { Libp2pTransport } =
+            await import("@chainlesschain/core-mtc/transports/libp2p");
+          transport = await Libp2pTransport.create({
+            listen: options.listen,
+            mode: options.mode,
+          });
+          for (const peer of options.connect || []) {
+            await transport
+              .connect(peer)
+              .catch((err) =>
+                logger.warn(`connect to ${peer} failed: ${err.message}`),
+              );
+          }
+          logger.success(
+            `libp2p node listening on:\n  ${transport.multiaddrs().join("\n  ")}`,
+          );
+        } else if (kind === "filesystem") {
+          if (!options.dropZone) {
+            throw new Error(
+              "--drop-zone is required when --transport=filesystem",
+            );
+          }
+          const { FilesystemTransport } =
+            await import("@chainlesschain/core-mtc/transports/filesystem");
+          transport = new FilesystemTransport({ dropZone: options.dropZone });
+          logger.success(`filesystem transport watching ${options.dropZone}`);
+        } else {
+          throw new Error(`Unknown --transport: ${kind}`);
+        }
+
+        // Build cache (no signature verifier yet — fed when first landmark arrives)
+        let cache = null;
+        let received = 0;
+
+        for (const prefix of prefixes) {
+          transport.subscribe(prefix, async (ann) => {
+            try {
+              const landmark = await transport.fetch(ann.cid);
+
+              // Lazy-init cache from first landmark's trust_anchors
+              if (!cache) {
+                cache = new LandmarkCache({
+                  signatureVerifier: ed25519.makeVerifierFromLandmark(landmark),
+                  persistDir: options.cacheDir,
+                });
+                if (options.cacheDir) {
+                  const r = cache.loadFromDisk();
+                  logger.log(
+                    `cache: loaded ${r.loaded} prior snapshots, ${r.failed.length} failed`,
+                  );
+                }
+              }
+
+              cache.ingest(landmark);
+              received++;
+              logger.success(
+                `[${received}] ${ann.namespace} tree_size=${ann.tree_size} cid=${ann.cid}`,
+              );
+
+              if (options.exitAfter && received >= options.exitAfter) {
+                logger.log(
+                  `reached --exit-after ${options.exitAfter}, shutting down`,
+                );
+                if (transport.close) await transport.close();
+                process.exit(0);
+              }
+            } catch (err) {
+              logger.error(`ingest failed: ${err.message}`);
+            }
+          });
+          logger.log(`subscribed: ${prefix}`);
+        }
+
+        // Keep running. Ctrl+C cleanup.
+        const cleanup = async () => {
+          logger.log("shutting down…");
+          if (transport && transport.close) await transport.close();
+          process.exit(0);
+        };
+        process.once("SIGINT", cleanup);
+        process.once("SIGTERM", cleanup);
+
+        // Daemon: never resolve unless --exit-after triggers
+        await new Promise(() => {});
+      } catch (err) {
+        logger.error(`mtc serve failed: ${err.message}`);
+        if (transport && transport.close)
+          await transport.close().catch(() => {});
+        process.exit(1);
+      }
+    });
 }
