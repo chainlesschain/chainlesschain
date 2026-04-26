@@ -7,7 +7,7 @@
 | Module | Files | Total Size |
 |--------|-------|------------|
 | main | 1670 | 23.77 MB |
-| renderer | 21 | 0.09 MB |
+| renderer | 22 | 0.09 MB |
 | shared | 0 | 0.00 MB |
 
 ## main Module
@@ -29,7 +29,7 @@
 
 ## renderer Module
 
-**Files**: 21
+**Files**: 22
 
 **Top 10 Largest Files**:
 
@@ -42,7 +42,7 @@
 7. `src/renderer/workers/file-parser.worker.js` - 6.0 KB
 8. `src/renderer/composables/useProjectGit.js` - 5.8 KB
 9. `src/renderer/services/__tests__/api.test.js` - 5.2 KB
-10. `src/renderer/components/projects/previewPanelUtils.js` - 4.0 KB
+10. `src/renderer/pages/aiChatPageWorktreeUtils.js` - 4.3 KB
 
 ## shared Module
 
