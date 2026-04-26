@@ -94,6 +94,52 @@ try {
 
 ---
 
+### Issue: database disk image is malformed (数据库损坏)
+
+**症状**:
+
+```
+Failed to start UI server: database disk image is malformed
+```
+
+**典型触发**: 之前某次 CLI/Desktop 进程在写事务中途被强杀（崩溃、`Ctrl+C`、断电），导致 SQLite btree 页坏掉。本次 `cc 0.157.0` 的 `@noble/hashes/sha2` 启动崩溃放大了这个问题。
+
+**诊断（只读，安全）**:
+
+```bash
+cc db check                # 跑 PRAGMA integrity_check；OK 退出 0，损坏退出 2
+cc db check --quick        # 较快但覆盖较浅
+cc db check --json         # 给脚本/CI 用的结构化输出
+```
+
+输出会显示驱动来源（`via better-sqlite3` 或 `via sql.js`），并打印前 20 行 SQLite 诊断。
+
+**恢复路径（按损失大小递增）**:
+
+```bash
+# 1) 尽力按行抢救：写到 ~/.../chainlesschain.db.recovered.<ts>
+cc db repair                          # 每张表 “N copied, M lost” 进度
+                                      # 损坏页上的行算 lost，能读到的全部入新库
+
+# 2) 备份原库 + 下次启动重建（保留 .bak.<ts> 便于二次救援）
+cc db reset --force                   # rename .db / .db-wal / .db-shm → .bak.<ts>
+
+# 3) 把抢救出来的库切回去（可选）
+cc db restore <recovered-path> --force
+```
+
+**驱动级联**: `cc db check/repair` 先尝试 `better-sqlite3-multiple-ciphers` → `better-sqlite3`，再回落 `sql.js`（纯 WASM）。Apple Silicon 无 prebuild、musl Linux、Node 主版本漂移等场景下原生驱动不可用时，WASM 路径自动接管。
+
+**预防**:
+
+- 不要在 CLI 还在写时强杀（看到 `[DatabaseManager]` 日志说明正在 init/migrate，等它完成）。
+- 不要 Desktop 和 CLI 同时长期占用同一个 `.db` 文件——WAL 模式下短暂并存可以，但写竞争仍可能炸页。
+- 定期 `cc db backup`，保留若干天 rolling 备份。
+
+**状态**: `cc db check / repair / reset` 在 `chainlesschain@0.157.4` 起内置（含 sql.js WASM 兜底）。早于该版本需先 `npm i -g chainlesschain@latest`。
+
+---
+
 ## LLM 服务问题
 
 ### Issue: Ollama 连接失败

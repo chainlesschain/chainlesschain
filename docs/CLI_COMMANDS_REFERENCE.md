@@ -36,6 +36,11 @@ chainlesschain pack        # 把当前项目环境打成单文件 .exe（v0.2 Ph
 ```bash
 chainlesschain db init                            # 初始化数据库
 chainlesschain db info                            # 数据库信息
+chainlesschain db backup [path]                   # 备份数据库
+chainlesschain db restore <backup> [--force]      # 从备份还原
+chainlesschain db check [--quick] [--json]        # SQLite integrity_check（损坏退出码 2）
+chainlesschain db repair [--out <path>]           # 尽力按行抢救损坏库 → 新文件
+chainlesschain db reset [--force]                 # 备份当前库 + 下次启动重建
 chainlesschain note add "Title" -c "Content" -t "tag1,tag2"
 chainlesschain note list | note search "keyword"
 chainlesschain chat                               # 交互式 AI 对话 (流式)
