@@ -35,6 +35,7 @@ export default defineConfig({
         items: [
           { text: "社交协议生态", link: "/guide/social-protocols" },
           { text: "合规与威胁情报", link: "/guide/compliance-threat-intel" },
+          { text: "默克尔树证书 MTC", link: "/guide/mtc-merkle-tree-certs" },
         ],
       },
       { text: "API参考", link: "/api/introduction" },
@@ -83,6 +84,10 @@ export default defineConfig({
             {
               text: "合规与威胁情报 (STIX 2.1/UEBA/SOC2)",
               link: "/guide/compliance-threat-intel",
+            },
+            {
+              text: "默克尔树证书 MTC (后量子安全) ⭐NEW",
+              link: "/guide/mtc-merkle-tree-certs",
             },
           ],
         },

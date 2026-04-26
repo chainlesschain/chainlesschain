@@ -3,6 +3,33 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [Unreleased] - 2026-04-26 (默克尔树证书 MTC Phase 1 + 1.5 全部落地)
+
+### Added
+
+- **`@chainlesschain/core-mtc` 新包**：完整 MTC 协议实现，137 测试全绿
+  - RFC 6962 Merkle 树（`MerkleTree` 类，O(log n) 取证 + 子树根 memo）
+  - Verifier 纯函数（按数据格式 §11 错误码）+ LandmarkCache 含 split-view 防御
+  - LandmarkCache 持久化（`persistDir` + `loadFromDisk`，篡改检测）
+  - Ed25519 真实签名（`lib/signers/ed25519.js`，stopgap，待 SLH-DSA `@noble/post-quantum`）
+  - 4 种传输：InMemoryTransport / FilesystemTransport（drop-zone）/ Libp2pTransport direct（TCP+Noise+Yamux）/ Libp2pTransport gossipsub（@chainsafe/libp2p-gossipsub@14）
+- **`cc mtc` CLI 6 子命令**（17 集成测试全绿）：
+  - `cc mtc batch <input>` — 通用批次构造
+  - `cc mtc batch-dids` — 从本地 DID DB 读身份构造批次
+  - `cc mtc batch-skills` — 从本地 CLI 技能构造批次（Marketplace 路径）
+  - `cc mtc verify <envelope> --landmark <landmark>` — 验证 inclusion proof
+  - `cc mtc landmark inspect` — 查看 landmark 元信息
+  - `cc mtc serve` — verifier 守护进程（订阅 + 持久化 + 自动验证）
+- **设计文档**：`docs/design/默克尔树证书_MTC_落地方案.md` v0.3、`MTC_数据格式_v1.md` v0.1、`默克尔树证书_MTC_v0.2_评审清单.md`
+
+### Why
+
+为 ChainlessChain 切换到后量子签名（SLH-DSA-128f）做准备。直接套 PQC 会让 DID 文档单签从 64 B 暴涨到 17 KB，DHT 周流量从 5 GB 涨到 170 GB（不可接受）。MTC 通过批量签发 + Merkle inclusion proof 把单证书携带物压回 ~700 B，**节省约 97%**。
+
+借鉴 IETF PLANTS WG 的 [Merkle Tree Certificates](https://datatracker.ietf.org/doc/draft-ietf-plants-merkle-tree-certs/) 协议（draft-ietf-plants-merkle-tree-certs-02），与 Cloudflare + Google Chrome 联合推进的 HTTPS 后量子证书方案同源。
+
+---
+
 ## [5.0.2.54 / CLI 0.156.7] - 2026-04-26 (技能数对齐 141 · ws-server CI 解锁 · release-tag 链路修复)
 
 ### Fixed
