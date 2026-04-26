@@ -495,10 +495,29 @@ export async function verifyMTC(
 
 ## 14. 后续步骤
 
-1. **本草案评审**（1 周）— 收集反馈，重点关注 §6.3 审计日志双轨签名是否合理
-2. 草案 v0.2 — 锁定数据格式细节后产出 `docs/design/MTC_数据格式_v1.md`
-3. 启动 Phase 0 + Phase 1 实施
-4. 与 IETF PLANTS WG 草案动态保持跟踪（关注 `draft-ietf-plants-merkle-tree-certs-03+` 是否对树头签名算法选择有新建议）
+### 14.1 已完成（截至 v0.3）
+- ✅ Phase 0 协议固化 — `MTC_数据格式_v1.md`
+- ✅ Phase 1 W1+W2+W3 — 核心库 + CLI 5 子命令（`be70c5b17`）
+- ✅ Phase 1 W4 持久化 + Ed25519 实签 + DID 集成（`8926a5bc0` / `a4b88ebda` / `1e63dacc1`）
+- ✅ Phase 1 W5 — InMemory + Filesystem transport 两节点 e2e（`58ad63a6b`）
+- ✅ Phase 1.5 — Libp2p direct + gossipsub 模式 + `cc mtc serve` 守护进程（`40fa0689a` / `1b0ae1105` / `4d1a81586`）
+- ✅ Phase 2 partial — Marketplace `cc mtc batch-skills`（`67da18480`）
+- ✅ 评审清单 v0.2 — 16 题决议
+
+### 14.2 阻塞中（Phase 2 audit 路径）
+- ⚠️ **Q-COMP-1** — 等保三级"防篡改最终性时间窗"口径需法务/测评机构出函；若不接受 1h 批次，需重设计为 1min 批次
+- ⚠️ **Q-COMP-2** — T/ZGCMCA 023—2025 标准条款摘要待法务提供
+- ⚠️ **Q-COMP-3** — 当前保守决议为 Phase 1+2 不上链；若需链上锚定，确认境内联盟链替代方案
+
+### 14.3 进行中 / 即将启动
+- [ ] **Phase 1.6 — SLH-DSA 实签**：等待 `@noble/post-quantum` 加入 npm 生态后替换 Ed25519 stopgap；接口已为此预留（`signatureVerifier` DI + Ed25519 模块解耦）
+- [ ] **Phase 2 — Marketplace 守护**：`cc mtc batch-skills` 加自动定时关批 + 与 `cc serve` 联动持续发布
+- [ ] **Phase 4 — Desktop UI**（V6 Pack：MTC 状态面板 + DID 详情页"包含证明"标签 + Marketplace 验证徽章）
+
+### 14.4 上游跟踪
+- 关注 `draft-ietf-plants-merkle-tree-certs-03+` 对树头签名算法、consistency proof、JWK 编码 SLH-DSA 的新建议
+- 关注 IETF COSE WG 的 SLH-DSA / ML-DSA JWK 草案（数据格式 §13 第 1 项的未决依赖）
+- 关注 `@noble/post-quantum` 发布动态
 
 ---
 
