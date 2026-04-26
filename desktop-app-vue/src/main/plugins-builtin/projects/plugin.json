@@ -1,0 +1,31 @@
+{
+  "id": "projects",
+  "name": "项目管理",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/projects 斜杠命令 + Home 页项目快捷卡片（V5 ProjectsPage.vue 的 V6 探针迁移）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "projects",
+        "trigger": "/projects",
+        "handler": "builtin:openProjectsPanel",
+        "description": "打开项目面板",
+        "icon": "ProjectOutlined"
+      }
+    },
+    {
+      "point": "ui.home-widget",
+      "priority": 10,
+      "config": {
+        "id": "projects-quick",
+        "component": "builtin:ProjectsWidget",
+        "size": "medium",
+        "order": 100,
+        "title": "项目"
+      }
+    }
+  ]
+}

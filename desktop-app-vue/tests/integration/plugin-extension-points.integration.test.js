@@ -135,6 +135,7 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ids).toContain("wallet");
     expect(ids).toContain("analytics-dashboard");
     expect(ids).toContain("did-management");
+    expect(ids).toContain("projects");
     expect(ids).toContain("acme-override");
   });
 
@@ -276,6 +277,22 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(dmWidget).toBeDefined();
     expect(dmWidget.size).toBe("medium");
     expect(dmWidget.title).toBe("DID 身份");
+  });
+
+  it("projects 的 /projects slash + ProjectsWidget 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const pj = slash.find((s) => s.trigger === "/projects");
+    expect(pj).toBeDefined();
+    expect(pj.handler).toBe("builtin:openProjectsPanel");
+    expect(pj.pluginId).toBe("projects");
+
+    const widgets = Array.from(pm.uiRegistry.homeWidgets.values());
+    const pjWidget = widgets.find(
+      (w) => w.component === "builtin:ProjectsWidget",
+    );
+    expect(pjWidget).toBeDefined();
+    expect(pjWidget.size).toBe("medium");
+    expect(pjWidget.title).toBe("项目");
   });
 
   it("brand.theme priority 100 覆盖默认 10", () => {

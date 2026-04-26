@@ -14,6 +14,7 @@ import CrossChainBridgeWidget from "./CrossChainBridgeWidget.vue";
 import WalletWidget from "./WalletWidget.vue";
 import AnalyticsDashboardWidget from "./AnalyticsDashboardWidget.vue";
 import DIDManagementWidget from "./DIDManagementWidget.vue";
+import ProjectsWidget from "./ProjectsWidget.vue";
 
 registerWidgetComponent("builtin:AdminShortcut", AdminShortcut);
 registerWidgetComponent("builtin:AIPromptsWidget", AIPromptsWidget);
@@ -37,3 +38,4 @@ registerWidgetComponent(
   AnalyticsDashboardWidget,
 );
 registerWidgetComponent("builtin:DIDManagementWidget", DIDManagementWidget);
+registerWidgetComponent("builtin:ProjectsWidget", ProjectsWidget);

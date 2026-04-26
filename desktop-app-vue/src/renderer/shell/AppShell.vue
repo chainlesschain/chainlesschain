@@ -62,6 +62,10 @@
       v-model:open="didManagementPanelOpen"
       :prefill-text="didManagementPrefill"
     />
+    <ProjectsPanel
+      v-model:open="projectsPanelOpen"
+      :prefill-text="projectsPrefill"
+    />
   </a-layout>
 </template>
 
@@ -88,6 +92,7 @@ import CrossChainBridgePanel from "./CrossChainBridgePanel.vue";
 import WalletPanel from "./WalletPanel.vue";
 import AnalyticsDashboardPanel from "./AnalyticsDashboardPanel.vue";
 import DIDManagementPanel from "./DIDManagementPanel.vue";
+import ProjectsPanel from "./ProjectsPanel.vue";
 
 const sidebarCollapsed = ref(false);
 const artifactOpen = ref(false);
@@ -111,6 +116,8 @@ const analyticsDashboardPanelOpen = ref(false);
 const analyticsDashboardPrefill = ref("");
 const didManagementPanelOpen = ref(false);
 const didManagementPrefill = ref("");
+const projectsPanelOpen = ref(false);
+const projectsPrefill = ref("");
 
 const registry = useExtensionRegistryStore();
 const artifactStore = useArtifactStore();
@@ -148,6 +155,7 @@ let unregisterCrossChainBridgeHandler: (() => void) | null = null;
 let unregisterWalletHandler: (() => void) | null = null;
 let unregisterAnalyticsDashboardHandler: (() => void) | null = null;
 let unregisterDIDManagementHandler: (() => void) | null = null;
+let unregisterProjectsHandler: (() => void) | null = null;
 
 onMounted(async () => {
   window.addEventListener("keydown", handleKeydown);
@@ -220,6 +228,13 @@ onMounted(async () => {
       didManagementPanelOpen.value = true;
     },
   );
+  unregisterProjectsHandler = registerSlashHandler(
+    "builtin:openProjectsPanel",
+    ({ args }) => {
+      projectsPrefill.value = args ?? "";
+      projectsPanelOpen.value = true;
+    },
+  );
   await registry.refreshAll();
   appliedThemeVars = applyBrandTheme(registry.brandTheme);
   artifactStore.seedIfEmpty();
@@ -248,6 +263,8 @@ onBeforeUnmount(() => {
   unregisterAnalyticsDashboardHandler = null;
   unregisterDIDManagementHandler?.();
   unregisterDIDManagementHandler = null;
+  unregisterProjectsHandler?.();
+  unregisterProjectsHandler = null;
 });
 </script>
 
