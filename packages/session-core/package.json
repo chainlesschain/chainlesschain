@@ -1,6 +1,6 @@
 {
   "name": "@chainlesschain/session-core",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Session lifecycle, trace store, agent definition, idle parker — shared by Desktop and CLI (Managed Agents parity)",
   "type": "commonjs",
   "main": "lib/index.js",
@@ -54,6 +54,7 @@
   },
   "dependencies": {
     "@noble/curves": "^1.9.7",
+    "@noble/hashes": "^2.0.1",
     "@scure/base": "^1.2.6"
   },
   "devDependencies": {

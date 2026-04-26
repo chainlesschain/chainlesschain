@@ -12,7 +12,7 @@
  */
 
 const { schnorr } = require("@noble/curves/secp256k1");
-const { sha256 } = require("@noble/hashes/sha2");
+const { sha256 } = require("@noble/hashes/sha2.js");
 const { bech32 } = require("@scure/base");
 
 const NPUB_PREFIX = "npub";
