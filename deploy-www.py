@@ -20,7 +20,7 @@ if not (HOST and USER and PASS):
     sys.exit("ERROR: set DEPLOY_HOST / DEPLOY_USER / DEPLOY_PASS in .env or environment")
 
 name = "www.chainlesschain.com"
-tar_local = r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.2.55-20260426-1803.tar.gz"
+tar_local = r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.1-20260426-2044.tar.gz"
 remote_dir = "/www/wwwroot/www.chainlesschain.com"
 tar_remote = f"/tmp/{name}.tar.gz"
 staging = f"{remote_dir}.new"

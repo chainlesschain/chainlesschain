@@ -1,6 +1,6 @@
 {
   "name": "chainlesschain-design-docs",
-  "version": "5.0.2.54",
+  "version": "5.0.3.1",
   "type": "module",
   "description": "ChainlessChain 系统设计文档网站 - 面向开发者的架构与模块设计文档",
   "scripts": {
