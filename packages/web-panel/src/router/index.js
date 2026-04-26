@@ -16,6 +16,7 @@ const routes = [
       { path: 'mcp',        name: 'McpTools',    component: () => import('../views/McpTools.vue') },
       { path: 'notes',      name: 'Notes',       component: () => import('../views/Notes.vue') },
       { path: 'memory',     name: 'Memory',      component: () => import('../views/Memory.vue') },
+      { path: 'knowledge',  name: 'Knowledge',   component: () => import('../views/KnowledgeGraph.vue') },
       { path: 'cron',       name: 'Cron',        component: () => import('../views/Cron.vue') },
       { path: 'workflow',   name: 'Workflow',    component: () => import('../views/WorkflowEditor.vue') },
       { path: 'tasks',      name: 'Tasks',       component: () => import('../views/Tasks.vue') },

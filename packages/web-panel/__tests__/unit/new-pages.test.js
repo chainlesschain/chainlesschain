@@ -22,12 +22,12 @@ import { parseProviders, parseStatus, KNOWN_PROVIDERS } from '../../src/utils/pa
 // ─── Router registration ─────────────────────────────────────────────────────
 
 describe('Router registration', () => {
-  it('has exactly 27 child routes under root', async () => {
+  it('has exactly 28 child routes under root', async () => {
     const routerModule = await import('../../src/router/index.js')
     const router = routerModule.default
     const rootRoute = router.options.routes[0]
-    // 1 redirect + 26 named pages = 27 children
-    expect(rootRoute.children.length).toBe(27)
+    // 1 redirect + 27 named pages = 28 children
+    expect(rootRoute.children.length).toBe(28)
   })
 
   it('contains all expected route names', async () => {
@@ -37,7 +37,7 @@ describe('Router registration', () => {
     const names = rootRoute.children.map(r => r.name).filter(Boolean)
     const expected = [
       'Dashboard', 'Chat', 'Cowork', 'Services', 'Logs', 'Skills',
-      'Providers', 'McpTools', 'Notes', 'Memory', 'Cron',
+      'Providers', 'McpTools', 'Notes', 'Memory', 'Knowledge', 'Cron',
       'Workflow', 'Tasks', 'Security', 'P2P', 'Git', 'Projects',
       'Permissions', 'Wallet', 'Organization', 'Analytics',
       'Templates', 'Backup', 'RssFeed', 'WebAuthn', 'VideoEditing',
@@ -45,6 +45,15 @@ describe('Router registration', () => {
     for (const name of expected) {
       expect(names).toContain(name)
     }
+  })
+
+  it('maps Knowledge to /knowledge path', async () => {
+    const routerModule = await import('../../src/router/index.js')
+    const router = routerModule.default
+    const rootRoute = router.options.routes[0]
+    const kgRoute = rootRoute.children.find(r => r.name === 'Knowledge')
+    expect(kgRoute).toBeDefined()
+    expect(kgRoute.path).toBe('knowledge')
   })
 
   it('maps Security to /security path', async () => {

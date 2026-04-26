@@ -61,6 +61,7 @@
             <template #title><span class="group-label">数 据</span></template>
             <a-menu-item key="notes"><template #icon><BookOutlined /></template>笔记管理</a-menu-item>
             <a-menu-item key="memory"><template #icon><BranchesOutlined /></template>记忆文件</a-menu-item>
+            <a-menu-item key="knowledge"><template #icon><ShareAltOutlined /></template>知识图谱</a-menu-item>
             <a-menu-item key="cron"><template #icon><ClockCircleOutlined /></template>定时任务</a-menu-item>
             <a-menu-item key="workflow"><template #icon><ApartmentOutlined /></template>工作流编辑</a-menu-item>
             <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template>后台任务</a-menu-item>
@@ -104,6 +105,7 @@
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="notes"><template #icon><BookOutlined /></template></a-menu-item>
           <a-menu-item key="memory"><template #icon><BranchesOutlined /></template></a-menu-item>
+          <a-menu-item key="knowledge"><template #icon><ShareAltOutlined /></template></a-menu-item>
           <a-menu-item key="cron"><template #icon><ClockCircleOutlined /></template></a-menu-item>
           <a-menu-item key="workflow"><template #icon><ApartmentOutlined /></template></a-menu-item>
           <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template></a-menu-item>
@@ -186,7 +188,7 @@ import {
   BookOutlined, BranchesOutlined, ClockCircleOutlined, ThunderboltOutlined, ApartmentOutlined,
   SafetyCertificateOutlined, LockOutlined, WifiOutlined, CodeOutlined, ProjectOutlined,
   WalletOutlined, TeamOutlined, BarChartOutlined, BlockOutlined, CloudUploadOutlined,
-  ReadOutlined, KeyOutlined, VideoCameraOutlined,
+  ReadOutlined, KeyOutlined, VideoCameraOutlined, ShareAltOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'
