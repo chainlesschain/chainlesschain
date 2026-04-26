@@ -137,6 +137,7 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ids).toContain("did-management");
     expect(ids).toContain("projects");
     expect(ids).toContain("p2p-messaging");
+    expect(ids).toContain("community");
     expect(ids).toContain("acme-override");
   });
 
@@ -310,6 +311,22 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(p2pWidget).toBeDefined();
     expect(p2pWidget.size).toBe("medium");
     expect(p2pWidget.title).toBe("P2P 消息");
+  });
+
+  it("community 的 /community slash + CommunityWidget 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const cm = slash.find((s) => s.trigger === "/community");
+    expect(cm).toBeDefined();
+    expect(cm.handler).toBe("builtin:openCommunityPanel");
+    expect(cm.pluginId).toBe("community");
+
+    const widgets = Array.from(pm.uiRegistry.homeWidgets.values());
+    const cmWidget = widgets.find(
+      (w) => w.component === "builtin:CommunityWidget",
+    );
+    expect(cmWidget).toBeDefined();
+    expect(cmWidget.size).toBe("medium");
+    expect(cmWidget.title).toBe("社区");
   });
 
   it("brand.theme priority 100 覆盖默认 10", () => {
