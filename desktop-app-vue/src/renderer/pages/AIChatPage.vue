@@ -1177,6 +1177,13 @@ import {
   formatTime,
   enhanceCodeBlocks,
 } from "./aiChatPageUtils";
+import {
+  formatWorktreePreviewRoute,
+  getWorktreePreviewRouteKey,
+  getWorktreeAutomationCandidateKey,
+  canExecuteWorktreeAutomationCandidate,
+  buildWorktreePreviewPayload,
+} from "./aiChatPageWorktreeUtils";
 
 const authStore = useAuthStore();
 const codingAgentStore = useCodingAgentStore();
@@ -2087,43 +2094,8 @@ const handleSelectWorktreeDeltaFilter = (filterKey) => {
   worktreeDeltaFilter.value = filterKey;
 };
 
-const formatWorktreePreviewRoute = (preview) => {
-  if (!preview) {
-    return "";
-  }
-
-  if (typeof preview === "string") {
-    return preview;
-  }
-
-  const parts = [];
-  if (preview.type) {
-    parts.push(preview.type);
-  }
-  if (preview.branch) {
-    parts.push(preview.branch);
-  }
-  if (preview.filePath) {
-    parts.push(preview.filePath);
-  }
-  return parts.join(" | ");
-};
-
-const getWorktreePreviewRouteKey = (preview) => {
-  if (!preview) {
-    return "";
-  }
-
-  if (typeof preview === "string") {
-    return preview;
-  }
-
-  return [
-    preview.type || "",
-    preview.branch || "",
-    preview.filePath || "",
-  ].join("::");
-};
+// Pure worktree helpers moved to ./aiChatPageWorktreeUtils.js. Two
+// reactive predicates stay below — they read live refs/store state.
 
 const isWorktreePreviewRouteLoading = (preview) => {
   return (
@@ -2132,95 +2104,12 @@ const isWorktreePreviewRouteLoading = (preview) => {
   );
 };
 
-const formatPreviewRefreshTime = (value) => {
-  if (!value) {
-    return "";
-  }
-
-  try {
-    return new Date(value).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-  } catch {
-    return "";
-  }
-};
-
-const resolveWorktreePreviewSourceLabel = (source) => {
-  switch (source) {
-    case "host-file-diff":
-      return "Host exact diff";
-    case "conflict-snippet":
-      return "Conflict snippet";
-    case "cached-diff":
-      return "Cached worktree diff";
-    default:
-      return "Current worktree diff";
-  }
-};
-
-const getWorktreeAutomationCandidateKey = (conflict, candidate) => {
-  return [conflict?.path || conflict?.filePath || "", candidate?.id || ""].join(
-    "::",
-  );
-};
-
-const canExecuteWorktreeAutomationCandidate = (candidate) => {
-  return candidate?.executable === true;
-};
-
 const isWorktreeAutomationCandidateLoading = (conflict, candidate) => {
   return (
     codingAgentStore.worktreeLoading &&
     worktreeAutomationLoadingKey.value ===
       getWorktreeAutomationCandidateKey(conflict, candidate)
   );
-};
-
-const escapeRegExp = (value) => {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-};
-
-const extractWorktreePatchForFile = (diffText, filePath) => {
-  if (!diffText || !filePath) {
-    return "";
-  }
-
-  const normalizedPath = String(filePath).replace(/\\/g, "/");
-  const pattern = new RegExp(
-    `^diff --git a/${escapeRegExp(normalizedPath)} b/${escapeRegExp(normalizedPath)}[\\s\\S]*?(?=^diff --git |\\Z)`,
-    "m",
-  );
-  const match = String(diffText).match(pattern);
-  return match?.[0] || "";
-};
-
-const buildWorktreePreviewPayload = (preview, options = {}) => {
-  const route = preview || null;
-  const filePath = options.filePath || route?.filePath || null;
-  const refreshedAt = options.refreshedAt || new Date().toISOString();
-  const content =
-    options.snippet ||
-    extractWorktreePatchForFile(currentWorktreeDiffPatch.value, filePath) ||
-    (filePath ? "" : currentWorktreeDiffPatch.value);
-  const source =
-    options.source || (options.snippet ? "conflict-snippet" : "cached-diff");
-
-  return {
-    route,
-    filePath,
-    title:
-      options.title ||
-      filePath ||
-      (route?.branch ? `Preview: ${route.branch}` : "Focused preview"),
-    content: content || "No preview content is available for this route yet.",
-    source,
-    sourceLabel: resolveWorktreePreviewSourceLabel(source),
-    refreshedAt,
-    refreshedAtLabel: formatPreviewRefreshTime(refreshedAt),
-  };
 };
 
 const handleSelectWorktreePreview = async (preview, options = {}) => {
@@ -2244,6 +2133,7 @@ const handleSelectWorktreePreview = async (preview, options = {}) => {
           filePath: preview.filePath,
           source: "host-file-diff",
           refreshedAt: new Date().toISOString(),
+          currentDiffPatch: currentWorktreeDiffPatch.value,
         });
         return;
       } catch (error) {
@@ -2258,6 +2148,7 @@ const handleSelectWorktreePreview = async (preview, options = {}) => {
       ...options,
       source: options.snippet ? "conflict-snippet" : "cached-diff",
       refreshedAt: new Date().toISOString(),
+      currentDiffPatch: currentWorktreeDiffPatch.value,
     });
   } finally {
     worktreePreviewLoading.value = false;
