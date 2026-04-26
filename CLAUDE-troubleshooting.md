@@ -2,8 +2,8 @@
 
 > 记录已知问题和验证过的解决方案，避免重复排查
 >
-> **版本**: v1.3.0
-> **最后更新**: 2026-03-10
+> **版本**: v1.4.0
+> **最后更新**: 2026-04-26
 
 ---
 
@@ -48,7 +48,9 @@ await errorMonitor.retryWithExponentialBackoff(() => db.run(sql, params), {
 });
 ```
 
-**状态**: 已在 `error-monitor.js` 实现自动处理
+**状态**: 已主动 + 响应式双层处理 ——
+- 主动：`database.js` 在每次 db 初始化时即设置 WAL + `busy_timeout=30000` + `synchronous=NORMAL`（行 278-282、326-335）。`busy_timeout` 让 SQLite 内核级等待 30s 再抛错，过滤掉绝大部分瞬时锁冲突。
+- 响应式：`error-monitor.js:160-186` 仍捕获 SQLITE_BUSY 错误，调用 `optimizeSQLiteForConcurrency()`（行 980+）做兜底，再走指数退避 5 次。
 
 ---
 

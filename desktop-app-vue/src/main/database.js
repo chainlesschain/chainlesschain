@@ -275,10 +275,13 @@ class DatabaseManager {
       };
     }
 
-    // 启用 WAL 模式以提高并发性能
+    // 启用 WAL 模式以提高并发性能；busy_timeout 让 SQLite 自身等待锁
+    // 释放（30s 内核级 spin/sleep），优先于 ErrorMonitor 的应用级重试。
+    // 没这一行时大部分写并发会立刻抛 SQLITE_BUSY，给 retry 路径制造噪音。
     if (this.db.pragma) {
       this.db.pragma("journal_mode = WAL");
       this.db.pragma("synchronous = NORMAL");
+      this.db.pragma("busy_timeout = 30000");
     }
 
     // 临时禁用外键约束以允许表创建和迁移
@@ -320,14 +323,16 @@ class DatabaseManager {
     // 应用兼容性补丁
     this.applyStatementCompat();
 
-    // 启用 WAL 模式以提高并发性能
+    // 启用 WAL 模式以提高并发性能（含 busy_timeout 内核级等待）
     if (this.db.pragma) {
       this.db.pragma("journal_mode = WAL");
       this.db.pragma("synchronous = NORMAL");
+      this.db.pragma("busy_timeout = 30000");
       this.db.pragma("foreign_keys = ON");
     } else if (this.db.run) {
       this.db.run("PRAGMA journal_mode = WAL");
       this.db.run("PRAGMA synchronous = NORMAL");
+      this.db.run("PRAGMA busy_timeout = 30000");
       this.db.run("PRAGMA foreign_keys = ON");
     }
 
