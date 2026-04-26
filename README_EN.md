@@ -1,5 +1,62 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-26 Update — **V6 shell hard-flip** + top-10 parity 10/10 closure + web-panel Phase A fully landed
+
+The V6 desktop shell graduates from soft-opt-in (2026-04-21) to **default**: completed the last 6 V5→V6 widget probes (did-management / projects / p2p-messaging / community / ai-chat / settings), filled top-10 parity to 10/10, and flipped the default destination to V6. Same day, the web-panel Phase A trio (DID / Knowledge Graph / Project Settings) shipped wired into the router.
+
+### V6 widget probes — 6 added today
+
+Each probe follows the standard 5-7 file template: `plugin.json` + `<Name>Widget.vue` + `<Name>Panel.vue` + optional thin Pinia store + `widgets/index.ts` + `AppShell.vue` panel mount + integration test.
+
+| Commit | Probe | Slash | Thin store | Panel data source |
+|---|---|---|---|---|
+| `35f4e278b` | did-management | `/did` | `useDIDManagementStore` | `did:get-all-identities` / `did:get-current-identity` / `did:set-default-identity` |
+| `a097596f5` | projects | `/projects` | `useProjectsQuickStore` | `project:get-all` (recent-5) |
+| `3883a72ec` | p2p-messaging | `/p2p` | `useP2PMessagingStore` | `p2p:get-node-info` / `p2p:get-peers` / `p2p:get-nat-info` (graceful null/[]) |
+| `5b5e6fe1d` | community | `/community` | `useCommunityQuickStore` | `community:get-list` (graceful []) |
+| `396d6e7b1` | ai-chat | `/chat` | `useAIChatStore` | `llm:check-status` + `llm:get-config` |
+| `ccbc312fd` | settings | `/settings` | — (pure-info) | static list of 7 SystemSettings sub-panes |
+
+ai-chat is the gating route for the hard-flip — once settings landed, all top-10 routes (settings/knowledge/projects/chat/did/p2p/community/ai/workflow/enterprise) had V6 widgets.
+
+### V6 hard-flip — commit `caaddf530`
+
+| File | Change |
+|---|---|
+| `router/v6-shell-default.ts` | Initial `useV6ShellByDefault = false → true` (covers pre-config-load window + bootstrap try/catch failure path) |
+| `main.ts` | `setV6ShellDefault(raw === true) → setV6ShellDefault(raw !== false)` — unset config defaults to V6, only explicit `false` opts back to V5 |
+| `pages/settings/SystemSettings.vue` | Form initializer + description text flipped accordingly |
+
+The opt-out toggle and pure helper `resolveHomeRedirect()` stay untouched, honoring the migration template's "no other code needs to move" guarantee. **Existing users see V6 shell on next launch**; opt back to V5 by switching off "启用 V6 桌面壳" in SystemSettings.
+
+Companion fix `72b826bdf` aligns the "立即试用" link drift: SystemSettings was pushing `/v2` while the router redirect target is `/v6-preview` — both unified to `/v6-preview`.
+
+### web-panel Phase A: DID / Knowledge Graph / Project Settings
+
+| Commit | Scope | Routes |
+|---|---|---|
+| `f37aa44d0` | KG full + DID scaffold + echarts/vue-echarts deps | `/knowledge` end-to-end |
+| `d1f22ce2d` | ProjectSettings scaffold | (scaffold) |
+| `c0e96c9e0` | DID + ProjectSettings wiring | `/did` + `/project-settings` |
+
+KG ships 4 tabs: force-directed graph (ECharts) / entity table / relation table / type distribution; CRUD + multi-hop BFS reasoning all via `cc kg list/relations/stats/reason --json`. DID reuses `cc did *`; mnemonic / DHT buttons displayed disabled with tooltip "桌面专属". ProjectSettings covers 4 fields (rootPath/maxSizeMB/autoSync/syncIntervalSeconds) via `cc config get/set project.*`, with `diffProjectConfig` issuing `set` only for changed fields.
+
+### Test matrix (657 today-related green + 36/36 V6 surface on hard-flip day)
+
+| Suite | Result |
+|---|---|
+| `plugin-extension-points.integration.test.js` | **19/19** (one new it block per probe) |
+| `slash-dispatch.test.ts` | **8/8** |
+| `v6-shell-default.test.ts` | **9/9** (4 assertions flipped accordingly) |
+| web-panel `__tests__/unit/` | **621/621** (incl. 24 did-parser + 27 kg-parser + 20 project-settings-parser) |
+| desktop `tests/integration` | 509/512 (3 fail in `coding-agent-bridge-real-cli.test.js` — pre-existing ECONNREFUSED on real CLI server, not introduced today) |
+
+### Post-deployment watch
+
+Scheduled remote agent `trig_013pjiuMPAUkNyoE4QxVdee8` fires 2026-05-10 09:00 Asia/Shanghai — checks git log for revert/regression commits, `gh issue list` for V6 user reports, runs the 3 V6 surface test files, and reads CLAUDE.local for rollback notes. Reports keep / tweak / revert recommendation under 250 words. Manage at https://claude.ai/code/routines/trig_013pjiuMPAUkNyoE4QxVdee8.
+
+---
+
 ## 2026-04-24 Update — `cc pack` v0.4 (base mode + **project mode** fully shipped)
 
 **`cc pack`** evolves from a "CLI bundler" (v0.2) into a "**project bundler**" (v0.4). In addition to the original single-file CLI + Web UI distribution, the new `--project` mode bakes the CWD's `.chainlesschain/` (config, skills, rules, persona) into the exe — so what the recipient double-clicks is "the agent for **this** project", not a vanilla ChainlessChain.

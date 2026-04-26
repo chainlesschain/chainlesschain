@@ -1,5 +1,62 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-26 增量更新（**V6 shell 硬翻** + top-10 parity 10/10 收口 + web-panel Phase A 全量上线）
+
+V6 桌面壳从 2026-04-21 的 soft opt-in 走到 **default**：完成最后 6 个 V5→V6 widget probe（did-management / projects / p2p-messaging / community / ai-chat / settings），凑齐 top-10 parity 10/10，随即把默认入口翻到 V6。同日把 web-panel 的 Phase A 三件（DID / Knowledge Graph / Project Settings）全量上线接路由。
+
+### V6 widget probe 6 颗（按提交顺序）
+
+每颗 probe 走标准 5-7 文件模板：`plugin.json` + `<Name>Widget.vue` + `<Name>Panel.vue` + 可选 thin Pinia store + `widgets/index.ts` + `AppShell.vue` 接 panel + 集成测试。
+
+| Commit | Probe | Slash | Thin store | Panel 数据来源 |
+|---|---|---|---|---|
+| `35f4e278b` | did-management | `/did` | `useDIDManagementStore` | `did:get-all-identities` / `did:get-current-identity` / `did:set-default-identity` |
+| `a097596f5` | projects | `/projects` | `useProjectsQuickStore` | `project:get-all`（recent-5）|
+| `3883a72ec` | p2p-messaging | `/p2p` | `useP2PMessagingStore` | `p2p:get-node-info` / `p2p:get-peers` / `p2p:get-nat-info`（graceful null/[]）|
+| `5b5e6fe1d` | community | `/community` | `useCommunityQuickStore` | `community:get-list`（graceful []）|
+| `396d6e7b1` | ai-chat | `/chat` | `useAIChatStore` | `llm:check-status` + `llm:get-config` |
+| `ccbc312fd` | settings | `/settings` | — (pure-info) | 静态列出 7 个 SystemSettings sub-pane |
+
+ai-chat 是硬翻 gating route — 收完 settings 后 top-10 (settings/knowledge/projects/chat/did/p2p/community/ai/workflow/enterprise) 全部有 V6 widget。
+
+### V6 hard-flip — commit `caaddf530`
+
+| 文件 | 改动 |
+|---|---|
+| `router/v6-shell-default.ts` | 初始 `useV6ShellByDefault = false → true`（覆盖 pre-config-load 窗口 + bootstrap try/catch 失败 fallback）|
+| `main.ts` | `setV6ShellDefault(raw === true) → setV6ShellDefault(raw !== false)` — config 未设值默认 V6，仅显式 `false` 才回 V5 |
+| `pages/settings/SystemSettings.vue` | 表单 initializer + 描述文字同步翻 |
+
+opt-out 通道与纯函数 `resolveHomeRedirect()` 都没动，符合 migration template 的 "no other code needs to move" 承诺。**老用户下次启动直接看到 V6 shell**；想回 V5 在 SystemSettings 关掉 "启用 V6 桌面壳" 即可。
+
+附带 commit `72b826bdf` 修了顺手发现的链接漂移：`SystemSettings` 的 "立即试用" link 之前 `router.push("/v2")` 但 router 守卫 redirect 是 `/v6-preview` —— 两处统一到 `/v6-preview`。
+
+### web-panel Phase A：DID / Knowledge Graph / Project Settings
+
+| Commit | 范围 | 路由 |
+|---|---|---|
+| `f37aa44d0` | KG 完整 + DID scaffold + echarts/vue-echarts deps | `/knowledge` 全程上线 |
+| `d1f22ce2d` | ProjectSettings scaffold | (scaffold) |
+| `c0e96c9e0` | DID + ProjectSettings wiring | `/did` + `/project-settings` |
+
+KG 4 个 tab：force-directed graph (ECharts) / 实体表 / 关系表 / 类型分布，CRUD + 多跳 BFS reasoning 全部走 `cc kg list/relations/stats/reason --json`。DID 复用 `cc did *`，助记词/DHT 按钮显示但 disabled + tooltip "桌面专属"。ProjectSettings 4 字段（rootPath/maxSizeMB/autoSync/syncIntervalSeconds）走 `cc config get/set project.*`，`diffProjectConfig` 只对改动字段发 set。
+
+### 测试矩阵（657 测试今日相关全绿 + 硬翻当日全 surface 36/36）
+
+| Suite | Result |
+|---|---|
+| `plugin-extension-points.integration.test.js` | **19/19**（每加一个 probe +1 it block）|
+| `slash-dispatch.test.ts` | **8/8** |
+| `v6-shell-default.test.ts` | **9/9**（硬翻后 4 个断言相应翻转）|
+| web-panel `__tests__/unit/` | **621/621**（含 24 did-parser + 27 kg-parser + 20 project-settings-parser）|
+| desktop `tests/integration` | 509/512（3 失败在 `coding-agent-bridge-real-cli.test.js`，pre-existing ECONNREFUSED 网络依赖，非今日引入）|
+
+### 后续观察
+
+预约一颗 remote agent `trig_013pjiuMPAUkNyoE4QxVdee8` 在 2026-05-10 09:00 Asia/Shanghai 自动巡检：跑 git log 找 revert/regression commit、`gh issue list` 找 V6 用户报告、跑 3 个 V6 surface 测试文件、读 CLAUDE.local 找回滚笔记，给 keep / tweak / revert 推荐（≤250 字）。管理：https://claude.ai/code/routines/trig_013pjiuMPAUkNyoE4QxVdee8
+
+---
+
 ## 2026-04-26 增量更新（**默克尔树证书 MTC** Phase 1 + 1.5 全部落地）
 
 新包 **`@chainlesschain/core-mtc`** 落地后量子安全签名压缩方案 — 借鉴 IETF PLANTS WG 的 [Merkle Tree Certificates](https://datatracker.ietf.org/doc/draft-ietf-plants-merkle-tree-certs/) 协议（与 Cloudflare + Google Chrome 联合推进的 HTTPS 后量子方案同源）。
