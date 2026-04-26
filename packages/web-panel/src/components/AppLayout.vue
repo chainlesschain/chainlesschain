@@ -59,6 +59,7 @@
             <a-menu-item key="providers"><template #icon><ApiOutlined /></template>LLM 配置</a-menu-item>
             <a-menu-item key="mcp"><template #icon><CloudServerOutlined /></template>MCP 工具</a-menu-item>
             <a-menu-item key="project-settings"><template #icon><FolderOutlined /></template>项目存储</a-menu-item>
+            <a-menu-item key="nlprog"><template #icon><BulbOutlined /></template>自然语言编程</a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="g-data">
             <template #title><span class="group-label">数 据</span></template>
@@ -117,6 +118,7 @@
           <a-menu-item key="providers"><template #icon><ApiOutlined /></template></a-menu-item>
           <a-menu-item key="mcp"><template #icon><CloudServerOutlined /></template></a-menu-item>
           <a-menu-item key="project-settings"><template #icon><FolderOutlined /></template></a-menu-item>
+          <a-menu-item key="nlprog"><template #icon><BulbOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="notes"><template #icon><BookOutlined /></template></a-menu-item>
           <a-menu-item key="memory"><template #icon><BranchesOutlined /></template></a-menu-item>
@@ -213,7 +215,7 @@ import {
   WalletOutlined, TeamOutlined, BarChartOutlined, BlockOutlined, CloudUploadOutlined,
   ReadOutlined, KeyOutlined, VideoCameraOutlined, ShareAltOutlined, IdcardOutlined,
   UsergroupAddOutlined, ShoppingOutlined, SwapOutlined, AlertOutlined, SafetyOutlined,
-  ExperimentOutlined, DeploymentUnitOutlined,
+  ExperimentOutlined, DeploymentUnitOutlined, BulbOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'
