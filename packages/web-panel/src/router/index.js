@@ -40,6 +40,7 @@ const routes = [
       { path: 'aiops',       name: 'AIOps',       component: () => import('../views/AIOps.vue') },
       { path: 'compliance',  name: 'Compliance',  component: () => import('../views/Compliance.vue') },
       { path: 'privacy',     name: 'Privacy',     component: () => import('../views/Privacy.vue') },
+      { path: 'inference',   name: 'Inference',   component: () => import('../views/Inference.vue') },
       { path: 'video',       name: 'VideoEditing', component: () => import('../views/VideoEditing.vue') },
     ]
   }

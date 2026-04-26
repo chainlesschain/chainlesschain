@@ -82,6 +82,7 @@
             <a-menu-item key="crosschain"><template #icon><SwapOutlined /></template>跨链桥</a-menu-item>
             <a-menu-item key="compliance"><template #icon><SafetyOutlined /></template>合规与情报</a-menu-item>
             <a-menu-item key="privacy"><template #icon><ExperimentOutlined /></template>隐私计算</a-menu-item>
+            <a-menu-item key="inference"><template #icon><DeploymentUnitOutlined /></template>推理网络</a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="g-enterprise">
             <template #title><span class="group-label">企 业</span></template>
@@ -135,6 +136,7 @@
           <a-menu-item key="crosschain"><template #icon><SwapOutlined /></template></a-menu-item>
           <a-menu-item key="compliance"><template #icon><SafetyOutlined /></template></a-menu-item>
           <a-menu-item key="privacy"><template #icon><ExperimentOutlined /></template></a-menu-item>
+          <a-menu-item key="inference"><template #icon><DeploymentUnitOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="wallet"><template #icon><WalletOutlined /></template></a-menu-item>
           <a-menu-item key="organization"><template #icon><TeamOutlined /></template></a-menu-item>
@@ -211,7 +213,7 @@ import {
   WalletOutlined, TeamOutlined, BarChartOutlined, BlockOutlined, CloudUploadOutlined,
   ReadOutlined, KeyOutlined, VideoCameraOutlined, ShareAltOutlined, IdcardOutlined,
   UsergroupAddOutlined, ShoppingOutlined, SwapOutlined, AlertOutlined, SafetyOutlined,
-  ExperimentOutlined,
+  ExperimentOutlined, DeploymentUnitOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'
