@@ -2,11 +2,15 @@ spring:
   application:
     name: project-service
 
+  # Spring will fail-fast at startup if these env vars aren't set. For local
+  # dev, run with `SPRING_PROFILES_ACTIVE=dev` (uses application-dev.yml
+  # defaults) or export the env vars manually. Production deployments MUST
+  # set them — no insecure fallback baked in.
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:chainlesschain}
     username: ${DB_USER:chainlesschain}
-    password: ${DB_PASSWORD:chainlesschain_pwd_2024}
+    password: ${DB_PASSWORD}
     hikari:
       minimum-idle: 5
       maximum-pool-size: 20
@@ -23,7 +27,7 @@ spring:
   redis:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
-    password: ${REDIS_PASSWORD:chainlesschain_redis_2024}
+    password: ${REDIS_PASSWORD}
     database: 0
     timeout: 6000ms
     lettuce:
@@ -117,15 +121,17 @@ git:
   auto-commit: true
   auto-push: false
 
-# JWT配置
+# JWT配置 — secret 必须由 env var 提供，无 fallback。生产部署必须传入，
+# 本地 dev 通过 application-dev.yml profile 提供占位值。
 jwt:
-  secret: ${JWT_SECRET:chainlesschain-secret-key-for-jwt-token-generation-2024-please-change-in-production}
+  secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:86400000} # 24小时（毫秒）
 
 # 安全配置
 security:
-  # 开发模式：设置为true时跳过API认证检查（仅用于开发，生产环境必须设为false）
-  dev-mode: ${SECURITY_DEV_MODE:true}
+  # 开发模式：true 时跳过 API 认证检查。默认 false（安全），
+  # 本地开发由 application-dev.yml 覆盖为 true。
+  dev-mode: ${SECURITY_DEV_MODE:false}
 
 # 文件上传配置
 file:

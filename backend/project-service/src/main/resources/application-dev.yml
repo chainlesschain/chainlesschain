@@ -1,0 +1,29 @@
+# Local development profile.
+#
+# Activate via:    SPRING_PROFILES_ACTIVE=dev mvn spring-boot:run
+# Or in IDE:        --spring.profiles.active=dev
+#
+# This file provides safe-to-commit DEV-ONLY defaults for the secrets that
+# application.yml (used in production) deliberately requires via env vars.
+# Production must NEVER use this profile.
+#
+# DO NOT copy these values to a production environment. They are well-known
+# placeholders that grant no real-world access — Postgres + Redis containers
+# in docker-compose use the same defaults so nothing here is "leaking".
+
+spring:
+  datasource:
+    password: chainlesschain_pwd_2024
+
+  redis:
+    password: chainlesschain_redis_2024
+
+jwt:
+  # 32+ characters required by jjwt for HS256. The "please-change" tail
+  # is a static reminder — never deploy this to a real environment.
+  secret: chainlesschain-secret-key-for-jwt-token-generation-2024-please-change-in-production
+
+security:
+  # Skip API auth checks in dev so local Vue/Electron dev servers can hit
+  # the API without bearer tokens. NEVER true in production.
+  dev-mode: true
