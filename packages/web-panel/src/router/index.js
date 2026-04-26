@@ -35,6 +35,7 @@ const routes = [
       { path: 'rssfeed',     name: 'RssFeed',     component: () => import('../views/RssFeed.vue') },
       { path: 'webauthn',    name: 'WebAuthn',    component: () => import('../views/WebAuthn.vue') },
       { path: 'community',   name: 'Community',   component: () => import('../views/Community.vue') },
+      { path: 'marketplace', name: 'Marketplace', component: () => import('../views/Marketplace.vue') },
       { path: 'video',       name: 'VideoEditing', component: () => import('../views/VideoEditing.vue') },
     ]
   }
