@@ -138,7 +138,7 @@ lsof -i :11434
 await errorMonitor.attemptServiceReconnection("ollama");
 ```
 
-**状态**: 已在 `error-monitor.js:1067-1158` 实现自动恢复
+**状态**: 已在 `error-monitor.js:1168` (`attemptServiceReconnection`) 实现自动恢复 —— 含端口连通检测 + HTTP `/api/tags` 健康检查 + 服务重启 + 重启后再次验证（3s 等待）。Postgres / Redis / Qdrant 也走同一路径（端口可达即视为成功）。
 
 ---
 
