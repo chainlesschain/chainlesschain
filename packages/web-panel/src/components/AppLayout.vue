@@ -77,6 +77,7 @@
             <a-menu-item key="backup"><template #icon><CloudUploadOutlined /></template>备份同步</a-menu-item>
             <a-menu-item key="git"><template #icon><CodeOutlined /></template>Git 与数据</a-menu-item>
             <a-menu-item key="projects"><template #icon><ProjectOutlined /></template>项目管理</a-menu-item>
+            <a-menu-item key="crosschain"><template #icon><SwapOutlined /></template>跨链桥</a-menu-item>
           </a-menu-item-group>
           <a-menu-item-group>
             <template #title><span class="group-label">企 业</span></template>
@@ -126,6 +127,7 @@
           <a-menu-item key="backup"><template #icon><CloudUploadOutlined /></template></a-menu-item>
           <a-menu-item key="git"><template #icon><CodeOutlined /></template></a-menu-item>
           <a-menu-item key="projects"><template #icon><ProjectOutlined /></template></a-menu-item>
+          <a-menu-item key="crosschain"><template #icon><SwapOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="wallet"><template #icon><WalletOutlined /></template></a-menu-item>
           <a-menu-item key="organization"><template #icon><TeamOutlined /></template></a-menu-item>
@@ -201,7 +203,7 @@ import {
   SafetyCertificateOutlined, LockOutlined, WifiOutlined, CodeOutlined, ProjectOutlined,
   WalletOutlined, TeamOutlined, BarChartOutlined, BlockOutlined, CloudUploadOutlined,
   ReadOutlined, KeyOutlined, VideoCameraOutlined, ShareAltOutlined, IdcardOutlined,
-  UsergroupAddOutlined, ShoppingOutlined,
+  UsergroupAddOutlined, ShoppingOutlined, SwapOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'

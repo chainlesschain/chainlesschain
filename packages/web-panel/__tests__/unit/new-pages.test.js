@@ -22,12 +22,12 @@ import { parseProviders, parseStatus, KNOWN_PROVIDERS } from '../../src/utils/pa
 // ─── Router registration ─────────────────────────────────────────────────────
 
 describe('Router registration', () => {
-  it('has exactly 32 child routes under root', async () => {
+  it('has exactly 33 child routes under root', async () => {
     const routerModule = await import('../../src/router/index.js')
     const router = routerModule.default
     const rootRoute = router.options.routes[0]
-    // 1 redirect + 31 named pages = 32 children
-    expect(rootRoute.children.length).toBe(32)
+    // 1 redirect + 32 named pages = 33 children
+    expect(rootRoute.children.length).toBe(33)
   })
 
   it('contains all expected route names', async () => {
@@ -40,7 +40,8 @@ describe('Router registration', () => {
       'Providers', 'McpTools', 'ProjectSettings', 'Notes', 'Memory', 'Knowledge', 'Cron',
       'Workflow', 'Tasks', 'Security', 'DID', 'P2P', 'Git', 'Projects',
       'Permissions', 'Wallet', 'Organization', 'Analytics',
-      'Templates', 'Backup', 'RssFeed', 'WebAuthn', 'Community', 'Marketplace', 'VideoEditing',
+      'Templates', 'Backup', 'RssFeed', 'WebAuthn', 'Community', 'Marketplace',
+      'Crosschain', 'VideoEditing',
     ]
     for (const name of expected) {
       expect(names).toContain(name)
@@ -126,6 +127,15 @@ describe('Router registration', () => {
     const mRoute = rootRoute.children.find(r => r.name === 'Marketplace')
     expect(mRoute).toBeDefined()
     expect(mRoute.path).toBe('marketplace')
+  })
+
+  it('maps Crosschain to /crosschain path', async () => {
+    const routerModule = await import('../../src/router/index.js')
+    const router = routerModule.default
+    const rootRoute = router.options.routes[0]
+    const xRoute = rootRoute.children.find(r => r.name === 'Crosschain')
+    expect(xRoute).toBeDefined()
+    expect(xRoute.path).toBe('crosschain')
   })
 
   it('has redirect from / to /dashboard', async () => {
