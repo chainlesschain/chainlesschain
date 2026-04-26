@@ -69,7 +69,8 @@
               <a-form-item label="启用 V6 桌面壳">
                 <a-switch v-model:checked="config.ui.useV6ShellByDefault" />
                 <span style="margin-left: 8px">
-                  保存后重启应用生效：启动时默认进入新的 V6 壳（/v2）。也可以
+                  保存后重启生效。Phase 3.4 硬翻后已默认开启；关闭则回退经典 V5
+                  壳。也可以
                   <a @click.prevent="openV6PreviewNow">立即试用</a>
                   而不改变默认。
                 </span>
@@ -697,7 +698,7 @@ const config = ref({
     startMinimized: false,
   },
   ui: {
-    useV6ShellByDefault: false,
+    useV6ShellByDefault: true,
   },
   editor: {
     fontSize: 14,

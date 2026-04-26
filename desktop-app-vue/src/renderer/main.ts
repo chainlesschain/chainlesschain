@@ -64,15 +64,16 @@ app.directive("content-visibility", createContentVisibilityDirective());
 logger.info("[App] Performance optimizations initialized");
 
 // 启动前预读 V6 壳默认开关：让 router 守卫能在第一次导航时就生效
-// 失败或不可用时保持默认 V5 壳，不阻塞挂载
+// Phase 3.4 硬翻：默认 V6；只有显式 ui.useV6ShellByDefault=false 才回退 V5。
+// 配置读取失败或 IPC 不可用时也保持 V6 默认，不阻塞挂载。
 try {
   const invoke = window.electronAPI?.invoke;
   if (typeof invoke === "function") {
     const raw = await invoke("config:get", "ui.useV6ShellByDefault");
-    setV6ShellDefault(raw === true);
+    setV6ShellDefault(raw !== false);
   }
 } catch (err) {
-  logger.warn("[App] 读取 V6 壳默认开关失败，保持 V5 默认", err);
+  logger.warn("[App] 读取 V6 壳默认开关失败，保持 V6 默认", err);
 }
 
 app.mount("#app");

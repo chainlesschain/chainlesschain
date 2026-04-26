@@ -1,13 +1,16 @@
 /**
  * V6 壳默认开关：由 ui.useV6ShellByDefault 配置驱动，
- * 在应用启动时通过 setV6ShellDefault() 注入，默认保持 V5 壳。
+ * 在应用启动时通过 setV6ShellDefault() 注入。
+ *
+ * v5.0.2.43+ Phase 3.4 硬翻后默认 V6（top-10 V5 routes 全部已有 V6 widget probe）。
+ * 显式 ui.useV6ShellByDefault=false 仍可回到 V5 作为 opt-out 通道。
  *
  * 抽离到独立文件：router/index.ts 体量庞大且在模块顶层就会实例化
  * createRouter（含 ~110 个 page chunk 的 lazy loader），
  * 单测不需要拉那些依赖。
  */
 
-let useV6ShellByDefault = false;
+let useV6ShellByDefault = true;
 
 export function setV6ShellDefault(value: boolean): void {
   useV6ShellByDefault = Boolean(value);

@@ -59,16 +59,16 @@ describe("v6-shell-default.resolveHomeRedirect", () => {
 
 describe("v6-shell-default.setV6ShellDefault / isV6ShellDefault", () => {
   beforeEach(() => {
-    setV6ShellDefault(false);
-  });
-
-  it("defaults to false before app config injection", () => {
-    expect(isV6ShellDefault()).toBe(false);
-  });
-
-  it("returns true after enabling", () => {
     setV6ShellDefault(true);
+  });
+
+  it("defaults to true before app config injection (Phase 3.4 hard-flip)", () => {
     expect(isV6ShellDefault()).toBe(true);
+  });
+
+  it("can be set to false (V5 opt-out)", () => {
+    setV6ShellDefault(false);
+    expect(isV6ShellDefault()).toBe(false);
   });
 
   it("coerces truthy and falsy inputs to boolean", () => {
@@ -82,9 +82,9 @@ describe("v6-shell-default.setV6ShellDefault / isV6ShellDefault", () => {
     expect(isV6ShellDefault()).toBe(false);
   });
 
-  it("can be toggled back to false", () => {
-    setV6ShellDefault(true);
+  it("can be toggled back to true after disabling", () => {
     setV6ShellDefault(false);
-    expect(isV6ShellDefault()).toBe(false);
+    setV6ShellDefault(true);
+    expect(isV6ShellDefault()).toBe(true);
   });
 });
