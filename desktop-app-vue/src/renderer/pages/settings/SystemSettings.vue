@@ -675,9 +675,9 @@ const loading = ref(false);
 const saving = ref(false);
 const activeTab = ref("project");
 
-// 在不改变默认壳的情况下立即打开 V6 预览（/v2）
+// 在不改变默认壳的情况下立即打开 V6 预览（/v6-preview，与 router 重定向目标一致）
 const openV6PreviewNow = () => {
-  router.push("/v2");
+  router.push("/v6-preview");
 };
 
 const config = ref({
