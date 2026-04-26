@@ -22,12 +22,12 @@ import { parseProviders, parseStatus, KNOWN_PROVIDERS } from '../../src/utils/pa
 // ─── Router registration ─────────────────────────────────────────────────────
 
 describe('Router registration', () => {
-  it('has exactly 39 child routes under root', async () => {
+  it('has exactly 40 child routes under root', async () => {
     const routerModule = await import('../../src/router/index.js')
     const router = routerModule.default
     const rootRoute = router.options.routes[0]
-    // 1 redirect + 38 named pages = 39 children
-    expect(rootRoute.children.length).toBe(39)
+    // 1 redirect + 39 named pages = 40 children
+    expect(rootRoute.children.length).toBe(40)
   })
 
   it('contains all expected route names', async () => {
@@ -42,7 +42,7 @@ describe('Router registration', () => {
       'Permissions', 'Wallet', 'Organization', 'Analytics',
       'Templates', 'Backup', 'RssFeed', 'WebAuthn', 'Community', 'Marketplace',
       'Crosschain', 'AIOps', 'Compliance', 'Privacy', 'Inference',
-      'NLProgramming', 'Tenant', 'VideoEditing',
+      'NLProgramming', 'Tenant', 'Pipeline', 'VideoEditing',
     ]
     for (const name of expected) {
       expect(names).toContain(name)
@@ -191,6 +191,15 @@ describe('Router registration', () => {
     const tRoute = rootRoute.children.find(r => r.name === 'Tenant')
     expect(tRoute).toBeDefined()
     expect(tRoute.path).toBe('tenant')
+  })
+
+  it('maps Pipeline to /pipeline path', async () => {
+    const routerModule = await import('../../src/router/index.js')
+    const router = routerModule.default
+    const rootRoute = router.options.routes[0]
+    const pRoute = rootRoute.children.find(r => r.name === 'Pipeline')
+    expect(pRoute).toBeDefined()
+    expect(pRoute.path).toBe('pipeline')
   })
 
   it('has redirect from / to /dashboard', async () => {

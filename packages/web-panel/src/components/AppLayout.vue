@@ -69,6 +69,7 @@
             <a-menu-item key="marketplace"><template #icon><ShoppingOutlined /></template>技能市场</a-menu-item>
             <a-menu-item key="cron"><template #icon><ClockCircleOutlined /></template>定时任务</a-menu-item>
             <a-menu-item key="workflow"><template #icon><ApartmentOutlined /></template>工作流编辑</a-menu-item>
+            <a-menu-item key="pipeline"><template #icon><PartitionOutlined /></template>开发流水线</a-menu-item>
             <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template>后台任务</a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="g-advanced">
@@ -127,6 +128,7 @@
           <a-menu-item key="marketplace"><template #icon><ShoppingOutlined /></template></a-menu-item>
           <a-menu-item key="cron"><template #icon><ClockCircleOutlined /></template></a-menu-item>
           <a-menu-item key="workflow"><template #icon><ApartmentOutlined /></template></a-menu-item>
+          <a-menu-item key="pipeline"><template #icon><PartitionOutlined /></template></a-menu-item>
           <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="security"><template #icon><SafetyCertificateOutlined /></template></a-menu-item>
@@ -217,7 +219,7 @@ import {
   WalletOutlined, TeamOutlined, BarChartOutlined, BlockOutlined, CloudUploadOutlined,
   ReadOutlined, KeyOutlined, VideoCameraOutlined, ShareAltOutlined, IdcardOutlined,
   UsergroupAddOutlined, ShoppingOutlined, SwapOutlined, AlertOutlined, SafetyOutlined,
-  ExperimentOutlined, DeploymentUnitOutlined, BulbOutlined, BankOutlined,
+  ExperimentOutlined, DeploymentUnitOutlined, BulbOutlined, BankOutlined, PartitionOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'
