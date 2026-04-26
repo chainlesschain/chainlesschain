@@ -12,6 +12,8 @@ import fs from "node:fs";
 import path from "node:path";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { bootstrap, shutdown } from "../runtime/bootstrap.js";
+import { getAllIdentities, getIdentity } from "../lib/did-manager.js";
 import mtcLib from "@chainlesschain/core-mtc";
 
 const {
@@ -352,6 +354,145 @@ export function registerMtcCommand(program) {
         }
       } catch (err) {
         logger.error(`mtc landmark inspect failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // mtc batch-dids — read DIDs from local DB and produce a batch
+  mtc
+    .command("batch-dids")
+    .description("Build a batch from DIDs in the local DB (all by default)")
+    .requiredOption("--namespace <ns>", "Namespace, e.g. mtc/v1/did/000007")
+    .requiredOption("--issuer <issuer>", "MTCA issuer string")
+    .option(
+      "--did <did>",
+      "Include only this DID (repeatable)",
+      (val, prev) => [...(prev || []), val],
+    )
+    .option("--out <dir>", "Output directory (default: ./mtc-out)", "./mtc-out")
+    .option("--issued-at <iso>", "Override issued_at timestamp")
+    .option("--expires-at <iso>", "Override expires_at timestamp")
+    .option(
+      "--secret-key-file <path>",
+      "Reuse Ed25519 secret key from this hex file (creates one if missing)",
+    )
+    .option("--json", "Print JSON summary instead of human output")
+    .action(async (options) => {
+      let ctx;
+      try {
+        ctx = await bootstrap({});
+        if (!ctx.db) throw new Error("Database not available");
+        const db = ctx.db.getDatabase();
+
+        let rows;
+        if (options.did && options.did.length > 0) {
+          rows = options.did
+            .map((d) => getIdentity(db, d))
+            .filter((r) => r != null);
+          if (rows.length === 0)
+            throw new Error("No matching DIDs found in local DB");
+        } else {
+          rows = getAllIdentities(db);
+          if (rows.length === 0) {
+            throw new Error(
+              "No DIDs in local DB. Run `cc did create` first or pass --did <did>.",
+            );
+          }
+        }
+
+        const rawLeaves = rows.map((row) => {
+          let didDoc;
+          try {
+            didDoc = JSON.parse(row.did_document);
+          } catch (_err) {
+            throw new Error(`DID ${row.did} has malformed did_document in DB`);
+          }
+          return {
+            kind: "did-document",
+            content_hash: encodeHashStr(sha256(jcs(didDoc))),
+            issued_at: row.created_at || new Date().toISOString(),
+            subject: row.did,
+            metadata: { version: "1.0.0", supersedes: null },
+          };
+        });
+
+        const { landmark, envelopes, treeHeadId, keys } = buildBatch(
+          rawLeaves,
+          {
+            namespace: options.namespace,
+            issuer: options.issuer,
+            issuedAt: options.issuedAt,
+            expiresAt: options.expiresAt,
+            secretKeyFile: options.secretKeyFile,
+          },
+        );
+
+        const outDir = path.resolve(options.out);
+        const landmarkPath = path.join(outDir, "landmark.json");
+        writeJsonFile(landmarkPath, landmark);
+
+        if (options.secretKeyFile && !fs.existsSync(options.secretKeyFile)) {
+          fs.mkdirSync(path.dirname(options.secretKeyFile), {
+            recursive: true,
+          });
+          fs.writeFileSync(
+            options.secretKeyFile,
+            keys.secretKey.toString("hex"),
+            { mode: 0o600 },
+          );
+        }
+
+        const envelopePaths = [];
+        for (let i = 0; i < envelopes.length; i++) {
+          const p = path.join(
+            outDir,
+            `envelope-${String(i).padStart(6, "0")}.json`,
+          );
+          writeJsonFile(p, envelopes[i]);
+          envelopePaths.push(p);
+        }
+
+        const subjects = rawLeaves.map((l) => l.subject);
+
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              {
+                ok: true,
+                tree_head_id: treeHeadId,
+                tree_size: rawLeaves.length,
+                root_hash: landmark.snapshots[0].tree_head.root_hash,
+                landmark_path: landmarkPath,
+                envelope_paths: envelopePaths,
+                subjects,
+              },
+              null,
+              2,
+            ),
+          );
+        } else {
+          logger.log(STOPGAP_BANNER);
+          logger.success(`Batched ${rawLeaves.length} DID(s)`);
+          logger.log(`  ${chalk.bold("Namespace:")}    ${options.namespace}`);
+          logger.log(`  ${chalk.bold("Tree size:")}    ${rawLeaves.length}`);
+          logger.log(
+            `  ${chalk.bold("Root hash:")}    ${landmark.snapshots[0].tree_head.root_hash}`,
+          );
+          logger.log(`  ${chalk.bold("Tree head ID:")} ${treeHeadId}`);
+          logger.log(
+            `  ${chalk.bold("Landmark:")}     ${chalk.cyan(landmarkPath)}`,
+          );
+          logger.log(
+            `  ${chalk.bold("Envelopes:")}    ${envelopePaths.length} files in ${outDir}`,
+          );
+          logger.log(`  ${chalk.bold("Subjects:")}`);
+          for (const s of subjects) logger.log(`    ${chalk.gray(s)}`);
+        }
+
+        await shutdown();
+      } catch (err) {
+        logger.error(`mtc batch-dids failed: ${err.message}`);
+        if (ctx) await shutdown().catch(() => {});
         process.exit(1);
       }
     });
