@@ -2,9 +2,10 @@
  * Merkle Tree Certificate (MTC) commands
  * chainlesschain mtc batch | verify | landmark inspect
  *
- * Phase 1 Week 3 — file-IO only; libp2p / IPFS distribution is future work.
- * Tree-head signature is currently in TEST mode (alwaysAcceptSignatureVerifier);
- * real PQC SLH-DSA wiring lands when packages/cli/src/pqc/ is integrated.
+ * Phase 1 Week 3+4 — file-IO only; libp2p / IPFS distribution is future work.
+ * Tree-head signature uses real Ed25519 (via @noble/curves) as a stop-gap;
+ * SLH-DSA-128f remains the protocol target — module will be swapped when
+ * @noble/post-quantum lands without touching CLI / cache.
  */
 
 import fs from "node:fs";
@@ -20,15 +21,16 @@ const {
   leafHash,
   jcs,
   LandmarkCache,
-  alwaysAcceptSignatureVerifier,
   verify,
   SCHEMA_ENVELOPE,
   SCHEMA_TREE_HEAD,
   SCHEMA_LANDMARK,
+  TREE_HEAD_SIG_PREFIX,
+  ed25519,
 } = mtcLib;
 
-const TEST_MODE_BANNER = chalk.yellow(
-  "⚠ TEST MODE — tree-head signatures are placeholders (no PQC).",
+const STOPGAP_BANNER = chalk.yellow(
+  "⚠ STOPGAP — tree-head signed with Ed25519 (will switch to SLH-DSA when @noble/post-quantum lands).",
 );
 
 function readJsonFile(filePath) {
@@ -45,12 +47,40 @@ function writeJsonFile(filePath, obj) {
   fs.writeFileSync(filePath, JSON.stringify(obj, null, 2), "utf-8");
 }
 
+function loadOrGenerateKeyPair(secretKeyPath) {
+  if (secretKeyPath && fs.existsSync(secretKeyPath)) {
+    const secretKey = Buffer.from(
+      fs.readFileSync(secretKeyPath, "utf-8").trim(),
+      "hex",
+    );
+    if (secretKey.length !== 32) {
+      throw new Error(
+        `Secret key file ${secretKeyPath} must contain 32 bytes (64 hex chars)`,
+      );
+    }
+    // Derive publicKey from secretKey via @noble/curves through ed25519.* — use generateKeyPair-style reload
+    // Simpler: re-derive via a helper. Since lib doesn't expose pubkey-from-secret directly, sign a probe
+    // and use ed25519.signRaw + ed25519.signTreeHead to recover pubkey isn't possible. Fall back to using
+    // a fresh keypair if no helper. Rather than add a helper, use @noble/curves directly here.
+    const { ed25519: ed25519Curve } = require("@noble/curves/ed25519");
+    const publicKey = Buffer.from(ed25519Curve.getPublicKey(secretKey));
+    return {
+      secretKey,
+      publicKey,
+      pubkeyId: ed25519.pubkeyId(publicKey),
+    };
+  }
+  return ed25519.generateKeyPair();
+}
+
 function buildBatch(rawLeaves, opts) {
   const namespace = opts.namespace;
   const issuer = opts.issuer;
   const issuedAt = opts.issuedAt || new Date().toISOString();
   const expiresAt =
     opts.expiresAt || new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
+
+  const keys = loadOrGenerateKeyPair(opts.secretKeyFile);
 
   const leafHashes = rawLeaves.map((l) => leafHash(jcs(l)));
   const tree = new MerkleTree(leafHashes);
@@ -65,36 +95,25 @@ function buildBatch(rawLeaves, opts) {
     expires_at: expiresAt,
     issuer,
   };
-  const treeHeadId = encodeHashStr(sha256(jcs(treeHead)));
+  const canonical = jcs(treeHead);
+  const treeHeadId = encodeHashStr(sha256(canonical));
+  const signingInput = Buffer.concat([TREE_HEAD_SIG_PREFIX, canonical]);
+  const signature = ed25519.signTreeHead(signingInput, {
+    secretKey: keys.secretKey,
+    publicKey: keys.publicKey,
+    issuer,
+  });
 
   const landmark = {
     schema: SCHEMA_LANDMARK,
     namespace: namespace.split("/").slice(0, -1).join("/"),
-    snapshots: [
-      {
-        tree_head: treeHead,
-        tree_head_id: treeHeadId,
-        signature: {
-          alg: "PLACEHOLDER",
-          issuer,
-          sig: "TEST-MODE-NO-PQC",
-          pubkey_id: "sha256:" + Buffer.alloc(32).toString("base64url"),
-        },
-      },
-    ],
-    trust_anchors: [
-      {
-        issuer,
-        alg: "PLACEHOLDER",
-        pubkey_id: "sha256:" + Buffer.alloc(32).toString("base64url"),
-        pubkey_jwk: { kty: "placeholder" },
-      },
-    ],
+    snapshots: [{ tree_head: treeHead, tree_head_id: treeHeadId, signature }],
+    trust_anchors: [ed25519.trustAnchorEntry(keys.publicKey, issuer)],
     published_at: issuedAt,
     publisher_signature: {
-      alg: "PLACEHOLDER",
+      alg: "Ed25519",
       key_id: issuer + "#key-1",
-      sig: "TEST-MODE-NO-PUBLISHER-SIG",
+      sig: "TODO-PUBLISHER-SIG",
     },
   };
 
@@ -110,7 +129,7 @@ function buildBatch(rawLeaves, opts) {
     },
   }));
 
-  return { landmark, envelopes, treeHeadId };
+  return { landmark, envelopes, treeHeadId, keys };
 }
 
 export function registerMtcCommand(program) {
@@ -131,6 +150,10 @@ export function registerMtcCommand(program) {
     .option("--out <dir>", "Output directory (default: ./mtc-out)", "./mtc-out")
     .option("--issued-at <iso>", "Override issued_at timestamp")
     .option("--expires-at <iso>", "Override expires_at timestamp")
+    .option(
+      "--secret-key-file <path>",
+      "Reuse Ed25519 secret key from this hex file (creates one if missing)",
+    )
     .option("--json", "Print JSON summary instead of human output")
     .action(async (inputPath, options) => {
       try {
@@ -139,16 +162,32 @@ export function registerMtcCommand(program) {
           throw new Error("Input must be a non-empty JSON array of leaves");
         }
 
-        const { landmark, envelopes, treeHeadId } = buildBatch(rawLeaves, {
-          namespace: options.namespace,
-          issuer: options.issuer,
-          issuedAt: options.issuedAt,
-          expiresAt: options.expiresAt,
-        });
+        const { landmark, envelopes, treeHeadId, keys } = buildBatch(
+          rawLeaves,
+          {
+            namespace: options.namespace,
+            issuer: options.issuer,
+            issuedAt: options.issuedAt,
+            expiresAt: options.expiresAt,
+            secretKeyFile: options.secretKeyFile,
+          },
+        );
 
         const outDir = path.resolve(options.out);
         const landmarkPath = path.join(outDir, "landmark.json");
         writeJsonFile(landmarkPath, landmark);
+
+        // If a secret-key-file path was given but didn't exist, save the new key for reuse
+        if (options.secretKeyFile && !fs.existsSync(options.secretKeyFile)) {
+          fs.mkdirSync(path.dirname(options.secretKeyFile), {
+            recursive: true,
+          });
+          fs.writeFileSync(
+            options.secretKeyFile,
+            keys.secretKey.toString("hex"),
+            { mode: 0o600 },
+          );
+        }
 
         const envelopePaths = [];
         for (let i = 0; i < envelopes.length; i++) {
@@ -176,7 +215,7 @@ export function registerMtcCommand(program) {
             ),
           );
         } else {
-          logger.log(TEST_MODE_BANNER);
+          logger.log(STOPGAP_BANNER);
           logger.success("Batch built");
           logger.log(`  ${chalk.bold("Namespace:")}    ${options.namespace}`);
           logger.log(`  ${chalk.bold("Tree size:")}    ${rawLeaves.length}`);
@@ -211,7 +250,7 @@ export function registerMtcCommand(program) {
         const landmark = readJsonFile(options.landmark);
 
         const cache = new LandmarkCache({
-          signatureVerifier: alwaysAcceptSignatureVerifier,
+          signatureVerifier: ed25519.makeVerifierFromLandmark(landmark),
         });
         cache.ingest(landmark);
 
@@ -224,7 +263,7 @@ export function registerMtcCommand(program) {
           return;
         }
         if (result.ok) {
-          logger.log(TEST_MODE_BANNER);
+          logger.log(STOPGAP_BANNER);
           logger.success(`Envelope verified`);
           logger.log(
             `  ${chalk.bold("Subject:")}   ${result.leaf.subject || "(no subject)"}`,
