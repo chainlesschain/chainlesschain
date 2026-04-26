@@ -455,13 +455,16 @@ export async function verifyMTC(
 
 ## 11. 与现有系统的接口
 
-| 现有模块 | 改动 |
-|---|---|
-| `packages/cli/src/commands/did.js` | `publish` 加 `--no-mtc` flag；默认走 MTCA |
-| `packages/cli/src/commands/marketplace.js` | `publish` 改为入队 |
-| `packages/cli/src/pqc/` | **零改动**，MTC 直接 import |
-| `desktop-app-vue/src/main/services/did-manager.js` | 增 `submitToMTCA()` 方法 |
-| `backend/project-service/` | 企业审计接口加 MTC envelope 字段（向后兼容，旧版本忽略即可） |
+| 模块 | 状态 | 实施 |
+|---|---|---|
+| **`packages/core-mtc/`** | ✅ 已落地 | 完整协议实现：MerkleTree / Verifier / LandmarkCache / Ed25519 signer / 4 transports |
+| **`packages/cli/src/commands/mtc.js`** | ✅ 已落地 | `cc mtc {batch / verify / landmark inspect / batch-dids / batch-skills / serve}` |
+| `packages/cli/src/lib/did-manager.js` | ✅ 集成 | `cc mtc batch-dids` 通过 `getAllIdentities/getIdentity` 读 DID DB |
+| `packages/cli/src/lib/skill-loader.js` | ✅ 集成 | `cc mtc batch-skills` 通过 `CLISkillLoader.loadAll()` 读技能 |
+| `packages/cli/src/pqc/` | ⏳ Phase 1.6 | 接 SLH-DSA-128f 替换 Ed25519 stopgap（依赖 `@noble/post-quantum`，未装） |
+| `desktop-app-vue/src/main/services/did-manager.js` | ⏳ Phase 4 | 增 `submitToMTCA()` 方法（IPC 接 core-mtc） |
+| `backend/project-service/` | ⏳ Phase 2 | 企业审计接口加 MTC envelope 字段（解锁合规后） |
+| `desktop-app-vue/src/main/p2p/p2p-manager.js` | ✅ 共享 libp2p 栈 | core-mtc 用同一版 libp2p 3.1.5，无冲突 |
 | libp2p / IPFS 适配层 | 新增 `mtc-landmark/<namespace>` topic 订阅 |
 
 ---
