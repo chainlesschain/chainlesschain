@@ -75,6 +75,10 @@
       :prefill-text="communityPrefill"
     />
     <AIChatPanel v-model:open="aiChatPanelOpen" :prefill-text="aiChatPrefill" />
+    <SettingsPanel
+      v-model:open="settingsPanelOpen"
+      :prefill-text="settingsPrefill"
+    />
   </a-layout>
 </template>
 
@@ -105,6 +109,7 @@ import ProjectsPanel from "./ProjectsPanel.vue";
 import P2PMessagingPanel from "./P2PMessagingPanel.vue";
 import CommunityPanel from "./CommunityPanel.vue";
 import AIChatPanel from "./AIChatPanel.vue";
+import SettingsPanel from "./SettingsPanel.vue";
 
 const sidebarCollapsed = ref(false);
 const artifactOpen = ref(false);
@@ -136,6 +141,8 @@ const communityPanelOpen = ref(false);
 const communityPrefill = ref("");
 const aiChatPanelOpen = ref(false);
 const aiChatPrefill = ref("");
+const settingsPanelOpen = ref(false);
+const settingsPrefill = ref("");
 
 const registry = useExtensionRegistryStore();
 const artifactStore = useArtifactStore();
@@ -177,6 +184,7 @@ let unregisterProjectsHandler: (() => void) | null = null;
 let unregisterP2PMessagingHandler: (() => void) | null = null;
 let unregisterCommunityHandler: (() => void) | null = null;
 let unregisterAIChatHandler: (() => void) | null = null;
+let unregisterSettingsHandler: (() => void) | null = null;
 
 onMounted(async () => {
   window.addEventListener("keydown", handleKeydown);
@@ -277,6 +285,13 @@ onMounted(async () => {
       aiChatPanelOpen.value = true;
     },
   );
+  unregisterSettingsHandler = registerSlashHandler(
+    "builtin:openSettingsPanel",
+    ({ args }) => {
+      settingsPrefill.value = args ?? "";
+      settingsPanelOpen.value = true;
+    },
+  );
   await registry.refreshAll();
   appliedThemeVars = applyBrandTheme(registry.brandTheme);
   artifactStore.seedIfEmpty();
@@ -313,6 +328,8 @@ onBeforeUnmount(() => {
   unregisterCommunityHandler = null;
   unregisterAIChatHandler?.();
   unregisterAIChatHandler = null;
+  unregisterSettingsHandler?.();
+  unregisterSettingsHandler = null;
 });
 </script>
 

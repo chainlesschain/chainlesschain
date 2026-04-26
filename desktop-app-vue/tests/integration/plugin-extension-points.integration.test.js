@@ -139,6 +139,7 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ids).toContain("p2p-messaging");
     expect(ids).toContain("community");
     expect(ids).toContain("ai-chat");
+    expect(ids).toContain("settings");
     expect(ids).toContain("acme-override");
   });
 
@@ -344,6 +345,22 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(chWidget).toBeDefined();
     expect(chWidget.size).toBe("medium");
     expect(chWidget.title).toBe("AI 对话");
+  });
+
+  it("settings 的 /settings slash + SettingsWidget 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const st = slash.find((s) => s.trigger === "/settings");
+    expect(st).toBeDefined();
+    expect(st.handler).toBe("builtin:openSettingsPanel");
+    expect(st.pluginId).toBe("settings");
+
+    const widgets = Array.from(pm.uiRegistry.homeWidgets.values());
+    const stWidget = widgets.find(
+      (w) => w.component === "builtin:SettingsWidget",
+    );
+    expect(stWidget).toBeDefined();
+    expect(stWidget.size).toBe("medium");
+    expect(stWidget.title).toBe("设置");
   });
 
   it("brand.theme priority 100 覆盖默认 10", () => {

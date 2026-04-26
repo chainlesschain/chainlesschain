@@ -1,0 +1,31 @@
+{
+  "id": "settings",
+  "name": "系统设置",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/settings 斜杠命令 + Home 页设置快捷卡片（V5 SystemSettings.vue 7-pane 容器的 V6 探针迁移，闭合 top-10 parity）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "settings",
+        "trigger": "/settings",
+        "handler": "builtin:openSettingsPanel",
+        "description": "打开系统设置面板",
+        "icon": "SettingOutlined"
+      }
+    },
+    {
+      "point": "ui.home-widget",
+      "priority": 10,
+      "config": {
+        "id": "settings-quick",
+        "component": "builtin:SettingsWidget",
+        "size": "medium",
+        "order": 140,
+        "title": "设置"
+      }
+    }
+  ]
+}
