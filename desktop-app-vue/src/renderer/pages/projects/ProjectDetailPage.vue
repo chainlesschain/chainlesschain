@@ -1112,101 +1112,80 @@ const handleFileSave = async (content) => {
 };
 
 // 处理Excel内容变化
-const handleExcelChange = (changeData) => {
+// 9 个 per-editor change/save handler 之前各自占 ~10 LOC，但行为高度相似
+// (change → 标记 dirty；save → 重置 dirty + saving 闸 + toast)。Excel/Word
+// 还有 currentFile.value guard。统一成两个工厂消除重复。
+//   编辑器无关的额外动作（如 Markdown 同步 fileContent）走可选回调。
+const makeChangeHandler = (label, { onChange } = {}) => (payload) => {
   hasUnsavedChanges.value = true;
-  logger.info("[ProjectDetail] Excel数据变化:", changeData);
+  if (label) {
+    logger.info(`[ProjectDetail] ${label}内容变化`, payload);
+  }
+  onChange?.(payload);
 };
 
-// 处理Excel保存
-const handleExcelSave = async (data) => {
-  if (!currentFile.value) {
+const makeSaveHandler = (
+  label,
+  { successMsg, requireFile = false, showToast = true, onSave } = {},
+) => async (payload) => {
+  if (requireFile && !currentFile.value) {
     return;
   }
-
-  saving.value = true;
+  if (requireFile) {
+    saving.value = true;
+  }
   try {
-    logger.info("[ProjectDetail] 保存Excel文件:", currentFile.value.file_path);
-
+    if (requireFile) {
+      logger.info(`[ProjectDetail] 保存${label}文件:`, currentFile.value.file_path);
+    }
+    onSave?.(payload);
     hasUnsavedChanges.value = false;
-    message.success("Excel文件已保存");
+    if (showToast && successMsg) {
+      message.success(successMsg);
+    }
   } catch (error) {
-    logger.error("保存Excel文件失败:", error);
+    logger.error(`保存${label}文件失败:`, error);
     message.error("保存失败: " + error.message);
   } finally {
-    saving.value = false;
+    if (requireFile) {
+      saving.value = false;
+    }
   }
 };
 
-// 处理Word内容变化
-const handleWordChange = (changeData) => {
-  hasUnsavedChanges.value = true;
-  logger.info("[ProjectDetail] Word内容变化:", changeData);
-};
+const handleExcelChange = makeChangeHandler("Excel数据");
+const handleExcelSave = makeSaveHandler("Excel", {
+  successMsg: "Excel文件已保存",
+  requireFile: true,
+});
 
-// 处理Word保存
-const handleWordSave = async (data) => {
-  if (!currentFile.value) {
-    return;
-  }
+const handleWordChange = makeChangeHandler("Word");
+const handleWordSave = makeSaveHandler("Word", {
+  successMsg: "Word文档已保存",
+  requireFile: true,
+});
 
-  saving.value = true;
-  try {
-    logger.info("[ProjectDetail] 保存Word文件:", currentFile.value.file_path);
+const handleCodeChange = makeChangeHandler("");
+const handleCodeSave = makeSaveHandler("Code", { successMsg: "代码已保存" });
 
-    hasUnsavedChanges.value = false;
-    message.success("Word文档已保存");
-  } catch (error) {
-    logger.error("保存Word文件失败:", error);
-    message.error("保存失败: " + error.message);
-  } finally {
-    saving.value = false;
-  }
-};
+const handleMarkdownChange = makeChangeHandler("Markdown", {
+  onChange: (content) => {
+    fileContent.value = content;
+  },
+});
+// MarkdownEditor 已自显 toast，这里仅同步 fileContent 并清 dirty 标记。
+const handleMarkdownSave = makeSaveHandler("Markdown", {
+  showToast: false,
+  onSave: (content) => {
+    logger.info("[ProjectDetail] Markdown保存完成，长度:", content?.length);
+    fileContent.value = content;
+  },
+});
 
-// 处理代码变化
-const handleCodeChange = (code) => {
-  hasUnsavedChanges.value = true;
-};
+const handleWebSave = makeSaveHandler("Web", { successMsg: "Web项目已保存" });
 
-// 处理代码保存
-const handleCodeSave = async (code) => {
-  hasUnsavedChanges.value = false;
-  message.success("代码已保存");
-};
-
-// 处理Markdown变化
-const handleMarkdownChange = (content) => {
-  logger.info("[ProjectDetail] Markdown内容变化，长度:", content?.length);
-  hasUnsavedChanges.value = true;
-  // 更新 fileContent 以保持同步
-  fileContent.value = content;
-};
-
-// 处理Markdown保存
-const handleMarkdownSave = async (content) => {
-  logger.info("[ProjectDetail] Markdown保存完成，长度:", content?.length);
-  hasUnsavedChanges.value = false;
-  // 更新 fileContent
-  fileContent.value = content;
-  // 不需要再显示消息，MarkdownEditor 已经显示了
-};
-
-// 处理Web保存
-const handleWebSave = async (data) => {
-  hasUnsavedChanges.value = false;
-  message.success("Web项目已保存");
-};
-
-// 处理PPT变化
-const handlePPTChange = (slides) => {
-  hasUnsavedChanges.value = true;
-};
-
-// 处理PPT保存
-const handlePPTSave = async (slides) => {
-  hasUnsavedChanges.value = false;
-  message.success("PPT已保存");
-};
+const handlePPTChange = makeChangeHandler("");
+const handlePPTSave = makeSaveHandler("PPT", { successMsg: "PPT已保存" });
 
 // 返回项目列表
 const handleBackToList = () => {
