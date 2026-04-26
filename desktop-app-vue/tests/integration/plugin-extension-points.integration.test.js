@@ -134,6 +134,7 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ids).toContain("cross-chain-bridge");
     expect(ids).toContain("wallet");
     expect(ids).toContain("analytics-dashboard");
+    expect(ids).toContain("did-management");
     expect(ids).toContain("acme-override");
   });
 
@@ -259,6 +260,22 @@ describe("v6 extension points — first-party + MDM override", () => {
     );
     expect(anWidget).toBeDefined();
     expect(anWidget.title).toBe("高级分析");
+  });
+
+  it("did-management 的 /did slash + DIDManagementWidget 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const dm = slash.find((s) => s.trigger === "/did");
+    expect(dm).toBeDefined();
+    expect(dm.handler).toBe("builtin:openDIDManagementPanel");
+    expect(dm.pluginId).toBe("did-management");
+
+    const widgets = Array.from(pm.uiRegistry.homeWidgets.values());
+    const dmWidget = widgets.find(
+      (w) => w.component === "builtin:DIDManagementWidget",
+    );
+    expect(dmWidget).toBeDefined();
+    expect(dmWidget.size).toBe("medium");
+    expect(dmWidget.title).toBe("DID 身份");
   });
 
   it("brand.theme priority 100 覆盖默认 10", () => {

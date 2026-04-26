@@ -58,6 +58,10 @@
       v-model:open="analyticsDashboardPanelOpen"
       :prefill-text="analyticsDashboardPrefill"
     />
+    <DIDManagementPanel
+      v-model:open="didManagementPanelOpen"
+      :prefill-text="didManagementPrefill"
+    />
   </a-layout>
 </template>
 
@@ -83,6 +87,7 @@ import EnterpriseDashboardPanel from "./EnterpriseDashboardPanel.vue";
 import CrossChainBridgePanel from "./CrossChainBridgePanel.vue";
 import WalletPanel from "./WalletPanel.vue";
 import AnalyticsDashboardPanel from "./AnalyticsDashboardPanel.vue";
+import DIDManagementPanel from "./DIDManagementPanel.vue";
 
 const sidebarCollapsed = ref(false);
 const artifactOpen = ref(false);
@@ -104,6 +109,8 @@ const walletPanelOpen = ref(false);
 const walletPrefill = ref("");
 const analyticsDashboardPanelOpen = ref(false);
 const analyticsDashboardPrefill = ref("");
+const didManagementPanelOpen = ref(false);
+const didManagementPrefill = ref("");
 
 const registry = useExtensionRegistryStore();
 const artifactStore = useArtifactStore();
@@ -140,6 +147,7 @@ let unregisterEnterpriseDashboardHandler: (() => void) | null = null;
 let unregisterCrossChainBridgeHandler: (() => void) | null = null;
 let unregisterWalletHandler: (() => void) | null = null;
 let unregisterAnalyticsDashboardHandler: (() => void) | null = null;
+let unregisterDIDManagementHandler: (() => void) | null = null;
 
 onMounted(async () => {
   window.addEventListener("keydown", handleKeydown);
@@ -205,6 +213,13 @@ onMounted(async () => {
       analyticsDashboardPanelOpen.value = true;
     },
   );
+  unregisterDIDManagementHandler = registerSlashHandler(
+    "builtin:openDIDManagementPanel",
+    ({ args }) => {
+      didManagementPrefill.value = args ?? "";
+      didManagementPanelOpen.value = true;
+    },
+  );
   await registry.refreshAll();
   appliedThemeVars = applyBrandTheme(registry.brandTheme);
   artifactStore.seedIfEmpty();
@@ -231,6 +246,8 @@ onBeforeUnmount(() => {
   unregisterWalletHandler = null;
   unregisterAnalyticsDashboardHandler?.();
   unregisterAnalyticsDashboardHandler = null;
+  unregisterDIDManagementHandler?.();
+  unregisterDIDManagementHandler = null;
 });
 </script>
 

@@ -1,0 +1,31 @@
+{
+  "id": "did-management",
+  "name": "DID 身份管理",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/did 斜杠命令 + Home 页 DID 身份快捷卡片（V5 DIDManagement.vue 的 V6 探针迁移）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "did-management",
+        "trigger": "/did",
+        "handler": "builtin:openDIDManagementPanel",
+        "description": "打开 DID 身份管理面板",
+        "icon": "IdcardOutlined"
+      }
+    },
+    {
+      "point": "ui.home-widget",
+      "priority": 10,
+      "config": {
+        "id": "did-management-quick",
+        "component": "builtin:DIDManagementWidget",
+        "size": "medium",
+        "order": 90,
+        "title": "DID 身份"
+      }
+    }
+  ]
+}
