@@ -22,12 +22,12 @@ import { parseProviders, parseStatus, KNOWN_PROVIDERS } from '../../src/utils/pa
 // ─── Router registration ─────────────────────────────────────────────────────
 
 describe('Router registration', () => {
-  it('has exactly 30 child routes under root', async () => {
+  it('has exactly 31 child routes under root', async () => {
     const routerModule = await import('../../src/router/index.js')
     const router = routerModule.default
     const rootRoute = router.options.routes[0]
-    // 1 redirect + 29 named pages = 30 children
-    expect(rootRoute.children.length).toBe(30)
+    // 1 redirect + 30 named pages = 31 children
+    expect(rootRoute.children.length).toBe(31)
   })
 
   it('contains all expected route names', async () => {
@@ -40,7 +40,7 @@ describe('Router registration', () => {
       'Providers', 'McpTools', 'ProjectSettings', 'Notes', 'Memory', 'Knowledge', 'Cron',
       'Workflow', 'Tasks', 'Security', 'DID', 'P2P', 'Git', 'Projects',
       'Permissions', 'Wallet', 'Organization', 'Analytics',
-      'Templates', 'Backup', 'RssFeed', 'WebAuthn', 'VideoEditing',
+      'Templates', 'Backup', 'RssFeed', 'WebAuthn', 'Community', 'VideoEditing',
     ]
     for (const name of expected) {
       expect(names).toContain(name)
@@ -108,6 +108,15 @@ describe('Router registration', () => {
     const projRoute = rootRoute.children.find(r => r.name === 'Projects')
     expect(projRoute).toBeDefined()
     expect(projRoute.path).toBe('projects')
+  })
+
+  it('maps Community to /community path', async () => {
+    const routerModule = await import('../../src/router/index.js')
+    const router = routerModule.default
+    const rootRoute = router.options.routes[0]
+    const cRoute = rootRoute.children.find(r => r.name === 'Community')
+    expect(cRoute).toBeDefined()
+    expect(cRoute.path).toBe('community')
   })
 
   it('has redirect from / to /dashboard', async () => {

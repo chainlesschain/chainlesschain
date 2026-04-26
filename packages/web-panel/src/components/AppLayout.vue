@@ -85,6 +85,10 @@
             <a-menu-item key="templates"><template #icon><BlockOutlined /></template>模板中心</a-menu-item>
           </a-menu-item-group>
           <a-menu-item-group>
+            <template #title><span class="group-label">社 交</span></template>
+            <a-menu-item key="community"><template #icon><UsergroupAddOutlined /></template>社区</a-menu-item>
+          </a-menu-item-group>
+          <a-menu-item-group>
             <template #title><span class="group-label">媒 体</span></template>
             <a-menu-item key="video"><template #icon><VideoCameraOutlined /></template>视频剪辑</a-menu-item>
           </a-menu-item-group>
@@ -125,6 +129,8 @@
           <a-menu-item key="organization"><template #icon><TeamOutlined /></template></a-menu-item>
           <a-menu-item key="analytics"><template #icon><BarChartOutlined /></template></a-menu-item>
           <a-menu-item key="templates"><template #icon><BlockOutlined /></template></a-menu-item>
+          <a-menu-divider class="divider-sm" />
+          <a-menu-item key="community"><template #icon><UsergroupAddOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="rssfeed"><template #icon><ReadOutlined /></template></a-menu-item>
           <a-menu-item key="webauthn"><template #icon><KeyOutlined /></template></a-menu-item>
@@ -193,6 +199,7 @@ import {
   SafetyCertificateOutlined, LockOutlined, WifiOutlined, CodeOutlined, ProjectOutlined,
   WalletOutlined, TeamOutlined, BarChartOutlined, BlockOutlined, CloudUploadOutlined,
   ReadOutlined, KeyOutlined, VideoCameraOutlined, ShareAltOutlined, IdcardOutlined,
+  UsergroupAddOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'
