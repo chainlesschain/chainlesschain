@@ -56,6 +56,7 @@
             <a-menu-item key="skills"><template #icon><AppstoreOutlined /></template>技能管理</a-menu-item>
             <a-menu-item key="providers"><template #icon><ApiOutlined /></template>LLM 配置</a-menu-item>
             <a-menu-item key="mcp"><template #icon><CloudServerOutlined /></template>MCP 工具</a-menu-item>
+            <a-menu-item key="project-settings"><template #icon><FolderOutlined /></template>项目存储</a-menu-item>
           </a-menu-item-group>
           <a-menu-item-group>
             <template #title><span class="group-label">数 据</span></template>
@@ -69,6 +70,7 @@
           <a-menu-item-group>
             <template #title><span class="group-label">高 级</span></template>
             <a-menu-item key="security"><template #icon><SafetyCertificateOutlined /></template>安全中心</a-menu-item>
+            <a-menu-item key="did"><template #icon><IdcardOutlined /></template>DID 身份</a-menu-item>
             <a-menu-item key="permissions"><template #icon><LockOutlined /></template>权限管理</a-menu-item>
             <a-menu-item key="p2p"><template #icon><WifiOutlined /></template>P2P 网络</a-menu-item>
             <a-menu-item key="backup"><template #icon><CloudUploadOutlined /></template>备份同步</a-menu-item>
@@ -102,6 +104,7 @@
           <a-menu-item key="skills"><template #icon><AppstoreOutlined /></template></a-menu-item>
           <a-menu-item key="providers"><template #icon><ApiOutlined /></template></a-menu-item>
           <a-menu-item key="mcp"><template #icon><CloudServerOutlined /></template></a-menu-item>
+          <a-menu-item key="project-settings"><template #icon><FolderOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="notes"><template #icon><BookOutlined /></template></a-menu-item>
           <a-menu-item key="memory"><template #icon><BranchesOutlined /></template></a-menu-item>
@@ -111,6 +114,7 @@
           <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="security"><template #icon><SafetyCertificateOutlined /></template></a-menu-item>
+          <a-menu-item key="did"><template #icon><IdcardOutlined /></template></a-menu-item>
           <a-menu-item key="permissions"><template #icon><LockOutlined /></template></a-menu-item>
           <a-menu-item key="p2p"><template #icon><WifiOutlined /></template></a-menu-item>
           <a-menu-item key="backup"><template #icon><CloudUploadOutlined /></template></a-menu-item>
@@ -188,7 +192,7 @@ import {
   BookOutlined, BranchesOutlined, ClockCircleOutlined, ThunderboltOutlined, ApartmentOutlined,
   SafetyCertificateOutlined, LockOutlined, WifiOutlined, CodeOutlined, ProjectOutlined,
   WalletOutlined, TeamOutlined, BarChartOutlined, BlockOutlined, CloudUploadOutlined,
-  ReadOutlined, KeyOutlined, VideoCameraOutlined, ShareAltOutlined,
+  ReadOutlined, KeyOutlined, VideoCameraOutlined, ShareAltOutlined, IdcardOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'

@@ -22,12 +22,12 @@ import { parseProviders, parseStatus, KNOWN_PROVIDERS } from '../../src/utils/pa
 // ─── Router registration ─────────────────────────────────────────────────────
 
 describe('Router registration', () => {
-  it('has exactly 28 child routes under root', async () => {
+  it('has exactly 30 child routes under root', async () => {
     const routerModule = await import('../../src/router/index.js')
     const router = routerModule.default
     const rootRoute = router.options.routes[0]
-    // 1 redirect + 27 named pages = 28 children
-    expect(rootRoute.children.length).toBe(28)
+    // 1 redirect + 29 named pages = 30 children
+    expect(rootRoute.children.length).toBe(30)
   })
 
   it('contains all expected route names', async () => {
@@ -37,8 +37,8 @@ describe('Router registration', () => {
     const names = rootRoute.children.map(r => r.name).filter(Boolean)
     const expected = [
       'Dashboard', 'Chat', 'Cowork', 'Services', 'Logs', 'Skills',
-      'Providers', 'McpTools', 'Notes', 'Memory', 'Knowledge', 'Cron',
-      'Workflow', 'Tasks', 'Security', 'P2P', 'Git', 'Projects',
+      'Providers', 'McpTools', 'ProjectSettings', 'Notes', 'Memory', 'Knowledge', 'Cron',
+      'Workflow', 'Tasks', 'Security', 'DID', 'P2P', 'Git', 'Projects',
       'Permissions', 'Wallet', 'Organization', 'Analytics',
       'Templates', 'Backup', 'RssFeed', 'WebAuthn', 'VideoEditing',
     ]
@@ -54,6 +54,24 @@ describe('Router registration', () => {
     const kgRoute = rootRoute.children.find(r => r.name === 'Knowledge')
     expect(kgRoute).toBeDefined()
     expect(kgRoute.path).toBe('knowledge')
+  })
+
+  it('maps DID to /did path', async () => {
+    const routerModule = await import('../../src/router/index.js')
+    const router = routerModule.default
+    const rootRoute = router.options.routes[0]
+    const didRoute = rootRoute.children.find(r => r.name === 'DID')
+    expect(didRoute).toBeDefined()
+    expect(didRoute.path).toBe('did')
+  })
+
+  it('maps ProjectSettings to /project-settings path', async () => {
+    const routerModule = await import('../../src/router/index.js')
+    const router = routerModule.default
+    const rootRoute = router.options.routes[0]
+    const psRoute = rootRoute.children.find(r => r.name === 'ProjectSettings')
+    expect(psRoute).toBeDefined()
+    expect(psRoute.path).toBe('project-settings')
   })
 
   it('maps Security to /security path', async () => {
