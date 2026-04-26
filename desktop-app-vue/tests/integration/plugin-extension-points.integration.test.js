@@ -138,6 +138,7 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ids).toContain("projects");
     expect(ids).toContain("p2p-messaging");
     expect(ids).toContain("community");
+    expect(ids).toContain("ai-chat");
     expect(ids).toContain("acme-override");
   });
 
@@ -327,6 +328,22 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(cmWidget).toBeDefined();
     expect(cmWidget.size).toBe("medium");
     expect(cmWidget.title).toBe("社区");
+  });
+
+  it("ai-chat 的 /chat slash + AIChatWidget 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const ch = slash.find((s) => s.trigger === "/chat");
+    expect(ch).toBeDefined();
+    expect(ch.handler).toBe("builtin:openAIChatPanel");
+    expect(ch.pluginId).toBe("ai-chat");
+
+    const widgets = Array.from(pm.uiRegistry.homeWidgets.values());
+    const chWidget = widgets.find(
+      (w) => w.component === "builtin:AIChatWidget",
+    );
+    expect(chWidget).toBeDefined();
+    expect(chWidget.size).toBe("medium");
+    expect(chWidget.title).toBe("AI 对话");
   });
 
   it("brand.theme priority 100 覆盖默认 10", () => {

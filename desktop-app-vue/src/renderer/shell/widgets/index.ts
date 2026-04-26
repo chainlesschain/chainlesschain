@@ -17,6 +17,7 @@ import DIDManagementWidget from "./DIDManagementWidget.vue";
 import ProjectsWidget from "./ProjectsWidget.vue";
 import P2PMessagingWidget from "./P2PMessagingWidget.vue";
 import CommunityWidget from "./CommunityWidget.vue";
+import AIChatWidget from "./AIChatWidget.vue";
 
 registerWidgetComponent("builtin:AdminShortcut", AdminShortcut);
 registerWidgetComponent("builtin:AIPromptsWidget", AIPromptsWidget);
@@ -43,3 +44,4 @@ registerWidgetComponent("builtin:DIDManagementWidget", DIDManagementWidget);
 registerWidgetComponent("builtin:ProjectsWidget", ProjectsWidget);
 registerWidgetComponent("builtin:P2PMessagingWidget", P2PMessagingWidget);
 registerWidgetComponent("builtin:CommunityWidget", CommunityWidget);
+registerWidgetComponent("builtin:AIChatWidget", AIChatWidget);
