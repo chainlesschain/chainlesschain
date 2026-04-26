@@ -40,7 +40,8 @@
   },
   "dependencies": {
     "canonicalize": "^2.0.0",
-    "@noble/curves": "^1.9.7"
+    "@noble/curves": "^1.9.7",
+    "@chainsafe/libp2p-gossipsub": "^14.1.2"
   },
   "devDependencies": {
     "vitest": "^3.1.1"
