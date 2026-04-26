@@ -190,7 +190,7 @@ chainlesschain llm switch <name>        # Switch active provider
 
 ### `chainlesschain agent` (alias: `a`)
 
-Start an agentic AI session — the AI can read/write files, run shell commands, search the codebase, execute code (Python/Node.js/Bash with auto pip-install), and invoke 139 built-in skills.
+Start an agentic AI session — the AI can read/write files, run shell commands, search the codebase, execute code (Python/Node.js/Bash with auto pip-install), and invoke 141 built-in skills.
 
 ```bash
 chainlesschain agent                    # Default: Ollama qwen2.5:7b
@@ -206,7 +206,7 @@ Agent slash commands: `/plan` (plan mode), `/plan interactive <request>` (LLM-dr
 
 ### `chainlesschain skill <action>`
 
-Manage and run 139 built-in AI skills across a 4-layer system: bundled < marketplace < managed (global) < workspace (project).
+Manage and run 141 built-in AI skills across a 4-layer system: bundled < marketplace < managed (global) < workspace (project).
 
 ```bash
 chainlesschain skill list               # List all skills grouped by category

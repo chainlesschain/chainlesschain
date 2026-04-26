@@ -2,7 +2,9 @@
 
 此目录包含应用内置的技能。内置技能具有最低优先级，可以被 marketplace、managed（用户全局）或 workspace（项目级）技能覆盖。
 
-## 当前内置技能 (137)
+## 当前内置技能 (141)
+
+> 数量来源：filesystem 中 144 个 handler.js − 3 个示例模板（test-skill / my-custom-skill / handler-test-skill，见本表末尾）。
 
 ### 原有技能 (15)
 

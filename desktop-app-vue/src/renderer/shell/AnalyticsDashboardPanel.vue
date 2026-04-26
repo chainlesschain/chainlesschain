@@ -143,7 +143,7 @@ const groups = computed<MetricGroup[]>(() => [
     label: "技能执行",
     tag: "Skills",
     tone: "purple",
-    desc: "139 个内置技能的调用次数与耗时。",
+    desc: "141 个内置技能的调用次数与耗时。",
     value: `${fmt(store.kpis?.skillExecutions)} · ${store.skillSuccessRateFormatted}`,
   },
   {
