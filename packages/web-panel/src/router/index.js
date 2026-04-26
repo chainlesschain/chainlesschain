@@ -38,6 +38,7 @@ const routes = [
       { path: 'marketplace', name: 'Marketplace', component: () => import('../views/Marketplace.vue') },
       { path: 'crosschain',  name: 'Crosschain',  component: () => import('../views/Crosschain.vue') },
       { path: 'aiops',       name: 'AIOps',       component: () => import('../views/AIOps.vue') },
+      { path: 'compliance',  name: 'Compliance',  component: () => import('../views/Compliance.vue') },
       { path: 'video',       name: 'VideoEditing', component: () => import('../views/VideoEditing.vue') },
     ]
   }
