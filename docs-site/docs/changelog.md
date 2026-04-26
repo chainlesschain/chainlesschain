@@ -3,6 +3,46 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [Unreleased] - 2026-04-26 (V6 shell 硬翻 + top-10 parity 10/10 + web-panel Phase A)
+
+### Added
+
+- **V6 widget probe 6 颗**：每颗按 5-7 文件模板（plugin.json + Widget + Panel + 可选 thin store + AppShell wiring + 集成测试），贡献 `/<route>` slash + Home 页 widget + Phase 3.3 modal panel
+  - `did-management` → `/did` (commit `35f4e278b`，thin store 包 `did:get-all/get-current/set-default`)
+  - `projects` → `/projects` (commit `a097596f5`，thin store 包 `project:get-all` recent-5)
+  - `p2p-messaging` → `/p2p` (commit `3883a72ec`，thin store 包 node-info/peers/nat-info graceful)
+  - `community` → `/community` (commit `5b5e6fe1d`，thin store 包 `community:get-list`)
+  - `ai-chat` → `/chat` (commit `396d6e7b1`，gating route，thin store 包 `llm:check-status` + `llm:get-config`)
+  - `settings` → `/settings` (commit `ccbc312fd`，pure-info panel 列出 7 个 SystemSettings sub-pane)
+- **web-panel `/did` + `/knowledge` + `/project-settings` 三路由**（commits `f37aa44d0` / `c0e96c9e0` / `d1f22ce2d`）
+  - `/knowledge` 4-tab：力导向图（ECharts）/ 实体表 / 关系表 / 类型分布；CRUD + 多跳 BFS reasoning，全部走 `cc kg --json`
+  - `/did` 复用 `cc did *`；助记词/DHT 按钮 disabled + tooltip "桌面专属"
+  - `/project-settings` 4 字段，走 `cc config get/set project.*`，`diffProjectConfig` 只对改动字段发 set
+- **新依赖**：`echarts ^6` + `vue-echarts ^7`（web-panel）
+- **预约 remote agent**：`trig_013pjiuMPAUkNyoE4QxVdee8` 在 2026-05-10 09:00 Asia/Shanghai 自动巡检 V6 硬翻部署后 14 天的 git/issue/test/notes 状态
+
+### Changed
+
+- **V6 shell 默认开关硬翻**（commit `caaddf530`）：
+  - `router/v6-shell-default.ts` 初始 `useV6ShellByDefault` `false → true`
+  - `main.ts` `setV6ShellDefault(raw === true) → setV6ShellDefault(raw !== false)` — 配置未设值默认 V6，仅显式 `false` 才回 V5
+  - `SystemSettings.vue` 表单 initializer 与描述文字同步
+  - opt-out 通道与 `resolveHomeRedirect()` 纯函数都没动（"no other code needs to move"）
+
+### Fixed
+
+- **SystemSettings "立即试用" link 漂移**（commit `72b826bdf`）：之前 `router.push("/v2")` 但 router 守卫 redirect 是 `/v6-preview`，两处统一到 `/v6-preview`
+
+### Why
+
+继 2026-04-21 Phase 3.4 软开关之后，top-10 V5 routes 还差 6 个没 V6 widget。这次一口气补齐 (settings/projects/chat/did/p2p/community)，凑出 V6 hard-flip parity 条件。硬翻保留 opt-out 开关，老用户出问题可一键回 V5；同时预约 14 天后的自动巡检 agent 监控回归信号。
+
+### 测试
+
+- 19/19 plugin-extension-points integration · 8/8 slash-dispatch · 9/9 v6-shell-default · 621/621 web-panel unit · 509/512 desktop integration（3 失败 pre-existing 网络依赖，非今日引入）
+
+---
+
 ## [Unreleased] - 2026-04-26 (默克尔树证书 MTC Phase 1 + 1.5 全部落地)
 
 ### Added

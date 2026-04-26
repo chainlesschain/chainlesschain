@@ -28,7 +28,10 @@ const everyday = [
 ];
 
 const evolution = [
-  // ── v5.0.2.49 → v5.0.2.53 Latest (2026-04-22 → 2026-04-25) ──
+  // ── v5.0.3.1 Latest (2026-04-26) — V6 hard-flip minor version bump (v5.0.3.0 CI hotfix) ──
+  { tag: 'v5.0.3.1', title: 'V6 shell 硬翻 + top-10 parity 10/10', sub: '6 V6 widget probe · default V6 with V5 opt-out · web-panel Phase A', desc: 'top-10 V5 路由（settings/knowledge/projects/chat/did/p2p/community/ai/workflow/enterprise）全部有 V6 widget probe — 今日补齐最后 6 颗（did-management/projects/p2p-messaging/community/ai-chat/settings）。随即 hard-flip：`v6-shell-default.ts` 初始 false→true、`main.ts` `raw === true` 改 `raw !== false`，老用户下次启动直接进 V6；显式 `ui.useV6ShellByDefault=false` 仍可回 V5。同日 web-panel `/knowledge` 全量上线（ECharts 力导向图 + CRUD + BFS reasoning），`/did` + `/project-settings` 接路由。预约 `trig_013pjiuMPAUkNyoE4QxVdee8` 14 天后自动巡检。19/19 plugin-extension-points + 8/8 slash-dispatch + 9/9 v6-shell-default + 621/621 web-panel 全绿。' },
+  { tag: 'v5.0.2.54', title: 'MTC + lint console.log 收口', sub: '默克尔树证书 Phase 1+1.5 · 137 测试 · 6 cc mtc 子命令', desc: '`@chainlesschain/core-mtc` 新包：RFC 6962 Merkle 树 + Verifier + LandmarkCache + 4 transport（InMemory/Filesystem/libp2p direct/gossipsub）。`cc mtc batch/batch-dids/batch-skills/verify/landmark/serve` 6 子命令。后量子签名前哨：SLH-DSA-128f 切换前用 Ed25519 stopgap。chore(lint)：runtime 代码 console.log 升级 error，156 历史点位 tag。' },
+  // ── v5.0.2.49 → v5.0.2.53 (2026-04-22 → 2026-04-25) ──
   { tag: 'v5.0.2.53', title: 'docs-gen 链路收口', sub: 'CLI 0.156.7 · pack 提示增强 · CI E2E 拆批', desc: 'validate-docs artifact 缺失降级为 warning；自动触发跳过 changelog 重生避免 per-push churn；release tag edit-in-place 绕开 immutable lock。`cc pack` 缺 `@yao-pkg/pkg` 时按 npm 全局/项目本地/源码三路给出对应安装提示。CLI E2E 拆 2 批避免 vitest RPC timeout。' },
   { tag: 'v5.0.2.52', title: 'AIChatPage 工具外提 + 死测试清理', sub: 'CLI 0.156.7 · −5856 行', desc: 'AIChatPage.vue 抽出 `aiChatPageUtils.js`（path/filename/IPC 数据清洗等纯工具）为后续按区域拆 SFC 做准备。同时移除 10 个 skip-only 测试 shell（−5856 行）+ ws-server-workflow describe 在 CI 整体 skip + pipeline integration 在 Linux 改 foreign target，CI 不再 60s+ hang。' },
   { tag: 'v5.0.2.51', title: 'pack precheck 跨平台修复', sub: 'CLI 0.156.7 · 设计站侧栏', desc: '`cc pack` precheck 在 POSIX 下 cliRoot 解析与 runtime-factory uiMode 推断口径对齐，修部分 Linux/macOS 下"非 CLI 工作区"误报。docs-gen 头部去 ISO 时间戳消除每次 push 的纯时间戳 diff；cli-ci 矩阵 `fail-fast: false` 让单格失败不连带杀其他平台。设计文档站侧栏接入 `cc pack --project` 入口。' },

@@ -11,8 +11,8 @@
 | 文档类型 | 设计文档（Design Document） |
 | 模块 | desktop-app-vue（Electron + Vue 3） |
 | 适用版本 | v5.0.2.x → v6.0 |
-| 状态 | P0–P9c + Phase 3.3c / 3.4 + MainLayout / DIDManagement 拆分 + 启动流程 Critical/Deferred + Shell 真 LLM 接入（Implementation Complete · Regression Green） |
-| 最近更新 | 2026-04-22 |
+| 状态 | P0–P9c + Phase 3.3c / 3.4（**Hard-Flip Complete**） + MainLayout / DIDManagement 拆分 + 启动流程 Critical/Deferred + Shell 真 LLM 接入 + top-10 V5 routes 全部 V6 widget probe（10/10 parity） |
+| 最近更新 | 2026-04-26 |
 | 关联文档 | `docs/design/系统设计_主文档.md`、`docs/guides/桌面版UI重构_用户指南.md` |
 
 ### 修订历史
@@ -27,6 +27,7 @@
 | v0.6 | 2026-04-21 | ChainlessChain 团队 | Phase 3.3c 补齐 5 个 thin store 单测（rag / wallet / git-hooks / workflow-designer / analytics-dashboard，83 例）+ Phase 3.4 路由守卫 9 例 + 600 store 回归 + 13 plugin 扩展点集成全绿；修复两个 drift（`logger.ts` IPC `.catch()` 防御、`electron.d.ts` 补齐 `ConfigAPI` 类型） |
 | v0.7 | 2026-04-21（下午） | ChainlessChain 团队 | SystemSettings.vue 六级 Pane 拆分（P2P / Speech / LLM / Database / Project / Performance）+ ChatPanel.vue 两级外提（`chatPanelUtils.js` 7 个纯工具 + `useMemoryLeakGuard` composable）。SystemSettings 3444 → 1070 行（−69%），ChatPanel 4057 → 3788 行；`defineModel('config')` + `v-model:config` 模式保持子组件可直接操作嵌套 config；600/600 store 单测 + vite build 全绿 |
 | v0.8 | 2026-04-22 | ChainlessChain 团队 | MainLayout.vue 六级拆分（FavoriteManagerModal / HeaderBreadcrumbs / SyncStatusButton / VoiceCommandHandler / SidebarContextMenu / AppHeader），3203 → 1943 行（−39%）；DIDManagement.vue 三级拆分（AutoRepublishSettingsPane / MnemonicModals / IdentityDetailsModal），1390 → 543 行（−61%）；Shell 接入真实 LLM（ShellComposer `handleSend` 流式优先 / 非流式回退 + ConversationStream typing indicator）；主进程启动 Critical/Deferred 两段化（`bootstrapCritical` 阶段 0-5 阻塞 splash / `bootstrapDeferred` 阶段 6+ + `registerCriticalIPC` / `registerDeferredIPC`，回退开关 `CHAINLESSCHAIN_LEGACY_BOOT=1`）；重型渲染器组件（Monaco / Milkdown / Fabric）改 `defineAsyncComponent` 懒加载，monaco 独立 chunk 3.7MB / gzip 938KB；后端服务 4 路并行轮询，startServices 不阻塞；2000+ 定向单元 + 98/104 集成 + smoke build + lint 全绿 |
+| v0.9 | 2026-04-26 | ChainlessChain 团队 | **V6 hard-flip 完成 (v5.0.3.1)**：补齐最后 6 颗 V5→V6 widget probe（did-management `35f4e278b` / projects `a097596f5` / p2p-messaging `3883a72ec` / community `5b5e6fe1d` / ai-chat `396d6e7b1` / settings `ccbc312fd`），凑齐 top-10 V5 routes 全部 V6 widget（settings/knowledge/projects/chat/did/p2p/community/ai/workflow/enterprise）。随即 hard-flip（commit `caaddf530`）：`router/v6-shell-default.ts` 初始 `useV6ShellByDefault` `false → true`；`main.ts` `setV6ShellDefault(raw === true) → setV6ShellDefault(raw !== false)` — 配置未设值默认 V6，仅显式 `false` 才回 V5；`SystemSettings.vue` 表单 initializer + 描述文字同步翻；opt-out 通道与纯函数 `resolveHomeRedirect()` 都没动，符合 migration template "no other code needs to move" 承诺。附带 fix `72b826bdf`：`SystemSettings` "立即试用" link 从 `/v2` 统一到 `/v6-preview`（与 router redirect 目标一致）。productVersion v5.0.2.55 → v5.0.3.1（V6 hard-flip = minor bump，v5.0.3.0 因 aliyun maven 镜像 502 致 build-android 失败回滚，hotfix `android-app/buildSrc/build.gradle.kts` 把 google/mavenCentral 提到 aliyun 之前并 bump 到 v5.0.3.1）。19/19 plugin-extension-points integration + 8/8 slash-dispatch + 9/9 v6-shell-default 全绿；同日 web-panel Phase A 三件 (`/did` + `/knowledge` + `/project-settings`) 同步上线（commits `f37aa44d0` / `d1f22ce2d` / `c0e96c9e0`），621/621 web-panel unit 全绿。预约 remote agent `trig_013pjiuMPAUkNyoE4QxVdee8` 在 2026-05-10 09:00 Asia/Shanghai 自动巡检部署后 14 天的 git/issue/test/notes 状态 |
 
 ---
 
