@@ -36,6 +36,7 @@
       <!-- Navigation -->
       <a-menu
         v-model:selectedKeys="selectedKeys"
+        v-model:openKeys="openKeys"
         :theme="menuTheme"
         mode="inline"
         :inline-collapsed="collapsed"
@@ -43,7 +44,7 @@
         @click="onMenuClick"
       >
         <template v-if="!collapsed">
-          <a-menu-item-group>
+          <a-sub-menu key="g-overview">
             <template #title><span class="group-label">概 览</span></template>
             <a-menu-item key="dashboard"><template #icon><DashboardOutlined /></template>仪表板</a-menu-item>
             <a-menu-item key="chat"><template #icon><MessageOutlined /></template>AI 对话</a-menu-item>
@@ -51,15 +52,15 @@
             <a-menu-item key="services"><template #icon><ControlOutlined /></template>服务管理</a-menu-item>
             <a-menu-item key="aiops"><template #icon><AlertOutlined /></template>AIOps</a-menu-item>
             <a-menu-item key="logs"><template #icon><FileTextOutlined /></template>日志查看</a-menu-item>
-          </a-menu-item-group>
-          <a-menu-item-group>
+          </a-sub-menu>
+          <a-sub-menu key="g-config">
             <template #title><span class="group-label">配 置</span></template>
             <a-menu-item key="skills"><template #icon><AppstoreOutlined /></template>技能管理</a-menu-item>
             <a-menu-item key="providers"><template #icon><ApiOutlined /></template>LLM 配置</a-menu-item>
             <a-menu-item key="mcp"><template #icon><CloudServerOutlined /></template>MCP 工具</a-menu-item>
             <a-menu-item key="project-settings"><template #icon><FolderOutlined /></template>项目存储</a-menu-item>
-          </a-menu-item-group>
-          <a-menu-item-group>
+          </a-sub-menu>
+          <a-sub-menu key="g-data">
             <template #title><span class="group-label">数 据</span></template>
             <a-menu-item key="notes"><template #icon><BookOutlined /></template>笔记管理</a-menu-item>
             <a-menu-item key="memory"><template #icon><BranchesOutlined /></template>记忆文件</a-menu-item>
@@ -68,8 +69,8 @@
             <a-menu-item key="cron"><template #icon><ClockCircleOutlined /></template>定时任务</a-menu-item>
             <a-menu-item key="workflow"><template #icon><ApartmentOutlined /></template>工作流编辑</a-menu-item>
             <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template>后台任务</a-menu-item>
-          </a-menu-item-group>
-          <a-menu-item-group>
+          </a-sub-menu>
+          <a-sub-menu key="g-advanced">
             <template #title><span class="group-label">高 级</span></template>
             <a-menu-item key="security"><template #icon><SafetyCertificateOutlined /></template>安全中心</a-menu-item>
             <a-menu-item key="did"><template #icon><IdcardOutlined /></template>DID 身份</a-menu-item>
@@ -80,27 +81,27 @@
             <a-menu-item key="projects"><template #icon><ProjectOutlined /></template>项目管理</a-menu-item>
             <a-menu-item key="crosschain"><template #icon><SwapOutlined /></template>跨链桥</a-menu-item>
             <a-menu-item key="compliance"><template #icon><SafetyOutlined /></template>合规与情报</a-menu-item>
-          </a-menu-item-group>
-          <a-menu-item-group>
+          </a-sub-menu>
+          <a-sub-menu key="g-enterprise">
             <template #title><span class="group-label">企 业</span></template>
             <a-menu-item key="wallet"><template #icon><WalletOutlined /></template>钱包管理</a-menu-item>
             <a-menu-item key="organization"><template #icon><TeamOutlined /></template>组织管理</a-menu-item>
             <a-menu-item key="analytics"><template #icon><BarChartOutlined /></template>使用分析</a-menu-item>
             <a-menu-item key="templates"><template #icon><BlockOutlined /></template>模板中心</a-menu-item>
-          </a-menu-item-group>
-          <a-menu-item-group>
+          </a-sub-menu>
+          <a-sub-menu key="g-social">
             <template #title><span class="group-label">社 交</span></template>
             <a-menu-item key="community"><template #icon><UsergroupAddOutlined /></template>社区</a-menu-item>
-          </a-menu-item-group>
-          <a-menu-item-group>
+          </a-sub-menu>
+          <a-sub-menu key="g-media">
             <template #title><span class="group-label">媒 体</span></template>
             <a-menu-item key="video"><template #icon><VideoCameraOutlined /></template>视频剪辑</a-menu-item>
-          </a-menu-item-group>
-          <a-menu-item-group>
+          </a-sub-menu>
+          <a-sub-menu key="g-extension">
             <template #title><span class="group-label">扩 展</span></template>
             <a-menu-item key="rssfeed"><template #icon><ReadOutlined /></template>RSS 订阅</a-menu-item>
             <a-menu-item key="webauthn"><template #icon><KeyOutlined /></template>身份认证</a-menu-item>
-          </a-menu-item-group>
+          </a-sub-menu>
         </template>
         <template v-else>
           <a-menu-item key="dashboard"><template #icon><DashboardOutlined /></template></a-menu-item>
@@ -197,7 +198,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   DashboardOutlined, MessageOutlined, RocketOutlined, AppstoreOutlined, ApiOutlined,
@@ -231,6 +232,31 @@ const selectedKeys = computed(() => {
   return [{ mcptools: 'mcp' }[name] || name]
 })
 
+const ALL_GROUP_KEYS = [
+  'g-overview', 'g-config', 'g-data', 'g-advanced',
+  'g-enterprise', 'g-social', 'g-media', 'g-extension',
+]
+const OPEN_KEYS_LS = 'cc.web-panel.sidebar.openKeys'
+
+function loadOpenKeys() {
+  try {
+    const raw = localStorage.getItem(OPEN_KEYS_LS)
+    if (raw) {
+      const arr = JSON.parse(raw)
+      if (Array.isArray(arr)) return arr.filter(k => ALL_GROUP_KEYS.includes(k))
+    }
+  } catch { /* ignore corrupt */ }
+  return [...ALL_GROUP_KEYS]
+}
+
+const openKeys = ref(loadOpenKeys())
+
+watch(openKeys, (keys) => {
+  try {
+    localStorage.setItem(OPEN_KEYS_LS, JSON.stringify(keys))
+  } catch { /* quota / disabled — ignore */ }
+}, { deep: true })
+
 const wsStatus   = computed(() => ws.status)
 const statusBadge = computed(() => ({ connected:'success', connecting:'processing', error:'error', disconnected:'default' })[ws.status] || 'default')
 const statusText  = computed(() => ({ connected:'已连接', connecting:'连接中...', error:'连接错误', disconnected:'未连接' })[ws.status] || '未知')
@@ -245,20 +271,31 @@ onMounted(() => ws.connect())
 <style scoped>
 /* ── Layout shell ─────────────────────────────────────────────────────── */
 .app-root {
-  min-height: 100vh;
+  /* Lock viewport so the sidebar can scroll independently of the main
+     content area; otherwise menu growth pushes the whole page taller and
+     .side-menu's overflow-y never triggers. */
+  height: 100vh;
   background: var(--bg-base);
+  overflow: hidden;
 }
 .sidebar {
   background: var(--bg-sidebar) !important;
   border-right: 1px solid var(--border-color);
   transition: background 0.25s;
+  height: 100vh;
 }
 :deep(.ant-layout-sider-children) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  height: 100%;
 }
-.main-area { background: var(--bg-base); }
+.main-area {
+  background: var(--bg-base);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
 
 /* ── Logo ─────────────────────────────────────────────────────────────── */
 .logo {
@@ -398,6 +435,7 @@ onMounted(() => ws.connect())
   padding: 24px;
   overflow: auto;
   background: var(--bg-base);
-  min-height: calc(100vh - 50px);
+  flex: 1;
+  min-height: 0; /* allow flex child to scroll instead of growing */
 }
 </style>
