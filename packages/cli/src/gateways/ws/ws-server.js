@@ -206,6 +206,14 @@ export class ChainlessChainWSServer extends EventEmitter {
       });
 
       this.wss.on("listening", () => {
+        // When port 0 was requested the OS assigns an ephemeral port;
+        // read it back so callers + the listening event see the actual
+        // bound port instead of 0. Tests rely on this for collision-free
+        // parallel runs.
+        const addr = this.wss.address();
+        if (addr && typeof addr === "object" && addr.port) {
+          this.port = addr.port;
+        }
         this._startHeartbeat();
         this.emit("listening", { port: this.port, host: this.host });
         resolve();

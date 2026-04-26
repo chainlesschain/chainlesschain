@@ -9,11 +9,12 @@ import { describe, it, expect, afterEach } from "vitest";
 import { ChainlessChainWSServer } from "../../src/lib/ws-server.js";
 import WebSocket from "ws";
 
-const BASE_PORT = 19200;
-let portCounter = 0;
-function nextPort() {
-  return BASE_PORT + portCounter++;
-}
+// Port 0 = OS-assigned ephemeral. After server.start() we read the
+// actual bound port off `server.port`. This is collision-free under any
+// vitest parallelism — the previous fixed-range BASE_PORT 19200+ tripped
+// EADDRINUSE on Ubuntu GH runners when other test machinery happened to
+// hold those exact ports.
+const EPHEMERAL = 0;
 
 /** Connect and wait for open */
 function connect(port) {
@@ -52,17 +53,12 @@ function collectMessages(ws, n, timeoutMs = 10000) {
   });
 }
 
-// Re-skipped on CI after un-skip attempt (commit 633ea38ad) revealed a
-// SECOND issue layer: even with the wss.close 2s ceiling fix, ports
-// 19200-19203 trip EADDRINUSE on Ubuntu GH runners. The hang from
-// wss.close is fixed (afterEach returns within 2s), but server.start()
-// still fails on port collision. Best fix: rewrite to use port 0
-// (OS-assigned ephemeral) — leave for a follow-up so this commit stays
-// scoped to the wss.close hang.
-//
-// Locally all 7 pass when ports are free. RUN_WS_INTEGRATION=1 forces
-// the suite to run on CI in case the runner allocates ports differently.
-const skipWsSuite = process.env.RUN_WS_INTEGRATION !== "1" && process.env.CI;
+// Two prior bugs are now fixed and the suite runs on CI:
+//   1. wss.close hang (afterEach hung forever) → 5s ceiling in ws-server.js
+//   2. EADDRINUSE on fixed ports 19200-19203 → use port 0 (OS-ephemeral)
+// Set CC_SKIP_WS_INTEGRATION=1 to opt back into skipping if a regression
+// turns up.
+const skipWsSuite = process.env.CC_SKIP_WS_INTEGRATION === "1";
 const describeWS = skipWsSuite ? describe.skip : describe;
 
 describeWS("Integration: WebSocket Server Workflow", { timeout: 60000 }, () => {
@@ -78,11 +74,10 @@ describeWS("Integration: WebSocket Server Workflow", { timeout: 60000 }, () => {
 
   // ---- Full auth → command workflow ----
   it("auth → execute → stream workflow", async () => {
-    const port = nextPort();
-    server = new ChainlessChainWSServer({ port, token: "mytoken" });
+    server = new ChainlessChainWSServer({ port: EPHEMERAL, token: "mytoken" });
     await server.start();
 
-    const ws = await connect(port);
+    const ws = await connect(server.port);
 
     // Step 1: Authenticate
     const authResp = await rpc(ws, {
@@ -116,11 +111,10 @@ describeWS("Integration: WebSocket Server Workflow", { timeout: 60000 }, () => {
 
   // ---- Multiple concurrent execute requests ----
   it("handles multiple concurrent execute requests", async () => {
-    const port = nextPort();
-    server = new ChainlessChainWSServer({ port });
+    server = new ChainlessChainWSServer({ port: EPHEMERAL });
     await server.start();
 
-    const ws = await connect(port);
+    const ws = await connect(server.port);
 
     // Fire 3 commands simultaneously
     const p1 = collectMessages(ws, 3, 15000);
@@ -143,12 +137,11 @@ describeWS("Integration: WebSocket Server Workflow", { timeout: 60000 }, () => {
 
   // ---- Multiple clients ----
   it("supports multiple simultaneous clients", async () => {
-    const port = nextPort();
-    server = new ChainlessChainWSServer({ port, maxConnections: 5 });
+    server = new ChainlessChainWSServer({ port: EPHEMERAL, maxConnections: 5 });
     await server.start();
 
-    const ws1 = await connect(port);
-    const ws2 = await connect(port);
+    const ws1 = await connect(server.port);
+    const ws2 = await connect(server.port);
 
     const resp1 = rpc(ws1, {
       id: "x1",
@@ -171,11 +164,10 @@ describeWS("Integration: WebSocket Server Workflow", { timeout: 60000 }, () => {
 
   // ---- Blocked commands return clear error ----
   it("all blocked commands return COMMAND_BLOCKED", async () => {
-    const port = nextPort();
-    server = new ChainlessChainWSServer({ port });
+    server = new ChainlessChainWSServer({ port: EPHEMERAL });
     await server.start();
 
-    const ws = await connect(port);
+    const ws = await connect(server.port);
 
     const blockedCmds = ["serve", "chat", "agent", "setup"];
     for (const cmd of blockedCmds) {
@@ -194,11 +186,10 @@ describeWS("Integration: WebSocket Server Workflow", { timeout: 60000 }, () => {
 
   // ---- Failed auth blocks all subsequent commands ----
   it("failed auth blocks subsequent commands until reconnect", async () => {
-    const port = nextPort();
-    server = new ChainlessChainWSServer({ port, token: "secret" });
+    server = new ChainlessChainWSServer({ port: EPHEMERAL, token: "secret" });
     await server.start();
 
-    const ws = await connect(port);
+    const ws = await connect(server.port);
 
     // Wrong token
     const authResp = await rpc(ws, {
@@ -217,11 +208,10 @@ describeWS("Integration: WebSocket Server Workflow", { timeout: 60000 }, () => {
 
   // ---- Interleaved ping during command execution ----
   it("responds to ping while command is running", async () => {
-    const port = nextPort();
-    server = new ChainlessChainWSServer({ port });
+    server = new ChainlessChainWSServer({ port: EPHEMERAL });
     await server.start();
 
-    const ws = await connect(port);
+    const ws = await connect(server.port);
 
     // Start a command
     ws.send(
@@ -250,11 +240,10 @@ describeWS("Integration: WebSocket Server Workflow", { timeout: 60000 }, () => {
 
   // ---- Execute with --help flag returns valid output ----
   it("note --help returns help text", async () => {
-    const port = nextPort();
-    server = new ChainlessChainWSServer({ port });
+    server = new ChainlessChainWSServer({ port: EPHEMERAL });
     await server.start();
 
-    const ws = await connect(port);
+    const ws = await connect(server.port);
     const resp = await rpc(ws, {
       id: "1",
       type: "execute",
