@@ -1,0 +1,31 @@
+{
+  "id": "p2p-messaging",
+  "name": "P2P 加密消息",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/p2p 斜杠命令 + Home 页 P2P 节点快捷卡片（V5 P2PMessaging.vue 的 V6 探针迁移）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "p2p-messaging",
+        "trigger": "/p2p",
+        "handler": "builtin:openP2PMessagingPanel",
+        "description": "打开 P2P 节点与加密消息面板",
+        "icon": "WifiOutlined"
+      }
+    },
+    {
+      "point": "ui.home-widget",
+      "priority": 10,
+      "config": {
+        "id": "p2p-messaging-quick",
+        "component": "builtin:P2PMessagingWidget",
+        "size": "medium",
+        "order": 110,
+        "title": "P2P 消息"
+      }
+    }
+  ]
+}

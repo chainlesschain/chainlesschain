@@ -66,6 +66,10 @@
       v-model:open="projectsPanelOpen"
       :prefill-text="projectsPrefill"
     />
+    <P2PMessagingPanel
+      v-model:open="p2pMessagingPanelOpen"
+      :prefill-text="p2pMessagingPrefill"
+    />
   </a-layout>
 </template>
 
@@ -93,6 +97,7 @@ import WalletPanel from "./WalletPanel.vue";
 import AnalyticsDashboardPanel from "./AnalyticsDashboardPanel.vue";
 import DIDManagementPanel from "./DIDManagementPanel.vue";
 import ProjectsPanel from "./ProjectsPanel.vue";
+import P2PMessagingPanel from "./P2PMessagingPanel.vue";
 
 const sidebarCollapsed = ref(false);
 const artifactOpen = ref(false);
@@ -118,6 +123,8 @@ const didManagementPanelOpen = ref(false);
 const didManagementPrefill = ref("");
 const projectsPanelOpen = ref(false);
 const projectsPrefill = ref("");
+const p2pMessagingPanelOpen = ref(false);
+const p2pMessagingPrefill = ref("");
 
 const registry = useExtensionRegistryStore();
 const artifactStore = useArtifactStore();
@@ -156,6 +163,7 @@ let unregisterWalletHandler: (() => void) | null = null;
 let unregisterAnalyticsDashboardHandler: (() => void) | null = null;
 let unregisterDIDManagementHandler: (() => void) | null = null;
 let unregisterProjectsHandler: (() => void) | null = null;
+let unregisterP2PMessagingHandler: (() => void) | null = null;
 
 onMounted(async () => {
   window.addEventListener("keydown", handleKeydown);
@@ -235,6 +243,13 @@ onMounted(async () => {
       projectsPanelOpen.value = true;
     },
   );
+  unregisterP2PMessagingHandler = registerSlashHandler(
+    "builtin:openP2PMessagingPanel",
+    ({ args }) => {
+      p2pMessagingPrefill.value = args ?? "";
+      p2pMessagingPanelOpen.value = true;
+    },
+  );
   await registry.refreshAll();
   appliedThemeVars = applyBrandTheme(registry.brandTheme);
   artifactStore.seedIfEmpty();
@@ -265,6 +280,8 @@ onBeforeUnmount(() => {
   unregisterDIDManagementHandler = null;
   unregisterProjectsHandler?.();
   unregisterProjectsHandler = null;
+  unregisterP2PMessagingHandler?.();
+  unregisterP2PMessagingHandler = null;
 });
 </script>
 

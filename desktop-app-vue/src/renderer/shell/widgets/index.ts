@@ -15,6 +15,7 @@ import WalletWidget from "./WalletWidget.vue";
 import AnalyticsDashboardWidget from "./AnalyticsDashboardWidget.vue";
 import DIDManagementWidget from "./DIDManagementWidget.vue";
 import ProjectsWidget from "./ProjectsWidget.vue";
+import P2PMessagingWidget from "./P2PMessagingWidget.vue";
 
 registerWidgetComponent("builtin:AdminShortcut", AdminShortcut);
 registerWidgetComponent("builtin:AIPromptsWidget", AIPromptsWidget);
@@ -39,3 +40,4 @@ registerWidgetComponent(
 );
 registerWidgetComponent("builtin:DIDManagementWidget", DIDManagementWidget);
 registerWidgetComponent("builtin:ProjectsWidget", ProjectsWidget);
+registerWidgetComponent("builtin:P2PMessagingWidget", P2PMessagingWidget);

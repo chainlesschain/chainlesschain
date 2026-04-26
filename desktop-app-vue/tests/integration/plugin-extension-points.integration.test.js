@@ -136,6 +136,7 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(ids).toContain("analytics-dashboard");
     expect(ids).toContain("did-management");
     expect(ids).toContain("projects");
+    expect(ids).toContain("p2p-messaging");
     expect(ids).toContain("acme-override");
   });
 
@@ -293,6 +294,22 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(pjWidget).toBeDefined();
     expect(pjWidget.size).toBe("medium");
     expect(pjWidget.title).toBe("项目");
+  });
+
+  it("p2p-messaging 的 /p2p slash + P2PMessagingWidget 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const p2p = slash.find((s) => s.trigger === "/p2p");
+    expect(p2p).toBeDefined();
+    expect(p2p.handler).toBe("builtin:openP2PMessagingPanel");
+    expect(p2p.pluginId).toBe("p2p-messaging");
+
+    const widgets = Array.from(pm.uiRegistry.homeWidgets.values());
+    const p2pWidget = widgets.find(
+      (w) => w.component === "builtin:P2PMessagingWidget",
+    );
+    expect(p2pWidget).toBeDefined();
+    expect(p2pWidget.size).toBe("medium");
+    expect(p2pWidget.title).toBe("P2P 消息");
   });
 
   it("brand.theme priority 100 覆盖默认 10", () => {
