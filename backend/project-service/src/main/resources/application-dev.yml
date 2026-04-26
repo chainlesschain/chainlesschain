@@ -19,9 +19,11 @@ spring:
     password: chainlesschain_redis_2024
 
 jwt:
-  # 32+ characters required by jjwt for HS256. The "please-change" tail
-  # is a static reminder — never deploy this to a real environment.
-  secret: chainlesschain-secret-key-for-jwt-token-generation-2024-please-change-in-production
+  # 32+ characters required by jjwt for HS256. JwtUtil also rejects the
+  # exact strings used as hardcoded fallbacks before commit d97c50c20,
+  # so this placeholder uses a distinct prefix that is unambiguously
+  # dev-only. Never deploy this profile to a real environment.
+  secret: dev-only-jwt-secret-do-not-use-in-prod-ever-2026-04-26-placeholder
 
 security:
   # Skip API auth checks in dev so local Vue/Electron dev servers can hit

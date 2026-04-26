@@ -3,6 +3,9 @@ package com.chainlesschain.project.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -22,11 +25,52 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
-    @Value("${jwt.secret:chainlesschain-secret-key-for-jwt-token-generation-2024}")
+    private static final Logger log = LoggerFactory.getLogger(JwtUtil.class);
+
+    /**
+     * Well-known dev placeholders that must never be accepted as a real secret.
+     * If the configured value matches any of these, startup fails — preventing
+     * an accidental production deploy with the example secret.
+     */
+    private static final String[] BANNED_SECRETS = {
+        "chainlesschain-secret-key-for-jwt-token-generation-2024",
+        "chainlesschain-secret-key-for-jwt-token-generation-2024-please-change-in-production"
+    };
+
+    /** HS256 mandates >= 32 raw bytes of key material per RFC 7518. */
+    private static final int MIN_SECRET_BYTES = 32;
+
+    // No fallback default — application.yml resolves via env var, or the
+    // dev profile (application-dev.yml) supplies a placeholder. Production
+    // must always provide JWT_SECRET via environment.
+    @Value("${jwt.secret}")
     private String secret;
 
     @Value("${jwt.expiration:86400000}") // 默认24小时
     private Long expiration;
+
+    @PostConstruct
+    void validateSecret() {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                "jwt.secret is not configured — set the JWT_SECRET env var");
+        }
+        for (String banned : BANNED_SECRETS) {
+            if (banned.equals(secret)) {
+                throw new IllegalStateException(
+                    "jwt.secret is the well-known dev placeholder. " +
+                    "Generate a real secret (>=32 random bytes) and set " +
+                    "the JWT_SECRET env var before starting the service.");
+            }
+        }
+        int byteLen = secret.getBytes(StandardCharsets.UTF_8).length;
+        if (byteLen < MIN_SECRET_BYTES) {
+            throw new IllegalStateException(
+                "jwt.secret is too short (" + byteLen + " bytes). " +
+                "HS256 requires at least " + MIN_SECRET_BYTES + " bytes.");
+        }
+        log.info("JWT secret validated ({} bytes)", byteLen);
+    }
 
     /**
      * 从令牌中提取用户名
