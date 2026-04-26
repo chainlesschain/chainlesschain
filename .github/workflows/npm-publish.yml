@@ -51,6 +51,9 @@ jobs:
           echo "=== session-core tests ==="
           npm test --workspace=packages/session-core || true
 
+          echo "=== core-mtc tests ==="
+          npm test --workspace=packages/core-mtc || true
+
       - name: Run CLI tests
         working-directory: packages/cli
         run: npx vitest run
@@ -111,6 +114,21 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
           CURRENT=$(npm view @chainlesschain/core-env version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          echo "npm: $CURRENT | local: $PKG_VER"
+          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # core-mtc has no internal deps — safe anywhere before cli
+      - name: "Publish @chainlesschain/core-mtc"
+        working-directory: packages/core-mtc
+        run: |
+          CURRENT=$(npm view @chainlesschain/core-mtc version 2>/dev/null || echo "0.0.0")
           PKG_VER=$(node -p "require('./package.json').version")
           echo "npm: $CURRENT | local: $PKG_VER"
           if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
@@ -216,6 +234,7 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
           V_ENV=$(node -p "require('./packages/core-env/package.json').version")
+          V_MTC=$(node -p "require('./packages/core-mtc/package.json').version")
           V_LOG=$(node -p "require('./packages/shared-logger/package.json').version")
           V_CFG=$(node -p "require('./packages/core-config/package.json').version")
           V_DB=$(node -p "require('./packages/core-db/package.json').version")
@@ -233,6 +252,7 @@ jobs:
             echo "| Package | Version |"
             echo "|---------|---------|"
             echo "| @chainlesschain/core-env | $V_ENV |"
+            echo "| @chainlesschain/core-mtc | $V_MTC |"
             echo "| @chainlesschain/shared-logger | $V_LOG |"
             echo "| @chainlesschain/core-config | $V_CFG |"
             echo "| @chainlesschain/core-db | $V_DB |"
