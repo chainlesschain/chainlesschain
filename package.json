@@ -18,6 +18,7 @@
     "packages/core-ai",
     "packages/core-social",
     "packages/core-blockchain",
+    "packages/core-mtc",
     "packages/session-core",
     "packages/cli"
   ],

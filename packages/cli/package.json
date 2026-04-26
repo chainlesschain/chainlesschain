@@ -54,6 +54,7 @@
     "@chainlesschain/core-db": "0.1.0",
     "@chainlesschain/core-env": "0.1.0",
     "@chainlesschain/core-infra": "0.1.0",
+    "@chainlesschain/core-mtc": "0.1.0",
     "@chainlesschain/session-core": "0.3.1",
     "@chainlesschain/shared-logger": "0.1.0",
     "@inquirer/prompts": "^7.2.0",
