@@ -378,27 +378,37 @@ export async function verifyMTC(
 
 ## 9. 实施路径
 
-### Phase 0 — 协议固化（1 周）
-- [ ] 锁定 envelope JSON schema（本文档 §5.1）
-- [ ] 锁定 landmark schema（§5.2）
-- [ ] 锁定 namespace 字符串规则
-- [ ] 锁定树构造算法 = RFC 6962 兼容（与 IETF MTC 一致）
-- [ ] 写 `docs/design/MTC_数据格式_v1.md`
+### Phase 0 — 协议固化 ✅ **已完成 2026-04-26**
+- [x] 锁定 envelope/landmark/tree_head schema（数据格式 §5）
+- [x] 锁定 namespace 字符串规则（数据格式 §2.1）
+- [x] 锁定树构造算法 = RFC 6962 兼容（数据格式 §3）
+- [x] 锁定 JCS 规范化（数据格式 §4）+ 域分离前缀（§3.1）
+- [x] 锁定错误码集（数据格式 §11）
+- [x] 写 `docs/design/MTC_数据格式_v1.md`
 
-### Phase 1 — Local MTCA + DID 路径（3 周）
-- [ ] 新建 `packages/core-mtc/`（lib + 测试），不依赖 Electron
-- [ ] 实现 Batcher / TreeBuilder / TreeHeadSigner（复用 `packages/cli/src/pqc/`）
-- [ ] 实现 Verifier（纯函数）+ LandmarkCache（LRU + IPFS 拉取）
-- [ ] CLI：`cc mtc verify` / `cc mtc landmark fetch|list`
-- [ ] DID 写入路径接入：`cc did publish` 默认走 MTC，`--no-mtc` 兜底
-- [ ] 单测覆盖 ≥ 50（参考 `pqc_slh_dsa` 33 测试节奏）
-- [ ] 集成测试：本地起两个节点，A 发 DID + 批关闭后 B 通过 IPFS 拉 landmark + 验
+### Phase 1 — Local MTCA 端到端 ✅ **已完成 2026-04-26**
+- [x] 新建 `packages/core-mtc/`（lib + 测试，零 Electron 依赖）
+- [x] 实现 SHA-256 + RFC 6962 树（`MerkleTree` 类，O(log n) 取证 + 子树根 memo）
+- [x] 实现 Verifier 纯函数（按数据格式 §11 错误码） + LandmarkCache 含 split-view 防御
+- [x] LandmarkCache 持久化（`persistDir` + `loadFromDisk`，篡改检测）
+- [x] Ed25519 真实签名（`lib/signers/ed25519.js`，stopgap，待 SLH-DSA `@noble/post-quantum`）
+- [x] CLI：`cc mtc batch / verify / landmark inspect / batch-dids`
+- [x] 单测覆盖 102 + CLI 集成 11 = **113 测试**
 
-### Phase 2 — Marketplace + Audit（2 周）
-- [ ] Marketplace publisher 接入 MTCA 队列
-- [ ] `cc marketplace publish` / `cc marketplace verify` 上线
-- [ ] 企业审计日志双轨签名（实时 Ed25519 + 关批 MTC）
-- [ ] 审计批次树根上链（首发 Polygon Mumbai 测试网）
+### Phase 1.5 — 传输层 ✅ **已完成 2026-04-26**
+- [x] LandmarkTransport 抽象（`publish` / `subscribe` / `fetch` / `close`）
+- [x] **InMemoryTransport** — 同进程 broker（测试用）
+- [x] **FilesystemTransport** — drop-zone 目录模式（LAN/USB/离线分发）
+- [x] **Libp2pTransport direct 模式** — 真 TCP+Noise+Yamux+identify，自定义协议 `/mtc/landmark/1.0.0`
+- [x] **Libp2pTransport gossipsub 模式** — `@chainsafe/libp2p-gossipsub@14`，topic 路由（D=1 + floodPublish 适配低密度网络）
+- [x] CLI `cc mtc serve` 守护进程（filesystem / libp2p direct / libp2p gossipsub）
+- [x] 两节点端到端测试 + 5 backends × 多场景 = 35+ transport 测试
+
+### Phase 2 — Marketplace + Audit（部分启动）
+- [x] Marketplace 路径：`cc mtc batch-skills`（CLISkillLoader → 树）— commit `67da18480`
+- [ ] **Audit 路径阻塞**：等 Q-COMP-1（等保三级最终性窗口）+ Q-COMP-2（T/ZGCMCA 023—2025 条款）法务出函；详见评审清单 §6 关键路径
+- [ ] Marketplace publisher 自动入队（守护模式，定时关批）
+- [ ] 审计日志双轨签名（实时 Ed25519 + 关批 MTC，1h 窗口）— 解锁后启动
 
 ### Phase 3 — Federation MTCA（4 周，可选）
 - [ ] M-of-N threshold signing 集成（已有的 cross-chain 基础设施可复用部分）
