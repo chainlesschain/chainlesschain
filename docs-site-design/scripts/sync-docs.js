@@ -41,6 +41,9 @@ const ROOT_FILE_MAP = {
   "CC_PACK_打包指令设计文档.md": "cc-pack-design.md",
   "CC_PACK_项目模式_设计文档.md": "cc-pack-project-mode-design.md",
   "ClaudeBox学习_工具卡与任务面板落地方案.md": "claudebox-learning-plan.md",
+  "默克尔树证书_MTC_落地方案.md": "mtc-landing-plan.md",
+  "MTC_数据格式_v1.md": "mtc-data-format-v1.md",
+  "默克尔树证书_MTC_v0.2_评审清单.md": "mtc-review-checklist.md",
 };
 
 // modules/ 文件：提取编号前缀作为 ASCII 名
