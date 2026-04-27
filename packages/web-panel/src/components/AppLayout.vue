@@ -92,6 +92,7 @@
             <a-menu-item key="wallet"><template #icon><WalletOutlined /></template>钱包管理</a-menu-item>
             <a-menu-item key="organization"><template #icon><TeamOutlined /></template>组织管理</a-menu-item>
             <a-menu-item key="tenant"><template #icon><BankOutlined /></template>多租户 SaaS</a-menu-item>
+            <a-menu-item key="sla"><template #icon><DashboardOutlined /></template>SLA 管理</a-menu-item>
             <a-menu-item key="analytics"><template #icon><BarChartOutlined /></template>使用分析</a-menu-item>
             <a-menu-item key="templates"><template #icon><BlockOutlined /></template>模板中心</a-menu-item>
           </a-sub-menu>
@@ -151,6 +152,7 @@
           <a-menu-item key="wallet"><template #icon><WalletOutlined /></template></a-menu-item>
           <a-menu-item key="organization"><template #icon><TeamOutlined /></template></a-menu-item>
           <a-menu-item key="tenant"><template #icon><BankOutlined /></template></a-menu-item>
+          <a-menu-item key="sla"><template #icon><DashboardOutlined /></template></a-menu-item>
           <a-menu-item key="analytics"><template #icon><BarChartOutlined /></template></a-menu-item>
           <a-menu-item key="templates"><template #icon><BlockOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />

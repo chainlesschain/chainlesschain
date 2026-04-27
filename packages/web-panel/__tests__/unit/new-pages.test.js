@@ -22,12 +22,12 @@ import { parseProviders, parseStatus, KNOWN_PROVIDERS } from '../../src/utils/pa
 // ─── Router registration ─────────────────────────────────────────────────────
 
 describe('Router registration', () => {
-  it('has exactly 44 child routes under root', async () => {
+  it('has exactly 45 child routes under root', async () => {
     const routerModule = await import('../../src/router/index.js')
     const router = routerModule.default
     const rootRoute = router.options.routes[0]
-    // 1 redirect + 43 named pages = 44 children
-    expect(rootRoute.children.length).toBe(44)
+    // 1 redirect + 44 named pages = 45 children
+    expect(rootRoute.children.length).toBe(45)
   })
 
   it('contains all expected route names', async () => {
@@ -42,7 +42,7 @@ describe('Router registration', () => {
       'Permissions', 'Wallet', 'Organization', 'Analytics',
       'Templates', 'Backup', 'RssFeed', 'WebAuthn', 'Community', 'Marketplace',
       'Crosschain', 'AIOps', 'Compliance', 'Privacy', 'Inference',
-      'NLProgramming', 'Tenant', 'Pipeline', 'Governance', 'Audit', 'Reputation', 'Recommend', 'VideoEditing',
+      'NLProgramming', 'Tenant', 'Pipeline', 'Governance', 'Audit', 'Reputation', 'Recommend', 'Sla', 'VideoEditing',
     ]
     for (const name of expected) {
       expect(names).toContain(name)
@@ -236,6 +236,15 @@ describe('Router registration', () => {
     const rRoute = rootRoute.children.find(r => r.name === 'Recommend')
     expect(rRoute).toBeDefined()
     expect(rRoute.path).toBe('recommend')
+  })
+
+  it('maps Sla to /sla path', async () => {
+    const routerModule = await import('../../src/router/index.js')
+    const router = routerModule.default
+    const rootRoute = router.options.routes[0]
+    const sRoute = rootRoute.children.find(r => r.name === 'Sla')
+    expect(sRoute).toBeDefined()
+    expect(sRoute.path).toBe('sla')
   })
 
   it('has redirect from / to /dashboard', async () => {
