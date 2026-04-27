@@ -39,6 +39,11 @@
             <PlusOutlined />
           </a-button>
         </a-tooltip>
+        <a-tooltip title="对话历史">
+          <a-button type="text" size="small" @click="showHistory = true">
+            <HistoryOutlined />
+          </a-button>
+        </a-tooltip>
         <a-tooltip title="LLM 设置">
           <a-button type="text" size="small" @click="onGoSettings">
             <SettingOutlined />
@@ -118,8 +123,32 @@
           </div>
         </div>
 
-        <!-- Thinking indicator -->
-        <div v-if="isProcessing" class="message-row assistant">
+        <!-- Streaming bubble -->
+        <div v-if="isStreaming" class="message-row assistant streaming">
+          <a-avatar :size="32" :style="{ backgroundColor: '#52c41a' }">
+            <template #icon>
+              <RobotOutlined />
+            </template>
+          </a-avatar>
+          <div class="message-bubble">
+            <div class="message-meta-row">
+              <span class="message-role">AI</span>
+              <span class="message-time">正在输入…</span>
+            </div>
+            <!-- eslint-disable vue/no-v-html -- sanitized: MarkdownIt(html:false) -->
+            <div
+              class="message-text"
+              v-html="
+                renderMarkdown(streamingText) +
+                '<span class=\'typing-cursor\'>▊</span>'
+              "
+            />
+            <!-- eslint-enable vue/no-v-html -->
+          </div>
+        </div>
+
+        <!-- Thinking indicator (non-streaming path) -->
+        <div v-if="isProcessing && !isStreaming" class="message-row assistant">
           <a-avatar :size="32" :style="{ backgroundColor: '#52c41a' }">
             <template #icon>
               <RobotOutlined />
@@ -146,9 +175,12 @@
         @keydown="onComposerKeyDown"
       />
       <div class="composer-actions">
+        <a-button v-if="isStreaming" danger @click="onStop">
+          <StopOutlined /> 停止
+        </a-button>
         <a-button
           type="primary"
-          :loading="isProcessing"
+          :loading="isProcessing && !isStreaming"
           :disabled="!canSend"
           @click="onSend"
         >
@@ -167,6 +199,16 @@
       @close="errorMessage = null"
     />
   </a-modal>
+
+  <!-- History drawer -->
+  <a-drawer
+    v-model:open="showHistory"
+    title="对话历史"
+    placement="left"
+    :width="320"
+  >
+    <ConversationHistory @select="onSelectConversation" />
+  </a-drawer>
 </template>
 
 <script setup lang="ts">
@@ -176,16 +218,20 @@ import { Empty } from "ant-design-vue";
 import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
+  HistoryOutlined,
   MessageOutlined,
   PlusOutlined,
   RobotOutlined,
   SendOutlined,
   SettingOutlined,
+  StopOutlined,
   UserOutlined,
 } from "@ant-design/icons-vue";
 import MarkdownIt from "markdown-it";
 import { useLLMStore } from "../stores/llm";
 import { useConversationStore } from "../stores/conversation";
+import ConversationHistory from "../components/ConversationHistory.vue";
+import { chatErrorMessage, formatChatTime } from "./helpers/chatPanelHelpers";
 
 const props = defineProps<{ open: boolean; prefillText?: string }>();
 const emit = defineEmits<{
@@ -213,6 +259,9 @@ const QUICK_PROMPTS = [
 
 const inputText = ref("");
 const isProcessing = ref(false);
+const isStreaming = ref(false);
+const streamingText = ref("");
+const showHistory = ref(false);
 const errorMessage = ref<string | null>(null);
 const messagesContainer = ref<HTMLDivElement | null>(null);
 
@@ -268,18 +317,8 @@ function renderMarkdown(text: string): string {
   }
 }
 
-function formatTime(timestamp: number | string | undefined): string {
-  if (!timestamp) {
-    return "";
-  }
-  const ms =
-    typeof timestamp === "number" ? timestamp : new Date(timestamp).getTime();
-  if (Number.isNaN(ms)) {
-    return "";
-  }
-  const d = new Date(ms);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
+// formatTime delegates to chatPanelHelpers (unit-tested)
+const formatTime = formatChatTime;
 
 function onComposerKeyDown(e: KeyboardEvent): void {
   if (e.key !== "Enter") {
@@ -314,28 +353,43 @@ async function onSend(): Promise<void> {
   await scrollToBottom();
 
   isProcessing.value = true;
-  try {
-    const response = await llmStore.query(text);
-    const aiContent =
-      typeof response === "string"
-        ? response
-        : ((response as { content?: string })?.content ?? "");
-    const aiTokens =
-      response && typeof response === "object" && "tokens" in response
-        ? (response as { tokens?: number }).tokens
-        : undefined;
-    const aiModel =
-      response && typeof response === "object" && "model" in response
-        ? (response as { model?: string }).model
-        : undefined;
+  const streamEnabled = llmStore.config?.streamEnabled !== false;
 
-    conversationStore.addMessage({
-      role: "assistant",
-      content: aiContent,
-      timestamp: Date.now(),
-      tokens: aiTokens,
-      model: aiModel,
-    });
+  try {
+    if (streamEnabled) {
+      isStreaming.value = true;
+      streamingText.value = "";
+      await llmStore.queryStream(text, (data: { fullText?: string }) => {
+        streamingText.value = data?.fullText ?? "";
+        scrollToBottom();
+      });
+      conversationStore.addMessage({
+        role: "assistant",
+        content: streamingText.value,
+        timestamp: Date.now(),
+        model: llmStore.currentModel,
+      });
+      isStreaming.value = false;
+      streamingText.value = "";
+    } else {
+      const response = await llmStore.query(text);
+      const aiContent =
+        typeof response === "string"
+          ? response
+          : ((response as { text?: string; content?: string })?.text ??
+            (response as { text?: string; content?: string })?.content ??
+            "");
+      const aiTokens = (response as { tokens?: number })?.tokens;
+      const aiModel =
+        (response as { model?: string })?.model ?? llmStore.currentModel;
+      conversationStore.addMessage({
+        role: "assistant",
+        content: aiContent,
+        timestamp: Date.now(),
+        tokens: aiTokens,
+        model: aiModel,
+      });
+    }
 
     if (llmStore.config?.autoSaveConversations) {
       try {
@@ -345,11 +399,45 @@ async function onSend(): Promise<void> {
       }
     }
   } catch (e) {
-    errorMessage.value = e instanceof Error ? e.message : String(e);
+    errorMessage.value = chatErrorMessage(e);
+    isStreaming.value = false;
+    streamingText.value = "";
   } finally {
     isProcessing.value = false;
     await scrollToBottom();
   }
+}
+
+async function onStop(): Promise<void> {
+  try {
+    await llmStore.cancelStream("用户手动停止");
+  } catch {
+    // ignore — backend may have already finished
+  }
+  // Persist any partial output as an incomplete assistant message so
+  // the user can still see what arrived before they hit stop.
+  if (streamingText.value && streamingText.value.trim()) {
+    conversationStore.addMessage({
+      role: "assistant",
+      content: `${streamingText.value}\n\n[已停止生成]`,
+      timestamp: Date.now(),
+      model: llmStore.currentModel,
+      incomplete: true,
+    });
+  }
+  isStreaming.value = false;
+  streamingText.value = "";
+  isProcessing.value = false;
+}
+
+function onSelectConversation(
+  conversation: { id: string } | null | undefined,
+): void {
+  if (!conversation?.id) {
+    return;
+  }
+  conversationStore.loadConversation(conversation.id);
+  showHistory.value = false;
 }
 
 function onNewConversation(): void {
@@ -547,5 +635,24 @@ onMounted(() => {
 
 .chat-error {
   margin: 0 16px 12px 16px;
+}
+
+.message-text :deep(.typing-cursor) {
+  display: inline-block;
+  margin-left: 2px;
+  color: var(--cc-primary, #1677ff);
+  animation: typing-blink 1s infinite;
+  font-weight: 600;
+}
+
+@keyframes typing-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
 }
 </style>
