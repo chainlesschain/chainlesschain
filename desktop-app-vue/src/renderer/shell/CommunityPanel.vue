@@ -34,29 +34,65 @@
           刷新
         </a-button>
       </div>
-      <ul v-if="store.recent.length" class="community-list">
-        <li v-for="c in store.recent" :key="c.id" class="community-row">
+      <ul v-if="store.communities.length" class="community-list">
+        <li v-for="c in store.communities" :key="c.id" class="community-row">
           <div class="community-meta">
-            <span class="community-name">{{ c.name ?? "(未命名)" }}</span>
-            <span class="community-id">{{ shortId(c.id) }}</span>
+            <div class="community-line-1">
+              <span class="community-name">{{ c.name ?? "(未命名)" }}</span>
+              <a-tag v-if="c.visibility" :color="visibilityColor(c.visibility)">
+                {{
+                  c.visibility === "public"
+                    ? "公开"
+                    : c.visibility === "private"
+                      ? "私密"
+                      : c.visibility
+                }}
+              </a-tag>
+              <a-tag v-if="typeof c.memberCount === 'number'" color="default">
+                {{ c.memberCount }} 人
+              </a-tag>
+              <a-tag v-if="c.isJoined" color="green"> 已加入 </a-tag>
+            </div>
+            <div class="community-line-2">
+              <span class="community-id">{{ shortId(c.id) }}</span>
+              <span v-if="c.description" class="community-desc">
+                · {{ c.description }}
+              </span>
+            </div>
           </div>
-          <a-tag v-if="c.visibility" :color="visibilityColor(c.visibility)">
-            {{
-              c.visibility === "public"
-                ? "公开"
-                : c.visibility === "private"
-                  ? "私密"
-                  : c.visibility
-            }}
-          </a-tag>
-          <a-tag v-if="typeof c.memberCount === 'number'" color="default">
-            {{ c.memberCount }} 人
-          </a-tag>
-          <a-tag v-if="c.isJoined" color="green"> 已加入 </a-tag>
+          <div class="community-actions">
+            <a-button
+              v-if="!c.isJoined"
+              size="small"
+              type="link"
+              :loading="store.joiningId === c.id"
+              @click="store.joinCommunity(c.id)"
+            >
+              加入
+            </a-button>
+            <a-button
+              v-else
+              size="small"
+              type="link"
+              :loading="store.leavingId === c.id"
+              @click="confirmLeave(c)"
+            >
+              退出
+            </a-button>
+            <a-button
+              size="small"
+              type="link"
+              danger
+              :loading="store.deletingId === c.id"
+              @click="confirmDelete(c)"
+            >
+              <DeleteOutlined />
+            </a-button>
+          </div>
         </li>
       </ul>
       <div v-else-if="store.hasLoaded" class="empty-hint">
-        暂无社区，前往 <code>/community</code> 创建或搜索社区。
+        暂无社区，点击下方"创建社区"开始。
       </div>
     </div>
 
@@ -95,9 +131,12 @@
 
 <script setup lang="ts">
 import { watch } from "vue";
-import { message as antMessage } from "ant-design-vue";
-import { TeamOutlined } from "@ant-design/icons-vue";
-import { useCommunityQuickStore } from "../stores/communityQuick";
+import { Modal, message as antMessage } from "ant-design-vue";
+import { TeamOutlined, DeleteOutlined } from "@ant-design/icons-vue";
+import {
+  useCommunityQuickStore,
+  type CommunitySummary,
+} from "../stores/communityQuick";
 
 interface CommunityAction {
   id: string;
@@ -126,29 +165,49 @@ const actions: CommunityAction[] = [
   {
     id: "create",
     label: "创建社区",
-    desc: "新建公开或私密社区，可设置加入策略与治理规则。",
+    desc: "新建公开或私密社区，可设置加入策略与治理规则（Phase 3 内嵌）。",
     cta: "前往",
     primary: true,
   },
   {
     id: "search",
     label: "搜索社区",
-    desc: "按名称、标签或描述查找公开社区。",
-    cta: "前往",
-  },
-  {
-    id: "invite",
-    label: "加入邀请",
-    desc: "通过邀请码或邀请链接加入私密社区。",
-    cta: "前往",
-  },
-  {
-    id: "channels",
-    label: "频道管理",
-    desc: "在已加入的社区中创建、归档或置顶频道。",
+    desc: "按名称、标签或描述查找公开社区（Phase 4 内嵌）。",
     cta: "前往",
   },
 ];
+
+function confirmLeave(c: CommunitySummary): void {
+  Modal.confirm({
+    title: "退出社区",
+    content: `确定退出 ${c.name ?? c.id}？退出后将无法接收该社区的频道消息。`,
+    okText: "退出",
+    okType: "danger",
+    cancelText: "取消",
+    async onOk() {
+      const ok = await store.leaveCommunity(c.id);
+      if (ok) {
+        antMessage.success(`已退出 ${c.name ?? "社区"}`);
+      }
+    },
+  });
+}
+
+function confirmDelete(c: CommunitySummary): void {
+  Modal.confirm({
+    title: "删除社区",
+    content: `确定删除 ${c.name ?? c.id}？此操作不可撤销，仅社区所有者可以执行。`,
+    okText: "删除",
+    okType: "danger",
+    cancelText: "取消",
+    async onOk() {
+      const ok = await store.deleteCommunity(c.id);
+      if (ok) {
+        antMessage.success(`已删除 ${c.name ?? "社区"}`);
+      }
+    },
+  });
+}
 
 function shortId(id?: string): string {
   if (!id) {
@@ -245,9 +304,9 @@ function run(action: CommunityAction): void {
 
 .community-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
-  padding: 6px 0;
+  padding: 8px 0;
   border-top: 1px dashed var(--cc-shell-border, #eee);
 }
 
@@ -261,6 +320,24 @@ function run(action: CommunityAction): void {
   flex-direction: column;
   flex: 1;
   min-width: 0;
+  gap: 2px;
+}
+
+.community-line-1 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.community-line-2 {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--cc-shell-muted, #595959);
+  overflow: hidden;
 }
 
 .community-name {
@@ -279,6 +356,22 @@ function run(action: CommunityAction): void {
   );
   font-size: 12px;
   color: var(--cc-shell-muted, #595959);
+}
+
+.community-desc {
+  font-size: 12px;
+  color: var(--cc-shell-muted, #8c8c8c);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 380px;
+}
+
+.community-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .empty-hint {
