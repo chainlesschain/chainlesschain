@@ -723,4 +723,178 @@ describe("useDIDManagementStore (Phase 2)", () => {
     expect(store.detailsError).toBe("locked");
     expect(store.exportingMnemonicDid).toBeNull();
   });
+
+  // ---- Phase 6: auto-republish settings + republish-all -------------------
+
+  it("loadAutoRepublishStatus() coerces backend payload to numeric defaults", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:get-auto-republish-status") {
+        return Promise.resolve({
+          enabled: true,
+          interval: "86400000",
+          intervalHours: "24",
+        });
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    await store.loadAutoRepublishStatus();
+    expect(store.autoRepublishStatus).toEqual({
+      enabled: true,
+      interval: 86400000,
+      intervalHours: 24,
+    });
+  });
+
+  it("loadAutoRepublishStatus() leaves defaults intact when backend throws", async () => {
+    invoke.mockImplementation(() =>
+      Promise.reject(new Error("manager not ready")),
+    );
+
+    const store = useDIDManagementStore();
+    await store.loadAutoRepublishStatus();
+    expect(store.autoRepublishStatus).toEqual({
+      enabled: false,
+      interval: 0,
+      intervalHours: 0,
+    });
+  });
+
+  it("openAutoRepublishSettings() opens modal and loads status", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:get-auto-republish-status") {
+        return Promise.resolve({
+          enabled: false,
+          interval: 0,
+          intervalHours: 0,
+        });
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    await store.openAutoRepublishSettings();
+    expect(store.autoRepublishOpen).toBe(true);
+    expect(invoke).toHaveBeenCalledWith("did:get-auto-republish-status");
+  });
+
+  it("closeAutoRepublishSettings() refuses to close while saving", () => {
+    const store = useDIDManagementStore();
+    store.$patch({
+      autoRepublishOpen: true,
+      autoRepublishSaving: true,
+    });
+    store.closeAutoRepublishSettings();
+    expect(store.autoRepublishOpen).toBe(true);
+  });
+
+  it("saveAutoRepublishConfig() with enabled true converts hours to ms", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:start-auto-republish") {
+        return Promise.resolve({ success: true });
+      }
+      if (channel === "did:get-auto-republish-status") {
+        return Promise.resolve({
+          enabled: true,
+          interval: 24 * 60 * 60 * 1000,
+          intervalHours: 24,
+        });
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    const ok = await store.saveAutoRepublishConfig({
+      enabled: true,
+      intervalHours: 24,
+    });
+    expect(ok).toBe(true);
+    expect(invoke).toHaveBeenCalledWith(
+      "did:start-auto-republish",
+      24 * 60 * 60 * 1000,
+    );
+    expect(store.autoRepublishStatus.enabled).toBe(true);
+    expect(store.autoRepublishSaving).toBe(false);
+  });
+
+  it("saveAutoRepublishConfig() with enabled false calls stop", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:stop-auto-republish") {
+        return Promise.resolve({ success: true });
+      }
+      if (channel === "did:get-auto-republish-status") {
+        return Promise.resolve({
+          enabled: false,
+          interval: 0,
+          intervalHours: 0,
+        });
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    const ok = await store.saveAutoRepublishConfig({
+      enabled: false,
+      intervalHours: 24,
+    });
+    expect(ok).toBe(true);
+    expect(invoke).toHaveBeenCalledWith("did:stop-auto-republish");
+    expect(invoke).not.toHaveBeenCalledWith(
+      "did:start-auto-republish",
+      expect.anything(),
+    );
+  });
+
+  it("saveAutoRepublishConfig() captures error and returns false", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:start-auto-republish") {
+        return Promise.reject(new Error("port busy"));
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    const ok = await store.saveAutoRepublishConfig({
+      enabled: true,
+      intervalHours: 1,
+    });
+    expect(ok).toBe(false);
+    expect(store.error).toBe("port busy");
+    expect(store.autoRepublishSaving).toBe(false);
+  });
+
+  it("republishAll() returns coerced envelope and refreshes publishStatus", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:republish-all") {
+        return Promise.resolve({ success: 3, failed: 1, skipped: 2 });
+      }
+      if (channel === "did:is-published-to-dht") {
+        return Promise.resolve(true);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    store.$patch({ identities: [{ did: "did:cc:a" }] });
+    const result = await store.republishAll();
+    expect(result).toEqual({ success: 3, failed: 1, skipped: 2 });
+    expect(store.publishStatus["did:cc:a"]).toBe(true);
+    expect(store.republishingAll).toBe(false);
+  });
+
+  it("republishAll() returns null on error and leaves republishingAll false", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:republish-all") {
+        return Promise.reject(new Error("network down"));
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    const result = await store.republishAll();
+    expect(result).toBeNull();
+    expect(store.error).toBe("network down");
+    expect(store.republishingAll).toBe(false);
+  });
 });

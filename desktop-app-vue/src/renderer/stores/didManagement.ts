@@ -1,11 +1,10 @@
 /**
  * DID Management Store
  * Wraps the did:* IPC channels exposed by src/main/did/did-ipc.js.
- * Phase 5 of the V6 page port — covers list/setDefault/delete + DHT
- * publish-status read + create-identity wizard + details drawer +
- * mnemonic backup status + export-mnemonic. Auto-republish lands in
- * Phase 6.
- * @version 1.4.0
+ * Phase 6 of the V6 page port — adds auto-republish settings + manual
+ * republish-all. With Phase 2-5 this surface now covers the full V5
+ * DIDManagement page; Phase 7 will redirect /did to this V6 panel.
+ * @version 1.5.0
  */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
@@ -66,6 +65,15 @@ export const useDIDManagementStore = defineStore("didManagement", () => {
 
   const mnemonicBackupStatus = ref<Record<string, boolean>>({});
   const exportingMnemonicDid = ref<string | null>(null);
+
+  const autoRepublishStatus = ref<{
+    enabled: boolean;
+    interval: number;
+    intervalHours: number;
+  }>({ enabled: false, interval: 0, intervalHours: 0 });
+  const autoRepublishOpen = ref(false);
+  const autoRepublishSaving = ref(false);
+  const republishingAll = ref(false);
 
   const defaultIdentity = computed(() => {
     if (currentDid.value) {
@@ -389,6 +397,90 @@ export const useDIDManagementStore = defineStore("didManagement", () => {
     mnemonicBackupStatus.value = Object.fromEntries(entries);
   }
 
+  // ---- Phase 6: auto-republish settings + manual republish-all ------------
+
+  async function loadAutoRepublishStatus(): Promise<void> {
+    try {
+      const result = (await api()?.invoke("did:get-auto-republish-status")) as
+        | { enabled: boolean; interval: number; intervalHours: number }
+        | null
+        | undefined;
+      if (result && typeof result === "object") {
+        autoRepublishStatus.value = {
+          enabled: result.enabled === true,
+          interval: Number(result.interval) || 0,
+          intervalHours: Number(result.intervalHours) || 0,
+        };
+      }
+    } catch {
+      // Auto-republish manager may not be initialized yet — keep defaults.
+    }
+  }
+
+  async function openAutoRepublishSettings(): Promise<void> {
+    autoRepublishOpen.value = true;
+    await loadAutoRepublishStatus();
+  }
+
+  function closeAutoRepublishSettings(): void {
+    if (autoRepublishSaving.value) {
+      return;
+    }
+    autoRepublishOpen.value = false;
+  }
+
+  async function saveAutoRepublishConfig(input: {
+    enabled: boolean;
+    intervalHours: number;
+  }): Promise<boolean> {
+    error.value = null;
+    autoRepublishSaving.value = true;
+    try {
+      if (input.enabled) {
+        const ms =
+          Math.max(1, Math.floor(input.intervalHours)) * 60 * 60 * 1000;
+        await api()?.invoke("did:start-auto-republish", ms);
+      } else {
+        await api()?.invoke("did:stop-auto-republish");
+      }
+      await loadAutoRepublishStatus();
+      return true;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : String(e);
+      return false;
+    } finally {
+      autoRepublishSaving.value = false;
+    }
+  }
+
+  async function republishAll(): Promise<{
+    success: number;
+    failed: number;
+    skipped: number;
+  } | null> {
+    error.value = null;
+    republishingAll.value = true;
+    try {
+      const result = (await api()?.invoke("did:republish-all")) as
+        | { success?: number; failed?: number; skipped?: number }
+        | null
+        | undefined;
+      // Refresh per-identity DHT status — republish may move rows from
+      // pending to published.
+      await loadPublishStatus();
+      return {
+        success: Number(result?.success) || 0,
+        failed: Number(result?.failed) || 0,
+        skipped: Number(result?.skipped) || 0,
+      };
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : String(e);
+      return null;
+    } finally {
+      republishingAll.value = false;
+    }
+  }
+
   async function exportMnemonic(did: string): Promise<string | null> {
     detailsError.value = null;
     exportingMnemonicDid.value = did;
@@ -436,6 +528,10 @@ export const useDIDManagementStore = defineStore("didManagement", () => {
     unpublishingDid,
     mnemonicBackupStatus,
     exportingMnemonicDid,
+    autoRepublishStatus,
+    autoRepublishOpen,
+    autoRepublishSaving,
+    republishingAll,
     defaultIdentity,
     loadAll,
     loadPublishStatus,
@@ -459,5 +555,10 @@ export const useDIDManagementStore = defineStore("didManagement", () => {
     clearDetailsError,
     loadMnemonicBackupStatus,
     exportMnemonic,
+    loadAutoRepublishStatus,
+    openAutoRepublishSettings,
+    closeAutoRepublishSettings,
+    saveAutoRepublishConfig,
+    republishAll,
   };
 });

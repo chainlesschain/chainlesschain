@@ -150,6 +150,7 @@
 
   <CreateIdentityWizard />
   <IdentityDetailsDrawer />
+  <AutoRepublishSettings />
 </template>
 
 <script setup lang="ts">
@@ -167,6 +168,7 @@ import {
 } from "../stores/didManagement";
 import CreateIdentityWizard from "./did/CreateIdentityWizard.vue";
 import IdentityDetailsDrawer from "./did/IdentityDetailsDrawer.vue";
+import AutoRepublishSettings from "./did/AutoRepublishSettings.vue";
 
 interface DidAction {
   id: string;
@@ -205,10 +207,10 @@ const actions: DidAction[] = [
     primary: true,
   },
   {
-    id: "backup",
-    label: "备份助记词",
-    desc: "导出 BIP39 助记词以便在其他设备恢复（强烈建议离线保存，Phase 5 内嵌）。",
-    cta: "前往",
+    id: "auto-republish",
+    label: "自动重新发布",
+    desc: "定期把已发布的身份刷新到 DHT 网络，避免被遗忘（推荐 24 小时）。",
+    cta: "设置",
   },
 ];
 
@@ -255,6 +257,10 @@ function confirmDelete(identity: IdentitySummary): void {
 function run(action: DidAction): void {
   if (action.id === "create") {
     store.openCreateForm();
+    return;
+  }
+  if (action.id === "auto-republish") {
+    store.openAutoRepublishSettings();
     return;
   }
   antMessage.info(`${action.label}：当前在 /did 完成，下一阶段将内嵌到此面板`);
