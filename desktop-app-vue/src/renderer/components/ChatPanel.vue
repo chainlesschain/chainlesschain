@@ -249,6 +249,19 @@
 </template>
 
 <script setup>
+/**
+ * @deprecated V5 entry — full functional parity ported to the V6 panel
+ * (`src/renderer/shell/AIChatPanel.vue` + `shell/helpers/chatPanelHelpers.ts`)
+ * across phases 2-4 (commits 1c31b7c64, ab975064e, 815197230). Kept active
+ * because this panel is mounted globally in MainLayout.vue for V5-shell
+ * users (toggled via store.chatPanelVisible). New features go to the V6
+ * panel; both V5 and V6 share the same useLLMStore + useConversationStore +
+ * ConversationHistory.vue dependencies (shared-service port pattern).
+ *
+ * The project-level chat panel (`components/projects/ChatPanel.vue`,
+ * 3695 lines, embedded in ProjectDetailPage) is a SEPARATE V5 surface
+ * with deeper coupling — it is NOT covered by this port.
+ */
 import { logger, createLogger } from "@/utils/logger";
 
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
