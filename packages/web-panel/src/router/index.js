@@ -41,6 +41,7 @@ const routes = [
       { path: 'recommend',   name: 'Recommend',   component: () => import('../views/Recommend.vue') },
       { path: 'sla',         name: 'Sla',         component: () => import('../views/Sla.vue') },
       { path: 'codegen',     name: 'Codegen',     component: () => import('../views/Codegen.vue') },
+      { path: 'search',      name: 'Search',      component: () => import('../views/Search.vue') },
       { path: 'marketplace', name: 'Marketplace', component: () => import('../views/Marketplace.vue') },
       { path: 'crosschain',  name: 'Crosschain',  component: () => import('../views/Crosschain.vue') },
       { path: 'aiops',       name: 'AIOps',       component: () => import('../views/AIOps.vue') },

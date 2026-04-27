@@ -65,6 +65,7 @@
           <a-sub-menu key="g-data">
             <template #title><span class="group-label">数 据</span></template>
             <a-menu-item key="notes"><template #icon><BookOutlined /></template>笔记管理</a-menu-item>
+            <a-menu-item key="search"><template #icon><SearchOutlined /></template>RAG 搜索</a-menu-item>
             <a-menu-item key="memory"><template #icon><BranchesOutlined /></template>记忆文件</a-menu-item>
             <a-menu-item key="knowledge"><template #icon><ShareAltOutlined /></template>知识图谱</a-menu-item>
             <a-menu-item key="marketplace"><template #icon><ShoppingOutlined /></template>技能市场</a-menu-item>
@@ -130,6 +131,7 @@
           <a-menu-item key="codegen"><template #icon><CodeOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="notes"><template #icon><BookOutlined /></template></a-menu-item>
+          <a-menu-item key="search"><template #icon><SearchOutlined /></template></a-menu-item>
           <a-menu-item key="memory"><template #icon><BranchesOutlined /></template></a-menu-item>
           <a-menu-item key="knowledge"><template #icon><ShareAltOutlined /></template></a-menu-item>
           <a-menu-item key="marketplace"><template #icon><ShoppingOutlined /></template></a-menu-item>
@@ -232,7 +234,7 @@ import {
   ReadOutlined, KeyOutlined, VideoCameraOutlined, ShareAltOutlined, IdcardOutlined,
   UsergroupAddOutlined, ShoppingOutlined, SwapOutlined, AlertOutlined, SafetyOutlined,
   ExperimentOutlined, DeploymentUnitOutlined, BulbOutlined, BankOutlined, PartitionOutlined,
-  AuditOutlined, FileSearchOutlined, TrophyOutlined, FireOutlined,
+  AuditOutlined, FileSearchOutlined, TrophyOutlined, FireOutlined, SearchOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'
