@@ -57,6 +57,9 @@
             </div>
           </div>
           <div class="community-actions">
+            <a-button size="small" type="link" @click="store.openDetails(c.id)">
+              <EyeOutlined />
+            </a-button>
             <a-button
               v-if="c.my_role !== 'owner'"
               size="small"
@@ -121,17 +124,23 @@
   </a-modal>
 
   <CreateCommunityWizard />
+  <CommunityDetailsDrawer />
 </template>
 
 <script setup lang="ts">
 import { watch } from "vue";
 import { Modal, message as antMessage } from "ant-design-vue";
-import { TeamOutlined, DeleteOutlined } from "@ant-design/icons-vue";
+import {
+  TeamOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+} from "@ant-design/icons-vue";
 import {
   useCommunityQuickStore,
   type CommunitySummary,
 } from "../stores/communityQuick";
 import CreateCommunityWizard from "./community/CreateCommunityWizard.vue";
+import CommunityDetailsDrawer from "./community/CommunityDetailsDrawer.vue";
 
 interface CommunityAction {
   id: string;

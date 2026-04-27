@@ -347,4 +347,231 @@ describe("useCommunityQuickStore (Phase 2)", () => {
     expect(store.createError).toBeNull();
     expect(store.error).toBe("main");
   });
+
+  // ---- Phase 4: details drawer + members + channels -----------------------
+
+  it("openDetails() loads community + members + channels in parallel", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "community:get-by-id") {
+        return Promise.resolve({
+          id: "c1",
+          name: "Alpha",
+          member_count: 3,
+          status: "active",
+        });
+      }
+      if (channel === "community:get-members") {
+        return Promise.resolve([
+          { id: "m1", member_did: "did:cc:owner", role: "owner" },
+          { id: "m2", member_did: "did:cc:bob", role: "member" },
+        ]);
+      }
+      if (channel === "channel:get-list") {
+        return Promise.resolve([
+          {
+            id: "ch1",
+            community_id: "c1",
+            name: "general",
+            type: "discussion",
+          },
+        ]);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    await store.openDetails("c1");
+
+    expect(store.viewingCommunityId).toBe("c1");
+    expect(store.viewingCommunity?.name).toBe("Alpha");
+    expect(store.viewingMembers).toHaveLength(2);
+    expect(store.viewingChannels).toHaveLength(1);
+    expect(store.detailsLoading).toBe(false);
+    expect(store.detailsError).toBeNull();
+  });
+
+  it("openDetails() captures community-level error and surfaces it", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "community:get-by-id") {
+        return Promise.reject(new Error("not found"));
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    await store.openDetails("c-missing");
+
+    expect(store.viewingCommunityId).toBe("c-missing");
+    expect(store.viewingCommunity).toBeNull();
+    expect(store.detailsError).toBe("not found");
+    expect(store.detailsLoading).toBe(false);
+  });
+
+  it("loadMembers() falls back to [] on backend failure", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "community:get-members") {
+        return Promise.reject(new Error("table missing"));
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    store.$patch({
+      viewingMembers: [{ id: "stale" } as never],
+    });
+    await store.loadMembers("c1");
+    expect(store.viewingMembers).toEqual([]);
+    expect(store.detailsError).toBe("table missing");
+  });
+
+  it("loadChannels() handles non-array payload gracefully", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "channel:get-list") {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    await store.loadChannels("c1");
+    expect(store.viewingChannels).toEqual([]);
+  });
+
+  it("closeDetails() resets all viewing state", () => {
+    const store = useCommunityQuickStore();
+    store.$patch({
+      viewingCommunityId: "c1",
+      viewingCommunity: { id: "c1", name: "Alpha" },
+      viewingMembers: [{ id: "m1" } as never],
+      viewingChannels: [{ id: "ch1" } as never],
+      detailsError: "old",
+    });
+    store.closeDetails();
+    expect(store.viewingCommunityId).toBeNull();
+    expect(store.viewingCommunity).toBeNull();
+    expect(store.viewingMembers).toEqual([]);
+    expect(store.viewingChannels).toEqual([]);
+    expect(store.detailsError).toBeNull();
+  });
+
+  it("promoteMember() invokes IPC with newRole and reloads members", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "community:promote") {
+        return Promise.resolve({ success: true });
+      }
+      if (channel === "community:get-members") {
+        return Promise.resolve([
+          { id: "m1", member_did: "did:cc:bob", role: "admin" },
+        ]);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    const ok = await store.promoteMember("c1", "did:cc:bob", "admin");
+
+    expect(ok).toBe(true);
+    expect(invoke).toHaveBeenCalledWith(
+      "community:promote",
+      "c1",
+      "did:cc:bob",
+      "admin",
+    );
+    expect(store.promotingDid).toBeNull();
+    expect(store.viewingMembers[0]?.role).toBe("admin");
+  });
+
+  it("promoteMember() failure leaves error in detailsError", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "community:promote") {
+        return Promise.reject(new Error("not authorized"));
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    const ok = await store.promoteMember("c1", "did:cc:bob", "admin");
+
+    expect(ok).toBe(false);
+    expect(store.detailsError).toBe("not authorized");
+    expect(store.promotingDid).toBeNull();
+  });
+
+  it("demoteMember() invokes IPC and reloads members", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "community:demote") {
+        return Promise.resolve({ success: true });
+      }
+      if (channel === "community:get-members") {
+        return Promise.resolve([
+          { id: "m1", member_did: "did:cc:bob", role: "member" },
+        ]);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    const ok = await store.demoteMember("c1", "did:cc:bob");
+
+    expect(ok).toBe(true);
+    expect(invoke).toHaveBeenCalledWith("community:demote", "c1", "did:cc:bob");
+    expect(store.demotingDid).toBeNull();
+  });
+
+  it("banMember() invokes IPC, reloads members, and refreshes community detail", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "community:ban") {
+        return Promise.resolve({ success: true });
+      }
+      if (channel === "community:get-members") {
+        return Promise.resolve([]);
+      }
+      if (channel === "community:get-by-id") {
+        return Promise.resolve({ id: "c1", member_count: 0 });
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    const ok = await store.banMember("c1", "did:cc:bob");
+
+    expect(ok).toBe(true);
+    expect(invoke).toHaveBeenCalledWith("community:ban", "c1", "did:cc:bob");
+    expect(invoke).toHaveBeenCalledWith("community:get-by-id", "c1");
+    expect(store.banningDid).toBeNull();
+    expect(store.viewingCommunity?.member_count).toBe(0);
+  });
+
+  it("banMember() failure leaves community detail untouched", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "community:ban") {
+        return Promise.reject(new Error("backend down"));
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    store.$patch({
+      viewingCommunity: { id: "c1", member_count: 5 },
+    });
+    const ok = await store.banMember("c1", "did:cc:bob");
+
+    expect(ok).toBe(false);
+    expect(store.detailsError).toBe("backend down");
+    expect(store.viewingCommunity?.member_count).toBe(5);
+    expect(store.banningDid).toBeNull();
+  });
+
+  it("clearDetailsError() resets only detailsError", () => {
+    const store = useCommunityQuickStore();
+    store.$patch({
+      detailsError: "boom",
+      error: "main",
+      createError: "third",
+    });
+    store.clearDetailsError();
+    expect(store.detailsError).toBeNull();
+    expect(store.error).toBe("main");
+    expect(store.createError).toBe("third");
+  });
 });
