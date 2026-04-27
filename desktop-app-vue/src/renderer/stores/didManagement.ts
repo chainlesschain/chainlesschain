@@ -1,10 +1,10 @@
 /**
  * DID Management Store
- * Thin wrapper over the did:* IPC channels exposed by
- * src/main/did/did-ipc.js. Intentionally minimal — covers the
- * read/ownership surface used by the shell quick panel. Full
- * create / sign / mnemonic flows live in /did and are not re-exposed here.
- * @version 1.0.0
+ * Wraps the did:* IPC channels exposed by src/main/did/did-ipc.js.
+ * Phase 2 of the V6 page port — covers list/setDefault/delete + DHT
+ * publish-status read. Create + mnemonic + DHT publish/unpublish flows
+ * land in Phase 3-5.
+ * @version 1.1.0
  */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
@@ -29,6 +29,7 @@ function api(): ElectronApi | undefined {
 export const useDIDManagementStore = defineStore("didManagement", () => {
   const identities = ref<IdentitySummary[]>([]);
   const currentDid = ref<string | null>(null);
+  const publishStatus = ref<Record<string, boolean>>({});
   const loading = ref(false);
   const error = ref<string | null>(null);
   const hasLoaded = ref(false);
@@ -68,6 +69,27 @@ export const useDIDManagementStore = defineStore("didManagement", () => {
     }
   }
 
+  async function loadPublishStatus(): Promise<void> {
+    if (identities.value.length === 0) {
+      publishStatus.value = {};
+      return;
+    }
+    const entries = await Promise.all(
+      identities.value.map(async (id) => {
+        try {
+          const published = (await api()?.invoke(
+            "did:is-published-to-dht",
+            id.did,
+          )) as boolean | null | undefined;
+          return [id.did, published === true] as const;
+        } catch {
+          return [id.did, false] as const;
+        }
+      }),
+    );
+    publishStatus.value = Object.fromEntries(entries);
+  }
+
   async function setDefault(did: string): Promise<void> {
     error.value = null;
     try {
@@ -78,6 +100,18 @@ export const useDIDManagementStore = defineStore("didManagement", () => {
     }
   }
 
+  async function deleteIdentity(did: string): Promise<boolean> {
+    error.value = null;
+    try {
+      await api()?.invoke("did:delete-identity", did);
+      await loadAll();
+      return true;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : String(e);
+      return false;
+    }
+  }
+
   function clearError(): void {
     error.value = null;
   }
@@ -85,12 +119,15 @@ export const useDIDManagementStore = defineStore("didManagement", () => {
   return {
     identities,
     currentDid,
+    publishStatus,
     loading,
     error,
     hasLoaded,
     defaultIdentity,
     loadAll,
+    loadPublishStatus,
     setDefault,
+    deleteIdentity,
     clearError,
   };
 });

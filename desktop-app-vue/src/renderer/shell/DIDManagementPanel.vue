@@ -44,25 +44,64 @@
           }"
         >
           <div class="identity-meta">
-            <span class="identity-name">{{
-              identity.displayName ?? "(未命名)"
-            }}</span>
-            <span class="identity-did">{{ shortDid(identity.did) }}</span>
+            <div class="identity-line-1">
+              <span class="identity-name">{{
+                identity.displayName ?? "(未命名)"
+              }}</span>
+              <a-tag
+                v-if="identity.did === store.defaultIdentity?.did"
+                color="green"
+              >
+                默认
+              </a-tag>
+              <a-tag
+                v-if="store.publishStatus[identity.did] === true"
+                color="blue"
+              >
+                <CloudOutlined /> 已发布
+              </a-tag>
+              <a-tag
+                v-else-if="store.publishStatus[identity.did] === false"
+                color="default"
+              >
+                未发布
+              </a-tag>
+            </div>
+            <div class="identity-line-2">
+              <span class="identity-did">{{ shortDid(identity.did) }}</span>
+              <span v-if="identity.createdAt" class="identity-created">
+                · 创建于 {{ formatCreatedAt(identity.createdAt) }}
+              </span>
+            </div>
           </div>
-          <a-tag
-            v-if="identity.did === store.defaultIdentity?.did"
-            color="green"
-          >
-            默认
-          </a-tag>
-          <a-button
-            v-else
-            size="small"
-            type="link"
-            @click="store.setDefault(identity.did)"
-          >
-            设为默认
-          </a-button>
+          <div class="identity-actions">
+            <a-button
+              v-if="identity.did !== store.defaultIdentity?.did"
+              size="small"
+              type="link"
+              @click="store.setDefault(identity.did)"
+            >
+              设为默认
+            </a-button>
+            <a-tooltip
+              v-if="identity.did === store.defaultIdentity?.did"
+              title="默认身份不能删除，请先切换默认"
+            >
+              <a-button size="small" type="link" disabled>
+                <DeleteOutlined />
+              </a-button>
+            </a-tooltip>
+            <a-button
+              v-else
+              size="small"
+              type="link"
+              danger
+              :loading="deletingDid === identity.did"
+              @click="confirmDelete(identity)"
+            >
+              <DeleteOutlined />
+            </a-button>
+          </div>
         </li>
       </ul>
       <div v-else-if="store.hasLoaded" class="empty-hint">
@@ -104,10 +143,17 @@
 </template>
 
 <script setup lang="ts">
-import { watch } from "vue";
-import { message as antMessage } from "ant-design-vue";
-import { IdcardOutlined } from "@ant-design/icons-vue";
-import { useDIDManagementStore } from "../stores/didManagement";
+import { ref, watch } from "vue";
+import { Modal, message as antMessage } from "ant-design-vue";
+import {
+  IdcardOutlined,
+  CloudOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons-vue";
+import {
+  useDIDManagementStore,
+  type IdentitySummary,
+} from "../stores/didManagement";
 
 interface DidAction {
   id: string;
@@ -122,12 +168,14 @@ const props = defineProps<{ open: boolean; prefillText?: string }>();
 defineEmits<{ (e: "update:open", value: boolean): void }>();
 
 const store = useDIDManagementStore();
+const deletingDid = ref<string | null>(null);
 
 watch(
   () => props.open,
-  (isOpen) => {
+  async (isOpen) => {
     if (isOpen && !store.hasLoaded) {
-      store.loadAll();
+      await store.loadAll();
+      await store.loadPublishStatus();
     }
   },
 );
@@ -136,26 +184,26 @@ const actions: DidAction[] = [
   {
     id: "create",
     label: "创建身份",
-    desc: "生成新的 Ed25519 密钥对 + DID Document（完整流程含助记词备份在 /did）。",
+    desc: "生成新的 Ed25519 密钥对 + DID Document（含助记词备份流程，Phase 3 内嵌于此面板）。",
     cta: "前往",
     primary: true,
   },
   {
     id: "backup",
     label: "备份助记词",
-    desc: "导出 BIP39 助记词以便在其他设备恢复（强烈建议离线保存）。",
+    desc: "导出 BIP39 助记词以便在其他设备恢复（强烈建议离线保存，Phase 5 内嵌）。",
     cta: "前往",
   },
   {
     id: "publish",
     label: "发布到 DHT",
-    desc: "将身份发布到 P2P DHT 网络供他人解析（需 P2P 在线）。",
+    desc: "将身份发布到 P2P DHT 网络供他人解析（需 P2P 在线，Phase 4 内嵌）。",
     cta: "前往",
   },
   {
     id: "verify",
     label: "验证签名",
-    desc: "用任一 DID 公钥验证消息签名是否有效。",
+    desc: "用任一 DID 公钥验证消息签名是否有效（Phase 4 内嵌）。",
     cta: "前往",
   },
 ];
@@ -170,10 +218,35 @@ function shortDid(did?: string): string {
   return `${did.slice(0, 16)}…${did.slice(-6)}`;
 }
 
+function formatCreatedAt(value: string | number): string {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) {
+    return String(value);
+  }
+  return d.toLocaleDateString();
+}
+
+function confirmDelete(identity: IdentitySummary): void {
+  Modal.confirm({
+    title: "删除身份",
+    content: `确定删除 ${identity.displayName ?? identity.did}？此操作不可撤销，建议先备份助记词。`,
+    okText: "删除",
+    okType: "danger",
+    cancelText: "取消",
+    async onOk() {
+      deletingDid.value = identity.did;
+      const ok = await store.deleteIdentity(identity.did);
+      deletingDid.value = null;
+      if (ok) {
+        antMessage.success(`已删除 ${identity.displayName ?? "身份"}`);
+        await store.loadPublishStatus();
+      }
+    },
+  });
+}
+
 function run(action: DidAction): void {
-  antMessage.info(
-    `${action.label}：请在 /did 完成该操作（快速面板仅展示概览）`,
-  );
+  antMessage.info(`${action.label}：当前在 /did 完成，下一阶段将内嵌到此面板`);
 }
 </script>
 
@@ -244,9 +317,9 @@ function run(action: DidAction): void {
 
 .identity-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
-  padding: 6px 0;
+  padding: 8px 0;
   border-top: 1px dashed var(--cc-shell-border, #eee);
 }
 
@@ -260,6 +333,23 @@ function run(action: DidAction): void {
   flex-direction: column;
   flex: 1;
   min-width: 0;
+  gap: 2px;
+}
+
+.identity-line-1 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.identity-line-2 {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--cc-shell-muted, #595959);
 }
 
 .identity-name {
@@ -278,6 +368,18 @@ function run(action: DidAction): void {
   );
   font-size: 12px;
   color: var(--cc-shell-muted, #595959);
+}
+
+.identity-created {
+  font-size: 12px;
+  color: var(--cc-shell-muted, #8c8c8c);
+}
+
+.identity-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .empty-hint {
