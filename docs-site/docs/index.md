@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: v5.0.2.54 | CLI 0.156.7 · 109 命令 · 141 桌面 Skills · 28 Android Skills · V2 规范层（iter16-iter28 · 220+ 治理表面）· 14800+ 测试 · V6 桌面壳 · cc pack OTA
+  tagline: v5.0.3.1 | CLI 0.157.9 · 109 命令 · 141 桌面 Skills · 28 Android Skills · V2 规范层（iter16-iter28 · 220+ 治理表面）· 14800+ 测试 · V6 桌面壳 · cc pack OTA · Web Panel 50 routes（V5→Web 全量收官）
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -39,6 +39,8 @@ features:
 > 2026-04-19 更新：CLI V2 规范层 iter17–iter21 累计新增 40 个 lib 治理表面（chat-core / claude-code-bridge / compliance-manager / cowork-learning / cowork-workflow / privacy-computing / token-incentive / hardening-manager / aiops / multimodal / instinct-manager / tenant-saas / quantization / trust-security / nl-programming / perception / code-agent / collaboration-governance / community-governance / did-manager / sso-manager / org-manager / scim-manager / sync-manager / agent-network / browser-automation / dlp-engine / evomap-governance / federation-hardening / ipfs-storage / p2p-manager / wallet-manager / activitypub-bridge / matrix-bridge / nostr-bridge / bi-engine / memory-manager / session-manager / hook-manager / workflow-engine），统一遵循 4 状态 profile maturity + 5 状态 lifecycle 模型；CLI 版本升级到 `0.151.0`。
 >
 > 2026-04-26 更新：**web-panel Phase B 全量收官**。从桌面端移植 5 个高频功能到浏览器面板：`/community`（社交：联系人/好友/帖子）、`/marketplace`（技能市场：发布/调用/统计）、`/crosschain`（跨链桥：5 链桥接 + HTLC + 跨链消息）、`/aiops`（运维：异常检测 + Playbook + 基线）、`/compliance`（合规：STIX 2.1 IoC + UEBA 行为分析）。配套：侧边栏改造（独立滚动 + 8 个二级菜单可折叠 + localStorage 持久化）、SPA fallback 测试覆盖率从 23 路由扩到 34、新增 19 个集成测试（每命令实跑一次 `cc serve` WS）。Commits: `260787c99` / `792b211e1` / `8f7d87ede` / `30cf3b6ab` / `04c57237d` / `7ee1985c5` / `d43e43a93`。
+>
+> 2026-04-27 更新：**web-panel V5→Web 全量化迁移收官 — Phase B/C/D 一日连发**。Phase B 补齐 B6–B10（`/privacy` 隐私计算 + `/inference` 推理网络 + `/nlprog` 自然语言编程 + `/tenant` 多租户 SaaS + `/pipeline` Pipeline 编排）共 10/10 全量上线，CLI 升 `0.157.7`。随后 Phase C 5/5 全量：`/governance` 治理 + `/audit` 审计 + `/reputation` 信誉 + `/recommend` 推荐 + `/sla` SLA，CLI 升 `0.157.8`。同日 Phase D 5/5 收口：`/codegen` 代码生成 + `/search` 多维搜索 + `/tokens` Token 激励 + `/trust` 信任根 + `/federation` 联邦熔断，CLI 升 `0.157.9`。**至此 Phase A (3) + B (10) + C (5) + D (5) = 23 ports 全部落地，router 28 → 50 (+22 routes)，web-panel 单元测试 27 → 1489 全绿**。从此 `cc ui` 浏览器端与桌面 Electron 端功能对等。Phase D commits: `fa8479d49` / `da852045d` / `6e1941beb` / `6b7ac0985` / `a7909b8a6` → bundle `1faa9e11f`。
 
 ## 当前验证结果
 
@@ -51,8 +53,9 @@ features:
 - Desktop Coding Agent 主链路（bridge / ipc-v3 / session-service / permission-gate / tool-adapter / 集成 / store / AIChatPage）：`9 files, 197/197`
 - Phase 5 最小 harness 定向回归：`5 files, 84/84`
 - AIChatPage harness 面板 + dot-case 事件页面回归：`69/69`
-- Web Panel 单元测试（`__tests__/unit/`，含 Phase A + B 全部 parser）：`809/809`
+- Web Panel 单元测试（`__tests__/unit/`，含 Phase A + B + C + D 全部 parser）：`1489/1489`
 - Web Panel 集成测试（`__tests__/integration/phase-b-cli-commands.test.js`）：`19/19`（每命令对实跑 `cc serve`）
+- Web Panel 路由数：`50`（Phase A 3 + B 10 + C 5 + D 5 = 23 V5→Web 端口完成）
 - Web Panel 构建：通过
 - Docs Site 构建：通过
 

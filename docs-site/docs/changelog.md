@@ -3,6 +3,47 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.1 / CLI 0.157.9] - 2026-04-27 (web-panel V5→Web 全量收官 — Phase B/C/D 一日连发)
+
+### Added
+
+- **Phase B 收官 — 普惠与去中心化 10/10**（commits `367132348` / `c304b9d8b` / `10f3451a6` / `864873047` / `bfeb8091f`，CLI 升 `0.157.7`）：
+  - B6 `/privacy` — FL 联邦学习 + MPC 多方计算 + DP 差分隐私 + HE 同态加密（`cc privacy`）
+  - B7 `/inference` — 节点注册 + 任务调度 + 隐私模式（`cc inference`）
+  - B8 `/nlprog` — 意图分类 + 实体抽取 + 翻译 + 编码约定（`cc nlprog`）
+  - B9 `/tenant` — 4 档计划 + 用量计量 + 配额检查 + MRR（`cc tenant`）
+  - B10 `/pipeline` — 7 阶段流水线 + 部署策略 + 模板（`cc pipeline`）
+- **Phase C 治理与可观测 5/5**（commits `f25896cd2` / `bc52ad5ec` / `3b0f17292` / `02fb827c4` / `c80cd2292`，CLI 升 `0.157.8`）：
+  - C1 `/governance` — 提案 + 加权投票 + 影响分析 + 预测置信度（`cc governance`）
+  - C2 `/audit` — 审计日志检索 / 过滤 / 导出 + 合规留存（`cc audit`）
+  - C3 `/reputation` — exp/linear/step 衰减 + z_score/iqr 异常 + 模拟贝叶斯（`cc reputation`）
+  - C4 `/recommend` — 兴趣画像 + 主题评分 + 时间衰减 + 反馈回路（`cc recommend`）
+  - C5 `/sla` — 分级目录 + 方向感知偏离 + p95 + 补偿封顶（`cc sla`）
+- **Phase D 收尾 5/5**（commits `fa8479d49` / `da852045d` / `6e1941beb` / `6b7ac0985` / `a7909b8a6`，CLI 升 `0.157.9`）：
+  - D1 `/codegen` — 生成跟踪 + 5 规则安全审查 + 脚手架目录（`cc codegen`）
+  - D2 `/search` — 多维搜索 / 日志查看（`cc search`）
+  - D3 `/tokens` — Token 账本 + 7 类贡献奖励 + 排行榜（`cc incentive`）
+  - D4 `/trust` — 信任根 + PQC 互操作 + 卫星 + HSM（`cc trust`）
+  - D5 `/federation` — 熔断器 FSM + 健康检查 + 连接池 + 节点健康聚合（`cc federation`）
+
+### Changed
+
+- **web-panel 路由数 28 → 50（+22）**：cumulative Phase A (3) + B (10) + C (5) + D (5) = 23 V5→Web 端口完成。从此 `cc ui` 浏览器端与桌面 Electron 端功能对等覆盖去中心化身份 / 知识图谱 / 跨链 / 隐私计算 / 推理网络 / NL Programming / 多租户 / Pipeline / 治理 / 审计 / 信誉 / 推荐 / SLA / 代码生成 / 信任根 / 联邦熔断 全部子系统。
+- **web-panel 单元测试 27 → 1489 全绿**（含全部 Phase A/B/C/D parser）。
+- 仓库根 `productVersion v5.0.2.55 → v5.0.3.1`（V6 hard-flip 后的 minor bump，跳过 `.3.0` CI hotfix 占位）。
+- 三站 tagline / hero chip / 模块清单同步刷新到 v5.0.3.1 / CLI 0.157.9 / 50 routes。
+
+### Why
+
+继 2026-04-26 web-panel Phase A + B (1–5) 落地之后，今日（2026-04-27）一天内连续完成 B6–B10 + Phase C + Phase D 共 15 个新视图，**完成 V5→Web 全量化迁移**。所有视图遵循机械模板 = `<feature>-parser.js`（含 `stripCliNoise`） + `<Feature>.vue` + router/sidebar 接线 + parser 单测 + 路由计数 +1 + 路径断言。CLI 三次 bundle release（0.157.7 / 0.157.8 / 0.157.9）每次随 web-panel `dist/` 资产 hash 同步刷新（commits `de3da1fd7` / `dc44c91b8` / `589a7acd8` / `1faa9e11f`）。
+
+### 测试
+
+- web-panel 单元：`1489/1489`（27 → 1489，覆盖率 ×55 增长）
+- vite build 全绿，所有 chunk gzip 后均 ≤ 30 kB
+
+---
+
 ## [Unreleased] - 2026-04-26 (V6 shell 硬翻 + top-10 parity 10/10 + web-panel Phase A)
 
 ### Added

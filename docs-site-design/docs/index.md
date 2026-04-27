@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: v5.0.2.54 | 95+ 模块设计 | 141 技能 | CLI 109 命令/0.156.7 | 14800+ 总测试 | V2 规范层 220+ 治理表面（iter16-iter28） | 面向开发者的架构与实现文档
+  tagline: v5.0.3.1 | 95+ 模块设计 | 141 技能 | CLI 109 命令/0.157.9 | 14800+ 总测试 | V2 规范层 220+ 治理表面（iter16-iter28） | Web Panel 50 routes（Phase A+B+C+D 全量收官）| 面向开发者的架构与实现文档
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -80,6 +80,7 @@ features:
 | **v5.0.2.34 (V6 Shell)** | — | **桌面版 V6 Chat-First Shell**（P0–P6 全量落地）：Electron `/v2` 路由 + 三区布局（ShellSidebar / ConversationStream / ArtifactPanel / ShellStatusBar）+ 7 类 UI 扩展点 + 5 类企业 Provider + P6 分发器与 Widget 注册表 + AdminConsole（`Ctrl+Shift+A` / `/admin`）+ 13 个 first-party 内置插件 + `.ccprofile` 签名 + MDM 推送三路径企业定制，22 单测 + 集成全绿 |
 | **v5.0.2.43**             | — | **SFC 大拆分 + 启动流程拆 Critical/Deferred + Shell 接入真实 LLM**：`SystemSettings.vue` 6 级拆分（3444→1070 行 −69%）、`ChatPanel.vue` 工具外提 + `useMemoryLeakGuard`（4057→3788）、`MainLayout.vue` 6 级拆分（3203→1943 −39%）、`DIDManagement.vue` 3 级拆分（1390→543 −61%）；主进程启动拆 `bootstrapCritical` / `bootstrapDeferred`；V6 Preview 壳 ShellComposer 接入 `llm-preview-bridge` 流式真发；600/600 store 单测 |
 | **v5.0.2.49 → v5.0.2.53** | — | **`cc pack` 项目打包 + OTA 自更新**：`cc pack` 命令首发（基于 @yao-pkg/pkg 单文件可执行）+ `--project` 模式 Phase 2a-3b 全量（BAKED 项目内容 / sanitizeProjectName / Commander 子命令白名单 / 自动 persona / manifest sidecar / `GET /api/skills` 实接线 + smoke-runner 实断言）+ OTA 三段（5a check-update / 5b SHA-256 校验 / 5c POSIX rename + Windows sidecar 自替换）+ Linux x64 流水线 + core-db sql.js WASM ABI probe + V6 Preview 工具/任务 Widget + 全量 v-html / renderMarkdown XSS 收口（DOMPurify）+ 7 个 IPC 契约测试集锁定，CLI 0.156.6→0.156.7 |
+| **v5.0.3.1 (web-panel A+B+C+D 收官)** | — | **Web Panel V5→Web 全量化迁移完成 — Phase A (3) + B (10) + C (5) + D (5) = 23 ports**，router 28 → 50 (+22)，单元测试 27 → **1489** 全绿。Phase A：`/did` + `/knowledge` + `/project-settings`。Phase B：`/community` + `/marketplace` + `/crosschain` + `/aiops` + `/compliance` + `/privacy` + `/inference` + `/nlprog` + `/tenant` + `/pipeline`。Phase C 治理与可观测：`/governance` + `/audit` + `/reputation` + `/recommend` + `/sla`。Phase D 收尾：`/codegen` + `/search` + `/tokens` + `/trust` + `/federation`。每件遵循机械模板 = `<feature>-parser.js`（含共享 `stripCliNoise`）+ `<Feature>.vue` + router/sidebar 接线 + parser unit tests + new-pages 路由计数 +1 + 路径断言。从此 `cc ui` 浏览器端与桌面 Electron 端功能对等。CLI 三次 bundle release `0.157.7` (Phase B done) → `0.157.8` (Phase C done) → `0.157.9` (Phase D done)，每次 `dist/` 资产 hash 同步刷新（`de3da1fd7` / `dc44c91b8` / `589a7acd8` / `1faa9e11f`）。Phase D commits: `fa8479d49` / `da852045d` / `6e1941beb` / `6b7ac0985` / `a7909b8a6` |
 
 ---
 
