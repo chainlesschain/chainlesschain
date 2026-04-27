@@ -1,12 +1,11 @@
 /**
  * DID Management Store
  * Wraps the did:* IPC channels exposed by src/main/did/did-ipc.js.
- * Phase 3 of the V6 page port — covers list/setDefault/delete + DHT
- * publish-status read + create-identity wizard (form → optional mnemonic
- * display → confirmed). Create flow is driven by `creationFlow` state
- * machine instead of the V5 defineExpose pattern. Details / DHT publish /
- * mnemonic export / auto-republish flows land in Phase 4-6.
- * @version 1.2.0
+ * Phase 4 of the V6 page port — covers list/setDefault/delete + DHT
+ * publish-status read + create-identity wizard + details drawer with
+ * DHT publish/unpublish + DID document viewer + QR data fetch. Mnemonic
+ * export and auto-republish land in Phase 5-6.
+ * @version 1.3.0
  */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
@@ -56,6 +55,14 @@ export const useDIDManagementStore = defineStore("didManagement", () => {
   const pendingDid = ref<string | null>(null);
   const mnemonicCopied = ref(false);
   const creationError = ref<string | null>(null);
+
+  const viewingDid = ref<string | null>(null);
+  const viewingIdentity = ref<IdentitySummary | null>(null);
+  const viewingDocument = ref<unknown>(null);
+  const detailsLoading = ref(false);
+  const detailsError = ref<string | null>(null);
+  const publishingDid = ref<string | null>(null);
+  const unpublishingDid = ref<string | null>(null);
 
   const defaultIdentity = computed(() => {
     if (currentDid.value) {
@@ -269,6 +276,93 @@ export const useDIDManagementStore = defineStore("didManagement", () => {
     creationError.value = null;
   }
 
+  // ---- Phase 4: details drawer + DHT publish/unpublish + QR -----------------
+
+  async function openDetails(did: string): Promise<void> {
+    viewingDid.value = did;
+    viewingDocument.value = null;
+    viewingIdentity.value = null;
+    detailsError.value = null;
+    detailsLoading.value = true;
+    try {
+      const detail = (await api()?.invoke("did:get-identity", did)) as
+        | IdentitySummary
+        | null
+        | undefined;
+      viewingIdentity.value = detail ?? null;
+    } catch (e) {
+      detailsError.value = e instanceof Error ? e.message : String(e);
+    } finally {
+      detailsLoading.value = false;
+    }
+  }
+
+  function closeDetails(): void {
+    viewingDid.value = null;
+    viewingIdentity.value = null;
+    viewingDocument.value = null;
+    detailsError.value = null;
+  }
+
+  async function loadDocument(did: string): Promise<unknown> {
+    detailsError.value = null;
+    try {
+      const doc = await api()?.invoke("did:export-document", did);
+      viewingDocument.value = doc ?? null;
+      return doc ?? null;
+    } catch (e) {
+      detailsError.value = e instanceof Error ? e.message : String(e);
+      return null;
+    }
+  }
+
+  async function publishToDHT(did: string): Promise<boolean> {
+    detailsError.value = null;
+    publishingDid.value = did;
+    try {
+      await api()?.invoke("did:publish-to-dht", did);
+      publishStatus.value = { ...publishStatus.value, [did]: true };
+      return true;
+    } catch (e) {
+      detailsError.value = e instanceof Error ? e.message : String(e);
+      return false;
+    } finally {
+      publishingDid.value = null;
+    }
+  }
+
+  async function unpublishFromDHT(did: string): Promise<boolean> {
+    detailsError.value = null;
+    unpublishingDid.value = did;
+    try {
+      await api()?.invoke("did:unpublish-from-dht", did);
+      publishStatus.value = { ...publishStatus.value, [did]: false };
+      return true;
+    } catch (e) {
+      detailsError.value = e instanceof Error ? e.message : String(e);
+      return false;
+    } finally {
+      unpublishingDid.value = null;
+    }
+  }
+
+  async function generateQRData(did: string): Promise<string | null> {
+    try {
+      const data = (await api()?.invoke("did:generate-qrcode", did)) as
+        | string
+        | null
+        | undefined;
+      return typeof data === "string" ? data : null;
+    } catch (e) {
+      detailsError.value = e instanceof Error ? e.message : String(e);
+      return null;
+    }
+  }
+
+  function clearDetailsError(): void {
+    detailsError.value = null;
+  }
+
   return {
     identities,
     currentDid,
@@ -281,6 +375,13 @@ export const useDIDManagementStore = defineStore("didManagement", () => {
     pendingDid,
     mnemonicCopied,
     creationError,
+    viewingDid,
+    viewingIdentity,
+    viewingDocument,
+    detailsLoading,
+    detailsError,
+    publishingDid,
+    unpublishingDid,
     defaultIdentity,
     loadAll,
     loadPublishStatus,
@@ -295,5 +396,12 @@ export const useDIDManagementStore = defineStore("didManagement", () => {
     markMnemonicCopied,
     dismissMnemonic,
     clearCreationError,
+    openDetails,
+    closeDetails,
+    loadDocument,
+    publishToDHT,
+    unpublishFromDHT,
+    generateQRData,
+    clearDetailsError,
   };
 });

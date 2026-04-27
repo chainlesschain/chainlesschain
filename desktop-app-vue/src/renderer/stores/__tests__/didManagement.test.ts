@@ -434,4 +434,188 @@ describe("useDIDManagementStore (Phase 2)", () => {
     expect(store.creationError).toBeNull();
     expect(store.error).toBe("other");
   });
+
+  // ---- Phase 4: details drawer + DHT publish/unpublish + QR -----------------
+
+  it("openDetails() loads the full identity and clears stale document", async () => {
+    invoke.mockImplementation((channel: string, did?: string) => {
+      if (channel === "did:get-identity") {
+        return Promise.resolve({
+          did,
+          nickname: "Carol",
+          public_key_sign: "PK_SIGN",
+        });
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    store.$patch({ viewingDocument: { stale: true }, detailsError: "old" });
+    await store.openDetails("did:cc:carol");
+
+    expect(store.viewingDid).toBe("did:cc:carol");
+    expect(store.viewingDocument).toBeNull();
+    expect(store.detailsError).toBeNull();
+    expect(store.viewingIdentity).toMatchObject({
+      did: "did:cc:carol",
+      nickname: "Carol",
+    });
+    expect(store.detailsLoading).toBe(false);
+  });
+
+  it("openDetails() captures error and leaves viewingIdentity null", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:get-identity") {
+        return Promise.reject(new Error("not found"));
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    await store.openDetails("did:cc:missing");
+
+    expect(store.viewingDid).toBe("did:cc:missing");
+    expect(store.viewingIdentity).toBeNull();
+    expect(store.detailsError).toBe("not found");
+    expect(store.detailsLoading).toBe(false);
+  });
+
+  it("closeDetails() clears viewingDid + identity + document + error", () => {
+    const store = useDIDManagementStore();
+    store.$patch({
+      viewingDid: "did:cc:x",
+      viewingIdentity: { did: "did:cc:x" },
+      viewingDocument: { foo: 1 },
+      detailsError: "stale",
+    });
+    store.closeDetails();
+    expect(store.viewingDid).toBeNull();
+    expect(store.viewingIdentity).toBeNull();
+    expect(store.viewingDocument).toBeNull();
+    expect(store.detailsError).toBeNull();
+  });
+
+  it("loadDocument() populates viewingDocument on success", async () => {
+    const doc = { id: "did:cc:x", "@context": "https://w3id.org/did/v1" };
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:export-document") {
+        return Promise.resolve(doc);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    const result = await store.loadDocument("did:cc:x");
+    expect(result).toEqual(doc);
+    expect(store.viewingDocument).toEqual(doc);
+    expect(store.detailsError).toBeNull();
+  });
+
+  it("loadDocument() captures error and returns null", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:export-document") {
+        return Promise.reject(new Error("export failed"));
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    const result = await store.loadDocument("did:cc:x");
+    expect(result).toBeNull();
+    expect(store.viewingDocument).toBeNull();
+    expect(store.detailsError).toBe("export failed");
+  });
+
+  it("publishToDHT() success flips publishStatus[did] to true", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:publish-to-dht") {
+        return Promise.resolve({ success: true });
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    store.$patch({ publishStatus: { "did:cc:x": false } });
+    const ok = await store.publishToDHT("did:cc:x");
+
+    expect(ok).toBe(true);
+    expect(store.publishStatus["did:cc:x"]).toBe(true);
+    expect(store.publishingDid).toBeNull();
+  });
+
+  it("publishToDHT() failure leaves status untouched and sets error", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:publish-to-dht") {
+        return Promise.reject(new Error("dht offline"));
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    store.$patch({ publishStatus: { "did:cc:x": false } });
+    const ok = await store.publishToDHT("did:cc:x");
+
+    expect(ok).toBe(false);
+    expect(store.publishStatus["did:cc:x"]).toBe(false);
+    expect(store.detailsError).toBe("dht offline");
+    expect(store.publishingDid).toBeNull();
+  });
+
+  it("unpublishFromDHT() success flips publishStatus[did] to false", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:unpublish-from-dht") {
+        return Promise.resolve({ success: true });
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    store.$patch({ publishStatus: { "did:cc:x": true } });
+    const ok = await store.unpublishFromDHT("did:cc:x");
+
+    expect(ok).toBe(true);
+    expect(store.publishStatus["did:cc:x"]).toBe(false);
+    expect(store.unpublishingDid).toBeNull();
+  });
+
+  it("generateQRData() returns string on success", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:generate-qrcode") {
+        return Promise.resolve("did:cc:x?key=ABC");
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    const data = await store.generateQRData("did:cc:x");
+    expect(data).toBe("did:cc:x?key=ABC");
+    expect(store.detailsError).toBeNull();
+  });
+
+  it("generateQRData() captures error and returns null", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:generate-qrcode") {
+        return Promise.reject(new Error("encode fail"));
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    const data = await store.generateQRData("did:cc:x");
+    expect(data).toBeNull();
+    expect(store.detailsError).toBe("encode fail");
+  });
+
+  it("clearDetailsError() resets only detailsError", () => {
+    const store = useDIDManagementStore();
+    store.$patch({
+      detailsError: "boom",
+      error: "other",
+      creationError: "third",
+    });
+    store.clearDetailsError();
+    expect(store.detailsError).toBeNull();
+    expect(store.error).toBe("other");
+    expect(store.creationError).toBe("third");
+  });
 });

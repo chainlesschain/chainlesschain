@@ -76,6 +76,13 @@
           </div>
           <div class="identity-actions">
             <a-button
+              size="small"
+              type="link"
+              @click="store.openDetails(identity.did)"
+            >
+              <EyeOutlined />
+            </a-button>
+            <a-button
               v-if="identity.did !== store.defaultIdentity?.did"
               size="small"
               type="link"
@@ -142,6 +149,7 @@
   </a-modal>
 
   <CreateIdentityWizard />
+  <IdentityDetailsDrawer />
 </template>
 
 <script setup lang="ts">
@@ -151,12 +159,14 @@ import {
   IdcardOutlined,
   CloudOutlined,
   DeleteOutlined,
+  EyeOutlined,
 } from "@ant-design/icons-vue";
 import {
   useDIDManagementStore,
   type IdentitySummary,
 } from "../stores/didManagement";
 import CreateIdentityWizard from "./did/CreateIdentityWizard.vue";
+import IdentityDetailsDrawer from "./did/IdentityDetailsDrawer.vue";
 
 interface DidAction {
   id: string;
@@ -195,18 +205,6 @@ const actions: DidAction[] = [
     id: "backup",
     label: "备份助记词",
     desc: "导出 BIP39 助记词以便在其他设备恢复（强烈建议离线保存，Phase 5 内嵌）。",
-    cta: "前往",
-  },
-  {
-    id: "publish",
-    label: "发布到 DHT",
-    desc: "将身份发布到 P2P DHT 网络供他人解析（需 P2P 在线，Phase 4 内嵌）。",
-    cta: "前往",
-  },
-  {
-    id: "verify",
-    label: "验证签名",
-    desc: "用任一 DID 公钥验证消息签名是否有效（Phase 4 内嵌）。",
     cta: "前往",
   },
 ];
