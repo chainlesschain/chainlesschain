@@ -15,40 +15,86 @@
 
     <p class="panel-desc">
       个人项目工作区。每个项目包含独立的文件结构、AI 对话历史、笔记与协作配置。
-      下方显示最近 5 个项目（完整列表与详情请访问 <code>/projects</code>）。
     </p>
 
     <div class="projects-summary">
       <div class="summary-header">
-        <span class="summary-label">最近项目</span>
+        <span class="summary-label">项目列表</span>
         <a-tag v-if="store.hasLoaded" color="cyan">
-          {{ store.recent.length }} / {{ store.total }}
+          {{ store.filteredProjects.length }} / {{ store.total }}
         </a-tag>
         <a-button
           size="small"
           type="link"
           :loading="store.loading"
-          @click="store.loadRecent()"
+          @click="store.loadAll()"
         >
           刷新
         </a-button>
       </div>
-      <ul v-if="store.recent.length" class="project-list">
-        <li v-for="p in store.recent" :key="p.id" class="project-row">
-          <div class="project-meta">
-            <span class="project-name">{{ p.name ?? "(未命名)" }}</span>
-            <span class="project-id">{{ shortId(p.id) }}</span>
+
+      <a-input
+        v-model:value="store.searchQuery"
+        placeholder="按名称或描述搜索…"
+        size="small"
+        allow-clear
+        class="project-search"
+      >
+        <template #prefix>
+          <SearchOutlined />
+        </template>
+      </a-input>
+
+      <ul v-if="store.filteredProjects.length" class="project-list">
+        <li v-for="p in store.filteredProjects" :key="p.id" class="project-row">
+          <div class="project-icon">
+            <component :is="iconForType(p.project_type)" />
           </div>
-          <a-tag v-if="p.type" :color="typeColor(p.type)">
-            {{ p.type }}
-          </a-tag>
-          <a-tag v-if="p.status" :color="statusColor(p.status)">
-            {{ p.status }}
-          </a-tag>
+          <div class="project-meta">
+            <div class="project-line-1">
+              <span class="project-name" :title="p.name">
+                {{ p.name ?? "(未命名)" }}
+              </span>
+              <a-tag v-if="p.project_type" :color="typeColor(p.project_type)">
+                {{ typeLabel(p.project_type) }}
+              </a-tag>
+              <a-tag
+                v-if="p.status && p.status !== 'active'"
+                :color="statusColor(p.status)"
+              >
+                {{ statusLabel(p.status) }}
+              </a-tag>
+            </div>
+            <div class="project-line-2">
+              <span v-if="p.updated_at" class="muted">
+                {{ formatRelative(p.updated_at) }}
+              </span>
+              <span v-if="p.description" class="project-desc">
+                · {{ p.description }}
+              </span>
+            </div>
+          </div>
+          <div class="project-actions">
+            <a-button size="small" type="link" @click="onOpenProject(p)">
+              打开
+            </a-button>
+            <a-button
+              size="small"
+              type="link"
+              danger
+              :loading="store.deletingId === p.id"
+              @click="confirmDelete(p)"
+            >
+              <DeleteOutlined />
+            </a-button>
+          </div>
         </li>
       </ul>
+      <div v-else-if="store.hasLoaded && store.searchQuery" class="empty-hint">
+        没有匹配 "{{ store.searchQuery }}" 的项目。
+      </div>
       <div v-else-if="store.hasLoaded" class="empty-hint">
-        暂无项目，前往 <code>/projects</code> 创建第一个项目。
+        暂无项目，点击下方"创建项目"开始。
       </div>
     </div>
 
@@ -87,9 +133,21 @@
 
 <script setup lang="ts">
 import { watch } from "vue";
-import { message as antMessage } from "ant-design-vue";
-import { ProjectOutlined } from "@ant-design/icons-vue";
-import { useProjectsQuickStore } from "../stores/projectsQuick";
+import { useRouter } from "vue-router";
+import { Modal, message as antMessage } from "ant-design-vue";
+import {
+  AppstoreOutlined,
+  DatabaseOutlined,
+  DeleteOutlined,
+  FileTextOutlined,
+  GlobalOutlined,
+  ProjectOutlined,
+  SearchOutlined,
+} from "@ant-design/icons-vue";
+import {
+  useProjectsQuickStore,
+  type ProjectSummary,
+} from "../stores/projectsQuick";
 
 interface ProjectAction {
   id: string;
@@ -101,15 +159,18 @@ interface ProjectAction {
 }
 
 const props = defineProps<{ open: boolean; prefillText?: string }>();
-defineEmits<{ (e: "update:open", value: boolean): void }>();
+const emit = defineEmits<{
+  (e: "update:open", value: boolean): void;
+}>();
 
 const store = useProjectsQuickStore();
+const router = useRouter();
 
 watch(
   () => props.open,
   (isOpen) => {
     if (isOpen && !store.hasLoaded) {
-      store.loadRecent();
+      store.loadAll();
     }
   },
 );
@@ -118,38 +179,26 @@ const actions: ProjectAction[] = [
   {
     id: "create",
     label: "创建项目",
-    desc: "新建项目（支持 web / document / data / app 多种类型）。",
+    desc: "新建项目（Phase 3 内嵌单步表单）。",
     cta: "前往",
     primary: true,
   },
   {
-    id: "import",
-    label: "导入现有目录",
-    desc: "把本地目录导入为项目（保留原始文件结构与 git 历史）。",
-    cta: "前往",
-  },
-  {
-    id: "templates",
-    label: "项目模板",
-    desc: "从模板快速生成项目（含示例文件、AI 提示词、协作配置）。",
-    cta: "前往",
-  },
-  {
-    id: "archived",
-    label: "归档项目",
-    desc: "查看已归档的项目并可选择恢复或永久删除。",
+    id: "ai-create",
+    label: "AI 自定义新建",
+    desc: "通过对话方式创建项目（V5 主入口，留待后续 AI 对话主页 port）。",
     cta: "前往",
   },
 ];
 
-function shortId(id?: string): string {
-  if (!id) {
-    return "—";
-  }
-  if (id.length <= 12) {
-    return id;
-  }
-  return `${id.slice(0, 8)}…${id.slice(-4)}`;
+const TYPE_ICONS: Record<string, typeof FileTextOutlined> = {
+  web: GlobalOutlined,
+  document: FileTextOutlined,
+  data: DatabaseOutlined,
+  app: AppstoreOutlined,
+};
+function iconForType(type?: string) {
+  return type && TYPE_ICONS[type] ? TYPE_ICONS[type] : FileTextOutlined;
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -158,11 +207,23 @@ const TYPE_COLORS: Record<string, string> = {
   data: "purple",
   app: "geekblue",
 };
+const TYPE_LABELS: Record<string, string> = {
+  web: "Web",
+  document: "文档",
+  data: "数据",
+  app: "应用",
+};
 function typeColor(type?: string): string {
   if (!type) {
     return "default";
   }
   return TYPE_COLORS[type] || "default";
+}
+function typeLabel(type?: string): string {
+  if (!type) {
+    return "—";
+  }
+  return TYPE_LABELS[type] || type;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -170,16 +231,78 @@ const STATUS_COLORS: Record<string, string> = {
   completed: "blue",
   archived: "default",
 };
+const STATUS_LABELS: Record<string, string> = {
+  active: "活跃",
+  completed: "已完成",
+  archived: "已归档",
+};
 function statusColor(status?: string): string {
   if (!status) {
     return "default";
   }
   return STATUS_COLORS[status] || "default";
 }
+function statusLabel(status?: string): string {
+  if (!status) {
+    return "—";
+  }
+  return STATUS_LABELS[status] || status;
+}
+
+function formatRelative(timestamp: number | string | undefined): string {
+  if (!timestamp) {
+    return "";
+  }
+  const ms =
+    typeof timestamp === "number" ? timestamp : new Date(timestamp).getTime();
+  if (Number.isNaN(ms)) {
+    return "";
+  }
+  const diff = Date.now() - ms;
+  if (diff < 60_000) {
+    return "刚刚";
+  }
+  if (diff < 3_600_000) {
+    return `${Math.floor(diff / 60_000)} 分钟前`;
+  }
+  if (diff < 86_400_000) {
+    return `${Math.floor(diff / 3_600_000)} 小时前`;
+  }
+  if (diff < 604_800_000) {
+    return `${Math.floor(diff / 86_400_000)} 天前`;
+  }
+  return new Date(ms).toLocaleDateString("zh-CN");
+}
+
+function onOpenProject(p: ProjectSummary): void {
+  emit("update:open", false);
+  router.push(`/projects/${p.id}`);
+}
+
+function confirmDelete(p: ProjectSummary): void {
+  Modal.confirm({
+    title: "删除项目",
+    content: `确定删除项目 "${p.name ?? p.id}"？此操作不可撤销，项目内的文件和对话历史会一并清除。`,
+    okText: "删除",
+    okType: "danger",
+    cancelText: "取消",
+    async onOk() {
+      const ok = await store.deleteProject(p.id);
+      if (ok) {
+        antMessage.success(`已删除 "${p.name ?? "项目"}"`);
+      }
+    },
+  });
+}
 
 function run(action: ProjectAction): void {
+  if (action.id === "ai-create") {
+    emit("update:open", false);
+    router.push("/projects");
+    return;
+  }
   antMessage.info(
-    `${action.label}：请在 /projects 完成该操作（快速面板仅展示概览）`,
+    `${action.label}：当前在 /projects 完成，下一阶段将内嵌到此面板`,
   );
 }
 </script>
@@ -249,11 +372,15 @@ function run(action: ProjectAction): void {
   gap: 6px;
 }
 
+.project-search {
+  margin-bottom: 8px;
+}
+
 .project-row {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 0;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
   border-top: 1px dashed var(--cc-shell-border, #eee);
 }
 
@@ -262,29 +389,71 @@ function run(action: ProjectAction): void {
   padding-top: 0;
 }
 
+.project-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cc-shell-sider-bg, #fafafa);
+  border-radius: 6px;
+  color: var(--cc-shell-muted, #595959);
+  font-size: 16px;
+}
+
 .project-meta {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-width: 0;
+  gap: 2px;
+}
+
+.project-line-1 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.project-line-2 {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  overflow: hidden;
 }
 
 .project-name {
   font-weight: 500;
   font-size: 13px;
   color: var(--cc-shell-text, #1f1f1f);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 320px;
 }
 
-.project-id {
-  font-family: var(
-    --cc-shell-mono,
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    monospace
-  );
+.project-desc {
+  color: var(--cc-shell-muted, #8c8c8c);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 360px;
+}
+
+.muted {
+  color: var(--cc-shell-muted, #999);
   font-size: 12px;
-  color: var(--cc-shell-muted, #595959);
+}
+
+.project-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .empty-hint {
