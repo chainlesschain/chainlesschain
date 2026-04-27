@@ -227,6 +227,15 @@
 </template>
 
 <script setup>
+/**
+ * @deprecated V5 entry — full functional parity ported to the V6 panel
+ * (`src/renderer/shell/DIDManagementPanel.vue` + `shell/did/*.vue` +
+ * `stores/didManagement.ts`) across phases 2-6 (commits 51f765429,
+ * 130da1d1e, b7bd92bfa, f58d5f796, e1b2a96f2). Kept active so users who
+ * opted out of the V6 shell via SystemSettings still have a working
+ * /did route. Do not add new features here — port them to the V6 panel
+ * instead.
+ */
 import { logger } from "@/utils/logger";
 
 import { ref, reactive, onMounted } from "vue";
