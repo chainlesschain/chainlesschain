@@ -39,19 +39,15 @@
           <div class="community-meta">
             <div class="community-line-1">
               <span class="community-name">{{ c.name ?? "(未命名)" }}</span>
-              <a-tag v-if="c.visibility" :color="visibilityColor(c.visibility)">
-                {{
-                  c.visibility === "public"
-                    ? "公开"
-                    : c.visibility === "private"
-                      ? "私密"
-                      : c.visibility
-                }}
+              <a-tag v-if="c.my_role" :color="roleColor(c.my_role)">
+                {{ roleLabel(c.my_role) }}
               </a-tag>
-              <a-tag v-if="typeof c.memberCount === 'number'" color="default">
-                {{ c.memberCount }} 人
+              <a-tag v-if="typeof c.member_count === 'number'" color="default">
+                {{ c.member_count }} / {{ c.member_limit ?? "∞" }} 人
               </a-tag>
-              <a-tag v-if="c.isJoined" color="green"> 已加入 </a-tag>
+              <a-tag v-if="c.status && c.status !== 'active'" color="orange">
+                {{ c.status === "archived" ? "已归档" : c.status }}
+              </a-tag>
             </div>
             <div class="community-line-2">
               <span class="community-id">{{ shortId(c.id) }}</span>
@@ -62,16 +58,7 @@
           </div>
           <div class="community-actions">
             <a-button
-              v-if="!c.isJoined"
-              size="small"
-              type="link"
-              :loading="store.joiningId === c.id"
-              @click="store.joinCommunity(c.id)"
-            >
-              加入
-            </a-button>
-            <a-button
-              v-else
+              v-if="c.my_role !== 'owner'"
               size="small"
               type="link"
               :loading="store.leavingId === c.id"
@@ -79,7 +66,11 @@
             >
               退出
             </a-button>
+            <a-tooltip v-else title="所有者不能退出，只能删除社区">
+              <a-button size="small" type="link" disabled> 退出 </a-button>
+            </a-tooltip>
             <a-button
+              v-if="c.my_role === 'owner'"
               size="small"
               type="link"
               danger
@@ -92,7 +83,8 @@
         </li>
       </ul>
       <div v-else-if="store.hasLoaded" class="empty-hint">
-        暂无社区，点击下方"创建社区"开始。
+        暂无已加入的社区，点击下方"创建社区"开始，或前往
+        <code>/community</code> 搜索公开社区。
       </div>
     </div>
 
@@ -127,6 +119,8 @@
       @close="store.clearError()"
     />
   </a-modal>
+
+  <CreateCommunityWizard />
 </template>
 
 <script setup lang="ts">
@@ -137,6 +131,7 @@ import {
   useCommunityQuickStore,
   type CommunitySummary,
 } from "../stores/communityQuick";
+import CreateCommunityWizard from "./community/CreateCommunityWizard.vue";
 
 interface CommunityAction {
   id: string;
@@ -165,14 +160,14 @@ const actions: CommunityAction[] = [
   {
     id: "create",
     label: "创建社区",
-    desc: "新建公开或私密社区，可设置加入策略与治理规则（Phase 3 内嵌）。",
-    cta: "前往",
+    desc: "新建一个社区，自动以默认 DID 身份成为 owner。",
+    cta: "开始",
     primary: true,
   },
   {
     id: "search",
     label: "搜索社区",
-    desc: "按名称、标签或描述查找公开社区（Phase 4 内嵌）。",
+    desc: "按名称查找公开社区并加入（Phase 4 内嵌）。",
     cta: "前往",
   },
 ];
@@ -219,20 +214,36 @@ function shortId(id?: string): string {
   return `${id.slice(0, 8)}…${id.slice(-4)}`;
 }
 
-const VISIBILITY_COLORS: Record<string, string> = {
-  public: "blue",
-  private: "purple",
+const ROLE_COLORS: Record<string, string> = {
+  owner: "gold",
+  admin: "geekblue",
+  member: "green",
 };
-function visibilityColor(v?: string): string {
-  if (!v) {
+const ROLE_LABELS: Record<string, string> = {
+  owner: "所有者",
+  admin: "管理员",
+  member: "成员",
+};
+function roleColor(role?: string): string {
+  if (!role) {
     return "default";
   }
-  return VISIBILITY_COLORS[v] || "default";
+  return ROLE_COLORS[role] || "default";
+}
+function roleLabel(role?: string): string {
+  if (!role) {
+    return "";
+  }
+  return ROLE_LABELS[role] || role;
 }
 
 function run(action: CommunityAction): void {
+  if (action.id === "create") {
+    store.openCreateForm();
+    return;
+  }
   antMessage.info(
-    `${action.label}：请在 /community 完成该操作（快速面板仅展示概览）`,
+    `${action.label}：当前在 /community 完成，下一阶段将内嵌到此面板`,
   );
 }
 </script>

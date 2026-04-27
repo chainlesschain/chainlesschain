@@ -1,14 +1,23 @@
 /**
  * Community Quick Store
  * Wraps the community:* / channel:* / governance:* / moderation:* IPC
- * channels exposed by src/main/social/community-ipc.js. Phase 2 of the
- * V6 page port — covers list + join/leave/delete with per-action loading
- * flags. Create wizard / details drawer / channel messaging / governance
- * / moderation flows land in Phase 3-6.
+ * channels exposed by src/main/social/community-ipc.js. Phase 3 of the
+ * V6 page port — list + join/leave/delete + create wizard. Details
+ * drawer / channel messaging / governance / moderation land in Phase
+ * 4-6.
  *
  * V5 page (`pages/CommunityPage.vue`) keeps using its own
  * `useCommunityStore` from `community.ts`; this store is V6-only.
- * @version 1.1.0
+ *
+ * Field shape note: community:get-list returns sqlite snake_case rows
+ * (id, name, description, icon_url, rules_md, creator_did, member_limit,
+ * member_count, status, created_at, updated_at) joined with the caller's
+ * community_members row, surfacing `my_role` ('owner' | 'admin' | 'member').
+ * The list is already filtered to the caller's joined communities, so the
+ * panel uses my_role presence rather than a synthetic isJoined flag, and
+ * "browse / search" for un-joined communities is a separate Phase 4 flow
+ * via community:search.
+ * @version 1.2.0
  */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
@@ -17,11 +26,24 @@ export interface CommunitySummary {
   id: string;
   name?: string;
   description?: string;
-  memberCount?: number;
-  visibility?: "public" | "private" | string;
-  isJoined?: boolean;
-  createdAt?: string | number;
+  icon_url?: string;
+  rules_md?: string;
+  creator_did?: string;
+  member_count?: number;
+  member_limit?: number;
+  status?: "active" | "archived" | "banned" | string;
+  my_role?: "owner" | "admin" | "member" | string;
+  created_at?: number;
+  updated_at?: number;
   [key: string]: unknown;
+}
+
+export interface CreateCommunityInput {
+  name: string;
+  description?: string;
+  iconUrl?: string;
+  rulesMd?: string;
+  memberLimit?: number;
 }
 
 interface ElectronApi {
@@ -44,10 +66,14 @@ export const useCommunityQuickStore = defineStore("communityQuick", () => {
   const leavingId = ref<string | null>(null);
   const deletingId = ref<string | null>(null);
 
+  const createOpen = ref(false);
+  const creating = ref(false);
+  const createError = ref<string | null>(null);
+
   const recent = computed(() => communities.value.slice(0, RECENT_LIMIT));
-  const joinedCount = computed(
-    () => communities.value.filter((c) => c.isJoined).length,
-  );
+  // community:get-list is already pre-filtered to the caller's joined
+  // communities (INNER JOIN community_members), so length === joinedCount.
+  const joinedCount = computed(() => communities.value.length);
 
   async function loadAll(): Promise<void> {
     loading.value = true;
@@ -114,6 +140,61 @@ export const useCommunityQuickStore = defineStore("communityQuick", () => {
     error.value = null;
   }
 
+  // ---- Phase 3: create community wizard -----------------------------------
+
+  function openCreateForm(): void {
+    createOpen.value = true;
+    createError.value = null;
+  }
+
+  function closeCreateForm(): void {
+    if (creating.value) {
+      return;
+    }
+    createOpen.value = false;
+    createError.value = null;
+  }
+
+  async function createCommunity(
+    input: CreateCommunityInput,
+  ): Promise<CommunitySummary | null> {
+    if (!input.name || !input.name.trim()) {
+      createError.value = "请输入社区名称";
+      return null;
+    }
+    if (input.name.trim().length > 100) {
+      createError.value = "社区名称不能超过 100 个字符";
+      return null;
+    }
+
+    creating.value = true;
+    createError.value = null;
+    try {
+      const result = (await api()?.invoke("community:create", {
+        name: input.name.trim(),
+        description: input.description?.trim() || "",
+        iconUrl: input.iconUrl?.trim() || "",
+        rulesMd: input.rulesMd?.trim() || "",
+        memberLimit:
+          typeof input.memberLimit === "number" && input.memberLimit > 0
+            ? Math.floor(input.memberLimit)
+            : 1000,
+      })) as CommunitySummary | null | undefined;
+      await loadAll();
+      createOpen.value = false;
+      return result ?? null;
+    } catch (e) {
+      createError.value = e instanceof Error ? e.message : String(e);
+      return null;
+    } finally {
+      creating.value = false;
+    }
+  }
+
+  function clearCreateError(): void {
+    createError.value = null;
+  }
+
   return {
     communities,
     loading,
@@ -122,6 +203,9 @@ export const useCommunityQuickStore = defineStore("communityQuick", () => {
     joiningId,
     leavingId,
     deletingId,
+    createOpen,
+    creating,
+    createError,
     recent,
     joinedCount,
     loadAll,
@@ -129,5 +213,9 @@ export const useCommunityQuickStore = defineStore("communityQuick", () => {
     leaveCommunity,
     deleteCommunity,
     clearError,
+    openCreateForm,
+    closeCreateForm,
+    createCommunity,
+    clearCreateError,
   };
 });
