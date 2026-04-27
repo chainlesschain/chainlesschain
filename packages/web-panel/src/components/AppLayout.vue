@@ -75,6 +75,7 @@
           <a-sub-menu key="g-advanced">
             <template #title><span class="group-label">高 级</span></template>
             <a-menu-item key="security"><template #icon><SafetyCertificateOutlined /></template>安全中心</a-menu-item>
+            <a-menu-item key="audit"><template #icon><FileSearchOutlined /></template>审计日志</a-menu-item>
             <a-menu-item key="did"><template #icon><IdcardOutlined /></template>DID 身份</a-menu-item>
             <a-menu-item key="permissions"><template #icon><LockOutlined /></template>权限管理</a-menu-item>
             <a-menu-item key="p2p"><template #icon><WifiOutlined /></template>P2P 网络</a-menu-item>
@@ -133,6 +134,7 @@
           <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="security"><template #icon><SafetyCertificateOutlined /></template></a-menu-item>
+          <a-menu-item key="audit"><template #icon><FileSearchOutlined /></template></a-menu-item>
           <a-menu-item key="did"><template #icon><IdcardOutlined /></template></a-menu-item>
           <a-menu-item key="permissions"><template #icon><LockOutlined /></template></a-menu-item>
           <a-menu-item key="p2p"><template #icon><WifiOutlined /></template></a-menu-item>
@@ -222,7 +224,7 @@ import {
   ReadOutlined, KeyOutlined, VideoCameraOutlined, ShareAltOutlined, IdcardOutlined,
   UsergroupAddOutlined, ShoppingOutlined, SwapOutlined, AlertOutlined, SafetyOutlined,
   ExperimentOutlined, DeploymentUnitOutlined, BulbOutlined, BankOutlined, PartitionOutlined,
-  AuditOutlined,
+  AuditOutlined, FileSearchOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'
