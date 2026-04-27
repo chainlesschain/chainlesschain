@@ -574,4 +574,302 @@ describe("useCommunityQuickStore (Phase 2)", () => {
     expect(store.error).toBe("main");
     expect(store.createError).toBe("third");
   });
+
+  // ---- Phase 5: channel CRUD + messages -----------------------------------
+
+  it("selectChannel() loads messages sorted chronologically", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "channel:get-messages") {
+        // Backend returns DESC; store should flip to ASC
+        return Promise.resolve([
+          { id: "m3", content: "third", created_at: 3000 },
+          { id: "m1", content: "first", created_at: 1000 },
+          { id: "m2", content: "second", created_at: 2000 },
+        ]);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    await store.selectChannel("ch1");
+
+    expect(store.selectedChannelId).toBe("ch1");
+    expect(store.channelMessages.map((m) => m.id)).toEqual(["m1", "m2", "m3"]);
+    expect(store.messagesLoading).toBe(false);
+  });
+
+  it("loadMessages() captures error and falls back to []", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "channel:get-messages") {
+        return Promise.reject(new Error("backend down"));
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    store.$patch({
+      selectedChannelId: "ch1",
+      channelMessages: [{ id: "stale" } as never],
+    });
+    await store.loadMessages("ch1");
+    expect(store.channelMessages).toEqual([]);
+    expect(store.channelError).toBe("backend down");
+  });
+
+  it("clearSelectedChannel() resets messages + error", () => {
+    const store = useCommunityQuickStore();
+    store.$patch({
+      selectedChannelId: "ch1",
+      channelMessages: [{ id: "m1" } as never],
+      channelError: "stale",
+    });
+    store.clearSelectedChannel();
+    expect(store.selectedChannelId).toBeNull();
+    expect(store.channelMessages).toEqual([]);
+    expect(store.channelError).toBeNull();
+  });
+
+  it("sendMessage() refuses without selected channel", async () => {
+    const store = useCommunityQuickStore();
+    const ok = await store.sendMessage("hi");
+    expect(ok).toBe(false);
+    expect(store.channelError).toMatch(/频道/);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("sendMessage() refuses empty content silently (no error)", async () => {
+    const store = useCommunityQuickStore();
+    store.$patch({ selectedChannelId: "ch1" });
+    const ok = await store.sendMessage("   ");
+    expect(ok).toBe(false);
+    expect(store.channelError).toBeNull();
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("sendMessage() optimistically appends backend payload", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "channel:send-message") {
+        return Promise.resolve({
+          id: "m-new",
+          content: "hi",
+          created_at: 9999,
+        });
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    store.$patch({
+      selectedChannelId: "ch1",
+      channelMessages: [{ id: "m1", created_at: 1 } as never],
+    });
+    const ok = await store.sendMessage("hi");
+
+    expect(ok).toBe(true);
+    expect(store.channelMessages).toHaveLength(2);
+    expect(store.channelMessages[1].id).toBe("m-new");
+    expect(invoke).toHaveBeenCalledWith("channel:send-message", {
+      channelId: "ch1",
+      content: "hi",
+      messageType: "text",
+    });
+    expect(store.sendingMessage).toBe(false);
+  });
+
+  it("sendMessage() falls back to reload when backend returns no message", async () => {
+    let getMessagesCalls = 0;
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "channel:send-message") {
+        return Promise.resolve(null);
+      }
+      if (channel === "channel:get-messages") {
+        getMessagesCalls += 1;
+        return Promise.resolve([{ id: "reloaded", created_at: 5 }]);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    store.$patch({ selectedChannelId: "ch1" });
+    const ok = await store.sendMessage("hi");
+
+    expect(ok).toBe(true);
+    expect(getMessagesCalls).toBe(1);
+    expect(store.channelMessages.map((m) => m.id)).toEqual(["reloaded"]);
+  });
+
+  it("sendMessage() failure populates channelError", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "channel:send-message") {
+        return Promise.reject(new Error("write denied"));
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    store.$patch({ selectedChannelId: "ch1" });
+    const ok = await store.sendMessage("hi");
+    expect(ok).toBe(false);
+    expect(store.channelError).toBe("write denied");
+    expect(store.sendingMessage).toBe(false);
+  });
+
+  it("pinMessage() toggles is_pinned locally on success", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "channel:pin-message") {
+        return Promise.resolve({ success: true });
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    store.$patch({
+      channelMessages: [
+        { id: "m1", is_pinned: 0 } as never,
+        { id: "m2", is_pinned: 1 } as never,
+      ],
+    });
+
+    await store.pinMessage("m1");
+    expect(store.channelMessages[0].is_pinned).toBe(1);
+    expect(store.channelMessages[1].is_pinned).toBe(1);
+
+    await store.pinMessage("m2");
+    expect(store.channelMessages[1].is_pinned).toBe(0);
+    expect(store.pinningMessageId).toBeNull();
+  });
+
+  it("pinMessage() failure leaves messages untouched", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "channel:pin-message") {
+        return Promise.reject(new Error("forbidden"));
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    store.$patch({
+      channelMessages: [{ id: "m1", is_pinned: 0 } as never],
+    });
+    const ok = await store.pinMessage("m1");
+    expect(ok).toBe(false);
+    expect(store.channelMessages[0].is_pinned).toBe(0);
+    expect(store.channelError).toBe("forbidden");
+  });
+
+  it("createChannel() success calls IPC + reloads channel list", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "channel:create") {
+        return Promise.resolve({
+          id: "ch-new",
+          name: "general",
+          type: "discussion",
+        });
+      }
+      if (channel === "channel:get-list") {
+        return Promise.resolve([
+          { id: "ch-new", name: "general", type: "discussion" },
+        ]);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    const result = await store.createChannel({
+      communityId: "c1",
+      name: "general",
+    });
+
+    expect(result?.id).toBe("ch-new");
+    expect(store.viewingChannels).toHaveLength(1);
+    const createCall = invoke.mock.calls.find((c) => c[0] === "channel:create");
+    expect(createCall![1]).toMatchObject({
+      communityId: "c1",
+      name: "general",
+      type: "discussion",
+      sortOrder: 0,
+    });
+    expect(store.creatingChannel).toBe(false);
+  });
+
+  it("createChannel() rejects empty name without IPC", async () => {
+    const store = useCommunityQuickStore();
+    const result = await store.createChannel({
+      communityId: "c1",
+      name: "  ",
+    });
+    expect(result).toBeNull();
+    expect(store.channelError).toMatch(/名称/);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("deleteChannel() clears selection if deleting the active channel", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "channel:delete") {
+        return Promise.resolve({ success: true });
+      }
+      if (channel === "channel:get-list") {
+        return Promise.resolve([]);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    store.$patch({
+      selectedChannelId: "ch-active",
+      channelMessages: [{ id: "m1" } as never],
+    });
+    const ok = await store.deleteChannel("ch-active", "c1");
+
+    expect(ok).toBe(true);
+    expect(store.selectedChannelId).toBeNull();
+    expect(store.channelMessages).toEqual([]);
+    expect(store.viewingChannels).toEqual([]);
+  });
+
+  it("deleteChannel() preserves selection if deleting a different channel", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "channel:delete") {
+        return Promise.resolve({ success: true });
+      }
+      if (channel === "channel:get-list") {
+        return Promise.resolve([{ id: "ch-active", name: "a" }]);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    store.$patch({ selectedChannelId: "ch-active" });
+    const ok = await store.deleteChannel("ch-other", "c1");
+
+    expect(ok).toBe(true);
+    expect(store.selectedChannelId).toBe("ch-active");
+  });
+
+  it("closeDetails() also clears selected channel + messages + channelError", () => {
+    const store = useCommunityQuickStore();
+    store.$patch({
+      viewingCommunityId: "c1",
+      selectedChannelId: "ch1",
+      channelMessages: [{ id: "m1" } as never],
+      channelError: "boom",
+    });
+    store.closeDetails();
+    expect(store.selectedChannelId).toBeNull();
+    expect(store.channelMessages).toEqual([]);
+    expect(store.channelError).toBeNull();
+  });
+
+  it("clearChannelError() resets only channelError", () => {
+    const store = useCommunityQuickStore();
+    store.$patch({
+      channelError: "x",
+      error: "main",
+      detailsError: "details",
+    });
+    store.clearChannelError();
+    expect(store.channelError).toBeNull();
+    expect(store.error).toBe("main");
+    expect(store.detailsError).toBe("details");
+  });
 });

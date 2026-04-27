@@ -1,10 +1,9 @@
 /**
  * Community Quick Store
  * Wraps the community:* / channel:* / governance:* / moderation:* IPC
- * channels exposed by src/main/social/community-ipc.js. Phase 4 of the
- * V6 page port — adds details drawer + member promote/demote/ban + read-
- * only channel list. Channel messaging lands in Phase 5; governance and
- * moderation in Phase 6.
+ * channels exposed by src/main/social/community-ipc.js. Phase 5 of the
+ * V6 page port — adds channel CRUD + message list + send + pin (the
+ * heaviest single phase). Governance + moderation land in Phase 6.
  *
  * V5 page (`pages/CommunityPage.vue`) keeps using its own
  * `useCommunityStore` from `community.ts`; this store is V6-only.
@@ -69,6 +68,28 @@ export interface CommunityChannel {
   [key: string]: unknown;
 }
 
+export interface ChannelMessage {
+  id: string;
+  channel_id: string;
+  sender_did: string;
+  content: string;
+  message_type?: "text" | "image" | "file" | "system" | string;
+  reply_to?: string | null;
+  is_pinned?: 0 | 1;
+  reactions?: string;
+  created_at?: number;
+  sender_nickname?: string;
+  [key: string]: unknown;
+}
+
+export interface CreateChannelInput {
+  communityId: string;
+  name: string;
+  description?: string;
+  type?: "announcement" | "discussion" | "readonly" | "subscription";
+  sortOrder?: number;
+}
+
 interface ElectronApi {
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
 }
@@ -102,6 +123,15 @@ export const useCommunityQuickStore = defineStore("communityQuick", () => {
   const promotingDid = ref<string | null>(null);
   const demotingDid = ref<string | null>(null);
   const banningDid = ref<string | null>(null);
+
+  const selectedChannelId = ref<string | null>(null);
+  const channelMessages = ref<ChannelMessage[]>([]);
+  const messagesLoading = ref(false);
+  const sendingMessage = ref(false);
+  const pinningMessageId = ref<string | null>(null);
+  const creatingChannel = ref(false);
+  const deletingChannelId = ref<string | null>(null);
+  const channelError = ref<string | null>(null);
 
   const recent = computed(() => communities.value.slice(0, RECENT_LIMIT));
   // community:get-list is already pre-filtered to the caller's joined
@@ -282,6 +312,9 @@ export const useCommunityQuickStore = defineStore("communityQuick", () => {
     viewingMembers.value = [];
     viewingChannels.value = [];
     detailsError.value = null;
+    selectedChannelId.value = null;
+    channelMessages.value = [];
+    channelError.value = null;
   }
 
   async function promoteMember(
@@ -351,6 +384,141 @@ export const useCommunityQuickStore = defineStore("communityQuick", () => {
     detailsError.value = null;
   }
 
+  // ---- Phase 5: channel CRUD + messages -----------------------------------
+
+  async function loadMessages(channelId: string): Promise<void> {
+    messagesLoading.value = true;
+    channelError.value = null;
+    try {
+      const list = (await api()?.invoke("channel:get-messages", channelId, {
+        limit: 100,
+      })) as ChannelMessage[] | null | undefined;
+      // Backend returns DESC; flip to chronological for UI
+      const arr = Array.isArray(list) ? [...list] : [];
+      arr.sort((a, b) => (a.created_at ?? 0) - (b.created_at ?? 0));
+      channelMessages.value = arr;
+    } catch (e) {
+      channelError.value = e instanceof Error ? e.message : String(e);
+      channelMessages.value = [];
+    } finally {
+      messagesLoading.value = false;
+    }
+  }
+
+  async function selectChannel(channelId: string): Promise<void> {
+    selectedChannelId.value = channelId;
+    channelMessages.value = [];
+    await loadMessages(channelId);
+  }
+
+  function clearSelectedChannel(): void {
+    selectedChannelId.value = null;
+    channelMessages.value = [];
+    channelError.value = null;
+  }
+
+  async function sendMessage(content: string): Promise<boolean> {
+    if (!selectedChannelId.value) {
+      channelError.value = "请先选择一个频道";
+      return false;
+    }
+    const trimmed = content.trim();
+    if (!trimmed) {
+      return false;
+    }
+    sendingMessage.value = true;
+    channelError.value = null;
+    try {
+      const message = (await api()?.invoke("channel:send-message", {
+        channelId: selectedChannelId.value,
+        content: trimmed,
+        messageType: "text",
+      })) as ChannelMessage | null | undefined;
+      if (message && typeof message === "object") {
+        channelMessages.value = [...channelMessages.value, message];
+      } else {
+        await loadMessages(selectedChannelId.value);
+      }
+      return true;
+    } catch (e) {
+      channelError.value = e instanceof Error ? e.message : String(e);
+      return false;
+    } finally {
+      sendingMessage.value = false;
+    }
+  }
+
+  async function pinMessage(messageId: string): Promise<boolean> {
+    pinningMessageId.value = messageId;
+    channelError.value = null;
+    try {
+      await api()?.invoke("channel:pin-message", messageId);
+      // Toggle locally to avoid a full reload race; DB drives the
+      // authoritative state but the UI catches up immediately.
+      channelMessages.value = channelMessages.value.map((m) =>
+        m.id === messageId ? { ...m, is_pinned: m.is_pinned ? 0 : 1 } : m,
+      );
+      return true;
+    } catch (e) {
+      channelError.value = e instanceof Error ? e.message : String(e);
+      return false;
+    } finally {
+      pinningMessageId.value = null;
+    }
+  }
+
+  async function createChannel(
+    input: CreateChannelInput,
+  ): Promise<CommunityChannel | null> {
+    if (!input.name || !input.name.trim()) {
+      channelError.value = "请输入频道名称";
+      return null;
+    }
+    creatingChannel.value = true;
+    channelError.value = null;
+    try {
+      const result = (await api()?.invoke("channel:create", {
+        communityId: input.communityId,
+        name: input.name.trim(),
+        description: input.description?.trim() || "",
+        type: input.type ?? "discussion",
+        sortOrder: input.sortOrder ?? 0,
+      })) as CommunityChannel | null | undefined;
+      await loadChannels(input.communityId);
+      return result ?? null;
+    } catch (e) {
+      channelError.value = e instanceof Error ? e.message : String(e);
+      return null;
+    } finally {
+      creatingChannel.value = false;
+    }
+  }
+
+  async function deleteChannel(
+    channelId: string,
+    communityId: string,
+  ): Promise<boolean> {
+    deletingChannelId.value = channelId;
+    channelError.value = null;
+    try {
+      await api()?.invoke("channel:delete", channelId);
+      await loadChannels(communityId);
+      if (selectedChannelId.value === channelId) {
+        clearSelectedChannel();
+      }
+      return true;
+    } catch (e) {
+      channelError.value = e instanceof Error ? e.message : String(e);
+      return false;
+    } finally {
+      deletingChannelId.value = null;
+    }
+  }
+
+  function clearChannelError(): void {
+    channelError.value = null;
+  }
+
   return {
     communities,
     loading,
@@ -371,6 +539,14 @@ export const useCommunityQuickStore = defineStore("communityQuick", () => {
     promotingDid,
     demotingDid,
     banningDid,
+    selectedChannelId,
+    channelMessages,
+    messagesLoading,
+    sendingMessage,
+    pinningMessageId,
+    creatingChannel,
+    deletingChannelId,
+    channelError,
     recent,
     joinedCount,
     loadAll,
@@ -390,5 +566,13 @@ export const useCommunityQuickStore = defineStore("communityQuick", () => {
     demoteMember,
     banMember,
     clearDetailsError,
+    selectChannel,
+    clearSelectedChannel,
+    loadMessages,
+    sendMessage,
+    pinMessage,
+    createChannel,
+    deleteChannel,
+    clearChannelError,
   };
 });

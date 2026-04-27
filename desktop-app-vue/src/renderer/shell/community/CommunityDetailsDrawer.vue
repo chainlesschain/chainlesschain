@@ -160,55 +160,268 @@
               </a-tag>
             </template>
 
-            <a-list
-              :data-source="store.viewingChannels"
-              :pagination="false"
-              size="small"
-              :locale="{ emptyText: '该社区还没有频道' }"
-            >
-              <template #renderItem="{ item }">
-                <a-list-item>
-                  <a-list-item-meta>
-                    <template #title>
-                      <span class="channel-name">{{ item.name }}</span>
-                      <a-tag :color="channelTypeColor(item.type)">
-                        {{ channelTypeLabel(item.type) }}
-                      </a-tag>
-                    </template>
-                    <template #description>
-                      <span v-if="item.description">{{
-                        item.description
-                      }}</span>
-                      <span v-else class="muted">无描述</span>
-                      <span class="muted channel-time">
-                        · 创建于 {{ formatTime(item.created_at) }}
-                      </span>
-                    </template>
-                  </a-list-item-meta>
-                </a-list-item>
-              </template>
-            </a-list>
+            <!-- List view (no channel selected) -->
+            <div v-if="!store.selectedChannelId" class="channels-list-view">
+              <div v-if="canManage" class="channels-list-header">
+                <a-button
+                  size="small"
+                  type="primary"
+                  @click="onOpenCreateChannel"
+                >
+                  <PlusOutlined /> 新建频道
+                </a-button>
+              </div>
 
-            <p class="muted hint">
-              频道消息发送 / 接收将在 Phase 5 内嵌到此面板。
-            </p>
+              <a-list
+                :data-source="store.viewingChannels"
+                :pagination="false"
+                size="small"
+                :locale="{ emptyText: '该社区还没有频道' }"
+              >
+                <template #renderItem="{ item }">
+                  <a-list-item>
+                    <a-list-item-meta>
+                      <template #title>
+                        <a class="channel-name" @click="onSelectChannel(item)">
+                          {{ item.name }}
+                        </a>
+                        <a-tag :color="channelTypeColor(item.type)">
+                          {{ channelTypeLabel(item.type) }}
+                        </a-tag>
+                      </template>
+                      <template #description>
+                        <span v-if="item.description">{{
+                          item.description
+                        }}</span>
+                        <span v-else class="muted">无描述</span>
+                        <span class="muted channel-time">
+                          · 创建于 {{ formatTime(item.created_at) }}
+                        </span>
+                      </template>
+                    </a-list-item-meta>
+                    <template #actions>
+                      <a-button
+                        size="small"
+                        type="link"
+                        @click="onSelectChannel(item)"
+                      >
+                        进入
+                      </a-button>
+                      <a-button
+                        v-if="canManage"
+                        size="small"
+                        type="link"
+                        danger
+                        :loading="store.deletingChannelId === item.id"
+                        @click="onConfirmDeleteChannel(item)"
+                      >
+                        <DeleteOutlined />
+                      </a-button>
+                    </template>
+                  </a-list-item>
+                </template>
+              </a-list>
+            </div>
+
+            <!-- Message view (channel selected) -->
+            <div v-else class="channel-message-view">
+              <div class="channel-message-header">
+                <a-button
+                  size="small"
+                  type="link"
+                  @click="store.clearSelectedChannel()"
+                >
+                  <ArrowLeftOutlined /> 返回频道列表
+                </a-button>
+                <span class="channel-active-name">
+                  {{ activeChannel?.name ?? "(未命名频道)" }}
+                </span>
+                <a-tag
+                  v-if="activeChannel?.type"
+                  :color="channelTypeColor(activeChannel.type)"
+                >
+                  {{ channelTypeLabel(activeChannel.type) }}
+                </a-tag>
+              </div>
+
+              <a-alert
+                v-if="store.channelError"
+                class="channel-error"
+                :message="store.channelError"
+                type="error"
+                show-icon
+                closable
+                @close="store.clearChannelError()"
+              />
+
+              <a-spin :spinning="store.messagesLoading">
+                <div class="message-stream">
+                  <div
+                    v-if="
+                      !store.messagesLoading &&
+                      store.channelMessages.length === 0
+                    "
+                    class="muted message-empty"
+                  >
+                    还没有消息，发送第一条消息开启对话。
+                  </div>
+                  <div
+                    v-for="m in store.channelMessages"
+                    :key="m.id"
+                    class="message-row"
+                    :class="{ 'message-pinned': m.is_pinned === 1 }"
+                  >
+                    <div class="message-meta">
+                      <span class="message-sender">
+                        {{ m.sender_nickname ?? shortDid(m.sender_did) }}
+                      </span>
+                      <span class="muted message-time">
+                        {{ formatTime(m.created_at) }}
+                      </span>
+                      <a-tag v-if="m.is_pinned === 1" color="gold" size="small">
+                        已置顶
+                      </a-tag>
+                      <span v-if="canManage" class="message-actions">
+                        <a-button
+                          size="small"
+                          type="link"
+                          :loading="store.pinningMessageId === m.id"
+                          @click="store.pinMessage(m.id)"
+                        >
+                          {{ m.is_pinned === 1 ? "取消置顶" : "置顶" }}
+                        </a-button>
+                      </span>
+                    </div>
+                    <div
+                      class="message-content"
+                      :class="
+                        m.message_type === 'system' ? 'message-system' : ''
+                      "
+                    >
+                      {{ m.content }}
+                    </div>
+                  </div>
+                </div>
+              </a-spin>
+
+              <div
+                v-if="activeChannel?.type !== 'readonly' || canManage"
+                class="message-composer"
+              >
+                <a-textarea
+                  v-model:value="composerText"
+                  placeholder="发送消息（Ctrl/⌘ + Enter）"
+                  :rows="2"
+                  :maxlength="4000"
+                  @keydown="onComposerKeyDown"
+                />
+                <div class="composer-actions">
+                  <span class="muted">
+                    {{ composerText.trim().length }} / 4000
+                  </span>
+                  <a-button
+                    type="primary"
+                    :loading="store.sendingMessage"
+                    :disabled="!composerText.trim()"
+                    @click="onSend"
+                  >
+                    <SendOutlined /> 发送
+                  </a-button>
+                </div>
+              </div>
+              <div v-else class="muted message-readonly-hint">
+                只读频道，仅管理员可发送消息。
+              </div>
+            </div>
           </a-tab-pane>
         </a-tabs>
       </div>
     </a-spin>
   </a-drawer>
+
+  <!-- Create channel sub-modal -->
+  <a-modal
+    v-model:open="createChannelOpen"
+    :width="520"
+    :confirm-loading="store.creatingChannel"
+    :mask-closable="!store.creatingChannel"
+    title="新建频道"
+    ok-text="创建"
+    cancel-text="取消"
+    @ok="onCreateChannel"
+    @cancel="onCancelCreateChannel"
+  >
+    <a-form :model="channelForm" :label-col="{ span: 5 }">
+      <a-form-item label="频道名称" required>
+        <a-input
+          v-model:value="channelForm.name"
+          placeholder="例如：general"
+          :maxlength="50"
+          show-count
+        />
+      </a-form-item>
+      <a-form-item label="简介">
+        <a-input
+          v-model:value="channelForm.description"
+          placeholder="一句话描述（可选）"
+          :maxlength="200"
+        />
+      </a-form-item>
+      <a-form-item label="类型">
+        <a-radio-group v-model:value="channelForm.type">
+          <a-radio value="discussion"> 讨论 </a-radio>
+          <a-radio value="announcement"> 公告 </a-radio>
+          <a-radio value="readonly"> 只读 </a-radio>
+          <a-radio value="subscription"> 订阅 </a-radio>
+        </a-radio-group>
+      </a-form-item>
+    </a-form>
+    <a-alert
+      v-if="store.channelError"
+      :message="store.channelError"
+      type="error"
+      show-icon
+      closable
+      @close="store.clearChannelError()"
+    />
+  </a-modal>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, reactive, ref } from "vue";
 import { Modal, message as antMessage } from "ant-design-vue";
 import {
+  ArrowLeftOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+  SendOutlined,
+} from "@ant-design/icons-vue";
+import {
   useCommunityQuickStore,
+  type CommunityChannel,
   type CommunityMember,
 } from "../../stores/communityQuick";
 
 const store = useCommunityQuickStore();
 const activeTab = ref<"members" | "channels">("members");
+const composerText = ref("");
+const createChannelOpen = ref(false);
+const channelForm = reactive({
+  name: "",
+  description: "",
+  type: "discussion" as
+    | "discussion"
+    | "announcement"
+    | "readonly"
+    | "subscription",
+});
+
+const activeChannel = computed<CommunityChannel | undefined>(() => {
+  if (!store.selectedChannelId) {
+    return undefined;
+  }
+  return store.viewingChannels.find((c) => c.id === store.selectedChannelId);
+});
 
 const community = computed(() => store.viewingCommunity);
 
@@ -404,6 +617,80 @@ function displayName(member: CommunityMember): string {
     shortDid(member.member_did)
   );
 }
+
+// ---- Phase 5: channel selection + composer + create/delete --------------
+
+async function onSelectChannel(channel: CommunityChannel): Promise<void> {
+  await store.selectChannel(channel.id);
+}
+
+async function onSend(): Promise<void> {
+  const ok = await store.sendMessage(composerText.value);
+  if (ok) {
+    composerText.value = "";
+  }
+}
+
+function onComposerKeyDown(e: KeyboardEvent): void {
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+    e.preventDefault();
+    if (!store.sendingMessage && composerText.value.trim()) {
+      onSend();
+    }
+  }
+}
+
+function onConfirmDeleteChannel(channel: CommunityChannel): void {
+  if (!store.viewingCommunityId) {
+    return;
+  }
+  Modal.confirm({
+    title: "删除频道",
+    content: `确定删除频道「${channel.name}」？此操作不可撤销，频道内所有消息会一同清除。`,
+    okText: "删除",
+    okType: "danger",
+    cancelText: "取消",
+    async onOk() {
+      const ok = await store.deleteChannel(
+        channel.id,
+        store.viewingCommunityId!,
+      );
+      if (ok) {
+        antMessage.success(`已删除频道 ${channel.name}`);
+      }
+    },
+  });
+}
+
+function onOpenCreateChannel(): void {
+  channelForm.name = "";
+  channelForm.description = "";
+  channelForm.type = "discussion";
+  store.clearChannelError();
+  createChannelOpen.value = true;
+}
+
+async function onCreateChannel(): Promise<void> {
+  if (!store.viewingCommunityId) {
+    return;
+  }
+  const result = await store.createChannel({
+    communityId: store.viewingCommunityId,
+    name: channelForm.name,
+    description: channelForm.description,
+    type: channelForm.type,
+  });
+  if (result) {
+    antMessage.success(`频道「${result.name}」已创建`);
+    createChannelOpen.value = false;
+  }
+}
+
+function onCancelCreateChannel(): void {
+  if (!store.creatingChannel) {
+    createChannelOpen.value = false;
+  }
+}
 </script>
 
 <style scoped>
@@ -474,5 +761,132 @@ function displayName(member: CommunityMember): string {
 
 .hint {
   margin-top: 8px;
+}
+
+/* Phase 5: channel page-replace + message stream + composer */
+
+.channels-list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.channels-list-header {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.channel-name {
+  font-weight: 500;
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.channel-message-view {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.channel-message-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--cc-shell-border, #eee);
+}
+
+.channel-active-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--cc-shell-text, #1f1f1f);
+  margin-left: 4px;
+}
+
+.channel-error {
+  margin: 0;
+}
+
+.message-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 8px 4px 12px;
+}
+
+.message-empty {
+  text-align: center;
+  padding: 24px 0;
+}
+
+.message-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  background: var(--cc-shell-card, #fff);
+  border: 1px solid var(--cc-shell-border, #eee);
+  border-radius: 6px;
+}
+
+.message-pinned {
+  border-left: 3px solid #faad14;
+}
+
+.message-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.message-sender {
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--cc-shell-text, #1f1f1f);
+}
+
+.message-time {
+  font-size: 11px;
+}
+
+.message-actions {
+  margin-left: auto;
+}
+
+.message-content {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--cc-shell-text, #1f1f1f);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.message-system {
+  font-style: italic;
+  color: var(--cc-shell-muted, #595959);
+}
+
+.message-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--cc-shell-border, #eee);
+}
+
+.composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.message-readonly-hint {
+  text-align: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--cc-shell-border, #eee);
 }
 </style>
