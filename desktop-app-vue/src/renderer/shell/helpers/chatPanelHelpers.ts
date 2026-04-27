@@ -53,3 +53,69 @@ export function formatChatTime(timestamp: number | string | undefined): string {
     d.getMinutes(),
   ).padStart(2, "0")}`;
 }
+
+export interface ChatExportMessage {
+  role?: "user" | "assistant" | string;
+  content?: string;
+  timestamp?: number | string;
+}
+
+/**
+ * Serialize a conversation's messages to a flat text export.
+ * Mirrors V5 ChatPanel.handleExport's format so users get the same file shape.
+ */
+export function buildExportText(
+  messages: ChatExportMessage[],
+  title?: string,
+): string {
+  const header = title ? `# ${title}\n\n` : "";
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return `${header}(empty)`;
+  }
+  const body = messages
+    .map((msg) => {
+      const role = msg.role === "user" ? "我" : "AI";
+      const time =
+        msg.timestamp !== undefined && msg.timestamp !== null
+          ? new Date(
+              typeof msg.timestamp === "number"
+                ? msg.timestamp
+                : new Date(msg.timestamp).getTime(),
+            ).toLocaleString("zh-CN")
+          : "";
+      const stamp = time ? `[${role}] ${time}` : `[${role}]`;
+      return `${stamp}\n${msg.content ?? ""}\n`;
+    })
+    .join("\n---\n\n");
+  return `${header}${body}`;
+}
+
+export interface RagEnhanceResult {
+  context?: string;
+  retrievedDocs?: Array<{ id: string; title?: string; score?: number }>;
+}
+
+/**
+ * Normalize the optional `window.electronAPI.rag.enhanceQuery` envelope so
+ * the chat panel's send path doesn't need to know its exact shape. Returns
+ * the original query when RAG is unavailable / errored / empty.
+ */
+export function extractRagContext(
+  rag: RagEnhanceResult | null | undefined,
+  fallback: string,
+): {
+  prompt: string;
+  retrievedDocs: Array<{ id: string; title?: string; score?: number }>;
+} {
+  if (
+    !rag ||
+    typeof rag.context !== "string" ||
+    rag.context.trim().length === 0
+  ) {
+    return { prompt: fallback, retrievedDocs: [] };
+  }
+  return {
+    prompt: rag.context,
+    retrievedDocs: Array.isArray(rag.retrievedDocs) ? rag.retrievedDocs : [],
+  };
+}

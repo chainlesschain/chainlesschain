@@ -120,6 +120,26 @@
             <div v-else class="message-text user-text">
               {{ msg.content }}
             </div>
+            <div
+              v-if="Array.isArray(msg.references) && msg.references.length > 0"
+              class="message-references"
+            >
+              <span class="references-label">📚 参考:</span>
+              <a-tag
+                v-for="ref in msg.references"
+                :key="ref.id"
+                color="blue"
+                size="small"
+              >
+                {{ ref.title ?? ref.id }}
+                <span
+                  v-if="typeof ref.score === 'number'"
+                  class="reference-score"
+                >
+                  · {{ Math.round(ref.score * 100) }}%
+                </span>
+              </a-tag>
+            </div>
           </div>
         </div>
 
@@ -175,6 +195,21 @@
         @keydown="onComposerKeyDown"
       />
       <div class="composer-actions">
+        <a-dropdown :trigger="['click']">
+          <a-button :disabled="isProcessing">
+            <MoreOutlined />
+          </a-button>
+          <template #overlay>
+            <a-menu @click="(e) => onMoreMenuClick(e.key)">
+              <a-menu-item key="clear">
+                <DeleteOutlined /> 清除上下文
+              </a-menu-item>
+              <a-menu-item key="export" :disabled="!canExport">
+                <ExportOutlined /> 导出对话
+              </a-menu-item>
+            </a-menu>
+          </template>
+        </a-dropdown>
         <a-button v-if="isStreaming" danger @click="onStop">
           <StopOutlined /> 停止
         </a-button>
@@ -214,12 +249,15 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { Empty } from "ant-design-vue";
+import { Empty, message as antMessage } from "ant-design-vue";
 import {
   CheckCircleOutlined,
+  DeleteOutlined,
   ExclamationCircleOutlined,
+  ExportOutlined,
   HistoryOutlined,
   MessageOutlined,
+  MoreOutlined,
   PlusOutlined,
   RobotOutlined,
   SendOutlined,
@@ -231,7 +269,12 @@ import MarkdownIt from "markdown-it";
 import { useLLMStore } from "../stores/llm";
 import { useConversationStore } from "../stores/conversation";
 import ConversationHistory from "../components/ConversationHistory.vue";
-import { chatErrorMessage, formatChatTime } from "./helpers/chatPanelHelpers";
+import {
+  buildExportText,
+  chatErrorMessage,
+  extractRagContext,
+  formatChatTime,
+} from "./helpers/chatPanelHelpers";
 
 const props = defineProps<{ open: boolean; prefillText?: string }>();
 const emit = defineEmits<{
@@ -269,6 +312,11 @@ const currentMessages = computed(() => conversationStore.currentMessages);
 
 const canSend = computed(
   () => !!inputText.value.trim() && llmStore.isAvailable && !isProcessing.value,
+);
+
+const canExport = computed(
+  () =>
+    !!conversationStore.currentConversation && currentMessages.value.length > 0,
 );
 
 watch(
@@ -355,11 +403,34 @@ async function onSend(): Promise<void> {
   isProcessing.value = true;
   const streamEnabled = llmStore.config?.streamEnabled !== false;
 
+  // Optional RAG enhancement — failure is silent (caller used original prompt)
+  let prompt = text;
+  let retrievedDocs: Array<{ id: string; title?: string; score?: number }> = [];
+  try {
+    const ragApi = (
+      window as unknown as {
+        electronAPI?: {
+          rag?: { enhanceQuery?: (q: string) => Promise<unknown> };
+        };
+      }
+    ).electronAPI?.rag?.enhanceQuery;
+    if (typeof ragApi === "function") {
+      const ragResult = (await ragApi(text)) as Parameters<
+        typeof extractRagContext
+      >[0];
+      const enhanced = extractRagContext(ragResult, text);
+      prompt = enhanced.prompt;
+      retrievedDocs = enhanced.retrievedDocs;
+    }
+  } catch {
+    // RAG failure does not break the send path
+  }
+
   try {
     if (streamEnabled) {
       isStreaming.value = true;
       streamingText.value = "";
-      await llmStore.queryStream(text, (data: { fullText?: string }) => {
+      await llmStore.queryStream(prompt, (data: { fullText?: string }) => {
         streamingText.value = data?.fullText ?? "";
         scrollToBottom();
       });
@@ -368,11 +439,12 @@ async function onSend(): Promise<void> {
         content: streamingText.value,
         timestamp: Date.now(),
         model: llmStore.currentModel,
+        references: retrievedDocs.length ? retrievedDocs : undefined,
       });
       isStreaming.value = false;
       streamingText.value = "";
     } else {
-      const response = await llmStore.query(text);
+      const response = await llmStore.query(prompt);
       const aiContent =
         typeof response === "string"
           ? response
@@ -388,6 +460,7 @@ async function onSend(): Promise<void> {
         timestamp: Date.now(),
         tokens: aiTokens,
         model: aiModel,
+        references: retrievedDocs.length ? retrievedDocs : undefined,
       });
     }
 
@@ -440,10 +513,54 @@ function onSelectConversation(
   showHistory.value = false;
 }
 
+function onMoreMenuClick(key: string): void {
+  if (key === "clear") {
+    onClearContext();
+  } else if (key === "export") {
+    onExport();
+  }
+}
+
+async function onClearContext(): Promise<void> {
+  try {
+    const clearFn = (
+      llmStore as unknown as { clearContext?: () => Promise<unknown> }
+    ).clearContext;
+    if (typeof clearFn === "function") {
+      await clearFn.call(llmStore);
+    }
+    conversationStore.createNewConversation();
+    inputText.value = "";
+    errorMessage.value = null;
+    antMessage.success("已清除上下文");
+  } catch (e) {
+    errorMessage.value = chatErrorMessage(e);
+  }
+}
+
+function onExport(): void {
+  const conv = conversationStore.currentConversation;
+  if (!conv || !canExport.value) {
+    antMessage.warning("没有可导出的对话");
+    return;
+  }
+  const text = buildExportText(currentMessages.value, conv.title);
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  const safeTitle = (conv.title ?? "对话").replace(/[\\/:*?"<>|]/g, "_");
+  a.download = `对话_${safeTitle}_${Date.now()}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+  antMessage.success("对话已导出");
+}
+
 function onNewConversation(): void {
   conversationStore.createNewConversation();
   inputText.value = "";
   errorMessage.value = null;
+  antMessage.success("已创建新对话");
 }
 
 function onQuickPrompt(prompt: string): void {
@@ -635,6 +752,30 @@ onMounted(() => {
 
 .chat-error {
   margin: 0 16px 12px 16px;
+}
+
+.message-references {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.references-label {
+  color: var(--cc-shell-muted, #999);
+  margin-right: 4px;
+}
+
+.reference-score {
+  font-family: var(
+    --cc-shell-mono,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace
+  );
+  font-size: 10px;
 }
 
 .message-text :deep(.typing-cursor) {
