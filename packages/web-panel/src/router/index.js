@@ -44,6 +44,7 @@ const routes = [
       { path: 'search',      name: 'Search',      component: () => import('../views/Search.vue') },
       { path: 'tokens',      name: 'Tokens',      component: () => import('../views/Tokens.vue') },
       { path: 'trust',       name: 'Trust',       component: () => import('../views/Trust.vue') },
+      { path: 'federation',  name: 'Federation',  component: () => import('../views/Federation.vue') },
       { path: 'marketplace', name: 'Marketplace', component: () => import('../views/Marketplace.vue') },
       { path: 'crosschain',  name: 'Crosschain',  component: () => import('../views/Crosschain.vue') },
       { path: 'aiops',       name: 'AIOps',       component: () => import('../views/AIOps.vue') },

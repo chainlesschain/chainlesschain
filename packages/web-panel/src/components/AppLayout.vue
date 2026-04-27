@@ -90,6 +90,7 @@
             <a-menu-item key="compliance"><template #icon><SafetyOutlined /></template>合规与情报</a-menu-item>
             <a-menu-item key="privacy"><template #icon><ExperimentOutlined /></template>隐私计算</a-menu-item>
             <a-menu-item key="inference"><template #icon><DeploymentUnitOutlined /></template>推理网络</a-menu-item>
+            <a-menu-item key="federation"><template #icon><ClusterOutlined /></template>联邦强化</a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="g-enterprise">
             <template #title><span class="group-label">企 业</span></template>
@@ -156,6 +157,7 @@
           <a-menu-item key="compliance"><template #icon><SafetyOutlined /></template></a-menu-item>
           <a-menu-item key="privacy"><template #icon><ExperimentOutlined /></template></a-menu-item>
           <a-menu-item key="inference"><template #icon><DeploymentUnitOutlined /></template></a-menu-item>
+          <a-menu-item key="federation"><template #icon><ClusterOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="wallet"><template #icon><WalletOutlined /></template></a-menu-item>
           <a-menu-item key="organization"><template #icon><TeamOutlined /></template></a-menu-item>
@@ -239,7 +241,7 @@ import {
   UsergroupAddOutlined, ShoppingOutlined, SwapOutlined, AlertOutlined, SafetyOutlined,
   ExperimentOutlined, DeploymentUnitOutlined, BulbOutlined, BankOutlined, PartitionOutlined,
   AuditOutlined, FileSearchOutlined, TrophyOutlined, FireOutlined, SearchOutlined,
-  NumberOutlined,
+  NumberOutlined, ClusterOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'

@@ -22,12 +22,12 @@ import { parseProviders, parseStatus, KNOWN_PROVIDERS } from '../../src/utils/pa
 // ─── Router registration ─────────────────────────────────────────────────────
 
 describe('Router registration', () => {
-  it('has exactly 49 child routes under root', async () => {
+  it('has exactly 50 child routes under root', async () => {
     const routerModule = await import('../../src/router/index.js')
     const router = routerModule.default
     const rootRoute = router.options.routes[0]
-    // 1 redirect + 48 named pages = 49 children
-    expect(rootRoute.children.length).toBe(49)
+    // 1 redirect + 49 named pages = 50 children
+    expect(rootRoute.children.length).toBe(50)
   })
 
   it('contains all expected route names', async () => {
@@ -42,7 +42,7 @@ describe('Router registration', () => {
       'Permissions', 'Wallet', 'Organization', 'Analytics',
       'Templates', 'Backup', 'RssFeed', 'WebAuthn', 'Community', 'Marketplace',
       'Crosschain', 'AIOps', 'Compliance', 'Privacy', 'Inference',
-      'NLProgramming', 'Tenant', 'Pipeline', 'Governance', 'Audit', 'Reputation', 'Recommend', 'Sla', 'Codegen', 'Search', 'Tokens', 'Trust', 'VideoEditing',
+      'NLProgramming', 'Tenant', 'Pipeline', 'Governance', 'Audit', 'Reputation', 'Recommend', 'Sla', 'Codegen', 'Search', 'Tokens', 'Trust', 'Federation', 'VideoEditing',
     ]
     for (const name of expected) {
       expect(names).toContain(name)
@@ -281,6 +281,15 @@ describe('Router registration', () => {
     const tRoute = rootRoute.children.find(r => r.name === 'Trust')
     expect(tRoute).toBeDefined()
     expect(tRoute.path).toBe('trust')
+  })
+
+  it('maps Federation to /federation path', async () => {
+    const routerModule = await import('../../src/router/index.js')
+    const router = routerModule.default
+    const rootRoute = router.options.routes[0]
+    const fRoute = rootRoute.children.find(r => r.name === 'Federation')
+    expect(fRoute).toBeDefined()
+    expect(fRoute.path).toBe('federation')
   })
 
   it('has redirect from / to /dashboard', async () => {
