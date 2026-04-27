@@ -87,6 +87,27 @@
               </a-button>
             </a-space>
           </a-descriptions-item>
+
+          <a-descriptions-item label="助记词备份">
+            <a-space wrap>
+              <a-tag :color="hasMnemonic ? 'success' : 'warning'">
+                <SafetyOutlined v-if="hasMnemonic" />
+                <WarningOutlined v-else />
+                {{ hasMnemonic ? "已备份" : "未备份" }}
+              </a-tag>
+              <a-button
+                v-if="hasMnemonic"
+                type="primary"
+                danger
+                size="small"
+                :loading="store.exportingMnemonicDid === store.viewingDid"
+                @click="onExportMnemonic"
+              >
+                <KeyOutlined /> 导出助记词
+              </a-button>
+              <span v-else class="muted"> 创建时未生成助记词，无法导出 </span>
+            </a-space>
+          </a-descriptions-item>
         </a-descriptions>
 
         <a-alert
@@ -147,16 +168,61 @@
       </a-button>
     </div>
   </a-modal>
+
+  <!-- Mnemonic export sub-modal -->
+  <a-modal
+    v-model:open="exportOpen"
+    :width="640"
+    :footer="null"
+    :mask-closable="false"
+    title="导出助记词"
+  >
+    <a-alert
+      message="请确保周围环境安全！"
+      description="助记词一旦泄露，您的身份将面临安全风险。请确认没有摄像头或他人在场，复制完毕后建议关闭此面板。"
+      type="error"
+      show-icon
+      style="margin-bottom: 16px"
+    />
+
+    <div class="mnemonic-grid">
+      <div v-for="(word, i) in exportWords" :key="i" class="mnemonic-word">
+        <span class="word-number">{{ i + 1 }}</span>
+        <span class="word-text">{{ word }}</span>
+      </div>
+    </div>
+
+    <a-divider />
+
+    <div class="mnemonic-full">
+      <a-typography-paragraph :copyable="{ text: exportedMnemonic }">
+        <code>{{ exportedMnemonic }}</code>
+      </a-typography-paragraph>
+    </div>
+
+    <a-space style="margin-top: 12px; justify-content: center; width: 100%">
+      <a-button type="primary" @click="onCopyExported">
+        <CopyOutlined /> 复制助记词
+      </a-button>
+      <a-button @click="onDownloadExported">
+        <DownloadOutlined /> 下载备份
+      </a-button>
+      <a-button danger @click="onCloseExport"> 关闭 </a-button>
+    </a-space>
+  </a-modal>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, h, nextTick, ref, watch } from "vue";
 import { Modal, message as antMessage } from "ant-design-vue";
 import {
   CopyOutlined,
   DownloadOutlined,
   FileTextOutlined,
+  KeyOutlined,
   QrcodeOutlined,
+  SafetyOutlined,
+  WarningOutlined,
 } from "@ant-design/icons-vue";
 import QRCode from "qrcode";
 import { useDIDManagementStore } from "../../stores/didManagement";
@@ -167,6 +233,8 @@ const loadingDoc = ref(false);
 const qrOpen = ref(false);
 const qrRendered = ref(false);
 const qrcodeContainer = ref<HTMLDivElement | null>(null);
+const exportOpen = ref(false);
+const exportedMnemonic = ref("");
 
 const identity = computed(() => store.viewingIdentity);
 
@@ -191,6 +259,14 @@ const isPublished = computed(() => {
   const did = store.viewingDid;
   return did ? store.publishStatus[did] === true : false;
 });
+const hasMnemonic = computed(() => {
+  const did = store.viewingDid;
+  return did ? store.mnemonicBackupStatus[did] === true : false;
+});
+
+const exportWords = computed<string[]>(() =>
+  exportedMnemonic.value.split(/\s+/).filter(Boolean),
+);
 
 const documentJson = computed(() =>
   store.viewingDocument == null
@@ -204,6 +280,8 @@ watch(
     if (!did) {
       qrOpen.value = false;
       qrRendered.value = false;
+      exportOpen.value = false;
+      exportedMnemonic.value = "";
     }
   },
 );
@@ -368,6 +446,62 @@ function onSaveQR(): void {
     antMessage.success("二维码已保存");
   });
 }
+
+function onExportMnemonic(): void {
+  if (!store.viewingDid) {
+    return;
+  }
+  Modal.confirm({
+    title: "导出助记词",
+    content:
+      "助记词是恢复身份的唯一凭证，泄露将导致身份完全失控。请确认周围环境安全，确定要导出吗？",
+    icon: h(WarningOutlined),
+    okText: "确定导出",
+    okType: "danger",
+    cancelText: "取消",
+    async onOk() {
+      const result = await store.exportMnemonic(store.viewingDid!);
+      if (!result) {
+        antMessage.warning(
+          store.detailsError ?? "该身份没有助记词备份，无法导出",
+        );
+        return;
+      }
+      exportedMnemonic.value = result;
+      exportOpen.value = true;
+    },
+  });
+}
+
+async function onCopyExported(): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(exportedMnemonic.value);
+    antMessage.success("助记词已复制到剪贴板");
+  } catch (e) {
+    antMessage.error(`复制失败: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+function onDownloadExported(): void {
+  if (!exportedMnemonic.value) {
+    return;
+  }
+  const nick =
+    pickString(identity.value, ["nickname", "displayName"]) || "identity";
+  const blob = new Blob([exportedMnemonic.value], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `mnemonic-${nick}-${Date.now()}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+  antMessage.success("助记词已下载");
+}
+
+function onCloseExport(): void {
+  exportOpen.value = false;
+  exportedMnemonic.value = "";
+}
 </script>
 
 <style scoped>
@@ -424,5 +558,60 @@ function onSaveQR(): void {
   justify-content: center;
   align-items: center;
   min-height: 260px;
+}
+
+.mnemonic-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.mnemonic-word {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--cc-shell-sider-bg, #fafafa);
+  border: 1px solid var(--cc-shell-border, #e8e8e8);
+  border-radius: 4px;
+}
+
+.word-number {
+  font-size: 12px;
+  color: var(--cc-shell-muted, #999);
+  font-weight: 600;
+  min-width: 22px;
+}
+
+.word-text {
+  font-size: 14px;
+  font-family: var(
+    --cc-shell-mono,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace
+  );
+  font-weight: 500;
+  color: var(--cc-shell-text, #1f1f1f);
+}
+
+.mnemonic-full {
+  background: var(--cc-shell-card, #fafafa);
+  padding: 12px 16px;
+  border-radius: 4px;
+  border: 1px dashed var(--cc-shell-border, #d9d9d9);
+}
+
+.mnemonic-full code {
+  word-break: break-all;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+@media (max-width: 768px) {
+  .mnemonic-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 </style>

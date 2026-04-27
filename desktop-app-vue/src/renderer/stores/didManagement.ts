@@ -1,11 +1,11 @@
 /**
  * DID Management Store
  * Wraps the did:* IPC channels exposed by src/main/did/did-ipc.js.
- * Phase 4 of the V6 page port — covers list/setDefault/delete + DHT
- * publish-status read + create-identity wizard + details drawer with
- * DHT publish/unpublish + DID document viewer + QR data fetch. Mnemonic
- * export and auto-republish land in Phase 5-6.
- * @version 1.3.0
+ * Phase 5 of the V6 page port — covers list/setDefault/delete + DHT
+ * publish-status read + create-identity wizard + details drawer +
+ * mnemonic backup status + export-mnemonic. Auto-republish lands in
+ * Phase 6.
+ * @version 1.4.0
  */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
@@ -63,6 +63,9 @@ export const useDIDManagementStore = defineStore("didManagement", () => {
   const detailsError = ref<string | null>(null);
   const publishingDid = ref<string | null>(null);
   const unpublishingDid = ref<string | null>(null);
+
+  const mnemonicBackupStatus = ref<Record<string, boolean>>({});
+  const exportingMnemonicDid = ref<string | null>(null);
 
   const defaultIdentity = computed(() => {
     if (currentDid.value) {
@@ -363,6 +366,55 @@ export const useDIDManagementStore = defineStore("didManagement", () => {
     detailsError.value = null;
   }
 
+  // ---- Phase 5: mnemonic backup status + export ----------------------------
+
+  async function loadMnemonicBackupStatus(): Promise<void> {
+    if (identities.value.length === 0) {
+      mnemonicBackupStatus.value = {};
+      return;
+    }
+    const entries = await Promise.all(
+      identities.value.map(async (id) => {
+        try {
+          const has = (await api()?.invoke("did:has-mnemonic", id.did)) as
+            | boolean
+            | null
+            | undefined;
+          return [id.did, has === true] as const;
+        } catch {
+          return [id.did, false] as const;
+        }
+      }),
+    );
+    mnemonicBackupStatus.value = Object.fromEntries(entries);
+  }
+
+  async function exportMnemonic(did: string): Promise<string | null> {
+    detailsError.value = null;
+    exportingMnemonicDid.value = did;
+    try {
+      const result = (await api()?.invoke("did:export-mnemonic", did)) as
+        | string
+        | null
+        | undefined;
+      if (typeof result !== "string" || result.trim().length === 0) {
+        return null;
+      }
+      // Surfacing a known-good backup also flips the cached status so the
+      // UI doesn't lag behind for this row.
+      mnemonicBackupStatus.value = {
+        ...mnemonicBackupStatus.value,
+        [did]: true,
+      };
+      return result;
+    } catch (e) {
+      detailsError.value = e instanceof Error ? e.message : String(e);
+      return null;
+    } finally {
+      exportingMnemonicDid.value = null;
+    }
+  }
+
   return {
     identities,
     currentDid,
@@ -382,6 +434,8 @@ export const useDIDManagementStore = defineStore("didManagement", () => {
     detailsError,
     publishingDid,
     unpublishingDid,
+    mnemonicBackupStatus,
+    exportingMnemonicDid,
     defaultIdentity,
     loadAll,
     loadPublishStatus,
@@ -403,5 +457,7 @@ export const useDIDManagementStore = defineStore("didManagement", () => {
     unpublishFromDHT,
     generateQRData,
     clearDetailsError,
+    loadMnemonicBackupStatus,
+    exportMnemonic,
   };
 });

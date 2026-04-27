@@ -188,7 +188,10 @@ watch(
   async (isOpen) => {
     if (isOpen && !store.hasLoaded) {
       await store.loadAll();
-      await store.loadPublishStatus();
+      await Promise.all([
+        store.loadPublishStatus(),
+        store.loadMnemonicBackupStatus(),
+      ]);
     }
   },
 );
@@ -240,7 +243,10 @@ function confirmDelete(identity: IdentitySummary): void {
       deletingDid.value = null;
       if (ok) {
         antMessage.success(`已删除 ${identity.displayName ?? "身份"}`);
-        await store.loadPublishStatus();
+        await Promise.all([
+          store.loadPublishStatus(),
+          store.loadMnemonicBackupStatus(),
+        ]);
       }
     },
   });

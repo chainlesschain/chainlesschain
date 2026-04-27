@@ -618,4 +618,109 @@ describe("useDIDManagementStore (Phase 2)", () => {
     expect(store.error).toBe("other");
     expect(store.creationError).toBe("third");
   });
+
+  // ---- Phase 5: mnemonic backup status + export ---------------------------
+
+  it("loadMnemonicBackupStatus() invokes per-identity and writes status map", async () => {
+    invoke.mockImplementation((channel: string, did?: string) => {
+      if (channel === "did:has-mnemonic") {
+        return Promise.resolve(did === "did:cc:a");
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    store.$patch({
+      identities: [{ did: "did:cc:a" }, { did: "did:cc:b" }],
+    });
+    await store.loadMnemonicBackupStatus();
+
+    expect(invoke).toHaveBeenCalledWith("did:has-mnemonic", "did:cc:a");
+    expect(invoke).toHaveBeenCalledWith("did:has-mnemonic", "did:cc:b");
+    expect(store.mnemonicBackupStatus).toEqual({
+      "did:cc:a": true,
+      "did:cc:b": false,
+    });
+  });
+
+  it("loadMnemonicBackupStatus() falls back to false on per-id IPC failure", async () => {
+    invoke.mockImplementation((channel: string, did?: string) => {
+      if (channel === "did:has-mnemonic") {
+        if (did === "did:cc:a") {
+          return Promise.reject(new Error("read fail"));
+        }
+        return Promise.resolve(true);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    store.$patch({
+      identities: [{ did: "did:cc:a" }, { did: "did:cc:b" }],
+    });
+    await store.loadMnemonicBackupStatus();
+
+    expect(store.mnemonicBackupStatus["did:cc:a"]).toBe(false);
+    expect(store.mnemonicBackupStatus["did:cc:b"]).toBe(true);
+  });
+
+  it("loadMnemonicBackupStatus() resets to {} when identity list empty", async () => {
+    const store = useDIDManagementStore();
+    store.$patch({ mnemonicBackupStatus: { stale: true } });
+    await store.loadMnemonicBackupStatus();
+    expect(store.mnemonicBackupStatus).toEqual({});
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("exportMnemonic() returns the phrase and flips backup status to true", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:export-mnemonic") {
+        return Promise.resolve("twelve real words real real real real");
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    store.$patch({ mnemonicBackupStatus: { "did:cc:x": false } });
+    const result = await store.exportMnemonic("did:cc:x");
+
+    expect(result).toBe("twelve real words real real real real");
+    expect(store.mnemonicBackupStatus["did:cc:x"]).toBe(true);
+    expect(store.exportingMnemonicDid).toBeNull();
+    expect(store.detailsError).toBeNull();
+  });
+
+  it("exportMnemonic() returns null when backend has no backup (empty string)", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:export-mnemonic") {
+        return Promise.resolve("");
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    store.$patch({ mnemonicBackupStatus: { "did:cc:x": false } });
+    const result = await store.exportMnemonic("did:cc:x");
+
+    expect(result).toBeNull();
+    // status map should NOT flip to true on a no-backup result
+    expect(store.mnemonicBackupStatus["did:cc:x"]).toBe(false);
+    expect(store.exportingMnemonicDid).toBeNull();
+  });
+
+  it("exportMnemonic() captures error and returns null", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:export-mnemonic") {
+        return Promise.reject(new Error("locked"));
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    const result = await store.exportMnemonic("did:cc:x");
+
+    expect(result).toBeNull();
+    expect(store.detailsError).toBe("locked");
+    expect(store.exportingMnemonicDid).toBeNull();
+  });
 });
