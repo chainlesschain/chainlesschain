@@ -35,6 +35,7 @@ const routes = [
       { path: 'rssfeed',     name: 'RssFeed',     component: () => import('../views/RssFeed.vue') },
       { path: 'webauthn',    name: 'WebAuthn',    component: () => import('../views/WebAuthn.vue') },
       { path: 'community',   name: 'Community',   component: () => import('../views/Community.vue') },
+      { path: 'governance',  name: 'Governance',  component: () => import('../views/Governance.vue') },
       { path: 'marketplace', name: 'Marketplace', component: () => import('../views/Marketplace.vue') },
       { path: 'crosschain',  name: 'Crosschain',  component: () => import('../views/Crosschain.vue') },
       { path: 'aiops',       name: 'AIOps',       component: () => import('../views/AIOps.vue') },

@@ -122,9 +122,9 @@ describe('chainlesschain ui — basic startup and SPA routes', () => {
     expect(r.body).toContain('__CC_CONFIG__')
   })
 
-  // All 34 hash-based SPA routes — the server just returns index.html for all
-  // (router count assertion in __tests__/unit/new-pages.test.js → 35
-  // children; we exclude the redirect-only `/` entry, leaving 34 named).
+  // Hash-based SPA routes — the server just returns index.html for all.
+  // (router count assertion in __tests__/unit/new-pages.test.js → 41
+  // children; we exclude the redirect-only `/` entry. Subset coverage here.)
   const SPA_ROUTES = [
     '/dashboard', '/chat', '/cowork', '/services', '/logs', '/aiops',
     '/skills', '/providers', '/mcp', '/project-settings',
@@ -132,7 +132,7 @@ describe('chainlesschain ui — basic startup and SPA routes', () => {
     '/security', '/did', '/permissions', '/p2p', '/backup', '/git', '/projects',
     '/crosschain', '/compliance',
     '/wallet', '/organization', '/analytics', '/templates',
-    '/community',
+    '/community', '/governance',
     '/video',
     '/rssfeed', '/webauthn',
   ]
