@@ -51,6 +51,7 @@
             <a-menu-item key="cowork"><template #icon><RocketOutlined /></template>日常协作</a-menu-item>
             <a-menu-item key="services"><template #icon><ControlOutlined /></template>服务管理</a-menu-item>
             <a-menu-item key="aiops"><template #icon><AlertOutlined /></template>AIOps</a-menu-item>
+            <a-menu-item key="tokens"><template #icon><NumberOutlined /></template>Token 用量</a-menu-item>
             <a-menu-item key="logs"><template #icon><FileTextOutlined /></template>日志查看</a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="g-config">
@@ -121,6 +122,7 @@
           <a-menu-item key="cowork"><template #icon><RocketOutlined /></template></a-menu-item>
           <a-menu-item key="services"><template #icon><ControlOutlined /></template></a-menu-item>
           <a-menu-item key="aiops"><template #icon><AlertOutlined /></template></a-menu-item>
+          <a-menu-item key="tokens"><template #icon><NumberOutlined /></template></a-menu-item>
           <a-menu-item key="logs"><template #icon><FileTextOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="skills"><template #icon><AppstoreOutlined /></template></a-menu-item>
@@ -235,6 +237,7 @@ import {
   UsergroupAddOutlined, ShoppingOutlined, SwapOutlined, AlertOutlined, SafetyOutlined,
   ExperimentOutlined, DeploymentUnitOutlined, BulbOutlined, BankOutlined, PartitionOutlined,
   AuditOutlined, FileSearchOutlined, TrophyOutlined, FireOutlined, SearchOutlined,
+  NumberOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'

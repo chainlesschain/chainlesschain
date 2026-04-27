@@ -42,6 +42,7 @@ const routes = [
       { path: 'sla',         name: 'Sla',         component: () => import('../views/Sla.vue') },
       { path: 'codegen',     name: 'Codegen',     component: () => import('../views/Codegen.vue') },
       { path: 'search',      name: 'Search',      component: () => import('../views/Search.vue') },
+      { path: 'tokens',      name: 'Tokens',      component: () => import('../views/Tokens.vue') },
       { path: 'marketplace', name: 'Marketplace', component: () => import('../views/Marketplace.vue') },
       { path: 'crosschain',  name: 'Crosschain',  component: () => import('../views/Crosschain.vue') },
       { path: 'aiops',       name: 'AIOps',       component: () => import('../views/AIOps.vue') },
