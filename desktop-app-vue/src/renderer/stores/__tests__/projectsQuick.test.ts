@@ -317,4 +317,117 @@ describe("useProjectsQuickStore (Phase 2)", () => {
     expect(store.createError).toBeNull();
     expect(store.error).toBe("main");
   });
+
+  // ---- Phase 4: rename modal ----------------------------------------------
+
+  it("initial state for rename wizard fields", () => {
+    const store = useProjectsQuickStore();
+    expect(store.renameOpen).toBe(false);
+    expect(store.renaming).toBe(false);
+    expect(store.renameError).toBeNull();
+    expect(store.renamingProject).toBeNull();
+  });
+
+  it("openRenameForm() captures the project + flips flag", () => {
+    const store = useProjectsQuickStore();
+    store.$patch({ renameError: "old" });
+    store.openRenameForm({ id: "p1", name: "Original" });
+    expect(store.renameOpen).toBe(true);
+    expect(store.renamingProject?.id).toBe("p1");
+    expect(store.renameError).toBeNull();
+  });
+
+  it("closeRenameForm() resets flag + project + error", () => {
+    const store = useProjectsQuickStore();
+    store.openRenameForm({ id: "p1", name: "X" });
+    store.closeRenameForm();
+    expect(store.renameOpen).toBe(false);
+    expect(store.renamingProject).toBeNull();
+    expect(store.renameError).toBeNull();
+  });
+
+  it("closeRenameForm() refuses while renaming", () => {
+    const store = useProjectsQuickStore();
+    store.$patch({
+      renameOpen: true,
+      renamingProject: { id: "p1" },
+      renaming: true,
+    });
+    store.closeRenameForm();
+    expect(store.renameOpen).toBe(true);
+    expect(store.renamingProject?.id).toBe("p1");
+  });
+
+  it("renameProject() success invokes IPC and reloads list", async () => {
+    invoke.mockImplementation((channel: string, ...args: unknown[]) => {
+      if (channel === "project:update") {
+        expect(args[0]).toBe("p1");
+        expect(args[1]).toEqual({ name: "Renamed" });
+        return Promise.resolve({ success: true });
+      }
+      if (channel === "project:get-all") {
+        return Promise.resolve({
+          projects: [{ id: "p1", name: "Renamed" }],
+          total: 1,
+        });
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useProjectsQuickStore();
+    store.openRenameForm({ id: "p1", name: "Original" });
+    const ok = await store.renameProject("p1", "  Renamed  ");
+    expect(ok).toBe(true);
+    expect(store.renameOpen).toBe(false);
+    expect(store.renamingProject).toBeNull();
+    expect(store.renaming).toBe(false);
+    expect(store.projects[0]?.name).toBe("Renamed");
+  });
+
+  it("renameProject() rejects empty name without IPC", async () => {
+    const store = useProjectsQuickStore();
+    const ok = await store.renameProject("p1", "  ");
+    expect(ok).toBe(false);
+    expect(store.renameError).toMatch(/名称/);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("renameProject() rejects names over 100 chars", async () => {
+    const store = useProjectsQuickStore();
+    const ok = await store.renameProject("p1", "x".repeat(101));
+    expect(ok).toBe(false);
+    expect(store.renameError).toMatch(/100/);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("renameProject() captures backend error and stays open", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "project:update") {
+        return Promise.reject(new Error("conflict"));
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useProjectsQuickStore();
+    store.openRenameForm({ id: "p1", name: "Original" });
+    const ok = await store.renameProject("p1", "Renamed");
+    expect(ok).toBe(false);
+    expect(store.renameError).toBe("conflict");
+    expect(store.renameOpen).toBe(true);
+    expect(store.renamingProject?.id).toBe("p1");
+    expect(store.renaming).toBe(false);
+  });
+
+  it("clearRenameError() resets only renameError", () => {
+    const store = useProjectsQuickStore();
+    store.$patch({
+      renameError: "boom",
+      error: "main",
+      createError: "third",
+    });
+    store.clearRenameError();
+    expect(store.renameError).toBeNull();
+    expect(store.error).toBe("main");
+    expect(store.createError).toBe("third");
+  });
 });

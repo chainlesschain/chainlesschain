@@ -2,16 +2,16 @@
  * Projects Quick Store
  * Wraps `project:get-all` / `project:delete` / `project:create-quick`
  * (and later update for rename) IPC channels for the V6 shell panel.
- * Phase 3 of the V6 page port (路线 D) — list + delete + quick-create
- * wizard. Phase 4 adds rename + per-row dropdown menu; Phase 5 marks
- * the V5 `components/ProjectSidebar.vue` (773 lines) entry as deprecated.
+ * Phase 4 of the V6 page port (路线 D) — list + delete + quick-create
+ * wizard + rename. Phase 5 marks the V5 `components/ProjectSidebar.vue`
+ * (773 lines) entry as deprecated.
  *
  * Field shape note: project:get-all returns sqlite snake_case rows
  * envelope-wrapped in {projects, total, hasMore}. Each row carries id /
  * name / description / project_type ('web' | 'document' | 'data' | 'app') /
  * status / created_at / updated_at + optional metadata. The V6 panel
  * matches V5 ProjectSidebar's project_type → icon map.
- * @version 1.2.0
+ * @version 1.3.0
  */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
@@ -63,6 +63,11 @@ export const useProjectsQuickStore = defineStore("projectsQuick", () => {
   const createOpen = ref(false);
   const creating = ref(false);
   const createError = ref<string | null>(null);
+
+  const renameOpen = ref(false);
+  const renamingProject = ref<ProjectSummary | null>(null);
+  const renaming = ref(false);
+  const renameError = ref<string | null>(null);
 
   const recent = computed(() => projects.value.slice(0, RECENT_LIMIT));
 
@@ -182,6 +187,54 @@ export const useProjectsQuickStore = defineStore("projectsQuick", () => {
     createError.value = null;
   }
 
+  // ---- Phase 4: rename modal ----------------------------------------------
+
+  function openRenameForm(project: ProjectSummary): void {
+    renamingProject.value = project;
+    renameOpen.value = true;
+    renameError.value = null;
+  }
+
+  function closeRenameForm(): void {
+    if (renaming.value) {
+      return;
+    }
+    renameOpen.value = false;
+    renamingProject.value = null;
+    renameError.value = null;
+  }
+
+  async function renameProject(id: string, name: string): Promise<boolean> {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      renameError.value = "请输入项目名称";
+      return false;
+    }
+    if (trimmed.length > 100) {
+      renameError.value = "项目名称不能超过 100 个字符";
+      return false;
+    }
+
+    renaming.value = true;
+    renameError.value = null;
+    try {
+      await api()?.invoke("project:update", id, { name: trimmed });
+      await loadAll();
+      renameOpen.value = false;
+      renamingProject.value = null;
+      return true;
+    } catch (e) {
+      renameError.value = e instanceof Error ? e.message : String(e);
+      return false;
+    } finally {
+      renaming.value = false;
+    }
+  }
+
+  function clearRenameError(): void {
+    renameError.value = null;
+  }
+
   return {
     projects,
     total,
@@ -193,6 +246,10 @@ export const useProjectsQuickStore = defineStore("projectsQuick", () => {
     createOpen,
     creating,
     createError,
+    renameOpen,
+    renamingProject,
+    renaming,
+    renameError,
     recent,
     filteredProjects,
     loadRecent,
@@ -203,5 +260,9 @@ export const useProjectsQuickStore = defineStore("projectsQuick", () => {
     closeCreateForm,
     createProject,
     clearCreateError,
+    openRenameForm,
+    closeRenameForm,
+    renameProject,
+    clearRenameError,
   };
 });

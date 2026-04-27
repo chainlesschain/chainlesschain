@@ -78,15 +78,29 @@
             <a-button size="small" type="link" @click="onOpenProject(p)">
               打开
             </a-button>
-            <a-button
-              size="small"
-              type="link"
-              danger
-              :loading="store.deletingId === p.id"
-              @click="confirmDelete(p)"
-            >
-              <DeleteOutlined />
-            </a-button>
+            <a-dropdown :trigger="['click']">
+              <a-button
+                size="small"
+                type="link"
+                :loading="
+                  store.deletingId === p.id ||
+                  store.renamingProject?.id === p.id
+                "
+              >
+                <MoreOutlined />
+              </a-button>
+              <template #overlay>
+                <a-menu @click="(e) => onMenuClick(e.key, p)">
+                  <a-menu-item key="rename">
+                    <EditOutlined /> 重命名
+                  </a-menu-item>
+                  <a-menu-divider />
+                  <a-menu-item key="delete" danger>
+                    <DeleteOutlined /> 删除
+                  </a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown>
           </div>
         </li>
       </ul>
@@ -131,6 +145,7 @@
   </a-modal>
 
   <CreateProjectWizard />
+  <RenameProjectModal />
 </template>
 
 <script setup lang="ts">
@@ -141,8 +156,10 @@ import {
   AppstoreOutlined,
   DatabaseOutlined,
   DeleteOutlined,
+  EditOutlined,
   FileTextOutlined,
   GlobalOutlined,
+  MoreOutlined,
   ProjectOutlined,
   SearchOutlined,
 } from "@ant-design/icons-vue";
@@ -151,6 +168,7 @@ import {
   type ProjectSummary,
 } from "../stores/projectsQuick";
 import CreateProjectWizard from "./projects/CreateProjectWizard.vue";
+import RenameProjectModal from "./projects/RenameProjectModal.vue";
 
 interface ProjectAction {
   id: string;
@@ -296,6 +314,14 @@ function confirmDelete(p: ProjectSummary): void {
       }
     },
   });
+}
+
+function onMenuClick(key: string, p: ProjectSummary): void {
+  if (key === "rename") {
+    store.openRenameForm(p);
+  } else if (key === "delete") {
+    confirmDelete(p);
+  }
 }
 
 function run(action: ProjectAction): void {
