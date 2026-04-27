@@ -1,9 +1,9 @@
 /**
  * Community Quick Store
  * Wraps the community:* / channel:* / governance:* / moderation:* IPC
- * channels exposed by src/main/social/community-ipc.js. Phase 5 of the
- * V6 page port — adds channel CRUD + message list + send + pin (the
- * heaviest single phase). Governance + moderation land in Phase 6.
+ * channels exposed by src/main/social/community-ipc.js. Phase 6 of the
+ * V6 page port — adds DAO governance (proposals + votes) and content
+ * moderation (review queue) tabs. Phase 7 marks V5 entry as deprecated.
  *
  * V5 page (`pages/CommunityPage.vue`) keeps using its own
  * `useCommunityStore` from `community.ts`; this store is V6-only.
@@ -90,6 +90,62 @@ export interface CreateChannelInput {
   sortOrder?: number;
 }
 
+export interface GovernanceProposal {
+  id: string;
+  community_id: string;
+  proposer_did: string;
+  title: string;
+  description?: string;
+  proposal_type?:
+    | "rule_change"
+    | "role_change"
+    | "ban"
+    | "channel"
+    | "other"
+    | string;
+  status?:
+    | "discussion"
+    | "voting"
+    | "passed"
+    | "rejected"
+    | "executed"
+    | string;
+  discussion_end?: number;
+  voting_end?: number;
+  created_at?: number;
+  updated_at?: number;
+  [key: string]: unknown;
+}
+
+export interface CreateProposalInput {
+  communityId: string;
+  title: string;
+  description?: string;
+  proposalType?: "rule_change" | "role_change" | "ban" | "channel" | "other";
+  discussionHours?: number;
+  votingHours?: number;
+}
+
+export type VoteChoice = "approve" | "reject" | "abstain";
+
+export interface ModerationReport {
+  id: string;
+  community_id: string;
+  content_id: string;
+  content_type?: "message" | "post" | "comment" | string;
+  reporter_did?: string;
+  moderator_did?: string | null;
+  action?: "approved" | "removed" | "warning" | "escalated" | string | null;
+  reason?: string;
+  ai_score?: number | null;
+  status?: "pending" | "reviewed" | "resolved" | string;
+  created_at?: number;
+  resolved_at?: number | null;
+  [key: string]: unknown;
+}
+
+export type ModerationAction = "approved" | "removed" | "warning" | "escalated";
+
 interface ElectronApi {
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
 }
@@ -132,6 +188,19 @@ export const useCommunityQuickStore = defineStore("communityQuick", () => {
   const creatingChannel = ref(false);
   const deletingChannelId = ref<string | null>(null);
   const channelError = ref<string | null>(null);
+
+  const viewingProposals = ref<GovernanceProposal[]>([]);
+  const proposalsLoaded = ref(false);
+  const proposalsLoading = ref(false);
+  const creatingProposal = ref(false);
+  const votingProposalId = ref<string | null>(null);
+  const governanceError = ref<string | null>(null);
+
+  const viewingModerationLog = ref<ModerationReport[]>([]);
+  const moderationLoaded = ref(false);
+  const moderationLoading = ref(false);
+  const reviewingReportId = ref<string | null>(null);
+  const moderationError = ref<string | null>(null);
 
   const recent = computed(() => communities.value.slice(0, RECENT_LIMIT));
   // community:get-list is already pre-filtered to the caller's joined
@@ -315,6 +384,12 @@ export const useCommunityQuickStore = defineStore("communityQuick", () => {
     selectedChannelId.value = null;
     channelMessages.value = [];
     channelError.value = null;
+    viewingProposals.value = [];
+    proposalsLoaded.value = false;
+    governanceError.value = null;
+    viewingModerationLog.value = [];
+    moderationLoaded.value = false;
+    moderationError.value = null;
   }
 
   async function promoteMember(
@@ -519,6 +594,125 @@ export const useCommunityQuickStore = defineStore("communityQuick", () => {
     channelError.value = null;
   }
 
+  // ---- Phase 6: governance + moderation -----------------------------------
+
+  async function loadProposals(communityId: string): Promise<void> {
+    proposalsLoading.value = true;
+    governanceError.value = null;
+    try {
+      const list = (await api()?.invoke(
+        "governance:get-proposals",
+        communityId,
+      )) as GovernanceProposal[] | null | undefined;
+      viewingProposals.value = Array.isArray(list) ? list : [];
+      proposalsLoaded.value = true;
+    } catch (e) {
+      governanceError.value = e instanceof Error ? e.message : String(e);
+      viewingProposals.value = [];
+    } finally {
+      proposalsLoading.value = false;
+    }
+  }
+
+  async function createProposal(
+    input: CreateProposalInput,
+  ): Promise<GovernanceProposal | null> {
+    if (!input.title || !input.title.trim()) {
+      governanceError.value = "请输入提案标题";
+      return null;
+    }
+    creatingProposal.value = true;
+    governanceError.value = null;
+    try {
+      const HOUR = 60 * 60 * 1000;
+      const result = (await api()?.invoke("governance:create-proposal", {
+        communityId: input.communityId,
+        title: input.title.trim(),
+        description: input.description?.trim() || "",
+        proposalType: input.proposalType ?? "other",
+        discussionDuration:
+          typeof input.discussionHours === "number" && input.discussionHours > 0
+            ? Math.floor(input.discussionHours) * HOUR
+            : 24 * HOUR,
+        votingDuration:
+          typeof input.votingHours === "number" && input.votingHours > 0
+            ? Math.floor(input.votingHours) * HOUR
+            : 48 * HOUR,
+      })) as GovernanceProposal | null | undefined;
+      await loadProposals(input.communityId);
+      return result ?? null;
+    } catch (e) {
+      governanceError.value = e instanceof Error ? e.message : String(e);
+      return null;
+    } finally {
+      creatingProposal.value = false;
+    }
+  }
+
+  async function castVote(
+    proposalId: string,
+    vote: VoteChoice,
+    communityId: string,
+  ): Promise<boolean> {
+    votingProposalId.value = proposalId;
+    governanceError.value = null;
+    try {
+      await api()?.invoke("governance:vote", proposalId, vote);
+      await loadProposals(communityId);
+      return true;
+    } catch (e) {
+      governanceError.value = e instanceof Error ? e.message : String(e);
+      return false;
+    } finally {
+      votingProposalId.value = null;
+    }
+  }
+
+  function clearGovernanceError(): void {
+    governanceError.value = null;
+  }
+
+  async function loadModerationLog(communityId: string): Promise<void> {
+    moderationLoading.value = true;
+    moderationError.value = null;
+    try {
+      const list = (await api()?.invoke("moderation:get-log", communityId, {
+        limit: 100,
+      })) as ModerationReport[] | null | undefined;
+      viewingModerationLog.value = Array.isArray(list) ? list : [];
+      moderationLoaded.value = true;
+    } catch (e) {
+      moderationError.value = e instanceof Error ? e.message : String(e);
+      viewingModerationLog.value = [];
+    } finally {
+      moderationLoading.value = false;
+    }
+  }
+
+  async function reviewReport(
+    reportId: string,
+    action: ModerationAction,
+    reason: string,
+    communityId: string,
+  ): Promise<boolean> {
+    reviewingReportId.value = reportId;
+    moderationError.value = null;
+    try {
+      await api()?.invoke("moderation:review", reportId, action, reason);
+      await loadModerationLog(communityId);
+      return true;
+    } catch (e) {
+      moderationError.value = e instanceof Error ? e.message : String(e);
+      return false;
+    } finally {
+      reviewingReportId.value = null;
+    }
+  }
+
+  function clearModerationError(): void {
+    moderationError.value = null;
+  }
+
   return {
     communities,
     loading,
@@ -547,6 +741,17 @@ export const useCommunityQuickStore = defineStore("communityQuick", () => {
     creatingChannel,
     deletingChannelId,
     channelError,
+    viewingProposals,
+    proposalsLoaded,
+    proposalsLoading,
+    creatingProposal,
+    votingProposalId,
+    governanceError,
+    viewingModerationLog,
+    moderationLoaded,
+    moderationLoading,
+    reviewingReportId,
+    moderationError,
     recent,
     joinedCount,
     loadAll,
@@ -574,5 +779,12 @@ export const useCommunityQuickStore = defineStore("communityQuick", () => {
     createChannel,
     deleteChannel,
     clearChannelError,
+    loadProposals,
+    createProposal,
+    castVote,
+    clearGovernanceError,
+    loadModerationLog,
+    reviewReport,
+    clearModerationError,
   };
 });

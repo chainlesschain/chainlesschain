@@ -334,10 +334,332 @@
               </div>
             </div>
           </a-tab-pane>
+
+          <a-tab-pane key="governance">
+            <template #tab>
+              治理
+              <a-tag size="small" color="default">
+                {{ store.viewingProposals.length }}
+              </a-tag>
+            </template>
+
+            <div class="governance-header">
+              <a-button
+                size="small"
+                type="primary"
+                @click="onOpenCreateProposal"
+              >
+                <PlusOutlined /> 新建提案
+              </a-button>
+              <a-button
+                size="small"
+                type="link"
+                :loading="store.proposalsLoading"
+                @click="reloadProposals"
+              >
+                刷新
+              </a-button>
+            </div>
+
+            <a-alert
+              v-if="store.governanceError"
+              class="tab-error"
+              :message="store.governanceError"
+              type="error"
+              show-icon
+              closable
+              @close="store.clearGovernanceError()"
+            />
+
+            <a-spin :spinning="store.proposalsLoading">
+              <div
+                v-if="
+                  !store.proposalsLoading && store.viewingProposals.length === 0
+                "
+                class="muted tab-empty"
+              >
+                暂无提案，点击"新建提案"开始第一个治理流程。
+              </div>
+              <ul class="proposal-list">
+                <li
+                  v-for="p in store.viewingProposals"
+                  :key="p.id"
+                  class="proposal-row"
+                >
+                  <div class="proposal-meta">
+                    <div class="proposal-line-1">
+                      <span class="proposal-title">{{ p.title }}</span>
+                      <a-tag :color="proposalStatusColor(p.status)">
+                        {{ proposalStatusLabel(p.status) }}
+                      </a-tag>
+                      <a-tag color="default">
+                        {{ proposalTypeLabel(p.proposal_type) }}
+                      </a-tag>
+                    </div>
+                    <div class="proposal-line-2 muted">
+                      由 {{ shortDid(p.proposer_did) }} 于
+                      {{ formatTime(p.created_at) }}
+                      <span v-if="p.voting_end">
+                        · 投票截止 {{ formatTime(p.voting_end) }}
+                      </span>
+                    </div>
+                    <div v-if="p.description" class="proposal-desc">
+                      {{ p.description }}
+                    </div>
+                  </div>
+                  <div v-if="p.status === 'voting'" class="proposal-actions">
+                    <a-button
+                      size="small"
+                      type="primary"
+                      :loading="store.votingProposalId === p.id"
+                      @click="onVote(p.id, 'approve')"
+                    >
+                      赞成
+                    </a-button>
+                    <a-button
+                      size="small"
+                      danger
+                      :loading="store.votingProposalId === p.id"
+                      @click="onVote(p.id, 'reject')"
+                    >
+                      反对
+                    </a-button>
+                    <a-button
+                      size="small"
+                      :loading="store.votingProposalId === p.id"
+                      @click="onVote(p.id, 'abstain')"
+                    >
+                      弃权
+                    </a-button>
+                  </div>
+                </li>
+              </ul>
+            </a-spin>
+          </a-tab-pane>
+
+          <a-tab-pane v-if="canManage" key="moderation">
+            <template #tab>
+              审核
+              <a-tag
+                v-if="store.viewingModerationLog.length"
+                size="small"
+                color="default"
+              >
+                {{ store.viewingModerationLog.length }}
+              </a-tag>
+              <a-tag v-if="pendingReportCount > 0" size="small" color="red">
+                {{ pendingReportCount }} 待审
+              </a-tag>
+            </template>
+
+            <a-button
+              size="small"
+              type="link"
+              :loading="store.moderationLoading"
+              class="moderation-refresh"
+              @click="reloadModerationLog"
+            >
+              刷新
+            </a-button>
+
+            <a-alert
+              v-if="store.moderationError"
+              class="tab-error"
+              :message="store.moderationError"
+              type="error"
+              show-icon
+              closable
+              @close="store.clearModerationError()"
+            />
+
+            <a-spin :spinning="store.moderationLoading">
+              <div
+                v-if="
+                  !store.moderationLoading &&
+                  store.viewingModerationLog.length === 0
+                "
+                class="muted tab-empty"
+              >
+                暂无审核记录。
+              </div>
+              <ul class="report-list">
+                <li
+                  v-for="r in store.viewingModerationLog"
+                  :key="r.id"
+                  class="report-row"
+                  :class="{ 'report-pending': r.status === 'pending' }"
+                >
+                  <div class="report-meta">
+                    <div class="report-line-1">
+                      <a-tag color="default">
+                        {{ contentTypeLabel(r.content_type) }}
+                      </a-tag>
+                      <a-tag :color="reportStatusColor(r.status)">
+                        {{ reportStatusLabel(r.status) }}
+                      </a-tag>
+                      <a-tag
+                        v-if="r.action"
+                        :color="reportActionColor(r.action)"
+                      >
+                        {{ reportActionLabel(r.action) }}
+                      </a-tag>
+                      <span
+                        v-if="typeof r.ai_score === 'number'"
+                        class="muted ai-score"
+                      >
+                        AI 评分 {{ r.ai_score.toFixed(2) }}
+                      </span>
+                    </div>
+                    <div class="report-line-2 muted">
+                      内容 {{ shortContentId(r.content_id) }} · 举报人
+                      {{ shortDid(r.reporter_did) }}
+                      · {{ formatTime(r.created_at) }}
+                    </div>
+                    <div v-if="r.reason" class="report-reason">
+                      原因：{{ r.reason }}
+                    </div>
+                  </div>
+                  <div v-if="r.status === 'pending'" class="report-actions">
+                    <a-button
+                      size="small"
+                      type="primary"
+                      :loading="store.reviewingReportId === r.id"
+                      @click="onOpenReview(r, 'approved')"
+                    >
+                      保留
+                    </a-button>
+                    <a-button
+                      size="small"
+                      danger
+                      :loading="store.reviewingReportId === r.id"
+                      @click="onOpenReview(r, 'removed')"
+                    >
+                      移除
+                    </a-button>
+                    <a-dropdown>
+                      <a-button
+                        size="small"
+                        :loading="store.reviewingReportId === r.id"
+                      >
+                        其它 ▾
+                      </a-button>
+                      <template #overlay>
+                        <a-menu @click="onReviewMenu(r, $event.key)">
+                          <a-menu-item key="warning"> 警告作者 </a-menu-item>
+                          <a-menu-item key="escalated"> 上升处理 </a-menu-item>
+                        </a-menu>
+                      </template>
+                    </a-dropdown>
+                  </div>
+                </li>
+              </ul>
+            </a-spin>
+          </a-tab-pane>
         </a-tabs>
       </div>
     </a-spin>
   </a-drawer>
+
+  <!-- Create proposal sub-modal -->
+  <a-modal
+    v-model:open="createProposalOpen"
+    :width="600"
+    :confirm-loading="store.creatingProposal"
+    :mask-closable="!store.creatingProposal"
+    title="新建治理提案"
+    ok-text="提交"
+    cancel-text="取消"
+    @ok="onCreateProposal"
+    @cancel="onCancelCreateProposal"
+  >
+    <a-form :model="proposalForm" :label-col="{ span: 5 }">
+      <a-form-item label="提案标题" required>
+        <a-input
+          v-model:value="proposalForm.title"
+          placeholder="一句话总结你的提案"
+          :maxlength="120"
+          show-count
+        />
+      </a-form-item>
+      <a-form-item label="详细说明">
+        <a-textarea
+          v-model:value="proposalForm.description"
+          placeholder="为什么需要这个变更？预期影响是什么？"
+          :rows="4"
+          :maxlength="2000"
+          show-count
+        />
+      </a-form-item>
+      <a-form-item label="提案类型">
+        <a-radio-group v-model:value="proposalForm.proposalType">
+          <a-radio value="rule_change"> 规则变更 </a-radio>
+          <a-radio value="role_change"> 角色调整 </a-radio>
+          <a-radio value="ban"> 封禁 </a-radio>
+          <a-radio value="channel"> 频道 </a-radio>
+          <a-radio value="other"> 其它 </a-radio>
+        </a-radio-group>
+      </a-form-item>
+      <a-form-item label="讨论时长">
+        <a-input-number
+          v-model:value="proposalForm.discussionHours"
+          :min="1"
+          :max="168"
+          addon-after="小时"
+          style="width: 100%"
+        />
+      </a-form-item>
+      <a-form-item label="投票时长">
+        <a-input-number
+          v-model:value="proposalForm.votingHours"
+          :min="1"
+          :max="336"
+          addon-after="小时"
+          style="width: 100%"
+        />
+      </a-form-item>
+    </a-form>
+    <a-alert
+      v-if="store.governanceError"
+      :message="store.governanceError"
+      type="error"
+      show-icon
+      closable
+      @close="store.clearGovernanceError()"
+    />
+  </a-modal>
+
+  <!-- Review report sub-modal -->
+  <a-modal
+    v-model:open="reviewOpen"
+    :width="500"
+    :confirm-loading="!!store.reviewingReportId"
+    :mask-closable="!store.reviewingReportId"
+    :title="reviewModalTitle"
+    ok-text="确认"
+    cancel-text="取消"
+    @ok="onSubmitReview"
+    @cancel="onCancelReview"
+  >
+    <p class="muted">
+      内容 ID：<code>{{ reviewForm.contentId }}</code>
+    </p>
+    <a-form-item label="处理理由">
+      <a-textarea
+        v-model:value="reviewForm.reason"
+        placeholder="可选：说明本次处理的依据，将记入审核日志"
+        :rows="3"
+        :maxlength="500"
+      />
+    </a-form-item>
+    <a-alert
+      v-if="store.moderationError"
+      :message="store.moderationError"
+      type="error"
+      show-icon
+      closable
+      @close="store.clearModerationError()"
+    />
+  </a-modal>
 
   <!-- Create channel sub-modal -->
   <a-modal
@@ -388,7 +710,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import { Modal, message as antMessage } from "ant-design-vue";
 import {
   ArrowLeftOutlined,
@@ -403,7 +725,8 @@ import {
 } from "../../stores/communityQuick";
 
 const store = useCommunityQuickStore();
-const activeTab = ref<"members" | "channels">("members");
+type DetailsTabKey = "members" | "channels" | "governance" | "moderation";
+const activeTab = ref<DetailsTabKey>("members");
 const composerText = ref("");
 const createChannelOpen = ref(false);
 const channelForm = reactive({
@@ -415,6 +738,42 @@ const channelForm = reactive({
     | "readonly"
     | "subscription",
 });
+
+const createProposalOpen = ref(false);
+const proposalForm = reactive({
+  title: "",
+  description: "",
+  proposalType: "other" as
+    | "rule_change"
+    | "role_change"
+    | "ban"
+    | "channel"
+    | "other",
+  discussionHours: 24,
+  votingHours: 48,
+});
+
+const reviewOpen = ref(false);
+const reviewForm = reactive({
+  reportId: "",
+  contentId: "",
+  action: "approved" as "approved" | "removed" | "warning" | "escalated",
+  reason: "",
+});
+
+const REVIEW_ACTION_LABELS: Record<string, string> = {
+  approved: "保留内容",
+  removed: "移除内容",
+  warning: "警告作者",
+  escalated: "上升处理",
+};
+const reviewModalTitle = computed(
+  () => `审核 · ${REVIEW_ACTION_LABELS[reviewForm.action] ?? "处理"}`,
+);
+
+const pendingReportCount = computed(
+  () => store.viewingModerationLog.filter((r) => r.status === "pending").length,
+);
 
 const activeChannel = computed<CommunityChannel | undefined>(() => {
   if (!store.selectedChannelId) {
@@ -691,6 +1050,231 @@ function onCancelCreateChannel(): void {
     createChannelOpen.value = false;
   }
 }
+
+// ---- Phase 6: governance + moderation -----------------------------------
+
+watch(activeTab, (tab) => {
+  const id = store.viewingCommunityId;
+  if (!id) {
+    return;
+  }
+  if (tab === "governance" && !store.proposalsLoaded) {
+    store.loadProposals(id);
+  }
+  if (tab === "moderation" && canManage.value && !store.moderationLoaded) {
+    store.loadModerationLog(id);
+  }
+});
+
+function reloadProposals(): void {
+  if (store.viewingCommunityId) {
+    store.loadProposals(store.viewingCommunityId);
+  }
+}
+
+function reloadModerationLog(): void {
+  if (store.viewingCommunityId) {
+    store.loadModerationLog(store.viewingCommunityId);
+  }
+}
+
+function onOpenCreateProposal(): void {
+  proposalForm.title = "";
+  proposalForm.description = "";
+  proposalForm.proposalType = "other";
+  proposalForm.discussionHours = 24;
+  proposalForm.votingHours = 48;
+  store.clearGovernanceError();
+  createProposalOpen.value = true;
+}
+
+async function onCreateProposal(): Promise<void> {
+  if (!store.viewingCommunityId) {
+    return;
+  }
+  const result = await store.createProposal({
+    communityId: store.viewingCommunityId,
+    title: proposalForm.title,
+    description: proposalForm.description,
+    proposalType: proposalForm.proposalType,
+    discussionHours: proposalForm.discussionHours,
+    votingHours: proposalForm.votingHours,
+  });
+  if (result) {
+    antMessage.success(`提案「${result.title ?? proposalForm.title}」已发起`);
+    createProposalOpen.value = false;
+  }
+}
+
+function onCancelCreateProposal(): void {
+  if (!store.creatingProposal) {
+    createProposalOpen.value = false;
+  }
+}
+
+async function onVote(
+  proposalId: string,
+  vote: "approve" | "reject" | "abstain",
+): Promise<void> {
+  if (!store.viewingCommunityId) {
+    return;
+  }
+  const ok = await store.castVote(proposalId, vote, store.viewingCommunityId);
+  if (ok) {
+    const labels = { approve: "赞成", reject: "反对", abstain: "弃权" };
+    antMessage.success(`已投${labels[vote]}票`);
+  }
+}
+
+function onOpenReview(
+  report: { id: string; content_id: string },
+  action: "approved" | "removed" | "warning" | "escalated",
+): void {
+  reviewForm.reportId = report.id;
+  reviewForm.contentId = report.content_id;
+  reviewForm.action = action;
+  reviewForm.reason = "";
+  store.clearModerationError();
+  reviewOpen.value = true;
+}
+
+function onReviewMenu(
+  report: { id: string; content_id: string },
+  action: string,
+): void {
+  if (action === "warning" || action === "escalated") {
+    onOpenReview(report, action);
+  }
+}
+
+async function onSubmitReview(): Promise<void> {
+  if (!store.viewingCommunityId || !reviewForm.reportId) {
+    return;
+  }
+  const ok = await store.reviewReport(
+    reviewForm.reportId,
+    reviewForm.action,
+    reviewForm.reason.trim(),
+    store.viewingCommunityId,
+  );
+  if (ok) {
+    antMessage.success(
+      `已${REVIEW_ACTION_LABELS[reviewForm.action] ?? "处理"}`,
+    );
+    reviewOpen.value = false;
+  }
+}
+
+function onCancelReview(): void {
+  if (!store.reviewingReportId) {
+    reviewOpen.value = false;
+  }
+}
+
+const PROPOSAL_STATUS_COLORS: Record<string, string> = {
+  discussion: "blue",
+  voting: "orange",
+  passed: "green",
+  rejected: "red",
+  executed: "purple",
+};
+const PROPOSAL_STATUS_LABELS: Record<string, string> = {
+  discussion: "讨论中",
+  voting: "投票中",
+  passed: "已通过",
+  rejected: "已驳回",
+  executed: "已执行",
+};
+function proposalStatusColor(status?: string): string {
+  if (!status) {
+    return "default";
+  }
+  return PROPOSAL_STATUS_COLORS[status] || "default";
+}
+function proposalStatusLabel(status?: string): string {
+  if (!status) {
+    return "—";
+  }
+  return PROPOSAL_STATUS_LABELS[status] || status;
+}
+
+const PROPOSAL_TYPE_LABELS: Record<string, string> = {
+  rule_change: "规则",
+  role_change: "角色",
+  ban: "封禁",
+  channel: "频道",
+  other: "其它",
+};
+function proposalTypeLabel(type?: string): string {
+  if (!type) {
+    return "—";
+  }
+  return PROPOSAL_TYPE_LABELS[type] || type;
+}
+
+const CONTENT_TYPE_LABELS: Record<string, string> = {
+  message: "消息",
+  post: "帖子",
+  comment: "评论",
+};
+function contentTypeLabel(type?: string): string {
+  if (!type) {
+    return "—";
+  }
+  return CONTENT_TYPE_LABELS[type] || type;
+}
+
+const REPORT_STATUS_COLORS: Record<string, string> = {
+  pending: "orange",
+  reviewed: "blue",
+  resolved: "green",
+};
+const REPORT_STATUS_LABELS: Record<string, string> = {
+  pending: "待审",
+  reviewed: "已审",
+  resolved: "已结",
+};
+function reportStatusColor(status?: string): string {
+  if (!status) {
+    return "default";
+  }
+  return REPORT_STATUS_COLORS[status] || "default";
+}
+function reportStatusLabel(status?: string): string {
+  if (!status) {
+    return "—";
+  }
+  return REPORT_STATUS_LABELS[status] || status;
+}
+
+const REPORT_ACTION_COLORS: Record<string, string> = {
+  approved: "green",
+  removed: "red",
+  warning: "orange",
+  escalated: "purple",
+};
+function reportActionColor(action?: string | null): string {
+  if (!action) {
+    return "default";
+  }
+  return REPORT_ACTION_COLORS[action] || "default";
+}
+function reportActionLabel(action?: string | null): string {
+  if (!action) {
+    return "";
+  }
+  return REVIEW_ACTION_LABELS[action] || action;
+}
+
+function shortContentId(id?: string): string {
+  if (!id) {
+    return "—";
+  }
+  if (id.length <= 12) {
+    return id;
+  }
+  return `${id.slice(0, 8)}…${id.slice(-4)}`;
+}
 </script>
 
 <style scoped>
@@ -888,5 +1472,109 @@ function onCancelCreateChannel(): void {
   text-align: center;
   padding: 12px 0;
   border-top: 1px solid var(--cc-shell-border, #eee);
+}
+
+/* Phase 6: governance + moderation */
+
+.governance-header,
+.moderation-refresh {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.governance-header {
+  justify-content: space-between;
+}
+
+.tab-error {
+  margin-bottom: 8px;
+}
+
+.tab-empty {
+  text-align: center;
+  padding: 24px 0;
+}
+
+.proposal-list,
+.report-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.proposal-row,
+.report-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--cc-shell-card, #fff);
+  border: 1px solid var(--cc-shell-border, #eee);
+  border-radius: 6px;
+}
+
+.report-pending {
+  border-left: 3px solid #fa8c16;
+}
+
+.proposal-meta,
+.report-meta {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 4px;
+}
+
+.proposal-line-1,
+.report-line-1 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.proposal-title {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--cc-shell-text, #1f1f1f);
+}
+
+.proposal-line-2,
+.report-line-2 {
+  font-size: 12px;
+}
+
+.proposal-desc,
+.report-reason {
+  font-size: 12px;
+  color: var(--cc-shell-muted, #595959);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.proposal-actions,
+.report-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.ai-score {
+  font-family: var(
+    --cc-shell-mono,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace
+  );
 }
 </style>

@@ -872,4 +872,247 @@ describe("useCommunityQuickStore (Phase 2)", () => {
     expect(store.error).toBe("main");
     expect(store.detailsError).toBe("details");
   });
+
+  // ---- Phase 6: governance + moderation -----------------------------------
+
+  it("loadProposals() populates list and flips proposalsLoaded", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "governance:get-proposals") {
+        return Promise.resolve([
+          { id: "p1", title: "P1", status: "voting" },
+          { id: "p2", title: "P2", status: "passed" },
+        ]);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    await store.loadProposals("c1");
+    expect(store.viewingProposals).toHaveLength(2);
+    expect(store.proposalsLoaded).toBe(true);
+    expect(store.proposalsLoading).toBe(false);
+  });
+
+  it("loadProposals() captures error and falls back to []", async () => {
+    invoke.mockImplementation(() =>
+      Promise.reject(new Error("engine offline")),
+    );
+    const store = useCommunityQuickStore();
+    store.$patch({ viewingProposals: [{ id: "stale" } as never] });
+    await store.loadProposals("c1");
+    expect(store.viewingProposals).toEqual([]);
+    expect(store.governanceError).toBe("engine offline");
+    expect(store.proposalsLoaded).toBe(false);
+  });
+
+  it("createProposal() converts hours to ms and reloads list", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "governance:create-proposal") {
+        return Promise.resolve({ id: "p-new", title: "New" });
+      }
+      if (channel === "governance:get-proposals") {
+        return Promise.resolve([{ id: "p-new", title: "New" }]);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    const result = await store.createProposal({
+      communityId: "c1",
+      title: "New",
+      description: "...",
+      proposalType: "rule_change",
+      discussionHours: 12,
+      votingHours: 24,
+    });
+
+    expect(result?.id).toBe("p-new");
+    const createCall = invoke.mock.calls.find(
+      (c) => c[0] === "governance:create-proposal",
+    );
+    expect(createCall![1]).toEqual({
+      communityId: "c1",
+      title: "New",
+      description: "...",
+      proposalType: "rule_change",
+      discussionDuration: 12 * 60 * 60 * 1000,
+      votingDuration: 24 * 60 * 60 * 1000,
+    });
+    expect(store.viewingProposals).toHaveLength(1);
+    expect(store.creatingProposal).toBe(false);
+  });
+
+  it("createProposal() rejects empty title without IPC", async () => {
+    const store = useCommunityQuickStore();
+    const result = await store.createProposal({
+      communityId: "c1",
+      title: "  ",
+    });
+    expect(result).toBeNull();
+    expect(store.governanceError).toMatch(/标题/);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("createProposal() defaults durations when missing", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "governance:create-proposal") {
+        return Promise.resolve({ id: "p1" });
+      }
+      return Promise.resolve([]);
+    });
+    const store = useCommunityQuickStore();
+    await store.createProposal({ communityId: "c1", title: "T" });
+    const call = invoke.mock.calls.find(
+      (c) => c[0] === "governance:create-proposal",
+    );
+    expect(call![1]).toMatchObject({
+      proposalType: "other",
+      discussionDuration: 24 * 60 * 60 * 1000,
+      votingDuration: 48 * 60 * 60 * 1000,
+    });
+  });
+
+  it("castVote() invokes IPC and reloads proposals", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "governance:vote") {
+        return Promise.resolve({ success: true });
+      }
+      if (channel === "governance:get-proposals") {
+        return Promise.resolve([{ id: "p1", status: "voting" }]);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    const ok = await store.castVote("p1", "approve", "c1");
+    expect(ok).toBe(true);
+    expect(invoke).toHaveBeenCalledWith("governance:vote", "p1", "approve");
+    expect(invoke).toHaveBeenCalledWith("governance:get-proposals", "c1");
+    expect(store.votingProposalId).toBeNull();
+  });
+
+  it("castVote() failure surfaces error and clears flag", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "governance:vote") {
+        return Promise.reject(new Error("already voted"));
+      }
+      return Promise.resolve(null);
+    });
+    const store = useCommunityQuickStore();
+    const ok = await store.castVote("p1", "approve", "c1");
+    expect(ok).toBe(false);
+    expect(store.governanceError).toBe("already voted");
+    expect(store.votingProposalId).toBeNull();
+  });
+
+  it("loadModerationLog() populates queue and flips moderationLoaded", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "moderation:get-log") {
+        return Promise.resolve([
+          { id: "r1", status: "pending" },
+          { id: "r2", status: "resolved" },
+        ]);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    await store.loadModerationLog("c1");
+    expect(store.viewingModerationLog).toHaveLength(2);
+    expect(store.moderationLoaded).toBe(true);
+    expect(invoke).toHaveBeenCalledWith("moderation:get-log", "c1", {
+      limit: 100,
+    });
+  });
+
+  it("loadModerationLog() captures error and falls back to []", async () => {
+    invoke.mockImplementation(() =>
+      Promise.reject(new Error("moderator offline")),
+    );
+    const store = useCommunityQuickStore();
+    store.$patch({ viewingModerationLog: [{ id: "x" } as never] });
+    await store.loadModerationLog("c1");
+    expect(store.viewingModerationLog).toEqual([]);
+    expect(store.moderationError).toBe("moderator offline");
+  });
+
+  it("reviewReport() invokes IPC with action+reason and reloads log", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "moderation:review") {
+        return Promise.resolve({ success: true });
+      }
+      if (channel === "moderation:get-log") {
+        return Promise.resolve([{ id: "r1", status: "resolved" }]);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useCommunityQuickStore();
+    const ok = await store.reviewReport("r1", "removed", "spam", "c1");
+    expect(ok).toBe(true);
+    expect(invoke).toHaveBeenCalledWith(
+      "moderation:review",
+      "r1",
+      "removed",
+      "spam",
+    );
+    expect(store.reviewingReportId).toBeNull();
+    expect(store.viewingModerationLog[0]?.status).toBe("resolved");
+  });
+
+  it("reviewReport() failure preserves queue + clears flag", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "moderation:review") {
+        return Promise.reject(new Error("forbidden"));
+      }
+      return Promise.resolve(null);
+    });
+    const store = useCommunityQuickStore();
+    store.$patch({
+      viewingModerationLog: [{ id: "r1", status: "pending" } as never],
+    });
+    const ok = await store.reviewReport("r1", "removed", "", "c1");
+    expect(ok).toBe(false);
+    expect(store.moderationError).toBe("forbidden");
+    expect(store.viewingModerationLog[0]?.status).toBe("pending");
+    expect(store.reviewingReportId).toBeNull();
+  });
+
+  it("closeDetails() also clears Phase 6 state", () => {
+    const store = useCommunityQuickStore();
+    store.$patch({
+      viewingCommunityId: "c1",
+      viewingProposals: [{ id: "p1" } as never],
+      proposalsLoaded: true,
+      governanceError: "g",
+      viewingModerationLog: [{ id: "r1" } as never],
+      moderationLoaded: true,
+      moderationError: "m",
+    });
+    store.closeDetails();
+    expect(store.viewingProposals).toEqual([]);
+    expect(store.proposalsLoaded).toBe(false);
+    expect(store.governanceError).toBeNull();
+    expect(store.viewingModerationLog).toEqual([]);
+    expect(store.moderationLoaded).toBe(false);
+    expect(store.moderationError).toBeNull();
+  });
+
+  it("clearGovernanceError + clearModerationError isolate from other errors", () => {
+    const store = useCommunityQuickStore();
+    store.$patch({
+      governanceError: "g",
+      moderationError: "m",
+      error: "main",
+      detailsError: "d",
+    });
+    store.clearGovernanceError();
+    expect(store.governanceError).toBeNull();
+    expect(store.moderationError).toBe("m");
+
+    store.clearModerationError();
+    expect(store.moderationError).toBeNull();
+    expect(store.error).toBe("main");
+    expect(store.detailsError).toBe("d");
+  });
 });
