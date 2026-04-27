@@ -99,6 +99,7 @@
             <template #title><span class="group-label">社 交</span></template>
             <a-menu-item key="community"><template #icon><UsergroupAddOutlined /></template>社区</a-menu-item>
             <a-menu-item key="governance"><template #icon><AuditOutlined /></template>社区治理</a-menu-item>
+            <a-menu-item key="reputation"><template #icon><TrophyOutlined /></template>声誉优化</a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="g-media">
             <template #title><span class="group-label">媒 体</span></template>
@@ -154,6 +155,7 @@
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="community"><template #icon><UsergroupAddOutlined /></template></a-menu-item>
           <a-menu-item key="governance"><template #icon><AuditOutlined /></template></a-menu-item>
+          <a-menu-item key="reputation"><template #icon><TrophyOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="rssfeed"><template #icon><ReadOutlined /></template></a-menu-item>
           <a-menu-item key="webauthn"><template #icon><KeyOutlined /></template></a-menu-item>
@@ -224,7 +226,7 @@ import {
   ReadOutlined, KeyOutlined, VideoCameraOutlined, ShareAltOutlined, IdcardOutlined,
   UsergroupAddOutlined, ShoppingOutlined, SwapOutlined, AlertOutlined, SafetyOutlined,
   ExperimentOutlined, DeploymentUnitOutlined, BulbOutlined, BankOutlined, PartitionOutlined,
-  AuditOutlined, FileSearchOutlined,
+  AuditOutlined, FileSearchOutlined, TrophyOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'
