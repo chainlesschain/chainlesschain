@@ -186,4 +186,135 @@ describe("useProjectsQuickStore (Phase 2)", () => {
     store.clearError();
     expect(store.error).toBeNull();
   });
+
+  // ---- Phase 3: quick-create wizard ---------------------------------------
+
+  it("initial state for create wizard fields", () => {
+    const store = useProjectsQuickStore();
+    expect(store.createOpen).toBe(false);
+    expect(store.creating).toBe(false);
+    expect(store.createError).toBeNull();
+  });
+
+  it("openCreateForm() flips flag and clears stale error", () => {
+    const store = useProjectsQuickStore();
+    store.$patch({ createError: "old" });
+    store.openCreateForm();
+    expect(store.createOpen).toBe(true);
+    expect(store.createError).toBeNull();
+  });
+
+  it("closeCreateForm() goes back to closed when not creating", () => {
+    const store = useProjectsQuickStore();
+    store.openCreateForm();
+    store.closeCreateForm();
+    expect(store.createOpen).toBe(false);
+  });
+
+  it("closeCreateForm() refuses while creating", () => {
+    const store = useProjectsQuickStore();
+    store.$patch({ createOpen: true, creating: true });
+    store.closeCreateForm();
+    expect(store.createOpen).toBe(true);
+  });
+
+  it("createProject() success returns row, closes modal, reloads list", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "project:create-quick") {
+        return Promise.resolve({
+          id: "p-new",
+          name: "Quick Demo",
+          project_type: "document",
+        });
+      }
+      if (channel === "project:get-all") {
+        return Promise.resolve({
+          projects: [
+            { id: "p-new", name: "Quick Demo", project_type: "document" },
+          ],
+          total: 1,
+        });
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useProjectsQuickStore();
+    store.openCreateForm();
+    const result = await store.createProject({
+      name: "Quick Demo",
+      description: "a test",
+    });
+
+    expect(result?.id).toBe("p-new");
+    expect(store.createOpen).toBe(false);
+    expect(store.creating).toBe(false);
+    expect(store.createError).toBeNull();
+    expect(store.projects).toHaveLength(1);
+    const createCall = invoke.mock.calls.find(
+      (c) => c[0] === "project:create-quick",
+    );
+    expect(createCall![1]).toEqual({
+      name: "Quick Demo",
+      description: "a test",
+      projectType: "document",
+      userId: "default-user",
+    });
+  });
+
+  it("createProject() rejects empty name without IPC", async () => {
+    const store = useProjectsQuickStore();
+    const result = await store.createProject({ name: "  " });
+    expect(result).toBeNull();
+    expect(store.createError).toMatch(/名称/);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("createProject() rejects names over 100 chars", async () => {
+    const store = useProjectsQuickStore();
+    const result = await store.createProject({ name: "x".repeat(101) });
+    expect(result).toBeNull();
+    expect(store.createError).toMatch(/100/);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("createProject() defaults projectType to document and userId default-user", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "project:create-quick") {
+        return Promise.resolve({ id: "p-x" });
+      }
+      return Promise.resolve({ projects: [] });
+    });
+    const store = useProjectsQuickStore();
+    await store.createProject({ name: "Plain" });
+    const call = invoke.mock.calls.find((c) => c[0] === "project:create-quick");
+    expect(call![1]).toMatchObject({
+      projectType: "document",
+      userId: "default-user",
+    });
+  });
+
+  it("createProject() captures backend error and stays open", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "project:create-quick") {
+        return Promise.reject(new Error("disk full"));
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useProjectsQuickStore();
+    store.openCreateForm();
+    const result = await store.createProject({ name: "Anything" });
+    expect(result).toBeNull();
+    expect(store.createError).toBe("disk full");
+    expect(store.createOpen).toBe(true);
+    expect(store.creating).toBe(false);
+  });
+
+  it("clearCreateError() resets only createError", () => {
+    const store = useProjectsQuickStore();
+    store.$patch({ createError: "boom", error: "main" });
+    store.clearCreateError();
+    expect(store.createError).toBeNull();
+    expect(store.error).toBe("main");
+  });
 });

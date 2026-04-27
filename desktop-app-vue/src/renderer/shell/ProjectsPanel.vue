@@ -129,6 +129,8 @@
       @close="store.clearError()"
     />
   </a-modal>
+
+  <CreateProjectWizard />
 </template>
 
 <script setup lang="ts">
@@ -148,6 +150,7 @@ import {
   useProjectsQuickStore,
   type ProjectSummary,
 } from "../stores/projectsQuick";
+import CreateProjectWizard from "./projects/CreateProjectWizard.vue";
 
 interface ProjectAction {
   id: string;
@@ -178,9 +181,9 @@ watch(
 const actions: ProjectAction[] = [
   {
     id: "create",
-    label: "创建项目",
-    desc: "新建项目（Phase 3 内嵌单步表单）。",
-    cta: "前往",
+    label: "快速新建项目",
+    desc: "通过名称 + 描述快速创建一个项目，自动落到默认用户。",
+    cta: "开始",
     primary: true,
   },
   {
@@ -296,6 +299,10 @@ function confirmDelete(p: ProjectSummary): void {
 }
 
 function run(action: ProjectAction): void {
+  if (action.id === "create") {
+    store.openCreateForm();
+    return;
+  }
   if (action.id === "ai-create") {
     emit("update:open", false);
     router.push("/projects");

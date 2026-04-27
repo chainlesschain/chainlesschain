@@ -1,18 +1,17 @@
 /**
  * Projects Quick Store
- * Wraps `project:get-all` / `project:delete` (and later create-quick /
- * update) IPC channels for the V6 shell panel. Phase 2 of the V6 page
- * port (路线 D) — replaces the old recent-only surface with a full
- * filterable list + delete + open. Phase 3-4 will add quick-create
- * wizard + rename modal; phase 5 ports the V5 `components/ProjectSidebar.vue`
- * (773 lines) entry to deprecated.
+ * Wraps `project:get-all` / `project:delete` / `project:create-quick`
+ * (and later update for rename) IPC channels for the V6 shell panel.
+ * Phase 3 of the V6 page port (路线 D) — list + delete + quick-create
+ * wizard. Phase 4 adds rename + per-row dropdown menu; Phase 5 marks
+ * the V5 `components/ProjectSidebar.vue` (773 lines) entry as deprecated.
  *
  * Field shape note: project:get-all returns sqlite snake_case rows
  * envelope-wrapped in {projects, total, hasMore}. Each row carries id /
  * name / description / project_type ('web' | 'document' | 'data' | 'app') /
  * status / created_at / updated_at + optional metadata. The V6 panel
  * matches V5 ProjectSidebar's project_type → icon map.
- * @version 1.1.0
+ * @version 1.2.0
  */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
@@ -26,6 +25,13 @@ export interface ProjectSummary {
   updated_at?: number;
   created_at?: number;
   [key: string]: unknown;
+}
+
+export interface CreateProjectInput {
+  name: string;
+  description?: string;
+  projectType?: "web" | "document" | "data" | "app";
+  userId?: string;
 }
 
 interface ProjectListResponse {
@@ -53,6 +59,10 @@ export const useProjectsQuickStore = defineStore("projectsQuick", () => {
   const hasLoaded = ref(false);
   const deletingId = ref<string | null>(null);
   const searchQuery = ref("");
+
+  const createOpen = ref(false);
+  const creating = ref(false);
+  const createError = ref<string | null>(null);
 
   const recent = computed(() => projects.value.slice(0, RECENT_LIMIT));
 
@@ -121,6 +131,57 @@ export const useProjectsQuickStore = defineStore("projectsQuick", () => {
     error.value = null;
   }
 
+  // ---- Phase 3: quick-create wizard ---------------------------------------
+
+  function openCreateForm(): void {
+    createOpen.value = true;
+    createError.value = null;
+  }
+
+  function closeCreateForm(): void {
+    if (creating.value) {
+      return;
+    }
+    createOpen.value = false;
+    createError.value = null;
+  }
+
+  async function createProject(
+    input: CreateProjectInput,
+  ): Promise<ProjectSummary | null> {
+    if (!input.name || !input.name.trim()) {
+      createError.value = "请输入项目名称";
+      return null;
+    }
+    if (input.name.trim().length > 100) {
+      createError.value = "项目名称不能超过 100 个字符";
+      return null;
+    }
+
+    creating.value = true;
+    createError.value = null;
+    try {
+      const result = (await api()?.invoke("project:create-quick", {
+        name: input.name.trim(),
+        description: input.description?.trim() || "",
+        projectType: input.projectType ?? "document",
+        userId: input.userId ?? "default-user",
+      })) as ProjectSummary | null | undefined;
+      await loadAll();
+      createOpen.value = false;
+      return result ?? null;
+    } catch (e) {
+      createError.value = e instanceof Error ? e.message : String(e);
+      return null;
+    } finally {
+      creating.value = false;
+    }
+  }
+
+  function clearCreateError(): void {
+    createError.value = null;
+  }
+
   return {
     projects,
     total,
@@ -129,11 +190,18 @@ export const useProjectsQuickStore = defineStore("projectsQuick", () => {
     hasLoaded,
     deletingId,
     searchQuery,
+    createOpen,
+    creating,
+    createError,
     recent,
     filteredProjects,
     loadRecent,
     loadAll,
     deleteProject,
     clearError,
+    openCreateForm,
+    closeCreateForm,
+    createProject,
+    clearCreateError,
   };
 });
