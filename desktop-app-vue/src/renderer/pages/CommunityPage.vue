@@ -13,11 +13,7 @@
             <TeamOutlined class="title-icon" />
             <span>Communities</span>
           </div>
-          <a-button
-            type="primary"
-            size="small"
-            @click="showCreateModal = true"
-          >
+          <a-button type="primary" size="small" @click="showCreateModal = true">
             <template #icon>
               <PlusOutlined />
             </template>
@@ -83,10 +79,7 @@
         </div>
 
         <div class="sider-footer">
-          <a-button
-            block
-            @click="showJoinModal = true"
-          >
+          <a-button block @click="showJoinModal = true">
             <template #icon>
               <SearchOutlined />
             </template>
@@ -98,16 +91,10 @@
       <!-- Main Content Area -->
       <a-layout-content class="community-content">
         <!-- No community selected -->
-        <div
-          v-if="!store.currentCommunity"
-          class="empty-content"
-        >
+        <div v-if="!store.currentCommunity" class="empty-content">
           <a-empty description="Select a community to get started">
             <a-space>
-              <a-button
-                type="primary"
-                @click="showCreateModal = true"
-              >
+              <a-button type="primary" @click="showCreateModal = true">
                 Create Community
               </a-button>
               <a-button @click="showJoinModal = true">
@@ -118,17 +105,11 @@
         </div>
 
         <!-- Community Detail -->
-        <div
-          v-else
-          class="community-detail"
-        >
+        <div v-else class="community-detail">
           <!-- Community Header -->
           <div class="detail-header">
             <div class="header-info">
-              <a-avatar
-                :size="48"
-                :src="store.currentCommunity.icon_url"
-              >
+              <a-avatar :size="48" :src="store.currentCommunity.icon_url">
                 {{ store.currentCommunity.name?.charAt(0) || "C" }}
               </a-avatar>
               <div class="header-text">
@@ -185,15 +166,9 @@
           </div>
 
           <!-- Tabs: Description, Members, Governance -->
-          <a-tabs
-            v-model:active-key="activeTab"
-            class="detail-tabs"
-          >
+          <a-tabs v-model:active-key="activeTab" class="detail-tabs">
             <!-- Description Tab -->
-            <a-tab-pane
-              key="description"
-              tab="Description"
-            >
+            <a-tab-pane key="description" tab="Description">
               <a-card :bordered="false">
                 <p
                   v-if="store.currentCommunity.description"
@@ -201,10 +176,7 @@
                 >
                   {{ store.currentCommunity.description }}
                 </p>
-                <a-empty
-                  v-else
-                  description="No description available"
-                />
+                <a-empty v-else description="No description available" />
 
                 <a-divider v-if="store.currentCommunity.rules_md">
                   Rules
@@ -218,11 +190,7 @@
               </a-card>
 
               <!-- Channels Preview -->
-              <a-card
-                title="Channels"
-                :bordered="false"
-                class="section-card"
-              >
+              <a-card title="Channels" :bordered="false" class="section-card">
                 <template #extra>
                   <a-button
                     v-if="store.isAdminOrOwner"
@@ -267,7 +235,10 @@
                   Members
                   <a-badge
                     :count="store.members.length"
-                    :number-style="{ backgroundColor: '#1890ff', fontSize: '10px' }"
+                    :number-style="{
+                      backgroundColor: '#1890ff',
+                      fontSize: '10px',
+                    }"
                   />
                 </span>
               </template>
@@ -280,11 +251,21 @@
                     <a-list-item-meta>
                       <template #avatar>
                         <a-avatar :size="40">
-                          {{ (item.nickname || item.contact_nickname || item.member_did)?.charAt(0) || "U" }}
+                          {{
+                            (
+                              item.nickname ||
+                              item.contact_nickname ||
+                              item.member_did
+                            )?.charAt(0) || "U"
+                          }}
                         </a-avatar>
                       </template>
                       <template #title>
-                        <span>{{ item.nickname || item.contact_nickname || formatDID(item.member_did) }}</span>
+                        <span>{{
+                          item.nickname ||
+                          item.contact_nickname ||
+                          formatDID(item.member_did)
+                        }}</span>
                         <a-tag
                           :color="roleColor(item.role)"
                           size="small"
@@ -294,22 +275,25 @@
                         </a-tag>
                       </template>
                       <template #description>
-                        <span class="member-did">{{ formatDID(item.member_did) }}</span>
+                        <span class="member-did">{{
+                          formatDID(item.member_did)
+                        }}</span>
                         <span class="member-joined">
                           Joined {{ formatDate(item.joined_at) }}
                         </span>
                       </template>
                     </a-list-item-meta>
                     <template #actions>
-                      <a-dropdown v-if="store.isAdminOrOwner && item.role !== 'owner'">
-                        <a-button
-                          type="text"
-                          size="small"
-                        >
+                      <a-dropdown
+                        v-if="store.isAdminOrOwner && item.role !== 'owner'"
+                      >
+                        <a-button type="text" size="small">
                           <EllipsisOutlined />
                         </a-button>
                         <template #overlay>
-                          <a-menu @click="({ key }) => handleMemberAction(key, item)">
+                          <a-menu
+                            @click="({ key }) => handleMemberAction(key, item)"
+                          >
                             <a-menu-item
                               v-if="item.role === 'member'"
                               key="promote-moderator"
@@ -317,7 +301,10 @@
                               Promote to Moderator
                             </a-menu-item>
                             <a-menu-item
-                              v-if="item.role === 'moderator' && store.currentCommunity?.my_role === 'owner'"
+                              v-if="
+                                item.role === 'moderator' &&
+                                store.currentCommunity?.my_role === 'owner'
+                              "
                               key="promote-admin"
                             >
                               Promote to Admin
@@ -329,10 +316,7 @@
                               Demote to Member
                             </a-menu-item>
                             <a-menu-divider />
-                            <a-menu-item
-                              key="ban"
-                              danger
-                            >
+                            <a-menu-item key="ban" danger>
                               Ban Member
                             </a-menu-item>
                           </a-menu>
@@ -351,7 +335,10 @@
                   Governance
                   <a-badge
                     :count="store.activeProposals.length"
-                    :number-style="{ backgroundColor: '#faad14', fontSize: '10px' }"
+                    :number-style="{
+                      backgroundColor: '#faad14',
+                      fontSize: '10px',
+                    }"
                   />
                 </span>
               </template>
@@ -391,7 +378,8 @@
                         <div class="proposal-meta">
                           <span>Votes: {{ item.vote_count || 0 }}</span>
                           <span v-if="item.my_vote">
-                            Your vote: <a-tag size="small">{{ item.my_vote }}</a-tag>
+                            Your vote:
+                            <a-tag size="small">{{ item.my_vote }}</a-tag>
                           </span>
                         </div>
                       </template>
@@ -430,14 +418,8 @@
       @ok="handleCreateCommunity"
       @cancel="showCreateModal = false"
     >
-      <a-form
-        :model="createForm"
-        layout="vertical"
-      >
-        <a-form-item
-          label="Name"
-          required
-        >
+      <a-form :model="createForm" layout="vertical">
+        <a-form-item label="Name" required>
           <a-input
             v-model:value="createForm.name"
             placeholder="Community name"
@@ -501,9 +483,7 @@
                 </template>
                 <template #description>
                   {{ item.description || "No description" }}
-                  <div>
-                    <UserOutlined /> {{ item.member_count }} members
-                  </div>
+                  <div><UserOutlined /> {{ item.member_count }} members</div>
                 </template>
               </a-list-item-meta>
               <template #actions>
@@ -528,27 +508,15 @@
       @ok="handleEditCommunity"
       @cancel="showEditModal = false"
     >
-      <a-form
-        :model="editForm"
-        layout="vertical"
-      >
+      <a-form :model="editForm" layout="vertical">
         <a-form-item label="Name">
-          <a-input
-            v-model:value="editForm.name"
-            :maxlength="100"
-          />
+          <a-input v-model:value="editForm.name" :maxlength="100" />
         </a-form-item>
         <a-form-item label="Description">
-          <a-textarea
-            v-model:value="editForm.description"
-            :rows="3"
-          />
+          <a-textarea v-model:value="editForm.description" :rows="3" />
         </a-form-item>
         <a-form-item label="Rules (Markdown)">
-          <a-textarea
-            v-model:value="editForm.rulesMd"
-            :rows="4"
-          />
+          <a-textarea v-model:value="editForm.rulesMd" :rows="4" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -560,14 +528,8 @@
       @ok="handleCreateChannel"
       @cancel="showCreateChannelModal = false"
     >
-      <a-form
-        :model="channelForm"
-        layout="vertical"
-      >
-        <a-form-item
-          label="Name"
-          required
-        >
+      <a-form :model="channelForm" layout="vertical">
+        <a-form-item label="Name" required>
           <a-input
             v-model:value="channelForm.name"
             placeholder="channel-name"
@@ -582,15 +544,11 @@
         </a-form-item>
         <a-form-item label="Type">
           <a-select v-model:value="channelForm.type">
-            <a-select-option value="discussion">
-              Discussion
-            </a-select-option>
+            <a-select-option value="discussion"> Discussion </a-select-option>
             <a-select-option value="announcement">
               Announcement
             </a-select-option>
-            <a-select-option value="readonly">
-              Read-only
-            </a-select-option>
+            <a-select-option value="readonly"> Read-only </a-select-option>
             <a-select-option value="subscription">
               Subscription
             </a-select-option>
@@ -606,14 +564,8 @@
       @ok="handleCreateProposal"
       @cancel="showCreateProposalModal = false"
     >
-      <a-form
-        :model="proposalForm"
-        layout="vertical"
-      >
-        <a-form-item
-          label="Title"
-          required
-        >
+      <a-form :model="proposalForm" layout="vertical">
+        <a-form-item label="Title" required>
           <a-input
             v-model:value="proposalForm.title"
             placeholder="Proposal title"
@@ -628,21 +580,11 @@
         </a-form-item>
         <a-form-item label="Type">
           <a-select v-model:value="proposalForm.proposalType">
-            <a-select-option value="rule_change">
-              Rule Change
-            </a-select-option>
-            <a-select-option value="role_change">
-              Role Change
-            </a-select-option>
-            <a-select-option value="ban">
-              Ban
-            </a-select-option>
-            <a-select-option value="channel">
-              Channel
-            </a-select-option>
-            <a-select-option value="other">
-              Other
-            </a-select-option>
+            <a-select-option value="rule_change"> Rule Change </a-select-option>
+            <a-select-option value="role_change"> Role Change </a-select-option>
+            <a-select-option value="ban"> Ban </a-select-option>
+            <a-select-option value="channel"> Channel </a-select-option>
+            <a-select-option value="other"> Other </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
@@ -651,6 +593,15 @@
 </template>
 
 <script setup>
+/**
+ * @deprecated V5 entry — full functional parity ported to the V6 panel
+ * (`src/renderer/shell/CommunityPanel.vue` + `shell/community/*.vue` +
+ * `stores/communityQuick.ts`) across phases 2-6 (commits 70e00c11b,
+ * 330c1396d, cbc311f33, e6347fc74, 4df779f86). Kept active so users who
+ * opted out of the V6 shell via SystemSettings still have a working
+ * /community route. Do not add new features here — port them to the V6
+ * panel instead.
+ */
 import { ref, computed, onMounted } from "vue";
 import { message } from "ant-design-vue";
 import {
@@ -708,7 +659,9 @@ const proposalForm = ref({
 
 // Computed
 const filteredCommunities = computed(() => {
-  if (!searchKeyword.value) {return store.communities;}
+  if (!searchKeyword.value) {
+    return store.communities;
+  }
   const keyword = searchKeyword.value.toLowerCase();
   return store.communities.filter(
     (c) =>
@@ -719,18 +672,29 @@ const filteredCommunities = computed(() => {
 
 // Methods
 function formatDID(did) {
-  if (!did) {return "";}
-  if (did.length <= 20) {return did;}
+  if (!did) {
+    return "";
+  }
+  if (did.length <= 20) {
+    return did;
+  }
   return `${did.slice(0, 10)}...${did.slice(-10)}`;
 }
 
 function formatDate(timestamp) {
-  if (!timestamp) {return "";}
+  if (!timestamp) {
+    return "";
+  }
   return new Date(timestamp).toLocaleDateString();
 }
 
 function roleColor(role) {
-  const colors = { owner: "gold", admin: "red", moderator: "blue", member: "default" };
+  const colors = {
+    owner: "gold",
+    admin: "red",
+    moderator: "blue",
+    member: "default",
+  };
   return colors[role] || "default";
 }
 
@@ -763,7 +727,12 @@ async function handleCreateCommunity() {
     await store.createCommunity(createForm.value);
     message.success("Community created successfully");
     showCreateModal.value = false;
-    createForm.value = { name: "", description: "", rulesMd: "", memberLimit: 1000 };
+    createForm.value = {
+      name: "",
+      description: "",
+      rulesMd: "",
+      memberLimit: 1000,
+    };
   } catch (error) {
     message.error("Failed to create community: " + error.message);
   }
@@ -780,7 +749,9 @@ async function handleJoinCommunity(communityId) {
 }
 
 async function handleLeaveCommunity() {
-  if (!store.currentCommunity) {return;}
+  if (!store.currentCommunity) {
+    return;
+  }
   try {
     await store.leaveCommunity(store.currentCommunity.id);
     message.success("Left community");
@@ -791,10 +762,16 @@ async function handleLeaveCommunity() {
 }
 
 async function handleEditCommunity() {
-  if (!store.currentCommunity) {return;}
+  if (!store.currentCommunity) {
+    return;
+  }
   try {
     const { ipcRenderer } = window.electron || {};
-    await ipcRenderer.invoke("community:update", store.currentCommunity.id, editForm.value);
+    await ipcRenderer.invoke(
+      "community:update",
+      store.currentCommunity.id,
+      editForm.value,
+    );
     message.success("Community updated");
     showEditModal.value = false;
     await store.selectCommunity(store.currentCommunity.id);
@@ -817,7 +794,9 @@ async function handleCreateChannel() {
     message.warning("Please enter a channel name");
     return;
   }
-  if (!store.currentCommunity) {return;}
+  if (!store.currentCommunity) {
+    return;
+  }
   try {
     const { ipcRenderer } = window.electron || {};
     await ipcRenderer.invoke("channel:create", {
@@ -838,7 +817,9 @@ async function handleCreateProposal() {
     message.warning("Please enter a proposal title");
     return;
   }
-  if (!store.currentCommunity) {return;}
+  if (!store.currentCommunity) {
+    return;
+  }
   try {
     await store.createProposal({
       communityId: store.currentCommunity.id,
@@ -862,24 +843,44 @@ async function handleVote(proposalId, vote) {
 }
 
 async function handleMemberAction(action, member) {
-  if (!store.currentCommunity) {return;}
+  if (!store.currentCommunity) {
+    return;
+  }
   const { ipcRenderer } = window.electron || {};
   try {
     switch (action) {
       case "promote-moderator":
-        await ipcRenderer.invoke("community:promote", store.currentCommunity.id, member.member_did, "moderator");
+        await ipcRenderer.invoke(
+          "community:promote",
+          store.currentCommunity.id,
+          member.member_did,
+          "moderator",
+        );
         message.success("Member promoted to moderator");
         break;
       case "promote-admin":
-        await ipcRenderer.invoke("community:promote", store.currentCommunity.id, member.member_did, "admin");
+        await ipcRenderer.invoke(
+          "community:promote",
+          store.currentCommunity.id,
+          member.member_did,
+          "admin",
+        );
         message.success("Member promoted to admin");
         break;
       case "demote":
-        await ipcRenderer.invoke("community:demote", store.currentCommunity.id, member.member_did);
+        await ipcRenderer.invoke(
+          "community:demote",
+          store.currentCommunity.id,
+          member.member_did,
+        );
         message.success("Member demoted");
         break;
       case "ban":
-        await ipcRenderer.invoke("community:ban", store.currentCommunity.id, member.member_did);
+        await ipcRenderer.invoke(
+          "community:ban",
+          store.currentCommunity.id,
+          member.member_did,
+        );
         message.success("Member banned");
         break;
     }
