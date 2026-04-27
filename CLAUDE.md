@@ -10,11 +10,11 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v5.0.2.54 (Evolution Edition — 141 Desktop Skills + 28 Android Skills + 109 CLI Commands + 7600+ Tests)
+**Current Version**: v5.0.3.1 (Evolution Edition — 139 Desktop Skills + 28 Android Skills + 109 CLI Commands + 7600+ Tests)
 
 **Version hierarchy** (independent tracks — do not attempt to unify):
-- Product line: `v5.0.2.54` (marketing / release notes / docs — single source: `package.json.productVersion`)
-- CLI npm: `chainlesschain@0.156.7` (`packages/cli/package.json`)
+- Product line: `v5.0.3.1` (marketing / release notes / docs — single source: `package.json.productVersion`)
+- CLI npm: `chainlesschain@0.157.9` (`packages/cli/package.json`)
 - Desktop app: `1.1.0-alpha` (`desktop-app-vue/package.json` — alpha prerelease track)
 - Monorepo root: `0.37.8` (`/package.json` — workspaces aggregate, not published)
 
