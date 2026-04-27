@@ -60,6 +60,7 @@
             <a-menu-item key="mcp"><template #icon><CloudServerOutlined /></template>MCP 工具</a-menu-item>
             <a-menu-item key="project-settings"><template #icon><FolderOutlined /></template>项目存储</a-menu-item>
             <a-menu-item key="nlprog"><template #icon><BulbOutlined /></template>自然语言编程</a-menu-item>
+            <a-menu-item key="codegen"><template #icon><CodeOutlined /></template>代码生成</a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="g-data">
             <template #title><span class="group-label">数 据</span></template>
@@ -126,6 +127,7 @@
           <a-menu-item key="mcp"><template #icon><CloudServerOutlined /></template></a-menu-item>
           <a-menu-item key="project-settings"><template #icon><FolderOutlined /></template></a-menu-item>
           <a-menu-item key="nlprog"><template #icon><BulbOutlined /></template></a-menu-item>
+          <a-menu-item key="codegen"><template #icon><CodeOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="notes"><template #icon><BookOutlined /></template></a-menu-item>
           <a-menu-item key="memory"><template #icon><BranchesOutlined /></template></a-menu-item>

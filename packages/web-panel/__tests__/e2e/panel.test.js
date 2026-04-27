@@ -123,11 +123,11 @@ describe('chainlesschain ui — basic startup and SPA routes', () => {
   })
 
   // Hash-based SPA routes — the server just returns index.html for all.
-  // (router count assertion in __tests__/unit/new-pages.test.js → 45
+  // (router count assertion in __tests__/unit/new-pages.test.js → 46
   // children; we exclude the redirect-only `/` entry. Subset coverage here.)
   const SPA_ROUTES = [
     '/dashboard', '/chat', '/cowork', '/services', '/logs', '/aiops',
-    '/skills', '/providers', '/mcp', '/project-settings',
+    '/skills', '/providers', '/mcp', '/project-settings', '/codegen',
     '/notes', '/memory', '/knowledge', '/marketplace', '/cron', '/workflow', '/tasks',
     '/security', '/audit', '/did', '/permissions', '/p2p', '/backup', '/git', '/projects',
     '/crosschain', '/compliance',
