@@ -241,4 +241,197 @@ describe("useDIDManagementStore (Phase 2)", () => {
     store.clearError();
     expect(store.error).toBeNull();
   });
+
+  // ---- Phase 3: creation wizard ---------------------------------------------
+
+  it("openCreateForm() resets pending state and enters form step", () => {
+    const store = useDIDManagementStore();
+    store.$patch({
+      pendingMnemonic: "stale words",
+      pendingDid: "did:cc:stale",
+      mnemonicCopied: true,
+      creationError: "old",
+    });
+    store.openCreateForm();
+    expect(store.creationFlow).toBe("form");
+    expect(store.pendingMnemonic).toBeNull();
+    expect(store.pendingDid).toBeNull();
+    expect(store.mnemonicCopied).toBe(false);
+    expect(store.creationError).toBeNull();
+  });
+
+  it("closeCreateForm() goes back to idle from form", () => {
+    const store = useDIDManagementStore();
+    store.openCreateForm();
+    store.closeCreateForm();
+    expect(store.creationFlow).toBe("idle");
+  });
+
+  it("closeCreateForm() refuses to interrupt a submitting flow", () => {
+    const store = useDIDManagementStore();
+    store.$patch({ creationFlow: "submitting" });
+    store.closeCreateForm();
+    expect(store.creationFlow).toBe("submitting");
+  });
+
+  it("createIdentity() with import path skips mnemonic-display and reloads", async () => {
+    const calls: Array<{ channel: string; args: unknown[] }> = [];
+    invoke.mockImplementation((channel: string, ...args: unknown[]) => {
+      calls.push({ channel, args });
+      if (channel === "did:validate-mnemonic") {
+        return Promise.resolve(true);
+      }
+      if (channel === "did:create-from-mnemonic") {
+        return Promise.resolve({ did: "did:cc:imported" });
+      }
+      if (channel === "did:get-all-identities") {
+        return Promise.resolve([{ did: "did:cc:imported" }]);
+      }
+      if (channel === "did:get-current-identity") {
+        return Promise.resolve({ did: "did:cc:imported" });
+      }
+      if (channel === "did:is-published-to-dht") {
+        return Promise.resolve(false);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    store.openCreateForm();
+    const ok = await store.createIdentity({
+      nickname: "Imported",
+      importMnemonic: "twelve words go here for the test mnemonic input",
+      setAsDefault: true,
+    });
+
+    expect(ok).toBe(true);
+    expect(store.creationFlow).toBe("idle");
+    expect(store.pendingMnemonic).toBeNull();
+    expect(invoke).toHaveBeenCalledWith(
+      "did:validate-mnemonic",
+      "twelve words go here for the test mnemonic input",
+    );
+    expect(invoke).not.toHaveBeenCalledWith("did:generate-mnemonic");
+    const createCall = calls.find(
+      (c) => c.channel === "did:create-from-mnemonic",
+    );
+    expect(createCall).toBeTruthy();
+    expect(createCall!.args[2]).toEqual({ setAsDefault: true });
+  });
+
+  it("createIdentity() generates mnemonic and enters mnemonic-display when not importing", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:generate-mnemonic") {
+        return Promise.resolve("alpha bravo charlie delta echo");
+      }
+      if (channel === "did:create-from-mnemonic") {
+        return Promise.resolve({ did: "did:cc:fresh" });
+      }
+      if (channel === "did:get-all-identities") {
+        return Promise.resolve([{ did: "did:cc:fresh" }]);
+      }
+      if (channel === "did:get-current-identity") {
+        return Promise.resolve({ did: "did:cc:fresh" });
+      }
+      if (channel === "did:is-published-to-dht") {
+        return Promise.resolve(false);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    store.openCreateForm();
+    const ok = await store.createIdentity({ nickname: "Fresh" });
+
+    expect(ok).toBe(true);
+    expect(store.creationFlow).toBe("mnemonic-display");
+    expect(store.pendingMnemonic).toBe("alpha bravo charlie delta echo");
+    expect(store.pendingDid).toBe("did:cc:fresh");
+    expect(store.mnemonicCopied).toBe(false);
+  });
+
+  it("createIdentity() with invalid import mnemonic stays in form with error", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:validate-mnemonic") {
+        return Promise.resolve(false);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    store.openCreateForm();
+    const ok = await store.createIdentity({
+      nickname: "Bad",
+      importMnemonic: "not enough words",
+    });
+
+    expect(ok).toBe(false);
+    expect(store.creationFlow).toBe("form");
+    expect(store.creationError).toMatch(/无效/);
+    expect(invoke).not.toHaveBeenCalledWith(
+      "did:create-from-mnemonic",
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
+  it("createIdentity() with empty nickname returns false without IPC", async () => {
+    const store = useDIDManagementStore();
+    store.openCreateForm();
+    const ok = await store.createIdentity({ nickname: "  " });
+    expect(ok).toBe(false);
+    expect(store.creationError).toMatch(/昵称/);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("createIdentity() captures backend error and returns to form", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "did:generate-mnemonic") {
+        return Promise.resolve("words words words");
+      }
+      if (channel === "did:create-from-mnemonic") {
+        return Promise.reject(new Error("disk full"));
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useDIDManagementStore();
+    store.openCreateForm();
+    const ok = await store.createIdentity({ nickname: "Fresh" });
+    expect(ok).toBe(false);
+    expect(store.creationFlow).toBe("form");
+    expect(store.creationError).toBe("disk full");
+  });
+
+  it("dismissMnemonic() refuses until mnemonicCopied is true", async () => {
+    const store = useDIDManagementStore();
+    store.$patch({
+      creationFlow: "mnemonic-display",
+      pendingMnemonic: "x y z",
+      mnemonicCopied: false,
+    });
+    expect(store.dismissMnemonic()).toBe(false);
+    expect(store.creationFlow).toBe("mnemonic-display");
+
+    store.markMnemonicCopied();
+    expect(store.dismissMnemonic()).toBe(true);
+    expect(store.creationFlow).toBe("idle");
+    expect(store.pendingMnemonic).toBeNull();
+  });
+
+  it("dismissMnemonic() is a no-op outside the mnemonic-display step", () => {
+    const store = useDIDManagementStore();
+    store.$patch({ creationFlow: "form", mnemonicCopied: true });
+    expect(store.dismissMnemonic()).toBe(false);
+    expect(store.creationFlow).toBe("form");
+  });
+
+  it("clearCreationError() resets only creationError", () => {
+    const store = useDIDManagementStore();
+    store.$patch({ creationError: "boom", error: "other" });
+    store.clearCreationError();
+    expect(store.creationError).toBeNull();
+    expect(store.error).toBe("other");
+  });
 });

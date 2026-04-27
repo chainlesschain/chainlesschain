@@ -140,6 +140,8 @@
       @close="store.clearError()"
     />
   </a-modal>
+
+  <CreateIdentityWizard />
 </template>
 
 <script setup lang="ts">
@@ -154,6 +156,7 @@ import {
   useDIDManagementStore,
   type IdentitySummary,
 } from "../stores/didManagement";
+import CreateIdentityWizard from "./did/CreateIdentityWizard.vue";
 
 interface DidAction {
   id: string;
@@ -184,8 +187,8 @@ const actions: DidAction[] = [
   {
     id: "create",
     label: "创建身份",
-    desc: "生成新的 Ed25519 密钥对 + DID Document（含助记词备份流程，Phase 3 内嵌于此面板）。",
-    cta: "前往",
+    desc: "生成新的 Ed25519 密钥对 + DID Document，含助记词备份流程。",
+    cta: "开始",
     primary: true,
   },
   {
@@ -246,6 +249,10 @@ function confirmDelete(identity: IdentitySummary): void {
 }
 
 function run(action: DidAction): void {
+  if (action.id === "create") {
+    store.openCreateForm();
+    return;
+  }
   antMessage.info(`${action.label}：当前在 /did 完成，下一阶段将内嵌到此面板`);
 }
 </script>
