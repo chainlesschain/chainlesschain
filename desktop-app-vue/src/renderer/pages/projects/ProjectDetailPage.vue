@@ -484,6 +484,20 @@
 </template>
 
 <script setup>
+/**
+ * V5 project workspace — three-column layout (FileTree + ChatPanel +
+ * Editor/Preview) with toolbar actions (file-manage / share / git / export).
+ *
+ * **Partial V6 port note** (2026-04-28, commit 2a2ff4018): The V6 panel
+ * adds a 720px right-side ProjectDetailDrawer (`shell/projects/Project
+ * DetailDrawer.vue` + `stores/projectsQuick.ts` openDetails / loadDetailFiles)
+ * that gives V6 users a read-only metadata + grouped file-list summary
+ * with a "打开完整工作区" button that routes back here. The V5 page is
+ * NOT deprecated because the full workspace (resizable columns + chat
+ * + editor + preview) cannot fit in a 720px drawer. New workspace
+ * features keep landing here; new lightweight summary affordances go
+ * to the V6 drawer instead.
+ */
 import { logger } from "@/utils/logger";
 
 import {
@@ -1116,42 +1130,46 @@ const handleFileSave = async (content) => {
 // (change → 标记 dirty；save → 重置 dirty + saving 闸 + toast)。Excel/Word
 // 还有 currentFile.value guard。统一成两个工厂消除重复。
 //   编辑器无关的额外动作（如 Markdown 同步 fileContent）走可选回调。
-const makeChangeHandler = (label, { onChange } = {}) => (payload) => {
-  hasUnsavedChanges.value = true;
-  if (label) {
-    logger.info(`[ProjectDetail] ${label}内容变化`, payload);
-  }
-  onChange?.(payload);
-};
+const makeChangeHandler =
+  (label, { onChange } = {}) =>
+  (payload) => {
+    hasUnsavedChanges.value = true;
+    if (label) {
+      logger.info(`[ProjectDetail] ${label}内容变化`, payload);
+    }
+    onChange?.(payload);
+  };
 
-const makeSaveHandler = (
-  label,
-  { successMsg, requireFile = false, showToast = true, onSave } = {},
-) => async (payload) => {
-  if (requireFile && !currentFile.value) {
-    return;
-  }
-  if (requireFile) {
-    saving.value = true;
-  }
-  try {
+const makeSaveHandler =
+  (label, { successMsg, requireFile = false, showToast = true, onSave } = {}) =>
+  async (payload) => {
+    if (requireFile && !currentFile.value) {
+      return;
+    }
     if (requireFile) {
-      logger.info(`[ProjectDetail] 保存${label}文件:`, currentFile.value.file_path);
+      saving.value = true;
     }
-    onSave?.(payload);
-    hasUnsavedChanges.value = false;
-    if (showToast && successMsg) {
-      message.success(successMsg);
+    try {
+      if (requireFile) {
+        logger.info(
+          `[ProjectDetail] 保存${label}文件:`,
+          currentFile.value.file_path,
+        );
+      }
+      onSave?.(payload);
+      hasUnsavedChanges.value = false;
+      if (showToast && successMsg) {
+        message.success(successMsg);
+      }
+    } catch (error) {
+      logger.error(`保存${label}文件失败:`, error);
+      message.error("保存失败: " + error.message);
+    } finally {
+      if (requireFile) {
+        saving.value = false;
+      }
     }
-  } catch (error) {
-    logger.error(`保存${label}文件失败:`, error);
-    message.error("保存失败: " + error.message);
-  } finally {
-    if (requireFile) {
-      saving.value = false;
-    }
-  }
-};
+  };
 
 const handleExcelChange = makeChangeHandler("Excel数据");
 const handleExcelSave = makeSaveHandler("Excel", {
