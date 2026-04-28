@@ -379,6 +379,22 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(frWidget.title).toBe("好友");
   });
 
+  it("memory-bank 的 /memory-bank slash + MemoryBankWidget 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const mb = slash.find((s) => s.trigger === "/memory-bank");
+    expect(mb).toBeDefined();
+    expect(mb.handler).toBe("builtin:openMemoryBankPanel");
+    expect(mb.pluginId).toBe("memory-bank");
+
+    const widgets = Array.from(pm.uiRegistry.homeWidgets.values());
+    const mbWidget = widgets.find(
+      (w) => w.component === "builtin:MemoryBankWidget",
+    );
+    expect(mbWidget).toBeDefined();
+    expect(mbWidget.size).toBe("medium");
+    expect(mbWidget.title).toBe("记忆库");
+  });
+
   it("brand.theme priority 100 覆盖默认 10", () => {
     const active = pm.getActiveBrandTheme();
     expect(active).not.toBeNull();

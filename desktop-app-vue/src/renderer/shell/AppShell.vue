@@ -83,6 +83,10 @@
       v-model:open="friendsPanelOpen"
       :prefill-text="friendsPrefill"
     />
+    <MemoryBankPanel
+      v-model:open="memoryBankPanelOpen"
+      :prefill-text="memoryBankPrefill"
+    />
   </a-layout>
 </template>
 
@@ -115,6 +119,7 @@ import CommunityPanel from "./CommunityPanel.vue";
 import AIChatPanel from "./AIChatPanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import FriendsPanel from "./FriendsPanel.vue";
+import MemoryBankPanel from "./MemoryBankPanel.vue";
 
 const sidebarCollapsed = ref(false);
 const artifactOpen = ref(false);
@@ -150,6 +155,8 @@ const settingsPanelOpen = ref(false);
 const settingsPrefill = ref("");
 const friendsPanelOpen = ref(false);
 const friendsPrefill = ref("");
+const memoryBankPanelOpen = ref(false);
+const memoryBankPrefill = ref("");
 
 const registry = useExtensionRegistryStore();
 const artifactStore = useArtifactStore();
@@ -193,6 +200,7 @@ let unregisterCommunityHandler: (() => void) | null = null;
 let unregisterAIChatHandler: (() => void) | null = null;
 let unregisterSettingsHandler: (() => void) | null = null;
 let unregisterFriendsHandler: (() => void) | null = null;
+let unregisterMemoryBankHandler: (() => void) | null = null;
 
 onMounted(async () => {
   window.addEventListener("keydown", handleKeydown);
@@ -307,6 +315,13 @@ onMounted(async () => {
       friendsPanelOpen.value = true;
     },
   );
+  unregisterMemoryBankHandler = registerSlashHandler(
+    "builtin:openMemoryBankPanel",
+    ({ args }) => {
+      memoryBankPrefill.value = args ?? "";
+      memoryBankPanelOpen.value = true;
+    },
+  );
   await registry.refreshAll();
   appliedThemeVars = applyBrandTheme(registry.brandTheme);
   artifactStore.seedIfEmpty();
@@ -347,6 +362,8 @@ onBeforeUnmount(() => {
   unregisterSettingsHandler = null;
   unregisterFriendsHandler?.();
   unregisterFriendsHandler = null;
+  unregisterMemoryBankHandler?.();
+  unregisterMemoryBankHandler = null;
 });
 </script>
 

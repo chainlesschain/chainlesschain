@@ -1,0 +1,31 @@
+{
+  "id": "memory-bank",
+  "name": "记忆库",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/memory-bank 斜杠命令 + Home 页快捷卡片（V5 MemoryDashboardPage 的 V6 完整 port — AI 学习模式 / 偏好 / 会话 / 行为洞察 / 存储管理 / 自动摘要）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "memory-bank",
+        "trigger": "/memory-bank",
+        "handler": "builtin:openMemoryBankPanel",
+        "description": "打开记忆库面板",
+        "icon": "DatabaseOutlined"
+      }
+    },
+    {
+      "point": "ui.home-widget",
+      "priority": 10,
+      "config": {
+        "id": "memory-bank-quick",
+        "component": "builtin:MemoryBankWidget",
+        "size": "medium",
+        "order": 140,
+        "title": "记忆库"
+      }
+    }
+  ]
+}
