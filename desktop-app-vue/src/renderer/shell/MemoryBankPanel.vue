@@ -214,9 +214,7 @@
                     <div class="pattern-line-1">
                       <span class="pattern-title">{{ item.name }}</span>
                       <a-tag size="small">
-                        {{
-                          Array.isArray(item.steps) ? item.steps.length : 0
-                        }}
+                        {{ Array.isArray(item.steps) ? item.steps.length : 0 }}
                         步骤
                       </a-tag>
                     </div>
@@ -231,11 +229,156 @@
         </a-row>
       </a-tab-pane>
 
-      <a-tab-pane key="preferences" tab="用户偏好" disabled>
-        <a-empty
-          description="Phase 3 — 用户偏好 / 会话 / 行为洞察 tab 即将接入"
-        />
+      <a-tab-pane key="preferences" tab="用户偏好">
+        <a-table
+          :columns="preferenceColumns"
+          :data-source="store.preferences"
+          :loading="store.loading && !store.hasLoaded"
+          :pagination="{ pageSize: 8, size: 'small' }"
+          :row-key="
+            (row: UserPreference) => `${row.category ?? ''}.${row.key ?? ''}`
+          "
+          size="small"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'value'">
+              <a-typography-text
+                :ellipsis="{ tooltip: formatPreferenceValue(record.value) }"
+                style="max-width: 320px"
+              >
+                {{ formatPreferenceValue(record.value) }}
+              </a-typography-text>
+            </template>
+            <template v-else-if="column.key === 'updated_at'">
+              {{ formatMemDate(record.updated_at) }}
+            </template>
+          </template>
+        </a-table>
       </a-tab-pane>
+
+      <a-tab-pane key="sessions" tab="会话记录">
+        <a-empty
+          v-if="!store.recentSessions.length && store.hasLoaded"
+          description="暂无最近会话"
+        />
+        <a-list
+          v-else
+          :data-source="store.recentSessions"
+          :loading="store.loading && !store.hasLoaded"
+          :pagination="{ pageSize: 8, size: 'small' }"
+          size="small"
+          class="session-list"
+        >
+          <template #renderItem="{ item }">
+            <a-list-item>
+              <a-list-item-meta>
+                <template #title>
+                  <span class="session-title">
+                    {{ item.title || "未命名会话" }}
+                  </span>
+                  <a-tag
+                    v-if="item.has_summary"
+                    color="green"
+                    size="small"
+                    class="session-summary-tag"
+                  >
+                    已摘要
+                  </a-tag>
+                </template>
+                <template #description>
+                  <a-space size="small" wrap>
+                    <span class="session-meta">
+                      <MessageOutlined />
+                      {{ sessionMessageCount(item) }} 条消息
+                    </span>
+                    <span class="session-meta">
+                      <ClockCircleOutlined />
+                      {{ formatMemDate(item.updated_at) }}
+                    </span>
+                  </a-space>
+                </template>
+              </a-list-item-meta>
+            </a-list-item>
+          </template>
+        </a-list>
+      </a-tab-pane>
+
+      <a-tab-pane key="insights" tab="行为洞察">
+        <a-row :gutter="[12, 12]">
+          <a-col :xs="24" :lg="12">
+            <a-card title="使用习惯" size="small">
+              <a-descriptions :column="1" size="small">
+                <a-descriptions-item label="最常用模型">
+                  {{ insightString("mostUsedModel") }}
+                </a-descriptions-item>
+                <a-descriptions-item label="活跃时段">
+                  {{ insightString("activeHours") }}
+                </a-descriptions-item>
+                <a-descriptions-item label="平均会话时长">
+                  {{ insightString("avgSessionDuration") }}
+                </a-descriptions-item>
+                <a-descriptions-item label="常用功能">
+                  <template v-if="topFeatures.length">
+                    <a-tag
+                      v-for="feature in topFeatures"
+                      :key="feature"
+                      size="small"
+                    >
+                      {{ feature }}
+                    </a-tag>
+                  </template>
+                  <span v-else>-</span>
+                </a-descriptions-item>
+              </a-descriptions>
+            </a-card>
+          </a-col>
+          <a-col :xs="24" :lg="12">
+            <a-card title="优化建议" size="small">
+              <a-empty
+                v-if="!store.recommendations.length"
+                description="暂无优化建议"
+                :image-style="{ height: '40px' }"
+              />
+              <a-list
+                v-else
+                :data-source="store.recommendations"
+                size="small"
+                class="recommendation-list"
+              >
+                <template #renderItem="{ item }">
+                  <a-list-item>
+                    <a-list-item-meta>
+                      <template #avatar>
+                        <a-avatar
+                          :style="{
+                            backgroundColor: recommendationColor(item.type),
+                          }"
+                          size="small"
+                        >
+                          <template #icon>
+                            <BulbOutlined />
+                          </template>
+                        </a-avatar>
+                      </template>
+                      <template #title>
+                        <span class="recommendation-title">
+                          {{ item.title || "建议" }}
+                        </span>
+                      </template>
+                      <template #description>
+                        <span class="recommendation-desc">
+                          {{ item.description ?? "" }}
+                        </span>
+                      </template>
+                    </a-list-item-meta>
+                  </a-list-item>
+                </template>
+              </a-list>
+            </a-card>
+          </a-col>
+        </a-row>
+      </a-tab-pane>
+
       <a-tab-pane key="storage" tab="存储管理" disabled>
         <a-empty description="Phase 4 — 存储管理 / 自动摘要 即将接入" />
       </a-tab-pane>
@@ -244,18 +387,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import {
   BulbOutlined,
+  ClockCircleOutlined,
   DatabaseOutlined,
   MessageOutlined,
   ReloadOutlined,
   RiseOutlined,
   SettingOutlined,
 } from "@ant-design/icons-vue";
-import { useMemoryBankStore } from "../stores/memoryBank";
+import {
+  useMemoryBankStore,
+  type RecentSession,
+  type UserPreference,
+} from "../stores/memoryBank";
 import {
   classificationColor,
+  formatMemDate,
+  formatPreferenceValue,
+  recommendationColor,
   successRatePercent,
   truncate,
 } from "./helpers/memoryBankHelpers";
@@ -271,6 +422,46 @@ defineEmits<{
 
 const store = useMemoryBankStore();
 const activeTab = ref<string>("patterns");
+
+const preferenceColumns = [
+  { title: "分类", dataIndex: "category", key: "category", width: 110 },
+  { title: "键", dataIndex: "key", key: "key", width: 160 },
+  { title: "值", dataIndex: "value", key: "value" },
+  {
+    title: "更新时间",
+    dataIndex: "updated_at",
+    key: "updated_at",
+    width: 130,
+  },
+];
+
+function insightString(key: string): string {
+  const v = store.behaviorInsights?.[key];
+  if (v === undefined || v === null || v === "") {
+    return "-";
+  }
+  return String(v);
+}
+
+const topFeatures = computed<string[]>(() => {
+  const raw = (store.behaviorInsights as { topFeatures?: unknown }).topFeatures;
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw.filter((f): f is string => typeof f === "string").slice(0, 5);
+});
+
+function sessionMessageCount(item: RecentSession): number {
+  const a = item.messageCount;
+  const b = (item as Record<string, unknown>).message_count;
+  if (typeof a === "number") {
+    return a;
+  }
+  if (typeof b === "number") {
+    return b;
+  }
+  return 0;
+}
 
 function applyPrefill(): void {
   const a = props.prefillText?.trim();
@@ -396,6 +587,42 @@ watch(
 }
 
 .pattern-desc {
+  font-size: 12px;
+  color: var(--cc-shell-muted, #8c8c8c);
+  line-height: 1.5;
+}
+
+.session-list :deep(.ant-list-item) {
+  padding: 8px 12px;
+}
+
+.session-title {
+  font-weight: 500;
+  margin-inline-end: 6px;
+}
+
+.session-summary-tag {
+  font-size: 11px;
+}
+
+.session-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--cc-shell-muted, #8c8c8c);
+}
+
+.recommendation-list :deep(.ant-list-item) {
+  padding: 8px 0;
+}
+
+.recommendation-title {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.recommendation-desc {
   font-size: 12px;
   color: var(--cc-shell-muted, #8c8c8c);
   line-height: 1.5;
