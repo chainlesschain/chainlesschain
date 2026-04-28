@@ -641,6 +641,25 @@
 </template>
 
 <script setup>
+/**
+ * V5 system settings — 17 tabs of cross-shell configuration (general /
+ * editor / shortcuts / privacy / performance / notifications / advanced /
+ * edition / project / llm / vector / git / backend / database / security /
+ * p2p / speech). Reads/writes via config:get-all + config:update;
+ * activeTab honors ?tab=… deep links from the V6 SettingsPanel.
+ *
+ * **Partial V6 port note** (2026-04-28, commit a75d1e129): The V6 panel
+ * adds a 680px modal SettingsPanel (`shell/SettingsPanel.vue` +
+ * `shell/helpers/settingsHelpers.ts`) that surfaces a 4-row status
+ * summary (LLM / V6 shell / theme / language) + 7 clickable category
+ * cards that deep-link here via /settings/system?tab=<id>. The V5 page
+ * is NOT deprecated because: (1) full multi-tab form with sliders /
+ * complex selectors does not fit a 680px modal, (2) cross-shell users
+ * already reach this page directly via /settings/system, (3) the V6
+ * shell's own toggle (ui.useV6ShellByDefault) is set here. New config
+ * sections keep landing here; new lightweight summary affordances go
+ * to the V6 panel instead.
+ */
 import { logger } from "@/utils/logger";
 
 import { ref, watch, onMounted } from "vue";
