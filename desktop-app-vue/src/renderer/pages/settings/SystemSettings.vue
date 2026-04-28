@@ -643,8 +643,8 @@
 <script setup>
 import { logger } from "@/utils/logger";
 
-import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { ref, watch, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { message, Modal } from "ant-design-vue";
 import {
   SettingOutlined,
@@ -670,10 +670,26 @@ import ProjectPane from "./panes/ProjectPane.vue";
 import PerformancePane from "./panes/PerformancePane.vue";
 
 const router = useRouter();
+const route = useRoute();
 
 const loading = ref(false);
 const saving = ref(false);
-const activeTab = ref("project");
+// Initial tab: ?tab=xxx query (used by V6 SettingsPanel deep links) wins,
+// otherwise default to project. The watch below keeps it in sync if the
+// query changes while the page is mounted.
+const activeTab = ref(
+  typeof route.query.tab === "string" && route.query.tab.length > 0
+    ? route.query.tab
+    : "project",
+);
+watch(
+  () => route.query.tab,
+  (next) => {
+    if (typeof next === "string" && next.length > 0) {
+      activeTab.value = next;
+    }
+  },
+);
 
 // 在不改变默认壳的情况下立即打开 V6 预览（/v6-preview，与 router 重定向目标一致）
 const openV6PreviewNow = () => {

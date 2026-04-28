@@ -14,19 +14,57 @@
     </div>
 
     <p class="panel-desc">
-      系统级配置入口。SystemSettings 包含 7 个分区，分别管理 LLM
-      提供商、本地数据库与备份、项目存储、P2P
-      网络、语音识别、性能参数与通用偏好。 下方按高频度列出，完整设置请访问
-      <code>/settings</code>。
+      系统级配置入口。完整 SystemSettings 包含 17 个分区；下方按高频度列出 7
+      类，点击任一分区直接跳转 V5 完整设置页面。
     </p>
+
+    <!-- Status summary -->
+    <div class="status-summary">
+      <a-spin :spinning="statusLoading">
+        <div class="status-row">
+          <span class="status-label">LLM Provider</span>
+          <a-tag v-if="aiChatStore.isAvailable" color="success">
+            {{ aiChatStore.providerLabel }}
+          </a-tag>
+          <a-tag v-else color="error"> 未配置 </a-tag>
+        </div>
+        <div class="status-row">
+          <span class="status-label">V6 Shell</span>
+          <a-tag :color="v6ShellTagColor">
+            {{ v6ShellLabel(uiUseV6) }}
+          </a-tag>
+        </div>
+        <div class="status-row">
+          <span class="status-label">主题</span>
+          <a-tag color="default">
+            {{ themeLabel(generalTheme) }}
+          </a-tag>
+        </div>
+        <div class="status-row">
+          <span class="status-label">语言</span>
+          <a-tag color="default">
+            {{ languageLabel(generalLanguage) }}
+          </a-tag>
+        </div>
+      </a-spin>
+    </div>
+
+    <a-divider />
 
     <div class="categories-summary">
       <div class="summary-header">
         <span class="summary-label">设置分区</span>
-        <a-tag color="blue"> 7 </a-tag>
+        <a-tag color="blue">
+          {{ categories.length }}
+        </a-tag>
       </div>
       <ul class="category-list">
-        <li v-for="cat in categories" :key="cat.id" class="category-row">
+        <li
+          v-for="cat in categories"
+          :key="cat.id"
+          class="category-row"
+          @click="onCategoryClick(cat)"
+        >
           <component :is="cat.icon" class="category-icon" />
           <div class="category-meta">
             <span class="category-name">{{ cat.label }}</span>
@@ -35,6 +73,7 @@
           <a-tag v-if="cat.tag" :color="cat.tagColor">
             {{ cat.tag }}
           </a-tag>
+          <RightOutlined class="category-arrow" />
         </li>
       </ul>
     </div>
@@ -63,6 +102,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import { message as antMessage } from "ant-design-vue";
 import {
   SettingOutlined,
@@ -73,8 +114,16 @@ import {
   AudioOutlined,
   ThunderboltOutlined,
   AppstoreOutlined,
+  RightOutlined,
 } from "@ant-design/icons-vue";
 import type { Component } from "vue";
+import { useAIChatStore } from "../stores/aiChat";
+import {
+  buildSettingsRoute,
+  languageLabel,
+  themeLabel,
+  v6ShellLabel,
+} from "./helpers/settingsHelpers";
 
 interface SettingsCategory {
   id: string;
@@ -92,10 +141,70 @@ interface SettingsAction {
   cta: string;
   primary?: boolean;
   disabled?: boolean;
+  tab?: string;
 }
 
-defineProps<{ open: boolean; prefillText?: string }>();
-defineEmits<{ (e: "update:open", value: boolean): void }>();
+interface ElectronApi {
+  invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
+}
+
+function api(): ElectronApi | undefined {
+  return (window as unknown as { electronAPI?: ElectronApi }).electronAPI;
+}
+
+const props = defineProps<{ open: boolean; prefillText?: string }>();
+const emit = defineEmits<{
+  (e: "update:open", value: boolean): void;
+}>();
+
+const router = useRouter();
+const aiChatStore = useAIChatStore();
+
+const statusLoading = ref(false);
+const generalTheme = ref<unknown>(undefined);
+const generalLanguage = ref<unknown>(undefined);
+const uiUseV6 = ref<unknown>(undefined);
+
+const v6ShellTagColor = computed(() => {
+  if (uiUseV6.value === true) {
+    return "blue";
+  }
+  if (uiUseV6.value === false) {
+    return "default";
+  }
+  return "default";
+});
+
+watch(
+  () => props.open,
+  async (isOpen) => {
+    if (!isOpen) {
+      return;
+    }
+    // Lazily refresh the LLM status + read 3 config flags every time
+    // the panel opens — config can change between opens (user edited
+    // SystemSettings then came back).
+    if (!aiChatStore.hasLoaded) {
+      aiChatStore.loadAll();
+    }
+    statusLoading.value = true;
+    try {
+      const all = (await api()?.invoke("config:get-all")) as
+        | Record<string, unknown>
+        | null
+        | undefined;
+      const general = (all?.general ?? {}) as Record<string, unknown>;
+      const ui = (all?.ui ?? {}) as Record<string, unknown>;
+      generalTheme.value = general.theme;
+      generalLanguage.value = general.language;
+      uiUseV6.value = ui.useV6ShellByDefault;
+    } catch {
+      // Falls through; tags render as 未设置
+    } finally {
+      statusLoading.value = false;
+    }
+  },
+);
 
 const categories: SettingsCategory[] = [
   {
@@ -107,7 +216,7 @@ const categories: SettingsCategory[] = [
   {
     id: "llm",
     label: "LLM 配置",
-    desc: "Ollama / OpenAI / Anthropic / Volcengine / DeepSeek / Zhipu / Dashscope 七 provider 切换与参数",
+    desc: "Ollama / OpenAI / Anthropic / Volcengine / DeepSeek / Zhipu / Dashscope 七 provider",
     icon: ApiOutlined,
     tag: "高频",
     tagColor: "blue",
@@ -115,7 +224,7 @@ const categories: SettingsCategory[] = [
   {
     id: "database",
     label: "数据库与备份",
-    desc: "SQLCipher 加密库迁移、自动备份、备份恢复（桌面端文件 I/O）",
+    desc: "SQLCipher 加密库迁移、自动备份、备份恢复",
     icon: DatabaseOutlined,
     tag: "桌面",
     tagColor: "purple",
@@ -135,7 +244,7 @@ const categories: SettingsCategory[] = [
   {
     id: "speech",
     label: "语音识别",
-    desc: "Web Speech / Whisper API / Whisper Local / 音频处理 / 知识联动",
+    desc: "Web Speech / Whisper API / Whisper Local / 音频处理",
     icon: AudioOutlined,
   },
   {
@@ -150,7 +259,7 @@ const actions: SettingsAction[] = [
   {
     id: "open-full",
     label: "打开完整 SystemSettings",
-    desc: "进入 /settings 浏览全部 7 个分区，编辑任意配置项。",
+    desc: "进入 /settings/system 浏览全部 17 个分区。",
     cta: "前往",
     primary: true,
   },
@@ -159,25 +268,43 @@ const actions: SettingsAction[] = [
     label: "切换 V6 Shell 默认",
     desc: "设置 ui.useV6ShellByDefault 控制启动后默认是否进入 V6 shell。",
     cta: "前往",
+    tab: "general",
   },
   {
-    id: "config-edit",
-    label: "编辑 config.json",
-    desc: "在默认编辑器中直接打开 .chainlesschain/config.json（高级用户）。",
+    id: "advanced",
+    label: "高级配置",
+    desc: "导出 / 导入 config.json、重置默认配置、诊断（在 V5 advanced tab）。",
     cta: "前往",
+    tab: "advanced",
   },
   {
     id: "reset",
     label: "恢复默认配置",
     desc: "把所有配置项恢复为出厂默认值（不影响数据库与项目文件）。",
     cta: "前往",
+    tab: "advanced",
   },
 ];
 
+function navigateToTab(tab?: string): void {
+  emit("update:open", false);
+  router.push(buildSettingsRoute(tab));
+}
+
+function onCategoryClick(cat: SettingsCategory): void {
+  navigateToTab(cat.id);
+}
+
 function run(action: SettingsAction): void {
-  antMessage.info(
-    `${action.label}：请在 /settings 完成该操作（快速面板仅展示概览）`,
-  );
+  if (action.id === "open-full") {
+    navigateToTab();
+    return;
+  }
+  if (action.tab) {
+    navigateToTab(action.tab);
+    return;
+  }
+  antMessage.info(`${action.label}：请在 /settings/system 完成该操作`);
 }
 </script>
 
@@ -206,11 +333,26 @@ function run(action: SettingsAction): void {
   line-height: 1.6;
 }
 
-.panel-desc code {
-  padding: 1px 6px;
-  background: var(--cc-shell-sider-bg, #fafafa);
-  border-radius: 3px;
+.status-summary {
+  background: var(--cc-shell-card, #fff);
+  border: 1px solid var(--cc-shell-border, #eee);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-size: 12px;
+  gap: 8px;
+}
+
+.status-label {
+  color: var(--cc-shell-muted, #595959);
 }
 
 .categories-summary {
@@ -246,13 +388,19 @@ function run(action: SettingsAction): void {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 0;
+  padding: 8px 4px;
   border-top: 1px dashed var(--cc-shell-border, #eee);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.category-row:hover {
+  background: var(--cc-shell-hover, #f5f5f5);
 }
 
 .category-row:first-child {
   border-top: none;
-  padding-top: 0;
+  padding-top: 4px;
 }
 
 .category-icon {
@@ -278,6 +426,12 @@ function run(action: SettingsAction): void {
   font-size: 11px;
   color: var(--cc-shell-muted, #595959);
   line-height: 1.5;
+}
+
+.category-arrow {
+  color: var(--cc-shell-muted, #999);
+  font-size: 12px;
+  flex-shrink: 0;
 }
 
 .action-list {
