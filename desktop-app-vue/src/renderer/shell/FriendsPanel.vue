@@ -14,8 +14,8 @@
     </div>
 
     <p class="panel-desc">
-      P2P 好友列表。好友通过 DID 互加，消息走 Signal 协议端到端加密。 编辑 /
-      删除将在 Phase 4 接入。
+      P2P 好友列表。好友通过 DID 互加，消息走 Signal 协议端到端加密。 点击行末 ⋯
+      编辑备注 / 移动分组 / 删除好友。
     </p>
 
     <div class="friends-toolbar">
