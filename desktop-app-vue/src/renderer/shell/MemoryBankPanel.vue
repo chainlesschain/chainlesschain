@@ -379,8 +379,133 @@
         </a-row>
       </a-tab-pane>
 
-      <a-tab-pane key="storage" tab="存储管理" disabled>
-        <a-empty description="Phase 4 — 存储管理 / 自动摘要 即将接入" />
+      <a-tab-pane key="storage" tab="存储管理">
+        <a-descriptions :column="2" bordered size="small">
+          <a-descriptions-item label="Memory 目录">
+            <a-typography-text
+              :ellipsis="{ tooltip: store.memoryPath }"
+              copyable
+              style="max-width: 240px"
+            >
+              {{ store.memoryPath || "-" }}
+            </a-typography-text>
+          </a-descriptions-item>
+          <a-descriptions-item label="占用空间">
+            {{ formatBytes(store.storageStats.totalSize) }}
+          </a-descriptions-item>
+          <a-descriptions-item label="总文件数">
+            {{ store.storageStats.totalFiles }}
+          </a-descriptions-item>
+          <a-descriptions-item label="上次备份">
+            {{ formatMemDate(store.storageStats.lastBackup) }}
+          </a-descriptions-item>
+        </a-descriptions>
+
+        <div class="storage-actions">
+          <a-dropdown :disabled="store.exporting">
+            <a-button type="primary" :loading="store.exporting">
+              <ExportOutlined />
+              导出数据
+              <DownOutlined />
+            </a-button>
+            <template #overlay>
+              <a-menu @click="handleExport">
+                <a-menu-item key="all"> 导出全部数据 </a-menu-item>
+                <a-menu-item key="patterns"> 导出学习模式 </a-menu-item>
+                <a-menu-item key="preferences"> 导出用户偏好 </a-menu-item>
+                <a-menu-item key="sessions"> 导出会话摘要 </a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
+          <a-button :loading="store.backingUp" @click="handleBackup">
+            <SaveOutlined />
+            创建备份
+          </a-button>
+          <a-popconfirm
+            title="确认清理过期数据？"
+            description="这会移除已超过保留期的会话和模式数据，且不可恢复。"
+            ok-text="确认清理"
+            cancel-text="取消"
+            ok-type="danger"
+            @confirm="handleCleanup"
+          >
+            <a-button danger :loading="store.cleaningUp">
+              <DeleteOutlined />
+              清理过期
+            </a-button>
+          </a-popconfirm>
+          <a-button
+            :disabled="!store.memoryPath"
+            @click="store.openMemoryFolder()"
+          >
+            <FolderOpenOutlined />
+            打开目录
+          </a-button>
+        </div>
+      </a-tab-pane>
+
+      <a-tab-pane key="auto-summary" tab="自动摘要">
+        <a-descriptions :column="2" bordered size="small">
+          <a-descriptions-item label="状态">
+            <a-tag
+              :color="store.autoSummaryConfig.enabled ? 'green' : 'default'"
+            >
+              {{ store.autoSummaryConfig.enabled ? "已启用" : "未启用" }}
+            </a-tag>
+            <a-tag v-if="store.autoSummaryConfig.isRunning" color="processing">
+              运行中
+            </a-tag>
+          </a-descriptions-item>
+          <a-descriptions-item label="后台模式">
+            <a-tag
+              :color="
+                store.autoSummaryConfig.backgroundEnabled ? 'blue' : 'default'
+              "
+            >
+              {{ store.autoSummaryConfig.backgroundEnabled ? "开启" : "关闭" }}
+            </a-tag>
+          </a-descriptions-item>
+          <a-descriptions-item label="触发阈值（消息数）">
+            {{ store.autoSummaryConfig.threshold }}
+          </a-descriptions-item>
+          <a-descriptions-item label="检查间隔">
+            {{ Math.round(store.autoSummaryConfig.interval / 1000) }} 秒
+          </a-descriptions-item>
+          <a-descriptions-item label="队列长度">
+            {{ store.autoSummaryConfig.queueLength }}
+          </a-descriptions-item>
+          <a-descriptions-item label="覆盖率">
+            {{ Math.round(store.autoSummaryStats.coverage * 100) || 0 }}% ({{
+              store.autoSummaryStats.withSummary
+            }}
+            / {{ store.autoSummaryStats.totalSessions }})
+          </a-descriptions-item>
+        </a-descriptions>
+
+        <div class="storage-actions">
+          <a-button
+            type="primary"
+            :loading="store.triggeringBulk"
+            :disabled="store.autoSummaryStats.withoutSummary === 0"
+            @click="handleBulkSummary"
+          >
+            <RobotOutlined />
+            批量生成（待生成 {{ store.autoSummaryStats.withoutSummary }}）
+          </a-button>
+          <a-button
+            :loading="store.loadingAutoSummary"
+            @click="store.loadAutoSummaryInfo()"
+          >
+            <ReloadOutlined />
+            刷新状态
+          </a-button>
+        </div>
+        <a-alert
+          message="高级配置（启停 / 阈值 / 间隔 / 后台开关）请在 V5 设置页 → 自动摘要 内调整。"
+          type="info"
+          show-icon
+          class="auto-summary-hint"
+        />
       </a-tab-pane>
     </a-tabs>
   </a-modal>
@@ -388,13 +513,20 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { message } from "ant-design-vue";
 import {
   BulbOutlined,
   ClockCircleOutlined,
   DatabaseOutlined,
+  DeleteOutlined,
+  DownOutlined,
+  ExportOutlined,
+  FolderOpenOutlined,
   MessageOutlined,
   ReloadOutlined,
   RiseOutlined,
+  RobotOutlined,
+  SaveOutlined,
   SettingOutlined,
 } from "@ant-design/icons-vue";
 import {
@@ -404,6 +536,7 @@ import {
 } from "../stores/memoryBank";
 import {
   classificationColor,
+  formatBytes,
   formatMemDate,
   formatPreferenceValue,
   recommendationColor,
@@ -461,6 +594,55 @@ function sessionMessageCount(item: RecentSession): number {
     return b;
   }
   return 0;
+}
+
+// ========== Phase 4: storage + auto-summary handlers ==========
+
+async function handleExport({
+  key,
+}: {
+  key: "all" | "patterns" | "preferences" | "sessions";
+}): Promise<void> {
+  const hide = message.loading("正在导出...", 0);
+  const result = await store.exportData(key);
+  hide();
+  if (result.success) {
+    message.success(`已导出到 ${result.filePath ?? "本地文件"}`);
+  } else {
+    message.error(result.error ?? "导出失败");
+  }
+}
+
+async function handleBackup(): Promise<void> {
+  const result = await store.createBackup();
+  if (result.success) {
+    message.success(
+      result.backupPath ? `备份成功：${result.backupPath}` : "备份成功",
+    );
+  } else {
+    message.error(result.error ?? "备份失败");
+  }
+}
+
+async function handleCleanup(): Promise<void> {
+  const result = await store.cleanupExpired();
+  if (result.success) {
+    message.success(`清理完成，移除 ${result.removed ?? 0} 项`);
+  } else {
+    message.error(result.error ?? "清理失败");
+  }
+}
+
+async function handleBulkSummary(): Promise<void> {
+  const result = await store.triggerBulkSummary({
+    limit: 20,
+    overwrite: false,
+  });
+  if (result.success) {
+    message.success(`已触发批量生成，处理 ${result.processed ?? 0} 个会话`);
+  } else {
+    message.error(result.error ?? "批量生成失败");
+  }
 }
 
 function applyPrefill(): void {
@@ -626,5 +808,17 @@ watch(
   font-size: 12px;
   color: var(--cc-shell-muted, #8c8c8c);
   line-height: 1.5;
+}
+
+.storage-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.auto-summary-hint {
+  margin-top: 12px;
 }
 </style>
