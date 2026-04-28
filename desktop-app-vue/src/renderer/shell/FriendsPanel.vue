@@ -166,6 +166,44 @@
               </span>
             </div>
           </div>
+          <div class="friend-actions">
+            <a-dropdown
+              :trigger="['click']"
+              placement="bottomRight"
+              :disabled="
+                deletingDid === friend.friend_did ||
+                updatingDid === friend.friend_did
+              "
+            >
+              <a-button
+                type="text"
+                size="small"
+                :loading="
+                  deletingDid === friend.friend_did ||
+                  updatingDid === friend.friend_did
+                "
+              >
+                <EllipsisOutlined />
+              </a-button>
+              <template #overlay>
+                <a-menu @click="({ key }) => onRowAction(key, friend)">
+                  <a-menu-item key="edit">
+                    <EditOutlined />
+                    编辑备注
+                  </a-menu-item>
+                  <a-menu-item key="move">
+                    <FolderOutlined />
+                    移动分组
+                  </a-menu-item>
+                  <a-menu-divider />
+                  <a-menu-item key="delete" danger>
+                    <DeleteOutlined />
+                    删除好友
+                  </a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown>
+          </div>
         </li>
       </ul>
       <a-empty
@@ -220,14 +258,96 @@
         />
       </a-form>
     </a-modal>
+
+    <a-modal
+      v-model:open="editModalOpen"
+      title="编辑好友信息"
+      :ok-text="editing ? '保存中...' : '保存'"
+      cancel-text="取消"
+      :ok-button-props="{ loading: editing }"
+      :mask-closable="!editing"
+      :closable="!editing"
+      @ok="submitEdit"
+      @cancel="cancelEdit"
+    >
+      <a-form layout="vertical">
+        <a-form-item label="好友 DID">
+          <a-input
+            :value="formatDID(editForm.friendDid)"
+            disabled
+            class="edit-did-display"
+          />
+        </a-form-item>
+        <a-form-item label="备注名称（昵称）">
+          <a-input
+            v-model:value="editForm.nickname"
+            placeholder="给好友起个备注名"
+            :maxlength="50"
+            allow-clear
+          />
+        </a-form-item>
+        <a-form-item label="备注（仅自己可见）">
+          <a-textarea
+            v-model:value="editForm.notes"
+            placeholder="例如：同事 / 大学室友 / 客户 ..."
+            :rows="3"
+            :maxlength="200"
+            show-count
+          />
+        </a-form-item>
+        <a-alert v-if="editError" type="error" :message="editError" show-icon />
+      </a-form>
+    </a-modal>
+
+    <a-modal
+      v-model:open="moveModalOpen"
+      title="移动到分组"
+      :ok-text="moving ? '保存中...' : '移动'"
+      cancel-text="取消"
+      :ok-button-props="{ loading: moving, disabled: !moveTargetGroup }"
+      :mask-closable="!moving"
+      :closable="!moving"
+      @ok="submitMove"
+      @cancel="cancelMove"
+    >
+      <p class="move-friend-tip">
+        将
+        <strong>{{ moveForm.friendName }}</strong>
+        移动到：
+      </p>
+      <a-form layout="vertical">
+        <a-form-item label="选择现有分组">
+          <a-select
+            v-model:value="moveForm.targetGroup"
+            placeholder="选择分组"
+            allow-clear
+            :options="groups.map((g) => ({ value: g, label: g }))"
+          />
+        </a-form-item>
+        <a-divider class="move-divider"> 或 </a-divider>
+        <a-form-item label="创建新分组">
+          <a-input
+            v-model:value="moveForm.newGroupName"
+            placeholder="输入新分组名称"
+            :maxlength="20"
+            allow-clear
+          />
+        </a-form-item>
+        <a-alert v-if="moveError" type="error" :message="moveError" show-icon />
+      </a-form>
+    </a-modal>
   </a-modal>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
-import { message } from "ant-design-vue";
+import { Modal, message } from "ant-design-vue";
 import {
   BellOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  EllipsisOutlined,
+  FolderOutlined,
   SearchOutlined,
   TeamOutlined,
   UserAddOutlined,
@@ -395,6 +515,165 @@ async function submitAdd(): Promise<void> {
   } finally {
     adding.value = false;
   }
+}
+
+// ============= Phase 4: row dropdown — edit / move group / delete =============
+
+const deletingDid = ref<string | null>(null);
+const updatingDid = ref<string | null>(null);
+
+const editModalOpen = ref(false);
+const editing = ref(false);
+const editError = ref<string | null>(null);
+const editForm = reactive<{
+  friendDid: string;
+  nickname: string;
+  notes: string;
+}>({
+  friendDid: "",
+  nickname: "",
+  notes: "",
+});
+
+const moveModalOpen = ref(false);
+const moving = ref(false);
+const moveError = ref<string | null>(null);
+const moveForm = reactive<{
+  friendDid: string;
+  friendName: string;
+  currentGroup: string;
+  targetGroup: string;
+  newGroupName: string;
+}>({
+  friendDid: "",
+  friendName: "",
+  currentGroup: "",
+  targetGroup: "",
+  newGroupName: "",
+});
+
+const moveTargetGroup = computed(() => {
+  const fresh = moveForm.newGroupName.trim();
+  if (fresh) {
+    return fresh;
+  }
+  return moveForm.targetGroup || "";
+});
+
+function onRowAction(key: unknown, friend: FriendLike): void {
+  const k = String(key);
+  if (k === "edit") {
+    openEdit(friend);
+  } else if (k === "move") {
+    openMove(friend);
+  } else if (k === "delete") {
+    confirmDelete(friend);
+  }
+}
+
+function openEdit(friend: FriendLike): void {
+  editForm.friendDid = friend.friend_did;
+  editForm.nickname = friend.nickname ?? "";
+  editForm.notes = (
+    typeof friend.notes === "string" ? friend.notes : ""
+  ) as string;
+  editError.value = null;
+  editModalOpen.value = true;
+}
+
+function cancelEdit(): void {
+  if (editing.value) {
+    return;
+  }
+  editModalOpen.value = false;
+}
+
+async function submitEdit(): Promise<void> {
+  if (!editForm.friendDid) {
+    return;
+  }
+  editing.value = true;
+  editError.value = null;
+  updatingDid.value = editForm.friendDid;
+  try {
+    await store.updateFriendInfo(editForm.friendDid, {
+      nickname: editForm.nickname.trim(),
+      notes: editForm.notes.trim(),
+    });
+    message.success("已更新好友信息");
+    editModalOpen.value = false;
+  } catch (err: unknown) {
+    editError.value = err instanceof Error ? err.message : String(err);
+  } finally {
+    editing.value = false;
+    updatingDid.value = null;
+  }
+}
+
+function openMove(friend: FriendLike): void {
+  moveForm.friendDid = friend.friend_did;
+  moveForm.friendName = friend.nickname || formatDID(friend.friend_did);
+  moveForm.currentGroup = (friend.group_name as string) ?? "";
+  moveForm.targetGroup = "";
+  moveForm.newGroupName = "";
+  moveError.value = null;
+  moveModalOpen.value = true;
+}
+
+function cancelMove(): void {
+  if (moving.value) {
+    return;
+  }
+  moveModalOpen.value = false;
+}
+
+async function submitMove(): Promise<void> {
+  const target = moveTargetGroup.value;
+  if (!target) {
+    moveError.value = "请选择或输入分组名称";
+    return;
+  }
+  if (target === moveForm.currentGroup) {
+    moveError.value = "已经在该分组";
+    return;
+  }
+  moving.value = true;
+  moveError.value = null;
+  updatingDid.value = moveForm.friendDid;
+  try {
+    await store.updateFriendInfo(moveForm.friendDid, { groupName: target });
+    message.success(`已移动到分组「${target}」`);
+    moveModalOpen.value = false;
+  } catch (err: unknown) {
+    moveError.value = err instanceof Error ? err.message : String(err);
+  } finally {
+    moving.value = false;
+    updatingDid.value = null;
+  }
+}
+
+function confirmDelete(friend: FriendLike): void {
+  const name = friend.nickname || formatDID(friend.friend_did);
+  Modal.confirm({
+    title: "删除好友",
+    content: `确定要删除好友「${name}」吗？删除后将无法恢复聊天记录。`,
+    okText: "确认删除",
+    okType: "danger",
+    cancelText: "取消",
+    async onOk() {
+      deletingDid.value = friend.friend_did;
+      try {
+        await store.removeFriend(friend.friend_did);
+        message.success("好友已删除");
+      } catch (err: unknown) {
+        message.error(
+          `删除失败：${err instanceof Error ? err.message : String(err)}`,
+        );
+      } finally {
+        deletingDid.value = null;
+      }
+    },
+  });
 }
 
 function avatarLetter(friend: FriendLike): string {
@@ -569,6 +848,27 @@ watch(
 
 .add-error {
   margin-top: 12px;
+}
+
+.friend-actions {
+  flex-shrink: 0;
+}
+
+.edit-did-display {
+  font-family: var(--cc-mono, monospace);
+  background: var(--cc-shell-hover, #f5f5f5) !important;
+}
+
+.move-friend-tip {
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--cc-shell-text, #1f1f1f);
+}
+
+.move-divider {
+  margin-block: 12px;
+  font-size: 12px;
+  color: var(--cc-shell-muted, #8c8c8c);
 }
 
 .friend-list {
