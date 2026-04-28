@@ -5,14 +5,9 @@
         <DatabaseOutlined />
         Memory Bank
       </h1>
-      <p class="page-description">
-        管理学习模式、用户偏好、使用报告和行为洞察
-      </p>
+      <p class="page-description">管理学习模式、用户偏好、使用报告和行为洞察</p>
       <div class="header-actions">
-        <a-button
-          :loading="loading"
-          @click="refreshAll"
-        >
+        <a-button :loading="loading" @click="refreshAll">
           <ReloadOutlined /> 刷新
         </a-button>
         <a-dropdown>
@@ -22,18 +17,10 @@
           </a-button>
           <template #overlay>
             <a-menu @click="handleExport">
-              <a-menu-item key="all">
-                导出全部数据
-              </a-menu-item>
-              <a-menu-item key="patterns">
-                导出学习模式
-              </a-menu-item>
-              <a-menu-item key="preferences">
-                导出用户偏好
-              </a-menu-item>
-              <a-menu-item key="sessions">
-                导出会话摘要
-              </a-menu-item>
+              <a-menu-item key="all"> 导出全部数据 </a-menu-item>
+              <a-menu-item key="patterns"> 导出学习模式 </a-menu-item>
+              <a-menu-item key="preferences"> 导出用户偏好 </a-menu-item>
+              <a-menu-item key="sessions"> 导出会话摘要 </a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
@@ -41,14 +28,8 @@
     </div>
 
     <!-- Stats Overview -->
-    <a-row
-      :gutter="[16, 16]"
-      class="stats-row"
-    >
-      <a-col
-        :xs="12"
-        :sm="6"
-      >
+    <a-row :gutter="[16, 16]" class="stats-row">
+      <a-col :xs="12" :sm="6">
         <a-card class="stat-card">
           <a-statistic
             title="学习模式"
@@ -61,10 +42,7 @@
           </a-statistic>
         </a-card>
       </a-col>
-      <a-col
-        :xs="12"
-        :sm="6"
-      >
+      <a-col :xs="12" :sm="6">
         <a-card class="stat-card">
           <a-statistic
             title="用户偏好"
@@ -77,10 +55,7 @@
           </a-statistic>
         </a-card>
       </a-col>
-      <a-col
-        :xs="12"
-        :sm="6"
-      >
+      <a-col :xs="12" :sm="6">
         <a-card class="stat-card">
           <a-statistic
             title="会话记录"
@@ -93,10 +68,7 @@
           </a-statistic>
         </a-card>
       </a-col>
-      <a-col
-        :xs="12"
-        :sm="6"
-      >
+      <a-col :xs="12" :sm="6">
         <a-card class="stat-card">
           <a-statistic
             title="行为洞察"
@@ -115,22 +87,12 @@
     <a-card class="main-content">
       <a-tabs v-model:active-key="activeTab">
         <!-- Learned Patterns Tab -->
-        <a-tab-pane
-          key="patterns"
-          tab="学习模式"
-        >
+        <a-tab-pane key="patterns" tab="学习模式">
           <div class="tab-content">
             <a-row :gutter="[16, 16]">
               <!-- Prompt Patterns -->
-              <a-col
-                :xs="24"
-                :lg="12"
-              >
-                <a-card
-                  title="Prompt 模式"
-                  size="small"
-                  class="pattern-card"
-                >
+              <a-col :xs="24" :lg="12">
+                <a-card title="Prompt 模式" size="small" class="pattern-card">
                   <template #extra>
                     <a-tag color="blue">
                       {{ promptPatterns.length }}
@@ -165,15 +127,8 @@
               </a-col>
 
               <!-- Error Fix Patterns -->
-              <a-col
-                :xs="24"
-                :lg="12"
-              >
-                <a-card
-                  title="错误修复模式"
-                  size="small"
-                  class="pattern-card"
-                >
+              <a-col :xs="24" :lg="12">
+                <a-card title="错误修复模式" size="small" class="pattern-card">
                   <template #extra>
                     <a-tag color="orange">
                       {{ errorFixPatterns.length }}
@@ -218,15 +173,8 @@
               </a-col>
 
               <!-- Code Snippets -->
-              <a-col
-                :xs="24"
-                :lg="12"
-              >
-                <a-card
-                  title="代码片段"
-                  size="small"
-                  class="pattern-card"
-                >
+              <a-col :xs="24" :lg="12">
+                <a-card title="代码片段" size="small" class="pattern-card">
                   <template #extra>
                     <a-tag color="green">
                       {{ codeSnippets.length }}
@@ -261,15 +209,8 @@
               </a-col>
 
               <!-- Workflow Patterns -->
-              <a-col
-                :xs="24"
-                :lg="12"
-              >
-                <a-card
-                  title="工作流模式"
-                  size="small"
-                  class="pattern-card"
-                >
+              <a-col :xs="24" :lg="12">
+                <a-card title="工作流模式" size="small" class="pattern-card">
                   <template #extra>
                     <a-tag color="purple">
                       {{ workflowPatterns.length }}
@@ -307,10 +248,7 @@
         </a-tab-pane>
 
         <!-- Preferences Tab -->
-        <a-tab-pane
-          key="preferences"
-          tab="用户偏好"
-        >
+        <a-tab-pane key="preferences" tab="用户偏好">
           <div class="tab-content">
             <a-table
               :columns="preferenceColumns"
@@ -337,10 +275,7 @@
         </a-tab-pane>
 
         <!-- Sessions Tab -->
-        <a-tab-pane
-          key="sessions"
-          tab="会话摘要"
-        >
+        <a-tab-pane key="sessions" tab="会话摘要">
           <div class="tab-content">
             <div class="session-actions">
               <a-button
@@ -402,22 +337,12 @@
         </a-tab-pane>
 
         <!-- Auto-Summary Tab -->
-        <a-tab-pane
-          key="auto-summary"
-          tab="自动摘要"
-        >
+        <a-tab-pane key="auto-summary" tab="自动摘要">
           <div class="tab-content">
             <a-row :gutter="[16, 16]">
               <!-- Configuration Card -->
-              <a-col
-                :xs="24"
-                :lg="12"
-              >
-                <a-card
-                  title="自动摘要配置"
-                  size="small"
-                  class="config-card"
-                >
+              <a-col :xs="24" :lg="12">
+                <a-card title="自动摘要配置" size="small" class="config-card">
                   <template #extra>
                     <a-switch
                       v-model:checked="autoSummaryConfig.enabled"
@@ -486,15 +411,8 @@
               </a-col>
 
               <!-- Statistics Card -->
-              <a-col
-                :xs="24"
-                :lg="12"
-              >
-                <a-card
-                  title="摘要统计"
-                  size="small"
-                  class="stats-card"
-                >
+              <a-col :xs="24" :lg="12">
+                <a-card title="摘要统计" size="small" class="stats-card">
                   <template #extra>
                     <a-button
                       size="small"
@@ -505,10 +423,7 @@
                     </a-button>
                   </template>
 
-                  <a-descriptions
-                    :column="1"
-                    size="small"
-                  >
+                  <a-descriptions :column="1" size="small">
                     <a-descriptions-item label="总会话数">
                       {{ autoSummaryStats.totalSessions || 0 }}
                     </a-descriptions-item>
@@ -543,10 +458,7 @@
 
               <!-- Bulk Actions Card -->
               <a-col :xs="24">
-                <a-card
-                  title="批量操作"
-                  size="small"
-                >
+                <a-card title="批量操作" size="small">
                   <a-space wrap>
                     <a-button
                       type="primary"
@@ -618,24 +530,12 @@
         </a-tab-pane>
 
         <!-- Behavior Insights Tab -->
-        <a-tab-pane
-          key="insights"
-          tab="行为洞察"
-        >
+        <a-tab-pane key="insights" tab="行为洞察">
           <div class="tab-content">
             <a-row :gutter="[16, 16]">
-              <a-col
-                :xs="24"
-                :lg="12"
-              >
-                <a-card
-                  title="使用习惯"
-                  size="small"
-                >
-                  <a-descriptions
-                    :column="1"
-                    size="small"
-                  >
+              <a-col :xs="24" :lg="12">
+                <a-card title="使用习惯" size="small">
+                  <a-descriptions :column="1" size="small">
                     <a-descriptions-item label="最常用模型">
                       {{ behaviorInsights.mostUsedModel || "-" }}
                     </a-descriptions-item>
@@ -655,28 +555,20 @@
                       >
                         {{ feature }}
                       </a-tag>
-                      <span v-if="!behaviorInsights.topFeatures?.length">-</span>
+                      <span v-if="!behaviorInsights.topFeatures?.length"
+                        >-</span
+                      >
                     </a-descriptions-item>
                   </a-descriptions>
                 </a-card>
               </a-col>
-              <a-col
-                :xs="24"
-                :lg="12"
-              >
-                <a-card
-                  title="优化建议"
-                  size="small"
-                >
+              <a-col :xs="24" :lg="12">
+                <a-card title="优化建议" size="small">
                   <a-empty
                     v-if="!recommendations.length"
                     description="暂无优化建议"
                   />
-                  <a-list
-                    v-else
-                    :data-source="recommendations"
-                    size="small"
-                  >
+                  <a-list v-else :data-source="recommendations" size="small">
                     <template #renderItem="{ item }">
                       <a-list-item>
                         <a-list-item-meta>
@@ -711,15 +603,9 @@
         </a-tab-pane>
 
         <!-- Storage Tab -->
-        <a-tab-pane
-          key="storage"
-          tab="存储管理"
-        >
+        <a-tab-pane key="storage" tab="存储管理">
           <div class="tab-content">
-            <a-descriptions
-              :column="2"
-              bordered
-            >
+            <a-descriptions :column="2" bordered>
               <a-descriptions-item label="Memory 目录">
                 {{ memoryPath }}
               </a-descriptions-item>
@@ -744,20 +630,14 @@
               <a-button @click="openMemoryFolder">
                 <FolderOpenOutlined /> 打开 Memory 目录
               </a-button>
-              <a-button
-                :loading="creatingBackup"
-                @click="createBackup"
-              >
+              <a-button :loading="creatingBackup" @click="createBackup">
                 <SaveOutlined /> 创建备份
               </a-button>
               <a-popconfirm
                 title="确定清理过期数据？此操作不可恢复。"
                 @confirm="cleanupExpired"
               >
-                <a-button
-                  danger
-                  :loading="cleaningUp"
-                >
+                <a-button danger :loading="cleaningUp">
                   <DeleteOutlined /> 清理过期数据
                 </a-button>
               </a-popconfirm>
@@ -770,6 +650,33 @@
 </template>
 
 <script setup>
+/**
+ * @deprecated V5 Memory Bank 仪表板，已被 V6 MemoryBankPanel 完整 port 替代。
+ *
+ * V6 入口：
+ *  - Slash 命令：`/memory-bank`（args: `patterns` / `preferences` / `storage`
+ *    跳到对应 tab）
+ *  - 主页 quick-launch：记忆库 widget（`shell/widgets/MemoryBankWidget.vue`）
+ *  - 主面板：`shell/MemoryBankPanel.vue` 860px modal — 6 个 tab：
+ *    学习模式 / 用户偏好 / 会话记录 / 行为洞察 / 存储管理 / 自动摘要
+ *
+ * V5 → V6 端口（4 phases，commits 596f72bba / 3b5aa5c24 / 0b58e3389）：
+ *  - single-page 轻量 track（V5 1483 行；V6 ~1900 行 / +24 helper 测试）
+ *  - 新建独立 store `useMemoryBankStore`（与 `stores/memory.ts` 区分 —
+ *    后者管理 daily-notes & search，本 store 只服务 Memory Bank dashboard）
+ *  - 11 个 actions：5 个 load* + 5 个 mutate + refreshAll
+ *  - 8 个 helpers（truncate / successRatePercent / formatBytes /
+ *    formatMemDate / classificationColor / recommendationColor /
+ *    formatPreferenceValue / totalPatternsCount）
+ *
+ * V6 范围裁剪决策：自动摘要高级配置（启停 / 阈值 / 间隔 / 后台开关）
+ * 留在 V5 SystemSettings 子页，V6 panel 只展示运行时状态 + 触发批量生成。
+ * 原因：那些配置编辑器是低频路径，独立 form 的引入会让 panel 双倍变重。
+ *
+ * V5 路径在 V5 shell（`ui.useV6ShellByDefault=false` 用户）下保持可用；
+ * V6 shell 用户默认通过 `/memory-bank` 进入，V5 此页不再触达。
+ */
+
 import { logger } from "@/utils/logger";
 
 import { ref, onMounted, computed } from "vue";
