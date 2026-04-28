@@ -363,6 +363,22 @@ describe("v6 extension points — first-party + MDM override", () => {
     expect(stWidget.title).toBe("设置");
   });
 
+  it("friends 的 /friends slash + FriendsWidget 被注册", () => {
+    const slash = Array.from(pm.uiRegistry.slashCommands.values());
+    const fr = slash.find((s) => s.trigger === "/friends");
+    expect(fr).toBeDefined();
+    expect(fr.handler).toBe("builtin:openFriendsPanel");
+    expect(fr.pluginId).toBe("friends");
+
+    const widgets = Array.from(pm.uiRegistry.homeWidgets.values());
+    const frWidget = widgets.find(
+      (w) => w.component === "builtin:FriendsWidget",
+    );
+    expect(frWidget).toBeDefined();
+    expect(frWidget.size).toBe("medium");
+    expect(frWidget.title).toBe("好友");
+  });
+
   it("brand.theme priority 100 覆盖默认 10", () => {
     const active = pm.getActiveBrandTheme();
     expect(active).not.toBeNull();

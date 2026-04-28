@@ -19,6 +19,7 @@ import P2PMessagingWidget from "./P2PMessagingWidget.vue";
 import CommunityWidget from "./CommunityWidget.vue";
 import AIChatWidget from "./AIChatWidget.vue";
 import SettingsWidget from "./SettingsWidget.vue";
+import FriendsWidget from "./FriendsWidget.vue";
 
 registerWidgetComponent("builtin:AdminShortcut", AdminShortcut);
 registerWidgetComponent("builtin:AIPromptsWidget", AIPromptsWidget);
@@ -47,3 +48,4 @@ registerWidgetComponent("builtin:P2PMessagingWidget", P2PMessagingWidget);
 registerWidgetComponent("builtin:CommunityWidget", CommunityWidget);
 registerWidgetComponent("builtin:AIChatWidget", AIChatWidget);
 registerWidgetComponent("builtin:SettingsWidget", SettingsWidget);
+registerWidgetComponent("builtin:FriendsWidget", FriendsWidget);

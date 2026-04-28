@@ -79,6 +79,10 @@
       v-model:open="settingsPanelOpen"
       :prefill-text="settingsPrefill"
     />
+    <FriendsPanel
+      v-model:open="friendsPanelOpen"
+      :prefill-text="friendsPrefill"
+    />
   </a-layout>
 </template>
 
@@ -110,6 +114,7 @@ import P2PMessagingPanel from "./P2PMessagingPanel.vue";
 import CommunityPanel from "./CommunityPanel.vue";
 import AIChatPanel from "./AIChatPanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
+import FriendsPanel from "./FriendsPanel.vue";
 
 const sidebarCollapsed = ref(false);
 const artifactOpen = ref(false);
@@ -143,6 +148,8 @@ const aiChatPanelOpen = ref(false);
 const aiChatPrefill = ref("");
 const settingsPanelOpen = ref(false);
 const settingsPrefill = ref("");
+const friendsPanelOpen = ref(false);
+const friendsPrefill = ref("");
 
 const registry = useExtensionRegistryStore();
 const artifactStore = useArtifactStore();
@@ -185,6 +192,7 @@ let unregisterP2PMessagingHandler: (() => void) | null = null;
 let unregisterCommunityHandler: (() => void) | null = null;
 let unregisterAIChatHandler: (() => void) | null = null;
 let unregisterSettingsHandler: (() => void) | null = null;
+let unregisterFriendsHandler: (() => void) | null = null;
 
 onMounted(async () => {
   window.addEventListener("keydown", handleKeydown);
@@ -292,6 +300,13 @@ onMounted(async () => {
       settingsPanelOpen.value = true;
     },
   );
+  unregisterFriendsHandler = registerSlashHandler(
+    "builtin:openFriendsPanel",
+    ({ args }) => {
+      friendsPrefill.value = args ?? "";
+      friendsPanelOpen.value = true;
+    },
+  );
   await registry.refreshAll();
   appliedThemeVars = applyBrandTheme(registry.brandTheme);
   artifactStore.seedIfEmpty();
@@ -330,6 +345,8 @@ onBeforeUnmount(() => {
   unregisterAIChatHandler = null;
   unregisterSettingsHandler?.();
   unregisterSettingsHandler = null;
+  unregisterFriendsHandler?.();
+  unregisterFriendsHandler = null;
 });
 </script>
 

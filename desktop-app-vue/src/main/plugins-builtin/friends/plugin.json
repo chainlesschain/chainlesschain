@@ -1,0 +1,31 @@
+{
+  "id": "friends",
+  "name": "好友",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/friends 斜杠命令 + Home 页好友快捷卡片（V5 FriendsPage.vue 的 V6 完整 port — 共享 useSocialStore）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "friends",
+        "trigger": "/friends",
+        "handler": "builtin:openFriendsPanel",
+        "description": "打开好友列表",
+        "icon": "TeamOutlined"
+      }
+    },
+    {
+      "point": "ui.home-widget",
+      "priority": 10,
+      "config": {
+        "id": "friends-quick",
+        "component": "builtin:FriendsWidget",
+        "size": "medium",
+        "order": 130,
+        "title": "好友"
+      }
+    }
+  ]
+}
