@@ -430,4 +430,132 @@ describe("useProjectsQuickStore (Phase 2)", () => {
     expect(store.error).toBe("main");
     expect(store.createError).toBe("third");
   });
+
+  // ---- Path P1b: project detail drawer ------------------------------------
+
+  it("initial state for detail drawer fields", () => {
+    const store = useProjectsQuickStore();
+    expect(store.viewingProjectId).toBeNull();
+    expect(store.viewingProject).toBeNull();
+    expect(store.viewingFiles).toEqual([]);
+    expect(store.detailsLoading).toBe(false);
+    expect(store.detailsFilesLoading).toBe(false);
+    expect(store.detailsError).toBeNull();
+  });
+
+  it("openDetails() loads project + files via project:get and project:get-files", async () => {
+    invoke.mockImplementation((channel: string, ...args: unknown[]) => {
+      if (channel === "project:get") {
+        expect(args[0]).toBe("p1");
+        return Promise.resolve({
+          id: "p1",
+          name: "Test Project",
+          project_type: "document",
+          status: "active",
+        });
+      }
+      if (channel === "project:get-files") {
+        // verify pageSize=200 was requested
+        expect(args[3]).toBe(200);
+        return Promise.resolve({
+          files: [
+            { id: "f1", file_name: "a.md", file_type: "markdown" },
+            { id: "f2", file_name: "b.png", file_type: "image" },
+          ],
+          total: 2,
+          hasMore: false,
+        });
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useProjectsQuickStore();
+    await store.openDetails("p1");
+
+    expect(store.viewingProjectId).toBe("p1");
+    expect(store.viewingProject?.name).toBe("Test Project");
+    expect(store.viewingFiles).toHaveLength(2);
+    expect(store.detailsLoading).toBe(false);
+    expect(store.detailsFilesLoading).toBe(false);
+  });
+
+  it("openDetails() captures error when project:get throws", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "project:get") {
+        return Promise.reject(new Error("not found"));
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useProjectsQuickStore();
+    await store.openDetails("p-missing");
+
+    expect(store.viewingProjectId).toBe("p-missing");
+    expect(store.viewingProject).toBeNull();
+    expect(store.detailsError).toBe("not found");
+    expect(store.detailsLoading).toBe(false);
+  });
+
+  it("loadDetailFiles() handles flat array response", async () => {
+    invoke.mockImplementation((channel: string) => {
+      if (channel === "project:get-files") {
+        return Promise.resolve([{ id: "f1", file_name: "x" }]);
+      }
+      return Promise.resolve(null);
+    });
+
+    const store = useProjectsQuickStore();
+    await store.loadDetailFiles("p1");
+    expect(store.viewingFiles).toHaveLength(1);
+    expect(store.viewingFiles[0].id).toBe("f1");
+  });
+
+  it("loadDetailFiles() falls back to [] when response shape unknown", async () => {
+    invoke.mockImplementation(() => Promise.resolve("unexpected"));
+
+    const store = useProjectsQuickStore();
+    await store.loadDetailFiles("p1");
+    expect(store.viewingFiles).toEqual([]);
+  });
+
+  it("loadDetailFiles() captures error and falls back to []", async () => {
+    invoke.mockImplementation(() =>
+      Promise.reject(new Error("permission denied")),
+    );
+    const store = useProjectsQuickStore();
+    store.$patch({ viewingFiles: [{ id: "stale" } as never] });
+    await store.loadDetailFiles("p1");
+    expect(store.viewingFiles).toEqual([]);
+    expect(store.detailsError).toBe("permission denied");
+  });
+
+  it("closeDetails() resets all viewing state", () => {
+    const store = useProjectsQuickStore();
+    store.$patch({
+      viewingProjectId: "p1",
+      viewingProject: { id: "p1", name: "X" },
+      viewingFiles: [{ id: "f1" } as never],
+      detailsError: "old",
+    });
+    store.closeDetails();
+    expect(store.viewingProjectId).toBeNull();
+    expect(store.viewingProject).toBeNull();
+    expect(store.viewingFiles).toEqual([]);
+    expect(store.detailsError).toBeNull();
+  });
+
+  it("clearDetailsError() resets only detailsError", () => {
+    const store = useProjectsQuickStore();
+    store.$patch({
+      detailsError: "x",
+      error: "main",
+      createError: "third",
+      renameError: "fourth",
+    });
+    store.clearDetailsError();
+    expect(store.detailsError).toBeNull();
+    expect(store.error).toBe("main");
+    expect(store.createError).toBe("third");
+    expect(store.renameError).toBe("fourth");
+  });
 });

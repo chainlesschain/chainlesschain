@@ -6,12 +6,18 @@
  * wizard + rename. Phase 5 marks the V5 `components/ProjectSidebar.vue`
  * (773 lines) entry as deprecated.
  *
+ * Path P1b extension (2026-04-28) — adds project-detail drawer (read-
+ * only metadata + file list) to give V6 users a richer summary without
+ * jumping to V5 ProjectDetailPage. The full editing workspace (FileTree
+ * + ChatPanel + Editor) stays in V5 because a 720px drawer can't host
+ * three resizable columns of workspace.
+ *
  * Field shape note: project:get-all returns sqlite snake_case rows
  * envelope-wrapped in {projects, total, hasMore}. Each row carries id /
  * name / description / project_type ('web' | 'document' | 'data' | 'app') /
  * status / created_at / updated_at + optional metadata. The V6 panel
  * matches V5 ProjectSidebar's project_type → icon map.
- * @version 1.3.0
+ * @version 1.4.0
  */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
@@ -32,6 +38,18 @@ export interface CreateProjectInput {
   description?: string;
   projectType?: "web" | "document" | "data" | "app";
   userId?: string;
+}
+
+export interface ProjectFile {
+  id: string;
+  project_id?: string;
+  file_name?: string;
+  file_path?: string;
+  file_type?: string;
+  size?: number;
+  created_at?: number;
+  updated_at?: number;
+  [key: string]: unknown;
 }
 
 interface ProjectListResponse {
@@ -68,6 +86,13 @@ export const useProjectsQuickStore = defineStore("projectsQuick", () => {
   const renamingProject = ref<ProjectSummary | null>(null);
   const renaming = ref(false);
   const renameError = ref<string | null>(null);
+
+  const viewingProjectId = ref<string | null>(null);
+  const viewingProject = ref<ProjectSummary | null>(null);
+  const viewingFiles = ref<ProjectFile[]>([]);
+  const detailsLoading = ref(false);
+  const detailsFilesLoading = ref(false);
+  const detailsError = ref<string | null>(null);
 
   const recent = computed(() => projects.value.slice(0, RECENT_LIMIT));
 
@@ -235,6 +260,67 @@ export const useProjectsQuickStore = defineStore("projectsQuick", () => {
     renameError.value = null;
   }
 
+  // ---- Path P1b: project detail drawer ------------------------------------
+
+  async function loadDetailFiles(projectId: string): Promise<void> {
+    detailsFilesLoading.value = true;
+    try {
+      // Channel signature: (projectId, fileType=null, pageNum=1, pageSize=50)
+      // Bumped pageSize to 200 to show the full file list in the detail
+      // drawer without pagination — V5 detail page lazy-loads, V6 just
+      // shows a flat list because the drawer is read-only.
+      const result = (await api()?.invoke(
+        "project:get-files",
+        projectId,
+        null,
+        1,
+        200,
+      )) as ProjectFile[] | { files?: ProjectFile[] } | null | undefined;
+      const list = Array.isArray(result)
+        ? result
+        : Array.isArray((result as { files?: ProjectFile[] })?.files)
+          ? ((result as { files?: ProjectFile[] }).files as ProjectFile[])
+          : [];
+      viewingFiles.value = list;
+    } catch (e) {
+      detailsError.value = e instanceof Error ? e.message : String(e);
+      viewingFiles.value = [];
+    } finally {
+      detailsFilesLoading.value = false;
+    }
+  }
+
+  async function openDetails(id: string): Promise<void> {
+    viewingProjectId.value = id;
+    viewingProject.value = null;
+    viewingFiles.value = [];
+    detailsError.value = null;
+    detailsLoading.value = true;
+    try {
+      const detail = (await api()?.invoke("project:get", id)) as
+        | ProjectSummary
+        | null
+        | undefined;
+      viewingProject.value = detail ?? null;
+      await loadDetailFiles(id);
+    } catch (e) {
+      detailsError.value = e instanceof Error ? e.message : String(e);
+    } finally {
+      detailsLoading.value = false;
+    }
+  }
+
+  function closeDetails(): void {
+    viewingProjectId.value = null;
+    viewingProject.value = null;
+    viewingFiles.value = [];
+    detailsError.value = null;
+  }
+
+  function clearDetailsError(): void {
+    detailsError.value = null;
+  }
+
   return {
     projects,
     total,
@@ -250,6 +336,12 @@ export const useProjectsQuickStore = defineStore("projectsQuick", () => {
     renamingProject,
     renaming,
     renameError,
+    viewingProjectId,
+    viewingProject,
+    viewingFiles,
+    detailsLoading,
+    detailsFilesLoading,
+    detailsError,
     recent,
     filteredProjects,
     loadRecent,
@@ -264,5 +356,9 @@ export const useProjectsQuickStore = defineStore("projectsQuick", () => {
     closeRenameForm,
     renameProject,
     clearRenameError,
+    openDetails,
+    closeDetails,
+    loadDetailFiles,
+    clearDetailsError,
   };
 });

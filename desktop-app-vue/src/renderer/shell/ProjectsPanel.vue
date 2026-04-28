@@ -91,6 +91,9 @@
               </a-button>
               <template #overlay>
                 <a-menu @click="(e) => onMenuClick(e.key, p)">
+                  <a-menu-item key="details">
+                    <InfoCircleOutlined /> 详情
+                  </a-menu-item>
                   <a-menu-item key="rename">
                     <EditOutlined /> 重命名
                   </a-menu-item>
@@ -146,6 +149,7 @@
 
   <CreateProjectWizard />
   <RenameProjectModal />
+  <ProjectDetailDrawer />
 </template>
 
 <script setup lang="ts">
@@ -159,6 +163,7 @@ import {
   EditOutlined,
   FileTextOutlined,
   GlobalOutlined,
+  InfoCircleOutlined,
   MoreOutlined,
   ProjectOutlined,
   SearchOutlined,
@@ -169,6 +174,7 @@ import {
 } from "../stores/projectsQuick";
 import CreateProjectWizard from "./projects/CreateProjectWizard.vue";
 import RenameProjectModal from "./projects/RenameProjectModal.vue";
+import ProjectDetailDrawer from "./projects/ProjectDetailDrawer.vue";
 
 interface ProjectAction {
   id: string;
@@ -317,7 +323,9 @@ function confirmDelete(p: ProjectSummary): void {
 }
 
 function onMenuClick(key: string, p: ProjectSummary): void {
-  if (key === "rename") {
+  if (key === "details") {
+    store.openDetails(p.id);
+  } else if (key === "rename") {
     store.openRenameForm(p);
   } else if (key === "delete") {
     confirmDelete(p);
