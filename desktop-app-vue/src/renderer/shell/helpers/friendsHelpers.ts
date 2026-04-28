@@ -159,3 +159,78 @@ export function friendStatusColor(status: OnlineStatus | undefined): string {
       return "default";
   }
 }
+
+/**
+ * Validate a DID input from the add-friend form. Accepts:
+ *  - "did:" scheme prefix (any method)
+ *  - or 16+ char alphanumeric (legacy short-form DIDs)
+ * Returns { ok, error? } so the UI can render a-form-item validation status.
+ */
+export function validateDID(input: string | undefined | null): {
+  ok: boolean;
+  error?: string;
+} {
+  const v = (input ?? "").trim();
+  if (!v) {
+    return { ok: false, error: "请输入好友 DID" };
+  }
+  if (v.length < 8) {
+    return { ok: false, error: "DID 太短，至少 8 字符" };
+  }
+  if (v.startsWith("did:")) {
+    if (v.length < 12) {
+      return { ok: false, error: "did:* 格式不完整" };
+    }
+    return { ok: true };
+  }
+  // legacy short-form: alphanumeric + dash/underscore
+  if (!/^[A-Za-z0-9_-]+$/.test(v)) {
+    return { ok: false, error: "DID 含非法字符" };
+  }
+  return { ok: true };
+}
+
+/**
+ * Friendly relative time for friend-request banners. Returns:
+ *  - "刚刚"      for < 1 min
+ *  - "N 分钟前"  for < 1 h
+ *  - "N 小时前"  for < 24 h
+ *  - "N 天前"    for < 7 days
+ *  - "YYYY-MM-DD" otherwise
+ *  - ""          for missing / NaN inputs
+ *
+ * `nowMs` is overridable so tests don't need to freeze the system clock.
+ */
+export function formatRequestTime(
+  timestamp: number | string | undefined,
+  nowMs?: number,
+): string {
+  if (timestamp === undefined || timestamp === null) {
+    return "";
+  }
+  const t =
+    typeof timestamp === "number" ? timestamp : new Date(timestamp).getTime();
+  if (Number.isNaN(t)) {
+    return "";
+  }
+  const now = nowMs ?? Date.now();
+  const diffMs = Math.max(0, now - t);
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (diffMs < minute) {
+    return "刚刚";
+  }
+  if (diffMs < hour) {
+    return `${Math.floor(diffMs / minute)} 分钟前`;
+  }
+  if (diffMs < day) {
+    return `${Math.floor(diffMs / hour)} 小时前`;
+  }
+  if (diffMs < 7 * day) {
+    return `${Math.floor(diffMs / day)} 天前`;
+  }
+  const d = new Date(t);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}

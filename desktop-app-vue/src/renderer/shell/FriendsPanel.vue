@@ -14,8 +14,8 @@
     </div>
 
     <p class="panel-desc">
-      P2P 好友列表。好友通过 DID 互加，消息走 Signal 协议端到端加密。
-      下方显示已加入的好友（添加 / 编辑 / 删除将在后续阶段接入）。
+      P2P 好友列表。好友通过 DID 互加，消息走 Signal 协议端到端加密。 编辑 /
+      删除将在 Phase 4 接入。
     </p>
 
     <div class="friends-toolbar">
@@ -33,9 +33,10 @@
       <a-tag v-if="hasLoaded" color="green">
         {{ onlineCount }} 在线 / {{ store.friends.length }}
       </a-tag>
-      <a-tag v-if="store.pendingRequestsCount > 0" color="orange">
-        {{ store.pendingRequestsCount }} 待处理请求
-      </a-tag>
+      <a-button size="small" type="primary" @click="openAddModal">
+        <UserAddOutlined />
+        添加好友
+      </a-button>
       <a-button
         size="small"
         type="link"
@@ -45,6 +46,65 @@
         刷新
       </a-button>
     </div>
+
+    <a-collapse
+      v-if="pendingRequests.length"
+      v-model:active-key="pendingExpanded"
+      class="pending-collapse"
+      :bordered="false"
+    >
+      <a-collapse-panel key="pending" class="pending-panel">
+        <template #header>
+          <span class="pending-header">
+            <BellOutlined />
+            待处理好友请求
+            <a-tag color="orange">{{ pendingRequests.length }}</a-tag>
+          </span>
+        </template>
+        <ul class="pending-list">
+          <li v-for="req in pendingRequests" :key="req.id" class="pending-row">
+            <div class="pending-meta">
+              <div class="pending-line-1">
+                <UserAddOutlined class="pending-icon" />
+                <span class="pending-from">
+                  {{ formatDID(req.from_did) }}
+                </span>
+                <span class="pending-time">
+                  {{ formatRequestTime(req.created_at) }}
+                </span>
+              </div>
+              <div v-if="req.message" class="pending-message">
+                "{{ req.message }}"
+              </div>
+            </div>
+            <div class="pending-actions">
+              <a-button
+                size="small"
+                type="primary"
+                :loading="actingRequestId === req.id && actingMode === 'accept'"
+                :disabled="
+                  actingRequestId === req.id && actingMode !== 'accept'
+                "
+                @click="accept(req.id)"
+              >
+                接受
+              </a-button>
+              <a-button
+                size="small"
+                danger
+                :loading="actingRequestId === req.id && actingMode === 'reject'"
+                :disabled="
+                  actingRequestId === req.id && actingMode !== 'reject'
+                "
+                @click="reject(req.id)"
+              >
+                拒绝
+              </a-button>
+            </div>
+          </li>
+        </ul>
+      </a-collapse-panel>
+    </a-collapse>
 
     <a-tabs v-model:active-key="activeGroup" class="friends-tabs" size="small">
       <a-tab-pane key="all">
@@ -114,22 +174,76 @@
         class="friends-empty"
       />
     </a-spin>
+
+    <a-modal
+      v-model:open="addModalOpen"
+      title="添加好友"
+      :ok-text="adding ? '发送中...' : '发送请求'"
+      cancel-text="取消"
+      :ok-button-props="{ loading: adding, disabled: !addFormValid }"
+      :mask-closable="!adding"
+      :closable="!adding"
+      @ok="submitAdd"
+      @cancel="cancelAdd"
+    >
+      <a-form layout="vertical">
+        <a-form-item
+          label="好友 DID"
+          required
+          :validate-status="
+            addDIDValidation.ok ? '' : addDidTouched ? 'error' : ''
+          "
+          :help="addDidTouched ? addDIDValidation.error : ''"
+        >
+          <a-input
+            v-model:value="addForm.did"
+            placeholder="did:cc:... 或对方 DID 短码"
+            allow-clear
+            @blur="addDidTouched = true"
+          />
+        </a-form-item>
+        <a-form-item label="验证消息（可选）">
+          <a-textarea
+            v-model:value="addForm.message"
+            placeholder="自我介绍 / 备注（对方会看到）"
+            :rows="3"
+            :maxlength="200"
+            show-count
+          />
+        </a-form-item>
+        <a-alert
+          v-if="addError"
+          type="error"
+          :message="addError"
+          show-icon
+          class="add-error"
+        />
+      </a-form>
+    </a-modal>
   </a-modal>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
-import { SearchOutlined, TeamOutlined } from "@ant-design/icons-vue";
+import { computed, reactive, ref, watch } from "vue";
+import { message } from "ant-design-vue";
+import {
+  BellOutlined,
+  SearchOutlined,
+  TeamOutlined,
+  UserAddOutlined,
+} from "@ant-design/icons-vue";
 import { useSocialStore } from "../stores/social";
 import {
   countOnlineFriends,
   filterFriendsByGroup,
   formatDID,
+  formatRequestTime,
   friendStatusColor,
   friendStatusLabel,
   getFriendGroups,
   matchFriendKeyword,
   resolveFriendStatus,
+  validateDID,
   type FriendLike,
 } from "./helpers/friendsHelpers";
 
@@ -177,8 +291,111 @@ const emptyText = computed(() => {
   if (activeGroup.value !== "all") {
     return `分组「${activeGroup.value}」暂无好友`;
   }
-  return "暂无好友 — 添加好友请使用 V5 路径（Phase 3 即将接入 V6）";
+  return "暂无好友，点击「添加好友」开始";
 });
+
+// ============= Phase 3: pending requests + add-friend modal =============
+
+interface PendingRequestRow {
+  id: string;
+  from_did: string;
+  message?: string;
+  status: string;
+  created_at?: number;
+  [key: string]: unknown;
+}
+
+const pendingRequests = computed<PendingRequestRow[]>(() =>
+  (store.friendRequests as PendingRequestRow[]).filter(
+    (r) => r.status === "pending",
+  ),
+);
+
+const pendingExpanded = ref<string[]>(["pending"]);
+const actingRequestId = ref<string | null>(null);
+const actingMode = ref<"accept" | "reject" | null>(null);
+
+async function accept(requestId: string): Promise<void> {
+  actingRequestId.value = requestId;
+  actingMode.value = "accept";
+  try {
+    await store.acceptFriendRequest(requestId);
+    message.success("已接受好友请求");
+  } catch (err: unknown) {
+    message.error(
+      `接受失败：${err instanceof Error ? err.message : String(err)}`,
+    );
+  } finally {
+    actingRequestId.value = null;
+    actingMode.value = null;
+  }
+}
+
+async function reject(requestId: string): Promise<void> {
+  actingRequestId.value = requestId;
+  actingMode.value = "reject";
+  try {
+    await store.rejectFriendRequest(requestId);
+    message.success("已拒绝好友请求");
+  } catch (err: unknown) {
+    message.error(
+      `拒绝失败：${err instanceof Error ? err.message : String(err)}`,
+    );
+  } finally {
+    actingRequestId.value = null;
+    actingMode.value = null;
+  }
+}
+
+const addModalOpen = ref(false);
+const adding = ref(false);
+const addError = ref<string | null>(null);
+const addDidTouched = ref(false);
+const addForm = reactive<{ did: string; message: string }>({
+  did: "",
+  message: "",
+});
+
+const addDIDValidation = computed(() => validateDID(addForm.did));
+const addFormValid = computed(() => addDIDValidation.value.ok);
+
+function openAddModal(): void {
+  addForm.did = "";
+  addForm.message = "";
+  addError.value = null;
+  addDidTouched.value = false;
+  addModalOpen.value = true;
+}
+
+function cancelAdd(): void {
+  if (adding.value) {
+    return;
+  }
+  addModalOpen.value = false;
+}
+
+async function submitAdd(): Promise<void> {
+  addDidTouched.value = true;
+  const v = addDIDValidation.value;
+  if (!v.ok) {
+    addError.value = v.error ?? "DID 校验失败";
+    return;
+  }
+  adding.value = true;
+  addError.value = null;
+  try {
+    await store.sendFriendRequest(addForm.did.trim(), addForm.message.trim());
+    message.success("好友请求已发送");
+    addModalOpen.value = false;
+    // requests list won't update locally (other side has to accept) — but
+    // refresh anyway in case the IPC handler also seeded a self-side row
+    await store.loadFriendRequests();
+  } catch (err: unknown) {
+    addError.value = err instanceof Error ? err.message : String(err);
+  } finally {
+    adding.value = false;
+  }
+}
 
 function avatarLetter(friend: FriendLike): string {
   const name = friend.nickname || friend.friend_did || "U";
@@ -269,6 +486,89 @@ watch(
 
 .friends-tabs {
   margin-bottom: 8px;
+}
+
+.pending-collapse {
+  margin-bottom: 12px;
+  background: var(--cc-shell-card, #fffaf2);
+  border: 1px solid var(--cc-shell-border, #ffe4b8);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pending-panel :deep(.ant-collapse-header) {
+  padding-block: 6px;
+  font-size: 13px;
+}
+
+.pending-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.pending-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pending-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  background: var(--cc-shell-bg, #fff);
+  border: 1px solid var(--cc-shell-border, #f0e0c8);
+  border-radius: 6px;
+}
+
+.pending-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.pending-line-1 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--cc-shell-text, #1f1f1f);
+}
+
+.pending-icon {
+  color: var(--cc-shell-accent, #fa8c16);
+}
+
+.pending-from {
+  font-family: var(--cc-mono, monospace);
+}
+
+.pending-time {
+  margin-inline-start: auto;
+  font-size: 11px;
+  color: var(--cc-shell-muted, #8c8c8c);
+}
+
+.pending-message {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--cc-shell-muted, #595959);
+  font-style: italic;
+}
+
+.pending-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.add-error {
+  margin-top: 12px;
 }
 
 .friend-list {

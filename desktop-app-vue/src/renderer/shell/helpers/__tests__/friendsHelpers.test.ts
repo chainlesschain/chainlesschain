@@ -16,11 +16,13 @@ import {
   countOnlineFriends,
   filterFriendsByGroup,
   formatDID,
+  formatRequestTime,
   friendStatusColor,
   friendStatusLabel,
   getFriendGroups,
   matchFriendKeyword,
   resolveFriendStatus,
+  validateDID,
   type FriendLike,
   type OnlineStatus,
 } from "../friendsHelpers";
@@ -200,5 +202,85 @@ describe("friendStatusLabel + friendStatusColor", () => {
   it("undefined falls back to offline / default", () => {
     expect(friendStatusLabel(undefined)).toBe("离线");
     expect(friendStatusColor(undefined)).toBe("default");
+  });
+});
+
+describe("validateDID", () => {
+  it("rejects empty / whitespace-only input", () => {
+    expect(validateDID("")).toEqual({ ok: false, error: "请输入好友 DID" });
+    expect(validateDID("   ")).toEqual({ ok: false, error: "请输入好友 DID" });
+    expect(validateDID(null)).toEqual({ ok: false, error: "请输入好友 DID" });
+    expect(validateDID(undefined)).toEqual({
+      ok: false,
+      error: "请输入好友 DID",
+    });
+  });
+
+  it("rejects too-short input", () => {
+    const r = validateDID("abc");
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/太短/);
+  });
+
+  it("accepts well-formed did: scheme", () => {
+    expect(validateDID("did:cc:abcdef1234")).toEqual({ ok: true });
+    expect(validateDID("did:web:example.com:user:alice")).toEqual({ ok: true });
+  });
+
+  it("rejects truncated did: scheme", () => {
+    const r = validateDID("did:cc:x");
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/格式不完整/);
+  });
+
+  it("accepts legacy alphanumeric short-form", () => {
+    expect(validateDID("alice_bob-12345678")).toEqual({ ok: true });
+  });
+
+  it("rejects illegal characters in legacy form", () => {
+    const r = validateDID("alice@evil.com");
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/非法字符/);
+  });
+});
+
+describe("formatRequestTime", () => {
+  // 2026-04-28 12:00 UTC fixed reference for deterministic windows
+  const NOW = new Date("2026-04-28T12:00:00Z").getTime();
+
+  it("returns empty string for missing / NaN", () => {
+    expect(formatRequestTime(undefined, NOW)).toBe("");
+    expect(formatRequestTime(null as unknown as undefined, NOW)).toBe("");
+    expect(formatRequestTime("not-a-date", NOW)).toBe("");
+    expect(formatRequestTime(NaN, NOW)).toBe("");
+  });
+
+  it("returns '刚刚' for < 1 min ago", () => {
+    expect(formatRequestTime(NOW - 30 * 1000, NOW)).toBe("刚刚");
+  });
+
+  it("returns minutes for < 1 h", () => {
+    expect(formatRequestTime(NOW - 5 * 60 * 1000, NOW)).toBe("5 分钟前");
+    expect(formatRequestTime(NOW - 59 * 60 * 1000, NOW)).toBe("59 分钟前");
+  });
+
+  it("returns hours for < 24 h", () => {
+    expect(formatRequestTime(NOW - 3 * 60 * 60 * 1000, NOW)).toBe("3 小时前");
+    expect(formatRequestTime(NOW - 23 * 60 * 60 * 1000, NOW)).toBe("23 小时前");
+  });
+
+  it("returns days for < 7 days", () => {
+    expect(formatRequestTime(NOW - 2 * 24 * 60 * 60 * 1000, NOW)).toBe(
+      "2 天前",
+    );
+  });
+
+  it("returns YYYY-MM-DD for >= 7 days", () => {
+    const old = new Date("2026-03-01T08:00:00Z").getTime();
+    expect(formatRequestTime(old, NOW)).toBe("2026-03-01");
+  });
+
+  it("clamps negative diffs (clock skew) to '刚刚'", () => {
+    expect(formatRequestTime(NOW + 60 * 1000, NOW)).toBe("刚刚");
   });
 });
