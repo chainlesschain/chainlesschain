@@ -117,7 +117,14 @@
                         提升 ▾
                       </a-button>
                       <template #overlay>
-                        <a-menu @click="onPromote(record, $event.key)">
+                        <a-menu
+                          @click="
+                            onPromote(
+                              record as CommunityMember,
+                              String($event.key),
+                            )
+                          "
+                        >
                           <a-menu-item key="moderator"> 为版主 </a-menu-item>
                           <a-menu-item key="admin"> 为管理员 </a-menu-item>
                         </a-menu>
@@ -130,7 +137,7 @@
                       size="small"
                       type="link"
                       :loading="store.demotingDid === record.member_did"
-                      @click="onDemote(record)"
+                      @click="onDemote(record as CommunityMember)"
                     >
                       降级
                     </a-button>
@@ -139,7 +146,7 @@
                       type="link"
                       danger
                       :loading="store.banningDid === record.member_did"
-                      @click="onBan(record)"
+                      @click="onBan(record as CommunityMember)"
                     >
                       封禁
                     </a-button>
@@ -544,7 +551,7 @@
                         其它 ▾
                       </a-button>
                       <template #overlay>
-                        <a-menu @click="onReviewMenu(r, $event.key)">
+                        <a-menu @click="onReviewMenu(r, String($event.key))">
                           <a-menu-item key="warning"> 警告作者 </a-menu-item>
                           <a-menu-item key="escalated"> 上升处理 </a-menu-item>
                         </a-menu>

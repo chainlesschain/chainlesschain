@@ -90,7 +90,7 @@
                 <MoreOutlined />
               </a-button>
               <template #overlay>
-                <a-menu @click="(e) => onMenuClick(e.key, p)">
+                <a-menu @click="(e) => onMenuClick(String(e.key), p)">
                   <a-menu-item key="details">
                     <InfoCircleOutlined /> 详情
                   </a-menu-item>

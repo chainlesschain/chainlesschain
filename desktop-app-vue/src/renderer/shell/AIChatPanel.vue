@@ -200,7 +200,7 @@
             <MoreOutlined />
           </a-button>
           <template #overlay>
-            <a-menu @click="(e) => onMoreMenuClick(e.key)">
+            <a-menu @click="(e) => onMoreMenuClick(String(e.key))">
               <a-menu-item key="clear">
                 <DeleteOutlined /> 清除上下文
               </a-menu-item>
