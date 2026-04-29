@@ -8,6 +8,8 @@
  * Extracted on 2026-04-07.
  */
 
+const SqlSecurity = require("./sql-security");
+
 function createConversation(dbManager, logger, conversationData) {
   const id =
     conversationData.id ||

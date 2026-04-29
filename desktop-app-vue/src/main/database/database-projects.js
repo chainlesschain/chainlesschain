@@ -8,6 +8,9 @@
  * Extracted on 2026-04-07.
  */
 
+const SqlSecurity = require("./sql-security");
+const { v4: uuidv4 } = require("uuid");
+
 function getProjects(dbManager, logger, userId, options = {}) {
   if (!dbManager.db) {
     logger.error("[DatabaseManager] 数据库未初始化");

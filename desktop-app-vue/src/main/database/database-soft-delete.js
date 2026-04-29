@@ -8,6 +8,8 @@
  * Extracted on 2026-04-07.
  */
 
+const SqlSecurity = require("./sql-security");
+
 function softDelete(dbManager, logger, tableName, id) {
   try {
     // ✅ 安全验证：防止SQL注入
