@@ -38,6 +38,23 @@ export const useSkillsStore = defineStore('skills', () => {
     const ws = useWsStore()
     loading.value = true
     try {
+      // Embedded shell: the desktop web-shell registers an in-process
+      // `skill.list` WS handler (CLISkillLoader.loadAll() in main process).
+      // We must NOT fall back to ws.execute('skill list') here because that
+      // path lands in ChainlessChainWSServer._executeCommand which spawns
+      // process.execPath — inside Electron that's the Electron binary, not
+      // node, so `cc skill list` can never run. Standalone `cc serve` use
+      // is unaffected (embeddedShell === false there).
+      if (window.__CC_CONFIG__?.embeddedShell === true) {
+        const reply = await ws.sendRaw({ type: 'skill.list' }, 20000)
+        if (reply?.ok && Array.isArray(reply.result?.skills)) {
+          allSkills.value = reply.result.skills
+        } else {
+          console.error('skill.list custom topic failed:', reply?.error)
+          allSkills.value = []
+        }
+        return
+      }
       const { output } = await ws.execute('skill list', 20000)
       // Parse text output into skill objects
       const skills = parseSkillOutput(output)

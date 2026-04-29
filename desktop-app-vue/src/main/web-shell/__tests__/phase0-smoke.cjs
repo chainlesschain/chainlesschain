@@ -78,12 +78,37 @@ const {
     ws.once("open", resolve);
     ws.once("error", reject);
   });
-  const reply = await new Promise((resolve, reject) => {
-    ws.once("message", (raw) => resolve(JSON.parse(raw.toString())));
-    ws.once("error", reject);
-    ws.send(JSON.stringify({ type: "ukey.status", id: "smoke-1" }));
-  });
-  console.log("[smoke] ukey.status reply:", JSON.stringify(reply));
+  function rpc(frame) {
+    return new Promise((resolve, reject) => {
+      ws.once("message", (raw) => resolve(JSON.parse(raw.toString())));
+      ws.once("error", reject);
+      ws.send(JSON.stringify(frame));
+    });
+  }
+
+  const ukeyReply = await rpc({ type: "ukey.status", id: "smoke-1" });
+  console.log("[smoke] ukey.status reply:", JSON.stringify(ukeyReply));
+
+  const skillReply = await rpc({ type: "skill.list", id: "smoke-2" });
+  const skillCount = skillReply?.result?.skills?.length ?? 0;
+  console.log(
+    "[smoke] skill.list ok:",
+    skillReply?.ok,
+    "count:",
+    skillCount,
+    "first:",
+    skillReply?.result?.skills?.[0]?.name,
+  );
+  if (!skillReply?.ok || skillCount === 0) {
+    console.error(
+      "[smoke] FAIL: skill.list returned no skills or ok:false —",
+      JSON.stringify(skillReply),
+    );
+    ws.close();
+    await handle.close();
+    process.exit(1);
+  }
+
   ws.close();
 
   await handle.close();

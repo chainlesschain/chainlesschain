@@ -1186,6 +1186,11 @@ function buildConfigJson(opts) {
     projectRoot: opts.projectRoot,
     projectName: opts.projectName,
     mode: opts.mode,
+    // True only when the SPA is hosted by the desktop web-shell. Lets the
+    // SPA prefer in-process custom WS topics (e.g. `skill.list`) over
+    // `ws.execute(...)` which can't fork a real `cc` from inside Electron.
+    // Default false so the CLI's own `cc serve` is unaffected.
+    embeddedShell: opts.embeddedShell === true,
   })
     .replace(/</g, "\\u003c")
     .replace(/>/g, "\\u003e")

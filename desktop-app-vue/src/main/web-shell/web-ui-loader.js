@@ -33,6 +33,12 @@ const WEB_UI_SERVER_REL = "../../../../packages/cli/src/lib/web-ui-server.js";
  * @property {"project"|"global"} [mode] Defaults to "global".
  * @property {"auto"|"full"|"minimal"} [uiMode] Defaults to "full" (require SPA dist).
  * @property {string} [staticDir]       Override for web-panel dist directory.
+ * @property {boolean} [embeddedShell]  Set to true when the SPA is loaded by
+ *                                       the desktop web-shell. Surfaced on the
+ *                                       SPA as `window.__CC_CONFIG__.embeddedShell`
+ *                                       so client code can prefer in-process
+ *                                       custom topics over CLI-spawn topics
+ *                                       like `ws.execute(...)`.
  */
 
 /**
@@ -66,6 +72,7 @@ async function startWebUIServer(options) {
     mode: options.mode || "global",
     uiMode: options.uiMode || "full",
     staticDir: options.staticDir,
+    embeddedShell: options.embeddedShell === true,
   });
 
   await new Promise((resolve, reject) => {

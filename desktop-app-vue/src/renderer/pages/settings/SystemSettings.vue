@@ -75,6 +75,17 @@
                   而不改变默认。
                 </span>
               </a-form-item>
+
+              <a-form-item label="启用 Web Shell（实验）">
+                <a-switch v-model:checked="config.ui.useWebShellExperimental" />
+                <span style="margin-left: 8px">
+                  实验性：把整个壳从 V5/V6 切到 web-panel
+                  SPA，桌面专属能力（UKey/MCP/Ollama/FS）通过同一 WebSocket
+                  的自定义 topic 继续可用。
+                  <strong>保存后重启生效。</strong>
+                  Phase 1 dogfood 阶段，确认稳定后会 hard-flip 默认。
+                </span>
+              </a-form-item>
             </a-form>
           </a-card>
         </a-tab-pane>

@@ -57,6 +57,10 @@ class SettingsManager extends EventEmitter {
       // 界面/外壳设置（V5 经典壳为默认，V6 壳为可选）
       ui: {
         useV6ShellByDefault: true,
+        // Phase 1.3 实验性：把整个壳从 V5/V6 切到 web-panel SPA，
+        // 桌面专属能力（UKey/MCP/Ollama/FS）通过 ws-cli-loader 自定义
+        // topic 继续可用。保存后重启生效。dogfood 稳定后 hard-flip 默认。
+        useWebShellExperimental: false,
       },
 
       // 编辑器设置

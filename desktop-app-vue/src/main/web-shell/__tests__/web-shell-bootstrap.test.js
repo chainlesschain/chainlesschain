@@ -82,6 +82,43 @@ describe("startWebShell", () => {
     }
   });
 
+  it("skill.list is registered and returns the resolved skill catalog", async () => {
+    // Phase 1.A: in-process custom topic that bypasses ws.execute('skill list')
+    // (which can't run inside Electron). The handler delegates to
+    // CLISkillLoader.loadAll() — we don't stub it because the real loader
+    // runs against the real .chainlesschain/skills + bundled layers and is
+    // expected to return a non-empty array on this monorepo.
+    const ws = new WebSocket(handle.wsUrl);
+    await new Promise((resolve, reject) => {
+      ws.once("open", resolve);
+      ws.once("error", reject);
+    });
+    try {
+      const reply = await rpc(ws, { type: "skill.list", id: "boot-skill-1" });
+      expect(reply).toMatchObject({
+        type: "skill.list.result",
+        id: "boot-skill-1",
+        ok: true,
+      });
+      expect(reply.result).toMatchObject({ schema: 1 });
+      expect(Array.isArray(reply.result.skills)).toBe(true);
+      // Every shaped skill carries the fields the web-panel store reads.
+      for (const skill of reply.result.skills) {
+        expect(typeof skill.name).toBe("string");
+        expect(typeof skill.description).toBe("string");
+        expect(typeof skill.category).toBe("string");
+        expect(typeof skill.executionMode).toBe("string");
+      }
+    } finally {
+      ws.close();
+    }
+  });
+
+  it("the SPA's __CC_CONFIG__.embeddedShell is true so the web-panel branches off ws.execute()", async () => {
+    const html = await (await fetch(handle.httpUrl)).text();
+    expect(html).toContain('"embeddedShell":true');
+  });
+
   it("close() is idempotent", async () => {
     // Second close on the same handle is a no-op — but we'll call it via a
     // fresh handle so the global afterAll doesn't fight us.
@@ -126,6 +163,31 @@ describe("shouldRunWebShell", () => {
     ).toBe(true);
   });
 
+  it("returns true when settings.ui.useWebShellExperimental is true (Phase 1.3 opt-in)", () => {
+    expect(
+      shouldRunWebShell(
+        ["node", "main.js"],
+        {},
+        { ui: { useWebShellExperimental: true } },
+      ),
+    ).toBe(true);
+  });
+
+  it("returns false when the setting is explicitly false", () => {
+    expect(
+      shouldRunWebShell(
+        ["node", "main.js"],
+        {},
+        {
+          ui: {
+            useWebShellExperimental: false,
+            useV6ShellByDefault: true,
+          },
+        },
+      ),
+    ).toBe(false);
+  });
+
   it("returns false otherwise", () => {
     expect(shouldRunWebShell(["node", "main.js"], {})).toBe(false);
     expect(
@@ -134,5 +196,8 @@ describe("shouldRunWebShell", () => {
     expect(
       shouldRunWebShell(["node", "main.js"], { [WEB_SHELL_ENV]: "" }),
     ).toBe(false);
+    expect(shouldRunWebShell(["node", "main.js"], {}, null)).toBe(false);
+    expect(shouldRunWebShell(["node", "main.js"], {}, {})).toBe(false);
+    expect(shouldRunWebShell(["node", "main.js"], {}, { ui: {} })).toBe(false);
   });
 });

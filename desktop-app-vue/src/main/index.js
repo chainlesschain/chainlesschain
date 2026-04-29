@@ -675,6 +675,31 @@ class ChainlessChainApp {
     }
   }
 
+  /**
+   * Phase 1.3: read userData/settings.json sync at boot so shouldRunWebShell
+   * can honor the persistent `ui.useWebShellExperimental` toggle. We avoid
+   * pulling in SettingsManager (which loads on a different path elsewhere in
+   * the codebase) — this is a single boot-time read with graceful fallback.
+   *
+   * @returns {object | null} parsed settings.json contents or null on miss
+   */
+  _readSettingsSync() {
+    try {
+      const fs = require("fs");
+      const settingsPath = path.join(app.getPath("userData"), "settings.json");
+      if (!fs.existsSync(settingsPath)) {
+        return null;
+      }
+      return JSON.parse(fs.readFileSync(settingsPath, "utf8"));
+    } catch (err) {
+      logger.warn(
+        "[Main] readSettingsSync failed, ignoring persistent shell setting:",
+        err.message,
+      );
+      return null;
+    }
+  }
+
   async createWindow() {
     const { session } = require("electron");
     if (app.isReady()) {
@@ -684,6 +709,37 @@ class ChainlessChainApp {
         logger.error("[Main] 清除缓存失败:", error);
       }
     }
+
+    // Phase 1.3: compute web-shell decision once. argv flag + env var (Phase 0)
+    // OR persistent setting `ui.useWebShellExperimental` (V6 hard-flip pattern).
+    // Both `preloadPath` and the loadURL branch must agree, so we cache the
+    // boolean instead of re-reading settings.json twice.
+    const persistedSettings = this._readSettingsSync();
+    const isWebShell = shouldRunWebShell(
+      undefined,
+      undefined,
+      persistedSettings,
+    );
+
+    // The desktop preload (3238 LOC) is built for the V5/V6 Vue renderer and
+    // crashes the sandbox bundle when paired with web-panel HTML. In
+    // --web-shell mode swap to a minimal preload — see strategy memory
+    // "preload 仅暴露真·原生 API" + decision #3.
+    const preloadPath = isWebShell
+      ? path.join(__dirname, "../preload/web-shell.js")
+      : path.join(__dirname, "../preload/index.js");
+
+    // V5/V6 renderer reserves the top-right region for `titleBarOverlay`
+    // controls; web-panel was authored for browsers and paints its own
+    // toolbar there (status badge, version chip, etc.), so the native
+    // overlay covers them. Use the standard Windows title bar in web-shell
+    // mode — Phase 2 may swap to frameless + web-panel-rendered controls.
+    const titleBarOptions = isWebShell
+      ? { titleBarStyle: "default" }
+      : {
+          titleBarStyle: "hidden",
+          titleBarOverlay: { color: "#667eea", symbolColor: "#ffffff" },
+        };
 
     this.mainWindow = new BrowserWindow({
       width: 1200,
@@ -695,25 +751,34 @@ class ChainlessChainApp {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        preload: path.join(__dirname, "../preload/index.js"),
+        preload: preloadPath,
       },
-      titleBarStyle: "hidden",
-      titleBarOverlay: { color: "#667eea", symbolColor: "#ffffff" },
+      ...titleBarOptions,
     });
 
     // 注册所有 IPC (必须在 loadURL/loadFile 之前，确保渲染进程可以使用 IPC)
     this.setupIPC();
 
-    if (shouldRunWebShell()) {
+    if (isWebShell) {
       // Phase 0 path: embed web-ui-server (CLI HTTP) + ws-bridge with a pre-
       // registered ukey.status handler, load web-panel dist. V5/V6 IPC stays
       // registered above so a future hybrid window can co-exist without
       // re-registering. ukeyManager is passed through so the WS handler can
       // report live device state.
+      // Phase 1.x: wire the desktop sessionManager singleton into the WS
+      // server so web-panel's `session-create`/`session-message`/etc. land
+      // on a real handler instead of soft-failing with envelope errors
+      // (the original "Phase 1 暂不接 sessionManager" stance was broken by
+      // the very first user click on "新建 Chat" — strategy memory updated).
+      const {
+        getSessionManager,
+      } = require("./session/session-core-singletons");
       const handle = await startWebShell({
         mode: "global",
         projectName: "ChainlessChain Desktop",
         ukeyManager: this.ukeyManager,
+        mainWindow: this.mainWindow,
+        sessionManager: getSessionManager(),
       });
       this._webShellHandle = handle;
       logger.info(`[WebShell] HTTP: ${handle.httpUrl}`);

@@ -29,6 +29,11 @@
 const { startWebUIServer } = require("./web-ui-loader");
 const { startWsCliBackend } = require("./ws-cli-loader");
 const { createUKeyStatusHandler } = require("./handlers/ukey-status-handler");
+const { createSkillListHandler } = require("./handlers/skill-list-handler");
+const {
+  createFsOpenDialogHandler,
+  createFsSaveDialogHandler,
+} = require("./handlers/fs-handlers");
 
 /** CLI flag / env var that opts in to the web-shell entry point. */
 const WEB_SHELL_FLAG = "--web-shell";
@@ -41,6 +46,9 @@ const WEB_SHELL_ENV = "CHAINLESSCHAIN_WEB_SHELL";
  * @property {number} [wsPort]               WS port. 0 = OS-assigned.
  * @property {{ detect?: () => Promise<any> } | null} [ukeyManager]
  *                                            UKey singleton; nullable for early boot.
+ * @property {Electron.BrowserWindow | null} [mainWindow]
+ *                                            Parent window for native dialogs. Required
+ *                                            for fs.openDialog / fs.saveDialog handlers.
  * @property {string|null} [projectRoot]     Active project root, or null.
  * @property {string|null} [projectName]     Human-readable project name.
  * @property {"project"|"global"} [mode]     Defaults to "global".
@@ -71,6 +79,17 @@ async function startWebShell(options = {}) {
     "ukey.status": createUKeyStatusHandler({
       ukeyManager: options.ukeyManager ?? null,
     }),
+    "skill.list": createSkillListHandler(),
+    // Phase 1.2 fs first batch — dialog-based, no arbitrary path access.
+    // Handlers throw "main_window_unavailable" when called pre-window or
+    // post-destroy, so registering with null is harmless until a window
+    // exists.
+    "fs.openDialog": createFsOpenDialogHandler({
+      mainWindow: options.mainWindow ?? null,
+    }),
+    "fs.saveDialog": createFsSaveDialogHandler({
+      mainWindow: options.mainWindow ?? null,
+    }),
     ...(options.extraHandlers || {}),
   };
 
@@ -94,6 +113,11 @@ async function startWebShell(options = {}) {
       mode: options.mode || "global",
       uiMode: "full",
       staticDir: options.staticDir,
+      // Tells the SPA it is loaded inside the Electron web-shell. The
+      // web-panel skills store branches on this to call `skill.list`
+      // (in-process custom topic) instead of `ws.execute('skill list')`
+      // (which fails: Electron can't spawn itself as the cc CLI).
+      embeddedShell: true,
     });
   } catch (err) {
     await ws.close().catch(() => {});
@@ -121,18 +145,36 @@ async function startWebShell(options = {}) {
 }
 
 /**
- * Returns true when the user opted into the web shell via CLI flag or env.
- * Pure function — no global state — so it's trivially unit-testable.
+ * Returns true when the user opted into the web shell via any of:
+ *   - argv flag (`--web-shell`)
+ *   - env var (`CHAINLESSCHAIN_WEB_SHELL=1`)
+ *   - persistent setting (`settings.ui.useWebShellExperimental === true`)
+ *
+ * Pure function — no global state — so it's trivially unit-testable. The
+ * `settings` argument is optional (Phase 0 callers passed only argv/env);
+ * Phase 1.3 added it so the SystemSettings toggle drives shell choice on
+ * next launch. Mirrors the V6 hard-flip pattern (`ui.useV6ShellByDefault`).
  *
  * @param {string[]} [argv]
  * @param {NodeJS.ProcessEnv} [env]
+ * @param {{ ui?: { useWebShellExperimental?: boolean } } | null} [settings]
  * @returns {boolean}
  */
-function shouldRunWebShell(argv = process.argv, env = process.env) {
+function shouldRunWebShell(
+  argv = process.argv,
+  env = process.env,
+  settings = null,
+) {
   if (Array.isArray(argv) && argv.includes(WEB_SHELL_FLAG)) {
     return true;
   }
-  return env?.[WEB_SHELL_ENV] === "1";
+  if (env?.[WEB_SHELL_ENV] === "1") {
+    return true;
+  }
+  if (settings?.ui?.useWebShellExperimental === true) {
+    return true;
+  }
+  return false;
 }
 
 module.exports = {
