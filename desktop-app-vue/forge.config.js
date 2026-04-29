@@ -245,7 +245,11 @@ module.exports = {
     // Allow offline packaging when a local Electron ZIP cache directory is provided.
     electronZipDir: process.env.ELECTRON_ZIP_DIR,
     asar: {
-      unpack: "*.{node,dll,dylib,so,exe}", // 排除原生模块和可执行文件
+      // 排除原生模块和可执行文件 + Phase 1.4 web-shell vendor 树
+      // (`packages/**` 由 packageAfterCopy 的 vendorWebShellInto() 拷入；
+      //  必须 unpack 因为 Electron 的 asar fs shim 不覆盖 Node URL-based
+      //  ESM loader，dynamic import via pathToFileURL 在 asar 里会失败)
+      unpack: "{*.{node,dll,dylib,so,exe},packages/**}",
     },
     extraResource: extraResources,
 
@@ -528,6 +532,27 @@ module.exports = {
           "[Packaging] Failed to merge node_modules:",
           error.message,
         );
+        throw error;
+      }
+
+      // Phase 1.4 — vendor packages/cli/src + packages/web-panel/dist into
+      // buildPath so the web-shell loaders' relative path constants
+      // (`../../../../packages/cli/src/lib/web-ui-server.js` etc.) resolve
+      // inside the packaged app the same way they resolve in dev. Combined
+      // with the `packages/**` asarUnpack glob above, the vendored ESM
+      // files end up at app.asar.unpacked/packages/... — real on-disk
+      // paths so dynamic import via pathToFileURL works.
+      try {
+        const {
+          vendorWebShellInto,
+        } = require("./scripts/prepare-web-shell-vendor.js");
+        const stats = vendorWebShellInto(buildPath);
+        console.log(
+          `[Packaging] web-shell vendor: ${stats.cli.files + stats.webPanel.files} files, ` +
+            `${(stats.totalBytes / (1024 * 1024)).toFixed(2)} MB`,
+        );
+      } catch (error) {
+        console.error("[Packaging] web-shell vendor failed:", error.message);
         throw error;
       }
 
