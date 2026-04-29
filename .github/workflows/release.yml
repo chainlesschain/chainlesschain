@@ -127,6 +127,12 @@ jobs:
           # Remove workspace self-referencing symlink to prevent ELOOP during packaging.
           rm -f node_modules/chainlesschain-desktop-vue
           mkdir -p desktop-app-vue/node_modules
+          # Pre-clean @chainlesschain in nested: rsync trips with
+          # "unlinkat: Directory not empty" (exit 23) on macOS when the
+          # source side is a symlink and the destination side already
+          # contains a populated workspace dir. We rebuild these symlinks
+          # below anyway, so dropping the existing copies is safe.
+          rm -rf desktop-app-vue/node_modules/@chainlesschain
           rsync -a --ignore-existing node_modules/ desktop-app-vue/node_modules/
           # Rewrite @chainlesschain/* workspace symlinks: rsync preserves their
           # RELATIVE targets (../../packages/*), which break when resolved from
