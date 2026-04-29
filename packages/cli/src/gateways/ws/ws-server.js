@@ -168,7 +168,11 @@ export class ChainlessChainWSServer extends EventEmitter {
    */
   constructor(options = {}) {
     super();
-    this.port = options.port || 18800;
+    // Use ?? so an explicit `port: 0` (OS-assigned, used by tests + the
+    // desktop web-shell bootstrap) is preserved instead of falling back to
+    // the hardcoded 18800. The address() readback after listen() updates
+    // this.port to the actual bound port — see start().
+    this.port = options.port ?? 18800;
     this.host = options.host || "127.0.0.1";
     this.token = options.token || null;
     this.maxConnections = options.maxConnections || 10;

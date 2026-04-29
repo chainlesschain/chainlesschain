@@ -49,6 +49,14 @@ const {
 // 是否使用旧版单阶段启动（回退开关）
 const USE_LEGACY_BOOT = process.env.CHAINLESSCHAIN_LEGACY_BOOT === "1";
 
+// Phase 0 web-shell entry point: load packages/web-panel/dist via embedded
+// HTTP + ws-bridge instead of the V5/V6 renderer. Toggle with `--web-shell`
+// argv or `CHAINLESSCHAIN_WEB_SHELL=1` env. See memory/desktop_web_shell_strategy.md.
+const {
+  startWebShell,
+  shouldRunWebShell,
+} = require("./web-shell/web-shell-bootstrap");
+
 // IPC Registry
 const { registerAllIPC } = require("./ipc/ipc-registry");
 
@@ -696,7 +704,25 @@ class ChainlessChainApp {
     // 注册所有 IPC (必须在 loadURL/loadFile 之前，确保渲染进程可以使用 IPC)
     this.setupIPC();
 
-    if (process.env.NODE_ENV === "development") {
+    if (shouldRunWebShell()) {
+      // Phase 0 path: embed web-ui-server (CLI HTTP) + ws-bridge with a pre-
+      // registered ukey.status handler, load web-panel dist. V5/V6 IPC stays
+      // registered above so a future hybrid window can co-exist without
+      // re-registering. ukeyManager is passed through so the WS handler can
+      // report live device state.
+      const handle = await startWebShell({
+        mode: "global",
+        projectName: "ChainlessChain Desktop",
+        ukeyManager: this.ukeyManager,
+      });
+      this._webShellHandle = handle;
+      logger.info(`[WebShell] HTTP: ${handle.httpUrl}`);
+      logger.info(`[WebShell] WS:   ${handle.wsUrl}`);
+      this.mainWindow.loadURL(handle.httpUrl);
+      if (process.env.NODE_ENV === "development") {
+        this.mainWindow.webContents.openDevTools();
+      }
+    } else if (process.env.NODE_ENV === "development") {
       const devServerUrl =
         process.env.VITE_DEV_SERVER_URL ||
         process.env.DEV_SERVER_URL ||
@@ -1573,6 +1599,18 @@ class ChainlessChainApp {
   async onWillQuit(event) {
     event.preventDefault();
     logger.info("[Main] 应用退出中...");
+
+    // Stop the web-shell HTTP + WS pair before the rest of teardown so any
+    // SPA-driven WS messages drain cleanly.
+    if (this._webShellHandle) {
+      try {
+        await this._webShellHandle.close();
+        this._webShellHandle = null;
+        logger.info("[Main] WebShell stopped");
+      } catch (error) {
+        logger.error("[Main] WebShell stop error:", error);
+      }
+    }
 
     if (this.menuManager) {
       this.menuManager.destroy();
