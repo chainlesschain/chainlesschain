@@ -12,11 +12,7 @@
     <dl class="cc-preview-widget__kv">
       <div>
         <dt>身份 DID</dt>
-        <dd>{{ hasIdentity ? "已绑定" : "未绑定" }}</dd>
-      </div>
-      <div>
-        <dt>关注 / 粉丝</dt>
-        <dd>{{ following }} / {{ followers }}</dd>
+        <dd>{{ hasIdentity ? `${didCount} 个已绑定` : "未绑定" }}</dd>
       </div>
       <div>
         <dt>协议</dt>
@@ -33,14 +29,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { GlobalOutlined } from "@ant-design/icons-vue";
 
+interface DidApi {
+  getAllIdentities?: () => Promise<unknown>;
+}
+
 const router = useRouter();
-const hasIdentity = ref(false);
-const following = ref(0);
-const followers = ref(0);
+const didCount = ref(0);
+const hasIdentity = computed(() => didCount.value > 0);
 
 function openChat() {
   router.push({ name: "Chat" }).catch(() => {});
@@ -53,6 +52,33 @@ function openSocialCollab() {
 function openInsights() {
   router.push({ name: "SocialInsights" }).catch(() => {});
 }
+
+onMounted(async () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const api = (window as unknown as { electronAPI?: { did?: DidApi } })
+    .electronAPI?.did;
+  if (!api?.getAllIdentities) {
+    return;
+  }
+  try {
+    const result = (await api.getAllIdentities()) as
+      | unknown[]
+      | { identities?: unknown[] }
+      | null
+      | undefined;
+    if (Array.isArray(result)) {
+      didCount.value = result.length;
+    } else if (
+      Array.isArray((result as { identities?: unknown[] })?.identities)
+    ) {
+      didCount.value = (result as { identities: unknown[] }).identities.length;
+    }
+  } catch {
+    /* leave didCount=0 on lookup failure */
+  }
+});
 </script>
 
 <style scoped>

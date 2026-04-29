@@ -10,16 +10,12 @@
 
     <dl class="cc-preview-widget__kv">
       <div>
-        <dt>活跃市场</dt>
-        <dd>{{ markets }} 个</dd>
-      </div>
-      <div>
-        <dt>我的订单</dt>
-        <dd>{{ orders }} 条</dd>
-      </div>
-      <div>
-        <dt>合约</dt>
+        <dt>合约链</dt>
         <dd>EVM + Substrate</dd>
+      </div>
+      <div>
+        <dt>结算模式</dt>
+        <dd>智能合约托管</dd>
       </div>
     </dl>
 
@@ -34,13 +30,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { SwapOutlined } from "@ant-design/icons-vue";
 
 const router = useRouter();
-const markets = ref(0);
-const orders = ref(0);
 
 function openTradingHub() {
   router.push({ name: "TradingHub" }).catch(() => {});

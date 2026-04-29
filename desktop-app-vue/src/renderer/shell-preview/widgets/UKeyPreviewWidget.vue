@@ -41,9 +41,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { SafetyCertificateOutlined } from "@ant-design/icons-vue";
+
+interface UKeyApi {
+  detect?: () => Promise<unknown>;
+}
 
 const router = useRouter();
 const connected = ref(false);
@@ -70,6 +74,31 @@ function openDatabaseSecurity() {
 function openHsmAdapter() {
   router.push("/main/hsm-adapter").catch(() => {});
 }
+
+onMounted(async () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const api = (window as unknown as { electronAPI?: { ukey?: UKeyApi } })
+    .electronAPI?.ukey;
+  if (!api?.detect) {
+    return;
+  }
+  try {
+    const result = (await api.detect()) as
+      | { connected?: boolean; success?: boolean }
+      | boolean
+      | null
+      | undefined;
+    if (typeof result === "boolean") {
+      connected.value = result;
+    } else if (result && typeof result === "object") {
+      connected.value = Boolean(result.connected ?? result.success);
+    }
+  } catch {
+    /* leave connected=false on detect failure */
+  }
+});
 </script>
 
 <style scoped>

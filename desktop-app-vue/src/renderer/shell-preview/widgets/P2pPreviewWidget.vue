@@ -10,12 +10,8 @@
 
     <dl class="cc-preview-widget__kv">
       <div>
-        <dt>当前会话</dt>
+        <dt>已连接对端</dt>
         <dd>{{ peers }} 个</dd>
-      </div>
-      <div>
-        <dt>离线队列</dt>
-        <dd>{{ offlineQueue }} 条</dd>
       </div>
       <div>
         <dt>加密握手</dt>
@@ -33,13 +29,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { TeamOutlined } from "@ant-design/icons-vue";
 
+interface P2pApi {
+  getPeers?: () => Promise<unknown>;
+}
+
 const router = useRouter();
 const peers = ref(0);
-const offlineQueue = ref(0);
 
 function openFullPage() {
   router.push({ name: "P2PMessaging" }).catch(() => {});
@@ -48,6 +47,27 @@ function openFullPage() {
 function openDevicePairing() {
   router.push("/main/p2p/device-pairing").catch(() => {});
 }
+
+onMounted(async () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const api = (window as unknown as { electronAPI?: { p2p?: P2pApi } })
+    .electronAPI?.p2p;
+  if (!api?.getPeers) {
+    return;
+  }
+  try {
+    const result = (await api.getPeers()) as unknown[] | { peers?: unknown[] };
+    if (Array.isArray(result)) {
+      peers.value = result.length;
+    } else if (Array.isArray((result as { peers?: unknown[] })?.peers)) {
+      peers.value = (result as { peers: unknown[] }).peers.length;
+    }
+  } catch {
+    /* leave peers=0 on getPeers failure */
+  }
+});
 </script>
 
 <style scoped>
