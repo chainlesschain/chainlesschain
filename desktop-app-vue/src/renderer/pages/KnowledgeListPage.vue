@@ -18,10 +18,7 @@
               style="width: 300px"
               @search="handleSearch"
             />
-            <a-button
-              type="primary"
-              size="large"
-            >
+            <a-button type="primary" size="large" @click="openCreateModal">
               <PlusOutlined />
               新建知识
             </a-button>
@@ -36,16 +33,9 @@
       <div class="list-header">
         <span>共 {{ filteredKnowledgeItems.length }} 条知识</span>
         <a-space>
-          <a-select
-            v-model:value="sortBy"
-            style="width: 120px"
-          >
-            <a-select-option value="time">
-              按时间
-            </a-select-option>
-            <a-select-option value="title">
-              按标题
-            </a-select-option>
+          <a-select v-model:value="sortBy" style="width: 120px">
+            <a-select-option value="time"> 按时间 </a-select-option>
+            <a-select-option value="title"> 按标题 </a-select-option>
           </a-select>
         </a-space>
       </div>
@@ -62,11 +52,7 @@
         class="knowledge-grid"
       >
         <template #default="{ item }">
-          <a-card
-            hoverable
-            class="knowledge-card"
-            @click="viewDetail(item)"
-          >
+          <a-card hoverable class="knowledge-card" @click="viewDetail(item)">
             <template #cover>
               <div
                 class="card-cover"
@@ -89,29 +75,53 @@
             </a-card-meta>
             <template #actions>
               <a-tooltip title="编辑">
-                <EditOutlined
-                  key="edit"
-                  @click.stop="editItem(item)"
-                />
+                <EditOutlined key="edit" @click.stop="editItem(item)" />
               </a-tooltip>
               <a-tooltip title="删除">
-                <DeleteOutlined
-                  key="delete"
-                  @click.stop="deleteItem(item)"
-                />
+                <DeleteOutlined key="delete" @click.stop="deleteItem(item)" />
               </a-tooltip>
             </template>
           </a-card>
         </template>
         <template #empty>
           <a-empty description="暂无知识条目">
-            <a-button type="primary">
+            <a-button type="primary" @click="openCreateModal">
               <PlusOutlined /> 新建知识
             </a-button>
           </a-empty>
         </template>
       </virtual-grid>
     </div>
+
+    <!-- 新建知识 modal -->
+    <a-modal
+      v-model:open="createModalOpen"
+      title="新建知识条目"
+      :confirm-loading="creating"
+      :ok-text="creating ? '保存中…' : '保存'"
+      cancel-text="取消"
+      :ok-button-props="{ disabled: !createForm.title.trim() }"
+      @ok="submitCreate"
+      @cancel="closeCreateModal"
+    >
+      <a-form layout="vertical" :disabled="creating">
+        <a-form-item label="标题" required>
+          <a-input
+            v-model:value="createForm.title"
+            placeholder="例如：Vue 3 组合式 API 速记"
+            :maxlength="120"
+            allow-clear
+          />
+        </a-form-item>
+        <a-form-item label="内容">
+          <a-textarea
+            v-model:value="createForm.content"
+            placeholder="正文（支持 Markdown，可稍后再补）"
+            :rows="6"
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
@@ -135,6 +145,49 @@ const searchQuery = ref("");
 const sortBy = ref("time");
 const loading = ref(false);
 const virtualGridRef = ref(null);
+
+const createModalOpen = ref(false);
+const creating = ref(false);
+const createForm = ref({ title: "", content: "" });
+
+const openCreateModal = () => {
+  createForm.value = { title: "", content: "" };
+  createModalOpen.value = true;
+};
+
+const closeCreateModal = () => {
+  if (creating.value) {
+    return;
+  }
+  createModalOpen.value = false;
+};
+
+const submitCreate = async () => {
+  const title = createForm.value.title.trim();
+  if (!title) {
+    message.warning("请填写标题");
+    return;
+  }
+  creating.value = true;
+  try {
+    const created = await store.createKnowledgeItemInDb({
+      title,
+      content: createForm.value.content,
+    });
+    if (created) {
+      message.success("已创建");
+      createModalOpen.value = false;
+      // Reload from DB so we pick up server-assigned timestamps / order.
+      await store.loadKnowledgeItemsFromDb();
+    } else {
+      message.error("创建失败：IPC 不可用或数据库未初始化");
+    }
+  } catch (error) {
+    message.error("创建失败：" + (error?.message || error));
+  } finally {
+    creating.value = false;
+  }
+};
 
 // 渐变色和颜色数组
 const gradients = [
@@ -190,11 +243,11 @@ const deleteItem = (item) => {
     okType: "danger",
     cancelText: "取消",
     onOk: async () => {
-      try {
-        await store.deleteKnowledgeItem(item.id);
+      const ok = await store.deleteKnowledgeItemFromDb(item.id);
+      if (ok) {
         message.success("删除成功");
-      } catch (error) {
-        message.error("删除失败: " + error.message);
+      } else {
+        message.error("删除失败：IPC 不可用或数据库未响应");
       }
     },
   });
@@ -220,12 +273,14 @@ const getColorByIndex = (id) => {
   return colors[hash % colors.length];
 };
 
-onMounted(() => {
-  // 加载知识列表
+onMounted(async () => {
+  // 真正从 SQLite 加载知识库（替换原先的 500ms setTimeout 占位）
   loading.value = true;
-  setTimeout(() => {
+  try {
+    await store.loadKnowledgeItemsFromDb();
+  } finally {
     loading.value = false;
-  }, 500);
+  }
 });
 </script>
 

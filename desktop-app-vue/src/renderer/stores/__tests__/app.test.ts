@@ -187,6 +187,143 @@ describe("useAppStore", () => {
   });
 
   // -------------------------------------------------------------------------
+  // IPC-backed knowledge actions (loadKnowledgeItemsFromDb / delete / create)
+  // -------------------------------------------------------------------------
+
+  describe("Knowledge IPC actions", () => {
+    function installDbApi(db: Record<string, ReturnType<typeof vi.fn>>) {
+      (window as any).electronAPI = {
+        invoke: mockInvoke,
+        on: vi.fn(),
+        removeListener: vi.fn(),
+        db,
+      };
+    }
+
+    it("loadKnowledgeItemsFromDb() pulls IPC and mirrors into state", async () => {
+      const items = [
+        { id: "1", title: "Loaded" },
+        { id: "2", title: "Also loaded" },
+      ];
+      const getKnowledgeItems = vi.fn().mockResolvedValue(items);
+      installDbApi({ getKnowledgeItems });
+
+      const { useAppStore } = await import("../app");
+      const store = useAppStore();
+      const result = await store.loadKnowledgeItemsFromDb();
+
+      expect(getKnowledgeItems).toHaveBeenCalledTimes(1);
+      expect(store.knowledgeItems).toHaveLength(2);
+      expect(result).toBe(store.knowledgeItems);
+    });
+
+    it("loadKnowledgeItemsFromDb() leaves state untouched when IPC missing", async () => {
+      (window as any).electronAPI = { invoke: mockInvoke };
+      const { useAppStore } = await import("../app");
+      const store = useAppStore();
+      store.setKnowledgeItems([{ id: "x", title: "kept" }]);
+      await store.loadKnowledgeItemsFromDb();
+      expect(store.knowledgeItems).toEqual([{ id: "x", title: "kept" }]);
+    });
+
+    it("loadKnowledgeItemsFromDb() falls back to [] on non-array IPC return", async () => {
+      const getKnowledgeItems = vi.fn().mockResolvedValue(null);
+      installDbApi({ getKnowledgeItems });
+
+      const { useAppStore } = await import("../app");
+      const store = useAppStore();
+      store.setKnowledgeItems([{ id: "x", title: "stale" }]);
+      await store.loadKnowledgeItemsFromDb();
+      expect(store.knowledgeItems).toEqual([]);
+    });
+
+    it("deleteKnowledgeItemFromDb() returns true and mirrors state on success", async () => {
+      const deleteKnowledgeItem = vi.fn().mockResolvedValue(true);
+      installDbApi({ deleteKnowledgeItem });
+
+      const { useAppStore } = await import("../app");
+      const store = useAppStore();
+      store.setKnowledgeItems([
+        { id: "1", title: "A" },
+        { id: "2", title: "B" },
+      ]);
+
+      const ok = await store.deleteKnowledgeItemFromDb("1");
+      expect(ok).toBe(true);
+      expect(store.knowledgeItems.map((item) => item.id)).toEqual(["2"]);
+    });
+
+    it("deleteKnowledgeItemFromDb() also accepts {success: true} envelope", async () => {
+      const deleteKnowledgeItem = vi.fn().mockResolvedValue({ success: true });
+      installDbApi({ deleteKnowledgeItem });
+
+      const { useAppStore } = await import("../app");
+      const store = useAppStore();
+      store.setKnowledgeItems([{ id: "1", title: "A" }]);
+      const ok = await store.deleteKnowledgeItemFromDb("1");
+      expect(ok).toBe(true);
+      expect(store.knowledgeItems).toEqual([]);
+    });
+
+    it("deleteKnowledgeItemFromDb() returns false and keeps list when IPC fails", async () => {
+      const deleteKnowledgeItem = vi.fn().mockRejectedValue(new Error("boom"));
+      installDbApi({ deleteKnowledgeItem });
+
+      const { useAppStore } = await import("../app");
+      const store = useAppStore();
+      store.setKnowledgeItems([{ id: "1", title: "A" }]);
+      const ok = await store.deleteKnowledgeItemFromDb("1");
+      expect(ok).toBe(false);
+      expect(store.knowledgeItems).toHaveLength(1);
+    });
+
+    it("deleteKnowledgeItemFromDb() returns false when IPC reports failure", async () => {
+      const deleteKnowledgeItem = vi.fn().mockResolvedValue(false);
+      installDbApi({ deleteKnowledgeItem });
+
+      const { useAppStore } = await import("../app");
+      const store = useAppStore();
+      store.setKnowledgeItems([{ id: "1", title: "A" }]);
+      const ok = await store.deleteKnowledgeItemFromDb("1");
+      expect(ok).toBe(false);
+      expect(store.knowledgeItems).toHaveLength(1);
+    });
+
+    it("createKnowledgeItemInDb() pushes the returned row and resolves it", async () => {
+      const created = { id: "new", title: "fresh" };
+      const addKnowledgeItem = vi.fn().mockResolvedValue(created);
+      installDbApi({ addKnowledgeItem });
+
+      const { useAppStore } = await import("../app");
+      const store = useAppStore();
+      const result = await store.createKnowledgeItemInDb({ title: "fresh" });
+
+      expect(addKnowledgeItem).toHaveBeenCalledWith({ title: "fresh" });
+      expect(result).toEqual(created);
+      expect(store.knowledgeItems).toContainEqual(created);
+    });
+
+    it("createKnowledgeItemInDb() returns null when IPC returns no id", async () => {
+      const addKnowledgeItem = vi.fn().mockResolvedValue({});
+      installDbApi({ addKnowledgeItem });
+
+      const { useAppStore } = await import("../app");
+      const store = useAppStore();
+      const result = await store.createKnowledgeItemInDb({ title: "fresh" });
+      expect(result).toBeNull();
+      expect(store.knowledgeItems).toHaveLength(0);
+    });
+
+    it("createKnowledgeItemInDb() returns null when IPC missing", async () => {
+      (window as any).electronAPI = { invoke: mockInvoke };
+      const { useAppStore } = await import("../app");
+      const store = useAppStore();
+      const result = await store.createKnowledgeItemInDb({ title: "fresh" });
+      expect(result).toBeNull();
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // Search / getFilteredItems getter
   // -------------------------------------------------------------------------
 

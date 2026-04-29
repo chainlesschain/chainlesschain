@@ -266,7 +266,7 @@ export const useAppStore = defineStore("app", {
       offset: number | null = null,
     ): Promise<KnowledgeItem[]> {
       const api = (
-        window as {
+        window as unknown as {
           electronAPI?: {
             db?: {
               getKnowledgeItems?: (
@@ -302,7 +302,7 @@ export const useAppStore = defineStore("app", {
      */
     async deleteKnowledgeItemFromDb(id: string): Promise<boolean> {
       const api = (
-        window as {
+        window as unknown as {
           electronAPI?: {
             db?: { deleteKnowledgeItem?: (id: string) => Promise<unknown> };
           };
@@ -344,7 +344,7 @@ export const useAppStore = defineStore("app", {
       [key: string]: unknown;
     }): Promise<KnowledgeItem | null> {
       const api = (
-        window as {
+        window as unknown as {
           electronAPI?: {
             db?: {
               addKnowledgeItem?: (
