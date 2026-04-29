@@ -38,12 +38,8 @@ export interface PreviewFileNode {
 }
 
 export interface PreviewRuntimeStatus {
-  progress: number;
   agentLabel: string;
   modelLabel: string;
-  skillLabel: string;
-  toolLabel: string;
-  terminalLabel: string;
 }
 
 export interface PreviewConversation {
@@ -100,16 +96,11 @@ function isAccidentalEmpty(conversation: PreviewConversation): boolean {
 }
 
 function createDefaultRuntimeStatus(
-  progress = 0,
   overrides: Partial<PreviewRuntimeStatus> = {},
 ): PreviewRuntimeStatus {
   return {
-    progress,
     agentLabel: "ChainlessChain",
-    modelLabel: "opus-4.7 / Max",
-    skillLabel: "4 技能",
-    toolLabel: "8 工具",
-    terminalLabel: "终端",
+    modelLabel: "",
     ...overrides,
   };
 }
@@ -176,23 +167,12 @@ function normalizeRuntimeStatus(value: unknown): PreviewRuntimeStatus {
     value && typeof value === "object"
       ? (value as Record<string, unknown>)
       : {};
-  return createDefaultRuntimeStatus(
-    typeof source.progress === "number" ? source.progress : 0,
-    {
-      agentLabel:
-        typeof source.agentLabel === "string" ? source.agentLabel : undefined,
-      modelLabel:
-        typeof source.modelLabel === "string" ? source.modelLabel : undefined,
-      skillLabel:
-        typeof source.skillLabel === "string" ? source.skillLabel : undefined,
-      toolLabel:
-        typeof source.toolLabel === "string" ? source.toolLabel : undefined,
-      terminalLabel:
-        typeof source.terminalLabel === "string"
-          ? source.terminalLabel
-          : undefined,
-    },
-  );
+  return createDefaultRuntimeStatus({
+    agentLabel:
+      typeof source.agentLabel === "string" ? source.agentLabel : undefined,
+    modelLabel:
+      typeof source.modelLabel === "string" ? source.modelLabel : undefined,
+  });
 }
 
 function normalizeArtifact(value: unknown): PreviewArtifact | undefined {
