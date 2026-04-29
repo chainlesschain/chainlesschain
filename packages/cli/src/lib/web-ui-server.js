@@ -1370,6 +1370,20 @@ export function createWebUIServer(opts) {
         // '$&', '$`', "$'" etc. in configJson as special replacement patterns
         // (e.g. projectRoot="/path/$HOME" would corrupt the JSON otherwise).
         html = html.replace("__CC_CONFIG_PLACEHOLDER__", () => configJson);
+        if (opts.embeddedShell) {
+          // Electron's titleBarOverlay reserves the top-right ~138px for
+          // native min/max/close buttons. Web-panel's `.app-header` lays
+          // out a right-aligned cluster (status badge, version chip, action
+          // icons) in the same region, so the OS controls visually cover
+          // it. Push the cluster left by that amount only when the SPA is
+          // hosted inside the desktop web-shell.
+          html = html.replace(
+            "</head>",
+            '<style id="cc-embedded-shell-overrides">' +
+              ".app-header{padding-right:calc(138px + 20px) !important;}" +
+              "</style></head>",
+          );
+        }
         res.writeHead(200, {
           "Content-Type": "text/html; charset=utf-8",
           "Cache-Control": "no-store",

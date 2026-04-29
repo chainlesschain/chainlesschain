@@ -169,7 +169,14 @@ class ChainlessChainApp {
     logger.info("ChainlessChain Vue 启动中..(优化版");
 
     // 创建启动画面
-    if (process.env.NODE_ENV !== "test") {
+    // Skip the splash window entirely when running in web-shell mode. Its
+    // sandboxed_renderer bundle hits a flaky "object is not iterable" crash
+    // around the close handshake on Electron 39 / Windows that
+    // intermittently takes the main process down (exit 0xC0000005). The
+    // web-panel SPA loads from local HTTP in <100 ms so the splash adds no
+    // user value here. Keep it for the V5/V6 desktop renderer where the
+    // long bootstrap actually benefits from the progress UI.
+    if (process.env.NODE_ENV !== "test" && !shouldRunWebShell()) {
       this.splashWindow = new SplashWindow();
       try {
         await this.splashWindow.create();
@@ -729,17 +736,16 @@ class ChainlessChainApp {
       ? path.join(__dirname, "../preload/web-shell.js")
       : path.join(__dirname, "../preload/index.js");
 
-    // V5/V6 renderer reserves the top-right region for `titleBarOverlay`
-    // controls; web-panel was authored for browsers and paints its own
-    // toolbar there (status badge, version chip, etc.), so the native
-    // overlay covers them. Use the standard Windows title bar in web-shell
-    // mode — Phase 2 may swap to frameless + web-panel-rendered controls.
-    const titleBarOptions = isWebShell
-      ? { titleBarStyle: "default" }
-      : {
-          titleBarStyle: "hidden",
-          titleBarOverlay: { color: "#667eea", symbolColor: "#ffffff" },
-        };
+    // Keep the V5/V6 hidden+overlay title bar in both modes — switching to
+    // titleBarStyle: "default" in web-shell mode triggered a reproducible
+    // sandboxed_renderer crash on Electron 39 / Windows (process exits with
+    // 0xC0000005). Web-panel's top-right overlap with native controls is
+    // handled renderer-side via CSS injection in web-ui-loader so it does
+    // not depend on the BrowserWindow shape.
+    const titleBarOptions = {
+      titleBarStyle: "hidden",
+      titleBarOverlay: { color: "#667eea", symbolColor: "#ffffff" },
+    };
 
     this.mainWindow = new BrowserWindow({
       width: 1200,
@@ -751,6 +757,15 @@ class ChainlessChainApp {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
+        // Electron 39 / Windows hits a flaky "sandboxed_renderer.bundle.js
+        // script failed to run — TypeError: object is not iterable" race
+        // when the splash window closes around the same moment a second
+        // BrowserWindow boots. The crash sometimes takes the main process
+        // with it (exit 0xC0000005). Disabling sandbox on the main window
+        // bypasses that bundle entirely. We are already nodeIntegration
+        // false + contextIsolation true, so the threat surface from this
+        // is bounded — preload still runs in an isolated world.
+        sandbox: false,
         preload: preloadPath,
       },
       ...titleBarOptions,
