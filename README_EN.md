@@ -1,5 +1,27 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-30 Update — **Desktop Web-Shell Phase 0 → 1.4 prep all landed** — embed web-panel SPA in-process + protocol merge + desktop-only topics + opt-in entry + packaging vendor
+
+Desktop direction locked: **Desktop = web edition's superset** — Electron embeds the `web-panel` SPA in-process; desktop-only capabilities (U-Key / FS / MCP / Ollama) layer on as new WS topics + a minimal preload, expressing the "leverage existing strengths" axis. See [`docs/design/桌面Web壳_架构与落地_设计文档.md`](docs/design/桌面Web壳_架构与落地_设计文档.md) (synced to `docs-site/docs/design/desktop-web-shell-architecture.md`).
+
+| Phase | Status | Key artefacts |
+|---|---|---|
+| 0 spike | ✅ | `web-ui-loader.js` in-process HTTP embed + `ws-bridge.js` minimal topic + `phase0-smoke.cjs` end-to-end |
+| 1.1 protocol merge | ✅ | `ws-cli-loader.js` wraps CLI `ChainlessChainWSServer` and monkey-patches `_dispatcher.dispatch` so custom topics share the same WS as web-panel's CLI protocol (auth / ping / session-*) |
+| 1.2 desktop-only topics, batch 1 | ✅ | `skill.list` (in-process CLISkillLoader, bypasses SPAWN_ERROR) + `fs.openDialog` / `fs.saveDialog` (dialog-based, security-first, 10 MiB read cap) |
+| 1.3 entry UX | ✅ | `shouldRunWebShell(argv, env, settings)` three-way; SystemSettings adds `ui.useWebShellExperimental` toggle, mirrors the V6 hard-flip (`caaddf530`) playbook |
+| 1.4 packaging prep | ✅ | `scripts/prepare-web-shell-vendor.js` + **Decision A**: vendor target = `path.join(buildPath, "..")` so the loaders' 4-up REL resolves in both dev and packaged. `forge.config.js#packageAfterCopy` wired |
+
+**Test matrix**: 117+ tests covering web-shell hot paths — unit 79 + integration 14 + scripts 14 + config 6 + Playwright e2e 4 + one-shot `phase0-smoke.cjs`.
+
+**Activation**: System Settings → General → "Enable Web Shell (Experimental)" toggle (restart); or `npm run dev:web-shell` / `--web-shell` argv / `CHAINLESSCHAIN_WEB_SHELL=1` env.
+
+**Known limitations**: `_executeCommand` inside Electron has `process.execPath` pointing at Electron rather than node (CLI now adds `ELECTRON_RUN_AS_NODE=1` workaround); SystemSettings toggle persistence travels via `config:set` → AppConfigManager whose whitelist drops the `ui` field (same bug as the V6 toggle, fixed separately). For dogfood the env/argv channels still work.
+
+**Not done**: Phase 1.4 real packaging (`make:win` cycle requires the user's machine) + Phase 1.5 multi-window architecture (design memo landed, implementation deferred).
+
+---
+
 ## 2026-04-29 Update — **V6 Preview Shell P9d** — brand cleanup + blank-start + Settings entry
 
 Cleared the residual demo footprint from the `/v6-preview` shell so it can be shown to outsiders as-is.

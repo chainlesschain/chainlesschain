@@ -1,5 +1,27 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-30 增量更新（**桌面 Web 壳 Phase 0 → 1.4 prep 全量落地** — web-panel SPA 同进程嵌入桌面 + 协议合并 + 桌面专属 topic + 入口 opt-in + 打包 vendor）
+
+桌面端方向收口：**桌面 = web 加强版**——Electron 同进程嵌入 `web-panel` SPA，桌面专属能力（U-Key/FS/MCP/Ollama）作为新增 WS topic + 极薄 preload 叠加，体现"独有特性强项化"。详见 [`docs/design/桌面Web壳_架构与落地_设计文档.md`](docs/design/桌面Web壳_架构与落地_设计文档.md)。
+
+| Phase | 状态 | 关键产物 |
+|---|---|---|
+| 0 spike | ✅ | `web-ui-loader.js` HTTP 同进程嵌入 + `ws-bridge.js` 极简 topic + `phase0-smoke.cjs` 端到端 |
+| 1.1 协议合并 | ✅ | `ws-cli-loader.js` 包 CLI `ChainlessChainWSServer` + monkey-patch `_dispatcher.dispatch`，自定义 topic 与 web-panel CLI 协议（auth/ping/session-*）共享同一 WS 连接 |
+| 1.2 桌面专属 topic 第一批 | ✅ | `skill.list`（绕过 SPAWN_ERROR 同进程跑 CLISkillLoader）/ `fs.openDialog` / `fs.saveDialog`（dialog-based 安全先于性能，10 MiB 读取上限） |
+| 1.3 入口 UX | ✅ | `shouldRunWebShell(argv, env, settings)` 三选一；SystemSettings 加 `ui.useWebShellExperimental` toggle，复刻 V6 hard-flip (`caaddf530`) 节奏 |
+| 1.4 打包 prep | ✅ | `scripts/prepare-web-shell-vendor.js` + Decision A：vendor target = `path.join(buildPath, "..")`（保证 loaders 4-up REL 在 dev/packaged 都对）；`forge.config.js#packageAfterCopy` 已接 |
+
+**测试矩阵**：117+ 测试覆盖 web-shell 关键路径——单元 79 + 集成 14 + scripts 14 + config 6 + Playwright e2e 4 + `phase0-smoke.cjs` 一次性 smoke。
+
+**激活方式**：System Settings → 通用 → "启用 Web Shell（实验）" toggle（重启生效）；或 `npm run dev:web-shell` / `--web-shell` argv / `CHAINLESSCHAIN_WEB_SHELL=1` env。
+
+**已知限制**：`_executeCommand` 在 Electron 内 `process.execPath` 是 Electron 而非 node（CLI 已加 `ELECTRON_RUN_AS_NODE=1` workaround）；SystemSettings toggle 持久化路径走 `config:set` → AppConfigManager whitelist 漏 `ui` 字段（V6 toggle 同 bug，单独修）。dogfood 期 env/argv 仍 OK。
+
+**未做**：Phase 1.4 实战（`make:win` 真打包验证，待用户机器循环）+ Phase 1.5 多窗口架构（设计 memo 已落，实施留下次）。
+
+---
+
 ## 2026-04-29 增量更新（**V6 Preview Shell P9d** — 品牌收口 + 空白起步 + 设置入口）
 
 `/v6-preview` 壳里残留的 demo 痕迹一次清掉，对外可演示。
