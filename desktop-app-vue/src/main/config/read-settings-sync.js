@@ -52,4 +52,58 @@ function readSettingsSync(userDataPath, options = {}) {
   }
 }
 
-module.exports = { readSettingsSync };
+/**
+ * Sync writer counterpart to `readSettingsSync`. Reads the current
+ * settings, hands them to the mutator (which may mutate in-place or
+ * return a new object), then writes the result back atomically via
+ * a `.tmp` rename. Returns the persisted object on success, `null`
+ * on any failure.
+ *
+ * Atomic write avoids the half-written-JSON corruption window the
+ * UI's debounced writes (Phase 1.5 geometry persister) would otherwise
+ * tickle on hard kill.
+ *
+ * @param {string} userDataPath
+ * @param {(current: object) => object | void} mutator
+ *   Receives the current settings (or `{}` if none); may mutate in-place
+ *   or return a fresh object — both are honoured.
+ * @param {{ onError?: (err: Error) => void }} [options]
+ * @returns {object | null} the object that was actually persisted, or null on failure
+ */
+function writeSettingsSync(userDataPath, mutator, options = {}) {
+  if (typeof userDataPath !== "string" || !userDataPath) {
+    return null;
+  }
+  if (typeof mutator !== "function") {
+    return null;
+  }
+  try {
+    const settingsPath = path.join(userDataPath, "settings.json");
+    const tmpPath = `${settingsPath}.tmp`;
+    let current = {};
+    if (fs.existsSync(settingsPath)) {
+      try {
+        current = JSON.parse(fs.readFileSync(settingsPath, "utf8")) || {};
+      } catch {
+        // Malformed file — start from empty so the mutator can repair.
+        current = {};
+      }
+    }
+    const next = mutator(current);
+    const toWrite = next ?? current;
+    fs.writeFileSync(tmpPath, JSON.stringify(toWrite, null, 2), "utf8");
+    fs.renameSync(tmpPath, settingsPath);
+    return toWrite;
+  } catch (err) {
+    if (typeof options.onError === "function") {
+      try {
+        options.onError(err);
+      } catch {
+        /* swallow */
+      }
+    }
+    return null;
+  }
+}
+
+module.exports = { readSettingsSync, writeSettingsSync };
