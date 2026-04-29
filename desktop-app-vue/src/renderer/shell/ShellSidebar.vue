@@ -51,7 +51,7 @@
         </a-menu-item>
       </a-sub-menu>
 
-      <a-menu-item key="contacts">
+      <a-menu-item key="contacts" @click="onOpenContacts">
         <template #icon>
           <TeamOutlined />
         </template>
@@ -80,6 +80,7 @@ import {
   MessageOutlined,
 } from "@ant-design/icons-vue";
 import { useExtensionRegistryStore } from "../stores/extensionRegistry";
+import { dispatchSlash } from "./slash-dispatch";
 
 defineProps<{ collapsed: boolean }>();
 defineEmits<{ (e: "toggle"): void }>();
@@ -94,12 +95,28 @@ const selectedKeys = ref<string[]>(["today"]);
 const openKeys = ref<string[]>(["spaces"]);
 
 function onNewSession() {
-  // P0 占位：后续接入会话 store
-  console.debug("[Sidebar] new session");
+  // Open the AI chat panel — that's where a "new session" actually lives.
+  // AppShell registers a slash handler for "builtin:openAIChatPanel".
+  dispatchSlash("builtin:openAIChatPanel", {
+    trigger: "sidebar:new-session",
+    args: "",
+  });
+}
+
+function onOpenContacts() {
+  dispatchSlash("builtin:openFriendsPanel", {
+    trigger: "sidebar:contacts",
+    args: "",
+  });
 }
 
 function onSelectSpace(id: string) {
-  console.debug("[Sidebar] select space", id);
+  // Spaces are extension-contributed; default install has none. Let plugins
+  // wire their own `space:select:<id>` handlers when they register a space.
+  dispatchSlash(`space:select:${id}`, {
+    trigger: "sidebar:select-space",
+    args: id,
+  });
 }
 </script>
 
