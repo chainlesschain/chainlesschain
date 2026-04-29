@@ -65,13 +65,13 @@ export interface PreviewConversation {
 }
 
 interface PersistState {
-  version: 2;
+  version: number;
   conversations: PreviewConversation[];
   activeId: string | null;
 }
 
 const STORAGE_KEY = "cc.preview.conversations";
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const MAX_PREVIEW_CHARS = 56;
 const MAX_TITLE_CHARS = 28;
 const DEFAULT_NEW_TITLE = "新会话";
@@ -85,61 +85,8 @@ function makeId(prefix: string): string {
   return `${prefix}-${now()}-${Math.floor(Math.random() * 1000)}`;
 }
 
-function cloneFiles(files: PreviewFileNode[]): PreviewFileNode[] {
-  return files.map((file) => ({
-    ...file,
-    children: file.children ? cloneFiles(file.children) : undefined,
-  }));
-}
-
-function createDemoFiles(projectFolder: string): PreviewFileNode[] {
-  return [
-    {
-      id: `${projectFolder}-folder`,
-      name: projectFolder,
-      kind: "folder",
-      children: [
-        {
-          id: `${projectFolder}-breakout`,
-          name: "breakout.html",
-          kind: "file",
-        },
-        { id: `${projectFolder}-index`, name: "index.html", kind: "file" },
-        { id: `${projectFolder}-novel`, name: "novel.md", kind: "file" },
-        { id: `${projectFolder}-snow`, name: "snow.html", kind: "file" },
-        { id: `${projectFolder}-test`, name: "test.html", kind: "file" },
-        {
-          id: `${projectFolder}-png`,
-          name: "tetris-gameplay.png",
-          kind: "file",
-        },
-        { id: `${projectFolder}-tetris`, name: "tetris.html", kind: "file" },
-      ],
-    },
-  ];
-}
-
 function createBlankFiles(): PreviewFileNode[] {
-  return [
-    {
-      id: "workspace-root",
-      name: "workspace",
-      kind: "folder",
-      children: [
-        {
-          id: "workspace-src",
-          name: "src",
-          kind: "folder",
-          children: [
-            { id: "workspace-app", name: "App.vue", kind: "file" },
-            { id: "workspace-main", name: "main.ts", kind: "file" },
-          ],
-        },
-        { id: "workspace-package", name: "package.json", kind: "file" },
-        { id: "workspace-readme", name: "README.md", kind: "file" },
-      ],
-    },
-  ];
+  return [];
 }
 
 function createDefaultRuntimeStatus(
@@ -148,214 +95,13 @@ function createDefaultRuntimeStatus(
 ): PreviewRuntimeStatus {
   return {
     progress,
-    agentLabel: "Claude Code",
+    agentLabel: "ChainlessChain",
     modelLabel: "opus-4.7 / Max",
     skillLabel: "4 技能",
     toolLabel: "8 工具",
     terminalLabel: "终端",
     ...overrides,
   };
-}
-
-function createConversation(seed: {
-  title: string;
-  preview: string;
-  projectName: string;
-  relativeTime: string;
-  workspaceLabel: string;
-  promptLabel: string;
-  messages: Array<Pick<BubbleMessage, "role" | "content">>;
-  actionItems?: PreviewActionItem[];
-  taskSteps?: PreviewTaskStep[];
-  files?: PreviewFileNode[];
-  runtimeStatus?: Partial<PreviewRuntimeStatus>;
-  artifact?: PreviewArtifact;
-}): PreviewConversation {
-  const ts = now();
-  return {
-    id: makeId("conv"),
-    title: seed.title,
-    preview: seed.preview,
-    createdAt: ts,
-    updatedAt: ts,
-    projectName: seed.projectName,
-    relativeTime: seed.relativeTime,
-    workspaceLabel: seed.workspaceLabel,
-    promptLabel: seed.promptLabel,
-    messages: seed.messages.map((message) => ({
-      ...message,
-      id: makeId("m"),
-      createdAt: ts,
-    })),
-    actionItems: seed.actionItems ?? [],
-    taskSteps: seed.taskSteps ?? [],
-    files: cloneFiles(seed.files ?? createBlankFiles()),
-    runtimeStatus: createDefaultRuntimeStatus(
-      seed.runtimeStatus?.progress ?? 0,
-      seed.runtimeStatus,
-    ),
-    artifact: seed.artifact,
-  };
-}
-
-function seedConversations(): PreviewConversation[] {
-  const demoConversation = createConversation({
-    title: "demo04",
-    preview: "在 test 目录创建 dashboard 基础结构",
-    projectName: "demo04",
-    relativeTime: "1m ago",
-    workspaceLabel: "workspace",
-    promptLabel: "/dm-dashboard 在 test 目录创建一个 dashboard 的基础结构",
-    messages: [
-      {
-        role: "assistant",
-        content:
-          "先看看当前目录状况。这是个多步骤任务，我会先列目录、建立结构，再逐步生成配置和入口文件。",
-      },
-    ],
-    actionItems: [
-      {
-        id: "demo-action-1",
-        label: "List current directory",
-        detail: "已完成",
-        status: "done",
-      },
-      {
-        id: "demo-action-2",
-        label: "TodoWrite",
-        detail: "任务拆解完成",
-        status: "done",
-      },
-      {
-        id: "demo-action-3",
-        label: "Create test project directory structure",
-        detail: "目录已建立",
-        status: "done",
-      },
-      {
-        id: "demo-action-4",
-        label: "Write package.json / tsconfig / vite.config.ts",
-        detail: "4 个文件已输出",
-        status: "done",
-      },
-    ],
-    taskSteps: [
-      {
-        id: "demo-task-1",
-        label: "Create project config files",
-        detail: "package.json, tsconfig, vite, tailwind",
-        status: "done",
-      },
-      {
-        id: "demo-task-2",
-        label: "Create entry files",
-        detail: "index.html, main.tsx, App.tsx, index.css",
-        status: "running",
-      },
-      {
-        id: "demo-task-3",
-        label: "Create lib, types, api base layer",
-        status: "pending",
-      },
-      {
-        id: "demo-task-4",
-        label: "Create shadcn/ui primitives",
-        detail: "button, card, badge, input, dialog, toast, spinner",
-        status: "pending",
-      },
-      {
-        id: "demo-task-5",
-        label: "Create hooks",
-        detail: "use-auth, use-theme, use-toast",
-        status: "pending",
-      },
-    ],
-    files: createDemoFiles("test"),
-    runtimeStatus: {
-      progress: 6,
-      toolLabel: "工具 (8)",
-    },
-    artifact: {
-      title: "运行说明",
-      content:
-        "这是一个 Claude Box 风格的桌面工作台预览。左侧是项目列表，中间是执行流和任务清单，右侧是文件面板，底部显示模型与工具状态。",
-    },
-  });
-
-  const workspaceConversation = createConversation({
-    title: "workspace",
-    preview: "整理本地知识库和项目索引",
-    projectName: "workspace",
-    relativeTime: "12h ago",
-    workspaceLabel: "notes",
-    promptLabel: "整理本地知识库并输出索引摘要",
-    messages: [
-      {
-        role: "assistant",
-        content:
-          "知识库扫描已经完成。接下来可以继续补充标签、清洗重复文档，或者直接生成新的索引结构。",
-      },
-    ],
-    taskSteps: [
-      {
-        id: "workspace-task-1",
-        label: "Scan markdown notes",
-        status: "done",
-      },
-      {
-        id: "workspace-task-2",
-        label: "Merge duplicated tags",
-        status: "pending",
-      },
-    ],
-    runtimeStatus: {
-      progress: 42,
-      modelLabel: "sonnet / Balanced",
-      skillLabel: "2 技能",
-      toolLabel: "工具 (3)",
-    },
-    artifact: {
-      title: "索引建议",
-      content:
-        "建议把 notes、imports、projects 分成三个一级目录，并为每个目录生成独立的 embedding 索引。",
-    },
-  });
-
-  const releaseConversation = createConversation({
-    title: "ClaudeBox",
-    preview: "整理新版桌面端视觉方向",
-    projectName: "ClaudeBox",
-    relativeTime: "12h ago",
-    workspaceLabel: "design",
-    promptLabel: "整理新版桌面端视觉方向",
-    messages: [
-      {
-        role: "assistant",
-        content:
-          "视觉方向建议保持 macOS 风格的浅色窗体、细边框和柔和阴影，同时让对话流和任务进度处于同一视线层级。",
-      },
-    ],
-    taskSteps: [
-      {
-        id: "release-task-1",
-        label: "Collect reference screenshots",
-        status: "done",
-      },
-      {
-        id: "release-task-2",
-        label: "Unify desktop shell spacing",
-        status: "pending",
-      },
-    ],
-    runtimeStatus: {
-      progress: 18,
-      modelLabel: "design preview",
-      skillLabel: "1 技能",
-      toolLabel: "工具 (2)",
-    },
-  });
-
-  return [demoConversation, workspaceConversation, releaseConversation];
 }
 
 function isStepStatus(value: unknown): value is PreviewStepStatus {
@@ -527,7 +273,12 @@ function normalizeConversation(value: unknown): PreviewConversation | null {
   };
 }
 
-function loadFromStorage(): PersistState | null {
+interface LoadResult {
+  state: PersistState;
+  migrated: boolean;
+}
+
+function loadFromStorage(): LoadResult | null {
   let raw: string | null = null;
   try {
     raw = localStorage.getItem(STORAGE_KEY);
@@ -541,16 +292,19 @@ function loadFromStorage(): PersistState | null {
 
   try {
     const parsed = JSON.parse(raw) as Partial<PersistState>;
-    if (
-      parsed.version !== SCHEMA_VERSION ||
-      !Array.isArray(parsed.conversations)
-    ) {
+    const isV2 = parsed.version === 2;
+    const isCurrent = parsed.version === SCHEMA_VERSION;
+    if ((!isV2 && !isCurrent) || !Array.isArray(parsed.conversations)) {
       return null;
     }
 
-    const conversations = parsed.conversations
+    let conversations = parsed.conversations
       .map(normalizeConversation)
       .filter((item): item is PreviewConversation => item !== null);
+
+    if (isV2) {
+      conversations = conversations.map(migrateLegacyAgentLabel);
+    }
 
     const activeId =
       typeof parsed.activeId === "string" &&
@@ -559,13 +313,33 @@ function loadFromStorage(): PersistState | null {
         : (conversations[0]?.id ?? null);
 
     return {
-      version: SCHEMA_VERSION,
-      conversations,
-      activeId,
+      state: {
+        version: SCHEMA_VERSION,
+        conversations,
+        activeId,
+      },
+      migrated: isV2,
     };
   } catch {
     return null;
   }
+}
+
+const LEGACY_AGENT_LABEL = "Claude Code";
+
+function migrateLegacyAgentLabel(
+  conversation: PreviewConversation,
+): PreviewConversation {
+  if (conversation.runtimeStatus.agentLabel !== LEGACY_AGENT_LABEL) {
+    return conversation;
+  }
+  return {
+    ...conversation,
+    runtimeStatus: {
+      ...conversation.runtimeStatus,
+      agentLabel: "ChainlessChain",
+    },
+  };
 }
 
 function saveToStorage(state: PersistState) {
@@ -603,13 +377,15 @@ export const useConversationPreviewStore = defineStore("conversation-preview", {
 
     restore() {
       const loaded = loadFromStorage();
-      if (loaded && loaded.conversations.length > 0) {
-        this.conversations = loaded.conversations;
-        this.activeId = loaded.activeId;
+      if (loaded && loaded.state.conversations.length > 0) {
+        this.conversations = loaded.state.conversations;
+        this.activeId = loaded.state.activeId;
+        if (loaded.migrated) {
+          this._persist();
+        }
       } else {
-        const seeded = seedConversations();
-        this.conversations = seeded;
-        this.activeId = seeded[0]?.id ?? null;
+        this.conversations = [];
+        this.activeId = null;
         this._persist();
       }
       this.restored = true;
@@ -686,6 +462,19 @@ export const useConversationPreviewStore = defineStore("conversation-preview", {
 
     setGenerating(flag: boolean) {
       this.isGenerating = flag;
+    },
+
+    setModelLabel(label: string) {
+      const conversation = this.active;
+      if (!conversation) {
+        return;
+      }
+      const next = label.trim();
+      if (!next) {
+        return;
+      }
+      conversation.runtimeStatus.modelLabel = next;
+      this._persist();
     },
 
     beginStreamingAssistant(): string | null {
@@ -780,5 +569,4 @@ export const useConversationPreviewStore = defineStore("conversation-preview", {
 export const __testing = {
   STORAGE_KEY,
   SCHEMA_VERSION,
-  seedConversations,
 };

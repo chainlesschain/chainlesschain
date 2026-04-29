@@ -5,7 +5,7 @@ import {
   __testing,
 } from "../conversation-preview";
 
-const { STORAGE_KEY, SCHEMA_VERSION, seedConversations } = __testing;
+const { STORAGE_KEY, SCHEMA_VERSION } = __testing;
 
 function rawState() {
   return localStorage.getItem(STORAGE_KEY);
@@ -17,13 +17,11 @@ describe("useConversationPreviewStore", () => {
     localStorage.clear();
   });
 
-  it("seeds desktop preview conversations when storage is empty", () => {
+  it("starts empty when storage is empty and persists the empty state", () => {
     const store = useConversationPreviewStore();
     store.restore();
-    expect(store.conversations).toHaveLength(seedConversations().length);
-    expect(store.activeId).toBe(store.conversations[0].id);
-    expect(store.conversations[0].projectName).toBe("demo04");
-    expect(store.conversations[0].messages.length).toBeGreaterThan(0);
+    expect(store.conversations).toHaveLength(0);
+    expect(store.activeId).toBeNull();
     expect(store.restored).toBe(true);
     expect(rawState()).toBeTruthy();
   });
@@ -41,21 +39,114 @@ describe("useConversationPreviewStore", () => {
     expect(second.active?.messages.at(-1)?.content).toBe("hello world");
   });
 
-  it("rejects an invalid schema version and re-seeds", () => {
+  it("rejects an invalid schema version and starts empty", () => {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({ version: 999, conversations: [] }),
     );
     const store = useConversationPreviewStore();
     store.restore();
-    expect(store.conversations[0].title).toBe("demo04");
+    expect(store.conversations).toHaveLength(0);
+    expect(store.activeId).toBeNull();
   });
 
   it("rejects malformed JSON without throwing", () => {
     localStorage.setItem(STORAGE_KEY, "{not json");
     const store = useConversationPreviewStore();
     expect(() => store.restore()).not.toThrow();
-    expect(store.conversations.length).toBeGreaterThan(0);
+    expect(store.conversations).toHaveLength(0);
+  });
+
+  it("migrates v2 storage by rewriting legacy agentLabel and re-persisting as v3", () => {
+    const ts = Date.now();
+    const v2Payload = {
+      version: 2,
+      activeId: "conv-legacy",
+      conversations: [
+        {
+          id: "conv-legacy",
+          title: "legacy",
+          preview: "preview",
+          createdAt: ts,
+          updatedAt: ts,
+          projectName: "legacy",
+          relativeTime: "1m ago",
+          workspaceLabel: "workspace",
+          promptLabel: "",
+          messages: [
+            {
+              id: "m-legacy",
+              role: "user",
+              content: "hello",
+              createdAt: ts,
+            },
+          ],
+          actionItems: [],
+          taskSteps: [],
+          files: [],
+          runtimeStatus: {
+            progress: 0,
+            agentLabel: "Claude Code",
+            modelLabel: "opus-4.7 / Max",
+            skillLabel: "4 技能",
+            toolLabel: "8 工具",
+            terminalLabel: "终端",
+          },
+        },
+      ],
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(v2Payload));
+
+    const store = useConversationPreviewStore();
+    store.restore();
+
+    expect(store.conversations).toHaveLength(1);
+    expect(store.activeId).toBe("conv-legacy");
+    expect(store.active?.runtimeStatus.agentLabel).toBe("ChainlessChain");
+
+    const persisted = JSON.parse(rawState()!);
+    expect(persisted.version).toBe(SCHEMA_VERSION);
+    expect(persisted.conversations[0].runtimeStatus.agentLabel).toBe(
+      "ChainlessChain",
+    );
+  });
+
+  it("preserves a customized v2 agentLabel during migration", () => {
+    const ts = Date.now();
+    const v2Payload = {
+      version: 2,
+      activeId: "conv-custom",
+      conversations: [
+        {
+          id: "conv-custom",
+          title: "custom",
+          preview: "",
+          createdAt: ts,
+          updatedAt: ts,
+          projectName: "custom",
+          relativeTime: "1m ago",
+          workspaceLabel: "workspace",
+          promptLabel: "",
+          messages: [],
+          actionItems: [],
+          taskSteps: [],
+          files: [],
+          runtimeStatus: {
+            progress: 0,
+            agentLabel: "MyCustomAgent",
+            modelLabel: "x",
+            skillLabel: "x",
+            toolLabel: "x",
+            terminalLabel: "x",
+          },
+        },
+      ],
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(v2Payload));
+
+    const store = useConversationPreviewStore();
+    store.restore();
+    expect(store.active?.runtimeStatus.agentLabel).toBe("MyCustomAgent");
   });
 
   it("createBlank() prepends and becomes active", () => {
@@ -91,6 +182,7 @@ describe("useConversationPreviewStore", () => {
   it("appendMessage() ignores empty input", () => {
     const store = useConversationPreviewStore();
     store.restore();
+    store.createBlank();
     const beforeLength = store.active!.messages.length;
     store.appendMessage("user", "");
     store.appendMessage("user", "   \t\n ");
@@ -100,25 +192,25 @@ describe("useConversationPreviewStore", () => {
   it("select() only accepts known ids", () => {
     const store = useConversationPreviewStore();
     store.restore();
-    const seededId = store.activeId!;
-    const blankId = store.createBlank();
-    store.select(seededId);
-    expect(store.activeId).toBe(seededId);
+    const firstId = store.createBlank();
+    const secondId = store.createBlank();
+    store.select(firstId);
+    expect(store.activeId).toBe(firstId);
     store.select("unknown-id");
-    expect(store.activeId).toBe(seededId);
-    expect(blankId).not.toBe(seededId);
+    expect(store.activeId).toBe(firstId);
+    expect(secondId).not.toBe(firstId);
   });
 
   it("remove() drops a conversation and picks a new active one", () => {
     const store = useConversationPreviewStore();
     store.restore();
-    const seededId = store.activeId!;
-    const blankId = store.createBlank();
-    store.remove(blankId);
+    const firstId = store.createBlank();
+    const secondId = store.createBlank();
+    store.remove(secondId);
     expect(
-      store.conversations.some((conversation) => conversation.id === blankId),
+      store.conversations.some((conversation) => conversation.id === secondId),
     ).toBe(false);
-    expect(store.activeId).toBe(seededId);
+    expect(store.activeId).toBe(firstId);
   });
 
   it("clearAll() wipes state and storage", () => {
@@ -162,6 +254,30 @@ describe("useConversationPreviewStore", () => {
     expect(store.isGenerating).toBe(true);
     store.setGenerating(false);
     expect(store.isGenerating).toBe(false);
+  });
+
+  it("setModelLabel() updates the active conversation model label and persists", () => {
+    const store = useConversationPreviewStore();
+    store.restore();
+    store.createBlank();
+    store.setModelLabel("gpt-4o-mini");
+    expect(store.active!.runtimeStatus.modelLabel).toBe("gpt-4o-mini");
+    const persisted = JSON.parse(rawState()!);
+    const conversation = persisted.conversations.find(
+      (item: { id: string }) => item.id === store.activeId,
+    );
+    expect(conversation.runtimeStatus.modelLabel).toBe("gpt-4o-mini");
+  });
+
+  it("setModelLabel() ignores empty input and missing active conversation", () => {
+    const store = useConversationPreviewStore();
+    store.restore();
+    expect(() => store.setModelLabel("anything")).not.toThrow();
+    expect(store.active).toBeUndefined();
+    store.createBlank();
+    const before = store.active!.runtimeStatus.modelLabel;
+    store.setModelLabel("   ");
+    expect(store.active!.runtimeStatus.modelLabel).toBe(before);
   });
 
   it("beginStreamingAssistant() seeds an empty assistant bubble", () => {
