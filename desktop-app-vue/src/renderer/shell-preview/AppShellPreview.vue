@@ -123,10 +123,14 @@
                 >
                   <span class="cb-message__agent">
                     <RobotOutlined />
-                    {{ activeConversation.runtimeStatus.agentLabel }} 已启动
+                    {{ activeConversation.runtimeStatus.agentLabel }}
                   </span>
-                  <span class="cb-message__pid">PID 28244</span>
-                  <span class="cb-message__badge">会话已恢复</span>
+                  <span
+                    v-if="activeConversation.runtimeStatus.modelLabel"
+                    class="cb-message__pid"
+                  >
+                    {{ activeConversation.runtimeStatus.modelLabel }}
+                  </span>
                 </div>
                 <div class="cb-message__body">
                   {{ message.content }}
