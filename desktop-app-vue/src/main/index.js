@@ -793,6 +793,42 @@ class ChainlessChainApp {
       this._webShellHandle = handle;
       logger.info(`[WebShell] HTTP: ${handle.httpUrl}`);
       logger.info(`[WebShell] WS:   ${handle.wsUrl}`);
+
+      // Phase 1.5: register the main window in the multi-window registry
+      // so window.open can refuse "main" (role_reserved) and so future
+      // windows discover the live httpUrl. Release on closed so a fresh
+      // launch finds the slot empty.
+      try {
+        const { getWindowRegistry } = require("./window-registry");
+        const {
+          createWindowOpenHandler,
+        } = require("./web-shell/handlers/window-open-handler");
+        const registry = getWindowRegistry();
+        if (!registry.has("main")) {
+          registry.register("main", this.mainWindow, handle.httpUrl);
+          this.mainWindow.on("closed", () => registry.release("main"));
+        }
+        // Wire the window.open WS topic with the now-known httpUrl +
+        // preload path so the SPA can spawn artifact / project / dashboard
+        // side windows on demand.
+        handle.register(
+          "window.open",
+          createWindowOpenHandler({
+            registry,
+            httpUrl: handle.httpUrl,
+            preloadPath: preloadPath,
+          }),
+        );
+        logger.info(
+          "[WebShell] WindowRegistry initialised + window.open topic wired",
+        );
+      } catch (err) {
+        logger.warn(
+          "[WebShell] Phase 1.5 window-registry wiring failed (non-fatal):",
+          err.message,
+        );
+      }
+
       this.mainWindow.loadURL(handle.httpUrl);
       if (process.env.NODE_ENV === "development") {
         this.mainWindow.webContents.openDevTools();
