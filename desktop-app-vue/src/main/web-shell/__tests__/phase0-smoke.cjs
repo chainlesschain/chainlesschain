@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports, no-useless-escape */
+/* global require, __dirname, process */
 /**
  * Phase 0 end-to-end smoke. Not part of the vitest suite — run with:
  *   node src/main/web-shell/__tests__/phase0-smoke.cjs
@@ -6,6 +8,11 @@
  * fetches the SPA, asks ukey.status over WS, then tears down. Useful as a
  * one-shot validation that the integration code path actually works without
  * launching Electron.
+ *
+ * This file is intentionally CommonJS (.cjs extension) so it can be invoked
+ * directly via `node` without a transpile step. The eslint-env / disable
+ * directives above silence rules that assume ESM (`require` forbidden,
+ * globals undefined) — the file is correct as written for CJS Node.
  */
 
 const path = require("path");
