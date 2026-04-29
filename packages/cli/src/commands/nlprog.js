@@ -74,6 +74,16 @@ function _dbFromCtx(cmd) {
   return root?._db;
 }
 
+function _requireDb(cmd) {
+  const db = _dbFromCtx(cmd);
+  if (!db) {
+    throw new Error(
+      "No ChainlessChain project database in this directory. Run `cc init` first, or run from a project root.",
+    );
+  }
+  return db;
+}
+
 export function registerNlProgCommand(program) {
   const nlp = new Command("nlprog")
     .description("Natural language programming system (Phase 28)")
@@ -164,7 +174,7 @@ export function registerNlProgCommand(program) {
     .option("-a, --ambiguities <json>", "Ambiguity list JSON")
     .option("--json", "JSON output")
     .action((text, opts) => {
-      const db = _dbFromCtx(nlp);
+      const db = _requireDb(nlp);
       const result = translate(db, {
         text,
         intent: opts.intent,
@@ -184,7 +194,7 @@ export function registerNlProgCommand(program) {
     .description("Show translation details")
     .option("--json", "JSON output")
     .action((id, opts) => {
-      const db = _dbFromCtx(nlp);
+      const db = _requireDb(nlp);
       const t = getTranslation(db, id);
       if (!t) return console.log("Translation not found.");
       if (opts.json) return console.log(JSON.stringify(t, null, 2));
@@ -207,7 +217,7 @@ export function registerNlProgCommand(program) {
     .option("--limit <n>", "Max results", parseInt)
     .option("--json", "JSON output")
     .action((opts) => {
-      const db = _dbFromCtx(nlp);
+      const db = _requireDb(nlp);
       const results = listTranslations(db, {
         intent: opts.intent,
         status: opts.status,
@@ -227,7 +237,7 @@ export function registerNlProgCommand(program) {
     .description("Update translation status (draft/complete/refined)")
     .option("--json", "JSON output")
     .action((id, status, opts) => {
-      const db = _dbFromCtx(nlp);
+      const db = _requireDb(nlp);
       const result = updateTranslationStatus(db, id, status);
       if (opts.json) return console.log(JSON.stringify(result, null, 2));
       console.log(
@@ -244,7 +254,7 @@ export function registerNlProgCommand(program) {
     .option("-a, --ambiguities <json>", "Updated ambiguities JSON")
     .option("--json", "JSON output")
     .action((id, opts) => {
-      const db = _dbFromCtx(nlp);
+      const db = _requireDb(nlp);
       const result = refineTranslation(db, id, {
         spec: opts.spec,
         ambiguities: opts.ambiguities,
@@ -260,7 +270,7 @@ export function registerNlProgCommand(program) {
     .description("Remove a translation")
     .option("--json", "JSON output")
     .action((id, opts) => {
-      const db = _dbFromCtx(nlp);
+      const db = _requireDb(nlp);
       const result = removeTranslation(db, id);
       if (opts.json) return console.log(JSON.stringify(result, null, 2));
       console.log(
@@ -283,7 +293,7 @@ export function registerNlProgCommand(program) {
     .option("-s, --source-files <json>", "Source files JSON")
     .option("--json", "JSON output")
     .action((opts) => {
-      const db = _dbFromCtx(nlp);
+      const db = _requireDb(nlp);
       const result = addConvention(db, {
         category: opts.category,
         pattern: opts.pattern,
@@ -301,7 +311,7 @@ export function registerNlProgCommand(program) {
     .description("Show convention details")
     .option("--json", "JSON output")
     .action((id, opts) => {
-      const db = _dbFromCtx(nlp);
+      const db = _requireDb(nlp);
       const c = getConvention(db, id);
       if (!c) return console.log("Convention not found.");
       if (opts.json) return console.log(JSON.stringify(c, null, 2));
@@ -319,7 +329,7 @@ export function registerNlProgCommand(program) {
     .option("--limit <n>", "Max results", parseInt)
     .option("--json", "JSON output")
     .action((opts) => {
-      const db = _dbFromCtx(nlp);
+      const db = _requireDb(nlp);
       const results = listConventions(db, {
         category: opts.category,
         limit: opts.limit,
@@ -338,7 +348,7 @@ export function registerNlProgCommand(program) {
     .description("Remove a convention")
     .option("--json", "JSON output")
     .action((id, opts) => {
-      const db = _dbFromCtx(nlp);
+      const db = _requireDb(nlp);
       const result = removeConvention(db, id);
       if (opts.json) return console.log(JSON.stringify(result, null, 2));
       console.log(
@@ -353,7 +363,7 @@ export function registerNlProgCommand(program) {
     .description("NL Programming statistics")
     .option("--json", "JSON output")
     .action((opts) => {
-      const db = _dbFromCtx(nlp);
+      const db = _requireDb(nlp);
       const s = getNlProgrammingStats(db);
       if (opts.json) return console.log(JSON.stringify(s, null, 2));
       console.log(
@@ -473,7 +483,7 @@ export function registerNlProgCommand(program) {
     .option("-m, --metadata <json>", "Metadata JSON")
     .option("--json", "JSON output")
     .action((specId, opts) => {
-      const db = _dbFromCtx(nlp);
+      const db = _requireDb(nlp);
       const rec = registerSpecV2(db, {
         specId,
         authorId: opts.author,
@@ -506,7 +516,7 @@ export function registerNlProgCommand(program) {
     .option("-r, --reason <text>", "Reason")
     .option("-m, --metadata <json>", "Metadata patch (JSON)")
     .action((id, status, opts) => {
-      const db = _dbFromCtx(nlp);
+      const db = _requireDb(nlp);
       const rec = setSpecMaturityV2(db, id, status, {
         reason: opts.reason,
         metadata: _parseMetaV2(opts.metadata),
@@ -568,7 +578,7 @@ export function registerNlProgCommand(program) {
     .option("-m, --metadata <json>", "Metadata JSON")
     .option("--json", "JSON output")
     .action((turnId, opts) => {
-      const db = _dbFromCtx(nlp);
+      const db = _requireDb(nlp);
       const rec = registerDialogueTurnV2(db, {
         turnId,
         specId: opts.spec,
@@ -603,7 +613,7 @@ export function registerNlProgCommand(program) {
     .option("-r, --reason <text>", "Reason")
     .option("-m, --metadata <json>", "Metadata patch (JSON)")
     .action((id, status, opts) => {
-      const db = _dbFromCtx(nlp);
+      const db = _requireDb(nlp);
       const rec = setDialogueTurnStatusV2(db, id, status, {
         answer: opts.answer,
         reason: opts.reason,

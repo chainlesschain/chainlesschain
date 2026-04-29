@@ -245,6 +245,13 @@ describe('detectTranslateError', () => {
     expect(r.noDb).toBe(false)
     expect(r.error).toContain('foo is not a function')
   })
+
+  it('detects the modern friendly "No ChainlessChain project database" error', () => {
+    const out = 'Error: No ChainlessChain project database in this directory. Run `cc init` first, or run from a project root.\n    at _requireDb (...)'
+    const r = detectTranslateError(out)
+    expect(r.noDb).toBe(true)
+    expect(r.error).toContain('No ChainlessChain project database')
+  })
 })
 
 // ─── parseConventions ───────────────────────────────────────────────────────

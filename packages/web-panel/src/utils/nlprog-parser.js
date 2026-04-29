@@ -138,14 +138,19 @@ export function parseTranslateResult(output) {
 }
 
 /**
- * Detect the "no project DB" condition that `cc nlprog translate` hits
- * when run outside a chainlesschain project. Stderr reads
+ * Detect the "no project DB" condition that `cc nlprog translate` hits when
+ * run outside a chainlesschain project. Modern CLI throws a friendly
+ * `No ChainlessChain project database` error; legacy builds emitted
  * `TypeError: Cannot read properties of undefined (reading 'prepare')`.
  */
 export function detectTranslateError(output) {
   if (!output) return { noDb: false, error: '' }
-  const noDb = /Cannot read properties of undefined \(reading ['"]prepare['"]\)/i.test(output)
+  const noDb =
+    /No ChainlessChain project database/i.test(output)
+    || /Cannot read properties of undefined \(reading ['"]prepare['"]\)/i.test(output)
     || /TypeError.*prepare/i.test(output)
+  const friendlyMatch = output.match(/Error:\s*(No ChainlessChain project database[^\r\n]*)/i)
+  if (friendlyMatch) return { noDb: true, error: friendlyMatch[1].trim() }
   const errMatch = output.match(/TypeError:\s*(.+?)(?:\r?\n|$)/i)
   return {
     noDb,
