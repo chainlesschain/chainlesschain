@@ -409,7 +409,18 @@
               <DownOutlined />
             </a-button>
             <template #overlay>
-              <a-menu @click="handleExport">
+              <a-menu
+                @click="
+                  (e) =>
+                    handleExport({
+                      key: String(e.key) as
+                        | 'all'
+                        | 'patterns'
+                        | 'preferences'
+                        | 'sessions',
+                    })
+                "
+              >
                 <a-menu-item key="all"> 导出全部数据 </a-menu-item>
                 <a-menu-item key="patterns"> 导出学习模式 </a-menu-item>
                 <a-menu-item key="preferences"> 导出用户偏好 </a-menu-item>
