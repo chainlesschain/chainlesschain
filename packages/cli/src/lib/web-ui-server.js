@@ -1377,11 +1377,25 @@ export function createWebUIServer(opts) {
           // icons) in the same region, so the OS controls visually cover
           // it. Push the cluster left by that amount only when the SPA is
           // hosted inside the desktop web-shell.
+          //
+          // We inject both a `<style>` block (covers selectors at first
+          // paint) and a post-load script that sets the padding via inline
+          // styles (specificity 1000+, beats anything Ant Design or page-
+          // specific CSS sets later).
+          const overlayPad = "158px"; // 138 native + 20 gap
           html = html.replace(
             "</head>",
             '<style id="cc-embedded-shell-overrides">' +
-              ".app-header{padding-right:calc(138px + 20px) !important;}" +
-              "</style></head>",
+              "header.app-header,header.ant-layout-header.app-header,.app-header{" +
+              `padding-right:${overlayPad} !important;` +
+              "}" +
+              "</style>" +
+              "<script>(function(){function apply(){var els=document.querySelectorAll('.app-header,header.ant-layout-header');" +
+              `for(var i=0;i<els.length;i++){els[i].style.setProperty('padding-right','${overlayPad}','important');}}` +
+              "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',apply);}else{apply();}" +
+              "var mo=new MutationObserver(apply);mo.observe(document.body||document.documentElement,{childList:true,subtree:true});" +
+              "})();</script>" +
+              "</head>",
           );
         }
         res.writeHead(200, {
