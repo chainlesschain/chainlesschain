@@ -1,23 +1,10 @@
 <template>
-  <div
-    class="login-container"
-    data-testid="login-container"
-  >
-    <a-card
-      class="login-card"
-      data-testid="login-card"
-    >
+  <div class="login-container" data-testid="login-container">
+    <a-card class="login-card" data-testid="login-card">
       <!-- 设置按钮 -->
       <div class="settings-trigger">
-        <a-tooltip
-          title="系统设置"
-          placement="left"
-        >
-          <a-button
-            type="text"
-            shape="circle"
-            @click="showSettings = true"
-          >
+        <a-tooltip title="系统设置" placement="left">
+          <a-button type="text" shape="circle" @click="showSettings = true">
             <template #icon>
               <SettingOutlined />
             </template>
@@ -25,20 +12,12 @@
         </a-tooltip>
       </div>
 
-      <a-space
-        direction="vertical"
-        :size="24"
-        style="width: 100%"
-      >
+      <a-space direction="vertical" :size="24" style="width: 100%">
         <!-- Logo和标题 -->
         <div class="login-header">
           <LockOutlined :style="{ fontSize: '48px', color: '#1890ff' }" />
-          <h2 class="login-title">
-            ChainlessChain
-          </h2>
-          <p class="login-subtitle">
-            个人AI知识库
-          </p>
+          <h2 class="login-title">ChainlessChain</h2>
+          <p class="login-subtitle">个人AI知识库</p>
         </div>
 
         <!-- U盾状态 -->
@@ -58,10 +37,7 @@
                 v-if="ukeyStatus.detected"
                 :style="{ color: '#52c41a' }"
               />
-              <InfoCircleOutlined
-                v-else
-                :style="{ color: '#1890ff' }"
-              />
+              <InfoCircleOutlined v-else :style="{ color: '#1890ff' }" />
             </a-space>
           </template>
         </a-alert>
@@ -136,12 +112,9 @@
           {{ loading ? "验证中..." : "登录" }}
         </a-button>
 
-        <!-- 提示信息 -->
-        <div class="login-hint">
-          <a-typography-text
-            type="secondary"
-            :style="{ fontSize: '12px' }"
-          >
+        <!-- 开发模式提示（生产 build 隐藏，避免泄露默认凭证） -->
+        <div v-if="isDev" class="login-hint">
+          <a-typography-text type="secondary" :style="{ fontSize: '12px' }">
             {{
               ukeyStatus.detected
                 ? "开发模式: 默认PIN为 123456"
@@ -189,6 +162,7 @@ const password = ref("");
 const loading = ref(false);
 const ukeyStatus = ref({ detected: false, unlocked: false });
 const showSettings = ref(false);
+const isDev = !!import.meta.env?.DEV;
 
 let checkInterval = null;
 
@@ -319,8 +293,10 @@ const handleLogin = async () => {
         }
       }
 
-      // 立即跳转到我的项目
-      router.push("/projects");
+      // 跳到根路径，由 router guard 根据 ui.useV6ShellByDefault
+      // 决定走 /v6-preview（默认）还是 /（V5 opt-out）。
+      // 不再硬编码 /projects —— 之前会绕过 V6 hard-flip。
+      router.push("/");
     }
   } catch (error) {
     logger.error("登录失败:", error);
