@@ -17,27 +17,25 @@
               <div class="stat-value">
                 {{ store.knowledgeItems.length }}
               </div>
-              <div class="stat-label">
-                知识条目
-              </div>
+              <div class="stat-label">知识条目</div>
             </div>
             <div class="stat-divider" />
             <div class="stat-item">
               <div class="stat-value">
                 {{ todayCount }}
               </div>
-              <div class="stat-label">
-                今日新增
-              </div>
+              <div class="stat-label">今日新增</div>
             </div>
             <div class="stat-divider" />
             <div class="stat-item">
-              <div class="stat-value">
-                <a-badge status="success" />
-              </div>
-              <div class="stat-label">
-                同步状态
-              </div>
+              <a-tooltip :title="syncTooltip">
+                <div class="stat-value">
+                  <a-badge :status="syncBadgeStatus" />
+                </div>
+                <div class="stat-label">
+                  {{ syncLabel }}
+                </div>
+              </a-tooltip>
             </div>
           </div>
         </div>
@@ -94,16 +92,10 @@
       <!-- 系统状态 -->
       <div class="system-status">
         <a-row :gutter="[16, 16]">
-          <a-col
-            :xs="24"
-            :md="12"
-          >
+          <a-col :xs="24" :md="12">
             <LLMStatus @open-settings="openSettings('llm')" />
           </a-col>
-          <a-col
-            :xs="24"
-            :md="12"
-          >
+          <a-col :xs="24" :md="12">
             <GitStatus @open-settings="openSettings('git')" />
           </a-col>
         </a-row>
@@ -115,7 +107,7 @@
 <script setup>
 import { logger } from "@/utils/logger";
 
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
 import { useAuthStore } from "../stores/auth";
@@ -250,6 +242,52 @@ const todayCount = computed(() => {
   return store.knowledgeItems.filter(
     (item) => item.created_at >= todayTimestamp,
   ).length;
+});
+
+// 同步状态：'success' | 'error' | 'default'
+const syncStatus = ref("default");
+const syncMessage = ref("加载中…");
+
+const syncBadgeStatus = computed(() => syncStatus.value);
+const syncLabel = computed(() => {
+  if (syncStatus.value === "success") {
+    return "同步在线";
+  }
+  if (syncStatus.value === "error") {
+    return "同步离线";
+  }
+  return "同步未知";
+});
+const syncTooltip = computed(() => syncMessage.value);
+
+async function loadSyncStatus() {
+  const api = window.electronAPI?.sync;
+  if (!api?.getStatus) {
+    syncStatus.value = "default";
+    syncMessage.value = "同步 IPC 不可用（开发或未启用同步）";
+    return;
+  }
+  try {
+    const result = await api.getStatus();
+    if (result?.success) {
+      syncStatus.value = "success";
+      syncMessage.value = "同步管理器在线";
+    } else {
+      syncStatus.value = "error";
+      syncMessage.value = result?.error || "同步管理器未初始化";
+    }
+  } catch (error) {
+    syncStatus.value = "error";
+    syncMessage.value = error?.message || "同步状态检查失败";
+  }
+}
+
+onMounted(() => {
+  // 拉真实知识条目数（之前 store.knowledgeItems 始终为空，
+  // 横幅 "知识条目: 0" + "今日新增: 0" 全是假象）。
+  store.loadKnowledgeItemsFromDb();
+  // 同步状态徽章原本永远显示绿色 success，改为按真实 IPC 状态着色。
+  loadSyncStatus();
 });
 
 // 处理类型快捷选择
