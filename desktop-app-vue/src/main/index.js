@@ -688,23 +688,20 @@ class ChainlessChainApp {
    * pulling in SettingsManager (which loads on a different path elsewhere in
    * the codebase) — this is a single boot-time read with graceful fallback.
    *
+   * Logic lives in `./config/read-settings-sync.js` so it can be unit-tested
+   * without spinning up an Electron `app` instance.
+   *
    * @returns {object | null} parsed settings.json contents or null on miss
    */
   _readSettingsSync() {
-    try {
-      const fs = require("fs");
-      const settingsPath = path.join(app.getPath("userData"), "settings.json");
-      if (!fs.existsSync(settingsPath)) {
-        return null;
-      }
-      return JSON.parse(fs.readFileSync(settingsPath, "utf8"));
-    } catch (err) {
-      logger.warn(
-        "[Main] readSettingsSync failed, ignoring persistent shell setting:",
-        err.message,
-      );
-      return null;
-    }
+    const { readSettingsSync } = require("./config/read-settings-sync");
+    return readSettingsSync(app.getPath("userData"), {
+      onError: (err) =>
+        logger.warn(
+          "[Main] readSettingsSync failed, ignoring persistent shell setting:",
+          err.message,
+        ),
+    });
   }
 
   async createWindow() {

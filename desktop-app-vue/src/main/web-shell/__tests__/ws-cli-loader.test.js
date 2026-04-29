@@ -229,3 +229,74 @@ describe("ws-cli-loader (Phase 1.1)", () => {
     }
   });
 });
+
+// Phase 1 follow-up — commit 78056d181 changed ws-cli-loader from
+// "no sessionManager → CLI errors envelope" to "auto-instantiate
+// WSSessionManager when none is passed". These tests lock that behaviour.
+describe("ws-cli-loader auto-WSSessionManager (commit 78056d181)", () => {
+  /** @type {Awaited<ReturnType<typeof startWsCliBackend>> | null} */
+  let handle = null;
+
+  afterEach(async () => {
+    if (handle) {
+      await handle.close();
+      handle = null;
+    }
+  });
+
+  it("auto-instantiates a WSSessionManager when none is supplied", async () => {
+    handle = await startWsCliBackend({});
+    // The CLI's ChainlessChainWSServer keeps the manager on .sessionManager;
+    // it must be a non-null object (in-memory `db: null` is fine).
+    expect(handle.server.sessionManager).toBeTruthy();
+    expect(typeof handle.server.sessionManager.createSession).toBe("function");
+  });
+
+  it("respects an externally-supplied sessionManager and does NOT clobber it", async () => {
+    const stub = {
+      createSession: () => ({ id: "stub" }),
+      listSessions: () => [],
+      getSession: () => null,
+      __isStub: true,
+    };
+    handle = await startWsCliBackend({ sessionManager: stub });
+    expect(handle.server.sessionManager).toBe(stub);
+    expect(handle.server.sessionManager.__isStub).toBe(true);
+  });
+
+  it("auto-injected manager survives session-create over the live wire (no envelope error)", async () => {
+    handle = await startWsCliBackend({});
+    const ws = await openWs(handle.url);
+    try {
+      // Collect every reply for 400ms — one of them should be the
+      // session-created/session-error frame, NOT a connection drop.
+      const messages = [];
+      ws.on("message", (raw) => {
+        try {
+          messages.push(JSON.parse(raw.toString("utf8")));
+        } catch {
+          /* ignore non-JSON */
+        }
+      });
+      ws.send(
+        JSON.stringify({
+          id: "auto-1",
+          type: "session-create",
+          sessionType: "chat",
+        }),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      // Whatever CLI's session-protocol replies, it must NOT be the
+      // "Session support not configured" envelope error from a null
+      // sessionManager. Connection should also still be alive.
+      expect(ws.readyState).toBe(WebSocket.OPEN);
+      const noConfigured = messages.some(
+        (m) =>
+          typeof m?.message === "string" && /not configured/i.test(m.message),
+      );
+      expect(noConfigured).toBe(false);
+    } finally {
+      ws.close();
+    }
+  });
+});
