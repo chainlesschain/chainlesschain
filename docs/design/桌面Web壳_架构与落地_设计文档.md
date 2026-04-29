@@ -68,7 +68,7 @@
 | **1.3 入口选择 UX** | ✅ | `shouldRunWebShell(argv, env, settings)` 三选一开启；settings-manager 加 `ui.useWebShellExperimental`；SystemSettings.vue 加 toggle；main/index.js `_readSettingsSync` 启动读 settings.json |
 | **1.4 packaging prep** | ✅ prep | `scripts/prepare-web-shell-vendor.js`：Phase 1.4 vendor helper。**Decision A**：vendor 目标 = `path.join(buildPath, "..")`（即 Resources/），保证 loaders 4-up REL 在 dev / packaged 都对。`tests/unit/scripts/phase1.4-path-math.test.js` 算术验证锁住。`forge.config.js#packageAfterCopy` 已接 |
 | **1.4 实战** | ⏸ | `npm run make:win` 真打包 + 安装 setup.exe 启动验证（用户机器循环）|
-| **1.5 多窗口架构** | ⏸ | 设计 memo 已落（`memory/desktop_web_shell_multi_window_design.md`）：同源多 BrowserWindow + role-based hash route + geometry 持久化 |
+| **1.5 多窗口架构 MVP** | ✅ MVP | `desktop-app-vue/src/main/window-registry.js`（202 行，role-based hash route + geometry 持久化骨架）+ `web-shell/handlers/window-open-handler.js`（146 行，WS topic `window.open` 桥） + 13 + 单元测试覆盖（`window-registry.test.js` + `window-open-handler.test.js`）；同源多 BrowserWindow 已可由 web-panel 通过 `window.open` 协议触发 |
 
 ---
 
@@ -81,7 +81,7 @@
 
 ### Follow-up 工作
 1. **Phase 1.4 实战**：`make:win` 真跑 + 装 setup.exe 验证 web-shell 启动 + ws round-trip
-2. **Phase 1.5 多窗口**：按 `desktop_web_shell_multi_window_design.md` 模板实施
+2. **Phase 1.5 多窗口收口**：MVP（WindowRegistry scaffold + window.open WS handler）已落地；剩余工作 = role catalog 完善 + WindowRegistry 接 web-panel 真路由 + 多窗口 e2e
 3. **桌面专属 topic 第二批**：`ollama.chat` 流式 / `ukey.sign` + progress / `mcp.list_tools` + `mcp.call_tool`（接 main/mcp/ 40 文件）
 4. **AppConfigManager `ui` 字段持久化修**：解决 V6 toggle + web-shell toggle 共同的 silent-drop bug
 
