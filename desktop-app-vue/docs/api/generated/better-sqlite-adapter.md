@@ -4,10 +4,10 @@
 
 ---
 
-## let Database;
+## const
 
 ```javascript
-let Database;
+const
 ```
 
 * Better-SQLite3 适配器
