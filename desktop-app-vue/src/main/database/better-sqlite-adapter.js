@@ -3,6 +3,10 @@
  * 用于开发环境，直接使用 better-sqlite3-multiple-ciphers
  */
 
+const { logger, createLogger } = require("../utils/logger.js");
+const fs = require("fs");
+const path = require("path");
+
 // Try to load better-sqlite3-multiple-ciphers first, fallback to better-sqlite3
 let Database;
 try {
@@ -19,9 +23,6 @@ try {
     );
   }
 }
-const { logger, createLogger } = require("../utils/logger.js");
-const fs = require("fs");
-const path = require("path");
 
 // M2: _deps injection so tests can mock fs.promises (vi.mock cannot
 // intercept fs.promises for inlined CJS modules)
