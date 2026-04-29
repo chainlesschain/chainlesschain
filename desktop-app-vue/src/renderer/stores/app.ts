@@ -2,7 +2,7 @@
  * App Store - 应用全局状态管理
  */
 
-import { logger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 import { defineStore } from "pinia";
 
 // ==================== 类型定义 ====================
@@ -30,7 +30,7 @@ export interface KnowledgeItem {
  */
 export interface ChatMessage {
   id?: string;
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
   timestamp?: number;
 }
@@ -58,7 +58,7 @@ export interface LLMStatus {
  * 应用配置
  */
 export interface AppConfig {
-  theme: 'light' | 'dark';
+  theme: "light" | "dark";
   llmModel: string;
   gitRemote: string | null;
   autoSync: boolean;
@@ -256,6 +256,125 @@ export const useAppStore = defineStore("app", {
       this.filterItems();
     },
 
+    /**
+     * Load knowledge items from the SQLite-backed main process via IPC and
+     * mirror the result into local state. Falls back to leaving state
+     * untouched (and logging) if the IPC bridge is unavailable.
+     */
+    async loadKnowledgeItemsFromDb(
+      limit: number | null = null,
+      offset: number | null = null,
+    ): Promise<KnowledgeItem[]> {
+      const api = (
+        window as {
+          electronAPI?: {
+            db?: {
+              getKnowledgeItems?: (
+                l?: number | null,
+                o?: number | null,
+              ) => Promise<KnowledgeItem[]>;
+            };
+          };
+        }
+      ).electronAPI;
+      if (!api?.db?.getKnowledgeItems) {
+        logger.warn("[Store] electronAPI.db.getKnowledgeItems unavailable");
+        return this.knowledgeItems;
+      }
+      try {
+        const items = await api.db.getKnowledgeItems(limit, offset);
+        this.setKnowledgeItems(Array.isArray(items) ? items : []);
+        return this.knowledgeItems;
+      } catch (error) {
+        logger.error(
+          "[Store] loadKnowledgeItemsFromDb failed:",
+          error as Error,
+        );
+        return this.knowledgeItems;
+      }
+    },
+
+    /**
+     * Persist a delete via IPC, then mirror to local state. Returns true
+     * on success so the caller can surface the right toast. Local state
+     * is only mutated after the IPC succeeds — a failed delete leaves
+     * the visible list untouched.
+     */
+    async deleteKnowledgeItemFromDb(id: string): Promise<boolean> {
+      const api = (
+        window as {
+          electronAPI?: {
+            db?: { deleteKnowledgeItem?: (id: string) => Promise<unknown> };
+          };
+        }
+      ).electronAPI;
+      if (!api?.db?.deleteKnowledgeItem) {
+        logger.warn("[Store] electronAPI.db.deleteKnowledgeItem unavailable");
+        return false;
+      }
+      try {
+        const result = await api.db.deleteKnowledgeItem(id);
+        const ok =
+          result === true ||
+          (typeof result === "object" &&
+            result !== null &&
+            (result as { success?: boolean }).success === true);
+        if (ok) {
+          this.deleteKnowledgeItem(id);
+        }
+        return ok;
+      } catch (error) {
+        logger.error(
+          "[Store] deleteKnowledgeItemFromDb failed:",
+          error as Error,
+        );
+        return false;
+      }
+    },
+
+    /**
+     * Persist a new knowledge item via IPC. The main process auto-syncs
+     * to the RAG index; the returned row (with a real id assigned) is
+     * pushed onto local state so the list stays in sync without a full
+     * reload.
+     */
+    async createKnowledgeItemInDb(payload: {
+      title: string;
+      content?: string;
+      [key: string]: unknown;
+    }): Promise<KnowledgeItem | null> {
+      const api = (
+        window as {
+          electronAPI?: {
+            db?: {
+              addKnowledgeItem?: (
+                item: unknown,
+              ) => Promise<KnowledgeItem | null>;
+            };
+          };
+        }
+      ).electronAPI;
+      if (!api?.db?.addKnowledgeItem) {
+        logger.warn("[Store] electronAPI.db.addKnowledgeItem unavailable");
+        return null;
+      }
+      try {
+        const created = await api.db.addKnowledgeItem(payload);
+        if (
+          created &&
+          typeof created === "object" &&
+          typeof created.id === "string"
+        ) {
+          this.addKnowledgeItem(created);
+          return created;
+        }
+        return null;
+      } catch (error) {
+        logger.error("[Store] createKnowledgeItemInDb failed:", error as Error);
+        return null;
+      }
+    },
+
     setSearchQuery(query: string): void {
       this.searchQuery = query;
       this.filterItems();
@@ -335,7 +454,7 @@ export const useAppStore = defineStore("app", {
     },
 
     // 多标签页管理
-    addTab(tab: Omit<Tab, 'closable'> & { closable?: boolean }): void {
+    addTab(tab: Omit<Tab, "closable"> & { closable?: boolean }): void {
       const existingTab = this.tabs.find((t) => t.key === tab.key);
       if (existingTab) {
         this.activeTabKey = tab.key;
@@ -358,11 +477,14 @@ export const useAppStore = defineStore("app", {
       }
 
       const targetIndex = this.tabs.findIndex((tab) => tab.key === targetKey);
-      if (targetIndex === -1) { return; }
+      if (targetIndex === -1) {
+        return;
+      }
 
       let activeKey = this.activeTabKey;
       if (targetKey === activeKey) {
-        const nextTab = this.tabs[targetIndex + 1] || this.tabs[targetIndex - 1];
+        const nextTab =
+          this.tabs[targetIndex + 1] || this.tabs[targetIndex - 1];
         activeKey = nextTab ? nextTab.key : "home";
       }
 
@@ -395,9 +517,11 @@ export const useAppStore = defineStore("app", {
     },
 
     // 菜单收藏功能
-    addFavoriteMenu(menu: Omit<MenuInfo, 'addedAt'>): void {
+    addFavoriteMenu(menu: Omit<MenuInfo, "addedAt">): void {
       const exists = this.favoriteMenus.find((m) => m.key === menu.key);
-      if (exists) { return; }
+      if (exists) {
+        return;
+      }
 
       this.favoriteMenus.push({
         ...menu,
@@ -416,7 +540,7 @@ export const useAppStore = defineStore("app", {
       return this.favoriteMenus.some((m) => m.key === key);
     },
 
-    toggleFavoriteMenu(menu: Omit<MenuInfo, 'addedAt'>): void {
+    toggleFavoriteMenu(menu: Omit<MenuInfo, "addedAt">): void {
       if (this.isFavoriteMenu(menu.key)) {
         this.removeFavoriteMenu(menu.key);
       } else {
@@ -424,7 +548,7 @@ export const useAppStore = defineStore("app", {
       }
     },
 
-    addRecentMenu(menu: Omit<MenuInfo, 'visitedAt'>): void {
+    addRecentMenu(menu: Omit<MenuInfo, "visitedAt">): void {
       this.recentMenus = this.recentMenus.filter((m) => m.key !== menu.key);
 
       this.recentMenus.unshift({
@@ -444,9 +568,11 @@ export const useAppStore = defineStore("app", {
       this.saveRecentsToStorage();
     },
 
-    pinMenu(menu: Omit<MenuInfo, 'pinnedAt'>): void {
+    pinMenu(menu: Omit<MenuInfo, "pinnedAt">): void {
       const exists = this.pinnedMenus.find((m) => m.key === menu.key);
-      if (exists) { return; }
+      if (exists) {
+        return;
+      }
 
       this.pinnedMenus.push({
         ...menu,
@@ -635,7 +761,9 @@ export const useAppStore = defineStore("app", {
 
     async migrateFromLocalStorage(): Promise<void> {
       try {
-        if (!(window as any).electronAPI?.invoke) { return; }
+        if (!(window as any).electronAPI?.invoke) {
+          return;
+        }
 
         const migrated = await (window as any).electronAPI.invoke(
           "preference:get",
@@ -643,7 +771,9 @@ export const useAppStore = defineStore("app", {
           "localStorageMigrated",
           false,
         );
-        if (migrated) { return; }
+        if (migrated) {
+          return;
+        }
 
         logger.info(
           "[AppStore] Migrating data from localStorage to PreferenceManager...",
