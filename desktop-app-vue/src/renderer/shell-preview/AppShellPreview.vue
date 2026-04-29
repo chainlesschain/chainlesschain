@@ -1,14 +1,21 @@
 <template>
   <div class="cb-shell" :data-active-theme="theme.active">
     <aside class="cb-shell__sidebar">
-      <div class="cb-shell__traffic">
+      <div v-if="isMacPlatform" class="cb-shell__traffic">
         <span class="cb-shell__traffic-dot cb-shell__traffic-dot--red" />
         <span class="cb-shell__traffic-dot cb-shell__traffic-dot--yellow" />
         <span class="cb-shell__traffic-dot cb-shell__traffic-dot--green" />
       </div>
 
       <div class="cb-shell__brand-row">
-        <div class="cb-shell__brand">ClaudeBox</div>
+        <div class="cb-shell__brand">
+          <img
+            :src="brandLogo"
+            class="cb-shell__brand-logo"
+            alt="ChainlessChain logo"
+          />
+          <span class="cb-shell__brand-name">ChainlessChain</span>
+        </div>
         <button
           type="button"
           class="cb-shell__brand-action"
@@ -40,6 +47,14 @@
             @click="theme.apply(item.key)"
           >
             {{ item.icon }}
+          </button>
+          <button
+            type="button"
+            class="cb-shell__theme-btn"
+            title="设置（LLM / 数据库 / P2P 等）"
+            @click="openSettings"
+          >
+            <SettingOutlined />
           </button>
         </div>
         <DecentralEntries @activate="onEntryActivate" />
@@ -138,9 +153,8 @@
           <footer class="cb-shell__composer">
             <div class="cb-shell__composer-label">
               {{
-                activeConversation?.runtimeStatus.agentLabel || "Claude Code"
+                activeConversation?.runtimeStatus.agentLabel || "ChainlessChain"
               }}
-              运行中...
             </div>
             <div class="cb-shell__composer-input">
               <textarea
@@ -167,22 +181,38 @@
               >
                 + 新会话
               </button>
-              <span class="cb-shell__runtime-chip">
-                {{ activeConversation?.runtimeStatus.progress ?? 0 }}%
-              </span>
-              <span class="cb-shell__runtime-chip">
-                {{ activeConversation?.runtimeStatus.modelLabel }}
-              </span>
-              <span class="cb-shell__runtime-chip">
-                {{ activeConversation?.runtimeStatus.skillLabel }}
-              </span>
-              <span class="cb-shell__runtime-chip">
-                {{ activeConversation?.runtimeStatus.toolLabel }}
-              </span>
-              <span class="cb-shell__runtime-chip">
-                {{ activeConversation?.runtimeStatus.terminalLabel }}
-              </span>
-              <button type="button" class="cb-shell__stop">
+              <a-dropdown :trigger="['click']" placement="topLeft">
+                <button
+                  type="button"
+                  class="cb-shell__runtime-chip cb-shell__runtime-chip--button"
+                  title="切换模型"
+                  @click.prevent
+                >
+                  {{
+                    activeConversation?.runtimeStatus.modelLabel || "未配置模型"
+                  }}
+                  <DownOutlined class="cb-shell__runtime-caret" />
+                </button>
+                <template #overlay>
+                  <a-menu @click="onModelMenuClick">
+                    <a-menu-item
+                      v-for="option in MODEL_OPTIONS"
+                      :key="option.label"
+                    >
+                      {{ option.label }}
+                    </a-menu-item>
+                    <a-menu-divider />
+                    <a-menu-item key="__settings"> 前往 LLM 设置… </a-menu-item>
+                  </a-menu>
+                </template>
+              </a-dropdown>
+              <button
+                v-if="isGenerating"
+                type="button"
+                class="cb-shell__stop"
+                title="停止生成（请求仍会在后台完成）"
+                @click="stopGenerating"
+              >
                 <CloseCircleOutlined />
               </button>
             </div>
@@ -203,11 +233,17 @@
           </div>
 
           <div class="cb-shell__files-list">
-            <div
+            <div v-if="flatFiles.length === 0" class="cb-shell__files-empty">
+              当前会话还没有文件
+            </div>
+            <button
               v-for="file in flatFiles"
               :key="file.id"
+              type="button"
               class="cb-file"
+              :class="{ 'cb-file--active': selectedFileId === file.id }"
               :style="{ paddingLeft: `${16 + file.depth * 18}px` }"
+              @click="onFileClick(file)"
             >
               <span class="cb-file__caret">
                 {{ file.kind === "folder" ? "›" : "" }}
@@ -219,7 +255,7 @@
                 class="cb-file__icon"
               />
               <span class="cb-file__name">{{ file.name }}</span>
-            </div>
+            </button>
           </div>
         </aside>
       </div>
@@ -227,7 +263,7 @@
       <ArtifactDrawer
         :open="artifactOpen"
         :title="drawerTitle"
-        :content="activeEntryId ? undefined : activeArtifact?.content"
+        :content="drawerContent"
         @close="closeDrawer"
       >
         <component :is="activeWidget.component" v-if="activeWidget" />
@@ -240,12 +276,16 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import {
   CloseCircleOutlined,
+  DownOutlined,
   FileTextOutlined,
   FolderOpenOutlined,
   PlusOutlined,
   ReloadOutlined,
   RobotOutlined,
+  SettingOutlined,
 } from "@ant-design/icons-vue";
+import { useRouter } from "vue-router";
+import brandLogo from "../assets/logo.png";
 import { useThemePreviewStore, PREVIEW_THEMES } from "../stores/theme-preview";
 import {
   useConversationPreviewStore,
@@ -275,8 +315,28 @@ interface FlatFileNode {
   depth: number;
 }
 
+interface ModelOption {
+  label: string;
+}
+
+const MODEL_OPTIONS: ModelOption[] = [
+  { label: "opus-4.7 / Max" },
+  { label: "sonnet-4.6" },
+  { label: "haiku-4.5" },
+  { label: "gpt-4o" },
+  { label: "gpt-4o-mini" },
+  { label: "deepseek-chat" },
+  { label: "ollama (本地)" },
+];
+
 const theme = useThemePreviewStore();
 const themeList = PREVIEW_THEMES;
+const router = useRouter();
+const isMacPlatform = ref(false);
+
+function openSettings() {
+  router.push({ path: "/settings/system", query: { tab: "llm" } });
+}
 
 const conversationStore = useConversationPreviewStore();
 const conversations = computed(() => conversationStore.conversations);
@@ -288,14 +348,30 @@ const activeArtifact = computed(() => activeConversation.value?.artifact);
 
 const artifactOpen = ref(false);
 const activeEntryId = ref<DecentralEntryId | null>(null);
+const selectedFileId = ref<string | null>(null);
+const fileArtifact = ref<{ title: string; content: string } | null>(null);
 const activeWidget = computed(() =>
   activeEntryId.value ? getPreviewWidget(activeEntryId.value) : undefined,
 );
-const drawerTitle = computed(() =>
-  activeEntryId.value
-    ? activeWidget.value?.title
-    : activeArtifact.value?.title || "Artifact",
-);
+const drawerTitle = computed(() => {
+  if (activeEntryId.value) {
+    return activeWidget.value?.title;
+  }
+  if (fileArtifact.value) {
+    return fileArtifact.value.title;
+  }
+  return activeArtifact.value?.title || "Artifact";
+});
+
+const drawerContent = computed(() => {
+  if (activeEntryId.value) {
+    return undefined;
+  }
+  if (fileArtifact.value) {
+    return fileArtifact.value.content;
+  }
+  return activeArtifact.value?.content;
+});
 const draft = ref("");
 const isGenerating = computed(() => conversationStore.isGenerating);
 
@@ -368,10 +444,42 @@ function selectConversation(id: string) {
   conversationStore.select(id);
 }
 
+function onFileClick(file: FlatFileNode) {
+  selectedFileId.value = file.id;
+  if (file.kind === "folder") {
+    return;
+  }
+  fileArtifact.value = {
+    title: file.name,
+    content: `(暂无 "${file.name}" 的内容预览)`,
+  };
+  activeEntryId.value = null;
+  artifactOpen.value = true;
+}
+
+function onModelMenuClick(info: { key: string | number }) {
+  if (info.key === "__settings") {
+    openSettings();
+    return;
+  }
+  if (typeof info.key === "string") {
+    if (!conversationStore.active) {
+      conversationStore.createBlank();
+    }
+    conversationStore.setModelLabel(info.key);
+  }
+}
+
+function stopGenerating() {
+  conversationStore.setGenerating(false);
+}
+
 function newConversation() {
   conversationStore.createBlank();
   artifactOpen.value = false;
   activeEntryId.value = null;
+  fileArtifact.value = null;
+  selectedFileId.value = null;
 }
 
 async function sendDraft() {
@@ -441,6 +549,7 @@ function toggleArtifact() {
 function closeDrawer() {
   artifactOpen.value = false;
   activeEntryId.value = null;
+  fileArtifact.value = null;
 }
 
 function openEntryWidget(id: DecentralEntryId) {
@@ -456,9 +565,15 @@ function onEntryActivate(id: string) {
 
 const unregisters: Array<() => void> = [];
 
-onMounted(() => {
+onMounted(async () => {
   theme.restore();
   conversationStore.restore();
+  try {
+    const platform = await window.electronAPI?.system?.getPlatform?.();
+    isMacPlatform.value = platform === "darwin";
+  } catch {
+    /* leave false in non-Electron contexts (tests/SSR) */
+  }
   const handlers: Array<[string, DecentralEntryId]> = [
     ["builtin:openP2P", "p2p"],
     ["builtin:openTrade", "trade"],
@@ -542,9 +657,27 @@ onBeforeUnmount(() => {
 }
 
 .cb-shell__brand {
-  font-size: 30px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cb-shell__brand-logo {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.cb-shell__brand-name {
+  font-size: 22px;
   font-weight: 700;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cb-shell__brand-action {
@@ -884,16 +1017,40 @@ onBeforeUnmount(() => {
 
 .cb-file {
   display: flex;
+  width: 100%;
   align-items: center;
   gap: 8px;
   min-height: 36px;
   padding-right: 12px;
   color: var(--cc-preview-text-secondary);
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
   transition: background 0.16s ease;
 }
 
 .cb-file:hover {
   background: var(--cc-preview-bg-hover);
+}
+
+.cb-file--active {
+  background: var(--cc-preview-bg-hover);
+  color: var(--cc-preview-text-primary);
+}
+
+.cb-shell__files-empty {
+  padding: 24px 16px;
+  font-size: 12px;
+  color: var(--cc-preview-text-muted);
+  text-align: center;
+}
+
+.cb-shell__runtime-caret {
+  margin-left: 6px;
+  font-size: 10px;
+  opacity: 0.6;
 }
 
 .cb-file__caret {

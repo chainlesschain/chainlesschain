@@ -89,7 +89,7 @@ export interface SystemAPI {
   openExternal(url: string): Promise<void>;
   showItemInFolder(path: string): void;
   getPath(name: string): Promise<string>;
-  getPlatform(): string;
+  getPlatform(): Promise<string>;
 }
 
 /**
