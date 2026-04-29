@@ -1,5 +1,21 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-29 增量更新（**V6 Preview Shell P9d** — 品牌收口 + 空白起步 + 设置入口）
+
+`/v6-preview` 壳里残留的 demo 痕迹一次清掉，对外可演示。
+
+| 改动 | 内容 |
+|---|---|
+| `conversation-preview.ts` schema | `version: 2 → 3`；移除 `seedConversations()` / `createDemoFiles()` / 旧演示文件树；首次启动或 schema/JSON 损坏 → `conversations: []` + `activeId: null`，UI 引导用户主动 "+ 新会话"；`agentLabel` 默认 `"Claude Code" → "ChainlessChain"` |
+| 品牌位（`AppShellPreview.vue`） | 左上角 "ClaudeBox" 字样换成 `import brandLogo from "../assets/logo.png"` + 文字 "ChainlessChain"，底部 composer 标签去掉 "运行中..." 后缀 |
+| 平台感知 traffic dot | macOS 红黄绿圆点改 `v-if="isMacPlatform"`，挂载时 `await window.electronAPI.system.getPlatform() === "darwin"`；Win/Linux 隐藏 |
+| 设置入口 | 底部 5 颗 runtime chip（progress/model/skill/tool/terminal）收成单颗 button-chip（显示 `runtimeStatus.modelLabel \|\| "未配置模型"`）；顶部新增齿轮 `SettingOutlined` 按钮；两者均 `router.push({ path: "/settings/system", query: { tab: "llm" } })` |
+| 单测对齐 | `conversation-preview.test.ts` 改写"空白起步"语义，扩到 23 条；preview 壳系列（theme 10 + widget-registry 5 + v6-shell-default 9 + conversation-preview 23）合计 47 条全绿（17.1s）；`vue-tsc --noEmit` 0 错误 |
+
+模板（仅渲染层 + 持久化 schema 的"品牌+空白化"调整，不动主进程 IPC、不动路由表）：见 `docs/design/modules/97-claude-desktop-refactor.md` §交付状态 P9d 条目。
+
+---
+
 ## 2026-04-26 增量更新（**web-panel Phase B 全量收官** — Community / Marketplace / Cross-chain / AIOps / Compliance + 侧边栏可滚动可折叠）
 
 V6 硬翻定调后，web-panel 进入 Phase B：把桌面端 5 个高频功能整体移植到浏览器面板，每件 1 个 commit、scope `feat(web-panel):`，模板 = `<feature>-parser.js`（pure，含 `stripCliNoise` 复用）+ `<Feature>.vue` + router/sidebar 接线 + parser unit tests + new-pages 路由计数 +1 + 路径断言。Phase B 完成后顺手做了 sidebar 独立滚动 + 二级菜单收缩。

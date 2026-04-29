@@ -26,6 +26,10 @@
 - ✅ P9a 已落地：新增 `src/renderer/stores/conversation-preview.ts`，会话 + 消息持久化到 `localStorage`（key `cc.preview.conversations`，带 `version: 1` schema 标识）；重启壳自动 `restore()` 恢复上次会话列表与选中项；`AppShellPreview.vue` 所有会话读写均走 store；13 条 store 单测全部通过
 - ✅ P9b 已落地：新增 `src/renderer/shell-preview/services/llm-preview-bridge.ts`，`sendDraft()` 把会话历史 + 当前用户输入通过 `window.electronAPI.llm.chat({ messages, enableRAG:false, enableCache:false, ... })` 调真 LLM（火山引擎 / Ollama），返回后追加 assistant 气泡；`isAvailable()` 先查 `llm:check-status`，不可用时走友好兜底文案；store 新增 `isGenerating` 标志 → 发送按钮 loading + 气泡列表渲染三点打字指示器；19 条 bridge 单测 + 2 条 store 新测用例全过（58 条 preview 壳测试）
 - ✅ P9c 已落地：bridge 增 `sendChatStream(prompt, onChunk)` 调 `electronAPI.llm.queryStream` + 监听 `llm:stream-chunk`；`sendDraft()` 改双路径 — 流式优先（`beginStreamingAssistant` 占位气泡 → 每 chunk `updateAssistantContent` → 成功 `finalizeStreamingAssistant` 落盘）、失败 `removeMessage` 撤回再回落非流式 `sendChat`；打字指示器收敛为仅"生成中 + 最后一条非已填充 assistant"才显示；流式仅支持单轮 prompt（无历史）— 历史感知流式需要新建 main-process handler，留给后续迭代；P9c 新增 12 条 bridge 单测 + 5 条 store 用例（75 条 preview 壳测试）
+- ✅ P9d 已落地（2026-04-29 品牌与空白起步收口）：
+  - **`conversation-preview.ts` schema 从 `version: 2` 升到 `version: 3`** — 一并移除 `seedConversations()` / `createDemoFiles()` / 旧 `createBlankFiles()` 演示树，`restore()` 在空 storage 或非法 schema 下落到空数组 `conversations: []` + `activeId: null`，UI 引导用户主动 "+ 新会话"；`createDefaultRuntimeStatus.agentLabel` 默认值 `"Claude Code"` → `"ChainlessChain"`；store 单测扩到 23 条
+  - **`AppShellPreview.vue` 品牌与控件**：左上角字符串 "ClaudeBox" 替换为 `import brandLogo from "../assets/logo.png"` + 文字 "ChainlessChain"；红/黄/绿 macOS traffic dot 改为 `v-if="isMacPlatform"`，挂载时 `await window.electronAPI.system.getPlatform()` 判定 `=== "darwin"`，非 mac 平台隐藏；底部 5 颗 runtime chip 收成单颗 button-chip（显示 `runtimeStatus.modelLabel || "未配置模型"`），与顶部新增的齿轮 `SettingOutlined` 按钮均 `router.push({ path: "/settings/system", query: { tab: "llm" } })`；composer 标签去掉 "运行中..." 后缀
+  - **测试与类型**：`stores/__tests__/conversation-preview.test.ts` 已对齐空白起步语义（23 条全绿）；`router/__tests__/v6-shell-default.test.ts`（9）+ `widgets/__tests__/widget-registry.test.ts`（5）+ `stores/__tests__/theme-preview.test.ts`（10）保持稳定；`vue-tsc --noEmit` 0 错误
 
 ## 1. 背景与目标
 

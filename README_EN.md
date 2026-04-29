@@ -1,5 +1,21 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-29 Update — **V6 Preview Shell P9d** — brand cleanup + blank-start + Settings entry
+
+Cleared the residual demo footprint from the `/v6-preview` shell so it can be shown to outsiders as-is.
+
+| Change | Detail |
+|---|---|
+| `conversation-preview.ts` schema | bumped `version: 2 → 3`; removed `seedConversations()` / `createDemoFiles()` / the legacy demo file tree; first launch (or schema/JSON corruption) now lands on `conversations: []` + `activeId: null` and the UI tells the user to hit "+ 新会话"; `agentLabel` default `"Claude Code" → "ChainlessChain"` |
+| Brand chrome (`AppShellPreview.vue`) | top-left wordmark "ClaudeBox" replaced by `import brandLogo from "../assets/logo.png"` + text "ChainlessChain"; composer caption drops the trailing "运行中..." (running) suffix |
+| Platform-aware traffic dots | macOS red/yellow/green dots gated by `v-if="isMacPlatform"`; on mount `await window.electronAPI.system.getPlatform() === "darwin"`; hidden on Win/Linux |
+| Settings entry | the 5 runtime chips at the composer footer (progress / model / skill / tool / terminal) collapse into a single button-chip showing `runtimeStatus.modelLabel \|\| "未配置模型"`; a new gear `SettingOutlined` button sits beside the theme buttons; both `router.push({ path: "/settings/system", query: { tab: "llm" } })` |
+| Tests | `conversation-preview.test.ts` rewritten around blank-start semantics, expanded to 23 cases; preview-shell suites (theme 10 + widget-registry 5 + v6-shell-default 9 + conversation-preview 23) total 47 tests, all green (17.1s); `vue-tsc --noEmit` 0 errors |
+
+This pass touches only the renderer + persisted schema — main-process IPC and route table unchanged. See `docs/design/modules/97-claude-desktop-refactor.md` §交付状态 P9d.
+
+---
+
 ## 2026-04-26 Update — **web-panel Phase B fully shipped** — Community / Marketplace / Cross-chain / AIOps / Compliance + scrollable & collapsible sidebar
 
 After the V6 hard-flip closed, web-panel entered Phase B: ports 5 high-traffic desktop features into the browser panel, one commit per feature with scope `feat(web-panel):`, template = `<feature>-parser.js` (pure, with shared `stripCliNoise`) + `<Feature>.vue` + router/sidebar wiring + parser unit tests + new-pages route count +1 + path-mapping assertion. After Phase B completed, did sidebar independent-scroll + collapsible-groups as a follow-up.

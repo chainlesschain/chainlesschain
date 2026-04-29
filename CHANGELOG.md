@@ -5,6 +5,42 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.1] - 2026-04-29 — V6 Preview Shell P9d — 品牌收口 + 空白起步 + 设置入口
+
+### Changed
+
+- **`/v6-preview` 预览壳品牌收口** —— `desktop-app-vue/src/renderer/shell-preview/AppShellPreview.vue` 左上角字符串 "ClaudeBox" 替换为 `import brandLogo from "../assets/logo.png"` + 文字 "ChainlessChain"；composer 标签去掉 "运行中..." 后缀；`createDefaultRuntimeStatus.agentLabel` 默认值 `"Claude Code"` → `"ChainlessChain"`。
+- **平台感知 traffic dot** —— macOS 红/黄/绿圆点改 `v-if="isMacPlatform"`；挂载时 `await window.electronAPI.system.getPlatform() === "darwin"` 判定，Windows/Linux 隐藏。
+- **底部 runtime chip 收口为单按钮** —— 5 颗 chip（progress/model/skill/tool/terminal）收成单颗 button-chip 显示 `runtimeStatus.modelLabel || "未配置模型"`；与顶部新增的齿轮 `SettingOutlined` 按钮均 `router.push({ path: "/settings/system", query: { tab: "llm" } })`。
+
+### Added
+
+- `desktop-app-vue/src/renderer/shell-preview/AppShellPreview.vue` 引入 `useRouter` + `SettingOutlined` + `import brandLogo from "../assets/logo.png"`；新增 `isMacPlatform` ref 与 `openSettings()` 跳转助手。
+
+### Removed
+
+- `seedConversations()` / `createDemoFiles()` / 旧 `createBlankFiles()` 演示树 —— 不再注入 demo04 / workspace / ClaudeBox 三条欢迎会话；首次启动或 schema/JSON 损坏均落到 `conversations: []` + `activeId: null`，UI 引导用户主动 "+ 新会话"。
+- `__testing.seedConversations` 导出（store 单测同步对齐）。
+
+### Migration
+
+- **`stores/conversation-preview.ts` 持久化 schema 从 `version: 2` 升到 `version: 3`** —— `localStorage` 中残留的 v2 数据会因 `SCHEMA_VERSION` 不匹配被 `restore()` 直接判废，落到空白起步状态。无主动迁移代码 —— 损失的只是 demo 数据，用户真实会话首次启动后通过 "+ 新会话" 按需创建。
+
+### Tests
+
+- `conversation-preview.test.ts` 改写"空白起步"语义 —— `it("seeds desktop preview conversations …")` → `it("starts empty when storage is empty and persists the empty state")` 等 4 处用例，扩到 **23 条** 全绿。
+- preview shell 系列：`theme-preview.test.ts`（10）+ `widget-registry.test.ts`（5）+ `v6-shell-default.test.ts`（9）+ `conversation-preview.test.ts`（23）= **47/47** 全绿（17.1s）。
+- `vue-tsc --noEmit` 0 错误。
+
+### Docs
+
+- `docs-site/docs/guide/desktop-v6-shell.md` §0 —— P9a 描述更新到 schema v3 + 空白起步语义；测试合计 37 → 53；新增 P9d 品牌/平台/设置入口三段。
+- `docs-site/docs/design/modules/97-claude-desktop-refactor.md` + `docs-site-design/docs/modules/m97-claude-desktop-refactor.md` —— §交付状态新增 P9d 条目。
+- `docs-website-v2/src/pages/index.astro` —— `evolution[]` 顶部新增 2026-04-29 条目。
+- `README.md` / `README_EN.md` —— 顶部新增 2026-04-29 增量更新表格。
+
+---
+
 ## [CLI 0.156.5] - 2026-04-22 — Windows postinstall 跨平台修复
 
 ### Fixed

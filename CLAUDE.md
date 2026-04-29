@@ -115,6 +115,21 @@ REDIS_HOST=localhost:6379
 - **Quick Start**: `QUICK_START.md`, `HOW_TO_RUN.md`
 - **README**: `README.md` (Chinese), `README_EN.md` (English)
 
+### Doc-site source-of-truth (改文档前**必看**)
+
+`docs-site/` 与 `docs-site-design/` 的 `docs/design/**/*.md` 都是**自动同步生成**的副本，**不是 git tracked 的源文件**。直接编辑这些副本会被下一次同步脚本覆盖（且 git status 看不到，定位极隐蔽）。
+
+| 副本（不要改） | 同步脚本 | **真正的源文件（改这里）** |
+|---|---|---|
+| `docs-site/docs/design/**/*.md` | `docs-site/scripts/sync-design-docs.js` | `docs/design/**/*.md`（项目根，git tracked，常带中文文件名）|
+| `docs-site-design/docs/**/*.md`（不含 `index.md`） | `docs-site-design/scripts/sync-docs.js` | 同上 — `docs/design/**/*.md`（项目根）|
+
+要改设计文档：(1) `git ls-files --error-unmatch <path>` 确认是否 tracked；(2) 若不是，找对应的 `sync-*.js` 看 `sourceDir` 找源；(3) 改源 + 跑 `node <sync-script>` 让两份副本刷新。`docs-site/docs/guide/**` 是 git tracked 的源文件，可以直接改。
+
+**例外白名单（每个 docs site 自管，不来自源）**：`index.md` 和 `.vitepress/`（在 EXCLUDE 里）。
+
+类似的"生成产物 vs 源"也存在于其它子树（如 `desktop-app-vue/docs/api/generated/`），编辑前先确认。
+
 ## Rules (path-scoped, auto-loaded)
 
 Detailed rules are in `.claude/rules/` and only load when working in matching paths:

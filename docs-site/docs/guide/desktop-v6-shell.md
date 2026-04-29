@@ -10,9 +10,10 @@
 - **三区骨架**：左栏 `ConversationList` 会话历史 + `DecentralEntries` 四颗按钮 + 主题切换；中区极简留白 + 气泡对话 + 底部单行 composer（Ctrl/Cmd+Enter 发送）；右侧 `ArtifactDrawer` 从右滑入
 - **4 颗固化入口**：P2P 协作（`TeamOutlined`）/ 去中心化交易（`SwapOutlined`）/ 去中心化社交（`GlobalOutlined`）/ U-Key 安全（`SafetyCertificateOutlined`）；绑定 4 个 `builtin:openP2P|openTrade|openSocial|openUKey` handler，点击后在右抽屉挂载轻量预览 widget（`shell-preview/widgets/*PreviewWidget.vue`），widget 含概览 + 按钮 `router.push` 到既有 `/main/*` 完整页（P2PMessaging / TradingHub / Chat / ThresholdSecurity）
 - **4 主题**：dark / light / blue / green（从 `packages/web-panel/src/stores/theme.js` 移植），通过 `[data-theme-preview]` 属性切换 + localStorage 持久化
-- **会话持久化（P9a）**：`stores/conversation-preview.ts` Pinia store 将会话 / 消息 / 活跃 id 持久化到 `localStorage`（key `cc.preview.conversations`，`version: 1` schema），重启预览壳自动 `restore()` 恢复上次状态；非法 schema 或损坏 JSON 自动重新 seed 欢迎会话
+- **会话持久化（P9a）**：`stores/conversation-preview.ts` Pinia store 将会话 / 消息 / 活跃 id 持久化到 `localStorage`（key `cc.preview.conversations`，**`version: 3` schema**）；重启预览壳自动 `restore()`，**首次启动或 schema/JSON 损坏时空白起步**（无 demo / 欢迎会话），第一次发送或显式 `createBlank()` 才生成会话
+- **品牌与平台细节（2026-04-29 起）**：左上角品牌位 = `assets/logo.png` + "ChainlessChain"（取代旧 demo 时期的 "ClaudeBox" 字样）；macOS 红黄绿圆点仅在 `darwin` 平台显示，Windows / Linux 隐藏；底部 composer 把"进度 / 模型 / 技能 / 工具 / 终端"5 颗 runtime chip 收成单颗"模型"按钮 + 顶部齿轮按钮，两者均跳 `/settings/system?tab=llm`，未配置模型时按钮显示"未配置模型"
 - **相关文件**：`desktop-app-vue/src/renderer/shell-preview/{AppShellPreview,ConversationList,DecentralEntries,ArtifactDrawer}.vue` + `themes.css` + `desktop-app-vue/src/renderer/stores/{theme-preview,conversation-preview}.ts` + `shell-preview/widgets/*PreviewWidget.vue`
-- **测试**：`stores/__tests__/theme-preview.test.ts`（11）+ `shell/__tests__/slash-dispatch.test.ts`（8）+ `shell-preview/widgets/__tests__/widget-registry.test.ts`（5）+ `stores/__tests__/conversation-preview.test.ts`（13），合计 37 例全绿
+- **测试**：`stores/__tests__/theme-preview.test.ts`（10）+ `shell/__tests__/slash-dispatch.test.ts`（8）+ `shell-preview/widgets/__tests__/widget-registry.test.ts`（5）+ `stores/__tests__/conversation-preview.test.ts`（23）+ `router/__tests__/v6-shell-default.test.ts`（9），合计 55 例全绿
 - **设计文档**：[桌面版 UI ClaudeDesktop 重构计划](../design/desktop-ui-refactor.md) 与 `docs/design/modules/97_桌面版UI_ClaudeDesktop重构计划.md`
 
 
