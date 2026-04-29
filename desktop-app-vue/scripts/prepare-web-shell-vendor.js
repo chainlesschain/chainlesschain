@@ -32,7 +32,14 @@
  *
  *        const { vendorWebShellInto } =
  *          require("./scripts/prepare-web-shell-vendor.js");
- *        vendorWebShellInto(buildPath);
+ *        // CRITICAL: vendor target is the PARENT of buildPath, NOT buildPath.
+ *        // The web-shell loaders' REL constants (`../../../../packages/...`)
+ *        // resolve 4-up from `<buildPath>/dist/main/web-shell/` = parent of
+ *        // buildPath = Resources/. If we vendor into buildPath itself, 4-up
+ *        // overshoots and lands at <Resources>/packages/... (empty), so the
+ *        // loaders ENOENT at startup.
+ *        const path = require("path");
+ *        vendorWebShellInto(path.join(buildPath, ".."));
  *
  * 2. forge.config.js packagerConfig.asar — extend the unpack glob so the
  *    vendored ESM files live as real files on disk (Electron's asar fs
@@ -45,10 +52,13 @@
  *
  * 3. After `npm run make:win`, verify the produced bundle:
  *
- *        out/build/.../resources/app.asar.unpacked/packages/cli/src/lib/web-ui-server.js
- *        out/build/.../resources/app.asar.unpacked/packages/web-panel/dist/index.html
+ *        out/build/.../Resources/packages/cli/src/lib/web-ui-server.js
+ *        out/build/.../Resources/packages/web-panel/dist/index.html
  *
- *    Both must exist as real files (not asar-packed).
+ *    Both must exist as real files. Because the vendor target is now
+ *    Resources/ (outside the app.asar staging dir), these files are
+ *    automatically OUTSIDE asar — no asar unpack glob needed for them.
+ *    (The unpack glob still matters for any future native-module needs.)
  *
  * 4. Launch the installed app and check the main-process log for:
  *
