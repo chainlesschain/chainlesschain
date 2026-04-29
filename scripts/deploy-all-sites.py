@@ -11,6 +11,13 @@ from pathlib import Path
 
 import paramiko
 
+# Windows default stdout codec is GBK, which can't encode ✅/✗ in our prints.
+# Force UTF-8 so the same script runs cleanly on POSIX and on cmd.exe / PowerShell.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
 HOST = "47.111.5.128"
 USER = "root"
 ROOT = Path(__file__).resolve().parent.parent
