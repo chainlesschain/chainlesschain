@@ -27,7 +27,9 @@ import {
 import { logger } from "@/utils/logger";
 
 const isSyncing = ref(false);
-const syncStatus = ref("synced");
+// Start in "pending" so the button doesn't pre-claim "synced ✅" before
+// we've actually asked the main process. onMounted resolves the real state.
+const syncStatus = ref("pending");
 const syncError = ref(null);
 
 const syncTooltip = computed(() => {
@@ -66,6 +68,26 @@ async function handleSyncClick() {
   }
 }
 
+async function probeInitialStatus() {
+  const api = window.electronAPI?.sync;
+  if (!api?.getStatus) {
+    return;
+  }
+  try {
+    const result = await api.getStatus();
+    if (result?.success) {
+      syncStatus.value = "synced";
+      syncError.value = null;
+    } else {
+      syncStatus.value = "error";
+      syncError.value = result?.error || "同步管理器未初始化";
+    }
+  } catch (error) {
+    syncStatus.value = "error";
+    syncError.value = error?.message || "同步状态检查失败";
+  }
+}
+
 onMounted(() => {
   if (window.electronAPI && window.electronAPI.sync) {
     window.electronAPI.sync.onSyncStarted(() => {
@@ -85,6 +107,10 @@ onMounted(() => {
       syncStatus.value = "error";
       syncError.value = data.error || "同步失败";
     });
+
+    // Resolve real initial state instead of trusting the default "synced"
+    // — otherwise the button shows a green ✅ before any check happened.
+    probeInitialStatus();
   }
 });
 </script>
