@@ -31,6 +31,7 @@
         :active-id="activeConversationId"
         @select="selectConversation"
         @new-conversation="newConversation"
+        @delete="deleteConversation"
       />
 
       <div class="cb-shell__sidebar-footer">
@@ -63,17 +64,35 @@
 
     <main class="cb-shell__main">
       <header class="cb-shell__topbar">
-        <div class="cb-shell__topbar-title">
-          <FolderOpenOutlined />
-          <span>{{ activeConversation?.projectName || "workspace" }}</span>
-        </div>
         <button
           type="button"
-          class="cb-shell__topbar-action"
-          @click="toggleArtifact"
+          class="cb-shell__topbar-title cb-shell__topbar-title--button"
+          :title="activeProjectName ? '切换项目' : '选择项目以加载文件'"
+          @click="openProjectPicker"
         >
-          <ReloadOutlined />
+          <FolderOpenOutlined />
+          <span>{{ topbarTitle }}</span>
+          <DownOutlined class="cb-shell__topbar-caret" />
         </button>
+        <div class="cb-shell__topbar-actions">
+          <button
+            v-if="activeConversation?.projectId"
+            type="button"
+            class="cb-shell__topbar-action cb-shell__topbar-action--text"
+            title="解除当前项目绑定"
+            @click="unbindActiveProject"
+          >
+            解除绑定
+          </button>
+          <button
+            type="button"
+            class="cb-shell__topbar-action"
+            title="切换面板"
+            @click="toggleArtifact"
+          >
+            <ReloadOutlined />
+          </button>
+        </div>
       </header>
 
       <div class="cb-shell__body">
@@ -225,16 +244,19 @@
             <button
               type="button"
               class="cb-shell__files-action"
-              title="刷新"
-              @click="toggleArtifact"
+              :title="
+                activeConversation?.projectId ? '刷新文件树' : '请先选择项目'
+              "
+              :disabled="!activeConversation?.projectId || filesLoading"
+              @click="refreshFiles"
             >
-              <ReloadOutlined />
+              <ReloadOutlined :spin="filesLoading" />
             </button>
           </div>
 
           <div class="cb-shell__files-list">
             <div v-if="flatFiles.length === 0" class="cb-shell__files-empty">
-              当前会话还没有文件
+              {{ filesEmptyMessage }}
             </div>
             <button
               v-for="file in flatFiles"
@@ -268,12 +290,129 @@
       >
         <component :is="activeWidget.component" v-if="activeWidget" />
       </ArtifactDrawer>
+
+      <a-modal
+        :open="projectPickerOpen"
+        title="选择项目"
+        :footer="null"
+        :width="520"
+        :body-style="{ maxHeight: '60vh', overflowY: 'auto' }"
+        @update:open="
+          (v: boolean) =>
+            v ? (projectPickerOpen = true) : closeProjectPicker()
+        "
+      >
+        <div class="cb-picker">
+          <div class="cb-picker__header">
+            <a-input
+              v-model:value="projectsStore.searchQuery"
+              placeholder="搜索项目名称或描述…"
+              size="small"
+              allow-clear
+            >
+              <template #prefix>
+                <FolderOpenOutlined />
+              </template>
+            </a-input>
+            <a-button
+              size="small"
+              type="link"
+              :loading="projectsStore.loading"
+              @click="projectsStore.loadAll()"
+            >
+              刷新
+            </a-button>
+          </div>
+
+          <div v-if="!createInlineOpen" class="cb-picker__create-row">
+            <a-button
+              size="small"
+              type="dashed"
+              block
+              @click="openInlineCreate"
+            >
+              <PlusOutlined /> 新建项目
+            </a-button>
+          </div>
+          <form
+            v-else
+            class="cb-picker__create-form"
+            @submit.prevent="submitInlineCreate"
+          >
+            <a-input
+              v-model:value="createName"
+              placeholder="项目名称"
+              size="small"
+              :max-length="100"
+              :disabled="projectsStore.creating"
+              autofocus
+            />
+            <div class="cb-picker__create-actions">
+              <a-button
+                size="small"
+                :disabled="projectsStore.creating"
+                @click="cancelInlineCreate"
+              >
+                取消
+              </a-button>
+              <a-button
+                size="small"
+                type="primary"
+                html-type="submit"
+                :loading="projectsStore.creating"
+                :disabled="!createName.trim()"
+              >
+                创建并绑定
+              </a-button>
+            </div>
+            <div v-if="projectsStore.createError" class="cb-picker__error">
+              {{ projectsStore.createError }}
+            </div>
+          </form>
+
+          <ul
+            v-if="projectsStore.filteredProjects.length"
+            class="cb-picker__list"
+          >
+            <li
+              v-for="project in projectsStore.filteredProjects"
+              :key="project.id"
+              class="cb-picker__row"
+              :class="{
+                'cb-picker__row--active':
+                  project.id === activeConversation?.projectId,
+              }"
+            >
+              <button
+                type="button"
+                class="cb-picker__pick"
+                @click="pickProject(project)"
+              >
+                <span class="cb-picker__name">
+                  {{ project.name || "(未命名)" }}
+                </span>
+                <span v-if="project.description" class="cb-picker__desc">
+                  {{ project.description }}
+                </span>
+              </button>
+            </li>
+          </ul>
+          <div v-else-if="projectsStore.hasLoaded" class="cb-picker__empty">
+            {{
+              projectsStore.searchQuery
+                ? "没有匹配的项目"
+                : "暂无项目，点上方 + 新建一个"
+            }}
+          </div>
+          <div v-else class="cb-picker__empty">加载中…</div>
+        </div>
+      </a-modal>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import {
   CloseCircleOutlined,
   DownOutlined,
@@ -306,6 +445,9 @@ import {
   streamAvailable as isStreamAvailable,
   toBridgeMessages,
 } from "./services/llm-preview-bridge";
+import { flatFilesToTree } from "./services/flatToTree";
+import { useProjectsQuickStore } from "../stores/projectsQuick";
+import type { ProjectSummary } from "../stores/projectsQuick";
 import "./themes.css";
 
 interface FlatFileNode {
@@ -315,18 +457,46 @@ interface FlatFileNode {
   depth: number;
 }
 
+interface LlmApiSurface {
+  getConfig?: () => Promise<unknown>;
+  setConfig?: (patch: Record<string, unknown>) => Promise<unknown>;
+}
+
+interface ProjectApiSurface {
+  getFiles?: (projectId: string) => Promise<unknown>;
+}
+
 interface ModelOption {
   label: string;
+  provider: string;
+  model?: string;
 }
 
 const MODEL_OPTIONS: ModelOption[] = [
-  { label: "opus-4.7 / Max" },
-  { label: "sonnet-4.6" },
-  { label: "haiku-4.5" },
-  { label: "gpt-4o" },
-  { label: "gpt-4o-mini" },
-  { label: "deepseek-chat" },
-  { label: "ollama (本地)" },
+  {
+    label: "Claude Opus 4.7",
+    provider: "anthropic",
+    model: "claude-opus-4-7",
+  },
+  {
+    label: "Claude Sonnet 4.6",
+    provider: "anthropic",
+    model: "claude-sonnet-4-6",
+  },
+  {
+    label: "Claude Haiku 4.5",
+    provider: "anthropic",
+    model: "claude-haiku-4-5-20251001",
+  },
+  { label: "GPT-4o", provider: "openai", model: "gpt-4o" },
+  { label: "GPT-4o mini", provider: "openai", model: "gpt-4o-mini" },
+  {
+    label: "DeepSeek Chat",
+    provider: "deepseek",
+    model: "deepseek-chat",
+  },
+  { label: "豆包 Doubao", provider: "volcengine" },
+  { label: "Ollama (本地)", provider: "ollama" },
 ];
 
 const theme = useThemePreviewStore();
@@ -339,12 +509,43 @@ function openSettings() {
 }
 
 const conversationStore = useConversationPreviewStore();
+const projectsStore = useProjectsQuickStore();
 const conversations = computed(() => conversationStore.conversations);
 const activeConversationId = computed(
   () => conversationStore.activeId ?? undefined,
 );
 const activeConversation = computed(() => conversationStore.active);
 const activeArtifact = computed(() => activeConversation.value?.artifact);
+
+const realFiles = ref<PreviewFileNode[]>([]);
+const filesLoading = ref(false);
+const filesError = ref<string | null>(null);
+const projectPickerOpen = ref(false);
+const createInlineOpen = ref(false);
+const createName = ref("");
+let filesLoadToken = 0;
+
+const activeProjectName = computed(() => {
+  const conversation = activeConversation.value;
+  if (!conversation?.projectId) {
+    return "";
+  }
+  const matched = projectsStore.projects.find(
+    (project) => project.id === conversation.projectId,
+  );
+  if (matched && typeof matched.name === "string" && matched.name) {
+    return matched.name;
+  }
+  return conversation.projectName || "";
+});
+
+const topbarTitle = computed(() => {
+  const name = activeProjectName.value;
+  if (name) {
+    return name;
+  }
+  return "选择项目…";
+});
 
 const artifactOpen = ref(false);
 const activeEntryId = ref<DecentralEntryId | null>(null);
@@ -375,17 +576,36 @@ const drawerContent = computed(() => {
 const draft = ref("");
 const isGenerating = computed(() => conversationStore.isGenerating);
 
+const projectNameById = computed(() => {
+  const map = new Map<string, string>();
+  for (const project of projectsStore.projects) {
+    if (typeof project.name === "string" && project.name) {
+      map.set(project.id, project.name);
+    }
+  }
+  return map;
+});
+
 const conversationItems = computed(() =>
-  conversations.value.map((conversation) => ({
-    id: conversation.id,
-    title: conversation.title,
-    preview: conversation.preview,
-    relativeTime: conversation.relativeTime,
-    workspaceLabel: conversation.workspaceLabel,
-    status: deriveConversationStatus(
-      conversation.taskSteps.map((step) => step.status),
-    ),
-  })),
+  conversations.value.map((conversation) => {
+    const projectName =
+      (conversation.projectId
+        ? projectNameById.value.get(conversation.projectId)
+        : undefined) ||
+      (conversation.projectId ? conversation.projectName : "") ||
+      conversation.workspaceLabel ||
+      "workspace";
+    return {
+      id: conversation.id,
+      title: conversation.title,
+      preview: conversation.preview,
+      relativeTime: conversation.relativeTime,
+      workspaceLabel: projectName,
+      status: deriveConversationStatus(
+        conversation.taskSteps.map((step) => step.status),
+      ),
+    };
+  }),
 );
 
 const showTypingIndicator = computed(() => {
@@ -400,9 +620,20 @@ const showTypingIndicator = computed(() => {
   );
 });
 
-const flatFiles = computed(() =>
-  flattenFiles(activeConversation.value?.files ?? createFallbackFiles()),
-);
+const flatFiles = computed(() => flattenFiles(realFiles.value));
+
+const filesEmptyMessage = computed(() => {
+  if (filesLoading.value) {
+    return "加载中…";
+  }
+  if (filesError.value) {
+    return `加载失败：${filesError.value}`;
+  }
+  if (!activeConversation.value?.projectId) {
+    return "未关联项目，点击顶部 选择项目…";
+  }
+  return "项目暂无文件";
+});
 
 function deriveConversationStatus(statuses: PreviewStepStatus[]) {
   if (statuses.includes("running")) {
@@ -429,19 +660,17 @@ function flattenFiles(nodes: PreviewFileNode[], depth = 0): FlatFileNode[] {
   });
 }
 
-function createFallbackFiles(): PreviewFileNode[] {
-  return [
-    {
-      id: "fallback-root",
-      name: "workspace",
-      kind: "folder",
-      children: [{ id: "fallback-readme", name: "README.md", kind: "file" }],
-    },
-  ];
-}
-
 function selectConversation(id: string) {
   conversationStore.select(id);
+}
+
+function deleteConversation(id: string) {
+  conversationStore.remove(id);
+  if (!conversationStore.active) {
+    selectedFileId.value = null;
+    fileArtifact.value = null;
+  }
+  loadProjectFiles(activeConversation.value?.projectId ?? null);
 }
 
 function onFileClick(file: FlatFileNode) {
@@ -457,16 +686,211 @@ function onFileClick(file: FlatFileNode) {
   artifactOpen.value = true;
 }
 
+function getLlmApi() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  const api = (window as unknown as { electronAPI?: { llm?: LlmApiSurface } })
+    .electronAPI;
+  return api?.llm ?? null;
+}
+
+function getProjectApi(): ProjectApiSurface | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  const api = (
+    window as unknown as { electronAPI?: { project?: ProjectApiSurface } }
+  ).electronAPI;
+  return api?.project ?? null;
+}
+
+async function loadProjectFiles(projectId: string | null | undefined) {
+  filesLoadToken += 1;
+  const token = filesLoadToken;
+
+  if (!projectId) {
+    realFiles.value = [];
+    filesError.value = null;
+    filesLoading.value = false;
+    return;
+  }
+
+  const project = getProjectApi();
+  if (!project?.getFiles) {
+    realFiles.value = [];
+    filesError.value = "Electron 项目接口不可用";
+    filesLoading.value = false;
+    return;
+  }
+
+  filesLoading.value = true;
+  filesError.value = null;
+
+  try {
+    const response = await project.getFiles(projectId);
+    if (token !== filesLoadToken) {
+      return;
+    }
+    const list = Array.isArray(response)
+      ? response
+      : Array.isArray(
+            (response as { files?: unknown[] } | null | undefined)?.files,
+          )
+        ? ((response as { files: unknown[] }).files as unknown[])
+        : [];
+    realFiles.value = flatFilesToTree(
+      list as Parameters<typeof flatFilesToTree>[0],
+    );
+  } catch (err) {
+    if (token !== filesLoadToken) {
+      return;
+    }
+    realFiles.value = [];
+    filesError.value = err instanceof Error ? err.message : String(err);
+    console.error("[shell-preview] loadProjectFiles failed:", err);
+  } finally {
+    if (token === filesLoadToken) {
+      filesLoading.value = false;
+    }
+  }
+}
+
+function openProjectPicker() {
+  projectPickerOpen.value = true;
+  if (!projectsStore.hasLoaded && !projectsStore.loading) {
+    projectsStore.loadAll();
+  }
+}
+
+function closeProjectPicker() {
+  projectPickerOpen.value = false;
+  cancelInlineCreate();
+}
+
+function openInlineCreate() {
+  createInlineOpen.value = true;
+  createName.value = "";
+  projectsStore.clearCreateError?.();
+}
+
+function cancelInlineCreate() {
+  if (projectsStore.creating) {
+    return;
+  }
+  createInlineOpen.value = false;
+  createName.value = "";
+  projectsStore.clearCreateError?.();
+}
+
+async function submitInlineCreate() {
+  const name = createName.value.trim();
+  if (!name) {
+    return;
+  }
+  const created = await projectsStore.createProject({ name });
+  if (created && created.id) {
+    pickProject(created);
+    cancelInlineCreate();
+  }
+}
+
+function pickProject(project: ProjectSummary) {
+  if (!conversationStore.active) {
+    conversationStore.createBlank();
+  }
+  const name =
+    typeof project.name === "string" && project.name
+      ? project.name
+      : "未命名项目";
+  conversationStore.bindProject(project.id, name);
+  closeProjectPicker();
+  loadProjectFiles(project.id);
+}
+
+function unbindActiveProject() {
+  if (!conversationStore.active) {
+    return;
+  }
+  conversationStore.bindProject(null);
+  loadProjectFiles(null);
+}
+
+function refreshFiles() {
+  loadProjectFiles(activeConversation.value?.projectId ?? null);
+}
+
+async function applyModelChoice(option: ModelOption) {
+  if (!conversationStore.active) {
+    conversationStore.createBlank();
+  }
+  conversationStore.setModelLabel(option.label);
+
+  const llm = getLlmApi();
+  if (!llm?.setConfig) {
+    return;
+  }
+  const patch: Record<string, unknown> = { provider: option.provider };
+  if (option.model) {
+    patch[`${option.provider}.model`] = option.model;
+  }
+  try {
+    await llm.setConfig(patch);
+  } catch (err) {
+    console.error("[shell-preview] llm.setConfig failed:", err);
+  }
+}
+
 function onModelMenuClick(info: { key: string | number }) {
   if (info.key === "__settings") {
     openSettings();
     return;
   }
-  if (typeof info.key === "string") {
-    if (!conversationStore.active) {
-      conversationStore.createBlank();
+  if (typeof info.key !== "string") {
+    return;
+  }
+  const option = MODEL_OPTIONS.find((entry) => entry.label === info.key);
+  if (option) {
+    applyModelChoice(option);
+  }
+}
+
+async function syncModelLabelFromConfig() {
+  const llm = getLlmApi();
+  if (!llm?.getConfig) {
+    return;
+  }
+  try {
+    const config = (await llm.getConfig()) as
+      | Record<string, unknown>
+      | null
+      | undefined;
+    if (!config || typeof config !== "object") {
+      return;
     }
-    conversationStore.setModelLabel(info.key);
+    const provider =
+      typeof config.provider === "string" ? config.provider : null;
+    if (!provider) {
+      return;
+    }
+    const providerCfg = config[provider];
+    const model =
+      providerCfg &&
+      typeof providerCfg === "object" &&
+      typeof (providerCfg as Record<string, unknown>).model === "string"
+        ? ((providerCfg as Record<string, unknown>).model as string)
+        : "";
+    const matched = MODEL_OPTIONS.find(
+      (entry) =>
+        entry.provider === provider && (!entry.model || entry.model === model),
+    );
+    const label = matched?.label || `${provider}${model ? ` / ${model}` : ""}`;
+    if (!conversationStore.active) {
+      return;
+    }
+    conversationStore.setModelLabel(label);
+  } catch (err) {
+    console.error("[shell-preview] llm.getConfig failed:", err);
   }
 }
 
@@ -565,9 +989,25 @@ function onEntryActivate(id: string) {
 
 const unregisters: Array<() => void> = [];
 
+watch(
+  () => activeConversation.value?.projectId ?? null,
+  (next, prev) => {
+    if (next === prev) {
+      return;
+    }
+    loadProjectFiles(next);
+  },
+);
+
 onMounted(async () => {
   theme.restore();
   conversationStore.restore();
+  // Fire-and-forget: lets the sidebar resolve real project names for any
+  // conversations that have a projectId binding.
+  if (!projectsStore.hasLoaded) {
+    projectsStore.loadAll();
+  }
+  loadProjectFiles(activeConversation.value?.projectId ?? null);
   try {
     const platform = await window.electronAPI?.system?.getPlatform?.();
     isMacPlatform.value = platform === "darwin";
@@ -587,6 +1027,7 @@ onMounted(async () => {
       }),
     );
   }
+  syncModelLabelFromConfig();
 });
 
 onBeforeUnmount(() => {
@@ -751,6 +1192,41 @@ onBeforeUnmount(() => {
   gap: 10px;
   font-size: 24px;
   font-weight: 600;
+}
+
+.cb-shell__topbar-title--button {
+  background: transparent;
+  border: 1px dashed transparent;
+  border-radius: 12px;
+  color: inherit;
+  cursor: pointer;
+  padding: 4px 10px;
+  margin: -4px -10px;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.cb-shell__topbar-title--button:hover {
+  background: var(--cc-preview-bg-hover);
+  border-color: var(--cc-preview-border-subtle);
+}
+
+.cb-shell__topbar-caret {
+  font-size: 11px;
+  opacity: 0.55;
+}
+
+.cb-shell__topbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cb-shell__topbar-action--text {
+  width: auto;
+  padding: 0 12px;
+  font-size: 12px;
 }
 
 .cb-shell__topbar-action,
@@ -1045,6 +1521,102 @@ onBeforeUnmount(() => {
   font-size: 12px;
   color: var(--cc-preview-text-muted);
   text-align: center;
+}
+
+.cb-shell__files-action[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cb-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cb-picker__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cb-picker__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cb-picker__row {
+  border-radius: 10px;
+  border: 1px solid var(--cc-preview-border-subtle);
+  background: var(--cc-preview-bg-elevated);
+}
+
+.cb-picker__row--active {
+  border-color: var(--cc-preview-accent);
+  background: var(--cc-preview-bg-hover);
+}
+
+.cb-picker__pick {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--cc-preview-text-primary);
+}
+
+.cb-picker__pick:hover {
+  background: var(--cc-preview-bg-hover);
+}
+
+.cb-picker__name {
+  font-weight: 600;
+}
+
+.cb-picker__desc {
+  font-size: 12px;
+  color: var(--cc-preview-text-secondary);
+}
+
+.cb-picker__empty {
+  padding: 18px 12px;
+  font-size: 13px;
+  color: var(--cc-preview-text-muted);
+  text-align: center;
+}
+
+.cb-picker__create-row {
+  display: flex;
+}
+
+.cb-picker__create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--cc-preview-border-subtle);
+  background: var(--cc-preview-bg-elevated);
+}
+
+.cb-picker__create-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cb-picker__error {
+  font-size: 12px;
+  color: #db6f73;
 }
 
 .cb-shell__runtime-caret {

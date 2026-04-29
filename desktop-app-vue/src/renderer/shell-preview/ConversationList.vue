@@ -10,31 +10,44 @@
     </button>
 
     <div class="cb-projects__items" role="listbox" aria-label="项目列表">
-      <button
+      <div
         v-for="item in conversations"
         :key="item.id"
-        type="button"
-        class="cb-project-item"
-        :class="{ 'cb-project-item--active': item.id === activeId }"
-        role="option"
-        :aria-selected="item.id === activeId"
-        @click="emit('select', item.id)"
+        class="cb-project-item-wrap"
       >
-        <div class="cb-project-item__header">
-          <span class="cb-project-item__title">{{ item.title }}</span>
-          <span
-            class="cb-project-item__status"
-            :class="`cb-project-item__status--${item.status || 'idle'}`"
-          />
-        </div>
-        <div class="cb-project-item__meta">
-          <span>{{ item.relativeTime }}</span>
-          <span>{{ item.workspaceLabel }}</span>
-        </div>
-        <div v-if="item.preview" class="cb-project-item__preview">
-          {{ item.preview }}
-        </div>
-      </button>
+        <button
+          type="button"
+          class="cb-project-item"
+          :class="{ 'cb-project-item--active': item.id === activeId }"
+          role="option"
+          :aria-selected="item.id === activeId"
+          @click="emit('select', item.id)"
+        >
+          <div class="cb-project-item__header">
+            <span class="cb-project-item__title">{{ item.title }}</span>
+            <span
+              class="cb-project-item__status"
+              :class="`cb-project-item__status--${item.status || 'idle'}`"
+            />
+          </div>
+          <div class="cb-project-item__meta">
+            <span>{{ item.relativeTime }}</span>
+            <span>{{ item.workspaceLabel }}</span>
+          </div>
+          <div v-if="item.preview" class="cb-project-item__preview">
+            {{ item.preview }}
+          </div>
+        </button>
+        <button
+          type="button"
+          class="cb-project-item__delete"
+          title="删除会话"
+          aria-label="删除会话"
+          @click.stop="emit('delete', item.id)"
+        >
+          ×
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -57,6 +70,7 @@ defineProps<{
 const emit = defineEmits<{
   (e: "select", id: string): void;
   (e: "new-conversation"): void;
+  (e: "delete", id: string): void;
 }>();
 </script>
 
@@ -116,6 +130,42 @@ const emit = defineEmits<{
   min-height: 0;
   overflow-y: auto;
   padding-right: 4px;
+}
+
+.cb-project-item-wrap {
+  position: relative;
+}
+
+.cb-project-item-wrap:hover .cb-project-item__delete,
+.cb-project-item-wrap:focus-within .cb-project-item__delete {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cb-project-item__delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: var(--cc-preview-chip-bg);
+  color: var(--cc-preview-text-secondary);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.16s ease,
+    background 0.16s ease,
+    color 0.16s ease;
+}
+
+.cb-project-item__delete:hover {
+  background: #db6f73;
+  color: white;
 }
 
 .cb-project-item {

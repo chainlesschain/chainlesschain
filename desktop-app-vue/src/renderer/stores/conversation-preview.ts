@@ -52,6 +52,7 @@ export interface PreviewConversation {
   preview: string;
   createdAt: number;
   updatedAt: number;
+  projectId: string | null;
   projectName: string;
   relativeTime: string;
   workspaceLabel: string;
@@ -89,6 +90,15 @@ function createBlankFiles(): PreviewFileNode[] {
   return [];
 }
 
+function isAccidentalEmpty(conversation: PreviewConversation): boolean {
+  return (
+    conversation.messages.length === 0 &&
+    conversation.title === DEFAULT_NEW_TITLE &&
+    !conversation.projectId &&
+    !conversation.preview
+  );
+}
+
 function createDefaultRuntimeStatus(
   progress = 0,
   overrides: Partial<PreviewRuntimeStatus> = {},
@@ -119,24 +129,6 @@ function isBubbleMessage(value: unknown): value is BubbleMessage {
     typeof message.content === "string" &&
     typeof message.createdAt === "number"
   );
-}
-
-function isPreviewFileNode(value: unknown): value is PreviewFileNode {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-  const node = value as Record<string, unknown>;
-  if (
-    typeof node.id !== "string" ||
-    typeof node.name !== "string" ||
-    (node.kind !== "file" && node.kind !== "folder")
-  ) {
-    return false;
-  }
-  if (node.children == null) {
-    return true;
-  }
-  return Array.isArray(node.children) && node.children.every(isPreviewFileNode);
 }
 
 function normalizeActionItems(value: unknown): PreviewActionItem[] {
@@ -238,9 +230,10 @@ function normalizeConversation(value: unknown): PreviewConversation | null {
     return null;
   }
 
-  const files = Array.isArray(conversation.files)
-    ? conversation.files.filter(isPreviewFileNode)
-    : createBlankFiles();
+  // Drop any persisted `files` payload — V6 preview now loads files live
+  // from the bound project's real directory via `project:get-files`.
+  // Older v2/v3 storage carried demo seed file trees that pollute the UI.
+  const files = createBlankFiles();
 
   return {
     id: conversation.id,
@@ -248,6 +241,10 @@ function normalizeConversation(value: unknown): PreviewConversation | null {
     preview: conversation.preview,
     createdAt: conversation.createdAt,
     updatedAt: conversation.updatedAt,
+    projectId:
+      typeof conversation.projectId === "string" && conversation.projectId
+        ? conversation.projectId
+        : null,
     projectName:
       typeof conversation.projectName === "string"
         ? conversation.projectName
@@ -380,7 +377,8 @@ export const useConversationPreviewStore = defineStore("conversation-preview", {
       if (loaded && loaded.state.conversations.length > 0) {
         this.conversations = loaded.state.conversations;
         this.activeId = loaded.state.activeId;
-        if (loaded.migrated) {
+        const pruned = this.pruneEmpty();
+        if (loaded.migrated || pruned > 0) {
           this._persist();
         }
       } else {
@@ -391,6 +389,29 @@ export const useConversationPreviewStore = defineStore("conversation-preview", {
       this.restored = true;
     },
 
+    /**
+     * Drops conversations that look like accidental empty shells (no messages,
+     * default title, no project binding, no preview). The currently active
+     * conversation is kept regardless so the user's in-flight blank stays.
+     * Returns the number of conversations removed.
+     */
+    pruneEmpty(): number {
+      const before = this.conversations.length;
+      this.conversations = this.conversations.filter(
+        (conversation) =>
+          conversation.id === this.activeId || !isAccidentalEmpty(conversation),
+      );
+      if (
+        this.activeId &&
+        !this.conversations.some(
+          (conversation) => conversation.id === this.activeId,
+        )
+      ) {
+        this.activeId = this.conversations[0]?.id ?? null;
+      }
+      return before - this.conversations.length;
+    },
+
     select(id: string) {
       if (this.conversations.some((conversation) => conversation.id === id)) {
         this.activeId = id;
@@ -399,6 +420,14 @@ export const useConversationPreviewStore = defineStore("conversation-preview", {
     },
 
     createBlank(): string {
+      // Reuse the active conversation if it's still pristine — avoids the
+      // pile of "新会话" entries when users tap "+" repeatedly without ever
+      // sending a message.
+      const current = this.active;
+      if (current && isAccidentalEmpty(current)) {
+        return current.id;
+      }
+
       const ts = now();
       const conversation: PreviewConversation = {
         id: makeId("conv"),
@@ -406,6 +435,7 @@ export const useConversationPreviewStore = defineStore("conversation-preview", {
         preview: "",
         createdAt: ts,
         updatedAt: ts,
+        projectId: null,
         projectName: DEFAULT_PROJECT_NAME,
         relativeTime: "just now",
         workspaceLabel: "workspace",
@@ -462,6 +492,22 @@ export const useConversationPreviewStore = defineStore("conversation-preview", {
 
     setGenerating(flag: boolean) {
       this.isGenerating = flag;
+    },
+
+    bindProject(projectId: string | null, projectName?: string) {
+      const conversation = this.active;
+      if (!conversation) {
+        return;
+      }
+      conversation.projectId = projectId;
+      if (typeof projectName === "string") {
+        const trimmed = projectName.trim();
+        conversation.projectName = trimmed || DEFAULT_PROJECT_NAME;
+      } else if (!projectId) {
+        conversation.projectName = DEFAULT_PROJECT_NAME;
+      }
+      conversation.updatedAt = now();
+      this._persist();
     },
 
     setModelLabel(label: string) {

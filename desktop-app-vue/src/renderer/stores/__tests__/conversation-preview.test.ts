@@ -193,6 +193,7 @@ describe("useConversationPreviewStore", () => {
     const store = useConversationPreviewStore();
     store.restore();
     const firstId = store.createBlank();
+    store.appendMessage("user", "first content"); // make first non-empty so the next createBlank actually branches
     const secondId = store.createBlank();
     store.select(firstId);
     expect(store.activeId).toBe(firstId);
@@ -205,6 +206,7 @@ describe("useConversationPreviewStore", () => {
     const store = useConversationPreviewStore();
     store.restore();
     const firstId = store.createBlank();
+    store.appendMessage("user", "first content"); // anchor first conv so createBlank doesn't dedupe
     const secondId = store.createBlank();
     store.remove(secondId);
     expect(
@@ -331,6 +333,188 @@ describe("useConversationPreviewStore", () => {
       (item: { id: string }) => item.id === store.activeId,
     );
     expect(conversation.messages.at(-1).content).toBe("Hello world");
+  });
+
+  it("createBlank() seeds projectId as null", () => {
+    const store = useConversationPreviewStore();
+    store.createBlank();
+    expect(store.active!.projectId).toBeNull();
+  });
+
+  it("bindProject() updates projectId, projectName, and persists", () => {
+    const store = useConversationPreviewStore();
+    store.createBlank();
+    store.bindProject("proj-123", "My Project");
+    expect(store.active!.projectId).toBe("proj-123");
+    expect(store.active!.projectName).toBe("My Project");
+
+    const persisted = JSON.parse(rawState()!);
+    const conversation = persisted.conversations.find(
+      (item: { id: string }) => item.id === store.activeId,
+    );
+    expect(conversation.projectId).toBe("proj-123");
+    expect(conversation.projectName).toBe("My Project");
+  });
+
+  it("bindProject(null) clears the binding and resets project name to default", () => {
+    const store = useConversationPreviewStore();
+    store.createBlank();
+    store.bindProject("proj-x", "X Project");
+    store.bindProject(null);
+    expect(store.active!.projectId).toBeNull();
+    expect(store.active!.projectName).toBe("未命名项目");
+  });
+
+  it("bindProject() is a no-op without an active conversation", () => {
+    const store = useConversationPreviewStore();
+    store.restore();
+    expect(() => store.bindProject("p", "P")).not.toThrow();
+    expect(store.active).toBeUndefined();
+  });
+
+  it("drops persisted demo file trees on load (legacy demo seed cleanup)", () => {
+    const ts = Date.now();
+    const v3WithFakeFiles = {
+      version: 3,
+      activeId: "conv-1",
+      conversations: [
+        {
+          id: "conv-1",
+          title: "legacy",
+          preview: "preview",
+          createdAt: ts,
+          updatedAt: ts,
+          projectName: "未命名项目",
+          relativeTime: "1m ago",
+          workspaceLabel: "workspace",
+          promptLabel: "",
+          messages: [],
+          actionItems: [],
+          taskSteps: [],
+          files: [
+            {
+              id: "demo-root",
+              name: "workspace",
+              kind: "folder",
+              children: [{ id: "demo-app", name: "App.vue", kind: "file" }],
+            },
+          ],
+          runtimeStatus: {
+            progress: 0,
+            agentLabel: "ChainlessChain",
+            modelLabel: "x",
+            skillLabel: "x",
+            toolLabel: "x",
+            terminalLabel: "x",
+          },
+        },
+      ],
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(v3WithFakeFiles));
+
+    const store = useConversationPreviewStore();
+    store.restore();
+    expect(store.active!.files).toEqual([]);
+  });
+
+  it("createBlank() reuses the active conversation if it is still pristine", () => {
+    const store = useConversationPreviewStore();
+    const firstId = store.createBlank();
+    const secondId = store.createBlank();
+    const thirdId = store.createBlank();
+    expect(secondId).toBe(firstId);
+    expect(thirdId).toBe(firstId);
+    expect(store.conversations).toHaveLength(1);
+  });
+
+  it("createBlank() does create a new conversation once the active one has content", () => {
+    const store = useConversationPreviewStore();
+    const firstId = store.createBlank();
+    store.appendMessage("user", "hello");
+    const secondId = store.createBlank();
+    expect(secondId).not.toBe(firstId);
+    expect(store.conversations).toHaveLength(2);
+  });
+
+  it("createBlank() also branches off when the active one has a bound project", () => {
+    const store = useConversationPreviewStore();
+    const firstId = store.createBlank();
+    store.bindProject("p-1", "P1");
+    const secondId = store.createBlank();
+    expect(secondId).not.toBe(firstId);
+  });
+
+  it("pruneEmpty() drops empty shells but keeps the active one", () => {
+    // Hand-craft a payload that has 3 empty shells + 1 real conversation.
+    const ts = Date.now();
+    const empty = (id: string) => ({
+      id,
+      title: "新会话",
+      preview: "",
+      createdAt: ts,
+      updatedAt: ts,
+      projectId: null,
+      projectName: "未命名项目",
+      relativeTime: "just now",
+      workspaceLabel: "workspace",
+      promptLabel: "",
+      messages: [],
+      actionItems: [],
+      taskSteps: [],
+      files: [],
+      runtimeStatus: {
+        progress: 0,
+        agentLabel: "ChainlessChain",
+        modelLabel: "x",
+        skillLabel: "x",
+        toolLabel: "x",
+        terminalLabel: "x",
+      },
+    });
+    const real = {
+      ...empty("conv-real"),
+      title: "real one",
+      preview: "real preview",
+      messages: [
+        {
+          id: "m1",
+          role: "user" as const,
+          content: "hi",
+          createdAt: ts,
+        },
+      ],
+    };
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: SCHEMA_VERSION,
+        activeId: "conv-empty-2",
+        conversations: [
+          empty("conv-empty-1"),
+          empty("conv-empty-2"),
+          empty("conv-empty-3"),
+          real,
+        ],
+      }),
+    );
+
+    const store = useConversationPreviewStore();
+    store.restore();
+
+    const ids = store.conversations.map((c) => c.id).sort();
+    expect(ids).toEqual(["conv-empty-2", "conv-real"]);
+    expect(store.activeId).toBe("conv-empty-2");
+  });
+
+  it("pruneEmpty() falls back to the first surviving conversation when active id no longer matches", () => {
+    const store = useConversationPreviewStore();
+    store.createBlank();
+    store.appendMessage("user", "real");
+    const realId = store.activeId!;
+    store.activeId = "ghost";
+    const removed = store.pruneEmpty();
+    expect(removed).toBe(0);
+    expect(store.activeId).toBe(realId);
   });
 
   it("removeMessage() drops a specific message by id", () => {
