@@ -780,20 +780,18 @@ class ChainlessChainApp {
       // registered above so a future hybrid window can co-exist without
       // re-registering. ukeyManager is passed through so the WS handler can
       // report live device state.
-      // Phase 1.x: wire the desktop sessionManager singleton into the WS
-      // server so web-panel's `session-create`/`session-message`/etc. land
-      // on a real handler instead of soft-failing with envelope errors
-      // (the original "Phase 1 暂不接 sessionManager" stance was broken by
-      // the very first user click on "新建 Chat" — strategy memory updated).
-      const {
-        getSessionManager,
-      } = require("./session/session-core-singletons");
+      // Phase 1.x: ws-cli-loader auto-instantiates a CLI WSSessionManager
+      // when no `sessionManager` is passed — the desktop session-core
+      // singleton has incompatible short method names (`create/list/get`
+      // vs the gateway's `createSession/listSessions/getSession`), so we
+      // intentionally do NOT pass it here. This unblocks "新建 Chat/Agent"
+      // without dragging the entire desktop session-core API into the WS
+      // protocol surface. Strategy memory updated.
       const handle = await startWebShell({
         mode: "global",
         projectName: "ChainlessChain Desktop",
         ukeyManager: this.ukeyManager,
         mainWindow: this.mainWindow,
-        sessionManager: getSessionManager(),
       });
       this._webShellHandle = handle;
       logger.info(`[WebShell] HTTP: ${handle.httpUrl}`);
