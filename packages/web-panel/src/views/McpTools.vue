@@ -107,6 +107,56 @@
       </a-table>
     </a-card>
 
+    <!-- Resources (topic mode only — CLI fallback doesn't surface resources) -->
+    <a-card
+      v-if="dataSource === 'topic'"
+      title="可用资源"
+      style="background: var(--bg-card); border-color: var(--border-color); margin-top: 16px;"
+    >
+      <template #extra>
+        <a-input-search
+          v-model:value="resourceSearch"
+          placeholder="搜索资源..."
+          allow-clear
+          size="small"
+          style="width: 200px;"
+        />
+      </template>
+      <div v-if="resourcesLoading" style="text-align: center; padding: 30px;"><a-spin /></div>
+      <div v-else-if="!resources.length" style="text-align: center; padding: 30px; color: var(--text-muted);">
+        当前无 MCP 资源（部分服务器不暴露 resources，是正常的）
+      </div>
+      <a-table
+        v-else
+        :columns="resourceColumns"
+        :data-source="filteredResources"
+        :pagination="{ pageSize: 15 }"
+        size="small"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'uri'">
+            <span style="color: #87d068; font-family: monospace; font-size: 11px; word-break: break-all;">{{ record.uri }}</span>
+          </template>
+          <template v-if="column.key === 'server'">
+            <a-tag color="blue" style="font-size: 10px;">{{ record.server }}</a-tag>
+          </template>
+          <template v-if="column.key === 'mimeType'">
+            <a-tag v-if="record.mimeType" style="font-size: 10px;">{{ record.mimeType }}</a-tag>
+            <span v-else style="color: var(--text-muted); font-size: 10px;">—</span>
+          </template>
+          <template v-if="column.key === 'action'">
+            <a-button size="small" type="link" @click="openReadModal(record)">
+              <template #icon><EyeOutlined /></template>
+              读取
+            </a-button>
+          </template>
+        </template>
+        <template #emptyText>
+          <div style="padding: 30px; color: var(--text-muted);">无匹配资源</div>
+        </template>
+      </a-table>
+    </a-card>
+
     <a-modal
       :open="runModalOpen"
       :title="runModalTitle"
@@ -169,12 +219,57 @@
         </div>
       </div>
     </a-modal>
+
+    <a-modal
+      :open="readModalOpen"
+      :title="readModalTitle"
+      :width="720"
+      :footer="null"
+      @cancel="closeReadModal"
+    >
+      <div v-if="selectedResource" style="display: flex; flex-direction: column; gap: 12px;">
+        <div>
+          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">服务器 / URI</div>
+          <div style="font-family: monospace; font-size: 12px; word-break: break-all;">
+            <a-tag color="blue">{{ selectedResource.server }}</a-tag>
+            <span style="color: #87d068;">{{ selectedResource.uri }}</span>
+          </div>
+        </div>
+        <div v-if="selectedResource.description">
+          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">描述</div>
+          <div style="font-size: 12px;">{{ selectedResource.description }}</div>
+        </div>
+        <div v-if="reading" style="text-align: center; padding: 20px;">
+          <a-spin tip="读取中..." />
+        </div>
+        <div v-if="readError" style="background: #2a1517; border: 1px solid #5c2426; padding: 8px; border-radius: 4px;">
+          <div style="color: #ff4d4f; font-size: 11px; font-weight: 500; margin-bottom: 4px;">读取失败</div>
+          <pre style="color: #ff7875; font-size: 11px; margin: 0; white-space: pre-wrap;">{{ readError }}</pre>
+        </div>
+        <div v-if="readContents.length">
+          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">内容（{{ readContents.length }} 段）</div>
+          <div v-for="(c, i) in readContents" :key="i" style="margin-bottom: 12px;">
+            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
+              <a-tag v-if="c.mimeType" size="small" style="font-size: 10px;">{{ c.mimeType }}</a-tag>
+              <span v-if="c.uri && c.uri !== selectedResource.uri" style="color: var(--text-muted); font-size: 10px; font-family: monospace;">{{ c.uri }}</span>
+            </div>
+            <pre v-if="c.text" style="background: var(--bg-card-hover); padding: 8px; border-radius: 4px; font-size: 11px; max-height: 360px; overflow: auto; margin: 0; white-space: pre-wrap; word-break: break-all;">{{ c.text }}</pre>
+            <div v-else-if="c.blob" style="font-size: 11px; color: var(--text-muted); font-style: italic;">
+              [二进制 blob，{{ c.blob.length }} 字符 base64 — 此 demo 不渲染]
+            </div>
+            <div v-else style="font-size: 11px; color: var(--text-muted); font-style: italic;">
+              [空内容]
+            </div>
+          </div>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { ReloadOutlined, CloudServerOutlined, ToolOutlined, CheckCircleOutlined, PlayCircleOutlined } from '@ant-design/icons-vue'
+import { ReloadOutlined, CloudServerOutlined, ToolOutlined, CheckCircleOutlined, PlayCircleOutlined, EyeOutlined } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useMcp } from '../composables/useMcp.js'
 import McpToolForm from '../components/McpToolForm.vue'
@@ -201,6 +296,102 @@ const toolColumns = [
   { title: '描述', dataIndex: 'description', ellipsis: true },
   { title: '操作', key: 'action', width: 110 },
 ]
+
+// Resources state — populated lazily on first render in topic mode. In CLI
+// fallback mode the panel is hidden entirely (the legacy ws.execute paths
+// don't expose mcp.list_resources output).
+const resources = ref([])
+const resourceSearch = ref('')
+const resourcesLoading = ref(false)
+const resourcesLoaded = ref(false)
+
+const resourceColumns = [
+  { title: 'URI', key: 'uri', dataIndex: 'uri' },
+  { title: '服务器', key: 'server', dataIndex: 'server', width: '15%' },
+  { title: 'MIME', key: 'mimeType', dataIndex: 'mimeType', width: '15%' },
+  { title: '操作', key: 'action', width: 90 },
+]
+
+const filteredResources = computed(() => {
+  if (!resourceSearch.value) return resources.value
+  const q = resourceSearch.value.toLowerCase()
+  return resources.value.filter(
+    (r) =>
+      r.uri?.toLowerCase().includes(q) ||
+      r.name?.toLowerCase().includes(q) ||
+      r.description?.toLowerCase().includes(q),
+  )
+})
+
+async function loadResources() {
+  if (resourcesLoading.value) return
+  resourcesLoading.value = true
+  try {
+    const r = await mcp.listResources()
+    if (!r || !Array.isArray(r.servers)) {
+      resources.value = []
+      return
+    }
+    const flat = []
+    for (const s of r.servers) {
+      if (!Array.isArray(s.resources)) continue
+      for (const res of s.resources) {
+        flat.push({
+          key: `${s.name}.${res.uri}`,
+          uri: res.uri,
+          name: res.name || '',
+          description: res.description || '',
+          mimeType: res.mimeType || null,
+          server: s.name,
+        })
+      }
+    }
+    resources.value = flat
+    resourcesLoaded.value = true
+  } catch (err) {
+    console.error('listResources failed:', err)
+    resources.value = []
+  } finally {
+    resourcesLoading.value = false
+  }
+}
+
+// Read-resource modal state.
+const readModalOpen = ref(false)
+const selectedResource = ref(null)
+const reading = ref(false)
+const readContents = ref([])
+const readError = ref('')
+
+const readModalTitle = computed(() => {
+  if (!selectedResource.value) return '读取 MCP 资源'
+  return `读取 ${selectedResource.value.server}`
+})
+
+async function openReadModal(resource) {
+  selectedResource.value = resource
+  readContents.value = []
+  readError.value = ''
+  readModalOpen.value = true
+  reading.value = true
+  try {
+    const r = await mcp.readResource(resource.server, resource.uri)
+    if (r && Array.isArray(r.contents)) {
+      readContents.value = r.contents
+    } else {
+      // Some servers return a single content object — normalise.
+      readContents.value = r ? [r] : []
+    }
+  } catch (err) {
+    readError.value = err?.message || String(err)
+  } finally {
+    reading.value = false
+  }
+}
+
+function closeReadModal() {
+  readModalOpen.value = false
+}
 
 // Run-tool modal state — only meaningful in topic mode (CLI mode falls back
 // to the old text-parsing path which never had inputSchema, so we hide the
@@ -383,6 +574,15 @@ async function load() {
     console.error('MCP load failed:', e)
   } finally {
     loading.value = false
+    // Topic mode also loads resources — fire-and-forget so it doesn't block
+    // the main panel render. Errors are surfaced inside loadResources via
+    // the resourcesLoading flag + console.
+    if (dataSource.value === 'topic') {
+      loadResources()
+    } else {
+      resources.value = []
+      resourcesLoaded.value = false
+    }
   }
 }
 
