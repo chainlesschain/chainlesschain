@@ -152,6 +152,52 @@ describe('useUkey.sign — input validation', () => {
   })
 })
 
+describe('useUkey.sign — cancellation via AbortSignal', () => {
+  it('forwards the signal to sendStream and rejects on abort', async () => {
+    sendStreamImpl = (_payload, options) => {
+      return new Promise((_resolve, reject) => {
+        if (options.signal) {
+          options.signal.addEventListener(
+            'abort',
+            () => reject(new Error('aborted')),
+            { once: true },
+          )
+        }
+      })
+    }
+    const ukey = useUkey()
+    const ctrl = new AbortController()
+    const p = ukey.sign('payload', { signal: ctrl.signal })
+    ctrl.abort()
+    await expect(p).rejects.toThrow('aborted')
+    expect(sendStreamCalls[0][1].signal).toBe(ctrl.signal)
+  })
+
+  it('threads abort reason through when caller supplies one', async () => {
+    sendStreamImpl = (_payload, options) => {
+      return new Promise((_resolve, reject) => {
+        if (options.signal) {
+          options.signal.addEventListener(
+            'abort',
+            () => {
+              const reason = options.signal.reason instanceof Error
+                ? options.signal.reason
+                : new Error('aborted')
+              reject(reason)
+            },
+            { once: true },
+          )
+        }
+      })
+    }
+    const ukey = useUkey()
+    const ctrl = new AbortController()
+    const p = ukey.sign('x', { signal: ctrl.signal })
+    ctrl.abort(new Error('user_cancelled'))
+    await expect(p).rejects.toThrow('user_cancelled')
+  })
+})
+
 describe('useUkey.sign — error propagation', () => {
   it('rejects when sendStream rejects (protocol-level error)', async () => {
     sendStreamImpl = fakeStream({

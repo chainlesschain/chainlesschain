@@ -368,10 +368,22 @@ export const useWsStore = defineStore('ws', () => {
    * actively producing tokens never trips the timer; only a true stall
    * does. Pass `idleMs: 0` to disable.
    *
+   * Cancellation: pass `signal: AbortSignal`. When the signal aborts:
+   *   - The promise rejects with `new Error('aborted')` (matches DOMException
+   *     AbortError shape — signal.reason is preserved if set).
+   *   - The pendingStreams entry is removed so subsequent server frames
+   *     for the same id are dropped silently.
+   *   - A best-effort `{type: '<topic>.cancel', id}` frame is sent to the
+   *     server. The server's existing dispatcher does not currently act on
+   *     it (UNKNOWN_TYPE) — this is the stub side of cancellation. When
+   *     LLMManager / UKeyManager grow real AbortController support, the
+   *     server can route this frame into the in-flight handler.
+   *
    * @param {object} payload  - WS frame (e.g. { type: 'llm.chat', messages })
    * @param {object} options
    * @param {(chunk:any) => void} options.onChunk
    * @param {number} [options.idleMs=30000]  reset on every chunk; 0 disables
+   * @param {AbortSignal} [options.signal]
    * @returns {Promise<any>}  resolves with the .result's `result` field
    */
   function sendStream(payload, options = {}) {
@@ -383,6 +395,14 @@ export const useWsStore = defineStore('ws', () => {
       const id = payload.id || genId()
       const idleMs = options.idleMs ?? 30000
       const onChunk = typeof options.onChunk === 'function' ? options.onChunk : () => {}
+      const signal = options.signal
+
+      // Pre-aborted signal — reject without sending the frame at all.
+      if (signal?.aborted) {
+        const reason = signal.reason instanceof Error ? signal.reason : new Error('aborted')
+        reject(reason)
+        return
+      }
 
       let idleTimer = null
       const armIdle = () => {
@@ -396,6 +416,33 @@ export const useWsStore = defineStore('ws', () => {
         }, idleMs)
       }
 
+      const onAbort = () => {
+        if (!pendingStreams.has(id)) return
+        pendingStreams.delete(id)
+        if (idleTimer) {
+          clearTimeout(idleTimer)
+          idleTimer = null
+        }
+        // Best-effort: hint the server to release any resources tied to
+        // this id. The dispatcher will treat this as UNKNOWN_TYPE today
+        // (no abort handlers in main); harmless. When LLMManager /
+        // UKeyManager grow AbortController support, the server can route
+        // this frame into the live handler. Wrapped in try since the
+        // socket may be closing already.
+        try {
+          if (socket.value?.readyState === WebSocket.OPEN) {
+            socket.value.send(JSON.stringify({
+              type: `${payload.type}.cancel`,
+              id,
+            }))
+          }
+        } catch { /* swallow — abort path must not throw */ }
+        const reason = signal?.reason instanceof Error
+          ? signal.reason
+          : new Error('aborted')
+        reject(reason)
+      }
+
       pendingStreams.set(id, {
         onChunk,
         resolve,
@@ -403,10 +450,16 @@ export const useWsStore = defineStore('ws', () => {
         clear: () => {
           if (idleTimer) clearTimeout(idleTimer)
           idleTimer = null
+          if (signal && onAbort) {
+            try { signal.removeEventListener('abort', onAbort) } catch { /* noop */ }
+          }
         },
         rearm: armIdle,
       })
       armIdle()
+      if (signal) {
+        signal.addEventListener('abort', onAbort, { once: true })
+      }
       socket.value.send(JSON.stringify({ ...payload, id }))
     })
   }

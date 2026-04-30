@@ -69,27 +69,40 @@ export function useLlmChat() {
   const ws = useWsStore()
 
   /**
-   * Start a streaming chat. Returns `{stream, result}`:
+   * Start a streaming chat. Returns `{stream, result, cancel}`:
    *   - stream: AsyncIterable<{delta, content}>
    *   - result: Promise<{message, model, tokens?}> (resolves on terminal frame)
+   *   - cancel(): aborts the in-flight stream — both `result` and the
+   *     async iterator unwind with an Error('aborted'). Idempotent;
+   *     calling cancel after the result resolves is a noop.
    *
-   * Cancellation: closing the WS aborts the stream (sendStream rejects,
-   * which propagates through `result`). Future per-call abort would need
-   * a server-side cancel topic — not built yet.
+   * Caller-supplied `signal` is honoured too (composes with cancel()).
+   * Closing the WS still aborts the stream via sendStream's reject path.
    *
-   * @param {{ messages: any[], options?: object, idleMs?: number }} args
+   * @param {{ messages: any[], options?: object, idleMs?: number, signal?: AbortSignal }} args
    */
   function chat(args) {
     if (!args || !Array.isArray(args.messages)) {
       throw new Error('messages array is required')
     }
     const queue = makeQueue()
+    const internal = new AbortController()
+    // Mirror an externally-supplied signal into the internal controller so
+    // cancel() and external abort share one wakeup path.
+    if (args.signal) {
+      if (args.signal.aborted) {
+        internal.abort(args.signal.reason)
+      } else {
+        args.signal.addEventListener('abort', () => internal.abort(args.signal.reason), { once: true })
+      }
+    }
     const result = ws
       .sendStream(
         { type: 'llm.chat', messages: args.messages, options: args.options || {} },
         {
           onChunk: (chunk) => queue.push(chunk),
           idleMs: args.idleMs ?? 60000,
+          signal: internal.signal,
         },
       )
       .then(
@@ -102,7 +115,12 @@ export function useLlmChat() {
           throw err
         },
       )
-    return { stream: queue.iterate(), result }
+    function cancel() {
+      if (!internal.signal.aborted) {
+        internal.abort(new Error('aborted'))
+      }
+    }
+    return { stream: queue.iterate(), result, cancel }
   }
 
   /**

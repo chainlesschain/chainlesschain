@@ -119,6 +119,82 @@ describe('useLlmChat.chat — async iterable', () => {
   })
 })
 
+describe('useLlmChat.chat — cancellation', () => {
+  it('chat() returns a cancel() that rejects result with Error("aborted")', async () => {
+    let abortHook = null
+    sendStreamImpl = (_payload, options) => {
+      return new Promise((resolve, reject) => {
+        // Hook the abort path so the test can drive it.
+        if (options.signal) {
+          abortHook = () => {
+            const reason = options.signal.reason instanceof Error
+              ? options.signal.reason
+              : new Error('aborted')
+            reject(reason)
+          }
+          options.signal.addEventListener('abort', abortHook, { once: true })
+        }
+        // Emit one chunk so the stream isn't completely empty.
+        queueMicrotask(() => options.onChunk({ delta: 'a', content: 'a' }))
+        // Don't resolve — wait for abort or timeout.
+      })
+    }
+    const { chat } = useLlmChat()
+    const { stream, result, cancel } = chat({
+      messages: [{ role: 'user', content: 'x' }],
+    })
+    // Drain a tick so the chunk gets queued.
+    const iterator = stream[Symbol.asyncIterator]()
+    const first = await iterator.next()
+    expect(first.value.delta).toBe('a')
+    cancel()
+    await expect(result).rejects.toThrow('aborted')
+  })
+
+  it('cancel() is idempotent — calling twice does not double-reject', async () => {
+    sendStreamImpl = (_payload, options) => {
+      return new Promise((_resolve, reject) => {
+        if (options.signal) {
+          options.signal.addEventListener(
+            'abort',
+            () => reject(new Error('aborted')),
+            { once: true },
+          )
+        }
+      })
+    }
+    const { chat } = useLlmChat()
+    const { result, cancel } = chat({
+      messages: [{ role: 'user', content: 'x' }],
+    })
+    cancel()
+    cancel() // second call should be a noop
+    await expect(result).rejects.toThrow('aborted')
+  })
+
+  it('honours an externally-supplied AbortSignal', async () => {
+    sendStreamImpl = (_payload, options) => {
+      return new Promise((_resolve, reject) => {
+        if (options.signal) {
+          options.signal.addEventListener(
+            'abort',
+            () => reject(new Error('external_abort')),
+            { once: true },
+          )
+        }
+      })
+    }
+    const externalCtrl = new AbortController()
+    const { chat } = useLlmChat()
+    const { result } = chat({
+      messages: [{ role: 'user', content: 'x' }],
+      signal: externalCtrl.signal,
+    })
+    externalCtrl.abort(new Error('external_abort'))
+    await expect(result).rejects.toThrow('external_abort')
+  })
+})
+
 describe('useLlmChat.chatTo — callback shape', () => {
   it('drains chunks into onDelta and returns the terminal result', async () => {
     sendStreamImpl = fakeSendStream({

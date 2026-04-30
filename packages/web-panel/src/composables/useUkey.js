@@ -39,7 +39,7 @@ export function useUkey() {
    *
    * @param {string} data - data to sign (string; binary callers should
    *                        base64-encode before passing). 1..64 KiB.
-   * @param {{ onStage?: (stage: string) => void, idleMs?: number }} [opts]
+   * @param {{ onStage?: (stage: string) => void, idleMs?: number, signal?: AbortSignal }} [opts]
    * @returns {Promise<{
    *   success: boolean,
    *   signature?: string,
@@ -47,6 +47,11 @@ export function useUkey() {
    *   reason?: string,
    *   message?: string,
    * }>}
+   *
+   * Cancellation: caller passes an AbortSignal; aborting it rejects the
+   * promise with Error('aborted'). The server hint frame is sent best-
+   * effort (handler-side abort plumbing not yet built; this is the SPA
+   * stub side per strategy memo's "stub now, route later" plan).
    */
   async function sign(data, opts = {}) {
     if (typeof data !== 'string' || data.length === 0) {
@@ -62,6 +67,7 @@ export function useUkey() {
           }
         },
         idleMs: opts.idleMs ?? 60000,
+        signal: opts.signal,
       },
     )
   }

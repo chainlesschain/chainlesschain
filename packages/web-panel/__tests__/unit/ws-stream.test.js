@@ -137,6 +137,47 @@ describe('ws.sendStream', () => {
     }
   })
 
+  it('rejects with abort reason when the AbortSignal fires mid-stream', async () => {
+    const ws = await connectStore()
+    const controller = new AbortController()
+    const p = ws.sendStream(
+      { type: 'llm.chat', messages: [] },
+      { onChunk: () => {}, idleMs: 0, signal: controller.signal },
+    )
+    const id = fakeWs.sent[0].id
+    fakeWs.emit({ id, type: 'llm.chat.chunk', ok: true, chunk: { delta: 'a' } })
+    controller.abort(new Error('user_cancelled'))
+    await expect(p).rejects.toThrow('user_cancelled')
+  })
+
+  it('sends a best-effort <topic>.cancel frame to the server on abort', async () => {
+    const ws = await connectStore()
+    const controller = new AbortController()
+    const p = ws.sendStream(
+      { type: 'llm.chat', messages: [] },
+      { onChunk: () => {}, idleMs: 0, signal: controller.signal },
+    )
+    const id = fakeWs.sent[0].id
+    controller.abort()
+    await expect(p).rejects.toThrow('aborted')
+    // Two frames: the original llm.chat + the llm.chat.cancel hint.
+    expect(fakeWs.sent.length).toBe(2)
+    expect(fakeWs.sent[1]).toEqual({ type: 'llm.chat.cancel', id })
+  })
+
+  it('rejects synchronously when signal is already aborted before send', async () => {
+    const ws = await connectStore()
+    const controller = new AbortController()
+    controller.abort(new Error('pre_aborted'))
+    const p = ws.sendStream(
+      { type: 'llm.chat', messages: [] },
+      { onChunk: () => {}, idleMs: 0, signal: controller.signal },
+    )
+    await expect(p).rejects.toThrow('pre_aborted')
+    // No frame should have been sent — the abort short-circuited.
+    expect(fakeWs.sent.length).toBe(0)
+  })
+
   it('idle timer rearms on every chunk so a long live stream survives', async () => {
     const ws = await connectStore()
     vi.useFakeTimers()

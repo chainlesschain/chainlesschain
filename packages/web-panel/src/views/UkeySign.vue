@@ -37,9 +37,13 @@
         </div>
         <a-space>
           <a-button v-if="signResult || error" :disabled="running" @click="reset">清空</a-button>
+          <a-button v-if="running" danger @click="cancel">
+            <template #icon><CloseOutlined /></template>
+            取消
+          </a-button>
           <a-button
+            v-else
             type="primary"
-            :loading="running"
             :disabled="!data.trim() || !isEmbedded"
             @click="run"
           >
@@ -104,6 +108,7 @@ import {
   CheckCircleOutlined,
   WarningOutlined,
   CloseCircleOutlined,
+  CloseOutlined,
 } from '@ant-design/icons-vue'
 import { useUkey } from '../composables/useUkey.js'
 
@@ -117,6 +122,7 @@ const currentStage = ref('')
 const stageHistory = ref([])
 const signResult = ref(null)
 const error = ref('')
+let activeAbort = null   // AbortController for the in-flight sign call
 
 function stageLabel(stage) {
   return (
@@ -145,12 +151,14 @@ async function run() {
   currentStage.value = ''
   stageHistory.value = []
   const t0 = Date.now()
+  activeAbort = new AbortController()
   try {
     const result = await ukey.sign(data.value, {
       onStage: (stage) => {
         currentStage.value = stage
         stageHistory.value.push({ stage, t: Date.now() - t0 })
       },
+      signal: activeAbort.signal,
     })
     signResult.value = result
   } catch (err) {
@@ -158,6 +166,13 @@ async function run() {
   } finally {
     running.value = false
     currentStage.value = ''
+    activeAbort = null
+  }
+}
+
+function cancel() {
+  if (activeAbort) {
+    activeAbort.abort(new Error('aborted'))
   }
 }
 

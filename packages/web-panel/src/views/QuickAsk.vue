@@ -31,7 +31,11 @@
         </div>
         <a-space>
           <a-button v-if="answer || error" :disabled="running" @click="reset">清空</a-button>
-          <a-button type="primary" :loading="running" :disabled="!prompt.trim()" @click="run">
+          <a-button v-if="running" danger @click="cancel">
+            <template #icon><CloseOutlined /></template>
+            取消
+          </a-button>
+          <a-button v-else type="primary" :disabled="!prompt.trim()" @click="run">
             <template #icon><SendOutlined /></template>
             发送
           </a-button>
@@ -63,7 +67,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { SendOutlined, SyncOutlined, CheckCircleOutlined } from '@ant-design/icons-vue'
+import { SendOutlined, SyncOutlined, CheckCircleOutlined, CloseOutlined } from '@ant-design/icons-vue'
 import { useLlmChat } from '../composables/useLlmChat.js'
 
 const llm = useLlmChat()
@@ -74,6 +78,7 @@ const answer = ref('')
 const running = ref(false)
 const error = ref('')
 const finalMeta = ref(null)
+let activeChat = null   // { cancel } from useLlmChat.chat() while running
 
 async function run() {
   if (running.value || !prompt.value.trim()) return
@@ -88,27 +93,26 @@ async function run() {
     const m = model.value.trim()
     if (m) options.model = m
 
-    const final = await llm.chatTo({
-      messages,
-      options,
-      onDelta: (chunk) => {
-        // The handler emits {delta, content} where content is the full
-        // accumulator from the provider. Prefer content (canonical) but
-        // fall back to building it ourselves if a provider only sends
-        // deltas — defensive shim, no current case in our LLMManager.
+    // Use chat() (not chatTo) so we have a cancel handle. Manually drain
+    // the stream into the answer ref — same shape chatTo would produce.
+    const handle = llm.chat({ messages, options })
+    activeChat = handle
+    try {
+      for await (const chunk of handle.stream) {
         if (chunk?.content) {
           answer.value = chunk.content
         } else if (chunk?.delta) {
           answer.value += chunk.delta
         }
-      },
-    })
+      }
+    } catch {
+      // Drain error surfaces via handle.result below.
+    }
+    const final = await handle.result
     finalMeta.value = {
       model: final?.model || null,
       tokens: final?.tokens ?? null,
     }
-    // If the canonical provider didn't send `content` chunks, the final
-    // message.content is the source of truth.
     if (!answer.value && final?.message?.content) {
       answer.value = final.message.content
     }
@@ -116,6 +120,13 @@ async function run() {
     error.value = err?.message || String(err)
   } finally {
     running.value = false
+    activeChat = null
+  }
+}
+
+function cancel() {
+  if (activeChat?.cancel) {
+    activeChat.cancel()
   }
 }
 
