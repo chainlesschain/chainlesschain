@@ -46,6 +46,12 @@ const VALID_OPENABLE_ROLES = new Set(["artifact", "project", "dashboard"]);
  * @property {string} [preloadPath]       Path to web-shell preload (web-shell.js).
  * @property {(opts: any) => any} [browserWindowFactory]
  *   Override Electron's `new BrowserWindow(opts)`. Tests pass a stub.
+ * @property {(role: string, win: any) => void} [onWindowOpened]
+ *   Optional side-effect fired AFTER a window is created + registered.
+ *   Used by main/index.js to attach the WindowGeometryPersister so side
+ *   windows persist their bounds the same way the main window does.
+ *   Errors thrown by the callback are swallowed — geometry persistence
+ *   should never fail a window-open.
  */
 
 function createWindowOpenHandler(options = {}) {
@@ -127,6 +133,15 @@ function createWindowOpenHandler(options = {}) {
       win.loadURL(url);
     }
     options.registry.register(role, win, url);
+
+    if (typeof options.onWindowOpened === "function") {
+      try {
+        options.onWindowOpened(role, win);
+      } catch {
+        // Geometry persistence (or any other observer) must not break
+        // window-open — the window is already live and registered.
+      }
+    }
 
     // Hook the BrowserWindow's "closed" event so the registry stays in
     // sync without consumers having to remember to call release().

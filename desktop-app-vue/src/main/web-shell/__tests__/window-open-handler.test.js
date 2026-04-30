@@ -180,6 +180,53 @@ describe("window.open handler — idempotency", () => {
   });
 });
 
+describe("window.open handler — onWindowOpened observer", () => {
+  it("invokes onWindowOpened with role + window after register", async () => {
+    const observed = [];
+    const handler = createWindowOpenHandler({
+      registry,
+      httpUrl: HTTP_URL,
+      browserWindowFactory: factory,
+      onWindowOpened: (role, win) => observed.push({ role, win }),
+    });
+    await handler({ id: "1", type: "window.open", role: "artifact" });
+    expect(observed).toHaveLength(1);
+    expect(observed[0].role).toBe("artifact");
+    expect(observed[0].win).toBe(factoryCalls[0].win);
+  });
+
+  it("does not invoke onWindowOpened on already_open path", async () => {
+    const onOpen = vi.fn();
+    const handler = createWindowOpenHandler({
+      registry,
+      httpUrl: HTTP_URL,
+      browserWindowFactory: factory,
+      onWindowOpened: onOpen,
+    });
+    await handler({ id: "1", type: "window.open", role: "project" });
+    await handler({ id: "2", type: "window.open", role: "project" });
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("swallows errors thrown by onWindowOpened so the window still opens", async () => {
+    const handler = createWindowOpenHandler({
+      registry,
+      httpUrl: HTTP_URL,
+      browserWindowFactory: factory,
+      onWindowOpened: () => {
+        throw new Error("persister exploded");
+      },
+    });
+    const result = await handler({
+      id: "1",
+      type: "window.open",
+      role: "dashboard",
+    });
+    expect(result).toMatchObject({ role: "dashboard", opened: true });
+    expect(registry.has("dashboard")).toBe(true);
+  });
+});
+
 describe("window.open handler — rejections", () => {
   it("throws role_required when role is missing or non-string", async () => {
     const handler = createWindowOpenHandler({

@@ -744,9 +744,34 @@ class ChainlessChainApp {
       titleBarOverlay: { color: "#667eea", symbolColor: "#ffffff" },
     };
 
+    // Phase 1.5: in web-shell mode, restore the persisted bounds for the
+    // main role from settings.json so users keep their window layout
+    // across launches. V5/V6 mode keeps the historical fixed 1200x800.
+    let restoredMainBounds = null;
+    if (isWebShell && persistedSettings) {
+      try {
+        const {
+          getWindowRegistry: _getRegistry,
+        } = require("./window-registry");
+        restoredMainBounds = _getRegistry().getGeometryFromSettings(
+          "main",
+          persistedSettings,
+        );
+      } catch (err) {
+        logger.warn(
+          "[Main] could not read persisted main window bounds:",
+          err.message,
+        );
+      }
+    }
+
     this.mainWindow = new BrowserWindow({
-      width: 1200,
-      height: 800,
+      width: restoredMainBounds?.width ?? 1200,
+      height: restoredMainBounds?.height ?? 800,
+      ...(typeof restoredMainBounds?.x === "number" &&
+      typeof restoredMainBounds?.y === "number"
+        ? { x: restoredMainBounds.x, y: restoredMainBounds.y }
+        : {}),
       minWidth: 800,
       minHeight: 600,
       backgroundColor: "#764ba2", // 与加载动画背景色一致，防止白屏闪烁
@@ -803,24 +828,67 @@ class ChainlessChainApp {
         const {
           createWindowOpenHandler,
         } = require("./web-shell/handlers/window-open-handler");
+        const {
+          WindowGeometryPersister,
+        } = require("./web-shell/window-geometry-persister");
+        const { writeSettingsSync } = require("./config/read-settings-sync");
         const registry = getWindowRegistry();
+
+        // One persister governs all roles. Writes route through the atomic
+        // settings writer (tmp + rename), so a hard kill mid-resize cannot
+        // leave settings.json half-written. Errors are logged once at the
+        // writer boundary — the persister itself swallows so a transient
+        // FS failure doesn't kill the resize listener.
+        const userDataPath = app.getPath("userData");
+        const geometryPersister = new WindowGeometryPersister({
+          write: (role, bounds) => {
+            writeSettingsSync(
+              userDataPath,
+              (settings) => {
+                settings.ui = settings.ui || {};
+                settings.ui.windowGeometry = settings.ui.windowGeometry || {};
+                settings.ui.windowGeometry[role] = bounds;
+              },
+              {
+                onError: (err) =>
+                  logger.warn(
+                    `[WebShell] geometry write failed for ${role}:`,
+                    err.message,
+                  ),
+              },
+            );
+          },
+        });
+        this._geometryPersister = geometryPersister;
+
         if (!registry.has("main")) {
           registry.register("main", this.mainWindow, handle.httpUrl);
-          this.mainWindow.on("closed", () => registry.release("main"));
+          const disposeMain = geometryPersister.attach("main", this.mainWindow);
+          this.mainWindow.on("closed", () => {
+            disposeMain();
+            registry.release("main");
+          });
         }
         // Wire the window.open WS topic with the now-known httpUrl +
         // preload path so the SPA can spawn artifact / project / dashboard
-        // side windows on demand.
+        // side windows on demand. onWindowOpened threads each side window
+        // into the same persister so its bounds are debounce-saved too.
         handle.register(
           "window.open",
           createWindowOpenHandler({
             registry,
             httpUrl: handle.httpUrl,
             preloadPath: preloadPath,
+            onWindowOpened: (role, win) => {
+              const dispose = geometryPersister.attach(role, win);
+              if (typeof win.on === "function") {
+                win.on("closed", dispose);
+              }
+            },
           }),
         );
         logger.info(
-          "[WebShell] WindowRegistry initialised + window.open topic wired",
+          "[WebShell] WindowRegistry + GeometryPersister initialised, window.open topic wired",
         );
       } catch (err) {
         logger.warn(
@@ -1710,6 +1778,17 @@ class ChainlessChainApp {
   async onWillQuit(event) {
     event.preventDefault();
     logger.info("[Main] 应用退出中...");
+
+    // Phase 1.5: flush any pending debounced geometry writes so the user's
+    // last visible bounds aren't lost to the 500ms timer on quit.
+    if (this._geometryPersister) {
+      try {
+        this._geometryPersister.flushAll();
+      } catch (error) {
+        logger.warn("[Main] geometry flushAll error:", error.message);
+      }
+      this._geometryPersister = null;
+    }
 
     // Stop the web-shell HTTP + WS pair before the rest of teardown so any
     // SPA-driven WS messages drain cleanly.
