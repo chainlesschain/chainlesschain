@@ -40,6 +40,10 @@ export interface CommonMessages {
   rename: string;
   move: string;
   settings: string;
+  // BackupDashboard.vue + future pages reference these — optional for now
+  // since most callers fall back gracefully on missing keys.
+  actions?: string;
+  settingsSaved?: string;
 }
 
 export interface AppMessages {
@@ -254,6 +258,25 @@ export interface UkeyBackupMessages {
   strategyEnterprise: string;
   days: string;
   interval: string;
+  // 16 additional keys referenced by BackupDashboard.vue (step wizard +
+  // status messages + storage type labels). Required for zh-CN dogfood;
+  // other locales are still optional via UkeyMessages.backup?.
+  backupId: string;
+  createdAt: string;
+  shards: string;
+  integrity: string;
+  localStorage: string;
+  paperBackup: string;
+  backupSuccess: string;
+  restoreSuccess: string;
+  deleteSuccess: string;
+  verifySuccess: string;
+  verifying: string;
+  step1: string;
+  step2: string;
+  step3: string;
+  step4: string;
+  step5: string;
 }
 
 export interface GitMessages {
