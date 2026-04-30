@@ -77,6 +77,17 @@ function makeStubMcp() {
   };
 }
 
+/** Build a stub UKeyManager surface enough for ukey.sign. */
+function makeStubUkey() {
+  return {
+    sign: vi.fn(async (data) => ({
+      success: true,
+      signature: `sig(${data})`,
+      algorithm: "SM2",
+    })),
+  };
+}
+
 /** Build a stub LLMManager whose chatStream emits a few deltas. */
 function makeStubLlm() {
   return {
@@ -182,6 +193,7 @@ describe("web-shell integration — all 5 topics over a real WS hop", () => {
   let ws = null;
   const stubMcp = makeStubMcp();
   const stubLlm = makeStubLlm();
+  const stubUkey = makeStubUkey();
 
   beforeAll(async () => {
     handle = await startWebShell({
@@ -190,6 +202,7 @@ describe("web-shell integration — all 5 topics over a real WS hop", () => {
       wsPort: 0,
       mcpManager: stubMcp,
       llmManager: stubLlm,
+      ukeyManager: stubUkey,
       // mainWindow null is OK for these topics — only fs.* dialogs need it.
     });
     ws = await openWs(handle.wsUrl);
@@ -316,6 +329,40 @@ describe("web-shell integration — all 5 topics over a real WS hop", () => {
       type: "llm.chat.result",
       ok: false,
       error: "messages_required",
+    });
+  });
+
+  it("ukey.sign streams pre_check + signing stage markers, returns manager result", async () => {
+    const { chunks, terminal } = await streamRpc(ws, {
+      id: "ukey-1",
+      type: "ukey.sign",
+      data: "tx-payload",
+    });
+    expect(chunks.map((c) => c.chunk.stage)).toEqual(["pre_check", "signing"]);
+    expect(terminal).toMatchObject({
+      id: "ukey-1",
+      type: "ukey.sign.result",
+      ok: true,
+    });
+    expect(terminal.result).toEqual({
+      success: true,
+      signature: "sig(tx-payload)",
+      algorithm: "SM2",
+    });
+    expect(stubUkey.sign).toHaveBeenCalledWith("tx-payload");
+  });
+
+  it("ukey.sign with missing data returns ok:false envelope, no stage chunks", async () => {
+    const { chunks, terminal } = await streamRpc(ws, {
+      id: "ukey-2",
+      type: "ukey.sign",
+    });
+    expect(chunks).toHaveLength(0);
+    expect(terminal).toMatchObject({
+      id: "ukey-2",
+      type: "ukey.sign.result",
+      ok: false,
+      error: "data_required",
     });
   });
 

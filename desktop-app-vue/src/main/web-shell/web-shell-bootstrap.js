@@ -41,6 +41,7 @@ const {
   createMcpReadResourceHandler,
 } = require("./handlers/mcp-handlers");
 const { createLlmChatHandler } = require("./handlers/llm-handlers");
+const { createUkeySignHandler } = require("./handlers/ukey-sign-handler");
 
 /** CLI flag / env var that opts in to the web-shell entry point. */
 const WEB_SHELL_FLAG = "--web-shell";
@@ -127,6 +128,14 @@ async function startWebShell(options = {}) {
     // at call time so the SPA gets a clean envelope error.
     "llm.chat": createLlmChatHandler({
       llmManager: options.llmManager ?? null,
+    }),
+    // Phase 2 — routine UKey sign over WS (decision #3 hybrid protocol).
+    // High-risk operations (key generation / mnemonic export / factory
+    // reset) deliberately stay off this map and only flow through
+    // window.electronAPI.ukey.* in preload — security guarantee that
+    // a compromised SPA can never trigger destructive UKey ops via WS.
+    "ukey.sign": createUkeySignHandler({
+      ukeyManager: options.ukeyManager ?? null,
     }),
     ...(options.extraHandlers || {}),
   };
