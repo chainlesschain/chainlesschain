@@ -79,6 +79,7 @@
           <a-sub-menu key="g-advanced">
             <template #title><span class="group-label">高 级</span></template>
             <a-menu-item key="security"><template #icon><SafetyCertificateOutlined /></template>安全中心</a-menu-item>
+            <a-menu-item key="ukey-sign"><template #icon><KeyOutlined /></template>U-Key 签名</a-menu-item>
             <a-menu-item key="trust"><template #icon><SafetyOutlined /></template>信任与安全</a-menu-item>
             <a-menu-item key="audit"><template #icon><FileSearchOutlined /></template>审计日志</a-menu-item>
             <a-menu-item key="did"><template #icon><IdcardOutlined /></template>DID 身份</a-menu-item>
@@ -147,6 +148,7 @@
           <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="security"><template #icon><SafetyCertificateOutlined /></template></a-menu-item>
+          <a-menu-item key="ukey-sign"><template #icon><KeyOutlined /></template></a-menu-item>
           <a-menu-item key="trust"><template #icon><SafetyOutlined /></template></a-menu-item>
           <a-menu-item key="audit"><template #icon><FileSearchOutlined /></template></a-menu-item>
           <a-menu-item key="did"><template #icon><IdcardOutlined /></template></a-menu-item>
@@ -264,7 +266,7 @@ const menuTheme    = computed(() => themeStore.config.vars['--menu-mode'])
 
 const selectedKeys = computed(() => {
   const name = route.name?.toLowerCase() || 'dashboard'
-  return [{ mcptools: 'mcp', quickask: 'quick-ask' }[name] || name]
+  return [{ mcptools: 'mcp', quickask: 'quick-ask', ukeysign: 'ukey-sign' }[name] || name]
 })
 
 const ALL_GROUP_KEYS = [
