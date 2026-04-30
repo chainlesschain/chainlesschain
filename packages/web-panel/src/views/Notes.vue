@@ -94,9 +94,15 @@
     <a-modal
       v-model:open="showView"
       :title="viewingNote?.title"
-      :footer="null"
       width="700px"
     >
+      <template #footer>
+        <a-button @click="showView = false">关闭</a-button>
+        <a-button v-if="viewingNote" type="primary" :loading="exporting" @click="exportNote">
+          <template #icon><DownloadOutlined /></template>
+          导出 .md
+        </a-button>
+      </template>
       <div v-if="viewingNote" style="max-height: 60vh; overflow-y: auto;">
         <div style="margin-bottom: 10px;">
           <a-tag v-for="tag in viewingNote.tags" :key="tag" color="blue">{{ tag }}</a-tag>
@@ -109,11 +115,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { PlusOutlined, ReloadOutlined, FileTextOutlined } from '@ant-design/icons-vue'
+import { PlusOutlined, ReloadOutlined, FileTextOutlined, DownloadOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
+import { useFs } from '../composables/useFs.js'
 
 const ws = useWsStore()
+const fs = useFs()
+const exporting = ref(false)
 
 const loading = ref(false)
 const searching = ref(false)
@@ -227,6 +236,30 @@ async function addNote() {
 function viewNote(record) {
   viewingNote.value = record
   showView.value = true
+}
+
+async function exportNote() {
+  if (!viewingNote.value) return
+  const note = viewingNote.value
+  const tagLine = note.tags?.length ? `tags: [${note.tags.join(', ')}]\n\n` : ''
+  const md = `# ${note.title}\n\n${tagLine}${note.content || note.preview || ''}\n`
+  // Sanitise the title into a filesystem-safe default filename — strip
+  // path separators + colons + control chars, fall back to "note" if the
+  // title is all-special.
+  const safe = (note.title || 'note').replace(/[\\/:*?"<>|\x00-\x1f]+/g, '_').slice(0, 80) || 'note'
+  exporting.value = true
+  try {
+    const r = await fs.saveText(md, {
+      defaultPath: `${safe}.md`,
+      filters: [{ name: 'Markdown', extensions: ['md'] }],
+    })
+    if (r.canceled) return
+    message.success(r.path ? `已导出到 ${r.path}` : '已导出')
+  } catch (e) {
+    message.error(`导出失败: ${e.message || e}`)
+  } finally {
+    exporting.value = false
+  }
 }
 
 onMounted(loadNotes)

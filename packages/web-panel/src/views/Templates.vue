@@ -137,10 +137,18 @@
           Prompt 模板
         </template>
 
-        <div style="margin-bottom: 16px;">
+        <div style="margin-bottom: 16px; display: flex; gap: 8px;">
           <a-button type="primary" @click="showPromptModal = true">
             <template #icon><PlusOutlined /></template>
             新建模板
+          </a-button>
+          <a-button :disabled="!promptTemplates.length" :loading="exportingPrompts" @click="exportPrompts">
+            <template #icon><ExportOutlined /></template>
+            导出全部
+          </a-button>
+          <a-button :loading="importingPrompts" @click="importPrompts">
+            <template #icon><ImportOutlined /></template>
+            导入
           </a-button>
         </div>
 
@@ -232,13 +240,18 @@ import { useRouter } from 'vue-router'
 import {
   AppstoreOutlined, BarChartOutlined, FileTextOutlined,
   PlusOutlined, CopyOutlined, DeleteOutlined,
-  RocketOutlined, PlayCircleOutlined
+  RocketOutlined, PlayCircleOutlined,
+  ExportOutlined, ImportOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
+import { useFs } from '../composables/useFs.js'
 
 const ws = useWsStore()
 const router = useRouter()
+const fs = useFs()
+const exportingPrompts = ref(false)
+const importingPrompts = ref(false)
 
 const activeTab = ref('project')
 
@@ -355,6 +368,73 @@ function resetPromptForm() {
   newPrompt.name = ''
   newPrompt.category = 'general'
   newPrompt.content = ''
+}
+
+async function exportPrompts() {
+  if (!promptTemplates.value.length) return
+  exportingPrompts.value = true
+  try {
+    const r = await fs.saveJson(
+      { schema: 1, prompts: promptTemplates.value },
+      { defaultPath: `prompt-templates-${new Date().toISOString().slice(0, 10)}.json` },
+    )
+    if (r.canceled) return
+    message.success(r.path ? `已导出 ${promptTemplates.value.length} 条到 ${r.path}` : '已导出')
+  } catch (e) {
+    message.error(`导出失败: ${e.message || e}`)
+  } finally {
+    exportingPrompts.value = false
+  }
+}
+
+async function importPrompts() {
+  importingPrompts.value = true
+  try {
+    const r = await fs.pickFileText({
+      title: '选择 prompt-templates JSON',
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    })
+    if (!r || r.canceled) return
+    if (r.reason === 'too_large') {
+      message.error('文件过大')
+      return
+    }
+    let parsed
+    try {
+      parsed = JSON.parse(r.content || '')
+    } catch (e) {
+      message.error(`JSON 解析失败: ${e.message}`)
+      return
+    }
+    // Accept either {schema, prompts: [...]} or a bare array — be lenient on
+    // input shape since users may hand-edit the file.
+    const list = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.prompts) ? parsed.prompts : null
+    if (!list) {
+      message.error('文件格式不识别（期待 {prompts: [...]} 或数组）')
+      return
+    }
+    let added = 0
+    for (const p of list) {
+      if (!p || typeof p !== 'object') continue
+      if (typeof p.name !== 'string' || typeof p.content !== 'string') continue
+      promptTemplates.value.push({
+        name: p.name,
+        category: typeof p.category === 'string' ? p.category : 'general',
+        content: p.content,
+      })
+      added++
+    }
+    if (added) {
+      persistPrompts()
+      message.success(`已导入 ${added} 条`)
+    } else {
+      message.warning('文件中没有有效的 prompt 条目')
+    }
+  } catch (e) {
+    message.error(`导入失败: ${e.message || e}`)
+  } finally {
+    importingPrompts.value = false
+  }
 }
 
 function deletePrompt(idx) {

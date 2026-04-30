@@ -26,10 +26,20 @@
             </a-space>
           </template>
           <template #extra>
-            <a-button type="primary" :loading="backupCreating" @click="createBackup">
-              <template #icon><PlusOutlined /></template>
-              创建备份
-            </a-button>
+            <a-space>
+              <a-button
+                :disabled="!backups.length"
+                :loading="exportingList"
+                @click="exportBackupList"
+              >
+                <template #icon><DownloadOutlined /></template>
+                导出列表
+              </a-button>
+              <a-button type="primary" :loading="backupCreating" @click="createBackup">
+                <template #icon><PlusOutlined /></template>
+                创建备份
+              </a-button>
+            </a-space>
           </template>
 
           <div v-if="backupLoading" style="text-align: center; padding: 30px;"><a-spin /></div>
@@ -320,11 +330,16 @@
 import { ref, onMounted } from 'vue'
 import {
   CloudUploadOutlined, SyncOutlined, HddOutlined,
-  PlusOutlined, DeleteOutlined, ReloadOutlined
+  PlusOutlined, DeleteOutlined, ReloadOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons-vue'
+import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
+import { useFs } from '../composables/useFs.js'
 
 const ws = useWsStore()
+const fs = useFs()
+const exportingList = ref(false)
 
 const activeTab = ref('backup')
 const refreshing = ref(false)
@@ -605,6 +620,23 @@ function safeParseJson(str) {
       try { return JSON.parse(match[0]) } catch (_e2) { /* ignore */ }
     }
     return null
+  }
+}
+
+async function exportBackupList() {
+  if (!backups.value.length) return
+  exportingList.value = true
+  try {
+    const r = await fs.saveJson(
+      { schema: 1, exportedAt: new Date().toISOString(), count: backups.value.length, backups: backups.value },
+      { defaultPath: `backup-list-${new Date().toISOString().slice(0, 10)}.json` },
+    )
+    if (r.canceled) return
+    message.success(r.path ? `已导出 ${backups.value.length} 条备份信息到 ${r.path}` : '已导出')
+  } catch (e) {
+    message.error(`导出失败: ${e.message || e}`)
+  } finally {
+    exportingList.value = false
   }
 }
 
