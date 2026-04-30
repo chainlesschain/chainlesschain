@@ -47,6 +47,19 @@ function shapeTool(tool) {
   };
 }
 
+/** Trim an MCP resource to the fields the SPA needs. */
+function shapeResource(resource) {
+  if (!resource || typeof resource !== "object") {
+    return null;
+  }
+  return {
+    uri: resource.uri,
+    name: resource.name ?? null,
+    description: resource.description ?? "",
+    mimeType: resource.mimeType ?? null,
+  };
+}
+
 function getManager(options) {
   const mgr = options.mcpManager;
   if (!mgr) {
@@ -138,8 +151,100 @@ function createMcpCallToolHandler(options = {}) {
   };
 }
 
+/**
+ * Build the `mcp.list_resources` topic handler. Same aggregate-or-single
+ * shape as `mcp.list_tools`:
+ *   serverName given → { server: { name, state, resources:[...] } }
+ *   omitted          → { servers: [{ name, state, resources, error? }, ...] }
+ *
+ * Per-server failures in the aggregate path are isolated into `{error}` so
+ * one disconnected server can't blank out the SPA's resource browser.
+ *
+ * @param {{ mcpManager: object | null }} options
+ * @returns {(frame: any) => Promise<object>}
+ */
+function createMcpListResourcesHandler(options = {}) {
+  return async function mcpListResourcesHandler(frame) {
+    const mgr = getManager(options);
+
+    if (frame?.serverName) {
+      const name = String(frame.serverName);
+      const resources = await mgr.listResources(name);
+      const info = mgr.getServerInfo(name);
+      return {
+        server: {
+          name,
+          state: info?.state ?? null,
+          resources: Array.isArray(resources)
+            ? resources.map(shapeResource).filter(Boolean)
+            : [],
+        },
+      };
+    }
+
+    const connected = mgr.getConnectedServers() || [];
+    const servers = await Promise.all(
+      connected.map(async (name) => {
+        try {
+          const resources = await mgr.listResources(name);
+          const info = mgr.getServerInfo(name);
+          return {
+            name,
+            state: info?.state ?? null,
+            resources: Array.isArray(resources)
+              ? resources.map(shapeResource).filter(Boolean)
+              : [],
+          };
+        } catch (err) {
+          let state = null;
+          try {
+            state = mgr.getServerInfo(name)?.state ?? null;
+          } catch {
+            // getServerInfo throws "Server not found" on disconnected servers.
+          }
+          return {
+            name,
+            state,
+            resources: [],
+            error: err?.message ?? String(err),
+          };
+        }
+      }),
+    );
+    return { servers };
+  };
+}
+
+/**
+ * Build the `mcp.read_resource` topic handler.
+ *
+ *   client → server: { id, type: "mcp.read_resource", serverName, uri }
+ *   result.shape: passthrough of `MCPClientManager.readResource()` —
+ *     typically `{ contents: [{ uri, mimeType, text|blob }] }`.
+ *
+ * @param {{ mcpManager: object | null }} options
+ * @returns {(frame: any) => Promise<object>}
+ */
+function createMcpReadResourceHandler(options = {}) {
+  return async function mcpReadResourceHandler(frame) {
+    const mgr = getManager(options);
+    const serverName = frame?.serverName;
+    const uri = frame?.uri;
+    if (typeof serverName !== "string" || !serverName) {
+      throw new Error("server_name_required");
+    }
+    if (typeof uri !== "string" || !uri) {
+      throw new Error("uri_required");
+    }
+    return mgr.readResource(serverName, uri);
+  };
+}
+
 module.exports = {
   createMcpListToolsHandler,
   createMcpCallToolHandler,
+  createMcpListResourcesHandler,
+  createMcpReadResourceHandler,
   shapeTool,
+  shapeResource,
 };

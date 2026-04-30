@@ -10,7 +10,10 @@ import { describe, it, expect, vi } from "vitest";
 import {
   createMcpListToolsHandler,
   createMcpCallToolHandler,
+  createMcpListResourcesHandler,
+  createMcpReadResourceHandler,
   shapeTool,
+  shapeResource,
 } from "../handlers/mcp-handlers.js";
 
 function makeStubManager(overrides = {}) {
@@ -48,6 +51,32 @@ function makeStubManager(overrides = {}) {
     callTool: vi.fn(async (server, tool, params) => ({
       content: [
         { type: "text", text: `${server}.${tool}(${JSON.stringify(params)})` },
+      ],
+    })),
+    listResources: vi.fn(async (name) => {
+      if (name === "filesystem") {
+        return [
+          {
+            uri: "file:///tmp/notes.md",
+            name: "Notes",
+            description: "Personal notes",
+            mimeType: "text/markdown",
+          },
+          { uri: "file:///tmp/todo.txt" },
+        ];
+      }
+      if (name === "github") {
+        return [{ uri: "github://repos/foo/bar", name: "foo/bar" }];
+      }
+      return [];
+    }),
+    readResource: vi.fn(async (server, uri) => ({
+      contents: [
+        {
+          uri,
+          mimeType: "text/plain",
+          text: `content of ${uri} from ${server}`,
+        },
       ],
     })),
     ...overrides,
@@ -247,5 +276,159 @@ describe("mcp.call_tool", () => {
     await expect(
       handler({ serverName: "filesystem", toolName: "read_file" }),
     ).rejects.toThrow("permission_denied");
+  });
+});
+
+describe("shapeResource", () => {
+  it("preserves uri + name + description + mimeType", () => {
+    expect(
+      shapeResource({
+        uri: "file:///x",
+        name: "X",
+        description: "y",
+        mimeType: "text/plain",
+      }),
+    ).toEqual({
+      uri: "file:///x",
+      name: "X",
+      description: "y",
+      mimeType: "text/plain",
+    });
+  });
+
+  it("defaults missing fields to null/empty-string", () => {
+    expect(shapeResource({ uri: "file:///x" })).toEqual({
+      uri: "file:///x",
+      name: null,
+      description: "",
+      mimeType: null,
+    });
+  });
+
+  it("returns null for non-object inputs", () => {
+    expect(shapeResource(null)).toBeNull();
+    expect(shapeResource("file:///x")).toBeNull();
+  });
+});
+
+describe("mcp.list_resources — aggregate", () => {
+  it("returns one entry per connected server with their resources", async () => {
+    const mcpManager = makeStubManager();
+    const handler = createMcpListResourcesHandler({ mcpManager });
+    const result = await handler({});
+    expect(result.servers).toHaveLength(2);
+    const fs = result.servers.find((s) => s.name === "filesystem");
+    expect(fs.resources).toHaveLength(2);
+    expect(fs.resources[0].uri).toBe("file:///tmp/notes.md");
+    expect(fs.resources[1].name).toBeNull(); // shape default
+  });
+
+  it("isolates per-server failures into {error}", async () => {
+    const mcpManager = makeStubManager({
+      listResources: vi.fn(async (name) => {
+        if (name === "github") {
+          throw new Error("rate_limited");
+        }
+        return [{ uri: "file:///x" }];
+      }),
+    });
+    const handler = createMcpListResourcesHandler({ mcpManager });
+    const result = await handler({});
+    const gh = result.servers.find((s) => s.name === "github");
+    expect(gh.error).toBe("rate_limited");
+    expect(gh.resources).toEqual([]);
+  });
+});
+
+describe("mcp.list_resources — single server", () => {
+  it("returns one server entry when serverName given", async () => {
+    const mcpManager = makeStubManager();
+    const handler = createMcpListResourcesHandler({ mcpManager });
+    const result = await handler({ serverName: "github" });
+    expect(result.server.name).toBe("github");
+    expect(result.server.resources).toEqual([
+      {
+        uri: "github://repos/foo/bar",
+        name: "foo/bar",
+        description: "",
+        mimeType: null,
+      },
+    ]);
+  });
+
+  it("propagates listResources errors when serverName is given", async () => {
+    const mcpManager = makeStubManager({
+      listResources: vi.fn(async () => {
+        throw new Error("not_supported");
+      }),
+    });
+    const handler = createMcpListResourcesHandler({ mcpManager });
+    await expect(handler({ serverName: "filesystem" })).rejects.toThrow(
+      "not_supported",
+    );
+  });
+
+  it("throws mcp_unavailable on null mcpManager", async () => {
+    const handler = createMcpListResourcesHandler({ mcpManager: null });
+    await expect(handler({})).rejects.toThrow("mcp_unavailable");
+  });
+});
+
+describe("mcp.read_resource", () => {
+  it("forwards serverName + uri to readResource", async () => {
+    const mcpManager = makeStubManager();
+    const handler = createMcpReadResourceHandler({ mcpManager });
+    const result = await handler({
+      serverName: "filesystem",
+      uri: "file:///tmp/notes.md",
+    });
+    expect(mcpManager.readResource).toHaveBeenCalledWith(
+      "filesystem",
+      "file:///tmp/notes.md",
+    );
+    expect(result.contents[0].text).toContain("file:///tmp/notes.md");
+  });
+
+  it("throws server_name_required when serverName is missing", async () => {
+    const handler = createMcpReadResourceHandler({
+      mcpManager: makeStubManager(),
+    });
+    await expect(handler({ uri: "file:///x" })).rejects.toThrow(
+      "server_name_required",
+    );
+  });
+
+  it("throws uri_required when uri is missing or non-string", async () => {
+    const handler = createMcpReadResourceHandler({
+      mcpManager: makeStubManager(),
+    });
+    await expect(handler({ serverName: "filesystem" })).rejects.toThrow(
+      "uri_required",
+    );
+    await expect(
+      handler({ serverName: "filesystem", uri: "" }),
+    ).rejects.toThrow("uri_required");
+    await expect(
+      handler({ serverName: "filesystem", uri: 123 }),
+    ).rejects.toThrow("uri_required");
+  });
+
+  it("throws mcp_unavailable when manager is null", async () => {
+    const handler = createMcpReadResourceHandler({ mcpManager: null });
+    await expect(
+      handler({ serverName: "filesystem", uri: "file:///x" }),
+    ).rejects.toThrow("mcp_unavailable");
+  });
+
+  it("propagates readResource errors verbatim", async () => {
+    const mcpManager = makeStubManager({
+      readResource: vi.fn(async () => {
+        throw new Error("not_found");
+      }),
+    });
+    const handler = createMcpReadResourceHandler({ mcpManager });
+    await expect(
+      handler({ serverName: "filesystem", uri: "file:///gone" }),
+    ).rejects.toThrow("not_found");
   });
 });

@@ -37,6 +37,8 @@ const {
 const {
   createMcpListToolsHandler,
   createMcpCallToolHandler,
+  createMcpListResourcesHandler,
+  createMcpReadResourceHandler,
 } = require("./handlers/mcp-handlers");
 
 /** CLI flag / env var that opts in to the web-shell entry point. */
@@ -106,6 +108,12 @@ async function startWebShell(options = {}) {
       mcpManager: options.mcpManager ?? null,
     }),
     "mcp.call_tool": createMcpCallToolHandler({
+      mcpManager: options.mcpManager ?? null,
+    }),
+    "mcp.list_resources": createMcpListResourcesHandler({
+      mcpManager: options.mcpManager ?? null,
+    }),
+    "mcp.read_resource": createMcpReadResourceHandler({
       mcpManager: options.mcpManager ?? null,
     }),
     ...(options.extraHandlers || {}),
