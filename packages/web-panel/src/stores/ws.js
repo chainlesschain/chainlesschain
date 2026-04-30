@@ -195,6 +195,13 @@ export const useWsStore = defineStore('ws', () => {
         // Reject all pending
         pending.forEach(({ reject }) => reject(new Error('WebSocket closed')))
         pending.clear()
+        // Tear down any in-flight streams so their consumers can fail-fast
+        // instead of hanging on a never-arriving terminal frame.
+        pendingStreams.forEach(({ reject, clear }) => {
+          try { clear() } catch { /* defensive */ }
+          reject(new Error('WebSocket closed'))
+        })
+        pendingStreams.clear()
         if (manualClose) {
           manualClose = false
           reconnectTimer = null
@@ -246,6 +253,30 @@ export const useWsStore = defineStore('ws', () => {
     // v1.0 envelope uses requestId for correlation; legacy uses id
     const correlationId = msg.requestId || msg.id
     let wasPending = false
+
+    // Streaming envelope (desktop web-shell): <topic>.chunk + <topic>.result.
+    // The `pendingStreams` map keys are request ids. We dispatch chunks to
+    // the per-stream onChunk callback, and a terminal `.result` resolves /
+    // rejects the outer promise. handled-here short-circuits the regular
+    // pending path so the server's reply doesn't double-resolve.
+    if (correlationId && pendingStreams.has(correlationId) && typeof type === 'string') {
+      const stream = pendingStreams.get(correlationId)
+      if (type.endsWith('.chunk')) {
+        try { stream.onChunk(msg.chunk) } catch { /* consumer error must not break the stream wire */ }
+        stream.rearm()
+        return true
+      }
+      if (type.endsWith('.result')) {
+        pendingStreams.delete(correlationId)
+        stream.clear()
+        if (msg.ok === false) {
+          stream.reject(new Error(msg.error || 'Stream error'))
+        } else {
+          stream.resolve(msg.result ?? null)
+        }
+        return true
+      }
+    }
 
     // Resolve pending one-shot requests
     if (correlationId && pending.has(correlationId)) {
@@ -319,6 +350,63 @@ export const useWsStore = defineStore('ws', () => {
         reject(new Error('Request timeout'))
       }, timeoutMs)
       pending.set(id, { resolve, reject, timeout: timer })
+      socket.value.send(JSON.stringify({ ...payload, id }))
+    })
+  }
+
+  // Pending streams: id → { onChunk, resolve, reject, timer, idleMs }
+  const pendingStreams = new Map()
+
+  /**
+   * Send a frame whose handler is an async generator on the server (see
+   * desktop-app-vue/src/main/web-shell/ws-cli-loader.js streaming envelope).
+   * Listens for `<type>.chunk` frames matching the request id, calls
+   * options.onChunk(chunkValue) for each, then resolves with the result of
+   * the terminal `<type>.result` frame (or rejects on ok:false).
+   *
+   * The idle timeout resets on every chunk so a long stream that's
+   * actively producing tokens never trips the timer; only a true stall
+   * does. Pass `idleMs: 0` to disable.
+   *
+   * @param {object} payload  - WS frame (e.g. { type: 'llm.chat', messages })
+   * @param {object} options
+   * @param {(chunk:any) => void} options.onChunk
+   * @param {number} [options.idleMs=30000]  reset on every chunk; 0 disables
+   * @returns {Promise<any>}  resolves with the .result's `result` field
+   */
+  function sendStream(payload, options = {}) {
+    return new Promise((resolve, reject) => {
+      if (socket.value?.readyState !== WebSocket.OPEN) {
+        reject(new Error('WebSocket not connected'))
+        return
+      }
+      const id = payload.id || genId()
+      const idleMs = options.idleMs ?? 30000
+      const onChunk = typeof options.onChunk === 'function' ? options.onChunk : () => {}
+
+      let idleTimer = null
+      const armIdle = () => {
+        if (!idleMs) return
+        if (idleTimer) clearTimeout(idleTimer)
+        idleTimer = setTimeout(() => {
+          if (pendingStreams.has(id)) {
+            pendingStreams.delete(id)
+            reject(new Error('Stream idle timeout'))
+          }
+        }, idleMs)
+      }
+
+      pendingStreams.set(id, {
+        onChunk,
+        resolve,
+        reject,
+        clear: () => {
+          if (idleTimer) clearTimeout(idleTimer)
+          idleTimer = null
+        },
+        rearm: armIdle,
+      })
+      armIdle()
       socket.value.send(JSON.stringify({ ...payload, id }))
     })
   }
@@ -440,7 +528,7 @@ export const useWsStore = defineStore('ws', () => {
     status, error, wsUrl,
     connect, disconnect, waitConnected,
     onMessage, onRuntimeEvent, onSession,
-    sendRaw,
+    sendRaw, sendStream,
     execute, executeJson,
     createSession, resumeSession, sendSessionMessage, answerQuestion, listSessions, closeSession
   }
