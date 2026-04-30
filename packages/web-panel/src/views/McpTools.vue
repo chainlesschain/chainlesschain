@@ -101,13 +101,16 @@
 import { ref, computed, onMounted } from 'vue'
 import { ReloadOutlined, CloudServerOutlined, ToolOutlined, CheckCircleOutlined } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
+import { useMcp } from '../composables/useMcp.js'
 
 const ws = useWsStore()
+const mcp = useMcp()
 
 const loading = ref(false)
 const servers = ref([])
 const tools = ref([])
 const toolSearch = ref('')
+const dataSource = ref('')   // 'topic' | 'cli' — surfaced in template hint, helps debug
 
 const filteredTools = computed(() => {
   if (!toolSearch.value) return tools.value
@@ -121,15 +124,71 @@ const toolColumns = [
   { title: '描述', dataIndex: 'description', ellipsis: true },
 ]
 
+/**
+ * Topic path — works inside the desktop web-shell where mcp.list_tools is
+ * registered (see desktop-app-vue/src/main/web-shell/handlers/mcp-handlers.js).
+ * Returns false on `mcp_unavailable` / `no_handler` so the caller falls back
+ * to the CLI execute path.
+ */
+async function loadFromTopic() {
+  const r = await mcp.listTools()
+  if (!r || !Array.isArray(r.servers)) return false
+  servers.value = r.servers.map((s) => ({
+    key: s.name,
+    name: s.name,
+    command: '',         // topic doesn't expose config-time command/args
+    args: [],
+    description: s.state ? `state: ${s.state}` : '',
+    error: s.error || null,
+  }))
+  const flat = []
+  for (const s of r.servers) {
+    if (!Array.isArray(s.tools)) continue
+    for (const t of s.tools) {
+      flat.push({
+        key: `${s.name}.${t.name}`,
+        name: t.name,
+        description: t.description || '',
+        server: s.name,
+      })
+    }
+  }
+  tools.value = flat
+  return true
+}
+
 async function load() {
   loading.value = true
   try {
+    // Prefer the topic path — it's the only one that works in the embedded
+    // desktop web-shell (Electron can't spawn the cc CLI as a child). When
+    // the topic isn't registered (standalone CLI mode in a browser), fall
+    // back to ws.execute. Either path populates the same `servers` + `tools`
+    // refs so the template doesn't branch.
+    try {
+      const ok = await loadFromTopic()
+      if (ok) {
+        dataSource.value = 'topic'
+        return
+      }
+    } catch (err) {
+      // Expected when the desktop web-shell isn't loaded — CLI mode falls through.
+      const msg = err?.message || ''
+      const recoverable =
+        msg.includes('mcp_unavailable') ||
+        msg.includes('no_handler') ||
+        msg.includes('UNKNOWN_TYPE')
+      if (!recoverable) {
+        console.error('MCP topic load failed:', err)
+      }
+    }
     const [serversResult, toolsResult] = await Promise.all([
       ws.execute('mcp servers', 15000).catch(() => ({ output: '' })),
       ws.execute('mcp tools', 15000).catch(() => ({ output: '' })),
     ])
     servers.value = parseServers(serversResult.output)
     tools.value = parseTools(toolsResult.output)
+    dataSource.value = 'cli'
   } catch (e) {
     console.error('MCP load failed:', e)
   } finally {
