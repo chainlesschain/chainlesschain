@@ -134,16 +134,30 @@
           <pre style="background: var(--bg-card-hover); padding: 8px; border-radius: 4px; font-size: 11px; max-height: 140px; overflow: auto; margin: 0;">{{ formattedSchema }}</pre>
         </div>
         <div>
-          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">参数 (JSON)</div>
-          <a-textarea
-            v-model:value="paramsText"
-            :rows="6"
-            :placeholder="'{}'"
-            style="font-family: monospace; font-size: 12px;"
-          />
-          <div v-if="paramsParseError" style="color: #ff4d4f; font-size: 11px; margin-top: 4px;">
-            JSON 解析失败：{{ paramsParseError }}
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+            <span style="color: var(--text-muted); font-size: 11px;">参数</span>
+            <a-radio-group v-model:value="paramMode" size="small" button-style="solid">
+              <a-radio-button value="form" :disabled="!hasFormSchema">表单</a-radio-button>
+              <a-radio-button value="json">JSON</a-radio-button>
+            </a-radio-group>
           </div>
+          <McpToolForm
+            v-if="paramMode === 'form'"
+            v-model="formValues"
+            :schema="selectedTool.inputSchema"
+            :errors="formErrors"
+          />
+          <template v-else>
+            <a-textarea
+              v-model:value="paramsText"
+              :rows="6"
+              :placeholder="'{}'"
+              style="font-family: monospace; font-size: 12px;"
+            />
+            <div v-if="paramsParseError" style="color: #ff4d4f; font-size: 11px; margin-top: 4px;">
+              JSON 解析失败：{{ paramsParseError }}
+            </div>
+          </template>
         </div>
         <div v-if="runError" style="background: #2a1517; border: 1px solid #5c2426; padding: 8px; border-radius: 4px;">
           <div style="color: #ff4d4f; font-size: 11px; font-weight: 500; margin-bottom: 4px;">运行失败</div>
@@ -163,6 +177,8 @@ import { ref, computed, onMounted } from 'vue'
 import { ReloadOutlined, CloudServerOutlined, ToolOutlined, CheckCircleOutlined, PlayCircleOutlined } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useMcp } from '../composables/useMcp.js'
+import McpToolForm from '../components/McpToolForm.vue'
+import { extractFields, defaultValues, validateValues } from '../utils/mcp-schema.js'
 
 const ws = useWsStore()
 const mcp = useMcp()
@@ -191,10 +207,17 @@ const toolColumns = [
 // trigger entirely there).
 const runModalOpen = ref(false)
 const selectedTool = ref(null)
-const paramsText = ref('{}')
+const paramMode = ref('form')              // 'form' | 'json'
+const formValues = ref({})                  // Form-mode values, keyed by property name
+const formErrors = ref({})                  // Form-mode per-field errors
+const paramsText = ref('{}')                // JSON-mode raw text
 const running = ref(false)
 const runResult = ref(null)
 const runError = ref('')
+
+const hasFormSchema = computed(() => {
+  return extractFields(selectedTool.value?.inputSchema || null).length > 0
+})
 
 const runModalTitle = computed(() => {
   if (!selectedTool.value) return '运行 MCP 工具'
@@ -227,6 +250,13 @@ function openRunModal(tool) {
   runResult.value = null
   runError.value = ''
   paramsParseError.value = ''
+  formErrors.value = {}
+  // Default to form mode whenever the tool has a usable schema; JSON mode
+  // is the escape hatch for tools whose schema falls outside extractFields'
+  // supported subset (nested objects, arrays of objects, etc).
+  const fields = extractFields(tool?.inputSchema || null)
+  paramMode.value = fields.length > 0 ? 'form' : 'json'
+  formValues.value = defaultValues(fields)
   runModalOpen.value = true
 }
 
@@ -239,20 +269,33 @@ function closeRunModal() {
 async function runSelectedTool() {
   if (!selectedTool.value || running.value) return
   paramsParseError.value = ''
+  formErrors.value = {}
   let params = {}
-  const txt = (paramsText.value || '').trim()
-  if (txt) {
-    try {
-      params = JSON.parse(txt)
-    } catch (err) {
-      paramsParseError.value = err.message || 'invalid JSON'
+
+  if (paramMode.value === 'form') {
+    const fields = extractFields(selectedTool.value.inputSchema || null)
+    const r = validateValues(fields, formValues.value)
+    if (!r.ok) {
+      formErrors.value = r.errors
       return
     }
-    if (params === null || typeof params !== 'object' || Array.isArray(params)) {
-      paramsParseError.value = '参数必须是 JSON 对象'
-      return
+    params = r.params
+  } else {
+    const txt = (paramsText.value || '').trim()
+    if (txt) {
+      try {
+        params = JSON.parse(txt)
+      } catch (err) {
+        paramsParseError.value = err.message || 'invalid JSON'
+        return
+      }
+      if (params === null || typeof params !== 'object' || Array.isArray(params)) {
+        paramsParseError.value = '参数必须是 JSON 对象'
+        return
+      }
     }
   }
+
   running.value = true
   runError.value = ''
   runResult.value = null
