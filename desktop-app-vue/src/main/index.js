@@ -819,6 +819,11 @@ class ChainlessChainApp {
         // fast-start paths, so by here this.mcpManager is settled (manager or
         // null). Handlers re-check at call time, so re-binding isn't needed.
         mcpManager: this.mcpManager ?? null,
+        // Phase 2 streaming consumer — drives `llm.chat` with multi-provider
+        // chat (Ollama for local + cloud providers) inheriting the desktop's
+        // budget alert / cache / state-bus. Null until LLM init lands; the
+        // handler throws llm_unavailable cleanly when called too early.
+        llmManager: this.llmManager ?? null,
         mainWindow: this.mainWindow,
       });
       this._webShellHandle = handle;

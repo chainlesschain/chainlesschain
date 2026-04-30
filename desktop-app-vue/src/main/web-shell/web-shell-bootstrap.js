@@ -40,6 +40,7 @@ const {
   createMcpListResourcesHandler,
   createMcpReadResourceHandler,
 } = require("./handlers/mcp-handlers");
+const { createLlmChatHandler } = require("./handlers/llm-handlers");
 
 /** CLI flag / env var that opts in to the web-shell entry point. */
 const WEB_SHELL_FLAG = "--web-shell";
@@ -56,6 +57,9 @@ const WEB_SHELL_ENV = "CHAINLESSCHAIN_WEB_SHELL";
  *                                            when MCP is disabled). Surfaced to the
  *                                            embedded SPA via mcp.list_tools /
  *                                            mcp.call_tool topics.
+ * @property {object | null} [llmManager]    LLMManager singleton (or null when
+ *                                            LLM hasn't initialised yet). Drives
+ *                                            the streaming `llm.chat` topic.
  * @property {Electron.BrowserWindow | null} [mainWindow]
  *                                            Parent window for native dialogs. Required
  *                                            for fs.openDialog / fs.saveDialog handlers.
@@ -115,6 +119,14 @@ async function startWebShell(options = {}) {
     }),
     "mcp.read_resource": createMcpReadResourceHandler({
       mcpManager: options.mcpManager ?? null,
+    }),
+    // Phase 2 streaming first consumer — async-generator handler that
+    // bridges LLMManager.chatStream(messages, onChunk, opts) to the
+    // streaming envelope (see ws-cli-loader.js). llmManager may be null
+    // before LLM init completes; the handler throws `llm_unavailable`
+    // at call time so the SPA gets a clean envelope error.
+    "llm.chat": createLlmChatHandler({
+      llmManager: options.llmManager ?? null,
     }),
     ...(options.extraHandlers || {}),
   };
