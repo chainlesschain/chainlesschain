@@ -278,6 +278,7 @@ import {
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
+import { useFs } from '../composables/useFs.js'
 import {
   parseLogs,
   parseStats,
@@ -288,6 +289,7 @@ import {
 } from '../utils/audit-parser.js'
 
 const ws = useWsStore()
+const fs = useFs()
 
 const loading = ref(false)
 
@@ -443,16 +445,15 @@ async function exportJson() {
       message.error('导出失败: ' + output.slice(0, 120))
       return
     }
-    const blob = new Blob([output.trim()], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `audit-${new Date().toISOString().slice(0, 10)}.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-    message.success('已导出到下载文件夹')
+    // useFs uses native fs.saveDialog inside the desktop web-shell so the
+    // user picks a real path; in browser mode it falls back to the blob+
+    // <a download> the hand-rolled code used before.
+    const r = await fs.saveText(output.trim(), {
+      defaultPath: `audit-${new Date().toISOString().slice(0, 10)}.json`,
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    })
+    if (r.canceled) return
+    message.success(r.path ? `已导出到 ${r.path}` : '已导出')
   } catch (e) {
     message.error('导出失败: ' + (e?.message || e))
   }

@@ -111,6 +111,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useWorkflowStore } from '../stores/workflow.js'
+import { useFs } from '../composables/useFs.js'
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 
@@ -188,15 +189,24 @@ async function runCurrent() {
   }
 }
 
-function exportJson() {
-  const json = store.exportJson(current.value)
-  const blob = new Blob([json], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${current.value.id || 'workflow'}.json`
-  a.click()
-  URL.revokeObjectURL(url)
+const fs = useFs()
+
+async function exportJson() {
+  // useFs routes through fs.saveDialog (native Electron save dialog) when
+  // the SPA is loaded inside the desktop web-shell, and falls back to a
+  // blob+<a download> in standalone browser mode — same UX the previous
+  // hand-rolled path provided.
+  try {
+    const r = await fs.saveJson(JSON.parse(store.exportJson(current.value)), {
+      defaultPath: `${current.value.id || 'workflow'}.json`,
+    })
+    if (r.canceled) return
+    if (r.path) {
+      message.success(`已保存到 ${r.path}`)
+    }
+  } catch (e) {
+    message.error(`导出失败: ${e.message}`)
+  }
 }
 </script>
 
