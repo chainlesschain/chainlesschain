@@ -226,6 +226,50 @@ export interface UkeyMessages {
   // missing keys fall back to the key itself which is acceptable for the
   // non-zh locales we don't actively dogfood. zh-CN ships the full set.
   backup?: UkeyBackupMessages;
+  // HardwareWalletPage.vue + DevicePicker / WirelessSetup components.
+  // Same optional-for-other-locales policy.
+  hwWallet?: UkeyHwWalletMessages;
+}
+
+export interface UkeyHwWalletMessages {
+  title: string;
+  subtitle: string;
+  devices: string;
+  accounts: string;
+  multiSign: string;
+  firmware: string;
+  hwWalletStatus: string;
+  ukeyStatus: string;
+  connected: string;
+  notConnected: string;
+  model: string;
+  firmwareVersion: string;
+  bootloaderVersion: string;
+  scanDevices: string;
+  scanning: string;
+  noDevicesFound: string;
+  supportedDevices: string;
+  connect: string;
+  disconnect: string;
+  derivedAccounts: string;
+  discoverAccounts: string;
+  discovering: string;
+  address: string;
+  addressVerified: string;
+  balance: string;
+  derivationPath: string;
+  index: string;
+  verifyOnDevice: string;
+  verifyingOnDevice: string;
+  dualSign: string;
+  dualSignExplain: string;
+  highRisk: string;
+  highRiskMethod: string;
+  lowRisk: string;
+  lowRiskMethod: string;
+  updateAvailable: string;
+  updateFirmware: string;
+  firmwareUpdateWarning: string;
 }
 
 export interface UkeyBackupMessages {

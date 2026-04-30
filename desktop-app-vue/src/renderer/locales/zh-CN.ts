@@ -265,6 +265,53 @@ const zhCN: LocaleMessages = {
       step4: "第 4 步：执行备份",
       step5: "第 5 步：完成",
     },
+    hwWallet: {
+      title: "硬件钱包",
+      subtitle: "管理 Ledger / Trezor / OneKey / Keystone 等硬件钱包设备",
+      // 标签页
+      devices: "设备",
+      accounts: "账户",
+      multiSign: "多重签名",
+      firmware: "固件",
+      // 状态
+      hwWalletStatus: "硬件钱包状态",
+      ukeyStatus: "U-Key 状态",
+      connected: "已连接",
+      notConnected: "未连接",
+      model: "型号",
+      firmwareVersion: "固件版本",
+      bootloaderVersion: "Bootloader 版本",
+      // 设备列表
+      scanDevices: "扫描设备",
+      scanning: "扫描中...",
+      noDevicesFound: "未发现设备",
+      supportedDevices: "已支持的设备",
+      connect: "连接",
+      disconnect: "断开",
+      // 账户
+      derivedAccounts: "派生账户",
+      discoverAccounts: "发现账户",
+      discovering: "正在发现...",
+      address: "地址",
+      addressVerified: "地址已在设备上确认",
+      balance: "余额",
+      derivationPath: "派生路径",
+      index: "索引",
+      verifyOnDevice: "在设备上确认",
+      verifyingOnDevice: "正在设备上确认...",
+      // 多签
+      dualSign: "双重签名",
+      dualSignExplain: "需要硬件钱包 + U-Key 两个签名才能完成交易",
+      highRisk: "高风险",
+      highRiskMethod: "需要双重签名",
+      lowRisk: "低风险",
+      lowRiskMethod: "只需硬件钱包签名",
+      // 固件
+      updateAvailable: "有固件更新可用",
+      updateFirmware: "升级固件",
+      firmwareUpdateWarning:
+        "固件升级过程中请勿断开设备连接，否则可能导致设备变砖",
+    },
   },
 
   git: {
