@@ -29,8 +29,20 @@ const WS_SESSION_GATEWAY_REL =
 const CONFIG_MANAGER_REL = "../../../../packages/cli/src/lib/config-manager.js";
 
 /**
- * @typedef {(frame: any, ctx: { topic: string, id: string, server: any, ws: any, clientId: string }) => Promise<any> | any} TopicHandler
+ * @typedef {(frame: any, ctx: { topic: string, id: string, server: any, ws: any, clientId: string }) => (Promise<any> | any | AsyncIterable<any>)} TopicHandler
  *
+ * Streaming: a handler MAY return (or be) an async iterable. Each yielded
+ * value is wrapped as `{type:"<topic>.chunk", id, ok:true, chunk}` and
+ * pushed on the same WS connection. The generator's final return value
+ * (i.e. `return foo` inside `async function*`) becomes the terminal
+ * `<topic>.result` frame so the SPA can correlate end-of-stream with
+ * the same id. If the generator returns nothing, the `.result` frame's
+ * `result` is `null` — same convention as the non-streaming path.
+ *
+ * Backwards compatible: handlers that return plain values / Promises are
+ * dispatched exactly as before.
+ *
+
  * @typedef {Object} StartWsCliBackendOptions
  * @property {number} [port]            TCP port. 0 = OS-assigned (default).
  * @property {string} [host]            Bind host. Defaults to 127.0.0.1.
@@ -167,13 +179,73 @@ async function startWsCliBackend(options = {}) {
 
         const handler = topicHandlers.get(type);
         try {
-          const result = await handler(message, {
+          // The handler may be a plain async function (returns value or
+          // Promise) OR an async generator (returns AsyncGenerator). Don't
+          // await yet — `await asyncGenerator` would resolve to the
+          // generator object itself which obscures the streaming intent.
+          const ret = handler(message, {
             topic: type,
             id,
             server,
             ws,
             clientId,
           });
+
+          if (ret && typeof ret[Symbol.asyncIterator] === "function") {
+            // Streaming path. Each yield is a `<type>.chunk` frame on the
+            // same id; the generator's `return value` (or undefined) goes
+            // into the terminal `<type>.result`. Mid-stream error → final
+            // `.result` with ok:false so the SPA still gets a single
+            // unambiguous end-of-stream marker.
+            let finalReturn = null;
+            try {
+              for (;;) {
+                const step = await ret.next();
+                if (step.done) {
+                  finalReturn = step.value ?? null;
+                  break;
+                }
+                if (ws.readyState !== 1 /* OPEN */) {
+                  // Client closed mid-stream; let the generator unwind via
+                  // `return()` so any cleanup (`finally` blocks) runs.
+                  if (typeof ret.return === "function") {
+                    try {
+                      await ret.return();
+                    } catch {
+                      // Generator throw on unwind is non-fatal.
+                    }
+                  }
+                  return;
+                }
+                server._send(ws, {
+                  id,
+                  type: `${type}.chunk`,
+                  ok: true,
+                  chunk: step.value ?? null,
+                });
+              }
+              server._send(ws, {
+                id,
+                type: `${type}.result`,
+                ok: true,
+                result: finalReturn,
+              });
+            } catch (streamErr) {
+              server._send(ws, {
+                id,
+                type: `${type}.result`,
+                ok: false,
+                error:
+                  streamErr instanceof Error
+                    ? streamErr.message
+                    : String(streamErr),
+              });
+            }
+            return;
+          }
+
+          // Plain (non-streaming) path: same shape as before.
+          const result = await ret;
           server._send(ws, {
             id,
             type: `${type}.result`,

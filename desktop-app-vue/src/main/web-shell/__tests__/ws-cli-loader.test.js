@@ -25,6 +25,57 @@ function rpc(ws, frame) {
   });
 }
 
+/**
+ * Drain a streaming round-trip: send the frame, collect every chunk
+ * frame matching `id` and the terminal `<type>.result`. Returns
+ * `{chunks, terminal}` so the test can assert on both.
+ */
+function streamRpc(ws, frame, { timeoutMs = 2000 } = {}) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let timer = null;
+    const onMessage = (raw) => {
+      let msg;
+      try {
+        msg = JSON.parse(raw.toString("utf8"));
+      } catch (err) {
+        cleanup();
+        reject(err);
+        return;
+      }
+      if (msg.id !== frame.id) {
+        return;
+      }
+      if (msg.type === `${frame.type}.chunk`) {
+        chunks.push(msg);
+        return;
+      }
+      if (msg.type === `${frame.type}.result`) {
+        cleanup();
+        resolve({ chunks, terminal: msg });
+      }
+    };
+    const onError = (err) => {
+      cleanup();
+      reject(err);
+    };
+    const cleanup = () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+      ws.off("message", onMessage);
+      ws.off("error", onError);
+    };
+    timer = setTimeout(() => {
+      cleanup();
+      reject(new Error("streamRpc timeout"));
+    }, timeoutMs);
+    ws.on("message", onMessage);
+    ws.on("error", onError);
+    ws.send(JSON.stringify(frame));
+  });
+}
+
 async function openWs(url) {
   const ws = new WebSocket(url);
   await new Promise((resolve, reject) => {
@@ -210,6 +261,112 @@ describe("ws-cli-loader (Phase 1.1)", () => {
       );
       await new Promise((resolve) => setTimeout(resolve, 300));
       expect(ws.readyState).toBe(WebSocket.OPEN);
+    } finally {
+      ws.close();
+    }
+  });
+
+  it("streams async-generator yields as .chunk frames + terminal .result", async () => {
+    handle = await startWsCliBackend({
+      handlers: {
+        // Async-generator handler — three yields then return.
+        "demo.stream": async function* () {
+          yield { delta: "Hello" };
+          yield { delta: " " };
+          yield { delta: "world" };
+          return { totalTokens: 3 };
+        },
+      },
+    });
+    const ws = await openWs(handle.url);
+    try {
+      const { chunks, terminal } = await streamRpc(ws, {
+        id: "stream-1",
+        type: "demo.stream",
+      });
+      expect(chunks).toHaveLength(3);
+      expect(chunks.map((c) => c.chunk.delta).join("")).toBe("Hello world");
+      expect(chunks.every((c) => c.ok === true)).toBe(true);
+      expect(terminal).toMatchObject({
+        id: "stream-1",
+        type: "demo.stream.result",
+        ok: true,
+        result: { totalTokens: 3 },
+      });
+    } finally {
+      ws.close();
+    }
+  });
+
+  it("emits no chunks and a result:null when generator yields nothing", async () => {
+    handle = await startWsCliBackend({
+      handlers: {
+        "demo.empty": async function* () {
+          // No yields, no return — still terminates with null.
+        },
+      },
+    });
+    const ws = await openWs(handle.url);
+    try {
+      const { chunks, terminal } = await streamRpc(ws, {
+        id: "empty-1",
+        type: "demo.empty",
+      });
+      expect(chunks).toHaveLength(0);
+      expect(terminal).toMatchObject({
+        id: "empty-1",
+        type: "demo.empty.result",
+        ok: true,
+        result: null,
+      });
+    } finally {
+      ws.close();
+    }
+  });
+
+  it("turns mid-stream throw into a terminal ok:false result", async () => {
+    handle = await startWsCliBackend({
+      handlers: {
+        "demo.fail": async function* () {
+          yield { delta: "ok-1" };
+          yield { delta: "ok-2" };
+          throw new Error("upstream_died");
+        },
+      },
+    });
+    const ws = await openWs(handle.url);
+    try {
+      const { chunks, terminal } = await streamRpc(ws, {
+        id: "fail-1",
+        type: "demo.fail",
+      });
+      expect(chunks).toHaveLength(2);
+      expect(terminal).toMatchObject({
+        id: "fail-1",
+        type: "demo.fail.result",
+        ok: false,
+        error: "upstream_died",
+      });
+    } finally {
+      ws.close();
+    }
+  });
+
+  it("backwards compatible: plain async handler still wraps as before", async () => {
+    handle = await startWsCliBackend({
+      handlers: {
+        "demo.plain": async () => ({ value: 42 }),
+      },
+    });
+    const ws = await openWs(handle.url);
+    try {
+      const reply = await rpc(ws, { id: "p-1", type: "demo.plain" });
+      expect(reply).toMatchObject({
+        id: "p-1",
+        type: "demo.plain.result",
+        ok: true,
+        result: { value: 42 },
+      });
     } finally {
       ws.close();
     }
