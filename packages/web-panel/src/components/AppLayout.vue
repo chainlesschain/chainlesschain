@@ -48,6 +48,7 @@
             <template #title><span class="group-label">概 览</span></template>
             <a-menu-item key="dashboard"><template #icon><DashboardOutlined /></template>仪表板</a-menu-item>
             <a-menu-item key="chat"><template #icon><MessageOutlined /></template>AI 对话</a-menu-item>
+            <a-menu-item key="quick-ask"><template #icon><ThunderboltOutlined /></template>Quick Ask</a-menu-item>
             <a-menu-item key="cowork"><template #icon><RocketOutlined /></template>日常协作</a-menu-item>
             <a-menu-item key="services"><template #icon><ControlOutlined /></template>服务管理</a-menu-item>
             <a-menu-item key="aiops"><template #icon><AlertOutlined /></template>AIOps</a-menu-item>
@@ -121,6 +122,7 @@
         <template v-else>
           <a-menu-item key="dashboard"><template #icon><DashboardOutlined /></template></a-menu-item>
           <a-menu-item key="chat"><template #icon><MessageOutlined /></template></a-menu-item>
+          <a-menu-item key="quick-ask"><template #icon><ThunderboltOutlined /></template></a-menu-item>
           <a-menu-item key="cowork"><template #icon><RocketOutlined /></template></a-menu-item>
           <a-menu-item key="services"><template #icon><ControlOutlined /></template></a-menu-item>
           <a-menu-item key="aiops"><template #icon><AlertOutlined /></template></a-menu-item>
@@ -262,7 +264,7 @@ const menuTheme    = computed(() => themeStore.config.vars['--menu-mode'])
 
 const selectedKeys = computed(() => {
   const name = route.name?.toLowerCase() || 'dashboard'
-  return [{ mcptools: 'mcp' }[name] || name]
+  return [{ mcptools: 'mcp', quickask: 'quick-ask' }[name] || name]
 })
 
 const ALL_GROUP_KEYS = [
