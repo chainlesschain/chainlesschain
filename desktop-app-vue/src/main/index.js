@@ -813,6 +813,12 @@ class ChainlessChainApp {
         mode: "global",
         projectName: "ChainlessChain Desktop",
         ukeyManager: this.ukeyManager,
+        // Phase 2: pass the (possibly-null) MCP singleton so mcp.list_tools /
+        // mcp.call_tool can surface desktop MCP servers to the embedded SPA.
+        // initializeMCPSystem() ran before createWindow() in both legacy and
+        // fast-start paths, so by here this.mcpManager is settled (manager or
+        // null). Handlers re-check at call time, so re-binding isn't needed.
+        mcpManager: this.mcpManager ?? null,
         mainWindow: this.mainWindow,
       });
       this._webShellHandle = handle;

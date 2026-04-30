@@ -34,6 +34,10 @@ const {
   createFsOpenDialogHandler,
   createFsSaveDialogHandler,
 } = require("./handlers/fs-handlers");
+const {
+  createMcpListToolsHandler,
+  createMcpCallToolHandler,
+} = require("./handlers/mcp-handlers");
 
 /** CLI flag / env var that opts in to the web-shell entry point. */
 const WEB_SHELL_FLAG = "--web-shell";
@@ -46,6 +50,10 @@ const WEB_SHELL_ENV = "CHAINLESSCHAIN_WEB_SHELL";
  * @property {number} [wsPort]               WS port. 0 = OS-assigned.
  * @property {{ detect?: () => Promise<any> } | null} [ukeyManager]
  *                                            UKey singleton; nullable for early boot.
+ * @property {object | null} [mcpManager]    MCPClientManager singleton (or null
+ *                                            when MCP is disabled). Surfaced to the
+ *                                            embedded SPA via mcp.list_tools /
+ *                                            mcp.call_tool topics.
  * @property {Electron.BrowserWindow | null} [mainWindow]
  *                                            Parent window for native dialogs. Required
  *                                            for fs.openDialog / fs.saveDialog handlers.
@@ -89,6 +97,16 @@ async function startWebShell(options = {}) {
     }),
     "fs.saveDialog": createFsSaveDialogHandler({
       mainWindow: options.mainWindow ?? null,
+    }),
+    // Phase 2 first batch — surface the desktop MCPClientManager to the
+    // embedded web-panel. mcpManager may be null when MCP is disabled in
+    // config; the handlers throw `mcp_unavailable` at call time so the
+    // SPA shows a clean envelope error instead of a crash.
+    "mcp.list_tools": createMcpListToolsHandler({
+      mcpManager: options.mcpManager ?? null,
+    }),
+    "mcp.call_tool": createMcpCallToolHandler({
+      mcpManager: options.mcpManager ?? null,
     }),
     ...(options.extraHandlers || {}),
   };
