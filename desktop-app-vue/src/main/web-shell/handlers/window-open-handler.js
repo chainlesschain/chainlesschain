@@ -158,6 +158,11 @@ function createWindowOpenHandler(options = {}) {
     const browserOpts = {
       width: geo.width,
       height: geo.height,
+      // Match the V5/V6 main window's purple background so desktop:* windows
+      // don't flash white before the SPA paints. Web-shell side windows can
+      // stay default since the embedded SPA paints almost instantly off
+      // local HTTP. See main/index.js's mainWindow opts for the same color.
+      ...(isDesktopRole ? { backgroundColor: "#764ba2" } : {}),
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,

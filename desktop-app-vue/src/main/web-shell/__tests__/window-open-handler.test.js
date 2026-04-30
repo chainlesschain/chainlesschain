@@ -272,6 +272,28 @@ describe("window.open handler — desktop:* roles", () => {
     expect(factoryCalls[0].opts.webPreferences.sandbox).toBeUndefined();
   });
 
+  it("sets backgroundColor for desktop:* roles to avoid white flash", async () => {
+    const handler = createWindowOpenHandler({
+      registry,
+      httpUrl: HTTP_URL,
+      v5EntryUrl: "http://localhost:5173",
+      browserWindowFactory: factory,
+    });
+    await handler({ role: "desktop:hardware-wallet" });
+    expect(factoryCalls[0].opts.backgroundColor).toBe("#764ba2");
+  });
+
+  it("does NOT set backgroundColor for non-desktop roles", async () => {
+    const handler = createWindowOpenHandler({
+      registry,
+      httpUrl: HTTP_URL,
+      v5EntryUrl: "http://localhost:5173",
+      browserWindowFactory: factory,
+    });
+    await handler({ role: "artifact" });
+    expect(factoryCalls[0].opts.backgroundColor).toBeUndefined();
+  });
+
   it("supports a v5EntryUrl already containing # (preserves existing hash)", async () => {
     const handler = createWindowOpenHandler({
       registry,

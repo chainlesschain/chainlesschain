@@ -217,6 +217,43 @@ export interface UkeyMessages {
   changePin: string;
   pinError: string;
   pinSuccess: string;
+  // BackupDashboard.vue uses ukey.backup.* — optional so existing locales
+  // (en-US, ja-JP, etc.) don't have to ship the full set immediately;
+  // missing keys fall back to the key itself which is acceptable for the
+  // non-zh locales we don't actively dogfood. zh-CN ships the full set.
+  backup?: UkeyBackupMessages;
+}
+
+export interface UkeyBackupMessages {
+  title: string;
+  subtitle: string;
+  lastBackup: string;
+  totalVersions: string;
+  backupStrategy: string;
+  actions: string;
+  backingUp: string;
+  backupNow: string;
+  restore: string;
+  settings: string;
+  versions: string;
+  ok: string;
+  corrupted: string;
+  verify: string;
+  deleteConfirm: string;
+  autoBackup: string;
+  available: string;
+  unavailable: string;
+  backupSettings: string;
+  maxVersions: string;
+  restoreWizard: string;
+  shardStorage: string;
+  strategy: string;
+  strategyBasic: string;
+  strategyStandard: string;
+  strategyAdvanced: string;
+  strategyEnterprise: string;
+  days: string;
+  interval: string;
 }
 
 export interface GitMessages {
@@ -462,7 +499,14 @@ export interface LocaleMessages {
   storage: StorageMessages;
 }
 
-export type SupportedLocale = 'zh-CN' | 'en-US' | 'zh-TW' | 'ja-JP' | 'ko-KR' | 'fr-FR' | 'es-ES';
+export type SupportedLocale =
+  | "zh-CN"
+  | "en-US"
+  | "zh-TW"
+  | "ja-JP"
+  | "ko-KR"
+  | "fr-FR"
+  | "es-ES";
 
 export interface LocaleOption {
   value: SupportedLocale;
