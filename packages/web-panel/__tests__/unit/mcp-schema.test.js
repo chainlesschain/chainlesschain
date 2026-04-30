@@ -130,6 +130,114 @@ describe('extractFields', () => {
     })
     expect(fields[0].label).toBe('文件路径')
   })
+
+  it('flattens nested object properties with dotted name + path array', () => {
+    const fields = extractFields({
+      type: 'object',
+      properties: {
+        address: {
+          type: 'object',
+          properties: {
+            street: { type: 'string' },
+            city: { type: 'string' },
+          },
+          required: ['street'],
+        },
+        name: { type: 'string' },
+      },
+    })
+    const street = fields.find((f) => f.name === 'address.street')
+    expect(street).toBeDefined()
+    expect(street.path).toEqual(['address', 'street'])
+    expect(street.required).toBe(true)
+    expect(street.widget).toBe('text')
+
+    const city = fields.find((f) => f.name === 'address.city')
+    expect(city.required).toBe(false)
+
+    const nameField = fields.find((f) => f.name === 'name')
+    expect(nameField.path).toEqual(['name'])
+  })
+
+  it('handles two-level nesting with dotted names', () => {
+    const fields = extractFields({
+      type: 'object',
+      properties: {
+        a: {
+          type: 'object',
+          properties: {
+            b: {
+              type: 'object',
+              properties: { c: { type: 'string' } },
+            },
+          },
+        },
+      },
+    })
+    expect(fields).toHaveLength(1)
+    expect(fields[0].name).toBe('a.b.c')
+    expect(fields[0].path).toEqual(['a', 'b', 'c'])
+  })
+
+  it('falls back to raw when nested object has empty properties', () => {
+    const fields = extractFields({
+      type: 'object',
+      properties: {
+        meta: { type: 'object', properties: {} },
+      },
+    })
+    // Empty nested → single raw field at `meta`.
+    expect(fields).toHaveLength(1)
+    expect(fields[0].name).toBe('meta')
+    expect(fields[0].widget).toBe('raw')
+  })
+
+  it('maps array of object → objectList with itemFields extracted recursively', () => {
+    const fields = extractFields({
+      type: 'object',
+      properties: {
+        users: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              age: { type: 'integer' },
+            },
+            required: ['name'],
+          },
+        },
+      },
+    })
+    const users = fields.find((f) => f.name === 'users')
+    expect(users.widget).toBe('objectList')
+    expect(users.itemFields).toBeDefined()
+    expect(users.itemFields.map((f) => f.name)).toEqual(['name', 'age'])
+    const nameField = users.itemFields.find((f) => f.name === 'name')
+    expect(nameField.required).toBe(true)
+    expect(nameField.widget).toBe('text')
+    const ageField = users.itemFields.find((f) => f.name === 'age')
+    expect(ageField.widget).toBe('number')
+  })
+
+  it('falls back to raw when array of object has empty items.properties', () => {
+    const fields = extractFields({
+      type: 'object',
+      properties: {
+        bag: { type: 'array', items: { type: 'object', properties: {} } },
+      },
+    })
+    expect(fields[0].widget).toBe('raw')
+    expect(fields[0].itemFields).toBeUndefined()
+  })
+
+  it('still maps array of integers to raw (only string-arrays + object-arrays are first-class)', () => {
+    const fields = extractFields({
+      type: 'object',
+      properties: { ids: { type: 'array', items: { type: 'integer' } } },
+    })
+    expect(fields[0].widget).toBe('raw')
+  })
 })
 
 describe('normaliseType', () => {
@@ -289,5 +397,126 @@ describe('validateValues — required + types', () => {
       { name: 'rec', widget: 'boolean', type: 'boolean', required: true },
     ]
     expect(validateValues(fields, { rec: false }).ok).toBe(true)
+  })
+})
+
+describe('validateValues — nested object setByPath', () => {
+  it('builds nested params from dotted-name fields', () => {
+    const fields = extractFields({
+      type: 'object',
+      properties: {
+        address: {
+          type: 'object',
+          properties: {
+            street: { type: 'string' },
+            city: { type: 'string' },
+          },
+        },
+        name: { type: 'string' },
+      },
+    })
+    const r = validateValues(fields, {
+      'address.street': '1 Main',
+      'address.city': 'NYC',
+      name: 'Alice',
+    })
+    expect(r.ok).toBe(true)
+    expect(r.params).toEqual({
+      address: { street: '1 Main', city: 'NYC' },
+      name: 'Alice',
+    })
+  })
+
+  it('flags required deep field as 必填 with the dotted name', () => {
+    const fields = extractFields({
+      type: 'object',
+      properties: {
+        a: {
+          type: 'object',
+          properties: { b: { type: 'string' } },
+          required: ['b'],
+        },
+      },
+    })
+    const r = validateValues(fields, { 'a.b': '' })
+    expect(r.ok).toBe(false)
+    expect(r.errors['a.b']).toBe('必填')
+  })
+
+  it('drops empty deeper optional fields without polluting params with empty parents', () => {
+    const fields = extractFields({
+      type: 'object',
+      properties: {
+        a: {
+          type: 'object',
+          properties: { b: { type: 'string' } },
+        },
+      },
+    })
+    const r = validateValues(fields, { 'a.b': '' })
+    expect(r.ok).toBe(true)
+    expect(r.params).toEqual({})
+  })
+})
+
+describe('validateValues — objectList', () => {
+  const usersFields = extractFields({
+    type: 'object',
+    properties: {
+      users: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            age: { type: 'integer' },
+          },
+          required: ['name'],
+        },
+      },
+    },
+  })
+
+  it('validates each item + emits an array of params', () => {
+    const r = validateValues(usersFields, {
+      users: [
+        { name: 'Alice', age: '30' },
+        { name: 'Bob', age: '25' },
+      ],
+    })
+    expect(r.ok).toBe(true)
+    expect(r.params).toEqual({
+      users: [
+        { name: 'Alice', age: 30 },
+        { name: 'Bob', age: 25 },
+      ],
+    })
+  })
+
+  it('reports per-item error using <name>[<i>].<sub> key', () => {
+    const r = validateValues(usersFields, {
+      users: [{ name: 'Alice' }, { age: 25 }],
+    })
+    expect(r.ok).toBe(false)
+    expect(r.errors['users[1].name']).toBe('必填')
+    expect(r.errors['users[0].name']).toBeUndefined()
+  })
+
+  it('drops empty arrays from optional objectList fields', () => {
+    const r = validateValues(usersFields, { users: [] })
+    expect(r.ok).toBe(true)
+    expect(r.params.users).toBeUndefined()
+  })
+
+  it('rejects non-array values with 必须是列表', () => {
+    const r = validateValues(usersFields, { users: { not: 'array' } })
+    expect(r.ok).toBe(false)
+    expect(r.errors.users).toBe('必须是列表')
+  })
+
+  it('rejects non-object items with <name>[<i>] = 必须是对象', () => {
+    const r = validateValues(usersFields, { users: ['just a string'] })
+    expect(r.ok).toBe(false)
+    expect(r.errors['users[0]']).toBe('必须是对象')
   })
 })
