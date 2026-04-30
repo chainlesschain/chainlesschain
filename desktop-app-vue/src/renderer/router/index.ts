@@ -365,7 +365,11 @@ const routes: RouteRecordRaw[] = [
         path: "settings/system",
         name: "SystemSettings",
         component: settingsPages.system,
-        meta: { title: "系统设置" },
+        // Local-machine page — desktop:* shell entry needs to be reachable
+        // without a login wall (matches HardwareWallet / BackupDashboard /
+        // LLMTestChat policy). User is on their own machine; strict auth
+        // is overkill and blocks the desktop:* bridge.
+        meta: { title: "系统设置", requiresAuth: false },
       },
       {
         path: "settings/plugins",
