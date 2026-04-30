@@ -26,10 +26,7 @@
  */
 
 import { useWsStore } from '../stores/ws.js'
-
-function isEmbedded() {
-  return typeof window !== 'undefined' && window.__CC_CONFIG__?.embeddedShell === true
-}
+import { useShellMode } from './useShellMode.js'
 
 function browserPickFile({ accept = '' } = {}) {
   return new Promise((resolve) => {
@@ -125,7 +122,7 @@ export function useFs() {
   const ws = useWsStore()
 
   async function pickFileText(options = {}) {
-    if (isEmbedded()) {
+    if (useShellMode().isEmbedded) {
       const reply = await ws.sendRaw(
         {
           type: 'fs.openDialog',
@@ -157,7 +154,7 @@ export function useFs() {
     if (typeof content !== 'string') {
       throw new Error('content must be a string')
     }
-    if (isEmbedded()) {
+    if (useShellMode().isEmbedded) {
       const reply = await ws.sendRaw(
         {
           type: 'fs.saveDialog',

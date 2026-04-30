@@ -111,10 +111,11 @@ import {
   CloseOutlined,
 } from '@ant-design/icons-vue'
 import { useUkey } from '../composables/useUkey.js'
+import { useShellMode } from '../composables/useShellMode.js'
 
 const ukey = useUkey()
 
-const isEmbedded = computed(() => window.__CC_CONFIG__?.embeddedShell === true)
+const isEmbedded = computed(() => useShellMode().isEmbedded)
 
 const data = ref('')
 const running = ref(false)

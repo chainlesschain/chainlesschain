@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useWsStore } from './ws.js'
+import { useShellMode } from '../composables/useShellMode.js'
 import { parseSkillOutput } from '../utils/parsers.js'
 
 export const useSkillsStore = defineStore('skills', () => {
@@ -45,7 +46,7 @@ export const useSkillsStore = defineStore('skills', () => {
       // process.execPath — inside Electron that's the Electron binary, not
       // node, so `cc skill list` can never run. Standalone `cc serve` use
       // is unaffected (embeddedShell === false there).
-      if (window.__CC_CONFIG__?.embeddedShell === true) {
+      if (useShellMode().isEmbedded) {
         const reply = await ws.sendRaw({ type: 'skill.list' }, 20000)
         if (reply?.ok && Array.isArray(reply.result?.skills)) {
           allSkills.value = reply.result.skills
