@@ -88,18 +88,79 @@
           <template v-if="column.key === 'server'">
             <a-tag color="blue" style="font-size: 10px;">{{ record.server }}</a-tag>
           </template>
+          <template v-if="column.key === 'action'">
+            <a-button
+              v-if="dataSource === 'topic'"
+              size="small"
+              type="link"
+              @click="openRunModal(record)"
+            >
+              <template #icon><PlayCircleOutlined /></template>
+              运行
+            </a-button>
+            <span v-else style="color: var(--text-muted); font-size: 11px;">仅桌面模式</span>
+          </template>
         </template>
         <template #emptyText>
           <div style="padding: 30px; color: var(--text-muted);">暂无可用工具</div>
         </template>
       </a-table>
     </a-card>
+
+    <a-modal
+      :open="runModalOpen"
+      :title="runModalTitle"
+      :width="640"
+      :confirm-loading="running"
+      :ok-text="running ? '运行中...' : '运行'"
+      cancel-text="关闭"
+      @ok="runSelectedTool"
+      @cancel="closeRunModal"
+    >
+      <div v-if="selectedTool" style="display: flex; flex-direction: column; gap: 12px;">
+        <div>
+          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">服务器 / 工具</div>
+          <div style="font-family: monospace; font-size: 13px;">
+            <a-tag color="blue">{{ selectedTool.server }}</a-tag>
+            <span style="color: #91caff;">{{ selectedTool.name }}</span>
+          </div>
+        </div>
+        <div v-if="selectedTool.description">
+          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">描述</div>
+          <div style="font-size: 12px;">{{ selectedTool.description }}</div>
+        </div>
+        <div v-if="selectedTool.inputSchema">
+          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">参数 schema</div>
+          <pre style="background: var(--bg-card-hover); padding: 8px; border-radius: 4px; font-size: 11px; max-height: 140px; overflow: auto; margin: 0;">{{ formattedSchema }}</pre>
+        </div>
+        <div>
+          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">参数 (JSON)</div>
+          <a-textarea
+            v-model:value="paramsText"
+            :rows="6"
+            :placeholder="'{}'"
+            style="font-family: monospace; font-size: 12px;"
+          />
+          <div v-if="paramsParseError" style="color: #ff4d4f; font-size: 11px; margin-top: 4px;">
+            JSON 解析失败：{{ paramsParseError }}
+          </div>
+        </div>
+        <div v-if="runError" style="background: #2a1517; border: 1px solid #5c2426; padding: 8px; border-radius: 4px;">
+          <div style="color: #ff4d4f; font-size: 11px; font-weight: 500; margin-bottom: 4px;">运行失败</div>
+          <pre style="color: #ff7875; font-size: 11px; margin: 0; white-space: pre-wrap;">{{ runError }}</pre>
+        </div>
+        <div v-if="runResult !== null">
+          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">结果</div>
+          <pre style="background: var(--bg-card-hover); padding: 8px; border-radius: 4px; font-size: 11px; max-height: 240px; overflow: auto; margin: 0; white-space: pre-wrap;">{{ formattedResult }}</pre>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { ReloadOutlined, CloudServerOutlined, ToolOutlined, CheckCircleOutlined } from '@ant-design/icons-vue'
+import { ReloadOutlined, CloudServerOutlined, ToolOutlined, CheckCircleOutlined, PlayCircleOutlined } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useMcp } from '../composables/useMcp.js'
 
@@ -119,10 +180,95 @@ const filteredTools = computed(() => {
 })
 
 const toolColumns = [
-  { title: '工具名称', key: 'name', dataIndex: 'name', width: '30%' },
-  { title: '服务器', key: 'server', dataIndex: 'server', width: '20%' },
+  { title: '工具名称', key: 'name', dataIndex: 'name', width: '28%' },
+  { title: '服务器', key: 'server', dataIndex: 'server', width: '18%' },
   { title: '描述', dataIndex: 'description', ellipsis: true },
+  { title: '操作', key: 'action', width: 110 },
 ]
+
+// Run-tool modal state — only meaningful in topic mode (CLI mode falls back
+// to the old text-parsing path which never had inputSchema, so we hide the
+// trigger entirely there).
+const runModalOpen = ref(false)
+const selectedTool = ref(null)
+const paramsText = ref('{}')
+const running = ref(false)
+const runResult = ref(null)
+const runError = ref('')
+
+const runModalTitle = computed(() => {
+  if (!selectedTool.value) return '运行 MCP 工具'
+  return `运行 ${selectedTool.value.server}.${selectedTool.value.name}`
+})
+
+const formattedSchema = computed(() => {
+  if (!selectedTool.value?.inputSchema) return ''
+  try {
+    return JSON.stringify(selectedTool.value.inputSchema, null, 2)
+  } catch {
+    return String(selectedTool.value.inputSchema)
+  }
+})
+
+const formattedResult = computed(() => {
+  if (runResult.value === null) return ''
+  try {
+    return JSON.stringify(runResult.value, null, 2)
+  } catch {
+    return String(runResult.value)
+  }
+})
+
+const paramsParseError = ref('')
+
+function openRunModal(tool) {
+  selectedTool.value = tool
+  paramsText.value = '{}'
+  runResult.value = null
+  runError.value = ''
+  paramsParseError.value = ''
+  runModalOpen.value = true
+}
+
+function closeRunModal() {
+  runModalOpen.value = false
+  // Keep selectedTool / result around briefly so the close animation
+  // doesn't render an empty modal — Vue tears it down on next tick anyway.
+}
+
+async function runSelectedTool() {
+  if (!selectedTool.value || running.value) return
+  paramsParseError.value = ''
+  let params = {}
+  const txt = (paramsText.value || '').trim()
+  if (txt) {
+    try {
+      params = JSON.parse(txt)
+    } catch (err) {
+      paramsParseError.value = err.message || 'invalid JSON'
+      return
+    }
+    if (params === null || typeof params !== 'object' || Array.isArray(params)) {
+      paramsParseError.value = '参数必须是 JSON 对象'
+      return
+    }
+  }
+  running.value = true
+  runError.value = ''
+  runResult.value = null
+  try {
+    const r = await mcp.callTool(
+      selectedTool.value.server,
+      selectedTool.value.name,
+      params,
+    )
+    runResult.value = r
+  } catch (err) {
+    runError.value = err?.message || String(err)
+  } finally {
+    running.value = false
+  }
+}
 
 /**
  * Topic path — works inside the desktop web-shell where mcp.list_tools is
@@ -150,6 +296,7 @@ async function loadFromTopic() {
         name: t.name,
         description: t.description || '',
         server: s.name,
+        inputSchema: t.inputSchema || null,
       })
     }
   }
