@@ -163,6 +163,10 @@ function createWindowOpenHandler(options = {}) {
       // stay default since the embedded SPA paints almost instantly off
       // local HTTP. See main/index.js's mainWindow opts for the same color.
       ...(isDesktopRole ? { backgroundColor: "#764ba2" } : {}),
+      // Desktop windows boot the V5/V6 SPA which can take 1-3s — defer show
+      // until ready-to-show fires so the user doesn't see an empty/half-
+      // painted window. ready-to-show wiring is done below in onWindowOpened.
+      ...(isDesktopRole ? { show: false } : {}),
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
@@ -183,6 +187,21 @@ function createWindowOpenHandler(options = {}) {
       win.loadURL(url);
     }
     options.registry.register(role, win, url);
+
+    // Defer-show wiring — only meaningful for desktop:* windows that have
+    // `show: false` in browserOpts above. Listen for ready-to-show then
+    // call show() + focus() so the user sees the window snap into a fully
+    // painted state instead of a white flash + half-rendered intermediate.
+    if (isDesktopRole && typeof win.once === "function") {
+      win.once("ready-to-show", () => {
+        try {
+          win.show?.();
+          win.focus?.();
+        } catch {
+          // Window may have been closed during the load — non-fatal.
+        }
+      });
+    }
 
     if (typeof options.onWindowOpened === "function") {
       try {

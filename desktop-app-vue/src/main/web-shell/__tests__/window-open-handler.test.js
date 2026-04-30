@@ -17,15 +17,27 @@ const HTTP_URL = "http://127.0.0.1:54321/";
 
 function makeFakeWindow() {
   const listeners = new Map();
+  const onceListeners = new Map();
   return {
     loadURL: vi.fn(),
     focus: vi.fn(),
+    show: vi.fn(),
     on: vi.fn((evt, fn) => {
       listeners.set(evt, fn);
+    }),
+    once: vi.fn((evt, fn) => {
+      onceListeners.set(evt, fn);
     }),
     /** Test-only — fire the registered "closed" listener. */
     _fireClosed() {
       const fn = listeners.get("closed");
+      if (typeof fn === "function") {
+        fn();
+      }
+    },
+    /** Test-only — fire the registered "ready-to-show" once-listener. */
+    _fireReadyToShow() {
+      const fn = onceListeners.get("ready-to-show");
       if (typeof fn === "function") {
         fn();
       }
@@ -292,6 +304,45 @@ describe("window.open handler — desktop:* roles", () => {
     });
     await handler({ role: "artifact" });
     expect(factoryCalls[0].opts.backgroundColor).toBeUndefined();
+  });
+
+  it("uses show:false + ready-to-show for desktop:* windows", async () => {
+    const handler = createWindowOpenHandler({
+      registry,
+      httpUrl: HTTP_URL,
+      v5EntryUrl: "http://localhost:5173",
+      browserWindowFactory: factory,
+    });
+    await handler({ role: "desktop:hardware-wallet" });
+    const opts = factoryCalls[0].opts;
+    const win = factoryCalls[0].win;
+    expect(opts.show).toBe(false);
+    // ready-to-show listener was registered.
+    expect(win.once).toHaveBeenCalledWith(
+      "ready-to-show",
+      expect.any(Function),
+    );
+    // Firing it calls show() + focus().
+    win._fireReadyToShow();
+    expect(win.show).toHaveBeenCalledTimes(1);
+    expect(win.focus).toHaveBeenCalledTimes(1);
+  });
+
+  it("does NOT defer-show for non-desktop roles", async () => {
+    const handler = createWindowOpenHandler({
+      registry,
+      httpUrl: HTTP_URL,
+      v5EntryUrl: "http://localhost:5173",
+      browserWindowFactory: factory,
+    });
+    await handler({ role: "artifact" });
+    const opts = factoryCalls[0].opts;
+    const win = factoryCalls[0].win;
+    expect(opts.show).toBeUndefined();
+    expect(win.once).not.toHaveBeenCalledWith(
+      "ready-to-show",
+      expect.any(Function),
+    );
   });
 
   it("supports a v5EntryUrl already containing # (preserves existing hash)", async () => {
