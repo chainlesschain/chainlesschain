@@ -119,6 +119,16 @@
             <a-menu-item key="rssfeed"><template #icon><ReadOutlined /></template>RSS 订阅</a-menu-item>
             <a-menu-item key="webauthn"><template #icon><KeyOutlined /></template>身份认证</a-menu-item>
           </a-sub-menu>
+          <!-- 桌面专属群 — 仅在嵌入式 web-shell 下显示。点击通过 window.open
+               WS topic 弹出新 BrowserWindow 加载 V5/V6 desktop renderer，
+               那边有完整 electronAPI（UKey / FS / 系统设置等）。 -->
+          <a-sub-menu v-if="shellMode.isEmbedded" key="g-desktop">
+            <template #title><span class="group-label">桌面专属</span></template>
+            <a-menu-item key="desktop:hardware-wallet"><template #icon><SafetyCertificateOutlined /></template>硬件钱包</a-menu-item>
+            <a-menu-item key="desktop:backup-dashboard"><template #icon><CloudUploadOutlined /></template>备份与恢复</a-menu-item>
+            <a-menu-item key="desktop:llm-test-chat"><template #icon><ExperimentOutlined /></template>LLM 测试</a-menu-item>
+            <a-menu-item key="desktop:settings"><template #icon><ControlOutlined /></template>系统设置</a-menu-item>
+          </a-sub-menu>
         </template>
         <template v-else>
           <a-menu-item key="dashboard"><template #icon><DashboardOutlined /></template></a-menu-item>
@@ -177,6 +187,13 @@
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="rssfeed"><template #icon><ReadOutlined /></template></a-menu-item>
           <a-menu-item key="webauthn"><template #icon><KeyOutlined /></template></a-menu-item>
+          <template v-if="shellMode.isEmbedded">
+            <a-menu-divider class="divider-sm" />
+            <a-menu-item key="desktop:hardware-wallet"><template #icon><SafetyCertificateOutlined /></template></a-menu-item>
+            <a-menu-item key="desktop:backup-dashboard"><template #icon><CloudUploadOutlined /></template></a-menu-item>
+            <a-menu-item key="desktop:llm-test-chat"><template #icon><ExperimentOutlined /></template></a-menu-item>
+            <a-menu-item key="desktop:settings"><template #icon><ControlOutlined /></template></a-menu-item>
+          </template>
         </template>
       </a-menu>
 
@@ -247,13 +264,19 @@ import {
   AuditOutlined, FileSearchOutlined, TrophyOutlined, FireOutlined, SearchOutlined,
   NumberOutlined, ClusterOutlined,
 } from '@ant-design/icons-vue'
+import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'
+import { useShellMode } from '../composables/useShellMode.js'
 
 const router  = useRouter()
 const route   = useRoute()
 const ws      = useWsStore()
 const themeStore = useThemeStore()
+// useShellMode reads window.__CC_CONFIG__ on each call; the host injects it
+// once at boot, so a single snapshot at setup time is fine for the sidebar's
+// "show 桌面专属 group only when embedded" check.
+const shellMode = useShellMode()
 
 const collapsed = ref(false)
 const cfg = window.__CC_CONFIG__ || {}
@@ -299,7 +322,36 @@ const statusBadge = computed(() => ({ connected:'success', connecting:'processin
 const statusText  = computed(() => ({ connected:'已连接', connecting:'连接中...', error:'连接错误', disconnected:'未连接' })[ws.status] || '未知')
 
 function setTheme(key) { themeStore.setTheme(key) }
+
+async function openDesktopWindow(role) {
+  // Spawns a new Electron BrowserWindow loading the V5/V6 desktop renderer
+  // at the matching hash route (HardwareWalletPage / BackupDashboard /
+  // LLMTestChatPage / SystemSettings). Those pages need the full
+  // electronAPI surface (UKey hardware, native FS, settings IPC) which the
+  // web-shell's minimal preload doesn't expose; the new window uses the
+  // FULL desktop preload instead. See window-open-handler.js for details.
+  try {
+    const reply = await ws.sendRaw({ type: 'window.open', role }, 10000)
+    if (reply?.ok === false) {
+      message.error(`打开失败：${reply.error || '未知'}`)
+      return
+    }
+    const r = reply?.result ?? reply
+    if (r?.reason === 'role_reserved') {
+      message.warning('该窗口角色被保留')
+    } else if (r?.reason === 'already_open') {
+      // No-op — the existing window was focused by the handler.
+    }
+  } catch (e) {
+    message.error(`打开桌面窗口失败：${e.message || e}`)
+  }
+}
+
 function onMenuClick({ key }) {
+  if (typeof key === 'string' && key.startsWith('desktop:')) {
+    openDesktopWindow(key)
+    return
+  }
   router.push({ mcp: '/mcp' }[key] || `/${key}`)
 }
 onMounted(() => ws.connect())

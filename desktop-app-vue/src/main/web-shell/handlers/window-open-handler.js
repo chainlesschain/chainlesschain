@@ -37,13 +37,36 @@
  *   }));
  */
 
-const VALID_OPENABLE_ROLES = new Set(["artifact", "project", "dashboard"]);
+const VALID_OPENABLE_ROLES = new Set([
+  "artifact",
+  "project",
+  "dashboard",
+  // 'desktop:*' opens a window loading the V5/V6 desktop renderer at a
+  // specific page. Used to surface HardwareWalletPage / BackupDashboard /
+  // LLMTestChatPage / SystemSettings from inside the web-shell SPA, since
+  // those pages depend on the desktop preload's full electronAPI surface
+  // (native UKey / FS / settings) which the web-shell preload doesn't expose.
+  "desktop:hardware-wallet",
+  "desktop:backup-dashboard",
+  "desktop:llm-test-chat",
+  "desktop:settings",
+]);
+
+const { DESKTOP_ROLE_PATHS } = require("../../window-registry");
 
 /**
  * @typedef {Object} WindowOpenHandlerOptions
  * @property {object} registry            Required — WindowRegistry instance.
  * @property {string} httpUrl             Required — base URL of the embedded HTTP.
  * @property {string} [preloadPath]       Path to web-shell preload (web-shell.js).
+ * @property {string} [v5EntryUrl]        V5/V6 renderer entry URL (e.g.
+ *   `http://localhost:5173/` in dev or `file:///.../renderer/index.html` in
+ *   prod). Used for `desktop:*` roles to load the full desktop SPA instead
+ *   of the embedded web-panel.
+ * @property {string} [desktopPreloadPath] Path to the FULL desktop preload
+ *   (`preload/index.js`) — exposes the complete `window.electronAPI` surface
+ *   that V5/V6 pages need. Different from `preloadPath` (which is the
+ *   minimal web-shell preload).
  * @property {(opts: any) => any} [browserWindowFactory]
  *   Override Electron's `new BrowserWindow(opts)`. Tests pass a stub.
  * @property {(role: string, win: any) => void} [onWindowOpened]
@@ -107,11 +130,29 @@ function createWindowOpenHandler(options = {}) {
       };
     }
 
-    const url = options.registry.resolveUrl(
-      role,
-      options.httpUrl,
-      frame?.query,
-    );
+    // 'desktop:*' roles load the V5/V6 desktop renderer at a specific
+    // hash route, with the FULL desktop preload (electronAPI surface).
+    // Anything else stays on the embedded web-panel SPA + web-shell preload.
+    const isDesktopRole = role.startsWith("desktop:");
+    let url;
+    let preloadForWindow = options.preloadPath;
+    if (isDesktopRole) {
+      if (!options.v5EntryUrl) {
+        throw new Error("v5_entry_unavailable");
+      }
+      const hashPath = DESKTOP_ROLE_PATHS[role];
+      if (!hashPath) {
+        throw new Error(`unknown_desktop_role:${role}`);
+      }
+      // Build the full URL: <v5EntryUrl>#/<path>. v5EntryUrl may already
+      // end in `index.html` (file:// in prod) or just `/` (dev). Hash
+      // routing makes both work.
+      const base = options.v5EntryUrl;
+      url = base.includes("#") ? base : `${base}#${hashPath}`;
+      preloadForWindow = options.desktopPreloadPath || preloadForWindow;
+    } else {
+      url = options.registry.resolveUrl(role, options.httpUrl, frame?.query);
+    }
     const geo = options.registry.defaultGeometryFor(role);
 
     const browserOpts = {
@@ -120,7 +161,11 @@ function createWindowOpenHandler(options = {}) {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        ...(options.preloadPath ? { preload: options.preloadPath } : {}),
+        // Desktop pages need the same sandbox-off workaround the main
+        // window uses — see main/index.js comment about Electron 39
+        // sandboxed_renderer crash on Windows.
+        ...(isDesktopRole ? { sandbox: false } : {}),
+        ...(preloadForWindow ? { preload: preloadForWindow } : {}),
       },
     };
 

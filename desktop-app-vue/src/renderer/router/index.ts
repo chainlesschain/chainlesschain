@@ -493,6 +493,19 @@ const routes: RouteRecordRaw[] = [
         component: () => import("../pages/LLMTestChatPage.vue"),
         meta: { title: "LLM 测试聊天", requiresAuth: false },
       },
+      // ===== 桌面专属（之前是孤儿页 — web-shell 'desktop:*' 入口指过来） =====
+      {
+        path: "hardware-wallet",
+        name: "HardwareWallet",
+        component: () => import("../pages/HardwareWalletPage.vue"),
+        meta: { title: "硬件钱包 / U-Key", requiresAuth: false },
+      },
+      {
+        path: "backup-dashboard",
+        name: "BackupDashboard",
+        component: () => import("../pages/BackupDashboard.vue"),
+        meta: { title: "备份与恢复", requiresAuth: false },
+      },
       // ===== P2P 高级功能 =====
       {
         path: "p2p/device-pairing",

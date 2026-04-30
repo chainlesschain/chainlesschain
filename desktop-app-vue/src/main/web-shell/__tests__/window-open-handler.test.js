@@ -180,6 +180,111 @@ describe("window.open handler — idempotency", () => {
   });
 });
 
+describe("window.open handler — desktop:* roles", () => {
+  it("opens a V5/V6 window with hash route + desktop preload for desktop:hardware-wallet", async () => {
+    const handler = createWindowOpenHandler({
+      registry,
+      httpUrl: HTTP_URL,
+      v5EntryUrl: "http://localhost:5173",
+      desktopPreloadPath: "/abs/desktop-preload.js",
+      preloadPath: "/abs/web-shell.js",
+      browserWindowFactory: factory,
+    });
+    const result = await handler({
+      id: "1",
+      type: "window.open",
+      role: "desktop:hardware-wallet",
+    });
+    expect(result).toMatchObject({
+      role: "desktop:hardware-wallet",
+      opened: true,
+    });
+    expect(result.url).toBe("http://localhost:5173#/hardware-wallet");
+    // Desktop preload (NOT web-shell preload) + sandbox:false (Electron 39
+    // workaround that the comment in main/index.js documents).
+    expect(factoryCalls[0].opts.webPreferences).toMatchObject({
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+      preload: "/abs/desktop-preload.js",
+    });
+    // Per-role default geometry from window-registry.
+    expect(factoryCalls[0].opts.width).toBe(1100);
+    expect(factoryCalls[0].opts.height).toBe(800);
+  });
+
+  it("maps each desktop:* role to its V5 hash path", async () => {
+    const cases = [
+      ["desktop:hardware-wallet", "#/hardware-wallet"],
+      ["desktop:backup-dashboard", "#/backup-dashboard"],
+      ["desktop:llm-test-chat", "#/llm/test-chat"],
+      ["desktop:settings", "#/settings/system"],
+    ];
+    for (const [role, expectedFragment] of cases) {
+      registry = new (
+        await import("../../window-registry.js")
+      ).WindowRegistry();
+      const handler = createWindowOpenHandler({
+        registry,
+        httpUrl: HTTP_URL,
+        v5EntryUrl: "http://localhost:5173",
+        browserWindowFactory: factory,
+      });
+      const r = await handler({ role });
+      expect(r.url).toContain(expectedFragment);
+    }
+  });
+
+  it("falls back to web-shell preloadPath when desktopPreloadPath is omitted", async () => {
+    const handler = createWindowOpenHandler({
+      registry,
+      httpUrl: HTTP_URL,
+      v5EntryUrl: "http://localhost:5173",
+      preloadPath: "/abs/web-shell.js",
+      // desktopPreloadPath: not set
+      browserWindowFactory: factory,
+    });
+    await handler({ role: "desktop:settings" });
+    expect(factoryCalls[0].opts.webPreferences.preload).toBe(
+      "/abs/web-shell.js",
+    );
+  });
+
+  it("throws v5_entry_unavailable when desktop:* opened without v5EntryUrl", async () => {
+    const handler = createWindowOpenHandler({
+      registry,
+      httpUrl: HTTP_URL,
+      browserWindowFactory: factory,
+    });
+    await expect(handler({ role: "desktop:hardware-wallet" })).rejects.toThrow(
+      "v5_entry_unavailable",
+    );
+  });
+
+  it("does NOT add sandbox:false for non-desktop roles", async () => {
+    const handler = createWindowOpenHandler({
+      registry,
+      httpUrl: HTTP_URL,
+      v5EntryUrl: "http://localhost:5173",
+      browserWindowFactory: factory,
+    });
+    await handler({ role: "artifact" });
+    expect(factoryCalls[0].opts.webPreferences.sandbox).toBeUndefined();
+  });
+
+  it("supports a v5EntryUrl already containing # (preserves existing hash)", async () => {
+    const handler = createWindowOpenHandler({
+      registry,
+      httpUrl: HTTP_URL,
+      v5EntryUrl: "file:///app/renderer/index.html#",
+      browserWindowFactory: factory,
+    });
+    const r = await handler({ role: "desktop:settings" });
+    // Already had a hash; we don't append another one.
+    expect(r.url).toBe("file:///app/renderer/index.html#");
+  });
+});
+
 describe("window.open handler — onWindowOpened observer", () => {
   it("invokes onWindowOpened with role + window after register", async () => {
     const observed = [];

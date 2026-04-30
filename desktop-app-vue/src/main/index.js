@@ -733,6 +733,18 @@ class ChainlessChainApp {
       ? path.join(__dirname, "../preload/web-shell.js")
       : path.join(__dirname, "../preload/index.js");
 
+    // 'desktop:*' window.open roles open NEW BrowserWindows that load the
+    // V5/V6 desktop renderer (full electronAPI). Compute the entry URL
+    // once at boot — dev: Vite dev server; prod: file:// renderer/index.html.
+    // Mirrors the loadURL/loadFile decision below.
+    const desktopRendererUrl =
+      process.env.NODE_ENV === "development"
+        ? process.env.VITE_DEV_SERVER_URL ||
+          process.env.DEV_SERVER_URL ||
+          "http://localhost:5173"
+        : `file://${path.join(__dirname, "../renderer/index.html")}`;
+    const desktopPreloadPath = path.join(__dirname, "../preload/index.js");
+
     // Keep the V5/V6 hidden+overlay title bar in both modes — switching to
     // titleBarStyle: "default" in web-shell mode triggered a reproducible
     // sandboxed_renderer crash on Electron 39 / Windows (process exits with
@@ -890,6 +902,9 @@ class ChainlessChainApp {
             registry,
             httpUrl: handle.httpUrl,
             preloadPath: preloadPath,
+            // For 'desktop:*' roles — open V5/V6 renderer with full preload.
+            v5EntryUrl: desktopRendererUrl,
+            desktopPreloadPath: desktopPreloadPath,
             onWindowOpened: (role, win) => {
               const dispose = geometryPersister.attach(role, win);
               if (typeof win.on === "function") {

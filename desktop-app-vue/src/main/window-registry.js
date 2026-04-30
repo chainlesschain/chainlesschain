@@ -30,8 +30,31 @@
 
 const path = require("path");
 
-/** Allowed role names. Anything else throws to catch typos at registration. */
-const VALID_ROLES = new Set(["main", "artifact", "project", "dashboard"]);
+/**
+ * Allowed role names. The `desktop:*` namespace is for windows that load the
+ * V5/V6 desktop renderer (full electronAPI / native preload) instead of the
+ * embedded web-panel SPA — used by the web-shell's "桌面专属" sidebar group
+ * to surface pages like HardwareWalletPage / BackupDashboard / LLMTestChat
+ * that can't run inside the web-shell's minimal preload.
+ */
+const VALID_ROLES = new Set([
+  "main",
+  "artifact",
+  "project",
+  "dashboard",
+  "desktop:hardware-wallet",
+  "desktop:backup-dashboard",
+  "desktop:llm-test-chat",
+  "desktop:settings",
+]);
+
+/** Mapping from desktop:* role → V5/V6 router hash path (no leading #). */
+const DESKTOP_ROLE_PATHS = Object.freeze({
+  "desktop:hardware-wallet": "/hardware-wallet",
+  "desktop:backup-dashboard": "/backup-dashboard",
+  "desktop:llm-test-chat": "/llm/test-chat",
+  "desktop:settings": "/settings/system",
+});
 
 /** Reasonable default sizes per role for first-launch (no persisted geo). */
 const DEFAULT_GEOMETRY = Object.freeze({
@@ -39,6 +62,10 @@ const DEFAULT_GEOMETRY = Object.freeze({
   artifact: Object.freeze({ width: 600, height: 800 }),
   project: Object.freeze({ width: 900, height: 700 }),
   dashboard: Object.freeze({ width: 720, height: 540 }),
+  "desktop:hardware-wallet": Object.freeze({ width: 1100, height: 800 }),
+  "desktop:backup-dashboard": Object.freeze({ width: 1100, height: 800 }),
+  "desktop:llm-test-chat": Object.freeze({ width: 900, height: 700 }),
+  "desktop:settings": Object.freeze({ width: 1100, height: 800 }),
 });
 
 /**
@@ -197,6 +224,7 @@ module.exports = {
   WindowRegistry,
   VALID_ROLES,
   DEFAULT_GEOMETRY,
+  DESKTOP_ROLE_PATHS,
   getWindowRegistry,
   _resetForTest,
 };
