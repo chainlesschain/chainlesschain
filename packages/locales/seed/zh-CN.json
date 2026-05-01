@@ -471,6 +471,191 @@
       "reasonFailed": "推理失败"
     }
   },
+  "trust": {
+    "title": "信任与安全",
+    "subtitle": "TPM/TEE 证明 · PQC 互操作 · 卫星消息 · HSM 设备",
+    "refresh": "刷新",
+    "newDropdown": "新建 ▼",
+    "actions": {
+      "attest": "证明请求",
+      "interop": "PQC 互操作",
+      "sat": "卫星消息",
+      "hsm": "注册 HSM"
+    },
+    "stats": {
+      "attestations": "证明记录",
+      "validSuffix": "{n} 个有效",
+      "interop": "PQC 测试",
+      "interopSub": "{compatible} 兼容 · 均 {avg}ms",
+      "satellite": "卫星消息",
+      "satelliteSub": "{queued} 队列 · {confirmed} 已确认",
+      "hsm": "HSM 设备",
+      "passRate": "证明通过率"
+    },
+    "tabs": {
+      "attestations": "信任根 · TPM/TEE",
+      "interop": "PQC 互操作",
+      "satellite": "卫星消息",
+      "hsm": "HSM 设备"
+    },
+    "filter": {
+      "allAnchors": "全部锚点",
+      "allStatuses": "全部状态",
+      "allProviders": "全部提供商",
+      "allVendors": "全部厂商"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "deviceSuffix": "共 {n} 个设备",
+      "emptyAttestFiltered": "没有符合条件的证明",
+      "emptyAttest": "暂无证明记录，点\"证明请求\"运行第一次",
+      "emptyInterop": "暂无 PQC 互操作测试",
+      "emptySatFiltered": "没有符合条件的消息",
+      "emptySat": "暂无卫星消息",
+      "emptyHsmFiltered": "没有符合条件的设备",
+      "emptyHsm": "暂无 HSM 设备",
+      "compatible": "兼容",
+      "incompatible": "不兼容",
+      "satMarkSent": "标记已发送",
+      "satConfirm": "确认",
+      "satFail": "失败",
+      "hsmSign": "签名",
+      "hsmRemove": "移除"
+    },
+    "removeConfirm": {
+      "title": "移除该 HSM 设备？",
+      "ok": "移除",
+      "cancel": "取消"
+    },
+    "attestCols": {
+      "id": "ID",
+      "anchor": "锚点",
+      "status": "状态",
+      "fingerprint": "指纹",
+      "response": "响应",
+      "createdAt": "创建时间"
+    },
+    "interopCols": {
+      "id": "ID",
+      "algorithm": "算法",
+      "compatible": "兼容",
+      "result": "结果",
+      "latency": "延迟",
+      "peer": "对端",
+      "createdAt": "创建时间"
+    },
+    "satCols": {
+      "id": "ID",
+      "provider": "提供商",
+      "priority": "优先级",
+      "status": "状态",
+      "payload": "负载",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "hsmCols": {
+      "id": "ID",
+      "vendor": "厂商",
+      "model": "型号",
+      "serial": "序列号",
+      "compliance": "合规等级",
+      "firmware": "固件",
+      "action": "操作"
+    },
+    "anchorLabels": {
+      "tpm": "TPM",
+      "tee": "TEE",
+      "secure_element": "SE"
+    },
+    "attestStatusLabels": {
+      "valid": "有效",
+      "expired": "过期",
+      "failed": "失败",
+      "pending": "待处理"
+    },
+    "satStatusLabels": {
+      "queued": "排队中",
+      "sent": "已发送",
+      "confirmed": "已确认",
+      "failed": "失败"
+    },
+    "attest_modal": {
+      "title": "证明请求",
+      "ok": "提交",
+      "cancel": "取消",
+      "anchorLabel": "信任锚点",
+      "challengeLabel": "挑战值",
+      "challengePlaceholder": "可选 hex challenge",
+      "fingerprintLabel": "设备指纹",
+      "fingerprintPlaceholder": "可选 device fingerprint"
+    },
+    "interop_modal": {
+      "title": "PQC 互操作测试",
+      "ok": "运行",
+      "cancel": "取消",
+      "algorithmLabel": "算法",
+      "algorithmPlaceholder": "例如 ml_kem_768 / ml_dsa_65 / slh_dsa_128s",
+      "peerLabel": "对端",
+      "peerPlaceholder": "可选 peer ID",
+      "latencyLabel": "延迟 ms"
+    },
+    "sat_modal": {
+      "title": "发送卫星消息",
+      "ok": "发送",
+      "cancel": "取消",
+      "providerLabel": "提供商",
+      "priorityLabel": "优先级",
+      "priorityHint": "1-10，默认 5",
+      "payloadLabel": "负载",
+      "payloadPlaceholder": "消息内容（建议简短，卫星带宽受限）"
+    },
+    "hsm_modal": {
+      "title": "注册 HSM 设备",
+      "ok": "注册",
+      "cancel": "取消",
+      "vendorLabel": "厂商",
+      "modelLabel": "型号",
+      "modelPlaceholder": "例如 YK5 / Nano X",
+      "serialLabel": "序列号",
+      "serialPlaceholder": "设备序列号",
+      "complianceLabel": "合规等级",
+      "firmwareLabel": "固件版本",
+      "firmwarePlaceholder": "可选"
+    },
+    "sign_modal": {
+      "title": "HSM 签名：{id}",
+      "deviceLabel": "设备",
+      "algorithmLabel": "算法",
+      "algorithmPlaceholder": "可选，例如 ed25519 / ecdsa_p256",
+      "dataLabel": "数据",
+      "dataPlaceholder": "待签名的数据",
+      "submit": "签名",
+      "notSigned": "尚未签名",
+      "resultAlgorithm": "算法",
+      "resultSignature": "签名",
+      "failedReason": "签名失败: {reason}"
+    },
+    "msg": {
+      "loadFailed": "加载数据失败",
+      "attestFailed": "证明失败",
+      "attestSuccess": "证明已记录 [{status}]",
+      "interopAlgEmpty": "请填写算法",
+      "interopFailed": "测试失败",
+      "interopSuccess": "测试完成：{compat} ({latency}ms)",
+      "satPayloadEmpty": "请填写消息负载",
+      "satFailed": "发送失败",
+      "satSuccess": "消息已入队：{id}",
+      "satUpdateFailed": "更新失败",
+      "satUpdateSuccess": "状态已更新",
+      "hsmRegisterFailed": "注册失败",
+      "hsmRegisterSuccess": "HSM 已注册：{id}",
+      "hsmRemoveFailed": "移除失败",
+      "hsmRemoveSuccess": "设备已移除",
+      "signEmpty": "请填写待签名数据",
+      "signSuccess": "签名完成",
+      "signFailed": "签名失败"
+    }
+  },
   "marketplace": {
     "title": "技能市场",
     "subtitle": "发布技能服务 · 记录调用 · 查看统计",

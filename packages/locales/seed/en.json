@@ -471,6 +471,191 @@
       "reasonFailed": "Reasoning failed"
     }
   },
+  "trust": {
+    "title": "Trust & Security",
+    "subtitle": "TPM/TEE attestation · PQC interop · Satellite messages · HSM devices",
+    "refresh": "Refresh",
+    "newDropdown": "New ▼",
+    "actions": {
+      "attest": "Attestation request",
+      "interop": "PQC interop",
+      "sat": "Satellite message",
+      "hsm": "Register HSM"
+    },
+    "stats": {
+      "attestations": "Attestations",
+      "validSuffix": "{n} valid",
+      "interop": "PQC tests",
+      "interopSub": "{compatible} compatible · avg {avg}ms",
+      "satellite": "Satellite messages",
+      "satelliteSub": "{queued} queued · {confirmed} confirmed",
+      "hsm": "HSM devices",
+      "passRate": "Attest pass rate"
+    },
+    "tabs": {
+      "attestations": "Trust root · TPM/TEE",
+      "interop": "PQC interop",
+      "satellite": "Satellite messages",
+      "hsm": "HSM devices"
+    },
+    "filter": {
+      "allAnchors": "All anchors",
+      "allStatuses": "All statuses",
+      "allProviders": "All providers",
+      "allVendors": "All vendors"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "deviceSuffix": "{n} devices",
+      "emptyAttestFiltered": "No attestations match the current filter",
+      "emptyAttest": "No attestations yet — click \"Attestation request\" to run the first one",
+      "emptyInterop": "No PQC interop tests yet",
+      "emptySatFiltered": "No messages match the current filter",
+      "emptySat": "No satellite messages yet",
+      "emptyHsmFiltered": "No devices match the current filter",
+      "emptyHsm": "No HSM devices yet",
+      "compatible": "compatible",
+      "incompatible": "incompatible",
+      "satMarkSent": "Mark sent",
+      "satConfirm": "Confirm",
+      "satFail": "Fail",
+      "hsmSign": "Sign",
+      "hsmRemove": "Remove"
+    },
+    "removeConfirm": {
+      "title": "Remove this HSM device?",
+      "ok": "Remove",
+      "cancel": "Cancel"
+    },
+    "attestCols": {
+      "id": "ID",
+      "anchor": "Anchor",
+      "status": "Status",
+      "fingerprint": "Fingerprint",
+      "response": "Response",
+      "createdAt": "Created"
+    },
+    "interopCols": {
+      "id": "ID",
+      "algorithm": "Algorithm",
+      "compatible": "Compatible",
+      "result": "Result",
+      "latency": "Latency",
+      "peer": "Peer",
+      "createdAt": "Created"
+    },
+    "satCols": {
+      "id": "ID",
+      "provider": "Provider",
+      "priority": "Priority",
+      "status": "Status",
+      "payload": "Payload",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "hsmCols": {
+      "id": "ID",
+      "vendor": "Vendor",
+      "model": "Model",
+      "serial": "Serial",
+      "compliance": "Compliance",
+      "firmware": "Firmware",
+      "action": "Action"
+    },
+    "anchorLabels": {
+      "tpm": "TPM",
+      "tee": "TEE",
+      "secure_element": "SE"
+    },
+    "attestStatusLabels": {
+      "valid": "Valid",
+      "expired": "Expired",
+      "failed": "Failed",
+      "pending": "Pending"
+    },
+    "satStatusLabels": {
+      "queued": "Queued",
+      "sent": "Sent",
+      "confirmed": "Confirmed",
+      "failed": "Failed"
+    },
+    "attest_modal": {
+      "title": "Attestation request",
+      "ok": "Submit",
+      "cancel": "Cancel",
+      "anchorLabel": "Trust anchor",
+      "challengeLabel": "Challenge",
+      "challengePlaceholder": "Optional hex challenge",
+      "fingerprintLabel": "Device fingerprint",
+      "fingerprintPlaceholder": "Optional device fingerprint"
+    },
+    "interop_modal": {
+      "title": "PQC interop test",
+      "ok": "Run",
+      "cancel": "Cancel",
+      "algorithmLabel": "Algorithm",
+      "algorithmPlaceholder": "e.g. ml_kem_768 / ml_dsa_65 / slh_dsa_128s",
+      "peerLabel": "Peer",
+      "peerPlaceholder": "Optional peer ID",
+      "latencyLabel": "Latency ms"
+    },
+    "sat_modal": {
+      "title": "Send satellite message",
+      "ok": "Send",
+      "cancel": "Cancel",
+      "providerLabel": "Provider",
+      "priorityLabel": "Priority",
+      "priorityHint": "1-10, default 5",
+      "payloadLabel": "Payload",
+      "payloadPlaceholder": "Message body (keep it short — bandwidth is constrained)"
+    },
+    "hsm_modal": {
+      "title": "Register HSM device",
+      "ok": "Register",
+      "cancel": "Cancel",
+      "vendorLabel": "Vendor",
+      "modelLabel": "Model",
+      "modelPlaceholder": "e.g. YK5 / Nano X",
+      "serialLabel": "Serial",
+      "serialPlaceholder": "Device serial number",
+      "complianceLabel": "Compliance",
+      "firmwareLabel": "Firmware",
+      "firmwarePlaceholder": "Optional"
+    },
+    "sign_modal": {
+      "title": "HSM sign: {id}",
+      "deviceLabel": "Device",
+      "algorithmLabel": "Algorithm",
+      "algorithmPlaceholder": "Optional, e.g. ed25519 / ecdsa_p256",
+      "dataLabel": "Data",
+      "dataPlaceholder": "Data to sign",
+      "submit": "Sign",
+      "notSigned": "Not signed yet",
+      "resultAlgorithm": "Algorithm",
+      "resultSignature": "Signature",
+      "failedReason": "Sign failed: {reason}"
+    },
+    "msg": {
+      "loadFailed": "Failed to load data",
+      "attestFailed": "Attestation failed",
+      "attestSuccess": "Attestation recorded [{status}]",
+      "interopAlgEmpty": "Enter an algorithm",
+      "interopFailed": "Test failed",
+      "interopSuccess": "Test complete: {compat} ({latency}ms)",
+      "satPayloadEmpty": "Enter a message payload",
+      "satFailed": "Send failed",
+      "satSuccess": "Message queued: {id}",
+      "satUpdateFailed": "Update failed",
+      "satUpdateSuccess": "Status updated",
+      "hsmRegisterFailed": "Register failed",
+      "hsmRegisterSuccess": "HSM registered: {id}",
+      "hsmRemoveFailed": "Remove failed",
+      "hsmRemoveSuccess": "Device removed",
+      "signEmpty": "Enter data to sign",
+      "signSuccess": "Signed",
+      "signFailed": "Sign failed"
+    }
+  },
   "marketplace": {
     "title": "Skill marketplace",
     "subtitle": "Publish skill services · record invocations · view stats",
