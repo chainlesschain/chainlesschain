@@ -1,4 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { EventEmitter } from "node:events";
 
 describe("AgentRuntime MCP bootstrap", () => {
   let processOnSpy;
@@ -188,15 +189,18 @@ describe("AgentRuntime MCP bootstrap", () => {
       disconnectAll: vi.fn().mockResolvedValue(undefined),
     };
     const createSessionManager = vi.fn(() => ({ kind: "ui-session-manager" }));
-    const wsServer = {
+    const wsServer = Object.assign(new EventEmitter(), {
       start: vi.fn().mockResolvedValue(undefined),
       stop: vi.fn().mockResolvedValue(undefined),
-    };
-    const httpServer = {
-      listen: vi.fn((port, host, cb) => cb()),
-      on: vi.fn(),
+      port: 18800,
+    });
+    const httpServer = Object.assign(new EventEmitter(), {
+      listen: vi.fn(function listenMock() {
+        setImmediate(() => httpServer.emit("listening"));
+      }),
+      address: vi.fn(() => ({ port: 18810 })),
       close: vi.fn((cb) => cb && cb()),
-    };
+    });
 
     const runtime = new AgentRuntime({
       kind: "ui",

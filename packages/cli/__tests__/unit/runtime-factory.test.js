@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { EventEmitter } from "node:events";
 
 describe("runtime-factory", () => {
   beforeEach(() => {
@@ -241,15 +242,18 @@ describe("runtime-factory", () => {
 
   it("startUiServer boots ws/http servers through injected gateways", async () => {
     const { AgentRuntime } = await import("../../src/runtime/agent-runtime.js");
-    const wsServer = {
+    const wsServer = Object.assign(new EventEmitter(), {
       start: vi.fn().mockResolvedValue(undefined),
       stop: vi.fn().mockResolvedValue(undefined),
-    };
-    const httpServer = {
-      listen: vi.fn((port, host, cb) => cb()),
-      on: vi.fn(),
+      port: 18800,
+    });
+    const httpServer = Object.assign(new EventEmitter(), {
+      listen: vi.fn(function listenMock() {
+        setImmediate(() => httpServer.emit("listening"));
+      }),
+      address: vi.fn(() => ({ port: 18810 })),
       close: vi.fn((cb) => cb && cb()),
-    };
+    });
     const openBrowser = vi.fn();
 
     const runtime = new AgentRuntime({
@@ -294,11 +298,7 @@ describe("runtime-factory", () => {
       }),
     );
     expect(wsServer.start).toHaveBeenCalledTimes(1);
-    expect(httpServer.listen).toHaveBeenCalledWith(
-      18810,
-      "127.0.0.1",
-      expect.any(Function),
-    );
+    expect(httpServer.listen).toHaveBeenCalledWith(18810, "127.0.0.1");
     expect(openBrowser).toHaveBeenCalledWith("http://127.0.0.1:18810");
     expect(result.uiUrl).toBe("http://127.0.0.1:18810");
   });
