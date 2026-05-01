@@ -70,12 +70,38 @@ When adding a new namespace:
    age badly — the moment you reword the UI in one locale, the key
    stops matching its content.
 
+## Tooling (M2)
+
+```bash
+# 1. Drift report — compares $t() call sites in consumer code to the
+#    seed JSONs. Exits 1 on missing keys (CI-friendly).
+npm --prefix packages/locales run extract
+
+# 2. Untranslated-string scanner — surfaces raw CJK text inside .vue
+#    templates that isn't already wrapped in $t(). Informational only.
+npm --prefix packages/locales run scan-untranslated
+
+# 3. Both, sequentially.
+npm --prefix packages/locales run audit
+```
+
+`extract.js` is built on `vue-i18n-extract`; `scan-untranslated.js` is a
+small custom heuristic scanner — it only looks at `<template>` blocks,
+strips `$t(...)` wrapped calls, and reports the rest. It deliberately
+does not gate the build because false positives (e.g. a-tag values
+that read like Chinese) are common — use it as a planning artifact
+for M3, not a CI failure source.
+
+To wire a new front-end into the catalog, add an entry to the
+`CONSUMERS` array in `scripts/extract.js` and `scripts/scan-untranslated.js`.
+
 ## Guard rails
 
-- Linting enforces "no JSON locale files outside `packages/locales/seed/`"
-  in `web-panel` and `desktop-app-vue` source trees (see the relevant
-  ESLint config). If you spot a stray `src/locales/*.json`, move it
-  here before merging.
-- Tests in `packages/web-panel/__tests__/unit/i18n.test.js` assert
-  end-to-end translation lookup for both locales — they fail loudly if
-  a key gets renamed in one file but not the other.
+- `packages/web-panel/__tests__/unit/no-stray-locales.test.js` fails the
+  build if any `src/**/locales/*.json` exists in web-panel — preventing
+  the catalog from forking.
+- `packages/web-panel/__tests__/unit/i18n.test.js` asserts end-to-end
+  translation lookup for both locales — fails loudly if a key gets
+  renamed in one file but not the other.
+- `npm --prefix packages/locales run extract` exit-code 1 on missing
+  keys; suitable for CI integration once GitHub Actions covers it.

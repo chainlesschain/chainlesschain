@@ -13,9 +13,18 @@
   "files": [
     "seed/"
   ],
+  "scripts": {
+    "extract": "node scripts/extract.js",
+    "scan-untranslated": "node scripts/scan-untranslated.js",
+    "audit": "npm run extract && npm run scan-untranslated"
+  },
   "keywords": [
     "chainlesschain",
     "i18n",
     "locales"
-  ]
+  ],
+  "devDependencies": {
+    "glob": "^10.4.5",
+    "vue-i18n-extract": "^2.0.7"
+  }
 }
