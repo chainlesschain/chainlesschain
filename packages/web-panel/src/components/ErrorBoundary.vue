@@ -2,20 +2,20 @@
   <div v-if="error" class="error-boundary">
     <a-result
       status="error"
-      title="此页面渲染失败"
-      :sub-title="error.message || '未知错误'"
+      :title="$t('error.boundary.title')"
+      :sub-title="error.message || ''"
     >
       <template #extra>
         <a-space direction="vertical" style="width: 100%; align-items: center;">
           <a-space>
             <a-button type="primary" @click="retry">
               <template #icon><ReloadOutlined /></template>
-              重试
+              {{ $t('error.boundary.retry') }}
             </a-button>
-            <a-button @click="goHome">返回仪表板</a-button>
+            <a-button @click="goHome">{{ $t('error.boundary.goHome') }}</a-button>
           </a-space>
           <a-collapse v-if="showStack" ghost style="max-width: 720px;">
-            <a-collapse-panel key="stack" header="错误堆栈（仅开发模式可见）">
+            <a-collapse-panel key="stack" :header="$t('error.boundary.stack')">
               <pre class="stack">{{ error.stack || String(error) }}</pre>
             </a-collapse-panel>
           </a-collapse>

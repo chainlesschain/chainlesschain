@@ -1,0 +1,30 @@
+{
+  "common": {
+    "refresh": "Refresh",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "loading": "Loading...",
+    "empty": "No data",
+    "search": "Search",
+    "back": "Back"
+  },
+  "language": {
+    "label": "Language",
+    "switch": "EN",
+    "zh-CN": "中文",
+    "en": "English"
+  },
+  "error": {
+    "boundary": {
+      "title": "Page failed to render",
+      "retry": "Retry",
+      "goHome": "Back to dashboard",
+      "stack": "Stack trace (dev only)"
+    },
+    "runtime": "Runtime error"
+  }
+}

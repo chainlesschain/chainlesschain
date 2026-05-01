@@ -232,6 +232,16 @@
             </a-tooltip>
           </div>
 
+          <!-- Language switcher (incremental i18n; only owns its own
+               labels + ErrorBoundary + common.* today). -->
+          <a-tooltip :title="$t('language.label')">
+            <button
+              class="lang-switch-btn"
+              :data-locale="locale"
+              @click="toggleLocale"
+            >{{ $t('language.switch') }}</button>
+          </a-tooltip>
+
           <span class="version-tag">{{ PRODUCT_VERSION }}</span>
           <!-- Phase 1.6 symmetric switch: only inside the embedded
                desktop shell does this make sense (no-op in `cc serve`
@@ -286,6 +296,7 @@ import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'
 import logoSrc from '../assets/logo.png'
 import { useShellMode } from '../composables/useShellMode.js'
+import { useLocale } from '../plugins/i18n.js'
 
 const router  = useRouter()
 const route   = useRoute()
@@ -339,6 +350,15 @@ const statusBadge = computed(() => ({ connected:'success', connecting:'processin
 const statusText  = computed(() => ({ connected:'已连接', connecting:'连接中...', error:'连接错误', disconnected:'未连接' })[ws.status] || '未知')
 
 function setTheme(key) { themeStore.setTheme(key) }
+
+// Language switcher — toggles between zh-CN and en. Cycle, not modal,
+// because we only ship two locales today and a one-tap toggle reads
+// faster than a dropdown for a binary choice.
+const { current: locale, supported: SUPPORTED_LOCALES, setLocale } = useLocale()
+function toggleLocale() {
+  const next = SUPPORTED_LOCALES[(SUPPORTED_LOCALES.indexOf(locale.value) + 1) % SUPPORTED_LOCALES.length]
+  setLocale(next)
+}
 
 async function openDesktopWindow(role) {
   // Spawns a new Electron BrowserWindow loading the V5/V6 desktop renderer
@@ -572,6 +592,20 @@ onMounted(() => ws.connect())
 
 .version-tag { color: var(--text-muted); font-size: 11px; }
 .ws-tag { margin: 0 !important; font-size: 11px; }
+
+.lang-switch-btn {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 13px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+.lang-switch-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); transform: scale(1.04); }
 
 .shell-switch-btn {
   width: 26px;

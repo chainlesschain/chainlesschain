@@ -1,0 +1,30 @@
+{
+  "common": {
+    "refresh": "刷新",
+    "save": "保存",
+    "cancel": "取消",
+    "confirm": "确认",
+    "delete": "删除",
+    "edit": "编辑",
+    "create": "创建",
+    "loading": "加载中...",
+    "empty": "暂无数据",
+    "search": "搜索",
+    "back": "返回"
+  },
+  "language": {
+    "label": "语言",
+    "switch": "中文",
+    "zh-CN": "中文",
+    "en": "English"
+  },
+  "error": {
+    "boundary": {
+      "title": "此页面渲染失败",
+      "retry": "重试",
+      "goHome": "返回仪表板",
+      "stack": "错误堆栈（仅开发模式可见）"
+    },
+    "runtime": "运行时错误"
+  }
+}

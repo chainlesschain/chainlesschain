@@ -14,7 +14,24 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { defineComponent, h, ref } from 'vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { createI18n } from 'vue-i18n'
+
+vi.mock('ant-design-vue/es/locale/zh_CN', () => ({ default: { locale: 'zh_CN' } }))
+vi.mock('ant-design-vue/es/locale/en_US', () => ({ default: { locale: 'en_US' } }))
+
 import ErrorBoundary from '../../src/components/ErrorBoundary.vue'
+
+const i18n = createI18n({
+  legacy: false,
+  globalInjection: true,
+  locale: 'zh-CN',
+  fallbackLocale: 'zh-CN',
+  messages: {
+    'zh-CN': {
+      error: { boundary: { title: '此页面渲染失败', retry: '重试', goHome: '返回仪表板', stack: '错误堆栈（仅开发模式可见）' } },
+    },
+  },
+})
 
 // Stub all ant-design-vue components used in the fallback UI to avoid
 // pulling in async chunks (a-result, a-button, a-collapse, a-space).
@@ -53,7 +70,7 @@ describe('ErrorBoundary', () => {
 
   it('renders the slot content when no error is thrown', async () => {
     const wrapper = mount(ErrorBoundary, {
-      global: { plugins: [router], stubs: antStubs },
+      global: { plugins: [router, i18n], stubs: antStubs },
       slots: { default: '<p class="ok">child rendered</p>' },
     })
     await flushPromises()
@@ -71,7 +88,7 @@ describe('ErrorBoundary', () => {
     // Silence the expected Vue warn the throw produces.
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const wrapper = mount(ErrorBoundary, {
-      global: { plugins: [router], stubs: antStubs },
+      global: { plugins: [router, i18n], stubs: antStubs },
       slots: { default: () => h(Boom) },
     })
     await flushPromises()
@@ -99,7 +116,7 @@ describe('ErrorBoundary', () => {
       errorCaptured: parentSpy,
     })
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    mount(Parent, { global: { plugins: [router], stubs: antStubs } })
+    mount(Parent, { global: { plugins: [router, i18n], stubs: antStubs } })
     await flushPromises()
 
     expect(parentSpy).not.toHaveBeenCalled()
@@ -119,7 +136,7 @@ describe('ErrorBoundary', () => {
     })
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const wrapper = mount(ErrorBoundary, {
-      global: { plugins: [router], stubs: antStubs },
+      global: { plugins: [router, i18n], stubs: antStubs },
       slots: { default: () => h(Recoverable) },
     })
     await flushPromises()

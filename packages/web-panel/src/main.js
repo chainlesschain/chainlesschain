@@ -4,6 +4,7 @@ import { message } from 'ant-design-vue'
 import router from './router/index.js'
 import App from './App.vue'
 import { registerAntd } from './plugins/antd.js'
+import { i18n } from './plugins/i18n.js'
 import 'ant-design-vue/dist/reset.css'
 import './style.css'
 
@@ -19,6 +20,7 @@ faviconEl.href = faviconHref
 const app = createApp(App)
 app.use(createPinia())
 app.use(router)
+app.use(i18n)
 registerAntd(app)
 
 // Global error sink — Vue render/setup errors that escape ErrorBoundary
@@ -28,7 +30,10 @@ registerAntd(app)
 app.config.errorHandler = (err, _instance, info) => {
   // eslint-disable-next-line no-console
   console.error('[Vue errorHandler]', info, err)
-  try { message.error(`运行时错误: ${err?.message || err}`, 5) } catch { /* toast may not be ready */ }
+  try {
+    const t = i18n.global.t
+    message.error(`${t('error.runtime')}: ${err?.message || err}`, 5)
+  } catch { /* toast may not be ready */ }
 }
 
 // Catch native errors that Vue does not see — bare promise rejections
