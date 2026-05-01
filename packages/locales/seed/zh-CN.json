@@ -471,6 +471,182 @@
       "reasonFailed": "推理失败"
     }
   },
+  "governance": {
+    "title": "社区治理",
+    "subtitle": "提案 · 加权投票 · 启发式影响分析 · 投票预测",
+    "refresh": "刷新",
+    "create": "创建提案",
+    "noDb": {
+      "message": "该模块需要项目级数据库",
+      "description": "`cc governance ...` 命令仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+    },
+    "stats": {
+      "total": "提案总数",
+      "active": "进行中",
+      "passed": "已通过",
+      "rejected": "被否决",
+      "votes": "投票总数"
+    },
+    "typesCard": "提案类型",
+    "tabs": {
+      "proposals": "提案",
+      "breakdown": "状态分布"
+    },
+    "filter": {
+      "allStatuses": "全部状态",
+      "allTypes": "全部类型"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "unnamed": "(未命名)",
+      "emptyFiltered": "没有符合条件的提案",
+      "empty": "暂无提案，点\"创建提案\"创建第一条"
+    },
+    "cols": {
+      "title": "标题",
+      "type": "类型",
+      "status": "状态",
+      "tally": "票数",
+      "impact": "影响",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "actions": {
+      "details": "详情",
+      "activate": "启动投票",
+      "vote": "投票",
+      "close": "关闭",
+      "analyze": "影响分析",
+      "predict": "预测"
+    },
+    "closeConfirm": {
+      "title": "关闭投票并按当前票数结算？",
+      "ok": "关闭",
+      "cancel": "返回"
+    },
+    "breakdown": {
+      "byStatus": "按状态",
+      "byType": "按类型"
+    },
+    "create_modal": {
+      "title": "创建提案",
+      "ok": "创建",
+      "cancel": "取消",
+      "titleLabel": "标题",
+      "titlePlaceholder": "例如: 增加深色模式支持",
+      "typeLabel": "类型",
+      "proposerLabel": "提案人 DID",
+      "proposerPlaceholder": "可选，例如 did:key:z6Mk...",
+      "descLabel": "描述",
+      "descPlaceholder": "提案的背景、动机、范围（描述越详细，影响分析的 benefit 评分越高）"
+    },
+    "vote_modal": {
+      "title": "对提案投票：{title}",
+      "ok": "投票",
+      "cancel": "取消",
+      "voterLabel": "投票人 DID",
+      "valueLabel": "选项",
+      "yes": "赞成",
+      "no": "反对",
+      "abstain": "弃权",
+      "weightLabel": "权重",
+      "weightHint": "默认 1.0",
+      "reasonLabel": "理由",
+      "reasonPlaceholder": "可选，说明投票理由"
+    },
+    "details": {
+      "title": "提案详情：{title}",
+      "id": "ID",
+      "type": "类型",
+      "status": "状态",
+      "proposer": "提案人",
+      "proposerUnset": "未指定",
+      "description": "描述",
+      "tally": "投票汇总",
+      "tallyYes": "赞成: {n}",
+      "tallyNo": "反对: {n}",
+      "tallyAbstain": "弃权: {n}",
+      "impact": "影响等级",
+      "createdAt": "创建时间",
+      "votingStartsAt": "投票开始",
+      "votingEndsAt": "投票结束",
+      "votesHeader": "投票记录",
+      "votesEmpty": "暂无投票"
+    },
+    "analysis": {
+      "title": "影响分析：{title}",
+      "impactLevel": "影响等级",
+      "effort": "工作量",
+      "sentiment": "社区情绪",
+      "riskBenefit": "风险 / 收益",
+      "riskScore": "风险评分",
+      "benefitScore": "收益评分",
+      "components": "影响组件",
+      "recommendations": "建议"
+    },
+    "prediction": {
+      "title": "投票预测：{title}",
+      "outcomePass": "预计通过",
+      "outcomeReject": "预计否决",
+      "confidence": "置信度",
+      "basedOn": "预测依据",
+      "basedOnVotes": "已有投票",
+      "basedOnHeuristic": "启发式（无投票）",
+      "sampleSize": "样本数",
+      "yesProb": "赞成概率",
+      "noProb": "反对概率",
+      "abstainProb": "弃权概率"
+    },
+    "statusLabels": {
+      "draft": "草稿",
+      "active": "进行中",
+      "passed": "已通过",
+      "rejected": "已否决",
+      "expired": "已过期"
+    },
+    "typeLabels": {
+      "parameter_change": "参数变更",
+      "feature_request": "功能请求",
+      "policy_update": "策略更新",
+      "budget_allocation": "预算分配"
+    },
+    "impactLabels": {
+      "low": "低",
+      "medium": "中",
+      "high": "高",
+      "critical": "关键"
+    },
+    "voteLabels": {
+      "yes": "赞成",
+      "no": "反对",
+      "abstain": "弃权"
+    },
+    "effortLabels": {
+      "small": "小",
+      "medium": "中",
+      "large": "大"
+    },
+    "sentimentLabels": {
+      "positive": "积极",
+      "cautious": "谨慎",
+      "negative": "负面"
+    },
+    "msg": {
+      "loadFailed": "加载治理数据失败",
+      "titleEmpty": "请填写标题",
+      "needCcInit": "需要先 cc init 初始化项目",
+      "createFailed": "创建失败",
+      "createSuccess": "提案已创建（草稿）",
+      "actionFailed": "操作失败",
+      "activated": "已启动投票",
+      "closed": "投票已关闭",
+      "voterEmpty": "请填写投票人 DID",
+      "voteFailed": "投票失败",
+      "voteSuccess": "投票已记录",
+      "analyzeFailed": "分析失败",
+      "predictFailed": "预测失败"
+    }
+  },
   "trust": {
     "title": "信任与安全",
     "subtitle": "TPM/TEE 证明 · PQC 互操作 · 卫星消息 · HSM 设备",

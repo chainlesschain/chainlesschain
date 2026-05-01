@@ -471,6 +471,182 @@
       "reasonFailed": "Reasoning failed"
     }
   },
+  "governance": {
+    "title": "Community Governance",
+    "subtitle": "Proposals · weighted voting · heuristic impact · vote prediction",
+    "refresh": "Refresh",
+    "create": "New proposal",
+    "noDb": {
+      "message": "This module requires a project-level database",
+      "description": "`cc governance ...` only works inside a chainlesschain project directory. Run `cc init` first, or start `cc serve` from an initialised directory."
+    },
+    "stats": {
+      "total": "Total proposals",
+      "active": "Active",
+      "passed": "Passed",
+      "rejected": "Rejected",
+      "votes": "Total votes"
+    },
+    "typesCard": "Proposal types",
+    "tabs": {
+      "proposals": "Proposals",
+      "breakdown": "Breakdown"
+    },
+    "filter": {
+      "allStatuses": "All statuses",
+      "allTypes": "All types"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "unnamed": "(untitled)",
+      "emptyFiltered": "No proposals match the current filter",
+      "empty": "No proposals yet — click \"New proposal\" to create the first one"
+    },
+    "cols": {
+      "title": "Title",
+      "type": "Type",
+      "status": "Status",
+      "tally": "Tally",
+      "impact": "Impact",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "actions": {
+      "details": "Details",
+      "activate": "Open voting",
+      "vote": "Vote",
+      "close": "Close",
+      "analyze": "Impact",
+      "predict": "Predict"
+    },
+    "closeConfirm": {
+      "title": "Close voting and tally with the current votes?",
+      "ok": "Close",
+      "cancel": "Back"
+    },
+    "breakdown": {
+      "byStatus": "By status",
+      "byType": "By type"
+    },
+    "create_modal": {
+      "title": "New proposal",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "titleLabel": "Title",
+      "titlePlaceholder": "e.g. \"Add dark mode support\"",
+      "typeLabel": "Type",
+      "proposerLabel": "Proposer DID",
+      "proposerPlaceholder": "Optional, e.g. did:key:z6Mk...",
+      "descLabel": "Description",
+      "descPlaceholder": "Background, motivation, scope (more detail → higher benefit score in impact analysis)"
+    },
+    "vote_modal": {
+      "title": "Vote on proposal: {title}",
+      "ok": "Vote",
+      "cancel": "Cancel",
+      "voterLabel": "Voter DID",
+      "valueLabel": "Choice",
+      "yes": "Yes",
+      "no": "No",
+      "abstain": "Abstain",
+      "weightLabel": "Weight",
+      "weightHint": "default 1.0",
+      "reasonLabel": "Reason",
+      "reasonPlaceholder": "Optional rationale"
+    },
+    "details": {
+      "title": "Proposal details: {title}",
+      "id": "ID",
+      "type": "Type",
+      "status": "Status",
+      "proposer": "Proposer",
+      "proposerUnset": "(unset)",
+      "description": "Description",
+      "tally": "Tally",
+      "tallyYes": "Yes: {n}",
+      "tallyNo": "No: {n}",
+      "tallyAbstain": "Abstain: {n}",
+      "impact": "Impact level",
+      "createdAt": "Created",
+      "votingStartsAt": "Voting starts",
+      "votingEndsAt": "Voting ends",
+      "votesHeader": "Vote log",
+      "votesEmpty": "No votes yet"
+    },
+    "analysis": {
+      "title": "Impact analysis: {title}",
+      "impactLevel": "Impact level",
+      "effort": "Effort",
+      "sentiment": "Community sentiment",
+      "riskBenefit": "Risk / Benefit",
+      "riskScore": "Risk score",
+      "benefitScore": "Benefit score",
+      "components": "Affected components",
+      "recommendations": "Recommendations"
+    },
+    "prediction": {
+      "title": "Vote prediction: {title}",
+      "outcomePass": "Predicted: pass",
+      "outcomeReject": "Predicted: reject",
+      "confidence": "Confidence",
+      "basedOn": "Based on",
+      "basedOnVotes": "existing votes",
+      "basedOnHeuristic": "heuristic (no votes)",
+      "sampleSize": "Sample size",
+      "yesProb": "Yes probability",
+      "noProb": "No probability",
+      "abstainProb": "Abstain probability"
+    },
+    "statusLabels": {
+      "draft": "Draft",
+      "active": "Active",
+      "passed": "Passed",
+      "rejected": "Rejected",
+      "expired": "Expired"
+    },
+    "typeLabels": {
+      "parameter_change": "Parameter change",
+      "feature_request": "Feature request",
+      "policy_update": "Policy update",
+      "budget_allocation": "Budget allocation"
+    },
+    "impactLabels": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    },
+    "voteLabels": {
+      "yes": "Yes",
+      "no": "No",
+      "abstain": "Abstain"
+    },
+    "effortLabels": {
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large"
+    },
+    "sentimentLabels": {
+      "positive": "Positive",
+      "cautious": "Cautious",
+      "negative": "Negative"
+    },
+    "msg": {
+      "loadFailed": "Failed to load governance data",
+      "titleEmpty": "Enter a title",
+      "needCcInit": "Run `cc init` first to initialise the project",
+      "createFailed": "Create failed",
+      "createSuccess": "Proposal created (draft)",
+      "actionFailed": "Action failed",
+      "activated": "Voting opened",
+      "closed": "Voting closed",
+      "voterEmpty": "Enter a voter DID",
+      "voteFailed": "Vote failed",
+      "voteSuccess": "Vote recorded",
+      "analyzeFailed": "Analysis failed",
+      "predictFailed": "Prediction failed"
+    }
+  },
   "trust": {
     "title": "Trust & Security",
     "subtitle": "TPM/TEE attestation · PQC interop · Satellite messages · HSM devices",
