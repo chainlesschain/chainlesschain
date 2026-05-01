@@ -804,6 +804,153 @@
       "heSuccess": "Computation complete ({scheme}/{op})"
     }
   },
+  "codegen": {
+    "title": "Code generation",
+    "subtitle": "Generation log · heuristic review · 5 scaffold templates",
+    "refresh": "Refresh",
+    "review": "Code review",
+    "newDropdown": "New ▼",
+    "actions": { "generate": "Log generation", "scaffold": "New scaffold" },
+    "stats": {
+      "generations": "Generations",
+      "reviews": "Reviews",
+      "securityIssues": "Security issues",
+      "scaffolds": "Scaffolds",
+      "languages": "Languages"
+    },
+    "templatesCard": "Scaffold templates",
+    "tabs": { "generations": "Generations", "reviews": "Reviews", "scaffolds": "Scaffolds" },
+    "filter": {
+      "languagePlaceholder": "Filter by language...",
+      "frameworkPlaceholder": "Filter by framework...",
+      "allTemplates": "All templates"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "issuesSuffix": "{n}",
+      "noIssues": "— clean",
+      "unnamed": "(unnamed)",
+      "actionDetails": "Details",
+      "actionReview": "Review",
+      "emptyGenerationsFiltered": "No generations match the current filter",
+      "emptyGenerations": "No generation log yet",
+      "emptyReviews": "No reviews yet — click \"Code review\" to run the first one",
+      "emptyScaffoldsFiltered": "No scaffolds match the current filter",
+      "emptyScaffolds": "No scaffold history yet"
+    },
+    "generationCols": {
+      "prompt": "Prompt",
+      "language": "Language",
+      "framework": "Framework",
+      "fileCount": "Files",
+      "tokenCount": "Tokens",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "reviewCols": {
+      "codeHash": "Code hash",
+      "language": "Language",
+      "issuesFound": "Issues",
+      "securityIssues": "Security",
+      "severityBreak": "Severity",
+      "reviewedAt": "Reviewed",
+      "action": "Action"
+    },
+    "scaffoldCols": {
+      "projectName": "Project",
+      "template": "Template",
+      "filesGenerated": "Files",
+      "outputPath": "Output",
+      "createdAt": "Created"
+    },
+    "generate_modal": {
+      "title": "Log code generation",
+      "ok": "Log",
+      "cancel": "Cancel",
+      "promptLabel": "Prompt",
+      "promptPlaceholder": "e.g. \"Build a debounced search input\"",
+      "languageLabel": "Language",
+      "languagePlaceholder": "e.g. typescript / python",
+      "frameworkLabel": "Framework",
+      "frameworkPlaceholder": "e.g. vue / react / fastapi",
+      "codeLabel": "Generated code",
+      "codePlaceholder": "Optional — paste the generated code",
+      "filesLabel": "Files",
+      "tokensLabel": "Tokens"
+    },
+    "review_modal": {
+      "title": "Heuristic code review",
+      "languageLabel": "Language",
+      "languagePlaceholder": "Optional, e.g. javascript / python",
+      "generationIdLabel": "Generation ID",
+      "generationIdPlaceholder": "Optional — link to a generation",
+      "codeLabel": "Code",
+      "codePlaceholder": "Paste code to review (built-in rules: eval / SQL / XSS / path_traversal / command_injection)",
+      "submit": "Run review",
+      "notReviewed": "Not reviewed yet",
+      "issuesStat": "Issues found",
+      "securityStat": "Security issues",
+      "reviewIdStat": "Review ID",
+      "bySeverity": "By severity",
+      "failedReason": "Review failed: {reason}"
+    },
+    "scaffold_modal": {
+      "title": "New scaffold",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "templateLabel": "Template",
+      "projectLabel": "Project name",
+      "projectPlaceholder": "e.g. my-app",
+      "optionsLabel": "Options",
+      "optionsPlaceholder": "Optional JSON, e.g. typescript=true, router=true",
+      "filesLabel": "Files",
+      "outputLabel": "Output path",
+      "outputPlaceholder": "Optional, e.g. /tmp/my-app"
+    },
+    "gen_details": {
+      "title": "Generation details: {id}",
+      "id": "ID",
+      "language": "Language",
+      "framework": "Framework",
+      "fileCount": "Files",
+      "tokenCount": "Tokens",
+      "createdAt": "Created",
+      "prompt": "Prompt",
+      "code": "Generated code"
+    },
+    "review_details": {
+      "title": "Review details: {id}",
+      "id": "ID",
+      "codeHash": "Code hash",
+      "generationId": "Generation ID",
+      "language": "Language",
+      "reviewedAt": "Reviewed",
+      "issuesFound": "Issues found",
+      "securityIssues": "Security issues",
+      "bySeverity": "By severity",
+      "issues": "Issue list"
+    },
+    "severityLabels": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low",
+      "info": "Info"
+    },
+    "msg": {
+      "loadFailed": "Failed to load data",
+      "promptEmpty": "Enter a prompt",
+      "generateFailed": "Log failed",
+      "generateSuccess": "Generation logged: {id}",
+      "codeEmpty": "Paste code to review",
+      "reviewFailed": "Review failed",
+      "reviewSuccess": "Review complete: {n} issues ({sec} security)",
+      "projectEmpty": "Enter a project name",
+      "optionsBadJson": "Options JSON is malformed",
+      "scaffoldFailed": "Create failed",
+      "scaffoldSuccess": "Scaffold created: {id}"
+    }
+  },
   "sla": {
     "title": "SLA management",
     "subtitle": "Service-level contracts · metric records · deviation detection · compensation",

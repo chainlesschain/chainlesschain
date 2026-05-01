@@ -804,6 +804,153 @@
       "heSuccess": "计算完成 ({scheme}/{op})"
     }
   },
+  "codegen": {
+    "title": "代码生成",
+    "subtitle": "生成记录 · 启发式审查 · 5 类脚手架",
+    "refresh": "刷新",
+    "review": "代码审查",
+    "newDropdown": "新建 ▼",
+    "actions": { "generate": "记录生成", "scaffold": "创建脚手架" },
+    "stats": {
+      "generations": "生成记录",
+      "reviews": "代码审查",
+      "securityIssues": "安全问题",
+      "scaffolds": "脚手架",
+      "languages": "语言数"
+    },
+    "templatesCard": "脚手架模板",
+    "tabs": { "generations": "生成记录", "reviews": "代码审查", "scaffolds": "脚手架" },
+    "filter": {
+      "languagePlaceholder": "按语言筛选...",
+      "frameworkPlaceholder": "按框架筛选...",
+      "allTemplates": "全部模板"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "issuesSuffix": "{n} 项",
+      "noIssues": "— 无问题",
+      "unnamed": "(未命名)",
+      "actionDetails": "详情",
+      "actionReview": "审查",
+      "emptyGenerationsFiltered": "没有符合条件的生成记录",
+      "emptyGenerations": "暂无生成记录",
+      "emptyReviews": "暂无审查记录，点\"代码审查\"运行第一次",
+      "emptyScaffoldsFiltered": "没有符合条件的脚手架",
+      "emptyScaffolds": "暂无脚手架记录"
+    },
+    "generationCols": {
+      "prompt": "提示词",
+      "language": "语言",
+      "framework": "框架",
+      "fileCount": "文件",
+      "tokenCount": "Tokens",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "reviewCols": {
+      "codeHash": "代码哈希",
+      "language": "语言",
+      "issuesFound": "问题",
+      "securityIssues": "安全",
+      "severityBreak": "严重度",
+      "reviewedAt": "审查时间",
+      "action": "操作"
+    },
+    "scaffoldCols": {
+      "projectName": "项目名",
+      "template": "模板",
+      "filesGenerated": "文件数",
+      "outputPath": "输出路径",
+      "createdAt": "创建时间"
+    },
+    "generate_modal": {
+      "title": "记录代码生成",
+      "ok": "记录",
+      "cancel": "取消",
+      "promptLabel": "提示词",
+      "promptPlaceholder": "例如：创建一个带防抖的搜索框组件",
+      "languageLabel": "语言",
+      "languagePlaceholder": "例如 typescript / python",
+      "frameworkLabel": "框架",
+      "frameworkPlaceholder": "例如 vue / react / fastapi",
+      "codeLabel": "生成代码",
+      "codePlaceholder": "可选 — 粘贴生成的代码",
+      "filesLabel": "文件数",
+      "tokensLabel": "Token 数"
+    },
+    "review_modal": {
+      "title": "启发式代码审查",
+      "languageLabel": "语言",
+      "languagePlaceholder": "可选，例如 javascript / python",
+      "generationIdLabel": "生成 ID",
+      "generationIdPlaceholder": "可选，关联到一条生成记录",
+      "codeLabel": "代码",
+      "codePlaceholder": "粘贴需要审查的代码（lib 内置 5 类规则：eval / SQL / XSS / path_traversal / command_injection）",
+      "submit": "开始审查",
+      "notReviewed": "尚未审查",
+      "issuesStat": "发现问题",
+      "securityStat": "安全问题",
+      "reviewIdStat": "审查 ID",
+      "bySeverity": "按严重度",
+      "failedReason": "审查失败: {reason}"
+    },
+    "scaffold_modal": {
+      "title": "创建脚手架",
+      "ok": "创建",
+      "cancel": "取消",
+      "templateLabel": "模板",
+      "projectLabel": "项目名",
+      "projectPlaceholder": "例如 my-app",
+      "optionsLabel": "选项",
+      "optionsPlaceholder": "可选 JSON，例如 typescript=true、router=true",
+      "filesLabel": "文件数",
+      "outputLabel": "输出路径",
+      "outputPlaceholder": "可选，例如 /tmp/my-app"
+    },
+    "gen_details": {
+      "title": "生成详情：{id}",
+      "id": "ID",
+      "language": "语言",
+      "framework": "框架",
+      "fileCount": "文件数",
+      "tokenCount": "Token 数",
+      "createdAt": "创建时间",
+      "prompt": "提示词",
+      "code": "生成代码"
+    },
+    "review_details": {
+      "title": "审查详情：{id}",
+      "id": "ID",
+      "codeHash": "代码哈希",
+      "generationId": "生成 ID",
+      "language": "语言",
+      "reviewedAt": "审查时间",
+      "issuesFound": "发现问题",
+      "securityIssues": "安全问题",
+      "bySeverity": "按严重度",
+      "issues": "问题列表"
+    },
+    "severityLabels": {
+      "critical": "关键",
+      "high": "高",
+      "medium": "中",
+      "low": "低",
+      "info": "提示"
+    },
+    "msg": {
+      "loadFailed": "加载数据失败",
+      "promptEmpty": "请填写提示词",
+      "generateFailed": "记录失败",
+      "generateSuccess": "生成已记录：{id}",
+      "codeEmpty": "请粘贴需要审查的代码",
+      "reviewFailed": "审查失败",
+      "reviewSuccess": "审查完成：{n} 项问题（{sec} 安全）",
+      "projectEmpty": "请填写项目名",
+      "optionsBadJson": "选项 JSON 格式错误",
+      "scaffoldFailed": "创建失败",
+      "scaffoldSuccess": "脚手架已创建：{id}"
+    }
+  },
   "sla": {
     "title": "SLA 管理",
     "subtitle": "服务等级合约 · 指标记录 · 偏差检测 · 补偿计算",
