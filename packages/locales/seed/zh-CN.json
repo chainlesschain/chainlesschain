@@ -471,6 +471,37 @@
       "reasonFailed": "推理失败"
     }
   },
+  "chat": {
+    "scope": {
+      "fallbackProjectName": "项目",
+      "globalSessions": "全局会话"
+    },
+    "newChat": "Chat",
+    "newAgent": "Agent",
+    "session": {
+      "untitled": "新对话",
+      "messageCountSuffix": "{n} 条消息"
+    },
+    "sidebarEmpty": "点击上方按钮 开始新对话",
+    "empty": {
+      "title": "开始 AI 对话",
+      "subtitle": "选择左侧会话或创建新对话",
+      "newChat": "新建 Chat",
+      "newAgent": "新建 Agent"
+    },
+    "input": {
+      "loading": "等待响应中...",
+      "placeholder": "输入消息，Shift+Enter 换行，Enter 发送",
+      "answerPlaceholder": "输入回答...",
+      "send": "发送"
+    },
+    "tool": {
+      "argsPreview": "参数 {n} · {key}…",
+      "running": "执行中",
+      "done": "完成",
+      "unknownTool": "unknown"
+    }
+  },
   "dashboard": {
     "title": "仪表板",
     "subProject": "项目「{name}」运行概览",

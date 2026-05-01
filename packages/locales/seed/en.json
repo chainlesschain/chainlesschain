@@ -471,6 +471,37 @@
       "reasonFailed": "Reasoning failed"
     }
   },
+  "chat": {
+    "scope": {
+      "fallbackProjectName": "Project",
+      "globalSessions": "Global sessions"
+    },
+    "newChat": "Chat",
+    "newAgent": "Agent",
+    "session": {
+      "untitled": "New chat",
+      "messageCountSuffix": "{n} messages"
+    },
+    "sidebarEmpty": "Click a button above to start a new chat",
+    "empty": {
+      "title": "Start an AI chat",
+      "subtitle": "Pick a session on the left or create a new one",
+      "newChat": "New Chat",
+      "newAgent": "New Agent"
+    },
+    "input": {
+      "loading": "Waiting for response...",
+      "placeholder": "Type a message. Shift+Enter for newline, Enter to send.",
+      "answerPlaceholder": "Type your answer...",
+      "send": "Send"
+    },
+    "tool": {
+      "argsPreview": "{n} args · {key}…",
+      "running": "running",
+      "done": "done",
+      "unknownTool": "unknown"
+    }
+  },
   "dashboard": {
     "title": "Dashboard",
     "subProject": "Project \"{name}\" overview",

@@ -6,21 +6,21 @@
       <div v-if="isProject" style="padding: 6px 12px 4px; font-size: 11px; color: #1677ff; background: rgba(22,119,255,.07); border-bottom: 1px solid rgba(22,119,255,.15); display: flex; align-items: center; gap: 4px;">
         <FolderOutlined />
         <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" :title="cfg.projectRoot">
-          {{ cfg.projectName || '项目' }}
+          {{ cfg.projectName || $t('chat.scope.fallbackProjectName') }}
         </span>
       </div>
       <div v-else style="padding: 6px 12px 4px; font-size: 11px; color: #722ed1; background: rgba(114,46,209,.07); border-bottom: 1px solid rgba(114,46,209,.15); display: flex; align-items: center; gap: 4px;">
         <GlobalOutlined />
-        <span>全局会话</span>
+        <span>{{ $t('chat.scope.globalSessions') }}</span>
       </div>
       <div style="padding: 10px 12px; border-bottom: 1px solid var(--border-color); display: flex; gap: 8px;">
         <a-button type="primary" size="small" style="flex: 1;" @click="newSession('chat')">
           <template #icon><MessageOutlined /></template>
-          Chat
+          {{ $t('chat.newChat') }}
         </a-button>
         <a-button size="small" style="flex: 1;" @click="newSession('agent')">
           <template #icon><RobotOutlined /></template>
-          Agent
+          {{ $t('chat.newAgent') }}
         </a-button>
       </div>
 
@@ -34,13 +34,13 @@
         >
           <span class="session-icon">{{ session.type === 'agent' ? '🤖' : '💬' }}</span>
           <div class="session-info">
-            <div class="session-title">{{ session.title || '新对话' }}</div>
-            <div class="session-meta">{{ session.messageCount || 0 }} 条消息</div>
+            <div class="session-title">{{ session.title || $t('chat.session.untitled') }}</div>
+            <div class="session-meta">{{ $t('chat.session.messageCountSuffix', { n: session.messageCount || 0 }) }}</div>
           </div>
         </div>
 
         <div v-if="!chatStore.sessions.length" style="text-align: center; color: var(--text-muted); padding: 24px 0; font-size: 13px;">
-          点击上方按钮<br>开始新对话
+          {{ $t('chat.sidebarEmpty') }}
         </div>
       </div>
     </div>
@@ -50,11 +50,11 @@
       <!-- Empty State -->
       <div v-if="!currentSessionId" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted);">
         <div style="font-size: 48px; margin-bottom: 16px;">💬</div>
-        <div style="font-size: 16px; margin-bottom: 8px; color: #777;">开始 AI 对话</div>
-        <div style="font-size: 13px; color: var(--text-muted);">选择左侧会话或创建新对话</div>
+        <div style="font-size: 16px; margin-bottom: 8px; color: #777;">{{ $t('chat.empty.title') }}</div>
+        <div style="font-size: 13px; color: var(--text-muted);">{{ $t('chat.empty.subtitle') }}</div>
         <div style="margin-top: 24px; display: flex; gap: 12px;">
-          <a-button type="primary" @click="newSession('chat')">新建 Chat</a-button>
-          <a-button style="" @click="newSession('agent')">新建 Agent</a-button>
+          <a-button type="primary" @click="newSession('chat')">{{ $t('chat.empty.newChat') }}</a-button>
+          <a-button style="" @click="newSession('agent')">{{ $t('chat.empty.newAgent') }}</a-button>
         </div>
       </div>
 
@@ -106,8 +106,8 @@
           </div>
           <a-input-search
             v-else
-            placeholder="输入回答..."
-            enter-button="发送"
+            :placeholder="$t('chat.input.answerPlaceholder')"
+            :enter-button="$t('chat.input.send')"
             style="margin-top: 10px;"
             @search="answerQuestion"
           />
@@ -119,7 +119,7 @@
         <div style="display: flex; gap: 8px; align-items: flex-end;">
           <a-textarea
             v-model:value="inputText"
-            :placeholder="isLoading ? '等待响应中...' : '输入消息，Shift+Enter 换行，Enter 发送'"
+            :placeholder="isLoading ? $t('chat.input.loading') : $t('chat.input.placeholder')"
             :auto-size="{ minRows: 1, maxRows: 6 }"
             :disabled="isLoading"
             style="background: var(--bg-card-hover); border-color: var(--border-color); color: var(--text-primary); resize: none; flex: 1;"
@@ -137,10 +137,12 @@
 <script setup>
 import { ref, reactive, computed, watch, nextTick, onMounted } from 'vue'
 import { MessageOutlined, RobotOutlined, SendOutlined, FolderOutlined, GlobalOutlined } from '@ant-design/icons-vue'
+import { useI18n } from 'vue-i18n'
 import { useChatStore } from '../stores/chat.js'
 import ToolInvocationCard from '../components/ToolInvocationCard.vue'
 import MarkdownRenderer from '../components/MarkdownRenderer.vue'
 
+const { t } = useI18n()
 const cfg = window.__CC_CONFIG__ || {}
 const isProject = computed(() => cfg.mode === 'project')
 
@@ -170,7 +172,7 @@ function toggleToolDetail(index) {
 function toToolItem(msg, index) {
   return {
     id: `tool-${index}`,
-    label: msg.tool || 'unknown',
+    label: msg.tool || t('chat.tool.unknownTool'),
     detail: toolDetail(msg),
     status: msg.status === 'done' ? 'done' : 'running',
   }
@@ -179,12 +181,14 @@ function toToolItem(msg, index) {
 function toolDetail(msg) {
   if (msg.status === 'running') {
     const keys = msg.input && typeof msg.input === 'object' ? Object.keys(msg.input) : []
-    return keys.length ? `参数 ${keys.length} · ${keys[0]}…` : '执行中'
+    return keys.length
+      ? t('chat.tool.argsPreview', { n: keys.length, key: keys[0] })
+      : t('chat.tool.running')
   }
-  if (msg.result == null) return '完成'
+  if (msg.result == null) return t('chat.tool.done')
   const text = typeof msg.result === 'string' ? msg.result : JSON.stringify(msg.result)
   const firstLine = text.split('\n')[0] || ''
-  return firstLine.length > 48 ? `${firstLine.slice(0, 48)}…` : firstLine || '完成'
+  return firstLine.length > 48 ? `${firstLine.slice(0, 48)}…` : firstLine || t('chat.tool.done')
 }
 
 async function newSession(type) {
