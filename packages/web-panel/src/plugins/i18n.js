@@ -21,14 +21,11 @@
 
 import { createI18n } from 'vue-i18n'
 import { computed, watch } from 'vue'
-import zhCN from '../locales/zh-CN.json'
-import en from '../locales/en.json'
+import { messages, SUPPORTED, FALLBACK } from '@chainlesschain/locales'
 import antdZhCN from 'ant-design-vue/es/locale/zh_CN'
 import antdEnUS from 'ant-design-vue/es/locale/en_US'
 
 const STORAGE_KEY = 'cc.web-panel.locale'
-const SUPPORTED = ['zh-CN', 'en']
-const FALLBACK = 'zh-CN'
 
 function detectInitialLocale() {
   try {
@@ -48,7 +45,7 @@ export const i18n = createI18n({
   globalInjection: true,
   locale: detectInitialLocale(),
   fallbackLocale: FALLBACK,
-  messages: { 'zh-CN': zhCN, en },
+  messages,
 })
 
 // Persist any locale change so the next page load remembers.

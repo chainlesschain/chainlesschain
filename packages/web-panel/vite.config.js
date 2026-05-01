@@ -66,7 +66,14 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': resolve(process.cwd(), 'src')
+      '@': resolve(process.cwd(), 'src'),
+      // Shared i18n catalog (M1 of the i18n migration). web-panel is
+      // not a workspace member, so we thread the seed in via alias
+      // rather than a node_modules link. desktop-app-vue will mirror
+      // this alias when it adopts the catalog.
+      '@chainlesschain/locales': resolve(process.cwd(), '../locales/seed/index.js'),
+      '@chainlesschain/locales/zh-CN': resolve(process.cwd(), '../locales/seed/zh-CN.json'),
+      '@chainlesschain/locales/en': resolve(process.cwd(), '../locales/seed/en.json'),
     }
   }
 })

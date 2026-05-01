@@ -11,7 +11,12 @@ const maxForks = Number(
 export default defineConfig({
   plugins: [vue()],
   resolve: {
-    alias: { '@': resolve(process.cwd(), 'src') },
+    alias: {
+      '@': resolve(process.cwd(), 'src'),
+      '@chainlesschain/locales': resolve(process.cwd(), '../locales/seed/index.js'),
+      '@chainlesschain/locales/zh-CN': resolve(process.cwd(), '../locales/seed/zh-CN.json'),
+      '@chainlesschain/locales/en': resolve(process.cwd(), '../locales/seed/en.json'),
+    },
   },
   test: {
     globals: true,
