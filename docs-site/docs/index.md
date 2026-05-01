@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: v5.0.3.1 | CLI 0.157.9 · 109 命令 · 141 桌面 Skills · 28 Android Skills · V2 规范层（iter16-iter28 · 220+ 治理表面）· 14800+ 测试 · V6 桌面壳 · cc pack OTA · Web Panel 50 routes（V5→Web 全量收官）
+  tagline: v5.0.3.1 | CLI 0.158.0 · 109 命令 · 139 桌面 Skills · 28 Android Skills · V2 规范层（iter16-iter28 · 220+ 治理表面）· 14800+ 测试 · Web Shell（Phase 1.6 默认）· cc pack OTA · Web Panel 50 routes（V5→Web 全量收官）
   image:
     src: /logo.png
     alt: ChainlessChain Logo
