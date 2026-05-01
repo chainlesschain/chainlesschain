@@ -1558,6 +1558,265 @@ function registerFederationCommands(mtc) {
         process.exit(1);
       }
     });
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Phase 3.3 — federation discovery via filesystem drop-zone.
+  // Each member periodically writes a self-signed announce to a shared
+  // directory (NFS / SMB / Syncthing / USB stick). Other nodes scan the
+  // dir + ingest valid announces into a TTL-evicting roster cache.
+  //
+  // Production note: real libp2p gossipsub-based discovery (auto-announce
+  // on a pubsub topic) is the natural next layer — the announce schema +
+  // verify + cache are transport-agnostic, so wiring gossipsub is purely
+  // a delivery question. Filesystem mode covers LAN / shared-fs / offline
+  // use cases without any p2p network code.
+  // ─────────────────────────────────────────────────────────────────────
+  fed
+    .command("discover <federation-id>")
+    .description(
+      "Subscribe to federation announces via filesystem drop-zone (auto-announce self + collect peers)",
+    )
+    .requiredOption(
+      "--drop-zone <dir>",
+      "Shared directory all federation members read+write to (e.g. NFS / Syncthing folder)",
+    )
+    .option(
+      "--member-id <id>",
+      "If joined as this member, also publish a self-announce (omit = listen-only mode)",
+    )
+    .option(
+      "--ttl <seconds>",
+      "Announce TTL (default 600 = 10 min); a re-announce fires at TTL/3",
+      (v) => parseInt(v, 10),
+      600,
+    )
+    .option("--once", "Announce once + scan once + exit (test/CI use)")
+    .option(
+      "--cache-dir <dir>",
+      "Persist accepted announces to this dir for restart resume",
+    )
+    .option(
+      "--scan-interval <seconds>",
+      "Drop-zone poll interval (default 30)",
+      (v) => parseInt(v, 10),
+      30,
+    )
+    .option("--json", "Print JSON status snapshot (used with --once)")
+    .action(async (federationId, options) => {
+      try {
+        await runFederationDiscover(federationId, options);
+      } catch (err) {
+        logger.error(`mtc federation discover failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Federation discover daemon (Phase 3.3)
+// ─────────────────────────────────────────────────────────────────────────
+
+function getDiscoverAnnouncesDir(dropZone, federationId) {
+  return path.join(dropZone, "federation-announces", federationId);
+}
+
+function getDiscoverFilename(announce) {
+  // pubkey_id is "sha256:base64url" — replace : for cross-platform safety
+  const safe = announce.pubkey_id.replace(/[^a-zA-Z0-9_-]/g, "_");
+  return `${safe}.json`;
+}
+
+function publishAnnounce(dropZone, announce) {
+  const dir = getDiscoverAnnouncesDir(dropZone, announce.federation_id);
+  fs.mkdirSync(dir, { recursive: true });
+  const filename = getDiscoverFilename(announce);
+  const target = path.join(dir, filename);
+  // Atomic write: tmp + rename
+  const tmp = `${target}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(announce, null, 2), "utf-8");
+  fs.renameSync(tmp, target);
+  return target;
+}
+
+function scanDropZone(dropZone, federationId) {
+  const dir = getDiscoverAnnouncesDir(dropZone, federationId);
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((n) => n.endsWith(".json"))
+    .map((n) => {
+      const file = path.join(dir, n);
+      try {
+        return { file, announce: JSON.parse(fs.readFileSync(file, "utf-8")) };
+      } catch (err) {
+        return { file, error: err.message };
+      }
+    });
+}
+
+async function runFederationDiscover(federationId, options) {
+  const FederationAnnounceCache = mtcLib.FederationAnnounceCache;
+  const createAnnounce = mtcLib.createMemberAnnounce;
+
+  const cache = new FederationAnnounceCache({
+    persistDir: options.cacheDir,
+  });
+
+  // Build self-announce iff --member-id provided
+  let selfAnnounceFn = null;
+  if (options.memberId) {
+    const registry = loadFederationRegistry();
+    const fedEntry = registry.federations[federationId];
+    if (!fedEntry || !fedEntry.members[options.memberId]) {
+      throw new Error(
+        `not joined as "${options.memberId}" in federation "${federationId}" — run \`cc mtc federation join ${federationId} --member-id ${options.memberId}\` first`,
+      );
+    }
+    const member = fedEntry.members[options.memberId];
+    if (!member.key_file || !fs.existsSync(member.key_file)) {
+      throw new Error(`member key file missing: ${member.key_file}`);
+    }
+    let signerInfo;
+    if (member.alg === "Ed25519") signerInfo = resolveSigner("ed25519");
+    else if (member.alg === "SLH-DSA-SHA2-128F")
+      signerInfo = resolveSigner("slh-dsa-128f");
+    else throw new Error(`unknown member alg: ${member.alg}`);
+    const keys = loadOrGenerateKeyPair(member.key_file, signerInfo);
+
+    selfAnnounceFn = () => {
+      const ann = createAnnounce({
+        federationId,
+        memberId: options.memberId,
+        issuer: member.issuer,
+        secretKey: keys.secretKey,
+        publicKey: keys.publicKey,
+        signer: signerInfo.signer,
+        ttlSeconds: options.ttl,
+      });
+      const written = publishAnnounce(options.dropZone, ann);
+      return { announce: ann, file: written };
+    };
+  }
+
+  function scanAndIngest() {
+    const entries = scanDropZone(options.dropZone, federationId);
+    let accepted = 0;
+    let rejected = 0;
+    const failures = [];
+    for (const e of entries) {
+      if (e.error) {
+        rejected++;
+        failures.push({ file: e.file, code: "PARSE_ERROR" });
+        continue;
+      }
+      const r = cache.ingest(e.announce);
+      if (r.accepted) accepted++;
+      else {
+        rejected++;
+        failures.push({ file: e.file, code: r.reason });
+      }
+    }
+    return { scanned: entries.length, accepted, rejected, failures };
+  }
+
+  function snapshot() {
+    return {
+      federation_id: federationId,
+      drop_zone: options.dropZone,
+      members: cache.listMembers(federationId).map((m) => ({
+        member_id: m.member_id,
+        issuer: m.issuer,
+        alg: m.alg,
+        pubkey_id: m.pubkey_id,
+        announced_at: m.announced_at,
+        ttl_seconds: m.ttl_seconds,
+      })),
+    };
+  }
+
+  // First pass: announce self + scan
+  let selfFile = null;
+  if (selfAnnounceFn) {
+    const r = selfAnnounceFn();
+    selfFile = r.file;
+  }
+  const firstScan = scanAndIngest();
+
+  if (options.once) {
+    const out = {
+      ok: true,
+      federation_id: federationId,
+      self_announce_file: selfFile,
+      scan: firstScan,
+      ...snapshot(),
+    };
+    if (options.json) {
+      console.log(JSON.stringify(out, null, 2));
+    } else {
+      logger.success(
+        `discovered ${out.members.length} member(s) in federation ${federationId}`,
+      );
+      for (const m of out.members) {
+        logger.log(
+          `  · ${chalk.green(m.member_id)} (${m.alg})  ${chalk.gray(m.pubkey_id.slice(0, 18) + "…")}`,
+        );
+      }
+    }
+    return;
+  }
+
+  // Daemon: re-announce + re-scan on intervals
+  const reannounceMs = Math.max(60, Math.floor(options.ttl / 3)) * 1000;
+  const scanMs = Math.max(1, options.scanInterval) * 1000;
+
+  let scanTimer = null;
+  let announceTimer = null;
+  function cleanup() {
+    if (scanTimer) clearInterval(scanTimer);
+    if (announceTimer) clearInterval(announceTimer);
+    process.exit(0);
+  }
+  process.once("SIGINT", cleanup);
+  process.once("SIGTERM", cleanup);
+
+  scanTimer = setInterval(() => {
+    try {
+      const r = scanAndIngest();
+      if (options.json) {
+        console.log(
+          JSON.stringify({ tick: "scan", ...r, ...snapshot() }, null, 2),
+        );
+      } else {
+        logger.log(
+          `[${new Date().toISOString()}] scan: ${r.accepted}+/${r.scanned} accepted, ${cache.listMembers(federationId).length} live`,
+        );
+      }
+    } catch (err) {
+      logger.error(`scan failed: ${err.message}`);
+    }
+  }, scanMs);
+
+  if (selfAnnounceFn) {
+    announceTimer = setInterval(() => {
+      try {
+        selfAnnounceFn();
+        if (!options.json) {
+          logger.log(
+            `[${new Date().toISOString()}] re-announced self in federation ${federationId}`,
+          );
+        }
+      } catch (err) {
+        logger.error(`self-announce failed: ${err.message}`);
+      }
+    }, reannounceMs);
+  }
+
+  logger.success(
+    `federation discover daemon running (drop-zone: ${options.dropZone}, scan: ${options.scanInterval}s, ttl: ${options.ttl}s)${
+      selfAnnounceFn ? `, announcing as ${options.memberId}` : ", listen-only"
+    }`,
+  );
+  await new Promise(() => {});
 }
 
 // Internals exported for tests
@@ -1567,4 +1826,7 @@ export const _federationInternals = {
   saveFederationRegistry,
   getFederationDir,
   getFederationRegistryPath,
+  publishAnnounce,
+  scanDropZone,
+  getDiscoverAnnouncesDir,
 };

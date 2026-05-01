@@ -9,6 +9,7 @@ const landmarkCacheModule = require("./landmark-cache.js");
 const ed25519Signer = require("./signers/ed25519.js");
 const slhDsaSigner = require("./signers/slh-dsa.js");
 const batchModule = require("./batch.js");
+const federationModule = require("./federation.js");
 
 module.exports = {
   // constants
@@ -57,4 +58,11 @@ module.exports = {
   assembleBatch: batchModule.assembleBatch,
   // Federated M-of-N multi-signature variant (Phase 3 federation MTCA)
   assembleBatchFederated: batchModule.assembleBatchFederated,
+
+  // Federation member discovery (Phase 3.3 — service discovery announces)
+  createMemberAnnounce: federationModule.createMemberAnnounce,
+  verifyMemberAnnounce: federationModule.verifyMemberAnnounce,
+  FederationAnnounceCache: federationModule.FederationAnnounceCache,
+  SCHEMA_FEDERATION_ANNOUNCE: federationModule.SCHEMA_ANNOUNCE,
+  FEDERATION_ANNOUNCE_TTL_DEFAULT: federationModule.DEFAULT_TTL_SECONDS,
 };
