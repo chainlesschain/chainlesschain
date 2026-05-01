@@ -54,13 +54,12 @@ class SettingsManager extends EventEmitter {
         startMinimized: false,
       },
 
-      // 界面/外壳设置（V5 经典壳为默认，V6 壳为可选）
+      // 界面/外壳设置
+      // Phase 3.4: V6 壳硬翻为默认（caaddf530）；显式 false 回 V5。
+      // Phase 1.6: web-shell 硬翻为默认；显式 false 回 V5/V6 桌面壳。
       ui: {
         useV6ShellByDefault: true,
-        // Phase 1.3 实验性：把整个壳从 V5/V6 切到 web-panel SPA，
-        // 桌面专属能力（UKey/MCP/Ollama/FS）通过 ws-cli-loader 自定义
-        // topic 继续可用。保存后重启生效。dogfood 稳定后 hard-flip 默认。
-        useWebShellExperimental: false,
+        useWebShellExperimental: true,
       },
 
       // 编辑器设置

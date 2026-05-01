@@ -192,15 +192,15 @@ async function startWebShell(options = {}) {
 }
 
 /**
- * Returns true when the user opted into the web shell via any of:
- *   - argv flag (`--web-shell`)
- *   - env var (`CHAINLESSCHAIN_WEB_SHELL=1`)
- *   - persistent setting (`settings.ui.useWebShellExperimental === true`)
+ * Returns true when the launch should land on the web shell. After the
+ * Phase 1.6 hard-flip the default is **on** — so the function returns
+ * true unless the user explicitly opted out via
+ * `settings.ui.useWebShellExperimental === false`. Argv/env opt-in is
+ * preserved as a force-on escape hatch (e.g. CI / first-launch dogfood
+ * before settings.json exists), but is now redundant in the common case.
  *
- * Pure function — no global state — so it's trivially unit-testable. The
- * `settings` argument is optional (Phase 0 callers passed only argv/env);
- * Phase 1.3 added it so the SystemSettings toggle drives shell choice on
- * next launch. Mirrors the V6 hard-flip pattern (`ui.useV6ShellByDefault`).
+ * Pure function — no global state — so it's trivially unit-testable.
+ * Mirrors the V6 hard-flip semantics (caaddf530): `raw !== false`.
  *
  * @param {string[]} [argv]
  * @param {NodeJS.ProcessEnv} [env]
@@ -212,16 +212,22 @@ function shouldRunWebShell(
   env = process.env,
   settings = null,
 ) {
+  // Explicit opt-out via the SystemSettings toggle wins over everything
+  // else — argv/env force-on cannot override a user who has turned the
+  // shell off. Mirrors how V5/V6 toggle precedence was specified in
+  // caaddf530.
+  if (settings?.ui?.useWebShellExperimental === false) {
+    return false;
+  }
+  // Argv/env force-on stays as an escape hatch for early-boot or CI.
   if (Array.isArray(argv) && argv.includes(WEB_SHELL_FLAG)) {
     return true;
   }
   if (env?.[WEB_SHELL_ENV] === "1") {
     return true;
   }
-  if (settings?.ui?.useWebShellExperimental === true) {
-    return true;
-  }
-  return false;
+  // Phase 1.6 hard-flip default: unset / true / non-boolean → web shell.
+  return true;
 }
 
 module.exports = {

@@ -40,9 +40,11 @@ const DEFAULT_CONFIG = {
   // SystemSettings.vue 通过 config:update 写入这里。Phase 1.3
   // useWebShellExperimental 同时被 _readSettingsSync 在启动期读取
   // (read-settings-sync.js 会层叠 app-config.json 的 ui 覆盖 settings.json)。
+  // Phase 1.6 hard-flip：useWebShellExperimental 默认 true，shouldRunWebShell
+  // 走 `!== false` 语义，只有显式 false 才回到 V5/V6 桌面壳。
   ui: {
     useV6ShellByDefault: true,
-    useWebShellExperimental: false,
+    useWebShellExperimental: true,
   },
 };
 

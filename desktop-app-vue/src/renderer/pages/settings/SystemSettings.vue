@@ -76,14 +76,14 @@
                 </span>
               </a-form-item>
 
-              <a-form-item label="启用 Web Shell（实验）">
+              <a-form-item label="使用 Web Shell（默认）">
                 <a-switch v-model:checked="config.ui.useWebShellExperimental" />
                 <span style="margin-left: 8px">
-                  实验性：把整个壳从 V5/V6 切到 web-panel
+                  Phase 1.6 已硬翻为默认：整个壳走 web-panel
                   SPA，桌面专属能力（UKey/MCP/Ollama/FS）通过同一 WebSocket
-                  的自定义 topic 继续可用。
+                  的自定义 topic 继续可用。关闭则回退到 V5/V6
+                  桌面壳（上面的"启用 V6 桌面壳"开关决定回退到哪一种）。
                   <strong>保存后重启生效。</strong>
-                  Phase 1 dogfood 阶段，确认稳定后会 hard-flip 默认。
                 </span>
               </a-form-item>
             </a-form>
@@ -769,6 +769,7 @@ const config = ref({
   },
   ui: {
     useV6ShellByDefault: true,
+    useWebShellExperimental: true,
   },
   editor: {
     fontSize: 14,

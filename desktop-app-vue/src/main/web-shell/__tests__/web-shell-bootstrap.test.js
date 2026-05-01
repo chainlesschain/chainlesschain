@@ -206,20 +206,20 @@ describe("startWebShell — WS startup failure cleans up the HTTP side", () => {
   });
 });
 
-describe("shouldRunWebShell", () => {
-  it("returns true when --web-shell is in argv", () => {
+describe("shouldRunWebShell (Phase 1.6 hard-flip — opt-out semantics)", () => {
+  it("returns true when --web-shell is in argv (force-on escape hatch preserved)", () => {
     expect(shouldRunWebShell(["node", "main.js", WEB_SHELL_FLAG], {})).toBe(
       true,
     );
   });
 
-  it("returns true when env opt-in is set", () => {
+  it("returns true when env opt-in is set (force-on escape hatch preserved)", () => {
     expect(
       shouldRunWebShell(["node", "main.js"], { [WEB_SHELL_ENV]: "1" }),
     ).toBe(true);
   });
 
-  it("returns true when settings.ui.useWebShellExperimental is true (Phase 1.3 opt-in)", () => {
+  it("returns true when settings.ui.useWebShellExperimental is true", () => {
     expect(
       shouldRunWebShell(
         ["node", "main.js"],
@@ -229,7 +229,7 @@ describe("shouldRunWebShell", () => {
     ).toBe(true);
   });
 
-  it("returns false when the setting is explicitly false", () => {
+  it("returns false when the setting is explicitly false (only opt-out path)", () => {
     expect(
       shouldRunWebShell(
         ["node", "main.js"],
@@ -244,16 +244,37 @@ describe("shouldRunWebShell", () => {
     ).toBe(false);
   });
 
-  it("returns false otherwise", () => {
-    expect(shouldRunWebShell(["node", "main.js"], {})).toBe(false);
+  it("explicit opt-out via setting wins over argv force-on", () => {
+    expect(
+      shouldRunWebShell(
+        ["node", "main.js", WEB_SHELL_FLAG],
+        {},
+        { ui: { useWebShellExperimental: false } },
+      ),
+    ).toBe(false);
+  });
+
+  it("explicit opt-out via setting wins over env force-on", () => {
+    expect(
+      shouldRunWebShell(
+        ["node", "main.js"],
+        { [WEB_SHELL_ENV]: "1" },
+        { ui: { useWebShellExperimental: false } },
+      ),
+    ).toBe(false);
+  });
+
+  it("defaults to true when no opt-out signal is present", () => {
+    // Hard-flip default: all of these used to be false and are now true.
+    expect(shouldRunWebShell(["node", "main.js"], {})).toBe(true);
     expect(
       shouldRunWebShell(["node", "main.js"], { [WEB_SHELL_ENV]: "0" }),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       shouldRunWebShell(["node", "main.js"], { [WEB_SHELL_ENV]: "" }),
-    ).toBe(false);
-    expect(shouldRunWebShell(["node", "main.js"], {}, null)).toBe(false);
-    expect(shouldRunWebShell(["node", "main.js"], {}, {})).toBe(false);
-    expect(shouldRunWebShell(["node", "main.js"], {}, { ui: {} })).toBe(false);
+    ).toBe(true);
+    expect(shouldRunWebShell(["node", "main.js"], {}, null)).toBe(true);
+    expect(shouldRunWebShell(["node", "main.js"], {}, {})).toBe(true);
+    expect(shouldRunWebShell(["node", "main.js"], {}, { ui: {} })).toBe(true);
   });
 });
