@@ -419,11 +419,10 @@ export async function verifyMTC(
 - [x] **Audit 产线启用解锁**（2026-05-01 commit `7f46695eb`）：Q-COMP-1（等保三级最终性窗口）+ Q-COMP-2（T/ZGCMCA 023—2025 条款）法务出函已收到。脚手架默认仍 `enabled=false`，由各租户运行 `cc audit mtc enable --interval <60|3600>` 显式启用。
 - [x] **Q-ENG-2 backend 灰度切换**（2026-05-02 commit `cd7ead6fa`）：`backend/project-service` 加 `audit.mtc.*` 配置（默认 `enabled=false`）+ `AuditMtcProperties` + `AuditMtcBridgeService`（fire-and-forget CLI 桥接）+ 在 `OperationLogService.saveLog` 末端调用桥接。tenant allow-list 控制灰度范围。15 JUnit 测试覆盖。生产启用走 `AUDIT_MTC_ENABLED=true` 环境变量。
 
-### Phase 3 — Federation MTCA（4 周，可选 — 未启动）
-- [ ] M-of-N threshold signing 集成（已有的 cross-chain 基础设施可复用部分）
-- [ ] 联邦节点发现（libp2p service discovery）
-- [ ] CLI：`cc mtc federation join|leave|status`
-- [ ] Marketplace 切换到联邦签名作为信任锚
+### Phase 3 — Federation MTCA（部分落地 2026-05-02）
+- [x] **P3.1 多签 landmark + CLI（commit `95b861914`）**：`core-mtc/lib/batch.js#assembleBatchFederated` 支持 N 签 + threshold；LandmarkCache 支持 ≥ M-of-N 验证 + pubkey-id 去重。`cc mtc federation join|leave|status` 命令组管理 `~/.chainlesschain/federation/members.json`（atomic write，schema `mtc-federation-registry/v1`），支持 Ed25519 + SLH-DSA-128F 异构成员。+11 core-mtc 单测 + 8 CLI 集成测试。
+- [x] **P3.2 Marketplace 联邦信任锚（commit `15c29e9fe`）**：`cc mtc batch / batch-dids / batch-skills / publish-skills` 全部加 `--federation <id>` + `--threshold <n>` flag。Federation mode 从 P3.1 registry 加载所有成员的 key，对同一 tree_head 多签，`cc mtc verify` 多算法 dispatcher 自动接受联邦 landmark。+5 集成测试覆盖 3-of-3 Ed25519、2-of-3 with tampered sig、Ed25519+SLH-DSA 混合联邦、错误路径。
+- [ ] **P3.3 libp2p service discovery（推迟）**：当前用 `~/.chainlesschain/federation/members.json` 静态 registry——operators 带外协调成员后每节点跑一次 `cc mtc federation join`。真实自动发现（gossipsub topic `mtc-federation/v1` 自动 announce + 监听）需要多进程 libp2p e2e 基础设施（约 1-2 天专门工作），生产用途上静态 registry 已够用。
 
 ### Phase 4 — Desktop UI ✅ **全部落地（2026-05-02）**
 - [x] **V6 Preview Shell 状态 widget** — `MtcStatusPreviewWidget.vue` + `DecentralEntries` 顶部新增 MTC 入口，显示 audit-mtc enabled/批次间隔/staging count/最近批次/签名算法（Ed25519 vs SLH-DSA-128F）；IPC 缺失时优雅降级；6 单测覆盖
@@ -531,7 +530,7 @@ export async function verifyMTC(
 - [x] **Phase 1.6 — SLH-DSA 实签**：✅ `@noble/post-quantum@0.6.1` 落地。`core-mtc/lib/signers/slh-dsa.js` 新增；`assembleBatch(leaves, keys, meta, signer?)` 支持 opt-in；`cc mtc batch/batch-dids/batch-skills/publish-skills --alg slh-dsa-128f` CLI 暴露；`cc mtc verify` 多算法 dispatcher 同时支持 Ed25519 + SLH-DSA-128F 信任锚。Audit-mtc 仍维持 Ed25519（realtime sig + 短窗 batch，PQC 收益边际，未来视产线启用情况单独评估）。
 - [x] **Phase 2 backend 灰度切换**（Q-ENG-2 决议，2026-05-02）：`backend/project-service` 加 `audit.mtc.*` 配置（默认 enabled=false） + `AuditMtcProperties` + `AuditMtcBridgeService`（fire-and-forget CLI 桥接，spawn `cc audit mtc emit`）+ 在 `OperationLogService.saveLog` 末端调用桥接。tenant allow-list 控制灰度范围，timeout-ms 防止子进程失控。15 JUnit 测试覆盖（Maven `BUILD SUCCESS`）。生产启用走环境变量 `AUDIT_MTC_ENABLED=true` + 可选 `AUDIT_MTC_TENANT_ALLOW_LIST=tenant-a,tenant-b`。
 - [x] **Phase 4 — Desktop + Web UI 全部落地**（2026-05-02）：V6 状态 widget + 主进程 IPC + DID 详情页 MTC 包含证明 drawer + Marketplace per-row 验证按钮 + Web-panel /mtc 三 tab + Web-panel /did 行 MTC 验证（cross-host parity）。详见 §9 Phase 4 列表。
-- [ ] **audit "待批次关闭" 徽章**（Q-PROD-1 决议 B）— 桌面 V6 widget 已显示 staging count，但 Operation Log 详情页内每条事件的"待批次关闭"per-row 徽章未做（依赖 backend Q-ENG-2 灰度真在线后的 telemetry 决定优先级）
+- [x] **audit "待批次关闭" 徽章**（Q-PROD-1 决议 B，2026-05-02 commit `70d2cda59`）：backend 端 `AuditMtcBridgeService` 解析 `cc audit mtc emit --json` stdout 提取 event_id，via setEmitCallback 通知 `OperationLogService` 写入新字段 `audit_mtc_event_id`（V013 迁移 + 索引）；web-panel `audit-parser.js` 暴露 `auditMtcEventId` + `classifyMtcStatus`，Audit.vue 加 MTC 列：—/已签未查/待关批/已关批 #N 四态徽章，点击触发 `cc audit mtc reconcile-check` 缓存到 row。+4 backend 单测、+5 web-panel 单测。
 
 ### 14.4 上游跟踪
 - 关注 `draft-ietf-plants-merkle-tree-certs-03+` 对树头签名算法、consistency proof、JWK 编码 SLH-DSA 的新建议
