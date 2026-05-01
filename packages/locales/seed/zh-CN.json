@@ -471,6 +471,101 @@
       "reasonFailed": "推理失败"
     }
   },
+  "marketplace": {
+    "title": "技能市场",
+    "subtitle": "发布技能服务 · 记录调用 · 查看统计",
+    "refresh": "刷新",
+    "publish": "发布服务",
+    "stats": {
+      "total": "服务总数",
+      "published": "已发布",
+      "invocations": "调用总数",
+      "successRate": "成功率",
+      "avgDuration": "平均耗时"
+    },
+    "tabs": {
+      "services": "服务",
+      "invocations": "调用记录"
+    },
+    "filter": {
+      "all": "全部",
+      "namePlaceholder": "按名称搜索",
+      "byService": "按服务过滤"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "actionRecord": "记录调用",
+      "statusDropdown": "状态 ▼",
+      "emptyFiltered": "没有符合条件的服务",
+      "empty": "暂无服务，点击\"发布服务\"创建第一个",
+      "emptyInvocations": "暂无调用记录。在\"服务\"标签页对已发布服务点\"记录调用\"。"
+    },
+    "serviceCols": {
+      "name": "名称",
+      "status": "状态",
+      "invocationCount": "调用次数",
+      "owner": "所有者",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "invocationCols": {
+      "service": "服务",
+      "caller": "调用方",
+      "status": "状态",
+      "durationMs": "耗时",
+      "createdAt": "时间"
+    },
+    "deletedService": "(已删除)",
+    "publish_modal": {
+      "title": "发布技能服务",
+      "ok": "发布",
+      "cancel": "取消",
+      "nameLabel": "服务名称",
+      "namePlaceholder": "例如：text-summarizer",
+      "versionLabel": "版本",
+      "versionPlaceholder": "1.0.0（默认）",
+      "descLabel": "描述",
+      "endpointLabel": "调用端点",
+      "endpointPlaceholder": "https://...（可选）",
+      "ownerLabel": "所有者",
+      "ownerPlaceholder": "did:key:...（可选）",
+      "statusLabel": "初始状态"
+    },
+    "record_modal": {
+      "title": "记录调用：{name}",
+      "ok": "记录",
+      "cancel": "取消",
+      "callerLabel": "调用方",
+      "callerPlaceholder": "did:key:...（可选）",
+      "statusLabel": "状态",
+      "durationLabel": "耗时 (ms)",
+      "errorLabel": "错误信息"
+    },
+    "serviceStatusLabels": {
+      "draft": "草稿",
+      "published": "已发布",
+      "deprecated": "已弃用",
+      "suspended": "已暂停"
+    },
+    "invocationStatusLabels": {
+      "pending": "待处理",
+      "running": "运行中",
+      "success": "成功",
+      "failed": "失败",
+      "timeout": "超时"
+    },
+    "msg": {
+      "loadFailed": "加载市场数据失败",
+      "publishEmpty": "请输入服务名称",
+      "publishFailed": "发布失败",
+      "publishSuccess": "服务已发布",
+      "recordOnlyPublished": "只能对\"已发布\"状态的服务记录调用",
+      "recordFailed": "记录失败",
+      "recordSuccess": "调用已记录",
+      "transitionFailed": "状态转换失败",
+      "transitionSuccess": "服务状态已更新为 {label}"
+    }
+  },
   "workflow": {
     "title": "工作流编辑器",
     "subtitle": "创建、编辑、运行 Cowork 工作流（N1 — 初版：表单编辑，画布视图规划中）",

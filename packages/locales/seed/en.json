@@ -471,6 +471,101 @@
       "reasonFailed": "Reasoning failed"
     }
   },
+  "marketplace": {
+    "title": "Skill marketplace",
+    "subtitle": "Publish skill services · record invocations · view stats",
+    "refresh": "Refresh",
+    "publish": "Publish service",
+    "stats": {
+      "total": "Total services",
+      "published": "Published",
+      "invocations": "Total invocations",
+      "successRate": "Success rate",
+      "avgDuration": "Avg. duration"
+    },
+    "tabs": {
+      "services": "Services",
+      "invocations": "Invocation history"
+    },
+    "filter": {
+      "all": "All",
+      "namePlaceholder": "Search by name",
+      "byService": "Filter by service"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "actionRecord": "Record invocation",
+      "statusDropdown": "Status ▼",
+      "emptyFiltered": "No services match the current filter",
+      "empty": "No services yet — click \"Publish service\" to add the first one",
+      "emptyInvocations": "No invocations yet. Click \"Record invocation\" on a published service in the Services tab."
+    },
+    "serviceCols": {
+      "name": "Name",
+      "status": "Status",
+      "invocationCount": "Invocations",
+      "owner": "Owner",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "invocationCols": {
+      "service": "Service",
+      "caller": "Caller",
+      "status": "Status",
+      "durationMs": "Duration",
+      "createdAt": "Time"
+    },
+    "deletedService": "(deleted)",
+    "publish_modal": {
+      "title": "Publish skill service",
+      "ok": "Publish",
+      "cancel": "Cancel",
+      "nameLabel": "Service name",
+      "namePlaceholder": "e.g. text-summarizer",
+      "versionLabel": "Version",
+      "versionPlaceholder": "1.0.0 (default)",
+      "descLabel": "Description",
+      "endpointLabel": "Endpoint",
+      "endpointPlaceholder": "https://... (optional)",
+      "ownerLabel": "Owner",
+      "ownerPlaceholder": "did:key:... (optional)",
+      "statusLabel": "Initial status"
+    },
+    "record_modal": {
+      "title": "Record invocation: {name}",
+      "ok": "Record",
+      "cancel": "Cancel",
+      "callerLabel": "Caller",
+      "callerPlaceholder": "did:key:... (optional)",
+      "statusLabel": "Status",
+      "durationLabel": "Duration (ms)",
+      "errorLabel": "Error message"
+    },
+    "serviceStatusLabels": {
+      "draft": "Draft",
+      "published": "Published",
+      "deprecated": "Deprecated",
+      "suspended": "Suspended"
+    },
+    "invocationStatusLabels": {
+      "pending": "Pending",
+      "running": "Running",
+      "success": "Success",
+      "failed": "Failed",
+      "timeout": "Timeout"
+    },
+    "msg": {
+      "loadFailed": "Failed to load marketplace data",
+      "publishEmpty": "Enter a service name",
+      "publishFailed": "Publish failed",
+      "publishSuccess": "Service published",
+      "recordOnlyPublished": "Only \"Published\" services accept invocation records",
+      "recordFailed": "Record failed",
+      "recordSuccess": "Invocation recorded",
+      "transitionFailed": "Status transition failed",
+      "transitionSuccess": "Service status set to {label}"
+    }
+  },
   "workflow": {
     "title": "Workflow editor",
     "subtitle": "Create, edit, and run Cowork workflows (N1 — form editor; canvas view planned)",

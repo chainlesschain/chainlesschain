@@ -2,17 +2,17 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">技能市场</h2>
-        <p class="page-sub">发布技能服务 · 记录调用 · 查看统计</p>
+        <h2 class="page-title">{{ $t('marketplace.title') }}</h2>
+        <p class="page-sub">{{ $t('marketplace.subtitle') }}</p>
       </div>
       <a-space>
         <a-button :loading="loading" @click="loadAll">
           <template #icon><ReloadOutlined /></template>
-          刷新
+          {{ $t('marketplace.refresh') }}
         </a-button>
         <a-button type="primary" @click="showPublishModal = true">
           <template #icon><CloudUploadOutlined /></template>
-          发布服务
+          {{ $t('marketplace.publish') }}
         </a-button>
       </a-space>
     </div>
@@ -21,21 +21,21 @@
     <a-row :gutter="[16, 16]" style="margin-bottom: 20px;">
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="服务总数" :value="services.length" :value-style="{ color: '#1677ff', fontSize: '20px' }">
+          <a-statistic :title="$t('marketplace.stats.total')" :value="services.length" :value-style="{ color: '#1677ff', fontSize: '20px' }">
             <template #prefix><AppstoreOutlined /></template>
           </a-statistic>
         </a-card>
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="已发布" :value="publishedCount" :value-style="{ color: '#52c41a', fontSize: '20px' }">
+          <a-statistic :title="$t('marketplace.stats.published')" :value="publishedCount" :value-style="{ color: '#52c41a', fontSize: '20px' }">
             <template #prefix><CheckCircleOutlined /></template>
           </a-statistic>
         </a-card>
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="调用总数" :value="stats.total" :value-style="{ color: '#722ed1', fontSize: '20px' }">
+          <a-statistic :title="$t('marketplace.stats.invocations')" :value="stats.total" :value-style="{ color: '#722ed1', fontSize: '20px' }">
             <template #prefix><ThunderboltOutlined /></template>
           </a-statistic>
         </a-card>
@@ -43,7 +43,7 @@
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="成功率"
+            :title="$t('marketplace.stats.successRate')"
             :value="successRatePct"
             suffix="%"
             :precision="1"
@@ -56,7 +56,7 @@
       <a-col :xs="24" :sm="8" :lg="4">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="平均耗时"
+            :title="$t('marketplace.stats.avgDuration')"
             :value="stats.avgDurationMs"
             suffix="ms"
             :value-style="{ color: '#faad14', fontSize: '20px' }"
@@ -70,17 +70,17 @@
     <!-- Tabs -->
     <a-tabs v-model:activeKey="activeTab" class="market-tabs">
       <!-- ── Services tab ──────────────────────────────────────────── -->
-      <a-tab-pane key="services" tab="服务">
+      <a-tab-pane key="services" :tab="$t('marketplace.tabs.services')">
         <div class="filter-bar">
           <a-radio-group v-model:value="statusFilter" size="small" button-style="solid">
-            <a-radio-button value="">全部</a-radio-button>
+            <a-radio-button value="">{{ $t('marketplace.filter.all') }}</a-radio-button>
             <a-radio-button v-for="s in SERVICE_STATUSES" :key="s" :value="s">
               {{ statusLabel(s) }}
             </a-radio-button>
           </a-radio-group>
           <a-input-search
             v-model:value="nameFilter"
-            placeholder="按名称搜索"
+            :placeholder="$t('marketplace.filter.namePlaceholder')"
             allow-clear
             style="max-width: 280px;"
           />
@@ -89,7 +89,7 @@
         <a-table
           :columns="serviceColumns"
           :data-source="filteredServices"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (t) => $t('marketplace.table.totalSuffix', { n: t }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -120,9 +120,9 @@
               <span style="color: var(--text-secondary); font-size: 11px;">{{ formatMarketplaceTime(record.createdAt) }}</span>
             </template>
             <template v-if="column.key === 'action'">
-              <a-button size="small" type="link" @click="openRecord(record)">记录调用</a-button>
+              <a-button size="small" type="link" @click="openRecord(record)">{{ $t('marketplace.table.actionRecord') }}</a-button>
               <a-dropdown :trigger="['click']">
-                <a-button size="small" type="link">状态 ▼</a-button>
+                <a-button size="small" type="link">{{ $t('marketplace.table.statusDropdown') }}</a-button>
                 <template #overlay>
                   <a-menu @click="(e) => transitionStatus(record, e.key)">
                     <a-menu-item v-for="s in SERVICE_STATUSES" :key="s" :disabled="s === record.status">
@@ -136,18 +136,18 @@
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <AppstoreOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              {{ statusFilter || nameFilter ? '没有符合条件的服务' : '暂无服务，点击"发布服务"创建第一个' }}
+              {{ statusFilter || nameFilter ? $t('marketplace.table.emptyFiltered') : $t('marketplace.table.empty') }}
             </div>
           </template>
         </a-table>
       </a-tab-pane>
 
       <!-- ── Invocations tab ───────────────────────────────────────── -->
-      <a-tab-pane key="invocations" tab="调用记录">
+      <a-tab-pane key="invocations" :tab="$t('marketplace.tabs.invocations')">
         <div class="filter-bar">
           <a-select
             v-model:value="invocationServiceFilter"
-            placeholder="按服务过滤"
+            :placeholder="$t('marketplace.filter.byService')"
             allow-clear
             style="width: 280px;"
             size="small"
@@ -161,7 +161,7 @@
         <a-table
           :columns="invocationColumns"
           :data-source="filteredInvocations"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (t) => $t('marketplace.table.totalSuffix', { n: t }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -195,7 +195,7 @@
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <ThunderboltOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              暂无调用记录。在"服务"标签页对已发布服务点"记录调用"。
+              {{ $t('marketplace.table.emptyInvocations') }}
             </div>
           </template>
         </a-table>
@@ -205,31 +205,31 @@
     <!-- ── Publish service modal ─────────────────────────────────── -->
     <a-modal
       v-model:open="showPublishModal"
-      title="发布技能服务"
+      :title="$t('marketplace.publish_modal.title')"
       :confirm-loading="publishing"
       :width="560"
-      ok-text="发布"
-      cancel-text="取消"
+      :ok-text="$t('marketplace.publish_modal.ok')"
+      :cancel-text="$t('marketplace.publish_modal.cancel')"
       @ok="publishService"
       @cancel="resetPublishForm"
     >
       <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-        <a-form-item label="服务名称" required>
-          <a-input v-model:value="publishForm.name" placeholder="例如：text-summarizer" />
+        <a-form-item :label="$t('marketplace.publish_modal.nameLabel')" required>
+          <a-input v-model:value="publishForm.name" :placeholder="$t('marketplace.publish_modal.namePlaceholder')" />
         </a-form-item>
-        <a-form-item label="版本">
-          <a-input v-model:value="publishForm.version" placeholder="1.0.0（默认）" />
+        <a-form-item :label="$t('marketplace.publish_modal.versionLabel')">
+          <a-input v-model:value="publishForm.version" :placeholder="$t('marketplace.publish_modal.versionPlaceholder')" />
         </a-form-item>
-        <a-form-item label="描述">
+        <a-form-item :label="$t('marketplace.publish_modal.descLabel')">
           <a-textarea v-model:value="publishForm.description" :auto-size="{ minRows: 2, maxRows: 5 }" />
         </a-form-item>
-        <a-form-item label="调用端点">
-          <a-input v-model:value="publishForm.endpoint" placeholder="https://...（可选）" />
+        <a-form-item :label="$t('marketplace.publish_modal.endpointLabel')">
+          <a-input v-model:value="publishForm.endpoint" :placeholder="$t('marketplace.publish_modal.endpointPlaceholder')" />
         </a-form-item>
-        <a-form-item label="所有者">
-          <a-input v-model:value="publishForm.owner" placeholder="did:key:...（可选）" />
+        <a-form-item :label="$t('marketplace.publish_modal.ownerLabel')">
+          <a-input v-model:value="publishForm.owner" :placeholder="$t('marketplace.publish_modal.ownerPlaceholder')" />
         </a-form-item>
-        <a-form-item label="初始状态">
+        <a-form-item :label="$t('marketplace.publish_modal.statusLabel')">
           <a-select v-model:value="publishForm.status">
             <a-select-option v-for="s in SERVICE_STATUSES" :key="s" :value="s">
               {{ statusLabel(s) }}
@@ -242,29 +242,29 @@
     <!-- ── Record invocation modal ───────────────────────────────── -->
     <a-modal
       v-model:open="showRecordModal"
-      :title="`记录调用：${recordTargetName}`"
+      :title="$t('marketplace.record_modal.title', { name: recordTargetName })"
       :confirm-loading="recording"
       :width="520"
-      ok-text="记录"
-      cancel-text="取消"
+      :ok-text="$t('marketplace.record_modal.ok')"
+      :cancel-text="$t('marketplace.record_modal.cancel')"
       @ok="recordInvocation"
       @cancel="resetRecordForm"
     >
       <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-        <a-form-item label="调用方">
-          <a-input v-model:value="recordForm.caller" placeholder="did:key:...（可选）" />
+        <a-form-item :label="$t('marketplace.record_modal.callerLabel')">
+          <a-input v-model:value="recordForm.caller" :placeholder="$t('marketplace.record_modal.callerPlaceholder')" />
         </a-form-item>
-        <a-form-item label="状态">
+        <a-form-item :label="$t('marketplace.record_modal.statusLabel')">
           <a-select v-model:value="recordForm.status">
             <a-select-option v-for="s in INVOCATION_STATUSES" :key="s" :value="s">
               {{ invocationStatusLabel(s) }}
             </a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="耗时 (ms)">
+        <a-form-item :label="$t('marketplace.record_modal.durationLabel')">
           <a-input-number v-model:value="recordForm.durationMs" :min="0" :max="3600000" style="width: 100%;" />
         </a-form-item>
-        <a-form-item v-if="recordForm.status === 'failed' || recordForm.status === 'timeout'" label="错误信息">
+        <a-form-item v-if="recordForm.status === 'failed' || recordForm.status === 'timeout'" :label="$t('marketplace.record_modal.errorLabel')">
           <a-textarea v-model:value="recordForm.error" :auto-size="{ minRows: 2, maxRows: 4 }" />
         </a-form-item>
       </a-form>
@@ -284,6 +284,7 @@ import {
   ClockCircleOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
+import { useI18n } from 'vue-i18n'
 import { useWsStore } from '../stores/ws.js'
 import {
   parseServices,
@@ -295,6 +296,7 @@ import {
 } from '../utils/marketplace-parser.js'
 
 const ws = useWsStore()
+const { t } = useI18n()
 
 const loading = ref(false)
 const publishing = ref(false)
@@ -326,22 +328,22 @@ const recordForm = reactive({
 })
 const recordTargetName = ref('')
 
-const serviceColumns = [
-  { title: '名称', key: 'name' },
-  { title: '状态', key: 'status', width: '120px' },
-  { title: '调用次数', key: 'invocationCount', width: '110px' },
-  { title: '所有者', key: 'owner', width: '180px' },
-  { title: '创建时间', key: 'createdAt', width: '160px' },
-  { title: '操作', key: 'action', width: '180px' },
-]
+const serviceColumns = computed(() => [
+  { title: t('marketplace.serviceCols.name'), key: 'name' },
+  { title: t('marketplace.serviceCols.status'), key: 'status', width: '120px' },
+  { title: t('marketplace.serviceCols.invocationCount'), key: 'invocationCount', width: '110px' },
+  { title: t('marketplace.serviceCols.owner'), key: 'owner', width: '180px' },
+  { title: t('marketplace.serviceCols.createdAt'), key: 'createdAt', width: '160px' },
+  { title: t('marketplace.serviceCols.action'), key: 'action', width: '180px' },
+])
 
-const invocationColumns = [
-  { title: '服务', key: 'service' },
-  { title: '调用方', key: 'caller', width: '180px' },
-  { title: '状态', key: 'status', width: '100px' },
-  { title: '耗时', key: 'durationMs', width: '110px' },
-  { title: '时间', key: 'createdAt', width: '160px' },
-]
+const invocationColumns = computed(() => [
+  { title: t('marketplace.invocationCols.service'), key: 'service' },
+  { title: t('marketplace.invocationCols.caller'), key: 'caller', width: '180px' },
+  { title: t('marketplace.invocationCols.status'), key: 'status', width: '100px' },
+  { title: t('marketplace.invocationCols.durationMs'), key: 'durationMs', width: '110px' },
+  { title: t('marketplace.invocationCols.createdAt'), key: 'createdAt', width: '160px' },
+])
 
 const publishedCount = computed(() => services.value.filter(s => s.status === 'published').length)
 const successRatePct = computed(() => stats.value.successRate * 100)
@@ -362,14 +364,18 @@ const filteredInvocations = computed(() => {
 })
 
 function statusLabel(s) {
-  return { draft: '草稿', published: '已发布', deprecated: '已弃用', suspended: '已暂停' }[s] || s
+  const key = `marketplace.serviceStatusLabels.${s}`
+  const v = t(key)
+  return v === key ? s : v
 }
 function serviceStatusColor(s) {
   return { draft: 'default', published: 'green', deprecated: 'orange', suspended: 'red' }[s] || 'default'
 }
 
 function invocationStatusLabel(s) {
-  return { pending: '待处理', running: '运行中', success: '成功', failed: '失败', timeout: '超时' }[s] || s
+  const key = `marketplace.invocationStatusLabels.${s}`
+  const v = t(key)
+  return v === key ? s : v
 }
 function invocationStatusColor(s) {
   return { pending: 'default', running: 'processing', success: 'green', failed: 'red', timeout: 'orange' }[s] || 'default'
@@ -385,7 +391,7 @@ function truncate(s, n) {
 }
 function serviceName(serviceId) {
   const s = services.value.find(x => x.id === serviceId)
-  return s ? s.name : '(已删除)'
+  return s ? s.name : t('marketplace.deletedService')
 }
 
 async function loadAll() {
@@ -400,7 +406,7 @@ async function loadAll() {
     invocations.value = parseInvocations(invRes.output)
     stats.value = parseStats(statsRes.output)
   } catch (e) {
-    message.error('加载市场数据失败: ' + (e?.message || e))
+    message.error(t('marketplace.msg.loadFailed') + ': ' + (e?.message || e))
   } finally {
     loading.value = false
   }
@@ -409,7 +415,7 @@ async function loadAll() {
 async function publishService() {
   const name = publishForm.name.trim()
   if (!name) {
-    message.warning('请输入服务名称')
+    message.warning(t('marketplace.msg.publishEmpty'))
     return
   }
   publishing.value = true
@@ -423,15 +429,15 @@ async function publishService() {
     parts.push('--json')
     const { output } = await ws.execute(parts.join(' '), 15000)
     if (/error|failed|失败/i.test(output) && !/"id"/.test(output)) {
-      message.error('发布失败: ' + output.slice(0, 120))
+      message.error(t('marketplace.msg.publishFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('服务已发布')
+    message.success(t('marketplace.msg.publishSuccess'))
     showPublishModal.value = false
     resetPublishForm()
     await loadAll()
   } catch (e) {
-    message.error('发布失败: ' + (e?.message || e))
+    message.error(t('marketplace.msg.publishFailed') + ': ' + (e?.message || e))
   } finally {
     publishing.value = false
   }
@@ -439,7 +445,7 @@ async function publishService() {
 
 function openRecord(service) {
   if (service.status !== 'published') {
-    message.warning('只能对"已发布"状态的服务记录调用')
+    message.warning(t('marketplace.msg.recordOnlyPublished'))
     return
   }
   recordForm.serviceId = service.id
@@ -464,15 +470,15 @@ async function recordInvocation() {
     parts.push('--json')
     const { output } = await ws.execute(parts.join(' '), 15000)
     if (/error|failed|失败/i.test(output) && !/"id"/.test(output)) {
-      message.error('记录失败: ' + output.slice(0, 120))
+      message.error(t('marketplace.msg.recordFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('调用已记录')
+    message.success(t('marketplace.msg.recordSuccess'))
     showRecordModal.value = false
     activeTab.value = 'invocations'
     await loadAll()
   } catch (e) {
-    message.error('记录失败: ' + (e?.message || e))
+    message.error(t('marketplace.msg.recordFailed') + ': ' + (e?.message || e))
   } finally {
     recording.value = false
   }
@@ -483,13 +489,13 @@ async function transitionStatus(service, newStatus) {
   try {
     const { output } = await ws.execute(`marketplace status ${service.id} ${newStatus} --json`, 10000)
     if (/error|invalid|失败/i.test(output) && !/"status"/.test(output)) {
-      message.error('状态转换失败: ' + output.slice(0, 120))
+      message.error(t('marketplace.msg.transitionFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success(`服务状态已更新为 ${statusLabel(newStatus)}`)
+    message.success(t('marketplace.msg.transitionSuccess', { label: statusLabel(newStatus) }))
     await loadAll()
   } catch (e) {
-    message.error('状态转换失败: ' + (e?.message || e))
+    message.error(t('marketplace.msg.transitionFailed') + ': ' + (e?.message || e))
   }
 }
 
