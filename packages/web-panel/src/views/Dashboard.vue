@@ -4,18 +4,18 @@
       style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;"
     >
       <div>
-        <h2 class="page-title">仪表板</h2>
+        <h2 class="page-title">{{ $t('dashboard.title') }}</h2>
         <p class="page-sub">
           {{
             isProject
-              ? `项目「${cfg.projectName || '未命名'}」运行概览`
-              : 'ChainlessChain 全局运行概览'
+              ? $t('dashboard.subProject', { name: cfg.projectName || $t('dashboard.unnamedProject') })
+              : $t('dashboard.subGlobal')
           }}
         </p>
       </div>
       <a-button type="primary" ghost :loading="loading" @click="refresh">
         <template #icon><ReloadOutlined /></template>
-        刷新
+        {{ $t('dashboard.refresh') }}
       </a-button>
     </div>
 
@@ -27,10 +27,10 @@
       <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
         <FolderOutlined style="color: #1677ff; font-size: 18px;" />
         <div>
-          <div style="color: #91caff; font-weight: 600;">{{ cfg.projectName || '项目' }}</div>
+          <div style="color: #91caff; font-weight: 600;">{{ cfg.projectName || $t('dashboard.projectBanner.fallbackName') }}</div>
           <div style="color: #4a6fa5; font-size: 11px; font-family: monospace;">{{ cfg.projectRoot }}</div>
         </div>
-        <a-tag color="blue" style="margin-left: auto;">项目面板</a-tag>
+        <a-tag color="blue" style="margin-left: auto;">{{ $t('dashboard.projectBanner.tag') }}</a-tag>
       </div>
     </a-card>
 
@@ -38,27 +38,27 @@
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card class="stat-card gateway-card" size="small">
           <div class="stat-header">
-            <span class="stat-label">WebSocket Gateway</span>
+            <span class="stat-label">{{ $t('dashboard.stats.wsGateway') }}</span>
             <a-badge :status="wsStatus === 'connected' ? 'success' : 'error'" />
           </div>
           <div class="stat-value" :style="{ color: wsStatus === 'connected' ? '#52c41a' : '#888' }">
-            {{ wsStatus === 'connected' ? '运行中' : '未连接' }}
+            {{ wsStatus === 'connected' ? $t('dashboard.stats.wsRunning') : $t('dashboard.stats.wsDisconnected') }}
           </div>
-          <div class="stat-sub">端口 {{ cfg.wsPort || 18800 }} · {{ cfg.wsHost || '127.0.0.1' }}</div>
+          <div class="stat-sub">{{ $t('dashboard.stats.wsPortLine', { port: cfg.wsPort || 18800, host: cfg.wsHost || '127.0.0.1' }) }}</div>
         </a-card>
       </a-col>
 
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card class="stat-card" size="small">
           <div class="stat-header">
-            <span class="stat-label">当前 LLM</span>
+            <span class="stat-label">{{ $t('dashboard.stats.currentLlm') }}</span>
             <RobotOutlined style="color: #1677ff;" />
           </div>
           <div
             class="stat-value"
             style="color: #91caff; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
           >
-            {{ stats.activeLlm || '未配置' }}
+            {{ stats.activeLlm || $t('dashboard.stats.llmUnconfigured') }}
           </div>
           <div
             class="stat-sub"
@@ -72,22 +72,22 @@
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card class="stat-card" size="small" style="cursor: pointer;" @click="$router.push('/skills')">
           <div class="stat-header">
-            <span class="stat-label">可用技能</span>
+            <span class="stat-label">{{ $t('dashboard.stats.skills') }}</span>
             <AppstoreOutlined style="color: #1677ff;" />
           </div>
           <div class="stat-value" style="color: #1677ff;">{{ stats.skillCount || '—' }}</div>
-          <div class="stat-sub">点击管理技能</div>
+          <div class="stat-sub">{{ $t('dashboard.stats.skillsHint') }}</div>
         </a-card>
       </a-col>
 
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card class="stat-card" size="small" style="cursor: pointer;" @click="$router.push('/chat')">
           <div class="stat-header">
-            <span class="stat-label">AI 会话</span>
+            <span class="stat-label">{{ $t('dashboard.stats.sessions') }}</span>
             <MessageOutlined style="color: #722ed1;" />
           </div>
           <div class="stat-value" style="color: #c084fc;">{{ stats.sessionCount }}</div>
-          <div class="stat-sub">点击进入对话</div>
+          <div class="stat-sub">{{ $t('dashboard.stats.sessionsHint') }}</div>
         </a-card>
       </a-col>
     </a-row>
@@ -96,49 +96,49 @@
       <a-col :xs="24" :sm="8">
         <a-card class="stat-card" size="small">
           <div class="stat-header">
-            <span class="stat-label">应用状态</span>
+            <span class="stat-label">{{ $t('dashboard.stats.appStatus') }}</span>
             <DesktopOutlined :style="{ color: stats.appRunning ? '#52c41a' : '#888' }" />
           </div>
           <div
             class="stat-value"
             :style="{ color: stats.appRunning ? '#52c41a' : '#888', fontSize: '15px' }"
           >
-            {{ stats.appRunning ? '运行中' : stats.setupDone ? '已初始化' : '未启动' }}
+            {{ stats.appRunning ? $t('dashboard.stats.appRunning') : stats.setupDone ? $t('dashboard.stats.appReady') : $t('dashboard.stats.appNotStarted') }}
           </div>
-          <div class="stat-sub">{{ stats.edition || 'Community' }} Edition</div>
+          <div class="stat-sub">{{ $t('dashboard.stats.edition', { name: stats.edition || 'Community' }) }}</div>
         </a-card>
       </a-col>
 
       <a-col :xs="24" :sm="8">
         <a-card class="stat-card" size="small" style="cursor: pointer;" @click="$router.push('/mcp')">
           <div class="stat-header">
-            <span class="stat-label">MCP 工具</span>
+            <span class="stat-label">{{ $t('dashboard.stats.mcp') }}</span>
             <ToolOutlined style="color: #13c2c2;" />
           </div>
           <div class="stat-value" style="color: #13c2c2;">{{ stats.mcpCount ?? '—' }}</div>
-          <div class="stat-sub">已挂载扩展</div>
+          <div class="stat-sub">{{ $t('dashboard.stats.mcpHint') }}</div>
         </a-card>
       </a-col>
 
       <a-col :xs="24" :sm="8">
         <a-card class="stat-card" size="small" style="cursor: pointer;" @click="$router.push('/notes')">
           <div class="stat-header">
-            <span class="stat-label">知识库笔记</span>
+            <span class="stat-label">{{ $t('dashboard.stats.notes') }}</span>
             <FileTextOutlined style="color: #faad14;" />
           </div>
           <div class="stat-value" style="color: #faad14;">{{ stats.noteCount ?? '—' }}</div>
-          <div class="stat-sub">点击管理笔记</div>
+          <div class="stat-sub">{{ $t('dashboard.stats.notesHint') }}</div>
         </a-card>
       </a-col>
     </a-row>
 
     <a-row :gutter="[16, 16]">
       <a-col :xs="24" :lg="10">
-        <a-card title="快速操作" style="background: var(--bg-card); border-color: var(--border-color); height: 100%;">
+        <a-card :title="$t('dashboard.quick.title')" style="background: var(--bg-card); border-color: var(--border-color); height: 100%;">
           <a-space direction="vertical" style="width: 100%;" size="middle">
             <a-button type="primary" block @click="$router.push('/chat')">
               <template #icon><MessageOutlined /></template>
-              {{ isProject ? '进入项目 Chat' : '新建 AI 对话' }}
+              {{ isProject ? $t('dashboard.quick.enterProjectChat') : $t('dashboard.quick.newAiChat') }}
             </a-button>
             <a-button
               block
@@ -146,7 +146,7 @@
               style="background: rgba(114,46,209,.12); border-color: #722ed1; color: #722ed1;"
             >
               <template #icon><RobotOutlined /></template>
-              启动 Agent 模式
+              {{ $t('dashboard.quick.startAgent') }}
             </a-button>
             <a-row :gutter="8">
               <a-col :span="12">
@@ -156,7 +156,7 @@
                   style="background: var(--bg-card-hover); border-color: var(--border-color);"
                 >
                   <template #icon><SettingOutlined /></template>
-                  服务管理
+                  {{ $t('dashboard.quick.services') }}
                 </a-button>
               </a-col>
               <a-col :span="12">
@@ -166,7 +166,7 @@
                   style="background: var(--bg-card-hover); border-color: var(--border-color);"
                 >
                   <template #icon><FileTextOutlined /></template>
-                  查看日志
+                  {{ $t('dashboard.quick.logs') }}
                 </a-button>
               </a-col>
             </a-row>
@@ -178,7 +178,7 @@
                   style="background: var(--bg-card-hover); border-color: var(--border-color);"
                 >
                   <template #icon><AppstoreOutlined /></template>
-                  技能管理
+                  {{ $t('dashboard.quick.skills') }}
                 </a-button>
               </a-col>
               <a-col :span="12">
@@ -188,7 +188,7 @@
                   style="background: var(--bg-card-hover); border-color: var(--border-color);"
                 >
                   <template #icon><ApiOutlined /></template>
-                  LLM 配置
+                  {{ $t('dashboard.quick.providers') }}
                 </a-button>
               </a-col>
             </a-row>
@@ -198,40 +198,40 @@
 
       <a-col :xs="24" :lg="14">
         <a-card
-          title="最近状态"
+          :title="$t('dashboard.status.title')"
           style="background: var(--bg-card); border-color: var(--border-color);"
           :loading="loading"
         >
           <template #extra>
-            <a-button type="link" size="small" @click="$router.push('/logs')">查看更多</a-button>
+            <a-button type="link" size="small" @click="$router.push('/logs')">{{ $t('dashboard.status.more') }}</a-button>
           </template>
-          <pre class="status-log">{{ statusLog || '点击刷新加载系统状态...' }}</pre>
+          <pre class="status-log">{{ statusLog || $t('dashboard.status.placeholder') }}</pre>
         </a-card>
       </a-col>
     </a-row>
 
     <a-card
-      title="压缩策略观测"
+      :title="$t('dashboard.telemetry.title')"
       style="background: var(--bg-card); border-color: var(--border-color); margin-top: 16px;"
       :loading="loading"
     >
       <a-row :gutter="[12, 12]" style="margin-bottom: 12px;">
         <a-col :xs="24" :md="8">
           <div class="telemetry-filter">
-            <div class="telemetry-filter-label">时间窗口</div>
+            <div class="telemetry-filter-label">{{ $t('dashboard.telemetry.filterWindow') }}</div>
             <a-select v-model:value="telemetryFilters.windowPreset" style="width: 100%;" @change="refreshCompression">
-              <a-select-option value="all">全部样本</a-select-option>
-              <a-select-option value="1h">近 1 小时</a-select-option>
-              <a-select-option value="24h">近 24 小时</a-select-option>
-              <a-select-option value="7d">近 7 天</a-select-option>
+              <a-select-option value="all">{{ $t('dashboard.telemetry.windowAll') }}</a-select-option>
+              <a-select-option value="1h">{{ $t('dashboard.telemetry.window1h') }}</a-select-option>
+              <a-select-option value="24h">{{ $t('dashboard.telemetry.window24h') }}</a-select-option>
+              <a-select-option value="7d">{{ $t('dashboard.telemetry.window7d') }}</a-select-option>
             </a-select>
           </div>
         </a-col>
         <a-col :xs="24" :md="8">
           <div class="telemetry-filter">
-            <div class="telemetry-filter-label">Provider 切片</div>
+            <div class="telemetry-filter-label">{{ $t('dashboard.telemetry.filterProvider') }}</div>
             <a-select v-model:value="telemetryFilters.provider" style="width: 100%;" @change="refreshCompression">
-              <a-select-option value="">全部 Provider</a-select-option>
+              <a-select-option value="">{{ $t('dashboard.telemetry.providerAll') }}</a-select-option>
               <a-select-option v-for="item in providerEntries" :key="item.key" :value="item.key">
                 {{ item.key }}
               </a-select-option>
@@ -240,9 +240,9 @@
         </a-col>
         <a-col :xs="24" :md="8">
           <div class="telemetry-filter">
-            <div class="telemetry-filter-label">Model 切片</div>
+            <div class="telemetry-filter-label">{{ $t('dashboard.telemetry.filterModel') }}</div>
             <a-select v-model:value="telemetryFilters.model" style="width: 100%;" @change="refreshCompression">
-              <a-select-option value="">全部 Model</a-select-option>
+              <a-select-option value="">{{ $t('dashboard.telemetry.modelAll') }}</a-select-option>
               <a-select-option v-for="item in modelEntries" :key="item.key" :value="item.key">
                 {{ item.key }}
               </a-select-option>
@@ -254,26 +254,26 @@
       <a-row :gutter="[12, 12]">
         <a-col :xs="24" :sm="8">
           <div class="telemetry-card">
-            <div class="telemetry-label">压缩命中率</div>
+            <div class="telemetry-label">{{ $t('dashboard.telemetry.hitRate') }}</div>
             <div class="telemetry-value">{{ formatPercent(compression.hitRate) }}</div>
             <div class="telemetry-sub">
-              {{ compression.compressedSamples }} / {{ compression.samples }} 次压缩产生了有效节省
+              {{ $t('dashboard.telemetry.hitRateSub', { compressed: compression.compressedSamples, total: compression.samples }) }}
             </div>
           </div>
         </a-col>
         <a-col :xs="24" :sm="8">
           <div class="telemetry-card">
-            <div class="telemetry-label">累计节省 Token</div>
+            <div class="telemetry-label">{{ $t('dashboard.telemetry.savedTokens') }}</div>
             <div class="telemetry-value">{{ compression.totalSavedTokens }}</div>
-            <div class="telemetry-sub">平均每次 {{ compression.averageSavedTokens }} Token</div>
+            <div class="telemetry-sub">{{ $t('dashboard.telemetry.savedTokensSub', { avg: compression.averageSavedTokens }) }}</div>
           </div>
         </a-col>
         <a-col :xs="24" :sm="8">
           <div class="telemetry-card">
-            <div class="telemetry-label">净节省率</div>
+            <div class="telemetry-label">{{ $t('dashboard.telemetry.netSavingsRate') }}</div>
             <div class="telemetry-value">{{ formatPercent(compression.netSavingsRate) }}</div>
             <div class="telemetry-sub">
-              原始 {{ compression.totalOriginalTokens }} -> 压缩后 {{ compression.totalCompressedTokens }}
+              {{ $t('dashboard.telemetry.netSavingsRateSub', { original: compression.totalOriginalTokens, compressed: compression.totalCompressedTokens }) }}
             </div>
           </div>
         </a-col>
@@ -282,8 +282,8 @@
       <a-row :gutter="[16, 16]" style="margin-top: 12px;">
         <a-col :xs="24" :lg="12">
           <div class="telemetry-section">
-            <div class="telemetry-section-title">策略命中分布</div>
-            <div v-if="compression.strategyDistribution.length === 0" class="telemetry-empty">暂无压缩样本</div>
+            <div class="telemetry-section-title">{{ $t('dashboard.telemetry.strategyDistribution') }}</div>
+            <div v-if="compression.strategyDistribution.length === 0" class="telemetry-empty">{{ $t('dashboard.telemetry.strategyEmpty') }}</div>
             <div v-else class="telemetry-list">
               <div
                 v-for="item in compression.strategyDistribution.slice(0, 6)"
@@ -291,19 +291,19 @@
                 class="telemetry-row"
               >
                 <span>{{ item.strategy }}</span>
-                <span>{{ item.hits }} 次 · {{ formatPercent(item.hitRate) }}</span>
+                <span>{{ $t('dashboard.telemetry.strategyRow', { hits: item.hits, rate: formatPercent(item.hitRate) }) }}</span>
               </div>
             </div>
           </div>
         </a-col>
         <a-col :xs="24" :lg="12">
           <div class="telemetry-section">
-            <div class="telemetry-section-title">变体分布</div>
-            <div v-if="variantEntries.length === 0" class="telemetry-empty">暂无变体数据</div>
+            <div class="telemetry-section-title">{{ $t('dashboard.telemetry.variantDistribution') }}</div>
+            <div v-if="variantEntries.length === 0" class="telemetry-empty">{{ $t('dashboard.telemetry.variantEmpty') }}</div>
             <div v-else class="telemetry-list">
               <div v-for="[variant, count] in variantEntries" :key="variant" class="telemetry-row">
                 <span>{{ variant }}</span>
-                <span>{{ count }} 次</span>
+                <span>{{ $t('dashboard.telemetry.variantRow', { count }) }}</span>
               </div>
             </div>
           </div>
@@ -313,24 +313,24 @@
       <a-row :gutter="[16, 16]" style="margin-top: 12px;">
         <a-col :xs="24" :lg="12">
           <div class="telemetry-section">
-            <div class="telemetry-section-title">Provider 切片</div>
-            <div v-if="providerEntries.length === 0" class="telemetry-empty">暂无 Provider 数据</div>
+            <div class="telemetry-section-title">{{ $t('dashboard.telemetry.providerSlice') }}</div>
+            <div v-if="providerEntries.length === 0" class="telemetry-empty">{{ $t('dashboard.telemetry.providerEmpty') }}</div>
             <div v-else class="telemetry-list">
               <div v-for="item in providerEntries.slice(0, 6)" :key="item.key" class="telemetry-row">
                 <span>{{ item.key }}</span>
-                <span>{{ item.samples }} 次 · {{ formatPercent(item.hitRate) }}</span>
+                <span>{{ $t('dashboard.telemetry.providerRow', { samples: item.samples, rate: formatPercent(item.hitRate) }) }}</span>
               </div>
             </div>
           </div>
         </a-col>
         <a-col :xs="24" :lg="12">
           <div class="telemetry-section">
-            <div class="telemetry-section-title">Model 切片</div>
-            <div v-if="modelEntries.length === 0" class="telemetry-empty">暂无 Model 数据</div>
+            <div class="telemetry-section-title">{{ $t('dashboard.telemetry.modelSlice') }}</div>
+            <div v-if="modelEntries.length === 0" class="telemetry-empty">{{ $t('dashboard.telemetry.modelEmpty') }}</div>
             <div v-else class="telemetry-list">
               <div v-for="item in modelEntries.slice(0, 6)" :key="item.key" class="telemetry-row">
                 <span>{{ item.key }}</span>
-                <span>{{ item.samples }} 次 · {{ item.savedTokens }} saved</span>
+                <span>{{ $t('dashboard.telemetry.modelRow', { samples: item.samples, saved: item.savedTokens }) }}</span>
               </div>
             </div>
           </div>
@@ -338,28 +338,28 @@
       </a-row>
     </a-card>
 
-    <a-card title="运行信息" style="background: var(--bg-card); border-color: var(--border-color); margin-top: 16px;">
+    <a-card :title="$t('dashboard.info.title')" style="background: var(--bg-card); border-color: var(--border-color); margin-top: 16px;">
       <a-descriptions :column="{ xs: 1, sm: 2, lg: 3 }" size="small">
-        <a-descriptions-item label="面板模式">
-          <a-tag :color="isProject ? 'blue' : 'purple'">{{ isProject ? '项目级' : '全局' }}</a-tag>
+        <a-descriptions-item :label="$t('dashboard.info.panelMode')">
+          <a-tag :color="isProject ? 'blue' : 'purple'">{{ isProject ? $t('dashboard.info.modeProject') : $t('dashboard.info.modeGlobal') }}</a-tag>
         </a-descriptions-item>
-        <a-descriptions-item v-if="isProject" label="项目名称">
+        <a-descriptions-item v-if="isProject" :label="$t('dashboard.info.projectName')">
           <span style="color: #91caff;">{{ cfg.projectName || '—' }}</span>
         </a-descriptions-item>
-        <a-descriptions-item v-if="isProject" label="项目路径">
+        <a-descriptions-item v-if="isProject" :label="$t('dashboard.info.projectPath')">
           <span style="color: var(--text-muted); font-family: monospace; font-size: 11px;">{{ cfg.projectRoot }}</span>
         </a-descriptions-item>
-        <a-descriptions-item label="WebSocket">
+        <a-descriptions-item :label="$t('dashboard.info.websocket')">
           <span style="color: var(--text-secondary); font-family: monospace; font-size: 12px;">
             ws://{{ cfg.wsHost || '127.0.0.1' }}:{{ cfg.wsPort || 18800 }}
           </span>
         </a-descriptions-item>
-        <a-descriptions-item label="认证">
+        <a-descriptions-item :label="$t('dashboard.info.auth')">
           <a-tag :color="cfg.wsToken ? 'green' : 'default'" style="font-size: 11px;">
-            {{ cfg.wsToken ? '已启用' : '未启用' }}
+            {{ cfg.wsToken ? $t('dashboard.info.authEnabled') : $t('dashboard.info.authDisabled') }}
           </a-tag>
         </a-descriptions-item>
-        <a-descriptions-item label="版本">
+        <a-descriptions-item :label="$t('dashboard.info.version')">
           <span style="color: var(--text-muted);">{{ PRODUCT_VERSION }}</span>
         </a-descriptions-item>
       </a-descriptions>

@@ -470,5 +470,95 @@
       "reasonEmpty": "No reachable entities from this node",
       "reasonFailed": "Reasoning failed"
     }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subProject": "Project \"{name}\" overview",
+    "subGlobal": "ChainlessChain global overview",
+    "unnamedProject": "(unnamed)",
+    "refresh": "Refresh",
+    "projectBanner": {
+      "fallbackName": "Project",
+      "tag": "Project panel"
+    },
+    "stats": {
+      "wsGateway": "WebSocket Gateway",
+      "wsRunning": "Running",
+      "wsDisconnected": "Disconnected",
+      "wsPortLine": "Port {port} · {host}",
+      "currentLlm": "Current LLM",
+      "llmUnconfigured": "(unconfigured)",
+      "skills": "Skills",
+      "skillsHint": "Click to manage skills",
+      "sessions": "AI sessions",
+      "sessionsHint": "Click to enter chat",
+      "appStatus": "App status",
+      "appRunning": "Running",
+      "appReady": "Initialised",
+      "appNotStarted": "Not started",
+      "edition": "{name} Edition",
+      "mcp": "MCP tools",
+      "mcpHint": "Mounted extensions",
+      "notes": "Knowledge base notes",
+      "notesHint": "Click to manage notes"
+    },
+    "quick": {
+      "title": "Quick actions",
+      "enterProjectChat": "Enter project chat",
+      "newAiChat": "New AI chat",
+      "startAgent": "Start agent mode",
+      "services": "Services",
+      "logs": "View logs",
+      "skills": "Manage skills",
+      "providers": "LLM config"
+    },
+    "status": {
+      "title": "Recent status",
+      "more": "View more",
+      "placeholder": "Click refresh to load system status..."
+    },
+    "telemetry": {
+      "title": "Compression telemetry",
+      "filterWindow": "Time window",
+      "filterProvider": "Provider slice",
+      "filterModel": "Model slice",
+      "windowAll": "All samples",
+      "window1h": "Last hour",
+      "window24h": "Last 24 hours",
+      "window7d": "Last 7 days",
+      "providerAll": "All providers",
+      "modelAll": "All models",
+      "hitRate": "Hit rate",
+      "hitRateSub": "{compressed} / {total} compressions produced real savings",
+      "savedTokens": "Tokens saved (cumulative)",
+      "savedTokensSub": "Avg. {avg} tokens per compression",
+      "netSavingsRate": "Net savings rate",
+      "netSavingsRateSub": "Original {original} -> after compression {compressed}",
+      "strategyDistribution": "Strategy hits",
+      "strategyEmpty": "No compression samples yet",
+      "strategyRow": "{hits} hits · {rate}",
+      "variantDistribution": "Variant breakdown",
+      "variantEmpty": "No variant data yet",
+      "variantRow": "{count}",
+      "providerSlice": "Provider slice",
+      "providerEmpty": "No provider data yet",
+      "providerRow": "{samples} samples · {rate}",
+      "modelSlice": "Model slice",
+      "modelEmpty": "No model data yet",
+      "modelRow": "{samples} samples · {saved} saved"
+    },
+    "info": {
+      "title": "Runtime info",
+      "panelMode": "Panel mode",
+      "modeProject": "Project",
+      "modeGlobal": "Global",
+      "projectName": "Project name",
+      "projectPath": "Project path",
+      "websocket": "WebSocket",
+      "auth": "Auth",
+      "authEnabled": "Enabled",
+      "authDisabled": "Disabled",
+      "version": "Version"
+    }
   }
 }

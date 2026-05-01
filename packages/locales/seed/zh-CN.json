@@ -470,5 +470,95 @@
       "reasonEmpty": "从该实体无可达节点",
       "reasonFailed": "推理失败"
     }
+  },
+  "dashboard": {
+    "title": "仪表板",
+    "subProject": "项目「{name}」运行概览",
+    "subGlobal": "ChainlessChain 全局运行概览",
+    "unnamedProject": "未命名",
+    "refresh": "刷新",
+    "projectBanner": {
+      "fallbackName": "项目",
+      "tag": "项目面板"
+    },
+    "stats": {
+      "wsGateway": "WebSocket Gateway",
+      "wsRunning": "运行中",
+      "wsDisconnected": "未连接",
+      "wsPortLine": "端口 {port} · {host}",
+      "currentLlm": "当前 LLM",
+      "llmUnconfigured": "未配置",
+      "skills": "可用技能",
+      "skillsHint": "点击管理技能",
+      "sessions": "AI 会话",
+      "sessionsHint": "点击进入对话",
+      "appStatus": "应用状态",
+      "appRunning": "运行中",
+      "appReady": "已初始化",
+      "appNotStarted": "未启动",
+      "edition": "{name} Edition",
+      "mcp": "MCP 工具",
+      "mcpHint": "已挂载扩展",
+      "notes": "知识库笔记",
+      "notesHint": "点击管理笔记"
+    },
+    "quick": {
+      "title": "快速操作",
+      "enterProjectChat": "进入项目 Chat",
+      "newAiChat": "新建 AI 对话",
+      "startAgent": "启动 Agent 模式",
+      "services": "服务管理",
+      "logs": "查看日志",
+      "skills": "技能管理",
+      "providers": "LLM 配置"
+    },
+    "status": {
+      "title": "最近状态",
+      "more": "查看更多",
+      "placeholder": "点击刷新加载系统状态..."
+    },
+    "telemetry": {
+      "title": "压缩策略观测",
+      "filterWindow": "时间窗口",
+      "filterProvider": "Provider 切片",
+      "filterModel": "Model 切片",
+      "windowAll": "全部样本",
+      "window1h": "近 1 小时",
+      "window24h": "近 24 小时",
+      "window7d": "近 7 天",
+      "providerAll": "全部 Provider",
+      "modelAll": "全部 Model",
+      "hitRate": "压缩命中率",
+      "hitRateSub": "{compressed} / {total} 次压缩产生了有效节省",
+      "savedTokens": "累计节省 Token",
+      "savedTokensSub": "平均每次 {avg} Token",
+      "netSavingsRate": "净节省率",
+      "netSavingsRateSub": "原始 {original} -> 压缩后 {compressed}",
+      "strategyDistribution": "策略命中分布",
+      "strategyEmpty": "暂无压缩样本",
+      "strategyRow": "{hits} 次 · {rate}",
+      "variantDistribution": "变体分布",
+      "variantEmpty": "暂无变体数据",
+      "variantRow": "{count} 次",
+      "providerSlice": "Provider 切片",
+      "providerEmpty": "暂无 Provider 数据",
+      "providerRow": "{samples} 次 · {rate}",
+      "modelSlice": "Model 切片",
+      "modelEmpty": "暂无 Model 数据",
+      "modelRow": "{samples} 次 · {saved} saved"
+    },
+    "info": {
+      "title": "运行信息",
+      "panelMode": "面板模式",
+      "modeProject": "项目级",
+      "modeGlobal": "全局",
+      "projectName": "项目名称",
+      "projectPath": "项目路径",
+      "websocket": "WebSocket",
+      "auth": "认证",
+      "authEnabled": "已启用",
+      "authDisabled": "未启用",
+      "version": "版本"
+    }
   }
 }
