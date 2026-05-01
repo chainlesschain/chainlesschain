@@ -424,6 +424,14 @@
             <FolderOutlined />
             项目存储
           </template>
+          <a-alert
+            type="info"
+            show-icon
+            closable
+            style="margin-bottom: 12px"
+            message="此配置已搬到 web 端"
+            description="项目存储配置也可在 web-panel 的「配置 → 项目存储」编辑（embeddedShell 默认入口）。本页保留作为桌面端备用入口。"
+          />
           <ProjectPane v-model:config="config" />
         </a-tab-pane>
 
@@ -433,6 +441,14 @@
             <RobotOutlined />
             AI 模型
           </template>
+          <a-alert
+            type="info"
+            show-icon
+            closable
+            style="margin-bottom: 12px"
+            message="此配置已搬到 web 端"
+            description="LLM provider 切换 / 测试 / 配置在 web-panel 的「配置 → LLM 配置」面板，体验一致。本页保留作为桌面端备用入口。"
+          />
           <LLMPane v-model:config="config" />
         </a-tab-pane>
 
@@ -617,6 +633,14 @@
             <SoundOutlined />
             语音识别
           </template>
+          <a-alert
+            type="info"
+            show-icon
+            closable
+            style="margin-bottom: 12px"
+            message="核心配置已搬到 web 端"
+            description="引擎选择 + Web Speech / Whisper API / Whisper Local 三种引擎的核心配置可在 web-panel 的「配置 → 语音识别」编辑。本页保留高级 storage / audio / 知识集成 / 性能子项（低频，未迁移）。"
+          />
           <SpeechRecognitionPane v-model:config="config" />
         </a-tab-pane>
       </a-tabs>

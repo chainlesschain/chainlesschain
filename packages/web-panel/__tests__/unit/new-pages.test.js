@@ -22,12 +22,12 @@ import { parseProviders, parseStatus, KNOWN_PROVIDERS } from '../../src/utils/pa
 // ─── Router registration ─────────────────────────────────────────────────────
 
 describe('Router registration', () => {
-  it('has exactly 52 child routes under root', async () => {
+  it('has exactly 53 child routes under root', async () => {
     const routerModule = await import('../../src/router/index.js')
     const router = routerModule.default
     const rootRoute = router.options.routes[0]
-    // 1 redirect + 51 named pages = 52 children
-    expect(rootRoute.children.length).toBe(52)
+    // 1 redirect + 52 named pages = 53 children
+    expect(rootRoute.children.length).toBe(53)
   })
 
   it('contains all expected route names', async () => {
@@ -37,7 +37,8 @@ describe('Router registration', () => {
     const names = rootRoute.children.map(r => r.name).filter(Boolean)
     const expected = [
       'Dashboard', 'Chat', 'QuickAsk', 'UkeySign', 'Cowork', 'Services', 'Logs', 'Skills',
-      'Providers', 'McpTools', 'ProjectSettings', 'Notes', 'Memory', 'Knowledge', 'Cron',
+      'Providers', 'McpTools', 'ProjectSettings', 'SpeechSettings',
+      'Notes', 'Memory', 'Knowledge', 'Cron',
       'Workflow', 'Tasks', 'Security', 'DID', 'P2P', 'Git', 'Projects',
       'Permissions', 'Wallet', 'Organization', 'Analytics',
       'Templates', 'Backup', 'RssFeed', 'WebAuthn', 'Community', 'Marketplace',
@@ -47,6 +48,15 @@ describe('Router registration', () => {
     for (const name of expected) {
       expect(names).toContain(name)
     }
+  })
+
+  it('maps SpeechSettings to /speech-settings path', async () => {
+    const routerModule = await import('../../src/router/index.js')
+    const router = routerModule.default
+    const rootRoute = router.options.routes[0]
+    const ssRoute = rootRoute.children.find(r => r.name === 'SpeechSettings')
+    expect(ssRoute).toBeDefined()
+    expect(ssRoute.path).toBe('speech-settings')
   })
 
   it('maps Knowledge to /knowledge path', async () => {

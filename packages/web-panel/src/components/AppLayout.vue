@@ -61,6 +61,7 @@
             <a-menu-item key="providers"><template #icon><ApiOutlined /></template>LLM 配置</a-menu-item>
             <a-menu-item key="mcp"><template #icon><CloudServerOutlined /></template>MCP 工具</a-menu-item>
             <a-menu-item key="project-settings"><template #icon><FolderOutlined /></template>项目存储</a-menu-item>
+            <a-menu-item key="speech-settings"><template #icon><SoundOutlined /></template>语音识别</a-menu-item>
             <a-menu-item key="nlprog"><template #icon><BulbOutlined /></template>自然语言编程</a-menu-item>
             <a-menu-item key="codegen"><template #icon><CodeOutlined /></template>代码生成</a-menu-item>
           </a-sub-menu>
@@ -144,6 +145,7 @@
           <a-menu-item key="providers"><template #icon><ApiOutlined /></template></a-menu-item>
           <a-menu-item key="mcp"><template #icon><CloudServerOutlined /></template></a-menu-item>
           <a-menu-item key="project-settings"><template #icon><FolderOutlined /></template></a-menu-item>
+          <a-menu-item key="speech-settings"><template #icon><SoundOutlined /></template></a-menu-item>
           <a-menu-item key="nlprog"><template #icon><BulbOutlined /></template></a-menu-item>
           <a-menu-item key="codegen"><template #icon><CodeOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
@@ -262,7 +264,7 @@ import {
   UsergroupAddOutlined, ShoppingOutlined, SwapOutlined, AlertOutlined, SafetyOutlined,
   ExperimentOutlined, DeploymentUnitOutlined, BulbOutlined, BankOutlined, PartitionOutlined,
   AuditOutlined, FileSearchOutlined, TrophyOutlined, FireOutlined, SearchOutlined,
-  NumberOutlined, ClusterOutlined,
+  NumberOutlined, ClusterOutlined, SoundOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'

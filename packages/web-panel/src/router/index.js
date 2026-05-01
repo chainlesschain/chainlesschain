@@ -17,6 +17,7 @@ const routes = [
       { path: 'providers',  name: 'Providers',   component: () => import('../views/Providers.vue') },
       { path: 'mcp',        name: 'McpTools',    component: () => import('../views/McpTools.vue') },
       { path: 'project-settings', name: 'ProjectSettings', component: () => import('../views/ProjectSettings.vue') },
+      { path: 'speech-settings',  name: 'SpeechSettings',  component: () => import('../views/SpeechSettings.vue') },
       { path: 'notes',      name: 'Notes',       component: () => import('../views/Notes.vue') },
       { path: 'memory',     name: 'Memory',      component: () => import('../views/Memory.vue') },
       { path: 'knowledge',  name: 'Knowledge',   component: () => import('../views/KnowledgeGraph.vue') },
