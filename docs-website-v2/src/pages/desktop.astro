@@ -72,14 +72,14 @@ const PRODUCT_VERSION = rootPkg.productVersion;
     <div class="container-wide">
       <div class="max-w-3xl">
         <div class="chip mb-4">实验 · Phase 1.4 prep · 2026-04-30</div>
-        <h2 class="text-3xl md:text-4xl mb-4 font-display">Web Shell 模式（opt-in）</h2>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">Web Shell 模式（Phase 1.6 已默认）</h2>
         <p class="text-muted leading-relaxed">
           桌面端方向：<strong class="text-ink">Web 加强版</strong>。Electron 同进程嵌入 <code class="font-mono bg-cream px-1 rounded">packages/web-panel</code> SPA，桌面专属能力（U-Key 硬件签名 / 本地文件 / MCP 子进程 / Ollama 本地推理）通过新增 WS topic + 极薄 preload 注入；web 版做不到的，桌面也能用。
         </p>
         <ul class="mt-6 space-y-2 text-sm text-muted">
-          <li>· <strong class="text-ink">Phase 0 → 1.4 prep 全量落地</strong>：协议合并 + skill.list / fs.* topic + 设置项 opt-in + 打包 vendor 路径锁定</li>
-          <li>· <strong class="text-ink">117+ 测试覆盖</strong>：单元 79 / 集成 14 / scripts 14 / config 6 / Playwright e2e 4</li>
-          <li>· <strong class="text-ink">激活</strong>：System Settings → 通用 → 启用 Web Shell；或 <code class="font-mono bg-cream px-1 rounded">CHAINLESSCHAIN_WEB_SHELL=1</code> env / <code class="font-mono bg-cream px-1 rounded">--web-shell</code> argv</li>
+          <li>· <strong class="text-ink">Phase 0 → 1.6 全量落地</strong>：协议合并 + skill.list / fs.* / mcp.* / llm.chat / ukey.sign / window.open / shell.switch 桌面专属 topic + 流式取消 + 多窗口架构 + 双向顶栏切换按钮</li>
+          <li>· <strong class="text-ink">300+ 测试覆盖</strong>：web-shell 单元 169 + config 26 + system 5 + scripts 14 + integration 14 + Playwright e2e 4</li>
+          <li>· <strong class="text-ink">激活（默认即 web-shell）</strong>：右上角 🖥️ 切回桌面壳 / 🌐 切到 web-shell 一键切换；或 SystemSettings → 通用 → "使用 Web Shell（默认）" toggle；旧 V5/V6 桌面壳保留为 opt-out</li>
         </ul>
         <p class="mt-6 text-sm">
           <a

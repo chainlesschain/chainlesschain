@@ -73,12 +73,15 @@
 | **2 取消语义** | ✅ | commit `b6b5174cb` + `4951c95d5`：ws-cli-loader 加 `inFlightStreams<id, gen>` map；ws.close（lazy WeakSet 钩 ws.on('close')）+ `<topic>.cancel` 帧两条触发链都驱动 `gen.return()`；llm-handlers 的 generator finally 调 AbortController.abort()，signal 透到 ollama / anthropic / openai client 的 fetch（gemini 因 axios 参数顺序差异未透） |
 | **配置持久化修** | ✅ | commit `436e349f1`：AppConfigManager.DEFAULT_CONFIG 加 `ui` 字段 + load/loadAsync 合并白名单加 `ui` 行；`_readSettingsSync` 层叠 app-config.json 的 `ui` 到 settings.json，让 SystemSettings toggle 真正在下次启动生效。原 V6 toggle + Web Shell toggle silent-drop bug 一起修掉 |
 | **Speech port (Task #4)** | ✅ partial | `2d45ae278`：web-panel 加 `views/SpeechSettings.vue` + `utils/speech-settings-parser.js` + 路由 `/speech-settings`；引擎选择 + Web Speech / Whisper API / Whisper Local 核心配置；高级 storage / audio / 知识集成 / 性能子项保留 V5（Memory Bank 同款 deliberate scope cut）。LLM / Project 子页 web-panel 早有等价（Providers + ProjectSettings），V5 SystemSettings 三个 tab 加 a-alert 指向 web-panel |
+| **1.6 hard-flip + 双向切换** | ✅ | `3296e9fb4`：复刻 V6 hard-flip (`caaddf530`) 节奏 — DEFAULT_CONFIG.ui.useWebShellExperimental `false → true`；`shouldRunWebShell` 语义 `=== true` → `!== false`（opt-out，UI toggle 显式 false 优先级高于 argv/env force-on）。`ebed2d7e8`：V6 shell `AppShellPreview.vue` topbar 加 🌐 GlobalOutlined 按钮（Modal.confirm → `electronAPI.invoke('config:set'/'system:restart')`），绕开 `titleBarStyle:"hidden"` 隐藏菜单的限制。`367ec1bbe`+`5c21633b5`：web-panel `AppLayout.vue` header-right 加 🖥️ DesktopOutlined（`shellMode.isEmbedded` 时显示），第一版 electronAPI 没用（web-shell preload 故意空），改走 `ws.sendRaw({type:"shell.switch", target:"desktop"})`。`41b17ec56`：新 handler `shell-switch-handler.js`（factory + DI），写 config + 100ms 后 relaunch+exit（让 WS 回包先 flush）；bootstrap 仅在 getAppConfig 提供时注册；8 单测覆盖两 target / 错误路径 / appConfig=null。 |
+| **启动期 4 处运行时回归修** | ✅ | `4c054fa98` DatabaseManager ESM 解构（`b2a8e5a8a` 后遗留漏改，原 25+ 模块 silent skip）；`fd9c4f101` 010 migrations 路径 bug × 10 处 + 加载 `009_embedding_cache` / `009_memory_system`（embedding_cache / memory_stats / memory_sections / user_preferences 等首次真建表，LATEST_VERSION 6→7）；`5e2048329` session-core IPC channel 命名空间分离（`session-core:` 前缀，避免与 session-manager-ipc + memory-v2-ipc 6 个冲突，原冲突让 session-core 24 channel 注册被截断）；`ef2d9f65b` 渲染层内联 logo loader 抽外部 js 满足 strict CSP；`60baa217b` 登录页 splash 卡屏 + IPC 1.5s race timeout + pointer-events:none；`de7077151` `public/logo.png` 一并补齐。 |
 
 ---
 
 ## 4. 已知限制与 follow-up
 
 ### 已知限制
+- `titleBarStyle:"hidden"` 被锁死 — Electron 39 在 web-shell 模式下 `default` 触发 0xC0000005 sandboxed_renderer 崩溃（注释见 `index.js:748`），所以两种壳都用 hidden + `titleBarOverlay` 自绘控件。结果：**应用菜单不可见**——`menu-manager.js` 的菜单项依旧注册（accelerator 仍工作），但用户看不见。Phase 1.6 的"切换到 web shell" / "切回桌面壳"按钮就是为绕开这一点直接塞到顶栏右侧。
 - `_executeCommand` 在 Electron 内 spawn `process.execPath`（指向 Electron 而非 node）+ BIN_PATH，**execute 类消息不可用**——CLI 已加 `ELECTRON_RUN_AS_NODE=1` workaround（commit `d181e14c4`），但 skill.list 仍用同进程 topic 优先（无 spawn cost）。SpeechSettings.vue / ProjectSettings.vue 等 web-panel 配置页走 `ws.execute('config get/set ...')` 路径，embedded shell 模式下仍受这个限制；浏览器模式（CLI web-ui-server）下 OK。
 - `session-*` 之前需要外部 sessionManager 注入；commit `78056d181` 改为 ws-cli-loader 自动实例化 WSSessionManager（`db: null` 内存 Map + 从 `~/.chainlesschain/config.json` 读 LLM 配置 + createSession 时重读以拿最新 apiKey）。
 - ~~SystemSettings 的 `ui.useWebShellExperimental` toggle 持久化~~ — 已修，commit `436e349f1`：AppConfigManager.DEFAULT_CONFIG 补 `ui` 字段，load/loadAsync 合并白名单加 `ui` 行；`_readSettingsSync` 层叠 app-config.json 的 `ui` 到 settings.json，让 SystemSettings toggle 真在下次启动生效。
@@ -91,6 +94,8 @@
 3. **gemini-client signal 透传 + 参数顺序修齐**：把 `chatStream(messages, options, onChunk)` → `(messages, onChunk, options)`，并在 axios `responseType:"stream"` 调用上加 `signal`
 4. **SystemSettings 余下 tab 搬迁**：Vector / Git / Backend / Security / General / Editor / Shortcuts 等也是纯配置 UI，可继续按 Speech port 模板（parser util + dotted-path diff/save）滚动迁移
 5. **AppConfigManager `project.rootPath` 等其它 whitelist 漏**：本次只修 `ui`，类似的 `project` / `enterprise` / `general` / `editor` 等 SystemSettings 写入但 DEFAULT_CONFIG 没列的字段仍是 silent-drop 状态——单独审一遍
+6. **8 个 latent IPC 旧账**：6 个其他模块的 second-handler 重复注册（context:get-stats / workflow:create / compliance:generate-report / governance:create-proposal / token:get-balance / hsm:get-compliance-status），都是 IPC Registry 的 warning 但当前用降级路径，跟 session-core 一样需要分别 namespace 一下；2 个 ESM 解构遗漏（`PluginInstaller is not a constructor` / `ipcGuard.registerModule is not a function`）跟 DatabaseManager 同根因（`b2a8e5a8a` ESM 迁移漏改），按 4c054fa98 模式逐个修
+7. **Electron 39 `titleBarStyle:"default"` 崩溃溯源**：现在锁死 hidden 是 workaround，菜单不可见的代价。值得查 Electron 39 changelog 看是否已知 issue；如果可修，菜单/系统菜单一键回归就不用塞顶栏自绘按钮
 
 ---
 
@@ -98,8 +103,9 @@
 
 | 层 | 文件数 | 测试数 | 覆盖 |
 |---|---|---|---|
-| Unit (desktop web-shell) | 12 | 161 | bootstrap composition / loaders / handlers (skill / fs / mcp×4 / llm.chat / ukey.sign / window.open) / dispatcher 包装 + 流式 envelope + cancel paths（`<topic>.cancel` + ws.close → gen.return + AbortController.abort）|
-| Unit (desktop config) | 3 | 26 | AppConfigManager `ui.*` round-trip（7）+ `_readSettingsSync` 纯函数 + app-config.json 层叠 overlay（12）+ `writeSettingsSync` atomic write（7）|
+| Unit (desktop web-shell) | 13 | 169 | bootstrap composition / loaders / handlers (skill / fs / mcp×4 / llm.chat / ukey.sign / window.open / **shell.switch**) / dispatcher 包装 + 流式 envelope + cancel paths（`<topic>.cancel` + ws.close → gen.return + AbortController.abort）|
+| Unit (desktop config) | 3 | 26 | AppConfigManager `ui.*` round-trip（7，Phase 1.6 hard-flip 后默认翻 false→true）+ `_readSettingsSync` 纯函数 + app-config.json 层叠 overlay（12）+ `writeSettingsSync` atomic write（7）|
+| Unit (desktop system) | 1 | 5 | MenuManager.openWebShellInBrowser 行为（getter null / 缺 httpUrl / openExternal reject 吞错）|
 | Unit (desktop scripts) | 2 | 14 | vendor 脚本 + 路径算术（Decision A 锁定）|
 | Unit (web-panel) | 42 | 1616 | 全 SPA 单测：parser utils（含 137 settings 相关）/ stores / composables / 路由形状（含 53 routes 列表 + SpeechSettings 路径）|
 | Integration (desktop web-shell) | 1 | 14 | 真 HTTP+WS round-trip + skill.list / ukey.status / fs.* + 多客户端共享 registry |
@@ -136,10 +142,11 @@
 
 ## 7. 启用方式
 
-### 用户开关（dogfood）
-- 设置项：System Settings → 通用设置 → "启用 Web Shell（实验）" toggle，重启生效
-- 命令行：`npm run dev:web-shell`（dev）或 `--web-shell` argv flag（prod）
-- 环境变量：`CHAINLESSCHAIN_WEB_SHELL=1`
+### 用户开关（Phase 1.6 hard-flip 后默认即 web-shell）
+- **默认进入 web-shell**：全新装机或没有 `useWebShellExperimental` 字段的旧 config 都直接落到 web-shell。
+- **回退到 V5/V6 桌面壳**：右上角 🖥️ DesktopOutlined 按钮（web-panel 顶栏）→ Modal 确认 → `shell.switch` WS topic 写 `useWebShellExperimental: false` + 100ms 后自动 relaunch；或 SystemSettings → 通用设置 → 关闭 "使用 Web Shell（默认）"；或直接编辑 `app-config.json` 设 `ui.useWebShellExperimental: false`。
+- **从 V5/V6 切到 web-shell**：右上角 🌐 GlobalOutlined 按钮（V6 preview shell topbar） / `CmdOrCtrl+Shift+B` accelerator → Modal 确认 → `electronAPI.invoke('config:set'/'system:restart')`。
+- **强制（CI / 调试）**：`npm run dev:web-shell`（dev）或 `--web-shell` argv flag（prod）/ `CHAINLESSCHAIN_WEB_SHELL=1` env。这些是 force-on 的 escape hatch，**优先级低于** UI toggle 显式 false——用户关掉的 toggle 不会被 env/argv 偷偷打开。
 
 ### 开发者命令
 ```bash

@@ -1,5 +1,32 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-01 增量更新 II（**Phase 1.6 hard-flip + 双向 shell 切换** — web-shell 默认 + 顶栏切换按钮 + 4 处启动期 bug 修）
+
+桌面端从"实验性 web-shell"翻成"默认 web-shell"，对称的顶栏一键切换，外加运行时回归一波。
+
+| 主题 | 提交 | 说明 |
+|---|---|---|
+| `DatabaseManager is not a constructor` 修 | `4c054fa98` | `b2a8e5a8a` ESM 迁移漏改 `core-initializer.js`：`const DatabaseManager = require("../database")` 拿到的是 namespace 对象不是类。补解构。原 ~25 个依赖 `database` 的模块（DID/P2P/Friend/Org/sync/llm/rag/git 等）级联 silent skip，渲染层 store 全空。 |
+| 009_embedding_cache + 009_memory_system 真装载 | `fd9c4f101` | 路径 bug × 10 处：`path.join(__dirname, "database", "migrations", X)` 多了一层（`__dirname` 已是 `dist/main/database/`）。所有外部 SQL migrations（005-018）实际**都没跑过**——EmbeddingCache / PermanentMemoryManager 启动期撞 "no such table" 才暴露。修路径 + 加 009 orchestration（建 embedding_cache / memory_stats / memory_sections / user_preferences / 等）+ LATEST_VERSION 6→7。 |
+| `session:list` 重复注册修 | `5e2048329` | session-core-ipc.js（Managed Agents 新组）和 session-manager-ipc.js（LLM 旧组）+ memory-v2-ipc.js 之间 6 个 channel 名冲突（list/create/resume + memory:store/recall/consolidate）。Electron 在第一个冲突抛错截断 session-core 的 24 channel 注册。renderer 调 `electronAPI.sessionCore.*` 实际打到 LLM session manager 上语义错位。整组改名 `session-core:` 前缀；preload + 测试同步。 |
+| Phase 1.6 hard-flip | `3296e9fb4` | 复刻 V6 hard-flip (`caaddf530`) 节奏：DEFAULT_CONFIG.ui.useWebShellExperimental `false → true`；`shouldRunWebShell` 语义 `=== true` → `!== false`（opt-out）；显式 false 才回 V5/V6 桌面壳。argv/env force-on 仍保留作 CI 逃生口；UI toggle 显式 false 优先级高于 force-on。SystemSettings.vue 文案 + form 初始化同步翻。 |
+| V6 → web-shell 顶栏切换按钮 | `ebed2d7e8` | `AppShellPreview.vue` topbar-actions 加 🌐 GlobalOutlined 按钮（`CmdOrCtrl+Shift+B` accelerator）：Modal.confirm → `electronAPI.invoke('config:set', 'ui.useWebShellExperimental', true)` → `system:restart`。绕开 `titleBarStyle:"hidden"` 隐藏菜单的限制（Electron 39 web-shell 模式 default 触发 0xC0000005，所以 hidden 锁死）。 |
+| web-shell → V6 顶栏切回按钮 | `367ec1bbe` + `5c21633b5` | web-panel `AppLayout.vue` header-right 加 🖥️ DesktopOutlined（仅 `shellMode.isEmbedded === true` 显示）。第一版用 electronAPI（**没用**——web-shell preload 故意空，只暴露 `__CC_CONFIG__`）；改用 `ws.sendRaw({type:"shell.switch", target:"desktop"})` 走 WS topic，符合 web-shell 一切走 WS 的设计。 |
+| `shell.switch` WS topic | `41b17ec56` | 新 handler `shell-switch-handler.js`（factory + DI inject getAppConfig/app/scheduleRestart）：验证 target ∈ {desktop, web-shell} → 写 `ui.useWebShellExperimental` → 100ms 后 `app.relaunch() + app.exit(0)`（让 WS 回包先 flush）。bootstrap 仅在 getAppConfig 提供时注册，避开 CI smoke。8 单测覆盖两 target / 错误 target / appConfig=null / app.relaunch throw 吞错。 |
+| inline `<script>` CSP 警告 | `ef2d9f65b` | 桌面 V5/V6 splash 的 logo loader 内联脚本被 `script-src 'self'` 拦截。抽到 `public/splash-logo-loader.js` 走 `<script src>`，CSP 不动。 |
+| Splash 卡屏 + IPC 阻塞 | `60baa217b` + `de7077151` | 登录页残留 logo overlay 旋转、`/login` IPC `config:get` 卡住挡 mount。引入 `Promise.race(invoke, timeout(1500))` + `setTimeout splash.remove()` 双保险 + `pointer-events:none` 立即清。`public/logo.png` 一并补齐（splash fix 引用但漏 add）。 |
+| menu-manager 浏览器入口 | `60baa217b` 内 | "查看 → 在浏览器中打开 web 视图" + `CmdOrCtrl+Shift+B` accelerator + `getWebShellHandle` 注入 + 5 单测。`titleBarStyle:"hidden"` 让菜单不可见，但 accelerator 仍工作。 |
+
+**测试矩阵**：desktop 19 文件 / 292 测试（web-shell 单元 24 + system 5 + config 26 + session 257）全绿；web-panel 1749/1750（旧账 compliance threat-intel 与本次无关）；CLI 测试见上一节矩阵；新增 `shell-switch-handler.test.js` 8 测试 + 修复 `database-config.test.js` 4 子测试（hard-flip default 翻 false→true）。
+
+**激活方式（更新）**：默认即 web-shell，无须配置；如要回 V5/V6 桌面壳：右上角 🖥️ 切回按钮 / SystemSettings → 通用 → 关闭 "使用 Web Shell（默认）" / `useWebShellExperimental: false`。
+
+**未做**：6 个其他模块的 IPC 重复注册旧账（context:get-stats / workflow:create / compliance:generate-report / governance:create-proposal / token:get-balance / hsm:get-compliance-status）+ 类似 DatabaseManager 的 ESM 解构遗漏（PluginInstaller / ipcGuard.registerModule）——8 个 latent bug，等 follow-up。
+
+详见 [`docs/design/桌面Web壳_架构与落地_设计文档.md`](docs/design/桌面Web壳_架构与落地_设计文档.md)。
+
+---
+
 ## 2026-05-01 增量更新（**Phase 2 收尾** — 流式取消 + 配置持久化修 + Speech port + 多项 bug 修）
 
 桌面 web-shell 的 cancel 半场收口、Phase 1.4 vendor target 修正、SystemSettings 配置持久化白名单修补、SystemSettings → web-panel 三件子页搬迁的 Speech 部分落地、CLI session-list 的隐性 bug 修——一次性合并五件事。

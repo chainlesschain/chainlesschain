@@ -59,7 +59,9 @@ describe("AppConfigManager — ui.* round-trip persistence", () => {
     } = require("../../../src/main/config/database-config.js");
     expect(DEFAULT_CONFIG.ui).toBeDefined();
     expect(DEFAULT_CONFIG.ui.useV6ShellByDefault).toBe(true);
-    expect(DEFAULT_CONFIG.ui.useWebShellExperimental).toBe(false);
+    // Phase 1.6 hard-flip: useWebShellExperimental default true,
+    // shouldRunWebShell semantics are now opt-out (`!== false`).
+    expect(DEFAULT_CONFIG.ui.useWebShellExperimental).toBe(true);
   });
 
   it("set('ui.useWebShellExperimental', true) persists across reloads (sync load)", () => {
@@ -91,8 +93,9 @@ describe("AppConfigManager — ui.* round-trip persistence", () => {
     const reader = new AppConfigManager();
     reader.load();
     expect(reader.get("ui.useV6ShellByDefault")).toBe(false);
-    // The other flag should retain its default after partial write.
-    expect(reader.get("ui.useWebShellExperimental")).toBe(false);
+    // The other flag should retain its default after partial write
+    // (Phase 1.6 hard-flip: default is now true).
+    expect(reader.get("ui.useWebShellExperimental")).toBe(true);
   });
 
   it("config:update-style top-level set('ui', {...}) round-trips both fields", () => {
@@ -137,7 +140,8 @@ describe("AppConfigManager — ui.* round-trip persistence", () => {
     const reader = new AppConfigManager();
     reader.load();
     expect(reader.get("ui.useV6ShellByDefault")).toBe(true);
-    expect(reader.get("ui.useWebShellExperimental")).toBe(false);
+    // Phase 1.6 hard-flip: web-shell is now the default destination.
+    expect(reader.get("ui.useWebShellExperimental")).toBe(true);
   });
 
   it("malformed app-config.json falls back to defaults including ui", () => {
@@ -153,6 +157,7 @@ describe("AppConfigManager — ui.* round-trip persistence", () => {
     const reader = new AppConfigManager();
     reader.load();
     expect(reader.get("ui.useV6ShellByDefault")).toBe(true);
-    expect(reader.get("ui.useWebShellExperimental")).toBe(false);
+    // Phase 1.6 hard-flip: malformed config falls back to web-shell default.
+    expect(reader.get("ui.useWebShellExperimental")).toBe(true);
   });
 });
