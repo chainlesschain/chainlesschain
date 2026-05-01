@@ -804,6 +804,170 @@
       "heSuccess": "计算完成 ({scheme}/{op})"
     }
   },
+  "aiops": {
+    "title": "AIOps 自治运维",
+    "subtitle": "异常检测 · 事件管理 · 自动化 Playbook",
+    "refresh": "刷新",
+    "newDropdown": "新建 ▼",
+    "actions": {
+      "incident": "创建事件",
+      "playbook": "创建 Playbook",
+      "baseline": "更新基线",
+      "detect": "异常检测"
+    },
+    "stats": {
+      "incidents": "事件总数",
+      "pending": "待处理",
+      "playbooks": "Playbook",
+      "enabled": "启用 Playbook",
+      "baselines": "基线指标"
+    },
+    "severityCard": "严重度分布",
+    "avgResolveLabel": "平均解决时间: {time}",
+    "tabs": {
+      "incidents": "事件",
+      "playbooks": "Playbook",
+      "baselines": "基线"
+    },
+    "filter": {
+      "all": "全部",
+      "allStatuses": "全部状态"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "incidentEmptyFiltered": "没有符合条件的事件",
+      "incidentEmpty": "暂无事件，可点\"新建 → 创建事件\"或运行\"异常检测\"自动触发",
+      "playbookEmpty": "暂无 Playbook，点\"新建 → 创建 Playbook\"创建第一个",
+      "baselineEmpty": "暂无基线，点\"新建 → 更新基线\"喂入指标样本",
+      "successCount": "成功 {n}",
+      "failureCount": "失败 {n}"
+    },
+    "incidentActions": {
+      "ack": "确认",
+      "resolve": "解决",
+      "close": "关闭",
+      "postmortem": "复盘"
+    },
+    "playbookActions": {
+      "success": "+ 成功",
+      "failure": "+ 失败"
+    },
+    "incidentCols": {
+      "severity": "严重度",
+      "metric": "指标",
+      "description": "描述",
+      "status": "状态",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "playbookCols": {
+      "name": "名称",
+      "enabled": "启用",
+      "stats": "执行统计",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "baselineCols": {
+      "metric": "指标",
+      "mean": "均值 / σ",
+      "iqr": "四分位",
+      "sampleCount": "样本数",
+      "updatedAt": "更新时间"
+    },
+    "incident_modal": {
+      "title": "创建事件",
+      "ok": "创建",
+      "cancel": "取消",
+      "severityLabel": "严重度",
+      "metricLabel": "指标",
+      "metricPlaceholder": "例如: cpu_usage（可选）",
+      "descLabel": "描述"
+    },
+    "playbook_modal": {
+      "title": "创建 Playbook",
+      "ok": "创建",
+      "cancel": "取消",
+      "nameLabel": "名称",
+      "namePlaceholder": "restart-pod",
+      "triggerLabel": "触发条件 (JSON)",
+      "triggerPlaceholder": "例如 metric=cpu, threshold=90",
+      "stepsLabel": "步骤 (JSON)",
+      "stepsPlaceholder": "JSON 数组，例如 action=restart, target=pod-1"
+    },
+    "baseline_modal": {
+      "title": "更新基线",
+      "ok": "更新",
+      "cancel": "取消",
+      "metricLabel": "指标名",
+      "metricPlaceholder": "cpu_usage",
+      "valuesLabel": "样本值",
+      "valuesPlaceholder": "逗号分隔的数值，例如: 45.2, 47.1, 50.8, 49.3"
+    },
+    "detect_modal": {
+      "title": "异常检测",
+      "ok": "检测",
+      "cancel": "关闭",
+      "metricLabel": "指标名",
+      "metricPlaceholder": "选择已建立基线的指标",
+      "metricOptionLabel": "{name}（n={count}）",
+      "valueLabel": "测试值",
+      "algorithmLabel": "算法",
+      "resultTitle": "检测结果",
+      "anomaly": "异常",
+      "normal": "正常",
+      "reasonLine": "原因: {reason}",
+      "scoreLine": "得分: {score} (阈值 {threshold})",
+      "baselineLine": "基线: 均值 {mean}, σ {stdDev}",
+      "incidentCreated": "已自动创建 {severity} 事件"
+    },
+    "statusLabels": {
+      "open": "待处理",
+      "acknowledged": "已确认",
+      "resolved": "已解决",
+      "closed": "已关闭"
+    },
+    "reasonLabels": {
+      "no_baseline": "该指标尚无基线，请先\"更新基线\"",
+      "zero_stddev": "基线方差为零（样本完全相同）",
+      "missing_metric_name": "缺少指标名",
+      "missing_value": "缺少测试值",
+      "unknown_algorithm": "未知算法"
+    },
+    "duration": {
+      "none": "—"
+    },
+    "msg": {
+      "loadFailed": "加载 AIOps 数据失败",
+      "descEmpty": "请填写事件描述",
+      "createFailed": "创建失败",
+      "incidentCreated": "事件已创建",
+      "playbookNameEmpty": "请填写 Playbook 名称",
+      "jsonInvalid": "{label} JSON 格式错误",
+      "playbookCreated": "Playbook 已创建",
+      "metricEmpty": "请填写指标名",
+      "valuesInvalid": "请输入至少一个有效数值（逗号或空白分隔）",
+      "baselineUpdateFailed": "更新失败",
+      "baselineUpdated": "基线已更新（n={n}）",
+      "detectFieldsEmpty": "请选择指标并填写测试值",
+      "detectFailed": "检测失败",
+      "detectAnomaly": "检测到异常 ({severity})",
+      "incidentTransitionFailed": "转换失败",
+      "incidentAcked": "事件已确认",
+      "incidentResolved": "事件已解决",
+      "incidentClosed": "事件已关闭",
+      "postmortemTitle": "事件 {id} 复盘",
+      "postmortemEmpty": "（无内容）",
+      "postmortemFailed": "生成复盘失败",
+      "playbookToggleFailed": "切换失败",
+      "playbookEnabled": "Playbook 已启用",
+      "playbookDisabled": "Playbook 已禁用",
+      "playbookRecordFailed": "记录失败",
+      "playbookRecordSuccess": "已记录成功执行",
+      "playbookRecordFailure": "已记录失败执行",
+      "triggerLabel": "触发条件",
+      "stepsLabel": "步骤"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

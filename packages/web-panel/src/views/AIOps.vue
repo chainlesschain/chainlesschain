@@ -2,25 +2,25 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">AIOps 自治运维</h2>
-        <p class="page-sub">异常检测 · 事件管理 · 自动化 Playbook</p>
+        <h2 class="page-title">{{ $t('aiops.title') }}</h2>
+        <p class="page-sub">{{ $t('aiops.subtitle') }}</p>
       </div>
       <a-space>
         <a-button :loading="loading" @click="loadAll">
           <template #icon><ReloadOutlined /></template>
-          刷新
+          {{ $t('aiops.refresh') }}
         </a-button>
         <a-dropdown :trigger="['click']">
           <a-button type="primary">
             <template #icon><PlusOutlined /></template>
-            新建 ▼
+            {{ $t('aiops.newDropdown') }}
           </a-button>
           <template #overlay>
             <a-menu @click="handleNewClick">
-              <a-menu-item key="incident"><AlertOutlined /> 创建事件</a-menu-item>
-              <a-menu-item key="playbook"><RocketOutlined /> 创建 Playbook</a-menu-item>
-              <a-menu-item key="baseline"><LineChartOutlined /> 更新基线</a-menu-item>
-              <a-menu-item key="detect"><FundOutlined /> 异常检测</a-menu-item>
+              <a-menu-item key="incident"><AlertOutlined /> {{ $t('aiops.actions.incident') }}</a-menu-item>
+              <a-menu-item key="playbook"><RocketOutlined /> {{ $t('aiops.actions.playbook') }}</a-menu-item>
+              <a-menu-item key="baseline"><LineChartOutlined /> {{ $t('aiops.actions.baseline') }}</a-menu-item>
+              <a-menu-item key="detect"><FundOutlined /> {{ $t('aiops.actions.detect') }}</a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
@@ -31,7 +31,7 @@
     <a-row :gutter="[16, 16]" style="margin-bottom: 20px;">
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="事件总数" :value="stats.incidents.total" :value-style="{ color: '#1677ff', fontSize: '20px' }">
+          <a-statistic :title="$t('aiops.stats.incidents')" :value="stats.incidents.total" :value-style="{ color: '#1677ff', fontSize: '20px' }">
             <template #prefix><AlertOutlined /></template>
           </a-statistic>
         </a-card>
@@ -39,7 +39,7 @@
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="待处理"
+            :title="$t('aiops.stats.pending')"
             :value="stats.incidents.byStatus.open + stats.incidents.byStatus.acknowledged"
             :value-style="{ color: openCount > 0 ? '#ff4d4f' : '#52c41a', fontSize: '20px' }"
           >
@@ -49,21 +49,21 @@
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="Playbook" :value="stats.playbooks.total" :value-style="{ color: '#722ed1', fontSize: '20px' }">
+          <a-statistic :title="$t('aiops.stats.playbooks')" :value="stats.playbooks.total" :value-style="{ color: '#722ed1', fontSize: '20px' }">
             <template #prefix><RocketOutlined /></template>
           </a-statistic>
         </a-card>
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="启用 Playbook" :value="stats.playbooks.enabled" :value-style="{ color: '#52c41a', fontSize: '20px' }">
+          <a-statistic :title="$t('aiops.stats.enabled')" :value="stats.playbooks.enabled" :value-style="{ color: '#52c41a', fontSize: '20px' }">
             <template #prefix><CheckCircleOutlined /></template>
           </a-statistic>
         </a-card>
       </a-col>
       <a-col :xs="24" :sm="8" :lg="4">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="基线指标" :value="stats.baselines.total" :value-style="{ color: '#13c2c2', fontSize: '20px' }">
+          <a-statistic :title="$t('aiops.stats.baselines')" :value="stats.baselines.total" :value-style="{ color: '#13c2c2', fontSize: '20px' }">
             <template #prefix><LineChartOutlined /></template>
           </a-statistic>
         </a-card>
@@ -73,7 +73,7 @@
     <!-- Severity breakdown bar -->
     <a-card
       v-if="stats.incidents.total > 0"
-      title="严重度分布"
+      :title="$t('aiops.severityCard')"
       size="small"
       style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 20px;"
       :body-style="{ padding: '12px 16px' }"
@@ -83,7 +83,7 @@
           {{ sev }}: {{ stats.incidents.bySeverity[sev] || 0 }}
         </a-tag>
         <span style="color: var(--text-secondary); font-size: 12px; margin-left: 8px;">
-          平均解决时间: {{ formatDurationMs(stats.incidents.avgResolveMs) }}
+          {{ $t('aiops.avgResolveLabel', { time: formatDurationMs(stats.incidents.avgResolveMs) }) }}
         </span>
       </a-space>
     </a-card>
@@ -91,14 +91,14 @@
     <!-- Tabs -->
     <a-tabs v-model:activeKey="activeTab" class="aiops-tabs">
       <!-- ── Incidents tab ─────────────────────────────────────────── -->
-      <a-tab-pane key="incidents" tab="事件">
+      <a-tab-pane key="incidents" :tab="$t('aiops.tabs.incidents')">
         <div class="filter-bar">
           <a-radio-group v-model:value="incidentSeverityFilter" size="small" button-style="solid">
-            <a-radio-button value="">全部</a-radio-button>
+            <a-radio-button value="">{{ $t('aiops.filter.all') }}</a-radio-button>
             <a-radio-button v-for="s in SEVERITIES" :key="s" :value="s">{{ s }}</a-radio-button>
           </a-radio-group>
           <a-radio-group v-model:value="incidentStatusFilter" size="small">
-            <a-radio-button value="">全部状态</a-radio-button>
+            <a-radio-button value="">{{ $t('aiops.filter.allStatuses') }}</a-radio-button>
             <a-radio-button v-for="s in INCIDENT_STATUSES" :key="s" :value="s">{{ statusLabel(s) }}</a-radio-button>
           </a-radio-group>
         </div>
@@ -106,7 +106,7 @@
         <a-table
           :columns="incidentColumns"
           :data-source="filteredIncidents"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (t) => $t('aiops.table.totalSuffix', { n: t }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -131,27 +131,27 @@
               <span style="color: var(--text-secondary); font-size: 11px;">{{ formatOpsTime(record.createdAt) }}</span>
             </template>
             <template v-if="column.key === 'action'">
-              <a-button v-if="record.status === 'open'" size="small" type="link" @click="ackIncident(record)">确认</a-button>
-              <a-button v-if="record.status === 'open' || record.status === 'acknowledged'" size="small" type="link" @click="resolveIncident(record)">解决</a-button>
-              <a-button v-if="record.status === 'resolved'" size="small" type="link" @click="closeIncident(record)">关闭</a-button>
-              <a-button v-if="record.status === 'resolved' || record.status === 'closed'" size="small" type="link" @click="generatePostmortem(record)">复盘</a-button>
+              <a-button v-if="record.status === 'open'" size="small" type="link" @click="ackIncident(record)">{{ $t('aiops.incidentActions.ack') }}</a-button>
+              <a-button v-if="record.status === 'open' || record.status === 'acknowledged'" size="small" type="link" @click="resolveIncident(record)">{{ $t('aiops.incidentActions.resolve') }}</a-button>
+              <a-button v-if="record.status === 'resolved'" size="small" type="link" @click="closeIncident(record)">{{ $t('aiops.incidentActions.close') }}</a-button>
+              <a-button v-if="record.status === 'resolved' || record.status === 'closed'" size="small" type="link" @click="generatePostmortem(record)">{{ $t('aiops.incidentActions.postmortem') }}</a-button>
             </template>
           </template>
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <AlertOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              {{ incidentSeverityFilter || incidentStatusFilter ? '没有符合条件的事件' : '暂无事件，可点"新建 → 创建事件"或运行"异常检测"自动触发' }}
+              {{ incidentSeverityFilter || incidentStatusFilter ? $t('aiops.table.incidentEmptyFiltered') : $t('aiops.table.incidentEmpty') }}
             </div>
           </template>
         </a-table>
       </a-tab-pane>
 
       <!-- ── Playbooks tab ─────────────────────────────────────────── -->
-      <a-tab-pane key="playbooks" tab="Playbook">
+      <a-tab-pane key="playbooks" :tab="$t('aiops.tabs.playbooks')">
         <a-table
           :columns="playbookColumns"
           :data-source="playbooks"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (t) => $t('aiops.table.totalSuffix', { n: t }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -171,34 +171,34 @@
               />
             </template>
             <template v-if="column.key === 'stats'">
-              <a-tag color="green" style="font-size: 11px;">成功 {{ record.successCount }}</a-tag>
+              <a-tag color="green" style="font-size: 11px;">{{ $t('aiops.table.successCount', { n: record.successCount }) }}</a-tag>
               <a-tag v-if="record.failureCount > 0" color="red" style="font-size: 11px; margin-left: 4px;">
-                失败 {{ record.failureCount }}
+                {{ $t('aiops.table.failureCount', { n: record.failureCount }) }}
               </a-tag>
             </template>
             <template v-if="column.key === 'createdAt'">
               <span style="color: var(--text-secondary); font-size: 11px;">{{ formatOpsTime(record.createdAt) }}</span>
             </template>
             <template v-if="column.key === 'action'">
-              <a-button size="small" type="link" @click="recordRun(record, 'success')">+ 成功</a-button>
-              <a-button size="small" type="link" danger @click="recordRun(record, 'failure')">+ 失败</a-button>
+              <a-button size="small" type="link" @click="recordRun(record, 'success')">{{ $t('aiops.playbookActions.success') }}</a-button>
+              <a-button size="small" type="link" danger @click="recordRun(record, 'failure')">{{ $t('aiops.playbookActions.failure') }}</a-button>
             </template>
           </template>
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <RocketOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              暂无 Playbook，点"新建 → 创建 Playbook"创建第一个
+              {{ $t('aiops.table.playbookEmpty') }}
             </div>
           </template>
         </a-table>
       </a-tab-pane>
 
       <!-- ── Baselines tab ─────────────────────────────────────────── -->
-      <a-tab-pane key="baselines" tab="基线">
+      <a-tab-pane key="baselines" :tab="$t('aiops.tabs.baselines')">
         <a-table
           :columns="baselineColumns"
           :data-source="baselines"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (t) => $t('aiops.table.totalSuffix', { n: t }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -226,7 +226,7 @@
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <LineChartOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              暂无基线，点"新建 → 更新基线"喂入指标样本
+              {{ $t('aiops.table.baselineEmpty') }}
             </div>
           </template>
         </a-table>
@@ -236,24 +236,24 @@
     <!-- ── Create incident modal ─────────────────────────────────── -->
     <a-modal
       v-model:open="showIncidentModal"
-      title="创建事件"
+      :title="$t('aiops.incident_modal.title')"
       :confirm-loading="creating"
       :width="520"
-      ok-text="创建"
-      cancel-text="取消"
+      :ok-text="$t('aiops.incident_modal.ok')"
+      :cancel-text="$t('aiops.incident_modal.cancel')"
       @ok="createIncident"
       @cancel="resetIncidentForm"
     >
       <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-        <a-form-item label="严重度">
+        <a-form-item :label="$t('aiops.incident_modal.severityLabel')">
           <a-select v-model:value="incidentForm.severity">
             <a-select-option v-for="s in SEVERITIES" :key="s" :value="s">{{ s }}</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="指标">
-          <a-input v-model:value="incidentForm.metric" placeholder="例如: cpu_usage（可选）" />
+        <a-form-item :label="$t('aiops.incident_modal.metricLabel')">
+          <a-input v-model:value="incidentForm.metric" :placeholder="$t('aiops.incident_modal.metricPlaceholder')" />
         </a-form-item>
-        <a-form-item label="描述" required>
+        <a-form-item :label="$t('aiops.incident_modal.descLabel')" required>
           <a-textarea v-model:value="incidentForm.description" :auto-size="{ minRows: 3, maxRows: 6 }" />
         </a-form-item>
       </a-form>
@@ -262,29 +262,29 @@
     <!-- ── Create playbook modal ─────────────────────────────────── -->
     <a-modal
       v-model:open="showPlaybookModal"
-      title="创建 Playbook"
+      :title="$t('aiops.playbook_modal.title')"
       :confirm-loading="creating"
       :width="540"
-      ok-text="创建"
-      cancel-text="取消"
+      :ok-text="$t('aiops.playbook_modal.ok')"
+      :cancel-text="$t('aiops.playbook_modal.cancel')"
       @ok="createPlaybook"
       @cancel="resetPlaybookForm"
     >
       <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-        <a-form-item label="名称" required>
-          <a-input v-model:value="playbookForm.name" placeholder="restart-pod" />
+        <a-form-item :label="$t('aiops.playbook_modal.nameLabel')" required>
+          <a-input v-model:value="playbookForm.name" :placeholder="$t('aiops.playbook_modal.namePlaceholder')" />
         </a-form-item>
-        <a-form-item label="触发条件 (JSON)">
+        <a-form-item :label="$t('aiops.playbook_modal.triggerLabel')">
           <a-textarea
             v-model:value="playbookForm.triggerJson"
-            placeholder='{"metric":"cpu","threshold":90}'
+            :placeholder="$t('aiops.playbook_modal.triggerPlaceholder')"
             :auto-size="{ minRows: 2, maxRows: 4 }"
           />
         </a-form-item>
-        <a-form-item label="步骤 (JSON)">
+        <a-form-item :label="$t('aiops.playbook_modal.stepsLabel')">
           <a-textarea
             v-model:value="playbookForm.stepsJson"
-            placeholder='[{"action":"restart","target":"pod-1"}]'
+            :placeholder="$t('aiops.playbook_modal.stepsPlaceholder')"
             :auto-size="{ minRows: 3, maxRows: 6 }"
           />
         </a-form-item>
@@ -294,22 +294,22 @@
     <!-- ── Update baseline modal ─────────────────────────────────── -->
     <a-modal
       v-model:open="showBaselineModal"
-      title="更新基线"
+      :title="$t('aiops.baseline_modal.title')"
       :confirm-loading="creating"
       :width="500"
-      ok-text="更新"
-      cancel-text="取消"
+      :ok-text="$t('aiops.baseline_modal.ok')"
+      :cancel-text="$t('aiops.baseline_modal.cancel')"
       @ok="updateBaseline"
       @cancel="resetBaselineForm"
     >
       <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-        <a-form-item label="指标名" required>
-          <a-input v-model:value="baselineForm.metric" placeholder="cpu_usage" />
+        <a-form-item :label="$t('aiops.baseline_modal.metricLabel')" required>
+          <a-input v-model:value="baselineForm.metric" :placeholder="$t('aiops.baseline_modal.metricPlaceholder')" />
         </a-form-item>
-        <a-form-item label="样本值" required>
+        <a-form-item :label="$t('aiops.baseline_modal.valuesLabel')" required>
           <a-textarea
             v-model:value="baselineForm.values"
-            placeholder="逗号分隔的数值，例如: 45.2, 47.1, 50.8, 49.3"
+            :placeholder="$t('aiops.baseline_modal.valuesPlaceholder')"
             :auto-size="{ minRows: 3, maxRows: 8 }"
           />
         </a-form-item>
@@ -319,29 +319,29 @@
     <!-- ── Detect anomaly modal ──────────────────────────────────── -->
     <a-modal
       v-model:open="showDetectModal"
-      title="异常检测"
+      :title="$t('aiops.detect_modal.title')"
       :confirm-loading="detecting"
       :width="500"
-      ok-text="检测"
-      cancel-text="关闭"
+      :ok-text="$t('aiops.detect_modal.ok')"
+      :cancel-text="$t('aiops.detect_modal.cancel')"
       @ok="detectAnomaly"
     >
       <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-        <a-form-item label="指标名" required>
+        <a-form-item :label="$t('aiops.detect_modal.metricLabel')" required>
           <a-select
             v-model:value="detectForm.metric"
             show-search
-            placeholder="选择已建立基线的指标"
+            :placeholder="$t('aiops.detect_modal.metricPlaceholder')"
           >
             <a-select-option v-for="b in baselines" :key="b.metricName" :value="b.metricName">
-              {{ b.metricName }}（n={{ b.sampleCount }}）
+              {{ $t('aiops.detect_modal.metricOptionLabel', { name: b.metricName, count: b.sampleCount }) }}
             </a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="测试值" required>
+        <a-form-item :label="$t('aiops.detect_modal.valueLabel')" required>
           <a-input-number v-model:value="detectForm.value" style="width: 100%;" />
         </a-form-item>
-        <a-form-item label="算法">
+        <a-form-item :label="$t('aiops.detect_modal.algorithmLabel')">
           <a-radio-group v-model:value="detectForm.algorithm">
             <a-radio-button value="z_score">Z-Score (3σ)</a-radio-button>
             <a-radio-button value="iqr">IQR (1.5×)</a-radio-button>
@@ -351,19 +351,19 @@
 
       <a-card v-if="detectResult" size="small" style="background: var(--bg-base); margin-top: 8px;">
         <a-statistic
-          title="检测结果"
-          :value="detectResult.anomaly ? '异常' : '正常'"
+          :title="$t('aiops.detect_modal.resultTitle')"
+          :value="detectResult.anomaly ? $t('aiops.detect_modal.anomaly') : $t('aiops.detect_modal.normal')"
           :value-style="{ color: detectResult.anomaly ? '#ff4d4f' : '#52c41a' }"
         />
         <div v-if="detectResult.reason && !detectResult.anomaly" style="color: var(--text-secondary); font-size: 12px; margin-top: 8px;">
-          原因: {{ reasonLabel(detectResult.reason) }}
+          {{ $t('aiops.detect_modal.reasonLine', { reason: reasonLabel(detectResult.reason) }) }}
         </div>
         <div v-if="detectResult.baseline" style="margin-top: 12px; font-size: 12px; color: var(--text-secondary);">
-          <div>得分: {{ detectResult.score }} (阈值 {{ detectResult.threshold }})</div>
-          <div>基线: 均值 {{ detectResult.baseline.mean }}, σ {{ detectResult.baseline.stdDev }}</div>
+          <div>{{ $t('aiops.detect_modal.scoreLine', { score: detectResult.score, threshold: detectResult.threshold }) }}</div>
+          <div>{{ $t('aiops.detect_modal.baselineLine', { mean: detectResult.baseline.mean, stdDev: detectResult.baseline.stdDev }) }}</div>
         </div>
         <div v-if="detectResult.incidentId" style="margin-top: 8px;">
-          <a-tag :color="severityColor(detectResult.severity)">已自动创建 {{ detectResult.severity }} 事件</a-tag>
+          <a-tag :color="severityColor(detectResult.severity)">{{ $t('aiops.detect_modal.incidentCreated', { severity: detectResult.severity }) }}</a-tag>
         </div>
       </a-card>
     </a-modal>
@@ -383,6 +383,7 @@ import {
   CheckCircleOutlined,
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
+import { useI18n } from 'vue-i18n'
 import { useWsStore } from '../stores/ws.js'
 import {
   parseIncidents,
@@ -396,6 +397,7 @@ import {
 } from '../utils/aiops-parser.js'
 
 const ws = useWsStore()
+const { t } = useI18n()
 
 const loading = ref(false)
 const creating = ref(false)
@@ -425,30 +427,30 @@ const baselineForm = reactive({ metric: '', values: '' })
 const detectForm = reactive({ metric: '', value: null, algorithm: 'z_score' })
 const detectResult = ref(null)
 
-const incidentColumns = [
-  { title: '严重度', key: 'severity', width: '90px' },
-  { title: '指标', key: 'metric', width: '160px' },
-  { title: '描述', key: 'description' },
-  { title: '状态', key: 'status', width: '100px' },
-  { title: '创建时间', key: 'createdAt', width: '160px' },
-  { title: '操作', key: 'action', width: '220px' },
-]
+const incidentColumns = computed(() => [
+  { title: t('aiops.incidentCols.severity'), key: 'severity', width: '90px' },
+  { title: t('aiops.incidentCols.metric'), key: 'metric', width: '160px' },
+  { title: t('aiops.incidentCols.description'), key: 'description' },
+  { title: t('aiops.incidentCols.status'), key: 'status', width: '100px' },
+  { title: t('aiops.incidentCols.createdAt'), key: 'createdAt', width: '160px' },
+  { title: t('aiops.incidentCols.action'), key: 'action', width: '220px' },
+])
 
-const playbookColumns = [
-  { title: '名称', key: 'name' },
-  { title: '启用', key: 'enabled', width: '80px' },
-  { title: '执行统计', key: 'stats', width: '180px' },
-  { title: '创建时间', key: 'createdAt', width: '160px' },
-  { title: '操作', key: 'action', width: '160px' },
-]
+const playbookColumns = computed(() => [
+  { title: t('aiops.playbookCols.name'), key: 'name' },
+  { title: t('aiops.playbookCols.enabled'), key: 'enabled', width: '80px' },
+  { title: t('aiops.playbookCols.stats'), key: 'stats', width: '180px' },
+  { title: t('aiops.playbookCols.createdAt'), key: 'createdAt', width: '160px' },
+  { title: t('aiops.playbookCols.action'), key: 'action', width: '160px' },
+])
 
-const baselineColumns = [
-  { title: '指标', key: 'metric' },
-  { title: '均值 / σ', key: 'mean', width: '180px' },
-  { title: '四分位', key: 'iqr', width: '180px' },
-  { title: '样本数', key: 'sampleCount', width: '90px' },
-  { title: '更新时间', key: 'updatedAt', width: '160px' },
-]
+const baselineColumns = computed(() => [
+  { title: t('aiops.baselineCols.metric'), key: 'metric' },
+  { title: t('aiops.baselineCols.mean'), key: 'mean', width: '180px' },
+  { title: t('aiops.baselineCols.iqr'), key: 'iqr', width: '180px' },
+  { title: t('aiops.baselineCols.sampleCount'), key: 'sampleCount', width: '90px' },
+  { title: t('aiops.baselineCols.updatedAt'), key: 'updatedAt', width: '160px' },
+])
 
 const openCount = computed(() =>
   stats.value.incidents.byStatus.open + stats.value.incidents.byStatus.acknowledged,
@@ -462,7 +464,9 @@ const filteredIncidents = computed(() => {
 })
 
 function statusLabel(s) {
-  return { open: '待处理', acknowledged: '已确认', resolved: '已解决', closed: '已关闭' }[s] || s
+  const key = `aiops.statusLabels.${s}`
+  const v = t(key)
+  return v === key ? s : v
 }
 function statusColor(s) {
   return { open: 'red', acknowledged: 'orange', resolved: 'cyan', closed: 'default' }[s] || 'default'
@@ -472,13 +476,9 @@ function severityColor(sev) {
 }
 
 function reasonLabel(reason) {
-  return {
-    no_baseline: '该指标尚无基线，请先"更新基线"',
-    zero_stddev: '基线方差为零（样本完全相同）',
-    missing_metric_name: '缺少指标名',
-    missing_value: '缺少测试值',
-    unknown_algorithm: '未知算法',
-  }[reason] || reason
+  const key = `aiops.reasonLabels.${reason}`
+  const v = t(key)
+  return v === key ? reason : v
 }
 
 function truncate(s, n) {
@@ -487,7 +487,7 @@ function truncate(s, n) {
 }
 
 function formatDurationMs(ms) {
-  if (!ms || ms <= 0) return '—'
+  if (!ms || ms <= 0) return t('aiops.duration.none')
   if (ms < 1000) return `${ms}ms`
   if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
   if (ms < 3600000) return `${(ms / 60000).toFixed(1)}min`
@@ -518,7 +518,7 @@ async function loadAll() {
     baselines.value = parseBaselines(bRes.output)
     stats.value = parseStats(sRes.output)
   } catch (e) {
-    message.error('加载 AIOps 数据失败: ' + (e?.message || e))
+    message.error(t('aiops.msg.loadFailed') + ': ' + (e?.message || e))
   } finally {
     loading.value = false
   }
@@ -526,7 +526,7 @@ async function loadAll() {
 
 async function createIncident() {
   if (!incidentForm.description.trim()) {
-    message.warning('请填写事件描述')
+    message.warning(t('aiops.msg.descEmpty'))
     return
   }
   creating.value = true
@@ -537,15 +537,15 @@ async function createIncident() {
     parts.push('--json')
     const { output } = await ws.execute(parts.join(' '), 10000)
     if (/error|失败/i.test(output) && !/"incidentId"/.test(output)) {
-      message.error('创建失败: ' + output.slice(0, 120))
+      message.error(t('aiops.msg.createFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('事件已创建')
+    message.success(t('aiops.msg.incidentCreated'))
     showIncidentModal.value = false
     resetIncidentForm()
     await loadAll()
   } catch (e) {
-    message.error('创建失败: ' + (e?.message || e))
+    message.error(t('aiops.msg.createFailed') + ': ' + (e?.message || e))
   } finally {
     creating.value = false
   }
@@ -553,14 +553,14 @@ async function createIncident() {
 
 async function createPlaybook() {
   if (!playbookForm.name.trim()) {
-    message.warning('请填写 Playbook 名称')
+    message.warning(t('aiops.msg.playbookNameEmpty'))
     return
   }
   // Validate JSON fields if provided
-  for (const [field, label] of [[playbookForm.triggerJson, '触发条件'], [playbookForm.stepsJson, '步骤']]) {
+  for (const [field, labelKey] of [[playbookForm.triggerJson, 'triggerLabel'], [playbookForm.stepsJson, 'stepsLabel']]) {
     if (field.trim()) {
       try { JSON.parse(field) } catch {
-        message.warning(`${label} JSON 格式错误`)
+        message.warning(t('aiops.msg.jsonInvalid', { label: t(`aiops.msg.${labelKey}`) }))
         return
       }
     }
@@ -577,16 +577,16 @@ async function createPlaybook() {
     parts.push('--json')
     const { output } = await ws.execute(parts.join(' '), 10000)
     if (/error|失败/i.test(output) && !/"playbookId"/.test(output)) {
-      message.error('创建失败: ' + output.slice(0, 120))
+      message.error(t('aiops.msg.createFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('Playbook 已创建')
+    message.success(t('aiops.msg.playbookCreated'))
     showPlaybookModal.value = false
     resetPlaybookForm()
     activeTab.value = 'playbooks'
     await loadAll()
   } catch (e) {
-    message.error('创建失败: ' + (e?.message || e))
+    message.error(t('aiops.msg.createFailed') + ': ' + (e?.message || e))
   } finally {
     creating.value = false
   }
@@ -595,7 +595,7 @@ async function createPlaybook() {
 async function updateBaseline() {
   const metric = baselineForm.metric.trim()
   if (!metric) {
-    message.warning('请填写指标名')
+    message.warning(t('aiops.msg.metricEmpty'))
     return
   }
   // Parse comma-separated values
@@ -605,7 +605,7 @@ async function updateBaseline() {
     .filter(Boolean)
     .map(s => Number(s))
   if (values.length === 0 || values.some(v => !Number.isFinite(v))) {
-    message.warning('请输入至少一个有效数值（逗号或空白分隔）')
+    message.warning(t('aiops.msg.valuesInvalid'))
     return
   }
   creating.value = true
@@ -617,16 +617,16 @@ async function updateBaseline() {
     const cmd = `ops baseline-update "${metric.replace(/"/g, '\\"')}" --values ${values.join(',')} --json`
     const { output } = await ws.execute(cmd, 10000)
     if (/error|失败/i.test(output) && !/"updated"/.test(output)) {
-      message.error('更新失败: ' + output.slice(0, 120))
+      message.error(t('aiops.msg.baselineUpdateFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success(`基线已更新（n=${values.length}）`)
+    message.success(t('aiops.msg.baselineUpdated', { n: values.length }))
     showBaselineModal.value = false
     resetBaselineForm()
     activeTab.value = 'baselines'
     await loadAll()
   } catch (e) {
-    message.error('更新失败: ' + (e?.message || e))
+    message.error(t('aiops.msg.baselineUpdateFailed') + ': ' + (e?.message || e))
   } finally {
     creating.value = false
   }
@@ -634,7 +634,7 @@ async function updateBaseline() {
 
 async function detectAnomaly() {
   if (!detectForm.metric || detectForm.value == null) {
-    message.warning('请选择指标并填写测试值')
+    message.warning(t('aiops.msg.detectFieldsEmpty'))
     return
   }
   detecting.value = true
@@ -644,43 +644,43 @@ async function detectAnomaly() {
     const { output } = await ws.execute(cmd, 8000)
     const parsed = parseDetectResult(output)
     if (!parsed) {
-      message.error('检测失败: ' + output.slice(0, 120))
+      message.error(t('aiops.msg.detectFailed') + ': ' + output.slice(0, 120))
       return
     }
     detectResult.value = parsed
     if (parsed.anomaly) {
-      message.warning(`检测到异常 (${parsed.severity || 'P3'})`)
+      message.warning(t('aiops.msg.detectAnomaly', { severity: parsed.severity || 'P3' }))
       // Refresh in background to pick up the auto-created incident
       loadAll()
     }
   } catch (e) {
-    message.error('检测失败: ' + (e?.message || e))
+    message.error(t('aiops.msg.detectFailed') + ': ' + (e?.message || e))
   } finally {
     detecting.value = false
   }
 }
 
 async function ackIncident(record) {
-  await runIncidentTransition(record, 'incident-ack', '事件已确认')
+  await runIncidentTransition(record, 'incident-ack', t('aiops.msg.incidentAcked'))
 }
 async function resolveIncident(record) {
-  await runIncidentTransition(record, 'incident-resolve', '事件已解决')
+  await runIncidentTransition(record, 'incident-resolve', t('aiops.msg.incidentResolved'))
 }
 async function closeIncident(record) {
-  await runIncidentTransition(record, 'incident-close', '事件已关闭')
+  await runIncidentTransition(record, 'incident-close', t('aiops.msg.incidentClosed'))
 }
 
 async function runIncidentTransition(record, subcmd, successMsg) {
   try {
     const { output } = await ws.execute(`ops ${subcmd} ${record.id} --json`, 8000)
     if (/error|失败|invalid/i.test(output) && !/"acknowledged"|"resolved"|"closed"/.test(output)) {
-      message.error('转换失败: ' + output.slice(0, 120))
+      message.error(t('aiops.msg.incidentTransitionFailed') + ': ' + output.slice(0, 120))
       return
     }
     message.success(successMsg)
     await loadAll()
   } catch (e) {
-    message.error('转换失败: ' + (e?.message || e))
+    message.error(t('aiops.msg.incidentTransitionFailed') + ': ' + (e?.message || e))
   }
 }
 
@@ -688,14 +688,14 @@ async function generatePostmortem(record) {
   try {
     const { output } = await ws.execute(`ops postmortem ${record.id}`, 12000)
     Modal.info({
-      title: `事件 ${record.id.slice(0, 8)} 复盘`,
+      title: t('aiops.msg.postmortemTitle', { id: record.id.slice(0, 8) }),
       width: 720,
       content: () => h('pre', {
         style: 'white-space: pre-wrap; max-height: 60vh; overflow: auto; font-size: 12px; padding: 8px; background: rgba(0,0,0,.04); border-radius: 4px;',
-      }, output || '（无内容）'),
+      }, output || t('aiops.msg.postmortemEmpty')),
     })
   } catch (e) {
-    message.error('生成复盘失败: ' + (e?.message || e))
+    message.error(t('aiops.msg.postmortemFailed') + ': ' + (e?.message || e))
   }
 }
 
@@ -704,13 +704,13 @@ async function togglePlaybook(record, enabled) {
   try {
     const { output } = await ws.execute(`ops playbook-toggle ${record.id} ${targetState} --json`, 8000)
     if (/error|失败/i.test(output) && !/"enabled"/.test(output)) {
-      message.error('切换失败: ' + output.slice(0, 120))
+      message.error(t('aiops.msg.playbookToggleFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success(enabled ? 'Playbook 已启用' : 'Playbook 已禁用')
+    message.success(enabled ? t('aiops.msg.playbookEnabled') : t('aiops.msg.playbookDisabled'))
     await loadAll()
   } catch (e) {
-    message.error('切换失败: ' + (e?.message || e))
+    message.error(t('aiops.msg.playbookToggleFailed') + ': ' + (e?.message || e))
   }
 }
 
@@ -718,13 +718,13 @@ async function recordRun(record, result) {
   try {
     const { output } = await ws.execute(`ops playbook-record ${record.id} ${result} --json`, 8000)
     if (/error|失败/i.test(output) && !/"recorded"/.test(output)) {
-      message.error('记录失败: ' + output.slice(0, 120))
+      message.error(t('aiops.msg.playbookRecordFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success(result === 'success' ? '已记录成功执行' : '已记录失败执行')
+    message.success(result === 'success' ? t('aiops.msg.playbookRecordSuccess') : t('aiops.msg.playbookRecordFailure'))
     await loadAll()
   } catch (e) {
-    message.error('记录失败: ' + (e?.message || e))
+    message.error(t('aiops.msg.playbookRecordFailed') + ': ' + (e?.message || e))
   }
 }
 

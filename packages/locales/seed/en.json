@@ -804,6 +804,170 @@
       "heSuccess": "Computation complete ({scheme}/{op})"
     }
   },
+  "aiops": {
+    "title": "AIOps autonomy",
+    "subtitle": "Anomaly detection · incident management · automated playbooks",
+    "refresh": "Refresh",
+    "newDropdown": "New ▼",
+    "actions": {
+      "incident": "Create incident",
+      "playbook": "Create playbook",
+      "baseline": "Update baseline",
+      "detect": "Detect anomaly"
+    },
+    "stats": {
+      "incidents": "Incidents",
+      "pending": "Pending",
+      "playbooks": "Playbooks",
+      "enabled": "Enabled",
+      "baselines": "Baselines"
+    },
+    "severityCard": "Severity breakdown",
+    "avgResolveLabel": "Avg. resolve time: {time}",
+    "tabs": {
+      "incidents": "Incidents",
+      "playbooks": "Playbooks",
+      "baselines": "Baselines"
+    },
+    "filter": {
+      "all": "All",
+      "allStatuses": "All statuses"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "incidentEmptyFiltered": "No incidents match the current filter",
+      "incidentEmpty": "No incidents yet — click \"New → Create incident\" or run \"Detect anomaly\"",
+      "playbookEmpty": "No playbooks yet — click \"New → Create playbook\"",
+      "baselineEmpty": "No baselines yet — click \"New → Update baseline\" to feed samples",
+      "successCount": "{n} ok",
+      "failureCount": "{n} fail"
+    },
+    "incidentActions": {
+      "ack": "Ack",
+      "resolve": "Resolve",
+      "close": "Close",
+      "postmortem": "Postmortem"
+    },
+    "playbookActions": {
+      "success": "+ Success",
+      "failure": "+ Failure"
+    },
+    "incidentCols": {
+      "severity": "Severity",
+      "metric": "Metric",
+      "description": "Description",
+      "status": "Status",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "playbookCols": {
+      "name": "Name",
+      "enabled": "Enabled",
+      "stats": "Stats",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "baselineCols": {
+      "metric": "Metric",
+      "mean": "Mean / σ",
+      "iqr": "Quartiles",
+      "sampleCount": "Samples",
+      "updatedAt": "Updated"
+    },
+    "incident_modal": {
+      "title": "Create incident",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "severityLabel": "Severity",
+      "metricLabel": "Metric",
+      "metricPlaceholder": "e.g. cpu_usage (optional)",
+      "descLabel": "Description"
+    },
+    "playbook_modal": {
+      "title": "Create playbook",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "nameLabel": "Name",
+      "namePlaceholder": "restart-pod",
+      "triggerLabel": "Trigger (JSON)",
+      "triggerPlaceholder": "e.g. metric=cpu, threshold=90",
+      "stepsLabel": "Steps (JSON)",
+      "stepsPlaceholder": "JSON array, e.g. action=restart, target=pod-1"
+    },
+    "baseline_modal": {
+      "title": "Update baseline",
+      "ok": "Update",
+      "cancel": "Cancel",
+      "metricLabel": "Metric name",
+      "metricPlaceholder": "cpu_usage",
+      "valuesLabel": "Sample values",
+      "valuesPlaceholder": "Comma-separated numbers, e.g. 45.2, 47.1, 50.8, 49.3"
+    },
+    "detect_modal": {
+      "title": "Detect anomaly",
+      "ok": "Detect",
+      "cancel": "Close",
+      "metricLabel": "Metric name",
+      "metricPlaceholder": "Pick a metric with an established baseline",
+      "metricOptionLabel": "{name} (n={count})",
+      "valueLabel": "Test value",
+      "algorithmLabel": "Algorithm",
+      "resultTitle": "Result",
+      "anomaly": "Anomaly",
+      "normal": "Normal",
+      "reasonLine": "Reason: {reason}",
+      "scoreLine": "Score: {score} (threshold {threshold})",
+      "baselineLine": "Baseline: mean {mean}, σ {stdDev}",
+      "incidentCreated": "Auto-created {severity} incident"
+    },
+    "statusLabels": {
+      "open": "Open",
+      "acknowledged": "Acked",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "reasonLabels": {
+      "no_baseline": "Metric has no baseline yet — run \"Update baseline\" first",
+      "zero_stddev": "Baseline variance is zero (samples are identical)",
+      "missing_metric_name": "Missing metric name",
+      "missing_value": "Missing test value",
+      "unknown_algorithm": "Unknown algorithm"
+    },
+    "duration": {
+      "none": "—"
+    },
+    "msg": {
+      "loadFailed": "Failed to load AIOps data",
+      "descEmpty": "Enter an incident description",
+      "createFailed": "Create failed",
+      "incidentCreated": "Incident created",
+      "playbookNameEmpty": "Enter a playbook name",
+      "jsonInvalid": "{label} JSON is malformed",
+      "playbookCreated": "Playbook created",
+      "metricEmpty": "Enter a metric name",
+      "valuesInvalid": "Enter at least one valid number (comma- or space-separated)",
+      "baselineUpdateFailed": "Update failed",
+      "baselineUpdated": "Baseline updated (n={n})",
+      "detectFieldsEmpty": "Pick a metric and enter a test value",
+      "detectFailed": "Detect failed",
+      "detectAnomaly": "Anomaly detected ({severity})",
+      "incidentTransitionFailed": "Transition failed",
+      "incidentAcked": "Incident acknowledged",
+      "incidentResolved": "Incident resolved",
+      "incidentClosed": "Incident closed",
+      "postmortemTitle": "Incident {id} postmortem",
+      "postmortemEmpty": "(no content)",
+      "postmortemFailed": "Postmortem generation failed",
+      "playbookToggleFailed": "Toggle failed",
+      "playbookEnabled": "Playbook enabled",
+      "playbookDisabled": "Playbook disabled",
+      "playbookRecordFailed": "Record failed",
+      "playbookRecordSuccess": "Success run recorded",
+      "playbookRecordFailure": "Failure run recorded",
+      "triggerLabel": "Trigger",
+      "stepsLabel": "Steps"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",
