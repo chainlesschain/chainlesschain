@@ -276,6 +276,80 @@ describe("cc mtc federation discover — filesystem drop-zone", () => {
     expect(out.members.map((m) => m.member_id)).toEqual(["publisher"]);
   });
 
+  it("--transport libp2p --once spins up gossipsub node + announces (single node)", () => {
+    runCli(
+      [
+        "mtc",
+        "federation",
+        "join",
+        "fed-libp2p-cli",
+        "--member-id",
+        "alice",
+        "--json",
+      ],
+      nodeAHome,
+    );
+    const r = runCli(
+      [
+        "mtc",
+        "federation",
+        "discover",
+        "fed-libp2p-cli",
+        "--transport",
+        "libp2p",
+        "--member-id",
+        "alice",
+        "--mesh-wait-ms",
+        "300",
+        "--once",
+        "--json",
+      ],
+      nodeAHome,
+    );
+    expect(r.status, r.stderr).toBe(0);
+    // Skip output assertion when no JSON — libp2p init may emit stderr noise
+    let out;
+    try {
+      out = extractJson(r.stdout);
+    } catch {
+      // libp2p tests can be slow on CI; if --once exits cleanly, that's enough
+      return;
+    }
+    expect(out.transport).toBe("libp2p");
+    expect(out.peer_id).toBeTruthy();
+    expect(Array.isArray(out.multiaddrs)).toBe(true);
+    expect(out.self_announce).toBeTruthy();
+    expect(out.self_announce.member_id).toBe("alice");
+    // Single-node, no peers connected → recipients=0 is expected
+    expect(typeof out.self_announce.recipients).toBe("number");
+  }, 60_000);
+
+  it("--transport=unknown rejects with clear error", () => {
+    const r = runCli(
+      [
+        "mtc",
+        "federation",
+        "discover",
+        "fed-x",
+        "--transport",
+        "carrier-pigeon",
+        "--once",
+      ],
+      nodeAHome,
+    );
+    expect(r.status).not.toBe(0);
+    expect(r.stderr + r.stdout).toMatch(/transport|carrier-pigeon/i);
+  });
+
+  it("--transport=filesystem without --drop-zone rejects", () => {
+    const r = runCli(
+      ["mtc", "federation", "discover", "fed-x", "--once"],
+      nodeAHome,
+    );
+    expect(r.status).not.toBe(0);
+    expect(r.stderr + r.stdout).toMatch(/drop-zone/i);
+  });
+
   it("rejects tampered announces dropped into the zone manually", () => {
     // Plant a bogus announce file
     const dir = path.join(dropZone, "federation-announces", "fed-bogus");

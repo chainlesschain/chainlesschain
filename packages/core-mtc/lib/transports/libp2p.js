@@ -109,6 +109,9 @@ class Libp2pTransport {
     this._subscribedTopics = new Set(); // gossipsub topics we've joined
     this._localContent = new Map(); // cid → landmark
     this._closed = false;
+    // Phase 3.4: raw pubsub fan-out for non-landmark payloads (federation
+    // announces, future channels). Maps topic → array of (bytes) handlers.
+    this._rawHandlers = new Map();
 
     if (this._mode === "direct") {
       // libp2p 3.x StreamHandler: (stream, connection) => void
@@ -124,6 +127,12 @@ class Libp2pTransport {
       const pubsub = node.services.pubsub;
       pubsub.addEventListener("message", (evt) => {
         const { topic, data } = evt.detail;
+        // First try raw handlers (Phase 3.4 — federation announces, etc.)
+        if (this._rawHandlers.has(topic)) {
+          this._dispatchRawTopic(topic, data);
+          return;
+        }
+        // Fall through to landmark dispatch
         if (!this._subscribedTopics.has(topic)) return;
         this._handleGossipMessage(topic, data);
       });
@@ -254,6 +263,113 @@ class Libp2pTransport {
     await this._node.stop();
     this._subs = [];
     this._localContent.clear();
+    this._rawHandlers.clear();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Raw pubsub (Phase 3.4) — bypass the landmark protocol so callers can
+  // ship arbitrary JSON / bytes on arbitrary topics. Used by federation
+  // discovery (`mtc-federation/v1/<id>`) but generic enough for any
+  // future channels (alerts, federation governance proposals, etc.).
+  //
+  // gossipsub mode only — direct mode is per-protocol stream so doesn't
+  // map onto the topic-broadcast pubsub model.
+  // ─────────────────────────────────────────────────────────────────────
+
+  /**
+   * Publish raw bytes on a gossipsub topic.
+   * @param {string} topic
+   * @param {Uint8Array | Buffer | string} payload
+   * @returns {Promise<{recipients: number}>}
+   */
+  async publishRaw(topic, payload) {
+    if (this._closed) throw new Error("transport closed");
+    if (this._mode !== "gossipsub") {
+      const e = new Error("publishRaw requires gossipsub mode");
+      e.code = "WRONG_TRANSPORT_MODE";
+      throw e;
+    }
+    if (typeof topic !== "string" || !topic) {
+      throw new TypeError("publishRaw: topic must be non-empty string");
+    }
+    let bytes;
+    if (typeof payload === "string") {
+      bytes = new TextEncoder().encode(payload);
+    } else if (payload instanceof Uint8Array) {
+      bytes = payload;
+    } else {
+      throw new TypeError("publishRaw: payload must be string or Uint8Array");
+    }
+    const pubsub = this._node.services.pubsub;
+    // Ensure publisher has joined the topic so peers form a mesh on it
+    if (!pubsub.getTopics().includes(topic)) {
+      pubsub.subscribe(topic);
+    }
+    const result = await pubsub.publish(topic, bytes);
+    const recipients = result && Array.isArray(result.recipients)
+      ? result.recipients.length
+      : 0;
+    return { recipients };
+  }
+
+  /**
+   * Subscribe to raw bytes on a gossipsub topic. Handler receives Uint8Array.
+   * Returns an unsubscribe function.
+   *
+   * @param {string} topic
+   * @param {(payload: Uint8Array) => void} handler
+   * @returns {() => void} unsubscribe
+   */
+  subscribeRaw(topic, handler) {
+    if (this._closed) throw new Error("transport closed");
+    if (this._mode !== "gossipsub") {
+      const e = new Error("subscribeRaw requires gossipsub mode");
+      e.code = "WRONG_TRANSPORT_MODE";
+      throw e;
+    }
+    if (typeof topic !== "string" || !topic) {
+      throw new TypeError("subscribeRaw: topic must be non-empty string");
+    }
+    if (typeof handler !== "function") {
+      throw new TypeError("subscribeRaw: handler must be function");
+    }
+    const pubsub = this._node.services.pubsub;
+    if (!pubsub.getTopics().includes(topic)) {
+      pubsub.subscribe(topic);
+    }
+    let arr = this._rawHandlers.get(topic);
+    if (!arr) {
+      arr = [];
+      this._rawHandlers.set(topic, arr);
+    }
+    arr.push(handler);
+    return () => {
+      const cur = this._rawHandlers.get(topic);
+      if (!cur) return;
+      const idx = cur.indexOf(handler);
+      if (idx >= 0) cur.splice(idx, 1);
+      if (cur.length === 0) {
+        this._rawHandlers.delete(topic);
+        try {
+          pubsub.unsubscribe(topic);
+        } catch (_err) {
+          /* best effort */
+        }
+      }
+    };
+  }
+
+  _dispatchRawTopic(topic, data) {
+    const handlers = this._rawHandlers.get(topic);
+    if (!handlers || handlers.length === 0) return;
+    const buf = data.subarray ? data.subarray() : data;
+    for (const handler of handlers) {
+      try {
+        handler(buf);
+      } catch (_err) {
+        // swallow per-handler errors
+      }
+    }
   }
 
   async _onIncoming(stream) {

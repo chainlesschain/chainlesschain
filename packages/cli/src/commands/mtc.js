@@ -1574,11 +1574,25 @@ function registerFederationCommands(mtc) {
   fed
     .command("discover <federation-id>")
     .description(
-      "Subscribe to federation announces via filesystem drop-zone (auto-announce self + collect peers)",
+      "Subscribe to federation announces via filesystem drop-zone or libp2p gossipsub",
     )
-    .requiredOption(
+    .option(
+      "--transport <kind>",
+      "Transport: filesystem (default, --drop-zone required) | libp2p (--listen + --connect)",
+      "filesystem",
+    )
+    .option(
       "--drop-zone <dir>",
-      "Shared directory all federation members read+write to (e.g. NFS / Syncthing folder)",
+      "[filesystem] Shared directory all federation members read+write to (NFS / Syncthing / SMB)",
+    )
+    .option(
+      "--listen <multiaddr>",
+      "[libp2p] Listen address (default: /ip4/127.0.0.1/tcp/0)",
+    )
+    .option(
+      "--connect <multiaddr>",
+      "[libp2p] Dial this peer on startup (repeatable)",
+      (v, prev) => [...(prev || []), v],
     )
     .option(
       "--member-id <id>",
@@ -1597,9 +1611,15 @@ function registerFederationCommands(mtc) {
     )
     .option(
       "--scan-interval <seconds>",
-      "Drop-zone poll interval (default 30)",
+      "[filesystem] Drop-zone poll interval (default 30)",
       (v) => parseInt(v, 10),
       30,
+    )
+    .option(
+      "--mesh-wait-ms <n>",
+      "[libp2p] Mesh formation wait before announce (default 1500)",
+      (v) => parseInt(v, 10),
+      1500,
     )
     .option("--json", "Print JSON status snapshot (used with --once)")
     .action(async (federationId, options) => {
@@ -1654,9 +1674,62 @@ function scanDropZone(dropZone, federationId) {
     });
 }
 
+/**
+ * Helper: load member key + return {announceBuilder, member} for self-announce.
+ * Used by both filesystem and libp2p paths.
+ */
+function loadFederationMemberForAnnounce(federationId, memberId, ttlSeconds) {
+  const registry = loadFederationRegistry();
+  const fedEntry = registry.federations[federationId];
+  if (!fedEntry || !fedEntry.members[memberId]) {
+    throw new Error(
+      `not joined as "${memberId}" in federation "${federationId}" — run \`cc mtc federation join ${federationId} --member-id ${memberId}\` first`,
+    );
+  }
+  const member = fedEntry.members[memberId];
+  if (!member.key_file || !fs.existsSync(member.key_file)) {
+    throw new Error(`member key file missing: ${member.key_file}`);
+  }
+  let signerInfo;
+  if (member.alg === "Ed25519") signerInfo = resolveSigner("ed25519");
+  else if (member.alg === "SLH-DSA-SHA2-128F")
+    signerInfo = resolveSigner("slh-dsa-128f");
+  else throw new Error(`unknown member alg: ${member.alg}`);
+  const keys = loadOrGenerateKeyPair(member.key_file, signerInfo);
+
+  return {
+    member,
+    buildAnnounce: () =>
+      mtcLib.createMemberAnnounce({
+        federationId,
+        memberId,
+        issuer: member.issuer,
+        secretKey: keys.secretKey,
+        publicKey: keys.publicKey,
+        signer: signerInfo.signer,
+        ttlSeconds,
+      }),
+  };
+}
+
 async function runFederationDiscover(federationId, options) {
+  const transport = (options.transport || "filesystem").toLowerCase();
+  if (transport === "libp2p") {
+    return runFederationDiscoverLibp2p(federationId, options);
+  }
+  if (transport !== "filesystem") {
+    throw new Error(
+      `Unknown --transport: ${options.transport} (supported: filesystem, libp2p)`,
+    );
+  }
+  if (!options.dropZone) {
+    throw new Error("--drop-zone is required when --transport=filesystem");
+  }
+  return runFederationDiscoverFilesystem(federationId, options);
+}
+
+async function runFederationDiscoverFilesystem(federationId, options) {
   const FederationAnnounceCache = mtcLib.FederationAnnounceCache;
-  const createAnnounce = mtcLib.createMemberAnnounce;
 
   const cache = new FederationAnnounceCache({
     persistDir: options.cacheDir,
@@ -1665,34 +1738,14 @@ async function runFederationDiscover(federationId, options) {
   // Build self-announce iff --member-id provided
   let selfAnnounceFn = null;
   if (options.memberId) {
-    const registry = loadFederationRegistry();
-    const fedEntry = registry.federations[federationId];
-    if (!fedEntry || !fedEntry.members[options.memberId]) {
-      throw new Error(
-        `not joined as "${options.memberId}" in federation "${federationId}" — run \`cc mtc federation join ${federationId} --member-id ${options.memberId}\` first`,
-      );
-    }
-    const member = fedEntry.members[options.memberId];
-    if (!member.key_file || !fs.existsSync(member.key_file)) {
-      throw new Error(`member key file missing: ${member.key_file}`);
-    }
-    let signerInfo;
-    if (member.alg === "Ed25519") signerInfo = resolveSigner("ed25519");
-    else if (member.alg === "SLH-DSA-SHA2-128F")
-      signerInfo = resolveSigner("slh-dsa-128f");
-    else throw new Error(`unknown member alg: ${member.alg}`);
-    const keys = loadOrGenerateKeyPair(member.key_file, signerInfo);
+    const { buildAnnounce } = loadFederationMemberForAnnounce(
+      federationId,
+      options.memberId,
+      options.ttl,
+    );
 
     selfAnnounceFn = () => {
-      const ann = createAnnounce({
-        federationId,
-        memberId: options.memberId,
-        issuer: member.issuer,
-        secretKey: keys.secretKey,
-        publicKey: keys.publicKey,
-        signer: signerInfo.signer,
-        ttlSeconds: options.ttl,
-      });
+      const ann = buildAnnounce();
       const written = publishAnnounce(options.dropZone, ann);
       return { announce: ann, file: written };
     };
@@ -1816,6 +1869,172 @@ async function runFederationDiscover(federationId, options) {
       selfAnnounceFn ? `, announcing as ${options.memberId}` : ", listen-only"
     }`,
   );
+  await new Promise(() => {});
+}
+
+const FEDERATION_TOPIC_PREFIX = "mtc-federation/v1";
+
+function federationTopic(federationId) {
+  return `${FEDERATION_TOPIC_PREFIX}/${federationId}`;
+}
+
+async function runFederationDiscoverLibp2p(federationId, options) {
+  const FederationAnnounceCache = mtcLib.FederationAnnounceCache;
+  const { Libp2pTransport } =
+    await import("@chainlesschain/core-mtc/transports/libp2p");
+
+  const cache = new FederationAnnounceCache({
+    persistDir: options.cacheDir,
+  });
+
+  let selfBuildAnnounce = null;
+  let selfMember = null;
+  if (options.memberId) {
+    const { member, buildAnnounce } = loadFederationMemberForAnnounce(
+      federationId,
+      options.memberId,
+      options.ttl,
+    );
+    selfBuildAnnounce = buildAnnounce;
+    selfMember = member;
+  }
+
+  // Spin up gossipsub libp2p node
+  const node = await Libp2pTransport.create({
+    listen: options.listen,
+    mode: "gossipsub",
+  });
+
+  const topic = federationTopic(federationId);
+
+  // Subscribe + dispatch into cache
+  let bytesReceived = 0;
+  node.subscribeRaw(topic, (bytes) => {
+    bytesReceived++;
+    try {
+      cache.ingest(JSON.parse(new TextDecoder().decode(bytes)));
+    } catch (_err) {
+      /* malformed announce — drop */
+    }
+  });
+
+  // Dial seed peers
+  for (const peer of options.connect || []) {
+    try {
+      await node.connect(peer);
+    } catch (err) {
+      logger.warn(`connect to ${peer} failed: ${err.message}`);
+    }
+  }
+
+  // Mesh formation wait
+  const meshWaitMs = Math.max(0, options.meshWaitMs ?? 1500);
+  if (meshWaitMs > 0) await new Promise((r) => setTimeout(r, meshWaitMs));
+
+  async function publishSelf() {
+    if (!selfBuildAnnounce) return null;
+    const ann = selfBuildAnnounce();
+    const result = await node.publishRaw(topic, JSON.stringify(ann));
+    return { announce: ann, recipients: result.recipients };
+  }
+
+  function snapshot() {
+    return {
+      federation_id: federationId,
+      transport: "libp2p",
+      multiaddrs: node.multiaddrs(),
+      peer_id: node.peerIdString(),
+      members: cache.listMembers(federationId).map((m) => ({
+        member_id: m.member_id,
+        issuer: m.issuer,
+        alg: m.alg,
+        pubkey_id: m.pubkey_id,
+        announced_at: m.announced_at,
+        ttl_seconds: m.ttl_seconds,
+      })),
+    };
+  }
+
+  // First pass: announce self
+  let firstPublish = null;
+  if (selfBuildAnnounce) {
+    firstPublish = await publishSelf();
+  }
+
+  if (options.once) {
+    // Wait briefly for any incoming announces from peers we just dialed
+    if ((options.connect || []).length > 0) {
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    const out = {
+      ok: true,
+      ...snapshot(),
+      self_announce: firstPublish
+        ? {
+            member_id: options.memberId,
+            issuer: selfMember?.issuer,
+            recipients: firstPublish.recipients,
+          }
+        : null,
+      bytes_received: bytesReceived,
+    };
+    if (options.json) {
+      console.log(JSON.stringify(out, null, 2));
+    } else {
+      logger.success(
+        `libp2p discover: peer_id=${out.peer_id}, ${out.members.length} member(s) cached`,
+      );
+      for (const a of out.multiaddrs) logger.log(`  listen: ${a}`);
+      for (const m of out.members) {
+        logger.log(
+          `  · ${chalk.green(m.member_id)} (${m.alg})  ${chalk.gray(m.pubkey_id.slice(0, 18) + "…")}`,
+        );
+      }
+    }
+    await node.close();
+    return;
+  }
+
+  // Daemon: re-announce on TTL/3
+  const reannounceMs = Math.max(60, Math.floor(options.ttl / 3)) * 1000;
+  let announceTimer = null;
+  if (selfBuildAnnounce) {
+    announceTimer = setInterval(async () => {
+      try {
+        await publishSelf();
+        if (!options.json) {
+          logger.log(
+            `[${new Date().toISOString()}] re-announced via libp2p in federation ${federationId}`,
+          );
+        }
+      } catch (err) {
+        logger.error(`self-announce failed: ${err.message}`);
+      }
+    }, reannounceMs);
+  }
+
+  const cleanup = async () => {
+    if (announceTimer) clearInterval(announceTimer);
+    try {
+      await node.close();
+    } catch (_err) {
+      /* ignore */
+    }
+    process.exit(0);
+  };
+  process.once("SIGINT", cleanup);
+  process.once("SIGTERM", cleanup);
+
+  logger.success(
+    `federation discover daemon running (libp2p, peer_id: ${node.peerIdString()})${
+      selfBuildAnnounce
+        ? `, announcing as ${options.memberId} (TTL ${options.ttl}s)`
+        : ", listen-only"
+    }`,
+  );
+  for (const a of node.multiaddrs()) {
+    logger.log(`  listen: ${a}`);
+  }
   await new Promise(() => {});
 }
 
