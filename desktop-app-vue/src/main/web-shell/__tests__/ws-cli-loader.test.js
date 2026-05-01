@@ -385,6 +385,117 @@ describe("ws-cli-loader (Phase 1.1)", () => {
       ws.close();
     }
   });
+
+  // Cancellation paths: the dispatcher must drive `generator.return()` on
+  // either a `<topic>.cancel` frame from the SPA or a ws.close, so the
+  // generator's finally block runs (e.g. AbortController.abort() that
+  // stops the underlying fetch in llm.chat).
+  it("`<topic>.cancel` frame triggers generator.return() — finally observes the unwind", async () => {
+    let finallyRan = false;
+    let yielded = 0;
+    handle = await startWsCliBackend({
+      handlers: {
+        // Generator yields once then parks forever, simulating a long
+        // mid-stream wait (e.g. fetch in flight, no chunks yet).
+        "demo.parked": async function* () {
+          try {
+            yielded++;
+            yield { delta: "first" };
+            // Park indefinitely until generator.return() interrupts.
+            await new Promise(() => {});
+          } finally {
+            finallyRan = true;
+          }
+        },
+      },
+    });
+    const ws = await openWs(handle.url);
+    try {
+      const collected = [];
+      ws.on("message", (raw) => {
+        try {
+          collected.push(JSON.parse(raw.toString("utf8")));
+        } catch {
+          /* ignore */
+        }
+      });
+      ws.send(JSON.stringify({ id: "park-1", type: "demo.parked" }));
+      // Wait for the first chunk to arrive so the generator is parked.
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      expect(yielded).toBe(1);
+      ws.send(JSON.stringify({ id: "park-1", type: "demo.parked.cancel" }));
+      // Give the dispatcher a moment to call .return() and run finally.
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      expect(finallyRan).toBe(true);
+      // Server must NOT emit a terminal .result for a cancelled stream —
+      // the SPA already considers the request resolved when it sent .cancel.
+      const terminal = collected.find((m) => m?.type === "demo.parked.result");
+      expect(terminal).toBeUndefined();
+    } finally {
+      ws.close();
+    }
+  });
+
+  it("ws.close mid-stream triggers generator.return() — finally observes the unwind", async () => {
+    let finallyRan = false;
+    handle = await startWsCliBackend({
+      handlers: {
+        "demo.parked2": async function* () {
+          try {
+            yield { delta: "first" };
+            await new Promise(() => {});
+          } finally {
+            finallyRan = true;
+          }
+        },
+      },
+    });
+    const ws = await openWs(handle.url);
+    ws.send(JSON.stringify({ id: "close-1", type: "demo.parked2" }));
+    // Wait until the first chunk has been emitted so the generator is parked.
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    ws.close();
+    // Give the close listener time to fire and the generator's finally to run.
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(finallyRan).toBe(true);
+  });
+
+  it("`<topic>.cancel` for an unknown id is a silent drop (no crash, no reply)", async () => {
+    handle = await startWsCliBackend({
+      handlers: {
+        "demo.echo": (frame) => ({ youSent: frame.payload || null }),
+      },
+    });
+    const ws = await openWs(handle.url);
+    try {
+      const collected = [];
+      ws.on("message", (raw) => {
+        try {
+          collected.push(JSON.parse(raw.toString("utf8")));
+        } catch {
+          /* ignore */
+        }
+      });
+      ws.send(JSON.stringify({ id: "ghost-1", type: "demo.echo.cancel" }));
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      // No reply for a cancel that matched nothing — connection still healthy.
+      expect(collected).toHaveLength(0);
+      expect(ws.readyState).toBe(WebSocket.OPEN);
+      // And the dispatcher still works for normal requests after the no-op cancel.
+      const reply = await rpc(ws, {
+        id: "post-cancel-1",
+        type: "demo.echo",
+        payload: "hi",
+      });
+      expect(reply).toMatchObject({
+        id: "post-cancel-1",
+        ok: true,
+        result: { youSent: "hi" },
+      });
+    } finally {
+      ws.close();
+    }
+  });
 });
 
 // Phase 1 follow-up — commit 78056d181 changed ws-cli-loader from

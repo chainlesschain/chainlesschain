@@ -181,7 +181,11 @@ describe("createLlmChatHandler — happy path", () => {
     const args = llmManager.chatStream.mock.calls[0];
     expect(args[0]).toEqual([{ role: "user", content: "hi" }]);
     expect(typeof args[1]).toBe("function");
-    expect(args[2]).toEqual({ model: "qwen2.5", temperature: 0.2 });
+    // The handler injects an AbortSignal alongside the user-supplied options
+    // so cancellation can reach the underlying client. User options must
+    // pass through verbatim.
+    expect(args[2]).toMatchObject({ model: "qwen2.5", temperature: 0.2 });
+    expect(args[2].signal).toBeInstanceOf(AbortSignal);
   });
 
   it("defaults options to {} when frame.options is missing or non-object", async () => {
@@ -191,7 +195,24 @@ describe("createLlmChatHandler — happy path", () => {
     for await (const _c of gen) {
       // discard
     }
-    expect(llmManager.chatStream.mock.calls[0][2]).toEqual({});
+    // Even with no user-supplied options, the handler still threads an
+    // AbortSignal so generator unwind triggers cancellation downstream.
+    const opts = llmManager.chatStream.mock.calls[0][2];
+    expect(opts.signal).toBeInstanceOf(AbortSignal);
+    expect(Object.keys(opts).filter((k) => k !== "signal")).toEqual([]);
+  });
+
+  it("aborts the threaded signal when generator unwinds (cancellation)", async () => {
+    const llmManager = makeFakeManager();
+    const handler = createLlmChatHandler({ llmManager });
+    const gen = handler({ messages: [{ role: "user", content: "hi" }] });
+    // Pull one chunk so the handler is mid-stream, then return() to unwind.
+    await gen.next();
+    await gen.return();
+    // The signal forwarded to chatStream must now be aborted — that's what
+    // makes ollama/anthropic/openai client fetch() actually stop.
+    const signal = llmManager.chatStream.mock.calls[0][2].signal;
+    expect(signal.aborted).toBe(true);
   });
 });
 

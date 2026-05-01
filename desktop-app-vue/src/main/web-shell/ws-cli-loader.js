@@ -158,10 +158,79 @@ async function startWsCliBackend(options = {}) {
     }
   }
 
+  // Tracks in-flight streaming generators by message id so that
+  // `<topic>.cancel` frames and `ws.on("close")` can call .return() on
+  // the right generator. Keyed by id — id is unique per request from the
+  // SPA. ws-close cleanup walks this map filtered by clientId, since
+  // multiple concurrent streams can share one connection.
+  /** @type {Map<string, { gen: AsyncIterator<any>, clientId: string }>} */
+  const inFlightStreams = new Map();
+
+  // Drive `ret.return()` on a streaming generator to unwind it (runs the
+  // generator's finally block — for llm.chat that aborts the AbortController
+  // and stops the underlying fetch). Idempotent: removes from the map first
+  // so concurrent triggers (close + cancel-frame) only call .return() once.
+  async function unwindStream(id, reason) {
+    const entry = inFlightStreams.get(id);
+    if (!entry) {
+      return;
+    }
+    inFlightStreams.delete(id);
+    try {
+      if (typeof entry.gen.return === "function") {
+        await entry.gen.return(reason);
+      }
+    } catch {
+      // Generator throw on unwind is non-fatal — same convention as the
+      // existing readyState-checked path.
+    }
+  }
+
+  // ws.close triggers an immediate unwind for every stream the client
+  // owned, even ones currently parked on a long await (e.g. fetch in
+  // flight with no chunks yet). The mid-loop readyState check below only
+  // catches close BETWEEN yields — without this hook a hung fetch would
+  // keep running for its full timeout after the user closed the tab.
+  //
+  // Registration is per-ws lazy because CLI's ws-server emits `connection`
+  // with just `{clientId, ip}` (no ws ref). We hook on first dispatch via
+  // a WeakSet flag so each ws only gets one listener.
+  const wsCloseHooked = new WeakSet();
+  function ensureWsCloseHook(ws, clientId) {
+    if (!ws || typeof ws.on !== "function") {
+      return;
+    }
+    if (wsCloseHooked.has(ws)) {
+      return;
+    }
+    wsCloseHooked.add(ws);
+    ws.on("close", () => {
+      for (const [id, entry] of inFlightStreams) {
+        if (entry.clientId === clientId) {
+          // Best-effort fire-and-forget — close() handlers can't await.
+          unwindStream(id, "ws_close").catch(() => {});
+        }
+      }
+    });
+  }
+
   const originalDispatcher = server._dispatcher;
   server._dispatcher = {
     async dispatch(clientId, ws, message) {
       const { id, type } = message || {};
+
+      // Lazily attach the ws-close listener on first message from a given
+      // ws — see the WeakSet-guarded helper above.
+      ensureWsCloseHook(ws, clientId);
+
+      // Cancel frame: `<topic>.cancel` from the SPA's `useLlmChat.cancel()` /
+      // `useUkey.sign({signal})` paths. Match by id, not by topic, because
+      // the in-flight map is keyed on id. Drops the frame silently if no
+      // matching stream is running (already finished or never started).
+      if (id && typeof type === "string" && type.endsWith(".cancel")) {
+        await unwindStream(id, "client_cancel");
+        return;
+      }
 
       // Custom topic path. We mirror CLI's id + auth gates so that
       // unauthenticated clients cannot trigger native handlers via a topic.
@@ -197,6 +266,12 @@ async function startWsCliBackend(options = {}) {
             // into the terminal `<type>.result`. Mid-stream error → final
             // `.result` with ok:false so the SPA still gets a single
             // unambiguous end-of-stream marker.
+            //
+            // Register in inFlightStreams so ws.on("close") and the
+            // `<topic>.cancel` frame path above can unwind this generator.
+            // De-register in finally so completion / errors / cancellation
+            // all leave the map clean.
+            inFlightStreams.set(id, { gen: ret, clientId });
             let finalReturn = null;
             try {
               for (;;) {
@@ -208,13 +283,10 @@ async function startWsCliBackend(options = {}) {
                 if (ws.readyState !== 1 /* OPEN */) {
                   // Client closed mid-stream; let the generator unwind via
                   // `return()` so any cleanup (`finally` blocks) runs.
-                  if (typeof ret.return === "function") {
-                    try {
-                      await ret.return();
-                    } catch {
-                      // Generator throw on unwind is non-fatal.
-                    }
-                  }
+                  // ws.on("close") above usually fires first, but this
+                  // remains a fallback for the rare ordering where readyState
+                  // flips before the close event lands.
+                  await unwindStream(id, "readyState_closed");
                   return;
                 }
                 server._send(ws, {
@@ -240,6 +312,8 @@ async function startWsCliBackend(options = {}) {
                     ? streamErr.message
                     : String(streamErr),
               });
+            } finally {
+              inFlightStreams.delete(id);
             }
             return;
           }

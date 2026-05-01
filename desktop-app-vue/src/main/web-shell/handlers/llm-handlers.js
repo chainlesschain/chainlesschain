@@ -80,6 +80,13 @@ async function* streamFromCallback(streamFn, messages, options) {
     },
   );
 
+  // If the generator is returned mid-stream (e.g. WS close → AbortController
+  // triggers AbortError on the underlying fetch), `return await finalPromise`
+  // below never runs and the rejection becomes orphaned. Pre-attach a noop
+  // .catch so it never surfaces as an unhandled rejection. The "real"
+  // awaiter is still the `return await` on the happy path.
+  finalPromise.catch(() => {});
+
   try {
     while (true) {
       // Drain whatever the callback has buffered while we were yielding.
@@ -146,13 +153,23 @@ function createLlmChatHandler(options = {}) {
     const opts =
       frame?.options && typeof frame.options === "object" ? frame.options : {};
 
-    const result = yield* streamFromCallback(
-      mgr.chatStream.bind(mgr),
-      messages,
-      opts,
-    );
-
-    return result;
+    // AbortController threads cancellation from the dispatcher's
+    // generator.return() (called on WS close or `<topic>.cancel` frame)
+    // through to the underlying fetch in ollama/anthropic/openai clients,
+    // which all read `options.signal`. Aborting after the underlying
+    // request has already settled is a no-op, so always abort in finally
+    // — keeps the happy and cancelled paths uniform.
+    const ac = new AbortController();
+    try {
+      const result = yield* streamFromCallback(
+        mgr.chatStream.bind(mgr),
+        messages,
+        { ...opts, signal: ac.signal },
+      );
+      return result;
+    } finally {
+      ac.abort();
+    }
   };
 }
 
