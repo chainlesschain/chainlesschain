@@ -21,7 +21,7 @@ function registerCoreInitializers(factory) {
     name: "database",
     required: false, // 数据库失败也继续启动，使用降级模式
     async init(context) {
-      const DatabaseManager = require("../database");
+      const { DatabaseManager } = require("../database");
       const EncryptionConfigManager = require("../database/config-manager");
 
       // 检查加密配置
