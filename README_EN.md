@@ -1,5 +1,25 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-01 Update — **Phase 2 wrap-up** — streaming cancellation + config persistence fix + Speech port + bug bash
+
+A single rollup that closes five threads on the desktop web-shell: cancel half of `llm.chat`, the Phase 1.4 vendor target correction, the SystemSettings persistence whitelist hole, the Speech leg of the SystemSettings → web-panel migration, and a CLI session-list contract bug discovered along the way.
+
+| Topic | Commit | Notes |
+|---|---|---|
+| `llm.chat` real cancellation | `b6b5174cb` + `4951c95d5` | ws-cli-loader gains `inFlightStreams<id, gen>`. Both `ws.on("close")` (lazy WeakSet hook because CLI ws-server's `connection` event omits the ws ref) and `<topic>.cancel` frames drive `gen.return()`. The llm-handlers generator's finally block calls `AbortController.abort()`; the signal threads through to ollama / anthropic / openai client `fetch` (gemini's axios call has a different param order — left for a separate refactor). `useLlmChat.cancel()` actually stops the underlying HTTP. |
+| AppConfigManager `ui.*` persistence | `436e349f1` | DEFAULT_CONFIG gains a `ui` block + load/loadAsync merge whitelist gains a `ui` line; `_readSettingsSync` now layers `app-config.json`'s `ui` on top of `settings.json` so the SystemSettings V6 / Web Shell toggles actually take effect on the next launch. The original silent-drop bug (V6 toggle had it too) is closed. |
+| Phase 1.4 vendor target | `cecb94980` | `forge.config.js`'s `vendorWebShellInto(buildPath)` corrected to `path.join(buildPath, "..")` to match the path-math test fixture; packaged loaders' 4-up REL now actually lands at `Resources/packages/`. The dead `packages/**` glob in `asar.unpack` is dropped. |
+| Speech sub-page → web-panel | `2d45ae278` | New `views/SpeechSettings.vue` + `utils/speech-settings-parser.js` + `/speech-settings` route. Engine selector + Web Speech / Whisper API / Whisper Local core config; the V5 advanced storage / audio / knowledge-integration / performance sub-sections stay (Memory Bank-style deliberate scope cut). LLM and Project already had Providers + ProjectSettings on the web-panel side; the V5 SystemSettings tabs gain an a-alert pointing to the web-panel equivalents. |
+| `session-close` actually removes (drive-by) | (pending commit) | CLI `ws-session-gateway.js`: `_serializeSessionMetadata` now writes `status`; `listSessions` DB path skips rows where `metadata.status === "closed"`. After `session-close`, `session-list` no longer returns the closed session. |
+
+**Test matrix**: desktop unit 248 + config 26 + scripts 14 + integration 514 + web-shell e2e 14 + Playwright 4. Web-panel unit 1616 + integration 58 + e2e 75 (including the now-fixed session-close case). CLI session-gateway 58. ~2480 tests green (excluding skipped + one local-env failure caused by a corrupted local `chainlesschain.db`).
+
+**Not done**: Phase 1.4 real packaging (`make:win`) + gemini-client signal threading + param-order correction + remaining SystemSettings tabs (Vector / Git / Backend / ...) following the Speech template.
+
+See [`docs/design/桌面Web壳_架构与落地_设计文档.md`](docs/design/桌面Web壳_架构与落地_设计文档.md).
+
+---
+
 ## 2026-04-30 Update — **Desktop Web-Shell Phase 0 → 1.4 prep all landed** — embed web-panel SPA in-process + protocol merge + desktop-only topics + opt-in entry + packaging vendor
 
 Desktop direction locked: **Desktop = web edition's superset** — Electron embeds the `web-panel` SPA in-process; desktop-only capabilities (U-Key / FS / MCP / Ollama) layer on as new WS topics + a minimal preload, expressing the "leverage existing strengths" axis. See [`docs/design/桌面Web壳_架构与落地_设计文档.md`](docs/design/桌面Web壳_架构与落地_设计文档.md) (synced to `docs-site/docs/design/desktop-web-shell-architecture.md`).

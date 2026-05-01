@@ -581,13 +581,19 @@ export class WSSessionManager {
       });
     }
 
-    // DB sessions (exclude already-listed in-memory ones)
+    // DB sessions (exclude already-listed in-memory ones AND closed ones —
+    // closeSession persists `status: "closed"` to metadata before deleting
+    // from in-memory; without this filter the closed session keeps showing
+    // up in `session-list`, contradicting the contract).
     if (this.db) {
       try {
         const dbSessions = dbListSessions(this.db, { limit: 20 });
         const inMemoryIds = new Set(this.sessions.keys());
         for (const dbs of dbSessions) {
           const metadata = this._normalizeSessionMetadata(dbs.metadata);
+          if (metadata && metadata.status === "closed") {
+            continue;
+          }
           if (!inMemoryIds.has(dbs.id)) {
             results.push({
               id: dbs.id,
@@ -1289,6 +1295,11 @@ export class WSSessionManager {
     return {
       version: 1,
       sessionType: session.type || "agent",
+      // Persist status so listSessions can exclude closed sessions when
+      // re-hydrating from DB. Without this, a closed session keeps
+      // showing up in `session-list` because closeSession deletes from
+      // in-memory map BEFORE the DB row is filtered.
+      status: session.status || "active",
       projectRoot: session.projectRoot || null,
       baseProjectRoot: session.baseProjectRoot || session.projectRoot || null,
       baseUrl: session.baseUrl || null,

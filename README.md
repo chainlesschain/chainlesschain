@@ -1,5 +1,25 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-01 增量更新（**Phase 2 收尾** — 流式取消 + 配置持久化修 + Speech port + 多项 bug 修）
+
+桌面 web-shell 的 cancel 半场收口、Phase 1.4 vendor target 修正、SystemSettings 配置持久化白名单修补、SystemSettings → web-panel 三件子页搬迁的 Speech 部分落地、CLI session-list 的隐性 bug 修——一次性合并五件事。
+
+| 主题 | 提交 | 说明 |
+|---|---|---|
+| `llm.chat` 真取消 | `b6b5174cb` + `4951c95d5` | ws-cli-loader 加 `inFlightStreams<id, gen>`；`ws.on("close")`（lazy WeakSet 钩，避 CLI ws-server `connection` 事件没传 ws ref 的问题）+ `<topic>.cancel` 帧两条触发链都驱动 `gen.return()`；llm-handlers 的 generator finally 调 `AbortController.abort()`，signal 透到 ollama / anthropic / openai client 的 fetch（gemini 因 axios 参数顺序差异未透）。`useLlmChat.cancel()` 按钮真停 HTTP。 |
+| AppConfigManager `ui.*` 持久化 | `436e349f1` | DEFAULT_CONFIG 加 `ui` 字段 + load/loadAsync 合并白名单加 `ui` 行；`_readSettingsSync` 层叠 app-config.json 的 `ui` 到 settings.json，让 V6 toggle / Web Shell toggle 真在下次启动生效。原 silent-drop bug 一并解决。 |
+| Phase 1.4 vendor target | `cecb94980` | forge.config.js 的 `vendorWebShellInto(buildPath)` 修为 `path.join(buildPath, "..")`，匹配 path-math 测试 fixture，让 packaged loaders 的 4-up REL 真命中 `Resources/packages/`；asar.unpack 顺势丢掉死掉的 `packages/**` glob。 |
+| Speech 子页搬到 web-panel | `2d45ae278` | `views/SpeechSettings.vue` + `utils/speech-settings-parser.js` + 路由 `/speech-settings`，引擎选择 + Web Speech / Whisper API / Whisper Local 三块核心配置；高级 storage / audio / 知识集成 / 性能子项保留 V5（Memory Bank 同款 deliberate scope cut）。LLM / Project 早有 Providers / ProjectSettings 等价页，V5 SystemSettings 三个 tab 加 a-alert 指向 web-panel。 |
+| `session-close` 真删（drive-by） | （pending commit） | CLI `ws-session-gateway.js`：`_serializeSessionMetadata` 加 `status` 字段 + `listSessions` DB 路径 `if (metadata.status === "closed") continue;`。`session-close` 后再 `session-list` 就不会再返回闭合的 session。 |
+
+**测试矩阵**：desktop unit 248 + config 26 + scripts 14 + integration 514 + web-shell e2e 14 + Playwright 4，web-panel unit 1616 + integration 58 + e2e 75（含修好的 session-close case），CLI session-gateway 58。共 ~2480 测试全绿（不计 skipped 与上游 DB 损坏导致的 1 个本机环境 fail）。
+
+**未做**：Phase 1.4 实战（`make:win` 真打包验证）+ gemini-client signal 透传 + 参数顺序 + SystemSettings 余下 tab（Vector / Git / Backend / ...）按 Speech 模板续迁。
+
+详见 [`docs/design/桌面Web壳_架构与落地_设计文档.md`](docs/design/桌面Web壳_架构与落地_设计文档.md)。
+
+---
+
 ## 2026-04-30 增量更新（**桌面 Web 壳 Phase 0 → 1.4 prep 全量落地** — web-panel SPA 同进程嵌入桌面 + 协议合并 + 桌面专属 topic + 入口 opt-in + 打包 vendor）
 
 桌面端方向收口：**桌面 = web 加强版**——Electron 同进程嵌入 `web-panel` SPA，桌面专属能力（U-Key/FS/MCP/Ollama）作为新增 WS topic + 极薄 preload 叠加，体现"独有特性强项化"。详见 [`docs/design/桌面Web壳_架构与落地_设计文档.md`](docs/design/桌面Web壳_架构与落地_设计文档.md)。
