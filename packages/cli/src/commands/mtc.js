@@ -119,7 +119,13 @@ function loadPublishState(filePath) {
 }
 
 function savePublishState(filePath, state) {
-  writeJsonFile(filePath, state);
+  // Atomic write: tmp + rename. Avoids the next run reading a truncated state
+  // file if the process crashes mid-write (which would silently reset last_seq
+  // and start re-publishing batches at 000001).
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const tmp = `${filePath}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(state, null, 2), "utf-8");
+  fs.renameSync(tmp, filePath);
 }
 
 /**

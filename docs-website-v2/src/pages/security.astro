@@ -192,12 +192,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         <li>Split-view 攻击防御（同 namespace + tree_size 不同根 → MTCA_DOUBLE_SIGNED 拒绝）</li>
         <li>多种传输：内存 / 文件系统 drop-zone / 真 libp2p（TCP+Noise+Yamux）+ gossipsub</li>
         <li>verifier 守护进程 <code>cc mtc serve</code> 自动订阅 + 持久化 + 篡改检测</li>
+        <li><strong>v0.4 新</strong>：Marketplace publisher 守护进程 <code>cc mtc publish-skills</code>（fingerprint 差量 + 原子状态文件 + 自动 seq）</li>
+        <li><strong>v0.4 新</strong>：审计日志双轨签名脚手架 <code>cc audit mtc *</code>（实时 Ed25519 + 关批 MTC inclusion proof，幂等关批，支持 60s/3600s 双合规路径）</li>
       </ul>
       <p class="prose-muted">
-        Phase 1 + 1.5 已完整落地（154 测试全绿）。审计日志双轨签名路径阻塞于合规复核（等保三级 / T/ZGCMCA 023—2025 条款）。详见
-        <a href="https://docs.chainlesschain.com/guide/mtc-merkle-tree-certs" class="underline">用户使用指南</a>
-        与
-        <a href="https://design.chainlesschain.com/mtc-landing-plan" class="underline">设计文档</a>。
+        Phase 1 + 1.5 + Phase 2 marketplace daemon + audit 双轨脚手架 v0.4 已完整落地（201 测试全绿，含 unit / integration / e2e 三层）。
+        审计日志产线启用待等保三级最终性窗口口径出函；脚手架 off-by-default，出函后单 flag 即可启用，无代码改动。
+        详见 <a href="https://docs.chainlesschain.com/guide/mtc-merkle-tree-certs.html" class="underline">用户使用指南</a>
+        与 <a href="https://design.chainlesschain.com/mtc-landing-plan.html" class="underline">设计文档</a>。
       </p>
     </div>
   </section>

@@ -27,7 +27,9 @@
 > | Phase 2 marketplace daemon | _本次_ | `cc mtc publish-skills` 守护进程：fingerprint 差量检测 + 自动 seq 递增 + 状态文件持久化（unit 6 + integration 3）|
 > | Phase 2 audit 双轨脚手架 | _本次_ | `cc audit mtc enable/disable/config/set-interval/emit/reconcile/reconcile-check/status` — off-by-default，等保 1h/1min 双路径配置可切换；产线启用仍待 Q-COMP-1/Q-COMP-2（unit 18 + integration 5）|
 >
-> **累计测试**：core-mtc 140 + CLI 46 (mtc + audit-mtc 子集) = **186 测试，全绿**。完整 mtc 相关测试（含 batch-dids / batch-skills / serve / verify）全部绿色。
+> **累计测试**：core-mtc 140 + CLI 61（unit 30 + integration 25 + e2e 6）= **201 测试，全绿**，覆盖 unit / integration / e2e 三层。
+>
+> **v0.4 bug 审计修了 4 项**：(1) `cc mtc publish-skills` 状态文件改 atomic write（temp + rename），崩溃不再静默重置 `last_seq=0`；(2) audit-mtc `listStagingEvents` 加 schema + filename 双校验，伪事件不会进树；(3) `getStatus.oldest_queued_at` 在领头条目损坏时仍能找到首个有效记录；(4) `loadOrCreateIssuerKey` 改 `wx` 独占创建，并发首次 emit 不再生成冲突密钥。
 >
 > **本草案要解决的核心问题**：当 ChainlessChain 全面切换到后量子签名时，DID 文档发布、Skill Marketplace 上架、企业审计日志这三处的**单条签名体积**会从今天的 64 B (Ed25519) 暴涨到 7.8–49 KB (SLH-DSA)。三处都是**高频 + 大批量**写入路径，直接套用 PQC 会让 DHT 流量、IPFS 存储成本、审计日志体积放大 1–3 个量级。
 

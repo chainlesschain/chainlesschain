@@ -249,6 +249,77 @@ describe("audit-mtc lib", () => {
     });
   });
 
+  describe("bug-fix regressions", () => {
+    beforeEach(() => {
+      saveAuditMtcConfig(dir, { enabled: true });
+    });
+
+    it("listStagingEvents rejects files with wrong schema", () => {
+      // Drop a file masquerading as an event
+      const stagingPath = path.join(dir, "staging");
+      fs.mkdirSync(stagingPath, { recursive: true });
+      fs.writeFileSync(
+        path.join(stagingPath, "20260101000000-cafef00ddead.json"),
+        JSON.stringify({
+          schema: "not-an-event/v1",
+          event_id: "20260101000000-cafef00ddead",
+        }),
+      );
+      // And a real one
+      const real = emitEvent(dir, { event_type: "x", operation: "y" });
+
+      const r = closeBatch(dir);
+      expect(r.skipped).toBe(false);
+      // Only the real event should be in the batch
+      expect(r.eventIds).toEqual([real.eventId]);
+      expect(r.malformed).toHaveLength(1);
+      expect(r.malformed[0].error).toMatch(/schema/);
+    });
+
+    it("listStagingEvents rejects files where filename != event_id", () => {
+      const stagingPath = path.join(dir, "staging");
+      fs.mkdirSync(stagingPath, { recursive: true });
+      fs.writeFileSync(
+        path.join(stagingPath, "20260101000000-mismatched1.json"),
+        JSON.stringify({
+          schema: "audit-event/v1",
+          event_id: "20260202000000-different00",
+        }),
+      );
+      const r = closeBatch(dir);
+      expect(r.skipped).toBe(true);
+      expect(r.malformed).toHaveLength(1);
+      expect(r.malformed[0].error).toMatch(/mismatch/);
+    });
+
+    it("getStatus.oldest_queued_at finds first valid record when leading entry is malformed", () => {
+      const stagingPath = path.join(dir, "staging");
+      fs.mkdirSync(stagingPath, { recursive: true });
+      // Alphabetically-first entry is malformed
+      fs.writeFileSync(
+        path.join(stagingPath, "00000000000000-aaaaaaaaaaaa.json"),
+        "{ this is not valid JSON",
+      );
+      const real = emitEvent(dir, { event_type: "x", operation: "y" });
+
+      const s = getStatus(dir);
+      expect(s.staging.count).toBe(2);
+      expect(s.staging.malformed).toBe(1);
+      expect(s.staging.oldest_queued_at).toBe(real.record.queued_at);
+    });
+
+    it("loadOrCreateIssuerKey is consistent across rapid sequential calls (race-safe create)", () => {
+      // We can't deterministically simulate true concurrent fs from JS, but we
+      // can assert the return value is stable: once any caller has created the
+      // key, subsequent calls must return the same key.
+      const k1 = loadOrCreateIssuerKey(dir);
+      const k2 = loadOrCreateIssuerKey(dir);
+      const k3 = loadOrCreateIssuerKey(dir);
+      expect(k1.publicKey.equals(k2.publicKey)).toBe(true);
+      expect(k2.publicKey.equals(k3.publicKey)).toBe(true);
+    });
+  });
+
   describe("getStatus", () => {
     it("snapshots config + queue + last-batch state", () => {
       saveAuditMtcConfig(dir, { enabled: true, batch_interval_seconds: 60 });

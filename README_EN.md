@@ -1,5 +1,25 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-01 Update — **MTC v0.4** — Marketplace publisher daemon + audit double-track scaffolding
+
+Two Phase-2 MTC paths landed that don't depend on legal sign-off, plus four bug fixes from a focused audit pass.
+
+| Topic | Commit | Notes |
+|---|---|---|
+| `assembleBatch` lifted to core-mtc | `c69900c7d` | Pulled the canonical batch-assembly logic out of `cc mtc` into `packages/core-mtc/lib/batch.js` so all batch paths (CLI mtc, audit, future producers) share one verified codepath. New `./batch` subpath export. +3 core-mtc tests. |
+| `cc mtc publish-skills` daemon | `c69900c7d` | Marketplace publisher: scans `CLISkillLoader.loadAll()`, computes a JCS-canonicalize → SHA-256 fingerprint over (id, version, category, activation, description) tuples, compares against a state file, and only mints a new batch when the fingerprint changes. Auto seq increment. State file uses atomic write (temp + rename) — survives mid-write crash without resetting `last_seq` to 0. `--once` for cron / CI; default `setInterval` daemon mode. +9 tests. |
+| `cc audit mtc *` 8 subcommands | `c69900c7d` | Audit double-track scaffolding (off-by-default): `enable / disable / config / set-interval / emit / reconcile / reconcile-check / status`. Track 1 = realtime Ed25519 over content_hash on `emit`; Track 2 = Merkle batch on `reconcile` with idempotent atomic-rename close + crash-recovery (.tmp cleanup) + staging-only-deleted-after-rename invariant. Supports both 60s strict and 3600s lenient batch intervals so production-enable is a single flag-flip after Q-COMP-1 / Q-COMP-2 legal sign-off. +23 tests. |
+| Bug audit: 4 fixes | (same commit) | (1) state file write made atomic in publish-skills; (2) staging schema + filename validation in audit-mtc rejects bogus dropped files; (3) `getStatus.oldest_queued_at` finds first valid record when alphabetically-leading entry is malformed; (4) `loadOrCreateIssuerKey` uses `wx` exclusive create — concurrent first-emit no longer generates conflicting keys. +6 regression tests. |
+| Three-layer test coverage | (same commit) | Unit (30) + integration (8) + e2e (6) for the new surfaces. The e2e spawns distinct CLI processes for every step and verifies envelopes independently with core-mtc (no CLI involved in the verify step), plus negative-path tampering + atomic state file recovery + cross-codepath equivalence (`cc mtc batch` ≡ `cc audit mtc reconcile` under the same protocol). |
+
+**Status**: 201 MTC tests green (core-mtc 140 + CLI unit 30 + integration 25 + e2e 6). Audit production-enable still gated on Q-COMP-1 (等保三级 finality window) + Q-COMP-2 (T/ZGCMCA 023—2025 clauses) — both require external legal sign-off, not code work.
+
+**Not done**: SLH-DSA real signing (waiting on `@noble/post-quantum` npm release; single-point swap reserved at `audit-mtc.js#loadOrCreateIssuerKey` + `assembleBatch#signTreeHead`); backend audit gradual rollout (Q-ENG-2 — needs production-enable first); Desktop UI Pack (Phase 4).
+
+See [`docs/design/默克尔树证书_MTC_落地方案.md`](docs/design/默克尔树证书_MTC_落地方案.md) v0.4, [user guide](https://docs.chainlesschain.com/guide/mtc-merkle-tree-certs), [design doc site](https://design.chainlesschain.com/mtc-landing-plan).
+
+---
+
 ## 2026-05-01 Update — **Phase 2 wrap-up** — streaming cancellation + config persistence fix + Speech port + bug bash
 
 A single rollup that closes five threads on the desktop web-shell: cancel half of `llm.chat`, the Phase 1.4 vendor target correction, the SystemSettings persistence whitelist hole, the Speech leg of the SystemSettings → web-panel migration, and a CLI session-list contract bug discovered along the way.

@@ -113,5 +113,32 @@ describe("publish-skills internals", () => {
       fs.writeFileSync(file, JSON.stringify({ schema: "wrong/v1" }));
       expect(() => loadPublishState(file)).toThrow(/unknown schema/);
     });
+
+    it("savePublishState writes atomically (no leftover .tmp on success)", () => {
+      const file = path.join(tmp, "atomic.json");
+      savePublishState(file, {
+        schema: PUBLISH_STATE_SCHEMA,
+        last_seq: 1,
+        last_fingerprint: "sha256:x",
+        last_published_at: null,
+        history: [],
+      });
+      expect(fs.existsSync(file)).toBe(true);
+      // No leftover *.tmp siblings
+      const siblings = fs.readdirSync(tmp);
+      expect(siblings.some((n) => n.includes(".tmp"))).toBe(false);
+    });
+
+    it("savePublishState creates parent directory if missing", () => {
+      const nested = path.join(tmp, "deep", "nested", "state.json");
+      savePublishState(nested, {
+        schema: PUBLISH_STATE_SCHEMA,
+        last_seq: 0,
+        last_fingerprint: null,
+        last_published_at: null,
+        history: [],
+      });
+      expect(fs.existsSync(nested)).toBe(true);
+    });
   });
 });

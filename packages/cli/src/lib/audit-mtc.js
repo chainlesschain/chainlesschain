@@ -116,22 +116,36 @@ export function saveAuditMtcConfig(dir, patch) {
 // SLH-DSA swap-out is a one-line change here when @noble/post-quantum lands.
 // ─────────────────────────────────────────────────────────────────────
 
+function readIssuerKeyFile(p) {
+  const secretKey = Buffer.from(fs.readFileSync(p, "utf-8").trim(), "hex");
+  if (secretKey.length !== 32) {
+    throw new Error(
+      `issuer key file ${p} must contain 32 bytes (64 hex chars)`,
+    );
+  }
+  const publicKey = Buffer.from(nobleEd25519.getPublicKey(secretKey));
+  return { secretKey, publicKey, pubkeyId: ed25519.pubkeyId(publicKey) };
+}
+
 export function loadOrCreateIssuerKey(dir) {
   ensureDirs(dir);
   const p = keyPath(dir);
   if (fs.existsSync(p)) {
-    const secretKey = Buffer.from(fs.readFileSync(p, "utf-8").trim(), "hex");
-    if (secretKey.length !== 32) {
-      throw new Error(
-        `issuer key file ${p} must contain 32 bytes (64 hex chars)`,
-      );
-    }
-    const publicKey = Buffer.from(nobleEd25519.getPublicKey(secretKey));
-    return { secretKey, publicKey, pubkeyId: ed25519.pubkeyId(publicKey) };
+    return readIssuerKeyFile(p);
   }
+  // Race-safe create: 'wx' flag fails with EEXIST if another writer beat us;
+  // in that case re-read what they wrote so all callers agree on one key.
   const keys = ed25519.generateKeyPair();
-  fs.writeFileSync(p, keys.secretKey.toString("hex"), { mode: 0o600 });
-  return keys;
+  try {
+    fs.writeFileSync(p, keys.secretKey.toString("hex"), {
+      mode: 0o600,
+      flag: "wx",
+    });
+    return keys;
+  } catch (err) {
+    if (err.code !== "EEXIST") throw err;
+    return readIssuerKeyFile(p);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -240,8 +254,23 @@ function listStagingEvents(dir) {
     .sort() // event_id is time-prefixed → sort = chronological
     .map((n) => {
       const full = path.join(sd, n);
+      const expectedId = n.slice(0, -".json".length);
       try {
         const obj = JSON.parse(fs.readFileSync(full, "utf-8"));
+        if (obj.schema !== SCHEMA_EVENT) {
+          return {
+            eventId: null,
+            file: full,
+            error: `unexpected schema: ${obj.schema}`,
+          };
+        }
+        if (obj.event_id !== expectedId) {
+          return {
+            eventId: null,
+            file: full,
+            error: `filename/event_id mismatch (file=${expectedId}, body=${obj.event_id})`,
+          };
+        }
         return { eventId: obj.event_id, file: full, record: obj };
       } catch (err) {
         return { eventId: null, file: full, error: err.message };
@@ -439,15 +468,15 @@ export function getStatus(dir) {
       }
     }
   }
+  // Find oldest queued_at across valid records — guard against the
+  // alphabetically-first staging entry being malformed.
+  const oldestValid = staging.find((e) => e.record && e.record.queued_at);
   return {
     config: cfg,
     staging: {
       count: staging.length,
       malformed: staging.filter((e) => e.error).length,
-      oldest_queued_at:
-        staging.length > 0 && staging[0].record
-          ? staging[0].record.queued_at
-          : null,
+      oldest_queued_at: oldestValid ? oldestValid.record.queued_at : null,
     },
     batches: {
       count: batches.length,
