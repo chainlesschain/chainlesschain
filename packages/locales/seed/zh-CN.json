@@ -277,5 +277,92 @@
       "gateApproved": "门已批准",
       "cancelled": "已取消"
     }
+  },
+  "did": {
+    "title": "DID 身份管理",
+    "subtitle": "去中心化身份 / 密钥 / 签名验证",
+    "refresh": "刷新",
+    "create": "创建身份",
+    "stats": {
+      "count": "身份数量",
+      "default": "默认身份",
+      "method": "DID 方法",
+      "signable": "可签名",
+      "yes": "是",
+      "no": "否",
+      "unsetDefault": "未设置",
+      "noMethod": "无"
+    },
+    "webOnly": {
+      "message": "仅 Web 模式",
+      "description": "助记词备份/恢复 与 DHT 网络发布 仅在桌面端可用。本页面提供创建/签名/删除/查看 DID Document 等核心操作，通过 CLI 转发执行。"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "defaultTag": "默认",
+      "empty": "暂无 DID 身份，点击「创建身份」添加"
+    },
+    "cols": {
+      "did": "DID",
+      "name": "名称",
+      "method": "方法",
+      "createdAt": "创建时间",
+      "default": "默认",
+      "action": "操作"
+    },
+    "actions": {
+      "details": "详情",
+      "sign": "签名",
+      "setDefault": "设为默认",
+      "delete": "删除"
+    },
+    "deleteConfirm": {
+      "title": "确定删除该 DID 身份吗？删除后私钥将无法找回。",
+      "ok": "删除",
+      "cancel": "取消"
+    },
+    "create_modal": {
+      "title": "创建 DID 身份",
+      "ok": "创建",
+      "cancel": "取消",
+      "nameLabel": "显示名称",
+      "namePlaceholder": "可选 — 用于识别身份"
+    },
+    "details": {
+      "title": "身份详情：{label}",
+      "did": "DID",
+      "name": "名称",
+      "method": "方法",
+      "default": "默认",
+      "yes": "是",
+      "no": "否",
+      "createdAt": "创建时间",
+      "publicKey": "公钥（hex）",
+      "publicKeyLoading": "加载中...",
+      "viewDoc": "查看 DID Document",
+      "docHeader": "DID Document (W3C):"
+    },
+    "sign_modal": {
+      "title": "签名消息：{label}...",
+      "defaultIdentityFallback": "默认身份",
+      "ok": "签名",
+      "cancel": "取消",
+      "messageLabel": "消息",
+      "messagePlaceholder": "请输入要签名的消息",
+      "resultHeader": "签名结果（hex）:"
+    },
+    "msg": {
+      "loadFailed": "加载 DID 列表失败",
+      "createFailed": "创建失败",
+      "createSuccess": "DID 身份已创建",
+      "setDefaultFailed": "设置失败",
+      "setDefaultSuccess": "已设为默认身份",
+      "deleteFailed": "删除失败",
+      "deleteSuccess": "身份已删除",
+      "loadDocFailed": "加载 DID Document 失败",
+      "signEmpty": "请输入要签名的消息",
+      "signSuccess": "签名成功",
+      "signFailed": "签名失败"
+    }
   }
 }

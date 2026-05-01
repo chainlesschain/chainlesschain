@@ -57,13 +57,31 @@ describe('desktop-only / CLI-only placeholder buttons removed', () => {
       expect(src).not.toMatch(/CloudUploadOutlined/)
     })
 
-    it('keeps the "仅 Web 模式" alert pointing users to desktop for advanced ops', () => {
-      expect(src).toMatch(/仅 Web 模式/)
-      expect(src).toMatch(/助记词备份\/恢复/)
+    it('still wires the "仅 Web 模式" alert (now via did.webOnly.* i18n keys)', () => {
+      // After DID was translated to use i18n (M3), the literal Chinese
+      // strings moved to packages/locales/seed/zh-CN.json. Assert the
+      // wiring by key reference + catalog content instead.
+      expect(src).toMatch(/did\.webOnly\.message/)
+      expect(src).toMatch(/did\.webOnly\.description/)
+      const zhCN = JSON.parse(
+        readFileSync(
+          resolve(__dirname, '../../../locales/seed/zh-CN.json'),
+          'utf-8',
+        ),
+      )
+      expect(zhCN.did.webOnly.message).toMatch(/仅 Web 模式/)
+      expect(zhCN.did.webOnly.description).toMatch(/助记词备份\/恢复/)
     })
 
-    it('keeps the working "查看 DID Document" button', () => {
-      expect(src).toMatch(/查看 DID Document/)
+    it('keeps the "View DID Document" button (now via did.details.viewDoc)', () => {
+      expect(src).toMatch(/did\.details\.viewDoc/)
+      const zhCN = JSON.parse(
+        readFileSync(
+          resolve(__dirname, '../../../locales/seed/zh-CN.json'),
+          'utf-8',
+        ),
+      )
+      expect(zhCN.did.details.viewDoc).toMatch(/查看 DID Document/)
     })
   })
 

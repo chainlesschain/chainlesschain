@@ -2,17 +2,17 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">DID 身份管理</h2>
-        <p class="page-sub">去中心化身份 / 密钥 / 签名验证</p>
+        <h2 class="page-title">{{ $t('did.title') }}</h2>
+        <p class="page-sub">{{ $t('did.subtitle') }}</p>
       </div>
       <a-space>
         <a-button :loading="loading" @click="loadList">
           <template #icon><ReloadOutlined /></template>
-          刷新
+          {{ $t('did.refresh') }}
         </a-button>
         <a-button type="primary" @click="showCreateModal = true">
           <template #icon><PlusOutlined /></template>
-          创建身份
+          {{ $t('did.create') }}
         </a-button>
       </a-space>
     </div>
@@ -21,7 +21,7 @@
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="身份数量"
+            :title="$t('did.stats.count')"
             :value="identities.length"
             :value-style="{ color: '#1677ff', fontSize: '20px' }"
           >
@@ -32,16 +32,16 @@
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="默认身份"
+            :title="$t('did.stats.default')"
             :value="defaultIdentityDisplay"
-            :value-style="{ color: defaultIdentityDisplay !== '未设置' ? '#52c41a' : '#888', fontSize: '13px', fontFamily: 'monospace' }"
+            :value-style="{ color: defaultIdentityDisplay !== $t('did.stats.unsetDefault') ? '#52c41a' : '#888', fontSize: '13px', fontFamily: 'monospace' }"
           />
         </a-card>
       </a-col>
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="DID 方法"
+            :title="$t('did.stats.method')"
             :value="methodDisplay"
             :value-style="{ color: '#722ed1', fontSize: '14px' }"
           />
@@ -50,8 +50,8 @@
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="可签名"
-            :value="identities.length > 0 ? '是' : '否'"
+            :title="$t('did.stats.signable')"
+            :value="identities.length > 0 ? $t('did.stats.yes') : $t('did.stats.no')"
             :value-style="{ color: identities.length > 0 ? '#52c41a' : '#ff4d4f', fontSize: '20px' }"
           >
             <template #prefix><KeyOutlined /></template>
@@ -62,8 +62,8 @@
 
     <a-alert
       v-if="!hasDesktopFeatures"
-      message="仅 Web 模式"
-      description="助记词备份/恢复 与 DHT 网络发布 仅在桌面端可用。本页面提供创建/签名/删除/查看 DID Document 等核心操作，通过 CLI 转发执行。"
+      :message="$t('did.webOnly.message')"
+      :description="$t('did.webOnly.description')"
       type="info"
       show-icon
       closable
@@ -75,7 +75,7 @@
       v-else
       :columns="columns"
       :data-source="identities"
-      :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+      :pagination="{ pageSize: 20, showTotal: (t) => $t('did.table.totalSuffix', { n: t }) }"
       size="small"
       style="background: var(--bg-card);"
       :row-class-name="() => 'did-row'"
@@ -95,16 +95,16 @@
         </template>
         <template v-if="column.key === 'isDefault'">
           <a-tag :color="record.isDefault ? 'green' : 'default'">
-            {{ record.isDefault ? '默认' : '-' }}
+            {{ record.isDefault ? $t('did.table.defaultTag') : '-' }}
           </a-tag>
         </template>
         <template v-if="column.key === 'action'">
           <a-space size="small">
             <a-button size="small" type="link" @click="openShow(record)">
-              详情
+              {{ $t('did.actions.details') }}
             </a-button>
             <a-button size="small" type="link" @click="openSign(record)">
-              签名
+              {{ $t('did.actions.sign') }}
             </a-button>
             <a-button
               v-if="!record.isDefault"
@@ -113,39 +113,39 @@
               :loading="settingDefault === record.did"
               @click="setDefault(record)"
             >
-              设为默认
+              {{ $t('did.actions.setDefault') }}
             </a-button>
             <a-popconfirm
-              title="确定删除该 DID 身份吗？删除后私钥将无法找回。"
-              ok-text="删除"
+              :title="$t('did.deleteConfirm.title')"
+              :ok-text="$t('did.deleteConfirm.ok')"
               ok-type="danger"
-              cancel-text="取消"
+              :cancel-text="$t('did.deleteConfirm.cancel')"
               @confirm="deleteIdentity(record)"
             >
               <a-button size="small" type="link" danger :loading="deleting === record.did">
-                删除
+                {{ $t('did.actions.delete') }}
               </a-button>
             </a-popconfirm>
           </a-space>
         </template>
       </template>
       <template #emptyText>
-        <a-empty description="暂无 DID 身份，点击「创建身份」添加" />
+        <a-empty :description="$t('did.table.empty')" />
       </template>
     </a-table>
 
     <!-- Create Modal -->
     <a-modal
       v-model:open="showCreateModal"
-      title="创建 DID 身份"
+      :title="$t('did.create_modal.title')"
       :confirm-loading="creating"
       @ok="createIdentity"
-      ok-text="创建"
-      cancel-text="取消"
+      :ok-text="$t('did.create_modal.ok')"
+      :cancel-text="$t('did.create_modal.cancel')"
     >
       <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" style="margin-top: 16px;">
-        <a-form-item label="显示名称">
-          <a-input v-model:value="newIdentityName" placeholder="可选 — 用于识别身份" allow-clear />
+        <a-form-item :label="$t('did.create_modal.nameLabel')">
+          <a-input v-model:value="newIdentityName" :placeholder="$t('did.create_modal.namePlaceholder')" allow-clear />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -153,26 +153,26 @@
     <!-- Show Details Modal -->
     <a-modal
       v-model:open="showDetailsModal"
-      :title="`身份详情：${currentIdentity?.displayName || currentIdentity?.did?.slice(0, 24) || ''}`"
+      :title="$t('did.details.title', { label: currentIdentity?.displayName || currentIdentity?.did?.slice(0, 24) || '' })"
       :width="720"
       :footer="null"
     >
       <div v-if="currentIdentity" style="margin-top: 12px;">
         <a-descriptions :column="1" bordered size="small">
-          <a-descriptions-item label="DID">
+          <a-descriptions-item :label="$t('did.details.did')">
             <span style="font-family: monospace; color: #ccc; word-break: break-all;">{{ currentIdentity.did }}</span>
           </a-descriptions-item>
-          <a-descriptions-item label="名称">{{ currentIdentity.displayName || '-' }}</a-descriptions-item>
-          <a-descriptions-item label="方法"><a-tag color="blue">{{ currentIdentity.method }}</a-tag></a-descriptions-item>
-          <a-descriptions-item label="默认">
+          <a-descriptions-item :label="$t('did.details.name')">{{ currentIdentity.displayName || '-' }}</a-descriptions-item>
+          <a-descriptions-item :label="$t('did.details.method')"><a-tag color="blue">{{ currentIdentity.method }}</a-tag></a-descriptions-item>
+          <a-descriptions-item :label="$t('did.details.default')">
             <a-tag :color="currentIdentity.isDefault ? 'green' : 'default'">
-              {{ currentIdentity.isDefault ? '是' : '否' }}
+              {{ currentIdentity.isDefault ? $t('did.details.yes') : $t('did.details.no') }}
             </a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="创建时间">{{ currentIdentity.createdAt || '-' }}</a-descriptions-item>
-          <a-descriptions-item label="公钥（hex）">
+          <a-descriptions-item :label="$t('did.details.createdAt')">{{ currentIdentity.createdAt || '-' }}</a-descriptions-item>
+          <a-descriptions-item :label="$t('did.details.publicKey')">
             <span style="font-family: monospace; color: #888; font-size: 11px; word-break: break-all;">
-              {{ currentIdentity.publicKey || '加载中...' }}
+              {{ currentIdentity.publicKey || $t('did.details.publicKeyLoading') }}
             </span>
           </a-descriptions-item>
         </a-descriptions>
@@ -180,12 +180,12 @@
         <div style="margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
           <a-button :loading="loadingDocument" @click="loadDocument(currentIdentity)">
             <template #icon><FileTextOutlined /></template>
-            查看 DID Document
+            {{ $t('did.details.viewDoc') }}
           </a-button>
         </div>
 
         <div v-if="currentDocument" style="margin-top: 16px;">
-          <p style="color: var(--text-secondary); margin-bottom: 6px;">DID Document (W3C):</p>
+          <p style="color: var(--text-secondary); margin-bottom: 6px;">{{ $t('did.details.docHeader') }}</p>
           <pre style="white-space: pre-wrap; word-break: break-all; color: #52c41a; font-size: 11px; background: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); max-height: 320px; overflow: auto;">{{ currentDocument }}</pre>
         </div>
       </div>
@@ -194,19 +194,19 @@
     <!-- Sign Modal -->
     <a-modal
       v-model:open="showSignModal"
-      :title="`签名消息：${signTargetDid?.slice(0, 28) || '默认身份'}...`"
+      :title="$t('did.sign_modal.title', { label: signTargetDid?.slice(0, 28) || $t('did.sign_modal.defaultIdentityFallback') })"
       :confirm-loading="signing"
       @ok="signMessage"
-      ok-text="签名"
-      cancel-text="取消"
+      :ok-text="$t('did.sign_modal.ok')"
+      :cancel-text="$t('did.sign_modal.cancel')"
     >
       <a-form :label-col="{ span: 4 }" :wrapper-col="{ span: 20 }" style="margin-top: 16px;">
-        <a-form-item label="消息" required>
-          <a-textarea v-model:value="signText" placeholder="请输入要签名的消息" :auto-size="{ minRows: 3, maxRows: 8 }" />
+        <a-form-item :label="$t('did.sign_modal.messageLabel')" required>
+          <a-textarea v-model:value="signText" :placeholder="$t('did.sign_modal.messagePlaceholder')" :auto-size="{ minRows: 3, maxRows: 8 }" />
         </a-form-item>
       </a-form>
       <div v-if="signResult" style="margin-top: 12px;">
-        <p style="color: var(--text-secondary); margin-bottom: 6px;">签名结果（hex）:</p>
+        <p style="color: var(--text-secondary); margin-bottom: 6px;">{{ $t('did.sign_modal.resultHeader') }}</p>
         <pre style="white-space: pre-wrap; word-break: break-all; color: #52c41a; font-size: 11px; background: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color);">{{ signResult.signature }}</pre>
       </div>
     </a-modal>
@@ -223,10 +223,12 @@ import {
   FileTextOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
+import { useI18n } from 'vue-i18n'
 import { useWsStore } from '../stores/ws.js'
 import { parseDidList, parseDidShow, parseSignResult } from '../utils/did-parser.js'
 
 const ws = useWsStore()
+const { t } = useI18n()
 
 const hasDesktopFeatures = ref(false)
 const loading = ref(false)
@@ -248,25 +250,25 @@ const signTargetDid = ref('')
 const signText = ref('')
 const signResult = ref(null)
 
-const columns = [
-  { title: 'DID', key: 'did', dataIndex: 'did', ellipsis: true },
-  { title: '名称', key: 'displayName', dataIndex: 'displayName', width: '160px' },
-  { title: '方法', key: 'method', dataIndex: 'method', width: '110px' },
-  { title: '创建时间', key: 'createdAt', dataIndex: 'createdAt', width: '180px' },
-  { title: '默认', key: 'isDefault', width: '90px' },
-  { title: '操作', key: 'action', width: '280px' },
-]
+const columns = computed(() => [
+  { title: t('did.cols.did'), key: 'did', dataIndex: 'did', ellipsis: true },
+  { title: t('did.cols.name'), key: 'displayName', dataIndex: 'displayName', width: '160px' },
+  { title: t('did.cols.method'), key: 'method', dataIndex: 'method', width: '110px' },
+  { title: t('did.cols.createdAt'), key: 'createdAt', dataIndex: 'createdAt', width: '180px' },
+  { title: t('did.cols.default'), key: 'isDefault', width: '90px' },
+  { title: t('did.cols.action'), key: 'action', width: '280px' },
+])
 
 const defaultIdentityDisplay = computed(() => {
   const def = identities.value.find(i => i.isDefault)
-  if (!def) return '未设置'
+  if (!def) return t('did.stats.unsetDefault')
   const did = def.did
   return did.length > 24 ? did.slice(0, 12) + '...' + did.slice(-8) : did
 })
 
 const methodDisplay = computed(() => {
   const methods = new Set(identities.value.map(i => i.method).filter(Boolean))
-  if (methods.size === 0) return '无'
+  if (methods.size === 0) return t('did.stats.noMethod')
   if (methods.size === 1) return [...methods][0]
   return [...methods].join(', ')
 })
@@ -277,7 +279,7 @@ async function loadList() {
     const { output } = await ws.execute('did list --json', 15000)
     identities.value = parseDidList(output)
   } catch (e) {
-    message.error('加载 DID 列表失败: ' + e.message)
+    message.error(t('did.msg.loadFailed') + ': ' + e.message)
     identities.value = []
   } finally {
     loading.value = false
@@ -293,15 +295,15 @@ async function createIdentity() {
       : 'did create --json'
     const { output } = await ws.execute(cmd, 20000)
     if (/error|失败/i.test(output) && !output.includes('"did"')) {
-      message.error('创建失败: ' + output.slice(0, 120))
+      message.error(t('did.msg.createFailed') + ': ' + output.slice(0, 120))
     } else {
-      message.success('DID 身份已创建')
+      message.success(t('did.msg.createSuccess'))
       showCreateModal.value = false
       newIdentityName.value = ''
       await loadList()
     }
   } catch (e) {
-    message.error('创建失败: ' + e.message)
+    message.error(t('did.msg.createFailed') + ': ' + e.message)
   } finally {
     creating.value = false
   }
@@ -312,13 +314,13 @@ async function setDefault(record) {
   try {
     const { output, exitCode } = await ws.execute(`did set-default ${record.did}`, 15000)
     if (exitCode !== 0 || /error|not found|失败/i.test(output)) {
-      message.error('设置失败: ' + output.slice(0, 120))
+      message.error(t('did.msg.setDefaultFailed') + ': ' + output.slice(0, 120))
     } else {
-      message.success('已设为默认身份')
+      message.success(t('did.msg.setDefaultSuccess'))
       await loadList()
     }
   } catch (e) {
-    message.error('设置失败: ' + e.message)
+    message.error(t('did.msg.setDefaultFailed') + ': ' + e.message)
   } finally {
     settingDefault.value = ''
   }
@@ -329,13 +331,13 @@ async function deleteIdentity(record) {
   try {
     const { output, exitCode } = await ws.execute(`did delete ${record.did} --force`, 15000)
     if (exitCode !== 0 || /error|not found|失败/i.test(output)) {
-      message.error('删除失败: ' + output.slice(0, 120))
+      message.error(t('did.msg.deleteFailed') + ': ' + output.slice(0, 120))
     } else {
-      message.success('身份已删除')
+      message.success(t('did.msg.deleteSuccess'))
       await loadList()
     }
   } catch (e) {
-    message.error('删除失败: ' + e.message)
+    message.error(t('did.msg.deleteFailed') + ': ' + e.message)
   } finally {
     deleting.value = ''
   }
@@ -368,7 +370,7 @@ async function loadDocument(record) {
       currentDocument.value = output.trim()
     }
   } catch (e) {
-    message.error('加载 DID Document 失败: ' + e.message)
+    message.error(t('did.msg.loadDocFailed') + ': ' + e.message)
   } finally {
     loadingDocument.value = false
   }
@@ -383,7 +385,7 @@ function openSign(record) {
 
 async function signMessage() {
   if (!signText.value.trim()) {
-    message.warning('请输入要签名的消息')
+    message.warning(t('did.msg.signEmpty'))
     return
   }
   signing.value = true
@@ -395,12 +397,12 @@ async function signMessage() {
     const parsed = parseSignResult(output)
     if (parsed && parsed.signature) {
       signResult.value = parsed
-      message.success('签名成功')
+      message.success(t('did.msg.signSuccess'))
     } else {
-      message.error('签名失败: ' + (output || `exit ${exitCode}`).slice(0, 120))
+      message.error(t('did.msg.signFailed') + ': ' + (output || `exit ${exitCode}`).slice(0, 120))
     }
   } catch (e) {
-    message.error('签名失败: ' + e.message)
+    message.error(t('did.msg.signFailed') + ': ' + e.message)
   } finally {
     signing.value = false
   }

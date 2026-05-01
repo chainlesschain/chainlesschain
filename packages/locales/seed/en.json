@@ -277,5 +277,92 @@
       "gateApproved": "Gate approved",
       "cancelled": "Cancelled"
     }
+  },
+  "did": {
+    "title": "DID identity manager",
+    "subtitle": "Decentralised identity / keys / signature verification",
+    "refresh": "Refresh",
+    "create": "Create identity",
+    "stats": {
+      "count": "Identities",
+      "default": "Default identity",
+      "method": "DID method",
+      "signable": "Signable",
+      "yes": "Yes",
+      "no": "No",
+      "unsetDefault": "(not set)",
+      "noMethod": "—"
+    },
+    "webOnly": {
+      "message": "Web-only mode",
+      "description": "Mnemonic backup/recovery and DHT publishing are desktop-only. This page covers core actions (create / sign / delete / view DID Document) via CLI."
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "defaultTag": "default",
+      "empty": "No DID identities yet — click \"Create identity\""
+    },
+    "cols": {
+      "did": "DID",
+      "name": "Name",
+      "method": "Method",
+      "createdAt": "Created",
+      "default": "Default",
+      "action": "Action"
+    },
+    "actions": {
+      "details": "Details",
+      "sign": "Sign",
+      "setDefault": "Set default",
+      "delete": "Delete"
+    },
+    "deleteConfirm": {
+      "title": "Delete this DID identity? The private key cannot be recovered.",
+      "ok": "Delete",
+      "cancel": "Cancel"
+    },
+    "create_modal": {
+      "title": "Create DID identity",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "nameLabel": "Display name",
+      "namePlaceholder": "Optional — for your own reference"
+    },
+    "details": {
+      "title": "Identity details: {label}",
+      "did": "DID",
+      "name": "Name",
+      "method": "Method",
+      "default": "Default",
+      "yes": "Yes",
+      "no": "No",
+      "createdAt": "Created",
+      "publicKey": "Public key (hex)",
+      "publicKeyLoading": "loading...",
+      "viewDoc": "View DID Document",
+      "docHeader": "DID Document (W3C):"
+    },
+    "sign_modal": {
+      "title": "Sign message: {label}...",
+      "defaultIdentityFallback": "default identity",
+      "ok": "Sign",
+      "cancel": "Cancel",
+      "messageLabel": "Message",
+      "messagePlaceholder": "Type the message to sign",
+      "resultHeader": "Signature (hex):"
+    },
+    "msg": {
+      "loadFailed": "Failed to load DID list",
+      "createFailed": "Create failed",
+      "createSuccess": "DID identity created",
+      "setDefaultFailed": "Set default failed",
+      "setDefaultSuccess": "Default identity updated",
+      "deleteFailed": "Delete failed",
+      "deleteSuccess": "Identity deleted",
+      "loadDocFailed": "Failed to load DID Document",
+      "signEmpty": "Type the message to sign",
+      "signSuccess": "Signed",
+      "signFailed": "Sign failed"
+    }
   }
 }
