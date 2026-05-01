@@ -87,6 +87,14 @@
           <button
             type="button"
             class="cb-shell__topbar-action"
+            title="切换到 Web Shell（保存后重启生效）"
+            @click="switchToWebShell"
+          >
+            <GlobalOutlined />
+          </button>
+          <button
+            type="button"
+            class="cb-shell__topbar-action"
             title="切换面板"
             @click="toggleArtifact"
           >
@@ -422,11 +430,13 @@ import {
   DownOutlined,
   FileTextOutlined,
   FolderOpenOutlined,
+  GlobalOutlined,
   PlusOutlined,
   ReloadOutlined,
   RobotOutlined,
   SettingOutlined,
 } from "@ant-design/icons-vue";
+import { Modal, message } from "ant-design-vue";
 import { useRouter } from "vue-router";
 import brandLogo from "../assets/logo.png";
 import { useThemePreviewStore, PREVIEW_THEMES } from "../stores/theme-preview";
@@ -972,6 +982,48 @@ function toggleArtifact() {
     activeEntryId.value = null;
   }
   artifactOpen.value = !artifactOpen.value;
+}
+
+// Phase 1.6 quick-entry: hard-flip put web-shell as the default but the
+// frameless titleBarStyle="hidden" hid the application menu so the
+// CmdOrCtrl+Shift+B accelerator was the only way back. This in-window
+// button lives next to the artifact toggle so users can flip shells
+// without finding SystemSettings → 通用设置 → 4 levels deep.
+async function switchToWebShell() {
+  const electronAPI = (window as unknown as { electronAPI?: any }).electronAPI;
+  if (!electronAPI || typeof electronAPI.invoke !== "function") {
+    message.warning("electronAPI 不可用——只能在桌面端使用此功能");
+    return;
+  }
+  Modal.confirm({
+    title: "切换到 Web Shell？",
+    content:
+      "桌面壳将整体切换为 web-panel SPA（chat / skills / cowork 全在 WS 上）。" +
+      "桌面专属能力（UKey / MCP / Ollama / FS）通过 WebSocket 自定义 topic 继续可用。" +
+      "保存后需要重启应用才生效。",
+    okText: "切换并重启",
+    cancelText: "取消",
+    centered: true,
+    async onOk() {
+      try {
+        const setRes = await electronAPI.invoke(
+          "config:set",
+          "ui.useWebShellExperimental",
+          true,
+        );
+        if (setRes && setRes.success === false) {
+          throw new Error(setRes.error || "config:set returned failure");
+        }
+        // system:restart calls app.relaunch() + app.exit(0). The handler
+        // doesn't return — the renderer is killed mid-await — but we still
+        // wrap so a missing handler is logged not silently dropped.
+        await electronAPI.invoke("system:restart");
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        message.error("切换失败：" + msg);
+      }
+    },
+  });
 }
 
 function closeDrawer() {
