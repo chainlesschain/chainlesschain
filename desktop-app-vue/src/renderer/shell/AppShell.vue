@@ -12,6 +12,10 @@
     </a-layout-sider>
 
     <a-layout class="shell-main">
+      <a-layout-header class="shell-header">
+        <LanguageSwitcher class="shell-header-language" />
+      </a-layout-header>
+
       <a-layout-content class="shell-content">
         <div class="conversation-region">
           <ConversationStream @open-artifact="artifactOpen = true" />
@@ -120,6 +124,7 @@ import AIChatPanel from "./AIChatPanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import FriendsPanel from "./FriendsPanel.vue";
 import MemoryBankPanel from "./MemoryBankPanel.vue";
+import LanguageSwitcher from "../components/LanguageSwitcher.vue";
 
 const sidebarCollapsed = ref(false);
 const artifactOpen = ref(false);
@@ -381,6 +386,17 @@ onBeforeUnmount(() => {
 .shell-main {
   display: flex;
   flex-direction: column;
+}
+
+.shell-header {
+  height: 40px;
+  line-height: 40px;
+  padding: 0 12px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  background: var(--shell-header-bg, transparent);
+  border-bottom: 1px solid var(--shell-border, #e8e8e8);
 }
 
 .shell-content {

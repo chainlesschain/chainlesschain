@@ -97,6 +97,7 @@ describe("AppShell · interaction integration", () => {
           ConversationStream: true,
           ArtifactPanel: true,
           CommandPalette: true,
+          LanguageSwitcher: true,
           "a-layout": { template: "<div><slot /></div>" },
           "a-layout-sider": { template: "<div><slot /></div>" },
           "a-layout-content": { template: "<div><slot /></div>" },
