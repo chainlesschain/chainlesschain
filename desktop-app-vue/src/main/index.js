@@ -837,6 +837,24 @@ class ChainlessChainApp {
         // handler throws llm_unavailable cleanly when called too early.
         llmManager: this.llmManager ?? null,
         mainWindow: this.mainWindow,
+        // Phase 1.6 — lazy getter so `shell.switch` topic can persist the
+        // ui.useWebShellExperimental opt-out from inside web-panel.
+        // Lazy because AppConfigManager is fetched via singleton getter,
+        // not held on `this`.
+        getAppConfig: () => {
+          try {
+            const {
+              getAppConfig: _getAppConfig,
+            } = require("./config/database-config");
+            return _getAppConfig();
+          } catch (err) {
+            logger.warn(
+              "[WebShell] AppConfig unavailable for shell.switch:",
+              err.message,
+            );
+            return null;
+          }
+        },
       });
       this._webShellHandle = handle;
       logger.info(`[WebShell] HTTP: ${handle.httpUrl}`);

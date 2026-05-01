@@ -42,6 +42,7 @@ const {
 } = require("./handlers/mcp-handlers");
 const { createLlmChatHandler } = require("./handlers/llm-handlers");
 const { createUkeySignHandler } = require("./handlers/ukey-sign-handler");
+const { createShellSwitchHandler } = require("./handlers/shell-switch-handler");
 
 /** CLI flag / env var that opts in to the web-shell entry point. */
 const WEB_SHELL_FLAG = "--web-shell";
@@ -64,6 +65,13 @@ const WEB_SHELL_ENV = "CHAINLESSCHAIN_WEB_SHELL";
  * @property {Electron.BrowserWindow | null} [mainWindow]
  *                                            Parent window for native dialogs. Required
  *                                            for fs.openDialog / fs.saveDialog handlers.
+ * @property {(() => any) | null} [getAppConfig]
+ *                                            Lazy getter for the AppConfigManager
+ *                                            singleton — passed to shell.switch so
+ *                                            web-panel's "切回桌面壳" button can
+ *                                            persist the opt-out and trigger relaunch
+ *                                            without going through electronAPI (the
+ *                                            web-shell preload is intentionally empty).
  * @property {string|null} [projectRoot]     Active project root, or null.
  * @property {string|null} [projectName]     Human-readable project name.
  * @property {"project"|"global"} [mode]     Defaults to "global".
@@ -137,6 +145,16 @@ async function startWebShell(options = {}) {
     "ukey.sign": createUkeySignHandler({
       ukeyManager: options.ukeyManager ?? null,
     }),
+    // Phase 1.6 — symmetric shell switch from web-panel back to V5/V6.
+    // Only registered when getAppConfig is provided (it requires the
+    // AppConfigManager singleton to persist the opt-out).
+    ...(typeof options.getAppConfig === "function"
+      ? {
+          "shell.switch": createShellSwitchHandler({
+            getAppConfig: options.getAppConfig,
+          }),
+        }
+      : {}),
     ...(options.extraHandlers || {}),
   };
 
