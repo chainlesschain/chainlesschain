@@ -233,6 +233,21 @@
           </div>
 
           <span class="version-tag">{{ PRODUCT_VERSION }}</span>
+          <!-- Phase 1.6 symmetric switch: only inside the embedded
+               desktop shell does this make sense (no-op in `cc serve`
+               browser mode where there's no V5/V6 to fall back to). -->
+          <a-tooltip
+            v-if="shellMode.isEmbedded"
+            title="切换到桌面壳（保存后重启生效）"
+          >
+            <button
+              type="button"
+              class="shell-switch-btn"
+              @click="switchToDesktopShell"
+            >
+              <DesktopOutlined />
+            </button>
+          </a-tooltip>
           <a-tag
             :color="wsStatus === 'connected' ? 'green' : wsStatus === 'connecting' ? 'orange' : 'red'"
             class="ws-tag"
@@ -264,9 +279,9 @@ import {
   UsergroupAddOutlined, ShoppingOutlined, SwapOutlined, AlertOutlined, SafetyOutlined,
   ExperimentOutlined, DeploymentUnitOutlined, BulbOutlined, BankOutlined, PartitionOutlined,
   AuditOutlined, FileSearchOutlined, TrophyOutlined, FireOutlined, SearchOutlined,
-  NumberOutlined, ClusterOutlined, SoundOutlined,
+  NumberOutlined, ClusterOutlined, SoundOutlined, DesktopOutlined,
 } from '@ant-design/icons-vue'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'
 import logoSrc from '../assets/logo.png'
@@ -347,6 +362,44 @@ async function openDesktopWindow(role) {
   } catch (e) {
     message.error(`打开桌面窗口失败：${e.message || e}`)
   }
+}
+
+// Phase 1.6 symmetric switch — mirror of V6 shell's "切换到 Web Shell"
+// button. Only ever rendered when shellMode.isEmbedded is true (we're
+// running inside the desktop), so electronAPI is guaranteed to be on
+// the window. Confirms via Modal then writes the setting + restarts.
+async function switchToDesktopShell() {
+  const electronAPI = window.electronAPI
+  if (!electronAPI || typeof electronAPI.invoke !== 'function') {
+    message.warning('electronAPI 不可用——只能在桌面端使用此功能')
+    return
+  }
+  Modal.confirm({
+    title: '切换到桌面壳？',
+    content:
+      '回到 V5/V6 桌面壳。完整 electronAPI 表面（UKey 硬件 / 原生对话框 / ' +
+      '系统设置等）会重新可用，但失去 web-panel 的 SPA 体验。' +
+      '保存后需要重启应用才生效。',
+    okText: '切换并重启',
+    cancelText: '取消',
+    centered: true,
+    async onOk() {
+      try {
+        const setRes = await electronAPI.invoke(
+          'config:set',
+          'ui.useWebShellExperimental',
+          false,
+        )
+        if (setRes && setRes.success === false) {
+          throw new Error(setRes.error || 'config:set returned failure')
+        }
+        await electronAPI.invoke('system:restart')
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        message.error('切换失败：' + msg)
+      }
+    },
+  })
 }
 
 function onMenuClick({ key }) {
@@ -520,6 +573,29 @@ onMounted(() => ws.connect())
 
 .version-tag { color: var(--text-muted); font-size: 11px; }
 .ws-tag { margin: 0 !important; font-size: 11px; }
+
+.shell-switch-btn {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: background 0.15s, transform 0.15s, color 0.15s;
+  opacity: 0.6;
+}
+.shell-switch-btn:hover {
+  opacity: 1;
+  transform: scale(1.15);
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
 
 /* ── Content ──────────────────────────────────────────────────────────── */
 .page-content {
