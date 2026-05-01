@@ -552,7 +552,7 @@ function runMigrationsOptimized(dbManager, logger) {
       .get();
 
     // 定义最新迁移版本号
-    const LATEST_VERSION = 6; // 增加版本号当有新迁移时（v6: browser_workflows 表 Phase 4-5）
+    const LATEST_VERSION = 7; // v7: 修复 migrations 路径 bug + 装载 009_embedding_cache / 009_memory_system
 
     // BUGFIX: 总是检查关键列是否存在，即使版本号正确
     // 这确保了即使迁移版本号被更新但列没有添加的情况也能被修复
@@ -716,7 +716,6 @@ function runMigrations(dbManager, logger) {
       try {
         const migrationPath = path.join(
           __dirname,
-          "database",
           "migrations",
           "001_plugin_system.sql",
         );
@@ -745,7 +744,6 @@ function runMigrations(dbManager, logger) {
       try {
         const migrationPath = path.join(
           __dirname,
-          "database",
           "migrations",
           "002_audio_system.sql",
         );
@@ -774,7 +772,6 @@ function runMigrations(dbManager, logger) {
       try {
         const migrationPath = path.join(
           __dirname,
-          "database",
           "migrations",
           "003_skill_tool_system.sql",
         );
@@ -801,7 +798,6 @@ function runMigrations(dbManager, logger) {
       try {
         const dataInitPath = path.join(
           __dirname,
-          "database",
           "migrations",
           "004_video_skills_tools.sql",
         );
@@ -842,7 +838,6 @@ function runMigrations(dbManager, logger) {
       try {
         const migrationPath = path.join(
           __dirname,
-          "database",
           "migrations",
           "005_workspace_task_system.sql",
         );
@@ -909,7 +904,6 @@ function runMigrations(dbManager, logger) {
       try {
         const migrationPath = path.join(
           __dirname,
-          "database",
           "migrations",
           "006_file_sharing_system.sql",
         );
@@ -971,7 +965,6 @@ function runMigrations(dbManager, logger) {
       try {
         const migrationPath = path.join(
           __dirname,
-          "database",
           "migrations",
           "005_llm_sessions.sql",
         );
@@ -1051,12 +1044,7 @@ function runMigrations(dbManager, logger) {
       logger.info("[Database] 创建 ErrorMonitor AI 诊断系统表...");
       try {
         const migrationSQL = fs.readFileSync(
-          path.join(
-            __dirname,
-            "database",
-            "migrations",
-            "006_error_analysis.sql",
-          ),
+          path.join(__dirname, "migrations", "006_error_analysis.sql"),
           "utf-8",
         );
         dbManager.db.exec(migrationSQL);
@@ -1081,12 +1069,7 @@ function runMigrations(dbManager, logger) {
       logger.info("[Database] 创建 Email 草稿系统表...");
       try {
         const migrationSQL = fs.readFileSync(
-          path.join(
-            __dirname,
-            "database",
-            "migrations",
-            "017_email_drafts.sql",
-          ),
+          path.join(__dirname, "migrations", "017_email_drafts.sql"),
           "utf-8",
         );
         dbManager.db.exec(migrationSQL);
@@ -1108,12 +1091,7 @@ function runMigrations(dbManager, logger) {
       logger.info("[Database] 创建浏览器自动化系统表 (Phase 4-5)...");
       try {
         const migrationSQL = fs.readFileSync(
-          path.join(
-            __dirname,
-            "database",
-            "migrations",
-            "018_browser_workflows.sql",
-          ),
+          path.join(__dirname, "migrations", "018_browser_workflows.sql"),
           "utf-8",
         );
         dbManager.db.exec(migrationSQL);
@@ -1123,6 +1101,62 @@ function runMigrations(dbManager, logger) {
         logger.error(
           "[Database] 创建浏览器自动化系统表失败:",
           browserWorkflowsError,
+        );
+      }
+    }
+
+    // 迁移19: Permanent Memory 系统 - embedding_cache + memory_stats 等
+    const embeddingCacheTableExists = dbManager.db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='embedding_cache'",
+      )
+      .get();
+
+    if (!embeddingCacheTableExists) {
+      logger.info(
+        "[Database] 创建 Permanent Memory 系统表 (009_embedding_cache)...",
+      );
+      try {
+        const migrationSQL = fs.readFileSync(
+          path.join(__dirname, "migrations", "009_embedding_cache.sql"),
+          "utf-8",
+        );
+        dbManager.db.exec(migrationSQL);
+        dbManager.saveToFile();
+        logger.info(
+          "[Database] ✓ Permanent Memory 表创建完成 (embedding_cache / memory_stats / memory_sections / memory_file_hashes / daily_notes_metadata)",
+        );
+      } catch (embeddingCacheError) {
+        logger.error(
+          "[Database] 创建 Permanent Memory 表失败:",
+          embeddingCacheError,
+        );
+      }
+    }
+
+    // 迁移20: Memory System 持久化 - 用户偏好/使用历史/搜索/Prompt/纠错/代码片段/工作流模式
+    const userPreferencesTableExists = dbManager.db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='user_preferences'",
+      )
+      .get();
+
+    if (!userPreferencesTableExists) {
+      logger.info("[Database] 创建 Memory System 表 (009_memory_system)...");
+      try {
+        const migrationSQL = fs.readFileSync(
+          path.join(__dirname, "migrations", "009_memory_system.sql"),
+          "utf-8",
+        );
+        dbManager.db.exec(migrationSQL);
+        dbManager.saveToFile();
+        logger.info(
+          "[Database] ✓ Memory System 表创建完成 (user_preferences / usage_history / search_history / prompt_patterns / error_fix_patterns / code_snippets / workflow_patterns)",
+        );
+      } catch (memorySystemError) {
+        logger.error(
+          "[Database] 创建 Memory System 表失败:",
+          memorySystemError,
         );
       }
     }
