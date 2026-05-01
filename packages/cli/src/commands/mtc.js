@@ -16,6 +16,7 @@ import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import { getAllIdentities, getIdentity } from "../lib/did-manager.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
+import { getHomeDir } from "../lib/paths.js";
 import mtcLib from "@chainlesschain/core-mtc";
 
 const {
@@ -1153,4 +1154,282 @@ export function registerMtcCommand(program) {
         process.exit(1);
       }
     });
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Phase 3 federation MTCA commands
+  // M-of-N multi-sig is implemented in core-mtc/lib/batch.js;
+  // federation member tracking lives in ~/.chainlesschain/federation/
+  // members.json (one entry per joined federation, keyed by federation id).
+  // ─────────────────────────────────────────────────────────────────────
+  registerFederationCommands(mtc);
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Federation member registry helpers (Phase 3.1)
+// ─────────────────────────────────────────────────────────────────────────
+
+const FEDERATION_REGISTRY_SCHEMA = "mtc-federation-registry/v1";
+
+function getFederationDir() {
+  const home = getHomeDir();
+  return path.join(home, "federation");
+}
+
+function getFederationRegistryPath() {
+  return path.join(getFederationDir(), "members.json");
+}
+
+function loadFederationRegistry() {
+  const file = getFederationRegistryPath();
+  if (!fs.existsSync(file)) {
+    return { schema: FEDERATION_REGISTRY_SCHEMA, federations: {} };
+  }
+  const obj = readJsonFile(file);
+  if (obj.schema !== FEDERATION_REGISTRY_SCHEMA) {
+    throw new Error(
+      `federation registry has unknown schema: ${obj.schema} (expected ${FEDERATION_REGISTRY_SCHEMA})`,
+    );
+  }
+  if (!obj.federations || typeof obj.federations !== "object") {
+    obj.federations = {};
+  }
+  return obj;
+}
+
+function saveFederationRegistry(registry) {
+  const file = getFederationRegistryPath();
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  // Atomic write to survive crash mid-write
+  const tmp = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(registry, null, 2), "utf-8");
+  fs.renameSync(tmp, file);
+}
+
+function registerFederationCommands(mtc) {
+  const fed = mtc
+    .command("federation")
+    .description("Phase 3 federation MTCA — manage M-of-N member registry");
+
+  // mtc federation join <federation-id>
+  fed
+    .command("join <federation-id>")
+    .description(
+      "Join a federation: generate a member keypair (or reuse existing) and register it locally",
+    )
+    .requiredOption(
+      "--member-id <id>",
+      "Local member identifier within the federation",
+    )
+    .option(
+      "--alg <name>",
+      "Signing algorithm: ed25519 (default) | slh-dsa-128f",
+      "ed25519",
+    )
+    .option(
+      "--issuer <issuer>",
+      "Member-level issuer string (default: mtca:cc:<federation-id>:<member-id>)",
+    )
+    .option("--key-file <path>", "Reuse existing secret key from hex file")
+    .option("--json", "Print JSON summary")
+    .action((federationId, options) => {
+      try {
+        const sig = resolveSigner(options.alg);
+        const issuer =
+          options.issuer || `mtca:cc:${federationId}:${options.memberId}`;
+        const registry = loadFederationRegistry();
+        const fedEntry = registry.federations[federationId] || {
+          federation_id: federationId,
+          members: {},
+          joined_at: new Date().toISOString(),
+        };
+        if (fedEntry.members[options.memberId]) {
+          throw new Error(
+            `member "${options.memberId}" already registered in federation "${federationId}" — leave first to rejoin`,
+          );
+        }
+
+        // Generate or load the keypair
+        let keys;
+        if (options.keyFile && fs.existsSync(options.keyFile)) {
+          keys = loadOrGenerateKeyPair(options.keyFile, sig);
+        } else {
+          keys = sig.signer.generateKeyPair();
+        }
+
+        // Persist the member's secret key under federation/keys/
+        const keysDir = path.join(getFederationDir(), "keys");
+        fs.mkdirSync(keysDir, { recursive: true });
+        const keyPath = path.join(
+          keysDir,
+          `${federationId}.${options.memberId}.hex`,
+        );
+        if (!fs.existsSync(keyPath)) {
+          fs.writeFileSync(keyPath, keys.secretKey.toString("hex"), {
+            mode: 0o600,
+          });
+        }
+
+        const trustAnchor = sig.signer.trustAnchorEntry(keys.publicKey, issuer);
+        fedEntry.members[options.memberId] = {
+          member_id: options.memberId,
+          issuer,
+          alg: sig.signer.ALG,
+          pubkey_id: trustAnchor.pubkey_id,
+          pubkey_jwk: trustAnchor.pubkey_jwk,
+          key_file: keyPath,
+          joined_at: new Date().toISOString(),
+        };
+        registry.federations[federationId] = fedEntry;
+        saveFederationRegistry(registry);
+
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              {
+                ok: true,
+                federation_id: federationId,
+                member_id: options.memberId,
+                issuer,
+                alg: sig.signer.ALG,
+                pubkey_id: trustAnchor.pubkey_id,
+                key_file: keyPath,
+              },
+              null,
+              2,
+            ),
+          );
+        } else {
+          logger.success(
+            `joined federation "${federationId}" as "${options.memberId}"`,
+          );
+          logger.log(`  ${chalk.bold("Issuer:")}     ${issuer}`);
+          logger.log(`  ${chalk.bold("Algorithm:")}  ${sig.signer.ALG}`);
+          logger.log(`  ${chalk.bold("Pubkey id:")}  ${trustAnchor.pubkey_id}`);
+          logger.log(`  ${chalk.bold("Key file:")}   ${chalk.cyan(keyPath)}`);
+        }
+      } catch (err) {
+        logger.error(`mtc federation join failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // mtc federation leave <federation-id> --member-id <id>
+  fed
+    .command("leave <federation-id>")
+    .description(
+      "Leave a federation: remove the member entry from the local registry",
+    )
+    .requiredOption("--member-id <id>", "Member id to remove")
+    .option(
+      "--keep-key",
+      "Keep the secret key file on disk (default: removes the key file as well)",
+    )
+    .option("--json", "Print JSON summary")
+    .action((federationId, options) => {
+      try {
+        const registry = loadFederationRegistry();
+        const fedEntry = registry.federations[federationId];
+        if (!fedEntry || !fedEntry.members[options.memberId]) {
+          throw new Error(
+            `member "${options.memberId}" not found in federation "${federationId}"`,
+          );
+        }
+        const member = fedEntry.members[options.memberId];
+        delete fedEntry.members[options.memberId];
+        if (Object.keys(fedEntry.members).length === 0) {
+          delete registry.federations[federationId];
+        }
+        saveFederationRegistry(registry);
+
+        if (
+          !options.keepKey &&
+          member.key_file &&
+          fs.existsSync(member.key_file)
+        ) {
+          try {
+            fs.unlinkSync(member.key_file);
+          } catch (_err) {
+            /* non-fatal */
+          }
+        }
+
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              {
+                ok: true,
+                federation_id: federationId,
+                member_id: options.memberId,
+                key_file_removed: !options.keepKey,
+              },
+              null,
+              2,
+            ),
+          );
+        } else {
+          logger.success(
+            `left federation "${federationId}" — member "${options.memberId}" removed${
+              options.keepKey ? "" : " (key file deleted)"
+            }`,
+          );
+        }
+      } catch (err) {
+        logger.error(`mtc federation leave failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // mtc federation status [federation-id]
+  fed
+    .command("status [federation-id]")
+    .description("Show registered federations and their members")
+    .option("--json", "Output JSON")
+    .action((federationId, options) => {
+      try {
+        const registry = loadFederationRegistry();
+        const data = federationId
+          ? { [federationId]: registry.federations[federationId] || null }
+          : registry.federations;
+
+        if (options.json) {
+          console.log(JSON.stringify({ ok: true, federations: data }, null, 2));
+          return;
+        }
+
+        const ids = Object.keys(data).filter((k) => data[k]);
+        if (ids.length === 0) {
+          logger.info(
+            "no federations registered (run `cc mtc federation join <id> --member-id <m>`)",
+          );
+          return;
+        }
+
+        for (const id of ids) {
+          const f = data[id];
+          const memberCount = Object.keys(f.members || {}).length;
+          logger.log(chalk.bold(`Federation: ${chalk.cyan(id)}`));
+          logger.log(`  ${chalk.bold("Joined at:")} ${f.joined_at || "—"}`);
+          logger.log(`  ${chalk.bold("Members:")}   ${memberCount}`);
+          for (const m of Object.values(f.members || {})) {
+            logger.log(
+              `    · ${chalk.green(m.member_id)} (${m.alg})  ${chalk.gray(m.pubkey_id.slice(0, 18) + "…")}`,
+            );
+            logger.log(`        issuer: ${m.issuer}`);
+            logger.log(`        key:    ${chalk.gray(m.key_file)}`);
+          }
+        }
+      } catch (err) {
+        logger.error(`mtc federation status failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+}
+
+// Internals exported for tests
+export const _federationInternals = {
+  FEDERATION_REGISTRY_SCHEMA,
+  loadFederationRegistry,
+  saveFederationRegistry,
+  getFederationDir,
+  getFederationRegistryPath,
+};

@@ -81,8 +81,42 @@ class LandmarkCache {
     }
 
     const signingInput = Buffer.concat([TREE_HEAD_SIG_PREFIX, canonical]);
-    const sigOk = this._signatureVerifier(signingInput, snap.signature);
-    if (!sigOk) throw this._err("BAD_TREE_HEAD_SIG");
+    if (Array.isArray(snap.signatures) && snap.signatures.length > 0) {
+      // Federated multi-sig path: count valid sigs against trust_anchors,
+      // require ≥ threshold. threshold defaults to signatures.length when
+      // omitted (everyone-signs strict mode).
+      const threshold = Number.isInteger(snap.threshold)
+        ? snap.threshold
+        : snap.signatures.length;
+      if (threshold < 1) {
+        throw this._err("BAD_FEDERATION_THRESHOLD");
+      }
+      // Track which pubkey_ids have already counted, so a duplicate signature
+      // (same key signing twice) doesn't artificially boost the count.
+      const seen = new Set();
+      let validCount = 0;
+      for (const sig of snap.signatures) {
+        if (!sig || typeof sig !== "object") continue;
+        const pubkeyId = typeof sig.pubkey_id === "string" ? sig.pubkey_id : null;
+        if (pubkeyId && seen.has(pubkeyId)) continue;
+        if (this._signatureVerifier(signingInput, sig)) {
+          if (pubkeyId) seen.add(pubkeyId);
+          validCount++;
+          if (validCount >= threshold) break;
+        }
+      }
+      if (validCount < threshold) {
+        const e = this._err("FEDERATION_THRESHOLD_NOT_MET");
+        e.threshold = threshold;
+        e.valid = validCount;
+        e.signatures = snap.signatures.length;
+        throw e;
+      }
+    } else {
+      // Single-signer (classical) path
+      const sigOk = this._signatureVerifier(signingInput, snap.signature);
+      if (!sigOk) throw this._err("BAD_TREE_HEAD_SIG");
+    }
 
     const existing = this._byNamespace.get(th.namespace);
     if (existing) {

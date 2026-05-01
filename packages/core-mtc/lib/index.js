@@ -55,4 +55,6 @@ module.exports = {
 
   // Batch assembly (pure: leaves + keys + meta -> landmark + envelopes)
   assembleBatch: batchModule.assembleBatch,
+  // Federated M-of-N multi-signature variant (Phase 3 federation MTCA)
+  assembleBatchFederated: batchModule.assembleBatchFederated,
 };
