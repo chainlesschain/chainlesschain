@@ -471,6 +471,53 @@
       "reasonFailed": "推理失败"
     }
   },
+  "workflow": {
+    "title": "工作流编辑器",
+    "subtitle": "创建、编辑、运行 Cowork 工作流（N1 — 初版：表单编辑，画布视图规划中）",
+    "new": "新建",
+    "refresh": "刷新",
+    "list": {
+      "title": "工作流列表",
+      "empty": "暂无工作流",
+      "stepCount": "{n} 步骤",
+      "delete": "删除"
+    },
+    "editor": {
+      "headerPrefix": "编辑:",
+      "exportJson": "导出 JSON",
+      "run": "运行",
+      "save": "保存",
+      "idLabel": "ID (唯一标识)",
+      "idPlaceholder": "my-workflow",
+      "nameLabel": "名称",
+      "namePlaceholder": "我的工作流",
+      "descLabel": "描述",
+      "descPlaceholder": "（可选）",
+      "stepsDivider": "步骤",
+      "stepIdPlaceholder": "step-id",
+      "dependsOnPlaceholder": "dependsOn",
+      "messagePlaceholder": "任务 prompt（支持 ${step.<id>.summary} 占位）",
+      "whenPlaceholder": "when 条件（可选，如 step.s1.status === 'completed'）",
+      "stepDelete": "删除",
+      "stepCounter": "step {idx} / {total}",
+      "addStep": "+ 添加步骤",
+      "emptyHint": "从左侧选择工作流或新建一个"
+    },
+    "runLog": {
+      "title": "运行日志"
+    },
+    "msg": {
+      "loadFailed": "加载失败: {err}",
+      "saveSuccess": "保存成功",
+      "saveFailed": "保存失败: {err}",
+      "deleteSuccess": "已删除",
+      "deleteFailed": "删除失败: {err}",
+      "runSuccess": "运行完成：{status}",
+      "runFailed": "运行失败: {err}",
+      "exportSuccess": "已保存到 {path}",
+      "exportFailed": "导出失败: {err}"
+    }
+  },
   "chat": {
     "scope": {
       "fallbackProjectName": "项目",

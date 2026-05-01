@@ -471,6 +471,53 @@
       "reasonFailed": "Reasoning failed"
     }
   },
+  "workflow": {
+    "title": "Workflow editor",
+    "subtitle": "Create, edit, and run Cowork workflows (N1 — form editor; canvas view planned)",
+    "new": "New",
+    "refresh": "Refresh",
+    "list": {
+      "title": "Workflows",
+      "empty": "No workflows yet",
+      "stepCount": "{n} steps",
+      "delete": "Delete"
+    },
+    "editor": {
+      "headerPrefix": "Editing:",
+      "exportJson": "Export JSON",
+      "run": "Run",
+      "save": "Save",
+      "idLabel": "ID (unique)",
+      "idPlaceholder": "my-workflow",
+      "nameLabel": "Name",
+      "namePlaceholder": "My workflow",
+      "descLabel": "Description",
+      "descPlaceholder": "(optional)",
+      "stepsDivider": "Steps",
+      "stepIdPlaceholder": "step-id",
+      "dependsOnPlaceholder": "dependsOn",
+      "messagePlaceholder": "Task prompt (use ${step.<id>.summary} as placeholder)",
+      "whenPlaceholder": "when condition (optional, e.g. step.s1.status === 'completed')",
+      "stepDelete": "Delete",
+      "stepCounter": "step {idx} / {total}",
+      "addStep": "+ Add step",
+      "emptyHint": "Pick a workflow on the left or create a new one"
+    },
+    "runLog": {
+      "title": "Run log"
+    },
+    "msg": {
+      "loadFailed": "Load failed: {err}",
+      "saveSuccess": "Saved",
+      "saveFailed": "Save failed: {err}",
+      "deleteSuccess": "Deleted",
+      "deleteFailed": "Delete failed: {err}",
+      "runSuccess": "Run finished: {status}",
+      "runFailed": "Run failed: {err}",
+      "exportSuccess": "Exported to {path}",
+      "exportFailed": "Export failed: {err}"
+    }
+  },
   "chat": {
     "scope": {
       "fallbackProjectName": "Project",
