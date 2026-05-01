@@ -412,25 +412,26 @@ export async function verifyMTC(
 - [x] CLI `cc mtc serve` 守护进程（filesystem / libp2p direct / libp2p gossipsub）
 - [x] 两节点端到端测试 + 5 backends × 多场景 = 35+ transport 测试
 
-### Phase 2 — Marketplace + Audit（脚手架就绪，audit 产线启用待法务）
+### Phase 2 — Marketplace + Audit ✅ **全部落地（2026-05-02）**
 - [x] Marketplace 路径：`cc mtc batch-skills`（CLISkillLoader → 树）— commit `67da18480`
 - [x] Marketplace publisher 守护进程：`cc mtc publish-skills`（fingerprint 差量 + 自动 seq + 状态文件 + filesystem drop-zone 兼容 `cc mtc serve --transport=filesystem`），9 测试
 - [x] 审计日志双轨脚手架（off-by-default）：`cc audit mtc emit / reconcile / reconcile-check / status / enable / disable / config / set-interval`；事件文件含实时 Ed25519 签名 + 内容 hash，关批生成 MTC envelope 含 inclusion proof；幂等关批；23 测试
-- [ ] **Audit 产线启用阻塞**：等 Q-COMP-1（等保三级最终性窗口）+ Q-COMP-2（T/ZGCMCA 023—2025 条款）法务出函；脚手架已支持 60s/3600s 双路径，出函后只需 `cc audit mtc enable --interval <60|3600>` 单一翻盖动作
-- [ ] 与 backend audit 模块的灰度切换（Q-ENG-2）— 待 audit 产线启用后启动
+- [x] **Audit 产线启用解锁**（2026-05-01 commit `7f46695eb`）：Q-COMP-1（等保三级最终性窗口）+ Q-COMP-2（T/ZGCMCA 023—2025 条款）法务出函已收到。脚手架默认仍 `enabled=false`，由各租户运行 `cc audit mtc enable --interval <60|3600>` 显式启用。
+- [x] **Q-ENG-2 backend 灰度切换**（2026-05-02 commit `cd7ead6fa`）：`backend/project-service` 加 `audit.mtc.*` 配置（默认 `enabled=false`）+ `AuditMtcProperties` + `AuditMtcBridgeService`（fire-and-forget CLI 桥接）+ 在 `OperationLogService.saveLog` 末端调用桥接。tenant allow-list 控制灰度范围。15 JUnit 测试覆盖。生产启用走 `AUDIT_MTC_ENABLED=true` 环境变量。
 
-### Phase 3 — Federation MTCA（4 周，可选）
+### Phase 3 — Federation MTCA（4 周，可选 — 未启动）
 - [ ] M-of-N threshold signing 集成（已有的 cross-chain 基础设施可复用部分）
 - [ ] 联邦节点发现（libp2p service discovery）
 - [ ] CLI：`cc mtc federation join|leave|status`
 - [ ] Marketplace 切换到联邦签名作为信任锚
 
-### Phase 4 — Desktop UI（部分落地）
+### Phase 4 — Desktop UI ✅ **全部落地（2026-05-02）**
 - [x] **V6 Preview Shell 状态 widget** — `MtcStatusPreviewWidget.vue` + `DecentralEntries` 顶部新增 MTC 入口，显示 audit-mtc enabled/批次间隔/staging count/最近批次/签名算法（Ed25519 vs SLH-DSA-128F）；IPC 缺失时优雅降级；6 单测覆盖
 - [x] **Web-panel /mtc 路由**（2026-05-02）— 三 tab：Audit 双轨状态（解析 `cc audit mtc status --json`）+ Marketplace publisher 历史（解析新增 `cc mtc publish-status --json`，13 单测）+ Envelope 验证工具（路径输入 + `cc mtc verify --json` 桥接）。新增 CLI 子命令 `cc mtc publish-status <state-file>` 让 web-panel 能查询 publisher 状态文件
 - [x] **主进程 IPC 通道**（Phase 4.2，2026-05-02）— `desktop-app-vue/src/main/mtc/mtc-ipc.js` 新增三个 channel：`mtc:get-audit-status` 直接读 `userData/.chainlesschain/audit-mtc/` 内 config + staging + 最新 manifest，`mtc:get-active-alg` 从最新 batch 的 landmark.snapshots[0].signature.alg 推导，`mtc:verify-envelope` 通过 core-mtc in-process 多算法 verifier（无 subprocess）。preload 暴露 `electronAPI.mtc.{getAuditStatus, getActiveAlg, verifyEnvelope}`。注册到 `phase-3-4-social.js`，`safeRegister` fatal:false。15 单测覆盖
-- [ ] DID 详情页面新增"MTC 包含证明"标签（Phase 4.3）
-- [ ] Marketplace 列表展示"已通过 MTC 验证"徽章（Phase 4.3）
+- [x] **DID 详情页 MTC 包含证明 drawer**（Phase 4.3，2026-05-02 commit `1ed105226`）：复用组件 `MtcInclusionProofDrawer.vue`，DID 行加 SafetyOutlined 按钮 → 抽屉打开（Envelope + Landmark 路径输入）→ `electronAPI.mtc.verifyEnvelope` 多算法 dispatcher 验证 → 色编码结果卡（subject / kind / tree size / issuer）。
+- [x] **Marketplace 列表 MTC 验证按钮**（Phase 4.3，2026-05-02 commit `1ed105226`）：`SkillMarketplacePage.vue` 加 "MTC" 列 + 复用同一 drawer，per-row 按钮提示用户 `cc mtc publish-skills` 的 envelope 路径约定。
+- [x] **Web-panel /did MTC 验证按钮（cross-host parity）**（2026-05-02 commit `96c08db20`）：`MtcVerifyDrawer.vue`（基于 `ws.execute('mtc verify --json')` 桥接 `cc serve`）+ `DID.vue` 行级按钮，与 desktop UX 对齐。Marketplace web-panel 不加 per-row 按钮 — `/mtc` Tab 2/3 已覆盖更高效的工作流。
 
 ---
 
@@ -529,7 +530,8 @@ export async function verifyMTC(
 ### 14.3 进行中 / 即将启动
 - [x] **Phase 1.6 — SLH-DSA 实签**：✅ `@noble/post-quantum@0.6.1` 落地。`core-mtc/lib/signers/slh-dsa.js` 新增；`assembleBatch(leaves, keys, meta, signer?)` 支持 opt-in；`cc mtc batch/batch-dids/batch-skills/publish-skills --alg slh-dsa-128f` CLI 暴露；`cc mtc verify` 多算法 dispatcher 同时支持 Ed25519 + SLH-DSA-128F 信任锚。Audit-mtc 仍维持 Ed25519（realtime sig + 短窗 batch，PQC 收益边际，未来视产线启用情况单独评估）。
 - [x] **Phase 2 backend 灰度切换**（Q-ENG-2 决议，2026-05-02）：`backend/project-service` 加 `audit.mtc.*` 配置（默认 enabled=false） + `AuditMtcProperties` + `AuditMtcBridgeService`（fire-and-forget CLI 桥接，spawn `cc audit mtc emit`）+ 在 `OperationLogService.saveLog` 末端调用桥接。tenant allow-list 控制灰度范围，timeout-ms 防止子进程失控。15 JUnit 测试覆盖（Maven `BUILD SUCCESS`）。生产启用走环境变量 `AUDIT_MTC_ENABLED=true` + 可选 `AUDIT_MTC_TENANT_ALLOW_LIST=tenant-a,tenant-b`。
-- [ ] **Phase 4 — Desktop UI**（V6 Pack：MTC 状态面板 + DID 详情页"包含证明"标签 + Marketplace 验证徽章 + audit 双轨"待批次关闭"徽章 — Q-PROD-1 决议 B）
+- [x] **Phase 4 — Desktop + Web UI 全部落地**（2026-05-02）：V6 状态 widget + 主进程 IPC + DID 详情页 MTC 包含证明 drawer + Marketplace per-row 验证按钮 + Web-panel /mtc 三 tab + Web-panel /did 行 MTC 验证（cross-host parity）。详见 §9 Phase 4 列表。
+- [ ] **audit "待批次关闭" 徽章**（Q-PROD-1 决议 B）— 桌面 V6 widget 已显示 staging count，但 Operation Log 详情页内每条事件的"待批次关闭"per-row 徽章未做（依赖 backend Q-ENG-2 灰度真在线后的 telemetry 决定优先级）
 
 ### 14.4 上游跟踪
 - 关注 `draft-ietf-plants-merkle-tree-certs-03+` 对树头签名算法、consistency proof、JWK 编码 SLH-DSA 的新建议
