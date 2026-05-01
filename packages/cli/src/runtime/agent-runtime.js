@@ -9,6 +9,7 @@ import {
 import { createRuntimeContext } from "./runtime-context.js";
 import { createAgentTurnRecord } from "./contracts/agent-turn.js";
 import { logger } from "../lib/logger.js";
+import { listenWithPortFallback } from "../lib/listen-with-port-fallback.js";
 import { bootstrap } from "./bootstrap.js";
 import { startAgentRepl } from "../gateways/repl/agent-repl.js";
 import { startChatRepl } from "../gateways/repl/chat-repl.js";
@@ -477,18 +478,55 @@ export class AgentRuntime {
       mcpServerRegistry: this.deps.mcpServerRegistry,
     });
 
-    const wsServer = this.deps.createServer({
-      port: wsPort,
-      host,
-      token: this.policy.token,
-      maxConnections: 20,
-      timeout: 60000,
-      sessionManager,
-    });
-    await wsServer.start();
+    // Bind the WS server with port-fallback so multiple `cc ui` instances
+    // (or a desktop web-shell already running on 18800) don't crash this
+    // one. listenWithPortFallback walks preferred → +20 adjacent → OS-
+    // assigned. The WS server's listen handler updates `wsServer.port` to
+    // the actual bound port; we read that back for the HTTP injection.
+    let wsServer = null;
+    await listenWithPortFallback(
+      async (port) => {
+        const candidate = this.deps.createServer({
+          port,
+          host,
+          token: this.policy.token,
+          maxConnections: 20,
+          timeout: 60000,
+          sessionManager,
+        });
+        // ChainlessChainWSServer extends EventEmitter and emits "error"
+        // synchronously on bind failure (in addition to rejecting start()).
+        // Without a listener Node throws "Unhandled 'error' event" before
+        // our reject can settle — crashing the whole process before
+        // listenWithPortFallback can catch EADDRINUSE and try the next port.
+        // Attach a no-op so the rejection from start() is the single
+        // source of failure visibility.
+        candidate.on("error", () => {});
+        try {
+          await candidate.start();
+        } catch (err) {
+          // Best-effort cleanup so the failed candidate doesn't leak
+          // listeners before we retry on the next port.
+          try {
+            await candidate.stop();
+          } catch {
+            /* candidate never bound */
+          }
+          throw err;
+        }
+        wsServer = candidate;
+        return candidate;
+      },
+      wsPort,
+      {
+        onFallback: (msg) => runtimeLogger.log(chalk.yellow(`  [WS] ${msg}`)),
+      },
+    );
+
+    const actualWsPort = wsServer.port;
 
     const httpServer = this.deps.createWebServer({
-      wsPort,
+      wsPort: actualWsPort,
       wsToken: this.policy.token,
       wsHost: host === "0.0.0.0" ? "127.0.0.1" : host,
       projectRoot,
@@ -498,12 +536,34 @@ export class AgentRuntime {
       uiMode: this.policy.uiMode,
     });
 
-    await new Promise((resolve, reject) => {
-      httpServer.listen(httpPort, host, () => resolve());
-      httpServer.on("error", reject);
-    });
+    // Same fallback for HTTP. http.Server.listen takes (port, host, cb)
+    // and emits "error" once on bind failure; race them and surface the
+    // bound port back to the helper so it can decide whether to retry.
+    const actualHttpPort = await listenWithPortFallback(
+      (port) =>
+        new Promise((resolve, reject) => {
+          const onError = (err) => {
+            httpServer.removeListener("listening", onListening);
+            reject(err);
+          };
+          const onListening = () => {
+            httpServer.removeListener("error", onError);
+            const addr = httpServer.address();
+            const bound =
+              addr && typeof addr === "object" && addr.port ? addr.port : port;
+            resolve(bound);
+          };
+          httpServer.once("error", onError);
+          httpServer.once("listening", onListening);
+          httpServer.listen(port, host);
+        }),
+      httpPort,
+      {
+        onFallback: (msg) => runtimeLogger.log(chalk.yellow(`  [HTTP] ${msg}`)),
+      },
+    );
 
-    const uiUrl = `http://${host === "0.0.0.0" ? "127.0.0.1" : host}:${httpPort}`;
+    const uiUrl = `http://${host === "0.0.0.0" ? "127.0.0.1" : host}:${actualHttpPort}`;
 
     this.emit(RUNTIME_EVENTS.RUNTIME_START, {
       kind: this.kind,
@@ -511,8 +571,8 @@ export class AgentRuntime {
     });
     this.emit(RUNTIME_EVENTS.SERVER_START, {
       host,
-      port: httpPort,
-      wsPort,
+      port: actualHttpPort,
+      wsPort: actualWsPort,
       mode,
       projectRoot,
     });
@@ -531,7 +591,9 @@ export class AgentRuntime {
       runtimeLogger.log(`  Mode:     ${chalk.cyan("global")}`);
     }
     runtimeLogger.log(`  UI:       ${chalk.cyan(uiUrl)}`);
-    runtimeLogger.log(`  WS:       ${chalk.dim(`ws://${host}:${wsPort}`)}`);
+    runtimeLogger.log(
+      `  WS:       ${chalk.dim(`ws://${host}:${actualWsPort}`)}`,
+    );
     runtimeLogger.log(
       `  Auth:     ${this.policy.token ? chalk.green("enabled") : chalk.yellow("disabled")}`,
     );
