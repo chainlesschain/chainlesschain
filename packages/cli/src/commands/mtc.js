@@ -120,6 +120,11 @@ function loadOrGenerateKeyPair(secretKeyPath, signerInfo) {
 }
 
 function buildBatch(rawLeaves, opts) {
+  // Phase 3.2: federation path takes precedence when --federation is set.
+  if (opts.federation) {
+    return buildFederatedBatch(rawLeaves, opts);
+  }
+
   const sig = resolveSigner(opts.alg);
   const keys = loadOrGenerateKeyPair(opts.secretKeyFile, sig);
   const { landmark, envelopes, treeHeadId } = assembleBatch(
@@ -134,6 +139,94 @@ function buildBatch(rawLeaves, opts) {
     sig.signer,
   );
   return { landmark, envelopes, treeHeadId, keys, signerInfo: sig };
+}
+
+/**
+ * Federation-mode batch: loads all members of the named federation from
+ * the local registry, signs the tree_head with each member's key, and
+ * assembles an M-of-N landmark via assembleBatchFederated.
+ *
+ * @param {Array<object>} rawLeaves
+ * @param {{
+ *   federation: string,           // federation id from `cc mtc federation join <id>`
+ *   threshold?: number,            // M (default = N = all members)
+ *   namespace: string,
+ *   issuer: string,                // federation-level issuer (overrides individual member issuers in tree_head only)
+ *   issuedAt?: string,
+ *   expiresAt?: string,
+ * }} opts
+ */
+function buildFederatedBatch(rawLeaves, opts) {
+  const registry = loadFederationRegistry();
+  const fed = registry.federations[opts.federation];
+  if (!fed) {
+    throw new Error(
+      `unknown federation "${opts.federation}" — run \`cc mtc federation join ${opts.federation} --member-id <m>\` first`,
+    );
+  }
+  const members = Object.values(fed.members || {});
+  if (members.length === 0) {
+    throw new Error(`federation "${opts.federation}" has no members`);
+  }
+
+  const threshold = Number.isInteger(opts.threshold)
+    ? opts.threshold
+    : members.length;
+
+  // Load each member's signing key from disk
+  const signers = members.map((m) => {
+    if (!m.key_file || !fs.existsSync(m.key_file)) {
+      throw new Error(
+        `member "${m.member_id}" key file missing: ${m.key_file}`,
+      );
+    }
+    // Match alg from registry, not from --alg flag (each member is fixed)
+    let sigInfo;
+    if (m.alg === "Ed25519") {
+      sigInfo = resolveSigner("ed25519");
+    } else if (m.alg === "SLH-DSA-SHA2-128F") {
+      sigInfo = resolveSigner("slh-dsa-128f");
+    } else {
+      throw new Error(`member "${m.member_id}" has unknown alg: ${m.alg}`);
+    }
+    const keys = loadOrGenerateKeyPair(m.key_file, sigInfo);
+    return {
+      secretKey: keys.secretKey,
+      publicKey: keys.publicKey,
+      signer: sigInfo.signer,
+      issuer: m.issuer,
+    };
+  });
+
+  const fedSignerInfo = {
+    name: "federation",
+    threshold,
+    members: members.length,
+    member_ids: members.map((m) => m.member_id),
+    banner: chalk.cyan(
+      `✓ Federated tree-head — ${threshold}-of-${members.length} multi-signature (federation: ${opts.federation})`,
+    ),
+  };
+
+  const { landmark, envelopes, treeHeadId } = mtcLib.assembleBatchFederated(
+    rawLeaves,
+    signers,
+    {
+      namespace: opts.namespace,
+      issuer: opts.issuer,
+      threshold,
+      issuedAt: opts.issuedAt,
+      expiresAt: opts.expiresAt,
+    },
+  );
+
+  return {
+    landmark,
+    envelopes,
+    treeHeadId,
+    keys: signers[0], // first member's key (publish-skills tries to persist; harmless to surface)
+    signerInfo: fedSignerInfo,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -382,6 +475,15 @@ export function registerMtcCommand(program) {
       "Signing algorithm: ed25519 (default, classical) | slh-dsa-128f (FIPS 205 post-quantum)",
       "ed25519",
     )
+    .option(
+      "--federation <id>",
+      "Use federation M-of-N multi-sig (overrides --alg / --secret-key-file; signers come from `cc mtc federation join` registry)",
+    )
+    .option(
+      "--threshold <n>",
+      "Federation threshold M (default: N = all members)",
+      (v) => parseInt(v, 10),
+    )
     .option("--json", "Print JSON summary instead of human output")
     .action(async (inputPath, options) => {
       try {
@@ -398,6 +500,8 @@ export function registerMtcCommand(program) {
             expiresAt: options.expiresAt,
             secretKeyFile: options.secretKeyFile,
             alg: options.alg,
+            federation: options.federation,
+            threshold: options.threshold,
           });
 
         const outDir = path.resolve(options.out);
@@ -606,6 +710,15 @@ export function registerMtcCommand(program) {
       "Signing algorithm: ed25519 (default, classical) | slh-dsa-128f (FIPS 205 post-quantum)",
       "ed25519",
     )
+    .option(
+      "--federation <id>",
+      "Use federation M-of-N multi-sig (overrides --alg / --secret-key-file; signers come from `cc mtc federation join` registry)",
+    )
+    .option(
+      "--threshold <n>",
+      "Federation threshold M (default: N = all members)",
+      (v) => parseInt(v, 10),
+    )
     .option("--json", "Print JSON summary instead of human output")
     .action(async (options) => {
       let ctx;
@@ -654,6 +767,8 @@ export function registerMtcCommand(program) {
             expiresAt: options.expiresAt,
             secretKeyFile: options.secretKeyFile,
             alg: options.alg,
+            federation: options.federation,
+            threshold: options.threshold,
           });
 
         const outDir = path.resolve(options.out);
@@ -749,6 +864,15 @@ export function registerMtcCommand(program) {
       "Signing algorithm: ed25519 (default, classical) | slh-dsa-128f (FIPS 205 post-quantum)",
       "ed25519",
     )
+    .option(
+      "--federation <id>",
+      "Use federation M-of-N multi-sig (overrides --alg / --secret-key-file; signers come from `cc mtc federation join` registry)",
+    )
+    .option(
+      "--threshold <n>",
+      "Federation threshold M (default: N = all members)",
+      (v) => parseInt(v, 10),
+    )
     .option("--json", "Print JSON summary instead of human output")
     .action(async (options) => {
       try {
@@ -804,6 +928,8 @@ export function registerMtcCommand(program) {
             expiresAt: options.expiresAt,
             secretKeyFile: options.secretKeyFile,
             alg: options.alg,
+            federation: options.federation,
+            threshold: options.threshold,
           });
 
         const outDir = path.resolve(options.out);
@@ -905,6 +1031,15 @@ export function registerMtcCommand(program) {
       "--alg <name>",
       "Signing algorithm: ed25519 (default, classical) | slh-dsa-128f (FIPS 205 post-quantum)",
       "ed25519",
+    )
+    .option(
+      "--federation <id>",
+      "Use federation M-of-N multi-sig (overrides --alg / --secret-key-file; signers come from `cc mtc federation join` registry)",
+    )
+    .option(
+      "--threshold <n>",
+      "Federation threshold M (default: N = all members)",
+      (v) => parseInt(v, 10),
     )
     .option(
       "--interval <seconds>",
