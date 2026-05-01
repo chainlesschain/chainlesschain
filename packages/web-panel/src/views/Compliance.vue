@@ -2,24 +2,24 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">合规与威胁情报</h2>
-        <p class="page-sub">威胁指标 (IoC) · 用户行为分析 (UEBA)</p>
+        <h2 class="page-title">{{ $t('compliance.title') }}</h2>
+        <p class="page-sub">{{ $t('compliance.subtitle') }}</p>
       </div>
       <a-space>
         <a-button :loading="loading" @click="loadAll">
           <template #icon><ReloadOutlined /></template>
-          刷新
+          {{ $t('compliance.refresh') }}
         </a-button>
         <a-dropdown :trigger="['click']">
           <a-button type="primary">
             <template #icon><PlusOutlined /></template>
-            操作 ▼
+            {{ $t('compliance.actionDropdown') }}
           </a-button>
           <template #overlay>
             <a-menu @click="handleNewClick">
-              <a-menu-item key="match"><AimOutlined /> 匹配指标</a-menu-item>
-              <a-menu-item key="ueba-build"><DatabaseOutlined /> 构建基线</a-menu-item>
-              <a-menu-item key="ueba-analyze"><FundOutlined /> 行为分析</a-menu-item>
+              <a-menu-item key="match"><AimOutlined /> {{ $t('compliance.actions.match') }}</a-menu-item>
+              <a-menu-item key="ueba-build"><DatabaseOutlined /> {{ $t('compliance.actions.uebaBuild') }}</a-menu-item>
+              <a-menu-item key="ueba-analyze"><FundOutlined /> {{ $t('compliance.actions.uebaAnalyze') }}</a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
@@ -30,21 +30,21 @@
     <a-row :gutter="[16, 16]" style="margin-bottom: 20px;">
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="IoC 总数" :value="threatStats.total" :value-style="{ color: '#1677ff', fontSize: '20px' }">
+          <a-statistic :title="$t('compliance.stats.iocTotal')" :value="threatStats.total" :value-style="{ color: '#1677ff', fontSize: '20px' }">
             <template #prefix><SafetyCertificateOutlined /></template>
           </a-statistic>
         </a-card>
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="IoC 类型" :value="threatTypeCount" :value-style="{ color: '#13c2c2', fontSize: '20px' }">
+          <a-statistic :title="$t('compliance.stats.iocTypes')" :value="threatTypeCount" :value-style="{ color: '#13c2c2', fontSize: '20px' }">
             <template #prefix><BlockOutlined /></template>
           </a-statistic>
         </a-card>
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="风险实体" :value="uebaTop.length" :value-style="{ color: '#722ed1', fontSize: '20px' }">
+          <a-statistic :title="$t('compliance.stats.riskEntities')" :value="uebaTop.length" :value-style="{ color: '#722ed1', fontSize: '20px' }">
             <template #prefix><UserOutlined /></template>
           </a-statistic>
         </a-card>
@@ -52,7 +52,7 @@
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="高风险 (≥70)"
+            :title="$t('compliance.stats.highRisk')"
             :value="highRiskCount"
             :value-style="{ color: highRiskCount > 0 ? '#ff4d4f' : '#52c41a', fontSize: '20px' }"
           >
@@ -62,7 +62,7 @@
       </a-col>
       <a-col :xs="24" :sm="8" :lg="4">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="近期异常" :value="anomalies.length" :value-style="{ color: '#faad14', fontSize: '20px' }">
+          <a-statistic :title="$t('compliance.stats.recentAnomalies')" :value="anomalies.length" :value-style="{ color: '#faad14', fontSize: '20px' }">
             <template #prefix><AlertOutlined /></template>
           </a-statistic>
         </a-card>
@@ -72,7 +72,7 @@
     <!-- Type breakdown -->
     <a-card
       v-if="threatStats.total > 0"
-      title="IoC 类型分布"
+      :title="$t('compliance.typeBreakdown')"
       size="small"
       style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 20px;"
       :body-style="{ padding: '12px 16px' }"
@@ -87,10 +87,10 @@
     <!-- Tabs -->
     <a-tabs v-model:activeKey="activeTab" class="compliance-tabs">
       <!-- ── Threat Intel tab ──────────────────────────────────────── -->
-      <a-tab-pane key="threat" tab="威胁情报">
+      <a-tab-pane key="threat" :tab="$t('compliance.tabs.threat')">
         <div class="filter-bar">
           <a-radio-group v-model:value="iocTypeFilter" size="small">
-            <a-radio-button value="">全部</a-radio-button>
+            <a-radio-button value="">{{ $t('compliance.filter.all') }}</a-radio-button>
             <a-radio-button v-for="t in IOC_TYPES" :key="t" :value="t">{{ t }}</a-radio-button>
           </a-radio-group>
         </div>
@@ -98,7 +98,7 @@
         <a-table
           :columns="indicatorColumns"
           :data-source="filteredIndicators"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (t) => $t('compliance.table.totalSuffix', { n: t }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -130,39 +130,44 @@
               <span style="color: var(--text-secondary); font-size: 11px;">{{ formatComplianceTime(record.lastSeenAt) }}</span>
             </template>
             <template v-if="column.key === 'action'">
-              <a-popconfirm title="删除该指标？" ok-text="删除" cancel-text="取消" @confirm="removeIndicator(record)">
-                <a-button size="small" type="link" danger>删除</a-button>
+              <a-popconfirm
+                :title="$t('compliance.table.deleteConfirm')"
+                :ok-text="$t('compliance.table.deleteOk')"
+                :cancel-text="$t('compliance.table.cancel')"
+                @confirm="removeIndicator(record)"
+              >
+                <a-button size="small" type="link" danger>{{ $t('compliance.table.delete') }}</a-button>
               </a-popconfirm>
             </template>
           </template>
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <SafetyCertificateOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              暂无威胁指标。需通过 CLI 导入 STIX bundle: <code style="font-size: 11px;">cc compliance threat-intel import &lt;file.json&gt;</code>
+              {{ $t('compliance.table.emptyThreatsLine1') }} <code style="font-size: 11px;">cc compliance threat-intel import &lt;file.json&gt;</code>
             </div>
           </template>
         </a-table>
       </a-tab-pane>
 
       <!-- ── UEBA tab ──────────────────────────────────────────────── -->
-      <a-tab-pane key="ueba" tab="行为分析 (UEBA)">
+      <a-tab-pane key="ueba" :tab="$t('compliance.tabs.ueba')">
         <a-alert
           v-if="uebaError.noAuditLog"
           type="info"
           show-icon
-          message="尚无审计日志"
-          description="UEBA 基于 audit_log 表的审计事件。先在桌面端或 CLI 触发一些受审计的操作（如 cc auth login / cc note add），再回来运行「构建基线」。"
+          :message="$t('compliance.ueba.noAuditLog')"
+          :description="$t('compliance.ueba.noAuditLogDesc')"
           style="margin-bottom: 16px;"
         />
         <a-alert
           v-else-if="uebaError.error"
           type="error"
           show-icon
-          :message="`UEBA 错误：${uebaError.error}`"
+          :message="$t('compliance.ueba.errorMessage', { err: uebaError.error })"
           style="margin-bottom: 16px;"
         />
 
-        <h3 style="color: var(--text-primary); margin: 16px 0 8px; font-size: 14px;">高风险实体 (Top {{ uebaTop.length }})</h3>
+        <h3 style="color: var(--text-primary); margin: 16px 0 8px; font-size: 14px;">{{ $t('compliance.ueba.topRiskTitle', { count: uebaTop.length }) }}</h3>
         <a-table
           :columns="uebaColumns"
           :data-source="uebaTop"
@@ -203,15 +208,15 @@
           <template #emptyText>
             <div style="padding: 30px; color: var(--text-muted); text-align: center;">
               <UserOutlined style="font-size: 32px; margin-bottom: 8px; display: block;" />
-              {{ uebaError.noAuditLog ? '审计日志为空，无可分析实体' : '暂无风险实体' }}
+              {{ uebaError.noAuditLog ? $t('compliance.table.emptyAuditEntities') : $t('compliance.table.emptyRiskEntities') }}
             </div>
           </template>
         </a-table>
 
         <h3 v-if="anomalies.length" style="color: var(--text-primary); margin: 24px 0 8px; font-size: 14px;">
-          近期异常 ({{ anomalies.length }})
+          {{ $t('compliance.ueba.anomalyTitle', { count: anomalies.length }) }}
         </h3>
-        <a-list v-if="anomalies.length" size="small" :data-source="anomalies" :locale="{ emptyText: '无异常' }">
+        <a-list v-if="anomalies.length" size="small" :data-source="anomalies" :locale="{ emptyText: $t('compliance.table.noAnomalies') }">
           <template #renderItem="{ item }">
             <a-list-item style="background: var(--bg-card); padding: 10px 16px;">
               <div style="flex: 1;">
@@ -237,34 +242,34 @@
     <!-- ── Match modal ───────────────────────────────────────────── -->
     <a-modal
       v-model:open="showMatchModal"
-      title="匹配威胁指标"
+      :title="$t('compliance.match.modalTitle')"
       :confirm-loading="matching"
       :width="500"
-      ok-text="匹配"
-      cancel-text="关闭"
+      :ok-text="$t('compliance.match.ok')"
+      :cancel-text="$t('compliance.match.close')"
       @ok="matchObservable"
     >
       <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-        <a-form-item label="可观测值" required>
+        <a-form-item :label="$t('compliance.match.label')" required>
           <a-input
             v-model:value="matchForm.observable"
-            placeholder="IP / 域名 / URL / 邮箱 / 文件哈希"
+            :placeholder="$t('compliance.match.placeholder')"
             allow-clear
           />
         </a-form-item>
       </a-form>
       <a-card v-if="matchResult" size="small" style="background: var(--bg-base); margin-top: 8px;">
         <a-statistic
-          title="匹配结果"
-          :value="matchResult.matched ? '命中' : '未命中'"
+          :title="$t('compliance.match.result')"
+          :value="matchResult.matched ? $t('compliance.match.hit') : $t('compliance.match.miss')"
           :value-style="{ color: matchResult.matched ? '#ff4d4f' : '#52c41a' }"
         />
         <div style="margin-top: 8px; font-size: 12px; color: var(--text-secondary);">
-          检测类型: <a-tag :color="iocTypeColor(matchResult.type)">{{ matchResult.type }}</a-tag>
+          {{ $t('compliance.match.detectType') }} <a-tag :color="iocTypeColor(matchResult.type)">{{ matchResult.type }}</a-tag>
         </div>
         <div v-if="matchResult.indicator" style="margin-top: 12px; font-size: 12px;">
-          <div style="color: var(--text-secondary);">来源: {{ matchResult.indicator.sourceName || '—' }}</div>
-          <div style="color: var(--text-secondary);">置信度: {{ matchResult.indicator.confidence ?? '—' }}</div>
+          <div style="color: var(--text-secondary);">{{ $t('compliance.match.sourcePrefix') }} {{ matchResult.indicator.sourceName || '—' }}</div>
+          <div style="color: var(--text-secondary);">{{ $t('compliance.match.confidencePrefix') }} {{ matchResult.indicator.confidence ?? '—' }}</div>
           <div v-if="matchResult.indicator.labels.length" style="margin-top: 4px;">
             <a-tag v-for="l in matchResult.indicator.labels" :key="l" color="orange" style="font-size: 10px;">{{ l }}</a-tag>
           </div>
@@ -275,49 +280,49 @@
     <!-- ── UEBA build baseline modal ─────────────────────────────── -->
     <a-modal
       v-model:open="showBuildModal"
-      title="构建 UEBA 基线"
+      :title="$t('compliance.build.modalTitle')"
       :confirm-loading="building"
       :width="480"
-      ok-text="构建"
-      cancel-text="取消"
+      :ok-text="$t('compliance.build.ok')"
+      :cancel-text="$t('compliance.build.cancel')"
       @ok="buildBaseline"
     >
       <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" style="margin-top: 16px;">
-        <a-form-item label="实体（可选）">
-          <a-input v-model:value="buildForm.entity" placeholder="留空则全量" />
+        <a-form-item :label="$t('compliance.build.entityLabel')">
+          <a-input v-model:value="buildForm.entity" :placeholder="$t('compliance.build.entityPlaceholder')" />
         </a-form-item>
-        <a-form-item label="天数">
-          <a-input-number v-model:value="buildForm.days" :min="1" :max="365" placeholder="例如 30" style="width: 100%;" />
+        <a-form-item :label="$t('compliance.build.daysLabel')">
+          <a-input-number v-model:value="buildForm.days" :min="1" :max="365" :placeholder="$t('compliance.build.daysPlaceholder')" style="width: 100%;" />
         </a-form-item>
       </a-form>
       <p style="color: var(--text-secondary); font-size: 12px; margin: 0;">
-        从 audit_log 读取最近 N 天的事件，按实体计算事件计数 / 失败率 / 资源覆盖等基线指标。
+        {{ $t('compliance.build.footnote') }}
       </p>
     </a-modal>
 
     <!-- ── UEBA analyze modal ────────────────────────────────────── -->
     <a-modal
       v-model:open="showAnalyzeModal"
-      title="运行行为分析"
+      :title="$t('compliance.analyze.modalTitle')"
       :confirm-loading="analyzing"
       :width="480"
-      ok-text="分析"
-      cancel-text="取消"
+      :ok-text="$t('compliance.analyze.ok')"
+      :cancel-text="$t('compliance.analyze.cancel')"
       @ok="runAnalyze"
     >
       <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" style="margin-top: 16px;">
-        <a-form-item label="实体（可选）">
-          <a-input v-model:value="analyzeForm.entity" placeholder="留空则全量" />
+        <a-form-item :label="$t('compliance.analyze.entityLabel')">
+          <a-input v-model:value="analyzeForm.entity" :placeholder="$t('compliance.analyze.entityPlaceholder')" />
         </a-form-item>
-        <a-form-item label="阈值">
+        <a-form-item :label="$t('compliance.analyze.thresholdLabel')">
           <a-input-number v-model:value="analyzeForm.threshold" :min="0" :max="1" :step="0.05" style="width: 100%;" />
         </a-form-item>
-        <a-form-item label="天数">
+        <a-form-item :label="$t('compliance.analyze.daysLabel')">
           <a-input-number v-model:value="analyzeForm.days" :min="1" :max="30" style="width: 100%;" />
         </a-form-item>
       </a-form>
       <p style="color: var(--text-secondary); font-size: 12px; margin: 0;">
-        将最近 N 天事件与已存基线对比；分数 ≥ 阈值的事件作为异常输出。
+        {{ $t('compliance.analyze.footnote') }}
       </p>
     </a-modal>
   </div>
@@ -338,6 +343,7 @@ import {
   AlertOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
+import { useI18n } from 'vue-i18n'
 import { useWsStore } from '../stores/ws.js'
 import {
   parseIndicators,
@@ -351,6 +357,7 @@ import {
 } from '../utils/compliance-parser.js'
 
 const ws = useWsStore()
+const { t } = useI18n()
 
 const loading = ref(false)
 const matching = ref(false)
@@ -375,24 +382,25 @@ const matchResult = ref(null)
 const buildForm = reactive({ entity: '', days: 30 })
 const analyzeForm = reactive({ entity: '', threshold: 0.7, days: 1 })
 
-const indicatorColumns = [
-  { title: '类型', key: 'type', width: '120px' },
-  { title: '值', key: 'value' },
-  { title: '标签', key: 'labels', width: '160px' },
-  { title: '置信度', key: 'confidence', width: '90px' },
-  { title: '来源', key: 'source', width: '160px' },
-  { title: '最近见到', key: 'lastSeen', width: '160px' },
-  { title: '操作', key: 'action', width: '90px' },
-]
+// computed() so column titles re-render when the user toggles locale.
+const indicatorColumns = computed(() => [
+  { title: t('compliance.cols.type'), key: 'type', width: '120px' },
+  { title: t('compliance.cols.value'), key: 'value' },
+  { title: t('compliance.cols.labels'), key: 'labels', width: '160px' },
+  { title: t('compliance.cols.confidence'), key: 'confidence', width: '90px' },
+  { title: t('compliance.cols.source'), key: 'source', width: '160px' },
+  { title: t('compliance.cols.lastSeen'), key: 'lastSeen', width: '160px' },
+  { title: t('compliance.cols.action'), key: 'action', width: '90px' },
+])
 
-const uebaColumns = [
-  { title: '实体', key: 'entity', width: '180px' },
-  { title: '风险分', key: 'riskScore' },
-  { title: '事件数', key: 'eventCount', width: '90px' },
-  { title: '失败率', key: 'failureRate', width: '90px' },
-  { title: '资源数', key: 'uniqueResources', width: '90px' },
-  { title: '突发度', key: 'burstiness', width: '90px' },
-]
+const uebaColumns = computed(() => [
+  { title: t('compliance.cols.entity'), key: 'entity', width: '180px' },
+  { title: t('compliance.cols.riskScore'), key: 'riskScore' },
+  { title: t('compliance.cols.eventCount'), key: 'eventCount', width: '90px' },
+  { title: t('compliance.cols.failureRate'), key: 'failureRate', width: '90px' },
+  { title: t('compliance.cols.uniqueResources'), key: 'uniqueResources', width: '90px' },
+  { title: t('compliance.cols.burstiness'), key: 'burstiness', width: '90px' },
+])
 
 const filteredIndicators = computed(() => {
   if (!iocTypeFilter.value) return indicators.value
@@ -454,7 +462,7 @@ async function loadAll() {
     // Anomalies are loaded separately on demand (analyze) since they
     // require a baseline build first; just keep cached results.
   } catch (e) {
-    message.error('加载合规数据失败: ' + (e?.message || e))
+    message.error(t('compliance.msg.loadFailed') + ': ' + (e?.message || e))
   } finally {
     loading.value = false
   }
@@ -463,7 +471,7 @@ async function loadAll() {
 async function matchObservable() {
   const obs = matchForm.observable.trim()
   if (!obs) {
-    message.warning('请输入要匹配的可观测值')
+    message.warning(t('compliance.msg.matchEmpty'))
     return
   }
   matching.value = true
@@ -473,19 +481,19 @@ async function matchObservable() {
     const { output } = await ws.execute(cmd, 8000)
     const parsed = parseMatchResult(output)
     if (!parsed) {
-      message.error('匹配失败: ' + output.slice(0, 120))
+      message.error(t('compliance.msg.matchFailed') + ': ' + output.slice(0, 120))
       return
     }
     matchResult.value = parsed
     if (parsed.matched) {
-      message.warning(`命中威胁指标 (${parsed.type})`)
+      message.warning(t('compliance.msg.matchHit', { type: parsed.type }))
     } else if (parsed.type === 'unknown') {
-      message.info('无法识别该可观测值类型')
+      message.info(t('compliance.msg.matchUnknownType'))
     } else {
-      message.success(`未命中（已识别为 ${parsed.type}）`)
+      message.success(t('compliance.msg.matchMiss', { type: parsed.type }))
     }
   } catch (e) {
-    message.error('匹配失败: ' + (e?.message || e))
+    message.error(t('compliance.msg.matchFailed') + ': ' + (e?.message || e))
   } finally {
     matching.value = false
   }
@@ -496,13 +504,13 @@ async function removeIndicator(record) {
     const cmd = `compliance threat-intel remove ${record.type} "${record.value.replace(/"/g, '\\"')}" --json`
     const { output } = await ws.execute(cmd, 8000)
     if (/error|失败/i.test(output) && !/"removed"/.test(output)) {
-      message.error('删除失败: ' + output.slice(0, 120))
+      message.error(t('compliance.msg.deleteFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('指标已删除')
+    message.success(t('compliance.msg.deleteSuccess'))
     await loadAll()
   } catch (e) {
-    message.error('删除失败: ' + (e?.message || e))
+    message.error(t('compliance.msg.deleteFailed') + ': ' + (e?.message || e))
   }
 }
 
@@ -517,20 +525,20 @@ async function buildBaseline() {
     const err = detectUebaError(output)
     if (err.noAuditLog) {
       uebaError.value = err
-      message.warning('audit_log 表为空，无法构建基线')
+      message.warning(t('compliance.msg.auditEmptyBuild'))
       showBuildModal.value = false
       return
     }
     if (err.error) {
-      message.error('构建失败: ' + err.error)
+      message.error(t('compliance.msg.buildFailed') + ': ' + err.error)
       return
     }
-    message.success('基线已构建')
+    message.success(t('compliance.msg.buildSuccess'))
     showBuildModal.value = false
     activeTab.value = 'ueba'
     await loadAll()
   } catch (e) {
-    message.error('构建失败: ' + (e?.message || e))
+    message.error(t('compliance.msg.buildFailed') + ': ' + (e?.message || e))
   } finally {
     building.value = false
   }
@@ -548,20 +556,20 @@ async function runAnalyze() {
     const err = detectUebaError(output)
     if (err.noAuditLog) {
       uebaError.value = err
-      message.warning('audit_log 表为空，无可分析事件')
+      message.warning(t('compliance.msg.auditEmptyAnalyze'))
       showAnalyzeModal.value = false
       return
     }
     if (err.error && !output.includes('[')) {
-      message.error('分析失败: ' + err.error)
+      message.error(t('compliance.msg.analyzeFailed') + ': ' + err.error)
       return
     }
     anomalies.value = parseAnomalies(output)
-    message.success(`分析完成，发现 ${anomalies.value.length} 个异常`)
+    message.success(t('compliance.msg.analyzeSuccess', { n: anomalies.value.length }))
     showAnalyzeModal.value = false
     activeTab.value = 'ueba'
   } catch (e) {
-    message.error('分析失败: ' + (e?.message || e))
+    message.error(t('compliance.msg.analyzeFailed') + ': ' + (e?.message || e))
   } finally {
     analyzing.value = false
   }

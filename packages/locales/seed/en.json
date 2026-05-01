@@ -41,5 +41,111 @@
     "streaming": "Streaming...",
     "done": "Done",
     "waitingFirstToken": "Waiting for first token..."
+  },
+  "compliance": {
+    "title": "Compliance & Threat Intel",
+    "subtitle": "Threat indicators (IoC) · User behaviour analytics (UEBA)",
+    "refresh": "Refresh",
+    "actionDropdown": "Actions ▼",
+    "actions": {
+      "match": "Match indicator",
+      "uebaBuild": "Build baseline",
+      "uebaAnalyze": "Run analysis"
+    },
+    "stats": {
+      "iocTotal": "Total IoCs",
+      "iocTypes": "IoC types",
+      "riskEntities": "Risk entities",
+      "highRisk": "High risk (≥70)",
+      "recentAnomalies": "Recent anomalies"
+    },
+    "typeBreakdown": "IoC type breakdown",
+    "tabs": {
+      "threat": "Threat intel",
+      "ueba": "Behaviour analytics (UEBA)"
+    },
+    "filter": { "all": "All" },
+    "cols": {
+      "type": "Type",
+      "value": "Value",
+      "labels": "Labels",
+      "confidence": "Confidence",
+      "source": "Source",
+      "lastSeen": "Last seen",
+      "action": "Action",
+      "entity": "Entity",
+      "riskScore": "Risk score",
+      "eventCount": "Events",
+      "failureRate": "Failure rate",
+      "uniqueResources": "Resources",
+      "burstiness": "Burstiness"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this indicator?",
+      "deleteOk": "Delete",
+      "cancel": "Cancel",
+      "emptyThreatsLine1": "No threat indicators yet. Import a STIX bundle via CLI:",
+      "emptyAuditEntities": "Audit log empty — no entities to analyse",
+      "emptyRiskEntities": "No risk entities yet",
+      "noAnomalies": "No anomalies"
+    },
+    "ueba": {
+      "noAuditLog": "Audit log empty",
+      "noAuditLogDesc": "UEBA reads from the audit_log table. Trigger a few audited actions first (cc auth login / cc note add), then come back and click \"Build baseline\".",
+      "errorMessage": "UEBA error: {err}",
+      "topRiskTitle": "Top risk entities (Top {count})",
+      "anomalyTitle": "Recent anomalies ({count})"
+    },
+    "match": {
+      "modalTitle": "Match threat indicator",
+      "ok": "Match",
+      "close": "Close",
+      "label": "Observable",
+      "placeholder": "IP / domain / URL / email / file hash",
+      "result": "Match result",
+      "hit": "Hit",
+      "miss": "Miss",
+      "detectType": "Detected type:",
+      "sourcePrefix": "Source:",
+      "confidencePrefix": "Confidence:"
+    },
+    "build": {
+      "modalTitle": "Build UEBA baseline",
+      "ok": "Build",
+      "cancel": "Cancel",
+      "entityLabel": "Entity (optional)",
+      "entityPlaceholder": "leave blank for all entities",
+      "daysLabel": "Days",
+      "daysPlaceholder": "e.g. 30",
+      "footnote": "Reads the last N days of events from audit_log and computes per-entity event counts / failure rates / resource coverage."
+    },
+    "analyze": {
+      "modalTitle": "Run behaviour analysis",
+      "ok": "Analyse",
+      "cancel": "Cancel",
+      "entityLabel": "Entity (optional)",
+      "entityPlaceholder": "leave blank for all entities",
+      "thresholdLabel": "Threshold",
+      "daysLabel": "Days",
+      "footnote": "Compares the last N days of events to the stored baseline; events with score ≥ threshold are reported as anomalies."
+    },
+    "msg": {
+      "loadFailed": "Failed to load compliance data",
+      "matchEmpty": "Enter an observable to match",
+      "matchFailed": "Match failed",
+      "matchHit": "Threat indicator hit ({type})",
+      "matchUnknownType": "Could not classify the observable",
+      "matchMiss": "No hit (classified as {type})",
+      "deleteFailed": "Delete failed",
+      "deleteSuccess": "Indicator deleted",
+      "auditEmptyBuild": "audit_log is empty — cannot build baseline",
+      "buildFailed": "Build failed",
+      "buildSuccess": "Baseline built",
+      "auditEmptyAnalyze": "audit_log is empty — no events to analyse",
+      "analyzeFailed": "Analysis failed",
+      "analyzeSuccess": "Analysis complete — {n} anomalies found"
+    }
   }
 }

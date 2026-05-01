@@ -41,5 +41,111 @@
     "streaming": "流式接收中...",
     "done": "完成",
     "waitingFirstToken": "等待第一个 token..."
+  },
+  "compliance": {
+    "title": "合规与威胁情报",
+    "subtitle": "威胁指标 (IoC) · 用户行为分析 (UEBA)",
+    "refresh": "刷新",
+    "actionDropdown": "操作 ▼",
+    "actions": {
+      "match": "匹配指标",
+      "uebaBuild": "构建基线",
+      "uebaAnalyze": "行为分析"
+    },
+    "stats": {
+      "iocTotal": "IoC 总数",
+      "iocTypes": "IoC 类型",
+      "riskEntities": "风险实体",
+      "highRisk": "高风险 (≥70)",
+      "recentAnomalies": "近期异常"
+    },
+    "typeBreakdown": "IoC 类型分布",
+    "tabs": {
+      "threat": "威胁情报",
+      "ueba": "行为分析 (UEBA)"
+    },
+    "filter": { "all": "全部" },
+    "cols": {
+      "type": "类型",
+      "value": "值",
+      "labels": "标签",
+      "confidence": "置信度",
+      "source": "来源",
+      "lastSeen": "最近见到",
+      "action": "操作",
+      "entity": "实体",
+      "riskScore": "风险分",
+      "eventCount": "事件数",
+      "failureRate": "失败率",
+      "uniqueResources": "资源数",
+      "burstiness": "突发度"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "delete": "删除",
+      "deleteConfirm": "删除该指标？",
+      "deleteOk": "删除",
+      "cancel": "取消",
+      "emptyThreatsLine1": "暂无威胁指标。需通过 CLI 导入 STIX bundle:",
+      "emptyAuditEntities": "审计日志为空，无可分析实体",
+      "emptyRiskEntities": "暂无风险实体",
+      "noAnomalies": "无异常"
+    },
+    "ueba": {
+      "noAuditLog": "尚无审计日志",
+      "noAuditLogDesc": "UEBA 基于 audit_log 表的审计事件。先在桌面端或 CLI 触发一些受审计的操作（如 cc auth login / cc note add），再回来运行「构建基线」。",
+      "errorMessage": "UEBA 错误：{err}",
+      "topRiskTitle": "高风险实体 (Top {count})",
+      "anomalyTitle": "近期异常 ({count})"
+    },
+    "match": {
+      "modalTitle": "匹配威胁指标",
+      "ok": "匹配",
+      "close": "关闭",
+      "label": "可观测值",
+      "placeholder": "IP / 域名 / URL / 邮箱 / 文件哈希",
+      "result": "匹配结果",
+      "hit": "命中",
+      "miss": "未命中",
+      "detectType": "检测类型:",
+      "sourcePrefix": "来源:",
+      "confidencePrefix": "置信度:"
+    },
+    "build": {
+      "modalTitle": "构建 UEBA 基线",
+      "ok": "构建",
+      "cancel": "取消",
+      "entityLabel": "实体（可选）",
+      "entityPlaceholder": "留空则全量",
+      "daysLabel": "天数",
+      "daysPlaceholder": "例如 30",
+      "footnote": "从 audit_log 读取最近 N 天的事件，按实体计算事件计数 / 失败率 / 资源覆盖等基线指标。"
+    },
+    "analyze": {
+      "modalTitle": "运行行为分析",
+      "ok": "分析",
+      "cancel": "取消",
+      "entityLabel": "实体（可选）",
+      "entityPlaceholder": "留空则全量",
+      "thresholdLabel": "阈值",
+      "daysLabel": "天数",
+      "footnote": "将最近 N 天事件与已存基线对比；分数 ≥ 阈值的事件作为异常输出。"
+    },
+    "msg": {
+      "loadFailed": "加载合规数据失败",
+      "matchEmpty": "请输入要匹配的可观测值",
+      "matchFailed": "匹配失败",
+      "matchHit": "命中威胁指标 ({type})",
+      "matchUnknownType": "无法识别该可观测值类型",
+      "matchMiss": "未命中（已识别为 {type}）",
+      "deleteFailed": "删除失败",
+      "deleteSuccess": "指标已删除",
+      "auditEmptyBuild": "audit_log 表为空，无法构建基线",
+      "buildFailed": "构建失败",
+      "buildSuccess": "基线已构建",
+      "auditEmptyAnalyze": "audit_log 表为空，无可分析事件",
+      "analyzeFailed": "分析失败",
+      "analyzeSuccess": "分析完成，发现 {n} 个异常"
+    }
   }
 }

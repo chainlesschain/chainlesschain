@@ -19,6 +19,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { createI18n } from 'vue-i18n'
+
+vi.mock('ant-design-vue/es/locale/zh_CN', () => ({ default: { locale: 'zh_CN' } }))
+vi.mock('ant-design-vue/es/locale/en_US', () => ({ default: { locale: 'en_US' } }))
 
 const wsExecute = vi.fn()
 
@@ -32,6 +36,17 @@ vi.mock('../../src/stores/ws.js', () => ({
     connect: vi.fn(),
   }),
 }))
+
+// Real i18n with shared catalog so $t lookups + computed columns work
+// across views that use useI18n() in their script setup.
+const { messages, FALLBACK } = await import('@chainlesschain/locales')
+const i18n = createI18n({
+  legacy: false,
+  globalInjection: true,
+  locale: FALLBACK,
+  fallbackLocale: FALLBACK,
+  messages,
+})
 
 // ant-design-vue components are registered via app.component() in
 // plugins/antd.js at boot; the SFCs never import them. shallow mount's
@@ -56,7 +71,7 @@ const antStubs = Object.fromEntries(antTagNames.map((n) => [n, true]))
 
 const mountOpts = {
   shallow: true,
-  global: { renderStubDefaultSlot: true, stubs: antStubs },
+  global: { renderStubDefaultSlot: true, stubs: antStubs, plugins: [i18n] },
 }
 
 beforeEach(() => {
