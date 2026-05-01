@@ -2,21 +2,21 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">SLA 管理</h2>
-        <p class="page-sub">服务等级合约 · 指标记录 · 偏差检测 · 补偿计算</p>
+        <h2 class="page-title">{{ $t('sla.title') }}</h2>
+        <p class="page-sub">{{ $t('sla.subtitle') }}</p>
       </div>
       <a-space>
         <a-button :loading="loading" @click="loadAll">
           <template #icon><ReloadOutlined /></template>
-          刷新
+          {{ $t('sla.refresh') }}
         </a-button>
         <a-button @click="showRecordModal = true">
           <template #icon><LineChartOutlined /></template>
-          记录指标
+          {{ $t('sla.recordMetric') }}
         </a-button>
         <a-button type="primary" @click="showCreateModal = true">
           <template #icon><PlusOutlined /></template>
-          新建合约
+          {{ $t('sla.create') }}
         </a-button>
       </a-space>
     </div>
@@ -26,8 +26,8 @@
       v-if="errorState.noDb"
       type="info"
       show-icon
-      message="该模块需要项目级数据库"
-      description="`cc sla ...` 命令仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+      :message="$t('sla.noDb.message')"
+      :description="$t('sla.noDb.description')"
       style="margin-bottom: 16px;"
     />
 
@@ -35,7 +35,7 @@
     <a-row :gutter="[16, 16]" style="margin-bottom: 20px;">
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="合约总数" :value="stats.totalContracts" :value-style="{ color: '#1677ff', fontSize: '20px' }">
+          <a-statistic :title="$t('sla.stats.totalContracts')" :value="stats.totalContracts" :value-style="{ color: '#1677ff', fontSize: '20px' }">
             <template #prefix><FileProtectOutlined /></template>
           </a-statistic>
         </a-card>
@@ -43,7 +43,7 @@
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="活跃合约"
+            :title="$t('sla.stats.active')"
             :value="stats.activeContracts"
             :value-style="{ color: stats.activeContracts > 0 ? '#52c41a' : '#888', fontSize: '20px' }"
           >
@@ -54,7 +54,7 @@
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="合作组织"
+            :title="$t('sla.stats.orgs')"
             :value="stats.activeOrgs"
             :value-style="{ color: '#722ed1', fontSize: '20px' }"
             :suffix="stats.maxActiveSlasPerOrg ? `· cap=${stats.maxActiveSlasPerOrg}` : ''"
@@ -66,7 +66,7 @@
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="违规总数"
+            :title="$t('sla.stats.violations')"
             :value="stats.violations.total"
             :value-style="{ color: stats.violations.total > 0 ? '#ff4d4f' : '#888', fontSize: '20px' }"
           >
@@ -77,7 +77,7 @@
       <a-col :xs="24" :sm="8" :lg="4">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="累计补偿"
+            :title="$t('sla.stats.compensation')"
             :value="stats.violations.totalCompensation"
             :precision="2"
             :value-style="{ color: '#faad14', fontSize: '20px' }"
@@ -90,7 +90,7 @@
 
     <!-- Tier catalogue -->
     <a-card
-      title="SLA 等级"
+      :title="$t('sla.tierCard')"
       size="small"
       style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 20px;"
       :body-style="{ padding: '12px 16px' }"
@@ -100,13 +100,13 @@
           <div class="tier-pill" :style="{ borderLeftColor: tierBarColor(t.name) }">
             <div class="tier-head">
               <a-tag :color="tierColor(t.name)" style="font-family: monospace; font-size: 13px;">{{ t.name.toUpperCase() }}</a-tag>
-              <span class="tier-comp">补偿率 {{ (t.compensationRate * 100).toFixed(1) }}%</span>
+              <span class="tier-comp">{{ $t('sla.tierCompRate', { pct: (t.compensationRate * 100).toFixed(1) }) }}</span>
             </div>
             <div class="tier-terms">
-              <span class="tier-term">可用性 ≥ {{ (t.availability * 100).toFixed(2) }}%</span>
-              <span class="tier-term">p95 ≤ {{ t.maxResponseTime }}ms</span>
-              <span class="tier-term">RPS ≥ {{ t.minThroughput }}</span>
-              <span class="tier-term">错误率 ≤ {{ (t.maxErrorRate * 100).toFixed(2) }}%</span>
+              <span class="tier-term">{{ $t('sla.tierTerms.availability', { pct: (t.availability * 100).toFixed(2) }) }}</span>
+              <span class="tier-term">{{ $t('sla.tierTerms.p95', { ms: t.maxResponseTime }) }}</span>
+              <span class="tier-term">{{ $t('sla.tierTerms.rps', { n: t.minThroughput }) }}</span>
+              <span class="tier-term">{{ $t('sla.tierTerms.errorRate', { pct: (t.maxErrorRate * 100).toFixed(2) }) }}</span>
             </div>
           </div>
         </a-col>
@@ -116,14 +116,14 @@
     <!-- Tabs -->
     <a-tabs v-model:activeKey="activeTab" class="sla-tabs">
       <!-- ── Contracts tab ────────────────────────────────────── -->
-      <a-tab-pane key="contracts" tab="合约">
+      <a-tab-pane key="contracts" :tab="$t('sla.tabs.contracts')">
         <div class="filter-bar">
           <a-radio-group v-model:value="tierFilter" size="small" button-style="solid">
-            <a-radio-button value="">全部等级</a-radio-button>
+            <a-radio-button value="">{{ $t('sla.filter.allTiers') }}</a-radio-button>
             <a-radio-button v-for="t in SLA_TIER_NAMES" :key="t" :value="t">{{ t.toUpperCase() }}</a-radio-button>
           </a-radio-group>
           <a-radio-group v-model:value="statusFilter" size="small">
-            <a-radio-button value="">全部状态</a-radio-button>
+            <a-radio-button value="">{{ $t('sla.filter.allStatuses') }}</a-radio-button>
             <a-radio-button v-for="s in SLA_STATUSES" :key="s" :value="s">{{ statusLabel(s) }}</a-radio-button>
           </a-radio-group>
         </div>
@@ -131,7 +131,7 @@
         <a-table
           :columns="contractColumns"
           :data-source="filteredContracts"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 个合约` }"
+          :pagination="{ pageSize: 20, showTotal: (t) => $t('sla.table.contractsSuffix', { n: t }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -156,34 +156,34 @@
               <span style="color: var(--text-secondary); font-size: 11px;">{{ formatSlaTime(record.endDate) }}</span>
             </template>
             <template v-if="column.key === 'action'">
-              <a-button size="small" type="link" @click="viewMetrics(record)">指标</a-button>
-              <a-button size="small" type="link" @click="checkContract(record)">检查</a-button>
-              <a-button size="small" type="link" @click="viewReport(record)">报告</a-button>
+              <a-button size="small" type="link" @click="viewMetrics(record)">{{ $t('sla.table.actionMetrics') }}</a-button>
+              <a-button size="small" type="link" @click="checkContract(record)">{{ $t('sla.table.actionCheck') }}</a-button>
+              <a-button size="small" type="link" @click="viewReport(record)">{{ $t('sla.table.actionReport') }}</a-button>
               <a-popconfirm
                 v-if="record.status === 'active'"
-                title="终止该合约？"
-                ok-text="终止"
-                cancel-text="取消"
+                :title="$t('sla.terminateConfirm.title')"
+                :ok-text="$t('sla.terminateConfirm.ok')"
+                :cancel-text="$t('sla.terminateConfirm.cancel')"
                 @confirm="terminateContract(record)"
               >
-                <a-button size="small" type="link" danger>终止</a-button>
+                <a-button size="small" type="link" danger>{{ $t('sla.terminateConfirm.ok') }}</a-button>
               </a-popconfirm>
             </template>
           </template>
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <FileProtectOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              {{ tierFilter || statusFilter ? '没有符合条件的合约' : '暂无合约，点"新建合约"创建第一个' }}
+              {{ tierFilter || statusFilter ? $t('sla.table.emptyContractsFiltered') : $t('sla.table.emptyContracts') }}
             </div>
           </template>
         </a-table>
       </a-tab-pane>
 
       <!-- ── Violations tab ───────────────────────────────────── -->
-      <a-tab-pane key="violations" tab="违规">
+      <a-tab-pane key="violations" :tab="$t('sla.tabs.violations')">
         <div class="filter-bar">
           <a-radio-group v-model:value="severityFilter" size="small" button-style="solid">
-            <a-radio-button value="">全部严重度</a-radio-button>
+            <a-radio-button value="">{{ $t('sla.filter.allSeverities') }}</a-radio-button>
             <a-radio-button v-for="s in VIOLATION_SEVERITIES" :key="s" :value="s">{{ severityLabel(s) }}</a-radio-button>
           </a-radio-group>
         </div>
@@ -191,7 +191,7 @@
         <a-table
           :columns="violationColumns"
           :data-source="filteredViolations"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (t) => $t('sla.table.totalSuffix', { n: t }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -222,30 +222,30 @@
             </template>
             <template v-if="column.key === 'compensation'">
               <span v-if="record.compensationAmount !== null" style="color: #faad14; font-weight: 500;">{{ record.compensationAmount.toFixed(2) }}</span>
-              <span v-else style="color: var(--text-muted);">未计算</span>
+              <span v-else style="color: var(--text-muted);">{{ $t('sla.table.uncomputed') }}</span>
             </template>
             <template v-if="column.key === 'occurredAt'">
               <span style="color: var(--text-secondary); font-size: 11px;">{{ formatSlaTime(record.occurredAt) }}</span>
             </template>
             <template v-if="column.key === 'action'">
-              <a-button v-if="record.compensationAmount === null" size="small" type="link" @click="computeCompensation(record)">计算补偿</a-button>
-              <a-button v-else size="small" type="link" @click="viewCompensation(record)">查看</a-button>
+              <a-button v-if="record.compensationAmount === null" size="small" type="link" @click="computeCompensation(record)">{{ $t('sla.table.actionComputeComp') }}</a-button>
+              <a-button v-else size="small" type="link" @click="viewCompensation(record)">{{ $t('sla.table.actionView') }}</a-button>
             </template>
           </template>
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <CheckCircleOutlined style="font-size: 36px; margin-bottom: 10px; display: block; color: #52c41a;" />
-              {{ severityFilter ? '没有符合条件的违规' : '暂无违规记录' }}
+              {{ severityFilter ? $t('sla.table.emptyViolationsFiltered') : $t('sla.table.emptyViolations') }}
             </div>
           </template>
         </a-table>
       </a-tab-pane>
 
       <!-- ── Breakdown tab ────────────────────────────────────── -->
-      <a-tab-pane key="breakdown" tab="分布统计">
+      <a-tab-pane key="breakdown" :tab="$t('sla.tabs.breakdown')">
         <a-row :gutter="[16, 16]">
           <a-col :xs="24" :lg="12">
-            <a-card title="合约 — 按状态" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 12px;">
+            <a-card :title="$t('sla.breakdown.contractsByStatus')" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 12px;">
               <div v-for="s in SLA_STATUSES" :key="s" class="bd-row">
                 <a-tag :color="statusColor(s)" style="min-width: 80px; text-align: center;">{{ statusLabel(s) }}</a-tag>
                 <a-progress
@@ -257,7 +257,7 @@
                 />
               </div>
             </a-card>
-            <a-card title="合约 — 按等级" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
+            <a-card :title="$t('sla.breakdown.contractsByTier')" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
               <div v-for="t in SLA_TIER_NAMES" :key="t" class="bd-row">
                 <a-tag :color="tierColor(t)" style="min-width: 80px; text-align: center; font-family: monospace;">{{ t.toUpperCase() }}</a-tag>
                 <a-progress
@@ -271,7 +271,7 @@
             </a-card>
           </a-col>
           <a-col :xs="24" :lg="12">
-            <a-card title="违规 — 按严重度" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 12px;">
+            <a-card :title="$t('sla.breakdown.violationsBySeverity')" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 12px;">
               <div v-for="s in VIOLATION_SEVERITIES" :key="s" class="bd-row">
                 <a-tag :color="severityColor(s)" style="min-width: 80px; text-align: center;">{{ severityLabel(s) }}</a-tag>
                 <a-progress
@@ -283,7 +283,7 @@
                 />
               </div>
             </a-card>
-            <a-card title="违规 — 按指标" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
+            <a-card :title="$t('sla.breakdown.violationsByTerm')" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
               <div v-for="t in SLA_TERMS_LIST" :key="t" class="bd-row">
                 <a-tag color="default" style="min-width: 110px; text-align: center; font-family: monospace; font-size: 11px;">{{ termLabel(t) }}</a-tag>
                 <a-progress
@@ -303,29 +303,29 @@
     <!-- ── Create contract modal ──────────────────────────────── -->
     <a-modal
       v-model:open="showCreateModal"
-      title="新建 SLA 合约"
+      :title="$t('sla.create_modal.title')"
       :confirm-loading="creating"
       :width="540"
-      ok-text="创建"
-      cancel-text="取消"
+      :ok-text="$t('sla.create_modal.ok')"
+      :cancel-text="$t('sla.create_modal.cancel')"
       @ok="submitCreate"
       @cancel="resetCreateForm"
     >
       <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-        <a-form-item label="组织 ID" required>
-          <a-input v-model:value="createForm.orgId" placeholder="例如 org-acme" />
+        <a-form-item :label="$t('sla.create_modal.orgLabel')" required>
+          <a-input v-model:value="createForm.orgId" :placeholder="$t('sla.create_modal.orgPlaceholder')" />
         </a-form-item>
-        <a-form-item label="等级" required>
+        <a-form-item :label="$t('sla.create_modal.tierLabel')" required>
           <a-select v-model:value="createForm.tier">
             <a-select-option v-for="t in SLA_TIER_NAMES" :key="t" :value="t">{{ t.toUpperCase() }}</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="月费">
+        <a-form-item :label="$t('sla.create_modal.feeLabel')">
           <a-input-number v-model:value="createForm.monthlyFee" :min="0" :step="100" style="width: 160px;" />
         </a-form-item>
-        <a-form-item label="期限 (天)">
+        <a-form-item :label="$t('sla.create_modal.durationLabel')">
           <a-input-number v-model:value="createForm.durationDays" :min="1" :step="30" style="width: 160px;" />
-          <span style="margin-left: 8px; color: var(--text-muted); font-size: 12px;">默认 30 天</span>
+          <span style="margin-left: 8px; color: var(--text-muted); font-size: 12px;">{{ $t('sla.create_modal.durationHint') }}</span>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -333,29 +333,29 @@
     <!-- ── Record metric modal ────────────────────────────────── -->
     <a-modal
       v-model:open="showRecordModal"
-      title="记录指标"
+      :title="$t('sla.record_modal.title')"
       :confirm-loading="recording"
       :width="540"
-      ok-text="记录"
-      cancel-text="取消"
+      :ok-text="$t('sla.record_modal.ok')"
+      :cancel-text="$t('sla.record_modal.cancel')"
       @ok="submitRecord"
       @cancel="resetRecordForm"
     >
       <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-        <a-form-item label="SLA" required>
+        <a-form-item :label="$t('sla.record_modal.slaLabel')" required>
           <a-select
             v-model:value="recordForm.slaId"
-            placeholder="选择合约"
+            :placeholder="$t('sla.record_modal.slaPlaceholder')"
             :options="contracts.map(c => ({ value: c.slaId, label: `${c.slaId.slice(0, 8)} · ${c.orgId} [${c.tier}]` }))"
             show-search
           />
         </a-form-item>
-        <a-form-item label="指标" required>
+        <a-form-item :label="$t('sla.record_modal.termLabel')" required>
           <a-select v-model:value="recordForm.term">
             <a-select-option v-for="t in SLA_TERMS_LIST" :key="t" :value="t">{{ termLabel(t) }}</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="数值" required>
+        <a-form-item :label="$t('sla.record_modal.valueLabel')" required>
           <a-input-number v-model:value="recordForm.value" :step="0.01" style="width: 200px;" />
           <div style="color: var(--text-muted); font-size: 11px; margin-top: 4px;">{{ termHint(recordForm.term) }}</div>
         </a-form-item>
@@ -365,22 +365,22 @@
     <!-- ── Metrics modal ──────────────────────────────────────── -->
     <a-modal
       v-model:open="showMetricsModal"
-      :title="`指标聚合：${currentContract?.slaId?.slice(0, 12) || ''}`"
+      :title="$t('sla.metrics_modal.title', { id: currentContract?.slaId?.slice(0, 12) || '' })"
       :width="640"
       :footer="null"
     >
       <div v-if="currentContract" style="padding-top: 8px;">
         <a-descriptions :column="2" size="small" bordered>
-          <a-descriptions-item label="组织">{{ currentContract.orgId }}</a-descriptions-item>
-          <a-descriptions-item label="等级">
+          <a-descriptions-item :label="$t('sla.metrics_modal.org')">{{ currentContract.orgId }}</a-descriptions-item>
+          <a-descriptions-item :label="$t('sla.metrics_modal.tier')">
             <a-tag :color="tierColor(currentContract.tier)">{{ currentContract.tier.toUpperCase() }}</a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="样本数">{{ currentMetrics.totalSamples }}</a-descriptions-item>
-          <a-descriptions-item label="月费">{{ currentContract.monthlyFee.toFixed(2) }}</a-descriptions-item>
+          <a-descriptions-item :label="$t('sla.metrics_modal.samples')">{{ currentMetrics.totalSamples }}</a-descriptions-item>
+          <a-descriptions-item :label="$t('sla.metrics_modal.monthlyFee')">{{ currentContract.monthlyFee.toFixed(2) }}</a-descriptions-item>
         </a-descriptions>
 
-        <h4 style="color: var(--text-primary); font-size: 13px; margin: 16px 0 10px;">按指标聚合</h4>
-        <a-empty v-if="!Object.keys(currentMetrics.byTerm).length" description="尚无指标数据" :image="EMPTY_IMG" />
+        <h4 style="color: var(--text-primary); font-size: 13px; margin: 16px 0 10px;">{{ $t('sla.metrics_modal.byTerm') }}</h4>
+        <a-empty v-if="!Object.keys(currentMetrics.byTerm).length" :description="$t('sla.metrics_modal.empty')" :image="EMPTY_IMG" />
         <a-table
           v-else
           :columns="aggColumns"
@@ -407,15 +407,15 @@
     <!-- ── Check result modal ─────────────────────────────────── -->
     <a-modal
       v-model:open="showCheckModal"
-      :title="`违规检测：${currentContract?.slaId?.slice(0, 12) || ''}`"
+      :title="$t('sla.check_modal.title', { id: currentContract?.slaId?.slice(0, 12) || '' })"
       :width="640"
       :footer="null"
     >
       <div v-if="currentCheck" style="padding-top: 8px;">
         <a-result
           :status="currentCheck.totalViolations === 0 ? 'success' : 'warning'"
-          :title="currentCheck.totalViolations === 0 ? '未检测到违规' : `检测到 ${currentCheck.totalViolations} 项违规`"
-          :sub-title="`检测时间: ${formatSlaTime(currentCheck.checkedAt)}`"
+          :title="currentCheck.totalViolations === 0 ? $t('sla.check_modal.noViolations') : $t('sla.check_modal.withViolations', { n: currentCheck.totalViolations })"
+          :sub-title="$t('sla.check_modal.checkedAt', { time: formatSlaTime(currentCheck.checkedAt) })"
         />
         <a-list v-if="currentCheck.totalViolations > 0" size="small" :data-source="currentCheck.violations">
           <template #renderItem="{ item }">
@@ -423,7 +423,7 @@
               <a-tag :color="severityColor(item.severity)" style="min-width: 50px; text-align: center;">{{ severityLabel(item.severity) }}</a-tag>
               <span style="margin-left: 8px; font-family: monospace; font-size: 12px;">{{ termLabel(item.term) }}</span>
               <span style="margin-left: 8px; color: var(--text-secondary); font-size: 12px;">
-                期望 {{ formatTermValue(item.term, item.expectedValue) }} · 实际 {{ formatTermValue(item.term, item.actualValue) }}
+                {{ $t('sla.check_modal.expectedActual', { expected: formatTermValue(item.term, item.expectedValue), actual: formatTermValue(item.term, item.actualValue) }) }}
               </span>
               <span style="margin-left: auto; color: #ff4d4f; font-weight: 500;">{{ item.deviationPercent.toFixed(2) }}%</span>
             </a-list-item>
@@ -435,7 +435,7 @@
     <!-- ── Report modal ───────────────────────────────────────── -->
     <a-modal
       v-model:open="showReportModal"
-      :title="`合规报告：${currentContract?.slaId?.slice(0, 12) || ''}`"
+      :title="$t('sla.report_modal.title', { id: currentContract?.slaId?.slice(0, 12) || '' })"
       :width="720"
       :footer="null"
     >
@@ -443,7 +443,7 @@
         <a-row :gutter="12" style="margin-bottom: 16px;">
           <a-col :span="8">
             <a-statistic
-              title="合规率"
+              :title="$t('sla.report_modal.compliance')"
               :value="currentReport.compliance * 100"
               suffix="%"
               :precision="2"
@@ -451,14 +451,14 @@
             />
           </a-col>
           <a-col :span="8">
-            <a-statistic title="违规总数" :value="currentReport.violations.total" :value-style="{ color: '#ff4d4f', fontSize: '20px' }" />
+            <a-statistic :title="$t('sla.report_modal.violations')" :value="currentReport.violations.total" :value-style="{ color: '#ff4d4f', fontSize: '20px' }" />
           </a-col>
           <a-col :span="8">
-            <a-statistic title="累计补偿" :value="currentReport.violations.totalCompensation" :precision="2" :value-style="{ color: '#faad14', fontSize: '20px' }" />
+            <a-statistic :title="$t('sla.report_modal.compensation')" :value="currentReport.violations.totalCompensation" :precision="2" :value-style="{ color: '#faad14', fontSize: '20px' }" />
           </a-col>
         </a-row>
 
-        <h4 style="color: var(--text-primary); font-size: 13px; margin: 16px 0 8px;">违规分布 — 按严重度</h4>
+        <h4 style="color: var(--text-primary); font-size: 13px; margin: 16px 0 8px;">{{ $t('sla.breakdown.violationsBySeverityHeader') }}</h4>
         <div v-for="s in VIOLATION_SEVERITIES" :key="s" class="bd-row">
           <a-tag :color="severityColor(s)" style="min-width: 80px; text-align: center;">{{ severityLabel(s) }}</a-tag>
           <a-progress
@@ -470,7 +470,7 @@
           />
         </div>
 
-        <h4 v-if="Object.keys(currentReport.metricsByTerm).length" style="color: var(--text-primary); font-size: 13px; margin: 16px 0 8px;">指标聚合</h4>
+        <h4 v-if="Object.keys(currentReport.metricsByTerm).length" style="color: var(--text-primary); font-size: 13px; margin: 16px 0 8px;">{{ $t('sla.breakdown.metricsAggregation') }}</h4>
         <a-table
           v-if="Object.keys(currentReport.metricsByTerm).length"
           :columns="aggColumns"
@@ -497,25 +497,25 @@
     <!-- ── Compensation modal ─────────────────────────────────── -->
     <a-modal
       v-model:open="showCompensationModal"
-      :title="`补偿计算：${currentViolation?.violationId?.slice(0, 12) || ''}`"
+      :title="$t('sla.compensation_modal.title', { id: currentViolation?.violationId?.slice(0, 12) || '' })"
       :width="540"
       :footer="null"
     >
       <div v-if="currentCompensation" style="padding-top: 8px;">
         <a-descriptions :column="2" size="small" bordered>
-          <a-descriptions-item label="违规 ID" :span="2">
+          <a-descriptions-item :label="$t('sla.compensation_modal.violationId')" :span="2">
             <span style="font-family: monospace; font-size: 12px;">{{ currentCompensation.violationId }}</span>
           </a-descriptions-item>
-          <a-descriptions-item label="严重度">
+          <a-descriptions-item :label="$t('sla.compensation_modal.severity')">
             <a-tag :color="severityColor(currentCompensation.severity)">{{ severityLabel(currentCompensation.severity) }}</a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="基础金额">
+          <a-descriptions-item :label="$t('sla.compensation_modal.base')">
             <span style="font-family: monospace;">{{ currentCompensation.base.toFixed(4) }}</span>
           </a-descriptions-item>
-          <a-descriptions-item label="偏差倍数">
+          <a-descriptions-item :label="$t('sla.compensation_modal.multiplier')">
             <span style="font-family: monospace;">×{{ currentCompensation.multiplier.toFixed(2) }}</span>
           </a-descriptions-item>
-          <a-descriptions-item label="最终补偿">
+          <a-descriptions-item :label="$t('sla.compensation_modal.amount')">
             <span style="color: #faad14; font-weight: 600; font-family: monospace; font-size: 14px;">{{ currentCompensation.amount.toFixed(2) }}</span>
           </a-descriptions-item>
         </a-descriptions>
@@ -537,6 +537,7 @@ import {
   DollarOutlined,
 } from '@ant-design/icons-vue'
 import { message, Empty } from 'ant-design-vue'
+import { useI18n } from 'vue-i18n'
 import { useWsStore } from '../stores/ws.js'
 import {
   parseTiers,
@@ -557,6 +558,7 @@ import {
 } from '../utils/sla-parser.js'
 
 const ws = useWsStore()
+const { t } = useI18n()
 
 const EMPTY_IMG = Empty.PRESENTED_IMAGE_SIMPLE
 
@@ -600,37 +602,37 @@ const currentReport = ref(null)
 const currentViolation = ref(null)
 const currentCompensation = ref(null)
 
-const contractColumns = [
-  { title: 'SLA ID', key: 'slaId', width: '120px' },
-  { title: '组织', key: 'orgId', width: '160px' },
-  { title: '等级', key: 'tier', width: '90px' },
-  { title: '状态', key: 'status', width: '100px' },
-  { title: '月费', key: 'monthlyFee', width: '110px' },
-  { title: '到期', key: 'endDate', width: '160px' },
-  { title: '操作', key: 'action', width: '260px' },
-]
+const contractColumns = computed(() => [
+  { title: t('sla.contractCols.slaId'), key: 'slaId', width: '120px' },
+  { title: t('sla.contractCols.orgId'), key: 'orgId', width: '160px' },
+  { title: t('sla.contractCols.tier'), key: 'tier', width: '90px' },
+  { title: t('sla.contractCols.status'), key: 'status', width: '100px' },
+  { title: t('sla.contractCols.monthlyFee'), key: 'monthlyFee', width: '110px' },
+  { title: t('sla.contractCols.endDate'), key: 'endDate', width: '160px' },
+  { title: t('sla.contractCols.action'), key: 'action', width: '260px' },
+])
 
-const violationColumns = [
-  { title: 'ID', key: 'violationId', width: '120px' },
-  { title: '指标', key: 'term', width: '140px' },
-  { title: '严重度', key: 'severity', width: '100px' },
-  { title: '偏差', key: 'deviation', width: '180px' },
-  { title: '期望', key: 'expected', width: '110px' },
-  { title: '实际', key: 'actual', width: '110px' },
-  { title: '补偿', key: 'compensation', width: '110px' },
-  { title: '发生时间', key: 'occurredAt', width: '160px' },
-  { title: '操作', key: 'action', width: '120px' },
-]
+const violationColumns = computed(() => [
+  { title: t('sla.violationCols.id'), key: 'violationId', width: '120px' },
+  { title: t('sla.violationCols.term'), key: 'term', width: '140px' },
+  { title: t('sla.violationCols.severity'), key: 'severity', width: '100px' },
+  { title: t('sla.violationCols.deviation'), key: 'deviation', width: '180px' },
+  { title: t('sla.violationCols.expected'), key: 'expected', width: '110px' },
+  { title: t('sla.violationCols.actual'), key: 'actual', width: '110px' },
+  { title: t('sla.violationCols.compensation'), key: 'compensation', width: '110px' },
+  { title: t('sla.violationCols.occurredAt'), key: 'occurredAt', width: '160px' },
+  { title: t('sla.violationCols.action'), key: 'action', width: '120px' },
+])
 
-const aggColumns = [
-  { title: '指标', key: 'term', width: '140px' },
-  { title: '期望', key: 'expected', width: '110px' },
-  { title: '均值', key: 'mean', width: '110px' },
-  { title: 'p95', key: 'p95', width: '110px' },
-  { title: '最小', key: 'min', width: '110px' },
-  { title: '最大', key: 'max', width: '110px' },
-  { title: '样本数', key: 'count', width: '90px' },
-]
+const aggColumns = computed(() => [
+  { title: t('sla.aggCols.term'), key: 'term', width: '140px' },
+  { title: t('sla.aggCols.expected'), key: 'expected', width: '110px' },
+  { title: t('sla.aggCols.mean'), key: 'mean', width: '110px' },
+  { title: t('sla.aggCols.p95'), key: 'p95', width: '110px' },
+  { title: t('sla.aggCols.min'), key: 'min', width: '110px' },
+  { title: t('sla.aggCols.max'), key: 'max', width: '110px' },
+  { title: t('sla.aggCols.count'), key: 'count', width: '90px' },
+])
 
 const filteredContracts = computed(() => {
   let rows = contracts.value
@@ -684,7 +686,9 @@ function tierBarColor(t) {
 }
 
 function statusLabel(s) {
-  return { active: '活跃', expired: '已过期', terminated: '已终止' }[s] || s
+  const key = `sla.statusLabels.${s}`
+  const v = t(key)
+  return v === key ? s : v
 }
 function statusColor(s) {
   return { active: 'green', expired: 'default', terminated: 'red' }[s] || 'default'
@@ -693,22 +697,17 @@ function statusBarColor(s) {
   return { active: '#52c41a', expired: '#888', terminated: '#ff4d4f' }[s] || '#888'
 }
 
-function termLabel(t) {
-  return {
-    availability: '可用性',
-    response_time: '响应时间',
-    throughput: '吞吐量',
-    error_rate: '错误率',
-  }[t] || t
+function termLabel(term) {
+  const key = `sla.termLabels.${term}`
+  const v = t(key)
+  return v === key ? term : v
 }
 
-function termHint(t) {
-  return {
-    availability: '比例 0~1，例如 0.997',
-    response_time: '毫秒，例如 120',
-    throughput: '每秒请求数，例如 850',
-    error_rate: '比例 0~1，例如 0.003',
-  }[t] || ''
+function termHint(term) {
+  if (!term) return ''
+  const key = `sla.termHints.${term}`
+  const v = t(key)
+  return v === key ? '' : v
 }
 
 function formatTermValue(term, v) {
@@ -722,7 +721,9 @@ function formatTermValue(term, v) {
 }
 
 function severityLabel(s) {
-  return { minor: '轻微', moderate: '中等', major: '严重', critical: '关键' }[s] || s
+  const key = `sla.severityLabels.${s}`
+  const v = t(key)
+  return v === key ? s : v
 }
 function severityColor(s) {
   return { minor: 'default', moderate: 'gold', major: 'orange', critical: 'red' }[s] || 'default'
@@ -764,7 +765,7 @@ async function loadAll() {
     violations.value = parseViolations(violRes.output)
     stats.value = parseStatsV2(statsRes.output)
   } catch (e) {
-    message.error('加载 SLA 数据失败: ' + (e?.message || e))
+    message.error(t('sla.msg.loadFailed') + ': ' + (e?.message || e))
   } finally {
     loading.value = false
   }
@@ -772,7 +773,7 @@ async function loadAll() {
 
 async function submitCreate() {
   if (!createForm.orgId.trim()) {
-    message.warning('请填写组织 ID')
+    message.warning(t('sla.msg.orgEmpty'))
     return
   }
   creating.value = true
@@ -788,20 +789,20 @@ async function submitCreate() {
     const { output } = await ws.execute(parts.join(' '), 10000)
     const err = detectSlaError(output)
     if (err.noDb) {
-      message.error('需要先 cc init 初始化项目')
+      message.error(t('sla.msg.needCcInit'))
       return
     }
     const c = parseContract(output)
     if (!c) {
-      message.error('创建失败: ' + output.slice(0, 120))
+      message.error(t('sla.msg.createFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success(`合约已创建：${c.slaId.slice(0, 8)}`)
+    message.success(t('sla.msg.createSuccess', { id: c.slaId.slice(0, 8) }))
     showCreateModal.value = false
     resetCreateForm()
     await loadAll()
   } catch (e) {
-    message.error('创建失败: ' + (e?.message || e))
+    message.error(t('sla.msg.createFailed') + ': ' + (e?.message || e))
   } finally {
     creating.value = false
   }
@@ -809,11 +810,11 @@ async function submitCreate() {
 
 async function submitRecord() {
   if (!recordForm.slaId) {
-    message.warning('请选择 SLA 合约')
+    message.warning(t('sla.msg.slaEmpty'))
     return
   }
   if (recordForm.value === null || recordForm.value === undefined) {
-    message.warning('请填写指标数值')
+    message.warning(t('sla.msg.valueEmpty'))
     return
   }
   recording.value = true
@@ -824,18 +825,18 @@ async function submitRecord() {
     )
     const err = detectSlaError(output)
     if (err.noDb) {
-      message.error('需要先 cc init 初始化项目')
+      message.error(t('sla.msg.needCcInit'))
       return
     }
     if (!/"metricId"|"term"/.test(output)) {
-      message.error('记录失败: ' + output.slice(0, 120))
+      message.error(t('sla.msg.recordFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('指标已记录')
+    message.success(t('sla.msg.recordSuccess'))
     showRecordModal.value = false
     resetRecordForm()
   } catch (e) {
-    message.error('记录失败: ' + (e?.message || e))
+    message.error(t('sla.msg.recordFailed') + ': ' + (e?.message || e))
   } finally {
     recording.value = false
   }
@@ -846,17 +847,17 @@ async function terminateContract(record) {
     const { output } = await ws.execute(`sla terminate ${record.slaId}`, 8000)
     const err = detectSlaError(output)
     if (err.noDb) {
-      message.error('需要先 cc init 初始化项目')
+      message.error(t('sla.msg.needCcInit'))
       return
     }
     if (/Failed/i.test(output) && !/terminated/i.test(output)) {
-      message.error('终止失败: ' + output.slice(0, 120))
+      message.error(t('sla.msg.terminateFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('合约已终止')
+    message.success(t('sla.msg.terminateSuccess'))
     await loadAll()
   } catch (e) {
-    message.error('终止失败: ' + (e?.message || e))
+    message.error(t('sla.msg.terminateFailed') + ': ' + (e?.message || e))
   }
 }
 
@@ -868,7 +869,7 @@ async function viewMetrics(record) {
     const { output } = await ws.execute(`sla metrics ${record.slaId} --json`, 8000)
     currentMetrics.value = parseMetrics(output)
   } catch (e) {
-    message.error('加载指标失败: ' + (e?.message || e))
+    message.error(t('sla.msg.loadMetricsFailed') + ': ' + (e?.message || e))
   }
 }
 
@@ -880,7 +881,7 @@ async function checkContract(record) {
     const { output } = await ws.execute(`sla check ${record.slaId} --json`, 10000)
     const err = detectSlaError(output)
     if (err.noDb) {
-      message.error('需要先 cc init 初始化项目')
+      message.error(t('sla.msg.needCcInit'))
       return
     }
     currentCheck.value = parseCheckResult(output)
@@ -889,7 +890,7 @@ async function checkContract(record) {
       await loadAll()
     }
   } catch (e) {
-    message.error('检查失败: ' + (e?.message || e))
+    message.error(t('sla.msg.checkFailed') + ': ' + (e?.message || e))
   }
 }
 
@@ -901,7 +902,7 @@ async function viewReport(record) {
     const { output } = await ws.execute(`sla report ${record.slaId} --json`, 10000)
     currentReport.value = parseReport(output)
   } catch (e) {
-    message.error('加载报告失败: ' + (e?.message || e))
+    message.error(t('sla.msg.loadReportFailed') + ': ' + (e?.message || e))
   }
 }
 
@@ -912,18 +913,18 @@ async function computeCompensation(record) {
     const { output } = await ws.execute(`sla compensate ${record.violationId} --json`, 8000)
     const err = detectSlaError(output)
     if (err.noDb) {
-      message.error('需要先 cc init 初始化项目')
+      message.error(t('sla.msg.needCcInit'))
       return
     }
     currentCompensation.value = parseCompensation(output)
     if (!currentCompensation.value) {
-      message.error('计算失败: ' + output.slice(0, 120))
+      message.error(t('sla.msg.compFailed') + ': ' + output.slice(0, 120))
       return
     }
     showCompensationModal.value = true
     await loadAll()
   } catch (e) {
-    message.error('计算失败: ' + (e?.message || e))
+    message.error(t('sla.msg.compFailed') + ': ' + (e?.message || e))
   }
 }
 

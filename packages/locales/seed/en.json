@@ -804,6 +804,188 @@
       "heSuccess": "Computation complete ({scheme}/{op})"
     }
   },
+  "sla": {
+    "title": "SLA management",
+    "subtitle": "Service-level contracts · metric records · deviation detection · compensation",
+    "refresh": "Refresh",
+    "recordMetric": "Record metric",
+    "create": "New contract",
+    "noDb": {
+      "message": "This module requires a project-level database",
+      "description": "`cc sla ...` only works inside a chainlesschain project directory. Run `cc init` first, or start `cc serve` from an initialised directory."
+    },
+    "stats": {
+      "totalContracts": "Contracts",
+      "active": "Active",
+      "orgs": "Orgs",
+      "violations": "Violations",
+      "compensation": "Compensation"
+    },
+    "tierCard": "SLA tiers",
+    "tierCompRate": "Comp. rate {pct}%",
+    "tierTerms": {
+      "availability": "Availability ≥ {pct}%",
+      "p95": "p95 ≤ {ms}ms",
+      "rps": "RPS ≥ {n}",
+      "errorRate": "Error rate ≤ {pct}%"
+    },
+    "tabs": {
+      "contracts": "Contracts",
+      "violations": "Violations",
+      "breakdown": "Breakdown"
+    },
+    "filter": {
+      "allTiers": "All tiers",
+      "allStatuses": "All statuses",
+      "allSeverities": "All severities"
+    },
+    "table": {
+      "contractsSuffix": "{n} contracts",
+      "totalSuffix": "{n} total",
+      "uncomputed": "(uncomputed)",
+      "actionMetrics": "Metrics",
+      "actionCheck": "Check",
+      "actionReport": "Report",
+      "actionView": "View",
+      "actionComputeComp": "Compute comp.",
+      "emptyContractsFiltered": "No contracts match the current filter",
+      "emptyContracts": "No contracts yet — click \"New contract\"",
+      "emptyViolationsFiltered": "No violations match the current filter",
+      "emptyViolations": "No violations yet"
+    },
+    "terminateConfirm": {
+      "title": "Terminate this contract?",
+      "ok": "Terminate",
+      "cancel": "Cancel"
+    },
+    "contractCols": {
+      "slaId": "SLA ID",
+      "orgId": "Org",
+      "tier": "Tier",
+      "status": "Status",
+      "monthlyFee": "Fee",
+      "endDate": "Expires",
+      "action": "Action"
+    },
+    "violationCols": {
+      "id": "ID",
+      "term": "Term",
+      "severity": "Severity",
+      "deviation": "Deviation",
+      "expected": "Expected",
+      "actual": "Actual",
+      "compensation": "Comp.",
+      "occurredAt": "Occurred",
+      "action": "Action"
+    },
+    "aggCols": {
+      "term": "Term",
+      "expected": "Expected",
+      "mean": "Mean",
+      "p95": "p95",
+      "min": "Min",
+      "max": "Max",
+      "count": "Samples"
+    },
+    "breakdown": {
+      "contractsByStatus": "Contracts — by status",
+      "contractsByTier": "Contracts — by tier",
+      "violationsBySeverity": "Violations — by severity",
+      "violationsByTerm": "Violations — by term",
+      "violationsBySeverityHeader": "Violations — by severity",
+      "metricsAggregation": "Metrics aggregation"
+    },
+    "create_modal": {
+      "title": "New SLA contract",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "orgLabel": "Org ID",
+      "orgPlaceholder": "e.g. org-acme",
+      "tierLabel": "Tier",
+      "feeLabel": "Monthly fee",
+      "durationLabel": "Duration (days)",
+      "durationHint": "default 30"
+    },
+    "record_modal": {
+      "title": "Record metric",
+      "ok": "Record",
+      "cancel": "Cancel",
+      "slaLabel": "SLA",
+      "slaPlaceholder": "Pick contract",
+      "termLabel": "Term",
+      "valueLabel": "Value"
+    },
+    "metrics_modal": {
+      "title": "Metrics aggregation: {id}",
+      "org": "Org",
+      "tier": "Tier",
+      "samples": "Samples",
+      "monthlyFee": "Monthly fee",
+      "byTerm": "By term",
+      "empty": "No metric data yet"
+    },
+    "check_modal": {
+      "title": "Violation check: {id}",
+      "noViolations": "No violations detected",
+      "withViolations": "Detected {n} violations",
+      "checkedAt": "Checked at: {time}",
+      "expectedActual": "expected {expected} · actual {actual}"
+    },
+    "report_modal": {
+      "title": "Compliance report: {id}",
+      "compliance": "Compliance",
+      "violations": "Violations",
+      "compensation": "Compensation"
+    },
+    "compensation_modal": {
+      "title": "Compensation: {id}",
+      "violationId": "Violation ID",
+      "severity": "Severity",
+      "base": "Base",
+      "multiplier": "Multiplier",
+      "amount": "Final amount"
+    },
+    "statusLabels": {
+      "active": "Active",
+      "expired": "Expired",
+      "terminated": "Terminated"
+    },
+    "termLabels": {
+      "availability": "Availability",
+      "response_time": "Response time",
+      "throughput": "Throughput",
+      "error_rate": "Error rate"
+    },
+    "termHints": {
+      "availability": "Ratio 0~1, e.g. 0.997",
+      "response_time": "Milliseconds, e.g. 120",
+      "throughput": "Requests per second, e.g. 850",
+      "error_rate": "Ratio 0~1, e.g. 0.003"
+    },
+    "severityLabels": {
+      "minor": "Minor",
+      "moderate": "Moderate",
+      "major": "Major",
+      "critical": "Critical"
+    },
+    "msg": {
+      "loadFailed": "Failed to load SLA data",
+      "needCcInit": "Run `cc init` first to initialise the project",
+      "orgEmpty": "Enter an org ID",
+      "createFailed": "Create failed",
+      "createSuccess": "Contract created: {id}",
+      "slaEmpty": "Pick an SLA contract",
+      "valueEmpty": "Enter a metric value",
+      "recordFailed": "Record failed",
+      "recordSuccess": "Metric recorded",
+      "terminateFailed": "Terminate failed",
+      "terminateSuccess": "Contract terminated",
+      "loadMetricsFailed": "Failed to load metrics",
+      "checkFailed": "Check failed",
+      "loadReportFailed": "Failed to load report",
+      "compFailed": "Compute failed"
+    }
+  },
   "trust": {
     "title": "Trust & Security",
     "subtitle": "TPM/TEE attestation · PQC interop · Satellite messages · HSM devices",

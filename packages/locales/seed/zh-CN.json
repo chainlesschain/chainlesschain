@@ -804,6 +804,188 @@
       "heSuccess": "计算完成 ({scheme}/{op})"
     }
   },
+  "sla": {
+    "title": "SLA 管理",
+    "subtitle": "服务等级合约 · 指标记录 · 偏差检测 · 补偿计算",
+    "refresh": "刷新",
+    "recordMetric": "记录指标",
+    "create": "新建合约",
+    "noDb": {
+      "message": "该模块需要项目级数据库",
+      "description": "`cc sla ...` 命令仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+    },
+    "stats": {
+      "totalContracts": "合约总数",
+      "active": "活跃合约",
+      "orgs": "合作组织",
+      "violations": "违规总数",
+      "compensation": "累计补偿"
+    },
+    "tierCard": "SLA 等级",
+    "tierCompRate": "补偿率 {pct}%",
+    "tierTerms": {
+      "availability": "可用性 ≥ {pct}%",
+      "p95": "p95 ≤ {ms}ms",
+      "rps": "RPS ≥ {n}",
+      "errorRate": "错误率 ≤ {pct}%"
+    },
+    "tabs": {
+      "contracts": "合约",
+      "violations": "违规",
+      "breakdown": "分布统计"
+    },
+    "filter": {
+      "allTiers": "全部等级",
+      "allStatuses": "全部状态",
+      "allSeverities": "全部严重度"
+    },
+    "table": {
+      "contractsSuffix": "共 {n} 个合约",
+      "totalSuffix": "共 {n} 条",
+      "uncomputed": "未计算",
+      "actionMetrics": "指标",
+      "actionCheck": "检查",
+      "actionReport": "报告",
+      "actionView": "查看",
+      "actionComputeComp": "计算补偿",
+      "emptyContractsFiltered": "没有符合条件的合约",
+      "emptyContracts": "暂无合约，点\"新建合约\"创建第一个",
+      "emptyViolationsFiltered": "没有符合条件的违规",
+      "emptyViolations": "暂无违规记录"
+    },
+    "terminateConfirm": {
+      "title": "终止该合约？",
+      "ok": "终止",
+      "cancel": "取消"
+    },
+    "contractCols": {
+      "slaId": "SLA ID",
+      "orgId": "组织",
+      "tier": "等级",
+      "status": "状态",
+      "monthlyFee": "月费",
+      "endDate": "到期",
+      "action": "操作"
+    },
+    "violationCols": {
+      "id": "ID",
+      "term": "指标",
+      "severity": "严重度",
+      "deviation": "偏差",
+      "expected": "期望",
+      "actual": "实际",
+      "compensation": "补偿",
+      "occurredAt": "发生时间",
+      "action": "操作"
+    },
+    "aggCols": {
+      "term": "指标",
+      "expected": "期望",
+      "mean": "均值",
+      "p95": "p95",
+      "min": "最小",
+      "max": "最大",
+      "count": "样本数"
+    },
+    "breakdown": {
+      "contractsByStatus": "合约 — 按状态",
+      "contractsByTier": "合约 — 按等级",
+      "violationsBySeverity": "违规 — 按严重度",
+      "violationsByTerm": "违规 — 按指标",
+      "violationsBySeverityHeader": "违规分布 — 按严重度",
+      "metricsAggregation": "指标聚合"
+    },
+    "create_modal": {
+      "title": "新建 SLA 合约",
+      "ok": "创建",
+      "cancel": "取消",
+      "orgLabel": "组织 ID",
+      "orgPlaceholder": "例如 org-acme",
+      "tierLabel": "等级",
+      "feeLabel": "月费",
+      "durationLabel": "期限 (天)",
+      "durationHint": "默认 30 天"
+    },
+    "record_modal": {
+      "title": "记录指标",
+      "ok": "记录",
+      "cancel": "取消",
+      "slaLabel": "SLA",
+      "slaPlaceholder": "选择合约",
+      "termLabel": "指标",
+      "valueLabel": "数值"
+    },
+    "metrics_modal": {
+      "title": "指标聚合：{id}",
+      "org": "组织",
+      "tier": "等级",
+      "samples": "样本数",
+      "monthlyFee": "月费",
+      "byTerm": "按指标聚合",
+      "empty": "尚无指标数据"
+    },
+    "check_modal": {
+      "title": "违规检测：{id}",
+      "noViolations": "未检测到违规",
+      "withViolations": "检测到 {n} 项违规",
+      "checkedAt": "检测时间: {time}",
+      "expectedActual": "期望 {expected} · 实际 {actual}"
+    },
+    "report_modal": {
+      "title": "合规报告：{id}",
+      "compliance": "合规率",
+      "violations": "违规总数",
+      "compensation": "累计补偿"
+    },
+    "compensation_modal": {
+      "title": "补偿计算：{id}",
+      "violationId": "违规 ID",
+      "severity": "严重度",
+      "base": "基础金额",
+      "multiplier": "偏差倍数",
+      "amount": "最终补偿"
+    },
+    "statusLabels": {
+      "active": "活跃",
+      "expired": "已过期",
+      "terminated": "已终止"
+    },
+    "termLabels": {
+      "availability": "可用性",
+      "response_time": "响应时间",
+      "throughput": "吞吐量",
+      "error_rate": "错误率"
+    },
+    "termHints": {
+      "availability": "比例 0~1，例如 0.997",
+      "response_time": "毫秒，例如 120",
+      "throughput": "每秒请求数，例如 850",
+      "error_rate": "比例 0~1，例如 0.003"
+    },
+    "severityLabels": {
+      "minor": "轻微",
+      "moderate": "中等",
+      "major": "严重",
+      "critical": "关键"
+    },
+    "msg": {
+      "loadFailed": "加载 SLA 数据失败",
+      "needCcInit": "需要先 cc init 初始化项目",
+      "orgEmpty": "请填写组织 ID",
+      "createFailed": "创建失败",
+      "createSuccess": "合约已创建：{id}",
+      "slaEmpty": "请选择 SLA 合约",
+      "valueEmpty": "请填写指标数值",
+      "recordFailed": "记录失败",
+      "recordSuccess": "指标已记录",
+      "terminateFailed": "终止失败",
+      "terminateSuccess": "合约已终止",
+      "loadMetricsFailed": "加载指标失败",
+      "checkFailed": "检查失败",
+      "loadReportFailed": "加载报告失败",
+      "compFailed": "计算失败"
+    }
+  },
   "trust": {
     "title": "信任与安全",
     "subtitle": "TPM/TEE 证明 · PQC 互操作 · 卫星消息 · HSM 设备",
