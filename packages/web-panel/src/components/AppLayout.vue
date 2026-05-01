@@ -241,7 +241,10 @@
               class="lang-switch-btn"
               :data-locale="locale"
               @click="toggleLocale"
-            >{{ $t('language.switch') }}</button>
+            >
+              <GlobalOutlined class="lang-switch-icon" />
+              <span class="lang-switch-label">{{ $t('language.switch') }}</span>
+            </button>
           </a-tooltip>
 
           <span class="version-tag">{{ PRODUCT_VERSION }}</span>
@@ -602,18 +605,36 @@ onMounted(() => ws.connect())
 .ws-tag { margin: 0 !important; font-size: 11px; }
 
 .lang-switch-btn {
-  height: 26px;
-  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 12px;
   border: 1px solid var(--border-color);
-  border-radius: 13px;
+  border-radius: 14px;
   background: var(--bg-card);
-  color: var(--text-secondary);
-  font-size: 11px;
+  color: var(--text-primary);
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, transform 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s,
+    transform 0.15s;
 }
-.lang-switch-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); transform: scale(1.04); }
+.lang-switch-btn:hover {
+  background: var(--bg-card-hover);
+  color: #1677ff;
+  border-color: #1677ff;
+  transform: scale(1.04);
+}
+.lang-switch-icon {
+  font-size: 14px;
+}
+.lang-switch-label {
+  line-height: 1;
+}
 
 .shell-switch-btn {
   width: 26px;
