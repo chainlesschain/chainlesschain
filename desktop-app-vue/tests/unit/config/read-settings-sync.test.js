@@ -78,4 +78,83 @@ describe("readSettingsSync", () => {
     // for type-checking before reading deep keys.
     expect(readSettingsSync(tempUserData)).toBe(42);
   });
+
+  // Overlay: SystemSettings.vue writes ui.* to app-config.json (AppConfigManager).
+  // _readSettingsSync must surface those values so the boot-time
+  // shouldRunWebShell decision honors the SystemSettings switch.
+  describe("app-config.json ui overlay", () => {
+    it("overlays app-config.json's ui onto settings.json", () => {
+      fs.writeFileSync(
+        path.join(tempUserData, "settings.json"),
+        JSON.stringify({
+          ui: { useV6ShellByDefault: true, useWebShellExperimental: false },
+          general: { theme: "dark" },
+        }),
+      );
+      fs.writeFileSync(
+        path.join(tempUserData, "app-config.json"),
+        JSON.stringify({
+          ui: { useWebShellExperimental: true },
+        }),
+      );
+      const result = readSettingsSync(tempUserData);
+      expect(result.ui.useWebShellExperimental).toBe(true); // from app-config.json
+      expect(result.ui.useV6ShellByDefault).toBe(true); // from settings.json
+      expect(result.general.theme).toBe("dark"); // unrelated keys preserved
+    });
+
+    it("synthesizes ui block when only app-config.json has it", () => {
+      // No settings.json at all — only app-config.json.
+      fs.writeFileSync(
+        path.join(tempUserData, "app-config.json"),
+        JSON.stringify({
+          ui: { useWebShellExperimental: true, useV6ShellByDefault: false },
+        }),
+      );
+      const result = readSettingsSync(tempUserData);
+      expect(result).toEqual({
+        ui: { useWebShellExperimental: true, useV6ShellByDefault: false },
+      });
+    });
+
+    it("ignores non-object ui fields in app-config.json", () => {
+      fs.writeFileSync(
+        path.join(tempUserData, "settings.json"),
+        JSON.stringify({ ui: { useV6ShellByDefault: true } }),
+      );
+      fs.writeFileSync(
+        path.join(tempUserData, "app-config.json"),
+        JSON.stringify({ ui: "not an object" }),
+      );
+      const result = readSettingsSync(tempUserData);
+      expect(result).toEqual({ ui: { useV6ShellByDefault: true } });
+    });
+
+    it("malformed app-config.json does not poison settings.json read", () => {
+      fs.writeFileSync(
+        path.join(tempUserData, "settings.json"),
+        JSON.stringify({ ui: { useV6ShellByDefault: true } }),
+      );
+      fs.writeFileSync(
+        path.join(tempUserData, "app-config.json"),
+        "{ broken json",
+      );
+      const onError = vi.fn();
+      const result = readSettingsSync(tempUserData, { onError });
+      expect(result).toEqual({ ui: { useV6ShellByDefault: true } });
+      expect(onError).toHaveBeenCalled(); // app-config parse error reported
+    });
+
+    it("returns null when neither file exists", () => {
+      expect(readSettingsSync(tempUserData)).toBe(null);
+    });
+
+    it("settings.json absent + app-config.json without ui returns null", () => {
+      fs.writeFileSync(
+        path.join(tempUserData, "app-config.json"),
+        JSON.stringify({ database: { path: "/tmp" } }),
+      );
+      expect(readSettingsSync(tempUserData)).toBe(null);
+    });
+  });
 });

@@ -35,6 +35,15 @@ const DEFAULT_CONFIG = {
     maxSize: 10485760, // 10MB
     maxFiles: 5,
   },
+
+  // 界面/外壳设置
+  // SystemSettings.vue 通过 config:update 写入这里。Phase 1.3
+  // useWebShellExperimental 同时被 _readSettingsSync 在启动期读取
+  // (read-settings-sync.js 会层叠 app-config.json 的 ui 覆盖 settings.json)。
+  ui: {
+    useV6ShellByDefault: true,
+    useWebShellExperimental: false,
+  },
 };
 
 /**
@@ -74,6 +83,7 @@ class AppConfigManager {
             ...DEFAULT_CONFIG.logging,
             ...(savedConfig.logging || {}),
           },
+          ui: { ...DEFAULT_CONFIG.ui, ...(savedConfig.ui || {}) },
         };
         this.loaded = true;
         logger.info("[AppConfig] 配置异步加载成功");
@@ -155,6 +165,7 @@ class AppConfigManager {
             ...DEFAULT_CONFIG.logging,
             ...(savedConfig.logging || {}),
           },
+          ui: { ...DEFAULT_CONFIG.ui, ...(savedConfig.ui || {}) },
         };
 
         this.loaded = true;

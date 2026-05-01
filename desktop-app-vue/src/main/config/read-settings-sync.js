@@ -27,19 +27,21 @@ const path = require("path");
  *   Absolute path of Electron's userData (e.g. `app.getPath("userData")`).
  * @param {{ onError?: (err: Error) => void }} [options]
  *   Optional `onError` callback for logging — exception is still swallowed.
- * @returns {object | null} parsed settings.json contents, or null on miss / failure
+ * @returns {object | null} parsed settings.json contents (with app-config.json's
+ *   `ui.*` layered in on top so SystemSettings.vue toggles take effect at boot),
+ *   or null on miss / failure
  */
 function readSettingsSync(userDataPath, options = {}) {
   if (typeof userDataPath !== "string" || !userDataPath) {
     return null;
   }
+  let base = null;
   try {
     const settingsPath = path.join(userDataPath, "settings.json");
-    if (!fs.existsSync(settingsPath)) {
-      return null;
+    if (fs.existsSync(settingsPath)) {
+      const raw = fs.readFileSync(settingsPath, "utf8");
+      base = JSON.parse(raw);
     }
-    const raw = fs.readFileSync(settingsPath, "utf8");
-    return JSON.parse(raw);
   } catch (err) {
     if (typeof options.onError === "function") {
       try {
@@ -48,8 +50,53 @@ function readSettingsSync(userDataPath, options = {}) {
         /* swallow secondary failures */
       }
     }
+    base = null;
+  }
+
+  // SystemSettings.vue writes ui.* to app-config.json (AppConfigManager), not
+  // settings.json. Overlay app-config.json's `ui` so the boot-time
+  // shouldRunWebShell decision honors the SystemSettings switch.
+  let appUi = null;
+  try {
+    const appConfigPath = path.join(userDataPath, "app-config.json");
+    if (fs.existsSync(appConfigPath)) {
+      const raw = fs.readFileSync(appConfigPath, "utf8");
+      const parsed = JSON.parse(raw);
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        parsed.ui &&
+        typeof parsed.ui === "object"
+      ) {
+        appUi = parsed.ui;
+      }
+    }
+  } catch (err) {
+    if (typeof options.onError === "function") {
+      try {
+        options.onError(err);
+      } catch {
+        /* swallow */
+      }
+    }
+  }
+
+  if (!base && !appUi) {
     return null;
   }
+  if (!appUi) {
+    return base;
+  }
+  if (!base || typeof base !== "object") {
+    return { ui: { ...appUi } };
+  }
+  return {
+    ...base,
+    ui: {
+      ...(base.ui && typeof base.ui === "object" ? base.ui : {}),
+      ...appUi,
+    },
+  };
 }
 
 /**
