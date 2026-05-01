@@ -58,6 +58,7 @@ const routes = [
       { path: 'tenant',      name: 'Tenant',      component: () => import('../views/Tenant.vue') },
       { path: 'pipeline',    name: 'Pipeline',    component: () => import('../views/Pipeline.vue') },
       { path: 'video',       name: 'VideoEditing', component: () => import('../views/VideoEditing.vue') },
+      { path: 'mtc',         name: 'Mtc',         component: () => import('../views/Mtc.vue') },
     ]
   }
 ]

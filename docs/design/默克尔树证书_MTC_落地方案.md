@@ -427,6 +427,7 @@ export async function verifyMTC(
 
 ### Phase 4 — Desktop UI（部分落地）
 - [x] **V6 Preview Shell 状态 widget** — `MtcStatusPreviewWidget.vue` + `DecentralEntries` 顶部新增 MTC 入口，显示 audit-mtc enabled/批次间隔/staging count/最近批次/签名算法（Ed25519 vs SLH-DSA-128F）；IPC 缺失时优雅降级；6 单测覆盖
+- [x] **Web-panel /mtc 路由**（2026-05-02）— 三 tab：Audit 双轨状态（解析 `cc audit mtc status --json`）+ Marketplace publisher 历史（解析新增 `cc mtc publish-status --json`，13 单测）+ Envelope 验证工具（路径输入 + `cc mtc verify --json` 桥接）。新增 CLI 子命令 `cc mtc publish-status <state-file>` 让 web-panel 能查询 publisher 状态文件
 - [ ] DID 详情页面新增"MTC 包含证明"标签（待 Phase 4.2）
 - [ ] Marketplace 列表展示"已通过 MTC 验证"徽章（待 Phase 4.2）
 - [ ] 主进程 `electronAPI.mtc.getAuditStatus / getActiveAlg` IPC 通道（widget 已为此预留接口形状）

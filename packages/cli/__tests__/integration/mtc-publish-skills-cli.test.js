@@ -93,6 +93,57 @@ describe("cc mtc publish-skills — marketplace daemon (--once)", () => {
     expect(state.history).toHaveLength(1);
   });
 
+  it("publish-status reports exists=false for a missing state file", () => {
+    const r = runCli([
+      "mtc",
+      "publish-status",
+      path.join(tmpDir, "no-such-state.json"),
+      "--json",
+    ]);
+    expect(r.status, r.stderr).toBe(0);
+    const result = extractJson(r.stdout);
+    expect(result.ok).toBe(true);
+    expect(result.exists).toBe(false);
+  });
+
+  it("publish-status reads back state after a publish-skills run", () => {
+    const out = path.join(tmpDir, "out-status");
+    const stateFile = path.join(tmpDir, "state-for-status.json");
+    const publishR = runCli([
+      "mtc",
+      "publish-skills",
+      "--namespace-prefix",
+      "mtc/v1/skill",
+      "--issuer",
+      "mtca:cc:status-test",
+      "--out",
+      out,
+      "--state-file",
+      stateFile,
+      "--once",
+      "--json",
+    ]);
+    expect(publishR.status, publishR.stderr).toBe(0);
+    const publishResult = extractJson(publishR.stdout);
+    if (publishResult.iteration === "skipped") {
+      // No skills in test env — still validate that publish-status handles it
+      const r = runCli(["mtc", "publish-status", stateFile, "--json"]);
+      // State file may not exist if publish-skills skipped early; either way command succeeds
+      expect(r.status, r.stderr).toBe(0);
+      return;
+    }
+
+    const r = runCli(["mtc", "publish-status", stateFile, "--json"]);
+    expect(r.status, r.stderr).toBe(0);
+    const status = extractJson(r.stdout);
+    expect(status.ok).toBe(true);
+    expect(status.exists).toBe(true);
+    expect(status.last_seq).toBe(1);
+    expect(status.history_count).toBe(1);
+    expect(status.history).toHaveLength(1);
+    expect(status.history[0].seq).toBe("000001");
+  });
+
   it("second --once iteration with unchanged skills is a no-op", () => {
     const out = path.join(tmpDir, "out");
     const stateFile = path.join(tmpDir, "state.json");

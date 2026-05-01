@@ -22,12 +22,12 @@ import { parseProviders, parseStatus, KNOWN_PROVIDERS } from '../../src/utils/pa
 // ─── Router registration ─────────────────────────────────────────────────────
 
 describe('Router registration', () => {
-  it('has exactly 53 child routes under root', async () => {
+  it('has exactly 54 child routes under root', async () => {
     const routerModule = await import('../../src/router/index.js')
     const router = routerModule.default
     const rootRoute = router.options.routes[0]
-    // 1 redirect + 52 named pages = 53 children
-    expect(rootRoute.children.length).toBe(53)
+    // 1 redirect + 53 named pages = 54 children (Mtc added 2026-05-02)
+    expect(rootRoute.children.length).toBe(54)
   })
 
   it('contains all expected route names', async () => {
@@ -44,10 +44,20 @@ describe('Router registration', () => {
       'Templates', 'Backup', 'RssFeed', 'WebAuthn', 'Community', 'Marketplace',
       'Crosschain', 'AIOps', 'Compliance', 'Privacy', 'Inference',
       'NLProgramming', 'Tenant', 'Pipeline', 'Governance', 'Audit', 'Reputation', 'Recommend', 'Sla', 'Codegen', 'Search', 'Tokens', 'Trust', 'Federation', 'VideoEditing',
+      'Mtc',
     ]
     for (const name of expected) {
       expect(names).toContain(name)
     }
+  })
+
+  it('maps Mtc to /mtc path', async () => {
+    const routerModule = await import('../../src/router/index.js')
+    const router = routerModule.default
+    const rootRoute = router.options.routes[0]
+    const mtcRoute = rootRoute.children.find(r => r.name === 'Mtc')
+    expect(mtcRoute).toBeDefined()
+    expect(mtcRoute.path).toBe('mtc')
   })
 
   it('maps SpeechSettings to /speech-settings path', async () => {

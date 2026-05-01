@@ -83,6 +83,7 @@
             <a-menu-item key="ukey-sign"><template #icon><KeyOutlined /></template>U-Key 签名</a-menu-item>
             <a-menu-item key="trust"><template #icon><SafetyOutlined /></template>信任与安全</a-menu-item>
             <a-menu-item key="audit"><template #icon><FileSearchOutlined /></template>审计日志</a-menu-item>
+            <a-menu-item key="mtc"><template #icon><SafetyOutlined /></template>MTC 默克尔证书</a-menu-item>
             <a-menu-item key="did"><template #icon><IdcardOutlined /></template>DID 身份</a-menu-item>
             <a-menu-item key="permissions"><template #icon><LockOutlined /></template>权限管理</a-menu-item>
             <a-menu-item key="p2p"><template #icon><WifiOutlined /></template>P2P 网络</a-menu-item>
@@ -163,6 +164,7 @@
           <a-menu-item key="ukey-sign"><template #icon><KeyOutlined /></template></a-menu-item>
           <a-menu-item key="trust"><template #icon><SafetyOutlined /></template></a-menu-item>
           <a-menu-item key="audit"><template #icon><FileSearchOutlined /></template></a-menu-item>
+          <a-menu-item key="mtc"><template #icon><SafetyOutlined /></template></a-menu-item>
           <a-menu-item key="did"><template #icon><IdcardOutlined /></template></a-menu-item>
           <a-menu-item key="permissions"><template #icon><LockOutlined /></template></a-menu-item>
           <a-menu-item key="p2p"><template #icon><WifiOutlined /></template></a-menu-item>

@@ -927,6 +927,90 @@ export function registerMtcCommand(program) {
       }
     });
 
+  // mtc publish-status — read-only inspector for publish-skills state file.
+  // Used by web-panel (browser can't read the filesystem directly; this gives
+  // it a CLI-bridge-friendly query path without exposing the daemon machinery).
+  mtc
+    .command("publish-status <state-file>")
+    .description(
+      "Read a publish-skills state file and print its current state + recent history",
+    )
+    .option(
+      "--limit <n>",
+      "Limit history entries (default: 20, latest first)",
+      (v) => parseInt(v, 10),
+      20,
+    )
+    .option("--json", "Output JSON (default: human)")
+    .action((stateFile, options) => {
+      try {
+        if (!fs.existsSync(stateFile)) {
+          if (options.json) {
+            console.log(
+              JSON.stringify(
+                { ok: true, exists: false, state_file: stateFile },
+                null,
+                2,
+              ),
+            );
+          } else {
+            logger.warn(`state file not found: ${stateFile}`);
+          }
+          return;
+        }
+        const state = loadPublishState(stateFile);
+        const history = Array.isArray(state.history) ? state.history : [];
+        const limited = history.slice().reverse().slice(0, options.limit);
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              {
+                ok: true,
+                exists: true,
+                state_file: stateFile,
+                last_seq: state.last_seq,
+                last_fingerprint: state.last_fingerprint,
+                last_published_at: state.last_published_at,
+                history_count: history.length,
+                history: limited,
+              },
+              null,
+              2,
+            ),
+          );
+          return;
+        }
+        logger.log(chalk.bold(`Publish state: ${stateFile}`));
+        logger.log(`  ${chalk.bold("Last seq:")}         ${state.last_seq}`);
+        logger.log(
+          `  ${chalk.bold("Last published:")}   ${state.last_published_at || "(never)"}`,
+        );
+        logger.log(`  ${chalk.bold("History entries:")}  ${history.length}`);
+        if (limited.length > 0) {
+          logger.log("");
+          logger.log(chalk.bold(`Recent history (latest ${limited.length}):`));
+          for (const h of limited) {
+            logger.log(
+              `  ${chalk.cyan(h.seq)}  ${h.namespace}  size=${h.tree_size}  ${chalk.gray(h.published_at)}`,
+            );
+          }
+        }
+      } catch (err) {
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              { ok: false, error: err.message, state_file: stateFile },
+              null,
+              2,
+            ),
+          );
+        } else {
+          logger.error(`mtc publish-status failed: ${err.message}`);
+        }
+        process.exit(1);
+      }
+    });
+
   // mtc serve — verifier daemon: subscribe to a transport, persist + verify
   mtc
     .command("serve")
