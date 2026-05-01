@@ -804,6 +804,155 @@
       "heSuccess": "计算完成 ({scheme}/{op})"
     }
   },
+  "nlprog": {
+    "title": "自然语言编程",
+    "subtitle": "意图识别 · 实体抽取 · 技术栈检测 · 自然语言→规约",
+    "refresh": "刷新",
+    "actionDropdown": "操作 ▼",
+    "actions": {
+      "analyze": "文本分析",
+      "translate": "翻译为规约",
+      "convention": "添加约定"
+    },
+    "stats": {
+      "translations": "翻译总数",
+      "avgCompleteness": "平均完整度",
+      "drafts": "草稿",
+      "completed": "已完成",
+      "conventions": "项目约定"
+    },
+    "intentCard": "意图分布",
+    "tabs": {
+      "translations": "翻译",
+      "conventions": "项目约定"
+    },
+    "filter": {
+      "allIntents": "全部意图",
+      "allStatuses": "全部状态",
+      "allCategories": "全部"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "actionDetails": "详情",
+      "actionStatusDropdown": "状态 ▼",
+      "emptyTranslationsFiltered": "没有符合条件的翻译",
+      "emptyTranslations": "暂无翻译，点\"操作 → 翻译为规约\"创建第一个",
+      "emptyConventions": "暂无约定，点\"操作 → 添加约定\"创建第一个"
+    },
+    "deleteTranslationConfirm": {
+      "title": "删除该翻译？",
+      "ok": "删除",
+      "cancel": "取消"
+    },
+    "deleteConventionConfirm": {
+      "title": "删除该约定？",
+      "ok": "删除",
+      "cancel": "取消"
+    },
+    "translationCols": {
+      "inputText": "原文",
+      "intent": "意图",
+      "completeness": "完整度",
+      "status": "状态",
+      "updatedAt": "更新时间",
+      "action": "操作"
+    },
+    "conventionCols": {
+      "category": "类别",
+      "pattern": "模式",
+      "examples": "示例",
+      "confidence": "置信度",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "analyze_modal": {
+      "title": "文本分析（无状态）",
+      "ok": "分析",
+      "cancel": "关闭",
+      "textLabel": "文本",
+      "textPlaceholder": "例如: create a login button component using React",
+      "intent": "意图",
+      "confidenceLine": "置信度: {pct}%",
+      "entities": "实体（{n}）",
+      "notDetected": "未识别到",
+      "stack": "技术栈",
+      "stackPrimary": "主: {name}"
+    },
+    "translate_modal": {
+      "title": "翻译为规约",
+      "ok": "翻译",
+      "cancel": "取消",
+      "textLabel": "自然语言",
+      "textPlaceholder": "例如: create a Vue 3 LoginForm component with email and password fields",
+      "intentLabel": "意图覆盖",
+      "intentPlaceholder": "留空则自动识别",
+      "noDbMessage": "该命令需要项目级数据库",
+      "noDbDescription": "`cc nlprog translate` 仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+    },
+    "convention_modal": {
+      "title": "添加项目约定",
+      "ok": "添加",
+      "cancel": "取消",
+      "categoryLabel": "类别",
+      "patternLabel": "模式",
+      "patternPlaceholder": "例如: kebab-case for file names",
+      "examplesLabel": "示例",
+      "examplesPlaceholder": "JSON 数组，例如 [\"login-form.vue\",\"user-card.vue\"]",
+      "confidenceLabel": "置信度"
+    },
+    "details": {
+      "title": "翻译详情：{id}",
+      "intent": "意图",
+      "status": "状态",
+      "completeness": "完整度",
+      "createdAt": "创建时间",
+      "updatedAt": "更新时间",
+      "inputText": "原文",
+      "entities": "实体",
+      "techStack": "技术栈",
+      "spec": "规约"
+    },
+    "intentLabels": {
+      "create_component": "创建组件",
+      "add_feature": "新增功能",
+      "fix_bug": "修复 Bug",
+      "refactor": "重构",
+      "add_api": "加 API",
+      "add_test": "加测试",
+      "update_style": "改样式",
+      "configure": "配置",
+      "general": "通用"
+    },
+    "statusLabels": {
+      "draft": "草稿",
+      "complete": "已完成",
+      "refined": "已精炼"
+    },
+    "categoryLabels": {
+      "naming": "命名",
+      "architecture": "架构",
+      "testing": "测试",
+      "style": "样式",
+      "imports": "导入",
+      "components": "组件"
+    },
+    "msg": {
+      "loadFailed": "加载 NL 数据失败",
+      "textEmpty": "请输入文本",
+      "analyzeFailed": "分析失败",
+      "translateTextEmpty": "请输入自然语言文本",
+      "translateFailed": "翻译失败",
+      "translateSuccess": "翻译完成 (完整度 {pct}%)",
+      "transitionFailed": "状态转换失败",
+      "transitionSuccess": "已更新为 {label}",
+      "deleteFailed": "删除失败",
+      "deleteSuccess": "已删除",
+      "patternEmpty": "请填写模式",
+      "examplesBadJson": "示例 JSON 格式错误",
+      "addFailed": "添加失败",
+      "addSuccess": "约定已添加"
+    }
+  },
   "tenant": {
     "title": "多租户 SaaS",
     "subtitle": "租户管理 · 订阅计费 · 用量计量 · 配额检查",

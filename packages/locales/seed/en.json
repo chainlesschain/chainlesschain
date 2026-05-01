@@ -804,6 +804,155 @@
       "heSuccess": "Computation complete ({scheme}/{op})"
     }
   },
+  "nlprog": {
+    "title": "Natural-language programming",
+    "subtitle": "Intent · entity extraction · stack detection · NL→spec",
+    "refresh": "Refresh",
+    "actionDropdown": "Actions ▼",
+    "actions": {
+      "analyze": "Analyse text",
+      "translate": "Translate to spec",
+      "convention": "Add convention"
+    },
+    "stats": {
+      "translations": "Translations",
+      "avgCompleteness": "Avg. completeness",
+      "drafts": "Drafts",
+      "completed": "Completed",
+      "conventions": "Conventions"
+    },
+    "intentCard": "Intent breakdown",
+    "tabs": {
+      "translations": "Translations",
+      "conventions": "Conventions"
+    },
+    "filter": {
+      "allIntents": "All intents",
+      "allStatuses": "All statuses",
+      "allCategories": "All"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "actionDetails": "Details",
+      "actionStatusDropdown": "Status ▼",
+      "emptyTranslationsFiltered": "No translations match the current filter",
+      "emptyTranslations": "No translations yet — click \"Actions → Translate to spec\"",
+      "emptyConventions": "No conventions yet — click \"Actions → Add convention\""
+    },
+    "deleteTranslationConfirm": {
+      "title": "Delete this translation?",
+      "ok": "Delete",
+      "cancel": "Cancel"
+    },
+    "deleteConventionConfirm": {
+      "title": "Delete this convention?",
+      "ok": "Delete",
+      "cancel": "Cancel"
+    },
+    "translationCols": {
+      "inputText": "Source",
+      "intent": "Intent",
+      "completeness": "Completeness",
+      "status": "Status",
+      "updatedAt": "Updated",
+      "action": "Action"
+    },
+    "conventionCols": {
+      "category": "Category",
+      "pattern": "Pattern",
+      "examples": "Examples",
+      "confidence": "Confidence",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "analyze_modal": {
+      "title": "Text analysis (stateless)",
+      "ok": "Analyse",
+      "cancel": "Close",
+      "textLabel": "Text",
+      "textPlaceholder": "e.g. create a login button component using React",
+      "intent": "Intent",
+      "confidenceLine": "Confidence: {pct}%",
+      "entities": "Entities ({n})",
+      "notDetected": "none detected",
+      "stack": "Stack",
+      "stackPrimary": "primary: {name}"
+    },
+    "translate_modal": {
+      "title": "Translate to spec",
+      "ok": "Translate",
+      "cancel": "Cancel",
+      "textLabel": "Natural language",
+      "textPlaceholder": "e.g. create a Vue 3 LoginForm component with email and password fields",
+      "intentLabel": "Intent override",
+      "intentPlaceholder": "blank → auto-detect",
+      "noDbMessage": "This command requires a project-level database",
+      "noDbDescription": "`cc nlprog translate` only works inside a chainlesschain project directory. Run `cc init` first, or start `cc serve` from an initialised directory."
+    },
+    "convention_modal": {
+      "title": "Add convention",
+      "ok": "Add",
+      "cancel": "Cancel",
+      "categoryLabel": "Category",
+      "patternLabel": "Pattern",
+      "patternPlaceholder": "e.g. kebab-case for file names",
+      "examplesLabel": "Examples",
+      "examplesPlaceholder": "JSON array, e.g. [\"login-form.vue\",\"user-card.vue\"]",
+      "confidenceLabel": "Confidence"
+    },
+    "details": {
+      "title": "Translation details: {id}",
+      "intent": "Intent",
+      "status": "Status",
+      "completeness": "Completeness",
+      "createdAt": "Created",
+      "updatedAt": "Updated",
+      "inputText": "Source",
+      "entities": "Entities",
+      "techStack": "Tech stack",
+      "spec": "Spec"
+    },
+    "intentLabels": {
+      "create_component": "Create component",
+      "add_feature": "Add feature",
+      "fix_bug": "Fix bug",
+      "refactor": "Refactor",
+      "add_api": "Add API",
+      "add_test": "Add test",
+      "update_style": "Update style",
+      "configure": "Configure",
+      "general": "General"
+    },
+    "statusLabels": {
+      "draft": "Draft",
+      "complete": "Complete",
+      "refined": "Refined"
+    },
+    "categoryLabels": {
+      "naming": "Naming",
+      "architecture": "Architecture",
+      "testing": "Testing",
+      "style": "Style",
+      "imports": "Imports",
+      "components": "Components"
+    },
+    "msg": {
+      "loadFailed": "Failed to load NL data",
+      "textEmpty": "Enter text",
+      "analyzeFailed": "Analysis failed",
+      "translateTextEmpty": "Enter natural-language text",
+      "translateFailed": "Translate failed",
+      "translateSuccess": "Translation complete (completeness {pct}%)",
+      "transitionFailed": "Status transition failed",
+      "transitionSuccess": "Status set to {label}",
+      "deleteFailed": "Delete failed",
+      "deleteSuccess": "Deleted",
+      "patternEmpty": "Enter a pattern",
+      "examplesBadJson": "Examples JSON is malformed",
+      "addFailed": "Add failed",
+      "addSuccess": "Convention added"
+    }
+  },
   "tenant": {
     "title": "Multi-tenant SaaS",
     "subtitle": "Tenants · subscription billing · usage metering · quota checks",

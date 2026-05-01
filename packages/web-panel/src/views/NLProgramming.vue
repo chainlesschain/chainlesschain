@@ -2,24 +2,24 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">自然语言编程</h2>
-        <p class="page-sub">意图识别 · 实体抽取 · 技术栈检测 · 自然语言→规约</p>
+        <h2 class="page-title">{{ $t('nlprog.title') }}</h2>
+        <p class="page-sub">{{ $t('nlprog.subtitle') }}</p>
       </div>
       <a-space>
         <a-button :loading="loading" @click="loadAll">
           <template #icon><ReloadOutlined /></template>
-          刷新
+          {{ $t('nlprog.refresh') }}
         </a-button>
         <a-dropdown :trigger="['click']">
           <a-button type="primary">
             <template #icon><PlusOutlined /></template>
-            操作 ▼
+            {{ $t('nlprog.actionDropdown') }}
           </a-button>
           <template #overlay>
             <a-menu @click="handleNewClick">
-              <a-menu-item key="analyze"><BulbOutlined /> 文本分析</a-menu-item>
-              <a-menu-item key="translate"><CodeOutlined /> 翻译为规约</a-menu-item>
-              <a-menu-item key="convention"><FileTextOutlined /> 添加约定</a-menu-item>
+              <a-menu-item key="analyze"><BulbOutlined /> {{ $t('nlprog.actions.analyze') }}</a-menu-item>
+              <a-menu-item key="translate"><CodeOutlined /> {{ $t('nlprog.actions.translate') }}</a-menu-item>
+              <a-menu-item key="convention"><FileTextOutlined /> {{ $t('nlprog.actions.convention') }}</a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
@@ -30,7 +30,7 @@
     <a-row :gutter="[16, 16]" style="margin-bottom: 20px;">
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="翻译总数" :value="stats.translations.total" :value-style="{ color: '#1677ff', fontSize: '20px' }">
+          <a-statistic :title="$t('nlprog.stats.translations')" :value="stats.translations.total" :value-style="{ color: '#1677ff', fontSize: '20px' }">
             <template #prefix><CodeOutlined /></template>
           </a-statistic>
         </a-card>
@@ -38,7 +38,7 @@
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="平均完整度"
+            :title="$t('nlprog.stats.avgCompleteness')"
             :value="avgCompletenessPct"
             :precision="1"
             suffix="%"
@@ -50,21 +50,21 @@
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="草稿" :value="stats.translations.byStatus.draft" :value-style="{ color: '#faad14', fontSize: '20px' }">
+          <a-statistic :title="$t('nlprog.stats.drafts')" :value="stats.translations.byStatus.draft" :value-style="{ color: '#faad14', fontSize: '20px' }">
             <template #prefix><EditOutlined /></template>
           </a-statistic>
         </a-card>
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="已完成" :value="stats.translations.byStatus.complete" :value-style="{ color: '#52c41a', fontSize: '20px' }">
+          <a-statistic :title="$t('nlprog.stats.completed')" :value="stats.translations.byStatus.complete" :value-style="{ color: '#52c41a', fontSize: '20px' }">
             <template #prefix><CheckCircleOutlined /></template>
           </a-statistic>
         </a-card>
       </a-col>
       <a-col :xs="24" :sm="8" :lg="4">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="项目约定" :value="stats.conventions.total" :value-style="{ color: '#722ed1', fontSize: '20px' }">
+          <a-statistic :title="$t('nlprog.stats.conventions')" :value="stats.conventions.total" :value-style="{ color: '#722ed1', fontSize: '20px' }">
             <template #prefix><FileTextOutlined /></template>
           </a-statistic>
         </a-card>
@@ -74,7 +74,7 @@
     <!-- Intent breakdown -->
     <a-card
       v-if="stats.translations.total > 0"
-      title="意图分布"
+      :title="$t('nlprog.intentCard')"
       size="small"
       style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 20px;"
       :body-style="{ padding: '12px 16px' }"
@@ -89,14 +89,14 @@
     <!-- Tabs -->
     <a-tabs v-model:activeKey="activeTab" class="nlprog-tabs">
       <!-- ── Translations tab ──────────────────────────────────────── -->
-      <a-tab-pane key="translations" tab="翻译">
+      <a-tab-pane key="translations" :tab="$t('nlprog.tabs.translations')">
         <div class="filter-bar">
           <a-radio-group v-model:value="intentFilter" size="small">
-            <a-radio-button value="">全部意图</a-radio-button>
+            <a-radio-button value="">{{ $t('nlprog.filter.allIntents') }}</a-radio-button>
             <a-radio-button v-for="i in INTENTS" :key="i" :value="i">{{ intentLabel(i) }}</a-radio-button>
           </a-radio-group>
           <a-radio-group v-model:value="statusFilter" size="small" button-style="solid">
-            <a-radio-button value="">全部状态</a-radio-button>
+            <a-radio-button value="">{{ $t('nlprog.filter.allStatuses') }}</a-radio-button>
             <a-radio-button v-for="s in TRANSLATION_STATUSES" :key="s" :value="s">{{ statusLabel(s) }}</a-radio-button>
           </a-radio-group>
         </div>
@@ -104,7 +104,7 @@
         <a-table
           :columns="translationColumns"
           :data-source="filteredTranslations"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (t) => $t('nlprog.table.totalSuffix', { n: t }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -131,9 +131,9 @@
               <span style="color: var(--text-secondary); font-size: 11px;">{{ formatNlprogTime(record.updatedAt) }}</span>
             </template>
             <template v-if="column.key === 'action'">
-              <a-button size="small" type="link" @click="showTranslationDetails(record)">详情</a-button>
+              <a-button size="small" type="link" @click="showTranslationDetails(record)">{{ $t('nlprog.table.actionDetails') }}</a-button>
               <a-dropdown :trigger="['click']">
-                <a-button size="small" type="link">状态 ▼</a-button>
+                <a-button size="small" type="link">{{ $t('nlprog.table.actionStatusDropdown') }}</a-button>
                 <template #overlay>
                   <a-menu @click="(e) => transitionStatus(record, e.key)">
                     <a-menu-item v-for="s in TRANSLATION_STATUSES" :key="s" :disabled="s === record.status">
@@ -142,25 +142,30 @@
                   </a-menu>
                 </template>
               </a-dropdown>
-              <a-popconfirm title="删除该翻译？" ok-text="删除" cancel-text="取消" @confirm="removeTranslation(record)">
-                <a-button size="small" type="link" danger>删除</a-button>
+              <a-popconfirm
+                :title="$t('nlprog.deleteTranslationConfirm.title')"
+                :ok-text="$t('nlprog.deleteTranslationConfirm.ok')"
+                :cancel-text="$t('nlprog.deleteTranslationConfirm.cancel')"
+                @confirm="removeTranslation(record)"
+              >
+                <a-button size="small" type="link" danger>{{ $t('nlprog.deleteTranslationConfirm.ok') }}</a-button>
               </a-popconfirm>
             </template>
           </template>
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <CodeOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              {{ intentFilter || statusFilter ? '没有符合条件的翻译' : '暂无翻译，点"操作 → 翻译为规约"创建第一个' }}
+              {{ intentFilter || statusFilter ? $t('nlprog.table.emptyTranslationsFiltered') : $t('nlprog.table.emptyTranslations') }}
             </div>
           </template>
         </a-table>
       </a-tab-pane>
 
       <!-- ── Conventions tab ──────────────────────────────────────── -->
-      <a-tab-pane key="conventions" tab="项目约定">
+      <a-tab-pane key="conventions" :tab="$t('nlprog.tabs.conventions')">
         <div class="filter-bar">
           <a-radio-group v-model:value="categoryFilter" size="small" button-style="solid">
-            <a-radio-button value="">全部</a-radio-button>
+            <a-radio-button value="">{{ $t('nlprog.filter.allCategories') }}</a-radio-button>
             <a-radio-button v-for="c in STYLE_CATEGORIES" :key="c" :value="c">{{ categoryLabel(c) }}</a-radio-button>
           </a-radio-group>
         </div>
@@ -168,7 +173,7 @@
         <a-table
           :columns="conventionColumns"
           :data-source="filteredConventions"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (t) => $t('nlprog.table.totalSuffix', { n: t }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -198,15 +203,20 @@
               <span style="color: var(--text-secondary); font-size: 11px;">{{ formatNlprogTime(record.createdAt) }}</span>
             </template>
             <template v-if="column.key === 'action'">
-              <a-popconfirm title="删除该约定？" ok-text="删除" cancel-text="取消" @confirm="removeConvention(record)">
-                <a-button size="small" type="link" danger>删除</a-button>
+              <a-popconfirm
+                :title="$t('nlprog.deleteConventionConfirm.title')"
+                :ok-text="$t('nlprog.deleteConventionConfirm.ok')"
+                :cancel-text="$t('nlprog.deleteConventionConfirm.cancel')"
+                @confirm="removeConvention(record)"
+              >
+                <a-button size="small" type="link" danger>{{ $t('nlprog.deleteConventionConfirm.ok') }}</a-button>
               </a-popconfirm>
             </template>
           </template>
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <FileTextOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              暂无约定，点"操作 → 添加约定"创建第一个
+              {{ $t('nlprog.table.emptyConventions') }}
             </div>
           </template>
         </a-table>
@@ -216,18 +226,18 @@
     <!-- ── Analyze modal ────────────────────────────────────────── -->
     <a-modal
       v-model:open="showAnalyzeModal"
-      title="文本分析（无状态）"
+      :title="$t('nlprog.analyze_modal.title')"
       :confirm-loading="analyzing"
       :width="600"
-      ok-text="分析"
-      cancel-text="关闭"
+      :ok-text="$t('nlprog.analyze_modal.ok')"
+      :cancel-text="$t('nlprog.analyze_modal.cancel')"
       @ok="runAnalyze"
     >
       <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-        <a-form-item label="文本" required>
+        <a-form-item :label="$t('nlprog.analyze_modal.textLabel')" required>
           <a-textarea
             v-model:value="analyzeForm.text"
-            placeholder="例如: create a login button component using React"
+            :placeholder="$t('nlprog.analyze_modal.textPlaceholder')"
             :auto-size="{ minRows: 3, maxRows: 6 }"
           />
         </a-form-item>
@@ -235,22 +245,22 @@
 
       <a-card v-if="classifyResult || extractResult || stackResult" size="small" style="background: var(--bg-base); margin-top: 8px;">
         <div v-if="classifyResult" style="margin-bottom: 12px;">
-          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">意图</div>
+          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">{{ $t('nlprog.analyze_modal.intent') }}</div>
           <a-tag :color="intentColor(classifyResult.intent)" style="margin-right: 6px;">{{ intentLabel(classifyResult.intent) }}</a-tag>
-          <span style="color: var(--text-secondary); font-size: 12px;">置信度: {{ (classifyResult.confidence * 100).toFixed(0) }}%</span>
+          <span style="color: var(--text-secondary); font-size: 12px;">{{ $t('nlprog.analyze_modal.confidenceLine', { pct: (classifyResult.confidence * 100).toFixed(0) }) }}</span>
         </div>
         <div v-if="extractResult" style="margin-bottom: 12px;">
-          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">实体（{{ extractResult.count }}）</div>
-          <span v-if="!extractResult.entities.length" style="color: var(--text-muted);">未识别到</span>
+          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">{{ $t('nlprog.analyze_modal.entities', { n: extractResult.count }) }}</div>
+          <span v-if="!extractResult.entities.length" style="color: var(--text-muted);">{{ $t('nlprog.analyze_modal.notDetected') }}</span>
           <a-tag v-for="(e, idx) in extractResult.entities" :key="idx" color="purple" style="font-family: monospace; font-size: 11px; margin: 1px;">
             [{{ e.type }}] {{ e.value }}
           </a-tag>
         </div>
         <div v-if="stackResult">
-          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">技术栈</div>
-          <span v-if="!stackResult.detected.length" style="color: var(--text-muted);">未识别到</span>
+          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">{{ $t('nlprog.analyze_modal.stack') }}</div>
+          <span v-if="!stackResult.detected.length" style="color: var(--text-muted);">{{ $t('nlprog.analyze_modal.notDetected') }}</span>
           <template v-else>
-            <a-tag :color="'cyan'" style="font-family: monospace;">主: {{ stackResult.primary }}</a-tag>
+            <a-tag :color="'cyan'" style="font-family: monospace;">{{ $t('nlprog.analyze_modal.stackPrimary', { name: stackResult.primary }) }}</a-tag>
             <a-tag v-for="s in stackResult.detected.filter(d => d !== stackResult.primary)" :key="s" color="default" style="font-family: monospace; font-size: 11px;">{{ s }}</a-tag>
           </template>
         </div>
@@ -260,24 +270,24 @@
     <!-- ── Translate modal ──────────────────────────────────────── -->
     <a-modal
       v-model:open="showTranslateModal"
-      title="翻译为规约"
+      :title="$t('nlprog.translate_modal.title')"
       :confirm-loading="translating"
       :width="540"
-      ok-text="翻译"
-      cancel-text="取消"
+      :ok-text="$t('nlprog.translate_modal.ok')"
+      :cancel-text="$t('nlprog.translate_modal.cancel')"
       @ok="runTranslate"
       @cancel="resetTranslateForm"
     >
       <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-        <a-form-item label="自然语言" required>
+        <a-form-item :label="$t('nlprog.translate_modal.textLabel')" required>
           <a-textarea
             v-model:value="translateForm.text"
-            placeholder="例如: create a Vue 3 LoginForm component with email and password fields"
+            :placeholder="$t('nlprog.translate_modal.textPlaceholder')"
             :auto-size="{ minRows: 3, maxRows: 6 }"
           />
         </a-form-item>
-        <a-form-item label="意图覆盖">
-          <a-select v-model:value="translateForm.intent" allow-clear placeholder="留空则自动识别">
+        <a-form-item :label="$t('nlprog.translate_modal.intentLabel')">
+          <a-select v-model:value="translateForm.intent" allow-clear :placeholder="$t('nlprog.translate_modal.intentPlaceholder')">
             <a-select-option v-for="i in INTENTS" :key="i" :value="i">{{ intentLabel(i) }}</a-select-option>
           </a-select>
         </a-form-item>
@@ -287,8 +297,8 @@
         v-if="translateError.noDb"
         type="warning"
         show-icon
-        message="该命令需要项目级数据库"
-        description="`cc nlprog translate` 仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+        :message="$t('nlprog.translate_modal.noDbMessage')"
+        :description="$t('nlprog.translate_modal.noDbDescription')"
         style="margin-top: 12px;"
       />
     </a-modal>
@@ -296,31 +306,31 @@
     <!-- ── Add convention modal ─────────────────────────────────── -->
     <a-modal
       v-model:open="showConventionModal"
-      title="添加项目约定"
+      :title="$t('nlprog.convention_modal.title')"
       :confirm-loading="adding"
       :width="540"
-      ok-text="添加"
-      cancel-text="取消"
+      :ok-text="$t('nlprog.convention_modal.ok')"
+      :cancel-text="$t('nlprog.convention_modal.cancel')"
       @ok="addConvention"
       @cancel="resetConventionForm"
     >
       <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-        <a-form-item label="类别" required>
+        <a-form-item :label="$t('nlprog.convention_modal.categoryLabel')" required>
           <a-select v-model:value="conventionForm.category">
             <a-select-option v-for="c in STYLE_CATEGORIES" :key="c" :value="c">{{ categoryLabel(c) }}</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="模式" required>
-          <a-input v-model:value="conventionForm.pattern" placeholder="例如: kebab-case for file names" />
+        <a-form-item :label="$t('nlprog.convention_modal.patternLabel')" required>
+          <a-input v-model:value="conventionForm.pattern" :placeholder="$t('nlprog.convention_modal.patternPlaceholder')" />
         </a-form-item>
-        <a-form-item label="示例">
+        <a-form-item :label="$t('nlprog.convention_modal.examplesLabel')">
           <a-textarea
             v-model:value="conventionForm.examples"
-            placeholder="JSON 数组，例如 [&quot;login-form.vue&quot;,&quot;user-card.vue&quot;]"
+            :placeholder="$t('nlprog.convention_modal.examplesPlaceholder')"
             :auto-size="{ minRows: 2, maxRows: 4 }"
           />
         </a-form-item>
-        <a-form-item label="置信度">
+        <a-form-item :label="$t('nlprog.convention_modal.confidenceLabel')">
           <a-input-number v-model:value="conventionForm.confidence" :min="0" :max="1" :step="0.05" style="width: 100%;" />
         </a-form-item>
       </a-form>
@@ -329,42 +339,42 @@
     <!-- ── Translation details modal ────────────────────────────── -->
     <a-modal
       v-model:open="showDetailsModal"
-      :title="`翻译详情：${currentTranslation?.id?.slice(0, 8) || ''}`"
+      :title="$t('nlprog.details.title', { id: currentTranslation?.id?.slice(0, 8) || '' })"
       :width="720"
       :footer="null"
     >
       <div v-if="currentTranslation" style="padding-top: 8px;">
         <a-descriptions :column="2" size="small" bordered>
-          <a-descriptions-item label="意图">
+          <a-descriptions-item :label="$t('nlprog.details.intent')">
             <a-tag :color="intentColor(currentTranslation.intent)">{{ intentLabel(currentTranslation.intent) }}</a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="状态">
+          <a-descriptions-item :label="$t('nlprog.details.status')">
             <a-tag :color="statusColor(currentTranslation.status)">{{ statusLabel(currentTranslation.status) }}</a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="完整度" :span="2">
+          <a-descriptions-item :label="$t('nlprog.details.completeness')" :span="2">
             <a-progress
               :percent="Math.round(currentTranslation.completenessScore * 100)"
               :stroke-color="completenessColor(currentTranslation.completenessScore)"
               size="small"
             />
           </a-descriptions-item>
-          <a-descriptions-item label="创建时间">{{ formatNlprogTime(currentTranslation.createdAt) }}</a-descriptions-item>
-          <a-descriptions-item label="更新时间">{{ formatNlprogTime(currentTranslation.updatedAt) }}</a-descriptions-item>
-          <a-descriptions-item label="原文" :span="2">
+          <a-descriptions-item :label="$t('nlprog.details.createdAt')">{{ formatNlprogTime(currentTranslation.createdAt) }}</a-descriptions-item>
+          <a-descriptions-item :label="$t('nlprog.details.updatedAt')">{{ formatNlprogTime(currentTranslation.updatedAt) }}</a-descriptions-item>
+          <a-descriptions-item :label="$t('nlprog.details.inputText')" :span="2">
             <span style="white-space: pre-wrap; color: var(--text-primary);">{{ currentTranslation.inputText }}</span>
           </a-descriptions-item>
         </a-descriptions>
 
         <div style="margin-top: 16px;">
-          <h4 style="color: var(--text-primary); font-size: 13px; margin-bottom: 8px;">实体</h4>
+          <h4 style="color: var(--text-primary); font-size: 13px; margin-bottom: 8px;">{{ $t('nlprog.details.entities') }}</h4>
           <pre class="json-block">{{ formatJson(currentTranslation.entities) }}</pre>
         </div>
         <div>
-          <h4 style="color: var(--text-primary); font-size: 13px; margin-bottom: 8px;">技术栈</h4>
+          <h4 style="color: var(--text-primary); font-size: 13px; margin-bottom: 8px;">{{ $t('nlprog.details.techStack') }}</h4>
           <pre class="json-block">{{ formatJson(currentTranslation.techStack) }}</pre>
         </div>
         <div v-if="currentTranslation.spec">
-          <h4 style="color: var(--text-primary); font-size: 13px; margin-bottom: 8px;">规约</h4>
+          <h4 style="color: var(--text-primary); font-size: 13px; margin-bottom: 8px;">{{ $t('nlprog.details.spec') }}</h4>
           <pre class="json-block">{{ formatJson(currentTranslation.spec) }}</pre>
         </div>
       </div>
@@ -385,6 +395,7 @@ import {
   RiseOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
+import { useI18n } from 'vue-i18n'
 import { useWsStore } from '../stores/ws.js'
 import {
   parseClassifyResult,
@@ -402,6 +413,7 @@ import {
 } from '../utils/nlprog-parser.js'
 
 const ws = useWsStore()
+const { t } = useI18n()
 
 const loading = ref(false)
 const analyzing = ref(false)
@@ -435,23 +447,23 @@ const stackResult = ref(null)
 const translateError = ref({ noDb: false, error: '' })
 const currentTranslation = ref(null)
 
-const translationColumns = [
-  { title: '原文', key: 'inputText' },
-  { title: '意图', key: 'intent', width: '140px' },
-  { title: '完整度', key: 'completeness', width: '160px' },
-  { title: '状态', key: 'status', width: '100px' },
-  { title: '更新时间', key: 'updatedAt', width: '160px' },
-  { title: '操作', key: 'action', width: '210px' },
-]
+const translationColumns = computed(() => [
+  { title: t('nlprog.translationCols.inputText'), key: 'inputText' },
+  { title: t('nlprog.translationCols.intent'), key: 'intent', width: '140px' },
+  { title: t('nlprog.translationCols.completeness'), key: 'completeness', width: '160px' },
+  { title: t('nlprog.translationCols.status'), key: 'status', width: '100px' },
+  { title: t('nlprog.translationCols.updatedAt'), key: 'updatedAt', width: '160px' },
+  { title: t('nlprog.translationCols.action'), key: 'action', width: '210px' },
+])
 
-const conventionColumns = [
-  { title: '类别', key: 'category', width: '120px' },
-  { title: '模式', key: 'pattern' },
-  { title: '示例', key: 'examples', width: '220px' },
-  { title: '置信度', key: 'confidence', width: '90px' },
-  { title: '创建时间', key: 'createdAt', width: '160px' },
-  { title: '操作', key: 'action', width: '90px' },
-]
+const conventionColumns = computed(() => [
+  { title: t('nlprog.conventionCols.category'), key: 'category', width: '120px' },
+  { title: t('nlprog.conventionCols.pattern'), key: 'pattern' },
+  { title: t('nlprog.conventionCols.examples'), key: 'examples', width: '220px' },
+  { title: t('nlprog.conventionCols.confidence'), key: 'confidence', width: '90px' },
+  { title: t('nlprog.conventionCols.createdAt'), key: 'createdAt', width: '160px' },
+  { title: t('nlprog.conventionCols.action'), key: 'action', width: '90px' },
+])
 
 const avgCompletenessPct = computed(() => stats.value.translations.avgCompleteness * 100)
 
@@ -468,11 +480,9 @@ const filteredConventions = computed(() => {
 })
 
 function intentLabel(i) {
-  return {
-    create_component: '创建组件', add_feature: '新增功能', fix_bug: '修复 Bug',
-    refactor: '重构', add_api: '加 API', add_test: '加测试',
-    update_style: '改样式', configure: '配置', general: '通用',
-  }[i] || i
+  const key = `nlprog.intentLabels.${i}`
+  const v = t(key)
+  return v === key ? i : v
 }
 function intentColor(i) {
   return {
@@ -482,16 +492,17 @@ function intentColor(i) {
   }[i] || 'default'
 }
 function statusLabel(s) {
-  return { draft: '草稿', complete: '已完成', refined: '已精炼' }[s] || s
+  const key = `nlprog.statusLabels.${s}`
+  const v = t(key)
+  return v === key ? s : v
 }
 function statusColor(s) {
   return { draft: 'default', complete: 'green', refined: 'cyan' }[s] || 'default'
 }
 function categoryLabel(c) {
-  return {
-    naming: '命名', architecture: '架构', testing: '测试',
-    style: '样式', imports: '导入', components: '组件',
-  }[c] || c
+  const key = `nlprog.categoryLabels.${c}`
+  const v = t(key)
+  return v === key ? c : v
 }
 function categoryColor(c) {
   return {
@@ -540,7 +551,7 @@ async function loadAll() {
     conventions.value = parseConventions(convRes.output)
     stats.value = parseStats(statsRes.output)
   } catch (e) {
-    message.error('加载 NL 数据失败: ' + (e?.message || e))
+    message.error(t('nlprog.msg.loadFailed') + ': ' + (e?.message || e))
   } finally {
     loading.value = false
   }
@@ -549,7 +560,7 @@ async function loadAll() {
 async function runAnalyze() {
   const text = analyzeForm.text.trim()
   if (!text) {
-    message.warning('请输入文本')
+    message.warning(t('nlprog.msg.textEmpty'))
     return
   }
   analyzing.value = true
@@ -567,10 +578,10 @@ async function runAnalyze() {
     extractResult.value = parseExtractResult(e.output)
     stackResult.value = parseStackResult(s.output)
     if (!classifyResult.value && !extractResult.value && !stackResult.value) {
-      message.error('分析失败')
+      message.error(t('nlprog.msg.analyzeFailed'))
     }
   } catch (e) {
-    message.error('分析失败: ' + (e?.message || e))
+    message.error(t('nlprog.msg.analyzeFailed') + ': ' + (e?.message || e))
   } finally {
     analyzing.value = false
   }
@@ -579,7 +590,7 @@ async function runAnalyze() {
 async function runTranslate() {
   const text = translateForm.text.trim()
   if (!text) {
-    message.warning('请输入自然语言文本')
+    message.warning(t('nlprog.msg.translateTextEmpty'))
     return
   }
   translating.value = true
@@ -596,15 +607,15 @@ async function runTranslate() {
     }
     const parsed = parseTranslateResult(output)
     if (!parsed) {
-      message.error('翻译失败: ' + output.slice(0, 120))
+      message.error(t('nlprog.msg.translateFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success(`翻译完成 (完整度 ${(parsed.completeness * 100).toFixed(0)}%)`)
+    message.success(t('nlprog.msg.translateSuccess', { pct: (parsed.completeness * 100).toFixed(0) }))
     showTranslateModal.value = false
     resetTranslateForm()
     await loadAll()
   } catch (e) {
-    message.error('翻译失败: ' + (e?.message || e))
+    message.error(t('nlprog.msg.translateFailed') + ': ' + (e?.message || e))
   } finally {
     translating.value = false
   }
@@ -615,13 +626,13 @@ async function transitionStatus(record, newStatus) {
   try {
     const { output } = await ws.execute(`nlprog status ${record.id} ${newStatus} --json`, 8000)
     if (/error|invalid/i.test(output) && !/"updated"/.test(output)) {
-      message.error('状态转换失败: ' + output.slice(0, 120))
+      message.error(t('nlprog.msg.transitionFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success(`已更新为 ${statusLabel(newStatus)}`)
+    message.success(t('nlprog.msg.transitionSuccess', { label: statusLabel(newStatus) }))
     await loadAll()
   } catch (e) {
-    message.error('状态转换失败: ' + (e?.message || e))
+    message.error(t('nlprog.msg.transitionFailed') + ': ' + (e?.message || e))
   }
 }
 
@@ -629,13 +640,13 @@ async function removeTranslation(record) {
   try {
     const { output } = await ws.execute(`nlprog remove ${record.id} --json`, 8000)
     if (/error/i.test(output) && !/"removed"/.test(output)) {
-      message.error('删除失败: ' + output.slice(0, 120))
+      message.error(t('nlprog.msg.deleteFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('已删除')
+    message.success(t('nlprog.msg.deleteSuccess'))
     await loadAll()
   } catch (e) {
-    message.error('删除失败: ' + (e?.message || e))
+    message.error(t('nlprog.msg.deleteFailed') + ': ' + (e?.message || e))
   }
 }
 
@@ -647,13 +658,13 @@ function showTranslationDetails(record) {
 async function addConvention() {
   const pattern = conventionForm.pattern.trim()
   if (!pattern) {
-    message.warning('请填写模式')
+    message.warning(t('nlprog.msg.patternEmpty'))
     return
   }
   // Validate examples JSON if provided
   if (conventionForm.examples.trim()) {
     try { JSON.parse(conventionForm.examples) } catch {
-      message.warning('示例 JSON 格式错误')
+      message.warning(t('nlprog.msg.examplesBadJson'))
       return
     }
   }
@@ -668,16 +679,16 @@ async function addConvention() {
     parts.push('--json')
     const { output } = await ws.execute(parts.join(' '), 10000)
     if (/error|invalid|失败/i.test(output) && !/"added"/.test(output)) {
-      message.error('添加失败: ' + output.slice(0, 120))
+      message.error(t('nlprog.msg.addFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('约定已添加')
+    message.success(t('nlprog.msg.addSuccess'))
     showConventionModal.value = false
     resetConventionForm()
     activeTab.value = 'conventions'
     await loadAll()
   } catch (e) {
-    message.error('添加失败: ' + (e?.message || e))
+    message.error(t('nlprog.msg.addFailed') + ': ' + (e?.message || e))
   } finally {
     adding.value = false
   }
@@ -687,13 +698,13 @@ async function removeConvention(record) {
   try {
     const { output } = await ws.execute(`nlprog convention-remove ${record.id} --json`, 8000)
     if (/error/i.test(output) && !/"removed"/.test(output)) {
-      message.error('删除失败: ' + output.slice(0, 120))
+      message.error(t('nlprog.msg.deleteFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('已删除')
+    message.success(t('nlprog.msg.deleteSuccess'))
     await loadAll()
   } catch (e) {
-    message.error('删除失败: ' + (e?.message || e))
+    message.error(t('nlprog.msg.deleteFailed') + ': ' + (e?.message || e))
   }
 }
 
