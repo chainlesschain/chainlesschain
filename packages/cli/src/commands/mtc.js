@@ -1391,17 +1391,27 @@ function registerFederationCommands(mtc) {
           keys = sig.signer.generateKeyPair();
         }
 
-        // Persist the member's secret key under federation/keys/
+        // Persist the member's secret key under federation/keys/.
+        // Race-safe: 'wx' fails if another concurrent join already won, in
+        // which case we stick with that file rather than overwrite. Member
+        // re-join is blocked at the registry level above, so this only
+        // guards against simultaneous-join racing the same path.
         const keysDir = path.join(getFederationDir(), "keys");
         fs.mkdirSync(keysDir, { recursive: true });
         const keyPath = path.join(
           keysDir,
           `${federationId}.${options.memberId}.hex`,
         );
-        if (!fs.existsSync(keyPath)) {
+        try {
           fs.writeFileSync(keyPath, keys.secretKey.toString("hex"), {
             mode: 0o600,
+            flag: "wx",
           });
+        } catch (err) {
+          if (err.code !== "EEXIST") throw err;
+          // Concurrent join wrote the file first — re-load from disk and
+          // align our keys so registry + key file match.
+          keys = loadOrGenerateKeyPair(keyPath, sig);
         }
 
         const trustAnchor = sig.signer.trustAnchorEntry(keys.publicKey, issuer);
@@ -1832,7 +1842,12 @@ async function runFederationDiscoverFilesystem(federationId, options) {
   process.once("SIGINT", cleanup);
   process.once("SIGTERM", cleanup);
 
+  // Re-entrancy guard: if a scan tick takes longer than scanInterval (large
+  // drop-zone, slow disk), don't let setInterval stack up overlapping ticks.
+  let scanInProgress = false;
   scanTimer = setInterval(() => {
+    if (scanInProgress) return;
+    scanInProgress = true;
     try {
       const r = scanAndIngest();
       if (options.json) {
@@ -1846,6 +1861,8 @@ async function runFederationDiscoverFilesystem(federationId, options) {
       }
     } catch (err) {
       logger.error(`scan failed: ${err.message}`);
+    } finally {
+      scanInProgress = false;
     }
   }, scanMs);
 
@@ -1905,6 +1922,39 @@ async function runFederationDiscoverLibp2p(federationId, options) {
     mode: "gossipsub",
   });
 
+  // Helper: tear down the node on any error path so we don't leak the
+  // libp2p host when initialization throws after node creation.
+  const closeNodeOnError = async (err) => {
+    try {
+      await node.close();
+    } catch (_e) {
+      /* ignore close errors during error cleanup */
+    }
+    throw err;
+  };
+
+  try {
+    return await runFederationDiscoverLibp2pInner(
+      federationId,
+      options,
+      node,
+      cache,
+      selfBuildAnnounce,
+      selfMember,
+    );
+  } catch (err) {
+    return closeNodeOnError(err);
+  }
+}
+
+async function runFederationDiscoverLibp2pInner(
+  federationId,
+  options,
+  node,
+  cache,
+  selfBuildAnnounce,
+  selfMember,
+) {
   const topic = federationTopic(federationId);
 
   // Subscribe + dispatch into cache

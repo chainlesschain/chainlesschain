@@ -194,11 +194,13 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         <li>verifier 守护进程 <code>cc mtc serve</code> 自动订阅 + 持久化 + 篡改检测</li>
         <li>Marketplace publisher 守护进程 <code>cc mtc publish-skills</code>（fingerprint 差量 + 原子状态文件 + 自动 seq）</li>
         <li>审计日志双轨签名脚手架 <code>cc audit mtc *</code>（实时 Ed25519 + 关批 MTC inclusion proof，幂等关批，支持 60s/3600s 双合规路径）</li>
-        <li><strong>Phase 1.6 新</strong>：FIPS 205 SLH-DSA-128F 实签 — <code>cc mtc * --alg slh-dsa-128f</code> opt-in 后量子签名，<code>cc mtc verify</code> 多算法自动识别</li>
-        <li><strong>Phase 4 新</strong>：V6 Preview Shell 顶部 MTC 状态 widget — audit 状态 / 批次队列 / 签名算法可视化</li>
+        <li>FIPS 205 SLH-DSA-128F 实签 — <code>cc mtc * --alg slh-dsa-128f</code> opt-in 后量子签名，<code>cc mtc verify</code> 多算法自动识别</li>
+        <li>V6 Preview Shell 顶部 MTC 状态 widget — audit 状态 / 批次队列 / 签名算法可视化</li>
+        <li><strong>Phase 3 全套（v0.5 新）</strong>：Federation MTCA M-of-N 多签 landmark — <code>cc mtc federation join/leave/status/discover</code>，支持异构 Ed25519 + SLH-DSA 成员，filesystem drop-zone（NFS/Syncthing/USB）+ libp2p gossipsub 双 transport 服务发现</li>
+        <li><strong>Q-ENG-2 backend 灰度（v0.5 新）</strong>：<code>backend/project-service</code> 加 <code>audit.mtc.*</code> 双写桥接，按租户灰度，OpLog per-row "待批次关闭" 徽章联动 web-panel</li>
       </ul>
       <p class="prose-muted">
-        Phase 1 + 1.5 + Phase 2 marketplace daemon + audit 双轨脚手架 + Phase 1.6 SLH-DSA + Phase 4 V6 widget 已完整落地（222 测试全绿，含 unit / integration / e2e / desktop-renderer 四层）。<strong>Audit 产线启用阻塞已于 2026-05-01 解除</strong>（Q-COMP-1 + Q-COMP-2 法务出函），脚手架默认 enabled=false，由各租户显式启用。
+        Phase 0–4 全部落地（<strong>476 测试全绿</strong>，含 unit / integration / e2e / desktop-renderer / web-renderer / backend 六层）。<strong>Audit 产线启用阻塞已于 2026-05-01 解除</strong>（Q-COMP-1 + Q-COMP-2 法务出函），脚手架默认 enabled=false，由各租户显式启用。Federation 服务发现支持 filesystem 共享目录（局域网 / NAS）和 libp2p gossipsub（真 P2P）双 transport。
         审计日志产线启用待等保三级最终性窗口口径出函；脚手架 off-by-default，出函后单 flag 即可启用，无代码改动。
         详见 <a href="https://docs.chainlesschain.com/guide/mtc-merkle-tree-certs.html" class="underline">用户使用指南</a>
         与 <a href="https://design.chainlesschain.com/mtc-landing-plan.html" class="underline">设计文档</a>。

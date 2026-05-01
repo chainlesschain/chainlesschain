@@ -1,5 +1,26 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-02 Update — **MTC v0.5** — Phase 3 federation suite + libp2p gossipsub auto-discovery
+
+Phase 3 federation MTCA fully landed: M-of-N multi-signature landmarks,
+local member registry, `cc mtc * --federation` publishing, cross-process
+service discovery via shared filesystem (NFS/Syncthing/USB) + real P2P
+libp2p gossipsub, heterogeneous Ed25519 + SLH-DSA member federations,
+OpLog per-row "待批次关闭" badge wired through backend → web-panel.
+
+| Phase | Commit | Notes |
+|---|---|---|
+| 3.1 Multi-sig + federation CLI | `95b861914` | `assembleBatchFederated` + LandmarkCache ≥M-of-N + `cc mtc federation join/leave/status` (atomic write, wx race-safe) |
+| 3.2 Marketplace federation trust anchor | `15c29e9fe` | `cc mtc batch* / publish-skills --federation <id> --threshold <M>` |
+| 3.3 Filesystem service discovery | `aa13e07a9` | `cc mtc federation discover --transport filesystem --drop-zone <dir>` + signed announce schema + TTL-evicting cache |
+| 3.4 libp2p service discovery | `70996de89` | `--transport libp2p` + gossipsub topic `mtc-federation/v1/<id>` + `Libp2pTransport.publishRaw/subscribeRaw` generic pubsub API |
+| OpLog per-row badge | `70d2cda59` | backend `AuditMtcBridgeService` parses emit JSON → writes `audit_mtc_event_id` column (V013 migration); web-panel Audit.vue 4-state MTC column |
+| v0.5 bug audit (4 fixes) | _this round_ | drawer migrated to real `electronAPI.file.readContent`; libp2p node init cleanup; scan re-entrancy guard; federation join `wx` exclusive create |
+
+**Test totals**: core-mtc 182 + CLI 89 + desktop 33 + web-panel 153 + backend 19 = **476 tests green** across unit / integration / e2e / desktop-renderer / web-renderer / backend.
+
+---
+
 ## 2026-05-01 Update — **MTC v0.4** — Marketplace publisher daemon + audit double-track scaffolding
 
 Two Phase-2 MTC paths landed that don't depend on legal sign-off, plus four bug fixes from a focused audit pass.

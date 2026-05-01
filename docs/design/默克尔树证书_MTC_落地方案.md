@@ -1,6 +1,6 @@
 # 默克尔树证书 (MTC) — ChainlessChain 落地方案
 
-> 版本：v0.4（Phase 1 + 1.5 全部落地；Phase 2 marketplace daemon + audit 双轨脚手架就绪，audit 仍待法务出函才能产线启用）
+> 版本：v0.5（Phase 0–4 全部落地：Local + 1.5 transports + 1.6 SLH-DSA + 2 marketplace + audit 双轨 + 法务解锁 + Q-ENG-2 backend + 3.1 多签 + 3.2 federation 信任锚 + 3.3 filesystem discovery + 3.4 libp2p gossipsub discovery + 4 desktop/web UI + Op Log per-row 徽章）
 > 日期：2026-05-01
 > 作者：longfa
 > 状态：**Phase 1 + 1.5 完成** + **Phase 2 marketplace publisher daemon 落地** + **Phase 2 audit 双轨脚手架就绪 (off-by-default)** — Local MTCA 端到端管道（DID + Skill）、持久化、Ed25519 实签、3 种传输（InMemory / Filesystem / libp2p direct + gossipsub）、`cc mtc` 6 子命令、`cc audit mtc` 7 子命令；audit 产线启用仍阻塞于 Q-COMP-1/Q-COMP-2 合规出函
@@ -30,7 +30,9 @@
 > | **Phase 1.6 SLH-DSA 实签** | _本次_ | `core-mtc/lib/signers/slh-dsa.js` (FIPS 205) + `assembleBatch(...)` 接受可选 signer + `cc mtc batch/batch-dids/batch-skills/publish-skills` 全部支持 `--alg slh-dsa-128f` opt-in；`cc mtc verify` 多算法 dispatcher。@noble/post-quantum 0.6.1 落地 npm（unit 7 + integration 3）|
 > | **Phase 4 V6 widget** | _本次_ | `MtcStatusPreviewWidget.vue` + DecentralEntries 顶部新增 MTC 入口，显示 audit/批次/算法状态；IPC 缺失时优雅降级（registry test 5 + widget unit 6） |
 >
-> **累计测试**：core-mtc 147 + CLI 64（unit 30 + integration 28 + e2e 6）+ desktop V6 widget 11 = **222 测试，全绿**，覆盖 unit / integration / e2e / desktop-renderer 四层。
+> **累计测试 (v0.5)**：core-mtc 182 + CLI MTC 89 + desktop MTC 33 + web-panel MTC 153 + backend Q-ENG-2 19 = **476 测试，全绿**，覆盖 unit / integration / e2e / desktop-renderer / web-renderer / backend 六层。
+>
+> **v0.5 bug 审计修了 4 项**（在 v0.4 4 项基础之上）：(1) `MtcInclusionProofDrawer.vue` 桌面 drawer 之前调一个不存在的 `electronAPI.fs.readFile`，改用真实存在的 `electronAPI.file.readContent`；(2) `cc mtc federation discover --transport libp2p` libp2p 节点在初始化中途异常时会泄漏，包 try/catch + cleanup；(3) federation discover daemon 的 `setInterval` 扫描在慢盘上可能重入，加 `scanInProgress` 锁；(4) `cc mtc federation join` 写 key file 改 `wx` 独占创建（与 audit-mtc.js 同 race-safety 策略）。
 >
 > **v0.4 bug 审计修了 4 项**：(1) `cc mtc publish-skills` 状态文件改 atomic write（temp + rename），崩溃不再静默重置 `last_seq=0`；(2) audit-mtc `listStagingEvents` 加 schema + filename 双校验，伪事件不会进树；(3) `getStatus.oldest_queued_at` 在领头条目损坏时仍能找到首个有效记录；(4) `loadOrCreateIssuerKey` 改 `wx` 独占创建，并发首次 emit 不再生成冲突密钥。
 >

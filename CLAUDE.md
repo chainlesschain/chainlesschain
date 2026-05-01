@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v5.0.3.2 (Evolution Edition — 139 Desktop Skills + 28 Android Skills + 110 CLI Commands + 7800+ Tests; MTC v0.4 — Phase 2 marketplace daemon + audit double-track scaffolding + Phase 1.6 SLH-DSA real signing (`--alg slh-dsa-128f` opt-in via `@noble/post-quantum@0.6.1`) + Phase 4 V6 MtcStatusPreviewWidget; 222 MTC tests across unit/integration/e2e/desktop-renderer)
+**Current Version**: v5.0.3.3 (Evolution Edition — 139 Desktop Skills + 28 Android Skills + 112 CLI Commands + 8000+ Tests; MTC v0.5 — Phases 0–4 fully landed including federation MTCA M-of-N multi-sig + filesystem/libp2p gossipsub auto-discovery + heterogeneous Ed25519+SLH-DSA federations + Q-ENG-2 backend bridge + OpLog per-row badge; 476 MTC tests across 6 layers)
 
 **Version hierarchy** (independent tracks — do not attempt to unify):
 - Product line: `v5.0.3.1` (marketing / release notes / docs — single source: `package.json.productVersion`)

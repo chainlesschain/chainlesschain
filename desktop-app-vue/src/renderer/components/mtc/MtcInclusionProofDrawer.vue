@@ -181,30 +181,48 @@ interface MtcApi {
   }>;
 }
 
-interface FsApi {
-  readFile?: (path: string) => Promise<string>;
+interface FileApi {
+  readContent?: (path: string) => Promise<unknown>;
 }
 
-async function readJsonFile(path: string): Promise<unknown> {
+async function readJsonFile(filePath: string): Promise<unknown> {
   if (typeof window === "undefined") {
     throw new Error("not in renderer");
   }
-  const fs = (window as unknown as { electronAPI?: { fs?: FsApi } }).electronAPI
-    ?.fs;
-  if (fs?.readFile) {
-    const content = await fs.readFile(path);
-    return JSON.parse(content);
+  const file = (window as unknown as { electronAPI?: { file?: FileApi } })
+    .electronAPI?.file;
+  if (!file?.readContent) {
+    throw new Error(
+      "electronAPI.file.readContent 未注册（需要桌面 Electron 环境）",
+    );
   }
-  // Fallback: use fetch with file:// protocol (only works for absolute paths in Electron)
-  const url =
-    path.startsWith("/") || /^[a-zA-Z]:/.test(path)
-      ? `file:///${path.replace(/\\/g, "/")}`
-      : path;
-  const r = await fetch(url);
-  if (!r.ok) {
-    throw new Error(`无法读取文件: ${path}`);
+  // electronAPI.file.readContent normalizes through the main-process handler;
+  // it returns either a raw string or { success, content?, data?, error? }.
+  const raw = await file.readContent(filePath);
+  let text: string;
+  if (typeof raw === "string") {
+    text = raw;
+  } else if (raw && typeof raw === "object") {
+    const obj = raw as {
+      content?: string;
+      data?: string;
+      success?: boolean;
+      error?: string;
+    };
+    if (obj.success === false) {
+      throw new Error(`无法读取文件: ${obj.error || filePath}`);
+    }
+    if (typeof obj.content === "string") {
+      text = obj.content;
+    } else if (typeof obj.data === "string") {
+      text = obj.data;
+    } else {
+      throw new Error(`未识别的 readContent 返回值: ${filePath}`);
+    }
+  } else {
+    throw new Error(`无法读取文件: ${filePath}`);
   }
-  return await r.json();
+  return JSON.parse(text);
 }
 
 async function runVerify() {

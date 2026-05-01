@@ -5,7 +5,7 @@
 > 涵盖 DID 批量发布、Skill Marketplace 上架、verifier 守护进程配置，以及与
 > libp2p / 文件系统多种传输模式的实操。
 >
-> **最后更新**: 2026-05-01（v0.4：marketplace publisher daemon + audit 双轨脚手架就绪） · 另见：[设计文档站 — MTC 落地方案](/design/mtc-landing-plan)、
+> **最后更新**: 2026-05-02（v0.5：Phase 0–4 全部落地，含 federation 多签 + libp2p gossipsub auto-discovery） · 另见：[设计文档站 — MTC 落地方案](/design/mtc-landing-plan)、
 > [`docs/design/默克尔树证书_MTC_落地方案.md`](https://github.com/chainlesschain/chainlesschain/blob/main/docs/design)
 
 ---
@@ -71,6 +71,16 @@ cc mtc batch-skills           --namespace <ns> --issuer <issuer>  # 从本地 sk
 # Marketplace publisher 守护进程（v0.4 新）
 cc mtc publish-skills --namespace-prefix <prefix> --issuer <issuer> \
   --out <dir> --state-file <path> [--once | --interval <s>]
+
+# Federation MTCA — 多签 + 服务发现（v0.5 新）
+cc mtc federation join <fed-id> --member-id <m> [--alg ed25519|slh-dsa-128f]
+cc mtc federation leave <fed-id> --member-id <m> [--keep-key]
+cc mtc federation status [<fed-id>]
+cc mtc batch* / publish-skills --federation <id> [--threshold <M>]   # M-of-N
+cc mtc federation discover <fed-id>
+  --transport filesystem --drop-zone <dir>      # 或
+  --transport libp2p --listen <maddr> --connect <peer-maddr>
+  [--member-id <m>] [--ttl <s>] [--once]
 
 # 验证
 cc mtc verify <envelope.json> --landmark <landmark.json>
@@ -502,7 +512,103 @@ console.log(r.ok ? "✓ 该事件确实在批次内" : `✗ ${r.code}`);
 
 ---
 
-## 13. 进阶：核心库直接调用
+## 13. Federation MTCA — 多签 + 服务发现（v0.5）
+
+### 13.1 设计
+
+不同于单 MTCA 模式（一个节点对树根签一次），federation 模式让 N 个独立节点各自签发同一棵树根；landmark 内嵌 `signatures[]` + `threshold`。Verifier 在 ≥ threshold 个签名验证通过时才接受。等保三级"多签防一人作弊"语义自然落到这条路径。
+
+支持异构成员（部分 Ed25519 + 部分 SLH-DSA）— federation 内每个成员独立选算法，verifier 多算法 dispatcher 自动识别。
+
+### 13.2 加入 / 退出本地 federation 注册表
+
+```bash
+# 加入 — 生成密钥（或复用 --key-file）+ 写入 ~/.chainlesschain/federation/members.json
+cc mtc federation join fed-acme --member-id node-a --alg ed25519
+cc mtc federation join fed-acme --member-id pqc-node --alg slh-dsa-128f
+
+# 查看
+cc mtc federation status fed-acme
+
+# 退出（默认连同密钥文件一起删；--keep-key 保留）
+cc mtc federation leave fed-acme --member-id node-a
+```
+
+**密钥安全**：每成员 secret key 落盘于 `~/.chainlesschain/federation/keys/<fed>.<member>.hex`（mode 0o600）。`wx` 独占创建防止并发 join 写冲突。
+
+### 13.3 用 federation 发布批次（M-of-N）
+
+`cc mtc batch / batch-dids / batch-skills / publish-skills` 全部支持 `--federation <id>` + `--threshold <M>`：
+
+```bash
+# 3-of-3 强制全签
+cc mtc batch-dids \
+  --namespace mtc/v1/did/000001 \
+  --issuer mtca:cc:fed-acme \
+  --federation fed-acme \
+  --out ./mtc-out
+
+# 2-of-3 容许一节点离线
+cc mtc publish-skills \
+  --namespace-prefix mtc/v1/skill \
+  --issuer mtca:cc:fed-marketplace \
+  --federation fed-marketplace --threshold 2 \
+  --out ~/.chainlesschain/marketplace-batches \
+  --state-file ~/.chainlesschain/marketplace-state.json
+```
+
+`cc mtc verify` 自动识别 federated landmark — 没有额外标志要传。
+
+### 13.4 服务发现 — Filesystem drop-zone
+
+最简单的跨进程发现：所有成员读写一个共享目录（NFS / Syncthing / SMB / USB）。每节点定期把自签 announce 写到 `<drop-zone>/federation-announces/<fed-id>/`，其他节点扫描 + 验签 + 入 cache。
+
+```bash
+# Node A
+cc mtc federation discover fed-acme \
+  --transport filesystem \
+  --drop-zone /shared/fed-zone \
+  --member-id node-a \
+  --ttl 600 --scan-interval 30
+
+# Node B（listen-only，纯订阅不发布）
+cc mtc federation discover fed-acme \
+  --transport filesystem \
+  --drop-zone /shared/fed-zone
+```
+
+Announce TTL 默认 600s，重新发布间隔 = TTL/3。Listen-only 模式（不带 `--member-id`）让 verifier 节点只读订阅。
+
+### 13.5 服务发现 — libp2p gossipsub（真 P2P 自动发现）
+
+```bash
+# Bootstrap node
+cc mtc federation discover fed-acme \
+  --transport libp2p \
+  --listen /ip4/0.0.0.0/tcp/9100 \
+  --member-id node-a
+# 启动时打印自己的多址：/ip4/127.0.0.1/tcp/9100/p2p/12D3...
+
+# 后续节点连接 bootstrap
+cc mtc federation discover fed-acme \
+  --transport libp2p \
+  --listen /ip4/0.0.0.0/tcp/0 \
+  --connect /ip4/<bootstrap-ip>/tcp/9100/p2p/<bootstrap-peerid> \
+  --member-id node-b
+```
+
+Topic 命名：`mtc-federation/v1/<federation-id>`。Mesh 形成后所有成员互相 announce，无需 bootstrap 节点之外的协调。Per-event 验签 + TTL 自动失效 + pubkey-id 去重在 cache 层兜底。
+
+### 13.6 Bug 审计 + 安全说明
+
+- **签名重放保护**：announce 自签 prefix 域分离 `mtc/v1/federation-announce\n`，与 tree-head 签名前缀不冲突。
+- **TTL 防陈旧**：cache TTL-evicting；过期 announce 直接拒收（除非 `verifyMemberAnnounce(ann, { allowExpired: true })`）。
+- **节点泄漏防护**：libp2p mode `try/catch` 包整个 init，异常路径上 `node.close()` 兜底。
+- **scan 重入锁**：filesystem mode 的 `setInterval` 在 scan 还没结束时不重入。
+
+---
+
+## 14. 进阶：核心库直接调用
 
 ```js
 import {
