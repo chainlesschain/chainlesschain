@@ -9,10 +9,49 @@ const path = require("path");
 const { spawn } = require("child_process");
 
 class MenuManager {
-  constructor(mainWindow) {
+  /**
+   * @param {Electron.BrowserWindow} mainWindow
+   * @param {Object} [options]
+   * @param {() => ({ httpUrl?: string } | null)} [options.getWebShellHandle]
+   *   Getter for the live web-shell handle so the "在浏览器中打开 web 视图"
+   *   menu item can read the OS-assigned httpUrl when clicked. Returns null
+   *   when web-shell is not running (user opted out → menu item disabled).
+   * @param {(url: string) => Promise<void>} [options.openExternal]
+   *   Override for `shell.openExternal` — used by tests to assert without
+   *   spawning a real browser.
+   */
+  constructor(mainWindow, options = {}) {
     this.mainWindow = mainWindow;
     this.controlPanelProcess = null;
     this.controlPanelPort = 3001;
+    this.getWebShellHandle = options.getWebShellHandle || (() => null);
+    this.openExternal = options.openExternal || shell.openExternal.bind(shell);
+  }
+
+  /**
+   * Open the embedded web-shell URL in the user's default browser. No-op
+   * when web-shell is not running (legacy V5/V6 desktop shell selected via
+   * SystemSettings opt-out). Surfaced from both the View menu and the
+   * Cmd/Ctrl+Shift+B in-window accelerator.
+   */
+  async openWebShellInBrowser() {
+    const handle = this.getWebShellHandle();
+    if (!handle || !handle.httpUrl) {
+      logger.info(
+        "[MenuManager] openWebShellInBrowser: web-shell handle unavailable (likely opted out)",
+      );
+      return false;
+    }
+    try {
+      await this.openExternal(handle.httpUrl);
+      logger.info(
+        `[MenuManager] Opened web-shell in external browser: ${handle.httpUrl}`,
+      );
+      return true;
+    } catch (err) {
+      logger.error("[MenuManager] openWebShellInBrowser failed:", err);
+      return false;
+    }
   }
 
   /**
@@ -115,6 +154,21 @@ class MenuManager {
           },
           { type: "separator" },
           { role: "togglefullscreen", label: "全屏" },
+          { type: "separator" },
+          {
+            label: "在浏览器中打开 web 视图",
+            accelerator: "CmdOrCtrl+Shift+B",
+            // Phase 1.6: when web-shell is the active shell, surface the
+            // OS-assigned httpUrl as a one-click escape to a real browser
+            // (Vue/React DevTools, multi-screen, share to LAN, etc.). When
+            // web-shell isn't running (legacy V5/V6 path picked via opt-out),
+            // the getter returns null and the click no-ops with a log line —
+            // we still register the item so the keybinding stays consistent
+            // across shells.
+            click: () => {
+              this.openWebShellInBrowser();
+            },
+          },
           { type: "separator" },
           {
             label: "开发者工具",

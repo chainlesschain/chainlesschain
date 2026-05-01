@@ -974,8 +974,13 @@ class ChainlessChainApp {
     this.fileSyncManager = new FileSyncManager(this.database, this.mainWindow);
     this.previewManager = new PreviewManager(this.mainWindow);
 
-    // 创建菜单
-    this.menuManager = new MenuManager(this.mainWindow);
+    // 创建菜单 — pass a live getter for the web-shell handle so the
+    // "在浏览器中打开 web 视图" item resolves the OS-assigned httpUrl
+    // at click-time (Phase 1.6 hard-flip surfaced this as a quick entry
+    // for Vue DevTools / multi-screen / LAN-share workflows).
+    this.menuManager = new MenuManager(this.mainWindow, {
+      getWebShellHandle: () => this._webShellHandle || null,
+    });
     this.menuManager.createMenu();
 
     // 初始化数据库同步管理器

@@ -65,11 +65,16 @@ logger.info("[App] Performance optimizations initialized");
 
 // 启动前预读 V6 壳默认开关：让 router 守卫能在第一次导航时就生效
 // Phase 3.4 硬翻：默认 V6；只有显式 ui.useV6ShellByDefault=false 才回退 V5。
-// 配置读取失败或 IPC 不可用时也保持 V6 默认，不阻塞挂载。
+// 配置读取失败、IPC 不可用、或 IPC 卡住时都保持 V6 默认，不阻塞挂载。
+// 用 Promise.race 把 IPC 限制在 1.5s 内——超时直接走默认，避免主进程
+// 没注册 handler 时整个 mount 被永久 await 卡住、splash 永远不消失。
 try {
   const invoke = window.electronAPI?.invoke;
   if (typeof invoke === "function") {
-    const raw = await invoke("config:get", "ui.useV6ShellByDefault");
+    const raw = await Promise.race([
+      invoke("config:get", "ui.useV6ShellByDefault"),
+      new Promise((resolve) => setTimeout(() => resolve(true), 1500)),
+    ]);
     setV6ShellDefault(raw !== false);
   }
 } catch (err) {
@@ -78,9 +83,24 @@ try {
 
 app.mount("#app");
 
-// Vue 挂载完成后淡出并移除页面加载动画
+// Vue 挂载完成后淡出并移除页面加载动画。
+// Belt-and-suspenders: 主路径 350ms 淡出 + 380ms 后 remove；保险路径
+// 1500ms 后无条件再 remove 一次。已经被移除的 element parentNode 是
+// null，第二次 remove 是 no-op，安全。这样即使 CSS 过渡因渲染压力
+// 卡住、或者 setTimeout 被偶发延迟，splash 都会在 ~1.5s 内消失。
 const pageLoading = document.getElementById("page-loading");
 if (pageLoading) {
   pageLoading.classList.add("hide");
-  setTimeout(() => pageLoading.remove(), 380);
+  // 立即停止吃事件，splash 即便残留也不挡 login 表单的点击
+  pageLoading.style.pointerEvents = "none";
+  setTimeout(() => {
+    if (pageLoading.parentNode) {
+      pageLoading.remove();
+    }
+  }, 380);
+  setTimeout(() => {
+    if (pageLoading.parentNode) {
+      pageLoading.remove();
+    }
+  }, 1500);
 }
