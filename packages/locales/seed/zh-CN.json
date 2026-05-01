@@ -1130,6 +1130,167 @@
       "detectFailed": "检测失败: {err}"
     }
   },
+  "federation": {
+    "title": "联邦强化",
+    "subtitle": "熔断器 FSM · 健康检查 · 连接池模拟",
+    "refresh": "刷新",
+    "newDropdown": "新建 ▼",
+    "newMenu": {
+      "register": "注册节点",
+      "check": "记录健康检查",
+      "pool": "新建连接池"
+    },
+    "stats": {
+      "breakers": "熔断器节点",
+      "checks": "健康检查",
+      "pools": "连接池",
+      "degraded": "降级节点",
+      "availability": "可用率",
+      "breakerSub": "{closed} 闭合 · {open} 开",
+      "checkSub": "{healthy} 健康 · {unhealthy} 不可用",
+      "poolSub": "{active} 活跃 · {idle} 空闲",
+      "degradedSub": "{halfOpen} 半开"
+    },
+    "tabs": {
+      "breakers": "熔断器",
+      "checks": "健康检查",
+      "pools": "连接池",
+      "nodeHealth": "节点健康聚合"
+    },
+    "filter": {
+      "allStates": "全部状态",
+      "allMetrics": "全部指标"
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "breakerColumns": {
+      "node": "节点",
+      "state": "状态",
+      "failure": "失败计数",
+      "success": "成功计数",
+      "openTimeout": "超时 (ms)",
+      "updatedAt": "更新时间",
+      "action": "操作"
+    },
+    "checkColumns": {
+      "id": "ID",
+      "node": "节点",
+      "metric": "指标",
+      "status": "状态",
+      "metrics": "指标值",
+      "checkedAt": "采集时间"
+    },
+    "poolColumns": {
+      "node": "节点",
+      "active": "活跃",
+      "idle": "空闲",
+      "max": "上限",
+      "utilization": "使用率",
+      "waiting": "排队中",
+      "totalCreated": "已创建",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "latestColumns": {
+      "metric": "指标",
+      "status": "状态",
+      "checkedAt": "采集时间"
+    },
+    "breakerActions": {
+      "failure": "失败",
+      "success": "成功",
+      "halfOpen": "半开",
+      "reset": "重置",
+      "remove": "移除",
+      "removeConfirm": "移除该节点？所有相关熔断器与健康检查会被删除"
+    },
+    "poolActions": {
+      "acquire": "取连接",
+      "release": "还连接",
+      "destroy": "销毁",
+      "destroyConfirm": "销毁该连接池？"
+    },
+    "empty": {
+      "breakers": "暂无熔断器",
+      "checks": "暂无健康检查记录",
+      "pools": "暂无连接池",
+      "noLatest": "无最近检查"
+    },
+    "nodeHealth": {
+      "inputPlaceholder": "节点 ID",
+      "query": "查询",
+      "node": "节点",
+      "status": "聚合状态",
+      "checkCount": "检查总数",
+      "latestTitle": "最近各指标状态"
+    },
+    "register": {
+      "title": "注册联邦节点",
+      "nodeIdLabel": "节点 ID",
+      "nodeIdPlaceholder": "如 node-shanghai-01",
+      "failureThresholdLabel": "失败阈值（默认 5）",
+      "successThresholdLabel": "成功阈值（默认 2）",
+      "openTimeoutLabel": "开路超时 (ms)（默认 60000）"
+    },
+    "check": {
+      "title": "记录健康检查",
+      "nodeIdLabel": "节点 ID",
+      "nodeIdPlaceholder": "必须先注册节点",
+      "metricLabel": "指标类型",
+      "statusLabel": "健康状态",
+      "metricsLabel": "指标 JSON（可选，例如 latencyMs:42）",
+      "metricsPlaceholder": "metrics 字符串：例如 latencyMs=42, cpu=0.4"
+    },
+    "pool": {
+      "title": "新建连接池",
+      "nodeIdLabel": "节点 ID",
+      "nodeIdPlaceholder": "如 node-shanghai-01",
+      "minLabel": "最小连接数（默认 5）",
+      "maxLabel": "最大连接数（默认 50）",
+      "idleTimeoutLabel": "空闲超时 (ms)（默认 300000）"
+    },
+    "state": {
+      "closed": "闭合",
+      "open": "开路",
+      "half_open": "半开"
+    },
+    "metric": {
+      "heartbeat": "心跳",
+      "latency": "延迟",
+      "success_rate": "成功率",
+      "cpu_usage": "CPU",
+      "memory_usage": "内存"
+    },
+    "health": {
+      "healthy": "健康",
+      "degraded": "降级",
+      "unhealthy": "不可用",
+      "unknown": "未知"
+    },
+    "messages": {
+      "loadFailed": "加载数据失败: {err}",
+      "nodeIdRequired": "请填写节点 ID",
+      "registerFailed": "注册失败: {err}",
+      "registerOk": "节点已注册：{id}",
+      "checkFailed": "记录失败: {err}",
+      "checkOk": "检查已记录：{id}",
+      "poolFailed": "创建失败: {err}",
+      "poolOk": "连接池已创建：{id}",
+      "removeFailed": "移除失败: {err}",
+      "removeOk": "节点已移除",
+      "operationFailed": "操作失败: {err}",
+      "operationNoEffect": "操作未生效",
+      "operationCooldown": "操作未生效（还需 {ms}ms）",
+      "transitionMsg": "{from} → {to}",
+      "resetMsg": "熔断器已重置",
+      "recordedMsg": "已记录",
+      "destroyMsg": "连接池已销毁",
+      "acquireMsg": "已获取（活跃 {active} · 空闲 {idle}）",
+      "releaseMsg": "已释放（活跃 {active} · 空闲 {idle}）",
+      "queryFailed": "查询失败: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

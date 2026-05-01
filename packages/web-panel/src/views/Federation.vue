@@ -2,24 +2,24 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">联邦强化</h2>
-        <p class="page-sub">熔断器 FSM · 健康检查 · 连接池模拟</p>
+        <h2 class="page-title">{{ t('federation.title') }}</h2>
+        <p class="page-sub">{{ t('federation.subtitle') }}</p>
       </div>
       <a-space>
         <a-button :loading="loading" @click="loadAll">
           <template #icon><ReloadOutlined /></template>
-          刷新
+          {{ t('federation.refresh') }}
         </a-button>
         <a-dropdown>
           <a-button type="primary">
             <template #icon><PlusOutlined /></template>
-            新建 ▼
+            {{ t('federation.newDropdown') }}
           </a-button>
           <template #overlay>
             <a-menu>
-              <a-menu-item key="register" @click="showRegisterModal = true">注册节点</a-menu-item>
-              <a-menu-item key="check" @click="showCheckModal = true">记录健康检查</a-menu-item>
-              <a-menu-item key="pool" @click="showPoolModal = true">新建连接池</a-menu-item>
+              <a-menu-item key="register" @click="showRegisterModal = true">{{ t('federation.newMenu.register') }}</a-menu-item>
+              <a-menu-item key="check" @click="showCheckModal = true">{{ t('federation.newMenu.check') }}</a-menu-item>
+              <a-menu-item key="pool" @click="showPoolModal = true">{{ t('federation.newMenu.pool') }}</a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
@@ -31,55 +31,55 @@
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="熔断器节点"
+            :title="t('federation.stats.breakers')"
             :value="stats.circuitBreakers.total"
             :value-style="{ color: '#1677ff', fontSize: '20px' }"
           >
             <template #prefix><ClusterOutlined /></template>
           </a-statistic>
-          <div class="stat-sub">{{ stats.circuitBreakers.byState.closed || 0 }} 闭合 · {{ stats.circuitBreakers.byState.open || 0 }} 开</div>
+          <div class="stat-sub">{{ t('federation.stats.breakerSub', { closed: stats.circuitBreakers.byState.closed || 0, open: stats.circuitBreakers.byState.open || 0 }) }}</div>
         </a-card>
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="健康检查"
+            :title="t('federation.stats.checks')"
             :value="stats.healthChecks.total"
             :value-style="{ color: '#52c41a', fontSize: '20px' }"
           >
             <template #prefix><HeartOutlined /></template>
           </a-statistic>
-          <div class="stat-sub">{{ stats.healthChecks.byStatus.healthy || 0 }} 健康 · {{ stats.healthChecks.byStatus.unhealthy || 0 }} 不可用</div>
+          <div class="stat-sub">{{ t('federation.stats.checkSub', { healthy: stats.healthChecks.byStatus.healthy || 0, unhealthy: stats.healthChecks.byStatus.unhealthy || 0 }) }}</div>
         </a-card>
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="连接池"
+            :title="t('federation.stats.pools')"
             :value="stats.connectionPools.total"
             :value-style="{ color: '#13c2c2', fontSize: '20px' }"
           >
             <template #prefix><ApiOutlined /></template>
           </a-statistic>
-          <div class="stat-sub">{{ stats.connectionPools.totalActive }} 活跃 · {{ stats.connectionPools.totalIdle }} 空闲</div>
+          <div class="stat-sub">{{ t('federation.stats.poolSub', { active: stats.connectionPools.totalActive, idle: stats.connectionPools.totalIdle }) }}</div>
         </a-card>
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="降级节点"
+            :title="t('federation.stats.degraded')"
             :value="degradedCount"
             :value-style="{ color: degradedCount > 0 ? '#faad14' : '#8c8c8c', fontSize: '20px' }"
           >
             <template #prefix><WarningOutlined /></template>
           </a-statistic>
-          <div class="stat-sub">{{ stats.circuitBreakers.byState.half_open || 0 }} 半开</div>
+          <div class="stat-sub">{{ t('federation.stats.degradedSub', { halfOpen: stats.circuitBreakers.byState.half_open || 0 }) }}</div>
         </a-card>
       </a-col>
       <a-col :xs="24" :sm="8" :lg="4">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="可用率"
+            :title="t('federation.stats.availability')"
             :value="availabilityRate"
             suffix="%"
             :precision="0"
@@ -94,10 +94,10 @@
     <!-- Tabs (4 surfaces) -->
     <a-tabs v-model:activeKey="activeTab" class="fed-tabs">
       <!-- ── Circuit breakers ──────────────────────────── -->
-      <a-tab-pane key="breakers" tab="熔断器">
+      <a-tab-pane key="breakers" :tab="t('federation.tabs.breakers')">
         <div class="filter-bar">
           <a-radio-group v-model:value="stateFilter" size="small" button-style="solid">
-            <a-radio-button value="">全部状态</a-radio-button>
+            <a-radio-button value="">{{ t('federation.filter.allStates') }}</a-radio-button>
             <a-radio-button v-for="s in CIRCUIT_STATES" :key="s" :value="s">{{ stateLabel(s) }}</a-radio-button>
           </a-radio-group>
         </div>
@@ -105,7 +105,7 @@
         <a-table
           :columns="breakerColumns"
           :data-source="filteredBreakers"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (count) => t('federation.totals.rows', { count }) }"
           size="small"
           :loading="loading"
           row-key="key"
@@ -126,32 +126,32 @@
             </template>
             <template v-else-if="column.key === 'action'">
               <a-space :size="4">
-                <a-button size="small" danger @click="recordTransition(record, 'failure')">失败</a-button>
-                <a-button size="small" @click="recordTransition(record, 'success')">成功</a-button>
-                <a-button size="small" type="dashed" @click="recordTransition(record, 'half-open')">半开</a-button>
-                <a-button size="small" @click="recordTransition(record, 'reset')">重置</a-button>
-                <a-popconfirm title="移除该节点？所有相关熔断器与健康检查会被删除" @confirm="removeNode(record)">
-                  <a-button size="small" danger type="text">移除</a-button>
+                <a-button size="small" danger @click="recordTransition(record, 'failure')">{{ t('federation.breakerActions.failure') }}</a-button>
+                <a-button size="small" @click="recordTransition(record, 'success')">{{ t('federation.breakerActions.success') }}</a-button>
+                <a-button size="small" type="dashed" @click="recordTransition(record, 'half-open')">{{ t('federation.breakerActions.halfOpen') }}</a-button>
+                <a-button size="small" @click="recordTransition(record, 'reset')">{{ t('federation.breakerActions.reset') }}</a-button>
+                <a-popconfirm :title="t('federation.breakerActions.removeConfirm')" @confirm="removeNode(record)">
+                  <a-button size="small" danger type="text">{{ t('federation.breakerActions.remove') }}</a-button>
                 </a-popconfirm>
               </a-space>
             </template>
           </template>
 
           <template #emptyText>
-            <a-empty :image="EMPTY_IMG" description="暂无熔断器" />
+            <a-empty :image="EMPTY_IMG" :description="t('federation.empty.breakers')" />
           </template>
         </a-table>
       </a-tab-pane>
 
       <!-- ── Health checks ─────────────────────────────── -->
-      <a-tab-pane key="checks" tab="健康检查">
+      <a-tab-pane key="checks" :tab="t('federation.tabs.checks')">
         <div class="filter-bar">
           <a-radio-group v-model:value="metricFilter" size="small" button-style="solid">
-            <a-radio-button value="">全部指标</a-radio-button>
+            <a-radio-button value="">{{ t('federation.filter.allMetrics') }}</a-radio-button>
             <a-radio-button v-for="m in HEALTH_METRICS" :key="m" :value="m">{{ metricLabel(m) }}</a-radio-button>
           </a-radio-group>
           <a-radio-group v-model:value="healthStatusFilter" size="small">
-            <a-radio-button value="">全部状态</a-radio-button>
+            <a-radio-button value="">{{ t('federation.filter.allStates') }}</a-radio-button>
             <a-radio-button v-for="s in HEALTH_STATUSES" :key="s" :value="s">{{ healthLabel(s) }}</a-radio-button>
           </a-radio-group>
         </div>
@@ -159,7 +159,7 @@
         <a-table
           :columns="checkColumns"
           :data-source="filteredChecks"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (count) => t('federation.totals.rows', { count }) }"
           size="small"
           :loading="loading"
           row-key="key"
@@ -184,17 +184,17 @@
           </template>
 
           <template #emptyText>
-            <a-empty :image="EMPTY_IMG" description="暂无健康检查记录" />
+            <a-empty :image="EMPTY_IMG" :description="t('federation.empty.checks')" />
           </template>
         </a-table>
       </a-tab-pane>
 
       <!-- ── Connection pools ──────────────────────────── -->
-      <a-tab-pane key="pools" tab="连接池">
+      <a-tab-pane key="pools" :tab="t('federation.tabs.pools')">
         <a-table
           :columns="poolColumns"
           :data-source="pools"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (count) => t('federation.totals.rows', { count }) }"
           size="small"
           :loading="loading"
           row-key="key"
@@ -213,58 +213,58 @@
             </template>
             <template v-else-if="column.key === 'action'">
               <a-space :size="4">
-                <a-button size="small" type="primary" @click="poolAction(record, 'acquire')">取连接</a-button>
-                <a-button size="small" @click="poolAction(record, 'release')">还连接</a-button>
-                <a-popconfirm title="销毁该连接池？" @confirm="poolAction(record, 'destroy')">
-                  <a-button size="small" danger type="text">销毁</a-button>
+                <a-button size="small" type="primary" @click="poolAction(record, 'acquire')">{{ t('federation.poolActions.acquire') }}</a-button>
+                <a-button size="small" @click="poolAction(record, 'release')">{{ t('federation.poolActions.release') }}</a-button>
+                <a-popconfirm :title="t('federation.poolActions.destroyConfirm')" @confirm="poolAction(record, 'destroy')">
+                  <a-button size="small" danger type="text">{{ t('federation.poolActions.destroy') }}</a-button>
                 </a-popconfirm>
               </a-space>
             </template>
           </template>
 
           <template #emptyText>
-            <a-empty :image="EMPTY_IMG" description="暂无连接池" />
+            <a-empty :image="EMPTY_IMG" :description="t('federation.empty.pools')" />
           </template>
         </a-table>
       </a-tab-pane>
 
       <!-- ── Node health aggregate ────────────────────── -->
-      <a-tab-pane key="node-health" tab="节点健康聚合">
+      <a-tab-pane key="node-health" :tab="t('federation.tabs.nodeHealth')">
         <a-card style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
           <a-space>
             <a-input
               v-model:value="nodeHealthInput"
-              placeholder="节点 ID"
+              :placeholder="t('federation.nodeHealth.inputPlaceholder')"
               style="width: 240px;"
               allow-clear
               @press-enter="queryNodeHealth"
             />
             <a-button type="primary" :loading="queryingHealth" @click="queryNodeHealth">
               <template #icon><SearchOutlined /></template>
-              查询
+              {{ t('federation.nodeHealth.query') }}
             </a-button>
           </a-space>
         </a-card>
 
         <a-card v-if="nodeHealth" style="background: var(--bg-card); border-color: var(--border-color);">
           <a-descriptions :column="3" size="small" bordered>
-            <a-descriptions-item label="节点">
+            <a-descriptions-item :label="t('federation.nodeHealth.node')">
               <span style="font-family: monospace;">{{ nodeHealth.nodeId }}</span>
             </a-descriptions-item>
-            <a-descriptions-item label="聚合状态">
+            <a-descriptions-item :label="t('federation.nodeHealth.status')">
               <a-tag :color="healthColor(nodeHealth.status)">{{ healthLabel(nodeHealth.status) }}</a-tag>
             </a-descriptions-item>
-            <a-descriptions-item label="检查总数">
+            <a-descriptions-item :label="t('federation.nodeHealth.checkCount')">
               {{ nodeHealth.checks }}
             </a-descriptions-item>
           </a-descriptions>
 
           <div style="margin-top: 16px;">
-            <h4 style="color: var(--text-primary); margin-bottom: 8px;">最近各指标状态</h4>
+            <h4 style="color: var(--text-primary); margin-bottom: 8px;">{{ t('federation.nodeHealth.latestTitle') }}</h4>
             <a-empty
               v-if="!nodeHealth.latestChecks.length"
               :image="EMPTY_IMG"
-              description="无最近检查"
+              :description="t('federation.empty.noLatest')"
             />
             <a-table
               v-else
@@ -293,58 +293,58 @@
     </a-tabs>
 
     <!-- Modal: register node -->
-    <a-modal v-model:open="showRegisterModal" title="注册联邦节点" :confirm-loading="creating" @ok="submitRegister">
+    <a-modal v-model:open="showRegisterModal" :title="t('federation.register.title')" :confirm-loading="creating" @ok="submitRegister">
       <a-form layout="vertical">
-        <a-form-item label="节点 ID" required>
-          <a-input v-model:value="registerForm.nodeId" placeholder="如 node-shanghai-01" />
+        <a-form-item :label="t('federation.register.nodeIdLabel')" required>
+          <a-input v-model:value="registerForm.nodeId" :placeholder="t('federation.register.nodeIdPlaceholder')" />
         </a-form-item>
-        <a-form-item label="失败阈值（默认 5）">
+        <a-form-item :label="t('federation.register.failureThresholdLabel')">
           <a-input-number v-model:value="registerForm.failureThreshold" :min="1" :max="100" style="width: 100%;" />
         </a-form-item>
-        <a-form-item label="成功阈值（默认 2）">
+        <a-form-item :label="t('federation.register.successThresholdLabel')">
           <a-input-number v-model:value="registerForm.successThreshold" :min="1" :max="100" style="width: 100%;" />
         </a-form-item>
-        <a-form-item label="开路超时 (ms)（默认 60000）">
+        <a-form-item :label="t('federation.register.openTimeoutLabel')">
           <a-input-number v-model:value="registerForm.openTimeout" :min="1000" :step="1000" style="width: 100%;" />
         </a-form-item>
       </a-form>
     </a-modal>
 
     <!-- Modal: record health check -->
-    <a-modal v-model:open="showCheckModal" title="记录健康检查" :confirm-loading="creating" @ok="submitCheck">
+    <a-modal v-model:open="showCheckModal" :title="t('federation.check.title')" :confirm-loading="creating" @ok="submitCheck">
       <a-form layout="vertical">
-        <a-form-item label="节点 ID" required>
-          <a-input v-model:value="checkForm.nodeId" placeholder="必须先注册节点" />
+        <a-form-item :label="t('federation.check.nodeIdLabel')" required>
+          <a-input v-model:value="checkForm.nodeId" :placeholder="t('federation.check.nodeIdPlaceholder')" />
         </a-form-item>
-        <a-form-item label="指标类型" required>
+        <a-form-item :label="t('federation.check.metricLabel')" required>
           <a-select v-model:value="checkForm.checkType">
             <a-select-option v-for="m in HEALTH_METRICS" :key="m" :value="m">{{ metricLabel(m) }}</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="健康状态" required>
+        <a-form-item :label="t('federation.check.statusLabel')" required>
           <a-select v-model:value="checkForm.status">
             <a-select-option v-for="s in HEALTH_STATUSES" :key="s" :value="s">{{ healthLabel(s) }}</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="指标 JSON（可选，如 {&quot;latencyMs&quot;:42}）">
-          <a-textarea v-model:value="checkForm.metrics" :rows="3" placeholder='{"latencyMs": 42, "cpu": 0.4}' />
+        <a-form-item :label="t('federation.check.metricsLabel')">
+          <a-textarea v-model:value="checkForm.metrics" :rows="3" :placeholder="t('federation.check.metricsPlaceholder')" />
         </a-form-item>
       </a-form>
     </a-modal>
 
     <!-- Modal: init pool -->
-    <a-modal v-model:open="showPoolModal" title="新建连接池" :confirm-loading="creating" @ok="submitPool">
+    <a-modal v-model:open="showPoolModal" :title="t('federation.pool.title')" :confirm-loading="creating" @ok="submitPool">
       <a-form layout="vertical">
-        <a-form-item label="节点 ID" required>
-          <a-input v-model:value="poolForm.nodeId" placeholder="如 node-shanghai-01" />
+        <a-form-item :label="t('federation.pool.nodeIdLabel')" required>
+          <a-input v-model:value="poolForm.nodeId" :placeholder="t('federation.pool.nodeIdPlaceholder')" />
         </a-form-item>
-        <a-form-item label="最小连接数（默认 5）">
+        <a-form-item :label="t('federation.pool.minLabel')">
           <a-input-number v-model:value="poolForm.min" :min="1" :max="500" style="width: 100%;" />
         </a-form-item>
-        <a-form-item label="最大连接数（默认 50）">
+        <a-form-item :label="t('federation.pool.maxLabel')">
           <a-input-number v-model:value="poolForm.max" :min="1" :max="500" style="width: 100%;" />
         </a-form-item>
-        <a-form-item label="空闲超时 (ms)（默认 300000）">
+        <a-form-item :label="t('federation.pool.idleTimeoutLabel')">
           <a-input-number v-model:value="poolForm.idleTimeout" :min="1000" :step="1000" style="width: 100%;" />
         </a-form-item>
       </a-form>
@@ -354,6 +354,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   ReloadOutlined,
   PlusOutlined,
@@ -382,6 +383,7 @@ import {
   HEALTH_METRICS,
 } from '../utils/federation-parser.js'
 
+const { t } = useI18n()
 const ws = useWsStore()
 
 const EMPTY_IMG = Empty.PRESENTED_IMAGE_SIMPLE
@@ -415,42 +417,42 @@ const poolForm = reactive({ nodeId: '', min: 5, max: 50, idleTimeout: 300000 })
 const nodeHealthInput = ref('')
 const nodeHealth = ref(null)
 
-const breakerColumns = [
-  { title: '节点', key: 'nodeId', dataIndex: 'nodeId', width: '200px' },
-  { title: '状态', key: 'state', width: '100px' },
-  { title: '失败计数', key: 'failure', width: '120px' },
-  { title: '成功计数', key: 'success', width: '120px' },
-  { title: '超时 (ms)', key: 'openTimeout', dataIndex: 'openTimeout', width: '110px' },
-  { title: '更新时间', key: 'updatedAt', width: '170px' },
-  { title: '操作', key: 'action', width: '340px' },
-]
+const breakerColumns = computed(() => [
+  { title: t('federation.breakerColumns.node'), key: 'nodeId', dataIndex: 'nodeId', width: '200px' },
+  { title: t('federation.breakerColumns.state'), key: 'state', width: '100px' },
+  { title: t('federation.breakerColumns.failure'), key: 'failure', width: '120px' },
+  { title: t('federation.breakerColumns.success'), key: 'success', width: '120px' },
+  { title: t('federation.breakerColumns.openTimeout'), key: 'openTimeout', dataIndex: 'openTimeout', width: '110px' },
+  { title: t('federation.breakerColumns.updatedAt'), key: 'updatedAt', width: '170px' },
+  { title: t('federation.breakerColumns.action'), key: 'action', width: '340px' },
+])
 
-const checkColumns = [
-  { title: 'ID', key: 'checkId', width: '130px' },
-  { title: '节点', key: 'nodeId', dataIndex: 'nodeId', width: '180px' },
-  { title: '指标', key: 'checkType', width: '120px' },
-  { title: '状态', key: 'status', width: '100px' },
-  { title: '指标值', key: 'metrics' },
-  { title: '采集时间', key: 'checkedAt', width: '170px' },
-]
+const checkColumns = computed(() => [
+  { title: t('federation.checkColumns.id'), key: 'checkId', width: '130px' },
+  { title: t('federation.checkColumns.node'), key: 'nodeId', dataIndex: 'nodeId', width: '180px' },
+  { title: t('federation.checkColumns.metric'), key: 'checkType', width: '120px' },
+  { title: t('federation.checkColumns.status'), key: 'status', width: '100px' },
+  { title: t('federation.checkColumns.metrics'), key: 'metrics' },
+  { title: t('federation.checkColumns.checkedAt'), key: 'checkedAt', width: '170px' },
+])
 
-const poolColumns = [
-  { title: '节点', key: 'nodeId', dataIndex: 'nodeId', width: '200px' },
-  { title: '活跃', key: 'activeConnections', dataIndex: 'activeConnections', width: '90px' },
-  { title: '空闲', key: 'idleConnections', dataIndex: 'idleConnections', width: '90px' },
-  { title: '上限', key: 'maxConnections', dataIndex: 'maxConnections', width: '90px' },
-  { title: '使用率', key: 'utilization', width: '160px' },
-  { title: '排队中', key: 'waitingRequests', dataIndex: 'waitingRequests', width: '90px' },
-  { title: '已创建', key: 'totalCreated', dataIndex: 'totalCreated', width: '90px' },
-  { title: '创建时间', key: 'createdAt', width: '170px' },
-  { title: '操作', key: 'action', width: '240px' },
-]
+const poolColumns = computed(() => [
+  { title: t('federation.poolColumns.node'), key: 'nodeId', dataIndex: 'nodeId', width: '200px' },
+  { title: t('federation.poolColumns.active'), key: 'activeConnections', dataIndex: 'activeConnections', width: '90px' },
+  { title: t('federation.poolColumns.idle'), key: 'idleConnections', dataIndex: 'idleConnections', width: '90px' },
+  { title: t('federation.poolColumns.max'), key: 'maxConnections', dataIndex: 'maxConnections', width: '90px' },
+  { title: t('federation.poolColumns.utilization'), key: 'utilization', width: '160px' },
+  { title: t('federation.poolColumns.waiting'), key: 'waitingRequests', dataIndex: 'waitingRequests', width: '90px' },
+  { title: t('federation.poolColumns.totalCreated'), key: 'totalCreated', dataIndex: 'totalCreated', width: '90px' },
+  { title: t('federation.poolColumns.createdAt'), key: 'createdAt', width: '170px' },
+  { title: t('federation.poolColumns.action'), key: 'action', width: '240px' },
+])
 
-const latestChecksColumns = [
-  { title: '指标', key: 'checkType', width: '160px' },
-  { title: '状态', key: 'status', width: '120px' },
-  { title: '采集时间', key: 'checkedAt' },
-]
+const latestChecksColumns = computed(() => [
+  { title: t('federation.latestColumns.metric'), key: 'checkType', width: '160px' },
+  { title: t('federation.latestColumns.status'), key: 'status', width: '120px' },
+  { title: t('federation.latestColumns.checkedAt'), key: 'checkedAt' },
+])
 
 const filteredBreakers = computed(() => {
   if (!stateFilter.value) return breakers.value
@@ -481,29 +483,24 @@ function poolUtilization(p) {
 }
 
 function stateLabel(s) {
-  return { closed: '闭合', open: '开路', half_open: '半开' }[s] || s
+  const key = `federation.state.${s}`
+  const v = t(key)
+  return v === key ? s : v
 }
 function stateColor(s) {
   return { closed: 'green', open: 'red', half_open: 'gold' }[s] || 'default'
 }
 
 function metricLabel(m) {
-  return {
-    heartbeat: '心跳',
-    latency: '延迟',
-    success_rate: '成功率',
-    cpu_usage: 'CPU',
-    memory_usage: '内存',
-  }[m] || m
+  const key = `federation.metric.${m}`
+  const v = t(key)
+  return v === key ? m : v
 }
 
 function healthLabel(s) {
-  return {
-    healthy: '健康',
-    degraded: '降级',
-    unhealthy: '不可用',
-    unknown: '未知',
-  }[s] || s
+  const key = `federation.health.${s}`
+  const v = t(key)
+  return v === key ? s : v
 }
 function healthColor(s) {
   return {
@@ -544,7 +541,7 @@ async function loadAll() {
     pools.value = parsePools(pRes.output)
     stats.value = parseStats(sRes.output)
   } catch (e) {
-    message.error('加载数据失败: ' + (e?.message || e))
+    message.error(t('federation.messages.loadFailed', { err: e?.message || e }))
   } finally {
     loading.value = false
   }
@@ -552,7 +549,7 @@ async function loadAll() {
 
 async function submitRegister() {
   if (!registerForm.nodeId.trim()) {
-    message.warning('请填写节点 ID')
+    message.warning(t('federation.messages.nodeIdRequired'))
     return
   }
   creating.value = true
@@ -565,15 +562,15 @@ async function submitRegister() {
     const { output } = await ws.execute(parts.join(' '), 10000)
     const r = parseRegisterResult(output)
     if (!r.ok) {
-      message.error('注册失败: ' + (r.reason || output.slice(0, 120)))
+      message.error(t('federation.messages.registerFailed', { err: r.reason || output.slice(0, 120) }))
       return
     }
-    message.success(`节点已注册：${r.id}`)
+    message.success(t('federation.messages.registerOk', { id: r.id }))
     showRegisterModal.value = false
     resetRegisterForm()
     await loadAll()
   } catch (e) {
-    message.error('注册失败: ' + (e?.message || e))
+    message.error(t('federation.messages.registerFailed', { err: e?.message || e }))
   } finally {
     creating.value = false
   }
@@ -581,7 +578,7 @@ async function submitRegister() {
 
 async function submitCheck() {
   if (!checkForm.nodeId.trim()) {
-    message.warning('请填写节点 ID')
+    message.warning(t('federation.messages.nodeIdRequired'))
     return
   }
   creating.value = true
@@ -594,15 +591,15 @@ async function submitCheck() {
     const { output } = await ws.execute(parts.join(' '), 10000)
     const r = parseRegisterResult(output)
     if (!r.ok) {
-      message.error('记录失败: ' + (r.reason || output.slice(0, 120)))
+      message.error(t('federation.messages.checkFailed', { err: r.reason || output.slice(0, 120) }))
       return
     }
-    message.success(`检查已记录：${r.id?.slice(0, 8)}`)
+    message.success(t('federation.messages.checkOk', { id: r.id?.slice(0, 8) }))
     showCheckModal.value = false
     resetCheckForm()
     await loadAll()
   } catch (e) {
-    message.error('记录失败: ' + (e?.message || e))
+    message.error(t('federation.messages.checkFailed', { err: e?.message || e }))
   } finally {
     creating.value = false
   }
@@ -610,7 +607,7 @@ async function submitCheck() {
 
 async function submitPool() {
   if (!poolForm.nodeId.trim()) {
-    message.warning('请填写节点 ID')
+    message.warning(t('federation.messages.nodeIdRequired'))
     return
   }
   creating.value = true
@@ -623,15 +620,15 @@ async function submitPool() {
     const { output } = await ws.execute(parts.join(' '), 10000)
     const r = parseRegisterResult(output)
     if (!r.ok) {
-      message.error('创建失败: ' + (r.reason || output.slice(0, 120)))
+      message.error(t('federation.messages.poolFailed', { err: r.reason || output.slice(0, 120) }))
       return
     }
-    message.success(`连接池已创建：${r.id}`)
+    message.success(t('federation.messages.poolOk', { id: r.id }))
     showPoolModal.value = false
     resetPoolForm()
     await loadAll()
   } catch (e) {
-    message.error('创建失败: ' + (e?.message || e))
+    message.error(t('federation.messages.poolFailed', { err: e?.message || e }))
   } finally {
     creating.value = false
   }
@@ -643,18 +640,19 @@ async function recordTransition(record, kind) {
     const { output } = await ws.execute(cmd, 8000)
     const r = parseTransitionResult(output)
     if (!r.ok) {
-      message.warning((r.reason || '操作未生效')
-        + (r.remainingMs ? ` (还需 ${r.remainingMs}ms)` : ''))
+      message.warning(r.remainingMs
+        ? t('federation.messages.operationCooldown', { ms: r.remainingMs })
+        : (r.reason || t('federation.messages.operationNoEffect')))
       return
     }
     if (r.previousState && r.state && r.previousState !== r.state) {
-      message.success(`${stateLabel(r.previousState)} → ${stateLabel(r.state)}`)
+      message.success(t('federation.messages.transitionMsg', { from: stateLabel(r.previousState), to: stateLabel(r.state) }))
     } else {
-      message.success(kind === 'reset' ? '熔断器已重置' : '已记录')
+      message.success(kind === 'reset' ? t('federation.messages.resetMsg') : t('federation.messages.recordedMsg'))
     }
     await loadAll()
   } catch (e) {
-    message.error('操作失败: ' + (e?.message || e))
+    message.error(t('federation.messages.operationFailed', { err: e?.message || e }))
   }
 }
 
@@ -663,13 +661,13 @@ async function removeNode(record) {
     const { output } = await ws.execute(`federation remove ${shellQuote(record.nodeId)} --json`, 8000)
     const r = parseRemoveResult(output)
     if (!r.ok) {
-      message.error('移除失败: ' + (r.reason || output.slice(0, 120)))
+      message.error(t('federation.messages.removeFailed', { err: r.reason || output.slice(0, 120) }))
       return
     }
-    message.success('节点已移除')
+    message.success(t('federation.messages.removeOk'))
     await loadAll()
   } catch (e) {
-    message.error('移除失败: ' + (e?.message || e))
+    message.error(t('federation.messages.removeFailed', { err: e?.message || e }))
   }
 }
 
@@ -679,23 +677,24 @@ async function poolAction(record, kind) {
     const { output } = await ws.execute(`federation ${subcmd} ${shellQuote(record.nodeId)} --json`, 8000)
     const r = parsePoolActionResult(output)
     if (!r.ok) {
-      message.warning(r.reason || '操作未生效')
+      message.warning(r.reason || t('federation.messages.operationNoEffect'))
       return
     }
     if (kind === 'destroy') {
-      message.success('连接池已销毁')
+      message.success(t('federation.messages.destroyMsg'))
     } else {
-      message.success(`${kind === 'acquire' ? '已获取' : '已释放'}（活跃 ${r.active} · 空闲 ${r.idle}）`)
+      const tplKey = kind === 'acquire' ? 'federation.messages.acquireMsg' : 'federation.messages.releaseMsg'
+      message.success(t(tplKey, { active: r.active, idle: r.idle }))
     }
     await loadAll()
   } catch (e) {
-    message.error('操作失败: ' + (e?.message || e))
+    message.error(t('federation.messages.operationFailed', { err: e?.message || e }))
   }
 }
 
 async function queryNodeHealth() {
   if (!nodeHealthInput.value.trim()) {
-    message.warning('请填写节点 ID')
+    message.warning(t('federation.messages.nodeIdRequired'))
     return
   }
   queryingHealth.value = true
@@ -706,7 +705,7 @@ async function queryNodeHealth() {
     )
     nodeHealth.value = parseNodeHealth(output)
   } catch (e) {
-    message.error('查询失败: ' + (e?.message || e))
+    message.error(t('federation.messages.queryFailed', { err: e?.message || e }))
   } finally {
     queryingHealth.value = false
   }

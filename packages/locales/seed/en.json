@@ -1130,6 +1130,167 @@
       "detectFailed": "Detection failed: {err}"
     }
   },
+  "federation": {
+    "title": "Federation Hardening",
+    "subtitle": "Circuit breaker FSM · Health checks · Connection pool simulation",
+    "refresh": "Refresh",
+    "newDropdown": "New ▼",
+    "newMenu": {
+      "register": "Register node",
+      "check": "Record health check",
+      "pool": "New connection pool"
+    },
+    "stats": {
+      "breakers": "Breaker nodes",
+      "checks": "Health checks",
+      "pools": "Connection pools",
+      "degraded": "Degraded nodes",
+      "availability": "Availability",
+      "breakerSub": "{closed} closed · {open} open",
+      "checkSub": "{healthy} healthy · {unhealthy} unhealthy",
+      "poolSub": "{active} active · {idle} idle",
+      "degradedSub": "{halfOpen} half-open"
+    },
+    "tabs": {
+      "breakers": "Breakers",
+      "checks": "Health checks",
+      "pools": "Connection pools",
+      "nodeHealth": "Node health aggregate"
+    },
+    "filter": {
+      "allStates": "All states",
+      "allMetrics": "All metrics"
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "breakerColumns": {
+      "node": "Node",
+      "state": "State",
+      "failure": "Failures",
+      "success": "Successes",
+      "openTimeout": "Timeout (ms)",
+      "updatedAt": "Updated",
+      "action": "Action"
+    },
+    "checkColumns": {
+      "id": "ID",
+      "node": "Node",
+      "metric": "Metric",
+      "status": "Status",
+      "metrics": "Value",
+      "checkedAt": "Checked"
+    },
+    "poolColumns": {
+      "node": "Node",
+      "active": "Active",
+      "idle": "Idle",
+      "max": "Max",
+      "utilization": "Utilization",
+      "waiting": "Waiting",
+      "totalCreated": "Created",
+      "createdAt": "Created at",
+      "action": "Action"
+    },
+    "latestColumns": {
+      "metric": "Metric",
+      "status": "Status",
+      "checkedAt": "Checked"
+    },
+    "breakerActions": {
+      "failure": "Failure",
+      "success": "Success",
+      "halfOpen": "Half-open",
+      "reset": "Reset",
+      "remove": "Remove",
+      "removeConfirm": "Remove this node? All related breakers and health checks will be deleted."
+    },
+    "poolActions": {
+      "acquire": "Acquire",
+      "release": "Release",
+      "destroy": "Destroy",
+      "destroyConfirm": "Destroy this pool?"
+    },
+    "empty": {
+      "breakers": "No breakers yet",
+      "checks": "No health-check records yet",
+      "pools": "No connection pools yet",
+      "noLatest": "No recent checks"
+    },
+    "nodeHealth": {
+      "inputPlaceholder": "Node ID",
+      "query": "Query",
+      "node": "Node",
+      "status": "Aggregate status",
+      "checkCount": "Total checks",
+      "latestTitle": "Latest status per metric"
+    },
+    "register": {
+      "title": "Register federation node",
+      "nodeIdLabel": "Node ID",
+      "nodeIdPlaceholder": "e.g. node-shanghai-01",
+      "failureThresholdLabel": "Failure threshold (default 5)",
+      "successThresholdLabel": "Success threshold (default 2)",
+      "openTimeoutLabel": "Open timeout (ms) (default 60000)"
+    },
+    "check": {
+      "title": "Record health check",
+      "nodeIdLabel": "Node ID",
+      "nodeIdPlaceholder": "Must register the node first",
+      "metricLabel": "Metric type",
+      "statusLabel": "Health status",
+      "metricsLabel": "Metrics JSON (optional, e.g. latencyMs:42)",
+      "metricsPlaceholder": "metrics string: e.g. latencyMs=42, cpu=0.4"
+    },
+    "pool": {
+      "title": "New connection pool",
+      "nodeIdLabel": "Node ID",
+      "nodeIdPlaceholder": "e.g. node-shanghai-01",
+      "minLabel": "Min connections (default 5)",
+      "maxLabel": "Max connections (default 50)",
+      "idleTimeoutLabel": "Idle timeout (ms) (default 300000)"
+    },
+    "state": {
+      "closed": "Closed",
+      "open": "Open",
+      "half_open": "Half-open"
+    },
+    "metric": {
+      "heartbeat": "Heartbeat",
+      "latency": "Latency",
+      "success_rate": "Success rate",
+      "cpu_usage": "CPU",
+      "memory_usage": "Memory"
+    },
+    "health": {
+      "healthy": "Healthy",
+      "degraded": "Degraded",
+      "unhealthy": "Unhealthy",
+      "unknown": "Unknown"
+    },
+    "messages": {
+      "loadFailed": "Failed to load data: {err}",
+      "nodeIdRequired": "Please enter a node ID",
+      "registerFailed": "Registration failed: {err}",
+      "registerOk": "Node registered: {id}",
+      "checkFailed": "Record failed: {err}",
+      "checkOk": "Check recorded: {id}",
+      "poolFailed": "Create failed: {err}",
+      "poolOk": "Pool created: {id}",
+      "removeFailed": "Remove failed: {err}",
+      "removeOk": "Node removed",
+      "operationFailed": "Operation failed: {err}",
+      "operationNoEffect": "Operation had no effect",
+      "operationCooldown": "Operation had no effect ({ms}ms remaining)",
+      "transitionMsg": "{from} → {to}",
+      "resetMsg": "Breaker reset",
+      "recordedMsg": "Recorded",
+      "destroyMsg": "Pool destroyed",
+      "acquireMsg": "Acquired (active {active} · idle {idle})",
+      "releaseMsg": "Released (active {active} · idle {idle})",
+      "queryFailed": "Query failed: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",
