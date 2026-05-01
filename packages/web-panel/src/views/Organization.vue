@@ -2,12 +2,12 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">组织管理</h2>
-        <p class="page-sub">组织 / 成员 / 审批</p>
+        <h2 class="page-title">{{ t('organization.title') }}</h2>
+        <p class="page-sub">{{ t('organization.subtitle') }}</p>
       </div>
       <a-button type="primary" ghost :loading="refreshing" @click="refreshCurrentTab">
         <template #icon><ReloadOutlined /></template>
-        刷新
+        {{ t('organization.refresh') }}
       </a-button>
     </div>
 
@@ -16,13 +16,13 @@
       <a-tab-pane key="orgs">
         <template #tab>
           <TeamOutlined />
-          组织列表
+          {{ t('organization.tabs.orgs') }}
         </template>
 
         <a-space style="margin-bottom: 16px;">
           <a-button type="primary" @click="showCreateOrgModal = true">
             <template #icon><PlusOutlined /></template>
-            创建组织
+            {{ t('organization.orgs.createButton') }}
           </a-button>
         </a-space>
 
@@ -31,7 +31,7 @@
           v-else
           :columns="orgColumns"
           :data-source="orgList"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (count) => t('organization.totals.rows', { count }) }"
           size="small"
           style="background: var(--bg-card);"
           :row-class-name="() => 'org-row'"
@@ -55,28 +55,28 @@
             </template>
           </template>
           <template #emptyText>
-            <a-empty description="暂无组织，点击「创建组织」添加" />
+            <a-empty :description="t('organization.orgs.emptyText')" />
           </template>
         </a-table>
 
         <!-- Org Detail Modal -->
         <a-modal
           v-model:open="showDetailModal"
-          :title="'组织详情: ' + detailOrg.name"
+          :title="t('organization.orgs.detailTitle', { name: detailOrg.name || '' })"
           :footer="null"
           width="640px"
         >
           <div v-if="detailLoading" style="text-align: center; padding: 40px;"><a-spin /></div>
           <div v-else>
             <a-descriptions :column="1" bordered size="small" style="margin-bottom: 16px;">
-              <a-descriptions-item label="ID">
+              <a-descriptions-item :label="t('organization.orgs.detailLabels.id')">
                 <span style="font-family: monospace; color: #ccc;">{{ detailOrg.id }}</span>
               </a-descriptions-item>
-              <a-descriptions-item label="名称">{{ detailOrg.name }}</a-descriptions-item>
-              <a-descriptions-item label="所有者">{{ detailOrg.owner }}</a-descriptions-item>
-              <a-descriptions-item label="描述">{{ detailOrg.description || '-' }}</a-descriptions-item>
-              <a-descriptions-item label="成员数">{{ detailOrg.memberCount }}</a-descriptions-item>
-              <a-descriptions-item v-if="detailOrg.createdAt" label="创建时间">{{ detailOrg.createdAt }}</a-descriptions-item>
+              <a-descriptions-item :label="t('organization.orgs.detailLabels.name')">{{ detailOrg.name }}</a-descriptions-item>
+              <a-descriptions-item :label="t('organization.orgs.detailLabels.owner')">{{ detailOrg.owner }}</a-descriptions-item>
+              <a-descriptions-item :label="t('organization.orgs.detailLabels.description')">{{ detailOrg.description || '-' }}</a-descriptions-item>
+              <a-descriptions-item :label="t('organization.orgs.detailLabels.memberCount')">{{ detailOrg.memberCount }}</a-descriptions-item>
+              <a-descriptions-item v-if="detailOrg.createdAt" :label="t('organization.orgs.detailLabels.createdAt')">{{ detailOrg.createdAt }}</a-descriptions-item>
             </a-descriptions>
             <pre v-if="detailRaw" style="white-space: pre-wrap; word-break: break-all; color: var(--text-secondary); font-size: 11px; background: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); max-height: 300px; overflow-y: auto;">{{ detailRaw }}</pre>
           </div>
@@ -85,18 +85,18 @@
         <!-- Create Org Modal -->
         <a-modal
           v-model:open="showCreateOrgModal"
-          title="创建组织"
+          :title="t('organization.orgs.createTitle')"
           :confirm-loading="creatingOrg"
           @ok="createOrg"
-          ok-text="创建"
-          cancel-text="取消"
+          :ok-text="t('organization.orgs.createOk')"
+          :cancel-text="t('common.cancel')"
         >
           <a-form :label-col="{ span: 4 }" :wrapper-col="{ span: 20 }" style="margin-top: 16px;">
-            <a-form-item label="名称" required>
-              <a-input v-model:value="newOrgName" placeholder="请输入组织名称" />
+            <a-form-item :label="t('organization.orgs.nameLabel')" required>
+              <a-input v-model:value="newOrgName" :placeholder="t('organization.orgs.namePlaceholder')" />
             </a-form-item>
-            <a-form-item label="描述">
-              <a-input v-model:value="newOrgDesc" placeholder="请输入组织描述（可选）" />
+            <a-form-item :label="t('organization.orgs.descriptionLabel')">
+              <a-input v-model:value="newOrgDesc" :placeholder="t('organization.orgs.descriptionPlaceholder')" />
             </a-form-item>
           </a-form>
         </a-modal>
@@ -106,20 +106,20 @@
       <a-tab-pane key="members">
         <template #tab>
           <UserAddOutlined />
-          成员管理
+          {{ t('organization.tabs.members') }}
         </template>
 
         <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 12px;">
           <a-select
             v-model:value="selectedOrgId"
-            placeholder="选择组织"
+            :placeholder="t('organization.members.selectPlaceholder')"
             style="width: 280px;"
             :options="orgSelectOptions"
             @change="onOrgSelected"
           />
           <a-button type="primary" :disabled="!selectedOrgId" @click="showInviteModal = true">
             <template #icon><UserAddOutlined /></template>
-            邀请成员
+            {{ t('organization.members.inviteButton') }}
           </a-button>
         </div>
 
@@ -128,7 +128,7 @@
           v-else-if="selectedOrgId"
           :columns="memberColumns"
           :data-source="memberList"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (count) => t('organization.totals.rows', { count }) }"
           size="small"
           style="background: var(--bg-card); margin-bottom: 24px;"
           :row-class-name="() => 'org-row'"
@@ -148,18 +148,18 @@
             </template>
           </template>
           <template #emptyText>
-            <a-empty description="暂无成员" />
+            <a-empty :description="t('organization.members.emptyMembers')" />
           </template>
         </a-table>
-        <a-empty v-else description="请先选择一个组织" style="padding: 60px 0;" />
+        <a-empty v-else :description="t('organization.members.selectFirst')" style="padding: 60px 0;" />
 
         <!-- Teams Section -->
         <template v-if="selectedOrgId">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-            <h3 style="color: var(--text-primary); margin: 0; font-size: 15px;">团队</h3>
+            <h3 style="color: var(--text-primary); margin: 0; font-size: 15px;">{{ t('organization.members.teamsTitle') }}</h3>
             <a-button size="small" @click="showCreateTeamModal = true">
               <template #icon><PlusOutlined /></template>
-              创建团队
+              {{ t('organization.members.createTeamButton') }}
             </a-button>
           </div>
           <div v-if="teamLoading" style="text-align: center; padding: 40px;"><a-spin /></div>
@@ -184,7 +184,7 @@
               </template>
             </template>
             <template #emptyText>
-              <a-empty description="暂无团队" />
+              <a-empty :description="t('organization.members.emptyTeams')" />
             </template>
           </a-table>
         </template>
@@ -192,20 +192,20 @@
         <!-- Invite Modal -->
         <a-modal
           v-model:open="showInviteModal"
-          title="邀请成员"
+          :title="t('organization.members.inviteTitle')"
           :confirm-loading="inviting"
           @ok="inviteMember"
-          ok-text="邀请"
-          cancel-text="取消"
+          :ok-text="t('organization.members.inviteOk')"
+          :cancel-text="t('common.cancel')"
         >
           <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-            <a-form-item label="用户 ID" required>
-              <a-input v-model:value="inviteUserId" placeholder="请输入用户 ID" />
+            <a-form-item :label="t('organization.members.userIdLabel')" required>
+              <a-input v-model:value="inviteUserId" :placeholder="t('organization.members.userIdPlaceholder')" />
             </a-form-item>
-            <a-form-item label="名称">
-              <a-input v-model:value="inviteName" placeholder="请输入用户名称" />
+            <a-form-item :label="t('organization.members.nameLabel')">
+              <a-input v-model:value="inviteName" :placeholder="t('organization.members.namePlaceholder')" />
             </a-form-item>
-            <a-form-item label="角色">
+            <a-form-item :label="t('organization.members.roleLabel')">
               <a-select v-model:value="inviteRole" :options="roleOptions" />
             </a-form-item>
           </a-form>
@@ -214,21 +214,21 @@
         <!-- Create Team Modal -->
         <a-modal
           v-model:open="showCreateTeamModal"
-          title="创建团队"
+          :title="t('organization.members.createTeamTitle')"
           :confirm-loading="creatingTeam"
           @ok="createTeam"
-          ok-text="创建"
-          cancel-text="取消"
+          :ok-text="t('organization.members.createTeamOk')"
+          :cancel-text="t('common.cancel')"
         >
           <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-            <a-form-item label="团队名称" required>
-              <a-input v-model:value="newTeamName" placeholder="请输入团队名称" />
+            <a-form-item :label="t('organization.members.teamNameLabel')" required>
+              <a-input v-model:value="newTeamName" :placeholder="t('organization.members.teamNamePlaceholder')" />
             </a-form-item>
-            <a-form-item label="描述">
-              <a-input v-model:value="newTeamDesc" placeholder="请输入团队描述（可选）" />
+            <a-form-item :label="t('organization.members.teamDescLabel')">
+              <a-input v-model:value="newTeamDesc" :placeholder="t('organization.members.teamDescPlaceholder')" />
             </a-form-item>
-            <a-form-item label="负责人">
-              <a-input v-model:value="newTeamLead" placeholder="请输入负责人 ID（可选）" />
+            <a-form-item :label="t('organization.members.teamLeadLabel')">
+              <a-input v-model:value="newTeamLead" :placeholder="t('organization.members.teamLeadPlaceholder')" />
             </a-form-item>
           </a-form>
         </a-modal>
@@ -238,13 +238,13 @@
       <a-tab-pane key="approvals">
         <template #tab>
           <AuditOutlined />
-          审批管理
+          {{ t('organization.tabs.approvals') }}
         </template>
 
         <a-space style="margin-bottom: 16px;">
           <a-button type="primary" @click="showSubmitApprovalModal = true">
             <template #icon><PlusOutlined /></template>
-            提交审批
+            {{ t('organization.approvals.submitButton') }}
           </a-button>
         </a-space>
 
@@ -253,7 +253,7 @@
           v-else
           :columns="approvalColumns"
           :data-source="approvalList"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (count) => t('organization.totals.rows', { count }) }"
           size="small"
           style="background: var(--bg-card);"
           :row-class-name="() => 'org-row'"
@@ -278,46 +278,46 @@
               <a-space v-if="(record.status || '').toLowerCase() === 'pending'">
                 <a-button type="primary" size="small" :loading="record._approving" @click.stop="approveItem(record)">
                   <template #icon><CheckOutlined /></template>
-                  通过
+                  {{ t('organization.approvals.approve') }}
                 </a-button>
                 <a-button danger size="small" :loading="record._rejecting" @click.stop="rejectItem(record)">
                   <template #icon><CloseOutlined /></template>
-                  拒绝
+                  {{ t('organization.approvals.reject') }}
                 </a-button>
               </a-space>
               <span v-else style="color: var(--text-muted); font-size: 12px;">-</span>
             </template>
           </template>
           <template #emptyText>
-            <a-empty description="暂无审批记录" />
+            <a-empty :description="t('organization.approvals.emptyText')" />
           </template>
         </a-table>
 
         <!-- Submit Approval Modal -->
         <a-modal
           v-model:open="showSubmitApprovalModal"
-          title="提交审批"
+          :title="t('organization.approvals.submitTitle')"
           :confirm-loading="submittingApproval"
           @ok="submitApproval"
-          ok-text="提交"
-          cancel-text="取消"
+          :ok-text="t('organization.approvals.submitOk')"
+          :cancel-text="t('common.cancel')"
         >
           <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-            <a-form-item label="组织" required>
+            <a-form-item :label="t('organization.approvals.orgLabel')" required>
               <a-select
                 v-model:value="approvalOrgId"
-                placeholder="选择组织"
+                :placeholder="t('organization.approvals.orgPlaceholder')"
                 :options="orgSelectOptions"
               />
             </a-form-item>
-            <a-form-item label="标题" required>
-              <a-input v-model:value="approvalTitle" placeholder="请输入审批标题" />
+            <a-form-item :label="t('organization.approvals.titleLabel')" required>
+              <a-input v-model:value="approvalTitle" :placeholder="t('organization.approvals.titlePlaceholder')" />
             </a-form-item>
-            <a-form-item label="类型">
-              <a-input v-model:value="approvalType" placeholder="请输入审批类型" />
+            <a-form-item :label="t('organization.approvals.typeLabel')">
+              <a-input v-model:value="approvalType" :placeholder="t('organization.approvals.typePlaceholder')" />
             </a-form-item>
-            <a-form-item label="描述">
-              <a-textarea v-model:value="approvalDescription" placeholder="请输入审批描述（可选）" :rows="3" />
+            <a-form-item :label="t('organization.approvals.descLabel')">
+              <a-textarea v-model:value="approvalDescription" :placeholder="t('organization.approvals.descPlaceholder')" :rows="3" />
             </a-form-item>
           </a-form>
         </a-modal>
@@ -328,6 +328,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   TeamOutlined,
   UserAddOutlined,
@@ -340,6 +341,7 @@ import {
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
 
+const { t } = useI18n()
 const ws = useWsStore()
 
 // --- Shared ---
@@ -371,7 +373,6 @@ function onTabChange(key) {
 function tryParseJson(output) {
   try {
     const trimmed = output.trim()
-    // Handle cases where output has text before JSON
     const jsonStart = trimmed.indexOf('[')
     const jsonObjStart = trimmed.indexOf('{')
     const start = jsonStart >= 0 && (jsonObjStart < 0 || jsonStart < jsonObjStart) ? jsonStart : jsonObjStart
@@ -396,13 +397,13 @@ const detailLoading = ref(false)
 const detailOrg = ref({})
 const detailRaw = ref('')
 
-const orgColumns = [
-  { title: 'ID', key: 'id', dataIndex: 'id', width: '100px' },
-  { title: '名称', key: 'name', dataIndex: 'name', width: '180px' },
-  { title: '所有者', key: 'owner', dataIndex: 'owner', width: '140px' },
-  { title: '描述', key: 'description', dataIndex: 'description', ellipsis: true },
-  { title: '成员数', key: 'memberCount', dataIndex: 'memberCount', width: '90px' },
-]
+const orgColumns = computed(() => [
+  { title: t('organization.orgColumns.id'), key: 'id', dataIndex: 'id', width: '100px' },
+  { title: t('organization.orgColumns.name'), key: 'name', dataIndex: 'name', width: '180px' },
+  { title: t('organization.orgColumns.owner'), key: 'owner', dataIndex: 'owner', width: '140px' },
+  { title: t('organization.orgColumns.description'), key: 'description', dataIndex: 'description', ellipsis: true },
+  { title: t('organization.orgColumns.memberCount'), key: 'memberCount', dataIndex: 'memberCount', width: '90px' },
+])
 
 const orgSelectOptions = computed(() =>
   orgList.value.map((o) => ({ label: o.name, value: o.id }))
@@ -426,7 +427,7 @@ async function loadOrgList() {
       orgList.value = parseOrgListText(output)
     }
   } catch (e) {
-    message.error('加载组织列表失败: ' + e.message)
+    message.error(t('organization.messages.loadOrgsFailed', { err: e.message }))
   } finally {
     orgLoading.value = false
   }
@@ -454,7 +455,7 @@ function parseOrgListText(output) {
 }
 
 async function createOrg() {
-  if (!newOrgName.value.trim()) { message.warning('请输入组织名称'); return }
+  if (!newOrgName.value.trim()) { message.warning(t('organization.messages.orgNameRequired')); return }
   creatingOrg.value = true
   try {
     const name = newOrgName.value.trim().replace(/"/g, '\\"')
@@ -463,16 +464,16 @@ async function createOrg() {
     if (desc) cmd = `org create "${name}" --description "${desc}" --json`
     const { output } = await ws.execute(cmd, 20000)
     if (output.includes('error') || output.includes('失败')) {
-      message.error('创建失败: ' + output.slice(0, 120))
+      message.error(t('organization.messages.orgCreateFailed', { err: output.slice(0, 120) }))
     } else {
-      message.success('组织已创建')
+      message.success(t('organization.messages.orgCreateOk'))
       showCreateOrgModal.value = false
       newOrgName.value = ''
       newOrgDesc.value = ''
       await loadOrgList()
     }
   } catch (e) {
-    message.error('创建失败: ' + e.message)
+    message.error(t('organization.messages.orgCreateFailed', { err: e.message }))
   } finally {
     creatingOrg.value = false
   }
@@ -500,7 +501,7 @@ async function showOrgDetail(record) {
       detailRaw.value = output
     }
   } catch (e) {
-    detailRaw.value = '加载详情失败: ' + e.message
+    detailRaw.value = t('organization.messages.loadDetailFailed', { err: e.message })
   } finally {
     detailLoading.value = false
   }
@@ -523,24 +524,24 @@ const newTeamName = ref('')
 const newTeamDesc = ref('')
 const newTeamLead = ref('')
 
-const roleOptions = [
-  { label: '管理员 (admin)', value: 'admin' },
-  { label: '成员 (member)', value: 'member' },
-  { label: '查看者 (viewer)', value: 'viewer' },
-]
+const roleOptions = computed(() => [
+  { label: t('organization.members.roleAdmin'), value: 'admin' },
+  { label: t('organization.members.roleMember'), value: 'member' },
+  { label: t('organization.members.roleViewer'), value: 'viewer' },
+])
 
-const memberColumns = [
-  { title: '用户 ID', key: 'userId', dataIndex: 'userId', width: '160px' },
-  { title: '名称', key: 'name', dataIndex: 'name', width: '140px' },
-  { title: '角色', key: 'role', dataIndex: 'role', width: '100px' },
-  { title: '加入时间', key: 'joinedAt', dataIndex: 'joinedAt', width: '180px' },
-]
+const memberColumns = computed(() => [
+  { title: t('organization.memberColumns.userId'), key: 'userId', dataIndex: 'userId', width: '160px' },
+  { title: t('organization.memberColumns.name'), key: 'name', dataIndex: 'name', width: '140px' },
+  { title: t('organization.memberColumns.role'), key: 'role', dataIndex: 'role', width: '100px' },
+  { title: t('organization.memberColumns.joinedAt'), key: 'joinedAt', dataIndex: 'joinedAt', width: '180px' },
+])
 
-const teamColumns = [
-  { title: '团队名称', key: 'name', dataIndex: 'name', width: '180px' },
-  { title: '描述', key: 'description', dataIndex: 'description', ellipsis: true },
-  { title: '负责人', key: 'lead', dataIndex: 'lead', width: '140px' },
-]
+const teamColumns = computed(() => [
+  { title: t('organization.teamColumns.name'), key: 'name', dataIndex: 'name', width: '180px' },
+  { title: t('organization.teamColumns.description'), key: 'description', dataIndex: 'description', ellipsis: true },
+  { title: t('organization.teamColumns.lead'), key: 'lead', dataIndex: 'lead', width: '140px' },
+])
 
 function roleColor(role) {
   const map = { admin: 'gold', member: 'blue', viewer: 'default', owner: 'purple' }
@@ -571,7 +572,7 @@ async function loadMembers() {
       memberList.value = parseMemberListText(output)
     }
   } catch (e) {
-    message.error('加载成员失败: ' + e.message)
+    message.error(t('organization.messages.loadMembersFailed', { err: e.message }))
   } finally {
     memberLoading.value = false
   }
@@ -604,24 +605,24 @@ async function loadTeams() {
     const { output } = await ws.execute(`org teams ${selectedOrgId.value} --json`, 15000)
     const parsed = tryParseJson(output)
     if (Array.isArray(parsed)) {
-      teamList.value = parsed.map((t, i) => ({
-        key: t.id || t.name || i,
-        name: t.name || '-',
-        description: t.description || '',
-        lead: t.lead || t.leader || '-',
+      teamList.value = parsed.map((team, i) => ({
+        key: team.id || team.name || i,
+        name: team.name || '-',
+        description: team.description || '',
+        lead: team.lead || team.leader || '-',
       }))
     } else {
       teamList.value = []
     }
   } catch (e) {
-    message.error('加载团队失败: ' + e.message)
+    message.error(t('organization.messages.loadTeamsFailed', { err: e.message }))
   } finally {
     teamLoading.value = false
   }
 }
 
 async function inviteMember() {
-  if (!inviteUserId.value.trim()) { message.warning('请输入用户 ID'); return }
+  if (!inviteUserId.value.trim()) { message.warning(t('organization.messages.userIdRequired')); return }
   inviting.value = true
   try {
     const userId = inviteUserId.value.trim().replace(/"/g, '\\"')
@@ -630,9 +631,9 @@ async function inviteMember() {
     if (name) cmd += ` --name "${name}"`
     const { output } = await ws.execute(cmd, 20000)
     if (output.includes('error') || output.includes('失败')) {
-      message.error('邀请失败: ' + output.slice(0, 120))
+      message.error(t('organization.messages.inviteFailed', { err: output.slice(0, 120) }))
     } else {
-      message.success('邀请已发送')
+      message.success(t('organization.messages.inviteOk'))
       showInviteModal.value = false
       inviteUserId.value = ''
       inviteName.value = ''
@@ -640,14 +641,14 @@ async function inviteMember() {
       await loadMembers()
     }
   } catch (e) {
-    message.error('邀请失败: ' + e.message)
+    message.error(t('organization.messages.inviteFailed', { err: e.message }))
   } finally {
     inviting.value = false
   }
 }
 
 async function createTeam() {
-  if (!newTeamName.value.trim()) { message.warning('请输入团队名称'); return }
+  if (!newTeamName.value.trim()) { message.warning(t('organization.messages.teamNameRequired')); return }
   creatingTeam.value = true
   try {
     const name = newTeamName.value.trim().replace(/"/g, '\\"')
@@ -658,9 +659,9 @@ async function createTeam() {
     if (lead) cmd += ` --lead "${lead}"`
     const { output } = await ws.execute(cmd, 20000)
     if (output.includes('error') || output.includes('失败')) {
-      message.error('创建失败: ' + output.slice(0, 120))
+      message.error(t('organization.messages.teamCreateFailed', { err: output.slice(0, 120) }))
     } else {
-      message.success('团队已创建')
+      message.success(t('organization.messages.teamCreateOk'))
       showCreateTeamModal.value = false
       newTeamName.value = ''
       newTeamDesc.value = ''
@@ -668,7 +669,7 @@ async function createTeam() {
       await loadTeams()
     }
   } catch (e) {
-    message.error('创建失败: ' + e.message)
+    message.error(t('organization.messages.teamCreateFailed', { err: e.message }))
   } finally {
     creatingTeam.value = false
   }
@@ -684,14 +685,14 @@ const approvalTitle = ref('')
 const approvalType = ref('')
 const approvalDescription = ref('')
 
-const approvalColumns = [
-  { title: 'ID', key: 'id', dataIndex: 'id', width: '100px' },
-  { title: '标题', key: 'title', dataIndex: 'title', width: '200px' },
-  { title: '类型', key: 'type', dataIndex: 'type', width: '120px' },
-  { title: '申请人', key: 'requester', dataIndex: 'requester', width: '140px' },
-  { title: '状态', key: 'status', dataIndex: 'status', width: '100px' },
-  { title: '操作', key: 'actions', width: '180px' },
-]
+const approvalColumns = computed(() => [
+  { title: t('organization.approvalColumns.id'), key: 'id', dataIndex: 'id', width: '100px' },
+  { title: t('organization.approvalColumns.title'), key: 'title', dataIndex: 'title', width: '200px' },
+  { title: t('organization.approvalColumns.type'), key: 'type', dataIndex: 'type', width: '120px' },
+  { title: t('organization.approvalColumns.requester'), key: 'requester', dataIndex: 'requester', width: '140px' },
+  { title: t('organization.approvalColumns.status'), key: 'status', dataIndex: 'status', width: '100px' },
+  { title: t('organization.approvalColumns.actions'), key: 'actions', width: '180px' },
+])
 
 function approvalStatusColor(status) {
   const map = { pending: 'orange', approved: 'green', rejected: 'red' }
@@ -718,7 +719,7 @@ async function loadApprovals() {
       approvalList.value = parseApprovalListText(output)
     }
   } catch (e) {
-    message.error('加载审批列表失败: ' + e.message)
+    message.error(t('organization.messages.loadApprovalsFailed', { err: e.message }))
   } finally {
     approvalLoading.value = false
   }
@@ -752,13 +753,13 @@ async function approveItem(record) {
   try {
     const { output } = await ws.execute(`org approve ${record.id}`, 15000)
     if (output.includes('error') || output.includes('失败')) {
-      message.error('审批失败: ' + output.slice(0, 120))
+      message.error(t('organization.messages.approveFailed', { err: output.slice(0, 120) }))
     } else {
-      message.success('已通过')
+      message.success(t('organization.messages.approveOk'))
       await loadApprovals()
     }
   } catch (e) {
-    message.error('审批失败: ' + e.message)
+    message.error(t('organization.messages.approveFailed', { err: e.message }))
   } finally {
     record._approving = false
   }
@@ -769,21 +770,21 @@ async function rejectItem(record) {
   try {
     const { output } = await ws.execute(`org reject ${record.id}`, 15000)
     if (output.includes('error') || output.includes('失败')) {
-      message.error('拒绝失败: ' + output.slice(0, 120))
+      message.error(t('organization.messages.rejectFailed', { err: output.slice(0, 120) }))
     } else {
-      message.success('已拒绝')
+      message.success(t('organization.messages.rejectOk'))
       await loadApprovals()
     }
   } catch (e) {
-    message.error('拒绝失败: ' + e.message)
+    message.error(t('organization.messages.rejectFailed', { err: e.message }))
   } finally {
     record._rejecting = false
   }
 }
 
 async function submitApproval() {
-  if (!approvalOrgId.value) { message.warning('请选择组织'); return }
-  if (!approvalTitle.value.trim()) { message.warning('请输入审批标题'); return }
+  if (!approvalOrgId.value) { message.warning(t('organization.messages.orgRequired')); return }
+  if (!approvalTitle.value.trim()) { message.warning(t('organization.messages.approvalTitleRequired')); return }
   submittingApproval.value = true
   try {
     const title = approvalTitle.value.trim().replace(/"/g, '\\"')
@@ -794,9 +795,9 @@ async function submitApproval() {
     if (desc) cmd += ` --description "${desc}"`
     const { output } = await ws.execute(cmd, 20000)
     if (output.includes('error') || output.includes('失败')) {
-      message.error('提交失败: ' + output.slice(0, 120))
+      message.error(t('organization.messages.submitFailed', { err: output.slice(0, 120) }))
     } else {
-      message.success('审批已提交')
+      message.success(t('organization.messages.submitOk'))
       showSubmitApprovalModal.value = false
       approvalOrgId.value = null
       approvalTitle.value = ''
@@ -805,7 +806,7 @@ async function submitApproval() {
       await loadApprovals()
     }
   } catch (e) {
-    message.error('提交失败: ' + e.message)
+    message.error(t('organization.messages.submitFailed', { err: e.message }))
   } finally {
     submittingApproval.value = false
   }

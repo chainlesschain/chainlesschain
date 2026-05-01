@@ -1435,6 +1435,131 @@
       "dismissOk": "已忽略"
     }
   },
+  "organization": {
+    "title": "组织管理",
+    "subtitle": "组织 / 成员 / 审批",
+    "refresh": "刷新",
+    "tabs": {
+      "orgs": "组织列表",
+      "members": "成员管理",
+      "approvals": "审批管理"
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "orgs": {
+      "createButton": "创建组织",
+      "createTitle": "创建组织",
+      "createOk": "创建",
+      "nameLabel": "名称",
+      "namePlaceholder": "请输入组织名称",
+      "descriptionLabel": "描述",
+      "descriptionPlaceholder": "请输入组织描述（可选）",
+      "emptyText": "暂无组织，点击创建组织添加",
+      "detailTitle": "组织详情: {name}",
+      "detailLabels": {
+        "id": "ID",
+        "name": "名称",
+        "owner": "所有者",
+        "description": "描述",
+        "memberCount": "成员数",
+        "createdAt": "创建时间"
+      }
+    },
+    "orgColumns": {
+      "id": "ID",
+      "name": "名称",
+      "owner": "所有者",
+      "description": "描述",
+      "memberCount": "成员数"
+    },
+    "members": {
+      "selectPlaceholder": "选择组织",
+      "inviteButton": "邀请成员",
+      "emptyMembers": "暂无成员",
+      "selectFirst": "请先选择一个组织",
+      "teamsTitle": "团队",
+      "createTeamButton": "创建团队",
+      "emptyTeams": "暂无团队",
+      "inviteTitle": "邀请成员",
+      "inviteOk": "邀请",
+      "userIdLabel": "用户 ID",
+      "userIdPlaceholder": "请输入用户 ID",
+      "nameLabel": "名称",
+      "namePlaceholder": "请输入用户名称",
+      "roleLabel": "角色",
+      "roleAdmin": "管理员 (admin)",
+      "roleMember": "成员 (member)",
+      "roleViewer": "查看者 (viewer)",
+      "createTeamTitle": "创建团队",
+      "createTeamOk": "创建",
+      "teamNameLabel": "团队名称",
+      "teamNamePlaceholder": "请输入团队名称",
+      "teamDescLabel": "描述",
+      "teamDescPlaceholder": "请输入团队描述（可选）",
+      "teamLeadLabel": "负责人",
+      "teamLeadPlaceholder": "请输入负责人 ID（可选）"
+    },
+    "memberColumns": {
+      "userId": "用户 ID",
+      "name": "名称",
+      "role": "角色",
+      "joinedAt": "加入时间"
+    },
+    "teamColumns": {
+      "name": "团队名称",
+      "description": "描述",
+      "lead": "负责人"
+    },
+    "approvals": {
+      "submitButton": "提交审批",
+      "submitTitle": "提交审批",
+      "submitOk": "提交",
+      "orgLabel": "组织",
+      "orgPlaceholder": "选择组织",
+      "titleLabel": "标题",
+      "titlePlaceholder": "请输入审批标题",
+      "typeLabel": "类型",
+      "typePlaceholder": "请输入审批类型",
+      "descLabel": "描述",
+      "descPlaceholder": "请输入审批描述（可选）",
+      "approve": "通过",
+      "reject": "拒绝",
+      "emptyText": "暂无审批记录"
+    },
+    "approvalColumns": {
+      "id": "ID",
+      "title": "标题",
+      "type": "类型",
+      "requester": "申请人",
+      "status": "状态",
+      "actions": "操作"
+    },
+    "messages": {
+      "loadOrgsFailed": "加载组织列表失败: {err}",
+      "orgNameRequired": "请输入组织名称",
+      "orgCreateFailed": "创建失败: {err}",
+      "orgCreateOk": "组织已创建",
+      "loadDetailFailed": "加载详情失败: {err}",
+      "loadMembersFailed": "加载成员失败: {err}",
+      "loadTeamsFailed": "加载团队失败: {err}",
+      "userIdRequired": "请输入用户 ID",
+      "inviteFailed": "邀请失败: {err}",
+      "inviteOk": "邀请已发送",
+      "teamNameRequired": "请输入团队名称",
+      "teamCreateFailed": "创建失败: {err}",
+      "teamCreateOk": "团队已创建",
+      "loadApprovalsFailed": "加载审批列表失败: {err}",
+      "approveFailed": "审批失败: {err}",
+      "approveOk": "已通过",
+      "rejectFailed": "拒绝失败: {err}",
+      "rejectOk": "已拒绝",
+      "orgRequired": "请选择组织",
+      "approvalTitleRequired": "请输入审批标题",
+      "submitFailed": "提交失败: {err}",
+      "submitOk": "审批已提交"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

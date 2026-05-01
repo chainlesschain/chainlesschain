@@ -1435,6 +1435,131 @@
       "dismissOk": "Dismissed"
     }
   },
+  "organization": {
+    "title": "Organization",
+    "subtitle": "Orgs / Members / Approvals",
+    "refresh": "Refresh",
+    "tabs": {
+      "orgs": "Orgs",
+      "members": "Members",
+      "approvals": "Approvals"
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "orgs": {
+      "createButton": "Create org",
+      "createTitle": "Create organization",
+      "createOk": "Create",
+      "nameLabel": "Name",
+      "namePlaceholder": "Organization name",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Organization description (optional)",
+      "emptyText": "No orgs yet — click Create org to add one",
+      "detailTitle": "Organization detail: {name}",
+      "detailLabels": {
+        "id": "ID",
+        "name": "Name",
+        "owner": "Owner",
+        "description": "Description",
+        "memberCount": "Members",
+        "createdAt": "Created at"
+      }
+    },
+    "orgColumns": {
+      "id": "ID",
+      "name": "Name",
+      "owner": "Owner",
+      "description": "Description",
+      "memberCount": "Members"
+    },
+    "members": {
+      "selectPlaceholder": "Pick an org",
+      "inviteButton": "Invite member",
+      "emptyMembers": "No members yet",
+      "selectFirst": "Pick an organization first",
+      "teamsTitle": "Teams",
+      "createTeamButton": "Create team",
+      "emptyTeams": "No teams yet",
+      "inviteTitle": "Invite member",
+      "inviteOk": "Invite",
+      "userIdLabel": "User ID",
+      "userIdPlaceholder": "Enter user ID",
+      "nameLabel": "Name",
+      "namePlaceholder": "Display name",
+      "roleLabel": "Role",
+      "roleAdmin": "Admin (admin)",
+      "roleMember": "Member (member)",
+      "roleViewer": "Viewer (viewer)",
+      "createTeamTitle": "Create team",
+      "createTeamOk": "Create",
+      "teamNameLabel": "Team name",
+      "teamNamePlaceholder": "Team name",
+      "teamDescLabel": "Description",
+      "teamDescPlaceholder": "Team description (optional)",
+      "teamLeadLabel": "Lead",
+      "teamLeadPlaceholder": "Lead user ID (optional)"
+    },
+    "memberColumns": {
+      "userId": "User ID",
+      "name": "Name",
+      "role": "Role",
+      "joinedAt": "Joined"
+    },
+    "teamColumns": {
+      "name": "Team",
+      "description": "Description",
+      "lead": "Lead"
+    },
+    "approvals": {
+      "submitButton": "Submit approval",
+      "submitTitle": "Submit approval",
+      "submitOk": "Submit",
+      "orgLabel": "Org",
+      "orgPlaceholder": "Pick an org",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Approval title",
+      "typeLabel": "Type",
+      "typePlaceholder": "Approval type",
+      "descLabel": "Description",
+      "descPlaceholder": "Approval description (optional)",
+      "approve": "Approve",
+      "reject": "Reject",
+      "emptyText": "No approvals yet"
+    },
+    "approvalColumns": {
+      "id": "ID",
+      "title": "Title",
+      "type": "Type",
+      "requester": "Requester",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "messages": {
+      "loadOrgsFailed": "Failed to load orgs: {err}",
+      "orgNameRequired": "Enter an organization name",
+      "orgCreateFailed": "Create failed: {err}",
+      "orgCreateOk": "Organization created",
+      "loadDetailFailed": "Failed to load detail: {err}",
+      "loadMembersFailed": "Failed to load members: {err}",
+      "loadTeamsFailed": "Failed to load teams: {err}",
+      "userIdRequired": "Enter a user ID",
+      "inviteFailed": "Invite failed: {err}",
+      "inviteOk": "Invitation sent",
+      "teamNameRequired": "Enter a team name",
+      "teamCreateFailed": "Create failed: {err}",
+      "teamCreateOk": "Team created",
+      "loadApprovalsFailed": "Failed to load approvals: {err}",
+      "approveFailed": "Approve failed: {err}",
+      "approveOk": "Approved",
+      "rejectFailed": "Reject failed: {err}",
+      "rejectOk": "Rejected",
+      "orgRequired": "Pick an organization",
+      "approvalTitleRequired": "Enter an approval title",
+      "submitFailed": "Submit failed: {err}",
+      "submitOk": "Approval submitted"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",
