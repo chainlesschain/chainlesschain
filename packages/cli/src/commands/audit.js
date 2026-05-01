@@ -599,8 +599,9 @@ export function registerAuditCommand(program) {
   // ─────────────────────────────────────────────────────────────
   // Phase 2 audit MTC double-track (off-by-default scaffolding)
   // Design: docs/design/默克尔树证书_MTC_落地方案.md §6.3 + §14.2
-  // Status: blocked on Q-COMP-1/Q-COMP-2 legal sign-off; this surface
-  // is wired so the unblock = `cc audit mtc enable` (single flag flip).
+  // Status (2026-05-01): Q-COMP-1 + Q-COMP-2 legal sign-off received.
+  // Default stays enabled=false — each tenant decides when to switch on
+  // via explicit `cc audit mtc enable`. No global flag-flip in code.
   // ─────────────────────────────────────────────────────────────
   registerAuditMtcSubcommands(audit);
 }
@@ -635,7 +636,9 @@ function registerAuditMtcSubcommands(audit) {
         }
         const enabled = s.config.enabled
           ? chalk.green("enabled")
-          : chalk.yellow("disabled (legal sign-off pending)");
+          : chalk.cyan(
+              "disabled (ready — run `cc audit mtc enable` to activate)",
+            );
         logger.log(chalk.bold("Audit MTC status:"));
         logger.log(`  ${chalk.bold("State:")}            ${enabled}`);
         logger.log(
@@ -694,7 +697,7 @@ function registerAuditMtcSubcommands(audit) {
   mtc
     .command("enable")
     .description(
-      "Enable audit MTC (requires legal sign-off — see landing plan §14.2)",
+      "Enable audit MTC for this tenant (legal sign-off cleared 2026-05-01 — see landing plan §14.2)",
     )
     .option("--config-dir <dir>", "Override config root")
     .option(
@@ -716,8 +719,8 @@ function registerAuditMtcSubcommands(audit) {
           `audit MTC enabled (interval=${cfg.batch_interval_seconds}s, namespace=${cfg.namespace_prefix})`,
         );
         logger.log(
-          chalk.yellow(
-            "  Reminder: ensure Q-COMP-1 (等保三级) + Q-COMP-2 (T/ZGCMCA) sign-off before production use.",
+          chalk.cyan(
+            "  Q-COMP-1 + Q-COMP-2 legal sign-off cleared 2026-05-01. Confirm your namespace + issuer match your tenant before emitting events.",
           ),
         );
       } catch (err) {

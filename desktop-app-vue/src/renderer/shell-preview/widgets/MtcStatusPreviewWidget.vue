@@ -23,7 +23,7 @@
             v-else
             class="cc-preview-widget__badge cc-preview-widget__badge--pending"
           >
-            未启用 · 待法务出函
+            未启用 · 已就绪
           </span>
         </dd>
       </div>

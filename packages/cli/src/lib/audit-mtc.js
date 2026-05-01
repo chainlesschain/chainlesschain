@@ -2,10 +2,10 @@
  * Audit MTC double-track scaffolding (Phase 2 audit, off-by-default).
  *
  * Design ref: docs/design/默克尔树证书_MTC_落地方案.md §6.3 + 评审清单 §7.
- * Compliance status: blocked on Q-COMP-1 (等保三级最终性窗口) + Q-COMP-2
- * (T/ZGCMCA 023—2025 条款摘要). This module ships disabled by default and
- * is structured so the legal sign-off only flips a flag — no code paths
- * change. See landing plan §14.2 for the blocker list.
+ * Compliance status (2026-05-01): Q-COMP-1 (等保三级最终性窗口) + Q-COMP-2
+ * (T/ZGCMCA 023—2025 条款摘要) legal sign-off received. This module still
+ * ships `enabled=false` so each tenant decides when to switch on for their
+ * own org via explicit `cc audit mtc enable`. See landing plan §14.2.
  *
  * Layout under <configDir>/audit-mtc/:
  *   config.json                  enabled, batch_interval_seconds, namespace_prefix, issuer, ...
@@ -178,7 +178,7 @@ export function emitEvent(dir, body, opts = {}) {
   const requireEnabled = opts.requireEnabled !== false;
   if (requireEnabled && !cfg.enabled) {
     const e = new Error(
-      "audit-mtc disabled: run `cc audit mtc enable` or pass --force after compliance sign-off",
+      "audit-mtc disabled: run `cc audit mtc enable` to activate (or pass --force for one-off admin/CI use)",
     );
     e.code = "AUDIT_MTC_DISABLED";
     throw e;

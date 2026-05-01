@@ -519,15 +519,15 @@ export async function verifyMTC(
 - ✅ **Phase 2 marketplace daemon** — `cc mtc publish-skills` 差量发布（v0.4 本次）
 - ✅ **Phase 2 audit 双轨脚手架** — `cc audit mtc` 8 子命令、off-by-default、60s/3600s 双路径配置；解锁后单 flag 启用（v0.4 本次）
 
-### 14.2 阻塞中（Phase 2 audit 产线启用）
-> **更新 (v0.4)**：脚手架 `packages/cli/src/lib/audit-mtc.js` + `cc audit mtc *` 已落地，含双轨签名、幂等关批、reconcile-check、状态上报。`config.enabled` 默认 false，`config.batch_interval_seconds` 默认 3600。**法务出函后只需一行 `cc audit mtc enable --interval <60|3600>`，无需改代码**。下列三项仍是产线启用前提：
-- ⚠️ **Q-COMP-1** — 等保三级"防篡改最终性时间窗"口径需法务/测评机构出函；脚手架已支持 1h（默认）+ 1min 两条路径，根据出函结果选择 `--interval 60` 或 `--interval 3600`。
-- ⚠️ **Q-COMP-2** — T/ZGCMCA 023—2025 标准条款摘要待法务提供
-- ⚠️ **Q-COMP-3** — 当前保守决议为 Phase 1+2 不上链；若需链上锚定，确认境内联盟链替代方案
+### 14.2 已解锁（Phase 2 audit 产线启用 — 2026-05-01 法务出函）
+> **更新 (2026-05-01)**：Q-COMP-1 + Q-COMP-2 法务/测评出函已收到，audit-mtc 产线启用阻塞解除。脚手架 `packages/cli/src/lib/audit-mtc.js` + `cc audit mtc *` 全部 ready。**默认仍 `enabled=false`**，由各租户/组织在自己的环境内通过 `cc audit mtc enable --interval <60|3600>` 显式启用——不全局自动翻盘，保留用户对产线启用时机的控制权。
+- ✅ **Q-COMP-1** — 等保三级"防篡改最终性时间窗"口径已确认。脚手架 1h（默认）+ 1min 两条路径均可用，根据出函具体口径选 `--interval 3600`（宽松）或 `--interval 60`（严判）。
+- ✅ **Q-COMP-2** — T/ZGCMCA 023—2025 标准条款摘要已收到（具体条款落到组织内部审计报告，不在公开文档展示）。
+- ✅ **Q-COMP-3** — 维持保守决议：Phase 1+2 不上链，仅 IPFS pinning + 多副本。境内联盟链替代方案推迟到 Phase 3 与联邦 MTCA 治理一并讨论。
 
 ### 14.3 进行中 / 即将启动
 - [x] **Phase 1.6 — SLH-DSA 实签**：✅ `@noble/post-quantum@0.6.1` 落地。`core-mtc/lib/signers/slh-dsa.js` 新增；`assembleBatch(leaves, keys, meta, signer?)` 支持 opt-in；`cc mtc batch/batch-dids/batch-skills/publish-skills --alg slh-dsa-128f` CLI 暴露；`cc mtc verify` 多算法 dispatcher 同时支持 Ed25519 + SLH-DSA-128F 信任锚。Audit-mtc 仍维持 Ed25519（realtime sig + 短窗 batch，PQC 收益边际，未来视产线启用情况单独评估）。
-- [ ] **Phase 2 backend 灰度切换**（Q-ENG-2 决议）：在 `backend/project-service` 加 `audit.mtc.enabled` 配置 + 调用 CLI 脚手架；audit 产线启用解锁后启动
+- [ ] **Phase 2 backend 灰度切换**（Q-ENG-2 决议）：在 `backend/project-service` 加 `audit.mtc.enabled` 配置 + 调用 CLI 脚手架；产线启用阻塞已于 2026-05-01 解除，待单独的灰度发布评审推进
 - [ ] **Phase 4 — Desktop UI**（V6 Pack：MTC 状态面板 + DID 详情页"包含证明"标签 + Marketplace 验证徽章 + audit 双轨"待批次关闭"徽章 — Q-PROD-1 决议 B）
 
 ### 14.4 上游跟踪

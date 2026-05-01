@@ -239,7 +239,7 @@ cc audit mtc {emit | reconcile | reconcile-check | status}  # 双轨流转
 
 详细使用：[用户指南](https://docs.chainlesschain.com/guide/mtc-merkle-tree-certs)；架构与字节级规范：[设计文档](https://design.chainlesschain.com/mtc-landing-plan)、[`docs/design/默克尔树证书_MTC_落地方案.md`](docs/design/默克尔树证书_MTC_落地方案.md)。
 
-**签名算法**：`cc mtc batch/batch-dids/batch-skills/publish-skills` 全部支持 `--alg ed25519`（默认，64B/sig，classical）或 `--alg slh-dsa-128f`（17KB/sig，FIPS 205 后量子，opt-in）。`cc mtc verify` 多算法 dispatcher 自动识别。Audit-mtc 仍维持 Ed25519（realtime sig + 短窗 batch，PQC 收益边际）。**Audit 产线启用**仍待 Q-COMP-1（等保三级最终性窗口）+ Q-COMP-2（T/ZGCMCA 023—2025 条款摘要）法务出函；脚手架 off-by-default 已就位，出函后单一 `cc audit mtc enable --interval <60|3600>` 即可上线，无代码改动。
+**签名算法**：`cc mtc batch/batch-dids/batch-skills/publish-skills` 全部支持 `--alg ed25519`（默认，64B/sig，classical）或 `--alg slh-dsa-128f`（17KB/sig，FIPS 205 后量子，opt-in）。`cc mtc verify` 多算法 dispatcher 自动识别。Audit-mtc 仍维持 Ed25519（realtime sig + 短窗 batch，PQC 收益边际）。**Audit 产线启用阻塞已于 2026-05-01 解除**（Q-COMP-1 等保三级最终性窗口 + Q-COMP-2 T/ZGCMCA 023—2025 条款法务出函均已收到）；脚手架仍保持 `enabled=false` 默认，由各租户在自己的环境内通过 `cc audit mtc enable --interval <60|3600>` 显式启用。
 
 ---
 
