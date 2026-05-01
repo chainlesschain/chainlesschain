@@ -690,10 +690,6 @@ jobs:
         with:
           install-command: npm ci
 
-      - name: Run CLI tests
-        working-directory: packages/cli
-        run: npx vitest run
-
       - name: Resolve version
         id: cli-version
         run: |
@@ -722,6 +718,15 @@ jobs:
           else
             echo "ALREADY_PUBLISHED=false" >> $GITHUB_OUTPUT
           fi
+
+      # Skip tests when the version is already on npm — the tag SHA may be
+      # behind main (e.g. test fixes landed after the tag was cut), but the
+      # package itself is immutable once published. Running tests here would
+      # only red-block finalize-release for already-shipped releases.
+      - name: Run CLI tests
+        if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true'
+        working-directory: packages/cli
+        run: npx vitest run
 
       # Publish core packages in dependency order
       - name: "Publish @chainlesschain/core-env"
