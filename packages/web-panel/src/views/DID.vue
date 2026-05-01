@@ -106,6 +106,11 @@
             <a-button size="small" type="link" @click="openSign(record)">
               {{ $t('did.actions.sign') }}
             </a-button>
+            <a-tooltip title="MTC 包含证明">
+              <a-button size="small" type="link" @click="openMtcVerify(record)">
+                <SafetyOutlined />
+              </a-button>
+            </a-tooltip>
             <a-button
               v-if="!record.isDefault"
               size="small"
@@ -210,6 +215,13 @@
         <pre style="white-space: pre-wrap; word-break: break-all; color: #52c41a; font-size: 11px; background: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color);">{{ signResult.signature }}</pre>
       </div>
     </a-modal>
+
+    <!-- MTC inclusion proof drawer -->
+    <MtcVerifyDrawer
+      v-model:open="mtcDrawerOpen"
+      :title="mtcDrawerTitle"
+      :hint="mtcDrawerHint"
+    />
   </div>
 </template>
 
@@ -221,11 +233,13 @@ import {
   IdcardOutlined,
   KeyOutlined,
   FileTextOutlined,
+  SafetyOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useI18n } from 'vue-i18n'
 import { useWsStore } from '../stores/ws.js'
 import { parseDidList, parseDidShow, parseSignResult } from '../utils/did-parser.js'
+import MtcVerifyDrawer from '../components/MtcVerifyDrawer.vue'
 
 const ws = useWsStore()
 const { t } = useI18n()
@@ -381,6 +395,24 @@ function openSign(record) {
   signText.value = ''
   signResult.value = null
   showSignModal.value = true
+}
+
+// MTC inclusion proof drawer ─────────────────────────────────────────────
+const mtcDrawerOpen = ref(false)
+const mtcDrawerTitle = ref('MTC 包含证明')
+const mtcDrawerHint = ref('')
+
+function shortDid(did) {
+  if (!did) return ''
+  return did.length <= 24 ? did : `${did.slice(0, 16)}…${did.slice(-6)}`
+}
+
+function openMtcVerify(record) {
+  mtcDrawerTitle.value = `MTC 包含证明 · ${shortDid(record.did)}`
+  mtcDrawerHint.value =
+    `验证此 DID 是否在某个 MTC 批次中。请提供该批次的 envelope（其 leaf.subject 应等于此 DID）和 landmark 文件路径。` +
+    ` 通常由 cc mtc batch-dids --out <dir> 生成。`
+  mtcDrawerOpen.value = true
 }
 
 async function signMessage() {
