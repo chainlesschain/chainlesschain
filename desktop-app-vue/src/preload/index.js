@@ -447,6 +447,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 
   // DID身份管理
+  // MTC (Merkle Tree Certificates) — Phase 4.2
+  // Read-only audit status + envelope verification for V6 widgets and DID detail page.
+  // Operational/signing commands (emit/reconcile/publish-skills) stay CLI-only by design.
+  mtc: {
+    getAuditStatus: () => ipcRenderer.invoke("mtc:get-audit-status"),
+    getActiveAlg: () => ipcRenderer.invoke("mtc:get-active-alg"),
+    verifyEnvelope: (envelope, landmark, opts) =>
+      ipcRenderer.invoke("mtc:verify-envelope", envelope, landmark, opts),
+  },
+
   did: {
     createIdentity: (profile, options) =>
       ipcRenderer.invoke("did:create-identity", profile, options),

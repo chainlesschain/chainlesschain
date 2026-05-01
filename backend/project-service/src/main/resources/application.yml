@@ -139,3 +139,18 @@ file:
     path: ${FILE_UPLOAD_PATH:/data/uploads}
     max-size: ${FILE_UPLOAD_MAX_SIZE:10485760} # 10MB
     allowed-types: jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,md,zip,rar
+
+# Audit MTC 双轨桥接（Q-ENG-2 灰度切换）
+# enabled=false 默认 — 不影响现有 PostgreSQL 审计日志路径，此层为 no-op
+# enabled=true — 每条 operation log 同时通过 cc CLI bridge 写入 MTC 双轨
+# 法务出函（2026-05-01 Q-COMP-1 + Q-COMP-2）已解锁；按租户灰度由 tenant-allow-list 控制
+audit:
+  mtc:
+    enabled: ${AUDIT_MTC_ENABLED:false}
+    cli-path: ${AUDIT_MTC_CLI_PATH:cc}
+    namespace-prefix: ${AUDIT_MTC_NAMESPACE_PREFIX:mtc/v1/audit/backend}
+    issuer: ${AUDIT_MTC_ISSUER:mtca:cc:audit-backend}
+    timeout-ms: ${AUDIT_MTC_TIMEOUT_MS:5000}
+    # 租户白名单（逗号分隔），空 = 所有租户都灰度（在 enabled=true 前提下）
+    # 例: AUDIT_MTC_TENANT_ALLOW_LIST=tenant-a,tenant-b
+    tenant-allow-list: ${AUDIT_MTC_TENANT_ALLOW_LIST:}

@@ -48,6 +48,19 @@ function registerPhases3to4Social({
     });
   }
 
+  // MTC (Merkle Tree Certificates) — Phase 4.2 read-only IPC.
+  // No external deps — reads audit-mtc state from disk + uses core-mtc verifier.
+  // Always registers (no manager dependency).
+  safeRegister("MTC IPC", {
+    register: () => {
+      const { registerMtcIPC } = require("../../mtc/mtc-ipc");
+      registerMtcIPC({ logger });
+    },
+    handlers: 3,
+    fatal: false,
+    continueMessage: "Continuing without MTC IPC...",
+  });
+
   // P2P 网络通信 (函数模式 - 中等模块，18 handlers)
   if (p2pManager) {
     safeRegister("P2P + Signaling IPC", {

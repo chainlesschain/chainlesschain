@@ -18,6 +18,13 @@ public class OperationLogService {
     private OperationLogMapper operationLogMapper;
 
     /**
+     * Audit MTC double-track bridge (Q-ENG-2). Optional — when audit.mtc.enabled
+     * is false (default) this is a no-op layer.
+     */
+    @Autowired(required = false)
+    private AuditMtcBridgeService auditMtcBridge;
+
+    /**
      * 异步保存操作日志
      */
     @Async
@@ -27,6 +34,19 @@ public class OperationLogService {
         } catch (Exception e) {
             // 日志保存失败不影响主流程
             e.printStackTrace();
+        }
+
+        // Q-ENG-2 audit MTC double-track bridge — fire-and-forget. Wrapped in
+        // its own try/catch so a bridge failure can never affect the primary
+        // (PostgreSQL) audit log path.
+        if (auditMtcBridge != null) {
+            try {
+                auditMtcBridge.emitForOperationLog(log);
+            } catch (Exception ex) {
+                // shouldn't reach here — bridge already guards internally —
+                // but defensively never throw past saveLog.
+                ex.printStackTrace();
+            }
         }
     }
 

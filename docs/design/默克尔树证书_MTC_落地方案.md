@@ -428,9 +428,9 @@ export async function verifyMTC(
 ### Phase 4 — Desktop UI（部分落地）
 - [x] **V6 Preview Shell 状态 widget** — `MtcStatusPreviewWidget.vue` + `DecentralEntries` 顶部新增 MTC 入口，显示 audit-mtc enabled/批次间隔/staging count/最近批次/签名算法（Ed25519 vs SLH-DSA-128F）；IPC 缺失时优雅降级；6 单测覆盖
 - [x] **Web-panel /mtc 路由**（2026-05-02）— 三 tab：Audit 双轨状态（解析 `cc audit mtc status --json`）+ Marketplace publisher 历史（解析新增 `cc mtc publish-status --json`，13 单测）+ Envelope 验证工具（路径输入 + `cc mtc verify --json` 桥接）。新增 CLI 子命令 `cc mtc publish-status <state-file>` 让 web-panel 能查询 publisher 状态文件
-- [ ] DID 详情页面新增"MTC 包含证明"标签（待 Phase 4.2）
-- [ ] Marketplace 列表展示"已通过 MTC 验证"徽章（待 Phase 4.2）
-- [ ] 主进程 `electronAPI.mtc.getAuditStatus / getActiveAlg` IPC 通道（widget 已为此预留接口形状）
+- [x] **主进程 IPC 通道**（Phase 4.2，2026-05-02）— `desktop-app-vue/src/main/mtc/mtc-ipc.js` 新增三个 channel：`mtc:get-audit-status` 直接读 `userData/.chainlesschain/audit-mtc/` 内 config + staging + 最新 manifest，`mtc:get-active-alg` 从最新 batch 的 landmark.snapshots[0].signature.alg 推导，`mtc:verify-envelope` 通过 core-mtc in-process 多算法 verifier（无 subprocess）。preload 暴露 `electronAPI.mtc.{getAuditStatus, getActiveAlg, verifyEnvelope}`。注册到 `phase-3-4-social.js`，`safeRegister` fatal:false。15 单测覆盖
+- [ ] DID 详情页面新增"MTC 包含证明"标签（Phase 4.3）
+- [ ] Marketplace 列表展示"已通过 MTC 验证"徽章（Phase 4.3）
 
 ---
 
@@ -528,7 +528,7 @@ export async function verifyMTC(
 
 ### 14.3 进行中 / 即将启动
 - [x] **Phase 1.6 — SLH-DSA 实签**：✅ `@noble/post-quantum@0.6.1` 落地。`core-mtc/lib/signers/slh-dsa.js` 新增；`assembleBatch(leaves, keys, meta, signer?)` 支持 opt-in；`cc mtc batch/batch-dids/batch-skills/publish-skills --alg slh-dsa-128f` CLI 暴露；`cc mtc verify` 多算法 dispatcher 同时支持 Ed25519 + SLH-DSA-128F 信任锚。Audit-mtc 仍维持 Ed25519（realtime sig + 短窗 batch，PQC 收益边际，未来视产线启用情况单独评估）。
-- [ ] **Phase 2 backend 灰度切换**（Q-ENG-2 决议）：在 `backend/project-service` 加 `audit.mtc.enabled` 配置 + 调用 CLI 脚手架；产线启用阻塞已于 2026-05-01 解除，待单独的灰度发布评审推进
+- [x] **Phase 2 backend 灰度切换**（Q-ENG-2 决议，2026-05-02）：`backend/project-service` 加 `audit.mtc.*` 配置（默认 enabled=false） + `AuditMtcProperties` + `AuditMtcBridgeService`（fire-and-forget CLI 桥接，spawn `cc audit mtc emit`）+ 在 `OperationLogService.saveLog` 末端调用桥接。tenant allow-list 控制灰度范围，timeout-ms 防止子进程失控。15 JUnit 测试覆盖（Maven `BUILD SUCCESS`）。生产启用走环境变量 `AUDIT_MTC_ENABLED=true` + 可选 `AUDIT_MTC_TENANT_ALLOW_LIST=tenant-a,tenant-b`。
 - [ ] **Phase 4 — Desktop UI**（V6 Pack：MTC 状态面板 + DID 详情页"包含证明"标签 + Marketplace 验证徽章 + audit 双轨"待批次关闭"徽章 — Q-PROD-1 决议 B）
 
 ### 14.4 上游跟踪
