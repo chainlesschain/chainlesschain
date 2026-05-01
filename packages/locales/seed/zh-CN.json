@@ -804,6 +804,143 @@
       "heSuccess": "计算完成 ({scheme}/{op})"
     }
   },
+  "crosschain": {
+    "title": "跨链桥",
+    "subtitle": "链间资产桥接 · HTLC 原子交换 · 跨链消息",
+    "refresh": "刷新",
+    "newDropdown": "新建 ▼",
+    "feeEstimate": "费用估算",
+    "actions": {
+      "bridge": "桥接资产",
+      "swap": "HTLC 原子交换",
+      "message": "跨链消息"
+    },
+    "stats": {
+      "chains": "支持链",
+      "bridges": "桥接交易",
+      "swaps": "原子交换",
+      "messages": "跨链消息",
+      "volume": "总交易额"
+    },
+    "chainsCard": "支持的区块链",
+    "tabs": {
+      "bridges": "桥接交易",
+      "swaps": "原子交换",
+      "messages": "跨链消息"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "retrySuffix": "{n} 次",
+      "emptyBridges": "暂无桥接交易，点\"新建 → 桥接资产\"发起",
+      "emptySwaps": "暂无原子交换，点\"新建 → HTLC 原子交换\"发起",
+      "emptyMessages": "暂无跨链消息，点\"新建 → 跨链消息\"发送"
+    },
+    "bridgeCols": {
+      "route": "路径",
+      "amount": "金额",
+      "fee": "费用",
+      "status": "状态",
+      "createdAt": "创建时间"
+    },
+    "swapCols": {
+      "route": "路径",
+      "amount": "金额",
+      "hashLock": "哈希锁",
+      "status": "状态",
+      "expiresAt": "过期时间"
+    },
+    "messageCols": {
+      "route": "路径",
+      "payload": "消息",
+      "retries": "重试",
+      "status": "状态",
+      "createdAt": "创建时间"
+    },
+    "bridge_modal": {
+      "title": "桥接资产",
+      "ok": "发起桥接",
+      "cancel": "取消",
+      "fromChain": "源链",
+      "fromChainPlaceholder": "选择源链",
+      "toChain": "目标链",
+      "toChainPlaceholder": "选择目标链",
+      "amount": "金额",
+      "asset": "资产",
+      "assetPlaceholder": "native（默认）",
+      "sender": "发送方",
+      "senderPlaceholder": "0x...（可选）",
+      "recipient": "接收方",
+      "recipientPlaceholder": "0x...（可选）"
+    },
+    "swap_modal": {
+      "title": "HTLC 原子交换",
+      "ok": "发起交换",
+      "cancel": "取消",
+      "fromChain": "源链",
+      "fromChainPlaceholder": "选择源链",
+      "toChain": "目标链",
+      "toChainPlaceholder": "选择目标链",
+      "amount": "金额",
+      "fromAsset": "源资产",
+      "toAsset": "目标资产",
+      "assetPlaceholder": "native（默认）",
+      "counterparty": "对手方",
+      "counterpartyPlaceholder": "0x...（可选）",
+      "timeoutMs": "超时 (ms)",
+      "timeoutPlaceholder": "默认 24h"
+    },
+    "message_modal": {
+      "title": "发送跨链消息",
+      "ok": "发送",
+      "cancel": "取消",
+      "fromChain": "源链",
+      "fromChainPlaceholder": "选择源链",
+      "toChain": "目标链",
+      "toChainPlaceholder": "选择目标链",
+      "payload": "消息",
+      "contract": "目标合约",
+      "contractPlaceholder": "0x...（可选）"
+    },
+    "fee_modal": {
+      "title": "费用估算",
+      "ok": "估算",
+      "cancel": "关闭",
+      "fromChain": "源链",
+      "toChain": "目标链",
+      "amount": "金额",
+      "resultTitle": "预估费用",
+      "sourceFee": "源链费: {fee} {currency}",
+      "destFee": "目标链费: {fee} {currency}",
+      "bridgeFee": "桥接费: {fee} {currency}"
+    },
+    "statusLabels": {
+      "pending": "待处理",
+      "locked": "已锁定",
+      "minted": "已铸造",
+      "completed": "已完成",
+      "refunded": "已退款",
+      "failed": "失败",
+      "initiated": "已发起",
+      "hash_locked": "哈希锁定",
+      "claimed": "已领取",
+      "expired": "已过期",
+      "sent": "已发送",
+      "delivered": "已送达"
+    },
+    "msg": {
+      "loadFailed": "加载跨链数据失败",
+      "pairEmpty": "请选择源链和目标链",
+      "pairSame": "源链和目标链必须不同",
+      "amountInvalid": "请输入正数金额",
+      "bridgeFailed": "桥接发起失败",
+      "bridgeSuccess": "桥接已发起",
+      "swapFailed": "原子交换发起失败",
+      "swapSuccess": "原子交换已发起",
+      "sendFailed": "消息发送失败",
+      "sendSuccess": "消息已发送",
+      "feeFailed": "费用估算失败"
+    }
+  },
   "nlprog": {
     "title": "自然语言编程",
     "subtitle": "意图识别 · 实体抽取 · 技术栈检测 · 自然语言→规约",

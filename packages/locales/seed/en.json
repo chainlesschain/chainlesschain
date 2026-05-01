@@ -804,6 +804,143 @@
       "heSuccess": "Computation complete ({scheme}/{op})"
     }
   },
+  "crosschain": {
+    "title": "Cross-chain bridge",
+    "subtitle": "Asset bridging · HTLC atomic swap · cross-chain messages",
+    "refresh": "Refresh",
+    "newDropdown": "New ▼",
+    "feeEstimate": "Estimate fee",
+    "actions": {
+      "bridge": "Bridge asset",
+      "swap": "HTLC atomic swap",
+      "message": "Cross-chain message"
+    },
+    "stats": {
+      "chains": "Chains",
+      "bridges": "Bridges",
+      "swaps": "Swaps",
+      "messages": "Messages",
+      "volume": "Total volume"
+    },
+    "chainsCard": "Supported chains",
+    "tabs": {
+      "bridges": "Bridges",
+      "swaps": "Swaps",
+      "messages": "Messages"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "retrySuffix": "{n} retries",
+      "emptyBridges": "No bridges yet — click \"New → Bridge asset\"",
+      "emptySwaps": "No swaps yet — click \"New → HTLC atomic swap\"",
+      "emptyMessages": "No messages yet — click \"New → Cross-chain message\""
+    },
+    "bridgeCols": {
+      "route": "Route",
+      "amount": "Amount",
+      "fee": "Fee",
+      "status": "Status",
+      "createdAt": "Created"
+    },
+    "swapCols": {
+      "route": "Route",
+      "amount": "Amount",
+      "hashLock": "Hash lock",
+      "status": "Status",
+      "expiresAt": "Expires"
+    },
+    "messageCols": {
+      "route": "Route",
+      "payload": "Payload",
+      "retries": "Retries",
+      "status": "Status",
+      "createdAt": "Created"
+    },
+    "bridge_modal": {
+      "title": "Bridge asset",
+      "ok": "Initiate",
+      "cancel": "Cancel",
+      "fromChain": "From chain",
+      "fromChainPlaceholder": "Pick source chain",
+      "toChain": "To chain",
+      "toChainPlaceholder": "Pick destination chain",
+      "amount": "Amount",
+      "asset": "Asset",
+      "assetPlaceholder": "native (default)",
+      "sender": "Sender",
+      "senderPlaceholder": "0x... (optional)",
+      "recipient": "Recipient",
+      "recipientPlaceholder": "0x... (optional)"
+    },
+    "swap_modal": {
+      "title": "HTLC atomic swap",
+      "ok": "Initiate",
+      "cancel": "Cancel",
+      "fromChain": "From chain",
+      "fromChainPlaceholder": "Pick source chain",
+      "toChain": "To chain",
+      "toChainPlaceholder": "Pick destination chain",
+      "amount": "Amount",
+      "fromAsset": "From asset",
+      "toAsset": "To asset",
+      "assetPlaceholder": "native (default)",
+      "counterparty": "Counterparty",
+      "counterpartyPlaceholder": "0x... (optional)",
+      "timeoutMs": "Timeout (ms)",
+      "timeoutPlaceholder": "default 24h"
+    },
+    "message_modal": {
+      "title": "Send cross-chain message",
+      "ok": "Send",
+      "cancel": "Cancel",
+      "fromChain": "From chain",
+      "fromChainPlaceholder": "Pick source chain",
+      "toChain": "To chain",
+      "toChainPlaceholder": "Pick destination chain",
+      "payload": "Payload",
+      "contract": "Target contract",
+      "contractPlaceholder": "0x... (optional)"
+    },
+    "fee_modal": {
+      "title": "Fee estimate",
+      "ok": "Estimate",
+      "cancel": "Close",
+      "fromChain": "From chain",
+      "toChain": "To chain",
+      "amount": "Amount",
+      "resultTitle": "Estimated fee",
+      "sourceFee": "Source chain: {fee} {currency}",
+      "destFee": "Dest chain: {fee} {currency}",
+      "bridgeFee": "Bridge fee: {fee} {currency}"
+    },
+    "statusLabels": {
+      "pending": "Pending",
+      "locked": "Locked",
+      "minted": "Minted",
+      "completed": "Completed",
+      "refunded": "Refunded",
+      "failed": "Failed",
+      "initiated": "Initiated",
+      "hash_locked": "Hash-locked",
+      "claimed": "Claimed",
+      "expired": "Expired",
+      "sent": "Sent",
+      "delivered": "Delivered"
+    },
+    "msg": {
+      "loadFailed": "Failed to load cross-chain data",
+      "pairEmpty": "Pick source and destination chains",
+      "pairSame": "Source and destination chains must differ",
+      "amountInvalid": "Enter a positive amount",
+      "bridgeFailed": "Bridge failed",
+      "bridgeSuccess": "Bridge initiated",
+      "swapFailed": "Swap failed",
+      "swapSuccess": "Swap initiated",
+      "sendFailed": "Send failed",
+      "sendSuccess": "Message sent",
+      "feeFailed": "Fee estimate failed"
+    }
+  },
   "nlprog": {
     "title": "Natural-language programming",
     "subtitle": "Intent · entity extraction · stack detection · NL→spec",
