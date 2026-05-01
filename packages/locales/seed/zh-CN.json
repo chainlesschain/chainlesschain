@@ -804,6 +804,174 @@
       "heSuccess": "计算完成 ({scheme}/{op})"
     }
   },
+  "tenant": {
+    "title": "多租户 SaaS",
+    "subtitle": "租户管理 · 订阅计费 · 用量计量 · 配额检查",
+    "refresh": "刷新",
+    "actionDropdown": "操作 ▼",
+    "actions": {
+      "tenant": "创建租户",
+      "quota": "检查配额",
+      "record": "记录用量"
+    },
+    "stats": {
+      "total": "租户总数",
+      "active": "活跃订阅",
+      "mrr": "月度收入",
+      "apiCalls": "API 调用",
+      "storage": "存储用量"
+    },
+    "plansCard": "计划分布",
+    "summarySuffix": "活跃 {active} · 暂停 {suspended} · 已删除 {deleted}",
+    "tabs": {
+      "tenants": "租户",
+      "subscriptions": "订阅",
+      "plans": "计划"
+    },
+    "filter": {
+      "allPlans": "全部计划",
+      "allStatuses": "全部状态"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "actionSubscribe": "订阅",
+      "actionPlanDropdown": "计划 ▼",
+      "actionSuspend": "暂停",
+      "actionActivate": "激活",
+      "emptyTenantsFiltered": "没有符合条件的租户",
+      "emptyTenants": "暂无租户，点\"操作 → 创建租户\"添加第一个",
+      "emptySubscriptions": "暂无订阅记录"
+    },
+    "deleteConfirm": {
+      "title": "软删除该租户？",
+      "ok": "删除",
+      "cancel": "取消"
+    },
+    "cancelConfirm": {
+      "title": "取消该订阅？",
+      "ok": "取消订阅",
+      "cancel": "返回"
+    },
+    "tenantCols": {
+      "name": "租户",
+      "plan": "计划",
+      "status": "状态",
+      "owner": "所有者",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "subscriptionCols": {
+      "tenant": "租户",
+      "plan": "计划",
+      "amount": "金额",
+      "status": "状态",
+      "startedAt": "开始",
+      "expiresAt": "到期",
+      "action": "操作"
+    },
+    "planCard": {
+      "monthlySuffix": "/ 月",
+      "contactSales": "联系销售",
+      "quotas": "配额",
+      "features": "特性",
+      "unlimited": "无限"
+    },
+    "deletedTenant": "(已删除)",
+    "create_modal": {
+      "title": "创建租户",
+      "ok": "创建",
+      "cancel": "取消",
+      "nameLabel": "名称",
+      "namePlaceholder": "例如: Acme Corp",
+      "slugLabel": "Slug",
+      "slugPlaceholder": "小写字母数字+连字符，例如: acme-corp",
+      "planLabel": "计划",
+      "ownerLabel": "所有者 ID",
+      "ownerPlaceholder": "可选"
+    },
+    "subscribe_modal": {
+      "title": "订阅：{name}",
+      "ok": "订阅",
+      "cancel": "取消",
+      "planLabel": "计划",
+      "amountLabel": "金额覆盖",
+      "amountPlaceholder": "留空使用计划默认价",
+      "durationLabel": "周期",
+      "duration30": "30 天",
+      "duration90": "90 天",
+      "duration365": "1 年"
+    },
+    "quota_modal": {
+      "title": "配额检查",
+      "ok": "检查",
+      "cancel": "关闭",
+      "tenantLabel": "租户",
+      "tenantPlaceholder": "选择租户",
+      "metricLabel": "指标",
+      "periodLabel": "周期",
+      "periodPlaceholder": "YYYY-MM，留空则当前月",
+      "resultTitle": "配额状态",
+      "unlimited": "无限",
+      "exceeded": "已超额",
+      "ok_state": "正常",
+      "planLine": "计划:",
+      "periodLine": "周期: {period}",
+      "usedLine": "已用:",
+      "limitLine": "上限:"
+    },
+    "record_modal": {
+      "title": "记录用量",
+      "ok": "记录",
+      "cancel": "取消",
+      "tenantLabel": "租户",
+      "tenantPlaceholder": "选择租户",
+      "metricLabel": "指标",
+      "valueLabel": "数量",
+      "periodLabel": "周期",
+      "periodPlaceholder": "YYYY-MM，留空则当前月"
+    },
+    "planLabels": {
+      "free": "免费版",
+      "starter": "入门版",
+      "pro": "专业版",
+      "enterprise": "企业版"
+    },
+    "tenantStatusLabels": {
+      "active": "活跃",
+      "suspended": "已暂停",
+      "deleted": "已删除"
+    },
+    "subStatusLabels": {
+      "active": "活跃",
+      "cancelled": "已取消",
+      "expired": "已过期",
+      "past_due": "逾期"
+    },
+    "msg": {
+      "loadFailed": "加载租户数据失败",
+      "createFieldsEmpty": "请填写名称和 slug",
+      "slugInvalid": "slug 必须为小写字母数字 + 连字符",
+      "createFailed": "创建失败",
+      "createSuccess": "租户已创建",
+      "subscribeFailed": "订阅失败",
+      "subscribeSuccess": "订阅已创建",
+      "planChangeFailed": "计划变更失败",
+      "planChangeSuccess": "已切换到 {plan}",
+      "statusChangeFailed": "状态变更失败",
+      "activated": "已激活",
+      "suspended": "已暂停",
+      "deleteFailed": "删除失败",
+      "deleteSuccess": "租户已软删除",
+      "cancelFailed": "取消失败",
+      "cancelSuccess": "订阅已取消",
+      "tenantEmpty": "请选择租户",
+      "checkFailed": "检查失败",
+      "exceededWarning": "该租户已超额!",
+      "valueInvalid": "请输入有效数量",
+      "recordFailed": "记录失败",
+      "recordSuccess": "用量已记录"
+    }
+  },
   "codegen": {
     "title": "代码生成",
     "subtitle": "生成记录 · 启发式审查 · 5 类脚手架",

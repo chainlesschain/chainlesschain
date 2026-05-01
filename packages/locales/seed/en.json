@@ -804,6 +804,174 @@
       "heSuccess": "Computation complete ({scheme}/{op})"
     }
   },
+  "tenant": {
+    "title": "Multi-tenant SaaS",
+    "subtitle": "Tenants · subscription billing · usage metering · quota checks",
+    "refresh": "Refresh",
+    "actionDropdown": "Actions ▼",
+    "actions": {
+      "tenant": "Create tenant",
+      "quota": "Check quota",
+      "record": "Record usage"
+    },
+    "stats": {
+      "total": "Tenants",
+      "active": "Active subs",
+      "mrr": "MRR",
+      "apiCalls": "API calls",
+      "storage": "Storage"
+    },
+    "plansCard": "Plan distribution",
+    "summarySuffix": "active {active} · suspended {suspended} · deleted {deleted}",
+    "tabs": {
+      "tenants": "Tenants",
+      "subscriptions": "Subscriptions",
+      "plans": "Plans"
+    },
+    "filter": {
+      "allPlans": "All plans",
+      "allStatuses": "All statuses"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "actionSubscribe": "Subscribe",
+      "actionPlanDropdown": "Plan ▼",
+      "actionSuspend": "Suspend",
+      "actionActivate": "Activate",
+      "emptyTenantsFiltered": "No tenants match the current filter",
+      "emptyTenants": "No tenants yet — click \"Actions → Create tenant\"",
+      "emptySubscriptions": "No subscriptions yet"
+    },
+    "deleteConfirm": {
+      "title": "Soft-delete this tenant?",
+      "ok": "Delete",
+      "cancel": "Cancel"
+    },
+    "cancelConfirm": {
+      "title": "Cancel this subscription?",
+      "ok": "Cancel sub",
+      "cancel": "Back"
+    },
+    "tenantCols": {
+      "name": "Tenant",
+      "plan": "Plan",
+      "status": "Status",
+      "owner": "Owner",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "subscriptionCols": {
+      "tenant": "Tenant",
+      "plan": "Plan",
+      "amount": "Amount",
+      "status": "Status",
+      "startedAt": "Started",
+      "expiresAt": "Expires",
+      "action": "Action"
+    },
+    "planCard": {
+      "monthlySuffix": "/ month",
+      "contactSales": "Contact sales",
+      "quotas": "Quotas",
+      "features": "Features",
+      "unlimited": "unlimited"
+    },
+    "deletedTenant": "(deleted)",
+    "create_modal": {
+      "title": "Create tenant",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Acme Corp",
+      "slugLabel": "Slug",
+      "slugPlaceholder": "lowercase alphanumeric + hyphens, e.g. acme-corp",
+      "planLabel": "Plan",
+      "ownerLabel": "Owner ID",
+      "ownerPlaceholder": "optional"
+    },
+    "subscribe_modal": {
+      "title": "Subscribe: {name}",
+      "ok": "Subscribe",
+      "cancel": "Cancel",
+      "planLabel": "Plan",
+      "amountLabel": "Amount override",
+      "amountPlaceholder": "blank → plan's default price",
+      "durationLabel": "Duration",
+      "duration30": "30 days",
+      "duration90": "90 days",
+      "duration365": "1 year"
+    },
+    "quota_modal": {
+      "title": "Quota check",
+      "ok": "Check",
+      "cancel": "Close",
+      "tenantLabel": "Tenant",
+      "tenantPlaceholder": "Pick tenant",
+      "metricLabel": "Metric",
+      "periodLabel": "Period",
+      "periodPlaceholder": "YYYY-MM, blank → current month",
+      "resultTitle": "Quota state",
+      "unlimited": "Unlimited",
+      "exceeded": "Exceeded",
+      "ok_state": "OK",
+      "planLine": "Plan:",
+      "periodLine": "Period: {period}",
+      "usedLine": "Used:",
+      "limitLine": "Limit:"
+    },
+    "record_modal": {
+      "title": "Record usage",
+      "ok": "Record",
+      "cancel": "Cancel",
+      "tenantLabel": "Tenant",
+      "tenantPlaceholder": "Pick tenant",
+      "metricLabel": "Metric",
+      "valueLabel": "Value",
+      "periodLabel": "Period",
+      "periodPlaceholder": "YYYY-MM, blank → current month"
+    },
+    "planLabels": {
+      "free": "Free",
+      "starter": "Starter",
+      "pro": "Pro",
+      "enterprise": "Enterprise"
+    },
+    "tenantStatusLabels": {
+      "active": "Active",
+      "suspended": "Suspended",
+      "deleted": "Deleted"
+    },
+    "subStatusLabels": {
+      "active": "Active",
+      "cancelled": "Cancelled",
+      "expired": "Expired",
+      "past_due": "Past due"
+    },
+    "msg": {
+      "loadFailed": "Failed to load tenant data",
+      "createFieldsEmpty": "Enter both name and slug",
+      "slugInvalid": "Slug must be lowercase alphanumeric + hyphens",
+      "createFailed": "Create failed",
+      "createSuccess": "Tenant created",
+      "subscribeFailed": "Subscribe failed",
+      "subscribeSuccess": "Subscription created",
+      "planChangeFailed": "Plan change failed",
+      "planChangeSuccess": "Switched to {plan}",
+      "statusChangeFailed": "Status change failed",
+      "activated": "Activated",
+      "suspended": "Suspended",
+      "deleteFailed": "Delete failed",
+      "deleteSuccess": "Tenant soft-deleted",
+      "cancelFailed": "Cancel failed",
+      "cancelSuccess": "Subscription cancelled",
+      "tenantEmpty": "Pick a tenant",
+      "checkFailed": "Check failed",
+      "exceededWarning": "This tenant has exceeded quota!",
+      "valueInvalid": "Enter a valid amount",
+      "recordFailed": "Record failed",
+      "recordSuccess": "Usage recorded"
+    }
+  },
   "codegen": {
     "title": "Code generation",
     "subtitle": "Generation log · heuristic review · 5 scaffold templates",

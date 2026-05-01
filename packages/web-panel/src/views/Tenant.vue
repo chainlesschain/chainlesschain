@@ -2,24 +2,24 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">多租户 SaaS</h2>
-        <p class="page-sub">租户管理 · 订阅计费 · 用量计量 · 配额检查</p>
+        <h2 class="page-title">{{ $t('tenant.title') }}</h2>
+        <p class="page-sub">{{ $t('tenant.subtitle') }}</p>
       </div>
       <a-space>
         <a-button :loading="loading" @click="loadAll">
           <template #icon><ReloadOutlined /></template>
-          刷新
+          {{ $t('tenant.refresh') }}
         </a-button>
         <a-dropdown :trigger="['click']">
           <a-button type="primary">
             <template #icon><PlusOutlined /></template>
-            操作 ▼
+            {{ $t('tenant.actionDropdown') }}
           </a-button>
           <template #overlay>
             <a-menu @click="handleNewClick">
-              <a-menu-item key="tenant"><BankOutlined /> 创建租户</a-menu-item>
-              <a-menu-item key="quota"><DashboardOutlined /> 检查配额</a-menu-item>
-              <a-menu-item key="record"><LineChartOutlined /> 记录用量</a-menu-item>
+              <a-menu-item key="tenant"><BankOutlined /> {{ $t('tenant.actions.tenant') }}</a-menu-item>
+              <a-menu-item key="quota"><DashboardOutlined /> {{ $t('tenant.actions.quota') }}</a-menu-item>
+              <a-menu-item key="record"><LineChartOutlined /> {{ $t('tenant.actions.record') }}</a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
@@ -30,7 +30,7 @@
     <a-row :gutter="[16, 16]" style="margin-bottom: 20px;">
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="租户总数" :value="stats.tenantCount" :value-style="{ color: '#1677ff', fontSize: '20px' }">
+          <a-statistic :title="$t('tenant.stats.total')" :value="stats.tenantCount" :value-style="{ color: '#1677ff', fontSize: '20px' }">
             <template #prefix><BankOutlined /></template>
           </a-statistic>
         </a-card>
@@ -38,7 +38,7 @@
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="活跃订阅"
+            :title="$t('tenant.stats.active')"
             :value="stats.activeSubscriptions"
             :value-style="{ color: stats.activeSubscriptions > 0 ? '#52c41a' : '#888', fontSize: '20px' }"
           >
@@ -49,7 +49,7 @@
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="月度收入"
+            :title="$t('tenant.stats.mrr')"
             :value="estimatedMrr"
             :precision="0"
             prefix="¥"
@@ -59,7 +59,7 @@
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="API 调用" :value="stats.totalUsage.api_calls" :value-style="{ color: '#13c2c2', fontSize: '20px' }">
+          <a-statistic :title="$t('tenant.stats.apiCalls')" :value="stats.totalUsage.api_calls" :value-style="{ color: '#13c2c2', fontSize: '20px' }">
             <template #prefix><ApiOutlined /></template>
           </a-statistic>
         </a-card>
@@ -67,7 +67,7 @@
       <a-col :xs="24" :sm="8" :lg="4">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="存储用量"
+            :title="$t('tenant.stats.storage')"
             :value="formatBytes(stats.totalUsage.storage_bytes)"
             :value-style="{ color: '#faad14', fontSize: '18px' }"
           />
@@ -78,7 +78,7 @@
     <!-- Plan distribution -->
     <a-card
       v-if="stats.tenantCount > 0"
-      title="计划分布"
+      :title="$t('tenant.plansCard')"
       size="small"
       style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 20px;"
       :body-style="{ padding: '12px 16px' }"
@@ -88,7 +88,7 @@
           {{ planLabel(p) }}: {{ stats.byPlan[p] || 0 }}
         </a-tag>
         <span style="color: var(--text-secondary); font-size: 12px; margin-left: 8px;">
-          活跃 {{ stats.byStatus.active }} · 暂停 {{ stats.byStatus.suspended }} · 已删除 {{ stats.byStatus.deleted }}
+          {{ $t('tenant.summarySuffix', { active: stats.byStatus.active, suspended: stats.byStatus.suspended, deleted: stats.byStatus.deleted }) }}
         </span>
       </a-space>
     </a-card>
@@ -96,14 +96,14 @@
     <!-- Tabs -->
     <a-tabs v-model:activeKey="activeTab" class="tenant-tabs">
       <!-- ── Tenants tab ───────────────────────────────────────────── -->
-      <a-tab-pane key="tenants" tab="租户">
+      <a-tab-pane key="tenants" :tab="$t('tenant.tabs.tenants')">
         <div class="filter-bar">
           <a-radio-group v-model:value="planFilter" size="small">
-            <a-radio-button value="">全部计划</a-radio-button>
+            <a-radio-button value="">{{ $t('tenant.filter.allPlans') }}</a-radio-button>
             <a-radio-button v-for="p in PLAN_IDS" :key="p" :value="p">{{ planLabel(p) }}</a-radio-button>
           </a-radio-group>
           <a-radio-group v-model:value="statusFilter" size="small" button-style="solid">
-            <a-radio-button value="">全部状态</a-radio-button>
+            <a-radio-button value="">{{ $t('tenant.filter.allStatuses') }}</a-radio-button>
             <a-radio-button v-for="s in TENANT_STATUSES" :key="s" :value="s">{{ tenantStatusLabel(s) }}</a-radio-button>
           </a-radio-group>
         </div>
@@ -111,7 +111,7 @@
         <a-table
           :columns="tenantColumns"
           :data-source="filteredTenants"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (t) => $t('tenant.table.totalSuffix', { n: t }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -139,9 +139,9 @@
               <span style="color: var(--text-secondary); font-size: 11px;">{{ formatTenantTime(record.createdAt) }}</span>
             </template>
             <template v-if="column.key === 'action'">
-              <a-button size="small" type="link" @click="openSubscribe(record)">订阅</a-button>
+              <a-button size="small" type="link" @click="openSubscribe(record)">{{ $t('tenant.table.actionSubscribe') }}</a-button>
               <a-dropdown :trigger="['click']">
-                <a-button size="small" type="link">计划 ▼</a-button>
+                <a-button size="small" type="link">{{ $t('tenant.table.actionPlanDropdown') }}</a-button>
                 <template #overlay>
                   <a-menu @click="(e) => changePlan(record, e.key)">
                     <a-menu-item v-for="p in PLAN_IDS" :key="p" :disabled="p === record.plan">
@@ -155,39 +155,39 @@
                 size="small"
                 type="link"
                 @click="setStatus(record, 'suspended')"
-              >暂停</a-button>
+              >{{ $t('tenant.table.actionSuspend') }}</a-button>
               <a-button
                 v-else-if="record.status === 'suspended'"
                 size="small"
                 type="link"
                 @click="setStatus(record, 'active')"
-              >激活</a-button>
+              >{{ $t('tenant.table.actionActivate') }}</a-button>
               <a-popconfirm
                 v-if="record.status !== 'deleted'"
-                title="软删除该租户？"
-                ok-text="删除"
-                cancel-text="取消"
+                :title="$t('tenant.deleteConfirm.title')"
+                :ok-text="$t('tenant.deleteConfirm.ok')"
+                :cancel-text="$t('tenant.deleteConfirm.cancel')"
                 @confirm="deleteTenant(record)"
               >
-                <a-button size="small" type="link" danger>删除</a-button>
+                <a-button size="small" type="link" danger>{{ $t('tenant.deleteConfirm.ok') }}</a-button>
               </a-popconfirm>
             </template>
           </template>
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <BankOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              {{ planFilter || statusFilter ? '没有符合条件的租户' : '暂无租户，点"操作 → 创建租户"添加第一个' }}
+              {{ planFilter || statusFilter ? $t('tenant.table.emptyTenantsFiltered') : $t('tenant.table.emptyTenants') }}
             </div>
           </template>
         </a-table>
       </a-tab-pane>
 
       <!-- ── Subscriptions tab ─────────────────────────────────────── -->
-      <a-tab-pane key="subscriptions" tab="订阅">
+      <a-tab-pane key="subscriptions" :tab="$t('tenant.tabs.subscriptions')">
         <a-table
           :columns="subscriptionColumns"
           :data-source="subscriptions"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (t) => $t('tenant.table.totalSuffix', { n: t }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -218,26 +218,26 @@
             <template v-if="column.key === 'action'">
               <a-popconfirm
                 v-if="record.status === 'active'"
-                title="取消该订阅？"
-                ok-text="取消订阅"
-                cancel-text="返回"
+                :title="$t('tenant.cancelConfirm.title')"
+                :ok-text="$t('tenant.cancelConfirm.ok')"
+                :cancel-text="$t('tenant.cancelConfirm.cancel')"
                 @confirm="cancelSubscription(record)"
               >
-                <a-button size="small" type="link" danger>取消订阅</a-button>
+                <a-button size="small" type="link" danger>{{ $t('tenant.cancelConfirm.ok') }}</a-button>
               </a-popconfirm>
             </template>
           </template>
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <CreditCardOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              暂无订阅记录
+              {{ $t('tenant.table.emptySubscriptions') }}
             </div>
           </template>
         </a-table>
       </a-tab-pane>
 
       <!-- ── Plans catalogue tab ──────────────────────────────────── -->
-      <a-tab-pane key="plans" tab="计划">
+      <a-tab-pane key="plans" :tab="$t('tenant.tabs.plans')">
         <a-row :gutter="[16, 16]">
           <a-col v-for="plan in plans" :key="plan.id" :xs="24" :sm="12" :lg="6">
             <a-card :title="plan.name" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
@@ -245,11 +245,11 @@
                 <a-tag :color="planColor(plan.id)">{{ plan.id }}</a-tag>
               </template>
               <div class="plan-fee">
-                <span v-if="plan.monthlyFee != null">¥{{ plan.monthlyFee }} <span class="plan-fee-unit">/ 月</span></span>
-                <span v-else style="color: #722ed1;">联系销售</span>
+                <span v-if="plan.monthlyFee != null">¥{{ plan.monthlyFee }} <span class="plan-fee-unit">{{ $t('tenant.planCard.monthlySuffix') }}</span></span>
+                <span v-else style="color: #722ed1;">{{ $t('tenant.planCard.contactSales') }}</span>
               </div>
               <div class="plan-section">
-                <div class="plan-section-title">配额</div>
+                <div class="plan-section-title">{{ $t('tenant.planCard.quotas') }}</div>
                 <div v-for="m in metrics" :key="m.id" class="plan-quota-row">
                   <span class="plan-quota-label">{{ m.name }}</span>
                   <span class="plan-quota-value">
@@ -258,7 +258,7 @@
                 </div>
               </div>
               <div class="plan-section">
-                <div class="plan-section-title">特性</div>
+                <div class="plan-section-title">{{ $t('tenant.planCard.features') }}</div>
                 <a-tag v-for="f in plan.features" :key="f" style="font-size: 10px; margin: 1px;">{{ f }}</a-tag>
               </div>
             </a-card>
@@ -270,28 +270,28 @@
     <!-- ── Create tenant modal ──────────────────────────────────── -->
     <a-modal
       v-model:open="showCreateModal"
-      title="创建租户"
+      :title="$t('tenant.create_modal.title')"
       :confirm-loading="creating"
       :width="520"
-      ok-text="创建"
-      cancel-text="取消"
+      :ok-text="$t('tenant.create_modal.ok')"
+      :cancel-text="$t('tenant.create_modal.cancel')"
       @ok="createTenant"
       @cancel="resetCreateForm"
     >
       <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-        <a-form-item label="名称" required>
-          <a-input v-model:value="createForm.name" placeholder="例如: Acme Corp" />
+        <a-form-item :label="$t('tenant.create_modal.nameLabel')" required>
+          <a-input v-model:value="createForm.name" :placeholder="$t('tenant.create_modal.namePlaceholder')" />
         </a-form-item>
-        <a-form-item label="Slug" required>
-          <a-input v-model:value="createForm.slug" placeholder="小写字母数字+连字符，例如: acme-corp" />
+        <a-form-item :label="$t('tenant.create_modal.slugLabel')" required>
+          <a-input v-model:value="createForm.slug" :placeholder="$t('tenant.create_modal.slugPlaceholder')" />
         </a-form-item>
-        <a-form-item label="计划">
+        <a-form-item :label="$t('tenant.create_modal.planLabel')">
           <a-select v-model:value="createForm.plan">
             <a-select-option v-for="p in PLAN_IDS" :key="p" :value="p">{{ planLabel(p) }}</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="所有者 ID">
-          <a-input v-model:value="createForm.owner" placeholder="可选" />
+        <a-form-item :label="$t('tenant.create_modal.ownerLabel')">
+          <a-input v-model:value="createForm.owner" :placeholder="$t('tenant.create_modal.ownerPlaceholder')" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -299,28 +299,28 @@
     <!-- ── Subscribe modal ──────────────────────────────────────── -->
     <a-modal
       v-model:open="showSubscribeModal"
-      :title="`订阅：${subscribeTargetName}`"
+      :title="$t('tenant.subscribe_modal.title', { name: subscribeTargetName })"
       :confirm-loading="subscribing"
       :width="500"
-      ok-text="订阅"
-      cancel-text="取消"
+      :ok-text="$t('tenant.subscribe_modal.ok')"
+      :cancel-text="$t('tenant.subscribe_modal.cancel')"
       @ok="subscribeTenant"
       @cancel="resetSubscribeForm"
     >
       <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-        <a-form-item label="计划" required>
+        <a-form-item :label="$t('tenant.subscribe_modal.planLabel')" required>
           <a-select v-model:value="subscribeForm.plan">
             <a-select-option v-for="p in PLAN_IDS" :key="p" :value="p">{{ planLabel(p) }}</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="金额覆盖">
-          <a-input-number v-model:value="subscribeForm.amount" :min="0" placeholder="留空使用计划默认价" style="width: 100%;" />
+        <a-form-item :label="$t('tenant.subscribe_modal.amountLabel')">
+          <a-input-number v-model:value="subscribeForm.amount" :min="0" :placeholder="$t('tenant.subscribe_modal.amountPlaceholder')" style="width: 100%;" />
         </a-form-item>
-        <a-form-item label="周期">
+        <a-form-item :label="$t('tenant.subscribe_modal.durationLabel')">
           <a-radio-group v-model:value="subscribeForm.duration">
-            <a-radio-button :value="30 * 24 * 60 * 60 * 1000">30 天</a-radio-button>
-            <a-radio-button :value="90 * 24 * 60 * 60 * 1000">90 天</a-radio-button>
-            <a-radio-button :value="365 * 24 * 60 * 60 * 1000">1 年</a-radio-button>
+            <a-radio-button :value="30 * 24 * 60 * 60 * 1000">{{ $t('tenant.subscribe_modal.duration30') }}</a-radio-button>
+            <a-radio-button :value="90 * 24 * 60 * 60 * 1000">{{ $t('tenant.subscribe_modal.duration90') }}</a-radio-button>
+            <a-radio-button :value="365 * 24 * 60 * 60 * 1000">{{ $t('tenant.subscribe_modal.duration365') }}</a-radio-button>
           </a-radio-group>
         </a-form-item>
       </a-form>
@@ -329,40 +329,40 @@
     <!-- ── Quota check modal ────────────────────────────────────── -->
     <a-modal
       v-model:open="showQuotaModal"
-      title="配额检查"
+      :title="$t('tenant.quota_modal.title')"
       :confirm-loading="checking"
       :width="500"
-      ok-text="检查"
-      cancel-text="关闭"
+      :ok-text="$t('tenant.quota_modal.ok')"
+      :cancel-text="$t('tenant.quota_modal.cancel')"
       @ok="checkQuota"
     >
       <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-        <a-form-item label="租户" required>
-          <a-select v-model:value="quotaForm.tenantId" show-search placeholder="选择租户">
+        <a-form-item :label="$t('tenant.quota_modal.tenantLabel')" required>
+          <a-select v-model:value="quotaForm.tenantId" show-search :placeholder="$t('tenant.quota_modal.tenantPlaceholder')">
             <a-select-option v-for="t in tenants" :key="t.id" :value="t.id">{{ t.name }} ({{ t.slug }})</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="指标" required>
+        <a-form-item :label="$t('tenant.quota_modal.metricLabel')" required>
           <a-select v-model:value="quotaForm.metric">
             <a-select-option v-for="m in KNOWN_METRICS" :key="m" :value="m">{{ m }}</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="周期">
-          <a-input v-model:value="quotaForm.period" placeholder="YYYY-MM，留空则当前月" />
+        <a-form-item :label="$t('tenant.quota_modal.periodLabel')">
+          <a-input v-model:value="quotaForm.period" :placeholder="$t('tenant.quota_modal.periodPlaceholder')" />
         </a-form-item>
       </a-form>
       <a-card v-if="quotaResult" size="small" style="background: var(--bg-base); margin-top: 8px;">
         <a-statistic
-          title="配额状态"
-          :value="quotaResult.unlimited ? '无限' : (quotaResult.exceeded ? '已超额' : '正常')"
+          :title="$t('tenant.quota_modal.resultTitle')"
+          :value="quotaResult.unlimited ? $t('tenant.quota_modal.unlimited') : (quotaResult.exceeded ? $t('tenant.quota_modal.exceeded') : $t('tenant.quota_modal.ok_state'))"
           :value-style="{ color: quotaResult.exceeded ? '#ff4d4f' : (quotaResult.unlimited ? '#722ed1' : '#52c41a') }"
         />
         <div style="margin-top: 12px; font-size: 12px; color: var(--text-secondary);">
-          <div>计划: <a-tag :color="planColor(quotaResult.plan)">{{ planLabel(quotaResult.plan) }}</a-tag></div>
-          <div>周期: {{ quotaResult.period }}</div>
-          <div>已用: <span style="font-family: monospace; color: var(--text-primary);">{{ formatMetricValue(quotaResult.used, quotaResult.metric) }}</span></div>
+          <div>{{ $t('tenant.quota_modal.planLine') }} <a-tag :color="planColor(quotaResult.plan)">{{ planLabel(quotaResult.plan) }}</a-tag></div>
+          <div>{{ $t('tenant.quota_modal.periodLine', { period: quotaResult.period }) }}</div>
+          <div>{{ $t('tenant.quota_modal.usedLine') }} <span style="font-family: monospace; color: var(--text-primary);">{{ formatMetricValue(quotaResult.used, quotaResult.metric) }}</span></div>
           <div v-if="!quotaResult.unlimited">
-            上限: <span style="font-family: monospace;">{{ formatMetricValue(quotaResult.limit, quotaResult.metric) }}</span>
+            {{ $t('tenant.quota_modal.limitLine') }} <span style="font-family: monospace;">{{ formatMetricValue(quotaResult.limit, quotaResult.metric) }}</span>
           </div>
           <div v-if="!quotaResult.unlimited && quotaResult.limit > 0" style="margin-top: 8px;">
             <a-progress
@@ -378,30 +378,30 @@
     <!-- ── Record usage modal ───────────────────────────────────── -->
     <a-modal
       v-model:open="showRecordModal"
-      title="记录用量"
+      :title="$t('tenant.record_modal.title')"
       :confirm-loading="recording"
       :width="500"
-      ok-text="记录"
-      cancel-text="取消"
+      :ok-text="$t('tenant.record_modal.ok')"
+      :cancel-text="$t('tenant.record_modal.cancel')"
       @ok="recordUsage"
       @cancel="resetRecordForm"
     >
       <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-        <a-form-item label="租户" required>
-          <a-select v-model:value="recordForm.tenantId" show-search placeholder="选择租户">
+        <a-form-item :label="$t('tenant.record_modal.tenantLabel')" required>
+          <a-select v-model:value="recordForm.tenantId" show-search :placeholder="$t('tenant.record_modal.tenantPlaceholder')">
             <a-select-option v-for="t in tenants" :key="t.id" :value="t.id">{{ t.name }} ({{ t.slug }})</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="指标" required>
+        <a-form-item :label="$t('tenant.record_modal.metricLabel')" required>
           <a-select v-model:value="recordForm.metric">
             <a-select-option v-for="m in KNOWN_METRICS" :key="m" :value="m">{{ m }}</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="数量" required>
+        <a-form-item :label="$t('tenant.record_modal.valueLabel')" required>
           <a-input-number v-model:value="recordForm.value" :min="0" style="width: 100%;" />
         </a-form-item>
-        <a-form-item label="周期">
-          <a-input v-model:value="recordForm.period" placeholder="YYYY-MM，留空则当前月" />
+        <a-form-item :label="$t('tenant.record_modal.periodLabel')">
+          <a-input v-model:value="recordForm.period" :placeholder="$t('tenant.record_modal.periodPlaceholder')" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -420,6 +420,7 @@ import {
   ApiOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
+import { useI18n } from 'vue-i18n'
 import { useWsStore } from '../stores/ws.js'
 import {
   parsePlans,
@@ -437,6 +438,7 @@ import {
 } from '../utils/tenant-parser.js'
 
 const ws = useWsStore()
+const { t } = useI18n()
 
 const loading = ref(false)
 const creating = ref(false)
@@ -474,24 +476,24 @@ const quotaForm = reactive({ tenantId: null, metric: 'api_calls', period: '' })
 const recordForm = reactive({ tenantId: null, metric: 'api_calls', value: 1, period: '' })
 const quotaResult = ref(null)
 
-const tenantColumns = [
-  { title: '租户', key: 'name' },
-  { title: '计划', key: 'plan', width: '110px' },
-  { title: '状态', key: 'status', width: '100px' },
-  { title: '所有者', key: 'owner', width: '160px' },
-  { title: '创建时间', key: 'createdAt', width: '160px' },
-  { title: '操作', key: 'action', width: '280px' },
-]
+const tenantColumns = computed(() => [
+  { title: t('tenant.tenantCols.name'), key: 'name' },
+  { title: t('tenant.tenantCols.plan'), key: 'plan', width: '110px' },
+  { title: t('tenant.tenantCols.status'), key: 'status', width: '100px' },
+  { title: t('tenant.tenantCols.owner'), key: 'owner', width: '160px' },
+  { title: t('tenant.tenantCols.createdAt'), key: 'createdAt', width: '160px' },
+  { title: t('tenant.tenantCols.action'), key: 'action', width: '280px' },
+])
 
-const subscriptionColumns = [
-  { title: '租户', key: 'tenant' },
-  { title: '计划', key: 'plan', width: '110px' },
-  { title: '金额', key: 'amount', width: '100px' },
-  { title: '状态', key: 'status', width: '110px' },
-  { title: '开始', key: 'startedAt', width: '160px' },
-  { title: '到期', key: 'expiresAt', width: '160px' },
-  { title: '操作', key: 'action', width: '120px' },
-]
+const subscriptionColumns = computed(() => [
+  { title: t('tenant.subscriptionCols.tenant'), key: 'tenant' },
+  { title: t('tenant.subscriptionCols.plan'), key: 'plan', width: '110px' },
+  { title: t('tenant.subscriptionCols.amount'), key: 'amount', width: '100px' },
+  { title: t('tenant.subscriptionCols.status'), key: 'status', width: '110px' },
+  { title: t('tenant.subscriptionCols.startedAt'), key: 'startedAt', width: '160px' },
+  { title: t('tenant.subscriptionCols.expiresAt'), key: 'expiresAt', width: '160px' },
+  { title: t('tenant.subscriptionCols.action'), key: 'action', width: '120px' },
+])
 
 const filteredTenants = computed(() => {
   let rows = tenants.value
@@ -507,27 +509,33 @@ const estimatedMrr = computed(() => {
 })
 
 function planLabel(p) {
-  return { free: '免费版', starter: '入门版', pro: '专业版', enterprise: '企业版' }[p] || p
+  const key = `tenant.planLabels.${p}`
+  const v = t(key)
+  return v === key ? p : v
 }
 function planColor(p) {
   return { free: 'default', starter: 'blue', pro: 'purple', enterprise: 'gold' }[p] || 'default'
 }
 function tenantStatusLabel(s) {
-  return { active: '活跃', suspended: '已暂停', deleted: '已删除' }[s] || s
+  const key = `tenant.tenantStatusLabels.${s}`
+  const v = t(key)
+  return v === key ? s : v
 }
 function tenantStatusColor(s) {
   return { active: 'green', suspended: 'orange', deleted: 'default' }[s] || 'default'
 }
 function subStatusLabel(s) {
-  return { active: '活跃', cancelled: '已取消', expired: '已过期', past_due: '逾期' }[s] || s
+  const key = `tenant.subStatusLabels.${s}`
+  const v = t(key)
+  return v === key ? s : v
 }
 function subStatusColor(s) {
   return { active: 'green', cancelled: 'default', expired: 'red', past_due: 'orange' }[s] || 'default'
 }
 
 function tenantName(tenantId) {
-  const t = tenants.value.find(x => x.id === tenantId)
-  return t ? t.name : '(已删除)'
+  const found = tenants.value.find(x => x.id === tenantId)
+  return found ? found.name : t('tenant.deletedTenant')
 }
 
 function formatMetricValue(v, metric) {
@@ -537,7 +545,7 @@ function formatMetricValue(v, metric) {
 }
 
 function formatQuota(v, metric) {
-  if (v == null) return '无限'
+  if (v == null) return t('tenant.planCard.unlimited')
   if (metric === 'storage_bytes') return formatBytes(v)
   return v.toLocaleString()
 }
@@ -566,7 +574,7 @@ async function loadAll() {
     metrics.value = parseMetrics(metricsRes.output)
     stats.value = parseStats(statsRes.output)
   } catch (e) {
-    message.error('加载租户数据失败: ' + (e?.message || e))
+    message.error(t('tenant.msg.loadFailed') + ': ' + (e?.message || e))
   } finally {
     loading.value = false
   }
@@ -576,11 +584,11 @@ async function createTenant() {
   const name = createForm.name.trim()
   const slug = createForm.slug.trim()
   if (!name || !slug) {
-    message.warning('请填写名称和 slug')
+    message.warning(t('tenant.msg.createFieldsEmpty'))
     return
   }
   if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/.test(slug)) {
-    message.warning('slug 必须为小写字母数字 + 连字符')
+    message.warning(t('tenant.msg.slugInvalid'))
     return
   }
   creating.value = true
@@ -591,15 +599,15 @@ async function createTenant() {
     parts.push('--json')
     const { output } = await ws.execute(parts.join(' '), 10000)
     if (/error|Error|失败/i.test(output) && !/"id"/.test(output)) {
-      message.error('创建失败: ' + output.slice(0, 120))
+      message.error(t('tenant.msg.createFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('租户已创建')
+    message.success(t('tenant.msg.createSuccess'))
     showCreateModal.value = false
     resetCreateForm()
     await loadAll()
   } catch (e) {
-    message.error('创建失败: ' + (e?.message || e))
+    message.error(t('tenant.msg.createFailed') + ': ' + (e?.message || e))
   } finally {
     creating.value = false
   }
@@ -624,16 +632,16 @@ async function subscribeTenant() {
     parts.push('--json')
     const { output } = await ws.execute(parts.join(' '), 10000)
     if (/error|Error|失败/i.test(output) && !/"id"/.test(output)) {
-      message.error('订阅失败: ' + output.slice(0, 120))
+      message.error(t('tenant.msg.subscribeFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('订阅已创建')
+    message.success(t('tenant.msg.subscribeSuccess'))
     showSubscribeModal.value = false
     resetSubscribeForm()
     activeTab.value = 'subscriptions'
     await loadAll()
   } catch (e) {
-    message.error('订阅失败: ' + (e?.message || e))
+    message.error(t('tenant.msg.subscribeFailed') + ': ' + (e?.message || e))
   } finally {
     subscribing.value = false
   }
@@ -644,13 +652,13 @@ async function changePlan(record, newPlan) {
   try {
     const { output } = await ws.execute(`tenant configure ${record.id} --plan ${newPlan} --json`, 8000)
     if (/error|Error/i.test(output) && !/"id"/.test(output)) {
-      message.error('计划变更失败: ' + output.slice(0, 120))
+      message.error(t('tenant.msg.planChangeFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success(`已切换到 ${planLabel(newPlan)}`)
+    message.success(t('tenant.msg.planChangeSuccess', { plan: planLabel(newPlan) }))
     await loadAll()
   } catch (e) {
-    message.error('计划变更失败: ' + (e?.message || e))
+    message.error(t('tenant.msg.planChangeFailed') + ': ' + (e?.message || e))
   }
 }
 
@@ -658,13 +666,13 @@ async function setStatus(record, newStatus) {
   try {
     const { output } = await ws.execute(`tenant configure ${record.id} --status ${newStatus} --json`, 8000)
     if (/error|Error/i.test(output) && !/"id"/.test(output)) {
-      message.error('状态变更失败: ' + output.slice(0, 120))
+      message.error(t('tenant.msg.statusChangeFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success(`已${newStatus === 'active' ? '激活' : '暂停'}`)
+    message.success(newStatus === 'active' ? t('tenant.msg.activated') : t('tenant.msg.suspended'))
     await loadAll()
   } catch (e) {
-    message.error('状态变更失败: ' + (e?.message || e))
+    message.error(t('tenant.msg.statusChangeFailed') + ': ' + (e?.message || e))
   }
 }
 
@@ -672,13 +680,13 @@ async function deleteTenant(record) {
   try {
     const { output } = await ws.execute(`tenant delete ${record.id} --json`, 8000)
     if (/error|Error/i.test(output) && !/deleted|removed/.test(output)) {
-      message.error('删除失败: ' + output.slice(0, 120))
+      message.error(t('tenant.msg.deleteFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('租户已软删除')
+    message.success(t('tenant.msg.deleteSuccess'))
     await loadAll()
   } catch (e) {
-    message.error('删除失败: ' + (e?.message || e))
+    message.error(t('tenant.msg.deleteFailed') + ': ' + (e?.message || e))
   }
 }
 
@@ -686,19 +694,19 @@ async function cancelSubscription(record) {
   try {
     const { output } = await ws.execute(`tenant cancel ${record.tenantId}`, 8000)
     if (/error|Error/i.test(output) && !/cancelled|cancel/i.test(output)) {
-      message.error('取消失败: ' + output.slice(0, 120))
+      message.error(t('tenant.msg.cancelFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('订阅已取消')
+    message.success(t('tenant.msg.cancelSuccess'))
     await loadAll()
   } catch (e) {
-    message.error('取消失败: ' + (e?.message || e))
+    message.error(t('tenant.msg.cancelFailed') + ': ' + (e?.message || e))
   }
 }
 
 async function checkQuota() {
   if (!quotaForm.tenantId) {
-    message.warning('请选择租户')
+    message.warning(t('tenant.msg.tenantEmpty'))
     return
   }
   checking.value = true
@@ -710,15 +718,15 @@ async function checkQuota() {
     const { output } = await ws.execute(parts.join(' '), 8000)
     const parsed = parseQuotaResult(output)
     if (!parsed) {
-      message.error('检查失败: ' + output.slice(0, 120))
+      message.error(t('tenant.msg.checkFailed') + ': ' + output.slice(0, 120))
       return
     }
     quotaResult.value = parsed
     if (parsed.exceeded) {
-      message.warning('该租户已超额!')
+      message.warning(t('tenant.msg.exceededWarning'))
     }
   } catch (e) {
-    message.error('检查失败: ' + (e?.message || e))
+    message.error(t('tenant.msg.checkFailed') + ': ' + (e?.message || e))
   } finally {
     checking.value = false
   }
@@ -726,11 +734,11 @@ async function checkQuota() {
 
 async function recordUsage() {
   if (!recordForm.tenantId) {
-    message.warning('请选择租户')
+    message.warning(t('tenant.msg.tenantEmpty'))
     return
   }
   if (recordForm.value == null || recordForm.value < 0) {
-    message.warning('请输入有效数量')
+    message.warning(t('tenant.msg.valueInvalid'))
     return
   }
   recording.value = true
@@ -740,15 +748,15 @@ async function recordUsage() {
     parts.push('--json')
     const { output } = await ws.execute(parts.join(' '), 8000)
     if (/error|Error/i.test(output) && !/"id"|"tenant"/.test(output)) {
-      message.error('记录失败: ' + output.slice(0, 120))
+      message.error(t('tenant.msg.recordFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('用量已记录')
+    message.success(t('tenant.msg.recordSuccess'))
     showRecordModal.value = false
     resetRecordForm()
     await loadAll()
   } catch (e) {
-    message.error('记录失败: ' + (e?.message || e))
+    message.error(t('tenant.msg.recordFailed') + ': ' + (e?.message || e))
   } finally {
     recording.value = false
   }
