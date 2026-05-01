@@ -1,6 +1,6 @@
 # Component Reference
 
-**Total Components**: 582
+**Total Components**: 583
 
 ---
 
@@ -3507,6 +3507,14 @@
 **File**: `src/renderer/components/multimedia/MediaProcessor.vue`
 
 **Description**: 图片处理
+
+---
+
+## src/renderer/components/mtc
+
+### MtcInclusionProofDrawer
+
+**File**: `src/renderer/components/mtc/MtcInclusionProofDrawer.vue`
 
 ---
 

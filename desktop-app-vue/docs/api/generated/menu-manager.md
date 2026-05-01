@@ -15,6 +15,37 @@ const
 
 ---
 
+## constructor(mainWindow, options =
+
+```javascript
+constructor(mainWindow, options =
+```
+
+* @param {Electron.BrowserWindow} mainWindow
+   * @param {Object} [options]
+   * @param {() => ({ httpUrl?: string } | null)} [options.getWebShellHandle]
+   *   Getter for the live web-shell handle so the "在浏览器中打开 web 视图"
+   *   menu item can read the OS-assigned httpUrl when clicked. Returns null
+   *   when web-shell is not running (user opted out → menu item disabled).
+   * @param {(url: string) => Promise<void>} [options.openExternal]
+   *   Override for `shell.openExternal` — used by tests to assert without
+   *   spawning a real browser.
+
+---
+
+## async openWebShellInBrowser()
+
+```javascript
+async openWebShellInBrowser()
+```
+
+* Open the embedded web-shell URL in the user's default browser. No-op
+   * when web-shell is not running (legacy V5/V6 desktop shell selected via
+   * SystemSettings opt-out). Surfaced from both the View menu and the
+   * Cmd/Ctrl+Shift+B in-window accelerator.
+
+---
+
 ## createMenu()
 
 ```javascript
