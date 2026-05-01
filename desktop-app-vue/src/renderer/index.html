@@ -169,30 +169,9 @@
       </div>
     </div>
 
-    <script>
-      // 异步加载 logo（避免 CSP 限制，通过 Electron IPC 或直接引用）
-      // 优先尝试从 splash 目录加载同款 logo
-      (function() {
-        var img = document.getElementById('pl-logo-img');
-        // 在 Electron file:// 环境下，尝试相对路径
-        var paths = [
-          '../main/splash/logo.png',
-          '../../main/splash/logo.png',
-          './assets/logo.png'
-        ];
-        var idx = 0;
-        function tryNext() {
-          if (idx >= paths.length) {
-            // 所有路径失败时，用 CSS 纯色圆形占位（保持动画）
-            img.style.display = 'none';
-            return;
-          }
-          img.src = paths[idx++];
-          img.onerror = tryNext;
-        }
-        tryNext();
-      })();
-    </script>
+    <!-- Logo loader extracted to external file so the strict CSP can
+         stay (no 'unsafe-inline' / no per-script hash maintenance). -->
+    <script src="/splash-logo-loader.js"></script>
 
     <script type="module" src="/main.js"></script>
   </body>
