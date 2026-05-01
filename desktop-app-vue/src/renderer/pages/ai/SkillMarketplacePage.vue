@@ -35,6 +35,16 @@
             :text="record.status"
           />
         </template>
+        <template v-else-if="column.key === 'mtc'">
+          <a-tooltip
+            title="验证此技能在 Marketplace MTC 批次中的 inclusion proof"
+          >
+            <a-button size="small" type="link" @click="openMtcDrawer(record)">
+              <SafetyOutlined />
+              验证
+            </a-button>
+          </a-tooltip>
+        </template>
       </template>
     </a-table>
     <a-modal
@@ -66,13 +76,21 @@
       style="margin-top: 16px"
       @close="store.error = null"
     />
+
+    <MtcInclusionProofDrawer
+      v-model:open="mtcDrawerOpen"
+      :title="mtcDrawerTitle"
+      :hint="mtcDrawerHint"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { message } from "ant-design-vue";
+import { SafetyOutlined } from "@ant-design/icons-vue";
 import { useSkillServiceStore } from "../../stores/skillService";
+import MtcInclusionProofDrawer from "../../components/mtc/MtcInclusionProofDrawer.vue";
 
 const store = useSkillServiceStore();
 const showPublishModal = ref(false);
@@ -82,7 +100,28 @@ const columns = [
   { title: "Version", dataIndex: "version", width: 100 },
   { title: "Status", key: "status", width: 100 },
   { title: "Owner", dataIndex: "owner_did", width: 150 },
+  { title: "MTC", key: "mtc", width: 100 },
 ];
+
+// MTC inclusion proof drawer ─────────────────────────────────────────────
+const mtcDrawerOpen = ref(false);
+const mtcDrawerTitle = ref("MTC 包含证明");
+const mtcDrawerHint = ref("");
+
+interface SkillRecord {
+  id?: string;
+  name?: string;
+  version?: string;
+}
+
+function openMtcDrawer(record: SkillRecord) {
+  const label = record.name || record.id || "skill";
+  mtcDrawerTitle.value = `MTC 包含证明 · ${label}@${record.version ?? ""}`;
+  mtcDrawerHint.value =
+    `验证此技能 (skill:cc:${record.id}@${record.version}) 是否在某个 cc mtc publish-skills 批次的 envelope 中。` +
+    ` 通常路径为 ~/.chainlesschain/marketplace-batches/<seq>/envelope-XXXXXX.json + landmark.json。可在 web-panel /mtc 页面查 publisher 历史。`;
+  mtcDrawerOpen.value = true;
+}
 
 async function handlePublish() {
   if (!form.value.name) {

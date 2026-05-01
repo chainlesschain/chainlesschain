@@ -82,6 +82,15 @@
             >
               <EyeOutlined />
             </a-button>
+            <a-tooltip title="MTC 包含证明">
+              <a-button
+                size="small"
+                type="link"
+                @click="openMtcDrawer(identity.did)"
+              >
+                <SafetyOutlined />
+              </a-button>
+            </a-tooltip>
             <a-button
               v-if="identity.did !== store.defaultIdentity?.did"
               size="small"
@@ -151,6 +160,11 @@
   <CreateIdentityWizard />
   <IdentityDetailsDrawer />
   <AutoRepublishSettings />
+  <MtcInclusionProofDrawer
+    v-model:open="mtcDrawerOpen"
+    :title="mtcDrawerTitle"
+    :hint="mtcDrawerHint"
+  />
 </template>
 
 <script setup lang="ts">
@@ -161,6 +175,7 @@ import {
   CloudOutlined,
   DeleteOutlined,
   EyeOutlined,
+  SafetyOutlined,
 } from "@ant-design/icons-vue";
 import {
   useDIDManagementStore,
@@ -169,6 +184,7 @@ import {
 import CreateIdentityWizard from "./did/CreateIdentityWizard.vue";
 import IdentityDetailsDrawer from "./did/IdentityDetailsDrawer.vue";
 import AutoRepublishSettings from "./did/AutoRepublishSettings.vue";
+import MtcInclusionProofDrawer from "../components/mtc/MtcInclusionProofDrawer.vue";
 
 interface DidAction {
   id: string;
@@ -230,6 +246,19 @@ function formatCreatedAt(value: string | number): string {
     return String(value);
   }
   return d.toLocaleDateString();
+}
+
+// MTC inclusion proof drawer state ─────────────────────────────────────────
+const mtcDrawerOpen = ref(false);
+const mtcDrawerTitle = ref("MTC 包含证明");
+const mtcDrawerHint = ref("");
+
+function openMtcDrawer(did: string): void {
+  mtcDrawerTitle.value = `MTC 包含证明 · ${shortDid(did)}`;
+  mtcDrawerHint.value =
+    `验证此 DID 是否在某个 MTC 批次中。请提供该批次的 envelope（其 leaf.subject 应等于此 DID）和 landmark 文件路径。` +
+    ` 通常由 cc mtc batch-dids --out <dir> 生成。`;
+  mtcDrawerOpen.value = true;
 }
 
 function confirmDelete(identity: IdentitySummary): void {
