@@ -11,6 +11,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import chalk from "chalk";
+import { ed25519 as nobleEd25519 } from "@noble/curves/ed25519";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import { getAllIdentities, getIdentity } from "../lib/did-manager.js";
@@ -18,18 +19,14 @@ import { CLISkillLoader } from "../lib/skill-loader.js";
 import mtcLib from "@chainlesschain/core-mtc";
 
 const {
-  MerkleTree,
   encodeHashStr,
   sha256,
-  leafHash,
   jcs,
   LandmarkCache,
   verify,
-  SCHEMA_ENVELOPE,
-  SCHEMA_TREE_HEAD,
   SCHEMA_LANDMARK,
-  TREE_HEAD_SIG_PREFIX,
   ed25519,
+  assembleBatch,
 } = mtcLib;
 
 const STOPGAP_BANNER = chalk.yellow(
@@ -61,12 +58,7 @@ function loadOrGenerateKeyPair(secretKeyPath) {
         `Secret key file ${secretKeyPath} must contain 32 bytes (64 hex chars)`,
       );
     }
-    // Derive publicKey from secretKey via @noble/curves through ed25519.* — use generateKeyPair-style reload
-    // Simpler: re-derive via a helper. Since lib doesn't expose pubkey-from-secret directly, sign a probe
-    // and use ed25519.signRaw + ed25519.signTreeHead to recover pubkey isn't possible. Fall back to using
-    // a fresh keypair if no helper. Rather than add a helper, use @noble/curves directly here.
-    const { ed25519: ed25519Curve } = require("@noble/curves/ed25519");
-    const publicKey = Buffer.from(ed25519Curve.getPublicKey(secretKey));
+    const publicKey = Buffer.from(nobleEd25519.getPublicKey(secretKey));
     return {
       secretKey,
       publicKey,
@@ -77,63 +69,227 @@ function loadOrGenerateKeyPair(secretKeyPath) {
 }
 
 function buildBatch(rawLeaves, opts) {
-  const namespace = opts.namespace;
-  const issuer = opts.issuer;
-  const issuedAt = opts.issuedAt || new Date().toISOString();
-  const expiresAt =
-    opts.expiresAt || new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
-
   const keys = loadOrGenerateKeyPair(opts.secretKeyFile);
-
-  const leafHashes = rawLeaves.map((l) => leafHash(jcs(l)));
-  const tree = new MerkleTree(leafHashes);
-  const root = tree.root();
-
-  const treeHead = {
-    schema: SCHEMA_TREE_HEAD,
-    namespace,
-    tree_size: leafHashes.length,
-    root_hash: encodeHashStr(root),
-    issued_at: issuedAt,
-    expires_at: expiresAt,
-    issuer,
-  };
-  const canonical = jcs(treeHead);
-  const treeHeadId = encodeHashStr(sha256(canonical));
-  const signingInput = Buffer.concat([TREE_HEAD_SIG_PREFIX, canonical]);
-  const signature = ed25519.signTreeHead(signingInput, {
-    secretKey: keys.secretKey,
-    publicKey: keys.publicKey,
-    issuer,
+  const { landmark, envelopes, treeHeadId } = assembleBatch(rawLeaves, keys, {
+    namespace: opts.namespace,
+    issuer: opts.issuer,
+    issuedAt: opts.issuedAt,
+    expiresAt: opts.expiresAt,
   });
+  return { landmark, envelopes, treeHeadId, keys };
+}
 
-  const landmark = {
-    schema: SCHEMA_LANDMARK,
-    namespace: namespace.split("/").slice(0, -1).join("/"),
-    snapshots: [{ tree_head: treeHead, tree_head_id: treeHeadId, signature }],
-    trust_anchors: [ed25519.trustAnchorEntry(keys.publicKey, issuer)],
-    published_at: issuedAt,
-    publisher_signature: {
-      alg: "Ed25519",
-      key_id: issuer + "#key-1",
-      sig: "TODO-PUBLISHER-SIG",
-    },
-  };
+// ─────────────────────────────────────────────────────────────────────
+// Marketplace publisher daemon (Phase 2 marketplace path)
+// ─────────────────────────────────────────────────────────────────────
 
-  const envelopes = rawLeaves.map((leaf, i) => ({
-    schema: SCHEMA_ENVELOPE,
-    namespace,
-    tree_head_id: treeHeadId,
-    leaf,
-    inclusion_proof: {
-      leaf_index: i,
-      tree_size: leafHashes.length,
-      audit_path: tree.prove(i).map((b) => encodeHashStr(b)),
+const PUBLISH_STATE_SCHEMA = "mtc-skill-publish-state/v1";
+
+function canonicalSkillsFingerprint(skills) {
+  // Sort by id for deterministic fingerprint, then JCS-canonicalize a tuple
+  // of (id, version, content_hash). This matches what batch-skills hashes
+  // into each leaf, so changing only metadata doesn't trigger churn but
+  // bumping a skill's version or body does.
+  const sorted = [...skills].sort((a, b) => a.id.localeCompare(b.id));
+  const tuples = sorted.map((s) => ({
+    id: s.id,
+    version: s.version,
+    category: s.category,
+    activation: s.activation,
+    description: s.description,
+  }));
+  return encodeHashStr(sha256(jcs(tuples)));
+}
+
+function loadPublishState(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) {
+    return {
+      schema: PUBLISH_STATE_SCHEMA,
+      last_seq: 0,
+      last_fingerprint: null,
+      last_published_at: null,
+      history: [],
+    };
+  }
+  const obj = readJsonFile(filePath);
+  if (obj.schema !== PUBLISH_STATE_SCHEMA) {
+    throw new Error(`state file ${filePath} has unknown schema: ${obj.schema}`);
+  }
+  return obj;
+}
+
+function savePublishState(filePath, state) {
+  writeJsonFile(filePath, state);
+}
+
+/**
+ * One iteration: load skills, compare fingerprint, optionally build a batch
+ * and persist state. Returns a structured result regardless of whether a
+ * batch was produced (for json output + tests).
+ */
+function publishSkillsOnce(options) {
+  const loader = new CLISkillLoader();
+  const allSkills = loader.loadAll();
+
+  let skills;
+  if (options.skill && options.skill.length > 0) {
+    const want = new Set(options.skill);
+    skills = allSkills.filter((s) => want.has(s.id));
+  } else {
+    skills = allSkills;
+  }
+
+  const state = loadPublishState(options.stateFile);
+  if (skills.length === 0) {
+    return {
+      iteration: "skipped",
+      reason: "no skills discovered",
+      skills_count: 0,
+      last_seq: state.last_seq,
+    };
+  }
+
+  const fingerprint = canonicalSkillsFingerprint(skills);
+  if (state.last_fingerprint === fingerprint) {
+    return {
+      iteration: "skipped",
+      reason: "fingerprint unchanged",
+      skills_count: skills.length,
+      last_seq: state.last_seq,
+      fingerprint,
+    };
+  }
+
+  const nextSeq = state.last_seq + 1;
+  const seqStr = String(nextSeq).padStart(6, "0");
+  const namespace = `${options.namespacePrefix}/${seqStr}`;
+  const batchDir = path.resolve(options.out, seqStr);
+
+  const rawLeaves = skills.map((s) => ({
+    kind: "skill-manifest",
+    content_hash: encodeHashStr(
+      sha256(
+        jcs({
+          id: s.id,
+          displayName: s.displayName,
+          description: s.description,
+          version: s.version,
+          category: s.category,
+          activation: s.activation,
+          tags: s.tags,
+        }),
+      ),
+    ),
+    issued_at: new Date().toISOString(),
+    subject: `skill:cc:${s.id}@${s.version}`,
+    metadata: {
+      publisher: options.issuer,
+      skill_id: s.id,
+      version: s.version,
+      category: s.category,
     },
   }));
 
-  return { landmark, envelopes, treeHeadId, keys };
+  const { landmark, envelopes, treeHeadId, keys } = buildBatch(rawLeaves, {
+    namespace,
+    issuer: options.issuer,
+    secretKeyFile: options.secretKeyFile,
+  });
+
+  fs.mkdirSync(batchDir, { recursive: true });
+  const landmarkPath = path.join(batchDir, "landmark.json");
+  writeJsonFile(landmarkPath, landmark);
+  if (options.secretKeyFile && !fs.existsSync(options.secretKeyFile)) {
+    fs.mkdirSync(path.dirname(options.secretKeyFile), { recursive: true });
+    fs.writeFileSync(options.secretKeyFile, keys.secretKey.toString("hex"), {
+      mode: 0o600,
+    });
+  }
+  const envelopePaths = [];
+  for (let i = 0; i < envelopes.length; i++) {
+    const p = path.join(
+      batchDir,
+      `envelope-${String(i).padStart(6, "0")}.json`,
+    );
+    writeJsonFile(p, envelopes[i]);
+    envelopePaths.push(p);
+  }
+
+  const publishedAt = new Date().toISOString();
+  state.last_seq = nextSeq;
+  state.last_fingerprint = fingerprint;
+  state.last_published_at = publishedAt;
+  state.history.push({
+    seq: seqStr,
+    namespace,
+    tree_head_id: treeHeadId,
+    root_hash: landmark.snapshots[0].tree_head.root_hash,
+    tree_size: skills.length,
+    fingerprint,
+    published_at: publishedAt,
+    batch_dir: batchDir,
+  });
+  savePublishState(options.stateFile, state);
+
+  return {
+    iteration: "published",
+    seq: seqStr,
+    namespace,
+    tree_head_id: treeHeadId,
+    tree_size: skills.length,
+    batch_dir: batchDir,
+    landmark_path: landmarkPath,
+    envelope_paths: envelopePaths,
+    fingerprint,
+  };
 }
+
+async function publishSkillsLoop(options) {
+  const tick = () => {
+    try {
+      const result = publishSkillsOnce(options);
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else if (result.iteration === "published") {
+        logger.success(
+          `[seq ${result.seq}] published ${result.tree_size} skill(s) → ${result.batch_dir}`,
+        );
+        logger.log(`  ${chalk.bold("Tree head ID:")} ${result.tree_head_id}`);
+      } else {
+        logger.info(`skipped: ${result.reason}`);
+      }
+    } catch (err) {
+      logger.error(`iteration failed: ${err.message}`);
+      if (options.once) throw err;
+    }
+  };
+
+  if (options.once) {
+    tick();
+    return;
+  }
+
+  tick();
+  const ms = Math.max(1, options.interval) * 1000;
+  const timer = setInterval(tick, ms);
+  const cleanup = () => {
+    clearInterval(timer);
+    process.exit(0);
+  };
+  process.once("SIGINT", cleanup);
+  process.once("SIGTERM", cleanup);
+  // Daemon: never resolve.
+  await new Promise(() => {});
+}
+
+// Export internals for unit tests
+export const _publishInternals = {
+  publishSkillsOnce,
+  loadPublishState,
+  savePublishState,
+  canonicalSkillsFingerprint,
+  PUBLISH_STATE_SCHEMA,
+};
 
 export function registerMtcCommand(program) {
   const mtc = program
@@ -637,6 +793,56 @@ export function registerMtcCommand(program) {
         }
       } catch (err) {
         logger.error(`mtc batch-skills failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // mtc publish-skills — marketplace publisher daemon
+  // Periodically scans CLISkillLoader, detects deltas via a fingerprint, and
+  // when the skill set changes auto-closes a new batch (assembleBatch) into
+  // <out>/<seq>/. Stateful via a JSON state file so re-runs skip unchanged sets.
+  //
+  // Phase 2 marketplace path — does NOT depend on the audit Q-COMP blockers.
+  mtc
+    .command("publish-skills")
+    .description(
+      "Marketplace publisher daemon: detect skill deltas + auto-close batches",
+    )
+    .requiredOption(
+      "--namespace-prefix <prefix>",
+      "Namespace prefix; seq is auto-appended (e.g. mtc/v1/skill)",
+    )
+    .requiredOption("--issuer <issuer>", "MTCA issuer string")
+    .requiredOption(
+      "--out <dir>",
+      "Output root directory (each batch lands in <out>/<seq>/)",
+    )
+    .requiredOption(
+      "--state-file <path>",
+      "State JSON file tracking last_seq + fingerprint",
+    )
+    .option(
+      "--secret-key-file <path>",
+      "Reuse Ed25519 secret key from this hex file (creates one if missing)",
+    )
+    .option(
+      "--interval <seconds>",
+      "Loop interval (default: 600 = 10min, ignored if --once)",
+      (v) => parseInt(v, 10),
+      600,
+    )
+    .option("--once", "Run a single iteration and exit (test/CI use)")
+    .option(
+      "--skill <id>",
+      "Restrict to specific skill ids (repeatable)",
+      (v, prev) => [...(prev || []), v],
+    )
+    .option("--json", "Print JSON summary on each iteration")
+    .action(async (options) => {
+      try {
+        await publishSkillsLoop(options);
+      } catch (err) {
+        logger.error(`mtc publish-skills failed: ${err.message}`);
         process.exit(1);
       }
     });

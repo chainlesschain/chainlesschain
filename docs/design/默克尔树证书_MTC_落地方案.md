@@ -1,9 +1,9 @@
 # 默克尔树证书 (MTC) — ChainlessChain 落地方案
 
-> 版本：v0.3（Phase 1 + 1.5 全部落地，Phase 2 部分启动）
-> 日期：2026-04-26
+> 版本：v0.4（Phase 1 + 1.5 全部落地；Phase 2 marketplace daemon + audit 双轨脚手架就绪，audit 仍待法务出函才能产线启用）
+> 日期：2026-05-01
 > 作者：longfa
-> 状态：**Phase 1 + 1.5 完成** — Local MTCA 端到端管道（DID + Skill）、持久化、Ed25519 实签、3 种传输（InMemory / Filesystem / libp2p direct + gossipsub）、`cc mtc` 5 子命令；Phase 2 audit 路径阻塞于合规复核
+> 状态：**Phase 1 + 1.5 完成** + **Phase 2 marketplace publisher daemon 落地** + **Phase 2 audit 双轨脚手架就绪 (off-by-default)** — Local MTCA 端到端管道（DID + Skill）、持久化、Ed25519 实签、3 种传输（InMemory / Filesystem / libp2p direct + gossipsub）、`cc mtc` 6 子命令、`cc audit mtc` 7 子命令；audit 产线启用仍阻塞于 Q-COMP-1/Q-COMP-2 合规出函
 > 关联：
 > - **协议级字节规范**：`docs/design/MTC_数据格式_v1.md`（v0.1）
 > - **评审清单**：`docs/design/默克尔树证书_MTC_v0.2_评审清单.md`（16 题，3 项 ⚠️ 合规待确认）
@@ -11,7 +11,7 @@
 > - 项目内：`docs/design/安全机制设计.md`、`docs/design/modules/21_统一密钥系统.md`、`docs/design/modules/12_插件市场系统.md`、`docs/design/modules/11_企业审计系统.md`
 > - 关联版本：ChainlessChain v5.0.2.54 / CLI 0.156.7
 >
-> **v0.3 落地清单（commit hash）**：
+> **v0.4 落地清单（commit hash）**：
 > | 阶段 | commit | 内容 |
 > |---|---|---|
 > | Phase 1 W1+2+3 | `be70c5b17` | RFC 6962 树 + Verifier + LandmarkCache + `cc mtc batch/verify/landmark inspect`（94 + 7 测试） |
@@ -23,8 +23,11 @@
 > | Phase 1.5 gossipsub | `1b0ae1105` | gossipsub mode（@chainsafe/libp2p-gossipsub@14，topic 路由） |
 > | Phase 1.5 serve | `4d1a81586` | `cc mtc serve` verifier 守护进程 + core-mtc subpath exports |
 > | Phase 2 partial | `67da18480` | `cc mtc batch-skills` 从 CLISkillLoader 读（Marketplace 路径） |
+> | Phase 2 batch lift | _本次_ | `assembleBatch` 从 mtc.js 抽到 `core-mtc/lib/batch.js`，所有 batch 路径共用一条装配代码 |
+> | Phase 2 marketplace daemon | _本次_ | `cc mtc publish-skills` 守护进程：fingerprint 差量检测 + 自动 seq 递增 + 状态文件持久化（unit 6 + integration 3）|
+> | Phase 2 audit 双轨脚手架 | _本次_ | `cc audit mtc enable/disable/config/set-interval/emit/reconcile/reconcile-check/status` — off-by-default，等保 1h/1min 双路径配置可切换；产线启用仍待 Q-COMP-1/Q-COMP-2（unit 18 + integration 5）|
 >
-> **累计测试**：core-mtc 137 + CLI 17 = **154 测试，全绿**。
+> **累计测试**：core-mtc 140 + CLI 46 (mtc + audit-mtc 子集) = **186 测试，全绿**。完整 mtc 相关测试（含 batch-dids / batch-skills / serve / verify）全部绿色。
 >
 > **本草案要解决的核心问题**：当 ChainlessChain 全面切换到后量子签名时，DID 文档发布、Skill Marketplace 上架、企业审计日志这三处的**单条签名体积**会从今天的 64 B (Ed25519) 暴涨到 7.8–49 KB (SLH-DSA)。三处都是**高频 + 大批量**写入路径，直接套用 PQC 会让 DHT 流量、IPFS 存储成本、审计日志体积放大 1–3 个量级。
 
@@ -404,11 +407,12 @@ export async function verifyMTC(
 - [x] CLI `cc mtc serve` 守护进程（filesystem / libp2p direct / libp2p gossipsub）
 - [x] 两节点端到端测试 + 5 backends × 多场景 = 35+ transport 测试
 
-### Phase 2 — Marketplace + Audit（部分启动）
+### Phase 2 — Marketplace + Audit（脚手架就绪，audit 产线启用待法务）
 - [x] Marketplace 路径：`cc mtc batch-skills`（CLISkillLoader → 树）— commit `67da18480`
-- [ ] **Audit 路径阻塞**：等 Q-COMP-1（等保三级最终性窗口）+ Q-COMP-2（T/ZGCMCA 023—2025 条款）法务出函；详见评审清单 §6 关键路径
-- [ ] Marketplace publisher 自动入队（守护模式，定时关批）
-- [ ] 审计日志双轨签名（实时 Ed25519 + 关批 MTC，1h 窗口）— 解锁后启动
+- [x] Marketplace publisher 守护进程：`cc mtc publish-skills`（fingerprint 差量 + 自动 seq + 状态文件 + filesystem drop-zone 兼容 `cc mtc serve --transport=filesystem`），9 测试
+- [x] 审计日志双轨脚手架（off-by-default）：`cc audit mtc emit / reconcile / reconcile-check / status / enable / disable / config / set-interval`；事件文件含实时 Ed25519 签名 + 内容 hash，关批生成 MTC envelope 含 inclusion proof；幂等关批；23 测试
+- [ ] **Audit 产线启用阻塞**：等 Q-COMP-1（等保三级最终性窗口）+ Q-COMP-2（T/ZGCMCA 023—2025 条款）法务出函；脚手架已支持 60s/3600s 双路径，出函后只需 `cc audit mtc enable --interval <60|3600>` 单一翻盖动作
+- [ ] 与 backend audit 模块的灰度切换（Q-ENG-2）— 待 audit 产线启用后启动
 
 ### Phase 3 — Federation MTCA（4 周，可选）
 - [ ] M-of-N threshold signing 集成（已有的 cross-chain 基础设施可复用部分）
@@ -457,13 +461,15 @@ export async function verifyMTC(
 
 | 模块 | 状态 | 实施 |
 |---|---|---|
-| **`packages/core-mtc/`** | ✅ 已落地 | 完整协议实现：MerkleTree / Verifier / LandmarkCache / Ed25519 signer / 4 transports |
-| **`packages/cli/src/commands/mtc.js`** | ✅ 已落地 | `cc mtc {batch / verify / landmark inspect / batch-dids / batch-skills / serve}` |
+| **`packages/core-mtc/`** | ✅ 已落地 | 完整协议实现：MerkleTree / Verifier / LandmarkCache / Ed25519 signer / 4 transports / **assembleBatch**（v0.4 抽出公共装配） |
+| **`packages/cli/src/commands/mtc.js`** | ✅ 已落地 | `cc mtc {batch / verify / landmark inspect / batch-dids / batch-skills / publish-skills / serve}` |
+| **`packages/cli/src/lib/audit-mtc.js`** | ✅ 已落地 (v0.4) | 双轨签名 lib：config 门控 / Ed25519 实时 sig / 幂等关批 / staging→batch 迁移 / reconcile-check |
+| **`packages/cli/src/commands/audit.js`** | ✅ 已落地 (v0.4) | 新增 `cc audit mtc {enable / disable / config / set-interval / emit / reconcile / reconcile-check / status}` 子命令组 |
 | `packages/cli/src/lib/did-manager.js` | ✅ 集成 | `cc mtc batch-dids` 通过 `getAllIdentities/getIdentity` 读 DID DB |
-| `packages/cli/src/lib/skill-loader.js` | ✅ 集成 | `cc mtc batch-skills` 通过 `CLISkillLoader.loadAll()` 读技能 |
+| `packages/cli/src/lib/skill-loader.js` | ✅ 集成 | `cc mtc batch-skills` / `cc mtc publish-skills` 通过 `CLISkillLoader.loadAll()` 读技能 |
 | `packages/cli/src/pqc/` | ⏳ Phase 1.6 | 接 SLH-DSA-128f 替换 Ed25519 stopgap（依赖 `@noble/post-quantum`，未装） |
 | `desktop-app-vue/src/main/services/did-manager.js` | ⏳ Phase 4 | 增 `submitToMTCA()` 方法（IPC 接 core-mtc） |
-| `backend/project-service/` | ⏳ Phase 2 | 企业审计接口加 MTC envelope 字段（解锁合规后） |
+| `backend/project-service/` | ⏳ Phase 2 audit gating | 企业审计接口加 MTC envelope 字段（解锁合规后；脚手架就绪） |
 | `desktop-app-vue/src/main/p2p/p2p-manager.js` | ✅ 共享 libp2p 栈 | core-mtc 用同一版 libp2p 3.1.5，无冲突 |
 | libp2p / IPFS 适配层 | 新增 `mtc-landmark/<namespace>` topic 订阅 |
 
@@ -495,7 +501,7 @@ export async function verifyMTC(
 
 ## 14. 后续步骤
 
-### 14.1 已完成（截至 v0.3）
+### 14.1 已完成（截至 v0.4）
 - ✅ Phase 0 协议固化 — `MTC_数据格式_v1.md`
 - ✅ Phase 1 W1+W2+W3 — 核心库 + CLI 5 子命令（`be70c5b17`）
 - ✅ Phase 1 W4 持久化 + Ed25519 实签 + DID 集成（`8926a5bc0` / `a4b88ebda` / `1e63dacc1`）
@@ -503,16 +509,20 @@ export async function verifyMTC(
 - ✅ Phase 1.5 — Libp2p direct + gossipsub 模式 + `cc mtc serve` 守护进程（`40fa0689a` / `1b0ae1105` / `4d1a81586`）
 - ✅ Phase 2 partial — Marketplace `cc mtc batch-skills`（`67da18480`）
 - ✅ 评审清单 v0.2 — 16 题决议
+- ✅ **Phase 2 batch lift** — `assembleBatch` 抽到 `core-mtc/lib/batch.js`，CLI / audit 共用一条装配代码（v0.4 本次）
+- ✅ **Phase 2 marketplace daemon** — `cc mtc publish-skills` 差量发布（v0.4 本次）
+- ✅ **Phase 2 audit 双轨脚手架** — `cc audit mtc` 8 子命令、off-by-default、60s/3600s 双路径配置；解锁后单 flag 启用（v0.4 本次）
 
-### 14.2 阻塞中（Phase 2 audit 路径）
-- ⚠️ **Q-COMP-1** — 等保三级"防篡改最终性时间窗"口径需法务/测评机构出函；若不接受 1h 批次，需重设计为 1min 批次
+### 14.2 阻塞中（Phase 2 audit 产线启用）
+> **更新 (v0.4)**：脚手架 `packages/cli/src/lib/audit-mtc.js` + `cc audit mtc *` 已落地，含双轨签名、幂等关批、reconcile-check、状态上报。`config.enabled` 默认 false，`config.batch_interval_seconds` 默认 3600。**法务出函后只需一行 `cc audit mtc enable --interval <60|3600>`，无需改代码**。下列三项仍是产线启用前提：
+- ⚠️ **Q-COMP-1** — 等保三级"防篡改最终性时间窗"口径需法务/测评机构出函；脚手架已支持 1h（默认）+ 1min 两条路径，根据出函结果选择 `--interval 60` 或 `--interval 3600`。
 - ⚠️ **Q-COMP-2** — T/ZGCMCA 023—2025 标准条款摘要待法务提供
 - ⚠️ **Q-COMP-3** — 当前保守决议为 Phase 1+2 不上链；若需链上锚定，确认境内联盟链替代方案
 
 ### 14.3 进行中 / 即将启动
-- [ ] **Phase 1.6 — SLH-DSA 实签**：等待 `@noble/post-quantum` 加入 npm 生态后替换 Ed25519 stopgap；接口已为此预留（`signatureVerifier` DI + Ed25519 模块解耦）
-- [ ] **Phase 2 — Marketplace 守护**：`cc mtc batch-skills` 加自动定时关批 + 与 `cc serve` 联动持续发布
-- [ ] **Phase 4 — Desktop UI**（V6 Pack：MTC 状态面板 + DID 详情页"包含证明"标签 + Marketplace 验证徽章）
+- [ ] **Phase 1.6 — SLH-DSA 实签**：等待 `@noble/post-quantum` 加入 npm 生态后替换 Ed25519 stopgap；接口已为此预留（`signatureVerifier` DI + Ed25519 模块解耦 + `loadOrCreateIssuerKey` 单一替换点）
+- [ ] **Phase 2 backend 灰度切换**（Q-ENG-2 决议）：在 `backend/project-service` 加 `audit.mtc.enabled` 配置 + 调用 CLI 脚手架；audit 产线启用解锁后启动
+- [ ] **Phase 4 — Desktop UI**（V6 Pack：MTC 状态面板 + DID 详情页"包含证明"标签 + Marketplace 验证徽章 + audit 双轨"待批次关闭"徽章 — Q-PROD-1 决议 B）
 
 ### 14.4 上游跟踪
 - 关注 `draft-ietf-plants-merkle-tree-certs-03+` 对树头签名算法、consistency proof、JWK 编码 SLH-DSA 的新建议

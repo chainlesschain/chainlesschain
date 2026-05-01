@@ -7,6 +7,7 @@ const jcsModule = require("./jcs.js");
 const verifier = require("./verifier.js");
 const landmarkCacheModule = require("./landmark-cache.js");
 const ed25519Signer = require("./signers/ed25519.js");
+const batchModule = require("./batch.js");
 
 module.exports = {
   // constants
@@ -47,4 +48,7 @@ module.exports = {
 
   // Ed25519 signer (stopgap until @noble/post-quantum SLH-DSA lands)
   ed25519: ed25519Signer,
+
+  // Batch assembly (pure: leaves + keys + meta -> landmark + envelopes)
+  assembleBatch: batchModule.assembleBatch,
 };

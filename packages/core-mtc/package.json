@@ -13,12 +13,11 @@
     "./verifier": "./lib/verifier.js",
     "./landmark-cache": "./lib/landmark-cache.js",
     "./signers/ed25519": "./lib/signers/ed25519.js",
+    "./batch": "./lib/batch.js",
     "./transports": "./lib/transports/index.js",
     "./transports/in-memory": "./lib/transports/in-memory.js",
     "./transports/filesystem": "./lib/transports/filesystem.js",
-    "./transports/libp2p": "./lib/transports/libp2p.js",
-    "./verifier": "./lib/verifier.js",
-    "./landmark-cache": "./lib/landmark-cache.js"
+    "./transports/libp2p": "./lib/transports/libp2p.js"
   },
   "scripts": {
     "test": "vitest run",

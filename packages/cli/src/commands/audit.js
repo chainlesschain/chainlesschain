@@ -7,6 +7,16 @@ import chalk from "chalk";
 import fs from "fs";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
+import { getHomeDir } from "../lib/paths.js";
+import {
+  getAuditMtcDir,
+  loadAuditMtcConfig,
+  saveAuditMtcConfig,
+  emitEvent as auditMtcEmit,
+  closeBatch as auditMtcCloseBatch,
+  reconcileCheck as auditMtcReconcileCheck,
+  getStatus as auditMtcStatus,
+} from "../lib/audit-mtc.js";
 import {
   getRecentEvents,
   queryLogs,
@@ -584,6 +594,289 @@ export function registerAuditCommand(program) {
     .description("V2: all-enum-key stats snapshot")
     .action(() => {
       logger.log(JSON.stringify(getAuditStatsV2(), null, 2));
+    });
+
+  // ─────────────────────────────────────────────────────────────
+  // Phase 2 audit MTC double-track (off-by-default scaffolding)
+  // Design: docs/design/默克尔树证书_MTC_落地方案.md §6.3 + §14.2
+  // Status: blocked on Q-COMP-1/Q-COMP-2 legal sign-off; this surface
+  // is wired so the unblock = `cc audit mtc enable` (single flag flip).
+  // ─────────────────────────────────────────────────────────────
+  registerAuditMtcSubcommands(audit);
+}
+
+function resolveAuditMtcDir(opts) {
+  const home = (opts && opts.configDir) || getHomeDir();
+  return getAuditMtcDir(home);
+}
+
+function registerAuditMtcSubcommands(audit) {
+  const mtc = audit
+    .command("mtc")
+    .description(
+      "Audit MTC double-track (Phase 2 scaffolding, default disabled)",
+    );
+
+  mtc
+    .command("status")
+    .description("Show audit MTC config + queue depth + last batch info")
+    .option(
+      "--config-dir <dir>",
+      "Override config root (default: ~/.chainlesschain)",
+    )
+    .option("--json", "Output as JSON")
+    .action((opts) => {
+      try {
+        const dir = resolveAuditMtcDir(opts);
+        const s = auditMtcStatus(dir);
+        if (opts.json) {
+          console.log(JSON.stringify(s, null, 2));
+          return;
+        }
+        const enabled = s.config.enabled
+          ? chalk.green("enabled")
+          : chalk.yellow("disabled (legal sign-off pending)");
+        logger.log(chalk.bold("Audit MTC status:"));
+        logger.log(`  ${chalk.bold("State:")}            ${enabled}`);
+        logger.log(
+          `  ${chalk.bold("Batch interval:")}   ${s.config.batch_interval_seconds}s`,
+        );
+        logger.log(
+          `  ${chalk.bold("Namespace:")}        ${s.config.namespace_prefix}`,
+        );
+        logger.log(`  ${chalk.bold("Issuer:")}           ${s.config.issuer}`);
+        logger.log(
+          `  ${chalk.bold("Staging events:")}   ${s.staging.count}` +
+            (s.staging.malformed
+              ? chalk.red(` (${s.staging.malformed} malformed)`)
+              : ""),
+        );
+        if (s.staging.oldest_queued_at) {
+          logger.log(
+            `  ${chalk.bold("Oldest queued:")}    ${s.staging.oldest_queued_at}`,
+          );
+        }
+        logger.log(`  ${chalk.bold("Closed batches:")}   ${s.batches.count}`);
+        if (s.batches.last_batch_id) {
+          logger.log(
+            `  ${chalk.bold("Last batch id:")}    ${s.batches.last_batch_id}`,
+          );
+          logger.log(
+            `  ${chalk.bold("Last closed at:")}   ${s.batches.last_closed_at}`,
+          );
+          logger.log(
+            `  ${chalk.bold("Last tree size:")}   ${s.batches.last_tree_size}`,
+          );
+          logger.log(
+            `  ${chalk.bold("Last tree head:")}   ${s.batches.last_tree_head_id}`,
+          );
+        }
+      } catch (err) {
+        logger.error(`audit mtc status failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  mtc
+    .command("config")
+    .description("Show audit MTC config")
+    .option("--config-dir <dir>", "Override config root")
+    .option("--json", "Output as JSON")
+    .action((opts) => {
+      const cfg = loadAuditMtcConfig(resolveAuditMtcDir(opts));
+      if (opts.json) {
+        console.log(JSON.stringify(cfg, null, 2));
+      } else {
+        logger.log(JSON.stringify(cfg, null, 2));
+      }
+    });
+
+  mtc
+    .command("enable")
+    .description(
+      "Enable audit MTC (requires legal sign-off — see landing plan §14.2)",
+    )
+    .option("--config-dir <dir>", "Override config root")
+    .option(
+      "--namespace <ns>",
+      "Set namespace prefix (e.g. mtc/v1/audit/org-acme)",
+    )
+    .option("--issuer <issuer>", "Set MTCA issuer string")
+    .option("--interval <seconds>", "Batch interval (default: 3600)", (v) =>
+      parseInt(v, 10),
+    )
+    .action((opts) => {
+      try {
+        const patch = { enabled: true };
+        if (opts.namespace) patch.namespace_prefix = opts.namespace;
+        if (opts.issuer) patch.issuer = opts.issuer;
+        if (opts.interval) patch.batch_interval_seconds = opts.interval;
+        const cfg = saveAuditMtcConfig(resolveAuditMtcDir(opts), patch);
+        logger.success(
+          `audit MTC enabled (interval=${cfg.batch_interval_seconds}s, namespace=${cfg.namespace_prefix})`,
+        );
+        logger.log(
+          chalk.yellow(
+            "  Reminder: ensure Q-COMP-1 (等保三级) + Q-COMP-2 (T/ZGCMCA) sign-off before production use.",
+          ),
+        );
+      } catch (err) {
+        logger.error(`audit mtc enable failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  mtc
+    .command("disable")
+    .description("Disable audit MTC emit (existing batches remain on disk)")
+    .option("--config-dir <dir>", "Override config root")
+    .action((opts) => {
+      try {
+        saveAuditMtcConfig(resolveAuditMtcDir(opts), { enabled: false });
+        logger.success("audit MTC disabled");
+      } catch (err) {
+        logger.error(`audit mtc disable failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  mtc
+    .command("set-interval <seconds>")
+    .description("Set batch interval seconds (60 strict, 3600 lenient)")
+    .option("--config-dir <dir>", "Override config root")
+    .action((seconds, opts) => {
+      try {
+        const cfg = saveAuditMtcConfig(resolveAuditMtcDir(opts), {
+          batch_interval_seconds: parseInt(seconds, 10),
+        });
+        logger.success(`batch interval set to ${cfg.batch_interval_seconds}s`);
+      } catch (err) {
+        logger.error(`audit mtc set-interval failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  mtc
+    .command("emit")
+    .description(
+      "Emit one audit event (Track 1: realtime Ed25519 + queue for next batch)",
+    )
+    .requiredOption("-t, --type <t>", "Event type")
+    .requiredOption("-o, --operation <op>", "Operation")
+    .option("-a, --actor <actor>", "Actor")
+    .option("-x, --target <target>", "Target")
+    .option("-d, --details <json>", "Details (JSON string)")
+    .option("-r, --risk-level <rl>", "Risk level (low/medium/high/critical)")
+    .option("--occurred-at <iso>", "Override event timestamp")
+    .option("--force", "Bypass enabled-flag check (admin/CI use)")
+    .option("--config-dir <dir>", "Override config root")
+    .option("--json", "Output as JSON")
+    .action((opts) => {
+      try {
+        const body = {
+          event_type: opts.type,
+          operation: opts.operation,
+          actor: opts.actor,
+          target: opts.target,
+          risk_level: opts.riskLevel,
+          occurred_at: opts.occurredAt,
+        };
+        if (opts.details) {
+          body.details = JSON.parse(opts.details);
+        }
+        const r = auditMtcEmit(resolveAuditMtcDir(opts), body, {
+          requireEnabled: !opts.force,
+        });
+        if (opts.json) {
+          console.log(
+            JSON.stringify(
+              { ok: true, event_id: r.eventId, path: r.path },
+              null,
+              2,
+            ),
+          );
+        } else {
+          logger.success(`event emitted: ${r.eventId}`);
+          logger.log(`  ${chalk.bold("Staging file:")} ${r.path}`);
+        }
+      } catch (err) {
+        if (err.code === "AUDIT_MTC_DISABLED") {
+          logger.error(err.message);
+          process.exit(2);
+        }
+        logger.error(`audit mtc emit failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  mtc
+    .command("reconcile")
+    .description(
+      "Close current batch: build Merkle tree, sign root, write envelopes (idempotent)",
+    )
+    .option("--namespace <ns>", "Override namespace prefix")
+    .option("--issuer <issuer>", "Override MTCA issuer")
+    .option("--config-dir <dir>", "Override config root")
+    .option("--json", "Output as JSON")
+    .action((opts) => {
+      try {
+        const r = auditMtcCloseBatch(resolveAuditMtcDir(opts), {
+          namespace: opts.namespace,
+          issuer: opts.issuer,
+        });
+        if (opts.json) {
+          console.log(JSON.stringify(r, null, 2));
+          return;
+        }
+        if (r.skipped) {
+          logger.info(`skipped: ${r.reason}`);
+          if (r.malformed && r.malformed.length) {
+            logger.warn(`  ${r.malformed.length} malformed file(s) skipped`);
+          }
+          return;
+        }
+        logger.success(
+          `batch ${r.batchId} closed — ${r.treeSize} event(s), tree_head_id=${r.treeHeadId}`,
+        );
+        logger.log(`  ${chalk.bold("Namespace:")} ${r.namespace}`);
+        logger.log(`  ${chalk.bold("Batch dir:")} ${r.batchDir}`);
+      } catch (err) {
+        logger.error(`audit mtc reconcile failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  mtc
+    .command("reconcile-check <event-id>")
+    .description("Check whether an event has been batched (and where)")
+    .option("--config-dir <dir>", "Override config root")
+    .option("--json", "Output as JSON")
+    .action((eventId, opts) => {
+      try {
+        const r = auditMtcReconcileCheck(resolveAuditMtcDir(opts), eventId);
+        if (opts.json) {
+          console.log(JSON.stringify(r, null, 2));
+          return;
+        }
+        if (r.found) {
+          logger.success(`event ${eventId} found in batch ${r.batchId}`);
+          logger.log(`  ${chalk.bold("Tree head:")}  ${r.treeHeadId}`);
+          logger.log(`  ${chalk.bold("Namespace:")}  ${r.namespace}`);
+          logger.log(`  ${chalk.bold("Leaf index:")} ${r.leafIndex}`);
+          logger.log(`  ${chalk.bold("Envelope:")}   ${r.envelopePath}`);
+        } else if (r.staging) {
+          logger.warn(
+            `event ${eventId} is in staging (not yet batched). Run 'cc audit mtc reconcile'.`,
+          );
+          process.exit(3);
+        } else {
+          logger.error(`event ${eventId} not found in any batch or staging`);
+          process.exit(2);
+        }
+      } catch (err) {
+        logger.error(`audit mtc reconcile-check failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 }
 
