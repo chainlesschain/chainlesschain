@@ -364,5 +364,111 @@
       "signSuccess": "签名成功",
       "signFailed": "签名失败"
     }
+  },
+  "knowledgeGraph": {
+    "title": "知识图谱",
+    "subtitle": "实体 / 关系 / 多跳推理 / 力导向图谱",
+    "refresh": "刷新",
+    "addEntity": "添加实体",
+    "addRelation": "添加关系",
+    "stats": {
+      "entityCount": "实体数量",
+      "relationCount": "关系数量",
+      "avgDegree": "平均度",
+      "density": "密度"
+    },
+    "webOnly": {
+      "message": "仅 Web 模式",
+      "description": "AI 自动抽取（从笔记/对话生成实体与关系）仅在桌面端可用，本页面禁用相关按钮。所有 CRUD/推理/统计操作通过 CLI 转发执行。"
+    },
+    "tabs": {
+      "graph": "图谱",
+      "entities": "实体（{n}）",
+      "relations": "关系（{n}）",
+      "distribution": "分布"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "emptyGraph": "暂无实体数据。点击「添加实体」开始构建知识图谱",
+      "emptyEntities": "暂无实体",
+      "emptyRelations": "暂无关系",
+      "emptyData": "暂无数据"
+    },
+    "entityCols": {
+      "id": "ID",
+      "name": "名称",
+      "type": "类型",
+      "tags": "标签",
+      "action": "操作"
+    },
+    "relationCols": {
+      "source": "源",
+      "target": "目标",
+      "relationType": "关系",
+      "weight": "权重"
+    },
+    "actions": {
+      "reason": "推理",
+      "delete": "删除"
+    },
+    "deleteConfirm": {
+      "title": "删除实体？关联的关系将级联删除。",
+      "ok": "删除",
+      "cancel": "取消"
+    },
+    "distribution": {
+      "entityTypes": "实体类型分布",
+      "relationTypes": "关系类型分布"
+    },
+    "addEntity_modal": {
+      "title": "添加实体",
+      "ok": "添加",
+      "cancel": "取消",
+      "nameLabel": "名称",
+      "namePlaceholder": "实体名称（如 Alice / ChainlessChain / RAG）",
+      "typeLabel": "类型",
+      "typePlaceholder": "请选择实体类型",
+      "tagsLabel": "标签",
+      "tagsPlaceholder": "逗号分隔，如 ai, project"
+    },
+    "addRelation_modal": {
+      "title": "添加关系",
+      "ok": "添加",
+      "cancel": "取消",
+      "sourceLabel": "源实体",
+      "sourcePlaceholder": "选择源实体",
+      "targetLabel": "目标实体",
+      "targetPlaceholder": "选择目标实体",
+      "relationTypeLabel": "关系类型",
+      "relationTypePlaceholder": "如 知道 / 属于 / 创建",
+      "weightLabel": "权重"
+    },
+    "reason_modal": {
+      "title": "多跳推理：{name}",
+      "maxDepth": "最大深度",
+      "direction": "方向",
+      "directionOut": "出",
+      "directionIn": "入",
+      "directionBoth": "双向",
+      "run": "执行",
+      "hint": "点击「执行」查看从此实体出发可达的实体"
+    },
+    "msg": {
+      "loadEntitiesFailed": "加载实体失败",
+      "loadRelationsFailed": "加载关系失败",
+      "loadStatsFailed": "加载统计失败",
+      "loadEntityTypesFailed": "加载实体类型失败",
+      "addEntityEmpty": "请输入名称并选择类型",
+      "addEntityFailed": "添加失败",
+      "addEntitySuccess": "实体已添加",
+      "addRelationEmpty": "请填写源、目标和关系类型",
+      "addRelationSelfLoop": "源和目标不能是同一实体",
+      "addRelationFailed": "添加失败",
+      "addRelationSuccess": "关系已添加",
+      "deleteFailed": "删除失败",
+      "deleteSuccess": "实体已删除",
+      "reasonEmpty": "从该实体无可达节点",
+      "reasonFailed": "推理失败"
+    }
   }
 }

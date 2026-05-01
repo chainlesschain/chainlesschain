@@ -364,5 +364,111 @@
       "signSuccess": "Signed",
       "signFailed": "Sign failed"
     }
+  },
+  "knowledgeGraph": {
+    "title": "Knowledge graph",
+    "subtitle": "Entities / relations / multi-hop reasoning / force-directed view",
+    "refresh": "Refresh",
+    "addEntity": "Add entity",
+    "addRelation": "Add relation",
+    "stats": {
+      "entityCount": "Entities",
+      "relationCount": "Relations",
+      "avgDegree": "Avg. degree",
+      "density": "Density"
+    },
+    "webOnly": {
+      "message": "Web-only mode",
+      "description": "AI auto-extraction (entities + relations from notes/chats) is desktop-only; that button is disabled here. CRUD / reasoning / stats actions still work via CLI."
+    },
+    "tabs": {
+      "graph": "Graph",
+      "entities": "Entities ({n})",
+      "relations": "Relations ({n})",
+      "distribution": "Distribution"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "emptyGraph": "No entities yet. Click \"Add entity\" to start the graph",
+      "emptyEntities": "No entities",
+      "emptyRelations": "No relations",
+      "emptyData": "No data"
+    },
+    "entityCols": {
+      "id": "ID",
+      "name": "Name",
+      "type": "Type",
+      "tags": "Tags",
+      "action": "Action"
+    },
+    "relationCols": {
+      "source": "Source",
+      "target": "Target",
+      "relationType": "Relation",
+      "weight": "Weight"
+    },
+    "actions": {
+      "reason": "Reason",
+      "delete": "Delete"
+    },
+    "deleteConfirm": {
+      "title": "Delete this entity? Linked relations will cascade delete.",
+      "ok": "Delete",
+      "cancel": "Cancel"
+    },
+    "distribution": {
+      "entityTypes": "Entity type breakdown",
+      "relationTypes": "Relation type breakdown"
+    },
+    "addEntity_modal": {
+      "title": "Add entity",
+      "ok": "Add",
+      "cancel": "Cancel",
+      "nameLabel": "Name",
+      "namePlaceholder": "Entity name (e.g. Alice / ChainlessChain / RAG)",
+      "typeLabel": "Type",
+      "typePlaceholder": "Pick an entity type",
+      "tagsLabel": "Tags",
+      "tagsPlaceholder": "Comma-separated, e.g. ai, project"
+    },
+    "addRelation_modal": {
+      "title": "Add relation",
+      "ok": "Add",
+      "cancel": "Cancel",
+      "sourceLabel": "Source",
+      "sourcePlaceholder": "Pick source entity",
+      "targetLabel": "Target",
+      "targetPlaceholder": "Pick target entity",
+      "relationTypeLabel": "Relation type",
+      "relationTypePlaceholder": "e.g. knows / belongs to / created",
+      "weightLabel": "Weight"
+    },
+    "reason_modal": {
+      "title": "Multi-hop reasoning: {name}",
+      "maxDepth": "Max depth",
+      "direction": "Direction",
+      "directionOut": "Out",
+      "directionIn": "In",
+      "directionBoth": "Both",
+      "run": "Run",
+      "hint": "Click \"Run\" to see entities reachable from this node"
+    },
+    "msg": {
+      "loadEntitiesFailed": "Failed to load entities",
+      "loadRelationsFailed": "Failed to load relations",
+      "loadStatsFailed": "Failed to load stats",
+      "loadEntityTypesFailed": "Failed to load entity types",
+      "addEntityEmpty": "Enter a name and pick a type",
+      "addEntityFailed": "Add failed",
+      "addEntitySuccess": "Entity added",
+      "addRelationEmpty": "Fill source, target, and relation type",
+      "addRelationSelfLoop": "Source and target must be different entities",
+      "addRelationFailed": "Add failed",
+      "addRelationSuccess": "Relation added",
+      "deleteFailed": "Delete failed",
+      "deleteSuccess": "Entity deleted",
+      "reasonEmpty": "No reachable entities from this node",
+      "reasonFailed": "Reasoning failed"
+    }
   }
 }

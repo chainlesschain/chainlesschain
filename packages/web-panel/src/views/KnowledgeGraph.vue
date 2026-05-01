@@ -2,21 +2,21 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">知识图谱</h2>
-        <p class="page-sub">实体 / 关系 / 多跳推理 / 力导向图谱</p>
+        <h2 class="page-title">{{ $t('knowledgeGraph.title') }}</h2>
+        <p class="page-sub">{{ $t('knowledgeGraph.subtitle') }}</p>
       </div>
       <a-space>
         <a-button :loading="loading" @click="loadAll">
           <template #icon><ReloadOutlined /></template>
-          刷新
+          {{ $t('knowledgeGraph.refresh') }}
         </a-button>
         <a-button type="primary" @click="showAddEntityModal = true">
           <template #icon><PlusOutlined /></template>
-          添加实体
+          {{ $t('knowledgeGraph.addEntity') }}
         </a-button>
         <a-button @click="showAddRelationModal = true" :disabled="entities.length < 2">
           <template #icon><LinkOutlined /></template>
-          添加关系
+          {{ $t('knowledgeGraph.addRelation') }}
         </a-button>
       </a-space>
     </div>
@@ -25,7 +25,7 @@
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="实体数量"
+            :title="$t('knowledgeGraph.stats.entityCount')"
             :value="stats.entityCount"
             :value-style="{ color: '#1677ff', fontSize: '20px' }"
           >
@@ -36,7 +36,7 @@
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="关系数量"
+            :title="$t('knowledgeGraph.stats.relationCount')"
             :value="stats.relationCount"
             :value-style="{ color: '#52c41a', fontSize: '20px' }"
           >
@@ -47,7 +47,7 @@
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="平均度"
+            :title="$t('knowledgeGraph.stats.avgDegree')"
             :value="stats.avgDegree"
             :precision="2"
             :value-style="{ color: '#faad14', fontSize: '20px' }"
@@ -57,7 +57,7 @@
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="密度"
+            :title="$t('knowledgeGraph.stats.density')"
             :value="stats.density"
             :precision="4"
             :value-style="{ color: '#722ed1', fontSize: '20px' }"
@@ -68,8 +68,8 @@
 
     <a-alert
       v-if="!hasDesktopFeatures"
-      message="仅 Web 模式"
-      description="AI 自动抽取（从笔记/对话生成实体与关系）仅在桌面端可用，本页面禁用相关按钮。所有 CRUD/推理/统计操作通过 CLI 转发执行。"
+      :message="$t('knowledgeGraph.webOnly.message')"
+      :description="$t('knowledgeGraph.webOnly.description')"
       type="info"
       show-icon
       closable
@@ -77,15 +77,15 @@
     />
 
     <a-tabs v-model:activeKey="activeTab" type="card">
-      <!-- Tab 1: 图谱可视化 -->
+      <!-- Tab 1: graph viz -->
       <a-tab-pane key="graph">
         <template #tab>
-          <ShareAltOutlined /> 图谱
+          <ShareAltOutlined /> {{ $t('knowledgeGraph.tabs.graph') }}
         </template>
 
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <div v-if="entities.length === 0" style="padding: 60px; text-align: center;">
-            <a-empty description="暂无实体数据。点击「添加实体」开始构建知识图谱" />
+            <a-empty :description="$t('knowledgeGraph.table.emptyGraph')" />
           </div>
           <div v-else style="height: 540px;">
             <v-chart :option="graphOption" autoresize />
@@ -93,16 +93,16 @@
         </a-card>
       </a-tab-pane>
 
-      <!-- Tab 2: 实体列表 -->
+      <!-- Tab 2: entities -->
       <a-tab-pane key="entities">
         <template #tab>
-          <DeploymentUnitOutlined /> 实体（{{ entities.length }}）
+          <DeploymentUnitOutlined /> {{ $t('knowledgeGraph.tabs.entities', { n: entities.length }) }}
         </template>
 
         <a-table
           :columns="entityColumns"
           :data-source="entities"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (t) => $t('knowledgeGraph.table.totalSuffix', { n: t }) }"
           size="small"
           style="background: var(--bg-card);"
           :row-class-name="() => 'kg-row'"
@@ -124,38 +124,38 @@
             <template v-if="column.key === 'action'">
               <a-space size="small">
                 <a-button size="small" type="link" @click="openReason(record)">
-                  推理
+                  {{ $t('knowledgeGraph.actions.reason') }}
                 </a-button>
                 <a-popconfirm
-                  title="删除实体？关联的关系将级联删除。"
-                  ok-text="删除"
+                  :title="$t('knowledgeGraph.deleteConfirm.title')"
+                  :ok-text="$t('knowledgeGraph.deleteConfirm.ok')"
                   ok-type="danger"
-                  cancel-text="取消"
+                  :cancel-text="$t('knowledgeGraph.deleteConfirm.cancel')"
                   @confirm="removeEntity(record)"
                 >
                   <a-button size="small" type="link" danger :loading="removing === record.id">
-                    删除
+                    {{ $t('knowledgeGraph.actions.delete') }}
                   </a-button>
                 </a-popconfirm>
               </a-space>
             </template>
           </template>
           <template #emptyText>
-            <a-empty description="暂无实体" />
+            <a-empty :description="$t('knowledgeGraph.table.emptyEntities')" />
           </template>
         </a-table>
       </a-tab-pane>
 
-      <!-- Tab 3: 关系列表 -->
+      <!-- Tab 3: relations -->
       <a-tab-pane key="relations">
         <template #tab>
-          <LinkOutlined /> 关系（{{ relations.length }}）
+          <LinkOutlined /> {{ $t('knowledgeGraph.tabs.relations', { n: relations.length }) }}
         </template>
 
         <a-table
           :columns="relationColumns"
           :data-source="relations"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (t) => $t('knowledgeGraph.table.totalSuffix', { n: t }) }"
           size="small"
           style="background: var(--bg-card);"
           :row-class-name="() => 'kg-row'"
@@ -178,22 +178,22 @@
             </template>
           </template>
           <template #emptyText>
-            <a-empty description="暂无关系" />
+            <a-empty :description="$t('knowledgeGraph.table.emptyRelations')" />
           </template>
         </a-table>
       </a-tab-pane>
 
-      <!-- Tab 4: 类型分布 -->
+      <!-- Tab 4: type breakdown -->
       <a-tab-pane key="distribution">
         <template #tab>
-          <BarChartOutlined /> 分布
+          <BarChartOutlined /> {{ $t('knowledgeGraph.tabs.distribution') }}
         </template>
 
         <a-row :gutter="[24, 24]">
           <a-col :xs="24" :md="12">
-            <a-card title="实体类型分布" style="background: var(--bg-card); border-color: var(--border-color);">
+            <a-card :title="$t('knowledgeGraph.distribution.entityTypes')" style="background: var(--bg-card); border-color: var(--border-color);">
               <div v-if="entityTypeRows.length === 0" style="padding: 40px; text-align: center; color: var(--text-muted);">
-                暂无数据
+                {{ $t('knowledgeGraph.table.emptyData') }}
               </div>
               <div v-for="row in entityTypeRows" :key="row.type" style="margin-bottom: 8px;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
@@ -205,9 +205,9 @@
             </a-card>
           </a-col>
           <a-col :xs="24" :md="12">
-            <a-card title="关系类型分布" style="background: var(--bg-card); border-color: var(--border-color);">
+            <a-card :title="$t('knowledgeGraph.distribution.relationTypes')" style="background: var(--bg-card); border-color: var(--border-color);">
               <div v-if="relationTypeRows.length === 0" style="padding: 40px; text-align: center; color: var(--text-muted);">
-                暂无数据
+                {{ $t('knowledgeGraph.table.emptyData') }}
               </div>
               <div v-for="row in relationTypeRows" :key="row.type" style="margin-bottom: 8px;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
@@ -225,25 +225,25 @@
     <!-- Add Entity Modal -->
     <a-modal
       v-model:open="showAddEntityModal"
-      title="添加实体"
+      :title="$t('knowledgeGraph.addEntity_modal.title')"
       :confirm-loading="addingEntity"
       @ok="addEntity"
-      ok-text="添加"
-      cancel-text="取消"
+      :ok-text="$t('knowledgeGraph.addEntity_modal.ok')"
+      :cancel-text="$t('knowledgeGraph.addEntity_modal.cancel')"
     >
       <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" style="margin-top: 16px;">
-        <a-form-item label="名称" required>
-          <a-input v-model:value="newEntity.name" placeholder="实体名称（如 Alice / ChainlessChain / RAG）" />
+        <a-form-item :label="$t('knowledgeGraph.addEntity_modal.nameLabel')" required>
+          <a-input v-model:value="newEntity.name" :placeholder="$t('knowledgeGraph.addEntity_modal.namePlaceholder')" />
         </a-form-item>
-        <a-form-item label="类型" required>
-          <a-select v-model:value="newEntity.type" placeholder="请选择实体类型" :loading="loadingTypes">
+        <a-form-item :label="$t('knowledgeGraph.addEntity_modal.typeLabel')" required>
+          <a-select v-model:value="newEntity.type" :placeholder="$t('knowledgeGraph.addEntity_modal.typePlaceholder')" :loading="loadingTypes">
             <a-select-option v-for="t in entityTypes" :key="t.name" :value="t.name">
               {{ t.name }} <span style="color: var(--text-muted); font-size: 11px;">— {{ t.description }}</span>
             </a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="标签">
-          <a-input v-model:value="newEntity.tags" placeholder="逗号分隔，如 ai, project" />
+        <a-form-item :label="$t('knowledgeGraph.addEntity_modal.tagsLabel')">
+          <a-input v-model:value="newEntity.tags" :placeholder="$t('knowledgeGraph.addEntity_modal.tagsPlaceholder')" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -251,31 +251,31 @@
     <!-- Add Relation Modal -->
     <a-modal
       v-model:open="showAddRelationModal"
-      title="添加关系"
+      :title="$t('knowledgeGraph.addRelation_modal.title')"
       :confirm-loading="addingRelation"
       @ok="addRelation"
-      ok-text="添加"
-      cancel-text="取消"
+      :ok-text="$t('knowledgeGraph.addRelation_modal.ok')"
+      :cancel-text="$t('knowledgeGraph.addRelation_modal.cancel')"
     >
       <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" style="margin-top: 16px;">
-        <a-form-item label="源实体" required>
-          <a-select v-model:value="newRelation.sourceId" placeholder="选择源实体" show-search :filter-option="entityFilter">
+        <a-form-item :label="$t('knowledgeGraph.addRelation_modal.sourceLabel')" required>
+          <a-select v-model:value="newRelation.sourceId" :placeholder="$t('knowledgeGraph.addRelation_modal.sourcePlaceholder')" show-search :filter-option="entityFilter">
             <a-select-option v-for="e in entities" :key="e.id" :value="e.id">
               {{ e.name }} ({{ e.type }})
             </a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="目标实体" required>
-          <a-select v-model:value="newRelation.targetId" placeholder="选择目标实体" show-search :filter-option="entityFilter">
+        <a-form-item :label="$t('knowledgeGraph.addRelation_modal.targetLabel')" required>
+          <a-select v-model:value="newRelation.targetId" :placeholder="$t('knowledgeGraph.addRelation_modal.targetPlaceholder')" show-search :filter-option="entityFilter">
             <a-select-option v-for="e in entities" :key="e.id" :value="e.id" :disabled="e.id === newRelation.sourceId">
               {{ e.name }} ({{ e.type }})
             </a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="关系类型" required>
-          <a-input v-model:value="newRelation.relationType" placeholder="如 知道 / 属于 / 创建" />
+        <a-form-item :label="$t('knowledgeGraph.addRelation_modal.relationTypeLabel')" required>
+          <a-input v-model:value="newRelation.relationType" :placeholder="$t('knowledgeGraph.addRelation_modal.relationTypePlaceholder')" />
         </a-form-item>
-        <a-form-item label="权重">
+        <a-form-item :label="$t('knowledgeGraph.addRelation_modal.weightLabel')">
           <a-input-number v-model:value="newRelation.weight" :min="0.1" :max="10" :step="0.1" style="width: 100%;" />
         </a-form-item>
       </a-form>
@@ -284,30 +284,30 @@
     <!-- Reason Modal (BFS) -->
     <a-modal
       v-model:open="showReasonModal"
-      :title="`多跳推理：${reasonStartName}`"
+      :title="$t('knowledgeGraph.reason_modal.title', { name: reasonStartName })"
       :width="640"
       :footer="null"
     >
       <a-form layout="inline" style="margin-bottom: 16px;">
-        <a-form-item label="最大深度">
+        <a-form-item :label="$t('knowledgeGraph.reason_modal.maxDepth')">
           <a-input-number v-model:value="reasonOptions.maxDepth" :min="1" :max="10" />
         </a-form-item>
-        <a-form-item label="方向">
+        <a-form-item :label="$t('knowledgeGraph.reason_modal.direction')">
           <a-select v-model:value="reasonOptions.direction" style="width: 100px;">
-            <a-select-option value="out">出</a-select-option>
-            <a-select-option value="in">入</a-select-option>
-            <a-select-option value="both">双向</a-select-option>
+            <a-select-option value="out">{{ $t('knowledgeGraph.reason_modal.directionOut') }}</a-select-option>
+            <a-select-option value="in">{{ $t('knowledgeGraph.reason_modal.directionIn') }}</a-select-option>
+            <a-select-option value="both">{{ $t('knowledgeGraph.reason_modal.directionBoth') }}</a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item>
           <a-button type="primary" :loading="reasoning" @click="runReason">
-            执行
+            {{ $t('knowledgeGraph.reason_modal.run') }}
           </a-button>
         </a-form-item>
       </a-form>
 
       <div v-if="reasonResults.length === 0 && !reasoning" style="padding: 30px; text-align: center; color: var(--text-muted);">
-        点击「执行」查看从此实体出发可达的实体
+        {{ $t('knowledgeGraph.reason_modal.hint') }}
       </div>
       <a-list v-else :data-source="reasonResults" size="small">
         <template #renderItem="{ item }">
@@ -334,6 +334,7 @@ import {
   BarChartOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
+import { useI18n } from 'vue-i18n'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
@@ -352,6 +353,7 @@ import {
 use([CanvasRenderer, GraphChart, TooltipComponent, LegendComponent, TitleComponent])
 
 const ws = useWsStore()
+const { t } = useI18n()
 
 const hasDesktopFeatures = ref(false)
 const loading = ref(false)
@@ -384,21 +386,21 @@ const reasonStartId = ref('')
 const reasonStartName = ref('')
 const reasonResults = ref([])
 
-const entityColumns = [
-  { title: 'ID', key: 'id', width: '120px' },
-  { title: '名称', key: 'name', dataIndex: 'name', ellipsis: true },
-  { title: '类型', key: 'type', dataIndex: 'type', width: '140px' },
-  { title: '标签', key: 'tags', width: '200px' },
-  { title: '操作', key: 'action', width: '160px' },
-]
+const entityColumns = computed(() => [
+  { title: t('knowledgeGraph.entityCols.id'), key: 'id', width: '120px' },
+  { title: t('knowledgeGraph.entityCols.name'), key: 'name', dataIndex: 'name', ellipsis: true },
+  { title: t('knowledgeGraph.entityCols.type'), key: 'type', dataIndex: 'type', width: '140px' },
+  { title: t('knowledgeGraph.entityCols.tags'), key: 'tags', width: '200px' },
+  { title: t('knowledgeGraph.entityCols.action'), key: 'action', width: '160px' },
+])
 
-const relationColumns = [
-  { title: '源', key: 'source', width: '120px' },
+const relationColumns = computed(() => [
+  { title: t('knowledgeGraph.relationCols.source'), key: 'source', width: '120px' },
   { title: '', key: 'arrow', width: '40px' },
-  { title: '目标', key: 'target', width: '120px' },
-  { title: '关系', key: 'relationType', width: '160px' },
-  { title: '权重', key: 'weight', width: '100px' },
-]
+  { title: t('knowledgeGraph.relationCols.target'), key: 'target', width: '120px' },
+  { title: t('knowledgeGraph.relationCols.relationType'), key: 'relationType', width: '160px' },
+  { title: t('knowledgeGraph.relationCols.weight'), key: 'weight', width: '100px' },
+])
 
 const TYPE_COLORS = {
   Person: 'magenta',
@@ -481,7 +483,7 @@ async function loadEntities() {
     const { output } = await ws.execute('kg list --limit 500 --json', 15000)
     entities.value = parseEntities(output)
   } catch (e) {
-    message.error('加载实体失败: ' + e.message)
+    message.error(t('knowledgeGraph.msg.loadEntitiesFailed') + ': ' + e.message)
     entities.value = []
   }
 }
@@ -491,7 +493,7 @@ async function loadRelations() {
     const { output } = await ws.execute('kg relations --limit 1000 --json', 15000)
     relations.value = parseRelations(output)
   } catch (e) {
-    message.error('加载关系失败: ' + e.message)
+    message.error(t('knowledgeGraph.msg.loadRelationsFailed') + ': ' + e.message)
     relations.value = []
   }
 }
@@ -501,7 +503,7 @@ async function loadStats() {
     const { output } = await ws.execute('kg stats --json', 10000)
     stats.value = parseStats(output)
   } catch (e) {
-    message.error('加载统计失败: ' + e.message)
+    message.error(t('knowledgeGraph.msg.loadStatsFailed') + ': ' + e.message)
   }
 }
 
@@ -512,7 +514,7 @@ async function loadEntityTypes() {
     const { output } = await ws.execute('kg entity-types --json', 10000)
     entityTypes.value = parseEntityTypes(output)
   } catch (e) {
-    message.error('加载实体类型失败: ' + e.message)
+    message.error(t('knowledgeGraph.msg.loadEntityTypesFailed') + ': ' + e.message)
   } finally {
     loadingTypes.value = false
   }
@@ -520,7 +522,7 @@ async function loadEntityTypes() {
 
 async function addEntity() {
   if (!newEntity.name.trim() || !newEntity.type) {
-    message.warning('请输入名称并选择类型')
+    message.warning(t('knowledgeGraph.msg.addEntityEmpty'))
     return
   }
   addingEntity.value = true
@@ -532,9 +534,9 @@ async function addEntity() {
     }
     const { output, exitCode } = await ws.execute(cmd, 15000)
     if (exitCode !== 0 || /error|失败/i.test(output)) {
-      message.error('添加失败: ' + output.slice(0, 120))
+      message.error(t('knowledgeGraph.msg.addEntityFailed') + ': ' + output.slice(0, 120))
     } else {
-      message.success('实体已添加')
+      message.success(t('knowledgeGraph.msg.addEntitySuccess'))
       showAddEntityModal.value = false
       newEntity.name = ''
       newEntity.type = ''
@@ -542,7 +544,7 @@ async function addEntity() {
       await loadAll()
     }
   } catch (e) {
-    message.error('添加失败: ' + e.message)
+    message.error(t('knowledgeGraph.msg.addEntityFailed') + ': ' + e.message)
   } finally {
     addingEntity.value = false
   }
@@ -550,11 +552,11 @@ async function addEntity() {
 
 async function addRelation() {
   if (!newRelation.sourceId || !newRelation.targetId || !newRelation.relationType.trim()) {
-    message.warning('请填写源、目标和关系类型')
+    message.warning(t('knowledgeGraph.msg.addRelationEmpty'))
     return
   }
   if (newRelation.sourceId === newRelation.targetId) {
-    message.warning('源和目标不能是同一实体')
+    message.warning(t('knowledgeGraph.msg.addRelationSelfLoop'))
     return
   }
   addingRelation.value = true
@@ -563,9 +565,9 @@ async function addRelation() {
     const cmd = `kg add-relation ${newRelation.sourceId} ${newRelation.targetId} "${rt}" --weight ${newRelation.weight} --json`
     const { output, exitCode } = await ws.execute(cmd, 15000)
     if (exitCode !== 0 || /error|失败/i.test(output)) {
-      message.error('添加失败: ' + output.slice(0, 120))
+      message.error(t('knowledgeGraph.msg.addRelationFailed') + ': ' + output.slice(0, 120))
     } else {
-      message.success('关系已添加')
+      message.success(t('knowledgeGraph.msg.addRelationSuccess'))
       showAddRelationModal.value = false
       newRelation.sourceId = ''
       newRelation.targetId = ''
@@ -574,7 +576,7 @@ async function addRelation() {
       await loadAll()
     }
   } catch (e) {
-    message.error('添加失败: ' + e.message)
+    message.error(t('knowledgeGraph.msg.addRelationFailed') + ': ' + e.message)
   } finally {
     addingRelation.value = false
   }
@@ -585,13 +587,13 @@ async function removeEntity(record) {
   try {
     const { output, exitCode } = await ws.execute(`kg remove ${record.id}`, 15000)
     if (exitCode !== 0 || /error|失败/i.test(output)) {
-      message.error('删除失败: ' + output.slice(0, 120))
+      message.error(t('knowledgeGraph.msg.deleteFailed') + ': ' + output.slice(0, 120))
     } else {
-      message.success('实体已删除')
+      message.success(t('knowledgeGraph.msg.deleteSuccess'))
       await loadAll()
     }
   } catch (e) {
-    message.error('删除失败: ' + e.message)
+    message.error(t('knowledgeGraph.msg.deleteFailed') + ': ' + e.message)
   } finally {
     removing.value = ''
   }
@@ -611,10 +613,10 @@ async function runReason() {
     const { output } = await ws.execute(cmd, 15000)
     reasonResults.value = parseReason(output)
     if (reasonResults.value.length === 0) {
-      message.info('从该实体无可达节点')
+      message.info(t('knowledgeGraph.msg.reasonEmpty'))
     }
   } catch (e) {
-    message.error('推理失败: ' + e.message)
+    message.error(t('knowledgeGraph.msg.reasonFailed') + ': ' + e.message)
   } finally {
     reasoning.value = false
   }
