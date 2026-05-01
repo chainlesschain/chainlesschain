@@ -20,10 +20,6 @@
               <a-menu-item key="match"><AimOutlined /> 匹配指标</a-menu-item>
               <a-menu-item key="ueba-build"><DatabaseOutlined /> 构建基线</a-menu-item>
               <a-menu-item key="ueba-analyze"><FundOutlined /> 行为分析</a-menu-item>
-              <a-menu-item key="import" disabled>
-                <CloudUploadOutlined /> 导入 STIX bundle
-                <span style="color: var(--text-muted); font-size: 11px; margin-left: 6px;">(CLI 端)</span>
-              </a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
@@ -335,7 +331,6 @@ import {
   AimOutlined,
   DatabaseOutlined,
   FundOutlined,
-  CloudUploadOutlined,
   SafetyCertificateOutlined,
   BlockOutlined,
   UserOutlined,

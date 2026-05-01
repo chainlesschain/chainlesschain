@@ -84,17 +84,6 @@
         </template>
 
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <template #extra>
-            <a-space>
-              <a-tooltip title="桌面应用专属：从笔记/对话/文档 AI 抽取实体与关系">
-                <a-button disabled size="small">
-                  <template #icon><ThunderboltOutlined /></template>
-                  AI 重建
-                </a-button>
-              </a-tooltip>
-              <span style="color: var(--text-muted); font-size: 11px;">需桌面端</span>
-            </a-space>
-          </template>
           <div v-if="entities.length === 0" style="padding: 60px; text-align: center;">
             <a-empty description="暂无实体数据。点击「添加实体」开始构建知识图谱" />
           </div>
@@ -343,7 +332,6 @@ import {
   DeploymentUnitOutlined,
   ShareAltOutlined,
   BarChartOutlined,
-  ThunderboltOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import VChart from 'vue-echarts'

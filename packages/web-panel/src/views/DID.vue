@@ -63,7 +63,7 @@
     <a-alert
       v-if="!hasDesktopFeatures"
       message="仅 Web 模式"
-      description="助记词备份/恢复 与 DHT 网络发布 仅在桌面端可用，本页面禁用相关按钮。所有创建/签名/删除操作通过 CLI 转发执行。"
+      description="助记词备份/恢复 与 DHT 网络发布 仅在桌面端可用。本页面提供创建/签名/删除/查看 DID Document 等核心操作，通过 CLI 转发执行。"
       type="info"
       show-icon
       closable
@@ -147,15 +147,6 @@
         <a-form-item label="显示名称">
           <a-input v-model:value="newIdentityName" placeholder="可选 — 用于识别身份" allow-clear />
         </a-form-item>
-        <a-form-item :wrapper-col="{ offset: 6, span: 18 }">
-          <a-tooltip title="桌面应用专属：BIP39 助记词派生密钥">
-            <a-button disabled style="margin-right: 8px;">
-              <template #icon><FileProtectOutlined /></template>
-              从助记词导入
-            </a-button>
-          </a-tooltip>
-          <span style="color: var(--text-muted); font-size: 11px;">需桌面端</span>
-        </a-form-item>
       </a-form>
     </a-modal>
 
@@ -187,18 +178,6 @@
         </a-descriptions>
 
         <div style="margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
-          <a-tooltip title="桌面应用专属：导出 BIP39 助记词以备份">
-            <a-button disabled>
-              <template #icon><FileProtectOutlined /></template>
-              导出助记词
-            </a-button>
-          </a-tooltip>
-          <a-tooltip title="桌面应用专属：发布到 P2P DHT 网络以供他人解析">
-            <a-button disabled>
-              <template #icon><CloudUploadOutlined /></template>
-              发布到 DHT
-            </a-button>
-          </a-tooltip>
           <a-button :loading="loadingDocument" @click="loadDocument(currentIdentity)">
             <template #icon><FileTextOutlined /></template>
             查看 DID Document
@@ -241,8 +220,6 @@ import {
   PlusOutlined,
   IdcardOutlined,
   KeyOutlined,
-  FileProtectOutlined,
-  CloudUploadOutlined,
   FileTextOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
