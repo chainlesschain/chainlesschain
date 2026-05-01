@@ -647,6 +647,163 @@
       "predictFailed": "预测失败"
     }
   },
+  "privacy": {
+    "title": "隐私计算",
+    "subtitle": "联邦学习 · 多方计算 · 差分隐私 · 同态加密",
+    "refresh": "刷新",
+    "actionDropdown": "操作 ▼",
+    "actions": {
+      "model": "创建联邦学习模型",
+      "computation": "创建 MPC 计算",
+      "dp": "差分隐私发布",
+      "he": "同态加密查询"
+    },
+    "stats": {
+      "models": "FL 模型",
+      "avgAccuracy": "平均准确度",
+      "computations": "MPC 计算",
+      "budget": "预算余量 ε",
+      "budgetState": "预算状态",
+      "exhausted": "已耗尽",
+      "ample": "充足"
+    },
+    "catalog": {
+      "protocols": "MPC 协议",
+      "dp": "DP 噪声机制",
+      "he": "HE 同态方案"
+    },
+    "tabs": {
+      "models": "联邦学习",
+      "computations": "MPC 计算"
+    },
+    "filter": {
+      "all": "全部",
+      "allProtocols": "全部协议",
+      "allStatuses": "全部状态"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "rounds": "{cur} / {total} 轮",
+      "trainOne": "训练一轮",
+      "failConfirm": "标记该模型为失败？",
+      "failOk": "确认",
+      "failCancel": "取消",
+      "failMark": "标记失败",
+      "submitShare": "提交份额",
+      "emptyModelsFiltered": "没有符合条件的模型",
+      "emptyModels": "暂无 FL 模型，点\"操作 → 创建联邦学习模型\"创建第一个",
+      "emptyComputations": "暂无 MPC 计算，点\"操作 → 创建 MPC 计算\"创建第一个"
+    },
+    "modelCols": {
+      "name": "名称",
+      "status": "状态",
+      "progress": "进度",
+      "accuracy": "准确度",
+      "participants": "参与方",
+      "budget": "预算 ε",
+      "updatedAt": "更新时间",
+      "action": "操作"
+    },
+    "computationCols": {
+      "type": "类型",
+      "protocol": "协议",
+      "progress": "份额进度",
+      "status": "状态",
+      "time": "耗时",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "flStatusLabels": {
+      "initializing": "初始化",
+      "training": "训练中",
+      "aggregating": "聚合中",
+      "completed": "已完成",
+      "failed": "失败"
+    },
+    "mpcStatusLabels": {
+      "pending": "待处理",
+      "computing": "计算中",
+      "completed": "已完成"
+    },
+    "model_modal": {
+      "title": "创建联邦学习模型",
+      "ok": "创建",
+      "cancel": "取消",
+      "nameLabel": "模型名称",
+      "namePlaceholder": "例如: fraud-detector",
+      "typeLabel": "模型类型",
+      "typePlaceholder": "neural_network（默认）",
+      "archLabel": "架构",
+      "archPlaceholder": "mlp（默认）",
+      "roundsLabel": "总轮次",
+      "lrLabel": "学习率",
+      "participantsLabel": "参与方数量"
+    },
+    "computation_modal": {
+      "title": "创建 MPC 计算",
+      "ok": "创建",
+      "cancel": "取消",
+      "typeLabel": "计算类型",
+      "typePlaceholder": "例如: sum / multiplication",
+      "protocolLabel": "协议",
+      "participantsLabel": "参与方 ID",
+      "participantsPlaceholder": "逗号分隔，例如: alice,bob,carol",
+      "thresholdLabel": "所需份额",
+      "thresholdPlaceholder": "留空自动取半数"
+    },
+    "dp_modal": {
+      "title": "差分隐私发布",
+      "ok": "发布",
+      "cancel": "关闭",
+      "dataLabel": "数据",
+      "dataPlaceholder": "数字或 JSON 数组，例如 10 或 [1,2,3]",
+      "mechanismLabel": "噪声机制",
+      "epsilonLabel": "ε (epsilon)",
+      "deltaLabel": "δ (delta)",
+      "sensitivityLabel": "敏感度",
+      "noisedTitle": "加噪后数据",
+      "spentLine": "消耗预算: {n}",
+      "remainingLine": "剩余预算: {n}",
+      "mechanismLine": "机制: {name} (ε={epsilon})",
+      "failedTitle": "发布失败"
+    },
+    "he_modal": {
+      "title": "同态加密查询",
+      "ok": "查询",
+      "cancel": "关闭",
+      "dataLabel": "数据",
+      "dataPlaceholder": "JSON 数组，例如 [1,2,3,4,5]",
+      "operationLabel": "操作",
+      "schemeLabel": "同态方案",
+      "resultTitle": "加密计算结果",
+      "schemeLine": "方案: {name}",
+      "operationLine": "操作: {name}",
+      "inputCountLine": "输入项数: {n}",
+      "encrypted": "已加密"
+    },
+    "msg": {
+      "loadFailed": "加载隐私计算数据失败",
+      "modelNameEmpty": "请输入模型名称",
+      "modelCreateFailed": "创建失败",
+      "modelCreateSuccess": "FL 模型已创建",
+      "computationTypeEmpty": "请输入计算类型",
+      "computationCreateFailed": "创建失败",
+      "computationCreateSuccess": "MPC 计算已创建",
+      "trainFailed": "训练失败",
+      "trainSuccess": "训练一轮完成",
+      "failMarkFailed": "标记失败",
+      "failMarkSuccess": "已标记为失败",
+      "submitFailed": "提交失败",
+      "submitSuccess": "份额已提交",
+      "dataEmpty": "请输入数据",
+      "dataInvalidJson": "数据格式错误，请输入合法 JSON 数组",
+      "dpFailed": "发布失败",
+      "dpSuccess": "已发布",
+      "dpRejected": "发布拒绝: {reason}",
+      "heFailed": "查询失败",
+      "heSuccess": "计算完成 ({scheme}/{op})"
+    }
+  },
   "trust": {
     "title": "信任与安全",
     "subtitle": "TPM/TEE 证明 · PQC 互操作 · 卫星消息 · HSM 设备",

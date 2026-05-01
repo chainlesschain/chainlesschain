@@ -647,6 +647,163 @@
       "predictFailed": "Prediction failed"
     }
   },
+  "privacy": {
+    "title": "Privacy computing",
+    "subtitle": "Federated learning · MPC · differential privacy · homomorphic encryption",
+    "refresh": "Refresh",
+    "actionDropdown": "Actions ▼",
+    "actions": {
+      "model": "New FL model",
+      "computation": "New MPC computation",
+      "dp": "DP publish",
+      "he": "HE query"
+    },
+    "stats": {
+      "models": "FL models",
+      "avgAccuracy": "Avg. accuracy",
+      "computations": "MPC computations",
+      "budget": "Budget left ε",
+      "budgetState": "Budget state",
+      "exhausted": "Exhausted",
+      "ample": "Ample"
+    },
+    "catalog": {
+      "protocols": "MPC protocols",
+      "dp": "DP noise mechanisms",
+      "he": "HE schemes"
+    },
+    "tabs": {
+      "models": "Federated learning",
+      "computations": "MPC"
+    },
+    "filter": {
+      "all": "All",
+      "allProtocols": "All protocols",
+      "allStatuses": "All statuses"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "rounds": "{cur} / {total} rounds",
+      "trainOne": "Train one round",
+      "failConfirm": "Mark this model as failed?",
+      "failOk": "Confirm",
+      "failCancel": "Cancel",
+      "failMark": "Mark failed",
+      "submitShare": "Submit share",
+      "emptyModelsFiltered": "No models match the current filter",
+      "emptyModels": "No FL models yet — click \"Actions → New FL model\"",
+      "emptyComputations": "No MPC computations yet — click \"Actions → New MPC computation\""
+    },
+    "modelCols": {
+      "name": "Name",
+      "status": "Status",
+      "progress": "Progress",
+      "accuracy": "Accuracy",
+      "participants": "Parties",
+      "budget": "Budget ε",
+      "updatedAt": "Updated",
+      "action": "Action"
+    },
+    "computationCols": {
+      "type": "Type",
+      "protocol": "Protocol",
+      "progress": "Shares",
+      "status": "Status",
+      "time": "Duration",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "flStatusLabels": {
+      "initializing": "Initialising",
+      "training": "Training",
+      "aggregating": "Aggregating",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "mpcStatusLabels": {
+      "pending": "Pending",
+      "computing": "Computing",
+      "completed": "Completed"
+    },
+    "model_modal": {
+      "title": "New FL model",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "nameLabel": "Model name",
+      "namePlaceholder": "e.g. fraud-detector",
+      "typeLabel": "Model type",
+      "typePlaceholder": "neural_network (default)",
+      "archLabel": "Architecture",
+      "archPlaceholder": "mlp (default)",
+      "roundsLabel": "Total rounds",
+      "lrLabel": "Learning rate",
+      "participantsLabel": "Parties"
+    },
+    "computation_modal": {
+      "title": "New MPC computation",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "typeLabel": "Computation type",
+      "typePlaceholder": "e.g. sum / multiplication",
+      "protocolLabel": "Protocol",
+      "participantsLabel": "Party IDs",
+      "participantsPlaceholder": "Comma-separated, e.g. alice,bob,carol",
+      "thresholdLabel": "Required shares",
+      "thresholdPlaceholder": "blank → half automatically"
+    },
+    "dp_modal": {
+      "title": "Differential privacy publish",
+      "ok": "Publish",
+      "cancel": "Close",
+      "dataLabel": "Data",
+      "dataPlaceholder": "Number or JSON array, e.g. 10 or [1,2,3]",
+      "mechanismLabel": "Mechanism",
+      "epsilonLabel": "ε (epsilon)",
+      "deltaLabel": "δ (delta)",
+      "sensitivityLabel": "Sensitivity",
+      "noisedTitle": "Noised data",
+      "spentLine": "Budget spent: {n}",
+      "remainingLine": "Budget remaining: {n}",
+      "mechanismLine": "Mechanism: {name} (ε={epsilon})",
+      "failedTitle": "Publish failed"
+    },
+    "he_modal": {
+      "title": "Homomorphic encryption query",
+      "ok": "Query",
+      "cancel": "Close",
+      "dataLabel": "Data",
+      "dataPlaceholder": "JSON array, e.g. [1,2,3,4,5]",
+      "operationLabel": "Operation",
+      "schemeLabel": "Scheme",
+      "resultTitle": "Encrypted result",
+      "schemeLine": "Scheme: {name}",
+      "operationLine": "Operation: {name}",
+      "inputCountLine": "Inputs: {n}",
+      "encrypted": "encrypted"
+    },
+    "msg": {
+      "loadFailed": "Failed to load privacy data",
+      "modelNameEmpty": "Enter a model name",
+      "modelCreateFailed": "Create failed",
+      "modelCreateSuccess": "FL model created",
+      "computationTypeEmpty": "Enter a computation type",
+      "computationCreateFailed": "Create failed",
+      "computationCreateSuccess": "MPC computation created",
+      "trainFailed": "Train failed",
+      "trainSuccess": "One round complete",
+      "failMarkFailed": "Mark failed",
+      "failMarkSuccess": "Marked as failed",
+      "submitFailed": "Submit failed",
+      "submitSuccess": "Share submitted",
+      "dataEmpty": "Enter data",
+      "dataInvalidJson": "Invalid format — enter a valid JSON array",
+      "dpFailed": "Publish failed",
+      "dpSuccess": "Published",
+      "dpRejected": "Publish rejected: {reason}",
+      "heFailed": "Query failed",
+      "heSuccess": "Computation complete ({scheme}/{op})"
+    }
+  },
   "trust": {
     "title": "Trust & Security",
     "subtitle": "TPM/TEE attestation · PQC interop · Satellite messages · HSM devices",

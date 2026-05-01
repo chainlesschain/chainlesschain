@@ -2,25 +2,25 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">隐私计算</h2>
-        <p class="page-sub">联邦学习 · 多方计算 · 差分隐私 · 同态加密</p>
+        <h2 class="page-title">{{ $t('privacy.title') }}</h2>
+        <p class="page-sub">{{ $t('privacy.subtitle') }}</p>
       </div>
       <a-space>
         <a-button :loading="loading" @click="loadAll">
           <template #icon><ReloadOutlined /></template>
-          刷新
+          {{ $t('privacy.refresh') }}
         </a-button>
         <a-dropdown :trigger="['click']">
           <a-button type="primary">
             <template #icon><PlusOutlined /></template>
-            操作 ▼
+            {{ $t('privacy.actionDropdown') }}
           </a-button>
           <template #overlay>
             <a-menu @click="handleNewClick">
-              <a-menu-item key="model"><ExperimentOutlined /> 创建联邦学习模型</a-menu-item>
-              <a-menu-item key="computation"><ApartmentOutlined /> 创建 MPC 计算</a-menu-item>
-              <a-menu-item key="dp"><LockOutlined /> 差分隐私发布</a-menu-item>
-              <a-menu-item key="he"><SafetyOutlined /> 同态加密查询</a-menu-item>
+              <a-menu-item key="model"><ExperimentOutlined /> {{ $t('privacy.actions.model') }}</a-menu-item>
+              <a-menu-item key="computation"><ApartmentOutlined /> {{ $t('privacy.actions.computation') }}</a-menu-item>
+              <a-menu-item key="dp"><LockOutlined /> {{ $t('privacy.actions.dp') }}</a-menu-item>
+              <a-menu-item key="he"><SafetyOutlined /> {{ $t('privacy.actions.he') }}</a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
@@ -31,7 +31,7 @@
     <a-row :gutter="[16, 16]" style="margin-bottom: 20px;">
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="FL 模型" :value="report.federatedLearning.totalModels" :value-style="{ color: '#1677ff', fontSize: '20px' }">
+          <a-statistic :title="$t('privacy.stats.models')" :value="report.federatedLearning.totalModels" :value-style="{ color: '#1677ff', fontSize: '20px' }">
             <template #prefix><ExperimentOutlined /></template>
           </a-statistic>
         </a-card>
@@ -39,7 +39,7 @@
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="平均准确度"
+            :title="$t('privacy.stats.avgAccuracy')"
             :value="avgAccuracyPct"
             :precision="1"
             suffix="%"
@@ -51,7 +51,7 @@
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="MPC 计算" :value="report.mpc.totalComputations" :value-style="{ color: '#722ed1', fontSize: '20px' }">
+          <a-statistic :title="$t('privacy.stats.computations')" :value="report.mpc.totalComputations" :value-style="{ color: '#722ed1', fontSize: '20px' }">
             <template #prefix><ApartmentOutlined /></template>
           </a-statistic>
         </a-card>
@@ -59,7 +59,7 @@
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="预算余量 ε"
+            :title="$t('privacy.stats.budget')"
             :value="report.privacyBudget.remaining"
             :precision="2"
             :value-style="{ color: budgetColor, fontSize: '20px' }"
@@ -74,8 +74,8 @@
       <a-col :xs="24" :sm="8" :lg="4">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="预算状态"
-            :value="report.privacyBudget.exhausted ? '已耗尽' : '充足'"
+            :title="$t('privacy.stats.budgetState')"
+            :value="report.privacyBudget.exhausted ? $t('privacy.stats.exhausted') : $t('privacy.stats.ample')"
             :value-style="{ color: report.privacyBudget.exhausted ? '#ff4d4f' : '#52c41a', fontSize: '20px' }"
           />
         </a-card>
@@ -85,7 +85,7 @@
     <!-- Catalogue cards -->
     <a-row :gutter="[16, 16]" style="margin-bottom: 20px;">
       <a-col :xs="24" :md="8">
-        <a-card title="MPC 协议" size="small" style="background: var(--bg-card); border-color: var(--border-color);" :body-style="{ padding: '12px 16px' }">
+        <a-card :title="$t('privacy.catalog.protocols')" size="small" style="background: var(--bg-card); border-color: var(--border-color);" :body-style="{ padding: '12px 16px' }">
           <div v-for="p in protocols" :key="p.id" class="catalog-item">
             <a-tag color="purple" style="font-family: monospace;">{{ p.id }}</a-tag>
             <span class="catalog-name">{{ p.name }}</span>
@@ -94,7 +94,7 @@
         </a-card>
       </a-col>
       <a-col :xs="24" :md="8">
-        <a-card title="DP 噪声机制" size="small" style="background: var(--bg-card); border-color: var(--border-color);" :body-style="{ padding: '12px 16px' }">
+        <a-card :title="$t('privacy.catalog.dp')" size="small" style="background: var(--bg-card); border-color: var(--border-color);" :body-style="{ padding: '12px 16px' }">
           <div v-for="m in dpMechanisms" :key="m.id" class="catalog-item">
             <a-tag color="orange" style="font-family: monospace;">{{ m.id }}</a-tag>
             <span class="catalog-name">{{ m.name }}</span>
@@ -103,7 +103,7 @@
         </a-card>
       </a-col>
       <a-col :xs="24" :md="8">
-        <a-card title="HE 同态方案" size="small" style="background: var(--bg-card); border-color: var(--border-color);" :body-style="{ padding: '12px 16px' }">
+        <a-card :title="$t('privacy.catalog.he')" size="small" style="background: var(--bg-card); border-color: var(--border-color);" :body-style="{ padding: '12px 16px' }">
           <div v-for="s in heSchemes" :key="s.id" class="catalog-item">
             <a-tag color="cyan" style="font-family: monospace;">{{ s.id }}</a-tag>
             <span class="catalog-name">{{ s.name }}</span>
@@ -116,10 +116,10 @@
     <!-- Tabs -->
     <a-tabs v-model:activeKey="activeTab" class="privacy-tabs">
       <!-- ── FL models tab ─────────────────────────────────────────── -->
-      <a-tab-pane key="models" tab="联邦学习">
+      <a-tab-pane key="models" :tab="$t('privacy.tabs.models')">
         <div class="filter-bar">
           <a-radio-group v-model:value="modelStatusFilter" size="small" button-style="solid">
-            <a-radio-button value="">全部</a-radio-button>
+            <a-radio-button value="">{{ $t('privacy.filter.all') }}</a-radio-button>
             <a-radio-button v-for="s in FL_STATUSES" :key="s" :value="s">{{ flStatusLabel(s) }}</a-radio-button>
           </a-radio-group>
         </div>
@@ -127,7 +127,7 @@
         <a-table
           :columns="modelColumns"
           :data-source="filteredModels"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (t) => $t('privacy.table.totalSuffix', { n: t }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -149,7 +149,7 @@
                 :status="record.status === 'failed' ? 'exception' : record.status === 'completed' ? 'success' : 'active'"
               />
               <div style="font-size: 11px; color: var(--text-secondary);">
-                {{ record.currentRound }} / {{ record.totalRounds }} 轮
+                {{ $t('privacy.table.rounds', { cur: record.currentRound, total: record.totalRounds }) }}
               </div>
             </template>
             <template v-if="column.key === 'accuracy'">
@@ -177,37 +177,37 @@
                 :loading="trainingId === record.id"
                 @click="trainOne(record)"
               >
-                训练一轮
+                {{ $t('privacy.table.trainOne') }}
               </a-button>
               <a-popconfirm
                 v-if="record.status !== 'failed' && record.status !== 'completed'"
-                title="标记该模型为失败？"
-                ok-text="确认"
-                cancel-text="取消"
+                :title="$t('privacy.table.failConfirm')"
+                :ok-text="$t('privacy.table.failOk')"
+                :cancel-text="$t('privacy.table.failCancel')"
                 @confirm="failModel(record)"
               >
-                <a-button size="small" type="link" danger>标记失败</a-button>
+                <a-button size="small" type="link" danger>{{ $t('privacy.table.failMark') }}</a-button>
               </a-popconfirm>
             </template>
           </template>
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <ExperimentOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              {{ modelStatusFilter ? '没有符合条件的模型' : '暂无 FL 模型，点"操作 → 创建联邦学习模型"创建第一个' }}
+              {{ modelStatusFilter ? $t('privacy.table.emptyModelsFiltered') : $t('privacy.table.emptyModels') }}
             </div>
           </template>
         </a-table>
       </a-tab-pane>
 
       <!-- ── MPC computations tab ──────────────────────────────────── -->
-      <a-tab-pane key="computations" tab="MPC 计算">
+      <a-tab-pane key="computations" :tab="$t('privacy.tabs.computations')">
         <div class="filter-bar">
           <a-radio-group v-model:value="mpcProtocolFilter" size="small">
-            <a-radio-button value="">全部协议</a-radio-button>
+            <a-radio-button value="">{{ $t('privacy.filter.allProtocols') }}</a-radio-button>
             <a-radio-button v-for="p in MPC_PROTOCOLS" :key="p" :value="p">{{ p }}</a-radio-button>
           </a-radio-group>
           <a-radio-group v-model:value="mpcStatusFilter" size="small">
-            <a-radio-button value="">全部状态</a-radio-button>
+            <a-radio-button value="">{{ $t('privacy.filter.allStatuses') }}</a-radio-button>
             <a-radio-button v-for="s in MPC_STATUSES" :key="s" :value="s">{{ mpcStatusLabel(s) }}</a-radio-button>
           </a-radio-group>
         </div>
@@ -215,7 +215,7 @@
         <a-table
           :columns="computationColumns"
           :data-source="filteredComputations"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (t) => $t('privacy.table.totalSuffix', { n: t }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -255,7 +255,7 @@
                 :loading="submittingShareId === record.id"
                 @click="submitShare(record)"
               >
-                提交份额
+                {{ $t('privacy.table.submitShare') }}
               </a-button>
               <span v-else style="color: var(--text-muted); font-size: 11px; font-family: monospace;">
                 hash {{ record.resultHash?.slice(0, 8) || '—' }}
@@ -265,7 +265,7 @@
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <ApartmentOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              暂无 MPC 计算，点"操作 → 创建 MPC 计算"创建第一个
+              {{ $t('privacy.table.emptyComputations') }}
             </div>
           </template>
         </a-table>
@@ -275,31 +275,31 @@
     <!-- ── Create FL model modal ─────────────────────────────────── -->
     <a-modal
       v-model:open="showModelModal"
-      title="创建联邦学习模型"
+      :title="$t('privacy.model_modal.title')"
       :confirm-loading="creating"
       :width="540"
-      ok-text="创建"
-      cancel-text="取消"
+      :ok-text="$t('privacy.model_modal.ok')"
+      :cancel-text="$t('privacy.model_modal.cancel')"
       @ok="createModel"
       @cancel="resetModelForm"
     >
       <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" style="margin-top: 16px;">
-        <a-form-item label="模型名称" required>
-          <a-input v-model:value="modelForm.name" placeholder="例如: fraud-detector" />
+        <a-form-item :label="$t('privacy.model_modal.nameLabel')" required>
+          <a-input v-model:value="modelForm.name" :placeholder="$t('privacy.model_modal.namePlaceholder')" />
         </a-form-item>
-        <a-form-item label="模型类型">
-          <a-input v-model:value="modelForm.modelType" placeholder="neural_network（默认）" />
+        <a-form-item :label="$t('privacy.model_modal.typeLabel')">
+          <a-input v-model:value="modelForm.modelType" :placeholder="$t('privacy.model_modal.typePlaceholder')" />
         </a-form-item>
-        <a-form-item label="架构">
-          <a-input v-model:value="modelForm.architecture" placeholder="mlp（默认）" />
+        <a-form-item :label="$t('privacy.model_modal.archLabel')">
+          <a-input v-model:value="modelForm.architecture" :placeholder="$t('privacy.model_modal.archPlaceholder')" />
         </a-form-item>
-        <a-form-item label="总轮次">
+        <a-form-item :label="$t('privacy.model_modal.roundsLabel')">
           <a-input-number v-model:value="modelForm.rounds" :min="1" :max="1000" style="width: 100%;" />
         </a-form-item>
-        <a-form-item label="学习率">
+        <a-form-item :label="$t('privacy.model_modal.lrLabel')">
           <a-input-number v-model:value="modelForm.lr" :min="0" :max="1" :step="0.001" style="width: 100%;" />
         </a-form-item>
-        <a-form-item label="参与方数量">
+        <a-form-item :label="$t('privacy.model_modal.participantsLabel')">
           <a-input-number v-model:value="modelForm.participants" :min="0" :max="1000" style="width: 100%;" />
         </a-form-item>
       </a-form>
@@ -308,32 +308,32 @@
     <!-- ── Create MPC computation modal ─────────────────────────── -->
     <a-modal
       v-model:open="showComputationModal"
-      title="创建 MPC 计算"
+      :title="$t('privacy.computation_modal.title')"
       :confirm-loading="creating"
       :width="520"
-      ok-text="创建"
-      cancel-text="取消"
+      :ok-text="$t('privacy.computation_modal.ok')"
+      :cancel-text="$t('privacy.computation_modal.cancel')"
       @ok="createComputation"
       @cancel="resetComputationForm"
     >
       <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" style="margin-top: 16px;">
-        <a-form-item label="计算类型" required>
-          <a-input v-model:value="computationForm.type" placeholder="例如: sum / multiplication" />
+        <a-form-item :label="$t('privacy.computation_modal.typeLabel')" required>
+          <a-input v-model:value="computationForm.type" :placeholder="$t('privacy.computation_modal.typePlaceholder')" />
         </a-form-item>
-        <a-form-item label="协议">
+        <a-form-item :label="$t('privacy.computation_modal.protocolLabel')">
           <a-select v-model:value="computationForm.protocol">
             <a-select-option v-for="p in MPC_PROTOCOLS" :key="p" :value="p">{{ p }}</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="参与方 ID">
+        <a-form-item :label="$t('privacy.computation_modal.participantsLabel')">
           <a-textarea
             v-model:value="computationForm.participants"
-            placeholder="逗号分隔，例如: alice,bob,carol"
+            :placeholder="$t('privacy.computation_modal.participantsPlaceholder')"
             :auto-size="{ minRows: 2, maxRows: 4 }"
           />
         </a-form-item>
-        <a-form-item label="所需份额">
-          <a-input-number v-model:value="computationForm.threshold" :min="2" :max="100" placeholder="留空自动取半数" style="width: 100%;" />
+        <a-form-item :label="$t('privacy.computation_modal.thresholdLabel')">
+          <a-input-number v-model:value="computationForm.threshold" :min="2" :max="100" :placeholder="$t('privacy.computation_modal.thresholdPlaceholder')" style="width: 100%;" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -341,29 +341,29 @@
     <!-- ── DP publish modal ─────────────────────────────────────── -->
     <a-modal
       v-model:open="showDPModal"
-      title="差分隐私发布"
+      :title="$t('privacy.dp_modal.title')"
       :confirm-loading="publishing"
       :width="520"
-      ok-text="发布"
-      cancel-text="关闭"
+      :ok-text="$t('privacy.dp_modal.ok')"
+      :cancel-text="$t('privacy.dp_modal.cancel')"
       @ok="publishDP"
     >
       <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" style="margin-top: 16px;">
-        <a-form-item label="数据" required>
-          <a-input v-model:value="dpForm.data" placeholder="数字或 JSON 数组，例如 10 或 [1,2,3]" />
+        <a-form-item :label="$t('privacy.dp_modal.dataLabel')" required>
+          <a-input v-model:value="dpForm.data" :placeholder="$t('privacy.dp_modal.dataPlaceholder')" />
         </a-form-item>
-        <a-form-item label="噪声机制">
+        <a-form-item :label="$t('privacy.dp_modal.mechanismLabel')">
           <a-radio-group v-model:value="dpForm.mechanism">
             <a-radio-button v-for="m in DP_MECHANISMS" :key="m" :value="m">{{ m }}</a-radio-button>
           </a-radio-group>
         </a-form-item>
-        <a-form-item label="ε (epsilon)">
+        <a-form-item :label="$t('privacy.dp_modal.epsilonLabel')">
           <a-input-number v-model:value="dpForm.epsilon" :min="0" :step="0.01" style="width: 100%;" />
         </a-form-item>
-        <a-form-item label="δ (delta)">
+        <a-form-item :label="$t('privacy.dp_modal.deltaLabel')">
           <a-input-number v-model:value="dpForm.delta" :min="0" :step="0.000001" style="width: 100%;" />
         </a-form-item>
-        <a-form-item label="敏感度">
+        <a-form-item :label="$t('privacy.dp_modal.sensitivityLabel')">
           <a-input-number v-model:value="dpForm.sensitivity" :min="0" :step="0.1" style="width: 100%;" />
         </a-form-item>
       </a-form>
@@ -371,19 +371,19 @@
       <a-card v-if="dpResult" size="small" style="background: var(--bg-base); margin-top: 8px;">
         <template v-if="dpResult.published">
           <a-statistic
-            title="加噪后数据"
+            :title="$t('privacy.dp_modal.noisedTitle')"
             :value="dpResult.data"
             :precision="3"
             :value-style="{ color: '#52c41a' }"
           />
           <div style="margin-top: 12px; font-size: 12px; color: var(--text-secondary);">
-            <div>消耗预算: {{ dpResult.budgetSpent.toFixed(3) }}</div>
-            <div>剩余预算: {{ dpResult.budgetRemaining.toFixed(3) }}</div>
-            <div>机制: {{ dpResult.mechanism }} (ε={{ dpResult.epsilon }})</div>
+            <div>{{ $t('privacy.dp_modal.spentLine', { n: dpResult.budgetSpent.toFixed(3) }) }}</div>
+            <div>{{ $t('privacy.dp_modal.remainingLine', { n: dpResult.budgetRemaining.toFixed(3) }) }}</div>
+            <div>{{ $t('privacy.dp_modal.mechanismLine', { name: dpResult.mechanism, epsilon: dpResult.epsilon }) }}</div>
           </div>
         </template>
         <template v-else>
-          <a-statistic title="发布失败" :value="dpResult.reason || 'unknown'" :value-style="{ color: '#ff4d4f' }" />
+          <a-statistic :title="$t('privacy.dp_modal.failedTitle')" :value="dpResult.reason || 'unknown'" :value-style="{ color: '#ff4d4f' }" />
         </template>
       </a-card>
     </a-modal>
@@ -391,27 +391,27 @@
     <!-- ── HE query modal ───────────────────────────────────────── -->
     <a-modal
       v-model:open="showHEModal"
-      title="同态加密查询"
+      :title="$t('privacy.he_modal.title')"
       :confirm-loading="querying"
       :width="500"
-      ok-text="查询"
-      cancel-text="关闭"
+      :ok-text="$t('privacy.he_modal.ok')"
+      :cancel-text="$t('privacy.he_modal.cancel')"
       @ok="queryHE"
     >
       <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" style="margin-top: 16px;">
-        <a-form-item label="数据" required>
+        <a-form-item :label="$t('privacy.he_modal.dataLabel')" required>
           <a-textarea
             v-model:value="heForm.data"
-            placeholder="JSON 数组，例如 [1,2,3,4,5]"
+            :placeholder="$t('privacy.he_modal.dataPlaceholder')"
             :auto-size="{ minRows: 2, maxRows: 4 }"
           />
         </a-form-item>
-        <a-form-item label="操作">
+        <a-form-item :label="$t('privacy.he_modal.operationLabel')">
           <a-radio-group v-model:value="heForm.operation">
             <a-radio-button v-for="o in HE_OPERATIONS" :key="o" :value="o">{{ o }}</a-radio-button>
           </a-radio-group>
         </a-form-item>
-        <a-form-item label="同态方案">
+        <a-form-item :label="$t('privacy.he_modal.schemeLabel')">
           <a-radio-group v-model:value="heForm.scheme">
             <a-radio-button v-for="s in HE_SCHEMES" :key="s" :value="s">{{ s }}</a-radio-button>
           </a-radio-group>
@@ -420,15 +420,15 @@
 
       <a-card v-if="heResult" size="small" style="background: var(--bg-base); margin-top: 8px;">
         <a-statistic
-          title="加密计算结果"
+          :title="$t('privacy.he_modal.resultTitle')"
           :value="heResult.result"
           :value-style="{ color: '#1677ff' }"
         />
         <div style="margin-top: 12px; font-size: 12px; color: var(--text-secondary);">
-          <div>方案: {{ heResult.scheme }}</div>
-          <div>操作: {{ heResult.operation }}</div>
-          <div>输入项数: {{ heResult.inputCount }}</div>
-          <a-tag v-if="heResult.encrypted" color="green" style="margin-top: 4px; font-size: 10px;">已加密</a-tag>
+          <div>{{ $t('privacy.he_modal.schemeLine', { name: heResult.scheme }) }}</div>
+          <div>{{ $t('privacy.he_modal.operationLine', { name: heResult.operation }) }}</div>
+          <div>{{ $t('privacy.he_modal.inputCountLine', { n: heResult.inputCount }) }}</div>
+          <a-tag v-if="heResult.encrypted" color="green" style="margin-top: 4px; font-size: 10px;">{{ $t('privacy.he_modal.encrypted') }}</a-tag>
         </div>
       </a-card>
     </a-modal>
@@ -447,6 +447,7 @@ import {
   RiseOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
+import { useI18n } from 'vue-i18n'
 import { useWsStore } from '../stores/ws.js'
 import {
   parseCatalog,
@@ -465,6 +466,7 @@ import {
 } from '../utils/privacy-parser.js'
 
 const ws = useWsStore()
+const { t } = useI18n()
 
 const loading = ref(false)
 const creating = ref(false)
@@ -509,26 +511,26 @@ const heForm = reactive({
 const dpResult = ref(null)
 const heResult = ref(null)
 
-const modelColumns = [
-  { title: '名称', key: 'name' },
-  { title: '状态', key: 'status', width: '120px' },
-  { title: '进度', key: 'progress', width: '160px' },
-  { title: '准确度', key: 'accuracy', width: '110px' },
-  { title: '参与方', key: 'participants', width: '90px' },
-  { title: '预算 ε', key: 'budget', width: '100px' },
-  { title: '更新时间', key: 'updatedAt', width: '160px' },
-  { title: '操作', key: 'action', width: '180px' },
-]
+const modelColumns = computed(() => [
+  { title: t('privacy.modelCols.name'), key: 'name' },
+  { title: t('privacy.modelCols.status'), key: 'status', width: '120px' },
+  { title: t('privacy.modelCols.progress'), key: 'progress', width: '160px' },
+  { title: t('privacy.modelCols.accuracy'), key: 'accuracy', width: '110px' },
+  { title: t('privacy.modelCols.participants'), key: 'participants', width: '90px' },
+  { title: t('privacy.modelCols.budget'), key: 'budget', width: '100px' },
+  { title: t('privacy.modelCols.updatedAt'), key: 'updatedAt', width: '160px' },
+  { title: t('privacy.modelCols.action'), key: 'action', width: '180px' },
+])
 
-const computationColumns = [
-  { title: '类型', key: 'type', width: '160px' },
-  { title: '协议', key: 'protocol', width: '100px' },
-  { title: '份额进度', key: 'progress' },
-  { title: '状态', key: 'status', width: '110px' },
-  { title: '耗时', key: 'time', width: '110px' },
-  { title: '创建时间', key: 'createdAt', width: '160px' },
-  { title: '操作', key: 'action', width: '160px' },
-]
+const computationColumns = computed(() => [
+  { title: t('privacy.computationCols.type'), key: 'type', width: '160px' },
+  { title: t('privacy.computationCols.protocol'), key: 'protocol', width: '100px' },
+  { title: t('privacy.computationCols.progress'), key: 'progress' },
+  { title: t('privacy.computationCols.status'), key: 'status', width: '110px' },
+  { title: t('privacy.computationCols.time'), key: 'time', width: '110px' },
+  { title: t('privacy.computationCols.createdAt'), key: 'createdAt', width: '160px' },
+  { title: t('privacy.computationCols.action'), key: 'action', width: '160px' },
+])
 
 const avgAccuracyPct = computed(() => report.value.federatedLearning.avgAccuracy * 100)
 
@@ -555,13 +557,17 @@ const filteredComputations = computed(() => {
 })
 
 function flStatusLabel(s) {
-  return { initializing: '初始化', training: '训练中', aggregating: '聚合中', completed: '已完成', failed: '失败' }[s] || s
+  const key = `privacy.flStatusLabels.${s}`
+  const v = t(key)
+  return v === key ? s : v
 }
 function flStatusColor(s) {
   return { initializing: 'default', training: 'processing', aggregating: 'cyan', completed: 'green', failed: 'red' }[s] || 'default'
 }
 function mpcStatusLabel(s) {
-  return { pending: '待处理', computing: '计算中', completed: '已完成' }[s] || s
+  const key = `privacy.mpcStatusLabels.${s}`
+  const v = t(key)
+  return v === key ? s : v
 }
 function mpcStatusColor(s) {
   return { pending: 'default', computing: 'processing', completed: 'green' }[s] || 'default'
@@ -606,7 +612,7 @@ async function loadAll() {
     computations.value = parseComputations(compsRes.output)
     report.value = parseReport(reportRes.output)
   } catch (e) {
-    message.error('加载隐私计算数据失败: ' + (e?.message || e))
+    message.error(t('privacy.msg.loadFailed') + ': ' + (e?.message || e))
   } finally {
     loading.value = false
   }
@@ -614,7 +620,7 @@ async function loadAll() {
 
 async function createModel() {
   if (!modelForm.name.trim()) {
-    message.warning('请输入模型名称')
+    message.warning(t('privacy.msg.modelNameEmpty'))
     return
   }
   creating.value = true
@@ -628,15 +634,15 @@ async function createModel() {
     parts.push('--json')
     const { output } = await ws.execute(parts.join(' '), 12000)
     if (/error|失败/i.test(output) && !/"modelId"/.test(output)) {
-      message.error('创建失败: ' + output.slice(0, 120))
+      message.error(t('privacy.msg.modelCreateFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('FL 模型已创建')
+    message.success(t('privacy.msg.modelCreateSuccess'))
     showModelModal.value = false
     resetModelForm()
     await loadAll()
   } catch (e) {
-    message.error('创建失败: ' + (e?.message || e))
+    message.error(t('privacy.msg.modelCreateFailed') + ': ' + (e?.message || e))
   } finally {
     creating.value = false
   }
@@ -644,7 +650,7 @@ async function createModel() {
 
 async function createComputation() {
   if (!computationForm.type.trim()) {
-    message.warning('请输入计算类型')
+    message.warning(t('privacy.msg.computationTypeEmpty'))
     return
   }
   creating.value = true
@@ -659,16 +665,16 @@ async function createComputation() {
     parts.push('--json')
     const { output } = await ws.execute(parts.join(' '), 10000)
     if (/error|失败|invalid/i.test(output) && !/"computationId"/.test(output)) {
-      message.error('创建失败: ' + output.slice(0, 120))
+      message.error(t('privacy.msg.computationCreateFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('MPC 计算已创建')
+    message.success(t('privacy.msg.computationCreateSuccess'))
     showComputationModal.value = false
     resetComputationForm()
     activeTab.value = 'computations'
     await loadAll()
   } catch (e) {
-    message.error('创建失败: ' + (e?.message || e))
+    message.error(t('privacy.msg.computationCreateFailed') + ': ' + (e?.message || e))
   } finally {
     creating.value = false
   }
@@ -679,13 +685,13 @@ async function trainOne(record) {
   try {
     const { output } = await ws.execute(`privacy train ${record.id} --json`, 12000)
     if (/error|失败/i.test(output) && !/"trained"/.test(output)) {
-      message.error('训练失败: ' + output.slice(0, 120))
+      message.error(t('privacy.msg.trainFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('训练一轮完成')
+    message.success(t('privacy.msg.trainSuccess'))
     await loadAll()
   } catch (e) {
-    message.error('训练失败: ' + (e?.message || e))
+    message.error(t('privacy.msg.trainFailed') + ': ' + (e?.message || e))
   } finally {
     trainingId.value = ''
   }
@@ -695,13 +701,13 @@ async function failModel(record) {
   try {
     const { output } = await ws.execute(`privacy fail-model ${record.id} --json`, 8000)
     if (/error/i.test(output) && !/"failed"/.test(output)) {
-      message.error('标记失败: ' + output.slice(0, 120))
+      message.error(t('privacy.msg.failMarkFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('已标记为失败')
+    message.success(t('privacy.msg.failMarkSuccess'))
     await loadAll()
   } catch (e) {
-    message.error('标记失败: ' + (e?.message || e))
+    message.error(t('privacy.msg.failMarkFailed') + ': ' + (e?.message || e))
   }
 }
 
@@ -710,13 +716,13 @@ async function submitShare(record) {
   try {
     const { output } = await ws.execute(`privacy submit-share ${record.id} --json`, 10000)
     if (/error|失败/i.test(output) && !/"submitted"/.test(output)) {
-      message.error('提交失败: ' + output.slice(0, 120))
+      message.error(t('privacy.msg.submitFailed') + ': ' + output.slice(0, 120))
       return
     }
-    message.success('份额已提交')
+    message.success(t('privacy.msg.submitSuccess'))
     await loadAll()
   } catch (e) {
-    message.error('提交失败: ' + (e?.message || e))
+    message.error(t('privacy.msg.submitFailed') + ': ' + (e?.message || e))
   } finally {
     submittingShareId.value = ''
   }
@@ -724,7 +730,7 @@ async function submitShare(record) {
 
 async function publishDP() {
   if (!dpForm.data.trim()) {
-    message.warning('请输入数据')
+    message.warning(t('privacy.msg.dataEmpty'))
     return
   }
   publishing.value = true
@@ -740,18 +746,18 @@ async function publishDP() {
     const { output } = await ws.execute(parts.join(' '), 10000)
     const parsed = parseDPResult(output)
     if (!parsed) {
-      message.error('发布失败: ' + output.slice(0, 120))
+      message.error(t('privacy.msg.dpFailed') + ': ' + output.slice(0, 120))
       return
     }
     dpResult.value = parsed
     if (parsed.published) {
-      message.success('已发布')
+      message.success(t('privacy.msg.dpSuccess'))
       await loadAll()  // refresh budget
     } else {
-      message.warning(`发布拒绝: ${parsed.reason || 'unknown'}`)
+      message.warning(t('privacy.msg.dpRejected', { reason: parsed.reason || 'unknown' }))
     }
   } catch (e) {
-    message.error('发布失败: ' + (e?.message || e))
+    message.error(t('privacy.msg.dpFailed') + ': ' + (e?.message || e))
   } finally {
     publishing.value = false
   }
@@ -759,12 +765,12 @@ async function publishDP() {
 
 async function queryHE() {
   if (!heForm.data.trim()) {
-    message.warning('请输入数据')
+    message.warning(t('privacy.msg.dataEmpty'))
     return
   }
   // Validate JSON
   try { JSON.parse(heForm.data) } catch {
-    message.warning('数据格式错误，请输入合法 JSON 数组')
+    message.warning(t('privacy.msg.dataInvalidJson'))
     return
   }
   querying.value = true
@@ -778,13 +784,13 @@ async function queryHE() {
     const { output } = await ws.execute(parts.join(' '), 10000)
     const parsed = parseHEResult(output)
     if (!parsed) {
-      message.error('查询失败: ' + output.slice(0, 120))
+      message.error(t('privacy.msg.heFailed') + ': ' + output.slice(0, 120))
       return
     }
     heResult.value = parsed
-    message.success(`计算完成 (${parsed.scheme}/${parsed.operation})`)
+    message.success(t('privacy.msg.heSuccess', { scheme: parsed.scheme, op: parsed.operation }))
   } catch (e) {
-    message.error('查询失败: ' + (e?.message || e))
+    message.error(t('privacy.msg.heFailed') + ': ' + (e?.message || e))
   } finally {
     querying.value = false
   }
