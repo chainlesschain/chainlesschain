@@ -66,6 +66,12 @@ function normalizeLog(raw, idx = 0) {
     ? raw.success
     : raw.success === 1 || raw.success === '1' || raw.success === true
 
+  // Audit MTC event id (Q-ENG-2 Phase 2 — backend-side persisted from cc audit
+  // mtc emit when bridge is enabled for the tenant). Snake_case from sqlite/
+  // PG `audit_mtc_event_id` column or camelCase from the entity.
+  const auditMtcEventId =
+    raw.audit_mtc_event_id ?? raw.auditMtcEventId ?? null
+
   return {
     key: id,
     id,
@@ -80,6 +86,7 @@ function normalizeLog(raw, idx = 0) {
     success,
     errorMessage: raw.error_message ?? raw.errorMessage ?? '',
     createdAt: raw.created_at ?? raw.createdAt ?? '',
+    auditMtcEventId,
     _idx: idx,
   }
 }
@@ -123,6 +130,17 @@ export function parseStats(output) {
     }
   }
   return result
+}
+
+/**
+ * Categorize an audit log row's MTC status for badge rendering.
+ * Returns one of:
+ *   "none"     — no audit_mtc_event_id (bridge not enabled for this row)
+ *   "tracked"  — has event_id; UI should run reconcile-check to refine to staging/batched
+ */
+export function classifyMtcStatus(log) {
+  if (!log || !log.auditMtcEventId) return 'none'
+  return 'tracked'
 }
 
 /**

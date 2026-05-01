@@ -163,6 +163,24 @@
                 {{ record.success ? 'OK' : 'FAIL' }}
               </a-tag>
             </template>
+            <template v-if="column.key === 'mtc'">
+              <template v-if="classifyMtcStatus(record) === 'none'">
+                <a-tooltip title="此事件未走 MTC 双轨（audit-mtc 未对该租户启用）">
+                  <a-tag color="default">—</a-tag>
+                </a-tooltip>
+              </template>
+              <template v-else>
+                <a-tooltip :title="getMtcTooltip(record)">
+                  <a-tag
+                    :color="getMtcColor(record)"
+                    style="cursor: pointer"
+                    @click="checkMtcStatus(record)"
+                  >
+                    {{ getMtcLabel(record) }}
+                  </a-tag>
+                </a-tooltip>
+              </template>
+            </template>
             <template v-if="column.key === 'action'">
               <a-button size="small" type="link" @click="viewLogDetails(record)">详情</a-button>
             </template>
@@ -284,6 +302,7 @@ import {
   parseStats,
   detectAuditError,
   formatAuditTime,
+  classifyMtcStatus,
   EVENT_TYPES,
   RISK_LEVELS,
 } from '../utils/audit-parser.js'
@@ -321,8 +340,71 @@ const logColumns = [
   { title: '目标', key: 'target', width: '180px' },
   { title: '风险', key: 'riskLevel', width: '90px' },
   { title: '状态', key: 'success', width: '80px' },
+  { title: 'MTC', key: 'mtc', width: '110px' },
   { title: '操作', key: 'action', width: '80px' },
 ]
+
+// MTC reconcile-check cache: log.id → { state: 'staging'|'batched'|'unknown', batchId?, treeHeadId? }
+const mtcStatusCache = ref({})
+
+function getMtcStatusEntry(record) {
+  if (!record.auditMtcEventId) return null
+  return mtcStatusCache.value[record.id] || null
+}
+
+function getMtcLabel(record) {
+  const e = getMtcStatusEntry(record)
+  if (!e) return '已签 · 未查'
+  if (e.state === 'staging') return '待关批'
+  if (e.state === 'batched') return `已关批 #${e.batchId || '?'}`
+  return '未知'
+}
+
+function getMtcColor(record) {
+  const e = getMtcStatusEntry(record)
+  if (!e) return 'blue'
+  if (e.state === 'staging') return 'orange'
+  if (e.state === 'batched') return 'green'
+  return 'default'
+}
+
+function getMtcTooltip(record) {
+  if (!record.auditMtcEventId) return ''
+  const e = getMtcStatusEntry(record)
+  const base = `event_id: ${record.auditMtcEventId}`
+  if (!e) return `${base} — 点击查询 reconcile 状态`
+  if (e.state === 'staging') return `${base}\n仍在 staging，等待下次 reconcile`
+  if (e.state === 'batched') return `${base}\n已落入 batch #${e.batchId}\ntree_head_id: ${e.treeHeadId || ''}`
+  return base
+}
+
+async function checkMtcStatus(record) {
+  if (!record.auditMtcEventId) return
+  const id = record.auditMtcEventId.replace(/"/g, '\\"')
+  try {
+    const r = await ws.execute(`audit mtc reconcile-check "${id}" --json`, 8000)
+    let parsed
+    try {
+      parsed = JSON.parse(r.output.trim())
+    } catch {
+      // Try greedy match
+      const m = r.output.match(/\{[\s\S]*\}/)
+      parsed = m ? JSON.parse(m[0]) : null
+    }
+    if (!parsed) {
+      message.warning('reconcile-check 没返回 JSON')
+      return
+    }
+    const entry = parsed.found
+      ? { state: 'batched', batchId: parsed.batchId, treeHeadId: parsed.treeHeadId }
+      : parsed.staging
+        ? { state: 'staging' }
+        : { state: 'unknown' }
+    mtcStatusCache.value = { ...mtcStatusCache.value, [record.id]: entry }
+  } catch (e) {
+    message.error('reconcile-check 失败: ' + (e?.message || e))
+  }
+}
 
 const successRate = computed(() => {
   if (!stats.value.total) return 100

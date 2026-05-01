@@ -95,4 +95,12 @@ public class OperationLog {
      */
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
+
+    /**
+     * Audit MTC event id (Q-ENG-2 Phase 2). NULL when audit-mtc bridge wasn't
+     * enabled for this row's tenant. When set, UI renders a "待批次关闭" badge
+     * by querying `cc audit mtc reconcile-check <id>`.
+     */
+    @TableField(value = "audit_mtc_event_id")
+    private String auditMtcEventId;
 }

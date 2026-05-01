@@ -7,9 +7,17 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -38,11 +46,31 @@ import java.util.concurrent.TimeUnit;
 public class AuditMtcBridgeService {
 
     private static final Logger log = LoggerFactory.getLogger(AuditMtcBridgeService.class);
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     private final AuditMtcProperties props;
+    /**
+     * Optional: callback invoked when emit succeeds with the parsed event_id.
+     * OperationLogService can wire this to persist the event_id back onto
+     * the OperationLog row so the UI can render a per-row "待批次关闭" badge.
+     * Kept opt-in (Consumer-style) to preserve fire-and-forget semantics —
+     * if the callback throws, it's caught and never affects the main flow.
+     */
+    private volatile EmitCallback emitCallback;
 
     public AuditMtcBridgeService(AuditMtcProperties props) {
         this.props = props;
+    }
+
+    /** Set after construction by OperationLogService.afterPropertiesSet (avoids circular dep). */
+    public void setEmitCallback(EmitCallback cb) {
+        this.emitCallback = cb;
+    }
+
+    /** Functional interface for the post-emit hook. */
+    @FunctionalInterface
+    public interface EmitCallback {
+        void onEmitted(OperationLog opLog, String eventId, String stagingPath);
     }
 
     /**
@@ -82,6 +110,17 @@ public class AuditMtcBridgeService {
         pb.redirectErrorStream(true);
 
         Process proc = pb.start();
+
+        // Capture stdout so we can extract the event_id on success.
+        StringBuilder out = new StringBuilder();
+        try (BufferedReader br = new BufferedReader(
+                new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                out.append(line).append('\n');
+            }
+        }
+
         boolean finished = proc.waitFor(props.getTimeoutMs(), TimeUnit.MILLISECONDS);
         if (!finished) {
             proc.destroyForcibly();
@@ -97,7 +136,54 @@ public class AuditMtcBridgeService {
                 "audit-mtc bridge non-zero exit {} for log id={}",
                 exit, opLog.getId()
             );
+            return;
         }
+
+        // Parse `cc audit mtc emit --json` output → { ok, event_id, path } and
+        // hand the event_id off to the optional callback. We never rethrow —
+        // the audit log row is already in PostgreSQL whether the badge wires
+        // up or not.
+        Map<String, String> emitResult = parseEmitOutput(out.toString());
+        if (!emitResult.isEmpty() && emitCallback != null) {
+            try {
+                emitCallback.onEmitted(opLog,
+                    emitResult.get("event_id"),
+                    emitResult.get("staging_path")
+                );
+            } catch (Exception cbErr) {
+                log.warn(
+                    "audit-mtc bridge emit callback threw for log id={}: {}",
+                    opLog.getId(), cbErr.getMessage()
+                );
+            }
+        }
+    }
+
+    /**
+     * Extract event_id + staging path from `cc audit mtc emit --json` stdout.
+     * Returns empty map when output isn't parseable JSON or doesn't carry
+     * the expected fields (silent — caller logs).
+     */
+    Map<String, String> parseEmitOutput(String stdout) {
+        Map<String, String> result = new HashMap<>();
+        if (stdout == null || stdout.isEmpty()) return result;
+        try {
+            JsonNode root = JSON.readTree(stdout);
+            if (root == null || !root.isObject()) return result;
+            JsonNode okNode = root.get("ok");
+            if (okNode == null || !okNode.asBoolean()) return result;
+            JsonNode eventId = root.get("event_id");
+            if (eventId != null && eventId.isTextual()) {
+                result.put("event_id", eventId.asText());
+            }
+            JsonNode pathNode = root.get("path");
+            if (pathNode != null && pathNode.isTextual()) {
+                result.put("staging_path", pathNode.asText());
+            }
+        } catch (Exception _err) {
+            // Best-effort parse — unknown output shape is non-fatal
+        }
+        return result;
     }
 
     /**

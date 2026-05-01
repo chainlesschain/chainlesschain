@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.chainlesschain.project.entity.OperationLog;
 import com.chainlesschain.project.mapper.OperationLogMapper;
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -14,6 +17,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class OperationLogService {
 
+    private static final Logger log = LoggerFactory.getLogger(OperationLogService.class);
+
     @Autowired
     private OperationLogMapper operationLogMapper;
 
@@ -23,6 +28,37 @@ public class OperationLogService {
      */
     @Autowired(required = false)
     private AuditMtcBridgeService auditMtcBridge;
+
+    /**
+     * After Spring DI: register the bridge's emit callback so when the CLI
+     * returns an event_id, we write it back into OperationLog.details as
+     * audit_mtc_event_id. The UI uses that id with `cc audit mtc
+     * reconcile-check` to render a per-row "待批次关闭" / "已关批 #N" badge.
+     */
+    @PostConstruct
+    void wireBridgeCallback() {
+        if (auditMtcBridge != null) {
+            auditMtcBridge.setEmitCallback(this::onAuditMtcEmitted);
+        }
+    }
+
+    private void onAuditMtcEmitted(OperationLog opLog, String eventId, String stagingPath) {
+        if (eventId == null || opLog == null || opLog.getId() == null) return;
+        try {
+            // Persist event_id back onto the row via dedicated column added in V013.
+            // Path is informational only and isn't stored — UI reconstructs from
+            // event_id via `cc audit mtc reconcile-check`.
+            opLog.setAuditMtcEventId(eventId);
+            operationLogMapper.updateById(opLog);
+            if (stagingPath != null && log.isDebugEnabled()) {
+                log.debug("audit-mtc emit linked log {} → event {} (staging: {})",
+                    opLog.getId(), eventId, stagingPath);
+            }
+        } catch (Exception ex) {
+            log.warn("audit-mtc emit callback failed to persist event_id for log {}: {}",
+                opLog.getId(), ex.getMessage());
+        }
+    }
 
     /**
      * 异步保存操作日志

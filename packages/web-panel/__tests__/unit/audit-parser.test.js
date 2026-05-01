@@ -10,6 +10,7 @@ import {
   parseStats,
   detectAuditError,
   formatAuditTime,
+  classifyMtcStatus,
   EVENT_TYPES,
   RISK_LEVELS,
 } from '../../src/utils/audit-parser.js'
@@ -235,5 +236,45 @@ describe('formatAuditTime', () => {
 
   it('returns raw value for unparseable input', () => {
     expect(formatAuditTime('not-a-date')).toBe('not-a-date')
+  })
+})
+
+// ─── audit_mtc_event_id surfacing (Q-ENG-2 Phase 2) ────────────────────────
+
+describe('audit_mtc_event_id field surfacing', () => {
+  it('parseLogs propagates snake_case audit_mtc_event_id from PG row', () => {
+    const json = JSON.stringify([
+      {
+        id: 'log-1',
+        event_type: 'auth',
+        operation: 'LOGIN',
+        success: true,
+        audit_mtc_event_id: '20260502123456-abcdef012345',
+      },
+    ])
+    const [r] = parseLogs(json)
+    expect(r.auditMtcEventId).toBe('20260502123456-abcdef012345')
+  })
+
+  it('parseLogs handles camelCase auditMtcEventId', () => {
+    const [r] = parseLogs(
+      JSON.stringify([{ id: 'l', event_type: 'auth', operation: 'X', success: true, auditMtcEventId: 'evt-x' }]),
+    )
+    expect(r.auditMtcEventId).toBe('evt-x')
+  })
+
+  it('parseLogs sets auditMtcEventId=null when absent', () => {
+    const [r] = parseLogs(JSON.stringify([{ id: 'l', event_type: 'auth', operation: 'X', success: true }]))
+    expect(r.auditMtcEventId).toBeNull()
+  })
+
+  it('classifyMtcStatus returns "tracked" when event_id present', () => {
+    expect(classifyMtcStatus({ auditMtcEventId: 'evt-1' })).toBe('tracked')
+  })
+
+  it('classifyMtcStatus returns "none" when event_id missing/null', () => {
+    expect(classifyMtcStatus({})).toBe('none')
+    expect(classifyMtcStatus({ auditMtcEventId: null })).toBe('none')
+    expect(classifyMtcStatus(null)).toBe('none')
   })
 })
