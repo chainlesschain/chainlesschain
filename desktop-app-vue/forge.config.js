@@ -245,11 +245,13 @@ module.exports = {
     // Allow offline packaging when a local Electron ZIP cache directory is provided.
     electronZipDir: process.env.ELECTRON_ZIP_DIR,
     asar: {
-      // 排除原生模块和可执行文件 + Phase 1.4 web-shell vendor 树
-      // (`packages/**` 由 packageAfterCopy 的 vendorWebShellInto() 拷入；
-      //  必须 unpack 因为 Electron 的 asar fs shim 不覆盖 Node URL-based
-      //  ESM loader，dynamic import via pathToFileURL 在 asar 里会失败)
-      unpack: "{*.{node,dll,dylib,so,exe},packages/**}",
+      // 仅排除原生模块和可执行文件。Phase 1.4 web-shell vendor 树
+      // (packages/cli/src + packages/web-panel/dist) 由 packageAfterCopy 直接
+      // 拷到 path.join(buildPath, "..") = Resources/ — 在 asar 之外，
+      // 无需 unpack glob 覆盖。loader 的 4-up REL 命中 Resources/packages/...
+      // 时是真 fs 路径，dynamic import via pathToFileURL 不经过 Electron 的
+      // asar fs shim。
+      unpack: "*.{node,dll,dylib,so,exe}",
     },
     extraResource: extraResources,
 
@@ -536,19 +538,23 @@ module.exports = {
       }
 
       // Phase 1.4 — vendor packages/cli/src + packages/web-panel/dist into
-      // buildPath so the web-shell loaders' relative path constants
-      // (`../../../../packages/cli/src/lib/web-ui-server.js` etc.) resolve
-      // inside the packaged app the same way they resolve in dev. Combined
-      // with the `packages/**` asarUnpack glob above, the vendored ESM
-      // files end up at app.asar.unpacked/packages/... — real on-disk
-      // paths so dynamic import via pathToFileURL works.
+      // path.join(buildPath, "..") = Resources/ in a packaged app. The
+      // web-shell loaders' REL constants (`../../../../packages/cli/src/lib/
+      // web-ui-server.js` etc.) hop 4-up from `<buildPath>/dist/main/
+      // web-shell/`, landing at the parent of buildPath. So packages/ must
+      // live there — NOT under buildPath, where it would overshoot.
+      // Sitting at Resources/ also keeps the vendored ESM files outside
+      // the asar entirely, so dynamic import via pathToFileURL hits real
+      // on-disk paths without going through Electron's asar fs shim.
+      // Path math validated by tests/unit/scripts/phase1.4-path-math.test.js.
       try {
         const {
           vendorWebShellInto,
         } = require("./scripts/prepare-web-shell-vendor.js");
-        const stats = vendorWebShellInto(buildPath);
+        const vendorTarget = path.join(buildPath, "..");
+        const stats = vendorWebShellInto(vendorTarget);
         console.log(
-          `[Packaging] web-shell vendor: ${stats.cli.files + stats.webPanel.files} files, ` +
+          `[Packaging] web-shell vendor → ${vendorTarget}: ${stats.cli.files + stats.webPanel.files} files, ` +
             `${(stats.totalBytes / (1024 * 1024)).toFixed(2)} MB`,
         );
       } catch (error) {
