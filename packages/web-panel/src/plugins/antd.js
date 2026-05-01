@@ -89,6 +89,7 @@ const antdComponents = {
     () => import('ant-design-vue/es/radio'),
     (mod) => mod.default.Group || mod.RadioGroup,
   ),
+  AResult: createAsyncAntdComponent(() => import('ant-design-vue/es/result')),
   ARow: createAsyncAntdComponent(() => import('ant-design-vue/es/row')),
   ASelect: createAsyncAntdComponent(() => import('ant-design-vue/es/select')),
   ASelectOption: createAsyncAntdComponent(

@@ -34,6 +34,19 @@ function manualChunks(id) {
   ) {
     return 'icons'
   }
+
+  // Echarts is only consumed by KnowledgeGraph today, but bundling it
+  // inline blew that route's chunk past Vite's 500 kB warning. Splitting
+  // it out keeps the visited route lean and lets the browser cache the
+  // (large, rarely-changing) charting bundle independently.
+  if (
+    normalizedId.includes('/echarts/') ||
+    normalizedId.includes('/vue-echarts/') ||
+    normalizedId.includes('/zrender/') ||
+    normalizedId.includes('/tslib/')
+  ) {
+    return 'echarts'
+  }
 }
 
 export default defineConfig({
