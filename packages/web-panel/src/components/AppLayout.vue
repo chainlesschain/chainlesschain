@@ -19,16 +19,16 @@
         <div v-if="isProject" class="mode-banner project">
           <FolderOutlined class="banner-icon" />
           <div class="banner-info">
-            <div class="banner-name">{{ cfg.projectName || '项目' }}</div>
-            <div class="banner-sub">项目级面板</div>
+            <div class="banner-name">{{ cfg.projectName || $t('appLayout.scope.fallbackProject') }}</div>
+            <div class="banner-sub">{{ $t('appLayout.scope.projectPanel') }}</div>
           </div>
         </div>
         <div v-else class="mode-banner global">
           <GlobalOutlined class="banner-icon" />
-          <span class="banner-name">全局模式</span>
+          <span class="banner-name">{{ $t('appLayout.scope.global') }}</span>
         </div>
       </template>
-      <div v-else class="mode-icon-sm" :title="isProject ? cfg.projectName : '全局模式'">
+      <div v-else class="mode-icon-sm" :title="isProject ? cfg.projectName : $t('appLayout.scope.global')">
         <FolderOutlined v-if="isProject" style="color: #1677ff;" />
         <GlobalOutlined v-else style="color: #722ed1;" />
       </div>
@@ -45,91 +45,91 @@
       >
         <template v-if="!collapsed">
           <a-sub-menu key="g-overview">
-            <template #title><span class="group-label">概 览</span></template>
-            <a-menu-item key="dashboard"><template #icon><DashboardOutlined /></template>仪表板</a-menu-item>
-            <a-menu-item key="chat"><template #icon><MessageOutlined /></template>AI 对话</a-menu-item>
-            <a-menu-item key="quick-ask"><template #icon><ThunderboltOutlined /></template>Quick Ask</a-menu-item>
-            <a-menu-item key="cowork"><template #icon><RocketOutlined /></template>日常协作</a-menu-item>
-            <a-menu-item key="services"><template #icon><ControlOutlined /></template>服务管理</a-menu-item>
-            <a-menu-item key="aiops"><template #icon><AlertOutlined /></template>AIOps</a-menu-item>
-            <a-menu-item key="tokens"><template #icon><NumberOutlined /></template>Token 用量</a-menu-item>
-            <a-menu-item key="logs"><template #icon><FileTextOutlined /></template>日志查看</a-menu-item>
+            <template #title><span class="group-label">{{ $t('appLayout.groups.overview') }}</span></template>
+            <a-menu-item key="dashboard"><template #icon><DashboardOutlined /></template>{{ $t('appLayout.items.dashboard') }}</a-menu-item>
+            <a-menu-item key="chat"><template #icon><MessageOutlined /></template>{{ $t('appLayout.items.chat') }}</a-menu-item>
+            <a-menu-item key="quick-ask"><template #icon><ThunderboltOutlined /></template>{{ $t('appLayout.items.quickAsk') }}</a-menu-item>
+            <a-menu-item key="cowork"><template #icon><RocketOutlined /></template>{{ $t('appLayout.items.cowork') }}</a-menu-item>
+            <a-menu-item key="services"><template #icon><ControlOutlined /></template>{{ $t('appLayout.items.services') }}</a-menu-item>
+            <a-menu-item key="aiops"><template #icon><AlertOutlined /></template>{{ $t('appLayout.items.aiops') }}</a-menu-item>
+            <a-menu-item key="tokens"><template #icon><NumberOutlined /></template>{{ $t('appLayout.items.tokens') }}</a-menu-item>
+            <a-menu-item key="logs"><template #icon><FileTextOutlined /></template>{{ $t('appLayout.items.logs') }}</a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="g-config">
-            <template #title><span class="group-label">配 置</span></template>
-            <a-menu-item key="skills"><template #icon><AppstoreOutlined /></template>技能管理</a-menu-item>
-            <a-menu-item key="providers"><template #icon><ApiOutlined /></template>LLM 配置</a-menu-item>
-            <a-menu-item key="mcp"><template #icon><CloudServerOutlined /></template>MCP 工具</a-menu-item>
-            <a-menu-item key="project-settings"><template #icon><FolderOutlined /></template>项目存储</a-menu-item>
-            <a-menu-item key="speech-settings"><template #icon><SoundOutlined /></template>语音识别</a-menu-item>
-            <a-menu-item key="nlprog"><template #icon><BulbOutlined /></template>自然语言编程</a-menu-item>
-            <a-menu-item key="codegen"><template #icon><CodeOutlined /></template>代码生成</a-menu-item>
+            <template #title><span class="group-label">{{ $t('appLayout.groups.config') }}</span></template>
+            <a-menu-item key="skills"><template #icon><AppstoreOutlined /></template>{{ $t('appLayout.items.skills') }}</a-menu-item>
+            <a-menu-item key="providers"><template #icon><ApiOutlined /></template>{{ $t('appLayout.items.providers') }}</a-menu-item>
+            <a-menu-item key="mcp"><template #icon><CloudServerOutlined /></template>{{ $t('appLayout.items.mcp') }}</a-menu-item>
+            <a-menu-item key="project-settings"><template #icon><FolderOutlined /></template>{{ $t('appLayout.items.projectSettings') }}</a-menu-item>
+            <a-menu-item key="speech-settings"><template #icon><SoundOutlined /></template>{{ $t('appLayout.items.speechSettings') }}</a-menu-item>
+            <a-menu-item key="nlprog"><template #icon><BulbOutlined /></template>{{ $t('appLayout.items.nlprog') }}</a-menu-item>
+            <a-menu-item key="codegen"><template #icon><CodeOutlined /></template>{{ $t('appLayout.items.codegen') }}</a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="g-data">
-            <template #title><span class="group-label">数 据</span></template>
-            <a-menu-item key="notes"><template #icon><BookOutlined /></template>笔记管理</a-menu-item>
-            <a-menu-item key="search"><template #icon><SearchOutlined /></template>RAG 搜索</a-menu-item>
-            <a-menu-item key="memory"><template #icon><BranchesOutlined /></template>记忆文件</a-menu-item>
-            <a-menu-item key="knowledge"><template #icon><ShareAltOutlined /></template>知识图谱</a-menu-item>
-            <a-menu-item key="marketplace"><template #icon><ShoppingOutlined /></template>技能市场</a-menu-item>
-            <a-menu-item key="cron"><template #icon><ClockCircleOutlined /></template>定时任务</a-menu-item>
-            <a-menu-item key="workflow"><template #icon><ApartmentOutlined /></template>工作流编辑</a-menu-item>
-            <a-menu-item key="pipeline"><template #icon><PartitionOutlined /></template>开发流水线</a-menu-item>
-            <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template>后台任务</a-menu-item>
+            <template #title><span class="group-label">{{ $t('appLayout.groups.data') }}</span></template>
+            <a-menu-item key="notes"><template #icon><BookOutlined /></template>{{ $t('appLayout.items.notes') }}</a-menu-item>
+            <a-menu-item key="search"><template #icon><SearchOutlined /></template>{{ $t('appLayout.items.search') }}</a-menu-item>
+            <a-menu-item key="memory"><template #icon><BranchesOutlined /></template>{{ $t('appLayout.items.memory') }}</a-menu-item>
+            <a-menu-item key="knowledge"><template #icon><ShareAltOutlined /></template>{{ $t('appLayout.items.knowledge') }}</a-menu-item>
+            <a-menu-item key="marketplace"><template #icon><ShoppingOutlined /></template>{{ $t('appLayout.items.marketplace') }}</a-menu-item>
+            <a-menu-item key="cron"><template #icon><ClockCircleOutlined /></template>{{ $t('appLayout.items.cron') }}</a-menu-item>
+            <a-menu-item key="workflow"><template #icon><ApartmentOutlined /></template>{{ $t('appLayout.items.workflow') }}</a-menu-item>
+            <a-menu-item key="pipeline"><template #icon><PartitionOutlined /></template>{{ $t('appLayout.items.pipeline') }}</a-menu-item>
+            <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template>{{ $t('appLayout.items.tasks') }}</a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="g-advanced">
-            <template #title><span class="group-label">高 级</span></template>
-            <a-menu-item key="security"><template #icon><SafetyCertificateOutlined /></template>安全中心</a-menu-item>
-            <a-menu-item key="ukey-sign"><template #icon><KeyOutlined /></template>U-Key 签名</a-menu-item>
-            <a-menu-item key="trust"><template #icon><SafetyOutlined /></template>信任与安全</a-menu-item>
-            <a-menu-item key="audit"><template #icon><FileSearchOutlined /></template>审计日志</a-menu-item>
-            <a-menu-item key="mtc"><template #icon><SafetyOutlined /></template>MTC 默克尔证书</a-menu-item>
-            <a-menu-item key="did"><template #icon><IdcardOutlined /></template>DID 身份</a-menu-item>
-            <a-menu-item key="permissions"><template #icon><LockOutlined /></template>权限管理</a-menu-item>
-            <a-menu-item key="p2p"><template #icon><WifiOutlined /></template>P2P 网络</a-menu-item>
-            <a-menu-item key="backup"><template #icon><CloudUploadOutlined /></template>备份同步</a-menu-item>
-            <a-menu-item key="git"><template #icon><CodeOutlined /></template>Git 与数据</a-menu-item>
-            <a-menu-item key="projects"><template #icon><ProjectOutlined /></template>项目管理</a-menu-item>
-            <a-menu-item key="crosschain"><template #icon><SwapOutlined /></template>跨链桥</a-menu-item>
-            <a-menu-item key="compliance"><template #icon><SafetyOutlined /></template>合规与情报</a-menu-item>
-            <a-menu-item key="privacy"><template #icon><ExperimentOutlined /></template>隐私计算</a-menu-item>
-            <a-menu-item key="inference"><template #icon><DeploymentUnitOutlined /></template>推理网络</a-menu-item>
-            <a-menu-item key="federation"><template #icon><ClusterOutlined /></template>联邦强化</a-menu-item>
+            <template #title><span class="group-label">{{ $t('appLayout.groups.advanced') }}</span></template>
+            <a-menu-item key="security"><template #icon><SafetyCertificateOutlined /></template>{{ $t('appLayout.items.security') }}</a-menu-item>
+            <a-menu-item key="ukey-sign"><template #icon><KeyOutlined /></template>{{ $t('appLayout.items.ukeySign') }}</a-menu-item>
+            <a-menu-item key="trust"><template #icon><SafetyOutlined /></template>{{ $t('appLayout.items.trust') }}</a-menu-item>
+            <a-menu-item key="audit"><template #icon><FileSearchOutlined /></template>{{ $t('appLayout.items.audit') }}</a-menu-item>
+            <a-menu-item key="mtc"><template #icon><SafetyOutlined /></template>{{ $t('appLayout.items.mtc') }}</a-menu-item>
+            <a-menu-item key="did"><template #icon><IdcardOutlined /></template>{{ $t('appLayout.items.did') }}</a-menu-item>
+            <a-menu-item key="permissions"><template #icon><LockOutlined /></template>{{ $t('appLayout.items.permissions') }}</a-menu-item>
+            <a-menu-item key="p2p"><template #icon><WifiOutlined /></template>{{ $t('appLayout.items.p2p') }}</a-menu-item>
+            <a-menu-item key="backup"><template #icon><CloudUploadOutlined /></template>{{ $t('appLayout.items.backup') }}</a-menu-item>
+            <a-menu-item key="git"><template #icon><CodeOutlined /></template>{{ $t('appLayout.items.git') }}</a-menu-item>
+            <a-menu-item key="projects"><template #icon><ProjectOutlined /></template>{{ $t('appLayout.items.projects') }}</a-menu-item>
+            <a-menu-item key="crosschain"><template #icon><SwapOutlined /></template>{{ $t('appLayout.items.crosschain') }}</a-menu-item>
+            <a-menu-item key="compliance"><template #icon><SafetyOutlined /></template>{{ $t('appLayout.items.compliance') }}</a-menu-item>
+            <a-menu-item key="privacy"><template #icon><ExperimentOutlined /></template>{{ $t('appLayout.items.privacy') }}</a-menu-item>
+            <a-menu-item key="inference"><template #icon><DeploymentUnitOutlined /></template>{{ $t('appLayout.items.inference') }}</a-menu-item>
+            <a-menu-item key="federation"><template #icon><ClusterOutlined /></template>{{ $t('appLayout.items.federation') }}</a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="g-enterprise">
-            <template #title><span class="group-label">企 业</span></template>
-            <a-menu-item key="wallet"><template #icon><WalletOutlined /></template>钱包管理</a-menu-item>
-            <a-menu-item key="organization"><template #icon><TeamOutlined /></template>组织管理</a-menu-item>
-            <a-menu-item key="tenant"><template #icon><BankOutlined /></template>多租户 SaaS</a-menu-item>
-            <a-menu-item key="sla"><template #icon><DashboardOutlined /></template>SLA 管理</a-menu-item>
-            <a-menu-item key="analytics"><template #icon><BarChartOutlined /></template>使用分析</a-menu-item>
-            <a-menu-item key="templates"><template #icon><BlockOutlined /></template>模板中心</a-menu-item>
+            <template #title><span class="group-label">{{ $t('appLayout.groups.enterprise') }}</span></template>
+            <a-menu-item key="wallet"><template #icon><WalletOutlined /></template>{{ $t('appLayout.items.wallet') }}</a-menu-item>
+            <a-menu-item key="organization"><template #icon><TeamOutlined /></template>{{ $t('appLayout.items.organization') }}</a-menu-item>
+            <a-menu-item key="tenant"><template #icon><BankOutlined /></template>{{ $t('appLayout.items.tenant') }}</a-menu-item>
+            <a-menu-item key="sla"><template #icon><DashboardOutlined /></template>{{ $t('appLayout.items.sla') }}</a-menu-item>
+            <a-menu-item key="analytics"><template #icon><BarChartOutlined /></template>{{ $t('appLayout.items.analytics') }}</a-menu-item>
+            <a-menu-item key="templates"><template #icon><BlockOutlined /></template>{{ $t('appLayout.items.templates') }}</a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="g-social">
-            <template #title><span class="group-label">社 交</span></template>
-            <a-menu-item key="community"><template #icon><UsergroupAddOutlined /></template>社区</a-menu-item>
-            <a-menu-item key="governance"><template #icon><AuditOutlined /></template>社区治理</a-menu-item>
-            <a-menu-item key="reputation"><template #icon><TrophyOutlined /></template>声誉优化</a-menu-item>
-            <a-menu-item key="recommend"><template #icon><FireOutlined /></template>智能推荐</a-menu-item>
+            <template #title><span class="group-label">{{ $t('appLayout.groups.social') }}</span></template>
+            <a-menu-item key="community"><template #icon><UsergroupAddOutlined /></template>{{ $t('appLayout.items.community') }}</a-menu-item>
+            <a-menu-item key="governance"><template #icon><AuditOutlined /></template>{{ $t('appLayout.items.governance') }}</a-menu-item>
+            <a-menu-item key="reputation"><template #icon><TrophyOutlined /></template>{{ $t('appLayout.items.reputation') }}</a-menu-item>
+            <a-menu-item key="recommend"><template #icon><FireOutlined /></template>{{ $t('appLayout.items.recommend') }}</a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="g-media">
-            <template #title><span class="group-label">媒 体</span></template>
-            <a-menu-item key="video"><template #icon><VideoCameraOutlined /></template>视频剪辑</a-menu-item>
+            <template #title><span class="group-label">{{ $t('appLayout.groups.media') }}</span></template>
+            <a-menu-item key="video"><template #icon><VideoCameraOutlined /></template>{{ $t('appLayout.items.video') }}</a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="g-extension">
-            <template #title><span class="group-label">扩 展</span></template>
-            <a-menu-item key="rssfeed"><template #icon><ReadOutlined /></template>RSS 订阅</a-menu-item>
-            <a-menu-item key="webauthn"><template #icon><KeyOutlined /></template>身份认证</a-menu-item>
+            <template #title><span class="group-label">{{ $t('appLayout.groups.extension') }}</span></template>
+            <a-menu-item key="rssfeed"><template #icon><ReadOutlined /></template>{{ $t('appLayout.items.rssfeed') }}</a-menu-item>
+            <a-menu-item key="webauthn"><template #icon><KeyOutlined /></template>{{ $t('appLayout.items.webauthn') }}</a-menu-item>
           </a-sub-menu>
-          <!-- 桌面专属群 — 仅在嵌入式 web-shell 下显示。点击通过 window.open
-               WS topic 弹出新 BrowserWindow 加载 V5/V6 desktop renderer，
-               那边有完整 electronAPI（UKey / FS / 系统设置等）。 -->
+          <!-- Desktop-only group — only shown in the embedded web-shell. Each
+               click opens a new BrowserWindow loading the V5/V6 desktop
+               renderer (full electronAPI / UKey / FS / settings live there). -->
           <a-sub-menu v-if="shellMode.isEmbedded" key="g-desktop">
-            <template #title><span class="group-label">桌面专属</span></template>
-            <a-menu-item key="desktop:hardware-wallet"><template #icon><SafetyCertificateOutlined /></template>硬件钱包</a-menu-item>
-            <a-menu-item key="desktop:backup-dashboard"><template #icon><CloudUploadOutlined /></template>备份与恢复</a-menu-item>
-            <a-menu-item key="desktop:llm-test-chat"><template #icon><ExperimentOutlined /></template>LLM 测试</a-menu-item>
-            <a-menu-item key="desktop:settings"><template #icon><ControlOutlined /></template>系统设置</a-menu-item>
+            <template #title><span class="group-label">{{ $t('appLayout.groups.desktop') }}</span></template>
+            <a-menu-item key="desktop:hardware-wallet"><template #icon><SafetyCertificateOutlined /></template>{{ $t('appLayout.items.desktopHardware') }}</a-menu-item>
+            <a-menu-item key="desktop:backup-dashboard"><template #icon><CloudUploadOutlined /></template>{{ $t('appLayout.items.desktopBackup') }}</a-menu-item>
+            <a-menu-item key="desktop:llm-test-chat"><template #icon><ExperimentOutlined /></template>{{ $t('appLayout.items.desktopLlmTest') }}</a-menu-item>
+            <a-menu-item key="desktop:settings"><template #icon><ControlOutlined /></template>{{ $t('appLayout.items.desktopSettings') }}</a-menu-item>
           </a-sub-menu>
         </template>
         <template v-else>
@@ -215,7 +215,7 @@
         <div class="header-left">
           <div :class="['scope-tag', isProject ? 'project' : 'global']">
             <component :is="isProject ? FolderOutlined : GlobalOutlined" />
-            <span>{{ isProject ? (cfg.projectName || '项目') : '全局模式' }}</span>
+            <span>{{ isProject ? (cfg.projectName || $t('appLayout.scope.fallbackProject')) : $t('appLayout.scope.global') }}</span>
             <a-tooltip v-if="isProject && cfg.projectRoot" :title="cfg.projectRoot">
               <InfoCircleOutlined class="info-icon" />
             </a-tooltip>
@@ -250,7 +250,7 @@
                browser mode where there's no V5/V6 to fall back to). -->
           <a-tooltip
             v-if="shellMode.isEmbedded"
-            title="切换到桌面壳（保存后重启生效）"
+            :title="$t('appLayout.shellSwitch')"
           >
             <button
               type="button"
@@ -264,7 +264,7 @@
             :color="wsStatus === 'connected' ? 'green' : wsStatus === 'connecting' ? 'orange' : 'red'"
             class="ws-tag"
           >
-            {{ wsStatus === 'connected' ? '已连接' : wsStatus === 'connecting' ? '连接中' : '断开' }}
+            {{ wsStatus === 'connected' ? $t('appLayout.wsStatus.connected') : wsStatus === 'connecting' ? $t('appLayout.wsStatus.connecting') : $t('appLayout.wsStatus.disconnected') }}
           </a-tag>
         </div>
       </a-layout-header>
@@ -298,12 +298,14 @@ import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'
 import logoSrc from '../assets/logo.png'
 import { useShellMode } from '../composables/useShellMode.js'
+import { useI18n } from 'vue-i18n'
 import { useLocale } from '../plugins/i18n.js'
 
 const router  = useRouter()
 const route   = useRoute()
 const ws      = useWsStore()
 const themeStore = useThemeStore()
+const { t } = useI18n()
 // useShellMode reads window.__CC_CONFIG__ on each call; the host injects it
 // once at boot, so a single snapshot at setup time is fine for the sidebar's
 // "show 桌面专属 group only when embedded" check.
@@ -349,7 +351,11 @@ watch(openKeys, (keys) => {
 
 const wsStatus   = computed(() => ws.status)
 const statusBadge = computed(() => ({ connected:'success', connecting:'processing', error:'error', disconnected:'default' })[ws.status] || 'default')
-const statusText  = computed(() => ({ connected:'已连接', connecting:'连接中...', error:'连接错误', disconnected:'未连接' })[ws.status] || '未知')
+const statusText  = computed(() => {
+  const key = `appLayout.footerStatus.${ws.status}`
+  const v = t(key)
+  return v === key ? t('appLayout.footerStatus.unknown') : v
+})
 
 function setTheme(key) { themeStore.setTheme(key) }
 
