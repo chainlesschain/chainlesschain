@@ -32,6 +32,13 @@ vi.mock('../../src/stores/ws.js', () => ({
     onRuntimeEvent: () => () => {},
     onSession: () => () => {},
     sendRaw: vi.fn().mockResolvedValue({}),
+    // Chat / chatStore call these on mount; return empty arrays so the
+    // store doesn't throw and the mount sweep stays quiet.
+    listSessions: vi.fn().mockResolvedValue([]),
+    createSession: vi.fn().mockResolvedValue({ id: 'mock-session', type: 'chat', history: [] }),
+    resumeSession: vi.fn().mockResolvedValue({ id: 'mock-session', history: [] }),
+    sendSessionMessage: vi.fn().mockResolvedValue({}),
+    answerQuestion: vi.fn().mockResolvedValue({}),
     status: 'connected',
     connect: vi.fn(),
   }),
@@ -158,4 +165,44 @@ describe('Compliance.vue mount smoke', () => {
     expect(wrapper.html()).not.toContain('(CLI 端)')
     expect(wrapper.html()).not.toContain('disabled="disabled"')
   })
+})
+
+// ─────────────────────────────────────────────────────────────────────────
+// Translated-views mount sweep — covers every M3-translated view in one
+// parametrised pass. Each entry pairs a view file with the expected
+// page-heading key from the locale catalog. Catches: template syntax
+// breakage, useI18n() not wired, missing namespace, store-store crash.
+// ─────────────────────────────────────────────────────────────────────────
+const TRANSLATED_VIEWS = [
+  { file: 'QuickAsk.vue',         titleKey: 'quickAsk.title' },
+  { file: 'DID.vue',              titleKey: 'did.title' },
+  { file: 'KnowledgeGraph.vue',   titleKey: 'knowledgeGraph.title' },
+  { file: 'Dashboard.vue',        titleKey: 'dashboard.title' },
+  { file: 'Chat.vue',             titleKey: null }, // Chat empty-state shown when no session
+  { file: 'WorkflowEditor.vue',   titleKey: 'workflow.title' },
+  { file: 'Marketplace.vue',      titleKey: 'marketplace.title' },
+  { file: 'Trust.vue',            titleKey: 'trust.title' },
+  { file: 'Governance.vue',       titleKey: 'governance.title' },
+  { file: 'Privacy.vue',          titleKey: 'privacy.title' },
+  { file: 'Sla.vue',              titleKey: 'sla.title' },
+  { file: 'Codegen.vue',          titleKey: 'codegen.title' },
+  { file: 'Tenant.vue',           titleKey: 'tenant.title' },
+  { file: 'NLProgramming.vue',    titleKey: 'nlprog.title' },
+  { file: 'Crosschain.vue',       titleKey: 'crosschain.title' },
+]
+
+describe('translated views mount sweep', () => {
+  for (const { file, titleKey } of TRANSLATED_VIEWS) {
+    it(`${file} mounts under zh-CN without throwing`, async () => {
+      const View = (await import(`../../src/views/${file}`)).default
+      const wrapper = mount(View, mountOpts)
+      await flushPromises()
+      // If we reach here the SFC parsed, useI18n resolved, and onMounted
+      // didn't throw. That alone catches the most common breakage class.
+      if (titleKey) {
+        const expected = i18n.global.t(titleKey)
+        expect(wrapper.html()).toContain(expected)
+      }
+    })
+  }
 })
