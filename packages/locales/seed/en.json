@@ -147,5 +147,135 @@
       "analyzeFailed": "Analysis failed",
       "analyzeSuccess": "Analysis complete — {n} anomalies found"
     }
+  },
+  "pipeline": {
+    "title": "Development pipeline",
+    "subtitle": "7-stage AI dev pipeline · quality gates · deploy strategies",
+    "refresh": "Refresh",
+    "create": "Create pipeline",
+    "noDb": {
+      "message": "This module requires a project-level database",
+      "description": "`cc pipeline ...` commands only work inside a chainlesschain project directory. Run `cc init` first, or start `cc serve` from an initialised directory."
+    },
+    "stats": {
+      "totalPipelines": "Total pipelines",
+      "running": "Running",
+      "totalStages": "Total stages",
+      "totalArtifacts": "Artifacts",
+      "totalDeploys": "Deploys"
+    },
+    "stagesCardTitle": "7-stage pipeline",
+    "tabs": {
+      "pipelines": "Pipelines",
+      "deploys": "Deploys",
+      "templates": "Templates"
+    },
+    "filters": {
+      "allTemplates": "All templates",
+      "allStatuses": "All statuses"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "unnamed": "(unnamed)",
+      "actions": {
+        "details": "Details",
+        "start": "Start",
+        "pause": "Pause",
+        "resume": "Resume",
+        "approveGate": "Approve gate",
+        "cancel": "Cancel"
+      },
+      "cancelConfirm": "Cancel this pipeline?",
+      "cancelOk": "Cancel",
+      "cancelBack": "Back",
+      "emptyFiltered": "No pipelines match the current filter",
+      "empty": "No pipelines yet — click \"Create pipeline\" to start one",
+      "emptyDeploys": "No deploy history yet"
+    },
+    "cols": {
+      "name": "Name",
+      "template": "Template",
+      "progress": "Progress",
+      "currentStage": "Current stage",
+      "status": "Status",
+      "createdAt": "Created",
+      "action": "Action",
+      "pipeline": "Pipeline",
+      "strategy": "Strategy"
+    },
+    "create_modal": {
+      "title": "Create pipeline",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "templateLabel": "Template",
+      "nameLabel": "Name",
+      "namePlaceholder": "Optional, e.g. \"fix login bug\"",
+      "configLabel": "Config (JSON)",
+      "configPlaceholder": "JSON object, e.g. repo=web, ticket=PROJ-123"
+    },
+    "details": {
+      "title": "Pipeline details: {label}",
+      "template": "Template",
+      "status": "Status",
+      "progress": "Progress",
+      "createdAt": "Created",
+      "startedAt": "Started",
+      "stagesHeader": "Stage details",
+      "needsApproval": "Needs approval",
+      "approved": "(approved)",
+      "errorPrefix": "Error:"
+    },
+    "templateLabels": {
+      "feature": "Feature",
+      "bugfix": "Bug fix",
+      "refactor": "Refactor",
+      "security-audit": "Security audit"
+    },
+    "stageLabels": {
+      "requirement": "Requirement",
+      "architecture": "Architecture",
+      "code-generation": "Code generation",
+      "testing": "Testing",
+      "code-review": "Code review",
+      "deploy": "Deploy",
+      "monitoring": "Monitoring"
+    },
+    "pipelineStatusLabels": {
+      "pending": "Pending",
+      "running": "Running",
+      "paused": "Paused",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "stageStatusLabels": {
+      "pending": "Pending",
+      "running": "Running",
+      "gate-waiting": "Awaiting approval",
+      "completed": "Completed",
+      "failed": "Failed",
+      "skipped": "Skipped"
+    },
+    "deployStatusLabels": {
+      "pending": "Pending",
+      "running": "Deploying",
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "rolled-back": "Rolled back"
+    },
+    "msg": {
+      "loadFailed": "Failed to load pipeline data",
+      "selectTemplate": "Pick a template",
+      "badConfigJson": "Config JSON is malformed",
+      "needCcInit": "Run `cc init` first to initialise the project",
+      "createFailed": "Create failed",
+      "createSuccess": "Pipeline created",
+      "actionFailed": "Action failed",
+      "started": "Started",
+      "paused": "Paused",
+      "resumed": "Resumed",
+      "gateApproved": "Gate approved",
+      "cancelled": "Cancelled"
+    }
   }
 }

@@ -147,5 +147,135 @@
       "analyzeFailed": "分析失败",
       "analyzeSuccess": "分析完成，发现 {n} 个异常"
     }
+  },
+  "pipeline": {
+    "title": "开发流水线",
+    "subtitle": "7 阶段 AI 开发流水线 · 质量门 · 部署策略",
+    "refresh": "刷新",
+    "create": "创建流水线",
+    "noDb": {
+      "message": "该模块需要项目级数据库",
+      "description": "`cc pipeline ...` 命令仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+    },
+    "stats": {
+      "totalPipelines": "流水线总数",
+      "running": "运行中",
+      "totalStages": "阶段总数",
+      "totalArtifacts": "制品",
+      "totalDeploys": "部署"
+    },
+    "stagesCardTitle": "7 阶段流水线",
+    "tabs": {
+      "pipelines": "流水线",
+      "deploys": "部署",
+      "templates": "模板"
+    },
+    "filters": {
+      "allTemplates": "全部模板",
+      "allStatuses": "全部状态"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "unnamed": "(未命名)",
+      "actions": {
+        "details": "详情",
+        "start": "启动",
+        "pause": "暂停",
+        "resume": "继续",
+        "approveGate": "批准门",
+        "cancel": "取消"
+      },
+      "cancelConfirm": "取消该流水线？",
+      "cancelOk": "取消",
+      "cancelBack": "返回",
+      "emptyFiltered": "没有符合条件的流水线",
+      "empty": "暂无流水线，点\"创建流水线\"创建第一条",
+      "emptyDeploys": "暂无部署记录"
+    },
+    "cols": {
+      "name": "名称",
+      "template": "模板",
+      "progress": "进度",
+      "currentStage": "当前阶段",
+      "status": "状态",
+      "createdAt": "创建时间",
+      "action": "操作",
+      "pipeline": "流水线",
+      "strategy": "策略"
+    },
+    "create_modal": {
+      "title": "创建流水线",
+      "ok": "创建",
+      "cancel": "取消",
+      "templateLabel": "模板",
+      "nameLabel": "名称",
+      "namePlaceholder": "可选，例如: 修复登录 Bug",
+      "configLabel": "配置 (JSON)",
+      "configPlaceholder": "JSON 对象，例如 repo=web、ticket=PROJ-123"
+    },
+    "details": {
+      "title": "流水线详情：{label}",
+      "template": "模板",
+      "status": "状态",
+      "progress": "进度",
+      "createdAt": "创建时间",
+      "startedAt": "开始时间",
+      "stagesHeader": "阶段详情",
+      "needsApproval": "需要审批",
+      "approved": "(已批准)",
+      "errorPrefix": "错误:"
+    },
+    "templateLabels": {
+      "feature": "功能开发",
+      "bugfix": "缺陷修复",
+      "refactor": "重构",
+      "security-audit": "安全审计"
+    },
+    "stageLabels": {
+      "requirement": "需求",
+      "architecture": "架构",
+      "code-generation": "代码生成",
+      "testing": "测试",
+      "code-review": "代码评审",
+      "deploy": "部署",
+      "monitoring": "监控"
+    },
+    "pipelineStatusLabels": {
+      "pending": "待启动",
+      "running": "运行中",
+      "paused": "已暂停",
+      "completed": "已完成",
+      "failed": "失败",
+      "cancelled": "已取消"
+    },
+    "stageStatusLabels": {
+      "pending": "待处理",
+      "running": "运行中",
+      "gate-waiting": "等待审批",
+      "completed": "已完成",
+      "failed": "失败",
+      "skipped": "跳过"
+    },
+    "deployStatusLabels": {
+      "pending": "待部署",
+      "running": "部署中",
+      "succeeded": "成功",
+      "failed": "失败",
+      "rolled-back": "已回滚"
+    },
+    "msg": {
+      "loadFailed": "加载流水线数据失败",
+      "selectTemplate": "请选择模板",
+      "badConfigJson": "配置 JSON 格式错误",
+      "needCcInit": "需要先 cc init 初始化项目",
+      "createFailed": "创建失败",
+      "createSuccess": "流水线已创建",
+      "actionFailed": "操作失败",
+      "started": "已启动",
+      "paused": "已暂停",
+      "resumed": "已恢复",
+      "gateApproved": "门已批准",
+      "cancelled": "已取消"
+    }
   }
 }
