@@ -130,7 +130,7 @@ function registerSessionCoreIpc(ipcMain) {
   }
 
   // ── session:policy ─────────────────────────────────────────────────
-  ipcMain.handle("session:policy:get", async (_e, sessionId) => {
+  ipcMain.handle("session-core:policy:get", async (_e, sessionId) => {
     if (!sessionId) {
       return err("sessionId required");
     }
@@ -146,7 +146,7 @@ function registerSessionCoreIpc(ipcMain) {
     }
   });
 
-  ipcMain.handle("session:policy:set", async (_e, sessionId, policy) => {
+  ipcMain.handle("session-core:policy:set", async (_e, sessionId, policy) => {
     if (!sessionId) {
       return err("sessionId required");
     }
@@ -162,7 +162,7 @@ function registerSessionCoreIpc(ipcMain) {
     }
   });
 
-  ipcMain.handle("session:policy:clear", async (_e, sessionId) => {
+  ipcMain.handle("session-core:policy:clear", async (_e, sessionId) => {
     if (!sessionId) {
       return err("sessionId required");
     }
@@ -175,7 +175,7 @@ function registerSessionCoreIpc(ipcMain) {
   });
 
   // ── session lifecycle ──────────────────────────────────────────────
-  ipcMain.handle("session:list", async (_e, filter) => {
+  ipcMain.handle("session-core:list", async (_e, filter) => {
     try {
       const mgr = getSessionManager();
       const handles = mgr.list(filter || {});
@@ -194,7 +194,7 @@ function registerSessionCoreIpc(ipcMain) {
     }
   });
 
-  ipcMain.handle("session:show", async (_e, sessionId) => {
+  ipcMain.handle("session-core:show", async (_e, sessionId) => {
     if (!sessionId) {
       return err("sessionId required");
     }
@@ -218,7 +218,7 @@ function registerSessionCoreIpc(ipcMain) {
     }
   });
 
-  ipcMain.handle("session:create", async (_e, opts) => {
+  ipcMain.handle("session-core:create", async (_e, opts) => {
     if (!opts || typeof opts !== "object") {
       return err("opts required");
     }
@@ -245,7 +245,7 @@ function registerSessionCoreIpc(ipcMain) {
 
   // Recall memories to seed a new session's system prompt context.
   // Defaults: scope=agent, scopeId=agentId, limit=5 — mirrors CLI `agent --recall-limit`.
-  ipcMain.handle("session:recall-on-start", async (_e, opts) => {
+  ipcMain.handle("session-core:recall-on-start", async (_e, opts) => {
     if (!opts || typeof opts !== "object") {
       return err("opts required");
     }
@@ -275,7 +275,7 @@ function registerSessionCoreIpc(ipcMain) {
     }
   });
 
-  ipcMain.handle("session:park", async (_e, sessionId) => {
+  ipcMain.handle("session-core:park", async (_e, sessionId) => {
     if (!sessionId) {
       return err("sessionId required");
     }
@@ -288,7 +288,7 @@ function registerSessionCoreIpc(ipcMain) {
     }
   });
 
-  ipcMain.handle("session:resume", async (_e, sessionId) => {
+  ipcMain.handle("session-core:resume", async (_e, sessionId) => {
     if (!sessionId) {
       return err("sessionId required");
     }
@@ -301,7 +301,7 @@ function registerSessionCoreIpc(ipcMain) {
     }
   });
 
-  ipcMain.handle("session:close", async (_e, sessionId, opts) => {
+  ipcMain.handle("session-core:close", async (_e, sessionId, opts) => {
     if (!sessionId) {
       return err("sessionId required");
     }
@@ -334,7 +334,7 @@ function registerSessionCoreIpc(ipcMain) {
   });
 
   // ── memory ─────────────────────────────────────────────────────────
-  ipcMain.handle("memory:store", async (_e, entry) => {
+  ipcMain.handle("session-core:memory:store", async (_e, entry) => {
     if (!entry || typeof entry !== "object") {
       return err("entry required");
     }
@@ -346,7 +346,7 @@ function registerSessionCoreIpc(ipcMain) {
     }
   });
 
-  ipcMain.handle("memory:recall", async (_e, query) => {
+  ipcMain.handle("session-core:memory:recall", async (_e, query) => {
     try {
       const store = getMemoryStore();
       return ok(store.recall(query || {}));
@@ -355,7 +355,7 @@ function registerSessionCoreIpc(ipcMain) {
     }
   });
 
-  ipcMain.handle("memory:delete", async (_e, id) => {
+  ipcMain.handle("session-core:memory:delete", async (_e, id) => {
     if (!id) {
       return err("id required");
     }
@@ -367,7 +367,7 @@ function registerSessionCoreIpc(ipcMain) {
     }
   });
 
-  ipcMain.handle("memory:consolidate", async (_e, opts) => {
+  ipcMain.handle("session-core:memory:consolidate", async (_e, opts) => {
     if (!opts || typeof opts !== "object") {
       return err("opts required");
     }
@@ -474,7 +474,7 @@ function registerSessionCoreIpc(ipcMain) {
   });
 
   // ── session:usage — aggregate session-hour metrics ──────────────
-  ipcMain.handle("session:usage", async (_e, opts) => {
+  ipcMain.handle("session-core:usage", async (_e, opts) => {
     try {
       const mgr = getSessionManager();
       if (opts?.sessionId) {
@@ -504,7 +504,7 @@ function registerSessionCoreIpc(ipcMain) {
     "closed",
   ];
 
-  ipcMain.handle("session:subscribe", async (ipcEvent, filter) => {
+  ipcMain.handle("session-core:subscribe", async (ipcEvent, filter) => {
     const wc = ipcEvent?.sender;
     if (!wc || typeof wc.send !== "function") {
       return err("no sender");
@@ -520,7 +520,7 @@ function registerSessionCoreIpc(ipcMain) {
       for (const ev of requested) {
         const fn = (handle) => {
           try {
-            wc.send("session:event", {
+            wc.send("session-core:event", {
               type: `session.${ev}`,
               session: handle?.toJSON ? handle.toJSON() : handle,
             });
@@ -669,24 +669,24 @@ function registerSessionCoreIpc(ipcMain) {
 
   return {
     channels: [
-      "session:policy:get",
-      "session:policy:set",
-      "session:policy:clear",
-      "session:list",
-      "session:show",
-      "session:create",
-      "session:recall-on-start",
-      "session:park",
-      "session:resume",
-      "session:close",
-      "memory:store",
-      "memory:recall",
-      "memory:delete",
-      "memory:consolidate",
+      "session-core:policy:get",
+      "session-core:policy:set",
+      "session-core:policy:clear",
+      "session-core:list",
+      "session-core:show",
+      "session-core:create",
+      "session-core:recall-on-start",
+      "session-core:park",
+      "session-core:resume",
+      "session-core:close",
+      "session-core:memory:store",
+      "session-core:memory:recall",
+      "session-core:memory:delete",
+      "session-core:memory:consolidate",
       "agent:stream:start",
       "agent:stream:cancel",
-      "session:usage",
-      "session:subscribe",
+      "session-core:usage",
+      "session-core:subscribe",
       "beta:list",
       "beta:enable",
       "beta:disable",

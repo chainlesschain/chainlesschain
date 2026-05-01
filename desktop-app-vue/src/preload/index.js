@@ -2704,35 +2704,40 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // ==========================================
   sessionCore: {
     policy: {
-      get: (sessionId) => ipcRenderer.invoke("session:policy:get", sessionId),
+      get: (sessionId) =>
+        ipcRenderer.invoke("session-core:policy:get", sessionId),
       set: (sessionId, policy) =>
-        ipcRenderer.invoke("session:policy:set", sessionId, policy),
+        ipcRenderer.invoke("session-core:policy:set", sessionId, policy),
       clear: (sessionId) =>
-        ipcRenderer.invoke("session:policy:clear", sessionId),
+        ipcRenderer.invoke("session-core:policy:clear", sessionId),
     },
     session: {
-      list: (filter) => ipcRenderer.invoke("session:list", filter || {}),
-      show: (sessionId) => ipcRenderer.invoke("session:show", sessionId),
-      create: (opts) => ipcRenderer.invoke("session:create", opts),
+      list: (filter) => ipcRenderer.invoke("session-core:list", filter || {}),
+      show: (sessionId) => ipcRenderer.invoke("session-core:show", sessionId),
+      create: (opts) => ipcRenderer.invoke("session-core:create", opts),
       recallOnStart: (opts) =>
-        ipcRenderer.invoke("session:recall-on-start", opts),
-      park: (sessionId) => ipcRenderer.invoke("session:park", sessionId),
-      resume: (sessionId) => ipcRenderer.invoke("session:resume", sessionId),
+        ipcRenderer.invoke("session-core:recall-on-start", opts),
+      park: (sessionId) => ipcRenderer.invoke("session-core:park", sessionId),
+      resume: (sessionId) =>
+        ipcRenderer.invoke("session-core:resume", sessionId),
       close: (sessionId, opts) =>
-        ipcRenderer.invoke("session:close", sessionId, opts),
-      usage: (opts) => ipcRenderer.invoke("session:usage", opts),
-      subscribe: (filter) => ipcRenderer.invoke("session:subscribe", filter),
+        ipcRenderer.invoke("session-core:close", sessionId, opts),
+      usage: (opts) => ipcRenderer.invoke("session-core:usage", opts),
+      subscribe: (filter) =>
+        ipcRenderer.invoke("session-core:subscribe", filter),
       onEvent: (handler) => {
         const listener = (_ev, event) => handler(event);
-        ipcRenderer.on("session:event", listener);
-        return () => ipcRenderer.removeListener("session:event", listener);
+        ipcRenderer.on("session-core:event", listener);
+        return () => ipcRenderer.removeListener("session-core:event", listener);
       },
     },
     memory: {
-      store: (entry) => ipcRenderer.invoke("memory:store", entry),
-      recall: (query) => ipcRenderer.invoke("memory:recall", query),
-      delete: (id) => ipcRenderer.invoke("memory:delete", id),
-      consolidate: (opts) => ipcRenderer.invoke("memory:consolidate", opts),
+      store: (entry) => ipcRenderer.invoke("session-core:memory:store", entry),
+      recall: (query) =>
+        ipcRenderer.invoke("session-core:memory:recall", query),
+      delete: (id) => ipcRenderer.invoke("session-core:memory:delete", id),
+      consolidate: (opts) =>
+        ipcRenderer.invoke("session-core:memory:consolidate", opts),
     },
     agent: {
       streamStart: (opts) => ipcRenderer.invoke("agent:stream:start", opts),

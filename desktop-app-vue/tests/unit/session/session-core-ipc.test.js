@@ -50,19 +50,19 @@ describe("session-core IPC (Desktop)", () => {
   it("session:recall-on-start returns scoped memories for new session seed", async () => {
     const { ipcMain, invoke } = buildMockIpc();
     registerSessionCoreIpc(ipcMain);
-    await invoke("memory:store", {
+    await invoke("session-core:memory:store", {
       scope: "agent",
       scopeId: "agent_coder",
       content: "Prefers TypeScript",
       category: "preference",
     });
-    await invoke("memory:store", {
+    await invoke("session-core:memory:store", {
       scope: "agent",
       scopeId: "agent_coder",
       content: "Prefers semicolons",
       category: "preference",
     });
-    const res = await invoke("session:recall-on-start", {
+    const res = await invoke("session-core:recall-on-start", {
       agentId: "agent_coder",
       limit: 5,
     });
@@ -75,7 +75,7 @@ describe("session-core IPC (Desktop)", () => {
   it("session:recall-on-start rejects missing agentId", async () => {
     const { ipcMain, invoke } = buildMockIpc();
     registerSessionCoreIpc(ipcMain);
-    const res = await invoke("session:recall-on-start", {});
+    const res = await invoke("session-core:recall-on-start", {});
     expect(res.ok).toBe(false);
     expect(res.error).toMatch(/agentId/);
   });
@@ -83,10 +83,12 @@ describe("session-core IPC (Desktop)", () => {
   it("session:close with consolidate=true writes facts before close", async () => {
     const { ipcMain, invoke } = buildMockIpc();
     registerSessionCoreIpc(ipcMain);
-    const created = await invoke("session:create", { agentId: "agent_cc" });
+    const created = await invoke("session-core:create", {
+      agentId: "agent_cc",
+    });
     const sid = created.data.sessionId;
     singletons.getSessionManager().markIdle(sid);
-    const closed = await invoke("session:close", sid, {
+    const closed = await invoke("session-core:close", sid, {
       consolidate: true,
       scope: "agent",
       events: [{ type: "user_message", data: { content: "我喜欢 Rust" } }],
@@ -162,41 +164,41 @@ describe("session-core IPC (Desktop)", () => {
   it("session:create + session:list + session:show + park/resume/close", async () => {
     const { ipcMain, invoke } = buildMockIpc();
     registerSessionCoreIpc(ipcMain);
-    const created = await invoke("session:create", { agentId: "agent_x" });
+    const created = await invoke("session-core:create", { agentId: "agent_x" });
     expect(created.ok).toBe(true);
     const sid = created.data.sessionId;
 
-    const listed = await invoke("session:list", { agentId: "agent_x" });
+    const listed = await invoke("session-core:list", { agentId: "agent_x" });
     expect(listed.ok).toBe(true);
     expect(listed.data.some((s) => s.sessionId === sid)).toBe(true);
 
-    const shown = await invoke("session:show", sid);
+    const shown = await invoke("session-core:show", sid);
     expect(shown.ok).toBe(true);
     expect(shown.data.sessionId).toBe(sid);
     expect(shown.data.usage).toBeTruthy();
 
     // park requires status=idle (running → idle → parked)
     singletons.getSessionManager().markIdle(sid);
-    const parked = await invoke("session:park", sid);
+    const parked = await invoke("session-core:park", sid);
     expect(parked.ok).toBe(true);
     expect(parked.data.parked).toBe(true);
 
-    const resumed = await invoke("session:resume", sid);
+    const resumed = await invoke("session-core:resume", sid);
     expect(resumed.ok).toBe(true);
     expect(resumed.data.resumed).toBe(true);
 
-    const closed = await invoke("session:close", sid);
+    const closed = await invoke("session-core:close", sid);
     expect(closed.ok).toBe(true);
     expect(closed.data.closed).toBe(true);
 
-    const after = await invoke("session:show", sid);
+    const after = await invoke("session-core:show", sid);
     expect(after.ok).toBe(false);
   });
 
   it("session:create rejects missing agentId", async () => {
     const { ipcMain, invoke } = buildMockIpc();
     registerSessionCoreIpc(ipcMain);
-    const res = await invoke("session:create", {});
+    const res = await invoke("session-core:create", {});
     expect(res.ok).toBe(false);
     expect(res.error).toMatch(/agentId/);
   });
@@ -204,7 +206,7 @@ describe("session-core IPC (Desktop)", () => {
   it("session:policy:get returns default STRICT for unknown sessions", async () => {
     const { ipcMain, invoke } = buildMockIpc();
     registerSessionCoreIpc(ipcMain);
-    const res = await invoke("session:policy:get", "sess_x");
+    const res = await invoke("session-core:policy:get", "sess_x");
     expect(res.ok).toBe(true);
     expect(res.data.policy).toBe("strict");
   });
@@ -212,7 +214,11 @@ describe("session-core IPC (Desktop)", () => {
   it("session:policy:set persists across singleton re-hydration", async () => {
     const { ipcMain, invoke } = buildMockIpc();
     registerSessionCoreIpc(ipcMain);
-    const setRes = await invoke("session:policy:set", "sess_a", "autopilot");
+    const setRes = await invoke(
+      "session-core:policy:set",
+      "sess_a",
+      "autopilot",
+    );
     expect(setRes.ok).toBe(true);
     expect(setRes.data.policy).toBe("autopilot");
 
@@ -223,14 +229,14 @@ describe("session-core IPC (Desktop)", () => {
     singletons.resetSessionCoreSingletonsForTests();
     const mock2 = buildMockIpc();
     registerSessionCoreIpc(mock2.ipcMain);
-    const getRes = await mock2.invoke("session:policy:get", "sess_a");
+    const getRes = await mock2.invoke("session-core:policy:get", "sess_a");
     expect(getRes.data.policy).toBe("autopilot");
   });
 
   it("session:policy:set rejects invalid policy", async () => {
     const { ipcMain, invoke } = buildMockIpc();
     registerSessionCoreIpc(ipcMain);
-    const res = await invoke("session:policy:set", "sess_b", "bogus");
+    const res = await invoke("session-core:policy:set", "sess_b", "bogus");
     expect(res.ok).toBe(false);
     expect(res.error).toMatch(/invalid policy/);
   });
@@ -238,18 +244,18 @@ describe("session-core IPC (Desktop)", () => {
   it("session:policy:clear removes override", async () => {
     const { ipcMain, invoke } = buildMockIpc();
     registerSessionCoreIpc(ipcMain);
-    await invoke("session:policy:set", "sess_c", "trusted");
-    const cleared = await invoke("session:policy:clear", "sess_c");
+    await invoke("session-core:policy:set", "sess_c", "trusted");
+    const cleared = await invoke("session-core:policy:clear", "sess_c");
     expect(cleared.ok).toBe(true);
     expect(cleared.data.cleared).toBe(true);
-    const after = await invoke("session:policy:get", "sess_c");
+    const after = await invoke("session-core:policy:get", "sess_c");
     expect(after.data.policy).toBe("strict");
   });
 
   it("memory:store + memory:recall round-trip via singleton", async () => {
     const { ipcMain, invoke } = buildMockIpc();
     registerSessionCoreIpc(ipcMain);
-    const stored = await invoke("memory:store", {
+    const stored = await invoke("session-core:memory:store", {
       scope: "global",
       content: "Likes TypeScript",
       category: "preference",
@@ -258,7 +264,7 @@ describe("session-core IPC (Desktop)", () => {
     expect(stored.ok).toBe(true);
     expect(stored.data.id).toBeTruthy();
 
-    const recalled = await invoke("memory:recall", {
+    const recalled = await invoke("session-core:memory:recall", {
       query: "typescript",
       scope: "global",
     });
@@ -270,7 +276,7 @@ describe("session-core IPC (Desktop)", () => {
   it("memory:store rejects non-object entry", async () => {
     const { ipcMain, invoke } = buildMockIpc();
     registerSessionCoreIpc(ipcMain);
-    const res = await invoke("memory:store", null);
+    const res = await invoke("session-core:memory:store", null);
     expect(res.ok).toBe(false);
   });
 
@@ -287,7 +293,7 @@ describe("session-core IPC (Desktop)", () => {
         data: { tool: "read_file", result: { ok: true, summary: "ok" } },
       },
     ];
-    const res = await invoke("memory:consolidate", {
+    const res = await invoke("session-core:memory:consolidate", {
       sessionId: "sess_consolidate",
       agentId: "agent_a",
       scope: "agent",
@@ -301,7 +307,9 @@ describe("session-core IPC (Desktop)", () => {
   it("memory:consolidate rejects missing events", async () => {
     const { ipcMain, invoke } = buildMockIpc();
     registerSessionCoreIpc(ipcMain);
-    const res = await invoke("memory:consolidate", { sessionId: "x" });
+    const res = await invoke("session-core:memory:consolidate", {
+      sessionId: "x",
+    });
     expect(res.ok).toBe(false);
     expect(res.error).toMatch(/events/);
   });
@@ -333,8 +341,8 @@ describe("session-core IPC (Desktop)", () => {
   it("singletons write files under the configured home dir", async () => {
     const { ipcMain, invoke } = buildMockIpc();
     registerSessionCoreIpc(ipcMain);
-    await invoke("session:policy:set", "sess_d", "trusted");
-    await invoke("memory:store", {
+    await invoke("session-core:policy:set", "sess_d", "trusted");
+    await invoke("session-core:memory:store", {
       scope: "global",
       content: "x",
       category: "note",
@@ -352,8 +360,8 @@ describe("session-core IPC (Desktop)", () => {
   it("session:usage returns aggregate session-hour metrics", async () => {
     const { ipcMain, invoke } = buildMockIpc();
     registerSessionCoreIpc(ipcMain);
-    await invoke("session:create", { agentId: "usage-agent" });
-    const res = await invoke("session:usage");
+    await invoke("session-core:create", { agentId: "usage-agent" });
+    const res = await invoke("session-core:usage");
     expect(res.ok).toBe(true);
     expect(res.data.total.sessionCount).toBeGreaterThanOrEqual(1);
     expect(res.data.byAgent.length).toBeGreaterThanOrEqual(1);
@@ -373,7 +381,7 @@ describe("session-core IPC (Desktop)", () => {
       },
     };
 
-    const res = await handlers.get("session:subscribe")(fakeEvent, {
+    const res = await handlers.get("session-core:subscribe")(fakeEvent, {
       events: ["created", "idle"],
     });
     expect(res.ok).toBe(true);
@@ -385,7 +393,8 @@ describe("session-core IPC (Desktop)", () => {
     await new Promise((r) => setImmediate(r));
 
     const createdEvents = sent.filter(
-      (s) => s.ch === "session:event" && s.args[0]?.type === "session.created",
+      (s) =>
+        s.ch === "session-core:event" && s.args[0]?.type === "session.created",
     );
     expect(createdEvents.length).toBeGreaterThan(0);
     expect(createdEvents[0].args[0].session.agentId).toBe("sub-test");
@@ -400,7 +409,7 @@ describe("session-core IPC (Desktop)", () => {
       sender: { send: () => {}, once: () => {} },
     };
 
-    const res = await handlers.get("session:subscribe")(fakeEvent, {});
+    const res = await handlers.get("session-core:subscribe")(fakeEvent, {});
     expect(res.ok).toBe(true);
     expect(res.data.events).toHaveLength(7);
     expect(res.data.events).toEqual(
@@ -503,7 +512,9 @@ describe("session-core IPC (Desktop)", () => {
       { approvalPolicy: { default: "trusted" } },
     );
 
-    const created = await invoke("session:create", { agentId: "ap-agent" });
+    const created = await invoke("session-core:create", {
+      agentId: "ap-agent",
+    });
     const sid = created.data.sessionId;
 
     const res = await invoke("bundle:load", {
@@ -512,7 +523,7 @@ describe("session-core IPC (Desktop)", () => {
     });
     expect(res.ok).toBe(true);
 
-    const policy = await invoke("session:policy:get", sid);
+    const policy = await invoke("session-core:policy:get", sid);
     expect(policy.data.policy).toBe("trusted");
   });
 
