@@ -968,6 +968,168 @@
       "stepsLabel": "Steps"
     }
   },
+  "reputation": {
+    "title": "Reputation Optimizer",
+    "subtitle": "Observations · Decay models · Anomaly detection · Bayesian parameter optimization",
+    "refresh": "Refresh",
+    "actions": {
+      "anomalies": "Anomaly check",
+      "optimize": "Start optimization"
+    },
+    "noDb": {
+      "message": "Project-scoped database required",
+      "description": "`cc reputation ...` is only available inside a chainlesschain project. Run `cc init` first or start `cc serve` from an initialized directory."
+    },
+    "stats": {
+      "trackedDids": "Tracked DIDs",
+      "totalObservations": "Observations",
+      "optimizationRuns": "Optimization runs",
+      "active": "Active",
+      "bestEver": "Best ever"
+    },
+    "tabs": {
+      "scores": "Score ranking",
+      "runs": "Optimization runs",
+      "breakdown": "Distribution"
+    },
+    "filter": {
+      "decayLabel": "Decay model:",
+      "addObservation": "Add observation"
+    },
+    "scoreColumns": {
+      "rank": "Rank",
+      "did": "DID",
+      "score": "Reputation score",
+      "observations": "Observations",
+      "weightTotal": "Weight total"
+    },
+    "runColumns": {
+      "runId": "Run ID",
+      "objective": "Objective",
+      "iterations": "Iterations",
+      "bestScore": "Best score",
+      "status": "Status",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "totals": {
+      "dids": "{count} DIDs total",
+      "rows": "{count} rows"
+    },
+    "empty": {
+      "scores": "No reputation data yet — click Add observation to record one",
+      "runs": "No optimization runs yet — click Start optimization to begin"
+    },
+    "rowActions": {
+      "analyze": "Analyze",
+      "apply": "Apply"
+    },
+    "breakdown": {
+      "byStatus": "By status",
+      "byObjective": "By objective"
+    },
+    "observe": {
+      "title": "Add observation",
+      "ok": "Record",
+      "didLabel": "DID",
+      "didPlaceholder": "did:key:...",
+      "scoreLabel": "Score",
+      "scoreRange": "Range 0.0 ~ 1.0",
+      "kindLabel": "Kind",
+      "weightLabel": "Weight"
+    },
+    "optimize": {
+      "title": "Start optimization",
+      "ok": "Start",
+      "objectiveLabel": "Objective",
+      "iterationsLabel": "Iterations",
+      "iterationsRange": "Range 1 ~ 1000, default 50",
+      "syncMessage": "Synchronous run",
+      "syncDescription": "Optimization runs all iterations and returns best params plus recommendations (heuristic Bayesian simulation in the CLI lib)."
+    },
+    "anomaly": {
+      "title": "Anomaly score detection",
+      "methodLabel": "Method",
+      "zScoreLabel": "Z-score (3σ)",
+      "iqrLabel": "IQR (1.5×)",
+      "thresholdLabel": "Threshold",
+      "thresholdHint": "Defaults: z_score=2.5 / iqr=1.5",
+      "decayLabel": "Decay model",
+      "start": "Detect",
+      "notDetected": "Not detected yet",
+      "totalSamples": "Samples",
+      "threshold": "Threshold",
+      "anomalies": "Anomalies",
+      "scoreTag": "score: {score}",
+      "zNote": "z={value}"
+    },
+    "analytics": {
+      "title": "Run details: {runId}",
+      "objective": "Objective",
+      "status": "Status",
+      "iterations": "Iterations",
+      "bestScore": "Best score",
+      "createdAt": "Created",
+      "completedAt": "Completed",
+      "bestParams": "Best params",
+      "errorMessage": "Error",
+      "distributionTitle": "Reputation distribution",
+      "mean": "Mean: {value}",
+      "stdDev": "Std dev: {value}",
+      "recommendations": "Recommendations"
+    },
+    "decay": {
+      "none": "None",
+      "exponential": "Exponential",
+      "linear": "Linear",
+      "step": "Step"
+    },
+    "kind": {
+      "generic": "Generic",
+      "task": "Task",
+      "review": "Review",
+      "vote": "Vote"
+    },
+    "objective": {
+      "accuracy": "Accuracy",
+      "fairness": "Fairness",
+      "resilience": "Resilience",
+      "convergence_speed": "Convergence speed"
+    },
+    "objectiveDesc": {
+      "accuracy": "Maximize fit to ground-truth reputation",
+      "fairness": "Lower decay strength, treat all DIDs equally",
+      "resilience": "Increase tolerance to outliers",
+      "convergence_speed": "Reach a stable result in as few iterations as possible"
+    },
+    "status": {
+      "running": "Running",
+      "complete": "Complete",
+      "applied": "Applied",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "applyConfirm": {
+      "title": "Apply this optimization result?",
+      "content": "Run {runId}'s best params will be marked as applied.",
+      "ok": "Apply",
+      "cancel": "Cancel"
+    },
+    "messages": {
+      "loadFailed": "Failed to load reputation data: {err}",
+      "loadScoresFailed": "Failed to load scores: {err}",
+      "didRequired": "Please enter a DID",
+      "scoreRange": "Score must be between 0 and 1",
+      "needInit": "Run `cc init` to initialize the project first",
+      "observeFailed": "Record failed: {err}",
+      "observeOk": "Observation recorded",
+      "optimizeFailed": "Optimization failed: {err}",
+      "optimizeOk": "Optimization complete — best score {score}",
+      "applyFailed": "Apply failed: {err}",
+      "applyOk": "Applied",
+      "detectFailed": "Detection failed: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",

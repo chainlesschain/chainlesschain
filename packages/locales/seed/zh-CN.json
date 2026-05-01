@@ -968,6 +968,168 @@
       "stepsLabel": "步骤"
     }
   },
+  "reputation": {
+    "title": "声誉优化",
+    "subtitle": "观察记录 · 衰减模型 · 异常检测 · 贝叶斯参数优化",
+    "refresh": "刷新",
+    "actions": {
+      "anomalies": "异常检测",
+      "optimize": "启动优化"
+    },
+    "noDb": {
+      "message": "该模块需要项目级数据库",
+      "description": "`cc reputation ...` 命令仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+    },
+    "stats": {
+      "trackedDids": "跟踪 DID",
+      "totalObservations": "观察总数",
+      "optimizationRuns": "优化运行",
+      "active": "进行中",
+      "bestEver": "历史最佳"
+    },
+    "tabs": {
+      "scores": "评分排行",
+      "runs": "优化运行",
+      "breakdown": "分布统计"
+    },
+    "filter": {
+      "decayLabel": "衰减模型:",
+      "addObservation": "添加观察"
+    },
+    "scoreColumns": {
+      "rank": "排名",
+      "did": "DID",
+      "score": "声誉分数",
+      "observations": "观察数",
+      "weightTotal": "权重和"
+    },
+    "runColumns": {
+      "runId": "Run ID",
+      "objective": "目标",
+      "iterations": "迭代",
+      "bestScore": "最佳分数",
+      "status": "状态",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "totals": {
+      "dids": "共 {count} 个 DID",
+      "rows": "共 {count} 条"
+    },
+    "empty": {
+      "scores": "暂无声誉数据，点添加观察记录第一条",
+      "runs": "暂无优化运行，点启动优化开始第一次"
+    },
+    "rowActions": {
+      "analyze": "分析",
+      "apply": "应用"
+    },
+    "breakdown": {
+      "byStatus": "按状态",
+      "byObjective": "按目标"
+    },
+    "observe": {
+      "title": "添加观察记录",
+      "ok": "记录",
+      "didLabel": "DID",
+      "didPlaceholder": "did:key:...",
+      "scoreLabel": "评分",
+      "scoreRange": "范围 0.0 ~ 1.0",
+      "kindLabel": "种类",
+      "weightLabel": "权重"
+    },
+    "optimize": {
+      "title": "启动优化",
+      "ok": "启动",
+      "objectiveLabel": "目标",
+      "iterationsLabel": "迭代次数",
+      "iterationsRange": "范围 1 ~ 1000，默认 50",
+      "syncMessage": "同步执行",
+      "syncDescription": "优化将运行所有迭代后立即返回最佳参数与建议（CLI lib 内置启发式 Bayesian 模拟）。"
+    },
+    "anomaly": {
+      "title": "异常评分检测",
+      "methodLabel": "检测方法",
+      "zScoreLabel": "Z 分数 (3σ)",
+      "iqrLabel": "IQR (1.5×)",
+      "thresholdLabel": "阈值",
+      "thresholdHint": "默认 z_score=2.5 / iqr=1.5",
+      "decayLabel": "衰减模型",
+      "start": "开始检测",
+      "notDetected": "尚未检测",
+      "totalSamples": "样本数",
+      "threshold": "阈值",
+      "anomalies": "异常数",
+      "scoreTag": "score: {score}",
+      "zNote": "z={value}"
+    },
+    "analytics": {
+      "title": "运行详情：{runId}",
+      "objective": "目标",
+      "status": "状态",
+      "iterations": "迭代次数",
+      "bestScore": "最佳分数",
+      "createdAt": "创建时间",
+      "completedAt": "完成时间",
+      "bestParams": "最佳参数",
+      "errorMessage": "错误信息",
+      "distributionTitle": "声誉分布",
+      "mean": "平均: {value}",
+      "stdDev": "标准差: {value}",
+      "recommendations": "建议"
+    },
+    "decay": {
+      "none": "无",
+      "exponential": "指数",
+      "linear": "线性",
+      "step": "步进"
+    },
+    "kind": {
+      "generic": "通用",
+      "task": "任务",
+      "review": "评审",
+      "vote": "投票"
+    },
+    "objective": {
+      "accuracy": "准确性",
+      "fairness": "公平性",
+      "resilience": "抗扰动",
+      "convergence_speed": "收敛速度"
+    },
+    "objectiveDesc": {
+      "accuracy": "最大化对真实声誉的拟合",
+      "fairness": "降低衰减强度，平等对待各 DID",
+      "resilience": "提高对异常值的容忍度",
+      "convergence_speed": "尽量少迭代获得稳定结果"
+    },
+    "status": {
+      "running": "运行中",
+      "complete": "已完成",
+      "applied": "已应用",
+      "failed": "失败",
+      "cancelled": "已取消"
+    },
+    "applyConfirm": {
+      "title": "应用本次优化结果？",
+      "content": "Run {runId} 的最佳参数将被标记为已应用。",
+      "ok": "应用",
+      "cancel": "取消"
+    },
+    "messages": {
+      "loadFailed": "加载声誉数据失败: {err}",
+      "loadScoresFailed": "加载评分失败: {err}",
+      "didRequired": "请填写 DID",
+      "scoreRange": "评分必须在 0 ~ 1 之间",
+      "needInit": "需要先 cc init 初始化项目",
+      "observeFailed": "记录失败: {err}",
+      "observeOk": "观察已记录",
+      "optimizeFailed": "优化失败: {err}",
+      "optimizeOk": "优化完成，最佳分数 {score}",
+      "applyFailed": "应用失败: {err}",
+      "applyOk": "已应用",
+      "detectFailed": "检测失败: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

@@ -189,6 +189,8 @@ const TRANSLATED_VIEWS = [
   { file: 'Tenant.vue',           titleKey: 'tenant.title' },
   { file: 'NLProgramming.vue',    titleKey: 'nlprog.title' },
   { file: 'Crosschain.vue',       titleKey: 'crosschain.title' },
+  { file: 'AIOps.vue',            titleKey: 'aiops.title' },
+  { file: 'Reputation.vue',       titleKey: 'reputation.title' },
 ]
 
 describe('translated views mount sweep', () => {
