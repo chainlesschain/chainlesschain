@@ -365,15 +365,13 @@ async function openDesktopWindow(role) {
 }
 
 // Phase 1.6 symmetric switch — mirror of V6 shell's "切换到 Web Shell"
-// button. Only ever rendered when shellMode.isEmbedded is true (we're
-// running inside the desktop), so electronAPI is guaranteed to be on
-// the window. Confirms via Modal then writes the setting + restarts.
+// button. The web-shell preload is intentionally empty (no electronAPI),
+// so we route through the `shell.switch` WS topic instead. The handler
+// in desktop-app-vue/src/main/web-shell/handlers/shell-switch-handler.js
+// persists ui.useWebShellExperimental=false via AppConfigManager and
+// then schedules app.relaunch() + app.exit(0) ~100ms later so the WS
+// reply can flush before the renderer dies.
 async function switchToDesktopShell() {
-  const electronAPI = window.electronAPI
-  if (!electronAPI || typeof electronAPI.invoke !== 'function') {
-    message.warning('electronAPI 不可用——只能在桌面端使用此功能')
-    return
-  }
   Modal.confirm({
     title: '切换到桌面壳？',
     content:
@@ -385,15 +383,16 @@ async function switchToDesktopShell() {
     centered: true,
     async onOk() {
       try {
-        const setRes = await electronAPI.invoke(
-          'config:set',
-          'ui.useWebShellExperimental',
-          false,
+        const reply = await ws.sendRaw(
+          { type: 'shell.switch', target: 'desktop' },
+          5000,
         )
-        if (setRes && setRes.success === false) {
-          throw new Error(setRes.error || 'config:set returned failure')
+        if (reply?.ok === false) {
+          throw new Error(reply.error || 'shell.switch returned failure')
         }
-        await electronAPI.invoke('system:restart')
+        // The handler relaunches ~100ms later — show a brief toast so
+        // the user sees something happen before the window dies.
+        message.loading({ content: '正在重启…', duration: 0 })
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         message.error('切换失败：' + msg)
