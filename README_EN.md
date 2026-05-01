@@ -1,5 +1,24 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-02 Update — **Web Panel i18n** — vue-i18n + 18 views translated + shared `@chainlesschain/locales` package
+
+The web management panel switches from hardcoded Chinese to bilingual (zh-CN / en) — sidebar follows the header toggle. `@chainlesschain/locales` is the single source of truth so desktop-app-vue / docs / website can all reuse the same catalog.
+
+| Theme | Commit | Notes |
+|---|---|---|
+| Shared locales package (M1) | `b66dd9fe7` | New `packages/locales/` workspace; zero runtime weight; vite/vitest aliases thread it in. `messages` / `SUPPORTED` / `FALLBACK` defined once. |
+| Extraction + drift tooling (M2) | `f6c163c79` | `npm run extract` (vue-i18n-extract; CI exit 1 on missing keys) + `scan-untranslated.js` (CJK drift scanner) + `no-stray-locales.test.js` (block per-project locale forks). |
+| vue-i18n wiring + ant-d-v locale sync | `932f5ba38` | `<a-config-provider :locale>` watches zhCN/enUS bundle, pagination / date pickers / Popconfirm follow the toggle. Language switch lives next to the theme switcher. |
+| 18 views, ~1240 strings translated (M3) | `dd878633a` → `82b63b50a` | QuickAsk · Compliance · Pipeline · DID · KnowledgeGraph · Dashboard · Chat · WorkflowEditor · Marketplace · Trust · Governance · Privacy · Sla · Codegen · Tenant · NLProgramming · Crosschain · AppLayout (sidebar 137 items + 9 groups + header). Enum label mappers use `t(key) === key ? fallback : t(key)` so unknown values pass through unchanged. |
+| Test hardening | `d0fa56f64` | i18n-key-parity (zh/en JSONs MUST mirror, leaves non-empty, ≥18 namespaces) + mount-sweep across 17 views (mount + translated title visible in DOM). Unit 1660 → 1691 (+31), E2E 75/75. |
+
+**Audit deltas** (`packages/locales/scripts/scan-untranslated.js`)
+- Before: 54 files / 2906 CJK occurrences
+- After:  39 files / 1583 (-15 files, **-1323 strings, ~46% of the catalog**)
+- ~25 views still have residual CJK; pattern is mechanical, can ship incrementally.
+
+**Bug fixes**: no new bugs introduced. The single integration-test failure (`compliance threat-intel match 1.2.3.4`) is a corrupt local SQLite DB (`database disk image is malformed`) on the dev machine, not a code bug — `cc setup --reset` or removing `%APPDATA%/chainlesschain/data/chainlesschain.db` rebuilds it.
+
 ## 2026-05-02 Update — **MTC v0.5** — Phase 3 federation suite + libp2p gossipsub auto-discovery
 
 Phase 3 federation MTCA fully landed: M-of-N multi-signature landmarks,

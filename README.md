@@ -1,5 +1,24 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-02 增量更新（**Web Panel 双语化** — vue-i18n + 18 个 view 翻译完成 + 共享 locales 包）
+
+Web 管理面板从硬编码中文翻成中英双语，sidebar 跟着头部按钮一键切。`@chainlesschain/locales` 共享包是 SOT，desktop / 官网 / docs 都能复用。
+
+| 主题 | 提交 | 说明 |
+|---|---|---|
+| 共享 locales 包 (M1) | `b66dd9fe7` | 新建 `packages/locales/` workspace，零运行时重量，vite/vitest alias 接入。`messages` / `SUPPORTED` / `FALLBACK` 一处定义，desktop-app-vue 后续可直接 import 同一份。 |
+| 提取 + 守门工具链 (M2) | `f6c163c79` | `npm run extract` 跑 vue-i18n-extract（CI exit 1 on missing key）+ `scan-untranslated.js`（CJK 漂移扫描）+ `no-stray-locales.test.js`（禁止子项目放本地 *.json locale）。 |
+| vue-i18n 接入 + ant-d-v 同步 | `932f5ba38` | `<a-config-provider :locale>` 双向 watch zhCN/enUS bundle，分页 / 日期 / Popconfirm 跟着切；`useLocale()` 暴露 current/antdLocale/setLocale。语言切换按钮在 sidebar header（next to 主题切换）。 |
+| 18 view × ~1240 string 翻译 (M3) | `dd878633a` → `82b63b50a` | QuickAsk · Compliance · Pipeline · DID · KnowledgeGraph · Dashboard · Chat · WorkflowEditor · Marketplace · Trust · Governance · Privacy · Sla · Codegen · Tenant · NLProgramming · Crosschain · AppLayout（sidebar 137 项 + 9 group + header）。enum 标签 mapper 用 `t(key) === key ? fallback : t(key)` 模式，未知值原值穿透。 |
+| 测试加固 | `d0fa56f64` | i18n-key-parity（zh/en JSON key 必须 mirror、leaf 非空、≥18 namespace）+ mount-sweep 覆盖 17 view（mount + 译后标题在 DOM 中可见）。Unit 1660 → 1691（+31），E2E 75/75。 |
+
+**Audit deltas**（`packages/locales/scripts/scan-untranslated.js`）
+- 翻译前：54 文件 / 2906 CJK occurrences
+- 翻译后：39 文件 / 1583 occurrences（**-15 文件 / -1323 strings，~46% catalog**）
+- 25+ view 还有零散 CJK 待翻；模式跑得很顺，按需逐个推
+
+**Bug 修复**：本批没引入新 bug。`compliance threat-intel match 1.2.3.4` integration 测试 1 项失败，是本机 SQLite DB 损坏（`database disk image is malformed`）触发的环境问题，跟翻译无关；`cc setup --reset` 或者删 `%APPDATA%/chainlesschain/data/chainlesschain.db` 重建即可。
+
 ## 2026-05-01 增量更新 II（**Phase 1.6 hard-flip + 双向 shell 切换** — web-shell 默认 + 顶栏切换按钮 + 4 处启动期 bug 修）
 
 桌面端从"实验性 web-shell"翻成"默认 web-shell"，对称的顶栏一键切换，外加运行时回归一波。
