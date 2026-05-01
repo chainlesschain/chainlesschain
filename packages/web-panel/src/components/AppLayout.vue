@@ -267,6 +267,7 @@ import {
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'
+import logoSrc from '../assets/logo.png'
 import { useShellMode } from '../composables/useShellMode.js'
 
 const router  = useRouter()
@@ -282,7 +283,6 @@ const collapsed = ref(false)
 const cfg = window.__CC_CONFIG__ || {}
 const isProject = computed(() => cfg.mode === 'project')
 const PRODUCT_VERSION = typeof __PRODUCT_VERSION__ !== 'undefined' ? __PRODUCT_VERSION__ : 'vDev'
-const logoSrc = new URL('../../../../assets/logo.png', import.meta.url).href
 
 const currentTheme = computed(() => themeStore.current)
 const menuTheme    = computed(() => themeStore.config.vars['--menu-mode'])
