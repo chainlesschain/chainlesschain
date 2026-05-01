@@ -26,5 +26,20 @@
       "stack": "错误堆栈（仅开发模式可见）"
     },
     "runtime": "运行时错误"
+  },
+  "quickAsk": {
+    "title": "Quick Ask",
+    "subtitle": "单次流式提问 — 不保存会话历史，直接走 LLMManager.chatStream（桌面 web-shell 模式）",
+    "promptPlaceholder": "输入问题，Ctrl+Enter 发送",
+    "modelPlaceholder": "model（留空走默认）",
+    "charsSuffix": "字符",
+    "tokensSuffix": "tokens",
+    "send": "发送",
+    "cancel": "取消",
+    "clear": "清空",
+    "answerCardTitle": "回复",
+    "streaming": "流式接收中...",
+    "done": "完成",
+    "waitingFirstToken": "等待第一个 token..."
   }
 }

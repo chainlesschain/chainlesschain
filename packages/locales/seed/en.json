@@ -26,5 +26,20 @@
       "stack": "Stack trace (dev only)"
     },
     "runtime": "Runtime error"
+  },
+  "quickAsk": {
+    "title": "Quick Ask",
+    "subtitle": "One-shot streaming prompt — no session history; routed through LLMManager.chatStream (desktop web-shell mode).",
+    "promptPlaceholder": "Type your question. Ctrl+Enter to send.",
+    "modelPlaceholder": "model (blank → default)",
+    "charsSuffix": "chars",
+    "tokensSuffix": "tokens",
+    "send": "Send",
+    "cancel": "Cancel",
+    "clear": "Clear",
+    "answerCardTitle": "Reply",
+    "streaming": "Streaming...",
+    "done": "Done",
+    "waitingFirstToken": "Waiting for first token..."
   }
 }
