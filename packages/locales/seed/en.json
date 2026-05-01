@@ -1291,6 +1291,150 @@
       "queryFailed": "Query failed: {err}"
     }
   },
+  "recommend": {
+    "title": "Smart Recommendations",
+    "subtitle": "Interest profile · Topic decay · Content scoring · Feedback learning",
+    "refresh": "Refresh",
+    "createProfile": "New profile",
+    "userBar": {
+      "currentUser": "Current user:",
+      "selectPlaceholder": "Pick a user profile",
+      "applyDecay": "Apply decay",
+      "suggest": "Suggest tweaks",
+      "topicSuffix": "{count} topics"
+    },
+    "stats": {
+      "profiles": "User profiles",
+      "totalRecs": "Total recs",
+      "pending": "Pending",
+      "feedbackRate": "Feedback rate",
+      "avgScore": "Avg score"
+    },
+    "typeCatalogue": "Content types",
+    "tabs": {
+      "recs": "Feed",
+      "profiles": "Profiles",
+      "interests": "Interest profile"
+    },
+    "filter": {
+      "allStatuses": "All statuses",
+      "allTypes": "All types"
+    },
+    "totals": {
+      "rows": "{count} rows",
+      "profiles": "{count} profiles"
+    },
+    "recColumns": {
+      "title": "Title",
+      "contentType": "Type",
+      "score": "Score",
+      "reason": "Reason",
+      "status": "Status",
+      "feedback": "Feedback",
+      "action": "Action"
+    },
+    "profileColumns": {
+      "userId": "User ID",
+      "topicCount": "Topics",
+      "decayFactor": "Decay",
+      "updateCount": "Updates",
+      "lastUpdated": "Last updated",
+      "action": "Action"
+    },
+    "noTitle": "(no title)",
+    "feedbackDropdown": "Feedback ▼",
+    "feedbackMenu": {
+      "like": "Like",
+      "dislike": "Dislike",
+      "later": "Later"
+    },
+    "rowActions": {
+      "view": "View",
+      "dismiss": "Dismiss",
+      "dismissConfirmTitle": "Dismiss this recommendation?",
+      "dismissOk": "Dismiss",
+      "details": "Details",
+      "switch": "Switch",
+      "delete": "Delete",
+      "deleteConfirmTitle": "Delete this profile?",
+      "deleteOk": "Delete"
+    },
+    "empty": {
+      "selectUser": "Select a user profile first",
+      "filtered": "No recommendations match the filters",
+      "noRecsHint": "No recommendations for this user — run `cc recommend generate` to populate from content pool",
+      "noProfiles": "No user profiles yet",
+      "noInterests": "No interest weights yet for this user",
+      "noSuggestions": "No suggestions yet — needs more feedback",
+      "noTopics": "No topic weights"
+    },
+    "interest": {
+      "topicWeights": "Topic weights",
+      "feedbackSuggest": "Feedback suggestions",
+      "boost": "Boost",
+      "lower": "Lower"
+    },
+    "topicTagSuffix": "{count} topics",
+    "create": {
+      "title": "Create user profile",
+      "ok": "Create",
+      "userIdLabel": "User ID",
+      "userIdPlaceholder": "e.g. alice",
+      "topicsLabel": "Topic weights",
+      "topicsPlaceholder": "Optional JSON, e.g. ai=0.8, vue=0.5",
+      "weightsLabel": "Interaction weights",
+      "weightsPlaceholder": "Optional JSON, e.g. like=1.0, view=0.3"
+    },
+    "details": {
+      "title": "Profile details: {userId}",
+      "id": "ID",
+      "topicCount": "Topic count",
+      "decayFactor": "Decay factor",
+      "updateCount": "Updates",
+      "lastUpdated": "Last updated",
+      "topicWeights": "Topic weights",
+      "interactionWeights": "Interaction weights"
+    },
+    "type": {
+      "note": "Note",
+      "post": "Post",
+      "article": "Article",
+      "document": "Document"
+    },
+    "status": {
+      "pending": "Pending",
+      "viewed": "Viewed",
+      "dismissed": "Dismissed"
+    },
+    "feedbackLabel": {
+      "like": "Like",
+      "dislike": "Dislike",
+      "later": "Later"
+    },
+    "messages": {
+      "loadProfilesFailed": "Failed to load profiles: {err}",
+      "loadUserFailed": "Failed to load user data: {err}",
+      "userIdRequired": "Please enter a user ID",
+      "topicsJsonInvalid": "Topic-weight JSON is malformed",
+      "weightsJsonInvalid": "Interaction-weight JSON is malformed",
+      "createFailed": "Create failed: {err}",
+      "createOk": "Profile created: {id}",
+      "decayFailed": "Decay failed: {err}",
+      "decayOkTopics": "Decay applied, {count} topics remaining",
+      "decayOk": "Decay applied",
+      "suggestNone": "No suggestions yet — needs more feedback",
+      "suggestFound": "{count} suggestions found",
+      "loadSuggestFailed": "Failed to load suggestions: {err}",
+      "deleteFailed": "Delete failed: {err}",
+      "deleteOk": "Profile deleted",
+      "viewFailed": "Mark failed: {err}",
+      "viewOk": "Marked as viewed",
+      "feedbackFailed": "Feedback failed: {err}",
+      "feedbackOk": "Feedback recorded",
+      "dismissFailed": "Dismiss failed: {err}",
+      "dismissOk": "Dismissed"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",

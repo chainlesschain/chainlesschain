@@ -1291,6 +1291,150 @@
       "queryFailed": "查询失败: {err}"
     }
   },
+  "recommend": {
+    "title": "智能推荐",
+    "subtitle": "兴趣画像 · 主题衰减 · 内容评分 · 反馈学习",
+    "refresh": "刷新",
+    "createProfile": "创建画像",
+    "userBar": {
+      "currentUser": "当前用户:",
+      "selectPlaceholder": "选择用户档案",
+      "applyDecay": "应用衰减",
+      "suggest": "建议调整",
+      "topicSuffix": "{count} topics"
+    },
+    "stats": {
+      "profiles": "用户档案",
+      "totalRecs": "推荐总数",
+      "pending": "待查看",
+      "feedbackRate": "反馈率",
+      "avgScore": "平均分"
+    },
+    "typeCatalogue": "内容类型",
+    "tabs": {
+      "recs": "推荐流",
+      "profiles": "用户档案",
+      "interests": "兴趣画像"
+    },
+    "filter": {
+      "allStatuses": "全部状态",
+      "allTypes": "全部类型"
+    },
+    "totals": {
+      "rows": "共 {count} 条",
+      "profiles": "共 {count} 个档案"
+    },
+    "recColumns": {
+      "title": "标题",
+      "contentType": "类型",
+      "score": "评分",
+      "reason": "理由",
+      "status": "状态",
+      "feedback": "反馈",
+      "action": "操作"
+    },
+    "profileColumns": {
+      "userId": "用户 ID",
+      "topicCount": "主题数",
+      "decayFactor": "衰减因子",
+      "updateCount": "更新次数",
+      "lastUpdated": "最后更新",
+      "action": "操作"
+    },
+    "noTitle": "(无标题)",
+    "feedbackDropdown": "反馈 ▼",
+    "feedbackMenu": {
+      "like": "赞",
+      "dislike": "踩",
+      "later": "稍后"
+    },
+    "rowActions": {
+      "view": "查看",
+      "dismiss": "忽略",
+      "dismissConfirmTitle": "忽略该推荐？",
+      "dismissOk": "忽略",
+      "details": "详情",
+      "switch": "切换",
+      "delete": "删除",
+      "deleteConfirmTitle": "删除该档案？",
+      "deleteOk": "删除"
+    },
+    "empty": {
+      "selectUser": "请先选择用户档案",
+      "filtered": "没有符合条件的推荐",
+      "noRecsHint": "该用户暂无推荐 — 用 cc recommend generate 从内容池生成",
+      "noProfiles": "暂无用户档案",
+      "noInterests": "该用户暂无兴趣权重",
+      "noSuggestions": "暂无建议 — 需要更多反馈",
+      "noTopics": "无主题权重"
+    },
+    "interest": {
+      "topicWeights": "主题权重",
+      "feedbackSuggest": "反馈建议",
+      "boost": "提升",
+      "lower": "降低"
+    },
+    "topicTagSuffix": "{count} 主题",
+    "create": {
+      "title": "创建用户档案",
+      "ok": "创建",
+      "userIdLabel": "用户 ID",
+      "userIdPlaceholder": "例如 alice",
+      "topicsLabel": "主题权重",
+      "topicsPlaceholder": "可选 JSON：例如 ai=0.8, vue=0.5",
+      "weightsLabel": "交互权重",
+      "weightsPlaceholder": "可选 JSON：例如 like=1.0, view=0.3"
+    },
+    "details": {
+      "title": "档案详情：{userId}",
+      "id": "ID",
+      "topicCount": "主题数",
+      "decayFactor": "衰减因子",
+      "updateCount": "更新次数",
+      "lastUpdated": "最后更新",
+      "topicWeights": "主题权重",
+      "interactionWeights": "交互权重"
+    },
+    "type": {
+      "note": "笔记",
+      "post": "帖子",
+      "article": "文章",
+      "document": "文档"
+    },
+    "status": {
+      "pending": "待查看",
+      "viewed": "已查看",
+      "dismissed": "已忽略"
+    },
+    "feedbackLabel": {
+      "like": "赞",
+      "dislike": "踩",
+      "later": "稍后"
+    },
+    "messages": {
+      "loadProfilesFailed": "加载档案失败: {err}",
+      "loadUserFailed": "加载用户数据失败: {err}",
+      "userIdRequired": "请填写用户 ID",
+      "topicsJsonInvalid": "主题权重 JSON 格式错误",
+      "weightsJsonInvalid": "交互权重 JSON 格式错误",
+      "createFailed": "创建失败: {err}",
+      "createOk": "档案已创建：{id}",
+      "decayFailed": "衰减失败: {err}",
+      "decayOkTopics": "衰减已应用，剩余 {count} 个主题",
+      "decayOk": "衰减已应用",
+      "suggestNone": "暂无建议 — 需要更多反馈",
+      "suggestFound": "找到 {count} 条建议",
+      "loadSuggestFailed": "加载建议失败: {err}",
+      "deleteFailed": "删除失败: {err}",
+      "deleteOk": "档案已删除",
+      "viewFailed": "标记失败: {err}",
+      "viewOk": "已标记为已查看",
+      "feedbackFailed": "反馈失败: {err}",
+      "feedbackOk": "反馈已记录",
+      "dismissFailed": "忽略失败: {err}",
+      "dismissOk": "已忽略"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",
