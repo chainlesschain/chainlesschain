@@ -26,12 +26,56 @@ const {
   verify,
   SCHEMA_LANDMARK,
   ed25519,
+  slhDsa,
   assembleBatch,
 } = mtcLib;
 
 const STOPGAP_BANNER = chalk.yellow(
-  "⚠ STOPGAP — tree-head signed with Ed25519 (will switch to SLH-DSA when @noble/post-quantum lands).",
+  "⚠ Tree-head signed with Ed25519 (classical default). Pass --alg slh-dsa-128f for FIPS 205 post-quantum signatures.",
 );
+const PQC_BANNER = chalk.green(
+  "✓ Tree-head signed with SLH-DSA-SHA2-128F (FIPS 205 post-quantum).",
+);
+
+/**
+ * Resolve --alg flag to a signer module + key sizes for read-back.
+ * ed25519 (classical, 32-byte sk) is the default; slh-dsa-128f is opt-in.
+ */
+/**
+ * Build a verifier that handles either Ed25519 or SLH-DSA tree-head signatures
+ * based on the landmark's trust_anchors. Each per-algorithm verifier rejects
+ * signatures of the wrong alg via `signatureObj.alg !== ALG`, so chaining
+ * them is safe — at most one will accept.
+ */
+function makeMultiAlgVerifier(landmark) {
+  const ed = ed25519.makeVerifierFromLandmark(landmark);
+  const slh = slhDsa.makeVerifierFromLandmark(landmark);
+  return (signingInput, signatureObj) =>
+    ed(signingInput, signatureObj) || slh(signingInput, signatureObj);
+}
+
+function resolveSigner(algFlag) {
+  const alg = (algFlag || "ed25519").toLowerCase();
+  if (alg === "ed25519") {
+    return {
+      name: "ed25519",
+      signer: ed25519,
+      secretKeyLen: 32,
+      banner: STOPGAP_BANNER,
+    };
+  }
+  if (alg === "slh-dsa-128f" || alg === "slh-dsa-sha2-128f") {
+    return {
+      name: "slh-dsa-128f",
+      signer: slhDsa,
+      secretKeyLen: 64,
+      banner: PQC_BANNER,
+    };
+  }
+  throw new Error(
+    `Unknown --alg: ${algFlag} (supported: ed25519, slh-dsa-128f)`,
+  );
+}
 
 function readJsonFile(filePath) {
   const raw = fs.readFileSync(filePath, "utf-8");
@@ -47,36 +91,48 @@ function writeJsonFile(filePath, obj) {
   fs.writeFileSync(filePath, JSON.stringify(obj, null, 2), "utf-8");
 }
 
-function loadOrGenerateKeyPair(secretKeyPath) {
+function loadOrGenerateKeyPair(secretKeyPath, signerInfo) {
+  const sig = signerInfo || resolveSigner(null);
   if (secretKeyPath && fs.existsSync(secretKeyPath)) {
     const secretKey = Buffer.from(
       fs.readFileSync(secretKeyPath, "utf-8").trim(),
       "hex",
     );
-    if (secretKey.length !== 32) {
+    if (secretKey.length !== sig.secretKeyLen) {
       throw new Error(
-        `Secret key file ${secretKeyPath} must contain 32 bytes (64 hex chars)`,
+        `Secret key file ${secretKeyPath} must contain ${sig.secretKeyLen} bytes for ${sig.name}`,
       );
     }
-    const publicKey = Buffer.from(nobleEd25519.getPublicKey(secretKey));
+    let publicKey;
+    if (sig.name === "ed25519") {
+      publicKey = Buffer.from(nobleEd25519.getPublicKey(secretKey));
+    } else {
+      publicKey = sig.signer.getPublicKey(secretKey);
+    }
     return {
       secretKey,
       publicKey,
-      pubkeyId: ed25519.pubkeyId(publicKey),
+      pubkeyId: sig.signer.pubkeyId(publicKey),
     };
   }
-  return ed25519.generateKeyPair();
+  return sig.signer.generateKeyPair();
 }
 
 function buildBatch(rawLeaves, opts) {
-  const keys = loadOrGenerateKeyPair(opts.secretKeyFile);
-  const { landmark, envelopes, treeHeadId } = assembleBatch(rawLeaves, keys, {
-    namespace: opts.namespace,
-    issuer: opts.issuer,
-    issuedAt: opts.issuedAt,
-    expiresAt: opts.expiresAt,
-  });
-  return { landmark, envelopes, treeHeadId, keys };
+  const sig = resolveSigner(opts.alg);
+  const keys = loadOrGenerateKeyPair(opts.secretKeyFile, sig);
+  const { landmark, envelopes, treeHeadId } = assembleBatch(
+    rawLeaves,
+    keys,
+    {
+      namespace: opts.namespace,
+      issuer: opts.issuer,
+      issuedAt: opts.issuedAt,
+      expiresAt: opts.expiresAt,
+    },
+    sig.signer,
+  );
+  return { landmark, envelopes, treeHeadId, keys, signerInfo: sig };
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -200,6 +256,7 @@ function publishSkillsOnce(options) {
     namespace,
     issuer: options.issuer,
     secretKeyFile: options.secretKeyFile,
+    alg: options.alg,
   });
 
   fs.mkdirSync(batchDir, { recursive: true });
@@ -317,7 +374,12 @@ export function registerMtcCommand(program) {
     .option("--expires-at <iso>", "Override expires_at timestamp")
     .option(
       "--secret-key-file <path>",
-      "Reuse Ed25519 secret key from this hex file (creates one if missing)",
+      "Reuse secret key from hex file (creates one if missing); 32 B for ed25519, 64 B for slh-dsa-128f",
+    )
+    .option(
+      "--alg <name>",
+      "Signing algorithm: ed25519 (default, classical) | slh-dsa-128f (FIPS 205 post-quantum)",
+      "ed25519",
     )
     .option("--json", "Print JSON summary instead of human output")
     .action(async (inputPath, options) => {
@@ -327,16 +389,15 @@ export function registerMtcCommand(program) {
           throw new Error("Input must be a non-empty JSON array of leaves");
         }
 
-        const { landmark, envelopes, treeHeadId, keys } = buildBatch(
-          rawLeaves,
-          {
+        const { landmark, envelopes, treeHeadId, keys, signerInfo } =
+          buildBatch(rawLeaves, {
             namespace: options.namespace,
             issuer: options.issuer,
             issuedAt: options.issuedAt,
             expiresAt: options.expiresAt,
             secretKeyFile: options.secretKeyFile,
-          },
-        );
+            alg: options.alg,
+          });
 
         const outDir = path.resolve(options.out);
         const landmarkPath = path.join(outDir, "landmark.json");
@@ -380,7 +441,7 @@ export function registerMtcCommand(program) {
             ),
           );
         } else {
-          logger.log(STOPGAP_BANNER);
+          logger.log(signerInfo ? signerInfo.banner : STOPGAP_BANNER);
           logger.success("Batch built");
           logger.log(`  ${chalk.bold("Namespace:")}    ${options.namespace}`);
           logger.log(`  ${chalk.bold("Tree size:")}    ${rawLeaves.length}`);
@@ -415,7 +476,7 @@ export function registerMtcCommand(program) {
         const landmark = readJsonFile(options.landmark);
 
         const cache = new LandmarkCache({
-          signatureVerifier: ed25519.makeVerifierFromLandmark(landmark),
+          signatureVerifier: makeMultiAlgVerifier(landmark),
         });
         cache.ingest(landmark);
 
@@ -428,7 +489,7 @@ export function registerMtcCommand(program) {
           return;
         }
         if (result.ok) {
-          logger.log(STOPGAP_BANNER);
+          logger.log(signerInfo ? signerInfo.banner : STOPGAP_BANNER);
           logger.success(`Envelope verified`);
           logger.log(
             `  ${chalk.bold("Subject:")}   ${result.leaf.subject || "(no subject)"}`,
@@ -537,7 +598,12 @@ export function registerMtcCommand(program) {
     .option("--expires-at <iso>", "Override expires_at timestamp")
     .option(
       "--secret-key-file <path>",
-      "Reuse Ed25519 secret key from this hex file (creates one if missing)",
+      "Reuse secret key from hex file (creates one if missing); 32 B for ed25519, 64 B for slh-dsa-128f",
+    )
+    .option(
+      "--alg <name>",
+      "Signing algorithm: ed25519 (default, classical) | slh-dsa-128f (FIPS 205 post-quantum)",
+      "ed25519",
     )
     .option("--json", "Print JSON summary instead of human output")
     .action(async (options) => {
@@ -579,16 +645,15 @@ export function registerMtcCommand(program) {
           };
         });
 
-        const { landmark, envelopes, treeHeadId, keys } = buildBatch(
-          rawLeaves,
-          {
+        const { landmark, envelopes, treeHeadId, keys, signerInfo } =
+          buildBatch(rawLeaves, {
             namespace: options.namespace,
             issuer: options.issuer,
             issuedAt: options.issuedAt,
             expiresAt: options.expiresAt,
             secretKeyFile: options.secretKeyFile,
-          },
-        );
+            alg: options.alg,
+          });
 
         const outDir = path.resolve(options.out);
         const landmarkPath = path.join(outDir, "landmark.json");
@@ -634,7 +699,7 @@ export function registerMtcCommand(program) {
             ),
           );
         } else {
-          logger.log(STOPGAP_BANNER);
+          logger.log(signerInfo ? signerInfo.banner : STOPGAP_BANNER);
           logger.success(`Batched ${rawLeaves.length} DID(s)`);
           logger.log(`  ${chalk.bold("Namespace:")}    ${options.namespace}`);
           logger.log(`  ${chalk.bold("Tree size:")}    ${rawLeaves.length}`);
@@ -676,7 +741,12 @@ export function registerMtcCommand(program) {
     .option("--expires-at <iso>", "Override expires_at timestamp")
     .option(
       "--secret-key-file <path>",
-      "Reuse Ed25519 secret key from this hex file (creates one if missing)",
+      "Reuse secret key from hex file (creates one if missing); 32 B for ed25519, 64 B for slh-dsa-128f",
+    )
+    .option(
+      "--alg <name>",
+      "Signing algorithm: ed25519 (default, classical) | slh-dsa-128f (FIPS 205 post-quantum)",
+      "ed25519",
     )
     .option("--json", "Print JSON summary instead of human output")
     .action(async (options) => {
@@ -725,16 +795,15 @@ export function registerMtcCommand(program) {
           };
         });
 
-        const { landmark, envelopes, treeHeadId, keys } = buildBatch(
-          rawLeaves,
-          {
+        const { landmark, envelopes, treeHeadId, keys, signerInfo } =
+          buildBatch(rawLeaves, {
             namespace: options.namespace,
             issuer: options.issuer,
             issuedAt: options.issuedAt,
             expiresAt: options.expiresAt,
             secretKeyFile: options.secretKeyFile,
-          },
-        );
+            alg: options.alg,
+          });
 
         const outDir = path.resolve(options.out);
         const landmarkPath = path.join(outDir, "landmark.json");
@@ -780,7 +849,7 @@ export function registerMtcCommand(program) {
             ),
           );
         } else {
-          logger.log(STOPGAP_BANNER);
+          logger.log(signerInfo ? signerInfo.banner : STOPGAP_BANNER);
           logger.success(`Batched ${rawLeaves.length} skill(s)`);
           logger.log(`  ${chalk.bold("Namespace:")}    ${options.namespace}`);
           logger.log(`  ${chalk.bold("Tree size:")}    ${rawLeaves.length}`);
@@ -829,7 +898,12 @@ export function registerMtcCommand(program) {
     )
     .option(
       "--secret-key-file <path>",
-      "Reuse Ed25519 secret key from this hex file (creates one if missing)",
+      "Reuse secret key from hex file (creates one if missing); 32 B for ed25519, 64 B for slh-dsa-128f",
+    )
+    .option(
+      "--alg <name>",
+      "Signing algorithm: ed25519 (default, classical) | slh-dsa-128f (FIPS 205 post-quantum)",
+      "ed25519",
     )
     .option(
       "--interval <seconds>",
@@ -946,7 +1020,7 @@ export function registerMtcCommand(program) {
               // Lazy-init cache from first landmark's trust_anchors
               if (!cache) {
                 cache = new LandmarkCache({
-                  signatureVerifier: ed25519.makeVerifierFromLandmark(landmark),
+                  signatureVerifier: makeMultiAlgVerifier(landmark),
                   persistDir: options.cacheDir,
                 });
                 if (options.cacheDir) {

@@ -19,6 +19,7 @@ import {
   SwapOutlined,
   GlobalOutlined,
   SafetyCertificateOutlined,
+  SafetyOutlined,
 } from "@ant-design/icons-vue";
 import { dispatchSlash } from "../shell/slash-dispatch";
 
@@ -53,6 +54,12 @@ const entries: DecentralEntry[] = [
     label: "安全",
     icon: SafetyCertificateOutlined,
     handler: "builtin:openUKey",
+  },
+  {
+    id: "mtc",
+    label: "MTC",
+    icon: SafetyOutlined,
+    handler: "builtin:openMTC",
   },
 ];
 

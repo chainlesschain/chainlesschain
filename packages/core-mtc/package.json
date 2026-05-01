@@ -13,6 +13,7 @@
     "./verifier": "./lib/verifier.js",
     "./landmark-cache": "./lib/landmark-cache.js",
     "./signers/ed25519": "./lib/signers/ed25519.js",
+    "./signers/slh-dsa": "./lib/signers/slh-dsa.js",
     "./batch": "./lib/batch.js",
     "./transports": "./lib/transports/index.js",
     "./transports/in-memory": "./lib/transports/in-memory.js",
@@ -45,9 +46,10 @@
     "directory": "packages/core-mtc"
   },
   "dependencies": {
-    "canonicalize": "^2.0.0",
+    "@chainsafe/libp2p-gossipsub": "^14.1.2",
     "@noble/curves": "^1.9.7",
-    "@chainsafe/libp2p-gossipsub": "^14.1.2"
+    "@noble/post-quantum": "^0.6.1",
+    "canonicalize": "^2.0.0"
   },
   "devDependencies": {
     "vitest": "^3.1.1"

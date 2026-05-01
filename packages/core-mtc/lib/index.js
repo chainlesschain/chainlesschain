@@ -7,6 +7,7 @@ const jcsModule = require("./jcs.js");
 const verifier = require("./verifier.js");
 const landmarkCacheModule = require("./landmark-cache.js");
 const ed25519Signer = require("./signers/ed25519.js");
+const slhDsaSigner = require("./signers/slh-dsa.js");
 const batchModule = require("./batch.js");
 
 module.exports = {
@@ -46,8 +47,11 @@ module.exports = {
     landmarkCacheModule.alwaysAcceptSignatureVerifier,
   encodeIdForFs: landmarkCacheModule.encodeIdForFs,
 
-  // Ed25519 signer (stopgap until @noble/post-quantum SLH-DSA lands)
+  // Ed25519 signer (Phase 1 default — small signatures, classical security)
   ed25519: ed25519Signer,
+
+  // SLH-DSA-SHA2-128F signer (Phase 1.6 — FIPS 205 post-quantum, opt-in)
+  slhDsa: slhDsaSigner,
 
   // Batch assembly (pure: leaves + keys + meta -> landmark + envelopes)
   assembleBatch: batchModule.assembleBatch,

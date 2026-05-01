@@ -16,9 +16,15 @@ import {
 } from "../index";
 
 describe("shell-preview/widgets registry", () => {
-  const EXPECTED_IDS: DecentralEntryId[] = ["p2p", "trade", "social", "ukey"];
+  const EXPECTED_IDS: DecentralEntryId[] = [
+    "p2p",
+    "trade",
+    "social",
+    "ukey",
+    "mtc",
+  ];
 
-  it("exposes the 4 canonical decentralized entry ids", () => {
+  it("exposes the 5 canonical decentralized entry ids (p2p/trade/social/ukey/mtc)", () => {
     expect(Object.keys(PREVIEW_WIDGETS).sort()).toEqual(
       [...EXPECTED_IDS].sort(),
     );

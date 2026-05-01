@@ -23,11 +23,14 @@
 > | Phase 1.5 gossipsub | `1b0ae1105` | gossipsub mode（@chainsafe/libp2p-gossipsub@14，topic 路由） |
 > | Phase 1.5 serve | `4d1a81586` | `cc mtc serve` verifier 守护进程 + core-mtc subpath exports |
 > | Phase 2 partial | `67da18480` | `cc mtc batch-skills` 从 CLISkillLoader 读（Marketplace 路径） |
-> | Phase 2 batch lift | _本次_ | `assembleBatch` 从 mtc.js 抽到 `core-mtc/lib/batch.js`，所有 batch 路径共用一条装配代码 |
-> | Phase 2 marketplace daemon | _本次_ | `cc mtc publish-skills` 守护进程：fingerprint 差量检测 + 自动 seq 递增 + 状态文件持久化（unit 6 + integration 3）|
-> | Phase 2 audit 双轨脚手架 | _本次_ | `cc audit mtc enable/disable/config/set-interval/emit/reconcile/reconcile-check/status` — off-by-default，等保 1h/1min 双路径配置可切换；产线启用仍待 Q-COMP-1/Q-COMP-2（unit 18 + integration 5）|
+> | Phase 2 batch lift | `c69900c7d` | `assembleBatch` 从 mtc.js 抽到 `core-mtc/lib/batch.js`，所有 batch 路径共用一条装配代码 |
+> | Phase 2 marketplace daemon | `c69900c7d` | `cc mtc publish-skills` 守护进程：fingerprint 差量检测 + 自动 seq 递增 + 状态文件持久化（unit 6 + integration 3）|
+> | Phase 2 audit 双轨脚手架 | `c69900c7d` | `cc audit mtc enable/disable/config/set-interval/emit/reconcile/reconcile-check/status` — off-by-default，等保 1h/1min 双路径配置可切换；产线启用仍待 Q-COMP-1/Q-COMP-2（unit 22 + integration 5）|
+> | E2E + bug audit | `1903b9015` | 跨进程 e2e 6 测试 + 4 个 bug 修复（state file 原子写、staging schema 校验、oldest_queued_at malformed-leading guard、issuer key wx 并发 create）|
+> | **Phase 1.6 SLH-DSA 实签** | _本次_ | `core-mtc/lib/signers/slh-dsa.js` (FIPS 205) + `assembleBatch(...)` 接受可选 signer + `cc mtc batch/batch-dids/batch-skills/publish-skills` 全部支持 `--alg slh-dsa-128f` opt-in；`cc mtc verify` 多算法 dispatcher。@noble/post-quantum 0.6.1 落地 npm（unit 7 + integration 3）|
+> | **Phase 4 V6 widget** | _本次_ | `MtcStatusPreviewWidget.vue` + DecentralEntries 顶部新增 MTC 入口，显示 audit/批次/算法状态；IPC 缺失时优雅降级（registry test 5 + widget unit 6） |
 >
-> **累计测试**：core-mtc 140 + CLI 61（unit 30 + integration 25 + e2e 6）= **201 测试，全绿**，覆盖 unit / integration / e2e 三层。
+> **累计测试**：core-mtc 147 + CLI 64（unit 30 + integration 28 + e2e 6）+ desktop V6 widget 11 = **222 测试，全绿**，覆盖 unit / integration / e2e / desktop-renderer 四层。
 >
 > **v0.4 bug 审计修了 4 项**：(1) `cc mtc publish-skills` 状态文件改 atomic write（temp + rename），崩溃不再静默重置 `last_seq=0`；(2) audit-mtc `listStagingEvents` 加 schema + filename 双校验，伪事件不会进树；(3) `getStatus.oldest_queued_at` 在领头条目损坏时仍能找到首个有效记录；(4) `loadOrCreateIssuerKey` 改 `wx` 独占创建，并发首次 emit 不再生成冲突密钥。
 >
@@ -422,10 +425,11 @@ export async function verifyMTC(
 - [ ] CLI：`cc mtc federation join|leave|status`
 - [ ] Marketplace 切换到联邦签名作为信任锚
 
-### Phase 4 — Desktop UI（2 周）
-- [ ] V6 Pack：MTC 状态面板（landmark cache 大小、批次队列、最近一次同步时间）
-- [ ] DID 详情页面新增"MTC 包含证明"标签
-- [ ] Marketplace 列表展示"已通过 MTC 验证"徽章
+### Phase 4 — Desktop UI（部分落地）
+- [x] **V6 Preview Shell 状态 widget** — `MtcStatusPreviewWidget.vue` + `DecentralEntries` 顶部新增 MTC 入口，显示 audit-mtc enabled/批次间隔/staging count/最近批次/签名算法（Ed25519 vs SLH-DSA-128F）；IPC 缺失时优雅降级；6 单测覆盖
+- [ ] DID 详情页面新增"MTC 包含证明"标签（待 Phase 4.2）
+- [ ] Marketplace 列表展示"已通过 MTC 验证"徽章（待 Phase 4.2）
+- [ ] 主进程 `electronAPI.mtc.getAuditStatus / getActiveAlg` IPC 通道（widget 已为此预留接口形状）
 
 ---
 
@@ -522,7 +526,7 @@ export async function verifyMTC(
 - ⚠️ **Q-COMP-3** — 当前保守决议为 Phase 1+2 不上链；若需链上锚定，确认境内联盟链替代方案
 
 ### 14.3 进行中 / 即将启动
-- [ ] **Phase 1.6 — SLH-DSA 实签**：等待 `@noble/post-quantum` 加入 npm 生态后替换 Ed25519 stopgap；接口已为此预留（`signatureVerifier` DI + Ed25519 模块解耦 + `loadOrCreateIssuerKey` 单一替换点）
+- [x] **Phase 1.6 — SLH-DSA 实签**：✅ `@noble/post-quantum@0.6.1` 落地。`core-mtc/lib/signers/slh-dsa.js` 新增；`assembleBatch(leaves, keys, meta, signer?)` 支持 opt-in；`cc mtc batch/batch-dids/batch-skills/publish-skills --alg slh-dsa-128f` CLI 暴露；`cc mtc verify` 多算法 dispatcher 同时支持 Ed25519 + SLH-DSA-128F 信任锚。Audit-mtc 仍维持 Ed25519（realtime sig + 短窗 batch，PQC 收益边际，未来视产线启用情况单独评估）。
 - [ ] **Phase 2 backend 灰度切换**（Q-ENG-2 决议）：在 `backend/project-service` 加 `audit.mtc.enabled` 配置 + 调用 CLI 脚手架；audit 产线启用解锁后启动
 - [ ] **Phase 4 — Desktop UI**（V6 Pack：MTC 状态面板 + DID 详情页"包含证明"标签 + Marketplace 验证徽章 + audit 双轨"待批次关闭"徽章 — Q-PROD-1 决议 B）
 

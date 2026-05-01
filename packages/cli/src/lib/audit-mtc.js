@@ -135,6 +135,9 @@ export function loadOrCreateIssuerKey(dir) {
   }
   // Race-safe create: 'wx' flag fails with EEXIST if another writer beat us;
   // in that case re-read what they wrote so all callers agree on one key.
+  // audit-mtc stays on Ed25519 for both realtime and tree-head signatures
+  // (small/fast sig is the realtime track's value prop). SLH-DSA opt-in
+  // is exposed at the cc mtc batch* / publish-skills surfaces only.
   const keys = ed25519.generateKeyPair();
   try {
     fs.writeFileSync(p, keys.secretKey.toString("hex"), {

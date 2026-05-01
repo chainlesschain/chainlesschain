@@ -24,17 +24,29 @@ const ed25519 = require("./signers/ed25519.js");
  * @param {Array<object>} rawLeaves - raw JSON leaves (will be JCS-canonicalized + leafHash'd)
  * @param {{ secretKey: Buffer, publicKey: Buffer, pubkeyId?: string }} keys
  * @param {{ namespace: string, issuer: string, issuedAt?: string, expiresAt?: string }} meta
+ * @param {object} [signer] - signer module (ed25519 default; pass slhDsa for FIPS 205 post-quantum)
  * @returns {{ landmark: object, envelopes: object[], treeHeadId: string, root: Buffer }}
  */
-function assembleBatch(rawLeaves, keys, meta) {
+function assembleBatch(rawLeaves, keys, meta, signer) {
   if (!Array.isArray(rawLeaves) || rawLeaves.length === 0) {
     throw new RangeError("assembleBatch: rawLeaves must be a non-empty array");
   }
   if (!keys || !Buffer.isBuffer(keys.secretKey) || !Buffer.isBuffer(keys.publicKey)) {
-    throw new TypeError("assembleBatch: keys must include 32-byte secretKey + publicKey buffers");
+    throw new TypeError("assembleBatch: keys must include secretKey + publicKey buffers");
   }
   if (!meta || typeof meta.namespace !== "string" || typeof meta.issuer !== "string") {
     throw new TypeError("assembleBatch: meta.namespace and meta.issuer required");
+  }
+  // Default signer = ed25519 (kept as classical baseline; pass mtcLib.slhDsa
+  // to opt into FIPS 205 SLH-DSA-128f tree-head signatures).
+  const signImpl = signer || ed25519;
+  if (
+    typeof signImpl.signTreeHead !== "function" ||
+    typeof signImpl.trustAnchorEntry !== "function"
+  ) {
+    throw new TypeError(
+      "assembleBatch: signer must export signTreeHead + trustAnchorEntry",
+    );
   }
 
   const issuedAt = meta.issuedAt || new Date().toISOString();
@@ -57,7 +69,7 @@ function assembleBatch(rawLeaves, keys, meta) {
   const canonical = jcs(treeHead);
   const treeHeadId = encodeHashStr(sha256(canonical));
   const signingInput = Buffer.concat([TREE_HEAD_SIG_PREFIX, canonical]);
-  const signature = ed25519.signTreeHead(signingInput, {
+  const signature = signImpl.signTreeHead(signingInput, {
     secretKey: keys.secretKey,
     publicKey: keys.publicKey,
     issuer: meta.issuer,
@@ -67,10 +79,10 @@ function assembleBatch(rawLeaves, keys, meta) {
     schema: SCHEMA_LANDMARK,
     namespace: meta.namespace.split("/").slice(0, -1).join("/"),
     snapshots: [{ tree_head: treeHead, tree_head_id: treeHeadId, signature }],
-    trust_anchors: [ed25519.trustAnchorEntry(keys.publicKey, meta.issuer)],
+    trust_anchors: [signImpl.trustAnchorEntry(keys.publicKey, meta.issuer)],
     published_at: issuedAt,
     publisher_signature: {
-      alg: "Ed25519",
+      alg: signImpl.ALG || "Ed25519",
       key_id: meta.issuer + "#key-1",
       sig: "TODO-PUBLISHER-SIG",
     },
