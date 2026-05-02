@@ -1970,6 +1970,153 @@ function registerFederationGovernanceCommands(fed) {
       }
     });
 
+  // mtc federation governance-publish — push local events to a shared drop-zone
+  fed
+    .command("governance-publish <federation-id>")
+    .description(
+      "Publish local governance events to a shared drop-zone (filesystem path / NFS / Syncthing)",
+    )
+    .requiredOption("--drop-zone <dir>", "Shared filesystem directory")
+    .option("--json", "JSON output")
+    .action((federationId, options) => {
+      try {
+        const events = loadGovernanceLog(federationId);
+        const targetDir = path.join(
+          options.dropZone,
+          "federation-governance",
+          federationId,
+        );
+        fs.mkdirSync(targetDir, { recursive: true });
+        let published = 0;
+        let skipped = 0;
+        for (const ev of events) {
+          if (!ev || typeof ev.event_id !== "string") continue;
+          // event_id is a uuid v4 — already filesystem-safe
+          const target = path.join(targetDir, `${ev.event_id}.json`);
+          if (fs.existsSync(target)) {
+            skipped++;
+            continue;
+          }
+          // Atomic write: tmp + rename
+          const tmp = `${target}.${process.pid}.tmp`;
+          fs.writeFileSync(tmp, JSON.stringify(ev, null, 2), "utf-8");
+          fs.renameSync(tmp, target);
+          published++;
+        }
+        const result = {
+          federation_id: federationId,
+          drop_zone: targetDir,
+          local_total: events.length,
+          published,
+          skipped,
+        };
+        if (options.json) return console.log(JSON.stringify(result, null, 2));
+        logger.success(
+          `Published ${published} new event(s) (${skipped} already in drop-zone) to ${targetDir}`,
+        );
+      } catch (err) {
+        logger.error(
+          `mtc federation governance-publish failed: ${err.message}`,
+        );
+        process.exit(1);
+      }
+    });
+
+  // mtc federation governance-pull — pull events from a shared drop-zone, dedupe + verify, append locally
+  fed
+    .command("governance-pull <federation-id>")
+    .description(
+      "Pull governance events from a shared drop-zone, dedupe by event_id, append new ones to the local log (with optional signature verify)",
+    )
+    .requiredOption("--drop-zone <dir>", "Shared filesystem directory")
+    .option(
+      "--verify",
+      "Verify signatures against local registry before appending (default: trust schema only)",
+    )
+    .option("--json", "JSON output")
+    .action((federationId, options) => {
+      try {
+        const sourceDir = path.join(
+          options.dropZone,
+          "federation-governance",
+          federationId,
+        );
+        if (!fs.existsSync(sourceDir)) {
+          throw new Error(
+            `drop-zone has no events for ${federationId}: ${sourceDir}`,
+          );
+        }
+
+        // Collect remote events
+        const remote = [];
+        for (const name of fs.readdirSync(sourceDir)) {
+          if (!name.endsWith(".json")) continue;
+          try {
+            const ev = JSON.parse(
+              fs.readFileSync(path.join(sourceDir, name), "utf-8"),
+            );
+            if (ev && typeof ev.event_id === "string") remote.push(ev);
+          } catch (_err) {
+            /* skip malformed */
+          }
+        }
+
+        // Optional verify pass
+        let invalid = 0;
+        let unknown = 0;
+        let candidates = remote;
+        if (options.verify) {
+          const registry = loadFederationRegistry();
+          const fedEntry = registry.federations[federationId] || {
+            members: {},
+          };
+          const lookup = (actor /* , keyId */) => {
+            const m = fedEntry.members[actor];
+            if (!m || !m.pubkey_jwk) return null;
+            // Reconstruct Buffer from JWK x param (Ed25519 / SLH-DSA both use OKP-style)
+            try {
+              return Buffer.from(m.pubkey_jwk.x, "base64url");
+            } catch (_err) {
+              return null;
+            }
+          };
+          const result = mtcLib.verifyGovernanceLog(remote, lookup);
+          invalid = result.invalid.length;
+          unknown = result.unknown.length;
+          candidates = result.valid;
+        }
+
+        // Dedupe against local log
+        const localEvents = loadGovernanceLog(federationId);
+        const localIds = new Set(
+          localEvents.filter((e) => e && e.event_id).map((e) => e.event_id),
+        );
+        const newEvents = candidates.filter((e) => !localIds.has(e.event_id));
+
+        // Append in chronological order so replay sees stable ordering
+        const sorted = mtcLib.sortGovernanceEventsChronologically(newEvents);
+        for (const ev of sorted) appendGovernanceEvent(federationId, ev);
+
+        const result = {
+          federation_id: federationId,
+          drop_zone: sourceDir,
+          remote_total: remote.length,
+          local_total_before: localEvents.length,
+          appended: sorted.length,
+          duplicates: candidates.length - newEvents.length,
+          invalid_signature: invalid,
+          unknown_signer: unknown,
+        };
+        if (options.json) return console.log(JSON.stringify(result, null, 2));
+        logger.success(
+          `Pulled ${sorted.length} new event(s) (dedup: ${result.duplicates}, invalid: ${invalid}, unknown: ${unknown})`,
+        );
+      } catch (err) {
+        logger.error(`mtc federation governance-pull failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
   // mtc federation governance-log — show all events + replayed state
   fed
     .command("governance-log <federation-id>")

@@ -438,6 +438,78 @@ function replayGovernanceLog(events, federationId, options = {}) {
   };
 }
 
+/**
+ * Dedupe an event array by event_id, keeping the first occurrence.
+ * Sync helper — when pulling from a shared drop-zone, the same event
+ * may appear multiple times (publisher republished, multi-source merge).
+ *
+ * @param {Array<object>} events
+ * @returns {Array<object>}
+ */
+function dedupeEventsByEventId(events) {
+  if (!Array.isArray(events)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const ev of events) {
+    if (!ev || typeof ev.event_id !== "string") continue;
+    if (seen.has(ev.event_id)) continue;
+    seen.add(ev.event_id);
+    out.push(ev);
+  }
+  return out;
+}
+
+/**
+ * Sort events by issued_at then event_id (stable).
+ * Replay correctness depends on chronological ordering.
+ *
+ * @param {Array<object>} events
+ * @returns {Array<object>}
+ */
+function sortEventsChronologically(events) {
+  if (!Array.isArray(events)) return [];
+  return [...events].sort((a, b) => {
+    const ta = Date.parse(a.issued_at) || 0;
+    const tb = Date.parse(b.issued_at) || 0;
+    if (ta !== tb) return ta - tb;
+    return (a.event_id || "").localeCompare(b.event_id || "");
+  });
+}
+
+/**
+ * Verify each event's signature given a pubkey lookup function.
+ * Returns parallel arrays of {valid, invalid} (events with reasons).
+ *
+ * The verifier resolves the actor's public key via getPublicKey(actor, key_id).
+ * Returning null means "I don't know this key" — event is treated as
+ * unknown-signer, not invalid (caller can decide to defer / quarantine).
+ *
+ * @param {Array<object>} events
+ * @param {(actorMemberId: string, keyId: string) => Buffer|null} getPublicKey
+ * @returns {{valid: object[], invalid: {event,reason}[], unknown: {event,reason}[]}}
+ */
+function verifyGovernanceLog(events, getPublicKey) {
+  const valid = [];
+  const invalid = [];
+  const unknown = [];
+  for (const ev of events) {
+    let pk = null;
+    try {
+      pk = getPublicKey(ev.actor_member_id, ev.signature && ev.signature.key_id);
+    } catch (_err) {
+      pk = null;
+    }
+    if (!pk) {
+      unknown.push({ event: ev, reason: "UNKNOWN_KEY" });
+      continue;
+    }
+    const r = verifyGovernanceEvent(ev, { publicKey: pk });
+    if (r.ok) valid.push(ev);
+    else invalid.push({ event: ev, reason: r.code });
+  }
+  return { valid, invalid, unknown };
+}
+
 module.exports = {
   SCHEMA_GOVERNANCE,
   GOVERNANCE_DOMAIN_PREFIX,
@@ -447,4 +519,7 @@ module.exports = {
   createGovernanceEvent,
   verifyGovernanceEvent,
   replayGovernanceLog,
+  dedupeEventsByEventId,
+  sortEventsChronologically,
+  verifyGovernanceLog,
 };

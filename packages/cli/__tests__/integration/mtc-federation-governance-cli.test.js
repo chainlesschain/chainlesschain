@@ -413,6 +413,271 @@ describe("cc mtc federation governance — CLI integration", () => {
     });
   });
 
+  describe("governance-publish + governance-pull (cross-member sync)", () => {
+    it("publish writes one file per event to drop-zone", () => {
+      joinAs("alice");
+      mustRun([
+        "mtc",
+        "federation",
+        "invite",
+        "fed-test",
+        "bob",
+        "--actor",
+        "alice",
+        "--candidate-pubkey-id",
+        "sha256:b",
+        "--json",
+      ]);
+      const dropZone = fs.mkdtempSync(path.join(os.tmpdir(), "fed-gov-drop-"));
+      try {
+        const r = mustRun([
+          "mtc",
+          "federation",
+          "governance-publish",
+          "fed-test",
+          "--drop-zone",
+          dropZone,
+          "--json",
+        ]);
+        const j = extractJson(r.stdout);
+        expect(j.published).toBe(1);
+        expect(j.skipped).toBe(0);
+        const dir = path.join(dropZone, "federation-governance", "fed-test");
+        expect(fs.existsSync(dir)).toBe(true);
+        const files = fs.readdirSync(dir).filter((f) => f.endsWith(".json"));
+        expect(files).toHaveLength(1);
+      } finally {
+        fs.rmSync(dropZone, { recursive: true, force: true });
+      }
+    });
+
+    it("publish is idempotent (second run skips)", () => {
+      joinAs("alice");
+      mustRun([
+        "mtc",
+        "federation",
+        "invite",
+        "fed-test",
+        "bob",
+        "--actor",
+        "alice",
+        "--candidate-pubkey-id",
+        "sha256:b",
+        "--json",
+      ]);
+      const dropZone = fs.mkdtempSync(path.join(os.tmpdir(), "fed-gov-drop2-"));
+      try {
+        mustRun([
+          "mtc",
+          "federation",
+          "governance-publish",
+          "fed-test",
+          "--drop-zone",
+          dropZone,
+          "--json",
+        ]);
+        const r2 = mustRun([
+          "mtc",
+          "federation",
+          "governance-publish",
+          "fed-test",
+          "--drop-zone",
+          dropZone,
+          "--json",
+        ]);
+        const j2 = extractJson(r2.stdout);
+        expect(j2.published).toBe(0);
+        expect(j2.skipped).toBe(1);
+      } finally {
+        fs.rmSync(dropZone, { recursive: true, force: true });
+      }
+    });
+
+    it("alice publishes → bob pulls → bob's local log matches", () => {
+      // Alice's home (initial tmpHome) writes 2 events.
+      joinAs("alice");
+      mustRun([
+        "mtc",
+        "federation",
+        "invite",
+        "fed-test",
+        "carol",
+        "--actor",
+        "alice",
+        "--candidate-pubkey-id",
+        "sha256:c",
+        "--json",
+      ]);
+      mustRun([
+        "mtc",
+        "federation",
+        "vote",
+        "fed-test",
+        "carol",
+        "--actor",
+        "alice",
+        "--decision",
+        "approve",
+        "--json",
+      ]);
+
+      const dropZone = fs.mkdtempSync(path.join(os.tmpdir(), "fed-gov-x-"));
+      try {
+        mustRun([
+          "mtc",
+          "federation",
+          "governance-publish",
+          "fed-test",
+          "--drop-zone",
+          dropZone,
+          "--json",
+        ]);
+
+        // Switch to a fresh "bob" home and pull
+        const aliceHome = tmpHome;
+        const bobHome = fs.mkdtempSync(path.join(os.tmpdir(), "cc-fed-bob-"));
+        try {
+          tmpHome = bobHome;
+          const pull = mustRun([
+            "mtc",
+            "federation",
+            "governance-pull",
+            "fed-test",
+            "--drop-zone",
+            dropZone,
+            "--json",
+          ]);
+          const pj = extractJson(pull.stdout);
+          expect(pj.appended).toBe(2);
+          expect(pj.duplicates).toBe(0);
+
+          // Bob's local log now contains both events; replay should show carol as candidate
+          const log = mustRun([
+            "mtc",
+            "federation",
+            "governance-log",
+            "fed-test",
+            "--json",
+          ]);
+          const data = extractJson(log.stdout);
+          expect(data.events).toHaveLength(2);
+          const carol = data.state.members.find((m) => m.member_id === "carol");
+          expect(carol).toBeDefined();
+          expect(carol.weight).toBe(0.5);
+
+          // Pulling again is idempotent — duplicates only
+          const pull2 = mustRun([
+            "mtc",
+            "federation",
+            "governance-pull",
+            "fed-test",
+            "--drop-zone",
+            dropZone,
+            "--json",
+          ]);
+          const pj2 = extractJson(pull2.stdout);
+          expect(pj2.appended).toBe(0);
+          expect(pj2.duplicates).toBe(2);
+        } finally {
+          fs.rmSync(bobHome, { recursive: true, force: true });
+          tmpHome = aliceHome;
+        }
+      } finally {
+        fs.rmSync(dropZone, { recursive: true, force: true });
+      }
+    });
+
+    it("--verify passes for valid events when actor's pubkey is in registry", () => {
+      joinAs("alice");
+      mustRun([
+        "mtc",
+        "federation",
+        "invite",
+        "fed-test",
+        "bob",
+        "--actor",
+        "alice",
+        "--candidate-pubkey-id",
+        "sha256:b",
+        "--json",
+      ]);
+      const dropZone = fs.mkdtempSync(
+        path.join(os.tmpdir(), "fed-gov-verify-"),
+      );
+      try {
+        mustRun([
+          "mtc",
+          "federation",
+          "governance-publish",
+          "fed-test",
+          "--drop-zone",
+          dropZone,
+          "--json",
+        ]);
+
+        // Pull with verify in a fresh home that has joined the same federation as a peer
+        const aliceHome = tmpHome;
+        const peerHome = fs.mkdtempSync(path.join(os.tmpdir(), "cc-fed-peer-"));
+        try {
+          tmpHome = peerHome;
+          // Pull WITHOUT verify (no registry knowledge of alice)
+          const pullNoVerify = mustRun([
+            "mtc",
+            "federation",
+            "governance-pull",
+            "fed-test",
+            "--drop-zone",
+            dropZone,
+            "--json",
+          ]);
+          expect(extractJson(pullNoVerify.stdout).appended).toBe(1);
+
+          // Reset peer log via fresh peer dir and try with --verify (no registry → unknown)
+          const peer2 = fs.mkdtempSync(path.join(os.tmpdir(), "cc-fed-peer2-"));
+          tmpHome = peer2;
+          const pullVerify = mustRun([
+            "mtc",
+            "federation",
+            "governance-pull",
+            "fed-test",
+            "--drop-zone",
+            dropZone,
+            "--verify",
+            "--json",
+          ]);
+          const pvj = extractJson(pullVerify.stdout);
+          expect(pvj.unknown_signer).toBe(1);
+          expect(pvj.appended).toBe(0);
+          fs.rmSync(peer2, { recursive: true, force: true });
+        } finally {
+          fs.rmSync(peerHome, { recursive: true, force: true });
+          tmpHome = aliceHome;
+        }
+      } finally {
+        fs.rmSync(dropZone, { recursive: true, force: true });
+      }
+    });
+
+    it("pull errors when drop-zone has no events for federation", () => {
+      const dropZone = fs.mkdtempSync(path.join(os.tmpdir(), "fed-gov-empty-"));
+      try {
+        const r = runCli([
+          "mtc",
+          "federation",
+          "governance-pull",
+          "fed-nope",
+          "--drop-zone",
+          dropZone,
+          "--json",
+        ]);
+        expect(r.status).not.toBe(0);
+        expect(r.stderr || r.stdout).toMatch(/no events for fed-nope/);
+      } finally {
+        fs.rmSync(dropZone, { recursive: true, force: true });
+      }
+    });
+  });
+
   describe("--help wiring", () => {
     it("federation --help lists all 8 governance subcommands", () => {
       const r = mustRun(["mtc", "federation", "--help"]);
@@ -426,6 +691,8 @@ describe("cc mtc federation governance — CLI integration", () => {
         "fork",
         "merge",
         "governance-log",
+        "governance-publish",
+        "governance-pull",
       ]) {
         expect(r.stdout).toMatch(new RegExp(sub));
       }

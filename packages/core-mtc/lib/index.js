@@ -74,4 +74,10 @@ module.exports = {
   verifyGovernanceEvent: federationGovernanceModule.verifyGovernanceEvent,
   replayGovernanceLog: federationGovernanceModule.replayGovernanceLog,
   isValidGovernanceEventType: federationGovernanceModule.isValidEventType,
+  // v0.8 sync helpers
+  dedupeGovernanceEventsByEventId:
+    federationGovernanceModule.dedupeEventsByEventId,
+  sortGovernanceEventsChronologically:
+    federationGovernanceModule.sortEventsChronologically,
+  verifyGovernanceLog: federationGovernanceModule.verifyGovernanceLog,
 };

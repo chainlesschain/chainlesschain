@@ -9,6 +9,9 @@ const {
   createGovernanceEvent,
   verifyGovernanceEvent,
   replayGovernanceLog,
+  dedupeEventsByEventId,
+  sortEventsChronologically,
+  verifyGovernanceLog,
 } = require("../lib/federation-governance.js");
 const ed25519 = require("../lib/signers/ed25519.js");
 
@@ -451,6 +454,140 @@ describe("federation-governance", () => {
       ];
       const s = replayGovernanceLog(log, "fed-test");
       expect(s.members).toHaveLength(1); // OTHER-FED leave didn't touch fed-test
+    });
+  });
+
+  describe("dedupeEventsByEventId", () => {
+    it("returns empty array for non-array input", () => {
+      expect(dedupeEventsByEventId(null)).toEqual([]);
+      expect(dedupeEventsByEventId(undefined)).toEqual([]);
+    });
+
+    it("dedupes by event_id keeping first occurrence", () => {
+      const events = [
+        { event_id: "a", x: 1 },
+        { event_id: "b", x: 2 },
+        { event_id: "a", x: 999 }, // duplicate
+        { event_id: "c", x: 3 },
+      ];
+      const out = dedupeEventsByEventId(events);
+      expect(out).toHaveLength(3);
+      expect(out.map((e) => e.event_id)).toEqual(["a", "b", "c"]);
+      expect(out[0].x).toBe(1); // first kept, not 999
+    });
+
+    it("skips events without string event_id", () => {
+      const events = [
+        { event_id: "a" },
+        { event_id: 42 },
+        { something: "else" },
+        { event_id: "b" },
+      ];
+      expect(dedupeEventsByEventId(events).map((e) => e.event_id)).toEqual([
+        "a",
+        "b",
+      ]);
+    });
+  });
+
+  describe("sortEventsChronologically", () => {
+    it("sorts by issued_at ascending", () => {
+      const events = [
+        { event_id: "c", issued_at: "2026-05-03T00:00:00Z" },
+        { event_id: "a", issued_at: "2026-05-01T00:00:00Z" },
+        { event_id: "b", issued_at: "2026-05-02T00:00:00Z" },
+      ];
+      expect(
+        sortEventsChronologically(events).map((e) => e.event_id),
+      ).toEqual(["a", "b", "c"]);
+    });
+
+    it("breaks ties by event_id", () => {
+      const events = [
+        { event_id: "z", issued_at: "2026-05-01T00:00:00Z" },
+        { event_id: "a", issued_at: "2026-05-01T00:00:00Z" },
+      ];
+      expect(
+        sortEventsChronologically(events).map((e) => e.event_id),
+      ).toEqual(["a", "z"]);
+    });
+
+    it("does not mutate input", () => {
+      const events = [
+        { event_id: "b", issued_at: "2026-05-02T00:00:00Z" },
+        { event_id: "a", issued_at: "2026-05-01T00:00:00Z" },
+      ];
+      const before = events.map((e) => e.event_id).join(",");
+      sortEventsChronologically(events);
+      expect(events.map((e) => e.event_id).join(",")).toBe(before);
+    });
+  });
+
+  describe("verifyGovernanceLog", () => {
+    function makeKeys() {
+      return ed25519.generateKeyPair();
+    }
+
+    it("classifies events into valid/invalid/unknown", () => {
+      const aliceKeys = makeKeys();
+      const bobKeys = makeKeys();
+      const evAlice = createGovernanceEvent({
+        federationId: "fed-1",
+        eventType: "leave",
+        actorMemberId: "alice",
+        secretKey: aliceKeys.secretKey,
+        publicKey: aliceKeys.publicKey,
+      });
+      const evBob = createGovernanceEvent({
+        federationId: "fed-1",
+        eventType: "leave",
+        actorMemberId: "bob",
+        secretKey: bobKeys.secretKey,
+        publicKey: bobKeys.publicKey,
+      });
+      // Tamper bob's payload to break signature
+      const evBobTampered = { ...evBob, payload: { evil: true } };
+      // Unknown signer
+      const evGhost = createGovernanceEvent({
+        federationId: "fed-1",
+        eventType: "leave",
+        actorMemberId: "ghost",
+        secretKey: makeKeys().secretKey,
+        publicKey: makeKeys().publicKey,
+      });
+
+      const lookup = (actor) => {
+        if (actor === "alice") return aliceKeys.publicKey;
+        if (actor === "bob") return bobKeys.publicKey;
+        return null;
+      };
+
+      const result = verifyGovernanceLog(
+        [evAlice, evBobTampered, evGhost],
+        lookup,
+      );
+      expect(result.valid).toHaveLength(1);
+      expect(result.valid[0].actor_member_id).toBe("alice");
+      expect(result.invalid).toHaveLength(1);
+      expect(result.invalid[0].event.actor_member_id).toBe("bob");
+      expect(result.unknown).toHaveLength(1);
+      expect(result.unknown[0].event.actor_member_id).toBe("ghost");
+    });
+
+    it("treats getPublicKey throw as unknown signer", () => {
+      const keys = makeKeys();
+      const ev1 = createGovernanceEvent({
+        federationId: "fed-1",
+        eventType: "leave",
+        actorMemberId: "alice",
+        secretKey: keys.secretKey,
+        publicKey: keys.publicKey,
+      });
+      const result = verifyGovernanceLog([ev1], () => {
+        throw new Error("registry corrupt");
+      });
+      expect(result.unknown).toHaveLength(1);
+      expect(result.unknown[0].reason).toBe("UNKNOWN_KEY");
     });
   });
 });
