@@ -477,9 +477,9 @@ export async function verifyMTC(
 | **`packages/cli/src/commands/audit.js`** | ✅ 已落地 (v0.4) | 新增 `cc audit mtc {enable / disable / config / set-interval / emit / reconcile / reconcile-check / status}` 子命令组 |
 | `packages/cli/src/lib/did-manager.js` | ✅ 集成 | `cc mtc batch-dids` 通过 `getAllIdentities/getIdentity` 读 DID DB |
 | `packages/cli/src/lib/skill-loader.js` | ✅ 集成 | `cc mtc batch-skills` / `cc mtc publish-skills` 通过 `CLISkillLoader.loadAll()` 读技能 |
-| `packages/cli/src/pqc/` | ⏳ Phase 1.6 | 接 SLH-DSA-128f 替换 Ed25519 stopgap（依赖 `@noble/post-quantum`，未装） |
-| `desktop-app-vue/src/main/services/did-manager.js` | ⏳ Phase 4 | 增 `submitToMTCA()` 方法（IPC 接 core-mtc） |
-| `backend/project-service/` | ⏳ Phase 2 audit gating | 企业审计接口加 MTC envelope 字段（解锁合规后；脚手架就绪） |
+| `packages/core-mtc/lib/signers/slh-dsa.js` + `packages/cli/src/lib/pqc-manager.js` | ✅ Phase 1.6 已落地 | SLH-DSA-128f 实签接入，`@noble/post-quantum@0.6.1` 已装；`cc mtc batch / batch-dids / batch-skills / publish-skills --alg slh-dsa-128f` opt-in；`cc mtc verify` 多算法 dispatcher。**实现路径与 v0.3 设想的 `cli/src/pqc/` 不同**——共享签名能力下沉到 `core-mtc/lib/signers/`，CLI 侧只保留 PQC manager |
+| `desktop-app-vue/src/main/mtc/mtc-ipc.js` + `MtcInclusionProofDrawer.vue` | ✅ Phase 4 已落地 (2026-05-02) | 三 IPC 通道 `mtc:get-audit-status` / `mtc:get-active-alg` / `mtc:verify-envelope`（preload `electronAPI.mtc.*`）+ DID 详情页 / Marketplace per-row MTC 验证按钮（commit `1ed105226`）。**实现路径与 v0.3 设想的 `services/did-manager.js#submitToMTCA()` 不同**——desktop 通过 IPC bridge + drawer 暴露验证能力，不在 DID manager 加提交方法 |
+| `backend/project-service/` | ✅ Phase 2 audit 已接入 (2026-05-02) | Q-COMP-1 + Q-COMP-2 法务/测评出函已到 (2026-05-01) 解除产线阻塞；`AuditMtcBridgeService` (fire-and-forget spawn `cc audit mtc emit`) + `AuditMtcProperties` + `OperationLogService.saveLog` 末端桥接 + `OperationLog.audit_mtc_event_id` 字段 + `V013` 迁移 (commit `70d2cda59`，Q-ENG-2 + Q-PROD-1 决议)；15 JUnit 测试。生产启用走 `AUDIT_MTC_ENABLED=true` (+ 可选 `AUDIT_MTC_TENANT_ALLOW_LIST`)，默认仍 off |
 | `desktop-app-vue/src/main/p2p/p2p-manager.js` | ✅ 共享 libp2p 栈 | core-mtc 用同一版 libp2p 3.1.5，无冲突 |
 | libp2p / IPFS 适配层 | 新增 `mtc-landmark/<namespace>` topic 订阅 |
 
