@@ -2,17 +2,17 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">审计日志</h2>
-        <p class="page-sub">安全事件追踪 · 风险评估 · 合规导出</p>
+        <h2 class="page-title">{{ t('audit.title') }}</h2>
+        <p class="page-sub">{{ t('audit.subtitle') }}</p>
       </div>
       <a-space>
         <a-button :loading="loading" @click="loadAll">
           <template #icon><ReloadOutlined /></template>
-          刷新
+          {{ t('audit.refresh') }}
         </a-button>
         <a-button @click="exportJson">
           <template #icon><DownloadOutlined /></template>
-          导出 JSON
+          {{ t('audit.exportJson') }}
         </a-button>
       </a-space>
     </div>
@@ -22,8 +22,8 @@
       v-if="errorState.noDb"
       type="info"
       show-icon
-      message="该模块需要项目级数据库"
-      description="`cc audit ...` 命令仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+      :message="t('audit.noDb.message')"
+      :description="t('audit.noDb.description')"
       style="margin-bottom: 16px;"
     />
 
@@ -31,7 +31,7 @@
     <a-row :gutter="[16, 16]" style="margin-bottom: 20px;">
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="事件总数" :value="stats.total" :value-style="{ color: '#1677ff', fontSize: '20px' }">
+          <a-statistic :title="t('audit.stats.total')" :value="stats.total" :value-style="{ color: '#1677ff', fontSize: '20px' }">
             <template #prefix><FileSearchOutlined /></template>
           </a-statistic>
         </a-card>
@@ -39,7 +39,7 @@
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="失败次数"
+            :title="t('audit.stats.failures')"
             :value="stats.failures"
             :value-style="{ color: stats.failures > 0 ? '#ff4d4f' : '#52c41a', fontSize: '20px' }"
           >
@@ -50,7 +50,7 @@
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="高风险"
+            :title="t('audit.stats.highRisk')"
             :value="stats.highRisk"
             :value-style="{ color: stats.highRisk > 0 ? '#fa8c16' : '#52c41a', fontSize: '20px' }"
           >
@@ -61,7 +61,7 @@
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="关键事件"
+            :title="t('audit.stats.critical')"
             :value="stats.byRiskLevel.critical || 0"
             :value-style="{ color: (stats.byRiskLevel.critical || 0) > 0 ? '#ff4d4f' : '#888', fontSize: '20px' }"
           >
@@ -72,7 +72,7 @@
       <a-col :xs="24" :sm="8" :lg="4">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="成功率"
+            :title="t('audit.stats.successRate')"
             :value="successRate"
             suffix="%"
             :precision="1"
@@ -86,17 +86,17 @@
 
     <!-- Event type catalogue -->
     <a-card
-      title="事件类型"
+      :title="t('audit.typeCatalogueTitle')"
       size="small"
       style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 20px;"
       :body-style="{ padding: '12px 16px' }"
     >
       <a-row :gutter="[12, 12]">
-        <a-col v-for="t in EVENT_TYPES" :key="t" :xs="12" :sm="8" :lg="3">
-          <div class="type-pill" :style="{ borderLeftColor: typeBarColor(t) }">
-            <a-tag :color="typeColor(t)" style="font-family: monospace; font-size: 11px;">{{ t }}</a-tag>
-            <div class="type-name">{{ typeLabel(t) }}</div>
-            <div class="type-count">{{ stats.byEventType[t] || 0 }}</div>
+        <a-col v-for="evt in EVENT_TYPES" :key="evt" :xs="12" :sm="8" :lg="3">
+          <div class="type-pill" :style="{ borderLeftColor: typeBarColor(evt) }">
+            <a-tag :color="typeColor(evt)" style="font-family: monospace; font-size: 11px;">{{ evt }}</a-tag>
+            <div class="type-name">{{ typeLabel(evt) }}</div>
+            <div class="type-count">{{ stats.byEventType[evt] || 0 }}</div>
           </div>
         </a-col>
       </a-row>
@@ -105,31 +105,31 @@
     <!-- Tabs -->
     <a-tabs v-model:activeKey="activeTab" class="audit-tabs">
       <!-- ── Events tab ──────────────────────────────────────────── -->
-      <a-tab-pane key="events" tab="事件流">
+      <a-tab-pane key="events" :tab="t('audit.tabs.events')">
         <div class="filter-bar">
           <a-input-search
             v-model:value="searchInput"
-            placeholder="搜索操作 / 角色 / 目标..."
+            :placeholder="t('audit.filter.searchPlaceholder')"
             allow-clear
             style="max-width: 280px;"
             @search="runSearch"
             @input="onSearchInput"
           />
           <a-radio-group v-model:value="typeFilter" size="small" button-style="solid">
-            <a-radio-button value="">全部类型</a-radio-button>
-            <a-radio-button v-for="t in EVENT_TYPES" :key="t" :value="t">{{ typeLabel(t) }}</a-radio-button>
+            <a-radio-button value="">{{ t('audit.filter.allTypes') }}</a-radio-button>
+            <a-radio-button v-for="evt in EVENT_TYPES" :key="evt" :value="evt">{{ typeLabel(evt) }}</a-radio-button>
           </a-radio-group>
           <a-radio-group v-model:value="riskFilter" size="small">
-            <a-radio-button value="">全部风险</a-radio-button>
+            <a-radio-button value="">{{ t('audit.filter.allRisks') }}</a-radio-button>
             <a-radio-button v-for="r in RISK_LEVELS" :key="r" :value="r">{{ riskLabel(r) }}</a-radio-button>
           </a-radio-group>
-          <a-checkbox v-model:checked="failuresOnly">仅失败</a-checkbox>
+          <a-checkbox v-model:checked="failuresOnly">{{ t('audit.filter.failuresOnly') }}</a-checkbox>
         </div>
 
         <a-table
           :columns="logColumns"
           :data-source="filteredLogs"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (count) => t('audit.totals.rows', { count }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -165,7 +165,7 @@
             </template>
             <template v-if="column.key === 'mtc'">
               <template v-if="classifyMtcStatus(record) === 'none'">
-                <a-tooltip title="此事件未走 MTC 双轨（audit-mtc 未对该租户启用）">
+                <a-tooltip :title="t('audit.mtc.noneTooltip')">
                   <a-tag color="default">—</a-tag>
                 </a-tooltip>
               </template>
@@ -182,29 +182,29 @@
               </template>
             </template>
             <template v-if="column.key === 'action'">
-              <a-button size="small" type="link" @click="viewLogDetails(record)">详情</a-button>
+              <a-button size="small" type="link" @click="viewLogDetails(record)">{{ t('audit.rowAction.details') }}</a-button>
             </template>
           </template>
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <FileSearchOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              {{ hasFilters ? '没有符合条件的事件' : '暂无审计事件' }}
+              {{ hasFilters ? t('audit.empty.filtered') : t('audit.empty.noEvents') }}
             </div>
           </template>
         </a-table>
       </a-tab-pane>
 
       <!-- ── Breakdown tab ───────────────────────────────────────── -->
-      <a-tab-pane key="breakdown" tab="分布统计">
+      <a-tab-pane key="breakdown" :tab="t('audit.tabs.breakdown')">
         <a-row :gutter="[16, 16]">
           <a-col :xs="24" :lg="12">
-            <a-card title="按事件类型" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
-              <div v-for="t in EVENT_TYPES" :key="t" class="bd-row">
-                <a-tag :color="typeColor(t)" style="min-width: 80px; text-align: center; font-family: monospace;">{{ t }}</a-tag>
+            <a-card :title="t('audit.breakdown.byType')" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
+              <div v-for="evt in EVENT_TYPES" :key="evt" class="bd-row">
+                <a-tag :color="typeColor(evt)" style="min-width: 80px; text-align: center; font-family: monospace;">{{ evt }}</a-tag>
                 <a-progress
-                  :percent="pctOfTotal(stats.byEventType[t] || 0, stats.total)"
-                  :stroke-color="typeBarColor(t)"
-                  :format="() => `${stats.byEventType[t] || 0}`"
+                  :percent="pctOfTotal(stats.byEventType[evt] || 0, stats.total)"
+                  :stroke-color="typeBarColor(evt)"
+                  :format="() => `${stats.byEventType[evt] || 0}`"
                   size="small"
                   style="flex: 1; margin-left: 12px;"
                 />
@@ -212,7 +212,7 @@
             </a-card>
           </a-col>
           <a-col :xs="24" :lg="12">
-            <a-card title="按风险等级" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
+            <a-card :title="t('audit.breakdown.byRisk')" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
               <div v-for="r in RISK_LEVELS" :key="r" class="bd-row">
                 <a-tag :color="riskColor(r)" style="min-width: 80px; text-align: center;">{{ riskLabel(r) }}</a-tag>
                 <a-progress
@@ -232,49 +232,49 @@
     <!-- ── Event details modal ─────────────────────────────────── -->
     <a-modal
       v-model:open="showDetailsModal"
-      :title="`事件详情：${currentLog?.id?.slice(0, 8) || ''}`"
+      :title="t('audit.details.title', { id: currentLog?.id?.slice(0, 8) || '' })"
       :width="720"
       :footer="null"
     >
       <div v-if="currentLog" style="padding-top: 8px;">
         <a-descriptions :column="2" size="small" bordered>
-          <a-descriptions-item label="ID" :span="2">
+          <a-descriptions-item :label="t('audit.details.id')" :span="2">
             <span style="font-family: monospace; font-size: 12px;">{{ currentLog.id }}</span>
           </a-descriptions-item>
-          <a-descriptions-item label="事件类型">
+          <a-descriptions-item :label="t('audit.details.eventType')">
             <a-tag :color="typeColor(currentLog.eventType)" style="font-family: monospace;">{{ currentLog.eventType }}</a-tag>
             <span style="margin-left: 8px; color: var(--text-secondary); font-size: 12px;">{{ typeLabel(currentLog.eventType) }}</span>
           </a-descriptions-item>
-          <a-descriptions-item label="风险等级">
+          <a-descriptions-item :label="t('audit.details.riskLevel')">
             <a-tag :color="riskColor(currentLog.riskLevel)">{{ riskLabel(currentLog.riskLevel) }}</a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="操作" :span="2">
+          <a-descriptions-item :label="t('audit.details.operation')" :span="2">
             <span style="font-family: monospace;">{{ currentLog.operation }}</span>
           </a-descriptions-item>
-          <a-descriptions-item label="状态">
+          <a-descriptions-item :label="t('audit.details.status')">
             <a-tag :color="currentLog.success ? 'green' : 'red'">
-              {{ currentLog.success ? '成功' : '失败' }}
+              {{ currentLog.success ? t('audit.details.success') : t('audit.details.failure') }}
             </a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="时间">{{ formatAuditTime(currentLog.createdAt) }}</a-descriptions-item>
-          <a-descriptions-item label="角色">
+          <a-descriptions-item :label="t('audit.details.time')">{{ formatAuditTime(currentLog.createdAt) }}</a-descriptions-item>
+          <a-descriptions-item :label="t('audit.details.actor')">
             <span v-if="currentLog.actor" style="font-family: monospace; font-size: 12px;">{{ currentLog.actor }}</span>
             <span v-else style="color: var(--text-muted);">—</span>
           </a-descriptions-item>
-          <a-descriptions-item label="目标">
+          <a-descriptions-item :label="t('audit.details.target')">
             <span v-if="currentLog.target" style="font-family: monospace; font-size: 12px;">{{ currentLog.target }}</span>
             <span v-else style="color: var(--text-muted);">—</span>
           </a-descriptions-item>
-          <a-descriptions-item v-if="currentLog.ipAddress" label="IP">
+          <a-descriptions-item v-if="currentLog.ipAddress" :label="t('audit.details.ip')">
             <span style="font-family: monospace; font-size: 12px;">{{ currentLog.ipAddress }}</span>
           </a-descriptions-item>
-          <a-descriptions-item v-if="currentLog.userAgent" label="User-Agent">
+          <a-descriptions-item v-if="currentLog.userAgent" :label="t('audit.details.userAgent')">
             <span style="font-family: monospace; font-size: 11px;">{{ currentLog.userAgent }}</span>
           </a-descriptions-item>
-          <a-descriptions-item v-if="currentLog.errorMessage" label="错误信息" :span="2">
+          <a-descriptions-item v-if="currentLog.errorMessage" :label="t('audit.details.errorMessage')" :span="2">
             <span style="color: #ff4d4f;">{{ currentLog.errorMessage }}</span>
           </a-descriptions-item>
-          <a-descriptions-item v-if="currentLog.details" label="详细信息" :span="2">
+          <a-descriptions-item v-if="currentLog.details" :label="t('audit.details.details')" :span="2">
             <pre class="details-pre">{{ formatDetails(currentLog.details) }}</pre>
           </a-descriptions-item>
         </a-descriptions>
@@ -285,6 +285,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   ReloadOutlined,
   DownloadOutlined,
@@ -307,6 +308,7 @@ import {
   RISK_LEVELS,
 } from '../utils/audit-parser.js'
 
+const { t } = useI18n()
 const ws = useWsStore()
 const fs = useFs()
 
@@ -332,19 +334,18 @@ const failuresOnly = ref(false)
 const showDetailsModal = ref(false)
 const currentLog = ref(null)
 
-const logColumns = [
-  { title: '时间', key: 'createdAt', width: '160px' },
-  { title: '类型', key: 'eventType', width: '110px' },
-  { title: '操作', key: 'operation' },
-  { title: '角色', key: 'actor', width: '140px' },
-  { title: '目标', key: 'target', width: '180px' },
-  { title: '风险', key: 'riskLevel', width: '90px' },
-  { title: '状态', key: 'success', width: '80px' },
-  { title: 'MTC', key: 'mtc', width: '110px' },
-  { title: '操作', key: 'action', width: '80px' },
-]
+const logColumns = computed(() => [
+  { title: t('audit.logColumns.createdAt'), key: 'createdAt', width: '160px' },
+  { title: t('audit.logColumns.eventType'), key: 'eventType', width: '110px' },
+  { title: t('audit.logColumns.operation'), key: 'operation' },
+  { title: t('audit.logColumns.actor'), key: 'actor', width: '140px' },
+  { title: t('audit.logColumns.target'), key: 'target', width: '180px' },
+  { title: t('audit.logColumns.riskLevel'), key: 'riskLevel', width: '90px' },
+  { title: t('audit.logColumns.success'), key: 'success', width: '80px' },
+  { title: t('audit.logColumns.mtc'), key: 'mtc', width: '110px' },
+  { title: t('audit.logColumns.action'), key: 'action', width: '80px' },
+])
 
-// MTC reconcile-check cache: log.id → { state: 'staging'|'batched'|'unknown', batchId?, treeHeadId? }
 const mtcStatusCache = ref({})
 
 function getMtcStatusEntry(record) {
@@ -354,10 +355,10 @@ function getMtcStatusEntry(record) {
 
 function getMtcLabel(record) {
   const e = getMtcStatusEntry(record)
-  if (!e) return '已签 · 未查'
-  if (e.state === 'staging') return '待关批'
-  if (e.state === 'batched') return `已关批 #${e.batchId || '?'}`
-  return '未知'
+  if (!e) return t('audit.mtc.signedNotChecked')
+  if (e.state === 'staging') return t('audit.mtc.stagingLabel')
+  if (e.state === 'batched') return t('audit.mtc.batchedLabel', { batchId: e.batchId || '?' })
+  return t('audit.mtc.unknownLabel')
 }
 
 function getMtcColor(record) {
@@ -371,10 +372,10 @@ function getMtcColor(record) {
 function getMtcTooltip(record) {
   if (!record.auditMtcEventId) return ''
   const e = getMtcStatusEntry(record)
-  const base = `event_id: ${record.auditMtcEventId}`
-  if (!e) return `${base} — 点击查询 reconcile 状态`
-  if (e.state === 'staging') return `${base}\n仍在 staging，等待下次 reconcile`
-  if (e.state === 'batched') return `${base}\n已落入 batch #${e.batchId}\ntree_head_id: ${e.treeHeadId || ''}`
+  const base = t('audit.mtc.tooltipBase', { id: record.auditMtcEventId })
+  if (!e) return t('audit.mtc.tooltipNotChecked', { base })
+  if (e.state === 'staging') return t('audit.mtc.tooltipStaging', { base })
+  if (e.state === 'batched') return t('audit.mtc.tooltipBatched', { base, batchId: e.batchId, treeHead: e.treeHeadId || '' })
   return base
 }
 
@@ -387,12 +388,11 @@ async function checkMtcStatus(record) {
     try {
       parsed = JSON.parse(r.output.trim())
     } catch {
-      // Try greedy match
       const m = r.output.match(/\{[\s\S]*\}/)
       parsed = m ? JSON.parse(m[0]) : null
     }
     if (!parsed) {
-      message.warning('reconcile-check 没返回 JSON')
+      message.warning(t('audit.mtc.noJson'))
       return
     }
     const entry = parsed.found
@@ -402,7 +402,7 @@ async function checkMtcStatus(record) {
         : { state: 'unknown' }
     mtcStatusCache.value = { ...mtcStatusCache.value, [record.id]: entry }
   } catch (e) {
-    message.error('reconcile-check 失败: ' + (e?.message || e))
+    message.error(t('audit.mtc.checkFailed', { err: e?.message || e }))
   }
 }
 
@@ -431,27 +431,28 @@ const filteredLogs = computed(() => {
   return rows
 })
 
-function typeLabel(t) {
-  return {
-    auth: '认证', permission: '权限', data: '数据', system: '系统',
-    file: '文件', did: 'DID', crypto: '加密', api: 'API',
-  }[t] || t
+function typeLabel(evt) {
+  const key = `audit.type.${evt}`
+  const v = t(key)
+  return v === key ? evt : v
 }
-function typeColor(t) {
+function typeColor(evt) {
   return {
     auth: 'blue', permission: 'purple', data: 'cyan', system: 'default',
     file: 'green', did: 'gold', crypto: 'magenta', api: 'volcano',
-  }[t] || 'default'
+  }[evt] || 'default'
 }
-function typeBarColor(t) {
+function typeBarColor(evt) {
   return {
     auth: '#1677ff', permission: '#722ed1', data: '#13c2c2', system: '#888',
     file: '#52c41a', did: '#faad14', crypto: '#eb2f96', api: '#fa541c',
-  }[t] || '#888'
+  }[evt] || '#888'
 }
 
 function riskLabel(r) {
-  return { low: '低', medium: '中', high: '高', critical: '关键' }[r] || r
+  const key = `audit.risk.${r}`
+  const v = t(key)
+  return v === key ? r : v
 }
 function riskColor(r) {
   return { low: 'default', medium: 'gold', high: 'orange', critical: 'red' }[r] || 'default'
@@ -503,7 +504,7 @@ async function loadAll() {
     logs.value = parseLogs(logRes.output)
     stats.value = parseStats(statsRes.output)
   } catch (e) {
-    message.error('加载审计日志失败: ' + (e?.message || e))
+    message.error(t('audit.messages.loadFailed', { err: e?.message || e }))
   } finally {
     loading.value = false
   }
@@ -519,25 +520,23 @@ async function exportJson() {
     const { output } = await ws.execute('audit export -f json -n 10000', 20000)
     const err = detectAuditError(output)
     if (err.noDb) {
-      message.error('需要先 cc init 初始化项目')
+      message.error(t('audit.messages.needInit'))
       return
     }
-    // The lib emits the raw JSON to stdout when no -o is provided.
     if (!output.trim().startsWith('[')) {
-      message.error('导出失败: ' + output.slice(0, 120))
+      message.error(t('audit.messages.exportFailed', { err: output.slice(0, 120) }))
       return
     }
-    // useFs uses native fs.saveDialog inside the desktop web-shell so the
-    // user picks a real path; in browser mode it falls back to the blob+
-    // <a download> the hand-rolled code used before.
     const r = await fs.saveText(output.trim(), {
       defaultPath: `audit-${new Date().toISOString().slice(0, 10)}.json`,
       filters: [{ name: 'JSON', extensions: ['json'] }],
     })
     if (r.canceled) return
-    message.success(r.path ? `已导出到 ${r.path}` : '已导出')
+    message.success(r.path
+      ? t('audit.messages.exportOk', { path: r.path })
+      : t('audit.messages.exportOkDefault'))
   } catch (e) {
-    message.error('导出失败: ' + (e?.message || e))
+    message.error(t('audit.messages.exportFailed', { err: e?.message || e }))
   }
 }
 

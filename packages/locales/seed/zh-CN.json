@@ -2297,6 +2297,112 @@
       "emptyContent": "[空内容]"
     }
   },
+  "audit": {
+    "title": "审计日志",
+    "subtitle": "安全事件追踪 · 风险评估 · 合规导出",
+    "refresh": "刷新",
+    "exportJson": "导出 JSON",
+    "noDb": {
+      "message": "该模块需要项目级数据库",
+      "description": "`cc audit ...` 命令仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+    },
+    "stats": {
+      "total": "事件总数",
+      "failures": "失败次数",
+      "highRisk": "高风险",
+      "critical": "关键事件",
+      "successRate": "成功率"
+    },
+    "typeCatalogueTitle": "事件类型",
+    "tabs": {
+      "events": "事件流",
+      "breakdown": "分布统计"
+    },
+    "filter": {
+      "searchPlaceholder": "搜索操作 / 角色 / 目标...",
+      "allTypes": "全部类型",
+      "allRisks": "全部风险",
+      "failuresOnly": "仅失败"
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "logColumns": {
+      "createdAt": "时间",
+      "eventType": "类型",
+      "operation": "操作",
+      "actor": "角色",
+      "target": "目标",
+      "riskLevel": "风险",
+      "success": "状态",
+      "mtc": "MTC",
+      "action": "操作"
+    },
+    "rowAction": {
+      "details": "详情"
+    },
+    "empty": {
+      "filtered": "没有符合条件的事件",
+      "noEvents": "暂无审计事件"
+    },
+    "breakdown": {
+      "byType": "按事件类型",
+      "byRisk": "按风险等级"
+    },
+    "details": {
+      "title": "事件详情：{id}",
+      "id": "ID",
+      "eventType": "事件类型",
+      "riskLevel": "风险等级",
+      "operation": "操作",
+      "status": "状态",
+      "success": "成功",
+      "failure": "失败",
+      "time": "时间",
+      "actor": "角色",
+      "target": "目标",
+      "ip": "IP",
+      "userAgent": "User-Agent",
+      "errorMessage": "错误信息",
+      "details": "详细信息"
+    },
+    "type": {
+      "auth": "认证",
+      "permission": "权限",
+      "data": "数据",
+      "system": "系统",
+      "file": "文件",
+      "did": "DID",
+      "crypto": "加密",
+      "api": "API"
+    },
+    "risk": {
+      "low": "低",
+      "medium": "中",
+      "high": "高",
+      "critical": "关键"
+    },
+    "mtc": {
+      "noneTooltip": "此事件未走 MTC 双轨（audit-mtc 未对该租户启用）",
+      "signedNotChecked": "已签 · 未查",
+      "stagingLabel": "待关批",
+      "batchedLabel": "已关批 #{batchId}",
+      "unknownLabel": "未知",
+      "tooltipBase": "event_id: {id}",
+      "tooltipNotChecked": "{base} — 点击查询 reconcile 状态",
+      "tooltipStaging": "{base}\n仍在 staging，等待下次 reconcile",
+      "tooltipBatched": "{base}\n已落入 batch #{batchId}\ntree_head_id: {treeHead}",
+      "noJson": "reconcile-check 没返回 JSON",
+      "checkFailed": "reconcile-check 失败: {err}"
+    },
+    "messages": {
+      "loadFailed": "加载审计日志失败: {err}",
+      "needInit": "需要先 cc init 初始化项目",
+      "exportFailed": "导出失败: {err}",
+      "exportOk": "已导出到 {path}",
+      "exportOkDefault": "已导出"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

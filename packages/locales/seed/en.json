@@ -2297,6 +2297,112 @@
       "emptyContent": "[empty content]"
     }
   },
+  "audit": {
+    "title": "Audit Log",
+    "subtitle": "Security event tracking · Risk assessment · Compliance export",
+    "refresh": "Refresh",
+    "exportJson": "Export JSON",
+    "noDb": {
+      "message": "Project-scoped database required",
+      "description": "`cc audit ...` is only available inside a chainlesschain project. Run `cc init` first or start `cc serve` from an initialized directory."
+    },
+    "stats": {
+      "total": "Total events",
+      "failures": "Failures",
+      "highRisk": "High risk",
+      "critical": "Critical events",
+      "successRate": "Success rate"
+    },
+    "typeCatalogueTitle": "Event types",
+    "tabs": {
+      "events": "Event stream",
+      "breakdown": "Breakdown"
+    },
+    "filter": {
+      "searchPlaceholder": "Search operation / actor / target...",
+      "allTypes": "All types",
+      "allRisks": "All risks",
+      "failuresOnly": "Failures only"
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "logColumns": {
+      "createdAt": "Time",
+      "eventType": "Type",
+      "operation": "Operation",
+      "actor": "Actor",
+      "target": "Target",
+      "riskLevel": "Risk",
+      "success": "Status",
+      "mtc": "MTC",
+      "action": "Action"
+    },
+    "rowAction": {
+      "details": "Details"
+    },
+    "empty": {
+      "filtered": "No events match the filters",
+      "noEvents": "No audit events yet"
+    },
+    "breakdown": {
+      "byType": "By event type",
+      "byRisk": "By risk level"
+    },
+    "details": {
+      "title": "Event details: {id}",
+      "id": "ID",
+      "eventType": "Event type",
+      "riskLevel": "Risk level",
+      "operation": "Operation",
+      "status": "Status",
+      "success": "Success",
+      "failure": "Failed",
+      "time": "Time",
+      "actor": "Actor",
+      "target": "Target",
+      "ip": "IP",
+      "userAgent": "User-Agent",
+      "errorMessage": "Error",
+      "details": "Details"
+    },
+    "type": {
+      "auth": "Auth",
+      "permission": "Permission",
+      "data": "Data",
+      "system": "System",
+      "file": "File",
+      "did": "DID",
+      "crypto": "Crypto",
+      "api": "API"
+    },
+    "risk": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    },
+    "mtc": {
+      "noneTooltip": "This event did not go through MTC dual-track (audit-mtc not enabled for this tenant)",
+      "signedNotChecked": "Signed · not checked",
+      "stagingLabel": "Pending batch",
+      "batchedLabel": "Batched #{batchId}",
+      "unknownLabel": "Unknown",
+      "tooltipBase": "event_id: {id}",
+      "tooltipNotChecked": "{base} — click to query reconcile status",
+      "tooltipStaging": "{base}\nStill in staging, waiting for next reconcile",
+      "tooltipBatched": "{base}\nLanded in batch #{batchId}\ntree_head_id: {treeHead}",
+      "noJson": "reconcile-check returned no JSON",
+      "checkFailed": "reconcile-check failed: {err}"
+    },
+    "messages": {
+      "loadFailed": "Failed to load audit log: {err}",
+      "needInit": "Run `cc init` to initialize the project first",
+      "exportFailed": "Export failed: {err}",
+      "exportOk": "Exported to {path}",
+      "exportOkDefault": "Exported"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",
