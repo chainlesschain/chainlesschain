@@ -7,6 +7,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "postbuild": "node scripts/sync-dist-to-cli.js",
+    "build:no-sync": "vite build",
+    "sync-cli": "node scripts/sync-dist-to-cli.js",
     "preview": "vite preview",
     "test": "vitest run",
     "test:unit": "vitest run __tests__/unit",
