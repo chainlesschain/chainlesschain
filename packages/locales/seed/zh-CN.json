@@ -1961,6 +1961,77 @@
       "codesUnable": "无法生成恢复码"
     }
   },
+  "mtc": {
+    "title": "默克尔树证书 (MTC)",
+    "subtitle": "Audit 双轨状态 · Marketplace publisher 历史 · 离线验证工具",
+    "refresh": "刷新状态",
+    "tabs": {
+      "status": "Audit 双轨状态",
+      "publisher": "Marketplace publisher",
+      "verify": "Envelope 验证工具"
+    },
+    "status": {
+      "enabledLabel": "启用状态",
+      "enabled": "已启用",
+      "disabled": "未启用",
+      "intervalLabel": "批次间隔",
+      "stagingLabel": "待批次关闭",
+      "stagingMalformed": "{count} 损坏",
+      "totalBatches": "累计批次",
+      "configCard": "配置",
+      "lastBatchSize": "size={size} · {time}",
+      "noBatches": "尚未关批",
+      "loadFailMessage": "状态加载失败",
+      "loadFailDescription": "`cc audit mtc status --json` 没返回有效输出。请确认 cc serve 在运行，且当前账户能读 audit-mtc 目录。",
+      "notEnabledMessage": "audit-mtc 未启用 · 已就绪",
+      "notEnabledDescription": "法务出函阻塞已于 2026-05-01 解除。运行 `cc audit mtc enable --interval [60|3600] --namespace [ns] --issuer [issuer]` 即可在本租户启用双轨签名。"
+    },
+    "publisher": {
+      "stateFileLabel": "状态文件路径",
+      "stateFilePlaceholder": "e.g. ~/.chainlesschain/marketplace-state.json",
+      "queryButton": "查询",
+      "missingMessage": "状态文件不存在",
+      "missingDescription": "路径 {path} 还没有任何发布记录。运行一次 cc mtc publish-skills 后此处会出现历史。",
+      "lastSeq": "last seq",
+      "historyEntries": "历史条目",
+      "lastPublished": "last published"
+    },
+    "historyColumns": {
+      "seq": "Seq",
+      "namespace": "Namespace",
+      "treeSize": "Tree size",
+      "treeHeadId": "Tree head",
+      "publishedAt": "Published"
+    },
+    "verify": {
+      "infoMessage": "只读验证 · 通过本机 cc serve 运行",
+      "infoDescription": "此工具调用 `cc mtc verify` 子命令。Envelope + landmark 文件必须已在本机磁盘上 — 浏览器只把路径转给 cc serve，不会上传文件内容。",
+      "envelopeLabel": "Envelope 文件路径",
+      "envelopePlaceholder": "e.g. ./mtc-out/envelope-000000.json",
+      "landmarkLabel": "Landmark 文件路径",
+      "landmarkPlaceholder": "e.g. ./mtc-out/landmark.json",
+      "runButton": "运行 cc mtc verify",
+      "passTitle": "✓ 验证通过",
+      "failTitle": "✗ 验证失败",
+      "resultLabel": "结果",
+      "errorCodeLabel": "错误码",
+      "errorCodeNone": "(none)",
+      "recoverable": "可恢复",
+      "subjectLabel": "Subject",
+      "kindLabel": "Kind",
+      "treeSizeLabel": "Tree size",
+      "issuerLabel": "Issuer",
+      "rawHeader": "原始 JSON 输出"
+    },
+    "messages": {
+      "loadStatusFailed": "状态加载失败: {err}",
+      "stateFileRequired": "请输入状态文件路径",
+      "loadPublishFailed": "publisher 状态加载失败: {err}",
+      "verifyPathsRequired": "请填写 envelope 和 landmark 路径",
+      "verifyNoJson": "验证命令未返回 JSON。请检查路径是否正确。",
+      "verifyFailed": "验证失败: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

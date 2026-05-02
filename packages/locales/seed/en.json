@@ -1961,6 +1961,77 @@
       "codesUnable": "Could not generate recovery codes"
     }
   },
+  "mtc": {
+    "title": "Merkle Tree Certificates (MTC)",
+    "subtitle": "Audit dual-track state · Marketplace publisher history · Offline verify tool",
+    "refresh": "Refresh status",
+    "tabs": {
+      "status": "Audit dual-track",
+      "publisher": "Marketplace publisher",
+      "verify": "Envelope verify"
+    },
+    "status": {
+      "enabledLabel": "Status",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "intervalLabel": "Batch interval",
+      "stagingLabel": "Pending batch close",
+      "stagingMalformed": "{count} malformed",
+      "totalBatches": "Cumulative batches",
+      "configCard": "Config",
+      "lastBatchSize": "size={size} · {time}",
+      "noBatches": "No batches closed yet",
+      "loadFailMessage": "Failed to load status",
+      "loadFailDescription": "`cc audit mtc status --json` returned no valid output. Ensure `cc serve` is running and the current account can read the audit-mtc directory.",
+      "notEnabledMessage": "audit-mtc not enabled · ready",
+      "notEnabledDescription": "Legal blocker was lifted on 2026-05-01. Run `cc audit mtc enable --interval [60|3600] --namespace [ns] --issuer [issuer]` to enable dual-track signing for this tenant."
+    },
+    "publisher": {
+      "stateFileLabel": "State file path",
+      "stateFilePlaceholder": "e.g. ~/.chainlesschain/marketplace-state.json",
+      "queryButton": "Query",
+      "missingMessage": "State file does not exist",
+      "missingDescription": "{path} has no publish records yet. Run `cc mtc publish-skills` once and history will show up here.",
+      "lastSeq": "Last seq",
+      "historyEntries": "History entries",
+      "lastPublished": "Last published"
+    },
+    "historyColumns": {
+      "seq": "Seq",
+      "namespace": "Namespace",
+      "treeSize": "Tree size",
+      "treeHeadId": "Tree head",
+      "publishedAt": "Published"
+    },
+    "verify": {
+      "infoMessage": "Read-only verify · runs through local cc serve",
+      "infoDescription": "This tool calls the `cc mtc verify` subcommand. Envelope + landmark files must already be on the local disk — the browser only forwards the paths to cc serve, not the contents.",
+      "envelopeLabel": "Envelope file path",
+      "envelopePlaceholder": "e.g. ./mtc-out/envelope-000000.json",
+      "landmarkLabel": "Landmark file path",
+      "landmarkPlaceholder": "e.g. ./mtc-out/landmark.json",
+      "runButton": "Run cc mtc verify",
+      "passTitle": "✓ Verified",
+      "failTitle": "✗ Failed",
+      "resultLabel": "Result",
+      "errorCodeLabel": "Error code",
+      "errorCodeNone": "(none)",
+      "recoverable": "Recoverable",
+      "subjectLabel": "Subject",
+      "kindLabel": "Kind",
+      "treeSizeLabel": "Tree size",
+      "issuerLabel": "Issuer",
+      "rawHeader": "Raw JSON output"
+    },
+    "messages": {
+      "loadStatusFailed": "Failed to load status: {err}",
+      "stateFileRequired": "Enter a state file path",
+      "loadPublishFailed": "Failed to load publisher status: {err}",
+      "verifyPathsRequired": "Fill in envelope and landmark paths",
+      "verifyNoJson": "Verify command returned no JSON. Check the paths.",
+      "verifyFailed": "Verify failed: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",

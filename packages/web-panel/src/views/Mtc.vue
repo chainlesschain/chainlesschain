@@ -2,28 +2,28 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">默克尔树证书 (MTC)</h2>
+        <h2 class="page-title">{{ t('mtc.title') }}</h2>
         <p class="page-sub">
-          Audit 双轨状态 · Marketplace publisher 历史 · 离线验证工具
+          {{ t('mtc.subtitle') }}
         </p>
       </div>
       <a-space>
         <a-button :loading="loading" @click="loadStatus">
           <template #icon><ReloadOutlined /></template>
-          刷新状态
+          {{ t('mtc.refresh') }}
         </a-button>
       </a-space>
     </div>
 
     <a-tabs v-model:activeKey="activeTab" class="mtc-tabs">
       <!-- ── Tab 1: Audit MTC status ────────────────────────────── -->
-      <a-tab-pane key="status" tab="Audit 双轨状态">
+      <a-tab-pane key="status" :tab="t('mtc.tabs.status')">
         <a-row :gutter="[16, 16]" style="margin-bottom: 16px;">
           <a-col :xs="24" :sm="12" :lg="6">
             <a-card style="background: var(--bg-card); border-color: var(--border-color);">
               <a-statistic
-                title="启用状态"
-                :value="status.config.enabled ? '已启用' : '未启用'"
+                :title="t('mtc.status.enabledLabel')"
+                :value="status.config.enabled ? t('mtc.status.enabled') : t('mtc.status.disabled')"
                 :value-style="{ color: status.config.enabled ? '#52c41a' : '#888', fontSize: '20px' }"
               >
                 <template #prefix>
@@ -35,7 +35,7 @@
           <a-col :xs="24" :sm="12" :lg="6">
             <a-card style="background: var(--bg-card); border-color: var(--border-color);">
               <a-statistic
-                title="批次间隔"
+                :title="t('mtc.status.intervalLabel')"
                 :value="formatBatchInterval(status.config.batch_interval_seconds)"
                 :value-style="{ color: '#1677ff', fontSize: '20px' }"
               >
@@ -46,13 +46,13 @@
           <a-col :xs="24" :sm="12" :lg="6">
             <a-card style="background: var(--bg-card); border-color: var(--border-color);">
               <a-statistic
-                title="待批次关闭"
+                :title="t('mtc.status.stagingLabel')"
                 :value="status.staging.count"
                 :value-style="{ color: status.staging.count > 0 ? '#faad14' : '#888', fontSize: '20px' }"
               >
                 <template #prefix><InboxOutlined /></template>
                 <template v-if="status.staging.malformed > 0" #suffix>
-                  <a-tag color="red" style="margin-left: 8px;">{{ status.staging.malformed }} 损坏</a-tag>
+                  <a-tag color="red" style="margin-left: 8px;">{{ t('mtc.status.stagingMalformed', { count: status.staging.malformed }) }}</a-tag>
                 </template>
               </a-statistic>
             </a-card>
@@ -60,7 +60,7 @@
           <a-col :xs="24" :sm="12" :lg="6">
             <a-card style="background: var(--bg-card); border-color: var(--border-color);">
               <a-statistic
-                title="累计批次"
+                :title="t('mtc.status.totalBatches')"
                 :value="status.batches.count"
                 :value-style="{ color: '#13c2c2', fontSize: '20px' }"
               >
@@ -70,7 +70,7 @@
           </a-col>
         </a-row>
 
-        <a-card title="配置" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
+        <a-card :title="t('mtc.status.configCard')" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
           <a-descriptions :column="{ xs: 1, sm: 2 }" size="small">
             <a-descriptions-item label="namespace">
               <span style="font-family: monospace;">{{ status.config.namespace_prefix || '—' }}</span>
@@ -85,10 +85,10 @@
               <template v-if="status.batches.last_batch_id">
                 <a-tag color="cyan" style="font-family: monospace;">#{{ status.batches.last_batch_id }}</a-tag>
                 <span style="margin-left: 8px; color: var(--text-secondary); font-size: 12px;">
-                  size={{ status.batches.last_tree_size }} · {{ formatRelative(status.batches.last_closed_at) }}
+                  {{ t('mtc.status.lastBatchSize', { size: status.batches.last_tree_size, time: formatRelative(status.batches.last_closed_at) }) }}
                 </span>
               </template>
-              <span v-else style="color: var(--text-muted);">尚未关批</span>
+              <span v-else style="color: var(--text-muted);">{{ t('mtc.status.noBatches') }}</span>
             </a-descriptions-item>
             <a-descriptions-item label="last tree_head_id" :span="2">
               <span v-if="status.batches.last_tree_head_id" style="font-family: monospace; font-size: 11px; word-break: break-all;">
@@ -103,33 +103,33 @@
           v-if="!status.ok && !loading"
           type="info"
           show-icon
-          message="状态加载失败"
-          description="`cc audit mtc status --json` 没返回有效输出。请确认 cc serve 在运行，且当前账户能读 audit-mtc 目录。"
+          :message="t('mtc.status.loadFailMessage')"
+          :description="t('mtc.status.loadFailDescription')"
         />
         <a-alert
           v-else-if="!status.config.enabled"
           type="info"
           show-icon
-          message="audit-mtc 未启用 · 已就绪"
-          description="法务出函阻塞已于 2026-05-01 解除。运行 `cc audit mtc enable --interval <60|3600> --namespace <ns> --issuer <issuer>` 即可在本租户启用双轨签名。"
+          :message="t('mtc.status.notEnabledMessage')"
+          :description="t('mtc.status.notEnabledDescription')"
         />
       </a-tab-pane>
 
       <!-- ── Tab 2: Marketplace publisher history ───────────────── -->
-      <a-tab-pane key="publisher" tab="Marketplace publisher">
+      <a-tab-pane key="publisher" :tab="t('mtc.tabs.publisher')">
         <a-card style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
           <a-form layout="inline" @submit.prevent="loadPublishState">
-            <a-form-item label="状态文件路径">
+            <a-form-item :label="t('mtc.publisher.stateFileLabel')">
               <a-input
                 v-model:value="publishStateFile"
-                placeholder="e.g. ~/.chainlesschain/marketplace-state.json"
+                :placeholder="t('mtc.publisher.stateFilePlaceholder')"
                 style="min-width: 360px;"
                 allow-clear
               />
             </a-form-item>
             <a-form-item>
               <a-button :loading="publishLoading" type="primary" html-type="submit">
-                查询
+                {{ t('mtc.publisher.queryButton') }}
               </a-button>
             </a-form-item>
           </a-form>
@@ -139,22 +139,22 @@
           v-if="publish.ok && !publish.exists"
           type="info"
           show-icon
-          message="状态文件不存在"
-          :description="`路径 ${publish.stateFile} 还没有任何发布记录。运行一次 cc mtc publish-skills 后此处会出现历史。`"
+          :message="t('mtc.publisher.missingMessage')"
+          :description="t('mtc.publisher.missingDescription', { path: publish.stateFile })"
           style="margin-bottom: 16px;"
         />
 
         <a-row v-if="publish.exists" :gutter="[16, 16]" style="margin-bottom: 16px;">
           <a-col :xs="24" :sm="12" :lg="8">
             <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-              <a-statistic title="last seq" :value="publish.lastSeq" :value-style="{ color: '#1677ff', fontSize: '20px' }">
+              <a-statistic :title="t('mtc.publisher.lastSeq')" :value="publish.lastSeq" :value-style="{ color: '#1677ff', fontSize: '20px' }">
                 <template #prefix><NumberOutlined /></template>
               </a-statistic>
             </a-card>
           </a-col>
           <a-col :xs="24" :sm="12" :lg="8">
             <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-              <a-statistic title="历史条目" :value="publish.historyCount" :value-style="{ color: '#13c2c2', fontSize: '20px' }">
+              <a-statistic :title="t('mtc.publisher.historyEntries')" :value="publish.historyCount" :value-style="{ color: '#13c2c2', fontSize: '20px' }">
                 <template #prefix><HistoryOutlined /></template>
               </a-statistic>
             </a-card>
@@ -162,7 +162,7 @@
           <a-col :xs="24" :sm="12" :lg="8">
             <a-card style="background: var(--bg-card); border-color: var(--border-color);">
               <a-statistic
-                title="last published"
+                :title="t('mtc.publisher.lastPublished')"
                 :value="formatRelative(publish.lastPublishedAt)"
                 :value-style="{ color: '#52c41a', fontSize: '16px' }"
               >
@@ -195,27 +195,27 @@
       </a-tab-pane>
 
       <!-- ── Tab 3: Verify tool ─────────────────────────────────── -->
-      <a-tab-pane key="verify" tab="Envelope 验证工具">
+      <a-tab-pane key="verify" :tab="t('mtc.tabs.verify')">
         <a-card style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
           <a-alert
             type="info"
             show-icon
-            message="只读验证 · 通过本机 cc serve 运行"
-            description="此工具调用 `cc mtc verify` 子命令。Envelope + landmark 文件必须已在本机磁盘上 — 浏览器只把路径转给 cc serve，不会上传文件内容。"
+            :message="t('mtc.verify.infoMessage')"
+            :description="t('mtc.verify.infoDescription')"
             style="margin-bottom: 16px;"
           />
           <a-form layout="vertical" @submit.prevent="runVerify">
-            <a-form-item label="Envelope 文件路径">
+            <a-form-item :label="t('mtc.verify.envelopeLabel')">
               <a-input
                 v-model:value="verifyEnvelopePath"
-                placeholder="e.g. ./mtc-out/envelope-000000.json"
+                :placeholder="t('mtc.verify.envelopePlaceholder')"
                 allow-clear
               />
             </a-form-item>
-            <a-form-item label="Landmark 文件路径">
+            <a-form-item :label="t('mtc.verify.landmarkLabel')">
               <a-input
                 v-model:value="verifyLandmarkPath"
-                placeholder="e.g. ./mtc-out/landmark.json"
+                :placeholder="t('mtc.verify.landmarkPlaceholder')"
                 allow-clear
               />
             </a-form-item>
@@ -227,38 +227,38 @@
                 @click="runVerify"
               >
                 <template #icon><SafetyOutlined /></template>
-                运行 cc mtc verify
+                {{ t('mtc.verify.runButton') }}
               </a-button>
             </a-form-item>
           </a-form>
         </a-card>
 
-        <a-card v-if="verifyResult" :title="verifyResult.ok ? '✓ 验证通过' : '✗ 验证失败'" size="small" :style="{ background: 'var(--bg-card)', borderColor: verifyResult.ok ? '#52c41a' : '#ff4d4f' }">
+        <a-card v-if="verifyResult" :title="verifyResult.ok ? t('mtc.verify.passTitle') : t('mtc.verify.failTitle')" size="small" :style="{ background: 'var(--bg-card)', borderColor: verifyResult.ok ? '#52c41a' : '#ff4d4f' }">
           <a-descriptions :column="1" size="small" bordered>
-            <a-descriptions-item label="结果">
+            <a-descriptions-item :label="t('mtc.verify.resultLabel')">
               <a-tag :color="verifyResult.ok ? 'green' : 'red'">
                 {{ verifyResult.ok ? 'PASS' : 'FAIL' }}
               </a-tag>
             </a-descriptions-item>
-            <a-descriptions-item v-if="!verifyResult.ok" label="错误码">
-              <span style="font-family: monospace;">{{ verifyResult.code || '(none)' }}</span>
-              <a-tag v-if="verifyResult.recoverable" color="orange" style="margin-left: 8px;">可恢复</a-tag>
+            <a-descriptions-item v-if="!verifyResult.ok" :label="t('mtc.verify.errorCodeLabel')">
+              <span style="font-family: monospace;">{{ verifyResult.code || t('mtc.verify.errorCodeNone') }}</span>
+              <a-tag v-if="verifyResult.recoverable" color="orange" style="margin-left: 8px;">{{ t('mtc.verify.recoverable') }}</a-tag>
             </a-descriptions-item>
-            <a-descriptions-item v-if="verifyResult.leaf" label="Subject">
+            <a-descriptions-item v-if="verifyResult.leaf" :label="t('mtc.verify.subjectLabel')">
               <span style="font-family: monospace; font-size: 12px;">{{ verifyResult.leaf.subject || '—' }}</span>
             </a-descriptions-item>
-            <a-descriptions-item v-if="verifyResult.leaf" label="Kind">
+            <a-descriptions-item v-if="verifyResult.leaf" :label="t('mtc.verify.kindLabel')">
               <a-tag>{{ verifyResult.leaf.kind || '—' }}</a-tag>
             </a-descriptions-item>
-            <a-descriptions-item v-if="verifyResult.treeHead" label="Tree size">
+            <a-descriptions-item v-if="verifyResult.treeHead" :label="t('mtc.verify.treeSizeLabel')">
               {{ verifyResult.treeHead.tree_size }}
             </a-descriptions-item>
-            <a-descriptions-item v-if="verifyResult.treeHead" label="Issuer">
+            <a-descriptions-item v-if="verifyResult.treeHead" :label="t('mtc.verify.issuerLabel')">
               <span style="font-family: monospace; font-size: 12px;">{{ verifyResult.treeHead.issuer || '—' }}</span>
             </a-descriptions-item>
           </a-descriptions>
           <a-collapse v-if="verifyResult.raw" ghost style="margin-top: 12px;">
-            <a-collapse-panel key="raw" header="原始 JSON 输出">
+            <a-collapse-panel key="raw" :header="t('mtc.verify.rawHeader')">
               <pre class="raw-pre">{{ JSON.stringify(verifyResult.raw, null, 2) }}</pre>
             </a-collapse-panel>
           </a-collapse>
@@ -269,7 +269,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   ReloadOutlined,
   ClockCircleOutlined,
@@ -292,6 +293,7 @@ import {
   formatRelative,
 } from '../utils/mtc-parser.js'
 
+const { t } = useI18n()
 const ws = useWsStore()
 
 const activeTab = ref('status')
@@ -307,13 +309,13 @@ const verifyLandmarkPath = ref('')
 const verifyLoading = ref(false)
 const verifyResult = ref(null)
 
-const historyColumns = [
-  { title: 'Seq', key: 'seq', dataIndex: 'seq', width: '90px' },
-  { title: 'Namespace', key: 'namespace', dataIndex: 'namespace' },
-  { title: 'Tree size', key: 'treeSize', dataIndex: 'treeSize', width: '100px' },
-  { title: 'Tree head', key: 'treeHeadId', dataIndex: 'treeHeadId', width: '180px' },
-  { title: 'Published', key: 'publishedAt', dataIndex: 'publishedAt', width: '140px' },
-]
+const historyColumns = computed(() => [
+  { title: t('mtc.historyColumns.seq'), key: 'seq', dataIndex: 'seq', width: '90px' },
+  { title: t('mtc.historyColumns.namespace'), key: 'namespace', dataIndex: 'namespace' },
+  { title: t('mtc.historyColumns.treeSize'), key: 'treeSize', dataIndex: 'treeSize', width: '100px' },
+  { title: t('mtc.historyColumns.treeHeadId'), key: 'treeHeadId', dataIndex: 'treeHeadId', width: '180px' },
+  { title: t('mtc.historyColumns.publishedAt'), key: 'publishedAt', dataIndex: 'publishedAt', width: '140px' },
+])
 
 function truncate(s, max) {
   if (!s) return ''
@@ -326,7 +328,7 @@ async function loadStatus() {
     const { output } = await ws.execute('audit mtc status --json', 8000)
     status.value = parseAuditMtcStatus(output)
   } catch (e) {
-    message.error('状态加载失败: ' + (e?.message || e))
+    message.error(t('mtc.messages.loadStatusFailed', { err: e?.message || e }))
   } finally {
     loading.value = false
   }
@@ -334,17 +336,16 @@ async function loadStatus() {
 
 async function loadPublishState() {
   if (!publishStateFile.value.trim()) {
-    message.warning('请输入状态文件路径')
+    message.warning(t('mtc.messages.stateFileRequired'))
     return
   }
   publishLoading.value = true
   try {
-    // Quote path to handle spaces; the CLI accepts a positional <state-file> arg.
     const path = publishStateFile.value.trim().replace(/"/g, '\\"')
     const { output } = await ws.execute(`mtc publish-status "${path}" --json`, 8000)
     publish.value = parsePublishStatus(output)
   } catch (e) {
-    message.error('publisher 状态加载失败: ' + (e?.message || e))
+    message.error(t('mtc.messages.loadPublishFailed', { err: e?.message || e }))
   } finally {
     publishLoading.value = false
   }
@@ -352,7 +353,7 @@ async function loadPublishState() {
 
 async function runVerify() {
   if (!verifyEnvelopePath.value.trim() || !verifyLandmarkPath.value.trim()) {
-    message.warning('请填写 envelope 和 landmark 路径')
+    message.warning(t('mtc.messages.verifyPathsRequired'))
     return
   }
   verifyLoading.value = true
@@ -363,10 +364,10 @@ async function runVerify() {
     const { output } = await ws.execute(`mtc verify "${env}" --landmark "${lm}" --json`, 12000)
     verifyResult.value = parseVerifyResult(output)
     if (!verifyResult.value.raw) {
-      message.error('验证命令未返回 JSON。请检查路径是否正确。')
+      message.error(t('mtc.messages.verifyNoJson'))
     }
   } catch (e) {
-    message.error('验证失败: ' + (e?.message || e))
+    message.error(t('mtc.messages.verifyFailed', { err: e?.message || e }))
   } finally {
     verifyLoading.value = false
   }
