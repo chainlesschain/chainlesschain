@@ -58,6 +58,11 @@ nsis:
   # 差分更新配置
   differentialPackage: true
 
+# Portable 用独立文件名，避免和 NSIS 安装包同名互相覆盖；
+# 同时 verify-release-artifacts.js 据此识别哪些 .exe 不需要 blockmap
+portable:
+  artifactName: ${productName}-Portable-${version}.${ext}
+
 # macOS 配置
 mac:
   target:

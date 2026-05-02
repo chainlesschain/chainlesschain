@@ -19,6 +19,12 @@
  *   --prerelease         Mark as prerelease
  *   --notes <file>       Release notes from file
  *   --skip-build         Skip building, use existing artifacts
+ *   --builder            Use electron-builder (out/build, ships .blockmap +
+ *                        latest*.yml so electron-updater can do differential
+ *                        updates). Default = legacy electron-forge (out/make,
+ *                        no blockmap → users always download full installer).
+ *   --skip-verify        Skip the differential-update artifact verification
+ *                        step. Only meaningful with --builder.
  */
 
 const { execSync } = require("child_process");
@@ -59,6 +65,8 @@ const IS_DRAFT = hasFlag("--draft");
 const IS_PRERELEASE = hasFlag("--prerelease");
 const RELEASE_NOTES_FILE = getArg("--notes");
 const SKIP_BUILD = hasFlag("--skip-build");
+const USE_BUILDER = hasFlag("--builder");
+const SKIP_VERIFY = hasFlag("--skip-verify");
 
 /**
  * Execute command and return output
@@ -117,11 +125,17 @@ async function buildArtifacts() {
   log.step("Building artifacts...");
   log.info("This may take 10-30 minutes depending on your machine...");
 
-  const builds = [
-    { name: "Windows (x64)", script: "make:win" },
-    { name: "macOS (Universal)", script: "make:mac" },
-    { name: "Linux (x64)", script: "make:linux:x64" },
-  ];
+  const builds = USE_BUILDER
+    ? [
+        { name: "Windows (x64)", script: "make:win:builder" },
+        { name: "macOS (Universal)", script: "make:mac:builder" },
+        { name: "Linux (x64)", script: "make:linux:builder" },
+      ]
+    : [
+        { name: "Windows (x64)", script: "make:win" },
+        { name: "macOS (Universal)", script: "make:mac" },
+        { name: "Linux (x64)", script: "make:linux:x64" },
+      ];
 
   for (const build of builds) {
     try {
@@ -136,15 +150,21 @@ async function buildArtifacts() {
 }
 
 /**
- * Collect all artifacts from out/make directory
+ * Collect all artifacts from the build output directory.
+ *
+ * - Legacy electron-forge mode → out/make, only ships installers
+ * - --builder mode → out/build, plus .blockmap and latest*.yml which
+ *   electron-updater needs for differential updates / version discovery
  */
 function collectArtifacts() {
   log.step("Collecting artifacts...");
 
-  const makeDir = path.join(DESKTOP_APP_DIR, "out", "make");
-  if (!fs.existsSync(makeDir)) {
+  const buildOutputDir = USE_BUILDER
+    ? path.join(DESKTOP_APP_DIR, "out", "build")
+    : path.join(DESKTOP_APP_DIR, "out", "make");
+  if (!fs.existsSync(buildOutputDir)) {
     log.error(
-      "No artifacts found. Run builds first or remove --skip-build flag.",
+      `No artifacts found at ${buildOutputDir}. Run builds first or remove --skip-build flag.`,
     );
     process.exit(1);
   }
@@ -164,11 +184,16 @@ function collectArtifacts() {
   }
 
   function isArtifact(filename) {
-    const extensions = [".zip", ".dmg", ".deb", ".rpm", ".AppImage", ".exe"];
-    return extensions.some((ext) => filename.endsWith(ext));
+    const installerExt = [".zip", ".dmg", ".deb", ".rpm", ".AppImage", ".exe"];
+    if (installerExt.some((ext) => filename.endsWith(ext))) return true;
+    if (!USE_BUILDER) return false;
+    // electron-builder companions required by electron-updater
+    if (filename.endsWith(".blockmap")) return true;
+    if (/^latest(-mac|-linux)?\.ya?ml$/i.test(filename)) return true;
+    return false;
   }
 
-  scanDir(makeDir);
+  scanDir(buildOutputDir);
 
   if (artifacts.length === 0) {
     log.error(
@@ -184,6 +209,33 @@ function collectArtifacts() {
   });
 
   return artifacts;
+}
+
+/**
+ * In --builder mode, ensure differential-update sidecars (.blockmap +
+ * latest*.yml) are present before we upload. Without these, electron-updater
+ * can't discover updates or do block-level diffs and users redownload the
+ * full installer every time.
+ */
+function verifyDifferentialArtifacts() {
+  if (!USE_BUILDER) return;
+  if (SKIP_VERIFY) {
+    log.warning(
+      "Skipping differential-update artifact verification (--skip-verify)",
+    );
+    return;
+  }
+  log.step("Verifying differential-update artifacts...");
+  const { verify, printReport } = require("./verify-release-artifacts");
+  const buildDir = path.join(DESKTOP_APP_DIR, "out", "build");
+  const result = verify(buildDir);
+  printReport(result);
+  if (!result.ok) {
+    log.error(
+      "Aborting release. Use --skip-verify to override (NOT recommended — auto-update will be broken).",
+    );
+    process.exit(1);
+  }
 }
 
 /**
@@ -321,10 +373,14 @@ ${colors.cyan}╔═════════════════════
   log.info(`Version: ${VERSION}`);
   log.info(`Draft: ${IS_DRAFT ? "Yes" : "No"}`);
   log.info(`Prerelease: ${IS_PRERELEASE ? "Yes" : "No"}`);
+  log.info(
+    `Builder: ${USE_BUILDER ? "electron-builder (differential)" : "electron-forge (legacy, full-download)"}`,
+  );
 
   try {
     checkGHCLI();
     await buildArtifacts();
+    verifyDifferentialArtifacts();
     const artifacts = collectArtifacts();
     const releaseNotes = generateReleaseNotes();
     createRelease(artifacts, releaseNotes);

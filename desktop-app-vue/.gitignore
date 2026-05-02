@@ -54,6 +54,8 @@ verify-*.js
 check-*.bat
 test-*.js
 !tests/
+!tests/unit/scripts/verify-release-artifacts.test.js
+!scripts/verify-release-artifacts.js
 
 # Temporary summary/report docs
 *_FIX.md

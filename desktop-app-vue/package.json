@@ -111,6 +111,12 @@
     "release:draft": "npm run docs:generate && node scripts/release.js --draft",
     "release:skip-build": "node scripts/release.js --skip-build",
     "release:check": "npm run docs:generate && node scripts/pre-release-check.js",
+    "release:builder": "npm run docs:generate && node scripts/release.js --builder",
+    "release:builder:draft": "npm run docs:generate && node scripts/release.js --builder --draft",
+    "release:verify": "node scripts/verify-release-artifacts.js",
+    "make:win:builder": "npm run build && electron-builder --win --config electron-builder.yml",
+    "make:mac:builder": "npm run build && electron-builder --mac --config electron-builder.yml",
+    "make:linux:builder": "npm run build && electron-builder --linux --config electron-builder.yml",
     "perf:benchmark": "node test-scripts/performance-benchmark.js",
     "perf:report": "node -e \"const { getPerformanceMonitor } = require('./utils/performance-monitor'); const m = getPerformanceMonitor(); m.printReport();\"",
     "perf:apply": "node scripts/apply-performance-config.js",
@@ -283,6 +289,7 @@
     "@electron-forge/maker-rpm": "^7.2.0",
     "@electron-forge/maker-squirrel": "^7.2.0",
     "@electron-forge/maker-zip": "^7.2.0",
+    "electron-builder": "^25.1.8",
     "@eslint/js": "^8.57.1",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@openzeppelin/contracts": "^5.4.0",
@@ -330,10 +337,6 @@
     "wait-on": "^9.0.3",
     "webpack": "^5.104.1",
     "webpack-cli": "^6.0.1"
-  },
-  "directories": {
-    "doc": "docs",
-    "test": "tests"
   },
   "lint-staged": {
     "*.{js,ts,tsx,vue}": [

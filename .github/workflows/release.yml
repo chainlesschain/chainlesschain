@@ -65,29 +65,41 @@ jobs:
           echo Hoisted modules merged into desktop-app-vue (nested preserved)
           exit /b 0
 
-      - name: Package Windows
+      - name: Package Windows (electron-builder, with .blockmap)
         working-directory: desktop-app-vue
-        run: npm run make:win
+        run: npm run make:win:builder
         env:
           CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
           SKIP_BACKEND_CHECK: "true"
           NODE_OPTIONS: "--max-old-space-size=4096"
+          # Skip identity discovery on unsigned CI builds; signing secrets can be
+          # added later (CSC_LINK / CSC_KEY_PASSWORD) without changing this file.
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Verify differential-update artifacts (Windows)
+        working-directory: desktop-app-vue
+        run: npm run release:verify
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-artifacts
+          # electron-builder ships .exe + sidecar .blockmap + latest.yml.
+          # All three MUST upload — electron-updater needs latest.yml to discover
+          # updates and .blockmap to do block-level diffs.
           path: |
-            desktop-app-vue/out/make/**/*.zip
-            desktop-app-vue/out/make/**/*.exe
+            desktop-app-vue/out/build/*.exe
+            desktop-app-vue/out/build/*.exe.blockmap
+            desktop-app-vue/out/build/latest.yml
+          if-no-files-found: error
           retention-days: 7
 
   # Build for macOS
+  # electron-builder reads `mac.target.arch: [x64, arm64]` from
+  # electron-builder.yml and produces both architectures in a single
+  # invocation, so the per-arch matrix is no longer needed.
   build-macos:
     runs-on: macos-latest
-    strategy:
-      matrix:
-        arch: [x64, arm64]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -97,9 +109,9 @@ jobs:
         with:
           node-version: "22.12.0"
 
-      # NOTE: appdmg (dep of maker-dmg) pulls native fs-xattr which fails to
-      # compile on macOS 15 runners (clang: unknown option '-o'). CI disables
-      # DMG via DISABLE_DMG=1 in forge.config.js and ships ZIP instead.
+      # electron-builder uses its own DMG builder (not appdmg), so the
+      # macOS-15 fs-xattr clang failure that motivated DISABLE_DMG=1 in the
+      # legacy forge flow does NOT apply here.
       - name: Install dependencies
         uses: ./.github/actions/setup-node-deps
         with:
@@ -152,22 +164,32 @@ jobs:
           fi
           echo "Hoisted modules merged into desktop-app-vue (nested preserved)"
 
-      - name: Package macOS (${{ matrix.arch }})
+      - name: Package macOS (electron-builder, x64 + arm64)
         working-directory: desktop-app-vue
-        run: npm run make:mac:${{ matrix.arch }}
+        run: npm run make:mac:builder
         env:
           CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
           SKIP_BACKEND_CHECK: "true"
-          DISABLE_DMG: "1"
           NODE_OPTIONS: "--max-old-space-size=4096"
+          # Unsigned CI build by default. Add APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD
+          # / APPLE_TEAM_ID secrets later to enable signing + notarization.
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Verify differential-update artifacts (macOS)
+        working-directory: desktop-app-vue
+        run: npm run release:verify
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: macos-${{ matrix.arch }}-artifacts
+          name: macos-artifacts
+          # x64 + arm64 dmgs both land in out/build/. Filenames carry arch
+          # suffix (electron-builder defaults), so no rename needed downstream.
           path: |
-            desktop-app-vue/out/make/**/*.dmg
-            desktop-app-vue/out/make/**/*.zip
+            desktop-app-vue/out/build/*.dmg
+            desktop-app-vue/out/build/*.dmg.blockmap
+            desktop-app-vue/out/build/latest-mac.yml
+          if-no-files-found: error
           retention-days: 7
 
   # Build for Linux
@@ -238,22 +260,32 @@ jobs:
           fi
           echo "Hoisted modules merged into desktop-app-vue (nested preserved)"
 
-      - name: Package Linux
+      - name: Package Linux (electron-builder, AppImage + deb + rpm)
         working-directory: desktop-app-vue
-        # Use make:linux:deb to avoid RPM strip errors with cross-arch native modules
-        run: npm run make:linux:deb
+        run: npm run make:linux:builder
         env:
           CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
           SKIP_BACKEND_CHECK: "true"
           NODE_OPTIONS: "--max-old-space-size=4096"
+          USE_SYSTEM_FPM: "true"
+
+      - name: Verify differential-update artifacts (Linux)
+        working-directory: desktop-app-vue
+        run: npm run release:verify
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
           name: linux-artifacts
+          # Only AppImage gets a .blockmap. deb/rpm don't support delta updates
+          # (electron-updater limitation) but ship for users who want them.
           path: |
-            desktop-app-vue/out/make/**/*.deb
-            desktop-app-vue/out/make/**/*.zip
+            desktop-app-vue/out/build/*.AppImage
+            desktop-app-vue/out/build/*.AppImage.blockmap
+            desktop-app-vue/out/build/*.deb
+            desktop-app-vue/out/build/*.rpm
+            desktop-app-vue/out/build/latest-linux.yml
+          if-no-files-found: error
           retention-days: 7
 
   # Build for iOS
@@ -508,7 +540,11 @@ jobs:
   # Create GitHub Release
   create-release:
     needs: [build-windows, build-macos, build-linux, build-android, build-ios]
-    if: ${{ always() && !cancelled() && needs.build-windows.result == 'success' && needs.build-linux.result == 'success' }}
+    # Require all three desktop builds to succeed: a partial release that's
+    # missing latest-mac.yml or latest-linux.yml leaves users on those
+    # platforms unable to discover updates. iOS/Android jobs are best-effort
+    # (they use separate signing flows that can fail without blocking desktop).
+    if: ${{ always() && !cancelled() && needs.build-windows.result == 'success' && needs.build-linux.result == 'success' && needs.build-macos.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -603,30 +639,57 @@ jobs:
 
           cat release-notes.md
 
-      - name: Prepare and rename artifact files
+      - name: Prepare release assets
         run: |
           shopt -s globstar nullglob
-          VERSION="${{ steps.version.outputs.VERSION }}"
-          VER="${VERSION#v}"
           mkdir -p release-assets
 
-          # Rename DMGs to include architecture (they all have the same name)
-          for dir in artifacts/macos-arm64-artifacts artifacts/macos-x64-artifacts; do
-            arch=$(echo "$dir" | grep -oP 'macos-\K(arm64|x64)')
-            for f in "$dir"/*.dmg; do
-              [ -f "$f" ] && cp "$f" "release-assets/ChainlessChain-darwin-${arch}-${VER}.dmg"
-            done
-          done
-
-          # Copy all other artifacts with unique names
-          for f in artifacts/**/*.zip artifacts/**/*.deb artifacts/**/*.rpm \
-                   artifacts/**/*.AppImage artifacts/**/*.exe \
-                   artifacts/**/*.apk artifacts/**/*.aab artifacts/**/*.ipa; do
+          # electron-builder produces uniquely-named files already:
+          #   ChainlessChain-Setup-1.1.0-alpha.exe          (NSIS installer)
+          #   ChainlessChain-Setup-1.1.0-alpha.exe.blockmap (REQUIRED for delta updates)
+          #   ChainlessChain-Portable-1.1.0-alpha.exe       (portable, no blockmap)
+          #   latest.yml                                    (REQUIRED for update discovery)
+          #   ChainlessChain-1.1.0-alpha.dmg                (mac x64)
+          #   ChainlessChain-1.1.0-alpha-arm64.dmg          (mac arm64)
+          #   ChainlessChain-1.1.0-alpha.dmg.blockmap
+          #   ChainlessChain-1.1.0-alpha-arm64.dmg.blockmap
+          #   latest-mac.yml
+          #   ChainlessChain-1.1.0-alpha.AppImage
+          #   ChainlessChain-1.1.0-alpha.AppImage.blockmap
+          #   latest-linux.yml
+          #   chainlesschain_1.1.0-alpha_amd64.deb
+          #   chainlesschain-1.1.0-alpha.x86_64.rpm
+          # No rename needed — names already include version + arch.
+          # CRITICAL: must include .blockmap and latest*.yml or auto-update
+          # falls back to full download (or breaks entirely).
+          for f in artifacts/**/*.exe artifacts/**/*.exe.blockmap \
+                   artifacts/**/*.dmg artifacts/**/*.dmg.blockmap \
+                   artifacts/**/*.AppImage artifacts/**/*.AppImage.blockmap \
+                   artifacts/**/*.deb artifacts/**/*.rpm \
+                   artifacts/**/latest.yml artifacts/**/latest-mac.yml artifacts/**/latest-linux.yml \
+                   artifacts/**/*.apk artifacts/**/*.aab artifacts/**/*.ipa \
+                   artifacts/**/ChainlessChain-ios-simulator.zip; do
             [ -f "$f" ] && cp "$f" release-assets/
           done
 
           echo "Release assets:"
           ls -la release-assets/
+
+          # Sanity-check delta-update artifacts ARE in the bundle. Without these
+          # the upload looks "successful" but auto-update is silently broken,
+          # which is exactly the bug this whole PR is fixing.
+          fail=0
+          for required in latest.yml; do
+            if ! ls release-assets/$required >/dev/null 2>&1; then
+              echo "::error ::Missing required artifact: $required"
+              fail=1
+            fi
+          done
+          if ! ls release-assets/*.exe.blockmap >/dev/null 2>&1; then
+            echo "::error ::No .exe.blockmap files in release-assets — Windows differential updates will not work"
+            fail=1
+          fi
+          [ $fail -eq 0 ] || exit 1
 
       - name: Create Release with artifacts (DRAFT)
         env:
