@@ -2,17 +2,17 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">模板中心</h2>
-        <p class="page-sub">项目模板 / BI 模板 / Prompt 模板</p>
+        <h2 class="page-title">{{ t('templates.title') }}</h2>
+        <p class="page-sub">{{ t('templates.subtitle') }}</p>
       </div>
     </div>
 
     <a-tabs v-model:activeKey="activeTab" type="card">
-      <!-- Tab 1: 项目模板 -->
+      <!-- Tab 1: Project templates -->
       <a-tab-pane key="project">
         <template #tab>
           <AppstoreOutlined />
-          项目模板
+          {{ t('templates.tabs.project') }}
         </template>
 
         <a-row :gutter="[16, 16]">
@@ -42,7 +42,7 @@
                   @click="confirmInit(tpl.name)"
                 >
                   <template #icon><PlayCircleOutlined /></template>
-                  初始化
+                  {{ t('templates.project.initButton') }}
                 </a-button>
               </div>
             </a-card>
@@ -51,7 +51,7 @@
 
         <a-alert
           v-if="initResult"
-          :message="initResult.success ? '初始化成功' : '初始化失败'"
+          :message="initResult.success ? t('templates.project.initSuccessAlert') : t('templates.project.initFailureAlert')"
           :type="initResult.success ? 'success' : 'error'"
           show-icon
           closable
@@ -64,19 +64,19 @@
         </a-alert>
       </a-tab-pane>
 
-      <!-- Tab 2: BI 模板 -->
+      <!-- Tab 2: BI templates -->
       <a-tab-pane key="bi">
         <template #tab>
           <BarChartOutlined />
-          BI 模板
+          {{ t('templates.tabs.bi') }}
         </template>
 
         <div v-if="biLoading" style="text-align: center; padding: 40px;">
           <a-spin />
-          <div style="color: var(--text-muted); margin-top: 8px;">加载 BI 模板...</div>
+          <div style="color: var(--text-muted); margin-top: 8px;">{{ t('templates.bi.loadingHint') }}</div>
         </div>
 
-        <a-empty v-else-if="!biTemplates.length" description="暂无 BI 模板" />
+        <a-empty v-else-if="!biTemplates.length" :description="t('templates.bi.emptyText')" />
 
         <a-row v-else :gutter="[16, 16]">
           <a-col v-for="tpl in biTemplates" :key="tpl.id" :xs="24" :sm="12" :lg="8">
@@ -93,7 +93,7 @@
                     {{ tpl.name }}
                   </div>
                   <div style="color: var(--text-secondary); font-size: 12px; line-height: 1.5;">
-                    {{ tpl.description || '暂无描述' }}
+                    {{ tpl.description || t('templates.bi.noDescription') }}
                   </div>
                   <div v-if="tpl.id" style="margin-top: 4px;">
                     <a-tag size="small" color="purple">{{ tpl.id }}</a-tag>
@@ -108,7 +108,7 @@
                   @click="createBiDashboard(tpl.id)"
                 >
                   <template #icon><PlayCircleOutlined /></template>
-                  创建仪表板
+                  {{ t('templates.bi.createButton') }}
                 </a-button>
               </div>
             </a-card>
@@ -117,7 +117,7 @@
 
         <a-alert
           v-if="biResult"
-          :message="biResult.success ? '仪表板创建成功' : '创建失败'"
+          :message="biResult.success ? t('templates.bi.createSuccessAlert') : t('templates.bi.createFailureAlert')"
           :type="biResult.success ? 'success' : 'error'"
           show-icon
           closable
@@ -130,29 +130,29 @@
         </a-alert>
       </a-tab-pane>
 
-      <!-- Tab 3: Prompt 模板 -->
+      <!-- Tab 3: Prompt templates -->
       <a-tab-pane key="prompts">
         <template #tab>
           <FileTextOutlined />
-          Prompt 模板
+          {{ t('templates.tabs.prompts') }}
         </template>
 
         <div style="margin-bottom: 16px; display: flex; gap: 8px;">
           <a-button type="primary" @click="showPromptModal = true">
             <template #icon><PlusOutlined /></template>
-            新建模板
+            {{ t('templates.prompts.newButton') }}
           </a-button>
           <a-button :disabled="!promptTemplates.length" :loading="exportingPrompts" @click="exportPrompts">
             <template #icon><ExportOutlined /></template>
-            导出全部
+            {{ t('templates.prompts.exportAll') }}
           </a-button>
           <a-button :loading="importingPrompts" @click="importPrompts">
             <template #icon><ImportOutlined /></template>
-            导入
+            {{ t('templates.prompts.import') }}
           </a-button>
         </div>
 
-        <a-empty v-if="!promptTemplates.length" description="暂无 Prompt 模板，点击上方按钮创建" />
+        <a-empty v-if="!promptTemplates.length" :description="t('templates.prompts.emptyText')" />
 
         <a-row v-else :gutter="[16, 16]">
           <a-col v-for="(pt, idx) in promptTemplates" :key="idx" :xs="24" :sm="12" :lg="8">
@@ -174,15 +174,15 @@
               <div style="margin-top: 12px; display: flex; gap: 8px; justify-content: flex-end;">
                 <a-button size="small" @click="usePrompt(pt)">
                   <template #icon><RocketOutlined /></template>
-                  使用
+                  {{ t('templates.prompts.useButton') }}
                 </a-button>
                 <a-button size="small" @click="copyPrompt(pt)">
                   <template #icon><CopyOutlined /></template>
-                  复制
+                  {{ t('templates.prompts.copyButton') }}
                 </a-button>
                 <a-button size="small" danger @click="deletePrompt(idx)">
                   <template #icon><DeleteOutlined /></template>
-                  删除
+                  {{ t('templates.prompts.deleteButton') }}
                 </a-button>
               </div>
             </a-card>
@@ -194,31 +194,31 @@
     <!-- Init Confirmation Modal -->
     <a-modal
       v-model:open="showInitConfirm"
-      title="确认初始化"
+      :title="t('templates.project.confirmTitle')"
       @ok="doInit"
       @cancel="showInitConfirm = false"
-      ok-text="确认"
-      cancel-text="取消"
+      :ok-text="t('templates.project.confirmOk')"
+      :cancel-text="t('common.cancel')"
     >
-      <p>确定要使用模板 <strong>{{ pendingTemplate }}</strong> 初始化项目吗？</p>
-      <p style="color: var(--text-muted); font-size: 12px;">这将在当前工作目录创建项目结构。</p>
+      <p>{{ t('templates.project.confirmIntro') }} <strong>{{ pendingTemplate }}</strong> {{ t('templates.project.confirmIntroSuffix') }}</p>
+      <p style="color: var(--text-muted); font-size: 12px;">{{ t('templates.project.confirmHint') }}</p>
     </a-modal>
 
     <!-- New Prompt Modal -->
     <a-modal
       v-model:open="showPromptModal"
-      title="新建 Prompt 模板"
+      :title="t('templates.prompts.modalTitle')"
       @ok="savePrompt"
       @cancel="resetPromptForm"
-      ok-text="保存"
-      cancel-text="取消"
+      :ok-text="t('templates.prompts.modalOk')"
+      :cancel-text="t('common.cancel')"
       :ok-button-props="{ disabled: !newPrompt.name || !newPrompt.content }"
     >
       <a-form layout="vertical">
-        <a-form-item label="模板名称" required>
-          <a-input v-model:value="newPrompt.name" placeholder="输入模板名称" />
+        <a-form-item :label="t('templates.prompts.nameLabel')" required>
+          <a-input v-model:value="newPrompt.name" :placeholder="t('templates.prompts.namePlaceholder')" />
         </a-form-item>
-        <a-form-item label="分类">
+        <a-form-item :label="t('templates.prompts.categoryLabel')">
           <a-select v-model:value="newPrompt.category" style="width: 100%;">
             <a-select-option value="general">general</a-select-option>
             <a-select-option value="code">code</a-select-option>
@@ -226,8 +226,8 @@
             <a-select-option value="analysis">analysis</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="模板内容" required>
-          <a-textarea v-model:value="newPrompt.content" :rows="6" placeholder="输入 Prompt 模板内容" />
+        <a-form-item :label="t('templates.prompts.contentLabel')" required>
+          <a-textarea v-model:value="newPrompt.content" :rows="6" :placeholder="t('templates.prompts.contentPlaceholder')" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -235,7 +235,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import {
   AppstoreOutlined, BarChartOutlined, FileTextOutlined,
@@ -247,6 +248,7 @@ import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useFs } from '../composables/useFs.js'
 
+const { t } = useI18n()
 const ws = useWsStore()
 const router = useRouter()
 const fs = useFs()
@@ -261,17 +263,18 @@ const initResult = ref(null)
 const showInitConfirm = ref(false)
 const pendingTemplate = ref('')
 
-const projectTemplates = [
-  { name: 'code-project', description: '代码项目 — 代码审查、重构、单元测试' },
-  { name: 'data-science', description: '数据科学 — ML/数据分析、可视化' },
-  { name: 'devops', description: 'DevOps — 基础设施、部署、监控' },
-  { name: 'medical-triage', description: '医疗分诊 — 症状分析、分诊建议' },
-  { name: 'agriculture-expert', description: '农业专家 — 作物管理、病虫害' },
-  { name: 'general-assistant', description: '通用助手 — 日常问答、任务管理' },
-  { name: 'ai-media-creator', description: 'AI 媒体创作 — 图文生成、视频脚本' },
-  { name: 'ai-doc-creator', description: 'AI 文档创作 — 文档生成、格式转换' },
-  { name: 'empty', description: '空白模板 — 最小项目结构' },
+const PROJECT_TEMPLATE_NAMES = [
+  'code-project', 'data-science', 'devops', 'medical-triage',
+  'agriculture-expert', 'general-assistant', 'ai-media-creator',
+  'ai-doc-creator', 'empty',
 ]
+
+const projectTemplates = computed(() =>
+  PROJECT_TEMPLATE_NAMES.map(name => ({
+    name,
+    description: t(`templates.project.items.${name}`),
+  })),
+)
 
 function confirmInit(name) {
   pendingTemplate.value = name
@@ -289,7 +292,7 @@ async function doInit() {
     const { output, exitCode } = await ws.execute(cmd, 30000)
     initResult.value = { success: exitCode === 0, output }
   } catch (e) {
-    initResult.value = { success: false, output: `初始化失败: ${e.message}` }
+    initResult.value = { success: false, output: t('templates.messages.initFailed', { err: e.message }) }
   } finally {
     initLoading.value = ''
   }
@@ -322,7 +325,7 @@ async function createBiDashboard(id) {
     const { output, exitCode } = await ws.execute(cmd, 30000)
     biResult.value = { success: exitCode === 0, output }
   } catch (e) {
-    biResult.value = { success: false, output: `创建失败: ${e.message}` }
+    biResult.value = { success: false, output: t('templates.messages.createFailed', { err: e.message }) }
   } finally {
     biCreating.value = ''
   }
@@ -360,7 +363,7 @@ function savePrompt() {
   })
   persistPrompts()
   resetPromptForm()
-  message.success('模板已保存')
+  message.success(t('templates.messages.promptSaved'))
 }
 
 function resetPromptForm() {
@@ -379,9 +382,11 @@ async function exportPrompts() {
       { defaultPath: `prompt-templates-${new Date().toISOString().slice(0, 10)}.json` },
     )
     if (r.canceled) return
-    message.success(r.path ? `已导出 ${promptTemplates.value.length} 条到 ${r.path}` : '已导出')
+    message.success(r.path
+      ? t('templates.messages.exportOk', { count: promptTemplates.value.length, path: r.path })
+      : t('templates.messages.exportOkDefault'))
   } catch (e) {
-    message.error(`导出失败: ${e.message || e}`)
+    message.error(t('templates.messages.exportFailed', { err: e.message || e }))
   } finally {
     exportingPrompts.value = false
   }
@@ -391,26 +396,24 @@ async function importPrompts() {
   importingPrompts.value = true
   try {
     const r = await fs.pickFileText({
-      title: '选择 prompt-templates JSON',
+      title: t('templates.prompts.filePickerTitle'),
       filters: [{ name: 'JSON', extensions: ['json'] }],
     })
     if (!r || r.canceled) return
     if (r.reason === 'too_large') {
-      message.error('文件过大')
+      message.error(t('templates.messages.fileTooLarge'))
       return
     }
     let parsed
     try {
       parsed = JSON.parse(r.content || '')
     } catch (e) {
-      message.error(`JSON 解析失败: ${e.message}`)
+      message.error(t('templates.messages.jsonParseFailed', { err: e.message }))
       return
     }
-    // Accept either {schema, prompts: [...]} or a bare array — be lenient on
-    // input shape since users may hand-edit the file.
     const list = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.prompts) ? parsed.prompts : null
     if (!list) {
-      message.error('文件格式不识别（期待 {prompts: [...]} 或数组）')
+      message.error(t('templates.messages.fileShapeUnknown', { expected: 'prompts: [...]' }))
       return
     }
     let added = 0
@@ -426,12 +429,12 @@ async function importPrompts() {
     }
     if (added) {
       persistPrompts()
-      message.success(`已导入 ${added} 条`)
+      message.success(t('templates.messages.importedCount', { count: added }))
     } else {
-      message.warning('文件中没有有效的 prompt 条目')
+      message.warning(t('templates.messages.importEmpty'))
     }
   } catch (e) {
-    message.error(`导入失败: ${e.message || e}`)
+    message.error(t('templates.messages.importFailed', { err: e.message || e }))
   } finally {
     importingPrompts.value = false
   }
@@ -440,14 +443,14 @@ async function importPrompts() {
 function deletePrompt(idx) {
   promptTemplates.value.splice(idx, 1)
   persistPrompts()
-  message.success('模板已删除')
+  message.success(t('templates.messages.promptDeleted'))
 }
 
 function copyPrompt(pt) {
   navigator.clipboard.writeText(pt.content).then(() => {
-    message.success('已复制到剪贴板')
+    message.success(t('templates.messages.copiedClipboard'))
   }).catch(() => {
-    message.error('复制失败')
+    message.error(t('templates.messages.copyFailed'))
   })
 }
 

@@ -2484,6 +2484,78 @@
       "loadFailed": "Load failed: {err}"
     }
   },
+  "templates": {
+    "title": "Template Hub",
+    "subtitle": "Project templates / BI templates / Prompt templates",
+    "tabs": {
+      "project": "Project",
+      "bi": "BI",
+      "prompts": "Prompts"
+    },
+    "project": {
+      "initButton": "Initialize",
+      "initSuccessAlert": "Initialization succeeded",
+      "initFailureAlert": "Initialization failed",
+      "confirmTitle": "Confirm initialization",
+      "confirmOk": "Confirm",
+      "confirmIntro": "Initialize the project with template",
+      "confirmIntroSuffix": "?",
+      "confirmHint": "This creates the project structure in the current working directory.",
+      "items": {
+        "code-project": "Code project — code review, refactoring, unit tests",
+        "data-science": "Data science — ML/data analysis, visualization",
+        "devops": "DevOps — infrastructure, deployment, monitoring",
+        "medical-triage": "Medical triage — symptom analysis, triage advice",
+        "agriculture-expert": "Agriculture expert — crop management, pest control",
+        "general-assistant": "General assistant — daily Q&A, task management",
+        "ai-media-creator": "AI media creator — image/text generation, video scripts",
+        "ai-doc-creator": "AI doc creator — document generation, format conversion",
+        "empty": "Empty template — minimal project structure"
+      }
+    },
+    "bi": {
+      "loadingHint": "Loading BI templates...",
+      "emptyText": "No BI templates available",
+      "noDescription": "No description",
+      "createButton": "Create dashboard",
+      "createSuccessAlert": "Dashboard created",
+      "createFailureAlert": "Creation failed"
+    },
+    "prompts": {
+      "newButton": "New template",
+      "exportAll": "Export all",
+      "import": "Import",
+      "emptyText": "No Prompt templates yet — click the buttons above to add one",
+      "useButton": "Use",
+      "copyButton": "Copy",
+      "deleteButton": "Delete",
+      "modalTitle": "New Prompt template",
+      "modalOk": "Save",
+      "nameLabel": "Template name",
+      "namePlaceholder": "Template name",
+      "categoryLabel": "Category",
+      "contentLabel": "Template content",
+      "contentPlaceholder": "Enter the Prompt template content",
+      "filePickerTitle": "Select prompt-templates JSON"
+    },
+    "messages": {
+      "initFailed": "Initialization failed: {err}",
+      "createFailed": "Creation failed: {err}",
+      "promptSaved": "Template saved",
+      "promptDeleted": "Template deleted",
+      "exportOk": "Exported {count} entries to {path}",
+      "exportOkDefault": "Exported",
+      "exportFailed": "Export failed: {err}",
+      "fileTooLarge": "File too large",
+      "jsonParseFailed": "JSON parse failed: {err}",
+      "fileShapeUnknown": "Unrecognized file shape (expected {expected} or an array)",
+      "importedCount": "Imported {count} entries",
+      "importEmpty": "No valid prompt entries in the file",
+      "importFailed": "Import failed: {err}",
+      "copiedClipboard": "Copied to clipboard",
+      "copyFailed": "Copy failed"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",

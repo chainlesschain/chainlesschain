@@ -2484,6 +2484,78 @@
       "loadFailed": "加载失败: {err}"
     }
   },
+  "templates": {
+    "title": "模板中心",
+    "subtitle": "项目模板 / BI 模板 / Prompt 模板",
+    "tabs": {
+      "project": "项目模板",
+      "bi": "BI 模板",
+      "prompts": "Prompt 模板"
+    },
+    "project": {
+      "initButton": "初始化",
+      "initSuccessAlert": "初始化成功",
+      "initFailureAlert": "初始化失败",
+      "confirmTitle": "确认初始化",
+      "confirmOk": "确认",
+      "confirmIntro": "确定要使用模板",
+      "confirmIntroSuffix": "初始化项目吗？",
+      "confirmHint": "这将在当前工作目录创建项目结构。",
+      "items": {
+        "code-project": "代码项目 — 代码审查、重构、单元测试",
+        "data-science": "数据科学 — ML/数据分析、可视化",
+        "devops": "DevOps — 基础设施、部署、监控",
+        "medical-triage": "医疗分诊 — 症状分析、分诊建议",
+        "agriculture-expert": "农业专家 — 作物管理、病虫害",
+        "general-assistant": "通用助手 — 日常问答、任务管理",
+        "ai-media-creator": "AI 媒体创作 — 图文生成、视频脚本",
+        "ai-doc-creator": "AI 文档创作 — 文档生成、格式转换",
+        "empty": "空白模板 — 最小项目结构"
+      }
+    },
+    "bi": {
+      "loadingHint": "加载 BI 模板...",
+      "emptyText": "暂无 BI 模板",
+      "noDescription": "暂无描述",
+      "createButton": "创建仪表板",
+      "createSuccessAlert": "仪表板创建成功",
+      "createFailureAlert": "创建失败"
+    },
+    "prompts": {
+      "newButton": "新建模板",
+      "exportAll": "导出全部",
+      "import": "导入",
+      "emptyText": "暂无 Prompt 模板，点击上方按钮创建",
+      "useButton": "使用",
+      "copyButton": "复制",
+      "deleteButton": "删除",
+      "modalTitle": "新建 Prompt 模板",
+      "modalOk": "保存",
+      "nameLabel": "模板名称",
+      "namePlaceholder": "输入模板名称",
+      "categoryLabel": "分类",
+      "contentLabel": "模板内容",
+      "contentPlaceholder": "输入 Prompt 模板内容",
+      "filePickerTitle": "选择 prompt-templates JSON"
+    },
+    "messages": {
+      "initFailed": "初始化失败: {err}",
+      "createFailed": "创建失败: {err}",
+      "promptSaved": "模板已保存",
+      "promptDeleted": "模板已删除",
+      "exportOk": "已导出 {count} 条到 {path}",
+      "exportOkDefault": "已导出",
+      "exportFailed": "导出失败: {err}",
+      "fileTooLarge": "文件过大",
+      "jsonParseFailed": "JSON 解析失败: {err}",
+      "fileShapeUnknown": "文件格式不识别（期待 {expected} 或数组）",
+      "importedCount": "已导入 {count} 条",
+      "importEmpty": "文件中没有有效的 prompt 条目",
+      "importFailed": "导入失败: {err}",
+      "copiedClipboard": "已复制到剪贴板",
+      "copyFailed": "复制失败"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",
