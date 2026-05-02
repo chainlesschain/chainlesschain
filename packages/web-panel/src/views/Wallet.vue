@@ -2,12 +2,12 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">钱包管理</h2>
-        <p class="page-sub">资产 / 转账 / 历史</p>
+        <h2 class="page-title">{{ t('wallet.title') }}</h2>
+        <p class="page-sub">{{ t('wallet.subtitle') }}</p>
       </div>
       <a-button type="primary" ghost :loading="refreshing" @click="refreshCurrentTab">
         <template #icon><ReloadOutlined /></template>
-        刷新
+        {{ t('wallet.refresh') }}
       </a-button>
     </div>
 
@@ -16,7 +16,7 @@
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="钱包数量"
+            :title="t('wallet.stats.walletCount')"
             :value="wallets.length"
             :value-style="{ color: '#1677ff', fontSize: '20px' }"
           >
@@ -27,7 +27,7 @@
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="总资产数"
+            :title="t('wallet.stats.assetCount')"
             :value="assets.length"
             :value-style="{ color: '#52c41a', fontSize: '20px' }"
           />
@@ -36,9 +36,9 @@
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="默认钱包"
+            :title="t('wallet.stats.defaultWallet')"
             :value="defaultWalletDisplay"
-            :value-style="{ color: defaultWalletDisplay !== '未设置' ? '#faad14' : '#888', fontSize: '14px', fontFamily: 'monospace' }"
+            :value-style="{ color: defaultWalletDisplay !== t('wallet.stats.defaultUnset') ? '#faad14' : '#888', fontSize: '14px', fontFamily: 'monospace' }"
           >
             <template #prefix><WalletOutlined /></template>
           </a-statistic>
@@ -47,7 +47,7 @@
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="总交易数"
+            :title="t('wallet.stats.totalTx')"
             :value="txHistory.length"
             :value-style="{ color: '#ff4d4f', fontSize: '20px' }"
           >
@@ -61,17 +61,17 @@
       <!-- Tab 1: Wallet List -->
       <a-tab-pane key="wallets">
         <template #tab>
-          <WalletOutlined /> 钱包列表
+          <WalletOutlined /> {{ t('wallet.tabs.wallets') }}
         </template>
 
         <a-space style="margin-bottom: 16px;">
           <a-button type="primary" :loading="walletsLoading" @click="loadWallets">
             <template #icon><ReloadOutlined /></template>
-            刷新列表
+            {{ t('wallet.wallets.refreshList') }}
           </a-button>
           <a-button @click="showCreateModal = true">
             <template #icon><PlusOutlined /></template>
-            创建钱包
+            {{ t('wallet.wallets.createButton') }}
           </a-button>
         </a-space>
 
@@ -80,7 +80,7 @@
           v-else
           :columns="walletColumns"
           :data-source="wallets"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (count) => t('wallet.totals.rows', { count }) }"
           size="small"
           style="background: var(--bg-card);"
           :row-class-name="() => 'wallet-row'"
@@ -94,7 +94,7 @@
             </template>
             <template v-if="column.key === 'isDefault'">
               <a-tag :color="record.isDefault ? 'green' : 'default'">
-                {{ record.isDefault ? '默认' : '-' }}
+                {{ record.isDefault ? t('wallet.wallets.default') : '-' }}
               </a-tag>
             </template>
             <template v-if="column.key === 'balance'">
@@ -108,28 +108,28 @@
                 :loading="settingDefault === record.address"
                 @click="setDefault(record.address)"
               >
-                设为默认
+                {{ t('wallet.wallets.setDefault') }}
               </a-button>
-              <span v-else style="color: var(--text-muted); font-size: 12px;">当前默认</span>
+              <span v-else style="color: var(--text-muted); font-size: 12px;">{{ t('wallet.wallets.currentDefault') }}</span>
             </template>
           </template>
           <template #emptyText>
-            <a-empty description="暂无钱包，点击「创建钱包」添加" />
+            <a-empty :description="t('wallet.wallets.emptyText')" />
           </template>
         </a-table>
 
         <!-- Create Wallet Modal -->
         <a-modal
           v-model:open="showCreateModal"
-          title="创建钱包"
+          :title="t('wallet.wallets.createTitle')"
           :confirm-loading="creating"
           @ok="createWallet"
-          ok-text="创建"
-          cancel-text="取消"
+          :ok-text="t('wallet.wallets.createOk')"
+          :cancel-text="t('common.cancel')"
         >
           <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" style="margin-top: 16px;">
-            <a-form-item label="钱包名称" required>
-              <a-input v-model:value="newWalletName" placeholder="请输入钱包名称" />
+            <a-form-item :label="t('wallet.wallets.nameLabel')" required>
+              <a-input v-model:value="newWalletName" :placeholder="t('wallet.wallets.namePlaceholder')" />
             </a-form-item>
           </a-form>
         </a-modal>
@@ -138,17 +138,17 @@
       <!-- Tab 2: Assets -->
       <a-tab-pane key="assets">
         <template #tab>
-          <WalletOutlined /> 资产管理
+          <WalletOutlined /> {{ t('wallet.tabs.assets') }}
         </template>
 
         <a-space style="margin-bottom: 16px;">
           <a-button type="primary" :loading="assetsLoading" @click="loadAssets">
             <template #icon><ReloadOutlined /></template>
-            刷新资产
+            {{ t('wallet.assets.refreshAssets') }}
           </a-button>
           <a-button @click="showAssetModal = true">
             <template #icon><PlusOutlined /></template>
-            注册资产
+            {{ t('wallet.assets.registerButton') }}
           </a-button>
         </a-space>
 
@@ -157,7 +157,7 @@
           v-else
           :columns="assetColumns"
           :data-source="assets"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (count) => t('wallet.totals.rows', { count }) }"
           size="small"
           style="background: var(--bg-card);"
           :row-class-name="() => 'wallet-row'"
@@ -177,32 +177,32 @@
             </template>
           </template>
           <template #emptyText>
-            <a-empty description="暂无资产，点击「注册资产」添加" />
+            <a-empty :description="t('wallet.assets.emptyText')" />
           </template>
         </a-table>
 
         <!-- Register Asset Modal -->
         <a-modal
           v-model:open="showAssetModal"
-          title="注册资产"
+          :title="t('wallet.assets.registerTitle')"
           :confirm-loading="registering"
           @ok="registerAsset"
-          ok-text="注册"
-          cancel-text="取消"
+          :ok-text="t('wallet.assets.registerOk')"
+          :cancel-text="t('common.cancel')"
         >
           <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" style="margin-top: 16px;">
-            <a-form-item label="资产名称" required>
-              <a-input v-model:value="newAsset.name" placeholder="请输入资产名称" />
+            <a-form-item :label="t('wallet.assets.nameLabel')" required>
+              <a-input v-model:value="newAsset.name" :placeholder="t('wallet.assets.namePlaceholder')" />
             </a-form-item>
-            <a-form-item label="资产类型" required>
-              <a-select v-model:value="newAsset.type" placeholder="请选择类型">
+            <a-form-item :label="t('wallet.assets.typeLabel')" required>
+              <a-select v-model:value="newAsset.type" :placeholder="t('wallet.assets.typePlaceholder')">
                 <a-select-option value="token">Token</a-select-option>
                 <a-select-option value="nft">NFT</a-select-option>
                 <a-select-option value="data">Data</a-select-option>
               </a-select>
             </a-form-item>
-            <a-form-item label="描述">
-              <a-input v-model:value="newAsset.description" placeholder="资产描述（可选）" />
+            <a-form-item :label="t('wallet.assets.descLabel')">
+              <a-input v-model:value="newAsset.description" :placeholder="t('wallet.assets.descPlaceholder')" />
             </a-form-item>
           </a-form>
         </a-modal>
@@ -211,25 +211,25 @@
       <!-- Tab 3: Transfer -->
       <a-tab-pane key="transfer">
         <template #tab>
-          <SendOutlined /> 转账
+          <SendOutlined /> {{ t('wallet.tabs.transfer') }}
         </template>
 
         <a-row :gutter="[24, 24]">
           <a-col :xs="24" :md="12">
-            <a-card title="发起转账" style="background: var(--bg-card); border-color: var(--border-color);">
+            <a-card :title="t('wallet.transfer.formCardTitle')" style="background: var(--bg-card); border-color: var(--border-color);">
               <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
-                <a-form-item label="资产 ID" required>
-                  <a-input v-model:value="transferForm.assetId" placeholder="请输入资产 ID" />
+                <a-form-item :label="t('wallet.transfer.assetIdLabel')" required>
+                  <a-input v-model:value="transferForm.assetId" :placeholder="t('wallet.transfer.assetIdPlaceholder')" />
                 </a-form-item>
-                <a-form-item label="目标地址" required>
-                  <a-input v-model:value="transferForm.toAddress" placeholder="请输入接收方地址" />
+                <a-form-item :label="t('wallet.transfer.toAddressLabel')" required>
+                  <a-input v-model:value="transferForm.toAddress" :placeholder="t('wallet.transfer.toAddressPlaceholder')" />
                 </a-form-item>
-                <a-form-item label="数量" required>
+                <a-form-item :label="t('wallet.transfer.amountLabel')" required>
                   <a-input-number
                     v-model:value="transferForm.amount"
                     :min="0"
                     :step="0.01"
-                    placeholder="转账数量"
+                    :placeholder="t('wallet.transfer.amountPlaceholder')"
                     style="width: 100%;"
                   />
                 </a-form-item>
@@ -241,20 +241,20 @@
                     @click="confirmTransfer"
                   >
                     <template #icon><SendOutlined /></template>
-                    确认转账
+                    {{ t('wallet.transfer.submitButton') }}
                   </a-button>
                 </a-form-item>
               </a-form>
               <div v-if="transferResult" style="margin-top: 8px;">
                 <a-tag :color="transferResult.success ? 'green' : 'red'">
-                  {{ transferResult.success ? '成功' : '失败' }}
+                  {{ transferResult.success ? t('wallet.transfer.successTag') : t('wallet.transfer.failureTag') }}
                 </a-tag>
                 <pre style="white-space: pre-wrap; word-break: break-all; color: var(--text-secondary); font-size: 11px; margin-top: 8px; background: var(--bg-base); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">{{ transferResult.output }}</pre>
               </div>
             </a-card>
           </a-col>
           <a-col :xs="24" :md="12">
-            <a-card title="交易历史" style="background: var(--bg-card); border-color: var(--border-color);">
+            <a-card :title="t('wallet.transfer.historyCardTitle')" style="background: var(--bg-card); border-color: var(--border-color);">
               <template #extra>
                 <a-button size="small" :loading="historyLoading" @click="loadHistory">
                   <template #icon><ReloadOutlined /></template>
@@ -265,7 +265,7 @@
                 v-else
                 :columns="historyColumns"
                 :data-source="txHistory"
-                :pagination="{ pageSize: 10, showTotal: (t) => `共 ${t} 条`, size: 'small' }"
+                :pagination="{ pageSize: 10, showTotal: (count) => t('wallet.totals.rows', { count }), size: 'small' }"
                 size="small"
                 :row-class-name="() => 'wallet-row'"
               >
@@ -284,7 +284,7 @@
                   </template>
                 </template>
                 <template #emptyText>
-                  <a-empty description="暂无交易记录" />
+                  <a-empty :description="t('wallet.transfer.historyEmpty')" />
                 </template>
               </a-table>
             </a-card>
@@ -294,23 +294,23 @@
         <!-- Transfer Confirmation Modal -->
         <a-modal
           v-model:open="showTransferConfirm"
-          title="确认转账"
+          :title="t('wallet.transfer.confirmTitle')"
           :confirm-loading="transferring"
           @ok="doTransfer"
-          ok-text="确认"
-          cancel-text="取消"
+          :ok-text="t('wallet.transfer.confirmOk')"
+          :cancel-text="t('common.cancel')"
           ok-type="primary"
         >
           <div style="margin-top: 16px;">
-            <p style="color: var(--text-primary);">请确认以下转账信息：</p>
+            <p style="color: var(--text-primary);">{{ t('wallet.transfer.confirmIntro') }}</p>
             <a-descriptions :column="1" bordered size="small" style="margin-top: 12px;">
-              <a-descriptions-item label="资产 ID">
+              <a-descriptions-item :label="t('wallet.transfer.assetIdLabel')">
                 <span style="font-family: monospace; color: #ccc;">{{ transferForm.assetId }}</span>
               </a-descriptions-item>
-              <a-descriptions-item label="目标地址">
+              <a-descriptions-item :label="t('wallet.transfer.toAddressLabel')">
                 <span style="font-family: monospace; color: #ccc;">{{ transferForm.toAddress }}</span>
               </a-descriptions-item>
-              <a-descriptions-item label="数量">
+              <a-descriptions-item :label="t('wallet.transfer.amountLabel')">
                 <span style="font-family: monospace; color: #52c41a;">{{ transferForm.amount }}</span>
               </a-descriptions-item>
             </a-descriptions>
@@ -323,6 +323,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   WalletOutlined,
   SwapOutlined,
@@ -333,6 +334,7 @@ import {
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
 
+const { t } = useI18n()
 const ws = useWsStore()
 
 // --- Shared ---
@@ -367,17 +369,17 @@ const wallets = ref([])
 const showCreateModal = ref(false)
 const newWalletName = ref('')
 
-const walletColumns = [
-  { title: '地址', key: 'address', dataIndex: 'address', ellipsis: true },
-  { title: '名称', key: 'name', dataIndex: 'name', width: '150px' },
-  { title: '默认', key: 'isDefault', width: '80px' },
-  { title: '余额', key: 'balance', dataIndex: 'balance', width: '120px' },
-  { title: '操作', key: 'action', width: '100px' },
-]
+const walletColumns = computed(() => [
+  { title: t('wallet.walletColumns.address'), key: 'address', dataIndex: 'address', ellipsis: true },
+  { title: t('wallet.walletColumns.name'), key: 'name', dataIndex: 'name', width: '150px' },
+  { title: t('wallet.walletColumns.isDefault'), key: 'isDefault', width: '80px' },
+  { title: t('wallet.walletColumns.balance'), key: 'balance', dataIndex: 'balance', width: '120px' },
+  { title: t('wallet.walletColumns.action'), key: 'action', width: '100px' },
+])
 
 const defaultWalletDisplay = computed(() => {
   const def = wallets.value.find(w => w.isDefault)
-  if (!def || !def.address) return '未设置'
+  if (!def || !def.address) return t('wallet.stats.defaultUnset')
   const addr = def.address
   if (addr.length > 16) return addr.slice(0, 8) + '...' + addr.slice(-6)
   return addr
@@ -408,7 +410,7 @@ async function loadWallets() {
       wallets.value = parseWalletListText(output)
     }
   } catch (e) {
-    message.error('加载钱包列表失败: ' + e.message)
+    message.error(t('wallet.messages.loadWalletsFailed', { err: e.message }))
   } finally {
     walletsLoading.value = false
   }
@@ -437,20 +439,20 @@ function parseWalletListText(output) {
 }
 
 async function createWallet() {
-  if (!newWalletName.value.trim()) { message.warning('请输入钱包名称'); return }
+  if (!newWalletName.value.trim()) { message.warning(t('wallet.messages.walletNameRequired')); return }
   creating.value = true
   try {
     const { output } = await ws.execute(`wallet create --name "${newWalletName.value.trim()}" --json`, 20000)
     if (output.includes('error') || output.includes('失败')) {
-      message.error('创建失败: ' + output.slice(0, 120))
+      message.error(t('wallet.messages.walletCreateFailed', { err: output.slice(0, 120) }))
     } else {
-      message.success('钱包已创建')
+      message.success(t('wallet.messages.walletCreateOk'))
       showCreateModal.value = false
       newWalletName.value = ''
       await loadWallets()
     }
   } catch (e) {
-    message.error('创建失败: ' + e.message)
+    message.error(t('wallet.messages.walletCreateFailed', { err: e.message }))
   } finally {
     creating.value = false
   }
@@ -461,13 +463,13 @@ async function setDefault(address) {
   try {
     const { output } = await ws.execute(`wallet set-default ${address}`, 15000)
     if (output.includes('error') || output.includes('失败')) {
-      message.error('设置失败: ' + output.slice(0, 120))
+      message.error(t('wallet.messages.setDefaultFailed', { err: output.slice(0, 120) }))
     } else {
-      message.success('已设为默认钱包')
+      message.success(t('wallet.messages.setDefaultOk'))
       await loadWallets()
     }
   } catch (e) {
-    message.error('设置失败: ' + e.message)
+    message.error(t('wallet.messages.setDefaultFailed', { err: e.message }))
   } finally {
     settingDefault.value = ''
   }
@@ -480,12 +482,12 @@ const assets = ref([])
 const showAssetModal = ref(false)
 const newAsset = reactive({ name: '', type: 'token', description: '' })
 
-const assetColumns = [
-  { title: '名称', key: 'name', dataIndex: 'name', width: '180px' },
-  { title: '类型', key: 'type', dataIndex: 'type', width: '100px' },
-  { title: '描述', key: 'description', dataIndex: 'description', ellipsis: true },
-  { title: '地址', key: 'address', dataIndex: 'address', ellipsis: true },
-]
+const assetColumns = computed(() => [
+  { title: t('wallet.assetColumns.name'), key: 'name', dataIndex: 'name', width: '180px' },
+  { title: t('wallet.assetColumns.type'), key: 'type', dataIndex: 'type', width: '100px' },
+  { title: t('wallet.assetColumns.description'), key: 'description', dataIndex: 'description', ellipsis: true },
+  { title: t('wallet.assetColumns.address'), key: 'address', dataIndex: 'address', ellipsis: true },
+])
 
 function assetTypeColor(type) {
   const map = { token: 'blue', nft: 'purple', data: 'cyan' }
@@ -517,7 +519,7 @@ async function loadAssets() {
       assets.value = parseAssetsText(output)
     }
   } catch (e) {
-    message.error('加载资产列表失败: ' + e.message)
+    message.error(t('wallet.messages.loadAssetsFailed', { err: e.message }))
   } finally {
     assetsLoading.value = false
   }
@@ -544,7 +546,7 @@ function parseAssetsText(output) {
 }
 
 async function registerAsset() {
-  if (!newAsset.name.trim()) { message.warning('请输入资产名称'); return }
+  if (!newAsset.name.trim()) { message.warning(t('wallet.messages.assetNameRequired')); return }
   registering.value = true
   try {
     let cmd = `wallet asset "${newAsset.name.trim()}" --type ${newAsset.type}`
@@ -554,9 +556,9 @@ async function registerAsset() {
     cmd += ' --json'
     const { output } = await ws.execute(cmd, 20000)
     if (output.includes('error') || output.includes('失败')) {
-      message.error('注册失败: ' + output.slice(0, 120))
+      message.error(t('wallet.messages.assetRegisterFailed', { err: output.slice(0, 120) }))
     } else {
-      message.success('资产已注册')
+      message.success(t('wallet.messages.assetRegisterOk'))
       showAssetModal.value = false
       newAsset.name = ''
       newAsset.type = 'token'
@@ -564,7 +566,7 @@ async function registerAsset() {
       await loadAssets()
     }
   } catch (e) {
-    message.error('注册失败: ' + e.message)
+    message.error(t('wallet.messages.assetRegisterFailed', { err: e.message }))
   } finally {
     registering.value = false
   }
@@ -578,16 +580,16 @@ const transferResult = ref(null)
 const txHistory = ref([])
 const transferForm = reactive({ assetId: '', toAddress: '', amount: null })
 
-const historyColumns = [
-  { title: '时间', key: 'time', dataIndex: 'time', width: '150px' },
-  { title: '类型', key: 'type', dataIndex: 'type', width: '80px' },
-  { title: '数量', key: 'amount', dataIndex: 'amount', width: '100px' },
-  { title: '目标', key: 'to', dataIndex: 'to', ellipsis: true },
-]
+const historyColumns = computed(() => [
+  { title: t('wallet.historyColumns.time'), key: 'time', dataIndex: 'time', width: '150px' },
+  { title: t('wallet.historyColumns.type'), key: 'type', dataIndex: 'type', width: '80px' },
+  { title: t('wallet.historyColumns.amount'), key: 'amount', dataIndex: 'amount', width: '100px' },
+  { title: t('wallet.historyColumns.to'), key: 'to', dataIndex: 'to', ellipsis: true },
+])
 
 function confirmTransfer() {
   if (!transferForm.assetId.trim() || !transferForm.toAddress.trim() || !transferForm.amount) {
-    message.warning('请填写完整的转账信息')
+    message.warning(t('wallet.messages.transferIncomplete'))
     return
   }
   showTransferConfirm.value = true
@@ -601,17 +603,17 @@ async function doTransfer() {
     const { output, exitCode } = await ws.execute(cmd, 30000)
     transferResult.value = {
       success: exitCode === 0 && !output.includes('error') && !output.includes('失败'),
-      output: output || '转账已提交',
+      output: output || t('wallet.messages.transferDefault'),
     }
     if (transferResult.value.success) {
-      message.success('转账成功')
+      message.success(t('wallet.messages.transferOk'))
       showTransferConfirm.value = false
       await loadHistory()
     } else {
       showTransferConfirm.value = false
     }
   } catch (e) {
-    transferResult.value = { success: false, output: '转账失败: ' + e.message }
+    transferResult.value = { success: false, output: t('wallet.messages.transferFailed', { err: e.message }) }
     showTransferConfirm.value = false
   } finally {
     transferring.value = false
@@ -643,7 +645,7 @@ async function loadHistory() {
       txHistory.value = parseHistoryText(output)
     }
   } catch (e) {
-    message.error('加载交易历史失败: ' + e.message)
+    message.error(t('wallet.messages.loadHistoryFailed', { err: e.message }))
   } finally {
     historyLoading.value = false
   }

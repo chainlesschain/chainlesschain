@@ -1689,6 +1689,104 @@
       "failOk": "Marked as failed"
     }
   },
+  "wallet": {
+    "title": "Wallet",
+    "subtitle": "Assets / Transfers / History",
+    "refresh": "Refresh",
+    "stats": {
+      "walletCount": "Wallets",
+      "assetCount": "Assets",
+      "defaultWallet": "Default wallet",
+      "defaultUnset": "Not set",
+      "totalTx": "Transactions"
+    },
+    "tabs": {
+      "wallets": "Wallets",
+      "assets": "Assets",
+      "transfer": "Transfer"
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "wallets": {
+      "refreshList": "Refresh list",
+      "createButton": "Create wallet",
+      "createTitle": "Create wallet",
+      "createOk": "Create",
+      "nameLabel": "Wallet name",
+      "namePlaceholder": "Wallet name",
+      "emptyText": "No wallets yet — click Create wallet to add",
+      "default": "Default",
+      "currentDefault": "Current default",
+      "setDefault": "Set default"
+    },
+    "walletColumns": {
+      "address": "Address",
+      "name": "Name",
+      "isDefault": "Default",
+      "balance": "Balance",
+      "action": "Action"
+    },
+    "assets": {
+      "refreshAssets": "Refresh assets",
+      "registerButton": "Register asset",
+      "registerTitle": "Register asset",
+      "registerOk": "Register",
+      "nameLabel": "Asset name",
+      "namePlaceholder": "Asset name",
+      "typeLabel": "Asset type",
+      "typePlaceholder": "Pick a type",
+      "descLabel": "Description",
+      "descPlaceholder": "Asset description (optional)",
+      "emptyText": "No assets yet — click Register asset to add"
+    },
+    "assetColumns": {
+      "name": "Name",
+      "type": "Type",
+      "description": "Description",
+      "address": "Address"
+    },
+    "transfer": {
+      "formCardTitle": "New transfer",
+      "assetIdLabel": "Asset ID",
+      "assetIdPlaceholder": "Asset ID",
+      "toAddressLabel": "Recipient",
+      "toAddressPlaceholder": "Recipient address",
+      "amountLabel": "Amount",
+      "amountPlaceholder": "Amount",
+      "submitButton": "Confirm transfer",
+      "successTag": "Success",
+      "failureTag": "Failed",
+      "historyCardTitle": "Transaction history",
+      "historyEmpty": "No transactions yet",
+      "confirmTitle": "Confirm transfer",
+      "confirmIntro": "Please confirm the transfer:",
+      "confirmOk": "Confirm"
+    },
+    "historyColumns": {
+      "time": "Time",
+      "type": "Type",
+      "amount": "Amount",
+      "to": "To"
+    },
+    "messages": {
+      "loadWalletsFailed": "Failed to load wallets: {err}",
+      "walletNameRequired": "Enter a wallet name",
+      "walletCreateFailed": "Create failed: {err}",
+      "walletCreateOk": "Wallet created",
+      "setDefaultFailed": "Set default failed: {err}",
+      "setDefaultOk": "Set as default wallet",
+      "loadAssetsFailed": "Failed to load assets: {err}",
+      "assetNameRequired": "Enter an asset name",
+      "assetRegisterFailed": "Register failed: {err}",
+      "assetRegisterOk": "Asset registered",
+      "transferIncomplete": "Fill in all transfer fields",
+      "transferOk": "Transfer succeeded",
+      "transferDefault": "Transfer submitted",
+      "transferFailed": "Transfer failed: {err}",
+      "loadHistoryFailed": "Failed to load history: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",

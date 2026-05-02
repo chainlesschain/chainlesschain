@@ -1689,6 +1689,104 @@
       "failOk": "已标记为失败"
     }
   },
+  "wallet": {
+    "title": "钱包管理",
+    "subtitle": "资产 / 转账 / 历史",
+    "refresh": "刷新",
+    "stats": {
+      "walletCount": "钱包数量",
+      "assetCount": "总资产数",
+      "defaultWallet": "默认钱包",
+      "defaultUnset": "未设置",
+      "totalTx": "总交易数"
+    },
+    "tabs": {
+      "wallets": "钱包列表",
+      "assets": "资产管理",
+      "transfer": "转账"
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "wallets": {
+      "refreshList": "刷新列表",
+      "createButton": "创建钱包",
+      "createTitle": "创建钱包",
+      "createOk": "创建",
+      "nameLabel": "钱包名称",
+      "namePlaceholder": "请输入钱包名称",
+      "emptyText": "暂无钱包，点击创建钱包添加",
+      "default": "默认",
+      "currentDefault": "当前默认",
+      "setDefault": "设为默认"
+    },
+    "walletColumns": {
+      "address": "地址",
+      "name": "名称",
+      "isDefault": "默认",
+      "balance": "余额",
+      "action": "操作"
+    },
+    "assets": {
+      "refreshAssets": "刷新资产",
+      "registerButton": "注册资产",
+      "registerTitle": "注册资产",
+      "registerOk": "注册",
+      "nameLabel": "资产名称",
+      "namePlaceholder": "请输入资产名称",
+      "typeLabel": "资产类型",
+      "typePlaceholder": "请选择类型",
+      "descLabel": "描述",
+      "descPlaceholder": "资产描述（可选）",
+      "emptyText": "暂无资产，点击注册资产添加"
+    },
+    "assetColumns": {
+      "name": "名称",
+      "type": "类型",
+      "description": "描述",
+      "address": "地址"
+    },
+    "transfer": {
+      "formCardTitle": "发起转账",
+      "assetIdLabel": "资产 ID",
+      "assetIdPlaceholder": "请输入资产 ID",
+      "toAddressLabel": "目标地址",
+      "toAddressPlaceholder": "请输入接收方地址",
+      "amountLabel": "数量",
+      "amountPlaceholder": "转账数量",
+      "submitButton": "确认转账",
+      "successTag": "成功",
+      "failureTag": "失败",
+      "historyCardTitle": "交易历史",
+      "historyEmpty": "暂无交易记录",
+      "confirmTitle": "确认转账",
+      "confirmIntro": "请确认以下转账信息：",
+      "confirmOk": "确认"
+    },
+    "historyColumns": {
+      "time": "时间",
+      "type": "类型",
+      "amount": "数量",
+      "to": "目标"
+    },
+    "messages": {
+      "loadWalletsFailed": "加载钱包列表失败: {err}",
+      "walletNameRequired": "请输入钱包名称",
+      "walletCreateFailed": "创建失败: {err}",
+      "walletCreateOk": "钱包已创建",
+      "setDefaultFailed": "设置失败: {err}",
+      "setDefaultOk": "已设为默认钱包",
+      "loadAssetsFailed": "加载资产列表失败: {err}",
+      "assetNameRequired": "请输入资产名称",
+      "assetRegisterFailed": "注册失败: {err}",
+      "assetRegisterOk": "资产已注册",
+      "transferIncomplete": "请填写完整的转账信息",
+      "transferOk": "转账成功",
+      "transferDefault": "转账已提交",
+      "transferFailed": "转账失败: {err}",
+      "loadHistoryFailed": "加载交易历史失败: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",
