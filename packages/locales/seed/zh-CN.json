@@ -2689,6 +2689,74 @@
       "deleteFailed": "删除失败"
     }
   },
+  "analytics": {
+    "title": "使用分析",
+    "subtitle": "Token 用量 / 成本 / 缓存",
+    "refresh": "刷新",
+    "period": {
+      "today": "今天",
+      "week": "本周",
+      "month": "本月",
+      "all": "全部"
+    },
+    "summary": {
+      "totalCalls": "总调用次数",
+      "callsSuffix": "次",
+      "totalTokens": "总 Token 数",
+      "totalCost": "总费用",
+      "avgResponseTime": "平均响应时间"
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "providerCardTitle": "Provider 分布",
+    "providerEmpty": "暂无调用记录",
+    "recentCardTitle": "最近调用记录",
+    "recentEmpty": "暂无调用记录",
+    "sessionCardTitle": "Session Token Usage",
+    "sessionStats": {
+      "totalCalls": "Session 调用总次数",
+      "inputTokens": "Input Tokens",
+      "outputTokens": "Output Tokens",
+      "totalTokens": "Total Tokens"
+    },
+    "sessionEmpty": "暂无 Session 用量数据 — 使用 cc chat 后刷新",
+    "cacheCardTitle": "缓存状态",
+    "cacheActions": {
+      "cleanup": "清理过期",
+      "clear": "清理缓存"
+    },
+    "cacheStats": {
+      "entries": "缓存条目",
+      "hits": "命中次数",
+      "tokensSaved": "节省 Token",
+      "expired": "已过期"
+    },
+    "breakdownColumns": {
+      "calls": "调用次数",
+      "inputTokens": "Input Tokens",
+      "outputTokens": "Output Tokens",
+      "totalTokens": "Total Tokens",
+      "cost": "费用 (USD)",
+      "avgResponseTime": "平均响应"
+    },
+    "recentColumns": {
+      "timestamp": "时间",
+      "input": "Input",
+      "output": "Output",
+      "cost": "费用",
+      "responseTime": "响应时间"
+    },
+    "sessionUsageColumns": {
+      "calls": "调用次数"
+    },
+    "messages": {
+      "cacheClearOk": "缓存已清理",
+      "cacheClearFailed": "清理缓存失败: {err}",
+      "cacheCleanupOk": "过期缓存已清理",
+      "cacheCleanupFailed": "清理过期失败: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

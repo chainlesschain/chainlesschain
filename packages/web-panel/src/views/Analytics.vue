@@ -2,19 +2,19 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">使用分析</h2>
-        <p class="page-sub">Token 用量 / 成本 / 缓存</p>
+        <h2 class="page-title">{{ t('analytics.title') }}</h2>
+        <p class="page-sub">{{ t('analytics.subtitle') }}</p>
       </div>
       <div style="display: flex; align-items: center; gap: 12px;">
         <a-radio-group v-model:value="period" button-style="solid" size="small">
-          <a-radio-button value="today">今天</a-radio-button>
-          <a-radio-button value="week">本周</a-radio-button>
-          <a-radio-button value="month">本月</a-radio-button>
-          <a-radio-button value="all">全部</a-radio-button>
+          <a-radio-button value="today">{{ t('analytics.period.today') }}</a-radio-button>
+          <a-radio-button value="week">{{ t('analytics.period.week') }}</a-radio-button>
+          <a-radio-button value="month">{{ t('analytics.period.month') }}</a-radio-button>
+          <a-radio-button value="all">{{ t('analytics.period.all') }}</a-radio-button>
         </a-radio-group>
         <a-button type="primary" ghost :loading="summaryLoading" @click="loadAll">
           <template #icon><ReloadOutlined /></template>
-          刷新
+          {{ t('analytics.refresh') }}
         </a-button>
       </div>
     </div>
@@ -24,19 +24,19 @@
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="总调用次数"
+            :title="t('analytics.summary.totalCalls')"
             :value="summary.totalCalls"
             :value-style="{ color: '#1677ff', fontSize: '20px' }"
           >
             <template #prefix><BarChartOutlined /></template>
-            <template #suffix>次</template>
+            <template #suffix>{{ t('analytics.summary.callsSuffix') }}</template>
           </a-statistic>
         </a-card>
       </a-col>
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="总 Token 数"
+            :title="t('analytics.summary.totalTokens')"
             :value="summary.totalTokens"
             :value-style="{ color: '#52c41a', fontSize: '20px' }"
           >
@@ -47,7 +47,7 @@
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="总费用"
+            :title="t('analytics.summary.totalCost')"
             :value="summary.totalCost"
             :precision="4"
             :value-style="{ color: '#faad14', fontSize: '20px' }"
@@ -60,7 +60,7 @@
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="平均响应时间"
+            :title="t('analytics.summary.avgResponseTime')"
             :value="summary.avgResponseTime"
             :value-style="{ color: '#722ed1', fontSize: '20px' }"
           >
@@ -73,7 +73,7 @@
 
     <!-- Section 2: Provider Breakdown -->
     <a-card
-      title="Provider 分布"
+      :title="t('analytics.providerCardTitle')"
       style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 20px;"
     >
       <div v-if="breakdownLoading" style="text-align: center; padding: 60px;"><a-spin size="large" /></div>
@@ -81,7 +81,7 @@
         v-else
         :columns="breakdownColumns"
         :data-source="breakdownData"
-        :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+        :pagination="{ pageSize: 20, showTotal: (count) => t('analytics.totals.rows', { count }) }"
         size="small"
         style="background: var(--bg-card);"
         :row-class-name="() => 'analytics-row'"
@@ -101,14 +101,14 @@
           </template>
         </template>
         <template #emptyText>
-          <a-empty description="暂无调用记录" />
+          <a-empty :description="t('analytics.providerEmpty')" />
         </template>
       </a-table>
     </a-card>
 
     <!-- Section 3: Recent Calls -->
     <a-card
-      title="最近调用记录"
+      :title="t('analytics.recentCardTitle')"
       style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 20px;"
     >
       <template #extra>
@@ -124,7 +124,7 @@
         v-else
         :columns="recentColumns"
         :data-source="recentData"
-        :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+        :pagination="{ pageSize: 20, showTotal: (count) => t('analytics.totals.rows', { count }) }"
         size="small"
         style="background: var(--bg-card);"
         :row-class-name="() => 'analytics-row'"
@@ -147,20 +147,20 @@
           </template>
         </template>
         <template #emptyText>
-          <a-empty description="暂无调用记录" />
+          <a-empty :description="t('analytics.recentEmpty')" />
         </template>
       </a-table>
     </a-card>
 
     <!-- Section 4: Session Token Usage (Phase J — from JSONL sessions) -->
     <a-card
-      title="Session Token Usage"
+      :title="t('analytics.sessionCardTitle')"
       style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 20px;"
     >
       <template #extra>
         <a-button size="small" :loading="sessionUsageLoading" @click="loadSessionUsage" style="background: var(--bg-card-hover); border-color: var(--border-color);">
           <template #icon><ReloadOutlined /></template>
-          刷新
+          {{ t('analytics.refresh') }}
         </a-button>
       </template>
 
@@ -169,7 +169,7 @@
         <a-row :gutter="[16, 16]" style="margin-bottom: 16px;">
           <a-col :xs="12" :sm="6">
             <a-statistic
-              title="Session 调用总次数"
+              :title="t('analytics.sessionStats.totalCalls')"
               :value="sessionUsageSummary.totalCalls"
               :value-style="{ color: '#1677ff', fontSize: '18px' }"
             >
@@ -178,21 +178,21 @@
           </a-col>
           <a-col :xs="12" :sm="6">
             <a-statistic
-              title="Input Tokens"
+              :title="t('analytics.sessionStats.inputTokens')"
               :value="sessionUsageSummary.inputTokens"
               :value-style="{ color: '#52c41a', fontSize: '18px' }"
             />
           </a-col>
           <a-col :xs="12" :sm="6">
             <a-statistic
-              title="Output Tokens"
+              :title="t('analytics.sessionStats.outputTokens')"
               :value="sessionUsageSummary.outputTokens"
               :value-style="{ color: '#faad14', fontSize: '18px' }"
             />
           </a-col>
           <a-col :xs="12" :sm="6">
             <a-statistic
-              title="Total Tokens"
+              :title="t('analytics.sessionStats.totalTokens')"
               :value="sessionUsageSummary.totalTokens"
               :value-style="{ color: '#722ed1', fontSize: '18px' }"
             />
@@ -216,7 +216,7 @@
             </template>
           </template>
           <template #emptyText>
-            <a-empty description="暂无 Session 用量数据 — 使用 cc chat 后刷新" />
+            <a-empty :description="t('analytics.sessionEmpty')" />
           </template>
         </a-table>
       </template>
@@ -224,7 +224,7 @@
 
     <!-- Section 5: Cache Status -->
     <a-card
-      title="缓存状态"
+      :title="t('analytics.cacheCardTitle')"
       style="background: var(--bg-card); border-color: var(--border-color);"
     >
       <template #extra>
@@ -236,7 +236,7 @@
             style="background: var(--bg-card-hover); border-color: var(--border-color);"
           >
             <template #icon><DeleteOutlined /></template>
-            清理过期
+            {{ t('analytics.cacheActions.cleanup') }}
           </a-button>
           <a-button
             size="small"
@@ -246,7 +246,7 @@
             style="border-color: var(--border-color);"
           >
             <template #icon><DeleteOutlined /></template>
-            清理缓存
+            {{ t('analytics.cacheActions.clear') }}
           </a-button>
         </a-space>
       </template>
@@ -255,7 +255,7 @@
       <a-row v-else :gutter="[16, 16]">
         <a-col :xs="12" :sm="6">
           <a-statistic
-            title="缓存条目"
+            :title="t('analytics.cacheStats.entries')"
             :value="cacheStats.entries"
             :value-style="{ color: '#1677ff', fontSize: '18px' }"
           >
@@ -264,21 +264,21 @@
         </a-col>
         <a-col :xs="12" :sm="6">
           <a-statistic
-            title="命中次数"
+            :title="t('analytics.cacheStats.hits')"
             :value="cacheStats.hits"
             :value-style="{ color: '#52c41a', fontSize: '18px' }"
           />
         </a-col>
         <a-col :xs="12" :sm="6">
           <a-statistic
-            title="节省 Token"
+            :title="t('analytics.cacheStats.tokensSaved')"
             :value="cacheStats.tokensSaved"
             :value-style="{ color: '#faad14', fontSize: '18px' }"
           />
         </a-col>
         <a-col :xs="12" :sm="6">
           <a-statistic
-            title="已过期"
+            :title="t('analytics.cacheStats.expired')"
             :value="cacheStats.expired"
             :value-style="{ color: '#ff4d4f', fontSize: '18px' }"
           />
@@ -289,7 +289,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted } from 'vue'
+import { ref, computed, reactive, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   BarChartOutlined,
   DollarOutlined,
@@ -301,6 +302,7 @@ import {
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
 
+const { t } = useI18n()
 const ws = useWsStore()
 
 // --- State ---
@@ -338,36 +340,36 @@ const sessionUsageSummary = reactive({
   totalTokens: 0,
 })
 const sessionUsageByModel = ref([])
-const sessionUsageColumns = [
+const sessionUsageColumns = computed(() => [
   { title: 'Provider', key: 'provider', dataIndex: 'provider', width: '120px' },
   { title: 'Model', key: 'model', dataIndex: 'model', ellipsis: true },
-  { title: '调用次数', key: 'calls', dataIndex: 'calls', width: '100px', sorter: (a, b) => (a.calls || 0) - (b.calls || 0) },
+  { title: t('analytics.sessionUsageColumns.calls'), key: 'calls', dataIndex: 'calls', width: '100px', sorter: (a, b) => (a.calls || 0) - (b.calls || 0) },
   { title: 'Input', key: 'inputTokens', dataIndex: 'inputTokens', width: '110px', sorter: (a, b) => (a.inputTokens || 0) - (b.inputTokens || 0) },
   { title: 'Output', key: 'outputTokens', dataIndex: 'outputTokens', width: '110px', sorter: (a, b) => (a.outputTokens || 0) - (b.outputTokens || 0) },
   { title: 'Total', key: 'totalTokens', dataIndex: 'totalTokens', width: '110px', sorter: (a, b) => (a.totalTokens || 0) - (b.totalTokens || 0) },
-]
+])
 
 // --- Table Columns ---
-const breakdownColumns = [
+const breakdownColumns = computed(() => [
   { title: 'Provider', key: 'provider', dataIndex: 'provider', width: '120px', sorter: (a, b) => (a.provider || '').localeCompare(b.provider || '') },
   { title: 'Model', key: 'model', dataIndex: 'model', ellipsis: true, sorter: (a, b) => (a.model || '').localeCompare(b.model || '') },
-  { title: '调用次数', key: 'calls', dataIndex: 'calls', width: '100px', sorter: (a, b) => (a.calls || 0) - (b.calls || 0) },
-  { title: 'Input Tokens', key: 'inputTokens', dataIndex: 'inputTokens', width: '120px', sorter: (a, b) => (a.inputTokens || 0) - (b.inputTokens || 0) },
-  { title: 'Output Tokens', key: 'outputTokens', dataIndex: 'outputTokens', width: '130px', sorter: (a, b) => (a.outputTokens || 0) - (b.outputTokens || 0) },
-  { title: 'Total Tokens', key: 'totalTokens', dataIndex: 'totalTokens', width: '120px', sorter: (a, b) => (a.totalTokens || 0) - (b.totalTokens || 0) },
-  { title: '费用 (USD)', key: 'cost', dataIndex: 'cost', width: '110px', sorter: (a, b) => (a.cost || 0) - (b.cost || 0) },
-  { title: '平均响应', key: 'avgResponseTime', dataIndex: 'avgResponseTime', width: '110px', sorter: (a, b) => (a.avgResponseTime || 0) - (b.avgResponseTime || 0) },
-]
+  { title: t('analytics.breakdownColumns.calls'), key: 'calls', dataIndex: 'calls', width: '100px', sorter: (a, b) => (a.calls || 0) - (b.calls || 0) },
+  { title: t('analytics.breakdownColumns.inputTokens'), key: 'inputTokens', dataIndex: 'inputTokens', width: '120px', sorter: (a, b) => (a.inputTokens || 0) - (b.inputTokens || 0) },
+  { title: t('analytics.breakdownColumns.outputTokens'), key: 'outputTokens', dataIndex: 'outputTokens', width: '130px', sorter: (a, b) => (a.outputTokens || 0) - (b.outputTokens || 0) },
+  { title: t('analytics.breakdownColumns.totalTokens'), key: 'totalTokens', dataIndex: 'totalTokens', width: '120px', sorter: (a, b) => (a.totalTokens || 0) - (b.totalTokens || 0) },
+  { title: t('analytics.breakdownColumns.cost'), key: 'cost', dataIndex: 'cost', width: '110px', sorter: (a, b) => (a.cost || 0) - (b.cost || 0) },
+  { title: t('analytics.breakdownColumns.avgResponseTime'), key: 'avgResponseTime', dataIndex: 'avgResponseTime', width: '110px', sorter: (a, b) => (a.avgResponseTime || 0) - (b.avgResponseTime || 0) },
+])
 
-const recentColumns = [
-  { title: '时间', key: 'timestamp', dataIndex: 'timestamp', width: '180px' },
+const recentColumns = computed(() => [
+  { title: t('analytics.recentColumns.timestamp'), key: 'timestamp', dataIndex: 'timestamp', width: '180px' },
   { title: 'Provider', key: 'provider', dataIndex: 'provider', width: '110px' },
   { title: 'Model', key: 'model', dataIndex: 'model', ellipsis: true },
-  { title: 'Input', key: 'inputTokens', dataIndex: 'inputTokens', width: '90px' },
-  { title: 'Output', key: 'outputTokens', dataIndex: 'outputTokens', width: '90px' },
-  { title: '费用', key: 'cost', dataIndex: 'cost', width: '100px' },
-  { title: '响应时间', key: 'responseTime', dataIndex: 'responseTime', width: '100px' },
-]
+  { title: t('analytics.recentColumns.input'), key: 'inputTokens', dataIndex: 'inputTokens', width: '90px' },
+  { title: t('analytics.recentColumns.output'), key: 'outputTokens', dataIndex: 'outputTokens', width: '90px' },
+  { title: t('analytics.recentColumns.cost'), key: 'cost', dataIndex: 'cost', width: '100px' },
+  { title: t('analytics.recentColumns.responseTime'), key: 'responseTime', dataIndex: 'responseTime', width: '100px' },
+])
 
 // --- Helpers ---
 function stripCommas(str) {
@@ -377,7 +379,6 @@ function stripCommas(str) {
 function tryParseJSON(output) {
   try {
     const trimmed = (output || '').trim()
-    // Find first { or [ for JSON
     const jsonStart = trimmed.search(/[{[]/)
     if (jsonStart >= 0) {
       return JSON.parse(trimmed.slice(jsonStart))
@@ -546,13 +547,13 @@ async function cacheClear() {
     const { output } = await ws.execute('tokens cache --clear --json', 15000)
     const json = tryParseJSON(output)
     if (json && json.error) {
-      message.error('清理缓存失败: ' + json.error)
+      message.error(t('analytics.messages.cacheClearFailed', { err: json.error }))
     } else {
-      message.success('缓存已清理')
+      message.success(t('analytics.messages.cacheClearOk'))
       await loadCache()
     }
   } catch (e) {
-    message.error('清理缓存失败: ' + e.message)
+    message.error(t('analytics.messages.cacheClearFailed', { err: e.message }))
   } finally {
     cacheClearLoading.value = false
   }
@@ -564,13 +565,13 @@ async function cacheCleanup() {
     const { output } = await ws.execute('tokens cache --cleanup --json', 15000)
     const json = tryParseJSON(output)
     if (json && json.error) {
-      message.error('清理过期失败: ' + json.error)
+      message.error(t('analytics.messages.cacheCleanupFailed', { err: json.error }))
     } else {
-      message.success('过期缓存已清理')
+      message.success(t('analytics.messages.cacheCleanupOk'))
       await loadCache()
     }
   } catch (e) {
-    message.error('清理过期失败: ' + e.message)
+    message.error(t('analytics.messages.cacheCleanupFailed', { err: e.message }))
   } finally {
     cacheCleanupLoading.value = false
   }
@@ -581,11 +582,11 @@ async function loadSessionUsage() {
   try {
     const resp = await ws.sendRaw({ type: 'usage.global', limit: 1000 }, 15000)
     if (resp.ok && resp.usage) {
-      const t = resp.usage.total || {}
-      sessionUsageSummary.totalCalls = t.calls ?? 0
-      sessionUsageSummary.inputTokens = t.inputTokens ?? t.input_tokens ?? 0
-      sessionUsageSummary.outputTokens = t.outputTokens ?? t.output_tokens ?? 0
-      sessionUsageSummary.totalTokens = t.totalTokens ?? t.total_tokens ?? 0
+      const u = resp.usage.total || {}
+      sessionUsageSummary.totalCalls = u.calls ?? 0
+      sessionUsageSummary.inputTokens = u.inputTokens ?? u.input_tokens ?? 0
+      sessionUsageSummary.outputTokens = u.outputTokens ?? u.output_tokens ?? 0
+      sessionUsageSummary.totalTokens = u.totalTokens ?? u.total_tokens ?? 0
       sessionUsageByModel.value = (resp.usage.byModel || []).map((m, i) => ({
         key: i,
         provider: m.provider || '-',

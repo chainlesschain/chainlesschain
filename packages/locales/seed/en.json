@@ -2689,6 +2689,74 @@
       "deleteFailed": "Delete failed"
     }
   },
+  "analytics": {
+    "title": "Usage Analytics",
+    "subtitle": "Token usage / Cost / Cache",
+    "refresh": "Refresh",
+    "period": {
+      "today": "Today",
+      "week": "This week",
+      "month": "This month",
+      "all": "All time"
+    },
+    "summary": {
+      "totalCalls": "Total calls",
+      "callsSuffix": "calls",
+      "totalTokens": "Total tokens",
+      "totalCost": "Total cost",
+      "avgResponseTime": "Avg response time"
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "providerCardTitle": "Provider breakdown",
+    "providerEmpty": "No call records yet",
+    "recentCardTitle": "Recent calls",
+    "recentEmpty": "No call records yet",
+    "sessionCardTitle": "Session Token Usage",
+    "sessionStats": {
+      "totalCalls": "Session calls",
+      "inputTokens": "Input Tokens",
+      "outputTokens": "Output Tokens",
+      "totalTokens": "Total Tokens"
+    },
+    "sessionEmpty": "No session usage yet — refresh after running cc chat",
+    "cacheCardTitle": "Cache status",
+    "cacheActions": {
+      "cleanup": "Cleanup expired",
+      "clear": "Clear cache"
+    },
+    "cacheStats": {
+      "entries": "Cache entries",
+      "hits": "Hits",
+      "tokensSaved": "Tokens saved",
+      "expired": "Expired"
+    },
+    "breakdownColumns": {
+      "calls": "Calls",
+      "inputTokens": "Input Tokens",
+      "outputTokens": "Output Tokens",
+      "totalTokens": "Total Tokens",
+      "cost": "Cost (USD)",
+      "avgResponseTime": "Avg response"
+    },
+    "recentColumns": {
+      "timestamp": "Time",
+      "input": "Input",
+      "output": "Output",
+      "cost": "Cost",
+      "responseTime": "Response time"
+    },
+    "sessionUsageColumns": {
+      "calls": "Calls"
+    },
+    "messages": {
+      "cacheClearOk": "Cache cleared",
+      "cacheClearFailed": "Clear cache failed: {err}",
+      "cacheCleanupOk": "Expired cache cleaned",
+      "cacheCleanupFailed": "Cleanup expired failed: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",
