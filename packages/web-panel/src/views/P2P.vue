@@ -2,35 +2,35 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">P2P 网络</h2>
-        <p class="page-sub">设备管理与数据同步</p>
+        <h2 class="page-title">{{ t('p2p.title') }}</h2>
+        <p class="page-sub">{{ t('p2p.subtitle') }}</p>
       </div>
       <a-button type="primary" ghost :loading="peersLoading" @click="refreshAll">
         <template #icon><ReloadOutlined /></template>
-        刷新
+        {{ t('p2p.refresh') }}
       </a-button>
     </div>
 
-    <!-- P2P 设备 Section -->
+    <!-- P2P Devices Section -->
     <a-card
-      title="P2P 设备"
+      :title="t('p2p.peers.cardTitle')"
       style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 20px;"
     >
       <template #extra>
         <a-space>
           <a-button size="small" @click="showPairModal = true" style="background: var(--bg-card-hover); border-color: var(--border-color);">
             <template #icon><PlusOutlined /></template>
-            配对设备
+            {{ t('p2p.peers.pairButton') }}
           </a-button>
           <a-button size="small" @click="showSendModal = true" :disabled="peers.length === 0" style="background: var(--bg-card-hover); border-color: var(--border-color);">
             <template #icon><SendOutlined /></template>
-            发送消息
+            {{ t('p2p.peers.sendButton') }}
           </a-button>
         </a-space>
       </template>
 
       <div v-if="peersLoading" style="text-align: center; padding: 30px;"><a-spin /></div>
-      <a-empty v-else-if="peers.length === 0" description="暂无已连接设备" />
+      <a-empty v-else-if="peers.length === 0" :description="t('p2p.peers.emptyText')" />
       <a-table
         v-else
         :columns="peerColumns"
@@ -42,7 +42,7 @@
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'status'">
             <a-tag :color="record.connected ? 'green' : 'default'">
-              {{ record.connected ? '在线' : '离线' }}
+              {{ record.connected ? t('p2p.peers.online') : t('p2p.peers.offline') }}
             </a-tag>
           </template>
           <template v-if="column.key === 'name'">
@@ -58,7 +58,7 @@
           </template>
           <template v-if="column.key === 'action'">
             <a-button size="small" type="link" @click="openSendTo(record)">
-              <SendOutlined /> 发送
+              <SendOutlined /> {{ t('p2p.peers.rowSend') }}
             </a-button>
           </template>
         </template>
@@ -66,14 +66,14 @@
       <div v-if="peersError" style="margin-top: 12px; color: #ff4d4f; font-size: 12px;">{{ peersError }}</div>
     </a-card>
 
-    <!-- 同步状态 Section -->
+    <!-- Sync Section -->
     <a-card
-      title="同步状态"
+      :title="t('p2p.sync.cardTitle')"
       style="background: var(--bg-card); border-color: var(--border-color);"
     >
       <template #extra>
         <a-tag :color="syncOnline ? 'green' : 'default'">
-          {{ syncOnline ? '已同步' : '未同步' }}
+          {{ syncOnline ? t('p2p.sync.synced') : t('p2p.sync.notSynced') }}
         </a-tag>
       </template>
 
@@ -83,7 +83,7 @@
           <a-col :xs="24" :sm="8">
             <a-card style="background: var(--bg-card); border-color: var(--border-color);">
               <a-statistic
-                title="同步状态"
+                :title="t('p2p.sync.statusLabel')"
                 :value="syncStatusText"
                 :value-style="{ color: syncOnline ? '#52c41a' : '#888', fontSize: '16px' }"
               >
@@ -94,7 +94,7 @@
           <a-col :xs="24" :sm="8">
             <a-card style="background: var(--bg-card); border-color: var(--border-color);">
               <a-statistic
-                title="待推送"
+                :title="t('p2p.sync.pendingLabel')"
                 :value="syncPending"
                 :value-style="{ color: syncPending > 0 ? '#faad14' : '#52c41a', fontSize: '16px' }"
               >
@@ -105,8 +105,8 @@
           <a-col :xs="24" :sm="8">
             <a-card style="background: var(--bg-card); border-color: var(--border-color);">
               <a-statistic
-                title="最近同步"
-                :value="lastSyncTime || '无'"
+                :title="t('p2p.sync.lastSyncLabel')"
+                :value="lastSyncTime || t('p2p.sync.noLastSync')"
                 :value-style="{ color: 'var(--text-secondary)', fontSize: '16px' }"
               >
                 <template #prefix><SyncOutlined /></template>
@@ -118,35 +118,35 @@
         <a-space>
           <a-button :loading="pushLoading" @click="syncPush" style="background: var(--bg-card-hover); border-color: var(--border-color);">
             <template #icon><SyncOutlined /></template>
-            推送变更
+            {{ t('p2p.sync.pushButton') }}
           </a-button>
           <a-button :loading="pullLoading" @click="syncPull" style="background: var(--bg-card-hover); border-color: var(--border-color);">
             <template #icon><SyncOutlined /></template>
-            拉取变更
+            {{ t('p2p.sync.pullButton') }}
           </a-button>
         </a-space>
 
         <div v-if="syncOutput" style="margin-top: 16px;">
-          <div style="color: var(--text-secondary); font-size: 11px; margin-bottom: 6px;">操作结果</div>
+          <div style="color: var(--text-secondary); font-size: 11px; margin-bottom: 6px;">{{ t('p2p.sync.outputLabel') }}</div>
           <pre style="background: var(--bg-base); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; color: #aaa; font-size: 12px; max-height: 200px; overflow-y: auto; white-space: pre-wrap;">{{ syncOutput }}</pre>
         </div>
       </template>
       <div v-if="syncError" style="margin-top: 12px; color: #ff4d4f; font-size: 12px;">{{ syncError }}</div>
     </a-card>
 
-    <!-- 配对设备 Modal -->
+    <!-- Pair Modal -->
     <a-modal
       v-model:open="showPairModal"
-      title="配对新设备"
+      :title="t('p2p.pair.title')"
       :confirm-loading="pairLoading"
       @ok="doPair"
-      ok-text="配对"
-      cancel-text="取消"
+      :ok-text="t('p2p.pair.ok')"
+      :cancel-text="t('common.cancel')"
     >
-      <div style="margin-bottom: 12px; color: var(--text-secondary);">请输入要配对的设备名称</div>
+      <div style="margin-bottom: 12px; color: var(--text-secondary);">{{ t('p2p.pair.intro') }}</div>
       <a-input
         v-model:value="pairDeviceName"
-        placeholder="设备名称，例如: My Phone"
+        :placeholder="t('p2p.pair.placeholder')"
         @pressEnter="doPair"
       />
       <div v-if="pairResult" style="margin-top: 12px;">
@@ -154,29 +154,29 @@
       </div>
     </a-modal>
 
-    <!-- 发送消息 Modal -->
+    <!-- Send Modal -->
     <a-modal
       v-model:open="showSendModal"
-      title="发送消息"
+      :title="t('p2p.send.title')"
       :confirm-loading="sendLoading"
       @ok="doSend"
-      ok-text="发送"
-      cancel-text="取消"
+      :ok-text="t('p2p.send.ok')"
+      :cancel-text="t('common.cancel')"
     >
-      <div style="margin-bottom: 8px; color: var(--text-secondary);">选择目标设备</div>
+      <div style="margin-bottom: 8px; color: var(--text-secondary);">{{ t('p2p.send.targetLabel') }}</div>
       <a-select
         v-model:value="sendTarget"
         style="width: 100%; margin-bottom: 16px;"
-        placeholder="选择设备"
+        :placeholder="t('p2p.send.targetPlaceholder')"
       >
         <a-select-option v-for="p in peers" :key="p.id" :value="p.id">
           {{ p.name || p.id }}
         </a-select-option>
       </a-select>
-      <div style="margin-bottom: 8px; color: var(--text-secondary);">消息内容</div>
+      <div style="margin-bottom: 8px; color: var(--text-secondary);">{{ t('p2p.send.messageLabel') }}</div>
       <a-input
         v-model:value="sendMessage"
-        placeholder="输入消息内容"
+        :placeholder="t('p2p.send.messagePlaceholder')"
         @pressEnter="doSend"
       />
       <div v-if="sendResult" style="margin-top: 12px;">
@@ -187,13 +187,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
-  WifiOutlined, SyncOutlined, SendOutlined, PlusOutlined,
+  SyncOutlined, SendOutlined, PlusOutlined,
   ReloadOutlined, MobileOutlined
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 
+const { t } = useI18n()
 const ws = useWsStore()
 
 // --- Peers ---
@@ -201,12 +203,12 @@ const peersLoading = ref(false)
 const peersError = ref('')
 const peers = ref([])
 
-const peerColumns = [
-  { title: '设备名称', key: 'name' },
-  { title: 'Peer ID', key: 'id' },
-  { title: '状态', key: 'status' },
-  { title: '操作', key: 'action', width: 100 },
-]
+const peerColumns = computed(() => [
+  { title: t('p2p.peerColumns.name'), key: 'name' },
+  { title: t('p2p.peerColumns.id'), key: 'id' },
+  { title: t('p2p.peerColumns.status'), key: 'status' },
+  { title: t('p2p.peerColumns.action'), key: 'action', width: 100 },
+])
 
 async function loadPeers() {
   peersLoading.value = true
@@ -215,7 +217,7 @@ async function loadPeers() {
     const { output } = await ws.execute('p2p peers', 15000)
     peers.value = parsePeersOutput(output)
   } catch (e) {
-    peersError.value = `加载失败: ${e.message}`
+    peersError.value = t('p2p.messages.loadPeersFailed', { err: e.message })
   } finally {
     peersLoading.value = false
   }
@@ -226,7 +228,6 @@ function parsePeersOutput(output) {
   const lines = output.split('\n').filter(l => l.trim())
   const result = []
   for (const line of lines) {
-    // Try to match lines like: "PeerId  Name  Status" or "12D3Koo... MyPhone connected"
     const match = line.match(/^\s*(\S+)\s+(.+?)\s+(connected|online|offline|disconnected)\s*$/i)
     if (match) {
       result.push({
@@ -236,7 +237,6 @@ function parsePeersOutput(output) {
       })
       continue
     }
-    // Fallback: line with at least a peer ID (hash-like string)
     const idMatch = line.match(/^\s*((?:12D3|Qm)\S{10,})\s*(.*)$/)
     if (idMatch) {
       const rest = idMatch[2].trim()
@@ -265,7 +265,7 @@ async function doPair() {
     pairResult.value = output
     await loadPeers()
   } catch (e) {
-    pairResult.value = `配对失败: ${e.message}`
+    pairResult.value = t('p2p.messages.pairFailed', { err: e.message })
   } finally {
     pairLoading.value = false
   }
@@ -291,9 +291,9 @@ async function doSend() {
   sendResult.value = ''
   try {
     const { output } = await ws.execute(`p2p send ${sendTarget.value} "${sendMessage.value.trim()}"`, 15000)
-    sendResult.value = output || '消息已发送'
+    sendResult.value = output || t('p2p.send.messageDefault')
   } catch (e) {
-    sendResult.value = `发送失败: ${e.message}`
+    sendResult.value = t('p2p.messages.sendFailed', { err: e.message })
   } finally {
     sendLoading.value = false
   }
@@ -303,7 +303,7 @@ async function doSend() {
 const syncLoading = ref(false)
 const syncError = ref('')
 const syncOnline = ref(false)
-const syncStatusText = ref('未知')
+const syncStatusText = ref('')
 const syncPending = ref(0)
 const lastSyncTime = ref('')
 const syncOutput = ref('')
@@ -317,7 +317,7 @@ async function loadSync() {
     const { output } = await ws.execute('sync status', 15000)
     parseSyncStatus(output)
   } catch (e) {
-    syncError.value = `加载失败: ${e.message}`
+    syncError.value = t('p2p.messages.loadSyncFailed', { err: e.message })
   } finally {
     syncLoading.value = false
   }
@@ -325,11 +325,11 @@ async function loadSync() {
 
 function parseSyncStatus(output) {
   if (!output) {
-    syncStatusText.value = '未知'
+    syncStatusText.value = t('p2p.sync.unknown')
     return
   }
   syncOnline.value = /synced|online|up.to.date/i.test(output)
-  syncStatusText.value = syncOnline.value ? '已同步' : '未同步'
+  syncStatusText.value = syncOnline.value ? t('p2p.sync.synced') : t('p2p.sync.notSynced')
 
   const pendingMatch = output.match(/pending[:\s]+(\d+)/i)
   syncPending.value = pendingMatch ? parseInt(pendingMatch[1]) : 0
@@ -345,10 +345,10 @@ async function syncPush() {
   syncOutput.value = ''
   try {
     const { output } = await ws.execute('sync push', 30000)
-    syncOutput.value = output || '推送完成'
+    syncOutput.value = output || t('p2p.sync.pushDefault')
     await loadSync()
   } catch (e) {
-    syncOutput.value = `推送失败: ${e.message}`
+    syncOutput.value = t('p2p.messages.pushFailed', { err: e.message })
   } finally {
     pushLoading.value = false
   }
@@ -359,10 +359,10 @@ async function syncPull() {
   syncOutput.value = ''
   try {
     const { output } = await ws.execute('sync pull', 30000)
-    syncOutput.value = output || '拉取完成'
+    syncOutput.value = output || t('p2p.sync.pullDefault')
     await loadSync()
   } catch (e) {
-    syncOutput.value = `拉取失败: ${e.message}`
+    syncOutput.value = t('p2p.messages.pullFailed', { err: e.message })
   } finally {
     pullLoading.value = false
   }

@@ -2930,6 +2930,64 @@
       "copied": "已复制"
     }
   },
+  "p2p": {
+    "title": "P2P 网络",
+    "subtitle": "设备管理与数据同步",
+    "refresh": "刷新",
+    "peers": {
+      "cardTitle": "P2P 设备",
+      "pairButton": "配对设备",
+      "sendButton": "发送消息",
+      "online": "在线",
+      "offline": "离线",
+      "emptyText": "暂无已连接设备",
+      "rowSend": "发送"
+    },
+    "peerColumns": {
+      "name": "设备名称",
+      "id": "Peer ID",
+      "status": "状态",
+      "action": "操作"
+    },
+    "sync": {
+      "cardTitle": "同步状态",
+      "synced": "已同步",
+      "notSynced": "未同步",
+      "unknown": "未知",
+      "statusLabel": "同步状态",
+      "pendingLabel": "待推送",
+      "lastSyncLabel": "最近同步",
+      "noLastSync": "无",
+      "pushButton": "推送变更",
+      "pullButton": "拉取变更",
+      "outputLabel": "操作结果",
+      "pushDefault": "推送完成",
+      "pullDefault": "拉取完成"
+    },
+    "pair": {
+      "title": "配对新设备",
+      "ok": "配对",
+      "intro": "请输入要配对的设备名称",
+      "placeholder": "设备名称，例如: My Phone"
+    },
+    "send": {
+      "title": "发送消息",
+      "ok": "发送",
+      "targetLabel": "选择目标设备",
+      "targetPlaceholder": "选择设备",
+      "messageLabel": "消息内容",
+      "messagePlaceholder": "输入消息内容",
+      "messageDefault": "消息已发送"
+    },
+    "messages": {
+      "loadPeersFailed": "加载失败: {err}",
+      "pairFailed": "配对失败: {err}",
+      "sendFailed": "发送失败: {err}",
+      "loadSyncFailed": "加载失败: {err}",
+      "pushFailed": "推送失败: {err}",
+      "pullFailed": "拉取失败: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

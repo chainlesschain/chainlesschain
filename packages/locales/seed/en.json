@@ -2930,6 +2930,64 @@
       "copied": "Copied"
     }
   },
+  "p2p": {
+    "title": "P2P Network",
+    "subtitle": "Device management and data sync",
+    "refresh": "Refresh",
+    "peers": {
+      "cardTitle": "P2P devices",
+      "pairButton": "Pair device",
+      "sendButton": "Send message",
+      "online": "Online",
+      "offline": "Offline",
+      "emptyText": "No connected devices yet",
+      "rowSend": "Send"
+    },
+    "peerColumns": {
+      "name": "Device",
+      "id": "Peer ID",
+      "status": "Status",
+      "action": "Action"
+    },
+    "sync": {
+      "cardTitle": "Sync status",
+      "synced": "Synced",
+      "notSynced": "Out of sync",
+      "unknown": "Unknown",
+      "statusLabel": "Sync status",
+      "pendingLabel": "Pending",
+      "lastSyncLabel": "Last sync",
+      "noLastSync": "Never",
+      "pushButton": "Push changes",
+      "pullButton": "Pull changes",
+      "outputLabel": "Operation result",
+      "pushDefault": "Push complete",
+      "pullDefault": "Pull complete"
+    },
+    "pair": {
+      "title": "Pair new device",
+      "ok": "Pair",
+      "intro": "Enter the device name to pair",
+      "placeholder": "Device name, e.g. My Phone"
+    },
+    "send": {
+      "title": "Send message",
+      "ok": "Send",
+      "targetLabel": "Select target device",
+      "targetPlaceholder": "Pick a device",
+      "messageLabel": "Message",
+      "messagePlaceholder": "Enter message",
+      "messageDefault": "Message sent"
+    },
+    "messages": {
+      "loadPeersFailed": "Load failed: {err}",
+      "pairFailed": "Pair failed: {err}",
+      "sendFailed": "Send failed: {err}",
+      "loadSyncFailed": "Load failed: {err}",
+      "pushFailed": "Push failed: {err}",
+      "pullFailed": "Pull failed: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",
