@@ -2,22 +2,22 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">视频剪辑</h2>
-        <p class="page-sub">长视频素材 + 音乐 → 节奏化蒙太奇（CutClaw 风格）</p>
+        <h2 class="page-title">{{ t('videoEditing.title') }}</h2>
+        <p class="page-sub">{{ t('videoEditing.subtitle') }}</p>
       </div>
       <a-button type="primary" ghost @click="loadAssets">
         <template #icon><ReloadOutlined /></template>
-        刷新资产
+        {{ t('videoEditing.refreshAssets') }}
       </a-button>
     </div>
 
     <a-row :gutter="16">
       <!-- Left: Asset Library -->
       <a-col :span="6">
-        <a-card title="素材库" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
+        <a-card :title="t('videoEditing.library.title')" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
           <a-spin v-if="assetsLoading" />
           <div v-else-if="assets.length === 0" style="color: var(--text-muted); text-align: center; padding: 20px;">
-            暂无已解构素材<br />请先执行解构
+            {{ t('videoEditing.library.empty') }}<br />{{ t('videoEditing.library.emptyHint') }}
           </div>
           <div v-else>
             <div
@@ -37,34 +37,34 @@
 
       <!-- Center: Workspace -->
       <a-col :span="10">
-        <a-card title="编辑工作台" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
+        <a-card :title="t('videoEditing.workspace.title')" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
           <a-form layout="vertical" style="max-width: 100%;">
-            <a-form-item label="视频文件">
-              <a-input v-model:value="form.videoPath" placeholder="/path/to/video.mp4" />
+            <a-form-item :label="t('videoEditing.workspace.videoLabel')">
+              <a-input v-model:value="form.videoPath" :placeholder="t('videoEditing.workspace.videoPlaceholder')" />
             </a-form-item>
-            <a-form-item label="音乐文件">
-              <a-input v-model:value="form.audioPath" placeholder="/path/to/bgm.mp3（可选）" />
+            <a-form-item :label="t('videoEditing.workspace.audioLabel')">
+              <a-input v-model:value="form.audioPath" :placeholder="t('videoEditing.workspace.audioPlaceholder')" />
             </a-form-item>
-            <a-form-item label="字幕文件">
-              <a-input v-model:value="form.existingSrt" placeholder="/path/to/subtitle.srt（可选，跳过 ASR）" />
+            <a-form-item :label="t('videoEditing.workspace.srtLabel')">
+              <a-input v-model:value="form.existingSrt" :placeholder="t('videoEditing.workspace.srtPlaceholder')" />
             </a-form-item>
-            <a-form-item label="剪辑指令">
-              <a-textarea v-model:value="form.instruction" :rows="3" placeholder="节奏感强的角色蒙太奇..." />
+            <a-form-item :label="t('videoEditing.workspace.instructionLabel')">
+              <a-textarea v-model:value="form.instruction" :rows="3" :placeholder="t('videoEditing.workspace.instructionPlaceholder')" />
             </a-form-item>
             <a-row :gutter="12">
               <a-col :span="8">
-                <a-form-item label="采样 FPS">
+                <a-form-item :label="t('videoEditing.workspace.fpsLabel')">
                   <a-input-number v-model:value="form.fps" :min="1" :max="30" style="width: 100%;" />
                 </a-form-item>
               </a-col>
               <a-col :span="8">
-                <a-form-item label="主角名">
+                <a-form-item :label="t('videoEditing.workspace.characterLabel')">
                   <a-input v-model:value="form.mainCharacter" placeholder="Joker" />
                 </a-form-item>
               </a-col>
               <a-col :span="8">
-                <a-form-item label="输出路径">
-                  <a-input v-model:value="form.outputPath" placeholder="./output.mp4" />
+                <a-form-item :label="t('videoEditing.workspace.outputLabel')">
+                  <a-input v-model:value="form.outputPath" :placeholder="t('videoEditing.workspace.outputPlaceholder')" />
                 </a-form-item>
               </a-col>
             </a-row>
@@ -72,16 +72,16 @@
 
           <div style="display: flex; gap: 8px; margin-top: 12px;">
             <a-button type="primary" :loading="running" :disabled="!form.videoPath" @click="runFullPipeline">
-              一键剪辑
+              {{ t('videoEditing.workspace.actions.fullPipeline') }}
             </a-button>
             <a-button :loading="running" :disabled="!form.videoPath" @click="runDeconstruct">
-              仅解构
+              {{ t('videoEditing.workspace.actions.deconstruct') }}
             </a-button>
             <a-button :loading="running" :disabled="!selectedAsset" @click="runPlan">
-              生成计划
+              {{ t('videoEditing.workspace.actions.plan') }}
             </a-button>
             <a-button v-if="running" danger @click="cancel">
-              取消
+              {{ t('videoEditing.workspace.actions.cancel') }}
             </a-button>
           </div>
         </a-card>
@@ -89,9 +89,9 @@
 
       <!-- Right: Progress & Preview -->
       <a-col :span="8">
-        <a-card title="进度" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
+        <a-card :title="t('videoEditing.progress.title')" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
           <div v-if="!running && events.length === 0" style="color: var(--text-muted); text-align: center; padding: 20px;">
-            等待开始...
+            {{ t('videoEditing.progress.waiting') }}
           </div>
           <div v-else>
             <div v-for="(phase, idx) in phases" :key="idx" style="margin-bottom: 12px;">
@@ -115,7 +115,7 @@
         </a-card>
 
         <!-- Shot Plan Timeline -->
-        <a-card v-if="shotPlan" title="分镜时间轴" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
+        <a-card v-if="shotPlan" :title="t('videoEditing.shotPlan.title')" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
           <div class="timeline-container">
             <div
               v-for="(sec, idx) in shotPlan.sections || []"
@@ -128,13 +128,12 @@
             </div>
           </div>
           <div style="color: var(--text-muted); font-size: 11px; margin-top: 4px;">
-            {{ (shotPlan.sections || []).length }} 段 /
-            {{ (shotPlan.sections || []).reduce((s, sec) => s + (sec.shots?.length || 0), 0) }} 镜头
+            {{ t('videoEditing.shotPlan.summary', { sections: (shotPlan.sections || []).length, shots: (shotPlan.sections || []).reduce((s, sec) => s + (sec.shots?.length || 0), 0) }) }}
           </div>
         </a-card>
 
         <!-- Event Log -->
-        <a-card title="事件日志" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
+        <a-card :title="t('videoEditing.events.title')" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
           <div class="event-log" ref="eventLogRef">
             <div v-for="(ev, idx) in events.slice(-50)" :key="idx" class="event-item">
               <span class="event-type">{{ ev.type }}</span>
@@ -144,10 +143,10 @@
         </a-card>
 
         <!-- Video Preview -->
-        <a-card v-if="outputPath" title="成片预览" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-top: 16px;">
+        <a-card v-if="outputPath" :title="t('videoEditing.preview.title')" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-top: 16px;">
           <div style="text-align: center;">
             <div style="color: var(--text-muted); margin-bottom: 8px;">{{ outputPath }}</div>
-            <a-button type="primary" ghost size="small" @click="copyPath(outputPath)">复制路径</a-button>
+            <a-button type="primary" ghost size="small" @click="copyPath(outputPath)">{{ t('videoEditing.preview.copyButton') }}</a-button>
           </div>
         </a-card>
       </a-col>
@@ -157,10 +156,12 @@
 
 <script setup>
 import { ref, reactive, nextTick, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ReloadOutlined } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws'
 import { message as antMsg } from 'ant-design-vue'
 
+const { t } = useI18n()
 const ws = useWsStore()
 
 const assets = ref([])
@@ -183,8 +184,6 @@ const form = reactive({
   mainCharacter: '',
   outputPath: './output.mp4',
 })
-
-const PHASE_COLORS = ['#1890ff', '#52c41a', '#faad14', '#eb2f96', '#722ed1']
 
 onMounted(() => {
   loadAssets()
@@ -227,9 +226,9 @@ function startStreaming(type, payload) {
         if (msg.shotPlan) shotPlan.value = msg.shotPlan
         if (msg.outputPath) outputPath.value = msg.outputPath
         if (msg.assetDir) loadAssets()
-        antMsg.success('完成')
+        antMsg.success(t('videoEditing.messages.completed'))
       } else {
-        antMsg.error(msg.error?.message || '失败')
+        antMsg.error(msg.error?.message || t('videoEditing.messages.failed'))
       }
     }
   })
@@ -303,7 +302,7 @@ function phaseStatus(phase) {
 
 function sectionWidth(sec) {
   const total = (shotPlan.value?.sections || []).reduce(
-    (s, sec) => s + (sec.music_segment?.end || 0) - (sec.music_segment?.start || 0), 0
+    (s, segment) => s + (segment.music_segment?.end || 0) - (segment.music_segment?.start || 0), 0
   )
   const w = ((sec.music_segment?.end || 0) - (sec.music_segment?.start || 0)) / (total || 1) * 100
   return Math.max(w, 2)
@@ -318,7 +317,7 @@ function eventDetail(ev) {
 
 function copyPath(p) {
   navigator.clipboard?.writeText(p)
-  antMsg.success('已复制')
+  antMsg.success(t('videoEditing.messages.copied'))
 }
 </script>
 

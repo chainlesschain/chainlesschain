@@ -2879,6 +2879,57 @@
       "doctorFailed": "Diagnostics failed: {err}"
     }
   },
+  "videoEditing": {
+    "title": "Video Editing",
+    "subtitle": "Long-form footage + music → rhythmic montage (CutClaw style)",
+    "refreshAssets": "Refresh assets",
+    "library": {
+      "title": "Asset library",
+      "empty": "No deconstructed assets yet",
+      "emptyHint": "Run deconstruct first"
+    },
+    "workspace": {
+      "title": "Editing workspace",
+      "videoLabel": "Video file",
+      "videoPlaceholder": "/path/to/video.mp4",
+      "audioLabel": "Music file",
+      "audioPlaceholder": "/path/to/bgm.mp3 (optional)",
+      "srtLabel": "Subtitle file",
+      "srtPlaceholder": "/path/to/subtitle.srt (optional, skip ASR)",
+      "instructionLabel": "Editing prompt",
+      "instructionPlaceholder": "Rhythmic character montage...",
+      "fpsLabel": "Sample FPS",
+      "characterLabel": "Main character",
+      "outputLabel": "Output path",
+      "outputPlaceholder": "./output.mp4",
+      "actions": {
+        "fullPipeline": "One-click edit",
+        "deconstruct": "Deconstruct only",
+        "plan": "Generate plan",
+        "cancel": "Cancel"
+      }
+    },
+    "progress": {
+      "title": "Progress",
+      "waiting": "Waiting to start..."
+    },
+    "shotPlan": {
+      "title": "Shot timeline",
+      "summary": "{sections} sections / {shots} shots"
+    },
+    "events": {
+      "title": "Event log"
+    },
+    "preview": {
+      "title": "Final preview",
+      "copyButton": "Copy path"
+    },
+    "messages": {
+      "completed": "Done",
+      "failed": "Failed",
+      "copied": "Copied"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",

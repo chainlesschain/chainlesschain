@@ -2879,6 +2879,57 @@
       "doctorFailed": "诊断失败: {err}"
     }
   },
+  "videoEditing": {
+    "title": "视频剪辑",
+    "subtitle": "长视频素材 + 音乐 → 节奏化蒙太奇（CutClaw 风格）",
+    "refreshAssets": "刷新资产",
+    "library": {
+      "title": "素材库",
+      "empty": "暂无已解构素材",
+      "emptyHint": "请先执行解构"
+    },
+    "workspace": {
+      "title": "编辑工作台",
+      "videoLabel": "视频文件",
+      "videoPlaceholder": "/path/to/video.mp4",
+      "audioLabel": "音乐文件",
+      "audioPlaceholder": "/path/to/bgm.mp3（可选）",
+      "srtLabel": "字幕文件",
+      "srtPlaceholder": "/path/to/subtitle.srt（可选，跳过 ASR）",
+      "instructionLabel": "剪辑指令",
+      "instructionPlaceholder": "节奏感强的角色蒙太奇...",
+      "fpsLabel": "采样 FPS",
+      "characterLabel": "主角名",
+      "outputLabel": "输出路径",
+      "outputPlaceholder": "./output.mp4",
+      "actions": {
+        "fullPipeline": "一键剪辑",
+        "deconstruct": "仅解构",
+        "plan": "生成计划",
+        "cancel": "取消"
+      }
+    },
+    "progress": {
+      "title": "进度",
+      "waiting": "等待开始..."
+    },
+    "shotPlan": {
+      "title": "分镜时间轴",
+      "summary": "{sections} 段 / {shots} 镜头"
+    },
+    "events": {
+      "title": "事件日志"
+    },
+    "preview": {
+      "title": "成片预览",
+      "copyButton": "复制路径"
+    },
+    "messages": {
+      "completed": "完成",
+      "failed": "失败",
+      "copied": "已复制"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",
