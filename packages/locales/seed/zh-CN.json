@@ -2817,6 +2817,68 @@
       "savePartial": "部分保存成功：{ok} 成功 / {fail} 失败"
     }
   },
+  "projects": {
+    "title": "项目管理",
+    "subtitle": "初始化 / 状态 / 诊断",
+    "refresh": "刷新",
+    "stats": {
+      "system": "系统状态",
+      "running": "运行中",
+      "notRunning": "未运行",
+      "editionPrefix": "版本: {edition}",
+      "llmProvider": "LLM 提供商",
+      "notConfigured": "未配置",
+      "init": "初始化",
+      "done": "已完成",
+      "notDone": "未完成",
+      "config": "项目配置",
+      "loaded": "已加载",
+      "notLoaded": "未加载"
+    },
+    "configCardTitle": "项目配置",
+    "initCardTitle": "项目初始化",
+    "templateCount": "{count} 个模板",
+    "selected": "已选择",
+    "templates": {
+      "code-project": "代码项目模板 — 代码审查、重构、单元测试生成",
+      "medical-triage": "医疗分诊模板 — 症状分析、分诊建议、病历管理",
+      "agriculture-expert": "农业专家模板 — 作物管理、病虫害识别、农事建议",
+      "general-assistant": "通用助手模板 — 日常问答、文档处理、任务管理",
+      "ai-media-creator": "AI 媒体创作模板 — 图文生成、视频脚本、内容编辑",
+      "ai-doc-creator": "AI 文档创作模板 — 文档生成、格式转换、文档编辑"
+    },
+    "actions": {
+      "initInFolder": "在所选文件夹初始化",
+      "initCwd": "初始化（当前目录）",
+      "pickFolder": "选择文件夹...",
+      "clear": "清除",
+      "templatePrefix": "模板: {name}"
+    },
+    "folder": {
+      "alreadyProject": "已是项目",
+      "pendingInit": "待初始化",
+      "alreadyMessage": "该文件夹已是 ChainlessChain 项目",
+      "alreadyDescription": "检测到 .chainlesschain/config.json。无需重新初始化 — 重新启动 cc ui 时把工作目录指向这里即可使用现有配置。",
+      "pickerTitle": "选择项目文件夹"
+    },
+    "initResult": {
+      "success": "初始化成功",
+      "failure": "初始化失败"
+    },
+    "doctor": {
+      "cardTitle": "环境诊断",
+      "runButton": "运行诊断",
+      "runningHint": "正在诊断环境...",
+      "emptyHint": "点击运行诊断检查环境状态"
+    },
+    "messages": {
+      "initFailed": "初始化失败: {err}",
+      "alreadyProjectInfo": "该文件夹已是项目，无需重新初始化",
+      "browserUnsupported": "浏览器模式不支持选择文件夹 — 请在桌面壳里使用此功能",
+      "pickFolderFailed": "选择文件夹失败: {err}",
+      "doctorFailed": "诊断失败: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

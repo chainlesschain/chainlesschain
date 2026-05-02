@@ -2,36 +2,36 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">项目管理</h2>
-        <p class="page-sub">初始化 / 状态 / 诊断</p>
+        <h2 class="page-title">{{ t('projects.title') }}</h2>
+        <p class="page-sub">{{ t('projects.subtitle') }}</p>
       </div>
       <a-button type="primary" ghost :loading="statusLoading" @click="refreshStatus">
         <template #icon><ReloadOutlined /></template>
-        刷新
+        {{ t('projects.refresh') }}
       </a-button>
     </div>
 
-    <!-- 项目状态 -->
+    <!-- Status -->
     <a-row :gutter="[16, 16]" style="margin-bottom: 20px;">
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="系统状态"
-            :value="statusInfo.running ? '运行中' : '未运行'"
+            :title="t('projects.stats.system')"
+            :value="statusInfo.running ? t('projects.stats.running') : t('projects.stats.notRunning')"
             :value-style="{ color: statusInfo.running ? '#52c41a' : '#888', fontSize: '16px' }"
           >
             <template #prefix><CheckCircleOutlined /></template>
           </a-statistic>
           <div v-if="statusInfo.edition" style="margin-top: 6px; color: var(--text-muted); font-size: 11px;">
-            版本: {{ statusInfo.edition }}
+            {{ t('projects.stats.editionPrefix', { edition: statusInfo.edition }) }}
           </div>
         </a-card>
       </a-col>
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="LLM 提供商"
-            :value="statusInfo.llmProvider || '未配置'"
+            :title="t('projects.stats.llmProvider')"
+            :value="statusInfo.llmProvider || t('projects.stats.notConfigured')"
             :value-style="{ color: statusInfo.llmProvider ? '#1677ff' : '#888', fontSize: '16px' }"
           >
             <template #prefix><RocketOutlined /></template>
@@ -44,8 +44,8 @@
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="初始化"
-            :value="statusInfo.setupDone ? '已完成' : '未完成'"
+            :title="t('projects.stats.init')"
+            :value="statusInfo.setupDone ? t('projects.stats.done') : t('projects.stats.notDone')"
             :value-style="{ color: statusInfo.setupDone ? '#52c41a' : '#faad14', fontSize: '16px' }"
           >
             <template #prefix><CheckCircleOutlined /></template>
@@ -58,8 +58,8 @@
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="项目配置"
-            :value="configLoaded ? '已加载' : '未加载'"
+            :title="t('projects.stats.config')"
+            :value="configLoaded ? t('projects.stats.loaded') : t('projects.stats.notLoaded')"
             :value-style="{ color: configLoaded ? '#52c41a' : '#888', fontSize: '16px' }"
           >
             <template #prefix><ProjectOutlined /></template>
@@ -68,10 +68,10 @@
       </a-col>
     </a-row>
 
-    <!-- 项目配置详情 -->
+    <!-- Project Config Detail -->
     <a-card
       v-if="configItems.length"
-      title="项目配置"
+      :title="t('projects.configCardTitle')"
       style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 20px;"
     >
       <a-descriptions :column="{ xs: 1, sm: 2, lg: 3 }" bordered size="small">
@@ -85,13 +85,13 @@
       </a-descriptions>
     </a-card>
 
-    <!-- 项目初始化 -->
+    <!-- Project Initialization -->
     <a-card
-      title="项目初始化"
+      :title="t('projects.initCardTitle')"
       style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 20px;"
     >
       <template #extra>
-        <a-tag color="blue">{{ templates.length }} 个模板</a-tag>
+        <a-tag color="blue">{{ t('projects.templateCount', { count: templates.length }) }}</a-tag>
       </template>
 
       <a-row :gutter="[16, 16]">
@@ -115,7 +115,7 @@
               </div>
             </div>
             <div v-if="selectedTemplate === tpl.name" style="margin-top: 8px; text-align: right;">
-              <a-tag color="green">已选择</a-tag>
+              <a-tag color="green">{{ t('projects.selected') }}</a-tag>
             </div>
           </a-card>
         </a-col>
@@ -129,14 +129,14 @@
           @click="initProject"
         >
           <template #icon><RocketOutlined /></template>
-          {{ selectedFolder ? '在所选文件夹初始化' : '初始化（当前目录）' }}
+          {{ selectedFolder ? t('projects.actions.initInFolder') : t('projects.actions.initCwd') }}
         </a-button>
         <a-button
           :loading="folderPickerLoading"
           @click="pickProjectFolder"
         >
           <template #icon><FolderOpenOutlined /></template>
-          选择文件夹...
+          {{ t('projects.actions.pickFolder') }}
         </a-button>
         <a-button
           v-if="selectedFolder"
@@ -144,10 +144,10 @@
           type="text"
           @click="clearSelectedFolder"
         >
-          清除
+          {{ t('projects.actions.clear') }}
         </a-button>
         <span v-if="selectedTemplate" style="color: var(--text-secondary); font-size: 12px;">
-          模板: {{ selectedTemplate }}
+          {{ t('projects.actions.templatePrefix', { name: selectedTemplate }) }}
         </span>
       </div>
       <div
@@ -158,21 +158,21 @@
         <span style="font-family: monospace; color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
           {{ selectedFolder }}
         </span>
-        <a-tag v-if="selectedFolderInitialized" color="green">已是项目</a-tag>
-        <a-tag v-else color="blue">待初始化</a-tag>
+        <a-tag v-if="selectedFolderInitialized" color="green">{{ t('projects.folder.alreadyProject') }}</a-tag>
+        <a-tag v-else color="blue">{{ t('projects.folder.pendingInit') }}</a-tag>
       </div>
       <a-alert
         v-if="selectedFolder && selectedFolderInitialized"
         type="info"
         show-icon
         style="margin-top: 12px;"
-        message="该文件夹已是 ChainlessChain 项目"
-        description="检测到 .chainlesschain/config.json。无需重新初始化 — 重新启动 cc ui 时把工作目录指向这里即可使用现有配置。"
+        :message="t('projects.folder.alreadyMessage')"
+        :description="t('projects.folder.alreadyDescription')"
       />
 
       <a-alert
         v-if="initResult"
-        :message="initResult.success ? '初始化成功' : '初始化失败'"
+        :message="initResult.success ? t('projects.initResult.success') : t('projects.initResult.failure')"
         :type="initResult.success ? 'success' : 'error'"
         show-icon
         closable
@@ -185,9 +185,9 @@
       </a-alert>
     </a-card>
 
-    <!-- 环境诊断 -->
+    <!-- Doctor -->
     <a-card
-      title="环境诊断"
+      :title="t('projects.doctor.cardTitle')"
       style="background: var(--bg-card); border-color: var(--border-color);"
     >
       <template #extra>
@@ -197,26 +197,27 @@
           style="background: var(--bg-card-hover); border-color: var(--border-color);"
         >
           <template #icon><MedicineBoxOutlined /></template>
-          运行诊断
+          {{ t('projects.doctor.runButton') }}
         </a-button>
       </template>
 
       <div v-if="doctorLoading" style="text-align: center; padding: 30px;">
         <a-spin />
-        <div style="color: var(--text-muted); margin-top: 8px;">正在诊断环境...</div>
+        <div style="color: var(--text-muted); margin-top: 8px;">{{ t('projects.doctor.runningHint') }}</div>
       </div>
 
       <div v-else-if="doctorOutput">
         <pre style="background: var(--bg-base); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; color: #aaa; font-size: 12px; max-height: 400px; overflow-y: auto; white-space: pre-wrap;">{{ doctorOutput }}</pre>
       </div>
 
-      <a-empty v-else description="点击「运行诊断」检查环境状态" />
+      <a-empty v-else :description="t('projects.doctor.emptyHint')" />
     </a-card>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   ProjectOutlined, RocketOutlined, MedicineBoxOutlined,
   ReloadOutlined, CheckCircleOutlined, FolderOpenOutlined
@@ -225,6 +226,7 @@ import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useFs } from '../composables/useFs.js'
 
+const { t } = useI18n()
 const ws = useWsStore()
 const fs = useFs()
 
@@ -237,8 +239,6 @@ const doctorOutput = ref('')
 const initResult = ref(null)
 const configLoaded = ref(false)
 const configItems = ref([])
-// Selected folder for `cc init --cwd <path>`. Null = init runs in cc ui's
-// own cwd (current project directory or global mode).
 const selectedFolder = ref(null)
 const selectedFolderInitialized = ref(false)
 
@@ -251,14 +251,21 @@ const statusInfo = reactive({
   setupDate: '',
 })
 
-const templates = [
-  { name: 'code-project', description: '代码项目模板 — 代码审查、重构、单元测试生成', icon: ProjectOutlined },
-  { name: 'medical-triage', description: '医疗分诊模板 — 症状分析、分诊建议、病历管理', icon: MedicineBoxOutlined },
-  { name: 'agriculture-expert', description: '农业专家模板 — 作物管理、病虫害识别、农事建议', icon: RocketOutlined },
-  { name: 'general-assistant', description: '通用助手模板 — 日常问答、文档处理、任务管理', icon: CheckCircleOutlined },
-  { name: 'ai-media-creator', description: 'AI 媒体创作模板 — 图文生成、视频脚本、内容编辑', icon: RocketOutlined },
-  { name: 'ai-doc-creator', description: 'AI 文档创作模板 — 文档生成、格式转换、文档编辑', icon: ProjectOutlined },
+const TEMPLATE_DEFS = [
+  { name: 'code-project', icon: ProjectOutlined },
+  { name: 'medical-triage', icon: MedicineBoxOutlined },
+  { name: 'agriculture-expert', icon: RocketOutlined },
+  { name: 'general-assistant', icon: CheckCircleOutlined },
+  { name: 'ai-media-creator', icon: RocketOutlined },
+  { name: 'ai-doc-creator', icon: ProjectOutlined },
 ]
+
+const templates = computed(() =>
+  TEMPLATE_DEFS.map(tpl => ({
+    ...tpl,
+    description: t(`projects.templates.${tpl.name}`),
+  })),
+)
 
 function parseStatus(output) {
   statusInfo.running = output.includes('Desktop app running') || output.includes('Running')
@@ -314,9 +321,7 @@ async function refreshStatus() {
 async function initProject() {
   if (!selectedTemplate.value) return
   if (selectedFolder.value && selectedFolderInitialized.value) {
-    // Defensive: button is disabled in this case but in case the alert was
-    // dismissed and disabled flag missed.
-    message.info('该文件夹已是项目，无需重新初始化')
+    message.info(t('projects.messages.alreadyProjectInfo'))
     return
   }
   initLoading.value = true
@@ -324,20 +329,18 @@ async function initProject() {
   try {
     let cmd = `init --template ${selectedTemplate.value} --yes`
     if (selectedFolder.value) {
-      // Quote so paths with spaces survive ws.execute's command-line parsing.
       cmd += ` --cwd "${selectedFolder.value}"`
     }
     const { output, exitCode } = await ws.execute(cmd, 30000)
     initResult.value = { success: exitCode === 0, output }
     if (exitCode === 0) {
-      // Re-check the picked folder so the badge flips to "已是项目"
       if (selectedFolder.value) {
         selectedFolderInitialized.value = true
       }
       await refreshStatus()
     }
   } catch (e) {
-    initResult.value = { success: false, output: `初始化失败: ${e.message}` }
+    initResult.value = { success: false, output: t('projects.messages.initFailed', { err: e.message }) }
   } finally {
     initLoading.value = false
   }
@@ -346,16 +349,16 @@ async function initProject() {
 async function pickProjectFolder() {
   folderPickerLoading.value = true
   try {
-    const r = await fs.pickDirectory({ title: '选择项目文件夹' })
+    const r = await fs.pickDirectory({ title: t('projects.folder.pickerTitle') })
     if (r.unsupported) {
-      message.warning('浏览器模式不支持选择文件夹 — 请在桌面壳里使用此功能')
+      message.warning(t('projects.messages.browserUnsupported'))
       return
     }
     if (r.canceled) return
     selectedFolder.value = r.path
     selectedFolderInitialized.value = r.initialized
   } catch (e) {
-    message.error(`选择文件夹失败: ${e.message}`)
+    message.error(t('projects.messages.pickFolderFailed', { err: e.message }))
   } finally {
     folderPickerLoading.value = false
   }
@@ -373,7 +376,7 @@ async function runDoctor() {
     const { output } = await ws.execute('doctor', 30000)
     doctorOutput.value = output
   } catch (e) {
-    doctorOutput.value = `诊断失败: ${e.message}`
+    doctorOutput.value = t('projects.messages.doctorFailed', { err: e.message })
   } finally {
     doctorLoading.value = false
   }

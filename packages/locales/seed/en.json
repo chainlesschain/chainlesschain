@@ -2817,6 +2817,68 @@
       "savePartial": "Partial save: {ok} succeeded / {fail} failed"
     }
   },
+  "projects": {
+    "title": "Project Management",
+    "subtitle": "Initialize / Status / Diagnostics",
+    "refresh": "Refresh",
+    "stats": {
+      "system": "System status",
+      "running": "Running",
+      "notRunning": "Stopped",
+      "editionPrefix": "Edition: {edition}",
+      "llmProvider": "LLM provider",
+      "notConfigured": "Not configured",
+      "init": "Initialization",
+      "done": "Complete",
+      "notDone": "Pending",
+      "config": "Project config",
+      "loaded": "Loaded",
+      "notLoaded": "Not loaded"
+    },
+    "configCardTitle": "Project config",
+    "initCardTitle": "Project initialization",
+    "templateCount": "{count} templates",
+    "selected": "Selected",
+    "templates": {
+      "code-project": "Code project — code review, refactoring, unit-test generation",
+      "medical-triage": "Medical triage — symptom analysis, triage advice, record management",
+      "agriculture-expert": "Agriculture expert — crop management, pest identification, advisory",
+      "general-assistant": "General assistant — daily Q&A, doc handling, task management",
+      "ai-media-creator": "AI media creator — image/text generation, video scripts, content editing",
+      "ai-doc-creator": "AI doc creator — document generation, format conversion, doc editing"
+    },
+    "actions": {
+      "initInFolder": "Initialize in selected folder",
+      "initCwd": "Initialize (current dir)",
+      "pickFolder": "Pick folder...",
+      "clear": "Clear",
+      "templatePrefix": "Template: {name}"
+    },
+    "folder": {
+      "alreadyProject": "Already a project",
+      "pendingInit": "Pending init",
+      "alreadyMessage": "This folder is already a ChainlessChain project",
+      "alreadyDescription": "Detected .chainlesschain/config.json. No need to re-initialize — restart cc ui with this folder as the working directory to use the existing config.",
+      "pickerTitle": "Select project folder"
+    },
+    "initResult": {
+      "success": "Initialization succeeded",
+      "failure": "Initialization failed"
+    },
+    "doctor": {
+      "cardTitle": "Environment diagnostics",
+      "runButton": "Run diagnostics",
+      "runningHint": "Diagnosing environment...",
+      "emptyHint": "Click Run diagnostics to check environment status"
+    },
+    "messages": {
+      "initFailed": "Initialization failed: {err}",
+      "alreadyProjectInfo": "This folder is already a project — no need to re-initialize",
+      "browserUnsupported": "Browser mode does not support folder picking — use this in the desktop shell",
+      "pickFolderFailed": "Pick folder failed: {err}",
+      "doctorFailed": "Diagnostics failed: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",

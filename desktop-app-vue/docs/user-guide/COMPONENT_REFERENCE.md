@@ -1,6 +1,6 @@
 # Component Reference
 
-**Total Components**: 582
+**Total Components**: 583
 
 ---
 
@@ -3510,6 +3510,14 @@
 
 ---
 
+## src/renderer/components/mtc
+
+### MtcInclusionProofDrawer
+
+**File**: `src/renderer/components/mtc/MtcInclusionProofDrawer.vue`
+
+---
+
 ## src/renderer/components/messages
 
 ### TaskPlanMessage
@@ -4573,4 +4581,3 @@
 **File**: `src/renderer/components/analytics/AIPerformanceChart.vue`
 
 ---
-
