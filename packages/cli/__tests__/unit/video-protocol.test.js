@@ -168,6 +168,14 @@ describe("AppLayout nav", () => {
     );
     expect(layout).toContain('key="video"');
     expect(layout).toContain("VideoCameraOutlined");
-    expect(layout).toContain("视频剪辑");
+    // Post-i18n M3: literal "视频剪辑" moved into the seed dict.
+    // Assert AppLayout uses the i18n key path AND that the dict
+    // resolves it back to "视频剪辑" so the user-visible label
+    // is still anchored.
+    expect(layout).toContain("$t('appLayout.items.video')");
+    const zhSeed = JSON.parse(
+      fs.readFileSync("../locales/seed/zh-CN.json", "utf-8"),
+    );
+    expect(zhSeed?.appLayout?.items?.video).toBe("视频剪辑");
   });
 });
