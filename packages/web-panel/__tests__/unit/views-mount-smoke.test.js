@@ -203,6 +203,7 @@ const TRANSLATED_VIEWS = [
   { file: 'Backup.vue',           titleKey: 'backup.title' },
   { file: 'McpTools.vue',         titleKey: 'mcpTools.title' },
   { file: 'Audit.vue',            titleKey: 'audit.title' },
+  { file: 'Search.vue',           titleKey: 'search.title' },
 ]
 
 describe('translated views mount sweep', () => {

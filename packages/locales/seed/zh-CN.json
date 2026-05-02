@@ -2403,6 +2403,87 @@
       "exportOkDefault": "已导出"
     }
   },
+  "search": {
+    "title": "RAG 搜索",
+    "subtitle": "BM25 · 向量检索 · 混合 RRF 融合",
+    "refreshIndex": "刷新索引",
+    "noDb": {
+      "message": "该模块需要项目级数据库",
+      "description": "`cc search` 命令仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+    },
+    "form": {
+      "queryPlaceholder": "输入查询，例如：vue 防抖组件、AES 加密原理...",
+      "topKPlaceholder": "topK",
+      "submit": "搜索"
+    },
+    "recent": {
+      "label": "最近：",
+      "clear": "清空"
+    },
+    "stats": {
+      "indexedNotes": "索引笔记",
+      "categories": "分类数",
+      "tags": "标签数",
+      "results": "结果数",
+      "topScore": "最高分"
+    },
+    "tabs": {
+      "results": "搜索结果",
+      "index": "索引浏览"
+    },
+    "results": {
+      "promptEmpty": "输入查询后开始搜索",
+      "noMatch": "没有找到与 \"{query}\" 匹配的笔记",
+      "viewFull": "查看完整",
+      "noTitle": "(无标题)"
+    },
+    "index": {
+      "allCategories": "全部分类",
+      "tagFilterPlaceholder": "按标签筛选...",
+      "topTagsLabel": "高频标签：",
+      "rowAction": {
+        "view": "查看",
+        "similar": "相似搜索"
+      }
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "noteColumns": {
+      "title": "标题",
+      "category": "分类",
+      "tags": "标签",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "empty": {
+      "filtered": "没有符合条件的笔记",
+      "noNotes": "暂无笔记"
+    },
+    "mode": {
+      "bm25": "BM25",
+      "vector": "向量",
+      "hybrid": "混合"
+    },
+    "note": {
+      "title": "笔记详情：{title}",
+      "id": "ID",
+      "category": "分类",
+      "tags": "标签",
+      "createdAt": "创建时间",
+      "updatedAt": "更新时间",
+      "content": "正文",
+      "emptyContent": "笔记内容为空"
+    },
+    "messages": {
+      "loadIndexFailed": "加载索引失败: {err}",
+      "queryRequired": "请输入查询",
+      "searchFailed": "搜索失败: {err}",
+      "needInit": "需要先 cc init 初始化项目",
+      "noteLoadFailed": "笔记加载失败",
+      "loadFailed": "加载失败: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

@@ -2403,6 +2403,87 @@
       "exportOkDefault": "Exported"
     }
   },
+  "search": {
+    "title": "RAG Search",
+    "subtitle": "BM25 · Vector retrieval · Hybrid RRF fusion",
+    "refreshIndex": "Refresh index",
+    "noDb": {
+      "message": "Project-scoped database required",
+      "description": "`cc search` is only available inside a chainlesschain project. Run `cc init` first or start `cc serve` from an initialized directory."
+    },
+    "form": {
+      "queryPlaceholder": "Enter a query, e.g. vue debounce component, AES encryption...",
+      "topKPlaceholder": "topK",
+      "submit": "Search"
+    },
+    "recent": {
+      "label": "Recent:",
+      "clear": "Clear"
+    },
+    "stats": {
+      "indexedNotes": "Indexed notes",
+      "categories": "Categories",
+      "tags": "Tags",
+      "results": "Results",
+      "topScore": "Top score"
+    },
+    "tabs": {
+      "results": "Results",
+      "index": "Index browser"
+    },
+    "results": {
+      "promptEmpty": "Enter a query to start searching",
+      "noMatch": "No notes match \"{query}\"",
+      "viewFull": "View full",
+      "noTitle": "(no title)"
+    },
+    "index": {
+      "allCategories": "All categories",
+      "tagFilterPlaceholder": "Filter by tag...",
+      "topTagsLabel": "Top tags:",
+      "rowAction": {
+        "view": "View",
+        "similar": "Find similar"
+      }
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "noteColumns": {
+      "title": "Title",
+      "category": "Category",
+      "tags": "Tags",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "empty": {
+      "filtered": "No notes match the filters",
+      "noNotes": "No notes yet"
+    },
+    "mode": {
+      "bm25": "BM25",
+      "vector": "Vector",
+      "hybrid": "Hybrid"
+    },
+    "note": {
+      "title": "Note details: {title}",
+      "id": "ID",
+      "category": "Category",
+      "tags": "Tags",
+      "createdAt": "Created",
+      "updatedAt": "Updated",
+      "content": "Content",
+      "emptyContent": "Note content is empty"
+    },
+    "messages": {
+      "loadIndexFailed": "Failed to load index: {err}",
+      "queryRequired": "Enter a query",
+      "searchFailed": "Search failed: {err}",
+      "needInit": "Run `cc init` to initialize the project first",
+      "noteLoadFailed": "Failed to load note",
+      "loadFailed": "Load failed: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",

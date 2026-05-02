@@ -2,13 +2,13 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">RAG 搜索</h2>
-        <p class="page-sub">BM25 · 向量检索 · 混合 RRF 融合</p>
+        <h2 class="page-title">{{ t('search.title') }}</h2>
+        <p class="page-sub">{{ t('search.subtitle') }}</p>
       </div>
       <a-space>
         <a-button :loading="loadingIndex" @click="loadIndex">
           <template #icon><ReloadOutlined /></template>
-          刷新索引
+          {{ t('search.refreshIndex') }}
         </a-button>
       </a-space>
     </div>
@@ -18,8 +18,8 @@
       v-if="errorState.noDb"
       type="info"
       show-icon
-      message="该模块需要项目级数据库"
-      description="`cc search` 命令仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+      :message="t('search.noDb.message')"
+      :description="t('search.noDb.description')"
       style="margin-bottom: 16px;"
     />
 
@@ -31,7 +31,7 @@
             <a-input
               v-model:value="form.query"
               size="large"
-              placeholder="输入查询，例如：vue 防抖组件、AES 加密原理..."
+              :placeholder="t('search.form.queryPlaceholder')"
               allow-clear
               @press-enter="runSearch"
             >
@@ -44,12 +44,12 @@
             </a-radio-group>
           </a-col>
           <a-col :span="3">
-            <a-input-number v-model:value="form.topK" :min="1" :max="50" placeholder="topK" size="large" style="width: 100%;" />
+            <a-input-number v-model:value="form.topK" :min="1" :max="50" :placeholder="t('search.form.topKPlaceholder')" size="large" style="width: 100%;" />
           </a-col>
           <a-col :span="3">
             <a-button type="primary" size="large" :loading="searching" block @click="runSearch">
               <template #icon><ThunderboltOutlined /></template>
-              搜索
+              {{ t('search.form.submit') }}
             </a-button>
           </a-col>
         </a-row>
@@ -57,7 +57,7 @@
 
       <!-- Recent queries chips -->
       <div v-if="recentQueries.length" class="recent-row">
-        <span class="recent-label">最近：</span>
+        <span class="recent-label">{{ t('search.recent.label') }}</span>
         <a-tag
           v-for="q in recentQueries"
           :key="q"
@@ -67,7 +67,7 @@
         >
           {{ q }}
         </a-tag>
-        <a-button size="small" type="link" danger @click="clearRecent">清空</a-button>
+        <a-button size="small" type="link" danger @click="clearRecent">{{ t('search.recent.clear') }}</a-button>
       </div>
     </a-card>
 
@@ -75,14 +75,14 @@
     <a-row :gutter="[16, 16]" style="margin-bottom: 20px;">
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="索引笔记" :value="indexSummary.total" :value-style="{ color: '#1677ff', fontSize: '20px' }">
+          <a-statistic :title="t('search.stats.indexedNotes')" :value="indexSummary.total" :value-style="{ color: '#1677ff', fontSize: '20px' }">
             <template #prefix><BookOutlined /></template>
           </a-statistic>
         </a-card>
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="分类数" :value="indexSummary.categories.length" :value-style="{ color: '#722ed1', fontSize: '20px' }">
+          <a-statistic :title="t('search.stats.categories')" :value="indexSummary.categories.length" :value-style="{ color: '#722ed1', fontSize: '20px' }">
             <template #prefix><AppstoreOutlined /></template>
           </a-statistic>
         </a-card>
@@ -90,7 +90,7 @@
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="标签数"
+            :title="t('search.stats.tags')"
             :value="indexSummary.tags.length"
             :value-style="{ color: '#13c2c2', fontSize: '20px' }"
           >
@@ -101,7 +101,7 @@
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="结果数"
+            :title="t('search.stats.results')"
             :value="results.length"
             :value-style="{ color: results.length > 0 ? '#52c41a' : '#888', fontSize: '20px' }"
           >
@@ -112,7 +112,7 @@
       <a-col :xs="24" :sm="8" :lg="4">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="最高分"
+            :title="t('search.stats.topScore')"
             :value="topScore"
             :precision="3"
             :value-style="{ color: scoreColor(topScore), fontSize: '20px' }"
@@ -126,16 +126,16 @@
     <!-- Tabs -->
     <a-tabs v-model:activeKey="activeTab" class="search-tabs">
       <!-- ── Results tab ───────────────────────────────────────── -->
-      <a-tab-pane key="results" tab="搜索结果">
-        <a-empty v-if="!searched" description="输入查询后开始搜索" :image="EMPTY_IMG" style="padding: 40px 0;" />
-        <a-empty v-else-if="!results.length" :description="`没有找到与 &quot;${currentQuery}&quot; 匹配的笔记`" :image="EMPTY_IMG" style="padding: 40px 0;" />
+      <a-tab-pane key="results" :tab="t('search.tabs.results')">
+        <a-empty v-if="!searched" :description="t('search.results.promptEmpty')" :image="EMPTY_IMG" style="padding: 40px 0;" />
+        <a-empty v-else-if="!results.length" :description="t('search.results.noMatch', { query: currentQuery })" :image="EMPTY_IMG" style="padding: 40px 0;" />
         <a-list v-else :data-source="results" item-layout="vertical" size="large">
           <template #renderItem="{ item }">
             <a-list-item class="result-row">
               <template #actions>
                 <a-button type="link" size="small" @click="viewNote(item.id)">
                   <template #icon><EyeOutlined /></template>
-                  查看完整
+                  {{ t('search.results.viewFull') }}
                 </a-button>
               </template>
               <template #extra>
@@ -151,7 +151,7 @@
               </template>
               <a-list-item-meta>
                 <template #title>
-                  <span class="result-title">{{ item.title || '(无标题)' }}</span>
+                  <span class="result-title">{{ item.title || t('search.results.noTitle') }}</span>
                   <a-tag :color="categoryColor(item.category)" style="margin-left: 8px;">{{ item.category }}</a-tag>
                 </template>
                 <template #description>
@@ -168,17 +168,17 @@
       </a-tab-pane>
 
       <!-- ── Index browser tab ────────────────────────────────── -->
-      <a-tab-pane key="index" tab="索引浏览">
+      <a-tab-pane key="index" :tab="t('search.tabs.index')">
         <div class="filter-bar">
           <a-radio-group v-model:value="indexCategoryFilter" size="small" button-style="solid">
-            <a-radio-button value="">全部分类</a-radio-button>
+            <a-radio-button value="">{{ t('search.index.allCategories') }}</a-radio-button>
             <a-radio-button v-for="c in indexSummary.categories.slice(0, 6)" :key="c.name" :value="c.name">
               {{ c.name }} ({{ c.count }})
             </a-radio-button>
           </a-radio-group>
           <a-input
             v-model:value="indexTagFilter"
-            placeholder="按标签筛选..."
+            :placeholder="t('search.index.tagFilterPlaceholder')"
             allow-clear
             size="small"
             style="max-width: 180px;"
@@ -187,29 +187,29 @@
 
         <!-- Top tags chips -->
         <div v-if="indexSummary.tags.length" class="tag-row">
-          <span class="tag-row-label">高频标签：</span>
+          <span class="tag-row-label">{{ t('search.index.topTagsLabel') }}</span>
           <a-tag
-            v-for="t in indexSummary.tags.slice(0, 12)"
-            :key="t.name"
-            :color="indexTagFilter === t.name ? 'blue' : 'default'"
+            v-for="tag in indexSummary.tags.slice(0, 12)"
+            :key="tag.name"
+            :color="indexTagFilter === tag.name ? 'blue' : 'default'"
             class="tag-chip"
-            @click="indexTagFilter = (indexTagFilter === t.name ? '' : t.name)"
+            @click="indexTagFilter = (indexTagFilter === tag.name ? '' : tag.name)"
           >
-            {{ t.name }} <span class="tag-count">{{ t.count }}</span>
+            {{ tag.name }} <span class="tag-count">{{ tag.count }}</span>
           </a-tag>
         </div>
 
         <a-table
           :columns="noteColumns"
           :data-source="filteredNotes"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (count) => t('search.totals.rows', { count }) }"
           size="small"
           :loading="loadingIndex"
           style="background: var(--bg-card);"
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'title'">
-              <span style="color: var(--text-primary); font-weight: 500;">{{ record.title || '(无标题)' }}</span>
+              <span style="color: var(--text-primary); font-weight: 500;">{{ record.title || t('search.results.noTitle') }}</span>
               <div style="color: var(--text-muted); font-size: 11px; font-family: monospace; margin-top: 2px;">
                 {{ record.id.slice(0, 16) }}
               </div>
@@ -218,21 +218,21 @@
               <a-tag :color="categoryColor(record.category)">{{ record.category }}</a-tag>
             </template>
             <template v-if="column.key === 'tags'">
-              <a-tag v-for="t in record.tags.slice(0, 4)" :key="t" color="default" style="font-size: 11px;">{{ t }}</a-tag>
+              <a-tag v-for="tag in record.tags.slice(0, 4)" :key="tag" color="default" style="font-size: 11px;">{{ tag }}</a-tag>
               <span v-if="record.tags.length > 4" style="color: var(--text-muted); font-size: 11px;">+{{ record.tags.length - 4 }}</span>
             </template>
             <template v-if="column.key === 'createdAt'">
               <span style="color: var(--text-secondary); font-size: 11px;">{{ formatSearchTime(record.createdAt) }}</span>
             </template>
             <template v-if="column.key === 'action'">
-              <a-button size="small" type="link" @click="viewNote(record.id)">查看</a-button>
-              <a-button size="small" type="link" @click="searchSimilar(record)">相似搜索</a-button>
+              <a-button size="small" type="link" @click="viewNote(record.id)">{{ t('search.index.rowAction.view') }}</a-button>
+              <a-button size="small" type="link" @click="searchSimilar(record)">{{ t('search.index.rowAction.similar') }}</a-button>
             </template>
           </template>
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <BookOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              {{ indexCategoryFilter || indexTagFilter ? '没有符合条件的笔记' : '暂无笔记' }}
+              {{ indexCategoryFilter || indexTagFilter ? t('search.empty.filtered') : t('search.empty.noNotes') }}
             </div>
           </template>
         </a-table>
@@ -242,7 +242,7 @@
     <!-- ── Note detail modal ─────────────────────────────────── -->
     <a-modal
       v-model:open="showNoteModal"
-      :title="`笔记详情：${currentNote?.title || ''}`"
+      :title="t('search.note.title', { title: currentNote?.title || '' })"
       :width="780"
       :footer="null"
     >
@@ -251,25 +251,25 @@
       </div>
       <div v-else-if="currentNote" style="padding-top: 8px;">
         <a-descriptions :column="2" size="small" bordered>
-          <a-descriptions-item label="ID" :span="2">
+          <a-descriptions-item :label="t('search.note.id')" :span="2">
             <span style="font-family: monospace; font-size: 12px;">{{ currentNote.id }}</span>
           </a-descriptions-item>
-          <a-descriptions-item label="分类">
+          <a-descriptions-item :label="t('search.note.category')">
             <a-tag :color="categoryColor(currentNote.category)">{{ currentNote.category }}</a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="标签">
-            <a-tag v-for="t in currentNote.tags" :key="t" color="default">{{ t }}</a-tag>
+          <a-descriptions-item :label="t('search.note.tags')">
+            <a-tag v-for="tag in currentNote.tags" :key="tag" color="default">{{ tag }}</a-tag>
             <span v-if="!currentNote.tags.length" style="color: var(--text-muted);">—</span>
           </a-descriptions-item>
-          <a-descriptions-item label="创建时间">{{ formatSearchTime(currentNote.createdAt) }}</a-descriptions-item>
-          <a-descriptions-item label="更新时间">{{ formatSearchTime(currentNote.updatedAt) }}</a-descriptions-item>
+          <a-descriptions-item :label="t('search.note.createdAt')">{{ formatSearchTime(currentNote.createdAt) }}</a-descriptions-item>
+          <a-descriptions-item :label="t('search.note.updatedAt')">{{ formatSearchTime(currentNote.updatedAt) }}</a-descriptions-item>
         </a-descriptions>
 
-        <h4 style="color: var(--text-primary); font-size: 13px; margin: 16px 0 8px;">正文</h4>
+        <h4 style="color: var(--text-primary); font-size: 13px; margin: 16px 0 8px;">{{ t('search.note.content') }}</h4>
         <div v-if="currentNote.content" class="note-content">
           <span v-html="highlightContent(currentNote.content, currentQuery)" />
         </div>
-        <a-empty v-else description="笔记内容为空" :image="EMPTY_IMG" />
+        <a-empty v-else :description="t('search.note.emptyContent')" :image="EMPTY_IMG" />
       </div>
     </a-modal>
   </div>
@@ -277,6 +277,7 @@
 
 <script setup>
 import { ref, computed, onMounted, reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   ReloadOutlined,
   SearchOutlined,
@@ -300,6 +301,7 @@ import {
   SEARCH_MODES,
 } from '../utils/search-parser.js'
 
+const { t } = useI18n()
 const ws = useWsStore()
 
 const EMPTY_IMG = Empty.PRESENTED_IMAGE_SIMPLE
@@ -333,26 +335,28 @@ const topScore = computed(() => {
   return Math.max(...results.value.map(r => r.score))
 })
 
-const noteColumns = [
-  { title: '标题', key: 'title' },
-  { title: '分类', key: 'category', width: '120px' },
-  { title: '标签', key: 'tags', width: '240px' },
-  { title: '创建时间', key: 'createdAt', width: '180px' },
-  { title: '操作', key: 'action', width: '180px' },
-]
+const noteColumns = computed(() => [
+  { title: t('search.noteColumns.title'), key: 'title' },
+  { title: t('search.noteColumns.category'), key: 'category', width: '120px' },
+  { title: t('search.noteColumns.tags'), key: 'tags', width: '240px' },
+  { title: t('search.noteColumns.createdAt'), key: 'createdAt', width: '180px' },
+  { title: t('search.noteColumns.action'), key: 'action', width: '180px' },
+])
 
 const filteredNotes = computed(() => {
   let rows = notes.value
   if (indexCategoryFilter.value) rows = rows.filter(n => n.category === indexCategoryFilter.value)
   if (indexTagFilter.value.trim()) {
     const q = indexTagFilter.value.trim().toLowerCase()
-    rows = rows.filter(n => n.tags.some(t => t.toLowerCase().includes(q)))
+    rows = rows.filter(n => n.tags.some(tag => tag.toLowerCase().includes(q)))
   }
   return rows
 })
 
 function modeLabel(m) {
-  return { bm25: 'BM25', vector: '向量', hybrid: '混合' }[m] || m
+  const key = `search.mode.${m}`
+  const v = t(key)
+  return v === key ? m : v
 }
 
 function categoryColor(c) {
@@ -381,8 +385,8 @@ function highlightSnippet(snippet, query) {
   if (!query || !snippet) return escapeHtml(snippet)
   const tokens = query.split(/\s+/).filter(Boolean)
   let html = escapeHtml(snippet)
-  for (const t of tokens) {
-    const re = new RegExp(`(${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+  for (const tok of tokens) {
+    const re = new RegExp(`(${tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
     html = html.replace(re, '<mark>$1</mark>')
   }
   return html
@@ -435,7 +439,7 @@ async function loadIndex() {
     }
     notes.value = parseNotes(output)
   } catch (e) {
-    message.error('加载索引失败: ' + (e?.message || e))
+    message.error(t('search.messages.loadIndexFailed', { err: e?.message || e }))
   } finally {
     loadingIndex.value = false
   }
@@ -444,7 +448,7 @@ async function loadIndex() {
 async function runSearch() {
   const q = form.query.trim()
   if (!q) {
-    message.warning('请输入查询')
+    message.warning(t('search.messages.queryRequired'))
     return
   }
   searching.value = true
@@ -471,7 +475,7 @@ async function runSearch() {
     pushRecent(q)
     activeTab.value = 'results'
   } catch (e) {
-    message.error('搜索失败: ' + (e?.message || e))
+    message.error(t('search.messages.searchFailed', { err: e?.message || e }))
   } finally {
     searching.value = false
   }
@@ -495,15 +499,15 @@ async function viewNote(id) {
     const { output } = await ws.execute(`note show ${id} --json`, 8000)
     const err = detectSearchError(output)
     if (err.noDb) {
-      message.error('需要先 cc init 初始化项目')
+      message.error(t('search.messages.needInit'))
       return
     }
     currentNote.value = parseNote(output)
     if (!currentNote.value) {
-      message.error('笔记加载失败')
+      message.error(t('search.messages.noteLoadFailed'))
     }
   } catch (e) {
-    message.error('加载失败: ' + (e?.message || e))
+    message.error(t('search.messages.loadFailed', { err: e?.message || e }))
   } finally {
     loadingNote.value = false
   }
@@ -537,7 +541,6 @@ onMounted(loadIndex)
   flex-wrap: wrap;
 }
 
-/* Recent queries chips */
 .recent-row {
   display: flex;
   align-items: center;
@@ -556,7 +559,6 @@ onMounted(loadIndex)
 }
 .recent-chip:hover { opacity: 0.85; }
 
-/* Tag row */
 .tag-row {
   margin: 4px 0 12px;
   display: flex;
@@ -578,7 +580,6 @@ onMounted(loadIndex)
   margin-left: 4px;
 }
 
-/* Results */
 .result-row {
   border-bottom: 1px solid var(--border-color);
 }
@@ -607,7 +608,6 @@ onMounted(loadIndex)
   justify-content: center;
 }
 
-/* Note content */
 .note-content {
   padding: 12px;
   background: var(--bg-base);
