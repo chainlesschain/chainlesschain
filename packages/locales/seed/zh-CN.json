@@ -2132,6 +2132,100 @@
       "clearOk": "缓存已清空"
     }
   },
+  "backup": {
+    "title": "备份与同步",
+    "subtitle": "备份管理 / 数据同步 / IPFS",
+    "refresh": "刷新",
+    "tabs": {
+      "backup": "备份管理",
+      "sync": "数据同步",
+      "ipfs": "IPFS 存储"
+    },
+    "backup": {
+      "cardTitle": "备份操作",
+      "exportButton": "导出列表",
+      "createButton": "创建备份",
+      "emptyText": "暂无备份记录",
+      "lastResultLabel": "最近操作结果",
+      "createDefaultMessage": "备份已创建",
+      "restoreTitle": "确认恢复备份",
+      "restoreOk": "确认恢复",
+      "restoreIntro": "确定要恢复以下备份吗？此操作将覆盖当前数据。",
+      "backupIdPrefix": "备份 ID:",
+      "createdAtPrefix": "创建时间:",
+      "restoreDefaultMessage": "恢复完成"
+    },
+    "backupColumns": {
+      "id": "备份 ID",
+      "size": "大小",
+      "createdAt": "创建时间",
+      "action": "操作",
+      "restore": "恢复"
+    },
+    "sync": {
+      "statusLabel": "同步状态",
+      "pendingLabel": "待同步变更",
+      "lastSyncLabel": "最近同步",
+      "noLastSync": "无",
+      "synced": "已同步",
+      "notSynced": "未同步",
+      "unknown": "未知",
+      "pushButton": "推送",
+      "pullButton": "拉取",
+      "outputLabel": "操作结果",
+      "conflictsTitle": "冲突列表",
+      "conflictDefault": "冲突",
+      "pushDefaultMessage": "推送完成",
+      "pullDefaultMessage": "拉取完成"
+    },
+    "conflictColumns": {
+      "path": "文件路径",
+      "type": "冲突类型"
+    },
+    "ipfs": {
+      "statusCardTitle": "IPFS 状态",
+      "online": "在线",
+      "offline": "离线",
+      "nodeStatusLabel": "节点状态",
+      "connected": "已连接",
+      "disconnected": "未连接",
+      "pinnedLabel": "已固定文件",
+      "peerIdLabel": "Peer ID",
+      "pinListTitle": "固定文件列表",
+      "pinFileButton": "固定文件",
+      "pinEmptyText": "暂无固定文件",
+      "unpinConfirm": "确定取消固定？",
+      "unpinOk": "确定",
+      "unpinAction": "取消固定",
+      "pinModalTitle": "固定文件到 IPFS",
+      "pinModalOk": "固定",
+      "pinModalIntro": "请输入要固定的文件路径",
+      "pinModalPlaceholder": "文件路径，例如: /path/to/file.txt",
+      "pinDefaultSuccess": "固定成功"
+    },
+    "pinColumns": {
+      "cid": "CID",
+      "name": "名称",
+      "size": "大小",
+      "pinnedAt": "固定时间",
+      "action": "操作"
+    },
+    "messages": {
+      "loadBackupsFailed": "加载备份列表失败: {err}",
+      "createBackupFailed": "创建备份失败: {err}",
+      "restoreFailed": "恢复失败: {err}",
+      "loadSyncFailed": "加载同步状态失败: {err}",
+      "pushFailed": "推送失败: {err}",
+      "pullFailed": "拉取失败: {err}",
+      "loadIpfsFailed": "加载 IPFS 状态失败: {err}",
+      "loadPinsFailed": "加载固定列表失败: {err}",
+      "pinFailed": "固定失败: {err}",
+      "unpinFailed": "取消固定失败: {err}",
+      "exportOk": "已导出 {count} 条备份信息到 {path}",
+      "exportOkDefault": "已导出",
+      "exportFailed": "导出失败: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

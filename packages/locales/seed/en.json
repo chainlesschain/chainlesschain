@@ -2132,6 +2132,100 @@
       "clearOk": "Cache cleared"
     }
   },
+  "backup": {
+    "title": "Backup & Sync",
+    "subtitle": "Backup management / Data sync / IPFS",
+    "refresh": "Refresh",
+    "tabs": {
+      "backup": "Backups",
+      "sync": "Sync",
+      "ipfs": "IPFS"
+    },
+    "backup": {
+      "cardTitle": "Backup operations",
+      "exportButton": "Export list",
+      "createButton": "Create backup",
+      "emptyText": "No backups yet",
+      "lastResultLabel": "Last operation result",
+      "createDefaultMessage": "Backup created",
+      "restoreTitle": "Confirm restore",
+      "restoreOk": "Confirm restore",
+      "restoreIntro": "Restore this backup? Current data will be overwritten.",
+      "backupIdPrefix": "Backup ID:",
+      "createdAtPrefix": "Created at:",
+      "restoreDefaultMessage": "Restore complete"
+    },
+    "backupColumns": {
+      "id": "Backup ID",
+      "size": "Size",
+      "createdAt": "Created",
+      "action": "Action",
+      "restore": "Restore"
+    },
+    "sync": {
+      "statusLabel": "Sync status",
+      "pendingLabel": "Pending changes",
+      "lastSyncLabel": "Last sync",
+      "noLastSync": "Never",
+      "synced": "Synced",
+      "notSynced": "Out of sync",
+      "unknown": "Unknown",
+      "pushButton": "Push",
+      "pullButton": "Pull",
+      "outputLabel": "Operation result",
+      "conflictsTitle": "Conflicts",
+      "conflictDefault": "Conflict",
+      "pushDefaultMessage": "Push complete",
+      "pullDefaultMessage": "Pull complete"
+    },
+    "conflictColumns": {
+      "path": "File path",
+      "type": "Conflict type"
+    },
+    "ipfs": {
+      "statusCardTitle": "IPFS status",
+      "online": "Online",
+      "offline": "Offline",
+      "nodeStatusLabel": "Node status",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "pinnedLabel": "Pinned files",
+      "peerIdLabel": "Peer ID",
+      "pinListTitle": "Pinned files",
+      "pinFileButton": "Pin file",
+      "pinEmptyText": "No pinned files yet",
+      "unpinConfirm": "Unpin this file?",
+      "unpinOk": "OK",
+      "unpinAction": "Unpin",
+      "pinModalTitle": "Pin file to IPFS",
+      "pinModalOk": "Pin",
+      "pinModalIntro": "Enter the path of the file to pin",
+      "pinModalPlaceholder": "File path, e.g. /path/to/file.txt",
+      "pinDefaultSuccess": "Pinned"
+    },
+    "pinColumns": {
+      "cid": "CID",
+      "name": "Name",
+      "size": "Size",
+      "pinnedAt": "Pinned at",
+      "action": "Action"
+    },
+    "messages": {
+      "loadBackupsFailed": "Failed to load backups: {err}",
+      "createBackupFailed": "Backup failed: {err}",
+      "restoreFailed": "Restore failed: {err}",
+      "loadSyncFailed": "Failed to load sync status: {err}",
+      "pushFailed": "Push failed: {err}",
+      "pullFailed": "Pull failed: {err}",
+      "loadIpfsFailed": "Failed to load IPFS status: {err}",
+      "loadPinsFailed": "Failed to load pin list: {err}",
+      "pinFailed": "Pin failed: {err}",
+      "unpinFailed": "Unpin failed: {err}",
+      "exportOk": "Exported {count} backup entries to {path}",
+      "exportOkDefault": "Exported",
+      "exportFailed": "Export failed: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",
