@@ -1,15 +1,21 @@
 # MTC 联邦治理设计 v1
 
-> 版本：v0.1（治理首版草案）
-> 日期：2026-05-02
+> 版本：v0.2（v0.8/v0.9 跨成员同步 + quorum 门控 + 治理 GUI 增量）
+> 日期：2026-05-03（v0.1 起稿 2026-05-02）
 > 作者：longfa
-> 状态：**草案 / Draft** — 关闭 `默克尔树证书_MTC_落地方案.md` §12 第 2 项「治理」半截
+> 状态：**已落地 / Implemented** — §9.5–§9.7 描述的 v0.8/v0.9 增量已发布
 > 关联：
 > - 上层方案：`docs/design/默克尔树证书_MTC_落地方案.md`
 > - 数据格式：`docs/design/MTC_数据格式_v1.md`
-> - 机制层实现：`packages/core-mtc/lib/federation.js`、`packages/core-mtc/lib/batch.js#assembleBatchFederated`、`packages/cli/src/commands/mtc.js federation` 子命令组（commits `95b861914` / `15c29e9fe` / `aa13e07a9`）
+> - 机制层实现：`packages/core-mtc/lib/federation.js`、`packages/core-mtc/lib/federation-governance.js`、`packages/core-mtc/lib/batch.js#assembleBatchFederated`、`packages/cli/src/commands/mtc.js federation` 子命令组
 >
-> **本文档定位**：纯治理 / 运营规范，不引入新协议字段。机制层（多签 landmark、announce schema、服务发现）已在 §9 Phase 3 落地，本文档只产出"谁能签、何时签、怎么撤"的规则。
+> **本文档定位**：纯治理 / 运营规范，不引入新协议字段。机制层（多签 landmark、announce schema、服务发现、跨成员 governance.log 同步）已在 §9 落地，本文档只产出"谁能签、何时签、怎么撤、变更怎么传播"的规则。
+>
+> **v0.2 更新摘要**：
+> - §9.5 新增 — 跨成员 governance.log 同步（filesystem drop-zone + libp2p gossipsub + auto-sync daemon）
+> - §9.6 新增 — confirm-* quorum 门控（pre-flight 检查 + `--no-quorum-check` 显式 bypass）
+> - §9.7 新增 — 治理 GUI（桌面 V6 widget + Web Panel `Mtc.vue` 操作型治理 tab；签名密钥仍 CLI-only）
+> - §11 更新 — 原"后续工作"中的"治理 GUI"项标记为 **已完成**；"链上治理选项"和"审计第三方"保留为后续
 
 ---
 
@@ -304,6 +310,73 @@ cc mtc federation rotate-key <fed-id> --new-pubkey <hex>
 4. `Σ(有效签名权重) ≥ threshold`（候选成员权重 0.5）
 5. 至少一个签名来自非 `compromised-keys.json` 的成员
 
+### 9.5 跨成员 governance.log 同步（v0.8/v0.9 增量）
+
+**问题**：governance.log 仅写入事件发起者本地 `~/.chainlesschain/federation/governance/<fed-id>.jsonl`，其他成员若不主动同步，verifier 在回放时会看到不一致的成员名单 → 拒绝合法 landmark。v0.7 把这个问题留作 opt-in（运营操作员手动 scp / rsync），v0.8/v0.9 自动化。
+
+提供两条传输通道，可单独或并存使用：
+
+#### 9.5.1 文件系统 drop-zone（v0.8）
+
+```
+cc mtc federation governance-publish <fed> --drop-zone <dir>   # 推
+cc mtc federation governance-pull <fed> --drop-zone <dir> [--verify]   # 拉
+```
+
+- 适用：NFS / Syncthing / SMB / USB / S3 mount 等任何"成员能共同访问的目录"。
+- atomic write：每事件独立文件 `<drop-zone>/<fed-id>/<event_id>.json`，临时名 + rename，崩溃不污染。
+- 幂等：发布端的水位文件 `<drop-zone>/<fed-id>.publish-pos.json` 记录已 publish 的 event_id 集合，重复运行 publish 跳过已发出的事件；拉取端按 event_id dedupe，重复 pull 不重复 append。
+- `--verify`：拉取时验签每事件（`createGovernanceEvent` 的签名前缀域分离 `mtc/v1/federation-governance\n`，与 tree-head 不冲突）。验签失败的事件直接丢弃 + warning，不污染本地 governance.log。
+
+#### 9.5.2 libp2p gossipsub（v0.9）
+
+```
+cc mtc federation governance-sync-libp2p <fed> --listen <maddr> [--connect <peer>]
+                                              [--interval <s>] [--verify] [--once]
+```
+
+- Topic 命名：`mtc-federation-governance/v1/<federation-id>`（与 landmark 通道 `mtc-federation/v1/<id>` 隔离 — 不同的 verify 路径，不应在同一 mesh）。
+- 复用 `Libp2pTransport` 的 `publishRaw` / `subscribeRaw` 通用 pubsub API。
+- 高水位记录：`<dir>/<fed>.libp2p-pos.json` 记录"我已经向 mesh 广播过的 event_id 集合"；mesh 形成后只广播本地新增的事件。
+- 接收侧 dedupe + verify + append；同 9.5.1 文件系统通道的接收逻辑一致，仅传输层不同。
+
+#### 9.5.3 自动 daemon（v0.9）
+
+文件系统通道的自动化版本：
+
+```
+cc mtc federation governance-sync-serve <fed> --drop-zone <dir>
+                                              [--interval <s>] [--verify] [--once]
+```
+
+每 interval 秒做一轮 publish + pull；SIGINT/SIGTERM graceful 关停（关闭文件句柄、写出最终 publish-pos）。`--once` 单次模式适合 cron / 测试。配套的 systemd 模板见 `packages/cli/scripts/service/cc-fed-governance-sync.service`，跨链桥 MTCA daemon 模板见同目录其他 supervisor 文件（plist / nssm / taskscheduler XML）。
+
+### 9.6 confirm-* quorum 门控（v0.9 增量）
+
+**问题**：`confirm-revoke` / `confirm-threshold` 设计上是「在已有 propose-revoke / propose-threshold 提案达到 threshold approve 票后追加确认事件」，但 v0.7 实现并未在 CLI 层强制 propose 事件存在 — 操作员可直接 confirm，相当于绕过 quorum。
+
+v0.9 在 CLI 入口加 pre-flight 检查：
+
+- `cc mtc federation confirm-threshold <fed> --actor <m>`：默认在追加 confirm 事件前 replay 当前 governance.log，要求存在一条匹配 actor 的 `propose-threshold` 事件且未被取消；不存在则非零退出 + `error: no matching propose-threshold from <actor>`。
+- `cc mtc federation confirm-revoke <fed> <target> --actor <m>`：同样要求匹配的 `propose-revoke <target>`。
+- `--no-quorum-check`：显式 bypass。**仅在恢复 / 单成员联邦自管 / 测试场景使用**；生产部署不应启用。
+
+注意这只是**操作便利层的硬约束**，verifier 在 §9.4 第 4 步本来就会按 governance.log 回放后的实际成员名单 + 签名集判断 quorum，CLI 门控只是把"最容易出错的人"挡在最前面。
+
+### 9.7 治理 GUI（v0.8/v0.9 增量）
+
+> v0.7 之前的"治理 GUI"列在 §11 后续工作；v0.8 落地桌面 V6 widget + Web Panel 治理面板，v0.9 进一步落地 Web Panel 操作型治理子 tabs。
+
+**核心安全边界**：所有治理操作（invite / vote / propose-* / confirm-* / publish / pull / sync-once）经 `ws.execute` 调用本机 CLI 子进程；**签名密钥永远不进入 web 渲染进程**。GUI 只负责「给 `cc mtc federation *` 命令拼参数」。这条边界在 `Mtc.vue` 操作型治理面板顶部 a-alert 显式说明，避免后续 PR 误把 keystore 引入前端。
+
+**桌面 V6 widget**（`desktop-app-vue/src/renderer/shell-preview/widgets/`）：
+- `FederationGovernanceWidget.vue` — 列出所有联邦的 status / threshold / 成员（活跃 + 候选）/ 待投票邀请 / 待撤销 / 归档 / 泄漏密钥；通过 `electronAPI.mtc.getFederationGovernance` IPC 拉数据，IPC handler 读 `~/.chainlesschain/federation/governance/*.jsonl` 后用 `replayGovernanceLog` 还原。
+- `BridgeMtcStatusWidget.vue` — 跨链桥 MTCA 状态（enabled / mode / alg / batch interval / trust anchors / 待批次关闭 / 最近批次）。
+
+**Web Panel** (`packages/web-panel/src/views/Mtc.vue`)：
+- "联邦治理" tab — 输入 fed-id 加载 governance-log，渲染状态卡 / 成员表 / 待投票列表 / 事件时间线（沿用 V6 widget 同款数据形状）。
+- **操作型治理子 tabs**（v0.9 新）：邀请 / 投票 / 改 threshold / 撤销 / 跨成员同步 — 全部通过 `ws.execute('mtc federation ...')` 调用本机 CLI，结果用 `lastActionResult` 渲染原始 JSON。Web Shell（Electron 内嵌 web-panel）零额外改动复用同一份代码。
+
 ---
 
 ## 10. 决策记录
@@ -321,10 +394,17 @@ cc mtc federation rotate-key <fed-id> --new-pubkey <hex>
 
 ## 11. 后续工作
 
-1. **Cross-federation 互信**：本文档覆盖单联邦治理。当两个联邦的 verifier 需要互相承认对方的 landmark 时（如 Marketplace 跨平台 publishing），需要 `cross-federation-trust-anchor` schema —留给 v0.2。
-2. **链上治理选项**：当 Q-COMP-3 解锁境内联盟链路径时，`governance.log` 可选锚定到链上（hash-only），提升历史不可篡改强度 — 留给 Phase 3 末。
-3. **治理 GUI**：`cc mtc federation *` CLI 已 ready，desktop / web-panel 上的可视化（成员列表 + 投票面板 + governance.log timeline）排在 v5.0.4+。
-4. **审计第三方**：联邦治理日志的第三方审计接口（独立审计员能否离线 verify governance.log → members.json 的回放）— 留给 v0.2。
+1. ~~**Cross-federation 互信**~~ — **已完成（v0.11，commit `b312563f0`）**。`SCHEMA_CROSS_FED_TRUST_ANCHOR` schema + `createCrossFederationTrustAnchor` / `validateCrossFederationTrustAnchor` lib + `cc mtc federation cross-trust-create/-validate` CLI。host 联邦把 trusted 联邦的成员名单 + threshold 快照固化到本地 governance.log，TTL 90 天。
+2. ~~**链上治理选项**~~ — **已完成（v0.12，commit pending）**：Q-COMP-3 法务 2026-05-03 出函解锁境内联盟链路径。`SCHEMA_GOVERNANCE_ANCHOR` schema + `computeGovernanceSnapshotHash` (sha256(JCS({fed_id, events_count, last_event_id, event_id_chain_root}))) + pluggable `IChainAnchorClient` (in-memory + filesystem mock) + `verifyGovernanceAnchor` 检测 HASH_MISMATCH 含 drift 报告。CLI: `cc mtc federation governance-anchor / governance-verify-anchor`。生产部署：swap 一个真实链 client 实现即可，schema/CLI 不变。
+3. ~~**治理 GUI**~~ — **已完成**（v0.8 桌面 V6 widget + Web Panel 治理 tab；v0.9 Web Panel 操作型治理子 tabs；v0.10.1 sync-stats 实时面板）。详见 §9.7。
+4. ~~**审计第三方**~~ — **已完成（v0.11，commit `b312563f0`）**。`auditGovernanceLog(events, fedId)` 纯函数检测 UNKNOWN_ACTOR / ACTOR_KEY_MISMATCH / BOOTSTRAP_KEY_MISMATCH / OUT_OF_ORDER 四类问题；`cc mtc federation audit <fed> [--summary | --json]` CLI；返回 `{ok, findings[], final_state}` 报告。
+
+### 11.5 测试基础设施限制（v0.10/v0.11 留下，非业务 TODO）
+
+以下两项不进入主功能后续工作 — 是测试环境限制，对生产没有阻塞：
+
+- **完整 paxos 跨成员实时门控**：当前 `confirm-revoke` / `confirm-threshold` 走 CLI-side single-actor pre-flight + lib replay 跨成员合并实现 quorum。完整 paxos 需要多周分布式系统专项工作，当前替代方案在 §9.6 已说明。
+- **Libp2p cross-node wire e2e 真测**：当前 `federation-governance-libp2p.test.js` 测调用路径 + 合成 dispatch + dedupe（4 tests），不断言 mesh 跨节点交付。这是与 `libp2p-federation-discovery.test.js` 一致的策略 — 2-node testbed 的 gossipsub mesh formation 天然 flaky，生产 3+ peer + floodPublish 才稳定。
 
 ---
 

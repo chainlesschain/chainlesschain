@@ -42,12 +42,17 @@
             <dt>Threshold</dt>
             <dd>
               {{ fed.state.threshold }}
-              <span
-                v-if="fed.state.pending_threshold"
-                class="cc-preview-widget__pending"
+              <!-- v0.10: render ALL pending propose-threshold events (CRDT
+                   multi-proposal). Falls back to single pending_threshold for
+                   pre-v0.10 replay output. -->
+              <template
+                v-for="(p, i) in pendingThresholdsOf(fed)"
+                :key="p.event_id || i"
               >
-                → {{ fed.state.pending_threshold.target }}
-              </span>
+                <span class="cc-preview-widget__pending">
+                  → {{ p.target }}
+                </span>
+              </template>
             </dd>
           </div>
           <div>
@@ -165,6 +170,13 @@ interface GovMember {
   weight: number;
   alg?: string;
 }
+interface GovThresholdProposal {
+  target: number;
+  event_id?: string;
+  proposed_at?: string;
+  proposer?: string;
+  activates_at?: string;
+}
 interface GovState {
   federation_id: string;
   status?: string;
@@ -172,7 +184,9 @@ interface GovState {
   members?: GovMember[];
   pending_invites?: unknown[];
   pending_revokes?: unknown[];
-  pending_threshold?: { target: number } | null;
+  pending_threshold?: GovThresholdProposal | null;
+  // v0.10: list of ALL open propose-threshold events (multi-proposal CRDT)
+  pending_thresholds?: GovThresholdProposal[];
   archived_keys?: string[];
   compromised_keys?: string[];
   replay_error?: boolean;
@@ -215,6 +229,19 @@ interface MtcApi {
 
 const federations = ref<GovFederation[]>([]);
 const syncStatsByFedId = ref<Record<string, SyncStatsEntry>>({});
+
+// v0.10: prefer pending_thresholds[] (full list of open proposals); fall back
+// to pending_threshold (single, pre-v0.10) for back-compat.
+function pendingThresholdsOf(fed: GovFederation): GovThresholdProposal[] {
+  const list = fed.state.pending_thresholds;
+  if (Array.isArray(list) && list.length > 0) {
+    return list;
+  }
+  if (fed.state.pending_threshold) {
+    return [fed.state.pending_threshold];
+  }
+  return [];
+}
 
 function memberSummary(members: GovMember[] | undefined): string {
   if (!members || members.length === 0) {

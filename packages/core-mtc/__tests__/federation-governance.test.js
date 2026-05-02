@@ -1,6 +1,6 @@
 "use strict";
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 
 const {
   SCHEMA_GOVERNANCE,
@@ -16,6 +16,12 @@ const {
   createCrossFederationTrustAnchor,
   validateCrossFederationTrustAnchor,
   auditGovernanceLog,
+  SCHEMA_GOVERNANCE_ANCHOR,
+  computeGovernanceSnapshotHash,
+  buildGovernanceAnchorRecord,
+  verifyGovernanceAnchor,
+  InMemoryChainAnchorClient,
+  FilesystemChainAnchorClient,
 } = require("../lib/federation-governance.js");
 const ed25519 = require("../lib/signers/ed25519.js");
 
@@ -1035,6 +1041,179 @@ describe("federation-governance", () => {
       expect(r.final_state).toBeDefined();
       expect(r.final_state.federation_id).toBe("fed-test");
       expect(r.final_state.members).toHaveLength(1);
+    });
+  });
+
+  describe("v0.3 #2 on-chain governance anchor (Q-COMP-3 unlocked)", () => {
+    function makeEv(fedId, eventId, issuedAt) {
+      return {
+        schema: SCHEMA_GOVERNANCE,
+        fed_id: fedId,
+        event_type: "leave",
+        event_id: eventId,
+        issued_at: issuedAt,
+        actor_member_id: "alice",
+        payload: {},
+        signature: { alg: "Ed25519", key_id: "k", value: "v" },
+      };
+    }
+
+    describe("computeGovernanceSnapshotHash", () => {
+      it("returns null fields for empty log", () => {
+        const snap = computeGovernanceSnapshotHash([], "fed-x");
+        expect(snap.events_count).toBe(0);
+        expect(snap.last_event_id).toBeNull();
+        expect(snap.event_id_chain_root).toBeNull();
+        expect(snap.snapshot_hash).toBeDefined();
+      });
+
+      it("is deterministic for same events", () => {
+        const events = [
+          makeEv("fed-x", "ev-1", "2026-05-01T00:00:00Z"),
+          makeEv("fed-x", "ev-2", "2026-05-02T00:00:00Z"),
+        ];
+        const a = computeGovernanceSnapshotHash(events, "fed-x");
+        const b = computeGovernanceSnapshotHash([...events], "fed-x");
+        expect(a.snapshot_hash).toBe(b.snapshot_hash);
+      });
+
+      it("is order-independent (sorts internally before hashing)", () => {
+        const e1 = makeEv("fed-x", "ev-1", "2026-05-01T00:00:00Z");
+        const e2 = makeEv("fed-x", "ev-2", "2026-05-02T00:00:00Z");
+        const a = computeGovernanceSnapshotHash([e1, e2], "fed-x");
+        const b = computeGovernanceSnapshotHash([e2, e1], "fed-x");
+        expect(a.snapshot_hash).toBe(b.snapshot_hash);
+      });
+
+      it("ignores events from other federations", () => {
+        const events = [
+          makeEv("fed-x", "ev-1", "2026-05-01T00:00:00Z"),
+          makeEv("OTHER", "ev-99", "2026-05-01T01:00:00Z"),
+        ];
+        const snap = computeGovernanceSnapshotHash(events, "fed-x");
+        expect(snap.events_count).toBe(1);
+      });
+
+      it("changes hash when an event is added or modified", () => {
+        const e1 = makeEv("fed-x", "ev-1", "2026-05-01T00:00:00Z");
+        const a = computeGovernanceSnapshotHash([e1], "fed-x");
+        const e2 = makeEv("fed-x", "ev-2", "2026-05-02T00:00:00Z");
+        const b = computeGovernanceSnapshotHash([e1, e2], "fed-x");
+        expect(a.snapshot_hash).not.toBe(b.snapshot_hash);
+      });
+    });
+
+    describe("buildGovernanceAnchorRecord", () => {
+      it("builds a v1 record with snapshot fields + actor", () => {
+        const events = [makeEv("fed-x", "ev-1", "2026-05-01T00:00:00Z")];
+        const r = buildGovernanceAnchorRecord(events, "fed-x", "alice");
+        expect(r.schema).toBe(SCHEMA_GOVERNANCE_ANCHOR);
+        expect(r.fed_id).toBe("fed-x");
+        expect(r.snapshot_hash).toBeDefined();
+        expect(r.events_count).toBe(1);
+        expect(r.last_event_id).toBe("ev-1");
+        expect(r.anchor_actor_member_id).toBe("alice");
+      });
+
+      it("rejects missing actor", () => {
+        expect(() => buildGovernanceAnchorRecord([], "fed-x")).toThrow(
+          /actorMemberId required/,
+        );
+      });
+    });
+
+    describe("InMemoryChainAnchorClient", () => {
+      it("publishes + fetches anchors per fed", async () => {
+        const client = new InMemoryChainAnchorClient();
+        const events = [makeEv("fed-x", "ev-1", "2026-05-01T00:00:00Z")];
+        const record = buildGovernanceAnchorRecord(events, "fed-x", "alice");
+        const r = await client.publish(record);
+        expect(r.tx_hash).toMatch(/^imem:fed-x:1$/);
+        expect(r.block_height).toBe(1);
+        const fetched = await client.fetchLatest("fed-x");
+        expect(fetched.snapshot_hash).toBe(record.snapshot_hash);
+      });
+
+      it("isolates by fed_id", async () => {
+        const client = new InMemoryChainAnchorClient();
+        await client.publish(buildGovernanceAnchorRecord([], "fed-a", "alice"));
+        await client.publish(buildGovernanceAnchorRecord([], "fed-b", "bob"));
+        expect((await client.fetch("fed-a")).length).toBe(1);
+        expect((await client.fetch("fed-b")).length).toBe(1);
+        expect((await client.fetch("fed-c")).length).toBe(0);
+      });
+
+      it("health returns ok + chain name", async () => {
+        const c = new InMemoryChainAnchorClient({ chainName: "test-chain" });
+        const h = await c.health();
+        expect(h.ok).toBe(true);
+        expect(h.chain_name).toBe("test-chain");
+      });
+    });
+
+    describe("FilesystemChainAnchorClient", () => {
+      const fs = require("node:fs");
+      const os = require("node:os");
+      const path = require("node:path");
+      let dir;
+      beforeEach(() => {
+        dir = fs.mkdtempSync(path.join(os.tmpdir(), "fs-anchor-"));
+      });
+      afterEach(() => {
+        fs.rmSync(dir, { recursive: true, force: true });
+      });
+
+      it("publishes + fetches via filesystem", async () => {
+        const client = new FilesystemChainAnchorClient({ rootDir: dir });
+        const events = [makeEv("fed-x", "ev-1", "2026-05-01T00:00:00Z")];
+        const r = await client.publish(
+          buildGovernanceAnchorRecord(events, "fed-x", "alice"),
+        );
+        expect(r.tx_hash).toBe("fs:fed-x:1");
+        expect(r.block_height).toBe(1);
+        const all = await client.fetch("fed-x");
+        expect(all).toHaveLength(1);
+      });
+
+      it("requires rootDir", () => {
+        expect(() => new FilesystemChainAnchorClient({})).toThrow(/rootDir/);
+      });
+    });
+
+    describe("verifyGovernanceAnchor", () => {
+      it("ok when local hash matches anchored hash", () => {
+        const events = [makeEv("fed-x", "ev-1", "2026-05-01T00:00:00Z")];
+        const record = buildGovernanceAnchorRecord(events, "fed-x", "alice");
+        const r = verifyGovernanceAnchor(record, events);
+        expect(r.ok).toBe(true);
+      });
+
+      it("flags HASH_MISMATCH when local log diverges", () => {
+        const eventsAtAnchor = [makeEv("fed-x", "ev-1", "2026-05-01T00:00:00Z")];
+        const record = buildGovernanceAnchorRecord(
+          eventsAtAnchor,
+          "fed-x",
+          "alice",
+        );
+        // Now local log has additional event AFTER anchoring
+        const localLater = [
+          ...eventsAtAnchor,
+          makeEv("fed-x", "ev-2", "2026-05-02T00:00:00Z"),
+        ];
+        const r = verifyGovernanceAnchor(record, localLater);
+        expect(r.ok).toBe(false);
+        expect(r.code).toBe("HASH_MISMATCH");
+        expect(r.drift.events_count_diff).toBe(1);
+      });
+
+      it("flags NO_ANCHOR for null/missing record", () => {
+        expect(verifyGovernanceAnchor(null, []).code).toBe("NO_ANCHOR");
+      });
+
+      it("flags BAD_SCHEMA for wrong schema", () => {
+        const r = verifyGovernanceAnchor({ schema: "wrong" }, []);
+        expect(r.code).toBe("BAD_SCHEMA");
+      });
     });
   });
 });

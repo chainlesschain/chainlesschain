@@ -1061,6 +1061,187 @@ describe("cc mtc federation governance — CLI integration", () => {
     });
   });
 
+  describe("v0.3 #2 on-chain governance anchor (Q-COMP-3 unlocked)", () => {
+    it("governance-anchor publishes a snapshot record to the chain store", () => {
+      joinAs("alice");
+      const chainStore = fs.mkdtempSync(path.join(os.tmpdir(), "chain-store-"));
+      try {
+        const r = mustRun([
+          "mtc",
+          "federation",
+          "governance-anchor",
+          "fed-test",
+          "--actor",
+          "alice",
+          "--chain-store",
+          chainStore,
+          "--chain-name",
+          "test-consortium",
+          "--json",
+        ]);
+        const j = extractJson(r.stdout);
+        expect(j.anchored).toBe(true);
+        expect(j.snapshot_hash).toBeDefined();
+        expect(j.tx_hash).toMatch(/^fs:fed-test:1$/);
+        expect(j.block_height).toBe(1);
+        expect(j.chain_name).toBe("test-consortium");
+
+        // Anchor record should exist on disk
+        const anchorDir = path.join(
+          chainStore,
+          "governance-anchors",
+          "fed-test",
+        );
+        expect(fs.existsSync(anchorDir)).toBe(true);
+        expect(fs.readdirSync(anchorDir).length).toBe(1);
+      } finally {
+        fs.rmSync(chainStore, { recursive: true, force: true });
+      }
+    });
+
+    it("governance-verify-anchor passes for unmodified log", () => {
+      joinAs("alice");
+      const chainStore = fs.mkdtempSync(
+        path.join(os.tmpdir(), "chain-store-v-"),
+      );
+      try {
+        mustRun([
+          "mtc",
+          "federation",
+          "governance-anchor",
+          "fed-test",
+          "--actor",
+          "alice",
+          "--chain-store",
+          chainStore,
+          "--json",
+        ]);
+        const v = mustRun([
+          "mtc",
+          "federation",
+          "governance-verify-anchor",
+          "fed-test",
+          "--chain-store",
+          chainStore,
+          "--json",
+        ]);
+        const j = extractJson(v.stdout);
+        expect(j.ok).toBe(true);
+        expect(j.expected_hash).toBe(j.actual_hash);
+      } finally {
+        fs.rmSync(chainStore, { recursive: true, force: true });
+      }
+    });
+
+    it("governance-verify-anchor flags HASH_MISMATCH after new event added post-anchor", () => {
+      joinAs("alice");
+      const chainStore = fs.mkdtempSync(
+        path.join(os.tmpdir(), "chain-store-d-"),
+      );
+      try {
+        // Anchor with current state
+        mustRun([
+          "mtc",
+          "federation",
+          "governance-anchor",
+          "fed-test",
+          "--actor",
+          "alice",
+          "--chain-store",
+          chainStore,
+          "--json",
+        ]);
+        // Add a new event that changes the snapshot hash
+        mustRun([
+          "mtc",
+          "federation",
+          "invite",
+          "fed-test",
+          "bob",
+          "--actor",
+          "alice",
+          "--candidate-pubkey-id",
+          "sha256:b",
+          "--json",
+        ]);
+        // Verify now fails
+        const v = runCli([
+          "mtc",
+          "federation",
+          "governance-verify-anchor",
+          "fed-test",
+          "--chain-store",
+          chainStore,
+          "--json",
+        ]);
+        expect(v.status).not.toBe(0);
+        const j = extractJson(v.stdout);
+        expect(j.ok).toBe(false);
+        expect(j.code).toBe("HASH_MISMATCH");
+        expect(j.drift.events_count_diff).toBeGreaterThan(0);
+      } finally {
+        fs.rmSync(chainStore, { recursive: true, force: true });
+      }
+    });
+
+    it("governance-verify-anchor flags NO_ANCHOR_ON_CHAIN for a fed never anchored", () => {
+      const chainStore = fs.mkdtempSync(
+        path.join(os.tmpdir(), "chain-store-e-"),
+      );
+      try {
+        const r = runCli([
+          "mtc",
+          "federation",
+          "governance-verify-anchor",
+          "fed-never",
+          "--chain-store",
+          chainStore,
+          "--json",
+        ]);
+        expect(r.status).not.toBe(0);
+        const j = extractJson(r.stdout);
+        expect(j.code).toBe("NO_ANCHOR_ON_CHAIN");
+      } finally {
+        fs.rmSync(chainStore, { recursive: true, force: true });
+      }
+    });
+
+    it("repeated anchoring increments block_height", () => {
+      joinAs("alice");
+      const chainStore = fs.mkdtempSync(
+        path.join(os.tmpdir(), "chain-store-r-"),
+      );
+      try {
+        const r1 = mustRun([
+          "mtc",
+          "federation",
+          "governance-anchor",
+          "fed-test",
+          "--actor",
+          "alice",
+          "--chain-store",
+          chainStore,
+          "--json",
+        ]);
+        expect(extractJson(r1.stdout).block_height).toBe(1);
+        const r2 = mustRun([
+          "mtc",
+          "federation",
+          "governance-anchor",
+          "fed-test",
+          "--actor",
+          "alice",
+          "--chain-store",
+          chainStore,
+          "--json",
+        ]);
+        expect(extractJson(r2.stdout).block_height).toBe(2);
+      } finally {
+        fs.rmSync(chainStore, { recursive: true, force: true });
+      }
+    });
+  });
+
   describe("--help wiring", () => {
     it("federation --help lists all 8 governance subcommands", () => {
       const r = mustRun(["mtc", "federation", "--help"]);
@@ -1083,6 +1264,8 @@ describe("cc mtc federation governance — CLI integration", () => {
         "cross-trust-create",
         "cross-trust-validate",
         "audit",
+        "governance-anchor",
+        "governance-verify-anchor",
       ]) {
         expect(r.stdout).toMatch(new RegExp(sub));
       }

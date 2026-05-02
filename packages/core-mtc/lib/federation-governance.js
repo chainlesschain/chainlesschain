@@ -880,6 +880,274 @@ function auditGovernanceLog(events, federationId, opts = {}) {
   };
 }
 
+/**
+ * v0.3 #2 — On-chain governance anchor (Q-COMP-3 unlocked 2026-05-03).
+ *
+ * The host federation periodically publishes a SHA-256 snapshot hash of
+ * its governance.log to a chain (typically a domestic consortium chain).
+ * The chain stores the hash + a small metadata header — the events
+ * themselves stay off-chain (privacy + cost). Any verifier can later
+ * compute the same hash from the events and compare against the chain
+ * record, getting tamper-evidence without putting member identities
+ * on-chain.
+ *
+ * Pluggable IChainAnchorClient — production deploys swap in a real
+ * client (ethers.js / web3.js wrapping a consortium chain endpoint).
+ * Lib ships an in-memory mock + filesystem mock for testing.
+ *
+ * Schema: mtc-federation-governance-anchor/v1
+ */
+const SCHEMA_GOVERNANCE_ANCHOR = "mtc-federation-governance-anchor/v1";
+
+/**
+ * Compute the canonical snapshot hash of a governance.log for anchoring.
+ *
+ * snapshot_hash = sha256(JCS({
+ *   schema,
+ *   fed_id,
+ *   events_count,
+ *   last_event_id,
+ *   last_event_at,
+ *   event_id_chain_root,  // sha256(JCS(sorted event_ids))
+ * }))
+ *
+ * The event_id_chain_root binds the order. Two callers running
+ * computeGovernanceSnapshotHash on the same set of events get the
+ * same hash regardless of disk layout.
+ *
+ * @param {Array<object>} events
+ * @param {string} federationId
+ * @returns {{ snapshot_hash: string, events_count: number,
+ *             last_event_id: string|null, last_event_at: string|null,
+ *             event_id_chain_root: string|null }}
+ */
+function computeGovernanceSnapshotHash(events, federationId) {
+  const fedEvents = sortEventsChronologically(
+    (events || []).filter((e) => e && e.fed_id === federationId),
+  );
+  let event_id_chain_root = null;
+  let last_event_id = null;
+  let last_event_at = null;
+  if (fedEvents.length > 0) {
+    const ids = fedEvents.map((e) => e.event_id);
+    event_id_chain_root = encodeHashStr(sha256(jcs(ids)));
+    last_event_id = ids[ids.length - 1];
+    last_event_at = fedEvents[fedEvents.length - 1].issued_at;
+  }
+  const header = {
+    schema: SCHEMA_GOVERNANCE_ANCHOR,
+    fed_id: federationId,
+    events_count: fedEvents.length,
+    last_event_id,
+    last_event_at,
+    event_id_chain_root,
+  };
+  return {
+    snapshot_hash: encodeHashStr(sha256(jcs(header))),
+    events_count: fedEvents.length,
+    last_event_id,
+    last_event_at,
+    event_id_chain_root,
+  };
+}
+
+/**
+ * IChainAnchorClient — production swaps in a real chain client.
+ *
+ *   class MyChainClient {
+ *     async publish(anchorRecord) -> { tx_hash, block_height, anchored_at }
+ *     async fetch(fedId, opts?: {limit?: number}) -> Array<anchorRecord>
+ *     async fetchLatest(fedId) -> anchorRecord | null
+ *     async health() -> { ok: boolean, chain_name: string }
+ *   }
+ *
+ * Lib provides:
+ *   - InMemoryChainAnchorClient (testing, deterministic)
+ *   - FilesystemChainAnchorClient (smoke / cron mock against shared dir)
+ */
+class InMemoryChainAnchorClient {
+  constructor(opts = {}) {
+    this._chainName = opts.chainName || "in-memory-mock";
+    this._records = []; // chronological
+    this._blockHeight = 0;
+  }
+  async publish(record) {
+    this._blockHeight += 1;
+    const stored = {
+      ...record,
+      tx_hash: `imem:${record.fed_id}:${this._blockHeight}`,
+      block_height: this._blockHeight,
+      anchored_at: new Date().toISOString(),
+      chain_name: this._chainName,
+    };
+    this._records.push(stored);
+    return {
+      tx_hash: stored.tx_hash,
+      block_height: stored.block_height,
+      anchored_at: stored.anchored_at,
+    };
+  }
+  async fetch(fedId, opts = {}) {
+    const out = this._records.filter((r) => r.fed_id === fedId);
+    if (Number.isInteger(opts.limit) && opts.limit > 0) {
+      return out.slice(-opts.limit);
+    }
+    return out;
+  }
+  async fetchLatest(fedId) {
+    const all = await this.fetch(fedId);
+    return all.length === 0 ? null : all[all.length - 1];
+  }
+  async health() {
+    return { ok: true, chain_name: this._chainName };
+  }
+}
+
+class FilesystemChainAnchorClient {
+  /**
+   * @param {{ rootDir: string, chainName?: string }} opts
+   */
+  constructor(opts) {
+    if (!opts || typeof opts.rootDir !== "string") {
+      throw new TypeError("FilesystemChainAnchorClient: rootDir required");
+    }
+    const fs = require("node:fs");
+    const path = require("node:path");
+    this._fs = fs;
+    this._path = path;
+    this._rootDir = opts.rootDir;
+    this._chainName = opts.chainName || "filesystem-mock";
+  }
+  _fedDir(fedId) {
+    return this._path.join(this._rootDir, "governance-anchors", fedId);
+  }
+  async publish(record) {
+    const dir = this._fedDir(record.fed_id);
+    this._fs.mkdirSync(dir, { recursive: true });
+    const existing = this._fs
+      .readdirSync(dir)
+      .filter((n) => n.endsWith(".json")).length;
+    const block_height = existing + 1;
+    const tx_hash = `fs:${record.fed_id}:${block_height}`;
+    const stored = {
+      ...record,
+      tx_hash,
+      block_height,
+      anchored_at: new Date().toISOString(),
+      chain_name: this._chainName,
+    };
+    const file = this._path.join(
+      dir,
+      `${String(block_height).padStart(8, "0")}.json`,
+    );
+    // Atomic write
+    const tmp = `${file}.${process.pid}.tmp`;
+    this._fs.writeFileSync(tmp, JSON.stringify(stored, null, 2), "utf-8");
+    this._fs.renameSync(tmp, file);
+    return { tx_hash, block_height, anchored_at: stored.anchored_at };
+  }
+  async fetch(fedId, opts = {}) {
+    const dir = this._fedDir(fedId);
+    if (!this._fs.existsSync(dir)) return [];
+    const files = this._fs
+      .readdirSync(dir)
+      .filter((n) => n.endsWith(".json"))
+      .sort();
+    const out = [];
+    for (const name of files) {
+      try {
+        out.push(
+          JSON.parse(this._fs.readFileSync(this._path.join(dir, name), "utf-8")),
+        );
+      } catch (_err) {
+        /* skip malformed */
+      }
+    }
+    if (Number.isInteger(opts.limit) && opts.limit > 0) {
+      return out.slice(-opts.limit);
+    }
+    return out;
+  }
+  async fetchLatest(fedId) {
+    const all = await this.fetch(fedId);
+    return all.length === 0 ? null : all[all.length - 1];
+  }
+  async health() {
+    return { ok: true, chain_name: this._chainName, root_dir: this._rootDir };
+  }
+}
+
+/**
+ * Build an anchor record (UNSIGNED) from current governance.log state.
+ * Caller signs separately via createGovernanceEvent or by feeding
+ * the record into the chain client's publish() (signature optional —
+ * chain itself provides tamper-evidence).
+ *
+ * @param {Array<object>} events
+ * @param {string} federationId
+ * @param {string} actorMemberId
+ * @returns {object} anchor record (without tx_hash/block_height)
+ */
+function buildGovernanceAnchorRecord(events, federationId, actorMemberId) {
+  if (typeof actorMemberId !== "string" || !actorMemberId) {
+    throw new TypeError("buildGovernanceAnchorRecord: actorMemberId required");
+  }
+  const snap = computeGovernanceSnapshotHash(events, federationId);
+  return {
+    schema: SCHEMA_GOVERNANCE_ANCHOR,
+    fed_id: federationId,
+    snapshot_hash: snap.snapshot_hash,
+    events_count: snap.events_count,
+    last_event_id: snap.last_event_id,
+    last_event_at: snap.last_event_at,
+    event_id_chain_root: snap.event_id_chain_root,
+    issued_at: new Date().toISOString(),
+    anchor_actor_member_id: actorMemberId,
+  };
+}
+
+/**
+ * Verify that a chain-fetched anchor matches what we'd compute from
+ * the local governance.log right now. Tamper-evidence: any local
+ * mutation that doesn't recompute + re-anchor will surface as MISMATCH.
+ *
+ * @param {object} anchorFromChain - from client.fetchLatest(fedId)
+ * @param {Array<object>} localEvents - this caller's local governance.log
+ * @returns {{ ok: boolean, code?: string, expected_hash?: string,
+ *             actual_hash?: string, drift?: object }}
+ */
+function verifyGovernanceAnchor(anchorFromChain, localEvents) {
+  if (!anchorFromChain || typeof anchorFromChain !== "object") {
+    return { ok: false, code: "NO_ANCHOR" };
+  }
+  if (anchorFromChain.schema !== SCHEMA_GOVERNANCE_ANCHOR) {
+    return { ok: false, code: "BAD_SCHEMA" };
+  }
+  const localSnap = computeGovernanceSnapshotHash(
+    localEvents,
+    anchorFromChain.fed_id,
+  );
+  if (localSnap.snapshot_hash === anchorFromChain.snapshot_hash) {
+    return {
+      ok: true,
+      expected_hash: anchorFromChain.snapshot_hash,
+      actual_hash: localSnap.snapshot_hash,
+    };
+  }
+  return {
+    ok: false,
+    code: "HASH_MISMATCH",
+    expected_hash: anchorFromChain.snapshot_hash,
+    actual_hash: localSnap.snapshot_hash,
+    drift: {
+      events_count_diff:
+        localSnap.events_count - anchorFromChain.events_count,
+      local_last_event_id: localSnap.last_event_id,
+      anchor_last_event_id: anchorFromChain.last_event_id,
+    },
+  };
+}
+
 module.exports = {
   SCHEMA_GOVERNANCE,
   GOVERNANCE_DOMAIN_PREFIX,
@@ -897,4 +1165,11 @@ module.exports = {
   createCrossFederationTrustAnchor,
   validateCrossFederationTrustAnchor,
   auditGovernanceLog,
+  // v0.3 #2 on-chain governance anchor (Q-COMP-3 unlocked 2026-05-03)
+  SCHEMA_GOVERNANCE_ANCHOR,
+  computeGovernanceSnapshotHash,
+  buildGovernanceAnchorRecord,
+  verifyGovernanceAnchor,
+  InMemoryChainAnchorClient,
+  FilesystemChainAnchorClient,
 };

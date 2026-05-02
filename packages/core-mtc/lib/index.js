@@ -88,4 +88,16 @@ module.exports = {
   validateCrossFederationTrustAnchor:
     federationGovernanceModule.validateCrossFederationTrustAnchor,
   auditGovernanceLog: federationGovernanceModule.auditGovernanceLog,
+  // v0.3 #2 on-chain governance anchor (Q-COMP-3 unlocked 2026-05-03)
+  SCHEMA_GOVERNANCE_ANCHOR:
+    federationGovernanceModule.SCHEMA_GOVERNANCE_ANCHOR,
+  computeGovernanceSnapshotHash:
+    federationGovernanceModule.computeGovernanceSnapshotHash,
+  buildGovernanceAnchorRecord:
+    federationGovernanceModule.buildGovernanceAnchorRecord,
+  verifyGovernanceAnchor: federationGovernanceModule.verifyGovernanceAnchor,
+  InMemoryChainAnchorClient:
+    federationGovernanceModule.InMemoryChainAnchorClient,
+  FilesystemChainAnchorClient:
+    federationGovernanceModule.FilesystemChainAnchorClient,
 };

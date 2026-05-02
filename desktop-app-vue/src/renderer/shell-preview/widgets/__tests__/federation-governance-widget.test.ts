@@ -136,6 +136,84 @@ describe("FederationGovernanceWidget", () => {
     expect(wrapper.html()).toMatch(/→\s*3/);
   });
 
+  it("renders ALL pending_thresholds[] when multiple concurrent proposals exist (v0.10)", async () => {
+    (globalThis as unknown as { electronAPI?: unknown }).electronAPI = {
+      mtc: {
+        getFederationGovernance: vi.fn().mockResolvedValue({
+          federations: [
+            {
+              fed_id: "fed-multi",
+              events_count: 4,
+              state: {
+                federation_id: "fed-multi",
+                status: "steady",
+                threshold: 2,
+                // v0.10 shape: list of all open propose-threshold events
+                pending_thresholds: [
+                  {
+                    target: 3,
+                    event_id: "ev-prop-a",
+                    proposer: "alice",
+                    proposed_at: "2026-05-02T00:00:00Z",
+                  },
+                  {
+                    target: 4,
+                    event_id: "ev-prop-b",
+                    proposer: "bob",
+                    proposed_at: "2026-05-02T00:01:00Z",
+                  },
+                ],
+                // back-compat field still present (most-recent slot)
+                pending_threshold: {
+                  target: 4,
+                  event_id: "ev-prop-b",
+                  proposer: "bob",
+                },
+                members: [{ member_id: "alice", status: "active", weight: 1 }],
+              },
+            },
+          ],
+        }),
+      },
+    };
+    const wrapper = mount(FederationGovernanceWidget, {
+      global: { stubs: STUBS },
+    });
+    await flushPromises();
+    const html = wrapper.html();
+    // Both proposed targets render as separate arrows
+    expect(html).toMatch(/→\s*3/);
+    expect(html).toMatch(/→\s*4/);
+  });
+
+  it("falls back to pending_threshold (single) when pending_thresholds[] is absent (pre-v0.10 back-compat)", async () => {
+    (globalThis as unknown as { electronAPI?: unknown }).electronAPI = {
+      mtc: {
+        getFederationGovernance: vi.fn().mockResolvedValue({
+          federations: [
+            {
+              fed_id: "fed-old",
+              events_count: 2,
+              state: {
+                federation_id: "fed-old",
+                status: "steady",
+                threshold: 1,
+                pending_threshold: { target: 5 }, // old shape: no event_id
+                // pending_thresholds intentionally omitted
+                members: [{ member_id: "alice", status: "active", weight: 1 }],
+              },
+            },
+          ],
+        }),
+      },
+    };
+    const wrapper = mount(FederationGovernanceWidget, {
+      global: { stubs: STUBS },
+    });
+    await flushPromises();
+    expect(wrapper.html()).toMatch(/→\s*5/);
+  });
+
   it("shows compromised key counter when keys leaked", async () => {
     (globalThis as unknown as { electronAPI?: unknown }).electronAPI = {
       mtc: {

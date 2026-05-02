@@ -2438,6 +2438,125 @@ function registerFederationGovernanceCommands(fed) {
       }
     });
 
+  // v0.3 #2 — On-chain governance anchor (Q-COMP-3 unlocked 2026-05-03)
+  // The CLI ships filesystem-backed mock chain client; production wires
+  // a real ConsortiumChainClient via --chain-impl <module> (future).
+
+  fed
+    .command("governance-anchor <federation-id>")
+    .description(
+      "Compute snapshot hash of governance.log + publish to a chain-anchor store (Q-COMP-3 v0.3 #2)",
+    )
+    .requiredOption("--actor <member-id>", "Anchoring member")
+    .requiredOption(
+      "--chain-store <dir>",
+      "Filesystem dir simulating the chain anchor store (production: --chain-impl swap-in)",
+    )
+    .option("--chain-name <name>", "Chain name label", "consortium-mock")
+    .option("--json", "JSON output")
+    .action(async (federationId, options) => {
+      try {
+        const events = loadGovernanceLog(federationId);
+        const record = mtcLib.buildGovernanceAnchorRecord(
+          events,
+          federationId,
+          options.actor,
+        );
+        const client = new mtcLib.FilesystemChainAnchorClient({
+          rootDir: options.chainStore,
+          chainName: options.chainName,
+        });
+        const receipt = await client.publish(record);
+        const out = {
+          federation_id: federationId,
+          anchored: true,
+          snapshot_hash: record.snapshot_hash,
+          events_count: record.events_count,
+          last_event_id: record.last_event_id,
+          tx_hash: receipt.tx_hash,
+          block_height: receipt.block_height,
+          chain_name: options.chainName,
+          anchored_at: receipt.anchored_at,
+        };
+        if (options.json) return console.log(JSON.stringify(out, null, 2));
+        logger.success(
+          `Anchored ${federationId} snapshot (${record.events_count} events, hash=${record.snapshot_hash}) → tx=${receipt.tx_hash} @ block=${receipt.block_height}`,
+        );
+      } catch (err) {
+        logger.error(`mtc federation governance-anchor failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  fed
+    .command("governance-verify-anchor <federation-id>")
+    .description(
+      "Fetch latest chain anchor + compare against local governance.log snapshot hash",
+    )
+    .requiredOption(
+      "--chain-store <dir>",
+      "Filesystem dir simulating the chain anchor store",
+    )
+    .option("--json", "JSON output")
+    .action(async (federationId, options) => {
+      try {
+        const client = new mtcLib.FilesystemChainAnchorClient({
+          rootDir: options.chainStore,
+        });
+        const latest = await client.fetchLatest(federationId);
+        if (!latest) {
+          const out = {
+            federation_id: federationId,
+            ok: false,
+            code: "NO_ANCHOR_ON_CHAIN",
+            message:
+              "No anchor record found for this federation in the chain store",
+          };
+          if (options.json) {
+            console.log(JSON.stringify(out, null, 2));
+            process.exit(2);
+            return;
+          }
+          logger.error(out.message);
+          process.exit(2);
+        }
+        const events = loadGovernanceLog(federationId);
+        const result = mtcLib.verifyGovernanceAnchor(latest, events);
+        const out = {
+          federation_id: federationId,
+          ...result,
+          anchor_block_height: latest.block_height,
+          anchor_tx_hash: latest.tx_hash,
+          anchor_anchored_at: latest.anchored_at,
+        };
+        if (options.json) {
+          console.log(JSON.stringify(out, null, 2));
+          if (!result.ok) process.exit(2);
+          return;
+        }
+        if (result.ok) {
+          logger.success(
+            `✓ Anchor matches: ${result.expected_hash} (block=${latest.block_height}, anchored=${latest.anchored_at})`,
+          );
+        } else {
+          logger.error(
+            `✗ Anchor mismatch: ${result.code}\n  expected: ${result.expected_hash}\n  actual:   ${result.actual_hash}`,
+          );
+          if (result.drift) {
+            logger.log(
+              `  drift: events_count_diff=${result.drift.events_count_diff}`,
+            );
+          }
+          process.exit(2);
+        }
+      } catch (err) {
+        logger.error(
+          `mtc federation governance-verify-anchor failed: ${err.message}`,
+        );
+        process.exit(1);
+      }
+    });
+
   // mtc federation governance-sync-serve — daemon: periodically publish + pull
   fed
     .command("governance-sync-serve <federation-id>")

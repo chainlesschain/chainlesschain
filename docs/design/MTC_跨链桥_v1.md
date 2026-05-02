@@ -313,12 +313,12 @@ function assembleBridgeBatch(bridgeOps, key, opts) {
 
 ## 11. 后续工作
 
-1. **真实 RPC 链适配器**：本文档假设桥 MTCA 能拿到 source-chain finality 信息。需要在 desktop-app-vue 侧补充 RPC 链适配器（与 `crossChainBridge.ts` Pinia store 配合）才能上线。CLI 侧仍是 simulated。
-2. **Cross-chain DID 解析**：A 链上 DID-A 在 B 链 verifier 端如何解析为可信公钥 — 需要与 `MTC_联邦治理_v1.md` §11 cross-federation 互信合并设计。
-3. **多跳桥（A → B → C）**：本文档只覆盖单跳。多跳的 envelope 嵌套（envelope-of-envelope）需要 v0.2。
-4. **gas-aware batch 触发**：当前 batch 间隔固定 60 秒。理想是根据 destination-chain gas price 动态调整（gas 高时延迟 batch）— 留给 v0.2。
-5. **桥操作监控 dashboard**：web-panel `/crosschain` 页面加 MTC 维度（batch 状态 / verifier 拒绝率 / landmark IPFS 健康度）— 留给 v5.0.4+。
-6. **与 SLA Manager 集成**：跨链桥 SLA 偏差检测可纳入 `cc sla` — 留给 v0.2。
+1. **真实 RPC 链适配器**（仍 NOT done — 外部依赖 desktop 侧大工程）：本文档假设桥 MTCA 能拿到 source-chain finality 信息。需要在 desktop-app-vue 侧补充 RPC 链适配器（与 `crossChainBridge.ts` Pinia store 配合）+ 5 链的 endpoints 接入 + 集成测试矩阵 才能切默认 on。CLI 侧仍是 simulated。**预计解锁条件**：desktop ethers/web3 集成专项 + chain endpoint 商务接入。
+2. **Cross-chain DID 解析**（schema 就绪 / 生产路径待解锁）：A 链上 DID-A 在 B 链 verifier 端如何解析为可信公钥 — schema 已与 `MTC_联邦治理_v1.md` v0.11 cross-federation 互信合并（`SCHEMA_CROSS_FED_TRUST_ANCHOR`），生产路径阻塞同 #1。
+3. ~~**多跳桥（A → B → C）**~~ — **已完成（v0.11，commit `b312563f0`）**。`SCHEMA_MULTI_HOP_BRIDGE = "mtc-bridge-multihop/v1"` + `buildMultiHopBridgeEnvelope` 强制 chain 连续性 (`leg[i].dst_chain == leg[i+1].src_chain`) + `verifyMultiHopBridgeEnvelope` per-leg 验证。CLI: `cc crosschain mtc-multihop-build/-verify`。
+4. ~~**gas-aware batch 触发**~~ — **已完成（v0.11，commit `b312563f0`）**。`shouldCloseBatchGasAware` 启发式：staged ≥ 50 hard-close / current_gas > baseline×1.5 defer / 否则 close。CLI: `cc crosschain mtc-gas-check <chain> --staged-count [--current-gas-usd]`。
+5. ~~**桥操作监控 dashboard**~~ — **已完成（v0.11，commit `b312563f0`）**。`Mtc.vue` 跨链桥 tab 新增 "SLA / Monitoring" 卡片 4 统计（status / staged / batches/h / last batch）+ 30s 自动 poll `cc crosschain mtc-sla --json`，可纳入外部 Prometheus / Grafana。
+6. ~~**与 SLA Manager 集成**~~ — **已完成（v0.11，commit `b312563f0`）**。`getBridgeMtcSlaMetrics` 输出 `cc sla` 兼容形状（sla_status: ok|degraded|down）+ CLI `cc crosschain mtc-sla [--json]`。
 
 ---
 

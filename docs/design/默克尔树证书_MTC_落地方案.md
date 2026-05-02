@@ -534,7 +534,7 @@ export async function verifyMTC(
 > **更新 (2026-05-01)**：Q-COMP-1 + Q-COMP-2 法务/测评出函已收到，audit-mtc 产线启用阻塞解除。脚手架 `packages/cli/src/lib/audit-mtc.js` + `cc audit mtc *` 全部 ready。**默认仍 `enabled=false`**，由各租户/组织在自己的环境内通过 `cc audit mtc enable --interval <60|3600>` 显式启用——不全局自动翻盘，保留用户对产线启用时机的控制权。
 - ✅ **Q-COMP-1** — 等保三级"防篡改最终性时间窗"口径已确认。脚手架 1h（默认）+ 1min 两条路径均可用，根据出函具体口径选 `--interval 3600`（宽松）或 `--interval 60`（严判）。
 - ✅ **Q-COMP-2** — T/ZGCMCA 023—2025 标准条款摘要已收到（具体条款落到组织内部审计报告，不在公开文档展示）。
-- ✅ **Q-COMP-3** — 维持保守决议：Phase 1+2 不上链，仅 IPFS pinning + 多副本。境内联盟链替代方案推迟到 Phase 3 与联邦 MTCA 治理一并讨论。
+- ✅ **Q-COMP-3 — 已解锁（2026-05-03 法务出函）**：境内联盟链路径解锁。Phase 1+2 仍走 IPFS pinning + 多副本（不变），但联邦 governance.log 现在可选锚定到链上（hash-only），见 v0.12 实现 — `SCHEMA_GOVERNANCE_ANCHOR` schema + `cc mtc federation governance-anchor / governance-verify-anchor`。生产部署 swap 真实链 client 即可（lib 已 ship in-memory + filesystem mock）。详见 `MTC_联邦治理_v1.md` §11 #2 + `Deferred Items Registry` §14.5。
 
 ### 14.3 进行中 / 即将启动
 - [x] **Phase 1.6 — SLH-DSA 实签**：✅ `@noble/post-quantum@0.6.1` 落地。`core-mtc/lib/signers/slh-dsa.js` 新增；`assembleBatch(leaves, keys, meta, signer?)` 支持 opt-in；`cc mtc batch/batch-dids/batch-skills/publish-skills --alg slh-dsa-128f` CLI 暴露；`cc mtc verify` 多算法 dispatcher 同时支持 Ed25519 + SLH-DSA-128F 信任锚。Audit-mtc 仍维持 Ed25519（realtime sig + 短窗 batch，PQC 收益边际，未来视产线启用情况单独评估）。
@@ -546,7 +546,41 @@ export async function verifyMTC(
 1. ✅ **联邦 MTCA 治理设计文档**（2026-05-02 落地，文件 `docs/design/MTC_联邦治理_v1.md`）— 关闭 §12 第 2 项的"治理"半截。覆盖 11 节：联邦生命周期 (Bootstrap/Steady/Dispute/Wind-down/Closed)、准入审批流（候选期权重 0.5）、M-of-N 阈值业务场景分级（含 N≥5 强制 PQC 多样性）、主动 leave / 协商 revoke / 强制 revoke 三种退出、密钥轮换、Fork/Merge 语义、与 governance.log + announce + verifier 的接口、6 项决策记录、4 项 v0.2 后续。
 2. ✅ **跨链桥的 MTC 化设计文档**（2026-05-02 落地，文件 `docs/design/MTC_跨链桥_v1.md`）— 关闭 §12 第 6 项。覆盖 11 节：与现有 `cc crosschain` 19 子命令集成、新增 `mtc/v1/bridge/<chain-pair>/...` namespace（字典序）、桥两侧 MTCA 三种互信模式（Independent / Federated / Light Client）+ 决策表、5 类失败模式与回滚、5 项威胁模型分析（含跨链特有 T1 oracle 共谋 / T5 censorship）、7 项决策记录、6 项 v0.2 后续。**仍 opt-in（`--mtc` flag），等 desktop RPC 链适配器成熟后切默认 on**。
 
-### 14.5 上游跟踪
+### 14.5 Deferred Items Registry（v0.12 起 — single source of truth）
+
+跨子文档统一索引所有未完成项 + 阻塞类型 + 预期解锁条件。每项都可在对应设计文档查到详细位置。
+
+**仍 NOT done — 都有明确外部 blocker**
+
+| # | 项 | 子文档位置 | Blocker 类型 | 预期解锁条件 |
+|---|---|---|---|---|
+| D1 | 真实 RPC 链适配器 | `MTC_跨链桥_v1.md` §11 #1 | 工程依赖 | desktop ethers/web3 集成专项 + 5 链 endpoint 商务接入 + 集成测试矩阵 |
+| D2 | Cross-chain DID 解析（生产路径） | `MTC_跨链桥_v1.md` §11 #2 | 同 D1（schema 已就绪） | desktop RPC 适配器解锁后 |
+| D3 | 完整 paxos 跨成员实时门控 | `MTC_联邦治理_v1.md` §11.5 | 工程量 | 多周分布式系统专项；当前 §9.6 替代方案 production-ready |
+| D4 | Libp2p cross-node wire e2e 真测 | `MTC_联邦治理_v1.md` §11.5 | 测试基础设施 | gossipsub 3+ peer testbed；当前 call-path + dispatch test 覆盖逻辑 |
+
+**永久限制（不会"完成" — 设计权衡）**
+
+| # | 项 | 文档位置 | 说明 |
+|---|---|---|---|
+| P1 | 延迟不适合实时场景 | §12 #1 | DID 24h / Marketplace 1mo 批延迟；实时通信继续走单签 |
+| P2 | IPFS 可达性 | §12 #3 | 离线/内网部署需自建 pinning service — 部署侧问题 |
+| P3 | Tree size 上限 | §12 #4 | N=2³² 后单 landmark 文件巨大；Phase 3+ 才会触及 "分代树根" |
+
+**已闭环（v0.6 → v0.12）— 历史参考**
+
+| Round | 关闭项 | Commit |
+|---|---|---|
+| v0.6 | cross-chain bridge MTC integration（lib + CLI + opt-in） | `0123fd168` `5a9898028` `0f6437f1a` |
+| v0.7 | 联邦治理 8 CLI + 桥 MTCA daemon + V6 widget | `1c1e4096d` |
+| v0.8 | 跨成员 governance.log filesystem 同步 + 治理 GUI desktop+web | `bb88756d6` `a8fff1f52` |
+| v0.9 | sync daemon + libp2p 通道 + quorum 门控 + web 操作型 GUI | `9ad09446f` |
+| v0.10 | 多提案 CRDT + sync stats + libp2p smoke + 加固 | `6e90faa9d` |
+| v0.10.1 | desktop V6 widget 接 sync-stats | `aedee372d` |
+| v0.11 | cross-fed 互信 + 离线审计 + 多跳桥 + gas-aware + SLA + 监控 | `b312563f0` |
+| v0.12 | 链上治理锚定（Q-COMP-3 出函解锁） | _本次_ |
+
+### 14.6 上游跟踪
 - 关注 `draft-ietf-plants-merkle-tree-certs-03+` 对树头签名算法、consistency proof、JWK 编码 SLH-DSA 的新建议
 - 关注 IETF COSE WG 的 SLH-DSA / ML-DSA JWK 草案（数据格式 §13 第 1 项的未决依赖）
 - 关注 `@noble/post-quantum` 发布动态

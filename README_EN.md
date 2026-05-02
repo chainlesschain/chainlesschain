@@ -19,6 +19,27 @@ The web management panel switches from hardcoded Chinese to bilingual (zh-CN / e
 
 **Bug fixes**: no new bugs introduced. The single integration-test failure (`compliance threat-intel match 1.2.3.4`) is a corrupt local SQLite DB (`database disk image is malformed`) on the dev machine, not a code bug — `cc setup --reset` or removing `%APPDATA%/chainlesschain/data/chainlesschain.db` rebuilds it.
 
+## 2026-05-03 Update — **MTC v0.12** — On-chain governance anchoring (Q-COMP-3 unlocked) + design doc cleanup + Deferred Items Registry
+
+Legal sign-off received 2026-05-03 unblocks Q-COMP-3 (domestic consortium chain path). Lands v0.3 #2 on-chain governance anchoring + a cross-doc cleanup pass:
+
+| Module | Notes |
+|---|---|
+| Lib (core-mtc) | `SCHEMA_GOVERNANCE_ANCHOR` schema + `computeGovernanceSnapshotHash` (deterministic, order-independent) + pluggable `IChainAnchorClient` + `InMemoryChainAnchorClient` / `FilesystemChainAnchorClient` mock impls + `verifyGovernanceAnchor` with HASH_MISMATCH drift report |
+| CLI | `cc mtc federation governance-anchor <fed> --actor --chain-store [--chain-name]` (publish snapshot hash) + `governance-verify-anchor` (fetch latest chain record + compare local replay). Production deploy swaps in a real chain client — schema/CLI unchanged |
+| Design doc cleanup | (a) `MTC_联邦治理_v1.md` §11: #1 cross-fed trust + #2 chain anchoring + #4 third-party audit all marked ✅ with commit hashes; new §11.5 test-infrastructure limits (paxos/libp2p e2e). (b) `MTC_跨链桥_v1.md` §11: #3 multi-hop + #4 gas-aware + #5 monitoring + #6 SLA all marked ✅; #1/#2 explicit external blockers + expected unlock condition. (c) `默克尔树证书_MTC_落地方案.md` §14.2 Q-COMP-3 status flipped from "conservative decision" to "unlocked 2026-05-03". (d) **New §14.5 Deferred Items Registry — single source of truth** with cross-subdoc index of remaining 4 deferred items + 3 permanent constraints + v0.6→v0.12 full commit history |
+| Tests | +16 lib unit (snapshot hash determinism / order independence / fed isolation / dual mock clients / verifyAnchor HASH_MISMATCH+drift) + 5 CLI integration (publish / verify pass / verify mismatch / NO_ANCHOR_ON_CHAIN / repeated anchor increments block_height) = 21 new tests |
+
+**Totals**: core-mtc 248 (+16 v0.12 anchor) + CLI integration 71 (+5 v0.12) + lib unit 70 (unchanged) = **389 green**.
+
+**Still NOT done (only 4 items left, all with explicit external blockers)** — see `默克尔树证书_MTC_落地方案.md` §14.5 Deferred Items Registry:
+- D1 Real RPC chain adapters — desktop major work
+- D2 Cross-chain DID resolution (production path) — blocked same as D1
+- D3 Full paxos cross-member real-time quorum — current alternative is production-ready
+- D4 Libp2p cross-node wire e2e — testbed limitation
+
+---
+
 ## 2026-05-03 Update — **MTC v0.11** — cross-fed trust + offline auditor + multi-hop + gas-aware + SLA + monitoring dashboard
 
 Closes every doable item from cross-chain bridge §11 + federation governance v0.2 §11 (chain anchoring blocked by Q-COMP-3, real RPC adapters need major desktop work — both kept):
