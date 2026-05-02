@@ -16,6 +16,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { createI18n } from 'vue-i18n'
+import { messages, FALLBACK } from '@chainlesschain/locales'
 import Projects from '../../src/views/Projects.vue'
 import { useWsStore } from '../../src/stores/ws.js'
 
@@ -23,6 +25,18 @@ const pickDirectoryMock = vi.fn()
 vi.mock('../../src/composables/useFs.js', () => ({
   useFs: () => ({ pickDirectory: pickDirectoryMock }),
 }))
+
+// Projects.vue uses t(...) for every visible string after the i18n M3
+// sweep — install a real vue-i18n instance with the seed messages so the
+// rendered text matches what users see, and our text-based assertions
+// keep working without coupling to internal key paths.
+const i18n = createI18n({
+  legacy: false,
+  globalInjection: true,
+  locale: FALLBACK,
+  fallbackLocale: FALLBACK,
+  messages,
+})
 
 const STUBS = {
   'a-row': { template: '<div><slot /></div>' },
@@ -88,7 +102,7 @@ describe('Projects.vue · folder picker + cc init --cwd', () => {
 
   it('renders the "选择文件夹..." button', () => {
     makeFsMock({ canceled: true, path: null, initialized: false })
-    const wrapper = mount(Projects, { global: { stubs: STUBS } })
+    const wrapper = mount(Projects, { global: { stubs: STUBS, plugins: [i18n] } })
     expect(findButtonByText(wrapper, '选择文件夹')).toBeDefined()
   })
 
@@ -98,7 +112,7 @@ describe('Projects.vue · folder picker + cc init --cwd', () => {
       path: '/work/new-project',
       initialized: false,
     })
-    const wrapper = mount(Projects, { global: { stubs: STUBS } })
+    const wrapper = mount(Projects, { global: { stubs: STUBS, plugins: [i18n] } })
     // Click the picker
     await findButtonByText(wrapper, '选择文件夹').trigger('click')
     await flushPromises()
@@ -115,7 +129,7 @@ describe('Projects.vue · folder picker + cc init --cwd', () => {
       path: '/work/existing-project',
       initialized: true,
     })
-    const wrapper = mount(Projects, { global: { stubs: STUBS } })
+    const wrapper = mount(Projects, { global: { stubs: STUBS, plugins: [i18n] } })
     // Pre-pick a template so the init button isn't already disabled by that
     await wrapper.vm.$nextTick()
     wrapper.vm.selectedTemplate = 'empty'
@@ -137,7 +151,7 @@ describe('Projects.vue · folder picker + cc init --cwd', () => {
       path: '/work/foo',
       initialized: false,
     })
-    const wrapper = mount(Projects, { global: { stubs: STUBS } })
+    const wrapper = mount(Projects, { global: { stubs: STUBS, plugins: [i18n] } })
     await findButtonByText(wrapper, '选择文件夹').trigger('click')
     await flushPromises()
     expect(wrapper.text()).toContain('/work/foo')
@@ -154,7 +168,7 @@ describe('Projects.vue · folder picker + cc init --cwd', () => {
       path: '/work/has spaces/project',
       initialized: false,
     })
-    const wrapper = mount(Projects, { global: { stubs: STUBS } })
+    const wrapper = mount(Projects, { global: { stubs: STUBS, plugins: [i18n] } })
     wrapper.vm.selectedTemplate = 'code-project'
     await flushPromises()
 
@@ -173,7 +187,7 @@ describe('Projects.vue · folder picker + cc init --cwd', () => {
 
   it('initProject() emits bare init when no folder is selected', async () => {
     makeFsMock({ canceled: true, path: null, initialized: false })
-    const wrapper = mount(Projects, { global: { stubs: STUBS } })
+    const wrapper = mount(Projects, { global: { stubs: STUBS, plugins: [i18n] } })
     wrapper.vm.selectedTemplate = 'empty'
     await flushPromises()
 
