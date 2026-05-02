@@ -208,6 +208,7 @@ const TRANSLATED_VIEWS = [
   { file: 'Security.vue',         titleKey: 'security.title' },
   { file: 'Cron.vue',             titleKey: 'cron.title' },
   { file: 'Analytics.vue',        titleKey: 'analytics.title' },
+  { file: 'SpeechSettings.vue',   titleKey: 'speechSettings.title' },
 ]
 
 describe('translated views mount sweep', () => {

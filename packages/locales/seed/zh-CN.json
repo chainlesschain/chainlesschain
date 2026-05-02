@@ -2757,6 +2757,66 @@
       "cacheCleanupFailed": "清理过期失败: {err}"
     }
   },
+  "speechSettings": {
+    "title": "语音识别配置",
+    "subtitle": "引擎选择 / Web Speech / Whisper API / Whisper Local",
+    "refresh": "刷新",
+    "alert": {
+      "message": "部分配置仍在桌面端",
+      "description": "高级 storage / audio / 知识库集成 / 性能选项仍在桌面端 SystemSettings 编辑（低频使用，未迁移）。本页覆盖引擎选择 + 三种引擎各自的核心配置。"
+    },
+    "engineCardTitle": "识别引擎",
+    "engineLabel": "默认引擎",
+    "engineOptions": {
+      "webspeech": "Web Speech API（浏览器内置）",
+      "whisper-api": "Whisper API（OpenAI 云端）",
+      "whisper-local": "Whisper Local（本地服务）"
+    },
+    "engineHint": {
+      "webspeech": "✓ 免费，无需配置；准确度较低",
+      "whisper-api": "⚠ 需要 OpenAI API 密钥，按使用量计费；准确度高",
+      "whisper-local": "✓ 免费，需要本地部署 Whisper 服务；准确度高"
+    },
+    "webSpeech": {
+      "cardTitle": "Web Speech API 配置",
+      "langLabel": "语言",
+      "langOptions": {
+        "zh-CN": "中文（简体）",
+        "zh-TW": "中文（繁体）",
+        "en-US": "English (US)",
+        "en-GB": "English (UK)",
+        "ja-JP": "日本語",
+        "ko-KR": "한국어"
+      }
+    },
+    "whisperAPI": {
+      "cardTitle": "Whisper API 配置",
+      "apiKeyLabel": "API Key",
+      "baseUrlLabel": "Base URL",
+      "modelLabel": "模型",
+      "languageLabel": "语言代码",
+      "timeoutLabel": "超时（毫秒）"
+    },
+    "whisperLocal": {
+      "cardTitle": "Whisper Local 配置",
+      "serverUrlLabel": "服务地址",
+      "modelSizeLabel": "模型规模",
+      "deviceLabel": "设备",
+      "timeoutLabel": "超时（毫秒）"
+    },
+    "buttons": {
+      "reset": "重置",
+      "save": "保存配置"
+    },
+    "dirtyHint": "有未保存的修改",
+    "messages": {
+      "loadFailed": "加载配置失败: {err}",
+      "noChanges": "没有需要保存的修改",
+      "saveItemFailed": "保存 speech.{key} 失败: {err}",
+      "saveOk": "保存成功（{count} 项）",
+      "savePartial": "部分保存成功：{ok} 成功 / {fail} 失败"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

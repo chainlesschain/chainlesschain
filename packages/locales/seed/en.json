@@ -2757,6 +2757,66 @@
       "cacheCleanupFailed": "Cleanup expired failed: {err}"
     }
   },
+  "speechSettings": {
+    "title": "Speech Recognition",
+    "subtitle": "Engine selection / Web Speech / Whisper API / Whisper Local",
+    "refresh": "Refresh",
+    "alert": {
+      "message": "Some settings remain on the desktop app",
+      "description": "Advanced storage / audio / knowledge-base / performance options still live in the desktop SystemSettings page (low-traffic, not migrated). This page covers engine selection plus the core config for each of the three engines."
+    },
+    "engineCardTitle": "Recognition engine",
+    "engineLabel": "Default engine",
+    "engineOptions": {
+      "webspeech": "Web Speech API (browser built-in)",
+      "whisper-api": "Whisper API (OpenAI cloud)",
+      "whisper-local": "Whisper Local (self-hosted)"
+    },
+    "engineHint": {
+      "webspeech": "✓ Free, zero config; lower accuracy",
+      "whisper-api": "⚠ Requires OpenAI API key, billed by usage; high accuracy",
+      "whisper-local": "✓ Free, requires local Whisper service; high accuracy"
+    },
+    "webSpeech": {
+      "cardTitle": "Web Speech API config",
+      "langLabel": "Language",
+      "langOptions": {
+        "zh-CN": "Chinese (Simplified)",
+        "zh-TW": "Chinese (Traditional)",
+        "en-US": "English (US)",
+        "en-GB": "English (UK)",
+        "ja-JP": "Japanese",
+        "ko-KR": "Korean"
+      }
+    },
+    "whisperAPI": {
+      "cardTitle": "Whisper API config",
+      "apiKeyLabel": "API Key",
+      "baseUrlLabel": "Base URL",
+      "modelLabel": "Model",
+      "languageLabel": "Language code",
+      "timeoutLabel": "Timeout (ms)"
+    },
+    "whisperLocal": {
+      "cardTitle": "Whisper Local config",
+      "serverUrlLabel": "Server URL",
+      "modelSizeLabel": "Model size",
+      "deviceLabel": "Device",
+      "timeoutLabel": "Timeout (ms)"
+    },
+    "buttons": {
+      "reset": "Reset",
+      "save": "Save config"
+    },
+    "dirtyHint": "Unsaved changes",
+    "messages": {
+      "loadFailed": "Failed to load config: {err}",
+      "noChanges": "No changes to save",
+      "saveItemFailed": "Save speech.{key} failed: {err}",
+      "saveOk": "Saved ({count} items)",
+      "savePartial": "Partial save: {ok} succeeded / {fail} failed"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",
