@@ -34,6 +34,14 @@ jobs:
         with:
           node-version: "22.12.0"
 
+      # node-gyp on Windows needs distutils, which Python 3.12+ removed from
+      # stdlib. Pin to 3.11 so `better-sqlite3-multiple-ciphers` can build
+      # natively (electron-rebuild fails ModuleNotFoundError otherwise).
+      - name: Setup Python 3.11 (node-gyp distutils)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Install dependencies
         uses: ./.github/actions/setup-node-deps
         with:
@@ -59,9 +67,16 @@ jobs:
           @REM WITHOUT overwriting existing files (preserves conflict-resolution versions).
           @REM Remove workspace self-referencing symlink to prevent ELOOP during packaging.
           if exist "node_modules\chainlesschain-desktop-vue" rmdir "node_modules\chainlesschain-desktop-vue"
+          @REM Also remove root CLI workspace self-link before copy. packages/cli is
+          @REM named "chainlesschain", so npm creates node_modules/chainlesschain.
+          @REM electron-builder walks node_modules/**/* and trips ENOENT when this
+          @REM relative junction lands in nested with a stale target.
+          if exist "node_modules\chainlesschain" rmdir "node_modules\chainlesschain"
           robocopy node_modules desktop-app-vue\node_modules /E /XC /XN /XO /NFL /NDL /NJH /NJS /NP
           @REM robocopy exit codes 0-7 = success, >=8 = failure
           if %ERRORLEVEL% GEQ 8 exit /b %ERRORLEVEL%
+          @REM Belt-and-suspenders: also clear it from nested if it slipped through.
+          if exist "desktop-app-vue\node_modules\chainlesschain" rmdir "desktop-app-vue\node_modules\chainlesschain"
           echo Hoisted modules merged into desktop-app-vue (nested preserved)
           exit /b 0
 
@@ -138,6 +153,14 @@ jobs:
           # aborting under bash -e. rsync --ignore-existing returns 0 consistently.
           # Remove workspace self-referencing symlink to prevent ELOOP during packaging.
           rm -f node_modules/chainlesschain-desktop-vue
+          # Also drop the bare `chainlesschain` symlink (packages/cli is named
+          # "chainlesschain"). Its relative target ../../packages/cli is correct
+          # at root but breaks when copied into desktop-app-vue/node_modules/.
+          # electron-builder strict-walks node_modules/**/* and ENOENT-fails on
+          # the broken link. desktop-app-vue does not actually depend on the
+          # bare CLI package, only on @chainlesschain/session-core, so deleting
+          # is safe (vs the @chainlesschain/* rewrite path below).
+          rm -f node_modules/chainlesschain
           mkdir -p desktop-app-vue/node_modules
           # Pre-clean @chainlesschain in nested: rsync trips with
           # "unlinkat: Directory not empty" (exit 23) on macOS when the
@@ -146,6 +169,9 @@ jobs:
           # below anyway, so dropping the existing copies is safe.
           rm -rf desktop-app-vue/node_modules/@chainlesschain
           rsync -a --ignore-existing node_modules/ desktop-app-vue/node_modules/
+          # Belt-and-suspenders: drop bare chainlesschain in nested too
+          # (in case it survived rsync because it pre-existed there).
+          rm -f desktop-app-vue/node_modules/chainlesschain
           # Rewrite @chainlesschain/* workspace symlinks: rsync preserves their
           # RELATIVE targets (../../packages/*), which break when resolved from
           # desktop-app-vue/node_modules/. Replace with absolute paths.
@@ -240,8 +266,17 @@ jobs:
           # aborting under bash -e. rsync --ignore-existing returns 0 consistently.
           # Remove workspace self-referencing symlink to prevent ELOOP during packaging.
           rm -f node_modules/chainlesschain-desktop-vue
+          # Drop the bare `chainlesschain` symlink (packages/cli is named
+          # "chainlesschain"). desktop-app-vue does not depend on the bare CLI
+          # package, only @chainlesschain/session-core. The relative-path
+          # symlink trips electron-builder's strict node_modules/**/* walker
+          # when copied into nested.
+          rm -f node_modules/chainlesschain
           mkdir -p desktop-app-vue/node_modules
           rsync -a --ignore-existing node_modules/ desktop-app-vue/node_modules/
+          # Belt-and-suspenders: drop bare chainlesschain in nested too
+          # (in case it survived rsync because it pre-existed there).
+          rm -f desktop-app-vue/node_modules/chainlesschain
           # Rewrite @chainlesschain/* workspace symlinks: rsync preserves their
           # RELATIVE targets (../../packages/*), which break when resolved from
           # desktop-app-vue/node_modules/. Replace with absolute paths.
