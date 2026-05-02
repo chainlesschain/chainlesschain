@@ -19,6 +19,23 @@ The web management panel switches from hardcoded Chinese to bilingual (zh-CN / e
 
 **Bug fixes**: no new bugs introduced. The single integration-test failure (`compliance threat-intel match 1.2.3.4`) is a corrupt local SQLite DB (`database disk image is malformed`) on the dev machine, not a code bug — `cc setup --reset` or removing `%APPDATA%/chainlesschain/data/chainlesschain.db` rebuilds it.
 
+## 2026-05-02 Update — **MTC v0.10** — multi-proposal CRDT + live sync stats + libp2p smoke test + hardening checklist
+
+Closes the four v0.9 TODOs:
+
+| Module | Notes |
+|---|---|
+| Multi-proposal CRDT | `replayGovernanceLog` now retains ALL open propose-threshold / propose-revoke events (was overwriting same-target by latest write); new return fields `pending_thresholds[]` / `pending_revokes_all[]`, with old `pending_threshold` / `pending_revokes` kept as backward-compat (most recent only). `confirm-threshold --proposal-event-id <id>` CRDT-style explicit selection of one open proposal; default still confirms most recent |
+| Live sync stats | Both sync daemons persist `<dir>/<fed>.sync-stats.json` (atomic write) per tick; new `cc mtc federation governance-sync-stats <fed> [--json]` reads it. Web GUI / monitoring can poll the file |
+| Libp2p smoke tests | `packages/core-mtc/__tests__/federation-governance-libp2p.test.js` 4 tests cover publishRaw call path, synthetic dispatch fan-out, receiver-side dedupe, topic format. Does **not** assert cross-node wire delivery (matches existing libp2p-federation-discovery policy — gossipsub mesh formation is genuinely flaky in 2-node test environments) |
+| Systemd hardening checklist | `packages/cli/scripts/service/HARDENING.md` documents existing protections (`User=` / `NoNewPrivileges` / `ProtectSystem` / `ReadWritePaths` etc.) + 7-item pre-deploy verify list (account / mount / network / optional capability drop / SELinux) + known limitations + smoke-test steps |
+
+**Test totals**: core-mtc 220 (+6 conflict resolution + 4 libp2p smoke) + CLI integration 30 (+3 stats + 1 conflict CLI) = **250 green**.
+
+Design tradeoffs: CRDT keeps all concurrent open proposals; confirm defaults to "most recent" (back-compat) but can pick specific via event_id. No full paxos / merkle CRDT — overkill for small federations (N<10). Live stats use file polling rather than WebSocket streaming to avoid ws-server changes. Libp2p e2e tests "call path doesn't throw + dispatch logic correct" instead of brittle wire delivery.
+
+---
+
 ## 2026-05-02 Update — **MTC v0.9** — auto sync daemon + libp2p channel + quorum gating + web operational GUI
 
 Closes the four v0.8 TODOs:

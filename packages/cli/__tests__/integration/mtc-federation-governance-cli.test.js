@@ -764,6 +764,49 @@ describe("cc mtc federation governance — CLI integration", () => {
       expect(event.event_type).toBe("confirm-revoke");
     });
 
+    it("confirm-threshold --proposal-event-id picks specific proposal", () => {
+      joinAs("alice");
+      const p3 = extractJson(
+        mustRun([
+          "mtc",
+          "federation",
+          "propose-threshold",
+          "fed-test",
+          "3",
+          "--actor",
+          "alice",
+          "--json",
+        ]).stdout,
+      );
+      mustRun([
+        "mtc",
+        "federation",
+        "propose-threshold",
+        "fed-test",
+        "5",
+        "--actor",
+        "alice",
+        "--json",
+      ]);
+      const c = mustRun([
+        "mtc",
+        "federation",
+        "confirm-threshold",
+        "fed-test",
+        "--actor",
+        "alice",
+        "--proposal-event-id",
+        p3.event_id,
+        "--json",
+      ]);
+      expect(extractJson(c.stdout).payload.proposal_event_id).toBe(p3.event_id);
+      const log = extractJson(
+        mustRun(["mtc", "federation", "governance-log", "fed-test", "--json"])
+          .stdout,
+      );
+      expect(log.state.threshold).toBe(3); // explicit choice, not most-recent (5)
+    });
+
     it("confirm-revoke succeeds when a matching propose-revoke exists", () => {
       joinAs("alice");
       mustRun([
@@ -908,8 +951,55 @@ describe("cc mtc federation governance — CLI integration", () => {
         "governance-pull",
         "governance-sync-serve",
         "governance-sync-libp2p",
+        "governance-sync-stats",
       ]) {
         expect(r.stdout).toMatch(new RegExp(sub));
+      }
+    });
+
+    it("governance-sync-stats reports defaults when no daemon has run", () => {
+      const r = mustRun([
+        "mtc",
+        "federation",
+        "governance-sync-stats",
+        "fed-fresh",
+        "--json",
+      ]);
+      const j = extractJson(r.stdout);
+      expect(j.available).toBe(false);
+      expect(j.federation_id).toBe("fed-fresh");
+    });
+
+    it("governance-sync-stats reflects daemon ticks", () => {
+      joinAs("alice");
+      const dropZone = fs.mkdtempSync(path.join(os.tmpdir(), "fed-stats-"));
+      try {
+        // Run daemon once — populates stats file
+        mustRun([
+          "mtc",
+          "federation",
+          "governance-sync-serve",
+          "fed-test",
+          "--drop-zone",
+          dropZone,
+          "--once",
+          "--json",
+        ]);
+        const r = mustRun([
+          "mtc",
+          "federation",
+          "governance-sync-stats",
+          "fed-test",
+          "--json",
+        ]);
+        const j = extractJson(r.stdout);
+        expect(j.federation_id).toBe("fed-test");
+        expect(j.mode).toBe("filesystem");
+        expect(j.last_tick_at).toBeDefined();
+        expect(j.publish).toBeDefined();
+        expect(j.pull).toBeDefined();
+      } finally {
+        fs.rmSync(dropZone, { recursive: true, force: true });
       }
     });
 

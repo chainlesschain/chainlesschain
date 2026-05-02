@@ -1723,9 +1723,10 @@ function requireOpenProposal(federationId, proposalType, matcher) {
   // the same target. v0.1 quorum gating only checks "is there at least one
   // proposal event with a matching target" — full quorum cooldown logic
   // lives in lib replay, this is a CLI-side guardrail.
+  // Matcher signature: (payload, event) => boolean
   const open = events.some(
     (e) =>
-      e && e.event_type === proposalType && e.payload && matcher(e.payload),
+      e && e.event_type === proposalType && e.payload && matcher(e.payload, e),
   );
   if (!open) {
     throw new Error(
@@ -1779,6 +1780,33 @@ function runGovernancePublish(federationId, dropZone) {
  *   appended, duplicates, invalid_signature, unknown_signer
  * }}
  */
+function statsPath(federationId) {
+  return path.join(
+    getFederationDir(),
+    "governance",
+    `${federationId}.sync-stats.json`,
+  );
+}
+
+function loadStats(federationId) {
+  const file = statsPath(federationId);
+  if (!fs.existsSync(file)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf-8"));
+  } catch (_err) {
+    return {};
+  }
+}
+
+function saveStats(federationId, stats) {
+  const file = statsPath(federationId);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  // Atomic write so polling readers never see partial JSON
+  const tmp = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(stats, null, 2), "utf-8");
+  fs.renameSync(tmp, file);
+}
+
 function runGovernancePull(federationId, dropZone, opts = {}) {
   const sourceDir = path.join(dropZone, "federation-governance", federationId);
   if (!fs.existsSync(sourceDir)) {
@@ -2050,13 +2078,17 @@ function registerFederationGovernanceCommands(fed) {
       }
     });
 
-  // mtc federation confirm-threshold — apply the most recent propose-threshold
+  // mtc federation confirm-threshold — apply a specific (or most recent) propose-threshold
   fed
     .command("confirm-threshold <federation-id>")
     .description(
-      "Confirm the most recent propose-threshold (apply it via replay)",
+      "Confirm a propose-threshold (default: most recent; --proposal-event-id picks a specific one)",
     )
     .requiredOption("--actor <member-id>", "Confirming member")
+    .option(
+      "--proposal-event-id <id>",
+      "Specific propose-threshold event_id (CRDT-style explicit selection when multiple proposals are open)",
+    )
     .option(
       "--no-quorum-check",
       "Skip the pre-flight check that an open propose-threshold exists",
@@ -2065,21 +2097,34 @@ function registerFederationGovernanceCommands(fed) {
     .action((federationId, options) => {
       try {
         if (options.quorumCheck !== false) {
-          requireOpenProposal(federationId, "propose-threshold", (p) =>
-            Number.isInteger(p.proposed_threshold),
-          );
+          requireOpenProposal(federationId, "propose-threshold", (p, ev) => {
+            if (!Number.isInteger(p.proposed_threshold)) return false;
+            if (
+              options.proposalEventId &&
+              ev &&
+              ev.event_id !== options.proposalEventId
+            ) {
+              return false;
+            }
+            return true;
+          });
         }
         const { keys, alg } = loadMemberSigner(federationId, options.actor);
+        const payload = options.proposalEventId
+          ? { proposal_event_id: options.proposalEventId }
+          : {};
         const event = emitAndPersist(federationId, {
           eventType: "confirm-threshold",
           actorMemberId: options.actor,
           secretKey: keys.secretKey,
           publicKey: keys.publicKey,
           alg,
-          payload: {},
+          payload,
         });
         if (options.json) return console.log(JSON.stringify(event, null, 2));
-        logger.success(`Confirmed pending threshold (event ${event.event_id})`);
+        logger.success(
+          `Confirmed${options.proposalEventId ? " specific" : ""} threshold proposal (event ${event.event_id})`,
+        );
       } catch (err) {
         logger.error(`mtc federation confirm-threshold failed: ${err.message}`);
         process.exit(1);
@@ -2194,6 +2239,59 @@ function registerFederationGovernanceCommands(fed) {
       }
     });
 
+  // mtc federation governance-sync-stats — read live tick stats written by sync daemons
+  fed
+    .command("governance-sync-stats <federation-id>")
+    .description(
+      "Read live sync stats (last tick + cumulative counters) written by governance-sync-serve / governance-sync-libp2p",
+    )
+    .option("--json", "JSON output")
+    .action((federationId, options) => {
+      try {
+        const file = path.join(
+          getFederationDir(),
+          "governance",
+          `${federationId}.sync-stats.json`,
+        );
+        if (!fs.existsSync(file)) {
+          const empty = {
+            federation_id: federationId,
+            stats_file: file,
+            available: false,
+            note: "No sync daemon has written stats yet — start governance-sync-serve or governance-sync-libp2p first.",
+          };
+          if (options.json) return console.log(JSON.stringify(empty, null, 2));
+          logger.warn(empty.note);
+          return;
+        }
+        const data = JSON.parse(fs.readFileSync(file, "utf-8"));
+        if (options.json) return console.log(JSON.stringify(data, null, 2));
+        logger.log(`Federation: ${federationId}`);
+        logger.log(`Last tick:  ${data.last_tick_at || "—"}`);
+        logger.log(`Mode:       ${data.mode || "—"}`);
+        if (data.publish) {
+          logger.log(
+            `Publish:    last=${data.publish.last_published || 0} new (${data.publish.last_skipped || 0} skipped); total=${data.publish.total_published || 0}`,
+          );
+        }
+        if (data.pull) {
+          logger.log(
+            `Pull:       last=${data.pull.last_appended || 0} new (dedup=${data.pull.last_duplicates || 0}); total=${data.pull.total_appended || 0}`,
+          );
+        }
+        if (data.libp2p) {
+          logger.log(
+            `Libp2p:     wire received=${data.libp2p.wire_received || 0} appended=${data.libp2p.wire_appended || 0} invalid=${data.libp2p.wire_invalid || 0} unknown=${data.libp2p.wire_unknown || 0}`,
+          );
+        }
+      } catch (err) {
+        logger.error(
+          `mtc federation governance-sync-stats failed: ${err.message}`,
+        );
+        process.exit(1);
+      }
+    });
+
   // mtc federation governance-sync-serve — daemon: periodically publish + pull
   fed
     .command("governance-sync-serve <federation-id>")
@@ -2224,6 +2322,25 @@ function registerFederationGovernanceCommands(fed) {
           const pullResult = runGovernancePull(federationId, options.dropZone, {
             verify: !!options.verify,
           });
+          // Persist live stats so governance-sync-stats / web GUI can poll
+          const stats = loadStats(federationId);
+          stats.federation_id = federationId;
+          stats.mode = "filesystem";
+          stats.last_tick_at = stamp;
+          stats.publish = stats.publish || { total_published: 0 };
+          stats.publish.last_published = pubResult.published;
+          stats.publish.last_skipped = pubResult.skipped;
+          stats.publish.total_published =
+            (stats.publish.total_published || 0) + pubResult.published;
+          stats.pull = stats.pull || { total_appended: 0 };
+          stats.pull.last_appended = pullResult.appended;
+          stats.pull.last_duplicates = pullResult.duplicates;
+          stats.pull.last_invalid = pullResult.invalid_signature;
+          stats.pull.last_unknown = pullResult.unknown_signer;
+          stats.pull.total_appended =
+            (stats.pull.total_appended || 0) + pullResult.appended;
+          saveStats(federationId, stats);
+
           if (options.json) {
             console.log(
               JSON.stringify(
@@ -2778,6 +2895,23 @@ async function runGovernanceSyncLibp2pInner(federationId, options, node) {
       }
     }
     if (publishedThisTick > 0) saveLibp2pPubMarkers(federationId, published);
+
+    // Persist live stats so governance-sync-stats / web GUI can poll
+    const stats = loadStats(federationId);
+    stats.federation_id = federationId;
+    stats.mode = "libp2p";
+    stats.last_tick_at = stamp;
+    stats.publish = stats.publish || { total_published: 0 };
+    stats.publish.last_published = publishedThisTick;
+    stats.publish.total_published =
+      (stats.publish.total_published || 0) + publishedThisTick;
+    stats.libp2p = stats.libp2p || {};
+    stats.libp2p.wire_received = received;
+    stats.libp2p.wire_appended = appendedFromWire;
+    stats.libp2p.wire_invalid = invalidFromWire;
+    stats.libp2p.wire_unknown = unknownFromWire;
+    stats.libp2p.topic = topic;
+    saveStats(federationId, stats);
 
     if (options.json) {
       console.log(

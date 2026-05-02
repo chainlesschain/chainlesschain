@@ -322,6 +322,18 @@ function replayGovernanceLog(events, federationId, options = {}) {
       }
     } else if (t === "propose-revoke") {
       if (p.target_member_id) {
+        // v0.10: keep ALL open proposals indexed by event_id (was overwriting
+        // by target before, which lost concurrent proposals from different
+        // proposers for the same target). pending_revokes[target] still
+        // returns ONE for backward compat — the most recent.
+        state.pending_revokes_all ||= [];
+        state.pending_revokes_all.push({
+          member_id: p.target_member_id,
+          proposed_at: ev.issued_at,
+          event_id: ev.event_id,
+          reason: p.reason || null,
+          proposer: ev.actor_member_id,
+        });
         state.pending_revokes[p.target_member_id] = {
           member_id: p.target_member_id,
           proposed_at: ev.issued_at,
@@ -338,6 +350,13 @@ function replayGovernanceLog(events, federationId, options = {}) {
         else state.archived_keys.push(m.pubkey_id);
         delete state.members[targetId];
         delete state.pending_revokes[targetId];
+        // Drop ALL pending revoke proposals for this target — once revoked,
+        // the member's gone, no follow-up proposal is meaningful.
+        if (state.pending_revokes_all) {
+          state.pending_revokes_all = state.pending_revokes_all.filter(
+            (r) => r.member_id !== targetId,
+          );
+        }
       }
     } else if (t === "rotate-key") {
       const m = state.members[ev.actor_member_id];
@@ -349,19 +368,40 @@ function replayGovernanceLog(events, federationId, options = {}) {
       }
     } else if (t === "propose-threshold") {
       if (Number.isInteger(p.proposed_threshold)) {
-        state.pending_threshold = {
+        // v0.10: keep ALL open threshold proposals (was overwriting,
+        // which lost concurrent proposals with different target Ms).
+        const proposal = {
           target: p.proposed_threshold,
           proposed_at: ev.issued_at,
           event_id: ev.event_id,
           activates_at: new Date(
             Date.parse(ev.issued_at) + 30 * 24 * 3600 * 1000,
           ).toISOString(),
+          proposer: ev.actor_member_id,
         };
+        state.pending_thresholds ||= [];
+        state.pending_thresholds.push(proposal);
+        // Backward-compat: pending_threshold = MOST RECENT proposal
+        state.pending_threshold = proposal;
       }
     } else if (t === "confirm-threshold") {
-      if (state.pending_threshold) {
-        state.threshold = state.pending_threshold.target;
+      // v0.10: confirm-threshold can target a specific proposal via
+      // payload.proposal_event_id (CRDT-style explicit selection). When
+      // absent (back-compat), confirms the most recent proposal.
+      let proposal = null;
+      if (p.proposal_event_id && state.pending_thresholds) {
+        proposal = state.pending_thresholds.find(
+          (pp) => pp.event_id === p.proposal_event_id,
+        );
+      } else if (state.pending_threshold) {
+        proposal = state.pending_threshold;
+      }
+      if (proposal) {
+        state.threshold = proposal.target;
+        // Drop ALL pending — once threshold changes, all stale proposals
+        // are obsolete (callers can re-propose against the new threshold)
         state.pending_threshold = null;
+        state.pending_thresholds = [];
       }
     } else if (t === "fork") {
       // Original federation continues; the spawned federation is a different fed_id
@@ -427,8 +467,14 @@ function replayGovernanceLog(events, federationId, options = {}) {
     bootstrap_until: state.bootstrap_until,
     members: Object.values(state.members),
     pending_invites: Object.values(state.pending_invites),
+    // pending_revokes: backward-compat (one per target, most recent)
     pending_revokes: Object.values(state.pending_revokes),
+    // v0.10: ALL open revoke proposals (multiple proposers may propose same target)
+    pending_revokes_all: state.pending_revokes_all || [],
+    // pending_threshold: backward-compat (most recent only)
     pending_threshold: state.pending_threshold,
+    // v0.10: ALL open threshold proposals
+    pending_thresholds: state.pending_thresholds || [],
     archived_keys: state.archived_keys,
     compromised_keys: state.compromised_keys,
     last_fork: state.last_fork || null,

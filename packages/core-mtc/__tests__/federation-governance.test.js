@@ -457,6 +457,222 @@ describe("federation-governance", () => {
     });
   });
 
+  describe("v0.10 multi-proposal conflict resolution", () => {
+    function ev(overrides) {
+      const keys = overrides.keys || ed25519.generateKeyPair();
+      return createGovernanceEvent({
+        federationId: overrides.fed || "fed-test",
+        eventType: overrides.eventType,
+        actorMemberId: overrides.actor || "alice",
+        secretKey: keys.secretKey,
+        publicKey: keys.publicKey,
+        payload: overrides.payload || {},
+        issuedAt: overrides.issuedAt,
+      });
+    }
+
+    it("two concurrent propose-threshold events both kept in pending_thresholds", () => {
+      const log = [
+        ev({
+          eventType: "create",
+          actor: "alice",
+          payload: {
+            bootstrap_member_id: "alice",
+            bootstrap_pubkey_id: "sha256:a",
+            initial_threshold: 1,
+          },
+        }),
+        ev({
+          eventType: "propose-threshold",
+          actor: "alice",
+          payload: { proposed_threshold: 3 },
+        }),
+        ev({
+          eventType: "propose-threshold",
+          actor: "alice",
+          payload: { proposed_threshold: 5 },
+        }),
+      ];
+      const s = replayGovernanceLog(log, "fed-test");
+      expect(s.pending_thresholds).toHaveLength(2);
+      expect(s.pending_thresholds.map((p) => p.target).sort()).toEqual([3, 5]);
+      // back-compat: pending_threshold = most recent
+      expect(s.pending_threshold.target).toBe(5);
+    });
+
+    it("confirm-threshold without proposal_event_id applies the most recent", () => {
+      const log = [
+        ev({
+          eventType: "create",
+          actor: "alice",
+          payload: {
+            bootstrap_member_id: "alice",
+            bootstrap_pubkey_id: "sha256:a",
+            initial_threshold: 1,
+          },
+        }),
+        ev({
+          eventType: "propose-threshold",
+          actor: "alice",
+          payload: { proposed_threshold: 3 },
+        }),
+        ev({
+          eventType: "propose-threshold",
+          actor: "alice",
+          payload: { proposed_threshold: 5 },
+        }),
+        ev({ eventType: "confirm-threshold", actor: "alice", payload: {} }),
+      ];
+      const s = replayGovernanceLog(log, "fed-test");
+      expect(s.threshold).toBe(5); // most recent wins
+      expect(s.pending_thresholds).toHaveLength(0); // all cleared
+    });
+
+    it("confirm-threshold with proposal_event_id picks the specific proposal", () => {
+      const propose3 = ev({
+        eventType: "propose-threshold",
+        actor: "alice",
+        payload: { proposed_threshold: 3 },
+      });
+      const propose5 = ev({
+        eventType: "propose-threshold",
+        actor: "alice",
+        payload: { proposed_threshold: 5 },
+      });
+      const log = [
+        ev({
+          eventType: "create",
+          actor: "alice",
+          payload: {
+            bootstrap_member_id: "alice",
+            bootstrap_pubkey_id: "sha256:a",
+            initial_threshold: 1,
+          },
+        }),
+        propose3,
+        propose5,
+        ev({
+          eventType: "confirm-threshold",
+          actor: "alice",
+          payload: { proposal_event_id: propose3.event_id },
+        }),
+      ];
+      const s = replayGovernanceLog(log, "fed-test");
+      expect(s.threshold).toBe(3); // explicit choice, NOT most-recent
+      expect(s.pending_thresholds).toHaveLength(0);
+    });
+
+    it("confirm-threshold with unknown proposal_event_id is a no-op", () => {
+      const log = [
+        ev({
+          eventType: "create",
+          actor: "alice",
+          payload: {
+            bootstrap_member_id: "alice",
+            bootstrap_pubkey_id: "sha256:a",
+            initial_threshold: 1,
+          },
+        }),
+        ev({
+          eventType: "propose-threshold",
+          actor: "alice",
+          payload: { proposed_threshold: 3 },
+        }),
+        ev({
+          eventType: "confirm-threshold",
+          actor: "alice",
+          payload: { proposal_event_id: "nonexistent-uuid" },
+        }),
+      ];
+      const s = replayGovernanceLog(log, "fed-test");
+      expect(s.threshold).toBe(1); // unchanged
+      expect(s.pending_thresholds).toHaveLength(1); // still open
+    });
+
+    it("multiple propose-revoke for same target both kept in pending_revokes_all", () => {
+      const log = [
+        ev({
+          eventType: "create",
+          actor: "alice",
+          payload: {
+            bootstrap_member_id: "alice",
+            bootstrap_pubkey_id: "sha256:a",
+          },
+        }),
+        ev({
+          eventType: "invite",
+          actor: "alice",
+          payload: { candidate_member_id: "bob", candidate_pubkey_id: "sha256:b" },
+        }),
+        ev({
+          eventType: "vote",
+          actor: "alice",
+          payload: { invite_target_member_id: "bob", decision: "approve" },
+        }),
+        ev({
+          eventType: "propose-revoke",
+          actor: "alice",
+          payload: { target_member_id: "bob", reason: "inactive" },
+        }),
+        ev({
+          eventType: "propose-revoke",
+          actor: "alice",
+          payload: { target_member_id: "bob", reason: "key-compromise" },
+        }),
+      ];
+      const s = replayGovernanceLog(log, "fed-test");
+      expect(s.pending_revokes_all).toHaveLength(2);
+      expect(s.pending_revokes_all.map((r) => r.reason).sort()).toEqual([
+        "inactive",
+        "key-compromise",
+      ]);
+      // back-compat: pending_revokes (per-target) keeps the most recent
+      expect(s.pending_revokes).toHaveLength(1);
+    });
+
+    it("confirm-revoke clears ALL pending_revokes_all entries for that target", () => {
+      const log = [
+        ev({
+          eventType: "create",
+          actor: "alice",
+          payload: {
+            bootstrap_member_id: "alice",
+            bootstrap_pubkey_id: "sha256:a",
+          },
+        }),
+        ev({
+          eventType: "invite",
+          actor: "alice",
+          payload: { candidate_member_id: "bob", candidate_pubkey_id: "sha256:b" },
+        }),
+        ev({
+          eventType: "vote",
+          actor: "alice",
+          payload: { invite_target_member_id: "bob", decision: "approve" },
+        }),
+        ev({
+          eventType: "propose-revoke",
+          actor: "alice",
+          payload: { target_member_id: "bob", reason: "inactive" },
+        }),
+        ev({
+          eventType: "propose-revoke",
+          actor: "alice",
+          payload: { target_member_id: "bob", reason: "key-compromise" },
+        }),
+        ev({
+          eventType: "confirm-revoke",
+          actor: "alice",
+          payload: { target_member_id: "bob", reason: "key-compromise" },
+        }),
+      ];
+      const s = replayGovernanceLog(log, "fed-test");
+      expect(s.pending_revokes_all).toHaveLength(0);
+      expect(s.members.find((m) => m.member_id === "bob")).toBeUndefined();
+      expect(s.compromised_keys).toContain("sha256:b");
+    });
+  });
+
   describe("dedupeEventsByEventId", () => {
     it("returns empty array for non-array input", () => {
       expect(dedupeEventsByEventId(null)).toEqual([]);

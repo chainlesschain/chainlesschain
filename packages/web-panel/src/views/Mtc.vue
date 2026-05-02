@@ -617,6 +617,18 @@ const bridgeAnchorsTable = computed(() => {
   return Object.entries(by).map(([chain, count]) => ({ key: chain, chain, count }))
 })
 
+function mergeBridgeStatus(obj) {
+  // CLI may legitimately omit sub-objects when bridge MTC is disabled; the
+  // template addresses bridgeStatus.staging.pending / batches.latest etc.
+  // unconditionally, so guarantee the full schema regardless of CLI shape.
+  return {
+    config: { enabled: false, mode: 'independent', alg: 'ed25519', batch_interval_seconds: 60, issuer: '', ...(obj?.config || {}) },
+    trust_anchors: { chain_count: 0, total: 0, by_chain: {}, ...(obj?.trust_anchors || {}) },
+    staging: { pending: 0, ...(obj?.staging || {}) },
+    batches: { total: 0, latest: null, ...(obj?.batches || {}) },
+  }
+}
+
 async function loadBridgeStatus() {
   try {
     const { output } = await ws.execute('crosschain mtc-status --json', 8000)
@@ -627,7 +639,7 @@ async function loadBridgeStatus() {
           try {
             const obj = JSON.parse(lines.slice(s, e).join('\n'))
             if (obj && obj.config) {
-              bridgeStatus.value = obj
+              bridgeStatus.value = mergeBridgeStatus(obj)
               return
             }
           } catch (_err) { /* keep trying */ }
