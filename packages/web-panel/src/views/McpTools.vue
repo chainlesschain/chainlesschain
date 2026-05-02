@@ -2,12 +2,12 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">MCP 工具</h2>
-        <p class="page-sub">Model Context Protocol — 已挂载工具与服务器</p>
+        <h2 class="page-title">{{ t('mcpTools.title') }}</h2>
+        <p class="page-sub">{{ t('mcpTools.subtitle') }}</p>
       </div>
       <a-button type="primary" ghost :loading="loading" @click="load">
         <template #icon><ReloadOutlined /></template>
-        刷新
+        {{ t('mcpTools.refresh') }}
       </a-button>
     </div>
 
@@ -15,21 +15,21 @@
     <a-row :gutter="[16, 16]" style="margin-bottom: 20px;">
       <a-col :xs="24" :sm="8">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);" size="small">
-          <a-statistic title="服务器数量" :value="servers.length" value-style="color: #1677ff; font-size: 20px;">
+          <a-statistic :title="t('mcpTools.stats.servers')" :value="servers.length" value-style="color: #1677ff; font-size: 20px;">
             <template #prefix><CloudServerOutlined /></template>
           </a-statistic>
         </a-card>
       </a-col>
       <a-col :xs="24" :sm="8">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);" size="small">
-          <a-statistic title="工具数量" :value="tools.length" value-style="color: #52c41a; font-size: 20px;">
+          <a-statistic :title="t('mcpTools.stats.tools')" :value="tools.length" value-style="color: #52c41a; font-size: 20px;">
             <template #prefix><ToolOutlined /></template>
           </a-statistic>
         </a-card>
       </a-col>
       <a-col :xs="24" :sm="8">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);" size="small">
-          <a-statistic title="运行状态" value="就绪" value-style="color: #52c41a; font-size: 20px;">
+          <a-statistic :title="t('mcpTools.stats.running')" :value="t('mcpTools.stats.ready')" value-style="color: #52c41a; font-size: 20px;">
             <template #prefix><CheckCircleOutlined /></template>
           </a-statistic>
         </a-card>
@@ -37,10 +37,10 @@
     </a-row>
 
     <!-- Servers -->
-    <a-card title="已配置服务器" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
+    <a-card :title="t('mcpTools.servers.title')" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
       <div v-if="loading" style="text-align: center; padding: 30px;"><a-spin /></div>
       <div v-else-if="!servers.length" style="text-align: center; padding: 30px; color: var(--text-muted);">
-        暂无 MCP 服务器，使用 <code style="background: var(--bg-card-hover); padding: 2px 6px; border-radius: 3px;">chainlesschain mcp add</code> 添加
+        {{ t('mcpTools.servers.emptyHintPrefix') }} <code style="background: var(--bg-card-hover); padding: 2px 6px; border-radius: 3px;">{{ t('mcpTools.servers.emptyHintCommand') }}</code> {{ t('mcpTools.servers.emptyHintSuffix') }}
       </div>
       <div v-else class="servers-grid">
         <a-card
@@ -63,11 +63,11 @@
     </a-card>
 
     <!-- Tools -->
-    <a-card title="可用工具" style="background: var(--bg-card); border-color: var(--border-color);">
+    <a-card :title="t('mcpTools.tools.title')" style="background: var(--bg-card); border-color: var(--border-color);">
       <template #extra>
         <a-input-search
           v-model:value="toolSearch"
-          placeholder="搜索工具..."
+          :placeholder="t('mcpTools.tools.searchPlaceholder')"
           allow-clear
           size="small"
           style="width: 200px;"
@@ -96,13 +96,13 @@
               @click="openRunModal(record)"
             >
               <template #icon><PlayCircleOutlined /></template>
-              运行
+              {{ t('mcpTools.tools.runAction') }}
             </a-button>
-            <span v-else style="color: var(--text-muted); font-size: 11px;">仅桌面模式</span>
+            <span v-else style="color: var(--text-muted); font-size: 11px;">{{ t('mcpTools.tools.desktopOnly') }}</span>
           </template>
         </template>
         <template #emptyText>
-          <div style="padding: 30px; color: var(--text-muted);">暂无可用工具</div>
+          <div style="padding: 30px; color: var(--text-muted);">{{ t('mcpTools.tools.emptyText') }}</div>
         </template>
       </a-table>
     </a-card>
@@ -110,13 +110,13 @@
     <!-- Resources (topic mode only — CLI fallback doesn't surface resources) -->
     <a-card
       v-if="dataSource === 'topic'"
-      title="可用资源"
+      :title="t('mcpTools.resources.title')"
       style="background: var(--bg-card); border-color: var(--border-color); margin-top: 16px;"
     >
       <template #extra>
         <a-input-search
           v-model:value="resourceSearch"
-          placeholder="搜索资源..."
+          :placeholder="t('mcpTools.resources.searchPlaceholder')"
           allow-clear
           size="small"
           style="width: 200px;"
@@ -124,7 +124,7 @@
       </template>
       <div v-if="resourcesLoading" style="text-align: center; padding: 30px;"><a-spin /></div>
       <div v-else-if="!resources.length" style="text-align: center; padding: 30px; color: var(--text-muted);">
-        当前无 MCP 资源（部分服务器不暴露 resources，是正常的）
+        {{ t('mcpTools.resources.emptyHint') }}
       </div>
       <a-table
         v-else
@@ -147,12 +147,12 @@
           <template v-if="column.key === 'action'">
             <a-button size="small" type="link" @click="openReadModal(record)">
               <template #icon><EyeOutlined /></template>
-              读取
+              {{ t('mcpTools.resources.readAction') }}
             </a-button>
           </template>
         </template>
         <template #emptyText>
-          <div style="padding: 30px; color: var(--text-muted);">无匹配资源</div>
+          <div style="padding: 30px; color: var(--text-muted);">{{ t('mcpTools.resources.emptyTable') }}</div>
         </template>
       </a-table>
     </a-card>
@@ -162,33 +162,33 @@
       :title="runModalTitle"
       :width="640"
       :confirm-loading="running"
-      :ok-text="running ? '运行中...' : '运行'"
-      cancel-text="关闭"
+      :ok-text="running ? t('mcpTools.run.okRunning') : t('mcpTools.run.okIdle')"
+      :cancel-text="t('mcpTools.run.cancel')"
       @ok="runSelectedTool"
       @cancel="closeRunModal"
     >
       <div v-if="selectedTool" style="display: flex; flex-direction: column; gap: 12px;">
         <div>
-          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">服务器 / 工具</div>
+          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">{{ t('mcpTools.run.serverLabel') }}</div>
           <div style="font-family: monospace; font-size: 13px;">
             <a-tag color="blue">{{ selectedTool.server }}</a-tag>
             <span style="color: #91caff;">{{ selectedTool.name }}</span>
           </div>
         </div>
         <div v-if="selectedTool.description">
-          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">描述</div>
+          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">{{ t('mcpTools.run.descriptionLabel') }}</div>
           <div style="font-size: 12px;">{{ selectedTool.description }}</div>
         </div>
         <div v-if="selectedTool.inputSchema">
-          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">参数 schema</div>
+          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">{{ t('mcpTools.run.schemaLabel') }}</div>
           <pre style="background: var(--bg-card-hover); padding: 8px; border-radius: 4px; font-size: 11px; max-height: 140px; overflow: auto; margin: 0;">{{ formattedSchema }}</pre>
         </div>
         <div>
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-            <span style="color: var(--text-muted); font-size: 11px;">参数</span>
+            <span style="color: var(--text-muted); font-size: 11px;">{{ t('mcpTools.run.paramsLabel') }}</span>
             <a-radio-group v-model:value="paramMode" size="small" button-style="solid">
-              <a-radio-button value="form" :disabled="!hasFormSchema">表单</a-radio-button>
-              <a-radio-button value="json">JSON</a-radio-button>
+              <a-radio-button value="form" :disabled="!hasFormSchema">{{ t('mcpTools.run.modeForm') }}</a-radio-button>
+              <a-radio-button value="json">{{ t('mcpTools.run.modeJson') }}</a-radio-button>
             </a-radio-group>
           </div>
           <McpToolForm
@@ -205,16 +205,16 @@
               style="font-family: monospace; font-size: 12px;"
             />
             <div v-if="paramsParseError" style="color: #ff4d4f; font-size: 11px; margin-top: 4px;">
-              JSON 解析失败：{{ paramsParseError }}
+              {{ t('mcpTools.run.jsonParseFailed', { err: paramsParseError }) }}
             </div>
           </template>
         </div>
         <div v-if="runError" style="background: #2a1517; border: 1px solid #5c2426; padding: 8px; border-radius: 4px;">
-          <div style="color: #ff4d4f; font-size: 11px; font-weight: 500; margin-bottom: 4px;">运行失败</div>
+          <div style="color: #ff4d4f; font-size: 11px; font-weight: 500; margin-bottom: 4px;">{{ t('mcpTools.run.errorTitle') }}</div>
           <pre style="color: #ff7875; font-size: 11px; margin: 0; white-space: pre-wrap;">{{ runError }}</pre>
         </div>
         <div v-if="runResult !== null">
-          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">结果</div>
+          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">{{ t('mcpTools.run.resultLabel') }}</div>
           <pre style="background: var(--bg-card-hover); padding: 8px; border-radius: 4px; font-size: 11px; max-height: 240px; overflow: auto; margin: 0; white-space: pre-wrap;">{{ formattedResult }}</pre>
         </div>
       </div>
@@ -229,25 +229,25 @@
     >
       <div v-if="selectedResource" style="display: flex; flex-direction: column; gap: 12px;">
         <div>
-          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">服务器 / URI</div>
+          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">{{ t('mcpTools.read.serverLabel') }}</div>
           <div style="font-family: monospace; font-size: 12px; word-break: break-all;">
             <a-tag color="blue">{{ selectedResource.server }}</a-tag>
             <span style="color: #87d068;">{{ selectedResource.uri }}</span>
           </div>
         </div>
         <div v-if="selectedResource.description">
-          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">描述</div>
+          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">{{ t('mcpTools.read.descriptionLabel') }}</div>
           <div style="font-size: 12px;">{{ selectedResource.description }}</div>
         </div>
         <div v-if="reading" style="text-align: center; padding: 20px;">
-          <a-spin tip="读取中..." />
+          <a-spin :tip="t('mcpTools.read.spinnerTip')" />
         </div>
         <div v-if="readError" style="background: #2a1517; border: 1px solid #5c2426; padding: 8px; border-radius: 4px;">
-          <div style="color: #ff4d4f; font-size: 11px; font-weight: 500; margin-bottom: 4px;">读取失败</div>
+          <div style="color: #ff4d4f; font-size: 11px; font-weight: 500; margin-bottom: 4px;">{{ t('mcpTools.read.errorTitle') }}</div>
           <pre style="color: #ff7875; font-size: 11px; margin: 0; white-space: pre-wrap;">{{ readError }}</pre>
         </div>
         <div v-if="readContents.length">
-          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">内容（{{ readContents.length }} 段）</div>
+          <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 4px;">{{ t('mcpTools.read.contentsLabel', { count: readContents.length }) }}</div>
           <div v-for="(c, i) in readContents" :key="i" style="margin-bottom: 12px;">
             <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
               <a-tag v-if="c.mimeType" size="small" style="font-size: 10px;">{{ c.mimeType }}</a-tag>
@@ -255,10 +255,10 @@
             </div>
             <pre v-if="c.text" style="background: var(--bg-card-hover); padding: 8px; border-radius: 4px; font-size: 11px; max-height: 360px; overflow: auto; margin: 0; white-space: pre-wrap; word-break: break-all;">{{ c.text }}</pre>
             <div v-else-if="c.blob" style="font-size: 11px; color: var(--text-muted); font-style: italic;">
-              [二进制 blob，{{ c.blob.length }} 字符 base64 — 此 demo 不渲染]
+              {{ t('mcpTools.read.binaryNote', { count: c.blob.length }) }}
             </div>
             <div v-else style="font-size: 11px; color: var(--text-muted); font-style: italic;">
-              [空内容]
+              {{ t('mcpTools.read.emptyContent') }}
             </div>
           </div>
         </div>
@@ -269,12 +269,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ReloadOutlined, CloudServerOutlined, ToolOutlined, CheckCircleOutlined, PlayCircleOutlined, EyeOutlined } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useMcp } from '../composables/useMcp.js'
 import McpToolForm from '../components/McpToolForm.vue'
 import { extractFields, defaultValues, validateValues } from '../utils/mcp-schema.js'
 
+const { t } = useI18n()
 const ws = useWsStore()
 const mcp = useMcp()
 
@@ -287,15 +289,15 @@ const dataSource = ref('')   // 'topic' | 'cli' — surfaced in template hint, h
 const filteredTools = computed(() => {
   if (!toolSearch.value) return tools.value
   const q = toolSearch.value.toLowerCase()
-  return tools.value.filter(t => t.name?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q))
+  return tools.value.filter(tool => tool.name?.toLowerCase().includes(q) || tool.description?.toLowerCase().includes(q))
 })
 
-const toolColumns = [
-  { title: '工具名称', key: 'name', dataIndex: 'name', width: '28%' },
-  { title: '服务器', key: 'server', dataIndex: 'server', width: '18%' },
-  { title: '描述', dataIndex: 'description', ellipsis: true },
-  { title: '操作', key: 'action', width: 110 },
-]
+const toolColumns = computed(() => [
+  { title: t('mcpTools.toolColumns.name'), key: 'name', dataIndex: 'name', width: '28%' },
+  { title: t('mcpTools.toolColumns.server'), key: 'server', dataIndex: 'server', width: '18%' },
+  { title: t('mcpTools.toolColumns.description'), dataIndex: 'description', ellipsis: true },
+  { title: t('mcpTools.toolColumns.action'), key: 'action', width: 110 },
+])
 
 // Resources state — populated lazily on first render in topic mode. In CLI
 // fallback mode the panel is hidden entirely (the legacy ws.execute paths
@@ -305,12 +307,12 @@ const resourceSearch = ref('')
 const resourcesLoading = ref(false)
 const resourcesLoaded = ref(false)
 
-const resourceColumns = [
-  { title: 'URI', key: 'uri', dataIndex: 'uri' },
-  { title: '服务器', key: 'server', dataIndex: 'server', width: '15%' },
-  { title: 'MIME', key: 'mimeType', dataIndex: 'mimeType', width: '15%' },
-  { title: '操作', key: 'action', width: 90 },
-]
+const resourceColumns = computed(() => [
+  { title: t('mcpTools.resourceColumns.uri'), key: 'uri', dataIndex: 'uri' },
+  { title: t('mcpTools.resourceColumns.server'), key: 'server', dataIndex: 'server', width: '15%' },
+  { title: t('mcpTools.resourceColumns.mime'), key: 'mimeType', dataIndex: 'mimeType', width: '15%' },
+  { title: t('mcpTools.resourceColumns.action'), key: 'action', width: 90 },
+])
 
 const filteredResources = computed(() => {
   if (!resourceSearch.value) return resources.value
@@ -364,8 +366,8 @@ const readContents = ref([])
 const readError = ref('')
 
 const readModalTitle = computed(() => {
-  if (!selectedResource.value) return '读取 MCP 资源'
-  return `读取 ${selectedResource.value.server}`
+  if (!selectedResource.value) return t('mcpTools.read.fallbackTitle')
+  return t('mcpTools.read.modalTitle', { server: selectedResource.value.server })
 })
 
 async function openReadModal(resource) {
@@ -379,7 +381,6 @@ async function openReadModal(resource) {
     if (r && Array.isArray(r.contents)) {
       readContents.value = r.contents
     } else {
-      // Some servers return a single content object — normalise.
       readContents.value = r ? [r] : []
     }
   } catch (err) {
@@ -411,8 +412,8 @@ const hasFormSchema = computed(() => {
 })
 
 const runModalTitle = computed(() => {
-  if (!selectedTool.value) return '运行 MCP 工具'
-  return `运行 ${selectedTool.value.server}.${selectedTool.value.name}`
+  if (!selectedTool.value) return t('mcpTools.run.fallbackTitle')
+  return t('mcpTools.run.modalTitle', { server: selectedTool.value.server, tool: selectedTool.value.name })
 })
 
 const formattedSchema = computed(() => {
@@ -442,9 +443,6 @@ function openRunModal(tool) {
   runError.value = ''
   paramsParseError.value = ''
   formErrors.value = {}
-  // Default to form mode whenever the tool has a usable schema; JSON mode
-  // is the escape hatch for tools whose schema falls outside extractFields'
-  // supported subset (nested objects, arrays of objects, etc).
   const fields = extractFields(tool?.inputSchema || null)
   paramMode.value = fields.length > 0 ? 'form' : 'json'
   formValues.value = defaultValues(fields)
@@ -453,8 +451,6 @@ function openRunModal(tool) {
 
 function closeRunModal() {
   runModalOpen.value = false
-  // Keep selectedTool / result around briefly so the close animation
-  // doesn't render an empty modal — Vue tears it down on next tick anyway.
 }
 
 async function runSelectedTool() {
@@ -481,7 +477,7 @@ async function runSelectedTool() {
         return
       }
       if (params === null || typeof params !== 'object' || Array.isArray(params)) {
-        paramsParseError.value = '参数必须是 JSON 对象'
+        paramsParseError.value = t('mcpTools.run.paramsMustBeObject')
         return
       }
     }
@@ -504,19 +500,13 @@ async function runSelectedTool() {
   }
 }
 
-/**
- * Topic path — works inside the desktop web-shell where mcp.list_tools is
- * registered (see desktop-app-vue/src/main/web-shell/handlers/mcp-handlers.js).
- * Returns false on `mcp_unavailable` / `no_handler` so the caller falls back
- * to the CLI execute path.
- */
 async function loadFromTopic() {
   const r = await mcp.listTools()
   if (!r || !Array.isArray(r.servers)) return false
   servers.value = r.servers.map((s) => ({
     key: s.name,
     name: s.name,
-    command: '',         // topic doesn't expose config-time command/args
+    command: '',
     args: [],
     description: s.state ? `state: ${s.state}` : '',
     error: s.error || null,
@@ -524,13 +514,13 @@ async function loadFromTopic() {
   const flat = []
   for (const s of r.servers) {
     if (!Array.isArray(s.tools)) continue
-    for (const t of s.tools) {
+    for (const tool of s.tools) {
       flat.push({
-        key: `${s.name}.${t.name}`,
-        name: t.name,
-        description: t.description || '',
+        key: `${s.name}.${tool.name}`,
+        name: tool.name,
+        description: tool.description || '',
         server: s.name,
-        inputSchema: t.inputSchema || null,
+        inputSchema: tool.inputSchema || null,
       })
     }
   }
@@ -541,11 +531,6 @@ async function loadFromTopic() {
 async function load() {
   loading.value = true
   try {
-    // Prefer the topic path — it's the only one that works in the embedded
-    // desktop web-shell (Electron can't spawn the cc CLI as a child). When
-    // the topic isn't registered (standalone CLI mode in a browser), fall
-    // back to ws.execute. Either path populates the same `servers` + `tools`
-    // refs so the template doesn't branch.
     try {
       const ok = await loadFromTopic()
       if (ok) {
@@ -553,7 +538,6 @@ async function load() {
         return
       }
     } catch (err) {
-      // Expected when the desktop web-shell isn't loaded — CLI mode falls through.
       const msg = err?.message || ''
       const recoverable =
         msg.includes('mcp_unavailable') ||
@@ -574,9 +558,6 @@ async function load() {
     console.error('MCP load failed:', e)
   } finally {
     loading.value = false
-    // Topic mode also loads resources — fire-and-forget so it doesn't block
-    // the main panel render. Errors are surfaced inside loadResources via
-    // the resourcesLoading flag + console.
     if (dataSource.value === 'topic') {
       loadResources()
     } else {
@@ -593,7 +574,6 @@ function parseServers(output) {
   for (const line of lines) {
     const trimmed = line.trim()
     if (!trimmed || trimmed.startsWith('─') || trimmed.startsWith('MCP')) continue
-    // Name line: "  servername" or "● servername"
     const nameMatch = trimmed.match(/^[●•]?\s*([a-z][a-z0-9-_]+)\s*$/i)
       || trimmed.match(/^([a-z][a-z0-9-_]+)\s*[:：]/)
     if (nameMatch) {
@@ -610,7 +590,6 @@ function parseServers(output) {
     }
   }
   if (current) result.push(current)
-  // If no servers parsed but output has content, show raw entries
   if (!result.length && output.trim() && !output.includes('No MCP')) {
     const entries = output.split('\n').filter(l => l.trim() && !l.includes('─'))
     entries.slice(0, 10).forEach((e, i) => {
@@ -627,12 +606,10 @@ function parseTools(output) {
   for (const line of lines) {
     const trimmed = line.trim()
     if (!trimmed || trimmed.startsWith('─')) continue
-    // Server header
     if (trimmed.match(/^\[/) || trimmed.match(/^Server:/i)) {
       currentServer = trimmed.replace(/[\[\]]/g, '').replace(/^Server:\s*/i, '').trim()
       continue
     }
-    // Tool entry: "  tool_name - description" or "● tool_name"
     const m = trimmed.match(/^[●•]?\s*([a-z][a-z0-9_-]+)\s*[-–]\s*(.+)/i)
       || trimmed.match(/^[●•]?\s*([a-z][a-z0-9_-]+)$/)
     if (m) {

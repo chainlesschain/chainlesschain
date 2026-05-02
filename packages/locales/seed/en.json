@@ -2226,6 +2226,77 @@
       "exportFailed": "Export failed: {err}"
     }
   },
+  "mcpTools": {
+    "title": "MCP Tools",
+    "subtitle": "Model Context Protocol — mounted tools and servers",
+    "refresh": "Refresh",
+    "stats": {
+      "servers": "Servers",
+      "tools": "Tools",
+      "running": "Run status",
+      "ready": "Ready"
+    },
+    "servers": {
+      "title": "Configured servers",
+      "emptyHintPrefix": "No MCP servers yet — run",
+      "emptyHintCommand": "chainlesschain mcp add",
+      "emptyHintSuffix": "to add one"
+    },
+    "tools": {
+      "title": "Available tools",
+      "searchPlaceholder": "Search tools...",
+      "runAction": "Run",
+      "desktopOnly": "Desktop mode only",
+      "emptyText": "No tools available"
+    },
+    "toolColumns": {
+      "name": "Tool",
+      "server": "Server",
+      "description": "Description",
+      "action": "Action"
+    },
+    "resources": {
+      "title": "Available resources",
+      "searchPlaceholder": "Search resources...",
+      "emptyHint": "No MCP resources right now (some servers do not expose resources — that is normal)",
+      "emptyTable": "No matching resources",
+      "readAction": "Read"
+    },
+    "resourceColumns": {
+      "uri": "URI",
+      "server": "Server",
+      "mime": "MIME",
+      "action": "Action"
+    },
+    "run": {
+      "okIdle": "Run",
+      "okRunning": "Running...",
+      "cancel": "Close",
+      "fallbackTitle": "Run MCP tool",
+      "modalTitle": "Run {server}.{tool}",
+      "serverLabel": "Server / tool",
+      "descriptionLabel": "Description",
+      "schemaLabel": "Input schema",
+      "paramsLabel": "Params",
+      "modeForm": "Form",
+      "modeJson": "JSON",
+      "jsonParseFailed": "JSON parse failed: {err}",
+      "paramsMustBeObject": "Params must be a JSON object",
+      "errorTitle": "Run failed",
+      "resultLabel": "Result"
+    },
+    "read": {
+      "fallbackTitle": "Read MCP resource",
+      "modalTitle": "Read {server}",
+      "serverLabel": "Server / URI",
+      "descriptionLabel": "Description",
+      "spinnerTip": "Reading...",
+      "errorTitle": "Read failed",
+      "contentsLabel": "Contents ({count} segments)",
+      "binaryNote": "[binary blob, {count} chars of base64 — not rendered in this demo]",
+      "emptyContent": "[empty content]"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",

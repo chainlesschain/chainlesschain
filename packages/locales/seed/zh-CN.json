@@ -2226,6 +2226,77 @@
       "exportFailed": "导出失败: {err}"
     }
   },
+  "mcpTools": {
+    "title": "MCP 工具",
+    "subtitle": "Model Context Protocol — 已挂载工具与服务器",
+    "refresh": "刷新",
+    "stats": {
+      "servers": "服务器数量",
+      "tools": "工具数量",
+      "running": "运行状态",
+      "ready": "就绪"
+    },
+    "servers": {
+      "title": "已配置服务器",
+      "emptyHintPrefix": "暂无 MCP 服务器，运行",
+      "emptyHintCommand": "chainlesschain mcp add",
+      "emptyHintSuffix": "添加"
+    },
+    "tools": {
+      "title": "可用工具",
+      "searchPlaceholder": "搜索工具...",
+      "runAction": "运行",
+      "desktopOnly": "仅桌面模式",
+      "emptyText": "暂无可用工具"
+    },
+    "toolColumns": {
+      "name": "工具名称",
+      "server": "服务器",
+      "description": "描述",
+      "action": "操作"
+    },
+    "resources": {
+      "title": "可用资源",
+      "searchPlaceholder": "搜索资源...",
+      "emptyHint": "当前无 MCP 资源（部分服务器不暴露 resources，是正常的）",
+      "emptyTable": "无匹配资源",
+      "readAction": "读取"
+    },
+    "resourceColumns": {
+      "uri": "URI",
+      "server": "服务器",
+      "mime": "MIME",
+      "action": "操作"
+    },
+    "run": {
+      "okIdle": "运行",
+      "okRunning": "运行中...",
+      "cancel": "关闭",
+      "fallbackTitle": "运行 MCP 工具",
+      "modalTitle": "运行 {server}.{tool}",
+      "serverLabel": "服务器 / 工具",
+      "descriptionLabel": "描述",
+      "schemaLabel": "参数 schema",
+      "paramsLabel": "参数",
+      "modeForm": "表单",
+      "modeJson": "JSON",
+      "jsonParseFailed": "JSON 解析失败：{err}",
+      "paramsMustBeObject": "参数必须是 JSON 对象",
+      "errorTitle": "运行失败",
+      "resultLabel": "结果"
+    },
+    "read": {
+      "fallbackTitle": "读取 MCP 资源",
+      "modalTitle": "读取 {server}",
+      "serverLabel": "服务器 / URI",
+      "descriptionLabel": "描述",
+      "spinnerTip": "读取中...",
+      "errorTitle": "读取失败",
+      "contentsLabel": "内容（{count} 段）",
+      "binaryNote": "[二进制 blob，{count} 字符 base64 — 此 demo 不渲染]",
+      "emptyContent": "[空内容]"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",
